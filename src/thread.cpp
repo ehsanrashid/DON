@@ -33,8 +33,7 @@
 
 namespace DON {
 
-// Constructor launches the thread and waits until it goes to sleep
-// in idle_func(). Note that 'dead' and 'busy' should be already set.
+// Constructor launches the thread and waits until it goes to sleep in idle_func().
 Thread::Thread(std::size_t                   threadIdx,
                std::size_t                   threadCnt,
                std::size_t                   numaIdx,
@@ -51,8 +50,6 @@ Thread::Thread(std::size_t                   threadIdx,
 
     if (autoStart)
         start();
-
-    wait_finish();
 
     numaAccessToken = nodeBinder();
 
@@ -82,7 +79,7 @@ Thread::~Thread() noexcept {
 void Thread::ensure_network_replicated() const noexcept { worker->ensure_network_replicated(); }
 
 void Thread::start() noexcept {
-    std::scoped_lock lock(mutex);
+    std::unique_lock lock(mutex);
 
     // If thread is already running, do nothing
     if (nativeThread.joinable())
@@ -94,6 +91,9 @@ void Thread::start() noexcept {
 
     // Move new NativeThread in
     nativeThread = NativeThread(&Thread::idle_func, this);
+
+    // Wait until the new thread reaches idle
+    condVar.wait(lock, [this] { return !busy; });
 }
 
 // Thread gets parked here, blocked on the condition variable,
