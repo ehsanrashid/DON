@@ -303,17 +303,19 @@ struct HandleGuard final {
 
     ~HandleGuard() noexcept { close(); }
 
+    bool valid() const noexcept { return handle != INVALID_HANDLE; }
+
     void close() noexcept {
-        if (handle != nullptr)
+        if (valid())
         {
             if (handle != INVALID_HANDLE_VALUE)
                 CloseHandle(handle);
 
-            handle = nullptr;
+            handle = INVALID_HANDLE;
         }
     }
 
-    void reset(HANDLE newHandle = nullptr) noexcept {
+    void reset(HANDLE newHandle = INVALID_HANDLE) noexcept {
         close();
 
         handle = newHandle;
@@ -322,12 +324,14 @@ struct HandleGuard final {
     HANDLE release() noexcept {
         HANDLE released = handle;
 
-        handle = nullptr;
+        handle = INVALID_HANDLE;
 
         return released;
     }
 
    private:
+    static constexpr HANDLE INVALID_HANDLE = nullptr;
+
     HANDLE& handle;
 };
 
@@ -359,18 +363,20 @@ struct MMapGuard final {
 
     ~MMapGuard() noexcept { close(); }
 
+    bool valid() const noexcept { return mappedPtr != INVALID_PTR; }
+
     void* get() const noexcept { return mappedPtr; }
 
     void close() noexcept {
-        if (mappedPtr != nullptr)
+        if (valid())
         {
             UnmapViewOfFile(mappedPtr);
 
-            mappedPtr = nullptr;
+            mappedPtr = INVALID_PTR;
         }
     }
 
-    void reset(void* newPtr = nullptr) noexcept {
+    void reset(void* newPtr = INVALID_PTR) noexcept {
         close();
 
         mappedPtr = newPtr;
@@ -379,12 +385,14 @@ struct MMapGuard final {
     void* release() noexcept {
         void* released = mappedPtr;
 
-        mappedPtr = nullptr;
+        mappedPtr = INVALID_PTR;
 
         return released;
     }
 
    private:
+    static constexpr void* INVALID_PTR = nullptr;
+
     void*& mappedPtr;
 };
 
@@ -553,16 +561,18 @@ struct FdGuard final {
 
     ~FdGuard() noexcept { close(); }
 
+    bool valid() const noexcept { return fd > INVALID_FD; }
+
     void close() noexcept {
-        if (fd >= 0)
+        if (valid())
         {
             ::close(fd);
 
-            fd = -1;
+            fd = INVALID_FD;
         }
     }
 
-    void reset(int newFd = -1) noexcept {
+    void reset(int newFd = INVALID_FD) noexcept {
         close();
 
         fd = newFd;
@@ -571,12 +581,14 @@ struct FdGuard final {
     int release() noexcept {
         int released = fd;
 
-        fd = -1;
+        fd = INVALID_FD;
 
         return released;
     }
 
    private:
+    static constexpr int INVALID_FD = -1;
+
     int& fd;
 };
 
@@ -616,22 +628,24 @@ struct MMapGuard final {
 
     ~MMapGuard() noexcept { close(); }
 
+    bool valid() const noexcept { return mappedPtr != INVALID_PTR; }
+
     void* get() const noexcept { return mappedPtr; }
 
     std::size_t get_size() const noexcept { return mappedSize; }
 
     void close() noexcept {
-        if (mappedPtr != nullptr)
+        if (valid())
         {
             munmap(mappedPtr, mappedSize);
 
-            mappedPtr = nullptr;
+            mappedPtr = INVALID_PTR;
         }
 
-        mappedSize = 0;
+        mappedSize = INVALID_SIZE;
     }
 
-    void reset(void* newPtr = nullptr, std::size_t newSize = 0) noexcept {
+    void reset(void* newPtr = INVALID_PTR, std::size_t newSize = INVALID_SIZE) noexcept {
         close();
 
         mappedPtr  = newPtr;
@@ -641,13 +655,16 @@ struct MMapGuard final {
     MMapRelease release() noexcept {
         MMapRelease released{mappedPtr, mappedSize};
 
-        mappedPtr  = nullptr;
-        mappedSize = 0;
+        mappedPtr  = INVALID_PTR;
+        mappedSize = INVALID_SIZE;
 
         return released;
     }
 
    private:
+    static constexpr void*       INVALID_PTR  = nullptr;
+    static constexpr std::size_t INVALID_SIZE = 0;
+
     void*&       mappedPtr;
     std::size_t& mappedSize;
 };
