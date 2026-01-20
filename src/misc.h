@@ -254,7 +254,7 @@ thread_index_range(std::size_t threadId, std::size_t threadCount, std::size_t to
 //  - Lock the returned mutex with std::scoped_lock or std::unique_lock.
 //
 // Notes:
-//  - The class is static-only and cannot be instantiated. (Restriction)
+//  - The class is static-only; it cannot be instantiated. (Restriction)
 //  - Mutexes are stored as values in the map, avoiding extra heap allocations.
 class OstreamMutexRegistry final {
    public:
@@ -280,11 +280,11 @@ class OstreamMutexRegistry final {
     }
 
     OstreamMutexRegistry() noexcept                                       = delete;
+    ~OstreamMutexRegistry() noexcept                                      = delete;
     OstreamMutexRegistry(const OstreamMutexRegistry&) noexcept            = delete;
     OstreamMutexRegistry(OstreamMutexRegistry&&) noexcept                 = delete;
     OstreamMutexRegistry& operator=(const OstreamMutexRegistry&) noexcept = delete;
     OstreamMutexRegistry& operator=(OstreamMutexRegistry&&) noexcept      = delete;
-    ~OstreamMutexRegistry() noexcept                                      = delete;
 
     // Protects access to the osMutexes map for thread safety
     static inline std::mutex mutex;

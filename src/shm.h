@@ -477,7 +477,7 @@ class BaseSharedMemory {
 //  - Call 'clean()' to close and clean up all registered objects, optionally skipping actual memory unmapping.
 //
 // Note:
-//  - This class is static-only; it cannot be instantiated. (Restriction)
+//  - The class is static-only; it cannot be instantiated. (Restriction)
 class SharedMemoryRegistry final {
    public:
     // Register a shared memory object in the global registry.
@@ -515,11 +515,11 @@ class SharedMemoryRegistry final {
 
    private:
     SharedMemoryRegistry() noexcept                                       = delete;
+    ~SharedMemoryRegistry() noexcept                                      = delete;
     SharedMemoryRegistry(const SharedMemoryRegistry&) noexcept            = delete;
     SharedMemoryRegistry(SharedMemoryRegistry&&) noexcept                 = delete;
     SharedMemoryRegistry& operator=(const SharedMemoryRegistry&) noexcept = delete;
     SharedMemoryRegistry& operator=(SharedMemoryRegistry&&) noexcept      = delete;
-    ~SharedMemoryRegistry() noexcept                                      = delete;
 
     // Protects access to sharedMemories set for thread safety
     static inline std::mutex mutex;
@@ -545,30 +545,29 @@ class SharedMemoryRegistry final {
 //   - Prevents instantiation and copying (all constructors/destructor deleted).
 //
 // Note:
-//  - This class is static-only; it cannot be instantiated. (Restriction)
+//  - The class is static-only; it cannot be instantiated. (Restriction)
 class SharedMemoryCleanupManager final {
    public:
+    // Ensures signal handlers and atexit cleanup are registered only once
     static void ensure_registered() noexcept {
         std::call_once(registerOnce, register_signal_handlers);
     }
 
    private:
+    // Register signal handlers and atexit cleanup
     static void register_signal_handlers() noexcept {
         std::atexit([]() { SharedMemoryRegistry::clean(); });
 
-        constexpr StdArray<int, 12> Signals{SIGHUP,  SIGINT,  SIGQUIT, SIGILL, SIGABRT, SIGFPE,
-                                            SIGSEGV, SIGTERM, SIGBUS,  SIGSYS, SIGXCPU, SIGXFSZ};
-
-        for (int Signal : Signals)
-        {
+        const auto setup_signal = [](int Signal) noexcept {
             struct sigaction SigAction{};
             SigAction.sa_handler = signal_handler;
 
             sigemptyset(&SigAction.sa_mask);
 
+            // Choose flags depending on signal type
             switch (Signal)
             {
-                // Normal termination/interruption signals
+            // Normal termination/interruption signals
             case SIGHUP :
             case SIGINT :
             case SIGQUIT :
@@ -586,9 +585,9 @@ class SharedMemoryCleanupManager final {
             case SIGBUS :
                 SigAction.sa_flags = 0;
                 break;
-            // Just in case a signal sneaks in
+            // Safe fallback: Just in case a signal sneaks in
             default :
-                SigAction.sa_flags = 0;  // Safe fallback
+                SigAction.sa_flags = 0;
                 break;
             }
 
@@ -597,9 +596,13 @@ class SharedMemoryCleanupManager final {
                 std::cerr << "Failed to register signal handler for " << Signal << ": "
                           << std::strerror(errno) << std::endl;
             }
-        }
+        };
+
+        for (int Signal : SIGNALS)
+            setup_signal(Signal);
     }
 
+    // Handles signals, cleans memory, restores default, and re-raises
     static void signal_handler(int Signal) noexcept {
         // Minimal cleanup; avoid non-signal-safe calls if possible
         // The memory mappings will be released on exit.
@@ -614,17 +617,21 @@ class SharedMemoryCleanupManager final {
         SigAction.sa_flags = SA_RESETHAND | SA_NODEFER;
 
         sigaction(Signal, &SigAction, nullptr);
-
+        // Re-raise
         ::raise(Signal);
     }
 
    private:
     SharedMemoryCleanupManager() noexcept                                             = delete;
+    ~SharedMemoryCleanupManager() noexcept                                            = delete;
     SharedMemoryCleanupManager(const SharedMemoryCleanupManager&) noexcept            = delete;
     SharedMemoryCleanupManager(SharedMemoryCleanupManager&&) noexcept                 = delete;
     SharedMemoryCleanupManager& operator=(const SharedMemoryCleanupManager&) noexcept = delete;
     SharedMemoryCleanupManager& operator=(SharedMemoryCleanupManager&&) noexcept      = delete;
-    ~SharedMemoryCleanupManager() noexcept                                            = delete;
+
+    // All handled signals, available at compile-time
+    static constexpr StdArray<int, 12> SIGNALS{SIGHUP,  SIGINT,  SIGQUIT, SIGILL, SIGABRT, SIGFPE,
+                                               SIGSEGV, SIGTERM, SIGBUS,  SIGSYS, SIGXCPU, SIGXFSZ};
 
     static inline std::once_flag registerOnce;
 };
