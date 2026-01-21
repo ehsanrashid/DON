@@ -20,37 +20,11 @@
 #include <algorithm>
 #include <cassert>
 #include <cctype>
-#include <charconv>
 #include <cstdlib>
 #include <iostream>
 #include <numeric>
-#include <system_error>
 
 namespace DON {
-
-namespace {
-
-constexpr std::string_view EMPTY_STRING{"<empty>"};
-
-std::string clamp_value(std::string_view value, int minValue, int maxValue) noexcept {
-    int intValue   = 0;
-    auto [ptr, ec] = std::from_chars(value.data(), value.data() + value.size(), intValue);
-
-    switch (ec)
-    {
-    case std::errc::invalid_argument :
-        intValue = minValue;
-        break;
-    case std::errc::result_out_of_range :
-        intValue = maxValue;
-        break;
-    default :;
-    }
-
-    return std::to_string(std::clamp(intValue, minValue, maxValue));
-}
-
-}  // namespace
 
 std::size_t CaseInsensitiveHash::operator()(std::string_view str) const noexcept {
     auto lowerStr = lower_case(std::string(str));
@@ -156,7 +130,8 @@ void Option::operator=(std::string value) noexcept {
     {
     case Type::CHECK :
         value = lower_case(value);
-        if (value != "true" && value != "false")
+
+        if (!valid_bool_string(value))
             return;
         break;
     case Type::STRING :
@@ -168,6 +143,7 @@ void Option::operator=(std::string value) noexcept {
         break;
     case Type::COMBO :
         value = lower_case(value);
+
         if (std::find(comboValues.begin(), comboValues.end(), value) == comboValues.end())
             return;
         break;
