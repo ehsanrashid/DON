@@ -888,23 +888,23 @@ class TBTables final {
     [[nodiscard]] TBTable<T>* get(Key key) noexcept {
 
         // Limit search by max probe distance
-        const std::size_t Limit = std::min(maxProbeDistance + 1, SIZE);
+        const std::size_t LimitSize = std::min(maxProbeDistance + 1, SIZE);
 
-        for (std::size_t distance = 0; distance < Limit; ++distance)
+        for (std::size_t distance = 0; distance < LimitSize; ++distance)
         {
             const std::size_t bucket = (key + distance) & MASK;
 
             Entry& entry = entries[bucket];
-
-            // Found the key -> return the associated table
-            if (entry.key == key)
-                return entry.get<T>();  // done
 
             // Stop search if:
             // 1) Empty slot -> key not found
             // 2) Robin Hood break condition -> key would have been inserted earlier
             if (entry.empty() || distance > probe_distance(entry, bucket))
                 break;
+
+            // Found the key -> return the associated table
+            if (entry.key == key)
+                return entry.get<T>();  // done
         }
 
         // Key not found
@@ -980,7 +980,7 @@ class TBTables final {
             {
                 Entry& nextEntry = entries[nextBucket];
 
-                // Stop if we reach an empty slot
+                // Stop if empty slot
                 if (nextEntry.empty())
                     break;
 
@@ -1002,11 +1002,11 @@ class TBTables final {
         };
 
         // Limit search by max probe distance
-        const std::size_t Limit = std::min(maxProbeDistance + 1, SIZE);
+        const std::size_t LimitSize = std::min(maxProbeDistance + 1, SIZE);
 
-        for (std::size_t distance = 0; distance < Limit; ++distance)
+        for (std::size_t distance = 0; distance < LimitSize; ++distance)
         {
-            std::size_t bucket = (key + distance) & MASK;
+            const std::size_t bucket = (key + distance) & MASK;
 
             Entry& entry = entries[bucket];
 
