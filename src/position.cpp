@@ -2088,9 +2088,6 @@ bool Position::_is_ok() const noexcept {
             && !enpassant_possible(active_color(), en_passant_sq())))
         assert(false && "Position::_is_ok(): Default");
 
-    if ((acc_attacks_bb() & square<KING>(~active_color())) != 0)
-        assert(false && "Position::_is_ok(): King Checker");
-
     if (raw_key() != compute_key())
         assert(false && "Position::_is_ok(): Raw Key");
 
@@ -2167,6 +2164,9 @@ bool Position::_is_ok() const noexcept {
                 || (castling_rights_mask(square<KING>(c)) & cr) != cr)
                 assert(false && "Position::_is_ok(): Castling");
         }
+
+    if ((acc_attacks_bb() & square<KING>(~active_color())) != 0)
+        assert(false && "Position::_is_ok(): King Checker");
 
     return true;
 }

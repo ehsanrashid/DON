@@ -347,6 +347,53 @@ struct PairsData final {
       mapIdx;  // WDLWin, WDLLoss, WDLCursedWin, WDLBlessedLoss (used in DTZ)
 };
 
+struct TableData final {
+    Key          key[COLOR_NB];
+    std::uint8_t pieceCount;
+    bool         hasPawns;
+    bool         hasUniquePieces;
+    std::uint8_t pawnCount[COLOR_NB];
+};
+
+TableData make_table_data(std::string_view code) noexcept {
+    TableData tableData;
+
+    State    st;
+    Position pos;
+
+    pos.set(code, WHITE, &st);
+
+    tableData.key[WHITE] = pos.material_key();
+
+    tableData.pieceCount = pos.count();
+
+    tableData.hasPawns = pos.pieces_bb(PAWN) != 0;
+
+    tableData.hasUniquePieces = false;
+    for (Color c : {WHITE, BLACK})
+        for (PieceType pt : PIECE_TYPES)
+            if (pt != KING && pos.count(c, pt) == 1)
+                tableData.hasUniquePieces = true;
+
+    StdArray<std::uint8_t, COLOR_NB> pawnCnt{
+      pos.count(WHITE, PAWN),  //
+      pos.count(BLACK, PAWN)   //
+    };
+
+    // Set the leading color. In case both sides have pawns the leading color
+    // is the side with fewer pawns because this leads to better compression.
+    bool c = pawnCnt[BLACK] == 0 || (pawnCnt[WHITE] != 0 && pawnCnt[WHITE] <= pawnCnt[BLACK]);
+
+    tableData.pawnCount[WHITE] = pawnCnt[c ? WHITE : BLACK];
+    tableData.pawnCount[BLACK] = pawnCnt[c ? BLACK : WHITE];
+
+    pos.set(code, BLACK, &st);
+
+    tableData.key[BLACK] = pos.material_key();
+
+    return tableData;
+}
+
 // TBTable contains indexing information to access the corresponding TBFile.
 // There are 2 types of TBTable, corresponding to a WDL or a DTZ file.
 // TBTable is populated at init time but the nested PairsData records are
@@ -358,8 +405,8 @@ struct TBTable final {
     PairsData* get(int ac, int f) noexcept { return &items[ac % SIDES][hasPawns ? f : 0]; }
 
     TBTable() noexcept = default;
-    explicit TBTable(std::string_view code) noexcept;
-    explicit TBTable(const TBTable<WDL>& wdlTable) noexcept;
+
+    explicit TBTable(const TableData& tableData) noexcept;
 
     ~TBTable() noexcept;
 
@@ -379,14 +426,14 @@ struct TBTable final {
 
     static constexpr std::size_t SIDES = T == WDL ? 2 : 1;
 
-    StdArray<Key, COLOR_NB>                 key;
-    std::uint8_t                            pieceCount;
-    bool                                    hasPawns;
-    bool                                    hasUniquePieces;
-    StdArray<std::uint8_t, COLOR_NB>        pawnCount;  // [Lead color / other color]
-    StdArray<PairsData, SIDES, FILE_NB / 2> items;      // [color][FILE_A..FILE_D]
+    StdArray<Key, COLOR_NB>          key;
+    std::uint8_t                     pieceCount;
+    bool                             hasPawns;
+    bool                             hasUniquePieces;
+    StdArray<std::uint8_t, COLOR_NB> pawnCount;  // [Lead color / other color]
 
    private:
+    StdArray<PairsData, SIDES, FILE_NB / 2> items;  // [color][FILE_A..FILE_D]
 #if defined(_WIN32)
     HANDLE      hMapFile = INVALID_HANDLE;
     HandleGuard hMapFileGuard{hMapFile};
@@ -403,53 +450,15 @@ struct TBTable final {
     InitOnce      initOnce;
 };
 
-template<>
-TBTable<WDL>::TBTable(std::string_view code) noexcept {
-
-    State    st;
-    Position pos;
-
-    pos.set(code, WHITE, &st);
-
-    key[WHITE] = pos.material_key();
-
-    pieceCount = pos.count();
-
-    hasPawns = pos.pieces_bb(PAWN) != 0;
-
-    hasUniquePieces = false;
-    for (Color c : {WHITE, BLACK})
-        for (PieceType pt : PIECE_TYPES)
-            if (pt != KING && pos.count(c, pt) == 1)
-                hasUniquePieces = true;
-
-    StdArray<std::uint8_t, COLOR_NB> pawnCnt{
-      pos.count(WHITE, PAWN),  //
-      pos.count(BLACK, PAWN)   //
-    };
-
-    // Set the leading color. In case both sides have pawns the leading color
-    // is the side with fewer pawns because this leads to better compression.
-    bool c = pawnCnt[BLACK] == 0 || (pawnCnt[WHITE] != 0 && pawnCnt[WHITE] <= pawnCnt[BLACK]);
-
-    pawnCount[WHITE] = pawnCnt[c ? WHITE : BLACK];
-    pawnCount[BLACK] = pawnCnt[c ? BLACK : WHITE];
-
-    pos.set(code, BLACK, &st);
-
-    key[BLACK] = pos.material_key();
-}
-
-// Use the corresponding WDL table to avoid recalculating all from scratch
-template<>
-TBTable<DTZ>::TBTable(const TBTable<WDL>& wdlTable) noexcept {
-    key[WHITE]       = wdlTable.key[WHITE];
-    key[BLACK]       = wdlTable.key[BLACK];
-    pieceCount       = wdlTable.pieceCount;
-    hasPawns         = wdlTable.hasPawns;
-    hasUniquePieces  = wdlTable.hasUniquePieces;
-    pawnCount[WHITE] = wdlTable.pawnCount[WHITE];
-    pawnCount[BLACK] = wdlTable.pawnCount[BLACK];
+template<TBType T>
+TBTable<T>::TBTable(const TableData& tableData) noexcept {
+    key[WHITE]       = tableData.key[WHITE];
+    key[BLACK]       = tableData.key[BLACK];
+    pieceCount       = tableData.pieceCount;
+    hasPawns         = tableData.hasPawns;
+    hasUniquePieces  = tableData.hasUniquePieces;
+    pawnCount[WHITE] = tableData.pawnCount[WHITE];
+    pawnCount[BLACK] = tableData.pawnCount[BLACK];
 }
 
 template<TBType T>
@@ -882,7 +891,6 @@ class TBTables final {
 
             // Compute how far this entry is from its ideal bucket
             const std::size_t entryDistance = (bucket - entry.bucket()) & MASK;
-
             // Stop search if:
             // 1) Empty slot -> key not found
             // 2) Robin Hood break condition -> key would have been inserted earlier
@@ -929,22 +937,17 @@ class TBTables final {
 
             // Compute how far the existing entry is from its ideal bucket
             const std::size_t entryDistance = (bucket - entry.bucket()) & MASK;
-
             // Case 2: Robin Hood strategy rule: compare probe distances
             // If the new entry has probed farther than the current entry,
             // steal the slot and continue with the displaced entry.
+            // Swap entries: the poorer (more probed) entry takes this slot,
+            // the richer (less probed) entry continues probing forward.
             if (distance > entryDistance)
-            {
-                // Swap entries: the poorer (more probed) entry takes this slot,
-                // the richer (less probed) entry continues probing forward.
                 std::swap(newEntry, entry);
-            }
         }
 
-        // May want to handle this case explicitly (e.g., assert or trigger resize).
-        std::cerr << "TB table full or size too small!" << std::endl;
-
-        std::exit(EXIT_FAILURE);
+        // May want to handle this case explicitly
+        assert(false && "TB table full or size too small!");
     }
 
     /*
@@ -957,7 +960,7 @@ class TBTables final {
             Entry& entry = entries[bucket];
 
             // Stop early if empty slot
-            if (entry.get<WDL>() == nullptr)
+            if (entry.empty())
                 return;
 
             if (entry.key == key)
@@ -974,7 +977,7 @@ class TBTables final {
                     Entry& nextEntry = entries[nextBucket];
 
                     // Reached empty slot, done
-                    if (nextEntry.get<WDL>() == nullptr)
+                    if (nextEntry.empty())
                         break;
 
                     const std::size_t idealBucket = nextEntry.bucket();
@@ -1032,8 +1035,11 @@ void TBTables::add(const std::vector<PieceType>& pieces) noexcept {
 
     code.insert(pos, 1, 'v');  // KRK -> KRvK
 
-    // Only WDL file is checked
-    if (!TBFile(code, EXTS[WDL]).exists())
+    StdArray<bool, 2> exists{
+      TBFile(code, EXTS[WDL]).exists(), TBFile(code, EXTS[DTZ]).exists()  //
+    };
+
+    if (!exists[WDL] && !exists[DTZ])
         return;
 
     std::uint8_t pieceCount = pieces.size();
@@ -1041,16 +1047,30 @@ void TBTables::add(const std::vector<PieceType>& pieces) noexcept {
     if (MaxCardinality < pieceCount)
         MaxCardinality = pieceCount;
 
-    wdlTables.emplace_back(code);
-    dtzTables.emplace_back(wdlTables.back());
+    TBTable<WDL>* wdlTable = nullptr;
+    TBTable<DTZ>* dtzTable = nullptr;
 
-    // Pointers to newly added tables
-    TBTable<WDL>* wdlTable = &wdlTables.back();
-    TBTable<DTZ>* dtzTable = &dtzTables.back();
+    const auto tableData = make_table_data(code);
 
-    // Insert into the hash keys for both colors: KRvK with KR white and black
-    insert({wdlTable->key[WHITE], wdlTable, dtzTable});
-    insert({wdlTable->key[BLACK], wdlTable, dtzTable});
+    // Only add WDL if it exists
+    if (exists[WDL])
+    {
+        wdlTables.emplace_back(tableData);
+        wdlTable = &wdlTables.back();
+    }
+
+    // Only add DTZ if it exists
+    if (exists[DTZ])
+    {
+        dtzTables.emplace_back(tableData);  // create from whatever DTZ source
+        dtzTable = &dtzTables.back();
+    }
+
+    StdArray<Key, COLOR_NB> Keys{exists[WDL] ? wdlTable->key[WHITE] : dtzTable->key[WHITE],
+                                 exists[WDL] ? wdlTable->key[BLACK] : dtzTable->key[BLACK]};
+
+    insert({Keys[WHITE], wdlTable, dtzTable});
+    insert({Keys[BLACK], wdlTable, dtzTable});
 }
 
 TBTables tbTables;
