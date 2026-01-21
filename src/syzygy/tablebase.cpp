@@ -891,14 +891,12 @@ class TBTables final {
 
             // Found the key -> return the associated table
             if (entry.key == key)
-                return entry.get<T>();
+                return entry.get<T>();  // done
 
-            // Compute how far this entry is from its ideal bucket
-            const std::size_t entryDistance = (bucket - entry.bucket()) & MASK;
             // Stop search if:
             // 1) Empty slot -> key not found
             // 2) Robin Hood break condition -> key would have been inserted earlier
-            if (entry.empty() || distance > entryDistance)
+            if (entry.empty() || distance > probe_distance(entry, bucket))
                 break;
         }
 
@@ -923,6 +921,10 @@ class TBTables final {
     void add(const std::vector<PieceType>& pieces) noexcept;
 
    private:
+    std::size_t probe_distance(const Entry& entry, std::size_t currentBucket) noexcept {
+        return (currentBucket - entry.bucket()) & MASK;
+    }
+
     void insert(Entry newEntry) noexcept {
 
         for (std::size_t distance = 0; distance < SIZE; ++distance)
@@ -936,17 +938,15 @@ class TBTables final {
             {
                 entry = newEntry;
 
-                return;
+                return;  // done
             }
 
-            // Compute how far the existing entry is from its ideal bucket
-            const std::size_t entryDistance = (bucket - entry.bucket()) & MASK;
             // Case 2: Robin Hood strategy rule: compare probe distances
             // If the new entry has probed farther than the current entry,
             // steal the slot and continue with the displaced entry.
             // Swap entries: the poorer (more probed) entry takes this slot,
             // the richer (less probed) entry continues probing forward.
-            if (distance > entryDistance)
+            if (distance > probe_distance(entry, bucket))
                 std::swap(newEntry, entry);
         }
 
@@ -957,6 +957,33 @@ class TBTables final {
     /*
     void remove(Key key) noexcept {
 
+        // Backward-shift subsequent entries to preserve Robin Hood property
+        const auto shift_backward = [this](std::size_t bucket) {
+            std::size_t nextBucket = (bucket + 1) & MASK;
+
+            while (true)
+            {
+                Entry& nextEntry = entries[nextBucket];
+
+                // Stop if we reach an empty slot
+                if (nextEntry.empty())
+                    break;
+
+                const std::size_t idealBucket = nextEntry.bucket();
+                // Stop if nextEntry is in its ideal bucket
+                if (((nextBucket - idealBucket) & MASK) == 0)
+                    break;
+
+                // Shift nextEntry backward
+                entries[bucket] = nextEntry;
+                bucket          = nextBucket;
+                nextBucket      = (nextBucket + 1) & MASK;
+            }
+
+            // Clear the last slot after shifting
+            entries[bucket].clear();
+        };
+
         for (std::size_t distance = 0; distance < SIZE; ++distance)
         {
             std::size_t bucket = (key + distance) & MASK;
@@ -965,47 +992,21 @@ class TBTables final {
 
             // Stop early if empty slot
             if (entry.empty())
-                return;
+                break;
 
+            // Found the entry -> remove and shift backward
             if (entry.key == key)
             {
-                // Found the entry to remove
                 entry.clear();
 
-                // Backward-shift subsequent entries to preserve Robin Hood property
-                std::size_t nextBucket = (bucket + 1) & MASK;
+                shift_backward(bucket);
 
-                // Shift entries backward until we reach an empty slot or an entry in its ideal bucket
-                while (true)
-                {
-                    Entry& nextEntry = entries[nextBucket];
-
-                    // Reached empty slot, done
-                    if (nextEntry.empty())
-                        break;
-
-                    const std::size_t idealBucket = nextEntry.bucket();
-                    // Check if the entry can be shifted backward
-                    if (((nextBucket - idealBucket) & MASK) == 0)
-                        break;  // next entry is in its ideal position
-
-                    // Shift entry backward
-                    entries[bucket] = nextEntry;
-                    bucket          = nextBucket;
-                    nextBucket      = (nextBucket + 1) & MASK;
-                }
-
-                // Clear the last slot after shifting
-                entries[bucket].clear();
-
-                return;
+                return;  // done
             }
 
             // Stop search if Robin Hood break condition
-            const std::size_t entryDistance = (bucket - entry.bucket()) & MASK;
-
-            if (distance > entryDistance)
-                return;
+            if (distance > probe_distance(entry, bucket))
+                break;
         }
     }
     */
