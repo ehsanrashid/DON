@@ -18,9 +18,10 @@
 #include <iostream>
 #include <memory>
 
+#include "bitboard.h"
+
 using namespace DON;
 
-#include "bitboard.h"
 #include "misc.h"
 #include "position.h"
 #include "syzygy/tablebase.h"
