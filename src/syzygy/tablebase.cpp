@@ -432,7 +432,7 @@ struct TBTable final: BaseTBTable {
 
     std::uint8_t* map_ptr() noexcept { return mapPtr; }
 
-    PairsData* get(int ac, int f) noexcept { return &items[ac & MASK][hasPawns ? f : 0]; }
+    PairsData* get(int ac, File f) noexcept { return &items[ac & MASK][hasPawns ? f : FILE_A]; }
 
     static constexpr std::size_t SIDES = T == WDL ? 2 : 1;
     static constexpr std::size_t MASK  = SIDES - 1;
@@ -655,9 +655,9 @@ void TBTable<T>::set(std::uint8_t* data) noexcept {
 
     const std::size_t Sides = SIDES == 2 && key[WHITE] != key[BLACK] ? 2 : 1;
 
-    File maxFile = hasPawns ? FILE_D : FILE_A;
+    const File maxFile = hasPawns ? FILE_D : FILE_A;
 
-    bool pp = hasPawns && pawnCount[BLACK] != 0;  // Pawns on both sides
+    const bool pp = hasPawns && pawnCount[BLACK] != 0;  // Pawns on both sides
 
     assert(!pp || pawnCount[WHITE] != 0);
 
@@ -666,7 +666,7 @@ void TBTable<T>::set(std::uint8_t* data) noexcept {
         for (std::size_t i = 0; i < Sides; ++i)
             *get(i, f) = PairsData();
 
-        StdArray<int, 2, 2> order{{
+        const StdArray<int, 2, 2> order{{
           {{int(*data & 0xF), int(pp ? *(data + 1) & 0xF : 0xF)}},
           {{int(*data >> 4), int(pp ? *(data + 1) >> 4 : 0xF)}}  //
         }};
@@ -1339,7 +1339,7 @@ Ret do_probe_table(
     {
         // In all the 4 tables, pawns are at the beginning of the piece sequence and
         // their color is the reference one. So just pick the first one.
-        Piece pc = table->get(0, 0)->pieces[0];
+        Piece pc = table->get(0, FILE_A)->pieces[0];
         if (flip)
             pc = flip_color(pc);
 
