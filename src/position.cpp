@@ -1319,7 +1319,8 @@ bool Position::legal(Move m) const noexcept {
         break;
 
     case MT::EN_PASSANT : {
-        Bitboard occupancyBB = pieces_bb() ^ make_bb(orgSq, dstSq, dstSq - pawn_spush(ac));
+        const Bitboard occupancyBB = pieces_bb() ^ make_bb(orgSq, dstSq, dstSq - pawn_spush(ac));
+
         if (!(type_of(movedPc) == PAWN && en_passant_sq() == dstSq && rule50_count() == 0
               && (pieces_bb(~ac, PAWN) & (dstSq - pawn_spush(ac))) != 0
               && (empty(dstSq) && empty(dstSq + pawn_spush(ac)))
@@ -1379,7 +1380,7 @@ bool Position::check(Move m) const noexcept {
     // and ordinary discovered check, so the only case need to handle is
     // the unusual case of a discovered check through the captured pawn.
     case MT::EN_PASSANT : {
-        Bitboard occupancyBB = pieces_bb() ^ make_bb(orgSq, dstSq, dstSq - pawn_spush(ac));
+        const Bitboard occupancyBB = pieces_bb() ^ make_bb(orgSq, dstSq, dstSq - pawn_spush(ac));
 
         return (slide_attackers_bb(kingSq, occupancyBB) & pieces_bb(ac)) != 0;
     }
@@ -1415,8 +1416,8 @@ bool Position::dbl_check(Move m) const noexcept {
             && (attacks_bb(dstSq, m.promotion_type(), pieces_bb() ^ orgSq) & kingSq) != 0;
 
     case MT::EN_PASSANT : {
-        Bitboard occupancyBB = pieces_bb() ^ make_bb(orgSq, dstSq, dstSq - pawn_spush(ac));
-        Bitboard checkersBB  = slide_attackers_bb(kingSq, occupancyBB) & pieces_bb(ac);
+        const Bitboard occupancyBB = pieces_bb() ^ make_bb(orgSq, dstSq, dstSq - pawn_spush(ac));
+        const Bitboard checkersBB  = slide_attackers_bb(kingSq, occupancyBB) & pieces_bb(ac);
 
         return more_than_one(checkersBB) || (checkersBB != 0 && (checks_bb(PAWN) & dstSq) != 0);
     }
@@ -1599,6 +1600,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
     while (true)
     {
         ac = ~ac;
+
         attackersBB &= occupancyBB;
 
         acAttackersBB = pieces_bb(ac) & attackersBB;
@@ -1854,9 +1856,9 @@ bool Position::is_upcoming_repetition(std::int16_t ply) const noexcept {
         if (iterKey != 0)
             continue;
 
-        Key moveKey = baseKey ^ preSt->key;
+        const Key moveKey = baseKey ^ preSt->key;
         // 'moveKey' is a single move
-        auto index = Cuckoos.find_key(moveKey);
+        const std::size_t index = Cuckoos.find_key(moveKey);
 
         if (index >= Cuckoos.size())
             continue;

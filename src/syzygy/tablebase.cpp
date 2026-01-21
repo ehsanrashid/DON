@@ -896,15 +896,15 @@ class TBTables final {
 
             Entry& entry = entries[bucket];
 
+            // Found the key -> return the associated table
+            if (entry.key == key)
+                return entry.get<T>();  // done
+
             // Stop search if:
             // 1) Empty slot -> key not found
             // 2) Robin Hood break condition -> key would have been inserted earlier
             if (entry.empty() || distance > probe_distance(entry, bucket))
                 break;
-
-            // Found the key -> return the associated table
-            if (entry.key == key)
-                return entry.get<T>();  // done
         }
 
         // Key not found
@@ -960,13 +960,7 @@ class TBTables final {
             // Swap entries: the poorer (more probed) entry takes this slot,
             // the richer (less probed) entry continues probing forward.
             if (distance > probe_distance(entry, bucket))
-            {
                 std::swap(newEntry, entry);
-
-                // Update max probe distance for the swaped entry
-                if (maxProbeDistance < distance)
-                    maxProbeDistance = distance;
-            }
         }
 
         // May want to handle this case explicitly
@@ -977,7 +971,9 @@ class TBTables final {
     void remove(Key key) noexcept {
 
         // Backward-shift subsequent entries to preserve Robin Hood property
-        const auto shift_backward = [this](std::size_t bucket) {
+        const auto shift_backward = [this](std::size_t bucket) -> std::size_t {
+            std::size_t lastBucket = bucket;
+
             std::size_t nextBucket = (bucket + 1) & MASK;
 
             while (true)
@@ -995,15 +991,20 @@ class TBTables final {
 
                 // Shift nextEntry backward
                 entries[bucket] = nextEntry;
-                bucket          = nextBucket;
+                lastBucket      = nextBucket;
                 nextBucket      = (nextBucket + 1) & MASK;
             }
 
             // Clear the last slot after shifting
-            entries[bucket].clear();
+            entries[lastBucket].clear();
+
+            return lastBucket;
         };
 
-        for (std::size_t distance = 0; distance < SIZE; ++distance)
+        // Limit search by max probe distance
+        const std::size_t Limit = std::min(maxProbeDistance + 1, SIZE);
+
+        for (std::size_t distance = 0; distance < Limit; ++distance)
         {
             std::size_t bucket = (key + distance) & MASK;
 
@@ -1018,20 +1019,31 @@ class TBTables final {
             {
                 entry.clear();
 
-                shift_backward(bucket);
+                // Shift backward and get last affected bucket
+                std::size_t lastBucket = shift_backward(bucket);
 
                 // Recalculate max probe distance
                 std::size_t newMaxProbeDistance = 0;
 
-                for (std::size_t i = 0; i < SIZE; ++i)
+                std::size_t clusterBucket = bucket;
+
+                while (true)
                 {
-                    const Entry& e = entries[i];
-                    if (!e.empty())
-                    {
-                        const std::size_t probeDistance = probe_distance(e, i);
-                        if (newMaxProbeDistance < probeDistance)
-                            newMaxProbeDistance = probeDistance;
-                    }
+                    const Entry& e = entries[clusterBucket];
+
+                    // End of cluster
+                    if (e.empty())
+                        break;
+
+                    const std::size_t probeDistance = probe_distance(e, clusterBucket);
+
+                    if (newMaxProbeDistance < probeDistance)
+                        newMaxProbeDistance = probeDistance;
+
+                    if (clusterBucket == lastBucket)
+                        break;
+
+                    clusterBucket = (clusterBucket + 1) & MASK;
                 }
 
                 maxProbeDistance = newMaxProbeDistance;
