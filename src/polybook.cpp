@@ -472,7 +472,7 @@ bool PolyBook::load(std::string_view bookFile) noexcept {
 
     // Choose a chunk that balances system call overhead and memory pressure.
     // 2 MiB is a safe default; 4-64 MiB may be slightly faster on fast disks.
-    constexpr std::size_t ChunkSize = (2ULL * 1024 * 1024 / EntrySize) * EntrySize;
+    constexpr std::size_t ChunkSize = (2 * ONE_MB / EntrySize) * EntrySize;
 
     const std::size_t DataSize = entryCount * EntrySize;
 

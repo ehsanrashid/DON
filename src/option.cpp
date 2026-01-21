@@ -26,12 +26,6 @@
 
 namespace DON {
 
-namespace {
-
-constexpr std::string_view EMPTY_STRING{"<empty>"};
-
-}  // namespace
-
 std::size_t CaseInsensitiveHash::operator()(std::string_view str) const noexcept {
     auto lowerStr = lower_case(std::string(str));
     return std::hash<std::string_view>{}(std::string_view{lowerStr});
@@ -136,7 +130,8 @@ void Option::operator=(std::string value) noexcept {
     {
     case Type::CHECK :
         value = lower_case(value);
-        if (value != "true" && value != "false")
+
+        if (!valid_bool_string(value))
             return;
         break;
     case Type::STRING :
@@ -144,10 +139,11 @@ void Option::operator=(std::string value) noexcept {
             value.clear();
         break;
     case Type::SPIN :
-        value = std::to_string(std::clamp(std::stoi(value), minValue, maxValue));
+        value = clamp_string(value, minValue, maxValue);
         break;
     case Type::COMBO :
         value = lower_case(value);
+
         if (std::find(comboValues.begin(), comboValues.end(), value) == comboValues.end())
             return;
         break;

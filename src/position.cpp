@@ -1872,6 +1872,7 @@ bool Position::is_upcoming_repetition(std::int16_t ply) const noexcept {
         // In the cuckoo table, both moves Rc1c5 and Rc5c1 are stored in the same location
         if (empty(m.org_sq()))
             m = m.reverse();
+
         assert(legal(m) && MoveList<GenType::LEGAL>(*this).contains(m));
 #endif
         if (i < ply
@@ -1981,7 +1982,8 @@ void Position::mirror() noexcept {
 }
 
 #if !defined(NDEBUG)
-// Computes the hash key of the current position.
+
+// Computes the hash key of the current position
 Key Position::compute_key() const noexcept {
     Key key = 0;
 
@@ -2088,9 +2090,6 @@ bool Position::_is_ok() const noexcept {
             && !enpassant_possible(active_color(), en_passant_sq())))
         assert(false && "Position::_is_ok(): Default");
 
-    if ((acc_attacks_bb() & square<KING>(~active_color())) != 0)
-        assert(false && "Position::_is_ok(): King Checker");
-
     if (raw_key() != compute_key())
         assert(false && "Position::_is_ok(): Raw Key");
 
@@ -2167,6 +2166,9 @@ bool Position::_is_ok() const noexcept {
                 || (castling_rights_mask(square<KING>(c)) & cr) != cr)
                 assert(false && "Position::_is_ok(): Castling");
         }
+
+    if ((acc_attacks_bb() & square<KING>(~active_color())) != 0)
+        assert(false && "Position::_is_ok(): King Checker");
 
     return true;
 }

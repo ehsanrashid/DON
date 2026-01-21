@@ -1164,8 +1164,9 @@ inline void Position::update_pc_threats(Square                    s,
 
     Bitboard attackersBB = slidersBB | nonSlidersBB;
 
+    // Square is threatened if there's atleast one attacker
     if (attackersBB == 0)
-        return;  // Square s is threatened iff there's at least one attacker
+        return;
 
     if constexpr (Put)
     {

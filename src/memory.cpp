@@ -27,9 +27,9 @@
 
 #if defined(_WIN32)
     #include <iostream>
-
-    #include "misc.h"
 #endif
+
+#include "misc.h"
 
 namespace DON {
 
@@ -112,22 +112,22 @@ void* alloc_aligned_large_page(std::size_t allocSize) noexcept {
     {
         constexpr std::size_t Alignment =
     #if defined(_WIN64)
-          4 * 1024
+          4 * ONE_KB
     #else
-          1024
+          ONE_KB
     #endif
           ;
 
-        std::size_t roundedAllocSize = round_up_to_pow2_multiple(allocSize, Alignment);
+        const std::size_t roundedAllocSize = round_up_to_pow2_multiple(allocSize, Alignment);
 
         mem = VirtualAlloc(nullptr, roundedAllocSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
     }
 #else
     constexpr std::size_t Alignment =
     #if defined(__linux__)
-      2 * 1024 * 1024  // Assume 2MB page-size
+      2 * ONE_MB  // Assume 2MB page-size
     #else
-      4 * 1024  // Assume small page-size
+      4 * ONE_KB  // Assume small page-size
     #endif
       ;
 
@@ -163,7 +163,7 @@ bool free_aligned_large_page(void* mem) noexcept {
 bool has_large_page() noexcept {
 
 #if defined(_WIN32)
-    void* mem = alloc_windows_aligned_large_page(2 * 1024 * 1024);  // 2MB page-size assumed
+    void* mem = alloc_windows_aligned_large_page(2 * ONE_MB);  // 2MB page-size assumed
     if (mem == nullptr)
         return false;
     [[maybe_unused]] bool success = free_aligned_large_page(mem);

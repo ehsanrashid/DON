@@ -20,7 +20,6 @@
 #include <algorithm>
 #include <array>
 #include <cassert>
-#include <cstdlib>
 #include <cstring>
 #include <deque>
 #include <filesystem>
@@ -88,6 +87,8 @@ enum TBType : std::uint8_t {
     DTZ
 };
 
+constexpr std::size_t TBTYPE_NB = 2;
+
 // Each table has a set of flags: all of them refer to DTZ-tables, the last one to WDL-tables
 enum TBFlag : std::uint8_t {
     ACTIVE_COLOR = 1,
@@ -101,12 +102,12 @@ enum TBFlag : std::uint8_t {
 // Max DTZ supported (2 times), large enough to deal with the syzygy TB limit
 constexpr std::int32_t MAX_DTZ = 0x40000;
 
-constexpr StdArray<std::string_view, 2> EXTS{
+constexpr StdArray<std::string_view, TBTYPE_NB> EXTS{
   ".rtbw",  // Win-Draw-Loss    (WDL)
   ".rtbz"   // Distance-to-Zero (DTZ)
 };
 
-constexpr StdArray<std::uint8_t, 2, 4> TB_MAGICS{{
+constexpr StdArray<std::uint8_t, TBTYPE_NB, 4> TB_MAGICS{{
   {0x71, 0xE8, 0x23, 0x5D},  // Win-Draw-Loss    (WDL) = 0x5D23E871
   {0xD7, 0x66, 0x0C, 0xA5}   // Distance-to-Zero (DTZ) = 0xA50C66D7
 }};
@@ -193,6 +194,8 @@ struct SparseEntry final {
 static_assert(sizeof(SparseEntry) == 6, "SparseEntry must be 6 bytes");
 
 using Sym = std::uint16_t;  // Huffman symbol
+
+constexpr Sym INVALID_SYM = 0xFFFU;
 
 struct LR final {
     template<bool Left>
@@ -347,19 +350,71 @@ struct PairsData final {
       mapIdx;  // WDLWin, WDLLoss, WDLCursedWin, WDLBlessedLoss (used in DTZ)
 };
 
+struct TableData final {
+    Key          key[COLOR_NB];
+    std::uint8_t pieceCount;
+    bool         hasPawns;
+    bool         hasUniquePieces;
+    std::uint8_t pawnCount[COLOR_NB];
+};
+
+TableData make_table_data(std::string_view code) noexcept {
+    TableData tableData;
+
+    State    st;
+    Position pos;
+
+    pos.set(code, WHITE, &st);
+
+    tableData.key[WHITE] = pos.material_key();
+
+    tableData.pieceCount = pos.count();
+
+    tableData.hasPawns = pos.pieces_bb(PAWN) != 0;
+
+    tableData.hasUniquePieces = false;
+    for (Color c : {WHITE, BLACK})
+        for (PieceType pt : PIECE_TYPES)
+            if (pt != KING && pos.count(c, pt) == 1)
+                tableData.hasUniquePieces = true;
+
+    StdArray<std::uint8_t, COLOR_NB> pawnCnt{
+      pos.count(WHITE, PAWN),  //
+      pos.count(BLACK, PAWN)   //
+    };
+
+    // Set the leading color. In case both sides have pawns the leading color
+    // is the side with fewer pawns because this leads to better compression.
+    bool c = pawnCnt[BLACK] == 0 || (pawnCnt[WHITE] != 0 && pawnCnt[WHITE] <= pawnCnt[BLACK]);
+
+    tableData.pawnCount[WHITE] = pawnCnt[c ? WHITE : BLACK];
+    tableData.pawnCount[BLACK] = pawnCnt[c ? BLACK : WHITE];
+
+    pos.set(code, BLACK, &st);
+
+    tableData.key[BLACK] = pos.material_key();
+
+    return tableData;
+}
+
+struct TBTableBase {
+   public:
+    virtual ~TBTableBase() noexcept = default;
+
+    StdArray<Key, COLOR_NB> key;
+};
+
 // TBTable contains indexing information to access the corresponding TBFile.
 // There are 2 types of TBTable, corresponding to a WDL or a DTZ file.
 // TBTable is populated at init time but the nested PairsData records are
 // populated at first access, when the corresponding file is memory mapped.
 template<TBType T>
-struct TBTable final {
+struct TBTable final: TBTableBase {
     using Ret = std::conditional_t<T == WDL, WDLScore, int>;
 
-    PairsData* get(int ac, int f) noexcept { return &items[ac % SIDES][hasPawns ? f : 0]; }
-
     TBTable() noexcept = default;
-    explicit TBTable(std::string_view code) noexcept;
-    explicit TBTable(const TBTable<WDL>& wdlTable) noexcept;
+
+    explicit TBTable(const TableData& tableData) noexcept;
 
     ~TBTable() noexcept;
 
@@ -377,16 +432,18 @@ struct TBTable final {
 
     std::uint8_t* map_ptr() noexcept { return mapPtr; }
 
-    static constexpr std::size_t SIDES = T == WDL ? 2 : 1;
+    PairsData* get(int ac, int f) noexcept { return &items[ac & MASK][hasPawns ? f : 0]; }
 
-    StdArray<Key, COLOR_NB>                 key;
-    std::uint8_t                            pieceCount;
-    bool                                    hasPawns;
-    bool                                    hasUniquePieces;
-    StdArray<std::uint8_t, COLOR_NB>        pawnCount;  // [Lead color / other color]
-    StdArray<PairsData, SIDES, FILE_NB / 2> items;      // [color][FILE_A..FILE_D]
+    static constexpr std::size_t SIDES = T == WDL ? 2 : 1;
+    static constexpr std::size_t MASK  = SIDES - 1;
+
+    std::uint8_t                     pieceCount;
+    bool                             hasPawns;
+    bool                             hasUniquePieces;
+    StdArray<std::uint8_t, COLOR_NB> pawnCount;  // [Lead color / other color]
 
    private:
+    StdArray<PairsData, SIDES, FILE_NB / 2> items;  // [color][FILE_A..FILE_D]
 #if defined(_WIN32)
     HANDLE      hMapFile = INVALID_HANDLE;
     HandleGuard hMapFileGuard{hMapFile};
@@ -403,53 +460,15 @@ struct TBTable final {
     InitOnce      initOnce;
 };
 
-template<>
-TBTable<WDL>::TBTable(std::string_view code) noexcept {
-
-    State    st;
-    Position pos;
-
-    pos.set(code, WHITE, &st);
-
-    key[WHITE] = pos.material_key();
-
-    pieceCount = pos.count();
-
-    hasPawns = pos.pieces_bb(PAWN) != 0;
-
-    hasUniquePieces = false;
-    for (Color c : {WHITE, BLACK})
-        for (PieceType pt : PIECE_TYPES)
-            if (pt != KING && pos.count(c, pt) == 1)
-                hasUniquePieces = true;
-
-    StdArray<std::uint8_t, COLOR_NB> pawnCnt{
-      pos.count(WHITE, PAWN),  //
-      pos.count(BLACK, PAWN)   //
-    };
-
-    // Set the leading color. In case both sides have pawns the leading color
-    // is the side with fewer pawns because this leads to better compression.
-    bool c = pawnCnt[BLACK] == 0 || (pawnCnt[WHITE] != 0 && pawnCnt[WHITE] <= pawnCnt[BLACK]);
-
-    pawnCount[WHITE] = pawnCnt[c ? WHITE : BLACK];
-    pawnCount[BLACK] = pawnCnt[c ? BLACK : WHITE];
-
-    pos.set(code, BLACK, &st);
-
-    key[BLACK] = pos.material_key();
-}
-
-// Use the corresponding WDL table to avoid recalculating all from scratch
-template<>
-TBTable<DTZ>::TBTable(const TBTable<WDL>& wdlTable) noexcept {
-    key[WHITE]       = wdlTable.key[WHITE];
-    key[BLACK]       = wdlTable.key[BLACK];
-    pieceCount       = wdlTable.pieceCount;
-    hasPawns         = wdlTable.hasPawns;
-    hasUniquePieces  = wdlTable.hasUniquePieces;
-    pawnCount[WHITE] = wdlTable.pawnCount[WHITE];
-    pawnCount[BLACK] = wdlTable.pawnCount[BLACK];
+template<TBType T>
+TBTable<T>::TBTable(const TableData& tableData) noexcept {
+    key[WHITE]       = tableData.key[WHITE];
+    key[BLACK]       = tableData.key[BLACK];
+    pieceCount       = tableData.pieceCount;
+    hasPawns         = tableData.hasPawns;
+    hasUniquePieces  = tableData.hasUniquePieces;
+    pawnCount[WHITE] = tableData.pawnCount[WHITE];
+    pawnCount[BLACK] = tableData.pawnCount[BLACK];
 }
 
 template<TBType T>
@@ -843,25 +862,26 @@ class TBTables final {
    private:
     struct Entry final {
        public:
+        Entry() noexcept = default;
+        Entry(Key k, TBTableBase* wdlTable, TBTableBase* dtzTable) noexcept :
+            key(k),
+            tables{wdlTable, dtzTable} {}
+
         std::size_t bucket() const noexcept { return key & MASK; }
+
+        bool empty() const noexcept { return tables[WDL] == nullptr && tables[DTZ] == nullptr; }
+
+        bool valid() const noexcept { return !empty(); }
 
         template<TBType T>
         TBTable<T>* get() const noexcept {
-            if constexpr (T == WDL)
-                return wdlTable;
-            else
-                return dtzTable;
+            return static_cast<TBTable<T>*>(tables[T]);
         }
 
-        void clear() noexcept {
-            key      = 0;
-            wdlTable = nullptr;
-            dtzTable = nullptr;
-        }
+        //void clear() noexcept { std::memset(this, 0, sizeof(*this)); }
 
-        Key           key;
-        TBTable<WDL>* wdlTable;
-        TBTable<DTZ>* dtzTable;
+        Key                               key;
+        StdArray<TBTableBase*, TBTYPE_NB> tables;
     };
 
    public:
@@ -874,19 +894,14 @@ class TBTables final {
 
             Entry& entry = entries[bucket];
 
-            TBTable<T>* table = entry.get<T>();
-
             // Found the key -> return the associated table
             if (entry.key == key)
-                return table;
-
-            // Compute how far this entry is from its ideal bucket
-            const std::size_t entryDistance = (bucket - entry.bucket()) & MASK;
+                return entry.get<T>();  // done
 
             // Stop search if:
             // 1) Empty slot -> key not found
             // 2) Robin Hood break condition -> key would have been inserted earlier
-            if (table == nullptr || distance > entryDistance)
+            if (entry.empty() || distance > probe_distance(entry, bucket))
                 break;
         }
 
@@ -911,6 +926,10 @@ class TBTables final {
     void add(const std::vector<PieceType>& pieces) noexcept;
 
    private:
+    static std::size_t probe_distance(const Entry& entry, std::size_t currentBucket) noexcept {
+        return (currentBucket - entry.bucket()) & MASK;
+    }
+
     void insert(Entry newEntry) noexcept {
 
         for (std::size_t distance = 0; distance < SIZE; ++distance)
@@ -920,35 +939,55 @@ class TBTables final {
             Entry& entry = entries[bucket];
 
             // Case 1: Empty slot or key already exists -> place/update
-            if (entry.get<WDL>() == nullptr || entry.key == newEntry.key)
+            if (entry.empty() || entry.key == newEntry.key)
             {
                 entry = newEntry;
 
-                return;
+                return;  // done
             }
-
-            // Compute how far the existing entry is from its ideal bucket
-            const std::size_t entryDistance = (bucket - entry.bucket()) & MASK;
 
             // Case 2: Robin Hood strategy rule: compare probe distances
             // If the new entry has probed farther than the current entry,
             // steal the slot and continue with the displaced entry.
-            if (distance > entryDistance)
-            {
-                // Swap entries: the poorer (more probed) entry takes this slot,
-                // the richer (less probed) entry continues probing forward.
+            // Swap entries: the poorer (more probed) entry takes this slot,
+            // the richer (less probed) entry continues probing forward.
+            if (distance > probe_distance(entry, bucket))
                 std::swap(newEntry, entry);
-            }
         }
 
-        // May want to handle this case explicitly (e.g., assert or trigger resize).
-        std::cerr << "TB table full or size too small!" << std::endl;
-
-        std::exit(EXIT_FAILURE);
+        // May want to handle this case explicitly
+        assert(false && "TB table full or size too small!");
     }
 
     /*
     void remove(Key key) noexcept {
+
+        // Backward-shift subsequent entries to preserve Robin Hood property
+        const auto shift_backward = [this](std::size_t bucket) {
+            std::size_t nextBucket = (bucket + 1) & MASK;
+
+            while (true)
+            {
+                Entry& nextEntry = entries[nextBucket];
+
+                // Stop if we reach an empty slot
+                if (nextEntry.empty())
+                    break;
+
+                const std::size_t idealBucket = nextEntry.bucket();
+                // Stop if nextEntry is in its ideal bucket
+                if (((nextBucket - idealBucket) & MASK) == 0)
+                    break;
+
+                // Shift nextEntry backward
+                entries[bucket] = nextEntry;
+                bucket          = nextBucket;
+                nextBucket      = (nextBucket + 1) & MASK;
+            }
+
+            // Clear the last slot after shifting
+            entries[bucket].clear();
+        };
 
         for (std::size_t distance = 0; distance < SIZE; ++distance)
         {
@@ -957,48 +996,22 @@ class TBTables final {
             Entry& entry = entries[bucket];
 
             // Stop early if empty slot
-            if (entry.get<WDL>() == nullptr)
-                return;
+            if (entry.empty())
+                break;
 
+            // Found the entry -> remove and shift backward
             if (entry.key == key)
             {
-                // Found the entry to remove
                 entry.clear();
 
-                // Backward-shift subsequent entries to preserve Robin Hood property
-                std::size_t nextBucket = (bucket + 1) & MASK;
+                shift_backward(bucket);
 
-                // Shift entries backward until we reach an empty slot or an entry in its ideal bucket
-                while (true)
-                {
-                    Entry& nextEntry = entries[nextBucket];
-
-                    // Reached empty slot, done
-                    if (nextEntry.get<WDL>() == nullptr)
-                        break;
-
-                    const std::size_t idealBucket = nextEntry.bucket();
-                    // Check if the entry can be shifted backward
-                    if (((nextBucket - idealBucket) & MASK) == 0)
-                        break;  // next entry is in its ideal position
-
-                    // Shift entry backward
-                    entries[bucket] = nextEntry;
-                    bucket          = nextBucket;
-                    nextBucket      = (nextBucket + 1) & MASK;
-                }
-
-                // Clear the last slot after shifting
-                entries[bucket].clear();
-
-                return;
+                return;  // done
             }
 
             // Stop search if Robin Hood break condition
-            const std::size_t entryDistance = (bucket - entry.bucket()) & MASK;
-
-            if (distance > entryDistance)
-                return;
+            if (distance > probe_distance(entry, bucket))
+                break;
         }
     }
     */
@@ -1032,8 +1045,11 @@ void TBTables::add(const std::vector<PieceType>& pieces) noexcept {
 
     code.insert(pos, 1, 'v');  // KRK -> KRvK
 
-    // Only WDL file is checked
-    if (!TBFile(code, EXTS[WDL]).exists())
+    StdArray<bool, TBTYPE_NB> exists{
+      TBFile(code, EXTS[WDL]).exists(), TBFile(code, EXTS[DTZ]).exists()  //
+    };
+
+    if (!exists[WDL] && !exists[DTZ])
         return;
 
     std::uint8_t pieceCount = pieces.size();
@@ -1041,16 +1057,29 @@ void TBTables::add(const std::vector<PieceType>& pieces) noexcept {
     if (MaxCardinality < pieceCount)
         MaxCardinality = pieceCount;
 
-    wdlTables.emplace_back(code);
-    dtzTables.emplace_back(wdlTables.back());
+    TBTable<WDL>* wdlTable = nullptr;
+    TBTable<DTZ>* dtzTable = nullptr;
 
-    // Pointers to newly added tables
-    TBTable<WDL>* wdlTable = &wdlTables.back();
-    TBTable<DTZ>* dtzTable = &dtzTables.back();
+    const auto tableData = make_table_data(code);
 
-    // Insert into the hash keys for both colors: KRvK with KR white and black
-    insert({wdlTable->key[WHITE], wdlTable, dtzTable});
-    insert({wdlTable->key[BLACK], wdlTable, dtzTable});
+    if (exists[WDL])
+    {
+        wdlTables.emplace_back(tableData);
+        wdlTable = &wdlTables.back();
+    }
+
+    if (exists[DTZ])
+    {
+        dtzTables.emplace_back(tableData);
+        dtzTable = &dtzTables.back();
+    }
+
+    const TBTableBase* const keyTable = exists[WDL]  //
+                                        ? static_cast<TBTableBase*>(wdlTable)
+                                        : static_cast<TBTableBase*>(dtzTable);
+
+    insert({keyTable->key[WHITE], wdlTable, dtzTable});
+    insert({keyTable->key[BLACK], wdlTable, dtzTable});
 }
 
 TBTables tbTables;
@@ -1495,7 +1524,7 @@ std::uint8_t set_symlen(PairsData* pd, Sym s, std::vector<bool>& visited) noexce
 
     Sym rSym = pd->btree[s].get<false>();
 
-    if (rSym == 0xFFF)
+    if (rSym == INVALID_SYM)
         return 0;
 
     Sym lSym = pd->btree[s].get<true>();
@@ -1520,6 +1549,7 @@ std::uint8_t* set_sizes(PairsData* pd, std::uint8_t* data) noexcept {
         pd->span            = 0;
         pd->sparseIndexSize = 0;        // Broken MSVC zero-init
         pd->minSymLen       = *data++;  // Here store the single value
+
         return data;
     }
 
@@ -1549,8 +1579,8 @@ std::uint8_t* set_sizes(PairsData* pd, std::uint8_t* data) noexcept {
     // so that pd->lowestSym[i] >= pd->lowestSym[i+1] (when read as LittleEndian).
     // Starting from this compute a base64[] table indexed by symbol length
     // and containing 64 bit values so that pd->base64[i] >= pd->base64[i+1].
-
     std::size_t base64Size = pd->base64.size();
+
     for (std::size_t i = base64Size != 0 ? base64Size - 1 : 0; i-- > 0;)
     {
         pd->base64[i] = (pd->base64[i + 1]                                 //
@@ -1580,6 +1610,7 @@ std::uint8_t* set_sizes(PairsData* pd, std::uint8_t* data) noexcept {
     // the extended alphabet, and then repeating the process.
     // See https://web.archive.org/web/20201106232444/http://www.larsson.dogma.net/dcc99.pdf
     std::vector<bool> visited(pd->symLen.size());
+
     for (Sym s = 0; s < pd->symLen.size(); ++s)
         if (!visited[s])
             pd->symLen[s] = set_symlen(pd, s, visited);

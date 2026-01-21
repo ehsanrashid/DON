@@ -23,6 +23,7 @@
 #include <atomic>
 #include <cassert>
 #include <cctype>
+#include <charconv>
 #include <chrono>
 #include <cinttypes>
 #include <cstdint>
@@ -39,6 +40,7 @@
 #include <shared_mutex>
 #include <string>
 #include <string_view>
+#include <system_error>
 #include <thread>
 #include <type_traits>
 #include <unordered_map>
@@ -99,9 +101,25 @@ namespace DON {
 using Strings     = std::vector<std::string>;
 using StringViews = std::vector<std::string_view>;
 
-std::string engine_info(bool uci = false) noexcept;
-std::string version_info() noexcept;
-std::string compiler_info() noexcept;
+inline constexpr std::size_t ONE_KB = 1024U;
+inline constexpr std::size_t ONE_MB = ONE_KB * ONE_KB;
+//inline constexpr std::size_t ONE_GB = ONE_KB * ONE_MB;
+//inline constexpr std::size_t ONE_TB = ONE_KB * ONE_GB;
+//inline constexpr std::size_t ONE_PB = ONE_KB * ONE_TB;
+//inline constexpr std::size_t ONE_EB = ONE_KB * ONE_PB;
+
+// True if and only if the binary is compiled on a little-endian machine
+#if defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__)
+inline constexpr bool IsLittleEndian = (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__);
+#elif defined(_WIN32)
+inline constexpr bool IsLittleEndian = true;
+#else
+// Fallback runtime check
+inline const bool IsLittleEndian = []() noexcept {
+    constexpr std::uint16_t v = 1;
+    return *reinterpret_cast<const std::uint8_t*>(&v) == 1;
+}();
+#endif
 
 constexpr std::uint64_t bit(std::uint8_t b) noexcept { return (1ULL << b); }
 
@@ -190,9 +208,11 @@ constexpr double constexpr_log(double x) noexcept {
     return constexpr_approx_1p_log(x - 1.0) + exponent * LN2;
 }
 
-// True if and only if the binary is compiled on a little-endian machine
-inline constexpr std::uint16_t LittleEndianValue = 1;
-inline const bool IsLittleEndian = *reinterpret_cast<const char*>(&LittleEndianValue) == 1;
+std::string engine_info(bool uci = false) noexcept;
+
+std::string version_info() noexcept;
+
+std::string compiler_info() noexcept;
 
 struct IndexCount final {
    public:
@@ -1372,6 +1392,7 @@ inline std::string remove_whitespace(std::string str) noexcept {
     return str;
 }
 
+inline constexpr std::string_view EMPTY_STRING{"<empty>"};
 inline constexpr std::string_view WHITE_SPACE{" \t\n\r\f\v"};
 
 [[nodiscard]] constexpr bool starts_with(std::string_view str, std::string_view prefix) noexcept {
@@ -1414,10 +1435,33 @@ inline constexpr std::string_view WHITE_SPACE{" \t\n\r\f\v"};
 }
 
 [[nodiscard]] constexpr std::string_view bool_to_string(bool b) noexcept {
-    return std::string_view{b ? "true" : "false"};
+    return b ? "true" : "false";
+}
+// Efficient check: works for std::string or std::string_view
+[[nodiscard]] constexpr bool valid_bool_string(std::string_view value) noexcept {
+    return value == "true" || value == "false";
 }
 
 [[nodiscard]] constexpr bool string_to_bool(std::string_view str) { return (trim(str) == "true"); }
+
+inline std::string clamp_string(std::string_view value, int minValue, int maxValue) noexcept {
+    int intValue = 0;
+
+    auto [_, ec] = std::from_chars(value.data(), value.data() + value.size(), intValue);
+
+    switch (ec)
+    {
+    case std::errc::invalid_argument :
+        intValue = minValue;
+        break;
+    case std::errc::result_out_of_range :
+        intValue = maxValue;
+        break;
+    default :;
+    }
+
+    return std::to_string(std::clamp(intValue, minValue, maxValue));
+}
 
 inline StringViews
 split(std::string_view str, std::string_view delimiter, bool trimPart = false) noexcept {

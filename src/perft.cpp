@@ -214,7 +214,7 @@ void PerftTable::free() noexcept {
 void PerftTable::resize(std::size_t ptSize, Threads& threads) noexcept {
     free();
 
-    clusterCount = ptSize * 1024 * 1024 / sizeof(PTCluster);
+    clusterCount = ptSize * ONE_MB / sizeof(PTCluster);
 
     assert(clusterCount % 2 == 0);
 
