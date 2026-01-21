@@ -1446,6 +1446,7 @@ inline constexpr std::string_view WHITE_SPACE{" \t\n\r\f\v"};
 
 inline std::string clamp_value(std::string_view value, int minValue, int maxValue) noexcept {
     int intValue = 0;
+
     auto [_, ec] = std::from_chars(value.data(), value.data() + value.size(), intValue);
 
     switch (ec)
