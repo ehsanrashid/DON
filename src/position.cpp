@@ -1982,7 +1982,8 @@ void Position::mirror() noexcept {
 }
 
 #if !defined(NDEBUG)
-// Computes the hash key of the current position.
+
+// Computes the hash key of the current position
 Key Position::compute_key() const noexcept {
     Key key = 0;
 
