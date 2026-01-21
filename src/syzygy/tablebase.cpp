@@ -20,7 +20,6 @@
 #include <algorithm>
 #include <array>
 #include <cassert>
-#include <cstdlib>
 #include <cstring>
 #include <deque>
 #include <filesystem>
