@@ -1872,6 +1872,7 @@ bool Position::is_upcoming_repetition(std::int16_t ply) const noexcept {
         // In the cuckoo table, both moves Rc1c5 and Rc5c1 are stored in the same location
         if (empty(m.org_sq()))
             m = m.reverse();
+
         assert(legal(m) && MoveList<GenType::LEGAL>(*this).contains(m));
 #endif
         if (i < ply

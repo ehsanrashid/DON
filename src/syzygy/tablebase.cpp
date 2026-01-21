@@ -1062,17 +1062,15 @@ void TBTables::add(const std::vector<PieceType>& pieces) noexcept {
 
     const auto tableData = make_table_data(code);
 
-    // Only add WDL if it exists
     if (exists[WDL])
     {
         wdlTables.emplace_back(tableData);
         wdlTable = &wdlTables.back();
     }
 
-    // Only add DTZ if it exists
     if (exists[DTZ])
     {
-        dtzTables.emplace_back(tableData);  // create from whatever DTZ source
+        dtzTables.emplace_back(tableData);
         dtzTable = &dtzTables.back();
     }
 
