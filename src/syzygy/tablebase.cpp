@@ -394,7 +394,10 @@ TableData make_table_data(std::string_view code) noexcept {
 }
 
 struct TBTableBase {
+   public:
     virtual ~TBTableBase() noexcept = default;
+
+    StdArray<Key, COLOR_NB> key;
 };
 
 // TBTable contains indexing information to access the corresponding TBFile.
@@ -429,7 +432,6 @@ struct TBTable final: TBTableBase {
 
     static constexpr std::size_t SIDES = T == WDL ? 2 : 1;
 
-    StdArray<Key, COLOR_NB>          key;
     std::uint8_t                     pieceCount;
     bool                             hasPawns;
     bool                             hasUniquePieces;
@@ -856,13 +858,15 @@ class TBTables final {
     struct Entry final {
        public:
         Entry() noexcept = default;
-        Entry(Key k, TBTableBase* wdl, TBTableBase* dtz) noexcept :
+        Entry(Key k, TBTableBase* wdlTable, TBTableBase* dtzTable) noexcept :
             key(k),
-            tables{wdl, dtz} {}
+            tables{wdlTable, dtzTable} {}
 
         std::size_t bucket() const noexcept { return key & MASK; }
 
-        bool empty() const noexcept { return tables[WDL] == nullptr && tables[DTZ] == nullptr; }
+        bool valid() const noexcept { return tables[WDL] != nullptr || tables[DTZ] != nullptr; }
+
+        bool empty() const noexcept { return !valid(); }
 
         template<TBType T>
         TBTable<T>* get() const noexcept {
@@ -1066,11 +1070,12 @@ void TBTables::add(const std::vector<PieceType>& pieces) noexcept {
         dtzTable = &dtzTables.back();
     }
 
-    StdArray<Key, COLOR_NB> Keys{exists[WDL] ? wdlTable->key[WHITE] : dtzTable->key[WHITE],
-                                 exists[WDL] ? wdlTable->key[BLACK] : dtzTable->key[BLACK]};
+    const TBTableBase* const keyTable = exists[WDL]  //
+                                        ? static_cast<TBTableBase*>(wdlTable)
+                                        : static_cast<TBTableBase*>(dtzTable);
 
-    insert({Keys[WHITE], wdlTable, dtzTable});
-    insert({Keys[BLACK], wdlTable, dtzTable});
+    insert({keyTable->key[WHITE], wdlTable, dtzTable});
+    insert({keyTable->key[BLACK], wdlTable, dtzTable});
 }
 
 TBTables tbTables;
