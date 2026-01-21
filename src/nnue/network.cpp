@@ -204,10 +204,10 @@ void Network<Arch, Transformer>::verify(std::string netFile) const noexcept {
         std::exit(EXIT_FAILURE);
     }
 
-    std::size_t size = sizeof(featureTransformer) + LayerStacks * sizeof(Arch);
+    constexpr std::size_t TotalSize = sizeof(featureTransformer) + LayerStacks * sizeof(Arch);
 
-    std::string msg = "NNUE evaluation using " + netFile + " ("
-                    + std::to_string(size / (1024 * 1024)) + "MiB, ("
+    std::string msg = "NNUE evaluation using " + netFile + " ("  //
+                    + std::to_string(TotalSize / ONE_MB) + "MiB, ("
                     + std::to_string(featureTransformer.TotalInputDimensions) + ", "
                     + std::to_string(network[0].TransformedFeatureDimensions) + ", "
                     + std::to_string(network[0].FC_0_Outputs) + ", "  //
@@ -239,7 +239,7 @@ Network<Arch, Transformer>::evaluate(const Position&                         pos
       StdArray<TransformedFeatureType, FeatureTransformer<TFDimensions>::BufferSize>
         transformedFeatures;
 
-    auto bucket = pos.bucket();
+    const std::size_t bucket = pos.bucket();
 
     auto psqt = featureTransformer.transform(pos, accStack, cache, bucket, transformedFeatures);
     auto positional = network[bucket].propagate(transformedFeatures);

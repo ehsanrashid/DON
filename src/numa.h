@@ -485,7 +485,7 @@ inline std::unordered_set<CpuIndex> get_process_affinity() noexcept {
     // cpu_set_t by default holds 1024 entries. This may not be enough soon,
     // but there is no easy way to determine how many threads there actually is.
     // In this case just choose a reasonable upper bound.
-    constexpr CpuIndex MaxCpusCount = 64 * 1024;
+    constexpr CpuIndex MaxCpusCount = 64 * ONE_KB;
 
     cpu_set_t* cpuMask = CPU_ALLOC(MaxCpusCount);
 

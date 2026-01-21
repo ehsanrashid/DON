@@ -99,9 +99,25 @@ namespace DON {
 using Strings     = std::vector<std::string>;
 using StringViews = std::vector<std::string_view>;
 
-std::string engine_info(bool uci = false) noexcept;
-std::string version_info() noexcept;
-std::string compiler_info() noexcept;
+inline constexpr std::size_t ONE_KB = 1024U;
+inline constexpr std::size_t ONE_MB = ONE_KB * ONE_KB;
+//inline constexpr std::size_t ONE_GB = ONE_KB * ONE_MB;
+//inline constexpr std::size_t ONE_TB = ONE_KB * ONE_GB;
+//inline constexpr std::size_t ONE_PB = ONE_KB * ONE_TB;
+//inline constexpr std::size_t ONE_EB = ONE_KB * ONE_PB;
+
+// True if and only if the binary is compiled on a little-endian machine
+#if defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__)
+inline constexpr bool IsLittleEndian = (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__);
+#elif defined(_WIN32)
+inline constexpr bool IsLittleEndian = true;
+#else
+// Fallback runtime check
+inline const bool IsLittleEndian = []() noexcept {
+    constexpr std::uint16_t v = 1;
+    return *reinterpret_cast<const std::uint8_t*>(&v) == 1;
+}();
+#endif
 
 constexpr std::uint64_t bit(std::uint8_t b) noexcept { return (1ULL << b); }
 
@@ -190,9 +206,11 @@ constexpr double constexpr_log(double x) noexcept {
     return constexpr_approx_1p_log(x - 1.0) + exponent * LN2;
 }
 
-// True if and only if the binary is compiled on a little-endian machine
-inline constexpr std::uint16_t LittleEndianValue = 1;
-inline const bool IsLittleEndian = *reinterpret_cast<const char*>(&LittleEndianValue) == 1;
+std::string engine_info(bool uci = false) noexcept;
+
+std::string version_info() noexcept;
+
+std::string compiler_info() noexcept;
 
 struct IndexCount final {
    public:

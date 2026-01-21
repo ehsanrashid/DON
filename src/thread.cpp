@@ -123,7 +123,7 @@ void Thread::idle_func() noexcept {
         condVar.wait(lock, [this] { return busy || dead; });
 
         if (dead)
-            break;
+            return;
 
         JobFunc jobFn = std::move(jobFunc);
         jobFunc       = nullptr;
