@@ -1105,7 +1105,7 @@ inline void write_multiple_dirties(const StdArray<Piece, SQUARE_NB>& pieceMap,
     threatSquares = _mm512_slli_epi32(threatSquares, SqShift);
     threatPieces  = _mm512_slli_epi32(threatPieces, PcShift);
 
-    // Combine into final dirty values                                     A | B | C
+    // Combine into final dirty values                  A | B | C
     const __m512i dirties =
       _mm512_ternarylogic_epi32(templateVal, threatSquares, threatPieces, 254);
     _mm512_storeu_si512(reinterpret_cast<__m512i*>(dt), dirties);

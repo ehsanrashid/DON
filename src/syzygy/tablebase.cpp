@@ -397,9 +397,9 @@ TableData make_table_data(std::string_view code) noexcept {
     return tableData;
 }
 
-struct TBTableBase {
+struct BaseTBTable {
    public:
-    virtual ~TBTableBase() noexcept = default;
+    virtual ~BaseTBTable() noexcept = default;
 
     StdArray<Key, COLOR_NB> key;
 };
@@ -409,7 +409,7 @@ struct TBTableBase {
 // TBTable is populated at init time but the nested PairsData records are
 // populated at first access, when the corresponding file is memory mapped.
 template<TBType T>
-struct TBTable final: TBTableBase {
+struct TBTable final: BaseTBTable {
     using Ret = std::conditional_t<T == WDL, WDLScore, int>;
 
     TBTable() noexcept = default;
@@ -863,7 +863,7 @@ class TBTables final {
     struct Entry final {
        public:
         Entry() noexcept = default;
-        Entry(Key k, TBTableBase* wdlTable, TBTableBase* dtzTable) noexcept :
+        Entry(Key k, BaseTBTable* wdlTable, BaseTBTable* dtzTable) noexcept :
             key(k),
             tables{wdlTable, dtzTable} {}
 
@@ -881,28 +881,31 @@ class TBTables final {
         //void clear() noexcept { std::memset(this, 0, sizeof(*this)); }
 
         Key                               key;
-        StdArray<TBTableBase*, TBTYPE_NB> tables;
+        StdArray<BaseTBTable*, TBTYPE_NB> tables;
     };
 
    public:
     template<TBType T>
     [[nodiscard]] TBTable<T>* get(Key key) noexcept {
 
-        for (std::size_t distance = 0; distance < SIZE; ++distance)
+        // Limit search by max probe distance
+        const std::size_t Limit = std::min(maxProbeDistance + 1, SIZE);
+
+        for (std::size_t distance = 0; distance < Limit; ++distance)
         {
             const std::size_t bucket = (key + distance) & MASK;
 
             Entry& entry = entries[bucket];
-
-            // Found the key -> return the associated table
-            if (entry.key == key)
-                return entry.get<T>();  // done
 
             // Stop search if:
             // 1) Empty slot -> key not found
             // 2) Robin Hood break condition -> key would have been inserted earlier
             if (entry.empty() || distance > probe_distance(entry, bucket))
                 break;
+
+            // Found the key -> return the associated table
+            if (entry.key == key)
+                return entry.get<T>();  // done
         }
 
         // Key not found
@@ -914,6 +917,8 @@ class TBTables final {
 
         wdlTables.clear();
         dtzTables.clear();
+
+        maxProbeDistance = 0;
     }
 
     std::string info() const noexcept {
@@ -943,6 +948,10 @@ class TBTables final {
             {
                 entry = newEntry;
 
+                // Update max probe distance for the newly placed entry
+                if (maxProbeDistance < distance)
+                    maxProbeDistance = distance;
+
                 return;  // done
             }
 
@@ -952,7 +961,13 @@ class TBTables final {
             // Swap entries: the poorer (more probed) entry takes this slot,
             // the richer (less probed) entry continues probing forward.
             if (distance > probe_distance(entry, bucket))
+            {
                 std::swap(newEntry, entry);
+
+                // Update max probe distance for the swaped entry
+                if (maxProbeDistance < distance)
+                    maxProbeDistance = distance;
+            }
         }
 
         // May want to handle this case explicitly
@@ -1006,6 +1021,22 @@ class TBTables final {
 
                 shift_backward(bucket);
 
+                // Recalculate max probe distance
+                std::size_t newMaxProbeDistance = 0;
+
+                for (std::size_t i = 0; i < SIZE; ++i)
+                {
+                    const Entry& e = entries[i];
+                    if (!e.empty())
+                    {
+                        const std::size_t probeDistance = probe_distance(e, i);
+                        if (newMaxProbeDistance < probeDistance)
+                            newMaxProbeDistance = probeDistance;
+                    }
+                }
+
+                maxProbeDistance = newMaxProbeDistance;
+
                 return;  // done
             }
 
@@ -1024,6 +1055,9 @@ class TBTables final {
 
     std::deque<TBTable<WDL>> wdlTables;
     std::deque<TBTable<DTZ>> dtzTables;
+
+    // Track the farthest any entry has been displaced
+    std::size_t maxProbeDistance = 0;
 };
 
 // If the corresponding file exists two new objects TBTable<WDL> and TBTable<DTZ>
@@ -1045,14 +1079,14 @@ void TBTables::add(const std::vector<PieceType>& pieces) noexcept {
 
     code.insert(pos, 1, 'v');  // KRK -> KRvK
 
-    StdArray<bool, TBTYPE_NB> exists{
+    const StdArray<bool, TBTYPE_NB> Exists{
       TBFile(code, EXTS[WDL]).exists(), TBFile(code, EXTS[DTZ]).exists()  //
     };
 
-    if (!exists[WDL] && !exists[DTZ])
+    if (!Exists[WDL] && !Exists[DTZ])
         return;
 
-    std::uint8_t pieceCount = pieces.size();
+    const std::uint8_t pieceCount = pieces.size();
 
     if (MaxCardinality < pieceCount)
         MaxCardinality = pieceCount;
@@ -1062,21 +1096,21 @@ void TBTables::add(const std::vector<PieceType>& pieces) noexcept {
 
     const auto tableData = make_table_data(code);
 
-    if (exists[WDL])
+    if (Exists[WDL])
     {
         wdlTables.emplace_back(tableData);
         wdlTable = &wdlTables.back();
     }
 
-    if (exists[DTZ])
+    if (Exists[DTZ])
     {
         dtzTables.emplace_back(tableData);
         dtzTable = &dtzTables.back();
     }
 
-    const TBTableBase* const keyTable = exists[WDL]  //
-                                        ? static_cast<TBTableBase*>(wdlTable)
-                                        : static_cast<TBTableBase*>(dtzTable);
+    const BaseTBTable* const keyTable = Exists[WDL]  //
+                                        ? static_cast<BaseTBTable*>(wdlTable)
+                                        : static_cast<BaseTBTable*>(dtzTable);
 
     insert({keyTable->key[WHITE], wdlTable, dtzTable});
     insert({keyTable->key[BLACK], wdlTable, dtzTable});
