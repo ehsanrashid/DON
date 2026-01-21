@@ -675,7 +675,8 @@ std::optional<std::string> read_file_to_string(std::string_view filePath) noexce
 
     ifs.seekg(0, std::ios::beg);
 
-    std::string str(std::size_t(size), '\0');
+    std::string str;
+    str.reserve(std::size_t(size));
 
     str.assign(std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>());
 
