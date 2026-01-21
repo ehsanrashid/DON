@@ -64,11 +64,11 @@ class HalfKAv2_hm final {
 
    private:
     HalfKAv2_hm() noexcept                              = delete;
+    ~HalfKAv2_hm() noexcept                             = delete;
     HalfKAv2_hm(const HalfKAv2_hm&) noexcept            = delete;
     HalfKAv2_hm(HalfKAv2_hm&&) noexcept                 = delete;
     HalfKAv2_hm& operator=(const HalfKAv2_hm&) noexcept = delete;
     HalfKAv2_hm& operator=(HalfKAv2_hm&&) noexcept      = delete;
-    ~HalfKAv2_hm() noexcept                             = delete;
 };
 
 }  // namespace NNUE::Features

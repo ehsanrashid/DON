@@ -1894,8 +1894,12 @@ void Position::flip() noexcept {
     // Piece placement (vertical flip)
     for (Rank r = RANK_8;; --r)
     {
-        std::getline(iss, token, r > RANK_1 ? '/' : ' ');
-        fens.insert(0, token + (r < RANK_8 ? '/' : ' '));
+        const char rDelim = r > RANK_1 ? '/' : ' ';
+        const char wDelim = r < RANK_8 ? '/' : ' ';
+
+        std::getline(iss, token, rDelim);
+
+        fens.insert(0, token).insert(token.size(), 1, wDelim);
 
         if (r == RANK_1)
             break;
@@ -1903,7 +1907,13 @@ void Position::flip() noexcept {
 
     // Active color (will be lowercased later)
     iss >> token;
-    token[0] = token[0] == 'w' ? 'B' : 'W';
+    switch (token[0])
+    {
+        // clang-format off
+    case 'w' : token[0] = 'B'; break;
+    case 'b' : token[0] = 'W'; break;
+        // clang-format on
+    }
     fens += token;
     fens += ' ';
 
@@ -1916,7 +1926,7 @@ void Position::flip() noexcept {
 
     // En-passant square
     iss >> token;
-    if (token != "-")
+    if (token.size() == 2)
         token[1] = flip_rank(token[1]);
     fens += token;
 
@@ -1935,9 +1945,13 @@ void Position::mirror() noexcept {
     // Piece placement (horizontal flip)
     for (Rank r = RANK_8;; --r)
     {
-        std::getline(iss, token, r > RANK_1 ? '/' : ' ');
+        const char delim = r > RANK_1 ? '/' : ' ';
+
+        std::getline(iss, token, delim);
+
         std::reverse(token.begin(), token.end());
-        fens += token + (r > RANK_1 ? '/' : ' ');
+
+        fens.append(token).append(1, delim);
 
         if (r == RANK_1)
             break;
@@ -1969,7 +1983,7 @@ void Position::mirror() noexcept {
 
     // En-passant square (flip the file)
     iss >> token;
-    if (token != "-")
+    if (token.size() == 2)
         token[0] = flip_file(token[0]);
     fens += token;
 

@@ -72,11 +72,11 @@ class FullThreats final {
 
    private:
     FullThreats() noexcept                              = delete;
+    ~FullThreats() noexcept                             = delete;
     FullThreats(const FullThreats&) noexcept            = delete;
     FullThreats(FullThreats&&) noexcept                 = delete;
     FullThreats& operator=(const FullThreats&) noexcept = delete;
     FullThreats& operator=(FullThreats&&) noexcept      = delete;
-    ~FullThreats() noexcept                             = delete;
 };
 
 }  // namespace NNUE::Features
