@@ -102,7 +102,9 @@ Engine::Engine(std::optional<std::string> path) noexcept :
     options.add("UCI_ELO",              Option(Skill::MAX_ELO, Skill::MIN_ELO, Skill::MAX_ELO));
     options.add("UCI_ShowWDL",          Option(false));
     options.add("OwnBook",              Option(false));
-    options.add("BookFile",             Option("", OnCng([](const Option& o) { return Book.load(o) ? "Load succeeded" : "Load failed"; })));
+    options.add("BookFile",             Option("", OnCng([](const Option& o) { std::string_view bookFile = o;
+                                                                               if (bookFile.empty()) return "";
+                                                                               return Book.load(bookFile) ? "Load succeeded" : "Load failed"; })));
     options.add("BookProbeDepth",       Option(100, 1, 256));
     options.add("BookPickBest",         Option(true));
     options.add("SyzygyPath",           Option("", OnCng([](const Option& o) { Tablebase::init(o); return std::nullopt; })));

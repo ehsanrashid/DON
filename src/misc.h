@@ -1444,7 +1444,7 @@ inline constexpr std::string_view WHITE_SPACE{" \t\n\r\f\v"};
 
 [[nodiscard]] constexpr bool string_to_bool(std::string_view str) { return (trim(str) == "true"); }
 
-inline std::string clamp_value(std::string_view value, int minValue, int maxValue) noexcept {
+inline std::string clamp_string(std::string_view value, int minValue, int maxValue) noexcept {
     int intValue = 0;
 
     auto [_, ec] = std::from_chars(value.data(), value.data() + value.size(), intValue);

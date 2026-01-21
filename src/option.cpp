@@ -139,7 +139,7 @@ void Option::operator=(std::string value) noexcept {
             value.clear();
         break;
     case Type::SPIN :
-        value = clamp_value(value, minValue, maxValue);
+        value = clamp_string(value, minValue, maxValue);
         break;
     case Type::COMBO :
         value = lower_case(value);
