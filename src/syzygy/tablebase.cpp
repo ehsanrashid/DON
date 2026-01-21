@@ -393,12 +393,16 @@ TableData make_table_data(std::string_view code) noexcept {
     return tableData;
 }
 
+struct TBTableBase {
+    virtual ~TBTableBase() noexcept = default;
+};
+
 // TBTable contains indexing information to access the corresponding TBFile.
 // There are 2 types of TBTable, corresponding to a WDL or a DTZ file.
 // TBTable is populated at init time but the nested PairsData records are
 // populated at first access, when the corresponding file is memory mapped.
 template<TBType T>
-struct TBTable final {
+struct TBTable final: TBTableBase {
     using Ret = std::conditional_t<T == WDL, WDLScore, int>;
 
     PairsData* get(int ac, int f) noexcept { return &items[ac % SIDES][hasPawns ? f : 0]; }
@@ -851,27 +855,24 @@ class TBTables final {
    private:
     struct Entry final {
        public:
+        Entry() noexcept = default;
+        Entry(Key k, TBTableBase* wdl, TBTableBase* dtz) noexcept :
+            key(k),
+            tables{wdl, dtz} {}
+
         std::size_t bucket() const noexcept { return key & MASK; }
 
-        bool empty() const noexcept { return wdlTable == nullptr && dtzTable == nullptr; }
+        bool empty() const noexcept { return tables[WDL] == nullptr && tables[DTZ] == nullptr; }
 
         template<TBType T>
         TBTable<T>* get() const noexcept {
-            if constexpr (T == WDL)
-                return wdlTable;
-            else
-                return dtzTable;
+            return static_cast<TBTable<T>*>(tables[T]);
         }
 
-        void clear() noexcept {
-            key      = 0;
-            wdlTable = nullptr;
-            dtzTable = nullptr;
-        }
+        //void clear() noexcept { std::memset(this, 0, sizeof(*this)); }
 
-        Key           key;
-        TBTable<WDL>* wdlTable;
-        TBTable<DTZ>* dtzTable;
+        Key                       key;
+        StdArray<TBTableBase*, 2> tables;
     };
 
    public:
