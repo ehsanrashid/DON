@@ -385,7 +385,7 @@ TableData make_table_data(std::string_view code) noexcept {
 
     // Set the leading color. In case both sides have pawns the leading color
     // is the side with fewer pawns because this leads to better compression.
-    bool c = pawnCnt[BLACK] == 0 || (pawnCnt[WHITE] != 0 && pawnCnt[WHITE] <= pawnCnt[BLACK]);
+    const bool c = pawnCnt[BLACK] == 0 || (pawnCnt[WHITE] != 0 && pawnCnt[WHITE] <= pawnCnt[BLACK]);
 
     tableData.pawnCount[WHITE] = pawnCnt[c ? WHITE : BLACK];
     tableData.pawnCount[BLACK] = pawnCnt[c ? BLACK : WHITE];
@@ -447,8 +447,7 @@ struct TBTable final: BaseTBTable {
 #if defined(_WIN32)
     HANDLE      hMapFile = INVALID_HANDLE;
     HandleGuard hMapFileGuard{hMapFile};
-#endif
-#if defined(_WIN32)
+
     void*     mappedPtr = INVALID_MMAP_PTR;
     MMapGuard mappedGuard{mappedPtr};
 #else
