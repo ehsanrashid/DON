@@ -198,27 +198,29 @@ class Histories final {
    public:
     Histories() noexcept = delete;
     Histories(std::size_t count) noexcept :
-        pawnSize(count * PAWN_HISTORY_BASE_SIZE),
-        correctionSize(count * CORRECTION_HISTORY_BASE_SIZE),
-        pawnHistory(pawn_size()),
-        pawnCorrectionHistory(correction_size()),
-        minorCorrectionHistory(correction_size()),
-        nonPawnCorrectionHistory(correction_size()) {
+        historySize(count * PAWN_HISTORY_BASE_SIZE),
+        correctionHistorySize(count * CORRECTION_HISTORY_BASE_SIZE),
+        pawnHistory(history_size()),
+        pawnCorrectionHistory(correction_history_size()),
+        minorCorrectionHistory(correction_history_size()),
+        nonPawnCorrectionHistory(correction_history_size()) {
         assert(count != 0 && (count & (count - 1)) == 0);
     }
 
-    constexpr std::size_t pawn_size() const noexcept { return pawnSize; }
-    constexpr std::size_t pawn_mask() const noexcept { return pawn_size() - 1; }
+    constexpr std::size_t history_size() const noexcept { return historySize; }
+    constexpr std::size_t history_mask() const noexcept { return history_size() - 1; }
 
     constexpr std::size_t pawn_index(Key pawnKey) const noexcept {  //
-        return pawnKey & pawn_mask();
+        return pawnKey & history_mask();
     }
 
-    constexpr std::size_t correction_size() const noexcept { return correctionSize; }
-    constexpr std::size_t correction_mask() const noexcept { return correction_size() - 1; }
+    constexpr std::size_t correction_history_size() const noexcept { return correctionHistorySize; }
+    constexpr std::size_t correction_history_mask() const noexcept {
+        return correction_history_size() - 1;
+    }
 
     constexpr std::size_t correction_index(Key correctionKey) const noexcept {  //
-        return correctionKey & correction_mask();
+        return correctionKey & correction_history_mask();
     }
 
 
@@ -261,8 +263,8 @@ class Histories final {
     }
 
    private:
-    const std::size_t pawnSize;
-    const std::size_t correctionSize;
+    const std::size_t historySize;
+    const std::size_t correctionHistorySize;
 
     History<HType::PAWN>                pawnHistory;
     CorrectionHistory<CHType::PAWN>     pawnCorrectionHistory;

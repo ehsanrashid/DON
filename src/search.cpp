@@ -209,18 +209,22 @@ void Worker::init() noexcept {
 
     // Each thread initializes its NUMA-local range of history entries to prevent false sharing
 
-    auto pawnRange = thread_index_range(numa_id(), numa_thread_count(), histories.pawn_size());
+    auto historyRange =
+      thread_index_range(numa_id(), numa_thread_count(), histories.history_size());
 
-    histories.pawn().fill(pawnRange.begIdx, pawnRange.endIdx, -1238);
+    histories.pawn().fill(historyRange.begIdx, historyRange.endIdx, -1238);
 
-    auto correctionRange =
-      thread_index_range(numa_id(), numa_thread_count(), histories.correction_size());
+    auto correctionHistoryRange =
+      thread_index_range(numa_id(), numa_thread_count(), histories.correction_history_size());
 
-    histories.pawn_correction().fill(correctionRange.begIdx, correctionRange.endIdx, 5);
-    histories.minor_correction().fill(correctionRange.begIdx, correctionRange.endIdx, 0);
-    histories.non_pawn_correction().fill(correctionRange.begIdx, correctionRange.endIdx, 0);
+    histories.pawn_correction().fill(correctionHistoryRange.begIdx, correctionHistoryRange.endIdx,
+                                     5);
+    histories.minor_correction().fill(correctionHistoryRange.begIdx, correctionHistoryRange.endIdx,
+                                      0);
+    histories.non_pawn_correction().fill(correctionHistoryRange.begIdx,
+                                         correctionHistoryRange.endIdx, 0);
 
-    // Initialize search histories
+    // Initialize histories
 
     captureHistory.fill(-689);
     quietHistory.fill(DEFAULT_QUIET_HISTORY_VALUE);
