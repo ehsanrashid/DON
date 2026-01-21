@@ -87,6 +87,8 @@ enum TBType : std::uint8_t {
     DTZ
 };
 
+constexpr std::size_t TBTYPE_NB = 2;
+
 // Each table has a set of flags: all of them refer to DTZ-tables, the last one to WDL-tables
 enum TBFlag : std::uint8_t {
     ACTIVE_COLOR = 1,
@@ -100,12 +102,12 @@ enum TBFlag : std::uint8_t {
 // Max DTZ supported (2 times), large enough to deal with the syzygy TB limit
 constexpr std::int32_t MAX_DTZ = 0x40000;
 
-constexpr StdArray<std::string_view, 2> EXTS{
+constexpr StdArray<std::string_view, TBTYPE_NB> EXTS{
   ".rtbw",  // Win-Draw-Loss    (WDL)
   ".rtbz"   // Distance-to-Zero (DTZ)
 };
 
-constexpr StdArray<std::uint8_t, 2, 4> TB_MAGICS{{
+constexpr StdArray<std::uint8_t, TBTYPE_NB, 4> TB_MAGICS{{
   {0x71, 0xE8, 0x23, 0x5D},  // Win-Draw-Loss    (WDL) = 0x5D23E871
   {0xD7, 0x66, 0x0C, 0xA5}   // Distance-to-Zero (DTZ) = 0xA50C66D7
 }};
@@ -192,6 +194,8 @@ struct SparseEntry final {
 static_assert(sizeof(SparseEntry) == 6, "SparseEntry must be 6 bytes");
 
 using Sym = std::uint16_t;  // Huffman symbol
+
+constexpr Sym INVALID_SYM = 0xFFFU;
 
 struct LR final {
     template<bool Left>
@@ -408,8 +412,6 @@ template<TBType T>
 struct TBTable final: TBTableBase {
     using Ret = std::conditional_t<T == WDL, WDLScore, int>;
 
-    PairsData* get(int ac, int f) noexcept { return &items[ac % SIDES][hasPawns ? f : 0]; }
-
     TBTable() noexcept = default;
 
     explicit TBTable(const TableData& tableData) noexcept;
@@ -430,7 +432,10 @@ struct TBTable final: TBTableBase {
 
     std::uint8_t* map_ptr() noexcept { return mapPtr; }
 
+    PairsData* get(int ac, int f) noexcept { return &items[ac & MASK][hasPawns ? f : 0]; }
+
     static constexpr std::size_t SIDES = T == WDL ? 2 : 1;
+    static constexpr std::size_t MASK  = SIDES - 1;
 
     std::uint8_t                     pieceCount;
     bool                             hasPawns;
@@ -864,9 +869,9 @@ class TBTables final {
 
         std::size_t bucket() const noexcept { return key & MASK; }
 
-        bool valid() const noexcept { return tables[WDL] != nullptr || tables[DTZ] != nullptr; }
+        bool empty() const noexcept { return tables[WDL] == nullptr && tables[DTZ] == nullptr; }
 
-        bool empty() const noexcept { return !valid(); }
+        bool valid() const noexcept { return !empty(); }
 
         template<TBType T>
         TBTable<T>* get() const noexcept {
@@ -875,8 +880,8 @@ class TBTables final {
 
         //void clear() noexcept { std::memset(this, 0, sizeof(*this)); }
 
-        Key                       key;
-        StdArray<TBTableBase*, 2> tables;
+        Key                               key;
+        StdArray<TBTableBase*, TBTYPE_NB> tables;
     };
 
    public:
@@ -921,7 +926,7 @@ class TBTables final {
     void add(const std::vector<PieceType>& pieces) noexcept;
 
    private:
-    std::size_t probe_distance(const Entry& entry, std::size_t currentBucket) noexcept {
+    static std::size_t probe_distance(const Entry& entry, std::size_t currentBucket) noexcept {
         return (currentBucket - entry.bucket()) & MASK;
     }
 
@@ -1040,7 +1045,7 @@ void TBTables::add(const std::vector<PieceType>& pieces) noexcept {
 
     code.insert(pos, 1, 'v');  // KRK -> KRvK
 
-    StdArray<bool, 2> exists{
+    StdArray<bool, TBTYPE_NB> exists{
       TBFile(code, EXTS[WDL]).exists(), TBFile(code, EXTS[DTZ]).exists()  //
     };
 
@@ -1521,7 +1526,7 @@ std::uint8_t set_symlen(PairsData* pd, Sym s, std::vector<bool>& visited) noexce
 
     Sym rSym = pd->btree[s].get<false>();
 
-    if (rSym == 0xFFF)
+    if (rSym == INVALID_SYM)
         return 0;
 
     Sym lSym = pd->btree[s].get<true>();
@@ -1546,6 +1551,7 @@ std::uint8_t* set_sizes(PairsData* pd, std::uint8_t* data) noexcept {
         pd->span            = 0;
         pd->sparseIndexSize = 0;        // Broken MSVC zero-init
         pd->minSymLen       = *data++;  // Here store the single value
+
         return data;
     }
 
@@ -1575,8 +1581,8 @@ std::uint8_t* set_sizes(PairsData* pd, std::uint8_t* data) noexcept {
     // so that pd->lowestSym[i] >= pd->lowestSym[i+1] (when read as LittleEndian).
     // Starting from this compute a base64[] table indexed by symbol length
     // and containing 64 bit values so that pd->base64[i] >= pd->base64[i+1].
-
     std::size_t base64Size = pd->base64.size();
+
     for (std::size_t i = base64Size != 0 ? base64Size - 1 : 0; i-- > 0;)
     {
         pd->base64[i] = (pd->base64[i + 1]                                 //
@@ -1606,6 +1612,7 @@ std::uint8_t* set_sizes(PairsData* pd, std::uint8_t* data) noexcept {
     // the extended alphabet, and then repeating the process.
     // See https://web.archive.org/web/20201106232444/http://www.larsson.dogma.net/dcc99.pdf
     std::vector<bool> visited(pd->symLen.size());
+
     for (Sym s = 0; s < pd->symLen.size(); ++s)
         if (!visited[s])
             pd->symLen[s] = set_symlen(pd, s, visited);

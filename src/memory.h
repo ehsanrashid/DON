@@ -78,6 +78,10 @@ template<typename T>
     // Alignment must be non-zero power of 2
     assert(alignment != 0 && (alignment & (alignment - 1)) == 0);
 
+    // Handle edge case: alignment = 0
+    if (alignment == 0)
+        return size;
+
     T mask = alignment - 1;
     // Avoid overflow: if size + mask overflows, it wraps around
     return (size + mask) & ~mask;
