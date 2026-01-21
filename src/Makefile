@@ -890,16 +890,6 @@ ifeq ($(optimize), yes)
             LDFLAGS += $(CXXFLAGS) -flto=jobserver -save-temps
         endif
     endif
-
-    # Inline settings
-    ifeq ($(comp), clang)
-        ifneq ($(filter Windows_NT Darwin, $(OS) $(KERNEL)), )
-            # skip -mllvm on Windows or macOS
-        else ifneq ($(filter -m64, $(CXXFLAGS)), )
-            # only add for 64-bit Linux
-            #CXXFLAGS += -mllvm -inline-threshold=500
-        endif
-    endif
 endif
 
 ### 3.10 Android 5 can only run position independent executables. Note that this

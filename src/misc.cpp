@@ -611,10 +611,8 @@ CommandLine::CommandLine(int argc, const char* argv[]) noexcept {
 
 // Extract the binary directory
 std::string CommandLine::binary_directory(std::string path) noexcept {
-    std::string pathSeparator;
-
 #if defined(_WIN32)
-    pathSeparator = "\\";
+    std::string pathSeparator = "\\";
     #if defined(_MSC_VER)
     // Under windows path may not have the extension.
     // Also _get_pgmptr() had issues in some Windows 10 versions,
@@ -624,7 +622,7 @@ std::string CommandLine::binary_directory(std::string path) noexcept {
         path = pgmptr;
     #endif
 #else
-    pathSeparator = "/";
+    std::string pathSeparator = "/";
 #endif
 
     std::string binaryDirectory = path;
@@ -671,7 +669,7 @@ std::optional<std::string> read_file_to_string(std::string_view filePath) noexce
     if (!ifs)
         return std::nullopt;
 
-    std::streamsize size = ifs.tellg();
+    const auto size = ifs.tellg();
     if (size < 0)
         return std::nullopt;
 
@@ -679,8 +677,7 @@ std::optional<std::string> read_file_to_string(std::string_view filePath) noexce
 
     std::string str(std::size_t(size), '\0');
 
-    if (!ifs.read(str.data(), size))
-        return std::nullopt;
+    str.assign(std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>());
 
     return str;
 }

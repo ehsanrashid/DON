@@ -687,8 +687,8 @@ void Worker::iterative_deepening() noexcept {
             assert(totalTime >= 0.0);
             // clang-format on
 
-            // Cap totalTime to the available maximum time
             const TimePoint MaxTime = mainManager->timeManager.maximum();
+            // Cap totalTime to the available maximum time
             if (totalTime > MaxTime)
                 totalTime = MaxTime;
 
@@ -701,7 +701,7 @@ void Worker::iterative_deepening() noexcept {
                     totalTime = TimeManager::SINGLE_MOVE_MAX_TIME;
             }
 
-            TimePoint elapsedTime = mainManager->elapsed(threads);
+            const TimePoint elapsedTime = mainManager->elapsed(threads);
 
             // Stop the search if have exceeded the total time
             if (elapsedTime > totalTime)
