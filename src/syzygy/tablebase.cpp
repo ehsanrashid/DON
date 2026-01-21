@@ -845,6 +845,8 @@ class TBTables final {
        public:
         std::size_t bucket() const noexcept { return key & MASK; }
 
+        bool empty() const noexcept { return wdlTable == nullptr && dtzTable == nullptr; }
+
         template<TBType T>
         TBTable<T>* get() const noexcept {
             if constexpr (T == WDL)
@@ -874,11 +876,9 @@ class TBTables final {
 
             Entry& entry = entries[bucket];
 
-            TBTable<T>* table = entry.get<T>();
-
             // Found the key -> return the associated table
             if (entry.key == key)
-                return table;
+                return entry.get<T>();
 
             // Compute how far this entry is from its ideal bucket
             const std::size_t entryDistance = (bucket - entry.bucket()) & MASK;
@@ -886,7 +886,7 @@ class TBTables final {
             // Stop search if:
             // 1) Empty slot -> key not found
             // 2) Robin Hood break condition -> key would have been inserted earlier
-            if (table == nullptr || distance > entryDistance)
+            if (entry.empty() || distance > entryDistance)
                 break;
         }
 
@@ -920,7 +920,7 @@ class TBTables final {
             Entry& entry = entries[bucket];
 
             // Case 1: Empty slot or key already exists -> place/update
-            if (entry.get<WDL>() == nullptr || entry.key == newEntry.key)
+            if (entry.empty() || entry.key == newEntry.key)
             {
                 entry = newEntry;
 

@@ -18,14 +18,14 @@
 #include <iostream>
 #include <memory>
 
+using namespace DON;
+
 #include "bitboard.h"
 #include "misc.h"
 #include "position.h"
 #include "syzygy/tablebase.h"
 #include "tune.h"
 #include "uci.h"
-
-using namespace DON;
 
 int main(int argc, const char* argv[]) {
 
