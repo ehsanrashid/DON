@@ -688,8 +688,9 @@ void Worker::iterative_deepening() noexcept {
             // clang-format on
 
             // Cap totalTime to the available maximum time
-            if (totalTime > mainManager->timeManager.maximum())
-                totalTime = mainManager->timeManager.maximum();
+            const TimePoint MaxTime = mainManager->timeManager.maximum();
+            if (totalTime > MaxTime)
+                totalTime = MaxTime;
 
             // Cap totalTime in case of a single legal move for a better viewer experience
             if (rootMoves.size() == 1)

@@ -1560,7 +1560,7 @@ std::uint8_t* set_sizes(PairsData* pd, std::uint8_t* data) noexcept {
 
     pd->blockSize       = 1ULL << *data++;
     pd->span            = 1ULL << *data++;
-    pd->sparseIndexSize = div_ceil(tbSize, pd->span);  // Round up
+    pd->sparseIndexSize = ceil_div(tbSize, pd->span);  // Round up
 
     auto padding = number<std::uint8_t, Endian::LITTLE>(data);
     data += 1;

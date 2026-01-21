@@ -269,7 +269,7 @@ std::uint16_t TranspositionTable::hashfull(std::uint8_t maxAge) const noexcept {
             count += entry.occupied() && entry.relative_age(generation8) <= relMaxAge;
 
     // Normalize per entries per cluster
-    return div_ceil(count * requiredCount, actualCount) / clusters->entries.size();
+    return ceil_div(count * requiredCount, actualCount) / clusters->entries.size();
 }
 
 bool TranspositionTable::load(std::string_view hashFile, Threads& threads) noexcept {
