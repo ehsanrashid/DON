@@ -480,24 +480,43 @@ class BaseSharedMemory {
 //  - The class is static-only; it cannot be instantiated. (Restriction)
 class SharedMemoryRegistry final {
    public:
-    // Register a shared memory object in the global registry.
-    // Thread-safe: locks the registry while inserting.
-    static void register_memory(BaseSharedMemory* const sharedMemory) noexcept {
-        std::scoped_lock lock(mutex);
-
+    static bool insert_nolock(BaseSharedMemory* const sharedMemory) noexcept {
         // Only insert if not already present
         if (lookupSharedMemories.insert(sharedMemory).second)
+        {
             orderedSharedMemories.push_back(sharedMemory);
+
+            return true;
+        }
+
+        return false;
+    }
+    static bool erase_nolock(BaseSharedMemory* const sharedMemory) noexcept {
+        // Only erase if already present
+        if (lookupSharedMemories.erase(sharedMemory) != 0)
+        {
+            orderedSharedMemories.erase(
+              std::find(orderedSharedMemories.begin(), orderedSharedMemories.end(), sharedMemory));
+
+            return true;
+        }
+
+        return false;
+    }
+
+    // Register a shared memory object in the global registry.
+    // Thread-safe: locks the registry while inserting.
+    static bool register_memory(BaseSharedMemory* const sharedMemory) noexcept {
+        std::scoped_lock lock(mutex);
+
+        return insert_nolock(sharedMemory);
     }
     // Unregister a shared memory object from the global registry.
     // Thread-safe: locks the registry while erasing.
-    static void unregister_memory(BaseSharedMemory* const sharedMemory) noexcept {
+    static bool unregister_memory(BaseSharedMemory* const sharedMemory) noexcept {
         std::scoped_lock lock(mutex);
 
-        // Only erase if already present
-        if (lookupSharedMemories.erase(sharedMemory) != 0)
-            orderedSharedMemories.erase(
-              std::find(orderedSharedMemories.begin(), orderedSharedMemories.end(), sharedMemory));
+        return erase_nolock(sharedMemory);
     }
     // Close and clean all registered shared memory objects.
     // If skipUnmapRegion is true, the actual memory unmapping can be skipped.
@@ -516,14 +535,12 @@ class SharedMemoryRegistry final {
         for (BaseSharedMemory* const sharedMemory : copiedOrderedSharedMemories)
             sharedMemory->close(skipUnmapRegion);
 
-        // Remove all closed items from the registry in one lock
+        // Erase all closed items from the registry in one lock
         {
             std::scoped_lock lock(mutex);
 
             for (BaseSharedMemory* const sharedMemory : copiedOrderedSharedMemories)
-                if (lookupSharedMemories.erase(sharedMemory) != 0)
-                    orderedSharedMemories.erase(std::find(
-                      orderedSharedMemories.begin(), orderedSharedMemories.end(), sharedMemory));
+                erase_nolock(sharedMemory);
         }
     }
 
