@@ -960,10 +960,10 @@ class TBTables final {
             return true;
         }
 
-        std::size_t bucket = (idealBucket + 1) & MASK;
-
         for (std::size_t distance = 1; distance <= MAX_DISTANCE; ++distance)
         {
+            const std::size_t bucket = (idealBucket + distance) & MASK;
+
             Entry& entry = entries[bucket];
 
             // Case 1: Empty slot or key already exists -> place/update
@@ -972,9 +972,9 @@ class TBTables final {
                 entry = newEntry;
 
                 // Update MaxDistance using actual probe distance
-                const std::size_t entryDistance = probe_distance(entry, bucket);
-                if (MaxDistance < entryDistance)
-                    MaxDistance = entryDistance;
+                const std::size_t newDistance = probe_distance(newEntry, bucket);
+                if (MaxDistance < newDistance)
+                    MaxDistance = newDistance;
 
                 return true;
             }
@@ -985,16 +985,12 @@ class TBTables final {
             // Swap entries: the poorer (more probed) entry takes this slot,
             // the richer (less probed) entry continues probing forward.
             if (distance > probe_distance(entry, bucket))
-            {
                 std::swap(newEntry, entry);
 
-                // Update MaxDistance for the swapped-in entry
-                const std::size_t entryDistance = probe_distance(entry, bucket);
-                if (MaxDistance < entryDistance)
-                    MaxDistance = entryDistance;
-            }
-
-            bucket = (bucket + 1) & MASK;
+            // Update MaxDistance
+            const std::size_t newDistance = probe_distance(newEntry, bucket);
+            if (MaxDistance < newDistance)
+                MaxDistance = newDistance;
         }
 
         // May want to handle this case explicitly
@@ -1026,31 +1022,28 @@ class TBTables final {
                 entry.clear();
 
                 // Shift backward and get last affected bucket
-                std::size_t lastBucket = shift_backward(bucket);
+                const std::size_t lastBucket = shift_backward(bucket);
 
-                // Optional: recalculate maxProbeDistance in affected cluster
+                // Optional: recalculate MaxDistance in affected cluster
                 std::size_t newMaxDistance = 0;
 
-                std::size_t clusterBucket = idealBucket;
-
-                while (true)
+                for (std::size_t d = 0; d <= MAX_DISTANCE; ++d)
                 {
+                    const std::size_t clusterBucket = (idealBucket + d) & MASK;
+
                     const Entry& clusterEntry = entries[clusterBucket];
 
                     // Stop if empty slot (end of cluster)
                     if (clusterEntry.empty())
                         break;
 
-                    const std::size_t probeDistance = probe_distance(clusterEntry, clusterBucket);
-
-                    if (newMaxDistance < probeDistance)
-                        newMaxDistance = probeDistance;
+                    const std::size_t newDistance = probe_distance(clusterEntry, clusterBucket);
+                    if (newMaxDistance < newDistance)
+                        newMaxDistance = newDistance;
 
                     // Stop after including lastBucket
                     if (clusterBucket == lastBucket)
                         break;
-
-                    clusterBucket = (clusterBucket + 1) & MASK;
                 }
 
                 MaxDistance = newMaxDistance;
