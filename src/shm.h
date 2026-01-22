@@ -60,6 +60,7 @@
     #include <atomic>
     #include <cassert>
     #include <cerrno>
+    #include <chrono>
     #include <cstdio>
     #include <cstdlib>
     #include <dirent.h>
@@ -72,6 +73,7 @@
     #include <sys/file.h>
     #include <sys/mman.h>  // mmap, munmap, MAP_*, PROT_*
     #include <sys/stat.h>
+    #include <thread>
     #include <unistd.h>
     #include <unordered_map>
     #include <vector>
