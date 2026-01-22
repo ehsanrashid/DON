@@ -887,12 +887,20 @@ class TBTables final {
     template<TBType T>
     [[nodiscard]] TBTable<T>* get(Key key) noexcept {
 
+        const std::size_t idealBucket = key & MASK;
+
+        Entry& idealEntry = entries[idealBucket];
+
+        // Fast path: key is in its ideal slot
+        if (!idealEntry.empty() && idealEntry.key == key)
+            return idealEntry.get<T>();
+
         // Limit search by max probe distance
         const std::size_t LimitSize = std::min(maxProbeDistance + 1, SIZE);
 
-        for (std::size_t distance = 0; distance < LimitSize; ++distance)
+        for (std::size_t distance = 1; distance < LimitSize; ++distance)
         {
-            const std::size_t bucket = (key + distance) & MASK;
+            const std::size_t bucket = (idealBucket + distance) & MASK;
 
             Entry& entry = entries[bucket];
 
@@ -936,7 +944,19 @@ class TBTables final {
 
     void insert(Entry newEntry) noexcept {
 
-        for (std::size_t distance = 0; distance < SIZE; ++distance)
+        const std::size_t idealBucket = newEntry.key & MASK;
+
+        Entry& idealEntry = entries[idealBucket];
+
+        // Fast path: ideal bucket empty or matches key
+        if (idealEntry.empty() || idealEntry.key == newEntry.key)
+        {
+            idealEntry = newEntry;
+
+            return;
+        }
+
+        for (std::size_t distance = 1; distance < SIZE; ++distance)
         {
             const std::size_t bucket = (newEntry.key + distance) & MASK;
 
@@ -1001,17 +1021,58 @@ class TBTables final {
             return lastBucket;
         };
 
+        const std::size_t idealBucket = key & MASK;
+
+        Entry& idealEntry = entries[idealBucket];
+
+        // Fast path: key is in its ideal slot
+        if (!idealEntry.empty() && idealEntry.key == key)
+        {
+            idealEntry.clear();
+
+            const std::size_t lastBucket = shift_backward(idealBucket);
+
+            // Recalculate max probe distance in the affected cluster
+            std::size_t newMaxProbeDistance = 0;
+
+            std::size_t clusterBucket = idealBucket;
+
+            while (true)
+            {
+                const Entry& e = entries[clusterBucket];
+
+                // Stop if empty slot (end of cluster)
+                if (e.empty())
+                    break;
+
+                const std::size_t probeDistance = probe_distance(e, clusterBucket);
+
+                if (newMaxProbeDistance < probeDistance)
+                    newMaxProbeDistance = probeDistance;
+
+                // Stop after including lastBucket
+                if (clusterBucket == lastBucket)
+                    break;
+
+                clusterBucket = (clusterBucket + 1) & MASK;
+            }
+
+            maxProbeDistance = newMaxProbeDistance;
+
+            return;
+        }
+
         // Limit search by max probe distance
         const std::size_t LimitSize = std::min(maxProbeDistance + 1, SIZE);
 
-        for (std::size_t distance = 0; distance < LimitSize; ++distance)
+        for (std::size_t distance = 1; distance < LimitSize; ++distance)
         {
-            const std::size_t bucket = (key + distance) & MASK;
+            const std::size_t bucket = (idealBucket + distance) & MASK;
 
             Entry& entry = entries[bucket];
 
-            // Stop early if empty slot
-            if (entry.empty())
+            // Stop search if empty slot or Robin Hood break condition
+            if (entry.empty() || distance > probe_distance(entry, bucket))
                 break;
 
             // Found the entry -> remove and shift backward
@@ -1040,6 +1101,7 @@ class TBTables final {
                     if (newMaxProbeDistance < probeDistance)
                         newMaxProbeDistance = probeDistance;
 
+                    // Stop after including lastBucket
                     if (clusterBucket == lastBucket)
                         break;
 
@@ -1050,10 +1112,6 @@ class TBTables final {
 
                 return;  // done
             }
-
-            // Stop search if Robin Hood break condition
-            if (distance > probe_distance(entry, bucket))
-                break;
         }
     }
     */
