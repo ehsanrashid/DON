@@ -493,13 +493,13 @@ class SharedMemoryRegistry final {
     static bool cleanup_in_progress() noexcept { return cleanUp.load(std::memory_order_acquire); }
 
     // Try to register, retry only if cleanup is in progress
-    static void register_memory_attempt(BaseSharedMemory* const sharedMemory) noexcept {
+    static void attempt_register_memory(BaseSharedMemory* const sharedMemory) noexcept {
         constexpr std::size_t MaxAttempts = 10;
 
         for (std::size_t attempt = 0;; ++attempt)
         {
-
             auto registerResult = register_memory(sharedMemory);
+
             if (registerResult == RegisterResult::Success)
                 break;
 
@@ -965,7 +965,7 @@ class SharedMemory final: public BaseSharedMemory {
             unlock_file();
 
             // Register this new resource
-            SharedMemoryRegistry::register_memory_attempt(this);
+            SharedMemoryRegistry::attempt_register_memory(this);
 
             return true;
         }
@@ -1076,7 +1076,7 @@ class SharedMemory final: public BaseSharedMemory {
         sharedMem.reset();
 
         // 4. Register this new resource
-        SharedMemoryRegistry::register_memory_attempt(this);
+        SharedMemoryRegistry::attempt_register_memory(this);
     }
 
     void reset() noexcept {
