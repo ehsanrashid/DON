@@ -496,32 +496,35 @@ class SharedMemoryRegistry final {
 
         // Only erase if already present
         if (lookupSharedMemories.erase(sharedMemory) != 0)
-        {
-            auto itr =
-              std::find(orderedSharedMemories.begin(), orderedSharedMemories.end(), sharedMemory);
-            if (itr != orderedSharedMemories.end())
-                orderedSharedMemories.erase(itr);
-        }
+            orderedSharedMemories.erase(
+              std::find(orderedSharedMemories.begin(), orderedSharedMemories.end(), sharedMemory));
     }
     // Close and clean all registered shared memory objects.
     // If skipUnmapRegion is true, the actual memory unmapping can be skipped.
     // Thread-safe: swaps the registry into a local set to avoid iterator invalidation
     // if any close() call triggers unregister_memory().
     static void clean(bool skipUnmapRegion = false) noexcept {
-        // Swap out the set to avoid iterator invalidation if close() calls unregister_memory()
-        std::unordered_set<BaseSharedMemory*> copiedLookupSharedMemories;
-        std::vector<BaseSharedMemory*>        copiedOrderedSharedMemories;
+        std::vector<BaseSharedMemory*> copiedOrderedSharedMemories;
 
         {
             std::scoped_lock lock(mutex);
-
-            copiedLookupSharedMemories.swap(lookupSharedMemories);
-            copiedOrderedSharedMemories.swap(orderedSharedMemories);
+            // Copy to avoid iterator invalidation if close() calls unregister_memory()
+            copiedOrderedSharedMemories = orderedSharedMemories;
         }
 
         // Safe to iterate and close memory without holding the lock
-        for (BaseSharedMemory* const sharedMemory : orderedSharedMemories)
+        for (BaseSharedMemory* const sharedMemory : copiedOrderedSharedMemories)
             sharedMemory->close(skipUnmapRegion);
+
+        // Remove all closed items from the registry in one lock
+        {
+            std::scoped_lock lock(mutex);
+
+            for (BaseSharedMemory* const sharedMemory : copiedOrderedSharedMemories)
+                if (lookupSharedMemories.erase(sharedMemory) != 0)
+                    orderedSharedMemories.erase(std::find(
+                      orderedSharedMemories.begin(), orderedSharedMemories.end(), sharedMemory));
+        }
     }
 
    private:
