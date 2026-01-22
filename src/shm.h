@@ -482,6 +482,13 @@ class BaseSharedMemory {
 // Note:
 //  - The class is static-only; it cannot be instantiated. (Restriction)
 class SharedMemoryRegistry final {
+   private:
+    enum class RegisterResult : std::uint8_t {
+        Success,
+        AlreadyRegistered,
+        CleanupInProgress
+    };
+
    public:
     static bool cleanup_in_progress() noexcept { return cleanUp.load(std::memory_order_acquire); }
 
@@ -492,7 +499,7 @@ class SharedMemoryRegistry final {
         for (std::size_t attempt = 0;; ++attempt)
         {
 
-            auto registerResult = SharedMemoryRegistry::register_memory(sharedMemory);
+            auto registerResult = register_memory(sharedMemory);
             if (registerResult == RegisterResult::Success)
                 break;
 
@@ -552,12 +559,6 @@ class SharedMemoryRegistry final {
     }
 
    private:
-    enum class RegisterResult : std::uint8_t {
-        Success,
-        AlreadyRegistered,
-        CleanupInProgress
-    };
-
     SharedMemoryRegistry() noexcept                                       = delete;
     ~SharedMemoryRegistry() noexcept                                      = delete;
     SharedMemoryRegistry(const SharedMemoryRegistry&) noexcept            = delete;
