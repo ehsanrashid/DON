@@ -485,14 +485,23 @@ class SharedMemoryRegistry final {
     static void register_memory(BaseSharedMemory* const sharedMemory) noexcept {
         std::scoped_lock lock(mutex);
 
-        sharedMemories.insert(sharedMemory);
+        // Only insert if not already present
+        if (lookupSharedMemories.insert(sharedMemory).second)
+            orderedSharedMemories.push_back(sharedMemory);
     }
     // Unregister a shared memory object from the global registry.
     // Thread-safe: locks the registry while erasing.
     static void unregister_memory(BaseSharedMemory* const sharedMemory) noexcept {
         std::scoped_lock lock(mutex);
 
-        sharedMemories.erase(sharedMemory);
+        // Only erase if already present
+        if (lookupSharedMemories.erase(sharedMemory) != 0)
+        {
+            auto itr =
+              std::find(orderedSharedMemories.begin(), orderedSharedMemories.end(), sharedMemory);
+            if (itr != orderedSharedMemories.end())
+                orderedSharedMemories.erase(itr);
+        }
     }
     // Close and clean all registered shared memory objects.
     // If skipUnmapRegion is true, the actual memory unmapping can be skipped.
@@ -500,16 +509,18 @@ class SharedMemoryRegistry final {
     // if any close() call triggers unregister_memory().
     static void clean(bool skipUnmapRegion = false) noexcept {
         // Swap out the set to avoid iterator invalidation if close() calls unregister_memory()
-        std::unordered_set<BaseSharedMemory*> copiedSharedMemories;
+        std::unordered_set<BaseSharedMemory*> copiedLookupSharedMemories;
+        std::vector<BaseSharedMemory*>        copiedOrderedSharedMemories;
 
         {
             std::scoped_lock lock(mutex);
 
-            copiedSharedMemories.swap(sharedMemories);  // now sharedMemories is empty
+            copiedLookupSharedMemories.swap(lookupSharedMemories);
+            copiedOrderedSharedMemories.swap(orderedSharedMemories);
         }
 
         // Safe to iterate and close memory without holding the lock
-        for (BaseSharedMemory* const sharedMemory : copiedSharedMemories)
+        for (BaseSharedMemory* const sharedMemory : orderedSharedMemories)
             sharedMemory->close(skipUnmapRegion);
     }
 
@@ -521,10 +532,12 @@ class SharedMemoryRegistry final {
     SharedMemoryRegistry& operator=(const SharedMemoryRegistry&) noexcept = delete;
     SharedMemoryRegistry& operator=(SharedMemoryRegistry&&) noexcept      = delete;
 
-    // Protects access to sharedMemories set for thread safety
+    // Protects access to SharedMemories for thread safety
     static inline std::mutex mutex;
-    // Set of currently registered shared memory objects
-    static inline std::unordered_set<BaseSharedMemory*> sharedMemories;
+    // Fast lookup for registered SharedMemories existence checks
+    static inline std::unordered_set<BaseSharedMemory*> lookupSharedMemories;
+    // Preserves insertion order for SharedMemories iteration / debugging
+    static inline std::vector<BaseSharedMemory*> orderedSharedMemories;
 };
 
 // SharedMemoryCleanupManager
