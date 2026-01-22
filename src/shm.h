@@ -483,9 +483,39 @@ class BaseSharedMemory {
 //  - The class is static-only; it cannot be instantiated. (Restriction)
 class SharedMemoryRegistry final {
    public:
+    static bool cleanup_in_progress() noexcept { return cleanUp.load(std::memory_order_acquire); }
+
+    // Try to register, retry only if cleanup is in progress
+    static void register_memory_attempt(BaseSharedMemory* const sharedMemory) noexcept {
+        constexpr std::size_t MaxAttempts = 10;
+
+        for (std::size_t attempt = 0;; ++attempt)
+        {
+
+            auto registerResult = SharedMemoryRegistry::register_memory(sharedMemory);
+            if (registerResult == RegisterResult::Success)
+                break;
+
+            //assert(registerResult != RegisterResult::AlreadyRegistered
+            //       && "SharedMemory double registration");
+
+            if (registerResult == RegisterResult::AlreadyRegistered)
+                break;
+
+            if (attempt >= MaxAttempts)
+                break;
+
+            // Cleanup in progress, wait a bit
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+    }
     // Register a shared memory object in the global registry.
     // Thread-safe: locks the registry while inserting.
-    static bool register_memory(BaseSharedMemory* const sharedMemory) noexcept {
+    static RegisterResult register_memory(BaseSharedMemory* const sharedMemory) noexcept {
+        // Don't register during cleanup
+        if (cleanup_in_progress())
+            return RegisterResult::CleanupInProgress;
+
         std::scoped_lock lock(mutex);
 
         return insert_nolock(sharedMemory);
@@ -502,6 +532,8 @@ class SharedMemoryRegistry final {
     // Thread-safe: swaps the registry into a local set to avoid iterator invalidation
     // if any close() call triggers unregister_memory().
     static void clean(bool skipUnmapRegion = false) noexcept {
+        cleanUp.store(true, std::memory_order_release);
+
         std::vector<BaseSharedMemory*> copiedOrderedSharedMemories;
 
         {
@@ -515,9 +547,17 @@ class SharedMemoryRegistry final {
         // Safe to iterate and close memory without holding the lock
         for (BaseSharedMemory* const sharedMemory : copiedOrderedSharedMemories)
             sharedMemory->close(skipUnmapRegion);
+
+        cleanUp.store(false, std::memory_order_release);
     }
 
    private:
+    enum class RegisterResult : std::uint8_t {
+        Success,
+        AlreadyRegistered,
+        CleanupInProgress
+    };
+
     SharedMemoryRegistry() noexcept                                       = delete;
     ~SharedMemoryRegistry() noexcept                                      = delete;
     SharedMemoryRegistry(const SharedMemoryRegistry&) noexcept            = delete;
@@ -525,16 +565,16 @@ class SharedMemoryRegistry final {
     SharedMemoryRegistry& operator=(const SharedMemoryRegistry&) noexcept = delete;
     SharedMemoryRegistry& operator=(SharedMemoryRegistry&&) noexcept      = delete;
 
-    static bool insert_nolock(BaseSharedMemory* const sharedMemory) noexcept {
+    static RegisterResult insert_nolock(BaseSharedMemory* const sharedMemory) noexcept {
         // Only insert if not already present
         if (sharedMemoryIndices.find(sharedMemory) != sharedMemoryIndices.end())
-            return false;
+            return RegisterResult::AlreadyRegistered;
 
         const std::size_t newIndex = orderedSharedMemories.size();
         orderedSharedMemories.push_back(sharedMemory);
         sharedMemoryIndices[sharedMemory] = newIndex;
 
-        return true;
+        return RegisterResult::Success;
     }
     static bool erase_nolock(BaseSharedMemory* const sharedMemory) noexcept {
         // Only erase if already present
@@ -562,6 +602,7 @@ class SharedMemoryRegistry final {
         return true;
     }
 
+    static inline std::atomic<bool> cleanUp{false};
     // Protects access to SharedMemories for thread safety
     static inline std::mutex mutex;
     // Preserves insertion order for SharedMemories iteration
@@ -811,6 +852,9 @@ class SharedMemory final: public BaseSharedMemory {
     }
 
     [[nodiscard]] bool open_register(const T& value) noexcept {
+        if (SharedMemoryRegistry::cleanup_in_progress())
+            return false;
+
         bool staleRetried = false;
 
         while (true)
@@ -920,7 +964,7 @@ class SharedMemory final: public BaseSharedMemory {
             unlock_file();
 
             // Register this new resource
-            SharedMemoryRegistry::register_memory(this);
+            SharedMemoryRegistry::register_memory_attempt(this);
 
             return true;
         }
@@ -1014,7 +1058,8 @@ class SharedMemory final: public BaseSharedMemory {
     // Move the contents of another SharedMemory object into this one, updating the registry accordingly
     void move_with_registry(SharedMemory& sharedMem) noexcept {
         // 1. Unregister source while it's intact
-        SharedMemoryRegistry::unregister_memory(&sharedMem);
+        [[maybe_unused]] bool unregistered = SharedMemoryRegistry::unregister_memory(&sharedMem);
+        //assert(unregistered && "SharedMemory not registered");
 
         // 2. Move members
         name         = std::move(sharedMem.name);
@@ -1030,7 +1075,7 @@ class SharedMemory final: public BaseSharedMemory {
         sharedMem.reset();
 
         // 4. Register this new resource
-        SharedMemoryRegistry::register_memory(this);
+        SharedMemoryRegistry::register_memory_attempt(this);
     }
 
     void reset() noexcept {
