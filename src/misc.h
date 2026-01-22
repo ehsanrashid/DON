@@ -152,7 +152,7 @@ constexpr auto sign_sqr(T x) noexcept {
     return sign(x) * sqr(x);
 }
 
-constexpr std::size_t div_ceil(std::size_t n, std::size_t d) noexcept { return (n + d - 1) / d; }
+constexpr std::size_t ceil_div(std::size_t n, std::size_t d) noexcept { return (n + d - 1) / d; }
 
 constexpr std::size_t round_up_to_pow2(std::size_t x) noexcept {
     if (x == 0)

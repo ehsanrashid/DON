@@ -78,7 +78,7 @@ inline constexpr std::size_t SIMD_WIDTH = 16;
 // Round n up to be a multiple of base
 template<typename IntType>
 constexpr IntType ceil_to_multiple(IntType n, IntType base) noexcept {
-    return div_ceil(n, base) * base;
+    return ceil_div(n, base) * base;
 }
 
 // Utility to read an integer (signed or unsigned, any size)

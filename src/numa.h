@@ -155,7 +155,7 @@ inline std::pair<BOOL, std::vector<USHORT>> get_process_group_affinity() noexcep
     constexpr std::size_t UShortAlignment        = alignof(USHORT);
     static_assert(GroupArrayMinAlignment >= UShortAlignment);
 
-    constexpr std::size_t AlignmentExtraCount = div_ceil(GroupArrayMinAlignment, UShortAlignment);
+    constexpr std::size_t AlignmentExtraCount = ceil_div(GroupArrayMinAlignment, UShortAlignment);
 
     constexpr std::size_t MaxAttempts = 2;
 

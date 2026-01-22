@@ -1319,7 +1319,8 @@ bool Position::legal(Move m) const noexcept {
         break;
 
     case MT::EN_PASSANT : {
-        Bitboard occupancyBB = pieces_bb() ^ make_bb(orgSq, dstSq, dstSq - pawn_spush(ac));
+        const Bitboard occupancyBB = pieces_bb() ^ make_bb(orgSq, dstSq, dstSq - pawn_spush(ac));
+
         if (!(type_of(movedPc) == PAWN && en_passant_sq() == dstSq && rule50_count() == 0
               && (pieces_bb(~ac, PAWN) & (dstSq - pawn_spush(ac))) != 0
               && (empty(dstSq) && empty(dstSq + pawn_spush(ac)))
@@ -1379,7 +1380,7 @@ bool Position::check(Move m) const noexcept {
     // and ordinary discovered check, so the only case need to handle is
     // the unusual case of a discovered check through the captured pawn.
     case MT::EN_PASSANT : {
-        Bitboard occupancyBB = pieces_bb() ^ make_bb(orgSq, dstSq, dstSq - pawn_spush(ac));
+        const Bitboard occupancyBB = pieces_bb() ^ make_bb(orgSq, dstSq, dstSq - pawn_spush(ac));
 
         return (slide_attackers_bb(kingSq, occupancyBB) & pieces_bb(ac)) != 0;
     }
@@ -1415,8 +1416,8 @@ bool Position::dbl_check(Move m) const noexcept {
             && (attacks_bb(dstSq, m.promotion_type(), pieces_bb() ^ orgSq) & kingSq) != 0;
 
     case MT::EN_PASSANT : {
-        Bitboard occupancyBB = pieces_bb() ^ make_bb(orgSq, dstSq, dstSq - pawn_spush(ac));
-        Bitboard checkersBB  = slide_attackers_bb(kingSq, occupancyBB) & pieces_bb(ac);
+        const Bitboard occupancyBB = pieces_bb() ^ make_bb(orgSq, dstSq, dstSq - pawn_spush(ac));
+        const Bitboard checkersBB  = slide_attackers_bb(kingSq, occupancyBB) & pieces_bb(ac);
 
         return more_than_one(checkersBB) || (checkersBB != 0 && (checks_bb(PAWN) & dstSq) != 0);
     }
@@ -1599,6 +1600,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
     while (true)
     {
         ac = ~ac;
+
         attackersBB &= occupancyBB;
 
         acAttackersBB = pieces_bb(ac) & attackersBB;
@@ -1854,9 +1856,9 @@ bool Position::is_upcoming_repetition(std::int16_t ply) const noexcept {
         if (iterKey != 0)
             continue;
 
-        Key moveKey = baseKey ^ preSt->key;
+        const Key moveKey = baseKey ^ preSt->key;
         // 'moveKey' is a single move
-        auto index = Cuckoos.find_key(moveKey);
+        const std::size_t index = Cuckoos.find_key(moveKey);
 
         if (index >= Cuckoos.size())
             continue;
@@ -1894,8 +1896,12 @@ void Position::flip() noexcept {
     // Piece placement (vertical flip)
     for (Rank r = RANK_8;; --r)
     {
-        std::getline(iss, token, r > RANK_1 ? '/' : ' ');
-        fens.insert(0, token + (r < RANK_8 ? '/' : ' '));
+        const char rDelim = r > RANK_1 ? '/' : ' ';
+        const char wDelim = r < RANK_8 ? '/' : ' ';
+
+        std::getline(iss, token, rDelim);
+
+        fens.insert(0, token).insert(token.size(), 1, wDelim);
 
         if (r == RANK_1)
             break;
@@ -1903,7 +1909,13 @@ void Position::flip() noexcept {
 
     // Active color (will be lowercased later)
     iss >> token;
-    token[0] = token[0] == 'w' ? 'B' : 'W';
+    switch (token[0])
+    {
+        // clang-format off
+    case 'w' : token[0] = 'B'; break;
+    case 'b' : token[0] = 'W'; break;
+        // clang-format on
+    }
     fens += token;
     fens += ' ';
 
@@ -1916,7 +1928,7 @@ void Position::flip() noexcept {
 
     // En-passant square
     iss >> token;
-    if (token != "-")
+    if (token.size() == 2)
         token[1] = flip_rank(token[1]);
     fens += token;
 
@@ -1935,9 +1947,13 @@ void Position::mirror() noexcept {
     // Piece placement (horizontal flip)
     for (Rank r = RANK_8;; --r)
     {
-        std::getline(iss, token, r > RANK_1 ? '/' : ' ');
+        const char delim = r > RANK_1 ? '/' : ' ';
+
+        std::getline(iss, token, delim);
+
         std::reverse(token.begin(), token.end());
-        fens += token + (r > RANK_1 ? '/' : ' ');
+
+        fens.append(token).append(1, delim);
 
         if (r == RANK_1)
             break;
@@ -1969,7 +1985,7 @@ void Position::mirror() noexcept {
 
     // En-passant square (flip the file)
     iss >> token;
-    if (token != "-")
+    if (token.size() == 2)
         token[0] = flip_file(token[0]);
     fens += token;
 

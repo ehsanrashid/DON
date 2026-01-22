@@ -1084,14 +1084,14 @@ inline void write_multiple_dirties(const StdArray<Piece, SQUARE_NB>& pieceMap,
                                       15, 14, 13, 12, 11, 10, 9, 8,    //
                                       7, 6, 5, 4, 3, 2, 1, 0);
 
-    __m512i pieceMapData = _mm512_loadu_si512(pieceMap.data());
+    const __m512i pieceMapData = _mm512_loadu_si512(pieceMap.data());
 
-    std::uint8_t maskCount = popcount(maskBB);
+    const std::uint8_t maskCount = popcount(maskBB);
     assert(maskCount <= 16);
 
     auto* dt = dts->dtList.make_space(maskCount);
 
-    __m512i templateVal = _mm512_set1_epi32(templateDt.raw());
+    const __m512i templateVal = _mm512_set1_epi32(templateDt.raw());
 
     // Extract the list of squares and upconvert to 32 bits.
     // There are never more than 16 incoming threats so this is sufficient.
@@ -1105,8 +1105,9 @@ inline void write_multiple_dirties(const StdArray<Piece, SQUARE_NB>& pieceMap,
     threatSquares = _mm512_slli_epi32(threatSquares, SqShift);
     threatPieces  = _mm512_slli_epi32(threatPieces, PcShift);
 
-    // Combine into final dirty values                         A | B | C
-    __m512i dirties = _mm512_ternarylogic_epi32(templateVal, threatSquares, threatPieces, 254);
+    // Combine into final dirty values                  A | B | C
+    const __m512i dirties =
+      _mm512_ternarylogic_epi32(templateVal, threatSquares, threatPieces, 254);
     _mm512_storeu_si512(reinterpret_cast<__m512i*>(dt), dirties);
 }
 #endif
@@ -1148,25 +1149,17 @@ inline void Position::update_pc_threats(Square                    s,
     // clang-format on
 
 #if defined(USE_AVX512ICL)
-    if (threatenedBB != 0)
+    if constexpr (Put)
     {
-        if constexpr (Put)
-        {
-            dts->threatenedBB |= threatenedBB;
-            dts->threateningBB |= s;
-        }
-
-        DirtyThreat templateDt{s, SQUARE_ZERO, pc, Piece::NO_PIECE, Put};
-        write_multiple_dirties<DirtyThreat::THREATENED_SQ_OFFSET,
-                               DirtyThreat::THREATENED_PC_OFFSET>(piece_map(), threatenedBB,
-                                                                  templateDt, dts);
+        dts->threatenedBB |= threatenedBB;
+        dts->threateningBB |= s;
     }
 
-    Bitboard attackersBB = slidersBB | nonSlidersBB;
+    DirtyThreat templateDt1{s, SQUARE_ZERO, pc, Piece::NO_PIECE, Put};
+    write_multiple_dirties<DirtyThreat::THREATENED_SQ_OFFSET, DirtyThreat::THREATENED_PC_OFFSET>(
+      piece_map(), threatenedBB, templateDt1, dts);
 
-    // Square is threatened if there's atleast one attacker
-    if (attackersBB == 0)
-        return;
+    Bitboard attackersBB = slidersBB | nonSlidersBB;
 
     if constexpr (Put)
     {
@@ -1174,9 +1167,9 @@ inline void Position::update_pc_threats(Square                    s,
         dts->threateningBB |= attackersBB;
     }
 
-    DirtyThreat templateDt{SQUARE_ZERO, s, Piece::NO_PIECE, pc, Put};
+    DirtyThreat templateDt2{SQUARE_ZERO, s, Piece::NO_PIECE, pc, Put};
     write_multiple_dirties<DirtyThreat::SQ_OFFSET, DirtyThreat::PC_OFFSET>(piece_map(), attackersBB,
-                                                                           templateDt, dts);
+                                                                           templateDt2, dts);
 #else
     while (threatenedBB != 0)
     {
