@@ -58,6 +58,7 @@
     #endif
 #else
     #include <atomic>
+    #include <cassert>
     #include <cerrno>
     #include <cstdio>
     #include <cstdlib>
@@ -72,7 +73,7 @@
     #include <sys/mman.h>  // mmap, munmap, MAP_*, PROT_*
     #include <sys/stat.h>
     #include <unistd.h>
-    #include <unordered_set>
+    #include <unordered_map>
     #include <vector>
 
     #if defined(__APPLE__)
@@ -471,6 +472,7 @@ class BaseSharedMemory {
 //  - Thread-safe: all operations are protected by a mutex.
 //  - Automatic cleanup: 'clean()' closes all registered objects safely, even if unregistering occurs during cleanup.
 //  - Lightweight: stores only pointers, avoids ownership management; actual memory management is handled by BaseSharedMemory.
+//  - Implementation: classic vector + index map (swap-and-pop) pattern.
 //
 // Usage:
 //  - Call 'register_memory()' when a new shared memory object is created.
@@ -481,32 +483,6 @@ class BaseSharedMemory {
 //  - The class is static-only; it cannot be instantiated. (Restriction)
 class SharedMemoryRegistry final {
    public:
-    static bool insert_nolock(BaseSharedMemory* const sharedMemory) noexcept {
-        // Only insert if not already present
-        if (lookupSharedMemories.insert(sharedMemory).second)
-        {
-            orderedSharedMemories.push_back(sharedMemory);
-
-            return true;
-        }
-
-        return false;
-    }
-    static bool erase_nolock(BaseSharedMemory* const sharedMemory) noexcept {
-        // Only erase if already present
-        if (lookupSharedMemories.erase(sharedMemory) != 0)
-        {
-            auto itr =
-              std::find(orderedSharedMemories.begin(), orderedSharedMemories.end(), sharedMemory);
-            if (itr != orderedSharedMemories.end())
-                orderedSharedMemories.erase(itr);
-
-            return true;
-        }
-
-        return false;
-    }
-
     // Register a shared memory object in the global registry.
     // Thread-safe: locks the registry while inserting.
     static bool register_memory(BaseSharedMemory* const sharedMemory) noexcept {
@@ -530,41 +506,15 @@ class SharedMemoryRegistry final {
 
         {
             std::scoped_lock lock(mutex);
-            // Copy to avoid iterator invalidation if close() calls unregister_memory()
-            copiedOrderedSharedMemories = orderedSharedMemories;
+
+            // Swap to avoid iterator invalidation if close() calls unregister_memory()
+            copiedOrderedSharedMemories.swap(orderedSharedMemories);
+            sharedMemoryIndices.clear();
         }
 
         // Safe to iterate and close memory without holding the lock
         for (BaseSharedMemory* const sharedMemory : copiedOrderedSharedMemories)
             sharedMemory->close(skipUnmapRegion);
-
-        // Erase all closed items from the registry in bulk also in one lock
-        {
-            std::scoped_lock lock(mutex);
-
-            // Erase from lookupSharedMemories in bulk
-            std::unordered_set<BaseSharedMemory*> copiedLookupSharedMemories(
-              copiedOrderedSharedMemories.begin(), copiedOrderedSharedMemories.end());
-
-            for (auto itr = lookupSharedMemories.begin(); itr != lookupSharedMemories.end();)
-            {
-                if (copiedLookupSharedMemories.find(*itr) != copiedLookupSharedMemories.end())
-                    itr = lookupSharedMemories.erase(itr);  // erase returns next iterator
-                else
-                    ++itr;
-            }
-
-            // Erase from orderedSharedMemories in bulk
-            orderedSharedMemories.erase(
-              std::remove_if(
-                orderedSharedMemories.begin(), orderedSharedMemories.end(),
-                [&copiedOrderedSharedMemories](BaseSharedMemory* const sharedMemory) noexcept {
-                    return std::find(copiedOrderedSharedMemories.begin(),
-                                     copiedOrderedSharedMemories.end(), sharedMemory)
-                        != copiedOrderedSharedMemories.end();
-                }),
-              orderedSharedMemories.end());
-        }
     }
 
    private:
@@ -575,12 +525,49 @@ class SharedMemoryRegistry final {
     SharedMemoryRegistry& operator=(const SharedMemoryRegistry&) noexcept = delete;
     SharedMemoryRegistry& operator=(SharedMemoryRegistry&&) noexcept      = delete;
 
+    static bool insert_nolock(BaseSharedMemory* const sharedMemory) noexcept {
+        // Only insert if not already present
+        if (sharedMemoryIndices.find(sharedMemory) != sharedMemoryIndices.end())
+            return false;
+
+        const std::size_t newIndex = orderedSharedMemories.size();
+        orderedSharedMemories.push_back(sharedMemory);
+        sharedMemoryIndices[sharedMemory] = newIndex;
+
+        return true;
+    }
+    static bool erase_nolock(BaseSharedMemory* const sharedMemory) noexcept {
+        // Only erase if already present
+        auto itr = sharedMemoryIndices.find(sharedMemory);
+
+        if (itr == sharedMemoryIndices.end())
+            return false;
+
+        const std::size_t victimIndex = itr->second;
+
+        assert(!orderedSharedMemories.empty());
+        assert(victimIndex < orderedSharedMemories.size());
+
+        // Perform the swap-and-pop in the vector
+        BaseSharedMemory* const lastSharedMemory = orderedSharedMemories.back();
+        if (victimIndex != orderedSharedMemories.size() - 1)
+        {
+            orderedSharedMemories[victimIndex]    = lastSharedMemory;
+            sharedMemoryIndices[lastSharedMemory] = victimIndex;
+        }
+
+        orderedSharedMemories.pop_back();
+        sharedMemoryIndices.erase(itr);
+
+        return true;
+    }
+
     // Protects access to SharedMemories for thread safety
     static inline std::mutex mutex;
-    // Fast lookup for registered SharedMemories existence checks
-    static inline std::unordered_set<BaseSharedMemory*> lookupSharedMemories;
-    // Preserves insertion order for SharedMemories iteration / debugging
+    // Preserves insertion order for SharedMemories iteration
     static inline std::vector<BaseSharedMemory*> orderedSharedMemories;
+    // Fast lookup for registered SharedMemories index
+    static inline std::unordered_map<BaseSharedMemory*, std::size_t> sharedMemoryIndices;
 };
 
 // SharedMemoryCleanupManager

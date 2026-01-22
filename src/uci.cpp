@@ -835,7 +835,9 @@ void UCI::benchmark(std::istream& is) noexcept {
 
 std::uint64_t UCI::perft(Depth depth, bool detail) noexcept {
     std::uint64_t nodes = engine.perft(depth, detail);
+
     std::cout << "\nTotal nodes: " << nodes << '\n' << std::endl;
+
     return nodes;
 }
 

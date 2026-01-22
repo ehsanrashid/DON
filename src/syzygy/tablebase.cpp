@@ -2044,8 +2044,8 @@ int probe_dtz(Position& pos, ProbeState* ps) noexcept {
         return 0;
 
     if (*ps != PS_AC_CHANGED)
-        return (dtzScore + (wdlScore == WDL_BLESSED_LOSS || wdlScore == WDL_CURSED_WIN) * 100)
-             * sign(wdlScore);
+        return sign(wdlScore)
+             * (dtzScore + int(wdlScore == WDL_BLESSED_LOSS || wdlScore == WDL_CURSED_WIN) * 100);
 
     // DTZ-score stores results for the other side, so need to do a 1-ply search
     // and find the winning move that minimizes DTZ-score.

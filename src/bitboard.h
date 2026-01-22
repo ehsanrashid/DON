@@ -775,7 +775,7 @@ inline Square pop_msq(Bitboard& b) noexcept {
 }
 
 // Returns the bitboard of the least significant square of the non-zero bitboard.
-// It is equivalent to square_bb(lsb(bb)).
+// It is equivalent to square_bb(lsq(bb)).
 constexpr Bitboard lsq_bb(Bitboard b) noexcept {
     assert(b != 0);
 
