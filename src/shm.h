@@ -496,8 +496,10 @@ class SharedMemoryRegistry final {
         // Only erase if already present
         if (lookupSharedMemories.erase(sharedMemory) != 0)
         {
-            orderedSharedMemories.erase(
-              std::find(orderedSharedMemories.begin(), orderedSharedMemories.end(), sharedMemory));
+            auto itr =
+              std::find(orderedSharedMemories.begin(), orderedSharedMemories.end(), sharedMemory);
+            if (itr != orderedSharedMemories.end())
+                orderedSharedMemories.erase(itr);
 
             return true;
         }
@@ -540,8 +542,20 @@ class SharedMemoryRegistry final {
         {
             std::scoped_lock lock(mutex);
 
+            // Erase from lookupSharedMemories
             for (BaseSharedMemory* const sharedMemory : copiedOrderedSharedMemories)
-                erase_nolock(sharedMemory);
+                lookupSharedMemories.erase(sharedMemory);
+
+            // Erase from orderedSharedMemories in bulk
+            orderedSharedMemories.erase(
+              std::remove_if(
+                orderedSharedMemories.begin(), orderedSharedMemories.end(),
+                [&copiedOrderedSharedMemories](BaseSharedMemory* const sharedMemory) noexcept {
+                    return std::find(copiedOrderedSharedMemories.begin(),
+                                     copiedOrderedSharedMemories.end(), sharedMemory)
+                        != copiedOrderedSharedMemories.end();
+                }),
+              orderedSharedMemories.end());
         }
     }
 

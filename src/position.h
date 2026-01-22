@@ -210,7 +210,7 @@ class Position final {
     void        set(std::string_view fens, State* const newSt) noexcept;
     void        set(std::string_view code, Color c, State* const newSt) noexcept;
     void        set(const Position& pos, State* const newSt) noexcept;
-    std::string fen(bool full = true) const noexcept;
+    std::string fen(bool complete = true) const noexcept;
 
     // Position representation
     [[nodiscard]] const auto& piece_map() const noexcept;

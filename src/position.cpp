@@ -508,7 +508,7 @@ void Position::set(const Position& pos, State* const newSt) noexcept {
 // Returns a FEN representation of the position.
 // In case of Chess960 the Shredder-FEN notation is used.
 // This is mainly a debugging function.
-std::string Position::fen(bool full) const noexcept {
+std::string Position::fen(bool complete) const noexcept {
     std::string fens;
     fens.reserve(64);
 
@@ -581,7 +581,7 @@ std::string Position::fen(bool full) const noexcept {
     else
         fens += '-';
 
-    if (full)
+    if (complete)
     {
         fens += ' ';
         fens += std::to_string(rule50_count());
