@@ -538,13 +538,21 @@ class SharedMemoryRegistry final {
         for (BaseSharedMemory* const sharedMemory : copiedOrderedSharedMemories)
             sharedMemory->close(skipUnmapRegion);
 
-        // Erase all closed items from the registry in one lock
+        // Erase all closed items from the registry in bulk also in one lock
         {
             std::scoped_lock lock(mutex);
 
-            // Erase from lookupSharedMemories
-            for (BaseSharedMemory* const sharedMemory : copiedOrderedSharedMemories)
-                lookupSharedMemories.erase(sharedMemory);
+            // Erase from lookupSharedMemories in bulk
+            std::unordered_set<BaseSharedMemory*> copiedLookupSharedMemories(
+              copiedOrderedSharedMemories.begin(), copiedOrderedSharedMemories.end());
+
+            for (auto itr = lookupSharedMemories.begin(); itr != lookupSharedMemories.end();)
+            {
+                if (copiedLookupSharedMemories.find(*itr) != copiedLookupSharedMemories.end())
+                    itr = lookupSharedMemories.erase(itr);  // erase returns next iterator
+                else
+                    ++itr;
+            }
 
             // Erase from orderedSharedMemories in bulk
             orderedSharedMemories.erase(
