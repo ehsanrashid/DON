@@ -73,6 +73,7 @@
     #include <sys/stat.h>
     #include <unistd.h>
     #include <unordered_set>
+    #include <vector>
 
     #if defined(__APPLE__)
         #include <mach-o/dyld.h>
