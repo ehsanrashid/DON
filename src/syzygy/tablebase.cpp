@@ -946,9 +946,7 @@ class TBTables final {
     }
 
 
-    bool insert(Key key, TBTable<WDL>* wdlTable, TBTable<DTZ>* dtzTable) noexcept {
-
-        Entry newEntry = {key, wdlTable, dtzTable};
+    bool insert(Entry newEntry) noexcept {
 
         const std::size_t idealBucket = newEntry.bucket();
 
@@ -1093,15 +1091,12 @@ class TBTables final {
     }
     */
 
-    // SIZE -> main table size, 4K table, indexed by key's 12 lsb
-    // MAX_DISTANCE -> extra slots to hold displaced entries
-    // +1 -> final guard for edge cases / last bucket displacement
+    // SIZE -> table size, 4K table, indexed by key's 12-bit
     static constexpr std::size_t SIZE         = 0x1000;
     static constexpr std::size_t MASK         = SIZE - 1;
     static constexpr std::size_t MAX_DISTANCE = 32;
-    static constexpr std::size_t TOTAL_SIZE   = SIZE + MAX_DISTANCE + 1;
 
-    StdArray<Entry, TOTAL_SIZE> entries;
+    StdArray<Entry, SIZE> entries;
 
     std::deque<TBTable<WDL>> wdlTables;
     std::deque<TBTable<DTZ>> dtzTables;
@@ -1159,8 +1154,8 @@ void TBTables::add(const std::vector<PieceType>& pieces) noexcept {
                                         ? static_cast<BaseTBTable*>(wdlTable)
                                         : static_cast<BaseTBTable*>(dtzTable);
 
-    insert(keyTable->key[WHITE], wdlTable, dtzTable);
-    insert(keyTable->key[BLACK], wdlTable, dtzTable);
+    insert({keyTable->key[WHITE], wdlTable, dtzTable});
+    insert({keyTable->key[BLACK], wdlTable, dtzTable});
 }
 
 TBTables tbTables;
