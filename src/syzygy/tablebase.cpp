@@ -971,9 +971,10 @@ class TBTables final {
             {
                 entry = newEntry;
 
-                // Update MaxDistance
-                if (MaxDistance < distance)
-                    MaxDistance = distance;
+                // Update MaxDistance using actual probe distance
+                const std::size_t entryDistance = probe_distance(entry, bucket);
+                if (MaxDistance < entryDistance)
+                    MaxDistance = entryDistance;
 
                 return true;
             }
@@ -987,8 +988,10 @@ class TBTables final {
             {
                 std::swap(newEntry, entry);
 
-                if (MaxDistance < distance)
-                    MaxDistance = distance;
+                // Update MaxDistance for the swapped-in entry
+                const std::size_t entryDistance = probe_distance(entry, bucket);
+                if (MaxDistance < entryDistance)
+                    MaxDistance = entryDistance;
             }
 
             bucket = (bucket + 1) & MASK;
@@ -1984,9 +1987,9 @@ void init(std::string_view paths) noexcept {
         }
     }
 
-#if !defined(NDEBUG)
-    std::cerr << "MaxDistance: " << tbTables.MaxDistance << std::endl;
-#endif
+    //#if !defined(NDEBUG)
+    //    std::cerr << "MaxDistance: " << tbTables.MaxDistance << std::endl;
+    //#endif
     UCI::print_info_string(tbTables.info());
 }
 
