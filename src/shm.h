@@ -1469,7 +1469,7 @@ struct SystemWideSharedMemory final {
         const std::uint64_t valueHash      = std::hash<T>{}(value);
         const std::uint64_t executableHash = hash_string(executable_path());
 
-        std::string shmName(1024, '\0');
+        std::string shmName(256, '\0');
 
         int size = std::snprintf(shmName.data(), shmName.size(),
                                  "Local\\don_%016" PRIX64 "$%016" PRIX64 "$%016" PRIX64, valueHash,

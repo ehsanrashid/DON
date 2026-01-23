@@ -1103,7 +1103,7 @@ inline std::uint64_t hash_string(std::string_view str) {
 }
 
 template<typename T>
-std::size_t hash_raw_data(const T& value) noexcept {
+std::uint64_t hash_raw_data(const T& value) noexcept {
     // Must have no padding bytes because reinterpreting as char
     static_assert(std::has_unique_object_representations<T>());
 
