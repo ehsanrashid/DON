@@ -456,7 +456,7 @@ struct TBTable final: BaseTBTable {
     MMapGuard   mappedGuard{mappedPtr, mappedSize};
 #endif
     std::uint8_t* mapPtr = nullptr;
-    InitOnce      initOnce;
+    CallOnce      callOnce;
 };
 
 template<TBType T>
@@ -481,16 +481,15 @@ TBTable<T>::~TBTable() noexcept {
 // Function is thread safe and can be called concurrently.
 template<TBType T>
 void* TBTable<T>::init(const Position& pos, Key materialKey) noexcept {
-    // Fast path: already initialized
-    if (initOnce.is_initialized())
-        return mappedPtr;  // could be nullptr if file missing
+    // Fast path: if already initialized, return immediately
+    if (callOnce.called())
+        return mappedPtr;
 
-    if (initOnce.attempt_initialization())
-    {
-        // First thread is responsible for initialization
-
+    // Slow path: initialize exactly once using CallOnce
+    callOnce([this, &pos, materialKey]() {
         // Pieces strings in decreasing order for each color, like ("KPP","KR")
         StdArray<std::string, COLOR_NB> pieces{};
+
         for (Color c : {WHITE, BLACK})
             for (std::size_t i = PIECE_TYPES.size(); i-- > 0;)
                 pieces[c].append(pos.count(c, PIECE_TYPES[i]), to_char(PIECE_TYPES[i]));
@@ -498,8 +497,7 @@ void* TBTable<T>::init(const Position& pos, Key materialKey) noexcept {
         std::string base;
         base.reserve(pieces[WHITE].size() + 1 + pieces[BLACK].size());
 
-        bool c = materialKey == key[WHITE];
-
+        const bool c = materialKey == key[WHITE];
         base += pieces[c ? WHITE : BLACK];
         base += 'v';
         base += pieces[c ? BLACK : WHITE];
@@ -507,15 +505,7 @@ void* TBTable<T>::init(const Position& pos, Key materialKey) noexcept {
         TBFile tbFile(base, EXTS[T]);
 
         set(tbFile.exists() ? map(tbFile.file_name()) : nullptr);
-
-        // Mark initialized for all threads
-        initOnce.set_initialized();
-    }
-    else
-    {
-        // Other threads spin until initialization completes
-        initOnce.wait_until_initialized();
-    }
+    });
 
     return mappedPtr;
 }
@@ -885,6 +875,8 @@ class TBTables final {
         StdArray<BaseTBTable*, TBTYPE_NB> tables;
     };
 
+    static_assert(std::is_trivially_destructible_v<Entry>, "Entry must be trivially destructible");
+
    public:
     template<TBType T>
     [[nodiscard]] TBTable<T>* get(Key key) noexcept {
@@ -898,21 +890,26 @@ class TBTables final {
             return idealEntry.get<T>();
 
         // Limit search by MaxDistance
-        const std::size_t maxDistance = std::min(MaxDistance, MAX_DISTANCE);
+        const std::size_t maxProbes = std::min(MaxDistance, MAX_PROBES);
 
-        for (std::size_t distance = 1; distance <= maxDistance; ++distance)
+        for (std::size_t distance = 1; distance <= maxProbes; ++distance)
         {
             const std::size_t bucket = (idealBucket + distance) & MASK;
 
             Entry& entry = entries[bucket];
 
             // - Empty slot -> key not present
-            // - Robin Hood break condition -> key would have been inserted earlier
-            if (entry.empty() || distance > probe_distance(entry, bucket))
+            if (entry.empty())
                 break;
+
+            // Check key match first
             // Found the key -> return the associated table
             if (entry.key == key)
                 return entry.get<T>();
+
+            // - Robin Hood break condition -> key would have been inserted earlier
+            if (distance > probe_distance(entry, bucket))
+                break;
         }
 
         // Key not found
@@ -920,6 +917,7 @@ class TBTables final {
     }
 
     void clear() noexcept {
+        // Only safe if Entry is trivially destructible
         std::memset(entries.data(), 0, sizeof(entries));
 
         wdlTables.clear();
@@ -941,14 +939,14 @@ class TBTables final {
     std::size_t MaxDistance = 0;
 
    private:
-    static std::size_t probe_distance(const Entry& entry, std::size_t currentBucket) noexcept {
-        return (currentBucket - entry.bucket()) & MASK;
+    static std::size_t probe_distance(const Entry& entry, std::size_t actualBucket) noexcept {
+        return (actualBucket - entry.bucket()) & MASK;
     }
 
 
     bool insert(Entry newEntry) noexcept {
 
-        const std::size_t idealBucket = newEntry.bucket();
+        std::size_t idealBucket = newEntry.bucket();
 
         Entry& idealEntry = entries[idealBucket];
 
@@ -956,11 +954,13 @@ class TBTables final {
         if (idealEntry.empty() || idealEntry.key == newEntry.key)
         {
             idealEntry = newEntry;
-
+            // Ideal slot has distance 0
             return true;
         }
 
-        for (std::size_t distance = 1; distance <= MAX_DISTANCE; ++distance)
+        std::size_t distance = 1;
+
+        for (std::size_t probes = 0; probes <= MAX_PROBES; ++probes)
         {
             const std::size_t bucket = (idealBucket + distance) & MASK;
 
@@ -971,26 +971,32 @@ class TBTables final {
             {
                 entry = newEntry;
 
-                // Update MaxDistance using actual probe distance
-                const std::size_t newDistance = probe_distance(newEntry, bucket);
-                if (MaxDistance < newDistance)
-                    MaxDistance = newDistance;
+                // Update MaxDistance
+                if (MaxDistance < distance)
+                    MaxDistance = distance;
 
                 return true;
             }
 
+            const std::size_t entryDistance = probe_distance(entry, bucket);
             // Case 2: Robin Hood strategy rule: compare probe distances
             // If the new entry has probed farther than the current entry,
             // steal the slot and continue with the displaced entry.
             // Swap entries: the poorer (more probed) entry takes this slot,
             // the richer (less probed) entry continues probing forward.
-            if (distance > probe_distance(entry, bucket))
+            if (distance > entryDistance)
+            {
                 std::swap(newEntry, entry);
 
-            // Update MaxDistance
-            const std::size_t newDistance = probe_distance(newEntry, bucket);
-            if (MaxDistance < newDistance)
-                MaxDistance = newDistance;
+                if (MaxDistance < distance)
+                    MaxDistance = distance;
+
+                // Reset for the displaced (swapped) entry
+                idealBucket = newEntry.bucket();
+                distance    = entryDistance;
+            }
+
+            ++distance;
         }
 
         // May want to handle this case explicitly
@@ -1003,94 +1009,94 @@ class TBTables final {
 
         const std::size_t idealBucket = key & MASK;
 
-        // Limit search by MaxDistance
-        const std::size_t maxDistance = std::min(MaxDistance, MAX_DISTANCE);
+        const std::size_t maxProbes = std::min(MaxDistance, MAX_PROBES);
 
-        for (std::size_t distance = 0; distance <= maxDistance; ++distance)
+        for (std::size_t distance = 0; distance <= maxProbes; ++distance)
         {
             const std::size_t bucket = (idealBucket + distance) & MASK;
 
             Entry& entry = entries[bucket];
 
-            // Stop search if empty slot or Robin Hood break condition
-            if (entry.empty() || distance > probe_distance(entry, bucket))
+            // Stop if empty
+            if (entry.empty())
                 break;
 
-            // Found the entry -> remove and shift backward
+            // Found the entry
             if (entry.key == key)
             {
-                entry.clear();
+                shift_backward(bucket);
 
-                // Shift backward and get last affected bucket
-                const std::size_t lastBucket = shift_backward(bucket);
-
-                // Optional: recalculate MaxDistance in affected cluster
-                std::size_t newMaxDistance = 0;
-
-                for (std::size_t d = 0; d <= MAX_DISTANCE; ++d)
-                {
-                    const std::size_t clusterBucket = (idealBucket + d) & MASK;
-
-                    const Entry& clusterEntry = entries[clusterBucket];
-
-                    // Stop if empty slot (end of cluster)
-                    if (clusterEntry.empty())
-                        break;
-
-                    const std::size_t newDistance = probe_distance(clusterEntry, clusterBucket);
-                    if (newMaxDistance < newDistance)
-                        newMaxDistance = newDistance;
-
-                    // Stop after including lastBucket
-                    if (clusterBucket == lastBucket)
-                        break;
-                }
-
-                MaxDistance = newMaxDistance;
+                // After removal, we need to recalculate MaxDistance for the entire table
+                // This is expensive, but necessary for correctness
+                recalculate_max_distance();
 
                 return true;
             }
+
+            // Stop if Robin Hood break
+            if (distance > probe_distance(entry, bucket))
+                break;
         }
 
         // Key not found
         return false;
     }
 
-    // Backward-shift subsequent entries to preserve Robin Hood property
+    // Shift entries backward to fill the hole bucket
     std::size_t shift_backward(std::size_t holeBucket) noexcept {
-        std::size_t lastBucket = holeBucket;
 
-        std::size_t bucket = (holeBucket + 1) & MASK;
+        for (std::size_t shifted = 0; shifted <= MAX_PROBES; ++shifted)
+        {
+            const std::size_t nextBucket = (holeBucket + 1) & MASK;
 
-        for (std::size_t shifted = 0; shifted <= MAX_DISTANCE; ++shifted)
+            const Entry& nextEntry = entries[nextBucket];
+
+            // Stop if empty slot
+            if (nextEntry.empty())
+                break;
+
+            // Stop if entry is in its ideal position (can't shift it)
+            if (probe_distance(nextEntry, nextBucket) == 0)
+                break;
+
+            // Move entry backward into the hole
+            entries[holeBucket] = nextEntry;
+
+            // The hole moves forward
+            holeBucket = nextBucket;
+        }
+
+        // Clear the final hole
+        entries[holeBucket].clear();
+
+        return holeBucket;
+    }
+
+    // Recalculate MaxDistance by scanning entire table
+    void recalculate_max_distance() noexcept {
+        std::size_t newMaxDistance = 0;
+
+        for (std::size_t bucket = 0; bucket < SIZE; ++bucket)
         {
             const Entry& entry = entries[bucket];
 
-            // Stop if empty slot
             if (entry.empty())
-                break;
+                continue;
 
-            // Stop if entry is in its ideal bucket
-            if (probe_distance(entry, bucket) == 0)
-                break;
+            const std::size_t distance = probe_distance(entry, bucket);
 
-            // Shift entry backward
-            entries[lastBucket] = entry;
-            lastBucket          = bucket;
-            bucket              = (bucket + 1) & MASK;
+            if (newMaxDistance < distance)
+                newMaxDistance = distance;
         }
 
-        // Clear the last slot after shifting
-        entries[lastBucket].clear();
-
-        return lastBucket;
+        MaxDistance = newMaxDistance;
     }
     */
 
     // SIZE -> table size, 4K table, indexed by key's 12-bit
-    static constexpr std::size_t SIZE         = 0x1000;
-    static constexpr std::size_t MASK         = SIZE - 1;
-    static constexpr std::size_t MAX_DISTANCE = 32;
+    static constexpr std::size_t SIZE       = 0x1000;
+    static constexpr std::size_t MASK       = SIZE - 1;
+    static constexpr std::size_t MAX_PROBES = 32;
 
     StdArray<Entry, SIZE> entries;
 
@@ -1980,9 +1986,9 @@ void init(std::string_view paths) noexcept {
         }
     }
 
-    //#if !defined(NDEBUG)
-    //    std::cerr << "MaxDistance: " << tbTables.MaxDistance << std::endl;
-    //#endif
+#if !defined(NDEBUG)
+    std::cerr << "MaxDistance: " << tbTables.MaxDistance << std::endl;
+#endif
     UCI::print_info_string(tbTables.info());
 }
 

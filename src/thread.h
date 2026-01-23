@@ -329,60 +329,63 @@ class Threads final {
 
     // --- queries ---
     bool is_active() const noexcept {
-        auto current = state.load(std::memory_order_relaxed);
+        auto current = state.load(std::memory_order_acquire);
+
         return current == State::Active || current == State::Research;
     }
 
     bool is_researching() const noexcept {
-        return state.load(std::memory_order_relaxed) == State::Research;
+        return state.load(std::memory_order_acquire) == State::Research;
     }
 
     bool is_stopped() const noexcept {
-        auto current = state.load(std::memory_order_relaxed);
+        auto current = state.load(std::memory_order_acquire);
+
         return current == State::Aborted || current == State::Stopped;
     }
 
     bool is_aborted() const noexcept {
-        return state.load(std::memory_order_relaxed) == State::Aborted;
+        return state.load(std::memory_order_acquire) == State::Aborted;
     }
 
     // --- actions ---
     void request_research() noexcept {
+        auto current = state.load(std::memory_order_relaxed);
+
         while (true)
         {
-            // Do not override aborted or stopped
-            if (is_stopped())
+            // Don't override aborted or stopped states
+            if (current == State::Aborted || current == State::Stopped)
                 return;
 
-            auto current = state.load(std::memory_order_relaxed);
-
-            if (state.compare_exchange_strong(current, State::Research, std::memory_order_relaxed))
+            // Try to transition to Research
+            if (state.compare_exchange_weak(current, State::Research, std::memory_order_release,
+                                            std::memory_order_relaxed))
                 return;
-
-            // If failed, loop with new state
+            // current is updated on failure, loop continues
         }
     }
 
     void request_stop() noexcept {
+        auto current = state.load(std::memory_order_relaxed);
+
         while (true)
         {
-            // Do not override aborted or stopped
-            if (is_stopped())
+            // Don't override aborted state
+            if (current == State::Aborted)
                 return;
 
-            auto current = state.load(std::memory_order_relaxed);
-
-            // Try to set to Stopped
-            if (state.compare_exchange_strong(current, State::Stopped, std::memory_order_relaxed))
+            // Try to transition to Stopped
+            if (state.compare_exchange_weak(current, State::Stopped, std::memory_order_release,
+                                            std::memory_order_relaxed))
                 return;
-
-            // If failed, loop with new state
+            // current is updated on failure, loop continues
         }
     }
 
     void request_abort() noexcept {
         // Always go to aborted
-        state.store(State::Aborted, std::memory_order_relaxed);
+        state.store(State::Aborted, std::memory_order_release);
     }
 
 
@@ -406,6 +409,12 @@ class Threads final {
     }
 
    private:
+    // State transition diagram:
+    // Active -> Research -> Stopped
+    //   |          |           |
+    //   ---------->----------->-
+    //   |          |           |
+    //   -------------------------> Aborted (final, cannot transition out)
     enum class State : std::uint8_t {
         Active,
         Research,
@@ -413,11 +422,11 @@ class Threads final {
         Aborted
     };
 
+    std::atomic<State> state{State::Active};
+
     std::vector<ThreadPtr> threads;
     std::vector<NumaIndex> threadBoundNumaNodes;
     StateListPtr           setupStates;
-
-    std::atomic<State> state;
 };
 
 inline Threads::~Threads() noexcept { clear(); }
