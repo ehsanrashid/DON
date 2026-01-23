@@ -1093,9 +1093,7 @@ inline std::uint64_t hash_bytes(const char* const RESTRICT data, std::size_t siz
 
     // Handle remaining bytes
     for (; i < size; ++i)
-    {
         h = (h ^ p[i]) * FNV_Prime;
-    }
 
     return h;
 }
@@ -1114,7 +1112,7 @@ std::size_t hash_raw_data(const T& value) noexcept {
 }
 
 template<typename T>
-inline void combine_hash(std::size_t& seed, const T& v) noexcept {
+void combine_hash(std::size_t& seed, const T& v) noexcept {
     std::size_t x;
     // For primitive types we avoid using the default hasher, which may be
     // nondeterministic across program invocations
