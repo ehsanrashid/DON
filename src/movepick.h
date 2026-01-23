@@ -35,7 +35,7 @@ struct ExtMove final: public Move {
     using Move::operator=;
 
     constexpr bool operator<(const ExtMove& em) const noexcept { return value < em.value; }
-    constexpr bool operator>(const ExtMove& em) const noexcept { return (em < *this); }
+    constexpr bool operator>(const ExtMove& em) const noexcept { return value > em.value; }
     constexpr bool operator<=(const ExtMove& em) const noexcept { return !(em < *this); }
     constexpr bool operator>=(const ExtMove& em) const noexcept { return !(*this < em); }
 
@@ -43,6 +43,10 @@ struct ExtMove final: public Move {
 };
 
 static_assert(sizeof(ExtMove) == 8, "Unexpected ExtMove size");
+
+constexpr auto ext_move_descending(const ExtMove& em1, const ExtMove& em2) noexcept {
+    return em1 > em2;
+};
 
 // MovePicker class is used to pick one pseudo-legal move at a time from the given current position.
 // The most important method is next_move(), which returns a new legal move each time it is called,

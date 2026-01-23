@@ -19,6 +19,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <utility>
 
 #include "bitboard.h"
 #include "position.h"
@@ -236,52 +237,61 @@ namespace {
 template<typename Iterator, typename T, typename Compare>
 Iterator
 exponential_upper_bound(Iterator beg, Iterator end, const T& value, Compare comp) noexcept {
+    // Handle empty range
+    //if (beg == end)
+    //    return end;
 
-    Iterator low = end - 1;
-
-    // Special case: 'value' is larger than the last element in the range
-    // so the insertion point is at the very end
-    if (comp(*low, value))
+    Iterator last = end - 1;
+    // Special case: If value goes at the very end
+    if (!comp(value, *last))
         return end;
 
-    // Exponential backward search
+    // Exponential backward search from end
+    Iterator    high = end;
+    Iterator    low  = last;
     std::size_t step = 1;
+
     while (low != beg)
     {
         Iterator pre = step < std::size_t(low - beg) ? low - step : beg;
 
-        // Found insertion point
-        if (comp(*pre, value))
+        // If *pre <= value, found the range
+        if (!comp(value, *pre))
         {
             low = pre + 1;
             break;
         }
 
-        low = pre;
+        // Continue searching backward
+        high = low;
+        low  = pre;
         step <<= 1;
     }
 
-    // Now [low..end) is a sorted subrange containing the insertion point.
-    // binary search inside smaller range [low, end)
-    return std::upper_bound(low, end, value, comp);
+    // Now [low..high) is a sorted subrange containing the insertion point.
+    // Binary search in the found range [low, high)
+    return std::upper_bound(low, high, value, comp);
 }
 
-// Sort moves in descending order
 template<typename Iterator>
 void insertion_sort(Iterator beg, Iterator end) noexcept {
-
     for (Iterator p = beg + 1; p < end; ++p)
     {
-        auto value = *p;
+        // Stability: Early exit if already in correct position
+        if (/* p == beg || */ !ext_move_descending(*p, *(p - 1)))
+            continue;
+
+        auto value = std::move(*p);
 
         // Find the correct position for 'value' using binary search
-        const Iterator q = exponential_upper_bound(
-          beg, p, value, [](const ExtMove& v1, const ExtMove& v2) noexcept { return v1 > v2; });
-        // Move elements to make space for 'value'
+        const Iterator q = exponential_upper_bound(beg, p, value, ext_move_descending);
+
+        // Shift elements using move
         for (Iterator r = p; r != q; --r)
-            *r = *(r - 1);
+            *r = std::move(*(r - 1));
+
         // Insert the 'value' in its correct position
-        *q = value;
+        *q = std::move(value);
     }
 }
 
