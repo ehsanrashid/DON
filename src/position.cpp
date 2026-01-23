@@ -706,11 +706,13 @@ bool Position::enpassant_possible(Color           ac,
 
     Bitboard epPawnsBB = pieces_bb(ac, PAWN) & attacks_bb<PAWN>(enPassantSq, ~ac);
 
-    if (epPawnsBBp != nullptr)
-        *epPawnsBBp = epPawnsBB;
-
     if (epPawnsBB == 0)
+    {
+        if (epPawnsBBp != nullptr)
+            *epPawnsBBp = epPawnsBB;
+
         return false;
+    }
 
     const Square capturedSq = MoveDone  //
                               ? enPassantSq - pawn_spush(ac)
@@ -720,48 +722,55 @@ bool Position::enpassant_possible(Color           ac,
 
     const Square kingSq = square<KING>(ac);
 
+    bool epPossible = false;
+
     if constexpr (MoveDone)
     {
         // If there are checkers other than the to be captured pawn, ep is never legal
         if ((checkers_bb() & make_comp_bb(capturedSq)) != 0)
         {
-            if (epPawnsBBp != nullptr)
-                *epPawnsBBp = 0;
-
-            return false;
+            epPawnsBB = 0;
+            goto END_MOVEDONE;
         }
 
         // If there are two pawns potentially being abled to capture
         if (more_than_one(epPawnsBB))
         {
+            const Bitboard blockersBB = blockers_bb(ac);
             // If at least one is not pinned, ep is legal as there are no horizontal exposed checks
-            if (!more_than_one(epPawnsBB & blockers_bb(ac)))
+            if (!more_than_one(epPawnsBB & blockersBB))
             {
-                if (epPawnsBBp != nullptr)
-                    *epPawnsBBp = epPawnsBB & ~blockers_bb(ac);
+                epPawnsBB &= ~blockersBB;
 
-                return true;
+                epPossible = true;
+                goto END_MOVEDONE;
             }
 
             const Bitboard kingFileBB = file_bb(kingSq);
             // If there is no pawn on our king's file and thus both pawns are pinned by bishops
             if ((epPawnsBB & kingFileBB) == 0)
             {
-                if (epPawnsBBp != nullptr)
-                    *epPawnsBBp = 0;
-
-                return false;
+                epPawnsBB = 0;
+                goto END_MOVEDONE;
             }
 
             // Otherwise remove the pawn on the king file, as an ep capture by it can never be legal
             epPawnsBB &= ~kingFileBB;
-
-            if (epPawnsBBp != nullptr)
-                *epPawnsBBp = epPawnsBB;
         }
+
+END_MOVEDONE:
+        if (epPawnsBBp != nullptr)
+            *epPawnsBBp = epPawnsBB;
+
+        if (epPossible)
+            return true;
+    }
+    else
+    {
+        if (epPawnsBBp != nullptr)
+            *epPawnsBBp = epPawnsBB;
     }
 
-    bool epPossible = false;
     // Check en-passant is legal for the position
     const Bitboard occupancyBB = pieces_bb() ^ make_bb(capturedSq, enPassantSq);
     const Bitboard attackersBB = pieces_bb(~ac);
