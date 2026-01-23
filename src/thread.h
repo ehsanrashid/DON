@@ -330,6 +330,7 @@ class Threads final {
     // --- queries ---
     bool is_active() const noexcept {
         auto current = state.load(std::memory_order_acquire);
+
         return current == State::Active || current == State::Research;
     }
 
@@ -339,6 +340,7 @@ class Threads final {
 
     bool is_stopped() const noexcept {
         auto current = state.load(std::memory_order_acquire);
+
         return current == State::Aborted || current == State::Stopped;
     }
 
@@ -407,6 +409,12 @@ class Threads final {
     }
 
    private:
+    // State transition diagram:
+    // Active -> Research -> Stopped
+    //   |          |           |
+    //   ---------->----------->-
+    //   |          |           |
+    //   -------------------------> Aborted (final, cannot transition out)
     enum class State : std::uint8_t {
         Active,
         Research,
@@ -414,11 +422,11 @@ class Threads final {
         Aborted
     };
 
+    std::atomic<State> state{State::Active};
+
     std::vector<ThreadPtr> threads;
     std::vector<NumaIndex> threadBoundNumaNodes;
     StateListPtr           setupStates;
-
-    std::atomic<State> state;
 };
 
 inline Threads::~Threads() noexcept { clear(); }
