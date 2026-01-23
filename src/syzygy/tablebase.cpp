@@ -960,12 +960,12 @@ class TBTables final {
 
         std::size_t newBucket = newEntry.bucket();
 
-        Entry& entry = entries[newBucket];
+        Entry& nEntry = entries[newBucket];
 
         // Fast path: ideal bucket empty or matches key
-        if (entry.empty() || entry.key == newKey)
+        if (nEntry.empty() || nEntry.key == newKey)
         {
-            entry = newEntry;
+            nEntry = newEntry;
             // Ideal slot has distance 0
             return true;
         }
@@ -977,7 +977,7 @@ class TBTables final {
 
             const std::size_t bucket = (newBucket + distance) & MASK;
 
-            entry = entries[bucket];
+            Entry& entry = entries[bucket];
 
             // Case 1: Empty slot or key already exists -> place/update
             if (entry.empty() || entry.key == newKey)
