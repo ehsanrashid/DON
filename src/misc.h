@@ -27,6 +27,7 @@
 #include <chrono>
 #include <cinttypes>
 #include <cstdint>
+#include <cstddef>
 #include <cstdio>
 #include <cstring>
 #include <exception>  // IWYU pragma: keep
@@ -36,6 +37,7 @@
 #include <iostream>
 #include <memory>
 #include <mutex>
+#include <new>
 #include <optional>
 #include <shared_mutex>
 #include <string>
