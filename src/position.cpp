@@ -730,13 +730,9 @@ bool Position::enpassant_possible(Color           ac,
     {
         // If there are checkers other than the to be captured pawn, ep is never legal
         if ((checkers_bb() & make_comp_bb(capturedSq)) != 0)
-        {
             epPawnsBB = 0;
-            goto EP_END;
-        }
-
         // If there are two pawns potentially being abled to capture
-        if (more_than_one(epPawnsBB))
+        else if (more_than_one(epPawnsBB))
         {
             const Bitboard blockersBB = blockers_bb(ac);
             // If at least one is not pinned, ep is legal as there are no horizontal exposed checks
@@ -745,22 +741,19 @@ bool Position::enpassant_possible(Color           ac,
                 epPawnsBB &= ~blockersBB;
 
                 epPossible = true;
-                goto EP_END;
             }
-
-            const Bitboard kingFileBB = file_bb(kingSq);
-            // If there is no pawn on our king's file and thus both pawns are pinned by bishops
-            if ((epPawnsBB & kingFileBB) == 0)
+            else
             {
-                epPawnsBB = 0;
-                goto EP_END;
+                const Bitboard kingFileBB = file_bb(kingSq);
+                // If there is no pawn on our king's file and thus both pawns are pinned by bishops
+                if ((epPawnsBB & kingFileBB) == 0)
+                    epPawnsBB = 0;
+                // Otherwise remove the pawn on the king file, as an ep capture by it can never be legal
+                else
+                    epPawnsBB &= ~kingFileBB;
             }
-
-            // Otherwise remove the pawn on the king file, as an ep capture by it can never be legal
-            epPawnsBB &= ~kingFileBB;
         }
 
-EP_END:
         if (collect)
             *epPawnsBBp = epPawnsBB;
 
@@ -781,10 +774,12 @@ EP_END:
     {
         const Square epPawnSq = pop_lsq(epPawnsBB);
 
-        if ((slide_attackers_bb(kingSq, occupancyBB ^ epPawnSq) & attackersBB) == 0)
-        {
-            epPossible = true;
+        const bool legal = (slide_attackers_bb(kingSq, occupancyBB ^ epPawnSq) & attackersBB) == 0;
 
+        epPossible |= legal;
+
+        if (legal)
+        {
             if (!collect)
                 break;
         }
@@ -914,10 +909,10 @@ Position::do_move(Move m, State& newSt, bool mayCheck, const Worker* const worke
 
         capturedPc = Piece::NO_PIECE;
         capture    = false;
-
-        goto DO_MOVE_END;
     }
-
+    // clang-format off
+    else
+    {
     movedKey = Zobrist::piece_square(ac, movedPt, orgSq)  //
              ^ Zobrist::piece_square(ac, movedPt, dstSq);
 
@@ -1031,8 +1026,8 @@ Position::do_move(Move m, State& newSt, bool mayCheck, const Worker* const worke
         if (movedPt != KING)
             st->nonPawnKeys[ac][is_major(movedPt)] ^= movedKey;
     }
-
-DO_MOVE_END:
+    }
+    // clang-format on
 
     db.dts.kingSq = square<KING>(ac);
 
@@ -1152,10 +1147,10 @@ void Position::undo_move(Move m) noexcept {
         Square rookOrgSq, rookDstSq;
         do_castling<false>(ac, orgSq, dstSq, rookOrgSq, rookDstSq);
         assert(rookOrgSq == m.dst_sq());
-
-        goto UNDO_MOVE_END;
     }
-
+    // clang-format off
+    else
+    {
     if (m.type() == MT::PROMOTION)
     {
         assert(relative_rank(ac, orgSq) == RANK_7);
@@ -1192,8 +1187,8 @@ void Position::undo_move(Move m) noexcept {
         // Restore the captured piece
         put(capturedSq, capturedPc);
     }
-
-UNDO_MOVE_END:
+    }
+    // clang-format on
 
     --gamePly;
     // Finally point state pointer back to the previous state

@@ -1483,10 +1483,10 @@ Ret do_probe_table(
 
         for (std::size_t i = 1; i < leadPawnCnt; ++i)
             idx += Binomial[i][PawnsMap[squares[i]]];
-
-        goto ENCODE_END;  // With pawns have finished special treatments
     }
-
+    else
+    {
+        // clang-format off
     // In positions without pawns, further flip the squares to ensure leading
     // piece is below RANK_5.
     if (rank_of(squares[0]) > RANK_4)
@@ -1572,7 +1572,8 @@ Ret do_probe_table(
         // Don't have at least 3 unique pieces, like in KRRvKBB, just map the kings.
         idx = KKMap[A1D1D4Map[squares[0]]][squares[1]];
 
-ENCODE_END:
+        // clang-format on
+    }
 
     idx *= pd->groupIdx[0];
 

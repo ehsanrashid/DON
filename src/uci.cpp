@@ -1052,10 +1052,10 @@ std::string UCI::move_to_san(Move m, Position& pos) noexcept {
         assert(movedPt == KING && rank_of(orgSq) == rank_of(dstSq));
 
         san = to_string(make_cs(orgSq, dstSq));
-
-        goto SPECIAL;
     }
-
+    else
+    {
+        // clang-format off
     // Note:: Piece letter (skip pawn as not needed because starting file is explicit)
     if (movedPt != PAWN)
     {
@@ -1105,8 +1105,8 @@ std::string UCI::move_to_san(Move m, Position& pos) noexcept {
         san += '=';
         san += char(std::toupper(to_char(m.promotion_type())));
     }
-
-SPECIAL:
+        // clang-format on
+    }
 
     State st;
     pos.do_move(m, st);

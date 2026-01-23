@@ -1007,9 +1007,9 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     const int absCorrectionValue = std::abs(correctionValue);
 
     // Skip early pruning when in check
-    if (ss->inCheck)
-        goto S_MOVES_LOOP;
-
+    if (!ss->inCheck)
+    {
+        // clang-format off
     // Use static evaluation difference to improve quiet move ordering
     if (preSq != SQ_NONE && !preCapture && !(ss - 1)->inCheck)
     {
@@ -1108,7 +1108,6 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     // returns a value much above beta, can (almost) safely prune previous move.
     if (depth > 2 && !is_decisive(beta))
     {
-        // clang-format off
         const Value probCutBeta = std::min(235 + beta - int(improve) * 63, +VALUE_INFINITE);
         assert(beta < probCutBeta && probCutBeta <= +VALUE_INFINITE);
 
@@ -1164,10 +1163,11 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
             }
         }
         }
+        }
         // clang-format on
     }
 
-S_MOVES_LOOP:  // When in check, search starts here
+    // When in check, search starts here
 
     // Step 12. Small ProbCut idea
     if (!is_decisive(beta) && is_valid(ttd.value) && !is_decisive(ttd.value))
@@ -1781,10 +1781,10 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
         evalValue = VALUE_NONE;
 
         bestValue = baseFutilityValue = -VALUE_INFINITE;
-
-        goto QS_MOVES_LOOP;
     }
-
+    else
+    {
+        // clang-format off
     if (ttd.hit)
     {
         // Never assume anything about values stored in TT
@@ -1824,8 +1824,8 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
         alpha = bestValue;
 
     baseFutilityValue = std::min(351 + ss->evalValue, +VALUE_INFINITE);
-
-QS_MOVES_LOOP:
+        // clang-format on
+    }
 
     Square preSq = (ss - 1)->move.is_ok() ? (ss - 1)->move.dst_sq() : SQ_NONE;
 
