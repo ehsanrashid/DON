@@ -19,6 +19,7 @@
 #define SHM_H_INCLUDED
 
 #include <algorithm>
+#include <cinttypes>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -834,7 +835,7 @@ class SharedMemory final: public BaseSharedMemory {
     explicit SharedMemory(const std::string& shmName) noexcept :
         name(shmName),
         mappedSize(mapped_size()) {
-        sentinelBase = std::string("don_") + create_hash_string(name);
+        sentinelBase = std::string("don_") + hash_to_string(hash_string(name));
     }
 
     ~SharedMemory() noexcept override { unregister_close(); }
@@ -1485,7 +1486,7 @@ struct SystemWideSharedMemory final {
 #if !defined(_WIN32)
         // POSIX shared memory names must start with a slash
         // then add name hashing to avoid length limits
-        shmName = std::string("/don_") + create_hash_string(shmName);
+        shmName = std::string("/don_") + hash_to_string(hash_string(shmName));
 
         // POSIX APIs expect a fixed-size C string where the maximum length excluding the terminating null character ('\0').
         // Since std::string::size() does not include '\0', allow at most (MAX - 1) characters

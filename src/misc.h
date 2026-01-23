@@ -1100,27 +1100,17 @@ inline std::uint64_t hash_bytes(const char* const RESTRICT data, std::size_t siz
     return h;
 }
 
+inline std::uint64_t hash_string(std::string_view str) {
+    return hash_bytes(str.data(), str.size());
+}
+
 template<typename T>
-inline std::size_t hash_raw_data(const T& value) noexcept {
+std::size_t hash_raw_data(const T& value) noexcept {
     // Must have no padding bytes because reinterpreting as char
     static_assert(std::has_unique_object_representations<T>());
 
     return static_cast<std::size_t>(
       hash_bytes(reinterpret_cast<const char*>(&value), sizeof(value)));
-}
-
-inline std::uint64_t hash_string(std::string_view str) {
-    return hash_bytes(str.data(), str.size());
-}
-
-inline std::string create_hash_string(std::string_view str) noexcept {
-    constexpr std::size_t Size = 16 + 1;  // 16 hex + '\0'
-
-    std::string hashStr(Size, '\0');
-
-    std::snprintf(hashStr.data(), hashStr.size(), "%016" PRIX64, hash_string(str));
-
-    return hashStr;
 }
 
 template<typename T>
@@ -1536,6 +1526,16 @@ split(std::string_view str, std::string_view delimiter, bool trimPart = false) n
         parts.emplace_back(part);
 
     return parts;
+}
+
+inline std::string hash_to_string(std::uint64_t hash) noexcept {
+    constexpr std::size_t Size = 16 + 1;  // 16 hex + '\0'
+
+    std::string hashStr(Size, '\0');
+
+    std::snprintf(hashStr.data(), hashStr.size(), "%016" PRIX64, hash);
+
+    return hashStr;
 }
 
 inline std::string u32_to_string(std::uint32_t u32) noexcept {
