@@ -859,8 +859,7 @@ class TBTables final {
         std::size_t bucket() const noexcept { return key & MASK; }
 
         bool empty() const noexcept { return tables[WDL] == nullptr && tables[DTZ] == nullptr; }
-
-        bool valid() const noexcept { return !empty(); }
+        //bool valid() const noexcept { return !empty(); }
 
         template<TBType T>
         TBTable<T>* get() const noexcept {
@@ -889,13 +888,13 @@ class TBTables final {
     template<TBType T>
     [[nodiscard]] TBTable<T>* get(Key key) noexcept {
 
-        const std::size_t idealBucket = key & MASK;
+        const std::size_t keyBucket = key & MASK;
 
-        const Entry& idealEntry = entries[idealBucket];
+        const Entry& keyEntry = entries[keyBucket];
 
         // Fast path: key is in its ideal slot
-        if (!idealEntry.empty() && idealEntry.key == key)
-            return idealEntry.get<T>();
+        if (!keyEntry.empty() && keyEntry.key == key)
+            return keyEntry.get<T>();
 
         // Limit search by MaxDistance
         // MaxDistance is safe because:
@@ -905,7 +904,7 @@ class TBTables final {
 
         for (std::size_t probes = 0, distance = 1; probes < maxProbes; ++probes)
         {
-            const std::size_t bucket = (idealBucket + distance) & MASK;
+            const std::size_t bucket = (keyBucket + distance) & MASK;
 
             const Entry& entry = entries[bucket];
 
@@ -957,14 +956,16 @@ class TBTables final {
 
     bool insert(Entry newEntry) noexcept {
 
-        std::size_t idealBucket = newEntry.bucket();
+        Key newKey = newEntry.key;
 
-        Entry& idealEntry = entries[idealBucket];
+        std::size_t newBucket = newEntry.bucket();
+
+        Entry& entry = entries[newBucket];
 
         // Fast path: ideal bucket empty or matches key
-        if (idealEntry.empty() || idealEntry.key == newEntry.key)
+        if (entry.empty() || entry.key == newKey)
         {
-            idealEntry = newEntry;
+            entry = newEntry;
             // Ideal slot has distance 0
             return true;
         }
@@ -974,12 +975,12 @@ class TBTables final {
             if (MaxDistance < distance)
                 MaxDistance = distance;
 
-            const std::size_t bucket = (idealBucket + distance) & MASK;
+            const std::size_t bucket = (newBucket + distance) & MASK;
 
-            Entry& entry = entries[bucket];
+            entry = entries[bucket];
 
             // Case 1: Empty slot or key already exists -> place/update
-            if (entry.empty() || entry.key == newEntry.key)
+            if (entry.empty() || entry.key == newKey)
             {
                 entry = newEntry;
 
@@ -998,8 +999,9 @@ class TBTables final {
 
                 // Reset for the displaced (swapped) entry
                 // displaced entry continues one step further.
-                idealBucket = newEntry.bucket();
-                distance    = entryDistance;
+                newKey    = newEntry.key;
+                newBucket = newEntry.bucket();
+                distance  = entryDistance;
             }
 
             ++distance;
@@ -1013,13 +1015,13 @@ class TBTables final {
     /*
     bool remove(Key key) noexcept {
 
-        const std::size_t idealBucket = key & MASK;
+        const std::size_t keyBucket = key & MASK;
 
         const std::size_t maxProbes = std::min(MaxDistance + 1, MAX_PROBES);
 
         for (std::size_t probes = 0, distance = 0; probes < maxProbes; ++probes)
         {
-            const std::size_t bucket = (idealBucket + distance) & MASK;
+            const std::size_t bucket = (keyBucket + distance) & MASK;
 
             Entry& entry = entries[bucket];
 
