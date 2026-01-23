@@ -704,11 +704,13 @@ bool Position::enpassant_possible(Color           ac,
                                   Bitboard* const epPawnsBBp) const noexcept {
     assert(enPassantSq != SQ_NONE);
 
+    const bool collect = epPawnsBBp != nullptr;
+
     Bitboard epPawnsBB = pieces_bb(ac, PAWN) & attacks_bb<PAWN>(enPassantSq, ~ac);
 
     if (epPawnsBB == 0)
     {
-        if (epPawnsBBp != nullptr)
+        if (collect)
             *epPawnsBBp = epPawnsBB;
 
         return false;
@@ -730,7 +732,7 @@ bool Position::enpassant_possible(Color           ac,
         if ((checkers_bb() & make_comp_bb(capturedSq)) != 0)
         {
             epPawnsBB = 0;
-            goto END_MOVEDONE;
+            goto EP_END;
         }
 
         // If there are two pawns potentially being abled to capture
@@ -743,7 +745,7 @@ bool Position::enpassant_possible(Color           ac,
                 epPawnsBB &= ~blockersBB;
 
                 epPossible = true;
-                goto END_MOVEDONE;
+                goto EP_END;
             }
 
             const Bitboard kingFileBB = file_bb(kingSq);
@@ -751,15 +753,15 @@ bool Position::enpassant_possible(Color           ac,
             if ((epPawnsBB & kingFileBB) == 0)
             {
                 epPawnsBB = 0;
-                goto END_MOVEDONE;
+                goto EP_END;
             }
 
             // Otherwise remove the pawn on the king file, as an ep capture by it can never be legal
             epPawnsBB &= ~kingFileBB;
         }
 
-END_MOVEDONE:
-        if (epPawnsBBp != nullptr)
+EP_END:
+        if (collect)
             *epPawnsBBp = epPawnsBB;
 
         if (epPossible)
@@ -767,7 +769,7 @@ END_MOVEDONE:
     }
     else
     {
-        if (epPawnsBBp != nullptr)
+        if (collect)
             *epPawnsBBp = epPawnsBB;
     }
 
@@ -783,14 +785,11 @@ END_MOVEDONE:
         {
             epPossible = true;
 
-            if (epPawnsBBp == nullptr)
+            if (!collect)
                 break;
         }
-        else
-        {
-            if (epPawnsBBp != nullptr)
-                *epPawnsBBp ^= epPawnSq;
-        }
+        else if (collect)
+            *epPawnsBBp ^= epPawnSq;
     }
 
     return epPossible;
