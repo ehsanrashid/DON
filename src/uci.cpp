@@ -405,6 +405,7 @@ void UCI::execute(std::string_view command) noexcept {
 }
 
 void UCI::print_info_string(std::string_view infoStr) noexcept {
+
     if (InfoStringStop)
         return;
 
