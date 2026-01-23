@@ -835,7 +835,7 @@ class SharedMemory final: public BaseSharedMemory {
     explicit SharedMemory(const std::string& shmName) noexcept :
         name(shmName),
         mappedSize(mapped_size()) {
-        sentinelBase = std::string("don_") + hash_to_string(hash_string(name));
+        sentinelBase = std::string("DON_") + hash_to_string(hash_string(name));
     }
 
     ~SharedMemory() noexcept override { unregister_close(); }
@@ -1472,7 +1472,7 @@ struct SystemWideSharedMemory final {
         std::string shmName(256, '\0');
 
         int size = std::snprintf(shmName.data(), shmName.size(),
-                                 "Local\\don_%016" PRIX64 "$%016" PRIX64 "$%016" PRIX64, valueHash,
+                                 "Local\\DON_%016" PRIX64 "$%016" PRIX64 "$%016" PRIX64, valueHash,
                                  executableHash, discriminator);
         // shrink to actual string length
         if (size >= 0)
@@ -1486,7 +1486,7 @@ struct SystemWideSharedMemory final {
 #if !defined(_WIN32)
         // POSIX shared memory names must start with a slash
         // then add name hashing to avoid length limits
-        shmName = std::string("/don_") + hash_to_string(hash_string(shmName));
+        shmName = std::string("/DON_") + hash_to_string(hash_string(shmName));
 
         // POSIX APIs expect a fixed-size C string where the maximum length excluding the terminating null character ('\0').
         // Since std::string::size() does not include '\0', allow at most (MAX - 1) characters
