@@ -32,7 +32,7 @@ constexpr StdArray<std::size_t, 2> TABLE_SIZES{0x1480, 0x19000};
 // Stores bishop & rook attacks
 alignas(CACHE_LINE_SIZE) StdArray<
 #if defined(USE_BMI2)
-    #if defined(USE_COMPRESSED)
+    #if defined(USE_COMP)
   Bitboard16
     #else
   Bitboard
@@ -45,7 +45,7 @@ alignas(CACHE_LINE_SIZE) StdArray<
 
 alignas(CACHE_LINE_SIZE) StdArray<TableView<
 #if defined(USE_BMI2)
-    #if defined(USE_COMPRESSED)
+    #if defined(USE_COMP)
                                     Bitboard16
     #else
                                     Bitboard
@@ -107,7 +107,7 @@ void init_magics() noexcept {
         magic.maskBB = pseudoAttacksBB & ~edgesBB;
 
 #if defined(USE_BMI2)
-    #if defined(USE_COMPRESSED)
+    #if defined(USE_COMP)
         magic.reMaskBB = pseudoAttacksBB;
     #endif
 #else
@@ -215,11 +215,11 @@ void init() noexcept {
 
     for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
     {
-        const Bitboard s1BB = square_bb(s1);
+        const Bitboard s1BB = make_bb(s1);
 
         for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
         {
-            const Bitboard s2BB = square_bb(s2);
+            const Bitboard s2BB = make_bb(s2);
 
             for (PieceType pt : {BISHOP, ROOK})
             {

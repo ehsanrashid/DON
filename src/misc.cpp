@@ -226,8 +226,8 @@ std::string compiler_info() noexcept {
 #endif
 #if defined(USE_BMI2)
     str += " BMI2";
-    #if defined(USE_COMPRESSED)
-    str += "-(Compressed)";
+    #if defined(USE_COMP)
+    str += " COMP";
     #endif
 #endif
 #if defined(USE_AVX2)

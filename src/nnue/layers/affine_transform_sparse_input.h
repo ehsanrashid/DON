@@ -204,8 +204,8 @@ class AffineTransformSparseInput final {
 
     std::size_t content_hash() const noexcept {
         std::size_t h = 0;
-        combine_hash(h, raw_data_hash(biases));
-        combine_hash(h, raw_data_hash(weights));
+        combine_hash(h, hash_raw_data(biases));
+        combine_hash(h, hash_raw_data(weights));
         combine_hash(h, hash(0));
         return h;
     }

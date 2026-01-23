@@ -1659,7 +1659,7 @@ class SystemWideLazyNumaReplicated final: public BaseNumaReplicated {
     }
 
    private:
-    std::size_t get_discriminator(NumaIndex numaId) const noexcept {
+    std::uint64_t get_discriminator(NumaIndex numaId) const noexcept {
 
         const NumaConfig& numaCfg = numa_config();
 
@@ -1679,7 +1679,7 @@ class SystemWideLazyNumaReplicated final: public BaseNumaReplicated {
         str += '$';
         str += std::to_string(sysId);
 
-        return std::hash<std::string>{}(str);
+        return hash_string(str);
     }
 
     void ensure_present(NumaIndex numaId) const noexcept {

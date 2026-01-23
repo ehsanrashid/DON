@@ -153,7 +153,7 @@ alignas(CACHE_LINE_SIZE) const auto LUT_INDICES = []() noexcept {
     for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
         for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
         {
-            Bitboard s2MaskBB = square_bb(s2) - 1;
+            Bitboard s2MaskBB = make_bb(s2) - 1;
             // clang-format off
             lutIndices[WHITE ][s1][s2] = constexpr_popcount(s2MaskBB & attacks_bb(s1, WHITE));
             lutIndices[BLACK ][s1][s2] = constexpr_popcount(s2MaskBB & attacks_bb(s1, BLACK));

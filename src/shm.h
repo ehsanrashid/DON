@@ -19,6 +19,7 @@
 #define SHM_H_INCLUDED
 
 #include <algorithm>
+#include <cinttypes>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -834,7 +835,7 @@ class SharedMemory final: public BaseSharedMemory {
     explicit SharedMemory(const std::string& shmName) noexcept :
         name(shmName),
         mappedSize(mapped_size()) {
-        sentinelBase = std::string("don_") + create_hash_string(name);
+        sentinelBase = std::string("DON_") + hash_to_string(hash_string(name));
     }
 
     ~SharedMemory() noexcept override { unregister_close(); }
@@ -1464,17 +1465,28 @@ struct SystemWideSharedMemory final {
 
     // Content is addressed by its hash. An additional discriminator can be added to account for differences
     // that are not present in the content, for example NUMA node allocation.
-    SystemWideSharedMemory(const T& value, std::size_t discriminator = 0) noexcept {
-        const std::size_t valueHash      = std::hash<T>{}(value);
-        const std::size_t executableHash = std::hash<std::string>{}(executable_path());
+    SystemWideSharedMemory(const T& value, std::uint64_t discriminator = 0) noexcept {
+        const std::uint64_t valueHash      = std::hash<T>{}(value);
+        const std::uint64_t executableHash = hash_string(executable_path());
 
-        std::string shmName = std::string("Local\\don_") + std::to_string(valueHash)  //
-                            + "$" + std::to_string(executableHash)                    //
-                            + "$" + std::to_string(discriminator);
+        std::string shmName(256, '\0');
+
+        int size = std::snprintf(shmName.data(), shmName.size(),
+                                 "Local\\DON_%016" PRIX64 "$%016" PRIX64 "$%016" PRIX64, valueHash,
+                                 executableHash, discriminator);
+        // shrink to actual string length
+        if (size >= 0)
+        {
+            if (std::size_t(size) < shmName.size())
+                shmName.resize(size);  // shrink to actual content
+            else
+                shmName.resize(shmName.size() - 1);  // truncated, keep null-termination
+        }
+
 #if !defined(_WIN32)
         // POSIX shared memory names must start with a slash
         // then add name hashing to avoid length limits
-        shmName = std::string("/don_") + create_hash_string(shmName);
+        shmName = std::string("/DON_") + hash_to_string(hash_string(shmName));
 
         // POSIX APIs expect a fixed-size C string where the maximum length excluding the terminating null character ('\0').
         // Since std::string::size() does not include '\0', allow at most (MAX - 1) characters

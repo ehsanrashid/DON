@@ -55,7 +55,7 @@
 namespace DON {
 
 #if defined(USE_BMI2)
-    #if defined(USE_COMPRESSED)
+    #if defined(USE_COMP)
 using Bitboard16 = std::uint16_t;
     #endif
 #endif
@@ -112,7 +112,7 @@ struct Magic final {
 
 #if defined(USE_BMI2)
     void attacks_bb(Bitboard occupancyBB, Bitboard referenceBB) noexcept {
-    #if defined(USE_COMPRESSED)
+    #if defined(USE_COMP)
         attacksBBs[index(occupancyBB)] = _pext_u64(referenceBB, reMaskBB);
     #else
         attacksBBs[index(occupancyBB)] = referenceBB;
@@ -122,7 +122,7 @@ struct Magic final {
 
     Bitboard attacks_bb(Bitboard occupancyBB) const noexcept {
 #if defined(USE_BMI2)
-    #if defined(USE_COMPRESSED)
+    #if defined(USE_COMP)
         return _pdep_u64(attacksBBs[index(occupancyBB)], reMaskBB);
     #else
         return attacksBBs[index(occupancyBB)];
@@ -150,7 +150,7 @@ struct Magic final {
     }
 
 #if defined(USE_BMI2)
-    #if defined(USE_COMPRESSED)
+    #if defined(USE_COMP)
     Bitboard16* attacksBBs;
     Bitboard    maskBB;
     Bitboard    reMaskBB;
@@ -187,10 +187,15 @@ constexpr Bitboard& operator^=(Bitboard& b, Square s) noexcept { return b = b ^ 
 
 constexpr Bitboard operator|(Square s1, Square s2) noexcept { return square_bb(s1) | s2; }
 
-// Returns a bitboard from a list of squares
+// Returns bitboard from list of squares
 template<typename... Squares>
 constexpr Bitboard make_bb(Squares... squares) noexcept {
     return (square_bb(squares) | ...);
+}
+// Returns complement bitboard from list of squares
+template<typename... Squares>
+constexpr Bitboard make_comp_bb(Squares... squares) noexcept {
+    return ~make_bb(squares...);
 }
 
 // Return a bitboard representing all the squares on the given file
