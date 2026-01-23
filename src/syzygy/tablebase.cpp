@@ -901,9 +901,9 @@ class TBTables final {
         // MaxDistance is safe because:
         // 1. It's only increased during insert (never decreased)
         // 2. The Robin Hood break condition provides correctness
-        const std::size_t maxProbes = std::min(MaxDistance + 1, MAX_PROBES);
+        const std::size_t MaxProbes = std::min(max_distance() + 1, MAX_PROBES);
 
-        for (std::size_t probes = 0, distance = 1; probes < maxProbes; ++probes)
+        for (std::size_t probes = 0, distance = 1; probes < MaxProbes; ++probes)
         {
             const std::size_t bucket = (keyBucket + distance) & MASK;
 
@@ -1018,9 +1018,9 @@ class TBTables final {
 
         const std::size_t keyBucket = key & MASK;
 
-        const std::size_t maxProbes = std::min(MaxDistance + 1, MAX_PROBES);
+        const std::size_t MaxProbes = std::min(max_distance() + 1, MAX_PROBES);
 
-        for (std::size_t probes = 0, distance = 0; probes < maxProbes; ++probes)
+        for (std::size_t probes = 0, distance = 0; probes < MaxProbes; ++probes)
         {
             const std::size_t bucket = (keyBucket + distance) & MASK;
 

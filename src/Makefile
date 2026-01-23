@@ -168,7 +168,7 @@ ssse3 = no
 sse41 = no
 avx2 = no
 bmi2 = no
-compressed = no
+use_comp = no
 avxvnni = no
 avx512 = no
 vnni512 = no
@@ -255,7 +255,7 @@ ifeq ($(findstring -avx2, $(ARCH)), -avx2)
 endif
 
 ifeq ($(findstring -comp, $(ARCH)), -comp)
-    compressed = yes
+    use_comp = yes
 endif
 
 ifeq ($(findstring -bmi2, $(ARCH)), -bmi2)
@@ -835,8 +835,8 @@ ifeq ($(bmi2), yes)
     ifeq ($(comp), $(filter $(comp), gcc clang mingw icx))
         CXXFLAGS += -mbmi2
     endif
-    ifeq ($(compressed), yes)
-        CXXFLAGS += -DUSE_COMPRESSED
+    ifeq ($(use_comp), yes)
+        CXXFLAGS += -DUSE_COMP
     endif
 endif
 
@@ -1088,7 +1088,7 @@ config-sanity: net
 	echo "sse41: '$(sse41)'" && \
 	echo "avx2: '$(avx2)'" && \
 	echo "bmi2: '$(bmi2)'" && \
-	echo "compressed: '$(compressed)'" && \
+	echo "use_comp: '$(use_comp)'" && \
 	echo "avxvnni: '$(avxvnni)'" && \
 	echo "avx512: '$(avx512)'" && \
 	echo "vnni512: '$(vnni512)'" && \
@@ -1127,7 +1127,7 @@ config-sanity: net
 	(test "$(sse41)" = "yes" || test "$(sse41)" = "no") && \
 	(test "$(avx2)" = "yes" || test "$(avx2)" = "no") && \
 	(test "$(bmi2)" = "yes" || test "$(bmi2)" = "no") && \
-	(test "$(compressed)" = "yes" || test "$(compressed)" = "no") && \
+	(test "$(use_comp)" = "yes" || test "$(use_comp)" = "no") && \
 	(test "$(avx512)" = "yes" || test "$(avx512)" = "no") && \
 	(test "$(vnni512)" = "yes" || test "$(vnni512)" = "no") && \
 	(test "$(avx512icl)" = "yes" || test "$(avx512icl)" = "no") && \

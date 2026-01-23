@@ -1071,20 +1071,46 @@ class ConcurrentCache final {
     std::unordered_map<Key, StorageValue> storage;
 };
 
-template<typename T>
-inline void combine_hash(std::size_t& seed, const T& v) noexcept {
-    seed ^= std::hash<T>{}(v) + 0x9E3779B9U + (seed << 6) + (seed >> 2);
+inline std::uint64_t hash_bytes(const char* const RESTRICT data, std::size_t size) noexcept {
+    constexpr std::uint64_t FNV_Basis = 0xCBF29CE484222325ULL;
+    constexpr std::uint64_t FNV_Prime = 0x00000100000001B3ULL;
+
+    // FNV-1a 64-bit
+    std::uint64_t h = FNV_Basis;
+
+    const std::uint8_t* const RESTRICT p = reinterpret_cast<const std::uint8_t*>(data);
+
+    std::size_t i = 0;
+
+    // Unrolled
+    for (; i + 4 <= size; i += 4)
+    {
+        h = (h ^ p[i + 0]) * FNV_Prime;
+        h = (h ^ p[i + 1]) * FNV_Prime;
+        h = (h ^ p[i + 2]) * FNV_Prime;
+        h = (h ^ p[i + 3]) * FNV_Prime;
+    }
+
+    // Handle remaining bytes
+    for (; i < size; ++i)
+    {
+        h = (h ^ p[i]) * FNV_Prime;
+    }
+
+    return h;
 }
 
-template<>
-inline void combine_hash(std::size_t& seed, const std::size_t& v) noexcept {
-    seed ^= v + 0x9E3779B9U + (seed << 6) + (seed >> 2);
+template<typename T>
+inline std::size_t hash_raw_data(const T& value) noexcept {
+    // Must have no padding bytes because reinterpreting as char
+    static_assert(std::has_unique_object_representations<T>());
+
+    return static_cast<std::size_t>(
+      hash_bytes(reinterpret_cast<const char*>(&value), sizeof(value)));
 }
 
-template<typename T>
-inline std::size_t raw_data_hash(const T& value) noexcept {
-    return std::hash<std::string_view>{}(
-      std::string_view(reinterpret_cast<const char*>(&value), sizeof(value)));
+inline std::uint64_t hash_string(std::string_view str) {
+    return hash_bytes(str.data(), str.size());
 }
 
 inline std::string create_hash_string(std::string_view str) noexcept {
@@ -1092,11 +1118,21 @@ inline std::string create_hash_string(std::string_view str) noexcept {
 
     std::string hashStr(Size, '\0');
 
-    std::uint64_t hash = std::hash<std::string_view>{}(str);
-
-    std::snprintf(hashStr.data(), hashStr.size(), "%016" PRIX64, hash);
+    std::snprintf(hashStr.data(), hashStr.size(), "%016" PRIX64, hash_string(str));
 
     return hashStr;
+}
+
+template<typename T>
+inline void combine_hash(std::size_t& seed, const T& v) noexcept {
+    std::size_t x;
+    // For primitive types we avoid using the default hasher, which may be
+    // nondeterministic across program invocations
+    if constexpr (std::is_integral<T>())
+        x = v;
+    else
+        x = std::hash<T>{}(v);
+    seed ^= x + 0x9E3779B9U + (seed << 6) + (seed >> 2);
 }
 
 constexpr std::uint64_t mul_hi64(std::uint64_t u1, std::uint64_t u2) noexcept {
@@ -1532,7 +1568,7 @@ std::optional<std::string> read_file_to_string(std::string_view filePath) noexce
 template<std::size_t N>
 struct std::hash<DON::FixedString<N>> {
     std::size_t operator()(const DON::FixedString<N>& fixedStr) const noexcept {
-        return std::hash<std::string_view>{}((std::string_view) fixedStr);
+        return DON::hash_bytes(fixedStr.data(), fixedStr.size());
     }
 };
 
