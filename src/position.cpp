@@ -698,30 +698,29 @@ void Position::set_ext_state() noexcept {
 }
 
 // Check en-passant possible
-template<bool After>
+template<bool MoveDone>
 bool Position::enpassant_possible(Color           ac,
                                   Square          enPassantSq,
                                   Bitboard* const epPawnsBBp) const noexcept {
     assert(enPassantSq != SQ_NONE);
 
     Bitboard epPawnsBB = pieces_bb(ac, PAWN) & attacks_bb<PAWN>(enPassantSq, ~ac);
+
     if (epPawnsBBp != nullptr)
         *epPawnsBBp = epPawnsBB;
 
     if (epPawnsBB == 0)
         return false;
 
-    Square capturedSq;
-    if constexpr (After)
-        capturedSq = enPassantSq - pawn_spush(ac);
-    else
-        capturedSq = enPassantSq + pawn_spush(ac);
+    const Square capturedSq = MoveDone  //
+                              ? enPassantSq - pawn_spush(ac)
+                              : enPassantSq + pawn_spush(ac);
 
     assert((pieces_bb(~ac, PAWN) & capturedSq) != 0);
 
     const Square kingSq = square<KING>(ac);
 
-    if constexpr (After)
+    if constexpr (MoveDone)
     {
         // If there are checkers other than the to be captured pawn, ep is never legal
         if ((checkers_bb() & make_comp_bb(capturedSq)) != 0)
@@ -769,7 +768,7 @@ bool Position::enpassant_possible(Color           ac,
 
     while (epPawnsBB != 0)
     {
-        Square epPawnSq = pop_lsq(epPawnsBB);
+        const Square epPawnSq = pop_lsq(epPawnsBB);
 
         if ((slide_attackers_bb(kingSq, occupancyBB ^ epPawnSq) & attackersBB) == 0)
         {

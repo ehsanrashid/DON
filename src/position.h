@@ -436,7 +436,7 @@ class Position final {
     void set_state() noexcept;
     void set_ext_state() noexcept;
 
-    template<bool After = true>
+    template<bool MoveDone = true>
     bool enpassant_possible(Color           ac,
                             Square          enPassantSq,
                             Bitboard* const epPawnsBBp = nullptr) const noexcept;
