@@ -456,7 +456,7 @@ struct TBTable final: BaseTBTable {
     MMapGuard   mappedGuard{mappedPtr, mappedSize};
 #endif
     std::uint8_t* mapPtr = nullptr;
-    InitOnce      initOnce;
+    CallOnce      callOnce;
 };
 
 template<TBType T>
@@ -481,16 +481,15 @@ TBTable<T>::~TBTable() noexcept {
 // Function is thread safe and can be called concurrently.
 template<TBType T>
 void* TBTable<T>::init(const Position& pos, Key materialKey) noexcept {
-    // Fast path: already initialized
-    if (initOnce.is_initialized())
-        return mappedPtr;  // could be nullptr if file missing
+    // Fast path: if already initialized, return immediately
+    if (callOnce.called())
+        return mappedPtr;
 
-    if (initOnce.attempt_initialization())
-    {
-        // First thread is responsible for initialization
-
+    // Slow path: initialize exactly once using CallOnce
+    callOnce([this, &pos, materialKey]() {
         // Pieces strings in decreasing order for each color, like ("KPP","KR")
         StdArray<std::string, COLOR_NB> pieces{};
+
         for (Color c : {WHITE, BLACK})
             for (std::size_t i = PIECE_TYPES.size(); i-- > 0;)
                 pieces[c].append(pos.count(c, PIECE_TYPES[i]), to_char(PIECE_TYPES[i]));
@@ -498,8 +497,7 @@ void* TBTable<T>::init(const Position& pos, Key materialKey) noexcept {
         std::string base;
         base.reserve(pieces[WHITE].size() + 1 + pieces[BLACK].size());
 
-        bool c = materialKey == key[WHITE];
-
+        const bool c = materialKey == key[WHITE];
         base += pieces[c ? WHITE : BLACK];
         base += 'v';
         base += pieces[c ? BLACK : WHITE];
@@ -507,15 +505,7 @@ void* TBTable<T>::init(const Position& pos, Key materialKey) noexcept {
         TBFile tbFile(base, EXTS[T]);
 
         set(tbFile.exists() ? map(tbFile.file_name()) : nullptr);
-
-        // Mark initialized for all threads
-        initOnce.set_initialized();
-    }
-    else
-    {
-        // Other threads spin until initialization completes
-        initOnce.wait_until_initialized();
-    }
+    });
 
     return mappedPtr;
 }

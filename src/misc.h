@@ -26,6 +26,7 @@
 #include <charconv>
 #include <chrono>
 #include <cinttypes>
+#include <condition_variable>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
@@ -42,6 +43,7 @@
 #include <string_view>
 #include <system_error>
 #include <thread>
+#include <tuple>
 #include <type_traits>
 #include <unordered_map>
 #include <utility>
@@ -917,91 +919,86 @@ class FixedString final {
     std::size_t                  _size;
 };
 
-struct InitOnce final {
+struct CallOnce final {
    public:
-    InitOnce()                           = default;
-    InitOnce(const InitOnce&)            = delete;
-    InitOnce(InitOnce&&)                 = delete;
-    InitOnce& operator=(const InitOnce&) = delete;
-    InitOnce& operator=(InitOnce&&)      = delete;
+    CallOnce()                           = default;
+    CallOnce(const CallOnce&)            = delete;
+    CallOnce(CallOnce&&)                 = delete;
+    CallOnce& operator=(const CallOnce&) = delete;
+    CallOnce& operator=(CallOnce&&)      = delete;
 
-    // Check if initialization is complete
-    [[nodiscard]] bool is_initialized() const noexcept {
-        return state.load(std::memory_order_acquire) == State::Initialized;
+    // Initialize using the provided function
+    // The function will be called exactly once, even if multiple threads call this
+    template<typename Func>
+    void operator()(Func&& callFn) noexcept(noexcept(callFn())) {
+        std::call_once(callOnce, [this, callFunc = std::forward<Func>(callFn)]() mutable {
+            std::move(callFunc)();  // Move into the call
+            call.store(true, std::memory_order_release);
+        });
     }
 
-    // Attempt to become the initializing thread
-    // Returns true if this thread is responsible for initialization
-    [[nodiscard]] bool attempt_initialization() noexcept {
-        State expected = State::Uninitialized;
-        return state.compare_exchange_strong(expected, State::Initializing,
-                                             std::memory_order_acq_rel, std::memory_order_relaxed);
-    }
-
-    // Spin-wait until initialization is complete
-    void wait_until_initialized() const noexcept {
-        std::size_t spin = 1;
-        while (state.load(std::memory_order_acquire) != State::Initialized)
-        {
-            // Exponential backoff
-            for (std::size_t i = 0; i < spin; ++i)
-                std::this_thread::yield();
-            // Limit maximum backoff
-            if (spin < 16)
-                spin <<= 1;
-            // Optional tiny sleep to reduce CPU usage for longer waits
-            std::this_thread::sleep_for(std::chrono::nanoseconds(50));
-        }
-    }
-
-    // Mark initialization as complete
-    void set_initialized() noexcept { state.store(State::Initialized, std::memory_order_release); }
+    // Check if initialization has been completed
+    [[nodiscard]] bool called() const noexcept { return call.load(std::memory_order_acquire); }
 
    private:
-    enum class State : std::uint8_t {
-        Uninitialized,
-        Initializing,
-        Initialized
-    };
-
-    std::atomic<State> state{State::Uninitialized};
+    std::once_flag    callOnce;
+    std::atomic<bool> call{false};
 };
 
-// LazyValue wraps a Value with InitOnce for safe lazy initialization
+// LazyValue wraps a Value with CallOnce for safe lazy initialization
 template<typename Value>
 struct LazyValue final {
+   public:
     LazyValue()                            = default;
     LazyValue(const LazyValue&)            = delete;
     LazyValue(LazyValue&&)                 = delete;
     LazyValue& operator=(const LazyValue&) = delete;
     LazyValue& operator=(LazyValue&&)      = delete;
 
-    template<typename... Args>
-    Value& init(Args&&... args) noexcept {
-        // Fast path: already initialized
-        if (initOnce.is_initialized())
-            return value;
-
-        if (initOnce.attempt_initialization())
-        {
-            // First thread initializes
-            value = Value(std::forward<Args>(args)...);
-
-            // Mark initialized for all threads
-            initOnce.set_initialized();
-        }
-        else
-        {
-            // Other threads spin until initialization completes
-            initOnce.wait_until_initialized();
-        }
-
-        return value;
+    ~LazyValue() noexcept {
+        if (is_initialized())
+            get_ptr()->~Value();
     }
 
+    template<typename... Args>
+    Value& init(Args&&... args) noexcept(std::is_nothrow_constructible_v<Value, Args...>) {
+        // Fast path: already initialized
+        if (is_initialized())
+            return *get_ptr();
+
+        // Initialize exactly once, use tuple to capture all arguments
+        callOnce([this, tuple = std::make_tuple(std::forward<Args>(args)...)]() mutable {
+            std::apply(
+              [this](auto&&... captured) {
+                  new (get_ptr()) Value(std::forward<decltype(captured)>(captured)...);
+              },
+              std::move(tuple));
+        });
+
+        return *get_ptr();
+    }
+
+    Value& get() noexcept {
+        assert(is_initialized() && "LazyValue accessed before initialization");
+        return *get_ptr();
+    }
+
+    const Value& get() const noexcept {
+        assert(is_initialized() && "LazyValue accessed before initialization");
+        return *get_ptr();
+    }
+
+    [[nodiscard]] bool is_initialized() const noexcept { return callOnce.called(); }
+
    private:
-    Value    value;
-    InitOnce initOnce;
+    Value* get_ptr() noexcept { return std::launder(reinterpret_cast<Value*>(&storage)); }
+
+    const Value* get_ptr() const noexcept {
+        return std::launder(reinterpret_cast<const Value*>(&storage));
+    }
+
+    alignas(Value) std::byte storage[sizeof(Value)];
+    CallOnce callOnce;
 };
 
 // ConcurrentCache: groups (mutex + storage + pre-reserve)
@@ -1013,47 +1010,33 @@ class ConcurrentCache final {
         storage.max_load_factor(loadFactor);
     }
 
-    // Thread-safe access or build
-    // Args... are forwarded to Value constructor
     template<typename... Args>
     Value& access_or_build(const Key& key, Args&&... args) noexcept {
-        // Fast path: shared (read) lock to access
+        // Fast path: read-only shared lock to access
         {
             std::shared_lock lock(mutex);
 
-            if (auto itr = storage.find(key); itr != storage.end())
-            {
-                if constexpr (sizeof(Value) <= THRESHOLD_SIZE)
-                    return itr->second.init(std::forward<Args>(args)...);
-                else
-                    return itr->second->init(std::forward<Args>(args)...);
-            }
+            auto itr = storage.find(key);
+
+            if (itr != storage.end())
+                return get_value(itr->second);
         }
 
-        // Slow path: exclusive (write) lock to insert new LazyValue if missing
+        // Slow path: write exclusive lock to insert and construct
+        std::unique_lock lock(mutex);
+
+        // Double-check after acquiring exclusive lock
+        auto [itr, inserted] = storage.try_emplace(key);
+
+        if (inserted)
         {
-            std::unique_lock lock(mutex);
-
-            auto& entry = storage[key];
-
-            if constexpr (sizeof(Value) <= THRESHOLD_SIZE)
-            {
-                // inline: default-constructed already in map
-                return entry.init(std::forward<Args>(args)...);
-            }
-            else
-            {
-                // heap: allocate if missing
-                if (!entry)
-                    entry = std::make_unique<LazyValue<Value>>();
-
-                return entry->init(std::forward<Args>(args)...);
-            }
+            // Inserted: construct the value
+            set_value(itr->second, std::forward<Args>(args)...);
         }
+
+        return get_value(itr->second);
     }
 
-    // Transformer is callable: Value& -> any return type
-    // Args... are forwarded to Value constructor
     template<typename Transformer, typename... Args>
     auto
     transform_access_or_build(const Key& key, Transformer&& transformer, Args&&... args) noexcept {
@@ -1062,12 +1045,27 @@ class ConcurrentCache final {
     }
 
    private:
-    static constexpr std::size_t THRESHOLD_SIZE = 128;  // bytes
+    static constexpr std::size_t THRESHOLD_SIZE = 128;
 
-    using StorageValue = std::conditional_t<sizeof(Value) <= THRESHOLD_SIZE,
-                                            LazyValue<Value>,                  // inline
-                                            std::unique_ptr<LazyValue<Value>>  // heap
-                                            >;
+    // Define StorageValue type alias
+    using StorageValue =
+      std::conditional_t<sizeof(Value) <= THRESHOLD_SIZE, Value, std::unique_ptr<Value>>;
+
+    // Helper functions AFTER StorageValue is defined
+    template<typename... Args>
+    void set_value(StorageValue& entry, Args&&... args) {
+        if constexpr (sizeof(Value) <= THRESHOLD_SIZE)
+            entry = Value(std::forward<Args>(args)...);
+        else
+            entry = std::make_unique<Value>(std::forward<Args>(args)...);
+    }
+
+    Value& get_value(StorageValue& entry) noexcept {
+        if constexpr (sizeof(Value) <= THRESHOLD_SIZE)
+            return entry;
+        else
+            return *entry;
+    }
 
     std::shared_mutex                     mutex;
     std::unordered_map<Key, StorageValue> storage;
