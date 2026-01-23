@@ -187,10 +187,15 @@ constexpr Bitboard& operator^=(Bitboard& b, Square s) noexcept { return b = b ^ 
 
 constexpr Bitboard operator|(Square s1, Square s2) noexcept { return square_bb(s1) | s2; }
 
-// Returns a bitboard from a list of squares
+// Returns bitboard from list of squares
 template<typename... Squares>
 constexpr Bitboard make_bb(Squares... squares) noexcept {
     return (square_bb(squares) | ...);
+}
+// Returns complement bitboard from list of squares
+template<typename... Squares>
+constexpr Bitboard make_comp_bb(Squares... squares) noexcept {
+    return ~make_bb(squares...);
 }
 
 // Return a bitboard representing all the squares on the given file

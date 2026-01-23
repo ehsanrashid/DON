@@ -495,7 +495,7 @@ class Position final {
         return castlingRightsIndices;
     }();
 
-    static constexpr std::uint8_t INDEX_NONE = SQUARE_NB;
+    static constexpr std::uint8_t INVALID_INDEX = SQUARE_NB;
 
     // Backing Square Table: [COLOR_NB][TOTAL_CAPACITY]
     StdArray<Square, COLOR_NB, TOTAL_CAPACITY> squaresTable;
@@ -961,7 +961,7 @@ inline void Position::reset_rule50_count() noexcept { st->rule50Count = 0; }
 inline void Position::put(Square s, Piece pc, DirtyThreats* const dts) noexcept {
     assert(is_ok(s) && is_ok(pc) && empty(s));
 
-    const Bitboard sBB = square_bb(s);
+    const Bitboard sBB = make_bb(s);
 
     const auto c   = color_of(pc);
     const auto pt  = type_of(pc);
@@ -983,7 +983,7 @@ inline void Position::put(Square s, Piece pc, DirtyThreats* const dts) noexcept 
 inline Piece Position::remove(Square s, DirtyThreats* const dts) noexcept {
     assert(is_ok(s) && !empty(s));
 
-    const Bitboard sBB = square_bb(s);
+    const Bitboard sBB = make_bb(s);
 
     const Piece pc  = piece(s);
     const auto  c   = color_of(pc);
@@ -1003,7 +1003,7 @@ inline Piece Position::remove(Square s, DirtyThreats* const dts) noexcept {
     assert(idx < pieceLists[c][pt].size());
     const Square sb = pieceLists[c][pt].back(base(c), cnt);
     indexMap[sb]    = idx;
-    //indexMap[s]  = INDEX_NONE;
+    //indexMap[s]  = INVALID_INDEX;
     pieceLists[c][pt].at(idx, base(c)) = sb;
 
     return pc;
@@ -1031,7 +1031,7 @@ inline Piece Position::move(Square s1, Square s2, DirtyThreats* const dts) noexc
     const auto idx = indexMap[s1];
     assert(idx < pieceLists[c][pt].size());
     indexMap[s2] = idx;
-    //indexMap[s1] = INDEX_NONE;
+    //indexMap[s1] = INVALID_INDEX;
     pieceLists[c][pt].at(idx, base(c)) = s2;
 
     if (dts != nullptr)

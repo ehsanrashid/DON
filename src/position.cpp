@@ -194,7 +194,7 @@ Position::Position() noexcept {
 void Position::clear() noexcept {
     std::memset(squaresTable.data(), SQ_NONE, sizeof(squaresTable));
     // No need to clear indexMap as it is always overwritten when putting/removing pieces
-    std::memset(indexMap.data(), INDEX_NONE, sizeof(indexMap));
+    std::memset(indexMap.data(), INVALID_INDEX, sizeof(indexMap));
     std::memset(pieceMap.data(), +Piece::NO_PIECE, sizeof(pieceMap));
     std::memset(typeBBs.data(), 0, sizeof(typeBBs));
     std::memset(colorBBs.data(), 0, sizeof(colorBBs));
@@ -617,7 +617,7 @@ void Position::set_castling_rights(Color c, Square rookOrgSq) noexcept {
     Bitboard kingPathBB = between_bb(kingOrgSq, kingDstSq);
     Bitboard rookPathBB = between_bb(rookOrgSq, rookDstSq);
 
-    castlings.fullPathBB[c][+cs] = (kingPathBB | rookPathBB) & ~make_bb(kingOrgSq, rookOrgSq);
+    castlings.fullPathBB[c][+cs] = (kingPathBB | rookPathBB) & make_comp_bb(kingOrgSq, rookOrgSq);
     castlings.kingPathBB[c][+cs] = kingPathBB;
     castlings.rookSq[c][+cs]     = rookOrgSq;
 }
@@ -724,7 +724,7 @@ bool Position::enpassant_possible(Color           ac,
     if constexpr (After)
     {
         // If there are checkers other than the to be captured pawn, ep is never legal
-        if ((checkers_bb() & ~square_bb(capturedSq)) != 0)
+        if ((checkers_bb() & make_comp_bb(capturedSq)) != 0)
         {
             if (epPawnsBBp != nullptr)
                 *epPawnsBBp = 0;
@@ -740,6 +740,7 @@ bool Position::enpassant_possible(Color           ac,
             {
                 if (epPawnsBBp != nullptr)
                     *epPawnsBBp = epPawnsBB & ~blockers_bb(ac);
+
                 return true;
             }
 
@@ -749,11 +750,13 @@ bool Position::enpassant_possible(Color           ac,
             {
                 if (epPawnsBBp != nullptr)
                     *epPawnsBBp = 0;
+
                 return false;
             }
 
             // Otherwise remove the pawn on the king file, as an ep capture by it can never be legal
             epPawnsBB &= ~kingFileBB;
+
             if (epPawnsBBp != nullptr)
                 *epPawnsBBp = epPawnsBB;
         }
@@ -2376,7 +2379,7 @@ void Position::dump(std::ostream& os) const noexcept {
         {
             Square s = make_square(f, r);
             os << " | ";
-            if (indexMap[s] != INDEX_NONE)
+            if (indexMap[s] != INVALID_INDEX)
                 os << std::setw(2) << int(indexMap[s]);
             else
                 os << "  ";

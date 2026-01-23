@@ -215,11 +215,11 @@ void init() noexcept {
 
     for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
     {
-        const Bitboard s1BB = square_bb(s1);
+        const Bitboard s1BB = make_bb(s1);
 
         for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
         {
-            const Bitboard s2BB = square_bb(s2);
+            const Bitboard s2BB = make_bb(s2);
 
             for (PieceType pt : {BISHOP, ROOK})
             {
