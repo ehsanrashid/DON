@@ -36,27 +36,19 @@ class PolyBook final {
    public:
     struct Entry final {
        public:
-        friend constexpr bool operator==(const Entry& e1, const Entry& e2) noexcept {
-            return e1.key == e2.key && e1.move == e2.move && e1.weight == e2.weight;
+        constexpr bool operator==(const Entry& e) const noexcept {
+            return key == e.key && move == e.move && weight == e.weight;
         }
-        friend constexpr bool operator!=(const Entry& e1, const Entry& e2) noexcept {
-            return !(e1 == e2);
-        }
+        constexpr bool operator!=(const Entry& e) const noexcept { return !(*this == e); }
 
-        friend constexpr bool operator<(const Entry& e1, const Entry& e2) noexcept {
-            return e1.key != e2.key       ? e1.key < e2.key
-                 : e1.weight != e2.weight ? e1.weight < e2.weight
-                                          : e1.move < e2.move;
+        constexpr bool operator<(const Entry& e) const noexcept {
+            return key != e.key       ? key < e.key
+                 : weight != e.weight ? weight < e.weight
+                                      : move < e.move;
         }
-        friend constexpr bool operator>(const Entry& e1, const Entry& e2) noexcept {
-            return (e2 < e1);
-        }
-        friend constexpr bool operator<=(const Entry& e1, const Entry& e2) noexcept {
-            return !(e2 < e1);
-        }
-        friend constexpr bool operator>=(const Entry& e1, const Entry& e2) noexcept {
-            return !(e1 < e2);
-        }
+        constexpr bool operator>(const Entry& e) const noexcept { return (e < *this); }
+        constexpr bool operator<=(const Entry& e) const noexcept { return !(e < *this); }
+        constexpr bool operator>=(const Entry& e) const noexcept { return !(*this < e); }
 
         Key           key;
         std::uint16_t move;

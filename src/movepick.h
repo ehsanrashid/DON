@@ -34,12 +34,10 @@ struct ExtMove final: public Move {
    public:
     using Move::operator=;
 
-    friend constexpr bool operator<(ExtMove em1, ExtMove em2) noexcept {
-        return em1.value < em2.value;
-    }
-    friend constexpr bool operator>(ExtMove em1, ExtMove em2) noexcept { return (em2 < em1); }
-    friend constexpr bool operator<=(ExtMove em1, ExtMove em2) noexcept { return !(em2 < em1); }
-    friend constexpr bool operator>=(ExtMove em1, ExtMove em2) noexcept { return !(em1 < em2); }
+    constexpr bool operator<(const ExtMove& em) const noexcept { return value < em.value; }
+    constexpr bool operator>(const ExtMove& em) const noexcept { return (em < *this); }
+    constexpr bool operator<=(const ExtMove& em) const noexcept { return !(em < *this); }
+    constexpr bool operator>=(const ExtMove& em) const noexcept { return !(*this < em); }
 
     int value;
 };

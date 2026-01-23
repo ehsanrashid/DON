@@ -80,19 +80,13 @@ class Option final {
     operator std::string() const noexcept;
     operator std::string_view() const noexcept;
 
-    friend constexpr bool operator==(const Option& o1, const Option& o2) noexcept {
-        return o1.idx == o2.idx && o1.type == o2.type;
+    constexpr bool operator==(const Option& o) const noexcept {
+        return idx == o.idx && type == o.type;
     }
-    friend constexpr bool operator!=(const Option& o1, const Option& o2) noexcept {
-        return !(o1 == o2);
-    }
+    constexpr bool operator!=(const Option& o) const noexcept { return !(*this == o); }
 
-    friend constexpr bool operator<(const Option& o1, const Option& o2) noexcept {
-        return o1.idx < o2.idx;
-    }
-    friend constexpr bool operator>(const Option& o1, const Option& o2) noexcept {
-        return (o2 < o1);
-    }
+    constexpr bool operator<(const Option& o) const noexcept { return idx < o.idx; }
+    constexpr bool operator>(const Option& o) const noexcept { return (o < *this); }
 
     void operator=(std::string value) noexcept;
 
