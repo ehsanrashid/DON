@@ -494,10 +494,11 @@ void* TBTable<T>::init(const Position& pos, Key materialKey) noexcept {
             for (std::size_t i = PIECE_TYPES.size(); i-- > 0;)
                 pieces[c].append(pos.count(c, PIECE_TYPES[i]), to_char(PIECE_TYPES[i]));
 
+        const bool c = materialKey == key[WHITE];
+
         std::string base;
         base.reserve(pieces[WHITE].size() + 1 + pieces[BLACK].size());
 
-        const bool c = materialKey == key[WHITE];
         base += pieces[c ? WHITE : BLACK];
         base += 'v';
         base += pieces[c ? BLACK : WHITE];
@@ -960,12 +961,12 @@ class TBTables final {
 
         std::size_t newBucket = newEntry.bucket();
 
-        Entry& nEntry = entries[newBucket];
+        Entry& _newEntry = entries[newBucket];
 
         // Fast path: ideal bucket empty or matches key
-        if (nEntry.empty() || nEntry.key == newKey)
+        if (_newEntry.empty() || _newEntry.key == newKey)
         {
-            nEntry = newEntry;
+            _newEntry = newEntry;
             // Ideal slot has distance 0
             return true;
         }
