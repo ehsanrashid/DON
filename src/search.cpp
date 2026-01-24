@@ -1196,7 +1196,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     // When in check, search starts here
 
     // Step 12. Small ProbCut idea
-    if (!is_decisive(beta) && is_valid(ttd.value) && !is_win(ttd.value))
+    if (!is_loss(beta) && is_valid(ttd.value) && !is_loss(ttd.value))
     {
         Value probCutBeta = std::min(418 + beta, +VALUE_INFINITE);
 
