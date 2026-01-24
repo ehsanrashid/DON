@@ -396,11 +396,11 @@ Strings bench(std::istream& is, std::string_view currentFen) noexcept {
     std::string fenFile   = (is >> token) ? token : "default";
     std::string limitType = (is >> token) ? token : "depth";
 
-    const bool isGo = limitType != "eval";
+    bool isGo = limitType != "eval";
 
-    const std::string command = isGo ? "go " + limitType + " " + limitVal : "eval";
+    std::string command = isGo ? "go " + limitType + " " + limitVal : "eval";
 
-    const std::string fenOpt = lower_case(fenFile);
+    std::string fenOpt = lower_case(fenFile);
 
     Strings fens;
 
@@ -446,7 +446,7 @@ Strings bench(std::istream& is, std::string_view currentFen) noexcept {
     {
         fen = std::string(trim(fen));
 
-        const bool setOption = fen.rfind("setoption ", 0) == 0;
+        bool setOption = fen.rfind("setoption ", 0) == 0;
 
         if (!setOption)
             fen = "position fen " + fen;
@@ -511,7 +511,7 @@ Setup benchmark(std::istream& is) noexcept {
 
         for (std::size_t i = 0; i < game.size(); ++i)
         {
-            const double moveTime = get_move_time(ply);
+            double moveTime = get_move_time(ply);
 
             totalMoveTime += moveTime;
 
@@ -519,7 +519,7 @@ Setup benchmark(std::istream& is) noexcept {
         }
     }
 
-    const double TimeScaleFactor = 1000.0 * desiredMoveTime / totalMoveTime;
+    double TimeScaleFactor = 1000.0 * desiredMoveTime / totalMoveTime;
 
     for (const auto& game : Games)
     {
@@ -531,7 +531,7 @@ Setup benchmark(std::istream& is) noexcept {
         {
             setup.commands.emplace_back("position fen " + fen);
 
-            const std::size_t moveTime = get_move_time(ply) * TimeScaleFactor;
+            std::size_t moveTime = get_move_time(ply) * TimeScaleFactor;
 
             setup.commands.emplace_back("go movetime " + std::to_string(moveTime));
 

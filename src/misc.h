@@ -226,12 +226,12 @@ constexpr IndexCount
 thread_index_count(std::size_t threadId, std::size_t threadCount, std::size_t totalSize) noexcept {
     assert(threadCount != 0 && threadId < threadCount);
 
-    const std::size_t stride = totalSize / threadCount;
-    const std::size_t remain = totalSize % threadCount;  // remainder to distribute
+    std::size_t stride = totalSize / threadCount;
+    std::size_t remain = totalSize % threadCount;  // remainder to distribute
 
     // Distribute remainder among the first 'remain' threads
-    const std::size_t begIdx = threadId * stride + std::min(threadId, remain);
-    const std::size_t count  = stride + std::size_t(threadId < remain);
+    std::size_t begIdx = threadId * stride + std::min(threadId, remain);
+    std::size_t count  = stride + std::size_t(threadId < remain);
 
     assert(begIdx + count <= totalSize);
     return {begIdx, count};
@@ -247,12 +247,12 @@ constexpr IndexRange
 thread_index_range(std::size_t threadId, std::size_t threadCount, std::size_t totalSize) noexcept {
     assert(threadCount != 0 && threadId < threadCount);
 
-    const std::size_t stride = totalSize / threadCount;
-    const std::size_t remain = totalSize % threadCount;  // remainder to distribute
+    std::size_t stride = totalSize / threadCount;
+    std::size_t remain = totalSize % threadCount;  // remainder to distribute
 
     // Distribute remainder among the first 'remain' threads
-    const std::size_t begIdx = threadId * stride + std::min(threadId, remain);
-    const std::size_t endIdx = begIdx + stride + std::size_t(threadId < remain);
+    std::size_t begIdx = threadId * stride + std::min(threadId, remain);
+    std::size_t endIdx = begIdx + stride + std::size_t(threadId < remain);
 
     assert(begIdx <= endIdx && endIdx <= totalSize);
     return {begIdx, endIdx};
@@ -798,7 +798,7 @@ class FixedVector final {
     }
 
     T* make_space(std::size_t space) noexcept {
-        const std::size_t oldSize = size();
+        std::size_t oldSize = size();
 
         resize(oldSize + space);
 
@@ -864,7 +864,7 @@ class FixedString final {
 
     FixedString& operator+=(std::string_view str) {
 
-        const std::size_t Size = str.size();
+        std::size_t Size = str.size();
 
         if (size() + Size > capacity())
             std::terminate();
@@ -904,7 +904,7 @@ class FixedString final {
    private:
     void assign(std::string_view str) {
 
-        const std::size_t Size = str.size();
+        std::size_t Size = str.size();
 
         if (Size > capacity())
             std::terminate();
@@ -1433,25 +1433,25 @@ inline constexpr std::string_view WHITE_SPACE{" \t\n\r\f\v"};
 
 [[nodiscard]] constexpr std::string_view ltrim(std::string_view str) noexcept {
     // Find the first non-whitespace character
-    const std::size_t beg = str.find_first_not_of(WHITE_SPACE);
+    std::size_t beg = str.find_first_not_of(WHITE_SPACE);
 
     return beg == std::string_view::npos ? std::string_view{} : str.substr(beg);
 }
 
 [[nodiscard]] constexpr std::string_view rtrim(std::string_view str) noexcept {
     // Find the last non-whitespace character
-    const std::size_t end = str.find_last_not_of(WHITE_SPACE);
+    std::size_t end = str.find_last_not_of(WHITE_SPACE);
 
     return end == std::string_view::npos ? std::string_view{} : str.substr(0, end + 1);
 }
 
 [[nodiscard]] constexpr std::string_view trim(std::string_view str) noexcept {
-    const std::size_t beg = str.find_first_not_of(WHITE_SPACE);
+    std::size_t beg = str.find_first_not_of(WHITE_SPACE);
 
     if (beg == std::string_view::npos)
         return {};
 
-    const std::size_t end = str.find_last_not_of(WHITE_SPACE);
+    std::size_t end = str.find_last_not_of(WHITE_SPACE);
 
     return str.substr(beg, end - beg + 1);
 }
@@ -1498,7 +1498,7 @@ split(std::string_view str, std::string_view delimiter, bool trimPart = false) n
 
     while (true)
     {
-        const std::size_t end = str.find(delimiter, beg);
+        std::size_t end = str.find(delimiter, beg);
 
         if (end == std::string_view::npos)
             break;

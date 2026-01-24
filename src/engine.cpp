@@ -334,7 +334,7 @@ void Engine::verify_networks() const noexcept {
 
     for (std::size_t i = 0; i < statuses.size(); ++i)
     {
-        const auto& [status, error] = statuses[i];
+        auto& [status, error] = statuses[i];
 
         std::string message = "Network replica " + std::to_string(i + 1) + ": ";
 

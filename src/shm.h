@@ -486,7 +486,7 @@ class BaseSharedMemory {
 //  - The class is static-only; it cannot be instantiated. (Restriction)
 class SharedMemoryRegistry final {
    private:
-    enum class RegisterResult : std::uint8_t {
+    enum class Status : std::uint8_t {
         Success,
         AlreadyRegistered,
         CleanupInProgress
@@ -496,20 +496,19 @@ class SharedMemoryRegistry final {
     static bool cleanup_in_progress() noexcept { return cleanUp.load(std::memory_order_acquire); }
 
     // Try to register, retry only if cleanup is in progress
-    static void attempt_register_memory(BaseSharedMemory* const sharedMemory) noexcept {
+    static void attempt_register_memory(BaseSharedMemory* sharedMemory) noexcept {
         constexpr std::size_t MaxAttempts = 10;
 
         for (std::size_t attempt = 0;; ++attempt)
         {
-            auto registerResult = register_memory(sharedMemory);
+            auto status = register_memory(sharedMemory);
 
-            if (registerResult == RegisterResult::Success)
+            if (status == Status::Success)
                 break;
 
-            //assert(registerResult != RegisterResult::AlreadyRegistered
-            //       && "SharedMemory double registration");
+            //assert(status != Status::AlreadyRegistered && "SharedMemory double registration");
 
-            if (registerResult == RegisterResult::AlreadyRegistered)
+            if (status == Status::AlreadyRegistered)
                 break;
 
             if (attempt >= MaxAttempts)
@@ -521,10 +520,10 @@ class SharedMemoryRegistry final {
     }
     // Register a shared memory object in the global registry.
     // Thread-safe: locks the registry while inserting.
-    static RegisterResult register_memory(BaseSharedMemory* const sharedMemory) noexcept {
+    static Status register_memory(BaseSharedMemory* sharedMemory) noexcept {
         // Don't register during cleanup
         if (cleanup_in_progress())
-            return RegisterResult::CleanupInProgress;
+            return Status::CleanupInProgress;
 
         std::scoped_lock lock(mutex);
 
@@ -532,7 +531,7 @@ class SharedMemoryRegistry final {
     }
     // Unregister a shared memory object from the global registry.
     // Thread-safe: locks the registry while erasing.
-    static bool unregister_memory(BaseSharedMemory* const sharedMemory) noexcept {
+    static bool unregister_memory(BaseSharedMemory* sharedMemory) noexcept {
         std::scoped_lock lock(mutex);
 
         return erase_nolock(sharedMemory);
@@ -555,7 +554,7 @@ class SharedMemoryRegistry final {
         }
 
         // Safe to iterate and close memory without holding the lock
-        for (BaseSharedMemory* const sharedMemory : copiedOrderedSharedMemories)
+        for (BaseSharedMemory* sharedMemory : copiedOrderedSharedMemories)
             sharedMemory->close(skipUnmapRegion);
 
         cleanUp.store(false, std::memory_order_release);
@@ -569,18 +568,18 @@ class SharedMemoryRegistry final {
     SharedMemoryRegistry& operator=(const SharedMemoryRegistry&) noexcept = delete;
     SharedMemoryRegistry& operator=(SharedMemoryRegistry&&) noexcept      = delete;
 
-    static RegisterResult insert_nolock(BaseSharedMemory* const sharedMemory) noexcept {
+    static Status insert_nolock(BaseSharedMemory* sharedMemory) noexcept {
         // Only insert if not already present
         if (sharedMemoryIndices.find(sharedMemory) != sharedMemoryIndices.end())
-            return RegisterResult::AlreadyRegistered;
+            return Status::AlreadyRegistered;
 
         const std::size_t newIndex = orderedSharedMemories.size();
         orderedSharedMemories.push_back(sharedMemory);
         sharedMemoryIndices[sharedMemory] = newIndex;
 
-        return RegisterResult::Success;
+        return Status::Success;
     }
-    static bool erase_nolock(BaseSharedMemory* const sharedMemory) noexcept {
+    static bool erase_nolock(BaseSharedMemory* sharedMemory) noexcept {
         // Only erase if already present
         auto itr = sharedMemoryIndices.find(sharedMemory);
 
@@ -593,7 +592,7 @@ class SharedMemoryRegistry final {
         assert(victimIndex < orderedSharedMemories.size());
 
         // Perform the swap-and-pop in the vector
-        BaseSharedMemory* const lastSharedMemory = orderedSharedMemories.back();
+        BaseSharedMemory* lastSharedMemory = orderedSharedMemories.back();
         if (victimIndex != orderedSharedMemories.size() - 1)
         {
             orderedSharedMemories[victimIndex]    = lastSharedMemory;

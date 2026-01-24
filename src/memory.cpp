@@ -118,7 +118,7 @@ void* alloc_aligned_large_page(std::size_t allocSize) noexcept {
     #endif
           ;
 
-        const std::size_t roundedAllocSize = round_up_to_pow2_multiple(allocSize, Alignment);
+        std::size_t roundedAllocSize = round_up_to_pow2_multiple(allocSize, Alignment);
 
         mem = VirtualAlloc(nullptr, roundedAllocSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
     }

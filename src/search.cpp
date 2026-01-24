@@ -819,8 +819,8 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
     bool ttmNone = ttd.move == Move::None;
     assert(ttmNone || pos.legal(ttd.move));
-    ss->ttMove     = ttd.move;
-    bool ttCapture = !ttmNone && pos.capture_promo(ttd.move);
+    ss->ttMove      = ttd.move;
+    bool ttmCapture = !ttmNone && pos.capture_promo(ttd.move);
 
     if (!exclude)
         ss->ttPv = PVNode || (ttd.hit && ttd.pv);
@@ -901,7 +901,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         if (!ttmNone && ttd.value >= beta)
         {
             // Bonus for a quiet ttMove
-            if (!ttCapture)
+            if (!ttmCapture)
                 update_quiet_histories(pos, pawnKey, ss, ttd.move,
                                        std::min(-72 + 132 * depth, +985));
 
@@ -1040,7 +1040,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     // The depth condition is important for mate finding.
     if constexpr (!PVNode)
     {
-        if (!ss->ttPv && !exclude && !ttCapture && depth < 14
+        if (!ss->ttPv && !exclude && !ttmCapture && depth < 14
             && !is_win(ttEvalValue) && !is_loss(beta))
         {
             Value baseFutility = 53 + int(ttd.hit) * 23;
@@ -1360,8 +1360,8 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
                 int corrMargin = int(4.3351e-6 * absCorrectionValue);
 
                 // clang-format off
-                int doubleMargin = -4 + int(PVNode) * 199 - int(!ttCapture) * 201 - corrMargin - int(ss->ply > rootDepth) * 42 - int(7.0271e-3 * ttMoveHistory);
-                int tripleMargin = 73 + int(PVNode) * 302 - int(!ttCapture) * 248 - corrMargin - int(ss->ply > rootDepth) * 48 + int(ss->ttPv) * 90;
+                int doubleMargin = -4 + int(PVNode) * 199 - int(!ttmCapture) * 201 - corrMargin - int(ss->ply > rootDepth) * 42 - int(7.0271e-3 * ttMoveHistory);
+                int tripleMargin = 73 + int(PVNode) * 302 - int(!ttmCapture) * 248 - corrMargin - int(ss->ply > rootDepth) * 48 + int(ss->ttPv) * 90;
 
                 extension = 1 + int(value < singularBeta - doubleMargin)
                               + int(value < singularBeta - tripleMargin);
@@ -1431,7 +1431,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
             r += 3372 + int(ttmNone) * 997;
 
         // Increase reduction if ttMove is a capture
-        r += int(ttCapture) * 1119;
+        r += int(ttmCapture) * 1119;
 
         // Increase reduction if next ply has many fail-highs
         if (ss->cutoffCount > 1)

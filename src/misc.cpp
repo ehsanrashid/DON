@@ -494,7 +494,7 @@ void print() noexcept {
 
     for (std::size_t i = 0; i < hit.size(); ++i)
     {
-        const auto& info = hit[i];
+        auto& info = hit[i];
 
         if (!(n = info[0].load(std::memory_order_relaxed)))
             continue;
@@ -508,7 +508,7 @@ void print() noexcept {
 
     for (std::size_t i = 0; i < min.size(); ++i)
     {
-        const auto& info = min[i];
+        auto& info = min[i];
 
         if (!(n = info[0].load(std::memory_order_relaxed)))
             continue;
@@ -521,7 +521,7 @@ void print() noexcept {
 
     for (std::size_t i = 0; i < max.size(); ++i)
     {
-        const auto& info = max[i];
+        auto& info = max[i];
 
         if (!(n = info[0].load(std::memory_order_relaxed)))
             continue;
@@ -534,7 +534,7 @@ void print() noexcept {
 
     for (std::size_t i = 0; i < extreme.size(); ++i)
     {
-        const auto& info = extreme[i];
+        auto& info = extreme[i];
 
         if (!(n = info[0].load(std::memory_order_relaxed)))
             continue;
@@ -549,7 +549,7 @@ void print() noexcept {
 
     for (std::size_t i = 0; i < mean.size(); ++i)
     {
-        const auto& info = mean[i];
+        auto& info = mean[i];
 
         if (!(n = info[0].load(std::memory_order_relaxed)))
             continue;
@@ -563,7 +563,7 @@ void print() noexcept {
 
     for (std::size_t i = 0; i < stdev.size(); ++i)
     {
-        const auto& info = stdev[i];
+        auto& info = stdev[i];
 
         if (!(n = info[0].load(std::memory_order_relaxed)))
             continue;
@@ -579,7 +579,7 @@ void print() noexcept {
 
     for (std::size_t i = 0; i < correl.size(); ++i)
     {
-        const auto& info = correl[i];
+        auto& info = correl[i];
 
         if (!(n = info[0].load(std::memory_order_relaxed)))
             continue;
@@ -601,7 +601,7 @@ void print() noexcept {
 #endif
 
 CommandLine::CommandLine(int argc, const char* argv[]) noexcept {
-    const std::size_t ArgSize = argc;
+    std::size_t ArgSize = argc;
 
     arguments.reserve(ArgSize);
 
@@ -629,7 +629,7 @@ std::string CommandLine::binary_directory(std::string path) noexcept {
 
     std::string currentDirectory = std::string(".") + pathSeparator;
 
-    const std::size_t pos = binaryDirectory.find_last_of("\\/");
+    std::size_t pos = binaryDirectory.find_last_of("\\/");
 
     if (pos == std::string::npos)
         binaryDirectory = currentDirectory;
