@@ -1024,6 +1024,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     // Step 7. Razoring
     // If eval is really low, check with qsearch then return speculative fail low.
     if constexpr (!PVNode)
+    {
         if (!is_win(alpha) && ttEvalValue + 485 + 281 * depth * depth <= alpha)
         {
             assert(alpha == beta - 1);
@@ -1035,6 +1036,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
             ss->ttMove = ttd.move;
         }
+    }
 
     // Step 8. Futility pruning: child node
     // The depth condition is important for mate finding.
@@ -1058,41 +1060,44 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     }
 
     // Step 9. Null move search with verification search
-    if (CutNode && !exclude && hasNonPawn /*Zugzwang guard*/ && ss->ply >= nmpPly
-        && !is_loss(beta) && ss->evalValue - 350 + 18 * depth >= beta)
+    if constexpr (CutNode)
     {
-        assert((ss - 1)->move != Move::Null);
-
-        // Null move dynamic reduction
-        Depth R = 7 + depth / 3;
-
-        do_null_move(pos, st, ss);
-
-        Value nullValue = -search<NT::ALL>(pos, ss + 1, -beta, -beta + 1, depth - R);
-
-        undo_null_move(pos);
-
-        // Do not return unproven mate or TB scores
-        if (nullValue >= beta && !is_win(nullValue))
+        if (!exclude && hasNonPawn /*Zugzwang guard*/ && ss->ply >= nmpPly
+            && !is_loss(beta) && ss->evalValue - 350 + 18 * depth >= beta)
         {
-            // At low depths or when verification is disabled, return immediately
-            if (depth < 16 || nmpPly != 0)
-                return nullValue;
+            assert((ss - 1)->move != Move::Null);
 
-            assert(nmpPly == 0);  // Recursive verification is not allowed
+            // Null move dynamic reduction
+            Depth R = 7 + depth / 3;
 
-            // Do verification search at high depths,
-            // with null move pruning disabled until ply exceeds nmpPly.
-            nmpPly = ss->ply + 3 * (depth - R) / 4;
+            do_null_move(pos, st, ss);
 
-            Value verifyValue = search<NT::ALL>(pos, ss, beta - 1, beta, depth - R);
+            Value nullValue = -search<NT::ALL>(pos, ss + 1, -beta, -beta + 1, depth - R);
 
-            nmpPly = 0;
+            undo_null_move(pos);
 
-            if (verifyValue >= beta)
-                return nullValue;
+            // Do not return unproven mate or TB scores
+            if (nullValue >= beta && !is_win(nullValue))
+            {
+                // At low depths or when verification is disabled, return immediately
+                if (depth < 16 || nmpPly != 0)
+                    return nullValue;
 
-            ss->ttMove = ttd.move;
+                assert(nmpPly == 0);  // Recursive verification is not allowed
+
+                // Do verification search at high depths,
+                // with null move pruning disabled until ply exceeds nmpPly.
+                nmpPly = ss->ply + 3 * (depth - R) / 4;
+
+                Value verifyValue = search<NT::ALL>(pos, ss, beta - 1, beta, depth - R);
+
+                nmpPly = 0;
+
+                if (verifyValue >= beta)
+                    return nullValue;
+
+                ss->ttMove = ttd.move;
+            }
         }
     }
 
@@ -1134,8 +1139,10 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
             // At root obey the "searchmoves" option and skip moves not listed in RootMove List.
             // In MultiPV mode also skip PV moves that have been already searched and those of lower "TB rank".
             if constexpr (RootNode)
+            {
                 if (!rootMoves.contains(curPV, endPV, move))
                     continue;
+            }
 
             do_move(pos, move, st, ss);
 
@@ -1207,8 +1214,10 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         // At root obey the "searchmoves" option and skip moves not listed in RootMove List.
         // In MultiPV mode also skip PV moves that have been already searched and those of lower "TB rank".
         if constexpr (RootNode)
+        {
             if (!rootMoves.contains(curPV, endPV, move))
                 continue;
+        }
 
         ss->moveCount = ++moveCount;
 
