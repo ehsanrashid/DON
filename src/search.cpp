@@ -1043,6 +1043,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
             assert(is_valid(ttEvalValue));
             assert(alpha + 1 == beta);
 
+
             // Null-window for razoring
             Value razorValue = qsearch<false>(pos, ss, alpha - 1, alpha);
             // Fail-low + mate safety
