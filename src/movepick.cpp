@@ -245,14 +245,16 @@ exponential_upper_bound(Iterator beg, Iterator end, const T& value, Compare comp
     //if (beg == end)
     //    return end;
 
-    Iterator last = end - 1;
+    Iterator lst = end - 1;
     // Special case: If value goes at the very end
-    if (!comp(value, *last))
+    if (!comp(value, *lst))
         return end;
 
     // Exponential backward search from end
-    Iterator    high = end;
-    Iterator    low  = last;
+    Iterator low, hig;
+
+    low = hig = lst;
+
     std::size_t step = 1;
 
     while (low != beg)
@@ -262,19 +264,19 @@ exponential_upper_bound(Iterator beg, Iterator end, const T& value, Compare comp
         // If *pre <= value, found the range
         if (!comp(value, *pre))
         {
+            hig = low;
             low = pre + 1;
             break;
         }
 
         // Continue searching backward
-        high = low;
-        low  = pre;
+        low = pre;
         step <<= 1;
     }
 
-    // Now [low..high) is a sorted subrange containing the insertion point.
-    // Binary search in the found range [low, high)
-    return std::upper_bound(low, high, value, comp);
+    // Now [low..hig) is a sorted subrange containing the insertion point.
+    // Binary search in the found range [low, hig)
+    return std::upper_bound(low, hig, value, comp);
 }
 
 template<typename Iterator>
