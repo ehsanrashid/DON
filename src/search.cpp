@@ -1237,6 +1237,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         ss->moveCount = ++moveCount;
 
         if constexpr (RootNode)
+        {
             if (is_main_worker() && rootDepth > 30 && !options["ReportMinimal"])
             {
                 std::string currMove       = UCI::move_to_can(move);
@@ -1244,9 +1245,12 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
                 main_manager()->updateContext.onUpdateIter({rootDepth, currMove, currMoveNumber});
             }
+        }
 
         if constexpr (PVNode)
+        {
             (ss + 1)->pv = nullptr;
+        }
 
         bool ttm = move == ttd.move;
 
@@ -1419,11 +1423,15 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
             // If the ttMove is assumed to fail high over current beta
             else if (ttd.value >= beta)
+            {
                 extension = -3;
+            }
 
             // If on CutNode but the ttMove is not assumed to fail high over current beta
             else if constexpr (CutNode)
+            {
                 extension = -2;
+            }
         }
             // clang-format on
         }
@@ -1433,7 +1441,9 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
         [[maybe_unused]] std::uint64_t preNodes;
         if constexpr (RootNode)
+        {
             preNodes = nodes_();
+        }
 
         // Step 16. Make the move
         do_move(pos, move, st, ss, check);

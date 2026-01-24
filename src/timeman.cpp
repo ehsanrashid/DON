@@ -66,7 +66,7 @@ void TimeManager::init(
 
     auto& clock = limit.clocks[ac];
 
-    const std::uint64_t NodesTime = options["NodesTime"];
+    std::uint64_t NodesTime = options["NodesTime"];
 
     useNodesTime = NodesTime != 0;
 
@@ -102,10 +102,10 @@ void TimeManager::init(
         moveOverhead *= NodesTime;
     }
 
-    const std::uint64_t ScaleFactor = use_nodes_time() ? NodesTime : 1;
+    std::uint64_t ScaleFactor = use_nodes_time() ? NodesTime : 1;
 
-    const TimePoint RawScaledTime = clock.time / ScaleFactor;
-    const TimePoint ScaledTime    = RawScaledTime < 1 ? 1 : RawScaledTime;
+    TimePoint RawScaledTime = clock.time / ScaleFactor;
+    TimePoint ScaledTime    = RawScaledTime < 1 ? 1 : RawScaledTime;
 
     // clang-format off
 
@@ -124,7 +124,7 @@ void TimeManager::init(
     }
 
     // Make sure RemainTime > 0 since use it as a divisor
-    const TimePoint RemainTime = std::max(clock.time + ((centiMTG - 100) * clock.inc - (centiMTG + 200) * moveOverhead) / 100, TimePoint(1));
+    TimePoint RemainTime = std::max(clock.time + ((centiMTG - 100) * clock.inc - (centiMTG + 200) * moveOverhead) / 100, TimePoint(1));
 
     // optimumScale is a percentage of available time to use for the current move.
     // maximumScale is a multiplier applied to optimumTime.
@@ -133,7 +133,7 @@ void TimeManager::init(
     if (limit.movesToGo == 0)
     {
         // Calculate time constants based on current remaining time
-        double logScaledTime = std::log10(ScaledTime / 1000.0);
+        double LogScaledTime = std::log10(ScaledTime / 1000.0);
 
         // 1) x basetime (sudden death)
         // Sudden death time control
@@ -149,10 +149,10 @@ void TimeManager::init(
         }
 
         optimumScale = timeAdjust
-                     * std::min(11.29900e-3 + std::min(3.47750e-3 + 28.41880e-5 * logScaledTime, 4.06734e-3)
+                     * std::min(11.29900e-3 + std::min(3.47750e-3 + 28.41880e-5 * LogScaledTime, 4.06734e-3)
                                             * std::pow(2.82122 + ply, 0.466422),
                                 0.213035 * clock.time / RemainTime);
-        maximumScale = std::min(std::max(3.66270 + 3.72690 * logScaledTime, 2.75068) + 78.37482e-3 * ply,
+        maximumScale = std::min(std::max(3.66270 + 3.72690 * LogScaledTime, 2.75068) + 78.37482e-3 * ply,
                                 6.35772);
         }
         // 2) x basetime (+ z increment)
@@ -170,10 +170,10 @@ void TimeManager::init(
         }
 
         optimumScale = timeAdjust
-                     * std::min(12.14310e-3 + std::min(3.21160e-3 + 32.11230e-5 * logScaledTime, 5.08017e-3)
+                     * std::min(12.14310e-3 + std::min(3.21160e-3 + 32.11230e-5 * LogScaledTime, 5.08017e-3)
                                             * std::pow(2.94693 + ply, 0.461073),
                                 0.213035 * clock.time / RemainTime);
-        maximumScale = std::min(std::max(3.39770 + 3.03950 * logScaledTime, 2.94761) + 83.43972e-3 * ply,
+        maximumScale = std::min(std::max(3.39770 + 3.03950 * LogScaledTime, 2.94761) + 83.43972e-3 * ply,
                                 6.67704);
         }
     }

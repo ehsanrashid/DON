@@ -322,7 +322,8 @@ constexpr Direction pawn_dpush(Color c) noexcept {
 }
 
 [[nodiscard]] constexpr Piece to_piece(char pc) noexcept {
-    const std::size_t pos = PIECE_CHAR.find(pc);
+    std::size_t pos = PIECE_CHAR.find(pc);
+
     return pos != std::string_view::npos ? Piece(pos) : Piece::NO_PIECE;
 }
 

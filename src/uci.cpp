@@ -561,10 +561,9 @@ void UCI::bench(std::istream& is) noexcept {
 
     options().set("ReportMinimal", bool_to_string(true));
 
-    const std::size_t num =
-      std::count_if(commands.begin(), commands.end(), [](std::string_view command) {
-          return starts_with(command, "go ") || starts_with(command, "eval");
-      });
+    std::size_t num = std::count_if(commands.begin(), commands.end(), [](std::string_view command) {
+        return starts_with(command, "go ") || starts_with(command, "eval");
+    });
 
 #if !defined(NDEBUG)
     Debug::clear();
@@ -665,7 +664,7 @@ void UCI::benchmark(std::istream& is) noexcept {
 
     InfoStringStop = true;
 
-    const std::size_t num =
+    std::size_t num =
       std::count_if(setup.commands.begin(), setup.commands.end(),
                     [](std::string_view command) { return starts_with(command, "go "); });
 
@@ -854,10 +853,10 @@ WinRateParams win_rate_params(const Position& pos) noexcept {
     // clang-format on
 
     // The fitted model only uses data for material counts in [17, 78], and is anchored at count 58 (17.2414e-3).
-    const double m = 17.2414e-3 * std::clamp(pos.std_material(), 17, 78);
+    double m = 17.2414e-3 * std::clamp(pos.std_material(), 17, 78);
     // Return a = p_a(material) and b = p_b(material).
-    const double a = ((A[0] * m + A[1]) * m + A[2]) * m + A[3];
-    const double b = ((B[0] * m + B[1]) * m + B[2]) * m + B[3];
+    double a = ((A[0] * m + A[1]) * m + A[2]) * m + A[3];
+    double b = ((B[0] * m + B[1]) * m + B[2]) * m + B[3];
 
     return {a, b};
 }
