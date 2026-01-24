@@ -791,11 +791,11 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         // then there is no need to search further because will never beat the current alpha.
         // Same logic but with a reversed signs apply also in the opposite condition of being mated
         // instead of giving mate. In this case, return a fail-high score.
-        const Value mated = mated_in(ss->ply + 0);
+        Value mated = mated_in(ss->ply + 0);
         if (alpha < mated)
             alpha = mated;
 
-        const Value mates = mates_in(ss->ply + 1);
+        Value mates = mates_in(ss->ply + 1);
         if (beta > mates)
             beta = mates;
 
@@ -942,7 +942,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
     [[maybe_unused]] Value maxValue = +VALUE_INFINITE;
 
-    Value value, bestValue = -VALUE_INFINITE;
+    Value bestValue = -VALUE_INFINITE;
 
     Move move, bestMove = Move::None;
 
@@ -958,7 +958,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
             {
                 Tablebase::ProbeState wdlPs;
 
-                const auto wdlScore = Tablebase::probe_wdl(pos, &wdlPs);
+                auto wdlScore = Tablebase::probe_wdl(pos, &wdlPs);
 
                 // Force check of time on the next occasion
                 if (is_main_worker())
@@ -968,16 +968,16 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
                 {
                     tbHits.fetch_add(1, std::memory_order_relaxed);
 
-                    const int drawValue = int(tbConfig.useRule50);
+                    int drawValue = int(tbConfig.useRule50);
 
                     // Use the range VALUE_TB to VALUE_TB_WIN_IN_MAX_PLY to value
-                    value = wdlScore < -drawValue ? -VALUE_TB + ss->ply
-                          : wdlScore > +drawValue ? +VALUE_TB - ss->ply
-                                                  : VALUE_DRAW + 2 * wdlScore * drawValue;
+                    Value value = wdlScore < -drawValue ? -VALUE_TB + ss->ply
+                                : wdlScore > +drawValue ? +VALUE_TB - ss->ply
+                                                        : VALUE_DRAW + 2 * wdlScore * drawValue;
 
-                    const Bound bound = wdlScore < -drawValue ? Bound::UPPER
-                                      : wdlScore > +drawValue ? Bound::LOWER
-                                                              : Bound::EXACT;
+                    Bound bound = wdlScore < -drawValue ? Bound::UPPER
+                                : wdlScore > +drawValue ? Bound::LOWER
+                                                        : Bound::EXACT;
 
                     if (bound == Bound::EXACT
                         || (bound == Bound::LOWER ? value >= beta : value <= alpha))
@@ -1028,10 +1028,10 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         {
             assert(alpha == beta - 1);
 
-            value = qsearch<false>(pos, ss, alpha, beta);
+            Value razorValue = qsearch<false>(pos, ss, alpha, beta);
 
-            if (value <= alpha && !is_loss(value))
-                return value;
+            if (razorValue <= alpha && !is_loss(razorValue))
+                return razorValue;
 
             ss->ttMove = ttd.move;
         }
@@ -1040,22 +1040,21 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     // The depth condition is important for mate finding.
     if constexpr (!PVNode)
     {
-        const auto futility_margin = [&](bool cond) noexcept {
-            Value futilityMult = 53 + int(cond) * 23;
+        if (!ss->ttPv && !exclude && !ttCapture && depth < 14
+            && !is_win(ttEvalValue) && !is_loss(beta))
+        {
+            Value baseFutility = 53 + int(ttd.hit) * 23;
 
-            int margin = depth * futilityMult                                                //
-                       - int((int(improve) * 2.4160 + int(worsen) * 0.3232) * futilityMult)  //
-                       + int(5.7252e-6 * absCorrectionValue);
+            int margin = depth * baseFutility                                                //
+                        - int((int(improve) * 2.4160 + int(worsen) * 0.3232) * baseFutility)  //
+                        + int(5.7252e-6 * absCorrectionValue);
 
             if (margin < 0)
                 margin = 0;
 
-            return margin;
-        };
-
-        if (!ss->ttPv && !exclude && depth < 14 && !is_win(ttEvalValue) && !is_loss(beta)
-            && !ttCapture && ttEvalValue - futility_margin(ttd.hit) >= beta)
-            return ttEvalValue;
+            if (ttEvalValue - margin >= beta)
+                return ttEvalValue;
+        }
     }
 
     // Step 9. Null move search with verification search
@@ -1065,11 +1064,11 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         assert((ss - 1)->move != Move::Null);
 
         // Null move dynamic reduction
-        const Depth R = 7 + depth / 3;
+        Depth R = 7 + depth / 3;
 
         do_null_move(pos, st, ss);
 
-        const Value nullValue = -search<NT::ALL>(pos, ss + 1, -beta, -beta + 1, depth - R);
+        Value nullValue = -search<NT::ALL>(pos, ss + 1, -beta, -beta + 1, depth - R);
 
         undo_null_move(pos);
 
@@ -1086,11 +1085,11 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
             // with null move pruning disabled until ply exceeds nmpPly.
             nmpPly = ss->ply + 3 * (depth - R) / 4;
 
-            const Value v = search<NT::ALL>(pos, ss, beta - 1, beta, depth - R);
+            Value verifyValue = search<NT::ALL>(pos, ss, beta - 1, beta, depth - R);
 
             nmpPly = 0;
 
-            if (v >= beta)
+            if (verifyValue >= beta)
                 return nullValue;
 
             ss->ttMove = ttd.move;
@@ -1111,14 +1110,14 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     // returns a value much above beta, can (almost) safely prune previous move.
     if (depth > 2 && !is_decisive(beta))
     {
-        const Value probCutBeta = std::min(235 + beta - int(improve) * 63, +VALUE_INFINITE);
+        Value probCutBeta = std::min(235 + beta - int(improve) * 63, +VALUE_INFINITE);
         assert(beta < probCutBeta && probCutBeta <= +VALUE_INFINITE);
 
         // If value from transposition table is less than probCutBeta, don't attempt probCut
         if (!(is_valid(ttd.value) && ttd.value < probCutBeta))
         {
-        const Depth probCutDepth = std::clamp(depth - 5 - int(3.1746e-3 * (ss->evalValue - beta)), 0, depth - 0);
-        const int   probCutThreshold = probCutBeta - ss->evalValue;
+        Depth probCutDepth = std::clamp(depth - 5 - int(3.1746e-3 * (ss->evalValue - beta)), 0, depth - 0);
+        int   probCutThreshold = probCutBeta - ss->evalValue;
 
         MovePicker mp(pos, ttd.move, &captureHistory, probCutThreshold);
         // Loop through all legal moves
@@ -1141,7 +1140,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
             do_move(pos, move, st, ss);
 
             // Perform a preliminary qsearch to verify that the move holds
-            value = -qsearch<false>(pos, ss + 1, -probCutBeta, -probCutBeta + 1);
+            Value value = -qsearch<false>(pos, ss + 1, -probCutBeta, -probCutBeta + 1);
 
             // If the qsearch held, perform the regular search
             if (value >= probCutBeta && probCutDepth > DEPTH_ZERO)
@@ -1175,13 +1174,13 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     // Step 12. Small ProbCut idea
     if (!is_decisive(beta) && is_valid(ttd.value) && !is_win(ttd.value))
     {
-        const Value probCutBeta = std::min(418 + beta, +VALUE_INFINITE);
+        Value probCutBeta = std::min(418 + beta, +VALUE_INFINITE);
 
         if (ttd.value >= probCutBeta && ttd.depth >= depth - 4 && is_ok(ttd.bound & Bound::LOWER))
             return probCutBeta;
     }
 
-    value = bestValue;
+    Value value = bestValue;
 
     std::uint8_t moveCount = 0;
 
@@ -1216,8 +1215,8 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         if constexpr (RootNode)
             if (is_main_worker() && rootDepth > 30 && !options["ReportMinimal"])
             {
-                const std::string currMove       = UCI::move_to_can(move);
-                const std::size_t currMoveNumber = curPV + moveCount;
+                std::string currMove       = UCI::move_to_can(move);
+                std::size_t currMoveNumber = curPV + moveCount;
 
                 main_manager()->updateContext.onUpdateIter({rootDepth, currMove, currMoveNumber});
             }
@@ -1225,22 +1224,22 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         if constexpr (PVNode)
             (ss + 1)->pv = nullptr;
 
-        const bool ttm = move == ttd.move;
+        bool ttm = move == ttd.move;
 
-        const Square dstSq = move.dst_sq();
+        Square dstSq = move.dst_sq();
 
-        const Piece movedPc = pos.moved_pc(move);
+        Piece movedPc = pos.moved_pc(move);
 
-        const bool check      = pos.check(move);
-        const bool capture    = pos.capture_promo(move);
-        const auto capturedPt = capture ? pos.captured_pt(move) : NO_PIECE_TYPE;
+        bool check      = pos.check(move);
+        bool capture    = pos.capture_promo(move);
+        auto capturedPt = capture ? pos.captured_pt(move) : NO_PIECE_TYPE;
 
         // Calculate new depth for this move
         Depth newDepth = depth - 1;
 
         assert(alpha < beta);
 
-        const std::uint32_t deltaRatio = 608 * (beta - alpha) / rootDelta;
+        std::uint32_t deltaRatio = 608 * (beta - alpha) / rootDelta;
 
         int r = reduction(depth, moveCount, deltaRatio, improve);
 
@@ -1259,7 +1258,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
             if (capture)
             {
-                const int history = captureHistory[+movedPc][dstSq][capturedPt];
+                int history = captureHistory[+movedPc][dstSq][capturedPt];
 
                 // Futility pruning: for captures
                 if (!check && lmrDepth < 7)
@@ -1343,12 +1342,12 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
             && !is_decisive(ttd.value) && ttd.depth >= depth - 3 && is_ok(ttd.bound & Bound::LOWER)
             && !is_shuffling(pos, ss, move))
         {
-            const Value singularBeta =
+            Value singularBeta =
               std::max(ttd.value - int((0.8833 + int(!PVNode && ss->ttPv) * 1.2500) * depth),
                        -VALUE_INFINITE + 1);
             assert(singularBeta >= -VALUE_INFINITE + 1);
 
-            const Depth singularDepth = newDepth / 2;
+            Depth singularDepth = newDepth / 2;
             assert(singularDepth > DEPTH_ZERO);
 
             value = search<~~T>(pos, ss, singularBeta - 1, singularBeta, singularDepth, 0, move);
@@ -1358,11 +1357,11 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
             if (value < singularBeta)
             {
-                const int corrMargin = int(4.3351e-6 * absCorrectionValue);
+                int corrMargin = int(4.3351e-6 * absCorrectionValue);
 
                 // clang-format off
-                const int doubleMargin = -4 + int(PVNode) * 199 - int(!ttCapture) * 201 - corrMargin - int(ss->ply > rootDepth) * 42 - int(7.0271e-3 * ttMoveHistory);
-                const int tripleMargin = 73 + int(PVNode) * 302 - int(!ttCapture) * 248 - corrMargin - int(ss->ply > rootDepth) * 48 + int(ss->ttPv) * 90;
+                int doubleMargin = -4 + int(PVNode) * 199 - int(!ttCapture) * 201 - corrMargin - int(ss->ply > rootDepth) * 42 - int(7.0271e-3 * ttMoveHistory);
+                int tripleMargin = 73 + int(PVNode) * 302 - int(!ttCapture) * 248 - corrMargin - int(ss->ply > rootDepth) * 48 + int(ss->ttPv) * 90;
 
                 extension = 1 + int(value < singularBeta - doubleMargin)
                               + int(value < singularBeta - tripleMargin);
@@ -1469,9 +1468,9 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
             if (value > alpha)
             {
                 // If the value was good enough search deeper
-                const bool extend = redDepth < newDepth && value > 50 + bestValue;
+                bool extend = redDepth < newDepth && value > 50 + bestValue;
                 // If the value was bad enough search shallower
-                const bool reduce = value < 9 + bestValue;
+                bool reduce = value < 9 + bestValue;
 
                 // Adjust full-depth search based on LMR value
                 newDepth += int(extend) - int(reduce);
@@ -1583,8 +1582,8 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
         // In case have an alternative move equal in eval to the current bestMove,
         // promote it to bestMove by pretending it just exceeds alpha (but not beta).
-        const bool inc = value == bestValue && 2 + ss->ply >= rootDepth && (nodes_() & 0xE) == 0
-                      && !is_win(std::abs(value) + 1);
+        bool inc = value == bestValue && 2 + ss->ply >= rootDepth && (nodes_() & 0xE) == 0
+                && !is_win(std::abs(value) + 1);
 
         if (bestValue < value + int(inc))
         {
@@ -1684,7 +1683,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         // Bonus for prior capture move
         else
         {
-            const auto capturedPt = type_of(pos.captured_pc());
+            auto capturedPt = type_of(pos.captured_pc());
             assert(capturedPt != NO_PIECE_TYPE);
 
             update_capture_history(pos[preSq], preSq, capturedPt, 1012);
@@ -1854,14 +1853,14 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
 
         ++moveCount;
 
-        const Square dstSq = move.dst_sq();
+        Square dstSq = move.dst_sq();
 
-        const bool check = pos.check(move);
+        bool check = pos.check(move);
 
         // Step 6. Pruning
         if (!is_loss(bestValue))
         {
-            const bool capture = pos.capture_promo(move);
+            bool capture = pos.capture_promo(move);
 
             // Futility pruning and moveCount pruning
             if (!check && dstSq != preSq && move.type() != MT::PROMOTION
@@ -1871,7 +1870,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
                     continue;
 
                 // Static evaluation + value of piece going to captured
-                const Value futilityValue =
+                Value futilityValue =
                   std::min(baseFutilityValue + piece_value(pos.captured_pt(move)), +VALUE_INFINITE);
 
                 if (futilityValue <= alpha)
@@ -1890,7 +1889,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
 
                 if (pos.see(move) < -threshold)
                 {
-                    const Value minValue = std::min(alpha, baseFutilityValue);
+                    Value minValue = std::min(alpha, baseFutilityValue);
 
                     if (bestValue < minValue)
                         bestValue = minValue;
@@ -1951,7 +1950,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
         }
         else
         {
-            const Color ac = pos.active_color();
+            Color ac = pos.active_color();
 
             pos.state()->checkersBB = PROMOTION_RANKS_BB;
             if (bestValue != VALUE_DRAW  //
@@ -1978,7 +1977,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
 }
 
 void Worker::do_move(Position& pos, Move m, State& st, Stack* const ss, bool mayCheck) noexcept {
-    const bool capture = pos.capture_promo(m);
+    bool capture = pos.capture_promo(m);
 
     DirtyBoard db = pos.do_move(m, st, mayCheck, this);
 
