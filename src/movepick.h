@@ -44,10 +44,6 @@ struct ExtMove final: public Move {
 
 static_assert(sizeof(ExtMove) == 8, "Unexpected ExtMove size");
 
-constexpr auto ext_move_descending(const ExtMove& em1, const ExtMove& em2) noexcept {
-    return em1 > em2;
-}
-
 // MovePicker class is used to pick one pseudo-legal move at a time from the given current position.
 // The most important method is next_move(), which returns a new legal move each time it is called,
 // until there are no moves left, when Move::None is returned. In order to improve the efficiency of the

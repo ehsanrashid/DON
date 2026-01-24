@@ -234,6 +234,10 @@ bool MovePicker::select(Predicate&& pred) noexcept {
 
 namespace {
 
+constexpr auto ext_move_descending(const ExtMove& em1, const ExtMove& em2) noexcept {
+    return em1 > em2;
+}
+
 template<typename Iterator, typename T, typename Compare>
 Iterator
 exponential_upper_bound(Iterator beg, Iterator end, const T& value, Compare comp) noexcept {
