@@ -722,43 +722,17 @@ bool Position::enpassant_possible(Color     ac,
 
     assert((pieces_bb(~ac, PAWN) & capturedSq) != 0);
 
-    Square kingSq = square<KING>(ac);
-
-    bool epPossible = false;
-
     if constexpr (MoveDone)
     {
-        // If there are checkers other than the to be captured pawn, ep is never legal
+        // Step 1: If there are other checkers besides the pawn to be captured,
+        // en-passant is never legal because it would leave the king in check.
         if ((checkers_bb() & make_comp_bb(capturedSq)) != 0)
-            epPawnsBB = 0;
-        // If there are two pawns potentially being abled to capture
-        else if (more_than_one(epPawnsBB))
-        {
-            const Bitboard blockersBB = blockers_bb(ac);
-            // If at least one is not pinned, ep is legal as there are no horizontal exposed checks
-            if (!more_than_one(epPawnsBB & blockersBB))
-            {
-                epPawnsBB &= ~blockersBB;
-
-                epPossible = true;
-            }
-            else
-            {
-                const Bitboard kingFileBB = file_bb(kingSq);
-                // If there is no pawn on our king's file and thus both pawns are pinned by bishops
-                if ((epPawnsBB & kingFileBB) == 0)
-                    epPawnsBB = 0;
-                // Otherwise remove the pawn on the king file, as an ep capture by it can never be legal
-                else
-                    epPawnsBB &= ~kingFileBB;
-            }
-        }
-
-        if (collect)
-            *epPawnsBBp = epPawnsBB;
-
-        if (epPossible)
-            return true;
+            return false;
+        // Step 2: At least one pawn is either unpinned or aligned with the king along the en-passant line.
+        if (state()->preSt != nullptr)
+            return (epPawnsBB
+                    & (~st->preSt->blockersBB[ac] | line_bb(square<KING>(ac), enPassantSq)))
+                != 0;
     }
     else
     {
@@ -766,7 +740,10 @@ bool Position::enpassant_possible(Color     ac,
             *epPawnsBBp = epPawnsBB;
     }
 
+    bool epPossible = false;
+
     // Check en-passant is legal for the position
+    Square   kingSq      = square<KING>(ac);
     Bitboard occupancyBB = pieces_bb() ^ make_bb(capturedSq, enPassantSq);
     Bitboard attackersBB = pieces_bb(~ac);
 
@@ -2103,10 +2080,13 @@ bool Position::_is_ok() const noexcept {
         || count(WHITE, KING) != 1 || count(BLACK, KING) != 1  //
         || piece(square<KING>(WHITE)) != Piece::W_KING         //
         || piece(square<KING>(BLACK)) != Piece::B_KING         //
-        || distance(square<KING>(WHITE), square<KING>(BLACK)) <= 1
-        || (en_passant_sq() != SQ_NONE && relative_rank(active_color(), en_passant_sq()) != RANK_6
-            && !enpassant_possible(active_color(), en_passant_sq())))
+        || distance(square<KING>(WHITE), square<KING>(BLACK)) <= 1)
         assert(false && "Position::_is_ok(): Default");
+
+    if ((en_passant_sq() != SQ_NONE)
+        && (relative_rank(active_color(), en_passant_sq()) != RANK_6
+            || !enpassant_possible(active_color(), en_passant_sq())))
+        assert(false && "Position::_is_ok(): En-Passant Square");
 
     if (raw_key() != compute_key())
         assert(false && "Position::_is_ok(): Raw Key");
