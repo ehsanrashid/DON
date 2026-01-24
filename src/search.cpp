@@ -1066,7 +1066,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     {
         if (!ss->ttPv && !exclude && depth < 14
             && !is_win(ttEvalValue) && !is_loss(beta)
-            && (ttmNone || history_value(pos, pawnKey, contHistory, ttd.move) > 4096))
+            && (ttmNone || std::abs(history_value(pos, pawnKey, contHistory, ttd.move)) <= 2048))
         {
             Value baseFutility = 53 + int(ttd.hit) * 23;
 
@@ -2189,17 +2189,22 @@ int Worker::correction_value(const Position& pos, const Stack* const ss) noexcep
             -Limit, +Limit);
 }
 
-int Worker::history_value(const Position&pos,Key pawnKey, const History<HType::PIECE_SQ>** contHistory, Move m) const noexcept
-{
-    if (pos.capture_promo(m))
-        return captureHistory[+pos.moved_pc(m)][m.dst_sq()][pos.captured_pt(m)];
-    else
-        return histories.pawn(pawnKey)[+pos.moved_pc(m)][m.dst_sq()]
-             + (*contHistory[0])[+pos.moved_pc(m)][m.dst_sq()]
-             + (*contHistory[1])[+pos.moved_pc(m)][m.dst_sq()];
-}
-
 // clang-format on
+
+int Worker::history_value(const Position&                  pos,
+                          Key                              pawnKey,
+                          const History<HType::PIECE_SQ>** contHistory,
+                          Move                             m) const noexcept {
+    Piece  movedPc = pos.moved_pc(m);
+    Square dstSq   = m.dst_sq();
+
+    if (pos.capture_promo(m))
+        return captureHistory[+movedPc][dstSq][pos.captured_pt(m)];
+    else
+        return histories.pawn(pawnKey)[+movedPc][dstSq]  //
+             + (*contHistory[0])[+movedPc][dstSq]        //
+             + (*contHistory[1])[+movedPc][dstSq];
+}
 
 // Called in case have no ponder move before exiting the search,
 // for instance, in case stop the search during a fail high at root.
