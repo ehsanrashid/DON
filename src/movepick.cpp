@@ -281,14 +281,14 @@ void insertion_sort(Iterator beg, Iterator end) noexcept {
 
         auto value = std::move(*p);
 
-        // Find the correct position for 'value' using binary search
+        // Find the correct position for value using binary search
         const Iterator q = exponential_upper_bound(beg, p, value, ext_move_descending);
 
-        // Shift elements using move
+        // Shift elements
         for (Iterator r = p; r != q; --r)
             *r = std::move(*(r - 1));
 
-        // Insert the 'value' in its correct position
+        // Insert the value in its correct position
         *q = std::move(value);
     }
 }
