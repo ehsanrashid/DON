@@ -1040,10 +1040,12 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     {
         if (!is_loss(alpha) && ttEvalValue + 485 + 281 * depth * depth <= alpha)
         {
+            assert(is_valid(ttEvalValue));
             assert(alpha + 1 == beta);
 
-            Value razorValue = qsearch<false>(pos, ss, alpha, beta);
-
+            // Null-window for razoring
+            Value razorValue = qsearch<false>(pos, ss, alpha - 1, alpha);
+            // Fail-low + mate safety
             if (razorValue <= alpha && !is_loss(razorValue))
                 return razorValue;
 
@@ -1128,10 +1130,10 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     // Step 11. ProbCut
     // If have a good enough capture or any promotion and a reduced search
     // returns a value much above beta, can (almost) safely prune previous move.
-    if (depth > 2 && !is_decisive(beta))
+    if (depth > 2 && !is_loss(beta))
     {
         Value probCutBeta = std::min(235 + beta - int(improve) * 63, +VALUE_INFINITE);
-        assert(beta < probCutBeta && probCutBeta <= +VALUE_INFINITE);
+        assert(beta <= probCutBeta && probCutBeta <= +VALUE_INFINITE);
 
         // If value from transposition table is less than probCutBeta, don't attempt probCut
         if (!(is_valid(ttd.value) && ttd.value < probCutBeta))
@@ -1194,7 +1196,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     // When in check, search starts here
 
     // Step 12. Small ProbCut idea
-    if (!is_decisive(beta) && is_valid(ttd.value) && !is_win(ttd.value))
+    if (!is_loss(beta) && is_valid(ttd.value) && !is_win(ttd.value))
     {
         Value probCutBeta = std::min(418 + beta, +VALUE_INFINITE);
 
