@@ -1019,6 +1019,13 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
     int absCorrectionValue = std::abs(correctionValue);
 
+    const History<HType::PIECE_SQ>* contHistory[8]{
+      (ss - 1)->pieceSqHistory, (ss - 2)->pieceSqHistory,  //
+      (ss - 3)->pieceSqHistory, (ss - 4)->pieceSqHistory,  //
+      (ss - 5)->pieceSqHistory, (ss - 6)->pieceSqHistory,  //
+      (ss - 7)->pieceSqHistory, (ss - 8)->pieceSqHistory   //
+    };
+
     // Skip early pruning when in check
     if (!ss->inCheck)
     {
@@ -1057,20 +1064,21 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     // The depth condition is important for mate finding.
     if constexpr (!PVNode)
     {
-        if (!ss->ttPv && !exclude && !ttmCapture && depth < 14
-            && !is_win(ttEvalValue) && !is_loss(beta))
+        if (!ss->ttPv && !exclude && depth < 14
+            && !is_win(ttEvalValue) && !is_loss(beta)
+            && (ttmNone || history_value(pos, pawnKey, contHistory, ttd.move) > 2048))
         {
             Value baseFutility = 53 + int(ttd.hit) * 23;
 
             int margin = depth * baseFutility                                                //
-                        - int((int(improve) * 2.4160 + int(worsen) * 0.3232) * baseFutility)  //
-                        + int(5.7252e-6 * absCorrectionValue);
+                       - int((int(improve) * 2.4160 + int(worsen) * 0.3232) * baseFutility)  //
+                       + int(5.7252e-6 * absCorrectionValue);
 
             if (margin < 0)
                 margin = 0;
 
             if (ttEvalValue - margin >= beta)
-                return ttEvalValue;
+                return (ttEvalValue + beta) / 2;
         }
     }
 
@@ -1209,13 +1217,6 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     std::uint8_t moveCount = 0;
 
     StdArray<SearchedMoves, 2> searchedMoves;
-
-    const History<HType::PIECE_SQ>* contHistory[8]{
-      (ss - 1)->pieceSqHistory, (ss - 2)->pieceSqHistory,  //
-      (ss - 3)->pieceSqHistory, (ss - 4)->pieceSqHistory,  //
-      (ss - 5)->pieceSqHistory, (ss - 6)->pieceSqHistory,  //
-      (ss - 7)->pieceSqHistory, (ss - 8)->pieceSqHistory   //
-    };
 
     MovePicker mp(pos, ttd.move, &histories, &captureHistory, &quietHistory, &lowPlyQuietHistory,
                   contHistory, ss->ply, -1);
@@ -2186,6 +2187,16 @@ int Worker::correction_value(const Position& pos, const Stack* const ss) noexcep
                       + (*(ss - 4)->pieceSqCorrectionHistory)[+pos[preSq]][preSq]
                       : 8),
             -Limit, +Limit);
+}
+
+int Worker::history_value(const Position&pos,Key pawnKey, const History<HType::PIECE_SQ>** contHistory, Move m) const noexcept
+{
+    if (pos.capture_promo(m))
+        return captureHistory[+pos.moved_pc(m)][m.dst_sq()][pos.captured_pt(m)];
+    else
+        return histories.pawn(pawnKey)[+pos.moved_pc(m)][m.dst_sq()]
+             + (*contHistory[0])[+pos.moved_pc(m)][m.dst_sq()]
+             + (*contHistory[1])[+pos.moved_pc(m)][m.dst_sq()];
 }
 
 // clang-format on
