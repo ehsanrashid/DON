@@ -1040,10 +1040,12 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     {
         if (!is_loss(alpha) && ttEvalValue + 485 + 281 * depth * depth <= alpha)
         {
+            assert(is_valid(ttEvalValue));
             assert(alpha + 1 == beta);
 
-            Value razorValue = qsearch<false>(pos, ss, alpha, beta);
-
+            // Null-window for razoring
+            Value razorValue = qsearch<false>(pos, ss, alpha - 1, alpha);
+            // Fail-low + mate safety
             if (razorValue <= alpha && !is_loss(razorValue))
                 return razorValue;
 
