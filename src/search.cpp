@@ -813,12 +813,20 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     auto [ttd, ttu] = transpositionTable.probe(key);
 
     ttd.value = ttd.hit ? value_from_tt(ttd.value, ss->ply, pos.rule50_count()) : VALUE_NONE;
-    ttd.move  = RootNode ? rootMoves[curPV].pv[0]
-              : ttd.hit  ? legal_tt_move(ttd.move, pos)
-                         : Move::None;
 
-    bool ttmNone = ttd.move == Move::None;
-    assert(ttmNone || pos.legal(ttd.move));
+    bool ttmNone;
+    if constexpr (RootNode)
+    {
+        ttd.move = rootMoves[curPV].pv[0];
+        ttmNone  = false;
+    }
+    else
+    {
+        ttd.move = ttd.hit ? legal_tt_move(ttd.move, pos) : Move::None;
+        ttmNone  = ttd.move == Move::None;
+        assert(ttmNone || pos.legal(ttd.move));
+    }
+
     ss->ttMove      = ttd.move;
     bool ttmCapture = !ttmNone && pos.capture_promo(ttd.move);
 
@@ -892,46 +900,49 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     State st;
 
     // Check for an early TT cutoff at non-pv nodes
-    if (!PVNode && !exclude && is_valid(ttd.value)        //
-        && ttd.depth > depth - (ttd.value <= beta)        //
-        && (CutNode == (ttd.value >= beta) || depth > 5)  //
-        && is_ok(ttd.bound & fail_bound(ttd.value >= beta)))
+    if constexpr (!PVNode)
     {
-        // If ttMove fails high, update move sorting heuristics on TT hit
-        if (!ttmNone && ttd.value >= beta)
+        if (!exclude && is_valid(ttd.value)                   //
+            && ttd.depth > depth - (ttd.value <= beta)        //
+            && (CutNode == (ttd.value >= beta) || depth > 5)  //
+            && is_ok(ttd.bound & fail_bound(ttd.value >= beta)))
         {
-            // Bonus for a quiet ttMove
-            if (!ttmCapture)
-                update_quiet_histories(pos, pawnKey, ss, ttd.move,
-                                       std::min(-72 + 132 * depth, +985));
-
-            // Extra penalty for early quiet moves of the previous ply
-            if (preSq != SQ_NONE && !preCapture && (ss - 1)->moveCount < 4)
-                update_continuation_history(ss - 1, pos[preSq], preSq, -2060);
-        }
-
-        // Partial workaround for the graph history interaction problem
-        // For high rule50 counts don't produce transposition table cutoffs.
-        if (pos.rule50_count() < int((1.0 - 0.20 * pos.has_rule50_high()) * rule50_threshold()))
-        {
-            // If the depth is big enough, verify that the ttMove is really a good move
-            if (depth >= 8 && !is_decisive(ttd.value) && !ttmNone && pos.legal(ttd.move))
+            // If ttMove fails high, update move sorting heuristics on TT hit
+            if (!ttmNone && ttd.value >= beta)
             {
-                pos.do_move(ttd.move, st, true, this);
+                // Bonus for a quiet ttMove
+                if (!ttmCapture)
+                    update_quiet_histories(pos, pawnKey, ss, ttd.move,
+                                           std::min(-72 + 132 * depth, +985));
 
-                auto [_ttd, _ttu] = transpositionTable.probe(pos.key());
-                _ttd.value        = _ttd.hit  //
-                                    ? value_from_tt(_ttd.value, ss->ply, pos.rule50_count())
-                                    : VALUE_NONE;
+                // Extra penalty for early quiet moves of the previous ply
+                if (preSq != SQ_NONE && !preCapture && (ss - 1)->moveCount < 4)
+                    update_continuation_history(ss - 1, pos[preSq], preSq, -2060);
+            }
 
-                pos.undo_move(ttd.move);
+            // Partial workaround for the graph history interaction problem
+            // For high rule50 counts don't produce transposition table cutoffs.
+            if (pos.rule50_count() < int((1.0 - 0.20 * pos.has_rule50_high()) * rule50_threshold()))
+            {
+                // If the depth is big enough, verify that the ttMove is really a good move
+                if (depth >= 8 && !is_decisive(ttd.value) && !ttmNone && pos.legal(ttd.move))
+                {
+                    pos.do_move(ttd.move, st, true, this);
 
-                // Check that the ttValue after the ttMove would also trigger a cutoff
-                if (!is_valid(_ttd.value) || ((ttd.value >= beta) == (-_ttd.value >= beta)))
+                    auto [_ttd, _ttu] = transpositionTable.probe(pos.key());
+                    _ttd.value        = _ttd.hit  //
+                                        ? value_from_tt(_ttd.value, ss->ply, pos.rule50_count())
+                                        : VALUE_NONE;
+
+                    pos.undo_move(ttd.move);
+
+                    // Check that the ttValue after the ttMove would also trigger a cutoff
+                    if (!is_valid(_ttd.value) || ((ttd.value >= beta) == (-_ttd.value >= beta)))
+                        return ttd.value;
+                }
+                else
                     return ttd.value;
             }
-            else
-                return ttd.value;
         }
     }
 
@@ -948,6 +959,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
     // Step 6. Tablebase probe
     if constexpr (!RootNode)
+    {
         if (!exclude && tbConfig.cardinality != 0)
         {
             std::uint8_t pieceCount = pos.count();
@@ -1003,6 +1015,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
                 }
             }
         }
+    }
 
     int absCorrectionValue = std::abs(correctionValue);
 
@@ -1107,8 +1120,10 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     // For deep enough nodes without ttMoves, reduce search depth.
     // (*Scaler) Making IIR more aggressive scales poorly.
     if constexpr (!AllNode)
+    {
         if (depth > 5 && ttmNone && red <= 3)
             --depth;
+    }
 
     // Step 11. ProbCut
     // If have a good enough capture or any promotion and a reduced search
@@ -1257,82 +1272,85 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
         // Step 14. Pruning at shallow depths
         // Depth conditions are important for mate finding.
-        if (!RootNode && hasNonPawn && !is_loss(bestValue))
+        if constexpr (!RootNode)
         {
-            // Skip quiet moves if moveCount exceeds Futility Move Count threshold
-            mp.skipQuiets |= moveCount >= ((3 + depth * depth) >> int(!improve));
-
-            // Reduced depth of the next LMR search
-            Depth lmrDepth = newDepth - r / 1024;
-
-            if (capture)
+            if (hasNonPawn && !is_loss(bestValue))
             {
-                int history = captureHistory[+movedPc][dstSq][capturedPt];
+                // Skip quiet moves if moveCount exceeds Futility Move Count threshold
+                mp.skipQuiets |= moveCount >= ((3 + depth * depth) >> int(!improve));
 
-                // Futility pruning: for captures
-                if (!check && lmrDepth < 7)
+                // Reduced depth of the next LMR search
+                Depth lmrDepth = newDepth - r / 1024;
+
+                if (capture)
                 {
-                    Value futilityValue = std::min(232 + ss->evalValue + piece_value(capturedPt)
-                                                     + 217 * lmrDepth + int(0.1279 * history),
-                                                   +VALUE_INFINITE);
-                    if (futilityValue <= alpha)
-                        continue;
-                }
+                    int history = captureHistory[+movedPc][dstSq][capturedPt];
 
-                // SEE based pruning for captures and checks
-                int threshold = 166 * depth + int(34.4828e-3 * history);
-
-                if (threshold < 0)
-                    threshold = 0;
-
-                if (  // Avoid pruning sacrifices of our last piece for stalemate
-                  (alpha >= VALUE_DRAW || nonPawnValue != piece_value(type_of(movedPc)))
-                  && pos.see(move) < -threshold)
-                    continue;
-            }
-            else
-            {
-                int history = histories.pawn(pawnKey)[+movedPc][dstSq]
-                            + (*contHistory[0])[+movedPc][dstSq]
-                            + (*contHistory[1])[+movedPc][dstSq];
-
-                // History based pruning
-                if (!check && history < -4083 * depth)
-                    continue;
-
-                history += int(2.1563 * quietHistory[ac][move.raw()]);
-
-                // (*Scaler) Generally, higher history scales well
-                lmrDepth += int(3.1172e-4 * history);
-
-                // Futility pruning: for quiets
-                // (*Scaler) Generally, more frequent futility pruning scales well
-                if (!check && lmrDepth < 13 && !ss->inCheck)
-                {
-                    Value futilityValue = std::min(42 + ss->evalValue + 127 * lmrDepth  //
-                                                     + int(ss->evalValue > alpha) * 85  //
-                                                     + int(bestMove == Move::None) * 161,
-                                                   +VALUE_INFINITE);
-                    if (futilityValue <= alpha)
+                    // Futility pruning: for captures
+                    if (!check && lmrDepth < 7)
                     {
-                        if (!is_decisive(bestValue) && !is_win(futilityValue))
-                            if (bestValue < futilityValue)
-                                bestValue = futilityValue;
-
-                        continue;
+                        Value futilityValue = std::min(232 + ss->evalValue + piece_value(capturedPt)
+                                                         + 217 * lmrDepth + int(0.1279 * history),
+                                                       +VALUE_INFINITE);
+                        if (futilityValue <= alpha)
+                            continue;
                     }
+
+                    // SEE based pruning for captures and checks
+                    int threshold = 166 * depth + int(34.4828e-3 * history);
+
+                    if (threshold < 0)
+                        threshold = 0;
+
+                    if (  // Avoid pruning sacrifices of our last piece for stalemate
+                      (alpha >= VALUE_DRAW || nonPawnValue != piece_value(type_of(movedPc)))
+                      && pos.see(move) < -threshold)
+                        continue;
                 }
+                else
+                {
+                    int history = histories.pawn(pawnKey)[+movedPc][dstSq]
+                                + (*contHistory[0])[+movedPc][dstSq]
+                                + (*contHistory[1])[+movedPc][dstSq];
 
-                // SEE based pruning for quiets and checks
-                int threshold = int(check) * 64 * depth + 25 * lmrDepth * std::abs(lmrDepth);
+                    // History based pruning
+                    if (!check && history < -4083 * depth)
+                        continue;
 
-                if (threshold < 0)
-                    threshold = 0;
+                    history += int(2.1563 * quietHistory[ac][move.raw()]);
 
-                if (  // Avoid pruning sacrifices of our last piece for stalemate
-                  (alpha >= VALUE_DRAW || nonPawnValue != piece_value(type_of(movedPc)))
-                  && pos.see(move) < -threshold)
-                    continue;
+                    // (*Scaler) Generally, higher history scales well
+                    lmrDepth += int(3.1172e-4 * history);
+
+                    // Futility pruning: for quiets
+                    // (*Scaler) Generally, more frequent futility pruning scales well
+                    if (!check && lmrDepth < 13 && !ss->inCheck)
+                    {
+                        Value futilityValue = std::min(42 + ss->evalValue + 127 * lmrDepth  //
+                                                         + int(ss->evalValue > alpha) * 85  //
+                                                         + int(bestMove == Move::None) * 161,
+                                                       +VALUE_INFINITE);
+                        if (futilityValue <= alpha)
+                        {
+                            if (!is_decisive(bestValue) && !is_win(futilityValue))
+                                if (bestValue < futilityValue)
+                                    bestValue = futilityValue;
+
+                            continue;
+                        }
+                    }
+
+                    // SEE based pruning for quiets and checks
+                    int threshold = int(check) * 64 * depth + 25 * lmrDepth * std::abs(lmrDepth);
+
+                    if (threshold < 0)
+                        threshold = 0;
+
+                    if (  // Avoid pruning sacrifices of our last piece for stalemate
+                      (alpha >= VALUE_DRAW || nonPawnValue != piece_value(type_of(movedPc)))
+                      && pos.see(move) < -threshold)
+                        continue;
+                }
             }
         }
 
@@ -1347,7 +1365,10 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
         // (*Scaler) Generally, frequent extensions scales well.
         // This includes high singularBeta values (i.e closer to ttValue) and low extension margins.
-        if (!RootNode && !exclude && ttm && depth > 5 + int(ss->ttPv) && is_valid(ttd.value)
+        if constexpr (!RootNode)
+        {
+            // clang-format off
+        if (!exclude && ttm && depth > 5 + int(ss->ttPv) && is_valid(ttd.value)
             && !is_decisive(ttd.value) && ttd.depth >= depth - 3 && is_ok(ttd.bound & Bound::LOWER)
             && !is_shuffling(pos, ss, move))
         {
@@ -1368,13 +1389,11 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
             {
                 int corrMargin = int(4.3351e-6 * absCorrectionValue);
 
-                // clang-format off
                 int doubleMargin = -4 + int(PVNode) * 199 - int(!ttmCapture) * 201 - corrMargin - int(ss->ply > rootDepth) * 42 - int(7.0271e-3 * ttMoveHistory);
                 int tripleMargin = 73 + int(PVNode) * 302 - int(!ttmCapture) * 248 - corrMargin - int(ss->ply > rootDepth) * 48 + int(ss->ttPv) * 90;
 
                 extension = 1 + int(value < singularBeta - doubleMargin)
                               + int(value < singularBeta - tripleMargin);
-                // clang-format on
 
                 if (depth < MAX_PLY - 1)
                     ++depth;
@@ -1405,6 +1424,8 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
             // If on CutNode but the ttMove is not assumed to fail high over current beta
             else if constexpr (CutNode)
                 extension = -2;
+        }
+            // clang-format on
         }
 
         // Add extension to new depth
@@ -1454,7 +1475,9 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
         // Scale up reduction for AllNode
         if constexpr (AllNode)
+        {
             r += r / (depth + 1);
+        }
 
         // Step 17. Late moves reduction / extension (LMR)
         if (depth > 1 && moveCount > 1)
@@ -1504,17 +1527,20 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
         // For PV nodes only, do a full PV search on the first move or after a fail high,
         // otherwise let the parent node fail low with value <= alpha and try another move.
-        if (PVNode && (moveCount == 1 || value > alpha))
+        if constexpr (PVNode)
         {
-            pv[0]        = Move::None;
-            (ss + 1)->pv = pv.data();
+            if (moveCount == 1 || value > alpha)
+            {
+                pv[0]        = Move::None;
+                (ss + 1)->pv = pv.data();
 
-            // Extends ttMove if about to dive into qsearch
-            if (newDepth < 1 && ttm
-                && (ttd.depth > 1 || (is_valid(ttd.value) && is_decisive(ttd.value))))
-                newDepth = 1;
+                // Extends ttMove if about to dive into qsearch
+                if (newDepth < 1 && ttm
+                    && (ttd.depth > 1 || (is_valid(ttd.value) && is_decisive(ttd.value))))
+                    newDepth = 1;
 
-            value = -search<NT::PV>(pos, ss + 1, -beta, -alpha, newDepth);
+                value = -search<NT::PV>(pos, ss + 1, -beta, -alpha, newDepth);
+            }
         }
 
         // Step 19. Unmake move
@@ -1602,14 +1628,19 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
             {
                 bestMove = move;
 
-                if constexpr (PVNode && !RootNode)  // Update pv even in fail-high case
+                if constexpr (PVNode && !RootNode)
+                {
+                    // Update pv even in fail-high case
                     update_pv(ss->pv, move, (ss + 1)->pv);
+                }
 
                 if (value >= beta)
                 {
                     // (*Scaler) Infrequent and small cutoff increments scales well
                     if constexpr (!RootNode)
+                    {
                         (ss - 1)->cutoffCount += int(PVNode || extension < 2);
+                    }
 
                     break;  // Fail-high
                 }
@@ -1656,7 +1687,9 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         update_histories(pos, pawnKey, ss, depth, bestMove, searchedMoves);
 
         if constexpr (!RootNode)
+        {
             ttMoveHistory << (bestMove == ttd.move ? +809 : -865);
+        }
     }
     // If prior move is valid, that caused the fail low
     else if (preSq != SQ_NONE)
@@ -1778,9 +1811,12 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     bool ttPv  = ttd.hit && ttd.pv;
 
     // Check for an early TT cutoff at non-pv nodes
-    if (!PVNode && ttd.depth >= DEPTH_ZERO && is_valid(ttd.value)
-        && is_ok(ttd.bound & fail_bound(ttd.value >= beta)))
-        return ttd.value;
+    if constexpr (!PVNode)
+    {
+        if (ttd.depth >= DEPTH_ZERO && is_valid(ttd.value)
+            && is_ok(ttd.bound & fail_bound(ttd.value >= beta)))
+            return ttd.value;
+    }
 
     int correctionValue = ss->inCheck ? 0 : correction_value(pos, ss);
 
@@ -1935,8 +1971,11 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
             {
                 bestMove = move;
 
-                if constexpr (PVNode)  // Update pv even in fail-high case
+                if constexpr (PVNode)
+                {
+                    // Update pv even in fail-high case
                     update_pv(ss->pv, move, (ss + 1)->pv);
+                }
 
                 if (value >= beta)
                     break;  // Fail-high
