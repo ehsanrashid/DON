@@ -241,19 +241,11 @@ constexpr auto ext_move_descending(const ExtMove& em1, const ExtMove& em2) noexc
 template<typename Iterator, typename T, typename Compare>
 Iterator
 exponential_upper_bound(Iterator beg, Iterator end, const T& value, Compare comp) noexcept {
-    // Handle empty range
-    //if (beg == end)
-    //    return end;
-
-    Iterator lst = end - 1;
-    // Special case: If value goes at the very end
-    //if (!comp(value, *lst))
-    //    return end;
-
-    // Exponential backward search from end
+    // Exponential backward search from end-1
     Iterator low, hig;
 
-    low = hig = lst;
+    hig = end - 1;
+    low = hig;
 
     std::size_t step = 1;
 
@@ -284,7 +276,7 @@ void insertion_sort(Iterator beg, Iterator end) noexcept {
     for (Iterator p = beg + 1; p < end; ++p)
     {
         // Stability: Early exit if already in correct position
-        if (/* p == beg || */ !ext_move_descending(*p, *(p - 1)))
+        if (!ext_move_descending(*p, *(p - 1)))
             continue;
 
         auto value = std::move(*p);
