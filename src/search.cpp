@@ -733,7 +733,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     constexpr bool CutNode  = T == NT::CUT;  // !PVNode
     constexpr bool AllNode  = T == NT::ALL;  // !PVNode
     assert(-VALUE_INFINITE <= alpha && alpha < beta && beta <= +VALUE_INFINITE);
-    assert(PVNode || (1 + alpha == beta));
+    assert(PVNode || (alpha + 1 == beta));
     assert(ss->ply >= 0);
     assert(!RootNode || (DEPTH_ZERO < depth && depth <= MAX_PLY - 1));
 
@@ -1038,9 +1038,9 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     // If eval is really low, check with qsearch then return speculative fail low.
     if constexpr (!PVNode)
     {
-        if (!is_win(alpha) && ttEvalValue + 485 + 281 * depth * depth <= alpha)
+        if (!is_loss(alpha) && ttEvalValue + 485 + 281 * depth * depth <= alpha)
         {
-            assert(alpha == beta - 1);
+            assert(alpha + 1 == beta);
 
             Value razorValue = qsearch<false>(pos, ss, alpha, beta);
 
@@ -1777,7 +1777,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 template<bool PVNode>
 Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) noexcept {
     assert(-VALUE_INFINITE <= alpha && alpha < beta && beta <= +VALUE_INFINITE);
-    assert(PVNode || (1 + alpha == beta));
+    assert(PVNode || (alpha + 1 == beta));
 
     Key key = pos.key();
 
