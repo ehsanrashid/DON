@@ -175,8 +175,8 @@ Value adjust_eval_value(Value evalValue, int correctionValue) noexcept {
 bool is_shuffling(const Position& pos, const Stack* const ss, Move move) noexcept {
     return !(pos.capture_promo(move) || pos.rule50_count() < 10 || pos.null_ply() <= 6
              || ss->ply < 20)
-        && (ss - 2)->move.is_ok() && move.org_sq() == (ss - 2)->move.dst_sq()
-        && (ss - 4)->move.is_ok() && (ss - 2)->move.org_sq() == (ss - 4)->move.dst_sq();
+        && move.org_sq() == (ss - 2)->move.dst_sq()
+        && (ss - 2)->move.org_sq() == (ss - 4)->move.dst_sq();
 }
 
 }  // namespace
@@ -1021,10 +1021,10 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
     // Step 7. Razoring
     // If eval is really low, check with qsearch then return speculative fail low.
-    if constexpr (!RootNode)
-        if (ttEvalValue + 485 + 281 * depth * depth <= alpha)
+    if constexpr (!PVNode)
+        if (!is_loss(alpha) && ttEvalValue + 485 + 281 * depth * depth <= alpha)
         {
-            value = qsearch<PVNode>(pos, ss, alpha, beta);
+            value = qsearch<false>(pos, ss, alpha, beta);
 
             if (value <= alpha && !is_decisive(value))
                 return value;

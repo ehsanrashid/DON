@@ -115,7 +115,7 @@ MovePicker::score<GenType::ENC_CAPTURE>(MoveList<GenType::ENC_CAPTURE>& moveList
         std::int64_t value = 7 * piece_value(capturedPt)  //
                            + (*captureHistory)[+movedPc][dstSq][capturedPt];
 
-        m.value = std::clamp(value, -Limit, +Limit);
+        m.value = value;
     }
 
     return itr;
