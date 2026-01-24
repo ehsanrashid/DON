@@ -176,7 +176,9 @@ bool is_shuffling(const Position& pos, const Stack* const ss, Move move) noexcep
     return !(pos.capture_promo(move) || pos.rule50_count() < 10 || pos.null_ply() <= 6
              || ss->ply < 20)
         && move.org_sq() == (ss - 2)->move.dst_sq()
-        && (ss - 2)->move.org_sq() == (ss - 4)->move.dst_sq();
+        && (ss - 2)->move.org_sq() == (ss - 4)->move.dst_sq()
+        && (ss - 4)->move.org_sq() == (ss - 6)->move.dst_sq()
+        && (ss - 6)->move.org_sq() == (ss - 8)->move.dst_sq();
 }
 
 }  // namespace
@@ -1022,11 +1024,13 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     // Step 7. Razoring
     // If eval is really low, check with qsearch then return speculative fail low.
     if constexpr (!PVNode)
-        if (!is_loss(alpha) && ttEvalValue + 485 + 281 * depth * depth <= alpha)
+        if (!is_win(alpha) && ttEvalValue + 485 + 281 * depth * depth <= alpha)
         {
+            assert(alpha == beta - 1);
+
             value = qsearch<false>(pos, ss, alpha, beta);
 
-            if (value <= alpha && !is_decisive(value))
+            if (value <= alpha && !is_loss(value))
                 return value;
 
             ss->ttMove = ttd.move;
@@ -1034,6 +1038,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
     // Step 8. Futility pruning: child node
     // The depth condition is important for mate finding.
+    if constexpr (!PVNode)
     {
         const auto futility_margin = [&](bool cond) noexcept {
             Value futilityMult = 53 + int(cond) * 23;
@@ -1049,14 +1054,13 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         };
 
         if (!ss->ttPv && !exclude && depth < 14 && !is_win(ttEvalValue) && !is_loss(beta)
-            && (ttmNone || ttCapture) && ttEvalValue - futility_margin(ttd.hit) >= beta)
-            return (ttEvalValue + beta) / 2;
+            && !ttCapture && ttEvalValue - futility_margin(ttd.hit) >= beta)
+            return ttEvalValue;
     }
 
     // Step 9. Null move search with verification search
-    // The non-pawn condition is important for finding Zugzwangs.
-    if (CutNode && !exclude && hasNonPawn && ss->ply >= nmpPly
-        && ss->evalValue - 350 + 18 * depth >= beta)
+    if (CutNode && !exclude && hasNonPawn /*Zugzwang guard*/ && ss->ply >= nmpPly
+        && !is_loss(beta) && ss->evalValue - 350 + 18 * depth >= beta)
     {
         assert((ss - 1)->move != Move::Null);
 
@@ -1070,9 +1074,10 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         undo_null_move(pos);
 
         // Do not return unproven mate or TB scores
-        if (nullValue >= beta && !is_decisive(nullValue))
+        if (nullValue >= beta && !is_win(nullValue))
         {
-            if (nmpPly != 0 || depth < 16)
+            // At low depths or when verification is disabled, return immediately
+            if (depth < 16 || nmpPly != 0)
                 return nullValue;
 
             assert(nmpPly == 0);  // Recursive verification is not allowed
@@ -1156,7 +1161,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
                     ttu.update(move, value_to_tt(value, ss->ply), evalValue,
                                probCutDepth + 1, Bound::LOWER, ss->ttPv);
 
-                if (!is_decisive(value))
+                if (!is_win(value))
                     return value - (probCutBeta - beta);
             }
         }
@@ -1168,7 +1173,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     // When in check, search starts here
 
     // Step 12. Small ProbCut idea
-    if (!is_decisive(beta) && is_valid(ttd.value) && !is_decisive(ttd.value))
+    if (!is_decisive(beta) && is_valid(ttd.value) && !is_win(ttd.value))
     {
         const Value probCutBeta = std::min(418 + beta, +VALUE_INFINITE);
 
