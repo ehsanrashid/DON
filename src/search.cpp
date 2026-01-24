@@ -1043,7 +1043,6 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
             assert(is_valid(ttEvalValue));
             assert(alpha + 1 == beta);
 
-
             // Null-window for razoring
             Value razorValue = qsearch<false>(pos, ss, alpha - 1, alpha);
             // Fail-low + mate safety
@@ -1134,7 +1133,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     if (depth > 2 && !is_decisive(beta))
     {
         Value probCutBeta = std::min(235 + beta - int(improve) * 63, +VALUE_INFINITE);
-        assert(beta < probCutBeta && probCutBeta <= +VALUE_INFINITE);
+        assert(beta <= probCutBeta && probCutBeta <= +VALUE_INFINITE);
 
         // If value from transposition table is less than probCutBeta, don't attempt probCut
         if (!(is_valid(ttd.value) && ttd.value < probCutBeta))
