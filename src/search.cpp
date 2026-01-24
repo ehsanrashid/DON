@@ -1130,7 +1130,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     // Step 11. ProbCut
     // If have a good enough capture or any promotion and a reduced search
     // returns a value much above beta, can (almost) safely prune previous move.
-    if (depth > 2 && !is_decisive(beta))
+    if (depth > 2 && !is_loss(beta))
     {
         Value probCutBeta = std::min(235 + beta - int(improve) * 63, +VALUE_INFINITE);
         assert(beta <= probCutBeta && probCutBeta <= +VALUE_INFINITE);
@@ -1196,7 +1196,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     // When in check, search starts here
 
     // Step 12. Small ProbCut idea
-    if (!is_loss(beta) && is_valid(ttd.value) && !is_loss(ttd.value))
+    if (!is_loss(beta) && is_valid(ttd.value) && !is_win(ttd.value))
     {
         Value probCutBeta = std::min(418 + beta, +VALUE_INFINITE);
 
