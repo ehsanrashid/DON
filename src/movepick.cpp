@@ -26,6 +26,12 @@
 
 namespace DON {
 
+namespace {
+
+constexpr std::int64_t Limit = 0x7FFFFFFF;
+
+}  // namespace
+
 // Constructors of the MovePicker class. As arguments, pass information
 // to decide which class of moves to return, to help sorting the (presumably)
 // good moves first, and how important move ordering is at the current node.
@@ -106,8 +112,10 @@ MovePicker::score<GenType::ENC_CAPTURE>(MoveList<GenType::ENC_CAPTURE>& moveList
         const auto   movedPc    = pos.moved_pc(m);
         const auto   capturedPt = pos.captured_pt(m);
 
-        m.value = 7 * piece_value(capturedPt)  //
-                + (*captureHistory)[+movedPc][dstSq][capturedPt];
+        std::int64_t value = 7 * piece_value(capturedPt)  //
+                           + (*captureHistory)[+movedPc][dstSq][capturedPt];
+
+        m.value = std::clamp(value, -Limit, +Limit);
     }
 
     return itr;
@@ -116,7 +124,6 @@ MovePicker::score<GenType::ENC_CAPTURE>(MoveList<GenType::ENC_CAPTURE>& moveList
 template<>
 MovePicker::iterator
 MovePicker::score<GenType::ENC_QUIET>(MoveList<GenType::ENC_QUIET>& moveList) noexcept {
-
     const Color ac = pos.active_color();
 
     const Bitboard blockersBB = pos.blockers_bb(~ac);
@@ -138,25 +145,27 @@ MovePicker::score<GenType::ENC_QUIET>(MoveList<GenType::ENC_QUIET>& moveList) no
         const Piece  movedPc = pos.moved_pc(m);
         const auto   movedPt = type_of(movedPc);
 
-        m.value = 2 * (*quietHistory)[ac][m.raw()]               //
-                + 2 * histories->pawn(pawnKey)[+movedPc][dstSq]  //
-                + (*continuationHistory[0])[+movedPc][dstSq]     //
-                + (*continuationHistory[1])[+movedPc][dstSq]     //
-                + (*continuationHistory[2])[+movedPc][dstSq]     //
-                + (*continuationHistory[3])[+movedPc][dstSq]     //
-                + (*continuationHistory[4])[+movedPc][dstSq]     //
-                + (*continuationHistory[5])[+movedPc][dstSq]     //
-                + (*continuationHistory[6])[+movedPc][dstSq]     //
-                + (*continuationHistory[7])[+movedPc][dstSq];
+        std::int64_t value;
+
+        value = 2 * (*quietHistory)[ac][m.raw()];
+        value += 2 * histories->pawn(pawnKey)[+movedPc][dstSq];
+        value += (*continuationHistory[0])[+movedPc][dstSq];
+        value += (*continuationHistory[1])[+movedPc][dstSq];
+        value += (*continuationHistory[2])[+movedPc][dstSq];
+        value += (*continuationHistory[3])[+movedPc][dstSq];
+        value += (*continuationHistory[4])[+movedPc][dstSq];
+        value += (*continuationHistory[5])[+movedPc][dstSq];
+        value += (*continuationHistory[6])[+movedPc][dstSq];
+        value += (*continuationHistory[7])[+movedPc][dstSq];
 
         if (ssPly < LOW_PLY_QUIET_SIZE)
-            m.value += 8 * (*lowPlyQuietHistory)[ssPly][m.raw()] / (1 + ssPly);
+            value += 8 * (*lowPlyQuietHistory)[ssPly][m.raw()] / (1 + ssPly);
 
         // Bonus for checks
         if (pos.check(m))
-            m.value += int(pos.see(m) >= -75) * 0x4000 + int(pos.dbl_check(m)) * 0x1000;
+            value += int(pos.see(m) >= -75) * 0x4000 + int(pos.dbl_check(m)) * 0x1000;
 
-        m.value += int(pos.fork(m) && pos.see(m) >= -50) * 0x1000;
+        value += int(pos.fork(m) && pos.see(m) >= -50) * 0x1000;
 
         // Penalty for moving to square attacked by lesser piece
         // Bonus for escaping from square attacked by lesser piece
@@ -165,11 +174,13 @@ MovePicker::score<GenType::ENC_QUIET>(MoveList<GenType::ENC_QUIET>& moveList) no
            : (threatsBB & orgSq) != 0                        ? +23
            : (pos.acc_less_attacks_bb(movedPt) & orgSq) != 0 ? +20
                                                              : 0);
-        m.value += weight * piece_value(movedPt);
+        value += weight * piece_value(movedPt);
 
         // Penalty for moving pinner piece
-        m.value -=
+        value -=
           int((pinnersBB & orgSq) != 0 && !aligned(pos.square<KING>(~ac), orgSq, dstSq)) * 0x400;
+
+        m.value = std::clamp(value, -Limit, +Limit);
     }
 
     return itr;
@@ -191,7 +202,9 @@ MovePicker::score<GenType::EVA_CAPTURE>(MoveList<GenType::EVA_CAPTURE>& moveList
 
         const auto capturedPt = pos.captured_pt(m);
 
-        m.value = piece_value(capturedPt);
+        std::int64_t value = piece_value(capturedPt);
+
+        m.value = value;
     }
 
     return itr;
@@ -216,8 +229,10 @@ MovePicker::score<GenType::EVA_QUIET>(MoveList<GenType::EVA_QUIET>& moveList) no
         const Square dstSq   = m.dst_sq();
         const Piece  movedPc = pos.moved_pc(m);
 
-        m.value = (*quietHistory)[ac][m.raw()]  //
-                + (*continuationHistory[0])[+movedPc][dstSq];
+        std::int64_t value = (*quietHistory)[ac][m.raw()]  //
+                           + (*continuationHistory[0])[+movedPc][dstSq];
+
+        m.value = value;
     }
 
     return itr;
