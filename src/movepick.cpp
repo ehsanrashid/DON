@@ -247,8 +247,8 @@ exponential_upper_bound(Iterator beg, Iterator end, const T& value, Compare comp
 
     Iterator lst = end - 1;
     // Special case: If value goes at the very end
-    if (!comp(value, *lst))
-        return end;
+    //if (!comp(value, *lst))
+    //    return end;
 
     // Exponential backward search from end
     Iterator low, hig;
