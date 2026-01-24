@@ -889,7 +889,7 @@ class TBTables final {
     template<TBType T>
     [[nodiscard]] TBTable<T>* get(Key key) noexcept {
 
-        const std::size_t keyBucket = key & MASK;
+        std::size_t keyBucket = key & MASK;
 
         const Entry& keyEntry = entries[keyBucket];
 
@@ -905,7 +905,7 @@ class TBTables final {
 
         for (std::size_t probes = 0, distance = 1; probes < MaxProbes; ++probes)
         {
-            const std::size_t bucket = (keyBucket + distance) & MASK;
+            std::size_t bucket = (keyBucket + distance) & MASK;
 
             const Entry& entry = entries[bucket];
 
@@ -976,7 +976,7 @@ class TBTables final {
             if (MaxDistance < distance)
                 MaxDistance = distance;
 
-            const std::size_t bucket = (newBucket + distance) & MASK;
+            std::size_t bucket = (newBucket + distance) & MASK;
 
             Entry& entry = entries[bucket];
 
@@ -988,7 +988,7 @@ class TBTables final {
                 return true;
             }
 
-            const std::size_t entryDistance = probe_distance(entry, bucket);
+            std::size_t entryDistance = probe_distance(entry, bucket);
             // Case 2: Robin Hood strategy rule: compare probe distances
             // If the new entry has probed farther than the current entry,
             // steal the slot and continue with the displaced entry.
@@ -1016,13 +1016,13 @@ class TBTables final {
     /*
     bool remove(Key key) noexcept {
 
-        const std::size_t keyBucket = key & MASK;
+        std::size_t keyBucket = key & MASK;
 
         const std::size_t MaxProbes = std::min(max_distance() + 1, MAX_PROBES);
 
         for (std::size_t probes = 0, distance = 0; probes < MaxProbes; ++probes)
         {
-            const std::size_t bucket = (keyBucket + distance) & MASK;
+            std::size_t bucket = (keyBucket + distance) & MASK;
 
             Entry& entry = entries[bucket];
 
@@ -1057,7 +1057,7 @@ class TBTables final {
 
         for (std::size_t shifts = 0; shifts < MAX_PROBES; ++shifts)
         {
-            const std::size_t nextBucket = (holeBucket + 1) & MASK;
+            std::size_t nextBucket = (holeBucket + 1) & MASK;
 
             const Entry& nextEntry = entries[nextBucket];
 
@@ -1095,7 +1095,7 @@ class TBTables final {
             if (entry.empty())
                 continue;
 
-            const std::size_t distance = probe_distance(entry, bucket);
+            std::size_t distance = probe_distance(entry, bucket);
 
             if (newMaxDistance < distance)
                 newMaxDistance = distance;
@@ -1148,7 +1148,7 @@ void TBTables::add(const std::vector<PieceType>& pieces) noexcept {
     if (!Exists[WDL] && !Exists[DTZ])
         return;
 
-    const std::uint8_t pieceCount = pieces.size();
+    std::uint8_t pieceCount = pieces.size();
 
     if (MaxCardinality < pieceCount)
         MaxCardinality = pieceCount;
@@ -1156,7 +1156,7 @@ void TBTables::add(const std::vector<PieceType>& pieces) noexcept {
     TBTable<WDL>* wdlTable = nullptr;
     TBTable<DTZ>* dtzTable = nullptr;
 
-    const auto tableData = make_table_data(code);
+    auto tableData = make_table_data(code);
 
     if (Exists[WDL])
     {
@@ -1170,9 +1170,9 @@ void TBTables::add(const std::vector<PieceType>& pieces) noexcept {
         dtzTable = &dtzTables.back();
     }
 
-    const BaseTBTable* const keyTable = Exists[WDL]  //
-                                        ? static_cast<BaseTBTable*>(wdlTable)
-                                        : static_cast<BaseTBTable*>(dtzTable);
+    BaseTBTable* keyTable = Exists[WDL]  //
+                            ? static_cast<BaseTBTable*>(wdlTable)
+                            : static_cast<BaseTBTable*>(dtzTable);
 
     insert({keyTable->key[WHITE], wdlTable, dtzTable});
     insert({keyTable->key[BLACK], wdlTable, dtzTable});
@@ -1752,11 +1752,11 @@ WDLScore search(Position& pos, ProbeState* ps) noexcept {
 
     WDLScore wdlScore, bestWdlScore = WDL_LOSS;
 
-    const MoveList<GenType::LEGAL> legalMoves(pos);
+    MoveList<GenType::LEGAL> legalMoves(pos);
 
     std::uint8_t moveCount = 0;
 
-    for (const Move m : legalMoves)
+    for (Move m : legalMoves)
     {
         if (!pos.capture(m) && (!CheckZeroingMoves || type_of(pos.moved_pc(m)) != PAWN))
             continue;
@@ -2077,7 +2077,7 @@ int probe_dtz(Position& pos, ProbeState* ps) noexcept {
     // and find the winning move that minimizes DTZ-score.
     int minDtzScore = 0xFFFF;
 
-    for (const Move m : MoveList<GenType::LEGAL>(pos))
+    for (Move m : MoveList<GenType::LEGAL>(pos))
     {
         bool zeroing = pos.capture(m) || type_of(pos.moved_pc(m)) == PAWN;
 

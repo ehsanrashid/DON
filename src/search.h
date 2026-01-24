@@ -195,8 +195,9 @@ class RootMoves final {
     bool contains(size_type beg, size_type end, Move m) const noexcept {
         assert(beg <= end && end <= size());
 
-        const auto fst = begin() + beg;
-        const auto lst = begin() + end;
+        auto fst = begin() + beg;
+        auto lst = begin() + end;
+
         return std::find(fst, lst, m) != lst;
     }
     bool contains(size_type beg, size_type end, const value_type& v) const noexcept {

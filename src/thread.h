@@ -61,7 +61,7 @@ class NativeThread final {
         auto* jobFuncPtr =
           new JobFunc(std::bind(std::forward<Function>(func), std::forward<Args>(args)...));
 
-        const auto start_routine = [](void* ptr) noexcept -> void* {
+        auto start_routine = [](void* ptr) noexcept -> void* {
             auto* fnPtr = static_cast<JobFunc*>(ptr);
 
             // Call the function
@@ -146,7 +146,7 @@ using NativeThread = std::thread;
 // such that the recipient does not need to know whether the binding happened or not.
 class ThreadToNumaNodeBinder final {
    public:
-    ThreadToNumaNodeBinder(NumaIndex numaIdx, const NumaConfig* const numaCfgPtr) noexcept :
+    ThreadToNumaNodeBinder(NumaIndex numaIdx, const NumaConfig* numaCfgPtr) noexcept :
         numaId(numaIdx),
         numaConfigPtr(numaCfgPtr) {}
 

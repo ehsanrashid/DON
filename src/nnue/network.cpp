@@ -272,7 +272,7 @@ Network<Arch, Transformer>::trace(const Position&                         pos,
 
 template<typename Arch, typename Transformer>
 void Network<Arch, Transformer>::load_internal() noexcept {
-    const auto embedded = get_embedded(embeddedType);
+    auto embedded = get_embedded(embeddedType);
 
     MemoryStreamBuf buf(const_cast<char*>(reinterpret_cast<const char*>(embedded.data)),
                         std::size_t(embedded.size));

@@ -150,7 +150,7 @@ CuckooTable<0x2000> Cuckoos;
 void Zobrist::init() noexcept {
     XorShift64Star prng(0x105524ULL);
 
-    const auto prng_rand = [&] { return prng.template rand<Key>(); };
+    auto prng_rand = [&] { return prng.template rand<Key>(); };
 
     for (Color c : {WHITE, BLACK})
     {
@@ -212,7 +212,7 @@ void Position::clear() noexcept {
 // Initializes the position object with the given FEN string.
 // This function is not very robust - make sure that input FENs are correct,
 // this is assumed to be the responsibility of the GUI.
-void Position::set(std::string_view fens, State* const newSt) noexcept {
+void Position::set(std::string_view fens, State* newSt) noexcept {
 
     // A FEN string defines a particular position using only the ASCII character set.
     //
@@ -466,7 +466,7 @@ void Position::set(std::string_view fens, State* const newSt) noexcept {
 
 // Overload to initialize the position object with the given endgame code string like "KBPKN".
 // It's mainly a helper to get the material key out of an endgame code.
-void Position::set(std::string_view code, Color c, State* const newSt) noexcept {
+void Position::set(std::string_view code, Color c, State* newSt) noexcept {
     assert(!code.empty() && code[0] == 'K' && code.find('K', 1) != std::string_view::npos);
     assert(is_ok(c));
     assert(newSt != nullptr);
@@ -497,7 +497,7 @@ void Position::set(std::string_view code, Color c, State* const newSt) noexcept 
 }
 
 // Copy position and points to newSt and then copy state into st
-void Position::set(const Position& pos, State* const newSt) noexcept {
+void Position::set(const Position& pos, State* newSt) noexcept {
     assert(newSt != nullptr);
 
     *this = pos;
@@ -576,7 +576,7 @@ std::string Position::fen(bool complete) const noexcept {
 
     fens += ' ';
 
-    if (const Square enPassantSq = en_passant_sq(); enPassantSq != SQ_NONE)
+    if (Square enPassantSq = en_passant_sq(); enPassantSq != SQ_NONE)
         fens += to_square(enPassantSq);
     else
         fens += '-';
@@ -634,9 +634,9 @@ void Position::set_state() noexcept {
     for (Color c : {WHITE, BLACK})
         for (PieceType pt : PIECE_TYPES)
         {
-            for (const Square s : squares(c, pt).iterate(base(c), count(c, pt)))
+            for (Square s : squares(c, pt).iterate(base(c), count(c, pt)))
             {
-                const Key key = Zobrist::piece_square(c, pt, s);
+                Key key = Zobrist::piece_square(c, pt, s);
                 assert(key != 0);
 
                 st->key ^= key;
@@ -653,7 +653,7 @@ void Position::set_state() noexcept {
 
     st->key ^= Zobrist::castling(castling_rights());
 
-    if (const Square enPassantSq = en_passant_sq(); enPassantSq != SQ_NONE)
+    if (Square enPassantSq = en_passant_sq(); enPassantSq != SQ_NONE)
         st->key ^= Zobrist::enpassant(enPassantSq);
 
     if (active_color() == BLACK)
@@ -670,7 +670,7 @@ void Position::set_ext_state() noexcept {
     st->blockersBB[BLACK] = blockers_bb(square<KING>(BLACK), pieces_bb(WHITE),  //
                                         st->pinnersBB[BLACK], st->pinnersBB[WHITE]);
 
-    const Color ac = active_color();
+    Color ac = active_color();
 
     // clang-format off
     st->checksBB[PAWN  ] = attacks_bb<PAWN  >(square<KING>(~ac), ~ac);
@@ -699,9 +699,9 @@ void Position::set_ext_state() noexcept {
 
 // Check en-passant possible
 template<bool MoveDone>
-bool Position::enpassant_possible(Color           ac,
-                                  Square          enPassantSq,
-                                  Bitboard* const epPawnsBBp) const noexcept {
+bool Position::enpassant_possible(Color     ac,
+                                  Square    enPassantSq,
+                                  Bitboard* epPawnsBBp) const noexcept {
     assert(enPassantSq != SQ_NONE);
 
     const bool collect = epPawnsBBp != nullptr;
@@ -716,13 +716,13 @@ bool Position::enpassant_possible(Color           ac,
         return false;
     }
 
-    const Square capturedSq = MoveDone  //
-                              ? enPassantSq - pawn_spush(ac)
-                              : enPassantSq + pawn_spush(ac);
+    Square capturedSq = MoveDone  //
+                        ? enPassantSq - pawn_spush(ac)
+                        : enPassantSq + pawn_spush(ac);
 
     assert((pieces_bb(~ac, PAWN) & capturedSq) != 0);
 
-    const Square kingSq = square<KING>(ac);
+    Square kingSq = square<KING>(ac);
 
     bool epPossible = false;
 
@@ -767,14 +767,14 @@ bool Position::enpassant_possible(Color           ac,
     }
 
     // Check en-passant is legal for the position
-    const Bitboard occupancyBB = pieces_bb() ^ make_bb(capturedSq, enPassantSq);
-    const Bitboard attackersBB = pieces_bb(~ac);
+    Bitboard occupancyBB = pieces_bb() ^ make_bb(capturedSq, enPassantSq);
+    Bitboard attackersBB = pieces_bb(~ac);
 
     while (epPawnsBB != 0)
     {
-        const Square epPawnSq = pop_lsq(epPawnsBB);
+        Square epPawnSq = pop_lsq(epPawnsBB);
 
-        const bool legal = (slide_attackers_bb(kingSq, occupancyBB ^ epPawnSq) & attackersBB) == 0;
+        bool legal = (slide_attackers_bb(kingSq, occupancyBB ^ epPawnSq) & attackersBB) == 0;
 
         epPossible |= legal;
 
@@ -793,12 +793,12 @@ bool Position::enpassant_possible(Color           ac,
 // Helper used to do/undo a castling move.
 // This is a bit tricky in Chess960 where org/dst squares can overlap.
 template<bool Do>
-void Position::do_castling(Color             ac,
-                           Square            kingOrgSq,
-                           Square&           kingDstSq,
-                           Square&           rookOrgSq,
-                           Square&           rookDstSq,
-                           DirtyBoard* const db) noexcept {
+void Position::do_castling(Color       ac,
+                           Square      kingOrgSq,
+                           Square&     kingDstSq,
+                           Square&     rookOrgSq,
+                           Square&     rookDstSq,
+                           DirtyBoard* db) noexcept {
     assert(!Do || db != nullptr);
 
     rookOrgSq = kingDstSq;  // Castling is encoded as "king captures rook"
@@ -833,8 +833,7 @@ void Position::do_castling(Color             ac,
 // Makes a move, and saves all necessary information to new state.
 // Also prefetch tt and histories for the new position.
 // The move is assumed to be legal.
-DirtyBoard
-Position::do_move(Move m, State& newSt, bool mayCheck, const Worker* const worker) noexcept {
+DirtyBoard Position::do_move(Move m, State& newSt, bool mayCheck, const Worker* worker) noexcept {
     assert(legal(m));
     assert(&newSt != st);
 
@@ -851,17 +850,16 @@ Position::do_move(Move m, State& newSt, bool mayCheck, const Worker* const worke
 
     Color ac = active_color();
 
-    const Square orgSq      = m.org_sq();
-    Square       dstSq      = m.dst_sq();
-    const Piece  movedPc    = piece(orgSq);
-    Piece        capturedPc = piece(m.type() != MT::EN_PASSANT ? dstSq : dstSq - pawn_spush(ac));
-    Piece        promotedPc = Piece::NO_PIECE;
+    Square orgSq = m.org_sq(), dstSq = m.dst_sq();
+    Piece  movedPc    = piece(orgSq);
+    Piece  capturedPc = piece(m.type() != MT::EN_PASSANT ? dstSq : dstSq - pawn_spush(ac));
+    Piece  promotedPc = Piece::NO_PIECE;
     assert(color_of(movedPc) == ac);
     assert(capturedPc == Piece::NO_PIECE
            || (color_of(capturedPc) == (m.type() != MT::CASTLING ? ~ac : ac)
                && type_of(capturedPc) != KING));
 
-    const auto movedPt = type_of(movedPc);
+    auto movedPt = type_of(movedPc);
 
     DirtyBoard db;
 
@@ -901,8 +899,8 @@ Position::do_move(Move m, State& newSt, bool mayCheck, const Worker* const worke
 
         movedKey = Zobrist::piece_square(ac, movedPt, orgSq)  //
                  ^ Zobrist::piece_square(ac, movedPt, dstSq);
-        const Key rookKey = Zobrist::piece_square(ac, ROOK, rookOrgSq)  //
-                          ^ Zobrist::piece_square(ac, ROOK, rookDstSq);
+        Key rookKey = Zobrist::piece_square(ac, ROOK, rookOrgSq)  //
+                    ^ Zobrist::piece_square(ac, ROOK, rookDstSq);
 
         st->key ^= rookKey;
         st->nonPawnKeys[ac][1] ^= rookKey;
@@ -1000,7 +998,7 @@ Position::do_move(Move m, State& newSt, bool mayCheck, const Worker* const worke
             assert(count(promotedPc) != 0);
             assert(Zobrist::piece_square(ac, PAWN, dstSq) == 0);
 
-            const Key promoKey = Zobrist::piece_square(ac, promotedPt, dstSq);
+            Key promoKey = Zobrist::piece_square(ac, promotedPt, dstSq);
 
             // Update hash keys
             st->key ^= promoKey;
@@ -1092,7 +1090,7 @@ Position::do_move(Move m, State& newSt, bool mayCheck, const Worker* const worke
     // negative in the 3-fold case, or zero when the position was not repeated.
     st->repetition = 0;
 
-    const auto end = std::min(rule50_count(), null_ply());
+    auto end = std::min(rule50_count(), null_ply());
 
     if (end >= 4)
     {
@@ -1127,14 +1125,13 @@ Position::do_move(Move m, State& newSt, bool mayCheck, const Worker* const worke
 // Unmakes a move, restoring the position to its exact state before the move was made.
 void Position::undo_move(Move m) noexcept {
 
-    const Color ac = activeColor = ~active_color();
+    Color ac = activeColor = ~active_color();
 
-    const Square orgSq   = m.org_sq();
-    Square       dstSq   = m.dst_sq();
-    Piece        movedPc = piece(dstSq);
+    Square orgSq = m.org_sq(), dstSq = m.dst_sq();
+    Piece  movedPc = piece(dstSq);
     assert(empty(orgSq) || m.type() == MT::CASTLING);
 
-    const Piece capturedPc = captured_pc();
+    Piece capturedPc = captured_pc();
     assert(capturedPc == Piece::NO_PIECE || type_of(capturedPc) != KING);
 
     if (m.type() == MT::CASTLING)
@@ -1200,7 +1197,7 @@ void Position::undo_move(Move m) noexcept {
 
 // Makes a null move
 // It flips the active color without executing any move on the board.
-void Position::do_null_move(State& newSt, const Worker* const worker) noexcept {
+void Position::do_null_move(State& newSt, const Worker* worker) noexcept {
     assert(&newSt != st);
     assert(checkers_bb() == 0);
 
@@ -1253,13 +1250,13 @@ void Position::undo_null_move() noexcept {
 bool Position::legal(Move m) const noexcept {
     assert(m.is_ok());
 
-    const Color ac = active_color();
+    Color ac = active_color();
 
-    const Square kingSq = square<KING>(ac);
+    Square kingSq = square<KING>(ac);
     assert(piece(kingSq) == make_piece(ac, KING));
 
-    const Square orgSq = m.org_sq(), dstSq = m.dst_sq();
-    const Piece  movedPc = piece(orgSq);
+    Square orgSq = m.org_sq(), dstSq = m.dst_sq();
+    Piece  movedPc = piece(orgSq);
 
     // If the origin square is not occupied by a piece belonging to
     // the side to move, the move is obviously not legal.
@@ -1324,7 +1321,7 @@ bool Position::legal(Move m) const noexcept {
         break;
 
     case MT::EN_PASSANT : {
-        const Bitboard occupancyBB = pieces_bb() ^ make_bb(orgSq, dstSq, dstSq - pawn_spush(ac));
+        Bitboard occupancyBB = pieces_bb() ^ make_bb(orgSq, dstSq, dstSq - pawn_spush(ac));
 
         if (!(type_of(movedPc) == PAWN && en_passant_sq() == dstSq && rule50_count() == 0
               && (pieces_bb(~ac, PAWN) & (dstSq - pawn_spush(ac))) != 0
@@ -1357,12 +1354,12 @@ bool Position::legal(Move m) const noexcept {
 bool Position::check(Move m) const noexcept {
     assert(legal(m));
 
-    const Color ac = active_color();
+    Color ac = active_color();
 
-    const Square orgSq = m.org_sq(), dstSq = m.dst_sq();
+    Square orgSq = m.org_sq(), dstSq = m.dst_sq();
     assert((pieces_bb(ac) & orgSq) != 0 && !empty(orgSq) && color_of(piece(orgSq)) == ac);
 
-    const Square kingSq = square<KING>(~ac);
+    Square kingSq = square<KING>(~ac);
 
     if (
       // Is there a direct check?
@@ -1400,12 +1397,12 @@ bool Position::check(Move m) const noexcept {
 bool Position::dbl_check(Move m) const noexcept {
     assert(legal(m));
 
-    const Color ac = active_color();
+    Color ac = active_color();
 
-    const Square orgSq = m.org_sq(), dstSq = m.dst_sq();
+    Square orgSq = m.org_sq(), dstSq = m.dst_sq();
     assert((pieces_bb(ac) & orgSq) != 0 && !empty(orgSq) && color_of(piece(orgSq)) == ac);
 
-    const Square kingSq = square<KING>(~ac);
+    Square kingSq = square<KING>(~ac);
 
     switch (m.type())
     {
@@ -1436,7 +1433,7 @@ bool Position::dbl_check(Move m) const noexcept {
 bool Position::fork(Move m) const noexcept {
     assert(legal(m));
 
-    const Color ac = active_color();
+    Color ac = active_color();
 
     switch (type_of(moved_pc(m)))
     {
@@ -1469,7 +1466,7 @@ bool Position::fork(Move m) const noexcept {
 Key Position::move_key(Move m) const noexcept {
     Key moveKey = st->key ^ Zobrist::turn();
 
-    if (const Square enPassantSq = en_passant_sq(); enPassantSq != SQ_NONE)
+    if (Square enPassantSq = en_passant_sq(); enPassantSq != SQ_NONE)
         moveKey ^= Zobrist::enpassant(enPassantSq);
 
     if (m == Move::Null)
@@ -1477,18 +1474,18 @@ Key Position::move_key(Move m) const noexcept {
 
     assert(legal(m));
 
-    const Color ac = active_color();
+    Color ac = active_color();
 
-    const Square orgSq = m.org_sq(), dstSq = m.dst_sq();
-    const Piece  movedPc    = piece(orgSq);
-    const Square capturedSq = m.type() != MT::EN_PASSANT ? dstSq : dstSq - pawn_spush(ac);
-    const Piece  capturedPc = piece(capturedSq);
+    Square orgSq = m.org_sq(), dstSq = m.dst_sq();
+    Piece  movedPc    = piece(orgSq);
+    Square capturedSq = m.type() != MT::EN_PASSANT ? dstSq : dstSq - pawn_spush(ac);
+    Piece  capturedPc = piece(capturedSq);
     assert(color_of(movedPc) == ac);
     assert(capturedPc == Piece::NO_PIECE
            || color_of(capturedPc) == (m.type() != MT::CASTLING ? ~ac : ac));
     assert(type_of(capturedPc) != KING);
 
-    const auto movedPt = type_of(movedPc);
+    auto movedPt = type_of(movedPc);
 
     moveKey ^=
       Zobrist::piece_square(ac, movedPt, orgSq)
@@ -1558,7 +1555,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
     if (swap < 0)
         return false;
 
-    const auto movedPt = type_of(movedPc);
+    auto movedPt = type_of(movedPc);
 
     swap = piece_value(m.type() != MT::PROMOTION ? movedPt : m.promotion_type()) - swap;
 
@@ -1842,7 +1839,7 @@ bool Position::has_repeated() const noexcept {
 // Tests if the current position has a move which draws by repetition.
 // Accurately matches the outcome of is_draw() over all legal moves.
 bool Position::is_upcoming_repetition(std::int16_t ply) const noexcept {
-    const auto end = std::min(rule50_count(), null_ply());
+    auto end = std::min(rule50_count(), null_ply());
     // Enough reversible moves played
     if (end < 3)
         return false;
@@ -2009,21 +2006,21 @@ Key Position::compute_key() const noexcept {
     Key key = 0;
 
     std::size_t n;
-    const auto  sqs = squares(n);
+    auto        sqs = squares(n);
 
-    auto       beg = sqs.begin();
-    const auto end = beg + n;
+    auto beg = sqs.begin();
+    auto end = beg + n;
     for (; beg != end; ++beg)
     {
-        const Square s  = *beg;
-        const Piece  pc = piece(s);
+        Square s  = *beg;
+        Piece  pc = piece(s);
 
         key ^= Zobrist::piece_square(pc, s);
     }
 
     key ^= Zobrist::castling(castling_rights());
 
-    if (const Square enPassantSq = en_passant_sq(); enPassantSq != SQ_NONE)
+    if (Square enPassantSq = en_passant_sq(); enPassantSq != SQ_NONE)
         key ^= Zobrist::enpassant(enPassantSq);
 
     if (active_color() == BLACK)
@@ -2036,15 +2033,15 @@ Key Position::compute_minor_key() const noexcept {
     Key minorKey = 0;
 
     std::size_t n;
-    const auto  sqs = squares(n);
+    auto        sqs = squares(n);
 
-    auto       beg = sqs.begin();
-    const auto end = beg + n;
+    auto beg = sqs.begin();
+    auto end = beg + n;
     for (; beg != end; ++beg)
     {
-        const Square s  = *beg;
-        const Piece  pc = piece(s);
-        const auto   pt = type_of(pc);
+        Square s  = *beg;
+        Piece  pc = piece(s);
+        auto   pt = type_of(pc);
 
         if (pt != PAWN && pt != KING && !is_major(pt))
             minorKey ^= Zobrist::piece_square(color_of(pc), pt, s);
@@ -2057,15 +2054,15 @@ Key Position::compute_major_key() const noexcept {
     Key majorKey = 0;
 
     std::size_t n;
-    const auto  sqs = squares(n);
+    auto        sqs = squares(n);
 
-    auto       beg = sqs.begin();
-    const auto end = beg + n;
+    auto beg = sqs.begin();
+    auto end = beg + n;
     for (; beg != end; ++beg)
     {
-        const Square s  = *beg;
-        const Piece  pc = piece(s);
-        const auto   pt = type_of(pc);
+        Square s  = *beg;
+        Piece  pc = piece(s);
+        auto   pt = type_of(pc);
 
         if (pt != PAWN && pt != KING && is_major(pt))
             majorKey ^= Zobrist::piece_square(color_of(pc), pt, s);
@@ -2078,15 +2075,15 @@ Key Position::compute_non_pawn_key() const noexcept {
     Key nonPawnKey = 0;
 
     std::size_t n;
-    const auto  sqs = squares(n);
+    auto        sqs = squares(n);
 
-    auto       beg = sqs.begin();
-    const auto end = beg + n;
+    auto beg = sqs.begin();
+    auto end = beg + n;
     for (; beg != end; ++beg)
     {
-        const Square s  = *beg;
-        const Piece  pc = piece(s);
-        const auto   pt = type_of(pc);
+        Square s  = *beg;
+        Piece  pc = piece(s);
+        auto   pt = type_of(pc);
 
         if (pt != PAWN)
             nonPawnKey ^= Zobrist::piece_square(color_of(pc), pt, s);

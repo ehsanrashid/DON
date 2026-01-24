@@ -97,7 +97,7 @@ std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& ac
         row[8 * 8 + 1] = '\0';
 
     // A lambda to output one box of the board
-    const auto write_square = [&board, &pos](File file, Rank rank, Piece pc, Value value) noexcept {
+    auto write_square = [&board, &pos](File file, Rank rank, Piece pc, Value value) noexcept {
         std::size_t x = 8 * int(file);
         std::size_t y = 3 * (7 - int(rank));
         for (std::size_t i = 1; i < 8; ++i)

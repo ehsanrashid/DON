@@ -281,8 +281,8 @@ std::string Engine::get_numa_config_info_str() const noexcept {
 std::vector<std::pair<std::size_t, std::size_t>> Engine::get_bound_thread_counts() const noexcept {
     std::vector<std::pair<std::size_t, std::size_t>> ratios;
 
-    const auto  threadCounts = threads.get_bound_thread_counts();
-    const auto& numaConfig   = numaContext.numa_config();
+    auto  threadCounts = threads.get_bound_thread_counts();
+    auto& numaConfig   = numaContext.numa_config();
 
     NumaIndex numaIdx = 0;
 

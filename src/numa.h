@@ -477,7 +477,7 @@ inline std::unordered_set<CpuIndex> get_process_affinity() noexcept {
 
     // For unsupported systems, or in case of a soft error,
     // may assume all processors are available for use.
-    const auto set_to_all_cpus = [&cpus]() noexcept {
+    auto set_to_all_cpus = [&cpus]() noexcept {
         for (CpuIndex cpuId = 0; cpuId < SYSTEM_THREADS_NB; ++cpuId)
             cpus.insert(cpuId);
     };
@@ -605,7 +605,7 @@ class NumaConfig final {
         // but at least guarantee that the number of allowed processors
         // is >= number of processors in the affinity mask. In case the user
         // is not satisfied they must set the processor numbers explicitly.
-        const auto is_cpu_allowed = [&allowedCpus](CpuIndex cpuId) noexcept {
+        auto is_cpu_allowed = [&allowedCpus](CpuIndex cpuId) noexcept {
             return !allowedCpus.has_value() || allowedCpus->count(cpuId) == 1;
         };
 
@@ -616,8 +616,7 @@ class NumaConfig final {
         if (processAffinityRespect)
             allowedCpus = STARTUP_PROCESSOR_AFFINITY;
 
-        const auto is_cpu_allowed = [processAffinityRespect,
-                                     &allowedCpus](CpuIndex cpuId) noexcept {
+        auto is_cpu_allowed = [processAffinityRespect, &allowedCpus](CpuIndex cpuId) noexcept {
             return !processAffinityRespect || allowedCpus.count(cpuId) == 1;
         };
 
@@ -1108,7 +1107,7 @@ class NumaConfig final {
 
         bool useFallback = false;
 
-        const auto fallback = [&]() noexcept {
+        auto fallback = [&]() noexcept {
             useFallback = true;
             numaCfg     = empty();
         };
@@ -1217,7 +1216,7 @@ class NumaConfig final {
 
         std::unordered_set<CpuIndex> seenCpus;
 
-        const auto next_unseen_cpu_id = [&seenCpus]() noexcept {
+        auto next_unseen_cpu_id = [&seenCpus]() noexcept {
             for (CpuIndex cpuId = 0;; ++cpuId)
                 if (!seenCpus.count(cpuId))
                     return cpuId;

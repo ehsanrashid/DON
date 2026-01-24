@@ -315,7 +315,7 @@ constexpr Bitboard pawn_attacks_bb(Bitboard pawns, Color c) noexcept {
 constexpr Bitboard destination_bb(Square s, Direction d, std::uint8_t dist = 1) noexcept {
     assert(is_ok(s));
 
-    const Square sq = s + d;
+    Square sq = s + d;
 
     return is_ok(sq) && distance(s, sq) <= dist ? square_bb(sq) : 0;
 }
@@ -339,7 +339,7 @@ constexpr Bitboard sliding_attacks_bb(Square s, Bitboard occupancyBB = 0) noexce
 
         while (true)
         {
-            const Square nextSq = sq + d;
+            Square nextSq = sq + d;
 
             // Stop if next square is off-board or not adjacent (wrap-around)
             if (!is_ok(nextSq) || distance(sq, nextSq) > 1)
@@ -761,7 +761,7 @@ inline Square msq(Bitboard b) noexcept {
 inline Square pop_lsq(Bitboard& b) noexcept {
     assert(b != 0);
 
-    const Square s = lsq(b);
+    Square s = lsq(b);
 
     b &= b - 1;
 
@@ -772,7 +772,7 @@ inline Square pop_lsq(Bitboard& b) noexcept {
 inline Square pop_msq(Bitboard& b) noexcept {
     assert(b != 0);
 
-    const Square s = msq(b);
+    Square s = msq(b);
 
     b ^= s;
 

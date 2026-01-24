@@ -427,7 +427,7 @@ void Worker::iterative_deepening() noexcept {
 
     constexpr int MaxDelta = 2 * VALUE_INFINITE;
 
-    const Color ac = rootPos.active_color();
+    Color ac = rootPos.active_color();
 
     StdArray<Stack, StackOffset + (MAX_PLY + 1) + 1> stacks{};
 
@@ -687,10 +687,10 @@ void Worker::iterative_deepening() noexcept {
             assert(totalTime >= 0.0);
             // clang-format on
 
-            const TimePoint MaxTime = mainManager->timeManager.maximum();
+            TimePoint maxTime = mainManager->timeManager.maximum();
             // Cap totalTime to the available maximum time
-            if (totalTime > MaxTime)
-                totalTime = MaxTime;
+            if (totalTime > maxTime)
+                totalTime = maxTime;
 
             // Cap totalTime in case of a single legal move for a better viewer experience
             if (rootMoves.size() == 1)
@@ -701,7 +701,7 @@ void Worker::iterative_deepening() noexcept {
                     totalTime = TimeManager::SINGLE_MOVE_MAX_TIME;
             }
 
-            const TimePoint elapsedTime = mainManager->elapsed(threads);
+            TimePoint elapsedTime = mainManager->elapsed(threads);
 
             // Stop the search if have exceeded the total time
             if (elapsedTime > totalTime)
@@ -737,7 +737,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     assert(ss->ply >= 0);
     assert(!RootNode || (DEPTH_ZERO < depth && depth <= MAX_PLY - 1));
 
-    const Key key = pos.key();
+    Key key = pos.key();
 
     if constexpr (!RootNode)
     {
@@ -807,7 +807,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
     (ss + 1)->cutoffCount = 0;
 
-    const bool exclude = excludedMove != Move::None;
+    bool exclude = excludedMove != Move::None;
 
     // Step 4. Transposition table lookup
     auto [ttd, ttu] = transpositionTable.probe(key);
@@ -817,21 +817,21 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
               : ttd.hit  ? legal_tt_move(ttd.move, pos)
                          : Move::None;
 
-    const bool ttmNone = ttd.move == Move::None;
+    bool ttmNone = ttd.move == Move::None;
     assert(ttmNone || pos.legal(ttd.move));
-    ss->ttMove           = ttd.move;
-    const bool ttCapture = !ttmNone && pos.capture_promo(ttd.move);
+    ss->ttMove     = ttd.move;
+    bool ttCapture = !ttmNone && pos.capture_promo(ttd.move);
 
     if (!exclude)
         ss->ttPv = PVNode || (ttd.hit && ttd.pv);
 
-    const Square preSq = (ss - 1)->move.is_ok() ? (ss - 1)->move.dst_sq() : SQ_NONE;
+    Square preSq = (ss - 1)->move.is_ok() ? (ss - 1)->move.dst_sq() : SQ_NONE;
 
-    const bool preCapture = is_ok(pos.captured_pc());
-    const bool preNonPawn =
+    bool preCapture = is_ok(pos.captured_pc());
+    bool preNonPawn =
       preSq != SQ_NONE && type_of(pos[preSq]) != PAWN && (ss - 1)->move.type() != MT::PROMOTION;
 
-    const int correctionValue = correction_value(pos, ss);
+    int correctionValue = correction_value(pos, ss);
 
     Value evalValue, ttEvalValue;
 
@@ -887,7 +887,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     if (depth > 1 && red >= 2 && ss->evalValue > 169 - (ss - 1)->evalValue)
         --depth;
 
-    const Key pawnKey = pos.pawn_key();
+    Key pawnKey = pos.pawn_key();
 
     State st;
 
@@ -935,7 +935,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         }
     }
 
-    const Color ac = pos.active_color();
+    Color ac = pos.active_color();
 
     bool  hasNonPawn   = pos.has_non_pawn(ac);
     Value nonPawnValue = hasNonPawn ? pos.non_pawn_value(ac) : VALUE_ZERO;
@@ -950,7 +950,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     if constexpr (!RootNode)
         if (!exclude && tbConfig.cardinality != 0)
         {
-            const std::uint8_t pieceCount = pos.count();
+            std::uint8_t pieceCount = pos.count();
 
             if (pieceCount <= tbConfig.cardinality
                 && (pieceCount < tbConfig.cardinality || depth >= tbConfig.probeDepth)
@@ -1004,7 +1004,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
             }
         }
 
-    const int absCorrectionValue = std::abs(correctionValue);
+    int absCorrectionValue = std::abs(correctionValue);
 
     // Skip early pruning when in check
     if (!ss->inCheck)
@@ -1727,7 +1727,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     assert(-VALUE_INFINITE <= alpha && alpha < beta && beta <= +VALUE_INFINITE);
     assert(PVNode || (1 + alpha == beta));
 
-    const Key key = pos.key();
+    Key key = pos.key();
 
     // Check if have an upcoming move that draws by repetition
     if (alpha < VALUE_DRAW && pos.is_upcoming_repetition(ss->ply))
@@ -1765,15 +1765,15 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     ttd.value = ttd.hit ? value_from_tt(ttd.value, ss->ply, pos.rule50_count()) : VALUE_NONE;
     ttd.move  = ttd.hit ? legal_tt_move(ttd.move, pos) : Move::None;
     assert(ttd.move == Move::None || pos.legal(ttd.move));
-    ss->ttMove      = ttd.move;
-    const bool ttPv = ttd.hit && ttd.pv;
+    ss->ttMove = ttd.move;
+    bool ttPv  = ttd.hit && ttd.pv;
 
     // Check for an early TT cutoff at non-pv nodes
     if (!PVNode && ttd.depth >= DEPTH_ZERO && is_valid(ttd.value)
         && is_ok(ttd.bound & fail_bound(ttd.value >= beta)))
         return ttd.value;
 
-    const int correctionValue = ss->inCheck ? 0 : correction_value(pos, ss);
+    int correctionValue = ss->inCheck ? 0 : correction_value(pos, ss);
 
     Value evalValue, bestValue, baseFutilityValue;
 
@@ -2086,7 +2086,7 @@ void Worker::update_histories(const Position& pos, Key pawnKey, Stack* const ss,
 
 // Updates correction histories at the end of search() when a bestMove is found
 void Worker::update_correction_histories(const Position& pos, Stack* const ss, int bonus) noexcept {
-    const Color ac = pos.active_color();
+    Color ac = pos.active_color();
 
     bonus = std::clamp(bonus, -CORRECTION_HISTORY_LIMIT / 4, +CORRECTION_HISTORY_LIMIT / 4);
 
@@ -2097,7 +2097,7 @@ void Worker::update_correction_histories(const Position& pos, Stack* const ss, i
     histories.non_pawn_correction<WHITE>(pos.non_pawn_key(WHITE))[ac] << 1.3906 * bonus;
     histories.non_pawn_correction<BLACK>(pos.non_pawn_key(BLACK))[ac] << 1.3906 * bonus;
 
-    const Square preSq = (ss - 1)->move.is_ok() ? (ss - 1)->move.dst_sq() : SQ_NONE;
+    Square preSq = (ss - 1)->move.is_ok() ? (ss - 1)->move.dst_sq() : SQ_NONE;
 
     if (preSq != SQ_NONE)
     {
@@ -2110,9 +2110,9 @@ void Worker::update_correction_histories(const Position& pos, Stack* const ss, i
 int Worker::correction_value(const Position& pos, const Stack* const ss) noexcept {
     constexpr std::int64_t Limit = 0x7FFFFFFF;
 
-    const Color ac = pos.active_color();
+    Color ac = pos.active_color();
 
-    const Square preSq = (ss - 1)->move.is_ok() ? (ss - 1)->move.dst_sq() : SQ_NONE;
+    Square preSq = (ss - 1)->move.is_ok() ? (ss - 1)->move.dst_sq() : SQ_NONE;
 
     return std::clamp<std::int64_t>(
            + 5174LL * (histories.    pawn_correction<WHITE>(pos.    pawn_key(WHITE))[ac]
@@ -2140,7 +2140,7 @@ bool Worker::ponder_move_extracted() noexcept {
     auto& rm0 = rootMoves[0];
     assert(rm0.pv.size() == 1);
 
-    const Move bestMove = rm0.pv[0];
+    Move bestMove = rm0.pv[0];
 
     if (bestMove == Move::None)
         return false;
@@ -2149,7 +2149,7 @@ bool Worker::ponder_move_extracted() noexcept {
     rootPos.do_move(bestMove, st, true, this);
 
     // Legal moves for the opponent
-    const MoveList<GenType::LEGAL> oLegalMoves(rootPos);
+    MoveList<GenType::LEGAL> oLegalMoves(rootPos);
 
     if (!oLegalMoves.empty())
     {
@@ -2211,13 +2211,13 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
     if (!options["SyzygyPVExtend"])
         return;
 
-    const TimePoint MoveOverhead = options["MoveOverhead"];
-    const bool      UseRule50    = options["Syzygy50MoveRule"];
+    TimePoint MoveOverhead = options["MoveOverhead"];
+    bool      UseRule50    = options["Syzygy50MoveRule"];
 
     // If time manager is active, don't use more than 50% of MoveOverhead time
-    const auto startTime = std::chrono::steady_clock::now();
+    auto startTime = std::chrono::steady_clock::now();
 
-    const auto time_to_abort = [&]() noexcept -> bool {
+    auto time_to_abort = [&]() noexcept -> bool {
         auto endTime = std::chrono::steady_clock::now();
         return limit.use_time_manager()
             && (options["NodesTime"] != 0
@@ -2239,11 +2239,11 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
     // Step 1. Walk the PV to the last position in TB with correct decisive score
     while (std::size_t(ply) < rootMove.pv.size())
     {
-        const Move pvMove = rootMove.pv[ply];
+        Move pvMove = rootMove.pv[ply];
 
         RootMoves rms;
 
-        for (const Move m : MoveList<GenType::LEGAL>(rootPos))
+        for (Move m : MoveList<GenType::LEGAL>(rootPos))
             rms.emplace_back(m);
 
         auto tbCfg = Tablebase::rank_root_moves(rootPos, rms, options, false, time_to_abort);
@@ -2281,7 +2281,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
 
         RootMoves rms;
 
-        for (const Move m : MoveList<GenType::LEGAL>(rootPos))
+        for (Move m : MoveList<GenType::LEGAL>(rootPos))
         {
             auto& rm = rms.emplace_back(m);
 
@@ -2289,7 +2289,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
             rootPos.do_move(m, st);
             // Give a score of each move to break DTZ ties
             // restricting opponent mobility, but not giving the opponent a capture.
-            for (const Move om : MoveList<GenType::LEGAL>(rootPos))
+            for (Move om : MoveList<GenType::LEGAL>(rootPos))
                 rm.tbRank -= 1 + 99 * rootPos.capture(om);
 
             rootPos.undo_move(m);
@@ -2415,41 +2415,41 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
     if (time == 0)
         time = 1;
 
-    const std::uint64_t nodes    = threads.sum(&Worker::nodes);
-    const std::uint16_t hashfull = transpositionTable.hashfull();
-    const std::uint64_t tbHits   = threads.sum(&Worker::tbHits,  //
-                                             tbConfig.rootInTB ? rootMoves.size() : 0);
-    const bool          ShowWDL  = options["UCI_ShowWDL"];
+    std::uint64_t nodes    = threads.sum(&Worker::nodes);
+    std::uint16_t hashfull = transpositionTable.hashfull();
+    std::uint64_t tbHits   = threads.sum(&Worker::tbHits,  //
+                                       tbConfig.rootInTB ? rootMoves.size() : 0);
+    bool          ShowWDL  = options["UCI_ShowWDL"];
 
     for (std::size_t i = 0; i < multiPV; ++i)
     {
         auto& rm = rootMoves[i];
 
-        const bool updated = rm.curValue != -VALUE_INFINITE;
+        bool updated = rm.curValue != -VALUE_INFINITE;
 
         if (i != 0 && depth == 1 && !updated)
             continue;
 
-        const Depth d = updated ? depth : depth - int(depth > 1);
+        Depth d = updated ? depth : depth - int(depth > 1);
 
         Value v = updated ? rm.uciValue : rm.preValue;
 
         if (v == -VALUE_INFINITE)
             v = VALUE_ZERO;
 
-        const bool tb = tbConfig.rootInTB && !is_mate(v);
+        bool tb = tbConfig.rootInTB && !is_mate(v);
 
         if (tb)
             v = rm.tbValue;
 
         // tablebase- and previous-scores are exact
-        const bool exact = i != curPV || tb || !updated;
+        bool exact = i != curPV || tb || !updated;
 
         // Potentially correct and extend the PV, and in exceptional cases value also
         if (is_decisive(v) && !is_mate(v) && (exact || rm.bound == Bound::NONE))
             worker.extend_tb_pv(i, v);
 
-        const std::string score = UCI::to_score({v, rootPos});
+        std::string score = UCI::to_score({v, rootPos});
 
         std::string bound;
         if (!exact && is_ok(rm.bound))
@@ -2459,7 +2459,7 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
         if (ShowWDL)
             wdl = UCI::to_wdl(v, rootPos);
 
-        const std::string pv = UCI::build_pv_string(rm.pv);
+        std::string pv = UCI::build_pv_string(rm.pv);
 
         updateContext.onUpdateFull(
           {{d, score}, rm.selDepth, i + 1, bound, wdl, time, nodes, hashfull, tbHits, pv});
@@ -2493,11 +2493,11 @@ void Skill::init(const Options& options) noexcept {
     {
         constexpr StdArray<double, 4> P{37.2473, -40.8525, 22.2943, -0.311438};
 
-        const std::uint16_t UCI_ELO = options["UCI_ELO"];
+        std::uint16_t UCI_ELO = options["UCI_ELO"];
 
-        const double e = double(UCI_ELO - MIN_ELO) / (MAX_ELO - MIN_ELO);
+        double e = double(UCI_ELO - MIN_ELO) / (MAX_ELO - MIN_ELO);
 
-        const double l = ((P[0] * e + P[1]) * e + P[2]) * e + P[3];
+        double l = ((P[0] * e + P[1]) * e + P[2]) * e + P[3];
 
         level = std::clamp(l, MIN_LEVEL, MAX_LEVEL - 0.01);
     }
@@ -2520,9 +2520,9 @@ Move Skill::pick_move(const RootMoves& rootMoves, std::size_t multiPV, bool pick
     if (pickBest || bestMove == Move::None)
     {
         // RootMoves are already sorted by value in descending order
-        const Value maxValue = rootMoves[0].curValue;
+        Value maxValue = rootMoves[0].curValue;
 
-        const Value delta = std::min(maxValue - rootMoves[multiPV - 1].curValue, int(VALUE_PAWN));
+        Value delta = std::min(maxValue - rootMoves[multiPV - 1].curValue, int(VALUE_PAWN));
 
         Value bestValue = -VALUE_INFINITE;
         // Choose best move. For each move value add two terms, both dependent on weakness.
@@ -2530,10 +2530,10 @@ Move Skill::pick_move(const RootMoves& rootMoves, std::size_t multiPV, bool pick
         // Then choose the move with the resulting highest value.
         for (std::size_t i = 0; i < multiPV; ++i)
         {
-            const Value diff  = maxValue - rootMoves[i].curValue;
-            const Value noise = prng.rand<std::uint32_t>() % weakness();
-            const Value push  = (weakness() * diff + delta * noise) / 128;
-            const Value value = rootMoves[i].curValue + push;
+            Value diff  = maxValue - rootMoves[i].curValue;
+            Value noise = prng.rand<std::uint32_t>() % weakness();
+            Value push  = (weakness() * diff + delta * noise) / 128;
+            Value value = rootMoves[i].curValue + push;
 
             if (bestValue <= value)
             {

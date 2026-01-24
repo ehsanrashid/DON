@@ -207,9 +207,9 @@ class Position final {
 
    public:
     // FEN string input/output
-    void        set(std::string_view fens, State* const newSt) noexcept;
-    void        set(std::string_view code, Color c, State* const newSt) noexcept;
-    void        set(const Position& pos, State* const newSt) noexcept;
+    void        set(std::string_view fens, State* newSt) noexcept;
+    void        set(std::string_view code, Color c, State* newSt) noexcept;
+    void        set(const Position& pos, State* newSt) noexcept;
     std::string fen(bool complete = true) const noexcept;
 
     // Position representation
@@ -288,9 +288,9 @@ class Position final {
 
     // clang-format off
     // Doing and undoing moves
-    DirtyBoard do_move(Move m, State& newSt, bool mayCheck = true, const Worker* const worker = nullptr) noexcept;
+    DirtyBoard do_move(Move m, State& newSt, bool mayCheck = true, const Worker* worker = nullptr) noexcept;
     void       undo_move(Move m) noexcept;
-    void       do_null_move(State& newSt, const Worker* const worker = nullptr) noexcept;
+    void       do_null_move(State& newSt, const Worker* worker = nullptr) noexcept;
     void       undo_null_move() noexcept;
     // clang-format on
 
@@ -364,8 +364,8 @@ class Position final {
     bool has_repeated() const noexcept;
     bool is_upcoming_repetition(std::int16_t ply) const noexcept;
 
-    void  put(Square s, Piece pc, DirtyThreats* const dts = nullptr) noexcept;
-    Piece remove(Square s, DirtyThreats* const dts = nullptr) noexcept;
+    void  put(Square s, Piece pc, DirtyThreats* dts = nullptr) noexcept;
+    Piece remove(Square s, DirtyThreats* dts = nullptr) noexcept;
 
     void flip() noexcept;
     void mirror() noexcept;
@@ -437,27 +437,26 @@ class Position final {
     void set_ext_state() noexcept;
 
     template<bool MoveDone = true>
-    bool enpassant_possible(Color           ac,
-                            Square          enPassantSq,
-                            Bitboard* const epPawnsBBp = nullptr) const noexcept;
+    bool
+    enpassant_possible(Color ac, Square enPassantSq, Bitboard* epPawnsBBp = nullptr) const noexcept;
 
     // Other helpers
-    Piece move(Square s1, Square s2, DirtyThreats* const dts = nullptr) noexcept;
-    Piece swap(Square s, Piece newPc, DirtyThreats* const dts = nullptr) noexcept;
+    Piece move(Square s1, Square s2, DirtyThreats* dts = nullptr) noexcept;
+    Piece swap(Square s, Piece newPc, DirtyThreats* dts = nullptr) noexcept;
 
     template<bool Put, bool ComputeRay = true>
-    void update_pc_threats(Square              s,
-                           Piece               pc,
-                           DirtyThreats* const dts,
-                           Bitboard            targetBB = FULL_BB) const noexcept;
+    void update_pc_threats(Square        s,
+                           Piece         pc,
+                           DirtyThreats* dts,
+                           Bitboard      targetBB = FULL_BB) const noexcept;
 
     template<bool Do>
-    void do_castling(Color             ac,
-                     Square            kingOrgSq,
-                     Square&           kingDstSq,
-                     Square&           rookOrgSq,
-                     Square&           rookDstSq,
-                     DirtyBoard* const db = nullptr) noexcept;
+    void do_castling(Color       ac,
+                     Square      kingOrgSq,
+                     Square&     kingDstSq,
+                     Square&     rookOrgSq,
+                     Square&     rookDstSq,
+                     DirtyBoard* db = nullptr) noexcept;
 
     void reset_en_passant_sq() noexcept;
     void reset_rule50_count() noexcept;
@@ -958,14 +957,14 @@ inline void Position::reset_en_passant_sq() noexcept { st->enPassantSq = SQ_NONE
 
 inline void Position::reset_rule50_count() noexcept { st->rule50Count = 0; }
 
-inline void Position::put(Square s, Piece pc, DirtyThreats* const dts) noexcept {
+inline void Position::put(Square s, Piece pc, DirtyThreats* dts) noexcept {
     assert(is_ok(s) && is_ok(pc) && empty(s));
 
-    const Bitboard sBB = make_bb(s);
+    Bitboard sBB = make_bb(s);
 
-    const auto c   = color_of(pc);
-    const auto pt  = type_of(pc);
-    const auto cnt = count(c, pt);
+    auto c   = color_of(pc);
+    auto pt  = type_of(pc);
+    auto cnt = count(c, pt);
 
     pieceMap[s] = pc;
     colorBBs[c] |= sBB;
@@ -980,15 +979,15 @@ inline void Position::put(Square s, Piece pc, DirtyThreats* const dts) noexcept 
         update_pc_threats<true>(s, pc, dts);
 }
 
-inline Piece Position::remove(Square s, DirtyThreats* const dts) noexcept {
+inline Piece Position::remove(Square s, DirtyThreats* dts) noexcept {
     assert(is_ok(s) && !empty(s));
 
-    const Bitboard sBB = make_bb(s);
+    Bitboard sBB = make_bb(s);
 
-    const Piece pc  = piece(s);
-    const auto  c   = color_of(pc);
-    const auto  pt  = type_of(pc);
-    const auto  cnt = count(c, pt);
+    Piece pc  = piece(s);
+    auto  c   = color_of(pc);
+    auto  pt  = type_of(pc);
+    auto  cnt = count(c, pt);
     assert(is_ok(pc) && cnt != 0);
 
     if (dts != nullptr)
@@ -999,24 +998,24 @@ inline Piece Position::remove(Square s, DirtyThreats* const dts) noexcept {
     typeBBs[pt] ^= sBB;
     typeBBs[ALL] ^= sBB;
 
-    const auto idx = indexMap[s];
+    auto idx = indexMap[s];
     assert(idx < pieceLists[c][pt].size());
-    const Square sb = pieceLists[c][pt].back(base(c), cnt);
-    indexMap[sb]    = idx;
+    Square sb    = pieceLists[c][pt].back(base(c), cnt);
+    indexMap[sb] = idx;
     //indexMap[s]  = INVALID_INDEX;
     pieceLists[c][pt].at(idx, base(c)) = sb;
 
     return pc;
 }
 
-inline Piece Position::move(Square s1, Square s2, DirtyThreats* const dts) noexcept {
+inline Piece Position::move(Square s1, Square s2, DirtyThreats* dts) noexcept {
     assert(is_ok(s1) && is_ok(s2) && s1 != s2 && !empty(s1));
 
-    const Bitboard s1s2BB = make_bb(s1, s2);
+    Bitboard s1s2BB = make_bb(s1, s2);
 
-    const Piece pc = piece(s1);
-    const auto  c  = color_of(pc);
-    const auto  pt = type_of(pc);
+    Piece pc = piece(s1);
+    auto  c  = color_of(pc);
+    auto  pt = type_of(pc);
     assert(is_ok(pc) && count(c, pt) != 0);
 
     if (dts != nullptr)
@@ -1028,7 +1027,7 @@ inline Piece Position::move(Square s1, Square s2, DirtyThreats* const dts) noexc
     typeBBs[pt] ^= s1s2BB;
     typeBBs[ALL] ^= s1s2BB;
 
-    const auto idx = indexMap[s1];
+    auto idx = indexMap[s1];
     assert(idx < pieceLists[c][pt].size());
     indexMap[s2] = idx;
     //indexMap[s1] = INVALID_INDEX;
@@ -1040,9 +1039,9 @@ inline Piece Position::move(Square s1, Square s2, DirtyThreats* const dts) noexc
     return pc;
 }
 
-inline Piece Position::swap(Square s, Piece newPc, DirtyThreats* const dts) noexcept {
+inline Piece Position::swap(Square s, Piece newPc, DirtyThreats* dts) noexcept {
 
-    const Piece oldPc = remove(s);
+    Piece oldPc = remove(s);
 
     if (dts != nullptr)
         update_pc_threats<false, false>(s, oldPc, dts);
@@ -1074,7 +1073,7 @@ template<int SqShift, int PcShift>
 inline void write_multiple_dirties(const StdArray<Piece, SQUARE_NB>& pieceMap,
                                    Bitboard                          maskBB,
                                    DirtyThreat                       templateDt,
-                                   DirtyThreats* const               dts) noexcept {
+                                   DirtyThreats*                     dts) noexcept {
     __m512i squares = _mm512_set_epi8(63, 62, 61, 60, 59, 58, 57, 56,  //
                                       55, 54, 53, 52, 51, 50, 49, 48,  //
                                       47, 46, 45, 44, 43, 42, 41, 40,  //
@@ -1084,14 +1083,14 @@ inline void write_multiple_dirties(const StdArray<Piece, SQUARE_NB>& pieceMap,
                                       15, 14, 13, 12, 11, 10, 9, 8,    //
                                       7, 6, 5, 4, 3, 2, 1, 0);
 
-    const __m512i pieceMapData = _mm512_loadu_si512(pieceMap.data());
+    __m512i pieceMapData = _mm512_loadu_si512(pieceMap.data());
 
-    const std::uint8_t maskCount = popcount(maskBB);
+    std::uint8_t maskCount = popcount(maskBB);
     assert(maskCount <= 16);
 
     auto* dt = dts->dtList.make_space(maskCount);
 
-    const __m512i templateVal = _mm512_set1_epi32(templateDt.raw());
+    __m512i templateVal = _mm512_set1_epi32(templateDt.raw());
 
     // Extract the list of squares and upconvert to 32 bits.
     // There are never more than 16 incoming threats so this is sufficient.
@@ -1106,8 +1105,7 @@ inline void write_multiple_dirties(const StdArray<Piece, SQUARE_NB>& pieceMap,
     threatPieces  = _mm512_slli_epi32(threatPieces, PcShift);
 
     // Combine into final dirty values                  A | B | C
-    const __m512i dirties =
-      _mm512_ternarylogic_epi32(templateVal, threatSquares, threatPieces, 254);
+    __m512i dirties = _mm512_ternarylogic_epi32(templateVal, threatSquares, threatPieces, 254);
     _mm512_storeu_si512(reinterpret_cast<__m512i*>(dt), dirties);
 }
 #endif
@@ -1116,12 +1114,12 @@ inline void write_multiple_dirties(const StdArray<Piece, SQUARE_NB>& pieceMap,
 template<bool Put, bool ComputeRay>
 inline void Position::update_pc_threats(Square                    s,
                                         Piece                     pc,
-                                        DirtyThreats* const       dts,
+                                        DirtyThreats*             dts,
                                         [[maybe_unused]] Bitboard targetBB) const noexcept {
 
     Bitboard occupancyBB = pieces_bb();
 
-    const auto attacksBB = [&]() noexcept {
+    auto attacksBB = [&]() noexcept {
         StdArray<Bitboard, 1 + PIECE_TYPE_CNT> _;
 
         _[WHITE]  = attacks_bb<PAWN>(s, WHITE);

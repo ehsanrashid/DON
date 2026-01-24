@@ -185,9 +185,7 @@ using AlignedStdPtr =
 template<typename T, typename... Args>
 std::enable_if_t<!std::is_array_v<T>, AlignedStdPtr<T>>
 make_unique_aligned_std(Args&&... args) noexcept {
-    const auto allocFunc = [](std::size_t allocSize) {
-        return alloc_aligned_std(allocSize, alignof(T));
-    };
+    auto allocFunc = [](std::size_t allocSize) { return alloc_aligned_std(allocSize, alignof(T)); };
 
     auto* obj = memory_allocator<T>(allocFunc, std::forward<Args>(args)...);
 
@@ -200,7 +198,7 @@ std::enable_if_t<std::is_array_v<T>, AlignedStdPtr<T>>
 make_unique_aligned_std(std::size_t size) noexcept {
     using ElementType = std::remove_extent_t<T>;
 
-    const auto allocFunc = [](std::size_t allocSize) {
+    auto allocFunc = [](std::size_t allocSize) {
         return alloc_aligned_std(allocSize, alignof(ElementType));
     };
 

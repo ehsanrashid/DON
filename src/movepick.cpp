@@ -101,16 +101,16 @@ MovePicker::score<GenType::ENC_CAPTURE>(MoveList<GenType::ENC_CAPTURE>& moveList
 
     iterator itr = cur;
 
-    for (const auto move : moveList)
+    for (Move move : moveList)
     {
         auto& m = *itr++;
         m       = move;
 
         assert(pos.capture_promo(m));
 
-        const Square dstSq      = m.dst_sq();
-        const auto   movedPc    = pos.moved_pc(m);
-        const auto   capturedPt = pos.captured_pt(m);
+        Square dstSq      = m.dst_sq();
+        auto   movedPc    = pos.moved_pc(m);
+        auto   capturedPt = pos.captured_pt(m);
 
         std::int64_t value = 7 * piece_value(capturedPt)  //
                            + (*captureHistory)[+movedPc][dstSq][capturedPt];
@@ -124,26 +124,26 @@ MovePicker::score<GenType::ENC_CAPTURE>(MoveList<GenType::ENC_CAPTURE>& moveList
 template<>
 MovePicker::iterator
 MovePicker::score<GenType::ENC_QUIET>(MoveList<GenType::ENC_QUIET>& moveList) noexcept {
-    const Color ac = pos.active_color();
+    Color ac = pos.active_color();
 
-    const Bitboard blockersBB = pos.blockers_bb(~ac);
-    const Bitboard pinnersBB  = pos.pinners_bb();
-    const Bitboard threatsBB  = pos.threats_bb();
+    Bitboard blockersBB = pos.blockers_bb(~ac);
+    Bitboard pinnersBB  = pos.pinners_bb();
+    Bitboard threatsBB  = pos.threats_bb();
 
     Key pawnKey = pos.pawn_key();
 
     iterator itr = cur;
 
-    for (const auto move : moveList)
+    for (Move move : moveList)
     {
         auto& m = *itr++;
         m       = move;
 
         assert(!pos.capture_promo(m));
 
-        const Square orgSq = m.org_sq(), dstSq = m.dst_sq();
-        const Piece  movedPc = pos.moved_pc(m);
-        const auto   movedPt = type_of(movedPc);
+        Square orgSq = m.org_sq(), dstSq = m.dst_sq();
+        Piece  movedPc = pos.moved_pc(m);
+        auto   movedPt = type_of(movedPc);
 
         std::int64_t value;
 
@@ -192,7 +192,7 @@ MovePicker::score<GenType::EVA_CAPTURE>(MoveList<GenType::EVA_CAPTURE>& moveList
 
     iterator itr = cur;
 
-    for (const auto move : moveList)
+    for (Move move : moveList)
     {
         auto& m = *itr++;
         m       = move;
@@ -200,7 +200,7 @@ MovePicker::score<GenType::EVA_CAPTURE>(MoveList<GenType::EVA_CAPTURE>& moveList
         assert(pos.capture_promo(m));
         assert(m.type() != MT::CASTLING);
 
-        const auto capturedPt = pos.captured_pt(m);
+        auto capturedPt = pos.captured_pt(m);
 
         std::int64_t value = piece_value(capturedPt);
 
@@ -214,11 +214,11 @@ template<>
 MovePicker::iterator
 MovePicker::score<GenType::EVA_QUIET>(MoveList<GenType::EVA_QUIET>& moveList) noexcept {
 
-    const Color ac = pos.active_color();
+    Color ac = pos.active_color();
 
     iterator itr = cur;
 
-    for (const auto move : moveList)
+    for (Move move : moveList)
     {
         auto& m = *itr++;
         m       = move;
@@ -226,8 +226,8 @@ MovePicker::score<GenType::EVA_QUIET>(MoveList<GenType::EVA_QUIET>& moveList) no
         assert(!pos.capture_promo(m));
         assert(m.type() != MT::CASTLING);
 
-        const Square dstSq   = m.dst_sq();
-        const Piece  movedPc = pos.moved_pc(m);
+        Square dstSq   = m.dst_sq();
+        Piece  movedPc = pos.moved_pc(m);
 
         std::int64_t value = (*quietHistory)[ac][m.raw()]  //
                            + (*continuationHistory[0])[+movedPc][dstSq];
@@ -297,7 +297,7 @@ void insertion_sort(Iterator beg, Iterator end) noexcept {
         auto value = std::move(*p);
 
         // Find the correct position for value using binary search
-        const Iterator q = exponential_upper_bound(beg, p, value, ext_move_descending);
+        Iterator q = exponential_upper_bound(beg, p, value, ext_move_descending);
 
         // Shift elements
         for (Iterator r = p; r != q; --r)

@@ -490,7 +490,7 @@ void correl_of(std::int64_t value1, std::int64_t value2, std::size_t slot) noexc
 void print() noexcept {
 
     std::int64_t n;
-    const auto   avg = [&n](std::int64_t x) noexcept { return double(x) / n; };
+    auto         avg = [&n](std::int64_t x) noexcept { return double(x) / n; };
 
     for (std::size_t i = 0; i < hit.size(); ++i)
     {
@@ -669,7 +669,8 @@ std::optional<std::string> read_file_to_string(std::string_view filePath) noexce
     if (!ifs)
         return std::nullopt;
 
-    const auto size = ifs.tellg();
+    auto size = ifs.tellg();
+
     if (size < 0)
         return std::nullopt;
 

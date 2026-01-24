@@ -305,7 +305,7 @@ PerftData perft(Position& pos, Depth depth, bool detail) noexcept {
 
     PerftData perftData;
 
-    for (const Move m : MoveList<GenType::LEGAL>(pos))
+    for (Move m : MoveList<GenType::LEGAL>(pos))
     {
         PerftData iPerftData;
 
@@ -324,12 +324,12 @@ PerftData perft(Position& pos, Depth depth, bool detail) noexcept {
 
             if (depth <= 2)
             {
-                const MoveList<GenType::LEGAL> iLegalMoves(pos);
+                MoveList<GenType::LEGAL> iLegalMoves(pos);
 
                 iPerftData.nodes += iLegalMoves.size();
 
                 if (detail)
-                    for (const Move im : iLegalMoves)
+                    for (Move im : iLegalMoves)
                         iPerftData.classify(pos, im);
             }
             else

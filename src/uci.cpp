@@ -736,7 +736,7 @@ void UCI::benchmark(std::istream& is) noexcept {
     StdArray<std::uint16_t, HashfullAges.size()> maxHashfull{};
     StdArray<std::uint32_t, HashfullAges.size()> sumHashfull{};
 
-    const auto update_hashfull = [&]() noexcept -> void {
+    auto update_hashfull = [&]() noexcept -> void {
         ++hashfullCount;
         for (std::size_t i = 0; i < HashfullAges.size(); ++i)
         {
@@ -747,9 +747,7 @@ void UCI::benchmark(std::istream& is) noexcept {
         }
     };
 
-    const auto avg = [&hashfullCount](std::uint32_t x) noexcept {
-        return double(x) / hashfullCount;
-    };
+    auto avg = [&hashfullCount](std::uint32_t x) noexcept { return double(x) / hashfullCount; };
 
     elapsedTime += now() - startTime;
     engine.init();  // May take a while
@@ -918,16 +916,15 @@ std::string UCI::to_wdl(Value v, const Position& pos) noexcept {
 std::string UCI::to_score(const Score& score) noexcept {
     constexpr int TB_CP = 20000;
 
-    const auto format =
-      Overload{[](Score::Unit unit) -> std::string {  //
-                   return "cp " + std::to_string(unit.value);
-               },
-               [](Score::Tablebase tb) -> std::string {  //
-                   return "cp " + std::to_string((tb.win ? +TB_CP : -TB_CP) - tb.ply);
-               },
-               [](Score::Mate mate) -> std::string {  //
-                   return "mate " + std::to_string((mate.ply + int(mate.ply > 0)) / 2);
-               }};
+    auto format = Overload{[](Score::Unit unit) -> std::string {  //
+                               return "cp " + std::to_string(unit.value);
+                           },
+                           [](Score::Tablebase tb) -> std::string {  //
+                               return "cp " + std::to_string((tb.win ? +TB_CP : -TB_CP) - tb.ply);
+                           },
+                           [](Score::Mate mate) -> std::string {  //
+                               return "mate " + std::to_string((mate.ply + int(mate.ply > 0)) / 2);
+                           }};
 
     return score.visit(format);
 }
@@ -938,8 +935,7 @@ std::string UCI::move_to_can(Move m) noexcept {
     if (m == Move::Null)
         return "0000";
 
-    const Square orgSq = m.org_sq();
-    Square       dstSq = m.dst_sq();
+    Square orgSq = m.org_sq(), dstSq = m.dst_sq();
 
     if (!Position::Chess960 && m.type() == MT::CASTLING)
     {
@@ -966,7 +962,7 @@ Move UCI::can_to_move(std::string can, const MoveList<GenType::LEGAL>& legalMove
 
     can = lower_case(can);
 
-    for (const Move m : legalMoves)
+    for (Move m : legalMoves)
         if (can == move_to_can(m))
             return m;
 
@@ -991,11 +987,11 @@ enum class Ambiguity : std::uint8_t {
 Ambiguity detect_ambiguity(Move m, const Position& pos) noexcept {
     assert(pos.legal(m));
 
-    const Color ac = pos.active_color();
+    Color ac = pos.active_color();
 
-    const Square orgSq = m.org_sq(), dstSq = m.dst_sq();
+    Square orgSq = m.org_sq(), dstSq = m.dst_sq();
     assert(color_of(pos[orgSq]) == ac);
-    const auto movedPt = type_of(pos[orgSq]);
+    auto movedPt = type_of(pos[orgSq]);
 
     // Only one piece of this piece-type -> no ambiguity
     if (pos.count(ac, movedPt) == 1)
@@ -1039,10 +1035,10 @@ std::string UCI::move_to_san(Move m, Position& pos) noexcept {
 
     assert(MoveList<GenType::LEGAL>(pos).contains(m));
 
-    const Square orgSq = m.org_sq(), dstSq = m.dst_sq();
+    Square orgSq = m.org_sq(), dstSq = m.dst_sq();
     assert(color_of(pos[orgSq]) == pos.active_color());
 
-    const auto movedPt = type_of(pos[orgSq]);
+    auto movedPt = type_of(pos[orgSq]);
 
     std::string san;
     san.reserve(9);
@@ -1129,7 +1125,7 @@ Move UCI::san_to_move(std::string                     san,
     if (san.size() >= 2 && san[1] == '-' && (san[0] == '0' || std::tolower(san[0]) == 'o'))
         std::replace_if(san.begin(), san.end(), [](char c) { return c == 'o' || c == '0'; }, 'O');
 
-    for (const Move m : legalMoves)
+    for (Move m : legalMoves)
         if (san == move_to_san(m, pos))
             return m;
 
@@ -1170,7 +1166,7 @@ std::string UCI::build_pv_string(const Moves& pvMoves) noexcept {
     std::string pv;
     pv.reserve(6 * pvMoves.size());
 
-    for (const Move m : pvMoves)
+    for (Move m : pvMoves)
     {
         pv += ' ';
         pv += move_to_can(m);

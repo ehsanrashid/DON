@@ -50,7 +50,7 @@ Value evaluate(const Position&          pos,
 
     NNUE::NetworkOutput netOut;
 
-    const auto compute_nnue = [&netOut = std::as_const(netOut)]() noexcept -> std::int32_t {
+    auto compute_nnue = [&netOut = std::as_const(netOut)]() noexcept -> std::int32_t {
         return (125 * netOut.psqt + 131 * netOut.positional) / 128;
     };
 

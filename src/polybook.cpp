@@ -53,14 +53,14 @@ union Zobrist final {
         Key key = 0;
 
         std::size_t n;
-        const auto  sqs = pos.squares(n);
+        auto        sqs = pos.squares(n);
 
-        auto       beg = sqs.begin();
-        const auto end = beg + n;
+        auto beg = sqs.begin();
+        auto end = beg + n;
         for (; beg != end; ++beg)
         {
-            const Square s  = *beg;
-            const Piece  pc = pos[s];
+            Square s  = *beg;
+            Piece  pc = pos[s];
 
             key ^= _.PieceSquare[color_of(pc)][type_of(pc) - 1][s];
         }
@@ -69,7 +69,7 @@ union Zobrist final {
         while (castlingRightsBB != 0)
             key ^= _.Castling[pop_lsq(castlingRightsBB)];
 
-        if (const Square enPassantSq = pos.en_passant_sq(); enPassantSq != SQ_NONE)
+        if (Square enPassantSq = pos.en_passant_sq(); enPassantSq != SQ_NONE)
             key ^= _.Enpassant[file_of(enPassantSq)];
 
         if (pos.active_color() == WHITE)
@@ -386,16 +386,16 @@ void swap_entry(PolyBook::Entry* const e) noexcept {
 // bit  6-11: origin square (from 0 to 63)
 // bit 12-13: promotion piece type - 2 (from KNIGHT-2 to QUEEN-2)
 // bit 14-15: special move flag: promotion (1), en-passant (2), castling (3)
-Move pg_to_move(std::uint16_t pgMove, const MoveList<GenType::LEGAL>& legalMoves) noexcept {
+Move pg_to_move(std::uint16_t pgMove, MoveList<GenType::LEGAL>& legalMoves) noexcept {
 
     Move move(pgMove);
 
     if (int pt = (move.raw() >> Move::PROMO_OFFSET) & 0x7; pt != 0)
         move = Move::make<MT::PROMOTION>(move.org_sq(), move.dst_sq(), PieceType(pt + 1));
 
-    const std::uint16_t moveRaw = move.raw() & ~Move::TYPE_MASK;
+    std::uint16_t moveRaw = move.raw() & ~Move::TYPE_MASK;
 
-    for (const Move m : legalMoves)
+    for (Move m : legalMoves)
         if ((m.raw() & ~Move::TYPE_MASK) == moveRaw)
             return m;
 
@@ -409,7 +409,7 @@ bool is_draw(Position& pos, Move m) noexcept {
     State st;
     pos.do_move(m, st);
 
-    const bool isDraw = pos.is_draw(pos.ply(), true, true);
+    bool isDraw = pos.is_draw(pos.ply(), true, true);
 
     pos.undo_move(m);
 
@@ -430,7 +430,7 @@ bool PolyBook::load(std::string_view bookFile) noexcept {
 
     std::error_code ec;
 
-    const std::size_t fileSize = std::filesystem::file_size(filename, ec);
+    std::size_t fileSize = std::filesystem::file_size(filename, ec);
 
     if (ec)
     {
@@ -453,8 +453,8 @@ bool PolyBook::load(std::string_view bookFile) noexcept {
         return false;
     }
 
-    const std::size_t entryCount = fileSize / EntrySize;
-    const std::size_t remainder  = fileSize % EntrySize;
+    std::size_t entryCount = fileSize / EntrySize;
+    std::size_t remainder  = fileSize % EntrySize;
 
     if (remainder != 0)
         std::cerr << "Warning: Bad size Book file " << filename << ", ignoring " << remainder
@@ -474,15 +474,15 @@ bool PolyBook::load(std::string_view bookFile) noexcept {
     // 2 MiB is a safe default; 4-64 MiB may be slightly faster on fast disks.
     constexpr std::size_t ChunkSize = (2 * ONE_MB / EntrySize) * EntrySize;
 
-    const std::size_t DataSize = entryCount * EntrySize;
+    std::size_t dataSize = entryCount * EntrySize;
 
     char* data = reinterpret_cast<char*>(entries.data());
 
     std::size_t readedSize = 0;
 
-    while (readedSize < DataSize)
+    while (readedSize < dataSize)
     {
-        std::streamsize readSize = std::min(ChunkSize, DataSize - readedSize);
+        std::streamsize readSize = std::min(ChunkSize, dataSize - readedSize);
 
         ifs.read(data + readedSize, readSize);
 
@@ -506,7 +506,7 @@ bool PolyBook::load(std::string_view bookFile) noexcept {
         return false;
     }
 
-    if (readedSize != DataSize || !ifs.good())
+    if (readedSize != dataSize || !ifs.good())
         std::cerr << "Failed to read complete Book file " << filename << std::endl;
 
     ifs.close();
@@ -533,8 +533,8 @@ std::size_t PolyBook::key_index(Key key) const noexcept {
     // Binary scan
     while (window > 2 * Radius)
     {
-        const std::size_t midIndex = begIndex + window / 2;
-        const Key         midKey   = entries[midIndex].key;
+        std::size_t midIndex = begIndex + window / 2;
+        Key         midKey   = entries[midIndex].key;
 
         if (midKey == key)
         {
@@ -567,7 +567,7 @@ std::size_t PolyBook::key_index(Key key) const noexcept {
 }
 
 PolyBook::Entries PolyBook::key_candidates(Key key) const noexcept {
-    const std::size_t index = key_index(key);
+    std::size_t index = key_index(key);
 
     Entries candidates;
 
@@ -592,19 +592,19 @@ Move PolyBook::probe(Position& pos, const RootMoves& rootMoves, const Options& o
     if (!(options["OwnBook"] && !empty() && pos.move_num() <= options["BookProbeDepth"]))
         return Move::None;
 
-    const Key key = PGZob.key(pos);
+    Key key = PGZob.key(pos);
 
-    const Entries candidates = key_candidates(key);
+    Entries candidates = key_candidates(key);
 
     if (candidates.empty())
         return Move::None;
 
-    const MoveList<GenType::LEGAL> legalMoves(pos);
+    MoveList<GenType::LEGAL> legalMoves(pos);
 
     std::uint32_t maxWeight = 0;
     std::uint64_t sumWeight = 0;
 
-    for (const auto& candidate : candidates)
+    for (auto& candidate : candidates)
     {
         if (maxWeight < candidate.weight)
             maxWeight = candidate.weight;

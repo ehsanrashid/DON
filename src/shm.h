@@ -646,7 +646,7 @@ class SharedMemoryCleanupManager final {
     static void register_signal_handlers() noexcept {
         std::atexit([]() { SharedMemoryRegistry::clean(); });
 
-        const auto setup_signal = [](int Signal) noexcept {
+        auto setup_signal = [](int Signal) noexcept {
             struct sigaction SigAction{};
             SigAction.sa_handler = signal_handler;
 

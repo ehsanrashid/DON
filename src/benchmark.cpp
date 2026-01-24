@@ -494,7 +494,7 @@ Setup benchmark(std::istream& is) noexcept {
     setup.filledInvocation += ' ' + std::to_string(setup.ttSize);
     setup.filledInvocation += ' ' + std::to_string(desiredMoveTime);
 
-    const auto get_move_time = [](std::uint16_t ply) noexcept {
+    auto get_move_time = [](std::uint16_t ply) noexcept {
         // time per move is fit roughly based on LTC games
         // seconds =    50 / (15 + ply)
         // msec    = 50000 / (15 + ply)

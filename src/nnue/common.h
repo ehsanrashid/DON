@@ -264,14 +264,14 @@ inline void write_leb_128(std::ostream& os, const std::array<IntType, Size>& in)
 
     std::size_t bufferIdx = 0;
 
-    const auto flush = [&]() noexcept {
+    auto flush = [&]() noexcept {
         if (bufferIdx == 0)
             return;
         os.write(reinterpret_cast<const char*>(buffer.data()), bufferIdx);
         bufferIdx = 0;
     };
 
-    const auto write = [&](std::uint8_t b) noexcept {
+    auto write = [&](std::uint8_t b) noexcept {
         buffer[bufferIdx++] = b;
         if (bufferIdx == buffer.size())
             flush();

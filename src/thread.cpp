@@ -158,7 +158,7 @@ void Threads::set(const NumaConfig&                       numaConfig,
     // unless we know for sure that we span NUMA nodes and replication is required.
     std::string numaPolicy = sharedState.options["NumaPolicy"];
 
-    const bool threadBindable = [&]() {
+    bool threadBindable = [&]() {
         if (numaPolicy == "none")
             return false;
 
@@ -201,7 +201,7 @@ void Threads::set(const NumaConfig&                       numaConfig,
         NumaIndex   numaId = pair.first;
         std::size_t count  = pair.second;
 
-        const auto create_histories = [&]() noexcept {
+        auto create_histories = [&]() noexcept {
             std::size_t roundedCount = round_up_to_pow2(count);
 
             historiesMap.try_emplace(numaId, roundedCount);
@@ -213,7 +213,7 @@ void Threads::set(const NumaConfig&                       numaConfig,
             create_histories();
     }
 
-    const NumaConfig* const numaConfigPtr = threadBindable ? &numaConfig : nullptr;
+    const NumaConfig* numaConfigPtr = threadBindable ? &numaConfig : nullptr;
 
     std::unordered_map<NumaIndex, std::size_t> numaIds;
 
@@ -224,7 +224,7 @@ void Threads::set(const NumaConfig&                       numaConfig,
         std::size_t threadId = size();
         NumaIndex   numaId   = threadBindable ? threadBoundNumaNodes[threadId] : 0;
 
-        const auto create_thread = [&]() noexcept {
+        auto create_thread = [&]() noexcept {
             // Search manager for this thread
             ISearchManagerPtr searchManager;
             if (threadId == 0)
@@ -269,7 +269,7 @@ Thread* Threads::best_thread() const noexcept {
     }
 
     // Vote according to value and depth, and select the best thread
-    const auto thread_voting_value = [=](const Thread* th) noexcept -> std::uint32_t {
+    auto thread_voting_value = [=](const Thread* th) noexcept -> std::uint32_t {
         return (14 + th->worker->rootMoves[0].curValue - minCurValue) * th->worker->completedDepth;
     };
 
@@ -281,26 +281,24 @@ Thread* Threads::best_thread() const noexcept {
 
     for (auto&& nextThread : threads)
     {
-        const auto bestThreadValue = bestThread->worker->rootMoves[0].curValue;
-        const auto nextThreadValue = nextThread->worker->rootMoves[0].curValue;
+        auto bestThreadValue = bestThread->worker->rootMoves[0].curValue;
+        auto nextThreadValue = nextThread->worker->rootMoves[0].curValue;
 
-        const auto& bestThreadPV = bestThread->worker->rootMoves[0].pv;
-        const auto& nextThreadPV = nextThread->worker->rootMoves[0].pv;
+        auto& bestThreadPV = bestThread->worker->rootMoves[0].pv;
+        auto& nextThreadPV = nextThread->worker->rootMoves[0].pv;
 
-        const auto bestThreadMoveVote = votes[bestThreadPV[0]];
-        const auto nextThreadMoveVote = votes[nextThreadPV[0]];
+        auto bestThreadMoveVote = votes[bestThreadPV[0]];
+        auto nextThreadMoveVote = votes[nextThreadPV[0]];
 
-        const auto bestThreadVotingValue = thread_voting_value(bestThread);
-        const auto nextThreadVotingValue = thread_voting_value(nextThread.get());
+        auto bestThreadVotingValue = thread_voting_value(bestThread);
+        auto nextThreadVotingValue = thread_voting_value(nextThread.get());
 
-        const bool bestThreadInProvenWin =
-          bestThreadValue != +VALUE_INFINITE && is_win(bestThreadValue);
-        const bool nextThreadInProvenWin =
-          nextThreadValue != +VALUE_INFINITE && is_win(nextThreadValue);
+        bool bestThreadInProvenWin = bestThreadValue != +VALUE_INFINITE && is_win(bestThreadValue);
+        bool nextThreadInProvenWin = nextThreadValue != +VALUE_INFINITE && is_win(nextThreadValue);
 
-        const bool bestThreadInProvenLoss =
+        bool bestThreadInProvenLoss =
           bestThreadValue != -VALUE_INFINITE && is_loss(bestThreadValue);
-        const bool nextThreadInProvenLoss =
+        bool nextThreadInProvenLoss =
           nextThreadValue != -VALUE_INFINITE && is_loss(nextThreadValue);
 
         if (bestThreadInProvenWin)
@@ -343,7 +341,7 @@ void Threads::start(Position&      pos,
 
     RootMoves rootMoves;
 
-    const MoveList<GenType::LEGAL> legalMoves(pos);
+    MoveList<GenType::LEGAL> legalMoves(pos);
 
     if (!limit.searchMoves.empty())
     {
@@ -353,7 +351,7 @@ void Threads::start(Position&      pos,
             if (emplace && rootMoves.size() == legalMoves.size())
                 break;
 
-            const Move m = UCI::mix_to_move(move, pos, legalMoves);
+            Move m = UCI::mix_to_move(move, pos, legalMoves);
 
             emplace = m != Move::None && !rootMoves.contains(m);
 
@@ -363,7 +361,7 @@ void Threads::start(Position&      pos,
     }
     else
     {
-        for (const Move m : legalMoves)
+        for (Move m : legalMoves)
             rootMoves.emplace_back(m);
     }
 
@@ -375,7 +373,7 @@ void Threads::start(Position&      pos,
             if (erase && rootMoves.empty())
                 break;
 
-            const Move m = UCI::mix_to_move(move, pos, legalMoves);
+            Move m = UCI::mix_to_move(move, pos, legalMoves);
 
             erase = m != Move::None;
 
@@ -387,9 +385,9 @@ void Threads::start(Position&      pos,
     auto& clock = limit.clocks[pos.active_color()];
 
     // If time manager is active, don't use more than 5% of clock time
-    const auto startTime = std::chrono::steady_clock::now();
+    auto startTime = std::chrono::steady_clock::now();
 
-    const auto time_to_abort = [&]() noexcept -> bool {
+    auto time_to_abort = [&]() noexcept -> bool {
         auto endTime = std::chrono::steady_clock::now();
         return limit.use_time_manager()
             && (options["NodesTime"] != 0

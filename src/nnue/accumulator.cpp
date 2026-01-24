@@ -367,26 +367,26 @@ Bitboard changed_bb(const StdArray<Piece, SQUARE_NB>& oldPieces,
 
     std::size_t s;
 
-    s                         = 0;
-    const __m256i       oldV0 = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&oldPieces[s]));
-    const __m256i       newV0 = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&newPieces[s]));
-    const __m256i       cmp0  = _mm256_cmpeq_epi8(oldV0, newV0);
-    const std::uint32_t mask0 = _mm256_movemask_epi8(cmp0);
+    s                   = 0;
+    __m256i       oldV0 = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&oldPieces[s]));
+    __m256i       newV0 = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&newPieces[s]));
+    __m256i       cmp0  = _mm256_cmpeq_epi8(oldV0, newV0);
+    std::uint32_t mask0 = _mm256_movemask_epi8(cmp0);
     samedBB |= Bitboard(mask0) << s;
 
-    s                         = 32;
-    const __m256i       oldV1 = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&oldPieces[s]));
-    const __m256i       newV1 = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&newPieces[s]));
-    const __m256i       cmp1  = _mm256_cmpeq_epi8(oldV1, newV1);
-    const std::uint32_t mask1 = _mm256_movemask_epi8(cmp1);
+    s                   = 32;
+    __m256i       oldV1 = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&oldPieces[s]));
+    __m256i       newV1 = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&newPieces[s]));
+    __m256i       cmp1  = _mm256_cmpeq_epi8(oldV1, newV1);
+    std::uint32_t mask1 = _mm256_movemask_epi8(cmp1);
     samedBB |= Bitboard(mask1) << s;
 
     return ~samedBB;
 #elif defined(USE_NEON)
-    const uint8x16x4_t oldV = vld4q_u8(reinterpret_cast<const uint8_t*>(oldPieces.data()));
-    const uint8x16x4_t newV = vld4q_u8(reinterpret_cast<const uint8_t*>(newPieces.data()));
+    uint8x16x4_t oldV = vld4q_u8(reinterpret_cast<const uint8_t*>(oldPieces.data()));
+    uint8x16x4_t newV = vld4q_u8(reinterpret_cast<const uint8_t*>(newPieces.data()));
 
-    const auto cmp = [&oldV, &newV](std::size_t i) { return vceqq_u8(oldV.val[i], newV.val[i]); };
+    auto cmp = [&oldV, &newV](std::size_t i) { return vceqq_u8(oldV.val[i], newV.val[i]); };
 
     uint8x16_t cmp_01 = vsriq_n_u8(cmp(1), cmp(0), 1);
     uint8x16_t cmp_23 = vsriq_n_u8(cmp(3), cmp(2), 1);
@@ -412,14 +412,14 @@ void update_accumulator_refresh_cache(Color                                 pers
                                       AccumulatorState<PSQFeatureSet>&      accState,
                                       AccumulatorCaches::Cache<Dimensions>& cache) noexcept {
 
-    const Square kingSq = pos.square<KING>(perspective);
+    Square kingSq = pos.square<KING>(perspective);
 
     auto& entry = cache[kingSq][perspective];
 
     PSQFeatureSet::IndexList removed, added;
 
-    const auto& pieceMap = pos.piece_map();
-    const auto  piecesBB = pos.pieces_bb();
+    auto& pieceMap = pos.piece_map();
+    auto  piecesBB = pos.pieces_bb();
 
     Bitboard changedBB = changed_bb(entry.pieceMap, pieceMap);
 
@@ -787,7 +787,7 @@ void AccumulatorStack::forward_update_incremental(
     assert(begin < size && size <= MAX_SIZE);
     assert((accumulators<FeatureSet>()[begin].template acc<Dimensions>()).computed[perspective]);
 
-    const Square kingSq = pos.square<KING>(perspective);
+    Square kingSq = pos.square<KING>(perspective);
 
     for (std::size_t idx = begin; ++idx < size;)
     {
@@ -845,7 +845,7 @@ void AccumulatorStack::backward_update_incremental(
     assert(end < size && size <= MAX_SIZE);
     assert((state<FeatureSet>().template acc<Dimensions>()).computed[perspective]);
 
-    const Square kingSq = pos.square<KING>(perspective);
+    Square kingSq = pos.square<KING>(perspective);
 
     for (std::size_t idx = size != 0 ? size - 1 : 0; idx-- > end;)
         update_accumulator_incremental<false>(perspective, featureTransformer, kingSq,

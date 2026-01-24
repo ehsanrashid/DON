@@ -283,7 +283,7 @@ class OstreamMutexRegistry final {
     // Return a mutex associated with the given ostream pointer.
     // If osPtr is nullptr, returns a dummy mutex to safely ignore locking.
     // This ensures no accidental insertion of null keys into the map.
-    static std::mutex& get(std::ostream* const osPtr) noexcept {
+    static std::mutex& get(std::ostream* osPtr) noexcept {
         // Fallback for null pointers
         if (osPtr == nullptr)
             return dummy_mutex();
@@ -458,35 +458,35 @@ struct OffsetView final {
     constexpr size_type size() const noexcept { return _size; }
 
     // --- Access data from a base pointer ---
-    constexpr T*       data(T* const base) noexcept { return base + offset(); }
-    constexpr const T* data(const T* const base) const noexcept { return base + offset(); }
+    constexpr T*       data(T* base) noexcept { return base + offset(); }
+    constexpr const T* data(const T* base) const noexcept { return base + offset(); }
 
     // --- Push/pop using external count ---
-    void push_back(const T& value, T* const base, size_type count) noexcept {
+    void push_back(const T& value, T* base, size_type count) noexcept {
         assert(count < size());
 
         data(base)[count] = value;
     }
-    void push_back(T&& value, T* const base, size_type count) noexcept {
+    void push_back(T&& value, T* base, size_type count) noexcept {
         assert(count < size());
 
         data(base)[count] = std::move(value);
     }
 
-    T& back(T* const base, size_type count) noexcept {
+    T& back(T* base, size_type count) noexcept {
         assert(count != 0);
 
         return data(base)[count - 1];
     }
-    const T& back(const T* const base, size_type count) const noexcept {
+    const T& back(const T* base, size_type count) const noexcept {
         assert(count != 0);
 
         return data(base)[count - 1];
     }
 
     // --- Element access ---
-    T&       at(size_type idx, T* const base) noexcept { return data(base)[idx]; }
-    const T& at(size_type idx, const T* const base) const noexcept { return data(base)[idx]; }
+    T&       at(size_type idx, T* base) noexcept { return data(base)[idx]; }
+    const T& at(size_type idx, const T* base) const noexcept { return data(base)[idx]; }
 
     // --- STL-style iterable proxy ---
     struct Iterable final {
@@ -501,12 +501,12 @@ struct OffsetView final {
     };
 
     // --- Return iterable for range-based for ---
-    Iterable iterate(T* const base, size_type count) noexcept {
+    Iterable iterate(T* base, size_type count) noexcept {
         assert(count <= size());
 
         return {data(base), count};
     }
-    const Iterable iterate(const T* const base, size_type count) const noexcept {
+    const Iterable iterate(const T* base, size_type count) const noexcept {
         assert(count <= size());
 
         return {const_cast<T*>(data(base)), count};
@@ -1071,14 +1071,14 @@ class ConcurrentCache final {
     std::unordered_map<Key, StorageValue> storage;
 };
 
-inline std::uint64_t hash_bytes(const char* const RESTRICT data, std::size_t size) noexcept {
+inline std::uint64_t hash_bytes(const char* RESTRICT data, std::size_t size) noexcept {
     constexpr std::uint64_t FNV_Basis = 0xCBF29CE484222325ULL;
     constexpr std::uint64_t FNV_Prime = 0x00000100000001B3ULL;
 
     // FNV-1a 64-bit
     std::uint64_t h = FNV_Basis;
 
-    const std::uint8_t* const RESTRICT p = reinterpret_cast<const std::uint8_t*>(data);
+    const std::uint8_t* RESTRICT p = reinterpret_cast<const std::uint8_t*>(data);
 
     std::size_t i = 0;
 
@@ -1139,7 +1139,7 @@ static_assert(mul_hi64(0xDEADBEEFDEADBEEFULL, 0xCAFEBABECAFEBABEULL) == 0xB092AB
               "mul_hi64(): Failed");
 
 #if defined(USE_PREFETCH)
-inline void prefetch(const void* const addr) noexcept {
+inline void prefetch(const void* addr) noexcept {
     #if defined(_MSC_VER)
     _mm_prefetch(reinterpret_cast<const char*>(addr), _MM_HINT_T0);
     #else
@@ -1147,7 +1147,7 @@ inline void prefetch(const void* const addr) noexcept {
     #endif
 }
 #else
-inline void prefetch(const void* const) noexcept {}
+inline void prefetch(const void*) noexcept {}
 #endif
 
 using TimePoint = std::chrono::milliseconds::rep;  // A value in milliseconds
