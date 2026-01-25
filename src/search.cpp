@@ -1066,7 +1066,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     {
         if (!ss->ttPv && !exclude && depth < 14
             && !is_win(ttEvalValue) && !is_loss(beta)
-            && (ttmNone || std::abs(history_value(pos, pawnKey, contHistory, ttd.move)) <= 2048))
+            && (ttmNone || std::abs(history_value(pos, pawnKey, contHistory, ttd.move)) >= 8192))
         {
             Value baseFutility = 53 + int(ttd.hit) * 23;
 
