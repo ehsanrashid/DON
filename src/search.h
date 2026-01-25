@@ -604,7 +604,8 @@ class Worker final {
     void update_correction_histories(const Position& pos, Stack* const ss, int bonus) noexcept;
     int  correction_value(const Position& pos, const Stack* const ss) noexcept;
 
-    int history_value(const Position&pos, Key pawnKey, const History<HType::PIECE_SQ>** contHistory, Move m) const noexcept;
+    int history_value(bool capture, Move m, Piece movedPc, PieceType capturedPt, Color ac, const History<HType::PIECE_SQ>** contHistory) const noexcept;
+    int history_value(const Position& pos, Move m, Color ac, const History<HType::PIECE_SQ>** contHistory) const noexcept;
     // clang-format on
 
     bool ponder_move_extracted() noexcept;
