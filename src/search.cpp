@@ -1106,7 +1106,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
                     nullValue = beta;
 
                 // At low depths or when verification is disabled, return immediately
-                if ((depth < 16 && !is_win(beta)) || nmpPly != 0)
+                if (depth < 16 || nmpPly != 0)
                     return nullValue;
 
                 assert(nmpPly == 0);  // Recursive verification is not allowed
@@ -1197,13 +1197,8 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
                     ttu.update(move, value_to_tt(probCutValue, ss->ply), evalValue,
                                std::min(probCutDepth + 1, MAX_PLY - 1), Bound::LOWER, ss->ttPv);
 
-                // Adjust probCutValue to align with the current beta window
-                probCutValue -= probCutBeta - beta;
-                // Cap any unproven mate scores to beta
-                if (is_win(probCutValue))
-                    probCutValue = beta;
-
-                return probCutValue;
+                if (!is_win(probCutValue))
+                    return probCutValue - (probCutBeta - beta);
             }
         }
         }
