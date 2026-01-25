@@ -674,7 +674,9 @@ void Worker::iterative_deepening() noexcept {
 
             // Compute node effort factor that reduces time if root move has consumed a large fraction of total nodes
             double nodeEffortExcess = -933.40 + 1000.0 * rootMoves[0].nodes / std::max(nodes_(), std::uint64_t(1));
-            double nodeEffortFactor = 1.0 - 37.5207e-4 * std::max(nodeEffortExcess, 0.0);
+            if (nodeEffortExcess < 0.0)
+                nodeEffortExcess = 0.0;
+            double nodeEffortFactor = 1.0 - 37.5207e-4 * nodeEffortExcess;
 
             // Compute recapture factor that reduces time if recapture conditions are met
             double recaptureFactor = 1.0;
@@ -792,13 +794,8 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         // then there is no need to search further because will never beat the current alpha.
         // Same logic but with a reversed signs apply also in the opposite condition of being mated
         // instead of giving mate. In this case, return a fail-high score.
-        Value mated = mated_in(ss->ply + 0);
-        if (alpha < mated)
-            alpha = mated;
-
-        Value mates = mates_in(ss->ply + 1);
-        if (beta > mates)
-            beta = mates;
+        alpha = std::max(alpha, mated_in(ss->ply + 0));
+        beta  = std::min(beta, mates_in(ss->ply + 1));
 
         if (alpha >= beta)
             return alpha;
@@ -1091,7 +1088,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
             assert((ss - 1)->move != Move::Null);
 
             // Null move dynamic reduction
-            Depth R = 7 + depth / 3;
+            Depth R = std::min(7 + int(0.33334 * depth), depth - 0);
 
             do_null_move(pos, st, ss);
 
@@ -1102,6 +1099,8 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
             // Do not return unproven mate or TB scores
             if (nullValue >= beta && !is_win(nullValue))
             {
+                assert(!is_loss(nullValue));
+
                 // At low depths or when verification is disabled, return immediately
                 if (depth < 16 || nmpPly != 0)
                     return nullValue;
@@ -1172,28 +1171,31 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
             do_move(pos, move, st, ss);
 
             // Perform a preliminary qsearch to verify that the move holds
-            Value value = -qsearch<false>(pos, ss + 1, -probCutBeta, -probCutBeta + 1);
+            Value probCutValue = -qsearch<false>(pos, ss + 1, -probCutBeta, -probCutBeta + 1);
 
             // If the qsearch held, perform the regular search
-            if (value >= probCutBeta && probCutDepth > DEPTH_ZERO)
-                value = -search<~T>(pos, ss + 1, -probCutBeta, -probCutBeta + 1, probCutDepth);
+            if (probCutValue >= probCutBeta && probCutDepth > DEPTH_ZERO)
+                probCutValue = -search<~T>(pos, ss + 1, -probCutBeta, -probCutBeta + 1, probCutDepth);
 
             undo_move(pos, move);
 
-            assert(is_ok(value));
+            assert(is_ok(probCutValue));
 
             if (threads.is_stopped())
                 return VALUE_ZERO;
 
-            if (value >= probCutBeta)
+            if (probCutValue >= probCutBeta)
             {
+                assert(!is_loss(probCutValue));
+
                 // Save ProbCut data into transposition table
                 if (!exclude)
-                    ttu.update(move, value_to_tt(value, ss->ply), evalValue,
-                               probCutDepth + 1, Bound::LOWER, ss->ttPv);
+                    ttu.update(move, value_to_tt(probCutValue, ss->ply), evalValue,
+                               std::min(probCutDepth + 1, MAX_PLY - 1), Bound::LOWER, ss->ttPv);
 
-                if (!is_win(value))
-                    return value - (probCutBeta - beta);
+                if (!is_win(probCutValue))
+                    // Adjust probCutValue to align with the current beta window
+                    return probCutValue - (probCutBeta - beta);
             }
         }
         }
@@ -1369,36 +1371,32 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         Depth extension = 0;
 
         // (*Scaler) Generally, frequent extensions scales well.
-        // This includes high singularBeta values (i.e closer to ttValue) and low extension margins.
+        // This includes high singularAlpha values (i.e closer to ttValue) and low extension margins.
         if constexpr (!RootNode)
         {
             // clang-format off
-        if (!exclude && ttm && depth > 5 + int(ss->ttPv) && is_valid(ttd.value)
-            && !is_decisive(ttd.value) && ttd.depth >= depth - 3 && is_ok(ttd.bound & Bound::LOWER)
-            && !is_shuffling(pos, ss, move))
+        if (!exclude && ttm && depth > 5 + int(ss->ttPv) && is_valid(ttd.value) && !is_decisive(ttd.value)
+             && ttd.depth >= depth - 3 && is_ok(ttd.bound & Bound::LOWER) && !is_shuffling(pos, ss, move))
         {
-            Value singularBeta =
-              std::max(ttd.value - int((0.8833 + int(!PVNode && ss->ttPv) * 1.2500) * depth),
-                       -VALUE_INFINITE + 1);
-            assert(singularBeta >= -VALUE_INFINITE + 1);
+            Value singularAlpha = std::max(ttd.value - 1 - int((0.8833 + int(!PVNode && ss->ttPv) * 1.2500) * depth), -VALUE_INFINITE);
 
             Depth singularDepth = newDepth / 2;
             assert(singularDepth > DEPTH_ZERO);
 
-            value = search<~~T>(pos, ss, singularBeta - 1, singularBeta, singularDepth, 0, move);
+            Value singularValue = search<~~T>(pos, ss, singularAlpha, singularAlpha + 1, singularDepth, 0, move);
 
             ss->ttMove    = ttd.move;
             ss->moveCount = moveCount;
 
-            if (value < singularBeta)
+            if (singularValue <= singularAlpha)
             {
                 int corrMargin = int(4.3351e-6 * absCorrectionValue);
 
                 int doubleMargin = -4 + int(PVNode) * 199 - int(!ttmCapture) * 201 - corrMargin - int(ss->ply > rootDepth) * 42 - int(7.0271e-3 * ttMoveHistory);
                 int tripleMargin = 73 + int(PVNode) * 302 - int(!ttmCapture) * 248 - corrMargin - int(ss->ply > rootDepth) * 48 + int(ss->ttPv) * 90;
 
-                extension = 1 + int(value < singularBeta - doubleMargin)
-                              + int(value < singularBeta - tripleMargin);
+                extension = 1 + int(singularValue <= singularAlpha - doubleMargin)
+                              + int(singularValue <= singularAlpha - tripleMargin);
 
                 if (depth < MAX_PLY - 1)
                     ++depth;
@@ -1409,11 +1407,11 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
             // if after excluding the ttMove with a reduced search fail high over the original beta,
             // assume this expected cut-node is not singular (multiple moves fail high),
             // and can prune the whole subtree by returning a soft-bound.
-            else if (value >= beta && !is_decisive(value))
+            else if (singularValue >= beta && !is_decisive(singularValue))
             {
                 ttMoveHistory << -std::min(+400 + 100 * depth, +4000);
 
-                return value;
+                return singularValue;
             }
 
             // Negative extensions
@@ -2133,10 +2131,13 @@ void Worker::update_histories(const Position& pos, Key pawnKey, Stack* const ss,
     for (std::size_t i = 0; i < captureMoves.size(); ++i)
         update_capture_history(pos, captureMoves[i], -1.4141 * malus);
 
-    Square preSq = (ss - 1)->move.is_ok() ? (ss - 1)->move.dst_sq() : SQ_NONE;
     // Extra penalty for a quiet early move that was not a TT move in the previous ply when it gets refuted.
-    if (preSq != SQ_NONE && !is_ok(pos.captured_pc()) && (ss - 1)->moveCount == 1 + ((ss - 1)->ttMove != Move::None))
+    if ((ss - 1)->move.is_ok())
+    {
+    Square preSq = (ss - 1)->move.dst_sq();
+    if (!is_ok(pos.captured_pc()) && (ss - 1)->moveCount == 1 + ((ss - 1)->ttMove != Move::None))
         update_continuation_history(ss - 1, pos[preSq], preSq, -0.5879 * malus);
+    }
 }
 
 // Updates correction histories at the end of search() when a bestMove is found
@@ -2152,14 +2153,13 @@ void Worker::update_correction_histories(const Position& pos, Stack* const ss, i
     histories.non_pawn_correction<WHITE>(pos.non_pawn_key(WHITE))[ac] << 1.3906 * bonus;
     histories.non_pawn_correction<BLACK>(pos.non_pawn_key(BLACK))[ac] << 1.3906 * bonus;
 
-    Square preSq = (ss - 1)->move.is_ok() ? (ss - 1)->move.dst_sq() : SQ_NONE;
-
-    if (preSq != SQ_NONE)
+    if ((ss - 1)->move.is_ok())
     {
         auto& h2 = *(ss - 2)->pieceSqCorrectionHistory;
         auto& h4 = *(ss - 4)->pieceSqCorrectionHistory;
 
-        Piece prePc = pos[preSq];
+        Square preSq = (ss - 1)->move.dst_sq();
+        Piece  prePc = pos[preSq];
 
         h2[+prePc][preSq] << 0.9922 * bonus;
         h4[+prePc][preSq] << 0.4609 * bonus;
@@ -2180,16 +2180,15 @@ int Worker::correction_value(const Position& pos, const Stack* const ss) noexcep
            +11529LL * (histories.non_pawn_correction<WHITE>(pos.non_pawn_key(WHITE))[ac]
                      + histories.non_pawn_correction<BLACK>(pos.non_pawn_key(BLACK))[ac]);
 
-    Square preSq = (ss - 1)->move.is_ok() ? (ss - 1)->move.dst_sq() : SQ_NONE;
-
     std::int64_t pieceSqCorrectionValue = DEFAULT_PIECE_SQ_CORRECTION_HISTORY_VALUE;
 
-    if (preSq != SQ_NONE)
+    if ((ss - 1)->move.is_ok())
     {
         auto& h2 = *(ss - 2)->pieceSqCorrectionHistory;
         auto& h4 = *(ss - 4)->pieceSqCorrectionHistory;
 
-        Piece prePc = pos[preSq];
+        Square preSq = (ss - 1)->move.dst_sq();
+        Piece  prePc = pos[preSq];
 
         pieceSqCorrectionValue = h2[+prePc][preSq]
                                + h4[+prePc][preSq];
