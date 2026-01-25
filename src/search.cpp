@@ -1019,6 +1019,13 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
     int absCorrectionValue = std::abs(correctionValue);
 
+    const History<HType::PIECE_SQ>* contHistory[8]{
+      (ss - 1)->pieceSqHistory, (ss - 2)->pieceSqHistory,  //
+      (ss - 3)->pieceSqHistory, (ss - 4)->pieceSqHistory,  //
+      (ss - 5)->pieceSqHistory, (ss - 6)->pieceSqHistory,  //
+      (ss - 7)->pieceSqHistory, (ss - 8)->pieceSqHistory   //
+    };
+
     // Skip early pruning when in check
     if (!ss->inCheck)
     {
@@ -1038,13 +1045,15 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     // If eval is really low, check with qsearch then return speculative fail low.
     if constexpr (!PVNode)
     {
-        if (!is_loss(alpha) && ttEvalValue + 485 + 281 * depth * depth <= alpha)
+        if (ttEvalValue + 485 + 281 * depth * depth <= alpha)
         {
             assert(is_valid(ttEvalValue));
             assert(alpha + 1 == beta);
 
+            Value razorAlpha = std::max(alpha - 1, -VALUE_INFINITE);
+
             // Null-window for razoring
-            Value razorValue = qsearch<false>(pos, ss, alpha - 1, alpha);
+            Value razorValue = qsearch<false>(pos, ss, razorAlpha, razorAlpha + 1);
             // Fail-low + mate safety
             if (razorValue <= alpha && !is_loss(razorValue))
                 return razorValue;
@@ -1057,20 +1066,21 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     // The depth condition is important for mate finding.
     if constexpr (!PVNode)
     {
-        if (!ss->ttPv && !exclude && !ttmCapture && depth < 14
-            && !is_win(ttEvalValue) && !is_loss(beta))
+        if (!ss->ttPv && !exclude && depth < 14
+            && !is_win(ttEvalValue) && !is_loss(beta)
+            && (ttmNone || std::abs(history_value(pos, ttd.move, ac, contHistory)) >= 10240))
         {
             Value baseFutility = 53 + int(ttd.hit) * 23;
 
             int margin = depth * baseFutility                                                //
-                        - int((int(improve) * 2.4160 + int(worsen) * 0.3232) * baseFutility)  //
-                        + int(5.7252e-6 * absCorrectionValue);
+                       - int((int(improve) * 2.4160 + int(worsen) * 0.3232) * baseFutility)  //
+                       + int(5.7252e-6 * absCorrectionValue);
 
             if (margin < 0)
                 margin = 0;
 
             if (ttEvalValue - margin >= beta)
-                return ttEvalValue;
+                return (ttEvalValue + beta) / 2;
         }
     }
 
@@ -1209,13 +1219,6 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     std::uint8_t moveCount = 0;
 
     StdArray<SearchedMoves, 2> searchedMoves;
-
-    const History<HType::PIECE_SQ>* contHistory[8]{
-      (ss - 1)->pieceSqHistory, (ss - 2)->pieceSqHistory,  //
-      (ss - 3)->pieceSqHistory, (ss - 4)->pieceSqHistory,  //
-      (ss - 5)->pieceSqHistory, (ss - 6)->pieceSqHistory,  //
-      (ss - 7)->pieceSqHistory, (ss - 8)->pieceSqHistory   //
-    };
 
     MovePicker mp(pos, ttd.move, &histories, &captureHistory, &quietHistory, &lowPlyQuietHistory,
                   contHistory, ss->ply, -1);
@@ -1452,11 +1455,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
         assert(capturedPt == type_of(pos.captured_pc()));
 
-        ss->history = capture ? int(6.7813 * piece_value(capturedPt))  //
-                                  + captureHistory[+movedPc][dstSq][capturedPt]
-                              : 2 * quietHistory[ac][move.raw()]        //
-                                  + (*contHistory[0])[+movedPc][dstSq]  //
-                                  + (*contHistory[1])[+movedPc][dstSq];
+        ss->history = history_value(capture, move, movedPc, capturedPt, ac, contHistory);
 
         // Base reduction offset to compensate for other tweaks
         r += 714;
@@ -2189,6 +2188,30 @@ int Worker::correction_value(const Position& pos, const Stack* const ss) noexcep
 }
 
 // clang-format on
+
+int Worker::history_value(bool                             capture,
+                          Move                             m,
+                          Piece                            movedPc,
+                          PieceType                        capturedPt,
+                          Color                            ac,
+                          const History<HType::PIECE_SQ>** contHistory) const noexcept {
+    return capture ? int(6.7813 * piece_value(capturedPt))  //
+                       + captureHistory[+movedPc][m.dst_sq()][capturedPt]
+                   : 2 * quietHistory[ac][m.raw()]                //
+                       + (*contHistory[0])[+movedPc][m.dst_sq()]  //
+                       + (*contHistory[1])[+movedPc][m.dst_sq()];
+}
+
+int Worker::history_value(const Position&                  pos,
+                          Move                             m,
+                          Color                            ac,
+                          const History<HType::PIECE_SQ>** contHistory) const noexcept {
+    Piece movedPc    = pos.moved_pc(m);
+    bool  capture    = pos.capture_promo(m);
+    auto  capturedPt = capture ? pos.captured_pt(m) : NO_PIECE_TYPE;
+
+    return history_value(capture, m, movedPc, capturedPt, ac, contHistory);
+}
 
 // Called in case have no ponder move before exiting the search,
 // for instance, in case stop the search during a fail high at root.
