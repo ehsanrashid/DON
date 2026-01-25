@@ -919,6 +919,7 @@ inline Value Position::material() const noexcept { return 534 * count(PAWN) + no
 // an approximation of the material advantage on the board in terms of pawns.
 inline Value Position::evaluate() const noexcept {
     Color ac = active_color();
+
     return VALUE_PAWN * (count(ac, PAWN) - count(~ac, PAWN))
          + (non_pawn_value(ac) - non_pawn_value(~ac));
 }
