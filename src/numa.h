@@ -583,7 +583,7 @@ class NumaConfig final {
     // This function gets a NumaConfig based on the system's provided information.
     // The available policies are documented above.
     static NumaConfig from_system([[maybe_unused]] const AutoNumaPolicy& numaPolicy,
-                                  [[maybe_unused]] bool processAffinityRespect = true) noexcept {
+                                  [[maybe_unused]] bool respectProcessAffinity = true) noexcept {
         NumaConfig numaCfg = empty();
 
 #if !(defined(_WIN64) || (defined(__linux__) && !defined(__ANDROID__)))
@@ -598,7 +598,7 @@ class NumaConfig final {
 
         std::optional<std::unordered_set<CpuIndex>> allowedCpus;
 
-        if (processAffinityRespect)
+        if (respectProcessAffinity)
             allowedCpus = STARTUP_PROCESSOR_AFFINITY.get_combined();
 
         // The affinity cannot be determined in all cases on Windows,
@@ -613,11 +613,11 @@ class NumaConfig final {
 
         std::unordered_set<CpuIndex> allowedCpus;
 
-        if (processAffinityRespect)
+        if (respectProcessAffinity)
             allowedCpus = STARTUP_PROCESSOR_AFFINITY;
 
-        auto is_cpu_allowed = [processAffinityRespect, &allowedCpus](CpuIndex cpuId) noexcept {
-            return !processAffinityRespect || allowedCpus.count(cpuId) == 1;
+        auto is_cpu_allowed = [respectProcessAffinity, &allowedCpus](CpuIndex cpuId) noexcept {
+            return !respectProcessAffinity || allowedCpus.count(cpuId) == 1;
         };
 
     #endif
@@ -632,7 +632,7 @@ class NumaConfig final {
                 l3BundleSize = v->bundleSize;
 
             if (auto l3Cfg =
-                  try_get_l3_aware_config(processAffinityRespect, l3BundleSize, is_cpu_allowed))
+                  try_get_l3_aware_config(respectProcessAffinity, l3BundleSize, is_cpu_allowed))
             {
                 numaCfg = std::move(*l3Cfg);
 
@@ -641,7 +641,7 @@ class NumaConfig final {
         }
 
         if (!l3Success)
-            numaCfg = from_system_numa(processAffinityRespect, is_cpu_allowed);
+            numaCfg = from_system_numa(respectProcessAffinity, is_cpu_allowed);
 
     #if defined(_WIN64)
         // Split the NUMA nodes to be contained within a group if necessary.
@@ -704,8 +704,8 @@ class NumaConfig final {
         // If the user explicitly opts out from respecting the current process affinity
         // then it may be inconsistent with the current affinity (obviously),
         // so consider it custom.
-        if (!processAffinityRespect)
-            numaCfg.affinityCustom = true;
+        if (!respectProcessAffinity)
+            numaCfg.customAffinity = true;
 
         return numaCfg;
     }
@@ -736,14 +736,14 @@ class NumaConfig final {
             }
         }
 
-        numaCfg.affinityCustom = true;
+        numaCfg.customAffinity = true;
 
         return numaCfg;
     }
 
-    NumaConfig(CpuIndex maxCpuIdx, bool affinityCtm) noexcept :
+    NumaConfig(CpuIndex maxCpuIdx, bool customAff) noexcept :
         maxCpuId(maxCpuIdx),
-        affinityCustom(affinityCtm) {}
+        customAffinity(customAff) {}
 
     NumaConfig() noexcept :
         NumaConfig(0, false) {
@@ -766,7 +766,7 @@ class NumaConfig final {
 
     CpuIndex cpus_size() const noexcept { return nodeByCpu.size(); }
 
-    bool requires_memory_replication() const noexcept { return affinityCustom || nodes_size() > 1; }
+    bool requires_memory_replication() const noexcept { return customAffinity || nodes_size() > 1; }
 
     bool is_cpu_assigned(CpuIndex cpuId) const noexcept {
         return nodeByCpu.find(cpuId) != nodeByCpu.end();
@@ -813,7 +813,7 @@ class NumaConfig final {
 
         // If the affinity set by the user does not match the affinity given by the OS
         // then binding is necessary to ensure the threads are running on correct processors.
-        if (affinityCustom)
+        if (customAffinity)
             return true;
 
         // Obviously cannot distribute a single thread, so a single thread should never be bound.
@@ -1064,7 +1064,7 @@ class NumaConfig final {
     // On Windows utilize GetNumaProcessorNodeEx, which has its quirks,
     // see comment for Windows implementation of get_process_affinity.
     template<typename Pred>
-    static NumaConfig from_system_numa([[maybe_unused]] bool   processAffinityRespect,
+    static NumaConfig from_system_numa([[maybe_unused]] bool   respectProcessAffinity,
                                        [[maybe_unused]] Pred&& is_cpu_allowed) noexcept {
         NumaConfig numaCfg = empty();
 
@@ -1164,11 +1164,11 @@ class NumaConfig final {
 
     template<typename Pred>
     static std::optional<NumaConfig>
-    try_get_l3_aware_config(bool                    processAffinityRespect,
+    try_get_l3_aware_config(bool                    respectProcessAffinity,
                             std::size_t             bundleSize,
                             [[maybe_unused]] Pred&& is_cpu_allowed) noexcept {
         // Get the normal system configuration so that know to which NUMA node each L3 domain belongs
-        NumaConfig sysCfg = NumaConfig::from_system(SystemNumaPolicy{}, processAffinityRespect);
+        NumaConfig sysCfg = NumaConfig::from_system(SystemNumaPolicy{}, respectProcessAffinity);
 
         std::vector<L3Domain> l3Domains;
 
@@ -1358,7 +1358,7 @@ class NumaConfig final {
     }
 
     CpuIndex maxCpuId;
-    bool     affinityCustom;
+    bool     customAffinity;
 };
 
 class NumaReplicationContext;

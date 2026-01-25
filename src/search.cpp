@@ -47,7 +47,8 @@ namespace DON {
 
 namespace {
 
-constexpr int DEFAULT_QUIET_HISTORY_VALUE = 68;
+constexpr int DEFAULT_QUIET_HISTORY_VALUE               = 68;
+constexpr int DEFAULT_PIECE_SQ_CORRECTION_HISTORY_VALUE = 8;
 
 // Reductions lookup table using [depth or moveCount]
 alignas(CACHE_LINE_SIZE) constexpr auto Reductions = []() constexpr noexcept {
@@ -238,7 +239,7 @@ void Worker::init() noexcept {
 
     for (auto& toPieceSqCorrHist : continuationCorrectionHistory)
         for (auto& pieceSqCorrHist : toPieceSqCorrHist)
-            pieceSqCorrHist.fill(8);
+            pieceSqCorrHist.fill(DEFAULT_PIECE_SQ_CORRECTION_HISTORY_VALUE);
 
     accCaches.init(networks[numa_access_token()]);
 }
@@ -1031,7 +1032,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     {
         // clang-format off
     // Use static evaluation difference to improve quiet move ordering
-    if (preSq != SQ_NONE && !preCapture && !(ss - 1)->inCheck)
+    if (!(ss - 1)->inCheck && preSq != SQ_NONE && !preCapture)
     {
         int bonus = 59 + std::clamp(-((ss - 1)->evalValue + (ss - 0)->evalValue), -209, +167);
 
@@ -1047,9 +1048,6 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     {
         if (ttEvalValue + 485 + 281 * depth * depth <= alpha)
         {
-            assert(is_valid(ttEvalValue));
-            assert(alpha + 1 == beta);
-
             Value razorAlpha = std::max(alpha - 1, -VALUE_INFINITE);
 
             // Null-window for razoring
@@ -1070,7 +1068,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
             && !is_win(ttEvalValue) && !is_loss(beta)
             && (ttmNone || std::abs(history_value(pos, ttd.move, ac, contHistory)) >= 10240))
         {
-            Value baseFutility = 53 + int(ttd.hit) * 23;
+            int baseFutility = 53 + int(ttd.hit) * 23;
 
             int margin = depth * baseFutility                                                //
                        - int((int(improve) * 2.4160 + int(worsen) * 0.3232) * baseFutility)  //
@@ -1080,7 +1078,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
                 margin = 0;
 
             if (ttEvalValue - margin >= beta)
-                return (ttEvalValue + beta) / 2;
+                return (depth * beta + ttEvalValue) / (depth + 1);
         }
     }
 
@@ -1298,10 +1296,9 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
                     // Futility pruning: for captures
                     if (!check && lmrDepth < 7)
                     {
-                        Value futilityValue = std::min(232 + ss->evalValue + piece_value(capturedPt)
-                                                         + 217 * lmrDepth + int(0.1279 * history),
-                                                       +VALUE_INFINITE);
-                        if (futilityValue <= alpha)
+                        int futility = 232 + ss->evalValue + piece_value(capturedPt)
+                                     + 217 * lmrDepth + int(0.1279 * history);
+                        if (futility <= alpha)
                             continue;
                     }
 
@@ -1335,15 +1332,14 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
                     // (*Scaler) Generally, more frequent futility pruning scales well
                     if (!check && lmrDepth < 13 && !ss->inCheck)
                     {
-                        Value futilityValue = std::min(42 + ss->evalValue + 127 * lmrDepth  //
-                                                         + int(ss->evalValue > alpha) * 85  //
-                                                         + int(bestMove == Move::None) * 161,
-                                                       +VALUE_INFINITE);
-                        if (futilityValue <= alpha)
+                        int futility = 42 + ss->evalValue + 127 * lmrDepth  //
+                                     + int(ss->evalValue > alpha) * 85      //
+                                     + int(bestMove == Move::None) * 161;
+                        if (futility <= alpha)
                         {
-                            if (!is_decisive(bestValue) && !is_win(futilityValue))
-                                if (bestValue < futilityValue)
-                                    bestValue = futilityValue;
+                            if (!is_decisive(bestValue) && !is_win(futility))
+                                if (bestValue < futility)
+                                    bestValue = futility;
 
                             continue;
                         }
@@ -1831,14 +1827,16 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
 
     int correctionValue = ss->inCheck ? 0 : correction_value(pos, ss);
 
-    Value evalValue, bestValue, baseFutilityValue;
+    Value evalValue, bestValue;
+
+    int baseFutility;
 
     // Step 4. Static evaluation of the position
     if (ss->inCheck)
     {
         evalValue = VALUE_NONE;
 
-        bestValue = baseFutilityValue = -VALUE_INFINITE;
+        bestValue = baseFutility = -VALUE_INFINITE;
     }
     else
     {
@@ -1881,7 +1879,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     if (alpha < bestValue)
         alpha = bestValue;
 
-    baseFutilityValue = std::min(351 + ss->evalValue, +VALUE_INFINITE);
+    baseFutility = 351 + ss->evalValue;
         // clang-format on
     }
 
@@ -1919,33 +1917,31 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
             bool capture = pos.capture_promo(move);
 
             // Futility pruning and moveCount pruning
-            if (!check && dstSq != preSq && move.type() != MT::PROMOTION
-                && !is_loss(baseFutilityValue))
+            if (!check && dstSq != preSq && move.type() != MT::PROMOTION && !is_loss(baseFutility))
             {
                 if (moveCount > 2)
                     continue;
 
                 // Static evaluation + value of piece going to captured
-                Value futilityValue =
-                  std::min(baseFutilityValue + piece_value(pos.captured_pt(move)), +VALUE_INFINITE);
+                int futility = baseFutility + piece_value(pos.captured_pt(move));
 
-                if (futilityValue <= alpha)
+                if (futility <= alpha)
                 {
-                    if (bestValue < futilityValue)
-                        bestValue = futilityValue;
+                    if (bestValue < futility)
+                        bestValue = futility;
 
                     continue;
                 }
 
                 // SEE based pruning
-                int threshold = baseFutilityValue - alpha;
+                int threshold = baseFutility - alpha;
 
                 if (threshold <= 0)
                     threshold = -1;
 
                 if (pos.see(move) < -threshold)
                 {
-                    Value minValue = std::min(alpha, baseFutilityValue);
+                    Value minValue = std::min(+alpha, baseFutility);
 
                     if (bestValue < minValue)
                         bestValue = minValue;
@@ -2160,8 +2156,13 @@ void Worker::update_correction_histories(const Position& pos, Stack* const ss, i
 
     if (preSq != SQ_NONE)
     {
-        (*(ss - 2)->pieceSqCorrectionHistory)[+pos[preSq]][preSq] << 0.9922 * bonus;
-        (*(ss - 4)->pieceSqCorrectionHistory)[+pos[preSq]][preSq] << 0.4609 * bonus;
+        auto& h2 = *(ss - 2)->pieceSqCorrectionHistory;
+        auto& h4 = *(ss - 4)->pieceSqCorrectionHistory;
+
+        Piece prePc = pos[preSq];
+
+        h2[+prePc][preSq] << 0.9922 * bonus;
+        h4[+prePc][preSq] << 0.4609 * bonus;
     }
 }
 
@@ -2171,20 +2172,32 @@ int Worker::correction_value(const Position& pos, const Stack* const ss) noexcep
 
     Color ac = pos.active_color();
 
-    Square preSq = (ss - 1)->move.is_ok() ? (ss - 1)->move.dst_sq() : SQ_NONE;
-
-    return std::clamp<std::int64_t>(
+    std::int64_t correctionValue =
            + 5174LL * (histories.    pawn_correction<WHITE>(pos.    pawn_key(WHITE))[ac]
                      + histories.    pawn_correction<BLACK>(pos.    pawn_key(BLACK))[ac])
            + 4411LL * (histories.   minor_correction<WHITE>(pos.   minor_key(WHITE))[ac]
                      + histories.   minor_correction<BLACK>(pos.   minor_key(BLACK))[ac])
            +11529LL * (histories.non_pawn_correction<WHITE>(pos.non_pawn_key(WHITE))[ac]
-                     + histories.non_pawn_correction<BLACK>(pos.non_pawn_key(BLACK))[ac])
-           + 7841LL * (preSq != SQ_NONE
-                      ? (*(ss - 2)->pieceSqCorrectionHistory)[+pos[preSq]][preSq]
-                      + (*(ss - 4)->pieceSqCorrectionHistory)[+pos[preSq]][preSq]
-                      : 8),
-            -Limit, +Limit);
+                     + histories.non_pawn_correction<BLACK>(pos.non_pawn_key(BLACK))[ac]);
+
+    Square preSq = (ss - 1)->move.is_ok() ? (ss - 1)->move.dst_sq() : SQ_NONE;
+
+    std::int64_t pieceSqCorrectionValue = DEFAULT_PIECE_SQ_CORRECTION_HISTORY_VALUE;
+
+    if (preSq != SQ_NONE)
+    {
+        auto& h2 = *(ss - 2)->pieceSqCorrectionHistory;
+        auto& h4 = *(ss - 4)->pieceSqCorrectionHistory;
+
+        Piece prePc = pos[preSq];
+
+        pieceSqCorrectionValue = h2[+prePc][preSq]
+                               + h4[+prePc][preSq];
+    }
+
+    correctionValue += 7841LL * pieceSqCorrectionValue;
+
+    return std::clamp(correctionValue, -Limit, +Limit);
 }
 
 // clang-format on

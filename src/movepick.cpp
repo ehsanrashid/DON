@@ -262,22 +262,26 @@ exponential_upper_bound(Iterator beg, Iterator end, const T& value, Compare comp
     hig = end - 1;
     low = hig;
 
-    std::size_t step = 1;
+    std::size_t window = low - beg;
+    std::size_t step   = 1;
 
-    while (low != beg)
+    while (window != 0)
     {
-        Iterator pre = step < std::size_t(low - beg) ? low - step : beg;
+        // Candidate position is either low - step or beg
+        Iterator pre = step < window ? low - step : beg;
 
-        // If *pre <= value, found the range
+        // If start of the range <= value, found the range
         if (!comp(value, *pre))
         {
-            hig = low;
-            low = pre + 1;
+            hig = low;      // upper bound found
+            low = pre + 1;  // restrict low to start of the range
+
             break;
         }
 
-        // Continue searching backward
-        low = pre;
+        // Move backward
+        low    = pre;
+        window = low - beg;
         step <<= 1;
     }
 

@@ -28,8 +28,8 @@ namespace DON {
 
 namespace {
 
-constexpr std::uint16_t MIN_CENTI_MTG = 101U;
-constexpr std::uint16_t MAX_CENTI_MTG = 5051U;
+constexpr std::uint16_t MIN_CENTI_MTG = 101;
+constexpr std::uint16_t MAX_CENTI_MTG = 5051;
 
 constexpr double INIT_TIME_ADJUST = -1.0;
 constexpr double MIN_TIME_ADJUST  = 1.0e-6;

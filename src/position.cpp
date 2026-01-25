@@ -704,7 +704,7 @@ bool Position::enpassant_possible(Color     ac,
                                   Bitboard* epPawnsBBp) const noexcept {
     assert(enPassantSq != SQ_NONE);
 
-    const bool collect = epPawnsBBp != nullptr;
+    bool collect = epPawnsBBp != nullptr;
 
     Bitboard epPawnsBB = pieces_bb(ac, PAWN) & attacks_bb<PAWN>(enPassantSq, ~ac);
 
@@ -727,12 +727,15 @@ bool Position::enpassant_possible(Color     ac,
         // Step 1: If there are other checkers besides the pawn to be captured,
         // en-passant is never legal because it would leave the king in check.
         if ((checkers_bb() & make_comp_bb(capturedSq)) != 0)
-            return false;
+            epPawnsBB = 0;
         // Step 2: At least one pawn is either unpinned or aligned with the king along the en-passant line.
-        if (state()->preSt != nullptr)
-            return (epPawnsBB
-                    & (~st->preSt->blockersBB[ac] | line_bb(square<KING>(ac), enPassantSq)))
-                != 0;
+        else if (state()->preSt != nullptr)
+            epPawnsBB &= ~st->preSt->blockersBB[ac] | line_bb(square<KING>(ac), enPassantSq);
+
+        if (collect)
+            *epPawnsBBp = epPawnsBB;
+
+        return epPawnsBB != 0;
     }
     else
     {
@@ -740,31 +743,43 @@ bool Position::enpassant_possible(Color     ac,
             *epPawnsBBp = epPawnsBB;
     }
 
-    bool epPossible = false;
-
-    // Check en-passant is legal for the position
-    Square   kingSq      = square<KING>(ac);
-    Bitboard occupancyBB = pieces_bb() ^ make_bb(capturedSq, enPassantSq);
-    Bitboard attackersBB = pieces_bb(~ac);
-
-    while (epPawnsBB != 0)
+    if (state()->preSt != nullptr)
     {
-        Square epPawnSq = pop_lsq(epPawnsBB);
+        epPawnsBB &= ~blockers_bb(ac) | line_bb(square<KING>(ac), enPassantSq);
 
-        bool legal = (slide_attackers_bb(kingSq, occupancyBB ^ epPawnSq) & attackersBB) == 0;
+        if (collect)
+            *epPawnsBBp = epPawnsBB;
 
-        epPossible |= legal;
-
-        if (legal)
-        {
-            if (!collect)
-                break;
-        }
-        else if (collect)
-            *epPawnsBBp ^= epPawnSq;
+        return epPawnsBB != 0;
     }
+    else
+    {
+        bool epPossible = false;
 
-    return epPossible;
+        // Check en-passant is legal for the position
+        Square   kingSq      = square<KING>(ac);
+        Bitboard occupancyBB = pieces_bb() ^ make_bb(capturedSq, enPassantSq);
+        Bitboard attackersBB = pieces_bb(~ac);
+
+        while (epPawnsBB != 0)
+        {
+            Square epPawnSq = pop_lsq(epPawnsBB);
+
+            bool legal = (slide_attackers_bb(kingSq, occupancyBB ^ epPawnSq) & attackersBB) == 0;
+
+            epPossible |= legal;
+
+            if (legal)
+            {
+                if (!collect)
+                    break;
+            }
+            else if (collect)
+                *epPawnsBBp ^= epPawnSq;
+        }
+
+        return epPossible;
+    }
 }
 
 // Helper used to do/undo a castling move.
@@ -783,11 +798,11 @@ void Position::do_castling(Color       ac,
     rookDstSq = rook_castle_sq(kingOrgSq, rookOrgSq);
 
     assert(piece(Do ? kingOrgSq : kingDstSq) == make_piece(ac, KING));
-    const Piece rookPc = piece(Do ? rookOrgSq : rookDstSq);
+    Piece rookPc = piece(Do ? rookOrgSq : rookDstSq);
     assert(rookPc == make_piece(ac, ROOK));
 
-    const bool kingMoved = kingOrgSq != kingDstSq;
-    const bool rookMoved = rookOrgSq != rookDstSq;
+    bool kingMoved = kingOrgSq != kingDstSq;
+    bool rookMoved = rookOrgSq != rookDstSq;
 
     if constexpr (Do)
     {
@@ -1359,7 +1374,7 @@ bool Position::check(Move m) const noexcept {
     // and ordinary discovered check, so the only case need to handle is
     // the unusual case of a discovered check through the captured pawn.
     case MT::EN_PASSANT : {
-        const Bitboard occupancyBB = pieces_bb() ^ make_bb(orgSq, dstSq, dstSq - pawn_spush(ac));
+        Bitboard occupancyBB = pieces_bb() ^ make_bb(orgSq, dstSq, dstSq - pawn_spush(ac));
 
         return (slide_attackers_bb(kingSq, occupancyBB) & pieces_bb(ac)) != 0;
     }
@@ -1395,8 +1410,8 @@ bool Position::dbl_check(Move m) const noexcept {
             && (attacks_bb(dstSq, m.promotion_type(), pieces_bb() ^ orgSq) & kingSq) != 0;
 
     case MT::EN_PASSANT : {
-        const Bitboard occupancyBB = pieces_bb() ^ make_bb(orgSq, dstSq, dstSq - pawn_spush(ac));
-        const Bitboard checkersBB  = slide_attackers_bb(kingSq, occupancyBB) & pieces_bb(ac);
+        Bitboard occupancyBB = pieces_bb() ^ make_bb(orgSq, dstSq, dstSq - pawn_spush(ac));
+        Bitboard checkersBB  = slide_attackers_bb(kingSq, occupancyBB) & pieces_bb(ac);
 
         return more_than_one(checkersBB) || (checkersBB != 0 && (checks_bb(PAWN) & dstSq) != 0);
     }
@@ -1512,8 +1527,8 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
 
     Color ac = active_color();
 
-    Square      orgSq = m.org_sq(), dstSq = m.dst_sq();
-    const Piece movedPc = piece(orgSq);
+    Square orgSq = m.org_sq(), dstSq = m.dst_sq();
+    Piece  movedPc = piece(orgSq);
     assert((pieces_bb(ac) & orgSq) != 0 && !empty(orgSq) && color_of(movedPc) == ac);
 
     Bitboard occupancyBB = pieces_bb();
@@ -1835,9 +1850,9 @@ bool Position::is_upcoming_repetition(std::int16_t ply) const noexcept {
         if (iterKey != 0)
             continue;
 
-        const Key moveKey = baseKey ^ preSt->key;
+        Key moveKey = baseKey ^ preSt->key;
         // 'moveKey' is a single move
-        const std::size_t index = Cuckoos.find_key(moveKey);
+        std::size_t index = Cuckoos.find_key(moveKey);
 
         if (index >= Cuckoos.size())
             continue;
@@ -1875,8 +1890,8 @@ void Position::flip() noexcept {
     // Piece placement (vertical flip)
     for (Rank r = RANK_8;; --r)
     {
-        const char rDelim = r > RANK_1 ? '/' : ' ';
-        const char wDelim = r < RANK_8 ? '/' : ' ';
+        char rDelim = r > RANK_1 ? '/' : ' ';
+        char wDelim = r < RANK_8 ? '/' : ' ';
 
         std::getline(iss, token, rDelim);
 
@@ -1926,7 +1941,7 @@ void Position::mirror() noexcept {
     // Piece placement (horizontal flip)
     for (Rank r = RANK_8;; --r)
     {
-        const char delim = r > RANK_1 ? '/' : ' ';
+        char delim = r > RANK_1 ? '/' : ' ';
 
         std::getline(iss, token, delim);
 

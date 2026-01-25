@@ -39,19 +39,19 @@ namespace DON {
 
 namespace {
 
-constexpr std::uint32_t MIN_THREADS     = 1U;
-const std::uint32_t     MAX_THREADS     = std::max(4U * int(SYSTEM_THREADS_NB), 1024U);
-const std::uint32_t     DEFAULT_THREADS = std::max(MIN_THREADS, 1U);
+constexpr std::size_t MIN_THREADS     = 1;
+const std::size_t     MAX_THREADS     = std::max<std::size_t>(4 * SYSTEM_THREADS_NB, 1024);
+const std::size_t     DEFAULT_THREADS = std::max<std::size_t>(MIN_THREADS, 1);
 
-constexpr std::uint32_t MIN_HASH = 1U;
-constexpr std::uint32_t MAX_HASH =
+constexpr std::size_t MIN_HASH = 1;
+constexpr std::size_t MAX_HASH =
 #if defined(IS_64BIT)
   0x2000000U
 #else
   0x800U
 #endif
   ;
-constexpr std::uint32_t DEFAULT_HASH = std::max(MIN_HASH, 16U);
+constexpr std::size_t DEFAULT_HASH = std::max<std::size_t>(MIN_HASH, 16);
 
 // The default configuration will attempt to group L3 domains up to 32 threads.
 // This size was found to be a good balance between the Elo gain of increased
