@@ -1096,14 +1096,10 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
             undo_null_move(pos);
 
-            if (nullValue >= beta)
+            // Do not return unproven mate or TB scores
+            if (nullValue >= beta && !is_win(nullValue))
             {
                 assert(!is_loss(nullValue));
-
-                // Do not return unproven mate or TB scores
-                // Cap any unproven mate scores to beta
-                if (is_win(nullValue))
-                    nullValue = beta;
 
                 // At low depths or when verification is disabled, return immediately
                 if (depth < 16 || nmpPly != 0)
