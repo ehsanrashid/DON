@@ -1063,7 +1063,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     // The depth condition is important for mate finding.
     if constexpr (!PVNode)
     {
-        if (!ss->ttPv && !exclude && depth < 16
+        if (!ss->ttPv && !exclude && depth < 14
             && !is_win(ttEvalValue) && !is_loss(beta)
             && (ttmNone ? LIMIT : std::abs(history_value(pos, ttd.move, ac, contHistory))) >= (ttmCapture ? 12288 : 65536))
         {
