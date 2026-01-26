@@ -1075,7 +1075,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
                 margin = 0;
 
             if (ttEvalValue - margin >= beta)
-                return (depth * beta + ttEvalValue) / (depth + 1);
+                return (3 * beta + ttEvalValue) / 4;
         }
     }
 
