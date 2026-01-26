@@ -47,6 +47,8 @@ namespace DON {
 
 namespace {
 
+constexpr std::int64_t LIMIT = 0xFFFFFFFFLL;
+
 constexpr int DEFAULT_QUIET_HISTORY_VALUE               = 68;
 constexpr int DEFAULT_PIECE_SQ_CORRECTION_HISTORY_VALUE = 8;
 
@@ -794,8 +796,8 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         // then there is no need to search further because will never beat the current alpha.
         // Same logic but with a reversed signs apply also in the opposite condition of being mated
         // instead of giving mate. In this case, return a fail-high score.
-        alpha = std::max(alpha, mated_in(ss->ply + 0));
-        beta  = std::min(beta, mates_in(ss->ply + 1));
+        alpha = std::max(mated_in(ss->ply + 0), alpha);
+        beta  = std::min(mates_in(ss->ply + 1), beta);
 
         if (alpha >= beta)
             return alpha;
@@ -1057,23 +1059,25 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         }
     }
 
-    // Step 8. Futility pruning: child node
+    // Step 8. Reverse Futility Pruning: child node
     // The depth condition is important for mate finding.
     if constexpr (!PVNode)
     {
         if (!ss->ttPv && !exclude && depth < 14
             && !is_win(ttEvalValue) && !is_loss(beta)
-            && (ttmNone || std::abs(history_value(pos, ttd.move, ac, contHistory)) >= 10240))
+            && (ttmNone ? LIMIT : std::abs(history_value(pos, ttd.move, ac, contHistory))) >= (ttmCapture ? 8192 : 32768))
         {
+            // Compute base futility
             int baseFutility = 53 + int(ttd.hit) * 23;
 
+            // Compute margin
             int margin = depth * baseFutility                                                //
                        - int((int(improve) * 2.4160 + int(worsen) * 0.3232) * baseFutility)  //
                        + int(5.7252e-6 * absCorrectionValue);
-
+            // Clamp margin
             if (margin < 0)
                 margin = 0;
-
+            // If ttEvalValue - margin >= beta, return a value adjusted for depth
             if (ttEvalValue - margin >= beta)
                 return (depth * beta + ttEvalValue) / (depth + 1);
         }
@@ -1088,7 +1092,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
             assert((ss - 1)->move != Move::Null);
 
             // Null move dynamic reduction
-            Depth R = std::min(7 + int(0.33334 * depth), depth - 0);
+            Depth R = std::min(7 + int(0.33334 * depth), +depth);
 
             do_null_move(pos, st, ss);
 
@@ -1096,12 +1100,13 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
             undo_null_move(pos);
 
-            // Do not return unproven mate or TB scores
+            // If null move fails high, do a verification search
             if (nullValue >= beta && !is_win(nullValue))
             {
                 assert(!is_loss(nullValue));
 
-                // At low depths or when verification is disabled, return immediately
+                // At low depths or when verification is disabled,
+                // return immediately to avoid expensive verification search.
                 if (depth < 16 || nmpPly != 0)
                     return nullValue;
 
@@ -1145,7 +1150,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         // If value from transposition table is less than probCutBeta, don't attempt probCut
         if (!(is_valid(ttd.value) && ttd.value < probCutBeta))
         {
-        Depth probCutDepth = std::clamp(depth - 5 - int(3.1746e-3 * (ss->evalValue - beta)), 0, depth - 0);
+        Depth probCutDepth = std::clamp(depth - 5 - int(3.1746e-3 * (ss->evalValue - beta)), 0, +depth);
         int   probCutThreshold = probCutBeta - ss->evalValue;
 
         MovePicker mp(pos, ttd.move, &captureHistory, probCutThreshold);
@@ -2168,8 +2173,6 @@ void Worker::update_correction_histories(const Position& pos, Stack* const ss, i
 
 // Computes the correction value for the current position from the correction histories
 int Worker::correction_value(const Position& pos, const Stack* const ss) noexcept {
-    constexpr std::int64_t Limit = 0x7FFFFFFF;
-
     Color ac = pos.active_color();
 
     std::int64_t correctionValue =
@@ -2196,7 +2199,7 @@ int Worker::correction_value(const Position& pos, const Stack* const ss) noexcep
 
     correctionValue += 7841LL * pieceSqCorrectionValue;
 
-    return std::clamp(correctionValue, -Limit, +Limit);
+    return std::clamp(correctionValue, -LIMIT, +LIMIT);
 }
 
 // clang-format on
