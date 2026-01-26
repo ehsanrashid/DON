@@ -113,6 +113,10 @@ struct RootMove final {
     Moves pv;
 };
 
+constexpr bool root_move_descending(const RootMove& rm1, const RootMove& rm2) noexcept {
+    return rm1.tbRank > rm2.tbRank;
+}
+
 // RootMoves a container for RootMove objects, providing utility methods
 class RootMoves final {
    public:

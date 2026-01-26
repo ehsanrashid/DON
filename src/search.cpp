@@ -585,12 +585,12 @@ void Worker::iterative_deepening() noexcept {
             }
 
             // Sort the PV lines searched so far
-            rootMoves.sort(begPV, 1 + curPV);
+            rootMoves.sort(begPV, curPV + 1);
 
             // Give some update about the PV
             if (
               mainManager != nullptr
-              && (threads.is_stopped() || 1 + curPV == multiPV || rootDepth > 30)
+              && (threads.is_stopped() || curPV + 1 == multiPV || rootDepth > 30)
               // A thread that aborted search can have mated-in/TB-loss PV and score that cannot be trusted,
               // i.e. it can be delayed or refuted if have had time to fully search other root-moves.
               // Thus, suppress this output and below pick a proven score/PV for this thread (from the previous iteration).
@@ -2396,9 +2396,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
 
         // Sort moves according to their above assigned TB rank.
         // This will break ties for moves with equal DTZ in rank_root_moves.
-        rms.sort([](const RootMove& rm1, const RootMove& rm2) noexcept {
-            return rm1.tbRank > rm2.tbRank;
-        });
+        rms.sort(root_move_descending);
 
         // The winning side tries to minimize DTZ, the losing side maximizes it
         auto tbCfg = Tablebase::rank_root_moves(rootPos, rms, options, true, time_to_abort);

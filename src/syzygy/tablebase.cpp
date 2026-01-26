@@ -644,11 +644,11 @@ void TBTable<T>::set(std::uint8_t* data) noexcept {
 
     ++data;  // First byte stores flags
 
-    const std::size_t Sides = SIDES == 2 && key[WHITE] != key[BLACK] ? 2 : 1;
+    std::size_t Sides = SIDES == 2 && key[WHITE] != key[BLACK] ? 2 : 1;
 
-    const File maxFile = hasPawns ? FILE_D : FILE_A;
+    File maxFile = hasPawns ? FILE_D : FILE_A;
 
-    const bool pp = hasPawns && pawnCount[BLACK] != 0;  // Pawns on both sides
+    bool pp = hasPawns && pawnCount[BLACK] != 0;  // Pawns on both sides
 
     assert(!pp || pawnCount[WHITE] != 0);
 
@@ -1140,11 +1140,11 @@ void TBTables::add(const std::vector<PieceType>& pieces) noexcept {
 
     code.insert(pos, 1, 'v');  // KRK -> KRvK
 
-    const StdArray<bool, TBTYPE_NB> Exists{
+    StdArray<bool, TBTYPE_NB> Exists{
       TBFile(code, EXTS[WDL]).exists(), TBFile(code, EXTS[DTZ]).exists()  //
     };
 
-    if (!Exists[WDL] && !Exists[DTZ])
+    if (!(Exists[WDL] || Exists[DTZ]))
         return;
 
     std::uint8_t pieceCount = pieces.size();
@@ -1371,18 +1371,17 @@ Ret do_probe_table(
     // If both sides have the same pieces keys are equal. In this case TB-tables
     // only stores the 'white to move' case, so if the position to lookup has black
     // to move, need to switch the color and flip the squares before to lookup.
-    const bool blackSymmetric =
-      pos.active_color() == BLACK && table->key[WHITE] == table->key[BLACK];
+    bool blackSymmetric = pos.active_color() == BLACK && table->key[WHITE] == table->key[BLACK];
 
     // TB files are calculated for white as the stronger side. For instance, we
     // have KRvK, not KvKR. A position where the stronger side is white will have
     // its material key == table->key[WHITE], otherwise have to switch the color
     // and flip the squares before to lookup.
-    const bool blackStronger = materialKey != table->key[WHITE];
+    bool blackStronger = materialKey != table->key[WHITE];
 
-    const bool flip = blackSymmetric || blackStronger;
+    bool flip = blackSymmetric || blackStronger;
 
-    const int activeColor = flip ? ~pos.active_color() : pos.active_color();
+    int activeColor = flip ? ~pos.active_color() : pos.active_color();
 
     StdArray<Square, MAX_TB_PIECES> squares{};
     StdArray<Piece, MAX_TB_PIECES>  pieces;
@@ -1449,7 +1448,7 @@ Ret do_probe_table(
 
     assert(size >= 2);
 
-    PairsData* const pd = table->get(activeColor, tbFile);
+    PairsData* pd = table->get(activeColor, tbFile);
 
     // Then reorder the pieces to have the same sequence as the one stored
     // in pieces[i]: the sequence that ensures the best compression.
@@ -1884,7 +1883,7 @@ void init() noexcept {
     }
 
     // Legal positions with both kings on a diagonal are encoded as last ones
-    for (const auto& [map, s] : bothOnDiagonal)
+    for (auto& [map, s] : bothOnDiagonal)
     {
         KKMap[map][s] = code++;
     }
@@ -2263,9 +2262,7 @@ Config rank_root_moves(Position& pos, RootMoves& rootMoves, const Options& optio
     if (config.rootInTB)
     {
         // Sort moves according to TB rank
-        rootMoves.sort([](const RootMove& rm1, const RootMove& rm2) noexcept {
-            return rm1.tbRank > rm2.tbRank;
-        });
+        rootMoves.sort(root_move_descending);
 
         // Probe during search only if DTZ is not available and winning
         if (dtzAvailable || rootMoves[0].tbValue <= VALUE_DRAW)

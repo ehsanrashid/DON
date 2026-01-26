@@ -249,18 +249,16 @@ bool MovePicker::select(Predicate&& pred) noexcept {
 
 namespace {
 
-constexpr auto ext_move_descending(const ExtMove& em1, const ExtMove& em2) noexcept {
+constexpr bool ext_move_descending(const ExtMove& em1, const ExtMove& em2) noexcept {
     return em1 > em2;
 }
 
 template<typename Iterator, typename T, typename Compare>
 Iterator
 exponential_upper_bound(Iterator beg, Iterator end, const T& value, Compare comp) noexcept {
-    // Exponential backward search from end-1
-    Iterator low, hig;
-
-    hig = end - 1;
-    low = hig;
+    // Exponential backward search starts from the last element in the range
+    Iterator low = end - 1;  // inclusive start of candidate range
+    Iterator hig = end - 1;  // exclusive end of candidate range (must be end)
 
     std::size_t window = low - beg;
     std::size_t step   = 1;
@@ -300,10 +298,10 @@ void insertion_sort(Iterator beg, Iterator end) noexcept {
 
         auto value = std::move(*p);
 
-        // Find the correct position for value using binary search
+        // Find insertion position using exponential upper bound
         Iterator q = exponential_upper_bound(beg, p, value, ext_move_descending);
 
-        // Shift elements
+        // Shift elements in (q, p] one step to the right to make room at *q
         for (Iterator r = p; r != q; --r)
             *r = std::move(*(r - 1));
 
