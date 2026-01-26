@@ -1065,7 +1065,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     {
         if (!ss->ttPv && !exclude && depth < 14
             && !is_win(ttEvalValue) && !is_loss(beta)
-            && (ttmNone || history_value(pos, ttd.move, ac, contHistory) >= (ttmCapture ? 2048 : 65536)))
+            && (ttmNone || history_value(pos, ttd.move, ac, contHistory) >= (ttmCapture ? 4096 : 65536)))
         {
             // Compute base futility
             int baseFutility = 53 + int(ttd.hit) * 23;
@@ -1077,12 +1077,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
                 margin = 0;
             // If ttEvalValue - margin >= beta, return a value adjusted for depth
             if (ttEvalValue - margin >= beta)
-            {
-                if (!is_win(beta))
-                    ttEvalValue = (depth * beta + ttEvalValue) / (depth + 1);
-
-                return ttEvalValue;
-            }
+                return (depth * beta + ttEvalValue) / (depth + 1);
         }
     }
 
