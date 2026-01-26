@@ -901,9 +901,9 @@ class TBTables final {
         // MaxDistance is safe because:
         // 1. It's only increased during insert (never decreased)
         // 2. The Robin Hood break condition provides correctness
-        const std::size_t MaxProbes = std::min(max_distance() + 1, MAX_PROBES);
+        std::size_t MaxProbes = std::min(max_distance(), MAX_PROBES - 1) + 1;
 
-        for (std::size_t probes = 0, distance = 1; probes < MaxProbes; ++probes)
+        for (std::size_t probes = 0, distance = 1; probes < MaxProbes; ++probes, ++distance)
         {
             std::size_t bucket = (keyBucket + distance) & MASK;
 
@@ -920,8 +920,6 @@ class TBTables final {
             // - Robin Hood break condition -> key would have been inserted earlier
             if (distance > probe_distance(entry, bucket))
                 break;
-
-            ++distance;
         }
 
         // Key not found
@@ -951,7 +949,8 @@ class TBTables final {
 
    private:
     static std::size_t probe_distance(const Entry& entry, std::size_t actualBucket) noexcept {
-        return (actualBucket - entry.bucket()) & MASK;
+        std::size_t idealBucket = entry.bucket();
+        return (actualBucket - idealBucket) & MASK;
     }
 
 
@@ -971,7 +970,7 @@ class TBTables final {
             return true;
         }
 
-        for (std::size_t probes = 0, distance = 1; probes < MAX_PROBES; ++probes)
+        for (std::size_t probes = 0, distance = 1; probes < MAX_PROBES; ++probes, ++distance)
         {
             if (MaxDistance < distance)
                 MaxDistance = distance;
@@ -1004,8 +1003,6 @@ class TBTables final {
                 newBucket = newEntry.bucket();
                 distance  = entryDistance;
             }
-
-            ++distance;
         }
 
         // May want to handle this case explicitly
@@ -1018,9 +1015,9 @@ class TBTables final {
 
         std::size_t keyBucket = key & MASK;
 
-        const std::size_t MaxProbes = std::min(max_distance() + 1, MAX_PROBES);
+        std::size_t MaxProbes = std::min(max_distance(), MAX_PROBES - 1) + 1;
 
-        for (std::size_t probes = 0, distance = 0; probes < MaxProbes; ++probes)
+        for (std::size_t probes = 0, distance = 0; probes < MaxProbes; ++probes, ++distance)
         {
             std::size_t bucket = (keyBucket + distance) & MASK;
 
@@ -1044,8 +1041,6 @@ class TBTables final {
             // Stop if Robin Hood break
             if (distance > probe_distance(entry, bucket))
                 break;
-
-            ++distance;
         }
 
         // Key not found
@@ -1105,13 +1100,17 @@ class TBTables final {
     }
     */
 
-    // SIZE -> table size, 4K table, indexed by key's 12-bit
-    static constexpr std::size_t SIZE = 0x1000;
+    // Total number of buckets in the table (must be a power of 2 for bit-masking)
+    static constexpr std::size_t SIZE = 0x1000;  // 4096 entries, 12-bit index
+    // Mask for wrapping bucket indices efficiently: index % SIZE
     static constexpr std::size_t MASK = SIZE - 1;
-    // 32 = Safe, Fast, Good worst-case bound
-    // 24 = Optimal
-    // 16 = Fast but stricter
+    // Maximum number of probes allowed during insertion/search
+    // - 32 = safe, good worst-case bound
+    // - 24 = optimal balance between speed and collision handling
+    // - 16 = faster but more strict (less tolerance for long probe chains)
     static constexpr std::size_t MAX_PROBES = 32;
+    // Ensure MAX_PROBES does not exceed table size (compile-time safety)
+    static_assert(MAX_PROBES <= SIZE, "MAX_PROBES must be <= SIZE");
 
     // Track the farthest any entry has been displaced
     std::size_t MaxDistance = 0;
