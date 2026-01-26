@@ -254,8 +254,10 @@ constexpr bool ext_move_descending(const ExtMove& em1, const ExtMove& em2) noexc
 }
 
 template<typename Iterator, typename T, typename Compare>
-Iterator
-exponential_upper_bound(Iterator beg, Iterator end, const T& value, Compare comp) noexcept {
+Iterator exponential_upper_bound(Iterator RESTRICT beg,
+                                 Iterator RESTRICT end,
+                                 const T&          value,
+                                 Compare           comp) noexcept {
     // Exponential backward search starts from the last element in the range
     Iterator low = end - 1;  // inclusive start of candidate range
     Iterator hig = end - 1;  // exclusive end of candidate range (must be end)
@@ -289,7 +291,7 @@ exponential_upper_bound(Iterator beg, Iterator end, const T& value, Compare comp
 }
 
 template<typename Iterator>
-void insertion_sort(Iterator beg, Iterator end) noexcept {
+void insertion_sort(Iterator RESTRICT beg, Iterator RESTRICT end) noexcept {
     for (Iterator p = beg + 1; p < end; ++p)
     {
         // Stability: Early exit if already in correct position
