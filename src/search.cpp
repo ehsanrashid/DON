@@ -1060,26 +1060,24 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     }
 
     // Step 8. Reverse Futility Pruning: child node
-    // The depth condition is important for mate finding.
     if constexpr (!PVNode)
     {
+        // The depth condition is important for mate finding
         if (!ss->ttPv && !exclude && depth < 14
             && !is_win(ttEvalValue) && !is_loss(beta)
-            && (ttmNone ? LIMIT : std::abs(history_value(pos, ttd.move, ac, contHistory))) >= (ttmCapture ? 8192 : 32768))
+            && (ttmNone || std::abs(history_value(pos, ttd.move, ac, contHistory)) >= (ttmCapture ? 8192 : 32768)))
         {
             // Compute base futility
             int baseFutility = 53 + int(ttd.hit) * 23;
-
             // Compute margin
             int margin = depth * baseFutility                                                //
                        - int((int(improve) * 2.4160 + int(worsen) * 0.3232) * baseFutility)  //
                        + int(5.7252e-6 * absCorrectionValue);
-            // Clamp margin
             if (margin < 0)
                 margin = 0;
             // If ttEvalValue - margin >= beta, return a value adjusted for depth
             if (ttEvalValue - margin >= beta)
-                return (depth * beta + ttEvalValue) / (depth + 1);
+                return (int(depth) * beta + ttEvalValue) / (depth + 1);
         }
     }
 
@@ -1684,7 +1682,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         bestValue = exclude ? alpha : ss->inCheck ? mated_in(ss->ply) : VALUE_DRAW;
     // Adjust best value for fail high cases
     else if (bestValue > beta && !is_win(bestValue) && !is_loss(beta))
-        bestValue = (depth * bestValue + beta) / (depth + 1);
+        bestValue = (int(depth) * bestValue + beta) / (depth + 1);
 
     // Don't let best value inflate too high (tb)
     if constexpr (PVNode)
