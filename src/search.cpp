@@ -1060,9 +1060,9 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     }
 
     // Step 8. Reverse Futility Pruning: child node
-    // The depth condition is important for mate finding.
     if constexpr (!PVNode)
     {
+        // The depth condition is important for mate finding
         if (!ss->ttPv && !exclude && depth < 16
             && !is_win(ttEvalValue) && !is_loss(beta)
             && (ttmNone || std::abs(history_value(pos, ttd.move, ac, contHistory)) >= (ttmCapture ? 8192 : 32768)))
