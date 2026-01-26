@@ -1679,7 +1679,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         bestValue = exclude ? alpha : ss->inCheck ? mated_in(ss->ply) : VALUE_DRAW;
     // Adjust best value for fail high cases
     else if (bestValue > beta && !is_win(bestValue) && !is_loss(beta))
-        bestValue = (depth * bestValue + beta) / (depth + 1);
+        bestValue = (3 * bestValue + beta) / 4;
 
     // Don't let best value inflate too high (tb)
     if constexpr (PVNode)
