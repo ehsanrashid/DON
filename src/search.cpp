@@ -1077,7 +1077,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
                 margin = 0;
             // If ttEvalValue - margin >= beta, return a value adjusted for depth
             if (ttEvalValue - margin >= beta)
-                return (depth * beta + ttEvalValue) / (depth + 1);
+                return (int(depth) * beta + ttEvalValue) / (depth + 1);
         }
     }
 
@@ -1682,7 +1682,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         bestValue = exclude ? alpha : ss->inCheck ? mated_in(ss->ply) : VALUE_DRAW;
     // Adjust best value for fail high cases
     else if (bestValue > beta && !is_win(bestValue) && !is_loss(beta))
-        bestValue = (depth * bestValue + beta) / (depth + 1);
+        bestValue = (int(depth) * bestValue + beta) / (depth + 1);
 
     // Don't let best value inflate too high (tb)
     if constexpr (PVNode)
