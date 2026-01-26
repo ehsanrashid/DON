@@ -629,12 +629,12 @@ void Worker::iterative_deepening() noexcept {
         if (mainManager == nullptr)
             continue;
 
-        // Have found a "mate in x"?
+        // Have found "mate in x"?
         if (limit.mate != 0 && rootMoves[0].curValue == rootMoves[0].uciValue
-            && (  // Check for a mate win
+            && (  // Check for mate win
               (rootMoves[0].curValue != +VALUE_INFINITE && is_mate_win(rootMoves[0].curValue)
                && VALUE_MATE - rootMoves[0].curValue <= 2 * limit.mate)
-              // or Check for a mate loss
+              // Check for mate loss
               || (rootMoves[0].curValue != -VALUE_INFINITE && is_mate_loss(rootMoves[0].curValue)
                   && VALUE_MATE + rootMoves[0].curValue <= 2 * limit.mate)))
             threads.request_stop();
