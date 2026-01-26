@@ -1065,7 +1065,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     {
         if (!ss->ttPv && !exclude && depth < 14
             && !is_win(ttEvalValue) && !is_loss(beta)
-            && (ttmNone || std::abs(history_value(pos, ttd.move, ac, contHistory)) >= (ttmCapture ? 8192 : 65536)))
+            && (ttmNone || std::abs(history_value(pos, ttd.move, ac, contHistory)) >= (ttmCapture ? 4096 : 32768)))
         {
             // Compute base futility
             int baseFutility = 53 + int(ttd.hit) * 23;
