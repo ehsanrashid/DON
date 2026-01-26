@@ -1069,12 +1069,10 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         {
             // Compute base futility
             int baseFutility = 53 + int(ttd.hit) * 23;
-
             // Compute margin
             int margin = depth * baseFutility                                                //
                        - int((int(improve) * 2.4160 + int(worsen) * 0.3232) * baseFutility)  //
                        + int(5.7252e-6 * absCorrectionValue);
-            // Clamp margin
             if (margin < 0)
                 margin = 0;
             // If ttEvalValue - margin >= beta, return a value adjusted for depth
