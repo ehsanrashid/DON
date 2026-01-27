@@ -1043,9 +1043,11 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     // If eval is really low, check with qsearch then return speculative fail low.
     if constexpr (!PVNode)
     {
-        if (ttEvalValue + 485 + 281 * depth * depth <= alpha)
+        Value razorAlpha = std::max(alpha - 281 - 169 * depth * depth, -VALUE_INFINITE + 400);
+
+        if (ttEvalValue <= razorAlpha)
         {
-            Value razorAlpha = std::max(alpha - 1, -VALUE_INFINITE);
+            razorAlpha = std::max(alpha - 1, -VALUE_INFINITE);
 
             // Null-window for razoring
             Value razorValue = qsearch<false>(pos, ss, razorAlpha, razorAlpha + 1);
