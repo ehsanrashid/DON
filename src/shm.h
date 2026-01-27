@@ -639,12 +639,26 @@ class SharedMemoryCleanupManager final {
     static void ensure_registered() noexcept {
         std::call_once(registerOnce, []() noexcept {
             // Create pipe for async-signal-safe notification
+    #if defined(__linux__)
+            // Linux: use pipe2 (atomic)
             if (pipe2(signalPipe, O_CLOEXEC | O_NONBLOCK) != 0)
             {
                 std::cerr << "Failed to create signal pipe: " << std::strerror(errno) << std::endl;
                 return;
             }
-
+    #else
+            // macOS/BSD: use pipe + fcntl
+            if (pipe(signalPipe) != 0)
+            {
+                std::cerr << "Failed to create signal pipe: " << std::strerror(errno) << std::endl;
+                return;
+            }
+            // Set flags manually (portable alternative to pipe2)
+            fcntl(signalPipe[0], F_SETFD, FD_CLOEXEC);
+            fcntl(signalPipe[1], F_SETFD, FD_CLOEXEC);
+            fcntl(signalPipe[0], F_SETFL, O_NONBLOCK);
+            fcntl(signalPipe[1], F_SETFL, O_NONBLOCK);
+    #endif
             // Register atexit cleanup
             std::atexit([]() { SharedMemoryRegistry::clean(); });
             // Register signal handlers
@@ -688,6 +702,7 @@ class SharedMemoryCleanupManager final {
     static void start_monitor_thread() noexcept {
         monitorThread = std::thread([]() {
             char byte;
+
             while (true)
             {
                 // Block until pipe has data
@@ -733,6 +748,26 @@ class SharedMemoryCleanupManager final {
     }
 
    private:
+    // Thread guard
+    struct ThreadGuard final {
+       public:
+        explicit ThreadGuard(std::thread& th) noexcept :
+            thread(th) {}
+
+        ~ThreadGuard() noexcept {
+            if (thread.joinable())
+            {
+                // Close pipe to wake thread
+                close(signalPipe[0]);
+                close(signalPipe[1]);
+
+                thread.join();
+            }
+        }
+
+        std::thread& thread;
+    };
+
     SharedMemoryCleanupManager() noexcept                                             = delete;
     ~SharedMemoryCleanupManager() noexcept                                            = delete;
     SharedMemoryCleanupManager(const SharedMemoryCleanupManager&) noexcept            = delete;
@@ -748,6 +783,7 @@ class SharedMemoryCleanupManager final {
     static inline std::atomic<int> pendingSignal{0};
     static inline int              signalPipe[2] = {-1, -1};
     static inline std::thread      monitorThread;
+    static inline ThreadGuard      monitorThreadGuard{monitorThread};
 };
 
 struct MutexAttrGuard final {
