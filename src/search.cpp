@@ -1074,6 +1074,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
                        + int(5.7252e-6 * absCorrectionValue);
             if (margin < 0)
                 margin = 0;
+
             // If ttEvalValue - margin >= beta, return a value adjusted for depth
             if (ttEvalValue - margin >= beta)
                 return (int(depth) * beta + ttEvalValue) / (depth + 1);
