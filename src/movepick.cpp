@@ -265,7 +265,7 @@ Iterator exponential_upper_bound(Iterator RESTRICT beg,
 
     std::size_t step = 1;
 
-    while (step <= hi)
+    while (step < hi)
     {
         // Candidate position is either hi - step or 0
         std::size_t pos = hi - step;
