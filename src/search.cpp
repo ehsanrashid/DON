@@ -155,7 +155,7 @@ void update_continuation_history(Stack* const ss, Piece pc, Square dstSq, int bo
     };
 
     // In check only update 2-ply continuation history
-    const std::size_t ContHistorySize = ss->inCheck ? 2 : MaxContHistorySize;
+    std::size_t ContHistorySize = ss->inCheck ? 2 : MaxContHistorySize;
 
     for (std::size_t i = 0; i < ContHistorySize; ++i)
     {
@@ -1064,7 +1064,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     {
         // The depth condition is important for mate finding
         if (!ss->ttPv && !exclude && depth < 14 && !is_win(ttEvalValue) && !is_loss(beta)
-            && (ttmNone || history_value(pos, ttd.move, ac, contHistory) >= (ttmCapture ? 8192 : 32768)))
+            && (ttmNone || history_value(pos, ttd.move, ac, contHistory) >= (ttmCapture ? 6800 : 32768)))
         {
             // Compute base futility
             int baseFutility = 53 + int(ttd.hit) * 23;
@@ -1074,6 +1074,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
                        + int(5.7252e-6 * absCorrectionValue);
             if (margin < 0)
                 margin = 0;
+
             // If ttEvalValue - margin >= beta, return a value adjusted for depth
             if (ttEvalValue - margin >= beta)
                 return (int(depth) * beta + ttEvalValue) / (depth + 1);
@@ -2152,12 +2153,12 @@ void Worker::update_correction_histories(const Position& pos, Stack* const ss, i
 
     bonus = std::clamp(bonus, -CORRECTION_HISTORY_LIMIT / 4, +CORRECTION_HISTORY_LIMIT / 4);
 
-    histories.    pawn_correction<WHITE>(pos.    pawn_key(WHITE))[ac] << 1.0000 * bonus;
-    histories.    pawn_correction<BLACK>(pos.    pawn_key(BLACK))[ac] << 1.0000 * bonus;
-    histories.   minor_correction<WHITE>(pos.   minor_key(WHITE))[ac] << 1.2188 * bonus;
-    histories.   minor_correction<BLACK>(pos.   minor_key(BLACK))[ac] << 1.2188 * bonus;
-    histories.non_pawn_correction<WHITE>(pos.non_pawn_key(WHITE))[ac] << 1.3906 * bonus;
-    histories.non_pawn_correction<BLACK>(pos.non_pawn_key(BLACK))[ac] << 1.3906 * bonus;
+    histories.    pawn_correction<WHITE>(pos.    pawn_key(WHITE))[ac] << int(1.0000 * bonus);
+    histories.    pawn_correction<BLACK>(pos.    pawn_key(BLACK))[ac] << int(1.0000 * bonus);
+    histories.   minor_correction<WHITE>(pos.   minor_key(WHITE))[ac] << int(1.2188 * bonus);
+    histories.   minor_correction<BLACK>(pos.   minor_key(BLACK))[ac] << int(1.2188 * bonus);
+    histories.non_pawn_correction<WHITE>(pos.non_pawn_key(WHITE))[ac] << int(1.3906 * bonus);
+    histories.non_pawn_correction<BLACK>(pos.non_pawn_key(BLACK))[ac] << int(1.3906 * bonus);
 
     Move preMove = (ss - 1)->move;
 
@@ -2168,8 +2169,8 @@ void Worker::update_correction_histories(const Position& pos, Stack* const ss, i
     auto& h2 = *(ss - 2)->pieceSqCorrectionHistory;
     auto& h4 = *(ss - 4)->pieceSqCorrectionHistory;
 
-    h2[+prePc][preSq] << int(preOk) * 0.9922 * bonus;
-    h4[+prePc][preSq] << int(preOk) * 0.4609 * bonus;
+    h2[+prePc][preSq] << int(preOk) * int(0.9922 * bonus);
+    h4[+prePc][preSq] << int(preOk) * int(0.4609 * bonus);
 }
 
 // Computes the correction value for the current position from the correction histories
@@ -2181,7 +2182,7 @@ int Worker::correction_value(const Position& pos, const Stack* const ss) noexcep
                      + histories.    pawn_correction<BLACK>(pos.    pawn_key(BLACK))[ac])
            + 4411LL * (histories.   minor_correction<WHITE>(pos.   minor_key(WHITE))[ac]
                      + histories.   minor_correction<BLACK>(pos.   minor_key(BLACK))[ac])
-           +11529LL * (histories.non_pawn_correction<WHITE>(pos.non_pawn_key(WHITE))[ac]
+           +11665LL * (histories.non_pawn_correction<WHITE>(pos.non_pawn_key(WHITE))[ac]
                      + histories.non_pawn_correction<BLACK>(pos.non_pawn_key(BLACK))[ac]);
 
     Move preMove = (ss - 1)->move;
