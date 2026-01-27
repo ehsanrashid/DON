@@ -2140,7 +2140,7 @@ void Worker::update_histories(const Position& pos, Key pawnKey, Stack* const ss,
     Square preSq = preMove.dst_sq_();
 
     // Extra penalty for a quiet early move that was not a TT move in the previous ply when it gets refuted
-    if (preOk && pos.captured_pc() == Piece::NO_PIECE && (ss - 1)->moveCount == 1 + ((ss - 1)->ttMove != Move::None))
+    if (preOk && pos.captured_pc() == Piece::NO_PIECE && (ss - 1)->moveCount == 1 + int((ss - 1)->ttMove != Move::None))
         update_continuation_history(ss - 1, pos[preSq], preSq, -0.5879 * malus);
 }
 

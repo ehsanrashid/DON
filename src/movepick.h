@@ -106,6 +106,9 @@ class MovePicker final {
 
    private:
     template<GenType GT>
+    void init_stage() noexcept;
+
+    template<GenType GT>
     iterator score(MoveList<GT>& moveList) noexcept;
 
     template<typename Predicate>

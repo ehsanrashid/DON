@@ -26,6 +26,69 @@
 
 namespace DON {
 
+namespace {
+
+constexpr bool ext_move_descending(const ExtMove& em1, const ExtMove& em2) noexcept {
+    return em1 > em2;
+}
+
+template<typename Iterator, typename T, typename Compare>
+Iterator exponential_upper_bound(Iterator RESTRICT beg,
+                                 Iterator RESTRICT end,
+                                 const T&          value,
+                                 Compare           comp) noexcept {
+    std::size_t n = end - beg;
+    // Exponential backward search starts from the last element in the range
+    std::size_t hi = n - 1;  // exclusive end of candidate range (must be n)
+
+    bool        found = false;
+    std::size_t step  = 1;
+    std::size_t pos   = 0;
+
+    // Exponential backward search
+    while (!found && step < hi)
+    {
+        // Candidate position
+        pos = hi - step;
+
+        found = !comp(value, *(beg + pos));  // value <= candidate
+
+        // Branchless: if !found shrink hi
+        hi -= int(!found) * step;
+
+        step <<= 1;
+    }
+
+    std::size_t lo = int(found) * (pos + 1);
+
+    // Now [lo..hi) is a sorted subrange containing the insertion point.
+    // Binary search in the found range [lo, hi)
+    return std::upper_bound(beg + lo, beg + hi, value, comp);
+}
+
+template<typename Iterator>
+void insertion_sort(Iterator RESTRICT beg, Iterator RESTRICT end) noexcept {
+    for (Iterator p = beg + 1; p < end; ++p)
+    {
+        // Stability: Early exit if already in correct position
+        if (!ext_move_descending(*p, *(p - 1)))
+            continue;
+
+        auto value = std::move(*p);
+
+        // Find insertion position using exponential upper bound
+        Iterator q = exponential_upper_bound(beg, p, value, ext_move_descending);
+
+        // Shift elements in (q, p] one step to the right to make room at *q
+        std::move_backward(q, p, p + 1);
+
+        // Insert value in its correct position
+        *q = std::move(value);
+    }
+}
+
+}  // namespace
+
 // Constructors of the MovePicker class. As arguments, pass information
 // to decide which class of moves to return, to help sorting the (presumably)
 // good moves first, and how important move ordering is at the current node.
@@ -83,6 +146,15 @@ MovePicker::MovePicker(const Position&                p,
 
     initStage = Stage::PROBCUT;
     curStage  = Stage(!(ttMove != Move::None && pos.capture_promo(ttMove)));
+}
+
+template<GenType GT>
+void MovePicker::init_stage() noexcept {
+    MoveList<GT> moveList(pos);
+
+    endCur = score(moveList);
+
+    insertion_sort(cur, endCur);
 }
 
 // Assigns a numerical value to each move in a list, used for sorting.
@@ -241,69 +313,6 @@ bool MovePicker::select(Predicate&& pred) noexcept {
     return false;
 }
 
-namespace {
-
-constexpr bool ext_move_descending(const ExtMove& em1, const ExtMove& em2) noexcept {
-    return em1 > em2;
-}
-
-template<typename Iterator, typename T, typename Compare>
-Iterator exponential_upper_bound(Iterator RESTRICT beg,
-                                 Iterator RESTRICT end,
-                                 const T&          value,
-                                 Compare           comp) noexcept {
-    std::size_t n = end - beg;
-    // Exponential backward search starts from the last element in the range
-    std::size_t hi = n - 1;  // exclusive end of candidate range (must be n)
-
-    bool        found = false;
-    std::size_t step  = 1;
-    std::size_t pos   = 0;
-
-    // Exponential backward search
-    while (!found && step < hi)
-    {
-        // Candidate position
-        pos = hi - step;
-
-        found = !comp(value, *(beg + pos));  // value <= candidate
-
-        // Branchless: if !found shrink hi
-        hi -= int(!found) * step;
-
-        step <<= 1;
-    }
-
-    std::size_t lo = int(found) * (pos + 1);
-
-    // Now [lo..hi) is a sorted subrange containing the insertion point.
-    // Binary search in the found range [lo, hi)
-    return std::upper_bound(beg + lo, beg + hi, value, comp);
-}
-
-template<typename Iterator>
-void insertion_sort(Iterator RESTRICT beg, Iterator RESTRICT end) noexcept {
-    for (Iterator p = beg + 1; p < end; ++p)
-    {
-        // Stability: Early exit if already in correct position
-        if (!ext_move_descending(*p, *(p - 1)))
-            continue;
-
-        auto value = std::move(*p);
-
-        // Find insertion position using exponential upper bound
-        Iterator q = exponential_upper_bound(beg, p, value, ext_move_descending);
-
-        // Shift elements in (q, p] one step to the right to make room at *q
-        std::move_backward(q, p, p + 1);
-
-        // Insert value in its correct position
-        *q = std::move(value);
-    }
-}
-
-}  // namespace
-
 // Most important method of the MovePicker class.
 // It emits a new legal move every time it is called until there are no more moves left,
 // picking the move with the highest score from a list of generated moves.
@@ -322,20 +331,16 @@ STAGE_SWITCH:
 
         if (curStage == Stage::EVA_CAPTURE)
         {
-            MoveList<GenType::EVA_CAPTURE> moveList(pos);
+            cur = moves.data();
 
-            cur    = moves.data();
-            endCur = score<GenType::EVA_CAPTURE>(moveList);
+            init_stage<GenType::EVA_CAPTURE>();
         }
         else
         {
-            MoveList<GenType::ENC_CAPTURE> moveList(pos);
-
             cur = endBadCapture = moves.data();
-            endCur              = score<GenType::ENC_CAPTURE>(moveList);
-        }
 
-        insertion_sort(cur, endCur);
+            init_stage<GenType::ENC_CAPTURE>();
+        }
 
         goto STAGE_SWITCH;
 
@@ -351,29 +356,24 @@ STAGE_SWITCH:
 
         if (!skipQuiets)
         {
-            MoveList<GenType::ENC_QUIET> moveList(pos);
+            init_stage<GenType::ENC_QUIET>();
 
-            endCur = endBadQuiet = score<GenType::ENC_QUIET>(moveList);
-
-            insertion_sort(cur, endCur);
+            endBadQuiet = endCur;
         }
 
         curStage = Stage::ENC_GOOD_QUIET;
         [[fallthrough]];
 
     case Stage::ENC_GOOD_QUIET :
-        if (!skipQuiets)
-        {
-            for (; !empty(); next())
-                if (valid())
-                {
-                    // Good quiet threshold
-                    if (cur->value >= -14000)
-                        return move();
-                    // Remaining quiets are bad
-                    break;
-                }
-        }
+        for (; !skipQuiets && !empty(); next())
+            if (valid())
+            {
+                // Good quiet threshold
+                if (cur->value >= -14000)
+                    return move();
+                // Remaining quiets are bad
+                break;
+            }
 
         // Mark the beginning of bad quiets
         begBadQuiet = cur;
@@ -409,13 +409,7 @@ STAGE_SWITCH:
         if (select([]() { return true; }))
             return move();
 
-        {
-            MoveList<GenType::EVA_QUIET> moveList(pos);
-
-            endCur = score<GenType::EVA_QUIET>(moveList);
-
-            insertion_sort(cur, endCur);
-        }
+        init_stage<GenType::EVA_QUIET>();
 
         curStage = Stage::EVA_QUIET;
         [[fallthrough]];
