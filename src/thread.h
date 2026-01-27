@@ -139,20 +139,6 @@ using NativeThread = std::thread;
 
 #endif
 
-//// Thread guard
-//struct ThreadGuard final {
-//   public:
-//    explicit ThreadGuard(std::thread& th) noexcept :
-//        thread(th) {}
-//
-//    ~ThreadGuard() noexcept {
-//        if (thread.joinable())
-//            thread.join();
-//    }
-//
-//    std::thread& thread;
-//};
-
 // Sometimes don't want to actually bind the threads, but the recipient still needs
 // to think it runs on *some* NUMA node, such that it can access structures that rely
 // on NUMA node knowledge.

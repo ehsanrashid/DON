@@ -258,36 +258,35 @@ Iterator exponential_upper_bound(Iterator RESTRICT beg,
                                  Iterator RESTRICT end,
                                  const T&          value,
                                  Compare           comp) noexcept {
+    std::size_t n = end - beg;
     // Exponential backward search starts from the last element in the range
-    Iterator low = end - 1;  // inclusive start of candidate range
-    Iterator hig = end - 1;  // exclusive end of candidate range (must be end)
+    std::size_t lo = 0;      // inclusive start of candidate range
+    std::size_t hi = n - 1;  // exclusive end of candidate range (must be n)
 
-    std::size_t window = low - beg;
+    std::size_t window = hi;
     std::size_t step   = 1;
 
     while (window != 0)
     {
-        // Candidate position is either low - step or beg
-        Iterator pre = step < window ? low - step : beg;
+        // Candidate position is either hi - step or 0
+        std::size_t pos = step < window ? hi - step : 0;
 
-        // If start of the range <= value, found the range
-        if (!comp(value, *pre))
+        // If pos <= value, found the range
+        if (!comp(value, *(beg + pos)))
         {
-            hig = low;      // upper bound found
-            low = pre + 1;  // restrict low to start of the range
-
+            lo = pos + 1;  // restrict lo to start of the range
             break;
         }
 
         // Move backward
-        low    = pre;
-        window = low - beg;
+        hi     = pos;
+        window = hi;
         step <<= 1;
     }
 
-    // Now [low..hig) is a sorted subrange containing the insertion point.
-    // Binary search in the found range [low, hig)
-    return std::upper_bound(low, hig, value, comp);
+    // Now [lo..hi) is a sorted subrange containing the insertion point.
+    // Binary search in the found range [lo, hi)
+    return std::upper_bound(beg + lo, beg + hi, value, comp);
 }
 
 template<typename Iterator>
@@ -304,10 +303,9 @@ void insertion_sort(Iterator RESTRICT beg, Iterator RESTRICT end) noexcept {
         Iterator q = exponential_upper_bound(beg, p, value, ext_move_descending);
 
         // Shift elements in (q, p] one step to the right to make room at *q
-        for (Iterator r = p; r != q; --r)
-            *r = std::move(*(r - 1));
+        std::move_backward(q, p, p + 1);
 
-        // Insert the value in its correct position
+        // Insert value in its correct position
         *q = std::move(value);
     }
 }
