@@ -47,9 +47,6 @@ Iterator exponential_upper_bound(Iterator RESTRICT beg,
     std::size_t lo = 1;      // lower bound (inclusive)
     std::size_t hi = n - 1;  // upper bound (exclusive for upper_bound)
 
-    bool loFound = false;
-    bool hiFound = false;
-
     std::size_t step = 1;  // initial exponential step size
 
     // Bidirectional exponential search
@@ -61,12 +58,12 @@ Iterator exponential_upper_bound(Iterator RESTRICT beg,
         std::size_t hiPos = hi - step;
 
         // Branchless conditions
-        loFound = comp(value, beg[loPos]);   // value > element -> upper bound at loPos
-        hiFound = !comp(value, beg[hiPos]);  // value <= element -> lower bound after hiPos
+        bool loFound = comp(value, beg[loPos]);   // value > element -> upper bound at loPos
+        bool hiFound = !comp(value, beg[hiPos]);  // value <= element -> lower bound after hiPos
 
         // Branchless arithmetic to update bounds for approximate range
-        hi = hiFound * hi + (!hiFound) * (loFound * loPos + (!loFound) * hi);
-        lo = loFound * lo + (!loFound) * (hiFound * (hiPos + 1) + (!hiFound) * lo);
+        hi = int(hiFound) * hi + int(!hiFound) * (int(loFound) * (loPos + 0) + int(!loFound) * hi);
+        lo = int(loFound) * lo + int(!loFound) * (int(hiFound) * (hiPos + 1) + int(!hiFound) * lo);
 
         step <<= 1;  // double the step size for exponential search
     }
