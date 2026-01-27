@@ -263,13 +263,12 @@ Iterator exponential_upper_bound(Iterator RESTRICT beg,
     std::size_t lo = 0;      // inclusive start of candidate range
     std::size_t hi = n - 1;  // exclusive end of candidate range (must be n)
 
-    std::size_t window = hi;
-    std::size_t step   = 1;
+    std::size_t step = 1;
 
-    while (window != 0)
+    while (step <= hi)
     {
         // Candidate position is either hi - step or 0
-        std::size_t pos = step < window ? hi - step : 0;
+        std::size_t pos = hi - step;
 
         // If pos <= value, found the range
         if (!comp(value, *(beg + pos)))
@@ -279,8 +278,7 @@ Iterator exponential_upper_bound(Iterator RESTRICT beg,
         }
 
         // Move backward
-        hi     = pos;
-        window = hi;
+        hi = pos;
         step <<= 1;
     }
 
