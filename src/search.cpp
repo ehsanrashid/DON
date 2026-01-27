@@ -1339,9 +1339,8 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
                                      + int(bestMove == Move::None) * 161;
                         if (futility <= alpha)
                         {
-                            if (!is_decisive(bestValue) && !is_win(futility))
-                                if (bestValue < futility)
-                                    bestValue = futility;
+                            if (bestValue < futility && !is_win(futility))
+                                bestValue = futility;
 
                             continue;
                         }
