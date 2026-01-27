@@ -708,8 +708,16 @@ class SharedMemoryCleanupManager final {
                 // Block until pipe has data
                 ssize_t n = read(signalPipe[0], &byte, 1);
 
-                if (n <= 0)
-                    continue;
+                // Better error handling
+                if (n < 0)
+                {
+                    if (errno == EINTR)
+                        continue;
+
+                    break;  // Real error or pipe closed
+                }
+                if (n == 0)
+                    break;  // EOF
 
                 // Acquire memory order to synchronize with signal handler
                 int signal = pendingSignal.load(std::memory_order_acquire);
@@ -744,30 +752,12 @@ class SharedMemoryCleanupManager final {
                 _Exit(128 + signal);
             }
         });
-        // Keep thread joinable, no detach - let it join on program exit
+
+        // Simple and safe: detach the thread
+        monitorThread.detach();
     }
 
    private:
-    // Thread guard
-    struct ThreadGuard final {
-       public:
-        explicit ThreadGuard(std::thread& th) noexcept :
-            thread(th) {}
-
-        ~ThreadGuard() noexcept {
-            if (thread.joinable())
-            {
-                // Close pipe to wake thread
-                close(signalPipe[0]);
-                close(signalPipe[1]);
-
-                thread.join();
-            }
-        }
-
-        std::thread& thread;
-    };
-
     SharedMemoryCleanupManager() noexcept                                             = delete;
     ~SharedMemoryCleanupManager() noexcept                                            = delete;
     SharedMemoryCleanupManager(const SharedMemoryCleanupManager&) noexcept            = delete;
@@ -783,7 +773,6 @@ class SharedMemoryCleanupManager final {
     static inline std::atomic<int> pendingSignal{0};
     static inline int              signalPipe[2] = {-1, -1};
     static inline std::thread      monitorThread;
-    static inline ThreadGuard      monitorThreadGuard{monitorThread};
 };
 
 struct MutexAttrGuard final {
