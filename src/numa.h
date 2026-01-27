@@ -117,7 +117,7 @@ struct WindowsAffinity final {
         std::unordered_set<CpuIndex> combinedApi;
         combinedApi.reserve(std::min(oldApi->size(), newApi->size()));
 
-        const bool oldIsSmaller = oldApi->size() < newApi->size();
+        bool oldIsSmaller = oldApi->size() < newApi->size();
 
         const auto& smallApi = oldIsSmaller ? *oldApi : *newApi;
         const auto& largeApi = oldIsSmaller ? *newApi : *oldApi;
@@ -339,7 +339,7 @@ inline WindowsAffinity get_process_affinity() noexcept {
 
                 for (WORD groupId : procGroupAffinity)
                 {
-                    const DWORD ActiveProcCount = GetActiveProcessorCount(groupId);
+                    DWORD ActiveProcCount = GetActiveProcessorCount(groupId);
 
                     // Have to schedule to 2 different processors and the affinities.
                     // Otherwise processor choice could influence the resulting affinity.
@@ -496,7 +496,7 @@ inline std::unordered_set<CpuIndex> get_process_affinity() noexcept {
         return cpus;
     }
 
-    const std::size_t MaskSize = CPU_ALLOC_SIZE(MaxCpusCount);
+    std::size_t MaskSize = CPU_ALLOC_SIZE(MaxCpusCount);
 
     CPU_ZERO_S(MaskSize, cpuMask);
 
@@ -987,7 +987,7 @@ class NumaConfig final {
         if (cpuMask == nullptr)
             std::exit(EXIT_FAILURE);
 
-        const std::size_t MaskSize = CPU_ALLOC_SIZE(maxCpuId + 1);
+        std::size_t MaskSize = CPU_ALLOC_SIZE(maxCpuId + 1);
 
         CPU_ZERO_S(MaskSize, cpuMask);
 
@@ -1070,11 +1070,11 @@ class NumaConfig final {
 
 #if defined(_WIN64)
 
-        const WORD ActiveProcGroupCount = GetActiveProcessorGroupCount();
+        WORD ActiveProcGroupCount = GetActiveProcessorGroupCount();
 
         for (WORD groupId = 0; groupId < ActiveProcGroupCount; ++groupId)
         {
-            const DWORD ActiveProcCount = GetActiveProcessorCount(groupId);
+            DWORD ActiveProcCount = GetActiveProcessorCount(groupId);
 
             for (DWORD number = 0; number < ActiveProcCount; ++number)
             {

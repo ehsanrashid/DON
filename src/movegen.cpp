@@ -394,7 +394,7 @@ Move* generate_moves(const Position& pos, Move* RESTRICT moves) noexcept {
         case GenType::EVA_QUIET :   targetBB = between_ex_bb(pos.square<KING>(AC), lsq(pos.checkers_bb())); break;
         }
 
-        const Move* pMoves = moves;
+        const Move* RESTRICT pMoves = moves;
         moves = generate_pawns_moves<AC, GT    >(pos, moves, targetBB);
         if (Any && pMoves != moves) return moves;
         moves = generate_piece_moves<AC, KNIGHT>(pos, moves, targetBB);

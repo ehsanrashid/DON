@@ -391,7 +391,7 @@ class SIMDTiling final {
         static_assert(RegisterSize % LaneSize == 0);
         static_assert((LaneCount * LaneSize) % RegisterSize == 0);
 
-        const int ideal = (LaneCount * LaneSize) / RegisterSize;
+        int ideal = (LaneCount * LaneSize) / RegisterSize;
         if (ideal <= MaxRegister)
             return ideal;
 

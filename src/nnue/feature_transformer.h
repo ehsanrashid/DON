@@ -338,8 +338,8 @@ class FeatureTransformer final {
             // return value after the multiplication, adding an extra shift
             // to the left by 1, so we compensate by shifting less before
             // the multiplication.
-            const vec_t Zero = vec_zero();
-            const vec_t One  = vec_set_16(UseThreats ? 255 : 127 * 2);
+            vec_t Zero = vec_zero();
+            vec_t One  = vec_set_16(UseThreats ? 255 : 127 * 2);
 
             constexpr int shift =
     #if defined(USE_SSE2)

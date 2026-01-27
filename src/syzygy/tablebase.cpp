@@ -385,7 +385,7 @@ TableData make_table_data(std::string_view code) noexcept {
 
     // Set the leading color. In case both sides have pawns the leading color
     // is the side with fewer pawns because this leads to better compression.
-    const bool c = pawnCnt[BLACK] == 0 || (pawnCnt[WHITE] != 0 && pawnCnt[WHITE] <= pawnCnt[BLACK]);
+    bool c = pawnCnt[BLACK] == 0 || (pawnCnt[WHITE] != 0 && pawnCnt[WHITE] <= pawnCnt[BLACK]);
 
     tableData.pawnCount[WHITE] = pawnCnt[c ? WHITE : BLACK];
     tableData.pawnCount[BLACK] = pawnCnt[c ? BLACK : WHITE];
@@ -494,7 +494,7 @@ void* TBTable<T>::init(const Position& pos, Key materialKey) noexcept {
             for (std::size_t i = PIECE_TYPES.size(); i-- > 0;)
                 pieces[c].append(pos.count(c, PIECE_TYPES[i]), to_char(PIECE_TYPES[i]));
 
-        const bool c = materialKey == key[WHITE];
+        bool c = materialKey == key[WHITE];
 
         std::string base;
         base.reserve(pieces[WHITE].size() + 1 + pieces[BLACK].size());

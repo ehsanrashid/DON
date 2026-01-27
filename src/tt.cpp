@@ -208,7 +208,7 @@ void TranspositionTable::resize(std::size_t ttSize, Threads& threads) noexcept {
 void TranspositionTable::init(Threads& threads) noexcept {
     generation8 = 0;
 
-    const std::size_t threadCount = threads.size();
+    std::size_t threadCount = threads.size();
 
     for (std::size_t threadId = 0; threadId < threadCount; ++threadId)
     {
@@ -234,7 +234,7 @@ ProbResult TranspositionTable::probe(Key key) const noexcept {
 
     auto* const ttc = cluster(key);
 
-    const std::uint16_t key16 = std::uint16_t(key);
+    std::uint16_t key16 = std::uint16_t(key);
 
     for (auto& entry : ttc->entries)
         if (entry.key() == key16)
@@ -258,9 +258,9 @@ std::uint16_t TranspositionTable::hashfull(std::uint8_t maxAge) const noexcept {
 
     constexpr std::size_t requiredCount = 1000;
 
-    const std::size_t actualCount = std::min(requiredCount, clusterCount);
+    std::size_t actualCount = std::min(requiredCount, clusterCount);
 
-    const std::uint8_t relMaxAge = maxAge * GENERATION_DELTA;
+    std::uint8_t relMaxAge = maxAge * GENERATION_DELTA;
 
     std::uint32_t count = 0;
 
@@ -282,7 +282,7 @@ bool TranspositionTable::load(std::string_view hashFile, Threads& threads) noexc
 
     std::error_code ec;
 
-    const std::size_t fileSize = std::filesystem::file_size(std::string(hashFile), ec);
+    std::size_t fileSize = std::filesystem::file_size(std::string(hashFile), ec);
 
     if (ec)
     {
@@ -304,7 +304,7 @@ bool TranspositionTable::load(std::string_view hashFile, Threads& threads) noexc
         return false;
     }
 
-    const std::size_t ttSize = fileSize / ONE_MB;
+    std::size_t ttSize = fileSize / ONE_MB;
 
     resize(ttSize, threads);
 
@@ -315,7 +315,7 @@ bool TranspositionTable::load(std::string_view hashFile, Threads& threads) noexc
     // 2 MiB is a safe default; 4-64 MiB may be slightly faster on fast disks.
     constexpr std::size_t ChunkSize = (2 * ONE_MB / ClusterSize) * ClusterSize;
 
-    const std::size_t DataSize = clusterCount * ClusterSize;
+    std::size_t DataSize = clusterCount * ClusterSize;
 
     char* data = reinterpret_cast<char*>(clusters);
 
@@ -373,7 +373,7 @@ bool TranspositionTable::save(std::string_view hashFile) const noexcept {
     // 2 MiB is a safe default; 4-64 MiB may be slightly faster on fast disks.
     constexpr std::size_t ChunkSize = (2 * ONE_MB / ClusterSize) * ClusterSize;
 
-    const std::size_t DataSize = clusterCount * ClusterSize;
+    std::size_t DataSize = clusterCount * ClusterSize;
 
     const char* data = reinterpret_cast<const char*>(clusters);
 
