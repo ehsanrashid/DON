@@ -178,10 +178,8 @@ Value adjust_eval_value(Value evalValue, int correctionValue) noexcept {
 bool is_shuffling(const Position& pos, const Stack* const ss, Move move) noexcept {
     return !(pos.capture_promo(move) || pos.rule50_count() < 10 || pos.null_ply() <= 6
              || ss->ply < 20)
-        && move.org_sq() == (ss - 2)->move.dst_sq()
-        && (ss - 2)->move.org_sq() == (ss - 4)->move.dst_sq()
-        && (ss - 4)->move.org_sq() == (ss - 6)->move.dst_sq()
-        && (ss - 6)->move.org_sq() == (ss - 8)->move.dst_sq();
+        && (ss - 2)->move.is_ok() && move.org_sq() == (ss - 2)->move.dst_sq()
+        && (ss - 4)->move.is_ok() && (ss - 2)->move.org_sq() == (ss - 4)->move.dst_sq();
 }
 
 }  // namespace
@@ -2155,17 +2153,17 @@ void Worker::update_correction_histories(const Position& pos, Stack* const ss, i
     histories.non_pawn_correction<WHITE>(pos.non_pawn_key(WHITE))[ac] << 1.3906 * bonus;
     histories.non_pawn_correction<BLACK>(pos.non_pawn_key(BLACK))[ac] << 1.3906 * bonus;
 
-    if ((ss - 1)->move.is_ok())
-    {
-        auto& h2 = *(ss - 2)->pieceSqCorrectionHistory;
-        auto& h4 = *(ss - 4)->pieceSqCorrectionHistory;
+    Move preMove = (ss - 1)->move;
 
-        Square preSq = (ss - 1)->move.dst_sq();
-        Piece  prePc = pos[preSq];
+    bool   ok    = preMove.is_ok();
+    Square preSq = preMove.dst_sq_();
+    Piece  prePc = pos[preSq];
 
-        h2[+prePc][preSq] << 0.9922 * bonus;
-        h4[+prePc][preSq] << 0.4609 * bonus;
-    }
+    auto& h2 = *(ss - 2)->pieceSqCorrectionHistory;
+    auto& h4 = *(ss - 4)->pieceSqCorrectionHistory;
+
+    h2[+prePc][preSq] << int(ok) * 0.9922 * bonus;
+    h4[+prePc][preSq] << int(ok) * 0.4609 * bonus;
 }
 
 // Computes the correction value for the current position from the correction histories
@@ -2180,21 +2178,18 @@ int Worker::correction_value(const Position& pos, const Stack* const ss) noexcep
            +11529LL * (histories.non_pawn_correction<WHITE>(pos.non_pawn_key(WHITE))[ac]
                      + histories.non_pawn_correction<BLACK>(pos.non_pawn_key(BLACK))[ac]);
 
-    std::int64_t pieceSqCorrectionValue = DEFAULT_PIECE_SQ_CORRECTION_HISTORY_VALUE;
+    Move preMove = (ss - 1)->move;
 
-    if ((ss - 1)->move.is_ok())
-    {
-        auto& h2 = *(ss - 2)->pieceSqCorrectionHistory;
-        auto& h4 = *(ss - 4)->pieceSqCorrectionHistory;
+    bool   ok    = preMove.is_ok();
+    Square preSq = preMove.dst_sq_();
+    Piece  prePc = pos[preSq];
 
-        Square preSq = (ss - 1)->move.dst_sq();
-        Piece  prePc = pos[preSq];
+    auto& h2 = *(ss - 2)->pieceSqCorrectionHistory;
+    auto& h4 = *(ss - 4)->pieceSqCorrectionHistory;
 
-        pieceSqCorrectionValue = h2[+prePc][preSq]
-                               + h4[+prePc][preSq];
-    }
-
-    correctionValue += 7841LL * pieceSqCorrectionValue;
+    correctionValue += 7841LL * (int(!ok) * DEFAULT_PIECE_SQ_CORRECTION_HISTORY_VALUE
+                               + int( ok) * (h2[+prePc][preSq]
+                                           + h4[+prePc][preSq]));
 
     return std::clamp(correctionValue, -LIMIT, +LIMIT);
 }

@@ -637,23 +637,67 @@ class SharedMemoryCleanupManager final {
    public:
     // Ensures signal handlers and atexit cleanup are registered only once
     static void ensure_registered() noexcept {
-        std::call_once(registerOnce, register_signal_handlers);
+        std::call_once(registerOnce, []() noexcept {
+            // Create pipe for async-signal-safe notification
+    #if defined(__linux__)
+            // Linux: use pipe2 (atomic)
+            if (pipe2(signalPipe, O_CLOEXEC | O_NONBLOCK) != 0)
+    #else
+            // macOS/BSD: use pipe + fcntl
+            if (pipe(signalPipe) != 0)
+    #endif
+            {
+                std::cerr << "Failed to create signal pipe: " << std::strerror(errno) << std::endl;
+                return;
+            }
+
+    #if !defined(__linux__)
+            // Set flags manually (portable alternative to pipe2)
+            if (fcntl(signalPipe[0], F_SETFD, FD_CLOEXEC) == -1
+                || fcntl(signalPipe[1], F_SETFD, FD_CLOEXEC) == -1
+                || fcntl(signalPipe[0], F_SETFL, O_NONBLOCK) == -1
+                || fcntl(signalPipe[1], F_SETFL, O_NONBLOCK) == -1)
+            {
+                std::cerr << "Failed to set pipe flags: " << std::strerror(errno) << std::endl;
+                close(signalPipe[0]);
+                close(signalPipe[1]);
+                return;
+            }
+    #endif
+            // Register atexit cleanup
+            std::atexit([]() { SharedMemoryRegistry::clean(); });
+            // Register signal handlers
+            register_signal_handlers();
+            // Start monitor thread
+            start_monitor_thread();
+        });
     }
 
    private:
-    // Register signal handlers and atexit cleanup
+    // Register all signals with the deferred handler
     static void register_signal_handlers() noexcept {
-        std::atexit([]() { SharedMemoryRegistry::clean(); });
 
-        auto setup_signal = [](int Signal) noexcept {
-            struct sigaction SigAction{};
+        // Block all signals about to register
+        sigset_t sigSet;
 
-            SigAction.sa_handler = signal_handler;
+        sigemptyset(&sigSet);
 
-            sigemptyset(&SigAction.sa_mask);
+        for (int signal : SIGNALS)
+            sigaddset(&sigSet, signal);
+
+        sigprocmask(SIG_BLOCK, &sigSet, nullptr);
+
+        // Now register handlers
+        for (int signal : SIGNALS)
+        {
+            struct sigaction sigAction{};
+
+            sigAction.sa_handler = signal_handler;
+
+            sigemptyset(&sigAction.sa_mask);
 
             // Choose flags depending on signal type
-            switch (Signal)
+            switch (signal)
             {
             // Normal termination/interruption signals
             case SIGHUP :
@@ -663,7 +707,7 @@ class SharedMemoryCleanupManager final {
             case SIGSYS :
             case SIGXCPU :
             case SIGXFSZ :
-                SigAction.sa_flags = SA_RESTART;
+                sigAction.sa_flags = SA_RESTART;
                 break;
             // Fatal signals
             case SIGSEGV :
@@ -671,45 +715,97 @@ class SharedMemoryCleanupManager final {
             case SIGABRT :
             case SIGFPE :
             case SIGBUS :
-                SigAction.sa_flags = 0;
+                sigAction.sa_flags = 0;
                 break;
-            // Safe fallback: Just in case a signal sneaks in
+            // Safe fallback
             default :
-                SigAction.sa_flags = 0;
+                sigAction.sa_flags = 0;
                 break;
             }
 
-            if (sigaction(Signal, &SigAction, nullptr) != 0)
+            if (sigaction(signal, &sigAction, nullptr) != 0)
             {
-                std::cerr << "Failed to register signal handler for " << Signal << ": "
+                std::cerr << "Failed to register handler for signal " << signal << ": "
                           << std::strerror(errno) << std::endl;
             }
-        };
+        }
 
-        for (int Signal : SIGNALS)
-            setup_signal(Signal);
+        // Unblock signals now that all handlers are registered
+        sigprocmask(SIG_UNBLOCK, &sigSet, nullptr);
     }
 
-    // Handles signals, cleans memory, restores default, and re-raises
-    static void signal_handler(int Signal) noexcept {
-        // Minimal cleanup; avoid non-signal-safe calls if possible
-        // The memory mappings will be released on exit.
-        SharedMemoryRegistry::clean(true);
+    // Signal handler: deferred handling
+    // NOTE: If multiple signals arrive rapidly,
+    // only the last one is preserved in pendingSignal.
+    // This is acceptable for cleanup purposes as any signal will trigger full cleanup.
+    static void signal_handler(int signal) noexcept {
+        // Store pending signal (release for sync with monitor thread)
+        pendingSignal.store(signal, std::memory_order_release);
 
-        // Restore default and re-raise
-        struct sigaction SigAction{};
+        // Async-signal-safe pipe notification
+        char byte = 1;
+        // async-signal-safe
+        while (write(signalPipe[1], &byte, 1) != 0 && errno == EINTR)
+            ;  // Retry on interrupt
+    }
 
-        SigAction.sa_handler = SIG_DFL;
+    // Monitor thread: waits for pipe, cleans memory, restores default, re-raises
+    static void start_monitor_thread() noexcept {
+        monitorThread = std::thread([]() {
+            char byte;
 
-        sigemptyset(&SigAction.sa_mask);
+            while (true)
+            {
+                // Block until pipe has data
+                ssize_t n = read(signalPipe[0], &byte, 1);
 
-        SigAction.sa_flags = SA_RESETHAND | SA_NODEFER;
+                // Better error handling
+                if (n < 0)
+                {
+                    if (errno == EINTR)
+                        continue;
 
-        if (sigaction(Signal, &SigAction, nullptr) != 0)
-            _Exit(128 + Signal);
+                    break;  // Real error or pipe closed
+                }
+                if (n == 0)
+                    break;  // EOF
 
-        // Re-raise
-        ::raise(Signal);
+                // Acquire memory order to synchronize with signal handler
+                int signal = pendingSignal.load(std::memory_order_acquire);
+
+                if (signal == 0)
+                    continue;
+
+                // Reset pending signal
+                pendingSignal.store(0, std::memory_order_release);
+                // Perform cleanup
+                SharedMemoryRegistry::clean(true);
+
+                // Restore default and re-raise
+                struct sigaction sigAction{};
+
+                sigAction.sa_handler = SIG_DFL;
+
+                sigemptyset(&sigAction.sa_mask);
+
+                sigAction.sa_flags = 0;
+
+                if (sigaction(signal, &sigAction, nullptr) != 0)
+                {
+                    std::cerr << "Failed to restore default handler for signal " << signal << ": "
+                              << std::strerror(errno) << std::endl;
+
+                    _Exit(128 + signal);
+                }
+                // Re-raise the signal
+                ::raise(signal);
+                // Fallback: In case ::raise() returns, exit with appropriate code
+                _Exit(128 + signal);
+            }
+        });
+
+        // Simple and safe: detach the thread
+        monitorThread.detach();
     }
 
    private:
@@ -724,7 +820,10 @@ class SharedMemoryCleanupManager final {
     static constexpr StdArray<int, 12> SIGNALS{SIGHUP,  SIGINT,  SIGQUIT, SIGILL, SIGABRT, SIGFPE,
                                                SIGSEGV, SIGTERM, SIGBUS,  SIGSYS, SIGXCPU, SIGXFSZ};
 
-    static inline std::once_flag registerOnce;
+    static inline std::once_flag   registerOnce;
+    static inline std::atomic<int> pendingSignal{0};
+    static inline int              signalPipe[2] = {-1, -1};
+    static inline std::thread      monitorThread;
 };
 
 struct MutexAttrGuard final {
