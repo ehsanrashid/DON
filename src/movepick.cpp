@@ -37,29 +37,39 @@ Iterator exponential_upper_bound(Iterator RESTRICT beg,
                                  Iterator RESTRICT end,
                                  const T&          value,
                                  Compare           comp) noexcept {
+    // value > first element -> insert at the beg
+    if (comp(value, beg[0]))
+        return beg;
+
     std::size_t n = end - beg;
-    // Exponential backward search starts from the last element in the range
-    std::size_t hi = n - 1;  // exclusive end of candidate range (must be n)
 
-    bool        found = false;
-    std::size_t step  = 1;
-    std::size_t pos   = 0;
+    // Initialize search bounds
+    std::size_t lo = 1;      // lower bound (inclusive)
+    std::size_t hi = n - 1;  // upper bound (exclusive for upper_bound)
 
-    // Exponential backward search
-    while (!found && step < hi)
+    bool loFound = false;
+    bool hiFound = false;
+
+    std::size_t step = 1;  // initial exponential step size
+
+    // Bidirectional exponential search
+    // Quickly narrow the range where 'value' could be inserted
+    while (hi - lo > 2 * step)
     {
-        // Candidate position
-        pos = hi - step;
+        // Probe positions from both ends
+        std::size_t loPos = lo + step;
+        std::size_t hiPos = hi - step;
 
-        found = !comp(value, *(beg + pos));  // value <= candidate
+        // Branchless conditions
+        loFound = comp(value, beg[loPos]);   // value > element -> upper bound at loPos
+        hiFound = !comp(value, beg[hiPos]);  // value <= element -> lower bound after hiPos
 
-        // Branchless: if !found shrink hi
-        hi -= int(!found) * step;
+        // Branchless arithmetic to update bounds for approximate range
+        hi = hiFound * hi + (!hiFound) * (loFound * loPos + (!loFound) * hi);
+        lo = loFound * lo + (!loFound) * (hiFound * (hiPos + 1) + (!hiFound) * lo);
 
-        step <<= 1;
+        step <<= 1;  // double the step size for exponential search
     }
-
-    std::size_t lo = int(found) * (pos + 1);
 
     // Now [lo..hi) is a sorted subrange containing the insertion point.
     // Binary search in the found range [lo, hi)
@@ -366,14 +376,16 @@ STAGE_SWITCH:
 
     case Stage::ENC_GOOD_QUIET :
         for (; !skipQuiets && !empty(); next())
-            if (valid())
-            {
-                // Good quiet threshold
-                if (cur->value >= -14000)
-                    return move();
-                // Remaining quiets are bad
-                break;
-            }
+        {
+            if (!valid())
+                continue;
+
+            // Good quiet threshold
+            if (cur->value >= -14000)
+                return move();
+            // Remaining quiets are bad
+            break;
+        }
 
         // Mark the beginning of bad quiets
         begBadQuiet = cur;
