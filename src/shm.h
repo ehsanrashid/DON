@@ -706,7 +706,7 @@ class SharedMemoryCleanupManager final {
         SigAction.sa_flags = SA_RESETHAND | SA_NODEFER;
 
         if (sigaction(Signal, &SigAction, nullptr) != 0)
-            _Exit(128 + sig);
+            _Exit(128 + Signal);
 
         // Re-raise
         ::raise(Signal);
