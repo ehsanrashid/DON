@@ -649,7 +649,7 @@ class Move {
     constexpr bool operator!=(const Move& m) const noexcept { return !(*this == m); }
 
     // Validity check: ensures move is not None or Null
-    bool is_ok() const noexcept { return data != None.data && data != Null.data; }
+    constexpr bool is_ok() const noexcept { return data != 0x000U && data != 0xFFFU; }
 
     //constexpr explicit operator bool() const noexcept { return move != 0; }
 
