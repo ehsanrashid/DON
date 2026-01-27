@@ -47,8 +47,6 @@ namespace DON {
 
 namespace {
 
-constexpr std::int64_t LIMIT = 0xFFFFFFFFLL;
-
 constexpr int DEFAULT_QUIET_HISTORY_VALUE               = 68;
 constexpr int DEFAULT_PIECE_SQ_CORRECTION_HISTORY_VALUE = 8;
 
@@ -2198,7 +2196,7 @@ int Worker::correction_value(const Position& pos, const Stack* const ss) noexcep
                                + int( preOk) * (h2[+prePc][preSq]
                                               + h4[+prePc][preSq]));
 
-    return std::clamp(correctionValue, -LIMIT, +LIMIT);
+    return std::clamp(correctionValue, -INT_LIMIT, +INT_LIMIT);
 }
 
 // clang-format on
