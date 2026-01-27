@@ -653,10 +653,16 @@ class SharedMemoryCleanupManager final {
 
     #if !defined(__linux__)
             // Set flags manually (portable alternative to pipe2)
-            fcntl(signalPipe[0], F_SETFD, FD_CLOEXEC);
-            fcntl(signalPipe[1], F_SETFD, FD_CLOEXEC);
-            fcntl(signalPipe[0], F_SETFL, O_NONBLOCK);
-            fcntl(signalPipe[1], F_SETFL, O_NONBLOCK);
+            if (fcntl(signalPipe[0], F_SETFD, FD_CLOEXEC) == -1
+                || fcntl(signalPipe[1], F_SETFD, FD_CLOEXEC) == -1
+                || fcntl(signalPipe[0], F_SETFL, O_NONBLOCK) == -1
+                || fcntl(signalPipe[1], F_SETFL, O_NONBLOCK) == -1)
+            {
+                std::cerr << "Failed to set pipe flags: " << std::strerror(errno) << std::endl;
+                close(signalPipe[0]);
+                close(signalPipe[1]);
+                return;
+            }
     #endif
             // Register atexit cleanup
             std::atexit([]() { SharedMemoryRegistry::clean(); });
@@ -672,14 +678,14 @@ class SharedMemoryCleanupManager final {
     static void register_signal_handlers() noexcept {
 
         // Block all signals about to register
-        sigset_t blockSet;
+        sigset_t sigSet;
 
-        sigemptyset(&blockSet);
+        sigemptyset(&sigSet);
 
         for (int signal : SIGNALS)
-            sigaddset(&blockSet, signal);
+            sigaddset(&sigSet, signal);
 
-        sigprocmask(SIG_BLOCK, &blockSet, nullptr);
+        sigprocmask(SIG_BLOCK, &sigSet, nullptr);
 
         // Now register handlers
         for (int signal : SIGNALS)
@@ -703,7 +709,6 @@ class SharedMemoryCleanupManager final {
             case SIGXFSZ :
                 sigAction.sa_flags = SA_RESTART;
                 break;
-
             // Fatal signals
             case SIGSEGV :
             case SIGILL :
@@ -712,7 +717,6 @@ class SharedMemoryCleanupManager final {
             case SIGBUS :
                 sigAction.sa_flags = 0;
                 break;
-
             // Safe fallback
             default :
                 sigAction.sa_flags = 0;
@@ -727,7 +731,7 @@ class SharedMemoryCleanupManager final {
         }
 
         // Unblock signals now that all handlers are registered
-        sigprocmask(SIG_UNBLOCK, &blockSet, nullptr);
+        sigprocmask(SIG_UNBLOCK, &sigSet, nullptr);
     }
 
     // Signal handler: deferred handling
@@ -740,7 +744,9 @@ class SharedMemoryCleanupManager final {
 
         // Async-signal-safe pipe notification
         char byte = 1;
-        (void) write(signalPipe[1], &byte, 1);  // async-signal-safe
+        // async-signal-safe
+        while (write(signalPipe[1], &byte, 1) != 0 && errno == EINTR)
+            ;  // Retry on interrupt
     }
 
     // Monitor thread: waits for pipe, cleans memory, restores default, re-raises
