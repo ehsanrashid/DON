@@ -647,6 +647,7 @@ class SharedMemoryCleanupManager final {
 
         auto setup_signal = [](int Signal) noexcept {
             struct sigaction SigAction{};
+
             SigAction.sa_handler = signal_handler;
 
             sigemptyset(&SigAction.sa_mask);
@@ -697,13 +698,16 @@ class SharedMemoryCleanupManager final {
 
         // Restore default and re-raise
         struct sigaction SigAction{};
+
         SigAction.sa_handler = SIG_DFL;
 
         sigemptyset(&SigAction.sa_mask);
 
         SigAction.sa_flags = SA_RESETHAND | SA_NODEFER;
 
-        sigaction(Signal, &SigAction, nullptr);
+        if (sigaction(Signal, &SigAction, nullptr) != 0)
+            _Exit(128 + sig);
+
         // Re-raise
         ::raise(Signal);
     }
