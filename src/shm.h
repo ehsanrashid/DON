@@ -642,17 +642,16 @@ class SharedMemoryCleanupManager final {
     #if defined(__linux__)
             // Linux: use pipe2 (atomic)
             if (pipe2(signalPipe, O_CLOEXEC | O_NONBLOCK) != 0)
-            {
-                std::cerr << "Failed to create signal pipe: " << std::strerror(errno) << std::endl;
-                return;
-            }
     #else
             // macOS/BSD: use pipe + fcntl
             if (pipe(signalPipe) != 0)
+    #endif
             {
                 std::cerr << "Failed to create signal pipe: " << std::strerror(errno) << std::endl;
                 return;
             }
+
+    #if !defined(__linux__)
             // Set flags manually (portable alternative to pipe2)
             fcntl(signalPipe[0], F_SETFD, FD_CLOEXEC);
             fcntl(signalPipe[1], F_SETFD, FD_CLOEXEC);
@@ -672,30 +671,76 @@ class SharedMemoryCleanupManager final {
     // Register all signals with the deferred handler
     static void register_signal_handlers() noexcept {
 
+        // Block all signals about to register
+        sigset_t blockSet;
+
+        sigemptyset(&blockSet);
+
+        for (int signal : SIGNALS)
+            sigaddset(&blockSet, signal);
+
+        sigprocmask(SIG_BLOCK, &blockSet, nullptr);
+
+        // Now register handlers
         for (int signal : SIGNALS)
         {
-            struct sigaction SigAction{};
+            struct sigaction sigAction{};
 
-            SigAction.sa_handler = signal_handler;
+            sigAction.sa_handler = signal_handler;
 
-            sigemptyset(&SigAction.sa_mask);
+            sigemptyset(&sigAction.sa_mask);
 
-            SigAction.sa_flags = 0;
+            // Choose flags depending on signal type
+            switch (signal)
+            {
+            // Normal termination/interruption signals
+            case SIGHUP :
+            case SIGINT :
+            case SIGQUIT :
+            case SIGTERM :
+            case SIGSYS :
+            case SIGXCPU :
+            case SIGXFSZ :
+                sigAction.sa_flags = SA_RESTART;
+                break;
 
-            if (sigaction(signal, &SigAction, nullptr) != 0)
+            // Fatal signals
+            case SIGSEGV :
+            case SIGILL :
+            case SIGABRT :
+            case SIGFPE :
+            case SIGBUS :
+                sigAction.sa_flags = 0;
+                break;
+
+            // Safe fallback
+            default :
+                sigAction.sa_flags = 0;
+                break;
+            }
+
+            if (sigaction(signal, &sigAction, nullptr) != 0)
+            {
                 std::cerr << "Failed to register handler for signal " << signal << ": "
                           << std::strerror(errno) << std::endl;
+            }
         }
+
+        // Unblock signals now that all handlers are registered
+        sigprocmask(SIG_UNBLOCK, &blockSet, nullptr);
     }
 
     // Signal handler: deferred handling
+    // NOTE: If multiple signals arrive rapidly,
+    // only the last one is preserved in pendingSignal.
+    // This is acceptable for cleanup purposes as any signal will trigger full cleanup.
     static void signal_handler(int signal) noexcept {
         // Store pending signal (release for sync with monitor thread)
         pendingSignal.store(signal, std::memory_order_release);
 
         // Async-signal-safe pipe notification
-        char                     byte = 1;
-        [[maybe_unused]] ssize_t res  = write(signalPipe[1], &byte, 1);  // async-signal-safe
+        char byte = 1;
+        (void) write(signalPipe[1], &byte, 1);  // async-signal-safe
     }
 
     // Monitor thread: waits for pipe, cleans memory, restores default, re-raises
@@ -731,15 +776,15 @@ class SharedMemoryCleanupManager final {
                 SharedMemoryRegistry::clean(true);
 
                 // Restore default and re-raise
-                struct sigaction SigAction{};
+                struct sigaction sigAction{};
 
-                SigAction.sa_handler = SIG_DFL;
+                sigAction.sa_handler = SIG_DFL;
 
-                sigemptyset(&SigAction.sa_mask);
+                sigemptyset(&sigAction.sa_mask);
 
-                SigAction.sa_flags = 0;
+                sigAction.sa_flags = 0;
 
-                if (sigaction(signal, &SigAction, nullptr) != 0)
+                if (sigaction(signal, &sigAction, nullptr) != 0)
                 {
                     std::cerr << "Failed to restore default handler for signal " << signal << ": "
                               << std::strerror(errno) << std::endl;
