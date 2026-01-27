@@ -617,8 +617,19 @@ class Move {
              | (dstSq << DST_SQ_OFFSET)) {}
 
     // Accessors: extract parts of the move
-    constexpr Square org_sq() const noexcept { return Square((data >> ORG_SQ_OFFSET) & 0x3F); }
-    constexpr Square dst_sq() const noexcept { return Square((data >> DST_SQ_OFFSET) & 0x3F); }
+    constexpr Square org_sq() const noexcept {
+        assert(is_ok());
+
+        return Square((data >> ORG_SQ_OFFSET) & 0x3F);
+    }
+    constexpr Square dst_sq() const noexcept {
+        assert(is_ok());
+
+        return Square((data >> DST_SQ_OFFSET) & 0x3F);
+    }
+
+    // Same as dst_sq() but without assertion, for branchless code paths
+    constexpr Square dst_sq_() const { return Square((data >> DST_SQ_OFFSET) & 0x3F); }
 
     constexpr PieceType promotion_type() const noexcept {
         return PieceType(KNIGHT + ((data >> PROMO_OFFSET) & 0x3));
@@ -638,7 +649,7 @@ class Move {
     constexpr bool operator!=(const Move& m) const noexcept { return !(*this == m); }
 
     // Validity check: ensures move is not None or Null
-    constexpr bool is_ok() const noexcept { return org_sq() != dst_sq(); }
+    bool is_ok() const noexcept { return data != None.data && data != Null.data; }
 
     //constexpr explicit operator bool() const noexcept { return move != 0; }
 
