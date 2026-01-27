@@ -26,12 +26,6 @@
 
 namespace DON {
 
-namespace {
-
-constexpr std::int64_t Limit = 0x7FFFFFFF;
-
-}  // namespace
-
 // Constructors of the MovePicker class. As arguments, pass information
 // to decide which class of moves to return, to help sorting the (presumably)
 // good moves first, and how important move ordering is at the current node.
@@ -180,7 +174,7 @@ MovePicker::score<GenType::ENC_QUIET>(MoveList<GenType::ENC_QUIET>& moveList) no
         value -=
           int((pinnersBB & orgSq) != 0 && !aligned(pos.square<KING>(~ac), orgSq, dstSq)) * 0x400;
 
-        m.value = std::clamp(value, -Limit, +Limit);
+        m.value = std::clamp(value, -INT_LIMIT, +INT_LIMIT);
     }
 
     return itr;

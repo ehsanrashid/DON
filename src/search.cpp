@@ -47,8 +47,6 @@ namespace DON {
 
 namespace {
 
-constexpr std::int64_t LIMIT = 0xFFFFFFFFLL;
-
 constexpr int DEFAULT_QUIET_HISTORY_VALUE               = 68;
 constexpr int DEFAULT_PIECE_SQ_CORRECTION_HISTORY_VALUE = 8;
 
@@ -2178,9 +2176,9 @@ int Worker::correction_value(const Position& pos, const Stack* const ss) noexcep
     Color ac = pos.active_color();
 
     std::int64_t correctionValue =
-           + 5174LL * (histories.    pawn_correction<WHITE>(pos.    pawn_key(WHITE))[ac]
+           + 10347LL * (histories.    pawn_correction<WHITE>(pos.    pawn_key(WHITE))[ac]
                      + histories.    pawn_correction<BLACK>(pos.    pawn_key(BLACK))[ac])
-           + 4411LL * (histories.   minor_correction<WHITE>(pos.   minor_key(WHITE))[ac]
+           + 8821LL * (histories.   minor_correction<WHITE>(pos.   minor_key(WHITE))[ac]
                      + histories.   minor_correction<BLACK>(pos.   minor_key(BLACK))[ac])
            +11665LL * (histories.non_pawn_correction<WHITE>(pos.non_pawn_key(WHITE))[ac]
                      + histories.non_pawn_correction<BLACK>(pos.non_pawn_key(BLACK))[ac]);
@@ -2198,7 +2196,7 @@ int Worker::correction_value(const Position& pos, const Stack* const ss) noexcep
                                + int( preOk) * (h2[+prePc][preSq]
                                               + h4[+prePc][preSq]));
 
-    return std::clamp(correctionValue, -LIMIT, +LIMIT);
+    return std::clamp(correctionValue, -INT_LIMIT, +INT_LIMIT);
 }
 
 // clang-format on
