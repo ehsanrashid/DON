@@ -1038,7 +1038,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         if (!ttd.hit && preNonPawn)
             update_pawn_history(pawnKey, pos[preSq], preSq, 13.0000 * bonus);
 
-        update_quiet_history(~ac, (ss - 1)->move, 9.0000 * bonus);
+        update_quiet_history(~ac, preMove, 9.0000 * bonus);
     }
 
     // Step 7. Razoring
@@ -1086,7 +1086,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         if (!exclude && hasNonPawn /*Zugzwang guard*/ && ss->ply >= nmpPly
             && !is_loss(beta) && ss->evalValue - 350 + 18 * depth >= beta)
         {
-            assert((ss - 1)->move != Move::Null);
+            assert(preMove != Move::Null);
 
             // Null move dynamic reduction
             Depth R = std::min(7 + int(0.33334 * depth), +depth);
@@ -1724,7 +1724,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
             if (preNonPawn)
                 update_pawn_history(pawnKey, pos[preSq], preSq, 35.4004e-3 * bonus);
 
-            update_quiet_history(~ac, (ss - 1)->move, 7.4158e-3 * bonus);
+            update_quiet_history(~ac, preMove, 7.4158e-3 * bonus);
 
             update_continuation_history(ss - 1, pos[preSq], preSq, 12.3901e-3 * bonus);
         }
@@ -2138,13 +2138,12 @@ void Worker::update_histories(const Position& pos, Key pawnKey, Stack* const ss,
 
     Move preMove = (ss - 1)->move;
 
-    // Extra penalty for a quiet early move that was not a TT move in the previous ply when it gets refuted.
-    if (preMove.is_ok())
-    {
+    bool   preOk = preMove.is_ok();
     Square preSq = preMove.dst_sq_();
-    if (!is_ok(pos.captured_pc()) && (ss - 1)->moveCount == 1 + ((ss - 1)->ttMove != Move::None))
+
+    // Extra penalty for a quiet early move that was not a TT move in the previous ply when it gets refuted
+    if (preOk && !is_ok(pos.captured_pc()) && (ss - 1)->moveCount == 1 + ((ss - 1)->ttMove != Move::None))
         update_continuation_history(ss - 1, pos[preSq], preSq, -0.5879 * malus);
-    }
 }
 
 // Updates correction histories at the end of search() when a bestMove is found
