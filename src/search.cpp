@@ -831,11 +831,13 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     if (!exclude)
         ss->ttPv = PVNode || (ttd.hit && ttd.pv);
 
-    Square preSq = (ss - 1)->move.is_ok() ? (ss - 1)->move.dst_sq() : SQ_NONE;
+    Move preMove = (ss - 1)->move;
+
+    bool   preOk = preMove.is_ok();
+    Square preSq = preMove.dst_sq_();
 
     bool preCapture = is_ok(pos.captured_pc());
-    bool preNonPawn =
-      preSq != SQ_NONE && type_of(pos[preSq]) != PAWN && (ss - 1)->move.type() != MT::PROMOTION;
+    bool preNonPawn = preOk && type_of(pos[preSq]) != PAWN && preMove.type() != MT::PROMOTION;
 
     int correctionValue = correction_value(pos, ss);
 
@@ -914,7 +916,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
                                            std::min(-72 + 132 * depth, +985));
 
                 // Extra penalty for early quiet moves of the previous ply
-                if (preSq != SQ_NONE && !preCapture && (ss - 1)->moveCount < 4)
+                if (preOk && !preCapture && (ss - 1)->moveCount < 4)
                     update_continuation_history(ss - 1, pos[preSq], preSq, -2060);
             }
 
@@ -1029,7 +1031,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     {
         // clang-format off
     // Use static evaluation difference to improve quiet move ordering
-    if (!(ss - 1)->inCheck && preSq != SQ_NONE && !preCapture)
+    if (!(ss - 1)->inCheck && preOk && !preCapture)
     {
         int bonus = 59 + std::clamp(-((ss - 1)->evalValue + (ss - 0)->evalValue), -209, +167);
 
@@ -1050,7 +1052,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
             // Null-window for razoring
             Value razorValue = qsearch<false>(pos, ss, razorAlpha, razorAlpha + 1);
             // Fail-low + mate safety
-            if (razorValue <= alpha && !is_loss(razorValue))
+            if (razorValue <= razorAlpha && !is_loss(razorValue))
                 return razorValue;
 
             ss->ttMove = ttd.move;
@@ -1696,7 +1698,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         }
     }
     // If prior move is valid, that caused the fail low
-    else if (preSq != SQ_NONE)
+    else if (preOk)
     {
         // Bonus for prior quiet move
         if (!preCapture)
@@ -1880,7 +1882,10 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
         // clang-format on
     }
 
-    Square preSq = (ss - 1)->move.is_ok() ? (ss - 1)->move.dst_sq() : SQ_NONE;
+    Move preMove = (ss - 1)->move;
+
+    bool   preOk = preMove.is_ok();
+    Square preSq = preMove.dst_sq_();
 
     State st;
 
@@ -1914,7 +1919,8 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
             bool capture = pos.capture_promo(move);
 
             // Futility pruning and moveCount pruning
-            if (!check && dstSq != preSq && move.type() != MT::PROMOTION && !is_loss(baseFutility))
+            if (!check && !(preOk && dstSq == preSq) && move.type() != MT::PROMOTION
+                && !is_loss(baseFutility))
             {
                 if (moveCount > 2)
                     continue;
@@ -2130,10 +2136,12 @@ void Worker::update_histories(const Position& pos, Key pawnKey, Stack* const ss,
     for (std::size_t i = 0; i < captureMoves.size(); ++i)
         update_capture_history(pos, captureMoves[i], -1.4141 * malus);
 
+    Move preMove = (ss - 1)->move;
+
     // Extra penalty for a quiet early move that was not a TT move in the previous ply when it gets refuted.
-    if ((ss - 1)->move.is_ok())
+    if (preMove.is_ok())
     {
-    Square preSq = (ss - 1)->move.dst_sq();
+    Square preSq = preMove.dst_sq_();
     if (!is_ok(pos.captured_pc()) && (ss - 1)->moveCount == 1 + ((ss - 1)->ttMove != Move::None))
         update_continuation_history(ss - 1, pos[preSq], preSq, -0.5879 * malus);
     }
@@ -2154,15 +2162,15 @@ void Worker::update_correction_histories(const Position& pos, Stack* const ss, i
 
     Move preMove = (ss - 1)->move;
 
-    bool   ok    = preMove.is_ok();
+    bool   preOk = preMove.is_ok();
     Square preSq = preMove.dst_sq_();
     Piece  prePc = pos[preSq];
 
     auto& h2 = *(ss - 2)->pieceSqCorrectionHistory;
     auto& h4 = *(ss - 4)->pieceSqCorrectionHistory;
 
-    h2[+prePc][preSq] << int(ok) * 0.9922 * bonus;
-    h4[+prePc][preSq] << int(ok) * 0.4609 * bonus;
+    h2[+prePc][preSq] << int(preOk) * 0.9922 * bonus;
+    h4[+prePc][preSq] << int(preOk) * 0.4609 * bonus;
 }
 
 // Computes the correction value for the current position from the correction histories
@@ -2179,16 +2187,16 @@ int Worker::correction_value(const Position& pos, const Stack* const ss) noexcep
 
     Move preMove = (ss - 1)->move;
 
-    bool   ok    = preMove.is_ok();
+    bool   preOk = preMove.is_ok();
     Square preSq = preMove.dst_sq_();
     Piece  prePc = pos[preSq];
 
     auto& h2 = *(ss - 2)->pieceSqCorrectionHistory;
     auto& h4 = *(ss - 4)->pieceSqCorrectionHistory;
 
-    correctionValue += 7841LL * (int(!ok) * DEFAULT_PIECE_SQ_CORRECTION_HISTORY_VALUE
-                               + int( ok) * (h2[+prePc][preSq]
-                                           + h4[+prePc][preSq]));
+    correctionValue += 7841LL * (int(!preOk) * DEFAULT_PIECE_SQ_CORRECTION_HISTORY_VALUE
+                               + int( preOk) * (h2[+prePc][preSq]
+                                              + h4[+prePc][preSq]));
 
     return std::clamp(correctionValue, -LIMIT, +LIMIT);
 }
