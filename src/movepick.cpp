@@ -263,22 +263,21 @@ Iterator exponential_upper_bound(Iterator RESTRICT beg,
     std::size_t lo = 0;      // inclusive start of candidate range
     std::size_t hi = n - 1;  // exclusive end of candidate range (must be n)
 
+    bool        le   = false;
     std::size_t step = 1;
 
-    while (step < hi)
+    // Exponential backward search
+    while (!le && step < hi)
     {
-        // Candidate position hi - step
+        // Candidate position
         std::size_t pos = hi - step;
 
-        // If pos <= value, found the range
-        if (!comp(value, *(beg + pos)))
-        {
-            lo = pos + 1;  // restrict lo to start of the range
-            break;
-        }
+        le = !comp(value, *(beg + pos));  // value <= candidate
 
-        // Move backward
-        hi = pos;
+        // Branchless: if ge then advance lo, otherwise shrink hi
+        lo = le ? pos + 1 : lo;
+        hi = le ? hi : pos;
+
         step <<= 1;
     }
 
