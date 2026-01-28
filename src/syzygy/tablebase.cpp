@@ -482,7 +482,7 @@ TBTable<T>::~TBTable() noexcept {
 template<TBType T>
 void* TBTable<T>::init(const Position& pos, Key materialKey) noexcept {
     // Fast path: if already initialized, return immediately
-    if (callOnce.called())
+    if (callOnce.initialized())
         return mappedPtr;
 
     // Slow path: initialize exactly once using CallOnce

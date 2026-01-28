@@ -28,64 +28,21 @@ namespace DON {
 
 namespace {
 
-constexpr bool ext_move_descending(const ExtMove& em1, const ExtMove& em2) noexcept {
-    return em1 > em2;
-}
-
-template<typename Iterator, typename T, typename Compare>
-Iterator exponential_upper_bound(Iterator RESTRICT beg,
-                                 Iterator RESTRICT end,
-                                 const T&          value,
-                                 Compare           comp) noexcept {
-    // value > first element -> insert at the beg
-    if (comp(value, beg[0]))
-        return beg;
-
-    std::size_t n = end - beg;
-
-    // Initialize search bounds
-    std::size_t lo = 1;      // lower bound (inclusive)
-    std::size_t hi = n - 1;  // upper bound (exclusive for upper_bound)
-
-    std::size_t step = 1;  // initial exponential step size
-
-    // Bidirectional exponential search
-    // Quickly narrow the range where 'value' could be inserted
-    while (hi - lo > 2 * step)
-    {
-        // Branchless conditions
-        bool loFound = comp(value, beg[lo + step]);   // value > element -> upper bound at loPos
-        bool hiFound = !comp(value, beg[hi - step]);  // value <= element -> lower bound after hiPos
-
-        // Branchless arithmetic to update bounds for approximate range
-        lo += int(hiFound) * (-lo + (hi - step + 1)) + int(!loFound && !hiFound) * step;
-        hi -= int(loFound) * (+hi - (lo + step + 0)) + int(!loFound && !hiFound) * step;
-
-        step <<= 1;  // double the step size for exponential search
-    }
-
-    // Now [lo..hi) is a sorted subrange containing the insertion point.
-    // Binary search in the found range [lo, hi)
-    return std::upper_bound(beg + lo, beg + hi, value, comp);
-}
-
 template<typename Iterator>
 void insertion_sort(Iterator RESTRICT beg, Iterator RESTRICT end) noexcept {
+    // Iterate over the range starting from the second element
     for (Iterator p = beg + 1; p < end; ++p)
     {
         // Stability: Early exit if already in correct position
-        if (!ext_move_descending(*p, *(p - 1)))
+        if (!ext_move_descending(p[0], p[-1]))
             continue;
-
+        // Move the current element out to avoid multiple copies during shifting
         auto value = std::move(*p);
-
-        // Find insertion position using exponential upper bound
-        Iterator q = exponential_upper_bound(beg, p, value, ext_move_descending);
-
-        // Shift elements in (q, p] one step to the right to make room at *q
+        // Find the insertion position in the sorted subarray [beg, p) upper_bound ensures stability
+        Iterator q = std::upper_bound(beg, p, value, ext_move_descending);
+        // Shift elements in sorted subarray (q, p] one step to the right to make room at *q
         std::move_backward(q, p, p + 1);
-
-        // Insert value in its correct position
+        // Place the value into its correct position
         *q = std::move(value);
     }
 }

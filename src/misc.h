@@ -921,6 +921,47 @@ class FixedString final {
     std::size_t                  _size;
 };
 
+// RAII guard for resetting atomic bool flags
+struct FlagGuard final {
+   public:
+    explicit FlagGuard(std::atomic<bool>& flagRef) noexcept :
+        flag(flagRef) {}
+    // Non-copyable, non-movable to ensure unique ownership
+    FlagGuard(const FlagGuard&)            = delete;
+    FlagGuard(FlagGuard&&)                 = delete;
+    FlagGuard& operator=(const FlagGuard&) = delete;
+    FlagGuard& operator=(FlagGuard&&)      = delete;
+
+    ~FlagGuard() noexcept { reset(); }
+
+    // Manually reset the flag if needed before destruction
+    void reset() noexcept { flag.store(false, std::memory_order_release); }
+
+   private:
+    std::atomic<bool>& flag;
+};
+
+// RAII guard for resetting atomic int flags
+template<typename T>
+struct IFlagGuard final {
+   public:
+    explicit IFlagGuard(std::atomic<T>& iFlagRef) noexcept :
+        iFlag(iFlagRef) {}
+    // Non-copyable, non-movable to ensure unique ownership
+    IFlagGuard(const IFlagGuard&)            = delete;
+    IFlagGuard(IFlagGuard&&)                 = delete;
+    IFlagGuard& operator=(const IFlagGuard&) = delete;
+    IFlagGuard& operator=(IFlagGuard&&)      = delete;
+
+    ~IFlagGuard() noexcept { reset(); }
+
+    // Manually reset the flag if needed before destruction
+    void reset() noexcept { iFlag.store(0, std::memory_order_release); }
+
+   private:
+    std::atomic<T>& iFlag;
+};
+
 struct CallOnce final {
    public:
     CallOnce()                           = default;
@@ -935,16 +976,18 @@ struct CallOnce final {
     void operator()(Func&& callFn) noexcept(noexcept(callFn())) {
         std::call_once(callOnce, [this, callFunc = std::forward<Func>(callFn)]() mutable {
             std::move(callFunc)();  // Move into the call
-            call.store(true, std::memory_order_release);
+            initialize.store(true, std::memory_order_release);
         });
     }
 
     // Check if initialization has been completed
-    [[nodiscard]] bool called() const noexcept { return call.load(std::memory_order_acquire); }
+    [[nodiscard]] bool initialized() const noexcept {
+        return initialize.load(std::memory_order_acquire);
+    }
 
    private:
     std::once_flag    callOnce;
-    std::atomic<bool> call{false};
+    std::atomic<bool> initialize{false};
 };
 
 // LazyValue wraps a Value with CallOnce for safe lazy initialization
@@ -990,7 +1033,7 @@ struct LazyValue final {
         return *get_ptr();
     }
 
-    [[nodiscard]] bool is_initialized() const noexcept { return callOnce.called(); }
+    [[nodiscard]] bool is_initialized() const noexcept { return callOnce.initialized(); }
 
    private:
     Value* get_ptr() noexcept { return std::launder(reinterpret_cast<Value*>(&storage)); }
@@ -1008,8 +1051,9 @@ template<typename Key, typename Value>
 class ConcurrentCache final {
    public:
     ConcurrentCache(std::size_t reserveCount = 1024, float loadFactor = 0.75f) noexcept {
-        storage.reserve(reserveCount);
         storage.max_load_factor(loadFactor);
+        std::size_t bucketCount = std::size_t(reserveCount / loadFactor) + 1;
+        storage.rehash(bucketCount);
     }
 
     template<typename... Args>
