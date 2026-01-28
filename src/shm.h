@@ -686,6 +686,7 @@ class SharedMemoryCleanupManager final {
             {
                 std::cerr << "Failed to create signal pipe: " << std::strerror(errno) << std::endl;
 
+                close_signal_pipe();
                 return;
             }
     #if !defined(__linux__)
@@ -701,7 +702,11 @@ class SharedMemoryCleanupManager final {
                 return;
             }
     #endif
-
+            if (!valid_signal_pipe())
+            {
+                std::cerr << "Pipe creation failed, aborting monitor thread." << std::endl;
+                return;  // Skip starting the thread
+            }
             // 2. Start monitor thread SECOND
             start_monitor_thread();
             // 3. Register signal handlers (now pipe and thread are ready)
@@ -817,10 +822,19 @@ class SharedMemoryCleanupManager final {
 
             while (!shuttingDown.load(std::memory_order_relaxed))
             {
+                // Pipe closed, exit thread
+                if (signalPipe[0] == -1)
+                    break;
+
                 char byte;
                 // Block wait for notification
                 ssize_t n = read(signalPipe[0], &byte, 1);
-
+                if (n == -1 && errno == EAGAIN)
+                {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                    continue;
+                }
+                /*
                 // Better error handling
                 if (n < 0)
                 {
@@ -829,6 +843,7 @@ class SharedMemoryCleanupManager final {
 
                     break;  // Real error or pipe closed
                 }
+                */
                 if (n == 0)
                     break;  // EOF
 
@@ -892,7 +907,8 @@ class SharedMemoryCleanupManager final {
     }
     static void reset_signal_pipe() noexcept { signalPipe[0] = signalPipe[1] = -1; }
 
-   private:
+    static bool valid_signal_pipe() noexcept { return signalPipe[0] != -1 && signalPipe[1] != -1; }
+
     // Map signal numbers to bit positions (0-11 for your 12 signals)
     static constexpr int signal_to_bit(int signal) noexcept {
         for (std::size_t bitPos = 0; bitPos < SIGNALS.size(); ++bitPos)

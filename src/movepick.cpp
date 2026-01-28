@@ -30,13 +30,14 @@ namespace {
 
 constexpr int GOOD_QUIET_THRESHOLD = -14000;
 
-// Sort moves in descending order
+// Sort elements in descending order.
+// Stable for all elements.
 template<typename Iterator>
 void insertion_sort(Iterator RESTRICT beg, Iterator RESTRICT end) noexcept {
     // Iterate over the range starting from the second element
     for (Iterator p = beg + 1; p < end; ++p)
     {
-        // Stability: Early exit if already in correct position
+        // Stability: Skip if already in correct position
         if (!ext_move_descending(p[0], p[-1]))
             continue;
         // Move the current element out to avoid multiple copies during shifting
@@ -50,7 +51,9 @@ void insertion_sort(Iterator RESTRICT beg, Iterator RESTRICT end) noexcept {
     }
 }
 
-// Sort moves in descending order up to and including a given limit.
+// Sort elements in descending order up to a threshold 'limit'
+// leaving elements < limit untouched at their original positions.
+// Stable for elements >= limit.
 template<typename Iterator>
 void partial_insertion_sort(Iterator RESTRICT beg,
                             Iterator RESTRICT end,
@@ -70,13 +73,13 @@ void partial_insertion_sort(Iterator RESTRICT beg,
         // Skip elements smaller than the limit
         if (p->value < limit)
             continue;
-
-        // Move the current element out
+        // Stability: Skip if already in correct position
+        if (!ext_move_descending(p[0], p[-1]))
+            continue;
+        // Move the current element out to avoid multiple copies during shifting
         auto value = std::move(*p);
-
         // Find insertion position in the sorted subarray [beg, p) upper_bound ensures stability
         Iterator q = std::upper_bound(beg, p, value, ext_move_descending_limit);
-
         // Shift elements in sorted subarray (q, p] one step to the right to make room at *q
         std::move_backward(q, p, p + 1);
         // Place value into its correct position
