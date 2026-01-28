@@ -714,13 +714,7 @@ class SharedMemoryCleanupManager final {
             // 4. Initialize registry (might trigger signals, but now pipe, thread, handlers all ready)
             SharedMemoryRegistry::ensure_initialized();
             // 5. Register std::atexit() shutdown cleanup
-            std::atexit([]() {
-                shuttingDown.store(true, std::memory_order_relaxed);
-
-                close_signal_pipe();
-
-                SharedMemoryRegistry::clean();
-            });
+            std::atexit(cleanup_on_exit);
         });
     }
 
@@ -808,10 +802,7 @@ class SharedMemoryCleanupManager final {
         // Ignore EAGAIN (pipe full) - pendingSignals still tracks signals
         if (r == -1 && errno != EAGAIN)
         {
-            const char msg[] = "Signal pipe write failed\n";
-            ssize_t    n     = write(STDERR_FILENO, msg, sizeof(msg) - 1);
-            if (n == -1)
-            {}  // handle error, or ignore safely
+            write_to_stderr("Failed to write to signal pipe\n");
         }
     }
 
@@ -820,19 +811,25 @@ class SharedMemoryCleanupManager final {
         monitorThread = std::thread([]() noexcept {
             IFlagGuard pendingSignalGuard(pendingSignals);
 
-            while (!shuttingDown.load(std::memory_order_relaxed))
+            while (!shuttingDown.load(std::memory_order_acquire))
             {
                 // Pipe closed, exit thread
-                if (signalPipe[0] == -1)
+                int fd0 = std::atomic_load(&signalPipe[0]);
+                if (fd0 == -1)
                     break;
 
                 char byte;
                 // Block wait for notification
                 ssize_t n = read(signalPipe[0], &byte, 1);
-                if (n == -1 && errno == EAGAIN)
+                if (n == -1)
                 {
-                    std::this_thread::sleep_for(std::chrono::milliseconds(10));
-                    continue;
+                    if (errno == EAGAIN || errno == EINTR)
+                    {
+                        std::this_thread::yield();
+                        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                        continue;
+                    }
+                    break;
                 }
                 /*
                 // Better error handling
@@ -894,15 +891,51 @@ class SharedMemoryCleanupManager final {
         // Simple and safe: detach the monitor thread.
         // Thread is designed to live for the lifetime of the program.
         // No join is required since it only accesses static/global data.
-        monitorThread.detach();
+        //monitorThread.detach();
+    }
+
+    // Wake monitor thread
+    static void wake_monitor_thread() noexcept {
+        int fd1 = std::atomic_load(&signalPipe[1]);
+        if (fd1 != -1)
+        {
+            char    byte = 0;
+            ssize_t r    = write(fd1, &byte, 1);  // best-effort wakeup
+            if (r == -1 && errno != EAGAIN && errno != EINTR)
+            {
+                write_to_stderr("Failed to wake monitor thread\n");
+            }
+        }
+    }
+
+    static void stop_monitor_thread() noexcept {
+        // 1. Signal shutdown
+        shuttingDown.store(true, std::memory_order_release);
+        // 2. Wake monitor thread
+        wake_monitor_thread();
+        // 3. Join monitor thread (wait for exit)
+        if (monitorThread.joinable())
+            monitorThread.join();
+    }
+
+    static void cleanup_on_exit() noexcept {
+        stop_monitor_thread();
+        close_signal_pipe();
+        SharedMemoryRegistry::clean();
     }
 
     static void close_signal_pipe() noexcept {
-        if (signalPipe[0] != -1)
-            close(signalPipe[0]);
-        if (signalPipe[1] != -1)
-            close(signalPipe[1]);
 
+        // 1. Close pipe safely
+        int fd0 = std::atomic_exchange(&signalPipe[0], -1);
+        int fd1 = std::atomic_exchange(&signalPipe[1], -1);
+
+        if (fd0 != -1)
+            close(fd0);
+        if (fd1 != -1)
+            close(fd1);
+
+        // 2. Reset pipe descriptors
         reset_signal_pipe();
     }
     static void reset_signal_pipe() noexcept { signalPipe[0] = signalPipe[1] = -1; }
@@ -929,6 +962,12 @@ class SharedMemoryCleanupManager final {
             return false;
             // clang-format on
         }
+    }
+
+    static void write_to_stderr(const char* msg) noexcept {
+        ssize_t n = write(STDERR_FILENO, msg, std::strlen(msg));
+        if (n == -1)
+        {}  // handle error, or ignore safely
     }
 
     SharedMemoryCleanupManager() noexcept                                             = delete;
