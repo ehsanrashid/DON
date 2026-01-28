@@ -673,9 +673,7 @@ class SharedMemoryCleanupManager final {
     // Ensures signal handlers and atexit cleanup are registered only once
     static void ensure_initialized() noexcept {
         std::call_once(initializeOnce, []() noexcept {
-            SharedMemoryRegistry::ensure_initialized();
-
-                // Create async-signal-safe pipe
+            // 1. Create async-signal-safe pipe
     #if defined(__linux__)
             // Linux: use pipe2 (atomic)
             if (pipe2(signalPipe, O_CLOEXEC | O_NONBLOCK) != 0)
@@ -687,7 +685,6 @@ class SharedMemoryCleanupManager final {
                 std::cerr << "Failed to create signal pipe: " << std::strerror(errno) << std::endl;
                 return;
             }
-
     #if !defined(__linux__)
             // Set flags manually (portable alternative to pipe2)
             if (fcntl(signalPipe[0], F_SETFD, FD_CLOEXEC) == -1
@@ -701,12 +698,17 @@ class SharedMemoryCleanupManager final {
                 return;
             }
     #endif
-            // Register atexit cleanup
-            std::atexit([]() { SharedMemoryRegistry::clean(); });
-            // Register signal handlers
-            register_signal_handlers();
-            // Start monitor thread
+
+            // 2. Start monitor thread SECOND
             start_monitor_thread();
+            // 3. Register signal handlers (now pipe and thread are ready)
+            register_signal_handlers();
+            // 4. Initialize registry LAST (might trigger signals, but now all ready)
+            SharedMemoryRegistry::ensure_initialized();
+            // 5. Register std::atexit cleanup
+            std::atexit([]() { SharedMemoryRegistry::clean(); });
+            // 6. Mark as initialized (pipe, thread, handlers all ready)
+            initialized.store(true, std::memory_order_release);
         });
     }
 
@@ -764,8 +766,11 @@ class SharedMemoryCleanupManager final {
     // Signal handler: deferred handling
     // NOTE: If multiple signals arrive rapidly, all are preserved in pendingSignals.
     static void signal_handler(int signal) noexcept {
-        int bitPos = signal_to_bit(signal);
+        // Don't process signals until initialized
+        if (!initialized.load(std::memory_order_acquire))
+            return;
 
+        int bitPos = signal_to_bit(signal);
         // Unknown signal
         if (bitPos == INVALID_SIGNAL)
             return;
@@ -773,9 +778,12 @@ class SharedMemoryCleanupManager final {
         // Set the signal bit
         pendingSignals.fetch_or(bit(bitPos), std::memory_order_release);
 
-        // Always notify (idempotent, safe)
+        // Guard against uninitialized pipe before writing (Additional safety)
+        if (signalPipe[1] < 0)
+            return;  // Pipe not initialized yet, skip notification
 
-        // Retry only on EINTR; ignore EAGAIN (pipe full)
+        // Always notify (idempotent, safe)
+        // Notify via pipe
         ssize_t r;
         do
         {
@@ -785,7 +793,7 @@ class SharedMemoryCleanupManager final {
 
         } while (r == -1 && errno == EINTR);
 
-        // Ignore EAGAIN (pipe full) — pendingSignals still tracks signals
+        // Ignore EAGAIN (pipe full) - pendingSignals still tracks signals
         if (r == -1 && errno != EAGAIN)
         {
             const char msg[] = "Signal pipe write failed\n";
@@ -867,13 +875,6 @@ class SharedMemoryCleanupManager final {
     }
 
    private:
-    SharedMemoryCleanupManager() noexcept                                             = delete;
-    ~SharedMemoryCleanupManager() noexcept                                            = delete;
-    SharedMemoryCleanupManager(const SharedMemoryCleanupManager&) noexcept            = delete;
-    SharedMemoryCleanupManager(SharedMemoryCleanupManager&&) noexcept                 = delete;
-    SharedMemoryCleanupManager& operator=(const SharedMemoryCleanupManager&) noexcept = delete;
-    SharedMemoryCleanupManager& operator=(SharedMemoryCleanupManager&&) noexcept      = delete;
-
     // Map signal numbers to bit positions (0-11 for your 12 signals)
     static constexpr int signal_to_bit(int signal) noexcept {
         for (std::size_t bitPos = 0; bitPos < SIGNALS.size(); ++bitPos)
@@ -881,8 +882,15 @@ class SharedMemoryCleanupManager final {
             if (SIGNALS[bitPos] == signal)
                 return bitPos;
         }
-        return INVALID_SIGNAL;  // Not in our list
+        return INVALID_SIGNAL;  // Not in list
     }
+
+    SharedMemoryCleanupManager() noexcept                                             = delete;
+    ~SharedMemoryCleanupManager() noexcept                                            = delete;
+    SharedMemoryCleanupManager(const SharedMemoryCleanupManager&) noexcept            = delete;
+    SharedMemoryCleanupManager(SharedMemoryCleanupManager&&) noexcept                 = delete;
+    SharedMemoryCleanupManager& operator=(const SharedMemoryCleanupManager&) noexcept = delete;
+    SharedMemoryCleanupManager& operator=(SharedMemoryCleanupManager&&) noexcept      = delete;
 
     // All handled signals, available at compile-time
     static constexpr StdArray<int, 12> SIGNALS{SIGHUP,  SIGINT,  SIGQUIT, SIGILL, SIGABRT, SIGFPE,
@@ -891,6 +899,7 @@ class SharedMemoryCleanupManager final {
     static constexpr int INVALID_SIGNAL = -1;
 
     static inline std::once_flag             initializeOnce;
+    static inline std::atomic<bool>          initialized{false};
     static inline std::atomic<std::uint64_t> pendingSignals{0};
     static inline int                        signalPipe[2]{-1, -1};
     static inline std::thread                monitorThread;
