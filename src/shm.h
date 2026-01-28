@@ -514,8 +514,8 @@ class SharedMemoryRegistry final {
 
     // Try to register, retry only if cleanup is in progress
     static void attempt_register_memory(BaseSharedMemory* sharedMemory) noexcept {
-        constexpr std::size_t MaxAttempts = 10;
-        constexpr auto        RetryDelay  = std::chrono::microseconds(100);
+        constexpr std::size_t MaxAttempts  = 10;
+        constexpr auto        AttemptDelay = std::chrono::microseconds(100);
 
         for (std::size_t attempt = 0;; ++attempt)
         {
@@ -535,7 +535,7 @@ class SharedMemoryRegistry final {
 
             // Cleanup in progress, wait a bit
             std::this_thread::yield();
-            std::this_thread::sleep_for(RetryDelay);
+            std::this_thread::sleep_for(AttemptDelay);
         }
         // Failed to register after retries - acceptable during shutdown
     }
@@ -736,34 +736,24 @@ class SharedMemoryCleanupManager final {
             // Choose flags depending on signal type
             switch (signal)
             {
+                // clang-format off
             // Normal termination/interruption signals
-            case SIGHUP :
-            case SIGINT :
-            case SIGQUIT :
-            case SIGTERM :
-            case SIGSYS :
-            case SIGXCPU :
-            case SIGXFSZ :
+            case SIGHUP : case SIGINT : case SIGQUIT : case SIGTERM : case SIGSYS : case SIGXCPU : case SIGXFSZ :
                 sigAction.sa_flags = SA_RESTART;
                 break;
             // Fatal signals
-            case SIGSEGV :
-            case SIGILL :
-            case SIGABRT :
-            case SIGFPE :
-            case SIGBUS :
+            case SIGSEGV : case SIGILL : case SIGABRT : case SIGFPE : case SIGBUS :
                 sigAction.sa_flags = 0;
                 break;
             // Safe fallback
             default :
                 sigAction.sa_flags = 0;
+                // clang-format on
             }
 
             if (sigaction(signal, &sigAction, nullptr) != 0)
-            {
                 std::cerr << "Failed to register handler for signal " << signal << ": "
                           << std::strerror(errno) << std::endl;
-            }
         }
 
         // Unblock all signals handlers are registered

@@ -287,8 +287,8 @@ void Worker::start_search() noexcept {
         return;
     }
 
+    mainManager->set_ponder(limit.ponder);
     mainManager->callsCount     = limit.calls_count();
-    mainManager->ponder         = limit.ponder;
     mainManager->ponderhitStop  = false;
     mainManager->sumMoveChanges = 0.0;
     mainManager->timeReduction  = 1.0;
@@ -353,8 +353,16 @@ void Worker::start_search() noexcept {
     // However, if pondering or in an infinite search, the UCI protocol states that
     // shouldn't print the best move before the GUI sends a "stop" or "ponderhit" command.
     // Therefore simply wait here until the GUI sends one of those commands.
-    while (!threads.is_stopped() && (limit.infinite || mainManager->ponder))
-    {}  // Busy wait for a stop or a mainManager->ponder reset
+    {
+        std::unique_lock lock(mainManager->mutex);
+
+        // If busy, wait until either:
+        // 1. Threads are stopped, or
+        // 2. No longer in infinite search or pondering
+        mainManager->condVar.wait(lock, [&]() noexcept {
+            return threads.is_stopped() || !(limit.infinite || mainManager->ponder);
+        });
+    }
 
     // Stop the threads if not already stopped
     // (also raise the stop if "ponderhit" just reset mainManager->ponder).

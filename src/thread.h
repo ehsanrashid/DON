@@ -356,12 +356,12 @@ class Threads final {
         {
             // Don't override aborted or stopped states
             if (current == State::Aborted || current == State::Stopped)
-                return;
+                break;
 
             // Try to transition to Research
             if (state.compare_exchange_weak(current, State::Research, std::memory_order_release,
                                             std::memory_order_relaxed))
-                return;
+                break;
             // current is updated on failure, loop continues
         }
     }
@@ -373,14 +373,16 @@ class Threads final {
         {
             // Don't override aborted state
             if (current == State::Aborted)
-                return;
+                break;
 
             // Try to transition to Stopped
             if (state.compare_exchange_weak(current, State::Stopped, std::memory_order_release,
                                             std::memory_order_relaxed))
-                return;
+                break;
             // current is updated on failure, loop continues
         }
+
+        main_manager()->condVar.notify_all();
     }
 
     void request_abort() noexcept {
