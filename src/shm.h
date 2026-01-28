@@ -764,50 +764,45 @@ class SharedMemoryCleanupManager final {
     // Signal handler: deferred handling
     // NOTE: If multiple signals arrive rapidly, all are preserved in pendingSignals.
     static void signal_handler(int signal) noexcept {
-        // Cannot represent
-        if (signal >= 64)
+        int bitPos = signal_to_bit(signal);
+
+        // Unknown signal
+        if (bitPos == INVALID_SIGNAL)
             return;
 
-        // Store pending signal (release for sync with monitor thread)
-        std::uint64_t sig = pendingSignals.fetch_or(bit(signal), std::memory_order_release);
+        // Set the signal bit
+        pendingSignals.fetch_or(bit(bitPos), std::memory_order_release);
 
-        // Only notify once per batch
-        if (sig != 0)
-            return;
+        // Always notify (idempotent, safe)
 
-        // Async-signal-safe pipe notification to monitor thread
-        // Write single byte to pipe; retry on EINTR only
+        // Retry only on EINTR; ignore EAGAIN (pipe full)
         ssize_t r;
         do
         {
             char byte = 1;
 
             r = write(signalPipe[1], &byte, 1);
+
         } while (r == -1 && errno == EINTR);
 
-        // If pipe full or other error, log safely
         if (r == -1)
         {
             const char msg[] = "Signal pipe write failed\n";
-
-            ssize_t n = write(STDERR_FILENO, msg, sizeof(msg) - 1);
-
+            ssize_t    n     = write(STDERR_FILENO, msg, sizeof(msg) - 1);
             if (n == -1)
-            {
-                // handle error, or ignore safely
-            }
+            {}  // handle error, or ignore safely
         }
     }
 
     // Monitor thread: waits for pipe, cleans memory, restores default, re-raises
     static void start_monitor_thread() noexcept {
-        monitorThread = std::thread([]() {
+        monitorThread = std::thread([]() noexcept {
             IFlagGuard pendingSignalGuard(pendingSignals);
 
             while (true)
             {
                 char byte;
-                // Block until pipe has data
+                // Block wait for notification
                 ssize_t n = read(signalPipe[0], &byte, 1);
 
                 // Better error handling
@@ -821,50 +816,45 @@ class SharedMemoryCleanupManager final {
                 if (n == 0)
                     break;  // EOF
 
-                // Acquire memory order to synchronize with signal handler
+                // Get and clear all pending signals atomically
                 std::uint64_t signals = pendingSignals.exchange(0, std::memory_order_acquire);
 
                 if (signals == 0)
                     continue;
 
-                // Find first pending signal
-                int signal = INVALID_SIGNAL;
-
-                for (int sig = 0; sig < 64; ++sig)
+                // Process all set bits (handle all pending signals)
+                for (std::size_t bitPos = 0; bitPos < SIGNALS.size(); ++bitPos)
                 {
-                    if ((signals & bit(sig)) != 0)
+                    if ((signals & bit(bitPos)) == 0)
+                        continue;
+
+                    int signal = SIGNALS[bitPos];
+
+                    // Perform cleanup (once per batch)
+                    SharedMemoryRegistry::clean(true);
+
+                    // Restore default handler
+                    struct sigaction sigAction{};
+
+                    sigAction.sa_handler = SIG_DFL;
+
+                    sigemptyset(&sigAction.sa_mask);
+
+                    sigAction.sa_flags = 0;
+
+                    if (sigaction(signal, &sigAction, nullptr) != 0)
                     {
-                        signal = sig;
-                        break;
+                        std::cerr << "Failed to restore default handler for signal " << signal
+                                  << ": " << std::strerror(errno) << std::endl;
+                        // Exit with appropriate code
+                        _Exit(128 + signal);
                     }
-                }
 
-                if (signal == INVALID_SIGNAL)
-                    continue;
-
-                // Perform cleanup
-                SharedMemoryRegistry::clean(true);
-
-                // Restore default and re-raise
-                struct sigaction sigAction{};
-
-                sigAction.sa_handler = SIG_DFL;
-
-                sigemptyset(&sigAction.sa_mask);
-
-                sigAction.sa_flags = 0;
-
-                if (sigaction(signal, &sigAction, nullptr) != 0)
-                {
-                    std::cerr << "Failed to restore default handler for signal " << signal << ": "
-                              << std::strerror(errno) << std::endl;
-
+                    // Re-raise the first signal found
+                    ::raise(signal);
+                    // Fallback: In case ::raise() returns, exit with appropriate code
                     _Exit(128 + signal);
                 }
-                // Re-raise the signal
-                ::raise(signal);
-                // Fallback: In case ::raise() returns, exit with appropriate code
-                _Exit(128 + signal);
             }
         });
 
@@ -879,6 +869,16 @@ class SharedMemoryCleanupManager final {
     SharedMemoryCleanupManager(SharedMemoryCleanupManager&&) noexcept                 = delete;
     SharedMemoryCleanupManager& operator=(const SharedMemoryCleanupManager&) noexcept = delete;
     SharedMemoryCleanupManager& operator=(SharedMemoryCleanupManager&&) noexcept      = delete;
+
+    // Map signal numbers to bit positions (0-11 for your 12 signals)
+    static constexpr int signal_to_bit(int signal) noexcept {
+        for (std::size_t bitPos = 0; bitPos < SIGNALS.size(); ++bitPos)
+        {
+            if (SIGNALS[bitPos] == signal)
+                return bitPos;
+        }
+        return INVALID_SIGNAL;  // Not in our list
+    }
 
     // All handled signals, available at compile-time
     static constexpr StdArray<int, 12> SIGNALS{SIGHUP,  SIGINT,  SIGQUIT, SIGILL, SIGABRT, SIGFPE,
