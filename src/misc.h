@@ -103,7 +103,7 @@ namespace DON {
 using Strings     = std::vector<std::string>;
 using StringViews = std::vector<std::string_view>;
 
-constexpr std::int64_t INT_LIMIT = 0xFFFFFFFFLL;
+constexpr std::int64_t INT_LIMIT = 0x7FFFFFFFLL;
 
 inline constexpr std::size_t ONE_KB = 1024;
 inline constexpr std::size_t ONE_MB = ONE_KB * ONE_KB;

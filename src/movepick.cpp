@@ -28,6 +28,9 @@ namespace DON {
 
 namespace {
 
+constexpr int GOOD_QUIET_THRESHOLD = -14000;
+
+// Sort moves in descending order
 template<typename Iterator>
 void insertion_sort(Iterator RESTRICT beg, Iterator RESTRICT end) noexcept {
     // Iterate over the range starting from the second element
@@ -38,11 +41,45 @@ void insertion_sort(Iterator RESTRICT beg, Iterator RESTRICT end) noexcept {
             continue;
         // Move the current element out to avoid multiple copies during shifting
         auto value = std::move(*p);
-        // Find the insertion position in the sorted subarray [beg, p) upper_bound ensures stability
+        // Find insertion position in the sorted subarray [beg, p) upper_bound ensures stability
         Iterator q = std::upper_bound(beg, p, value, ext_move_descending);
         // Shift elements in sorted subarray (q, p] one step to the right to make room at *q
         std::move_backward(q, p, p + 1);
-        // Place the value into its correct position
+        // Place value into its correct position
+        *q = std::move(value);
+    }
+}
+
+// Sort moves in descending order up to and including a given limit.
+template<typename Iterator>
+void partial_insertion_sort(Iterator RESTRICT beg,
+                            Iterator RESTRICT end,
+                            int               limit = -INT_LIMIT) noexcept {
+    auto ext_move_descending_limit = [limit](const ExtMove& em1, const ExtMove& em2) noexcept {
+        // Only compare elements >= limit
+        if (em1.value < limit)
+            return false;  // treat a as "already after" => never move it
+        if (em2.value < limit)
+            return true;                       // value >= limit goes before elements < limit
+        return ext_move_descending(em1, em2);  // usual descending
+    };
+
+    // Iterate over the range starting from the second element
+    for (Iterator p = beg + 1; p < end; ++p)
+    {
+        // Skip elements smaller than the limit
+        if (p->value < limit)
+            continue;
+
+        // Move the current element out
+        auto value = std::move(*p);
+
+        // Find insertion position in the sorted subarray [beg, p) upper_bound ensures stability
+        Iterator q = std::upper_bound(beg, p, value, ext_move_descending_limit);
+
+        // Shift elements in sorted subarray (q, p] one step to the right to make room at *q
+        std::move_backward(q, p, p + 1);
+        // Place value into its correct position
         *q = std::move(value);
     }
 }
@@ -112,6 +149,7 @@ template<GenType GT>
 void MovePicker::init_stage() noexcept {
     MoveList<GT> moveList(pos);
 
+    cur    = moves.data();
     endCur = score(moveList);
 
     insertion_sort(cur, endCur);
@@ -291,15 +329,13 @@ STAGE_SWITCH:
 
         if (curStage == Stage::EVA_CAPTURE)
         {
-            cur = moves.data();
-
             init_stage<GenType::EVA_CAPTURE>();
         }
         else
         {
-            cur = endBadCapture = moves.data();
-
             init_stage<GenType::ENC_CAPTURE>();
+
+            endBadCapture = cur;
         }
 
         goto STAGE_SWITCH;
@@ -316,9 +352,11 @@ STAGE_SWITCH:
 
         if (!skipQuiets)
         {
-            init_stage<GenType::ENC_QUIET>();
+            MoveList<GenType::ENC_QUIET> moveList(pos);
 
-            endBadQuiet = endCur;
+            endBadQuiet = endCur = score(moveList);
+
+            partial_insertion_sort(cur, endCur, GOOD_QUIET_THRESHOLD);
         }
 
         curStage = Stage::ENC_GOOD_QUIET;
@@ -331,8 +369,9 @@ STAGE_SWITCH:
                 continue;
 
             // Good quiet threshold
-            if (cur->value >= -14000)
+            if (cur->value >= GOOD_QUIET_THRESHOLD)
                 return move();
+
             // Remaining quiets are bad
             break;
         }
@@ -356,6 +395,8 @@ STAGE_SWITCH:
             // Prepare the pointers to loop over the bad quiets
             cur    = begBadQuiet;
             endCur = endBadQuiet;
+
+            insertion_sort(cur, endCur);
         }
 
         curStage = Stage::ENC_BAD_QUIET;
@@ -370,8 +411,13 @@ STAGE_SWITCH:
     case Stage::EVA_CAPTURE :
         if (select([]() { return true; }))
             return move();
+        {
+            MoveList<GenType::EVA_QUIET> moveList(pos);
 
-        init_stage<GenType::EVA_QUIET>();
+            endCur = score(moveList);
+
+            insertion_sort(cur, endCur);
+        }
 
         curStage = Stage::EVA_QUIET;
         [[fallthrough]];

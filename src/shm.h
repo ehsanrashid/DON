@@ -785,7 +785,8 @@ class SharedMemoryCleanupManager final {
 
         } while (r == -1 && errno == EINTR);
 
-        if (r == -1)
+        // Ignore EAGAIN (pipe full) — pendingSignals still tracks signals
+        if (r == -1 && errno != EAGAIN)
         {
             const char msg[] = "Signal pipe write failed\n";
             ssize_t    n     = write(STDERR_FILENO, msg, sizeof(msg) - 1);
@@ -817,6 +818,7 @@ class SharedMemoryCleanupManager final {
                     break;  // EOF
 
                 // Get and clear all pending signals atomically
+                // Multiple signals of the same type are coalesced; all signals are processed in batches
                 std::uint64_t signals = pendingSignals.exchange(0, std::memory_order_acquire);
 
                 if (signals == 0)
@@ -858,7 +860,9 @@ class SharedMemoryCleanupManager final {
             }
         });
 
-        // Simple and safe: detach the thread
+        // Simple and safe: detach the monitor thread.
+        // Thread is designed to live for the lifetime of the program.
+        // No join is required since it only accesses static/global data.
         monitorThread.detach();
     }
 
