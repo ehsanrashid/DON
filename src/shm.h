@@ -494,7 +494,7 @@ class SharedMemoryRegistry final {
 
    public:
     static void ensure_initialized() noexcept {
-        std::call_once(initializeOnce, []() noexcept {
+        callOnce([]() noexcept {
             orderedSharedMemories.reserve(ReserveCount);
             sharedMemoryIndices.max_load_factor(LoadFactor);
             std::size_t bucketCount = std::size_t(ReserveCount / LoadFactor) + 1;
@@ -542,7 +542,9 @@ class SharedMemoryRegistry final {
     // Register a shared memory object in the global registry.
     // Thread-safe: locks the registry while inserting.
     static Result register_memory(BaseSharedMemory* sharedMemory) noexcept {
-        ensure_initialized();  // lazy initialization
+        // Lazy initialization
+        if (!callOnce.initialized())
+            ensure_initialized();
 
         std::scoped_lock lock(mutex);
 
@@ -639,7 +641,7 @@ class SharedMemoryRegistry final {
     static constexpr std::size_t ReserveCount = 1024;
     static constexpr float       LoadFactor   = 0.75f;
 
-    static inline std::once_flag    initializeOnce;
+    static inline CallOnce          callOnce;
     static inline std::atomic<bool> cleanUpInProgress{false};
     // Protects access to SharedMemories for thread safety
     static inline std::mutex mutex;
@@ -672,7 +674,7 @@ class SharedMemoryCleanupManager final {
    public:
     // Ensures signal handlers and atexit cleanup are registered only once
     static void ensure_initialized() noexcept {
-        std::call_once(initializeOnce, []() noexcept {
+        callOnce([]() noexcept {
             // 1. Create async-signal-safe pipe
     #if defined(__linux__)
             // Linux: use pipe2 (atomic)
@@ -683,6 +685,7 @@ class SharedMemoryCleanupManager final {
     #endif
             {
                 std::cerr << "Failed to create signal pipe: " << std::strerror(errno) << std::endl;
+
                 return;
             }
     #if !defined(__linux__)
@@ -693,8 +696,8 @@ class SharedMemoryCleanupManager final {
                 || fcntl(signalPipe[1], F_SETFL, O_NONBLOCK) == -1)
             {
                 std::cerr << "Failed to set pipe flags: " << std::strerror(errno) << std::endl;
-                close(signalPipe[0]);
-                close(signalPipe[1]);
+
+                close_signal_pipe();
                 return;
             }
     #endif
@@ -703,12 +706,16 @@ class SharedMemoryCleanupManager final {
             start_monitor_thread();
             // 3. Register signal handlers (now pipe and thread are ready)
             register_signal_handlers();
-            // 4. Initialize registry LAST (might trigger signals, but now all ready)
+            // 4. Initialize registry (might trigger signals, but now pipe, thread, handlers all ready)
             SharedMemoryRegistry::ensure_initialized();
-            // 5. Register std::atexit cleanup
-            std::atexit([]() { SharedMemoryRegistry::clean(); });
-            // 6. Mark as initialized (pipe, thread, handlers all ready)
-            initialized.store(true, std::memory_order_release);
+            // 5. Register std::atexit() shutdown cleanup
+            std::atexit([]() {
+                shuttingDown.store(true, std::memory_order_relaxed);
+
+                close_signal_pipe();
+
+                SharedMemoryRegistry::clean();
+            });
         });
     }
 
@@ -767,7 +774,7 @@ class SharedMemoryCleanupManager final {
     // NOTE: If multiple signals arrive rapidly, all are preserved in pendingSignals.
     static void signal_handler(int signal) noexcept {
         // Don't process signals until initialized
-        if (!initialized.load(std::memory_order_acquire))
+        if (!callOnce.initialized())
             return;
 
         int bitPos = signal_to_bit(signal);
@@ -808,7 +815,7 @@ class SharedMemoryCleanupManager final {
         monitorThread = std::thread([]() noexcept {
             IFlagGuard pendingSignalGuard(pendingSignals);
 
-            while (true)
+            while (!shuttingDown.load(std::memory_order_relaxed))
             {
                 char byte;
                 // Block wait for notification
@@ -840,8 +847,9 @@ class SharedMemoryCleanupManager final {
 
                     int signal = SIGNALS[bitPos];
 
-                    // Perform cleanup (once per batch)
-                    SharedMemoryRegistry::clean(true);
+                    if (signal_graceful(signal))
+                        // Perform safe partial cleanup (once per batch)
+                        SharedMemoryRegistry::clean(true);
 
                     // Restore default handler
                     struct sigaction sigAction{};
@@ -874,6 +882,16 @@ class SharedMemoryCleanupManager final {
         monitorThread.detach();
     }
 
+    static void close_signal_pipe() noexcept {
+        if (signalPipe[0] != -1)
+            close(signalPipe[0]);
+        if (signalPipe[1] != -1)
+            close(signalPipe[1]);
+
+        reset_signal_pipe();
+    }
+    static void reset_signal_pipe() noexcept { signalPipe[0] = signalPipe[1] = -1; }
+
    private:
     // Map signal numbers to bit positions (0-11 for your 12 signals)
     static constexpr int signal_to_bit(int signal) noexcept {
@@ -883,6 +901,18 @@ class SharedMemoryCleanupManager final {
                 return bitPos;
         }
         return INVALID_SIGNAL;  // Not in list
+    }
+
+    static bool signal_graceful(int signal) noexcept {
+        switch (signal)
+        {
+            // clang-format off
+        case SIGHUP : case SIGINT : case SIGTERM : case SIGQUIT :
+            return true;
+        default :
+            return false;
+            // clang-format on
+        }
     }
 
     SharedMemoryCleanupManager() noexcept                                             = delete;
@@ -898,8 +928,8 @@ class SharedMemoryCleanupManager final {
 
     static constexpr int INVALID_SIGNAL = -1;
 
-    static inline std::once_flag             initializeOnce;
-    static inline std::atomic<bool>          initialized{false};
+    static inline CallOnce                   callOnce;
+    static inline std::atomic<bool>          shuttingDown{false};
     static inline std::atomic<std::uint64_t> pendingSignals{0};
     static inline int                        signalPipe[2]{-1, -1};
     static inline std::thread                monitorThread;
