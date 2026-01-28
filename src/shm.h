@@ -799,7 +799,13 @@ class SharedMemoryCleanupManager final {
         if (r == -1)
         {
             const char msg[] = "Signal pipe write failed\n";
-            write(STDERR_FILENO, msg, sizeof(msg) - 1);
+
+            ssize_t n = write(STDERR_FILENO, msg, sizeof(msg) - 1);
+
+            if (n == -1)
+            {
+                // handle error, or ignore safely
+            }
         }
     }
 
