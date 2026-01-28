@@ -676,13 +676,13 @@ class SharedMemoryCleanupManager final {
     static void ensure_initialized() noexcept {
         callOnce([]() noexcept {
             // 1. Create async-signal-safe pipe
-            int fds[2];
+            int pipeFds[2];
     #if defined(__linux__)
             // Linux: use pipe2 (atomic)
-            if (pipe2(fds, O_CLOEXEC | O_NONBLOCK) != 0)
+            if (pipe2(pipeFds, O_CLOEXEC | O_NONBLOCK) != 0)
     #else
             // macOS/BSD: use pipe + fcntl
-            if (pipe(fds) != 0)
+            if (pipe(pipeFds) != 0)
     #endif
             {
                 std::cerr << "Failed to create signal pipe: " << std::strerror(errno) << std::endl;
@@ -692,10 +692,10 @@ class SharedMemoryCleanupManager final {
             }
     #if !defined(__linux__)
             // Set flags manually (portable alternative to pipe2)
-            if (fcntl(fd[0], F_SETFD, FD_CLOEXEC) == -1     //
-                || fcntl(fd[1], F_SETFD, FD_CLOEXEC) == -1  //
-                || fcntl(fd[0], F_SETFL, O_NONBLOCK) == -1  //
-                || fcntl(fd[1], F_SETFL, O_NONBLOCK) == -1)
+            if (fcntl(pipeFds[0], F_SETFD, FD_CLOEXEC) == -1     //
+                || fcntl(pipeFds[1], F_SETFD, FD_CLOEXEC) == -1  //
+                || fcntl(pipeFds[0], F_SETFL, O_NONBLOCK) == -1  //
+                || fcntl(pipeFds[1], F_SETFL, O_NONBLOCK) == -1)
             {
                 std::cerr << "Failed to set pipe flags: " << std::strerror(errno) << std::endl;
 
@@ -703,9 +703,9 @@ class SharedMemoryCleanupManager final {
                 return;
             }
     #endif
-            // Store atomically
-            signalPipeFds[0].store(fds[0], std::memory_order_relaxed);
-            signalPipeFds[1].store(fds[1], std::memory_order_relaxed);
+            // Store signal pipe fds atomically
+            signalPipeFds[0].store(pipeFds[0], std::memory_order_relaxed);
+            signalPipeFds[1].store(pipeFds[1], std::memory_order_relaxed);
 
             if (!valid_signal_pipe())
             {
