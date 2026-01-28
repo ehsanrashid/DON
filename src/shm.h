@@ -676,12 +676,13 @@ class SharedMemoryCleanupManager final {
     static void ensure_initialized() noexcept {
         callOnce([]() noexcept {
             // 1. Create async-signal-safe pipe
+            int fds[2];
     #if defined(__linux__)
             // Linux: use pipe2 (atomic)
-            if (pipe2(signalPipe, O_CLOEXEC | O_NONBLOCK) != 0)
+            if (pipe2(fds, O_CLOEXEC | O_NONBLOCK) != 0)
     #else
             // macOS/BSD: use pipe + fcntl
-            if (pipe(signalPipe) != 0)
+            if (pipe(fds) != 0)
     #endif
             {
                 std::cerr << "Failed to create signal pipe: " << std::strerror(errno) << std::endl;
@@ -691,11 +692,10 @@ class SharedMemoryCleanupManager final {
             }
     #if !defined(__linux__)
             // Set flags manually (portable alternative to pipe2)
-            int fd0 = signalPipe[0].load(std::memory_order_relaxed);
-            int fd1 = signalPipe[1].load(std::memory_order_relaxed);
-            // Set flags manually (portable alternative to pipe2)
-            if (fcntl(fd0, F_SETFD, FD_CLOEXEC) == -1 || fcntl(fd1, F_SETFD, FD_CLOEXEC) == -1
-                || fcntl(fd0, F_SETFL, O_NONBLOCK) == -1 || fcntl(fd1, F_SETFL, O_NONBLOCK) == -1)
+            if (fcntl(fd[0], F_SETFD, FD_CLOEXEC) == -1     //
+                || fcntl(fd[1], F_SETFD, FD_CLOEXEC) == -1  //
+                || fcntl(fd[0], F_SETFL, O_NONBLOCK) == -1  //
+                || fcntl(fd[1], F_SETFL, O_NONBLOCK) == -1)
             {
                 std::cerr << "Failed to set pipe flags: " << std::strerror(errno) << std::endl;
 
@@ -703,6 +703,10 @@ class SharedMemoryCleanupManager final {
                 return;
             }
     #endif
+            // Store atomically
+            signalPipeFds[0].store(fds[0], std::memory_order_relaxed);
+            signalPipeFds[1].store(fds[1], std::memory_order_relaxed);
+
             if (!valid_signal_pipe())
             {
                 std::cerr << "Pipe creation failed, aborting monitor thread." << std::endl;
@@ -786,7 +790,7 @@ class SharedMemoryCleanupManager final {
         pendingSignals.fetch_or(bit(bitPos), std::memory_order_release);
 
         // Guard against uninitialized pipe before writing (Additional safety)
-        int fd1 = signalPipe[1].load(std::memory_order_relaxed);
+        int fd1 = signalPipeFds[1].load(std::memory_order_relaxed);
         if (fd1 < 0)
             return;  // Pipe not initialized yet, skip notification
 
@@ -815,7 +819,7 @@ class SharedMemoryCleanupManager final {
             while (!shuttingDown.load(std::memory_order_acquire))
             {
                 // Pipe closed, exit thread
-                int fd0 = signalPipe[0].load(std::memory_order_relaxed);
+                int fd0 = signalPipeFds[0].load(std::memory_order_relaxed);
                 if (fd0 == -1)
                     break;
 
@@ -897,7 +901,7 @@ class SharedMemoryCleanupManager final {
 
     // Wake monitor thread
     static void wake_monitor_thread() noexcept {
-        int fd1 = signalPipe[1].load(std::memory_order_relaxed);
+        int fd1 = signalPipeFds[1].load(std::memory_order_relaxed);
         if (fd1 == -1)
             return;  // Pipe not initialized, skip notification
 
@@ -929,8 +933,8 @@ class SharedMemoryCleanupManager final {
     static void close_signal_pipe() noexcept {
 
         // 1. Close pipe safely
-        int fd0 = signalPipe[0].load(std::memory_order_relaxed);
-        int fd1 = signalPipe[1].load(std::memory_order_relaxed);
+        int fd0 = signalPipeFds[0].load(std::memory_order_relaxed);
+        int fd1 = signalPipeFds[1].load(std::memory_order_relaxed);
         if (fd0 != -1)
             close(fd0);
         if (fd1 != -1)
@@ -941,13 +945,13 @@ class SharedMemoryCleanupManager final {
     }
 
     static void reset_signal_pipe() noexcept {
-        signalPipe[0].store(-1, std::memory_order_relaxed);
-        signalPipe[1].store(-1, std::memory_order_relaxed);
+        signalPipeFds[0].store(-1, std::memory_order_relaxed);
+        signalPipeFds[1].store(-1, std::memory_order_relaxed);
     }
 
     static bool valid_signal_pipe() noexcept {
-        return signalPipe[0].load(std::memory_order_relaxed) != -1
-            && signalPipe[1].load(std::memory_order_relaxed) != -1;
+        return signalPipeFds[0].load(std::memory_order_relaxed) != -1
+            && signalPipeFds[1].load(std::memory_order_relaxed) != -1;
     }
 
     // Map signal numbers to bit positions (0-11 for your 12 signals)
@@ -994,7 +998,7 @@ class SharedMemoryCleanupManager final {
     static inline CallOnce                   callOnce;
     static inline std::atomic<bool>          shuttingDown{false};
     static inline std::atomic<std::uint64_t> pendingSignals{0};
-    static inline std::atomic<int>           signalPipe[2]{-1, -1};
+    static inline std::atomic<int>           signalPipeFds[2]{-1, -1};
     static inline std::thread                monitorThread;
 };
 
