@@ -53,17 +53,13 @@ Iterator exponential_upper_bound(Iterator RESTRICT beg,
     // Quickly narrow the range where 'value' could be inserted
     while (hi - lo > 2 * step)
     {
-        // Probe positions from both ends
-        std::size_t loPos = lo + step;
-        std::size_t hiPos = hi - step;
-
         // Branchless conditions
-        bool loFound = comp(value, beg[loPos]);   // value > element -> upper bound at loPos
-        bool hiFound = !comp(value, beg[hiPos]);  // value <= element -> lower bound after hiPos
+        bool loFound = comp(value, beg[lo + step]);   // value > element -> upper bound at loPos
+        bool hiFound = !comp(value, beg[hi - step]);  // value <= element -> lower bound after hiPos
 
         // Branchless arithmetic to update bounds for approximate range
-        hi = int(hiFound) * hi + int(!hiFound) * (int(loFound) * (loPos + 0) + int(!loFound) * hi);
-        lo = int(loFound) * lo + int(!loFound) * (int(hiFound) * (hiPos + 1) + int(!hiFound) * lo);
+        lo += int(hiFound) * (-lo + (hi - step + 1)) + int(!loFound && !hiFound) * step;
+        hi -= int(loFound) * (+hi - (lo + step + 0)) + int(!loFound && !hiFound) * step;
 
         step <<= 1;  // double the step size for exponential search
     }
