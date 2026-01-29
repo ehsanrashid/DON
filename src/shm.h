@@ -20,6 +20,7 @@
 
 #include <algorithm>
 #include <cinttypes>
+#include <climits>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -35,8 +36,6 @@
 #include <variant>
 
 #if defined(__ANDROID__)
-    #include <limits.h>
-    #define SHM_NAME_MAX_SIZE NAME_MAX
 #elif defined(_WIN32)
     #if !defined(NOMINMAX)
         #define NOMINMAX  // Disable min()/max() macros
@@ -58,9 +57,6 @@
         #undef small
     #endif
 #else
-    #include <limits.h>
-    #define SHM_NAME_MAX_SIZE NAME_MAX
-
     #include <atomic>
     #include <cassert>
     #include <cerrno>
@@ -85,14 +81,17 @@
     #if defined(__APPLE__)
         #include <mach-o/dyld.h>
         #include <sys/syslimits.h>
-    #elif defined(__linux__) || defined(__NetBSD__) || defined(__DragonFly__)
-        #include <limits.h>
     #elif defined(__sun)  // Solaris
-        #include <stdlib.h>
+        #include <cstdlib>
+        #include <libgen.h>
     #elif defined(__FreeBSD__)
         #include <sys/sysctl.h>
         #include <sys/types.h>
+    #elif defined(__NetBSD__) || defined(__DragonFly__)
+    #elif defined(__linux__)
     #endif
+
+    #define SHM_NAME_MAX_SIZE NAME_MAX
 #endif
 
 #include "memory.h"
@@ -136,33 +135,20 @@ inline std::string executable_path() noexcept {
 #if defined(_WIN32)
     DWORD size = GetModuleFileName(nullptr, executablePath.data(), DWORD(executablePath.size()));
 
-    executableSize = std::min(std::size_t(size), executablePath.size() - 1);
+    executableSize = std::min<std::size_t>(size, executablePath.size() - 1);
 
     executablePath[executableSize] = '\0';
 #elif defined(__APPLE__)
     std::uint32_t size = std::uint32_t(executablePath.size());
 
     if (_NSGetExecutablePath(executablePath.data(), &size) == 0)
-    {
         executableSize = std::strlen(executablePath.data());
-    }
-#elif defined(__linux__)
-    ssize_t size = readlink("/proc/self/exe", executablePath.data(), executablePath.size() - 1);
-
-    if (size >= 0)
+    else
     {
-        executableSize = size;
-
-        executablePath[executableSize] = '\0';
-    }
-#elif defined(__NetBSD__) || defined(__DragonFly__)
-    ssize_t size = readlink("/proc/curproc/exe", executablePath.data(), executablePath.size() - 1);
-
-    if (size >= 0)
-    {
-        executableSize = size;
-
-        executablePath[executableSize] = '\0';
+        // Buffer too small
+        if (size < executablePath.size())
+            if (_NSGetExecutablePath(executablePath.data(), &size) == 0)
+                executableSize = std::strlen(executablePath.data());
     }
 #elif defined(__sun)  // Solaris
     const char* path = getexecname();
@@ -171,7 +157,10 @@ inline std::string executable_path() noexcept {
     {
         std::strncpy(executablePath.data(), path, executablePath.size() - 1);
 
-        executableSize = std::strlen(executablePath.data());
+        // Determine actual length copied
+        executableSize = std::strnlen(path, executablePath.size() - 1);
+
+        executablePath[executableSize] = '\0';
     }
 #elif defined(__FreeBSD__)
     constexpr StdArray<int, 4> MIB{CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME, -1};
@@ -180,7 +169,25 @@ inline std::string executable_path() noexcept {
 
     if (sysctl(MIB.data(), MIB.size(), executablePath.data(), &size, nullptr, 0) == 0)
     {
-        executableSize = std::min(size, executablePath.size() - 1);
+        executableSize = std::min<std::size_t>(size, executablePath.size() - 1);
+
+        executablePath[executableSize] = '\0';
+    }
+#elif defined(__NetBSD__) || defined(__DragonFly__)
+    ssize_t size = readlink("/proc/curproc/exe", executablePath.data(), executablePath.size() - 1);
+
+    if (size >= 0)
+    {
+        executableSize = std::min<std::size_t>(size, executablePath.size() - 1);
+
+        executablePath[executableSize] = '\0';
+    }
+#elif defined(__linux__)
+    ssize_t size = readlink("/proc/self/exe", executablePath.data(), executablePath.size() - 1);
+
+    if (size >= 0)
+    {
+        executableSize = std::min<std::size_t>(size, executablePath.size() - 1);
 
         executablePath[executableSize] = '\0';
     }
@@ -1741,26 +1748,42 @@ struct SystemWideSharedMemory final {
     // Content is addressed by its hash. An additional discriminator can be added to account for differences
     // that are not present in the content, for example NUMA node allocation.
     SystemWideSharedMemory(const T& value, std::uint64_t discriminator = 0) noexcept {
-        std::uint64_t valueHash      = std::hash<T>{}(value);
-        std::uint64_t executableHash = hash_string(executable_path());
 
         std::string shmName(256, '\0');
 
-        int size = std::snprintf(shmName.data(), shmName.size(),
-                                 "Local\\DON_%016" PRIX64 "$%016" PRIX64 "$%016" PRIX64, valueHash,
-                                 executableHash, discriminator);
+#if defined(__ANDROID__)
+        // Do nothing special on Android, just use a fixed name
+        ;
+#else
+        std::uint64_t valueHash      = std::hash<T>{}(value);
+        std::uint64_t executableHash = hash_string(executable_path());
+
+        int size =
+          std::snprintf(shmName.data(), shmName.size(), "%016" PRIX64 "$%016" PRIX64 "$%016" PRIX64,
+                        valueHash, executableHash, discriminator);
         // shrink to actual string length
         if (size >= 0)
         {
-            if (std::size_t(size) < shmName.size())
-                shmName.resize(size);  // shrink to actual content
-            else
-                shmName.resize(shmName.size() - 1);  // truncated, keep null-termination
+            // Ensure size is within bounds
+            if (std::size_t(size) >= shmName.size())
+                // Truncate to maximum size, leaving space for null terminator
+                size = int(shmName.size() - 1);
+
+            // Shrink to actual content
+            shmName.resize(size);
         }
 
-#if defined(__linux__) && !defined(__ANDROID__)
-        // POSIX shared memory names must start with a slash
-        // then add name hashing to avoid length limits
+    #if defined(_WIN32)
+        // Windows named shared memory names must start with "Local\" or "Global\" then add name hashing to avoid length limits
+        shmName = std::string("Local\\DON_") + hash_to_string(hash_string(shmName));
+
+        constexpr std::size_t MaxNameSize = 255 - 1;
+
+        // Truncate the name if necessary so that it fits within Windows limits including the null terminator
+        if (shmName.size() > MaxNameSize)
+            shmName.resize(MaxNameSize);
+    #else
+        // POSIX shared memory names must start with a slash ('/') then add name hashing to avoid length limits
         shmName = std::string("/DON_") + hash_to_string(hash_string(shmName));
 
         // POSIX APIs expect a fixed-size C string where the maximum length excluding the terminating null character ('\0').
@@ -1768,12 +1791,11 @@ struct SystemWideSharedMemory final {
         // to guarantee space for the terminator ('\0') in fixed-size buffers.
         constexpr std::size_t MaxNameSize = SHM_NAME_MAX_SIZE > 0 ? SHM_NAME_MAX_SIZE - 1 : 254;
 
-        // Truncate the name if necessary so that shmName.c_str() always fits
-        // within SHM_NAME_MAX_SIZE bytes including the null terminator.
+        // Truncate the name if necessary so that it fits within POSIX limits including the null terminator
         if (shmName.size() > MaxNameSize)
             shmName.resize(MaxNameSize);
+    #endif
 #endif
-
         BackendSharedMemory<T> tmpBackendShm(shmName, value);
 
         if (tmpBackendShm.is_valid())
