@@ -1204,9 +1204,11 @@ class SharedMemory final: public BaseSharedMemory {
                 newCreated = true;
             }
 
-            if (!lock_file(LOCK_EX))
+            bool lockFile = lock_file(LOCK_EX);
+
+            if (!lockFile)
             {
-                cleanup(newCreated, true, true, true);
+                cleanup(false, lockFile);
 
                 return false;
             }
@@ -1219,7 +1221,7 @@ class SharedMemory final: public BaseSharedMemory {
 
             if (!success)
             {
-                cleanup(newCreated || headerInvalid);
+                cleanup(newCreated || headerInvalid, lockFile);
 
                 if (!newCreated && headerInvalid && !staleRetried)
                 {
@@ -1232,7 +1234,7 @@ class SharedMemory final: public BaseSharedMemory {
 
             if (shmHeader == nullptr)
             {
-                cleanup(newCreated);
+                cleanup(newCreated, lockFile);
 
                 if (!newCreated && !staleRetried)
                 {
@@ -1243,13 +1245,13 @@ class SharedMemory final: public BaseSharedMemory {
                 return false;
             }
 
-            // ---------- RAII mutex scope ----------
+            // RAII mutex scope lock
             {
                 ShmHeaderGuard shmHeaderGuard(*shmHeader);
 
                 if (!shmHeaderGuard.owns_lock())
                 {
-                    cleanup(newCreated);
+                    cleanup(newCreated, lockFile);
 
                     if (!newCreated && !staleRetried)
                     {
@@ -1262,15 +1264,16 @@ class SharedMemory final: public BaseSharedMemory {
 
                 if (!create_sentinel_file_locked())
                 {
-                    cleanup(newCreated);
+                    shmHeaderGuard.unlock();
+
+                    cleanup(newCreated, lockFile);
 
                     return false;
                 }
 
                 increment_ref_count();
 
-                // shmHeader automatically unlocked when shmHeaderGuard goes out of scope
-            }  // <-- mutex unlocked here safely
+            }  // <-- mutex automatically unlocked here safely
 
             unlock_file();
 
@@ -1286,7 +1289,7 @@ class SharedMemory final: public BaseSharedMemory {
             return;
 
         bool removeRegion = false;
-        bool fileLocked   = lock_file(LOCK_EX);
+        bool lockFile     = lock_file(LOCK_EX);
 
         auto handle_ref_and_sentinel = [&]() noexcept {
             decrement_ref_count();
@@ -1294,7 +1297,7 @@ class SharedMemory final: public BaseSharedMemory {
             remove_sentinel_file();
         };
 
-        if (fileLocked && shmHeader != nullptr)
+        if (lockFile && shmHeader != nullptr)
         {
             // RAII mutex lock
             ShmHeaderGuard shmHeaderGuard(*shmHeader);
@@ -1313,7 +1316,7 @@ class SharedMemory final: public BaseSharedMemory {
             handle_ref_and_sentinel();
         }
 
-        cleanup(false, fileLocked, removeRegion, skipUnmapRegion);
+        cleanup(removeRegion, lockFile, skipUnmapRegion);
     }
 
     [[nodiscard]] bool is_open() const noexcept {
@@ -1648,18 +1651,16 @@ class SharedMemory final: public BaseSharedMemory {
         return true;
     }
 
-    void cleanup(bool newCreated,
-                 bool fileLocked      = true,
-                 bool removeRegion    = true,
-                 bool skipUnmapRegion = false) noexcept {
+    void
+    cleanup(bool removeRegion = true, bool lockFile = true, bool skipUnmapRegion = false) noexcept {
 
         if (!skipUnmapRegion)
             unmap_region();
 
-        if (fileLocked)
+        if (lockFile)
             unlock_file();
 
-        if (newCreated || removeRegion)
+        if (removeRegion)
             shm_unlink(name.c_str());
 
         fdGuard.close();
