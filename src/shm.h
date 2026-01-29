@@ -58,6 +58,9 @@
         #undef small
     #endif
 #else
+    #include <limits.h>
+    #define SHM_NAME_MAX_SIZE NAME_MAX
+
     #include <atomic>
     #include <cassert>
     #include <cerrno>
@@ -82,19 +85,13 @@
     #if defined(__APPLE__)
         #include <mach-o/dyld.h>
         #include <sys/syslimits.h>
-        #define SHM_NAME_MAX_SIZE 31
     #elif defined(__linux__) || defined(__NetBSD__) || defined(__DragonFly__)
         #include <limits.h>
-        #define SHM_NAME_MAX_SIZE NAME_MAX
     #elif defined(__sun)  // Solaris
         #include <stdlib.h>
-        #define SHM_NAME_MAX_SIZE 255
     #elif defined(__FreeBSD__)
         #include <sys/sysctl.h>
         #include <sys/types.h>
-        #define SHM_NAME_MAX_SIZE 255
-    #else
-        #define SHM_NAME_MAX_SIZE 255
     #endif
 #endif
 
@@ -1761,7 +1758,7 @@ struct SystemWideSharedMemory final {
                 shmName.resize(shmName.size() - 1);  // truncated, keep null-termination
         }
 
-#if !defined(_WIN32)
+#if defined(__linux__) && !defined(__ANDROID__)
         // POSIX shared memory names must start with a slash
         // then add name hashing to avoid length limits
         shmName = std::string("/DON_") + hash_to_string(hash_string(shmName));
