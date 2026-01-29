@@ -94,6 +94,12 @@ namespace internal {
 template<int D, std::size_t... Sizes>
 using Stats = MultiArray<StatsEntry<std::int16_t, D>, Sizes...>;
 
+}  // namespace internal
+
+using PawnHistory = typename internal::Stats<8192, PIECE_NB, SQUARE_NB>;
+
+namespace internal {
+
 template<HType T>
 struct HistoryDef;
 
@@ -112,7 +118,7 @@ struct HistoryDef<HType::QUIET> final {
 
 template<>
 struct HistoryDef<HType::PAWN> final {
-    using Type = DynamicArray<Stats<8192, PIECE_NB, SQUARE_NB>>;
+    using Type = DynamicArray<PawnHistory>;
 };
 
 // It is used to improve quiet move ordering near the root.

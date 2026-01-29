@@ -252,7 +252,7 @@ MovePicker::score<GenType::ENC_QUIET>(MoveList<GenType::ENC_QUIET>& moveList) no
     Bitboard pinnersBB  = pos.pinners_bb();
     Bitboard threatsBB  = pos.threats_bb();
 
-    Key pawnKey = pos.pawn_key();
+    const auto& pawnHistory = histories->pawn(pos.pawn_key());
 
     iterator itr = cur;
 
@@ -270,7 +270,7 @@ MovePicker::score<GenType::ENC_QUIET>(MoveList<GenType::ENC_QUIET>& moveList) no
         std::int64_t value;
 
         value = 2 * (*quietHistory)[ac][m.raw()];
-        value += 2 * histories->pawn(pawnKey)[+movedPc][dstSq];
+        value += 2 * pawnHistory[+movedPc][dstSq];
         // Accumulate continuation history entries
         for (std::size_t i = 0; i < CONT_HISTORY_COUNT; ++i)
             value += (*continuationHistory[i])[+movedPc][dstSq];

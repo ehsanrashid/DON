@@ -602,15 +602,15 @@ class Worker final {
 
     Value evaluate(const Position& pos) noexcept;
 
-    void update_pawn_history(Key pawnKey, Piece pc, Square dstSq, int bonus) noexcept;
+    void update_pawn_history(PawnHistory& pawnHistory, Piece pc, Square dstSq, int bonus) noexcept;
 
     void update_capture_history(Piece pc, Square dstSq, PieceType captured, int bonus) noexcept;
     void update_capture_history(const Position& pos, Move m, int bonus) noexcept;
     void update_quiet_history(Color ac, Move m, int bonus) noexcept;
     void update_low_ply_quiet_history(std::int16_t ssPly, Move m, int bonus) noexcept;
 
-    void update_quiet_histories(const Position& pos, Key pawnKey, Stack* const ss, Move m, int bonus) noexcept;
-    void update_histories(const Position& pos, Key pawnKey, Stack* const ss, Depth depth, Move bestMove, const StdArray<SearchedMoves, 2>& searchedMoves) noexcept;
+    void update_quiet_histories(const Position& pos, PawnHistory& pawnHistory, Stack* const ss, Move m, int bonus) noexcept;
+    void update_histories(const Position& pos, PawnHistory& pawnHistory, Stack* const ss, Depth depth, Move bestMove, const StdArray<SearchedMoves, 2>& searchedMoves) noexcept;
 
     void update_correction_histories(const Position& pos, Stack* const ss, int bonus) noexcept;
     int  correction_value(const Position& pos, const Stack* const ss) noexcept;
