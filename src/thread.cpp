@@ -24,12 +24,15 @@
 #include <unordered_map>
 
 #include "history.h"
-#include "misc.h"
 #include "movegen.h"
 #include "option.h"
 #include "syzygy/tablebase.h"
 #include "types.h"
 #include "uci.h"
+
+#if !defined(SUPPORTS_PTHREADS)
+    #include "misc.h"
+#endif
 
 namespace DON {
 
@@ -106,31 +109,42 @@ void Thread::stop() noexcept {
         nativeThread.join();
 }
 
-// Thread gets parked here, blocked on the condition variable,
-// when it has no work to do.
+// Thread main loop: waits for work and executes jobs.
+// When no job is scheduled, the thread parks here, blocked on the condition variable.
 void Thread::idle_func() noexcept {
     while (true)
     {
         std::unique_lock lock(mutex);
 
-        // Thread is idle now
+        // Mark thread as idle now.
+        // Any thread trying to schedule work will see busy = false.
         busy = false;
 
-        // Notify one thread waiting for idle/busy state
+        // Notify one waiting thread (e.g., run_custom_job)
+        // that the thread is now idle and ready for work.
         condVar.notify_one();
 
-        // Wait until new job or termination
+        // Wait until either:
+        // 1) A new job is scheduled (busy == true), or
+        // 2) The thread is being stopped (dead == true)
         condVar.wait(lock, [this] { return busy || dead; });
 
+        // If thread is being torn down, exit immediately.
         if (dead)
             return;
 
+        // Move the scheduled job out of the shared storage.
+        // This allows run_custom_job to schedule another job
+        // while we are executing the current one.
         JobFunc jobFn = std::move(jobFunc);
-        jobFunc       = nullptr;
+        jobFunc       = nullptr;  // optional, defensive
 
+        // Unlock before executing the job to allow other threads
+        // to schedule work or shut down concurrently.
         lock.unlock();
 
-        // Execute job outside the lock
+        // Execute the job outside the lock to avoid holding the mutex
+        // for the duration of potentially long-running work.
         if (jobFn)
             jobFn();
     }

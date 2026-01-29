@@ -30,14 +30,21 @@
 #include <utility>
 #include <vector>
 
+// Ensure SUPPORTS_PTHREADS is defined only if the platform supports pthreads (macOS, MinGW, or explicitly enabled)
+#undef SUPPORTS_PTHREADS
 #if defined(__APPLE__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(USE_PTHREADS)
+    #define SUPPORTS_PTHREADS
+#endif
+
+#if defined(SUPPORTS_PTHREADS)
     #include <pthread.h>
+
+    #include "misc.h"
 #else  // Default case: use STL classes
     #include <thread>
 #endif
 
 #include "memory.h"
-#include "misc.h"
 #include "numa.h"
 #include "position.h"
 #include "search.h"
@@ -46,7 +53,13 @@ namespace DON {
 
 using JobFunc = std::function<void()>;
 
-#if defined(__APPLE__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(USE_PTHREADS)
+#if defined(SUPPORTS_PTHREADS)
+
+    #if !defined(NDEBUG)
+        #define THREAD_LOG(msg) std::cerr << msg << std::endl
+    #else
+        #define THREAD_LOG(msg) ((void) 0)
+    #endif
 
 // On OSX threads other than the main thread are created with a reduced stack
 // size of 512KB by default, this is too low for deep searches,
@@ -76,9 +89,15 @@ class NativeThread final {
         pthread_attr_t threadAttr;
 
         if (pthread_attr_init(&threadAttr) != 0)
+        {
+            THREAD_LOG("Failed to init thread attributes");
             return;
+        }
 
-        pthread_attr_setstacksize(&threadAttr, TH_STACK_SIZE);
+        if (pthread_attr_setstacksize(&threadAttr, TH_STACK_SIZE) != 0)
+        {
+            THREAD_LOG("Failed to set thread stack size");
+        }
 
         // Pass the raw pointer to pthread_create
         // pthread_create takes ownership of jobFuncPtr only on success
@@ -96,7 +115,10 @@ class NativeThread final {
         }
 
         // Destroy thread attr
-        pthread_attr_destroy(&threadAttr);
+        if (pthread_attr_destroy(&threadAttr) != 0)
+        {
+            THREAD_LOG("Failed to destroy thread attributes");
+        }
     }
 
     // Non-copyable
@@ -138,7 +160,7 @@ class NativeThread final {
     }
 
    private:
-    static constexpr std::size_t TH_STACK_SIZE = 8 * ONE_KB * ONE_KB;
+    static constexpr std::size_t TH_STACK_SIZE = 8 * ONE_MB;
 
     pthread_t thread{};
     bool      joined = true;
@@ -236,18 +258,36 @@ class Thread final {
     WorkerPtr worker;
 };
 
-// Launching a job in the thread
+// Schedule a job to be executed by this thread.
+// This function blocks only until the thread is ready to accept a new job.
+// The actual job execution happens asynchronously in idle_func().
 inline void Thread::run_custom_job(JobFunc jobFn) noexcept {
     {
         std::unique_lock lock(mutex);
 
-        condVar.wait(lock, [this] { return !busy; });
+        // Wait until the thread is idle or being terminated.
+        // - If !busy, the thread is ready to accept a new job.
+        // - If dead, the thread is shutting down, so we shouldn't schedule work.
+        condVar.wait(lock, [this] { return !busy || dead; });
 
-        jobFunc = std::move(jobFn);
+        // If the thread is still alive, schedule the job
+        if (!dead)
+        {
+            // Move the job into the shared slot for idle_func() to pick up
+            jobFunc = std::move(jobFn);
+            jobFn   = nullptr;  // optional, defensive
 
-        busy = true;
+            // Mark the thread as busy so that other run_custom_job calls
+            // will wait until this job is complete.
+            busy = true;
+        }
+        //// If thread is being torn down, don't schedule the job
+        //else
+        //{}
     }
 
+    // Notify the thread that a new job is available.
+    // This wakes idle_func() if it is currently waiting.
     condVar.notify_one();
 }
 

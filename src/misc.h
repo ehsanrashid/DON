@@ -70,7 +70,7 @@
 #endif
 
 #if defined(__clang__)
-    #define ASSUME(cond)
+    #define ASSUME(cond) ((void) 0)
 #elif defined(__GNUC__)
     #if __GNUC__ >= 13
         #define ASSUME(cond) __attribute__((assume(cond)))
@@ -85,7 +85,7 @@
 #elif defined(_MSC_VER)
     #define ASSUME(cond) __assume(cond)
 #else
-    #define ASSUME(cond)
+    #define ASSUME(cond) ((void) 0)
 #endif
 
 #if defined(__clang__)
