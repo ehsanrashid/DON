@@ -226,21 +226,26 @@ class Thread final {
 
     NumaReplicatedAccessToken numa_access_token() const noexcept { return numaAccessToken; }
 
-    void ensure_network_replicated() const noexcept;
-
     void start() noexcept;
 
-    void stop() noexcept;
+    void terminate() noexcept;
 
+    void ensure_network_replicated() const noexcept;
+
+    // Schedule a job to be executed by this thread.
     void run_custom_job(JobFunc job) noexcept;
 
+    // Wakes up the thread that will initialize the worker
     void init() noexcept;
 
+    // Wakes up the thread that will start the search on worker
     void start_search() noexcept;
 
+    // Blocks on the condition variable until the thread has finished job
     void wait_finish() noexcept;
 
    private:
+    // The main function of the thread
     void idle_func() noexcept;
 
     bool dead = false, busy = true;

@@ -31,42 +31,42 @@ namespace {
 constexpr int GOOD_QUIET_THRESHOLD = -14000;
 
 template<typename Iterator, typename T, typename Compare>
-Iterator upper_bound_unrolled(Iterator RESTRICT begin,
+Iterator upper_bound_unrolled(Iterator RESTRICT beg,
                               Iterator RESTRICT end,
                               const T&          value,
                               Compare           comp) noexcept {
-    std::size_t n = end - begin;
+    std::size_t n = end - beg;
 
-    std::size_t idx = n;
+    std::size_t idx = n;  // default = n (not found)
 
-    std::size_t i = 0;
+    std::size_t i = n;
 
     // Unroll 8 elements at a time
-    for (; idx == n && i + 8 <= n; i += 8)
-        idx = comp(value, begin[i + 0]) ? i + 0
-            : comp(value, begin[i + 1]) ? i + 1
-            : comp(value, begin[i + 2]) ? i + 2
-            : comp(value, begin[i + 3]) ? i + 3
-            : comp(value, begin[i + 4]) ? i + 4
-            : comp(value, begin[i + 5]) ? i + 5
-            : comp(value, begin[i + 6]) ? i + 6
-            : comp(value, begin[i + 7]) ? i + 7
-                                        : n;
+    for (; idx == n && i >= 8; i -= 8)
+        idx = comp(value, beg[i - 8]) ? i - 8
+            : comp(value, beg[i - 7]) ? i - 7
+            : comp(value, beg[i - 6]) ? i - 6
+            : comp(value, beg[i - 5]) ? i - 5
+            : comp(value, beg[i - 4]) ? i - 4
+            : comp(value, beg[i - 3]) ? i - 3
+            : comp(value, beg[i - 2]) ? i - 2
+            : comp(value, beg[i - 1]) ? i - 1
+                                      : idx;
 
     // Unroll 4 elements at a time
-    for (; idx == n && i + 4 <= n; i += 4)
-        idx = comp(value, begin[i + 0]) ? i + 0
-            : comp(value, begin[i + 1]) ? i + 1
-            : comp(value, begin[i + 2]) ? i + 2
-            : comp(value, begin[i + 3]) ? i + 3
-                                        : n;
+    for (; idx == n && i >= 4; i -= 4)
+        idx = comp(value, beg[i - 4]) ? i - 4
+            : comp(value, beg[i - 3]) ? i - 3
+            : comp(value, beg[i - 2]) ? i - 2
+            : comp(value, beg[i - 1]) ? i - 1
+                                      : idx;
 
     // Handle remaining elements
-    for (; idx == n && i + 1 <= n; i += 1)
-        if (comp(value, begin[i + 0]))
-            idx = i + 0;
+    for (; i >= 1; i -= 1)
+        if (comp(value, beg[i - 1]))
+            idx = i - 1;
 
-    return begin + idx;
+    return beg + idx;
 }
 
 // Sort elements in descending order.
