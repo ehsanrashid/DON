@@ -481,12 +481,7 @@ class MainSearchManager final: public ISearchManager {
 
     void show_pv(Worker& worker, Depth depth) const noexcept;
 
-    void set_ponder(bool ponder_) noexcept {
-        std::lock_guard lock(mutex);
-
-        ponder = ponder_;
-        condVar.notify_all();
-    }
+    void set_ponder(bool pond) noexcept;
 
     const UpdateContext& updateContext;
 

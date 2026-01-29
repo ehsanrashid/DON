@@ -997,7 +997,7 @@ DirtyBoard Position::do_move(Move m, State& newSt, bool mayCheck, const Worker* 
             st->nonPawnKeys[ac][is_major(promotedPt)] ^= promoKey;
         }
         // Set en-passant square if the moved pawn can be captured
-        else if ((int(dstSq) ^ int(orgSq)) == NORTH_2)
+        else if ((int(dstSq) ^ int(orgSq)) == +Direction::NORTH_2)
         {
             assert(relative_rank(ac, orgSq) == RANK_2);
             assert(relative_rank(ac, dstSq) == RANK_4);
@@ -1501,7 +1501,7 @@ Key Position::move_key(Move m) const noexcept {
              ^ Zobrist::mr50(rule50_count() + 1);
     }
 
-    if (movedPt == PAWN && (int(dstSq) ^ int(orgSq)) == NORTH_2
+    if (movedPt == PAWN && (int(dstSq) ^ int(orgSq)) == +Direction::NORTH_2
         && enpassant_possible<false>(~ac, dstSq - pawn_spush(ac)))
     {
         assert(relative_rank(ac, orgSq) == RANK_2);
@@ -1563,7 +1563,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
     Bitboard attackersBB = attackers_bb(dstSq, occupancyBB);
 
     Square enPassantSq = SQ_NONE;
-    if (movedPt == PAWN && (int(dstSq) ^ int(orgSq)) == NORTH_2)
+    if (movedPt == PAWN && (int(dstSq) ^ int(orgSq)) == +Direction::NORTH_2)
     {
         assert(relative_rank(ac, orgSq) == RANK_2);
         assert(relative_rank(ac, dstSq) == RANK_4);

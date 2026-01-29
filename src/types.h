@@ -125,26 +125,6 @@ enum Square : std::uint8_t {
 
 inline constexpr std::size_t SQUARE_NB = 64;
 
-// clang-format on
-
-enum Direction : std::int8_t {
-    EAST  = 1,
-    NORTH = 8,
-    WEST  = -EAST,
-    SOUTH = -NORTH,
-
-    SOUTH_WEST = SOUTH + WEST,
-    SOUTH_EAST = SOUTH + EAST,
-    NORTH_WEST = NORTH + WEST,
-    NORTH_EAST = NORTH + EAST,
-
-    SOUTH_2 = SOUTH + SOUTH,
-    WEST_2  = WEST + WEST,
-    EAST_2  = EAST + EAST,
-    NORTH_2 = NORTH + NORTH,
-};
-
-// clang-format off
 enum PieceType : std::uint8_t {
     NO_PIECE_TYPE,
     PAWN = 1, KNIGHT, BISHOP, ROOK, QUEEN, KING, ALL
@@ -182,6 +162,37 @@ ENABLE_INCR_OPERATORS_ON(PieceType)
 
     #undef ENABLE_INCR_OPERATORS_ON
 
+enum class Direction : std::int8_t {
+    EAST  = 1,
+    NORTH = 8,
+    WEST  = -EAST,
+    SOUTH = -NORTH,
+
+    SOUTH_WEST = SOUTH + WEST,
+    SOUTH_EAST = SOUTH + EAST,
+    NORTH_WEST = NORTH + WEST,
+    NORTH_EAST = NORTH + EAST,
+
+    SOUTH_2 = SOUTH + SOUTH,
+    WEST_2  = WEST + WEST,
+    EAST_2  = EAST + EAST,
+    NORTH_2 = NORTH + NORTH,
+};
+
+constexpr auto operator+(Direction d) noexcept { return std::int8_t(d); }
+
+constexpr Direction operator+(Direction d1, Direction d2) noexcept {
+    return Direction(std::int8_t(d1) + std::int8_t(d2));
+}
+constexpr Direction operator-(Direction d1, Direction d2) noexcept {
+    return Direction(std::int8_t(d1) - std::int8_t(d2));
+}
+
+constexpr Direction operator*(Direction d, int i) noexcept { return Direction(i * std::int8_t(d)); }
+constexpr Direction operator*(int i, Direction d) noexcept { return d * i; }
+
+//constexpr Direction operator-(Square s1, Square s2) noexcept { return Direction(int(s1) - int(s2)); }
+
 // Additional operators for File
 constexpr File  operator+(File f, int i) noexcept { return File(int(f) + i); }
 constexpr File  operator-(File f, int i) noexcept { return File(int(f) - i); }
@@ -199,16 +210,6 @@ constexpr Square  operator+(Square s, Direction d) noexcept { return s + int(d);
 constexpr Square  operator-(Square s, Direction d) noexcept { return s - int(d); }
 constexpr Square& operator+=(Square& s, Direction d) noexcept { return s = s + d; }
 constexpr Square& operator-=(Square& s, Direction d) noexcept { return s = s - d; }
-
-constexpr Direction operator+(Direction d1, Direction d2) noexcept {
-    return Direction(std::int8_t(d1) + std::int8_t(d2));
-}
-constexpr Direction operator-(Direction d1, Direction d2) noexcept {
-    return Direction(std::int8_t(d1) - std::int8_t(d2));
-}
-//constexpr Direction operator-(Square s1, Square s2) noexcept { return Direction(int(s1) - int(s2)); }
-constexpr Direction operator*(Direction d, int i) noexcept { return Direction(i * std::int8_t(d)); }
-constexpr Direction operator*(int i, Direction d) noexcept { return d * i; }
 
 [[nodiscard]] constexpr bool is_ok(File f) noexcept { return (FILE_A <= f && f <= FILE_H); }
 
@@ -306,11 +307,11 @@ constexpr Square rook_castle_sq(Square kingOrgSq, Square kingDstSq) noexcept {
 
 constexpr Direction pawn_spush(Color c) noexcept {
     assert(is_ok(c));
-    return c == WHITE ? NORTH : SOUTH;
+    return c == WHITE ? Direction::NORTH : Direction::SOUTH;
 }
 constexpr Direction pawn_dpush(Color c) noexcept {
     assert(is_ok(c));
-    return c == WHITE ? NORTH_2 : SOUTH_2;
+    return c == WHITE ? Direction::NORTH_2 : Direction::SOUTH_2;
 }
 
 [[nodiscard]] constexpr char to_char(PieceType pt) noexcept {

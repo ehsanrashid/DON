@@ -2566,6 +2566,14 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
     }
 }
 
+void MainSearchManager::set_ponder(bool pond) noexcept {
+    std::lock_guard lock(mutex);
+
+    ponder = pond;
+
+    condVar.notify_one();
+}
+
 // Converts a Value to a Score object, considering the position for centipawn conversion
 Score::Score(Value v, const Position& pos) noexcept {
     assert(is_ok(v));

@@ -238,11 +238,11 @@ void FullThreats::append_active_indices(Color           perspective,
             if (pt == PAWN)
             {
                 Bitboard lAttacksBB = c == WHITE  //
-                                      ? shift_bb<NORTH_EAST>(pcBB)
-                                      : shift_bb<SOUTH_WEST>(pcBB);
+                                      ? shift_bb<Direction::NORTH_EAST>(pcBB)
+                                      : shift_bb<Direction::SOUTH_WEST>(pcBB);
                 lAttacksBB &= occupancyBB;
 
-                Direction rDir = c == WHITE ? NORTH_EAST : SOUTH_WEST;
+                Direction rDir = c == WHITE ? Direction::NORTH_EAST : Direction::SOUTH_WEST;
 
                 while (lAttacksBB != 0)
                 {
@@ -258,11 +258,11 @@ void FullThreats::append_active_indices(Color           perspective,
                 }
 
                 Bitboard rAttacksBB = c == WHITE  //
-                                      ? shift_bb<NORTH_WEST>(pcBB)
-                                      : shift_bb<SOUTH_EAST>(pcBB);
+                                      ? shift_bb<Direction::NORTH_WEST>(pcBB)
+                                      : shift_bb<Direction::SOUTH_EAST>(pcBB);
                 rAttacksBB &= occupancyBB;
 
-                Direction lDir = c == WHITE ? NORTH_WEST : SOUTH_EAST;
+                Direction lDir = c == WHITE ? Direction::NORTH_WEST : Direction::SOUTH_EAST;
 
                 while (rAttacksBB != 0)
                 {

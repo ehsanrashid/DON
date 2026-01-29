@@ -44,10 +44,10 @@ Move* write_moves(std::uint32_t mask, __m512i vector, Move* RESTRICT moves) noex
 // Splat pawn moves
 template<Color AC, Direction D>
 Move* splat_pawn_moves(Bitboard dstBB, Move* RESTRICT moves) noexcept {
-    static_assert(D == NORTH || D == SOUTH                 //
-                    || D == NORTH_2 || D == SOUTH_2        //
-                    || D == NORTH_EAST || D == SOUTH_EAST  //
-                    || D == NORTH_WEST || D == SOUTH_WEST,
+    static_assert(D == Direction::NORTH || D == Direction::SOUTH                 //
+                    || D == Direction::NORTH_2 || D == Direction::SOUTH_2        //
+                    || D == Direction::NORTH_EAST || D == Direction::SOUTH_EAST  //
+                    || D == Direction::NORTH_WEST || D == Direction::SOUTH_WEST,
                   "D is invalid");
 
 #if defined(USE_AVX512ICL)
@@ -89,9 +89,9 @@ template<Color AC, GenType GT, Direction D, bool Enemy>
 Move* splat_promotion_moves(Bitboard       dstBB,
                             Bitboard       knightChecksBB,
                             Move* RESTRICT moves) noexcept {
-    static_assert(D == NORTH || D == SOUTH                 //
-                    || D == NORTH_EAST || D == SOUTH_EAST  //
-                    || D == NORTH_WEST || D == SOUTH_WEST,
+    static_assert(D == Direction::NORTH || D == Direction::SOUTH                 //
+                    || D == Direction::NORTH_EAST || D == Direction::SOUTH_EAST  //
+                    || D == Direction::NORTH_WEST || D == Direction::SOUTH_WEST,
                   "D is invalid");
 
     constexpr bool All     = GT == GenType::ENCOUNTER || GT == GenType::EVASION;
@@ -178,8 +178,8 @@ Move* generate_pawns_moves(const Position& pos, Move* RESTRICT moves, Bitboard t
 
     constexpr Direction Push1 = pawn_spush(AC);
     constexpr Direction Push2 = pawn_dpush(AC);
-    constexpr Direction LCap  = AC == WHITE ? NORTH_WEST : SOUTH_EAST;
-    constexpr Direction RCap  = AC == WHITE ? NORTH_EAST : SOUTH_WEST;
+    constexpr Direction LCap  = AC == WHITE ? Direction::NORTH_WEST : Direction::SOUTH_EAST;
+    constexpr Direction RCap  = AC == WHITE ? Direction::NORTH_EAST : Direction::SOUTH_WEST;
 
     const Move* RESTRICT rMoves = moves;
     Move* RESTRICT       wMoves = moves;

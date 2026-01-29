@@ -260,26 +260,26 @@ constexpr std::uint8_t distance<Square>(Square s1, Square s2) noexcept {
 // Shifts a bitboard as specified by the direction
 template<Direction D>
 constexpr Bitboard shift_bb(Bitboard b) noexcept {
-    if constexpr (D == NORTH)
-        return b << NORTH;
-    if constexpr (D == SOUTH)
-        return b >> NORTH;
-    if constexpr (D == NORTH_2)
-        return b << NORTH_2;
-    if constexpr (D == SOUTH_2)
-        return b >> NORTH_2;
-    if constexpr (D == EAST)
-        return (b & ~FILE_H_BB) << EAST;
-    if constexpr (D == WEST)
-        return (b & ~FILE_A_BB) >> EAST;
-    if constexpr (D == NORTH_WEST)
-        return (b & ~FILE_A_BB) << NORTH_WEST;
-    if constexpr (D == SOUTH_EAST)
-        return (b & ~FILE_H_BB) >> NORTH_WEST;
-    if constexpr (D == NORTH_EAST)
-        return (b & ~FILE_H_BB) << NORTH_EAST;
-    if constexpr (D == SOUTH_WEST)
-        return (b & ~FILE_A_BB) >> NORTH_EAST;
+    if constexpr (D == Direction::NORTH)
+        return b << +Direction::NORTH;
+    if constexpr (D == Direction::SOUTH)
+        return b >> +Direction::NORTH;
+    if constexpr (D == Direction::NORTH_2)
+        return b << +Direction::NORTH_2;
+    if constexpr (D == Direction::SOUTH_2)
+        return b >> +Direction::NORTH_2;
+    if constexpr (D == Direction::EAST)
+        return (b & ~FILE_H_BB) << +Direction::EAST;
+    if constexpr (D == Direction::WEST)
+        return (b & ~FILE_A_BB) >> +Direction::EAST;
+    if constexpr (D == Direction::NORTH_WEST)
+        return (b & ~FILE_A_BB) << +Direction::NORTH_WEST;
+    if constexpr (D == Direction::SOUTH_EAST)
+        return (b & ~FILE_H_BB) >> +Direction::NORTH_WEST;
+    if constexpr (D == Direction::NORTH_EAST)
+        return (b & ~FILE_H_BB) << +Direction::NORTH_EAST;
+    if constexpr (D == Direction::SOUTH_WEST)
+        return (b & ~FILE_A_BB) >> +Direction::NORTH_EAST;
     assert(false);
     return 0;
 }
@@ -301,8 +301,8 @@ template<Color C>
 constexpr Bitboard pawn_attacks_bb(Bitboard pawns) noexcept {
     static_assert(is_ok(C), "Invalid color for pawn_attacks_bb()");
 
-    return shift_bb<(C == WHITE ? NORTH_WEST : SOUTH_WEST)>(pawns)
-         | shift_bb<(C == WHITE ? NORTH_EAST : SOUTH_EAST)>(pawns);
+    return shift_bb<(C == WHITE ? Direction::NORTH_WEST : Direction::SOUTH_WEST)>(pawns)
+         | shift_bb<(C == WHITE ? Direction::NORTH_EAST : Direction::SOUTH_EAST)>(pawns);
 }
 constexpr Bitboard pawn_attacks_bb(Bitboard pawns, Color c) noexcept {
     assert(is_ok(c));
@@ -327,8 +327,8 @@ constexpr Bitboard sliding_attacks_bb(Square s, Bitboard occupancyBB = 0) noexce
     assert(is_ok(s));
 
     constexpr StdArray<Direction, 2, 4> Directions{{
-      {SOUTH_WEST, SOUTH_EAST, NORTH_WEST, NORTH_EAST},  //
-      {SOUTH, WEST, EAST, NORTH}                         //
+      {Direction::SOUTH_WEST, Direction::SOUTH_EAST, Direction::NORTH_WEST, Direction::NORTH_EAST},
+      {Direction::SOUTH, Direction::WEST, Direction::EAST, Direction::NORTH}  //
     }};
 
     Bitboard attacksBB = 0;
@@ -364,8 +364,11 @@ constexpr Bitboard knight_attacks_bb(Square s) noexcept {
 
     Bitboard attacksBB = 0;
 
-    for (const Direction dir : {SOUTH_2 + WEST, SOUTH_2 + EAST, WEST_2 + SOUTH, EAST_2 + SOUTH,
-                                WEST_2 + NORTH, EAST_2 + NORTH, NORTH_2 + WEST, NORTH_2 + EAST})
+    for (Direction dir :
+         {Direction::SOUTH_2 + Direction::WEST, Direction::SOUTH_2 + Direction::EAST,
+          Direction::WEST_2 + Direction::SOUTH, Direction::EAST_2 + Direction::SOUTH,
+          Direction::WEST_2 + Direction::NORTH, Direction::EAST_2 + Direction::NORTH,
+          Direction::NORTH_2 + Direction::WEST, Direction::NORTH_2 + Direction::EAST})
         attacksBB |= destination_bb(s, dir, 2);
 
     return attacksBB;
@@ -376,8 +379,9 @@ constexpr Bitboard king_attacks_bb(Square s) noexcept {
 
     Bitboard attacksBB = 0;
 
-    for (const Direction dir :
-         {SOUTH_WEST, SOUTH, SOUTH_EAST, WEST, EAST, NORTH_WEST, NORTH, NORTH_EAST})
+    for (Direction dir :
+         {Direction::SOUTH_WEST, Direction::SOUTH, Direction::SOUTH_EAST, Direction::WEST,
+          Direction::EAST, Direction::NORTH_WEST, Direction::NORTH, Direction::NORTH_EAST})
         attacksBB |= destination_bb(s, dir);
 
     return attacksBB;

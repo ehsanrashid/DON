@@ -382,12 +382,14 @@ class Threads final {
             // current is updated on failure, loop continues
         }
 
-        main_manager()->condVar.notify_all();
+        main_manager()->condVar.notify_one();
     }
 
     void request_abort() noexcept {
         // Always go to aborted
         state.store(State::Aborted, std::memory_order_release);
+
+        main_manager()->condVar.notify_one();
     }
 
 
