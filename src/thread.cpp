@@ -66,10 +66,6 @@ Thread::Thread(std::size_t                   threadIdx,
     numaThreadCount(numaThreadCnt) {
     assert(numa_thread_count() != 0 && numa_id() < numa_thread_count());
 
-    // Launch thread and wait until idle_func() puts it to sleep
-    if (autoStart)
-        start();
-
     // Bind this thread to a NUMA node for memory affinity
     numaAccessToken = nodeBinder();
 
@@ -78,6 +74,11 @@ Thread::Thread(std::size_t                   threadIdx,
                                                     numa_id(), numa_thread_count(),  //
                                                     numa_access_token(), std::move(searchManager),
                                                     sharedState);
+
+    // Start the thread only after full initialization
+    // Launch thread and wait until idle_func() puts it to sleep
+    if (autoStart)
+        start();
 }
 
 // Destructor: ensures the thread is properly terminated and joined.

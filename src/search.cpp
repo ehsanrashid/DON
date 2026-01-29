@@ -1025,7 +1025,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
     int absCorrectionValue = std::abs(correctionValue);
 
-    const History<HType::PIECE_SQ>* contHistory[8]{
+    const History<HType::PIECE_SQ>* contHistory[CONT_HISTORY_COUNT]{
       (ss - 1)->pieceSqHistory, (ss - 2)->pieceSqHistory,  //
       (ss - 3)->pieceSqHistory, (ss - 4)->pieceSqHistory,  //
       (ss - 5)->pieceSqHistory, (ss - 6)->pieceSqHistory,  //

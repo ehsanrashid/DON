@@ -1123,6 +1123,9 @@ inline std::uint64_t hash_bytes(const char* RESTRICT data, std::size_t size) noe
     constexpr std::uint64_t FNV_Basis = 0xCBF29CE484222325ULL;
     constexpr std::uint64_t FNV_Prime = 0x00000100000001B3ULL;
 
+    constexpr std::size_t UnRoll8 = 8;
+    constexpr std::size_t UnRoll4 = 4;
+
     // FNV-1a 64-bit
     std::uint64_t h = FNV_Basis;
 
@@ -1131,7 +1134,7 @@ inline std::uint64_t hash_bytes(const char* RESTRICT data, std::size_t size) noe
     std::size_t i = 0;
 
     // Unroll 8 bytes at a time
-    for (; i + 8 <= size; i += 8)
+    for (; i + UnRoll8 <= size; i += UnRoll8)
     {
         h = (h ^ p[i + 0]) * FNV_Prime;
         h = (h ^ p[i + 1]) * FNV_Prime;
@@ -1143,7 +1146,7 @@ inline std::uint64_t hash_bytes(const char* RESTRICT data, std::size_t size) noe
         h = (h ^ p[i + 7]) * FNV_Prime;
     }
     // Unroll 4 bytes at a time
-    for (; i + 4 <= size; i += 4)
+    for (; i + UnRoll4 <= size; i += UnRoll4)
     {
         h = (h ^ p[i + 0]) * FNV_Prime;
         h = (h ^ p[i + 1]) * FNV_Prime;
@@ -1151,8 +1154,11 @@ inline std::uint64_t hash_bytes(const char* RESTRICT data, std::size_t size) noe
         h = (h ^ p[i + 3]) * FNV_Prime;
     }
     // Handle remaining bytes
-    for (; i + 1 <= size; i += 1)
-        h = (h ^ p[i + 0]) * FNV_Prime;
+    while (i < size)
+    {
+        h = (h ^ p[i]) * FNV_Prime;
+        ++i;
+    }
 
     return h;
 }
