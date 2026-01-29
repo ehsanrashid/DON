@@ -37,6 +37,7 @@
 #endif
 
 #include "memory.h"
+#include "misc.h"
 #include "numa.h"
 #include "position.h"
 #include "search.h"
@@ -53,38 +54,48 @@ using JobFunc = std::function<void()>;
 class NativeThread final {
    public:
     // Default thread is not joinable
-    NativeThread() noexcept :
-        joined(true) {}
+    NativeThread() noexcept = default;
 
     template<typename Function, typename... Args>
-    NativeThread(Function&& func, Args&&... args) noexcept {
-        auto* jobFuncPtr =
-          new JobFunc(std::bind(std::forward<Function>(func), std::forward<Args>(args)...));
+    explicit NativeThread(Function&& func, Args&&... args) noexcept {
+        // Use RAII to manage JobFunc memory
+        auto jobFuncPtr = std::make_unique<JobFunc>(
+          std::bind(std::forward<Function>(func), std::forward<Args>(args)...));
 
         auto start_routine = [](void* ptr) noexcept -> void* {
-            auto* fnPtr = static_cast<JobFunc*>(ptr);
+            // Take ownership of JobFunc and delete when done
+            std::unique_ptr<JobFunc> fnPtr(static_cast<JobFunc*>(ptr));
 
             // Call the function
             (*fnPtr)();
 
-            delete fnPtr;
-
+            // std::unique_ptr deletes the object when lambda exits
             return nullptr;
         };
 
         pthread_attr_t threadAttr;
 
         if (pthread_attr_init(&threadAttr) != 0)
-        {
-            delete jobFuncPtr;
             return;
-        }
 
         pthread_attr_setstacksize(&threadAttr, TH_STACK_SIZE);
 
-        if (pthread_create(&thread, &threadAttr, start_routine, jobFuncPtr) != 0)
-            delete jobFuncPtr;
+        // Pass the raw pointer to pthread_create
+        // pthread_create takes ownership of jobFuncPtr only on success
+        if (pthread_create(&thread, &threadAttr, start_routine, jobFuncPtr.get()) == 0)
+        {
+            // Thread now owns it
+            jobFuncPtr.release();
+            // Mark thread as now joinable, not joined yet
+            joined = false;
+        }
+        else
+        {
+            // Thread creation failed, jobFuncPtr will be deleted automatically
+            joined = true;
+        }
 
+        // Destroy thread attr
         pthread_attr_destroy(&threadAttr);
     }
 
@@ -127,10 +138,10 @@ class NativeThread final {
     }
 
    private:
-    static constexpr std::size_t TH_STACK_SIZE = 8 * 1024 * 1024;
+    static constexpr std::size_t TH_STACK_SIZE = 8 * ONE_KB * ONE_KB;
 
-    pthread_t thread;
-    bool      joined = false;
+    pthread_t thread{};
+    bool      joined = true;
 };
 
 #else
@@ -210,7 +221,7 @@ class Thread final {
    private:
     void idle_func() noexcept;
 
-    bool dead, busy;
+    bool dead = false, busy = true;
 
     const std::size_t threadId, threadCount, numaId, numaThreadCount;
 

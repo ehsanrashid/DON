@@ -926,11 +926,6 @@ struct FlagGuard final {
    public:
     explicit FlagGuard(std::atomic<bool>& flagRef) noexcept :
         flag(flagRef) {}
-    // Non-copyable, non-movable to ensure unique ownership
-    FlagGuard(const FlagGuard&)            = delete;
-    FlagGuard(FlagGuard&&)                 = delete;
-    FlagGuard& operator=(const FlagGuard&) = delete;
-    FlagGuard& operator=(FlagGuard&&)      = delete;
 
     ~FlagGuard() noexcept { reset(); }
 
@@ -938,6 +933,12 @@ struct FlagGuard final {
     void reset() noexcept { flag.store(false, std::memory_order_release); }
 
    private:
+    // Non-copyable, non-movable to ensure unique ownership
+    FlagGuard(const FlagGuard&)            = delete;
+    FlagGuard(FlagGuard&&)                 = delete;
+    FlagGuard& operator=(const FlagGuard&) = delete;
+    FlagGuard& operator=(FlagGuard&&)      = delete;
+
     std::atomic<bool>& flag;
 };
 
@@ -947,11 +948,6 @@ struct FlagsGuard final {
    public:
     explicit FlagsGuard(std::atomic<T>& flagsRef) noexcept :
         flags(flagsRef) {}
-    // Non-copyable, non-movable to ensure unique ownership
-    FlagsGuard(const FlagsGuard&)            = delete;
-    FlagsGuard(FlagsGuard&&)                 = delete;
-    FlagsGuard& operator=(const FlagsGuard&) = delete;
-    FlagsGuard& operator=(FlagsGuard&&)      = delete;
 
     ~FlagsGuard() noexcept { reset(); }
 
@@ -959,6 +955,12 @@ struct FlagsGuard final {
     void reset() noexcept { flags.store(0, std::memory_order_release); }
 
    private:
+    // Non-copyable, non-movable to ensure unique ownership
+    FlagsGuard(const FlagsGuard&)            = delete;
+    FlagsGuard(FlagsGuard&&)                 = delete;
+    FlagsGuard& operator=(const FlagsGuard&) = delete;
+    FlagsGuard& operator=(FlagsGuard&&)      = delete;
+
     std::atomic<T>& flags;
 };
 
