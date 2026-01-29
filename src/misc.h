@@ -70,7 +70,7 @@
 #endif
 
 #if defined(__clang__)
-    #define ASSUME(cond) ((void) 0)
+    #define ASSUME(cond) __builtin_assume(cond)
 #elif defined(__GNUC__)
     #if __GNUC__ >= 13
         #define ASSUME(cond) __attribute__((assume(cond)))
@@ -85,6 +85,7 @@
 #elif defined(_MSC_VER)
     #define ASSUME(cond) __assume(cond)
 #else
+    // fallback: do nothing
     #define ASSUME(cond) ((void) 0)
 #endif
 
@@ -95,6 +96,7 @@
 #elif defined(_MSC_VER)
     #define RESTRICT __restrict
 #else
+    // fallback: no restrict
     #define RESTRICT
 #endif
 
@@ -111,6 +113,10 @@ inline constexpr std::size_t ONE_MB = ONE_KB * ONE_KB;
 //inline constexpr std::size_t ONE_TB = ONE_KB * ONE_GB;
 //inline constexpr std::size_t ONE_PB = ONE_KB * ONE_TB;
 //inline constexpr std::size_t ONE_EB = ONE_KB * ONE_PB;
+
+// Unrolling factors
+constexpr std::size_t UnRoll8 = 8;
+constexpr std::size_t UnRoll4 = 4;
 
 // True if and only if the binary is compiled on a little-endian machine
 #if defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__)
@@ -1122,9 +1128,6 @@ class ConcurrentCache final {
 inline std::uint64_t hash_bytes(const char* RESTRICT data, std::size_t size) noexcept {
     constexpr std::uint64_t FNV_Basis = 0xCBF29CE484222325ULL;
     constexpr std::uint64_t FNV_Prime = 0x00000100000001B3ULL;
-
-    constexpr std::size_t UnRoll8 = 8;
-    constexpr std::size_t UnRoll4 = 4;
 
     // FNV-1a 64-bit
     std::uint64_t h = FNV_Basis;

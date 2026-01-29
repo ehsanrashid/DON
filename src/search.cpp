@@ -138,32 +138,43 @@ void update_pv(Move* RESTRICT pv, Move m, const Move* RESTRICT childPv) noexcept
     *pv = Move::None;
 }
 
+// Build contHistory pointers from the stack frame and validate them in debug builds.
+void build_continuation_history(const Stack* const              ss,
+                                const History<HType::PIECE_SQ>* out[CONT_HISTORY_COUNT]) noexcept {
+    for (std::size_t i = 0; i < CONT_HISTORY_COUNT; ++i)
+    {
+        auto* const ssi = (ss - 1) - i;
+
+        // contHistory[i] refers to ssi->pieceSqHistory
+        out[i] = ssi->pieceSqHistory;
+        assert(out[i] != nullptr && "continuation history pointer must not be null");
+    }
+}
+
 // Updates the continuation histories for the move pairs formed
 // by the current move and the moves played in previous plies.
 void update_continuation_history(Stack* const ss, Piece pc, Square dstSq, int bonus) noexcept {
     assert(dstSq != SQ_NONE);
 
-    constexpr std::size_t MaxContHistorySize = 8;
-
-    constexpr StdArray<double, MaxContHistorySize> ContHistoryWeights{
-      1.1064, 0.6670, 0.3047, 0.5684, 0.1455, 0.4629, 0.1092, 0.2167  //
-    };
-    constexpr StdArray<int, MaxContHistorySize> ContHistoryOffsets{
+    constexpr StdArray<int, CONT_HISTORY_COUNT> ContHistoryOffsets{
       88, 00, 00, 00, 00, 00, 00, 00  //
+    };
+    constexpr StdArray<double, CONT_HISTORY_COUNT> ContHistoryWeights{
+      1.1064, 0.6670, 0.3047, 0.5684, 0.1455, 0.4629, 0.1092, 0.2167  //
     };
 
     // In check only update 2-ply continuation history
-    std::size_t ContHistorySize = ss->inCheck ? 2 : MaxContHistorySize;
+    std::size_t ContHistoryCount = ss->inCheck ? 2 : CONT_HISTORY_COUNT;
 
-    for (std::size_t i = 0; i < ContHistorySize; ++i)
+    for (std::size_t i = 0; i < ContHistoryCount; ++i)
     {
         auto* const ssi = (ss - 1) - i;
 
         if (!ssi->move.is_ok())
             break;
 
-        (*ssi->pieceSqHistory)[+pc][dstSq] << int(ContHistoryWeights[i] * bonus)  //
-                                                + ContHistoryOffsets[i];
+        (*ssi->pieceSqHistory)[+pc][dstSq]
+          << ContHistoryOffsets[i] + int(ContHistoryWeights[i] * bonus);
     }
 }
 
@@ -1025,12 +1036,11 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
     int absCorrectionValue = std::abs(correctionValue);
 
-    const History<HType::PIECE_SQ>* contHistory[CONT_HISTORY_COUNT]{
-      (ss - 1)->pieceSqHistory, (ss - 2)->pieceSqHistory,  //
-      (ss - 3)->pieceSqHistory, (ss - 4)->pieceSqHistory,  //
-      (ss - 5)->pieceSqHistory, (ss - 6)->pieceSqHistory,  //
-      (ss - 7)->pieceSqHistory, (ss - 8)->pieceSqHistory   //
-    };
+    auto& pawnHistory = histories.pawn(pawnKey);
+
+    const History<HType::PIECE_SQ>* contHistory[CONT_HISTORY_COUNT];
+
+    build_continuation_history(ss, contHistory);
 
     // Skip early pruning when in check
     if (!ss->inCheck)
@@ -1325,7 +1335,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
                 }
                 else
                 {
-                    int history = histories.pawn(pawnKey)[+movedPc][dstSq]
+                    int history = pawnHistory[+movedPc][dstSq]  //
                                 + (*contHistory[0])[+movedPc][dstSq]
                                 + (*contHistory[1])[+movedPc][dstSq];
 

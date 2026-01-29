@@ -39,9 +39,6 @@ Iterator upper_bound_unrolled(Iterator RESTRICT beg,
                               Iterator RESTRICT end,
                               const T&          value,
                               Compare           comp) noexcept {
-    constexpr std::size_t UnRoll8 = 8;
-    constexpr std::size_t UnRoll4 = 4;
-
     std::size_t n = end - beg;
 
     std::size_t idx = n;  // default = n (not found)

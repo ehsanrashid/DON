@@ -511,8 +511,13 @@ inline void Threads::clear() noexcept {
     if (empty())
         return;
 
+    // Wake main manager (in case it is waiting)
+    notify_main_manager();
+
+    // Wait for the main thread to finish its work
     main_thread()->wait_finish();
 
+    // Destroy threads and clear associated resources
     threads.clear();
     threadBoundNumaNodes.clear();
 }

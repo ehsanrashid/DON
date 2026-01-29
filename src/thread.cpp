@@ -281,9 +281,9 @@ void Threads::set(const NumaConfig&                       numaConfig,
             // to trash cache in case the threads get scheduled on the same NUMA node.
             ThreadToNumaNodeBinder nodeBinder(numaId, numaConfigPtr);
 
-            threads.emplace_back(std::make_unique<Thread>(threadId, threadCount, numaIds[numaId]++,
-                                                          numaThreadCounts[numaId], nodeBinder,
-                                                          std::move(searchManager), sharedState));
+            threads.emplace_back(std::make_unique<Thread>(
+              threadId, threadCount, numaIds[numaId]++, numaThreadCounts[numaId], nodeBinder,
+              std::move(searchManager), sharedState, true));
         };
 
         // Ensure the worker thread inherits the intended NUMA affinity at creation
