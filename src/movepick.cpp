@@ -58,12 +58,12 @@ Iterator upper_bound_unrolled(Iterator begin, Iterator end, const T& value, Comp
             : comp(value, begin[i + 3]) ? i + 3
                                         : n;
 
-    // Remaining elements
+    // Handle remaining elements
     for (; idx == n && i + 1 <= n; i += 1)
         if (comp(value, begin[i + 0]))
             idx = i + 0;
 
-    return idx < n ? begin + idx : end;
+    return begin + idx;
 }
 
 // Sort elements in descending order.
