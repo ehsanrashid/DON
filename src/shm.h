@@ -814,7 +814,7 @@ class SharedMemoryCleanupManager final {
     // Monitor thread: waits for pipe, cleans memory, restores default, re-raises
     static void start_monitor_thread() noexcept {
         monitorThread = std::thread([]() noexcept {
-            IFlagGuard pendingSignalGuard(pendingSignals);
+            FlagsGuard pendingSignalsGuard(pendingSignals);
 
             while (!shuttingDown.load(std::memory_order_acquire))
             {

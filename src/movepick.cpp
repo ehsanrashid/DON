@@ -30,6 +30,42 @@ namespace {
 
 constexpr int GOOD_QUIET_THRESHOLD = -14000;
 
+template<typename Iterator, typename T, typename Compare>
+Iterator upper_bound_unrolled(Iterator begin, Iterator end, const T& value, Compare comp) noexcept {
+    std::size_t n = end - begin;
+
+    std::size_t idx = n;
+
+    std::size_t i = 0;
+
+    // Unroll 8 elements at a time
+    for (; idx == n && i + 8 <= n; i += 8)
+        idx = comp(value, begin[i + 0]) ? i + 0
+            : comp(value, begin[i + 1]) ? i + 1
+            : comp(value, begin[i + 2]) ? i + 2
+            : comp(value, begin[i + 3]) ? i + 3
+            : comp(value, begin[i + 4]) ? i + 4
+            : comp(value, begin[i + 5]) ? i + 5
+            : comp(value, begin[i + 6]) ? i + 6
+            : comp(value, begin[i + 7]) ? i + 7
+                                        : n;
+
+    // Unroll 4 elements at a time
+    for (; idx == n && i + 4 <= n; i += 4)
+        idx = comp(value, begin[i + 0]) ? i + 0
+            : comp(value, begin[i + 1]) ? i + 1
+            : comp(value, begin[i + 2]) ? i + 2
+            : comp(value, begin[i + 3]) ? i + 3
+                                        : n;
+
+    // Remaining elements
+    for (; idx == n && i + 1 <= n; i += 1)
+        if (comp(value, begin[i + 0]))
+            idx = i + 0;
+
+    return idx < n ? begin + idx : end;
+}
+
 // Sort elements in descending order.
 // Stable for all elements.
 template<typename Iterator>
@@ -43,7 +79,7 @@ void insertion_sort(Iterator RESTRICT beg, Iterator RESTRICT end) noexcept {
         // Move the current element out to avoid multiple copies during shifting
         auto value = std::move(*p);
         // Find insertion position in the sorted subarray [beg, p) upper_bound ensures stability
-        Iterator q = std::upper_bound(beg, p, value, ext_move_descending);
+        Iterator q = upper_bound_unrolled(beg, p, value, ext_move_descending);
         // Shift elements in sorted subarray (q, p] one step to the right to make room at *q
         std::move_backward(q, p, p + 1);
         // Place value into its correct position
@@ -79,7 +115,7 @@ void partial_insertion_sort(Iterator RESTRICT beg,
         // Move the current element out to avoid multiple copies during shifting
         auto value = std::move(*p);
         // Find insertion position in the sorted subarray [beg, p) upper_bound ensures stability
-        Iterator q = std::upper_bound(beg, p, value, ext_move_descending_limit);
+        Iterator q = upper_bound_unrolled(beg, p, value, ext_move_descending_limit);
         // Shift elements in sorted subarray (q, p] one step to the right to make room at *q
         std::move_backward(q, p, p + 1);
         // Place value into its correct position

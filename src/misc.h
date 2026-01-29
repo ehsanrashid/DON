@@ -943,23 +943,23 @@ struct FlagGuard final {
 
 // RAII guard for resetting atomic int flags
 template<typename T>
-struct IFlagGuard final {
+struct FlagsGuard final {
    public:
-    explicit IFlagGuard(std::atomic<T>& iFlagRef) noexcept :
-        iFlag(iFlagRef) {}
+    explicit FlagsGuard(std::atomic<T>& flagsRef) noexcept :
+        flags(flagsRef) {}
     // Non-copyable, non-movable to ensure unique ownership
-    IFlagGuard(const IFlagGuard&)            = delete;
-    IFlagGuard(IFlagGuard&&)                 = delete;
-    IFlagGuard& operator=(const IFlagGuard&) = delete;
-    IFlagGuard& operator=(IFlagGuard&&)      = delete;
+    FlagsGuard(const FlagsGuard&)            = delete;
+    FlagsGuard(FlagsGuard&&)                 = delete;
+    FlagsGuard& operator=(const FlagsGuard&) = delete;
+    FlagsGuard& operator=(FlagsGuard&&)      = delete;
 
-    ~IFlagGuard() noexcept { reset(); }
+    ~FlagsGuard() noexcept { reset(); }
 
     // Manually reset the flag if needed before destruction
-    void reset() noexcept { iFlag.store(0, std::memory_order_release); }
+    void reset() noexcept { flags.store(0, std::memory_order_release); }
 
    private:
-    std::atomic<T>& iFlag;
+    std::atomic<T>& flags;
 };
 
 struct CallOnce final {
@@ -1138,8 +1138,8 @@ inline std::uint64_t hash_bytes(const char* RESTRICT data, std::size_t size) noe
     }
 
     // Handle remaining bytes
-    for (; i < size; ++i)
-        h = (h ^ p[i]) * FNV_Prime;
+    for (; i + 1 <= size; i += 1)
+        h = (h ^ p[i + 0]) * FNV_Prime;
 
     return h;
 }
