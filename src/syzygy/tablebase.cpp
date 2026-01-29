@@ -482,11 +482,11 @@ TBTable<T>::~TBTable() noexcept {
 template<TBType T>
 void* TBTable<T>::init(const Position& pos, Key materialKey) noexcept {
     // Fast path: if already initialized, return immediately
-    if (callOnce.called())
+    if (callOnce.initialized())
         return mappedPtr;
 
     // Slow path: initialize exactly once using CallOnce
-    callOnce([this, &pos, materialKey]() {
+    callOnce([this, &pos, materialKey]() noexcept {
         // Pieces strings in decreasing order for each color, like ("KPP","KR")
         StdArray<std::string, COLOR_NB> pieces{};
 
@@ -494,7 +494,7 @@ void* TBTable<T>::init(const Position& pos, Key materialKey) noexcept {
             for (std::size_t i = PIECE_TYPES.size(); i-- > 0;)
                 pieces[c].append(pos.count(c, PIECE_TYPES[i]), to_char(PIECE_TYPES[i]));
 
-        bool c = materialKey == key[WHITE];
+        bool c = key[WHITE] == materialKey;
 
         std::string base;
         base.reserve(pieces[WHITE].size() + 1 + pieces[BLACK].size());

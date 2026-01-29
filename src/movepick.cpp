@@ -28,64 +28,100 @@ namespace DON {
 
 namespace {
 
-constexpr bool ext_move_descending(const ExtMove& em1, const ExtMove& em2) noexcept {
-    return em1 > em2;
-}
+constexpr int GOOD_QUIET_THRESHOLD = -14000;
 
 template<typename Iterator, typename T, typename Compare>
-Iterator exponential_upper_bound(Iterator RESTRICT beg,
-                                 Iterator RESTRICT end,
-                                 const T&          value,
-                                 Compare           comp) noexcept {
-    // value > first element -> insert at the beg
-    if (comp(value, beg[0]))
-        return beg;
+Iterator upper_bound_unrolled(Iterator RESTRICT begin,
+                              Iterator RESTRICT end,
+                              const T&          value,
+                              Compare           comp) noexcept {
+    std::size_t n = end - begin;
 
-    std::size_t n = end - beg;
+    std::size_t idx = n;
 
-    // Initialize search bounds
-    std::size_t lo = 1;      // lower bound (inclusive)
-    std::size_t hi = n - 1;  // upper bound (exclusive for upper_bound)
+    std::size_t i = 0;
 
-    std::size_t step = 1;  // initial exponential step size
+    // Unroll 8 elements at a time
+    for (; idx == n && i + 8 <= n; i += 8)
+        idx = comp(value, begin[i + 0]) ? i + 0
+            : comp(value, begin[i + 1]) ? i + 1
+            : comp(value, begin[i + 2]) ? i + 2
+            : comp(value, begin[i + 3]) ? i + 3
+            : comp(value, begin[i + 4]) ? i + 4
+            : comp(value, begin[i + 5]) ? i + 5
+            : comp(value, begin[i + 6]) ? i + 6
+            : comp(value, begin[i + 7]) ? i + 7
+                                        : n;
 
-    // Bidirectional exponential search
-    // Quickly narrow the range where 'value' could be inserted
-    while (hi - lo > 2 * step)
-    {
-        // Branchless conditions
-        bool loFound = comp(value, beg[lo + step]);   // value > element -> upper bound at loPos
-        bool hiFound = !comp(value, beg[hi - step]);  // value <= element -> lower bound after hiPos
+    // Unroll 4 elements at a time
+    for (; idx == n && i + 4 <= n; i += 4)
+        idx = comp(value, begin[i + 0]) ? i + 0
+            : comp(value, begin[i + 1]) ? i + 1
+            : comp(value, begin[i + 2]) ? i + 2
+            : comp(value, begin[i + 3]) ? i + 3
+                                        : n;
 
-        // Branchless arithmetic to update bounds for approximate range
-        lo += int(hiFound) * (-lo + (hi - step + 1)) + int(!loFound && !hiFound) * step;
-        hi -= int(loFound) * (+hi - (lo + step + 0)) + int(!loFound && !hiFound) * step;
+    // Handle remaining elements
+    for (; idx == n && i + 1 <= n; i += 1)
+        if (comp(value, begin[i + 0]))
+            idx = i + 0;
 
-        step <<= 1;  // double the step size for exponential search
-    }
-
-    // Now [lo..hi) is a sorted subrange containing the insertion point.
-    // Binary search in the found range [lo, hi)
-    return std::upper_bound(beg + lo, beg + hi, value, comp);
+    return begin + idx;
 }
 
+// Sort elements in descending order.
+// Stable for all elements.
 template<typename Iterator>
 void insertion_sort(Iterator RESTRICT beg, Iterator RESTRICT end) noexcept {
+    // Iterate over the range starting from the second element
     for (Iterator p = beg + 1; p < end; ++p)
     {
-        // Stability: Early exit if already in correct position
-        if (!ext_move_descending(*p, *(p - 1)))
+        // Stability: Skip if already in correct position
+        if (!ext_move_descending(p[0], p[-1]))
             continue;
-
+        // Move the current element out to avoid multiple copies during shifting
         auto value = std::move(*p);
-
-        // Find insertion position using exponential upper bound
-        Iterator q = exponential_upper_bound(beg, p, value, ext_move_descending);
-
-        // Shift elements in (q, p] one step to the right to make room at *q
+        // Find insertion position in the sorted subarray [beg, p) upper_bound ensures stability
+        Iterator q = upper_bound_unrolled(beg, p, value, ext_move_descending);
+        // Shift elements in sorted subarray (q, p] one step to the right to make room at *q
         std::move_backward(q, p, p + 1);
+        // Place value into its correct position
+        *q = std::move(value);
+    }
+}
 
-        // Insert value in its correct position
+// Sort elements in descending order up to a threshold 'limit'
+// leaving elements < limit untouched at their original positions.
+// Stable for elements >= limit.
+template<typename Iterator>
+void partial_insertion_sort(Iterator RESTRICT beg,
+                            Iterator RESTRICT end,
+                            int               limit = -INT_LIMIT) noexcept {
+    auto ext_move_descending_limit = [limit](const ExtMove& em1, const ExtMove& em2) noexcept {
+        // Only compare elements >= limit
+        if (em1.value < limit)
+            return false;  // treat a as "already after" => never move it
+        if (em2.value < limit)
+            return true;                       // value >= limit goes before elements < limit
+        return ext_move_descending(em1, em2);  // usual descending
+    };
+
+    // Iterate over the range starting from the second element
+    for (Iterator p = beg + 1; p < end; ++p)
+    {
+        // Skip elements smaller than the limit
+        if (p->value < limit)
+            continue;
+        // Stability: Skip if already in correct position
+        if (!ext_move_descending(p[0], p[-1]))
+            continue;
+        // Move the current element out to avoid multiple copies during shifting
+        auto value = std::move(*p);
+        // Find insertion position in the sorted subarray [beg, p) upper_bound ensures stability
+        Iterator q = upper_bound_unrolled(beg, p, value, ext_move_descending_limit);
+        // Shift elements in sorted subarray (q, p] one step to the right to make room at *q
+        std::move_backward(q, p, p + 1);
+        // Place value into its correct position
         *q = std::move(value);
     }
 }
@@ -155,6 +191,7 @@ template<GenType GT>
 void MovePicker::init_stage() noexcept {
     MoveList<GT> moveList(pos);
 
+    cur    = moves.data();
     endCur = score(moveList);
 
     insertion_sort(cur, endCur);
@@ -181,10 +218,8 @@ MovePicker::score<GenType::ENC_CAPTURE>(MoveList<GenType::ENC_CAPTURE>& moveList
         auto   movedPc    = pos.moved_pc(m);
         auto   capturedPt = pos.captured_pt(m);
 
-        std::int64_t value = 7 * piece_value(capturedPt)  //
-                           + (*captureHistory)[+movedPc][dstSq][capturedPt];
-
-        m.value = value;
+        m.value = 7 * piece_value(capturedPt)  //
+                + (*captureHistory)[+movedPc][dstSq][capturedPt];
     }
 
     return itr;
@@ -271,9 +306,7 @@ MovePicker::score<GenType::EVA_CAPTURE>(MoveList<GenType::EVA_CAPTURE>& moveList
 
         auto capturedPt = pos.captured_pt(m);
 
-        std::int64_t value = piece_value(capturedPt);
-
-        m.value = value;
+        m.value = piece_value(capturedPt);
     }
 
     return itr;
@@ -298,10 +331,8 @@ MovePicker::score<GenType::EVA_QUIET>(MoveList<GenType::EVA_QUIET>& moveList) no
         Square dstSq   = m.dst_sq();
         Piece  movedPc = pos.moved_pc(m);
 
-        std::int64_t value = (*quietHistory)[ac][m.raw()]  //
-                           + (*continuationHistory[0])[+movedPc][dstSq];
-
-        m.value = value;
+        m.value = (*quietHistory)[ac][m.raw()]  //
+                + (*continuationHistory[0])[+movedPc][dstSq];
     }
 
     return itr;
@@ -334,15 +365,13 @@ STAGE_SWITCH:
 
         if (curStage == Stage::EVA_CAPTURE)
         {
-            cur = moves.data();
-
             init_stage<GenType::EVA_CAPTURE>();
         }
         else
         {
-            cur = endBadCapture = moves.data();
-
             init_stage<GenType::ENC_CAPTURE>();
+
+            endBadCapture = cur;
         }
 
         goto STAGE_SWITCH;
@@ -359,9 +388,11 @@ STAGE_SWITCH:
 
         if (!skipQuiets)
         {
-            init_stage<GenType::ENC_QUIET>();
+            MoveList<GenType::ENC_QUIET> moveList(pos);
 
-            endBadQuiet = endCur;
+            endBadQuiet = endCur = score(moveList);
+
+            partial_insertion_sort(cur, endCur, GOOD_QUIET_THRESHOLD);
         }
 
         curStage = Stage::ENC_GOOD_QUIET;
@@ -374,8 +405,9 @@ STAGE_SWITCH:
                 continue;
 
             // Good quiet threshold
-            if (cur->value >= -14000)
+            if (cur->value >= GOOD_QUIET_THRESHOLD)
                 return move();
+
             // Remaining quiets are bad
             break;
         }
@@ -399,6 +431,8 @@ STAGE_SWITCH:
             // Prepare the pointers to loop over the bad quiets
             cur    = begBadQuiet;
             endCur = endBadQuiet;
+
+            insertion_sort(cur, endCur);
         }
 
         curStage = Stage::ENC_BAD_QUIET;
@@ -413,8 +447,13 @@ STAGE_SWITCH:
     case Stage::EVA_CAPTURE :
         if (select([]() { return true; }))
             return move();
+        {
+            MoveList<GenType::EVA_QUIET> moveList(pos);
 
-        init_stage<GenType::EVA_QUIET>();
+            endCur = score(moveList);
+
+            insertion_sort(cur, endCur);
+        }
 
         curStage = Stage::EVA_QUIET;
         [[fallthrough]];

@@ -103,7 +103,7 @@ namespace DON {
 using Strings     = std::vector<std::string>;
 using StringViews = std::vector<std::string_view>;
 
-constexpr std::int64_t INT_LIMIT = 0xFFFFFFFFLL;
+constexpr std::int64_t INT_LIMIT = 0x7FFFFFFFLL;
 
 inline constexpr std::size_t ONE_KB = 1024;
 inline constexpr std::size_t ONE_MB = ONE_KB * ONE_KB;
@@ -921,6 +921,47 @@ class FixedString final {
     std::size_t                  _size;
 };
 
+// RAII guard for resetting atomic bool flags
+struct FlagGuard final {
+   public:
+    explicit FlagGuard(std::atomic<bool>& flagRef) noexcept :
+        flag(flagRef) {}
+    // Non-copyable, non-movable to ensure unique ownership
+    FlagGuard(const FlagGuard&)            = delete;
+    FlagGuard(FlagGuard&&)                 = delete;
+    FlagGuard& operator=(const FlagGuard&) = delete;
+    FlagGuard& operator=(FlagGuard&&)      = delete;
+
+    ~FlagGuard() noexcept { reset(); }
+
+    // Manually reset the flag if needed before destruction
+    void reset() noexcept { flag.store(false, std::memory_order_release); }
+
+   private:
+    std::atomic<bool>& flag;
+};
+
+// RAII guard for resetting atomic int flags
+template<typename T>
+struct FlagsGuard final {
+   public:
+    explicit FlagsGuard(std::atomic<T>& flagsRef) noexcept :
+        flags(flagsRef) {}
+    // Non-copyable, non-movable to ensure unique ownership
+    FlagsGuard(const FlagsGuard&)            = delete;
+    FlagsGuard(FlagsGuard&&)                 = delete;
+    FlagsGuard& operator=(const FlagsGuard&) = delete;
+    FlagsGuard& operator=(FlagsGuard&&)      = delete;
+
+    ~FlagsGuard() noexcept { reset(); }
+
+    // Manually reset the flag if needed before destruction
+    void reset() noexcept { flags.store(0, std::memory_order_release); }
+
+   private:
+    std::atomic<T>& flags;
+};
+
 struct CallOnce final {
    public:
     CallOnce()                           = default;
@@ -935,16 +976,18 @@ struct CallOnce final {
     void operator()(Func&& callFn) noexcept(noexcept(callFn())) {
         std::call_once(callOnce, [this, callFunc = std::forward<Func>(callFn)]() mutable {
             std::move(callFunc)();  // Move into the call
-            call.store(true, std::memory_order_release);
+            initialize.store(true, std::memory_order_release);
         });
     }
 
     // Check if initialization has been completed
-    [[nodiscard]] bool called() const noexcept { return call.load(std::memory_order_acquire); }
+    [[nodiscard]] bool initialized() const noexcept {
+        return initialize.load(std::memory_order_acquire);
+    }
 
    private:
     std::once_flag    callOnce;
-    std::atomic<bool> call{false};
+    std::atomic<bool> initialize{false};
 };
 
 // LazyValue wraps a Value with CallOnce for safe lazy initialization
@@ -990,7 +1033,7 @@ struct LazyValue final {
         return *get_ptr();
     }
 
-    [[nodiscard]] bool is_initialized() const noexcept { return callOnce.called(); }
+    [[nodiscard]] bool is_initialized() const noexcept { return callOnce.initialized(); }
 
    private:
     Value* get_ptr() noexcept { return std::launder(reinterpret_cast<Value*>(&storage)); }
@@ -1008,8 +1051,9 @@ template<typename Key, typename Value>
 class ConcurrentCache final {
    public:
     ConcurrentCache(std::size_t reserveCount = 1024, float loadFactor = 0.75f) noexcept {
-        storage.reserve(reserveCount);
         storage.max_load_factor(loadFactor);
+        std::size_t bucketCount = std::size_t(reserveCount / loadFactor) + 1;
+        storage.rehash(bucketCount);
     }
 
     template<typename... Args>
@@ -1084,7 +1128,19 @@ inline std::uint64_t hash_bytes(const char* RESTRICT data, std::size_t size) noe
 
     std::size_t i = 0;
 
-    // Unrolled
+    // Unroll 8 bytes at a time
+    for (; i + 8 <= size; i += 8)
+    {
+        h = (h ^ p[i + 0]) * FNV_Prime;
+        h = (h ^ p[i + 1]) * FNV_Prime;
+        h = (h ^ p[i + 2]) * FNV_Prime;
+        h = (h ^ p[i + 3]) * FNV_Prime;
+        h = (h ^ p[i + 4]) * FNV_Prime;
+        h = (h ^ p[i + 5]) * FNV_Prime;
+        h = (h ^ p[i + 6]) * FNV_Prime;
+        h = (h ^ p[i + 7]) * FNV_Prime;
+    }
+    // Unroll 4 bytes at a time
     for (; i + 4 <= size; i += 4)
     {
         h = (h ^ p[i + 0]) * FNV_Prime;
@@ -1092,10 +1148,9 @@ inline std::uint64_t hash_bytes(const char* RESTRICT data, std::size_t size) noe
         h = (h ^ p[i + 2]) * FNV_Prime;
         h = (h ^ p[i + 3]) * FNV_Prime;
     }
-
     // Handle remaining bytes
-    for (; i < size; ++i)
-        h = (h ^ p[i]) * FNV_Prime;
+    for (; i + 1 <= size; i += 1)
+        h = (h ^ p[i + 0]) * FNV_Prime;
 
     return h;
 }

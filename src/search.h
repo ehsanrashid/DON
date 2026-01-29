@@ -21,12 +21,14 @@
 #include <algorithm>
 #include <atomic>
 #include <cassert>
+#include <condition_variable>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <initializer_list>
 #include <memory>
+#include <mutex>
 #include <string_view>
 #include <utility>
 #include <variant>
@@ -479,6 +481,13 @@ class MainSearchManager final: public ISearchManager {
 
     void show_pv(Worker& worker, Depth depth) const noexcept;
 
+    void set_ponder(bool ponder_) noexcept {
+        std::lock_guard lock(mutex);
+
+        ponder = ponder_;
+        condVar.notify_all();
+    }
+
     const UpdateContext& updateContext;
 
     std::uint16_t callsCount;
@@ -488,6 +497,9 @@ class MainSearchManager final: public ISearchManager {
     double        timeReduction;
     Skill         skill;
     TimeManager   timeManager;
+
+    std::mutex              mutex;
+    std::condition_variable condVar;
 
     bool   atFirst;
     Value  preBestCurValue;

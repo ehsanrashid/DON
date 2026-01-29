@@ -486,46 +486,71 @@ class BaseSharedMemory {
 //  - The class is static-only; it cannot be instantiated. (Restriction)
 class SharedMemoryRegistry final {
    private:
-    enum class Status : std::uint8_t {
+    enum class Result : std::uint8_t {
         Success,
         AlreadyRegistered,
         CleanupInProgress
     };
 
    public:
-    static bool cleanup_in_progress() noexcept { return cleanUp.load(std::memory_order_acquire); }
+    static void ensure_initialized() noexcept {
+        callOnce([]() noexcept {
+            orderedSharedMemories.reserve(ReserveCount);
+            sharedMemoryIndices.max_load_factor(LoadFactor);
+            std::size_t bucketCount = std::size_t(ReserveCount / LoadFactor) + 1;
+            sharedMemoryIndices.rehash(bucketCount);
+        });
+    }
+
+    static std::size_t size() noexcept {
+        std::scoped_lock lock(mutex);
+
+        return orderedSharedMemories.size();
+    }
+
+    static bool cleanup_in_progress() noexcept {
+        return cleanUpInProgress.load(std::memory_order_acquire);
+    }
 
     // Try to register, retry only if cleanup is in progress
     static void attempt_register_memory(BaseSharedMemory* sharedMemory) noexcept {
-        constexpr std::size_t MaxAttempts = 10;
+        constexpr std::size_t MaxAttempts  = 10;
+        constexpr auto        AttemptDelay = std::chrono::microseconds(100);
 
         for (std::size_t attempt = 0;; ++attempt)
         {
-            auto status = register_memory(sharedMemory);
+            auto result = register_memory(sharedMemory);
 
-            if (status == Status::Success)
+            if (result == Result::Success)
                 break;
 
-            //assert(status != Status::AlreadyRegistered && "SharedMemory double registration");
-
-            if (status == Status::AlreadyRegistered)
+            if (result == Result::AlreadyRegistered)
+            {
+                assert(false && "SharedMemory double registration");
                 break;
+            }
 
             if (attempt >= MaxAttempts)
                 break;
 
             // Cleanup in progress, wait a bit
-            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            std::this_thread::yield();
+            std::this_thread::sleep_for(AttemptDelay);
         }
+        // Failed to register after retries - acceptable during shutdown
     }
     // Register a shared memory object in the global registry.
     // Thread-safe: locks the registry while inserting.
-    static Status register_memory(BaseSharedMemory* sharedMemory) noexcept {
-        // Don't register during cleanup
-        if (cleanup_in_progress())
-            return Status::CleanupInProgress;
+    static Result register_memory(BaseSharedMemory* sharedMemory) noexcept {
+        // Lazy initialization
+        if (!callOnce.initialized())
+            ensure_initialized();
 
         std::scoped_lock lock(mutex);
+
+        // Don't register during cleanup
+        if (cleanup_in_progress())
+            return Result::CleanupInProgress;
 
         return insert_nolock(sharedMemory);
     }
@@ -541,23 +566,30 @@ class SharedMemoryRegistry final {
     // Thread-safe: swaps the registry into a local set to avoid iterator invalidation
     // if any close() call triggers unregister_memory().
     static void clean(bool skipUnmapRegion = false) noexcept {
-        cleanUp.store(true, std::memory_order_release);
-
         std::vector<BaseSharedMemory*> copiedOrderedSharedMemories;
 
         {
             std::scoped_lock lock(mutex);
 
-            // Swap to avoid iterator invalidation if close() calls unregister_memory()
-            copiedOrderedSharedMemories.swap(orderedSharedMemories);
+            // Mark cleanup as in-progress so other threads know not to register new memory
+            cleanUpInProgress.store(true, std::memory_order_release);
+
+            // Efficiently transfer all registered shared memories to a local vector
+            // Use move to avoid copying large vector contents.
+            // This allows us to safely iterate and close memories outside the lock
+            // without invalidating iterators if close() calls unregister_memory().
+            copiedOrderedSharedMemories.reserve(orderedSharedMemories.size());
+            copiedOrderedSharedMemories = std::move(orderedSharedMemories);
+            // Clear the lookup map now that all memories are removed from the main registry
             sharedMemoryIndices.clear();
         }
+
+        // Will reset flag on exit
+        FlagGuard cleanUpInProgressGuard{cleanUpInProgress};
 
         // Safe to iterate and close memory without holding the lock
         for (BaseSharedMemory* sharedMemory : copiedOrderedSharedMemories)
             sharedMemory->close(skipUnmapRegion);
-
-        cleanUp.store(false, std::memory_order_release);
     }
 
    private:
@@ -568,16 +600,16 @@ class SharedMemoryRegistry final {
     SharedMemoryRegistry& operator=(const SharedMemoryRegistry&) noexcept = delete;
     SharedMemoryRegistry& operator=(SharedMemoryRegistry&&) noexcept      = delete;
 
-    static Status insert_nolock(BaseSharedMemory* sharedMemory) noexcept {
+    static Result insert_nolock(BaseSharedMemory* sharedMemory) noexcept {
         // Only insert if not already present
         if (sharedMemoryIndices.find(sharedMemory) != sharedMemoryIndices.end())
-            return Status::AlreadyRegistered;
+            return Result::AlreadyRegistered;
 
-        const std::size_t newIndex = orderedSharedMemories.size();
+        std::size_t newIndex = orderedSharedMemories.size();
         orderedSharedMemories.push_back(sharedMemory);
         sharedMemoryIndices[sharedMemory] = newIndex;
 
-        return Status::Success;
+        return Result::Success;
     }
     static bool erase_nolock(BaseSharedMemory* sharedMemory) noexcept {
         // Only erase if already present
@@ -586,12 +618,13 @@ class SharedMemoryRegistry final {
         if (itr == sharedMemoryIndices.end())
             return false;
 
-        const std::size_t victimIndex = itr->second;
+        std::size_t victimIndex = itr->second;
 
         assert(!orderedSharedMemories.empty());
         assert(victimIndex < orderedSharedMemories.size());
 
-        // Perform the swap-and-pop in the vector
+        // Perform the swap-and-pop operation
+        // Swap the last element into the removed spot to avoid shifting all elements
         BaseSharedMemory* lastSharedMemory = orderedSharedMemories.back();
         if (victimIndex != orderedSharedMemories.size() - 1)
         {
@@ -605,7 +638,11 @@ class SharedMemoryRegistry final {
         return true;
     }
 
-    static inline std::atomic<bool> cleanUp{false};
+    static constexpr std::size_t ReserveCount = 1024;
+    static constexpr float       LoadFactor   = 0.75f;
+
+    static inline CallOnce          callOnce;
+    static inline std::atomic<bool> cleanUpInProgress{false};
     // Protects access to SharedMemories for thread safety
     static inline std::mutex mutex;
     // Preserves insertion order for SharedMemories iteration
@@ -620,7 +657,7 @@ class SharedMemoryRegistry final {
 // or when certain signals (termination, fatal errors) are received.
 //
 // Usage:
-//   Call SharedMemoryCleanupManager::ensure_registered() early in main()
+//   Call SharedMemoryCleanupManager::ensure_initialized() early in main()
 //   to register cleanup hooks and signal handlers.
 //   This guarantees that SharedMemoryRegistry::clean() will be
 //   invoked automatically on program exit or abnormal termination.
@@ -636,48 +673,59 @@ class SharedMemoryRegistry final {
 class SharedMemoryCleanupManager final {
    public:
     // Ensures signal handlers and atexit cleanup are registered only once
-    static void ensure_registered() noexcept {
-        std::call_once(registerOnce, []() noexcept {
-            // Create pipe for async-signal-safe notification
+    static void ensure_initialized() noexcept {
+        callOnce([]() noexcept {
+            // 1. Create async-signal-safe pipe
+            int pipeFds[2];
     #if defined(__linux__)
             // Linux: use pipe2 (atomic)
-            if (pipe2(signalPipe, O_CLOEXEC | O_NONBLOCK) != 0)
+            if (pipe2(pipeFds, O_CLOEXEC | O_NONBLOCK) != 0)
     #else
             // macOS/BSD: use pipe + fcntl
-            if (pipe(signalPipe) != 0)
+            if (pipe(pipeFds) != 0)
     #endif
             {
                 std::cerr << "Failed to create signal pipe: " << std::strerror(errno) << std::endl;
+
+                close_signal_pipe();
                 return;
             }
-
     #if !defined(__linux__)
             // Set flags manually (portable alternative to pipe2)
-            if (fcntl(signalPipe[0], F_SETFD, FD_CLOEXEC) == -1
-                || fcntl(signalPipe[1], F_SETFD, FD_CLOEXEC) == -1
-                || fcntl(signalPipe[0], F_SETFL, O_NONBLOCK) == -1
-                || fcntl(signalPipe[1], F_SETFL, O_NONBLOCK) == -1)
+            if (fcntl(pipeFds[0], F_SETFD, FD_CLOEXEC) == -1     //
+                || fcntl(pipeFds[1], F_SETFD, FD_CLOEXEC) == -1  //
+                || fcntl(pipeFds[0], F_SETFL, O_NONBLOCK) == -1  //
+                || fcntl(pipeFds[1], F_SETFL, O_NONBLOCK) == -1)
             {
                 std::cerr << "Failed to set pipe flags: " << std::strerror(errno) << std::endl;
-                close(signalPipe[0]);
-                close(signalPipe[1]);
+
+                close_signal_pipe();
                 return;
             }
     #endif
-            // Register atexit cleanup
-            std::atexit([]() { SharedMemoryRegistry::clean(); });
-            // Register signal handlers
-            register_signal_handlers();
-            // Start monitor thread
+            // Store signal pipe fds atomically
+            signalPipeFds[0].store(pipeFds[0], std::memory_order_relaxed);
+            signalPipeFds[1].store(pipeFds[1], std::memory_order_relaxed);
+
+            if (!valid_signal_pipe())
+            {
+                std::cerr << "Pipe creation failed, aborting monitor thread." << std::endl;
+                return;  // Skip starting the thread
+            }
+            // 2. Start monitor thread SECOND
             start_monitor_thread();
+            // 3. Register signal handlers (now pipe and thread are ready)
+            register_signal_handlers();
+            // 4. Initialize registry (might trigger signals, but now pipe, thread, handlers all ready)
+            SharedMemoryRegistry::ensure_initialized();
+            // 5. Register std::atexit() shutdown cleanup
+            std::atexit(cleanup_on_exit);
         });
     }
 
    private:
     // Register all signals with the deferred handler
     static void register_signal_handlers() noexcept {
-
-        // Block all signals about to register
         sigset_t sigSet;
 
         sigemptyset(&sigSet);
@@ -685,7 +733,9 @@ class SharedMemoryCleanupManager final {
         for (int signal : SIGNALS)
             sigaddset(&sigSet, signal);
 
-        sigprocmask(SIG_BLOCK, &sigSet, nullptr);
+        // Block all signals handlers about to register
+        if (pthread_sigmask(SIG_BLOCK, &sigSet, nullptr) != 0)
+            std::cerr << "Failed to block signals." << std::endl;
 
         // Now register handlers
         for (int signal : SIGNALS)
@@ -699,66 +749,94 @@ class SharedMemoryCleanupManager final {
             // Choose flags depending on signal type
             switch (signal)
             {
+                // clang-format off
             // Normal termination/interruption signals
-            case SIGHUP :
-            case SIGINT :
-            case SIGQUIT :
-            case SIGTERM :
-            case SIGSYS :
-            case SIGXCPU :
-            case SIGXFSZ :
+            case SIGHUP : case SIGINT : case SIGQUIT : case SIGTERM : case SIGSYS : case SIGXCPU : case SIGXFSZ :
                 sigAction.sa_flags = SA_RESTART;
                 break;
             // Fatal signals
-            case SIGSEGV :
-            case SIGILL :
-            case SIGABRT :
-            case SIGFPE :
-            case SIGBUS :
+            case SIGSEGV : case SIGILL : case SIGABRT : case SIGFPE : case SIGBUS :
                 sigAction.sa_flags = 0;
                 break;
             // Safe fallback
             default :
                 sigAction.sa_flags = 0;
-                break;
+                // clang-format on
             }
 
             if (sigaction(signal, &sigAction, nullptr) != 0)
-            {
                 std::cerr << "Failed to register handler for signal " << signal << ": "
                           << std::strerror(errno) << std::endl;
-            }
         }
 
-        // Unblock signals now that all handlers are registered
-        sigprocmask(SIG_UNBLOCK, &sigSet, nullptr);
+        // Unblock all signals handlers are registered
+        if (pthread_sigmask(SIG_UNBLOCK, &sigSet, nullptr) != 0)
+            std::cerr << "Failed to unblock signals." << std::endl;
     }
 
     // Signal handler: deferred handling
-    // NOTE: If multiple signals arrive rapidly,
-    // only the last one is preserved in pendingSignal.
-    // This is acceptable for cleanup purposes as any signal will trigger full cleanup.
+    // NOTE: If multiple signals arrive rapidly, all are preserved in pendingSignals.
     static void signal_handler(int signal) noexcept {
-        // Store pending signal (release for sync with monitor thread)
-        pendingSignal.store(signal, std::memory_order_release);
+        // Don't process signals until initialized
+        if (!callOnce.initialized())
+            return;
 
-        // Async-signal-safe pipe notification
-        char byte = 1;
-        // async-signal-safe
-        while (write(signalPipe[1], &byte, 1) != 0 && errno == EINTR)
-            ;  // Retry on interrupt
+        int bitPos = signal_to_bit(signal);
+        // Unknown signal
+        if (bitPos == INVALID_SIGNAL)
+            return;
+
+        // Set the signal bit
+        pendingSignals.fetch_or(bit(bitPos), std::memory_order_release);
+
+        // Guard against uninitialized pipe before writing (Additional safety)
+        int fd1 = signalPipeFds[1].load(std::memory_order_relaxed);
+        if (fd1 < 0)
+            return;  // Pipe not initialized yet, skip notification
+
+        // Always notify (idempotent, safe)
+        // Notify via pipe
+        ssize_t r;
+        do
+        {
+            char byte = 1;
+
+            r = write(fd1, &byte, 1);
+        } while (r == -1 && errno == EINTR);
+
+        // Ignore EAGAIN (pipe full) - pendingSignals still tracks signals
+        if (r == -1 && errno != EAGAIN)
+        {
+            write_to_stderr("Failed to write to signal pipe\n");
+        }
     }
 
     // Monitor thread: waits for pipe, cleans memory, restores default, re-raises
     static void start_monitor_thread() noexcept {
-        monitorThread = std::thread([]() {
-            char byte;
+        monitorThread = std::thread([]() noexcept {
+            FlagsGuard pendingSignalsGuard(pendingSignals);
 
-            while (true)
+            while (!shuttingDown.load(std::memory_order_acquire))
             {
-                // Block until pipe has data
-                ssize_t n = read(signalPipe[0], &byte, 1);
+                // Pipe closed, exit thread
+                int fd0 = signalPipeFds[0].load(std::memory_order_relaxed);
+                if (fd0 == -1)
+                    break;
 
+                char byte;
+                // Block wait for notification
+                ssize_t n = read(fd0, &byte, 1);
+                if (n == -1)
+                {
+                    if (errno == EAGAIN || errno == EINTR)
+                    {
+                        std::this_thread::yield();
+                        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                        continue;
+                    }
+                    break;
+                }
+                /*
                 // Better error handling
                 if (n < 0)
                 {
@@ -767,48 +845,143 @@ class SharedMemoryCleanupManager final {
 
                     break;  // Real error or pipe closed
                 }
+                */
                 if (n == 0)
                     break;  // EOF
 
-                // Acquire memory order to synchronize with signal handler
-                int signal = pendingSignal.load(std::memory_order_acquire);
+                // Get and clear all pending signals atomically
+                // Multiple signals of the same type are coalesced; all signals are processed in batches
+                std::uint64_t signals = pendingSignals.exchange(0, std::memory_order_acquire);
 
-                if (signal == 0)
+                if (signals == 0)
                     continue;
 
-                // Reset pending signal
-                pendingSignal.store(0, std::memory_order_release);
-                // Perform cleanup
-                SharedMemoryRegistry::clean(true);
-
-                // Restore default and re-raise
-                struct sigaction sigAction{};
-
-                sigAction.sa_handler = SIG_DFL;
-
-                sigemptyset(&sigAction.sa_mask);
-
-                sigAction.sa_flags = 0;
-
-                if (sigaction(signal, &sigAction, nullptr) != 0)
+                // Process all set bits (handle all pending signals)
+                for (std::size_t bitPos = 0; bitPos < SIGNALS.size(); ++bitPos)
                 {
-                    std::cerr << "Failed to restore default handler for signal " << signal << ": "
-                              << std::strerror(errno) << std::endl;
+                    if ((signals & bit(bitPos)) == 0)
+                        continue;
 
+                    int signal = SIGNALS[bitPos];
+
+                    if (signal_graceful(signal))
+                        // Perform safe partial cleanup (once per batch)
+                        SharedMemoryRegistry::clean(true);
+
+                    // Restore default handler
+                    struct sigaction sigAction{};
+
+                    sigAction.sa_handler = SIG_DFL;
+
+                    sigemptyset(&sigAction.sa_mask);
+
+                    sigAction.sa_flags = 0;
+
+                    if (sigaction(signal, &sigAction, nullptr) != 0)
+                    {
+                        std::cerr << "Failed to restore default handler for signal " << signal
+                                  << ": " << std::strerror(errno) << std::endl;
+                        // Exit with appropriate code
+                        _Exit(128 + signal);
+                    }
+
+                    // Re-raise the first signal found
+                    ::raise(signal);
+                    // Fallback: In case ::raise() returns, exit with appropriate code
                     _Exit(128 + signal);
                 }
-                // Re-raise the signal
-                ::raise(signal);
-                // Fallback: In case ::raise() returns, exit with appropriate code
-                _Exit(128 + signal);
             }
         });
 
-        // Simple and safe: detach the thread
-        monitorThread.detach();
+        // Simple and safe: detach the monitor thread.
+        // Thread is designed to live for the lifetime of the program.
+        // No join is required since it only accesses static/global data.
+        //monitorThread.detach();
     }
 
-   private:
+    // Wake monitor thread
+    static void wake_monitor_thread() noexcept {
+        int fd1 = signalPipeFds[1].load(std::memory_order_relaxed);
+        if (fd1 == -1)
+            return;  // Pipe not initialized, skip notification
+
+        char byte = 0;
+
+        ssize_t r = write(fd1, &byte, 1);  // best-effort wakeup
+        if (r == -1 && errno != EAGAIN && errno != EINTR)
+        {
+            write_to_stderr("Failed to wake monitor thread\n");
+        }
+    }
+
+    static void stop_monitor_thread() noexcept {
+        // 1. Signal shutdown
+        shuttingDown.store(true, std::memory_order_release);
+        // 2. Wake monitor thread
+        wake_monitor_thread();
+        // 3. Join monitor thread (wait for exit)
+        if (monitorThread.joinable())
+            monitorThread.join();
+    }
+
+    static void cleanup_on_exit() noexcept {
+        stop_monitor_thread();
+        close_signal_pipe();
+        SharedMemoryRegistry::clean();
+    }
+
+    static void close_signal_pipe() noexcept {
+
+        // 1. Close pipe safely
+        int fd0 = signalPipeFds[0].load(std::memory_order_relaxed);
+        int fd1 = signalPipeFds[1].load(std::memory_order_relaxed);
+        if (fd0 != -1)
+            close(fd0);
+        if (fd1 != -1)
+            close(fd1);
+
+        // 2. Reset pipe descriptors
+        reset_signal_pipe();
+    }
+
+    static void reset_signal_pipe() noexcept {
+        signalPipeFds[0].store(-1, std::memory_order_relaxed);
+        signalPipeFds[1].store(-1, std::memory_order_relaxed);
+    }
+
+    static bool valid_signal_pipe() noexcept {
+        return signalPipeFds[0].load(std::memory_order_relaxed) != -1
+            && signalPipeFds[1].load(std::memory_order_relaxed) != -1;
+    }
+
+    // Map signal numbers to bit positions (0-11 for your 12 signals)
+    static constexpr int signal_to_bit(int signal) noexcept {
+        for (std::size_t bitPos = 0; bitPos < SIGNALS.size(); ++bitPos)
+        {
+            if (SIGNALS[bitPos] == signal)
+                return bitPos;
+        }
+        return INVALID_SIGNAL;  // Not in list
+    }
+
+    static bool signal_graceful(int signal) noexcept {
+        switch (signal)
+        {
+            // clang-format off
+        case SIGHUP : case SIGINT : case SIGTERM : case SIGQUIT :
+            return true;
+        default :
+            return false;
+            // clang-format on
+        }
+    }
+
+    static void write_to_stderr(const char* msg) noexcept {
+        ssize_t n = write(STDERR_FILENO, msg, std::size_t(std::strlen(msg)));
+        if (n == -1)
+        {}  // handle error, or ignore safely
+    }
+
     SharedMemoryCleanupManager() noexcept                                             = delete;
     ~SharedMemoryCleanupManager() noexcept                                            = delete;
     SharedMemoryCleanupManager(const SharedMemoryCleanupManager&) noexcept            = delete;
@@ -820,10 +993,13 @@ class SharedMemoryCleanupManager final {
     static constexpr StdArray<int, 12> SIGNALS{SIGHUP,  SIGINT,  SIGQUIT, SIGILL, SIGABRT, SIGFPE,
                                                SIGSEGV, SIGTERM, SIGBUS,  SIGSYS, SIGXCPU, SIGXFSZ};
 
-    static inline std::once_flag   registerOnce;
-    static inline std::atomic<int> pendingSignal{0};
-    static inline int              signalPipe[2] = {-1, -1};
-    static inline std::thread      monitorThread;
+    static constexpr int INVALID_SIGNAL = -1;
+
+    static inline CallOnce                   callOnce;
+    static inline std::atomic<bool>          shuttingDown{false};
+    static inline std::atomic<std::uint64_t> pendingSignals{0};
+    static inline std::atomic<int>           signalPipeFds[2]{-1, -1};
+    static inline std::thread                monitorThread;
 };
 
 struct MutexAttrGuard final {
@@ -1477,7 +1653,7 @@ class BackendSharedMemory final {
     BackendSharedMemory() noexcept = default;
 
     BackendSharedMemory(const std::string& shmName, const T& value) noexcept {
-        SharedMemoryCleanupManager::ensure_registered();
+        SharedMemoryCleanupManager::ensure_initialized();
 
         shm.emplace(shmName);
 
@@ -1568,8 +1744,8 @@ struct SystemWideSharedMemory final {
     // Content is addressed by its hash. An additional discriminator can be added to account for differences
     // that are not present in the content, for example NUMA node allocation.
     SystemWideSharedMemory(const T& value, std::uint64_t discriminator = 0) noexcept {
-        const std::uint64_t valueHash      = std::hash<T>{}(value);
-        const std::uint64_t executableHash = hash_string(executable_path());
+        std::uint64_t valueHash      = std::hash<T>{}(value);
+        std::uint64_t executableHash = hash_string(executable_path());
 
         std::string shmName(256, '\0');
 
