@@ -1206,12 +1206,7 @@ class SharedMemory final: public BaseSharedMemory {
 
             if (!lock_file(LOCK_EX))
             {
-                if (newCreated)
-                    shm_unlink(name.c_str());
-
-                fdGuard.close();
-
-                reset();
+                cleanup(newCreated, true, true, true);
 
                 return false;
             }
@@ -1224,16 +1219,7 @@ class SharedMemory final: public BaseSharedMemory {
 
             if (!success)
             {
-                unmap_region();
-
-                unlock_file();
-
-                if (newCreated || headerInvalid)
-                    shm_unlink(name.c_str());
-
-                fdGuard.close();
-
-                reset();
+                cleanup(newCreated || headerInvalid);
 
                 if (!newCreated && headerInvalid && !staleRetried)
                 {
@@ -1244,19 +1230,9 @@ class SharedMemory final: public BaseSharedMemory {
                 return false;
             }
 
-            // Lock the shared memory header using RAII
             if (shmHeader == nullptr)
             {
-                unmap_region();
-
-                unlock_file();
-
-                if (newCreated)
-                    shm_unlink(name.c_str());
-
-                fdGuard.close();
-
-                reset();
+                cleanup(newCreated);
 
                 if (!newCreated && !staleRetried)
                 {
@@ -1273,16 +1249,7 @@ class SharedMemory final: public BaseSharedMemory {
 
                 if (!shmHeaderGuard.owns_lock())
                 {
-                    unmap_region();
-
-                    unlock_file();
-
-                    if (newCreated)
-                        shm_unlink(name.c_str());
-
-                    fdGuard.close();
-
-                    reset();
+                    cleanup(newCreated);
 
                     if (!newCreated && !staleRetried)
                     {
@@ -1295,16 +1262,7 @@ class SharedMemory final: public BaseSharedMemory {
 
                 if (!create_sentinel_file_locked())
                 {
-                    unmap_region();
-
-                    unlock_file();
-
-                    if (newCreated)
-                        shm_unlink(name.c_str());
-
-                    fdGuard.close();
-
-                    reset();
+                    cleanup(newCreated);
 
                     return false;
                 }
@@ -1330,51 +1288,32 @@ class SharedMemory final: public BaseSharedMemory {
         bool removeRegion = false;
         bool fileLocked   = lock_file(LOCK_EX);
 
+        auto handle_ref_and_sentinel = [&]() noexcept {
+            decrement_ref_count();
+
+            remove_sentinel_file();
+        };
+
         if (fileLocked && shmHeader != nullptr)
         {
             // RAII mutex lock
             ShmHeaderGuard shmHeaderGuard(*shmHeader);
 
+            handle_ref_and_sentinel();
+
             if (shmHeaderGuard.owns_lock())
             {
-                // Mutex locked
-                decrement_ref_count();
-
-                remove_sentinel_file();
-
+                // Mutex locked: check if the region should be removed
                 removeRegion = !has_other_live_sentinels_locked();
             }
-            else
-            {
-                // Could not lock mutex; still decrement ref and remove sentinel
-                remove_sentinel_file();
-
-                decrement_ref_count();
-            }
-
-            // Mutex automatically unlocked when shmHeaderGuard goes out of scope
         }
         else
         {
             // File lock failed or no header
-            remove_sentinel_file();
-
-            decrement_ref_count();
+            handle_ref_and_sentinel();
         }
 
-        if (!skipUnmapRegion)
-            unmap_region();
-
-        if (fileLocked)
-            unlock_file();
-
-        if (removeRegion)
-            shm_unlink(name.c_str());
-
-        fdGuard.close();
-
-        if (!skipUnmapRegion)
-            reset();
+        cleanup(false, fileLocked, removeRegion, skipUnmapRegion);
     }
 
     [[nodiscard]] bool is_open() const noexcept {
@@ -1707,6 +1646,26 @@ class SharedMemory final: public BaseSharedMemory {
         }
 
         return true;
+    }
+
+    void cleanup(bool newCreated,
+                 bool fileLocked      = true,
+                 bool removeRegion    = true,
+                 bool skipUnmapRegion = false) noexcept {
+
+        if (!skipUnmapRegion)
+            unmap_region();
+
+        if (fileLocked)
+            unlock_file();
+
+        if (newCreated || removeRegion)
+            shm_unlink(name.c_str());
+
+        fdGuard.close();
+
+        if (!skipUnmapRegion)
+            reset();
     }
 
     static constexpr std::string_view DIRECTORY{"/dev/shm/"};
