@@ -31,7 +31,10 @@ namespace {
 constexpr int GOOD_QUIET_THRESHOLD = -14000;
 
 template<typename Iterator, typename T, typename Compare>
-Iterator upper_bound_unrolled(Iterator begin, Iterator end, const T& value, Compare comp) noexcept {
+Iterator upper_bound_unrolled(Iterator RESTRICT begin,
+                              Iterator RESTRICT end,
+                              const T&          value,
+                              Compare           comp) noexcept {
     std::size_t n = end - begin;
 
     std::size_t idx = n;
