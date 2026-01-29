@@ -194,18 +194,18 @@ constexpr Direction operator*(int i, Direction d) noexcept { return d * i; }
 //constexpr Direction operator-(Square s1, Square s2) noexcept { return Direction(int(s1) - int(s2)); }
 
 // Additional operators for File
-constexpr File  operator+(File f, int i) noexcept { return File(int(f) + i); }
-constexpr File  operator-(File f, int i) noexcept { return File(int(f) - i); }
+constexpr File  operator+(File f, int i) noexcept { return File(std::uint8_t(f) + i); }
+constexpr File  operator-(File f, int i) noexcept { return File(std::uint8_t(f) - i); }
 constexpr File& operator+=(File& f, int i) noexcept { return f = f + i; }
 constexpr File& operator-=(File& f, int i) noexcept { return f = f - i; }
 // Additional operators for Rank
-constexpr Rank  operator+(Rank r, int i) noexcept { return Rank(int(r) + i); }
-constexpr Rank  operator-(Rank r, int i) noexcept { return Rank(int(r) - i); }
+constexpr Rank  operator+(Rank r, int i) noexcept { return Rank(std::uint8_t(r) + i); }
+constexpr Rank  operator-(Rank r, int i) noexcept { return Rank(std::uint8_t(r) - i); }
 constexpr Rank& operator+=(Rank& r, int i) noexcept { return r = r + i; }
 constexpr Rank& operator-=(Rank& r, int i) noexcept { return r = r - i; }
 // Additional operators for Square to add a Direction
-constexpr Square  operator+(Square s, int i) noexcept { return Square(int(s) + i); }
-constexpr Square  operator-(Square s, int i) noexcept { return Square(int(s) - i); }
+constexpr Square  operator+(Square s, int i) noexcept { return Square(std::uint8_t(s) + i); }
+constexpr Square  operator-(Square s, int i) noexcept { return Square(std::uint8_t(s) - i); }
 constexpr Square  operator+(Square s, Direction d) noexcept { return s + int(d); }
 constexpr Square  operator-(Square s, Direction d) noexcept { return s - int(d); }
 constexpr Square& operator+=(Square& s, Direction d) noexcept { return s = s + d; }
@@ -218,14 +218,14 @@ constexpr Square& operator-=(Square& s, Direction d) noexcept { return s = s - d
 [[nodiscard]] constexpr Square make_square(File f, Rank r) noexcept {
     assert(is_ok(f) && is_ok(r));
 
-    return Square((r << 3) | f);
+    return Square((std::uint8_t(r) << 3) | std::uint8_t(f));
 }
 
 [[nodiscard]] constexpr bool is_ok(Square s) noexcept { return (SQ_A1 <= s && s <= SQ_H8); }
 
-constexpr File file_of(Square s) noexcept { return File((s >> 0) & 0x7); }
+constexpr File file_of(Square s) noexcept { return File((std::uint8_t(s) >> 0) & 0x7); }
 
-constexpr Rank rank_of(Square s) noexcept { return Rank((s >> 3) & 0x7); }
+constexpr Rank rank_of(Square s) noexcept { return Rank((std::uint8_t(s) >> 3) & 0x7); }
 
 [[nodiscard]] constexpr bool is_light(Square s) noexcept {
     return ((/*file_of*/ s ^ rank_of(s)) & 0x1) != 0;
@@ -275,7 +275,7 @@ constexpr Piece operator^(Piece pc1, Piece pc2) noexcept { return Piece(+pc1 ^ +
 [[nodiscard]] constexpr Piece make_piece(Color c, PieceType pt) noexcept {
     assert(is_ok(c) && is_ok(pt));
 
-    return Piece((c << 3) | pt);
+    return Piece((std::uint8_t(c) << 3) | std::uint8_t(pt));
 }
 
 constexpr PieceType type_of(Piece pc) noexcept { return PieceType((+pc >> 0) & 0x7); }
