@@ -218,10 +218,8 @@ MovePicker::score<GenType::ENC_CAPTURE>(MoveList<GenType::ENC_CAPTURE>& moveList
         auto   movedPc    = pos.moved_pc(m);
         auto   capturedPt = pos.captured_pt(m);
 
-        std::int64_t value = 7 * piece_value(capturedPt)  //
-                           + (*captureHistory)[+movedPc][dstSq][capturedPt];
-
-        m.value = value;
+        m.value = 7 * piece_value(capturedPt)  //
+                + (*captureHistory)[+movedPc][dstSq][capturedPt];
     }
 
     return itr;
@@ -308,9 +306,7 @@ MovePicker::score<GenType::EVA_CAPTURE>(MoveList<GenType::EVA_CAPTURE>& moveList
 
         auto capturedPt = pos.captured_pt(m);
 
-        std::int64_t value = piece_value(capturedPt);
-
-        m.value = value;
+        m.value = piece_value(capturedPt);
     }
 
     return itr;
@@ -335,10 +331,8 @@ MovePicker::score<GenType::EVA_QUIET>(MoveList<GenType::EVA_QUIET>& moveList) no
         Square dstSq   = m.dst_sq();
         Piece  movedPc = pos.moved_pc(m);
 
-        std::int64_t value = (*quietHistory)[ac][m.raw()]  //
-                           + (*continuationHistory[0])[+movedPc][dstSq];
-
-        m.value = value;
+        m.value = (*quietHistory)[ac][m.raw()]  //
+                + (*continuationHistory[0])[+movedPc][dstSq];
     }
 
     return itr;
