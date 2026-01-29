@@ -518,30 +518,32 @@ class SharedMemoryRegistry final {
 
     // Try to register, retry only if cleanup is in progress
     static void attempt_register_memory(BaseSharedMemory* sharedMemory) noexcept {
-        constexpr std::size_t MaxAttempts  = 10;
-        constexpr auto        AttemptDelay = std::chrono::microseconds(100);
+        constexpr std::size_t MaxAttempt   = 10;
+        constexpr auto        AttemptDelay = std::chrono::microseconds(50);
 
         for (std::size_t attempt = 0;; ++attempt)
         {
             auto result = register_memory(sharedMemory);
 
             if (result == Result::Success)
-                break;
+                return;
 
             if (result == Result::AlreadyRegistered)
             {
                 assert(false && "SharedMemory double registration");
-                break;
+                return;
             }
 
-            if (attempt >= MaxAttempts)
+            if (attempt >= MaxAttempt)
                 break;
 
             // Cleanup in progress, wait a bit
+            auto attemptDelay = AttemptDelay * (1U << attempt);
             std::this_thread::yield();
-            std::this_thread::sleep_for(AttemptDelay);
+            std::this_thread::sleep_for(attemptDelay);
         }
-        // Failed to register after retries - acceptable during shutdown
+
+        // Max attempts reached: fail silently to register (acceptable during shutdown)
     }
     // Register a shared memory object in the global registry.
     // Thread-safe: locks the registry while inserting.
@@ -1440,7 +1442,7 @@ class SharedMemory final: public BaseSharedMemory {
     }
 
     bool create_sentinel_file_locked() noexcept {
-        constexpr std::size_t MaxAttempts = 2;
+        constexpr std::size_t MaxAttempt = 4;
 
         if (shmHeader == nullptr)
             return false;
@@ -1458,19 +1460,15 @@ class SharedMemory final: public BaseSharedMemory {
             if (tmpFd > INVALID_FD)
                 return true;
 
-            if (errno == EEXIST)
-            {
-                ::unlink(sentinelPath.c_str());
+            if (errno != EEXIST)
+                break;
 
-                decrement_ref_count();
+            ::unlink(sentinelPath.c_str());
 
-                if (attempt >= MaxAttempts)
-                    break;
+            decrement_ref_count();
 
-                continue;
-            }
-
-            break;
+            if (attempt >= MaxAttempt)
+                break;
         }
 
         clear_sentinel_path();
@@ -1700,7 +1698,8 @@ struct FallbackBackendSharedMemory final {
    public:
     FallbackBackendSharedMemory() noexcept = default;
 
-    FallbackBackendSharedMemory(const std::string&, const T& value) noexcept :
+    FallbackBackendSharedMemory([[maybe_unused]] const std::string& shmName,
+                                const T&                            value) noexcept :
         fallbackObj(make_unique_aligned_large_page<T>(value)) {}
 
     FallbackBackendSharedMemory(const FallbackBackendSharedMemory&) noexcept            = delete;
@@ -1749,33 +1748,38 @@ struct SystemWideSharedMemory final {
     // that are not present in the content, for example NUMA node allocation.
     SystemWideSharedMemory(const T& value, std::uint64_t discriminator = 0) noexcept {
 
-        std::string shmName(256, '\0');
+        std::string shmName;
 
 #if defined(__ANDROID__)
         // Do nothing special on Android, just use a fixed name
         ;
 #else
+        std::string hashStr;
+        hashStr.resize(128);
+
         std::uint64_t valueHash      = std::hash<T>{}(value);
         std::uint64_t executableHash = hash_string(executable_path());
 
         int size =
-          std::snprintf(shmName.data(), shmName.size(), "%016" PRIX64 "$%016" PRIX64 "$%016" PRIX64,
+          std::snprintf(hashStr.data(), hashStr.size(), "%016" PRIX64 "$%016" PRIX64 "$%016" PRIX64,
                         valueHash, executableHash, discriminator);
         // shrink to actual string length
         if (size >= 0)
         {
             // Ensure size is within bounds
-            if (std::size_t(size) >= shmName.size())
+            if (std::size_t(size) >= hashStr.size())
                 // Truncate to maximum size, leaving space for null terminator
-                size = int(shmName.size() - 1);
+                size = int(hashStr.size() - 1);
 
             // Shrink to actual content
-            shmName.resize(size);
+            hashStr.resize(size);
         }
+
+        shmName.reserve(256);
 
     #if defined(_WIN32)
         // Windows named shared memory names must start with "Local\" or "Global\" then add name hashing to avoid length limits
-        shmName = std::string("Local\\DON_") + hash_to_string(hash_string(shmName));
+        shmName = std::string("Local\\DON_") + hash_to_string(hash_string(hashStr));
 
         constexpr std::size_t MaxNameSize = 255 - 1;
 
@@ -1784,7 +1788,7 @@ struct SystemWideSharedMemory final {
             shmName.resize(MaxNameSize);
     #else
         // POSIX shared memory names must start with a slash ('/') then add name hashing to avoid length limits
-        shmName = std::string("/DON_") + hash_to_string(hash_string(shmName));
+        shmName = std::string("/DON_") + hash_to_string(hash_string(hashStr));
 
         // POSIX APIs expect a fixed-size C string where the maximum length excluding the terminating null character ('\0').
         // Since std::string::size() does not include '\0', allow at most (MAX - 1) characters

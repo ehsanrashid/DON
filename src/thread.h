@@ -382,14 +382,29 @@ class Threads final {
             // current is updated on failure, loop continues
         }
 
-        main_manager()->condVar.notify_one();
+        notify_main_manager();
     }
 
     void request_abort() noexcept {
         // Always go to aborted
         state.store(State::Aborted, std::memory_order_release);
 
-        main_manager()->condVar.notify_one();
+        notify_main_manager();
+    }
+
+
+    void notify_main_manager() const noexcept {
+        auto* const mainManager = main_manager();
+
+        // Only lock if there could be a thread waiting
+        // If no one is waiting, notify_one() is cheap anyway
+        if (mainManager == nullptr)
+            return;
+
+        // Lock the mutex before notifying to ensure waiting thread sees the updated state
+        std::unique_lock lock(mainManager->mutex, std::try_to_lock);
+        // Safe to call even if mutex not locked
+        mainManager->condVar.notify_one();
     }
 
 

@@ -901,9 +901,9 @@ class TBTables final {
         // MaxDistance is safe because:
         // 1. It's only increased during insert (never decreased)
         // 2. The Robin Hood break condition provides correctness
-        std::size_t MaxProbes = std::min(max_distance(), MAX_PROBES - 1) + 1;
+        std::size_t MaxProbe = std::min(max_distance(), MAX_PROBE - 1) + 1;
 
-        for (std::size_t probes = 0, distance = 1; probes < MaxProbes; ++probes, ++distance)
+        for (std::size_t probe = 0, distance = 1; probe < MaxProbe; ++probe, ++distance)
         {
             std::size_t bucket = (keyBucket + distance) & MASK;
 
@@ -970,7 +970,7 @@ class TBTables final {
             return true;
         }
 
-        for (std::size_t probes = 0, distance = 1; probes < MAX_PROBES; ++probes, ++distance)
+        for (std::size_t probe = 0, distance = 1; probe < MAX_PROBE; ++probe, ++distance)
         {
             if (MaxDistance < distance)
                 MaxDistance = distance;
@@ -1015,9 +1015,9 @@ class TBTables final {
 
         std::size_t keyBucket = key & MASK;
 
-        std::size_t MaxProbes = std::min(max_distance(), MAX_PROBES - 1) + 1;
+        std::size_t MaxProbe = std::min(max_distance(), MAX_PROBE - 1) + 1;
 
-        for (std::size_t probes = 0, distance = 0; probes < MaxProbes; ++probes, ++distance)
+        for (std::size_t probe = 0, distance = 0; probe < MaxProbe; ++probe, ++distance)
         {
             std::size_t bucket = (keyBucket + distance) & MASK;
 
@@ -1050,7 +1050,7 @@ class TBTables final {
     // Shift entries backward to fill the hole bucket
     std::size_t shift_backward(std::size_t holeBucket) noexcept {
 
-        for (std::size_t shifts = 0; shifts < MAX_PROBES; ++shifts)
+        for (std::size_t shift = 0; shift < MAX_PROBE; ++shift)
         {
             std::size_t nextBucket = (holeBucket + 1) & MASK;
 
@@ -1104,13 +1104,13 @@ class TBTables final {
     static constexpr std::size_t SIZE = 0x1000;  // 4096 entries, 12-bit index
     // Mask for wrapping bucket indices efficiently: index % SIZE
     static constexpr std::size_t MASK = SIZE - 1;
-    // Maximum number of probes allowed during insertion/search
+    // Maximum number of probe allowed during insertion/search
     // - 32 = safe, good worst-case bound
     // - 24 = optimal balance between speed and collision handling
     // - 16 = faster but more strict (less tolerance for long probe chains)
-    static constexpr std::size_t MAX_PROBES = 32;
-    // Ensure MAX_PROBES does not exceed table size (compile-time safety)
-    static_assert(MAX_PROBES <= SIZE, "MAX_PROBES must be <= SIZE");
+    static constexpr std::size_t MAX_PROBE = 32;
+    // Ensure MAX_PROBE does not exceed table size (compile-time safety)
+    static_assert(MAX_PROBE <= SIZE, "MAX_PROBE must be <= SIZE");
 
     // Track the farthest any entry has been displaced
     std::size_t MaxDistance = 0;
@@ -1732,15 +1732,15 @@ Ret probe_table(const Position& pos, ProbeState* ps, WDLScore wdlScore = WDL_DRA
     return do_probe_table(table, pos, materialKey, wdlScore, ps);
 }
 
-// For a position where the side to move has a winning capture it is not necessary
-// to store a winning WDL-score so the generator treats such positions as "don't care"
-// and tries to assign to it a WDL-score that improves the compression ratio. Similarly,
-// if the side to move has a drawing capture, then the position is at least drawn.
-// If the position is won, then the TB needs to store a win WDL-score. But if the
-// position is drawn, the TB may store a loss WDL-score if that is better for compression.
+// For position where the side to move has a winning capture it is not necessary to
+// store a winning WDL-score so the generator treats such positions as "don't care"
+// and tries to assign to it a WDL-score that improves the compression ratio.
+// Similarly, if the side to move has a drawing capture, then the position is at least drawn.
+// If the position is won, then the TB needs to store a win WDL-score.
+// But if the position is drawn, the TB may store loss WDL-score if that is better for compression.
 // All of this means that during probing, the engine must look at captures and probe
-// their results and must probe the position itself. The "best" result of these
-// probes is the correct result for the position.
+// their results and must probe the position itself.
+// The "best" result of these probes is the correct result for the position.
 // DTZ-tables do not store scores when a following move is a zeroing winning move
 // (winning capture or winning pawn move). Also, DTZ store wrong scores for positions
 // where the best move is an ep-move (even if losing). So in all these cases set

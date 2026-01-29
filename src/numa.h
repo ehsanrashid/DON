@@ -151,13 +151,13 @@ struct WindowsAffinity final {
 
 inline std::pair<BOOL, std::vector<USHORT>> get_process_group_affinity() noexcept {
     // GetProcessGroupAffinity requires the groupArray argument to be aligned to 4 bytes instead of just 2
+    constexpr std::size_t MinAlignment           = alignof(USHORT);
     constexpr std::size_t GroupArrayMinAlignment = 4;
-    constexpr std::size_t UShortAlignment        = alignof(USHORT);
-    static_assert(GroupArrayMinAlignment >= UShortAlignment);
+    static_assert(GroupArrayMinAlignment >= MinAlignment);
 
-    constexpr std::size_t AlignmentExtraCount = ceil_div(GroupArrayMinAlignment, UShortAlignment);
+    constexpr std::size_t ExtraGroupCount = ceil_div(GroupArrayMinAlignment, MinAlignment);
 
-    constexpr std::size_t MaxAttempts = 2;
+    constexpr std::size_t MaxAttempt = 4;
 
     USHORT requiredGroupCount = 1;
 
@@ -166,15 +166,13 @@ inline std::pair<BOOL, std::vector<USHORT>> get_process_group_affinity() noexcep
     // In such case consider this a hard error, can't work with unstable affinities anyway.
     for (std::size_t attempt = 0;; ++attempt)
     {
-        auto groupArray = std::make_unique<USHORT[]>(requiredGroupCount + AlignmentExtraCount);
+        auto groupArray = std::make_unique<USHORT[]>(requiredGroupCount + ExtraGroupCount);
 
         USHORT* alignedGroupArray = align_ptr_up<GroupArrayMinAlignment>(groupArray.get());
 
         USHORT groupCount = requiredGroupCount;
 
-        BOOL status = GetProcessGroupAffinity(GetCurrentProcess(), &groupCount, alignedGroupArray);
-
-        if (status == TRUE)
+        if (GetProcessGroupAffinity(GetCurrentProcess(), &groupCount, alignedGroupArray) == TRUE)
             return std::make_pair(TRUE,
                                   std::vector(alignedGroupArray, alignedGroupArray + groupCount));
 
@@ -184,11 +182,11 @@ inline std::pair<BOOL, std::vector<USHORT>> get_process_group_affinity() noexcep
                 break;
         }
 
+        if (attempt >= MaxAttempt)
+            break;
+
         // Windows tells us the correct size
         requiredGroupCount = groupCount;
-
-        if (attempt >= MaxAttempts)
-            break;
     }
 
     return std::make_pair(FALSE, std::vector<USHORT>());
