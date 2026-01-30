@@ -10,26 +10,36 @@
 
 #include <algorithm>
 #include <cassert>
+#include <chrono>
 #include <iostream>
 #include <random>
+#include <string>
 #include <vector>
+
+namespace {
 
 struct Item final {
    public:
-    int score;
-    int id;  // original insertion order
+    std::string to_string() const noexcept {
+        return "Item(score=" + std::to_string(score) + ", id=" + std::to_string(id) + ")";
+    }
+
+    int         score;
+    std::size_t id;  // original insertion order
 };
 
-static bool score_desc(const Item& a, const Item& b) noexcept { return a.score > b.score; }
+bool item_descending(const Item& item1, const Item& item2) noexcept {
+    return item1.score > item2.score;
+}
 
 // Simple stable insertion-like sort (descending) used in movepick for small ranges.
-static void insertion_stable_desc(std::vector<Item>& v) noexcept {
+void insertion_stable_desc(std::vector<Item>& v) noexcept {
     for (std::size_t i = 1; i < v.size(); ++i)
     {
         Item        tmp = std::move(v[i]);
         std::size_t j   = i;
         // stable: first element equal should remain earlier
-        while (j > 0 && score_desc(tmp, v[j - 1]))
+        while (j > 0 && item_descending(tmp, v[j - 1]))
         {
             v[j] = std::move(v[j - 1]);
             --j;
@@ -38,28 +48,78 @@ static void insertion_stable_desc(std::vector<Item>& v) noexcept {
     }
 }
 
+
+template<typename Iterator, typename T, typename Compare>
+Iterator
+upper_bound_small_unrolled(Iterator beg, Iterator end, const T& value, Compare comp) noexcept {
+    std::size_t n = end - beg;
+
+    std::size_t idx = n;  // default = not found
+
+    std::size_t i = n;
+
+    // Process blocks of 8 elements
+    for (; idx == n && i >= 8; i -= 8)
+    {
+        idx = comp(value, beg[i - 8]) ? i - 8
+            : comp(value, beg[i - 7]) ? i - 7
+            : comp(value, beg[i - 6]) ? i - 6
+            : comp(value, beg[i - 5]) ? i - 5
+            : comp(value, beg[i - 4]) ? i - 4
+            : comp(value, beg[i - 3]) ? i - 3
+            : comp(value, beg[i - 2]) ? i - 2
+            : comp(value, beg[i - 1]) ? i - 1
+                                      : idx;
+    }
+    // Process blocks of 4 elements
+    for (; idx == n && i >= 4; i -= 4)
+    {
+        idx = comp(value, beg[i - 4]) ? i - 4
+            : comp(value, beg[i - 3]) ? i - 3
+            : comp(value, beg[i - 2]) ? i - 2
+            : comp(value, beg[i - 1]) ? i - 1
+                                      : idx;
+    }
+
+    // Handle remaining elements
+    while (i >= 1)
+    {
+        --i;
+        idx = comp(value, beg[i]) ? i : idx;
+    }
+
+    return beg + idx;
+}
+
+}  // namespace
+
 int main() {
+
+    /*
+   
+    // Number of test items
+    constexpr std::size_t N = 256;
+
     // Deterministic RNG
     std::mt19937_64 rng(123456789ULL);
 
     // Build test vector with many duplicates
-    constexpr std::size_t N = 256;
-    std::vector<Item>     v;
-    v.reserve(N);
+    std::vector<Item> vec;
+    vec.reserve(N);
 
     for (std::size_t i = 0; i < N; ++i)
     {
         // produce a limited range of scores to force many ties
         int score = int(rng() % 16) - 8;  // range [-8,7]
-        v.push_back(Item{score, int(i)});
+        vec.push_back(Item{score, i});
     }
 
     // Reference result using std::stable_sort
-    std::vector<Item> ref = v;
-    std::stable_sort(ref.begin(), ref.end(), score_desc);
+    std::vector<Item> ref = vec;
+    std::stable_sort(ref.begin(), ref.end(), item_descending);
 
     // Test insertion-style stable sort
-    std::vector<Item> test = v;
+    std::vector<Item> test = vec;
     insertion_stable_desc(test);
 
     // Compare results
@@ -88,5 +148,95 @@ int main() {
     }
 
     std::cout << "movepick_ordering: stability test passed\n";
+    */
+
+    // Number of test items
+    constexpr std::size_t N = 52;
+
+    std::vector<Item> data;
+    data.reserve(N);
+
+    std::cout << N << "\n";
+
+    for (std::size_t i = 0; i < N; ++i)
+        data.push_back(Item{int((N - 1 - i) * 2), i});
+
+    std::mt19937                       rng(123);
+    std::uniform_int_distribution<int> dist(0, int(N * 2));
+
+    constexpr std::size_t Trials = 5000000;
+
+    std::vector<int> tryData;
+    tryData.reserve(Trials);
+
+    for (std::size_t i = 0; i < Trials; ++i)
+        tryData.push_back(dist(rng));
+
+    // ----------------------------
+    // Correctness check
+    // ----------------------------
+    for (std::size_t i = 0; i < 10000; ++i)
+    {
+        Item item{dist(rng), i};
+
+        auto beg = data.begin();
+        auto end = data.end();
+
+        auto it1 = std::upper_bound(beg, end, item, item_descending);
+        auto it2 = upper_bound_small_unrolled(beg, end, item, item_descending);
+
+        if (it1 != it2)
+        {
+            std::cerr << "Mismatch for value " << item.to_string() << "\n";
+            return 1;
+        }
+    }
+
+    std::cout << "Correctness test passed\n";
+
+    // ----------------------------
+    // Benchmark std::upper_bound
+    // ----------------------------
+    auto std_t0 = std::chrono::high_resolution_clock::now();
+
+    volatile std::size_t stdSink = 0;
+
+    for (std::size_t i = 0; i < Trials; ++i)
+    {
+        Item item{tryData[i], i};
+
+        auto it = std::upper_bound(data.begin(), data.end(), item, item_descending);
+        stdSink += (it - data.begin());
+    }
+
+    auto std_t1 = std::chrono::high_resolution_clock::now();
+
+    auto stdTime = std::chrono::duration_cast<std::chrono::microseconds>(std_t1 - std_t0).count();
+
+    std::cout << "std::upper_bound        time: " << stdTime << " ms\n";
+
+    // ----------------------------
+    // Benchmark exponential_upper_bound
+    // ----------------------------
+    auto exp_t0 = std::chrono::high_resolution_clock::now();
+
+    volatile std::size_t expSink = 0;
+
+    for (std::size_t i = 0; i < Trials; ++i)
+    {
+        Item item{tryData[i], i};
+
+        auto it = upper_bound_small_unrolled(data.begin(), data.end(), item, item_descending);
+        expSink += (it - data.begin());
+    }
+
+    auto exp_t1 = std::chrono::high_resolution_clock::now();
+
+    auto expTime = std::chrono::duration_cast<std::chrono::microseconds>(exp_t1 - exp_t0).count();
+
+    std::cout << "exponential_upper_bound time: " << expTime << " ms\n";
+
+    std::cout << "Time diff: " << std::abs(int(stdTime) - int(expTime)) << "\n";
+
     return 0;
 }
