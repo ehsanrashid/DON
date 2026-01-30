@@ -53,13 +53,13 @@ namespace DON {
 
 using JobFunc = std::function<void()>;
 
-#if defined(SUPPORTS_PTHREADS)
+#if !defined(NDEBUG)
+    #define THREAD_LOG(msg) std::cerr << msg << std::endl
+#else
+    #define THREAD_LOG(msg) ((void) 0)
+#endif
 
-    #if !defined(NDEBUG)
-        #define THREAD_LOG(msg) std::cerr << msg << std::endl
-    #else
-        #define THREAD_LOG(msg) ((void) 0)
-    #endif
+#if defined(SUPPORTS_PTHREADS)
 
 // On OSX threads other than the main thread are created with a reduced stack
 // size of 512KB by default, this is too low for deep searches,

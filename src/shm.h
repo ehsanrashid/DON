@@ -1194,7 +1194,7 @@ class BackendSharedMemory final: public BaseSharedMemory {
         return *this;
     }
 
-    [[nodiscard]] void open_register(const T& value) noexcept {
+    void open_register(const T& value) noexcept {
 
         opened = false;
 
@@ -1206,7 +1206,7 @@ class BackendSharedMemory final: public BaseSharedMemory {
         while (true)
         {
             if (is_open())
-                return;
+                break;
 
             bool newCreated = false;
 
@@ -1217,7 +1217,7 @@ class BackendSharedMemory final: public BaseSharedMemory {
                 fd = shm_open(name.c_str(), O_RDWR, 0666);
 
                 if (fd <= INVALID_FD)
-                    return;
+                    break;
             }
             else
             {
@@ -1230,7 +1230,7 @@ class BackendSharedMemory final: public BaseSharedMemory {
             {
                 cleanup(false, lockFile);
 
-                return;
+                break;
             }
 
             bool headerInvalid = false;
@@ -1249,7 +1249,7 @@ class BackendSharedMemory final: public BaseSharedMemory {
                     continue;
                 }
 
-                return;
+                break;
             }
 
             if (shmHeader == nullptr)
@@ -1262,7 +1262,7 @@ class BackendSharedMemory final: public BaseSharedMemory {
                     continue;
                 }
 
-                return;
+                break;
             }
 
             // RAII mutex scope lock
@@ -1279,7 +1279,7 @@ class BackendSharedMemory final: public BaseSharedMemory {
                         continue;
                     }
 
-                    return;
+                    break;
                 }
 
                 if (!sentinel_file_locked_created())
@@ -1288,7 +1288,7 @@ class BackendSharedMemory final: public BaseSharedMemory {
 
                     cleanup(newCreated, lockFile);
 
-                    return;
+                    break;
                 }
 
                 increment_ref_count();
@@ -1301,6 +1301,8 @@ class BackendSharedMemory final: public BaseSharedMemory {
             SharedMemoryRegistry::attempt_register_memory(this);
 
             opened = true;
+
+            break;
         }
     }
 
@@ -1435,7 +1437,7 @@ class BackendSharedMemory final: public BaseSharedMemory {
     }
 
     [[nodiscard]] bool lock_file(int operation) noexcept {
-        if (fd < 0)
+        if (fd <= INVALID_FD)
             return false;
 
         while (true)
@@ -1456,7 +1458,7 @@ class BackendSharedMemory final: public BaseSharedMemory {
     }
 
     void unlock_file() noexcept {
-        if (fd < 0)
+        if (fd <= INVALID_FD)
             return;
 
         while (true)
