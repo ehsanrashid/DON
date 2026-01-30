@@ -30,6 +30,9 @@ namespace DON {
 
 class Position;
 
+// History size for continuation moves
+constexpr std::size_t CONT_HISTORY_COUNT = 8;
+
 struct ExtMove final: public Move {
    public:
     using Move::operator=;

@@ -2,6 +2,7 @@
 **/*.o
 **/*.s
 src/.depend
+/build
 
 # Built binary
 src/DON*

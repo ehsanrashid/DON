@@ -24,16 +24,40 @@
 #include <unordered_map>
 
 #include "history.h"
-#include "misc.h"
 #include "movegen.h"
 #include "option.h"
 #include "syzygy/tablebase.h"
 #include "types.h"
 #include "uci.h"
 
+#if !defined(SUPPORTS_PTHREADS)
+    #include "misc.h"
+#endif
+
 namespace DON {
 
-// Constructor launches the thread and waits until it goes to sleep in idle_func().
+namespace {
+
+static constexpr double HistoryMapLoadFactor = 0.75f;
+
+}  // namespace
+
+// Constructor for a worker thread.
+//
+// Responsibilities:
+//   - Initializes thread and NUMA-related identifiers.
+//   - Optionally starts the thread immediately (if autoStart is true).
+//      * The thread will execute idle_func() and go to sleep.
+//      * The constructor waits until the thread reaches the idle state to ensure
+//        it is ready to accept jobs safely.
+//   - Acquires a NUMA access token from the provided nodeBinder.
+//   - Constructs the Worker object for this thread, allocating on large pages
+//      for performance, and passing thread/NUMA info along with shared state and
+//      the search manager.
+//
+// Preconditions:
+//   - numa_thread_count() != 0
+//   - numa_id() < numa_thread_count()
 Thread::Thread(std::size_t                   threadIdx,
                std::size_t                   threadCnt,
                std::size_t                   numaIdx,
@@ -48,31 +72,42 @@ Thread::Thread(std::size_t                   threadIdx,
     numaThreadCount(numaThreadCnt) {
     assert(numa_thread_count() != 0 && numa_id() < numa_thread_count());
 
-    if (autoStart)
-        start();
-
+    // Bind this thread to a NUMA node for memory affinity
     numaAccessToken = nodeBinder();
 
+    // Create aligned Worker object with NUMA and thread info
     worker = make_unique_aligned_large_page<Worker>(thread_id(), thread_count(),     //
                                                     numa_id(), numa_thread_count(),  //
                                                     numa_access_token(), std::move(searchManager),
                                                     sharedState);
+
+    // Start the thread only after full initialization
+    // Launch thread and wait until idle_func() puts it to sleep
+    if (autoStart)
+        start();
 }
 
-// Destructor wakes up the thread in idle_func() and waits
-// for its termination. Thread should be already waiting.
+// Destructor: ensures the thread is properly terminated and joined.
 Thread::~Thread() noexcept {
-    assert(!busy);
-
-    stop();
+    // Ensure thread is terminated and joined. Do not assert on 'busy'.
+    // terminate() sets 'dead' and joins the native thread safely, even if a job is running.
+    terminate();
 }
 
-void Thread::ensure_network_replicated() const noexcept { worker->ensure_network_replicated(); }
-
-// Starts the thread if it is not already running
-// Ensures that after it returns,
-// the thread is ready to accept jobs,
-// and avoids race conditions on the 'busy' flag.
+// Starts the thread if it is not already running.
+//
+// Guarantees:
+//   - After this function returns, the thread is alive and ready to accept jobs.
+//   - The 'busy' flag is properly synchronized to avoid race conditions.
+//   - If the thread is already running, this function does nothing.
+//
+// Working:
+//   - Acquires the mutex to synchronize access to thread state.
+//   - Checks if a native thread is already joinable (running); if so, returns immediately.
+//   - Resets 'dead' and 'busy' flags to prepare for a new thread.
+//   - Creates a new NativeThread that runs idle_func() on this Thread object.
+//   - Waits on the condition variable until the new thread reports itself idle (busy == false),
+//     and ready to accept jobs, ensuring that the thread is fully initialized before returning.
 void Thread::start() noexcept {
     std::unique_lock lock(mutex);
 
@@ -91,50 +126,65 @@ void Thread::start() noexcept {
     condVar.wait(lock, [this] { return !busy; });
 }
 
-// Safely stops the thread by setting the dead flag,
-// waking it if necessary, and joining it.
-void Thread::stop() noexcept {
+// Safely terminates the thread by setting the 'dead' flag,
+// waking it if necessary, and joining the native thread.
+void Thread::terminate() noexcept {
     {
         std::scoped_lock lock(mutex);
 
         dead = true;
     }
 
-    condVar.notify_one();  // Notify (Wake up)
+    // Wake up the thread if it's waiting
+    condVar.notify_one();
 
+    // Join the native thread if joinable
     if (nativeThread.joinable())
         nativeThread.join();
 }
 
-// Thread gets parked here, blocked on the condition variable,
-// when it has no work to do.
+// Thread main function: waits for work and executes jobs.
+// When no job is scheduled, the thread parks here, blocked on the condition variable.
 void Thread::idle_func() noexcept {
     while (true)
     {
         std::unique_lock lock(mutex);
 
-        // Thread is idle now
+        // Mark thread as idle now.
+        // Any thread trying to schedule work will see busy = false.
         busy = false;
 
-        // Notify one thread waiting for idle/busy state
+        // Notify one waiting thread (e.g., run_custom_job)
+        // that the thread is now idle and ready for work.
         condVar.notify_one();
 
-        // Wait until new job or termination
+        // Wait until either:
+        // 1) A new job is scheduled (busy == true), or
+        // 2) The thread is being stopped (dead == true)
         condVar.wait(lock, [this] { return busy || dead; });
 
+        // If thread is being torn down, exit immediately.
         if (dead)
             return;
 
+        // Move the scheduled job out of the shared storage.
+        // This allows run_custom_job to schedule another job
+        // while we are executing the current one.
         JobFunc jobFn = std::move(jobFunc);
-        jobFunc       = nullptr;
+        jobFunc       = nullptr;  // optional, defensive
 
+        // Unlock before executing the job to allow other threads
+        // to schedule work or shut down concurrently.
         lock.unlock();
 
-        // Execute job outside the lock
+        // Execute the job outside the lock to avoid holding the mutex
+        // for the duration of potentially long-running work.
         if (jobFn)
             jobFn();
     }
 }
+
+void Thread::ensure_network_replicated() const noexcept { worker->ensure_network_replicated(); }
 
 
 // Creates/destroys threads to match the requested number.
@@ -193,7 +243,9 @@ void Threads::set(const NumaConfig&                       numaConfig,
 
     // Just clear and reserve as needed
     historiesMap.clear();
-    historiesMap.reserve(numaThreadCounts.size());
+    historiesMap.max_load_factor(HistoryMapLoadFactor);
+    std::size_t bucketCount = std::size_t(numaThreadCounts.size() / HistoryMapLoadFactor) + 1;
+    historiesMap.rehash(bucketCount);
 
     // Populate shared histories map (optionally NUMA-bound)
     for (const auto& pair : numaThreadCounts)
@@ -237,9 +289,9 @@ void Threads::set(const NumaConfig&                       numaConfig,
             // to trash cache in case the threads get scheduled on the same NUMA node.
             ThreadToNumaNodeBinder nodeBinder(numaId, numaConfigPtr);
 
-            threads.emplace_back(std::make_unique<Thread>(threadId, threadCount, numaIds[numaId]++,
-                                                          numaThreadCounts[numaId], nodeBinder,
-                                                          std::move(searchManager), sharedState));
+            threads.emplace_back(std::make_unique<Thread>(
+              threadId, threadCount, numaIds[numaId]++, numaThreadCounts[numaId], nodeBinder,
+              std::move(searchManager), sharedState, true));
         };
 
         // Ensure the worker thread inherits the intended NUMA affinity at creation
@@ -409,15 +461,17 @@ void Threads::start(Position&      pos,
     // The rootState is per thread, earlier states are shared since they are read-only.
     for (auto&& th : threads)
     {
-        th->run_custom_job([&]() {
-            th->worker->nodes.store(0, std::memory_order_relaxed);
-            th->worker->tbHits.store(0, std::memory_order_relaxed);
-            th->worker->moveChanges.store(0, std::memory_order_relaxed);
+        th->run_custom_job([&th, &pos, &rootMoves, &limit, &tbConfig]() noexcept {
+            auto* worker = th->worker.get();
 
-            th->worker->rootPos.set(pos, &th->worker->rootState);
-            th->worker->rootMoves = rootMoves;
-            th->worker->limit     = limit;
-            th->worker->tbConfig  = tbConfig;
+            worker->nodes.store(0, std::memory_order_relaxed);
+            worker->tbHits.store(0, std::memory_order_relaxed);
+            worker->moveChanges.store(0, std::memory_order_relaxed);
+
+            worker->rootPos.set(pos, &worker->rootState);
+            worker->rootMoves = rootMoves;
+            worker->limit     = limit;
+            worker->tbConfig  = tbConfig;
         });
     }
 

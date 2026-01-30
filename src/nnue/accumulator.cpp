@@ -93,6 +93,9 @@ struct AccumulatorUpdateContext final {
 
         const auto* threatWeights = featureTransformer.threatWeights.data();
 
+        const std::size_t addedSize   = added.size();
+        const std::size_t removedSize = removed.size();
+
         // clang-format off
         for (IndexType j = 0; j < Dimensions / Tiling::TileHeight; ++j)
         {
@@ -102,7 +105,7 @@ struct AccumulatorUpdateContext final {
             for (IndexType k = 0; k < Tiling::RegCount; ++k)
                 acc[k] = computedTile[k];
 
-            for (IndexType i = 0; i < removed.size(); ++i)
+            for (IndexType i = 0; i < removedSize; ++i)
             {
                 auto  offset = removed[i] * Dimensions;
                 auto* column = reinterpret_cast<const vec_i8_t*>(&threatWeights[offset]);
@@ -119,7 +122,7 @@ struct AccumulatorUpdateContext final {
     #endif
             }
 
-            for (IndexType i = 0; i < added.size(); ++i)
+            for (IndexType i = 0; i < addedSize; ++i)
             {
                 auto  offset = added[i] * Dimensions;
                 auto* column = reinterpret_cast<const vec_i8_t*>(&threatWeights[offset]);
@@ -152,7 +155,7 @@ struct AccumulatorUpdateContext final {
             for (IndexType k = 0; k < Tiling::PSQTRegCount; ++k)
                 psqt[k] = computedPsqtTile[k];
 
-            for (IndexType i = 0; i < removed.size(); ++i)
+            for (IndexType i = 0; i < removedSize; ++i)
             {
                 auto  offset     = removed[i] * PSQTBuckets;
                 auto* columnPsqt = reinterpret_cast<const psqt_vec_t*>(&threatPsqtWeights[offset]);
@@ -161,7 +164,7 @@ struct AccumulatorUpdateContext final {
                     psqt[k] = vec_sub_psqt_32(psqt[k], columnPsqt[k]);
             }
 
-            for (IndexType i = 0; i < added.size(); ++i)
+            for (IndexType i = 0; i < addedSize; ++i)
             {
                 auto  offset     = added[i] * PSQTBuckets;
                 auto* columnPsqt = reinterpret_cast<const psqt_vec_t*>(&threatPsqtWeights[offset]);
@@ -233,24 +236,25 @@ void update_accumulator_incremental_double(
 
     PSQFeatureSet::IndexList removed, added;
     PSQFeatureSet::append_changed_indices(perspective, kingSq, middleState.dirty, removed, added);
-    // Can't capture a piece that was just involved in castling since the rook ends up
-    // in a square that the king passed
-    assert(added.size() < 2);
     PSQFeatureSet::append_changed_indices(perspective, kingSq, targetState.dirty, removed, added);
 
-    assert(added.size() == 1);
-    assert(removed.size() == 2 || removed.size() == 3);
+    [[maybe_unused]] const std::size_t addedSize   = added.size();
+    [[maybe_unused]] const std::size_t removedSize = removed.size();
+
+    // Can't capture a piece that was just involved in castling since the rook ends up in a square that the king passed
+    assert(addedSize < 2 && addedSize == 1);
+    assert(removedSize == 2 || removedSize == 3);
 
     // Workaround compiler warning for uninitialized variables, replicated on
     // profile builds on windows with gcc 14.2.0.
     // TODO remove once unneeded
-    ASSUME(added.size() == 1);
-    ASSUME(removed.size() == 2 || removed.size() == 3);
+    ASSUME(addedSize == 1);
+    ASSUME(removedSize == 2 || removedSize == 3);
 
     auto updateContext =
       make_accumulator_update_context(perspective, featureTransformer, computedState, targetState);
 
-    if (removed.size() == 2)
+    if (removedSize == 2)
         updateContext.template apply<Add, Sub, Sub>(added[0], removed[0], removed[1]);
     else
         updateContext.template apply<Add, Sub, Sub, Sub>(added[0], removed[0], removed[1],
@@ -323,35 +327,37 @@ void update_accumulator_incremental(
     }
     else
     {
-        assert(added.size() == 1 || added.size() == 2);
-        assert(removed.size() == 1 || removed.size() == 2);
-        assert((Forward && added.size() <= removed.size())
-               || (!Forward && removed.size() <= added.size()));
+        [[maybe_unused]] const std::size_t addedSize   = added.size();
+        [[maybe_unused]] const std::size_t removedSize = removed.size();
+
+        assert(addedSize == 1 || addedSize == 2);
+        assert(removedSize == 1 || removedSize == 2);
+        assert((Forward && addedSize <= removedSize) || (!Forward && removedSize <= addedSize));
 
         // Workaround compiler warning for uninitialized variables, replicated on
         // profile builds on windows with gcc 14.2.0.
         // TODO remove once unneeded
-        ASSUME(added.size() == 1 || added.size() == 2);
-        ASSUME(removed.size() == 1 || removed.size() == 2);
+        ASSUME(addedSize == 1 || addedSize == 2);
+        ASSUME(removedSize == 1 || removedSize == 2);
 
-        if ((Forward && removed.size() == 1) || (!Forward && added.size() == 1))
+        if ((Forward && removedSize == 1) || (!Forward && addedSize == 1))
         {
-            assert(added.size() == 1 && removed.size() == 1);
+            assert(addedSize == 1 && removedSize == 1);
             updateContext.template apply<Add, Sub>(added[0], removed[0]);
         }
-        else if (Forward && added.size() == 1)
+        else if (Forward && addedSize == 1)
         {
-            assert(removed.size() == 2);
+            assert(removedSize == 2);
             updateContext.template apply<Add, Sub, Sub>(added[0], removed[0], removed[1]);
         }
-        else if (!Forward && removed.size() == 1)
+        else if (!Forward && removedSize == 1)
         {
-            assert(added.size() == 2);
+            assert(addedSize == 2);
             updateContext.template apply<Add, Add, Sub>(added[0], added[1], removed[0]);
         }
         else
         {
-            assert(added.size() == 2 && removed.size() == 2);
+            assert(addedSize == 2 && removedSize == 2);
             updateContext.template apply<Add, Add, Sub, Sub>(added[0], added[1], removed[0],
                                                              removed[1]);
         }
@@ -444,6 +450,9 @@ void update_accumulator_refresh_cache(Color                                 pers
 
     const auto* weights = featureTransformer.weights.data();
 
+    const std::size_t addedSize   = added.size();
+    const std::size_t removedSize = removed.size();
+
     // clang-format off
     for (IndexType j = 0; j < Dimensions / Tiling::TileHeight; ++j)
     {
@@ -454,7 +463,7 @@ void update_accumulator_refresh_cache(Color                                 pers
             acc[k] = entryTile[k];
 
         std::size_t i = 0;
-        for (; i < std::min(removed.size(), added.size()); ++i)
+        for (; i < std::min(removedSize, addedSize); ++i)
         {
             auto  offsetR = removed[i] * Dimensions;
             auto* columnR = reinterpret_cast<const vec_t*>(&weights[offsetR]);
@@ -465,7 +474,7 @@ void update_accumulator_refresh_cache(Color                                 pers
                 acc[k] = fused<Vec16Wrapper, Add, Sub>(acc[k], columnA[k], columnR[k]);
         }
 
-        for (; i < removed.size(); ++i)
+        for (; i < removedSize; ++i)
         {
             auto  offset = removed[i] * Dimensions;
             auto* column = reinterpret_cast<const vec_t*>(&weights[offset]);
@@ -474,7 +483,7 @@ void update_accumulator_refresh_cache(Color                                 pers
                 acc[k] = vec_sub_16(acc[k], column[k]);
         }
 
-        for (; i < added.size(); ++i)
+        for (; i < addedSize; ++i)
         {
             auto  offset = added[i] * Dimensions;
             auto* column = reinterpret_cast<const vec_t*>(&weights[offset]);
@@ -502,7 +511,7 @@ void update_accumulator_refresh_cache(Color                                 pers
         for (IndexType k = 0; k < Tiling::PSQTRegCount; ++k)
             psqt[k] = entryPsqtTile[k];
 
-        for (std::size_t i = 0; i < removed.size(); ++i)
+        for (std::size_t i = 0; i < removedSize; ++i)
         {
             auto  offset = removed[i] * PSQTBuckets;
             auto* column = reinterpret_cast<const psqt_vec_t*>(&psqtWeights[offset]);
@@ -511,7 +520,7 @@ void update_accumulator_refresh_cache(Color                                 pers
                 psqt[k] = vec_sub_psqt_32(psqt[k], column[k]);
         }
 
-        for (std::size_t i = 0; i < added.size(); ++i)
+        for (std::size_t i = 0; i < addedSize; ++i)
         {
             auto  offset = added[i] * PSQTBuckets;
             auto* column = reinterpret_cast<const psqt_vec_t*>(&psqtWeights[offset]);

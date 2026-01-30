@@ -138,32 +138,43 @@ void update_pv(Move* RESTRICT pv, Move m, const Move* RESTRICT childPv) noexcept
     *pv = Move::None;
 }
 
+// Build contHistory pointers from the stack frame and validate them in debug builds.
+void build_continuation_history(const Stack* const              ss,
+                                const History<HType::PIECE_SQ>* out[CONT_HISTORY_COUNT]) noexcept {
+    for (std::size_t i = 0; i < CONT_HISTORY_COUNT; ++i)
+    {
+        auto* const ssi = (ss - 1) - i;
+
+        // contHistory[i] refers to ssi->pieceSqHistory
+        out[i] = ssi->pieceSqHistory;
+        assert(out[i] != nullptr && "continuation history pointer must not be null");
+    }
+}
+
 // Updates the continuation histories for the move pairs formed
 // by the current move and the moves played in previous plies.
 void update_continuation_history(Stack* const ss, Piece pc, Square dstSq, int bonus) noexcept {
     assert(dstSq != SQ_NONE);
 
-    constexpr std::size_t MaxContHistorySize = 8;
-
-    constexpr StdArray<double, MaxContHistorySize> ContHistoryWeights{
-      1.1064, 0.6670, 0.3047, 0.5684, 0.1455, 0.4629, 0.1092, 0.2167  //
-    };
-    constexpr StdArray<int, MaxContHistorySize> ContHistoryOffsets{
+    constexpr StdArray<int, CONT_HISTORY_COUNT> ContHistoryOffsets{
       88, 00, 00, 00, 00, 00, 00, 00  //
+    };
+    constexpr StdArray<double, CONT_HISTORY_COUNT> ContHistoryWeights{
+      1.1064, 0.6670, 0.3047, 0.5684, 0.1455, 0.4629, 0.1092, 0.2167  //
     };
 
     // In check only update 2-ply continuation history
-    std::size_t ContHistorySize = ss->inCheck ? 2 : MaxContHistorySize;
+    std::size_t ContHistoryCount = ss->inCheck ? 2 : CONT_HISTORY_COUNT;
 
-    for (std::size_t i = 0; i < ContHistorySize; ++i)
+    for (std::size_t i = 0; i < ContHistoryCount; ++i)
     {
         auto* const ssi = (ss - 1) - i;
 
         if (!ssi->move.is_ok())
             break;
 
-        (*ssi->pieceSqHistory)[+pc][dstSq] << int(ContHistoryWeights[i] * bonus)  //
-                                                + ContHistoryOffsets[i];
+        (*ssi->pieceSqHistory)[+pc][dstSq]
+          << ContHistoryOffsets[i] + int(ContHistoryWeights[i] * bonus);
     }
 }
 
@@ -901,7 +912,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     if (depth > 1 && red >= 2 && ss->evalValue > 169 - (ss - 1)->evalValue)
         --depth;
 
-    Key pawnKey = pos.pawn_key();
+    auto& pawnHistory = histories.pawn(pos.pawn_key());
 
     State st;
 
@@ -918,7 +929,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
             {
                 // Bonus for a quiet ttMove
                 if (!ttmCapture)
-                    update_quiet_histories(pos, pawnKey, ss, ttd.move,
+                    update_quiet_histories(pos, pawnHistory, ss, ttd.move,
                                            std::min(-72 + 132 * depth, +985));
 
                 // Extra penalty for early quiet moves of the previous ply
@@ -1025,12 +1036,9 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
     int absCorrectionValue = std::abs(correctionValue);
 
-    const History<HType::PIECE_SQ>* contHistory[8]{
-      (ss - 1)->pieceSqHistory, (ss - 2)->pieceSqHistory,  //
-      (ss - 3)->pieceSqHistory, (ss - 4)->pieceSqHistory,  //
-      (ss - 5)->pieceSqHistory, (ss - 6)->pieceSqHistory,  //
-      (ss - 7)->pieceSqHistory, (ss - 8)->pieceSqHistory   //
-    };
+    const History<HType::PIECE_SQ>* contHistory[CONT_HISTORY_COUNT];
+
+    build_continuation_history(ss, contHistory);
 
     // Skip early pruning when in check
     if (!ss->inCheck)
@@ -1042,7 +1050,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         int bonus = 59 + std::clamp(-((ss - 1)->evalValue + (ss - 0)->evalValue), -209, +167);
 
         if (!ttd.hit && preNonPawn)
-            update_pawn_history(pawnKey, pos[preSq], preSq, 13.0000 * bonus);
+            update_pawn_history(pawnHistory, pos[preSq], preSq, 13.0000 * bonus);
 
         update_quiet_history(~ac, preMove, 9.0000 * bonus);
     }
@@ -1325,7 +1333,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
                 }
                 else
                 {
-                    int history = histories.pawn(pawnKey)[+movedPc][dstSq]
+                    int history = pawnHistory[+movedPc][dstSq]  //
                                 + (*contHistory[0])[+movedPc][dstSq]
                                 + (*contHistory[1])[+movedPc][dstSq];
 
@@ -1696,7 +1704,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     // If there is a move that produces search value greater than alpha update the history of searched moves
     if (bestMove != Move::None)
     {
-        update_histories(pos, pawnKey, ss, depth, bestMove, searchedMoves);
+        update_histories(pos, pawnHistory, ss, depth, bestMove, searchedMoves);
 
         if constexpr (!RootNode)
         {
@@ -1728,7 +1736,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
             int bonus = bonusScale * std::min(-87 + 141 * depth, +1351);
 
             if (preNonPawn)
-                update_pawn_history(pawnKey, pos[preSq], preSq, 35.4004e-3 * bonus);
+                update_pawn_history(pawnHistory, pos[preSq], preSq, 35.4004e-3 * bonus);
 
             update_quiet_history(~ac, preMove, 7.4158e-3 * bonus);
 
@@ -2077,8 +2085,8 @@ Value Worker::evaluate(const Position& pos) noexcept {
 
 // clang-format off
 
-void Worker::update_pawn_history(Key pawnKey, Piece movedPc, Square dstSq, int bonus) noexcept {
-    histories.pawn(pawnKey)[+movedPc][dstSq] << bonus;
+void Worker::update_pawn_history(PawnHistory& pawnHistory, Piece movedPc, Square dstSq, int bonus) noexcept {
+    pawnHistory[+movedPc][dstSq] << bonus;
 }
 
 void Worker::update_capture_history(Piece movedPc, Square dstSq, PieceType capturedPt, int bonus) noexcept {
@@ -2098,10 +2106,10 @@ void Worker::update_low_ply_quiet_history(std::int16_t ssPly, Move m, int bonus)
 }
 
 // Updates quiet histories (move sorting heuristics)
-void Worker::update_quiet_histories(const Position& pos, Key pawnKey, Stack* const ss, Move m, int bonus) noexcept {
+void Worker::update_quiet_histories(const Position& pos, PawnHistory& pawnHistory, Stack* const ss, Move m, int bonus) noexcept {
     assert(m.is_ok());
 
-    update_pawn_history(pawnKey, pos.moved_pc(m), m.dst_sq(), (bonus > 0 ? 0.8837 : 0.4932) * bonus);
+    update_pawn_history(pawnHistory, pos.moved_pc(m), m.dst_sq(), (bonus > 0 ? 0.8837 : 0.4932) * bonus);
 
     update_quiet_history(pos.active_color(), m, 1.0000 * bonus);
 
@@ -2111,7 +2119,7 @@ void Worker::update_quiet_histories(const Position& pos, Key pawnKey, Stack* con
 }
 
 // Updates history at the end of search() when a bestMove is found and other searched moves are known
-void Worker::update_histories(const Position& pos, Key pawnKey, Stack* const ss, Depth depth, Move bestMove, const StdArray<SearchedMoves, 2>& searchedMoves) noexcept {
+void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Stack* const ss, Depth depth, Move bestMove, const StdArray<SearchedMoves, 2>& searchedMoves) noexcept {
     assert(ss->moveCount != 0);
     assert(depth > DEPTH_ZERO);
 
@@ -2129,12 +2137,12 @@ void Worker::update_histories(const Position& pos, Key pawnKey, Stack* const ss,
     }
     else
     {
-        update_quiet_histories(pos, pawnKey, ss, bestMove, 0.8887 * bonus);
+        update_quiet_histories(pos, pawnHistory, ss, bestMove, 0.8887 * bonus);
 
         // Decrease history for all non-best quiet moves
         const auto& quietMoves = searchedMoves[0];
         for (std::size_t i = 0; i < quietMoves.size(); ++i)
-            update_quiet_histories(pos, pawnKey, ss, quietMoves[i], -1.0596 * (i < 5 ? 1.0 : 5.0 / (i + 1)) * malus);
+            update_quiet_histories(pos, pawnHistory, ss, quietMoves[i], -1.0596 * (i < 5 ? 1.0 : 5.0 / (i + 1)) * malus);
     }
 
     // Decrease history for all non-best capture moves

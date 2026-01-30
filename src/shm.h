@@ -1022,6 +1022,9 @@ struct MutexAttrGuard final {
 struct ShmHeader final {
    public:
     ~ShmHeader() noexcept {
+        if (!is_initialized())
+            return;
+
         unlock_mutex();
 
         destroy_mutex();
@@ -1045,6 +1048,10 @@ struct ShmHeader final {
 
         if (pthread_mutex_init(&mutex, &mutexAttr) != 0)
             return false;
+
+        set_initialized(true);
+
+        set_ref_count(0);
 
         return true;
     }
@@ -1080,7 +1087,10 @@ struct ShmHeader final {
         return false;
     }
 
-    void unlock_mutex() noexcept { pthread_mutex_unlock(&mutex); }
+    void unlock_mutex() noexcept {
+        [[maybe_unused]] int rc = pthread_mutex_unlock(&mutex);
+        assert(rc == 0 || rc == EPERM || rc == EOWNERDEAD);
+    }
 
     [[nodiscard]] bool is_initialized() const noexcept {
         return initialized.load(std::memory_order_acquire);
@@ -1090,24 +1100,52 @@ struct ShmHeader final {
         return refCount.load(std::memory_order_acquire);
     }
 
-    void decrement_ref_count() noexcept {
+    void set_initialized(bool init) noexcept { initialized.store(init, std::memory_order_release); }
 
-        for (auto expected = refCount.load(std::memory_order_relaxed);
-             expected != 0
-             && !refCount.compare_exchange_weak(expected, expected - 1,     //
-                                                std::memory_order_acq_rel,  //
-                                                std::memory_order_relaxed);)
-        {}
+    void set_ref_count(std::uint32_t count) noexcept {
+        refCount.store(count, std::memory_order_release);
     }
+    void increment_ref_count() noexcept { refCount.fetch_add(1, std::memory_order_acq_rel); }
+    void decrement_ref_count() noexcept { refCount.fetch_sub(1, std::memory_order_acq_rel); }
 
     static constexpr std::uint32_t MAGIC = 0xAD5F1A12U;
 
     const std::uint32_t magic = MAGIC;
 
-    pthread_mutex_t mutex;
-
+   private:
+    pthread_mutex_t            mutex{};
     std::atomic<bool>          initialized{false};
     std::atomic<std::uint32_t> refCount{0};
+};
+
+struct ShmHeaderGuard final {
+   public:
+    explicit ShmHeaderGuard(ShmHeader& shmHeaderRef) noexcept :
+        shmHeader(shmHeaderRef),
+        ownsLock(shmHeader.lock_mutex()) {
+        assert(ownsLock);
+    }
+
+    ~ShmHeaderGuard() noexcept { unlock(); }
+
+    bool owns_lock() const noexcept { return ownsLock; }
+
+    void unlock() noexcept {
+        if (owns_lock())
+        {
+            shmHeader.unlock_mutex();
+            ownsLock = false;
+        }
+    }
+
+   private:
+    ShmHeaderGuard(const ShmHeaderGuard&)            = delete;
+    ShmHeaderGuard(ShmHeaderGuard&&)                 = delete;
+    ShmHeaderGuard& operator=(const ShmHeaderGuard&) = delete;
+    ShmHeaderGuard& operator=(ShmHeaderGuard&&)      = delete;
+
+    ShmHeader& shmHeader;
+    bool       ownsLock;
 };
 
 template<typename T>
@@ -1154,24 +1192,23 @@ class SharedMemory final: public BaseSharedMemory {
 
             fd = shm_open(name.c_str(), O_CREAT | O_EXCL | O_RDWR, 0666);
 
-            if (fd < 0)
+            if (fd <= INVALID_FD)
             {
                 fd = shm_open(name.c_str(), O_RDWR, 0666);
 
-                if (fd < 0)
+                if (fd <= INVALID_FD)
                     return false;
             }
             else
-                newCreated = true;
-
-            if (!lock_file(LOCK_EX))
             {
-                if (newCreated)
-                    shm_unlink(name.c_str());
+                newCreated = true;
+            }
 
-                fdGuard.close();
+            bool lockFile = lock_file(LOCK_EX);
 
-                reset();
+            if (!lockFile)
+            {
+                cleanup(false, lockFile);
 
                 return false;
             }
@@ -1184,16 +1221,7 @@ class SharedMemory final: public BaseSharedMemory {
 
             if (!success)
             {
-                unmap_region();
-
-                unlock_file();
-
-                if (newCreated || headerInvalid)
-                    shm_unlink(name.c_str());
-
-                fdGuard.close();
-
-                reset();
+                cleanup(newCreated || headerInvalid, lockFile);
 
                 if (!newCreated && headerInvalid && !staleRetried)
                 {
@@ -1204,18 +1232,9 @@ class SharedMemory final: public BaseSharedMemory {
                 return false;
             }
 
-            if (shmHeader == nullptr || !shmHeader->lock_mutex())
+            if (shmHeader == nullptr)
             {
-                unmap_region();
-
-                unlock_file();
-
-                if (newCreated)
-                    shm_unlink(name.c_str());
-
-                fdGuard.close();
-
-                reset();
+                cleanup(newCreated, lockFile);
 
                 if (!newCreated && !staleRetried)
                 {
@@ -1226,28 +1245,35 @@ class SharedMemory final: public BaseSharedMemory {
                 return false;
             }
 
-            if (!create_sentinel_file_locked())
+            // RAII mutex scope lock
             {
-                if (shmHeader != nullptr)
-                    shmHeader->unlock_mutex();
+                ShmHeaderGuard shmHeaderGuard(*shmHeader);
 
-                unmap_region();
+                if (!shmHeaderGuard.owns_lock())
+                {
+                    cleanup(newCreated, lockFile);
 
-                unlock_file();
+                    if (!newCreated && !staleRetried)
+                    {
+                        staleRetried = true;
+                        continue;
+                    }
 
-                if (newCreated)
-                    shm_unlink(name.c_str());
+                    return false;
+                }
 
-                fdGuard.close();
+                if (!create_sentinel_file_locked())
+                {
+                    shmHeaderGuard.unlock();
 
-                reset();
+                    cleanup(newCreated, lockFile);
 
-                return false;
-            }
+                    return false;
+                }
 
-            shmHeader->refCount.fetch_add(1, std::memory_order_acq_rel);
+                increment_ref_count();
 
-            shmHeader->unlock_mutex();
+            }  // <-- mutex automatically unlocked here safely
 
             unlock_file();
 
@@ -1259,48 +1285,38 @@ class SharedMemory final: public BaseSharedMemory {
     }
 
     void close(bool skipUnmapRegion = false) noexcept override {
-        if (fd < 0 && mappedPtr == INVALID_MMAP_PTR)
+        if (fd <= INVALID_FD && mappedPtr == INVALID_MMAP_PTR)
             return;
 
         bool removeRegion = false;
-        bool fileLocked   = lock_file(LOCK_EX);
-        bool mutexLocked  = false;
+        bool lockFile     = lock_file(LOCK_EX);
 
-        if (fileLocked)
-            mutexLocked = shmHeader != nullptr && shmHeader->lock_mutex();
-
-        if (mutexLocked)
-        {
-            if (shmHeader != nullptr)
-                shmHeader->refCount.fetch_sub(1, std::memory_order_acq_rel);
+        auto handle_ref_and_sentinel = [&]() noexcept {
+            decrement_ref_count();
 
             remove_sentinel_file();
+        };
 
-            removeRegion = !has_other_live_sentinels_locked();
+        if (lockFile && shmHeader != nullptr)
+        {
+            // RAII mutex lock
+            ShmHeaderGuard shmHeaderGuard(*shmHeader);
 
-            if (shmHeader != nullptr)
-                shmHeader->unlock_mutex();
+            handle_ref_and_sentinel();
+
+            if (shmHeaderGuard.owns_lock())
+            {
+                // Mutex locked: check if the region should be removed
+                removeRegion = !has_other_live_sentinels_locked();
+            }
         }
         else
         {
-            remove_sentinel_file();
-
-            decrement_ref_count();
+            // File lock failed or no header
+            handle_ref_and_sentinel();
         }
 
-        if (!skipUnmapRegion)
-            unmap_region();
-
-        if (fileLocked)
-            unlock_file();
-
-        if (removeRegion)
-            shm_unlink(name.c_str());
-
-        fdGuard.close();
-
-        if (!skipUnmapRegion)
-            reset();
+        cleanup(removeRegion, lockFile, skipUnmapRegion);
     }
 
     [[nodiscard]] bool is_open() const noexcept {
@@ -1435,6 +1451,11 @@ class SharedMemory final: public BaseSharedMemory {
     }
 
     void clear_sentinel_path() noexcept { sentinelPath.clear(); }
+
+    void increment_ref_count() noexcept {
+        if (shmHeader != nullptr)
+            shmHeader->increment_ref_count();
+    }
 
     void decrement_ref_count() noexcept {
         if (shmHeader != nullptr)
@@ -1589,10 +1610,6 @@ class SharedMemory final: public BaseSharedMemory {
         if (shmHeader == nullptr || !shmHeader->initialize_mutex())
             return false;
 
-        shmHeader->initialized.store(true, std::memory_order_release);
-
-        shmHeader->refCount.store(0, std::memory_order_release);
-
         return true;
     }
 
@@ -1624,8 +1641,7 @@ class SharedMemory final: public BaseSharedMemory {
         if (shmHeader == nullptr)
             return false;
 
-        if (!shmHeader->initialized.load(std::memory_order_acquire)
-            || shmHeader->magic != ShmHeader::MAGIC)
+        if (!shmHeader->is_initialized() || shmHeader->magic != ShmHeader::MAGIC)
         {
             headerInvalid = true;
 
@@ -1633,6 +1649,24 @@ class SharedMemory final: public BaseSharedMemory {
         }
 
         return true;
+    }
+
+    void
+    cleanup(bool removeRegion = true, bool lockFile = true, bool skipUnmapRegion = false) noexcept {
+
+        if (!skipUnmapRegion)
+            unmap_region();
+
+        if (lockFile)
+            unlock_file();
+
+        if (removeRegion)
+            shm_unlink(name.c_str());
+
+        fdGuard.close();
+
+        if (!skipUnmapRegion)
+            reset();
     }
 
     static constexpr std::string_view DIRECTORY{"/dev/shm/"};

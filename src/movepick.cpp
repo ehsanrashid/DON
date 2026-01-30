@@ -28,45 +28,51 @@ namespace DON {
 
 namespace {
 
-constexpr int GOOD_QUIET_THRESHOLD = -14000;
+// Threshold below which insertion sort is used
+constexpr std::size_t INSERTION_SORT_THRESHOLD = 52;
+// Threshold for considering a move "good enough" to be sorted to the front
+constexpr std::int32_t GOOD_QUIET_THRESHOLD = -14000;
 
+// Unrolled upper_bound implementation for finding the insertion point
 template<typename Iterator, typename T, typename Compare>
-Iterator upper_bound_unrolled(Iterator RESTRICT begin,
+Iterator upper_bound_unrolled(Iterator RESTRICT beg,
                               Iterator RESTRICT end,
                               const T&          value,
                               Compare           comp) noexcept {
-    std::size_t n = end - begin;
+    std::size_t n = end - beg;
 
-    std::size_t idx = n;
+    std::size_t idx = n;  // default = n (not found)
 
-    std::size_t i = 0;
+    std::size_t i = n;
 
     // Unroll 8 elements at a time
-    for (; idx == n && i + 8 <= n; i += 8)
-        idx = comp(value, begin[i + 0]) ? i + 0
-            : comp(value, begin[i + 1]) ? i + 1
-            : comp(value, begin[i + 2]) ? i + 2
-            : comp(value, begin[i + 3]) ? i + 3
-            : comp(value, begin[i + 4]) ? i + 4
-            : comp(value, begin[i + 5]) ? i + 5
-            : comp(value, begin[i + 6]) ? i + 6
-            : comp(value, begin[i + 7]) ? i + 7
-                                        : n;
+    for (; idx == n && i >= UnRoll8; i -= UnRoll8)
+        idx = comp(value, beg[i - 8]) ? i - 8
+            : comp(value, beg[i - 7]) ? i - 7
+            : comp(value, beg[i - 6]) ? i - 6
+            : comp(value, beg[i - 5]) ? i - 5
+            : comp(value, beg[i - 4]) ? i - 4
+            : comp(value, beg[i - 3]) ? i - 3
+            : comp(value, beg[i - 2]) ? i - 2
+            : comp(value, beg[i - 1]) ? i - 1
+                                      : idx;
 
     // Unroll 4 elements at a time
-    for (; idx == n && i + 4 <= n; i += 4)
-        idx = comp(value, begin[i + 0]) ? i + 0
-            : comp(value, begin[i + 1]) ? i + 1
-            : comp(value, begin[i + 2]) ? i + 2
-            : comp(value, begin[i + 3]) ? i + 3
-                                        : n;
+    for (; idx == n && i >= UnRoll4; i -= UnRoll4)
+        idx = comp(value, beg[i - 4]) ? i - 4
+            : comp(value, beg[i - 3]) ? i - 3
+            : comp(value, beg[i - 2]) ? i - 2
+            : comp(value, beg[i - 1]) ? i - 1
+                                      : idx;
 
     // Handle remaining elements
-    for (; idx == n && i + 1 <= n; i += 1)
-        if (comp(value, begin[i + 0]))
-            idx = i + 0;
+    while (i >= 1)
+    {
+        --i;
+        idx = comp(value, beg[i]) ? i : idx;
+    }
 
-    return begin + idx;
+    return beg + idx;
 }
 
 // Sort elements in descending order.
@@ -126,6 +132,14 @@ void partial_insertion_sort(Iterator RESTRICT beg,
     }
 }
 
+template<typename Iterator>
+inline void stable_sort_adaptive(Iterator beg, Iterator end) noexcept {
+    if (std::size_t(end - beg) <= INSERTION_SORT_THRESHOLD)
+        insertion_sort(beg, end);
+    else
+        std::stable_sort(beg, end, ext_move_descending);
+}
+
 }  // namespace
 
 // Constructors of the MovePicker class. As arguments, pass information
@@ -152,6 +166,7 @@ MovePicker::MovePicker(const Position&                  p,
     ssPly(ply),
     threshold(th) {
     assert(ttMove == Move::None || pos.legal(ttMove));
+    assert(continuationHistory != nullptr);
 
     if (pos.checkers_bb() != 0)
     {
@@ -160,6 +175,9 @@ MovePicker::MovePicker(const Position&                  p,
     }
     else if (threshold < 0)
     {
+        for (std::size_t i = 0; i < CONT_HISTORY_COUNT; ++i)
+            assert(continuationHistory[i] != nullptr && "continuationHistory[i] must not be null");
+
         initStage = Stage::ENC_GOOD_CAPTURE;
         curStage  = Stage(!(ttMove != Move::None));
     }
@@ -194,7 +212,7 @@ void MovePicker::init_stage() noexcept {
     cur    = moves.data();
     endCur = score(moveList);
 
-    insertion_sort(cur, endCur);
+    stable_sort_adaptive(cur, endCur);
 }
 
 // Assigns a numerical value to each move in a list, used for sorting.
@@ -234,7 +252,7 @@ MovePicker::score<GenType::ENC_QUIET>(MoveList<GenType::ENC_QUIET>& moveList) no
     Bitboard pinnersBB  = pos.pinners_bb();
     Bitboard threatsBB  = pos.threats_bb();
 
-    Key pawnKey = pos.pawn_key();
+    const auto& pawnHistory = histories->pawn(pos.pawn_key());
 
     iterator itr = cur;
 
@@ -252,15 +270,10 @@ MovePicker::score<GenType::ENC_QUIET>(MoveList<GenType::ENC_QUIET>& moveList) no
         std::int64_t value;
 
         value = 2 * (*quietHistory)[ac][m.raw()];
-        value += 2 * histories->pawn(pawnKey)[+movedPc][dstSq];
-        value += (*continuationHistory[0])[+movedPc][dstSq];
-        value += (*continuationHistory[1])[+movedPc][dstSq];
-        value += (*continuationHistory[2])[+movedPc][dstSq];
-        value += (*continuationHistory[3])[+movedPc][dstSq];
-        value += (*continuationHistory[4])[+movedPc][dstSq];
-        value += (*continuationHistory[5])[+movedPc][dstSq];
-        value += (*continuationHistory[6])[+movedPc][dstSq];
-        value += (*continuationHistory[7])[+movedPc][dstSq];
+        value += 2 * pawnHistory[+movedPc][dstSq];
+        // Accumulate continuation history entries
+        for (std::size_t i = 0; i < CONT_HISTORY_COUNT; ++i)
+            value += (*continuationHistory[i])[+movedPc][dstSq];
 
         if (ssPly < LOW_PLY_QUIET_SIZE)
             value += 8 * (*lowPlyQuietHistory)[ssPly][m.raw()] / (1 + ssPly);
@@ -432,7 +445,7 @@ STAGE_SWITCH:
             cur    = begBadQuiet;
             endCur = endBadQuiet;
 
-            insertion_sort(cur, endCur);
+            stable_sort_adaptive(cur, endCur);
         }
 
         curStage = Stage::ENC_BAD_QUIET;
@@ -452,7 +465,7 @@ STAGE_SWITCH:
 
             endCur = score(moveList);
 
-            insertion_sort(cur, endCur);
+            stable_sort_adaptive(cur, endCur);
         }
 
         curStage = Stage::EVA_QUIET;
