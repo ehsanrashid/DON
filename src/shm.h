@@ -1355,13 +1355,13 @@ class BackendSharedMemory final: public BaseSharedMemory {
     }
 
     std::optional<std::string> get_error_message() const noexcept {
-        if (!shm)
+        if (!opened)
             return "Shared memory not available";
 
-        if (!shm->is_open())
+        if (!is_open())
             return "Shared memory is not open";
 
-        if (!shm->is_initialized())
+        if (!is_initialized())
             return "Shared memory not initialized";
 
         return std::nullopt;
