@@ -53,27 +53,27 @@ std::string format_date(std::string_view date) noexcept {
 
     // Tokenize: expect "Mon DD YYYY" where DD may have a trailing comma.
     // Format from compiler: "Sep 02 2008"
-    std::istringstream iss{std::string(date)};
+    std::istringstream iss{std::string{date}};
 
     std::string month, day, year;
     iss >> month >> day >> year;
 
     if (iss.fail())
-        return std::string(NullDate);
+        return std::string{NullDate};
     // Trim possible trailing comma from day (e.g. "21,")
     if (!day.empty() && day.back() == ',')
         day.pop_back();
     // Basic validation: month is 3 letters, day 1-2 digits, year 4 digits
     if (month.size() != 3 || day.empty() || day.size() > 2 || year.size() != 4)
-        return std::string(NullDate);
+        return std::string{NullDate};
     // Ensure day and year are numeric
     if (!std::all_of(day.begin(), day.end(), [](unsigned char c) { return std::isdigit(c); })
         || !std::all_of(year.begin(), year.end(), [](unsigned char c) { return std::isdigit(c); }))
-        return std::string(NullDate);
+        return std::string{NullDate};
     // Find month index (1..12)
     auto itr = std::find(Months.begin(), Months.end(), std::string_view(month));
     if (itr == Months.end())
-        return std::string(NullDate);
+        return std::string{NullDate};
 
     //unsigned monthId = 1 + Months.find(month) / 4;
     unsigned monthId = 1 + std::distance(Months.begin(), itr);
@@ -619,22 +619,23 @@ std::string CommandLine::binary_directory(std::string_view path) noexcept {
     // so check returned values carefully.
     char* pgmPtr = nullptr;
     if (_get_pgmptr(&pgmPtr) == 0 && pgmPtr != nullptr && *pgmPtr)
-        path = pgmPtr;  // NOT std::string(pgmPtr)
+        path = pgmPtr;  // NOT std::string{pgmPtr}
     #endif
 #else
     std::string pathSeparator = "/";
 #endif
     // now owns memory for resizing etc.
-    std::string binaryDirectory(path);
+    std::string binaryDirectory{path};
 
-    std::string currentDirectory = std::string(".") + pathSeparator;
+    std::string currentDirectory{"."};
+    currentDirectory += pathSeparator;
 
-    std::size_t pos = binaryDirectory.find_last_of("\\/");
+    std::size_t size = binaryDirectory.find_last_of("\\/");
 
-    if (pos == std::string::npos)
+    if (size == std::string::npos)
         binaryDirectory = currentDirectory;
     else
-        binaryDirectory.resize(pos + 1);
+        binaryDirectory.resize(size + 1);
 
     // Pattern replacement: "./" at the start of path is replaced by the working directory
     if (binaryDirectory.find(currentDirectory) == 0)
@@ -657,7 +658,7 @@ std::string CommandLine::working_directory() noexcept {
 
 std::size_t str_to_size_t(std::string_view str) noexcept {
 
-    unsigned long long value = std::stoull(std::string(str));
+    unsigned long long value = std::stoull(std::string{str});
     if (value > std::numeric_limits<std::size_t>::max())
         std::exit(EXIT_FAILURE);
     return static_cast<std::size_t>(value);
@@ -665,7 +666,7 @@ std::size_t str_to_size_t(std::string_view str) noexcept {
 
 std::optional<std::string> read_file_to_string(std::string_view filePath) noexcept {
 
-    std::ifstream ifs(std::string(filePath), std::ios::binary | std::ios::ate);
+    std::ifstream ifs{std::string{filePath}, std::ios::binary | std::ios::ate};
     if (!ifs)
         return std::nullopt;
 

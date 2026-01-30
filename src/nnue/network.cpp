@@ -131,9 +131,9 @@ template<typename Arch, typename Transformer>
 void Network<Arch, Transformer>::load(std::string_view rootDirectory,
                                       std::string      netFile) noexcept {
 
-    const Strings Dirs{"<internal>", "", std::string(rootDirectory)
+    const Strings Dirs{"<internal>", "", std::string{rootDirectory}
 #if defined(DEFAULT_NNUE_DIRECTORY)
-                                           ,
+                       ,
                        STRINGIFY(DEFAULT_NNUE_DIRECTORY)
 #endif
     };
@@ -169,7 +169,7 @@ bool Network<Arch, Transformer>::save(const std::optional<std::string>& netFile)
         evalFileName = evalFile.defaultName;
     }
 
-    std::ofstream ofs(evalFileName, std::ios::binary);
+    std::ofstream ofs{evalFileName, std::ios::binary};
 
     bool saved = save(ofs, evalFile.currentName, evalFile.netDescription);
 
@@ -291,7 +291,7 @@ void Network<Arch, Transformer>::load_internal() noexcept {
 template<typename Arch, typename Transformer>
 void Network<Arch, Transformer>::load_user_net(const std::string& dir,
                                                const std::string& netFile) noexcept {
-    std::ifstream ifs(dir + netFile, std::ios::binary);
+    std::ifstream ifs{dir + netFile, std::ios::binary};
 
     auto description = load(ifs);
 

@@ -27,7 +27,7 @@
 namespace DON {
 
 std::size_t CaseInsensitiveHash::operator()(std::string_view str) const noexcept {
-    auto lowerStr = lower_case(std::string(str));
+    auto lowerStr = lower_case(std::string{str});
     return std::hash<std::string_view>{}(std::string_view{lowerStr});
 }
 
@@ -81,7 +81,7 @@ Option::Option(std::string_view v, OnChange&& f) noexcept :
     type(Type::STRING),
     onChange(std::move(f)) {
     defaultValue = currentValue =
-      is_whitespace(v) || lower_case(std::string(v)) == EMPTY_STRING ? "" : v;
+      is_whitespace(v) || lower_case(std::string{v}) == EMPTY_STRING ? "" : v;
 }
 
 Option::Option(int v, int minV, int maxV, OnChange&& f) noexcept :
@@ -208,7 +208,7 @@ void Options::add(std::string_view name, const Option& option) noexcept {
 
 void Options::set(std::string_view name, std::string_view value) noexcept {
     if (contains(name))
-        options.at(name) = std::string(value);
+        options.at(name) = std::string{value};
     else
         std::cout << "No such option: '" << name << "'" << std::endl;
 }

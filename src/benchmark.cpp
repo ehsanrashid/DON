@@ -418,7 +418,7 @@ Strings bench(std::istream& is, std::string_view currentFen) noexcept {
     }
     else
     {
-        std::ifstream ifs(fenFile);
+        std::ifstream ifs{fenFile};
 
         if (!ifs.is_open())
             std::cerr << "Unable to open fen filename " << fenFile << std::endl;
@@ -444,7 +444,7 @@ Strings bench(std::istream& is, std::string_view currentFen) noexcept {
 
     for (auto& fen : fens)
     {
-        fen = std::string(trim(fen));
+        fen = std::string{trim(fen)};
 
         bool setOption = fen.rfind("setoption ", 0) == 0;
 

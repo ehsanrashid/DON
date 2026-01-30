@@ -194,7 +194,7 @@ inline std::string executable_path() noexcept {
 #endif
 
     // In case of any error the path will be empty
-    return std::string(executablePath.data(), executableSize);
+    return std::string{executablePath.data(), executableSize};
 }
 
 #if defined(__ANDROID__)
@@ -391,7 +391,7 @@ class BackendSharedMemory final {
         }
 
         // Use named mutex to ensure only one initializer
-        std::string mutexName = shmName + std::string("$mutex");
+        std::string mutexName = shmName + std::string{"$mutex"};
 
         HANDLE hMutex = CreateMutex(nullptr, FALSE, mutexName.c_str());
 
@@ -1157,7 +1157,7 @@ class SharedMemory final: public BaseSharedMemory {
     explicit SharedMemory(const std::string& shmName) noexcept :
         name(shmName),
         mappedSize(mapped_size()) {
-        sentinelBase = std::string("DON_") + hash_to_string(hash_string(name));
+        sentinelBase = std::string{"DON_"} + hash_to_string(hash_string(name));
     }
 
     ~SharedMemory() noexcept override { unregister_close(); }
@@ -1444,7 +1444,7 @@ class SharedMemory final: public BaseSharedMemory {
     void set_sentinel_path(pid_t pid) noexcept {
         sentinelPath.reserve(11 + sentinelBase.size() + 1 + 10);
 
-        sentinelPath = std::string(DIRECTORY);
+        sentinelPath = std::string{DIRECTORY};
         sentinelPath += sentinelBase;
         sentinelPath += '.';
         sentinelPath += std::to_string(pid);
@@ -1546,7 +1546,7 @@ class SharedMemory final: public BaseSharedMemory {
                 break;
             }
 
-            std::string stalePath = std::string(DIRECTORY) + entryName;
+            std::string stalePath = std::string{DIRECTORY} + entryName;
 
             ::unlink(stalePath.c_str());
 
@@ -1813,7 +1813,7 @@ struct SystemWideSharedMemory final {
 
     #if defined(_WIN32)
         // Windows named shared memory names must start with "Local\" or "Global\" then add name hashing to avoid length limits
-        shmName = std::string("Local\\DON_") + hash_to_string(hash_string(hashStr));
+        shmName = std::string{"Local\\DON_"} + hash_to_string(hash_string(hashStr));
 
         constexpr std::size_t MaxNameSize = 255 - 1;
 
@@ -1822,7 +1822,7 @@ struct SystemWideSharedMemory final {
             shmName.resize(MaxNameSize);
     #else
         // POSIX shared memory names must start with a slash ('/') then add name hashing to avoid length limits
-        shmName = std::string("/DON_") + hash_to_string(hash_string(hashStr));
+        shmName = std::string{"/DON_"} + hash_to_string(hash_string(hashStr));
 
         // POSIX APIs expect a fixed-size C string where the maximum length excluding the terminating null character ('\0').
         // Since std::string::size() does not include '\0', allow at most (MAX - 1) characters

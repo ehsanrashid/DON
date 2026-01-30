@@ -460,7 +460,7 @@ bool PolyBook::load(std::string_view bookFile) noexcept {
         std::cerr << "Warning: Bad size Book file " << filename << ", ignoring " << remainder
                   << " trailing bytes" << std::endl;
 
-    std::ifstream ifs(filename, std::ios::binary);
+    std::ifstream ifs{filename, std::ios::binary};
 
     if (!ifs.is_open())
     {

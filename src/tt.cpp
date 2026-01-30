@@ -282,7 +282,7 @@ bool TranspositionTable::load(std::string_view hashFile, Threads& threads) noexc
 
     std::error_code ec;
 
-    std::size_t fileSize = std::filesystem::file_size(std::string(hashFile), ec);
+    std::size_t fileSize = std::filesystem::file_size(std::string{hashFile}, ec);
 
     if (ec)
     {
@@ -296,7 +296,7 @@ bool TranspositionTable::load(std::string_view hashFile, Threads& threads) noexc
         return true;
     }
 
-    std::ifstream ifs(std::string(hashFile), std::ios::binary);
+    std::ifstream ifs{std::string{hashFile}, std::ios::binary};
 
     if (!ifs.is_open())
     {
@@ -358,7 +358,7 @@ bool TranspositionTable::save(std::string_view hashFile) const noexcept {
         return false;
     }
 
-    std::ofstream ofs(std::string(hashFile), std::ios::binary);
+    std::ofstream ofs{std::string{hashFile}, std::ios::binary};
 
     if (!ofs.is_open())
     {

@@ -263,7 +263,7 @@ class TBPaths final {
 
         if (!paths.empty())
         {
-            std::istringstream iss{std::string(paths)};
+            std::istringstream iss{std::string{paths}};
 
             std::string path;
 
@@ -299,7 +299,7 @@ class TBFile final {
         {
             std::string fn = (dir / file).string();  // path concatenation
 
-            if (std::ifstream(fn, std::ios::binary).is_open())
+            if (std::ifstream{fn, std::ios::binary}.is_open())
             {
                 filename = std::move(fn);
                 break;

@@ -235,7 +235,7 @@ void Engine::dump(std::optional<std::string_view> dumpFile) const noexcept {
 
     if (dumpFile.has_value())
     {
-        std::ofstream ofs(std::string(dumpFile.value()), std::ios::binary);
+        std::ofstream ofs{std::string{dumpFile.value()}, std::ios::binary};
 
         if (ofs.is_open())
         {
@@ -360,7 +360,7 @@ void Engine::load_networks() noexcept {
 void Engine::load_big_network(std::string_view netFile) noexcept {
 
     networks.modify_and_replicate([this, &netFile](NNUE::Networks& nets) {
-        nets.big.load(binaryDirectory, std::string(netFile));
+        nets.big.load(binaryDirectory, std::string{netFile});
     });
 
     threads.init();
@@ -371,7 +371,7 @@ void Engine::load_big_network(std::string_view netFile) noexcept {
 void Engine::load_small_network(std::string_view netFile) noexcept {
 
     networks.modify_and_replicate([this, &netFile](NNUE::Networks& nets) {
-        nets.small.load(binaryDirectory, std::string(netFile));
+        nets.small.load(binaryDirectory, std::string{netFile});
     });
 
     threads.init();

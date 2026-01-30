@@ -891,9 +891,9 @@ class FixedString final {
         return *this;
     }
 
-    operator std::string() const noexcept { return std::string(data(), size()); }
+    operator std::string() const noexcept { return std::string{data(), size()}; }
 
-    operator std::string_view() const noexcept { return std::string_view(data(), size()); }
+    operator std::string_view() const noexcept { return std::string_view{data(), size()}; }
 
     template<typename T>
     bool operator==(const T& t) const noexcept {
