@@ -1196,8 +1196,6 @@ class BackendSharedMemory final: public BaseSharedMemory {
 
     void open_register(const T& value) noexcept {
 
-        opened = false;
-
         if (SharedMemoryRegistry::cleanup_in_progress())
             return;
 
@@ -1300,7 +1298,7 @@ class BackendSharedMemory final: public BaseSharedMemory {
             // Register this new resource
             SharedMemoryRegistry::attempt_register_memory(this);
 
-            opened = true;
+            available = true;
 
             break;
         }
@@ -1347,9 +1345,9 @@ class BackendSharedMemory final: public BaseSharedMemory {
         return shmHeader != nullptr ? shmHeader->ref_count() : 0;
     }
 
-    bool is_valid() const noexcept { return opened && is_open() && is_initialized(); }
+    bool is_valid() const noexcept { return available && is_open() && is_initialized(); }
 
-    void* get() const noexcept { return is_valid() ? dataPtr : nullptr; }
+    void* get() const noexcept { return is_valid() ? reinterpret_cast<void*>(dataPtr) : nullptr; }
 
     SharedMemoryAllocationStatus get_status() const noexcept {
         return is_valid() ? SharedMemoryAllocationStatus::SharedMemory
@@ -1357,7 +1355,7 @@ class BackendSharedMemory final: public BaseSharedMemory {
     }
 
     std::optional<std::string> get_error_message() const noexcept {
-        if (!opened)
+        if (!available)
             return "Shared memory not available";
 
         if (!is_open())
@@ -1713,8 +1711,8 @@ class BackendSharedMemory final: public BaseSharedMemory {
     static constexpr std::size_t      MAX_PID_CHARS = 10;
 
     std::string name;
-    bool        opened = false;
-    int         fd     = INVALID_FD;
+    bool        available = false;
+    int         fd        = INVALID_FD;
     FdGuard     fdGuard{fd};
     void*       mappedPtr  = INVALID_MMAP_PTR;
     std::size_t mappedSize = INVALID_MMAP_SIZE;
