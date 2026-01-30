@@ -76,6 +76,6 @@ int main() {
         return 2;
     }
 
-    std::cout << "thread_create_failure: observed failure (expected under constrained env)\n";
+    std::cout << "thread_creation: observed failure (expected under constrained env)\n";
     return 0;
 }

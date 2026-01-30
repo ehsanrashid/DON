@@ -36,6 +36,12 @@
 
 namespace DON {
 
+namespace {
+
+static constexpr double HistoryMapLoadFactor = 0.75f;
+
+}  // namespace
+
 // Constructor for a worker thread.
 //
 // Responsibilities:
@@ -237,7 +243,9 @@ void Threads::set(const NumaConfig&                       numaConfig,
 
     // Just clear and reserve as needed
     historiesMap.clear();
-    historiesMap.reserve(numaThreadCounts.size());
+    historiesMap.max_load_factor(HistoryMapLoadFactor);
+    std::size_t bucketCount = std::size_t(numaThreadCounts.size() / HistoryMapLoadFactor) + 1;
+    historiesMap.rehash(bucketCount);
 
     // Populate shared histories map (optionally NUMA-bound)
     for (const auto& pair : numaThreadCounts)
