@@ -118,6 +118,9 @@ inline constexpr std::size_t ONE_MB = ONE_KB * ONE_KB;
 constexpr std::size_t UnRoll8 = 8;
 constexpr std::size_t UnRoll4 = 4;
 
+constexpr std::uint64_t FNV_BASIS = 0xCBF29CE484222325ULL;
+constexpr std::uint64_t FNV_PRIME = 0x00000100000001B3ULL;
+
 // True if and only if the binary is compiled on a little-endian machine
 #if defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__)
 inline constexpr bool IsLittleEndian = (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__);
@@ -1125,12 +1128,18 @@ class ConcurrentCache final {
     std::unordered_map<Key, StorageValue> storage;
 };
 
-inline std::uint64_t hash_bytes(const char* RESTRICT data, std::size_t size) noexcept {
-    constexpr std::uint64_t FNV_Basis = 0xCBF29CE484222325ULL;
-    constexpr std::uint64_t FNV_Prime = 0x00000100000001B3ULL;
+// Compile-time FNV-1a hash for string literals
+constexpr std::uint64_t constexpr_hash_string(std::string_view str,
+                                              std::size_t      idx  = 0,
+                                              std::uint64_t    hash = FNV_BASIS) noexcept {
+    return idx < str.size()
+           ? constexpr_hash_string(str, idx + 1, (hash ^ std::uint8_t(str[idx])) * FNV_PRIME)
+           : hash;
+}
 
+inline std::uint64_t hash_bytes(const char* RESTRICT data, std::size_t size) noexcept {
     // FNV-1a 64-bit
-    std::uint64_t h = FNV_Basis;
+    std::uint64_t h = FNV_BASIS;
 
     const std::uint8_t* RESTRICT p = reinterpret_cast<const std::uint8_t*>(data);
 
@@ -1139,34 +1148,34 @@ inline std::uint64_t hash_bytes(const char* RESTRICT data, std::size_t size) noe
     // Unroll 8 bytes at a time
     for (; i + UnRoll8 <= size; i += UnRoll8)
     {
-        h = (h ^ p[i + 0]) * FNV_Prime;
-        h = (h ^ p[i + 1]) * FNV_Prime;
-        h = (h ^ p[i + 2]) * FNV_Prime;
-        h = (h ^ p[i + 3]) * FNV_Prime;
-        h = (h ^ p[i + 4]) * FNV_Prime;
-        h = (h ^ p[i + 5]) * FNV_Prime;
-        h = (h ^ p[i + 6]) * FNV_Prime;
-        h = (h ^ p[i + 7]) * FNV_Prime;
+        h = (h ^ p[i + 0]) * FNV_PRIME;
+        h = (h ^ p[i + 1]) * FNV_PRIME;
+        h = (h ^ p[i + 2]) * FNV_PRIME;
+        h = (h ^ p[i + 3]) * FNV_PRIME;
+        h = (h ^ p[i + 4]) * FNV_PRIME;
+        h = (h ^ p[i + 5]) * FNV_PRIME;
+        h = (h ^ p[i + 6]) * FNV_PRIME;
+        h = (h ^ p[i + 7]) * FNV_PRIME;
     }
     // Unroll 4 bytes at a time
     for (; i + UnRoll4 <= size; i += UnRoll4)
     {
-        h = (h ^ p[i + 0]) * FNV_Prime;
-        h = (h ^ p[i + 1]) * FNV_Prime;
-        h = (h ^ p[i + 2]) * FNV_Prime;
-        h = (h ^ p[i + 3]) * FNV_Prime;
+        h = (h ^ p[i + 0]) * FNV_PRIME;
+        h = (h ^ p[i + 1]) * FNV_PRIME;
+        h = (h ^ p[i + 2]) * FNV_PRIME;
+        h = (h ^ p[i + 3]) * FNV_PRIME;
     }
     // Handle remaining bytes
     while (i < size)
     {
-        h = (h ^ p[i]) * FNV_Prime;
+        h = (h ^ p[i]) * FNV_PRIME;
         ++i;
     }
 
     return h;
 }
 
-inline std::uint64_t hash_string(std::string_view str) {
+inline std::uint64_t hash_string(std::string_view str) noexcept {
     return hash_bytes(str.data(), str.size());
 }
 
