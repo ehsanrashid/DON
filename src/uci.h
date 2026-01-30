@@ -20,6 +20,7 @@
 
 #include <cstdint>
 #include <iosfwd>
+#include <memory>
 #include <string>
 #include <string_view>
 
@@ -31,17 +32,21 @@
 namespace DON {
 
 class Position;
+class Options;
 class Score;
 
 class UCI final {
    public:
-    UCI(int argc, const char* argv[]) noexcept;
+    static void init(int argc, const char* argv[]) noexcept;
 
-    auto& options() noexcept { return engine.get_options(); }
+    static bool is_initialized() noexcept { return initialized; }
 
-    void run() noexcept;
+    static StringViews& arguments() noexcept;
+    static Options&     options() noexcept;
 
-    void execute(std::string_view command) noexcept;
+    static void run() noexcept;
+
+    static void execute(std::string_view command) noexcept;
 
     static void print_info_string(std::string_view infoStr) noexcept;
 
@@ -71,18 +76,26 @@ class UCI final {
     static inline bool InfoStringStop = false;
 
    private:
-    void set_update_callbacks() noexcept;
+    static void set_update_callbacks() noexcept;
 
-    void position(std::istream& is) noexcept;
-    void go(std::istream& is) noexcept;
-    void setoption(std::istream& is) noexcept;
-    void bench(std::istream& is) noexcept;
-    void benchmark(std::istream& is) noexcept;
+    static void position(std::istream& is) noexcept;
+    static void go(std::istream& is) noexcept;
+    static void setoption(std::istream& is) noexcept;
+    static void bench(std::istream& is) noexcept;
+    static void benchmark(std::istream& is) noexcept;
 
-    std::uint64_t perft(Depth depth, bool detail = false) noexcept;
+    static std::uint64_t perft(Depth depth, bool detail = false) noexcept;
 
-    Engine      engine;
-    CommandLine commandLine;
+    UCI() noexcept                      = delete;
+    ~UCI() noexcept                     = delete;
+    UCI(const UCI&) noexcept            = delete;
+    UCI(UCI&&) noexcept                 = delete;
+    UCI& operator=(const UCI&) noexcept = delete;
+    UCI& operator=(UCI&&) noexcept      = delete;
+
+    static inline std::unique_ptr<CommandLine> commandLine;
+    static inline std::unique_ptr<Engine>      engine;
+    static inline bool                         initialized = false;
 };
 
 }  // namespace DON
