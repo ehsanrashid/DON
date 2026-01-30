@@ -61,7 +61,7 @@ constexpr AutoNumaPolicy DEFAULT_NUMA_POLICY = BundledL3Policy{32};
 
 }  // namespace
 
-Engine::Engine(std::optional<std::string> path) noexcept :
+Engine::Engine(std::optional<std::string_view> path) noexcept :
     // clang-format off
     binaryDirectory(path ? CommandLine::binary_directory(*path) : ""),
     numaContext(NumaConfig::from_system(DEFAULT_NUMA_POLICY)),

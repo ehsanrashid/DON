@@ -93,12 +93,7 @@ class Threads;
 // Each non-empty TTEntry contains information on exactly one position.
 class TranspositionTable final {
    public:
-    TranspositionTable() noexcept                                     = default;
-    TranspositionTable(const TranspositionTable&) noexcept            = delete;
-    TranspositionTable(TranspositionTable&&) noexcept                 = delete;
-    TranspositionTable& operator=(const TranspositionTable&) noexcept = delete;
-    TranspositionTable& operator=(TranspositionTable&&) noexcept      = delete;
-
+    TranspositionTable() noexcept = default;
     ~TranspositionTable() noexcept;
 
     std::uint8_t generation() const noexcept;
@@ -119,6 +114,11 @@ class TranspositionTable final {
     bool save(std::string_view hashFile) const noexcept;
 
    private:
+    TranspositionTable(const TranspositionTable&) noexcept            = delete;
+    TranspositionTable(TranspositionTable&&) noexcept                 = delete;
+    TranspositionTable& operator=(const TranspositionTable&) noexcept = delete;
+    TranspositionTable& operator=(TranspositionTable&&) noexcept      = delete;
+
     void free() noexcept;
 
     TTCluster*   clusters = nullptr;

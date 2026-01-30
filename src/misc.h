@@ -1440,7 +1440,7 @@ struct CommandLine final {
    public:
     CommandLine(int argc, const char* argv[]) noexcept;
 
-    static std::string binary_directory(std::string path) noexcept;
+    static std::string binary_directory(std::string_view path) noexcept;
     static std::string working_directory() noexcept;
 
     std::vector<std::string_view> arguments;

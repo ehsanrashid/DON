@@ -610,22 +610,22 @@ CommandLine::CommandLine(int argc, const char* argv[]) noexcept {
 }
 
 // Extract the binary directory
-std::string CommandLine::binary_directory(std::string path) noexcept {
+std::string CommandLine::binary_directory(std::string_view path) noexcept {
 #if defined(_WIN32)
     std::string pathSeparator = "\\";
     #if defined(_MSC_VER)
     // Under windows path may not have the extension.
     // Also _get_pgmptr() had issues in some Windows 10 versions,
     // so check returned values carefully.
-    char* pgmptr = nullptr;
-    if (_get_pgmptr(&pgmptr) == 0 && pgmptr != nullptr && *pgmptr)
-        path = pgmptr;
+    char* pgmPtr = nullptr;
+    if (_get_pgmptr(&pgmPtr) == 0 && pgmPtr != nullptr && *pgmPtr)
+        path = pgmPtr;  // NOT std::string(pgmPtr)
     #endif
 #else
     std::string pathSeparator = "/";
 #endif
-
-    std::string binaryDirectory = path;
+    // now owns memory for resizing etc.
+    std::string binaryDirectory(path);
 
     std::string currentDirectory = std::string(".") + pathSeparator;
 

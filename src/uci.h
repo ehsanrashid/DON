@@ -20,7 +20,6 @@
 
 #include <cstdint>
 #include <iosfwd>
-#include <memory>
 #include <string>
 #include <string_view>
 
@@ -90,8 +89,8 @@ class UCI final {
 
     std::uint64_t perft(Depth depth, bool detail = false) noexcept;
 
-    Engine      engine;
     CommandLine commandLine;
+    Engine      engine;
 };
 
 }  // namespace DON

@@ -27,7 +27,7 @@
 #include <sstream>
 #include <unordered_map>
 #include <utility>
-#include <vector>
+#include <vector>  // IWYU pragma: keep
 
 #include "benchmark.h"
 #include "bitboard.h"
@@ -250,8 +250,8 @@ Limit parse_limit(std::istream& is) noexcept {
 }  // namespace
 
 UCI::UCI(int argc, const char* argv[]) noexcept :
-    engine(argv[0]),
-    commandLine(argc, argv) {
+    commandLine(argc, argv),
+    engine(arguments()[0].data()) {
 
     options().set_info_callback([](std::optional<std::string> optStr) noexcept {
         if (!optStr)
