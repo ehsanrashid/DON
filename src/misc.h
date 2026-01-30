@@ -1612,32 +1612,32 @@ split(std::string_view str, std::string_view delimiter, bool trimPart = false) n
 }
 
 inline std::string hash_to_string(std::uint64_t hash) noexcept {
-    constexpr std::size_t Size = HEX64_SIZE + 1;  // 16 hex + '\0'
+    constexpr std::size_t BufferSize = HEX64_SIZE + 1;  // 16 hex + '\0'
 
-    std::string hashStr(Size, '\0');
+    StdArray<char, BufferSize> buffer{};
 
-    std::snprintf(hashStr.data(), hashStr.size(), "%016" PRIX64, hash);
+    std::snprintf(buffer.data(), buffer.size(), "%016" PRIX64, hash);
 
-    return hashStr;
+    return std::string{buffer.data(), buffer.size() - 1};
 }
 
 inline std::string u32_to_string(std::uint32_t u32) noexcept {
-    constexpr std::size_t Size = 2 + HEX32_SIZE + 1;  // "0x" + 8 hex + '\0'
+    constexpr std::size_t BufferSize = 2 + HEX32_SIZE + 1;  // "0x" + 8 hex + '\0'
 
-    std::string str(Size, '\0');
+    StdArray<char, BufferSize> buffer{};
 
-    std::snprintf(str.data(), str.size(), "0x%08" PRIX32, u32);
+    std::snprintf(buffer.data(), buffer.size(), "0x%08" PRIX32, u32);
 
-    return str;
+    return std::string{buffer.data(), buffer.size() - 1};
 }
 inline std::string u64_to_string(std::uint64_t u64) noexcept {
-    constexpr std::size_t Size = 2 + HEX64_SIZE + 1;  // "0x" + 16 hex + '\0'
+    constexpr std::size_t BufferSize = 2 + HEX64_SIZE + 1;  // "0x" + 16 hex + '\0'
 
-    std::string str(Size, '\0');
+    StdArray<char, BufferSize> buffer{};
 
-    std::snprintf(str.data(), str.size(), "0x%016" PRIX64, u64);
+    std::snprintf(buffer.data(), buffer.size(), "0x%016" PRIX64, u64);
 
-    return str;
+    return std::string{buffer.data(), buffer.size() - 1};
 }
 
 std::size_t str_to_size_t(std::string_view str) noexcept;

@@ -1,0 +1,28 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+max_line_length = 120
+indent_style = space
+indent_size = 4
+
+[*.{c,cpp,h,hpp,cxx,cc}]
+# C/C++ specific
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+charset = utf-8
+end_of_line = lf
+max_line_length = 120
+
+[*.md]
+trim_trailing_whitespace = false
+
+# Project preferences (informational, not enforced by editorconfig)
+# - Use symbolic POSIX permission flags (S_IRUSR etc.) instead of octal literals like 0666/0600
+# - Avoid direct stdout/stderr writes from library code; use DEBUG_LOG or project logging
+# - Avoid throwing operations inside noexcept functions; use safe C APIs (snprintf) and bounded buffers
+# - Prefer std::filesystem only when C++17 is available; provide string fallback in low-level modules

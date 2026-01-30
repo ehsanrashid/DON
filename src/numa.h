@@ -1549,8 +1549,10 @@ class LazyNumaReplicated final: public BaseNumaReplicated {
             return;
 
         const auto& numaCfg = numa_config();
-        numaCfg.execute_on_numa_node(
-          numaId, [this, numaId]() { instances[numaId] = std::make_unique<T>(*instances[0]); });
+
+        numaCfg.execute_on_numa_node(numaId, [this, numaId]() noexcept {
+            instances[numaId] = std::make_unique<T>(*instances[0]);
+        });
     }
 
     void prepare_replicate_from(T&& source) noexcept {
@@ -1565,8 +1567,9 @@ class LazyNumaReplicated final: public BaseNumaReplicated {
             // Just need to make sure the first instance is there.
             // Note that cannot move here as need to reallocate the data
             // on the correct NUMA node.
-            numaCfg.execute_on_numa_node(
-              0, [this, &source]() { instances.emplace_back(std::make_unique<T>(source)); });
+            numaCfg.execute_on_numa_node(0, [this, &source]() noexcept {
+                instances.emplace_back(std::make_unique<T>(source));
+            });
 
             // Prepare others for lazy init.
             instances.resize(numaCfg.nodes_size());
