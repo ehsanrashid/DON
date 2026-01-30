@@ -1778,7 +1778,8 @@ struct SystemWideSharedMemory final {
 
     SystemWideSharedMemory() noexcept = default;
 
-    // Content is addressed by its hash. An additional discriminator can be added to account for differences
+    // Content is addressed by its hash.
+    // An additional discriminator can be added to account for differences
     // that are not present in the content, for example NUMA node allocation.
     SystemWideSharedMemory(const T& value, std::uint64_t discriminator = 0) noexcept {
 
@@ -1788,32 +1789,32 @@ struct SystemWideSharedMemory final {
         // Do nothing special on Android, just use a fixed name
         ;
 #else
-        std::string hashStr;
-        hashStr.resize(128);
+        std::string hashName(128, '\0');
 
         std::uint64_t valueHash      = std::hash<T>{}(value);
         std::uint64_t executableHash = hash_string(executable_path());
 
-        int size =
-          std::snprintf(hashStr.data(), hashStr.size(), "%016" PRIX64 "$%016" PRIX64 "$%016" PRIX64,
-                        valueHash, executableHash, discriminator);
-        // shrink to actual string length
+        int size = std::snprintf(hashName.data(), hashName.size(),
+                                 "%016" PRIX64 "$%016" PRIX64 "$%016" PRIX64, valueHash,
+                                 executableHash, discriminator);
+        // Shrink to actual string length
         if (size >= 0)
         {
             // Ensure size is within bounds
-            if (std::size_t(size) >= hashStr.size())
+            if (std::size_t(size) >= hashName.size())
                 // Truncate to maximum size, leaving space for null terminator
-                size = int(hashStr.size() - 1);
+                size = int(hashName.size() - 1);
 
             // Shrink to actual content
-            hashStr.resize(size);
+            hashName.resize(size);
         }
 
         shmName.reserve(256);
 
     #if defined(_WIN32)
-        // Windows named shared memory names must start with "Local\" or "Global\" then add name hashing to avoid length limits
-        shmName = std::string{"Local\\DON_"} + hash_to_string(hash_string(hashStr));
+        // Windows named shared memory names must start with "Local\" or "Global\" then add hash-name
+        shmName = std::string{"Local\\DON_"};
+        shmName += hashName;
 
         constexpr std::size_t MaxNameSize = 255 - 1;
 
@@ -1821,8 +1822,9 @@ struct SystemWideSharedMemory final {
         if (shmName.size() > MaxNameSize)
             shmName.resize(MaxNameSize);
     #else
-        // POSIX shared memory names must start with a slash ('/') then add name hashing to avoid length limits
-        shmName = std::string{"/DON_"} + hash_to_string(hash_string(hashStr));
+        // POSIX shared memory names must start with a slash ('/') then add hash of hash-name
+        shmName = std::string{"/DON_"};
+        shmName += hash_to_string(hash_string(hashName));
 
         // POSIX APIs expect a fixed-size C string where the maximum length excluding the terminating null character ('\0').
         // Since std::string::size() does not include '\0', allow at most (MAX - 1) characters
