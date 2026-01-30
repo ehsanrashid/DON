@@ -79,7 +79,7 @@ std::string format_date(std::string_view date) noexcept {
     unsigned monthId = 1 + std::distance(Months.begin(), itr);
 
     // Format YYYYMMDD using ostringstream
-    std::ostringstream oss;
+    std::ostringstream oss{};
     oss << std::setfill('0')        //
         << std::setw(4) << year     //
         << std::setw(2) << monthId  //
@@ -283,9 +283,10 @@ std::string format_time(const std::chrono::system_clock::time_point& timePoint) 
     tm = *std::localtime(&time);
 #endif
 
-    return (std::ostringstream{} << std::put_time(&tm, "%Y.%m.%d-%H:%M:%S") << '.'
-                                 << std::setfill('0') << std::setw(6) << usec)
-      .str();
+    std::ostringstream oss{};
+    oss << std::put_time(&tm, "%Y.%m.%d-%H:%M:%S") << '.'  //
+        << std::setfill('0') << std::setw(6) << usec;
+    return oss.str();
 }
 
 #if !defined(NDEBUG)

@@ -771,7 +771,7 @@ class NumaConfig final {
     }
 
     std::string to_string() const noexcept {
-        std::ostringstream oss;
+        std::ostringstream oss{};
 
         for (auto nodeItr = nodes.begin(); nodeItr != nodes.end(); ++nodeItr)
         {

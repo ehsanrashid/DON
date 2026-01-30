@@ -1157,7 +1157,8 @@ class SharedMemory final: public BaseSharedMemory {
     explicit SharedMemory(const std::string& shmName) noexcept :
         name(shmName),
         mappedSize(mapped_size()) {
-        sentinelBase = std::string{"DON_"} + hash_to_string(hash_string(name));
+        sentinelBase = std::string{"DON_"};
+        sentinelBase += hash_to_string(hash_string(name));
     }
 
     ~SharedMemory() noexcept override { unregister_close(); }
@@ -1829,7 +1830,7 @@ struct SystemWideSharedMemory final {
         // POSIX APIs expect a fixed-size C string where the maximum length excluding the terminating null character ('\0').
         // Since std::string::size() does not include '\0', allow at most (MAX - 1) characters
         // to guarantee space for the terminator ('\0') in fixed-size buffers.
-        constexpr std::size_t MaxNameSize = SHM_NAME_MAX_SIZE > 0 ? SHM_NAME_MAX_SIZE - 1 : 254;
+        constexpr std::size_t MaxNameSize = SHM_NAME_MAX_SIZE > 0 ? SHM_NAME_MAX_SIZE - 1 : 255 - 1;
     #endif
 
         // Truncate the name if necessary so that it fits within limits including the null terminator

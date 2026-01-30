@@ -145,7 +145,7 @@ std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& ac
             write_square(f, r, pc, v);
         }
 
-    std::ostringstream oss;
+    std::ostringstream oss{};
 
     oss << " NNUE derived piece values:\n";
 

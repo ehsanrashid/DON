@@ -111,7 +111,7 @@ std::string trace(Position& pos, const NNUE::Networks& networks) noexcept {
     auto accStack  = std::make_unique<NNUE::AccumulatorStack>();
     auto accCaches = std::make_unique<NNUE::AccumulatorCaches>(networks);
 
-    std::ostringstream oss;
+    std::ostringstream oss{};
 
     oss << std::showpoint << std::noshowpos << std::fixed << std::setprecision(2);
     oss << '\n' << NNUE::trace(pos, networks, *accCaches) << '\n';
