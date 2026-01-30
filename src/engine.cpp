@@ -155,7 +155,7 @@ void Engine::setup(std::string_view fen, const Strings& moves) noexcept {
     states = std::make_unique<StateList>(1);
     pos.set(fen, &states->back());
 
-    std::int16_t ply = 1;
+    [[maybe_unused]] std::int16_t ply = 1;
 
     for (const auto& move : moves)
     {

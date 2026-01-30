@@ -19,6 +19,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <ostream>
 #include <ratio>
 #include <string>
 #include <unordered_map>
@@ -38,7 +39,7 @@ namespace DON {
 
 namespace {
 
-static constexpr double HistoryMapLoadFactor = 0.75f;
+static constexpr float HistoryMapLoadFactor = 0.75f;
 
 }  // namespace
 
