@@ -249,14 +249,9 @@ Limit parse_limit(std::istream& is) noexcept {
 
 }  // namespace
 
-void UCI::init(int argc, const char* argv[]) noexcept {
-
-    if (!is_initialized())
-    {
-        commandLine = std::make_unique<CommandLine>(argc, argv);
-        engine      = std::make_unique<Engine>(argv[0]);
-        initialized = true;
-    }
+UCI::UCI(int argc, const char* argv[]) noexcept :
+    engine(argv[0]),
+    commandLine(argc, argv) {
 
     options().set_info_callback([](std::optional<std::string> optStr) noexcept {
         if (!optStr)
@@ -268,23 +263,9 @@ void UCI::init(int argc, const char* argv[]) noexcept {
     set_update_callbacks();
 }
 
-StringViews& UCI::arguments() noexcept {
-    if (!commandLine)
-    {
-        std::cerr << "UCI::commandLine not initialized!\n";
-        std::terminate();
-    }
-    return commandLine->arguments;
-}
+StringViews& UCI::arguments() noexcept { return commandLine.arguments; }
 
-Options& UCI::options() noexcept {
-    if (!engine)
-    {
-        std::cerr << "UCI::engine not initialized!\n";
-        std::terminate();
-    }
-    return engine->get_options();
-}
+Options& UCI::options() noexcept { return engine.get_options(); }
 
 void UCI::run() noexcept {
 
@@ -335,21 +316,21 @@ void UCI::execute(std::string_view command) noexcept {
     {
     case Command::STOP :
     case Command::QUIT :
-        engine->stop();
+        engine.stop();
         break;
     case Command::PONDERHIT :
         // The GUI sends 'ponderhit' to tell that the user has played the expected move.
         // So, 'ponderhit' is sent if pondering was done on the same move that the user has played.
         // The search should continue, but should also switch from pondering to the normal search.
-        engine->ponderhit();
+        engine.ponderhit();
         break;
     case Command::POSITION :
         position(iss);
         break;
     case Command::GO :
         // Send info strings after the go command is sent for old GUIs and python-chess
-        print_info_string(engine->get_numa_config_info_str());
-        print_info_string(engine->get_thread_allocation_info_str());
+        print_info_string(engine.get_numa_config_info_str());
+        print_info_string(engine.get_thread_allocation_info_str());
 
         go(iss);
         break;
@@ -362,7 +343,7 @@ void UCI::execute(std::string_view command) noexcept {
                   << "uciok" << std::endl;
         break;
     case Command::UCINEWGAME :
-        engine->init();
+        engine.init();
         break;
     case Command::ISREADY :
         std::cout << "readyok" << std::endl;
@@ -376,7 +357,7 @@ void UCI::execute(std::string_view command) noexcept {
         benchmark(iss);
         break;
     case Command::SHOW :
-        engine->show();
+        engine.show();
         break;
     case Command::DUMP : {
         std::optional<std::string> dumpFile;
@@ -385,17 +366,17 @@ void UCI::execute(std::string_view command) noexcept {
         if (iss >> input)
             dumpFile = input;
 
-        engine->dump(dumpFile);
+        engine.dump(dumpFile);
     }
     break;
     case Command::EVAL :
-        engine->eval();
+        engine.eval();
         break;
     case Command::FLIP :
-        engine->flip();
+        engine.flip();
         break;
     case Command::MIRROR :
-        engine->mirror();
+        engine.mirror();
         break;
     case Command::COMPILER :
         std::cout << compiler_info() << std::endl;
@@ -407,7 +388,7 @@ void UCI::execute(std::string_view command) noexcept {
         for (std::size_t i = 0; i < netFiles.size() && iss >> input; ++i)
             netFiles[i] = input;
 
-        engine->save_networks(netFiles);
+        engine.save_networks(netFiles);
     }
     break;
     case Command::HELP :
@@ -477,10 +458,10 @@ void on_update_move(const MoveInfo& mInfo) noexcept {
 }  // namespace
 
 void UCI::set_update_callbacks() noexcept {
-    engine->set_on_update_short(on_update_short);
-    engine->set_on_update_full(on_update_full);
-    engine->set_on_update_iter(on_update_iter);
-    engine->set_on_update_move(on_update_move);
+    engine.set_on_update_short(on_update_short);
+    engine.set_on_update_full(on_update_full);
+    engine.set_on_update_iter(on_update_iter);
+    engine.set_on_update_move(on_update_move);
 }
 
 void UCI::position(std::istream& is) noexcept {
@@ -525,7 +506,7 @@ void UCI::position(std::istream& is) noexcept {
     while (is >> token)
         moves.push_back(token);
 
-    engine->setup(fen, moves);
+    engine.setup(fen, moves);
 }
 
 void UCI::go(std::istream& is) noexcept {
@@ -535,13 +516,13 @@ void UCI::go(std::istream& is) noexcept {
         perft(limit.depth, limit.detail);
     else
     {
-        engine->start(limit);
+        engine.start(limit);
         // Not wait here
     }
 }
 
 void UCI::setoption(std::istream& is) noexcept {
-    engine->wait_finish();
+    engine.wait_finish();
 
     std::string token;
     is >> token;  // Consume the "name" token
@@ -572,10 +553,10 @@ void UCI::setoption(std::istream& is) noexcept {
 
 void UCI::bench(std::istream& is) noexcept {
 
-    auto commands = Benchmark::bench(is, engine->fen());
+    auto commands = Benchmark::bench(is, engine.fen());
 
     std::uint64_t infoNodes = 0;
-    engine->set_on_update_full([&infoNodes](const auto& info) {
+    engine.set_on_update_full([&infoNodes](const auto& info) {
         infoNodes = info.nodes;
         on_update_full(info);
     });
@@ -612,7 +593,7 @@ void UCI::bench(std::istream& is) noexcept {
         switch (to_command(lower_case(token)))
         {
         case Command::GO : {
-            std::cerr << "\nPosition: " << ++cnt << '/' << num << " (" << engine->fen() << ")"
+            std::cerr << "\nPosition: " << ++cnt << '/' << num << " (" << engine.fen() << ")"
                       << std::endl;
 
             auto limit = parse_limit(iss);
@@ -621,8 +602,8 @@ void UCI::bench(std::istream& is) noexcept {
                 infoNodes = perft(limit.depth, limit.detail);
             else
             {
-                engine->start(limit);
-                engine->wait_finish();
+                engine.start(limit);
+                engine.wait_finish();
             }
 
             nodes += infoNodes;
@@ -630,9 +611,9 @@ void UCI::bench(std::istream& is) noexcept {
         }
         break;
         case Command::EVAL :
-            std::cerr << "\nPosition: " << ++cnt << '/' << num << " (" << engine->fen() << ")"
+            std::cerr << "\nPosition: " << ++cnt << '/' << num << " (" << engine.fen() << ")"
                       << std::endl;
-            engine->eval();
+            engine.eval();
             break;
         case Command::POSITION :
             position(iss);
@@ -642,7 +623,7 @@ void UCI::bench(std::istream& is) noexcept {
             break;
         case Command::UCINEWGAME :
             elapsedTime += now() - startTime;
-            engine->init();  // May take a while
+            engine.init();  // May take a while
             startTime = now();
             break;
         default :;
@@ -665,7 +646,7 @@ void UCI::bench(std::istream& is) noexcept {
 
     options().set("ReportMinimal", reportMinimal);
     // Reset callback, to not capture a dangling reference to infoNodes
-    engine->set_on_update_full(on_update_full);
+    engine.set_on_update_full(on_update_full);
 }
 
 void UCI::benchmark(std::istream& is) noexcept {
@@ -680,10 +661,10 @@ void UCI::benchmark(std::istream& is) noexcept {
     options().set("UCI_Chess960", bool_to_string(false));
 
     std::uint64_t infoNodes = 0;
-    engine->set_on_update_short([](const auto&) {});
-    engine->set_on_update_full([&](const auto& info) { infoNodes = info.nodes; });
-    engine->set_on_update_iter([](const auto&) {});
-    engine->set_on_update_move([](const auto&) {});
+    engine.set_on_update_short([](const auto&) {});
+    engine.set_on_update_full([&](const auto& info) { infoNodes = info.nodes; });
+    engine.set_on_update_iter([](const auto&) {});
+    engine.set_on_update_move([](const auto&) {});
 
     InfoStringStop = true;
 
@@ -721,8 +702,8 @@ void UCI::benchmark(std::istream& is) noexcept {
             auto limit = parse_limit(iss);
 
             // Run with silenced network verification
-            engine->start(limit);
-            engine->wait_finish();
+            engine.start(limit);
+            engine.wait_finish();
 
             nodes += infoNodes;
             infoNodes = 0;
@@ -733,7 +714,7 @@ void UCI::benchmark(std::istream& is) noexcept {
             break;
         case Command::UCINEWGAME :
             elapsedTime += now() - startTime;
-            engine->init();  // May take a while
+            engine.init();  // May take a while
             startTime = now();
             break;
         default :;
@@ -762,7 +743,7 @@ void UCI::benchmark(std::istream& is) noexcept {
         ++hashfullCount;
         for (std::size_t i = 0; i < HashfullAges.size(); ++i)
         {
-            auto hashfull = engine->hashfull(HashfullAges[i]);
+            auto hashfull = engine.hashfull(HashfullAges[i]);
             if (maxHashfull[i] < hashfull)
                 maxHashfull[i] = hashfull;
             sumHashfull[i] += hashfull;
@@ -772,7 +753,7 @@ void UCI::benchmark(std::istream& is) noexcept {
     auto avg = [&hashfullCount](std::uint32_t x) noexcept { return double(x) / hashfullCount; };
 
     elapsedTime += now() - startTime;
-    engine->init();  // May take a while
+    engine.init();  // May take a while
     startTime = now();
 
     for (const auto& command : setup.commands)
@@ -795,8 +776,8 @@ void UCI::benchmark(std::istream& is) noexcept {
             auto limit = parse_limit(iss);
 
             // Run with silenced network verification
-            engine->start(limit);
-            engine->wait_finish();
+            engine.start(limit);
+            engine.wait_finish();
 
             update_hashfull();
 
@@ -809,7 +790,7 @@ void UCI::benchmark(std::istream& is) noexcept {
             break;
         case Command::UCINEWGAME :
             elapsedTime += now() - startTime;
-            engine->init();  // May take a while
+            engine.init();  // May take a while
             startTime = now();
             break;
         default :;
@@ -827,7 +808,7 @@ void UCI::benchmark(std::istream& is) noexcept {
 
     std::cerr << '\n';
 
-    auto threadBinding = engine->get_thread_binding_info_str();
+    auto threadBinding = engine.get_thread_binding_info_str();
     if (threadBinding.empty())
         threadBinding = "none";
 
@@ -838,7 +819,7 @@ void UCI::benchmark(std::istream& is) noexcept {
               << "\nLarge page                 : " << bool_to_string(has_large_page())
               << "\nOriginal invocation        : " << "benchmark " << setup.originalInvocation
               << "\nFilled invocation          : " << "benchmark " << setup.filledInvocation
-              << "\nAvailable processors       : " << engine->get_numa_config_str()
+              << "\nAvailable processors       : " << engine.get_numa_config_str()
               << "\nThread count               : " << setup.threads
               << "\nThread binding             : " << threadBinding
               << "\nTT size [MiB]              : " << setup.ttSize
@@ -855,7 +836,7 @@ void UCI::benchmark(std::istream& is) noexcept {
 }
 
 std::uint64_t UCI::perft(Depth depth, bool detail) noexcept {
-    std::uint64_t nodes = engine->perft(depth, detail);
+    std::uint64_t nodes = engine.perft(depth, detail);
 
     std::cout << "\nTotal nodes: " << nodes << '\n' << std::endl;
 
