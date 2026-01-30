@@ -23,7 +23,6 @@
 #include <fstream>
 #include <iostream>
 #include <memory>
-#include <sstream>
 
 #include "evaluate.h"
 #include "movegen.h"
@@ -61,7 +60,7 @@ constexpr AutoNumaPolicy DEFAULT_NUMA_POLICY = BundledL3Policy{32};
 
 }  // namespace
 
-Engine::Engine(std::optional<std::string> path) noexcept :
+Engine::Engine(std::optional<std::string_view> path) noexcept :
     // clang-format off
     binaryDirectory(path ? CommandLine::binary_directory(*path) : ""),
     numaContext(NumaConfig::from_system(DEFAULT_NUMA_POLICY)),
@@ -235,7 +234,7 @@ void Engine::dump(std::optional<std::string_view> dumpFile) const noexcept {
 
     if (dumpFile.has_value())
     {
-        std::ofstream ofs(std::string(dumpFile.value()), std::ios::binary);
+        std::ofstream ofs{std::string{dumpFile.value()}, std::ios::binary};
 
         if (ofs.is_open())
         {
@@ -273,7 +272,11 @@ std::string Engine::get_numa_config_str() const noexcept {
 }
 
 std::string Engine::get_numa_config_info_str() const noexcept {
-    return "Available Processors: " + get_numa_config_str();
+    std::string numaConfig{"Available Processors: "};
+
+    numaConfig += get_numa_config_str();
+
+    return numaConfig;
 }
 
 std::vector<std::pair<std::size_t, std::size_t>> Engine::get_bound_thread_counts() const noexcept {
@@ -295,32 +298,39 @@ std::vector<std::pair<std::size_t, std::size_t>> Engine::get_bound_thread_counts
 }
 
 std::string Engine::get_thread_binding_info_str() const noexcept {
-    std::ostringstream oss;
+    std::string threadBinding;
 
     auto boundThreadCounts = get_bound_thread_counts();
-    if (!boundThreadCounts.empty())
-        for (auto itr = boundThreadCounts.begin(); itr != boundThreadCounts.end(); ++itr)
-        {
-            if (itr != boundThreadCounts.begin())
-                oss << ':';
 
-            oss << itr->first << '/' << itr->second;
-        }
+    bool first = true;
 
-    return oss.str();
+    for (const auto& [key, value] : boundThreadCounts)
+    {
+        if (!first)
+            threadBinding += ':';
+
+        first = false;
+
+        threadBinding += std::to_string(key) + '/' + std::to_string(value);
+    }
+
+    return threadBinding;
 }
 
 std::string Engine::get_thread_allocation_info_str() const noexcept {
-    std::ostringstream oss;
+    std::string threadAllocation{"Threads: "};
 
-    oss << "Threads: " << threads.size();
+    threadAllocation += std::to_string(threads.size());
 
-    auto threadBindingInfoStr = get_thread_binding_info_str();
+    std::string threadBinding = get_thread_binding_info_str();
 
-    if (!threadBindingInfoStr.empty())
-        oss << " with NUMA node thread binding: " << threadBindingInfoStr;
+    if (!threadBinding.empty())
+    {
+        threadAllocation += " with NUMA node thread binding: ";
+        threadAllocation += threadBinding;
+    }
 
-    return oss.str();
+    return threadAllocation;
 }
 
 void Engine::verify_networks() const noexcept {
@@ -360,7 +370,7 @@ void Engine::load_networks() noexcept {
 void Engine::load_big_network(std::string_view netFile) noexcept {
 
     networks.modify_and_replicate([this, &netFile](NNUE::Networks& nets) {
-        nets.big.load(binaryDirectory, std::string(netFile));
+        nets.big.load(binaryDirectory, std::string{netFile});
     });
 
     threads.init();
@@ -371,7 +381,7 @@ void Engine::load_big_network(std::string_view netFile) noexcept {
 void Engine::load_small_network(std::string_view netFile) noexcept {
 
     networks.modify_and_replicate([this, &netFile](NNUE::Networks& nets) {
-        nets.small.load(binaryDirectory, std::string(netFile));
+        nets.small.load(binaryDirectory, std::string{netFile});
     });
 
     threads.init();

@@ -65,17 +65,18 @@ struct TTCluster;
 
 class TTUpdater final {
    public:
-    TTUpdater() noexcept                            = delete;
-    TTUpdater(const TTUpdater&) noexcept            = delete;
-    TTUpdater(TTUpdater&&) noexcept                 = default;
-    TTUpdater& operator=(const TTUpdater&) noexcept = delete;
-    TTUpdater& operator=(TTUpdater&&) noexcept      = delete;
+    TTUpdater(TTUpdater&&) noexcept = default;
 
     TTUpdater(TTEntry* te, TTCluster* tc, std::uint16_t k, std::uint8_t gen) noexcept;
 
     void update(Move m, Value v, Value ev, Depth d, Bound b, bool pv) noexcept;
 
    private:
+    TTUpdater() noexcept                            = delete;
+    TTUpdater(const TTUpdater&) noexcept            = delete;
+    TTUpdater& operator=(const TTUpdater&) noexcept = delete;
+    TTUpdater& operator=(TTUpdater&&) noexcept      = delete;
+
     TTEntry*            tte;
     TTCluster* const    ttc;
     const std::uint16_t key;
@@ -83,6 +84,7 @@ class TTUpdater final {
 };
 
 struct ProbResult final {
+   public:
     TTData    data;
     TTUpdater updater;
 };
@@ -93,12 +95,7 @@ class Threads;
 // Each non-empty TTEntry contains information on exactly one position.
 class TranspositionTable final {
    public:
-    TranspositionTable() noexcept                                     = default;
-    TranspositionTable(const TranspositionTable&) noexcept            = delete;
-    TranspositionTable(TranspositionTable&&) noexcept                 = delete;
-    TranspositionTable& operator=(const TranspositionTable&) noexcept = delete;
-    TranspositionTable& operator=(TranspositionTable&&) noexcept      = delete;
-
+    TranspositionTable() noexcept = default;
     ~TranspositionTable() noexcept;
 
     std::uint8_t generation() const noexcept;
@@ -119,6 +116,11 @@ class TranspositionTable final {
     bool save(std::string_view hashFile) const noexcept;
 
    private:
+    TranspositionTable(const TranspositionTable&) noexcept            = delete;
+    TranspositionTable(TranspositionTable&&) noexcept                 = delete;
+    TranspositionTable& operator=(const TranspositionTable&) noexcept = delete;
+    TranspositionTable& operator=(TranspositionTable&&) noexcept      = delete;
+
     void free() noexcept;
 
     TTCluster*   clusters = nullptr;

@@ -198,14 +198,16 @@ class Position final {
     static void init() noexcept;
 
     Position() noexcept;
-    Position(const Position&) noexcept            = default;
-    Position(Position&&) noexcept                 = delete;
     Position& operator=(const Position&) noexcept = default;
-    Position& operator=(Position&&) noexcept      = delete;
 
-    void clear() noexcept;
+   private:
+    Position(const Position&) noexcept       = delete;
+    Position(Position&&) noexcept            = delete;
+    Position& operator=(Position&&) noexcept = delete;
 
    public:
+    void clear() noexcept;
+
     // FEN string input/output
     void        set(std::string_view fens, State* newSt) noexcept;
     void        set(std::string_view code, Color c, State* newSt) noexcept;

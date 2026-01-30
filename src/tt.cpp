@@ -65,10 +65,7 @@ constexpr std::uint16_t GENERATION_CYCLE = 0xFF + GENERATION_DELTA;
 struct TTEntry final {
    public:
     TTEntry() noexcept                          = default;
-    TTEntry(const TTEntry&) noexcept            = delete;
-    TTEntry(TTEntry&&) noexcept                 = delete;
     TTEntry& operator=(const TTEntry&) noexcept = default;
-    TTEntry& operator=(TTEntry&&) noexcept      = delete;
 
     constexpr std::uint16_t key() const noexcept { return key16; }
     constexpr bool          occupied() const noexcept { return depth8 != 0; }
@@ -128,6 +125,10 @@ struct TTEntry final {
     void clear() noexcept { std::memset(this, 0, sizeof(*this)); }
 
    private:
+    TTEntry(const TTEntry&) noexcept       = delete;
+    TTEntry(TTEntry&&) noexcept            = delete;
+    TTEntry& operator=(TTEntry&&) noexcept = delete;
+
     std::uint16_t key16;
     Move          move16;
     Value         val16;
@@ -148,13 +149,15 @@ TTData TTData::empty() noexcept {
 struct TTCluster final {
    public:
     TTCluster() noexcept                            = default;
-    TTCluster(const TTCluster&) noexcept            = delete;
-    TTCluster(TTCluster&&) noexcept                 = delete;
     TTCluster& operator=(const TTCluster&) noexcept = default;
-    TTCluster& operator=(TTCluster&&) noexcept      = delete;
 
     StdArray<TTEntry, 3> entries;
     StdArray<char, 2>    padding;  // Pad to 32 bytes
+
+   private:
+    TTCluster(const TTCluster&) noexcept       = delete;
+    TTCluster(TTCluster&&) noexcept            = delete;
+    TTCluster& operator=(TTCluster&&) noexcept = delete;
 };
 
 static_assert(sizeof(TTCluster) == 32, "Unexpected TTCluster size");
@@ -282,7 +285,7 @@ bool TranspositionTable::load(std::string_view hashFile, Threads& threads) noexc
 
     std::error_code ec;
 
-    std::size_t fileSize = std::filesystem::file_size(std::string(hashFile), ec);
+    std::size_t fileSize = std::filesystem::file_size(std::string{hashFile}, ec);
 
     if (ec)
     {
@@ -296,7 +299,7 @@ bool TranspositionTable::load(std::string_view hashFile, Threads& threads) noexc
         return true;
     }
 
-    std::ifstream ifs(std::string(hashFile), std::ios::binary);
+    std::ifstream ifs{std::string{hashFile}, std::ios::binary};
 
     if (!ifs.is_open())
     {
@@ -358,7 +361,7 @@ bool TranspositionTable::save(std::string_view hashFile) const noexcept {
         return false;
     }
 
-    std::ofstream ofs(std::string(hashFile), std::ios::binary);
+    std::ofstream ofs{std::string{hashFile}, std::ios::binary};
 
     if (!ofs.is_open())
     {

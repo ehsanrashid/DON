@@ -333,12 +333,7 @@ class Options;
 // All the access to threads is done through this class.
 class Threads final {
    public:
-    Threads() noexcept                          = default;
-    Threads(const Threads&) noexcept            = delete;
-    Threads(Threads&&) noexcept                 = delete;
-    Threads& operator=(const Threads&) noexcept = delete;
-    Threads& operator=(Threads&&) noexcept      = delete;
-
+    Threads() noexcept = default;
     ~Threads() noexcept;
 
     auto begin() noexcept { return threads.begin(); }
@@ -496,6 +491,11 @@ class Threads final {
         Stopped,
         Aborted
     };
+
+    Threads(const Threads&) noexcept            = delete;
+    Threads(Threads&&) noexcept                 = delete;
+    Threads& operator=(const Threads&) noexcept = delete;
+    Threads& operator=(Threads&&) noexcept      = delete;
 
     std::atomic<State> state{State::Active};
 

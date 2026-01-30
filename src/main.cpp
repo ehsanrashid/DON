@@ -16,7 +16,6 @@
 */
 
 #include <iostream>
-#include <memory>
 
 #include "bitboard.h"
 #include "memory.h"
@@ -36,11 +35,11 @@ int main(int argc, const char* argv[]) {
     Position::init();
     Tablebase::init();
 
-    auto uci = std::make_unique<UCI>(argc, argv);
+    UCI uci(argc, argv);
 
-    Tune::init(uci->options());
+    Tune::init(uci.options());
 
-    uci->run();
+    uci.run();
 
     return 0;
 }

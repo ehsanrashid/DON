@@ -31,13 +31,15 @@
 namespace DON {
 
 class Position;
+class Options;
 class Score;
 
 class UCI final {
    public:
     UCI(int argc, const char* argv[]) noexcept;
 
-    auto& options() noexcept { return engine.get_options(); }
+    StringViews& arguments() noexcept;
+    Options&     options() noexcept;
 
     void run() noexcept;
 
@@ -71,6 +73,12 @@ class UCI final {
     static inline bool InfoStringStop = false;
 
    private:
+    UCI() noexcept                      = delete;
+    UCI(const UCI&) noexcept            = delete;
+    UCI(UCI&&) noexcept                 = delete;
+    UCI& operator=(const UCI&) noexcept = delete;
+    UCI& operator=(UCI&&) noexcept      = delete;
+
     void set_update_callbacks() noexcept;
 
     void position(std::istream& is) noexcept;
@@ -81,8 +89,8 @@ class UCI final {
 
     std::uint64_t perft(Depth depth, bool detail = false) noexcept;
 
-    Engine      engine;
     CommandLine commandLine;
+    Engine      engine;
 };
 
 }  // namespace DON

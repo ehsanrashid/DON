@@ -27,7 +27,7 @@
 #include <sstream>
 #include <unordered_map>
 #include <utility>
-#include <vector>
+#include <vector>  // IWYU pragma: keep
 
 #include "benchmark.h"
 #include "bitboard.h"
@@ -250,8 +250,8 @@ Limit parse_limit(std::istream& is) noexcept {
 }  // namespace
 
 UCI::UCI(int argc, const char* argv[]) noexcept :
-    engine(argv[0]),
-    commandLine(argc, argv) {
+    commandLine(argc, argv),
+    engine(arguments()[0].data()) {
 
     options().set_info_callback([](std::optional<std::string> optStr) noexcept {
         if (!optStr)
@@ -263,20 +263,24 @@ UCI::UCI(int argc, const char* argv[]) noexcept :
     set_update_callbacks();
 }
 
+StringViews& UCI::arguments() noexcept { return commandLine.arguments; }
+
+Options& UCI::options() noexcept { return engine.get_options(); }
+
 void UCI::run() noexcept {
 
     std::string command;
     command.reserve(256);
 
-    for (std::size_t i = 1; i < commandLine.arguments.size(); ++i)
+    for (std::size_t i = 1; i < arguments().size(); ++i)
     {
         if (!command.empty())
             command += ' ';
 
-        command += commandLine.arguments[i];
+        command += arguments()[i];
     }
 
-    bool running = commandLine.arguments.size() <= 1;
+    bool running = arguments().size() <= 1;
 
     if (!running && is_whitespace(command))
         return;
@@ -804,7 +808,7 @@ void UCI::benchmark(std::istream& is) noexcept {
 
     std::cerr << '\n';
 
-    auto threadBinding = engine.get_thread_binding_info_str();
+    std::string threadBinding = engine.get_thread_binding_info_str();
     if (threadBinding.empty())
         threadBinding = "none";
 

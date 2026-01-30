@@ -256,7 +256,7 @@ void Position::set(std::string_view fens, State* newSt) noexcept {
 
     st = newSt;
 
-    std::istringstream iss{std::string(fens)};
+    std::istringstream iss{std::string{fens}};
     iss >> std::noskipws;
 
     std::uint8_t token;
