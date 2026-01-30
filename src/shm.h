@@ -1733,9 +1733,7 @@ class BackendSharedMemory final {
     BackendSharedMemory(BackendSharedMemory&& backendShm) noexcept            = default;
     BackendSharedMemory& operator=(BackendSharedMemory&& backendShm) noexcept = default;
 
-    bool is_valid() const noexcept {
-        return shm && shm->is_available() && shm->is_open() && shm->is_initialized();
-    }
+    bool is_valid() const noexcept { return shm && shm->is_open() && shm->is_initialized(); }
 
     void* get() const noexcept {
         return is_valid() ? reinterpret_cast<void*>(const_cast<T*>(&shm->get())) : nullptr;
@@ -1747,7 +1745,7 @@ class BackendSharedMemory final {
     }
 
     std::optional<std::string> get_error_message() const noexcept {
-        if (!shm || !shm->is_available())
+        if (!shm)
             return "Shared memory not available";
 
         if (!shm->is_open())
