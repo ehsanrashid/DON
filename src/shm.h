@@ -116,7 +116,7 @@ enum class SharedMemoryAllocationStatus {
     SharedMemory
 };
 
-inline std::string to_string(SharedMemoryAllocationStatus status) noexcept {
+constexpr std::string_view to_string(SharedMemoryAllocationStatus status) noexcept {
     switch (status)
     {
     case SharedMemoryAllocationStatus::NoAllocation :
@@ -125,9 +125,9 @@ inline std::string to_string(SharedMemoryAllocationStatus status) noexcept {
         return "Local memory";
     case SharedMemoryAllocationStatus::SharedMemory :
         return "Shared memory";
-    default :
-        return "Unknown status";
+    default :;
     }
+    return "Unknown status";
 }
 
 inline std::string executable_path() noexcept {
