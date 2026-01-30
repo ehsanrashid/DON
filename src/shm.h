@@ -212,6 +212,9 @@ class BackendSharedMemory final {
     BackendSharedMemory(const BackendSharedMemory&) noexcept            = delete;
     BackendSharedMemory& operator=(const BackendSharedMemory&) noexcept = delete;
 
+    BackendSharedMemory(BackendSharedMemory&& backendShm) noexcept            = default;
+    BackendSharedMemory& operator=(BackendSharedMemory&& backendShm) noexcept = default;
+
     bool is_valid() const noexcept { return false; }
 
     void* get() const noexcept { return nullptr; }
@@ -1726,6 +1729,9 @@ class BackendSharedMemory final {
 
     BackendSharedMemory(const BackendSharedMemory&) noexcept            = delete;
     BackendSharedMemory& operator=(const BackendSharedMemory&) noexcept = delete;
+
+    BackendSharedMemory(BackendSharedMemory&& backendShm) noexcept            = default;
+    BackendSharedMemory& operator=(BackendSharedMemory&& backendShm) noexcept = default;
 
     bool is_valid() const noexcept { return shm && shm->is_valid(); }
 
