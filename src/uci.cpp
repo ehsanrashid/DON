@@ -808,7 +808,7 @@ void UCI::benchmark(std::istream& is) noexcept {
 
     std::cerr << '\n';
 
-    auto threadBinding = engine.get_thread_binding_info_str();
+    std::string threadBinding = engine.get_thread_binding_info_str();
     if (threadBinding.empty())
         threadBinding = "none";
 
