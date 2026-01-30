@@ -134,10 +134,7 @@ void PerftData::operator+=(const PerftData& perftData) noexcept {
 struct PTEntry final {
    public:
     PTEntry() noexcept                          = default;
-    PTEntry(const PTEntry&) noexcept            = delete;
-    PTEntry(PTEntry&&) noexcept                 = delete;
     PTEntry& operator=(const PTEntry&) noexcept = default;
-    PTEntry& operator=(PTEntry&&) noexcept      = delete;
 
     constexpr std::uint64_t nodes() const noexcept { return nodes64; }
 
@@ -152,6 +149,10 @@ struct PTEntry final {
     }
 
    private:
+    PTEntry(const PTEntry&) noexcept       = delete;
+    PTEntry(PTEntry&&) noexcept            = delete;
+    PTEntry& operator=(PTEntry&&) noexcept = delete;
+
     std::uint32_t key32;
     Depth         depth16;
     std::uint64_t nodes64;
@@ -164,23 +165,25 @@ static_assert(sizeof(PTEntry) == 16, "Unexpected PTEntry size");
 struct PTCluster final {
    public:
     PTCluster() noexcept                            = default;
-    PTCluster(const PTCluster&) noexcept            = delete;
-    PTCluster(PTCluster&&) noexcept                 = delete;
     PTCluster& operator=(const PTCluster&) noexcept = default;
-    PTCluster& operator=(PTCluster&&) noexcept      = delete;
 
     StdArray<PTEntry, 4> entries;
+
+   private:
+    PTCluster(const PTCluster&) noexcept       = delete;
+    PTCluster(PTCluster&&) noexcept            = delete;
+    PTCluster& operator=(PTCluster&&) noexcept = delete;
 };
 
 static_assert(sizeof(PTCluster) == 64, "Unexpected PTCluster size");
 
 struct ProbResult final {
+   public:
     bool           hit;
     PTEntry* const entry;
 };
 
 class PerftTable final {
-
    public:
     PerftTable() noexcept                             = default;
     PerftTable(const PerftTable&) noexcept            = delete;

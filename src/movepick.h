@@ -83,12 +83,6 @@ class MovePicker final {
         PROBCUT
     };
 
-    MovePicker() noexcept                             = delete;
-    MovePicker(const MovePicker&) noexcept            = delete;
-    MovePicker(MovePicker&&) noexcept                 = delete;
-    MovePicker& operator=(const MovePicker&) noexcept = delete;
-    MovePicker& operator=(MovePicker&&) noexcept      = delete;
-
     MovePicker(const Position&                  p,
                Move                             ttm,
                const Histories*                 hists,
@@ -112,6 +106,12 @@ class MovePicker final {
     bool skipQuiets = false;
 
    private:
+    MovePicker() noexcept                             = delete;
+    MovePicker(const MovePicker&) noexcept            = delete;
+    MovePicker(MovePicker&&) noexcept                 = delete;
+    MovePicker& operator=(const MovePicker&) noexcept = delete;
+    MovePicker& operator=(MovePicker&&) noexcept      = delete;
+
     template<GenType GT>
     void init_stage() noexcept;
 

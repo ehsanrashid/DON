@@ -56,12 +56,6 @@ struct MoveList final {
     using iterator        = const_iterator;
     using size_type       = std::size_t;
 
-    MoveList() noexcept                           = delete;
-    MoveList(const MoveList&) noexcept            = delete;
-    MoveList(MoveList&&) noexcept                 = delete;
-    MoveList& operator=(const MoveList&) noexcept = delete;
-    MoveList& operator=(MoveList&&) noexcept      = delete;
-
     // Generate moves into the internal buffer
     explicit MoveList(const Position& pos) noexcept :
         endMove(generate<GT, Any>(pos, moves.data())) {
@@ -92,6 +86,12 @@ struct MoveList final {
     //#endif
 
    private:
+    MoveList() noexcept                           = delete;
+    MoveList(const MoveList&) noexcept            = delete;
+    MoveList(MoveList&&) noexcept                 = delete;
+    MoveList& operator=(const MoveList&) noexcept = delete;
+    MoveList& operator=(MoveList&&) noexcept      = delete;
+
     StdArray<value_type, MAX_MOVES> moves;
     const_iterator                  endMove;
 };

@@ -23,7 +23,6 @@
 #include <fstream>
 #include <iostream>
 #include <memory>
-#include <sstream>
 
 #include "evaluate.h"
 #include "movegen.h"

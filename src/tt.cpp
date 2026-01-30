@@ -65,10 +65,7 @@ constexpr std::uint16_t GENERATION_CYCLE = 0xFF + GENERATION_DELTA;
 struct TTEntry final {
    public:
     TTEntry() noexcept                          = default;
-    TTEntry(const TTEntry&) noexcept            = delete;
-    TTEntry(TTEntry&&) noexcept                 = delete;
     TTEntry& operator=(const TTEntry&) noexcept = default;
-    TTEntry& operator=(TTEntry&&) noexcept      = delete;
 
     constexpr std::uint16_t key() const noexcept { return key16; }
     constexpr bool          occupied() const noexcept { return depth8 != 0; }
@@ -128,6 +125,10 @@ struct TTEntry final {
     void clear() noexcept { std::memset(this, 0, sizeof(*this)); }
 
    private:
+    TTEntry(const TTEntry&) noexcept       = delete;
+    TTEntry(TTEntry&&) noexcept            = delete;
+    TTEntry& operator=(TTEntry&&) noexcept = delete;
+
     std::uint16_t key16;
     Move          move16;
     Value         val16;
@@ -148,13 +149,15 @@ TTData TTData::empty() noexcept {
 struct TTCluster final {
    public:
     TTCluster() noexcept                            = default;
-    TTCluster(const TTCluster&) noexcept            = delete;
-    TTCluster(TTCluster&&) noexcept                 = delete;
     TTCluster& operator=(const TTCluster&) noexcept = default;
-    TTCluster& operator=(TTCluster&&) noexcept      = delete;
 
     StdArray<TTEntry, 3> entries;
     StdArray<char, 2>    padding;  // Pad to 32 bytes
+
+   private:
+    TTCluster(const TTCluster&) noexcept       = delete;
+    TTCluster(TTCluster&&) noexcept            = delete;
+    TTCluster& operator=(TTCluster&&) noexcept = delete;
 };
 
 static_assert(sizeof(TTCluster) == 32, "Unexpected TTCluster size");
