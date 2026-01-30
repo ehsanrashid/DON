@@ -26,12 +26,14 @@
 #include <cstring>
 #include <filesystem>
 #include <functional>
+#include <iomanip>
 #include <iostream>
 #include <memory>
 #include <new>
 #include <optional>
 #include <string>
 #include <string_view>
+#include <sstream>
 #include <type_traits>
 #include <utility>
 #include <variant>
@@ -1190,13 +1192,12 @@ class SharedMemory final: public BaseSharedMemory {
             mode_t mode;
             int    oflag;
 
-            mode  = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH;
             oflag = O_CREAT | O_EXCL | O_RDWR;
+            mode  = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH;
             fd    = shm_open(name.c_str(), oflag, mode);
 
             if (fd <= INVALID_FD)
             {
-                mode  = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH;
                 oflag = O_RDWR;
                 fd    = shm_open(name.c_str(), oflag, mode);
 
@@ -1501,7 +1502,9 @@ class SharedMemory final: public BaseSharedMemory {
 
         for (std::size_t attempt = 0;; ++attempt)
         {
-            int tmpFd = ::open(sentinelPath.c_str(), O_CREAT | O_EXCL | O_WRONLY | O_CLOEXEC, 0600);
+            int    oflag = O_CREAT | O_EXCL | O_WRONLY | O_CLOEXEC;
+            mode_t mode  = S_IRUSR | S_IWUSR;
+            int    tmpFd = ::open(sentinelPath.c_str(), oflag, mode);
 
             FdGuard tmpFdGuard(tmpFd);
 
@@ -1862,19 +1865,35 @@ struct SystemWideSharedMemory final {
         std::uint64_t executableHash = hash_string(executable_path());
 
         // snprintf returns the number of chars that would have been written (excluding NUL)
-        int         writtenSize = std::snprintf(buffer.data(), buffer.size(),
-                                                "%016" PRIX64 "$"  // valueHash
-                                                "%016" PRIX64 "$"  // executableHash
-                                                "%016" PRIX64,     // discriminator
-                                                valueHash, executableHash, discriminator);
+        int writtenSize = std::snprintf(buffer.data(), buffer.size(),
+                                        "%016" PRIX64 "$"  // valueHash
+                                        "%016" PRIX64 "$"  // executableHash
+                                        "%016" PRIX64,     // discriminator
+                                        valueHash, executableHash, discriminator);
+
         std::string hashName;
-        if (writtenSize > 0)
+
+        if (writtenSize >= 0)
         {
             // Ensure size is within bounds
             // If snprintf truncated, use up to (buf.size() - 1) characters
             std::size_t copySize = std::min<std::size_t>(writtenSize, buffer.size() - 1);
             // Shrink to actual content
             hashName.assign(buffer.data(), copySize);
+        }
+        else
+        {
+            // snprintf failed - use fallback format
+            // This should never happen, but handle it anyway
+            DEBUG_LOG("snprintf() failed, using fallback hash name");
+
+            // Fallback: use hex representation directly
+            std::ostringstream oss{};
+            oss << std::hex << std::setfill('0')           //
+                << std::setw(16) << valueHash << '$'       //
+                << std::setw(16) << executableHash << '$'  //
+                << std::setw(16) << discriminator;
+            hashName = oss.str();
         }
 
         shmName += hashName;
