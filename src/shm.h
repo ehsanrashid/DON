@@ -1156,10 +1156,8 @@ class SharedMemory final: public BaseSharedMemory {
    public:
     explicit SharedMemory(const std::string& shmName) noexcept :
         name(shmName),
-        mappedSize(mapped_size()) {
-        sentinelBase = std::string{"DON_"};
-        sentinelBase += hash_to_string(hash_string(name));
-    }
+        mappedSize(mapped_size()),
+        sentinelBase(shmName) {}
 
     ~SharedMemory() noexcept override { unregister_close(); }
 
@@ -1443,11 +1441,11 @@ class SharedMemory final: public BaseSharedMemory {
     }
 
     void set_sentinel_path(pid_t pid) noexcept {
-        sentinelPath.reserve(11 + sentinelBase.size() + 1 + 10);
+        sentinelPath.reserve(DIRECTORY.size() + sentinelBase.size() + 1 + MAX_PID_CHARS);
 
-        sentinelPath = std::string{DIRECTORY};
+        sentinelPath = DIRECTORY;
         sentinelPath += sentinelBase;
-        sentinelPath += '.';
+        sentinelPath += ".";
         sentinelPath += std::to_string(pid);
     }
 
@@ -1547,7 +1545,8 @@ class SharedMemory final: public BaseSharedMemory {
                 break;
             }
 
-            std::string stalePath = std::string{DIRECTORY} + entryName;
+            std::string stalePath{DIRECTORY};
+            stalePath += entryName;
 
             ::unlink(stalePath.c_str());
 
@@ -1671,6 +1670,7 @@ class SharedMemory final: public BaseSharedMemory {
     }
 
     static constexpr std::string_view DIRECTORY{"/dev/shm/"};
+    static constexpr std::size_t      MAX_PID_CHARS = 10;
 
     std::string name;
     int         fd = INVALID_FD;
@@ -1790,7 +1790,7 @@ struct SystemWideSharedMemory final {
         // Do nothing special on Android, just use a fixed name
         ;
 #else
-        constexpr std::size_t Size = 16 + 1 + 16 + 1 + 16 + 1;
+        constexpr std::size_t Size = HEX64_SIZE + 1 + HEX64_SIZE + 1 + HEX64_SIZE + 1;
 
         std::string hashName(Size, '\0');
 

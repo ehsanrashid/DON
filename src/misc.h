@@ -114,6 +114,9 @@ inline constexpr std::size_t ONE_MB = ONE_KB * ONE_KB;
 //inline constexpr std::size_t ONE_PB = ONE_KB * ONE_TB;
 //inline constexpr std::size_t ONE_EB = ONE_KB * ONE_PB;
 
+constexpr std::size_t HEX64_SIZE = 16;
+constexpr std::size_t HEX32_SIZE = 8;
+
 // Unrolling factors
 constexpr std::size_t UnRoll8 = 8;
 constexpr std::size_t UnRoll4 = 4;
@@ -1603,7 +1606,7 @@ split(std::string_view str, std::string_view delimiter, bool trimPart = false) n
 }
 
 inline std::string hash_to_string(std::uint64_t hash) noexcept {
-    constexpr std::size_t Size = 16 + 1;  // 16 hex + '\0'
+    constexpr std::size_t Size = HEX64_SIZE + 1;  // 16 hex + '\0'
 
     std::string hashStr(Size, '\0');
 
@@ -1613,7 +1616,7 @@ inline std::string hash_to_string(std::uint64_t hash) noexcept {
 }
 
 inline std::string u32_to_string(std::uint32_t u32) noexcept {
-    constexpr std::size_t Size = 2 + 8 + 1;  // "0x" + 8 hex + '\0'
+    constexpr std::size_t Size = 2 + HEX32_SIZE + 1;  // "0x" + 8 hex + '\0'
 
     std::string str(Size, '\0');
 
@@ -1622,7 +1625,7 @@ inline std::string u32_to_string(std::uint32_t u32) noexcept {
     return str;
 }
 inline std::string u64_to_string(std::uint64_t u64) noexcept {
-    constexpr std::size_t Size = 2 + 16 + 1;  // "0x" + 16 hex + '\0'
+    constexpr std::size_t Size = 2 + HEX64_SIZE + 1;  // "0x" + 16 hex + '\0'
 
     std::string str(Size, '\0');
 
