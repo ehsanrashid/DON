@@ -1857,7 +1857,7 @@ struct SystemWideSharedMemory final {
 #else
         // Create a unique name based on the value, executable path, and discriminator
         // 3 hex digits per 64-bit part + 2 dollar signs + null terminator
-        constexpr std::size_t BufferSize = 3 * HEX64_SIZE + 2 * 1 + 1;
+        constexpr std::size_t BufferSize = 3 * HEX64_SIZE + 2 + 1;
         // Build the three-part hex identifier safely into a temporary buffer
         StdArray<char, BufferSize> buffer{};
 
