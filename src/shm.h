@@ -1169,14 +1169,12 @@ class SharedMemory final: public BaseSharedMemory {
     static_assert(!std::is_pointer_v<T>, "T cannot be a pointer type");
 
    public:
-    explicit SharedMemory(std::string_view shmName, const T& value) noexcept :
+    explicit SharedMemory(std::string_view shmName) noexcept :
         name(shmName),
         mappedSize(mapped_size()),
         sentinelBase(shmName) {
         // POSIX named shared memory names must start with slash ('/')
         name.insert(0, "/");
-
-        open_register(value);
     }
 
     ~SharedMemory() noexcept override { unregister_close(); }
@@ -1196,10 +1194,10 @@ class SharedMemory final: public BaseSharedMemory {
         return *this;
     }
 
-    void open_register(const T& value) noexcept {
+    [[nodiscard]] bool open_register(const T& value) noexcept {
 
         if (SharedMemoryRegistry::cleanup_in_progress())
-            return;
+            return false;
 
         bool staleRetried = false;
 
@@ -1304,6 +1302,8 @@ class SharedMemory final: public BaseSharedMemory {
 
             break;
         }
+
+        return available;
     }
 
     void close(bool skipUnmapRegion = false) noexcept override {
@@ -1718,12 +1718,12 @@ class BackendSharedMemory final {
    public:
     BackendSharedMemory() noexcept = default;
 
-    BackendSharedMemory(const std::string& shmName, const T& value) noexcept {
+    BackendSharedMemory(std::string_view shmName, const T& value) noexcept {
         SharedMemoryCleanupManager::ensure_initialized();
 
-        shm.emplace(shmName, value);
+        shm.emplace(shmName);
 
-        if (!shm->is_available())
+        if (!shm->open_register(value))
             shm.reset();
     }
 
@@ -1733,7 +1733,7 @@ class BackendSharedMemory final {
     BackendSharedMemory(BackendSharedMemory&& backendShm) noexcept            = default;
     BackendSharedMemory& operator=(BackendSharedMemory&& backendShm) noexcept = default;
 
-    bool is_valid() const noexcept { return shm && shm->is_valid(); }
+    bool is_valid() const noexcept { return shm && shm->is_open() && shm->is_initialized(); }
 
     void* get() const noexcept {
         return is_valid() ? reinterpret_cast<void*>(const_cast<T*>(&shm->get())) : nullptr;
