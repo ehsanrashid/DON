@@ -1197,7 +1197,7 @@ class SharedMemory final: public BaseSharedMemory {
     [[nodiscard]] bool open_register(const T& value) noexcept {
 
         if (SharedMemoryRegistry::cleanup_in_progress())
-            return false;
+            return available;
 
         bool staleRetried = false;
 
@@ -1295,10 +1295,10 @@ class SharedMemory final: public BaseSharedMemory {
 
             unlock_file();
 
+            available = true;
+
             // Register this new resource
             SharedMemoryRegistry::attempt_register_memory(this);
-
-            available = true;
 
             break;
         }
@@ -1338,7 +1338,7 @@ class SharedMemory final: public BaseSharedMemory {
     [[nodiscard]] bool is_available() const noexcept { return available; }
 
     [[nodiscard]] bool is_open() const noexcept {
-        return fd >= 0 && mappedPtr != nullptr && dataPtr != nullptr;
+        return fd > INVALID_FD && mappedPtr != nullptr && dataPtr != nullptr;
     }
 
     [[nodiscard]] const T& get() const noexcept { return *dataPtr; }
@@ -1355,7 +1355,7 @@ class SharedMemory final: public BaseSharedMemory {
         return shmHeader != nullptr ? shmHeader->ref_count() : 0;
     }
 
-    bool is_valid() const noexcept { return available && is_open() && is_initialized(); }
+    bool is_valid() const noexcept { return is_open() && is_initialized(); }
 
    private:
     static constexpr std::size_t mapped_size() noexcept { return sizeof(T) + sizeof(ShmHeader); }
@@ -1733,7 +1733,7 @@ class BackendSharedMemory final {
     BackendSharedMemory(BackendSharedMemory&& backendShm) noexcept            = default;
     BackendSharedMemory& operator=(BackendSharedMemory&& backendShm) noexcept = default;
 
-    bool is_valid() const noexcept { return shm && shm->is_open() && shm->is_initialized(); }
+    bool is_valid() const noexcept { return shm && shm->is_valid(); }
 
     void* get() const noexcept {
         return is_valid() ? reinterpret_cast<void*>(const_cast<T*>(&shm->get())) : nullptr;
