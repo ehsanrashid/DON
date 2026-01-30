@@ -86,12 +86,9 @@ void* alloc_windows_aligned_large_page(std::size_t allocSize) noexcept {
                                    MEM_LARGE_PAGES | MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 
           if (mem == nullptr)
-          {
-              std::cerr << "Failed to allocate " << (roundedAllocSize >> 20)
-                        << "MB for large page memory." << std::endl;
-              std::cerr << "Error code: " << u32_to_string(GetLastError()) << std::endl;
-          }
-
+              DEBUG_LOG("Failed to allocate " << (roundedAllocSize >> 20)
+                                              << "MB for large page memory. Error code: "
+                                              << u32_to_string(GetLastError()));
           return mem;
       },
       []() { return (void*) nullptr; });
@@ -149,8 +146,8 @@ bool free_aligned_large_page(void* mem) noexcept {
 #if defined(_WIN32)
     if (mem != nullptr && !VirtualFree(mem, 0, MEM_RELEASE))
     {
-        std::cerr << "Failed to free large page memory." << std::endl;
-        std::cerr << "Error code: " << u32_to_string(GetLastError()) << std::endl;
+        DEBUG_LOG(
+          "Failed to free large page memory. Error code: " << u32_to_string(GetLastError()));
         return false;
     }
 #else

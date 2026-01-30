@@ -100,6 +100,12 @@
     #define RESTRICT
 #endif
 
+#if !defined(NDEBUG)
+    #define DEBUG_LOG(msg) std::cerr << msg << std::endl
+#else
+    #define DEBUG_LOG(msg) ((void) 0)
+#endif
+
 namespace DON {
 
 using Strings     = std::vector<std::string>;
@@ -1390,7 +1396,7 @@ class Logger final {
 
         if (!is_open())
         {
-            std::cerr << "Unable to open Log file: " << filename << std::endl;
+            DEBUG_LOG("Unable to open Log file: " << filename);
             return false;
         }
 

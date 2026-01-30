@@ -434,13 +434,13 @@ bool PolyBook::load(std::string_view bookFile) noexcept {
 
     if (ec)
     {
-        std::cerr << "Failed to stat Book file " << filename << ": " << ec.message() << std::endl;
+        DEBUG_LOG("Failed to stat Book file " << filename << ": " << ec.message());
         return false;
     }
 
     if (fileSize == 0)
     {
-        std::cerr << "Warning: Empty Book file " << filename << std::endl;
+        DEBUG_LOG("Warning: Empty Book file " << filename);
         return true;
     }
 
@@ -449,7 +449,7 @@ bool PolyBook::load(std::string_view bookFile) noexcept {
 
     if (fileSize < EntrySize)
     {
-        std::cerr << "Too small Book file " << filename << std::endl;
+        DEBUG_LOG("Too small Book file " << filename);
         return false;
     }
 
@@ -457,14 +457,14 @@ bool PolyBook::load(std::string_view bookFile) noexcept {
     std::size_t remainder  = fileSize % EntrySize;
 
     if (remainder != 0)
-        std::cerr << "Warning: Bad size Book file " << filename << ", ignoring " << remainder
-                  << " trailing bytes" << std::endl;
+        DEBUG_LOG("Warning: Bad size Book file " << filename << ", ignoring " << remainder
+                                                 << " trailing bytes");
 
     std::ifstream ifs{filename, std::ios::binary};
 
     if (!ifs.is_open())
     {
-        std::cerr << "Failed to open Book file " << filename << std::endl;
+        DEBUG_LOG("Failed to open Book file " << filename);
         return false;
     }
 
@@ -493,7 +493,7 @@ bool PolyBook::load(std::string_view bookFile) noexcept {
 
         //if (gotSize != readSize)  // partial read - treat as error for complete-file read
         //{
-        //    std::cerr << "Partial read: expected " << readSize << " got " << gotSize << std::endl;
+        //    DEBUG_LOG("Partial read: expected " << readSize << " got " << gotSize);
         //    return false;
         //}
 
@@ -502,12 +502,12 @@ bool PolyBook::load(std::string_view bookFile) noexcept {
 
     if (ifs.fail() || ifs.bad())
     {
-        std::cerr << "I/O error while reading Book file " << filename << std::endl;
+        DEBUG_LOG("I/O error while reading Book file " << filename);
         return false;
     }
 
     if (readedSize != dataSize || !ifs.good())
-        std::cerr << "Failed to read complete Book file " << filename << std::endl;
+        DEBUG_LOG("Failed to read complete Book file " << filename);
 
     ifs.close();
 
@@ -613,16 +613,16 @@ Move PolyBook::probe(Position& pos, const RootMoves& rootMoves, const Options& o
     }
 
 #if !defined(NDEBUG)
-    std::cerr << "\nCount     : " << candidates.size()  //
-              << "\nWeight Max: " << maxWeight          //
-              << "\nWeight Sum: " << sumWeight << '\n';
+    // clang-format off
+    DEBUG_LOG("\nCount     : " << candidates.size()
+           << "\nWeight Max: " << maxWeight
+           << "\nWeight Sum: " << sumWeight);
 
     std::size_t cnt = 0;
 
     for (const auto& candidate : candidates)
     {
-        // clang-format off
-        std::cerr << std::right << std::setfill('0')
+        DEBUG_LOG(std::right << std::setfill('0')
                   << std::setw(2) << ++cnt
                   << " key: "    << u64_to_string(candidate.key)
                   << std::left << std::setfill(' ')
@@ -630,11 +630,11 @@ Move PolyBook::probe(Position& pos, const RootMoves& rootMoves, const Options& o
                   << std::right << std::setfill('0')
                   << " weight: " << std::setw(5) << candidate.weight
                   << " learn: "  << std::setw(2) << candidate.learn
-                  << " prob: "   << std::fixed << std::setprecision(4) << std::setw(7) << (sumWeight != 0 ? 100.0 * candidate.weight / sumWeight : 0.0) << '\n';
-        // clang-format on
+                  << " prob: "   << std::fixed << std::setprecision(4) << std::setw(7) << (sumWeight != 0 ? 100.0 * candidate.weight / sumWeight : 0.0));
     }
 
-    std::cerr << std::setfill(' ') << std::left << std::endl;
+    DEBUG_LOG(std::setfill(' ') << std::left);
+    // clang-format on
 #endif
 
     Move move, bestMove = Move::None;
@@ -679,7 +679,7 @@ Move PolyBook::probe(Position& pos, const RootMoves& rootMoves, const Options& o
 
     if (bestMove == Move::None)
     {
-        std::cerr << "Book best move not found, trying first available..." << std::endl;
+        DEBUG_LOG("Book best move not found, trying first available...");
 
         for (const auto& candidate : candidates)
         {
