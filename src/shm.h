@@ -24,6 +24,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <filesystem>
 #include <functional>
 #include <iostream>
 #include <memory>
@@ -61,6 +62,7 @@
     #include <cassert>
     #include <cerrno>
     #include <chrono>
+    #include <condition_variable>
     #include <cstdio>
     #include <cstdlib>
     #include <dirent.h>
@@ -75,7 +77,7 @@
     #include <sys/stat.h>
     #include <thread>
     #include <unistd.h>
-    #include <unordered_map>
+    #include <unordered_set>
     #include <vector>
 
     #if defined(__APPLE__)
@@ -127,10 +129,8 @@ inline std::string to_string(SharedMemoryAllocationStatus status) noexcept {
 }
 
 inline std::string executable_path() noexcept {
-    StdArray<char, 4096> executablePath;
-    executablePath.fill('\0');
-
-    std::size_t executableSize = 0;
+    StdArray<char, 4096> executablePath{};
+    std::size_t          executableSize = 0;
 
 #if defined(_WIN32)
     DWORD size = GetModuleFileName(nullptr, executablePath.data(), DWORD(executablePath.size()));
@@ -502,25 +502,22 @@ class BaseSharedMemory {
 // Note:
 //  - The class is static-only; it cannot be instantiated. (Restriction)
 class SharedMemoryRegistry final {
-   private:
-    enum class Result : std::uint8_t {
-        Success,
-        AlreadyRegistered,
-        CleanupInProgress
-    };
-
    public:
+    // Ensure internal containers are ready
     static void ensure_initialized() noexcept {
+        constexpr std::size_t ReserveCount = 1024;
+        constexpr float       LoadFactor   = 0.75f;
+
         callOnce([]() noexcept {
             orderedSharedMemories.reserve(ReserveCount);
-            sharedMemoryIndices.max_load_factor(LoadFactor);
+            registeredSharedMemories.max_load_factor(LoadFactor);
             std::size_t bucketCount = std::size_t(ReserveCount / LoadFactor) + 1;
-            sharedMemoryIndices.rehash(bucketCount);
+            registeredSharedMemories.rehash(bucketCount);
         });
     }
 
     static std::size_t size() noexcept {
-        std::scoped_lock lock(mutex);
+        std::lock_guard lock(mutex);
 
         return orderedSharedMemories.size();
     }
@@ -529,56 +526,34 @@ class SharedMemoryRegistry final {
         return cleanUpInProgress.load(std::memory_order_acquire);
     }
 
-    // Try to register, retry only if cleanup is in progress
+    // Attempt to register shared memory; waits for cleanup if needed (bounded)
     static void attempt_register_memory(BaseSharedMemory* sharedMemory) noexcept {
-        constexpr std::size_t MaxAttempt   = 10;
-        constexpr auto        AttemptDelay = std::chrono::microseconds(50);
+        // Bounded wait for cleanup to finish
+        constexpr auto MaxWait = std::chrono::milliseconds(200);
 
-        for (std::size_t attempt = 0;; ++attempt)
-        {
-            auto result = register_memory(sharedMemory);
+        if (sharedMemory == nullptr)
+            return;
 
-            if (result == Result::Success)
-                return;
-
-            if (result == Result::AlreadyRegistered)
-            {
-                assert(false && "SharedMemory double registration");
-                return;
-            }
-
-            if (attempt >= MaxAttempt)
-                break;
-
-            // Cleanup in progress, wait a bit
-            auto attemptDelay = AttemptDelay * (1U << attempt);
-            std::this_thread::yield();
-            std::this_thread::sleep_for(attemptDelay);
-        }
-
-        // Max attempts reached: fail silently to register (acceptable during shutdown)
-    }
-    // Register a shared memory object in the global registry.
-    // Thread-safe: locks the registry while inserting.
-    static Result register_memory(BaseSharedMemory* sharedMemory) noexcept {
-        // Lazy initialization
         if (!callOnce.initialized())
             ensure_initialized();
 
-        std::scoped_lock lock(mutex);
+        std::unique_lock lock(mutex);
 
-        // Don't register during cleanup
-        if (cleanup_in_progress())
-            return Result::CleanupInProgress;
-
-        return insert_nolock(sharedMemory);
+        // Wait for cleanup to finish if in progress (bounded)
+        if (!condVar.wait_for(lock, MaxWait, []() noexcept { return !cleanup_in_progress(); }))
+        {
+            // Timeout - silently fail to register (acceptable during shutdown)
+            return;
+        }
+        // Now safe try to insert
+        insert_memory_nolock(sharedMemory);
     }
     // Unregister a shared memory object from the global registry.
     // Thread-safe: locks the registry while erasing.
     static bool unregister_memory(BaseSharedMemory* sharedMemory) noexcept {
-        std::scoped_lock lock(mutex);
+        std::lock_guard lock(mutex);
 
-        return erase_nolock(sharedMemory);
+        return erase_memory_nolock(sharedMemory);
     }
     // Close and clean all registered shared memory objects.
     // If skipUnmapRegion is true, the actual memory unmapping can be skipped.
@@ -588,7 +563,7 @@ class SharedMemoryRegistry final {
         std::vector<BaseSharedMemory*> copiedOrderedSharedMemories;
 
         {
-            std::scoped_lock lock(mutex);
+            std::lock_guard lock(mutex);
 
             // Mark cleanup as in-progress so other threads know not to register new memory
             cleanUpInProgress.store(true, std::memory_order_release);
@@ -597,18 +572,17 @@ class SharedMemoryRegistry final {
             // Use move to avoid copying large vector contents.
             // This allows us to safely iterate and close memories outside the lock
             // without invalidating iterators if close() calls unregister_memory().
-            copiedOrderedSharedMemories.reserve(orderedSharedMemories.size());
             copiedOrderedSharedMemories = std::move(orderedSharedMemories);
-            // Clear the lookup map now that all memories are removed from the main registry
-            sharedMemoryIndices.clear();
+            registeredSharedMemories.clear();
         }
-
-        // Will reset flag on exit
-        FlagGuard cleanUpInProgressGuard{cleanUpInProgress};
 
         // Safe to iterate and close memory without holding the lock
         for (BaseSharedMemory* sharedMemory : copiedOrderedSharedMemories)
             sharedMemory->close(skipUnmapRegion);
+
+        // Mark cleanup done and notify waiting registrants that cleanup has finished
+        cleanUpInProgress.store(false, std::memory_order_release);
+        condVar.notify_all();
     }
 
    private:
@@ -619,55 +593,44 @@ class SharedMemoryRegistry final {
     SharedMemoryRegistry& operator=(const SharedMemoryRegistry&) noexcept = delete;
     SharedMemoryRegistry& operator=(SharedMemoryRegistry&&) noexcept      = delete;
 
-    static Result insert_nolock(BaseSharedMemory* sharedMemory) noexcept {
-        // Only insert if not already present
-        if (sharedMemoryIndices.find(sharedMemory) != sharedMemoryIndices.end())
-            return Result::AlreadyRegistered;
-
-        std::size_t newIndex = orderedSharedMemories.size();
-        orderedSharedMemories.push_back(sharedMemory);
-        sharedMemoryIndices[sharedMemory] = newIndex;
-
-        return Result::Success;
-    }
-    static bool erase_nolock(BaseSharedMemory* sharedMemory) noexcept {
-        // Only erase if already present
-        auto itr = sharedMemoryIndices.find(sharedMemory);
-
-        if (itr == sharedMemoryIndices.end())
+    static bool insert_memory_nolock(BaseSharedMemory* sharedMemory) noexcept {
+        // If already registered, return false
+        if (registeredSharedMemories.find(sharedMemory) != registeredSharedMemories.end())
             return false;
 
-        std::size_t victimIndex = itr->second;
-
-        assert(!orderedSharedMemories.empty());
-        assert(victimIndex < orderedSharedMemories.size());
-
-        // Perform the swap-and-pop operation
-        // Swap the last element into the removed spot to avoid shifting all elements
-        BaseSharedMemory* lastSharedMemory = orderedSharedMemories.back();
-        if (victimIndex != orderedSharedMemories.size() - 1)
-        {
-            orderedSharedMemories[victimIndex]    = lastSharedMemory;
-            sharedMemoryIndices[lastSharedMemory] = victimIndex;
-        }
-
-        orderedSharedMemories.pop_back();
-        sharedMemoryIndices.erase(itr);
-
+        orderedSharedMemories.push_back(sharedMemory);
+        registeredSharedMemories.insert(sharedMemory);
         return true;
     }
 
-    static constexpr std::size_t ReserveCount = 1024;
-    static constexpr float       LoadFactor   = 0.75f;
+    static bool erase_memory_nolock(BaseSharedMemory* sharedMemory) noexcept {
+        // Only erase if already present
+        auto itr = registeredSharedMemories.find(sharedMemory);
+        if (itr == registeredSharedMemories.end())
+            return false;
+
+        // Find in vector (unfortunately O(n) without index map)
+        auto vecItr =
+          std::find(orderedSharedMemories.begin(), orderedSharedMemories.end(), sharedMemory);
+        if (vecItr != orderedSharedMemories.end())
+        {
+            // Swap-and-pop: Swap with last and pop (O(1) removal)
+            *vecItr = orderedSharedMemories.back();
+            orderedSharedMemories.pop_back();
+        }
+
+        registeredSharedMemories.erase(itr);
+        return true;
+    }
 
     static inline CallOnce          callOnce;
     static inline std::atomic<bool> cleanUpInProgress{false};
     // Protects access to SharedMemories for thread safety
-    static inline std::mutex mutex;
+    static inline std::mutex              mutex;
+    static inline std::condition_variable condVar;
     // Preserves insertion order for SharedMemories iteration
-    static inline std::vector<BaseSharedMemory*> orderedSharedMemories;
-    // Fast lookup for registered SharedMemories index
-    static inline std::unordered_map<BaseSharedMemory*, std::size_t> sharedMemoryIndices;
+    static inline std::vector<BaseSharedMemory*>        orderedSharedMemories;
+    static inline std::unordered_set<BaseSharedMemory*> registeredSharedMemories;
 };
 
 // SharedMemoryCleanupManager
@@ -704,9 +667,9 @@ class SharedMemoryCleanupManager final {
             if (pipe(pipeFds) != 0)
     #endif
             {
-                DEBUG_LOG("Failed to create signal pipe: " << std::strerror(errno));
-
                 close_signal_pipe();
+
+                DEBUG_LOG("Failed to create signal pipe: " << std::strerror(errno));
                 return;
             }
     #if !defined(__linux__)
@@ -716,9 +679,9 @@ class SharedMemoryCleanupManager final {
                 || fcntl(pipeFds[0], F_SETFL, O_NONBLOCK) == -1  //
                 || fcntl(pipeFds[1], F_SETFL, O_NONBLOCK) == -1)
             {
-                DEBUG_LOG("Failed to set pipe flags: " << std::strerror(errno));
-
                 close_signal_pipe();
+
+                DEBUG_LOG("Failed to set pipe flags: " << std::strerror(errno));
                 return;
             }
     #endif
@@ -945,8 +908,11 @@ class SharedMemoryCleanupManager final {
     }
 
     static void cleanup_on_exit() noexcept {
+
         stop_monitor_thread();
+
         close_signal_pipe();
+
         SharedMemoryRegistry::clean();
     }
 
@@ -1045,6 +1011,7 @@ struct ShmHeader final {
         destroy_mutex();
     }
 
+    // Initialize the mutex
     [[nodiscard]] bool initialize_mutex() noexcept {
         pthread_mutexattr_t mutexAttr;
 
@@ -1074,6 +1041,7 @@ struct ShmHeader final {
     // Destroy the mutex
     void destroy_mutex() noexcept { pthread_mutex_destroy(&mutex); }
 
+    // Lock the mutex
     [[nodiscard]] bool lock_mutex() noexcept {
 
         while (true)
@@ -1102,6 +1070,7 @@ struct ShmHeader final {
         return false;
     }
 
+    // Unlock the mutex
     void unlock_mutex() noexcept {
         [[maybe_unused]] int rc = pthread_mutex_unlock(&mutex);
         assert(rc == 0 || rc == EPERM || rc == EOWNERDEAD);
@@ -1194,45 +1163,69 @@ class SharedMemory final: public BaseSharedMemory {
         return *this;
     }
 
+    // Open or create the shared memory region and register it
     [[nodiscard]] bool open_register(const T& value) noexcept {
 
         if (SharedMemoryRegistry::cleanup_in_progress())
+        {
+            DEBUG_LOG("Shared memory registry cleanup in progress, cannot open shared memory.");
             return available;
+        }
 
+        // Try to open or create the shared memory region
         bool staleRetried = false;
 
         while (true)
         {
             if (is_open())
+            {
+                DEBUG_LOG("Shared memory already open.");
                 break;
+            }
 
+            // Try to create new shared memory region
             bool newCreated = false;
 
-            fd = shm_open(name.c_str(), O_CREAT | O_EXCL | O_RDWR, 0666);
+            mode_t mode;
+            int    oflag;
+
+            mode  = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH;
+            oflag = O_CREAT | O_EXCL | O_RDWR;
+            fd    = shm_open(name.c_str(), oflag, mode);
 
             if (fd <= INVALID_FD)
             {
-                fd = shm_open(name.c_str(), O_RDWR, 0666);
+                mode  = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH;
+                oflag = O_RDWR;
+                fd    = shm_open(name.c_str(), oflag, mode);
 
                 if (fd <= INVALID_FD)
+                {
+                    DEBUG_LOG("Failed to open shared memory: " << std::strerror(errno));
                     break;
+                }
             }
             else
             {
+                DEBUG_LOG("Created new shared memory region: " << name);
                 newCreated = true;
             }
 
+            // Resize the shared memory region if newly created
             bool lockFile = lock_file(LOCK_EX);
 
             if (!lockFile)
             {
                 cleanup(false, lockFile);
 
+                DEBUG_LOG("Failed to lock shared memory file: " << std::strerror(errno));
                 break;
             }
 
+            // Track if header is invalid
             bool headerInvalid = false;
 
+            // Resize only if newly created
             bool success = newCreated  //
                            ? setup_new_region(value)
                            : setup_existing_region(headerInvalid);
@@ -1244,9 +1237,12 @@ class SharedMemory final: public BaseSharedMemory {
                 if (!newCreated && headerInvalid && !staleRetried)
                 {
                     staleRetried = true;
+
+                    DEBUG_LOG("Retrying due to stale shared memory region.");
                     continue;
                 }
 
+                DEBUG_LOG("Failed to setup shared memory region.");
                 break;
             }
 
@@ -1257,9 +1253,12 @@ class SharedMemory final: public BaseSharedMemory {
                 if (!newCreated && !staleRetried)
                 {
                     staleRetried = true;
+
+                    DEBUG_LOG("Retrying due to null shared memory header.");
                     continue;
                 }
 
+                DEBUG_LOG("Shared memory header is null.");
                 break;
             }
 
@@ -1274,9 +1273,12 @@ class SharedMemory final: public BaseSharedMemory {
                     if (!newCreated && !staleRetried)
                     {
                         staleRetried = true;
+
+                        DEBUG_LOG("Retrying due to mutex lock failure.");
                         continue;
                     }
 
+                    DEBUG_LOG("Failed to lock shared memory header mutex.");
                     break;
                 }
 
@@ -1286,6 +1288,7 @@ class SharedMemory final: public BaseSharedMemory {
 
                     cleanup(newCreated, lockFile);
 
+                    DEBUG_LOG("Failed to create sentinel file.");
                     break;
                 }
 
@@ -1367,7 +1370,10 @@ class SharedMemory final: public BaseSharedMemory {
         if (kill(pid, 0) == 0)
             return true;
 
-        return errno == EPERM;
+        // If kill() failed, ESRCH means the pid dead or does not exist;
+        // any other errno (EPERM etc) indicates the pid may still exist
+        // but lack permission to query it.
+        return errno != ESRCH;
     }
 
     // Unregister SharedMemory object and release resources
@@ -1462,12 +1468,12 @@ class SharedMemory final: public BaseSharedMemory {
     }
 
     void set_sentinel_path(pid_t pid) noexcept {
-        sentinelPath.reserve(DIRECTORY.size() + sentinelBase.size() + 1 + MAX_PID_CHARS);
+        std::filesystem::path p(DIRECTORY);
+        p /= sentinelBase;
+        p += ".";
+        p += std::to_string(pid);
 
-        sentinelPath = DIRECTORY;
-        sentinelPath += sentinelBase;
-        sentinelPath += ".";
-        sentinelPath += std::to_string(pid);
+        sentinelPath = p.string();
     }
 
     void clear_sentinel_path() noexcept { sentinelPath.clear(); }
@@ -1547,6 +1553,7 @@ class SharedMemory final: public BaseSharedMemory {
 
         bool found = false;
 
+        // Iterate directory entries
         while (dirent* entry = readdir(dir))
         {
             std::string entryName = entry->d_name;
@@ -1556,6 +1563,7 @@ class SharedMemory final: public BaseSharedMemory {
                 || entryName.compare(0, prefix.size(), prefix) != 0)
                 continue;
 
+            // Extract PID part
             auto pidStr = entryName.substr(prefix.size());
 
             char* endPtr = nullptr;
@@ -1564,8 +1572,10 @@ class SharedMemory final: public BaseSharedMemory {
             if (endPtr == nullptr || *endPtr != '\0')
                 continue;
 
+            // Get PID
             pid_t pid = pid_t(pidVal);
 
+            // Check if process is alive
             if (is_pid_alive(pid))
             {
                 found = true;
@@ -1581,41 +1591,54 @@ class SharedMemory final: public BaseSharedMemory {
             const_cast<SharedMemory*>(this)->decrement_ref_count();
         }
 
+        // Close directory
         closedir(dir);
 
         return found;
     }
 
+    // Setup new shared memory region
     [[nodiscard]] bool setup_new_region(const T& value) noexcept {
-        if (ftruncate(fd, off_t(mappedSize)) == -1)
-            return false;
-
         off_t offset = 0;
 
     #if defined(__APPLE__)
+        // macOS: Preallocate space, then set file size
         fstore_t store{};
+        // First, try contiguous
         store.fst_flags   = F_ALLOCATECONTIG;
         store.fst_posmode = F_PEOFPOSMODE;
         store.fst_offset  = offset;
         store.fst_length  = mappedSize;
 
         int rc = fcntl(fd, F_PREALLOCATE, &store);
-
+        // Contiguous allocation failed
         if (rc == -1)
         {
+            // Now, try non-contiguous
             store.fst_flags = F_ALLOCATEALL;
 
             rc = fcntl(fd, F_PREALLOCATE, &store);
+            // Non-contiguous allocation failed
+            if (rc == -1)
+            {
+                DEBUG_LOG("fcntl() failed: " << std::strerror(errno));
+                return false;
+            }
         }
 
-        if (rc == -1)
-            return false;
-
+        // Actually set the file size (F_PREALLOCATE doesn't do this)
         if (ftruncate(fd, off_t(offset + mappedSize)) == -1)
+        {
+            DEBUG_LOG("ftruncate() failed: " << std::strerror(errno));
             return false;
+        }
     #else
+        // Linux/POSIX: Use posix_fallocate (atomically allocates and sets size)
         if (posix_fallocate(fd, offset, mappedSize) != 0)
+        {
+            DEBUG_LOG("posix_fallocate() failed: " << std::strerror(errno));
             return false;
+        }
     #endif
 
         mappedPtr = mmap(nullptr, mappedSize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
@@ -1641,6 +1664,7 @@ class SharedMemory final: public BaseSharedMemory {
         return true;
     }
 
+    // Setup existing shared memory region
     [[nodiscard]] bool setup_existing_region(bool& headerInvalid) noexcept {
         headerInvalid = false;
 
@@ -1698,7 +1722,6 @@ class SharedMemory final: public BaseSharedMemory {
     }
 
     static constexpr std::string_view DIRECTORY{"/dev/shm/"};
-    static constexpr std::size_t      MAX_PID_CHARS = 10;
 
     std::string name;
     bool        available = false;
@@ -1822,39 +1845,37 @@ struct SystemWideSharedMemory final {
     // that are not present in the content, for example NUMA node allocation.
     SystemWideSharedMemory(const T& value, std::uint64_t discriminator = 0) noexcept {
 
-        std::string shmName;
+        std::string shmName{"DON_"};
 
 #if defined(__ANDROID__)
         // Do nothing special on Android, just use a fixed name
         ;
 #else
-        constexpr std::size_t Size = HEX64_SIZE + 1 + HEX64_SIZE + 1 + HEX64_SIZE + 1;
-
-        std::string hashName(Size, '\0');
+        // Create a unique name based on the value, executable path, and discriminator
+        // 3 hex digits per 64-bit part + 2 dollar signs + null terminator
+        constexpr std::size_t BufferSize = 3 * HEX64_SIZE + 2 * 1 + 1;
+        // Build the three-part hex identifier safely into a temporary buffer
+        StdArray<char, BufferSize> buffer{};
 
         std::uint64_t valueHash      = std::hash<T>{}(value);
         std::uint64_t executableHash = hash_string(executable_path());
 
-        int size = std::snprintf(hashName.data(), hashName.size(),
-                                 "%016" PRIX64 "$"  // valueHash
-                                 "%016" PRIX64 "$"  // executableHash
-                                 "%016" PRIX64,     // discriminator
-                                 valueHash, executableHash, discriminator);
-        // Shrink to actual string length
-        if (size >= 0)
+        // snprintf returns the number of chars that would have been written (excluding NUL)
+        int         writtenSize = std::snprintf(buffer.data(), buffer.size(),
+                                                "%016" PRIX64 "$"  // valueHash
+                                                "%016" PRIX64 "$"  // executableHash
+                                                "%016" PRIX64,     // discriminator
+                                                valueHash, executableHash, discriminator);
+        std::string hashName;
+        if (writtenSize > 0)
         {
             // Ensure size is within bounds
-            if (std::size_t(size) >= hashName.size())
-                // Truncate to maximum size, leaving space for null terminator
-                size = int(hashName.size() - 1);
-
+            // If snprintf truncated, use up to (buf.size() - 1) characters
+            std::size_t copySize = std::min<std::size_t>(writtenSize, buffer.size() - 1);
             // Shrink to actual content
-            hashName.resize(size);
+            hashName.assign(buffer.data(), copySize);
         }
 
-        shmName.reserve(256);
-
-        shmName = std::string{"DON_"};
         shmName += hashName;
 
     #if defined(_WIN32)
@@ -1870,10 +1891,11 @@ struct SystemWideSharedMemory final {
         if (shmName.size() > MaxNameSize)
             shmName.resize(MaxNameSize);
 #endif
-        BackendSharedMemory<T> tmpBackendShm(shmName, value);
 
-        if (tmpBackendShm.is_valid())
-            backendShm = std::move(tmpBackendShm);
+        BackendSharedMemory<T> backendShmT(shmName, value);
+
+        if (backendShmT.is_valid())
+            backendShm = std::move(backendShmT);
         else
             backendShm = FallbackBackendSharedMemory<T>(shmName, value);
     }
