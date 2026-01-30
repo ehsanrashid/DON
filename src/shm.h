@@ -206,8 +206,14 @@ class BackendSharedMemory final {
    public:
     BackendSharedMemory() = default;
 
-    BackendSharedMemory([[maybe_unused]] const std::string& shmName,
-                        [[maybe_unused]] const T&           value) noexcept {}
+    BackendSharedMemory([[maybe_unused]] std::string_view shmName,
+                        [[maybe_unused]] const T&         value) noexcept {}
+
+    BackendSharedMemory(const BackendSharedMemory&) noexcept            = delete;
+    BackendSharedMemory& operator=(const BackendSharedMemory&) noexcept = delete;
+
+    BackendSharedMemory(BackendSharedMemory&& backendShm) noexcept            = default;
+    BackendSharedMemory& operator=(BackendSharedMemory&& backendShm) noexcept = default;
 
     bool is_valid() const noexcept { return false; }
 
@@ -268,16 +274,20 @@ class BackendSharedMemory final {
     BackendSharedMemory() noexcept :
         status(Status::NotInitialized) {};
 
-    BackendSharedMemory(const std::string& shmName, const T& value) noexcept :
+    BackendSharedMemory(std::string_view shmName, const T& value) noexcept :
+        name(shmName),
         status(Status::NotInitialized) {
+        // Windows named shared memory names must start with "Local\" or "Global\"
+        name.insert(0, "Local\\");
 
-        initialize(shmName, value);
+        initialize(value);
     }
 
     BackendSharedMemory(const BackendSharedMemory&) noexcept            = delete;
     BackendSharedMemory& operator=(const BackendSharedMemory&) noexcept = delete;
 
     BackendSharedMemory(BackendSharedMemory&& backendShm) noexcept :
+        name(std::move(backendShm.name)),
         hMapFile(backendShm.hMapFile),
         hMapFileGuard(hMapFile),
         mappedPtr(backendShm.mappedPtr),
@@ -295,6 +305,7 @@ class BackendSharedMemory final {
 
         cleanup();
 
+        name         = std::move(backendShm.name);
         hMapFile     = backendShm.hMapFile;
         mappedPtr    = backendShm.mappedPtr;
         status       = backendShm.status;
@@ -343,7 +354,7 @@ class BackendSharedMemory final {
     }
 
    private:
-    void initialize(const std::string& shmName, const T& value) noexcept {
+    void initialize(const T& value) noexcept {
         constexpr std::size_t TotalSize = sizeof(T) + sizeof(IS_INITIALIZED);
 
         // Try allocating with large page first
@@ -362,14 +373,14 @@ class BackendSharedMemory final {
 
               return CreateFileMapping(INVALID_HANDLE_VALUE, nullptr,
                                        PAGE_READWRITE | SEC_COMMIT | SEC_LARGE_PAGES,  //
-                                       hiTotalSize, loTotalSize, shmName.c_str());
+                                       hiTotalSize, loTotalSize, name.c_str());
           },
           []() { return INVALID_HANDLE; });
 
         // Fallback to normal allocation if no large page available
         if (hMapFile == INVALID_HANDLE)
             hMapFile = CreateFileMapping(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE,  //
-                                         0, TotalSize, shmName.c_str());
+                                         0, TotalSize, name.c_str());
 
         if (hMapFile == INVALID_HANDLE)
         {
@@ -391,7 +402,8 @@ class BackendSharedMemory final {
         }
 
         // Use named mutex to ensure only one initializer
-        std::string mutexName = shmName + std::string{"$mutex"};
+        std::string mutexName{name};
+        mutexName += "$mutex";
 
         HANDLE hMutex = CreateMutex(nullptr, FALSE, mutexName.c_str());
 
@@ -452,6 +464,7 @@ class BackendSharedMemory final {
 
     static constexpr DWORD IS_INITIALIZED = 1;
 
+    std::string name;
     HANDLE      hMapFile = INVALID_HANDLE;
     HandleGuard hMapFileGuard{hMapFile};
     void*       mappedPtr = INVALID_MMAP_PTR;
@@ -691,7 +704,7 @@ class SharedMemoryCleanupManager final {
             if (pipe(pipeFds) != 0)
     #endif
             {
-                std::cerr << "Failed to create signal pipe: " << std::strerror(errno) << std::endl;
+                DEBUG_LOG("Failed to create signal pipe: " << std::strerror(errno));
 
                 close_signal_pipe();
                 return;
@@ -703,7 +716,7 @@ class SharedMemoryCleanupManager final {
                 || fcntl(pipeFds[0], F_SETFL, O_NONBLOCK) == -1  //
                 || fcntl(pipeFds[1], F_SETFL, O_NONBLOCK) == -1)
             {
-                std::cerr << "Failed to set pipe flags: " << std::strerror(errno) << std::endl;
+                DEBUG_LOG("Failed to set pipe flags: " << std::strerror(errno));
 
                 close_signal_pipe();
                 return;
@@ -715,7 +728,7 @@ class SharedMemoryCleanupManager final {
 
             if (!valid_signal_pipe())
             {
-                std::cerr << "Pipe creation failed, aborting monitor thread." << std::endl;
+                DEBUG_LOG("Pipe creation failed, aborting monitor thread.");
                 return;  // Skip starting the thread
             }
             // 2. Start monitor thread SECOND
@@ -741,7 +754,7 @@ class SharedMemoryCleanupManager final {
 
         // Block all signals handlers about to register
         if (pthread_sigmask(SIG_BLOCK, &sigSet, nullptr) != 0)
-            std::cerr << "Failed to block signals." << std::endl;
+            DEBUG_LOG("Failed to block signals.");
 
         // Now register handlers
         for (int signal : SIGNALS)
@@ -771,13 +784,13 @@ class SharedMemoryCleanupManager final {
             }
 
             if (sigaction(signal, &sigAction, nullptr) != 0)
-                std::cerr << "Failed to register handler for signal " << signal << ": "
-                          << std::strerror(errno) << std::endl;
+                DEBUG_LOG("Failed to register handler for signal " << signal << ": "
+                                                                   << std::strerror(errno));
         }
 
         // Unblock all signals handlers are registered
         if (pthread_sigmask(SIG_UNBLOCK, &sigSet, nullptr) != 0)
-            std::cerr << "Failed to unblock signals." << std::endl;
+            DEBUG_LOG("Failed to unblock signals.");
     }
 
     // Signal handler: deferred handling
@@ -885,8 +898,8 @@ class SharedMemoryCleanupManager final {
 
                     if (sigaction(signal, &sigAction, nullptr) != 0)
                     {
-                        std::cerr << "Failed to restore default handler for signal " << signal
-                                  << ": " << std::strerror(errno) << std::endl;
+                        DEBUG_LOG("Failed to restore default handler for signal "
+                                  << signal << ": " << std::strerror(errno));
                         // Exit with appropriate code
                         _Exit(128 + signal);
                     }
@@ -908,12 +921,13 @@ class SharedMemoryCleanupManager final {
     // Wake monitor thread
     static void wake_monitor_thread() noexcept {
         int fd1 = signalPipeFds[1].load(std::memory_order_relaxed);
+        // Pipe not initialized, skip notification
         if (fd1 == -1)
-            return;  // Pipe not initialized, skip notification
+            return;
 
         char byte = 0;
-
-        ssize_t r = write(fd1, &byte, 1);  // best-effort wakeup
+        // Best-effort wakeup
+        ssize_t r = write(fd1, &byte, 1);
         if (r == -1 && errno != EAGAIN && errno != EINTR)
         {
             write_to_stderr("Failed to wake monitor thread\n");
@@ -963,11 +977,10 @@ class SharedMemoryCleanupManager final {
     // Map signal numbers to bit positions (0-11 for your 12 signals)
     static constexpr int signal_to_bit(int signal) noexcept {
         for (std::size_t bitPos = 0; bitPos < SIGNALS.size(); ++bitPos)
-        {
             if (SIGNALS[bitPos] == signal)
                 return bitPos;
-        }
-        return INVALID_SIGNAL;  // Not in list
+        // Not listed
+        return INVALID_SIGNAL;
     }
 
     static bool signal_graceful(int signal) noexcept {
@@ -1001,19 +1014,21 @@ class SharedMemoryCleanupManager final {
 
     static constexpr int INVALID_SIGNAL = -1;
 
-    static inline CallOnce                   callOnce;
-    static inline std::atomic<bool>          shuttingDown{false};
-    static inline std::atomic<std::uint64_t> pendingSignals{0};
-    static inline std::atomic<int>           signalPipeFds[2]{-1, -1};
-    static inline std::thread                monitorThread;
+    static inline CallOnce                      callOnce;
+    static inline std::atomic<bool>             shuttingDown{false};
+    static inline std::atomic<std::uint64_t>    pendingSignals{0};
+    static inline StdArray<std::atomic<int>, 2> signalPipeFds{-1, -1};
+    static inline std::thread                   monitorThread;
 };
 
 struct MutexAttrGuard final {
    public:
-    explicit MutexAttrGuard(pthread_mutexattr_t& mtxAttr) noexcept :
-        mutexAttr(mtxAttr) {}
+    explicit MutexAttrGuard(pthread_mutexattr_t& mutexAttrRef) noexcept :
+        mutexAttr(mutexAttrRef) {}
 
-    ~MutexAttrGuard() noexcept { pthread_mutexattr_destroy(&mutexAttr); }
+    ~MutexAttrGuard() noexcept { destroy(); }
+
+    void destroy() noexcept { pthread_mutexattr_destroy(&mutexAttr); }
 
    private:
     pthread_mutexattr_t& mutexAttr;
@@ -1154,29 +1169,33 @@ class SharedMemory final: public BaseSharedMemory {
     static_assert(!std::is_pointer_v<T>, "T cannot be a pointer type");
 
    public:
-    explicit SharedMemory(const std::string& shmName) noexcept :
+    explicit SharedMemory(std::string_view shmName) noexcept :
         name(shmName),
         mappedSize(mapped_size()),
-        sentinelBase(shmName) {}
+        sentinelBase(shmName) {
+        // POSIX named shared memory names must start with slash ('/')
+        name.insert(0, "/");
+    }
 
     ~SharedMemory() noexcept override { unregister_close(); }
 
     SharedMemory(const SharedMemory&)            = delete;
     SharedMemory& operator=(const SharedMemory&) = delete;
 
-    SharedMemory(SharedMemory&& sharedMem) noexcept { move_with_registry(sharedMem); }
-    SharedMemory& operator=(SharedMemory&& sharedMem) noexcept {
-        if (this == &sharedMem)
+    SharedMemory(SharedMemory&& sharedMemory) noexcept { move_with_registry(sharedMemory); }
+    SharedMemory& operator=(SharedMemory&& sharedMemory) noexcept {
+        if (this == &sharedMemory)
             return *this;
 
         unregister_close();
 
-        move_with_registry(sharedMem);
+        move_with_registry(sharedMemory);
 
         return *this;
     }
 
     [[nodiscard]] bool open_register(const T& value) noexcept {
+
         if (SharedMemoryRegistry::cleanup_in_progress())
             return false;
 
@@ -1185,7 +1204,7 @@ class SharedMemory final: public BaseSharedMemory {
         while (true)
         {
             if (is_open())
-                return false;
+                break;
 
             bool newCreated = false;
 
@@ -1196,7 +1215,7 @@ class SharedMemory final: public BaseSharedMemory {
                 fd = shm_open(name.c_str(), O_RDWR, 0666);
 
                 if (fd <= INVALID_FD)
-                    return false;
+                    break;
             }
             else
             {
@@ -1209,7 +1228,7 @@ class SharedMemory final: public BaseSharedMemory {
             {
                 cleanup(false, lockFile);
 
-                return false;
+                break;
             }
 
             bool headerInvalid = false;
@@ -1228,7 +1247,7 @@ class SharedMemory final: public BaseSharedMemory {
                     continue;
                 }
 
-                return false;
+                break;
             }
 
             if (shmHeader == nullptr)
@@ -1241,7 +1260,7 @@ class SharedMemory final: public BaseSharedMemory {
                     continue;
                 }
 
-                return false;
+                break;
             }
 
             // RAII mutex scope lock
@@ -1258,16 +1277,16 @@ class SharedMemory final: public BaseSharedMemory {
                         continue;
                     }
 
-                    return false;
+                    break;
                 }
 
-                if (!create_sentinel_file_locked())
+                if (!sentinel_file_locked_created())
                 {
                     shmHeaderGuard.unlock();
 
                     cleanup(newCreated, lockFile);
 
-                    return false;
+                    break;
                 }
 
                 increment_ref_count();
@@ -1279,8 +1298,12 @@ class SharedMemory final: public BaseSharedMemory {
             // Register this new resource
             SharedMemoryRegistry::attempt_register_memory(this);
 
-            return true;
+            available = true;
+
+            break;
         }
+
+        return available;
     }
 
     void close(bool skipUnmapRegion = false) noexcept override {
@@ -1290,18 +1313,12 @@ class SharedMemory final: public BaseSharedMemory {
         bool removeRegion = false;
         bool lockFile     = lock_file(LOCK_EX);
 
-        auto handle_ref_and_sentinel = [&]() noexcept {
-            decrement_ref_count();
-
-            remove_sentinel_file();
-        };
-
         if (lockFile && shmHeader != nullptr)
         {
             // RAII mutex lock
             ShmHeaderGuard shmHeaderGuard(*shmHeader);
 
-            handle_ref_and_sentinel();
+            handle_ref_count_and_sentinel_file();
 
             if (shmHeaderGuard.owns_lock())
             {
@@ -1312,11 +1329,13 @@ class SharedMemory final: public BaseSharedMemory {
         else
         {
             // File lock failed or no header
-            handle_ref_and_sentinel();
+            handle_ref_count_and_sentinel_file();
         }
 
         cleanup(removeRegion, lockFile, skipUnmapRegion);
     }
+
+    [[nodiscard]] bool is_available() const noexcept { return available; }
 
     [[nodiscard]] bool is_open() const noexcept {
         return fd >= 0 && mappedPtr != nullptr && dataPtr != nullptr;
@@ -1335,6 +1354,8 @@ class SharedMemory final: public BaseSharedMemory {
     [[nodiscard]] std::uint32_t ref_count() const noexcept {
         return shmHeader != nullptr ? shmHeader->ref_count() : 0;
     }
+
+    bool is_valid() const noexcept { return available && is_open() && is_initialized(); }
 
    private:
     static constexpr std::size_t mapped_size() noexcept { return sizeof(T) + sizeof(ShmHeader); }
@@ -1359,23 +1380,23 @@ class SharedMemory final: public BaseSharedMemory {
     }
 
     // Move the contents of another SharedMemory object into this one, updating the registry accordingly
-    void move_with_registry(SharedMemory& sharedMem) noexcept {
+    void move_with_registry(SharedMemory& sharedMemory) noexcept {
         // 1. Unregister source while it's intact
-        [[maybe_unused]] bool unregistered = SharedMemoryRegistry::unregister_memory(&sharedMem);
+        [[maybe_unused]] bool unregistered = SharedMemoryRegistry::unregister_memory(&sharedMemory);
         //assert(unregistered && "SharedMemory not registered");
 
         // 2. Move members
-        name         = std::move(sharedMem.name);
-        fd           = sharedMem.fd;
-        mappedPtr    = sharedMem.mappedPtr;
-        dataPtr      = sharedMem.dataPtr;
-        shmHeader    = sharedMem.shmHeader;
-        mappedSize   = sharedMem.mappedSize;
-        sentinelBase = std::move(sharedMem.sentinelBase);
-        sentinelPath = std::move(sharedMem.sentinelPath);
+        name         = std::move(sharedMemory.name);
+        fd           = sharedMemory.fd;
+        mappedPtr    = sharedMemory.mappedPtr;
+        dataPtr      = sharedMemory.dataPtr;
+        shmHeader    = sharedMemory.shmHeader;
+        mappedSize   = sharedMemory.mappedSize;
+        sentinelBase = std::move(sharedMemory.sentinelBase);
+        sentinelPath = std::move(sharedMemory.sentinelPath);
 
         // 3. Reset source
-        sharedMem.reset();
+        sharedMemory.reset();
 
         // 4. Register this new resource
         SharedMemoryRegistry::attempt_register_memory(this);
@@ -1404,7 +1425,7 @@ class SharedMemory final: public BaseSharedMemory {
     }
 
     [[nodiscard]] bool lock_file(int operation) noexcept {
-        if (fd < 0)
+        if (fd <= INVALID_FD)
             return false;
 
         while (true)
@@ -1425,7 +1446,7 @@ class SharedMemory final: public BaseSharedMemory {
     }
 
     void unlock_file() noexcept {
-        if (fd < 0)
+        if (fd <= INVALID_FD)
             return;
 
         while (true)
@@ -1461,7 +1482,7 @@ class SharedMemory final: public BaseSharedMemory {
             shmHeader->decrement_ref_count();
     }
 
-    bool create_sentinel_file_locked() noexcept {
+    bool sentinel_file_locked_created() noexcept {
         constexpr std::size_t MaxAttempt = 4;
 
         if (shmHeader == nullptr)
@@ -1503,6 +1524,13 @@ class SharedMemory final: public BaseSharedMemory {
         ::unlink(sentinelPath.c_str());
 
         clear_sentinel_path();
+    }
+
+    void handle_ref_count_and_sentinel_file() noexcept {
+
+        decrement_ref_count();
+
+        remove_sentinel_file();
     }
 
     bool has_other_live_sentinels_locked() const noexcept {
@@ -1673,7 +1701,8 @@ class SharedMemory final: public BaseSharedMemory {
     static constexpr std::size_t      MAX_PID_CHARS = 10;
 
     std::string name;
-    int         fd = INVALID_FD;
+    bool        available = false;
+    int         fd        = INVALID_FD;
     FdGuard     fdGuard{fd};
     void*       mappedPtr  = INVALID_MMAP_PTR;
     std::size_t mappedSize = INVALID_MMAP_SIZE;
@@ -1689,7 +1718,7 @@ class BackendSharedMemory final {
    public:
     BackendSharedMemory() noexcept = default;
 
-    BackendSharedMemory(const std::string& shmName, const T& value) noexcept {
+    BackendSharedMemory(std::string_view shmName, const T& value) noexcept {
         SharedMemoryCleanupManager::ensure_initialized();
 
         shm.emplace(shmName);
@@ -1698,7 +1727,15 @@ class BackendSharedMemory final {
             shm.reset();
     }
 
-    bool is_valid() const noexcept { return shm && shm->is_open() && shm->is_initialized(); }
+    BackendSharedMemory(const BackendSharedMemory&) noexcept            = delete;
+    BackendSharedMemory& operator=(const BackendSharedMemory&) noexcept = delete;
+
+    BackendSharedMemory(BackendSharedMemory&& backendShm) noexcept            = default;
+    BackendSharedMemory& operator=(BackendSharedMemory&& backendShm) noexcept = default;
+
+    bool is_valid() const noexcept {
+        return shm && shm->is_available() && shm->is_open() && shm->is_initialized();
+    }
 
     void* get() const noexcept {
         return is_valid() ? reinterpret_cast<void*>(const_cast<T*>(&shm->get())) : nullptr;
@@ -1710,7 +1747,7 @@ class BackendSharedMemory final {
     }
 
     std::optional<std::string> get_error_message() const noexcept {
-        if (!shm)
+        if (!shm || !shm->is_available())
             return "Shared memory not available";
 
         if (!shm->is_open())
@@ -1816,17 +1853,12 @@ struct SystemWideSharedMemory final {
 
         shmName.reserve(256);
 
-    #if defined(_WIN32)
-        // Windows named shared memory names must start with "Local\" or "Global\" then add hash-name
-        shmName = std::string{"Local\\DON_"};
+        shmName = std::string{"DON_"};
         shmName += hashName;
 
+    #if defined(_WIN32)
         constexpr std::size_t MaxNameSize = 255 - 1;
     #else
-        // POSIX shared memory names must start with a slash ('/') then add hash-name
-        shmName = std::string{"/DON_"};
-        shmName += hashName;
-
         // POSIX APIs expect a fixed-size C string where the maximum length excluding the terminating null character ('\0').
         // Since std::string::size() does not include '\0', allow at most (MAX - 1) characters
         // to guarantee space for the terminator ('\0') in fixed-size buffers.

@@ -55,12 +55,6 @@ using JobFunc = std::function<void()>;
 
 #if defined(SUPPORTS_PTHREADS)
 
-    #if !defined(NDEBUG)
-        #define THREAD_LOG(msg) std::cerr << msg << std::endl
-    #else
-        #define THREAD_LOG(msg) ((void) 0)
-    #endif
-
 // On OSX threads other than the main thread are created with a reduced stack
 // size of 512KB by default, this is too low for deep searches,
 // which require somewhat more than 1MB stack, so adjust it to 8MB.
@@ -90,13 +84,13 @@ class NativeThread final {
 
         if (pthread_attr_init(&threadAttr) != 0)
         {
-            THREAD_LOG("Failed to init thread attributes");
+            DEBUG_LOG("Failed to init thread attributes");
             return;
         }
 
         if (pthread_attr_setstacksize(&threadAttr, TH_STACK_SIZE) != 0)
         {
-            THREAD_LOG("Failed to set thread stack size");
+            DEBUG_LOG("Failed to set thread stack size");
         }
 
         // Pass the raw pointer to pthread_create
@@ -117,7 +111,7 @@ class NativeThread final {
         // Destroy thread attr
         if (pthread_attr_destroy(&threadAttr) != 0)
         {
-            THREAD_LOG("Failed to destroy thread attributes");
+            DEBUG_LOG("Failed to destroy thread attributes");
         }
     }
 

@@ -225,7 +225,7 @@ void PerftTable::resize(std::size_t ptSize, Threads& threads) noexcept {
 
     if (clusters == nullptr)
     {
-        std::cerr << "Failed to allocate " << ptSize << "MB for perft table." << std::endl;
+        DEBUG_LOG("Failed to allocate " << ptSize << "MB for perft table.");
         std::exit(EXIT_FAILURE);
     }
 

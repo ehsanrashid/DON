@@ -38,7 +38,7 @@ namespace DON {
 
 namespace {
 
-static constexpr double HistoryMapLoadFactor = 0.75f;
+static constexpr float HistoryMapLoadFactor = 0.75f;
 
 }  // namespace
 
@@ -165,7 +165,7 @@ void Thread::idle_func() noexcept {
 
         // If thread is being torn down, exit immediately.
         if (dead)
-            return;
+            break;
 
         // Move the scheduled job out of the shared storage.
         // This allows run_custom_job to schedule another job
@@ -182,6 +182,8 @@ void Thread::idle_func() noexcept {
         if (jobFn)
             jobFn();
     }
+
+    //DEBUG_LOG("Thread id: " << threadId << " exiting.");
 }
 
 void Thread::ensure_network_replicated() const noexcept { worker->ensure_network_replicated(); }

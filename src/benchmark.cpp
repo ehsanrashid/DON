@@ -421,7 +421,7 @@ Strings bench(std::istream& is, std::string_view currentFen) noexcept {
         std::ifstream ifs{fenFile};
 
         if (!ifs.is_open())
-            std::cerr << "Unable to open fen filename " << fenFile << std::endl;
+            DEBUG_LOG("Unable to open fen filename " << fenFile);
         else
         {
             std::string fen;

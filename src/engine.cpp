@@ -155,7 +155,7 @@ void Engine::setup(std::string_view fen, const Strings& moves) noexcept {
     states = std::make_unique<StateList>(1);
     pos.set(fen, &states->back());
 
-    std::int16_t ply = 1;
+    [[maybe_unused]] std::int16_t ply = 1;
 
     for (const auto& move : moves)
     {
@@ -163,7 +163,7 @@ void Engine::setup(std::string_view fen, const Strings& moves) noexcept {
 
         if (m == Move::None)
         {
-            std::cerr << "Invalid move in the moves list at " << ply << ": " << move << std::endl;
+            DEBUG_LOG("Invalid move in the moves list at " << ply << ": " << move);
             break;
         }
 
@@ -245,8 +245,8 @@ void Engine::dump(std::optional<std::string_view> dumpFile) const noexcept {
         }
 
         // Couldn't open file - optionally report and fall back
-        std::cerr << "Engine::dump: failed to open '" << dumpFile.value()
-                  << "', writing to stdout instead" << std::endl;
+        DEBUG_LOG("Engine::dump: failed to open '" << dumpFile.value()
+                                                   << "', writing to stdout instead");
     }
 
     // Default: dump to console

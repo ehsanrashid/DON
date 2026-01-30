@@ -531,15 +531,13 @@ std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
 
     if (loSize == INVALID_FILE_SIZE && GetLastError() != NO_ERROR)
     {
-        std::cerr << "GetFileSize() failed, name = " << filename << std::endl;
-
+        DEBUG_LOG("GetFileSize() failed, name = " << filename);
         return nullptr;
     }
 
     if (loSize % 64 != 16)
     {
-        std::cerr << "Corrupt tablebase, name = " << filename << std::endl;
-
+        DEBUG_LOG("Corrupt tablebase, name = " << filename);
         return nullptr;
     }
 
@@ -547,8 +545,7 @@ std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
 
     if (hMapFile == INVALID_HANDLE)
     {
-        std::cerr << "CreateFileMapping() failed, name = " << filename << std::endl;
-
+        DEBUG_LOG("CreateFileMapping() failed, name = " << filename);
         return nullptr;
     }
 
@@ -556,8 +553,7 @@ std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
 
     if (mappedPtr == INVALID_MMAP_PTR)
     {
-        std::cerr << "MapViewOfFile() failed, name = " << filename << ", error = " << GetLastError()
-                  << std::endl;
+        DEBUG_LOG("MapViewOfFile() failed, name = " << filename << ", error = " << GetLastError());
 
         hMapFileGuard.close();
 
@@ -575,15 +571,13 @@ std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
 
     if (fstat(fd, &Stat) == -1)
     {
-        std::cerr << "fstat() failed, name = " << filename << ": " << strerror(errno) << std::endl;
-
+        DEBUG_LOG("fstat() failed, name = " << filename << ": " << strerror(errno));
         return nullptr;
     }
 
     if (Stat.st_size % 64 != 16)
     {
-        std::cerr << "Corrupt tablebase size, name = " << filename << std::endl;
-
+        DEBUG_LOG("Corrupt tablebase size, name = " << filename);
         return nullptr;
     }
 
@@ -593,17 +587,13 @@ std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
 
     if (mappedPtr == MAP_FAILED)
     {
-        std::cerr << "mmap() failed, name = " << filename << std::endl;
-
+        DEBUG_LOG("mmap() failed, name = " << filename);
         return nullptr;
     }
 
     #if defined(MADV_RANDOM)
     if (madvise(mappedPtr, mappedSize, MADV_RANDOM) != 0)
-    {
-        std::cerr << "madvise() failed, name = " << filename << ": " << strerror(errno)
-                  << std::endl;
-    }
+        DEBUG_LOG("madvise() failed, name = " << filename << ": " << strerror(errno));
     #endif
 #endif
 
@@ -613,7 +603,7 @@ std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
 
     if (std::memcmp(data, TBMagic.data(), TBMagic.size()) != 0)
     {
-        std::cerr << "Corrupt tablebase table, name = " << filename << std::endl;
+        DEBUG_LOG("Corrupt tablebase table, name = " << filename);
 
         unmap();
 
@@ -2005,9 +1995,7 @@ void init(std::string_view paths) noexcept {
 
     UCI::print_info_string(tbTables.info());
 
-#if !defined(NDEBUG)
-    std::cerr << "\nMaxDistance: " << tbTables.max_distance() << std::endl;
-#endif
+    DEBUG_LOG("\nMaxDistance: " << tbTables.max_distance());
 }
 
 // Probe the WDL table for a particular position.
