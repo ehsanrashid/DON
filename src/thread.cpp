@@ -184,7 +184,7 @@ void Thread::idle_func() noexcept {
             jobFn();
     }
 
-    DEBUG_LOG("Thread id: " << threadId << " exiting.");
+    //DEBUG_LOG("Thread id: " << threadId << " exiting.");
 }
 
 void Thread::ensure_network_replicated() const noexcept { worker->ensure_network_replicated(); }
