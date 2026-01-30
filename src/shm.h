@@ -1575,7 +1575,7 @@ class SharedMemory final: public BaseSharedMemory {
 
             ::unlink(stalePath.c_str());
 
-            const_cast<BackendSharedMemory*>(this)->decrement_ref_count();
+            const_cast<SharedMemory*>(this)->decrement_ref_count();
         }
 
         closedir(dir);
