@@ -1789,14 +1789,18 @@ struct SystemWideSharedMemory final {
         // Do nothing special on Android, just use a fixed name
         ;
 #else
-        std::string hashName(128, '\0');
+        constexpr std::size_t Size = 16 + 1 + 16 + 1 + 16 + 1;
+
+        std::string hashName(Size, '\0');
 
         std::uint64_t valueHash      = std::hash<T>{}(value);
         std::uint64_t executableHash = hash_string(executable_path());
 
         int size = std::snprintf(hashName.data(), hashName.size(),
-                                 "%016" PRIX64 "$%016" PRIX64 "$%016" PRIX64, valueHash,
-                                 executableHash, discriminator);
+                                 "%016" PRIX64 "$"  // valueHash
+                                 "%016" PRIX64 "$"  // executableHash
+                                 "%016" PRIX64,     // discriminator
+                                 valueHash, executableHash, discriminator);
         // Shrink to actual string length
         if (size >= 0)
         {
@@ -1817,24 +1821,20 @@ struct SystemWideSharedMemory final {
         shmName += hashName;
 
         constexpr std::size_t MaxNameSize = 255 - 1;
-
-        // Truncate the name if necessary so that it fits within Windows limits including the null terminator
-        if (shmName.size() > MaxNameSize)
-            shmName.resize(MaxNameSize);
     #else
-        // POSIX shared memory names must start with a slash ('/') then add hash of hash-name
+        // POSIX shared memory names must start with a slash ('/') then add hash-name
         shmName = std::string{"/DON_"};
-        shmName += hash_to_string(hash_string(hashName));
+        shmName += hashName;
 
         // POSIX APIs expect a fixed-size C string where the maximum length excluding the terminating null character ('\0').
         // Since std::string::size() does not include '\0', allow at most (MAX - 1) characters
         // to guarantee space for the terminator ('\0') in fixed-size buffers.
         constexpr std::size_t MaxNameSize = SHM_NAME_MAX_SIZE > 0 ? SHM_NAME_MAX_SIZE - 1 : 254;
+    #endif
 
-        // Truncate the name if necessary so that it fits within POSIX limits including the null terminator
+        // Truncate the name if necessary so that it fits within limits including the null terminator
         if (shmName.size() > MaxNameSize)
             shmName.resize(MaxNameSize);
-    #endif
 #endif
         BackendSharedMemory<T> tmpBackendShm(shmName, value);
 
