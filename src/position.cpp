@@ -263,8 +263,11 @@ void Position::set(std::string_view fens, State* newSt) noexcept {
     // Returns '\0' when p >= end (EOF sentinel)
     auto peek        = [&p, &end]() noexcept -> char { return p < end ? *p : '\0'; };
     auto skip_spaces = [&p, &end]() noexcept {
-        while (p < end && std::isspace(static_cast<unsigned char>(*p)))
+        while (p < end && std::isspace((unsigned char) (*p)))
             ++p;
+    };
+    auto not_space = [&p, &end]() noexcept -> bool {
+        return p < end && !std::isspace((unsigned char) (*p));
     };
     auto get     = [&p, &end]() noexcept -> char { return p < end ? *p++ : '\0'; };
     auto get_int = [&p, &end, &skip_spaces](int& out) noexcept -> bool {
@@ -299,14 +302,9 @@ void Position::set(std::string_view fens, State* newSt) noexcept {
     File file = FILE_A;
     Rank rank = RANK_8;
     // 1. Piece placement
-    while (p < end)
+    while (not_space())
     {
-        token = *p;
-
-        if (std::isspace((unsigned char) token))
-            break;
-
-        ++p;
+        token = get();
 
         if (token == '/')
         {
@@ -380,7 +378,7 @@ void Position::set(std::string_view fens, State* newSt) noexcept {
     // if an inner rook is associated with the castling right, the castling tag is
     // replaced by the file letter of the involved rook, as for the Shredder-FEN.
     [[maybe_unused]] std::size_t castlingRightsCount = 0;
-    while (p < end && !std::isspace((unsigned char) (*p)))
+    while (not_space())
     {
         token = get();
 
