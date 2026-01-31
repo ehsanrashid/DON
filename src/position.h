@@ -185,7 +185,7 @@ struct State final {
 
 static_assert(std::is_standard_layout_v<State> && std::is_trivially_copyable_v<State>,
               "State must be standard-layout and trivially copyable");
-//static_assert(sizeof(State) == 248, "State size");
+//static_assert(sizeof(State) == 248, "State size must be 248 bytes");
 
 class Worker;
 
@@ -514,7 +514,7 @@ class Position final {
     Color                                        activeColor;
 };
 
-//static_assert(sizeof(Position) == 472, "Position size");
+//static_assert(sizeof(Position) == 472, "Position size must be 472 bytes");
 
 inline const auto& Position::piece_map() const noexcept { return pieceMap; }
 

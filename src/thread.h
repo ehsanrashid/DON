@@ -344,7 +344,9 @@ class Threads final {
 
     void reserve(std::size_t threadCount) noexcept { threads.reserve(threadCount); }
 
-    void clear() noexcept;
+    void clear() noexcept { threads.clear(); }
+
+    void destroy() noexcept;
 
     void set(const NumaConfig&                       numaConfig,
              SharedState                             sharedState,
@@ -499,10 +501,10 @@ class Threads final {
     StateListPtr           setupStates;
 };
 
-inline Threads::~Threads() noexcept { clear(); }
+inline Threads::~Threads() noexcept { destroy(); }
 
 // Destroy any existing thread(s)
-inline void Threads::clear() noexcept {
+inline void Threads::destroy() noexcept {
     if (empty())
         return;
 
@@ -512,8 +514,9 @@ inline void Threads::clear() noexcept {
     // Wait for the main thread to finish its work
     main_thread()->wait_finish();
 
-    // Destroy threads and clear associated resources
-    threads.clear();
+    // Clear threads
+    clear();
+    // Clear thread binding nodes
     threadBoundNumaNodes.clear();
 }
 

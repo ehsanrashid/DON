@@ -194,13 +194,13 @@ void Thread::idle_func() noexcept {
 void Thread::ensure_network_replicated() const noexcept { worker->ensure_network_replicated(); }
 
 
-// Creates/destroys threads to match the requested number.
+// Destroys/Creates threads to match the requested number.
 // Created and launched threads will immediately go to sleep in idle_func.
 // Upon resizing, threads are recreated to allow for binding if necessary.
 void Threads::set(const NumaConfig&                       numaConfig,
                   SharedState                             sharedState,
                   const MainSearchManager::UpdateContext& updateContext) noexcept {
-    clear();
+    destroy();
 
     std::size_t threadCount = sharedState.options["Threads"];
     assert(threadCount != 0);

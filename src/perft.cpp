@@ -160,7 +160,7 @@ struct PTEntry final {
     friend class PerftTable;
 };
 
-static_assert(sizeof(PTEntry) == 16, "Unexpected PTEntry size");
+static_assert(sizeof(PTEntry) == 16, "PTEntry size must be 16 bytes");
 
 struct PTCluster final {
    public:
@@ -175,7 +175,7 @@ struct PTCluster final {
     PTCluster& operator=(PTCluster&&) noexcept = delete;
 };
 
-static_assert(sizeof(PTCluster) == 64, "Unexpected PTCluster size");
+static_assert(sizeof(PTCluster) == 64, "PTCluster size must be 64 bytes");
 
 struct ProbResult final {
    public:

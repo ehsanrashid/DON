@@ -137,7 +137,7 @@ struct TTEntry final {
     std::uint8_t  meta8;
 };
 
-static_assert(sizeof(TTEntry) == 10, "Unexpected TTEntry size");
+static_assert(sizeof(TTEntry) == 10, "TTEntry size must be 10 bytes");
 
 TTData TTData::empty() noexcept {
     return {Move::None, VALUE_NONE, VALUE_NONE, DEPTH_OFFSET, Bound::NONE, false, false};
@@ -160,7 +160,7 @@ struct TTCluster final {
     TTCluster& operator=(TTCluster&&) noexcept = delete;
 };
 
-static_assert(sizeof(TTCluster) == 32, "Unexpected TTCluster size");
+static_assert(sizeof(TTCluster) == 32, "TTCluster size must be 32 bytes");
 
 TTUpdater::TTUpdater(TTEntry* te, TTCluster* tc, std::uint16_t k, std::uint8_t gen) noexcept :
     tte(te),

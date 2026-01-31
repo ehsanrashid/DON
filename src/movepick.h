@@ -45,7 +45,7 @@ struct ExtMove final: public Move {
     std::int32_t value;
 };
 
-static_assert(sizeof(ExtMove) == 8, "Unexpected ExtMove size");
+static_assert(sizeof(ExtMove) == 8, "ExtMove size must be Move + int32_t = 8 bytes");
 
 constexpr bool ext_move_descending(const ExtMove& em1, const ExtMove& em2) noexcept {
     return em1 > em2;
@@ -148,7 +148,12 @@ class MovePicker final {
     Stage curStage;
 
     StdArray<value_type, MAX_MOVES> moves;
-    iterator                        cur, endCur, endBadCapture, begBadQuiet, endBadQuiet;
+
+    iterator cur    = nullptr,  //
+      endCur        = nullptr,  //
+      endBadCapture = nullptr,  //
+      begBadQuiet   = nullptr,  //
+      endBadQuiet   = nullptr;
 };
 
 }  // namespace DON

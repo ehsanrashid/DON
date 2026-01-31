@@ -191,7 +191,7 @@ struct SparseEntry final {
     StdArray<char, 2> offset;  // Offset within the block
 };
 
-static_assert(sizeof(SparseEntry) == 6, "SparseEntry must be 6 bytes");
+static_assert(sizeof(SparseEntry) == 6, "SparseEntry size must be 6 bytes");
 
 using Sym = std::uint16_t;  // Huffman symbol
 
@@ -211,7 +211,7 @@ struct LR final {
     StdArray<std::uint8_t, 3> data;
 };
 
-static_assert(sizeof(LR) == 3, "LR tree entry must be 3 bytes");
+static_assert(sizeof(LR) == 3, "LR size must be 3 bytes");
 
 // Tablebase data layout is structured as following:
 //

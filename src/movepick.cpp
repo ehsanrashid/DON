@@ -223,6 +223,8 @@ template<>
 MovePicker::iterator
 MovePicker::score<GenType::ENC_CAPTURE>(MoveList<GenType::ENC_CAPTURE>& moveList) noexcept {
 
+    const auto& captureHistoryRef = *this->captureHistory;
+
     iterator itr = cur;
 
     for (Move move : moveList)
@@ -233,11 +235,11 @@ MovePicker::score<GenType::ENC_CAPTURE>(MoveList<GenType::ENC_CAPTURE>& moveList
         assert(pos.capture_promo(m));
 
         Square dstSq      = m.dst_sq();
-        auto   movedPc    = pos.moved_pc(m);
+        Piece  movedPc    = pos.moved_pc(m);
         auto   capturedPt = pos.captured_pt(m);
 
         m.value = 7 * piece_value(capturedPt)  //
-                + (*captureHistory)[+movedPc][dstSq][capturedPt];
+                + captureHistoryRef[+movedPc][dstSq][capturedPt];
     }
 
     return itr;
@@ -251,6 +253,10 @@ MovePicker::score<GenType::ENC_QUIET>(MoveList<GenType::ENC_QUIET>& moveList) no
     Bitboard blockersBB = pos.blockers_bb(~ac);
     Bitboard pinnersBB  = pos.pinners_bb();
     Bitboard threatsBB  = pos.threats_bb();
+
+    const auto&        quietHistoryRef        = *this->quietHistory;
+    const auto&        lowPlyQuietHistoryRef  = *this->lowPlyQuietHistory;
+    const auto* const* continuationHistoryPtr = this->continuationHistory;
 
     const auto& pawnHistory = histories->pawn(pos.pawn_key());
 
@@ -269,14 +275,14 @@ MovePicker::score<GenType::ENC_QUIET>(MoveList<GenType::ENC_QUIET>& moveList) no
 
         std::int64_t value;
 
-        value = 2 * (*quietHistory)[ac][m.raw()];
+        value = 2 * quietHistoryRef[ac][m.raw()];
         value += 2 * pawnHistory[+movedPc][dstSq];
         // Accumulate continuation history entries
         for (std::size_t i = 0; i < CONT_HISTORY_COUNT; ++i)
-            value += (*continuationHistory[i])[+movedPc][dstSq];
+            value += (*continuationHistoryPtr[i])[+movedPc][dstSq];
 
         if (ssPly < LOW_PLY_QUIET_SIZE)
-            value += 8 * (*lowPlyQuietHistory)[ssPly][m.raw()] / (1 + ssPly);
+            value += 8 * lowPlyQuietHistoryRef[ssPly][m.raw()] / (1 + ssPly);
 
         // Bonus for checks
         if (pos.check(m))
@@ -331,6 +337,9 @@ MovePicker::score<GenType::EVA_QUIET>(MoveList<GenType::EVA_QUIET>& moveList) no
 
     Color ac = pos.active_color();
 
+    const auto&        quietHistoryRef        = *this->quietHistory;
+    const auto* const* continuationHistoryPtr = this->continuationHistory;
+
     iterator itr = cur;
 
     for (Move move : moveList)
@@ -344,8 +353,8 @@ MovePicker::score<GenType::EVA_QUIET>(MoveList<GenType::EVA_QUIET>& moveList) no
         Square dstSq   = m.dst_sq();
         Piece  movedPc = pos.moved_pc(m);
 
-        m.value = (*quietHistory)[ac][m.raw()]  //
-                + (*continuationHistory[0])[+movedPc][dstSq];
+        m.value = quietHistoryRef[ac][m.raw()]  //
+                + (*continuationHistoryPtr[0])[+movedPc][dstSq];
     }
 
     return itr;

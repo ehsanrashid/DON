@@ -58,7 +58,7 @@ struct TTData final {
     bool  pv;
 };
 
-//static_assert(sizeof(TTData) == 12, "Unexpected TTData size");
+//static_assert(sizeof(TTData) == 12, "TTData size must be 12 bytes");
 
 struct TTEntry;
 struct TTCluster;

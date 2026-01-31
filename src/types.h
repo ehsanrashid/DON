@@ -84,8 +84,8 @@ namespace DON {
 using Bitboard = std::uint64_t;
 using Key      = std::uint64_t;
 
-static_assert(sizeof(Bitboard) == 8, "Expected 64-bit Bitboard");
-static_assert(sizeof(Key) == 8, "Expected 64-bit Key");
+static_assert(sizeof(Bitboard) == 8, "Bitboard size must be 8 bytes");
+static_assert(sizeof(Key) == 8, "Key size must be 8 bytes");
 
 inline constexpr std::uint16_t MAX_MOVES = 256;
 inline constexpr std::uint16_t MAX_PLY   = 254;
@@ -259,7 +259,7 @@ enum class Piece : std::uint8_t {
     B_PAWN = 8 + PAWN, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING
 };
 // clang-format on
-static_assert(sizeof(Piece) == 1);
+static_assert(sizeof(Piece) == 1, "Piece size must be 1 byte");
 
 inline constexpr std::size_t PIECE_NB = 16;
 
@@ -742,7 +742,7 @@ struct DirtyThreat final {
     std::uint32_t data;
 };
 
-static_assert(sizeof(DirtyThreat) == 4, "DirtyThreat Size");
+static_assert(sizeof(DirtyThreat) == 4, "DirtyThreat size must be 4 bytes");
 
 // A piece can be involved in at most 8 outgoing attacks and 16 incoming attacks.
 // Moving a piece also can reveal at most 8 discovered attacks.

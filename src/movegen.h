@@ -60,7 +60,7 @@ struct MoveList final {
     explicit MoveList(const Position& pos) noexcept :
         endMove(generate<GT, Any>(pos, moves.data())) {
 #if !defined(NDEBUG)
-        assert(moves.data() <= endMove && endMove <= moves.data() + MAX_MOVES);
+        assert(moves.data() <= endMove && endMove <= moves.data() + moves.size());
 #endif
     }
 
@@ -93,7 +93,8 @@ struct MoveList final {
     MoveList& operator=(MoveList&&) noexcept      = delete;
 
     StdArray<value_type, MAX_MOVES> moves;
-    const_iterator                  endMove;
+
+    const_iterator endMove = nullptr;
 };
 
 }  // namespace DON
