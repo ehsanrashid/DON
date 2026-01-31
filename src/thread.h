@@ -458,18 +458,15 @@ class Threads final {
     void notify_main_manager() const noexcept {
         std::shared_lock threadsLock(sharedMutex);
 
-        if (threads.empty())
-            return;
+        assert(!threads.empty());
 
         auto* mainThread = threads.front().get();
         // Only proceed if main thread exists
-        if (mainThread == nullptr)
-            return;
+        assert(mainThread != nullptr);
 
         auto* mainManager = mainThread->worker->main_manager();
         // Only proceed if main manager exists
-        if (mainManager == nullptr)
-            return;
+        assert(mainManager != nullptr);
 
         // Try to acquire the main manager mutex to ensure the waiting thread
         // observes the updated state before it wakes.

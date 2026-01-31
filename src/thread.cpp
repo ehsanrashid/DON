@@ -540,6 +540,8 @@ void Threads::run_on_thread(std::size_t threadId, JobFunc job) noexcept {
         assert(threadId < size());
         thread = threads[threadId].get();
     }
+    assert(thread != nullptr);
+
     thread->run_custom_job(std::move(job));
 }
 
@@ -551,6 +553,8 @@ void Threads::wait_on_thread(std::size_t threadId) noexcept {
         assert(threadId < size());
         thread = threads[threadId].get();
     }
+    assert(thread != nullptr);
+
     thread->wait_finish();
 }
 
