@@ -185,7 +185,7 @@ void TranspositionTable::free() noexcept {
 
 std::uint8_t TranspositionTable::generation() const noexcept { return generation8; }
 
-void TranspositionTable::increment_generation() noexcept { generation8 += GENERATION_DELTA; }
+void TranspositionTable::increment_generation() const noexcept { generation8 += GENERATION_DELTA; }
 
 // Sets the size of the transposition table, measured in megabytes (MB).
 // Transposition table consists of even number of clusters.

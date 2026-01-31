@@ -407,8 +407,8 @@ struct SharedState final {
    public:
     const SystemWideLazyNumaReplicated<NNUE::Networks>& networks;
     const Options&                                      options;
+    const TranspositionTable&                           transpositionTable;
     Threads&                                            threads;
-    TranspositionTable&                                 transpositionTable;
     HistoriesMap&                                       historiesMap;
 };
 
@@ -630,8 +630,8 @@ class Worker final {
     ISearchManagerPtr                                   manager;
     const SystemWideLazyNumaReplicated<NNUE::Networks>& networks;
     const Options&                                      options;
+    const TranspositionTable&                           transpositionTable;
     Threads&                                            threads;
-    TranspositionTable&                                 transpositionTable;
     Histories&                                          histories;
     NNUE::AccumulatorCaches                             accCaches;
     NNUE::AccumulatorStack                              accStack;

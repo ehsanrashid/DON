@@ -209,8 +209,8 @@ Worker::Worker(std::size_t               threadIdx,
     manager(std::move(searchManager)),
     networks(sharedState.networks),
     options(sharedState.options),
-    threads(sharedState.threads),
     transpositionTable(sharedState.transpositionTable),
+    threads(sharedState.threads),
     histories(sharedState.historiesMap.at(accessToken.numa_id())),
     accCaches(networks[accessToken]) {}
 
