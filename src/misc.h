@@ -69,18 +69,14 @@
     #define ALWAYS_INLINE inline
 #endif
 
+// clang-format off
 #if defined(__clang__)
     #define ASSUME(cond) __builtin_assume(cond)
 #elif defined(__GNUC__)
     #if __GNUC__ >= 13
         #define ASSUME(cond) __attribute__((assume(cond)))
     #else
-        #define ASSUME(cond) \
-            do \
-            { \
-                if (!(cond)) \
-                    __builtin_unreachable(); \
-            } while (0)
+        #define ASSUME(cond) do { if (!(cond)) __builtin_unreachable(); } while (false)
     #endif
 #elif defined(_MSC_VER)
     #define ASSUME(cond) __assume(cond)
@@ -88,6 +84,17 @@
     // fallback: do nothing
     #define ASSUME(cond) ((void) 0)
 #endif
+
+#if defined(__clang__)
+    #define UNREACHABLE() do { __builtin_unreachable(); } while (false)
+#elif defined(__GNUC__)
+    #define UNREACHABLE() do { __builtin_unreachable(); } while (false)
+#elif defined(_MSC_VER)
+    #define UNREACHABLE() __assume(false)
+#else
+    #define UNREACHABLE() do { } while (false)
+#endif
+// clang-format on
 
 #if defined(__clang__)
     #define RESTRICT __restrict__
@@ -278,6 +285,90 @@ thread_index_range(std::size_t threadId, std::size_t threadCount, std::size_t to
     return {begIdx, endIdx};
 }
 
+struct CallOnce final {
+   public:
+    CallOnce()                           = default;
+    CallOnce(const CallOnce&)            = delete;
+    CallOnce(CallOnce&&)                 = delete;
+    CallOnce& operator=(const CallOnce&) = delete;
+    CallOnce& operator=(CallOnce&&)      = delete;
+
+    // Initialize using the provided function
+    // The function will be called exactly once, even if multiple threads call this
+    template<typename Func>
+    void operator()(Func&& callFn) noexcept(noexcept(callFn())) {
+        std::call_once(callOnce, [this, callFunc = std::forward<Func>(callFn)]() mutable {
+            std::move(callFunc)();  // Move into the call
+            initialize.store(true, std::memory_order_release);
+        });
+    }
+
+    // Check if initialization has been completed
+    [[nodiscard]] bool initialized() const noexcept {
+        return initialize.load(std::memory_order_acquire);
+    }
+
+   private:
+    std::once_flag    callOnce;
+    std::atomic<bool> initialize{false};
+};
+
+// LazyValue wraps a Value with CallOnce for safe lazy initialization
+template<typename Value>
+struct LazyValue final {
+   public:
+    LazyValue()                            = default;
+    LazyValue(const LazyValue&)            = delete;
+    LazyValue(LazyValue&&)                 = delete;
+    LazyValue& operator=(const LazyValue&) = delete;
+    LazyValue& operator=(LazyValue&&)      = delete;
+
+    ~LazyValue() noexcept {
+        if (is_initialized())
+            get_ptr()->~Value();
+    }
+
+    template<typename... Args>
+    Value& init(Args&&... args) noexcept(std::is_nothrow_constructible_v<Value, Args...>) {
+        // Fast path: already initialized
+        if (is_initialized())
+            return *get_ptr();
+
+        // Initialize exactly once, use tuple to capture all arguments
+        callOnce([this, tuple = std::make_tuple(std::forward<Args>(args)...)]() mutable {
+            std::apply(
+              [this](auto&&... captured) {
+                  new (get_ptr()) Value(std::forward<decltype(captured)>(captured)...);
+              },
+              std::move(tuple));
+        });
+
+        return *get_ptr();
+    }
+
+    Value& get() noexcept {
+        assert(is_initialized() && "LazyValue accessed before initialization");
+        return *get_ptr();
+    }
+
+    const Value& get() const noexcept {
+        assert(is_initialized() && "LazyValue accessed before initialization");
+        return *get_ptr();
+    }
+
+    [[nodiscard]] bool is_initialized() const noexcept { return callOnce.initialized(); }
+
+   private:
+    Value* get_ptr() noexcept { return std::launder(reinterpret_cast<Value*>(&storage)); }
+
+    const Value* get_ptr() const noexcept {
+        return std::launder(reinterpret_cast<const Value*>(&storage));
+    }
+
+    alignas(Value) std::byte storage[sizeof(Value)];
+    CallOnce callOnce;
+};
+
 // OstreamMutexRegistry
 //
 // A thread-safe registry that provides a unique mutex for each std::ostream pointer.
@@ -297,9 +388,21 @@ thread_index_range(std::size_t threadId, std::size_t threadCount, std::size_t to
 //
 // Notes:
 //  - The class is static-only; it cannot be instantiated. (Restriction)
-//  - Mutexes are stored as values in the map, avoiding extra heap allocations.
+//  - Mutexes are stored as shared_ptr in the map.
 class OstreamMutexRegistry final {
    public:
+    static void ensure_initialized() noexcept {
+
+        callOnce([]() noexcept {
+            constexpr std::size_t ReserveCount = 16;
+            constexpr float       LoadFactor   = 1.0f;
+
+            osMutexes.max_load_factor(LoadFactor);
+            std::size_t bucketCount = std::size_t(ReserveCount / LoadFactor) + 1;
+            osMutexes.rehash(bucketCount);
+        });
+    }
+
     // Return a mutex associated with the given ostream pointer.
     // If osPtr is nullptr, returns a dummy mutex to safely ignore locking.
     // This ensures no accidental insertion of null keys into the map.
@@ -307,14 +410,34 @@ class OstreamMutexRegistry final {
         // Fallback for null pointers
         if (osPtr == nullptr)
             return dummy_mutex();
+
+        if (!callOnce.initialized())
+            ensure_initialized();
+
         // Lock the registry while accessing the map
         std::scoped_lock lock(mutex);
-        // Default-constructs a mutex if osPtr is not yet registered
-        return osMutexes[osPtr];
+
+        // Creates default nullptr shared_ptr if missing
+        auto& mutexPtr = osMutexes[osPtr];
+
+        if (mutexPtr == nullptr)
+        {
+            //// Try to allocate a mutex; on allocation failure return dummy mutex as a safe fallback.
+            //try
+            //{
+            mutexPtr = std::make_shared<std::mutex>();
+            //}
+            //catch (...)
+            //{
+            //    return dummy_mutex();
+            //}
+        }
+
+        return *mutexPtr;
     }
 
    private:
-    // Dummy mutex returned for nullptr streams
+    // Note: Dummy mutex shared by all nullptr streams
     static std::mutex& dummy_mutex() noexcept {
         static std::mutex dummyMutex;
 
@@ -328,10 +451,12 @@ class OstreamMutexRegistry final {
     OstreamMutexRegistry& operator=(const OstreamMutexRegistry&) noexcept = delete;
     OstreamMutexRegistry& operator=(OstreamMutexRegistry&&) noexcept      = delete;
 
+    static inline CallOnce callOnce;
     // Protects access to the osMutexes map for thread safety
     static inline std::mutex mutex;
-    // Maps of each ostream pointer to its dedicated mutex
-    static inline std::unordered_map<std::ostream*, std::mutex> osMutexes;
+    // Store mutexes on the heap (shared_ptr) so references returned
+    // by get() remain valid even if the map rehashes.
+    static inline std::unordered_map<std::ostream*, std::shared_ptr<std::mutex>> osMutexes;
 };
 
 // SyncOstream --- Synchronized output stream ---
@@ -982,90 +1107,6 @@ struct FlagsGuard final {
     std::atomic<T>& flags;
 };
 
-struct CallOnce final {
-   public:
-    CallOnce()                           = default;
-    CallOnce(const CallOnce&)            = delete;
-    CallOnce(CallOnce&&)                 = delete;
-    CallOnce& operator=(const CallOnce&) = delete;
-    CallOnce& operator=(CallOnce&&)      = delete;
-
-    // Initialize using the provided function
-    // The function will be called exactly once, even if multiple threads call this
-    template<typename Func>
-    void operator()(Func&& callFn) noexcept(noexcept(callFn())) {
-        std::call_once(callOnce, [this, callFunc = std::forward<Func>(callFn)]() mutable {
-            std::move(callFunc)();  // Move into the call
-            initialize.store(true, std::memory_order_release);
-        });
-    }
-
-    // Check if initialization has been completed
-    [[nodiscard]] bool initialized() const noexcept {
-        return initialize.load(std::memory_order_acquire);
-    }
-
-   private:
-    std::once_flag    callOnce;
-    std::atomic<bool> initialize{false};
-};
-
-// LazyValue wraps a Value with CallOnce for safe lazy initialization
-template<typename Value>
-struct LazyValue final {
-   public:
-    LazyValue()                            = default;
-    LazyValue(const LazyValue&)            = delete;
-    LazyValue(LazyValue&&)                 = delete;
-    LazyValue& operator=(const LazyValue&) = delete;
-    LazyValue& operator=(LazyValue&&)      = delete;
-
-    ~LazyValue() noexcept {
-        if (is_initialized())
-            get_ptr()->~Value();
-    }
-
-    template<typename... Args>
-    Value& init(Args&&... args) noexcept(std::is_nothrow_constructible_v<Value, Args...>) {
-        // Fast path: already initialized
-        if (is_initialized())
-            return *get_ptr();
-
-        // Initialize exactly once, use tuple to capture all arguments
-        callOnce([this, tuple = std::make_tuple(std::forward<Args>(args)...)]() mutable {
-            std::apply(
-              [this](auto&&... captured) {
-                  new (get_ptr()) Value(std::forward<decltype(captured)>(captured)...);
-              },
-              std::move(tuple));
-        });
-
-        return *get_ptr();
-    }
-
-    Value& get() noexcept {
-        assert(is_initialized() && "LazyValue accessed before initialization");
-        return *get_ptr();
-    }
-
-    const Value& get() const noexcept {
-        assert(is_initialized() && "LazyValue accessed before initialization");
-        return *get_ptr();
-    }
-
-    [[nodiscard]] bool is_initialized() const noexcept { return callOnce.initialized(); }
-
-   private:
-    Value* get_ptr() noexcept { return std::launder(reinterpret_cast<Value*>(&storage)); }
-
-    const Value* get_ptr() const noexcept {
-        return std::launder(reinterpret_cast<const Value*>(&storage));
-    }
-
-    alignas(Value) std::byte storage[sizeof(Value)];
-    CallOnce callOnce;
-};
-
 // ConcurrentCache: groups (mutex + storage + pre-reserve)
 template<typename Key, typename Value>
 class ConcurrentCache final {
@@ -1080,7 +1121,7 @@ class ConcurrentCache final {
     Value& access_or_build(const Key& key, Args&&... args) noexcept {
         // Fast path: read-only shared lock to access
         {
-            std::shared_lock lock(mutex);
+            std::shared_lock lock(sharedMutex);
 
             auto itr = storage.find(key);
 
@@ -1089,7 +1130,7 @@ class ConcurrentCache final {
         }
 
         // Slow path: write exclusive lock to insert and construct
-        std::unique_lock lock(mutex);
+        std::unique_lock lock(sharedMutex);
 
         // Double-check after acquiring exclusive lock
         auto [itr, inserted] = storage.try_emplace(key);
@@ -1133,7 +1174,7 @@ class ConcurrentCache final {
             return *entry;
     }
 
-    std::shared_mutex                     mutex;
+    std::shared_mutex                     sharedMutex;
     std::unordered_map<Key, StorageValue> storage;
 };
 
@@ -1554,7 +1595,7 @@ inline constexpr std::string_view WHITE_SPACE{" \t\n\r\f\v"};
 inline std::string clamp_string(std::string_view value, int minValue, int maxValue) noexcept {
     int intValue = 0;
 
-    auto [_, ec] = std::from_chars(value.data(), value.data() + value.size(), intValue);
+    auto [ptr, ec] = std::from_chars(value.data(), value.data() + value.size(), intValue);
 
     switch (ec)
     {
@@ -1616,9 +1657,12 @@ inline std::string hash_to_string(std::uint64_t hash) noexcept {
 
     StdArray<char, BufferSize> buffer{};
 
-    std::snprintf(buffer.data(), buffer.size(), "%016" PRIX64, hash);
+    int         writtenSize = std::snprintf(buffer.data(), buffer.size(), "%016" PRIX64, hash);
+    std::size_t copiedSize  = writtenSize >= 0  //
+                              ? std::min<std::size_t>(writtenSize, buffer.size() - 1)
+                              : 0;
 
-    return std::string{buffer.data(), buffer.size() - 1};
+    return std::string{buffer.data(), copiedSize};
 }
 
 inline std::string u32_to_string(std::uint32_t u32) noexcept {
@@ -1626,18 +1670,24 @@ inline std::string u32_to_string(std::uint32_t u32) noexcept {
 
     StdArray<char, BufferSize> buffer{};
 
-    std::snprintf(buffer.data(), buffer.size(), "0x%08" PRIX32, u32);
+    int         writtenSize = std::snprintf(buffer.data(), buffer.size(), "0x%08" PRIX32, u32);
+    std::size_t copiedSize  = writtenSize >= 0  //
+                              ? std::min<std::size_t>(writtenSize, buffer.size() - 1)
+                              : 0;
 
-    return std::string{buffer.data(), buffer.size() - 1};
+    return std::string{buffer.data(), copiedSize};
 }
 inline std::string u64_to_string(std::uint64_t u64) noexcept {
     constexpr std::size_t BufferSize = 2 + HEX64_SIZE + 1;  // "0x" + 16 hex + '\0'
 
     StdArray<char, BufferSize> buffer{};
 
-    std::snprintf(buffer.data(), buffer.size(), "0x%016" PRIX64, u64);
+    int         writtenSize = std::snprintf(buffer.data(), buffer.size(), "0x%016" PRIX64, u64);
+    std::size_t copiedSize  = writtenSize >= 0  //
+                              ? std::min<std::size_t>(writtenSize, buffer.size() - 1)
+                              : 0;
 
-    return std::string{buffer.data(), buffer.size() - 1};
+    return std::string{buffer.data(), copiedSize};
 }
 
 std::size_t str_to_size_t(std::string_view str) noexcept;

@@ -257,16 +257,16 @@ PTCluster* PerftTable::cluster(Key key) const noexcept {
 
 ProbResult PerftTable::probe(Key key, Depth depth) const noexcept {
 
-    auto* const ptc = cluster(key);
+    auto* ptc = cluster(key);
 
-    const std::uint32_t key32 = std::uint32_t(key);
+    std::uint32_t key32 = std::uint32_t(key);
 
     for (auto& entry : ptc->entries)
         if (entry.key32 == key32 && entry.depth16 == depth)
             return {true, &entry};
 
-    auto* const fte = &ptc->entries[0];
-    auto*       rte = fte;
+    auto* fte = &ptc->entries[0];
+    auto* rte = fte;
 
     for (std::size_t i = 1; i < ptc->entries.size(); ++i)
         if (rte->depth16 > ptc->entries[i].depth16)

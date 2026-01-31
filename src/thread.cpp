@@ -198,7 +198,7 @@ void Thread::ensure_network_replicated() const noexcept { worker->ensure_network
 // Created and launched threads will immediately go to sleep in idle_func.
 // Upon resizing, threads are recreated to allow for binding if necessary.
 void Threads::set(const NumaConfig&                       numaConfig,
-                  SharedState                             sharedState,
+                  SharedState&                            sharedState,
                   const MainSearchManager::UpdateContext& updateContext) noexcept {
     destroy();
 
@@ -226,9 +226,14 @@ void Threads::set(const NumaConfig&                       numaConfig,
         return true;
     }();
 
-    threadBoundNumaNodes = threadBindable
-                           ? numaConfig.distribute_threads_among_numa_nodes(threadCount)
-                           : std::vector<NumaIndex>{};
+    {
+        // protect mutation of threadBoundNumaNodes
+        std::unique_lock lock(sharedMutex);
+
+        threadBoundNumaNodes = threadBindable
+                               ? numaConfig.distribute_threads_among_numa_nodes(threadCount)
+                               : std::vector<NumaIndex>{};
+    }
     //DEBUG_LOG("Thread bound numa nodes size: " << threadBoundNumaNodes.size());
 
     std::unordered_map<NumaIndex, std::size_t> numaThreadCounts;
@@ -281,12 +286,23 @@ void Threads::set(const NumaConfig&                       numaConfig,
 
     reserve(threadCount);
 
-    while (size() < threadCount)
+    for (std::size_t threadId = 0; threadId < threadCount; ++threadId)
     {
-        std::size_t threadId = size();
-        NumaIndex   numaId   = threadBindable ? threadBoundNumaNodes[threadId] : 0;
+        NumaIndex numaId = threadBindable ? threadBoundNumaNodes[threadId] : 0;
 
-        auto create_thread = [&]() noexcept {
+        // Reserve a per-NUMA index under the lock now so the lambda does not need to touch
+        // the local maps by reference (avoids lifetime/use-after-free if callback is deferred).
+        std::size_t numaIdx;
+        std::size_t numaThreadCnt;
+        {
+            std::unique_lock lock(sharedMutex);
+
+            numaIdx       = numaIds[numaId]++;
+            numaThreadCnt = numaThreadCounts[numaId];
+        }
+
+        auto create_thread = [this, threadId, threadCount, numaId, numaIdx, numaThreadCnt,
+                              numaConfigPtr, &sharedState, &updateContext]() noexcept {
             // Search manager for this thread
             ISearchManagerPtr searchManager;
             if (threadId == 0)
@@ -299,9 +315,12 @@ void Threads::set(const NumaConfig&                       numaConfig,
             // to trash cache in case the threads get scheduled on the same NUMA node.
             ThreadToNumaNodeBinder nodeBinder(numaId, numaConfigPtr);
 
-            threads.emplace_back(std::make_unique<Thread>(
-              threadId, threadCount, numaIds[numaId]++, numaThreadCounts[numaId], nodeBinder,
-              std::move(searchManager), sharedState, true));
+            // mutate threads under unique lock to avoid races
+            std::unique_lock lock(sharedMutex);
+
+            threads.emplace_back(
+              std::make_unique<Thread>(threadId, threadCount, numaIdx, numaThreadCnt, nodeBinder,
+                                       std::move(searchManager), sharedState, true));
         };
 
         // Ensure the worker thread inherits the intended NUMA affinity at creation
@@ -315,12 +334,25 @@ void Threads::set(const NumaConfig&                       numaConfig,
 }
 
 Thread* Threads::best_thread() const noexcept {
+    // snap-shot pointers under shared lock
+    std::vector<Thread*> snapShot;
+    {
+        std::shared_lock lock(sharedMutex);
 
-    Thread* bestThread = main_thread();
+        snapShot.reserve(threads.size());
+
+        for (auto&& th : threads)
+            snapShot.push_back(th.get());
+    }
+
+    if (snapShot.empty())
+        return nullptr;
+
+    Thread* bestThread = snapShot.front();
 
     Value minCurValue = +VALUE_NONE;
     // Find the minimum value of all threads
-    for (auto&& th : threads)
+    for (auto* th : snapShot)
     {
         Value curValue = th->worker->rootMoves[0].curValue;
 
@@ -334,12 +366,12 @@ Thread* Threads::best_thread() const noexcept {
     };
 
     std::unordered_map<Move, std::uint64_t> votes(
-      2 * std::min(size(), bestThread->worker->rootMoves.size()));
+      2 * std::min(snapShot.size(), bestThread->worker->rootMoves.size()));
 
-    for (auto&& th : threads)
-        votes[th->worker->rootMoves[0].pv[0]] += thread_voting_value(th.get());
+    for (auto* th : snapShot)
+        votes[th->worker->rootMoves[0].pv[0]] += thread_voting_value(th);
 
-    for (auto&& nextThread : threads)
+    for (auto* nextThread : snapShot)
     {
         auto bestThreadValue = bestThread->worker->rootMoves[0].curValue;
         auto nextThreadValue = nextThread->worker->rootMoves[0].curValue;
@@ -351,7 +383,7 @@ Thread* Threads::best_thread() const noexcept {
         auto nextThreadMoveVote = votes[nextThreadPV[0]];
 
         auto bestThreadVotingValue = thread_voting_value(bestThread);
-        auto nextThreadVotingValue = thread_voting_value(nextThread.get());
+        auto nextThreadVotingValue = thread_voting_value(nextThread);
 
         bool bestThreadInProvenWin = bestThreadValue != +VALUE_INFINITE && is_win(bestThreadValue);
         bool nextThreadInProvenWin = nextThreadValue != +VALUE_INFINITE && is_win(nextThreadValue);
@@ -365,13 +397,13 @@ Thread* Threads::best_thread() const noexcept {
         {
             // Make sure pick the shortest mate / TB conversion
             if (nextThreadInProvenWin && bestThreadValue < nextThreadValue)
-                bestThread = nextThread.get();
+                bestThread = nextThread;
         }
         else if (bestThreadInProvenLoss)
         {
             // Make sure pick the shortest mated / TB conversion
             if (nextThreadInProvenLoss && bestThreadValue > nextThreadValue)
-                bestThread = nextThread.get();
+                bestThread = nextThread;
         }
         // clang-format off
         else if (nextThreadInProvenWin || nextThreadInProvenLoss
@@ -382,7 +414,7 @@ Thread* Threads::best_thread() const noexcept {
                           && (bestThreadVotingValue < nextThreadVotingValue
                               || (bestThreadVotingValue == nextThreadVotingValue
                                   && bestThreadPV.size() < nextThreadPV.size()))))))
-            bestThread = nextThread.get();
+            bestThread = nextThread;
         // clang-format on
     }
 
@@ -465,11 +497,22 @@ void Threads::start(Position&      pos,
     if (states.get() != nullptr)
         setupStates = std::move(states);  // Ownership transfer, states is now empty
 
+    // snap-shot pointers under shared lock
+    std::vector<Thread*> snapShot;
+    {
+        std::shared_lock lock(sharedMutex);
+
+        snapShot.reserve(threads.size());
+
+        for (auto&& th : threads)
+            snapShot.push_back(th.get());
+    }
+
     // Use Position::set() to set root position across threads.
     // The rootState is per thread, earlier states are shared since they are read-only.
-    for (auto&& th : threads)
+    for (auto* th : snapShot)
     {
-        th->run_custom_job([&th, &pos, &rootMoves, &limit, &tbConfig]() noexcept {
+        th->run_custom_job([th, &pos, &rootMoves, &limit, &tbConfig]() noexcept {
             auto* worker = th->worker.get();
 
             worker->nodes.store(0, std::memory_order_relaxed);
@@ -483,38 +526,50 @@ void Threads::start(Position&      pos,
         });
     }
 
-    for (auto&& th : threads)
+    for (auto* th : snapShot)
         th->wait_finish();
 
     main_thread()->start_search();
 }
 
 void Threads::run_on_thread(std::size_t threadId, JobFunc job) noexcept {
-    assert(threadId < size());
+    Thread* thread = nullptr;
+    {
+        std::shared_lock lock(sharedMutex);
 
-    threads[threadId]->run_custom_job(std::move(job));
+        assert(threadId < size());
+        thread = threads[threadId].get();
+    }
+    thread->run_custom_job(std::move(job));
 }
 
 void Threads::wait_on_thread(std::size_t threadId) noexcept {
-    assert(threadId < size());
+    Thread* thread = nullptr;
+    {
+        std::shared_lock lock(sharedMutex);
 
-    threads[threadId]->wait_finish();
+        assert(threadId < size());
+        thread = threads[threadId].get();
+    }
+    thread->wait_finish();
 }
 
 std::vector<std::size_t> Threads::get_bound_thread_counts() const noexcept {
     std::vector<std::size_t> threadCounts;
-
-    if (!threadBoundNumaNodes.empty())
     {
-        NumaIndex maxNumaId =
-          *std::max_element(threadBoundNumaNodes.begin(), threadBoundNumaNodes.end());
+        std::shared_lock lock(sharedMutex);
 
-        threadCounts.resize(1 + maxNumaId, 0);
+        if (!threadBoundNumaNodes.empty())
+        {
+            NumaIndex maxNumaId =
+              *std::max_element(threadBoundNumaNodes.begin(), threadBoundNumaNodes.end());
 
-        for (NumaIndex numaId : threadBoundNumaNodes)
-            ++threadCounts[numaId];
+            threadCounts.resize(1 + maxNumaId, 0);
+
+            for (NumaIndex numaId : threadBoundNumaNodes)
+                ++threadCounts[numaId];
+        }
     }
-
     return threadCounts;
 }
 

@@ -170,7 +170,7 @@ TTUpdater::TTUpdater(TTEntry* te, TTCluster* tc, std::uint16_t k, std::uint8_t g
 
 void TTUpdater::update(Move m, Value v, Value ev, Depth d, Bound b, bool pv) noexcept {
 
-    for (auto* const fte = &ttc->entries[0]; tte != fte && (tte - 1)->key() == key; --tte)
+    for (auto* fte = &ttc->entries[0]; tte != fte && (tte - 1)->key() == key; --tte)
         tte->clear();
 
     tte->save(key, m, v, ev, d, b, pv, generation);
@@ -235,7 +235,7 @@ TTCluster* TranspositionTable::cluster(Key key) const noexcept {
 // It returns pointer to the TTEntry if the position is found.
 ProbResult TranspositionTable::probe(Key key) const noexcept {
 
-    auto* const ttc = cluster(key);
+    auto* ttc = cluster(key);
 
     std::uint16_t key16 = std::uint16_t(key);
 

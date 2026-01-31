@@ -139,11 +139,11 @@ void update_pv(Move* RESTRICT pv, Move m, const Move* RESTRICT childPv) noexcept
 }
 
 // Build contHistory pointers from the stack frame and validate them in debug builds.
-void build_continuation_history(const Stack* const              ss,
+void build_continuation_history(const Stack*                    ss,
                                 const History<HType::PIECE_SQ>* out[CONT_HISTORY_COUNT]) noexcept {
     for (std::size_t i = 0; i < CONT_HISTORY_COUNT; ++i)
     {
-        auto* const ssi = (ss - 1) - i;
+        const auto* ssi = (ss - 1) - i;
 
         // contHistory[i] refers to ssi->pieceSqHistory
         out[i] = ssi->pieceSqHistory;
@@ -153,7 +153,7 @@ void build_continuation_history(const Stack* const              ss,
 
 // Updates the continuation histories for the move pairs formed
 // by the current move and the moves played in previous plies.
-void update_continuation_history(Stack* const ss, Piece pc, Square dstSq, int bonus) noexcept {
+void update_continuation_history(Stack* ss, Piece pc, Square dstSq, int bonus) noexcept {
     assert(dstSq != SQ_NONE);
 
     constexpr StdArray<int, CONT_HISTORY_COUNT> ContHistoryOffsets{
@@ -168,7 +168,7 @@ void update_continuation_history(Stack* const ss, Piece pc, Square dstSq, int bo
 
     for (std::size_t i = 0; i < ContHistoryCount; ++i)
     {
-        auto* const ssi = (ss - 1) - i;
+        const auto* ssi = (ss - 1) - i;
 
         if (!ssi->move.is_ok())
             break;
@@ -184,7 +184,7 @@ Value adjust_eval_value(Value evalValue, int correctionValue) noexcept {
     return in_range(evalValue + int(7.6294e-6 * correctionValue));
 }
 
-bool is_shuffling(const Position& pos, const Stack* const ss, Move move) noexcept {
+bool is_shuffling(const Position& pos, const Stack* ss, Move move) noexcept {
     return !(pos.capture_promo(move) || pos.rule50_count() < 10 || pos.null_ply() <= 6
              || ss->ply < 20)
         && (ss - 2)->move.is_ok() && move.org_sq() == (ss - 2)->move.dst_sq()
@@ -262,7 +262,7 @@ void Worker::ensure_network_replicated() noexcept {
 
 // Called when the program receives the UCI 'go' command.
 void Worker::start_search() noexcept {
-    auto* const mainManager = is_main_worker() ? main_manager() : nullptr;
+    auto* mainManager = is_main_worker() ? main_manager() : nullptr;
 
     rootDepth = completedDepth = DEPTH_ZERO;
     nmpPly                     = 0;
@@ -436,7 +436,7 @@ void Worker::start_search() noexcept {
 // until the allocated thinking time has been consumed, the user stops the search,
 // or the maximum search depth is reached.
 void Worker::iterative_deepening() noexcept {
-    auto* const mainManager = is_main_worker() ? main_manager() : nullptr;
+    auto* mainManager = is_main_worker() ? main_manager() : nullptr;
 
     // Allocate stack with extra size to allow access from (ss - 9) to (ss + 1):
     // (ss - 9) is needed for update_continuation_history(ss - 1) which accesses (ss - 8),
@@ -449,7 +449,7 @@ void Worker::iterative_deepening() noexcept {
 
     StdArray<Stack, StackOffset + (MAX_PLY + 1) + 1> stacks{};
 
-    Stack* const ss = &stacks[StackOffset];
+    Stack* ss = &stacks[StackOffset];
 
     for (std::int16_t i = 0 - StackOffset; i < int(stacks.size()) - StackOffset; ++i)
     {
@@ -746,7 +746,7 @@ void Worker::iterative_deepening() noexcept {
 // The main alpha-beta search function with negamax framework and
 // various enhancements like aspiration windows, late move reductions, etc.
 template<NT T>
-Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, Depth depth, std::int8_t red, Move excludedMove) noexcept {
+Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, std::int8_t red, Move excludedMove) noexcept {
     // clang-format on
     constexpr bool RootNode = T == NT::ROOT;
     constexpr bool PVNode   = RootNode || T == NT::PV;
@@ -1785,7 +1785,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 // Therefore, quiescence search extends the search at positions where tactical moves are possible,
 // until a "quiet" position is reached.
 template<bool PVNode>
-Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) noexcept {
+Value Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta) noexcept {
     assert(-VALUE_INFINITE <= alpha && alpha < beta && beta <= +VALUE_INFINITE);
     assert(PVNode || (alpha + 1 == beta));
 
@@ -2048,7 +2048,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     return bestValue;
 }
 
-void Worker::do_move(Position& pos, Move m, State& st, Stack* const ss, bool mayCheck) noexcept {
+void Worker::do_move(Position& pos, Move m, State& st, Stack* ss, bool mayCheck) noexcept {
     bool capture = pos.capture_promo(m);
 
     DirtyBoard db = pos.do_move(m, st, mayCheck, this);
@@ -2068,7 +2068,7 @@ void Worker::undo_move(Position& pos, Move m) noexcept {
     pos.undo_move(m);
 }
 
-void Worker::do_null_move(Position& pos, State& st, Stack* const ss) noexcept {
+void Worker::do_null_move(Position& pos, State& st, Stack* ss) noexcept {
     pos.do_null_move(st, this);
 
     ss->move                     = Move::Null;
@@ -2106,7 +2106,7 @@ void Worker::update_low_ply_quiet_history(std::int16_t ssPly, Move m, int bonus)
 }
 
 // Updates quiet histories (move sorting heuristics)
-void Worker::update_quiet_histories(const Position& pos, PawnHistory& pawnHistory, Stack* const ss, Move m, int bonus) noexcept {
+void Worker::update_quiet_histories(const Position& pos, PawnHistory& pawnHistory, Stack* ss, Move m, int bonus) noexcept {
     assert(m.is_ok());
 
     update_pawn_history(pawnHistory, pos.moved_pc(m), m.dst_sq(), (bonus > 0 ? 0.8837 : 0.4932) * bonus);
@@ -2119,7 +2119,7 @@ void Worker::update_quiet_histories(const Position& pos, PawnHistory& pawnHistor
 }
 
 // Updates history at the end of search() when a bestMove is found and other searched moves are known
-void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Stack* const ss, Depth depth, Move bestMove, const StdArray<SearchedMoves, 2>& searchedMoves) noexcept {
+void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Stack* ss, Depth depth, Move bestMove, const StdArray<SearchedMoves, 2>& searchedMoves) noexcept {
     assert(ss->moveCount != 0);
     assert(depth > DEPTH_ZERO);
 
@@ -2161,7 +2161,7 @@ void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Sta
 }
 
 // Updates correction histories at the end of search() when a bestMove is found
-void Worker::update_correction_histories(const Position& pos, Stack* const ss, int bonus) noexcept {
+void Worker::update_correction_histories(const Position& pos, Stack* ss, int bonus) noexcept {
     Color ac = pos.active_color();
 
     bonus = std::clamp(bonus, -CORRECTION_HISTORY_LIMIT / 4, +CORRECTION_HISTORY_LIMIT / 4);
@@ -2187,7 +2187,7 @@ void Worker::update_correction_histories(const Position& pos, Stack* const ss, i
 }
 
 // Computes the correction value for the current position from the correction histories
-int Worker::correction_value(const Position& pos, const Stack* const ss) noexcept {
+int Worker::correction_value(const Position& pos, const Stack* ss) noexcept {
     Color ac = pos.active_color();
 
     std::int64_t correctionValue =

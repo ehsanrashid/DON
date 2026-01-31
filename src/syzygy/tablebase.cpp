@@ -170,7 +170,7 @@ void swap_endian(T& x) noexcept {
 }
 
 template<typename T, Endian E>
-T number(const void* const addr) noexcept {
+T number(const void* addr) noexcept {
     T v;
 
     // Use memcpy for unaligned access, otherwise direct read
