@@ -100,7 +100,7 @@ class TranspositionTable final {
 
     std::uint8_t generation() const noexcept;
 
-    void increment_generation() noexcept;
+    void increment_generation() const noexcept;
 
     void resize(std::size_t ttSize, Threads& threads) noexcept;
 
@@ -123,9 +123,9 @@ class TranspositionTable final {
 
     void free() noexcept;
 
-    TTCluster*   clusters = nullptr;
-    std::size_t  clusterCount;
-    std::uint8_t generation8;
+    TTCluster*           clusters = nullptr;
+    std::size_t          clusterCount;
+    mutable std::uint8_t generation8;
 };
 
 }  // namespace DON

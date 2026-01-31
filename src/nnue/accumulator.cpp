@@ -247,7 +247,7 @@ void update_accumulator_incremental_double(
 
     // Workaround compiler warning for uninitialized variables, replicated on
     // profile builds on windows with gcc 14.2.0.
-    // TODO remove once unneeded
+    // Also helps with optimizations on some compilers.
     ASSUME(addedSize == 1);
     ASSUME(removedSize == 2 || removedSize == 3);
 
@@ -311,7 +311,7 @@ void update_accumulator_incremental(
     // updates with more added/removed features than MaxActiveDimensions.
     // In this case, the maximum size of both feature addition and removal is 2,
     // since incrementally updating one move at a time.
-    typename FeatureSet::IndexList removed, added;
+    typename FeatureSet::IndexList removed{}, added{};
     if constexpr (Forward)
         FeatureSet::append_changed_indices(perspective, kingSq, targetState.dirty, removed, added);
     else
@@ -334,11 +334,14 @@ void update_accumulator_incremental(
         assert(removedSize == 1 || removedSize == 2);
         assert((Forward && addedSize <= removedSize) || (!Forward && removedSize <= addedSize));
 
-        // Workaround compiler warning for uninitialized variables, replicated on
-        // profile builds on windows with gcc 14.2.0.
-        // TODO remove once unneeded
+        // Workaround compiler warning for uninitialized variables,
+        // replicated on profile builds on windows with gcc 14.2.0.
+        // Also helps with optimizations on some compilers.
         ASSUME(addedSize == 1 || addedSize == 2);
         ASSUME(removedSize == 1 || removedSize == 2);
+
+        if (!(removedSize == 1 || removedSize == 2) || !(addedSize == 1 || addedSize == 2))
+            UNREACHABLE();
 
         if ((Forward && removedSize == 1) || (!Forward && addedSize == 1))
         {

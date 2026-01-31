@@ -53,38 +53,72 @@ std::string format_date(std::string_view date) noexcept {
 
     // Tokenize: expect "Mon DD YYYY" where DD may have a trailing comma.
     // Format from compiler: "Sep 02 2008"
-    std::istringstream iss{std::string{date}};
 
-    std::string month, day, year;
-    iss >> month >> day >> year;
+    if (date.size() < 8)
+        return std::string{NullDate};
 
-    if (iss.fail())
+    // Parse month (first 3 chars), then skip space(s), then day, then space, then year
+    const char* p   = date.data();
+    const char* end = p + date.size();
+
+    // month
+    if (end - p < 3)
         return std::string{NullDate};
-    // Trim possible trailing comma from day (e.g. "21,")
-    if (!day.empty() && day.back() == ',')
-        day.pop_back();
-    // Basic validation: month is 3 letters, day 1-2 digits, year 4 digits
-    if (month.size() != 3 || day.empty() || day.size() > 2 || year.size() != 4)
+
+    std::string_view month{p, 3};
+    p += 3;
+
+    // Skip spaces
+    while (p < end && std::isspace((unsigned char) (*p)))
+        ++p;
+
+    // day (1-2 digits)
+    if (end - p < 1 || !std::isdigit((unsigned char) (*p)))
         return std::string{NullDate};
-    // Ensure day and year are numeric
-    if (!std::all_of(day.begin(), day.end(), [](unsigned char c) { return std::isdigit(c); })
-        || !std::all_of(year.begin(), year.end(), [](unsigned char c) { return std::isdigit(c); }))
+
+    int day = 0;
+    while (p < end && std::isdigit((unsigned char) (*p)))
+    {
+        day *= 10;
+        day += char_to_digit(*p);
+        ++p;
+    }
+
+    // Skip spaces or possible comma
+    while (p < end && (std::isspace((unsigned char) (*p)) || *p == ','))
+        ++p;
+
+    // year (4 digits)
+    if (end - p < 4)
         return std::string{NullDate};
+
+    int year = 0;
+    for (std::size_t i = 0; i < 4; ++i)
+    {
+        if (!std::isdigit((unsigned char) (p[i])))
+            return std::string{NullDate};
+        year *= 10;
+        year += char_to_digit(p[i]);
+    }
+
     // Find month index (1..12)
-    auto itr = std::find(Months.begin(), Months.end(), std::string_view(month));
+    auto itr = std::find(Months.begin(), Months.end(), month);
     if (itr == Months.end())
         return std::string{NullDate};
 
     //unsigned monthId = 1 + Months.find(month) / 4;
     unsigned monthId = 1 + std::distance(Months.begin(), itr);
 
-    // Format YYYYMMDD using ostringstream
-    std::ostringstream oss{};
-    oss << std::setfill('0')        //
-        << std::setw(4) << year     //
-        << std::setw(2) << monthId  //
-        << std::setw(2) << day;
-    return oss.str();
+    // Format YYYYMMDD into fixed buffer
+    StdArray<char, 9> buffer{};  // 8 chars + '\0'
+
+    int         writtenSize = std::snprintf(buffer.data(), buffer.size(),  //
+                                            "%04d%02u%02d", year, monthId, day);
+    std::size_t copiedSize  = writtenSize >= 0  //
+                              ? std::min<std::size_t>(writtenSize, buffer.size() - 1)
+                              : 0;
+
+    return std::string{buffer.data(), copiedSize};
 }
 #endif
 
@@ -657,11 +691,20 @@ std::string CommandLine::working_directory() noexcept {
 }
 
 std::size_t str_to_size_t(std::string_view str) noexcept {
+    // Use from_chars (no allocation, fast)
+    const char* begin = str.data();
+    const char* end   = str.data() + str.size();
 
-    unsigned long long value = std::stoull(std::string{str});
+    unsigned long long value = 0;
+
+    auto [ptr, ec] = std::from_chars(begin, end, value);
+    if (ec != std::errc() || ptr != end)
+        std::exit(EXIT_FAILURE);
+
     if (value > std::numeric_limits<std::size_t>::max())
         std::exit(EXIT_FAILURE);
-    return static_cast<std::size_t>(value);
+
+    return std::size_t(value);
 }
 
 std::optional<std::string> read_file_to_string(std::string_view filePath) noexcept {
@@ -675,12 +718,15 @@ std::optional<std::string> read_file_to_string(std::string_view filePath) noexce
     if (size < 0)
         return std::nullopt;
 
-    ifs.seekg(0, std::ios::beg);
-
     std::string str;
     str.reserve(std::size_t(size));
 
-    str.assign(std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>());
+    ifs.seekg(0, std::ios::beg);
+
+    //str.assign(std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>());
+
+    if (!ifs.read(str.data(), size))
+        return std::nullopt;
 
     return str;
 }

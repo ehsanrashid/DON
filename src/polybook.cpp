@@ -361,7 +361,7 @@ std::uint64_t swap_uint64(std::uint64_t n) noexcept {
 #endif
 }
 
-void swap_entry(PolyBook::Entry* const e) noexcept {
+void swap_entry(PolyBook::Entry* e) noexcept {
     if (e == nullptr)
         return;
     e->key    = swap_uint64(e->key);

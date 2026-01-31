@@ -257,8 +257,8 @@ void Position::set(std::string_view fens, State* newSt) noexcept {
     st = newSt;
 
     // Fast, allocation-free parser over std::string_view (replacement for std::istringstream).
-    const char*       p   = fens.data();
-    const char* const end = p + fens.size();
+    const char* p   = fens.data();
+    const char* end = p + fens.size();
 
     // Returns '\0' when p >= end (EOF sentinel)
     auto peek        = [&p, &end]() noexcept -> char { return p < end ? *p : '\0'; };

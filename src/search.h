@@ -407,8 +407,8 @@ struct SharedState final {
    public:
     const SystemWideLazyNumaReplicated<NNUE::Networks>& networks;
     const Options&                                      options;
+    const TranspositionTable&                           transpositionTable;
     Threads&                                            threads;
-    TranspositionTable&                                 transpositionTable;
     HistoriesMap&                                       historiesMap;
 };
 
@@ -589,15 +589,15 @@ class Worker final {
 
     // Main search function for NT nodes
     template<NT T>
-    Value search(Position& pos, Stack* const ss, Value alpha, Value beta, Depth depth, std::int8_t  red = 0, Move excludedMove = Move::None) noexcept;
+    Value search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, std::int8_t  red = 0, Move excludedMove = Move::None) noexcept;
 
     // Quiescence search function, which is called by the main search
     template<bool PVNode>
-    Value qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) noexcept;
+    Value qsearch(Position& pos, Stack* ss, Value alpha, Value beta) noexcept;
 
-    void do_move(Position& pos, Move m, State& st, Stack* const ss, bool mayCheck = true) noexcept;
+    void do_move(Position& pos, Move m, State& st, Stack* ss, bool mayCheck = true) noexcept;
     void undo_move(Position& pos, Move m) noexcept;
-    void do_null_move(Position& pos, State& st, Stack* const ss) noexcept;
+    void do_null_move(Position& pos, State& st, Stack* ss) noexcept;
     void undo_null_move(Position& pos) const noexcept;
 
     Value evaluate(const Position& pos) noexcept;
@@ -609,11 +609,11 @@ class Worker final {
     void update_quiet_history(Color ac, Move m, int bonus) noexcept;
     void update_low_ply_quiet_history(std::int16_t ssPly, Move m, int bonus) noexcept;
 
-    void update_quiet_histories(const Position& pos, PawnHistory& pawnHistory, Stack* const ss, Move m, int bonus) noexcept;
-    void update_histories(const Position& pos, PawnHistory& pawnHistory, Stack* const ss, Depth depth, Move bestMove, const StdArray<SearchedMoves, 2>& searchedMoves) noexcept;
+    void update_quiet_histories(const Position& pos, PawnHistory& pawnHistory, Stack* ss, Move m, int bonus) noexcept;
+    void update_histories(const Position& pos, PawnHistory& pawnHistory, Stack* ss, Depth depth, Move bestMove, const StdArray<SearchedMoves, 2>& searchedMoves) noexcept;
 
-    void update_correction_histories(const Position& pos, Stack* const ss, int bonus) noexcept;
-    int  correction_value(const Position& pos, const Stack* const ss) noexcept;
+    void update_correction_histories(const Position& pos, Stack* ss, int bonus) noexcept;
+    int  correction_value(const Position& pos, const Stack* ss) noexcept;
 
     int history_value(bool capture, Move m, Piece movedPc, PieceType capturedPt, Color ac, const History<HType::PIECE_SQ>** contHistory) const noexcept;
     int history_value(const Position& pos, Move m, Color ac, const History<HType::PIECE_SQ>** contHistory) const noexcept;
@@ -630,8 +630,8 @@ class Worker final {
     ISearchManagerPtr                                   manager;
     const SystemWideLazyNumaReplicated<NNUE::Networks>& networks;
     const Options&                                      options;
+    const TranspositionTable&                           transpositionTable;
     Threads&                                            threads;
-    TranspositionTable&                                 transpositionTable;
     Histories&                                          histories;
     NNUE::AccumulatorCaches                             accCaches;
     NNUE::AccumulatorStack                              accStack;

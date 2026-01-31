@@ -495,10 +495,10 @@ class SharedMemoryRegistry final {
     // Ensure internal containers are ready
     static void ensure_initialized() noexcept {
 
-        constexpr std::size_t ReserveCount = 1024;
-        constexpr float       LoadFactor   = 0.75f;
-
         callOnce([]() noexcept {
+            constexpr std::size_t ReserveCount = 1024;
+            constexpr float       LoadFactor   = 0.75f;
+
             //DEBUG_LOG("Initializing SharedMemoryRegistry with reserve count " << ReserveCount << " and load factor " << LoadFactor);
 
             orderedSharedMemories.reserve(ReserveCount);
