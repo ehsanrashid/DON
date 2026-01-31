@@ -778,6 +778,8 @@ bool Position::enpassant_possible(Color     ac,
 
     assert((pieces_bb(~ac, PAWN) & capturedSq) != 0);
 
+    const auto* preSt = state()->preSt;
+
     if constexpr (MoveDone)
     {
         // Step 1: If there are other checkers besides the pawn to be captured,
@@ -785,13 +787,16 @@ bool Position::enpassant_possible(Color     ac,
         if ((checkers_bb() & make_comp_bb(capturedSq)) != 0)
             epPawnsBB = 0;
         // Step 2: At least one pawn is either unpinned or aligned with the king along the en-passant line.
-        else if (state()->preSt != nullptr)
-            epPawnsBB &= ~st->preSt->blockersBB[ac] | line_bb(square<KING>(ac), enPassantSq);
+        else if (preSt != nullptr)
+            epPawnsBB &= ~preSt->blockersBB[ac] | line_bb(square<KING>(ac), enPassantSq);
 
-        if (collect)
-            *epPawnsBBp = epPawnsBB;
+        if (preSt != nullptr)
+        {
+            if (collect)
+                *epPawnsBBp = epPawnsBB;
 
-        return epPawnsBB != 0;
+            return epPawnsBB != 0;
+        }
     }
     else
     {
@@ -799,7 +804,7 @@ bool Position::enpassant_possible(Color     ac,
             *epPawnsBBp = epPawnsBB;
     }
 
-    if (state()->preSt != nullptr)
+    if (preSt != nullptr)
     {
         epPawnsBB &= ~blockers_bb(ac) | line_bb(square<KING>(ac), enPassantSq);
 
