@@ -245,8 +245,7 @@ void Engine::dump(std::optional<std::string_view> dumpFile) const noexcept {
         }
 
         // Couldn't open file - optionally report and fall back
-        DEBUG_LOG("Engine::dump: failed to open '" << dumpFile.value()
-                                                   << "', writing to stdout instead");
+        //DEBUG_LOG("Engine::dump: failed to open '" << dumpFile.value() << "', writing to stdout instead");
     }
 
     // Default: dump to console

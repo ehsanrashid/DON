@@ -1646,6 +1646,34 @@ std::size_t str_to_size_t(std::string_view str) noexcept;
 // Returns std::nullopt if the file does not exist.
 std::optional<std::string> read_file_to_string(std::string_view filePath) noexcept;
 
+#if defined(_WIN32)
+// Get the error message string, if any
+inline std::string error_to_string(DWORD errorId) noexcept {
+    if (errorId == 0)
+        return {};
+
+    LPSTR buffer = nullptr;
+    // Ask Win32 to give us the string version of that message ID.
+    // The parameters pass in, tell Win32 to create the buffer that holds the message
+    // (because don't yet know how long the message string will be).
+    std::size_t len = FormatMessage(
+      FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+      NULL, errorId, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+      reinterpret_cast<LPSTR>(&buffer),  // must pass pointer to buffer pointer
+      0, NULL);
+
+    // Copy the error message into a std::string
+    std::string message(buffer, len);
+    // Trim trailing CR/LF that many system messages include
+    while (!message.empty() && (message.back() == '\r' || message.back() == '\n'))
+        message.pop_back();
+    // Free the Win32's string's buffer
+    LocalFree(buffer);
+
+    return message;
+}
+#endif
+
 }  // namespace DON
 
 template<std::size_t N>

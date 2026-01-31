@@ -434,13 +434,13 @@ bool PolyBook::load(std::string_view bookFile) noexcept {
 
     if (ec)
     {
-        DEBUG_LOG("Failed to stat Book file " << filename << ": " << ec.message());
+        //DEBUG_LOG("Failed to stat Book file " << filename << ": " << ec.message());
         return false;
     }
 
     if (fileSize == 0)
     {
-        DEBUG_LOG("Warning: Empty Book file " << filename);
+        //DEBUG_LOG("Warning: Empty Book file " << filename);
         return true;
     }
 
@@ -449,7 +449,7 @@ bool PolyBook::load(std::string_view bookFile) noexcept {
 
     if (fileSize < EntrySize)
     {
-        DEBUG_LOG("Too small Book file " << filename);
+        //DEBUG_LOG("Too small Book file " << filename);
         return false;
     }
 
@@ -457,14 +457,15 @@ bool PolyBook::load(std::string_view bookFile) noexcept {
     std::size_t remainder  = fileSize % EntrySize;
 
     if (remainder != 0)
-        DEBUG_LOG("Warning: Bad size Book file " << filename << ", ignoring " << remainder
-                                                 << " trailing bytes");
+    {
+        //DEBUG_LOG("Warning: Bad size Book file " << filename << ", ignoring " << remainder << " trailing bytes");
+    }
 
     std::ifstream ifs{filename, std::ios::binary};
 
     if (!ifs.is_open())
     {
-        DEBUG_LOG("Failed to open Book file " << filename);
+        //DEBUG_LOG("Failed to open Book file " << filename);
         return false;
     }
 
@@ -493,7 +494,7 @@ bool PolyBook::load(std::string_view bookFile) noexcept {
 
         //if (gotSize != readSize)  // partial read - treat as error for complete-file read
         //{
-        //    DEBUG_LOG("Partial read: expected " << readSize << " got " << gotSize);
+        //    //DEBUG_LOG("Partial read: expected " << readSize << " got " << gotSize);
         //    return false;
         //}
 
@@ -502,12 +503,14 @@ bool PolyBook::load(std::string_view bookFile) noexcept {
 
     if (ifs.fail() || ifs.bad())
     {
-        DEBUG_LOG("I/O error while reading Book file " << filename);
+        //DEBUG_LOG("I/O error while reading Book file " << filename);
         return false;
     }
 
     if (readedSize != dataSize || !ifs.good())
-        DEBUG_LOG("Failed to read complete Book file " << filename);
+    {
+        //DEBUG_LOG("Failed to read complete Book file " << filename);
+    }
 
     ifs.close();
 

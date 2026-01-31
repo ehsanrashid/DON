@@ -232,32 +232,6 @@ class BackendSharedMemory final {
 
 #elif defined(_WIN32)
 
-// Get the error message string, if any
-inline std::string error_to_string(DWORD errorId) noexcept {
-    if (errorId == 0)
-        return {};
-
-    LPSTR buffer = nullptr;
-    // Ask Win32 to give us the string version of that message ID.
-    // The parameters pass in, tell Win32 to create the buffer that holds the message
-    // (because don't yet know how long the message string will be).
-    std::size_t len = FormatMessage(
-      FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-      NULL, errorId, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-      reinterpret_cast<LPSTR>(&buffer),  // must pass pointer to buffer pointer
-      0, NULL);
-
-    // Copy the error message into a std::string
-    std::string message(buffer, len);
-    // Trim trailing CR/LF that many system messages include
-    while (!message.empty() && (message.back() == '\r' || message.back() == '\n'))
-        message.pop_back();
-    // Free the Win32's string's buffer
-    LocalFree(buffer);
-
-    return message;
-}
-
 // Utilizes shared memory to store the value. It is deduplicated system-wide (for the single user)
 template<typename T>
 class BackendSharedMemory final {
@@ -282,6 +256,8 @@ class BackendSharedMemory final {
         // Windows named shared memory names must start with "Local\" or "Global\"
         name.insert(0, "Local\\");
 
+        //DEBUG_LOG("Creating shared memory with name: " << name);
+
         initialize(value);
     }
 
@@ -289,13 +265,13 @@ class BackendSharedMemory final {
     BackendSharedMemory& operator=(const BackendSharedMemory&) noexcept = delete;
 
     BackendSharedMemory(BackendSharedMemory&& backendShm) noexcept :
-        name(std::move(backendShm.name)),
+        name(backendShm.name),
         hMapFile(backendShm.hMapFile),
         hMapFileGuard(hMapFile),
         mappedPtr(backendShm.mappedPtr),
         mappedGuard(mappedPtr),
-        status(backendShm.status),
-        lastErrorStr(std::move(backendShm.lastErrorStr)) {
+        status(backendShm.status) {
+        //DEBUG_LOG("Moving shared memory, name: " << name);
 
         backendShm.hMapFile  = INVALID_HANDLE;
         backendShm.mappedPtr = INVALID_MMAP_PTR;
@@ -305,13 +281,14 @@ class BackendSharedMemory final {
         if (this == &backendShm)
             return *this;
 
-        cleanup();
+        destroy();
 
-        name         = std::move(backendShm.name);
-        hMapFile     = backendShm.hMapFile;
-        mappedPtr    = backendShm.mappedPtr;
-        status       = backendShm.status;
-        lastErrorStr = std::move(backendShm.lastErrorStr);
+        name      = backendShm.name;
+        hMapFile  = backendShm.hMapFile;
+        mappedPtr = backendShm.mappedPtr;
+        status    = backendShm.status;
+
+        //DEBUG_LOG("Moving shared memory, name: " << name);
 
         backendShm.hMapFile  = INVALID_HANDLE;
         backendShm.mappedPtr = INVALID_MMAP_PTR;
@@ -320,7 +297,7 @@ class BackendSharedMemory final {
         return *this;
     }
 
-    ~BackendSharedMemory() noexcept { cleanup(); }
+    ~BackendSharedMemory() noexcept { destroy(); }
 
     bool is_valid() const noexcept { return status == Status::Success; }
 
@@ -339,15 +316,15 @@ class BackendSharedMemory final {
         case Status::NotInitialized :
             return "Not initialized";
         case Status::FileMapping :
-            return "Failed to create file mapping: " + lastErrorStr;
+            return "Failed to create file mapping.";
         case Status::MapView :
-            return "Failed to map view: " + lastErrorStr;
+            return "Failed to map view.";
         case Status::MutexCreate :
-            return "Failed to create mutex: " + lastErrorStr;
+            return "Failed to create mutex.";
         case Status::MutexWait :
-            return "Failed to wait on mutex: " + lastErrorStr;
+            return "Failed to wait on mutex.";
         case Status::MutexRelease :
-            return "Failed to release mutex: " + lastErrorStr;
+            return "Failed to release mutex.";
         case Status::LargePageAllocation :
             return "Failed to allocate large page memory";
         default :;
@@ -373,6 +350,8 @@ class BackendSharedMemory final {
               DWORD loTotalSize = roundedTotalSize;
     #endif
 
+              //DEBUG_LOG("Allocating large page shared memory, size = " << roundedTotalSize << " bytes");
+
               return CreateFileMapping(INVALID_HANDLE_VALUE, nullptr,
                                        PAGE_READWRITE | SEC_COMMIT | SEC_LARGE_PAGES,  //
                                        hiTotalSize, loTotalSize, name.c_str());
@@ -381,14 +360,17 @@ class BackendSharedMemory final {
 
         // Fallback to normal allocation if no large page available
         if (hMapFile == INVALID_HANDLE)
+        {
+            //DEBUG_LOG("Allocating normal shared memory, size = " << TotalSize << " bytes");
+
             hMapFile = CreateFileMapping(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE,  //
                                          0, TotalSize, name.c_str());
+        }
 
         if (hMapFile == INVALID_HANDLE)
         {
-            status       = Status::FileMapping;
-            lastErrorStr = error_to_string(GetLastError());
-
+            status = Status::FileMapping;
+            //DEBUG_LOG("CreateFileMapping() failed, name = " << name << , error = " << error_to_string(GetLastError()));
             return;
         }
 
@@ -396,10 +378,10 @@ class BackendSharedMemory final {
 
         if (mappedPtr == INVALID_MMAP_PTR)
         {
-            status       = Status::MapView;
-            lastErrorStr = error_to_string(GetLastError());
+            status = Status::MapView;
+            //DEBUG_LOG("MapViewOfFile() failed, name = " << name << ", error = " << error_to_string(GetLastError()));
 
-            partial_cleanup();
+            cleanup();
             return;
         }
 
@@ -413,19 +395,19 @@ class BackendSharedMemory final {
 
         if (hMutex == nullptr)
         {
-            status       = Status::MutexCreate;
-            lastErrorStr = error_to_string(GetLastError());
+            status = Status::MutexCreate;
+            //DEBUG_LOG("CreateMutex() failed, name = " << mutexName << ", error = " << error_to_string(GetLastError()));
 
-            partial_cleanup();
+            cleanup();
             return;
         }
-
+        // Wait for ownership
         if (WaitForSingleObject(hMutex, INFINITE) != WAIT_OBJECT_0)
         {
-            status       = Status::MutexWait;
-            lastErrorStr = error_to_string(GetLastError());
+            status = Status::MutexWait;
+            //DEBUG_LOG("WaitForSingleObject() failed, name = " << mutexName << ", error = " << error_to_string(GetLastError()));
 
-            partial_cleanup();
+            cleanup();
             return;
         }
 
@@ -445,24 +427,30 @@ class BackendSharedMemory final {
 
         if (!ReleaseMutex(hMutex))
         {
-            status       = Status::MutexRelease;
-            lastErrorStr = error_to_string(GetLastError());
+            status = Status::MutexRelease;
+            //DEBUG_LOG("ReleaseMutex() failed, name = " << mutexName << ", error = " << error_to_string(GetLastError()));
 
-            partial_cleanup();
+            cleanup();
             return;
         }
 
         status = Status::Success;
+        //DEBUG_LOG("Shared memory initialized successfully, name: " << name);
     }
 
-    void partial_cleanup() noexcept {
+    void cleanup() noexcept {
+        //DEBUG_LOG("Cleaning up shared memory, name: " << name);
 
         mappedGuard.close();
 
         hMapFileGuard.close();
     }
 
-    void cleanup() noexcept { partial_cleanup(); }
+    void destroy() noexcept {
+        //DEBUG_LOG("Destroying shared memory, name: " << name);
+
+        cleanup();
+    }
 
     static constexpr DWORD IS_INITIALIZED = 1;
 
@@ -472,7 +460,6 @@ class BackendSharedMemory final {
     void*       mappedPtr = INVALID_MMAP_PTR;
     MMapGuard   mappedGuard{mappedPtr};
     Status      status = Status::NotInitialized;
-    std::string lastErrorStr;
 };
 
 #else
@@ -512,6 +499,8 @@ class SharedMemoryRegistry final {
         constexpr float       LoadFactor   = 0.75f;
 
         callOnce([]() noexcept {
+            //DEBUG_LOG("Initializing SharedMemoryRegistry with reserve count " << ReserveCount << " and load factor " << LoadFactor);
+
             orderedSharedMemories.reserve(ReserveCount);
             registeredSharedMemories.max_load_factor(LoadFactor);
             std::size_t bucketCount = std::size_t(ReserveCount / LoadFactor) + 1;
@@ -532,10 +521,13 @@ class SharedMemoryRegistry final {
     // Attempt to register shared memory; waits for cleanup if needed (bounded)
     static void attempt_register_memory(BaseSharedMemory* sharedMemory) noexcept {
         // Bounded wait for cleanup to finish
-        constexpr auto MaxWait = std::chrono::milliseconds(200);
+        constexpr auto MaxWaitTime = std::chrono::milliseconds(200);
 
         if (sharedMemory == nullptr)
+        {
+            //DEBUG_LOG("Attempted to register NULL shared memory.");
             return;
+        }
 
         if (!callOnce.initialized())
             ensure_initialized();
@@ -543,8 +535,9 @@ class SharedMemoryRegistry final {
         std::unique_lock lock(mutex);
 
         // Wait for cleanup to finish if in progress (bounded)
-        if (!condVar.wait_for(lock, MaxWait, []() noexcept { return !cleanup_in_progress(); }))
+        if (!condVar.wait_for(lock, MaxWaitTime, []() noexcept { return !cleanup_in_progress(); }))
         {
+            //DEBUG_LOG("Timeout waiting for SharedMemoryRegistry cleanup to finish : " << sharedMemory);
             // Timeout - silently fail to register (acceptable during shutdown)
             return;
         }
@@ -601,6 +594,8 @@ class SharedMemoryRegistry final {
         if (registeredSharedMemories.find(sharedMemory) != registeredSharedMemories.end())
             return false;
 
+        //DEBUG_LOG("Registering shared memory: " << sharedMemory);
+
         orderedSharedMemories.push_back(sharedMemory);
         registeredSharedMemories.insert(sharedMemory);
         return true;
@@ -611,6 +606,8 @@ class SharedMemoryRegistry final {
         auto itr = registeredSharedMemories.find(sharedMemory);
         if (itr == registeredSharedMemories.end())
             return false;
+
+        //DEBUG_LOG("Unregistering shared memory: " << sharedMemory);
 
         // Find in vector (unfortunately O(n) without index map)
         auto vecItr =
@@ -660,6 +657,8 @@ class SharedMemoryCleanupManager final {
     // Ensures signal handlers and atexit cleanup are registered only once
     static void ensure_initialized() noexcept {
         callOnce([]() noexcept {
+            //DEBUG_LOG("Initializing SharedMemoryCleanupManager.");
+
             // 1. Create async-signal-safe pipe
             int pipeFds[2];
     #if defined(__linux__)
@@ -672,7 +671,7 @@ class SharedMemoryCleanupManager final {
             {
                 close_signal_pipe();
 
-                DEBUG_LOG("Failed to create signal pipe: " << std::strerror(errno));
+                //DEBUG_LOG("Failed to create signal pipe, error = " << std::strerror(errno));
                 return;
             }
     #if !defined(__linux__)
@@ -684,7 +683,7 @@ class SharedMemoryCleanupManager final {
             {
                 close_signal_pipe();
 
-                DEBUG_LOG("Failed to set pipe flags: " << std::strerror(errno));
+                //DEBUG_LOG("Failed to set pipe flags, error = " << std::strerror(errno));
                 return;
             }
     #endif
@@ -694,7 +693,7 @@ class SharedMemoryCleanupManager final {
 
             if (!valid_signal_pipe())
             {
-                DEBUG_LOG("Pipe creation failed, aborting monitor thread.");
+                //DEBUG_LOG("Pipe creation failed, aborting monitor thread.");
                 return;  // Skip starting the thread
             }
             // 2. Start monitor thread SECOND
@@ -711,6 +710,8 @@ class SharedMemoryCleanupManager final {
    private:
     // Register all signals with the deferred handler
     static void register_signal_handlers() noexcept {
+        //DEBUG_LOG("Registering signal handlers.");
+
         sigset_t sigSet;
 
         sigemptyset(&sigSet);
@@ -720,7 +721,9 @@ class SharedMemoryCleanupManager final {
 
         // Block all signals handlers about to register
         if (pthread_sigmask(SIG_BLOCK, &sigSet, nullptr) != 0)
-            DEBUG_LOG("Failed to block signals.");
+        {
+            //DEBUG_LOG("Failed to block signals, error = " << std::strerror(errno));
+        }
 
         // Now register handlers
         for (int signal : SIGNALS)
@@ -750,13 +753,16 @@ class SharedMemoryCleanupManager final {
             }
 
             if (sigaction(signal, &sigAction, nullptr) != 0)
-                DEBUG_LOG("Failed to register handler for signal " << signal << ": "
-                                                                   << std::strerror(errno));
+            {
+                //DEBUG_LOG("Failed to register handler for signal " << signal << ", error = " << std::strerror(errno));
+            }
         }
 
         // Unblock all signals handlers are registered
         if (pthread_sigmask(SIG_UNBLOCK, &sigSet, nullptr) != 0)
-            DEBUG_LOG("Failed to unblock signals.");
+        {
+            //DEBUG_LOG("Failed to unblock signals, error = " << std::strerror(errno));
+        }
     }
 
     // Signal handler: deferred handling
@@ -798,6 +804,8 @@ class SharedMemoryCleanupManager final {
 
     // Monitor thread: waits for pipe, cleans memory, restores default, re-raises
     static void start_monitor_thread() noexcept {
+        //DEBUG_LOG("Starting shared memory cleanup monitor thread.");
+
         monitorThread = std::thread([]() noexcept {
             FlagsGuard pendingSignalsGuard(pendingSignals);
 
@@ -864,8 +872,7 @@ class SharedMemoryCleanupManager final {
 
                     if (sigaction(signal, &sigAction, nullptr) != 0)
                     {
-                        DEBUG_LOG("Failed to restore default handler for signal "
-                                  << signal << ": " << std::strerror(errno));
+                        //DEBUG_LOG("Failed to restore default handler for signal " << signal << ", error = " << std::strerror(errno));
                         // Exit with appropriate code
                         _Exit(128 + signal);
                     }
@@ -901,6 +908,7 @@ class SharedMemoryCleanupManager final {
     }
 
     static void stop_monitor_thread() noexcept {
+        //DEBUG_LOG("Stopping shared memory cleanup monitor thread.");
         // 1. Signal shutdown
         shuttingDown.store(true, std::memory_order_release);
         // 2. Wake monitor thread
@@ -911,6 +919,7 @@ class SharedMemoryCleanupManager final {
     }
 
     static void cleanup_on_exit() noexcept {
+        //DEBUG_LOG("SharedMemoryCleanupManager: Performing atexit cleanup.");
 
         stop_monitor_thread();
 
@@ -1171,7 +1180,7 @@ class SharedMemory final: public BaseSharedMemory {
 
         if (SharedMemoryRegistry::cleanup_in_progress())
         {
-            DEBUG_LOG("Shared memory registry cleanup in progress, cannot open shared memory.");
+            //DEBUG_LOG("Shared memory registry cleanup in progress, cannot open shared memory.");
             return available;
         }
 
@@ -1182,7 +1191,7 @@ class SharedMemory final: public BaseSharedMemory {
         {
             if (is_open())
             {
-                DEBUG_LOG("Shared memory already open.");
+                //DEBUG_LOG("Shared memory already open.");
                 break;
             }
 
@@ -1203,13 +1212,13 @@ class SharedMemory final: public BaseSharedMemory {
 
                 if (fd <= INVALID_FD)
                 {
-                    DEBUG_LOG("Failed to open shared memory: " << std::strerror(errno));
+                    //DEBUG_LOG("Failed to open shared memory, error = " << std::strerror(errno));
                     break;
                 }
             }
             else
             {
-                DEBUG_LOG("Created new shared memory region: " << name);
+                //DEBUG_LOG("Created new shared memory region: " << name);
                 newCreated = true;
             }
 
@@ -1220,7 +1229,7 @@ class SharedMemory final: public BaseSharedMemory {
             {
                 cleanup(false, lockFile);
 
-                DEBUG_LOG("Failed to lock shared memory file: " << std::strerror(errno));
+                //DEBUG_LOG("Failed to lock shared memory file, error = " << std::strerror(errno));
                 break;
             }
 
@@ -1240,11 +1249,11 @@ class SharedMemory final: public BaseSharedMemory {
                 {
                     staleRetried = true;
 
-                    DEBUG_LOG("Retrying due to stale shared memory region.");
+                    //DEBUG_LOG("Retrying due to stale shared memory region.");
                     continue;
                 }
 
-                DEBUG_LOG("Failed to setup shared memory region.");
+                //DEBUG_LOG("Failed to setup shared memory region.");
                 break;
             }
 
@@ -1256,11 +1265,11 @@ class SharedMemory final: public BaseSharedMemory {
                 {
                     staleRetried = true;
 
-                    DEBUG_LOG("Retrying due to null shared memory header.");
+                    //DEBUG_LOG("Retrying due to null shared memory header.");
                     continue;
                 }
 
-                DEBUG_LOG("Shared memory header is null.");
+                //DEBUG_LOG("Shared memory header is null.");
                 break;
             }
 
@@ -1276,11 +1285,11 @@ class SharedMemory final: public BaseSharedMemory {
                     {
                         staleRetried = true;
 
-                        DEBUG_LOG("Retrying due to mutex lock failure.");
+                        //DEBUG_LOG("Retrying due to mutex lock failure.");
                         continue;
                     }
 
-                    DEBUG_LOG("Failed to lock shared memory header mutex.");
+                    //DEBUG_LOG("Failed to lock shared memory header mutex.");
                     break;
                 }
 
@@ -1290,7 +1299,7 @@ class SharedMemory final: public BaseSharedMemory {
 
                     cleanup(newCreated, lockFile);
 
-                    DEBUG_LOG("Failed to create sentinel file.");
+                    //DEBUG_LOG("Failed to create sentinel file.");
                     break;
                 }
 
@@ -1625,7 +1634,7 @@ class SharedMemory final: public BaseSharedMemory {
             // Non-contiguous allocation failed
             if (rc == -1)
             {
-                DEBUG_LOG("fcntl() failed: " << std::strerror(errno));
+                //DEBUG_LOG("fcntl() failed, error = " << std::strerror(errno));
                 return false;
             }
         }
@@ -1633,14 +1642,14 @@ class SharedMemory final: public BaseSharedMemory {
         // Actually set the file size (F_PREALLOCATE doesn't do this)
         if (ftruncate(fd, off_t(offset + mappedSize)) == -1)
         {
-            DEBUG_LOG("ftruncate() failed: " << std::strerror(errno));
+            //DEBUG_LOG("ftruncate() failed, error = " << std::strerror(errno));
             return false;
         }
     #else
         // Linux/POSIX: Use posix_fallocate (atomically allocates and sets size)
         if (posix_fallocate(fd, offset, mappedSize) != 0)
         {
-            DEBUG_LOG("posix_fallocate() failed: " << std::strerror(errno));
+            //DEBUG_LOG("posix_fallocate() failed, error = " << std::strerror(errno));
             return false;
         }
     #endif
@@ -1885,7 +1894,7 @@ struct SystemWideSharedMemory final {
         {
             // snprintf failed - use fallback format
             // This should never happen, but handle it anyway
-            DEBUG_LOG("snprintf() failed, using fallback hash name");
+            //DEBUG_LOG("snprintf() failed, using fallback hash name");
 
             // Fallback: use hex representation directly
             std::ostringstream oss{};

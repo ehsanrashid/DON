@@ -219,13 +219,13 @@ void PerftTable::resize(std::size_t ptSize, Threads& threads) noexcept {
 
     clusterCount = ptSize * ONE_MB / sizeof(PTCluster);
 
-    assert(clusterCount % 2 == 0);
+    //DEBUG_LOG("Clustering perft table to " << clusterCount << " clusters.");
 
     clusters = static_cast<PTCluster*>(alloc_aligned_large_page(clusterCount * sizeof(PTCluster)));
 
     if (clusters == nullptr)
     {
-        DEBUG_LOG("Failed to allocate " << ptSize << "MB for perft table.");
+        DEBUG_LOG("Failed to allocate perft table for " << ptSize << "MB.");
         std::exit(EXIT_FAILURE);
     }
 

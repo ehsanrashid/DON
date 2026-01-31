@@ -194,13 +194,13 @@ void TranspositionTable::resize(std::size_t ttSize, Threads& threads) noexcept {
 
     clusterCount = ttSize * ONE_MB / sizeof(TTCluster);
 
-    assert(clusterCount % 2 == 0);
+    //DEBUG_LOG("Clustering transposition table to " << clusterCount << " clusters.");
 
     clusters = static_cast<TTCluster*>(alloc_aligned_large_page(clusterCount * sizeof(TTCluster)));
 
     if (clusters == nullptr)
     {
-        DEBUG_LOG("Failed to allocate " << ttSize << "MB for transposition table.");
+        DEBUG_LOG("Failed to allocate transposition table for " << ttSize << "MB.");
         std::exit(EXIT_FAILURE);
     }
 
@@ -279,7 +279,7 @@ bool TranspositionTable::load(std::string_view hashFile, Threads& threads) noexc
 
     if (hashFile.empty())
     {
-        DEBUG_LOG("No Hash file provided");
+        //DEBUG_LOG("No Hash file provided");
         return false;
     }
 
@@ -289,13 +289,13 @@ bool TranspositionTable::load(std::string_view hashFile, Threads& threads) noexc
 
     if (ec)
     {
-        DEBUG_LOG("Failed to stat Hash file " << hashFile << ": " << ec.message());
+        //DEBUG_LOG("Failed to stat Hash file " << hashFile << ": " << ec.message());
         return false;
     }
 
     if (fileSize == 0)
     {
-        DEBUG_LOG("Warning: Empty Hash file " << hashFile);
+        //DEBUG_LOG("Warning: Empty Hash file " << hashFile);
         return true;
     }
 
@@ -303,7 +303,7 @@ bool TranspositionTable::load(std::string_view hashFile, Threads& threads) noexc
 
     if (!ifs.is_open())
     {
-        DEBUG_LOG("Failed to open Hash file " << hashFile);
+        //DEBUG_LOG("Failed to open Hash file " << hashFile);
         return false;
     }
 
@@ -337,7 +337,7 @@ bool TranspositionTable::load(std::string_view hashFile, Threads& threads) noexc
 
         //if (gotSize != readSize)  // partial read - treat as error for complete-file read
         //{
-        //    DEBUG_LOG("Partial read: expected " << readSize << " got " << gotSize);
+        //    //DEBUG_LOG("Partial read: expected " << readSize << " got " << gotSize);
         //    return false;
         //}
 
@@ -346,7 +346,7 @@ bool TranspositionTable::load(std::string_view hashFile, Threads& threads) noexc
 
     if (ifs.fail() || ifs.bad())
     {
-        DEBUG_LOG("I/O error while reading Hash file " << hashFile);
+        //DEBUG_LOG("I/O error while reading Hash file " << hashFile);
         return false;
     }
 
@@ -357,7 +357,7 @@ bool TranspositionTable::save(std::string_view hashFile) const noexcept {
 
     if (hashFile.empty())
     {
-        DEBUG_LOG("No Hash file provided");
+        //DEBUG_LOG("No Hash file provided");
         return false;
     }
 
@@ -365,7 +365,7 @@ bool TranspositionTable::save(std::string_view hashFile) const noexcept {
 
     if (!ofs.is_open())
     {
-        DEBUG_LOG("Failed to open Hash file " << hashFile);
+        //DEBUG_LOG("Failed to open Hash file " << hashFile);
         return false;
     }
 

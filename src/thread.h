@@ -84,34 +84,35 @@ class NativeThread final {
 
         if (pthread_attr_init(&threadAttr) != 0)
         {
-            DEBUG_LOG("Failed to init thread attributes");
+            //DEBUG_LOG("pthread_attr_init() failed to init thread attributes.");
             return;
         }
 
         if (pthread_attr_setstacksize(&threadAttr, TH_STACK_SIZE) != 0)
         {
-            DEBUG_LOG("Failed to set thread stack size");
+            //DEBUG_LOG("pthread_attr_setstacksize() failed to set thread stack size.");
         }
 
         // Pass the raw pointer to pthread_create
         // pthread_create takes ownership of jobFuncPtr only on success
-        if (pthread_create(&thread, &threadAttr, start_routine, jobFuncPtr.get()) == 0)
+        if (pthread_create(&thread, &threadAttr, start_routine, jobFuncPtr.get()) != 0)
         {
-            // Thread now owns it
-            jobFuncPtr.release();
-            // Mark thread as now joinable, not joined yet
-            joined = false;
+            //DEBUG_LOG("pthread_create() failed to create thread.");
+            // Thread creation failed, jobFuncPtr will be deleted automatically
+            joined = true;
         }
         else
         {
-            // Thread creation failed, jobFuncPtr will be deleted automatically
-            joined = true;
+            // Mark thread as now joinable, not joined yet
+            joined = false;
+            // Thread now owns it
+            jobFuncPtr.release();
         }
 
         // Destroy thread attr
         if (pthread_attr_destroy(&threadAttr) != 0)
         {
-            DEBUG_LOG("Failed to destroy thread attributes");
+            //DEBUG_LOG("pthread_attr_destroy() failed to destroy thread attributes.");
         }
     }
 

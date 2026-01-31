@@ -524,20 +524,25 @@ std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
     HandleGuard hFileGuard{hFile};
 
     if (hFile == INVALID_HANDLE_VALUE)
+    {
+        //DEBUG_LOG("CreateFile() failed, name = " << filename << ", error = " << error_to_string(GetLastError()));
         return nullptr;
+    }
 
     DWORD hiSize;
     DWORD loSize = GetFileSize(hFile, &hiSize);
 
     if (loSize == INVALID_FILE_SIZE && GetLastError() != NO_ERROR)
     {
-        DEBUG_LOG("GetFileSize() failed, name = " << filename);
+        DEBUG_LOG("GetFileSize() failed, name = " << filename << ", error = "
+                                                  << error_to_string(GetLastError()));
         return nullptr;
     }
 
     if (loSize % 64 != 16)
     {
-        DEBUG_LOG("Corrupt tablebase, name = " << filename);
+        DEBUG_LOG("Corrupt tablebase size, name = " << filename << ", error = "
+                                                    << error_to_string(GetLastError()));
         return nullptr;
     }
 
@@ -545,7 +550,8 @@ std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
 
     if (hMapFile == INVALID_HANDLE)
     {
-        DEBUG_LOG("CreateFileMapping() failed, name = " << filename);
+        DEBUG_LOG("CreateFileMapping() failed, name = " << filename << ", error = "
+                                                        << error_to_string(GetLastError()));
         return nullptr;
     }
 
@@ -553,7 +559,8 @@ std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
 
     if (mappedPtr == INVALID_MMAP_PTR)
     {
-        DEBUG_LOG("MapViewOfFile() failed, name = " << filename << ", error = " << GetLastError());
+        DEBUG_LOG("MapViewOfFile() failed, name = " << filename << ", error = "
+                                                    << error_to_string(GetLastError()));
 
         hMapFileGuard.close();
 
@@ -565,19 +572,23 @@ std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
     FdGuard fdGuard(fd);
 
     if (fd <= INVALID_FD)
+    {
+        //DEBUG_LOG("::open() failed, name = " << filename << ", error = " << std::strerror(errno));
         return nullptr;
+    }
 
     struct stat Stat{};
 
     if (fstat(fd, &Stat) == -1)
     {
-        DEBUG_LOG("fstat() failed, name = " << filename << ": " << strerror(errno));
+        DEBUG_LOG("fstat() failed, name = " << filename << ", error = " << std::strerror(errno));
         return nullptr;
     }
 
     if (Stat.st_size % 64 != 16)
     {
-        DEBUG_LOG("Corrupt tablebase size, name = " << filename);
+        DEBUG_LOG("Corrupt tablebase size, name = " << filename
+                                                    << ", error = " << std::strerror(errno));
         return nullptr;
     }
 
@@ -587,13 +598,17 @@ std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
 
     if (mappedPtr == MAP_FAILED)
     {
-        DEBUG_LOG("mmap() failed, name = " << filename);
+        DEBUG_LOG("mmap() failed, name = " << filename << ", size = " << mappedSize << ": "
+                                           << std::strerror(errno));
         return nullptr;
     }
 
     #if defined(MADV_RANDOM)
-    if (madvise(mappedPtr, mappedSize, MADV_RANDOM) != 0)
-        DEBUG_LOG("madvise() failed, name = " << filename << ": " << strerror(errno));
+    //DEBUG_LOG("Using madvise() to inform the OS of random access pattern for file " << filename << " mappedSize = " << mappedSize);
+    if (mappedPtr != nullptr && mappedSize != 0 && madvise(mappedPtr, mappedSize, MADV_RANDOM) != 0)
+    {
+        //DEBUG_LOG("madvise() failed, name = " << filename << " mappedSize = " << mappedSize << ", error = " << std::strerror(errno));
+    }
     #endif
 #endif
 

@@ -71,6 +71,7 @@ Thread::Thread(std::size_t                   threadIdx,
     numaId(numaIdx),
     numaThreadCount(numaThreadCnt) {
     assert(numa_thread_count() != 0 && numa_id() < numa_thread_count());
+    //DEBUG_LOG("Creating Thread id: " << thread_id() << "/" << thread_count() << " on NUMA node " << numa_id() << "/" << numa_thread_count());
 
     // Bind this thread to a NUMA node for memory affinity
     numaAccessToken = nodeBinder();
@@ -141,11 +142,15 @@ void Thread::terminate() noexcept {
     // Join the native thread if joinable
     if (nativeThread.joinable())
         nativeThread.join();
+
+    //DEBUG_LOG("Thread id: " << thread_id() << " terminated.");
 }
 
 // Thread main function: waits for work and executes jobs.
 // When no job is scheduled, the thread parks here, blocked on the condition variable.
 void Thread::idle_func() noexcept {
+    //DEBUG_LOG("Thread id: " << thread_id() << " started.");
+
     while (true)
     {
         std::unique_lock lock(mutex);
@@ -183,7 +188,7 @@ void Thread::idle_func() noexcept {
             jobFn();
     }
 
-    //DEBUG_LOG("Thread id: " << threadId << " exiting.");
+    //DEBUG_LOG("Thread id: " << thread_id() << " exited.");
 }
 
 void Thread::ensure_network_replicated() const noexcept { worker->ensure_network_replicated(); }
@@ -224,6 +229,7 @@ void Threads::set(const NumaConfig&                       numaConfig,
     threadBoundNumaNodes = threadBindable
                            ? numaConfig.distribute_threads_among_numa_nodes(threadCount)
                            : std::vector<NumaIndex>{};
+    //DEBUG_LOG("Thread bound numa nodes size: " << threadBoundNumaNodes.size());
 
     std::unordered_map<NumaIndex, std::size_t> numaThreadCounts;
 
@@ -239,6 +245,8 @@ void Threads::set(const NumaConfig&                       numaConfig,
         for (NumaIndex numaId : threadBoundNumaNodes)
             ++numaThreadCounts[numaId];
     }
+
+    //DEBUG_LOG("Numa thread counts size: " << numaThreadCounts.size());
 
     // Prepare shared histories map
     auto& historiesMap = sharedState.historiesMap;
@@ -302,8 +310,6 @@ void Threads::set(const NumaConfig&                       numaConfig,
         else
             create_thread();
     }
-
-    assert(size() == threadCount);
 
     init();
 }
