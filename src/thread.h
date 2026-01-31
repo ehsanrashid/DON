@@ -337,9 +337,6 @@ class Threads final {
     auto begin() const noexcept { return threads.begin(); }
     auto end() const noexcept { return threads.end(); }
 
-    auto& front() const noexcept { return threads.front(); }
-    auto& back() const noexcept { return threads.back(); }
-
     std::size_t size() const noexcept {
         std::shared_lock lock(sharedMutex);
 
@@ -369,7 +366,7 @@ class Threads final {
              SharedState&                            sharedState,
              const MainSearchManager::UpdateContext& updateContext) noexcept;
 
-    void init() noexcept;
+    void init() const noexcept;
 
     Thread* main_thread() const noexcept;
 
@@ -459,23 +456,17 @@ class Threads final {
 
 
     void notify_main_manager() const noexcept {
-        // Snapshot main thread pointer under a short shared lock to avoid UB and deadlocks
-        Thread* mainThread = nullptr;
-        {
-            std::shared_lock threadsLock(sharedMutex);
+        std::shared_lock threadsLock(sharedMutex);
 
-            if (threads.empty())
-                return;
+        if (threads.empty())
+            return;
 
-            mainThread = threads.front().get();
-        }
-
+        auto* mainThread = threads.front().get();
         // Only proceed if main thread exists
         if (mainThread == nullptr)
             return;
 
         auto* mainManager = mainThread->worker->main_manager();
-
         // Only proceed if main manager exists
         if (mainManager == nullptr)
             return;
@@ -488,6 +479,18 @@ class Threads final {
         mainManager->condVar.notify_one();
     }
 
+    template<typename Func>
+    void for_each_thread(Func&& func, bool includeMain = true) const noexcept {
+        std::shared_lock lock(sharedMutex);
+
+        for (auto&& th : threads)
+        {
+            if (!includeMain && th == threads.front())
+                continue;
+
+            func(th.get());
+        }
+    }
 
     template<typename T>
     void set(std::atomic<T> Worker::* member, T value) noexcept {
@@ -544,22 +547,21 @@ inline Threads::~Threads() noexcept { destroy(); }
 // Destroy any existing thread(s)
 inline void Threads::destroy() noexcept {
     Thread* mainThread = nullptr;
-    // Acquire unique lock once to safely snapshot main thread
+    // Acquire shared lock once to safely snapshot main thread
     {
         std::shared_lock lock(sharedMutex);
 
-        if (threads.empty())
-            return;
-
-        mainThread = front().get();
+        if (!threads.empty())
+            mainThread = threads.front().get();
     }
 
-    // Wake main manager (in case it is waiting)
-    notify_main_manager();
-
-    // Wait for the main thread to finish its work
     if (mainThread != nullptr)
+    {
+        // Wake main manager (in case it is waiting)
+        notify_main_manager();
+
         mainThread->wait_finish();
+    }
 
     // Clear threads and thread binding nodes
     std::unique_lock lock(sharedMutex);
@@ -569,37 +571,18 @@ inline void Threads::destroy() noexcept {
 }
 
 // Sets data to initial values
-inline void Threads::init() noexcept {
+inline void Threads::init() const noexcept {
     if (empty())
         return;
 
-    // snap-shot pointers under shared lock
-    std::vector<Thread*> snapShot;
-    {
-        std::shared_lock lock(sharedMutex);
-
-        snapShot.reserve(size());
-
-        for (auto&& th : threads)
-            snapShot.push_back(th.get());
-    }
-
-    for (auto* th : snapShot)
+    // Initialize all threads (including main)
+    for_each_thread([](Thread* th) {
         th->init();
-
-    for (auto* th : snapShot)
         th->wait_finish();
+    });
 
-    // snapshot main manager pointer under a short shared lock to avoid races
-    MainSearchManager* mainManager = nullptr;
-    {
-        std::shared_lock lock(sharedMutex);
-
-        if (!threads.empty())
-            mainManager = front()->worker->main_manager();
-    }
-
-    if (mainManager != nullptr)
+    // Initialize main manager
+    if (auto mainManager = main_manager())
         mainManager->init();
 }
 
@@ -607,7 +590,7 @@ inline void Threads::init() noexcept {
 inline Thread* Threads::main_thread() const noexcept {
     std::shared_lock lock(sharedMutex);
 
-    return threads.empty() ? nullptr : front().get();
+    return threads.empty() ? nullptr : threads.front().get();
 }
 
 // Get pointer to the main search manager
@@ -619,62 +602,24 @@ inline MainSearchManager* Threads::main_manager() const noexcept {
 
     // Avoid calling main_thread() here because it would try to lock sharedMutex again.
     // Snapshot the main thread pointer under the shared lock and return its manager.
-    return front()->worker != nullptr ? front()->worker->main_manager() : nullptr;
+    return threads.front()->worker != nullptr ? threads.front()->worker->main_manager() : nullptr;
 }
 
 // Start non-main threads
 // Will be invoked by main thread after it has started searching
 inline void Threads::start_search() const noexcept {
-    // snap-shot pointers under shared lock
-    std::vector<Thread*> snapShot;
-    {
-        std::shared_lock lock(sharedMutex);
-
-        snapShot.reserve(size());
-
-        for (auto&& th : threads)
-            if (th != front())
-                snapShot.push_back(th.get());
-    }
-
-    for (auto* th : snapShot)
-        th->start_search();
+    for_each_thread([](Thread* th) { th->start_search(); }, false);  // skip main
 }
 
 // Wait for non-main threads
 // Will be invoked by main thread after it has finished searching
 inline void Threads::wait_finish() const noexcept {
-    // snap-shot pointers under shared lock
-    std::vector<Thread*> snapShot;
-    {
-        std::shared_lock lock(sharedMutex);
-
-        snapShot.reserve(size());
-
-        for (auto&& th : threads)
-            if (th != front())
-                snapShot.push_back(th.get());
-    }
-
-    for (auto* th : snapShot)
-        th->wait_finish();
+    for_each_thread([](Thread* th) { th->wait_finish(); }, false);  // skip main
 }
 
 // Ensure that all threads have their network replicated
 inline void Threads::ensure_network_replicated() const noexcept {
-    // snap-shot pointers under shared lock
-    std::vector<Thread*> snapShot;
-    {
-        std::shared_lock lock(sharedMutex);
-
-        snapShot.reserve(size());
-
-        for (auto&& th : threads)
-            snapShot.push_back(th.get());
-    }
-
-    for (auto* th : snapShot)
-        th->ensure_network_replicated();
+    for_each_thread([](Thread* th) { th->ensure_network_replicated(); });
 }
 
 }  // namespace DON
