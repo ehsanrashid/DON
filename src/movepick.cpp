@@ -223,7 +223,7 @@ template<>
 MovePicker::iterator
 MovePicker::score<GenType::ENC_CAPTURE>(MoveList<GenType::ENC_CAPTURE>& moveList) noexcept {
 
-    const auto& captureHistoryRef = *this->captureHistory;
+    const auto& captureHistoryRef = *captureHistory;
 
     iterator itr = cur;
 
@@ -254,11 +254,10 @@ MovePicker::score<GenType::ENC_QUIET>(MoveList<GenType::ENC_QUIET>& moveList) no
     Bitboard pinnersBB  = pos.pinners_bb();
     Bitboard threatsBB  = pos.threats_bb();
 
-    const auto&        quietHistoryRef        = *this->quietHistory;
-    const auto&        lowPlyQuietHistoryRef  = *this->lowPlyQuietHistory;
-    const auto* const* continuationHistoryPtr = this->continuationHistory;
-
-    const auto& pawnHistory = histories->pawn(pos.pawn_key());
+    const auto&        quietHistoryRef        = *quietHistory;
+    const auto&        lowPlyQuietHistoryRef  = *lowPlyQuietHistory;
+    const auto* const* continuationHistoryPtr = continuationHistory;
+    const auto&        pawnHistory            = histories->pawn(pos.pawn_key());
 
     iterator itr = cur;
 
@@ -337,8 +336,8 @@ MovePicker::score<GenType::EVA_QUIET>(MoveList<GenType::EVA_QUIET>& moveList) no
 
     Color ac = pos.active_color();
 
-    const auto&        quietHistoryRef        = *this->quietHistory;
-    const auto* const* continuationHistoryPtr = this->continuationHistory;
+    const auto&        quietHistoryRef        = *quietHistory;
+    const auto* const* continuationHistoryPtr = continuationHistory;
 
     iterator itr = cur;
 
@@ -474,7 +473,7 @@ STAGE_SWITCH:
 
             endCur = score(moveList);
 
-            stable_sort_adaptive(cur, endCur);
+            insertion_sort(cur, endCur);
         }
 
         curStage = Stage::EVA_QUIET;

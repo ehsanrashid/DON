@@ -256,16 +256,58 @@ void Position::set(std::string_view fens, State* newSt) noexcept {
 
     st = newSt;
 
-    std::istringstream iss{std::string{fens}};
-    iss >> std::noskipws;
+    // Fast, allocation-free parser over std::string_view (replacement for std::istringstream).
+    const char*       p   = fens.data();
+    const char* const end = p + fens.size();
 
-    std::uint8_t token;
+    // Returns '\0' when p >= end (EOF sentinel)
+    auto peek        = [&p, &end]() noexcept -> char { return p < end ? *p : '\0'; };
+    auto skip_spaces = [&p, &end]() noexcept {
+        while (p < end && std::isspace(static_cast<unsigned char>(*p)))
+            ++p;
+    };
+    auto get     = [&p, &end]() noexcept -> char { return p < end ? *p++ : '\0'; };
+    auto get_int = [&p, &end, &skip_spaces](int& out) noexcept -> bool {
+        skip_spaces();
+
+        bool neg = false;
+        if (p < end && (*p == '+' || *p == '-'))
+        {
+            neg = (*p == '-');
+            ++p;
+        }
+
+        int val = 0;
+
+        bool any = false;
+        while (p < end && std::isdigit((unsigned char) (*p)))
+        {
+            any = true;
+            val = val * 10 + (int) (*p - '0');
+            ++p;
+        }
+
+        if (!any)
+            return false;
+
+        out = neg ? -val : +val;
+        return true;
+    };
+
+    char token;
 
     File file = FILE_A;
     Rank rank = RANK_8;
     // 1. Piece placement
-    while ((iss >> token) && !std::isspace(token))
+    while (p < end)
     {
+        token = *p;
+
+        if (std::isspace((unsigned char) token))
+            break;
+
+        ++p;
+
         if (token == '/')
         {
             assert(rank > RANK_1);
@@ -273,7 +315,7 @@ void Position::set(std::string_view fens, State* newSt) noexcept {
             file = FILE_A;
             --rank;
         }
-        else if (std::isdigit(token))
+        else if (std::isdigit((unsigned char) token))
         {
             if ('1' <= token && token <= '8')
             {
@@ -312,12 +354,12 @@ void Position::set(std::string_view fens, State* newSt) noexcept {
     assert(square<KING>(WHITE) != SQ_NONE && square<KING>(BLACK) != SQ_NONE);
     assert(distance(square<KING>(WHITE), square<KING>(BLACK)) > 1);
 
-    iss >> std::ws;
+    skip_spaces();
 
     // 2. Active color
-    iss >> token;
+    token = get();
 
-    switch (std::tolower(token))
+    switch (std::tolower((unsigned char) token))
     {
     case 'w' :
         activeColor = WHITE;
@@ -330,16 +372,18 @@ void Position::set(std::string_view fens, State* newSt) noexcept {
         break;
     }
 
-    iss >> std::ws;
+    skip_spaces();
 
     // 3. Castling availability. Compatible with 3 standards: Normal FEN standard,
     // Shredder-FEN that uses the letters of the columns on which the rooks began
     // the game instead of KQkq and also X-FEN standard that, in case of Chess960,
     // if an inner rook is associated with the castling right, the castling tag is
     // replaced by the file letter of the involved rook, as for the Shredder-FEN.
-    [[maybe_unused]] std::uint8_t castlingRightsCount = 0;
-    while ((iss >> token) && !std::isspace(token))
+    [[maybe_unused]] std::size_t castlingRightsCount = 0;
+    while (p < end && !std::isspace((unsigned char) (*p)))
     {
+        token = get();
+
         if (token == '-')
             continue;
 
@@ -350,8 +394,8 @@ void Position::set(std::string_view fens, State* newSt) noexcept {
             continue;
         }
 
-        Color c = std::isupper(token) ? WHITE : BLACK;
-        token   = std::tolower(token);
+        Color c = std::isupper((unsigned char) token) ? WHITE : BLACK;
+        token   = char(std::tolower((unsigned char) token));
 
         if (relative_rank(c, square<KING>(c)) != RANK_1)
         {
@@ -406,7 +450,7 @@ void Position::set(std::string_view fens, State* newSt) noexcept {
         set_castling_rights(c, rookOrgSq);
     }
 
-    iss >> std::ws;
+    skip_spaces();
 
     Color ac = active_color();
 
@@ -414,23 +458,37 @@ void Position::set(std::string_view fens, State* newSt) noexcept {
     // Ignore if square is invalid or not on side to move relative rank 6.
     Square enPassantSq = SQ_NONE;
 
-    iss >> token;
-    if (token != '-')
+    if (p < end)
     {
-        std::uint8_t epFile = std::tolower(token);
-        std::uint8_t epRank;
-        iss >> epRank;
-
-        if ('a' <= epFile && epFile <= 'h' && epRank == (ac == WHITE ? '6' : '3'))
-            enPassantSq = make_square(to_file(epFile), to_rank(epRank));
+        if (peek() == '-')
+        {
+            ++p;
+        }
         else
-            assert(false && "Position::set(): Invalid En-passant square");
+        {
+            char epFile = get();
+
+            if (p < end)
+            {
+                char epRank = get();
+
+                if ('a' <= epFile && epFile <= 'h' && epRank == (ac == WHITE ? '6' : '3'))
+                    enPassantSq = make_square(to_file(epFile), to_rank(epRank));
+                else
+                    assert(false && "Position::set(): Invalid En-passant square");
+            }
+            else
+            {
+                assert(false && "Position::set(): Invalid En-passant token");
+            }
+        }
     }
 
     // 5-6. Halfmove clock and fullmove number
-    std::int16_t rule50Count = 0;
-    std::int16_t moveNum     = 1;
-    iss >> std::skipws >> rule50Count >> moveNum;
+    int rule50Count = 0;
+    int moveNum     = 1;
+    get_int(rule50Count);
+    get_int(moveNum);
 
     st->rule50Count = std::abs(rule50Count);
     // Convert from moveNum starting from 1 to posPly starting from 0,
@@ -514,7 +572,7 @@ std::string Position::fen(bool complete) const noexcept {
 
     for (Rank r = RANK_8;; --r)
     {
-        std::uint8_t emptyCount = 0;
+        std::uint32_t emptyCount = 0;
 
         for (File f = FILE_A; f <= FILE_H; ++f)
         {
@@ -1970,7 +2028,7 @@ void Position::mirror() noexcept {
             case 'Q' : ch = 'K'; break;
             case 'k' : ch = 'q'; break;
             case 'q' : ch = 'k'; break;
-            default :  ch = flip_file(ch);
+            default  : ch = flip_file(ch);
                 // clang-format on
             }
         }
@@ -2135,13 +2193,13 @@ bool Position::_is_ok() const noexcept {
     for (Color c : {WHITE, BLACK})
         for (PieceType pt : PIECE_TYPES)
         {
-            Piece        pc  = make_piece(c, pt);
-            std::uint8_t idx = 0;
+            Piece        pc    = make_piece(c, pt);
+            std::uint8_t pcIdx = 0;
             for (Square s : squares(c, pt).iterate(base(c), count(c, pt)))
             {
-                if (piece(s) != pc || indexMap[s] != idx)
+                if (piece(s) != pc || indexMap[s] != pcIdx)
                     assert(0 && "Position::_is_ok(): Piece List");
-                ++idx;
+                ++pcIdx;
             }
         }
 
