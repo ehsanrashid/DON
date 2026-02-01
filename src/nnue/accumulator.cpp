@@ -93,8 +93,8 @@ struct AccumulatorUpdateContext final {
 
         const auto* threatWeights = featureTransformer.threatWeights.data();
 
-        const std::size_t addedSize   = added.size();
         const std::size_t removedSize = removed.size();
+        const std::size_t addedSize   = added.size();
 
         // clang-format off
         for (IndexType j = 0; j < Dimensions / Tiling::TileHeight; ++j)
@@ -292,18 +292,18 @@ void update_accumulator_incremental_double(
     PSQFeatureSet::append_changed_indices(perspective, kingSq, middleState.dirty, removed, added);
     PSQFeatureSet::append_changed_indices(perspective, kingSq, targetState.dirty, removed, added);
 
-    [[maybe_unused]] const std::size_t addedSize   = added.size();
     [[maybe_unused]] const std::size_t removedSize = removed.size();
+    [[maybe_unused]] const std::size_t addedSize   = added.size();
 
     // Can't capture a piece that was just involved in castling since the rook ends up in a square that the king passed
-    assert(addedSize < 2 && addedSize == 1);
     assert(removedSize == 2 || removedSize == 3);
+    assert(addedSize == 1);
 
     // Workaround compiler warning for uninitialized variables, replicated on
     // profile builds on windows with gcc 14.2.0.
     // Also helps with optimizations on some compilers.
-    ASSUME(addedSize == 1);
     ASSUME(removedSize == 2 || removedSize == 3);
+    ASSUME(addedSize == 1);
 
     auto updateContext =
       make_accumulator_update_context(perspective, featureTransformer, computedState, targetState);
@@ -507,8 +507,8 @@ void update_accumulator_refresh_cache(Color                                 pers
 
     const auto* weights = featureTransformer.weights.data();
 
-    const std::size_t addedSize   = added.size();
     const std::size_t removedSize = removed.size();
+    const std::size_t addedSize   = added.size();
 
     // clang-format off
     for (IndexType j = 0; j < Dimensions / Tiling::TileHeight; ++j)
