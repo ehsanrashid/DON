@@ -470,6 +470,8 @@ class BaseSharedMemory {
     virtual ~BaseSharedMemory() noexcept = default;
 
     virtual void close(bool skipUnmapRegion = false) noexcept = 0;
+
+    std::string name;
 };
 
 // SharedMemoryRegistry
@@ -587,11 +589,15 @@ class SharedMemoryRegistry final {
     }
 
     static void print() noexcept {
-        std::shared_lock sharedLock(sharedMutex);  // shared lock for reading
+        std::shared_lock sharedLock(sharedMutex);
 
-        std::cout << "Registered shared memories (" << orderedSharedMemories.size() << "):\n";
-        for (auto* sharedMemory : orderedSharedMemories)
-            std::cout << "  " << sharedMemory << "\n";
+        std::cout << "Registered shared memories in insertion order ("
+                  << orderedSharedMemories.size() << "):\n";
+        for (std::size_t i = 0; i < orderedSharedMemories.size(); ++i)
+            std::cout << "[" << i << "] "
+                      << (orderedSharedMemories[i] != nullptr ? orderedSharedMemories[i]->name
+                                                              : "<null>")
+                      << "\n";
         std::cout << std::endl;
     }
 
@@ -604,11 +610,12 @@ class SharedMemoryRegistry final {
     SharedMemoryRegistry& operator=(SharedMemoryRegistry&&) noexcept      = delete;
 
     static bool insert_memory_nolock(BaseSharedMemory* sharedMemory) noexcept {
-        // If already registered, return false
+        // Only insert if not present
         if (sharedMemoryIndices.find(sharedMemory) != sharedMemoryIndices.end())
             return false;
 
         //DEBUG_LOG("Registering shared memory: " << sharedMemory);
+
         std::size_t newIndex = orderedSharedMemories.size();
         orderedSharedMemories.push_back(sharedMemory);
         sharedMemoryIndices[sharedMemory] = newIndex;
@@ -1758,7 +1765,6 @@ class SharedMemory final: public BaseSharedMemory {
 
     static constexpr std::string_view DIRECTORY{"/dev/shm/"};
 
-    std::string name;
     bool        available = false;
     int         fd        = INVALID_FD;
     FdGuard     fdGuard{fd};
