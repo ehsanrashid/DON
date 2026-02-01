@@ -20,7 +20,6 @@
 #include <cmath>
 #include <cstdlib>
 #include <ctime>
-#include <iomanip>
 #include <iterator>
 #include <limits>
 
@@ -321,7 +320,7 @@ std::string format_time(const std::chrono::system_clock::time_point& timePoint) 
     // Format the YYYY.MM.DD-HH:MM:SS part
     writtenSize = std::strftime(buffer.data(), buffer.size(), "%Y.%m.%d-%H:%M:%S", &tm);
     // Append microseconds safely
-    writtenSize += std::snprintf(buffer.data() + writtenSize, buffer.size() - writtenSize, ".%06llu", usec);
+    writtenSize += std::snprintf(buffer.data() + writtenSize, buffer.size() - writtenSize, ".%06" PRIu64, usec);
     // clang-format on
     return std::string{buffer.data(), std::min(writtenSize, buffer.size() - 1)};
 }

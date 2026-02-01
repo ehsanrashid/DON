@@ -19,16 +19,12 @@
 #define NUMA_H_INCLUDED
 
 #include <algorithm>
-#include <atomic>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
-#include <functional>
-#include <iostream>
 #include <limits>
 #include <memory>
 #include <mutex>
-#include <sstream>
 #include <string>
 #include <string_view>
 #include <thread>
@@ -771,12 +767,13 @@ class NumaConfig final {
     }
 
     std::string to_string() const noexcept {
-        std::ostringstream oss{};
+        std::string numaConfig;
+        numaConfig.reserve(nodes.size() * 8);
 
         for (auto nodeItr = nodes.begin(); nodeItr != nodes.end(); ++nodeItr)
         {
             if (nodeItr != nodes.begin())
-                oss << ':';
+                numaConfig += ':';
 
             auto rangeItr = nodeItr->begin();
             for (auto itr = nodeItr->begin(); itr != nodeItr->end(); ++itr)
@@ -785,19 +782,19 @@ class NumaConfig final {
                 if (nextItr == nodeItr->end() || *nextItr != *itr + 1)
                 {
                     if (rangeItr != nodeItr->begin())
-                        oss << ',';
+                        numaConfig += ',';
 
                     if (itr != rangeItr)
-                        oss << *rangeItr << '-';
+                        numaConfig += std::to_string(*rangeItr) + '-';
 
-                    oss << *itr;
+                    numaConfig += std::to_string(*itr);
 
                     rangeItr = nextItr;
                 }
             }
         }
 
-        return oss.str();
+        return numaConfig;
     }
 
     bool suggests_binding_threads(std::size_t threadCount) const noexcept {

@@ -19,10 +19,12 @@
 
 #include <cassert>
 #include <cmath>
+#include <cstdio>
 #include <cstdlib>
 #include <memory>
 #include <utility>
 
+#include "misc.h"
 #include "nnue/accumulator.h"
 #include "nnue/network.h"
 #include "nnue/nmisc.h"
