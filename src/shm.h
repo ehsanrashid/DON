@@ -370,8 +370,9 @@ class BackendSharedMemory final {
 
         if (hMapFile == INVALID_HANDLE)
         {
-            status = Status::FileMapping;
             //DEBUG_LOG("CreateFileMapping() failed, name = " << name << , error = " << error_to_string(GetLastError()));
+            status = Status::FileMapping;
+
             return;
         }
 
@@ -379,8 +380,8 @@ class BackendSharedMemory final {
 
         if (mappedPtr == INVALID_MMAP_PTR)
         {
-            status = Status::MapView;
             //DEBUG_LOG("MapViewOfFile() failed, name = " << name << ", error = " << error_to_string(GetLastError()));
+            status = Status::MapView;
 
             cleanup();
             return;
@@ -396,8 +397,8 @@ class BackendSharedMemory final {
 
         if (hMutex == nullptr)
         {
-            status = Status::MutexCreate;
             //DEBUG_LOG("CreateMutex() failed, name = " << mutexName << ", error = " << error_to_string(GetLastError()));
+            status = Status::MutexCreate;
 
             cleanup();
             return;
@@ -405,8 +406,8 @@ class BackendSharedMemory final {
         // Wait for ownership
         if (WaitForSingleObject(hMutex, INFINITE) != WAIT_OBJECT_0)
         {
-            status = Status::MutexWait;
             //DEBUG_LOG("WaitForSingleObject() failed, name = " << mutexName << ", error = " << error_to_string(GetLastError()));
+            status = Status::MutexWait;
 
             cleanup();
             return;
@@ -428,15 +429,15 @@ class BackendSharedMemory final {
 
         if (!ReleaseMutex(hMutex))
         {
-            status = Status::MutexRelease;
             //DEBUG_LOG("ReleaseMutex() failed, name = " << mutexName << ", error = " << error_to_string(GetLastError()));
+            status = Status::MutexRelease;
 
             cleanup();
             return;
         }
 
-        status = Status::Success;
         //DEBUG_LOG("Shared memory initialized successfully, name: " << name);
+        status = Status::Success;
     }
 
     void cleanup() noexcept {
@@ -467,6 +468,8 @@ class BackendSharedMemory final {
 
 class BaseSharedMemory {
    public:
+    BaseSharedMemory(const std::string& shmName) :
+        name(shmName) {}
     virtual ~BaseSharedMemory() noexcept = default;
 
     virtual void close(bool skipUnmapRegion = false) noexcept = 0;
@@ -531,7 +534,7 @@ class SharedMemoryRegistry final {
 
         if (sharedMemory == nullptr)
         {
-            //DEBUG_LOG("Attempted to register NULL shared memory.");
+            //DEBUG_LOG("Attempted to register <NULL> shared memory.");
             return;
         }
 
@@ -541,7 +544,7 @@ class SharedMemoryRegistry final {
         if (!condVar.wait_for(condLock, MaxWaitTime,
                               []() noexcept { return !cleanup_in_progress(); }))
         {
-            //DEBUG_LOG("Timeout waiting for SharedMemoryRegistry cleanup to finish : " << sharedMemory);
+            //DEBUG_LOG("Timeout waiting for SharedMemoryRegistry cleanup to finish : " << sharedMemory->name);
             // Timeout - silently fail to register (acceptable during shutdown)
             return;
         }
@@ -596,7 +599,7 @@ class SharedMemoryRegistry final {
         for (std::size_t i = 0; i < orderedSharedMemories.size(); ++i)
             std::cout << "[" << i << "] "
                       << (orderedSharedMemories[i] != nullptr ? orderedSharedMemories[i]->name
-                                                              : "<null>")
+                                                              : "<NULL>")
                       << "\n";
         std::cout << std::endl;
     }
@@ -614,7 +617,7 @@ class SharedMemoryRegistry final {
         if (sharedMemoryIndices.find(sharedMemory) != sharedMemoryIndices.end())
             return false;
 
-        //DEBUG_LOG("Registering shared memory: " << sharedMemory);
+        //DEBUG_LOG("Registering shared memory: " << sharedMemory->name);
 
         std::size_t newIndex = orderedSharedMemories.size();
         orderedSharedMemories.push_back(sharedMemory);
@@ -628,7 +631,7 @@ class SharedMemoryRegistry final {
         if (itr == sharedMemoryIndices.end())
             return false;
 
-        //DEBUG_LOG("Unregistering shared memory: " << sharedMemory);
+        //DEBUG_LOG("Unregistering shared memory: " << sharedMemory->name);
 
         std::size_t victimIndex = itr->second;
 
@@ -698,9 +701,9 @@ class SharedMemoryCleanupManager final {
             if (pipe(pipeFds) != 0)
     #endif
             {
-                close_signal_pipe();
-
                 //DEBUG_LOG("Failed to create signal pipe, error = " << std::strerror(errno));
+
+                close_signal_pipe();
                 return;
             }
     #if !defined(__linux__)
@@ -710,9 +713,9 @@ class SharedMemoryCleanupManager final {
                 || fcntl(pipeFds[0], F_SETFL, O_NONBLOCK) == -1  //
                 || fcntl(pipeFds[1], F_SETFL, O_NONBLOCK) == -1)
             {
-                close_signal_pipe();
-
                 //DEBUG_LOG("Failed to set pipe flags, error = " << std::strerror(errno));
+
+                close_signal_pipe();
                 return;
             }
     #endif
@@ -1180,7 +1183,7 @@ class SharedMemory final: public BaseSharedMemory {
 
    public:
     explicit SharedMemory(std::string_view shmName) noexcept :
-        name(shmName),
+        BaseSharedMemory(shmName),
         mappedSize(mapped_size()),
         sentinelBase(shmName) {
         // POSIX named shared memory names must start with slash ('/')
@@ -1256,9 +1259,10 @@ class SharedMemory final: public BaseSharedMemory {
 
             if (!lockFile)
             {
+                //DEBUG_LOG("Failed to lock shared memory file, error = " << std::strerror(errno));
+
                 cleanup(false, lockFile);
 
-                //DEBUG_LOG("Failed to lock shared memory file, error = " << std::strerror(errno));
                 break;
             }
 
@@ -1276,9 +1280,10 @@ class SharedMemory final: public BaseSharedMemory {
 
                 if (!newCreated && headerInvalid && !staleRetried)
                 {
+                    //DEBUG_LOG("Retrying due to stale shared memory region.");
+
                     staleRetried = true;
 
-                    //DEBUG_LOG("Retrying due to stale shared memory region.");
                     continue;
                 }
 
@@ -1292,9 +1297,10 @@ class SharedMemory final: public BaseSharedMemory {
 
                 if (!newCreated && !staleRetried)
                 {
+                    //DEBUG_LOG("Retrying due to null shared memory header.");
+
                     staleRetried = true;
 
-                    //DEBUG_LOG("Retrying due to null shared memory header.");
                     continue;
                 }
 
@@ -1312,9 +1318,10 @@ class SharedMemory final: public BaseSharedMemory {
 
                     if (!newCreated && !staleRetried)
                     {
+                        //DEBUG_LOG("Retrying due to mutex lock failure.");
+
                         staleRetried = true;
 
-                        //DEBUG_LOG("Retrying due to mutex lock failure.");
                         continue;
                     }
 
@@ -1324,11 +1331,11 @@ class SharedMemory final: public BaseSharedMemory {
 
                 if (!sentinel_file_locked_created())
                 {
+                    //DEBUG_LOG("Failed to create sentinel file.");
+
                     shmHeaderGuard.unlock();
 
                     cleanup(newCreated, lockFile);
-
-                    //DEBUG_LOG("Failed to create sentinel file.");
                     break;
                 }
 
