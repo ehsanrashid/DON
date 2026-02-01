@@ -1059,7 +1059,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
     // If eval is really low, check with qsearch then return speculative fail low.
     if constexpr (!PVNode)
     {
-        if (ttEvalValue + 485 + 281 * depth * depth <= alpha)
+        if (!exclude && ttEvalValue + 485 + 281 * depth * depth <= alpha)
         {
             Value razorAlpha = std::max(alpha - 1, -VALUE_INFINITE);
 
@@ -1077,7 +1077,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
     {
         // The depth condition is important for mate finding
         if (!ss->ttPv && !exclude && depth < 14 && !is_win(ttEvalValue) && !is_loss(beta)
-            && (ttmNone || history_value(pos, ttd.move, ac, contHistory) >= (ttmCapture ? 6800 : 32768)))
+            && (ttmNone || history_value(pos, ttd.move, ac, contHistory) >= 32768 - int(ttmCapture) * 25968))
         {
             // Compute base futility
             int baseFutility = 53 + int(ttd.hit) * 23;

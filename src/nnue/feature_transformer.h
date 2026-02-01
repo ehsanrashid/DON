@@ -137,8 +137,16 @@ class FeatureTransformer final {
     std::size_t content_hash() const noexcept {
         std::size_t h = 0;
         combine_hash(h, hash_raw_data(biases));
+
+        if constexpr (UseThreats)
+        {
+            combine_hash(h, hash_raw_data(threatWeights));
+            combine_hash(h, hash_raw_data(threatPsqtWeights));
+        }
+
         combine_hash(h, hash_raw_data(weights));
         combine_hash(h, hash_raw_data(psqtWeights));
+
         combine_hash(h, hash());
         return h;
     }

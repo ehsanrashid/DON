@@ -1049,6 +1049,7 @@ DirtyBoard Position::do_move(Move m, State& newSt, bool mayCheck, const Worker* 
             auto promotedPt = m.promotion_type();
             assert(KNIGHT <= promotedPt && promotedPt <= QUEEN);
 
+            movedPt    = promotedPt;
             promotedPc = make_piece(ac, promotedPt);
 
             db.dp.dstSq = SQ_NONE;
@@ -1094,15 +1095,10 @@ DirtyBoard Position::do_move(Move m, State& newSt, bool mayCheck, const Worker* 
     // Update hash key
     st->key ^= movedKey;
 
-    // Update castling rights if needed
-    if (CastlingRights cr;
-        has_castling_rights()
-        && (cr = castling_rights_mask(orgSq, dstSq)) != CastlingRights::NO_CASTLING)
-    {
-        st->key ^= Zobrist::castling(castling_rights());
-        st->castlingRights &= ~cr;
-        st->key ^= Zobrist::castling(castling_rights());
-    }
+    // Update castling rights
+    st->key ^= Zobrist::castling(castling_rights());
+    st->castlingRights &= ~castling_rights_mask(orgSq, dstSq);
+    st->key ^= Zobrist::castling(castling_rights());
 
     if (worker != nullptr)
     {
@@ -1123,10 +1119,11 @@ DirtyBoard Position::do_move(Move m, State& newSt, bool mayCheck, const Worker* 
 
     if (mayCheck)
     {
-        st->checkersBB = (m.type() != MT::CASTLING  //
-                            ? attackers_bb(square<KING>(~ac), pieces_bb())
-                            : attacks_bb<ROOK>(square<KING>(~ac), pieces_bb()) & pieces_bb(ROOK))
-                       & pieces_bb(ac);
+        st->checkersBB = m.type() != MT::CASTLING
+                         ? pieces_bb(ac)
+                             & ((state()->preSt->checksBB[movedPt] & dstSq)
+                                | slide_attackers_bb(square<KING>(~ac)))
+                         : pieces_bb(ac, ROOK) & state()->preSt->checksBB[ROOK];
 
         assert(popcount(checkers_bb()) <= 2 && (checkers_bb() & square<KING>(ac)) == 0);
     }
@@ -1190,7 +1187,6 @@ void Position::undo_move(Move m) noexcept {
     Color ac = activeColor = ~active_color();
 
     Square orgSq = m.org_sq(), dstSq = m.dst_sq();
-    Piece  movedPc = piece(dstSq);
     assert(empty(orgSq) || m.type() == MT::CASTLING);
 
     Piece capturedPc = captured_pc();
@@ -1210,6 +1206,8 @@ void Position::undo_move(Move m) noexcept {
     // clang-format off
     else
     {
+    Piece movedPc = piece(dstSq);
+
     if (m.type() == MT::PROMOTION)
     {
         assert(relative_rank(ac, orgSq) == RANK_7);
@@ -1219,12 +1217,14 @@ void Position::undo_move(Move m) noexcept {
         assert(movedPc == promoted_pc());
 
         remove(dstSq);
-        movedPc = make_piece(ac, PAWN);
-        put(dstSq, movedPc);
-    }
 
+        movedPc = make_piece(ac, PAWN);
+
+        put(orgSq, movedPc);
+    }
     // Move back the piece
-    move(dstSq, orgSq);
+    else
+        move(dstSq, orgSq);
 
     if (capturedPc != Piece::NO_PIECE)
     {
@@ -1553,18 +1553,15 @@ Key Position::move_key(Move m) const noexcept {
       Zobrist::piece_square(ac, movedPt, orgSq)
       ^ Zobrist::piece_square(ac,  //
                               m.type() != MT::PROMOTION ? movedPt : m.promotion_type(),
-                              m.type() != MT::CASTLING ? dstSq : king_castle_sq(orgSq, dstSq));
-    if (CastlingRights cr;
-        has_castling_rights()
-        && (cr = castling_rights_mask(orgSq, dstSq)) != CastlingRights::NO_CASTLING)
-        moveKey ^= Zobrist::castling(castling_rights())  //
-                 ^ Zobrist::castling(castling_rights() & ~cr);
+                              m.type() != MT::CASTLING ? dstSq : king_castle_sq(orgSq, dstSq))
+      ^ Zobrist::castling(castling_rights())  //
+      ^ Zobrist::castling(castling_rights() & ~castling_rights_mask(orgSq, dstSq));
 
     if (m.type() == MT::CASTLING)
     {
         assert(movedPc == make_piece(ac, KING));
         assert(capturedPc == make_piece(ac, ROOK));
-        // ROOK
+
         return moveKey  //
              ^ Zobrist::piece_square(ac, ROOK, dstSq)
              ^ Zobrist::piece_square(ac, ROOK, rook_castle_sq(orgSq, dstSq))
@@ -1582,7 +1579,7 @@ Key Position::move_key(Move m) const noexcept {
 
     return moveKey  //
          ^ Zobrist::piece_square(~ac, type_of(capturedPc), capturedSq)
-         ^ Zobrist::mr50(capturedPc != Piece::NO_PIECE || movedPt == PAWN ? 0 : 1 + rule50_count());
+         ^ Zobrist::mr50(capturedPc != Piece::NO_PIECE || movedPt == PAWN ? 0 : rule50_count() + 1);
 }
 
 // Tests if the SEE (Static Exchange Evaluation) value of the move
