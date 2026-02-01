@@ -127,15 +127,18 @@ inline constexpr std::size_t ONE_MB = ONE_KB * ONE_KB;
 //inline constexpr std::size_t ONE_PB = ONE_KB * ONE_TB;
 //inline constexpr std::size_t ONE_EB = ONE_KB * ONE_PB;
 
-constexpr std::size_t HEX64_SIZE = 16;
-constexpr std::size_t HEX32_SIZE = 8;
+inline constexpr std::size_t HEX64_SIZE = 16;
+inline constexpr std::size_t HEX32_SIZE = 8;
 
 // Unrolling factors
-constexpr std::size_t UnRoll8 = 8;
-constexpr std::size_t UnRoll4 = 4;
+inline constexpr std::size_t UNROLL_8 = 8;
+inline constexpr std::size_t UNROLL_4 = 4;
 
-constexpr std::uint64_t FNV_BASIS = 0xCBF29CE484222325ULL;
-constexpr std::uint64_t FNV_PRIME = 0x00000100000001B3ULL;
+inline constexpr std::uint64_t FNV_BASIS = 0xCBF29CE484222325ULL;
+inline constexpr std::uint64_t FNV_PRIME = 0x00000100000001B3ULL;
+
+inline constexpr std::string_view EMPTY_STRING{"<empty>"};
+inline constexpr std::string_view WHITE_SPACE{" \t\n\r\f\v"};
 
 // True if and only if the binary is compiled on a little-endian machine
 #if defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__)
@@ -1194,7 +1197,7 @@ inline std::uint64_t hash_bytes(const char* RESTRICT data, std::size_t size) noe
     std::size_t i = 0;
 
     // Unroll 8 bytes at a time
-    for (; i + UnRoll8 <= size; i += UnRoll8)
+    for (; i + UNROLL_8 <= size; i += UNROLL_8)
     {
         h = (h ^ p[i + 0]) * FNV_PRIME;
         h = (h ^ p[i + 1]) * FNV_PRIME;
@@ -1206,7 +1209,7 @@ inline std::uint64_t hash_bytes(const char* RESTRICT data, std::size_t size) noe
         h = (h ^ p[i + 7]) * FNV_PRIME;
     }
     // Unroll 4 bytes at a time
-    for (; i + UnRoll4 <= size; i += UnRoll4)
+    for (; i + UNROLL_4 <= size; i += UNROLL_4)
     {
         h = (h ^ p[i + 0]) * FNV_PRIME;
         h = (h ^ p[i + 1]) * FNV_PRIME;
@@ -1499,16 +1502,18 @@ struct CommandLine final {
     static std::string binary_directory(std::string_view path) noexcept;
     static std::string working_directory() noexcept;
 
-    std::vector<std::string_view> arguments;
+    StringViews arguments;
 };
 
 [[nodiscard]] constexpr char digit_to_char(int digit) noexcept {
     assert(0 <= digit && digit <= 9 && "digit_to_char: non-digit integer");
+
     return 0 <= digit && digit <= 9 ? digit + '0' : '\0';
 }
 
 [[nodiscard]] constexpr int char_to_digit(char ch) noexcept {
     assert('0' <= ch && ch <= '9' && "char_to_digit: non-digit character");
+
     return '0' <= ch && ch <= '9' ? ch - '0' : -1;
 }
 
@@ -1537,9 +1542,6 @@ inline std::string remove_whitespace(std::string str) noexcept {
               str.end());
     return str;
 }
-
-inline constexpr std::string_view EMPTY_STRING{"<empty>"};
-inline constexpr std::string_view WHITE_SPACE{" \t\n\r\f\v"};
 
 [[nodiscard]] constexpr bool starts_with(std::string_view str, std::string_view prefix) noexcept {
     return str.size() >= prefix.size()  //
@@ -1704,14 +1706,20 @@ inline std::string error_to_string(DWORD errorId) noexcept {
     // Ask Win32 to give us the string version of that message ID.
     // The parameters pass in, tell Win32 to create the buffer that holds the message
     // (because don't yet know how long the message string will be).
-    std::size_t len = FormatMessage(
+    std::size_t size = FormatMessage(
       FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
       NULL, errorId, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
       reinterpret_cast<LPSTR>(&buffer),  // must pass pointer to buffer pointer
       0, NULL);
 
+    if (size == 0 || buffer == nullptr)
+    {
+        // FormatMessage failed; return a fallback string
+        return "Unknown error: " + u32_to_string(errorId);
+    }
+
     // Copy the error message into a std::string
-    std::string message(buffer, len);
+    std::string message{buffer, size};
     // Trim trailing CR/LF that many system messages include
     while (!message.empty() && (message.back() == '\r' || message.back() == '\n'))
         message.pop_back();

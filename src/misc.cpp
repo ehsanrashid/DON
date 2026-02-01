@@ -637,11 +637,11 @@ void print() noexcept {
 #endif
 
 CommandLine::CommandLine(int argc, const char* argv[]) noexcept {
-    std::size_t ArgSize = argc;
+    std::size_t argSize = argc;
 
-    arguments.reserve(ArgSize);
+    arguments.reserve(argSize);
 
-    for (std::size_t i = 0; i < ArgSize; ++i)
+    for (std::size_t i = 0; i < argSize; ++i)
         arguments.emplace_back(argv[i]);  // no copy, just view
 }
 
@@ -695,7 +695,7 @@ std::string CommandLine::working_directory() noexcept {
 std::size_t str_to_size_t(std::string_view str) noexcept {
     // Use from_chars (no allocation, fast)
     const char* begin = str.data();
-    const char* end   = str.data() + str.size();
+    const char* end   = begin + str.size();
 
     unsigned long long value = 0;
 

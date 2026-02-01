@@ -185,15 +185,15 @@ void Network<Arch, Transformer>::verify(std::string netFile) const noexcept {
 
     if (netFile != std::string(evalFile.currentName))
     {
-        std::string msg1 =
-          "Network evaluation parameters compatible with the engine must be available.";
-        std::string msg2 = "The network file " + netFile + " was not loaded successfully.";
-        std::string msg3 = "The UCI option EvalFile might need to specify the full path, "
-                           "including the directory name, to the network file.";
-        std::string msg4 = "The default net can be downloaded from: "
-                           "https://tests.stockfishchess.org/api/nn/"
-                         + std::string(evalFile.defaultName);
-        std::string msg5 = "The engine will be terminated now.";
+        std::string msg1{
+          "Network evaluation parameters compatible with the engine must be available."};
+        std::string msg2{"The network file " + netFile + " was not loaded successfully."};
+        std::string msg3{
+          "The UCI option EvalFile might need to specify the full path, including the directory name, to the network file."};
+        std::string msg4{
+          "The default net can be downloaded from: https://tests.stockfishchess.org/api/nn/"
+          + std::string(evalFile.defaultName)};
+        std::string msg5{"The engine will be terminated now."};
 
         std::cerr << "ERROR: " << msg1 << '\n'  //
                   << "ERROR: " << msg2 << '\n'  //
@@ -206,12 +206,12 @@ void Network<Arch, Transformer>::verify(std::string netFile) const noexcept {
 
     constexpr std::size_t TotalSize = sizeof(featureTransformer) + LayerStacks * sizeof(Arch);
 
-    std::string msg = "NNUE evaluation using " + netFile + " ("  //
+    std::string msg{"NNUE evaluation using " + netFile + " ("  //
                     + std::to_string(TotalSize / ONE_MB) + "MiB, ("
                     + std::to_string(featureTransformer.TotalInputDimensions) + ", "
                     + std::to_string(network[0].TransformedFeatureDimensions) + ", "
                     + std::to_string(network[0].FC_0_Outputs) + ", "  //
-                    + std::to_string(network[0].FC_1_Outputs) + ", 1))";
+                    + std::to_string(network[0].FC_1_Outputs) + ", 1))"};
     UCI::print_info_string(msg);
 }
 
