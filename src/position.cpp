@@ -728,12 +728,21 @@ void Position::set_ext_state() noexcept {
 
     Color ac = active_color();
 
+    Square kingSq = square<KING>(~ac);
+
+    Bitboard occupancyBB = pieces_bb();
+
     // clang-format off
-    st->checksBB[PAWN  ] = attacks_bb<PAWN  >(square<KING>(~ac), ~ac);
-    st->checksBB[KNIGHT] = attacks_bb<KNIGHT>(square<KING>(~ac));
-    st->checksBB[BISHOP] = attacks_bb<BISHOP>(square<KING>(~ac), pieces_bb());
-    st->checksBB[ROOK  ] = attacks_bb<ROOK  >(square<KING>(~ac), pieces_bb());
-    st->checksBB[QUEEN ] = checks_bb(BISHOP) | checks_bb(ROOK);
+    StdArray<Bitboard, 2> attacksBB{
+      attacks_bb<BISHOP>(kingSq, occupancyBB),
+      attacks_bb<ROOK  >(kingSq, occupancyBB)
+    };
+
+    st->checksBB[PAWN  ] = attacks_bb<PAWN  >(kingSq, ~ac);
+    st->checksBB[KNIGHT] = attacks_bb<KNIGHT>(kingSq);
+    st->checksBB[BISHOP] = attacksBB[0];
+    st->checksBB[ROOK  ] = attacksBB[1];
+    st->checksBB[QUEEN ] = attacksBB[0] | attacksBB[1];
     st->checksBB[KING  ] = 0;
 
     st->accAttacksBB[NO_PIECE_TYPE] = 0;

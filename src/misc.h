@@ -415,7 +415,7 @@ class OstreamMutexRegistry final {
             ensure_initialized();
 
         // Lock the registry while accessing the map
-        std::scoped_lock lock(mutex);
+        std::lock_guard lock(mutex);
 
         // Creates default nullptr shared_ptr if missing
         auto& mutexPtr = osMutexes[osPtr];
@@ -1121,7 +1121,7 @@ class ConcurrentCache final {
     Value& access_or_build(const Key& key, Args&&... args) noexcept {
         // Fast path: read-only shared lock to access
         {
-            std::shared_lock sharedLock(sharedMutex);
+            std::shared_lock readLock(sharedMutex);
 
             auto itr = storage.find(key);
 
@@ -1130,7 +1130,7 @@ class ConcurrentCache final {
         }
 
         // Slow path: write exclusive lock to insert and construct
-        std::unique_lock lock(sharedMutex);
+        std::unique_lock writeLock(sharedMutex);
 
         // Double-check after acquiring exclusive lock
         auto [itr, inserted] = storage.try_emplace(key);

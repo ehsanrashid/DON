@@ -65,23 +65,23 @@
     #include <cerrno>
     #include <chrono>
     #include <condition_variable>
+    #include <list>
+    #include <mutex>
+    #include <shared_mutex>
+    #include <thread>
+    #include <unordered_map>
     #include <cstdio>
     #include <cstdlib>
     #include <dirent.h>
     #include <fcntl.h>
     #include <inttypes.h>
-    #include <mutex>
     #include <pthread.h>
     #include <semaphore.h>
-    #include <shared_mutex>
     #include <signal.h>
     #include <sys/file.h>
     #include <sys/mman.h>  // mmap, munmap, MAP_*, PROT_*
     #include <sys/stat.h>
-    #include <thread>
     #include <unistd.h>
-    #include <unordered_map>
-    #include <vector>
 
     #if defined(__APPLE__)
         #include <mach-o/dyld.h>
@@ -468,8 +468,9 @@ class BackendSharedMemory final {
 
 class BaseSharedMemory {
    public:
-    BaseSharedMemory(std::string_view shmName) :
+    explicit BaseSharedMemory(std::string_view shmName) noexcept :
         name(shmName) {}
+
     virtual ~BaseSharedMemory() noexcept = default;
 
     virtual void close(bool skipUnmapRegion = false) noexcept = 0;
@@ -479,23 +480,37 @@ class BaseSharedMemory {
 
 // SharedMemoryRegistry
 //
-// A thread-safe global registry for managing shared memory objects (BaseSharedMemory).
-// This class allows registering and unregistering shared memory instances and provides
-// a centralized cleanup mechanism to safely close all registered memory.
+// A thread-safe global registry for tracking live shared memory objects
+// (BaseSharedMemory) without owning them.
+//
+// The registry maintains:
+//  - True insertion order for deterministic iteration and shutdown
+//  - O(1) registration and unregistration via list + hash map
 //
 // Key Features:
-//  - Thread-safe: all operations are protected by a mutex.
-//  - Automatic cleanup: 'clean()' closes all registered objects safely, even if unregistering occurs during cleanup.
-//  - Lightweight: stores only pointers, avoids ownership management; actual memory management is handled by BaseSharedMemory.
-//  - Implementation: classic vector + index map (swap-and-pop) pattern.
+//  - Thread-safe registration and unregistration
+//  - Bounded waiting during cleanup to avoid shutdown deadlocks
+//  - Deterministic cleanup order (preserves insertion order)
+//  - Safe bulk cleanup without iterator invalidation
+//  - Lightweight: stores raw pointers only; lifetime is managed externally
+//
+// Implementation:
+//  - std::list<BaseSharedMemory*> preserves insertion order
+//  - std::unordered_map<BaseSharedMemory*, list::iterator> provides O(1) lookup
+//
+// Concurrency Model:
+//  - shared_mutex protects registry containers (readers/writers)
+//  - mutex + condition_variable coordinate waiting during cleanup
+//  - atomic flag signals cleanup-in-progress state
 //
 // Usage:
-//  - Call 'register_memory()' when a new shared memory object is created.
-//  - Call 'unregister_memory()' when the object is no longer needed.
-//  - Call 'clean()' to close and clean up all registered objects, optionally skipping actual memory unmapping.
+//  - Call 'attempt_register_memory()' after successful shared memory creation
+//  - Call 'unregister_memory()' before destruction
+//  - Call 'clean()' during shutdown to close all registered memories
 //
 // Note:
 //  - The class is static-only; it cannot be instantiated. (Restriction)
+//  - close() implementations may safely call unregister_memory()
 class SharedMemoryRegistry final {
    public:
     // Ensure internal containers are ready
@@ -505,19 +520,21 @@ class SharedMemoryRegistry final {
             constexpr std::size_t ReserveCount = 1024;
             constexpr float       LoadFactor   = 0.75f;
 
-            //DEBUG_LOG("Initializing SharedMemoryRegistry with reserve count " << ReserveCount << " and load factor " << LoadFactor);
+            //DEBUG_LOG("Initializing SharedMemoryRegistry with reserve-count " << ReserveCount << " and load-factor " << LoadFactor);
 
-            orderedSharedMemories.reserve(ReserveCount);
-            sharedMemoryIndices.max_load_factor(LoadFactor);
+            // Prepare the registry: set load factor and pre-allocate buckets.
+            // 'ordered' is a std::list, which does not support reserve().
+            // Memory allocation happens per-node dynamically, so no pre-allocation is needed.
+            registry.max_load_factor(LoadFactor);
             std::size_t bucketCount = std::size_t(ReserveCount / LoadFactor) + 1;
-            sharedMemoryIndices.rehash(bucketCount);
+            registry.rehash(bucketCount);
         });
     }
 
     static std::size_t size() noexcept {
         std::shared_lock sharedLock(sharedMutex);
 
-        return sharedMemoryIndices.size();
+        return registry.size();
     }
 
     static bool cleanup_in_progress() noexcept {
@@ -554,6 +571,7 @@ class SharedMemoryRegistry final {
 
         insert_memory_nolock(sharedMemory);
     }
+
     // Unregister a shared memory object from the global registry.
     // Thread-safe: locks the registry while erasing.
     static bool unregister_memory(BaseSharedMemory* sharedMemory) noexcept {
@@ -561,29 +579,37 @@ class SharedMemoryRegistry final {
 
         return erase_memory_nolock(sharedMemory);
     }
-    // Close and clean all registered shared memory objects.
-    // If skipUnmapRegion is true, the actual memory unmapping can be skipped.
-    // Thread-safe: swaps the registry into a local set to avoid iterator invalidation
-    // if any close() call triggers unregister_memory().
+
+    // Cleans up all registered shared memory objects in the registry.
+    //
+    // Performs a bulk shutdown of all currently registered shared memories.
+    // Preserves true insertion order during cleanup.
+    // Parameters:
+    //  - skipUnmapRegion: if true, the actual unmapping of memory regions
+    //    is skipped (useful during controlled shutdown or testing).
+    // Thread-safety and concurrency:
+    //  - Sets 'cleanUpInProgress' to prevent new registrations during cleanup.
+    //  - Uses a temporary local list to store the registry contents, so that
+    //    'close()' can safely call 'unregister_memory()' without invalidating
+    //    iterators or causing race conditions.
+    //  - Notifies all threads waiting on registration that cleanup is complete.
     static void clean(bool skipUnmapRegion = false) noexcept {
         // Mark cleanup as in-progress so other threads know not to register new memory
         cleanUpInProgress.store(true, std::memory_order_release);
 
-        std::vector<BaseSharedMemory*> copiedOrderedSharedMemories;
+        std::list<BaseSharedMemory*> copiedOrdered;
         {
             std::lock_guard cleanLock(sharedMutex);
 
-            // Efficiently transfer all registered shared memories to a local vector
-            // Use move to avoid copying large vector contents.
-            // This allows us to safely iterate and close memories outside the lock
-            // without invalidating iterators if close() calls unregister_memory().
-            copiedOrderedSharedMemories = std::move(orderedSharedMemories);
-            orderedSharedMemories.clear();
-            sharedMemoryIndices.clear();
+            // Move all registered shared memories into local list to allow safe iteration
+            // and prevent iterator invalidation if close() triggers unregistration.
+            copiedOrdered = std::move(ordered);
+            ordered.clear();
+            registry.clear();
         }
 
-        // Safe to iterate and close memory without holding the lock
-        for (BaseSharedMemory* sharedMemory : copiedOrderedSharedMemories)
+        // Safe to iterate and close memory without holding the lock in true insertion order
+        for (BaseSharedMemory* sharedMemory : copiedOrdered)
             sharedMemory->close(skipUnmapRegion);
 
         // Mark cleanup done and notify waiting registrants that cleanup has finished
@@ -594,13 +620,12 @@ class SharedMemoryRegistry final {
     static void print() noexcept {
         std::shared_lock sharedLock(sharedMutex);
 
-        std::cout << "Registered shared memories in insertion order ("
-                  << orderedSharedMemories.size() << "):\n";
-        for (std::size_t i = 0; i < orderedSharedMemories.size(); ++i)
-            std::cout << "[" << i << "] "
-                      << (orderedSharedMemories[i] != nullptr ? orderedSharedMemories[i]->name
-                                                              : "<NULL>")
-                      << "\n";
+        std::cout << "Registered shared memories (in insertion order) (" << ordered.size()
+                  << "):\n";
+        std::size_t i = 0;
+        for (BaseSharedMemory* sharedMemory : ordered)
+            std::cout << "[" << i++ << "] "
+                      << (sharedMemory != nullptr ? sharedMemory->name : "<NULL>") << "\n";
         std::cout << std::endl;
     }
 
@@ -614,41 +639,30 @@ class SharedMemoryRegistry final {
 
     static bool insert_memory_nolock(BaseSharedMemory* sharedMemory) noexcept {
         // Only insert if not present
-        if (sharedMemoryIndices.find(sharedMemory) != sharedMemoryIndices.end())
+        if (registry.find(sharedMemory) != registry.end())
             return false;
 
         //DEBUG_LOG("Registering shared memory: " << sharedMemory->name);
 
-        std::size_t newIndex = orderedSharedMemories.size();
-        orderedSharedMemories.push_back(sharedMemory);
-        sharedMemoryIndices[sharedMemory] = newIndex;
+        auto newId             = ordered.emplace(ordered.end(), sharedMemory);
+        registry[sharedMemory] = newId;
         return true;
     }
 
     static bool erase_memory_nolock(BaseSharedMemory* sharedMemory) noexcept {
         // Only erase if already present
-        auto itr = sharedMemoryIndices.find(sharedMemory);
-        if (itr == sharedMemoryIndices.end())
+        auto victimReg = registry.find(sharedMemory);
+        if (victimReg == registry.end())
             return false;
 
         //DEBUG_LOG("Unregistering shared memory: " << sharedMemory->name);
 
-        std::size_t victimIndex = itr->second;
+        auto victimId = victimReg->second;
 
-        assert(!orderedSharedMemories.empty());
-        assert(victimIndex < orderedSharedMemories.size());
+        assert(!ordered.empty() && victimId != ordered.end());
 
-        // Perform the swap-and-pop operation (O(1) removal)
-        // Swap the last element into the removed spot to avoid shifting all elements
-        if (victimIndex != orderedSharedMemories.size() - 1)
-        {
-            BaseSharedMemory* lastSharedMemory    = orderedSharedMemories.back();
-            orderedSharedMemories[victimIndex]    = lastSharedMemory;
-            sharedMemoryIndices[lastSharedMemory] = victimIndex;
-        }
-
-        orderedSharedMemories.pop_back();
-        sharedMemoryIndices.erase(itr);
+        ordered.erase(victimId);
+        registry.erase(victimReg);
         return true;
     }
 
@@ -660,9 +674,12 @@ class SharedMemoryRegistry final {
     // For general access to shared memory registry for thread safety
     static inline std::shared_mutex sharedMutex;
     // Preserves insertion order for SharedMemories iteration
-    static inline std::vector<BaseSharedMemory*> orderedSharedMemories;
-    // Fast lookup for registered SharedMemories index
-    static inline std::unordered_map<BaseSharedMemory*, std::size_t> sharedMemoryIndices;
+    static inline std::list<BaseSharedMemory*> ordered;
+    // Fast O(1) lookup for registered SharedMemories
+    static inline std::unordered_map<  //
+      BaseSharedMemory*,               //
+      std::list<BaseSharedMemory*>::iterator>
+      registry;
 };
 
 // SharedMemoryCleanupManager

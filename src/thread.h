@@ -338,12 +338,12 @@ class Threads final {
     auto end() const noexcept { return threads.end(); }
 
     std::size_t size() const noexcept {
-        std::shared_lock sharedLock(sharedMutex);
+        std::shared_lock threadsLock(sharedMutex);
 
         return threads.size();
     }
     bool empty() const noexcept {
-        std::shared_lock sharedLock(sharedMutex);
+        std::shared_lock threadsLock(sharedMutex);
 
         return threads.empty();
     }
@@ -478,7 +478,7 @@ class Threads final {
 
     template<typename Func>
     void for_each_thread(Func&& func, bool includeMain = true) const noexcept {
-        std::shared_lock sharedLock(sharedMutex);
+        std::shared_lock threadsLock(sharedMutex);
 
         for (auto&& th : threads)
         {
@@ -491,7 +491,7 @@ class Threads final {
 
     template<typename T>
     void set(std::atomic<T> Worker::* member, T value) noexcept {
-        std::shared_lock sharedLock(sharedMutex);
+        std::shared_lock threadsLock(sharedMutex);
 
         for (auto&& th : threads)
             (th->worker.get()->*member).store(value, std::memory_order_relaxed);
@@ -500,7 +500,7 @@ class Threads final {
     template<typename T>
     std::uint64_t sum(std::atomic<T> Worker::* member,
                       std::uint64_t            initialSum = 0) const noexcept {
-        std::shared_lock sharedLock(sharedMutex);
+        std::shared_lock threadsLock(sharedMutex);
 
         std::uint64_t sum = initialSum;
         for (auto&& th : threads)
@@ -546,7 +546,7 @@ inline void Threads::destroy() noexcept {
     Thread* mainThread = nullptr;
     // Acquire shared lock once to safely snapshot main thread
     {
-        std::shared_lock sharedLock(sharedMutex);
+        std::shared_lock threadsLock(sharedMutex);
 
         if (!threads.empty())
             mainThread = threads.front().get();
@@ -583,14 +583,14 @@ inline void Threads::init() const noexcept {
 
 // Get pointer to the main thread
 inline Thread* Threads::main_thread() const noexcept {
-    std::shared_lock sharedLock(sharedMutex);
+    std::shared_lock threadsLock(sharedMutex);
 
     return threads.empty() ? nullptr : threads.front().get();
 }
 
 // Get pointer to the main search manager
 inline MainSearchManager* Threads::main_manager() const noexcept {
-    std::shared_lock sharedLock(sharedMutex);
+    std::shared_lock threadsLock(sharedMutex);
 
     if (threads.empty())
         return nullptr;
