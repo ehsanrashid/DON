@@ -338,12 +338,12 @@ class Threads final {
     auto end() const noexcept { return threads.end(); }
 
     std::size_t size() const noexcept {
-        std::shared_lock lock(sharedMutex);
+        std::shared_lock sharedLock(sharedMutex);
 
         return threads.size();
     }
     bool empty() const noexcept {
-        std::shared_lock lock(sharedMutex);
+        std::shared_lock sharedLock(sharedMutex);
 
         return threads.empty();
     }
@@ -478,7 +478,7 @@ class Threads final {
 
     template<typename Func>
     void for_each_thread(Func&& func, bool includeMain = true) const noexcept {
-        std::shared_lock lock(sharedMutex);
+        std::shared_lock sharedLock(sharedMutex);
 
         for (auto&& th : threads)
         {
@@ -491,7 +491,7 @@ class Threads final {
 
     template<typename T>
     void set(std::atomic<T> Worker::* member, T value) noexcept {
-        std::shared_lock lock(sharedMutex);
+        std::shared_lock sharedLock(sharedMutex);
 
         for (auto&& th : threads)
             (th->worker.get()->*member).store(value, std::memory_order_relaxed);
@@ -500,7 +500,7 @@ class Threads final {
     template<typename T>
     std::uint64_t sum(std::atomic<T> Worker::* member,
                       std::uint64_t            initialSum = 0) const noexcept {
-        std::shared_lock lock(sharedMutex);
+        std::shared_lock sharedLock(sharedMutex);
 
         std::uint64_t sum = initialSum;
         for (auto&& th : threads)
@@ -546,7 +546,7 @@ inline void Threads::destroy() noexcept {
     Thread* mainThread = nullptr;
     // Acquire shared lock once to safely snapshot main thread
     {
-        std::shared_lock lock(sharedMutex);
+        std::shared_lock sharedLock(sharedMutex);
 
         if (!threads.empty())
             mainThread = threads.front().get();
@@ -573,10 +573,8 @@ inline void Threads::init() const noexcept {
         return;
 
     // Initialize all threads (including main)
-    for_each_thread([](Thread* th) {
-        th->init();
-        th->wait_finish();
-    });
+    for_each_thread([](Thread* th) noexcept { th->init(); });
+    for_each_thread([](Thread* th) noexcept { th->wait_finish(); });
 
     // Initialize main manager
     if (auto mainManager = main_manager())
@@ -585,14 +583,14 @@ inline void Threads::init() const noexcept {
 
 // Get pointer to the main thread
 inline Thread* Threads::main_thread() const noexcept {
-    std::shared_lock lock(sharedMutex);
+    std::shared_lock sharedLock(sharedMutex);
 
     return threads.empty() ? nullptr : threads.front().get();
 }
 
 // Get pointer to the main search manager
 inline MainSearchManager* Threads::main_manager() const noexcept {
-    std::shared_lock lock(sharedMutex);
+    std::shared_lock sharedLock(sharedMutex);
 
     if (threads.empty())
         return nullptr;
@@ -605,18 +603,18 @@ inline MainSearchManager* Threads::main_manager() const noexcept {
 // Start non-main threads
 // Will be invoked by main thread after it has started searching
 inline void Threads::start_search() const noexcept {
-    for_each_thread([](Thread* th) { th->start_search(); }, false);  // skip main
+    for_each_thread([](Thread* th) noexcept { th->start_search(); }, false);  // skip main
 }
 
 // Wait for non-main threads
 // Will be invoked by main thread after it has finished searching
 inline void Threads::wait_finish() const noexcept {
-    for_each_thread([](Thread* th) { th->wait_finish(); }, false);  // skip main
+    for_each_thread([](Thread* th) noexcept { th->wait_finish(); }, false);  // skip main
 }
 
 // Ensure that all threads have their network replicated
 inline void Threads::ensure_network_replicated() const noexcept {
-    for_each_thread([](Thread* th) { th->ensure_network_replicated(); });
+    for_each_thread([](Thread* th) noexcept { th->ensure_network_replicated(); });
 }
 
 }  // namespace DON

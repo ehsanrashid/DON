@@ -337,7 +337,7 @@ Thread* Threads::best_thread() const noexcept {
     // snap-shot pointers under shared lock
     std::vector<Thread*> snapShot;
     {
-        std::shared_lock lock(sharedMutex);
+        std::shared_lock sharedLock(sharedMutex);
 
         snapShot.reserve(threads.size());
 
@@ -500,7 +500,7 @@ void Threads::start(Position&      pos,
     // snap-shot pointers under shared lock
     std::vector<Thread*> snapShot;
     {
-        std::shared_lock lock(sharedMutex);
+        std::shared_lock sharedLock(sharedMutex);
 
         snapShot.reserve(threads.size());
 
@@ -535,7 +535,7 @@ void Threads::start(Position&      pos,
 void Threads::run_on_thread(std::size_t threadId, JobFunc job) noexcept {
     Thread* thread = nullptr;
     {
-        std::shared_lock lock(sharedMutex);
+        std::shared_lock sharedLock(sharedMutex);
 
         assert(threadId < size());
         thread = threads[threadId].get();
@@ -548,7 +548,7 @@ void Threads::run_on_thread(std::size_t threadId, JobFunc job) noexcept {
 void Threads::wait_on_thread(std::size_t threadId) noexcept {
     Thread* thread = nullptr;
     {
-        std::shared_lock lock(sharedMutex);
+        std::shared_lock sharedLock(sharedMutex);
 
         assert(threadId < size());
         thread = threads[threadId].get();
@@ -561,7 +561,7 @@ void Threads::wait_on_thread(std::size_t threadId) noexcept {
 std::vector<std::size_t> Threads::get_bound_thread_counts() const noexcept {
     std::vector<std::size_t> threadCounts;
     {
-        std::shared_lock lock(sharedMutex);
+        std::shared_lock sharedLock(sharedMutex);
 
         if (!threadBoundNumaNodes.empty())
         {

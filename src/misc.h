@@ -1121,7 +1121,7 @@ class ConcurrentCache final {
     Value& access_or_build(const Key& key, Args&&... args) noexcept {
         // Fast path: read-only shared lock to access
         {
-            std::shared_lock lock(sharedMutex);
+            std::shared_lock sharedLock(sharedMutex);
 
             auto itr = storage.find(key);
 
