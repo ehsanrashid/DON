@@ -23,7 +23,6 @@
 #include <iomanip>
 #include <iterator>
 #include <limits>
-#include <sstream>
 
 #if defined(_WIN32)
     #include <direct.h>
@@ -302,10 +301,9 @@ std::string compiler_info() noexcept {
 }
 
 std::string format_time(const std::chrono::system_clock::time_point& timePoint) noexcept {
-    std::time_t  time = std::chrono::system_clock::to_time_t(timePoint);
-    std::int64_t usec =
-      std::chrono::duration_cast<std::chrono::microseconds>(timePoint.time_since_epoch()).count()
-      % 1000000;
+    // clang-format off
+    std::time_t   time = std::chrono::system_clock::to_time_t(timePoint);
+    std::uint64_t usec = std::chrono::duration_cast<std::chrono::microseconds>(timePoint.time_since_epoch()).count() % 1000000;
 
     std::tm tm{};
 #if defined(_WIN32)  // Windows
@@ -317,10 +315,15 @@ std::string format_time(const std::chrono::system_clock::time_point& timePoint) 
     tm = *std::localtime(&time);
 #endif
 
-    std::ostringstream oss{};
-    oss << std::put_time(&tm, "%Y.%m.%d-%H:%M:%S") << '.'  //
-        << std::setfill('0') << std::setw(6) << usec;
-    return oss.str();
+    StdArray<char, 32> buffer{};
+
+    std::size_t writtenSize;
+    // Format the YYYY.MM.DD-HH:MM:SS part
+    writtenSize = std::strftime(buffer.data(), buffer.size(), "%Y.%m.%d-%H:%M:%S", &tm);
+    // Append microseconds safely
+    writtenSize += std::snprintf(buffer.data() + writtenSize, buffer.size() - writtenSize, ".%06llu", usec);
+    // clang-format on
+    return std::string{buffer.data(), std::min(writtenSize, buffer.size() - 1)};
 }
 
 #if !defined(NDEBUG)

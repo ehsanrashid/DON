@@ -20,10 +20,7 @@
 #include <cassert>
 #include <cmath>
 #include <cstdlib>
-#include <iomanip>
-#include <iostream>
 #include <memory>
-#include <sstream>
 #include <utility>
 
 #include "nnue/accumulator.h"
@@ -111,26 +108,34 @@ std::string trace(Position& pos, const NNUE::Networks& networks) noexcept {
     auto accStack  = std::make_unique<NNUE::AccumulatorStack>();
     auto accCaches = std::make_unique<NNUE::AccumulatorCaches>(networks);
 
-    std::ostringstream oss{};
+    auto fmt = [](double value) noexcept -> std::string {
+        StdArray<char, 8> buffer{};
+        std::snprintf(buffer.data(), buffer.size(), "%+01.2f", value);
+        return std::string{buffer.data(), buffer.size() - 1};
+    };
 
-    oss << std::showpoint << std::noshowpos << std::fixed << std::setprecision(2);
-    oss << '\n' << NNUE::trace(pos, networks, *accCaches) << '\n';
+    std::string output;
+    output.reserve(3072);
 
-    oss << std::showpoint << std::showpos << std::fixed << std::setprecision(2);
+    output = NNUE::trace(pos, networks, *accCaches) + "\n";
 
     auto netOut = networks.big.evaluate(pos, *accStack, accCaches->big);
 
     Value v;
+
     v = netOut.psqt + netOut.positional;
     v = pos.active_color() == WHITE ? +v : -v;
-    oss << "NNUE evaluation      : " << 0.01 * UCI::to_cp(v, pos) << " (white side)\n";
+
+    output += "NNUE evaluation      : " + fmt(0.01 * UCI::to_cp(v, pos))  //
+            + " (white side)\n";
 
     v = evaluate(pos, networks, *accStack, *accCaches);
     v = pos.active_color() == WHITE ? +v : -v;
-    oss << "Final evaluation     : " << 0.01 * UCI::to_cp(v, pos) << " (white side)";
-    oss << " [with scaled NNUE, ...]\n";
 
-    return oss.str();
+    output += "Final evaluation     : " + fmt(0.01 * UCI::to_cp(v, pos))  //
+            + " (white side) [with scaled NNUE, ...]\n";
+
+    return output;
 }
 
 }  // namespace DON::Evaluate
