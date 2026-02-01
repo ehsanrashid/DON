@@ -1195,13 +1195,18 @@ class SharedMemory final: public BaseSharedMemory {
     SharedMemory(const SharedMemory&)            = delete;
     SharedMemory& operator=(const SharedMemory&) = delete;
 
-    SharedMemory(SharedMemory&& sharedMemory) noexcept { move_with_registry(sharedMemory); }
+    SharedMemory(SharedMemory&& sharedMemory) noexcept :
+        BaseSharedMemory(sharedMemory.name) {
+        move_with_registry(sharedMemory);
+    }
     SharedMemory& operator=(SharedMemory&& sharedMemory) noexcept {
         if (this == &sharedMemory)
             return *this;
 
         unregister_close();
 
+        // Move-assign the base class
+        name = sharedMemory.name;
         move_with_registry(sharedMemory);
 
         return *this;
@@ -1439,7 +1444,6 @@ class SharedMemory final: public BaseSharedMemory {
         //assert(unregistered && "SharedMemory not registered");
 
         // 2. Move members
-        name         = std::move(sharedMemory.name);
         fd           = sharedMemory.fd;
         mappedPtr    = sharedMemory.mappedPtr;
         dataPtr      = sharedMemory.dataPtr;
