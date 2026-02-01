@@ -468,7 +468,7 @@ class BackendSharedMemory final {
 
 class BaseSharedMemory {
    public:
-    BaseSharedMemory(const std::string& shmName) :
+    BaseSharedMemory(std::string_view shmName) :
         name(shmName) {}
     virtual ~BaseSharedMemory() noexcept = default;
 
