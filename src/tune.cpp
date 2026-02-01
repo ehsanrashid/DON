@@ -20,7 +20,6 @@
 #include <algorithm>
 #include <iostream>
 #include <optional>
-#include <sstream>
 #include <unordered_map>
 
 #include "option.h"
@@ -55,8 +54,7 @@ std::string Tune::next(std::string& names, bool pop) noexcept {
         if (pop)
             names.erase(0, 1 + token.size());
 
-        std::istringstream iss{token};
-        name += (iss >> token, token);  // Remove trailing whitespace
+        name += rtrim(token);  // Remove trailing whitespace
 
     } while (std::count(name.begin(), name.end(), '(') - std::count(name.begin(), name.end(), ')'));
 

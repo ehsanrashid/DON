@@ -98,7 +98,7 @@ inline void transform_affine_non_ssse3(
 
         for (IndexType j = 0; j < ChunkCount; ++j)
         {
-            int16x8_t product = vmull_s8(inputVector[j * 2], row[j * 2]);
+            int16x8_t product = vmull_s8(inputVector[j * 2 + 0], row[j * 2 + 0]);
             product           = vmlal_s8(product, inputVector[j * 2 + 1], row[j * 2 + 1]);
             sum               = vpadalq_s16(sum, product);
         }
