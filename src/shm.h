@@ -1934,9 +1934,9 @@ struct SystemWideSharedMemory final {
 
         // snprintf returns the number of chars that would have been written (excluding NUL)
         int writtenSize = std::snprintf(buffer.data(), buffer.size(),
-                                        "%016" PRIX64 "$"  // valueHash
-                                        "%016" PRIX64 "$"  // executableHash
-                                        "%016" PRIX64,     // discriminator
+                                        "%016" PRIX64 "$"  //
+                                        "%016" PRIX64 "$"  //
+                                        "%016" PRIX64,     //
                                         valueHash, executableHash, discriminator);
 
         std::string hashName;

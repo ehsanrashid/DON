@@ -26,9 +26,7 @@
 #include <fstream>
 #include <initializer_list>
 #include <iostream>
-#include <sstream>
 #include <string>
-#include <sys/stat.h>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -57,7 +55,8 @@
     #include <cerrno>
     #include <fcntl.h>
     #include <sys/mman.h>  // mmap, munmap, MAP_*, PROT_*
-    #include <unistd.h>    // IWYU pragma: keep
+    #include <sys/stat.h>
+    #include <unistd.h>  // IWYU pragma: keep
 #endif
 
 #include "../bitboard.h"
@@ -261,15 +260,18 @@ class TBPaths final {
 
         Paths.clear();
 
-        if (!paths.empty())
+        std::size_t beg = 0;
+
+        while (beg < paths.size())
         {
-            std::istringstream iss{std::string{paths}};
+            std::size_t end = paths.find(PathSeparator, beg);
+            if (end == std::string_view::npos)
+                end = paths.size();
 
-            std::string path;
+            if (beg < end)
+                Paths.emplace_back(paths.substr(beg, end - beg));
 
-            while (std::getline(iss, path, PathSeparator))
-                if (!path.empty())
-                    Paths.emplace_back(path);
+            beg = end + 1;
         }
 
         return !Paths.empty();
