@@ -228,7 +228,7 @@ void Threads::set(const NumaConfig&                       numaConfig,
 
     {
         // protect mutation of threadBoundNumaNodes
-        std::unique_lock threadsLock(sharedMutex);
+        std::lock_guard writeLock(sharedMutex);
 
         threadBoundNumaNodes = threadBindable
                                ? numaConfig.distribute_threads_among_numa_nodes(threadCount)
@@ -295,7 +295,7 @@ void Threads::set(const NumaConfig&                       numaConfig,
         std::size_t numaIdx;
         std::size_t numaThreadCnt;
         {
-            std::unique_lock threadsLock(sharedMutex);
+            std::lock_guard writeLock(sharedMutex);
 
             numaIdx       = numaIds[numaId]++;
             numaThreadCnt = numaThreadCounts[numaId];
@@ -316,7 +316,7 @@ void Threads::set(const NumaConfig&                       numaConfig,
             ThreadToNumaNodeBinder nodeBinder(numaId, numaConfigPtr);
 
             // mutate threads under unique lock to avoid races
-            std::unique_lock threadsLock(sharedMutex);
+            std::lock_guard writeLock(sharedMutex);
 
             threads.emplace_back(
               std::make_unique<Thread>(threadId, threadCount, numaIdx, numaThreadCnt, nodeBinder,
@@ -337,7 +337,7 @@ Thread* Threads::best_thread() const noexcept {
     // snap-shot pointers under shared lock
     std::vector<Thread*> snapShot;
     {
-        std::shared_lock threadsLock(sharedMutex);
+        std::shared_lock readLock(sharedMutex);
 
         snapShot.reserve(threads.size());
 
@@ -500,7 +500,7 @@ void Threads::start(Position&      pos,
     // snap-shot pointers under shared lock
     std::vector<Thread*> snapShot;
     {
-        std::shared_lock threadsLock(sharedMutex);
+        std::shared_lock readLock(sharedMutex);
 
         snapShot.reserve(threads.size());
 
@@ -535,7 +535,7 @@ void Threads::start(Position&      pos,
 void Threads::run_on_thread(std::size_t threadId, JobFunc job) noexcept {
     Thread* thread = nullptr;
     {
-        std::shared_lock threadsLock(sharedMutex);
+        std::shared_lock readLock(sharedMutex);
 
         assert(threadId < size());
         thread = threads[threadId].get();
@@ -548,7 +548,7 @@ void Threads::run_on_thread(std::size_t threadId, JobFunc job) noexcept {
 void Threads::wait_on_thread(std::size_t threadId) noexcept {
     Thread* thread = nullptr;
     {
-        std::shared_lock threadsLock(sharedMutex);
+        std::shared_lock readLock(sharedMutex);
 
         assert(threadId < size());
         thread = threads[threadId].get();
@@ -561,7 +561,7 @@ void Threads::wait_on_thread(std::size_t threadId) noexcept {
 std::vector<std::size_t> Threads::get_bound_thread_counts() const noexcept {
     std::vector<std::size_t> threadCounts;
     {
-        std::shared_lock threadsLock(sharedMutex);
+        std::shared_lock readLock(sharedMutex);
 
         if (!threadBoundNumaNodes.empty())
         {
