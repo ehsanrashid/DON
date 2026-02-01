@@ -33,7 +33,7 @@ constexpr std::size_t INSERTION_SORT_THRESHOLD = 52;
 // Threshold for considering a move "good enough" to be sorted to the front
 constexpr std::int32_t GOOD_QUIET_THRESHOLD = -14000;
 
-ALWAYS_INLINE bool always_true() noexcept { return true; }
+ALWAYS_INLINE constexpr bool always_true() noexcept { return true; }
 
 // Unrolled upper_bound implementation for finding the insertion point
 template<typename Iterator, typename T, typename Compare>
