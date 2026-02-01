@@ -295,11 +295,9 @@ class TBFile final {
    public:
     explicit TBFile(std::string_view file) noexcept {
 
-        filename.clear();
-
         for (const auto& dir : TBPaths::get())
         {
-            std::string fn = (dir / file).string();  // path concatenation
+            std::string fn{(dir / file).string()};  // path concatenation
 
             if (std::ifstream{fn, std::ios::binary}.is_open())
             {
@@ -310,20 +308,21 @@ class TBFile final {
     }
 
     TBFile(std::string_view base, std::string_view ext) noexcept :
-        TBFile(std::filesystem::path(base).replace_extension(ext).string()) {}
+        TBFile{std::filesystem::path(base).replace_extension(ext).string()} {}
 
     std::string_view file_name() const noexcept { return filename; }
 
     bool exists() const noexcept { return !file_name().empty(); }
 
    private:
-    std::string filename;
+    std::string filename{};
 };
 
 // PairsData contains low-level indexing information to access TB data.
 // There are 8, 4, or 2 PairsData records for each TBTable, according to the type
 // of table and if positions have pawns or not. It is populated at first access.
 struct PairsData final {
+   public:
     std::uint8_t   flags;        // Table flags, see enum TBFlag
     std::uint8_t   maxSymLen;    // Maximum length in bits of the Huffman symbols
     std::uint8_t   minSymLen;    // Minimum length in bits of the Huffman symbols
@@ -353,15 +352,16 @@ struct PairsData final {
 };
 
 struct TableData final {
-    Key          key[COLOR_NB];
-    std::uint8_t pieceCount;
-    bool         hasPawns;
-    bool         hasUniquePieces;
-    std::uint8_t pawnCount[COLOR_NB];
+   public:
+    StdArray<Key, COLOR_NB>          key;
+    StdArray<std::uint8_t, COLOR_NB> pawnCount;
+    std::uint8_t                     pieceCount;
+    bool                             hasPawns;
+    bool                             hasUniquePieces;
 };
 
 TableData make_table_data(std::string_view code) noexcept {
-    TableData tableData;
+    TableData tableData{};
 
     State    st;
     Position pos;
