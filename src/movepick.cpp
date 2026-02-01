@@ -33,6 +33,8 @@ constexpr std::size_t INSERTION_SORT_THRESHOLD = 52;
 // Threshold for considering a move "good enough" to be sorted to the front
 constexpr std::int32_t GOOD_QUIET_THRESHOLD = -14000;
 
+ALWAYS_INLINE constexpr bool always_true() noexcept { return true; }
+
 // Unrolled upper_bound implementation for finding the insertion point
 template<typename Iterator, typename T, typename Compare>
 Iterator upper_bound_unrolled(Iterator RESTRICT beg,
@@ -368,6 +370,18 @@ bool MovePicker::select(Predicate&& pred) noexcept {
     return false;
 }
 
+ALWAYS_INLINE bool MovePicker::good_capture_or_swap() noexcept {
+    if (pos.see(*cur) >= -cur->value / 18)
+        return true;
+    // Store bad captures
+    std::iter_swap(endBadCapture++, cur);
+    return false;
+}
+
+ALWAYS_INLINE bool MovePicker::above_threshold_capture() const noexcept {
+    return pos.see(*cur) >= threshold;
+}
+
 // Most important method of the MovePicker class.
 // It emits a new legal move every time it is called until there are no more moves left,
 // picking the move with the highest score from a list of generated moves.
@@ -390,21 +404,16 @@ STAGE_SWITCH:
         }
         else
         {
-            init_stage<GenType::ENC_CAPTURE>();
+            if (curStage == Stage::ENC_GOOD_CAPTURE)
+                endBadCapture = moves.data();
 
-            endBadCapture = cur;
+            init_stage<GenType::ENC_CAPTURE>();
         }
 
         goto STAGE_SWITCH;
 
     case Stage::ENC_GOOD_CAPTURE :
-        if (select([&]() {
-                if (pos.see(*cur) >= -cur->value / 18)
-                    return true;
-                // Store bad captures
-                std::iter_swap(endBadCapture++, cur);
-                return false;
-            }))
+        if (select([this]() noexcept -> bool { return good_capture_or_swap(); }))
             return move();
 
         if (!skipQuiets)
@@ -444,7 +453,7 @@ STAGE_SWITCH:
         [[fallthrough]];
 
     case Stage::ENC_BAD_CAPTURE :
-        if (select([]() { return true; }))
+        if (select(always_true))
             return move();
 
         if (!skipQuiets)
@@ -460,13 +469,13 @@ STAGE_SWITCH:
         [[fallthrough]];
 
     case Stage::ENC_BAD_QUIET :
-        if (!skipQuiets && select([]() { return true; }))
+        if (!skipQuiets && select(always_true))
             return move();
 
         return Move::None;
 
     case Stage::EVA_CAPTURE :
-        if (select([]() { return true; }))
+        if (select(always_true))
             return move();
         {
             MoveList<GenType::EVA_QUIET> moveList(pos);
@@ -481,13 +490,13 @@ STAGE_SWITCH:
 
     case Stage::EVA_QUIET :
     case Stage::QS_CAPTURE :
-        if (select([]() { return true; }))
+        if (select(always_true))
             return move();
 
         return Move::None;
 
     case Stage::PROBCUT :
-        if (select([&]() { return pos.see(*cur) >= threshold; }))
+        if (select([this]() noexcept -> bool { return above_threshold_capture(); }))
             return move();
 
         return Move::None;

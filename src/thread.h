@@ -338,24 +338,24 @@ class Threads final {
     auto end() const noexcept { return threads.end(); }
 
     std::size_t size() const noexcept {
-        std::shared_lock sharedLock(sharedMutex);
+        std::shared_lock readLock(sharedMutex);
 
         return threads.size();
     }
     bool empty() const noexcept {
-        std::shared_lock sharedLock(sharedMutex);
+        std::shared_lock readLock(sharedMutex);
 
         return threads.empty();
     }
 
     void reserve(std::size_t threadCount) noexcept {
-        std::unique_lock lock(sharedMutex);
+        std::lock_guard writeLock(sharedMutex);
 
         threads.reserve(threadCount);
     }
 
     void clear() noexcept {
-        std::unique_lock lock(sharedMutex);
+        std::lock_guard writeLock(sharedMutex);
 
         threads.clear();
     }
@@ -456,7 +456,7 @@ class Threads final {
 
 
     void notify_main_manager() const noexcept {
-        std::shared_lock threadsLock(sharedMutex);
+        std::shared_lock readLock(sharedMutex);
 
         assert(!threads.empty());
 
@@ -471,14 +471,14 @@ class Threads final {
         // Try to acquire the main manager mutex to ensure the waiting thread
         // observes the updated state before it wakes.
         // If locking fails still notify — notify_one() is allowed without holding the lock.
-        std::unique_lock lock(mainManager->mutex, std::try_to_lock);
+        std::unique_lock writeLock(mainManager->mutex, std::try_to_lock);
         // Safe to call even if mutex not locked
         mainManager->condVar.notify_one();
     }
 
     template<typename Func>
     void for_each_thread(Func&& func, bool includeMain = true) const noexcept {
-        std::shared_lock sharedLock(sharedMutex);
+        std::shared_lock readLock(sharedMutex);
 
         for (auto&& th : threads)
         {
@@ -491,7 +491,7 @@ class Threads final {
 
     template<typename T>
     void set(std::atomic<T> Worker::* member, T value) noexcept {
-        std::shared_lock sharedLock(sharedMutex);
+        std::shared_lock readLock(sharedMutex);
 
         for (auto&& th : threads)
             (th->worker.get()->*member).store(value, std::memory_order_relaxed);
@@ -500,7 +500,7 @@ class Threads final {
     template<typename T>
     std::uint64_t sum(std::atomic<T> Worker::* member,
                       std::uint64_t            initialSum = 0) const noexcept {
-        std::shared_lock sharedLock(sharedMutex);
+        std::shared_lock readLock(sharedMutex);
 
         std::uint64_t sum = initialSum;
         for (auto&& th : threads)
@@ -546,7 +546,7 @@ inline void Threads::destroy() noexcept {
     Thread* mainThread = nullptr;
     // Acquire shared lock once to safely snapshot main thread
     {
-        std::shared_lock sharedLock(sharedMutex);
+        std::shared_lock readLock(sharedMutex);
 
         if (!threads.empty())
             mainThread = threads.front().get();
@@ -561,7 +561,7 @@ inline void Threads::destroy() noexcept {
     }
 
     // Clear threads and thread binding nodes
-    std::unique_lock lock(sharedMutex);
+    std::lock_guard writeLock(sharedMutex);
 
     threads.clear();
     threadBoundNumaNodes.clear();
@@ -583,14 +583,14 @@ inline void Threads::init() const noexcept {
 
 // Get pointer to the main thread
 inline Thread* Threads::main_thread() const noexcept {
-    std::shared_lock sharedLock(sharedMutex);
+    std::shared_lock readLock(sharedMutex);
 
     return threads.empty() ? nullptr : threads.front().get();
 }
 
 // Get pointer to the main search manager
 inline MainSearchManager* Threads::main_manager() const noexcept {
-    std::shared_lock sharedLock(sharedMutex);
+    std::shared_lock readLock(sharedMutex);
 
     if (threads.empty())
         return nullptr;
