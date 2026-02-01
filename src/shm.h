@@ -73,13 +73,14 @@
     #include <mutex>
     #include <pthread.h>
     #include <semaphore.h>
+    #include <shared_mutex>
     #include <signal.h>
     #include <sys/file.h>
     #include <sys/mman.h>  // mmap, munmap, MAP_*, PROT_*
     #include <sys/stat.h>
     #include <thread>
     #include <unistd.h>
-    #include <unordered_set>
+    #include <unordered_map>
     #include <vector>
 
     #if defined(__APPLE__)
@@ -502,16 +503,16 @@ class SharedMemoryRegistry final {
             //DEBUG_LOG("Initializing SharedMemoryRegistry with reserve count " << ReserveCount << " and load factor " << LoadFactor);
 
             orderedSharedMemories.reserve(ReserveCount);
-            registeredSharedMemories.max_load_factor(LoadFactor);
+            sharedMemoryIndices.max_load_factor(LoadFactor);
             std::size_t bucketCount = std::size_t(ReserveCount / LoadFactor) + 1;
-            registeredSharedMemories.rehash(bucketCount);
+            sharedMemoryIndices.rehash(bucketCount);
         });
     }
 
     static std::size_t size() noexcept {
-        std::lock_guard lock(mutex);
+        std::shared_lock sharedLock(sharedMutex);
 
-        return orderedSharedMemories.size();
+        return sharedMemoryIndices.size();
     }
 
     static bool cleanup_in_progress() noexcept {
@@ -523,31 +524,35 @@ class SharedMemoryRegistry final {
         // Bounded wait for cleanup to finish
         constexpr auto MaxWaitTime = std::chrono::milliseconds(200);
 
+        if (!callOnce.initialized())
+            ensure_initialized();
+
         if (sharedMemory == nullptr)
         {
             //DEBUG_LOG("Attempted to register NULL shared memory.");
             return;
         }
 
-        if (!callOnce.initialized())
-            ensure_initialized();
-
-        std::unique_lock lock(mutex);
+        std::unique_lock condLock(mutex);
 
         // Wait for cleanup to finish if in progress (bounded)
-        if (!condVar.wait_for(lock, MaxWaitTime, []() noexcept { return !cleanup_in_progress(); }))
+        if (!condVar.wait_for(condLock, MaxWaitTime,
+                              []() noexcept { return !cleanup_in_progress(); }))
         {
             //DEBUG_LOG("Timeout waiting for SharedMemoryRegistry cleanup to finish : " << sharedMemory);
             // Timeout - silently fail to register (acceptable during shutdown)
             return;
         }
-        // Now safe try to insert
+
+        // Safe insertion under sharedMutex
+        std::lock_guard insertLock(sharedMutex);
+
         insert_memory_nolock(sharedMemory);
     }
     // Unregister a shared memory object from the global registry.
     // Thread-safe: locks the registry while erasing.
     static bool unregister_memory(BaseSharedMemory* sharedMemory) noexcept {
-        std::lock_guard lock(mutex);
+        std::lock_guard eraseLock(sharedMutex);
 
         return erase_memory_nolock(sharedMemory);
     }
@@ -556,20 +561,20 @@ class SharedMemoryRegistry final {
     // Thread-safe: swaps the registry into a local set to avoid iterator invalidation
     // if any close() call triggers unregister_memory().
     static void clean(bool skipUnmapRegion = false) noexcept {
+        // Mark cleanup as in-progress so other threads know not to register new memory
+        cleanUpInProgress.store(true, std::memory_order_release);
+
         std::vector<BaseSharedMemory*> copiedOrderedSharedMemories;
-
         {
-            std::lock_guard lock(mutex);
-
-            // Mark cleanup as in-progress so other threads know not to register new memory
-            cleanUpInProgress.store(true, std::memory_order_release);
+            std::lock_guard cleanLock(sharedMutex);
 
             // Efficiently transfer all registered shared memories to a local vector
             // Use move to avoid copying large vector contents.
             // This allows us to safely iterate and close memories outside the lock
             // without invalidating iterators if close() calls unregister_memory().
             copiedOrderedSharedMemories = std::move(orderedSharedMemories);
-            registeredSharedMemories.clear();
+            orderedSharedMemories.clear();
+            sharedMemoryIndices.clear();
         }
 
         // Safe to iterate and close memory without holding the lock
@@ -579,6 +584,15 @@ class SharedMemoryRegistry final {
         // Mark cleanup done and notify waiting registrants that cleanup has finished
         cleanUpInProgress.store(false, std::memory_order_release);
         condVar.notify_all();
+    }
+
+    static void print() noexcept {
+        std::shared_lock sharedLock(sharedMutex);  // shared lock for reading
+
+        std::cout << "Registered shared memories (" << orderedSharedMemories.size() << "):\n";
+        for (auto* sharedMemory : orderedSharedMemories)
+            std::cout << "  " << sharedMemory << "\n";
+        std::cout << std::endl;
     }
 
    private:
@@ -591,46 +605,54 @@ class SharedMemoryRegistry final {
 
     static bool insert_memory_nolock(BaseSharedMemory* sharedMemory) noexcept {
         // If already registered, return false
-        if (registeredSharedMemories.find(sharedMemory) != registeredSharedMemories.end())
+        if (sharedMemoryIndices.find(sharedMemory) != sharedMemoryIndices.end())
             return false;
 
         //DEBUG_LOG("Registering shared memory: " << sharedMemory);
-
+        std::size_t newIndex = orderedSharedMemories.size();
         orderedSharedMemories.push_back(sharedMemory);
-        registeredSharedMemories.insert(sharedMemory);
+        sharedMemoryIndices[sharedMemory] = newIndex;
         return true;
     }
 
     static bool erase_memory_nolock(BaseSharedMemory* sharedMemory) noexcept {
         // Only erase if already present
-        auto itr = registeredSharedMemories.find(sharedMemory);
-        if (itr == registeredSharedMemories.end())
+        auto itr = sharedMemoryIndices.find(sharedMemory);
+        if (itr == sharedMemoryIndices.end())
             return false;
 
         //DEBUG_LOG("Unregistering shared memory: " << sharedMemory);
 
-        // Find in vector (unfortunately O(n) without index map)
-        auto vecItr =
-          std::find(orderedSharedMemories.begin(), orderedSharedMemories.end(), sharedMemory);
-        if (vecItr != orderedSharedMemories.end())
+        std::size_t victimIndex = itr->second;
+
+        assert(!orderedSharedMemories.empty());
+        assert(victimIndex < orderedSharedMemories.size());
+
+        // Perform the swap-and-pop operation (O(1) removal)
+        // Swap the last element into the removed spot to avoid shifting all elements
+        if (victimIndex != orderedSharedMemories.size() - 1)
         {
-            // Swap-and-pop: Swap with last and pop (O(1) removal)
-            *vecItr = orderedSharedMemories.back();
-            orderedSharedMemories.pop_back();
+            BaseSharedMemory* lastSharedMemory    = orderedSharedMemories.back();
+            orderedSharedMemories[victimIndex]    = lastSharedMemory;
+            sharedMemoryIndices[lastSharedMemory] = victimIndex;
         }
 
-        registeredSharedMemories.erase(itr);
+        orderedSharedMemories.pop_back();
+        sharedMemoryIndices.erase(itr);
         return true;
     }
 
     static inline CallOnce          callOnce;
     static inline std::atomic<bool> cleanUpInProgress{false};
-    // Protects access to SharedMemories for thread safety
+    // For condition_variable wait
     static inline std::mutex              mutex;
     static inline std::condition_variable condVar;
+    // For general access to shared memory registry for thread safety
+    static inline std::shared_mutex sharedMutex;
     // Preserves insertion order for SharedMemories iteration
-    static inline std::vector<BaseSharedMemory*>        orderedSharedMemories;
-    static inline std::unordered_set<BaseSharedMemory*> registeredSharedMemories;
+    static inline std::vector<BaseSharedMemory*> orderedSharedMemories;
+    // Fast lookup for registered SharedMemories index
+    static inline std::unordered_map<BaseSharedMemory*, std::size_t> sharedMemoryIndices;
 };
 
 // SharedMemoryCleanupManager
