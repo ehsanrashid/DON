@@ -65,7 +65,7 @@ inline void transform_affine_non_ssse3(
 
     for (IndexType i = 0; i < OutputDimensions; ++i)
     {
-        IndexType offset = i * PaddedInputDimensions;
+        std::size_t offset = i * PaddedInputDimensions;
 
         #if defined(USE_SSE2)
         __m128i        loSum = _mm_cvtsi32_si128(biases[i]);
