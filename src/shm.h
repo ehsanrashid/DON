@@ -74,7 +74,6 @@
     #include <chrono>
     #include <condition_variable>
     #include <list>
-    #include <optional>
     #include <mutex>
     #include <shared_mutex>
     #include <thread>
@@ -337,7 +336,7 @@ class BackendSharedMemory final {
         case Status::LargePageAllocation :
             return "Shared memory: Failed to allocate large page memory.";
         }
-        return "Shared memory: unknown error";
+        return "Shared memory: unknown error.";
     }
 
    private:
@@ -1834,13 +1833,12 @@ class BackendSharedMemory final {
    public:
     BackendSharedMemory() noexcept = default;
 
-    BackendSharedMemory(std::string_view shmName, const T& value) noexcept {
+    BackendSharedMemory(std::string_view shmName, const T& value) noexcept :
+        shm(shmName) {
         SharedMemoryCleanupManager::ensure_initialized();
 
-        shm.emplace(shmName);
-
-        if (!shm->open_register(value))
-            shm.reset();
+        if (shm.open_register(value))
+            created = true;
     }
 
     BackendSharedMemory(const BackendSharedMemory&) noexcept            = delete;
@@ -1849,10 +1847,10 @@ class BackendSharedMemory final {
     BackendSharedMemory(BackendSharedMemory&& backendShm) noexcept            = default;
     BackendSharedMemory& operator=(BackendSharedMemory&& backendShm) noexcept = default;
 
-    bool is_valid() const noexcept { return shm && shm->is_valid(); }
+    bool is_valid() const noexcept { return created && shm.is_valid(); }
 
     void* get() const noexcept {
-        return is_valid() ? reinterpret_cast<void*>(const_cast<T*>(&shm->get())) : nullptr;
+        return is_valid() ? reinterpret_cast<void*>(const_cast<T*>(&shm.get())) : nullptr;
     }
 
     SharedMemoryAllocationStatus get_status() const noexcept {
@@ -1861,23 +1859,20 @@ class BackendSharedMemory final {
     }
 
     std::string_view get_error_message() const noexcept {
-        if (!shm)
+        if (!created)
             return "Shared memory not created.";
-
-        if (!shm->is_available())
+        if (!shm.is_available())
             return "Shared memory not available.";
-
-        if (!shm->is_open())
+        if (!shm.is_open())
             return "Shared memory is not open.";
-
-        if (!shm->is_initialized())
+        if (!shm.is_initialized())
             return "Shared memory is not initialized.";
-
         return {};
     }
 
    private:
-    std::optional<SharedMemory<T>> shm;
+    SharedMemory<T> shm;
+    bool            created = false;
 };
 
 #endif
