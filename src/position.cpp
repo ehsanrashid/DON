@@ -931,18 +931,13 @@ DirtyBoard Position::do_move(Move m, State& newSt, bool mayCheck, const Worker* 
     db.dts.threateningBB = db.dts.threatenedBB = 0;
     assert(db.dts.dtList.empty());
 
-    st->key ^= Zobrist::turn();
+    st->key ^= Zobrist::turn() ^ Zobrist::enpassant(en_passant_sq());
 
-    if (en_passant_sq() != SQ_NONE)
-    {
-        st->key ^= Zobrist::enpassant(en_passant_sq());
-        reset_en_passant_sq();
-    }
+    reset_en_passant_sq();
 
+    Key    movedKey;
+    bool   capture;
     Square enPassantSq = SQ_NONE;
-
-    Key  movedKey;
-    bool capture;
 
     // If the move is a castling, do some special work
     if (m.type() == MT::CASTLING)
@@ -1186,14 +1181,11 @@ void Position::undo_move(Move m) noexcept {
     Square orgSq = m.org_sq(), dstSq = m.dst_sq();
     assert(empty(orgSq) || m.type() == MT::CASTLING);
 
-    Piece capturedPc = captured_pc();
-    assert(capturedPc == Piece::NO_PIECE || type_of(capturedPc) != KING);
-
     if (m.type() == MT::CASTLING)
     {
         assert((pieces_bb(ac, KING) & king_castle_sq(orgSq, dstSq)) != 0);
         assert((pieces_bb(ac, ROOK) & rook_castle_sq(orgSq, dstSq)) != 0);
-        assert(capturedPc == Piece::NO_PIECE);
+        assert(captured_pc() == Piece::NO_PIECE);
         assert(has_castled(ac));
 
         Square rookOrgSq, rookDstSq;
@@ -1204,6 +1196,9 @@ void Position::undo_move(Move m) noexcept {
     else
     {
     Piece movedPc = piece(dstSq);
+
+    Piece capturedPc = captured_pc();
+    assert(capturedPc == Piece::NO_PIECE || type_of(capturedPc) != KING);
 
     if (m.type() == MT::PROMOTION)
     {
@@ -1264,16 +1259,12 @@ void Position::do_null_move(State& newSt, const Worker* worker) noexcept {
 
     st = &newSt;
 
-    st->key ^= Zobrist::turn();
-
-    if (en_passant_sq() != SQ_NONE)
-    {
-        st->key ^= Zobrist::enpassant(en_passant_sq());
-        reset_en_passant_sq();
-    }
+    st->key ^= Zobrist::turn() ^ Zobrist::enpassant(en_passant_sq());
 
     if (worker != nullptr)
         prefetch(worker->transpositionTable.cluster(key()));
+
+    reset_en_passant_sq();
 
     st->nullPly    = 0;
     st->capturedSq = SQ_NONE;
