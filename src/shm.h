@@ -262,7 +262,9 @@ class BackendSharedMemory final {
         name(shmName),
         status(Status::NotInitialized) {
         // Windows named shared memory names must start with "Local\" or "Global\"
-        name.insert(0, "Local\\");
+        constexpr std::string_view Prefix{"Local\\"};
+        if (name_().size() < Prefix.size() || name_().compare(0, Prefix.size(), Prefix) != 0)
+            name.insert(0, Prefix);
 
         //DEBUG_LOG("Creating shared memory with name: " << name_());
 
@@ -493,7 +495,9 @@ class BaseSharedMemory {
     explicit BaseSharedMemory(std::string_view shmName) noexcept :
         name(shmName) {
         // POSIX named shared memory names must start with slash ('/')
-        name.insert(0, "/");
+        constexpr char Prefix = '/';
+        if (name_().empty() || name_()[0] != Prefix)
+            name.insert(name.begin(), Prefix);
     }
 
     virtual ~BaseSharedMemory() noexcept = default;
