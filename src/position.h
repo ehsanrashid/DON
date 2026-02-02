@@ -97,7 +97,7 @@ struct Zobrist final {
     static Key turn() noexcept { return Turn; }
 
     static Key mr50(std::int16_t rule50Count) noexcept {
-        return int(rule50Count - R50_OFFSET >= 0)
+        return int(rule50Count >= R50_OFFSET)
              * MR50[std::clamp((rule50Count - R50_OFFSET) / R50_FACTOR, 0, int(MR50.size()) - 1)];
     }
 
