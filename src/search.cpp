@@ -365,13 +365,13 @@ void Worker::start_search() noexcept {
     // shouldn't print the best move before the GUI sends a "stop" or "ponderhit" command.
     // Therefore simply wait here until the GUI sends one of those commands.
     {
-        std::unique_lock lock(mainManager->mutex);
+        std::unique_lock condLock(mainManager->mutex);
 
-        // If busy, wait until either:
-        // 1. Threads are stopped, or
-        // 2. No longer in infinite search or pondering
-        mainManager->condVar.wait(lock, [&]() noexcept {
-            return threads.is_stopped() || !(limit.infinite || mainManager->ponder);
+        // Wait until either:
+        // 1. Threads are stopped, OR
+        // 2. Not in infinite search AND Not pondering
+        mainManager->condVar.wait(condLock, [&]() noexcept {
+            return threads.is_stopped() || (!limit.infinite && !mainManager->ponder);
         });
     }
 
