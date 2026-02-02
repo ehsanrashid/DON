@@ -113,18 +113,14 @@ class CuckooTable final {
 
         for (Color c : {WHITE, BLACK})
             for (PieceType pt : PIECE_TYPES)
-            {
-                if (pt == PAWN)
-                    continue;
-
-                for (Square s1 = SQ_A1; s1 < SQ_H8; ++s1)
-                    for (Square s2 = s1 + 1; s2 <= SQ_H8; ++s2)
-                        if ((attacks_bb(s1, pt, 0) & s2) != 0)
-                            insert({Zobrist::piece_square(c, pt, s1)      //
-                                      ^ Zobrist::piece_square(c, pt, s2)  //
-                                      ^ Zobrist::turn(),
-                                    Move{s1, s2}});
-            }
+                if (pt != PAWN)
+                    for (Square s1 = SQ_A1; s1 < SQ_H8; ++s1)
+                        for (Square s2 = s1 + 1; s2 <= SQ_H8; ++s2)
+                            if ((attacks_bb(s1, pt, 0) & s2) != 0)
+                                insert({Zobrist::turn()  //
+                                          ^ Zobrist::piece_square(c, pt, s1)
+                                          ^ Zobrist::piece_square(c, pt, s2),
+                                        Move{s1, s2}});
 
         assert(count == 3668);
     }
