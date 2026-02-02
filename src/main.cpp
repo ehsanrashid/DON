@@ -27,7 +27,7 @@
 
 using namespace DON;
 
-int main(int argc, const char* argv[]) {
+int main(int argc, const char* argv[]) noexcept {
 
     std::cout << engine_info() << std::endl;
 

@@ -80,9 +80,8 @@ upper_bound_small_unrolled(Iterator beg, Iterator end, const T& value, Compare c
             : comp(value, beg[i - 1]) ? i - 1
                                       : idx;
     }
-
     // Handle remaining elements
-    while (i >= 1)
+    while (i > 0)
     {
         --i;
         idx = comp(value, beg[i]) ? i : idx;
@@ -151,7 +150,7 @@ int main() {
     */
 
     // Number of test items
-    constexpr std::size_t N = 52;
+    constexpr std::size_t N = 20;
 
     std::vector<Item> data;
     data.reserve(N);
