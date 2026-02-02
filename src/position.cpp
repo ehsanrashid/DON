@@ -1123,7 +1123,7 @@ DirtyBoard Position::do_move(Move m, State& newSt, bool mayCheck, const Worker* 
                          ? pieces_bb(ac)
                              & ((state()->preSt->checksBB[movedPt] & dstSq)
                                 | slide_attackers_bb(square<KING>(~ac)))
-                         : pieces_bb(ac, ROOK) & state()->preSt->checksBB[ROOK];
+                         : pieces_bb(ac, ROOK) & attacks_bb<ROOK>(square<KING>(~ac), pieces_bb());
 
         assert(popcount(checkers_bb()) <= 2 && (checkers_bb() & square<KING>(ac)) == 0);
     }
