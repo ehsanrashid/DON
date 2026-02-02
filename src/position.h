@@ -91,15 +91,14 @@ struct Zobrist final {
     }
 
     static Key enpassant(Square enPassantSq) noexcept {
-        return enPassantSq != SQ_NONE ? Enpassant[file_of(enPassantSq)] : 0;
+        return int(enPassantSq != SQ_NONE) * Enpassant[file_of(enPassantSq)];
     }
 
     static Key turn() noexcept { return Turn; }
 
     static Key mr50(std::int16_t rule50Count) noexcept {
-        auto idx = rule50Count - R50_OFFSET;
-
-        return idx < 0 ? 0 : MR50[std::min(idx / R50_FACTOR, int(MR50.size()) - 1)];
+        return int(rule50Count - R50_OFFSET >= 0)
+             * MR50[std::clamp((rule50Count - R50_OFFSET) / R50_FACTOR, 0, int(MR50.size()) - 1)];
     }
 
     static constexpr std::size_t PAWN_OFFSET = 8;
