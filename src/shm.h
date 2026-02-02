@@ -264,7 +264,7 @@ class BackendSharedMemory final {
         // Windows named shared memory names must start with "Local\" or "Global\"
         name.insert(0, "Local\\");
 
-        //DEBUG_LOG("Creating shared memory with name: " << name);
+        //DEBUG_LOG("Creating shared memory with name: " << name_());
 
         initialize(value);
     }
@@ -273,13 +273,13 @@ class BackendSharedMemory final {
     BackendSharedMemory& operator=(const BackendSharedMemory&) noexcept = delete;
 
     BackendSharedMemory(BackendSharedMemory&& backendShm) noexcept :
-        name(backendShm.name),
+        name(backendShm.name_()),
         hMapFile(backendShm.hMapFile),
         hMapFileGuard(hMapFile),
         mappedPtr(backendShm.mappedPtr),
         mappedGuard(mappedPtr),
         status(backendShm.status) {
-        //DEBUG_LOG("Moving shared memory, name: " << name);
+        //DEBUG_LOG("Moving shared memory, name: " << name_());
 
         backendShm.hMapFile  = INVALID_HANDLE;
         backendShm.mappedPtr = INVALID_MMAP_PTR;
@@ -291,12 +291,12 @@ class BackendSharedMemory final {
 
         destroy();
 
-        name      = backendShm.name;
+        name      = backendShm.name_();
         hMapFile  = backendShm.hMapFile;
         mappedPtr = backendShm.mappedPtr;
         status    = backendShm.status;
 
-        //DEBUG_LOG("Moving shared memory, name: " << name);
+        //DEBUG_LOG("Moving shared memory, name: " << name_());
 
         backendShm.hMapFile  = INVALID_HANDLE;
         backendShm.mappedPtr = INVALID_MMAP_PTR;
@@ -339,6 +339,8 @@ class BackendSharedMemory final {
         return "Shared memory: unknown error.";
     }
 
+    std::string_view name_() const noexcept { return name; }
+
    private:
     void initialize(const T& value) noexcept {
         constexpr std::size_t TotalSize = sizeof(T) + sizeof(InitSharedState);
@@ -361,7 +363,7 @@ class BackendSharedMemory final {
 
               return CreateFileMapping(INVALID_HANDLE_VALUE, nullptr,
                                        PAGE_READWRITE | SEC_COMMIT | SEC_LARGE_PAGES,  //
-                                       hiTotalSize, loTotalSize, name.c_str());
+                                       hiTotalSize, loTotalSize, name_().data());
           },
           []() { return INVALID_HANDLE; });
 
@@ -371,12 +373,12 @@ class BackendSharedMemory final {
             //DEBUG_LOG("Allocating normal shared memory, size = " << TotalSize << " bytes");
 
             hMapFile = CreateFileMapping(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE,  //
-                                         0, TotalSize, name.c_str());
+                                         0, TotalSize, name_().data());
         }
 
         if (hMapFile == INVALID_HANDLE)
         {
-            //DEBUG_LOG("CreateFileMapping() failed, name = " << name << , error = " << error_to_string(GetLastError()));
+            //DEBUG_LOG("CreateFileMapping() failed, name = " << name_() << , error = " << error_to_string(GetLastError()));
             status = Status::FileMapping;
 
             return;
@@ -386,7 +388,7 @@ class BackendSharedMemory final {
 
         if (mappedPtr == INVALID_MMAP_PTR)
         {
-            //DEBUG_LOG("MapViewOfFile() failed, name = " << name << ", error = " << error_to_string(GetLastError()));
+            //DEBUG_LOG("MapViewOfFile() failed, name = " << name_() << ", error = " << error_to_string(GetLastError()));
             status = Status::MapView;
 
             cleanup();
@@ -394,7 +396,7 @@ class BackendSharedMemory final {
         }
 
         // Use named mutex to ensure only one initializer
-        std::string mutexName{name};
+        std::string mutexName{name_()};
         mutexName += "$mutex";
 
         HANDLE hMutex = CreateMutex(nullptr, FALSE, mutexName.c_str());
@@ -452,12 +454,12 @@ class BackendSharedMemory final {
             return;
         }
 
-        //DEBUG_LOG("Shared memory initialized successfully, name: " << name);
+        //DEBUG_LOG("Shared memory initialized successfully, name: " << name_());
         status = Status::Success;
     }
 
     void cleanup() noexcept {
-        //DEBUG_LOG("Cleaning up shared memory, name: " << name);
+        //DEBUG_LOG("Cleaning up shared memory, name: " << name_());
 
         mappedGuard.close();
 
@@ -465,7 +467,7 @@ class BackendSharedMemory final {
     }
 
     void destroy() noexcept {
-        //DEBUG_LOG("Destroying shared memory, name: " << name);
+        //DEBUG_LOG("Destroying shared memory, name: " << name_());
 
         cleanup();
     }
@@ -489,11 +491,16 @@ class BackendSharedMemory final {
 class BaseSharedMemory {
    public:
     explicit BaseSharedMemory(std::string_view shmName) noexcept :
-        name(shmName) {}
+        name(shmName) {
+        // POSIX named shared memory names must start with slash ('/')
+        name.insert(0, "/");
+    }
 
     virtual ~BaseSharedMemory() noexcept = default;
 
     virtual void close(bool skipUnmapRegion = false) noexcept = 0;
+
+    std::string_view name_() const noexcept { return name; }
 
     std::string name;
 };
@@ -586,7 +593,7 @@ class SharedMemoryRegistry final {
         if (!condVar.wait_for(condLock, MaxWaitTime,
                               []() noexcept { return !cleanup_in_progress(); }))
         {
-            //DEBUG_LOG("Timeout waiting for SharedMemoryRegistry cleanup to finish : " << sharedMemory->name);
+            //DEBUG_LOG("Timeout waiting for SharedMemoryRegistry cleanup to finish : " << sharedMemory->name_());
             // Timeout - silently fail to register (acceptable during shutdown)
             return;
         }
@@ -651,7 +658,7 @@ class SharedMemoryRegistry final {
         std::size_t i = 0;
         for (SharedMemoryPtr sharedMemory : orderedList)
             std::cout << "[" << i++ << "] "
-                      << (sharedMemory != nullptr ? sharedMemory->name : "<NULL>") << "\n";
+                      << (sharedMemory != nullptr ? sharedMemory->name_() : "<NULL>") << "\n";
         std::cout << std::endl;
     }
 
@@ -668,7 +675,7 @@ class SharedMemoryRegistry final {
         if (registryMap.find(sharedMemory) != registryMap.end())
             return false;
 
-        //DEBUG_LOG("Registering shared memory: " << sharedMemory->name);
+        //DEBUG_LOG("Registering shared memory: " << sharedMemory->name_());
 
         auto newId                = orderedList.emplace(orderedList.end(), sharedMemory);
         registryMap[sharedMemory] = newId;
@@ -681,7 +688,7 @@ class SharedMemoryRegistry final {
         if (victimReg == registryMap.end())
             return false;
 
-        //DEBUG_LOG("Unregistering shared memory: " << sharedMemory->name);
+        //DEBUG_LOG("Unregistering shared memory: " << sharedMemory->name_());
 
         auto victimId = victimReg->second;
 
@@ -1225,10 +1232,7 @@ class SharedMemory final: public BaseSharedMemory {
     explicit SharedMemory(std::string_view shmName) noexcept :
         BaseSharedMemory(shmName),
         mappedSize(mapped_size()),
-        sentinelBase(shmName) {
-        // POSIX named shared memory names must start with slash ('/')
-        name.insert(0, "/");
-    }
+        sentinelBase(shmName) {}
 
     ~SharedMemory() noexcept override { unregister_close(); }
 
@@ -1236,7 +1240,7 @@ class SharedMemory final: public BaseSharedMemory {
     SharedMemory& operator=(const SharedMemory&) = delete;
 
     SharedMemory(SharedMemory&& sharedMemory) noexcept :
-        BaseSharedMemory(sharedMemory.name) {
+        BaseSharedMemory(sharedMemory.name_()) {
         move_with_registry(sharedMemory);
     }
     SharedMemory& operator=(SharedMemory&& sharedMemory) noexcept {
@@ -1246,7 +1250,7 @@ class SharedMemory final: public BaseSharedMemory {
         unregister_close();
 
         // Move-assign the base class
-        name = sharedMemory.name;
+        name = sharedMemory.name_();
         move_with_registry(sharedMemory);
 
         return *this;
@@ -1280,12 +1284,12 @@ class SharedMemory final: public BaseSharedMemory {
 
             oflag = O_CREAT | O_EXCL | O_RDWR;
             mode  = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH;
-            fd    = shm_open(name.c_str(), oflag, mode);
+            fd    = shm_open(name_().data(), oflag, mode);
 
             if (fd <= INVALID_FD)
             {
                 oflag = O_RDWR;
-                fd    = shm_open(name.c_str(), oflag, mode);
+                fd    = shm_open(name_().data(), oflag, mode);
 
                 if (fd <= INVALID_FD)
                 {
@@ -1295,7 +1299,7 @@ class SharedMemory final: public BaseSharedMemory {
             }
             else
             {
-                //DEBUG_LOG("Created new shared memory region: " << name);
+                //DEBUG_LOG("Created new shared memory region: " << name_());
                 newCreated = true;
             }
 
@@ -1806,7 +1810,7 @@ class SharedMemory final: public BaseSharedMemory {
             unlock_file();
 
         if (removeRegion)
-            shm_unlink(name.c_str());
+            shm_unlink(name_().data());
 
         fdGuard.close();
 
@@ -1881,8 +1885,8 @@ struct FallbackBackendSharedMemory final {
    public:
     FallbackBackendSharedMemory() noexcept = default;
 
-    FallbackBackendSharedMemory([[maybe_unused]] const std::string& shmName,
-                                const T&                            value) noexcept :
+    FallbackBackendSharedMemory([[maybe_unused]] std::string_view shmName, const T& value) noexcept
+        :
         fallbackObj(make_unique_aligned_large_page<T>(value)) {}
 
     FallbackBackendSharedMemory(const FallbackBackendSharedMemory&) noexcept            = delete;
@@ -1899,8 +1903,8 @@ struct FallbackBackendSharedMemory final {
     void* get() const noexcept { return fallbackObj.get(); }
 
     SharedMemoryAllocationStatus get_status() const noexcept {
-        return fallbackObj == nullptr ? SharedMemoryAllocationStatus::NoAllocation
-                                      : SharedMemoryAllocationStatus::LocalMemory;
+        return fallbackObj != nullptr ? SharedMemoryAllocationStatus::LocalMemory
+                                      : SharedMemoryAllocationStatus::NoAllocation;
     }
 
     std::string_view get_error_message() const noexcept {
