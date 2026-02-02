@@ -340,7 +340,7 @@ dotprod_m128_add_dpbusd_epi32(int32x4_t& acc, int8x16_t a, int8x16_t b) noexcept
 #if defined(USE_NEON)
 
 [[maybe_unused]] inline int neon_m128_reduce_add_epi32(int32x4_t s) noexcept {
-    #if (defined(USE_NEON) && (USE_NEON >= 8))
+    #if defined(USE_NEON) && USE_NEON >= 8
     return vaddvq_s32(s);
     #else
     return s[0] + s[1] + s[2] + s[3];
@@ -353,7 +353,7 @@ dotprod_m128_add_dpbusd_epi32(int32x4_t& acc, int8x16_t a, int8x16_t b) noexcept
 
 #endif
 
-#if (defined(USE_NEON) && (USE_NEON >= 8))
+#if defined(USE_NEON) && USE_NEON >= 8
 [[maybe_unused]] inline void
 neon_m128_add_dpbusd_epi32(int32x4_t& acc, int8x16_t a, int8x16_t b) noexcept {
     int16x8_t product0 = vmull_s8(vget_low_s8(a), vget_low_s8(b));
@@ -368,8 +368,12 @@ neon_m128_add_dpbusd_epi32(int32x4_t& acc, int8x16_t a, int8x16_t b) noexcept {
 template<IndexType TransformedFeatureDimensions, IndexType PSQTBuckets>
 class SIMDTiling final {
    private:
-    SIMDTiling() noexcept  = delete;
-    ~SIMDTiling() noexcept = delete;
+    SIMDTiling() noexcept                             = delete;
+    ~SIMDTiling() noexcept                            = delete;
+    SIMDTiling(const SIMDTiling&) noexcept            = delete;
+    SIMDTiling(SIMDTiling&&) noexcept                 = delete;
+    SIMDTiling& operator=(const SIMDTiling&) noexcept = delete;
+    SIMDTiling& operator=(SIMDTiling&&) noexcept      = delete;
 
         // We use __m* types as template arguments, which causes GCC to emit warnings
         // about losing some attribute information. This is irrelevant to us as we

@@ -33,7 +33,7 @@
 
 namespace DON::NNUE::Layers {
 
-#if defined(USE_SSSE3) || (defined(USE_NEON) && (USE_NEON >= 8))
+#if defined(USE_SSSE3) || (defined(USE_NEON) && USE_NEON >= 8)
 namespace {
 
 struct Lookup final {
@@ -187,7 +187,7 @@ class AffineTransformSparseInput final {
       ceil_to_multiple<IndexType>(OutputDimensions, MAX_SIMD_WIDTH);
 
     static constexpr IndexType ChunkSize =
-#if defined(USE_SSSE3) || (defined(USE_NEON) && (USE_NEON >= 8))
+#if defined(USE_SSSE3) || (defined(USE_NEON) && USE_NEON >= 8)
       4
 #else
       1
@@ -214,7 +214,7 @@ class AffineTransformSparseInput final {
     }
 
     static constexpr IndexType weight_index(IndexType i) noexcept {
-#if defined(USE_SSSE3) || (defined(USE_NEON) && (USE_NEON >= 8))
+#if defined(USE_SSSE3) || (defined(USE_NEON) && USE_NEON >= 8)
         return (i / ChunkSize) % (PaddedInputDimensions / ChunkSize) * OutputDimensions * ChunkSize
              + i / PaddedInputDimensions * ChunkSize + i % ChunkSize;
 #else
@@ -247,7 +247,7 @@ class AffineTransformSparseInput final {
     // Forward propagation
     void propagate(const InputType* RESTRICT input, OutputType* RESTRICT output) const noexcept {
 
-#if defined(USE_SSSE3) || (defined(USE_NEON) && (USE_NEON >= 8))
+#if defined(USE_SSSE3) || (defined(USE_NEON) && USE_NEON >= 8)
     #if defined(USE_AVX512)
         using invec_t  = __m512i;
         using outvec_t = __m512i;

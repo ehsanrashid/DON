@@ -273,9 +273,6 @@ class Position final {
     Bitboard attackers_bb(Square s, Bitboard occupancyBB) const noexcept;
     Bitboard attackers_bb(Square s) const noexcept;
 
-    bool attackers_exists(Square s, Bitboard attackersBB, Bitboard occupancyBB) const noexcept;
-    bool attackers_exists(Square s, Bitboard attackersBB) const noexcept;
-
     Bitboard blockers_bb(Square    s,
                          Bitboard  attackersBB,
                          Bitboard& ownPinnersBB,
@@ -716,22 +713,10 @@ inline Bitboard Position::attackers_bb(Square s, Bitboard occupancyBB) const noe
 inline Bitboard Position::attackers_bb(Square s) const noexcept {
     return attackers_bb(s, pieces_bb());
 }
-// Checks if there are any attackers to a given square from a set of attackers.
-inline bool Position::attackers_exists(Square s, Bitboard attackersBB, Bitboard occupancyBB) const noexcept {
-    return (attackersBB & pieces_bb(QUEEN, BISHOP) & attacks_bb<BISHOP>(s, occupancyBB)) != 0
-        || (attackersBB & pieces_bb(QUEEN, ROOK  ) & attacks_bb<ROOK  >(s, occupancyBB)) != 0
-        || (attackersBB & ((pieces_bb(WHITE, PAWN) & attacks_bb<PAWN  >(s, BLACK))
-                         | (pieces_bb(BLACK, PAWN) & attacks_bb<PAWN  >(s, WHITE)))) != 0
-        || (attackersBB & pieces_bb(KNIGHT       ) & attacks_bb<KNIGHT>(s)) != 0
-        || (attackersBB & pieces_bb(KING         ) & attacks_bb<KING  >(s)) != 0;
-}
-inline bool Position::attackers_exists(Square s, Bitboard attackersBB) const noexcept {
-    return attackers_exists(s, attackersBB, pieces_bb());
-}
 
 // clang-format on
 
-// Computes the blockers that are pinned pieces to a given square 's' from a set of attackers.
+// Computes the blockers that are pinned pieces to 's' from a set of attackers.
 // Blockers are pieces that, when removed, would expose an x-ray attack to 's'.
 // Pinners are also returned via the ownPinners and oppPinners reference.
 inline Bitboard Position::blockers_bb(Square    s,
