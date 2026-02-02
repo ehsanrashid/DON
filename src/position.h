@@ -91,9 +91,7 @@ struct Zobrist final {
     }
 
     static Key enpassant(Square enPassantSq) noexcept {
-        assert(is_ok(enPassantSq));
-
-        return Enpassant[file_of(enPassantSq)];
+        return enPassantSq != SQ_NONE ? Enpassant[file_of(enPassantSq)] : 0;
     }
 
     static Key turn() noexcept { return Turn; }

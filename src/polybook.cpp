@@ -57,23 +57,23 @@ union Zobrist final {
 
         auto beg = sqs.begin();
         auto end = beg + n;
-        for (; beg != end; ++beg)
+        while (beg != end)
         {
             Square s  = *beg;
             Piece  pc = pos[s];
 
             key ^= _.PieceSquare[color_of(pc)][type_of(pc) - 1][s];
+
+            ++beg;
         }
 
         Bitboard castlingRightsBB = +pos.castling_rights();
         while (castlingRightsBB != 0)
             key ^= _.Castling[pop_lsq(castlingRightsBB)];
 
-        if (Square enPassantSq = pos.en_passant_sq(); enPassantSq != SQ_NONE)
-            key ^= _.Enpassant[file_of(enPassantSq)];
+        key ^= int(pos.en_passant_sq() != SQ_NONE) * _.Enpassant[file_of(pos.en_passant_sq())];
 
-        if (pos.active_color() == WHITE)
-            key ^= _.Turn;
+        key ^= int(pos.active_color() == WHITE) * _.Turn;
 
         return key;
     }
