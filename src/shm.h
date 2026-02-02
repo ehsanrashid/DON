@@ -30,7 +30,6 @@
 #include <iostream>
 #include <memory>
 #include <new>
-#include <optional>
 #include <string>
 #include <string_view>
 #include <sstream>
@@ -40,6 +39,15 @@
 
 #if defined(__ANDROID__)
 #elif defined(_WIN32)
+    // The standard portable pattern for spin-waits, that need a CPU hint on x86 but still work on ARM.
+    #if defined(_M_X64) || defined(_M_IX86) || defined(__x86_64__) || defined(__i386__)
+        #include <immintrin.h>
+        #define PAUSE() _mm_pause()
+    #else
+        #include <thread>
+        #define PAUSE() std::this_thread::yield()
+    #endif
+
     #if !defined(NOMINMAX)
         #define NOMINMAX  // Disable min()/max() macros
     #endif
@@ -66,6 +74,7 @@
     #include <chrono>
     #include <condition_variable>
     #include <list>
+    #include <optional>
     #include <mutex>
     #include <shared_mutex>
     #include <thread>
@@ -117,18 +126,17 @@ enum class SharedMemoryAllocationStatus {
     SharedMemory
 };
 
-constexpr std::string_view to_string(SharedMemoryAllocationStatus status) noexcept {
+[[nodiscard]] constexpr std::string_view to_string(SharedMemoryAllocationStatus status) noexcept {
     switch (status)
     {
     case SharedMemoryAllocationStatus::NoAllocation :
-        return "No allocation";
+        return "No allocation.";
     case SharedMemoryAllocationStatus::LocalMemory :
-        return "Local memory";
+        return "Local memory.";
     case SharedMemoryAllocationStatus::SharedMemory :
-        return "Shared memory";
-    default :;
+        return "Shared memory.";
     }
-    return "Unknown status";
+    return "Allocation status unknown.";
 }
 
 inline std::string executable_path() noexcept {
@@ -226,8 +234,8 @@ class BackendSharedMemory final {
         return SharedMemoryAllocationStatus::NoAllocation;
     }
 
-    std::optional<std::string> get_error_message() const noexcept {
-        return "Dummy Shared Memory Backend";
+    std::string_view get_error_message() const noexcept {
+        return "Shared memory: [Dummy] (non-functional).";
     }
 };
 
@@ -309,33 +317,32 @@ class BackendSharedMemory final {
                                          : SharedMemoryAllocationStatus::NoAllocation;
     }
 
-    std::optional<std::string> get_error_message() const noexcept {
+    std::string_view get_error_message() const noexcept {
         switch (status)
         {
         case Status::Success :
-            return std::nullopt;
+            return {};
         case Status::NotInitialized :
-            return "Not initialized";
+            return "Shared memory not initialized.";
         case Status::FileMapping :
-            return "Failed to create file mapping.";
+            return "Shared memory: Failed to create file mapping.";
         case Status::MapView :
-            return "Failed to map view.";
+            return "Shared memory: Failed to map view.";
         case Status::MutexCreate :
-            return "Failed to create mutex.";
+            return "Shared memory: Failed to create mutex.";
         case Status::MutexWait :
-            return "Failed to wait on mutex.";
+            return "Shared memory: Failed to wait on mutex.";
         case Status::MutexRelease :
-            return "Failed to release mutex.";
+            return "Shared memory: Failed to release mutex.";
         case Status::LargePageAllocation :
-            return "Failed to allocate large page memory";
-        default :;
+            return "Shared memory: Failed to allocate large page memory.";
         }
-        return "Unknown error";
+        return "Shared memory: unknown error";
     }
 
    private:
     void initialize(const T& value) noexcept {
-        constexpr std::size_t TotalSize = sizeof(T) + sizeof(IS_INITIALIZED);
+        constexpr std::size_t TotalSize = sizeof(T) + sizeof(InitSharedState);
 
         // Try allocating with large page first
         hMapFile = try_with_windows_lock_memory_privilege(
@@ -413,18 +420,28 @@ class BackendSharedMemory final {
             return;
         }
 
-        // Crucially, place the object first to ensure alignment
-        volatile DWORD* isInitialized =
-          std::launder(reinterpret_cast<DWORD*>(reinterpret_cast<char*>(mappedPtr) + sizeof(T)));
+        // Object lives first to ensure alignment
+        T* object = reinterpret_cast<T*>(mappedPtr);
 
-        T* object = std::launder(reinterpret_cast<T*>(mappedPtr));
+        auto* initState =
+          reinterpret_cast<volatile DWORD*>(reinterpret_cast<char*>(mappedPtr) + sizeof(T));
 
-        if (*isInitialized != IS_INITIALIZED)
+        // Attempt atomic initialization
+        if (InterlockedCompareExchange(initState, DWORD(InitSharedState::Initializing),
+                                       DWORD(InitSharedState::Uninitialized))
+            == DWORD(InitSharedState::Uninitialized))
         {
-            // First time initialization, message for debug purposes
+            // this thread is the initializer
             new (object) T{value};
 
-            *isInitialized = IS_INITIALIZED;
+            // Publish fully constructed object
+            InterlockedExchange(initState, DWORD(InitSharedState::Initialized));
+        }
+        else
+        {
+            // Wait until construction completes
+            while (*initState != DWORD(InitSharedState::Initialized))
+                PAUSE();  // portable "pause" for any architecture
         }
 
         if (!ReleaseMutex(hMutex))
@@ -454,7 +471,11 @@ class BackendSharedMemory final {
         cleanup();
     }
 
-    static constexpr DWORD IS_INITIALIZED = 1;
+    enum class InitSharedState : DWORD {
+        Uninitialized = 0,
+        Initializing  = 1,
+        Initialized   = 2
+    };
 
     std::string name;
     HANDLE      hMapFile = INVALID_HANDLE;
@@ -1839,20 +1860,20 @@ class BackendSharedMemory final {
                           : SharedMemoryAllocationStatus::NoAllocation;
     }
 
-    std::optional<std::string> get_error_message() const noexcept {
+    std::string_view get_error_message() const noexcept {
         if (!shm)
-            return "Shared memory not created";
+            return "Shared memory not created.";
 
         if (!shm->is_available())
-            return "Shared memory not available";
+            return "Shared memory not available.";
 
         if (!shm->is_open())
-            return "Shared memory is not open";
+            return "Shared memory is not open.";
 
         if (!shm->is_initialized())
-            return "Shared memory is not initialized";
+            return "Shared memory is not initialized.";
 
-        return std::nullopt;
+        return {};
     }
 
    private:
@@ -1888,9 +1909,9 @@ struct FallbackBackendSharedMemory final {
                                       : SharedMemoryAllocationStatus::LocalMemory;
     }
 
-    std::optional<std::string> get_error_message() const noexcept {
+    std::string_view get_error_message() const noexcept {
         if (fallbackObj == nullptr)
-            return "Not initialized";
+            return "Shared memory not created.";
 
         return "Shared memory not supported by the OS. Local allocation fallback.";
     }
@@ -2016,11 +2037,11 @@ struct SystemWideSharedMemory final {
           backendShm);
     }
 
-    std::optional<std::string> get_error_message() const noexcept {
+    std::string_view get_error_message() const noexcept {
         return std::visit(
-          [](const auto& end) -> std::optional<std::string> {
+          [](const auto& end) -> std::string_view {
               if constexpr (std::is_same_v<std::decay_t<decltype(end)>, std::monostate>)
-                  return std::nullopt;
+                  return {};
               else
                   return end.get_error_message();
           },

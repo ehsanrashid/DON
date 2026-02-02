@@ -62,7 +62,6 @@ constexpr std::string_view Option::to_string(Type t) noexcept {
         return "spin";
     case Type::COMBO :
         return "combo";
-    default :;
     }
     return "none";
 }

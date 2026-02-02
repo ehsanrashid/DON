@@ -632,8 +632,8 @@ std::string Position::fen(bool complete) const noexcept {
 
     fens += ' ';
 
-    if (Square enPassantSq = en_passant_sq(); enPassantSq != SQ_NONE)
-        fens += to_square(enPassantSq);
+    if (en_passant_sq() != SQ_NONE)
+        fens += to_square(en_passant_sq());
     else
         fens += '-';
 
@@ -697,23 +697,20 @@ void Position::set_state() noexcept {
 
                 st->key ^= key;
 
-                if (pt == PAWN)
-                    st->pawnKeys[c] ^= key;
-                else
+                if (pt != KING)
                 {
-                    if (pt != KING)
-                        st->nonPawnKeys[c][is_major(pt)] ^= key;
+                    bool isPawn = (pt == PAWN);
+                    st->pawnKeys[c] ^= int(isPawn) * key;
+                    st->nonPawnKeys[c][is_major(pt)] ^= int(!isPawn) * key;
                 }
             }
         }
 
     st->key ^= Zobrist::castling(castling_rights());
 
-    if (Square enPassantSq = en_passant_sq(); enPassantSq != SQ_NONE)
-        st->key ^= Zobrist::enpassant(enPassantSq);
+    st->key ^= Zobrist::enpassant(en_passant_sq());
 
-    if (active_color() == BLACK)
-        st->key ^= Zobrist::turn();
+    st->key ^= int(active_color() == BLACK) * Zobrist::turn();
 }
 
 // Set extra state, used for fast check detection
@@ -934,18 +931,13 @@ DirtyBoard Position::do_move(Move m, State& newSt, bool mayCheck, const Worker* 
     db.dts.threateningBB = db.dts.threatenedBB = 0;
     assert(db.dts.dtList.empty());
 
-    st->key ^= Zobrist::turn();
+    st->key ^= Zobrist::turn() ^ Zobrist::enpassant(en_passant_sq());
 
-    if (en_passant_sq() != SQ_NONE)
-    {
-        st->key ^= Zobrist::enpassant(en_passant_sq());
-        reset_en_passant_sq();
-    }
+    reset_en_passant_sq();
 
+    Key    movedKey;
+    bool   capture;
     Square enPassantSq = SQ_NONE;
-
-    Key  movedKey;
-    bool capture;
 
     // If the move is a castling, do some special work
     if (m.type() == MT::CASTLING)
@@ -1189,14 +1181,11 @@ void Position::undo_move(Move m) noexcept {
     Square orgSq = m.org_sq(), dstSq = m.dst_sq();
     assert(empty(orgSq) || m.type() == MT::CASTLING);
 
-    Piece capturedPc = captured_pc();
-    assert(capturedPc == Piece::NO_PIECE || type_of(capturedPc) != KING);
-
     if (m.type() == MT::CASTLING)
     {
         assert((pieces_bb(ac, KING) & king_castle_sq(orgSq, dstSq)) != 0);
         assert((pieces_bb(ac, ROOK) & rook_castle_sq(orgSq, dstSq)) != 0);
-        assert(capturedPc == Piece::NO_PIECE);
+        assert(captured_pc() == Piece::NO_PIECE);
         assert(has_castled(ac));
 
         Square rookOrgSq, rookDstSq;
@@ -1207,6 +1196,9 @@ void Position::undo_move(Move m) noexcept {
     else
     {
     Piece movedPc = piece(dstSq);
+
+    Piece capturedPc = captured_pc();
+    assert(capturedPc == Piece::NO_PIECE || type_of(capturedPc) != KING);
 
     if (m.type() == MT::PROMOTION)
     {
@@ -1267,16 +1259,12 @@ void Position::do_null_move(State& newSt, const Worker* worker) noexcept {
 
     st = &newSt;
 
-    st->key ^= Zobrist::turn();
-
-    if (en_passant_sq() != SQ_NONE)
-    {
-        st->key ^= Zobrist::enpassant(en_passant_sq());
-        reset_en_passant_sq();
-    }
+    st->key ^= Zobrist::turn() ^ Zobrist::enpassant(en_passant_sq());
 
     if (worker != nullptr)
         prefetch(worker->transpositionTable.cluster(key()));
+
+    reset_en_passant_sq();
 
     st->nullPly    = 0;
     st->capturedSq = SQ_NONE;
@@ -1526,10 +1514,7 @@ bool Position::fork(Move m) const noexcept {
 // Needed for speculative prefetch.
 // It does recognize special moves like castling, en-passant and promotions.
 Key Position::move_key(Move m) const noexcept {
-    Key moveKey = st->key ^ Zobrist::turn();
-
-    if (Square enPassantSq = en_passant_sq(); enPassantSq != SQ_NONE)
-        moveKey ^= Zobrist::enpassant(enPassantSq);
+    Key moveKey = st->key ^ Zobrist::turn() ^ Zobrist::enpassant(en_passant_sq());
 
     if (m == Move::Null)
         return moveKey;
@@ -1676,7 +1661,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
         // there are pinners on their original square.
         if ((pinners_bb(~ac) & pieces_bb(~ac) & occupancyBB) != 0)
         {
-            acAttackersBB &= ~blockers_bb(ac);
+            acAttackersBB &= ~blockers_bb(ac) | line_bb(square<KING>(ac), dstSq);
 
             if (acAttackersBB == 0)
                 break;
@@ -2069,21 +2054,21 @@ Key Position::compute_key() const noexcept {
 
     auto beg = sqs.begin();
     auto end = beg + n;
-    for (; beg != end; ++beg)
+    while (beg != end)
     {
         Square s  = *beg;
         Piece  pc = piece(s);
 
         key ^= Zobrist::piece_square(pc, s);
+
+        ++beg;
     }
 
     key ^= Zobrist::castling(castling_rights());
 
-    if (Square enPassantSq = en_passant_sq(); enPassantSq != SQ_NONE)
-        key ^= Zobrist::enpassant(enPassantSq);
+    key ^= Zobrist::enpassant(en_passant_sq());
 
-    if (active_color() == BLACK)
-        key ^= Zobrist::turn();
+    key ^= int(active_color() == BLACK) * Zobrist::turn();
 
     return key;
 }
@@ -2096,7 +2081,7 @@ Key Position::compute_minor_key() const noexcept {
 
     auto beg = sqs.begin();
     auto end = beg + n;
-    for (; beg != end; ++beg)
+    while (beg != end)
     {
         Square s  = *beg;
         Piece  pc = piece(s);
@@ -2104,6 +2089,8 @@ Key Position::compute_minor_key() const noexcept {
 
         if (pt != PAWN && pt != KING && !is_major(pt))
             minorKey ^= Zobrist::piece_square(color_of(pc), pt, s);
+
+        ++beg;
     }
 
     return minorKey;
@@ -2117,7 +2104,7 @@ Key Position::compute_major_key() const noexcept {
 
     auto beg = sqs.begin();
     auto end = beg + n;
-    for (; beg != end; ++beg)
+    while (beg != end)
     {
         Square s  = *beg;
         Piece  pc = piece(s);
@@ -2125,6 +2112,8 @@ Key Position::compute_major_key() const noexcept {
 
         if (pt != PAWN && pt != KING && is_major(pt))
             majorKey ^= Zobrist::piece_square(color_of(pc), pt, s);
+
+        ++beg;
     }
 
     return majorKey;
@@ -2138,7 +2127,7 @@ Key Position::compute_non_pawn_key() const noexcept {
 
     auto beg = sqs.begin();
     auto end = beg + n;
-    for (; beg != end; ++beg)
+    while (beg != end)
     {
         Square s  = *beg;
         Piece  pc = piece(s);
@@ -2146,6 +2135,8 @@ Key Position::compute_non_pawn_key() const noexcept {
 
         if (pt != PAWN)
             nonPawnKey ^= Zobrist::piece_square(color_of(pc), pt, s);
+
+        ++beg;
     }
 
     return nonPawnKey;

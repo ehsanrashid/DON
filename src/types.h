@@ -481,9 +481,8 @@ constexpr std::string_view to_string(CastlingSide cs) noexcept {
         return "O-O-O";
     case CastlingSide::ANY :
         return "O-O / O-O-O";
-    default :;
     }
-    return "";
+    return {};
 }
 
 enum class CastlingRights : std::uint8_t {
@@ -519,15 +518,16 @@ constexpr bool is_ok(Bound bound) noexcept { return bound != Bound::NONE; }
 constexpr std::string_view to_string(Bound bound) noexcept {
     switch (bound)
     {
+    case Bound::NONE :
+        return {};
     case Bound::UPPER :
         return " upperbound";
     case Bound::LOWER :
         return " lowerbound";
     case Bound::EXACT :
         return " exactbound";
-    default :;
     }
-    return "";
+    return {};
 }
 
 // clang-format off

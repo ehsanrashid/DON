@@ -242,17 +242,17 @@ Move* generate_pawns_moves(const Position& pos, Move* RESTRICT moves, Bitboard t
         dstBB = shift_bb<RCap>(notR7PawnsBB) & enemyBB;
         moves = splat_pawn_moves<AC, RCap>(dstBB, moves);
 
-        if (Square enPassantSq = pos.en_passant_sq(); enPassantSq != SQ_NONE)
+        if (pos.en_passant_sq() != SQ_NONE)
         {
-            assert(relative_rank(AC, enPassantSq) == RANK_6);
-            assert((pos.pieces_bb(~AC, PAWN) & (enPassantSq - Push1)) != 0);
+            assert(relative_rank(AC, pos.en_passant_sq()) == RANK_6);
+            assert((pos.pieces_bb(~AC, PAWN) & (pos.en_passant_sq() - Push1)) != 0);
             assert(pos.rule50_count() == 0);
             assert((notR7PawnsBB & relative_rank(AC, RANK_5)) != 0);
 
             // An en-passant capture cannot resolve a discovered check
-            assert(!Evasion || (targetBB & (enPassantSq + Push1)) == 0);
+            assert(!Evasion || (targetBB & (pos.en_passant_sq() + Push1)) == 0);
 
-            Bitboard epPawnsBB = notR7PawnsBB & attacks_bb<PAWN>(enPassantSq, ~AC);
+            Bitboard epPawnsBB = notR7PawnsBB & attacks_bb<PAWN>(pos.en_passant_sq(), ~AC);
             assert(epPawnsBB != 0);
 
             while (epPawnsBB != 0)
@@ -263,7 +263,7 @@ Move* generate_pawns_moves(const Position& pos, Move* RESTRICT moves, Bitboard t
                 else
                     orgSq = pop_msq(epPawnsBB);
 
-                *moves++ = Move::make<MT::EN_PASSANT>(orgSq, enPassantSq);
+                *moves++ = Move::make<MT::EN_PASSANT>(orgSq, pos.en_passant_sq());
             }
         }
     }
