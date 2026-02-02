@@ -376,8 +376,8 @@ TableData make_table_data(std::string_view code) noexcept {
 
     tableData.hasUniquePieces = false;
     for (Color c : {WHITE, BLACK})
-        for (PieceType pt : PIECE_TYPES)
-            if (pt != KING && pos.count(c, pt) == 1)
+        for (PieceType pt : EX_KING_PIECE_TYPES)
+            if (pos.count(c, pt) == 1)
                 tableData.hasUniquePieces = true;
 
     StdArray<std::uint8_t, COLOR_NB> pawnCnt{

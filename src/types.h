@@ -141,6 +141,9 @@ inline constexpr std::size_t PIECE_TYPE_CNT = 6;
 constexpr StdArray<PieceType, PIECE_TYPE_CNT> PIECE_TYPES{
   PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING  //
 };
+constexpr StdArray<PieceType, PIECE_TYPE_CNT - 1> EX_KING_PIECE_TYPES{
+  PAWN, KNIGHT, BISHOP, ROOK, QUEEN  //
+};
 constexpr StdArray<PieceType, PIECE_TYPE_CNT - 2> NON_PAWN_PIECE_TYPES{
   KNIGHT, BISHOP, ROOK, QUEEN  //
 };
