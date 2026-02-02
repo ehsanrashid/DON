@@ -39,6 +39,15 @@
 
 #if defined(__ANDROID__)
 #elif defined(_WIN32)
+    // The standard portable pattern for spin-waits, that need a CPU hint on x86 but still work on ARM.
+    #if defined(_M_X64) || defined(_M_IX86) || defined(__x86_64__) || defined(__i386__)
+        #include <immintrin.h>
+        #define PAUSE() _mm_pause()
+    #else
+        #include <thread>
+        #define PAUSE() std::this_thread::yield()
+    #endif
+
     #if !defined(NOMINMAX)
         #define NOMINMAX  // Disable min()/max() macros
     #endif
@@ -58,8 +67,6 @@
     #if defined(small)
         #undef small
     #endif
-
-    #include <immintrin.h>
 #else
     #include <atomic>
     #include <cassert>
@@ -434,7 +441,7 @@ class BackendSharedMemory final {
         {
             // Wait until construction completes
             while (*initState != DWORD(InitSharedState::Initialized))
-                _mm_pause();  // avoid busy CPU spin; could also use Sleep(0)
+                PAUSE();  // portable "pause" for any architecture
         }
 
         if (!ReleaseMutex(hMutex))
