@@ -1676,7 +1676,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
         // there are pinners on their original square.
         if ((pinners_bb(~ac) & pieces_bb(~ac) & occupancyBB) != 0)
         {
-            acAttackersBB &= ~blockers_bb(ac);
+            acAttackersBB &= ~blockers_bb(ac) | line_bb(square<KING>(ac), dstSq);
 
             if (acAttackersBB == 0)
                 break;
