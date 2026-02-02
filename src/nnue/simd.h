@@ -208,9 +208,9 @@ inline constexpr std::uint32_t Mask[4]{1, 2, 4, 8};
     #define vec128_load(a) vld1q_u16(reinterpret_cast<const std::uint16_t*>(a))
     #define vec128_storeu(a, b) vst1q_u16(reinterpret_cast<std::uint16_t*>(a), b)
     #define vec128_add(a, b) vaddq_u16(a, b)
-    #if !defined(__aarch64__)
+    #if defined(__arm__) && !defined(__aarch64__)
 // Single instruction doesn't exist on 32-bit ARM
-inline int8x16_t vmovl_high_s8(int8x16_t a) noexcept { return vmovl_s8(vget_high_s8(a)); }
+inline int16x8_t vmovl_high_s8(int8x16_t a) noexcept { return vmovl_s8(vget_high_s8(a)); }
     #endif
 
     #define MaxRegisterCount 16

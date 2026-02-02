@@ -525,7 +525,7 @@ ifeq ($(COMP), clang)
     endif
 
     CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-prototypes \
-                -Wconditional-uninitialized
+                -Wconditional-uninitialized -flax-vector-conversions=none
 
     ifeq ($(filter $(KERNEL), Darwin OpenBSD FreeBSD), )
         ifeq ($(target_windows), )

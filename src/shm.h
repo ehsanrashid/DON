@@ -602,8 +602,8 @@ class SharedMemoryRegistry final {
             return;
         }
 
-        // Safe insertion under sharedMutex
-        std::lock_guard insertLock(sharedMutex);
+        // Safe insertion under write-lock
+        std::lock_guard writeLock(sharedMutex);
 
         insert_memory_nolock(sharedMemory);
     }
@@ -611,7 +611,7 @@ class SharedMemoryRegistry final {
     // Unregister a shared memory object from the global registry.
     // Thread-safe: locks the registry while erasing.
     static bool unregister_memory(SharedMemoryPtr sharedMemory) noexcept {
-        std::lock_guard eraseLock(sharedMutex);
+        std::lock_guard writeLock(sharedMutex);
 
         return erase_memory_nolock(sharedMemory);
     }
@@ -645,8 +645,9 @@ class SharedMemoryRegistry final {
         }
 
         // Safe to iterate and close memory without holding the lock in true insertion order
-        for (SharedMemoryPtr sharedMemory : copiedOrderedList)
-            sharedMemory->close(skipUnmapRegion);
+        for (auto* sharedMemory : copiedOrderedList)
+            if (sharedMemory != nullptr)
+                sharedMemory->close(skipUnmapRegion);
 
         // Mark cleanup done and notify waiting registrants that cleanup has finished
         cleanUpInProgress.store(false, std::memory_order_release);
@@ -660,7 +661,7 @@ class SharedMemoryRegistry final {
         std::cout << "Registered shared memories (insertion order) [" << registryMap.size()
                   << "]:\n";
         std::size_t i = 0;
-        for (SharedMemoryPtr sharedMemory : orderedList)
+        for (auto* sharedMemory : orderedList)
             std::cout << "[" << i++ << "] "
                       << (sharedMemory != nullptr ? sharedMemory->name_() : "<NULL>") << "\n";
         std::cout << std::endl;
@@ -675,31 +676,34 @@ class SharedMemoryRegistry final {
     SharedMemoryRegistry& operator=(SharedMemoryRegistry&&) noexcept      = delete;
 
     static bool insert_memory_nolock(SharedMemoryPtr sharedMemory) noexcept {
-        // Only insert if not present
-        if (registryMap.find(sharedMemory) != registryMap.end())
+        // Only insert if not present.
+        // orderedList.end() is not the real iterator; it’s a placeholder.
+        auto [insertReg, inserted] = registryMap.emplace(sharedMemory, orderedList.end());
+        if (!inserted)
             return false;
 
         //DEBUG_LOG("Registering shared memory: " << sharedMemory->name_());
 
-        auto newId                = orderedList.emplace(orderedList.end(), sharedMemory);
-        registryMap[sharedMemory] = newId;
+        auto insertId = orderedList.emplace(orderedList.end(), sharedMemory);
+
+        insertReg->second = insertId;
         return true;
     }
 
     static bool erase_memory_nolock(SharedMemoryPtr sharedMemory) noexcept {
         // Only erase if already present
-        auto victimReg = registryMap.find(sharedMemory);
-        if (victimReg == registryMap.end())
+        auto eraseReg = registryMap.find(sharedMemory);
+        if (eraseReg == registryMap.end())
             return false;
 
         //DEBUG_LOG("Unregistering shared memory: " << sharedMemory->name_());
 
-        auto victimId = victimReg->second;
+        auto eraseId = eraseReg->second;
 
-        assert(!orderedList.empty() && victimId != orderedList.end());
+        assert(!orderedList.empty() && eraseId != orderedList.end());
 
-        orderedList.erase(victimId);
-        registryMap.erase(victimReg);
+        orderedList.erase(eraseId);
+        registryMap.erase(eraseReg);
         return true;
     }
 
@@ -1914,7 +1918,6 @@ struct FallbackBackendSharedMemory final {
     std::string_view get_error_message() const noexcept {
         if (fallbackObj == nullptr)
             return "Shared memory not created.";
-
         return "Shared memory not supported by the OS. Local allocation fallback.";
     }
 
