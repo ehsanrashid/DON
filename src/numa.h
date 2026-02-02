@@ -1633,7 +1633,7 @@ class SystemWideLazyNumaReplicated final: public BaseNumaReplicated {
     const T* operator->() const noexcept { return &*instances[0]; }
 
     auto get_status_and_errors() const noexcept {
-        std::vector<std::pair<SharedMemoryAllocationStatus, std::optional<std::string>>> status;
+        std::vector<std::pair<SharedMemoryAllocationStatus, std::string_view>> status;
         status.reserve(instances.size());
 
         for (const auto& instance : instances)

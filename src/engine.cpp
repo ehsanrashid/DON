@@ -342,12 +342,18 @@ void Engine::verify_networks() const noexcept {
     {
         auto& [status, error] = statuses[i];
 
-        std::string message = "Network replica " + std::to_string(i + 1) + ": ";
+        std::string message{"Network replica "};
+
+        message += std::to_string(i);
+        message += ": ";
 
         message += to_string(status);
 
-        if (error.has_value())
-            message += ". " + *error;
+        if (!error.empty())
+        {
+            message += ". ";
+            message += error;
+        }
 
         UCI::print_info_string(message);
     }
