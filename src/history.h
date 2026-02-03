@@ -44,7 +44,7 @@ class StatsEntry final {
     static_assert(D <= std::numeric_limits<T>::max(), "D overflows T");
 
    public:
-    operator T() const noexcept { return value; }
+    operator int() const noexcept { return value; }
 
     void operator=(const T& v) noexcept { value = v; }
 
@@ -57,8 +57,13 @@ class StatsEntry final {
 
         assert(std::abs(value) <= D);
     }
+    void operator<<(long bonus) noexcept { *this << int(bonus); }
 
-    void operator*=(double m) noexcept { value *= m; }
+    void operator*=(double m) noexcept {
+        assert(std::abs(m) <= 1.0);
+
+        value = std::lround(m * int(value));
+    }
 
    private:
     T value;
