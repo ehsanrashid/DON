@@ -414,12 +414,12 @@ class OstreamMutexRegistry final {
     // If osPtr is nullptr, returns a dummy mutex to safely ignore locking.
     // This ensures no accidental insertion of null keys into the map.
     static std::mutex& get(std::ostream* osPtr) noexcept {
+        if (!callOnce.initialized())
+            ensure_initialized();
+
         // Fallback for null pointers
         if (osPtr == nullptr)
             return dummy_mutex();
-
-        if (!callOnce.initialized())
-            ensure_initialized();
 
         // Lock the registry while accessing the map
         std::lock_guard lock(mutex);

@@ -741,13 +741,23 @@ class SharedMemoryRegistry final {
 //  - The class is static-only; it cannot be instantiated. (Restriction)
 class SharedMemoryCleanupManager final {
    public:
-    // Ensures signal handlers and atexit cleanup are registered only once
+    // Ensures that the SharedMemoryCleanupManager is initialized only once.
+    //   1. Creating an async-signal-safe pipe for communication between signal
+    //      handlers and the monitor thread.
+    //   2. Registering signal handlers.
+    //   3. Starting the monitor thread to handle signals.
+    //   4. Initializing the shared memory registry.
+    //   5. Registering cleanup via std::atexit().
+    //
+    // Note: If pipe creation fails, signal handlers and monitor thread are skipped, to avoid unsafe signal handling
+    //       but registry initialization and atexit registration still occur safely.
     static void ensure_initialized() noexcept {
         callOnce([]() noexcept {
             //DEBUG_LOG("Initializing SharedMemoryCleanupManager.");
 
             // 1. Create async-signal-safe pipe
-            int pipeFds[2];
+            int  pipeFds[2];
+            bool pipeOk = true;
     #if defined(__linux__)
             // Linux: use pipe2 (atomic)
             if (pipe2(pipeFds, O_CLOEXEC | O_NONBLOCK) != 0)
@@ -760,7 +770,7 @@ class SharedMemoryCleanupManager final {
 
                 close(pipeFds[0]);
                 close(pipeFds[1]);
-                return;
+                pipeOk = false;
             }
     #if !defined(__linux__)
             // Set flags manually (portable alternative to pipe2)
@@ -773,23 +783,27 @@ class SharedMemoryCleanupManager final {
 
                 close(pipeFds[0]);
                 close(pipeFds[1]);
-                return;
+                pipeOk = false;
             }
     #endif
             // Store signal pipe fds atomically
-            signalPipeFds[0].store(pipeFds[0], std::memory_order_release);
-            signalPipeFds[1].store(pipeFds[1], std::memory_order_release);
-
-            if (!valid_signal_pipe())
+            if (pipeOk)
             {
-                //DEBUG_LOG("Pipe creation failed, aborting monitor thread.");
-                return;  // Skip starting the thread
+                signalPipeFds[0].store(pipeFds[0], std::memory_order_release);
+                signalPipeFds[1].store(pipeFds[1], std::memory_order_release);
+
+                if (valid_signal_pipe())
+                {
+                    // 2. Register signal handlers
+                    register_signal_handlers();
+                    // 3. Start monitor thread
+                    start_monitor_thread();
+                }
             }
-            // 2. Register signal handlers
-            register_signal_handlers();
-            // 3. Start monitor thread SECOND
-            start_monitor_thread();
-            // 4. Initialize registry (might trigger signals, but now pipe, thread, handlers all ready)
+
+            // Always do registry initialization + atexit registration, even if pipe failed
+
+            // 4. Initialize registry (might trigger signals, now safe all is ready)
             SharedMemoryRegistry::ensure_initialized();
             // 5. Register std::atexit() shutdown cleanup
             std::atexit(cleanup_on_exit);
