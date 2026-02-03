@@ -57,12 +57,11 @@ class StatsEntry final {
 
         assert(std::abs(value) <= D);
     }
-    void operator<<(long bonus) noexcept { *this << int(bonus); }
 
     void operator*=(double m) noexcept {
         assert(std::abs(m) <= 1.0);
 
-        value = std::lround(m * int(value));
+        value = constexpr_lround(m * int(value));
     }
 
    private:

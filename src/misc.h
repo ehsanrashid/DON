@@ -202,6 +202,10 @@ constexpr std::size_t round_up_to_pow2(std::size_t x) noexcept {
     return x + 1;
 }
 
+constexpr int constexpr_lround(double d) noexcept {
+    return d >= 0.0 ? int(d + 0.4999) : int(d - 0.4999);
+}
+
 // Minimax-style polynomial approximation for ln(1 + f), f in [0,1)
 constexpr double constexpr_approx_1p_log(double f) noexcept {
     // clang-format off
