@@ -42,7 +42,7 @@ struct ExtMove final: public Move {
     constexpr bool operator<=(const ExtMove& em) const noexcept { return !(em < *this); }
     constexpr bool operator>=(const ExtMove& em) const noexcept { return !(*this < em); }
 
-    std::int32_t value;
+    int value;
 };
 
 static_assert(sizeof(ExtMove) == 8, "ExtMove size must be Move + int32_t = 8 bytes");
