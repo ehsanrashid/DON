@@ -722,7 +722,7 @@ class SharedMemoryRegistry final {
 
 // SharedMemoryCleanupManager
 //
-// A utility class that ensures **automatic cleanup of shared memory** when the program exits
+// Utility class that ensures **automatic cleanup of shared memory** when the program exits
 // or when certain signals (termination, fatal errors) are received.
 //
 // Usage:
@@ -732,7 +732,7 @@ class SharedMemoryRegistry final {
 //   invoked automatically on program exit or abnormal termination.
 //
 // Key Points:
-//   - Uses std::call_once to register hooks only once, even if called multiple times.
+//   - Uses CallOnce to register hooks only once, even if called multiple times.
 //   - Registers both atexit handler (normal program termination) and POSIX signal handlers.
 //   - Signal handler performs minimal, safe cleanup and then re-raises the signal with default behavior.
 //   - Prevents instantiation and copying (all constructors/destructor deleted).
@@ -858,7 +858,7 @@ class SharedMemoryCleanupManager final {
     // NOTE: If multiple signals arrive rapidly, all are preserved in pendingSignals.
     static void signal_handler(int signal) noexcept {
         // Don't process signals until initialized
-        if (!monitorReady.load(std::memory_order_acquire))
+        if (monitorThreadState.load(std::memory_order_acquire) != ThreadState::Running)
             return;
 
         int bitPos = signal_to_bit(signal);
@@ -893,12 +893,16 @@ class SharedMemoryCleanupManager final {
     static void start_monitor_thread() noexcept {
         //DEBUG_LOG("Starting shared memory cleanup monitor thread.");
 
-        monitorReady.store(true, std::memory_order_release);
+        ThreadState expected = ThreadState::NotStarted;
+        if (!monitorThreadState.compare_exchange_strong(expected, ThreadState::Running,
+                                                        std::memory_order_acq_rel))
+            // Thread already started or shutting down
+            return;
 
         monitorThread = std::thread([]() noexcept {
             FlagsGuard pendingSignalsGuard(pendingSignals);
 
-            while (!shuttingDown.load(std::memory_order_acquire))
+            while (monitorThreadState.load(std::memory_order_acquire) == ThreadState::Running)
             {
                 // Pipe closed, exit thread
                 int fd0 = signalPipeFds[0].load(std::memory_order_acquire);
@@ -940,6 +944,7 @@ class SharedMemoryCleanupManager final {
                 if (signals == 0)
                     continue;
 
+                bool first = true;
                 // Process all set bits (handle all pending signals)
                 for (std::size_t bitPos = 0; bitPos < SIGNALS.size(); ++bitPos)
                 {
@@ -969,18 +974,24 @@ class SharedMemoryCleanupManager final {
                         _Exit(128 + signal);
                     }
 
-                    // Re-raise the first signal found
-                    ::raise(signal);
-                    // Fallback: In case ::raise() returns, exit with appropriate code
-                    _Exit(128 + signal);
+                    if (first)
+                    {
+                        first = false;
+                        // Re-raise the first signal found
+                        ::raise(signal);
+                        // Fallback: In case ::raise() returns, exit with appropriate code
+                        _Exit(128 + signal);
+                    }
                 }
             }
+
+            monitorThreadState.store(ThreadState::Shutdown, std::memory_order_release);
         });
 
         // Simple and safe: detach the monitor thread.
         // Thread is designed to live for the lifetime of the program.
         // No join is required since it only accesses static/global data.
-        //monitorThread.detach();
+        monitorThread.detach();
     }
 
     // Wake monitor thread
@@ -997,30 +1008,13 @@ class SharedMemoryCleanupManager final {
             write_to_stderr("Failed to wake monitor thread\n");
     }
 
-    static void stop_monitor_thread() noexcept {
-        //DEBUG_LOG("Stopping shared memory cleanup monitor thread.");
-
-        // 1. Signal shutdown
-        shuttingDown.store(true, std::memory_order_release);
-        // 2. Check monitor started
-        if (!monitorReady.load(std::memory_order_acquire))
-            return;
-        // 3. Wake monitor thread
-        wake_monitor_thread();
-        // 4. Join monitor thread (wait for exit)
-        if (monitorThread.joinable())
-            monitorThread.join();
-    }
-
     static void cleanup_on_exit() noexcept {
         //DEBUG_LOG("SharedMemoryCleanupManager: Performing atexit cleanup.");
 
-        stop_monitor_thread();
-
         close_signal_pipe();
 
-        if (!cleanupDone.exchange(true, std::memory_order_acq_rel))
-            SharedMemoryRegistry::cleanup();
+        //if (!cleanupDone.exchange(true, std::memory_order_acq_rel))
+        SharedMemoryRegistry::cleanup();
     }
 
     static void close_signal_pipe() noexcept {
@@ -1081,6 +1075,15 @@ class SharedMemoryCleanupManager final {
     SharedMemoryCleanupManager& operator=(const SharedMemoryCleanupManager&) noexcept = delete;
     SharedMemoryCleanupManager& operator=(SharedMemoryCleanupManager&&) noexcept      = delete;
 
+    // Thread state machine:
+    // NotStarted -> Running (on thread creation)
+    // Running -> Shutdown (on thread exit OR atexit cleanup)
+    enum class ThreadState : std::uint8_t {
+        NotStarted,
+        Running,
+        Shutdown
+    };
+
     // All handled signals, available at compile-time
     static constexpr StdArray<int, 12> SIGNALS{SIGHUP,  SIGINT,  SIGQUIT, SIGILL, SIGABRT, SIGFPE,
                                                SIGSEGV, SIGTERM, SIGBUS,  SIGSYS, SIGXCPU, SIGXFSZ};
@@ -1088,10 +1091,9 @@ class SharedMemoryCleanupManager final {
     static constexpr int INVALID_SIGNAL = -1;
 
     static inline CallOnce                      callOnce;
-    static inline std::atomic<bool>             shuttingDown{false};
     static inline std::atomic<std::uint64_t>    pendingSignals{0};
     static inline StdArray<std::atomic<int>, 2> signalPipeFds{-1, -1};
-    static inline std::atomic<bool>             monitorReady{false};
+    static inline std::atomic<ThreadState>      monitorThreadState{ThreadState::NotStarted};
     static inline std::thread                   monitorThread;
     static inline std::atomic<bool>             cleanupDone{false};
 };
