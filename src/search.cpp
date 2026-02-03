@@ -1051,9 +1051,9 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
         int bonus = 59 + std::clamp(-((ss - 1)->evalValue + (ss - 0)->evalValue), -209, +167);
 
         if (!ttd.hit && preNonPawn)
-            update_pawn_history(pawnHistory, pos[preSq], preSq, 13.0000 * bonus);
+            update_pawn_history(pawnHistory, pos[preSq], preSq, std::lround(13.0000 * bonus));
 
-        update_quiet_history(~ac, preMove, 9.0000 * bonus);
+        update_quiet_history(~ac, preMove, std::lround(9.0000 * bonus));
     }
 
     // Step 7. Razoring
@@ -1737,11 +1737,12 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
             int bonus = bonusScale * std::min(-87 + 141 * depth, +1351);
 
             if (preNonPawn)
-                update_pawn_history(pawnHistory, pos[preSq], preSq, 35.4004e-3 * bonus);
+                update_pawn_history(pawnHistory, pos[preSq], preSq,
+                                    std::lround(35.4004e-3 * bonus));
 
-            update_quiet_history(~ac, preMove, 7.4158e-3 * bonus);
+            update_quiet_history(~ac, preMove, std::lround(7.4158e-3 * bonus));
 
-            update_continuation_history(ss - 1, pos[preSq], preSq, 12.3901e-3 * bonus);
+            update_continuation_history(ss - 1, pos[preSq], preSq, std::lround(12.3901e-3 * bonus));
         }
         // Bonus for prior capture move
         else
@@ -2110,13 +2111,13 @@ void Worker::update_low_ply_quiet_history(std::int16_t ssPly, Move m, int bonus)
 void Worker::update_quiet_histories(const Position& pos, PawnHistory& pawnHistory, Stack* ss, Move m, int bonus) noexcept {
     assert(m.is_ok());
 
-    update_pawn_history(pawnHistory, pos.moved_pc(m), m.dst_sq(), (bonus > 0 ? 0.8837 : 0.4932) * bonus);
+    update_pawn_history(pawnHistory, pos.moved_pc(m), m.dst_sq(), std::lround((bonus > 0 ? 0.8837 : 0.4932) * bonus));
 
-    update_quiet_history(pos.active_color(), m, 1.0000 * bonus);
+    update_quiet_history(pos.active_color(), m, std::lround(1.0000 * bonus));
 
-    update_low_ply_quiet_history(ss->ply, m, 0.7861 * bonus);
+    update_low_ply_quiet_history(ss->ply, m, std::lround(0.7861 * bonus));
 
-    update_continuation_history(ss, pos.moved_pc(m), m.dst_sq(), 0.8750 * bonus);
+    update_continuation_history(ss, pos.moved_pc(m), m.dst_sq(), std::lround(0.8750 * bonus));
 }
 
 // Updates history at the end of search() when a bestMove is found and other searched moves are known
@@ -2134,7 +2135,7 @@ void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Sta
 
     if (pos.capture_promo(bestMove))
     {
-        update_capture_history(pos, bestMove, 1.3623 * bonus);
+        update_capture_history(pos, bestMove, std::lround(1.3623 * bonus));
     }
     else
     {
