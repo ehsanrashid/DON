@@ -55,7 +55,7 @@ alignas(CACHE_LINE_SIZE) constexpr auto Reductions = []() constexpr noexcept {
 
     reductions[0] = 0;
     for (std::size_t i = 1; i < reductions.size(); ++i)
-        reductions[i] = constexpr_round(21.4601 * constexpr_log(i));
+        reductions[i] = int(21.46093759 * constexpr_log(i));
 
     return reductions;
 }();
