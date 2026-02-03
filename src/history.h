@@ -58,6 +58,8 @@ class StatsEntry final {
         assert(std::abs(value) <= D);
     }
 
+    void operator*=(double m) noexcept { value *= m; }
+
    private:
     T value;
 };

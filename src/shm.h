@@ -1034,7 +1034,9 @@ class SharedMemoryCleanupManager final {
 
         close_signal_pipe();
 
-        //if (!cleanupDone.exchange(true, std::memory_order_acq_rel))
+        //if (!
+        cleanupDone.exchange(true, std::memory_order_acq_rel);
+        //)
         SharedMemoryRegistry::cleanup();
     }
 
@@ -1077,10 +1079,10 @@ class SharedMemoryCleanupManager final {
             // clang-format off
         case SIGHUP : case SIGINT : case SIGTERM : case SIGQUIT :
             return true;
-        default :
-            return false;
+        default :;
             // clang-format on
         }
+        return false;
     }
 
     static void write_to_stderr(const char* msg) noexcept {

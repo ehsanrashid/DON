@@ -47,7 +47,6 @@ namespace DON {
 
 namespace {
 
-constexpr int DEFAULT_QUIET_HISTORY_VALUE               = 68;
 constexpr int DEFAULT_PIECE_SQ_CORRECTION_HISTORY_VALUE = 8;
 
 // Reductions lookup table using [depth or moveCount]
@@ -237,7 +236,7 @@ void Worker::init() noexcept {
     // Initialize histories
 
     captureHistory.fill(-689);
-    quietHistory.fill(DEFAULT_QUIET_HISTORY_VALUE);
+    quietHistory.fill(0);
     ttMoveHistory = 0;
 
     for (bool inCheck : {false, true})
@@ -287,7 +286,7 @@ void Worker::start_search() noexcept {
 
     for (auto& colorQuietHist : quietHistory)
         for (auto& quietHist : colorQuietHist)
-            quietHist = (3 * quietHist + DEFAULT_QUIET_HISTORY_VALUE) / 4;
+            quietHist *= 0.80;
 
     lowPlyQuietHistory.fill(97);
 
@@ -2140,15 +2139,17 @@ void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Sta
         update_quiet_histories(pos, pawnHistory, ss, bestMove, 0.8887 * bonus);
 
         // Decrease history for all non-best quiet moves
-        const auto& quietMoves = searchedMoves[0];
-        for (std::size_t i = 0; i < quietMoves.size(); ++i)
-            update_quiet_histories(pos, pawnHistory, ss, quietMoves[i], -1.0596 * (i < 5 ? 1.0 : 5.0 / (i + 1)) * malus);
+        int quietMalus = 1.0596 * malus;
+        for (Move qm : searchedMoves[0])
+        {
+            update_quiet_histories(pos, pawnHistory, ss, qm, -quietMalus);
+            quietMalus *= 0.9326;
+        }
     }
 
     // Decrease history for all non-best capture moves
-    const auto& captureMoves = searchedMoves[1];
-    for (std::size_t i = 0; i < captureMoves.size(); ++i)
-        update_capture_history(pos, captureMoves[i], -1.4141 * malus);
+    for (Move cm : searchedMoves[1])
+        update_capture_history(pos, cm, -1.4141 * malus);
 
     Move preMove = (ss - 1)->move;
 
