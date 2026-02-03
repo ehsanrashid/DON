@@ -940,7 +940,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
             // Partial workaround for the graph history interaction problem
             // For high rule50 counts don't produce transposition table cutoffs.
             if (pos.rule50_count()
-                < std::lround((1.0 - 0.20 * pos.has_rule50_high()) * rule50_threshold()))
+                < std::lround((1.0 - int(pos.has_rule50_high()) * 0.20) * int(rule50_threshold())))
             {
                 // If the depth is big enough, verify that the ttMove is really a good move
                 if (depth >= 8 && !is_decisive(ttd.value) && !ttmNone && pos.legal(ttd.move))
