@@ -1104,7 +1104,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
             assert(preMove != Move::Null);
 
             // Null move dynamic reduction
-            Depth R = std::min(7 + int(std::lround(0.33334 * depth)), +depth);
+            Depth R = std::min(7 + int(std::lround(0.33334 * int(depth))), int(depth));
 
             do_null_move(pos, st, ss);
 
@@ -1162,7 +1162,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
         // If value from transposition table is less than probCutBeta, don't attempt probCut
         if (!(is_valid(ttd.value) && ttd.value < probCutBeta))
         {
-        Depth probCutDepth = std::clamp(depth - 5 - int(std::lround(3.1746e-3 * (ss->evalValue - beta))), 0, +depth);
+        Depth probCutDepth = std::clamp(depth - 5 - int(std::lround(3.1746e-3 * int(ss->evalValue - beta))), 0, int(depth));
         int   probCutThreshold = probCutBeta - ss->evalValue;
 
         MovePicker mp(pos, ttd.move, &captureHistory, probCutThreshold);
@@ -1394,7 +1394,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
         if (!exclude && ttm && depth > 5 + int(ss->ttPv) && is_valid(ttd.value) && !is_decisive(ttd.value)
              && ttd.depth >= depth - 3 && is_ok(ttd.bound & Bound::LOWER) && !is_shuffling(pos, ss, move))
         {
-            Value singularAlpha = std::max(ttd.value - 1 - int(std::lround((0.8833 + int(!PVNode && ss->ttPv) * 1.2500) * depth)), -VALUE_INFINITE);
+            Value singularAlpha = std::max(ttd.value - 1 - int(std::lround((0.8833 + int(!PVNode && ss->ttPv) * 1.2500) * int(depth))), -VALUE_INFINITE);
 
             Depth singularDepth = newDepth / 2;
             assert(singularDepth > DEPTH_ZERO);
