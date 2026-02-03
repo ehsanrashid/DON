@@ -61,9 +61,9 @@ class StatsEntry final {
     void operator*=(double m) noexcept {
         assert(std::abs(m) <= 1.0);
 
-        value = std::clamp<long>(std::lround(m * value),         //
-                                 std::numeric_limits<T>::min(),  //
-                                 std::numeric_limits<T>::max());
+        int v = value;
+        v *= m;
+        value = v;
     }
 
    private:
