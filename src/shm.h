@@ -987,29 +987,50 @@ class SharedMemoryCleanupManager final {
 
             monitorThreadState.store(ThreadState::Shutdown, std::memory_order_release);
         });
-
-        // Simple and safe: detach the monitor thread.
-        // Thread is designed to live for the lifetime of the program.
-        // No join is required since it only accesses static/global data.
-        monitorThread.detach();
     }
 
     // Wake monitor thread
     static void wake_monitor_thread() noexcept {
+        constexpr std::size_t MaxAttempt = 4;
+
         int fd1 = signalPipeFds[1].load(std::memory_order_acquire);
         // Pipe not initialized, skip notification
         if (fd1 == -1)
             return;
 
-        char byte = 0;
-        // Best-effort wakeup
-        ssize_t r = write(fd1, &byte, 1);
-        if (r == -1 && errno != EAGAIN && errno != EINTR)
+        for (std::size_t attempt = 0;; ++attempt)
+        {
+            char byte = 0;
+
+            ssize_t r = write(fd1, &byte, 1);
+            if (r != -1)
+                break;  // Success
+
+            if (attempt >= MaxAttempt)
+                break;
+            if (errno == EINTR)
+                continue;  // Retry
+            if (errno == EAGAIN)
+            {
+                std::this_thread::yield();
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                continue;
+            }
+            // Unexpected error: print once, then stop trying
             write_to_stderr("Failed to wake monitor thread\n");
+            break;
+        }
     }
 
     static void cleanup_on_exit() noexcept {
         //DEBUG_LOG("SharedMemoryCleanupManager: Performing atexit cleanup.");
+
+        monitorThreadState.store(ThreadState::Shutdown, std::memory_order_release);
+
+        wake_monitor_thread();  // unblock read
+
+        if (monitorThread.joinable())
+            monitorThread.join();
 
         close_signal_pipe();
 
