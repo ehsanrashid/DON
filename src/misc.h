@@ -399,7 +399,6 @@ struct LazyValue final {
 class OstreamMutexRegistry final {
    public:
     static void ensure_initialized() noexcept {
-
         callOnce([]() noexcept {
             constexpr std::size_t ReserveCount = 16;
             constexpr float       LoadFactor   = 1.0f;

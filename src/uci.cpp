@@ -267,30 +267,16 @@ StringViews& UCI::arguments() noexcept { return commandLine.arguments; }
 
 Options& UCI::options() noexcept { return engine.get_options(); }
 
-void UCI::run() noexcept {
+void UCI::process_input(std::istream& is) noexcept {
 
-    std::string command;
-    command.reserve(256);
-
-    for (std::size_t i = 1; i < arguments().size(); ++i)
-    {
-        if (!command.empty())
-            command += ' ';
-
-        command += arguments()[i];
-    }
-
-    bool running = arguments().size() <= 1;
-
-    if (!running && is_whitespace(command))
-        return;
-
+    bool running = true;
     do
     {
+        std::string command;
         // The command-line arguments are one-shot
         if (running
             // Wait for an input or an end-of-file (EOF) indication
-            && !std::getline(std::cin, command))
+            && !std::getline(is, command))
             command = "quit";
 
         execute(command);

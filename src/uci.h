@@ -41,7 +41,7 @@ class UCI final {
     StringViews& arguments() noexcept;
     Options&     options() noexcept;
 
-    void run() noexcept;
+    void process_input(std::istream& is) noexcept;
 
     void execute(std::string_view command) noexcept;
 

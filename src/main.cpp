@@ -16,6 +16,7 @@
 */
 
 #include <iostream>
+#include <string>
 
 #include "bitboard.h"
 #include "memory.h"
@@ -39,7 +40,25 @@ int main(int argc, const char* argv[]) noexcept {
 
     Tune::init(uci.options());
 
-    uci.run();
+    if (uci.arguments().size() <= 1)
+    {
+        uci.process_input(std::cin);
+    }
+    else
+    {
+        std::string command;
+        command.reserve(256);
+
+        for (std::size_t i = 1; i < uci.arguments().size(); ++i)
+        {
+            if (!command.empty())
+                command += ' ';
+
+            command += uci.arguments()[i];
+        }
+
+        uci.execute(command);
+    }
 
     return 0;
 }
