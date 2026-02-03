@@ -61,7 +61,7 @@ class StatsEntry final {
     void operator*=(double m) noexcept {
         assert(std::abs(m) <= 1.0);
 
-        value = constexpr_lround(m * int(value));
+        value = constexpr_round(m * int(value));
     }
 
    private:
