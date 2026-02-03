@@ -567,12 +567,6 @@ class SharedMemoryRegistry final {
         });
     }
 
-    static std::size_t size() noexcept {
-        std::shared_lock readLock(sharedMutex);
-
-        return registryMap.size();
-    }
-
     static bool cleanup_in_progress() noexcept {
         return cleanUpInProgress.load(std::memory_order_acquire);
     }
@@ -654,6 +648,12 @@ class SharedMemoryRegistry final {
         condVar.notify_all();
     }
 
+    static std::size_t size() noexcept {
+        std::shared_lock readLock(sharedMutex);
+
+        return registryMap.size();
+    }
+
     static void print() noexcept {
         // Acquire shared lock to safely read the registry without blocking writers
         std::shared_lock readLock(sharedMutex);
@@ -722,7 +722,7 @@ class SharedMemoryRegistry final {
 
 // SharedMemoryCleanupManager
 //
-// A utility class that ensures **automatic cleanup of shared memory** when the program exits
+// Utility class that ensures **automatic cleanup of shared memory** when the program exits
 // or when certain signals (termination, fatal errors) are received.
 //
 // Usage:
@@ -732,7 +732,7 @@ class SharedMemoryRegistry final {
 //   invoked automatically on program exit or abnormal termination.
 //
 // Key Points:
-//   - Uses std::call_once to register hooks only once, even if called multiple times.
+//   - Uses CallOnce to register hooks only once, even if called multiple times.
 //   - Registers both atexit handler (normal program termination) and POSIX signal handlers.
 //   - Signal handler performs minimal, safe cleanup and then re-raises the signal with default behavior.
 //   - Prevents instantiation and copying (all constructors/destructor deleted).
@@ -758,7 +758,8 @@ class SharedMemoryCleanupManager final {
             {
                 //DEBUG_LOG("Failed to create signal pipe, error = " << std::strerror(errno));
 
-                close_signal_pipe();
+                close(pipeFds[0]);
+                close(pipeFds[1]);
                 return;
             }
     #if !defined(__linux__)
@@ -770,23 +771,24 @@ class SharedMemoryCleanupManager final {
             {
                 //DEBUG_LOG("Failed to set pipe flags, error = " << std::strerror(errno));
 
-                close_signal_pipe();
+                close(pipeFds[0]);
+                close(pipeFds[1]);
                 return;
             }
     #endif
             // Store signal pipe fds atomically
-            signalPipeFds[0].store(pipeFds[0], std::memory_order_relaxed);
-            signalPipeFds[1].store(pipeFds[1], std::memory_order_relaxed);
+            signalPipeFds[0].store(pipeFds[0], std::memory_order_release);
+            signalPipeFds[1].store(pipeFds[1], std::memory_order_release);
 
             if (!valid_signal_pipe())
             {
                 //DEBUG_LOG("Pipe creation failed, aborting monitor thread.");
                 return;  // Skip starting the thread
             }
-            // 2. Start monitor thread SECOND
-            start_monitor_thread();
-            // 3. Register signal handlers (now pipe and thread are ready)
+            // 2. Register signal handlers
             register_signal_handlers();
+            // 3. Start monitor thread SECOND
+            start_monitor_thread();
             // 4. Initialize registry (might trigger signals, but now pipe, thread, handlers all ready)
             SharedMemoryRegistry::ensure_initialized();
             // 5. Register std::atexit() shutdown cleanup
@@ -856,7 +858,7 @@ class SharedMemoryCleanupManager final {
     // NOTE: If multiple signals arrive rapidly, all are preserved in pendingSignals.
     static void signal_handler(int signal) noexcept {
         // Don't process signals until initialized
-        if (!callOnce.initialized())
+        if (monitorThreadState.load(std::memory_order_acquire) != ThreadState::Running)
             return;
 
         int bitPos = signal_to_bit(signal);
@@ -868,7 +870,7 @@ class SharedMemoryCleanupManager final {
         pendingSignals.fetch_or(bit(bitPos), std::memory_order_release);
 
         // Guard against uninitialized pipe before writing (Additional safety)
-        int fd1 = signalPipeFds[1].load(std::memory_order_relaxed);
+        int fd1 = signalPipeFds[1].load(std::memory_order_acquire);
         if (fd1 < 0)
             return;  // Pipe not initialized yet, skip notification
 
@@ -884,22 +886,26 @@ class SharedMemoryCleanupManager final {
 
         // Ignore EAGAIN (pipe full) - pendingSignals still tracks signals
         if (r == -1 && errno != EAGAIN)
-        {
             write_to_stderr("Failed to write to signal pipe\n");
-        }
     }
 
     // Monitor thread: waits for pipe, cleans memory, restores default, re-raises
     static void start_monitor_thread() noexcept {
         //DEBUG_LOG("Starting shared memory cleanup monitor thread.");
 
+        ThreadState expected = ThreadState::NotStarted;
+        if (!monitorThreadState.compare_exchange_strong(expected, ThreadState::Running,
+                                                        std::memory_order_acq_rel))
+            // Thread already started or shutting down
+            return;
+
         monitorThread = std::thread([]() noexcept {
             FlagsGuard pendingSignalsGuard(pendingSignals);
 
-            while (!shuttingDown.load(std::memory_order_acquire))
+            while (monitorThreadState.load(std::memory_order_acquire) == ThreadState::Running)
             {
                 // Pipe closed, exit thread
-                int fd0 = signalPipeFds[0].load(std::memory_order_relaxed);
+                int fd0 = signalPipeFds[0].load(std::memory_order_acquire);
                 if (fd0 == -1)
                     break;
 
@@ -908,7 +914,9 @@ class SharedMemoryCleanupManager final {
                 ssize_t n = read(fd0, &byte, 1);
                 if (n == -1)
                 {
-                    if (errno == EAGAIN || errno == EINTR)
+                    if (errno == EINTR)
+                        continue;
+                    if (errno == EAGAIN)
                     {
                         std::this_thread::yield();
                         std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -936,6 +944,7 @@ class SharedMemoryCleanupManager final {
                 if (signals == 0)
                     continue;
 
+                bool first = true;
                 // Process all set bits (handle all pending signals)
                 for (std::size_t bitPos = 0; bitPos < SIGNALS.size(); ++bitPos)
                 {
@@ -945,8 +954,9 @@ class SharedMemoryCleanupManager final {
                     int signal = SIGNALS[bitPos];
 
                     if (signal_graceful(signal))
-                        // Perform safe partial cleanup (once per batch)
-                        SharedMemoryRegistry::cleanup(true);
+                        if (!cleanupDone.exchange(true, std::memory_order_acq_rel))
+                            // Perform safe partial cleanup (once per batch)
+                            SharedMemoryRegistry::cleanup(true);
 
                     // Restore default handler
                     struct sigaction sigAction{};
@@ -964,62 +974,75 @@ class SharedMemoryCleanupManager final {
                         _Exit(128 + signal);
                     }
 
-                    // Re-raise the first signal found
-                    ::raise(signal);
-                    // Fallback: In case ::raise() returns, exit with appropriate code
-                    _Exit(128 + signal);
+                    if (first)
+                    {
+                        first = false;
+                        // Re-raise the first signal found
+                        ::raise(signal);
+                        // Fallback: In case ::raise() returns, exit with appropriate code
+                        _Exit(128 + signal);
+                    }
                 }
             }
-        });
 
-        // Simple and safe: detach the monitor thread.
-        // Thread is designed to live for the lifetime of the program.
-        // No join is required since it only accesses static/global data.
-        //monitorThread.detach();
+            monitorThreadState.store(ThreadState::Shutdown, std::memory_order_release);
+        });
     }
 
     // Wake monitor thread
     static void wake_monitor_thread() noexcept {
-        int fd1 = signalPipeFds[1].load(std::memory_order_relaxed);
+        constexpr std::size_t MaxAttempt = 4;
+
+        int fd1 = signalPipeFds[1].load(std::memory_order_acquire);
         // Pipe not initialized, skip notification
         if (fd1 == -1)
             return;
 
-        char byte = 0;
-        // Best-effort wakeup
-        ssize_t r = write(fd1, &byte, 1);
-        if (r == -1 && errno != EAGAIN && errno != EINTR)
+        for (std::size_t attempt = 0;; ++attempt)
         {
-            write_to_stderr("Failed to wake monitor thread\n");
-        }
-    }
+            char byte = 0;
 
-    static void stop_monitor_thread() noexcept {
-        //DEBUG_LOG("Stopping shared memory cleanup monitor thread.");
-        // 1. Signal shutdown
-        shuttingDown.store(true, std::memory_order_release);
-        // 2. Wake monitor thread
-        wake_monitor_thread();
-        // 3. Join monitor thread (wait for exit)
-        if (monitorThread.joinable())
-            monitorThread.join();
+            ssize_t r = write(fd1, &byte, 1);
+            if (r != -1)
+                break;  // Success
+
+            if (attempt >= MaxAttempt)
+                break;
+            if (errno == EINTR)
+                continue;  // Retry
+            if (errno == EAGAIN)
+            {
+                std::this_thread::yield();
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                continue;
+            }
+            // Unexpected error: print once, then stop trying
+            write_to_stderr("Failed to wake monitor thread\n");
+            break;
+        }
     }
 
     static void cleanup_on_exit() noexcept {
         //DEBUG_LOG("SharedMemoryCleanupManager: Performing atexit cleanup.");
 
-        stop_monitor_thread();
+        monitorThreadState.store(ThreadState::Shutdown, std::memory_order_release);
+
+        wake_monitor_thread();  // unblock read
+
+        if (monitorThread.joinable())
+            monitorThread.join();
 
         close_signal_pipe();
 
+        //if (!cleanupDone.exchange(true, std::memory_order_acq_rel))
         SharedMemoryRegistry::cleanup();
     }
 
     static void close_signal_pipe() noexcept {
 
         // 1. Close pipe safely
-        int fd0 = signalPipeFds[0].load(std::memory_order_relaxed);
-        int fd1 = signalPipeFds[1].load(std::memory_order_relaxed);
+        int fd0 = signalPipeFds[0].load(std::memory_order_acquire);
+        int fd1 = signalPipeFds[1].load(std::memory_order_acquire);
         if (fd0 != -1)
             close(fd0);
         if (fd1 != -1)
@@ -1030,13 +1053,13 @@ class SharedMemoryCleanupManager final {
     }
 
     static void reset_signal_pipe() noexcept {
-        signalPipeFds[0].store(-1, std::memory_order_relaxed);
-        signalPipeFds[1].store(-1, std::memory_order_relaxed);
+        signalPipeFds[0].store(-1, std::memory_order_release);
+        signalPipeFds[1].store(-1, std::memory_order_release);
     }
 
     static bool valid_signal_pipe() noexcept {
-        return signalPipeFds[0].load(std::memory_order_relaxed) != -1
-            && signalPipeFds[1].load(std::memory_order_relaxed) != -1;
+        return signalPipeFds[0].load(std::memory_order_acquire) != -1
+            && signalPipeFds[1].load(std::memory_order_acquire) != -1;
     }
 
     // Map signal numbers to bit positions (0-11 for your 12 signals)
@@ -1073,6 +1096,15 @@ class SharedMemoryCleanupManager final {
     SharedMemoryCleanupManager& operator=(const SharedMemoryCleanupManager&) noexcept = delete;
     SharedMemoryCleanupManager& operator=(SharedMemoryCleanupManager&&) noexcept      = delete;
 
+    // Thread state machine:
+    // NotStarted -> Running (on thread creation)
+    // Running -> Shutdown (on thread exit OR atexit cleanup)
+    enum class ThreadState : std::uint8_t {
+        NotStarted,
+        Running,
+        Shutdown
+    };
+
     // All handled signals, available at compile-time
     static constexpr StdArray<int, 12> SIGNALS{SIGHUP,  SIGINT,  SIGQUIT, SIGILL, SIGABRT, SIGFPE,
                                                SIGSEGV, SIGTERM, SIGBUS,  SIGSYS, SIGXCPU, SIGXFSZ};
@@ -1080,10 +1112,11 @@ class SharedMemoryCleanupManager final {
     static constexpr int INVALID_SIGNAL = -1;
 
     static inline CallOnce                      callOnce;
-    static inline std::atomic<bool>             shuttingDown{false};
     static inline std::atomic<std::uint64_t>    pendingSignals{0};
     static inline StdArray<std::atomic<int>, 2> signalPipeFds{-1, -1};
+    static inline std::atomic<ThreadState>      monitorThreadState{ThreadState::NotStarted};
     static inline std::thread                   monitorThread;
+    static inline std::atomic<bool>             cleanupDone{false};
 };
 
 struct MutexAttrGuard final {
