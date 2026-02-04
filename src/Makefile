@@ -148,8 +148,8 @@ ifeq ($(ARCH), $(filter $(ARCH), \
                  x86-64-avx512-comp x86-64-avx512 x86-64-avxvnni-comp x86-64-avxvnni x86-64-bmi2-comp x86-64-bmi2 \
                  x86-64-avx2 x86-64-sse41-popcnt x86-64-modern x86-64-sse41 x86-64-ssse3-popcnt x86-64-ssse3 x86-64 general-64 \
                  x86-32-sse41-popcnt x86-32-sse41 x86-32-sse2-popcnt x86-32-sse2 x86-32-popcnt x86-32 general-32 \
-                 ppc-64-altivec ppc-64-vsx ppc-64 ppc-32 e2k armv7 armv7-neon armv8 armv8-dotprod apple-silicon riscv64 \
-                 loongarch64 loongarch64-lsx loongarch64-lasx))
+                 ppc-64-altivec ppc-64-vsx ppc-64 ppc-32 e2k armv7-neon armv7 armv8-dotprod armv8 apple-silicon riscv64 \
+                 loongarch64-lasx loongarch64-lsx loongarch64))
    SUPPORTED_ARCH = yes
 else
    SUPPORTED_ARCH = no
@@ -982,7 +982,7 @@ help:
 	echo "make -j profile-build ARCH=x86-64-avxvnni COMP=gcc COMPCXX=g++-12.0" && \
 	echo "make -j build ARCH=x86-64-ssse3 COMP=clang" && \
 	echo ""
-ifneq ($(SUPPORTED_ARCH), yes)
+ifeq ($(SUPPORTED_ARCH), no)
 	@echo "Specify a supported architecture with the ARCH option for more details"
 	@echo ""
 endif
