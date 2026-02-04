@@ -669,7 +669,7 @@ class SharedMemoryRegistry final {
 
         DEBUG_LOG("Registered shared memories (insertion order) [" << registryMap.size() << "]:");
         [[maybe_unused]] std::size_t i = 0;
-        for (auto* sharedMemory : orderedList)
+        for ([[maybe_unused]] auto* sharedMemory : orderedList)
             DEBUG_LOG("[" << i++ << "] "
                           << (sharedMemory != nullptr ? sharedMemory->name_() : "<NULL>"));
         DEBUG_LOG("");
