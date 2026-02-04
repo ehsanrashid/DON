@@ -25,7 +25,6 @@
 #include <cstdio>
 #include <functional>
 #include <iomanip>
-#include <iostream>
 #include <memory>
 #include <new>
 #include <sstream>
@@ -34,6 +33,7 @@
 #include <type_traits>
 #include <utility>
 #include <variant>
+#include <iostream>  // Only in DEBUG
 
 #if defined(_WIN32)
     // Standard portable pattern for spin-wait / CPU pause hint
@@ -667,13 +667,12 @@ class SharedMemoryRegistry final {
         // Acquire shared lock to safely read the registry without blocking writers
         std::shared_lock readLock(sharedMutex);
 
-        std::cout << "Registered shared memories (insertion order) [" << registryMap.size()
-                  << "]:\n";
+        DEBUG_LOG("Registered shared memories (insertion order) [" << registryMap.size() << "]:");
         std::size_t i = 0;
         for (auto* sharedMemory : orderedList)
-            std::cout << "[" << i++ << "] "
-                      << (sharedMemory != nullptr ? sharedMemory->name_() : "<NULL>") << "\n";
-        std::cout << std::endl;
+            DEBUG_LOG("[" << i++ << "] "
+                          << (sharedMemory != nullptr ? sharedMemory->name_() : "<NULL>"));
+        DEBUG_LOG("");
     }
 
    private:
@@ -2060,10 +2059,6 @@ struct SystemWideSharedMemory final {
 
         std::string shmName{"DON_"};
 
-#if !(defined(_WIN32) || (defined(__linux__) && !defined(__ANDROID__)))
-        // Do nothing special on Android, just use a fixed name
-        ;
-#else
         // Create a unique name based on the value, executable path, and discriminator
         // 3 hex digits per 64-bit part + 2 dollar signs + null terminator
         constexpr std::size_t BufferSize = 3 * HEX64_SIZE + 2 + 1;
@@ -2107,15 +2102,11 @@ struct SystemWideSharedMemory final {
 
         shmName += hashName;
 
-    #if defined(_WIN32)
-        constexpr std::size_t MaxNameSize = 255 - 1;
-    #elif defined(__linux__) && !defined(__ANDROID__)
+#if defined(__linux__) && !defined(__ANDROID__)
         // POSIX APIs expect a fixed-size C string where the maximum length excluding the terminating null character ('\0').
         // Since std::string::size() does not include '\0', allow at most (MAX - 1) characters
         // to guarantee space for the terminator ('\0') in fixed-size buffers.
         constexpr std::size_t MaxNameSize = SHM_NAME_MAX_SIZE > 0 ? SHM_NAME_MAX_SIZE - 1 : 255 - 1;
-    #endif
-
         // Truncate the name if necessary so that it fits within limits including the null terminator
         if (shmName.size() > MaxNameSize)
             shmName.resize(MaxNameSize);
