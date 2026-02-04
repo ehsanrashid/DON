@@ -135,7 +135,7 @@ match_any_flags() {
 
 # SSE3 is often exposed as "pni" in /proc/cpuinfo.
 match_ssse3() {
-  match_any_flags ssse3 pni
+  match_any_flags sse3 pni
 }
 
 match_ssse3_popcnt() {
@@ -198,11 +198,13 @@ set_arch_x86_64() {
 x86-64-avx512icl|match_flags|avx512f avx512cd avx512vl avx512dq avx512bw avx512ifma avx512vbmi avx512vbmi2 avx512vpopcntdq avx512bitalg avx512vnni vpclmulqdq gfni vaes
 x86-64-vnni512|match_flags|avx512vnni avx512dq avx512f avx512bw avx512vl
 x86-64-avx512|match_flags|avx512f avx512bw
+x86-64-avxvnni-comp|match_flags|avxvnni comp
 x86-64-avxvnni|match_flags|avxvnni
+x86-64-bmi2-comp|match_not_znver12_and_flags|bmi2 comp
 x86-64-bmi2|match_not_znver12_and_flags|bmi2
 x86-64-avx2|match_flags|avx2
 x86-64-sse41-popcnt|match_flags|sse41 popcnt
-x86-64-sse3-popcnt|match_ssse3_popcnt|
+x86-64-ssse3-popcnt|match_ssse3_popcnt|
 x86-64-ssse3|match_ssse3|
 x86-64|match_true|
 EOF
@@ -213,10 +215,8 @@ set_arch_x86_32() {
   true_arch=$(
     select_arch_from_table <<'EOF'
 x86-32-sse41-popcnt|match_flags|sse41 popcnt
-#x86-32-sse41|match_flags|sse41
-x86-32-sse2-popcnt|match_flags|sse2 popcnt
-#x86-32-sse2|match_flags|sse2
-x86-32-popcnt|match_flags|popcnt
+x86-32-sse41|match_flags|sse41
+x86-32-sse2|match_flags|sse2
 x86-32|match_true|
 EOF
   )
