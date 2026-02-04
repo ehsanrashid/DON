@@ -36,7 +36,7 @@
 #include <variant>
 #include <vector>
 
-#if defined(_WIN32)
+#if defined(_WIN32) || defined(_WIN64)
     #if !defined(NOMINMAX)
         #define NOMINMAX  // Disable min()/max() macros
     #endif
@@ -80,7 +80,9 @@ inline CpuIndex hardware_concurrency() noexcept {
     // ::hardware_concurrency() only returns the number of processors in
     // the first group, because only these are available to std::thread.
 #if defined(_WIN64)
-    concurrency = std::max<CpuIndex>(concurrency, GetActiveProcessorCount(ALL_PROCESSOR_GROUPS));
+    DWORD ActiveProcCount = GetActiveProcessorCount(ALL_PROCESSOR_GROUPS);
+    if (concurrency < ActiveProcCount)
+        concurrency = ActiveProcCount;
 #endif
 
     return concurrency;
@@ -89,7 +91,6 @@ inline CpuIndex hardware_concurrency() noexcept {
 inline const CpuIndex SYSTEM_THREADS_NB = std::max(int(hardware_concurrency()), 1);
 
 #if defined(_WIN64)
-
 inline constexpr LPCSTR MODULE_NAME = TEXT("kernel32.dll");
 
 // On Windows each processor group can have up to 64 processors.
@@ -463,9 +464,7 @@ std::unordered_set<CpuIndex> read_cache_members(const T* processorInfo,
 
     return cpus;
 }
-
 #elif defined(__linux__) && !defined(__ANDROID__)
-
 inline std::unordered_set<CpuIndex> get_process_affinity() noexcept {
 
     std::unordered_set<CpuIndex> cpus;
@@ -514,7 +513,6 @@ inline std::unordered_set<CpuIndex> get_process_affinity() noexcept {
 }
 
 inline const auto STARTUP_PROCESSOR_AFFINITY = get_process_affinity();
-
 #endif
 
 // Want to abstract the purpose of storing the numa node index somewhat.
@@ -881,7 +879,6 @@ class NumaConfig final {
             std::exit(EXIT_FAILURE);
 
 #if defined(_WIN64)
-
         // Requires Windows 11. No good way to set thread affinity spanning processor groups before that.
         HMODULE hModule = GetModuleHandle(MODULE_NAME);
 
@@ -967,9 +964,7 @@ class NumaConfig final {
             // This is defensive, allowed because this code is not performance critical.
             SwitchToThread();
         }
-
 #elif defined(__linux__) && !defined(__ANDROID__)
-
         cpu_set_t* cpuMask = CPU_ALLOC(maxCpuId + 1);
 
         if (cpuMask == nullptr)
@@ -994,7 +989,6 @@ class NumaConfig final {
         // Yield this thread just to be sure it gets rescheduled.
         // This is defensive, allowed because this code is not performance critical.
         sched_yield();
-
 #endif
 
         return NumaReplicatedAccessToken(numaId);
@@ -1057,7 +1051,6 @@ class NumaConfig final {
         NumaConfig numaCfg = empty();
 
 #if defined(_WIN64)
-
         WORD ActiveProcGroupCount = GetActiveProcessorGroupCount();
 
         for (WORD groupId = 0; groupId < ActiveProcGroupCount; ++groupId)
@@ -1085,9 +1078,7 @@ class NumaConfig final {
                 }
             }
         }
-
 #elif defined(__linux__) && !defined(__ANDROID__)
-
         // On Linux things are straightforward, since there's no processor groups
         // and any thread can be scheduled on all processors.
         // Try to gather this information from the sysfs first
@@ -1144,7 +1135,6 @@ class NumaConfig final {
                 if (is_cpu_allowed(cpuId))
                     numaCfg.add_cpu_to_node(NumaIndex{0}, cpuId);
         }
-
 #endif
 
         return numaCfg;

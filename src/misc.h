@@ -26,8 +26,8 @@
 #include <charconv>
 #include <chrono>
 #include <cinttypes>
-#include <cstdint>
 #include <cstddef>
+#include <cstdint>
 #include <cstdio>
 #include <cstring>
 #include <exception>  // IWYU pragma: keep
