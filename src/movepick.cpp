@@ -135,7 +135,7 @@ void partial_insertion_sort(Iterator RESTRICT beg,
 }
 
 template<typename Iterator>
-inline void stable_sort_adaptive(Iterator beg, Iterator end) noexcept {
+ALWAYS_INLINE void adaptive_stable_sort(Iterator beg, Iterator end) noexcept {
     if (std::size_t(end - beg) <= INSERTION_SORT_THRESHOLD)
         insertion_sort(beg, end);
     else
@@ -214,7 +214,7 @@ void MovePicker::init_stage() noexcept {
     cur    = moves.data();
     endCur = score(moveList);
 
-    stable_sort_adaptive(cur, endCur);
+    adaptive_stable_sort(cur, endCur);
 }
 
 // Assigns a numerical value to each move in a list, used for sorting.
@@ -462,7 +462,7 @@ STAGE_SWITCH:
             cur    = begBadQuiet;
             endCur = endBadQuiet;
 
-            stable_sort_adaptive(cur, endCur);
+            adaptive_stable_sort(cur, endCur);
         }
 
         curStage = Stage::ENC_BAD_QUIET;

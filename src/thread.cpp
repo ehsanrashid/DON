@@ -110,7 +110,7 @@ Thread::~Thread() noexcept {
 //   - Waits on the condition variable until the new thread reports itself idle (busy == false),
 //     and ready to accept jobs, ensuring that the thread is fully initialized before returning.
 void Thread::start() noexcept {
-    std::unique_lock lock(mutex);
+    std::unique_lock condLock(mutex);
 
     // If thread is already running, do nothing
     if (nativeThread.joinable())
@@ -124,14 +124,14 @@ void Thread::start() noexcept {
     nativeThread = NativeThread(&Thread::idle_func, this);
 
     // Wait until the new thread reaches idle
-    condVar.wait(lock, [this] { return !busy; });
+    condVar.wait(condLock, [this] { return !busy; });
 }
 
 // Safely terminates the thread by setting the 'dead' flag,
 // waking it if necessary, and joining the native thread.
 void Thread::terminate() noexcept {
     {
-        std::scoped_lock lock(mutex);
+        std::lock_guard writeLock(mutex);
 
         dead = true;
     }
@@ -153,7 +153,7 @@ void Thread::idle_func() noexcept {
 
     while (true)
     {
-        std::unique_lock lock(mutex);
+        std::unique_lock condLock(mutex);
 
         // Mark thread as idle now.
         // Any thread trying to schedule work will see busy = false.
@@ -166,7 +166,7 @@ void Thread::idle_func() noexcept {
         // Wait until either:
         // 1) A new job is scheduled (busy == true), or
         // 2) The thread is being stopped (dead == true)
-        condVar.wait(lock, [this] { return busy || dead; });
+        condVar.wait(condLock, [this] { return busy || dead; });
 
         // If thread is being torn down, exit immediately.
         if (dead)
@@ -180,7 +180,7 @@ void Thread::idle_func() noexcept {
 
         // Unlock before executing the job to allow other threads
         // to schedule work or shut down concurrently.
-        lock.unlock();
+        condLock.unlock();
 
         // Execute the job outside the lock to avoid holding the mutex
         // for the duration of potentially long-running work.

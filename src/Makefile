@@ -148,8 +148,8 @@ ifeq ($(ARCH), $(filter $(ARCH), \
                  x86-64-avx512-comp x86-64-avx512 x86-64-avxvnni-comp x86-64-avxvnni x86-64-bmi2-comp x86-64-bmi2 \
                  x86-64-avx2 x86-64-sse41-popcnt x86-64-modern x86-64-sse41 x86-64-ssse3-popcnt x86-64-ssse3 x86-64 general-64 \
                  x86-32-sse41-popcnt x86-32-sse41 x86-32-sse2-popcnt x86-32-sse2 x86-32-popcnt x86-32 general-32 \
-                 ppc-64-altivec ppc-64-vsx ppc-64 ppc-32 e2k armv7 armv7-neon armv8 armv8-dotprod apple-silicon riscv64 \
-                 loongarch64 loongarch64-lsx loongarch64-lasx))
+                 ppc-64-altivec ppc-64-vsx ppc-64 ppc-32 e2k armv7-neon armv7 armv8-dotprod armv8 apple-silicon riscv64 \
+                 loongarch64-lasx loongarch64-lsx loongarch64))
    SUPPORTED_ARCH = yes
 else
    SUPPORTED_ARCH = no
@@ -726,24 +726,10 @@ ifeq ($(popcnt), yes)
 endif
 
 ### 3.6 SIMD architectures
-ifeq ($(avx2), yes)
-    CXXFLAGS += -DUSE_AVX2
+ifeq ($(avx512icl), yes)
+    CXXFLAGS += -DUSE_AVX512ICL
     ifeq ($(comp), $(filter $(comp), gcc clang mingw icx))
-        CXXFLAGS += -mavx2 -mbmi
-    endif
-endif
-
-ifeq ($(avxvnni), yes)
-    CXXFLAGS += -DUSE_AVXVNNI -DUSE_VNNI
-    ifeq ($(comp), $(filter $(comp), gcc clang mingw icx))
-        CXXFLAGS += -mavxvnni
-    endif
-endif
-
-ifeq ($(avx512), yes)
-    CXXFLAGS += -DUSE_AVX512
-    ifeq ($(comp), $(filter $(comp), gcc clang mingw icx))
-        CXXFLAGS += -mavx512f -mavx512bw -mavx512dq -mavx512vl
+        CXXFLAGS += -mavx512f -mavx512cd -mavx512vl -mavx512dq -mavx512bw -mavx512ifma -mavx512vbmi -mavx512vbmi2 -mavx512vpopcntdq -mavx512bitalg -mavx512vnni -mvpclmulqdq -mgfni -mvaes
     endif
 endif
 
@@ -754,10 +740,24 @@ ifeq ($(vnni512), yes)
     endif
 endif
 
-ifeq ($(avx512icl), yes)
-    CXXFLAGS += -DUSE_AVX512ICL -DUSE_AVX512 -DUSE_VNNI
+ifeq ($(avx512), yes)
+    CXXFLAGS += -DUSE_AVX512
     ifeq ($(comp), $(filter $(comp), gcc clang mingw icx))
-        CXXFLAGS += -mavx512f -mavx512cd -mavx512vl -mavx512dq -mavx512bw -mavx512ifma -mavx512vbmi -mavx512vbmi2 -mavx512vpopcntdq -mavx512bitalg -mavx512vnni -mvpclmulqdq -mgfni -mvaes
+        CXXFLAGS += -mavx512f -mavx512bw -mavx512dq -mavx512vl
+    endif
+endif
+
+ifeq ($(avxvnni), yes)
+    CXXFLAGS += -DUSE_AVXVNNI -DUSE_VNNI
+    ifeq ($(comp), $(filter $(comp), gcc clang mingw icx))
+        CXXFLAGS += -mavxvnni
+    endif
+endif
+
+ifeq ($(avx2), yes)
+    CXXFLAGS += -DUSE_AVX2
+    ifeq ($(comp), $(filter $(comp), gcc clang mingw icx))
+        CXXFLAGS += -mavx2 -mbmi
     endif
 endif
 
@@ -982,11 +982,10 @@ help:
 	echo "make -j profile-build ARCH=x86-64-avxvnni COMP=gcc COMPCXX=g++-12.0" && \
 	echo "make -j build ARCH=x86-64-ssse3 COMP=clang" && \
 	echo ""
-ifneq ($(SUPPORTED_ARCH), yes)
-	@echo "Specify a supported architecture with the ARCH option for more details"
-	@echo ""
-endif
-
+	@if [ "$(SUPPORTED_ARCH)" = "no" ]; then \
+		echo "Specify a supported architecture with the ARCH option for more details"; \
+		echo ""; \
+	fi
 
 .PHONY: help analyze build profile-build strip install clean \
 	objclean profileclean net config-sanity FORCE \

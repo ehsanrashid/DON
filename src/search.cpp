@@ -694,12 +694,14 @@ void Worker::iterative_deepening() noexcept {
                 nodeEffortExcess = 0.0;
             double nodeEffortFactor = 1.0 - 37.5207e-4 * nodeEffortExcess;
 
+            if (stableDepth > 25)
+                stableDepth = 25;
             // Compute recapture factor that reduces time if recapture conditions are met
             double recaptureFactor = 1.0;
             if ( rootPos.captured_sq() == rootMoves[0].pv[0].dst_sq()
              && (rootPos.captured_sq() & rootPos.pieces_bb(~ac))
              && rootPos.see(rootMoves[0].pv[0]) >= 200)
-                recaptureFactor -= 4.0040e-3 * std::min(+stableDepth, 25);
+                recaptureFactor -= 4.0040e-3 * int(stableDepth);
 
             // Calculate total time by combining all factors with the optimum time
             TimePoint totalTime = mainManager->timeManager.optimum() * inconsistencyFactor * easeFactor * instabilityFactor * nodeEffortFactor * recaptureFactor;
@@ -2579,7 +2581,7 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
 }
 
 void MainSearchManager::set_ponder(bool pond) noexcept {
-    std::lock_guard lock(mutex);
+    std::lock_guard writeLock(mutex);
 
     ponder = pond;
 

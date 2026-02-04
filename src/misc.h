@@ -399,7 +399,6 @@ struct LazyValue final {
 class OstreamMutexRegistry final {
    public:
     static void ensure_initialized() noexcept {
-
         callOnce([]() noexcept {
             constexpr std::size_t ReserveCount = 16;
             constexpr float       LoadFactor   = 1.0f;
@@ -422,7 +421,7 @@ class OstreamMutexRegistry final {
             return dummy_mutex();
 
         // Lock the registry while accessing the map
-        std::lock_guard lock(mutex);
+        std::lock_guard writeLock(mutex);
 
         // Creates default nullptr shared_ptr if missing
         auto& mutexPtr = osMutexes[osPtr];

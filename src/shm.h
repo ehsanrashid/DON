@@ -20,11 +20,9 @@
 
 #include <algorithm>
 #include <cinttypes>
-#include <climits>
 #include <cstddef>
 #include <cstdint>
-#include <cstring>
-#include <filesystem>
+#include <cstdio>
 #include <functional>
 #include <iomanip>
 #include <iostream>
@@ -72,13 +70,14 @@
     #include <cassert>
     #include <cerrno>
     #include <chrono>
+    #include <climits>
     #include <condition_variable>
+    #include <filesystem>
     #include <list>
     #include <mutex>
     #include <shared_mutex>
     #include <thread>
     #include <unordered_map>
-    #include <cstdio>
     #include <cstdlib>
     #include <dirent.h>
     #include <fcntl.h>
@@ -551,7 +550,6 @@ class SharedMemoryRegistry final {
    public:
     // Ensure internal containers are ready
     static void ensure_initialized() noexcept {
-
         callOnce([]() noexcept {
             constexpr std::size_t ReserveCount = 1024;
             constexpr float       LoadFactor   = 0.75f;
@@ -596,8 +594,14 @@ class SharedMemoryRegistry final {
             return;
         }
 
+        condLock.unlock();
+
         // Safe insertion under write-lock
         std::lock_guard writeLock(sharedMutex);
+
+        // RECHECK after acquiring registry lock
+        if (cleanup_in_progress())
+            return;
 
         insert_memory_nolock(sharedMemory);
     }
@@ -624,6 +628,9 @@ class SharedMemoryRegistry final {
     //    iterators or causing race conditions.
     //  - Notifies all threads waiting on registration that cleanup is complete.
     static void cleanup(bool skipUnmapRegion = false) noexcept {
+        if (!callOnce.initialized())
+            ensure_initialized();
+
         // Mark cleanup as in-progress so other threads know not to register new memory
         cleanUpInProgress.store(true, std::memory_order_release);
 
@@ -633,9 +640,18 @@ class SharedMemoryRegistry final {
 
             // Move all registered shared memories into local list to allow safe iteration
             // and prevent iterator invalidation if close() triggers unregistration.
-            copiedOrderedList = std::move(orderedList);
-            orderedList.clear();
-            registryMap.clear();
+            if (skipUnmapRegion)
+            {
+                // Partial cleanup: just snapshot, keep registries intact
+                copiedOrderedList = orderedList;
+            }
+            else
+            {
+                // Full cleanup: take ownership and clear registries
+                copiedOrderedList = std::move(orderedList);
+                orderedList.clear();
+                registryMap.clear();
+            }
         }
 
         // Safe to iterate and close memory without holding the lock in true insertion order
@@ -676,33 +692,51 @@ class SharedMemoryRegistry final {
     SharedMemoryRegistry& operator=(SharedMemoryRegistry&&) noexcept      = delete;
 
     static bool insert_memory_nolock(SharedMemoryPtr sharedMemory) noexcept {
-        // Only insert if not present.
-        // orderedList.end() is not the real iterator; it’s a placeholder.
+        // Fast-path insert with a single registry lookup.
+        //
+        // - Insert into the map using a placeholder iterator (orderedList.end()).
+        //   This reserves the key and detects duplicates without touching the list.
+        // - Create the actual list node to preserve insertion order.
+        // - Patch the map entry with the real list iterator.
+        //
+        // This two-phase approach avoids a second map lookup and keeps
+        // map ↔ list consistency explicit and efficient.
         auto [insertReg, inserted] = registryMap.emplace(sharedMemory, orderedList.end());
+        // Already registered -> don't insert
         if (!inserted)
             return false;
 
         //DEBUG_LOG("Registering shared memory: " << sharedMemory->name_());
 
+        // Append to the ordered list and obtain a stable list iterator
         auto insertId = orderedList.emplace(orderedList.end(), sharedMemory);
-
+        // Replace the placeholder with the real stable list iterator
         insertReg->second = insertId;
         return true;
     }
 
     static bool erase_memory_nolock(SharedMemoryPtr sharedMemory) noexcept {
-        // Only erase if already present
+        // Fast-path erase using the registry lookup.
+        //
+        // The map stores a direct iterator into the ordered list, allowing
+        // O(1) removal from both containers without searching the list.
         auto eraseReg = registryMap.find(sharedMemory);
+        // Not registered -> nothing to erase
         if (eraseReg == registryMap.end())
             return false;
 
         //DEBUG_LOG("Unregistering shared memory: " << sharedMemory->name_());
 
+        // Retrieve the stable list iterator associated with this entry
         auto eraseId = eraseReg->second;
-
+        // Internal consistency check:
+        //  - list must not be empty
+        //  - iterator must be valid
         assert(!orderedList.empty() && eraseId != orderedList.end());
 
+        // Remove from the ordered list first (iterator remains valid until erased)
         orderedList.erase(eraseId);
+        // Remove the corresponding registry entry
         registryMap.erase(eraseReg);
         return true;
     }
@@ -756,8 +790,8 @@ class SharedMemoryCleanupManager final {
             //DEBUG_LOG("Initializing SharedMemoryCleanupManager.");
 
             // 1. Create async-signal-safe pipe
-            int  pipeFds[2];
-            bool pipeOk = true;
+            int  pipeFds[2]{-1, -1};  // initialize to -1 for safety
+            bool pipeInvalid = true;
     #if defined(__linux__)
             // Linux: use pipe2 (atomic)
             if (pipe2(pipeFds, O_CLOEXEC | O_NONBLOCK) != 0)
@@ -768,26 +802,33 @@ class SharedMemoryCleanupManager final {
             {
                 //DEBUG_LOG("Failed to create signal pipe, error = " << std::strerror(errno));
 
-                close(pipeFds[0]);
-                close(pipeFds[1]);
-                pipeOk = false;
+                pipeInvalid = false;
+
+                if (pipeFds[0] != -1)
+                    close(pipeFds[0]);
+                if (pipeFds[1] != -1)
+                    close(pipeFds[1]);
             }
     #if !defined(__linux__)
             // Set flags manually (portable alternative to pipe2)
-            if (fcntl(pipeFds[0], F_SETFD, FD_CLOEXEC) == -1     //
-                || fcntl(pipeFds[1], F_SETFD, FD_CLOEXEC) == -1  //
-                || fcntl(pipeFds[0], F_SETFL, O_NONBLOCK) == -1  //
-                || fcntl(pipeFds[1], F_SETFL, O_NONBLOCK) == -1)
+            if (!pipeInvalid
+                && (fcntl(pipeFds[0], F_SETFD, FD_CLOEXEC) == -1     //
+                    || fcntl(pipeFds[1], F_SETFD, FD_CLOEXEC) == -1  //
+                    || fcntl(pipeFds[0], F_SETFL, O_NONBLOCK) == -1  //
+                    || fcntl(pipeFds[1], F_SETFL, O_NONBLOCK) == -1))
             {
                 //DEBUG_LOG("Failed to set pipe flags, error = " << std::strerror(errno));
 
-                close(pipeFds[0]);
-                close(pipeFds[1]);
-                pipeOk = false;
+                pipeInvalid = false;
+
+                if (pipeFds[0] != -1)
+                    close(pipeFds[0]);
+                if (pipeFds[1] != -1)
+                    close(pipeFds[1]);
             }
     #endif
             // Store signal pipe fds atomically
-            if (pipeOk)
+            if (!pipeInvalid)
             {
                 signalPipeFds[0].store(pipeFds[0], std::memory_order_release);
                 signalPipeFds[1].store(pipeFds[1], std::memory_order_release);
@@ -832,11 +873,8 @@ class SharedMemoryCleanupManager final {
         for (int signal : SIGNALS)
         {
             struct sigaction sigAction{};
-
             sigAction.sa_handler = signal_handler;
-
             sigemptyset(&sigAction.sa_mask);
-
             // Choose flags depending on signal type
             switch (signal)
             {
@@ -916,7 +954,7 @@ class SharedMemoryCleanupManager final {
         monitorThread = std::thread([]() noexcept {
             FlagsGuard pendingSignalsGuard(pendingSignals);
 
-            while (monitorThreadState.load(std::memory_order_acquire) == ThreadState::Running)
+            while (monitorThreadState.load(std::memory_order_acquire) != ThreadState::Shutdown)
             {
                 // Pipe closed, exit thread
                 int fd0 = signalPipeFds[0].load(std::memory_order_acquire);
@@ -958,8 +996,8 @@ class SharedMemoryCleanupManager final {
                 if (signals == 0)
                     continue;
 
+                // Process all pending signals for cleanup, but only re-raise the first one
                 bool first = true;
-                // Process all set bits (handle all pending signals)
                 for (std::size_t bitPos = 0; bitPos < SIGNALS.size(); ++bitPos)
                 {
                     if ((signals & bit(bitPos)) == 0)
@@ -974,31 +1012,34 @@ class SharedMemoryCleanupManager final {
 
                     // Restore default handler
                     struct sigaction sigAction{};
-
                     sigAction.sa_handler = SIG_DFL;
-
                     sigemptyset(&sigAction.sa_mask);
-
                     sigAction.sa_flags = 0;
 
                     if (sigaction(signal, &sigAction, nullptr) != 0)
                     {
                         //DEBUG_LOG("Failed to restore default handler for signal " << signal << ", error = " << std::strerror(errno));
-                        // Exit with appropriate code
+
+                        // Exit with appropriate exit code
                         _Exit(128 + signal);
                     }
 
+                    // Only re-raise the first signal found
                     if (first)
                     {
+                        //DEBUG_LOG("Re-raise for signal " << signal);
+
                         first = false;
-                        // Re-raise the first signal found
+                        // Re-raise
                         ::raise(signal);
-                        // Fallback: In case ::raise() returns, exit with appropriate code
+                        // Fallback exit if ::raise() returns, ensures proper termination with appropriate exit code intentionally
                         _Exit(128 + signal);
                     }
                 }
             }
 
+            // "Final publish" pattern
+            // Publish final stopped state, regardless of whether it was told to shutdown early or finished naturally
             monitorThreadState.store(ThreadState::Shutdown, std::memory_order_release);
         });
     }
@@ -1039,6 +1080,7 @@ class SharedMemoryCleanupManager final {
     static void cleanup_on_exit() noexcept {
         //DEBUG_LOG("SharedMemoryCleanupManager: Performing atexit cleanup.");
 
+        // No more work is allowed, monitor thread must stop as soon as possible
         monitorThreadState.store(ThreadState::Shutdown, std::memory_order_release);
 
         wake_monitor_thread();  // unblock read

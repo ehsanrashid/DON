@@ -19,6 +19,7 @@
 #define NUMA_H_INCLUDED
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
@@ -581,15 +582,11 @@ class NumaConfig final {
         NumaConfig numaCfg = empty();
 
 #if !(defined(_WIN64) || (defined(__linux__) && !defined(__ANDROID__)))
-
         // Fallback for unsupported systems
         for (CpuIndex cpuId = 0; cpuId < SYSTEM_THREADS_NB; ++cpuId)
             numaCfg.add_cpu_to_node(NumaIndex{0}, cpuId);
-
 #else
-
     #if defined(_WIN64)
-
         std::optional<std::unordered_set<CpuIndex>> allowedCpus;
 
         if (respectProcessAffinity)
@@ -602,9 +599,7 @@ class NumaConfig final {
         auto is_cpu_allowed = [&allowedCpus](CpuIndex cpuId) noexcept {
             return !allowedCpus.has_value() || allowedCpus->count(cpuId) == 1;
         };
-
     #elif defined(__linux__) && !defined(__ANDROID__)
-
         std::unordered_set<CpuIndex> allowedCpus;
 
         if (respectProcessAffinity)
@@ -613,7 +608,6 @@ class NumaConfig final {
         auto is_cpu_allowed = [respectProcessAffinity, &allowedCpus](CpuIndex cpuId) noexcept {
             return !respectProcessAffinity || allowedCpus.count(cpuId) == 1;
         };
-
     #endif
 
         bool l3Success = false;
@@ -689,7 +683,6 @@ class NumaConfig final {
             numaCfg = std::move(splitNumaCfg);
         }
     #endif
-
 #endif
 
         // Have to ensure no empty NUMA nodes persist.
@@ -1168,7 +1161,6 @@ class NumaConfig final {
         std::vector<L3Domain> l3Domains;
 
 #if defined(_WIN64)
-
         DWORD bufSize = 0;
 
         GetLogicalProcessorInformationEx(RelationCache, nullptr, &bufSize);
@@ -1206,9 +1198,7 @@ class NumaConfig final {
             processorInfo = reinterpret_cast<SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*>(
               reinterpret_cast<char*>(processorInfo) + processorInfo->Size);
         }
-
 #elif defined(__linux__) && !defined(__ANDROID__)
-
         std::unordered_set<CpuIndex> seenCpus;
 
         auto next_unseen_cpu_id = [&seenCpus]() noexcept {
@@ -1247,7 +1237,6 @@ class NumaConfig final {
             if (!l3Domain.cpus.empty())
                 l3Domains.emplace_back(std::move(l3Domain));
         }
-
 #endif
 
         if (!l3Domains.empty())
@@ -1539,7 +1528,7 @@ class LazyNumaReplicated final: public BaseNumaReplicated {
 
         assert(numaId != 0);
 
-        std::unique_lock lock(mutex);
+        std::lock_guard writeLock(mutex);
 
         // Check again for races.
         if (instances[numaId] != nullptr)
@@ -1688,7 +1677,7 @@ class SystemWideLazyNumaReplicated final: public BaseNumaReplicated {
 
         assert(numaId != 0);
 
-        std::unique_lock lock(mutex);
+        std::lock_guard writeLock(mutex);
 
         // Check again for races.
         if (instances[numaId] != nullptr)
@@ -1727,8 +1716,8 @@ class SystemWideLazyNumaReplicated final: public BaseNumaReplicated {
         }
     }
 
-    mutable std::vector<SystemWideSharedMemory<T>> instances;
     mutable std::mutex                             mutex;
+    mutable std::vector<SystemWideSharedMemory<T>> instances;
 };
 
 class NumaReplicationContext final {
