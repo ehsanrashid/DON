@@ -942,9 +942,7 @@ help:
 	echo "general-64              > unspecified 64-bit" && \
 	echo "x86-32-sse41-popcnt     > x86 32-bit with sse41 and popcnt support" && \
 	echo "x86-32-sse41            > x86 32-bit with sse41 support" && \
-	echo "x86-32-sse2-popcnt      > x86 32-bit with sse2 and popcnt support" && \
 	echo "x86-32-sse2             > x86 32-bit with sse2 support" && \
-	echo "x86-32-popcnt           > x86 32-bit with popcnt support" && \
 	echo "x86-32                  > x86 32-bit generic (with mmx compile support)" && \
 	echo "general-32              > unspecified 32-bit" && \
 	echo "ppc-64-altivec          > PPC 64-bit with altivec support" && \

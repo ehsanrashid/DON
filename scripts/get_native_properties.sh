@@ -262,13 +262,13 @@ uname_m=$(uname -m 2>/dev/null)
 uname_s=${GP_UNAME_S:-$uname_s}
 uname_m=${GP_UNAME_M:-$uname_m}
 
-case $uname_s in
+case "$uname_s" in
   Darwin)
-    case $uname_m in
+    case "$uname_m" in
       arm64)
         true_arch='apple-silicon'
         ;;
-      x86_64)
+      x86_64|amd64)
         get_sysctl_flags
         set_arch_x86_64
         ;;
@@ -285,11 +285,11 @@ case $uname_s in
 
   Linux)
     get_flags
-    case $uname_m in
-      x86_64)
+    case "$uname_m" in
+      x86_64|amd64)
         set_arch_x86_64
         ;;
-      i?86)
+      i[3-6]86*)
         set_arch_x86_32
         ;;
       ppc64*)
@@ -303,7 +303,7 @@ case $uname_s in
         ;;
       armv5*|armv6*|armv7*|armv8l|arm*)
         arm_level=$(get_arm_level "$uname_m" || :)
-        case $arm_level in
+        case "$arm_level" in
           5|6)
             true_arch='general-32'
             ;;
