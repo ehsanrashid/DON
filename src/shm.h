@@ -631,9 +631,18 @@ class SharedMemoryRegistry final {
 
             // Move all registered shared memories into local list to allow safe iteration
             // and prevent iterator invalidation if close() triggers unregistration.
-            copiedOrderedList = std::move(orderedList);
-            orderedList.clear();
-            registryMap.clear();
+            if (skipUnmapRegion)
+            {
+                // Partial cleanup: just snapshot, keep registries intact
+                copiedOrderedList = orderedList;
+            }
+            else
+            {
+                // Full cleanup: take ownership and clear registries
+                copiedOrderedList = std::move(orderedList);
+                orderedList.clear();
+                registryMap.clear();
+            }
         }
 
         // Safe to iterate and close memory without holding the lock in true insertion order
@@ -830,11 +839,8 @@ class SharedMemoryCleanupManager final {
         for (int signal : SIGNALS)
         {
             struct sigaction sigAction{};
-
             sigAction.sa_handler = signal_handler;
-
             sigemptyset(&sigAction.sa_mask);
-
             // Choose flags depending on signal type
             switch (signal)
             {
@@ -879,7 +885,7 @@ class SharedMemoryCleanupManager final {
             return;
 
         // Set the signal bit
-        pendingSignals.fetch_or(bit(bitPos), std::memory_order_release);
+        pendingSignals.fetch_or(bit(bitPos), std::memory_order_relaxed);
 
         // Guard against uninitialized pipe before writing (Additional safety)
         int fd1 = signalPipeFds[1].load(std::memory_order_acquire);
@@ -914,7 +920,7 @@ class SharedMemoryCleanupManager final {
         monitorThread = std::thread([]() noexcept {
             FlagsGuard pendingSignalsGuard(pendingSignals);
 
-            while (monitorThreadState.load(std::memory_order_acquire) == ThreadState::Running)
+            while (monitorThreadState.load(std::memory_order_acquire) != ThreadState::Shutdown)
             {
                 // Pipe closed, exit thread
                 int fd0 = signalPipeFds[0].load(std::memory_order_acquire);
@@ -951,7 +957,7 @@ class SharedMemoryCleanupManager final {
 
                 // Get and clear all pending signals atomically
                 // Multiple signals of the same type are coalesced; all signals are processed in batches
-                std::uint64_t signals = pendingSignals.exchange(0, std::memory_order_acquire);
+                std::uint64_t signals = pendingSignals.exchange(0, std::memory_order_relaxed);
 
                 if (signals == 0)
                     continue;
@@ -972,11 +978,8 @@ class SharedMemoryCleanupManager final {
 
                     // Restore default handler
                     struct sigaction sigAction{};
-
                     sigAction.sa_handler = SIG_DFL;
-
                     sigemptyset(&sigAction.sa_mask);
-
                     sigAction.sa_flags = 0;
 
                     if (sigaction(signal, &sigAction, nullptr) != 0)
@@ -991,12 +994,15 @@ class SharedMemoryCleanupManager final {
                         first = false;
                         // Re-raise the first signal found
                         ::raise(signal);
-                        // Fallback: In case ::raise() returns, exit with appropriate code
-                        _Exit(128 + signal);
                     }
+
+                    // Fallback: In case ::raise() returns, intentionally exit with appropriate code
+                    _Exit(128 + signal);
                 }
             }
 
+            // "Final publish" pattern
+            // Publish final stopped state, regardless of whether it was told to shutdown early or finished naturally
             monitorThreadState.store(ThreadState::Shutdown, std::memory_order_release);
         });
     }
@@ -1037,6 +1043,7 @@ class SharedMemoryCleanupManager final {
     static void cleanup_on_exit() noexcept {
         //DEBUG_LOG("SharedMemoryCleanupManager: Performing atexit cleanup.");
 
+        // No more work is allowed, monitor thread must stop as soon as possible
         monitorThreadState.store(ThreadState::Shutdown, std::memory_order_release);
 
         wake_monitor_thread();  // unblock read

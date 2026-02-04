@@ -2581,7 +2581,7 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
 }
 
 void MainSearchManager::set_ponder(bool pond) noexcept {
-    std::lock_guard lock(mutex);
+    std::lock_guard writeLock(mutex);
 
     ponder = pond;
 

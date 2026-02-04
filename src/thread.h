@@ -264,12 +264,12 @@ class Thread final {
 // The actual job execution happens asynchronously in idle_func().
 inline void Thread::run_custom_job(JobFunc jobFn) noexcept {
     {
-        std::unique_lock lock(mutex);
+        std::unique_lock condLock(mutex);
 
         // Wait until the thread is idle or being terminated.
         // - If !busy, the thread is ready to accept a new job.
         // - If dead, the thread is shutting down, so we shouldn't schedule work.
-        condVar.wait(lock, [this] { return !busy || dead; });
+        condVar.wait(condLock, [this] { return !busy || dead; });
 
         // If the thread is still alive, schedule the job
         if (!dead)
@@ -308,9 +308,9 @@ inline void Thread::start_search() noexcept {
 
 // Blocks on the condition variable until the thread has finished job
 inline void Thread::wait_finish() noexcept {
-    std::unique_lock lock(mutex);
+    std::unique_lock condLock(mutex);
 
-    condVar.wait(lock, [this] { return !busy || dead; });
+    condVar.wait(condLock, [this] { return !busy || dead; });
 }
 
 // A list to keep track of the position states along the setup moves
@@ -471,7 +471,7 @@ class Threads final {
         // Try to acquire the main manager mutex to ensure the waiting thread
         // observes the updated state before it wakes.
         // If locking fails still notify — notify_one() is allowed without holding the lock.
-        std::unique_lock writeLock(mainManager->mutex, std::try_to_lock);
+        std::unique_lock condLock(mainManager->mutex, std::try_to_lock);
         // Safe to call even if mutex not locked
         mainManager->condVar.notify_one();
     }
