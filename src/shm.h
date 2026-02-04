@@ -38,15 +38,14 @@
 #if defined(_WIN32)
     // Standard portable pattern for spin-wait / CPU pause hint
     #if defined(_M_X64) || defined(_M_IX86) || defined(__x86_64__) || defined(__i386__)
-        // x86/x64 architectures
+        // x86/x64: use _mm_pause() from <emmintrin.h>
         #include <emmintrin.h>  // SSE2
         #define PAUSE() _mm_pause()
     #elif defined(__arm__) || defined(__aarch64__)
-        // ARM CPUs: yield to other hardware threads
-        #include <sched.h>
+        // ARM CPUs: use inline "yield" instruction to other hardware threads
         #define PAUSE() __asm__ volatile("yield" ::: "memory")
     #else
-        // Fallback: portable C++ hint [Covers all other platforms (PowerPC, RISC-V, MIPS, etc.)]
+        // Fallback: portable C++ hint (PowerPC, RISC-V, MIPS, etc.)
         #include <thread>
         #define PAUSE() std::this_thread::yield()
     #endif
