@@ -36,7 +36,7 @@
 #include <variant>
 #include <vector>
 
-#if defined(_WIN32) || defined(_WIN64)
+#if defined(_WIN32)
     #if !defined(NOMINMAX)
         #define NOMINMAX  // Disable min()/max() macros
     #endif
@@ -56,13 +56,15 @@
     #if defined(small)
         #undef small
     #endif
-// Support linux very well.
-// But explicitly don't support Android, there is no affected systems, not worth maintaining.
-#elif defined(__linux__) && !defined(__ANDROID__)
-    #if !defined(_GNU_SOURCE)
-        #define _GNU_SOURCE
+#else
+    // Support linux very well.
+    // But explicitly don't support Android, there is no affected systems, not worth maintaining.
+    #if defined(__linux__) && !defined(__ANDROID__)
+        #if !defined(_GNU_SOURCE)
+            #define _GNU_SOURCE
+        #endif
+        #include <sched.h>
     #endif
-    #include <sched.h>
 #endif
 
 #include "misc.h"
@@ -72,6 +74,8 @@ namespace DON {
 
 using CpuIndex  = std::size_t;
 using NumaIndex = std::size_t;
+
+using CpuIndexSet = std::unordered_set<CpuIndex>;
 
 inline CpuIndex hardware_concurrency() noexcept {
     CpuIndex concurrency = std::thread::hardware_concurrency();
@@ -104,40 +108,40 @@ using SetThreadSelectedCpuSetMasks_ = BOOL (*)(HANDLE, PGROUP_AFFINITY, USHORT);
 
 struct WindowsAffinity final {
    public:
-    std::optional<std::unordered_set<CpuIndex>> get_combined() const {
+    std::optional<CpuIndexSet> combined_cpus() const noexcept {
 
-        if (!oldApi.has_value())
-            return newApi;
+        if (!oldCpus.has_value())
+            return newCpus;
 
-        if (!newApi.has_value())
-            return oldApi;
+        if (!newCpus.has_value())
+            return oldCpus;
 
-        std::unordered_set<CpuIndex> combinedApi;
-        combinedApi.reserve(std::min(oldApi->size(), newApi->size()));
+        CpuIndexSet combinedCpus;
+        combinedCpus.reserve(std::min(oldCpus->size(), newCpus->size()));
 
-        bool oldIsSmaller = oldApi->size() < newApi->size();
+        bool oldSmall = oldCpus->size() < newCpus->size();
 
-        const auto& smallApi = oldIsSmaller ? *oldApi : *newApi;
-        const auto& largeApi = oldIsSmaller ? *newApi : *oldApi;
+        const auto& smallCpus = oldSmall ? *oldCpus : *newCpus;
+        const auto& largeCpus = oldSmall ? *newCpus : *oldCpus;
 
-        for (const auto& cpuId : smallApi)
-            if (largeApi.find(cpuId) != largeApi.end())
-                combinedApi.insert(cpuId);
+        for (const auto& cpuId : smallCpus)
+            if (largeCpus.find(cpuId) != largeCpus.end())
+                combinedCpus.insert(cpuId);
 
-        return combinedApi;
+        return combinedCpus;
     }
 
     // Since Windows 11 and Windows Server 2022 thread affinities can span
-    // processor groups and can be set as such by a new WinAPI function. However,
-    // may need to force using the old API if detect that the process has
+    // processor groups and can be set as such by a new WinAPI function.
+    // However, may need to force using the old API if detect that the process has
     // affinity set by the old API already and want to override that.
     // Due to the limitations of the old API cannot detect its use reliably.
     // There will be cases where detect not use but it has actually been used and vice versa.
 
-    bool likely_use_old_api() const noexcept { return oldApi.has_value() || !oldDeterminate; }
+    bool likely_use_old_api() const noexcept { return oldCpus.has_value() || !oldDeterminate; }
 
-    std::optional<std::unordered_set<CpuIndex>> oldApi;
-    std::optional<std::unordered_set<CpuIndex>> newApi;
+    std::optional<CpuIndexSet> oldCpus;
+    std::optional<CpuIndexSet> newCpus;
 
     // Also provide diagnostic for when the affinity is set to nullopt
     // whether it was due to being indeterminate. If affinity is indeterminate
@@ -235,7 +239,7 @@ inline WindowsAffinity get_process_affinity() noexcept {
                 winAffinity.newDeterminate = false;
             else
             {
-                std::unordered_set<CpuIndex> cpus;
+                CpuIndexSet cpus;
 
                 for (USHORT i = 0; i < requiredMaskCount; ++i)
                 {
@@ -252,7 +256,7 @@ inline WindowsAffinity get_process_affinity() noexcept {
                             }
                 }
 
-                winAffinity.newApi = std::move(cpus);
+                winAffinity.newCpus = std::move(cpus);
             }
         }
     }
@@ -292,10 +296,10 @@ inline WindowsAffinity get_process_affinity() noexcept {
     if (procGroupAffinity.size() == 1)
     {
         // Detect the case when affinity is set to all processors and correctly
-        // leave affinity.oldApi as nullopt.
+        // leave affinity.oldCpus as nullopt.
         if (GetActiveProcessorGroupCount() != 1 || procMask != sysMask)
         {
-            std::unordered_set<CpuIndex> cpus;
+            CpuIndexSet cpus;
 
             if (procMask != 0)
             {
@@ -311,7 +315,7 @@ inline WindowsAffinity get_process_affinity() noexcept {
                     }
             }
 
-            winAffinity.oldApi = std::move(cpus);
+            winAffinity.oldCpus = std::move(cpus);
         }
     }
     else
@@ -329,7 +333,7 @@ inline WindowsAffinity get_process_affinity() noexcept {
         if (getThreadSelectedCpuSetMasks != nullptr)
         {
             std::thread th([&winAffinity, &procGroupAffinity]() {
-                std::unordered_set<CpuIndex> cpus;
+                CpuIndexSet cpus;
 
                 bool affinityFull = true;
 
@@ -392,7 +396,7 @@ inline WindowsAffinity get_process_affinity() noexcept {
                 // or is set to all processors so that correctly produce as
                 // std::nullopt result.
                 if (!affinityFull)
-                    winAffinity.oldApi = std::move(cpus);
+                    winAffinity.oldCpus = std::move(cpus);
             });
 
             th.join();
@@ -416,9 +420,8 @@ struct HasGroupCount<T, std::void_t<decltype(std::declval<T>().Cache.GroupCount)
     : std::bool_constant<true> {};
 
 template<typename T, typename Pred>
-std::unordered_set<CpuIndex> read_cache_members(const T* processorInfo,
-                                                Pred&&   is_cpu_allowed) noexcept {
-    std::unordered_set<CpuIndex> cpus;
+CpuIndexSet read_cache_members(const T* processorInfo, Pred&& is_cpu_allowed) noexcept {
+    CpuIndexSet cpus;
 
     // Handle types with Cache.GroupCount
     if constexpr (HasGroupCount<T>::value)
@@ -465,9 +468,9 @@ std::unordered_set<CpuIndex> read_cache_members(const T* processorInfo,
     return cpus;
 }
 #elif defined(__linux__) && !defined(__ANDROID__)
-inline std::unordered_set<CpuIndex> get_process_affinity() noexcept {
+inline CpuIndexSet get_process_affinity() noexcept {
 
-    std::unordered_set<CpuIndex> cpus;
+    CpuIndexSet cpus;
 
     // For unsupported systems, or in case of a soft error,
     // may assume all processors are available for use.
@@ -534,8 +537,8 @@ class NumaReplicatedAccessToken final {
 
 struct L3Domain final {
    public:
-    NumaIndex                    sysNumaId;
-    std::unordered_set<CpuIndex> cpus;
+    NumaIndex   sysNumaId;
+    CpuIndexSet cpus;
 };
 
 // Use system NUMA nodes
@@ -579,16 +582,12 @@ class NumaConfig final {
                                   [[maybe_unused]] bool respectProcessAffinity = true) noexcept {
         NumaConfig numaCfg = empty();
 
-#if !(defined(_WIN64) || (defined(__linux__) && !defined(__ANDROID__)))
-        // Fallback for unsupported systems
-        for (CpuIndex cpuId = 0; cpuId < SYSTEM_THREADS_NB; ++cpuId)
-            numaCfg.add_cpu_to_node(NumaIndex{0}, cpuId);
-#else
+#if defined(_WIN64) || (defined(__linux__) && !defined(__ANDROID__))
     #if defined(_WIN64)
-        std::optional<std::unordered_set<CpuIndex>> allowedCpus;
+        std::optional<CpuIndexSet> allowedCpus;
 
         if (respectProcessAffinity)
-            allowedCpus = STARTUP_PROCESSOR_AFFINITY.get_combined();
+            allowedCpus = STARTUP_PROCESSOR_AFFINITY.combined_cpus();
 
         // The affinity cannot be determined in all cases on Windows,
         // but at least guarantee that the number of allowed processors
@@ -598,7 +597,7 @@ class NumaConfig final {
             return !allowedCpus.has_value() || allowedCpus->count(cpuId) == 1;
         };
     #elif defined(__linux__) && !defined(__ANDROID__)
-        std::unordered_set<CpuIndex> allowedCpus;
+        CpuIndexSet allowedCpus;
 
         if (respectProcessAffinity)
             allowedCpus = STARTUP_PROCESSOR_AFFINITY;
@@ -681,6 +680,10 @@ class NumaConfig final {
             numaCfg = std::move(splitNumaCfg);
         }
     #endif
+#else
+        // Fallback for unsupported systems
+        for (CpuIndex cpuId = 0; cpuId < SYSTEM_THREADS_NB; ++cpuId)
+            numaCfg.add_cpu_to_node(NumaIndex{0}, cpuId);
 #endif
 
         // Have to ensure no empty NUMA nodes persist.
@@ -1005,8 +1008,8 @@ class NumaConfig final {
         th.join();
     }
 
-    std::vector<std::unordered_set<CpuIndex>> nodes;
-    std::unordered_map<CpuIndex, NumaIndex>   nodeByCpu;
+    std::vector<CpuIndexSet>                nodes;
+    std::unordered_map<CpuIndex, NumaIndex> nodeByCpu;
 
    private:
     static std::vector<CpuIndex> shortened_string_to_indices(std::string_view str) noexcept {
@@ -1189,7 +1192,7 @@ class NumaConfig final {
               reinterpret_cast<char*>(processorInfo) + processorInfo->Size);
         }
 #elif defined(__linux__) && !defined(__ANDROID__)
-        std::unordered_set<CpuIndex> seenCpus;
+        CpuIndexSet seenCpus;
 
         auto next_unseen_cpu_id = [&seenCpus]() noexcept {
             for (CpuIndex cpuId = 0;; ++cpuId)

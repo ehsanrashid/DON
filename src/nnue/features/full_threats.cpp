@@ -33,14 +33,14 @@ namespace DON::NNUE::Features {
 
 namespace {
 
-constexpr StdArray<std::uint8_t, PIECE_TYPE_CNT> MAX_TARGETS{6, 12, 10, 10, 12, 8};
+constexpr StdArray<std::uint8_t, PIECE_TYPE_CNT> MAX_TARGETS{6, 10, 8, 8, 10, 8};
 
 constexpr StdArray<std::int8_t, PIECE_TYPE_CNT, PIECE_TYPE_CNT> MAP{{
   {0, +1, -1, +2, -1, -1},  //
-  {0, +1, +2, +3, +4, +5},  //
-  {0, +1, +2, +3, -1, +4},  //
-  {0, +1, +2, +3, -1, +4},  //
-  {0, +1, +2, +3, +4, +5},  //
+  {0, +1, +2, +3, +4, -1},  //
+  {0, +1, +2, +3, -1, -1},  //
+  {0, +1, +2, +3, -1, -1},  //
+  {0, +1, +2, +3, +4, -1},  //
   {0, +1, +2, +3, -1, -1}   //
 }};
 

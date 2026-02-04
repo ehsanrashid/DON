@@ -1,0 +1,8 @@
+# Store everything as LF in the repository
+* text=auto eol=lf
+
+# Optional: be explicit for C/C++
+*.c   text eol=lf
+*.cpp text eol=lf
+*.h   text eol=lf
+*.hpp text eol=lf

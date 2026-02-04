@@ -125,8 +125,10 @@
         // ARM 32-bit / 64-bit
     #elif defined(__i386__) || defined(__x86_64__)
         // x86 32-bit / x86-64
+    #elif defined(__ANDROID__)
+        // Andriod
     #else
-        //#error "Unsupported platform"
+        #error "Unsupported platform"
     #endif
 #endif
 
@@ -137,10 +139,9 @@ namespace DON {
 
 // argv[0] CANNOT be used because need to identify the executable.
 // argv[0] contains the command used to invoke it, which does not involve the full path.
-// Just using a path is not fully resilient either, as the executable could
-// have changed if it wasn't locked by the OS.
-// If the path is longer than 4095 bytes the hash will be computed from an unspecified
-// amount of bytes of the path; in particular it can a hash of an empty string.
+// Just using a path is not fully resilient either, as the executable could have changed
+// if it wasn't locked by the OS. If the path is longer than 4095 bytes the hash will be computed
+// from an unspecified amount of bytes of the path; in particular it can a hash of an empty string.
 
 enum class SharedMemoryAllocationStatus {
     NoAllocation,
@@ -231,7 +232,6 @@ inline std::string executable_path() noexcept {
 }
 
 #if defined(_WIN32)
-
 // Utilizes shared memory to store the value. It is deduplicated system-wide (for the single user)
 template<typename T>
 class BackendSharedMemory final {
@@ -479,9 +479,7 @@ class BackendSharedMemory final {
     MMapGuard   mappedGuard{mappedPtr};
     Status      status = Status::NotInitialized;
 };
-
 #elif defined(__linux__) && !defined(__ANDROID__)
-
 class BaseSharedMemory {
    public:
     explicit BaseSharedMemory(std::string_view shmName) noexcept :
@@ -1968,9 +1966,7 @@ class BackendSharedMemory final {
     SharedMemory<T> shm;
     bool            initialized = false;
 };
-
 #else
-
 // For systems that don't have shared memory, or support is troublesome.
 // The way fallback is done is that need a dummy backend.
 template<typename T>
@@ -1999,7 +1995,6 @@ class BackendSharedMemory final {
         return "Shared memory: [Dummy] (non-functional).";
     }
 };
-
 #endif
 
 template<typename T>
