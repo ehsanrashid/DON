@@ -982,11 +982,10 @@ help:
 	echo "make -j profile-build ARCH=x86-64-avxvnni COMP=gcc COMPCXX=g++-12.0" && \
 	echo "make -j build ARCH=x86-64-ssse3 COMP=clang" && \
 	echo ""
-ifeq ($(SUPPORTED_ARCH), no)
-	@echo "Specify a supported architecture with the ARCH option for more details"
-	@echo ""
-endif
-
+	@if [ "$(SUPPORTED_ARCH)" = "no" ]; then \
+		echo "Specify a supported architecture with the ARCH option for more details"; \
+		echo ""; \
+	fi
 
 .PHONY: help analyze build profile-build strip install clean \
 	objclean profileclean net config-sanity FORCE \
