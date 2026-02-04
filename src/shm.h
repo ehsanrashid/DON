@@ -668,7 +668,7 @@ class SharedMemoryRegistry final {
         std::shared_lock readLock(sharedMutex);
 
         DEBUG_LOG("Registered shared memories (insertion order) [" << registryMap.size() << "]:");
-        std::size_t i = 0;
+        [[maybe_unused]] std::size_t i = 0;
         for (auto* sharedMemory : orderedList)
             DEBUG_LOG("[" << i++ << "] "
                           << (sharedMemory != nullptr ? sharedMemory->name_() : "<NULL>"));
