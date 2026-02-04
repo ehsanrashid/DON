@@ -222,10 +222,10 @@ Limit parse_limit(std::istream& is) noexcept {
                 limit.depth = MAX_PLY - 1;
         }
         // "searchmoves" needs to be the last command on the line
-        else if (token.size() >= 1 && token[0] == 's')  // "searchmoves"
+        else if (!token.empty() && token[0] == 's')  // "searchmoves"
         {
             auto pos = is.tellg();
-            while (is >> token && !(token.size() >= 1 && std::tolower(token[0]) == 'i'))
+            while (is >> token && !(!token.empty() && std::tolower(token[0]) == 'i'))
             {
                 limit.searchMoves.push_back(token);
                 pos = is.tellg();
@@ -233,10 +233,10 @@ Limit parse_limit(std::istream& is) noexcept {
             is.seekg(pos);
         }
         // "ignoremoves" needs to be the last command on the line
-        else if (token.size() >= 1 && token[0] == 'i')  // "ignoremoves"
+        else if (!token.empty() && token[0] == 'i')  // "ignoremoves"
         {
             auto pos = is.tellg();
-            while (is >> token && !(token.size() >= 1 && std::tolower(token[0]) == 's'))
+            while (is >> token && !(!token.empty() && std::tolower(token[0]) == 's'))
             {
                 limit.ignoreMoves.push_back(token);
                 pos = is.tellg();
@@ -283,7 +283,7 @@ void UCI::process_input(std::istream& is) noexcept {
 
 void UCI::execute(std::string_view command) noexcept {
 
-    std::istringstream iss{std::string(command)};
+    std::istringstream iss{std::string{command}};
     iss >> std::skipws;
 
     std::string token;
@@ -451,19 +451,19 @@ void UCI::position(std::istream& is) noexcept {
     token = lower_case(token);
 
     std::string fen;
-    if (token.size() >= 1 && token[0] == 's')  // "startpos"
+    if (!token.empty() && token[0] == 's')  // "startpos"
     {
         fen = START_FEN;
         is >> token;  // Consume the "moves" token, if any
     }
-    else if (token.size() >= 1 && token[0] == 'f')  // "fen"
+    else if (!token.empty() && token[0] == 'f')  // "fen"
     {
         fen.reserve(64);
 
         std::size_t i = 0;
         while (is >> token && i < 6)  // Consume the "moves" token, if any
         {
-            if (i >= 2 && token.size() >= 1 && std::tolower(token[0]) == 'm')  // "moves"
+            if (i >= 2 && !token.empty() && std::tolower(token[0]) == 'm')  // "moves"
                 break;
 
             fen += token;
