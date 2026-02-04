@@ -2104,7 +2104,7 @@ struct SystemWideSharedMemory final {
 
 #if defined(__linux__) && !defined(__ANDROID__)
         // POSIX APIs expect a fixed-size C string where the maximum length excluding the terminating null character ('\0').
-        // Since std::string::size() does not include '\0', allow at most (MAX - 1) characters
+        // Since std::string::size() does not include '\0', allow at most (MAX - 1) characters,
         // to guarantee space for the terminator ('\0') in fixed-size buffers.
         constexpr std::size_t MaxNameSize = SHM_NAME_MAX_SIZE > 0 ? SHM_NAME_MAX_SIZE - 1 : 255 - 1;
         // Truncate the name if necessary so that it fits within limits including the null terminator
