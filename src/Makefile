@@ -726,24 +726,10 @@ ifeq ($(popcnt), yes)
 endif
 
 ### 3.6 SIMD architectures
-ifeq ($(avx2), yes)
-    CXXFLAGS += -DUSE_AVX2
+ifeq ($(avx512icl), yes)
+    CXXFLAGS += -DUSE_AVX512ICL
     ifeq ($(comp), $(filter $(comp), gcc clang mingw icx))
-        CXXFLAGS += -mavx2 -mbmi
-    endif
-endif
-
-ifeq ($(avxvnni), yes)
-    CXXFLAGS += -DUSE_AVXVNNI -DUSE_VNNI
-    ifeq ($(comp), $(filter $(comp), gcc clang mingw icx))
-        CXXFLAGS += -mavxvnni
-    endif
-endif
-
-ifeq ($(avx512), yes)
-    CXXFLAGS += -DUSE_AVX512
-    ifeq ($(comp), $(filter $(comp), gcc clang mingw icx))
-        CXXFLAGS += -mavx512f -mavx512bw -mavx512dq -mavx512vl
+        CXXFLAGS += -mavx512f -mavx512cd -mavx512vl -mavx512dq -mavx512bw -mavx512ifma -mavx512vbmi -mavx512vbmi2 -mavx512vpopcntdq -mavx512bitalg -mavx512vnni -mvpclmulqdq -mgfni -mvaes
     endif
 endif
 
@@ -754,10 +740,24 @@ ifeq ($(vnni512), yes)
     endif
 endif
 
-ifeq ($(avx512icl), yes)
-    CXXFLAGS += -DUSE_AVX512ICL -DUSE_AVX512 -DUSE_VNNI
+ifeq ($(avx512), yes)
+    CXXFLAGS += -DUSE_AVX512
     ifeq ($(comp), $(filter $(comp), gcc clang mingw icx))
-        CXXFLAGS += -mavx512f -mavx512cd -mavx512vl -mavx512dq -mavx512bw -mavx512ifma -mavx512vbmi -mavx512vbmi2 -mavx512vpopcntdq -mavx512bitalg -mavx512vnni -mvpclmulqdq -mgfni -mvaes
+        CXXFLAGS += -mavx512f -mavx512bw -mavx512dq -mavx512vl
+    endif
+endif
+
+ifeq ($(avxvnni), yes)
+    CXXFLAGS += -DUSE_AVXVNNI -DUSE_VNNI
+    ifeq ($(comp), $(filter $(comp), gcc clang mingw icx))
+        CXXFLAGS += -mavxvnni
+    endif
+endif
+
+ifeq ($(avx2), yes)
+    CXXFLAGS += -DUSE_AVX2
+    ifeq ($(comp), $(filter $(comp), gcc clang mingw icx))
+        CXXFLAGS += -mavx2 -mbmi
     endif
 endif
 

@@ -18,7 +18,9 @@
 #ifndef NNUE_SIMD_H_INCLUDED
 #define NNUE_SIMD_H_INCLUDED
 
-#if defined(USE_AVX2)
+#if defined(USE_AVX512)
+    #include <immintrin.h>
+#elif defined(USE_AVX2)
     #include <immintrin.h>
 #elif defined(USE_SSE41)
     #include <smmintrin.h>
@@ -28,6 +30,8 @@
     #include <emmintrin.h>
 #elif defined(USE_NEON)
     #include <arm_neon.h>
+#else
+    #warning "No SIMD instruction set enabled — falling back to scalar code"
 #endif
 
 #include "../types.h"

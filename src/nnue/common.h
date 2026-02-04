@@ -29,7 +29,9 @@
 #include <iostream>
 #include <type_traits>
 
-#if defined(USE_AVX2)
+#if defined(USE_AVX512)
+    #include <immintrin.h>
+#elif defined(USE_AVX2)
     #include <immintrin.h>
 #elif defined(USE_SSE41)
     #include <smmintrin.h>

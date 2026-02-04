@@ -269,22 +269,16 @@ Options& UCI::options() noexcept { return engine.get_options(); }
 
 void UCI::process_input(std::istream& is) noexcept {
 
-    bool running = true;
+    std::string command;
     do
     {
-        std::string command;
-        // The command-line arguments are one-shot
-        if (running
-            // Wait for an input or an end-of-file (EOF) indication
-            && !std::getline(is, command))
+        // Wait for an input or an end-of-file (EOF) indication
+        if (!std::getline(is, command))
             command = "quit";
 
         execute(command);
 
-        if (command == "quit")
-            running = false;
-
-    } while (running);
+    } while (command != "quit");
 }
 
 void UCI::execute(std::string_view command) noexcept {
