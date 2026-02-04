@@ -109,7 +109,7 @@ alignas(CACHE_LINE_SIZE) constexpr auto LUT_DATAS = []() constexpr noexcept {
 
                     bool enemy = int(attackerPc ^ attackedPc) == 8;
 
-                    int map = MAP[attackerPt - 1][attackedPt - 1];
+                    auto map = MAP[attackerPt - 1][attackedPt - 1];
 
                     bool excluded = map < 0;
 
