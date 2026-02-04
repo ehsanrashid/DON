@@ -18,7 +18,9 @@
 #ifndef NNUE_SIMD_H_INCLUDED
 #define NNUE_SIMD_H_INCLUDED
 
-#if defined(USE_AVX512)
+#if defined(USE_AVX512ICL)
+    #include <immintrin.h>
+#elif defined(USE_AVX512)
     #include <immintrin.h>
 #elif defined(USE_AVX2)
     #include <immintrin.h>

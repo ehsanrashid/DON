@@ -478,10 +478,7 @@ struct Advapi final {
 template<typename SuccessFunc, typename FailureFunc>
 auto try_with_windows_lock_memory_privilege([[maybe_unused]] SuccessFunc&& successFunc,
                                             FailureFunc&&                  failureFunc) noexcept {
-    #if !defined(_WIN64)
-    return failureFunc();
-    #else
-
+    #if defined(_WIN64)
     std::size_t LargePageSize = GetLargePageMinimum();
 
     if (LargePageSize == 0)
@@ -530,6 +527,8 @@ auto try_with_windows_lock_memory_privilege([[maybe_unused]] SuccessFunc&& succe
     advapi.adjustTokenPrivileges(hProcess, FALSE, &oldTp, 0, nullptr, nullptr);
 
     return std::forward<decltype(ret)>(ret);
+    #else
+    return failureFunc();
     #endif
 }
 

@@ -25,23 +25,28 @@
 #include <cstdio>
 #include <functional>
 #include <iomanip>
-#include <iostream>
 #include <memory>
 #include <new>
+#include <sstream>
 #include <string>
 #include <string_view>
-#include <sstream>
 #include <type_traits>
 #include <utility>
 #include <variant>
+#include <iostream>  // Only in DEBUG
 
-#if defined(__ANDROID__)
-#elif defined(_WIN32)
-    // The standard portable pattern for spin-waits, that need a CPU hint on x86 but still work on ARM.
+#if defined(_WIN32)
+    // Standard portable pattern for spin-wait / CPU pause hint
     #if defined(_M_X64) || defined(_M_IX86) || defined(__x86_64__) || defined(__i386__)
-        #include <immintrin.h>
+        // x86/x64 architectures
+        #include <emmintrin.h>  // SSE2
         #define PAUSE() _mm_pause()
+    #elif defined(__arm__) || defined(__aarch64__)
+        // ARM CPUs: yield to other hardware threads
+        #include <sched.h>
+        #define PAUSE() __asm__ volatile("yield" ::: "memory")
     #else
+        // Fallback: portable C++ hint [Covers all other platforms (PowerPC, RISC-V, MIPS, etc.)]
         #include <thread>
         #define PAUSE() std::this_thread::yield()
     #endif
@@ -66,44 +71,65 @@
         #undef small
     #endif
 #else
-    #include <atomic>
-    #include <cassert>
-    #include <cerrno>
-    #include <chrono>
-    #include <climits>
-    #include <condition_variable>
-    #include <filesystem>
-    #include <list>
-    #include <mutex>
-    #include <shared_mutex>
-    #include <thread>
-    #include <unordered_map>
-    #include <cstdlib>
-    #include <dirent.h>
-    #include <fcntl.h>
-    #include <inttypes.h>
-    #include <pthread.h>
-    #include <semaphore.h>
-    #include <signal.h>
-    #include <sys/file.h>
-    #include <sys/mman.h>  // mmap, munmap, MAP_*, PROT_*
-    #include <sys/stat.h>
-    #include <unistd.h>
+    #if defined(__linux__) && !defined(__ANDROID__)
+        #include <atomic>
+        #include <cassert>
+        #include <cerrno>
+        #include <chrono>
+        #include <climits>
+        #include <condition_variable>
+        #include <cstdlib>
+        #include <dirent.h>
+        #include <fcntl.h>
+        #include <filesystem>
+        #include <inttypes.h>
+        #include <list>
+        #include <mutex>
+        #include <pthread.h>
+        #include <semaphore.h>
+        #include <shared_mutex>
+        #include <signal.h>
+        #include <sys/file.h>
+        #include <sys/mman.h>  // mmap, munmap, MAP_*, PROT_*
+        #include <sys/stat.h>
+        #include <thread>
+        #include <unistd.h>
+        #include <unordered_map>
+
+        #define SHM_NAME_MAX_SIZE NAME_MAX
+    #endif
 
     #if defined(__APPLE__)
+        // macOS / iOS
         #include <mach-o/dyld.h>
         #include <sys/syslimits.h>
-    #elif defined(__sun)  // Solaris
+    #elif defined(__sun)
+        // Solaris / OpenSolaris / illumos
         #include <cstdlib>
         #include <libgen.h>
     #elif defined(__FreeBSD__)
+        // FreeBSD
         #include <sys/sysctl.h>
         #include <sys/types.h>
-    #elif defined(__NetBSD__) || defined(__DragonFly__)
+    #elif defined(__NetBSD__)
+        // NetBSD
+        #include <climits>
+    #elif defined(__DragonFly__)
+        // DragonFly BSD
+        #include <climits>
     #elif defined(__linux__)
+        // Linux
+    #elif defined(_AIX)
+        // IBM AIX
+    #elif defined(__arm__) || defined(__aarch64__)
+        // ARM 32-bit / 64-bit
+    #elif defined(__i386__) || defined(__x86_64__)
+        // x86 32-bit / x86-64
+    #elif defined(__ANDROID__)
+        // Andriod
+    #else
+        #error "Unsupported platform"
     #endif
-
-    #define SHM_NAME_MAX_SIZE NAME_MAX
 #endif
 
 #include "memory.h"
@@ -113,10 +139,9 @@ namespace DON {
 
 // argv[0] CANNOT be used because need to identify the executable.
 // argv[0] contains the command used to invoke it, which does not involve the full path.
-// Just using a path is not fully resilient either, as the executable could
-// have changed if it wasn't locked by the OS.
-// If the path is longer than 4095 bytes the hash will be computed from an unspecified
-// amount of bytes of the path; in particular it can a hash of an empty string.
+// Just using a path is not fully resilient either, as the executable could have changed
+// if it wasn't locked by the OS. If the path is longer than 4095 bytes the hash will be computed
+// from an unspecified amount of bytes of the path; in particular it can a hash of an empty string.
 
 enum class SharedMemoryAllocationStatus {
     NoAllocation,
@@ -206,39 +231,7 @@ inline std::string executable_path() noexcept {
     return std::string{executablePath.data(), executableSize};
 }
 
-#if defined(__ANDROID__)
-
-// For systems that don't have shared memory, or support is troublesome.
-// The way fallback is done is that need a dummy backend.
-template<typename T>
-class BackendSharedMemory final {
-   public:
-    BackendSharedMemory() = default;
-
-    BackendSharedMemory([[maybe_unused]] std::string_view shmName,
-                        [[maybe_unused]] const T&         value) noexcept {}
-
-    BackendSharedMemory(const BackendSharedMemory&) noexcept            = delete;
-    BackendSharedMemory& operator=(const BackendSharedMemory&) noexcept = delete;
-
-    BackendSharedMemory(BackendSharedMemory&& backendShm) noexcept            = default;
-    BackendSharedMemory& operator=(BackendSharedMemory&& backendShm) noexcept = default;
-
-    bool is_valid() const noexcept { return false; }
-
-    void* get() const noexcept { return nullptr; }
-
-    SharedMemoryAllocationStatus get_status() const noexcept {
-        return SharedMemoryAllocationStatus::NoAllocation;
-    }
-
-    std::string_view get_error_message() const noexcept {
-        return "Shared memory: [Dummy] (non-functional).";
-    }
-};
-
-#elif defined(_WIN32)
-
+#if defined(_WIN32)
 // Utilizes shared memory to store the value. It is deduplicated system-wide (for the single user)
 template<typename T>
 class BackendSharedMemory final {
@@ -486,9 +479,7 @@ class BackendSharedMemory final {
     MMapGuard   mappedGuard{mappedPtr};
     Status      status = Status::NotInitialized;
 };
-
-#else
-
+#elif defined(__linux__) && !defined(__ANDROID__)
 class BaseSharedMemory {
    public:
     explicit BaseSharedMemory(std::string_view shmName) noexcept :
@@ -674,13 +665,12 @@ class SharedMemoryRegistry final {
         // Acquire shared lock to safely read the registry without blocking writers
         std::shared_lock readLock(sharedMutex);
 
-        std::cout << "Registered shared memories (insertion order) [" << registryMap.size()
-                  << "]:\n";
-        std::size_t i = 0;
-        for (auto* sharedMemory : orderedList)
-            std::cout << "[" << i++ << "] "
-                      << (sharedMemory != nullptr ? sharedMemory->name_() : "<NULL>") << "\n";
-        std::cout << std::endl;
+        DEBUG_LOG("Registered shared memories (insertion order) [" << registryMap.size() << "]:");
+        [[maybe_unused]] std::size_t i = 0;
+        for ([[maybe_unused]] auto* sharedMemory : orderedList)
+            DEBUG_LOG("[" << i++ << "] "
+                          << (sharedMemory != nullptr ? sharedMemory->name_() : "<NULL>"));
+        DEBUG_LOG("");
     }
 
    private:
@@ -1976,7 +1966,35 @@ class BackendSharedMemory final {
     SharedMemory<T> shm;
     bool            initialized = false;
 };
+#else
+// For systems that don't have shared memory, or support is troublesome.
+// The way fallback is done is that need a dummy backend.
+template<typename T>
+class BackendSharedMemory final {
+   public:
+    BackendSharedMemory() = default;
 
+    BackendSharedMemory([[maybe_unused]] std::string_view shmName,
+                        [[maybe_unused]] const T&         value) noexcept {}
+
+    BackendSharedMemory(const BackendSharedMemory&) noexcept            = delete;
+    BackendSharedMemory& operator=(const BackendSharedMemory&) noexcept = delete;
+
+    BackendSharedMemory(BackendSharedMemory&& backendShm) noexcept            = default;
+    BackendSharedMemory& operator=(BackendSharedMemory&& backendShm) noexcept = default;
+
+    bool is_valid() const noexcept { return false; }
+
+    void* get() const noexcept { return nullptr; }
+
+    SharedMemoryAllocationStatus get_status() const noexcept {
+        return SharedMemoryAllocationStatus::NoAllocation;
+    }
+
+    std::string_view get_error_message() const noexcept {
+        return "Shared memory: [Dummy] (non-functional).";
+    }
+};
 #endif
 
 template<typename T>
@@ -2036,10 +2054,6 @@ struct SystemWideSharedMemory final {
 
         std::string shmName{"DON_"};
 
-#if defined(__ANDROID__)
-        // Do nothing special on Android, just use a fixed name
-        ;
-#else
         // Create a unique name based on the value, executable path, and discriminator
         // 3 hex digits per 64-bit part + 2 dollar signs + null terminator
         constexpr std::size_t BufferSize = 3 * HEX64_SIZE + 2 + 1;
@@ -2083,15 +2097,11 @@ struct SystemWideSharedMemory final {
 
         shmName += hashName;
 
-    #if defined(_WIN32)
-        constexpr std::size_t MaxNameSize = 255 - 1;
-    #else
+#if defined(__linux__) && !defined(__ANDROID__)
         // POSIX APIs expect a fixed-size C string where the maximum length excluding the terminating null character ('\0').
-        // Since std::string::size() does not include '\0', allow at most (MAX - 1) characters
+        // Since std::string::size() does not include '\0', allow at most (MAX - 1) characters,
         // to guarantee space for the terminator ('\0') in fixed-size buffers.
         constexpr std::size_t MaxNameSize = SHM_NAME_MAX_SIZE > 0 ? SHM_NAME_MAX_SIZE - 1 : 255 - 1;
-    #endif
-
         // Truncate the name if necessary so that it fits within limits including the null terminator
         if (shmName.size() > MaxNameSize)
             shmName.resize(MaxNameSize);
