@@ -21,7 +21,12 @@
       "archive_ext": "tar"
     }
   ],
-  "binaries": [ "armv8-dotprod", "armv8", "armv7-neon", "armv7"],
+  "binaries": [
+    "armv8-dotprod",
+    "armv8",
+    "armv7-neon",
+    "armv7"
+  ],
   "exclude": [
     {
       "binaries": "armv8-dotprod",

@@ -2,42 +2,40 @@
 # obtain and optionally verify Bench / signature
 # if no reference is given, the output is deliberately limited to just the signature
 
-#StdoutFile=$(mktemp)
-#StderrFile=$(mktemp)
+STDOUT_FILE=$(mktemp)
+STDERR_FILE=$(mktemp)
 
 error() {
   echo "running bench for signature failed on line $1"
-  #echo "===== STDOUT ====="
-  #cat "$StdoutFile"
-  #echo "===== STDERR ====="
-  #cat "$StderrFile"
-  #rm -f "$StdoutFile" "$StderrFile"
+  echo "===== STDOUT ====="
+  cat "$STDOUT_FILE"
+  echo "===== STDERR ====="
+  cat "$STDERR_FILE"
+  rm -f "$STDOUT_FILE" "$STDERR_FILE"
   exit 1
 }
 
 trap 'error ${LINENO}' ERR
 
 # obtain signature
-signature=`eval "$RUN_PREFIX ./DON bench 2>&1" | grep "Total nodes     : " | awk '{print $4}'`
+eval "$RUN_PREFIX ./DON bench" > "$STDOUT_FILE" 2> "$STDERR_FILE" || error ${LINENO}
+SIGNATURE=$(grep "Total nodes     : " "$STDERR_FILE" | awk '{print $4}')
 
-#eval "$RUN_PREFIX ./DON bench" > "$StdoutFile" 2> "$StderrFile" || error ${LINENO}
-#signature=$(grep "Total nodes     : " "$StderrFile" | awk '{print $4}')
-
-#rm -f "$StdoutFile" "$StderrFile"
+rm -f "$STDOUT_FILE" "$STDERR_FILE"
 
 if [ $# -gt 0 ]; then
    # compare to given reference
-   if [ "$1" != "$signature" ]; then
-      if [ -z "$signature" ]; then
+   if [ "$1" != "$SIGNATURE" ]; then
+      if [ -z "$SIGNATURE" ]; then
          echo "No signature obtained from bench. Code crashed or assert triggered ?"
       else
-         echo "signature mismatch: reference $1 obtained: $signature ."
+         echo "signature mismatch: reference $1 obtained: $SIGNATURE ."
       fi
       exit 1
    else
-      echo "signature OK: $signature"
+      echo "signature OK: $SIGNATURE ."
    fi
 else
    # just report signature
-   echo $signature
+   echo $SIGNATURE
 fi
