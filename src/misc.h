@@ -73,7 +73,7 @@
 #elif defined(_MSC_VER)
     #define ALWAYS_INLINE __forceinline
 #else
-    // fallback: else keep 'inline'
+    // fallback: keep 'inline'
     #define ALWAYS_INLINE inline
 #endif
 
