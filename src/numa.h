@@ -89,7 +89,7 @@ inline CpuIndex hardware_concurrency() noexcept {
     return concurrency;
 }
 
-inline const CpuIndex SYSTEM_THREADS_NB = std::max(int(hardware_concurrency()), 1);
+inline const CpuIndex MAX_SYSTEM_THREADS = std::max(int(hardware_concurrency()), 1);
 
 #if defined(_WIN64)
 inline constexpr LPCSTR MODULE_NAME = TEXT("kernel32.dll");
@@ -472,7 +472,7 @@ inline CpuIndexSet get_process_affinity() noexcept {
     // For unsupported systems, or in case of a soft error,
     // may assume all processors are available for use.
     auto set_to_all_cpus = [&cpus]() noexcept {
-        for (CpuIndex cpuId = 0; cpuId < SYSTEM_THREADS_NB; ++cpuId)
+        for (CpuIndex cpuId = 0; cpuId < MAX_SYSTEM_THREADS; ++cpuId)
             cpus.insert(cpuId);
     };
 
@@ -679,7 +679,7 @@ class NumaConfig final {
     #endif
 #else
         // Fallback for unsupported systems
-        for (CpuIndex cpuId = 0; cpuId < SYSTEM_THREADS_NB; ++cpuId)
+        for (CpuIndex cpuId = 0; cpuId < MAX_SYSTEM_THREADS; ++cpuId)
             numaCfg.add_cpu_to_node(NumaIndex{0}, cpuId);
 #endif
 
@@ -733,7 +733,7 @@ class NumaConfig final {
     NumaConfig() noexcept :
         NumaConfig(0, false) {
 
-        add_cpu_range_to_node(NumaIndex(0), CpuIndex(0), SYSTEM_THREADS_NB - 1);
+        add_cpu_range_to_node(NumaIndex(0), CpuIndex(0), MAX_SYSTEM_THREADS - 1);
     }
 
     NumaConfig(const NumaConfig&) noexcept            = delete;
@@ -1131,7 +1131,7 @@ class NumaConfig final {
 
         if (useFallback)
         {
-            for (CpuIndex cpuId = 0; cpuId < SYSTEM_THREADS_NB; ++cpuId)
+            for (CpuIndex cpuId = 0; cpuId < MAX_SYSTEM_THREADS; ++cpuId)
                 if (is_cpu_allowed(cpuId))
                     numaCfg.add_cpu_to_node(NumaIndex{0}, cpuId);
         }
