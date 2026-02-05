@@ -17,7 +17,7 @@ jobs:
 
       - name: Build DON
         working-directory: DON/src
-        run: make -j profile-build
+        run: make -j8 profile-build ARCH=x86-64-bmi2
 
       - name: Checkout matetrack repo
         uses: actions/checkout@v4
