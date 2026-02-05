@@ -124,4 +124,5 @@ jobs:
           tag_name: DON-dev-${{ env.COMMIT_DATE }}-${{ env.COMMIT_SHA }}
           prerelease: true
           files: DON-${{ matrix.config.simple_name }}-${{ matrix.binaries }}.${{ matrix.config.archive_ext }}
+          allow_updates: true
           token: ${{ secrets.token }}
