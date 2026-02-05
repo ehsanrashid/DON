@@ -173,11 +173,11 @@ avxvnni = no
 avx512 = no
 vnni512 = no
 avx512icl = no
-altivec = no
-vsx = no
+arm_version = 0
 neon = no
 dotprod = no
-arm_version = 0
+altivec = no
+vsx = no
 lsx = no
 lasx = no
 STRIP = strip
@@ -339,44 +339,44 @@ endif
 
 ifeq ($(ARCH), armv7)
     arch = armv7
-    prefetch = yes
     bits = 32
+    prefetch = yes
     arm_version = 7
 endif
 
 ifeq ($(ARCH), armv7-neon)
     arch = armv7
+    bits = 32
     prefetch = yes
     popcnt = yes
-    neon = yes
-    bits = 32
     arm_version = 7
+    neon = yes
 endif
 
 ifeq ($(ARCH), armv8)
     arch = armv8
     prefetch = yes
     popcnt = yes
-    neon = yes
     arm_version = 8
+    neon = yes
 endif
 
 ifeq ($(ARCH), armv8-dotprod)
     arch = armv8
     prefetch = yes
     popcnt = yes
+    arm_version = 8
     neon = yes
     dotprod = yes
-    arm_version = 8
 endif
 
 ifeq ($(ARCH), apple-silicon)
     arch = arm64
     prefetch = yes
     popcnt = yes
+    arm_version = 8
     neon = yes
     dotprod = yes
-    arm_version = 8
 endif
 
 ifeq ($(ARCH), ppc-32)
@@ -862,6 +862,22 @@ endif
 ### needs access to the optimization flags.
 ifeq ($(optimize), yes)
     ifeq ($(debug), no)
+        ifneq ($(KERNEL), Darwin)
+            LLD_BIN := $(shell command -v ld.lld 2>/dev/null)
+            ifeq ($(LLD_BIN), )
+                LLD_BIN := $(shell command -v lld 2>/dev/null)
+            endif
+            ifneq ($(LLD_BIN), )
+                ifeq ($(comp), clang)
+                    LDFLAGS += -fuse-ld=lld
+                else ifeq ($(comp), gcc)
+                    ifneq ($(gccisclang), )
+                        LDFLAGS += -fuse-ld=lld
+                    endif
+                endif
+            endif
+        endif
+
         ifeq ($(comp), $(filter $(comp), clang icx))
             CXXFLAGS += -flto=full
             ifeq ($(comp), icx)

@@ -34,7 +34,7 @@ struct Setup final {
     std::size_t threads;
     std::size_t ttSize;
     std::string originalInvocation;
-    std::string filledInvocation;
+    std::string currentInvocation;
     Strings     commands;
 };
 

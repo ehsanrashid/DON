@@ -69,63 +69,62 @@
     #if defined(small)
         #undef small
     #endif
-#elif defined(__linux__) && !defined(__ANDROID__)
-    // Linux (non-Android)
-    #include <atomic>
-    #include <cassert>
-    #include <cerrno>
-    #include <chrono>
-    #include <climits>
-    #include <condition_variable>
-    #include <cstdlib>
-    #include <dirent.h>
-    #include <fcntl.h>
-    #include <filesystem>
-    #include <inttypes.h>
-    #include <list>
-    #include <mutex>
-    #include <pthread.h>
-    #include <semaphore.h>
-    #include <shared_mutex>
-    #include <signal.h>
-    #include <sys/file.h>
-    #include <sys/mman.h>  // mmap, munmap, MAP_*, PROT_*
-    #include <sys/stat.h>
-    #include <thread>
-    #include <unistd.h>
-    #include <unordered_map>
-
-    #define SHM_NAME_MAX_SIZE NAME_MAX
-#elif defined(__APPLE__)
-    // macOS / iOS
-    #include <mach-o/dyld.h>
-    #include <sys/syslimits.h>
-#elif defined(__sun)
-    // Solaris / OpenSolaris / illumos
-    #include <cstdlib>
-    #include <libgen.h>
-#elif defined(__FreeBSD__)
-    // FreeBSD
-    #include <sys/sysctl.h>
-    #include <sys/types.h>
-#elif defined(__NetBSD__)
-    // NetBSD
-    #include <climits>
-#elif defined(__DragonFly__)
-    // DragonFly BSD
-    #include <climits>
-#elif defined(__linux__)
-    // Linux
-#elif defined(_AIX)
-    // IBM AIX
-#elif defined(__arm__) || defined(__aarch64__)
-    // ARM 32-bit / 64-bit
-#elif defined(__i386__) || defined(__x86_64__)
-    // x86 32-bit / x86-64
-#elif defined(__ANDROID__)
-    // Andriod
 #else
-    #error "Unsupported platform"
+    #if !defined(__ANDROID__)
+        #include <atomic>
+        #include <cassert>
+        #include <cerrno>
+        #include <chrono>
+        #include <climits>
+        #include <condition_variable>
+        #include <cstdlib>
+        #include <dirent.h>
+        #include <fcntl.h>
+        #include <filesystem>
+        #include <inttypes.h>
+        #include <list>
+        #include <mutex>
+        #include <pthread.h>
+        #include <semaphore.h>
+        #include <shared_mutex>
+        #include <signal.h>
+        #include <sys/file.h>
+        #include <sys/mman.h>  // mmap, munmap, MAP_*, PROT_*
+        #include <sys/stat.h>
+        #include <thread>
+        #include <unistd.h>
+        #include <unordered_map>
+    #endif
+    #if (defined(__linux__) && !defined(__ANDROID__))
+        // Linux (non-Android)
+        #define SHM_NAME_MAX_SIZE NAME_MAX
+    #elif defined(__APPLE__)
+        // macOS / iOS
+        #include <mach-o/dyld.h>
+        #include <sys/syslimits.h>
+    #elif defined(__sun)
+        // Solaris / OpenSolaris / illumos
+        #include <cstdlib>
+        #include <libgen.h>
+    #elif defined(__FreeBSD__)
+        // FreeBSD
+        #include <sys/sysctl.h>
+        #include <sys/types.h>
+    #elif defined(__NetBSD__)
+        // NetBSD
+    #elif defined(__DragonFly__)
+        // DragonFly BSD
+    #elif defined(_AIX)
+        // IBM AIX
+    #elif defined(__arm__) || defined(__aarch64__)
+        // ARM 32-bit / 64-bit
+    #elif defined(__i386__) || defined(__x86_64__)
+        // x86 32-bit / x86-64
+    #elif defined(__ANDROID__)
+        // Andriod
+    #else
+        #error "Unsupported platform"
+    #endif
 #endif
 
 #include "memory.h"
@@ -159,8 +158,8 @@ enum class SharedMemoryAllocationStatus {
 }
 
 inline std::string executable_path() noexcept {
-    StdArray<char, 4096> executablePath{};
-    std::size_t          executableSize = 0;
+    StdArray<char, PATH_MAX> executablePath{};
+    std::size_t              executableSize = 0;
 
 #if defined(_WIN32)
     DWORD size = GetModuleFileName(nullptr, executablePath.data(), DWORD(executablePath.size()));
@@ -475,7 +474,9 @@ class BackendSharedMemory final {
     MMapGuard   mappedGuard{mappedPtr};
     Status      status = Status::NotInitialized;
 };
-#elif defined(__linux__) && !defined(__ANDROID__)
+#elif (defined(__linux__) && !defined(__ANDROID__)) || defined(__APPLE__) || defined(__sun) \
+  || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__DragonFly__) || defined(_AIX)
+// Linux (not Android), macOS, Solaris, FreeBSD, NetBSD, DragonFly, AIX
 class BaseSharedMemory {
    public:
     explicit BaseSharedMemory(std::string_view shmName) noexcept :
@@ -778,11 +779,11 @@ class SharedMemoryCleanupManager final {
             // 1. Create async-signal-safe pipe
             int  pipeFds[2]{-1, -1};  // initialize to -1 for safety
             bool pipeInvalid = true;
-    #if defined(__linux__)
+    #if (defined(__linux__) && !defined(__ANDROID__))
             // Linux: use pipe2 (atomic)
             if (pipe2(pipeFds, O_CLOEXEC | O_NONBLOCK) != 0)
     #else
-            // macOS/BSD: use pipe + fcntl
+            // macOS/BSD/Solaris: use pipe + fcntl
             if (pipe(pipeFds) != 0)
     #endif
             {
@@ -2093,7 +2094,7 @@ struct SystemWideSharedMemory final {
 
         shmName += hashName;
 
-#if defined(__linux__) && !defined(__ANDROID__)
+#if (defined(__linux__) && !defined(__ANDROID__))
         // POSIX APIs expect a fixed-size C string where the maximum length excluding the terminating null character ('\0').
         // Since std::string::size() does not include '\0', allow at most (MAX - 1) characters,
         // to guarantee space for the terminator ('\0') in fixed-size buffers.

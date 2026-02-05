@@ -85,13 +85,20 @@ jobs:
           RUN_PREFIX=$EMU ../tests/signature.sh $benchref
           mv ./DON$EXT ../DON-android-$BINARY$EXT
 
-      - name: Remove non src files
-        run: git clean -fx
+      - name: Verify binary exists
+        run: |
+          echo "Checking binary DON-android-$BINARY$EXT exists..."
+          test -f DON-android-$BINARY$EXT
+
+      - name: Remove non-required files
+        run: |
+          rm -rf src
+          git clean -fxd
 
       - name: Upload artifact for (pre)-release
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.config.simple_name }} ${{ matrix.binaries }}
+          name: ${{ matrix.config.simple_name }}-${{ matrix.binaries }}
           path: |
             .
             !.git

@@ -21,20 +21,13 @@
       "archive_ext": "tar"
     }
   ],
-  "binaries": [ "armv8-dotprod", "armv8", "armv7-neon", "armv7"],
+  "binaries": [
+    "armv7",
+    "armv7-neon",
+    "armv8",
+    "armv8-dotprod"
+  ],
   "exclude": [
-    {
-      "binaries": "armv8-dotprod",
-      "config": {
-        "compiler": "armv7a-linux-androideabi29-clang++"
-      }
-    },
-    {
-      "binaries": "armv8",
-      "config": {
-        "compiler": "armv7a-linux-androideabi29-clang++"
-      }
-    },
     {
       "binaries": "armv7",
       "config": {
@@ -45,6 +38,18 @@
       "binaries": "armv7-neon",
       "config": {
         "compiler": "aarch64-linux-android29-clang++"
+      }
+    },
+    {
+      "binaries": "armv8",
+      "config": {
+        "compiler": "armv7a-linux-androideabi29-clang++"
+      }
+    },
+    {
+      "binaries": "armv8-dotprod",
+      "config": {
+        "compiler": "armv7a-linux-androideabi29-clang++"
       }
     }
   ]

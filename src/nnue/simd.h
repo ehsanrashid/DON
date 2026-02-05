@@ -225,7 +225,6 @@ inline int16x8_t vmovl_high_s8(int8x16_t a) noexcept { return vmovl_s8(vget_high
 
 #else
     #undef VECTOR
-
 #endif
 
 struct Vec16Wrapper final {
@@ -282,7 +281,6 @@ fused(const typename VecWrapper::type& in, const T& operand, const Ts&... operan
 }
 
 #if defined(USE_AVX512)
-
 [[maybe_unused]] inline int m512_hadd(__m512i sum, int bias) noexcept {
     return _mm512_reduce_add_epi32(sum) + bias;
 }
@@ -296,11 +294,9 @@ fused(const typename VecWrapper::type& in, const T& operand, const Ts&... operan
     acc              = _mm512_add_epi32(acc, product0);
     #endif
 }
-
 #endif
 
 #if defined(USE_AVX2)
-
 [[maybe_unused]] inline int m256_hadd(__m256i sum, int bias) noexcept {
     __m128i sum128 = _mm_add_epi32(_mm256_castsi256_si128(sum), _mm256_extracti128_si256(sum, 1));
     sum128         = _mm_add_epi32(sum128, _mm_shuffle_epi32(sum128, _MM_PERM_BADC));
@@ -317,11 +313,9 @@ fused(const typename VecWrapper::type& in, const T& operand, const Ts&... operan
     acc              = _mm256_add_epi32(acc, product0);
     #endif
 }
-
 #endif
 
 #if defined(USE_SSSE3)
-
 [[maybe_unused]] inline int m128_hadd(__m128i sum, int bias) noexcept {
     sum = _mm_add_epi32(sum, _mm_shuffle_epi32(sum, 0x4E));  //_MM_PERM_BADC
     sum = _mm_add_epi32(sum, _mm_shuffle_epi32(sum, 0xB1));  //_MM_PERM_CDAB
@@ -333,11 +327,9 @@ fused(const typename VecWrapper::type& in, const T& operand, const Ts&... operan
     product0         = _mm_madd_epi16(product0, _mm_set1_epi16(1));
     acc              = _mm_add_epi32(acc, product0);
 }
-
 #endif
 
 #if defined(USE_NEON)
-
 [[maybe_unused]] inline int neon_m128_reduce_add_epi32(int32x4_t s) noexcept {
     #if USE_NEON >= 8
     return vaddvq_s32(s);
@@ -351,7 +343,6 @@ fused(const typename VecWrapper::type& in, const T& operand, const Ts&... operan
 }
 
     #if USE_NEON >= 8
-
 [[maybe_unused]] inline void
 neon_m128_add_dpbusd_epi32(int32x4_t& acc, int8x16_t a, int8x16_t b) noexcept {
     int16x8_t product0 = vmull_s8(vget_low_s8(a), vget_low_s8(b));
@@ -359,11 +350,9 @@ neon_m128_add_dpbusd_epi32(int32x4_t& acc, int8x16_t a, int8x16_t b) noexcept {
     int16x8_t sum      = vpaddq_s16(product0, product1);
     acc                = vpadalq_s16(acc, sum);
 }
-
     #endif
 
     #if defined(USE_NEON_DOTPROD)
-
 [[maybe_unused]] inline void
 dotprod_m128_add_dpbusd_epi32(int32x4_t& acc, int8x16_t a, int8x16_t b) noexcept {
     acc = vdotq_s32(acc, a, b);

@@ -13,33 +13,33 @@ echo "reprosearch testing started"
 # with go nodes $nodes they should result in exactly
 # the same node count for each iteration.
 cat << EOF > repeat.exp
- set timeout 10
- spawn ./DON
- lassign \$argv nodes
+set timeout 10
+spawn ./DON
+lassign \$argv nodes
 
- send "uci\n"
- expect "uciok"
+send "uci\n"
+expect "uciok"
 
- send "ucinewgame\n"
- send "position startpos\n"
- send "go nodes \$nodes\n"
- expect "bestmove"
+send "ucinewgame\n"
+send "position startpos\n"
+send "go nodes \$nodes\n"
+expect "bestmove"
 
- send "position startpos moves e2e4 e7e6\n"
- send "go nodes \$nodes\n"
- expect "bestmove"
+send "position startpos moves e2e4 e7e6\n"
+send "go nodes \$nodes\n"
+expect "bestmove"
 
- send "ucinewgame\n"
- send "position startpos\n"
- send "go nodes \$nodes\n"
- expect "bestmove"
+send "ucinewgame\n"
+send "position startpos\n"
+send "go nodes \$nodes\n"
+expect "bestmove"
 
- send "position startpos moves e2e4 e7e6\n"
- send "go nodes \$nodes\n"
- expect "bestmove"
+send "position startpos moves e2e4 e7e6\n"
+send "go nodes \$nodes\n"
+expect "bestmove"
 
- send "quit\n"
- expect eof
+send "quit\n"
+expect eof
 EOF
 
 # to increase the likelihood of finding a non-reproducible case,

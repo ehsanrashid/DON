@@ -685,10 +685,12 @@ std::string CommandLine::binary_directory(std::string_view path) noexcept {
 std::string CommandLine::working_directory() noexcept {
     std::string workingDirectory;
 
-    StdArray<char, 4096> buffer{};
+    StdArray<char, PATH_MAX> currentWorkingDirectory{};
 
-    char* cwd = GETCWD(buffer.data(), buffer.size());
-    if (cwd != nullptr)
+    char* cwd = GETCWD(currentWorkingDirectory.data(), currentWorkingDirectory.size());
+    if (cwd == nullptr)
+        DEBUG_LOG("GETCWD(): Failed");
+    else
         workingDirectory = cwd;
 
     return workingDirectory;

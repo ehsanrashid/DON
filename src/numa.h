@@ -56,7 +56,7 @@
     #if defined(small)
         #undef small
     #endif
-#elif defined(__linux__) && !defined(__ANDROID__)
+#elif (defined(__linux__) && !defined(__ANDROID__))
     // Linux (non-Android)
     #if !defined(_GNU_SOURCE)
         #define _GNU_SOURCE
@@ -89,7 +89,7 @@ inline CpuIndex hardware_concurrency() noexcept {
     return concurrency;
 }
 
-inline const CpuIndex SYSTEM_THREADS_NB = std::max(int(hardware_concurrency()), 1);
+inline const CpuIndex MAX_SYSTEM_THREADS = std::max(int(hardware_concurrency()), 1);
 
 #if defined(_WIN64)
 inline constexpr LPCSTR MODULE_NAME = TEXT("kernel32.dll");
@@ -464,7 +464,7 @@ CpuIndexSet read_cache_members(const T* processorInfo, Pred&& is_cpu_allowed) no
 
     return cpus;
 }
-#elif defined(__linux__) && !defined(__ANDROID__)
+#elif (defined(__linux__) && !defined(__ANDROID__))
 inline CpuIndexSet get_process_affinity() noexcept {
 
     CpuIndexSet cpus;
@@ -472,7 +472,7 @@ inline CpuIndexSet get_process_affinity() noexcept {
     // For unsupported systems, or in case of a soft error,
     // may assume all processors are available for use.
     auto set_to_all_cpus = [&cpus]() noexcept {
-        for (CpuIndex cpuId = 0; cpuId < SYSTEM_THREADS_NB; ++cpuId)
+        for (CpuIndex cpuId = 0; cpuId < MAX_SYSTEM_THREADS; ++cpuId)
             cpus.insert(cpuId);
     };
 
@@ -593,7 +593,7 @@ class NumaConfig final {
         auto is_cpu_allowed = [&allowedCpus](CpuIndex cpuId) noexcept {
             return !allowedCpus.has_value() || allowedCpus->count(cpuId) == 1;
         };
-    #elif defined(__linux__) && !defined(__ANDROID__)
+    #elif (defined(__linux__) && !defined(__ANDROID__))
         CpuIndexSet allowedCpus;
 
         if (respectProcessAffinity)
@@ -679,7 +679,7 @@ class NumaConfig final {
     #endif
 #else
         // Fallback for unsupported systems
-        for (CpuIndex cpuId = 0; cpuId < SYSTEM_THREADS_NB; ++cpuId)
+        for (CpuIndex cpuId = 0; cpuId < MAX_SYSTEM_THREADS; ++cpuId)
             numaCfg.add_cpu_to_node(NumaIndex{0}, cpuId);
 #endif
 
@@ -733,7 +733,7 @@ class NumaConfig final {
     NumaConfig() noexcept :
         NumaConfig(0, false) {
 
-        add_cpu_range_to_node(NumaIndex(0), CpuIndex(0), SYSTEM_THREADS_NB - 1);
+        add_cpu_range_to_node(NumaIndex(0), CpuIndex(0), MAX_SYSTEM_THREADS - 1);
     }
 
     NumaConfig(const NumaConfig&) noexcept            = delete;
@@ -964,7 +964,7 @@ class NumaConfig final {
             // This is defensive, allowed because this code is not performance critical.
             SwitchToThread();
         }
-#elif defined(__linux__) && !defined(__ANDROID__)
+#elif (defined(__linux__) && !defined(__ANDROID__))
         cpu_set_t* cpuMask = CPU_ALLOC(maxCpuId + 1);
 
         if (cpuMask == nullptr)
@@ -1078,7 +1078,7 @@ class NumaConfig final {
                 }
             }
         }
-#elif defined(__linux__) && !defined(__ANDROID__)
+#elif (defined(__linux__) && !defined(__ANDROID__))
         // On Linux things are straightforward, since there's no processor groups
         // and any thread can be scheduled on all processors.
         // Try to gather this information from the sysfs first
@@ -1131,7 +1131,7 @@ class NumaConfig final {
 
         if (useFallback)
         {
-            for (CpuIndex cpuId = 0; cpuId < SYSTEM_THREADS_NB; ++cpuId)
+            for (CpuIndex cpuId = 0; cpuId < MAX_SYSTEM_THREADS; ++cpuId)
                 if (is_cpu_allowed(cpuId))
                     numaCfg.add_cpu_to_node(NumaIndex{0}, cpuId);
         }
@@ -1188,7 +1188,7 @@ class NumaConfig final {
             processorInfo = reinterpret_cast<SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*>(
               reinterpret_cast<char*>(processorInfo) + processorInfo->Size);
         }
-#elif defined(__linux__) && !defined(__ANDROID__)
+#elif (defined(__linux__) && !defined(__ANDROID__))
         CpuIndexSet seenCpus;
 
         auto next_unseen_cpu_id = [&seenCpus]() noexcept {

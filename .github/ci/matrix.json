@@ -38,8 +38,8 @@
       "msys_env": "x86_64-gcc",
       "shell": "msys2 {0}",
       "ext": ".exe",
-      "sde": "/d/a/DON/DON/.output/sde-temp-files/sde-external-9.33.0-2024-01-07-win/sde.exe -future --",
-      "archive_ext": "zip"
+      "archive_ext": "zip",
+      "sde": "/d/a/DON/DON/.output/sde-temp-files/sde-external-9.33.0-2024-01-07-win/sde.exe -future --"
     },
     {
       "name": "Windows 11 Mingw-w64 Clang arm64",
@@ -70,6 +70,72 @@
   ],
   "exclude": [
     {
+      "binaries": "apple-silicon",
+      "config": {
+        "os": "ubuntu-22.04"
+      }
+    },
+    {
+      "binaries": "armv8",
+      "config": {
+        "os": "ubuntu-22.04"
+      }
+    },
+    {
+      "binaries": "armv8-dotprod",
+      "config": {
+        "os": "ubuntu-22.04"
+      }
+    },
+    {
+      "binaries": "x86-64-avxvnni",
+      "config": {
+        "os": "macos-15-intel"
+      }
+    },
+    {
+      "binaries": "x86-64-avxvnni-comp",
+      "config": {
+        "os": "macos-15-intel"
+      }
+    },
+    {
+      "binaries": "x86-64-avx512",
+      "config": {
+        "os": "macos-15-intel"
+      }
+    },
+    {
+      "binaries": "x86-64-vnni512",
+      "config": {
+        "os": "macos-15-intel"
+      }
+    },
+    {
+      "binaries": "x86-64-avx512icl",
+      "config": {
+        "os": "macos-15-intel"
+      }
+    },
+    {
+      "binaries": "apple-silicon",
+      "config": {
+        "os": "macos-15-intel"
+      }
+    },
+    {
+      "binaries": "armv8",
+      "config": {
+        "os": "macos-15-intel"
+      }
+    },
+    {
+      "binaries": "armv8-dotprod",
+      "config": {
+        "os": "macos-15-intel"
+      }
+    },
+    {
       "binaries": "x86-64",
       "config": {
         "os": "macos-15"
@@ -142,45 +208,39 @@
       }
     },
     {
-      "binaries": "x86-64-avxvnni",
-      "config": {
-        "os": "macos-15-intel"
-      }
-    },
-    {
-      "binaries": "x86-64-avxvnni-comp",
-      "config": {
-        "os": "macos-15-intel"
-      }
-    },
-    {
       "binaries": "x86-64-avx512",
       "config": {
-        "os": "macos-15-intel"
+        "os": "windows-2022"
       }
     },
     {
       "binaries": "x86-64-vnni512",
       "config": {
-        "os": "macos-15-intel"
+        "os": "windows-2022"
       }
     },
     {
       "binaries": "x86-64-avx512icl",
       "config": {
-        "os": "macos-15-intel"
+        "os": "windows-2022"
       }
     },
     {
       "binaries": "apple-silicon",
       "config": {
-        "os": "macos-15-intel"
+        "os": "windows-2022"
       }
     },
     {
       "binaries": "armv8",
       "config": {
-        "os": "macos-15-intel"
+        "os": "windows-2022"
+      }
+    },
+    {
+      "binaries": "armv8-dotprod",
+      "config": {
+        "os": "windows-2022"
       }
     },
     {
@@ -247,84 +307,6 @@
       "binaries": "apple-silicon",
       "config": {
         "os": "windows-11-arm"
-      }
-    },
-    {
-      "binaries": "x86-64-avx512",
-      "config": {
-        "os": "windows-2022"
-      }
-    },
-    {
-      "binaries": "x86-64-vnni512",
-      "config": {
-        "os": "windows-2022"
-      }
-    },
-    {
-      "binaries": "x86-64-avx512icl",
-      "config": {
-        "os": "windows-2022"
-      }
-    },
-    {
-      "binaries": "apple-silicon",
-      "config": {
-        "os": "windows-2022"
-      }
-    },
-    {
-      "binaries": "armv8",
-      "config": {
-        "os": "windows-2022"
-      }
-    },
-    {
-      "binaries": "armv8-dotprod",
-      "config": {
-        "os": "windows-2022"
-      }
-    },
-    {
-      "binaries": "apple-silicon",
-      "config": {
-        "os": "ubuntu-20.04"
-      }
-    },
-    {
-      "binaries": "apple-silicon",
-      "config": {
-        "os": "ubuntu-22.04"
-      }
-    },
-    {
-      "binaries": "armv8",
-      "config": {
-        "os": "ubuntu-20.04"
-      }
-    },
-    {
-      "binaries": "armv8",
-      "config": {
-        "os": "ubuntu-22.04"
-      }
-    },
-    {
-      "binaries": "armv8-dotprod",
-      "config": {
-        "os": "ubuntu-20.04"
-      }
-    },
-    {
-      "binaries": "armv8-dotprod",
-      "config": {
-        "os": "ubuntu-22.04"
-      }
-    },
-    {
-      "binaries": "armv8-dotprod",
-      "config": {
-        "os": "macos-15-intel"
       }
     }
   ]

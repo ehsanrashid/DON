@@ -100,7 +100,8 @@ Command to_command(std::string_view command) noexcept {
 }
 
 Limit parse_limit(std::istream& is) noexcept {
-    Limit limit;
+
+    Limit limit{};
     // The search starts as early as possible
     limit.startTime = now();
 
@@ -244,6 +245,7 @@ Limit parse_limit(std::istream& is) noexcept {
             is.seekg(pos);
         }
     }
+
     return limit;
 }
 
@@ -790,7 +792,7 @@ void UCI::benchmark(std::istream& is) noexcept {
 
     std::string threadBinding = engine.get_thread_binding_info_str();
     if (threadBinding.empty())
-        threadBinding = "none";
+        threadBinding = "<none>";
 
     // clang-format off
     std::cerr << "\n==========================="
@@ -798,7 +800,7 @@ void UCI::benchmark(std::istream& is) noexcept {
               << "\nCompiler                   : " << compiler_info()
               << "\nLarge page                 : " << bool_to_string(has_large_page())
               << "\nOriginal invocation        : " << "benchmark " << setup.originalInvocation
-              << "\nFilled invocation          : " << "benchmark " << setup.filledInvocation
+              << "\nCurrent invocation         : " << "benchmark " << setup.currentInvocation
               << "\nAvailable processors       : " << engine.get_numa_config_str()
               << "\nThread count               : " << setup.threads
               << "\nThread binding             : " << threadBinding

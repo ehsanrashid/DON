@@ -478,7 +478,7 @@ Setup benchmark(std::istream& is) noexcept {
     if (is >> setup.threads)
         setup.originalInvocation += std::to_string(setup.threads);
     else
-        setup.threads = SYSTEM_THREADS_NB;
+        setup.threads = MAX_SYSTEM_THREADS;
 
     if (is >> setup.ttSize)
         setup.originalInvocation += ' ' + std::to_string(setup.ttSize);
@@ -490,9 +490,11 @@ Setup benchmark(std::istream& is) noexcept {
     else
         desiredMoveTime = DefaultMoveTime;
 
-    setup.filledInvocation += std::to_string(setup.threads);
-    setup.filledInvocation += ' ' + std::to_string(setup.ttSize);
-    setup.filledInvocation += ' ' + std::to_string(desiredMoveTime);
+    setup.currentInvocation += std::to_string(setup.threads);
+    setup.currentInvocation += ' ';
+    setup.currentInvocation += std::to_string(setup.ttSize);
+    setup.currentInvocation += ' ';
+    setup.currentInvocation += std::to_string(desiredMoveTime);
 
     auto get_move_time = [](std::uint16_t ply) noexcept {
         // time per move is fit roughly based on LTC games

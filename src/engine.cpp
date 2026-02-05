@@ -39,7 +39,7 @@ namespace DON {
 namespace {
 
 constexpr std::size_t MIN_THREADS     = 1;
-const std::size_t     MAX_THREADS     = std::max<std::size_t>(4 * SYSTEM_THREADS_NB, 1024);
+const std::size_t     MAX_THREADS     = std::max<std::size_t>(4 * MAX_SYSTEM_THREADS, 1024);
 const std::size_t     DEFAULT_THREADS = std::max<std::size_t>(MIN_THREADS, 1);
 
 constexpr std::size_t MIN_HASH = 1;
