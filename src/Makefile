@@ -862,6 +862,22 @@ endif
 ### needs access to the optimization flags.
 ifeq ($(optimize), yes)
     ifeq ($(debug), no)
+        ifneq ($(KERNEL), Darwin)
+            LLD_BIN := $(shell command -v ld.lld 2>/dev/null)
+            ifeq ($(LLD_BIN), )
+                LLD_BIN := $(shell command -v lld 2>/dev/null)
+            endif
+            ifneq ($(LLD_BIN), )
+                ifeq ($(comp), clang)
+                    LDFLAGS += -fuse-ld=lld
+                else ifeq ($(comp), gcc)
+                    ifneq ($(gccisclang), )
+                        LDFLAGS += -fuse-ld=lld
+                    endif
+                endif
+            endif
+        endif
+
         ifeq ($(comp), $(filter $(comp), clang icx))
             CXXFLAGS += -flto=full
             ifeq ($(comp), icx)

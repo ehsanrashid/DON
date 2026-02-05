@@ -38,8 +38,8 @@
       "msys_env": "x86_64-gcc",
       "shell": "msys2 {0}",
       "ext": ".exe",
-      "sde": "/d/a/DON/DON/.output/sde-temp-files/sde-external-9.33.0-2024-01-07-win/sde.exe -future --",
-      "archive_ext": "zip"
+      "archive_ext": "zip",
+      "sde": "/d/a/DON/DON/.output/sde-temp-files/sde-external-9.33.0-2024-01-07-win/sde.exe -future --"
     },
     {
       "name": "Windows 11 Mingw-w64 Clang arm64",
