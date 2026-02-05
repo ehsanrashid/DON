@@ -49,6 +49,14 @@
 #include <utility>
 #include <vector>
 
+#if defined(_WIN32)
+    #if !defined(PATH_MAX)
+        #define PATH_MAX (2 * 1024)  // 2K bytes, safe for almost all paths
+    #endif
+#else
+    #include <climits>  // IWYU pragma: keep
+#endif
+
 #if defined(_MSC_VER) && defined(USE_PREFETCH)
     #include <xmmintrin.h>  // Microsoft header for _mm_prefetch()
 #endif
@@ -57,14 +65,6 @@
 
 #define STRING_LITERAL(x) #x
 #define STRINGIFY(x) STRING_LITERAL(x)
-
-#if defined(_WIN32)
-    #if !defined(PATH_MAX)
-        #define PATH_MAX (2 * 1024)  // 2K bytes, safe for almost all paths
-    #endif
-#else
-    #include <climits>  // IWYU pragma: keep
-#endif
 
 #if defined(__clang__)
     #define ALWAYS_INLINE inline __attribute__((always_inline))
