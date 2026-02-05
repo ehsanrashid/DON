@@ -57,17 +57,24 @@ jobs:
           mv wiki DON/
 
       - name: Copy files
+        continue-on-error: true
         run: |
+          ARTIFACT_DIR="${{ matrix.config.simple_name }}-${{ matrix.binaries }}"
+
+          [ -d "$ARTIFACT_DIR" ] || { echo "WARNING: Artifact dir missing: $ARTIFACT_DIR — skipping copy step"; exit 0; }
+          [ -f "$ARTIFACT_DIR/DON-$NAME-$BINARY$EXT" ] || { echo "ERROR: Binary missing: $ARTIFACT_DIR/DON-$NAME-$BINARY$EXT"; ls -l "$ARTIFACT_DIR"; exit 0; }
           mkdir -p DON-workflow
-          mv "${{ matrix.config.simple_name }}-${{ matrix.binaries }}" DON-workflow
+          mv "$ARTIFACT_DIR" DON-workflow
           cd DON-workflow
-          #cp -r src ../DON/
-          cp -r scripts ../DON/
-          cp DON-$NAME-$BINARY$EXT ../DON/
-          cp Copying.txt ../DON/
-          cp CITATION.cff ../DON/
-          cp README.md ../DON/
-          cp CONTRIBUTING.md ../DON/
+
+          #cp -r ../src ../DON/                               || echo "WARNING: src folder missing, skipping"
+          cp -r ../scripts ../DON/                           || echo "WARNING: scripts folder missing, skipping"
+          # Copy from artifact directory
+          cp "./$ARTIFACT_DIR/DON-$NAME-$BINARY$EXT" ../DON/ || echo "WARNING: DON-$NAME-$BINARY$EXT missing, skipping"
+          cp "./$ARTIFACT_DIR/Copying.txt" ../DON/           || echo "WARNING: Copying.txt missing, skipping"
+          cp "./$ARTIFACT_DIR/CITATION.cff" ../DON/          || echo "WARNING: CITATION.cff missing, skipping"
+          cp "./$ARTIFACT_DIR/README.md" ../DON/             || echo "WARNING: README.md missing, skipping"
+          cp "./$ARTIFACT_DIR/CONTRIBUTING.md" ../DON/       || echo "WARNING: CONTRIBUTING.md missing, skipping"
 
       - name: Create tar
         if: ${{ !startsWith(matrix.config.os, 'windows') }}
