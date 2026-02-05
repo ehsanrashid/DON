@@ -72,7 +72,6 @@ jobs:
           fi
 
       # x86-64 with newer extensions tests
-
       - name: Compile ${{ matrix.config.binaries }} build
         run: |
           make clean
