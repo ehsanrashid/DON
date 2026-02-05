@@ -70,6 +70,24 @@
   ],
   "exclude": [
     {
+      "binaries": "x86-64-avx512",
+      "config": {
+        "os": "ubuntu-22.04"
+      }
+    },
+    {
+      "binaries": "x86-64-vnni512",
+      "config": {
+        "os": "ubuntu-22.04"
+      }
+    },
+    {
+      "binaries": "x86-64-avx512icl",
+      "config": {
+        "os": "ubuntu-22.04"
+      }
+    },
+    {
       "binaries": "apple-silicon",
       "config": {
         "os": "ubuntu-22.04"

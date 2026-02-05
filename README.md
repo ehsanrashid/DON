@@ -103,9 +103,7 @@ also be made available under GPL v3.
 DON uses neural networks trained on data provided by the [Leela Chess Zero
 project][lc0-data-link], which is made available under the [Open Database License][odbl-link] (ODbL).
 
-
-[authors-link]:         https://github.com/ehsanrashid/DON/blob/main/AUTHORS
-[build-link]:           https://github.com/ehsanrashid/DON/actions/workflows/don.yml
+[build-link]:           https://github.com/ehsanrashid/DON/actions/workflows/DON-setup.yml
 [commits-link]:         https://github.com/ehsanrashid/DON/commits/main
 [issue-link]:           https://github.com/ehsanrashid/DON/issues/new?assignees=&labels=&template=BUG-REPORT.yml
 [license-link]:         https://github.com/ehsanrashid/DON/blob/main/Copying.txt
@@ -114,10 +112,7 @@ project][lc0-data-link], which is made available under the [Open Database Licens
 [readme-link]:          https://github.com/ehsanrashid/DON/blob/main/README.md
 [release-link]:         https://github.com/ehsanrashid/DON/releases/latest
 [src-link]:             https://github.com/ehsanrashid/DON/tree/main/src
-[don128-logo]:          https://donchess.org/images/logo/icon_128x128.png
 [uci-link]:             https://backscattering.de/chess/uci/
-[website-link]:         https://donchess.org
-[website-blog-link]:    https://donchess.org/blog/
 [wiki-link]:            https://github.com/ehsanrashid/DON/wiki
 [wiki-compile-link]:    https://github.com/ehsanrashid/DON/wiki/Compiling-from-source
 [wiki-uci-link]:        https://github.com/ehsanrashid/DON/wiki/UCI-&-Commands
@@ -125,9 +120,3 @@ project][lc0-data-link], which is made available under the [Open Database Licens
 [worker-link]:          https://github.com/ehsanrashid/DON/fishtest/wiki/Running-the-worker
 [lc0-data-link]:        https://storage.lczero.org/files/training_data
 [odbl-link]:            https://opendatacommons.org/licenses/odbl/odbl-10.txt
-
-[build-badge]:          https://img.shields.io/github/actions/workflow/status/official-don/DON/don.yml?branch=master&style=for-the-badge&label=don&logo=github
-[commits-badge]:        https://img.shields.io/github/commits-since/official-don/DON/latest?style=for-the-badge
-[license-badge]:        https://img.shields.io/github/license/official-don/DON?style=for-the-badge&label=license&color=success
-[release-badge]:        https://img.shields.io/github/v/release/official-don/DON?style=for-the-badge&label=official%20release
-[website-badge]:        https://img.shields.io/website?style=for-the-badge&down_color=red&down_message=Offline&label=website&up_color=success&up_message=Online&url=https%3A%2F%2Fdonchess.org

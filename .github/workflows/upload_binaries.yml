@@ -32,7 +32,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: ${{ matrix.config.simple_name }}-${{ matrix.binaries }}
-          path: ./DON-artifact
+          path: ${{ matrix.config.simple_name }}-${{ matrix.binaries }}
 
       - name: Debug token
         run: |
@@ -59,22 +59,17 @@ jobs:
       - name: Copy files
         continue-on-error: true
         run: |
-          ARTIFACT_DIR="./DON-artifact"
-
-          [ -d "$ARTIFACT_DIR" ] || { echo "WARNING: Artifact dir missing: $ARTIFACT_DIR — skipping copy step"; exit 0; }
-          [ -f "$ARTIFACT_DIR/DON-$NAME-$BINARY$EXT" ] || { echo "ERROR: Binary missing: $ARTIFACT_DIR/DON-$NAME-$BINARY$EXT"; ls -l "$ARTIFACT_DIR"; exit 0; }
-          mkdir -p DON-workflow
+          ARTIFACT_DIR="${{ matrix.config.simple_name }}-${{ matrix.binaries }}"
           mv "$ARTIFACT_DIR" DON-workflow
-          ARTIFACT_DIR="./DON-workflow/DON-artifact"
+          cd DON-workflow
 
-          #cp -r ../src ../DON/                               || echo "WARNING: src folder missing, skipping"
-          cp -r ../scripts ../DON/                           || echo "WARNING: scripts folder missing, skipping"
-          # Copy from artifact directory
-          cp "./$ARTIFACT_DIR/DON-$NAME-$BINARY$EXT" ../DON/ || echo "WARNING: DON-$NAME-$BINARY$EXT missing, skipping"
-          cp "./$ARTIFACT_DIR/Copying.txt" ../DON/           || echo "WARNING: Copying.txt missing, skipping"
-          cp "./$ARTIFACT_DIR/CITATION.cff" ../DON/          || echo "WARNING: CITATION.cff missing, skipping"
-          cp "./$ARTIFACT_DIR/README.md" ../DON/             || echo "WARNING: README.md missing, skipping"
-          cp "./$ARTIFACT_DIR/CONTRIBUTING.md" ../DON/       || echo "WARNING: CONTRIBUTING.md missing, skipping"
+          #cp -r src ../DON/                || echo "WARNING: src folder missing, skipping"
+          cp -r scripts ../DON/            || echo "WARNING: scripts folder missing, skipping"
+          cp DON-$NAME-$BINARY$EXT ../DON/ || echo "WARNING: DON-$NAME-$BINARY$EXT missing, skipping"
+          cp Copying.txt ../DON/           || echo "WARNING: Copying.txt missing, skipping"
+          cp CITATION.cff ../DON/          || echo "WARNING: CITATION.cff missing, skipping"
+          cp README.md ../DON/             || echo "WARNING: README.md missing, skipping"
+          cp CONTRIBUTING.md ../DON/       || echo "WARNING: CONTRIBUTING.md missing, skipping"
 
       - name: Create tar
         if: ${{ !startsWith(matrix.config.os, 'windows') }}
