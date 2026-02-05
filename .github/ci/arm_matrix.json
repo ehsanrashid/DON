@@ -8,6 +8,7 @@
       "emu": "qemu-aarch64",
       "comp": "ndk",
       "shell": "bash",
+      "ext": "",
       "archive_ext": "tar"
     },
     {
@@ -18,6 +19,7 @@
       "emu": "qemu-arm",
       "comp": "ndk",
       "shell": "bash",
+      "ext": "",
       "archive_ext": "tar"
     }
   ],

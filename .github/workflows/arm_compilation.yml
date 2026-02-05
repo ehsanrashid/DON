@@ -1,4 +1,4 @@
-name: Compilation
+name: ARM Compilation
 on:
   workflow_call:
     inputs:
@@ -11,10 +11,11 @@ jobs:
     runs-on: ${{ matrix.config.os }}
     env:
       COMPCXX: ${{ matrix.config.compiler }}
-      COMP: ${{ matrix.config.comp }}
       EMU: ${{ matrix.config.emu }}
-      EXT: ${{ matrix.config.ext }}
+      COMP: ${{ matrix.config.comp }}
+      NAME: ${{ matrix.config.simple_name }}
       BINARY: ${{ matrix.binaries }}
+      EXT: ${{ matrix.config.ext }}
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(inputs.matrix) }}
@@ -75,6 +76,7 @@ jobs:
 
       - name: Compile ${{ matrix.binaries }} build
         run: |
+          mkdir -p artifact
           if [ $COMP == ndk ]; then
             export PATH=${{ env.ANDROID_NDK_BIN }}:$PATH
             export LDFLAGS="-static -Wno-unused-command-line-argument"
@@ -83,26 +85,24 @@ jobs:
           make -j4 profile-build ARCH=$BINARY COMP=$COMP RUN_PREFIX=$EMU
           make strip ARCH=$BINARY COMP=$COMP
           RUN_PREFIX=$EMU ../tests/signature.sh $benchref
-          mv ./DON$EXT ../DON-android-$BINARY$EXT
+          mv ./DON$EXT artifact/DON-$NAME-$BINARY$EXT
 
       - name: Verify binary exists
         run: |
-          echo "Checking binary DON-android-$BINARY$EXT exists..."
-          ls -l ../DON-android-$BINARY$EXT
-          test -f ../DON-android-$BINARY$EXT
+          echo "Checking binary DON-$NAME-$BINARY$EXT exists..."
+          ls -l artifact/DON-$NAME-$BINARY$EXT
+          test -f artifact/DON-$NAME-$BINARY$EXT
 
-      - name: Remove non-required files
-        run: |
-          rm -rf src
-          git clean -fxd || true
+      - name: Remove non src files
+        run: git clean -fx 
 
       - name: Upload artifact for (pre)-release
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.config.simple_name }}-${{ matrix.binaries }}
+          name: ${{ env.NAME }}-${{ env.BINARY }}
           path: |
             scripts/
-            DON-android-$BINARY$EXT
+            artifact/DON-$NAME-$BINARY$EXT
             Copying.txt
             CITATION.cff
             README.md

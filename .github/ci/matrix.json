@@ -7,6 +7,7 @@
       "compiler": "g++",
       "comp": "gcc",
       "shell": "bash",
+      "ext": "",
       "archive_ext": "tar",
       "sde": "/home/runner/work/DON/DON/.output/sde-temp-files/sde-external-9.33.0-2024-01-07-lin/sde -future --"
     },
@@ -17,6 +18,7 @@
       "compiler": "clang++",
       "comp": "clang",
       "shell": "bash",
+      "ext": "",
       "archive_ext": "tar"
     },
     {
@@ -26,6 +28,7 @@
       "compiler": "clang++",
       "comp": "clang",
       "shell": "bash",
+      "ext": "",
       "archive_ext": "tar"
     },
     {
