@@ -102,7 +102,7 @@ jobs:
           name: ${{ env.NAME }}-${{ env.BINARY }}
           path: |
             scripts/
-            artifact/DON-$NAME-$BINARY$EXT
+            artifact/DON-${{ env.NAME }}-${{ env.BINARY }}${{ env.EXT }}
             Copying.txt
             CITATION.cff
             README.md

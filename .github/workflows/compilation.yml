@@ -71,7 +71,8 @@ jobs:
             $COMPCXX -Q -march=native --help=target
           fi
 
-      # x86-64 with newer extensions tests
+      # Compile profile guided builds
+
       - name: Compile ${{ matrix.config.binaries }} build
         run: |
           mkdir -p artifact
@@ -96,8 +97,9 @@ jobs:
           name: ${{ env.NAME }}-${{ env.BINARY }}
           path: |
             scripts/
-            artifact/DON-$NAME-$BINARY$EXT
+            artifact/DON-${{ env.NAME }}-${{ env.BINARY }}${{ env.EXT }}
             Copying.txt
             CITATION.cff
             README.md
             CONTRIBUTING.md
+          if-no-files-found: warn

@@ -60,7 +60,7 @@ jobs:
         continue-on-error: true
         run: |
           ARTIFACT_DIR="${{ matrix.config.simple_name }}-${{ matrix.binaries }}"
-          mv "$ARTIFACT_DIR" DON-workflow
+          mv "$ARTIFACT_DIR"/* DON-workflow/
           cd DON-workflow
 
           #cp -r src ../DON/                || echo "WARNING: src folder missing, skipping"

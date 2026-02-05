@@ -70,6 +70,8 @@ jobs:
           name: DON dev-${{ env.COMMIT_DATE }}-${{ env.COMMIT_SHA }}
           tag_name: DON-dev-${{ env.COMMIT_DATE }}-${{ env.COMMIT_SHA }}
           prerelease: true
+          allow_updates: true
+          token: ${{ secrets.GITHUB_TOKEN }}
 
   Matrix:
     runs-on: ubuntu-latest
