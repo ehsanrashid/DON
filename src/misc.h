@@ -58,6 +58,14 @@
 #define STRING_LITERAL(x) #x
 #define STRINGIFY(x) STRING_LITERAL(x)
 
+#if defined(_WIN32)
+    #if !defined(PATH_MAX)
+        #define PATH_MAX (2 * 1024)  // 2K bytes, safe for almost all paths
+    #endif
+#else
+    #include <climits>
+#endif
+
 #if defined(__clang__)
     #define ALWAYS_INLINE inline __attribute__((always_inline))
 #elif defined(__GNUC__)

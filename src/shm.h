@@ -75,7 +75,6 @@
         #include <cassert>
         #include <cerrno>
         #include <chrono>
-        #include <climits>
         #include <condition_variable>
         #include <cstdlib>
         #include <dirent.h>
@@ -112,10 +111,8 @@
         #include <sys/types.h>
     #elif defined(__NetBSD__)
         // NetBSD
-        #include <climits>
     #elif defined(__DragonFly__)
         // DragonFly BSD
-        #include <climits>
     #elif defined(_AIX)
         // IBM AIX
     #elif defined(__arm__) || defined(__aarch64__)
@@ -160,8 +157,8 @@ enum class SharedMemoryAllocationStatus {
 }
 
 inline std::string executable_path() noexcept {
-    StdArray<char, 4096> executablePath{};
-    std::size_t          executableSize = 0;
+    StdArray<char, PATH_MAX> executablePath{};
+    std::size_t              executableSize = 0;
 
 #if defined(_WIN32)
     DWORD size = GetModuleFileName(nullptr, executablePath.data(), DWORD(executablePath.size()));

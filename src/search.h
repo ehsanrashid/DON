@@ -303,11 +303,10 @@ class RootMoves final {
 struct Limit final {
    public:
     struct Clock final {
+       public:
         TimePoint time = 0;
         TimePoint inc  = 0;
     };
-
-    constexpr Limit() noexcept = default;
 
     bool use_time_manager() const noexcept {
         return clocks[WHITE].time != 0 || clocks[BLACK].time != 0;

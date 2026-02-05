@@ -100,7 +100,8 @@ Command to_command(std::string_view command) noexcept {
 }
 
 Limit parse_limit(std::istream& is) noexcept {
-    Limit limit;
+
+    Limit limit{};
     // The search starts as early as possible
     limit.startTime = now();
 
@@ -244,6 +245,7 @@ Limit parse_limit(std::istream& is) noexcept {
             is.seekg(pos);
         }
     }
+
     return limit;
 }
 
