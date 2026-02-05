@@ -79,14 +79,13 @@ jobs:
           make -j4 profile-build ARCH=$BINARY COMP=$COMP RUN_PREFIX="$SDE"
           make strip ARCH=$BINARY COMP=$COMP
           RUN_PREFIX="$SDE" ../tests/signature.sh $benchref
-          mkdir -p DON
-          mv ./DON$EXT ./DON/DON-$NAME-$BINARY$EXT
+          mv ./DON$EXT ../DON-$NAME-$BINARY$EXT
 
       - name: Verify binary exists
         run: |
           echo "Checking binary DON-$NAME-$BINARY$EXT exists..."
-          ls -l ./DON/DON-$NAME-$BINARY$EXT
-          test -f ./DON/DON-$NAME-$BINARY$EXT
+          ls -l ../DON-$NAME-$BINARY$EXT
+          test -f ../DON-$NAME-$BINARY$EXT
 
       - name: Remove non-required files
         run: |
@@ -98,6 +97,6 @@ jobs:
         with:
           name: ${{ matrix.config.simple_name }}-${{ matrix.binaries }}
           path: |
-            DON
+            .
             !.git
             !.output
