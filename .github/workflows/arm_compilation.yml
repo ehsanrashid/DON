@@ -83,12 +83,14 @@ jobs:
           make -j4 profile-build ARCH=$BINARY COMP=$COMP RUN_PREFIX=$EMU
           make strip ARCH=$BINARY COMP=$COMP
           RUN_PREFIX=$EMU ../tests/signature.sh $benchref
-          mv ./DON$EXT ../DON-android-$BINARY$EXT
+          mkdir -p DON
+          mv ./DON$EXT ./DON/DON-android-$BINARY$EXT
 
       - name: Verify binary exists
         run: |
           echo "Checking binary DON-android-$BINARY$EXT exists..."
-          test -f DON-android-$BINARY$EXT
+          ls -l ./DON/DON-android-$BINARY$EXT
+          test -f ./DON/DON-android-$BINARY$EXT
 
       - name: Remove non-required files
         run: |
@@ -100,6 +102,6 @@ jobs:
         with:
           name: ${{ matrix.config.simple_name }}-${{ matrix.binaries }}
           path: |
-            .
+            DON
             !.git
             !.output

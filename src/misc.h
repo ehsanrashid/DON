@@ -156,8 +156,8 @@ inline constexpr bool IsLittleEndian = true;
 #else
 // Fallback runtime check
 inline const bool IsLittleEndian = []() noexcept {
-    constexpr std::uint16_t v = 1;
-    return *reinterpret_cast<const std::uint8_t*>(&v) == 1;
+    constexpr std::uint16_t LE = 1;
+    return *reinterpret_cast<const std::uint8_t*>(&LE) == 1;
 }();
 #endif
 
