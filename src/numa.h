@@ -56,15 +56,12 @@
     #if defined(small)
         #undef small
     #endif
-#else
-    // Support linux very well.
-    // But explicitly don't support Android, there is no affected systems, not worth maintaining.
-    #if defined(__linux__) && !defined(__ANDROID__)
-        #if !defined(_GNU_SOURCE)
-            #define _GNU_SOURCE
-        #endif
-        #include <sched.h>
+#elif defined(__linux__) && !defined(__ANDROID__)
+    // Linux (non-Android)
+    #if !defined(_GNU_SOURCE)
+        #define _GNU_SOURCE
     #endif
+    #include <sched.h>
 #endif
 
 #include "misc.h"

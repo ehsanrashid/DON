@@ -69,66 +69,63 @@
     #if defined(small)
         #undef small
     #endif
+#elif defined(__linux__) && !defined(__ANDROID__)
+    // Linux (non-Android)
+    #include <atomic>
+    #include <cassert>
+    #include <cerrno>
+    #include <chrono>
+    #include <climits>
+    #include <condition_variable>
+    #include <cstdlib>
+    #include <dirent.h>
+    #include <fcntl.h>
+    #include <filesystem>
+    #include <inttypes.h>
+    #include <list>
+    #include <mutex>
+    #include <pthread.h>
+    #include <semaphore.h>
+    #include <shared_mutex>
+    #include <signal.h>
+    #include <sys/file.h>
+    #include <sys/mman.h>  // mmap, munmap, MAP_*, PROT_*
+    #include <sys/stat.h>
+    #include <thread>
+    #include <unistd.h>
+    #include <unordered_map>
+
+    #define SHM_NAME_MAX_SIZE NAME_MAX
+#elif defined(__APPLE__)
+    // macOS / iOS
+    #include <mach-o/dyld.h>
+    #include <sys/syslimits.h>
+#elif defined(__sun)
+    // Solaris / OpenSolaris / illumos
+    #include <cstdlib>
+    #include <libgen.h>
+#elif defined(__FreeBSD__)
+    // FreeBSD
+    #include <sys/sysctl.h>
+    #include <sys/types.h>
+#elif defined(__NetBSD__)
+    // NetBSD
+    #include <climits>
+#elif defined(__DragonFly__)
+    // DragonFly BSD
+    #include <climits>
+#elif defined(__linux__)
+    // Linux
+#elif defined(_AIX)
+    // IBM AIX
+#elif defined(__arm__) || defined(__aarch64__)
+    // ARM 32-bit / 64-bit
+#elif defined(__i386__) || defined(__x86_64__)
+    // x86 32-bit / x86-64
+#elif defined(__ANDROID__)
+    // Andriod
 #else
-    #if defined(__linux__) && !defined(__ANDROID__)
-        #include <atomic>
-        #include <cassert>
-        #include <cerrno>
-        #include <chrono>
-        #include <climits>
-        #include <condition_variable>
-        #include <cstdlib>
-        #include <dirent.h>
-        #include <fcntl.h>
-        #include <filesystem>
-        #include <inttypes.h>
-        #include <list>
-        #include <mutex>
-        #include <pthread.h>
-        #include <semaphore.h>
-        #include <shared_mutex>
-        #include <signal.h>
-        #include <sys/file.h>
-        #include <sys/mman.h>  // mmap, munmap, MAP_*, PROT_*
-        #include <sys/stat.h>
-        #include <thread>
-        #include <unistd.h>
-        #include <unordered_map>
-
-        #define SHM_NAME_MAX_SIZE NAME_MAX
-    #endif
-
-    #if defined(__APPLE__)
-        // macOS / iOS
-        #include <mach-o/dyld.h>
-        #include <sys/syslimits.h>
-    #elif defined(__sun)
-        // Solaris / OpenSolaris / illumos
-        #include <cstdlib>
-        #include <libgen.h>
-    #elif defined(__FreeBSD__)
-        // FreeBSD
-        #include <sys/sysctl.h>
-        #include <sys/types.h>
-    #elif defined(__NetBSD__)
-        // NetBSD
-        #include <climits>
-    #elif defined(__DragonFly__)
-        // DragonFly BSD
-        #include <climits>
-    #elif defined(__linux__)
-        // Linux
-    #elif defined(_AIX)
-        // IBM AIX
-    #elif defined(__arm__) || defined(__aarch64__)
-        // ARM 32-bit / 64-bit
-    #elif defined(__i386__) || defined(__x86_64__)
-        // x86 32-bit / x86-64
-    #elif defined(__ANDROID__)
-        // Andriod
-    #else
-        #error "Unsupported platform"
-    #endif
+    #error "Unsupported platform"
 #endif
 
 #include "memory.h"

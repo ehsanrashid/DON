@@ -274,10 +274,12 @@ std::string compiler_info() noexcept {
 #if defined(USE_SSE2)
     compilerInfo += " SSE2";
 #endif
-#if defined(USE_NEON_DOTPROD)
+#if defined(USE_NEON)
+    #if defined(USE_NEON_DOTPROD)
     compilerInfo += " NEON_DOTPROD";
-#elif defined(USE_NEON)
+    #else
     compilerInfo += " NEON";
+    #endif
 #endif
 #if defined(USE_POPCNT)
     compilerInfo += " POPCNT";
