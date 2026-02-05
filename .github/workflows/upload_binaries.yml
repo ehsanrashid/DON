@@ -32,7 +32,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: ${{ matrix.config.simple_name }}-${{ matrix.binaries }}
-          path: ${{ matrix.config.simple_name }}-${{ matrix.binaries }}
+          path: ./DON-artifact
 
       - name: Debug token
         run: |
@@ -59,13 +59,13 @@ jobs:
       - name: Copy files
         continue-on-error: true
         run: |
-          ARTIFACT_DIR="${{ matrix.config.simple_name }}-${{ matrix.binaries }}"
+          ARTIFACT_DIR="./DON-artifact"
 
           [ -d "$ARTIFACT_DIR" ] || { echo "WARNING: Artifact dir missing: $ARTIFACT_DIR — skipping copy step"; exit 0; }
           [ -f "$ARTIFACT_DIR/DON-$NAME-$BINARY$EXT" ] || { echo "ERROR: Binary missing: $ARTIFACT_DIR/DON-$NAME-$BINARY$EXT"; ls -l "$ARTIFACT_DIR"; exit 0; }
           mkdir -p DON-workflow
           mv "$ARTIFACT_DIR" DON-workflow
-          cd DON-workflow
+          ARTIFACT_DIR="./DON-workflow/DON-artifact"
 
           #cp -r ../src ../DON/                               || echo "WARNING: src folder missing, skipping"
           cp -r ../scripts ../DON/                           || echo "WARNING: scripts folder missing, skipping"
