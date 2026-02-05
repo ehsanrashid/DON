@@ -63,7 +63,7 @@
         #define PATH_MAX (2 * 1024)  // 2K bytes, safe for almost all paths
     #endif
 #else
-    #include <climits>
+    #include <climits>  // IWYU pragma: keep
 #endif
 
 #if defined(__clang__)

@@ -75,6 +75,7 @@
         #include <cassert>
         #include <cerrno>
         #include <chrono>
+        #include <climits>
         #include <condition_variable>
         #include <cstdlib>
         #include <dirent.h>
