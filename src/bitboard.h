@@ -47,6 +47,23 @@
     // * _pdep_u64(src, mask) - Parallel Bits Deposit
     // Deposits the lower bits of 'src' into the positions of the 1-bits in 'mask',
     // leaving all other bits as zero.
+
+    // Optional: software fallback for _pdep_u64 if BMI2 is not available
+    #if !defined(_MSC_VER) && !defined(__BMI2__)
+constexpr std::uint64_t _pdep_u64(std::uint64_t src, std::uint64_t mask) noexcept {
+    std::uint64_t deposit = 0;
+
+    std::uint64_t bb = 1;
+    while (mask != 0)
+    {
+        if ((src & bb) != 0)
+            deposit |= mask & -mask;  // extract lowest bit of mask
+        mask &= mask - 1;             // clear lowest bit of mask
+        bb <<= 1;                     // move to next bit in src
+    }
+    return deposit;
+}
+    #endif
 #endif
 
 #include "misc.h"
