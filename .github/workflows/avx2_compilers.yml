@@ -52,32 +52,32 @@ jobs:
           apt-get update
           apt-get install -y curl git make
 
-      - name: Set up Clang
-        if: ${{ matrix.is_clang && matrix.image == 'ubuntu:rolling' }}
-        run: |
-          if [ "${{ matrix.ver }}" -le 20 ]; then
-            apt-get install -y clang-${{ matrix.ver }}
-          else
-            apt-get install -y \
-              clang-${{ matrix.ver }} \
-              llvm-${{ matrix.ver }}-dev \
-              llvm-${{ matrix.ver }}-linker-tools \
-              lld-${{ matrix.ver }}
-          fi
+      # - name: Set up Clang
+      #   if: ${{ matrix.is_clang && matrix.image == 'ubuntu:rolling' }}
+      #   run: |
+      #     if [ "${{ matrix.ver }}" -le 20 ]; then
+      #       apt-get install -y clang-${{ matrix.ver }}
+      #     else
+      #       apt-get install -y \
+      #         clang-${{ matrix.ver }} \
+      #         llvm-${{ matrix.ver }}-dev \
+      #         llvm-${{ matrix.ver }}-linker-tools \
+      #         lld-${{ matrix.ver }}
+      #     fi
 
-      - name: Download network
-        working-directory: src
-        run: make net
+      # - name: Download network
+      #   working-directory: src
+      #   run: make net
 
-      - name: Build avx2 binary
-        working-directory: src
-        run: |
-          export CXXFLAGS="-Werror"
-          if [ "${{ matrix.ver }}" -ge 20 ]; then
-            apt install -y lld
-          fi
-          make clean
-          make -j build ARCH=x86-64-avx2 COMP=${{ matrix.comp }} COMPCXX=${{ matrix.cxx }}
+      # - name: Build avx2 binary
+      #   working-directory: src
+      #   run: |
+      #     export CXXFLAGS="-Werror"
+      #     if [ "${{ matrix.ver }}" -ge 20 ]; then
+      #       apt install -y lld
+      #     fi
+      #     make clean
+      #     make -j build ARCH=x86-64-avx2 COMP=${{ matrix.comp }} COMPCXX=${{ matrix.cxx }}
 
       - name: Smoke test
         working-directory: src

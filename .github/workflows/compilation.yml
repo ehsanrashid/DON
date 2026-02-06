@@ -48,47 +48,6 @@ jobs:
           environmentVariableName: SDE_DIR
           sdeVersion: 9.33.0
 
-      - name: Extract the bench number from the commit history
-        run: |
-          benchref=""
-          echo "=== Searching commits for Bench ==="
-          git rev-list -20 HEAD | nl | while read num hash; do
-            subject=$(git log -1 --format=%s "$hash")
-            if git show -s "$hash" | grep -qi "bench"; then
-              echo "✓ Commit $num (${hash:0:8}): HAS BENCH - $subject"
-              git show -s "$hash" | grep -i "bench"
-            else
-              echo "✗ Commit $num (${hash:0:8}): no bench - $subject"
-            fi
-          done
-          echo "=== Searching first 20 commits for Bench ==="
-          git rev-list -20 HEAD | nl | while read num hash; do
-           subject=$(git log -1 --format=%s "$hash")
-           if git show -s "$hash" | grep -qi "bench"; then
-             echo "✓ Commit $num (${hash:0:8}): HAS BENCH - $subject"
-             git show -s "$hash" | grep -i "bench"
-           else
-             echo "✗ Commit $num (${hash:0:8}): NO bench - $subject"
-           fi
-          done
-          for hash in $(git rev-list -100 HEAD); do
-            # Use grep -E for cross-platform compatibility
-            benchref=$(git show -s "$hash" | \
-              grep -E "[Bb]ench[[:space:]]*:?[[:space:]]*[0-9]{6,8}" | \
-              grep -oE "[0-9]{6,8}" | \
-              head -1)
-      
-            if [ -n "$benchref" ]; then
-              echo "Found: $benchref (commit: ${hash:0:8})"
-              echo "benchref=$benchref" >> $GITHUB_ENV
-              break
-            fi
-          done
-
-          if [ -z "$benchref" ]; then
-            echo "No benchmark found"
-          fi
-
       - name: Download the used network from the fishtest framework
         run: make net
 

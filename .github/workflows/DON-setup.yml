@@ -117,7 +117,7 @@ jobs:
       matrix: ${{ needs.Matrix.outputs.arm_matrix }}
   Binaries:
     if: github.repository == 'ehsanrashid/DON'
-    needs: [Prerelease, Matrix, Compilation]
+    needs: [Matrix, Compilation]
     uses: ./.github/workflows/upload_binaries.yml
     with:
       matrix: ${{ needs.Matrix.outputs.matrix }}
@@ -127,7 +127,7 @@ jobs:
       token: ${{ secrets.GITHUB_TOKEN }}
   ARM_Binaries:
     if: github.repository == 'ehsanrashid/DON'
-    needs: [Prerelease, Matrix, ARMCompilation]
+    needs: [Matrix, ARMCompilation]
     uses: ./.github/workflows/upload_binaries.yml
     with:
       matrix: ${{ needs.Matrix.outputs.arm_matrix }}
