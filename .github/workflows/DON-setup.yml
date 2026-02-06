@@ -83,7 +83,6 @@ jobs:
           name: DON dev-${{ env.COMMIT_DATE }}-${{ env.COMMIT_SHA }}
           tag_name: DON-dev-${{ env.COMMIT_DATE }}-${{ env.COMMIT_SHA }}
           prerelease: true
-          token: ${{ secrets.token }}
   Matrix:
     runs-on: ubuntu-latest
     outputs:
