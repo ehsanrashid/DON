@@ -55,18 +55,17 @@ jobs:
 
           for hash in $(git rev-list -100 HEAD); do
             msg="$(git log -1 --format=%B "$hash")"
-            # Pattern 1: "Bench: 12345" or "bench: 12345"
-            if [[ "$msg" =~ [Bb]ench[[:space:]]*:[[:space:]]*([0-9]{6,8}) ]]; then
+
+            # Match "Bench: 12345" or "Bench 12345"
+            if [[ "$msg" =~ [Bb]ench[[:space:]]*:?[[:space:]]*([0-9]+) ]]; then
               benchref="${BASH_REMATCH[1]}"
-              echo "Found: $benchref (commit: $hash)"
-              echo "benchref=$benchref" >> $GITHUB_ENV
-              break
-            # Pattern 2: "Bench 12345" (no colon)
-            elif [[ "$msg" =~ [Bb]ench[[:space:]]+([0-9]{6,8}) ]]; then
-              benchref="${BASH_REMATCH[1]}"
-              echo "Found: $benchref (commit: $hash)"
-              echo "benchref=$benchref" >> $GITHUB_ENV
-              break
+
+              # Validate: must be 6-8 digits
+              if [[ ${#benchref} -ge 6 && ${#benchref} -le 8 ]]; then
+                echo "Found benchmark: $benchref"
+                echo "benchref=$benchref" >> $GITHUB_ENV
+                break
+              fi
             fi
           done
 
