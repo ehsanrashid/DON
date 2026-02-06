@@ -2128,12 +2128,10 @@ void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Sta
     assert(depth > DEPTH_ZERO);
 
     int bonus = std::min(- 81 + 116 * depth, +1515) + 347 * int(bestMove == ss->ttMove) + constexpr_round(31.2500e-3 * (ss - 1)->history);
-    int malus = std::min(-207 + 848 * depth, +2446) -  17 * ss->moveCount;
-
     if (bonus < 0)
         bonus = 0;
-    if (malus < 0)
-        malus = 0;
+
+    int baseQuietMalus = std::clamp(-207 + 848 * depth - 17 * std::min<int>(ss->moveCount, 32), 0, 2446);
 
     if (pos.capture_promo(bestMove))
     {
@@ -2144,26 +2142,32 @@ void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Sta
         update_quiet_histories(pos, pawnHistory, ss, bestMove, constexpr_round(0.8887 * bonus));
 
         // Decrease history for all non-best quiet moves
-        int quietMalus = constexpr_round(1.0596 * malus);
+        int decayQuietMalus = constexpr_round(1.0596 * baseQuietMalus);
         for (Move qm : searchedMoves[0])
         {
-            update_quiet_histories(pos, pawnHistory, ss, qm, -quietMalus);
-            quietMalus = constexpr_round(0.9326 * quietMalus);
+            update_quiet_histories(pos, pawnHistory, ss, qm, -decayQuietMalus);
+            decayQuietMalus = constexpr_round(0.9326 * decayQuietMalus);
         }
     }
 
+    int baseCaptureMalus = std::min(-207 + 848 * depth, 2446);
+    int decayCaptureMalus = constexpr_round(1.4141 * baseCaptureMalus);
     // Decrease history for all non-best capture moves
     for (Move cm : searchedMoves[1])
-        update_capture_history(pos, cm, -constexpr_round(1.4141 * malus));
+    {
+        update_capture_history(pos, cm, -decayCaptureMalus);
+        decayCaptureMalus = constexpr_round(0.95 * decayCaptureMalus);
+    }
 
     Move preMove = (ss - 1)->move;
 
     bool   preOk = preMove.is_ok();
     Square preSq = preMove.dst_sq_();
 
+    int prevQuietMalus = std::min(-207 + 848 * depth, 2446);
     // Extra penalty for a quiet early move that was not a TT move in the previous ply when it gets refuted
     if (preOk && pos.captured_pc() == Piece::NO_PIECE && (ss - 1)->moveCount == 1 + int((ss - 1)->ttMove != Move::None))
-        update_continuation_history(ss - 1, pos[preSq], preSq, -constexpr_round(0.5879 * malus));
+        update_continuation_history(ss - 1, pos[preSq], preSq, -constexpr_round(0.5879 * prevQuietMalus));
 }
 
 // Updates correction histories at the end of search() when a bestMove is found
