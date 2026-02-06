@@ -48,13 +48,6 @@ jobs:
           environmentVariableName: SDE_DIR
           sdeVersion: 9.33.0
 
-      - name: Extract the bench number from the commit history
-        run: |
-          for hash in $(git rev-list -100 HEAD); do
-            benchref=$(git show -s $hash | tac | grep -m 1 -o -x '[[:space:]]*\b[Bb]ench[ :]\+[1-9][0-9]\{5,7\}\b[[:space:]]*' | sed 's/[^0-9]//g') && break || true
-          done
-          [[ -n "$benchref" ]] && echo "benchref=$benchref" >> $GITHUB_ENV && echo "From commit: $hash" && echo "Reference bench: $benchref" || echo "No bench found"
-
       - name: Download the used network from the fishtest framework
         run: make net
 
@@ -72,11 +65,14 @@ jobs:
 
       - name: Show compiler cpu info
         run: |
-          if [[ "$COMPCXX" == clang* ]]; then
-             $COMPCXX -E - -march=native -###
-          else
-            $COMPCXX -Q -march=native --help=target
-          fi
+          case "$COMPCXX" in
+            clang*)
+              $COMPCXX -E - -march=native -###
+              ;;
+            *)
+              $COMPCXX -Q -march=native --help=target
+              ;;
+          esac
 
       # Compile profile guided builds
 

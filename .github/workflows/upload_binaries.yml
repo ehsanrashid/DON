@@ -58,17 +58,14 @@ jobs:
 
       - name: Assemble package
         run: |
-          ART_ROOT="artifact/$NAME-$BINARY"
-
-          echo "Artifact root:"
-          ls -la "$ART_ROOT"
+          ART_ROOT="artifact"
 
           test -d "$ART_ROOT" || { echo "ERROR: Artifact root not found"; exit 1; }
 
           # Binary (required)
           cp "$ART_ROOT/DON-$NAME-$BINARY$EXT" DON/ || { echo "ERROR: Binary not found"; exit 1; }
 
-          # Optional extras (explicit, safe)
+          # Optional extras
           cp -r "$ART_ROOT/scripts" DON/ 2>/dev/null || true
           cp "$ART_ROOT"/{Copying.txt,CITATION.cff,README.md,CONTRIBUTING.md} DON/ 2>/dev/null || true
 
