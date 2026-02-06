@@ -27,21 +27,16 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+          fetch-depth: 1
 
       - name: Download artifact from compilation
         uses: actions/download-artifact@v4
         with:
           name: ${{ matrix.config.simple_name }}-${{ matrix.binaries }}
-          path: ${{ matrix.config.simple_name }}-${{ matrix.binaries }}
+          path: ./artifact/
 
       - name: Create Package
         run: mkdir -p DON
-
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: ${{ env.NAME }}-${{ env.BINARY }}
-          path: ./artifact/
 
       - name: Assemble package
         run: |
@@ -63,45 +58,15 @@ jobs:
 
       - name: Create zip
         if: ${{ startsWith(matrix.config.os, 'windows') }}
-        run: zip -r DON-$NAME-$BINARY.zip DON
+        run: |
+          zip -r DON-$NAME-$BINARY.zip DON
 
       - name: Get commit info
         run: |
           echo "COMMIT_SHA=$(git rev-parse HEAD | cut -c 1-8)" >> $GITHUB_ENV
           echo "COMMIT_DATE=$(git show -s --date=format:'%Y%m%d' --format=%cd HEAD)" >> $GITHUB_ENV
 
-      - name: Check Pullable Commits
-        run: |
-          git fetch
-          echo "CHANGES=$(git rev-list HEAD..origin/main --count)" >> $GITHUB_ENV
-
-      - name: Official Release?
-        run: |
-          if git log -1 --pretty=%B | grep -q "Official release version of DON"; then
-            echo "OFFICIAL_RELEASE=true" >> $GITHUB_ENV
-          else
-            echo "OFFICIAL_RELEASE=false" >> $GITHUB_ENV
-          fi
-
-      # ONLY MATRIX INDEX 0 DELETES & CREATES
-      - name: Create prerelease (once)
-        if: >
-          github.ref_name == 'main' &&
-          env.CHANGES == '0' &&
-          env.OFFICIAL_RELEASE == 'false' &&
-          matrix.index == 0
-        run: |
-          TAG="DON-dev-${COMMIT_DATE}-${COMMIT_SHA}"
-
-          gh release delete "$TAG" --cleanup-tag -y || true
-
-          gh release create "$TAG" \
-            --prerelease \
-            --title "DON dev-${COMMIT_DATE}-${COMMIT_SHA}"
-        env:
-          GITHUB_TOKEN: ${{ secrets.token }}
-
-      # ALL MATRIX JOBS UPLOAD THEIR OWN ASSET
+      # UPLOAD ONLY — RELEASE IS CREATED ELSEWHERE
       - name: Upload prerelease asset
         if: github.ref_name == 'main' && env.CHANGES == '0' && env.OFFICIAL_RELEASE == 'false'
         run: |
