@@ -51,17 +51,15 @@ jobs:
       - name: Extract the bench number from the commit history
         run: |
           benchref=""
-
-          echo "=== Checking first 5 commits ==="
-          for hash in $(git rev-list -5 HEAD); do
-            echo ""
-            echo "Commit: ${hash:0:8}"
-            msg="$(git show -s "$hash")"
-  
-            echo "--- Full commit ---"
-            echo "$msg"
-            echo "--- Searching with grep ---"
-            git show -s "$hash" | grep -i "bench" || echo "  (no bench found)"
+          echo "=== Searching commits for Bench ==="
+          git rev-list -20 HEAD | nl | while read num hash; do
+            subject=$(git log -1 --format=%s "$hash")
+            if git show -s "$hash" | grep -qi "bench"; then
+              echo "✓ Commit $num (${hash:0:8}): HAS BENCH - $subject"
+              git show -s "$hash" | grep -i "bench"
+            else
+              echo "✗ Commit $num (${hash:0:8}): no bench - $subject"
+            fi
           done
 
           for hash in $(git rev-list -100 HEAD); do
