@@ -87,36 +87,36 @@ jobs:
           make strip ARCH=$BINARY COMP=$COMP
           RUN_PREFIX="$SDE" ../tests/signature.sh "$benchref"
 
-          # Ensure release folder exists
-          mkdir -p release
+          # Ensure artifact folder exists
+          mkdir -p artifact
 
-          # Move binary into release folder
-          mv ./DON$EXT release/DON-$NAME-$BINARY$EXT || { echo "ERROR: Built binary ./DON$EXT not found"; exit 1; }
+          # Move binary into artifact folder
+          mv ./DON$EXT artifact/DON-$NAME-$BINARY$EXT || { echo "ERROR: Built binary ./DON$EXT not found"; exit 1; }
 
           # Optional: make binary executable
-          chmod +x release/DON-$NAME-$BINARY$EXT
+          chmod +x artifact/DON-$NAME-$BINARY$EXT
 
           # Copy optional scripts/docs
-          [ -d scripts ] && cp -r scripts release/ || echo "No scripts/ folder, skipping"
-          cp -v Copying.txt CITATION.cff README.md CONTRIBUTING.md release/ 2>/dev/null || true
+          [ -d scripts ] && cp -r scripts artifact/ || echo "No scripts/ folder, skipping"
+          cp -v Copying.txt CITATION.cff README.md CONTRIBUTING.md artifact/ 2>/dev/null || true
 
-      - name: Verify release contents
+      - name: Verify artifact contents
         run: |
           echo "Checking binary DON-$NAME-$BINARY$EXT exists..."
-          test -f release/DON-$NAME-$BINARY$EXT # Existence check
-          echo "Listing release folder contents:"
-          ls -lh release/ # Size check
-          du -sh release/ # Total size
+          test -f artifact/DON-$NAME-$BINARY$EXT # Existence check
+          echo "Listing artifact folder contents:"
+          ls -lh artifact/ # Size check
+          du -sh artifact/ # Total size
 
       - name: Clean build artifacts
         run: |
           make clean
-          # Exclude release folder from cleanup
-          git clean -fxe release/
+          # Exclude artifact folder from cleanup
+          git clean -fxe artifact/
 
       - name: Upload artifact for (pre)-release
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.NAME }}-${{ env.BINARY }}
-          path: release/
+          path: artifact/
           if-no-files-found: error

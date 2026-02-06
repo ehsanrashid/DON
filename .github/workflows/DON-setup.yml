@@ -19,8 +19,6 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-          # Only checkout metadata; do not fetch full history (optional safety)
-          fetch-depth: 1
 
       # Returns null if no pre-release exists
       - name: Get Commit SHA of Latest Pre-release
@@ -31,25 +29,31 @@ jobs:
 
           echo "COMMIT_SHA_TAG=$(jq -r 'map(select(.prerelease)) | first | .tag_name' <<< $(curl -s https://api.github.com/repos/${{ github.repository_owner }}/DON/releases))" >> $GITHUB_ENV
 
-      - name: Delete Old Prerelease
+      - name: Delete previous pre-release and tag
         run: gh release delete ${{ env.COMMIT_SHA_TAG }} --cleanup-tag
         if: env.COMMIT_SHA_TAG != 'null'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # Make sure that an old ci that still runs on master doesn't recreate a prerelease
       - name: Check Pullable Commits
+        id: check_commits
         run: |
           git fetch
           CHANGES=$(git rev-list HEAD..origin/main --count)
           echo "CHANGES=$CHANGES" >> $GITHUB_ENV
 
       - name: Get last commit SHA
+        id: last_commit
         run: echo "COMMIT_SHA=$(git rev-parse HEAD | cut -c 1-8)" >> $GITHUB_ENV
 
       - name: Get commit date
+        id: commit_date
         run: echo "COMMIT_DATE=$(git show -s --date=format:'%Y%m%d' --format=%cd HEAD)" >> $GITHUB_ENV
 
       - name: Official Release?
+        id: official_release
+        # Check for "Official release version of DON" in the commit message
         run: |
           if git log -1 --pretty=%B | grep -q "Official release version of DON"; then
             echo "OFFICIAL_RELEASE=true" >> $GITHUB_ENV
@@ -57,19 +61,15 @@ jobs:
             echo "OFFICIAL_RELEASE=false" >> $GITHUB_ENV
           fi
 
-      # Create empty pre-release, the other upload_binaries.yml will upload the binaries
+      # Create new pre-release, the other upload_binaries.yml will upload the binaries
       # to this pre-release.
-      - name: Create Empty Prerelease
+      - name: Create Prerelease
         if: github.ref_name == 'main' && env.CHANGES == '0' && env.OFFICIAL_RELEASE == 'false'
-        run: |
-          gh release create DON-dev-${{ env.COMMIT_DATE }}-${{ env.COMMIT_SHA }} \
-            --prerelease \
-            --title "DON dev-${{ env.COMMIT_DATE }}-${{ env.COMMIT_SHA }}" \
-            --notes "" \
-            --repo ${{ github.repository }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
+        uses: softprops/action-gh-release@4634c16e79c963813287e889244c50009e7f0981
+        with:
+          name: DON dev-${{ env.COMMIT_DATE }}-${{ env.COMMIT_SHA }}
+          tag_name: DON-dev-${{ env.COMMIT_DATE }}-${{ env.COMMIT_SHA }}
+          prerelease: true
   Matrix:
     runs-on: ubuntu-latest
     outputs:
