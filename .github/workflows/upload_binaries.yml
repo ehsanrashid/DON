@@ -34,27 +34,14 @@ jobs:
           name: ${{ matrix.config.simple_name }}-${{ matrix.binaries }}
           path: ${{ matrix.config.simple_name }}-${{ matrix.binaries }}
 
-      - name: Debug token
-        run: |
-          echo "Debugging GitHub token..."
-          echo "Token length: ${#TOKEN}"
-          if [ -z "$TOKEN" ]; then
-            echo "TOKEN is empty!"
-          else
-            echo "TOKEN is set"
-          fi
-        env:
-          TOKEN: ${{ secrets.token }}
-
       - name: Create Package
-        run: |
-          mkdir -p DON
+        run: mkdir -p DON
 
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
-         name: ${{ env.NAME }}-${{ env.BINARY }}
-         path: ./artifact/
+          name: ${{ env.NAME }}-${{ env.BINARY }}
+          path: ./artifact/
 
       - name: Assemble package
         run: |
@@ -65,13 +52,8 @@ jobs:
           # Binary (required)
           cp "$ART_ROOT/DON-$NAME-$BINARY$EXT" DON/ || { echo "ERROR: Binary not found"; exit 1; }
 
-          # Optional extras
           cp -r "$ART_ROOT/scripts" DON/ 2>/dev/null || true
           cp "$ART_ROOT"/{Copying.txt,CITATION.cff,README.md,CONTRIBUTING.md} DON/ 2>/dev/null || true
-
-          echo "Final package contents:"
-          ls -la DON/
-          du -sh DON/
 
       - name: Create tar
         if: ${{ !startsWith(matrix.config.os, 'windows') }}
@@ -81,35 +63,19 @@ jobs:
 
       - name: Create zip
         if: ${{ startsWith(matrix.config.os, 'windows') }}
+        run: zip -r DON-$NAME-$BINARY.zip DON
+
+      - name: Get commit info
         run: |
-          zip -r DON-$NAME-$BINARY.zip DON
+          echo "COMMIT_SHA=$(git rev-parse HEAD | cut -c 1-8)" >> $GITHUB_ENV
+          echo "COMMIT_DATE=$(git show -s --date=format:'%Y%m%d' --format=%cd HEAD)" >> $GITHUB_ENV
 
-      - name: Release
-        if: startsWith(github.ref_name, 'DON_') && github.ref_type == 'tag'
-        uses: softprops/action-gh-release@4634c16e79c963813287e889244c50009e7f0981
-        with:
-          files: DON-${{ matrix.config.simple_name }}-${{ matrix.binaries }}.${{ matrix.config.archive_ext }}
-          token: ${{ secrets.token }}
-
-      - name: Get last commit sha
-        id: last_commit
-        run: echo "COMMIT_SHA=$(git rev-parse HEAD | cut -c 1-8)" >> $GITHUB_ENV
-
-      - name: Get commit date
-        id: commit_date
-        run: echo "COMMIT_DATE=$(git show -s --date=format:'%Y%m%d' --format=%cd HEAD)" >> $GITHUB_ENV
-
-      # Make sure that an old ci that still runs on main doesn't recreate a prerelease
       - name: Check Pullable Commits
-        id: check_commits
         run: |
           git fetch
-          CHANGES=$(git rev-list HEAD..origin/main --count)
-          echo "CHANGES=$CHANGES" >> $GITHUB_ENV
+          echo "CHANGES=$(git rev-list HEAD..origin/main --count)" >> $GITHUB_ENV
 
       - name: Official Release?
-        id: official_release
-        # Check for "Official release version of DON" in the commit message
         run: |
           if git log -1 --pretty=%B | grep -q "Official release version of DON"; then
             echo "OFFICIAL_RELEASE=true" >> $GITHUB_ENV
@@ -117,13 +83,32 @@ jobs:
             echo "OFFICIAL_RELEASE=false" >> $GITHUB_ENV
           fi
 
-      - name: Prerelease
+      # ONLY MATRIX INDEX 0 DELETES & CREATES
+      - name: Create prerelease (once)
+        if: >
+          github.ref_name == 'main' &&
+          env.CHANGES == '0' &&
+          env.OFFICIAL_RELEASE == 'false' &&
+          matrix.index == 0
+        run: |
+          TAG="DON-dev-${COMMIT_DATE}-${COMMIT_SHA}"
+
+          gh release delete "$TAG" --cleanup-tag -y || true
+
+          gh release create "$TAG" \
+            --prerelease \
+            --title "DON dev-${COMMIT_DATE}-${COMMIT_SHA}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.token }}
+
+      # ALL MATRIX JOBS UPLOAD THEIR OWN ASSET
+      - name: Upload prerelease asset
         if: github.ref_name == 'main' && env.CHANGES == '0' && env.OFFICIAL_RELEASE == 'false'
-        continue-on-error: true
-        uses: softprops/action-gh-release@4634c16e79c963813287e889244c50009e7f0981
-        with:
-          name: DON dev-${{ env.COMMIT_DATE }}-${{ env.COMMIT_SHA }}
-          tag_name: DON-dev-${{ env.COMMIT_DATE }}-${{ env.COMMIT_SHA }}
-          prerelease: true
-          files: DON-${{ matrix.config.simple_name }}-${{ matrix.binaries }}.${{ matrix.config.archive_ext }}
-          token: ${{ secrets.token }}
+        run: |
+          TAG="DON-dev-${COMMIT_DATE}-${COMMIT_SHA}"
+
+          gh release upload "$TAG" \
+            DON-${{ matrix.config.simple_name }}-${{ matrix.binaries }}.${{ matrix.config.archive_ext }} \
+            --clobber
+        env:
+          GITHUB_TOKEN: ${{ secrets.token }}
