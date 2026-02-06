@@ -83,15 +83,6 @@ jobs:
             echo "OFFICIAL_RELEASE=false" >> $GITHUB_ENV
           fi
 
-      - name: Delete existing Pre-release
-        #if: github.ref_name == 'main' && env.CHANGES == '0' && env.OFFICIAL_RELEASE == 'false'
-        run: |
-          TAG="DON-dev-${COMMIT_DATE}-${COMMIT_SHA}"
-          echo "Deleting Pre-release $TAG (if it exists)"
-          gh release delete "$TAG" --cleanup-tag -y || true
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       # Upload pre-release asset (dev build)
       - name: Upload Pre-release Asset
         #if: github.ref_name == 'main' && env.CHANGES == '0' && env.OFFICIAL_RELEASE == 'false'
