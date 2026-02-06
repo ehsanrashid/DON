@@ -46,7 +46,7 @@ jobs:
 
           # Binary (required)
           cp "$ART_ROOT/DON-$NAME-$BINARY$EXT" DON/ || { echo "ERROR: Binary not found"; exit 1; }
-
+          # Optional extras
           cp -r "$ART_ROOT/scripts" DON/ 2>/dev/null || true
           cp "$ART_ROOT"/{Copying.txt,CITATION.cff,README.md,CONTRIBUTING.md} DON/ 2>/dev/null || true
 
