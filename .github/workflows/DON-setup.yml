@@ -75,7 +75,7 @@ jobs:
             --prerelease \
             --title "$TAG"
         env:
-          GITHUB_TOKEN: ${{ secrets.token }}
+          GH_TOKEN: ${{ secrets.token }}
   Matrix:
     runs-on: ubuntu-latest
     outputs:
