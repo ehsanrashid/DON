@@ -60,6 +60,8 @@ jobs:
       - name: Create Empty Prerelease
         if: github.ref_name == 'main' && env.CHANGES == '0' && env.OFFICIAL_RELEASE == 'false'
         run: |
+          mkdir -p empty
+          cd empty
           gh release create DON-dev-${{ env.COMMIT_DATE }}-${{ env.COMMIT_SHA }} \
             --prerelease \
             --title "DON dev-${{ env.COMMIT_DATE }}-${{ env.COMMIT_SHA }}" \
