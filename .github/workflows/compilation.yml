@@ -114,12 +114,6 @@ jobs:
           # Exclude artifact folder from cleanup
           git clean -fxe artifact/
 
-      - name: Debug paths
-        run: |
-          pwd
-          ls -la
-          ls -la artifact/
-
       - name: Upload artifact for (pre)-release
         uses: actions/upload-artifact@v4
         with:

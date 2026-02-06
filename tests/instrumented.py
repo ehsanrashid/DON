@@ -64,372 +64,372 @@ def DON(*args, **kwargs):
     return Engine(get_prefix(), get_path(), *args, **kwargs)
 
 
-# class TestCLI(metaclass=OrderedClassMembers):
-#     def beforeAll(self):
-#         pass
+class TestCLI(metaclass=OrderedClassMembers):
+    def beforeAll(self):
+        pass
 
-#     def afterAll(self):
-#         pass
+    def afterAll(self):
+        pass
 
-#     def beforeEach(self):
-#         self.engine = None
+    def beforeEach(self):
+        self.engine = None
 
-#     def afterEach(self):
-#         assert postfix_check(self.engine.get_output()) == True
-#         self.engine.clear_output()
+    def afterEach(self):
+        assert postfix_check(self.engine.get_output()) == True
+        self.engine.clear_output()
 
-#     def test_eval(self):
-#         self.engine = DON("eval".split(" "), True)
-#         assert self.engine.process.returncode == 0
+    def test_eval(self):
+        self.engine = DON("eval".split(" "), True)
+        assert self.engine.process.returncode == 0
 
-#     def test_go_nodes_1000(self):
-#         self.engine = DON("go nodes 1000".split(" "), True)
-#         assert self.engine.process.returncode == 0
+    def test_go_nodes_1000(self):
+        self.engine = DON("go nodes 1000".split(" "), True)
+        assert self.engine.process.returncode == 0
 
-#     def test_go_depth_10(self):
-#         self.engine = DON("go depth 10".split(" "), True)
-#         assert self.engine.process.returncode == 0
+    def test_go_depth_10(self):
+        self.engine = DON("go depth 10".split(" "), True)
+        assert self.engine.process.returncode == 0
 
-#     def test_go_perft_4(self):
-#         self.engine = DON("go perft 4".split(" "), True)
-#         assert self.engine.process.returncode == 0
+    def test_go_perft_4(self):
+        self.engine = DON("go perft 4".split(" "), True)
+        assert self.engine.process.returncode == 0
 
-#     def test_go_movetime_1000(self):
-#         self.engine = DON("go movetime 1000".split(" "), True)
-#         assert self.engine.process.returncode == 0
+    def test_go_movetime_1000(self):
+        self.engine = DON("go movetime 1000".split(" "), True)
+        assert self.engine.process.returncode == 0
 
-#     def test_go_wtime_8000_btime_8000_winc_500_binc_500(self):
-#         self.engine = DON("go wtime 8000 btime 8000 winc 500 binc 500".split(" "), True)
-#         assert self.engine.process.returncode == 0
+    def test_go_wtime_8000_btime_8000_winc_500_binc_500(self):
+        self.engine = DON("go wtime 8000 btime 8000 winc 500 binc 500".split(" "), True)
+        assert self.engine.process.returncode == 0
 
-#     def test_go_wtime_1000_btime_1000_winc_0_binc_0(self):
-#         self.engine = DON("go wtime 1000 btime 1000 winc 0 binc 0".split(" "), True)
-#         assert self.engine.process.returncode == 0
+    def test_go_wtime_1000_btime_1000_winc_0_binc_0(self):
+        self.engine = DON("go wtime 1000 btime 1000 winc 0 binc 0".split(" "), True)
+        assert self.engine.process.returncode == 0
 
-#     def test_go_wtime_1000_btime_1000_winc_0_binc_0_movestogo_5(self):
-#         self.engine = DON("go wtime 1000 btime 1000 winc 0 binc 0 movestogo 5".split(" "), True)
-#         assert self.engine.process.returncode == 0
+    def test_go_wtime_1000_btime_1000_winc_0_binc_0_movestogo_5(self):
+        self.engine = DON("go wtime 1000 btime 1000 winc 0 binc 0 movestogo 5".split(" "), True)
+        assert self.engine.process.returncode == 0
 
-#     def test_go_movetime_200(self):
-#         self.engine = DON("go movetime 200".split(" "), True)
-#         assert self.engine.process.returncode == 0
+    def test_go_movetime_200(self):
+        self.engine = DON("go movetime 200".split(" "), True)
+        assert self.engine.process.returncode == 0
 
-#     def test_go_nodes_20000_searchmoves_e2e4_d2d4(self):
-#         self.engine = DON("go nodes 20000 searchmoves e2e4 d2d4".split(" "), True)
-#         assert self.engine.process.returncode == 0
+    def test_go_nodes_20000_searchmoves_e2e4_d2d4(self):
+        self.engine = DON("go nodes 20000 searchmoves e2e4 d2d4".split(" "), True)
+        assert self.engine.process.returncode == 0
 
-#     def test_bench_128_threads_8_default_depth(self):
-#         self.engine = DON(f"bench 128 {get_threads()} 8 default depth".split(" "), True)
-#         assert self.engine.process.returncode == 0
+    def test_bench_128_threads_8_default_depth(self):
+        self.engine = DON(f"bench 128 {get_threads()} 8 default depth".split(" "), True)
+        assert self.engine.process.returncode == 0
 
-#     def test_bench_128_threads_3_tmp_bench_epd_depth(self):
-#         self.engine = DON(f"bench 128 {get_threads()} 3 {os.path.join(PATH, 'tmp_bench.epd')} depth".split(" "), True)
-#         assert self.engine.process.returncode == 0
+    def test_bench_128_threads_3_tmp_bench_epd_depth(self):
+        self.engine = DON(f"bench 128 {get_threads()} 3 {os.path.join(PATH, 'tmp_bench.epd')} depth".split(" "), True)
+        assert self.engine.process.returncode == 0
 
-#     def test_show(self):
-#         self.engine = DON("show".split(" "), True)
-#         assert self.engine.process.returncode == 0
+    def test_show(self):
+        self.engine = DON("show".split(" "), True)
+        assert self.engine.process.returncode == 0
 
-#     def test_compiler(self):
-#         self.engine = DON("compiler".split(" "), True)
-#         assert self.engine.process.returncode == 0
+    def test_compiler(self):
+        self.engine = DON("compiler".split(" "), True)
+        assert self.engine.process.returncode == 0
 
-#     def test_license(self):
-#         self.engine = DON("license".split(" "), True)
-#         assert self.engine.process.returncode == 0
+    def test_license(self):
+        self.engine = DON("license".split(" "), True)
+        assert self.engine.process.returncode == 0
 
-#     def test_uci(self):
-#         self.engine = DON("uci".split(" "), True)
-#         assert self.engine.process.returncode == 0
+    def test_uci(self):
+        self.engine = DON("uci".split(" "), True)
+        assert self.engine.process.returncode == 0
 
-#     def test_export_net_verify_nnue(self):
-#         currentPath = os.path.abspath(os.getcwd())
-#         self.engine = DON(f"export_net {os.path.join(currentPath, 'verify.nnue')}".split(" "), True)
-#         assert self.engine.process.returncode == 0
+    def test_export_net_verify_nnue(self):
+        currentPath = os.path.abspath(os.getcwd())
+        self.engine = DON(f"export_net {os.path.join(currentPath, 'verify.nnue')}".split(" "), True)
+        assert self.engine.process.returncode == 0
 
-#     # verify the generated net equals the base net
+    # verify the generated net equals the base net
 
-#     def test_network_equals_base(self):
-#         self.engine = DON(["uci"], True)
+    def test_network_equals_base(self):
+        self.engine = DON(["uci"], True)
 
-#         output = self.engine.process.stdout
+        output = self.engine.process.stdout
 
-#         # find line
-#         for line in output.split("\n"):
-#             if "option name BigEvalFile type string default" in line:
-#                 network = line.split(" ")[-1]
-#                 break
+        # find line
+        for line in output.split("\n"):
+            if "option name BigEvalFile type string default" in line:
+                network = line.split(" ")[-1]
+                break
 
-#         # find network file in src dir
-#         network = os.path.join(PATH.parent.resolve(), "src", network)
+        # find network file in src dir
+        network = os.path.join(PATH.parent.resolve(), "src", network)
 
-#         if not os.path.exists(network):
-#             print(f"Network file {network} not found, please download the network file over the make command.")
-#             assert False
+        if not os.path.exists(network):
+            print(f"Network file {network} not found, please download the network file over the make command.")
+            assert False
 
-#         diff = subprocess.run(["diff", network, f"verify.nnue"])
+        diff = subprocess.run(["diff", network, f"verify.nnue"])
 
-#         assert diff.returncode == 0
+        assert diff.returncode == 0
 
 
-# class TestInteractive(metaclass=OrderedClassMembers):
-#     def beforeAll(self):
-#         self.engine = DON()
+class TestInteractive(metaclass=OrderedClassMembers):
+    def beforeAll(self):
+        self.engine = DON()
 
-#     def afterAll(self):
-#         self.engine.quit()
-#         assert self.engine.close() == 0
+    def afterAll(self):
+        self.engine.quit()
+        assert self.engine.close() == 0
 
-#     def afterEach(self):
-#         assert postfix_check(self.engine.get_output()) == True
-#         self.engine.clear_output()
+    def afterEach(self):
+        assert postfix_check(self.engine.get_output()) == True
+        self.engine.clear_output()
 
-#     def test_startup_output(self):
-#         self.engine.starts_with("DON")
+    def test_startup_output(self):
+        self.engine.starts_with("DON")
 
-#     def test_uci_command(self):
-#         self.engine.send_command("uci")
-#         self.engine.equals("uciok")
+    def test_uci_command(self):
+        self.engine.send_command("uci")
+        self.engine.equals("uciok")
 
-#     def test_set_threads_option(self):
-#         self.engine.setoption("Threads", str(get_threads()))
+    def test_set_threads_option(self):
+        self.engine.setoption("Threads", str(get_threads()))
 
-#     def test_startpos_go_nodes_1000(self):
-#         self.engine.send_command("ucinewgame")
-#         self.engine.send_command("position startpos")
-#         self.engine.send_command("go nodes 1000")
-#         self.engine.starts_with("bestmove")
+    def test_startpos_go_nodes_1000(self):
+        self.engine.send_command("ucinewgame")
+        self.engine.send_command("position startpos")
+        self.engine.send_command("go nodes 1000")
+        self.engine.starts_with("bestmove")
 
-#     def test_startpos_moves_go_nodes_1000(self):
-#         self.engine.send_command("ucinewgame")
-#         self.engine.send_command("position startpos moves e2e4 e7e6")
-#         self.engine.send_command("go nodes 1000")
-#         self.engine.starts_with("bestmove")
+    def test_startpos_moves_go_nodes_1000(self):
+        self.engine.send_command("ucinewgame")
+        self.engine.send_command("position startpos moves e2e4 e7e6")
+        self.engine.send_command("go nodes 1000")
+        self.engine.starts_with("bestmove")
 
-#     def test_position_fen_go_nodes_1000(self):
-#         self.engine.send_command("ucinewgame")
-#         self.engine.send_command("position fen 5rk1/1K4p1/8/8/3B4/8/8/8 b - - 0 1")
-#         self.engine.send_command("go nodes 1000")
-#         self.engine.starts_with("bestmove")
+    def test_position_fen_go_nodes_1000(self):
+        self.engine.send_command("ucinewgame")
+        self.engine.send_command("position fen 5rk1/1K4p1/8/8/3B4/8/8/8 b - - 0 1")
+        self.engine.send_command("go nodes 1000")
+        self.engine.starts_with("bestmove")
 
-#     def test_position_fen_flip_go_nodes_1000(self):
-#         self.engine.send_command("ucinewgame")
-#         self.engine.send_command("position fen 5rk1/1K4p1/8/8/3B4/8/8/8 b - - 0 1")
-#         self.engine.send_command("flip")
-#         self.engine.send_command("go nodes 1000")
-#         self.engine.starts_with("bestmove")
+    def test_position_fen_flip_go_nodes_1000(self):
+        self.engine.send_command("ucinewgame")
+        self.engine.send_command("position fen 5rk1/1K4p1/8/8/3B4/8/8/8 b - - 0 1")
+        self.engine.send_command("flip")
+        self.engine.send_command("go nodes 1000")
+        self.engine.starts_with("bestmove")
 
-#     def test_startpos_go_depth_5_callback(self):
-#         self.engine.send_command("ucinewgame")
-#         self.engine.send_command("position startpos")
-#         self.engine.send_command("go depth 5")
+    def test_startpos_go_depth_5_callback(self):
+        self.engine.send_command("ucinewgame")
+        self.engine.send_command("position startpos")
+        self.engine.send_command("go depth 5")
 
-#         def callback(output):
-#             regex = r"info depth \d+ seldepth \d+ multipv \d+ score cp -?\d+(?: lowerbound| upperbound)? time \d+ nodes \d+ nps \d+ hashfull \d+ tbhits \d+ pv"
-#             if output.startswith("info depth") and not re.match(regex, output):
-#                 assert False
-#             if output.startswith("bestmove"):
-#                 return True
-#             return False
+        def callback(output):
+            regex = r"info depth \d+ seldepth \d+ multipv \d+ score cp -?\d+(?: lowerbound| upperbound)? time \d+ nodes \d+ nps \d+ hashfull \d+ tbhits \d+ pv"
+            if output.startswith("info depth") and not re.match(regex, output):
+                assert False
+            if output.startswith("bestmove"):
+                return True
+            return False
 
-#         self.engine.check_output(callback)
+        self.engine.check_output(callback)
 
-#     def test_wdl_startpos_go_depth_5_callback(self):
-#         self.engine.send_command("ucinewgame")
-#         self.engine.setoption("UCI_ShowWDL", "true")
-#         self.engine.send_command("position startpos")
-#         self.engine.send_command("go depth 5")
+    def test_wdl_startpos_go_depth_5_callback(self):
+        self.engine.send_command("ucinewgame")
+        self.engine.setoption("UCI_ShowWDL", "true")
+        self.engine.send_command("position startpos")
+        self.engine.send_command("go depth 5")
 
-#         def callback(output):
-#             regex = r"info depth \d+ seldepth \d+ multipv \d+ score cp -?\d+(?: lowerbound| upperbound)? wdl \d+ \d+ \d+ time \d+ nodes \d+ nps \d+ hashfull \d+ tbhits \d+ pv"
-#             if output.startswith("info depth") and not re.match(regex, output):
-#                 assert False
-#             if output.startswith("bestmove"):
-#                 return True
-#             return False
+        def callback(output):
+            regex = r"info depth \d+ seldepth \d+ multipv \d+ score cp -?\d+(?: lowerbound| upperbound)? wdl \d+ \d+ \d+ time \d+ nodes \d+ nps \d+ hashfull \d+ tbhits \d+ pv"
+            if output.startswith("info depth") and not re.match(regex, output):
+                assert False
+            if output.startswith("bestmove"):
+                return True
+            return False
 
-#         self.engine.check_output(callback)
+        self.engine.check_output(callback)
 
-#     def test_wdl_startpos_go_depth_9_callback(self):
-#         self.engine.send_command("ucinewgame")
-#         self.engine.setoption("UCI_ShowWDL", "true")
-#         self.engine.send_command("position startpos")
-#         self.engine.send_command("go depth 9")
+    def test_wdl_startpos_go_depth_9_callback(self):
+        self.engine.send_command("ucinewgame")
+        self.engine.setoption("UCI_ShowWDL", "true")
+        self.engine.send_command("position startpos")
+        self.engine.send_command("go depth 9")
 
-#         # depth = 1
+        # depth = 1
 
-#         def callback(output):
-#             # nonlocal depth
+        def callback(output):
+            # nonlocal depth
 
-#             # regex = rf"info depth {depth} seldepth \d+ multipv \d+ score cp -?\d+(?: lowerbound| upperbound)? wdl \d+ \d+ \d+ time \d+ nodes \d+ nps \d+ hashfull \d+ tbhits \d+ pv"
-#             regex = r"info depth \d+ seldepth \d+ multipv \d+ score cp -?\d+(?: lowerbound| upperbound)? wdl \d+ \d+ \d+ time \d+ nodes \d+ nps \d+ hashfull \d+ tbhits \d+ pv"
-#             # if output.startswith("info depth"):
-#             #     if not re.match(regex, output):
-#             #         assert False
-#             #     depth += 1
-#             # if output.startswith("bestmove"):
-#             #     assert depth >= 10
-#             #     return True
-#             # return False
-#             if output.startswith("info depth") and not re.match(regex, output):
-#                 assert False
-#             if output.startswith("bestmove"):
-#                 return True
-#             return False
+            # regex = rf"info depth {depth} seldepth \d+ multipv \d+ score cp -?\d+(?: lowerbound| upperbound)? wdl \d+ \d+ \d+ time \d+ nodes \d+ nps \d+ hashfull \d+ tbhits \d+ pv"
+            regex = r"info depth \d+ seldepth \d+ multipv \d+ score cp -?\d+(?: lowerbound| upperbound)? wdl \d+ \d+ \d+ time \d+ nodes \d+ nps \d+ hashfull \d+ tbhits \d+ pv"
+            # if output.startswith("info depth"):
+            #     if not re.match(regex, output):
+            #         assert False
+            #     depth += 1
+            # if output.startswith("bestmove"):
+            #     assert depth >= 10
+            #     return True
+            # return False
+            if output.startswith("info depth") and not re.match(regex, output):
+                assert False
+            if output.startswith("bestmove"):
+                return True
+            return False
 
-#         self.engine.check_output(callback)
+        self.engine.check_output(callback)
 
-#     def test_clear_hash(self):
-#         self.engine.setoption("Clear Hash")
+    def test_clear_hash(self):
+        self.engine.setoption("Clear Hash")
 
-#     def test_position_fen_mate_plus_1(self):
-#         self.engine.send_command("ucinewgame")
-#         self.engine.send_command("position fen 5K2/8/2qk4/2nPp3/3r4/6B1/B7/3R4 w - e6 0 1")
-#         self.engine.send_command("go depth 18")
-#         self.engine.expect("* score mate 1 * pv d5e6")
-#         self.engine.starts_with("bestmove d5e6")
+    def test_position_fen_mate_plus_1(self):
+        self.engine.send_command("ucinewgame")
+        self.engine.send_command("position fen 5K2/8/2qk4/2nPp3/3r4/6B1/B7/3R4 w - e6 0 1")
+        self.engine.send_command("go depth 18")
+        self.engine.expect("* score mate 1 * pv d5e6")
+        self.engine.starts_with("bestmove d5e6")
 
-#     def test_position_fen_mate_minus_1(self):
-#         self.engine.send_command("ucinewgame")
-#         self.engine.send_command("position fen 2brrb2/8/p7/Q7/1p1kpPp1/1P1pN1K1/3P4/8 b - - 0 1")
-#         self.engine.send_command("go depth 18")
-#         self.engine.expect("* score mate -1 *")
-#         self.engine.starts_with("bestmove")
+    def test_position_fen_mate_minus_1(self):
+        self.engine.send_command("ucinewgame")
+        self.engine.send_command("position fen 2brrb2/8/p7/Q7/1p1kpPp1/1P1pN1K1/3P4/8 b - - 0 1")
+        self.engine.send_command("go depth 18")
+        self.engine.expect("* score mate -1 *")
+        self.engine.starts_with("bestmove")
 
-#     def test_position_fen_go_nodes_500000(self):
-#         self.engine.send_command("ucinewgame")
-#         self.engine.send_command("position fen 5K2/8/2P1P1Pk/6pP/3p2P1/1P6/3P4/8 w - - 0 1")
-#         self.engine.send_command("go nodes 500000")
-#         self.engine.starts_with("bestmove")
+    def test_position_fen_go_nodes_500000(self):
+        self.engine.send_command("ucinewgame")
+        self.engine.send_command("position fen 5K2/8/2P1P1Pk/6pP/3p2P1/1P6/3P4/8 w - - 0 1")
+        self.engine.send_command("go nodes 500000")
+        self.engine.starts_with("bestmove")
 
-#     def test_position_fen_with_mate_go_depth_18_searchmoves(self):
-#         self.engine.send_command("ucinewgame")
-#         self.engine.send_command("position fen 8/5R2/2K1P3/4k3/8/b1PPpp1B/5p2/8 w - - 0 1")
-#         self.engine.send_command("go depth 18 searchmoves c6d7")
-#         self.engine.expect("* score mate 2 * pv c6d7 * f7f5")
-#         self.engine.starts_with("bestmove")
+    def test_position_fen_with_mate_go_depth_18_searchmoves(self):
+        self.engine.send_command("ucinewgame")
+        self.engine.send_command("position fen 8/5R2/2K1P3/4k3/8/b1PPpp1B/5p2/8 w - - 0 1")
+        self.engine.send_command("go depth 18 searchmoves c6d7")
+        self.engine.expect("* score mate 2 * pv c6d7 * f7f5")
+        self.engine.starts_with("bestmove")
 
-#     def test_position_fen_with_mate_go_mate_2_searchmoves(self):
-#         self.engine.send_command("ucinewgame")
-#         self.engine.send_command("position fen 8/5R2/2K1P3/4k3/8/b1PPpp1B/5p2/8 w - - 0 1")
-#         self.engine.send_command("go mate 2 searchmoves c6d7")
-#         self.engine.expect("* score mate 2 * pv c6d7 *")
-#         self.engine.starts_with("bestmove")
+    def test_position_fen_with_mate_go_mate_2_searchmoves(self):
+        self.engine.send_command("ucinewgame")
+        self.engine.send_command("position fen 8/5R2/2K1P3/4k3/8/b1PPpp1B/5p2/8 w - - 0 1")
+        self.engine.send_command("go mate 2 searchmoves c6d7")
+        self.engine.expect("* score mate 2 * pv c6d7 *")
+        self.engine.starts_with("bestmove")
 
-#     def test_position_fen_with_mate_go_nodes_500000_searchmoves(self):
-#         self.engine.send_command("ucinewgame")
-#         self.engine.send_command("position fen 8/5R2/2K1P3/4k3/8/b1PPpp1B/5p2/8 w - - 0 1")
-#         self.engine.send_command("go nodes 500000 searchmoves c6d7")
-#         self.engine.expect("* score mate 2 * pv c6d7 * f7f5")
-#         self.engine.starts_with("bestmove")
+    def test_position_fen_with_mate_go_nodes_500000_searchmoves(self):
+        self.engine.send_command("ucinewgame")
+        self.engine.send_command("position fen 8/5R2/2K1P3/4k3/8/b1PPpp1B/5p2/8 w - - 0 1")
+        self.engine.send_command("go nodes 500000 searchmoves c6d7")
+        self.engine.expect("* score mate 2 * pv c6d7 * f7f5")
+        self.engine.starts_with("bestmove")
 
-#     def test_position_fen_with_mate_go(self):
-#         self.engine.send_command("ucinewgame")
-#         self.engine.send_command("position fen r1b2r1k/pp1p2pp/2p5/2B1q3/8/8/P1PN2PP/R4RK1 w - - 0 18")
-#         self.engine.send_command("go")
-#         self.engine.contains("score mate 1")
-#         self.engine.starts_with("bestmove")
+    def test_position_fen_with_mate_go(self):
+        self.engine.send_command("ucinewgame")
+        self.engine.send_command("position fen r1b2r1k/pp1p2pp/2p5/2B1q3/8/8/P1PN2PP/R4RK1 w - - 0 18")
+        self.engine.send_command("go")
+        self.engine.contains("score mate 1")
+        self.engine.starts_with("bestmove")
 
-#     def test_position_fen_moves_with_mate_go_depth_18(self):
-#         self.engine.send_command("ucinewgame")
-#         self.engine.send_command("position fen 8/5R2/2K1P3/4k3/8/b1PPpp1B/5p2/8 w - - 0 1 moves c6d7 f2f1q")
-#         self.engine.send_command("go depth 18")
-#         self.engine.expect("* score mate 1 * pv f7f5")
-#         self.engine.starts_with("bestmove f7f5")
+    def test_position_fen_moves_with_mate_go_depth_18(self):
+        self.engine.send_command("ucinewgame")
+        self.engine.send_command("position fen 8/5R2/2K1P3/4k3/8/b1PPpp1B/5p2/8 w - - 0 1 moves c6d7 f2f1q")
+        self.engine.send_command("go depth 18")
+        self.engine.expect("* score mate 1 * pv f7f5")
+        self.engine.starts_with("bestmove f7f5")
 
-#     def test_position_fen_with_mate_go_depth_18_searchmoves(self):
-#         self.engine.send_command("ucinewgame")
-#         self.engine.send_command("position fen 8/5R2/2K1P3/4k3/8/b1PPpp1B/5p2/8 w - - 0 1")
-#         self.engine.send_command("go depth 18 searchmoves c6d7")
-#         self.engine.expect("* score mate 2 * pv c6d7 * f7f5")
-#         self.engine.starts_with("bestmove c6d7")
+    def test_position_fen_with_mate_go_depth_18_searchmoves(self):
+        self.engine.send_command("ucinewgame")
+        self.engine.send_command("position fen 8/5R2/2K1P3/4k3/8/b1PPpp1B/5p2/8 w - - 0 1")
+        self.engine.send_command("go depth 18 searchmoves c6d7")
+        self.engine.expect("* score mate 2 * pv c6d7 * f7f5")
+        self.engine.starts_with("bestmove c6d7")
 
-#     def test_position_fen_moves_with_mate_go_depth_18_searchmoves(self):
-#         self.engine.send_command("ucinewgame")
-#         self.engine.send_command("position fen 8/5R2/2K1P3/4k3/8/b1PPpp1B/5p2/8 w - - 0 1 moves c6d7")
-#         self.engine.send_command("go depth 18 searchmoves e3e2")
-#         self.engine.expect("* score mate -1 * pv e3e2 f7f5")
-#         self.engine.starts_with("bestmove e3e2")
+    def test_position_fen_moves_with_mate_go_depth_18_searchmoves(self):
+        self.engine.send_command("ucinewgame")
+        self.engine.send_command("position fen 8/5R2/2K1P3/4k3/8/b1PPpp1B/5p2/8 w - - 0 1 moves c6d7")
+        self.engine.send_command("go depth 18 searchmoves e3e2")
+        self.engine.expect("* score mate -1 * pv e3e2 f7f5")
+        self.engine.starts_with("bestmove e3e2")
 
-#     def test_verify_nnue_network_startpos_go_depth_5(self):
-#         currentPath = os.path.abspath(os.getcwd())
-#         DON(f"export_net {os.path.join(currentPath, 'verify.nnue')}".split(" "), True)
-#         self.engine.setoption("BigEvalFile", "verify.nnue")
-#         self.engine.send_command("position startpos")
-#         self.engine.send_command("go depth 5")
-#         self.engine.starts_with("bestmove")
+    def test_verify_nnue_network_startpos_go_depth_5(self):
+        currentPath = os.path.abspath(os.getcwd())
+        DON(f"export_net {os.path.join(currentPath, 'verify.nnue')}".split(" "), True)
+        self.engine.setoption("BigEvalFile", "verify.nnue")
+        self.engine.send_command("position startpos")
+        self.engine.send_command("go depth 5")
+        self.engine.starts_with("bestmove")
     
-#     def test_multipv_setting_startpos_go_depth_5(self):
-#         self.engine.setoption("MultiPV", "4")
-#         self.engine.send_command("position startpos")
-#         self.engine.send_command("go depth 5")
-#         self.engine.starts_with("bestmove")
+    def test_multipv_setting_startpos_go_depth_5(self):
+        self.engine.setoption("MultiPV", "4")
+        self.engine.send_command("position startpos")
+        self.engine.send_command("go depth 5")
+        self.engine.starts_with("bestmove")
 
-#     def test_skilllevel_setting_startpos_go_depth_5(self):
-#         self.engine.setoption("SkillLevel", "10")
-#         self.engine.send_command("position startpos")
-#         self.engine.send_command("go depth 5")
-#         self.engine.starts_with("bestmove")
-#         self.engine.setoption("SkillLevel", "20")
+    def test_skilllevel_setting_startpos_go_depth_5(self):
+        self.engine.setoption("SkillLevel", "10")
+        self.engine.send_command("position startpos")
+        self.engine.send_command("go depth 5")
+        self.engine.starts_with("bestmove")
+        self.engine.setoption("SkillLevel", "20")
 
 
-# class TestSyzygy(metaclass=OrderedClassMembers):
-#     def beforeAll(self):
-#         self.engine = DON()
+class TestSyzygy(metaclass=OrderedClassMembers):
+    def beforeAll(self):
+        self.engine = DON()
 
-#     def afterAll(self):
-#         self.engine.quit()
-#         assert self.engine.close() == 0
+    def afterAll(self):
+        self.engine.quit()
+        assert self.engine.close() == 0
 
-#     def afterEach(self):
-#         assert postfix_check(self.engine.get_output()) == True
-#         self.engine.clear_output()
+    def afterEach(self):
+        assert postfix_check(self.engine.get_output()) == True
+        self.engine.clear_output()
 
-#     def test_syzygy_setting(self):
-#         self.engine.starts_with("DON")
-#         self.engine.send_command("uci")
-#         self.engine.setoption("SyzygyPath", os.path.join(PATH, "syzygy"))
-#         self.engine.expect("info string Tablebase: 35 WDL and 35 DTZ found (up to 4-man).")
+    def test_syzygy_setting(self):
+        self.engine.starts_with("DON")
+        self.engine.send_command("uci")
+        self.engine.setoption("SyzygyPath", os.path.join(PATH, "syzygy"))
+        self.engine.expect("info string Tablebase: 35 WDL and 35 DTZ found (up to 4-man).")
 
-#     def test_syzygy_bench(self):
-#         self.engine.send_command("bench 128 1 8 default depth")
-#         self.engine.expect("Total nodes     :*")
+    def test_syzygy_bench(self):
+        self.engine.send_command("bench 128 1 8 default depth")
+        self.engine.expect("Total nodes     :*")
 
-#     def test_syzygy_position_fen_1_go_depth_5_callback(self):
-#         self.engine.send_command("ucinewgame")
-#         self.engine.send_command("position fen 4k3/PP6/8/8/8/8/8/4K3 w - - 0 1")
-#         self.engine.send_command("go depth 5")
+    def test_syzygy_position_fen_1_go_depth_5_callback(self):
+        self.engine.send_command("ucinewgame")
+        self.engine.send_command("position fen 4k3/PP6/8/8/8/8/8/4K3 w - - 0 1")
+        self.engine.send_command("go depth 5")
 
-#         def callback(output):
-#             if "score cp 20000" in output or "score mate" in output:
-#                 return True
+        def callback(output):
+            if "score cp 20000" in output or "score mate" in output:
+                return True
 
-#         self.engine.check_output(callback)
-#         self.engine.expect("bestmove *")
+        self.engine.check_output(callback)
+        self.engine.expect("bestmove *")
 
-#     def test_syzygy_position_fen_2_go_depth_5_callback(self):
-#         self.engine.send_command("ucinewgame")
-#         self.engine.send_command("position fen 8/1P6/2B5/8/4K3/8/6k1/8 w - - 0 1")
-#         self.engine.send_command("go depth 5")
+    def test_syzygy_position_fen_2_go_depth_5_callback(self):
+        self.engine.send_command("ucinewgame")
+        self.engine.send_command("position fen 8/1P6/2B5/8/4K3/8/6k1/8 w - - 0 1")
+        self.engine.send_command("go depth 5")
 
-#         def callback(output):
-#             if "score cp 20000" in output or "score mate" in output:
-#                 return True
+        def callback(output):
+            if "score cp 20000" in output or "score mate" in output:
+                return True
 
-#         self.engine.check_output(callback)
-#         self.engine.expect("bestmove *")
+        self.engine.check_output(callback)
+        self.engine.expect("bestmove *")
 
-#     def test_syzygy_position_fen_3_go_depth_5_callback(self):
-#         self.engine.send_command("ucinewgame")
-#         self.engine.send_command("position fen 8/1P6/2B5/8/4K3/8/6k1/8 b - - 0 1")
-#         self.engine.send_command("go depth 5")
+    def test_syzygy_position_fen_3_go_depth_5_callback(self):
+        self.engine.send_command("ucinewgame")
+        self.engine.send_command("position fen 8/1P6/2B5/8/4K3/8/6k1/8 b - - 0 1")
+        self.engine.send_command("go depth 5")
 
-#         def callback(output):
-#             if "score cp -20000" in output or "score mate -" in output:
-#                 return True
+        def callback(output):
+            if "score cp -20000" in output or "score mate -" in output:
+                return True
 
-#         self.engine.check_output(callback)
-#         self.engine.expect("bestmove *")
+        self.engine.check_output(callback)
+        self.engine.expect("bestmove *")
 
 
 def parse_args():
@@ -475,7 +475,7 @@ if __name__ == "__main__":
     framework = MiniTestFramework()
 
     # Each test suite will be run inside a temporary directory
-    #framework.run([TestCLI, TestInteractive, TestSyzygy])
+    framework.run([TestCLI, TestInteractive, TestSyzygy])
 
     EPD.delete_bench_epd()
     TSAN.unset_tsan_option()
