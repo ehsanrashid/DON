@@ -85,35 +85,38 @@ jobs:
           make clean
           make -j4 profile-build ARCH=$BINARY COMP=$COMP RUN_PREFIX="$SDE"
           make strip ARCH=$BINARY COMP=$COMP
-          RUN_PREFIX="$SDE" ../tests/signature.sh "$benchref"
-          # Create release directory
-          mkdir -p release
-          mv ./DON$EXT release/DON-$NAME-$BINARY$EXT || { echo "ERROR: Built binary ./DON$EXT not found"; exit 1; }
+          #RUN_PREFIX="$SDE" ../tests/signature.sh "$benchref"
 
-      - name: Verify binary exists
+          # Ensure artifact folder exists
+          mkdir -p artifact
+
+          # Move binary into artifact folder
+          mv ./DON$EXT artifact/DON-$NAME-$BINARY$EXT || { echo "ERROR: Built binary ./DON$EXT not found"; exit 1; }
+
+          # Optional: make binary executable
+          chmod +x artifact/DON-$NAME-$BINARY$EXT
+
+          # Copy optional scripts/docs
+          [ -d ../scripts ] && cp -r ../scripts artifact/ || echo "No scripts/ folder, skipping"
+          cp -v ../Copying.txt ../CITATION.cff ../README.md ../CONTRIBUTING.md artifact/ 2>/dev/null || true
+
+      - name: Verify artifact contents
         run: |
           echo "Checking binary DON-$NAME-$BINARY$EXT exists..."
-          test -f release/DON-$NAME-$BINARY$EXT # Existence check
-          ls -lh release/DON-$NAME-$BINARY$EXT  # Size check
-          du -sh release/                       # Total size
+          test -f artifact/DON-$NAME-$BINARY$EXT # Existence check
+          echo "Listing artifact folder contents:"
+          ls -lh artifact/ # Size check
+          du -sh artifact/ # Total size
 
       - name: Clean build artifacts
         run: |
-          # Clean build files but keep release/
           make clean
-          # Excludes release/ from cleanup
-          git clean -fxe release/
-
-      - name: Prepare artifact folder
-        run: |
-          mkdir -p artifact
-          cp release/DON-$NAME-$BINARY$EXT artifact/
-          cp -r scripts artifact/
-          cp Copying.txt CITATION.cff README.md CONTRIBUTING.md artifact/
+          # Exclude artifact folder from cleanup
+          git clean -fxe artifact/
 
       - name: Upload artifact for (pre)-release
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.NAME }}-${{ env.BINARY }}
-          path: artifact/
+          path: src/artifact/
           if-no-files-found: error

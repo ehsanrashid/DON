@@ -53,6 +53,9 @@
     #if !defined(PATH_MAX)
         #define PATH_MAX (2 * 1024)  // 2K bytes, safe for almost all paths
     #endif
+    #if !defined(NAME_MAX)
+        #define NAME_MAX 255
+    #endif
 #else
     #include <climits>  // IWYU pragma: keep
 #endif

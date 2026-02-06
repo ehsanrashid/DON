@@ -54,16 +54,23 @@ jobs:
         uses: actions/download-artifact@v4
         with:
          name: ${{ env.NAME }}-${{ env.BINARY }}
-         path: ./artifact-dl/
+         path: ./artifact/
 
       - name: Assemble package
         run: |
+          ART_ROOT="artifact/$NAME-$BINARY"
+
+          echo "Artifact root:"
+          ls -la "$ART_ROOT"
+
+          test -d "$ART_ROOT" || { echo "ERROR: Artifact root not found"; exit 1; }
+
           # Binary (required)
-          cp artifact-dl/release/DON-$NAME-$BINARY$EXT DON/ || { echo "ERROR: Binary not found"; exit 1; }
+          cp "$ART_ROOT/DON-$NAME-$BINARY$EXT" DON/ || { echo "ERROR: Binary not found"; exit 1; }
 
           # Optional extras (explicit, safe)
-          cp -r artifact-dl/scripts DON/ 2>/dev/null || true
-          cp artifact-dl/{Copying.txt,CITATION.cff,README.md,CONTRIBUTING.md} DON/ 2>/dev/null || true
+          cp -r "$ART_ROOT/scripts" DON/ 2>/dev/null || true
+          cp "$ART_ROOT"/{Copying.txt,CITATION.cff,README.md,CONTRIBUTING.md} DON/ 2>/dev/null || true
 
           echo "Final package contents:"
           ls -la DON/

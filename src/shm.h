@@ -75,7 +75,6 @@
         #include <cassert>
         #include <cerrno>
         #include <chrono>
-        #include <climits>
         #include <condition_variable>
         #include <cstdlib>
         #include <dirent.h>
@@ -97,7 +96,6 @@
     #endif
     #if (defined(__linux__) && !defined(__ANDROID__))
         // Linux (non-Android)
-        #define SHM_NAME_MAX_SIZE NAME_MAX
     #elif defined(__APPLE__)
         // macOS / iOS
         #include <mach-o/dyld.h>
@@ -131,6 +129,8 @@
 #include "misc.h"
 
 namespace DON {
+
+inline constexpr std::size_t SHM_NAME_MAX_SIZE = NAME_MAX > 0 ? NAME_MAX - 1 : 255 - 1;
 
 // argv[0] CANNOT be used because need to identify the executable.
 // argv[0] contains the command used to invoke it, which does not involve the full path.
@@ -2094,15 +2094,11 @@ struct SystemWideSharedMemory final {
 
         shmName += hashName;
 
-#if (defined(__linux__) && !defined(__ANDROID__))
-        // POSIX APIs expect a fixed-size C string where the maximum length excluding the terminating null character ('\0').
         // Since std::string::size() does not include '\0', allow at most (MAX - 1) characters,
         // to guarantee space for the terminator ('\0') in fixed-size buffers.
-        constexpr std::size_t MaxNameSize = SHM_NAME_MAX_SIZE > 0 ? SHM_NAME_MAX_SIZE - 1 : 255 - 1;
         // Truncate the name if necessary so that it fits within limits including the null terminator
-        if (shmName.size() > MaxNameSize)
-            shmName.resize(MaxNameSize);
-#endif
+        if (shmName.size() > SHM_NAME_MAX_SIZE)
+            shmName.resize(SHM_NAME_MAX_SIZE);
 
         BackendSharedMemory<T> backendShmT(shmName, value);
 
