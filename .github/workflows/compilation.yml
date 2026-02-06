@@ -56,24 +56,25 @@ jobs:
           for hash in $(git rev-list -5 HEAD); do
             echo ""
             echo "Commit: ${hash:0:8}"
-            echo "---"
-            git show -s "$hash"
-            echo "---"
+            msg="$(git show -s "$hash")"
+  
+            echo "--- Full commit ---"
+            echo "$msg"
+            echo "--- Searching with grep ---"
+            git show -s "$hash" | grep -i "bench" || echo "  (no bench found)"
           done
 
           for hash in $(git rev-list -100 HEAD); do
-            # Use git show -s to get entire commit
-            msg="$(git show -s "$hash")"
-            # Search entire commit output for Bench
-            if [[ "$msg" =~ [Bb]ench[[:space:]]*:?[[:space:]]*([0-9]+) ]]; then
-              candidate="${BASH_REMATCH[1]}"
-              # Validate length (6-8 digits)
-              if [[ ${#candidate} -ge 6 && ${#candidate} -le 8 ]]; then
-                benchref="$candidate"
-                echo "Found benchmark: $benchref (commit: ${hash:0:8})"
-                echo "benchref=$benchref" >> $GITHUB_ENV
-                break
-              fi
+            # Use grep -E for cross-platform compatibility
+            benchref=$(git show -s "$hash" | \
+              grep -E "[Bb]ench[[:space:]]*:?[[:space:]]*[0-9]{6,8}" | \
+              grep -oE "[0-9]{6,8}" | \
+              head -1)
+      
+            if [ -n "$benchref" ]; then
+              echo "Found: $benchref (commit: ${hash:0:8})"
+              echo "benchref=$benchref" >> $GITHUB_ENV
+              break
             fi
           done
 
