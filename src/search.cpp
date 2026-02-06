@@ -2151,6 +2151,7 @@ void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Sta
     }
 
     int baseCaptureMalus = std::min(-207 + 848 * depth, 2446);
+
     int decayCaptureMalus = constexpr_round(1.4141 * baseCaptureMalus);
     // Decrease history for all non-best capture moves
     for (Move cm : searchedMoves[1])
