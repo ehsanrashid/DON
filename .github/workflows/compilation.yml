@@ -65,11 +65,14 @@ jobs:
 
       - name: Show compiler cpu info
         run: |
-          if [[ "$COMPCXX" == clang* ]]; then
-             $COMPCXX -E - -march=native -###
-          else
-            $COMPCXX -Q -march=native --help=target
-          fi
+          case "$COMPCXX" in
+            clang*)
+              $COMPCXX -E - -march=native -###
+              ;;
+            *)
+              $COMPCXX -Q -march=native --help=target
+              ;;
+          esac
 
       # Compile profile guided builds
 

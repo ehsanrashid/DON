@@ -60,9 +60,6 @@ jobs:
         run: |
           ART_ROOT="artifact"
 
-          echo "Artifact root:"
-          ls -la "$ART_ROOT"
-
           test -d "$ART_ROOT" || { echo "ERROR: Artifact root not found"; exit 1; }
 
           # Binary (required)
