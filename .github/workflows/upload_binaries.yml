@@ -61,27 +61,20 @@ jobs:
         run: |
           zip -r DON-$NAME-$BINARY.zip DON
 
-      # Upload official release assets if this is a tagged commit
-      - name: Upload official release asset
-        if: startsWith(github.ref_name, 'DON_') && github.ref_type == 'tag'
-        uses: softprops/action-gh-release@4634c16e79c963813287e889244c50009e7f0981
-        with:
-          files: DON-${{ matrix.config.simple_name }}-${{ matrix.binaries }}.${{ matrix.config.archive_ext }}
-          token: ${{ secrets.token }}
-
+      # Get commit info
       - name: Get commit info
         run: |
           echo "COMMIT_SHA=$(git rev-parse HEAD | cut -c 1-8)" >> $GITHUB_ENV
           echo "COMMIT_DATE=$(git show -s --date=format:'%Y%m%d' --format=%cd HEAD)" >> $GITHUB_ENV
 
-      # Make sure that an old ci that still runs on master doesn't recreate a prerelease
+      # Make sure that an old CI running on main doesn't recreate a pre-release
       - name: Check Pullable Commits
         run: |
           git fetch origin main
           CHANGES=$(git rev-list HEAD..origin/main --count)
           echo "CHANGES=$CHANGES" >> $GITHUB_ENV
 
-      # Check for "Official release version of DON" in the commit message
+      # Determine if this is an official release
       - name: Official Release?
         run: |
           if git log -1 --pretty=%B | grep -q "Official release version of DON"; then
@@ -90,14 +83,21 @@ jobs:
             echo "OFFICIAL_RELEASE=false" >> $GITHUB_ENV
           fi
 
-      # UPLOAD ONLY — RELEASE IS CREATED ELSEWHERE
-      - name: Upload prerelease asset
+      # Upload pre-release asset (dev build)
+      - name: Upload Pre-release Asset
         if: github.ref_name == 'main' && env.CHANGES == '0' && env.OFFICIAL_RELEASE == 'false'
-        run: |
-          TAG="DON-dev-${COMMIT_DATE}-${COMMIT_SHA}"
+        uses: softprops/action-gh-release@4634c16e79c963813287e889244c50009e7f0981
+        with:
+          name: DON dev-${{ env.COMMIT_DATE }}-${{ env.COMMIT_SHA }}
+          tag_name: DON-dev-${{ env.COMMIT_DATE }}-${{ env.COMMIT_SHA }}
+          files: DON-${{ matrix.config.simple_name }}-${{ matrix.binaries }}.${{ matrix.config.archive_ext }}
+          prerelease: true
+          token: ${{ secrets.token }}
 
-          gh release upload "$TAG" \
-            DON-${{ matrix.config.simple_name }}-${{ matrix.binaries }}.${{ matrix.config.archive_ext }} \
-            --clobber
-        env:
-          GITHUB_TOKEN: ${{ secrets.token }}
+      # Upload official release asset (tagged commit)
+      - name: Upload Official Release Asset
+        if: startsWith(github.ref_name, 'DON_') && github.ref_type == 'tag'
+        uses: softprops/action-gh-release@4634c16e79c963813287e889244c50009e7f0981
+        with:
+          files: DON-${{ matrix.config.simple_name }}-${{ matrix.binaries }}.${{ matrix.config.archive_ext }}
+          token: ${{ secrets.token }}
