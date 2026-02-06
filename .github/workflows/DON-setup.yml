@@ -26,7 +26,6 @@ jobs:
           # Install required packages
           sudo apt-get update
           sudo apt-get install -y curl jq
-
           # Get the first pre-release tag_name
           COMMIT_SHA_TAG=$(curl -s https://api.github.com/repos/${GITHUB_REPOSITORY}/releases \
             | jq -r 'map(select(.prerelease)) | first | .tag_name')
