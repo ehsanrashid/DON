@@ -20,6 +20,24 @@ jobs:
         with:
           persist-credentials: false
 
+      # Returns null if no pre-release exists
+      - name: Get Commit SHA of Latest Pre-release
+        run: |
+          # Install required packages
+          sudo apt-get update
+          sudo apt-get install -y curl jq
+
+          # Get the first pre-release tag_name
+          COMMIT_SHA_TAG=$(curl -s https://api.github.com/repos/${{ github.repository_owner }}/DON/releases \
+            | jq -r 'map(select(.prerelease)) | first | .tag_name')
+          echo "COMMIT_SHA_TAG=$COMMIT_SHA_TAG" >> $GITHUB_ENV
+
+      - name: Delete previous pre-release and tag
+        if: env.COMMIT_SHA_TAG != 'null'
+        run: gh release delete "$COMMIT_SHA_TAG" --cleanup-tag -y || true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Get commit info
         run: |
           echo "COMMIT_SHA=$(git rev-parse HEAD | cut -c 1-8)" >> $GITHUB_ENV
@@ -43,17 +61,14 @@ jobs:
             echo "This is NOT an official release."
           fi
 
-      - name: Echo deleting pre-release
-        #if: github.ref_name == 'main' && env.CHANGES == '0' && env.OFFICIAL_RELEASE == 'false'
-        run: |
-          echo "Deleting pre-release: DON-dev-$COMMIT_DATE-$COMMIT_SHA if it exists..."
       - name: Delete existing pre-release
-        #if: github.ref_name == 'main' && env.CHANGES == '0' && env.OFFICIAL_RELEASE == 'false'
-        uses: softprops/action-gh-release@4634c16e79c963813287e889244c50009e7f0981
-        with:
-          tag_name: DON-dev-${{ env.COMMIT_DATE }}-${{ env.COMMIT_SHA }}
-          delete: true
-          token: ${{ secrets.GITHUB_TOKEN }}
+        if: github.ref_name == 'main' && env.CHANGES == '0' && env.OFFICIAL_RELEASE == 'false'
+        run: |
+          TAG="DON-dev-$COMMIT_DATE-$COMMIT_SHA"
+          echo "Deleting pre-release $TAG if it exists..."
+          gh release delete "$TAG" --cleanup-tag -y || true
+        env:
+         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Echo creating pre-release
         #if: github.ref_name == 'main' && env.CHANGES == '0' && env.OFFICIAL_RELEASE == 'false'
         run: |
