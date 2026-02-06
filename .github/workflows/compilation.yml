@@ -61,7 +61,16 @@ jobs:
               echo "✗ Commit $num (${hash:0:8}): no bench - $subject"
             fi
           done
-
+          echo "=== Searching first 20 commits for Bench ==="
+          git rev-list -20 HEAD | nl | while read num hash; do
+           subject=$(git log -1 --format=%s "$hash")
+           if git show -s "$hash" | grep -qi "bench"; then
+             echo "✓ Commit $num (${hash:0:8}): HAS BENCH - $subject"
+             git show -s "$hash" | grep -i "bench"
+           else
+             echo "✗ Commit $num (${hash:0:8}): NO bench - $subject"
+           fi
+          done
           for hash in $(git rev-list -100 HEAD); do
             # Use grep -E for cross-platform compatibility
             benchref=$(git show -s "$hash" | \
