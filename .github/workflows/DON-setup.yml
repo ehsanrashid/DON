@@ -10,7 +10,7 @@ on:
       - main
 jobs:
   Prerelease:
-    if: github.repository == 'ehsanrashid/DON' && (github.ref == 'refs/heads/main' || (startsWith(github.ref_name, 'DON_') && github.ref_type == 'tag'))
+    #if: github.repository == 'ehsanrashid/DON' && (github.ref == 'refs/heads/main' || (startsWith(github.ref_name, 'DON_') && github.ref_type == 'tag'))
     runs-on: ubuntu-latest
     needs: [Matrix]
     permissions:
