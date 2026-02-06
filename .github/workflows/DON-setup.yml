@@ -19,6 +19,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+          # Only checkout metadata; do not fetch full history (optional safety)
+          fetch-depth: 1
 
       # returns null if no pre-release exists
       - name: Get Commit SHA of Latest Pre-release
@@ -70,7 +72,7 @@ jobs:
           name: DON dev-${{ env.COMMIT_DATE }}-${{ env.COMMIT_SHA }}
           tag_name: DON-dev-${{ env.COMMIT_DATE }}-${{ env.COMMIT_SHA }}
           prerelease: true
-          allow_updates: true
+          files: ""
           token: ${{ secrets.GITHUB_TOKEN }}
 
   Matrix:

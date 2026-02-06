@@ -50,26 +50,24 @@ jobs:
         run: |
           mkdir -p DON
 
-      - name: Download wiki
-        run: |
-          git clone "https://x-access-token:${{ secrets.token }}@github.com/ehsanrashid/DON.git" wiki
-          rm -rf wiki/.git
-          mv wiki DON/
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+         name: ${{ env.NAME }}-${{ env.BINARY }}
+         path: ./artifact-dl/
 
-      - name: Copy files
-        continue-on-error: true
+      - name: Assemble package
         run: |
-          ARTIFACT_DIR="${{ matrix.config.simple_name }}-${{ matrix.binaries }}"
-          mv "$ARTIFACT_DIR"/* DON-workflow/
-          cd DON-workflow
+          # Binary (required)
+          cp artifact-dl/release/DON-$NAME-$BINARY$EXT DON/ || { echo "ERROR: Binary not found"; exit 1; }
 
-          #cp -r src ../DON/                || echo "WARNING: src folder missing, skipping"
-          cp -r scripts ../DON/            || echo "WARNING: scripts folder missing, skipping"
-          cp DON-$NAME-$BINARY$EXT ../DON/ || echo "WARNING: DON-$NAME-$BINARY$EXT missing, skipping"
-          cp Copying.txt ../DON/           || echo "WARNING: Copying.txt missing, skipping"
-          cp CITATION.cff ../DON/          || echo "WARNING: CITATION.cff missing, skipping"
-          cp README.md ../DON/             || echo "WARNING: README.md missing, skipping"
-          cp CONTRIBUTING.md ../DON/       || echo "WARNING: CONTRIBUTING.md missing, skipping"
+          # Optional extras (explicit, safe)
+          cp -r artifact-dl/scripts DON/ 2>/dev/null || true
+          cp artifact-dl/{Copying.txt,CITATION.cff,README.md,CONTRIBUTING.md} DON/ 2>/dev/null || true
+
+          echo "Final package contents:"
+          ls -la DON/
+          du -sh DON/
 
       - name: Create tar
         if: ${{ !startsWith(matrix.config.os, 'windows') }}
@@ -124,5 +122,4 @@ jobs:
           tag_name: DON-dev-${{ env.COMMIT_DATE }}-${{ env.COMMIT_SHA }}
           prerelease: true
           files: DON-${{ matrix.config.simple_name }}-${{ matrix.binaries }}.${{ matrix.config.archive_ext }}
-          allow_updates: true
           token: ${{ secrets.token }}

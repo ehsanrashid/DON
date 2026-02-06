@@ -75,31 +75,37 @@ jobs:
 
       - name: Compile ${{ matrix.config.binaries }} build
         run: |
-          mkdir -p artifact
           make clean
           make -j4 profile-build ARCH=$BINARY COMP=$COMP RUN_PREFIX="$SDE"
           make strip ARCH=$BINARY COMP=$COMP
           RUN_PREFIX="$SDE" ../tests/signature.sh $benchref
-          mv ./DON$EXT artifact/DON-$NAME-$BINARY$EXT
+          # Create release directory
+          mkdir -p release
+          mv ./DON$EXT release/DON-$NAME-$BINARY$EXT || { echo "ERROR: Built binary ./DON$EXT not found"; exit 1; }
 
       - name: Verify binary exists
         run: |
           echo "Checking binary DON-$NAME-$BINARY$EXT exists..."
-          ls -l artifact/DON-$NAME-$BINARY$EXT
-          test -f artifact/DON-$NAME-$BINARY$EXT
+          test -f release/DON-$NAME-$BINARY$EXT # Existence check
+          ls -lh release/DON-$NAME-$BINARY$EXT  # Size check
+          du -sh release/                       # Total size
 
-      - name: Remove non src files
-        run: git clean -fx
+      - name: Clean build artifacts
+        run: |
+          # Clean build files but keep release/
+          make clean
+          # Excludes release/ from cleanup
+          git clean -fxe release/
 
       - name: Upload artifact for (pre)-release
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.NAME }}-${{ env.BINARY }}
           path: |
+            release/DON-${{ env.NAME }}-${{ env.BINARY }}${{ env.EXT }}
             scripts/
-            artifact/DON-${{ env.NAME }}-${{ env.BINARY }}${{ env.EXT }}
             Copying.txt
             CITATION.cff
             README.md
             CONTRIBUTING.md
-          if-no-files-found: warn
+          if-no-files-found: error
