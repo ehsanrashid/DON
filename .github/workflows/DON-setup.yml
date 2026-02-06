@@ -20,24 +20,6 @@ jobs:
         with:
           persist-credentials: false
 
-      # Returns null if no pre-release exists
-      - name: Get Commit SHA of Latest Pre-release
-        run: |
-          # Install required packages
-          sudo apt-get update
-          sudo apt-get install -y curl jq
-
-          # Get the first pre-release tag_name
-          COMMIT_SHA_TAG=$(curl -s https://api.github.com/repos/${{ github.repository_owner }}/DON/releases \
-            | jq -r 'map(select(.prerelease)) | first | .tag_name')
-          echo "COMMIT_SHA_TAG=$COMMIT_SHA_TAG" >> $GITHUB_ENV
-
-      - name: Delete previous pre-release and tag
-        if: env.COMMIT_SHA_TAG != 'null'
-        run: gh release delete "$COMMIT_SHA_TAG" --cleanup-tag -y || true
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Get commit info
         run: |
           echo "COMMIT_SHA=$(git rev-parse HEAD | cut -c 1-8)" >> $GITHUB_ENV
@@ -45,13 +27,12 @@ jobs:
 
       # Make sure that an old ci that still runs on master doesn't recreate a prerelease
       - name: Check Pullable Commits
-        id: check_commits
         run: |
           git fetch origin main
           CHANGES=$(git rev-list HEAD..origin/main --count)
           echo "CHANGES=$CHANGES" >> $GITHUB_ENV
 
-      # Check for "Official release version of DON" in the commit message
+      # Determine if this is an official release
       - name: Official Release?
         run: |
           if git log -1 --pretty=%B | grep -q "Official release version of DON"; then
@@ -62,20 +43,30 @@ jobs:
             echo "This is NOT an official release."
           fi
 
-      # Create new pre-release, upload_binaries.yml will upload the binaries to pre-release.
-      - name: Create Prerelease (force recreate)
+      - name: Echo deleting pre-release
         if: github.ref_name == 'main' && env.CHANGES == '0' && env.OFFICIAL_RELEASE == 'false'
         run: |
-          TAG="DON-dev-${COMMIT_DATE}-${COMMIT_SHA}"
-          echo "Creating pre-release with tag: $TAG"
-          # Delete if it already exists (safe)
-          gh release delete "$TAG" --cleanup-tag -y || true
-          # Create the pre-release
-          gh release create "$TAG" \
-            --prerelease \
-            --title "$TAG"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          echo "Deleting pre-release: DON-dev-$COMMIT_DATE-$COMMIT_SHA if it exists..."
+      - name: Delete existing pre-release
+        if: github.ref_name == 'main' && env.CHANGES == '0' && env.OFFICIAL_RELEASE == 'false'
+        uses: softprops/action-gh-release@4634c16e79c963813287e889244c50009e7f0981
+        with:
+          tag_name: DON-dev-${{ env.COMMIT_DATE }}-${{ env.COMMIT_SHA }}
+          delete: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Echo creating pre-release
+        if: github.ref_name == 'main' && env.CHANGES == '0' && env.OFFICIAL_RELEASE == 'false'
+        run: |
+          echo "Creating pre-release: DON-dev-$COMMIT_DATE-$COMMIT_SHA..."
+      # Create new pre-release, upload_binaries.yml will upload the binaries to pre-release.
+      - name: Create Pre-release (force recreate)
+        if: github.ref_name == 'main' && env.CHANGES == '0' && env.OFFICIAL_RELEASE == 'false'
+        uses: softprops/action-gh-release@4634c16e79c963813287e889244c50009e7f0981
+        with:
+          name: DON dev-${{ env.COMMIT_DATE }}-${{ env.COMMIT_SHA }}
+          tag_name: DON-dev-${{ env.COMMIT_DATE }}-${{ env.COMMIT_SHA }}
+          prerelease: true
+          token: ${{ secrets.GITHUB_TOKEN }}
   Matrix:
     runs-on: ubuntu-latest
     outputs:
