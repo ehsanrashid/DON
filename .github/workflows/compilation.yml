@@ -86,34 +86,37 @@ jobs:
           make -j4 profile-build ARCH=$BINARY COMP=$COMP RUN_PREFIX="$SDE"
           make strip ARCH=$BINARY COMP=$COMP
           RUN_PREFIX="$SDE" ../tests/signature.sh "$benchref"
-          # Create release directory
+
+          # Ensure release folder exists
           mkdir -p release
+
+          # Move binary into release folder
           mv ./DON$EXT release/DON-$NAME-$BINARY$EXT || { echo "ERROR: Built binary ./DON$EXT not found"; exit 1; }
 
-      - name: Verify binary exists
+          # Optional: make binary executable
+          chmod +x release/DON-$NAME-$BINARY$EXT
+
+          # Copy optional scripts/docs
+          [ -d scripts ] && cp -r scripts release/ || echo "No scripts/ folder, skipping"
+          cp -v Copying.txt CITATION.cff README.md CONTRIBUTING.md release/ 2>/dev/null || true
+
+      - name: Verify release contents
         run: |
           echo "Checking binary DON-$NAME-$BINARY$EXT exists..."
           test -f release/DON-$NAME-$BINARY$EXT # Existence check
-          ls -lh release/DON-$NAME-$BINARY$EXT  # Size check
-          du -sh release/                       # Total size
+          echo "Listing release folder contents:"
+          ls -lh release/ # Size check
+          du -sh release/ # Total size
 
       - name: Clean build artifacts
         run: |
-          # Clean build files but keep release/
           make clean
-          # Excludes release/ from cleanup
+          # Exclude release folder from cleanup
           git clean -fxe release/
-
-      - name: Prepare artifact folder
-        run: |
-          mkdir -p artifact
-          cp release/DON-$NAME-$BINARY$EXT artifact/
-          cp -r scripts artifact/
-          cp Copying.txt CITATION.cff README.md CONTRIBUTING.md artifact/
 
       - name: Upload artifact for (pre)-release
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.NAME }}-${{ env.BINARY }}
-          path: artifact/
+          path: release/
           if-no-files-found: error
