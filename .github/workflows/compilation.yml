@@ -58,7 +58,7 @@ jobs:
             benchref="$(printf '%s\n' "$msg" \
               | grep -Eo '[Bb]ench[[:space:]:]+[1-9][0-9]{5,7}' \
               | head -n1 \
-              | tr -cd '0-9')"
+              | tr -cd '0-9')" || true
 
             if [ -n "$benchref" ]; then
               echo "From commit: $hash"
@@ -68,7 +68,9 @@ jobs:
             fi
           done
 
-          [ -z "$benchref" ] && echo "No bench found"
+          if [ -z "$benchref" ]; then
+            echo "No bench found"
+          fi
 
       - name: Download the used network from the fishtest framework
         run: make net
