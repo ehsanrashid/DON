@@ -2127,13 +2127,11 @@ void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Sta
     assert(ss->moveCount != 0);
     assert(depth > DEPTH_ZERO);
 
-    int bonus = std::min(- 81 + 116 * depth, +1515) + 347 * int(bestMove == ss->ttMove) + (ss - 1)->history / 32;
-    int malus = std::min(-207 + 848 * depth, +2446) -  17 * ss->moveCount;
+    int bonus = std::min(- 81 + 116 * depth, +1515) + 347 * int(bestMove == ss->ttMove) + constexpr_round(31.2500e-3 * (ss - 1)->history);
+    int malus = std::min(-207 + 800 * depth, +2200);
 
     if (bonus < 0)
         bonus = 0;
-    if (malus < 0)
-        malus = 0;
 
     if (pos.capture_promo(bestMove))
     {
