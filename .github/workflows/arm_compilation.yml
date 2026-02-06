@@ -95,8 +95,8 @@ jobs:
           chmod +x artifact/DON-$NAME-$BINARY$EXT
 
           # Copy optional scripts/docs
-          [ -d scripts ] && cp -r scripts artifact/ || echo "No scripts/ folder, skipping"
-          cp -v Copying.txt CITATION.cff README.md CONTRIBUTING.md artifact/ 2>/dev/null || true
+          [ -d ../scripts ] && cp -r ../scripts artifact/ || echo "No scripts/ folder, skipping"
+          cp -v ../Copying.txt ../CITATION.cff ../README.md ../CONTRIBUTING.md artifact/ 2>/dev/null || true
 
       - name: Verify artifact contents
         run: |
