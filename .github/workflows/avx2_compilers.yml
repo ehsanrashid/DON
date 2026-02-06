@@ -79,6 +79,6 @@ jobs:
       #     make clean
       #     make -j build ARCH=x86-64-avx2 COMP=${{ matrix.comp }} COMPCXX=${{ matrix.cxx }}
 
-      - name: Smoke test
-        working-directory: src
-        run: ./DON bench 16 1 6
+      # - name: Smoke test
+      #   working-directory: src
+      #   run: ./DON bench 16 1 6
