@@ -83,7 +83,7 @@ jobs:
           name: DON dev-${{ env.COMMIT_DATE }}-${{ env.COMMIT_SHA }}
           tag_name: DON-dev-${{ env.COMMIT_DATE }}-${{ env.COMMIT_SHA }}
           prerelease: true
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.token }}
   Matrix:
     runs-on: ubuntu-latest
     outputs:
@@ -131,6 +131,7 @@ jobs:
     with:
       matrix: ${{ needs.Matrix.outputs.arm_matrix }}
   Binaries:
+    if: github.repository == 'ehsanrashid/DON'  
     needs: [Prerelease, Matrix, Compilation]
     uses: ./.github/workflows/upload_binaries.yml
     with:
@@ -140,6 +141,7 @@ jobs:
     secrets:
       token: ${{ secrets.GITHUB_TOKEN }}
   ARM_Binaries:
+    if: github.repository == 'ehsanrashid/DON'  
     needs: [Prerelease, Matrix, ARMCompilation]
     uses: ./.github/workflows/upload_binaries.yml
     with:
