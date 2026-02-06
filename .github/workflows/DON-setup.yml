@@ -21,7 +21,7 @@ jobs:
           persist-credentials: false
 
       - name: Delete previous pre-release and tag
-        if: github.ref_name == 'main' && env.CHANGES == '0' && env.OFFICIAL_RELEASE == 'false'
+        #if: github.ref_name == 'main' && env.CHANGES == '0' && env.OFFICIAL_RELEASE == 'false'
         run: |
           # Install required packages
           sudo apt-get update
