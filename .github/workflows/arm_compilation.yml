@@ -83,7 +83,7 @@ jobs:
           make clean
           make -j4 profile-build ARCH=$BINARY COMP=$COMP RUN_PREFIX=$EMU
           make strip ARCH=$BINARY COMP=$COMP
-          RUN_PREFIX=$EMU ../tests/signature.sh $benchref
+          RUN_PREFIX=$EMU ../tests/signature.sh "$benchref"
           # Create release directory
           mkdir -p release
           mv ./DON$EXT release/DON-$NAME-$BINARY$EXT || { echo "ERROR: Built binary ./DON$EXT not found"; exit 1; }
@@ -102,15 +102,16 @@ jobs:
           # Excludes release/ from cleanup
           git clean -fxe release/
 
+      - name: Prepare artifact folder
+        run: |
+          mkdir -p artifact
+          cp release/DON-$NAME-$BINARY$EXT artifact/
+          cp -r scripts artifact/
+          cp Copying.txt CITATION.cff README.md CONTRIBUTING.md artifact/
+
       - name: Upload artifact for (pre)-release
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.NAME }}-${{ env.BINARY }}
-          path: |
-            release/DON-${{ env.NAME }}-${{ env.BINARY }}${{ env.EXT }}
-            scripts/
-            Copying.txt
-            CITATION.cff
-            README.md
-            CONTRIBUTING.md
+          path: artifact/
           if-no-files-found: error

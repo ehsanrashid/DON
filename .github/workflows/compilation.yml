@@ -48,6 +48,13 @@ jobs:
           environmentVariableName: SDE_DIR
           sdeVersion: 9.33.0
 
+      - name: Extract the bench number from the commit history
+        run: |
+          for hash in $(git rev-list -100 HEAD); do
+            benchref=$(git show -s $hash | tac | grep -m 1 -o -x '[[:space:]]*\b[Bb]ench[ :]\+[1-9][0-9]\{5,7\}\b[[:space:]]*' | sed 's/[^0-9]//g') && break || true
+          done
+          [[ -n "$benchref" ]] && echo "benchref=$benchref" >> $GITHUB_ENV && echo "From commit: $hash" && echo "Reference bench: $benchref" || echo "No bench found"
+
       - name: Download the used network from the fishtest framework
         run: make net
 
@@ -78,7 +85,7 @@ jobs:
           make clean
           make -j4 profile-build ARCH=$BINARY COMP=$COMP RUN_PREFIX="$SDE"
           make strip ARCH=$BINARY COMP=$COMP
-          RUN_PREFIX="$SDE" ../tests/signature.sh $benchref
+          RUN_PREFIX="$SDE" ../tests/signature.sh "$benchref"
           # Create release directory
           mkdir -p release
           mv ./DON$EXT release/DON-$NAME-$BINARY$EXT || { echo "ERROR: Built binary ./DON$EXT not found"; exit 1; }
@@ -97,15 +104,16 @@ jobs:
           # Excludes release/ from cleanup
           git clean -fxe release/
 
+      - name: Prepare artifact folder
+        run: |
+          mkdir -p artifact
+          cp release/DON-$NAME-$BINARY$EXT artifact/
+          cp -r scripts artifact/
+          cp Copying.txt CITATION.cff README.md CONTRIBUTING.md artifact/
+
       - name: Upload artifact for (pre)-release
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.NAME }}-${{ env.BINARY }}
-          path: |
-            release/DON-${{ env.NAME }}-${{ env.BINARY }}${{ env.EXT }}
-            scripts/
-            Copying.txt
-            CITATION.cff
-            README.md
-            CONTRIBUTING.md
+          path: artifact/
           if-no-files-found: error
