@@ -93,6 +93,7 @@ jobs:
           files: DON-${{ matrix.config.simple_name }}-${{ matrix.binaries }}.${{ matrix.config.archive_ext }}
           prerelease: true
           token: ${{ secrets.token }}
+        continue-on-error: true
 
       # Upload official release asset (tagged commit)
       - name: Upload Official Release Asset
@@ -101,3 +102,4 @@ jobs:
         with:
           files: DON-${{ matrix.config.simple_name }}-${{ matrix.binaries }}.${{ matrix.config.archive_ext }}
           token: ${{ secrets.token }}
+        continue-on-error: true
