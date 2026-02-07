@@ -1418,7 +1418,6 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
                 if (depth < MAX_PLY - 1)
                     ++depth;
             }
-
             // Multi-cut pruning
             // If the ttMove is assumed to fail high based on the bound of the TT entry, and
             // if after excluding the ttMove with a reduced search fail high over the original beta,
@@ -1430,7 +1429,6 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
 
                 return singularValue;
             }
-
             // Negative extensions
             // If other moves failed high over (ttValue - margin) without the ttMove on a reduced search,
             // but cannot do multi-cut because (ttValue - margin) is lower than the original beta,
@@ -1439,15 +1437,14 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
 
             // If the ttMove is assumed to fail high over current beta
             else if (ttd.value >= beta)
-            {
                 extension = -3;
-            }
-
             // If on CutNode but the ttMove is not assumed to fail high over current beta
             else if constexpr (CutNode)
             {
                 extension = -2;
             }
+            else if (ttd.value >= singularValue)
+                extension = -1;
         }
             // clang-format on
         }
@@ -2142,7 +2139,7 @@ void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Sta
     constexpr int QuietCountMalus = 20;
 
     int bonus = std::clamp(
-          std::min(DepthBonusBias + DepthBonusScale * depth, MaxDepthBonus)
+                std::min(DepthBonusBias + DepthBonusScale * depth, MaxDepthBonus)
               + int(bestMove == ss->ttMove) * TTMoveBonus
               + constexpr_round(31.2500e-3 * (ss - 1)->history),
                 1, MaxBonus);
