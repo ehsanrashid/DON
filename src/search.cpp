@@ -2140,7 +2140,6 @@ void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Sta
     int bonus = std::min(BonusBias + BonusScale * depth, MaxBonus)
               + int(bestMove == ss->ttMove) * 347
               + std::clamp(constexpr_round(31.2500e-3 * (ss - 1)->history), -HistoryLimit, +HistoryLimit);
-
     int malus = std::min(MalusBias + MalusScale * depth, MaxMalus);
 
     if (pos.capture_promo(bestMove))
