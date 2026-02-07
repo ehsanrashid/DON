@@ -1392,14 +1392,14 @@ class Logger final {
    public:
     // Start logging. Returns true on success.
     static bool start(std::string_view logFile) noexcept {
-        std::scoped_lock lock(instance().mutex);
+        std::lock_guard writeLock(instance().mutex);
 
         return instance().open(logFile);
     }
 
     // Stop logging. Restores original streams and closes the file.
     static void stop() noexcept {
-        std::scoped_lock lock(instance().mutex);
+        std::lock_guard writeLock(instance().mutex);
 
         instance().close();
     }
@@ -1430,9 +1430,7 @@ class Logger final {
         if (!ofs.is_open())
             return;
 
-        std::string time = format_time(std::chrono::system_clock::now());
-
-        ofs << '[' << time << "] " << suffix << std::endl;
+        ofs << '[' << format_time(std::chrono::system_clock::now()) << "] " << suffix << std::endl;
     }
 
     // Open log file; caller must hold mutex
