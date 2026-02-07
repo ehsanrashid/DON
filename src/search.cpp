@@ -2127,24 +2127,28 @@ void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Sta
     assert(depth > DEPTH_ZERO);
     assert(ss->moveCount > 0);
 
-    constexpr int BonusBias  = -81;
-    constexpr int BonusScale = 116;
-    constexpr int MaxBonus   = 1515;
+    constexpr int DepthBonusBias  = -81;
+    constexpr int DepthBonusScale = 116;
+    constexpr int MaxDepthBonus   = 1515;
+    constexpr int TTMoveBonus     = 347;
+    constexpr int HistoryBonus    = 1024;
 
-    constexpr int MalusBias  = -207;
-    constexpr int MalusScale = 848;
-    constexpr int MaxMalus   = 2446;
+    constexpr int MaxBonus = MaxDepthBonus + TTMoveBonus + HistoryBonus;
+
+    constexpr int DepthMalusBias  = -207;
+    constexpr int DepthMalusScale = 848;
+    constexpr int MaxDepthMalus   = 2446;
 
     constexpr int MaxQuietMoves   = 32;
     constexpr int QuietCountMalus = 20;
 
-    int bonus = std::max(
-          std::min(BonusBias + BonusScale * depth, MaxBonus)
-              + int(bestMove == ss->ttMove) * 347
+    int bonus = std::clamp(
+          std::min(DepthBonusBias + DepthBonusScale * depth, MaxDepthBonus)
+              + int(bestMove == ss->ttMove) * TTMoveBonus
               + constexpr_round(31.2500e-3 * (ss - 1)->history),
-                1);
+                1, MaxBonus);
 
-    int malus = std::min(MalusBias + MalusScale * depth, MaxMalus);
+    int malus = std::min(DepthMalusBias + DepthMalusScale * depth, MaxDepthMalus);
 
     if (pos.capture_promo(bestMove))
     {
