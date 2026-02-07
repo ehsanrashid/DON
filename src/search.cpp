@@ -1706,7 +1706,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
     // If there is a move that produces search value greater than alpha update the history of searched moves
     if (bestMove != Move::None)
     {
-        update_histories(pos, pawnHistory, ss, depth, bestMove, moveCount, searchedMoves);
+        update_histories(pos, pawnHistory, ss, depth, bestMove, searchedMoves);
 
         if constexpr (!RootNode)
         {
@@ -2123,9 +2123,9 @@ void Worker::update_quiet_histories(const Position& pos, PawnHistory& pawnHistor
 }
 
 // Updates history at the end of search() when a bestMove is found and other searched moves are known
-void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Stack* ss, Depth depth, Move bestMove, int moveCount, const StdArray<SearchedMoves, 2>& searchedMoves) noexcept {
+void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Stack* ss, Depth depth, Move bestMove, const StdArray<SearchedMoves, 2>& searchedMoves) noexcept {
     assert(depth > DEPTH_ZERO);
-    assert(moveCount > 0);
+    assert(ss->moveCount > 0);
 
     constexpr int BonusBias  = -81;
     constexpr int BonusScale = 116;
@@ -2135,11 +2135,14 @@ void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Sta
     constexpr int MalusScale = 848;
     constexpr int MaxMalus   = 2446;
 
-    constexpr int HistoryLimit = 50;
+    constexpr int MaxQuietMoves   = 32;
+    constexpr int QuietCountMalus = 20;
 
-    int bonus = std::min(BonusBias + BonusScale * depth, MaxBonus)
+    int bonus = std::max(
+          std::min(BonusBias + BonusScale * depth, MaxBonus)
               + int(bestMove == ss->ttMove) * 347
-              + std::clamp(constexpr_round(31.2500e-3 * (ss - 1)->history), -HistoryLimit, +HistoryLimit);
+              + constexpr_round(31.2500e-3 * (ss - 1)->history),
+                1);
     int malus = std::min(MalusBias + MalusScale * depth, MaxMalus);
 
     if (pos.capture_promo(bestMove))
@@ -2150,7 +2153,7 @@ void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Sta
     {
         update_quiet_histories(pos, pawnHistory, ss, bestMove, constexpr_round(0.8887 * bonus));
 
-        int baseQuietMalus = std::max(malus - 17 * std::min(moveCount, 32), 0);
+        int baseQuietMalus = std::max(malus - QuietCountMalus * std::clamp<int>(searchedMoves[0].size() - 1, 0, MaxQuietMoves), 0);
         // Decrease history for all non-best quiet moves
         int decayQuietMalus = constexpr_round(1.0596 * baseQuietMalus);
         for (Move qm : searchedMoves[0])
