@@ -1477,18 +1477,13 @@ class Logger final {
         filename.clear();
     }
 
-    std::istream& is;
-    std::ostream& os;
-
+    std::mutex      mutex;
+    std::ofstream   ofs;
+    std::istream&   is;
+    std::ostream&   os;
     std::streambuf *isBuf = nullptr, *osBuf = nullptr;
-
-    std::ofstream ofs;
-
-    TieStreamBuf iTie, oTie;
-
-    std::string filename;
-
-    std::mutex mutex;
+    TieStreamBuf    iTie, oTie;
+    std::string     filename;
 };
 
 #if !defined(NDEBUG)

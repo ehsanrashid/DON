@@ -122,8 +122,9 @@ Option::operator std::string_view() const noexcept {
 void Option::operator=(std::string value) noexcept {
     assert(is_ok(type));
 
-    if (type != Type::BUTTON && type != Type::STRING && value.empty())
-        return;
+    if (type != Type::BUTTON && type != Type::STRING)
+        if (value.empty())
+            return;
 
     switch (type)
     {
@@ -154,10 +155,10 @@ void Option::operator=(std::string value) noexcept {
 
     if (onChange)
     {
-        auto optStr = onChange(*this);
+        auto infoStr = onChange(*this);
 
-        if (optStr && optionsPtr != nullptr && optionsPtr->infoCallback)
-            optionsPtr->infoCallback(optStr);
+        if (optionsPtr != nullptr && optionsPtr->infoCallback && infoStr)
+            optionsPtr->infoCallback(infoStr);
     }
 }
 
@@ -220,12 +221,13 @@ const Option& Options::operator[](const std::string_view name) const noexcept {
 
 std::ostream& operator<<(std::ostream& os, const Options& options) noexcept {
 
-    std::vector<Options::Pair> opts(options.begin(), options.end());
+    std::vector<Options::Pair> sortedOptions(options.begin(), options.end());
 
-    std::sort(opts.begin(), opts.end(),
-              [](const auto& op1, const auto& op2) noexcept { return op1.second < op2.second; });
+    std::sort(
+      sortedOptions.begin(), sortedOptions.end(),
+      [](const auto& op1, const auto& op2) noexcept -> bool { return op1.second < op2.second; });
 
-    for (const auto& [name, option] : opts)
+    for (const auto& [name, option] : sortedOptions)
         os << "\noption name " << name << ' ' << option;
 
     return os;
