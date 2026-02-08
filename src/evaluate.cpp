@@ -33,6 +33,12 @@
 
 namespace DON::Evaluate {
 
+namespace {
+
+constexpr double MIN_DAMP_FACTOR = 0.0;
+
+}  // namespace
+
 // Evaluate is the evaluator for the outer world.
 // It returns a static evaluation of the position
 // from the point of view of the side to move.
@@ -85,11 +91,11 @@ Value evaluate(const Position&          pos,
 
     std::int32_t v = nnue + constexpr_round(15.2588e-6 * (nnue + optimism) * material);
 
-    // Damp down the evaluation linearly when shuffling
-    auto dampFactor = 1.0 - 5.0505e-3 * pos.rule50_count();
+    // Damp evaluation linearly based on the 50-move rule
+    auto dampFactor = 1.0 - 5.0505e-3 * int(pos.rule50_count());
 
-    if (dampFactor < 0.0)
-        dampFactor = 0.0;
+    if (dampFactor < MIN_DAMP_FACTOR)
+        dampFactor = MIN_DAMP_FACTOR;
 
     v *= dampFactor;
 
