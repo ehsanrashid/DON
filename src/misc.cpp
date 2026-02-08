@@ -37,7 +37,7 @@ namespace {
 
 constexpr std::string_view Name{"DON"};
 constexpr std::string_view Author{"Ehsan Rashid"};
-constexpr std::string_view Version{"dev"};
+constexpr std::string_view Version{"1.0"};
 
 // Format date to YYYYMMDD
 [[maybe_unused]] std::string format_date(std::string_view date) noexcept {
