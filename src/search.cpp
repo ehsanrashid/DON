@@ -1079,7 +1079,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
     {
         // The depth condition is important for mate finding
         if (!ss->ttPv && !exclude && depth < 14 && !is_win(ttEvalValue) && !is_loss(beta)
-            && (ttmNone || history_value(pos, ttd.move, ac, contHistory) >= int(!ttmCapture) * 32768))
+            && (ttmNone || history_value(pos, ttd.move, ac, contHistory) >= 32768 - int(ttmCapture) * 25968))
         {
             // Compute base futility
             int baseFutility = 53 + int(ttd.hit) * 23;
