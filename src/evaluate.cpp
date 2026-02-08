@@ -77,15 +77,13 @@ Value evaluate(const Position&          pos,
 
     std::int32_t complexity = std::abs(netOut.psqt - netOut.positional);
 
-    // clang-format off
-
     // Blend nnue and optimism with complexity
-    nnue     *= 1.0 - 54.8366e-6 * complexity;
+    nnue *= 1.0 - 54.8366e-6 * complexity;
     optimism *= 1.0 + 21.0084e-4 * complexity;
 
-    std::int32_t v = int( nnue + int(92.3450e-3 * optimism))
-                   + int((nnue +                  optimism) * pos.material() * 12.8417e-6);
-    // clang-format on
+    std::int32_t material = pos.material();
+
+    std::int32_t v = nnue + constexpr_round(15.2588e-6 * (nnue + optimism) * material);
 
     // Damp down the evaluation linearly when shuffling
     auto dampFactor = 1.0 - 5.0505e-3 * pos.rule50_count();
