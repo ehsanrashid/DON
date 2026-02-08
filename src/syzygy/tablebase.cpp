@@ -571,7 +571,7 @@ std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
 #else
     int fd = ::open(filename.data(), O_RDONLY);
 
-    FdGuard fdGuard(fd);
+    FdGuard fdGuard{fd};
 
     if (fd <= INVALID_FD)
     {

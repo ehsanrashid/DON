@@ -20,8 +20,8 @@
 
 #include <algorithm>
 #include <cassert>
-#include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <iterator>
 #include <memory>
 #include <new>
@@ -274,6 +274,17 @@ template<std::size_t Alignment, typename T>
 template<std::size_t Alignment, typename T>
 [[nodiscard]] constexpr const T* align_ptr_up(const T* ptr) noexcept {
     return reinterpret_cast<const T*>(align_ptr_up<Alignment>(const_cast<T*>(ptr)));
+}
+
+template<typename T, typename ByteT>
+T load_as(const ByteT* buffer) {
+    static_assert(std::is_trivially_copyable<T>::value, "Type must be trivially copyable");
+    static_assert(sizeof(ByteT) == 1);
+
+    T value;
+    std::memcpy(&value, buffer, sizeof(value));
+
+    return value;
 }
 
 #if defined(_WIN32)

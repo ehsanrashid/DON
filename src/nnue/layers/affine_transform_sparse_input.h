@@ -69,14 +69,15 @@ struct Lookup final {
 alignas(CACHE_LINE_SIZE) constexpr Lookup LOOKUP{};
 
 
-// Find indices of nonzero numbers in an std::int32_t array
+// Find indices of nonzero 32-bit values in a packed byte buffer.
+// The input pointer addresses a sequence of 32-bit blocks stored in a std::uint8_t array.
 template<IndexType InputDimensions>
-void find_nnz(const std::int32_t* RESTRICT input,
+void find_nnz(const std::uint8_t* RESTRICT input,
               std::uint16_t* RESTRICT      outNnz,
               IndexType&                   outCount) noexcept {
 
     #if defined(USE_AVX512ICL)
-    constexpr IndexType SimdWidthIn  = 16;  // 512 bits / 32 bits
+    constexpr IndexType SimdWidthIn  = 64;  // 512 bits
     constexpr IndexType SimdWidthOut = 32;  // 512 bits / 16 bits
     constexpr IndexType ChunkCount   = InputDimensions / SimdWidthOut;
 
@@ -112,7 +113,7 @@ void find_nnz(const std::int32_t* RESTRICT input,
     IndexType count = 0;
     for (IndexType i = 0; i < ChunkCount; ++i)
     {
-        __m512i inputV = _mm512_load_si512(input + i * SimdWidth);
+        __m512i inputV = _mm512_load_si512(input + i * SimdWidth * sizeof(std::uint32_t));
 
         // Get a bitmask and gather non zero indices
         __mmask16 nnzMask = _mm512_test_epi32_mask(inputV, inputV);
@@ -294,12 +295,10 @@ class AffineTransformSparseInput final {
     #endif
           ;
 
-        const auto* input32 = reinterpret_cast<const std::int32_t*>(input);
-
         std::uint16_t nnz[ChunkCount];
         IndexType     count;
         // Find indices of nonzero 32-bit blocks
-        find_nnz<ChunkCount>(input32, nnz, count);
+        find_nnz<ChunkCount>(input, nnz, count);
 
         const outvec_t* biasVec = reinterpret_cast<const outvec_t*>(biases.data());
 
@@ -323,9 +322,9 @@ class AffineTransformSparseInput final {
             std::size_t i1 = beg[1];
             std::size_t i2 = beg[2];
 
-            invec_t in0 = vec_set_32(input32[i0]);
-            invec_t in1 = vec_set_32(input32[i1]);
-            invec_t in2 = vec_set_32(input32[i2]);
+            invec_t in0 = vec_set_32(load_as<std::int32_t>(input + i0 * sizeof(std::int32_t)));
+            invec_t in1 = vec_set_32(load_as<std::int32_t>(input + i1 * sizeof(std::int32_t)));
+            invec_t in2 = vec_set_32(load_as<std::int32_t>(input + i2 * sizeof(std::int32_t)));
 
             const invec_t* col0 = reinterpret_cast<const invec_t*>(&weights[i0 * OutputDimensions * ChunkSize]);
             const invec_t* col1 = reinterpret_cast<const invec_t*>(&weights[i1 * OutputDimensions * ChunkSize]);
@@ -351,7 +350,7 @@ class AffineTransformSparseInput final {
         {
             std::size_t i = beg[0];
 
-            invec_t in = vec_set_32(input32[i]);
+            invec_t in = vec_set_32(load_as<std::int32_t>(input + i * sizeof(std::int32_t)));
 
             const invec_t* col = reinterpret_cast<const invec_t*>(&weights[i * OutputDimensions * ChunkSize]);
 

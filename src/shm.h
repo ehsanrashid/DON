@@ -1685,7 +1685,7 @@ class SharedMemory final: public BaseSharedMemory {
             mode_t mode  = S_IRUSR | S_IWUSR;
             int    tmpFd = ::open(sentinelPath.c_str(), oflag, mode);
 
-            FdGuard tmpFdGuard(tmpFd);
+            FdGuard tmpFdGuard{tmpFd};
 
             if (tmpFd > INVALID_FD)
                 return true;

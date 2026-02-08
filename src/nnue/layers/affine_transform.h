@@ -24,6 +24,7 @@
 #include <cstdint>
 #include <iostream>
 
+#include "../../memory.h"
 #include "../../misc.h"
 #include "../common.h"
 #include "../simd.h"
@@ -56,11 +57,12 @@ inline void transform_affine_non_ssse3(
         #if defined(USE_SSE2)
     // At least a multiple of 16, with SSE2.
     constexpr IndexType ChunkCount  = ceil_to_multiple<IndexType>(InputDimensions, 16) / 16;
-    const __m128i*      inputVector = reinterpret_cast<const __m128i*>(input);
+    const auto*         inputVector = reinterpret_cast<const __m128i*>(input);
     const __m128i       Zeros       = _mm_setzero_si128();
         #elif defined(USE_NEON)
+    using namespace SIMD;
     constexpr IndexType ChunkCount  = ceil_to_multiple<IndexType>(InputDimensions, 16) / 16;
-    const int8x8_t*     inputVector = reinterpret_cast<const int8x8_t*>(input);
+    const auto*         inputVector = reinterpret_cast<const vec_i8x8_t*>(input);
         #endif
 
     for (IndexType i = 0; i < OutputDimensions; ++i)
@@ -68,9 +70,10 @@ inline void transform_affine_non_ssse3(
         std::size_t offset = i * PaddedInputDimensions;
 
         #if defined(USE_SSE2)
-        __m128i        loSum = _mm_cvtsi32_si128(biases[i]);
-        __m128i        hiSum = Zeros;
-        const __m128i* row   = reinterpret_cast<const __m128i*>(&weights[offset]);
+
+        __m128i     loSum = _mm_cvtsi32_si128(biases[i]);
+        __m128i     hiSum = Zeros;
+        const auto* row   = reinterpret_cast<const __m128i*>(&weights[offset]);
 
         for (IndexType j = 0; j < ChunkCount; ++j)
         {
@@ -92,9 +95,11 @@ inline void transform_affine_non_ssse3(
         __m128i loSum32 = _mm_shufflelo_epi16(sum, _MM_SHUFFLE(1, 0, 3, 2));
         sum             = _mm_add_epi32(sum, loSum32);
         output[i]       = _mm_cvtsi128_si32(sum);
+
         #elif defined(USE_NEON)
-        int32x4_t       sum = {biases[i]};
-        const int8x8_t* row = reinterpret_cast<const int8x8_t*>(&weights[offset]);
+
+        int32x4_t   sum = {biases[i]};
+        const auto* row = reinterpret_cast<const vec_i8x8_t*>(&weights[offset]);
 
         for (IndexType j = 0; j < ChunkCount; ++j)
         {
@@ -104,6 +109,7 @@ inline void transform_affine_non_ssse3(
         }
 
         output[i] = SIMD::neon_m128_reduce_add_epi32(sum);
+
         #endif
     }
     #else
@@ -268,7 +274,6 @@ class AffineTransform final {
             constexpr IndexType ChunkCount = ceil_to_multiple<IndexType>(InputDimensions, 8) / 4;
             constexpr IndexType RegCount   = OutputDimensions / OutputSimdWidth;
 
-            const auto*  input32 = reinterpret_cast<const std::int32_t*>(input);
             const vec_t* biasVec = reinterpret_cast<const vec_t*>(biases.data());
 
             vec_t acc[RegCount];
@@ -278,9 +283,10 @@ class AffineTransform final {
 
             for (IndexType i = 0; i < ChunkCount; ++i)
             {
-                const vec_t  in = vec_set_32(input32[i]);
-                const vec_t* col =
-                  reinterpret_cast<const vec_t*>(&weights[i * OutputDimensions * 4]);
+                // clang-format off
+                vec_t in         = vec_set_32(load_as<std::int32_t>(input + i * sizeof(std::int32_t)));
+                const vec_t* col = reinterpret_cast<const vec_t*>(&weights[i * OutputDimensions * 4]);
+                // clang-format on
 
                 for (IndexType k = 0; k < RegCount; ++k)
                     vec_add_dpbusd_32(acc[k], in, col[k]);
