@@ -58,7 +58,7 @@ constexpr std::string_view Version{"dev"};
     const char* p   = date.data();
     const char* end = p + date.size();
 
-    // month
+    // Parse month (first 3 chars)
     if (end - p < 3)
         return std::string{NullDate};
 
@@ -69,11 +69,11 @@ constexpr std::string_view Version{"dev"};
     while (p < end && std::isspace((unsigned char) (*p)))
         ++p;
 
-    // day (1-2 digits)
+    // Parse day (1-2 digits)
     if (end - p < 1 || !std::isdigit((unsigned char) (*p)))
         return std::string{NullDate};
 
-    int day = 0;
+    unsigned day = 0;
     while (p < end && std::isdigit((unsigned char) (*p)))
     {
         day *= 10;
@@ -81,15 +81,19 @@ constexpr std::string_view Version{"dev"};
         ++p;
     }
 
-    // Skip spaces or possible comma
+    // Validate day range
+    if (day < 1 || day > 31)
+        return std::string{NullDate};
+
+    // Skip spaces/comma
     while (p < end && (std::isspace((unsigned char) (*p)) || *p == ','))
         ++p;
 
-    // year (4 digits)
+    // Parse year (4 digits)
     if (end - p < 4)
         return std::string{NullDate};
 
-    int year = 0;
+    unsigned year = 0;
     for (std::size_t i = 0; i < 4; ++i)
     {
         if (!std::isdigit((unsigned char) (p[i])))
@@ -98,24 +102,33 @@ constexpr std::string_view Version{"dev"};
         year += char_to_digit(p[i]);
     }
 
+    // Validate year range (reasonable bounds)
+    if (year < 1970)
+        return std::string{NullDate};
+
     // Find month index (1..12)
     auto itr = std::find(Months.begin(), Months.end(), month);
     if (itr == Months.end())
         return std::string{NullDate};
 
-    //unsigned monthId = 1 + Months.find(month) / 4;
-    unsigned monthId = 1 + std::distance(Months.begin(), itr);
-
-    // Format YYYYMMDD into fixed buffer
+    unsigned monthId =
+      //1 + Months.find(month) / 4;
+      1 + std::distance(Months.begin(), itr);
+    std::cout << "hello\n";
+    // Format YYYYMMDD manually (faster than snprintf)
     StdArray<char, 9> buffer{};  // 8 chars + '\0'
 
-    int         writtenSize = std::snprintf(buffer.data(), buffer.size(),  //
-                                            "%04d%02u%02d", year, monthId, day);
-    std::size_t copiedSize  = writtenSize >= 0  //
-                              ? std::min<std::size_t>(writtenSize, buffer.size() - 1)
-                              : 0;
+    buffer[0] = digit_to_char(year / 1000);
+    buffer[1] = digit_to_char(year / 100 % 10);
+    buffer[2] = digit_to_char(year / 10 % 10);
+    buffer[3] = digit_to_char(year % 10);
+    buffer[4] = digit_to_char(monthId / 10);
+    buffer[5] = digit_to_char(monthId % 10);
+    buffer[6] = digit_to_char(day / 10);
+    buffer[7] = digit_to_char(day % 10);
+    buffer[8] = '\0';
 
-    return std::string{buffer.data(), copiedSize};
+    return std::string{buffer.data(), buffer.size() - 1};
 }
 
 }  // namespace
