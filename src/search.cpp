@@ -1160,7 +1160,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
         Value probCutBeta = std::min(235 + beta - int(improve) * 63, +VALUE_INFINITE);
         assert(beta <= probCutBeta && probCutBeta <= +VALUE_INFINITE);
 
-        // If value from transposition table is less than probCutBeta, don't attempt probCut
+        // If value from transposition table is less than probCutBeta, Don't attempt probCut
         if (!(is_valid(ttd.value) && ttd.value < probCutBeta))
         {
         Depth probCutDepth     = depth - 5;
