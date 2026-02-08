@@ -37,7 +37,7 @@ namespace {
 
 constexpr std::string_view Name{"DON"};
 constexpr std::string_view Author{"Ehsan Rashid"};
-constexpr std::string_view Version{"dev"};
+constexpr std::string_view Version{"1.0"};
 
 #if !defined(GIT_DATE)
 // Format date to YYYYMMDD
