@@ -297,27 +297,6 @@ enum class PrefetchLoc : std::uint8_t {
 };
 
 #if defined(USE_PREFETCH)
-    #if defined(HAS_X86_PREFETCH)
-template<PrefetchRw RW, PrefetchLoc LOC>
-constexpr auto intel_hint() noexcept {
-    if constexpr (RW == PrefetchRw::WRITE)
-    {
-        #if defined(_MM_HINT_ET0)
-        return _MM_HINT_ET0;
-        #else
-        return _MM_HINT_T0;
-        #endif
-    }
-
-    if constexpr (LOC == PrefetchLoc::NONE)
-        return _MM_HINT_NTA;
-    if constexpr (LOC == PrefetchLoc::LOW)
-        return _MM_HINT_T2;
-    if constexpr (LOC == PrefetchLoc::MODERATE)
-        return _MM_HINT_T1;
-    return _MM_HINT_T0;
-}
-    #endif
 // Preloads the given address into cache.
 // This is a non-blocking operation that doesn't stall
 // the CPU waiting for data to be loaded from memory.
@@ -328,9 +307,41 @@ constexpr auto intel_hint() noexcept {
 template<PrefetchRw RW = PrefetchRw::READ, PrefetchLoc LOC = PrefetchLoc::HIGH>
 inline void prefetch(const void* addr) noexcept {
     #if defined(HAS_X86_PREFETCH)
-    _mm_prefetch(reinterpret_cast<const char*>(addr), intel_hint<RW, LOC>());
+    constexpr auto hint =  //
+      RW == PrefetchRw::WRITE ?
+        #if defined(_MM_HINT_ET0)
+                              _MM_HINT_ET0
+        #else
+                              _MM_HINT_T0
+        #endif
+                              : LOC == PrefetchLoc::NONE       ? _MM_HINT_NTA
+                                : LOC == PrefetchLoc::LOW      ? _MM_HINT_T2
+                                : LOC == PrefetchLoc::MODERATE ? _MM_HINT_T1
+                                                               : _MM_HINT_T0;
+    _mm_prefetch(reinterpret_cast<const char*>(addr), hint);
     #elif defined(__GNUC__) || defined(__clang__)
-    __builtin_prefetch(addr, int(RW), int(LOC));
+    if constexpr (RW == PrefetchRw::READ)
+    {
+        if constexpr (LOC == PrefetchLoc::NONE)
+            __builtin_prefetch(addr, 0, 0);
+        else if constexpr (LOC == PrefetchLoc::LOW)
+            __builtin_prefetch(addr, 0, 1);
+        else if constexpr (LOC == PrefetchLoc::MODERATE)
+            __builtin_prefetch(addr, 0, 2);
+        else
+            __builtin_prefetch(addr, 0, 3);
+    }
+    else  // RW == WRITE
+    {
+        if constexpr (LOC == PrefetchLoc::NONE)
+            __builtin_prefetch(addr, 1, 0);
+        else if constexpr (LOC == PrefetchLoc::LOW)
+            __builtin_prefetch(addr, 1, 1);
+        else if constexpr (LOC == PrefetchLoc::MODERATE)
+            __builtin_prefetch(addr, 1, 2);
+        else
+            __builtin_prefetch(addr, 1, 3);
+    }
     #else
     // No-op on unsupported platforms
     (void) addr;
