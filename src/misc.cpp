@@ -111,20 +111,20 @@ constexpr std::string_view Version{"dev"};
     if (itr == Months.end())
         return std::string{NullDate};
 
-    unsigned monthId =
-      //1 + Months.find(month) / 4;
-      1 + std::distance(Months.begin(), itr);
-    std::cout << "hello\n";
+    unsigned monthId = 1 +
+                       //Months.find(month) / 4;
+                       std::distance(Months.begin(), itr);
+
     // Format YYYYMMDD manually (faster than snprintf)
     StdArray<char, 9> buffer{};  // 8 chars + '\0'
 
-    buffer[0] = digit_to_char(year / 1000);
+    buffer[0] = digit_to_char(year / 1000 % 10);
     buffer[1] = digit_to_char(year / 100 % 10);
     buffer[2] = digit_to_char(year / 10 % 10);
     buffer[3] = digit_to_char(year % 10);
-    buffer[4] = digit_to_char(monthId / 10);
+    buffer[4] = digit_to_char(monthId / 10 % 10);
     buffer[5] = digit_to_char(monthId % 10);
-    buffer[6] = digit_to_char(day / 10);
+    buffer[6] = digit_to_char(day / 10 % 10);
     buffer[7] = digit_to_char(day % 10);
     buffer[8] = '\0';
 
