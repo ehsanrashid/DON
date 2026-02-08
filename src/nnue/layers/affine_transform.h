@@ -70,9 +70,10 @@ inline void transform_affine_non_ssse3(
         std::size_t offset = i * PaddedInputDimensions;
 
         #if defined(USE_SSE2)
-        __m128i        loSum = _mm_cvtsi32_si128(biases[i]);
-        __m128i        hiSum = Zeros;
-        const __m128i* row   = reinterpret_cast<const __m128i*>(&weights[offset]);
+
+        __m128i     loSum = _mm_cvtsi32_si128(biases[i]);
+        __m128i     hiSum = Zeros;
+        const auto* row   = reinterpret_cast<const __m128i*>(&weights[offset]);
 
         for (IndexType j = 0; j < ChunkCount; ++j)
         {
@@ -94,7 +95,9 @@ inline void transform_affine_non_ssse3(
         __m128i loSum32 = _mm_shufflelo_epi16(sum, _MM_SHUFFLE(1, 0, 3, 2));
         sum             = _mm_add_epi32(sum, loSum32);
         output[i]       = _mm_cvtsi128_si32(sum);
+
         #elif defined(USE_NEON)
+
         int32x4_t   sum = {biases[i]};
         const auto* row = reinterpret_cast<const vec_i8x8_t*>(&weights[offset]);
 
@@ -106,6 +109,7 @@ inline void transform_affine_non_ssse3(
         }
 
         output[i] = SIMD::neon_m128_reduce_add_epi32(sum);
+
         #endif
     }
     #else

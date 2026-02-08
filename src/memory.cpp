@@ -25,10 +25,6 @@
     #endif
 #endif
 
-#if defined(_WIN32)
-    #include <iostream>
-#endif
-
 #include "misc.h"
 
 namespace DON {
@@ -90,11 +86,9 @@ void* alloc_windows_aligned_large_page(std::size_t allocSize) noexcept {
                                    MEM_LARGE_PAGES | MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 
           if (mem == nullptr)
-          {
               DEBUG_LOG("Failed to allocate large page memory for "
                         << roundedAllocSize / ONE_MB
                         << "MB, error = " << error_to_string(GetLastError()));
-          }
           return mem;
       },
       []() { return (void*) nullptr; });
