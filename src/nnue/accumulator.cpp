@@ -331,13 +331,15 @@ void update_accumulator_incremental_double(
     assert(!middleState.acc<TransformedFeatureDimensions>().computed[perspective]);
     assert(!targetState.acc<TransformedFeatureDimensions>().computed[perspective]);
 
-    ThreatFeatureSet::FusedData fusedData(dp2.removeSq);
+    ThreatFeatureSet::FusedData fusedData{dp2.removedSq};
+    const auto*                 pfBase   = featureTransformer.threatWeights.data();
+    std::size_t                 pfStride = TransformedFeatureDimensions;
 
     ThreatFeatureSet::IndexList removed, added;
     ThreatFeatureSet::append_changed_indices(perspective, kingSq, middleState.dirty, removed, added,
-                                             &fusedData, true);
+                                             &fusedData, true, pfBase, pfStride);
     ThreatFeatureSet::append_changed_indices(perspective, kingSq, targetState.dirty, removed, added,
-                                             &fusedData, false);
+                                             &fusedData, false, pfBase, pfStride);
 
     auto updateContext =
       make_accumulator_update_context(perspective, featureTransformer, computedState, targetState);
@@ -868,14 +870,14 @@ void AccumulatorStack::forward_update_incremental(
 
             if constexpr (std::is_same_v<FeatureSet, PSQFeatureSet>)
             {
-                if (dp1.dstSq != SQ_NONE && dp1.dstSq == dp2.removeSq)
+                if (dp1.dstSq != SQ_NONE && dp1.dstSq == dp2.removedSq)
                 {
                     Square capturedSq = dp1.dstSq;
-                    dp1.dstSq = dp2.removeSq = SQ_NONE;
+                    dp1.dstSq = dp2.removedSq = SQ_NONE;
                     update_accumulator_incremental_double(perspective, featureTransformer, kingSq,
                                                           accumulators[idx - 1], accumulators[idx],
                                                           accumulators[idx + 1]);
-                    dp1.dstSq = dp2.removeSq = capturedSq;
+                    dp1.dstSq = dp2.removedSq = capturedSq;
 
                     ++idx;
                     continue;
@@ -883,8 +885,8 @@ void AccumulatorStack::forward_update_incremental(
             }
             if constexpr (std::is_same_v<FeatureSet, ThreatFeatureSet>)
             {
-                if (dp2.removeSq != SQ_NONE
-                    && (accumulators[idx].dirty.threateningBB & dp2.removeSq) != 0)
+                if (dp2.removedSq != SQ_NONE
+                    && (accumulators[idx].dirty.threateningBB & dp2.removedSq) != 0)
                 {
                     update_accumulator_incremental_double(perspective, featureTransformer, kingSq,
                                                           accumulators[idx - 1], accumulators[idx],

@@ -303,13 +303,15 @@ void FullThreats::append_active_indices(Color           perspective,
 }
 
 // Get a list of indices for recently changed features
-void FullThreats::append_changed_indices(Color            perspective,
-                                         Square           kingSq,
-                                         const DirtyType& dts,
-                                         IndexList&       removed,
-                                         IndexList&       added,
-                                         FusedData*       fusedData,
-                                         bool             first) noexcept {
+void FullThreats::append_changed_indices(Color                   perspective,
+                                         Square                  kingSq,
+                                         const DirtyType&        dts,
+                                         IndexList&              removed,
+                                         IndexList&              added,
+                                         FusedData*              fusedData,
+                                         bool                    first,
+                                         const ThreatWeightType* pfBase,
+                                         std::size_t             pfStride) noexcept {
     for (const auto& dt : dts.dtList)
     {
         auto orgSq      = dt.sq();
@@ -356,7 +358,12 @@ void FullThreats::append_changed_indices(Color            perspective,
         IndexType index = make_index(perspective, kingSq, orgSq, dstSq, attackerPc, attackedPc);
 
         if (index < Dimensions)
+        {
+            if (pfBase != nullptr)
+                prefetch<PrefetchRw::READ, PrefetchLoc::LOW>(pfBase + pfStride * index);
+
             changed.push_back(index);
+        }
     }
 }
 

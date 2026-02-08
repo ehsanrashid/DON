@@ -113,11 +113,11 @@ void HalfKAv2_hm::append_changed_indices(Color            perspective,
     if (dp.dstSq != SQ_NONE)
         added.push_back(make_index(perspective, kingSq, dp.dstSq, dp.movedPc));
 
-    if (dp.removeSq != SQ_NONE)
-        removed.push_back(make_index(perspective, kingSq, dp.removeSq, dp.removePc));
+    if (dp.removedSq != SQ_NONE)
+        removed.push_back(make_index(perspective, kingSq, dp.removedSq, dp.removedPc));
 
-    if (dp.addSq != SQ_NONE)
-        added.push_back(make_index(perspective, kingSq, dp.addSq, dp.addPc));
+    if (dp.addedSq != SQ_NONE)
+        added.push_back(make_index(perspective, kingSq, dp.addedSq, dp.addedPc));
 }
 
 // Determine if a full refresh is required based on the dirty piece
