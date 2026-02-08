@@ -54,8 +54,8 @@ struct EvalFile final {
 
 struct NetworkOutput final {
    public:
-    std::int32_t psqt;
-    std::int32_t positional;
+    std::int32_t psqt       = 0;
+    std::int32_t positional = 0;
 };
 
 struct NetworkTrace final {
