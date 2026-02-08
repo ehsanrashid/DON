@@ -37,11 +37,10 @@ namespace {
 
 constexpr std::string_view Name{"DON"};
 constexpr std::string_view Author{"Ehsan Rashid"};
-constexpr std::string_view Version{"1.0"};
+constexpr std::string_view Version{"dev"};
 
-#if !defined(GIT_DATE)
 // Format date to YYYYMMDD
-std::string format_date(std::string_view date) noexcept {
+[[maybe_unused]] std::string format_date(std::string_view date) noexcept {
     //constexpr std::string_view Months{"Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec"};
     constexpr StdArray<std::string_view, 12> Months{
       "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"  //
@@ -118,7 +117,6 @@ std::string format_date(std::string_view date) noexcept {
 
     return std::string{buffer.data(), copiedSize};
 }
-#endif
 
 }  // namespace
 
