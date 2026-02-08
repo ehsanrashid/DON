@@ -20,21 +20,21 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Delete previous pre-release and tag
-        if: github.ref_name == 'main' && env.CHANGES == '0' && env.OFFICIAL_RELEASE == 'false'
+      - name: Delete latest pre-release and tag
+        if: github.ref_name == 'main'
         run: |
-          # Install required packages
-          sudo apt-get update
-          sudo apt-get install -y curl jq
-          # Get the first pre-release tag_name
-          COMMIT_SHA_TAG=$(curl -s https://api.github.com/repos/${GITHUB_REPOSITORY}/releases \
-            | jq -r 'map(select(.prerelease)) | first | .tag_name')
+          # Verify required tools (should always be present on GitHub runners)
+          command -v jq >/dev/null 2>&1 || { echo "jq not found"; exit 1; }
+          command -v gh >/dev/null 2>&1 || { echo "gh not found"; exit 1; }
+          # Get latest pre-release tag_name
+          LATEST_PRERELEASE=$(gh release list --limit 10 --json tagName,isPrerelease \
+            | jq -r '.[] | select(.isPrerelease == true) | .tagName' | head -n 1)
 
-          if [ "$COMMIT_SHA_TAG" != "null" ]; then
-            echo "Deleting previous pre-release: $COMMIT_SHA_TAG ..."
-            gh release delete "$COMMIT_SHA_TAG" --cleanup-tag -y || true
+          if [ "$LATEST_PRERELEASE" != "null" ] && [ -n "$LATEST_PRERELEASE" ]; then
+            echo "Deleting latest pre-release: $LATEST_PRERELEASE..."
+            gh release delete "$LATEST_PRERELEASE" --cleanup-tag -y
           else
-            echo "No previous pre-release found, nothing to delete."
+            echo "No pre-release found to delete."
           fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -74,7 +74,7 @@ jobs:
         if: github.ref_name == 'main' && env.CHANGES == '0' && env.OFFICIAL_RELEASE == 'false'
         run: |
           echo "Creating pre-release: DON-dev-$COMMIT_DATE-$COMMIT_SHA..."
-      # Create new pre-release, upload_binaries.yml will upload the binaries to pre-release.
+      # Create new pre-release, binaries will uploaded to pre-release
       - name: Create Pre-release (force recreate)
         if: github.ref_name == 'main' && env.CHANGES == '0' && env.OFFICIAL_RELEASE == 'false'
         uses: softprops/action-gh-release@4634c16e79c963813287e889244c50009e7f0981
