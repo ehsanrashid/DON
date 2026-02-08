@@ -20,6 +20,7 @@
 #ifndef NNUE_FEATURES_FULL_THREATS_H_INCLUDED
 #define NNUE_FEATURES_FULL_THREATS_H_INCLUDED
 
+#include <cstddef>
 #include <cstdint>
 
 #include "../../misc.h"
