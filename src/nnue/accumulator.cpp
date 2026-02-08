@@ -332,8 +332,9 @@ void update_accumulator_incremental_double(
     assert(!targetState.acc<TransformedFeatureDimensions>().computed[perspective]);
 
     ThreatFeatureSet::FusedData fusedData{dp2.removedSq};
-    const auto*                 pfBase   = featureTransformer.threatWeights.data();
-    std::size_t                 pfStride = TransformedFeatureDimensions;
+
+    const auto* pfBase   = featureTransformer.threatWeights.data();
+    std::size_t pfStride = TransformedFeatureDimensions;
 
     ThreatFeatureSet::IndexList removed, added;
     ThreatFeatureSet::append_changed_indices(perspective, kingSq, middleState.dirty, removed, added,
@@ -368,11 +369,28 @@ void update_accumulator_incremental(
     // In this case, the maximum size of both feature addition and removal is 2,
     // since incrementally updating one move at a time.
     typename FeatureSet::IndexList removed{}, added{};
-    if constexpr (Forward)
-        FeatureSet::append_changed_indices(perspective, kingSq, targetState.dirty, removed, added);
+
+    if constexpr (std::is_same_v<FeatureSet, ThreatFeatureSet>)
+    {
+        const auto* pfBase   = featureTransformer.threatWeights.data();
+        std::size_t pfStride = TransformedFeatureDimensions;
+
+        if constexpr (Forward)
+            FeatureSet::append_changed_indices(perspective, kingSq, targetState.dirty, removed,
+                                               added, nullptr, false, pfBase, pfStride);
+        else
+            FeatureSet::append_changed_indices(perspective, kingSq, computedState.dirty, added,
+                                               removed, nullptr, false, pfBase, pfStride);
+    }
     else
-        FeatureSet::append_changed_indices(perspective, kingSq, computedState.dirty, added,
-                                           removed);
+    {
+        if constexpr (Forward)
+            FeatureSet::append_changed_indices(perspective, kingSq, targetState.dirty, removed,
+                                               added);
+        else
+            FeatureSet::append_changed_indices(perspective, kingSq, computedState.dirty, added,
+                                               removed);
+    }
 
     auto updateContext =
       make_accumulator_update_context(perspective, featureTransformer, computedState, targetState);

@@ -2140,7 +2140,7 @@ void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Sta
     int bonus = std::clamp(BaseBonus
                          + DepthBonus * depth
                          + int(bestMove == ss->ttMove) * 347
-                         + std::clamp(constexpr_round(31.2500e-3 * (ss - 1)->history / depth), -HistoryBonus, +HistoryBonus),
+                         + std::clamp(constexpr_round(31.2500e-3 * (ss - 1)->history / double(depth)), -HistoryBonus, +HistoryBonus),
                            MinBonus, MaxBonus);
 
     int malus = std::min(BaseMalus + DepthMalus * depth, MaxMalus);
