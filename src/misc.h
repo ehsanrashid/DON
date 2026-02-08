@@ -151,10 +151,6 @@ inline constexpr std::size_t HEX32_SIZE = 8;
 inline constexpr std::size_t UNROLL_8 = 8;
 inline constexpr std::size_t UNROLL_4 = 4;
 
-// Constants for FNV-1a Hashing
-inline constexpr std::uint64_t FNV_BASIS = 0xCBF29CE484222325ULL;
-inline constexpr std::uint64_t FNV_PRIME = 0x00000100000001B3ULL;
-
 // Constants for Murmur Hashing
 inline constexpr std::uint64_t MURMUR_M = 0xC6A4A7935BD1E995ULL;
 inline constexpr std::uint8_t  MURMUR_R = 47;
@@ -1302,16 +1298,7 @@ class ConcurrentCache final {
     std::unordered_map<Key, StorageValue> storage;
 };
 
-// Compile-time FNV-1a hash for string literals
-constexpr std::uint64_t constexpr_hash_string(std::string_view str,
-                                              std::size_t      idx  = 0,
-                                              std::uint64_t    hash = FNV_BASIS) noexcept {
-    return idx < str.size()
-           ? constexpr_hash_string(str, idx + 1, (hash ^ std::uint8_t(str[idx])) * FNV_PRIME)
-           : hash;
-}
-
-// Hash function based on public domain MurmurHash64A by Austin Appleby
+// Hash function based on public domain MurmurHash64A by Austin Appleby.
 // Fast, non-cryptographic 64-bit hash suitable for general-purpose hashing.
 inline std::uint64_t
 hash_bytes(const char* RESTRICT data, std::size_t size, std::uint64_t seed = 0) noexcept {

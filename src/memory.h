@@ -277,7 +277,7 @@ template<std::size_t Alignment, typename T>
 }
 
 template<typename T, typename ByteT>
-T load_as(const ByteT* buffer) {
+T load_as(const ByteT* buffer) noexcept {
     static_assert(std::is_trivially_copyable<T>::value, "Type must be trivially copyable");
     static_assert(sizeof(ByteT) == 1);
 
