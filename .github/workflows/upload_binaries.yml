@@ -69,6 +69,7 @@ jobs:
 
       # Make sure that an old CI running on main doesn't recreate a pre-release
       - name: Check Pullable Commits
+        if: github.ref_name == 'main'
         run: |
           git fetch origin main
           CHANGES=$(git rev-list HEAD..origin/main --count)
