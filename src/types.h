@@ -703,8 +703,8 @@ struct DirtyPiece final {
 
     // if {add, remove}Sq is SQ_NONE, {add, remove}Pc is allowed to be uninitialized
     // castling uses addSq and removeSq to remove and add the rook
-    Square removeSq = SQ_NONE, addSq = SQ_NONE;
-    Piece  removePc = Piece::NO_PIECE, addPc = Piece::NO_PIECE;
+    Square removedSq = SQ_NONE, addedSq = SQ_NONE;
+    Piece  removedPc = Piece::NO_PIECE, addedPc = Piece::NO_PIECE;
 };
 
 // Keep track of what threats (attacks) change on the board by a move

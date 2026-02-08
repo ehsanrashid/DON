@@ -869,10 +869,10 @@ void Position::do_castling(Color       ac,
 
     if constexpr (Do)
     {
-        db->dp.dstSq    = kingDstSq;
-        db->dp.removeSq = rookOrgSq;
-        db->dp.addSq    = rookDstSq;
-        db->dp.removePc = db->dp.addPc = rookPc;
+        db->dp.dstSq     = kingDstSq;
+        db->dp.removedSq = rookOrgSq;
+        db->dp.addedSq   = rookDstSq;
+        db->dp.removedPc = db->dp.addedPc = rookPc;
 
         st->hasCastleds[ac] = true;
     }
@@ -921,7 +921,7 @@ DirtyBoard Position::do_move(Move m, State& newSt, bool mayCheck, const Worker* 
     db.dp.movedPc        = movedPc;
     db.dp.orgSq          = orgSq;
     db.dp.dstSq          = dstSq;
-    db.dp.addSq          = SQ_NONE;
+    db.dp.addedSq        = SQ_NONE;
     db.dts.ac            = ac;
     db.dts.preKingSq     = square<KING>(ac);
     db.dts.threateningBB = db.dts.threatenedBB = 0;
@@ -1005,8 +1005,8 @@ DirtyBoard Position::do_move(Move m, State& newSt, bool mayCheck, const Worker* 
             st->nonPawnKeys[~ac][is_major(capturedPt)] ^= capturedKey;
         }
 
-        db.dp.removeSq = capturedSq;
-        db.dp.removePc = capturedPc;
+        db.dp.removedSq = capturedSq;
+        db.dp.removedPc = capturedPc;
 
         st->capturedSq = dstSq;
 
@@ -1040,9 +1040,9 @@ DirtyBoard Position::do_move(Move m, State& newSt, bool mayCheck, const Worker* 
             movedPt    = promotedPt;
             promotedPc = make_piece(ac, promotedPt);
 
-            db.dp.dstSq = SQ_NONE;
-            db.dp.addSq = dstSq;
-            db.dp.addPc = promotedPc;
+            db.dp.dstSq   = SQ_NONE;
+            db.dp.addedSq = dstSq;
+            db.dp.addedPc = promotedPc;
 
             swap(dstSq, promotedPc, &db.dts);
 
@@ -1164,8 +1164,8 @@ DirtyBoard Position::do_move(Move m, State& newSt, bool mayCheck, const Worker* 
     assert((db.dp.movedPc != Piece::NO_PIECE));
     assert((db.dp.orgSq != SQ_NONE));
     assert((db.dp.dstSq != SQ_NONE) ^ !(m.type() != MT::PROMOTION));
-    assert((db.dp.removeSq != SQ_NONE) ^ !(capture || m.type() == MT::CASTLING));
-    assert((db.dp.addSq != SQ_NONE) ^ !(m.type() == MT::PROMOTION || m.type() == MT::CASTLING));
+    assert((db.dp.removedSq != SQ_NONE) ^ !(capture || m.type() == MT::CASTLING));
+    assert((db.dp.addedSq != SQ_NONE) ^ !(m.type() == MT::PROMOTION || m.type() == MT::CASTLING));
     return db;
 }
 

@@ -1418,7 +1418,6 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
                 if (depth < MAX_PLY - 1)
                     ++depth;
             }
-
             // Multi-cut pruning
             // If the ttMove is assumed to fail high based on the bound of the TT entry, and
             // if after excluding the ttMove with a reduced search fail high over the original beta,
@@ -1430,7 +1429,6 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
 
                 return singularValue;
             }
-
             // Negative extensions
             // If other moves failed high over (ttValue - margin) without the ttMove on a reduced search,
             // but cannot do multi-cut because (ttValue - margin) is lower than the original beta,
@@ -1439,15 +1437,14 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
 
             // If the ttMove is assumed to fail high over current beta
             else if (ttd.value >= beta)
-            {
                 extension = -3;
-            }
-
             // If on CutNode but the ttMove is not assumed to fail high over current beta
             else if constexpr (CutNode)
             {
                 extension = -2;
             }
+            else if (ttd.value >= singularValue)
+                extension = -1;
         }
             // clang-format on
         }
@@ -2124,16 +2121,29 @@ void Worker::update_quiet_histories(const Position& pos, PawnHistory& pawnHistor
 
 // Updates history at the end of search() when a bestMove is found and other searched moves are known
 void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Stack* ss, Depth depth, Move bestMove, const StdArray<SearchedMoves, 2>& searchedMoves) noexcept {
-    assert(ss->moveCount != 0);
     assert(depth > DEPTH_ZERO);
+    assert(ss->moveCount > 0);
 
-    int bonus = std::min(- 81 + 116 * depth, +1515) + 347 * int(bestMove == ss->ttMove) + constexpr_round(31.2500e-3 * (ss - 1)->history);
-    int malus = std::min(-207 + 848 * depth, +2446) -  17 * ss->moveCount;
+    constexpr int BaseBonus    = -81;
+    constexpr int DepthBonus   = 116;
+    constexpr int HistoryBonus = 512;
+    constexpr int MinBonus     = 8;
+    constexpr int MaxBonus     = 2560;
 
-    if (bonus < 0)
-        bonus = 0;
-    if (malus < 0)
-        malus = 0;
+    constexpr int BaseMalus  = -207;
+    constexpr int DepthMalus = 848;
+    constexpr int MaxMalus   = 2446;
+
+    constexpr int MaxQuietMoves   = 32;
+    constexpr int QuietCountMalus = 20;
+
+    int bonus = std::clamp(BaseBonus
+                         + DepthBonus * depth
+                         + int(bestMove == ss->ttMove) * 347
+                         + std::clamp(constexpr_round(31.2500e-3 * (ss - 1)->history / double(depth)), -HistoryBonus, +HistoryBonus),
+                           MinBonus, MaxBonus);
+
+    int malus = std::min(BaseMalus + DepthMalus * depth, MaxMalus);
 
     if (pos.capture_promo(bestMove))
     {
@@ -2143,18 +2153,25 @@ void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Sta
     {
         update_quiet_histories(pos, pawnHistory, ss, bestMove, constexpr_round(0.8887 * bonus));
 
+        int baseQuietMalus = malus - QuietCountMalus * std::clamp<int>(searchedMoves[0].size() - 1, 0, MaxQuietMoves);
+        if (baseQuietMalus < 0)
+            baseQuietMalus = 0;
         // Decrease history for all non-best quiet moves
-        int quietMalus = constexpr_round(1.0596 * malus);
+        int decayQuietMalus = constexpr_round(1.0596 * baseQuietMalus);
         for (Move qm : searchedMoves[0])
         {
-            update_quiet_histories(pos, pawnHistory, ss, qm, -quietMalus);
-            quietMalus = constexpr_round(0.9326 * quietMalus);
+            update_quiet_histories(pos, pawnHistory, ss, qm, -decayQuietMalus);
+            decayQuietMalus = constexpr_round(0.9326 * decayQuietMalus);
         }
     }
 
     // Decrease history for all non-best capture moves
+    int decayCaptureMalus = constexpr_round(1.4141 * malus);
     for (Move cm : searchedMoves[1])
-        update_capture_history(pos, cm, -constexpr_round(1.4141 * malus));
+    {
+        update_capture_history(pos, cm, -decayCaptureMalus);
+        decayCaptureMalus = constexpr_round(0.9900 * decayCaptureMalus);
+    }
 
     Move preMove = (ss - 1)->move;
 

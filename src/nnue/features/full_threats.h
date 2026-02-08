@@ -20,6 +20,7 @@
 #ifndef NNUE_FEATURES_FULL_THREATS_H_INCLUDED
 #define NNUE_FEATURES_FULL_THREATS_H_INCLUDED
 
+#include <cstddef>
 #include <cstdint>
 
 #include "../../misc.h"
@@ -42,8 +43,8 @@ class FullThreats final {
 
     struct FusedData final {
         FusedData() = delete;
-        FusedData(Square remSq) noexcept :
-            dp2removedSq(remSq) {}
+        FusedData(Square removedSq) noexcept :
+            dp2removedSq(removedSq) {}
 
         Square   dp2removedSq;
         Bitboard dp2removedOriginBB = 0;
@@ -60,13 +61,15 @@ class FullThreats final {
                                       const Position& pos,
                                       IndexList&      active) noexcept;
 
-    static void append_changed_indices(Color            perspective,
-                                       Square           kingSq,
-                                       const DirtyType& dts,
-                                       IndexList&       removed,
-                                       IndexList&       added,
-                                       FusedData*       fusedData = nullptr,
-                                       bool             first     = false) noexcept;
+    static void append_changed_indices(Color                   perspective,
+                                       Square                  kingSq,
+                                       const DirtyType&        dts,
+                                       IndexList&              removed,
+                                       IndexList&              added,
+                                       FusedData*              fusedData = nullptr,
+                                       bool                    first     = false,
+                                       const ThreatWeightType* pfBase    = nullptr,
+                                       std::size_t             pfStride  = 0) noexcept;
 
     static bool refresh_required(Color perspective, const DirtyType& dts) noexcept;
 

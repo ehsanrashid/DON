@@ -255,11 +255,11 @@ UCI::UCI(int argc, const char* argv[]) noexcept :
     commandLine(argc, argv),
     engine(arguments()[0].data()) {
 
-    options().set_info_callback([](std::optional<std::string> optStr) noexcept {
-        if (!optStr)
+    options().set_info_callback([](std::optional<std::string> infoStr) noexcept {
+        if (!infoStr)
             return;
 
-        print_info_string(*optStr);
+        print_info_string(*infoStr);
     });
 
     set_update_callbacks();

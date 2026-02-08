@@ -60,8 +60,12 @@
     #include <climits>  // IWYU pragma: keep
 #endif
 
-#if defined(_MSC_VER) && defined(USE_PREFETCH)
-    #include <xmmintrin.h>  // Microsoft header for _mm_prefetch()
+#undef HAS_X86_PREFETCH
+#if defined(USE_PREFETCH) \
+  && (defined(_M_X64) || defined(__x86_64__) || defined(__i386) || defined(_M_IX86)) \
+  && (defined(_M_X64) || defined(__SSE__) || (defined(_M_IX86_FP) && _M_IX86_FP >= 1))
+    #define HAS_X86_PREFETCH
+    #include <xmmintrin.h>  // SSE intrinsics header for _mm_prefetch()
 #endif
 
 #include "memory.h"
@@ -260,6 +264,104 @@ std::string engine_info(bool uci = false) noexcept;
 std::string version_info() noexcept;
 
 std::string compiler_info() noexcept;
+
+constexpr std::uint64_t mul_hi64(std::uint64_t u1, std::uint64_t u2) noexcept {
+#if defined(__GNUC__) && defined(IS_64BIT)
+    __extension__ using uint128 = unsigned __int128;
+    return (uint128(u1) * uint128(u2)) >> 64;
+#else
+    std::uint64_t u1L = std::uint32_t(u1), u1H = u1 >> 32;
+    std::uint64_t u2L = std::uint32_t(u2), u2H = u2 >> 32;
+    std::uint64_t mid = u1H * u2L + ((u1L * u2L) >> 32);
+    return u1H * u2H + ((u1L * u2H + std::uint32_t(mid)) >> 32) + (mid >> 32);
+#endif
+}
+
+static_assert(mul_hi64(0xDEADBEEFDEADBEEFULL, 0xCAFEBABECAFEBABEULL) == 0xB092AB7CE9F4B259ULL,
+              "mul_hi64(): Failed");
+
+// Prefetch hint enums for explicit call-site control
+enum class PrefetchRw : std::uint8_t {
+    READ,
+    WRITE
+};
+
+// PrefetchLoc controls locality / cache level, not whether a prefetch is issued.
+// In particular, PrefetchLoc::NONE maps to a non-temporal / lowest-locality prefetch
+// (Intel: _MM_HINT_NTA, GCC/Clang: locality = 0) and therefore still performs a prefetch.
+enum class PrefetchLoc : std::uint8_t {
+    NONE,      // Non-temporal / no cache locality (still issues a prefetch)
+    LOW,       // Low locality (e.g. T2 / L2)
+    MODERATE,  // Moderate locality (e.g. T1 / L1)
+    HIGH       // High locality (e.g. T0 / closest cache)
+};
+
+#if defined(USE_PREFETCH)
+// Preloads the given address into cache.
+// This is a non-blocking operation that doesn't stall
+// the CPU waiting for data to be loaded from memory.
+// NOTE:
+// On x86, _mm_prefetch does NOT truly distinguish READ vs WRITE.
+// PrefetchRw::WRITE is a best-effort hint only and may behave identically to READ.
+// On GCC/Clang, __builtin_prefetch supports RW as a separate hint.
+template<PrefetchRw RW = PrefetchRw::READ, PrefetchLoc LOC = PrefetchLoc::HIGH>
+inline void prefetch(const void* addr) noexcept {
+    #if defined(HAS_X86_PREFETCH)
+    constexpr auto hint =  //
+      RW == PrefetchRw::WRITE ?
+        #if defined(_MM_HINT_ET0)
+                              _MM_HINT_ET0
+        #else
+                              _MM_HINT_T0
+        #endif
+                              : LOC == PrefetchLoc::NONE       ? _MM_HINT_NTA
+                                : LOC == PrefetchLoc::LOW      ? _MM_HINT_T2
+                                : LOC == PrefetchLoc::MODERATE ? _MM_HINT_T1
+                                                               : _MM_HINT_T0;
+    _mm_prefetch(reinterpret_cast<const char*>(addr), hint);
+    #elif defined(__GNUC__) || defined(__clang__)
+    if constexpr (RW == PrefetchRw::READ)
+    {
+        if constexpr (LOC == PrefetchLoc::NONE)
+            __builtin_prefetch(addr, 0, 0);
+        else if constexpr (LOC == PrefetchLoc::LOW)
+            __builtin_prefetch(addr, 0, 1);
+        else if constexpr (LOC == PrefetchLoc::MODERATE)
+            __builtin_prefetch(addr, 0, 2);
+        else
+            __builtin_prefetch(addr, 0, 3);
+    }
+    else  // RW == WRITE
+    {
+        if constexpr (LOC == PrefetchLoc::NONE)
+            __builtin_prefetch(addr, 1, 0);
+        else if constexpr (LOC == PrefetchLoc::LOW)
+            __builtin_prefetch(addr, 1, 1);
+        else if constexpr (LOC == PrefetchLoc::MODERATE)
+            __builtin_prefetch(addr, 1, 2);
+        else
+            __builtin_prefetch(addr, 1, 3);
+    }
+    #else
+    // No-op on unsupported platforms
+    (void) addr;
+    #endif
+}
+#else
+template<PrefetchRw RW = PrefetchRw::READ, PrefetchLoc LOC = PrefetchLoc::HIGH>
+inline void prefetch(const void*) noexcept {}
+#endif
+
+using TimePoint = std::chrono::milliseconds::rep;  // A value in milliseconds
+static_assert(sizeof(TimePoint) == sizeof(std::int64_t), "TimePoint size must be 8 bytes");
+
+inline TimePoint now() noexcept {
+    return std::chrono::duration_cast<std::chrono::milliseconds>(
+             std::chrono::steady_clock::now().time_since_epoch())
+      .count();
+}
+
+std::string format_time(const std::chrono::system_clock::time_point& timePoint) noexcept;
 
 struct IndexCount final {
    public:
@@ -1264,44 +1366,6 @@ void combine_hash(std::size_t& seed, const T& v) noexcept {
     seed ^= x + 0x9E3779B9U + (seed << 6) + (seed >> 2);
 }
 
-constexpr std::uint64_t mul_hi64(std::uint64_t u1, std::uint64_t u2) noexcept {
-#if defined(__GNUC__) && defined(IS_64BIT)
-    __extension__ using uint128 = unsigned __int128;
-    return (uint128(u1) * uint128(u2)) >> 64;
-#else
-    std::uint64_t u1L = std::uint32_t(u1), u1H = u1 >> 32;
-    std::uint64_t u2L = std::uint32_t(u2), u2H = u2 >> 32;
-    std::uint64_t mid = u1H * u2L + ((u1L * u2L) >> 32);
-    return u1H * u2H + ((u1L * u2H + std::uint32_t(mid)) >> 32) + (mid >> 32);
-#endif
-}
-
-static_assert(mul_hi64(0xDEADBEEFDEADBEEFULL, 0xCAFEBABECAFEBABEULL) == 0xB092AB7CE9F4B259ULL,
-              "mul_hi64(): Failed");
-
-#if defined(USE_PREFETCH)
-inline void prefetch(const void* addr) noexcept {
-    #if defined(_MSC_VER)
-    _mm_prefetch(reinterpret_cast<const char*>(addr), _MM_HINT_T0);
-    #else
-    __builtin_prefetch(addr);
-    #endif
-}
-#else
-inline void prefetch(const void*) noexcept {}
-#endif
-
-using TimePoint = std::chrono::milliseconds::rep;  // A value in milliseconds
-static_assert(sizeof(TimePoint) == sizeof(std::int64_t), "TimePoint size must be 8 bytes");
-
-inline TimePoint now() noexcept {
-    return std::chrono::duration_cast<std::chrono::milliseconds>(
-             std::chrono::steady_clock::now().time_since_epoch())
-      .count();
-}
-
-std::string format_time(const std::chrono::system_clock::time_point& timePoint) noexcept;
-
 // C++ way to prepare a buffer for a memory stream
 class MemoryStreamBuf final: public std::streambuf {
    public:
@@ -1392,14 +1456,14 @@ class Logger final {
    public:
     // Start logging. Returns true on success.
     static bool start(std::string_view logFile) noexcept {
-        std::scoped_lock lock(instance().mutex);
+        std::lock_guard writeLock(instance().mutex);
 
         return instance().open(logFile);
     }
 
     // Stop logging. Restores original streams and closes the file.
     static void stop() noexcept {
-        std::scoped_lock lock(instance().mutex);
+        std::lock_guard writeLock(instance().mutex);
 
         instance().close();
     }
@@ -1430,9 +1494,7 @@ class Logger final {
         if (!ofs.is_open())
             return;
 
-        std::string time = format_time(std::chrono::system_clock::now());
-
-        ofs << '[' << time << "] " << suffix << std::endl;
+        ofs << '[' << format_time(std::chrono::system_clock::now()) << "] " << suffix << std::endl;
     }
 
     // Open log file; caller must hold mutex
@@ -1479,18 +1541,13 @@ class Logger final {
         filename.clear();
     }
 
-    std::istream& is;
-    std::ostream& os;
-
+    std::mutex      mutex;
+    std::ofstream   ofs;
+    std::istream&   is;
+    std::ostream&   os;
     std::streambuf *isBuf = nullptr, *osBuf = nullptr;
-
-    std::ofstream ofs;
-
-    TieStreamBuf iTie, oTie;
-
-    std::string filename;
-
-    std::mutex mutex;
+    TieStreamBuf    iTie, oTie;
+    std::string     filename;
 };
 
 #if !defined(NDEBUG)
