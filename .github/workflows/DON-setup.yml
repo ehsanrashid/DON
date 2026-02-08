@@ -44,12 +44,20 @@ jobs:
           echo "COMMIT_SHA=$(git rev-parse HEAD | cut -c 1-8)" >> $GITHUB_ENV
           echo "COMMIT_DATE=$(git show -s --date=format:'%Y%m%d' --format=%cd HEAD)" >> $GITHUB_ENV
 
-      # Make sure that an old ci that still runs on master doesn't recreate a prerelease
+      # Make sure that an old ci that still runs on master doesn't recreate a pre-release
       - name: Check Pullable Commits
+        if: github.ref_name == 'main'
         run: |
           git fetch origin main
           CHANGES=$(git rev-list HEAD..origin/main --count)
           echo "CHANGES=$CHANGES" >> $GITHUB_ENV
+
+      - name: Get latest commit message for release body
+        if: github.ref == 'refs/heads/main' || (startsWith(github.ref_name, 'DON_') && github.ref_type == 'tag')
+        run: |
+          echo "RELEASE_BODY<<EOF" >> $GITHUB_ENV
+          git log -1 --pretty=%B >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
 
       # Determine if this is an official release
       - name: Official Release?
@@ -69,8 +77,10 @@ jobs:
         with:
           name: DON dev-${{ env.COMMIT_DATE }}-${{ env.COMMIT_SHA }}
           tag_name: DON-dev-${{ env.COMMIT_DATE }}-${{ env.COMMIT_SHA }}
+          body: ${{ env.RELEASE_BODY }}
           prerelease: true
           token: ${{ secrets.GITHUB_TOKEN }}
+
       # Create official release
       - name: Create Official Release
         if: startsWith(github.ref_name, 'DON_') && github.ref_type == 'tag'
@@ -78,8 +88,8 @@ jobs:
         with:
           name: DON ${{ github.ref_name }}
           tag_name: ${{ github.ref_name }}
+          body: ${{ env.RELEASE_BODY }}
           prerelease: false
-          body: Official release version of DON
           token: ${{ secrets.GITHUB_TOKEN }}
   Matrix:
     runs-on: ubuntu-latest
