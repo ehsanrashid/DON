@@ -214,9 +214,9 @@ constexpr Square  operator-(Square s, Direction d) noexcept { return s - int(d);
 constexpr Square& operator+=(Square& s, Direction d) noexcept { return s = s + d; }
 constexpr Square& operator-=(Square& s, Direction d) noexcept { return s = s - d; }
 
-[[nodiscard]] constexpr bool is_ok(File f) noexcept { return (FILE_A <= f && f <= FILE_H); }
+[[nodiscard]] constexpr bool is_ok(File f) noexcept { return (f <= FILE_H); }
 
-[[nodiscard]] constexpr bool is_ok(Rank r) noexcept { return (RANK_1 <= r && r <= RANK_8); }
+[[nodiscard]] constexpr bool is_ok(Rank r) noexcept { return (r <= RANK_8); }
 
 [[nodiscard]] constexpr Square make_square(File f, Rank r) noexcept {
     assert(is_ok(f) && is_ok(r));
@@ -224,7 +224,7 @@ constexpr Square& operator-=(Square& s, Direction d) noexcept { return s = s - d
     return Square((std::uint8_t(r) << 3) | std::uint8_t(f));
 }
 
-[[nodiscard]] constexpr bool is_ok(Square s) noexcept { return (SQ_A1 <= s && s <= SQ_H8); }
+[[nodiscard]] constexpr bool is_ok(Square s) noexcept { return (s <= SQ_H8); }
 
 constexpr File file_of(Square s) noexcept { return File((std::uint8_t(s) >> 0) & 0x7); }
 
@@ -250,7 +250,7 @@ enum Color : std::uint8_t {
 
 inline constexpr std::size_t COLOR_NB = 2;
 
-[[nodiscard]] constexpr bool is_ok(Color c) noexcept { return (c == WHITE || c == BLACK); }
+[[nodiscard]] constexpr bool is_ok(Color c) noexcept { return (c <= BLACK); }
 
 // Toggle color
 constexpr Color operator~(Color c) noexcept { return Color(c ^ BLACK); }
@@ -471,9 +471,7 @@ enum class CastlingSide : std::uint8_t {
 
 inline constexpr std::size_t CASTLING_SIDE_NB = 2;
 
-[[nodiscard]] constexpr bool is_ok(CastlingSide cs) noexcept {
-    return (cs == CastlingSide::KING || cs == CastlingSide::QUEEN);
-}
+[[nodiscard]] constexpr bool is_ok(CastlingSide cs) noexcept { return (cs <= CastlingSide::QUEEN); }
 
 constexpr std::string_view to_string(CastlingSide cs) noexcept {
     switch (cs)
@@ -516,19 +514,20 @@ enum class Bound : std::uint8_t {
 
 inline constexpr std::size_t BOUND_NB = 4;
 
-constexpr bool is_ok(Bound bound) noexcept { return bound != Bound::NONE; }
+constexpr bool is_ok(Bound bound) noexcept {
+    return (Bound::UPPER <= bound && bound <= Bound::EXACT);
+}
 
 constexpr std::string_view to_string(Bound bound) noexcept {
     switch (bound)
     {
-    case Bound::NONE :
-        return {};
     case Bound::UPPER :
         return " upperbound";
     case Bound::LOWER :
         return " lowerbound";
     case Bound::EXACT :
         return " exactbound";
+    case Bound::NONE :;
     }
     return {};
 }
@@ -653,7 +652,7 @@ class Move {
     constexpr bool operator!=(const Move& m) const noexcept { return !(*this == m); }
 
     // Validity check: ensures move is not None or Null
-    constexpr bool is_ok() const noexcept { return data != 0x000U && data != 0xFFFU; }
+    constexpr bool is_ok() const noexcept { return data != 0x000 && data != 0xFFF; }
 
     //constexpr explicit operator bool() const noexcept { return move != 0; }
 
