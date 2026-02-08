@@ -277,20 +277,20 @@ std::string pretty_str(Bitboard b) noexcept {
 }
 
 std::string_view pretty(Bitboard b) noexcept {
-    constexpr std::size_t ReserveCount = 1024;
-    constexpr float       LoadFactor   = 0.75f;
+    constexpr std::size_t ReserveCount  = 1024;
+    constexpr float       MaxLoadFactor = 0.75f;
 
     // Thread-safe static initialization
 
     // Fully RAII-compliant — destructor runs at program exit
-    //static auto cache = ConcurrentCache<Bitboard, std::string>(ReserveCount, LoadFactor);
+    //static auto cache = ConcurrentCache<Bitboard, std::string>(ReserveCount, MaxLoadFactor);
 
     // Standard intentional "leaky singleton" pattern.
     // Ensures the cache lives for the entire program, never deleted.
-    //static auto& cache = *new ConcurrentCache<Bitboard, std::string>(ReserveCount, LoadFactor);
+    //static auto& cache = *new ConcurrentCache<Bitboard, std::string>(ReserveCount, MaxLoadFactor);
     static auto& cache = *([=] {
         static auto cachePtr =
-          std::make_unique<ConcurrentCache<Bitboard, std::string>>(ReserveCount, LoadFactor);
+          std::make_unique<ConcurrentCache<Bitboard, std::string>>(ReserveCount, MaxLoadFactor);
         return cachePtr.get();
     })();
 

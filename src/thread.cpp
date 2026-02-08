@@ -38,7 +38,7 @@ namespace DON {
 
 namespace {
 
-static constexpr float HistoryMapLoadFactor = 0.75f;
+constexpr float MAX_LOAD_FACTOR = 0.75f;
 
 }  // namespace
 
@@ -258,8 +258,8 @@ void Threads::set(const NumaConfig&                       numaConfig,
 
     // Just clear and reserve as needed
     historiesMap.clear();
-    historiesMap.max_load_factor(HistoryMapLoadFactor);
-    std::size_t bucketCount = std::size_t(numaThreadCounts.size() / HistoryMapLoadFactor) + 1;
+    historiesMap.max_load_factor(MAX_LOAD_FACTOR);
+    std::size_t bucketCount = std::size_t(numaThreadCounts.size() / MAX_LOAD_FACTOR) + 1;
     historiesMap.rehash(bucketCount);
 
     // Populate shared histories map (optionally NUMA-bound)

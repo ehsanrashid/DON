@@ -279,7 +279,7 @@ template<std::size_t Alignment, typename T>
 #if defined(_WIN32)
 
 inline constexpr HANDLE INVALID_HANDLE   = nullptr;
-static constexpr void*  INVALID_MMAP_PTR = nullptr;
+inline constexpr void*  INVALID_MMAP_PTR = nullptr;
 
 struct HandleGuard final {
    public:

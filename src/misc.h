@@ -513,11 +513,11 @@ class OstreamMutexRegistry final {
    public:
     static void ensure_initialized() noexcept {
         callOnce([]() noexcept {
-            constexpr std::size_t ReserveCount = 16;
-            constexpr float       LoadFactor   = 1.0f;
+            constexpr std::size_t ReserveCount  = 16;
+            constexpr float       MaxLoadFactor = 1.0f;
 
-            osMutexes.max_load_factor(LoadFactor);
-            std::size_t bucketCount = std::size_t(ReserveCount / LoadFactor) + 1;
+            osMutexes.max_load_factor(MaxLoadFactor);
+            std::size_t bucketCount = std::size_t(ReserveCount / MaxLoadFactor) + 1;
             osMutexes.rehash(bucketCount);
         });
     }

@@ -539,16 +539,16 @@ class SharedMemoryRegistry final {
     // Ensure internal containers are ready
     static void ensure_initialized() noexcept {
         callOnce([]() noexcept {
-            constexpr std::size_t ReserveCount = 1024;
-            constexpr float       LoadFactor   = 0.75f;
+            constexpr std::size_t ReserveCount  = 1024;
+            constexpr float       MaxLoadFactor = 0.75f;
 
-            //DEBUG_LOG("Initializing SharedMemoryRegistry with reserve-count " << ReserveCount << " and load-factor " << LoadFactor);
+            //DEBUG_LOG("Initializing SharedMemoryRegistry with reserve-count " << ReserveCount << " and max-load-factor " << MaxLoadFactor);
 
             // Prepare the registryMap: set load factor and pre-allocate buckets.
             // 'orderedList' is a std::list, which does not support reserve().
             // Memory allocation happens per-node dynamically, so no pre-allocation is needed.
-            registryMap.max_load_factor(LoadFactor);
-            std::size_t bucketCount = std::size_t(ReserveCount / LoadFactor) + 1;
+            registryMap.max_load_factor(MaxLoadFactor);
+            std::size_t bucketCount = std::size_t(ReserveCount / MaxLoadFactor) + 1;
             registryMap.rehash(bucketCount);
         });
     }
