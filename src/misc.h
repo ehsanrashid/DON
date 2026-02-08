@@ -135,6 +135,8 @@ using StringViews = std::vector<std::string_view>;
 
 constexpr std::int64_t INT_LIMIT = 0x7FFFFFFFLL;
 
+inline constexpr std::size_t BITS_PER_BYTE = 8;
+
 inline constexpr std::size_t ONE_KB = 1024;
 inline constexpr std::size_t ONE_MB = ONE_KB * ONE_KB;
 //inline constexpr std::size_t ONE_GB = ONE_KB * ONE_MB;
@@ -149,8 +151,13 @@ inline constexpr std::size_t HEX32_SIZE = 8;
 inline constexpr std::size_t UNROLL_8 = 8;
 inline constexpr std::size_t UNROLL_4 = 4;
 
+// Constants for FNV-1a Hashing
 inline constexpr std::uint64_t FNV_BASIS = 0xCBF29CE484222325ULL;
 inline constexpr std::uint64_t FNV_PRIME = 0x00000100000001B3ULL;
+
+// Constants for Murmur Hashing
+inline constexpr std::uint64_t MURMUR_M = 0xC6A4A7935BD1E995ULL;
+inline constexpr std::uint8_t  MURMUR_R = 47;
 
 inline constexpr std::string_view EMPTY_STRING{"<empty>"};
 inline constexpr std::string_view WHITE_SPACE{" \t\n\r\f\v"};
@@ -1304,40 +1311,47 @@ constexpr std::uint64_t constexpr_hash_string(std::string_view str,
            : hash;
 }
 
-inline std::uint64_t hash_bytes(const char* RESTRICT data, std::size_t size) noexcept {
-    // FNV-1a 64-bit
-    std::uint64_t h = FNV_BASIS;
+// Hash function based on public domain MurmurHash64A by Austin Appleby
+// Fast, non-cryptographic 64-bit hash suitable for general-purpose hashing.
+inline std::uint64_t
+hash_bytes(const char* RESTRICT data, std::size_t size, std::uint64_t seed = 0) noexcept {
+    std::uint64_t h = seed ^ (size * MURMUR_M);
 
     const std::uint8_t* RESTRICT p = reinterpret_cast<const std::uint8_t*>(data);
+    // Pointer to the last aligned 8-byte block
+    const std::uint8_t* RESTRICT end = p + (size & ~(UNROLL_8 - 1));
 
-    std::size_t i = 0;
+    // Process the data in 8-byte (64-bit) chunks
+    for (; p != end; p += UNROLL_8)
+    {
+        std::uint64_t k;
+        std::memcpy(&k, p, sizeof(k));
 
-    // Unroll 8 bytes at a time
-    for (; i + UNROLL_8 <= size; i += UNROLL_8)
-    {
-        h = (h ^ p[i + 0]) * FNV_PRIME;
-        h = (h ^ p[i + 1]) * FNV_PRIME;
-        h = (h ^ p[i + 2]) * FNV_PRIME;
-        h = (h ^ p[i + 3]) * FNV_PRIME;
-        h = (h ^ p[i + 4]) * FNV_PRIME;
-        h = (h ^ p[i + 5]) * FNV_PRIME;
-        h = (h ^ p[i + 6]) * FNV_PRIME;
-        h = (h ^ p[i + 7]) * FNV_PRIME;
+        // Mix chunk
+        k *= MURMUR_M;
+        k ^= k >> MURMUR_R;
+        k *= MURMUR_M;
+        // Combine with hash
+        h ^= k;
+        h *= MURMUR_M;
     }
-    // Unroll 4 bytes at a time
-    for (; i + UNROLL_4 <= size; i += UNROLL_4)
+
+    // Handle remaining bytes (less than 8) at the end
+    if (std::size_t remaining = size & (UNROLL_8 - 1); remaining != 0)
     {
-        h = (h ^ p[i + 0]) * FNV_PRIME;
-        h = (h ^ p[i + 1]) * FNV_PRIME;
-        h = (h ^ p[i + 2]) * FNV_PRIME;
-        h = (h ^ p[i + 3]) * FNV_PRIME;
+        std::uint64_t k = 0;
+        // Read remaining bytes in little-endian order
+        for (std::size_t i = 0; i < remaining; ++i)
+            k |= std::uint64_t(end[i]) << (i * BITS_PER_BYTE);
+
+        h ^= k;
+        h *= MURMUR_M;
     }
-    // Handle remaining bytes
-    while (i < size)
-    {
-        h = (h ^ p[i]) * FNV_PRIME;
-        ++i;
-    }
+
+    // Final avalanche mix to ensure thorough bit diffusion
+    h ^= h >> MURMUR_R;
+    h *= MURMUR_M;
+    h ^= h >> MURMUR_R;
 
     return h;
 }

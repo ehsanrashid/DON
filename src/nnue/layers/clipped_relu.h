@@ -137,13 +137,15 @@ class ClippedReLU final {
         constexpr IndexType Start = SimdWidth * ChunkCount;
 
 #elif defined(USE_NEON)
+        using namespace SIMD;
+
         constexpr IndexType SimdWidth  = SIMD_WIDTH / 2;
         constexpr IndexType ChunkCount = InputDimensions / SimdWidth;
 
-        int8x8_t Zero = {0};
+        vec_i8x8_t Zero = {0};
 
-        const auto* in  = reinterpret_cast<const int32x4_t*>(input);
-        auto*       out = reinterpret_cast<int8x8_t*>(output);
+        const auto* in  = reinterpret_cast<const vec_i32x4_t*>(input);
+        auto*       out = reinterpret_cast<vec_i8x8_t*>(output);
 
         for (IndexType i = 0; i < ChunkCount; ++i)
         {

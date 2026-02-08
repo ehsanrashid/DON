@@ -286,13 +286,12 @@ class Position final {
     template<PieceType PT>
     Bitboard attacks_by_bb(Color c) const noexcept;
 
-    // clang-format off
     // Doing and undoing moves
-    DirtyBoard do_move(Move m, State& newSt, bool mayCheck = true, const Worker* worker = nullptr) noexcept;
-    void       undo_move(Move m) noexcept;
-    void       do_null_move(State& newSt, const Worker* worker = nullptr) noexcept;
-    void       undo_null_move() noexcept;
-    // clang-format on
+    DirtyBoard
+    do_move(Move m, State& newSt, bool mayCheck = true, const Worker* worker = nullptr) noexcept;
+    void undo_move(Move m) noexcept;
+    void do_null_move(State& newSt) noexcept;
+    void undo_null_move() noexcept;
 
     // Properties of moves
     bool  legal(Move m) const noexcept;

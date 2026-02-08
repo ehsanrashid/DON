@@ -192,7 +192,7 @@ class PerftTable final {
     PerftTable& operator=(PerftTable&&) noexcept      = delete;
     ~PerftTable() noexcept;
 
-    void resize(std::size_t mbSize, Threads& threads) noexcept;
+    void resize(std::size_t ptSize, Threads& threads) noexcept;
 
     void init(Threads& threads) noexcept;
 
