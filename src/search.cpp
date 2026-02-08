@@ -2124,27 +2124,26 @@ void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Sta
     assert(depth > DEPTH_ZERO);
     assert(ss->moveCount > 0);
 
-    constexpr int DepthBonusBias  = -81;
-    constexpr int DepthBonusScale = 116;
-    constexpr int MaxDepthBonus   = 1515;
-    constexpr int TTMoveBonus     = 347;
+    constexpr int BaseBonus    = -81;
+    constexpr int DepthBonus   = 116;
+    constexpr int HistoryBonus = 512;
+    constexpr int MinBonus     = 8;
+    constexpr int MaxBonus     = 2560;
 
-    constexpr int MaxBonus = MaxDepthBonus + TTMoveBonus + 1024;
-
-    constexpr int DepthMalusBias  = -207;
-    constexpr int DepthMalusScale = 848;
-    constexpr int MaxDepthMalus   = 2446;
+    constexpr int BaseMalus  = -207;
+    constexpr int DepthMalus = 848;
+    constexpr int MaxMalus   = 2446;
 
     constexpr int MaxQuietMoves   = 32;
     constexpr int QuietCountMalus = 20;
 
-    int bonus = std::clamp(
-                std::min(DepthBonusBias + DepthBonusScale * depth, MaxDepthBonus)
-              + int(bestMove == ss->ttMove) * TTMoveBonus
-              + constexpr_round(31.2500e-3 * (ss - 1)->history),
-                1, MaxBonus);
+    int bonus = std::clamp(BaseBonus
+                         + DepthBonus * depth
+                         + int(bestMove == ss->ttMove) * 347
+                         + std::clamp(constexpr_round(31.2500e-3 * (ss - 1)->history / depth), -HistoryBonus, +HistoryBonus),
+                           MinBonus, MaxBonus);
 
-    int malus = std::min(DepthMalusBias + DepthMalusScale * depth, MaxDepthMalus);
+    int malus = std::min(BaseMalus + DepthMalus * depth, MaxMalus);
 
     if (pos.capture_promo(bestMove))
     {
@@ -2154,7 +2153,9 @@ void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Sta
     {
         update_quiet_histories(pos, pawnHistory, ss, bestMove, constexpr_round(0.8887 * bonus));
 
-        int baseQuietMalus = std::max(malus - QuietCountMalus * std::clamp<int>(searchedMoves[0].size() - 1, 0, MaxQuietMoves), 0);
+        int baseQuietMalus = malus - QuietCountMalus * std::clamp<int>(searchedMoves[0].size() - 1, 0, MaxQuietMoves);
+        if (baseQuietMalus < 0)
+            baseQuietMalus = 0;
         // Decrease history for all non-best quiet moves
         int decayQuietMalus = constexpr_round(1.0596 * baseQuietMalus);
         for (Move qm : searchedMoves[0])
@@ -2213,9 +2214,9 @@ int Worker::correction_value(const Position& pos, const Stack* ss) noexcept {
     Color ac = pos.active_color();
 
     std::int64_t correctionValue =
-           + 5173LL * (histories.    pawn_correction<WHITE>(pos.    pawn_key(WHITE))[ac]
+           + 5174LL * (histories.    pawn_correction<WHITE>(pos.    pawn_key(WHITE))[ac]
                      + histories.    pawn_correction<BLACK>(pos.    pawn_key(BLACK))[ac])
-           + 4410LL * (histories.   minor_correction<WHITE>(pos.   minor_key(WHITE))[ac]
+           + 4411LL * (histories.   minor_correction<WHITE>(pos.   minor_key(WHITE))[ac]
                      + histories.   minor_correction<BLACK>(pos.   minor_key(BLACK))[ac])
            +11665LL * (histories.non_pawn_correction<WHITE>(pos.non_pawn_key(WHITE))[ac]
                      + histories.non_pawn_correction<BLACK>(pos.non_pawn_key(BLACK))[ac]);
