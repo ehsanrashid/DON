@@ -37,11 +37,10 @@ namespace {
 
 constexpr std::string_view Name{"DON"};
 constexpr std::string_view Author{"Ehsan Rashid"};
-constexpr std::string_view Version{"1.0"};
+constexpr std::string_view Version{"dev"};
 
 // Format date to YYYYMMDD
 [[maybe_unused]] std::string format_date(std::string_view date) noexcept {
-    //constexpr std::string_view Months{"Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec"};
     constexpr StdArray<std::string_view, 12> Months{
       "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"  //
     };
@@ -64,6 +63,13 @@ constexpr std::string_view Version{"1.0"};
 
     std::string_view month{p, 3};
     p += 3;
+
+    // Find month index (1..12)
+    auto itr = std::find(Months.begin(), Months.end(), month);
+    if (itr == Months.end())
+        return std::string{NullDate};
+
+    unsigned monthId = 1 + std::distance(Months.begin(), itr);
 
     // Skip spaces
     while (p < end && std::isspace((unsigned char) (*p)))
@@ -105,15 +111,6 @@ constexpr std::string_view Version{"1.0"};
     // Validate year range (reasonable bounds)
     if (year < 1970)
         return std::string{NullDate};
-
-    // Find month index (1..12)
-    auto itr = std::find(Months.begin(), Months.end(), month);
-    if (itr == Months.end())
-        return std::string{NullDate};
-
-    unsigned monthId = 1 +
-                       //Months.find(month) / 4;
-                       std::distance(Months.begin(), itr);
 
     // Format YYYYMMDD manually (faster than snprintf)
     StdArray<char, 9> buffer{};  // 8 chars + '\0'
