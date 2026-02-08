@@ -1302,40 +1302,51 @@ class ConcurrentCache final {
 // Fast, non-cryptographic 64-bit hash suitable for general-purpose hashing.
 inline std::uint64_t
 hash_bytes(const char* RESTRICT data, std::size_t size, std::uint64_t seed = 0) noexcept {
+    // Initialize hash with seed and length (MurmurHash64A convention)
     std::uint64_t h = seed ^ (size * MURMUR_M);
 
     const std::uint8_t* RESTRICT p = reinterpret_cast<const std::uint8_t*>(data);
-    // Pointer to the last aligned 8-byte block
+    // End of the full 8-byte blocks (size rounded down to a multiple of 8)
     const std::uint8_t* RESTRICT end = p + (size & ~(UNROLL_8 - 1));
 
     // Process the data in 8-byte (64-bit) chunks
-    for (; p != end; p += UNROLL_8)
+    for (; p < end; p += UNROLL_8)
     {
         std::uint64_t k;
-        std::memcpy(&k, p, sizeof(k));
+        std::memcpy(&k, p, sizeof(k));  // Safe unaligned load
 
-        // Mix chunk
+        // Mix 64-bit block (MurmurHash64A core mixing step)
         k *= MURMUR_M;
         k ^= k >> MURMUR_R;
         k *= MURMUR_M;
-        // Combine with hash
+        // Incorporate block into the hash
         h ^= k;
         h *= MURMUR_M;
     }
-
-    // Handle remaining bytes (less than 8) at the end
-    if (std::size_t remaining = size & (UNROLL_8 - 1); remaining != 0)
+    // Handle remaining tail bytes (< 8) at the end
     {
-        std::uint64_t k = 0;
-        // Read remaining bytes in little-endian order
-        for (std::size_t i = 0; i < remaining; ++i)
-            k |= std::uint64_t(end[i]) << (i * BITS_PER_BYTE);
+        const std::uint8_t* RESTRICT tail = reinterpret_cast<const std::uint8_t*>(data) + size;
 
-        h ^= k;
-        h *= MURMUR_M;
+        std::uint64_t k = 0;
+
+        std::uint8_t shift = 0;
+        // Read remaining bytes in little-endian order
+        while (end < tail)
+        {
+            k |= std::uint64_t(end[0]) << shift;
+
+            shift += BITS_PER_BYTE;
+            ++end;
+        }
+
+        if (shift != 0)  // Only process if there were tail bytes
+        {
+            h ^= k;
+            h *= MURMUR_M;
+        }
     }
 
-    // Final avalanche mix to ensure thorough bit diffusion
+    // Final avalanche mix to ensure strong bit diffusion
     h ^= h >> MURMUR_R;
     h *= MURMUR_M;
     h ^= h >> MURMUR_R;
