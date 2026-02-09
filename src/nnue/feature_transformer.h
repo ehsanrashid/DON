@@ -136,7 +136,10 @@ class FeatureTransformer final {
 
     std::size_t content_hash() const noexcept {
         std::size_t h = 0;
+
         combine_hash(h, hash_raw_data(biases));
+        combine_hash(h, hash_raw_data(weights));
+        combine_hash(h, hash_raw_data(psqtWeights));
 
         if constexpr (UseThreats)
         {
@@ -144,10 +147,8 @@ class FeatureTransformer final {
             combine_hash(h, hash_raw_data(threatPsqtWeights));
         }
 
-        combine_hash(h, hash_raw_data(weights));
-        combine_hash(h, hash_raw_data(psqtWeights));
-
         combine_hash(h, hash());
+
         return h;
     }
 
@@ -431,10 +432,10 @@ class FeatureTransformer final {
 
     // clang-format off
     alignas(CACHE_LINE_SIZE) StdArray<BiasType        , HalfDimensions>                                          biases;
-    alignas(CACHE_LINE_SIZE) StdArray<ThreatWeightType, UseThreats ? ThreatInputDimensions * HalfDimensions : 0> threatWeights;
     alignas(CACHE_LINE_SIZE) StdArray<WeightType      , InputDimensions * HalfDimensions>                        weights;
-    alignas(CACHE_LINE_SIZE) StdArray<PSQTWeightType  , UseThreats ? ThreatInputDimensions * PSQTBuckets : 0>    threatPsqtWeights;
+    alignas(CACHE_LINE_SIZE) StdArray<ThreatWeightType, UseThreats ? ThreatInputDimensions * HalfDimensions : 0> threatWeights;
     alignas(CACHE_LINE_SIZE) StdArray<PSQTWeightType  , InputDimensions * PSQTBuckets>                           psqtWeights;
+    alignas(CACHE_LINE_SIZE) StdArray<PSQTWeightType  , UseThreats ? ThreatInputDimensions * PSQTBuckets : 0>    threatPsqtWeights;
     // clang-format on
 };
 
