@@ -133,23 +133,18 @@ namespace DON {
 using Strings     = std::vector<std::string>;
 using StringViews = std::vector<std::string_view>;
 
-constexpr std::int64_t INT_LIMIT = 0x7FFFFFFFLL;
-
 inline constexpr std::size_t BITS_PER_BYTE = 8;
-
-inline constexpr std::size_t ONE_KB = 1024;
-inline constexpr std::size_t ONE_MB = ONE_KB * ONE_KB;
-//inline constexpr std::size_t ONE_GB = ONE_KB * ONE_MB;
-//inline constexpr std::size_t ONE_TB = ONE_KB * ONE_GB;
-//inline constexpr std::size_t ONE_PB = ONE_KB * ONE_TB;
-//inline constexpr std::size_t ONE_EB = ONE_KB * ONE_PB;
 
 inline constexpr std::size_t HEX64_SIZE = 16;
 inline constexpr std::size_t HEX32_SIZE = 8;
 
-// Unrolling factors
+inline constexpr std::size_t ONE_KB = 1024;
+inline constexpr std::size_t ONE_MB = ONE_KB * ONE_KB;
+
 inline constexpr std::size_t UNROLL_8 = 8;
 inline constexpr std::size_t UNROLL_4 = 4;
+
+inline constexpr std::int64_t INT_LIMIT = 0x7FFFFFFFLL;
 
 // Constants for Murmur Hashing
 inline constexpr std::uint64_t MURMUR_M = 0xC6A4A7935BD1E995ULL;
@@ -160,7 +155,7 @@ inline constexpr std::string_view WHITE_SPACE{" \t\n\r\f\v"};
 
 // True if and only if the binary is compiled on a little-endian machine
 #if defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__)
-inline constexpr bool IsLittleEndian = (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__);
+inline constexpr bool IsLittleEndian = __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__;
 #elif defined(_WIN32)
 inline constexpr bool IsLittleEndian = true;
 #else

@@ -474,8 +474,13 @@ class BackendSharedMemory final {
     MMapGuard   mappedGuard{mappedPtr};
     Status      status = Status::NotInitialized;
 };
-#elif (defined(__linux__) && !defined(__ANDROID__)) || defined(__APPLE__) || defined(__sun) \
-  || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__DragonFly__) || defined(_AIX)
+#elif defined(__linux__) && !defined(__ANDROID__) /* Linux (non-Android) */ \
+  || defined(__APPLE__)                           /* macOS */ \
+  || defined(__sun)                               /* Solaris */ \
+  || defined(__FreeBSD__)                         /* FreeBSD */ \
+  || defined(__NetBSD__)                          /* NetBSD */ \
+  || defined(__DragonFly__)                       /* DragonFly BSD */ \
+  || defined(_AIX)                                /* AIX */
 // Linux (not Android), macOS, Solaris, FreeBSD, NetBSD, DragonFly, AIX
 class BaseSharedMemory {
    public:
@@ -761,6 +766,12 @@ constexpr bool graceful_signal(int signal) noexcept {
         // clang-format on
     }
     return false;
+}
+
+inline void write_to_stderr(std::string_view msg) noexcept {
+    ssize_t n = write(STDERR_FILENO, msg.data(), msg.size());
+    if (n == -1)
+    {}  // handle error, or ignore safely
 }
 
 // SharedMemoryCleanupManager
@@ -1071,9 +1082,11 @@ class SharedMemoryCleanupManager final {
                 continue;
             if (errno == EAGAIN || errno == EWOULDBLOCK)
             {
-                std::this_thread::yield();
                 if (attempt + 1 < MaxAttempt)
+                {
+                    std::this_thread::yield();
                     std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                }
                 continue;
             }
             // Non-retryable error (EBADF, EPIPE, etc.)
@@ -1129,12 +1142,6 @@ class SharedMemoryCleanupManager final {
                 return bitPos;
         // Not listed
         return INVALID_SIGNAL;
-    }
-
-    static void write_to_stderr(const char* msg) noexcept {
-        ssize_t n = write(STDERR_FILENO, msg, std::size_t(std::strlen(msg)));
-        if (n == -1)
-        {}  // handle error, or ignore safely
     }
 
     SharedMemoryCleanupManager() noexcept                                             = delete;
