@@ -2129,7 +2129,7 @@ void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Sta
     constexpr int MaxDepthBonus = 1515;
     constexpr int TTMoveBonus   = 347;
     constexpr int HistoryBonus  = 512;
-    constexpr int MinBonus      = 4;
+    constexpr int MinBonus      = 8;
     constexpr int MaxBonus      = 1865;
 
     constexpr int BaseMalus  = -207;
