@@ -182,7 +182,7 @@ lsx = no
 lasx = no
 STRIP = strip
 
-ifneq ($(shell which clang-format-20 2> /dev/null),)
+ifneq ($(shell which clang-format-20 2>/dev/null),)
     CLANG_FORMAT = clang-format-20
 else
     CLANG_FORMAT = clang-format
@@ -495,13 +495,13 @@ ifeq ($(COMP), mingw)
     comp=mingw
 
     ifeq ($(bits), 64)
-        ifeq ($(shell which x86_64-w64-mingw32-c++-posix 2> /dev/null), )
+        ifeq ($(shell which x86_64-w64-mingw32-c++-posix 2>/dev/null), )
             CXX=x86_64-w64-mingw32-c++
         else
             CXX=x86_64-w64-mingw32-c++-posix
         endif
     else
-        ifeq ($(shell which i686-w64-mingw32-c++-posix 2> /dev/null), )
+        ifeq ($(shell which i686-w64-mingw32-c++-posix 2>/dev/null), )
             CXX=i686-w64-mingw32-c++
         else
             CXX=i686-w64-mingw32-c++-posix
@@ -566,7 +566,7 @@ ifeq ($(KERNEL), Darwin)
     XCRUN = xcrun
 endif
 
-# To cross-compile for Android, use NDK version r27c or later.
+# To cross-compile for Android, use NDK version r27c or later
 ifeq ($(COMP), ndk)
     CXXFLAGS += -stdlib=libc++
     comp=clang
@@ -607,10 +607,10 @@ endif
 # make -j profile-build CXX=clang++-20 COMP=clang
 # Locate the version in the same directory as the compiler used,
 # with fallback to a generic one if it can't be located
-LLVM_PROFDATA := $(dir $(realpath $(shell which $(CXX) 2> /dev/null)))llvm-profdata
+LLVM_PROFDATA := $(dir $(realpath $(shell which $(CXX) 2>/dev/null)))llvm-profdata
 # for icx
 ifeq ($(wildcard $(LLVM_PROFDATA)), )
-    LLVM_PROFDATA := $(dir $(realpath $(shell which $(CXX) 2> /dev/null)))/compiler/llvm-profdata
+    LLVM_PROFDATA := $(dir $(realpath $(shell which $(CXX) 2>/dev/null)))/compiler/llvm-profdata
 endif
 ifeq ($(wildcard $(LLVM_PROFDATA)), )
     LLVM_PROFDATA := llvm-profdata
@@ -1206,7 +1206,7 @@ icx-profile-use:
 	all
 
 .depend: $(SRCS)
-	-@$(CXX) $(DEPENDFLAGS) -I. -MM $(SRCS) > $@ 2> /dev/null
+	-@$(CXX) $(DEPENDFLAGS) -I. -MM $(SRCS) > $@ 2>/dev/null
 
 ifeq (, $(filter $(MAKECMDGOALS), help strip install clean net objclean profileclean format config-sanity))
     -include .depend

@@ -2121,12 +2121,12 @@ void Worker::update_quiet_histories(const Position& pos, PawnHistory& pawnHistor
 }
 
 // Updates history at the end of search() when a bestMove is found and other searched moves are known
-void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Stack* ss, Depth depth, Move bestMove, bool ttm, const StdArray<SearchedMoves, 2>& searchedMoves) noexcept {
+void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Stack* ss, Depth depth, Move bestMove, bool extra, const StdArray<SearchedMoves, 2>& searchedMoves) noexcept {
     assert(depth > DEPTH_ZERO);
     assert(ss->moveCount > 0);
 
     int bonus = std::clamp(-81 + 116 * depth + std::min(constexpr_round(31.2500e-3 * (ss - 1)->history / double(depth)), 512), 4, 2027)
-              + int(ttm) * 347;
+              + int(extra) * 347;
 
     int malus = std::min(-207 + 848 * depth, 2446);
 
