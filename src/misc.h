@@ -1305,12 +1305,15 @@ hash_bytes(const char* RESTRICT data, std::size_t size, std::uint64_t seed = 0) 
     // Initialize hash with seed and length (MurmurHash64A convention)
     std::uint64_t h = seed ^ (size * MURMUR_M);
 
-    const std::uint8_t* RESTRICT p = reinterpret_cast<const std::uint8_t*>(data);
-    // End of the full 8-byte blocks (size rounded down to a multiple of 8)
-    const std::uint8_t* RESTRICT end = p + (size & ~(UNROLL_8 - 1));
+    const std::uint8_t* const RESTRICT dataBeg = reinterpret_cast<const std::uint8_t*>(data);
 
+    const std::uint8_t* const RESTRICT dataEnd = dataBeg + size;
+    // End of the full 8-byte blocks (size rounded down to a multiple of 8)
+    const std::uint8_t* const RESTRICT chunkEnd = dataEnd - (size & (UNROLL_8 - 1));
+
+    const std::uint8_t* RESTRICT p = dataBeg;
     // Process the data in 8-byte (64-bit) chunks
-    for (; p < end; p += UNROLL_8)
+    for (; p < chunkEnd; p += UNROLL_8)
     {
         std::uint64_t k;
         std::memcpy(&k, p, sizeof(k));  // Safe unaligned load
@@ -1325,18 +1328,16 @@ hash_bytes(const char* RESTRICT data, std::size_t size, std::uint64_t seed = 0) 
     }
     // Handle remaining tail bytes (< 8) at the end
     {
-        const std::uint8_t* RESTRICT tail = reinterpret_cast<const std::uint8_t*>(data) + size;
-
         std::uint64_t k = 0;
 
         std::uint8_t shift = 0;
         // Read remaining bytes in little-endian order
-        while (end < tail)
+        while (p < dataEnd)
         {
-            k |= std::uint64_t(end[0]) << shift;
+            k |= std::uint64_t(p[0]) << shift;
 
             shift += BITS_PER_BYTE;
-            ++end;
+            ++p;
         }
 
         if (shift != 0)  // Only process if there were tail bytes
@@ -1644,14 +1645,20 @@ inline std::string remove_whitespace(std::string str) noexcept {
     // Find the first non-whitespace character
     std::size_t beg = str.find_first_not_of(WHITE_SPACE);
 
-    return beg == std::string_view::npos ? std::string_view{} : str.substr(beg);
+    if (beg == std::string_view::npos)
+        return {};
+
+    return str.substr(beg);
 }
 
 [[nodiscard]] constexpr std::string_view rtrim(std::string_view str) noexcept {
     // Find the last non-whitespace character
     std::size_t end = str.find_last_not_of(WHITE_SPACE);
 
-    return end == std::string_view::npos ? std::string_view{} : str.substr(0, end + 1);
+    if (end == std::string_view::npos)
+        return {};
+
+    return str.substr(0, end + 1);
 }
 
 [[nodiscard]] constexpr std::string_view trim(std::string_view str) noexcept {

@@ -1160,10 +1160,10 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
         Value probCutBeta = std::min(235 + beta - int(improve) * 63, +VALUE_INFINITE);
         assert(beta <= probCutBeta && probCutBeta <= +VALUE_INFINITE);
 
-        // If value from transposition table is less than probCutBeta, don't attempt probCut
+        // If value from transposition table is less than probCutBeta, Don't attempt probCut
         if (!(is_valid(ttd.value) && ttd.value < probCutBeta))
         {
-        Depth probCutDepth = std::clamp(depth - 5 - constexpr_round(3.1746e-3 * int(ss->evalValue - beta)), 0, int(depth));
+        Depth probCutDepth     = depth - 5;
         int   probCutThreshold = probCutBeta - ss->evalValue;
 
         MovePicker mp(pos, ttd.move, &captureHistory, probCutThreshold);

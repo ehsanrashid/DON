@@ -58,7 +58,6 @@ Iterator upper_bound_unrolled(Iterator RESTRICT beg,
             : comp(value, beg[i - 2]) ? i - 2
             : comp(value, beg[i - 1]) ? i - 1
                                       : idx;
-
     // Unroll 4 elements at a time
     for (; idx == n && i >= UNROLL_4; i -= UNROLL_4)
         idx = comp(value, beg[i - 4]) ? i - 4
@@ -66,7 +65,6 @@ Iterator upper_bound_unrolled(Iterator RESTRICT beg,
             : comp(value, beg[i - 2]) ? i - 2
             : comp(value, beg[i - 1]) ? i - 1
                                       : idx;
-
     // Handle remaining elements
     while (i > 0)
     {

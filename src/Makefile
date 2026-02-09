@@ -883,9 +883,6 @@ ifeq ($(optimize), yes)
             ifeq ($(comp), icx)
                 CXXFLAGS += -fwhole-program-vtables
             endif
-            ifeq ($(target_windows), yes)
-                CXXFLAGS += -fuse-ld=lld
-            endif
             LDFLAGS += $(CXXFLAGS)
 
         # GCC and CLANG use different methods for parallelizing LTO
