@@ -163,7 +163,7 @@ inline std::pair<BOOL, std::vector<USHORT>> get_process_group_affinity() noexcep
     // The function should succeed the second time, but it may fail if the
     // group affinity has changed between GetProcessGroupAffinity calls.
     // In such case consider this a hard error, can't work with unstable affinities anyway.
-    for (std::size_t attempt = 0;; ++attempt)
+    for (std::size_t attempt = 0; attempt < MaxAttempt; ++attempt)
     {
         auto groupArray = std::make_unique<USHORT[]>(requiredGroupCount + ExtraGroupCount);
 
@@ -180,9 +180,6 @@ inline std::pair<BOOL, std::vector<USHORT>> get_process_group_affinity() noexcep
             if (GetLastError() != ERROR_INSUFFICIENT_BUFFER)
                 break;
         }
-
-        if (attempt >= MaxAttempt)
-            break;
 
         // Windows tells us the correct size
         requiredGroupCount = groupCount;
@@ -403,9 +400,9 @@ inline WindowsAffinity get_process_affinity() noexcept {
     return winAffinity;
 }
 
-inline const auto STARTUP_PROCESSOR_AFFINITY = get_process_affinity();
+inline const auto PROCESSOR_AFFINITY = get_process_affinity();
 
-inline const auto STARTUP_USE_OLD_AFFINITY_API = STARTUP_PROCESSOR_AFFINITY.likely_use_old_api();
+inline const auto LIKELY_USE_OLD_API = PROCESSOR_AFFINITY.likely_use_old_api();
 
 // Type machinery used to emulate Cache->GroupCount
 
@@ -512,7 +509,7 @@ inline CpuIndexSet get_process_affinity() noexcept {
     return cpus;
 }
 
-inline const auto STARTUP_PROCESSOR_AFFINITY = get_process_affinity();
+inline const auto PROCESSOR_AFFINITY = get_process_affinity();
 #endif
 
 // Want to abstract the purpose of storing the numa node index somewhat.
@@ -584,7 +581,7 @@ class NumaConfig final {
         std::optional<CpuIndexSet> allowedCpus;
 
         if (respectProcessAffinity)
-            allowedCpus = STARTUP_PROCESSOR_AFFINITY.combined_cpus();
+            allowedCpus = PROCESSOR_AFFINITY.combined_cpus();
 
         // The affinity cannot be determined in all cases on Windows,
         // but at least guarantee that the number of allowed processors
@@ -597,7 +594,7 @@ class NumaConfig final {
         CpuIndexSet allowedCpus;
 
         if (respectProcessAffinity)
-            allowedCpus = STARTUP_PROCESSOR_AFFINITY;
+            allowedCpus = PROCESSOR_AFFINITY;
 
         auto is_cpu_allowed = [respectProcessAffinity, &allowedCpus](CpuIndex cpuId) noexcept {
             return !respectProcessAffinity || allowedCpus.count(cpuId) == 1;
@@ -645,7 +642,7 @@ class NumaConfig final {
         //     scheduled to processors on their primary group, but they are able to
         //     be scheduled to processors on any other group.
         //
-        // used to be guarded by if (STARTUP_USE_OLD_AFFINITY_API)
+        // used to be guarded by if (LIKELY_USE_OLD_API)
         {
             NumaConfig splitNumaCfg = empty();
 
@@ -920,7 +917,7 @@ class NumaConfig final {
         }
 
         // Sometimes need to force the old API, but do not use it unless necessary.
-        if (setThreadSelectedCpuSetMasks == nullptr || STARTUP_USE_OLD_AFFINITY_API)
+        if (setThreadSelectedCpuSetMasks == nullptr || LIKELY_USE_OLD_API)
         {
             // On earlier windows version (since windows 7)
             // cannot run a single thread on multiple processor groups, so need to restrict the group.

@@ -357,7 +357,7 @@ class BackendSharedMemory final {
           []() { return INVALID_HANDLE; });
 
         // Fallback to normal allocation if no large page available
-        if (hMapFile == INVALID_HANDLE)
+        if (!valid_handle(hMapFile))
         {
             //DEBUG_LOG("Allocating normal shared memory, size = " << TotalSize << " bytes");
 
@@ -365,7 +365,7 @@ class BackendSharedMemory final {
                                          0, TotalSize, name_().data());
         }
 
-        if (hMapFile == INVALID_HANDLE)
+        if (!valid_handle(hMapFile))
         {
             //DEBUG_LOG("CreateFileMapping() failed, name = " << name_() << , error = " << error_to_string(GetLastError()));
             status = Status::FileMapping;
@@ -741,6 +741,28 @@ class SharedMemoryRegistry final {
     static inline RegistryMap registryMap;
 };
 
+inline constexpr int INVALID_PIPE_FD = -1;
+
+constexpr bool valid_pipe_fd(int fd) noexcept { return fd > INVALID_PIPE_FD; }
+
+// Close pipe descriptor
+inline void close_pipe_fd(int fd) noexcept {
+    if (valid_pipe_fd(fd))
+        close(fd);
+}
+
+constexpr bool graceful_signal(int signal) noexcept {
+    switch (signal)
+    {
+        // clang-format off
+    case SIGHUP : case SIGINT : case SIGTERM : case SIGQUIT :
+        return true;
+    default :;
+        // clang-format on
+    }
+    return false;
+}
+
 // SharedMemoryCleanupManager
 //
 // Utility class that ensures **automatic cleanup of shared memory** when the program exits
@@ -988,7 +1010,7 @@ class SharedMemoryCleanupManager final {
 
                     int signal = SIGNALS[bitPos];
 
-                    if (signal_graceful(signal))
+                    if (graceful_signal(signal))
                         if (!cleanupDone.exchange(true, std::memory_order_acq_rel))
                             // Perform safe partial cleanup (once per batch)
                             SharedMemoryRegistry::cleanup(true);
@@ -1036,16 +1058,13 @@ class SharedMemoryCleanupManager final {
         if (!valid_pipe_fd(fd1))
             return;
 
-        for (std::size_t attempt = 0;; ++attempt)
+        for (std::size_t attempt = 0; attempt < MaxAttempt; ++attempt)
         {
             char byte = 0;
 
             ssize_t r = write(fd1, &byte, 1);
             // Success
             if (r == 1)
-                break;
-
-            if (attempt >= MaxAttempt)
                 break;
             // Retry
             if (errno == EINTR)
@@ -1085,14 +1104,6 @@ class SharedMemoryCleanupManager final {
         SharedMemoryRegistry::cleanup();
     }
 
-    static bool valid_pipe_fd(int fd) noexcept { return fd != INVALID_PIPE_FD; }
-
-    // Close pipe descriptor
-    static void close_pipe_fd(int fd) noexcept {
-        if (valid_pipe_fd(fd))
-            close(fd);
-    }
-
     // Valid signal pipes
     static bool valid_signal_pipes() noexcept {
         return valid_pipe_fd(signalPipeFds[0].load(std::memory_order_acquire))
@@ -1118,18 +1129,6 @@ class SharedMemoryCleanupManager final {
                 return bitPos;
         // Not listed
         return INVALID_SIGNAL;
-    }
-
-    static bool signal_graceful(int signal) noexcept {
-        switch (signal)
-        {
-            // clang-format off
-        case SIGHUP : case SIGINT : case SIGTERM : case SIGQUIT :
-            return true;
-        default :;
-            // clang-format on
-        }
-        return false;
     }
 
     static void write_to_stderr(const char* msg) noexcept {
@@ -1158,8 +1157,7 @@ class SharedMemoryCleanupManager final {
     static constexpr StdArray<int, 12> SIGNALS{SIGHUP,  SIGINT,  SIGQUIT, SIGILL, SIGABRT, SIGFPE,
                                                SIGSEGV, SIGTERM, SIGBUS,  SIGSYS, SIGXCPU, SIGXFSZ};
 
-    static constexpr int INVALID_SIGNAL  = -1;
-    static constexpr int INVALID_PIPE_FD = -1;
+    static constexpr int INVALID_SIGNAL = -1;
 
     static inline CallOnce                      callOnce;
     static inline std::atomic<std::uint64_t>    pendingSignals{0};
@@ -1168,6 +1166,23 @@ class SharedMemoryCleanupManager final {
     static inline std::thread                   monitorThread;
     static inline std::atomic<bool>             cleanupDone{false};
 };
+
+inline constexpr int INVALID_PID = 0;
+
+constexpr bool valid_pid(pid_t pid) noexcept { return pid > INVALID_PID; }
+
+inline bool alive_pid(pid_t pid) noexcept {
+    if (!valid_pid(pid))
+        return false;
+
+    if (kill(pid, 0) == 0)
+        return true;
+
+    // If kill() failed, ESRCH means the pid dead or does not exist;
+    // any other errno (EPERM etc) indicates the pid may still exist
+    // but lack permission to query it.
+    return errno != ESRCH;
+}
 
 struct MutexAttrGuard final {
    public:
@@ -1353,6 +1368,7 @@ class SharedMemory final: public BaseSharedMemory {
         if (SharedMemoryRegistry::cleanup_in_progress())
         {
             //DEBUG_LOG("Shared memory registry cleanup in progress, cannot open shared memory.");
+            available = false;
             return available;
         }
 
@@ -1364,27 +1380,29 @@ class SharedMemory final: public BaseSharedMemory {
             if (is_open())
             {
                 //DEBUG_LOG("Shared memory already open.");
+                available = false;
                 break;
             }
 
             // Try to create new shared memory region
             bool newCreated = false;
 
-            mode_t mode;
             int    oflag;
+            mode_t mode;
 
             oflag = O_CREAT | O_EXCL | O_RDWR;
             mode  = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH;
             fd    = shm_open(name_().data(), oflag, mode);
 
-            if (fd <= INVALID_FD)
+            if (!valid_fd(fd))
             {
                 oflag = O_RDWR;
                 fd    = shm_open(name_().data(), oflag, mode);
 
-                if (fd <= INVALID_FD)
+                if (!valid_fd(fd))
                 {
                     //DEBUG_LOG("Failed to open shared memory, error = " << std::strerror(errno));
+                    available = false;
                     break;
                 }
             }
@@ -1400,9 +1418,8 @@ class SharedMemory final: public BaseSharedMemory {
             if (!lockFile)
             {
                 //DEBUG_LOG("Failed to lock shared memory file, error = " << std::strerror(errno));
-
                 cleanup(false, lockFile);
-
+                available = false;
                 break;
             }
 
@@ -1421,13 +1438,12 @@ class SharedMemory final: public BaseSharedMemory {
                 if (!newCreated && headerInvalid && !staleRetried)
                 {
                     //DEBUG_LOG("Retrying due to stale shared memory region.");
-
                     staleRetried = true;
-
                     continue;
                 }
 
                 //DEBUG_LOG("Failed to setup shared memory region.");
+                available = false;
                 break;
             }
 
@@ -1438,13 +1454,12 @@ class SharedMemory final: public BaseSharedMemory {
                 if (!newCreated && !staleRetried)
                 {
                     //DEBUG_LOG("Retrying due to null shared memory header.");
-
                     staleRetried = true;
-
                     continue;
                 }
 
                 //DEBUG_LOG("Shared memory header is null.");
+                available = false;
                 break;
             }
 
@@ -1466,6 +1481,7 @@ class SharedMemory final: public BaseSharedMemory {
                     }
 
                     //DEBUG_LOG("Failed to lock shared memory header mutex.");
+                    available = false;
                     break;
                 }
 
@@ -1476,6 +1492,7 @@ class SharedMemory final: public BaseSharedMemory {
                     shmHeaderGuard.unlock();
 
                     cleanup(newCreated, lockFile);
+                    available = false;
                     break;
                 }
 
@@ -1497,7 +1514,7 @@ class SharedMemory final: public BaseSharedMemory {
     }
 
     void close(bool skipUnmapRegion = false) noexcept override {
-        if (fd <= INVALID_FD && mappedPtr == INVALID_MMAP_PTR)
+        if (!valid_fd(fd) && mappedPtr == INVALID_MMAP_PTR)
             return;
 
         bool removeRegion = false;
@@ -1528,7 +1545,7 @@ class SharedMemory final: public BaseSharedMemory {
     [[nodiscard]] bool is_available() const noexcept { return available; }
 
     [[nodiscard]] bool is_open() const noexcept {
-        return fd > INVALID_FD && mappedPtr != nullptr && dataPtr != nullptr;
+        return valid_fd(fd) && mappedPtr != nullptr && dataPtr != nullptr;
     }
 
     [[nodiscard]] const T& get() const noexcept { return *dataPtr; }
@@ -1549,19 +1566,6 @@ class SharedMemory final: public BaseSharedMemory {
 
    private:
     static constexpr std::size_t mapped_size() noexcept { return sizeof(T) + sizeof(ShmHeader); }
-
-    static bool is_pid_alive(pid_t pid) noexcept {
-        if (pid <= 0)
-            return false;
-
-        if (kill(pid, 0) == 0)
-            return true;
-
-        // If kill() failed, ESRCH means the pid dead or does not exist;
-        // any other errno (EPERM etc) indicates the pid may still exist
-        // but lack permission to query it.
-        return errno != ESRCH;
-    }
 
     // Unregister SharedMemory object and release resources
     void unregister_close() noexcept {
@@ -1617,7 +1621,7 @@ class SharedMemory final: public BaseSharedMemory {
     }
 
     [[nodiscard]] bool lock_file(int operation) noexcept {
-        if (fd <= INVALID_FD)
+        if (!valid_fd(fd))
             return false;
 
         while (true)
@@ -1638,7 +1642,7 @@ class SharedMemory final: public BaseSharedMemory {
     }
 
     void unlock_file() noexcept {
-        if (fd <= INVALID_FD)
+        if (!valid_fd(fd))
             return;
 
         while (true)
@@ -1680,19 +1684,23 @@ class SharedMemory final: public BaseSharedMemory {
         if (shmHeader == nullptr)
             return false;
 
-        pid_t selfPid = getpid();
+        pid_t pid = getpid();
 
-        set_sentinel_path(selfPid);
+        if (!valid_pid(pid))
+            return false;
 
-        for (std::size_t attempt = 0;; ++attempt)
+        set_sentinel_path(pid);
+
+        for (std::size_t attempt = 0; attempt < MaxAttempt; ++attempt)
         {
             int    oflag = O_CREAT | O_EXCL | O_WRONLY | O_CLOEXEC;
             mode_t mode  = S_IRUSR | S_IWUSR;
-            int    tmpFd = ::open(sentinelPath.c_str(), oflag, mode);
+
+            int tmpFd = ::open(sentinelPath.c_str(), oflag, mode);
 
             FdGuard tmpFdGuard{tmpFd};
 
-            if (tmpFd > INVALID_FD)
+            if (valid_fd(tmpFd))
                 return true;
 
             if (errno != EEXIST)
@@ -1701,9 +1709,6 @@ class SharedMemory final: public BaseSharedMemory {
             ::unlink(sentinelPath.c_str());
 
             decrement_ref_count();
-
-            if (attempt >= MaxAttempt)
-                break;
         }
 
         clear_sentinel_path();
@@ -1753,18 +1758,24 @@ class SharedMemory final: public BaseSharedMemory {
 
             // Extract PID part
             auto pidStr = entryName.substr(prefix.size());
-
+            // Parse as long
             char* endPtr = nullptr;
             long  pidVal = std::strtol(pidStr.c_str(), &endPtr, 10);
 
-            if (endPtr == nullptr || *endPtr != '\0')
+            // Validate parsing
+            if (endPtr == nullptr    // No digits parsed
+                || *endPtr != '\0'   // Trailing garbage
+                || errno == ERANGE)  // Overflow/underflow
                 continue;
+            // Validate PID range
+            if (pidVal <= INVALID_PID || pidVal > std::numeric_limits<pid_t>::max())
+                continue;  // Invalid PID
 
             // Get PID
             pid_t pid = pid_t(pidVal);
 
             // Check if process is alive
-            if (is_pid_alive(pid))
+            if (alive_pid(pid))
             {
                 found = true;
 
@@ -1891,8 +1902,9 @@ class SharedMemory final: public BaseSharedMemory {
         return true;
     }
 
-    void
-    cleanup(bool removeRegion = true, bool lockFile = true, bool skipUnmapRegion = false) noexcept {
+    void cleanup(bool removeRegion    = true,  //
+                 bool lockFile        = true,  //
+                 bool skipUnmapRegion = false) noexcept {
 
         if (!skipUnmapRegion)
             unmap_region();

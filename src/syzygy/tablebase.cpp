@@ -550,7 +550,7 @@ std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
 
     hMapFile = CreateFileMapping(hFile, nullptr, PAGE_READONLY, hiSize, loSize, nullptr);
 
-    if (hMapFile == INVALID_HANDLE)
+    if (!valid_handle(hMapFile))
     {
         DEBUG_LOG("CreateFileMapping() failed, name = " << filename << ", error = "
                                                         << error_to_string(GetLastError()));
@@ -573,7 +573,7 @@ std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
 
     FdGuard fdGuard{fd};
 
-    if (fd <= INVALID_FD)
+    if (!valid_fd(fd))
     {
         //DEBUG_LOG("::open() failed, name = " << filename << ", error = " << std::strerror(errno));
         return nullptr;
