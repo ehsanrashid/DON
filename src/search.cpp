@@ -1703,7 +1703,8 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
     // If there is a move that produces search value greater than alpha update the history of searched moves
     if (bestMove != Move::None)
     {
-        update_histories(pos, pawnHistory, ss, depth, bestMove, searchedMoves);
+        update_histories(pos, pawnHistory, ss, depth, bestMove, bestMove == ttd.move,
+                         searchedMoves);
 
         if constexpr (!RootNode)
         {
@@ -2120,14 +2121,14 @@ void Worker::update_quiet_histories(const Position& pos, PawnHistory& pawnHistor
 }
 
 // Updates history at the end of search() when a bestMove is found and other searched moves are known
-void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Stack* ss, Depth depth, Move bestMove, const StdArray<SearchedMoves, 2>& searchedMoves) noexcept {
+void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Stack* ss, Depth depth, Move bestMove, bool ttm, const StdArray<SearchedMoves, 2>& searchedMoves) noexcept {
     assert(depth > DEPTH_ZERO);
     assert(ss->moveCount > 0);
 
     int bonus = std::clamp(std::min(-81 + 116 * depth, 1515)
                          + std::min(constexpr_round(31.2500e-3 * (ss - 1)->history / double(depth)), 512),
                            4, 1865)
-              + int(bestMove == ss->ttMove) * 347;
+              + int(ttm) * 347;
 
     int malus = std::min(-207 + 848 * depth, 2446);
 
