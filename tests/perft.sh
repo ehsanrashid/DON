@@ -43,7 +43,7 @@ run_test() {
 
   echo -n "Testing depth $depth: ${pos:0:64}... "
 
-  if $EXPECT_SCRIPT "$pos" "$depth" "$expected" "$chess960" "$tmpFile" > /dev/null 2>&1; then
+  if $EXPECT_SCRIPT "$pos" "$depth" "$expected" "$chess960" "$tmpFile" >/dev/null 2>&1; then
     echo "OK"
     rm -f "$tmpFile"
   else

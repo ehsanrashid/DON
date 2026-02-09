@@ -1092,7 +1092,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
 
             // If ttEvalValue - margin >= beta, return a value adjusted for depth
             if (ttEvalValue - margin >= beta)
-                return (2 * beta + ttEvalValue) / 3;
+                return (8 * beta + 7 * ttEvalValue) / 15;
         }
     }
 
@@ -1105,7 +1105,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
             assert(preMove != Move::Null);
 
             // Null move dynamic reduction
-            Depth R = std::min(7 + constexpr_round(0.33334 * int(depth)), int(depth));
+            Depth R = 7 + depth / 3;
 
             do_null_move(pos, st, ss);
 
@@ -1703,7 +1703,8 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
     // If there is a move that produces search value greater than alpha update the history of searched moves
     if (bestMove != Move::None)
     {
-        update_histories(pos, pawnHistory, ss, depth, bestMove, searchedMoves);
+        update_histories(pos, pawnHistory, ss, depth, bestMove, bestMove == ttd.move,
+                         searchedMoves);
 
         if constexpr (!RootNode)
         {
@@ -1959,7 +1960,7 @@ Value Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta) noexcep
 
                 if (pos.see(move) < -threshold)
                 {
-                    Value minValue = std::min(+alpha, baseFutility);
+                    Value minValue = std::min<int>(alpha, baseFutility);
 
                     if (bestValue < minValue)
                         bestValue = minValue;
@@ -2120,30 +2121,14 @@ void Worker::update_quiet_histories(const Position& pos, PawnHistory& pawnHistor
 }
 
 // Updates history at the end of search() when a bestMove is found and other searched moves are known
-void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Stack* ss, Depth depth, Move bestMove, const StdArray<SearchedMoves, 2>& searchedMoves) noexcept {
+void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Stack* ss, Depth depth, Move bestMove, bool extra, const StdArray<SearchedMoves, 2>& searchedMoves) noexcept {
     assert(depth > DEPTH_ZERO);
     assert(ss->moveCount > 0);
 
-    constexpr int BaseBonus    = -81;
-    constexpr int DepthBonus   = 116;
-    constexpr int HistoryBonus = 512;
-    constexpr int MinBonus     = 8;
-    constexpr int MaxBonus     = 2560;
+    int bonus = std::clamp(-81 + 116 * depth + std::min(constexpr_round(31.2500e-3 * (ss - 1)->history / double(depth)), 512), 4, 2027)
+              + int(extra) * 347;
 
-    constexpr int BaseMalus  = -207;
-    constexpr int DepthMalus = 848;
-    constexpr int MaxMalus   = 2446;
-
-    constexpr int MaxQuietMoves   = 32;
-    constexpr int QuietCountMalus = 20;
-
-    int bonus = std::clamp(BaseBonus
-                         + DepthBonus * depth
-                         + int(bestMove == ss->ttMove) * 347
-                         + std::clamp(constexpr_round(31.2500e-3 * (ss - 1)->history / double(depth)), -HistoryBonus, +HistoryBonus),
-                           MinBonus, MaxBonus);
-
-    int malus = std::min(BaseMalus + DepthMalus * depth, MaxMalus);
+    int malus = std::min(-207 + 848 * depth, 2446);
 
     if (pos.capture_promo(bestMove))
     {
@@ -2153,7 +2138,7 @@ void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Sta
     {
         update_quiet_histories(pos, pawnHistory, ss, bestMove, constexpr_round(0.8887 * bonus));
 
-        int baseQuietMalus = malus - QuietCountMalus * std::clamp<int>(searchedMoves[0].size() - 1, 0, MaxQuietMoves);
+        int baseQuietMalus = malus - 20 * std::clamp<int>(searchedMoves[0].size() - 1, 0, 32);
         if (baseQuietMalus < 0)
             baseQuietMalus = 0;
         // Decrease history for all non-best quiet moves
@@ -2216,7 +2201,7 @@ int Worker::correction_value(const Position& pos, const Stack* ss) noexcept {
     std::int64_t correctionValue =
            + 5173LL * (histories.    pawn_correction<WHITE>(pos.    pawn_key(WHITE))[ac]
                      + histories.    pawn_correction<BLACK>(pos.    pawn_key(BLACK))[ac])
-           + 4411LL * (histories.   minor_correction<WHITE>(pos.   minor_key(WHITE))[ac]
+           + 4410LL * (histories.   minor_correction<WHITE>(pos.   minor_key(WHITE))[ac]
                      + histories.   minor_correction<BLACK>(pos.   minor_key(BLACK))[ac])
            +11665LL * (histories.non_pawn_correction<WHITE>(pos.non_pawn_key(WHITE))[ac]
                      + histories.non_pawn_correction<BLACK>(pos.non_pawn_key(BLACK))[ac]);
