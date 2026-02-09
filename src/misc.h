@@ -310,18 +310,21 @@ enum class PrefetchLoc : std::uint8_t {
 template<PrefetchRw RW = PrefetchRw::READ, PrefetchLoc LOC = PrefetchLoc::HIGH>
 inline void prefetch(const void* addr) noexcept {
     #if defined(HAS_X86_PREFETCH)
-    constexpr auto write_hint =
+    constexpr auto hint = []() constexpr noexcept {
+        constexpr auto write_hint =
         #if defined(_MM_HINT_ET0)
-      _MM_HINT_ET0
+          _MM_HINT_ET0
         #else
-      _MM_HINT_T0
+          _MM_HINT_T0
         #endif
-      ;
-    constexpr auto hint = RW == PrefetchRw::WRITE      ? write_hint
-                        : LOC == PrefetchLoc::NONE     ? _MM_HINT_NTA
-                        : LOC == PrefetchLoc::LOW      ? _MM_HINT_T2
-                        : LOC == PrefetchLoc::MODERATE ? _MM_HINT_T1
-                                                       : _MM_HINT_T0;
+          ;
+        if constexpr (RW == PrefetchRw::WRITE)
+            return write_hint;
+        return LOC == PrefetchLoc::NONE     ? _MM_HINT_NTA
+             : LOC == PrefetchLoc::LOW      ? _MM_HINT_T2
+             : LOC == PrefetchLoc::MODERATE ? _MM_HINT_T1
+                                            : _MM_HINT_T0;
+    }();
     _mm_prefetch(reinterpret_cast<const char*>(addr), hint);
     #elif defined(__GNUC__) || defined(__clang__)
     constexpr int rw       = RW == PrefetchRw::READ ? 0 : 1;
