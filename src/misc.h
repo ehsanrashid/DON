@@ -1307,10 +1307,10 @@ hash_bytes(const char* RESTRICT data, std::size_t size, std::uint64_t seed = 0) 
 
     const std::uint8_t* RESTRICT p = reinterpret_cast<const std::uint8_t*>(data);
     // End of the full 8-byte blocks (size rounded down to a multiple of 8)
-    const std::uint8_t* RESTRICT end = p + (size & ~(UNROLL_8 - 1));
+    const std::uint8_t* RESTRICT chunkEnd = p + (size & ~(UNROLL_8 - 1));
 
     // Process the data in 8-byte (64-bit) chunks
-    for (; p < end; p += UNROLL_8)
+    for (; p < chunkEnd; p += UNROLL_8)
     {
         std::uint64_t k;
         std::memcpy(&k, p, sizeof(k));  // Safe unaligned load
@@ -1325,18 +1325,18 @@ hash_bytes(const char* RESTRICT data, std::size_t size, std::uint64_t seed = 0) 
     }
     // Handle remaining tail bytes (< 8) at the end
     {
-        const std::uint8_t* RESTRICT tail = reinterpret_cast<const std::uint8_t*>(data) + size;
+        const std::uint8_t* RESTRICT dataEnd = reinterpret_cast<const std::uint8_t*>(data) + size;
 
         std::uint64_t k = 0;
 
         std::uint8_t shift = 0;
         // Read remaining bytes in little-endian order
-        while (end < tail)
+        while (p < dataEnd)
         {
-            k |= std::uint64_t(end[0]) << shift;
+            k |= std::uint64_t(p[0]) << shift;
 
             shift += BITS_PER_BYTE;
-            ++end;
+            ++p;
         }
 
         if (shift != 0)  // Only process if there were tail bytes
