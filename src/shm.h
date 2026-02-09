@@ -1087,24 +1087,25 @@ class SharedMemoryCleanupManager final {
 
     static bool valid_pipe_fd(int fd) noexcept { return fd != INVALID_PIPE_FD; }
 
-    // Close pipe descriptors
+    // Close pipe descriptor
     static void close_pipe_fd(int fd) noexcept {
         if (valid_pipe_fd(fd))
             close(fd);
     }
 
+    // Valid signal pipes
     static bool valid_signal_pipes() noexcept {
         return valid_pipe_fd(signalPipeFds[0].load(std::memory_order_acquire))
             && valid_pipe_fd(signalPipeFds[1].load(std::memory_order_acquire));
     }
 
-    // Close signal pipe descriptors
+    // Close signal pipes
     static void close_signal_pipes() noexcept {
         close_pipe_fd(signalPipeFds[0].load(std::memory_order_acquire));
         close_pipe_fd(signalPipeFds[1].load(std::memory_order_acquire));
     }
 
-    // Reset signal pipe descriptors
+    // Reset signal pipes
     static void reset_signal_pipes() noexcept {
         signalPipeFds[0].store(INVALID_PIPE_FD, std::memory_order_release);
         signalPipeFds[1].store(INVALID_PIPE_FD, std::memory_order_release);
