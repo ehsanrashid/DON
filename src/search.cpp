@@ -2128,6 +2128,7 @@ void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Sta
     constexpr int DepthBonus    = 116;
     constexpr int MaxDepthBonus = 1515;
     constexpr int TTMoveBonus   = 347;
+    constexpr int HistoryBonus  = 256;
     constexpr int MinBonus      = 4;
     constexpr int MaxBonus      = 1865;
 
@@ -2139,7 +2140,7 @@ void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Sta
     constexpr int QuietCountMalus = 20;
 
     int bonus = std::clamp(std::min(BaseBonus + DepthBonus * depth, MaxDepthBonus)
-                         + constexpr_round(31.2500e-3 * (ss - 1)->history / double(depth)),
+                         + std::min(constexpr_round(31.2500e-3 * (ss - 1)->history / double(depth)), HistoryBonus),
                            MinBonus, MaxBonus)
                          + int(bestMove == ss->ttMove) * TTMoveBonus;
 
