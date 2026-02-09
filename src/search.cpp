@@ -1105,7 +1105,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
             assert(preMove != Move::Null);
 
             // Null move dynamic reduction
-            Depth R = 7 + constexpr_round(0.33334 * int(depth));
+            Depth R = 7 + depth / 3;
 
             do_null_move(pos, st, ss);
 
