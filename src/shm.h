@@ -776,8 +776,8 @@ class SharedMemoryCleanupManager final {
         callOnce([]() noexcept {
             //DEBUG_LOG("Initializing SharedMemoryCleanupManager.");
 
-            // 1. Create async-signal-safe pipe
-            int  pipeFds[2]{-1, -1};  // initialize to -1 for safety
+            // 1. Create async-signal-safe pipe, initialize to INVALID_PIPE_FD for safety
+            int  pipeFds[2]{INVALID_PIPE_FD, INVALID_PIPE_FD};
             bool pipeInvalid = true;
     #if (defined(__linux__) && !defined(__ANDROID__))
             // Linux: use pipe2 (atomic)
@@ -791,10 +791,8 @@ class SharedMemoryCleanupManager final {
 
                 pipeInvalid = false;
 
-                if (pipeFds[0] != -1)
-                    close(pipeFds[0]);
-                if (pipeFds[1] != -1)
-                    close(pipeFds[1]);
+                close_pipe_fd(pipeFds[0]);
+                close_pipe_fd(pipeFds[1]);
             }
     #if !defined(__linux__)
             // Set flags manually (portable alternative to pipe2)
@@ -808,10 +806,8 @@ class SharedMemoryCleanupManager final {
 
                 pipeInvalid = false;
 
-                if (pipeFds[0] != -1)
-                    close(pipeFds[0]);
-                if (pipeFds[1] != -1)
-                    close(pipeFds[1]);
+                close_pipe_fd(pipeFds[0]);
+                close_pipe_fd(pipeFds[1]);
             }
     #endif
             // Store signal pipe fds atomically
@@ -910,7 +906,7 @@ class SharedMemoryCleanupManager final {
 
         // Guard against uninitialized pipe before writing (Additional safety)
         int fd1 = signalPipeFds[1].load(std::memory_order_acquire);
-        if (fd1 < 0)
+        if (!valid_pipe_fd(fd1))
             return;  // Pipe not initialized yet, skip notification
 
         // Always notify (idempotent, safe)
@@ -945,7 +941,7 @@ class SharedMemoryCleanupManager final {
             {
                 // Pipe closed, exit thread
                 int fd0 = signalPipeFds[0].load(std::memory_order_acquire);
-                if (fd0 == -1)
+                if (!valid_pipe_fd(fd0))
                     break;
 
                 char byte;
@@ -1037,7 +1033,7 @@ class SharedMemoryCleanupManager final {
 
         int fd1 = signalPipeFds[1].load(std::memory_order_acquire);
         // Pipe not initialized, skip notification
-        if (fd1 == -1)
+        if (!valid_pipe_fd(fd1))
             return;
 
         for (std::size_t attempt = 0;; ++attempt)
@@ -1045,20 +1041,24 @@ class SharedMemoryCleanupManager final {
             char byte = 0;
 
             ssize_t r = write(fd1, &byte, 1);
-            if (r != -1)
-                break;  // Success
+            // Success
+            if (r == 1)
+                break;
 
             if (attempt >= MaxAttempt)
                 break;
+            // Retry
             if (errno == EINTR)
-                continue;  // Retry
-            if (errno == EAGAIN)
+                continue;
+            if (errno == EAGAIN || errno == EWOULDBLOCK)
             {
                 std::this_thread::yield();
-                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                if (attempt + 1 < MaxAttempt)
+                    std::this_thread::sleep_for(std::chrono::milliseconds(1));
                 continue;
             }
-            // Unexpected error: print once, then stop trying
+            // Non-retryable error (EBADF, EPIPE, etc.)
+            // Log once and abort attempts
             write_to_stderr("Failed to wake monitor thread\n");
             break;
         }
@@ -1083,28 +1083,32 @@ class SharedMemoryCleanupManager final {
         SharedMemoryRegistry::cleanup();
     }
 
+    static bool valid_pipe_fd(int fd) noexcept { return fd != INVALID_PIPE_FD; }
+
+    // Close pipe descriptors
+    static void close_pipe_fd(int fd) noexcept {
+        if (valid_pipe_fd(fd))
+            close(fd);
+    }
+
     static void close_signal_pipe() noexcept {
 
-        // 1. Close pipe safely
-        int fd0 = signalPipeFds[0].load(std::memory_order_acquire);
-        int fd1 = signalPipeFds[1].load(std::memory_order_acquire);
-        if (fd0 != -1)
-            close(fd0);
-        if (fd1 != -1)
-            close(fd1);
+        // Close pipe safely
+        close_pipe_fd(signalPipeFds[0].load(std::memory_order_acquire));
+        close_pipe_fd(signalPipeFds[1].load(std::memory_order_acquire));
 
-        // 2. Reset pipe descriptors
         reset_signal_pipe();
     }
 
+    // Reset pipe descriptors
     static void reset_signal_pipe() noexcept {
-        signalPipeFds[0].store(-1, std::memory_order_release);
-        signalPipeFds[1].store(-1, std::memory_order_release);
+        signalPipeFds[0].store(INVALID_PIPE_FD, std::memory_order_release);
+        signalPipeFds[1].store(INVALID_PIPE_FD, std::memory_order_release);
     }
 
     static bool valid_signal_pipe() noexcept {
-        return signalPipeFds[0].load(std::memory_order_acquire) != -1
-            && signalPipeFds[1].load(std::memory_order_acquire) != -1;
+        return valid_pipe_fd(signalPipeFds[0].load(std::memory_order_acquire))
+            && valid_pipe_fd(signalPipeFds[1].load(std::memory_order_acquire));
     }
 
     // Map signal numbers to bit positions (0-11 for your 12 signals)
@@ -1154,11 +1158,12 @@ class SharedMemoryCleanupManager final {
     static constexpr StdArray<int, 12> SIGNALS{SIGHUP,  SIGINT,  SIGQUIT, SIGILL, SIGABRT, SIGFPE,
                                                SIGSEGV, SIGTERM, SIGBUS,  SIGSYS, SIGXCPU, SIGXFSZ};
 
-    static constexpr int INVALID_SIGNAL = -1;
+    static constexpr int INVALID_SIGNAL  = -1;
+    static constexpr int INVALID_PIPE_FD = -1;
 
     static inline CallOnce                      callOnce;
     static inline std::atomic<std::uint64_t>    pendingSignals{0};
-    static inline StdArray<std::atomic<int>, 2> signalPipeFds{-1, -1};
+    static inline StdArray<std::atomic<int>, 2> signalPipeFds{INVALID_PIPE_FD, INVALID_PIPE_FD};
     static inline std::atomic<ThreadState>      monitorThreadState{ThreadState::NotStarted};
     static inline std::thread                   monitorThread;
     static inline std::atomic<bool>             cleanupDone{false};
