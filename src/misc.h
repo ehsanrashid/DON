@@ -1645,14 +1645,20 @@ inline std::string remove_whitespace(std::string str) noexcept {
     // Find the first non-whitespace character
     std::size_t beg = str.find_first_not_of(WHITE_SPACE);
 
-    return beg == std::string_view::npos ? std::string_view{} : str.substr(beg);
+    if (beg == std::string_view::npos)
+        return {};
+
+    return str.substr(beg);
 }
 
 [[nodiscard]] constexpr std::string_view rtrim(std::string_view str) noexcept {
     // Find the last non-whitespace character
     std::size_t end = str.find_last_not_of(WHITE_SPACE);
 
-    return end == std::string_view::npos ? std::string_view{} : str.substr(0, end + 1);
+    if (end == std::string_view::npos)
+        return {};
+
+    return str.substr(0, end + 1);
 }
 
 [[nodiscard]] constexpr std::string_view trim(std::string_view str) noexcept {
