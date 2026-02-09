@@ -1443,7 +1443,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
             {
                 extension = -2;
             }
-            else if (ttd.value > singularValue)
+            else if (ttd.value >= singularValue)
                 extension = -1;
         }
             // clang-format on
