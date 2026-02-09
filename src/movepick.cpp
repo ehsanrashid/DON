@@ -229,7 +229,7 @@ MovePicker::score<GenType::ENC_CAPTURE>(MoveList<GenType::ENC_CAPTURE>& moveList
 
     for (Move move : moveList)
     {
-        auto& m = *itr++;
+        auto& m = *itr;
         m       = move;
 
         assert(pos.capture_promo(m));
@@ -240,6 +240,8 @@ MovePicker::score<GenType::ENC_CAPTURE>(MoveList<GenType::ENC_CAPTURE>& moveList
 
         m.value = 7 * piece_value(capturedPt)  //
                 + captureHistoryRef[+movedPc][dstSq][capturedPt];
+
+        ++itr;
     }
 
     return itr;
@@ -257,13 +259,13 @@ MovePicker::score<GenType::ENC_QUIET>(MoveList<GenType::ENC_QUIET>& moveList) no
     const auto&        quietHistoryRef        = *quietHistory;
     const auto&        lowPlyQuietHistoryRef  = *lowPlyQuietHistory;
     const auto* const* continuationHistoryPtr = continuationHistory;
-    const auto&        pawnHistory            = histories->pawn(pos.pawn_key());
+    const auto&        pawnHistoryRef         = histories->pawn(pos.pawn_key());
 
     iterator itr = cur;
 
     for (Move move : moveList)
     {
-        auto& m = *itr++;
+        auto& m = *itr;
         m       = move;
 
         assert(!pos.capture_promo(m));
@@ -275,7 +277,7 @@ MovePicker::score<GenType::ENC_QUIET>(MoveList<GenType::ENC_QUIET>& moveList) no
         std::int64_t value;
 
         value = 2 * quietHistoryRef[ac][m.raw()];
-        value += 2 * pawnHistory[+movedPc][dstSq];
+        value += 2 * pawnHistoryRef[+movedPc][dstSq];
         // Accumulate continuation history entries
         for (std::size_t i = 0; i < CONT_HISTORY_COUNT; ++i)
             value += (*continuationHistoryPtr[i])[+movedPc][dstSq];
@@ -303,6 +305,8 @@ MovePicker::score<GenType::ENC_QUIET>(MoveList<GenType::ENC_QUIET>& moveList) no
           int((pinnersBB & orgSq) != 0 && !aligned(pos.square<KING>(~ac), orgSq, dstSq)) * 0x400;
 
         m.value = std::clamp(value, -INT_LIMIT, +INT_LIMIT);
+
+        ++itr;
     }
 
     return itr;
@@ -316,7 +320,7 @@ MovePicker::score<GenType::EVA_CAPTURE>(MoveList<GenType::EVA_CAPTURE>& moveList
 
     for (Move move : moveList)
     {
-        auto& m = *itr++;
+        auto& m = *itr;
         m       = move;
 
         assert(pos.capture_promo(m));
@@ -325,6 +329,8 @@ MovePicker::score<GenType::EVA_CAPTURE>(MoveList<GenType::EVA_CAPTURE>& moveList
         auto capturedPt = pos.captured_pt(m);
 
         m.value = piece_value(capturedPt);
+
+        ++itr;
     }
 
     return itr;
@@ -343,7 +349,7 @@ MovePicker::score<GenType::EVA_QUIET>(MoveList<GenType::EVA_QUIET>& moveList) no
 
     for (Move move : moveList)
     {
-        auto& m = *itr++;
+        auto& m = *itr;
         m       = move;
 
         assert(!pos.capture_promo(m));
@@ -354,6 +360,8 @@ MovePicker::score<GenType::EVA_QUIET>(MoveList<GenType::EVA_QUIET>& moveList) no
 
         m.value = quietHistoryRef[ac][m.raw()]  //
                 + (*continuationHistoryPtr[0])[+movedPc][dstSq];
+
+        ++itr;
     }
 
     return itr;

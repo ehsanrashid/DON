@@ -289,8 +289,11 @@ template<typename T, typename ByteT>
 
 #if defined(_WIN32)
 
-inline constexpr HANDLE INVALID_HANDLE   = nullptr;
-inline constexpr void*  INVALID_MMAP_PTR = nullptr;
+inline constexpr HANDLE INVALID_HANDLE = nullptr;
+
+constexpr bool valid_handle(HANDLE handle) noexcept { return handle != INVALID_HANDLE; }
+
+inline constexpr void* INVALID_MMAP_PTR = nullptr;
 
 struct HandleGuard final {
    public:
@@ -319,7 +322,7 @@ struct HandleGuard final {
 
     ~HandleGuard() noexcept { close(); }
 
-    bool valid() const noexcept { return handle != INVALID_HANDLE; }
+    bool valid() const noexcept { return valid_handle(handle); }
 
     void close() noexcept {
         if (valid())
@@ -338,11 +341,11 @@ struct HandleGuard final {
     }
 
     HANDLE release() noexcept {
-        HANDLE released = handle;
+        HANDLE tmpHandle = handle;
 
         handle = INVALID_HANDLE;
 
-        return released;
+        return tmpHandle;
     }
 
    private:
@@ -397,11 +400,11 @@ struct MMapGuard final {
     }
 
     void* release() noexcept {
-        void* released = mappedPtr;
+        void* tmpMappedPtr = mappedPtr;
 
         mappedPtr = INVALID_MMAP_PTR;
 
-        return released;
+        return tmpMappedPtr;
     }
 
    private:
@@ -545,7 +548,10 @@ auto try_with_windows_lock_memory_privilege([[maybe_unused]] SuccessFunc&& succe
 
 #else
 
-inline constexpr int         INVALID_FD        = -1;
+inline constexpr int INVALID_FD = -1;
+
+constexpr bool valid_fd(int fd) noexcept { return fd > INVALID_FD; }
+
 inline constexpr void*       INVALID_MMAP_PTR  = nullptr;
 inline constexpr std::size_t INVALID_MMAP_SIZE = 0;
 
@@ -576,7 +582,7 @@ struct FdGuard final {
 
     ~FdGuard() noexcept { close(); }
 
-    bool valid() const noexcept { return fd > INVALID_FD; }
+    bool valid() const noexcept { return valid_fd(fd); }
 
     void close() noexcept {
         if (valid())
@@ -594,11 +600,11 @@ struct FdGuard final {
     }
 
     int release() noexcept {
-        int released = fd;
+        int tmpFd = fd;
 
         fd = INVALID_FD;
 
-        return released;
+        return tmpFd;
     }
 
    private:
@@ -607,7 +613,7 @@ struct FdGuard final {
 
 struct MMapGuard final {
    public:
-    struct MMapRelease final {
+    struct MMapInfo final {
         void* const       ptr;
         const std::size_t size;
     };
@@ -665,13 +671,13 @@ struct MMapGuard final {
         mappedSize = newSize;
     }
 
-    MMapRelease release() noexcept {
-        MMapRelease released{mappedPtr, mappedSize};
+    MMapInfo release() noexcept {
+        MMapInfo tmpMapInfo{mappedPtr, mappedSize};
 
         mappedPtr  = INVALID_MMAP_PTR;
         mappedSize = INVALID_MMAP_SIZE;
 
-        return released;
+        return tmpMapInfo;
     }
 
    private:

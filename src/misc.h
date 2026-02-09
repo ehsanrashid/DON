@@ -133,23 +133,18 @@ namespace DON {
 using Strings     = std::vector<std::string>;
 using StringViews = std::vector<std::string_view>;
 
-constexpr std::int64_t INT_LIMIT = 0x7FFFFFFFLL;
-
 inline constexpr std::size_t BITS_PER_BYTE = 8;
-
-inline constexpr std::size_t ONE_KB = 1024;
-inline constexpr std::size_t ONE_MB = ONE_KB * ONE_KB;
-//inline constexpr std::size_t ONE_GB = ONE_KB * ONE_MB;
-//inline constexpr std::size_t ONE_TB = ONE_KB * ONE_GB;
-//inline constexpr std::size_t ONE_PB = ONE_KB * ONE_TB;
-//inline constexpr std::size_t ONE_EB = ONE_KB * ONE_PB;
 
 inline constexpr std::size_t HEX64_SIZE = 16;
 inline constexpr std::size_t HEX32_SIZE = 8;
 
-// Unrolling factors
+inline constexpr std::size_t ONE_KB = 1024;
+inline constexpr std::size_t ONE_MB = ONE_KB * ONE_KB;
+
 inline constexpr std::size_t UNROLL_8 = 8;
 inline constexpr std::size_t UNROLL_4 = 4;
+
+inline constexpr std::int64_t INT_LIMIT = 0x7FFFFFFFLL;
 
 // Constants for Murmur Hashing
 inline constexpr std::uint64_t MURMUR_M = 0xC6A4A7935BD1E995ULL;
@@ -160,7 +155,7 @@ inline constexpr std::string_view WHITE_SPACE{" \t\n\r\f\v"};
 
 // True if and only if the binary is compiled on a little-endian machine
 #if defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__)
-inline constexpr bool IsLittleEndian = (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__);
+inline constexpr bool IsLittleEndian = __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__;
 #elif defined(_WIN32)
 inline constexpr bool IsLittleEndian = true;
 #else
@@ -283,8 +278,8 @@ constexpr std::uint64_t mul_hi64(std::uint64_t u1, std::uint64_t u2) noexcept {
 static_assert(mul_hi64(0xDEADBEEFDEADBEEFULL, 0xCAFEBABECAFEBABEULL) == 0xB092AB7CE9F4B259ULL,
               "mul_hi64(): Failed");
 
-// Prefetch hint enums for explicit call-site control
-enum class PrefetchRw : std::uint8_t {
+// PrefetchAccess for explicit call-site control
+enum class PrefetchAccess : std::uint8_t {
     READ,
     WRITE
 };
@@ -301,57 +296,47 @@ enum class PrefetchLoc : std::uint8_t {
 
 #if defined(USE_PREFETCH)
 // Preloads the given address into cache.
-// This is a non-blocking operation that doesn't stall
-// the CPU waiting for data to be loaded from memory.
+// Non-blocking operation that doesn't stall the CPU waiting for data to be loaded from memory.
 // NOTE:
 // On x86, _mm_prefetch does NOT truly distinguish READ vs WRITE.
-// PrefetchRw::WRITE is a best-effort hint only and may behave identically to READ.
-// On GCC/Clang, __builtin_prefetch supports RW as a separate hint.
-template<PrefetchRw RW = PrefetchRw::READ, PrefetchLoc LOC = PrefetchLoc::HIGH>
+// PrefetchAccess::WRITE is a best-effort hint only and may behave identically to READ.
+// On GCC/Clang, __builtin_prefetch supports Access as a separate hint.
+template<PrefetchAccess Access = PrefetchAccess::READ, PrefetchLoc Loc = PrefetchLoc::HIGH>
 inline void prefetch(const void* addr) noexcept {
     #if defined(HAS_X86_PREFETCH)
-    constexpr auto hint =  //
-      RW == PrefetchRw::WRITE ?
+    constexpr auto Hint = []() constexpr noexcept {
+        if constexpr (Access == PrefetchAccess::WRITE)
+            return
         #if defined(_MM_HINT_ET0)
-                              _MM_HINT_ET0
+              _MM_HINT_ET0
         #else
-                              _MM_HINT_T0
+              _MM_HINT_T0
         #endif
-                              : LOC == PrefetchLoc::NONE       ? _MM_HINT_NTA
-                                : LOC == PrefetchLoc::LOW      ? _MM_HINT_T2
-                                : LOC == PrefetchLoc::MODERATE ? _MM_HINT_T1
-                                                               : _MM_HINT_T0;
-    _mm_prefetch(reinterpret_cast<const char*>(addr), hint);
+              ;
+        if constexpr (Loc == PrefetchLoc::NONE)
+            return _MM_HINT_NTA;
+        if constexpr (Loc == PrefetchLoc::LOW)
+            return _MM_HINT_T2;
+        if constexpr (Loc == PrefetchLoc::MODERATE)
+            return _MM_HINT_T1;
+        return _MM_HINT_T0;  // PrefetchLoc::HIGH
+    }();
+    _mm_prefetch(reinterpret_cast<const char*>(addr), Hint);
     #elif defined(__GNUC__) || defined(__clang__)
-    if constexpr (RW == PrefetchRw::READ)
-    {
-        if constexpr (LOC == PrefetchLoc::NONE)
-            __builtin_prefetch(addr, 0, 0);
-        else if constexpr (LOC == PrefetchLoc::LOW)
-            __builtin_prefetch(addr, 0, 1);
-        else if constexpr (LOC == PrefetchLoc::MODERATE)
-            __builtin_prefetch(addr, 0, 2);
-        else
-            __builtin_prefetch(addr, 0, 3);
-    }
-    else  // RW == WRITE
-    {
-        if constexpr (LOC == PrefetchLoc::NONE)
-            __builtin_prefetch(addr, 1, 0);
-        else if constexpr (LOC == PrefetchLoc::LOW)
-            __builtin_prefetch(addr, 1, 1);
-        else if constexpr (LOC == PrefetchLoc::MODERATE)
-            __builtin_prefetch(addr, 1, 2);
-        else
-            __builtin_prefetch(addr, 1, 3);
-    }
+    constexpr int RW       = Access == PrefetchAccess::READ ? 0  //
+                                                            : 1;
+    constexpr int Locality = Loc == PrefetchLoc::NONE     ? 0
+                           : Loc == PrefetchLoc::LOW      ? 1
+                           : Loc == PrefetchLoc::MODERATE ? 2
+                                                          : 3;  // PrefetchLoc::HIGH
+    __builtin_prefetch(addr, RW, Locality);
     #else
     // No-op on unsupported platforms
     (void) addr;
     #endif
 }
 #else
-template<PrefetchRw RW = PrefetchRw::READ, PrefetchLoc LOC = PrefetchLoc::HIGH>
+template<PrefetchAccess Access = PrefetchAccess::READ, PrefetchLoc Loc = PrefetchLoc::HIGH>
 inline void prefetch(const void*) noexcept {}
 #endif
 
@@ -1376,6 +1361,7 @@ void combine_hash(std::size_t& seed, const T& v) noexcept {
         x = v;
     else
         x = std::hash<T>{}(v);
+
     seed ^= x + 0x9E3779B9U + (seed << 6) + (seed >> 2);
 }
 

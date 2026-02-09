@@ -253,7 +253,7 @@ class FeatureTransformer final {
                            AccumulatorStack&                         accStack,
                            AccumulatorCaches::Cache<HalfDimensions>& cache,
                            std::size_t                               bucket,
-                           StdArray<OutputType, BufferSize>&         output) const {
+                           StdArray<OutputType, BufferSize>&         output) const noexcept {
         using namespace SIMD;
 
         accStack.evaluate(pos, *this, cache);

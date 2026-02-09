@@ -360,7 +360,7 @@ void FullThreats::append_changed_indices(Color                   perspective,
         if (index < Dimensions)
         {
             if (pfBase != nullptr)
-                prefetch<PrefetchRw::READ, PrefetchLoc::LOW>(pfBase + pfStride * index);
+                prefetch<PrefetchAccess::READ, PrefetchLoc::LOW>(pfBase + pfStride * index);
 
             changed.push_back(index);
         }
