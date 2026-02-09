@@ -310,19 +310,21 @@ template<PrefetchAccess Access = PrefetchAccess::READ, PrefetchLoc Loc = Prefetc
 inline void prefetch(const void* addr) noexcept {
     #if defined(HAS_X86_PREFETCH)
     constexpr auto Hint = []() constexpr noexcept {
-        constexpr auto WriteHint =
-        #if defined(_MM_HINT_ET0)
-          _MM_HINT_ET0
-        #else
-          _MM_HINT_T0
-        #endif
-          ;
         if constexpr (Access == PrefetchAccess::WRITE)
-            return WriteHint;
-        return Loc == PrefetchLoc::NONE     ? _MM_HINT_NTA
-             : Loc == PrefetchLoc::LOW      ? _MM_HINT_T2
-             : Loc == PrefetchLoc::MODERATE ? _MM_HINT_T1
-                                            : _MM_HINT_T0;
+            return
+        #if defined(_MM_HINT_ET0)
+              _MM_HINT_ET0
+        #else
+              _MM_HINT_T0
+        #endif
+              ;
+        if constexpr (Loc == PrefetchLoc::NONE)
+            return _MM_HINT_NTA;
+        if constexpr (Loc == PrefetchLoc::LOW)
+            return _MM_HINT_T2;
+        if constexpr (Loc == PrefetchLoc::MODERATE)
+            return _MM_HINT_T1;
+        return _MM_HINT_T0;  // PrefetchLoc::HIGH
     }();
     _mm_prefetch(reinterpret_cast<const char*>(addr), Hint);
     #elif defined(__GNUC__) || defined(__clang__)
@@ -331,7 +333,7 @@ inline void prefetch(const void* addr) noexcept {
     constexpr int Locality = Loc == PrefetchLoc::NONE     ? 0
                            : Loc == PrefetchLoc::LOW      ? 1
                            : Loc == PrefetchLoc::MODERATE ? 2
-                                                          : 3;
+                                                          : 3;  // PrefetchLoc::HIGH
     __builtin_prefetch(addr, RW, Locality);
     #else
     // No-op on unsupported platforms
