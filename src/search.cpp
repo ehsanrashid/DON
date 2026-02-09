@@ -1092,7 +1092,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
 
             // If ttEvalValue - margin >= beta, return a value adjusted for depth
             if (ttEvalValue - margin >= beta)
-                return (2 * beta + ttEvalValue) / 3;
+                return (3 * beta + 2 * ttEvalValue) / 5;
         }
     }
 
