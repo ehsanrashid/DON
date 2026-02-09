@@ -156,14 +156,6 @@ class AffineTransform final {
         return h;
     }
 
-    std::size_t content_hash() const noexcept {
-        std::size_t h = 0;
-        combine_hash(h, hash_raw_data(biases));
-        combine_hash(h, hash_raw_data(weights));
-        combine_hash(h, hash(0));
-        return h;
-    }
-
     static constexpr IndexType weight_index(IndexType i) noexcept {
 #if defined(ENABLE_SEQ_OPT)
         return (i / 4) % (PaddedInputDimensions / 4) * OutputDimensions * 4
@@ -171,6 +163,14 @@ class AffineTransform final {
 #else
         return i;
 #endif
+    }
+
+    std::size_t content_hash() const noexcept {
+        std::size_t h = 0;
+        combine_hash(h, hash_raw_data(biases));
+        combine_hash(h, hash_raw_data(weights));
+        combine_hash(h, hash(0));
+        return h;
     }
 
     // Read network parameters

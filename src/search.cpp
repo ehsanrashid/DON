@@ -61,7 +61,7 @@ alignas(CACHE_LINE_SIZE) constexpr auto Reductions = []() constexpr noexcept {
 }();
 
 constexpr int
-reduction(Depth depth, std::uint8_t moveCount, std::uint32_t deltaRatio, bool improve) noexcept {
+reduction(Depth depth, std::uint8_t moveCount, int deltaRatio, bool improve) noexcept {
     int reductionScale = Reductions[depth] * Reductions[moveCount];
     return 1182 + reductionScale - deltaRatio + int(!improve) * int(0.46484378 * reductionScale);
 }
@@ -1288,9 +1288,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
         // Calculate new depth for this move
         Depth newDepth = depth - 1;
 
-        assert(alpha < beta);
-
-        std::uint32_t deltaRatio = 608 * (beta - alpha) / rootDelta;
+        int deltaRatio = 608 * (beta - alpha) / rootDelta;
 
         int r = reduction(depth, moveCount, deltaRatio, improve);
 

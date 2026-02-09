@@ -29,11 +29,11 @@ if [ $# -gt 0 ]; then
       if [ -z "$SIGNATURE" ]; then
          echo "No signature obtained from bench. Code crashed or assert triggered ?"
       else
-         echo "signature mismatch: reference $1 obtained: $SIGNATURE ."
+         echo "signature mismatch: reference $1 obtained: $SIGNATURE."
       fi
       exit 1
    else
-      echo "signature OK: $SIGNATURE ."
+      echo "signature OK: $SIGNATURE."
    fi
 else
    # just report signature

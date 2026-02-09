@@ -309,10 +309,13 @@ void update_accumulator_incremental_double(
       make_accumulator_update_context(perspective, featureTransformer, computedState, targetState);
 
     if (removedSize == 2)
-        updateContext.template apply<Add, Sub, Sub>(added[0], removed[0], removed[1]);
+        updateContext
+          .template apply<UpdateOperation::Add, UpdateOperation::Sub, UpdateOperation::Sub>(
+            added[0], removed[0], removed[1]);
     else
-        updateContext.template apply<Add, Sub, Sub, Sub>(added[0], removed[0], removed[1],
-                                                         removed[2]);
+        updateContext.template apply<UpdateOperation::Add, UpdateOperation::Sub,
+                                     UpdateOperation::Sub, UpdateOperation::Sub>(
+          added[0], removed[0], removed[1], removed[2]);
 
     targetState.acc<TransformedFeatureDimensions>().computed[perspective] = true;
 }
@@ -420,23 +423,29 @@ void update_accumulator_incremental(
         if ((Forward && removedSize == 1) || (!Forward && addedSize == 1))
         {
             assert(addedSize == 1 && removedSize == 1);
-            updateContext.template apply<Add, Sub>(added[0], removed[0]);
+            updateContext.template apply<UpdateOperation::Add, UpdateOperation::Sub>(  //
+              added[0], removed[0]);
         }
         else if (Forward && addedSize == 1)
         {
             assert(removedSize == 2);
-            updateContext.template apply<Add, Sub, Sub>(added[0], removed[0], removed[1]);
+            updateContext
+              .template apply<UpdateOperation::Add, UpdateOperation::Sub, UpdateOperation::Sub>(
+                added[0], removed[0], removed[1]);
         }
         else if (!Forward && removedSize == 1)
         {
             assert(addedSize == 2);
-            updateContext.template apply<Add, Add, Sub>(added[0], added[1], removed[0]);
+            updateContext
+              .template apply<UpdateOperation::Add, UpdateOperation::Add, UpdateOperation::Sub>(
+                added[0], added[1], removed[0]);
         }
         else
         {
             assert(addedSize == 2 && removedSize == 2);
-            updateContext.template apply<Add, Add, Sub, Sub>(added[0], added[1], removed[0],
-                                                             removed[1]);
+            updateContext.template apply<UpdateOperation::Add, UpdateOperation::Add,
+                                         UpdateOperation::Sub, UpdateOperation::Sub>(
+              added[0], added[1], removed[0], removed[1]);
         }
     }
 
@@ -469,7 +478,9 @@ Bitboard changed_bb(const StdArray<Piece, SQUARE_NB>& oldPieces,
     uint8x16x4_t oldV = vld4q_u8(reinterpret_cast<const uint8_t*>(oldPieces.data()));
     uint8x16x4_t newV = vld4q_u8(reinterpret_cast<const uint8_t*>(newPieces.data()));
 
-    auto cmp = [&oldV, &newV](std::size_t i) { return vceqq_u8(oldV.val[i], newV.val[i]); };
+    auto cmp = [&oldV, &newV](std::size_t i) noexcept {
+        return vceqq_u8(oldV.val[i], newV.val[i]);
+    };
 
     uint8x16_t cmp_01 = vsriq_n_u8(cmp(1), cmp(0), 1);
     uint8x16_t cmp_23 = vsriq_n_u8(cmp(3), cmp(2), 1);
@@ -548,7 +559,7 @@ void update_accumulator_refresh_cache(Color                                 pers
             const auto* columnA = reinterpret_cast<const vec_t*>(&weights[offsetA]);
 
             for (IndexType k = 0; k < Tiling::RegCount; ++k)
-                acc[k] = fused<Vec16Wrapper, Add, Sub>(acc[k], columnA[k], columnR[k]);
+                acc[k] = fused<Vec16Wrapper, UpdateOperation::Add, UpdateOperation::Sub>(acc[k], columnA[k], columnR[k]);
 
             ++i;
         }

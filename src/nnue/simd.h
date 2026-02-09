@@ -256,7 +256,7 @@ struct Vec32Wrapper final {
 #endif
 };
 
-enum UpdateOperation : std::uint8_t {
+enum class UpdateOperation : std::uint8_t {
     Add,
     Sub
 };
@@ -277,10 +277,11 @@ template<typename VecWrapper,
          std::enable_if_t<sizeof...(ops) == sizeof...(Ts), bool>                    = true>
 typename VecWrapper::type
 fused(const typename VecWrapper::type& in, const T& operand, const Ts&... operands) noexcept {
-    static_assert(updateOp == Add || updateOp == Sub, "Unsupported updateOp.");
-    if constexpr (updateOp == Add)
+    static_assert(updateOp == UpdateOperation::Add || updateOp == UpdateOperation::Sub,
+                  "Unsupported updateOp.");
+    if constexpr (updateOp == UpdateOperation::Add)
         return fused<VecWrapper, ops...>(VecWrapper::add(in, operand), operands...);
-    if constexpr (updateOp == Sub)
+    if constexpr (updateOp == UpdateOperation::Sub)
         return fused<VecWrapper, ops...>(VecWrapper::sub(in, operand), operands...);
     return typename VecWrapper::type();
 }

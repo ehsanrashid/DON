@@ -182,7 +182,7 @@ lsx = no
 lasx = no
 STRIP = strip
 
-ifneq ($(shell which clang-format-20 2>/dev/null),)
+ifneq ($(shell which clang-format-20 2>/dev/null), )
     CLANG_FORMAT = clang-format-20
 else
     CLANG_FORMAT = clang-format
@@ -1208,6 +1208,6 @@ icx-profile-use:
 .depend: $(SRCS)
 	-@$(CXX) $(DEPENDFLAGS) -I. -MM $(SRCS) > $@ 2>/dev/null
 
-ifeq (, $(filter $(MAKECMDGOALS), help strip install clean net objclean profileclean format config-sanity))
+ifeq ($(filter $(MAKECMDGOALS), help strip install clean net objclean profileclean format config-sanity), )
     -include .depend
 endif
