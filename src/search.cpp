@@ -2125,7 +2125,7 @@ void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Sta
     assert(depth > DEPTH_ZERO);
     assert(ss->moveCount > 0);
 
-    int bonus = std::clamp(-81 + 116 * depth + std::min(constexpr_round(31.2500e-3 * (ss - 1)->history / double(depth)), 512), 4, 1771)
+    int bonus = std::clamp(-81 + 116 * depth + std::min(constexpr_round(31.2500e-3 * (ss - 1)->history / double(depth)), 512), 4, 2027)
               + int(ttm) * 347;
 
     int malus = std::min(-207 + 848 * depth, 2446);
