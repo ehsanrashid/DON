@@ -2124,27 +2124,12 @@ void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Sta
     assert(depth > DEPTH_ZERO);
     assert(ss->moveCount > 0);
 
-    constexpr int BaseBonus     = -81;
-    constexpr int DepthBonus    = 116;
-    constexpr int MaxDepthBonus = 1515;
-    constexpr int TTMoveBonus   = 347;
-    constexpr int HistoryBonus  = 256;
-    constexpr int MinBonus      = 4;
-    constexpr int MaxBonus      = 1865;
+    int bonus = std::clamp(std::min(-81 + 116 * depth, 1515)
+                         + std::min(constexpr_round(31.2500e-3 * (ss - 1)->history / double(depth)), 512),
+                           4, 1865)
+              + int(bestMove == ss->ttMove) * 347;
 
-    constexpr int BaseMalus  = -207;
-    constexpr int DepthMalus = 848;
-    constexpr int MaxMalus   = 2446;
-
-    constexpr int MaxQuietMoves   = 32;
-    constexpr int QuietCountMalus = 20;
-
-    int bonus = std::clamp(std::min(BaseBonus + DepthBonus * depth, MaxDepthBonus)
-                         + std::min(constexpr_round(31.2500e-3 * (ss - 1)->history / double(depth)), HistoryBonus),
-                           MinBonus, MaxBonus)
-                         + int(bestMove == ss->ttMove) * TTMoveBonus;
-
-    int malus = std::min(BaseMalus + DepthMalus * depth, MaxMalus);
+    int malus = std::min(-207 + 848 * depth, 2446);
 
     if (pos.capture_promo(bestMove))
     {
@@ -2154,7 +2139,7 @@ void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Sta
     {
         update_quiet_histories(pos, pawnHistory, ss, bestMove, constexpr_round(0.8887 * bonus));
 
-        int baseQuietMalus = malus - QuietCountMalus * std::clamp<int>(searchedMoves[0].size() - 1, 0, MaxQuietMoves);
+        int baseQuietMalus = malus - 20 * std::clamp<int>(searchedMoves[0].size() - 1, 0, 32);
         if (baseQuietMalus < 0)
             baseQuietMalus = 0;
         // Decrease history for all non-best quiet moves
