@@ -816,7 +816,7 @@ class SharedMemoryCleanupManager final {
                 signalPipeFds[0].store(pipeFds[0], std::memory_order_release);
                 signalPipeFds[1].store(pipeFds[1], std::memory_order_release);
 
-                if (valid_signal_pipe())
+                if (valid_signal_pipes())
                 {
                     // 2. Register signal handlers
                     register_signal_handlers();
@@ -1075,7 +1075,9 @@ class SharedMemoryCleanupManager final {
         if (monitorThread.joinable())
             monitorThread.join();
 
-        close_signal_pipe();
+        close_signal_pipes();
+
+        reset_signal_pipes();
 
         //if (!
         cleanupDone.exchange(true, std::memory_order_acq_rel);
@@ -1091,24 +1093,21 @@ class SharedMemoryCleanupManager final {
             close(fd);
     }
 
-    static void close_signal_pipe() noexcept {
-
-        // Close pipe safely
-        close_pipe_fd(signalPipeFds[0].load(std::memory_order_acquire));
-        close_pipe_fd(signalPipeFds[1].load(std::memory_order_acquire));
-
-        reset_signal_pipe();
-    }
-
-    // Reset pipe descriptors
-    static void reset_signal_pipe() noexcept {
-        signalPipeFds[0].store(INVALID_PIPE_FD, std::memory_order_release);
-        signalPipeFds[1].store(INVALID_PIPE_FD, std::memory_order_release);
-    }
-
-    static bool valid_signal_pipe() noexcept {
+    static bool valid_signal_pipes() noexcept {
         return valid_pipe_fd(signalPipeFds[0].load(std::memory_order_acquire))
             && valid_pipe_fd(signalPipeFds[1].load(std::memory_order_acquire));
+    }
+
+    // Close signal pipe descriptors
+    static void close_signal_pipes() noexcept {
+        close_pipe_fd(signalPipeFds[0].load(std::memory_order_acquire));
+        close_pipe_fd(signalPipeFds[1].load(std::memory_order_acquire));
+    }
+
+    // Reset signal pipe descriptors
+    static void reset_signal_pipes() noexcept {
+        signalPipeFds[0].store(INVALID_PIPE_FD, std::memory_order_release);
+        signalPipeFds[1].store(INVALID_PIPE_FD, std::memory_order_release);
     }
 
     // Map signal numbers to bit positions (0-11 for your 12 signals)
