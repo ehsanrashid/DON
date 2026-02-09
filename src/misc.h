@@ -1361,6 +1361,7 @@ void combine_hash(std::size_t& seed, const T& v) noexcept {
         x = v;
     else
         x = std::hash<T>{}(v);
+
     seed ^= x + 0x9E3779B9U + (seed << 6) + (seed >> 2);
 }
 

@@ -222,8 +222,8 @@ std::size_t Network<Arch, Transformer>::content_hash() const noexcept {
 
     std::size_t h = 0;
     combine_hash(h, featureTransformer);
-    for (auto&& net : network)
-        combine_hash(h, net);
+    for (auto&& arch : network)
+        combine_hash(h, arch);
     combine_hash(h, evalFile);
     combine_hash(h, embeddedType);
     return h;
