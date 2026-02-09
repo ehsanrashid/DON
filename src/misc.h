@@ -283,8 +283,8 @@ constexpr std::uint64_t mul_hi64(std::uint64_t u1, std::uint64_t u2) noexcept {
 static_assert(mul_hi64(0xDEADBEEFDEADBEEFULL, 0xCAFEBABECAFEBABEULL) == 0xB092AB7CE9F4B259ULL,
               "mul_hi64(): Failed");
 
-// Prefetch hint enums for explicit call-site control
-enum class PrefetchRw : std::uint8_t {
+// PrefetchAccess for explicit call-site control
+enum class PrefetchAccess : std::uint8_t {
     READ,
     WRITE
 };
@@ -301,45 +301,45 @@ enum class PrefetchLoc : std::uint8_t {
 
 #if defined(USE_PREFETCH)
 // Preloads the given address into cache.
-// This is a non-blocking operation that doesn't stall
-// the CPU waiting for data to be loaded from memory.
+// Non-blocking operation that doesn't stall the CPU waiting for data to be loaded from memory.
 // NOTE:
 // On x86, _mm_prefetch does NOT truly distinguish READ vs WRITE.
-// PrefetchRw::WRITE is a best-effort hint only and may behave identically to READ.
-// On GCC/Clang, __builtin_prefetch supports RW as a separate hint.
-template<PrefetchRw RW = PrefetchRw::READ, PrefetchLoc LOC = PrefetchLoc::HIGH>
+// PrefetchAccess::WRITE is a best-effort hint only and may behave identically to READ.
+// On GCC/Clang, __builtin_prefetch supports Access as a separate hint.
+template<PrefetchAccess Access = PrefetchAccess::READ, PrefetchLoc Loc = PrefetchLoc::HIGH>
 inline void prefetch(const void* addr) noexcept {
     #if defined(HAS_X86_PREFETCH)
-    constexpr auto hint = []() constexpr noexcept {
-        constexpr auto write_hint =
+    constexpr auto Hint = []() constexpr noexcept {
+        constexpr auto WriteHint =
         #if defined(_MM_HINT_ET0)
           _MM_HINT_ET0
         #else
           _MM_HINT_T0
         #endif
           ;
-        if constexpr (RW == PrefetchRw::WRITE)
-            return write_hint;
-        return LOC == PrefetchLoc::NONE     ? _MM_HINT_NTA
-             : LOC == PrefetchLoc::LOW      ? _MM_HINT_T2
-             : LOC == PrefetchLoc::MODERATE ? _MM_HINT_T1
+        if constexpr (Access == PrefetchAccess::WRITE)
+            return WriteHint;
+        return Loc == PrefetchLoc::NONE     ? _MM_HINT_NTA
+             : Loc == PrefetchLoc::LOW      ? _MM_HINT_T2
+             : Loc == PrefetchLoc::MODERATE ? _MM_HINT_T1
                                             : _MM_HINT_T0;
     }();
-    _mm_prefetch(reinterpret_cast<const char*>(addr), hint);
+    _mm_prefetch(reinterpret_cast<const char*>(addr), Hint);
     #elif defined(__GNUC__) || defined(__clang__)
-    constexpr int rw       = RW == PrefetchRw::READ ? 0 : 1;
-    constexpr int locality = LOC == PrefetchLoc::NONE     ? 0
-                           : LOC == PrefetchLoc::LOW      ? 1
-                           : LOC == PrefetchLoc::MODERATE ? 2
+    constexpr int RW       = Access == PrefetchAccess::READ ? 0  //
+                                                            : 1;
+    constexpr int Locality = Loc == PrefetchLoc::NONE     ? 0
+                           : Loc == PrefetchLoc::LOW      ? 1
+                           : Loc == PrefetchLoc::MODERATE ? 2
                                                           : 3;
-    __builtin_prefetch(addr, rw, locality);
+    __builtin_prefetch(addr, RW, Locality);
     #else
     // No-op on unsupported platforms
     (void) addr;
     #endif
 }
 #else
-template<PrefetchRw RW = PrefetchRw::READ, PrefetchLoc LOC = PrefetchLoc::HIGH>
+template<PrefetchAccess Access = PrefetchAccess::READ, PrefetchLoc Loc = PrefetchLoc::HIGH>
 inline void prefetch(const void*) noexcept {}
 #endif
 
