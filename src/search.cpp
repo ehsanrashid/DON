@@ -552,18 +552,16 @@ void Worker::iterative_deepening() noexcept {
                 rootMoves.sort(curPV, endPV);
 
                 // If the search has been stopped, break immediately.
-                // Sorting is safe because RootMoves is still valid,
-                // although it refers to the previous iteration.
+                // Sorting is safe because RootMoves is still valid, although it refers to the previous iteration.
                 if (threads.is_stopped())
                     break;
 
-                // When failing high/low give some update before a re-search.
+                // When failing high/low give some update before a re-search
                 if (mainManager != nullptr && multiPV == 1 && rootDepth > 30
                     && (alpha >= bestValue || bestValue >= beta))
                     mainManager->show_pv(*this, rootDepth);
 
-                // In case of failing low/high increase aspiration window and research,
-                // otherwise exit the loop.
+                // In case of failing low/high increase aspiration window and research, otherwise exit
                 if (bestValue <= alpha)
                 {
                     beta = alpha;
@@ -2136,7 +2134,7 @@ void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Sta
     {
         update_quiet_histories(pos, pawnHistory, ss, bestMove, constexpr_round(0.8887 * bonus));
 
-        int baseQuietMalus = malus - 15 * int(searchedMoves[0].size());
+        int baseQuietMalus = malus - 20 * int(searchedMoves[0].size());
         if (baseQuietMalus < 0)
             baseQuietMalus = 0;
         // Decrease history for all non-best quiet moves
