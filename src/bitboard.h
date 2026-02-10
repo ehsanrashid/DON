@@ -54,12 +54,6 @@
 
 namespace DON {
 
-#if defined(USE_BMI2)
-    #if defined(USE_COMP)
-using Bitboard16 = std::uint16_t;
-    #endif
-#endif
-
 namespace BitBoard {
 
 void init() noexcept;
@@ -580,17 +574,6 @@ constexpr Bitboard pass_ray_bb(Square s1, Square s2) noexcept {
 
 constexpr std::uint8_t constexpr_popcount(Bitboard b) noexcept {
 
-    // std::uint8_t count = 0;
-    // while (b != 0)
-    // {
-    //     count += b & 1;
-    //     b >>= 1;
-    // }
-    // return count;
-
-    // asm ("popcnt %0, %0" : "+r" (b) :: "cc");
-    // return b;
-
     constexpr Bitboard K1 = 0x5555555555555555ULL;
     constexpr Bitboard K2 = 0x3333333333333333ULL;
     constexpr Bitboard K4 = 0x0F0F0F0F0F0F0F0FULL;
@@ -633,31 +616,12 @@ constexpr Bitboard fill_postfix_bb(Bitboard b) noexcept {
 constexpr std::uint8_t constexpr_lsb(Bitboard b) noexcept {
     assert(b != 0);
 
-    // std::uint8_t idx = 0;
-    // while (!(b & 1))
-    // {
-    //     ++idx;
-    //     b >>= 1;
-    // }
-    // return Square(idx);
-
-    // asm ("bsfq %0, %0" : "+r" (b) :: "cc");
-    // return Square(b);
-
     b ^= b - 1;
     return msb_index(b);
 }
 
 constexpr std::uint8_t constexpr_msb(Bitboard b) noexcept {
     assert(b != 0);
-
-    // std::uint8_t idx = 0;
-    // while (b >>= 1)
-    //     ++idx;
-    // return Square(idx);
-
-    // asm ("bsrq %0, %0" : "+r" (b) :: "cc");
-    // return Square(b);
 
     b = fill_prefix_bb(b);
     return msb_index(b);
@@ -717,11 +681,11 @@ inline Square lsq(Bitboard b) noexcept {
     return Square(__builtin_ctzll(b));
 #elif defined(_MSC_VER)
     unsigned long idx;
-    #if defined(_WIN64)  // (MSVC-> WIN64)
+    #if defined(_WIN64)  // (WIN64)
     _BitScanForward64(&idx, b);
 
     return Square(idx);
-    #else                // (MSVC-> WIN32)
+    #else                // (WIN32)
     if (auto bb = std::uint32_t(b); bb != 0)
     {
         _BitScanForward(&idx, bb);
@@ -750,11 +714,11 @@ inline Square msq(Bitboard b) noexcept {
     return Square(__builtin_clzll(b) ^ 63);
 #elif defined(_MSC_VER)
     unsigned long idx;
-    #if defined(_WIN64)  // (MSVC-> WIN64)
+    #if defined(_WIN64)  // (WIN64)
     _BitScanReverse64(&idx, b);
 
     return Square(idx);
-    #else                // (MSVC-> WIN32)
+    #else                // (WIN32)
     if (auto bb = std::uint32_t(b >> 32); bb != 0)
     {
         _BitScanReverse(&idx, bb);
