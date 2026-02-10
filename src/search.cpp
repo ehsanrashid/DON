@@ -1429,8 +1429,6 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
             {
                 extension = -2;
             }
-            else if (ttd.value >= singularValue)
-                extension = -1;
         }
             // clang-format on
         }
@@ -1679,7 +1677,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
         bestValue = exclude ? alpha : ss->inCheck ? mated_in(ss->ply) : VALUE_DRAW;
     // Adjust best value for fail high cases
     else if (bestValue > beta && !is_win(bestValue) && !is_loss(beta))
-        bestValue = (int(depth) * bestValue + beta) / (depth + 1);
+        bestValue = (depth * bestValue + beta) / (depth + 1);
 
     // Don't let best value inflate too high (tb)
     if constexpr (PVNode)
