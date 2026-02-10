@@ -839,8 +839,7 @@ void AccumulatorStack::evaluate(Color                                 perspectiv
                                 const FeatureTransformer<Dimensions>& featureTransformer,
                                 AccumulatorCaches::Cache<Dimensions>& cache) noexcept {
 
-    const std::size_t lastAccIdx =
-      last_usable_accumulator_index<FeatureSet, Dimensions>(perspective);
+    std::size_t lastAccIdx = last_usable_accumulator_index<FeatureSet, Dimensions>(perspective);
 
     if ((accumulators<FeatureSet>()[lastAccIdx].template acc<Dimensions>()).computed[perspective])
     {
