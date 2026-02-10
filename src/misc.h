@@ -486,7 +486,7 @@ struct LazyValue final {
 // Key Features:
 //  - Thread-safe: internal access to the registry map is protected by a mutex.
 //  - Per-ostream mutex: each ostream gets its own mutex to avoid contention.
-//  - Null-safe: passing a nullptr returns a dummy mutex to safely ignore locking
+//  - Null-safe: passing a nullptr returns a null-mutex to safely ignore locking
 //    without inserting invalid keys into the map.
 //  - Lazy initialization: mutexes are default-constructed when first requested.
 //
@@ -511,7 +511,7 @@ class OstreamMutexRegistry final {
     }
 
     // Return a mutex associated with the given ostream pointer.
-    // If osPtr is nullptr, returns a dummy mutex to safely ignore locking.
+    // If osPtr is nullptr, returns a null-mutex to safely ignore locking.
     // This ensures no accidental insertion of null keys into the map.
     static std::mutex& get(std::ostream* osPtr) noexcept {
         if (!callOnce.initialized())
@@ -519,7 +519,7 @@ class OstreamMutexRegistry final {
 
         // Fallback for null pointers
         if (osPtr == nullptr)
-            return dummy_mutex();
+            return nullMutex;
 
         // Lock the registry while accessing the map
         std::lock_guard writeLock(mutex);
@@ -529,14 +529,14 @@ class OstreamMutexRegistry final {
 
         if (mutexPtr == nullptr)
         {
-            //// Try to allocate a mutex; on allocation failure return dummy mutex as a safe fallback.
+            //// Try to allocate a mutex; on allocation failure return null-mutex as a safe fallback.
             //try
             //{
             mutexPtr = std::make_shared<std::mutex>();
             //}
             //catch (...)
             //{
-            //    return dummy_mutex();
+            //    return nullMutex;
             //}
         }
 
@@ -544,13 +544,6 @@ class OstreamMutexRegistry final {
     }
 
    private:
-    // Note: Dummy mutex shared by all nullptr streams
-    static std::mutex& dummy_mutex() noexcept {
-        static std::mutex dummyMutex;
-
-        return dummyMutex;
-    }
-
     OstreamMutexRegistry() noexcept                                       = delete;
     ~OstreamMutexRegistry() noexcept                                      = delete;
     OstreamMutexRegistry(const OstreamMutexRegistry&) noexcept            = delete;
@@ -561,6 +554,8 @@ class OstreamMutexRegistry final {
     static inline CallOnce callOnce;
     // Protects access to the osMutexes map for thread safety
     static inline std::mutex mutex;
+    // Note: null-mutex shared by all nullptr streams
+    static inline std::mutex nullMutex;
     // Store mutexes on the heap (shared_ptr) so references returned
     // by get() remain valid even if the map rehashes.
     static inline std::unordered_map<std::ostream*, std::shared_ptr<std::mutex>> osMutexes;

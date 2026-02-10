@@ -65,14 +65,14 @@ inline constexpr std::uint32_t FILE_VERSION = 0x7AF32F20U;
 inline constexpr int OUTPUT_SCALE      = 16;
 inline constexpr int WEIGHT_SCALE_BITS = 6;
 
+// LEB128 constants
+inline constexpr std::uint8_t LEB128_DATA_MASK = 0x7F;           // 7 data bits
+inline constexpr std::uint8_t LEB128_MORE_BIT  = 0x80;           // Continuation bit
+inline constexpr std::uint8_t LEB128_SIGN_BIT  = 0x40;           // Sign bit of 7-bit group
+inline constexpr std::size_t  LEB128_BITS      = BYTE_BITS - 1;  // 7 bits per group
+
 inline constexpr const char  LEB128_MAGIC_STRING[]    = "COMPRESSED_LEB128";
 inline constexpr std::size_t LEB128_MAGIC_STRING_SIZE = sizeof(LEB128_MAGIC_STRING) - 1;
-
-// LEB128 constants
-constexpr std::uint8_t LEB128_DATA_MASK = 0x7F;           // 7 data bits
-constexpr std::uint8_t LEB128_MORE_BIT  = 0x80;           // Continuation bit
-constexpr std::uint8_t LEB128_SIGN_BIT  = 0x40;           // Sign bit of 7-bit group
-constexpr std::size_t  LEB128_BITS      = BYTE_BITS - 1;  // 7 bits per group
 
 inline constexpr std::size_t MAX_SIMD_WIDTH = 32;
 
