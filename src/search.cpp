@@ -1915,11 +1915,7 @@ Value Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta) noexcep
                 }
 
                 // SEE based pruning
-                int threshold = baseFutility - alpha;
-
-                if (threshold <= 0)
-                    threshold = -1;
-
+                int threshold = std::max(baseFutility - alpha, -1);
                 if (pos.see(move) < -threshold)
                 {
                     int minValue = std::min(+alpha, baseFutility);
