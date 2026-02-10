@@ -578,10 +578,8 @@ void Worker::iterative_deepening() noexcept {
                 }
                 else if (bestValue >= beta)
                 {
-                    if (alpha < beta - delta)
-                        alpha = beta - delta;
-
-                    beta = std::min(bestValue + delta, +VALUE_INFINITE);
+                    alpha = std::max(beta - delta, +alpha);
+                    beta  = std::min(bestValue + delta, +VALUE_INFINITE);
 
                     ++failHighCnt;
                 }
@@ -1023,8 +1021,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
                         {
                             bestValue = value;
 
-                            if (alpha < bestValue)
-                                alpha = bestValue;
+                            alpha = std::max(bestValue, alpha);
                         }
                         else
                             maxValue = value;
@@ -1887,8 +1884,7 @@ Value Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta) noexcep
         return bestValue;
     }
 
-    if (alpha < bestValue)
-        alpha = bestValue;
+    alpha = std::max(bestValue, alpha);
 
     baseFutility = 351 + ss->evalValue;
         // clang-format on
@@ -2134,9 +2130,7 @@ void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Sta
     {
         update_quiet_histories(pos, pawnHistory, ss, bestMove, constexpr_round(0.8887 * bonus));
 
-        int baseQuietMalus = malus - 20 * std::max<int>(searchedMoves[0].size() - 4, 0);
-        if (baseQuietMalus < 0)
-            baseQuietMalus = 0;
+        int baseQuietMalus = std::max(malus - 20 * std::max<int>(searchedMoves[0].size() - 4, 0), 0);
         // Decrease history for all non-best quiet moves
         int decayQuietMalus = constexpr_round(1.0596 * baseQuietMalus);
         for (Move qm : searchedMoves[0])
