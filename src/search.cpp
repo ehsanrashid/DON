@@ -61,7 +61,7 @@ alignas(CACHE_LINE_SIZE) constexpr auto Reductions = []() constexpr noexcept {
 }();
 
 constexpr int
-reduction(Depth depth, std::uint8_t moveCount, int deltaRatio, bool improve) noexcept {
+reduction(Depth depth, std::uint16_t moveCount, int deltaRatio, bool improve) noexcept {
     int reductionScale = Reductions[depth] * Reductions[moveCount];
     return 1182 + reductionScale - deltaRatio + int(!improve) * int(0.46484378 * reductionScale);
 }
@@ -1232,7 +1232,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
 
     Value value = bestValue;
 
-    std::uint8_t moveCount = 0;
+    std::uint16_t moveCount = 0;
 
     StdArray<SearchedMoves, 2> searchedMoves;
 
@@ -1905,7 +1905,7 @@ Value Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta) noexcep
 
     Move move, bestMove = Move::None;
 
-    std::uint8_t moveCount = 0;
+    std::uint16_t moveCount = 0;
 
     const History<HType::PIECE_SQ>* contHistory[1]{(ss - 1)->pieceSqHistory};
 
