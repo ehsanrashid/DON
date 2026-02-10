@@ -1070,11 +1070,11 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
             // Compute base futility
             int baseFutility = 53 + int(ttd.hit) * 23;
             // Compute margin
-            int margin = depth * baseFutility                                                //
-                       - constexpr_round((int(improve) * 2.4160 + int(worsen) * 0.3232) * baseFutility)  //
-                       + constexpr_round(5.7252e-6 * absCorrectionValue);
-            if (margin < 0)
-                margin = 0;
+            int margin = std::max(
+                                  depth * baseFutility
+                                - constexpr_round((int(improve) * 2.4160 + int(worsen) * 0.3232) * baseFutility)
+                                + constexpr_round(5.7252e-6 * absCorrectionValue),
+                                  0);
 
             // If ttEvalValue - margin >= beta, return a value adjusted for depth
             if (ttEvalValue - margin >= beta)
@@ -1307,11 +1307,8 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
                     }
 
                     // SEE based pruning for captures and checks
-                    int threshold = 166 * depth + constexpr_round(34.4828e-3 * history);
-
-                    if (threshold < 0)
-                        threshold = 0;
-
+                    int threshold =
+                      std::max(166 * depth + constexpr_round(34.4828e-3 * history), 0);
                     if (  // Avoid pruning sacrifices of our last piece for stalemate
                       (alpha >= VALUE_DRAW || nonPawnValue != piece_value(type_of(movedPc)))
                       && pos.see(move) < -threshold)
@@ -1349,11 +1346,8 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
                     }
 
                     // SEE based pruning for quiets and checks
-                    int threshold = int(check) * 64 * depth + 25 * lmrDepth * std::abs(lmrDepth);
-
-                    if (threshold < 0)
-                        threshold = 0;
-
+                    int threshold =
+                      std::max(int(check) * 64 * depth + 25 * lmrDepth * std::abs(lmrDepth), 0);
                     if (  // Avoid pruning sacrifices of our last piece for stalemate
                       (alpha >= VALUE_DRAW || nonPawnValue != piece_value(type_of(movedPc)))
                       && pos.see(move) < -threshold)
@@ -1476,7 +1470,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
         // Scale up reduction for AllNode
         if constexpr (AllNode)
         {
-            r += r / (depth + 1);
+            r = constexpr_round(r * (1.0 + 1.0 / double(depth + 1)));
         }
 
         // Step 17. Late moves reduction / extension (LMR)
@@ -1535,9 +1529,10 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
                 (ss + 1)->pv = pv.data();
 
                 // Extends ttMove if about to dive into qsearch
-                if (newDepth < 1 && ttm
-                    && (ttd.depth > 1 || (is_valid(ttd.value) && is_decisive(ttd.value))))
-                    newDepth = 1;
+                if (ttm
+                    && (ttd.depth > 1
+                        || (ttd.depth >= 1 && is_valid(ttd.value) && is_decisive(ttd.value))))
+                    newDepth = std::max(+newDepth, 1);
 
                 value = -search<NT::PV>(pos, ss + 1, -beta, -alpha, newDepth);
             }
@@ -2172,9 +2167,9 @@ int Worker::correction_value(const Position& pos, const Stack* ss) noexcept {
     Color ac = pos.active_color();
 
     std::int64_t correctionValue =
-           + 5173LL * (histories.    pawn_correction<WHITE>(pos.    pawn_key(WHITE))[ac]
+           + 5174LL * (histories.    pawn_correction<WHITE>(pos.    pawn_key(WHITE))[ac]
                      + histories.    pawn_correction<BLACK>(pos.    pawn_key(BLACK))[ac])
-           + 4410LL * (histories.   minor_correction<WHITE>(pos.   minor_key(WHITE))[ac]
+           + 4411LL * (histories.   minor_correction<WHITE>(pos.   minor_key(WHITE))[ac]
                      + histories.   minor_correction<BLACK>(pos.   minor_key(BLACK))[ac])
            +11665LL * (histories.non_pawn_correction<WHITE>(pos.non_pawn_key(WHITE))[ac]
                      + histories.non_pawn_correction<BLACK>(pos.non_pawn_key(BLACK))[ac]);
