@@ -1476,15 +1476,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
         // Step 17. Late moves reduction / extension (LMR)
         if (depth > 1 && moveCount > 1)
         {
-            Depth redDepth = newDepth - r / 1024;
-
-            if (redDepth > newDepth + 2)
-                redDepth = newDepth + 2;
-
-            if (redDepth < 1)
-                redDepth = 1;
-
-            redDepth += int(PVNode);
+            Depth redDepth = std::max(std::min(newDepth - r / 1024, newDepth + 2), 1) + int(PVNode);
 
             value =
               -search<NT::CUT>(pos, ss + 1, -alpha - 1, -alpha, redDepth, newDepth - redDepth);
