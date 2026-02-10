@@ -567,8 +567,7 @@ class SharedMemoryRegistry final {
         // Bounded wait for cleanup to finish
         constexpr auto MaxWaitTime = std::chrono::milliseconds(200);
 
-        if (!callOnce.initialized())
-            ensure_initialized();
+        ensure_initialized();
 
         if (sharedMemory == nullptr)
         {
@@ -621,8 +620,7 @@ class SharedMemoryRegistry final {
     //    iterators or causing race conditions.
     //  - Notifies all threads waiting on registration that cleanup is complete.
     static void cleanup(bool skipUnmapRegion = false) noexcept {
-        if (!callOnce.initialized())
-            ensure_initialized();
+        ensure_initialized();
 
         // Mark cleanup as in-progress so other threads know not to register new memory
         cleanUpInProgress.store(true, std::memory_order_release);

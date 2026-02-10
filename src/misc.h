@@ -496,7 +496,7 @@ struct LazyValue final {
 //
 // Notes:
 //  - The class is static-only; it cannot be instantiated. (Restriction)
-//  - Mutexes are stored as shared_ptr in the map.
+//  - Mutexes are stored as object in the map.
 class OstreamMutexRegistry final {
    public:
     static void ensure_initialized() noexcept {
@@ -514,8 +514,7 @@ class OstreamMutexRegistry final {
     // If osPtr is nullptr, returns a null-mutex to safely ignore locking.
     // This ensures no accidental insertion of null keys into the map.
     static std::mutex& get(std::ostream* osPtr) noexcept {
-        if (!callOnce.initialized())
-            ensure_initialized();
+        ensure_initialized();
 
         // Fallback for null pointers
         if (osPtr == nullptr)
@@ -524,23 +523,8 @@ class OstreamMutexRegistry final {
         // Lock the registry while accessing the map
         std::lock_guard writeLock(mutex);
 
-        // Creates default nullptr shared_ptr if missing
-        auto& mutexPtr = osMutexes[osPtr];
-
-        if (mutexPtr == nullptr)
-        {
-            //// Try to allocate a mutex; on allocation failure return null-mutex as a safe fallback.
-            //try
-            //{
-            mutexPtr = std::make_shared<std::mutex>();
-            //}
-            //catch (...)
-            //{
-            //    return nullMutex;
-            //}
-        }
-
-        return *mutexPtr;
+        // Return mutex, create if missing
+        return osMutexes[osPtr];
     }
 
    private:
@@ -556,9 +540,8 @@ class OstreamMutexRegistry final {
     static inline std::mutex mutex;
     // Note: null-mutex shared by all nullptr streams
     static inline std::mutex nullMutex;
-    // Store mutexes on the heap (shared_ptr) so references returned
-    // by get() remain valid even if the map rehashes.
-    static inline std::unordered_map<std::ostream*, std::shared_ptr<std::mutex>> osMutexes;
+    // Store mutexes and references returned by get()
+    static inline std::unordered_map<std::ostream*, std::mutex> osMutexes;
 };
 
 // SyncOstream --- Synchronized output stream ---
@@ -1166,49 +1149,6 @@ class FixedString final {
     std::size_t                  _size;
 };
 
-// RAII guard for resetting atomic bool flags
-struct FlagGuard final {
-   public:
-    explicit FlagGuard(std::atomic<bool>& flagRef) noexcept :
-        flag(flagRef) {}
-
-    ~FlagGuard() noexcept { reset(); }
-
-    // Manually reset the flag if needed before destruction
-    void reset() noexcept { flag.store(false, std::memory_order_release); }
-
-   private:
-    // Non-copyable, non-movable to ensure unique ownership
-    FlagGuard(const FlagGuard&)            = delete;
-    FlagGuard(FlagGuard&&)                 = delete;
-    FlagGuard& operator=(const FlagGuard&) = delete;
-    FlagGuard& operator=(FlagGuard&&)      = delete;
-
-    std::atomic<bool>& flag;
-};
-
-// RAII guard for resetting atomic int flags
-template<typename T>
-struct FlagsGuard final {
-   public:
-    explicit FlagsGuard(std::atomic<T>& flagsRef) noexcept :
-        flags(flagsRef) {}
-
-    ~FlagsGuard() noexcept { reset(); }
-
-    // Manually reset the flag if needed before destruction
-    void reset() noexcept { flags.store(0, std::memory_order_release); }
-
-   private:
-    // Non-copyable, non-movable to ensure unique ownership
-    FlagsGuard(const FlagsGuard&)            = delete;
-    FlagsGuard(FlagsGuard&&)                 = delete;
-    FlagsGuard& operator=(const FlagsGuard&) = delete;
-    FlagsGuard& operator=(FlagsGuard&&)      = delete;
-
-    std::atomic<T>& flags;
-};
-
 // ConcurrentCache: groups (mutex + storage + pre-reserve)
 template<typename Key, typename Value>
 class ConcurrentCache final {
@@ -1276,6 +1216,49 @@ class ConcurrentCache final {
 
     std::shared_mutex                     sharedMutex;
     std::unordered_map<Key, StorageValue> storage;
+};
+
+// RAII guard for resetting atomic bool flags
+struct FlagGuard final {
+   public:
+    explicit FlagGuard(std::atomic<bool>& flagRef) noexcept :
+        flag(flagRef) {}
+
+    ~FlagGuard() noexcept { reset(); }
+
+    // Manually reset the flag if needed before destruction
+    void reset() noexcept { flag.store(false, std::memory_order_release); }
+
+   private:
+    // Non-copyable, non-movable to ensure unique ownership
+    FlagGuard(const FlagGuard&)            = delete;
+    FlagGuard(FlagGuard&&)                 = delete;
+    FlagGuard& operator=(const FlagGuard&) = delete;
+    FlagGuard& operator=(FlagGuard&&)      = delete;
+
+    std::atomic<bool>& flag;
+};
+
+// RAII guard for resetting atomic int flags
+template<typename T>
+struct FlagsGuard final {
+   public:
+    explicit FlagsGuard(std::atomic<T>& flagsRef) noexcept :
+        flags(flagsRef) {}
+
+    ~FlagsGuard() noexcept { reset(); }
+
+    // Manually reset the flag if needed before destruction
+    void reset() noexcept { flags.store(0, std::memory_order_release); }
+
+   private:
+    // Non-copyable, non-movable to ensure unique ownership
+    FlagsGuard(const FlagsGuard&)            = delete;
+    FlagsGuard(FlagsGuard&&)                 = delete;
+    FlagsGuard& operator=(const FlagsGuard&) = delete;
+    FlagsGuard& operator=(FlagsGuard&&)      = delete;
+
+    std::atomic<T>& flags;
 };
 
 // Hash function based on public domain MurmurHash64A by Austin Appleby.
