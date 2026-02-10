@@ -86,7 +86,7 @@ struct AccumulatorUpdateContext final {
                const typename FeatureSet::IndexList& added) noexcept {
 
 #if defined(VECTOR)
-        using Tiling [[maybe_unused]] = SIMDTiling<Dimensions, PSQTBuckets>;
+        using Tiling = Tiling<Dimensions, PSQTBuckets>;
 
         vec_t      acc[Tiling::RegCount];
         psqt_vec_t psqt[Tiling::PSQTRegCount];
@@ -524,7 +524,7 @@ void update_accumulator_refresh_cache(Color                                 pers
     accumulator.computed[perspective] = true;
 
 #if defined(VECTOR)
-    using Tiling [[maybe_unused]] = SIMDTiling<Dimensions, PSQTBuckets>;
+    using Tiling = Tiling<Dimensions, PSQTBuckets>;
 
     vec_t      acc[Tiling::RegCount];
     psqt_vec_t psqt[Tiling::PSQTRegCount];
@@ -662,7 +662,7 @@ void update_threats_accumulator_full(Color                                 persp
     accumulator.computed[perspective] = true;
 
 #if defined(VECTOR)
-    using Tiling [[maybe_unused]] = SIMDTiling<Dimensions, PSQTBuckets>;
+    using Tiling = Tiling<Dimensions, PSQTBuckets>;
 
     vec_t      acc[Tiling::RegCount];
     psqt_vec_t psqt[Tiling::PSQTRegCount];

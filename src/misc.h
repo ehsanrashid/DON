@@ -1297,7 +1297,7 @@ hash_bytes(const char* RESTRICT data, std::size_t size, std::uint64_t seed = 0) 
         // Read remaining bytes in little-endian order
         while (p < dataEnd)
         {
-            k |= std::uint64_t(p[0]) << shift;
+            k |= std::uint64_t(*p) << shift;
 
             shift += BYTE_BITS;
             ++p;

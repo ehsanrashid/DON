@@ -348,7 +348,7 @@ class AffineTransformSparseInput final {
 
         while (beg < end)
         {
-            std::size_t i = beg[0];
+            std::size_t i = *beg;
 
             invec_t in = vec_set_32(load_as<std::int32_t>(input + i * sizeof(std::int32_t)));
 
