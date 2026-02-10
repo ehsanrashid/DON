@@ -564,7 +564,9 @@ void Worker::iterative_deepening() noexcept {
                 // In case of failing low/high increase aspiration window and research, otherwise exit
                 if (bestValue <= alpha)
                 {
-                    beta  = std::max(+alpha, -VALUE_INFINITE + 1);
+                    assert(alpha > -VALUE_INFINITE);
+
+                    beta  = alpha;
                     alpha = std::max(bestValue - delta, -VALUE_INFINITE);
 
                     failHighCnt = 0;
@@ -1692,8 +1694,9 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
     // If there is a move that produces search value greater than alpha update the history of searched moves
     if (bestMove != Move::None)
     {
-        update_histories(pos, pawnHistory, ss, depth, bestMove, bestMove == ttd.move,
-                         searchedMoves);
+        bool extra = bestMove == ttd.move;
+
+        update_histories(pos, pawnHistory, ss, depth, bestMove, extra, searchedMoves);
 
         if constexpr (!RootNode)
         {
