@@ -375,7 +375,7 @@ class SIMDTiling final {
     SIMDTiling& operator=(const SIMDTiling&) noexcept = delete;
     SIMDTiling& operator=(SIMDTiling&&) noexcept      = delete;
 
-        // We use __m* types as template arguments, which causes GCC to emit warnings
+        // Use __m* types as template arguments, which causes GCC to emit warnings
         // about losing some attribute information. This is irrelevant to us as we
         // only take their size, so the following pragma are harmless.
     #if defined(__GNUC__)
