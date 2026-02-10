@@ -564,11 +564,7 @@ void Worker::iterative_deepening() noexcept {
                 // In case of failing low/high increase aspiration window and research, otherwise exit
                 if (bestValue <= alpha)
                 {
-                    beta = alpha;
-
-                    if (beta < -VALUE_INFINITE + 1)
-                        beta = -VALUE_INFINITE + 1;
-
+                    beta  = std::max(+alpha, -VALUE_INFINITE + 1);
                     alpha = std::max(bestValue - delta, -VALUE_INFINITE);
 
                     failHighCnt = 0;
@@ -1952,7 +1948,7 @@ Value Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta) noexcep
 
                 if (pos.see(move) < -threshold)
                 {
-                    Value minValue = std::min<int>(alpha, baseFutility);
+                    int minValue = std::min(+alpha, baseFutility);
 
                     if (bestValue < minValue)
                         bestValue = minValue;
