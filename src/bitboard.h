@@ -315,9 +315,9 @@ constexpr Bitboard pawn_attacks_bb(Bitboard pawns, Color c) noexcept {
 constexpr Bitboard destination_bb(Square s, Direction d, std::uint8_t dist = 1) noexcept {
     assert(is_ok(s));
 
-    Square sq = s + d;
+    Square nextSq = s + d;
 
-    return is_ok(sq) && distance(s, sq) <= dist ? square_bb(sq) : 0;
+    return is_ok(nextSq) && distance(s, nextSq) <= dist ? square_bb(nextSq) : 0;
 }
 
 // Computes sliding attack
@@ -327,31 +327,41 @@ constexpr Bitboard sliding_attacks_bb(Square s, Bitboard occupancyBB = 0) noexce
     assert(is_ok(s));
 
     constexpr StdArray<Direction, 2, 4> Directions{{
-      {Direction::SOUTH_WEST, Direction::SOUTH_EAST, Direction::NORTH_WEST, Direction::NORTH_EAST},
-      {Direction::SOUTH, Direction::WEST, Direction::EAST, Direction::NORTH}  //
+      {
+        Direction::SOUTH_WEST,  //
+        Direction::SOUTH_EAST,  //
+        Direction::NORTH_WEST,  //
+        Direction::NORTH_EAST   //
+      },
+      {
+        Direction::SOUTH,  //
+        Direction::WEST,   //
+        Direction::EAST,   //
+        Direction::NORTH   //
+      }  //
     }};
 
     Bitboard attacksBB = 0;
 
-    for (const Direction d : Directions[PT - BISHOP])
+    for (Direction d : Directions[PT - BISHOP])
     {
-        Square sq = s;
+        Square curSq = s;
 
         while (true)
         {
-            Square nextSq = sq + d;
+            Square nextSq = curSq + d;
 
             // Stop if next square is off-board or not adjacent (wrap-around)
-            if (!is_ok(nextSq) || distance(sq, nextSq) > 1)
+            if (!is_ok(nextSq) || distance(curSq, nextSq) > 1)
                 break;
 
             // Move to next square
-            sq = nextSq;
+            curSq = nextSq;
 
-            attacksBB |= sq;
+            attacksBB |= curSq;
 
             // Stop if occupied - sliding blocked
-            if ((occupancyBB & sq) != 0)
+            if ((occupancyBB & curSq) != 0)
                 break;
         }
     }
@@ -364,12 +374,15 @@ constexpr Bitboard knight_attacks_bb(Square s) noexcept {
 
     Bitboard attacksBB = 0;
 
-    for (Direction dir :
-         {Direction::SOUTH_2 + Direction::WEST, Direction::SOUTH_2 + Direction::EAST,
-          Direction::WEST_2 + Direction::SOUTH, Direction::EAST_2 + Direction::SOUTH,
-          Direction::WEST_2 + Direction::NORTH, Direction::EAST_2 + Direction::NORTH,
-          Direction::NORTH_2 + Direction::WEST, Direction::NORTH_2 + Direction::EAST})
-        attacksBB |= destination_bb(s, dir, 2);
+    for (Direction d : {Direction::SOUTH_2 + Direction::WEST,  //
+                        Direction::SOUTH_2 + Direction::EAST,  //
+                        Direction::WEST_2 + Direction::SOUTH,  //
+                        Direction::EAST_2 + Direction::SOUTH,  //
+                        Direction::WEST_2 + Direction::NORTH,  //
+                        Direction::EAST_2 + Direction::NORTH,  //
+                        Direction::NORTH_2 + Direction::WEST,  //
+                        Direction::NORTH_2 + Direction::EAST})
+        attacksBB |= destination_bb(s, d, 2);
 
     return attacksBB;
 }
@@ -379,10 +392,11 @@ constexpr Bitboard king_attacks_bb(Square s) noexcept {
 
     Bitboard attacksBB = 0;
 
-    for (Direction dir :
-         {Direction::SOUTH_WEST, Direction::SOUTH, Direction::SOUTH_EAST, Direction::WEST,
-          Direction::EAST, Direction::NORTH_WEST, Direction::NORTH, Direction::NORTH_EAST})
-        attacksBB |= destination_bb(s, dir);
+    for (Direction d : {Direction::SOUTH_WEST, Direction::SOUTH,  //
+                        Direction::SOUTH_EAST, Direction::WEST,   //
+                        Direction::EAST, Direction::NORTH_WEST,   //
+                        Direction::NORTH, Direction::NORTH_EAST})
+        attacksBB |= destination_bb(s, d);
 
     return attacksBB;
 }
