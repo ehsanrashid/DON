@@ -402,6 +402,8 @@ inline constexpr Value VALUE_BISHOP = 825;
 inline constexpr Value VALUE_ROOK   = 1276;
 inline constexpr Value VALUE_QUEEN  = 2538;
 
+inline constexpr int MAX_DELTA = 2 * VALUE_INFINITE;
+
 // Returns the value of the given piece type
 constexpr Value piece_value(PieceType pt) noexcept {
     constexpr StdArray<Value, 1 + PIECE_TYPE_CNT> PieceValues{
