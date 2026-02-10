@@ -133,7 +133,7 @@ namespace DON {
 using Strings     = std::vector<std::string>;
 using StringViews = std::vector<std::string_view>;
 
-inline constexpr std::size_t BITS_PER_BYTE = 8;
+inline constexpr std::size_t BYTE_BITS = 8;
 
 inline constexpr std::size_t HEX64_SIZE = 16;
 inline constexpr std::size_t HEX32_SIZE = 8;
@@ -1321,7 +1321,7 @@ hash_bytes(const char* RESTRICT data, std::size_t size, std::uint64_t seed = 0) 
         {
             k |= std::uint64_t(p[0]) << shift;
 
-            shift += BITS_PER_BYTE;
+            shift += BYTE_BITS;
             ++p;
         }
 
