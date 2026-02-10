@@ -86,7 +86,7 @@ struct AccumulatorUpdateContext final {
                const typename FeatureSet::IndexList& added) noexcept {
 
 #if defined(VECTOR)
-        using Tiling [[maybe_unused]] = SIMDTiling<Dimensions, PSQTBuckets>;
+        using Tiling = Tiling<Dimensions, PSQTBuckets>;
 
         vec_t      acc[Tiling::RegCount];
         psqt_vec_t psqt[Tiling::PSQTRegCount];
@@ -309,10 +309,13 @@ void update_accumulator_incremental_double(
       make_accumulator_update_context(perspective, featureTransformer, computedState, targetState);
 
     if (removedSize == 2)
-        updateContext.template apply<Add, Sub, Sub>(added[0], removed[0], removed[1]);
+        updateContext
+          .template apply<UpdateOperation::Add, UpdateOperation::Sub, UpdateOperation::Sub>(
+            added[0], removed[0], removed[1]);
     else
-        updateContext.template apply<Add, Sub, Sub, Sub>(added[0], removed[0], removed[1],
-                                                         removed[2]);
+        updateContext.template apply<UpdateOperation::Add, UpdateOperation::Sub,
+                                     UpdateOperation::Sub, UpdateOperation::Sub>(
+          added[0], removed[0], removed[1], removed[2]);
 
     targetState.acc<TransformedFeatureDimensions>().computed[perspective] = true;
 }
@@ -420,23 +423,29 @@ void update_accumulator_incremental(
         if ((Forward && removedSize == 1) || (!Forward && addedSize == 1))
         {
             assert(addedSize == 1 && removedSize == 1);
-            updateContext.template apply<Add, Sub>(added[0], removed[0]);
+            updateContext.template apply<UpdateOperation::Add, UpdateOperation::Sub>(  //
+              added[0], removed[0]);
         }
         else if (Forward && addedSize == 1)
         {
             assert(removedSize == 2);
-            updateContext.template apply<Add, Sub, Sub>(added[0], removed[0], removed[1]);
+            updateContext
+              .template apply<UpdateOperation::Add, UpdateOperation::Sub, UpdateOperation::Sub>(
+                added[0], removed[0], removed[1]);
         }
         else if (!Forward && removedSize == 1)
         {
             assert(addedSize == 2);
-            updateContext.template apply<Add, Add, Sub>(added[0], added[1], removed[0]);
+            updateContext
+              .template apply<UpdateOperation::Add, UpdateOperation::Add, UpdateOperation::Sub>(
+                added[0], added[1], removed[0]);
         }
         else
         {
             assert(addedSize == 2 && removedSize == 2);
-            updateContext.template apply<Add, Add, Sub, Sub>(added[0], added[1], removed[0],
-                                                             removed[1]);
+            updateContext.template apply<UpdateOperation::Add, UpdateOperation::Add,
+                                         UpdateOperation::Sub, UpdateOperation::Sub>(
+              added[0], added[1], removed[0], removed[1]);
         }
     }
 
@@ -448,28 +457,23 @@ Bitboard changed_bb(const StdArray<Piece, SQUARE_NB>& oldPieces,
 #if defined(USE_AVX512) || defined(USE_AVX2)
     Bitboard samedBB = 0;
 
-    std::size_t s;
-
-    s                   = 0;
-    __m256i       oldV0 = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&oldPieces[s]));
-    __m256i       newV0 = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&newPieces[s]));
-    __m256i       cmp0  = _mm256_cmpeq_epi8(oldV0, newV0);
-    std::uint32_t mask0 = _mm256_movemask_epi8(cmp0);
-    samedBB |= Bitboard(mask0) << s;
-
-    s                   = 32;
-    __m256i       oldV1 = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&oldPieces[s]));
-    __m256i       newV1 = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&newPieces[s]));
-    __m256i       cmp1  = _mm256_cmpeq_epi8(oldV1, newV1);
-    std::uint32_t mask1 = _mm256_movemask_epi8(cmp1);
-    samedBB |= Bitboard(mask1) << s;
+    for (std::size_t s : {std::size_t(0), SQUARE_NB / 2})
+    {
+        __m256i       oldV = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&oldPieces[s]));
+        __m256i       newV = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&newPieces[s]));
+        __m256i       cmp  = _mm256_cmpeq_epi8(oldV, newV);
+        std::uint32_t mask = _mm256_movemask_epi8(cmp);
+        samedBB |= Bitboard(mask) << s;
+    }
 
     return ~samedBB;
 #elif defined(USE_NEON)
     uint8x16x4_t oldV = vld4q_u8(reinterpret_cast<const uint8_t*>(oldPieces.data()));
     uint8x16x4_t newV = vld4q_u8(reinterpret_cast<const uint8_t*>(newPieces.data()));
 
-    auto cmp = [&oldV, &newV](std::size_t i) { return vceqq_u8(oldV.val[i], newV.val[i]); };
+    auto cmp = [&oldV, &newV](std::size_t i) noexcept {
+        return vceqq_u8(oldV.val[i], newV.val[i]);
+    };
 
     uint8x16_t cmp_01 = vsriq_n_u8(cmp(1), cmp(0), 1);
     uint8x16_t cmp_23 = vsriq_n_u8(cmp(3), cmp(2), 1);
@@ -520,7 +524,7 @@ void update_accumulator_refresh_cache(Color                                 pers
     accumulator.computed[perspective] = true;
 
 #if defined(VECTOR)
-    using Tiling [[maybe_unused]] = SIMDTiling<Dimensions, PSQTBuckets>;
+    using Tiling = Tiling<Dimensions, PSQTBuckets>;
 
     vec_t      acc[Tiling::RegCount];
     psqt_vec_t psqt[Tiling::PSQTRegCount];
@@ -548,7 +552,7 @@ void update_accumulator_refresh_cache(Color                                 pers
             const auto* columnA = reinterpret_cast<const vec_t*>(&weights[offsetA]);
 
             for (IndexType k = 0; k < Tiling::RegCount; ++k)
-                acc[k] = fused<Vec16Wrapper, Add, Sub>(acc[k], columnA[k], columnR[k]);
+                acc[k] = fused<Vec16Wrapper, UpdateOperation::Add, UpdateOperation::Sub>(acc[k], columnA[k], columnR[k]);
 
             ++i;
         }
@@ -658,7 +662,7 @@ void update_threats_accumulator_full(Color                                 persp
     accumulator.computed[perspective] = true;
 
 #if defined(VECTOR)
-    using Tiling [[maybe_unused]] = SIMDTiling<Dimensions, PSQTBuckets>;
+    using Tiling = Tiling<Dimensions, PSQTBuckets>;
 
     vec_t      acc[Tiling::RegCount];
     psqt_vec_t psqt[Tiling::PSQTRegCount];
@@ -828,8 +832,7 @@ void AccumulatorStack::evaluate(Color                                 perspectiv
                                 const FeatureTransformer<Dimensions>& featureTransformer,
                                 AccumulatorCaches::Cache<Dimensions>& cache) noexcept {
 
-    const std::size_t lastAccIdx =
-      last_usable_accumulator_index<FeatureSet, Dimensions>(perspective);
+    std::size_t lastAccIdx = last_usable_accumulator_index<FeatureSet, Dimensions>(perspective);
 
     if ((accumulators<FeatureSet>()[lastAccIdx].template acc<Dimensions>()).computed[perspective])
     {

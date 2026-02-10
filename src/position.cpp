@@ -828,7 +828,7 @@ bool Position::enpassant_possible(Color     ac,
         {
             Square epPawnSq = pop_lsq(epPawnsBB);
 
-            bool legal = (slide_attackers_bb(kingSq, occupancyBB ^ epPawnSq) & attackersBB) == 0;
+            bool legal = (attackersBB & slide_attackers_bb(kingSq, occupancyBB ^ epPawnSq)) == 0;
 
             epPossible |= legal;
 
@@ -1427,7 +1427,7 @@ bool Position::check(Move m) const noexcept {
     case MT::EN_PASSANT : {
         Bitboard occupancyBB = pieces_bb() ^ make_bb(orgSq, dstSq, dstSq - pawn_spush(ac));
 
-        return (slide_attackers_bb(kingSq, occupancyBB) & pieces_bb(ac)) != 0;
+        return (pieces_bb(ac) & slide_attackers_bb(kingSq, occupancyBB)) != 0;
     }
     case MT::CASTLING :
         // Castling is encoded as "king captures rook"
@@ -1462,7 +1462,7 @@ bool Position::dbl_check(Move m) const noexcept {
 
     case MT::EN_PASSANT : {
         Bitboard occupancyBB = pieces_bb() ^ make_bb(orgSq, dstSq, dstSq - pawn_spush(ac));
-        Bitboard checkersBB  = slide_attackers_bb(kingSq, occupancyBB) & pieces_bb(ac);
+        Bitboard checkersBB  = pieces_bb(ac) & slide_attackers_bb(kingSq, occupancyBB);
 
         return more_than_one(checkersBB) || (checkersBB != 0 && (checks_bb(PAWN) & dstSq) != 0);
     }

@@ -56,7 +56,7 @@ struct Networks;
 
 inline constexpr std::size_t SEARCHED_MOVE_CAPACITY = 32;
 
-using SearchedMoves = FixedVector<Move, SEARCHED_MOVE_CAPACITY, std::uint8_t>;
+using SearchedMoves = FixedVector<Move, SEARCHED_MOVE_CAPACITY, std::uint16_t>;
 
 inline PolyBook Book;
 
@@ -526,15 +526,15 @@ struct Stack final {
     History<HType::PIECE_SQ>*            pieceSqHistory;
     CorrectionHistory<CHType::PIECE_SQ>* pieceSqCorrectionHistory;
 
-    int          history;
-    Value        evalValue;
-    std::int16_t ply;
-    Move         move;
-    Move         ttMove;
-    std::uint8_t moveCount;
-    std::uint8_t cutoffCount;
-    bool         inCheck;
-    bool         ttPv;
+    int           history;
+    Value         evalValue;
+    std::int16_t  ply;
+    Move          move;
+    Move          ttMove;
+    std::uint16_t moveCount;
+    std::uint16_t cutoffCount;
+    bool          inCheck;
+    bool          ttPv;
 };
 
 // Worker does the actual search.

@@ -34,8 +34,6 @@
 namespace DON::NNUE::Layers {
 
 #if defined(USE_SSSE3) || (defined(USE_NEON) && USE_NEON >= 8)
-namespace {
-
 struct Lookup final {
 
     static constexpr std::size_t  SIZE       = 256;
@@ -66,7 +64,7 @@ struct Lookup final {
     }
 };
 
-alignas(CACHE_LINE_SIZE) constexpr Lookup LOOKUP{};
+alignas(CACHE_LINE_SIZE) inline constexpr Lookup LOOKUP{};
 
 
 // Find indices of nonzero 32-bit values in a packed byte buffer.
@@ -163,8 +161,6 @@ void find_nnz(const std::uint8_t* RESTRICT input,
     outCount = count;
     #endif
 }
-
-}  // namespace
 #endif
 
 // Sparse input implementation
@@ -206,14 +202,6 @@ class AffineTransformSparseInput final {
         return h;
     }
 
-    std::size_t content_hash() const noexcept {
-        std::size_t h = 0;
-        combine_hash(h, hash_raw_data(biases));
-        combine_hash(h, hash_raw_data(weights));
-        combine_hash(h, hash(0));
-        return h;
-    }
-
     static constexpr IndexType weight_index(IndexType i) noexcept {
 #if defined(USE_SSSE3) || (defined(USE_NEON) && USE_NEON >= 8)
         return (i / ChunkSize) % (PaddedInputDimensions / ChunkSize) * OutputDimensions * ChunkSize
@@ -221,6 +209,14 @@ class AffineTransformSparseInput final {
 #else
         return i;
 #endif
+    }
+
+    std::size_t content_hash() const noexcept {
+        std::size_t h = 0;
+        combine_hash(h, hash_raw_data(biases));
+        combine_hash(h, hash_raw_data(weights));
+        combine_hash(h, hash(0));
+        return h;
     }
 
     // Read network parameters
@@ -348,7 +344,7 @@ class AffineTransformSparseInput final {
 
         while (beg < end)
         {
-            std::size_t i = beg[0];
+            std::size_t i = *beg;
 
             invec_t in = vec_set_32(load_as<std::int32_t>(input + i * sizeof(std::int32_t)));
 

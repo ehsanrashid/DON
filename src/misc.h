@@ -133,7 +133,7 @@ namespace DON {
 using Strings     = std::vector<std::string>;
 using StringViews = std::vector<std::string_view>;
 
-inline constexpr std::size_t BITS_PER_BYTE = 8;
+inline constexpr std::size_t BYTE_BITS = 8;
 
 inline constexpr std::size_t HEX64_SIZE = 16;
 inline constexpr std::size_t HEX32_SIZE = 8;
@@ -486,7 +486,7 @@ struct LazyValue final {
 // Key Features:
 //  - Thread-safe: internal access to the registry map is protected by a mutex.
 //  - Per-ostream mutex: each ostream gets its own mutex to avoid contention.
-//  - Null-safe: passing a nullptr returns a dummy mutex to safely ignore locking
+//  - Null-safe: passing a nullptr returns a null-mutex to safely ignore locking
 //    without inserting invalid keys into the map.
 //  - Lazy initialization: mutexes are default-constructed when first requested.
 //
@@ -496,7 +496,7 @@ struct LazyValue final {
 //
 // Notes:
 //  - The class is static-only; it cannot be instantiated. (Restriction)
-//  - Mutexes are stored as shared_ptr in the map.
+//  - Mutexes are stored as object in the map.
 class OstreamMutexRegistry final {
    public:
     static void ensure_initialized() noexcept {
@@ -511,46 +511,23 @@ class OstreamMutexRegistry final {
     }
 
     // Return a mutex associated with the given ostream pointer.
-    // If osPtr is nullptr, returns a dummy mutex to safely ignore locking.
+    // If osPtr is nullptr, returns a null-mutex to safely ignore locking.
     // This ensures no accidental insertion of null keys into the map.
     static std::mutex& get(std::ostream* osPtr) noexcept {
-        if (!callOnce.initialized())
-            ensure_initialized();
+        ensure_initialized();
 
         // Fallback for null pointers
         if (osPtr == nullptr)
-            return dummy_mutex();
+            return nullMutex;
 
         // Lock the registry while accessing the map
         std::lock_guard writeLock(mutex);
 
-        // Creates default nullptr shared_ptr if missing
-        auto& mutexPtr = osMutexes[osPtr];
-
-        if (mutexPtr == nullptr)
-        {
-            //// Try to allocate a mutex; on allocation failure return dummy mutex as a safe fallback.
-            //try
-            //{
-            mutexPtr = std::make_shared<std::mutex>();
-            //}
-            //catch (...)
-            //{
-            //    return dummy_mutex();
-            //}
-        }
-
-        return *mutexPtr;
+        // Return mutex, create if missing
+        return osMutexes[osPtr];
     }
 
    private:
-    // Note: Dummy mutex shared by all nullptr streams
-    static std::mutex& dummy_mutex() noexcept {
-        static std::mutex dummyMutex;
-
-        return dummyMutex;
-    }
-
     OstreamMutexRegistry() noexcept                                       = delete;
     ~OstreamMutexRegistry() noexcept                                      = delete;
     OstreamMutexRegistry(const OstreamMutexRegistry&) noexcept            = delete;
@@ -561,9 +538,10 @@ class OstreamMutexRegistry final {
     static inline CallOnce callOnce;
     // Protects access to the osMutexes map for thread safety
     static inline std::mutex mutex;
-    // Store mutexes on the heap (shared_ptr) so references returned
-    // by get() remain valid even if the map rehashes.
-    static inline std::unordered_map<std::ostream*, std::shared_ptr<std::mutex>> osMutexes;
+    // Note: null-mutex shared by all nullptr streams
+    static inline std::mutex nullMutex;
+    // Store mutexes and references returned by get()
+    static inline std::unordered_map<std::ostream*, std::mutex> osMutexes;
 };
 
 // SyncOstream --- Synchronized output stream ---
@@ -977,11 +955,11 @@ class FixedVector final {
     static_assert(Capacity > 0, "Capacity must be > 0");
 
    public:
-    [[nodiscard]] constexpr std::size_t capacity() const noexcept { return Capacity; }
+    [[nodiscard]] constexpr SizeType capacity() const noexcept { return Capacity; }
 
-    [[nodiscard]] constexpr std::size_t size() const noexcept { return _size; }
-    [[nodiscard]] constexpr bool        empty() const noexcept { return size() == 0; }
-    [[nodiscard]] constexpr bool        full() const noexcept { return size() == capacity(); }
+    [[nodiscard]] constexpr SizeType size() const noexcept { return _size; }
+    [[nodiscard]] constexpr bool     empty() const noexcept { return size() == 0; }
+    [[nodiscard]] constexpr bool     full() const noexcept { return size() == capacity(); }
 
     T*       data() noexcept { return _data.data(); }
     const T* data() const noexcept { return _data.data(); }
@@ -1030,27 +1008,24 @@ class FixedVector final {
         return data()[size() - 1];
     }
 
-    T& operator[](std::size_t idx) noexcept {
+    T& operator[](SizeType idx) noexcept {
         assert(idx < size());
 
         return data()[idx];
     }
-    const T& operator[](std::size_t idx) const noexcept {
+    const T& operator[](SizeType idx) const noexcept {
         assert(idx < size());
 
         return data()[idx];
     }
 
-    void resize(std::size_t newSize) noexcept {
-
-        if (newSize > capacity())
-            newSize = capacity();
-
-        _size = newSize;  // Note: doesn't construct/destroy elements
+    void resize(SizeType newSize) noexcept {
+        // Note: doesn't construct/destroy elements
+        _size = std::min(newSize, capacity());
     }
 
-    T* make_space(std::size_t space) noexcept {
-        std::size_t oldSize = size();
+    T* make_space(SizeType space) noexcept {
+        SizeType oldSize = size();
 
         resize(oldSize + space);
 
@@ -1171,49 +1146,6 @@ class FixedString final {
     std::size_t                  _size;
 };
 
-// RAII guard for resetting atomic bool flags
-struct FlagGuard final {
-   public:
-    explicit FlagGuard(std::atomic<bool>& flagRef) noexcept :
-        flag(flagRef) {}
-
-    ~FlagGuard() noexcept { reset(); }
-
-    // Manually reset the flag if needed before destruction
-    void reset() noexcept { flag.store(false, std::memory_order_release); }
-
-   private:
-    // Non-copyable, non-movable to ensure unique ownership
-    FlagGuard(const FlagGuard&)            = delete;
-    FlagGuard(FlagGuard&&)                 = delete;
-    FlagGuard& operator=(const FlagGuard&) = delete;
-    FlagGuard& operator=(FlagGuard&&)      = delete;
-
-    std::atomic<bool>& flag;
-};
-
-// RAII guard for resetting atomic int flags
-template<typename T>
-struct FlagsGuard final {
-   public:
-    explicit FlagsGuard(std::atomic<T>& flagsRef) noexcept :
-        flags(flagsRef) {}
-
-    ~FlagsGuard() noexcept { reset(); }
-
-    // Manually reset the flag if needed before destruction
-    void reset() noexcept { flags.store(0, std::memory_order_release); }
-
-   private:
-    // Non-copyable, non-movable to ensure unique ownership
-    FlagsGuard(const FlagsGuard&)            = delete;
-    FlagsGuard(FlagsGuard&&)                 = delete;
-    FlagsGuard& operator=(const FlagsGuard&) = delete;
-    FlagsGuard& operator=(FlagsGuard&&)      = delete;
-
-    std::atomic<T>& flags;
-};
-
 // ConcurrentCache: groups (mutex + storage + pre-reserve)
 template<typename Key, typename Value>
 class ConcurrentCache final {
@@ -1283,6 +1215,49 @@ class ConcurrentCache final {
     std::unordered_map<Key, StorageValue> storage;
 };
 
+// RAII guard for resetting atomic bool flags
+struct FlagGuard final {
+   public:
+    explicit FlagGuard(std::atomic<bool>& flagRef) noexcept :
+        flag(flagRef) {}
+
+    ~FlagGuard() noexcept { reset(); }
+
+    // Manually reset the flag if needed before destruction
+    void reset() noexcept { flag.store(false, std::memory_order_release); }
+
+   private:
+    // Non-copyable, non-movable to ensure unique ownership
+    FlagGuard(const FlagGuard&)            = delete;
+    FlagGuard(FlagGuard&&)                 = delete;
+    FlagGuard& operator=(const FlagGuard&) = delete;
+    FlagGuard& operator=(FlagGuard&&)      = delete;
+
+    std::atomic<bool>& flag;
+};
+
+// RAII guard for resetting atomic int flags
+template<typename T>
+struct FlagsGuard final {
+   public:
+    explicit FlagsGuard(std::atomic<T>& flagsRef) noexcept :
+        flags(flagsRef) {}
+
+    ~FlagsGuard() noexcept { reset(); }
+
+    // Manually reset the flag if needed before destruction
+    void reset() noexcept { flags.store(0, std::memory_order_release); }
+
+   private:
+    // Non-copyable, non-movable to ensure unique ownership
+    FlagsGuard(const FlagsGuard&)            = delete;
+    FlagsGuard(FlagsGuard&&)                 = delete;
+    FlagsGuard& operator=(const FlagsGuard&) = delete;
+    FlagsGuard& operator=(FlagsGuard&&)      = delete;
+
+    std::atomic<T>& flags;
+};
+
 // Hash function based on public domain MurmurHash64A by Austin Appleby.
 // Fast, non-cryptographic 64-bit hash suitable for general-purpose hashing.
 inline std::uint64_t
@@ -1319,9 +1294,9 @@ hash_bytes(const char* RESTRICT data, std::size_t size, std::uint64_t seed = 0) 
         // Read remaining bytes in little-endian order
         while (p < dataEnd)
         {
-            k |= std::uint64_t(p[0]) << shift;
+            k |= std::uint64_t(*p) << shift;
 
-            shift += BITS_PER_BYTE;
+            shift += BYTE_BITS;
             ++p;
         }
 

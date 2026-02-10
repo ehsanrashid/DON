@@ -82,9 +82,13 @@
 namespace DON {
 
 using Bitboard = std::uint64_t;
-using Key      = std::uint64_t;
-
 static_assert(sizeof(Bitboard) == 8, "Bitboard size must be 8 bytes");
+
+    #if defined(USE_BMI2) && defined(USE_COMP)
+using Bitboard16 = std::uint16_t;
+    #endif
+
+using Key = std::uint64_t;
 static_assert(sizeof(Key) == 8, "Key size must be 8 bytes");
 
 inline constexpr std::uint16_t MAX_MOVES = 256;
@@ -102,13 +106,13 @@ enum File : std::uint8_t {
     FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H
 };
 
-inline constexpr std::size_t FILE_NB   = 8;
+inline constexpr std::size_t FILE_NB = 8;
 
 enum Rank : std::uint8_t {
     RANK_1, RANK_2, RANK_3, RANK_4, RANK_5, RANK_6, RANK_7, RANK_8
 };
 
-inline constexpr std::size_t RANK_NB   = 8;
+inline constexpr std::size_t RANK_NB = 8;
 
 enum Square : std::uint8_t {
     SQ_A1, SQ_B1, SQ_C1, SQ_D1, SQ_E1, SQ_F1, SQ_G1, SQ_H1,
@@ -397,6 +401,8 @@ inline constexpr Value VALUE_KNIGHT = 781;
 inline constexpr Value VALUE_BISHOP = 825;
 inline constexpr Value VALUE_ROOK   = 1276;
 inline constexpr Value VALUE_QUEEN  = 2538;
+
+inline constexpr int MAX_DELTA = 2 * VALUE_INFINITE;
 
 // Returns the value of the given piece type
 constexpr Value piece_value(PieceType pt) noexcept {

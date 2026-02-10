@@ -28,9 +28,7 @@
 #include "../../types.h"
 #include "../common.h"
 
-namespace DON {
-
-namespace NNUE::Features {
+namespace DON::NNUE::Features {
 
 // Feature FullThreats: Threats posed by pieces to opponent's pieces
 class FullThreats final {
@@ -82,7 +80,6 @@ class FullThreats final {
     FullThreats& operator=(FullThreats&&) noexcept      = delete;
 };
 
-}  // namespace NNUE::Features
-}  // namespace DON
+}  // namespace DON::NNUE::Features
 
 #endif  // #ifndef NNUE_FEATURES_FULL_THREATS_H_INCLUDED

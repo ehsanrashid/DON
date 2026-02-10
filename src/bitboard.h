@@ -54,12 +54,6 @@
 
 namespace DON {
 
-#if defined(USE_BMI2)
-    #if defined(USE_COMP)
-using Bitboard16 = std::uint16_t;
-    #endif
-#endif
-
 namespace BitBoard {
 
 void init() noexcept;
@@ -315,9 +309,9 @@ constexpr Bitboard pawn_attacks_bb(Bitboard pawns, Color c) noexcept {
 constexpr Bitboard destination_bb(Square s, Direction d, std::uint8_t dist = 1) noexcept {
     assert(is_ok(s));
 
-    Square sq = s + d;
+    Square nextSq = s + d;
 
-    return is_ok(sq) && distance(s, sq) <= dist ? square_bb(sq) : 0;
+    return is_ok(nextSq) && distance(s, nextSq) <= dist ? square_bb(nextSq) : 0;
 }
 
 // Computes sliding attack
@@ -327,31 +321,41 @@ constexpr Bitboard sliding_attacks_bb(Square s, Bitboard occupancyBB = 0) noexce
     assert(is_ok(s));
 
     constexpr StdArray<Direction, 2, 4> Directions{{
-      {Direction::SOUTH_WEST, Direction::SOUTH_EAST, Direction::NORTH_WEST, Direction::NORTH_EAST},
-      {Direction::SOUTH, Direction::WEST, Direction::EAST, Direction::NORTH}  //
+      {
+        Direction::SOUTH_WEST,  //
+        Direction::SOUTH_EAST,  //
+        Direction::NORTH_WEST,  //
+        Direction::NORTH_EAST   //
+      },
+      {
+        Direction::SOUTH,  //
+        Direction::WEST,   //
+        Direction::EAST,   //
+        Direction::NORTH   //
+      }  //
     }};
 
     Bitboard attacksBB = 0;
 
-    for (const Direction d : Directions[PT - BISHOP])
+    for (Direction d : Directions[PT - BISHOP])
     {
-        Square sq = s;
+        Square curSq = s;
 
         while (true)
         {
-            Square nextSq = sq + d;
+            Square nextSq = curSq + d;
 
             // Stop if next square is off-board or not adjacent (wrap-around)
-            if (!is_ok(nextSq) || distance(sq, nextSq) > 1)
+            if (!is_ok(nextSq) || distance(curSq, nextSq) > 1)
                 break;
 
             // Move to next square
-            sq = nextSq;
+            curSq = nextSq;
 
-            attacksBB |= sq;
+            attacksBB |= curSq;
 
             // Stop if occupied - sliding blocked
-            if ((occupancyBB & sq) != 0)
+            if ((occupancyBB & curSq) != 0)
                 break;
         }
     }
@@ -364,12 +368,15 @@ constexpr Bitboard knight_attacks_bb(Square s) noexcept {
 
     Bitboard attacksBB = 0;
 
-    for (Direction dir :
-         {Direction::SOUTH_2 + Direction::WEST, Direction::SOUTH_2 + Direction::EAST,
-          Direction::WEST_2 + Direction::SOUTH, Direction::EAST_2 + Direction::SOUTH,
-          Direction::WEST_2 + Direction::NORTH, Direction::EAST_2 + Direction::NORTH,
-          Direction::NORTH_2 + Direction::WEST, Direction::NORTH_2 + Direction::EAST})
-        attacksBB |= destination_bb(s, dir, 2);
+    for (Direction d : {Direction::SOUTH_2 + Direction::WEST,  //
+                        Direction::SOUTH_2 + Direction::EAST,  //
+                        Direction::WEST_2 + Direction::SOUTH,  //
+                        Direction::EAST_2 + Direction::SOUTH,  //
+                        Direction::WEST_2 + Direction::NORTH,  //
+                        Direction::EAST_2 + Direction::NORTH,  //
+                        Direction::NORTH_2 + Direction::WEST,  //
+                        Direction::NORTH_2 + Direction::EAST})
+        attacksBB |= destination_bb(s, d, 2);
 
     return attacksBB;
 }
@@ -379,10 +386,11 @@ constexpr Bitboard king_attacks_bb(Square s) noexcept {
 
     Bitboard attacksBB = 0;
 
-    for (Direction dir :
-         {Direction::SOUTH_WEST, Direction::SOUTH, Direction::SOUTH_EAST, Direction::WEST,
-          Direction::EAST, Direction::NORTH_WEST, Direction::NORTH, Direction::NORTH_EAST})
-        attacksBB |= destination_bb(s, dir);
+    for (Direction d : {Direction::SOUTH_WEST, Direction::SOUTH,  //
+                        Direction::SOUTH_EAST, Direction::WEST,   //
+                        Direction::EAST, Direction::NORTH_WEST,   //
+                        Direction::NORTH, Direction::NORTH_EAST})
+        attacksBB |= destination_bb(s, d);
 
     return attacksBB;
 }
@@ -566,17 +574,6 @@ constexpr Bitboard pass_ray_bb(Square s1, Square s2) noexcept {
 
 constexpr std::uint8_t constexpr_popcount(Bitboard b) noexcept {
 
-    // std::uint8_t count = 0;
-    // while (b != 0)
-    // {
-    //     count += b & 1;
-    //     b >>= 1;
-    // }
-    // return count;
-
-    // asm ("popcnt %0, %0" : "+r" (b) :: "cc");
-    // return b;
-
     constexpr Bitboard K1 = 0x5555555555555555ULL;
     constexpr Bitboard K2 = 0x3333333333333333ULL;
     constexpr Bitboard K4 = 0x0F0F0F0F0F0F0F0FULL;
@@ -619,31 +616,12 @@ constexpr Bitboard fill_postfix_bb(Bitboard b) noexcept {
 constexpr std::uint8_t constexpr_lsb(Bitboard b) noexcept {
     assert(b != 0);
 
-    // std::uint8_t idx = 0;
-    // while (!(b & 1))
-    // {
-    //     ++idx;
-    //     b >>= 1;
-    // }
-    // return Square(idx);
-
-    // asm ("bsfq %0, %0" : "+r" (b) :: "cc");
-    // return Square(b);
-
     b ^= b - 1;
     return msb_index(b);
 }
 
 constexpr std::uint8_t constexpr_msb(Bitboard b) noexcept {
     assert(b != 0);
-
-    // std::uint8_t idx = 0;
-    // while (b >>= 1)
-    //     ++idx;
-    // return Square(idx);
-
-    // asm ("bsrq %0, %0" : "+r" (b) :: "cc");
-    // return Square(b);
 
     b = fill_prefix_bb(b);
     return msb_index(b);
@@ -703,11 +681,11 @@ inline Square lsq(Bitboard b) noexcept {
     return Square(__builtin_ctzll(b));
 #elif defined(_MSC_VER)
     unsigned long idx;
-    #if defined(_WIN64)  // (MSVC-> WIN64)
+    #if defined(_WIN64)  // (WIN64)
     _BitScanForward64(&idx, b);
 
     return Square(idx);
-    #else                // (MSVC-> WIN32)
+    #else                // (WIN32)
     if (auto bb = std::uint32_t(b); bb != 0)
     {
         _BitScanForward(&idx, bb);
@@ -736,11 +714,11 @@ inline Square msq(Bitboard b) noexcept {
     return Square(__builtin_clzll(b) ^ 63);
 #elif defined(_MSC_VER)
     unsigned long idx;
-    #if defined(_WIN64)  // (MSVC-> WIN64)
+    #if defined(_WIN64)  // (WIN64)
     _BitScanReverse64(&idx, b);
 
     return Square(idx);
-    #else                // (MSVC-> WIN32)
+    #else                // (WIN32)
     if (auto bb = std::uint32_t(b >> 32); bb != 0)
     {
         _BitScanReverse(&idx, bb);
