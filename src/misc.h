@@ -955,7 +955,7 @@ class FixedVector final {
     static_assert(Capacity > 0, "Capacity must be > 0");
 
    public:
-    [[nodiscard]] constexpr std::size_t capacity() const noexcept { return Capacity; }
+    [[nodiscard]] constexpr SizeType capacity() const noexcept { return Capacity; }
 
     [[nodiscard]] constexpr SizeType size() const noexcept { return _size; }
     [[nodiscard]] constexpr bool     empty() const noexcept { return size() == 0; }
@@ -1008,27 +1008,24 @@ class FixedVector final {
         return data()[size() - 1];
     }
 
-    T& operator[](std::size_t idx) noexcept {
+    T& operator[](SizeType idx) noexcept {
         assert(idx < size());
 
         return data()[idx];
     }
-    const T& operator[](std::size_t idx) const noexcept {
+    const T& operator[](SizeType idx) const noexcept {
         assert(idx < size());
 
         return data()[idx];
     }
 
-    void resize(std::size_t newSize) noexcept {
-
-        if (newSize > capacity())
-            newSize = capacity();
-
-        _size = newSize;  // Note: doesn't construct/destroy elements
+    void resize(SizeType newSize) noexcept {
+        // Note: doesn't construct/destroy elements
+        _size = std::min(newSize, capacity());
     }
 
-    T* make_space(std::size_t space) noexcept {
-        std::size_t oldSize = size();
+    T* make_space(SizeType space) noexcept {
+        SizeType oldSize = size();
 
         resize(oldSize + space);
 
