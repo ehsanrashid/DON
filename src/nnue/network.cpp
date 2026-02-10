@@ -239,10 +239,11 @@ Network<Arch, Transformer>::evaluate(const Position&                         pos
       StdArray<TransformedFeatureType, FeatureTransformer<TFDimensions>::BufferSize>
         transformedFeatures;
 
-    const std::size_t bucket = pos.bucket();
+    std::size_t bucket = pos.bucket();
 
-    auto psqt = featureTransformer.transform(pos, accStack, cache, bucket, transformedFeatures);
-    auto positional = network[bucket].propagate(transformedFeatures);
+    std::int32_t psqt =
+      featureTransformer.transform(pos, accStack, cache, bucket, transformedFeatures);
+    std::int32_t positional = network[bucket].propagate(transformedFeatures);
 
     return {psqt / OUTPUT_SCALE, positional / OUTPUT_SCALE};
 }
@@ -261,8 +262,9 @@ Network<Arch, Transformer>::trace(const Position&                         pos,
     netTrace.correctBucket = pos.bucket();
     for (IndexType bucket = 0; bucket < LayerStacks; ++bucket)
     {
-        auto psqt = featureTransformer.transform(pos, accStack, cache, bucket, transformedFeatures);
-        auto positional = network[bucket].propagate(transformedFeatures);
+        std::int32_t psqt =
+          featureTransformer.transform(pos, accStack, cache, bucket, transformedFeatures);
+        std::int32_t positional = network[bucket].propagate(transformedFeatures);
 
         netTrace.netOut[bucket] = {psqt / OUTPUT_SCALE, positional / OUTPUT_SCALE};
     }
