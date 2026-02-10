@@ -34,8 +34,6 @@
 namespace DON::NNUE::Layers {
 
 #if defined(USE_SSSE3) || (defined(USE_NEON) && USE_NEON >= 8)
-namespace {
-
 struct Lookup final {
 
     static constexpr std::size_t  SIZE       = 256;
@@ -66,7 +64,7 @@ struct Lookup final {
     }
 };
 
-alignas(CACHE_LINE_SIZE) constexpr Lookup LOOKUP{};
+alignas(CACHE_LINE_SIZE) inline constexpr Lookup LOOKUP{};
 
 
 // Find indices of nonzero 32-bit values in a packed byte buffer.
@@ -163,8 +161,6 @@ void find_nnz(const std::uint8_t* RESTRICT input,
     outCount = count;
     #endif
 }
-
-}  // namespace
 #endif
 
 // Sparse input implementation

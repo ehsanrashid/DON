@@ -2136,7 +2136,7 @@ void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Sta
     {
         update_quiet_histories(pos, pawnHistory, ss, bestMove, constexpr_round(0.8887 * bonus));
 
-        int baseQuietMalus = malus - 20 * std::clamp<int>(searchedMoves[0].size() - 1, 0, 32);
+        int baseQuietMalus = malus - 20 * searchedMoves[0].size();
         if (baseQuietMalus < 0)
             baseQuietMalus = 0;
         // Decrease history for all non-best quiet moves

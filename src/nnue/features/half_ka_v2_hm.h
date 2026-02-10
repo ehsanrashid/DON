@@ -26,9 +26,7 @@
 #include "../../types.h"
 #include "../common.h"
 
-namespace DON {
-
-namespace NNUE::Features {
+namespace DON::NNUE::Features {
 
 // Feature HalfKAv2_hm: Combination of the position of own king and the position of pieces.
 // Position mirrored such that king is always on e..h files.
@@ -71,7 +69,6 @@ class HalfKAv2_hm final {
     HalfKAv2_hm& operator=(HalfKAv2_hm&&) noexcept      = delete;
 };
 
-}  // namespace NNUE::Features
-}  // namespace DON
+}  // namespace DON::NNUE::Features
 
 #endif  // #ifndef NNUE_FEATURES_HALF_KA_V2_HM_H_INCLUDED
