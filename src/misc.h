@@ -957,9 +957,9 @@ class FixedVector final {
    public:
     [[nodiscard]] constexpr std::size_t capacity() const noexcept { return Capacity; }
 
-    [[nodiscard]] constexpr std::size_t size() const noexcept { return _size; }
-    [[nodiscard]] constexpr bool        empty() const noexcept { return size() == 0; }
-    [[nodiscard]] constexpr bool        full() const noexcept { return size() == capacity(); }
+    [[nodiscard]] constexpr SizeType size() const noexcept { return _size; }
+    [[nodiscard]] constexpr bool     empty() const noexcept { return size() == 0; }
+    [[nodiscard]] constexpr bool     full() const noexcept { return size() == capacity(); }
 
     T*       data() noexcept { return _data.data(); }
     const T* data() const noexcept { return _data.data(); }
