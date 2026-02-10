@@ -97,6 +97,8 @@ constexpr IntType ceil_to_multiple(IntType n, IntType base) noexcept {
 template<typename IntType>
 inline IntType read_little_endian(std::istream& is) noexcept {
 
+    using UIntType = std::make_unsigned_t<IntType>;
+
     constexpr std::size_t IntSize = sizeof(IntType);
 
     IntType value;
@@ -106,7 +108,8 @@ inline IntType read_little_endian(std::istream& is) noexcept {
     else
     {
         StdArray<std::uint8_t, IntSize> u;
-        std::make_unsigned_t<IntType>   v = 0;
+
+        UIntType v = 0;
 
         is.read(reinterpret_cast<char*>(u.data()), IntSize);
         for (std::size_t i = 0; i < IntSize; ++i)
@@ -125,6 +128,8 @@ inline IntType read_little_endian(std::istream& is) noexcept {
 template<typename IntType>
 inline void write_little_endian(std::ostream& os, IntType value) noexcept {
 
+    using UIntType = std::make_unsigned_t<IntType>;
+
     constexpr std::size_t IntSize = sizeof(IntType);
 
     if (IsLittleEndian)
@@ -132,7 +137,8 @@ inline void write_little_endian(std::ostream& os, IntType value) noexcept {
     else
     {
         StdArray<std::uint8_t, IntSize> u;
-        std::make_unsigned_t<IntType>   v = value;
+
+        UIntType v = value;
 
         std::size_t i = 0;
         // if constexpr to silence the warning about shift by BYTE_BITS
