@@ -765,8 +765,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
         }
 
         // Limit the depth if extensions made it too large
-        if (depth > MAX_PLY - 1)
-            depth = MAX_PLY - 1;
+        depth = std::min(+depth, MAX_PLY - 1);
 
         assert(DEPTH_ZERO < depth && depth <= MAX_PLY - 1);
     }
@@ -780,8 +779,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
     if constexpr (PVNode)
     {
         // Update selDepth (selDepth from 1, ply from 0)
-        if (selDepth < ss->ply + 1)
-            selDepth = ss->ply + 1;
+        selDepth = std::max(+selDepth, ss->ply + 1);
     }
 
     // Step 1. Initialize node
@@ -1401,8 +1399,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
                 extension = 1 + int(singularValue <= singularAlpha - doubleMargin)
                               + int(singularValue <= singularAlpha - tripleMargin);
 
-                if (depth < MAX_PLY - 1)
-                    ++depth;
+                depth = std::min(depth + 1, MAX_PLY - 1);
             }
             // Multi-cut pruning
             // If the ttMove is assumed to fail high based on the bound of the TT entry, and
@@ -1652,12 +1649,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
 
                 // Reduce depth for other moves if have found at least one score improvement
                 if (depth < 16 && !is_decisive(value))
-                {
-                    depth -= 1 + int(depth < 8);
-
-                    if (depth < 1)
-                        depth = 1;
-                }
+                    depth = std::max(depth - 1 - int(depth < 8), 1);
             }
         }
 
@@ -1795,8 +1787,7 @@ Value Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta) noexcep
         (ss + 1)->pv = pv.data();
 
         // Update selDepth (selDepth from 1, ply from 0)
-        if (selDepth < ss->ply + 1)
-            selDepth = ss->ply + 1;
+        selDepth = std::max(+selDepth, ss->ply + 1);
     }
 
     // Step 1. Initialize node
