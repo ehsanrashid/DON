@@ -457,21 +457,14 @@ Bitboard changed_bb(const StdArray<Piece, SQUARE_NB>& oldPieces,
 #if defined(USE_AVX512) || defined(USE_AVX2)
     Bitboard samedBB = 0;
 
-    std::size_t s;
-
-    s                   = 0;
-    __m256i       oldV0 = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&oldPieces[s]));
-    __m256i       newV0 = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&newPieces[s]));
-    __m256i       cmp0  = _mm256_cmpeq_epi8(oldV0, newV0);
-    std::uint32_t mask0 = _mm256_movemask_epi8(cmp0);
-    samedBB |= Bitboard(mask0) << s;
-
-    s                   = 32;
-    __m256i       oldV1 = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&oldPieces[s]));
-    __m256i       newV1 = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&newPieces[s]));
-    __m256i       cmp1  = _mm256_cmpeq_epi8(oldV1, newV1);
-    std::uint32_t mask1 = _mm256_movemask_epi8(cmp1);
-    samedBB |= Bitboard(mask1) << s;
+    for (std::size_t s : {std::size_t(0), SQUARE_NB / 2})
+    {
+        __m256i       oldV = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&oldPieces[s]));
+        __m256i       newV = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&newPieces[s]));
+        __m256i       cmp  = _mm256_cmpeq_epi8(oldV, newV);
+        std::uint32_t mask = _mm256_movemask_epi8(cmp);
+        samedBB |= Bitboard(mask) << s;
+    }
 
     return ~samedBB;
 #elif defined(USE_NEON)
