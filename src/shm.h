@@ -1235,7 +1235,7 @@ struct ShmHeader final {
         if (pthread_mutex_init(&mutex, &mutexAttr) != 0)
             return false;
 
-        initialized();
+        set_initialized();
 
         return true;
     }
@@ -1286,7 +1286,7 @@ struct ShmHeader final {
         return refCount.load(std::memory_order_acquire);
     }
 
-    void initialized() noexcept {
+    void set_initialized() noexcept {
         initialize.store(true, std::memory_order_release);
         refCount.store(0, std::memory_order_release);
     }
