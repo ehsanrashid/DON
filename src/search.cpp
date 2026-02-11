@@ -275,12 +275,10 @@ void Worker::start_search() noexcept {
         // When playing with strength handicap enable MultiPV search that
         // will use behind-the-scenes to retrieve a set of sub-optimal moves.
         if (mainManager->skill.enabled())
-            if (multiPV < Skill::MIN_MULTI_PV)
-                multiPV = Skill::MIN_MULTI_PV;
+            multiPV = std::max(Skill::MIN_MULTI_PV, multiPV);
     }
 
-    if (multiPV > rootMoves.size())
-        multiPV = rootMoves.size();
+    multiPV = std::min(rootMoves.size(), multiPV);
 
     accStack.reset();
 
@@ -501,9 +499,12 @@ void Worker::iterative_deepening() noexcept {
         for (curPV = 0; curPV < multiPV; ++curPV)
         {
             if (curPV == endPV)
-                for (begPV = endPV++; endPV < rootMoves.size(); ++endPV)
-                    if (rootMoves[endPV].tbRank != rootMoves[begPV].tbRank)
-                        break;
+            {
+                begPV = endPV++;
+                while (endPV < rootMoves.size()
+                       && rootMoves[endPV].tbRank == rootMoves[begPV].tbRank)
+                    ++endPV;
+            }
 
             // Reset UCI info selDepth for each depth and each PV line
             selDepth = 1;
@@ -683,24 +684,20 @@ void Worker::iterative_deepening() noexcept {
                 nodeEffortExcess = 0.0;
             double nodeEffortFactor = 1.0 - 37.5207e-4 * nodeEffortExcess;
 
-            if (stableDepth > 25)
-                stableDepth = 25;
             // Compute recapture factor that reduces time if recapture conditions are met
             double recaptureFactor = 1.0;
             if ( rootPos.captured_sq() == rootMoves[0].pv[0].dst_sq()
              && (rootPos.captured_sq() & rootPos.pieces_bb(~ac))
              && rootPos.see(rootMoves[0].pv[0]) >= 200)
-                recaptureFactor -= 4.0040e-3 * int(stableDepth);
+                recaptureFactor -= 4.0040e-3 * std::min(+stableDepth, 25);
 
             // Calculate total time by combining all factors with the optimum time
             TimePoint totalTime = mainManager->timeManager.optimum() * inconsistencyFactor * easeFactor * instabilityFactor * nodeEffortFactor * recaptureFactor;
             assert(totalTime >= 0.0);
             // clang-format on
 
-            TimePoint maxTime = mainManager->timeManager.maximum();
             // Cap totalTime to the available maximum time
-            if (totalTime > maxTime)
-                totalTime = maxTime;
+            totalTime = std::min(mainManager->timeManager.maximum(), totalTime);
 
             // Cap totalTime in case of a single legal move for a better viewer experience
             if (rootMoves.size() == 1)
@@ -2477,12 +2474,8 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
     const auto&       tbConfig           = worker.tbConfig;
     const std::size_t multiPV            = worker.multiPV;
     const std::size_t curPV              = worker.curPV;
-
-    TimePoint time = elapsed();
     // Avoid division by zero
-    if (time == 0)
-        time = 1;
-
+    TimePoint     time     = std::max(elapsed(), TimePoint(1));
     std::uint64_t nodes    = threads.sum(&Worker::nodes);
     std::uint16_t hashfull = transpositionTable.hashfull();
     std::uint64_t tbHits   = threads.sum(&Worker::tbHits,  //
@@ -2598,7 +2591,7 @@ Move Skill::pick_move(const RootMoves& rootMoves, std::size_t multiPV, bool pick
         // RootMoves are already sorted by value in descending order
         Value maxValue = rootMoves[0].curValue;
 
-        Value delta = std::min(maxValue - rootMoves[multiPV - 1].curValue, int(VALUE_PAWN));
+        Value delta = std::min(maxValue - rootMoves[multiPV - 1].curValue, +VALUE_PAWN);
 
         Value bestValue = -VALUE_INFINITE;
         // Choose best move. For each move value add two terms, both dependent on weakness.
@@ -2606,10 +2599,11 @@ Move Skill::pick_move(const RootMoves& rootMoves, std::size_t multiPV, bool pick
         // Then choose the move with the resulting highest value.
         for (std::size_t i = 0; i < multiPV; ++i)
         {
-            Value diff  = maxValue - rootMoves[i].curValue;
-            Value noise = prng.rand<std::uint32_t>() % weakness();
-            Value push  = (weakness() * diff + delta * noise) / 128;
-            Value value = rootMoves[i].curValue + push;
+            Value curValue = rootMoves[i].curValue;
+            Value diff     = maxValue - curValue;
+            Value noise    = prng.rand<std::uint32_t>() % weakness();
+            Value push     = (weakness() * diff + delta * noise) / 128;
+            Value value    = curValue + push;
 
             if (bestValue <= value)
             {

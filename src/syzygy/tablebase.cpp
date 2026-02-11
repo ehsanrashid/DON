@@ -1155,10 +1155,7 @@ void TBTables::add(const std::vector<PieceType>& pieces) noexcept {
     if (!(Exists[WDL] || Exists[DTZ]))
         return;
 
-    std::uint8_t pieceCount = pieces.size();
-
-    if (MaxCardinality < pieceCount)
-        MaxCardinality = pieceCount;
+    MaxCardinality = std::max(std::uint8_t(pieces.size()), MaxCardinality);
 
     TBTable<WDL>* wdlTable = nullptr;
     TBTable<DTZ>* dtzTable = nullptr;

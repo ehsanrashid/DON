@@ -121,7 +121,7 @@ struct WindowsAffinity final {
         const auto& smallCpus = oldSmall ? *oldCpus : *newCpus;
         const auto& largeCpus = oldSmall ? *newCpus : *oldCpus;
 
-        for (const auto& cpuId : smallCpus)
+        for (CpuIndex cpuId : smallCpus)
             if (largeCpus.find(cpuId) != largeCpus.end())
                 combinedCpus.insert(cpuId);
 
