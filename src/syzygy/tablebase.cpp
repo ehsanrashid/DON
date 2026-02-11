@@ -186,6 +186,7 @@ T number(const void* addr) noexcept {
 
 // Numbers in little-endian used by sparseIndex[] to point into blockLength[]
 struct SparseEntry final {
+   public:
     StdArray<char, 4> block;   // Number of block
     StdArray<char, 2> offset;  // Offset within the block
 };
@@ -194,15 +195,15 @@ static_assert(sizeof(SparseEntry) == 6, "SparseEntry size must be 6 bytes");
 
 using Sym = std::uint16_t;  // Huffman symbol
 
-constexpr Sym INVALID_SYM = 0xFFFU;
+constexpr Sym INVALID_SYM = 0xFFF;
 
 struct LR final {
+   public:
     template<bool Left>
     constexpr Sym get() const noexcept {
         if constexpr (Left)
             return ((data[1] & 0xF) << 8) | data[0];
-        else
-            return (data[2] << 4) | (data[1] >> 4);
+        return (data[2] << 4) | (data[1] >> 4);
     }
 
     // First 12 bits is the left-hand symbol, second 12 bits is the right-hand symbol.
@@ -265,6 +266,7 @@ class TBPaths final {
         while (beg < paths.size())
         {
             std::size_t end = paths.find(PathSeparator, beg);
+
             if (end == std::string_view::npos)
                 end = paths.size();
 
@@ -1240,12 +1242,17 @@ int decompress_pairs(PairsData* pd, std::uint64_t idx) noexcept {
     // Move to the previous/next block, until reach the correct block that contains idx,
     // that is when 0 <= offset <= d->blockLength[block]
     while (offset < 0)
-        offset += pd->blockLength[--block] + 1;
-
+    {
+        --block;
+        offset += pd->blockLength[block] + 1;
+    }
     while (offset > pd->blockLength[block])
-        offset -= pd->blockLength[block++] + 1;
+    {
+        offset -= pd->blockLength[block] + 1;
+        ++block;
+    }
 
-    // Finally, find the start address of our block of canonical Huffman symbols
+    // Finally, find the start address of block of canonical Huffman symbols
     auto* ptr = (std::uint32_t*) (pd->data + (std::uint64_t(block) * pd->blockSize));
 
     // Read the first 64 bits in our block, this is a (truncated) sequence of
@@ -1301,15 +1308,18 @@ int decompress_pairs(PairsData* pd, std::uint64_t idx) noexcept {
     {
         Sym lSym = pd->btree[sym].get<true>();
 
+        int lSymLen = pd->symLen[lSym] + 1;
+
         // If a symbol contains 36 sub-symbols (d->symLen[sym] + 1 = 36) and
         // expands in a pair (d->symLen[lSym] = 23, d->symLen[rSym] = 11), then
         // for instance, the tenth value (offset = 10) will be on the left side
         // because in Recursive Pairing child symbols are adjacent.
-        if (offset < pd->symLen[lSym] + 1)
+        if (offset < lSymLen)
             sym = lSym;
         else
         {
-            offset -= pd->symLen[lSym] + 1;
+            offset -= lSymLen;
+
             sym = pd->btree[sym].get<false>();
         }
     }
@@ -1454,7 +1464,7 @@ Ret do_probe_table(
 
     assert(size >= 2);
 
-    PairsData* pd = table->get(activeColor, tbFile);
+    auto* pd = table->get(activeColor, tbFile);
 
     // Then reorder the pieces to have the same sequence as the one stored
     // in pieces[i]: the sequence that ensures the best compression.
