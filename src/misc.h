@@ -144,7 +144,7 @@ inline constexpr std::size_t ONE_MB = ONE_KB * ONE_KB;
 inline constexpr std::size_t UNROLL_8 = 8;
 inline constexpr std::size_t UNROLL_4 = 4;
 
-inline constexpr std::int64_t INT_LIMIT = 0x7FFFFFFFLL;
+inline constexpr std::int64_t INT_LIMIT = 0x7FFFFFFF;
 
 // Constants for Murmur Hashing
 inline constexpr std::uint64_t MURMUR_M = 0xC6A4A7935BD1E995ULL;
