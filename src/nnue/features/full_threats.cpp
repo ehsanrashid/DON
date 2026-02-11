@@ -36,12 +36,12 @@ namespace {
 constexpr StdArray<std::uint16_t, PIECE_TYPE_CNT> MAX_TARGETS{6, 10, 8, 8, 10, 0};
 
 constexpr StdArray<std::int16_t, PIECE_TYPE_CNT, PIECE_TYPE_CNT> MAP{{
-  {+0, +1, +2, +3, +4, -1},  //
-  {+0, +1, +2, +3, +4, -1},  //
-  {+0, +1, +2, +3, +4, -1},  //
-  {+0, +1, +2, +3, +4, -1},  //
-  {+0, +1, +2, +3, +4, -1},  //
-  {-1, -1, -1, -1, -1, -1}   //
+  {+0, +1, -1, +2, -1, -2},  //
+  {+0, +1, +2, +3, +4, -2},  //
+  {+0, +1, +2, +3, -1, -2},  //
+  {+0, +1, +2, +3, -1, -2},  //
+  {+0, +1, +2, +3, +4, -2},  //
+  {-2, -2, -2, -2, -2, -2}   //
 }};
 
 struct PieceThreat final {
@@ -110,15 +110,15 @@ alignas(CACHE_LINE_SIZE) constexpr auto LUT_DATAS = []() constexpr noexcept {
                     Piece attackedPc = make_piece(attackedC, attackedPt);
 
                     // Excluded
-                    if (MAP[attackerPt - 1][attackedPt - 1] < 0)
+                    if (MAP[attackerPt - 1][attackedPt - 1] < -1)
                     {
                         lutDatas[+attackerPc][+attackedPc] = FullThreats::Dimensions;
 
                         continue;
                     }
 
-                    bool enemy        = int(attackerPc ^ attackedPc) == 8;
-                    bool semiExcluded = attackerPt == attackedPt && (enemy || attackerPt != PAWN);
+                    bool semiExcluded = attackerPt == attackedPt  //
+                                     && (attackerPt != PAWN || attackerC != attackedC);
 
                     std::uint32_t featureIndex = PIECE_THREATS[+attackerPc].baseOffset
                                                + PIECE_THREATS[+attackerPc].threatCount
