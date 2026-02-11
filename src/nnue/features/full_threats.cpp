@@ -33,15 +33,15 @@ namespace DON::NNUE::Features {
 
 namespace {
 
-constexpr StdArray<std::uint16_t, PIECE_TYPE_CNT> MAX_TARGETS{6, 10, 8, 8, 10, 0};
+constexpr StdArray<std::uint16_t, PIECE_TYPE_CNT> MAX_TARGETS{3, 5, 4, 4, 5, 0};
 
 constexpr StdArray<std::int16_t, PIECE_TYPE_CNT, PIECE_TYPE_CNT> MAP{{
-  {+0, +1, -1, +2, -1, -2},  //
-  {+0, +1, +2, +3, +4, -2},  //
-  {+0, +1, +2, +3, -1, -2},  //
-  {+0, +1, +2, +3, -1, -2},  //
-  {+0, +1, +2, +3, +4, -2},  //
-  {-2, -2, -2, -2, -2, -2}   //
+  {+0, +1, +1, +2, +2, +2},  //
+  {+0, +1, +2, +3, +4, +4},  //
+  {+0, +1, +2, +3, +3, +3},  //
+  {+0, +1, +2, +3, +3, +3},  //
+  {+0, +1, +2, +3, +4, +4},  //
+  {-1, -1, -1, -1, -1, -1}   //
 }};
 
 struct PieceThreat final {
@@ -81,7 +81,7 @@ alignas(CACHE_LINE_SIZE) constexpr auto THREAT_TABLE = []() constexpr noexcept {
 
             threatTable.pieceThreats[+pc] = {baseOffset, threatCount};
 
-            baseOffset += MAX_TARGETS[pt - 1] * threatCount;
+            baseOffset += 2 * MAX_TARGETS[pt - 1] * threatCount;
         }
 
     return threatTable;
@@ -110,7 +110,7 @@ alignas(CACHE_LINE_SIZE) constexpr auto LUT_DATAS = []() constexpr noexcept {
                     Piece attackedPc = make_piece(attackedC, attackedPt);
 
                     // Excluded
-                    if (MAP[attackerPt - 1][attackedPt - 1] < -1)
+                    if (MAP[attackerPt - 1][attackedPt - 1] < 0)
                     {
                         lutDatas[+attackerPc][+attackedPc] = FullThreats::Dimensions;
 
@@ -122,7 +122,7 @@ alignas(CACHE_LINE_SIZE) constexpr auto LUT_DATAS = []() constexpr noexcept {
 
                     std::uint32_t featureIndex = PIECE_THREATS[+attackerPc].baseOffset
                                                + PIECE_THREATS[+attackerPc].threatCount
-                                                   * (attackedC * (MAX_TARGETS[attackerPt - 1] / 2)
+                                                   * (attackedC * MAX_TARGETS[attackerPt - 1]
                                                       + MAP[attackerPt - 1][attackedPt - 1]);
 
                     lutDatas[+attackerPc][+attackedPc] =
