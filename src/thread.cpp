@@ -568,7 +568,7 @@ std::vector<std::size_t> Threads::get_bound_thread_counts() const noexcept {
             NumaIndex maxNumaId =
               *std::max_element(threadBoundNumaNodes.begin(), threadBoundNumaNodes.end());
 
-            threadCounts.resize(1 + maxNumaId, 0);
+            threadCounts.resize(maxNumaId + 1, 0);
 
             for (NumaIndex numaId : threadBoundNumaNodes)
                 ++threadCounts[numaId];
