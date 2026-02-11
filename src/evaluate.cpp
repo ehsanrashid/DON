@@ -17,6 +17,7 @@
 
 #include "evaluate.h"
 
+#include <algorithm>
 #include <cassert>
 #include <cmath>
 #include <cstdio>
@@ -32,12 +33,6 @@
 #include "uci.h"
 
 namespace DON::Evaluate {
-
-namespace {
-
-constexpr double MIN_DAMP_FACTOR = 0.0;
-
-}  // namespace
 
 // Evaluate is the evaluator for the outer world.
 // It returns a static evaluation of the position
@@ -92,12 +87,7 @@ Value evaluate(const Position&          pos,
     std::int32_t v = nnue + constexpr_round(15.2588e-6 * (nnue + optimism) * material);
 
     // Damp evaluation linearly based on the 50-move rule
-    auto dampFactor = 1.0 - 5.0505e-3 * int(pos.rule50_count());
-
-    if (dampFactor < MIN_DAMP_FACTOR)
-        dampFactor = MIN_DAMP_FACTOR;
-
-    v *= dampFactor;
+    v = constexpr_round(v * std::max(1.0 - 5.1021e-3 * int(pos.rule50_count()), 0.0));
 
     // Guarantee evaluation does not hit the table-base range
     return in_range(v);
