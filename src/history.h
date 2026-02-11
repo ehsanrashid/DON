@@ -75,15 +75,15 @@ inline constexpr int CORRECTION_HISTORY_LIMIT = 1024;
 
 inline constexpr std::size_t QUIET_HISTORY_SIZE = 0x10000;  // Max upto 16-bit
 static_assert((QUIET_HISTORY_SIZE & (QUIET_HISTORY_SIZE - 1)) == 0,
-              "QUIET_HISTORY_SIZE has to be a power of 2");
+              "QUIET_HISTORY_SIZE has to be power of 2");
 
 inline constexpr std::size_t PAWN_HISTORY_BASE_SIZE = 0x4000;
 static_assert((PAWN_HISTORY_BASE_SIZE & (PAWN_HISTORY_BASE_SIZE - 1)) == 0,
-              "PAWN_HISTORY_BASE_SIZE has to be a power of 2");
+              "PAWN_HISTORY_BASE_SIZE has to be power of 2");
 
 inline constexpr std::size_t CORRECTION_HISTORY_BASE_SIZE = 0x10000;
 static_assert((CORRECTION_HISTORY_BASE_SIZE & (CORRECTION_HISTORY_BASE_SIZE - 1)) == 0,
-              "CORRECTION_HISTORY_BASE_SIZE has to be a power of 2");
+              "CORRECTION_HISTORY_BASE_SIZE has to be power of 2");
 
 enum class HType : std::uint8_t {
     CAPTURE,       // By move's [piece][dstSq][captured piece type]

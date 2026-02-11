@@ -851,8 +851,7 @@ std::uint8_t* TBTable<DTZ>::set_dtz_map(std::uint8_t* data, File maxFile) noexce
     return data += std::uintptr_t(data) & 1;  // Word alignment
 }
 
-// TBTables creates and keeps ownership of the TBTable objects,
-// one for each TB file found.
+// TBTables creates and keeps ownership of the TBTable objects, one for each TB file found.
 // It supports a fast, hash-based, table lookup.
 // Populated at init time, accessed at probe time.
 class TBTables final {
@@ -1107,7 +1106,7 @@ class TBTables final {
     }
     */
 
-    // Total number of buckets in the table (must be a power of 2 for bit-masking)
+    // Total number of buckets in the table (must be power of 2 for bit-masking)
     static constexpr std::size_t SIZE = 0x1000;  // 4096 entries, 12-bit index
     // Mask for wrapping bucket indices efficiently: index % SIZE
     static constexpr std::size_t MASK = SIZE - 1;
