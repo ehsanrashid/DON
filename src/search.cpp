@@ -957,9 +957,9 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
     bool  hasNonPawn   = pos.has_non_pawn(ac);
     Value nonPawnValue = hasNonPawn ? pos.non_pawn_value(ac) : VALUE_ZERO;
 
-    [[maybe_unused]] Value maxValue = +VALUE_INFINITE;
-
     Value bestValue = -VALUE_INFINITE;
+
+    [[maybe_unused]] Value maxValue = +VALUE_INFINITE;
 
     Move move, bestMove = Move::None;
 
@@ -989,33 +989,33 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
                     int drawValue = int(tbConfig.useRule50);
 
                     // Use the range VALUE_TB to VALUE_TB_WIN_IN_MAX_PLY to value
-                    Value value = wdlScore < -drawValue ? -VALUE_TB + ss->ply
-                                : wdlScore > +drawValue ? +VALUE_TB - ss->ply
-                                                        : VALUE_DRAW + 2 * wdlScore * drawValue;
+                    Value tbValue = wdlScore < -drawValue ? -VALUE_TB + ss->ply
+                                  : wdlScore > +drawValue ? +VALUE_TB - ss->ply
+                                                          : VALUE_DRAW + 2 * wdlScore * drawValue;
 
                     Bound bound = wdlScore < -drawValue ? Bound::UPPER
                                 : wdlScore > +drawValue ? Bound::LOWER
                                                         : Bound::EXACT;
 
                     if (bound == Bound::EXACT
-                        || (bound == Bound::LOWER ? value >= beta : value <= alpha))
+                        || (bound == Bound::LOWER ? tbValue >= beta : tbValue <= alpha))
                     {
-                        ttu.update(Move::None, value_to_tt(value, ss->ply), evalValue,
+                        ttu.update(Move::None, value_to_tt(tbValue, ss->ply), evalValue,
                                    std::min(depth + 6, MAX_PLY - 1), bound, ss->ttPv);
 
-                        return value;
+                        return tbValue;
                     }
 
                     if constexpr (PVNode)
                     {
                         if (bound == Bound::LOWER)
                         {
-                            bestValue = value;
+                            bestValue = tbValue;
 
-                            alpha = std::max(bestValue, alpha);
+                            alpha = std::max(tbValue, alpha);
                         }
                         else
-                            maxValue = value;
+                            maxValue = tbValue;
                     }
                 }
             }
