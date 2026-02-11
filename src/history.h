@@ -69,7 +69,7 @@ class StatsEntry final {
 };
 
 
-inline constexpr std::uint16_t LOW_PLY_QUIET_SIZE = 5;
+inline constexpr std::size_t LOW_PLY_QUIET_SIZE = 5;
 
 inline constexpr int CORRECTION_HISTORY_LIMIT = 1024;
 
