@@ -894,11 +894,11 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
     // Hindsight adjustment of reductions based on static evaluation difference.
     // The ply after beginning an LMR search, adjust the reduced depth based on
     // how the opponent's move affected the static evaluation.
-    if (depth < MAX_PLY - 1 && red >= 3 && !worsen)
-        ++depth;
+    if (red >= 3 && !worsen)
+        depth = std::min(depth + 1, MAX_PLY - 1);
 
-    if (depth > 1 && red >= 2 && ss->evalValue > 169 - (ss - 1)->evalValue)
-        --depth;
+    if (red >= 2 && ss->evalValue > 169 - (ss - 1)->evalValue)
+        depth = std::max(depth - 1, 1);
 
     auto& pawnHistory = histories.pawn(pos.pawn_key());
 
@@ -1033,7 +1033,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
     {
         // clang-format off
     // Use static evaluation difference to improve quiet move ordering
-    if (!(ss - 1)->inCheck && preOk && !preCapture)
+    if (preOk && !preCapture && !(ss - 1)->inCheck)
     {
         int bonus = 59 + std::clamp(-((ss - 1)->evalValue + (ss - 0)->evalValue), -209, +167);
 
@@ -1338,9 +1338,8 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
                                      + int(bestMove == Move::None) * 161;
                         if (futility <= alpha)
                         {
-                            if (bestValue < futility)
-                                bestValue = futility;
-
+                            if (!is_win(futility))
+                                bestValue = std::max(+bestValue, futility);
                             continue;
                         }
                     }
@@ -1660,8 +1659,9 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
 
     // Don't let best value inflate too high (tb)
     if constexpr (PVNode)
-        if (bestValue > maxValue)
-            bestValue = maxValue;
+    {
+        bestValue = std::min(bestValue, maxValue);
+    }
 
     // If there is a move that produces search value greater than alpha update the history of searched moves
     if (bestMove != Move::None)
@@ -1682,7 +1682,8 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
         if (!preCapture)
         {
             // clang-format off
-            int bonusScale = -215
+            int bonusScale = std::max(
+                            -215
                             // Increase bonus when depth is high
                             + std::min(56 * depth, 489)
                             // Increase bonus when bestValue is lower than current static evaluation
@@ -1692,11 +1693,9 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
                             // Increase bonus when the previous moveCount is high
                             +  80 * std::min(((ss - 1)->moveCount - 1) / 5, 4)
                             // Increase bonus if the previous move has a bad history
-                            - constexpr_round(0.01 * (ss - 1)->history);
+                            - constexpr_round(0.01 * (ss - 1)->history),
+                              1);
             // clang-format on
-            if (bonusScale < 0)
-                bonusScale = 0;
-
             int bonus = bonusScale * std::min(-87 + 141 * depth, +1351);
 
             if (preNonPawn)
@@ -1908,9 +1907,8 @@ Value Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta) noexcep
 
                 if (futility <= alpha)
                 {
-                    if (bestValue < futility)
-                        bestValue = futility;
-
+                    if (!is_win(futility))
+                        bestValue = std::max(+bestValue, futility);
                     continue;
                 }
 
@@ -1918,11 +1916,9 @@ Value Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta) noexcep
                 int threshold = std::max(baseFutility - alpha, -1);
                 if (pos.see(move) < -threshold)
                 {
-                    int minValue = std::min(+alpha, baseFutility);
-
-                    if (bestValue < minValue)
-                        bestValue = minValue;
-
+                    int minFutility = std::min(+alpha, baseFutility);
+                    if (!is_win(minFutility))
+                        bestValue = std::max(+bestValue, minFutility);
                     continue;
                 }
             }
