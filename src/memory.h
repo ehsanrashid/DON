@@ -409,11 +409,26 @@ struct Advapi final {
    public:
     // clang-format off
     // https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-openprocesstoken
-    using OpenProcessToken_      = BOOL(WINAPI*)(HANDLE, DWORD, PHANDLE);
+    using OpenProcessToken_ = BOOL(WINAPI*)(
+      HANDLE  ProcessHandle,    // [in]  Handle to process
+      DWORD   DesiredAccess,    // [in]  Access rights for token
+      PHANDLE TokenHandle       // [out] Pointer to token handle
+    );
     // https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-lookupprivilegevaluea
-    using LookupPrivilegeValue_  = BOOL(WINAPI*)(LPCSTR, LPCSTR, PLUID);
+    using LookupPrivilegeValue_ = BOOL(WINAPI*)(
+      LPCSTR lpSystemName,      // [in] System name (NULL for local)
+      LPCSTR lpName,            // [in] Privilege name (e.g., SE_DEBUG_NAME)
+      PLUID  lpLuid             // [out] Receives LUID of privilege
+    );
     // https://learn.microsoft.com/en-us/windows/win32/api/securitybaseapi/nf-securitybaseapi-adjusttokenprivileges
-    using AdjustTokenPrivileges_ = BOOL(WINAPI*)(HANDLE, BOOL, PTOKEN_PRIVILEGES, DWORD, PTOKEN_PRIVILEGES, PDWORD);
+    using AdjustTokenPrivileges_ = BOOL(WINAPI*)(
+      HANDLE            TokenHandle,          // [in]      Access token handle
+      BOOL              DisableAllPrivileges, // [in]      Disable all privileges flag
+      PTOKEN_PRIVILEGES NewState,             // [in, opt] New privilege state
+      DWORD             BufferLength,         // [in]      Size of PreviousState buffer
+      PTOKEN_PRIVILEGES PreviousState,        // [out, opt] Previous privilege state
+      PDWORD            ReturnLength          // [out, opt] Required buffer size
+    );
     // clang-format on
 
     static constexpr LPCSTR MODULE_NAME = TEXT("advapi32.dll");

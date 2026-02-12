@@ -56,12 +56,14 @@
     #if defined(small)
         #undef small
     #endif
-#elif (defined(__linux__) && !defined(__ANDROID__))
+#else
     // Linux (non-Android)
-    #if !defined(_GNU_SOURCE)
-        #define _GNU_SOURCE
+    #if (defined(__linux__) && !defined(__ANDROID__))
+        #if !defined(_GNU_SOURCE)
+            #define _GNU_SOURCE
+        #endif
+        #include <sched.h>
     #endif
-    #include <sched.h>
 #endif
 
 #include "misc.h"
@@ -75,31 +77,41 @@ using NumaIndex = std::size_t;
 using CpuIndexSet = std::unordered_set<CpuIndex>;
 
 inline CpuIndex hardware_concurrency() noexcept {
-    CpuIndex concurrency = std::thread::hardware_concurrency();
+    CpuIndex hardwareConcurrency = std::thread::hardware_concurrency();
 
     // Get all processors across all processor groups on windows, since
     // ::hardware_concurrency() only returns the number of processors in
     // the first group, because only these are available to std::thread.
 #if defined(_WIN64)
-    concurrency = std::max<CpuIndex>(GetActiveProcessorCount(ALL_PROCESSOR_GROUPS), concurrency);
+    hardwareConcurrency =
+      std::max<CpuIndex>(GetActiveProcessorCount(ALL_PROCESSOR_GROUPS), hardwareConcurrency);
 #endif
 
-    return concurrency;
+    return hardwareConcurrency;
 }
 
 inline const CpuIndex MAX_SYSTEM_THREADS = std::max<CpuIndex>(hardware_concurrency(), 1);
 
 #if defined(_WIN64)
-inline constexpr LPCSTR MODULE_NAME = TEXT("kernel32.dll");
+inline constexpr LPCSTR KERNEL_MODULE_NAME = TEXT("kernel32.dll");
 
 // On Windows each processor group can have up to 64 processors.
 // https://learn.microsoft.com/en-us/windows/win32/procthread/processor-groups
 inline constexpr std::size_t WIN_PROCESSOR_GROUP_SIZE = 64;
 
 // https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getthreadselectedcpusetmasks
-using GetThreadSelectedCpuSetMasks_ = BOOL (*)(HANDLE, PGROUP_AFFINITY, USHORT, PUSHORT);
+using GetThreadSelectedCpuSetMasks_ = BOOL(WINAPI*)(
+  HANDLE          hThread,          // [in]  Thread handle
+  PGROUP_AFFINITY CpuSetMasks,      // [out] CPU set masks array
+  USHORT          CpuSetMaskCount,  // [in]  Masks array size
+  PUSHORT         RequiredCount     // [out] Required mask array size
+);
 // https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-setthreadselectedcpusetmasks
-using SetThreadSelectedCpuSetMasks_ = BOOL (*)(HANDLE, PGROUP_AFFINITY, USHORT);
+using SetThreadSelectedCpuSetMasks_ = BOOL(WINAPI*)(
+  HANDLE          hThread,         // [in] Thread handle
+  PGROUP_AFFINITY CpuSetMasks,     // [in] CPU set masks array
+  USHORT          CpuSetMaskCount  // [in] Masks array size
+);
 
 struct WindowsAffinity final {
    public:
@@ -198,7 +210,7 @@ inline std::pair<BOOL, std::vector<USHORT>> get_process_group_affinity() noexcep
 // nullopt means no affinity is set, that is, all processors are allowed
 inline WindowsAffinity get_process_affinity() noexcept {
 
-    HMODULE hModule = GetModuleHandle(MODULE_NAME);
+    HMODULE hModule = GetModuleHandle(KERNEL_MODULE_NAME);
 
     auto getThreadSelectedCpuSetMasks = GetThreadSelectedCpuSetMasks_(
       (void (*)()) GetProcAddress(hModule, "GetThreadSelectedCpuSetMasks"));
@@ -324,7 +336,7 @@ inline WindowsAffinity get_process_affinity() noexcept {
         // In which case can actually retrieve the full affinity.
         if (getThreadSelectedCpuSetMasks != nullptr)
         {
-            std::thread th([&winAffinity, &procGroupAffinity]() {
+            std::thread th([&winAffinity, &procGroupAffinity]() noexcept {
                 CpuIndexSet cpus;
 
                 bool affinityFull = true;
@@ -582,8 +594,8 @@ class NumaConfig final {
         // but at least guarantee that the number of allowed processors
         // is >= number of processors in the affinity mask. In case the user
         // is not satisfied they must set the processor numbers explicitly.
-        auto is_cpu_allowed = [&allowedCpus](CpuIndex cpuId) noexcept {
-            return !allowedCpus.has_value() || allowedCpus->count(cpuId) == 1;
+        auto is_cpu_allowed = [respectProcessAffinity, &allowedCpus](CpuIndex cpuId) noexcept {
+            return !allowedCpus.has_value() || allowedCpus->find(cpuId) != allowedCpus->end();
         };
     #elif (defined(__linux__) && !defined(__ANDROID__))
         CpuIndexSet allowedCpus;
@@ -592,7 +604,7 @@ class NumaConfig final {
             allowedCpus = PROCESSOR_AFFINITY;
 
         auto is_cpu_allowed = [respectProcessAffinity, &allowedCpus](CpuIndex cpuId) noexcept {
-            return !respectProcessAffinity || allowedCpus.count(cpuId) == 1;
+            return !respectProcessAffinity || allowedCpus.find(cpuId) != allowedCpus.end();
         };
     #endif
 
@@ -733,25 +745,35 @@ class NumaConfig final {
     NumaConfig& operator=(const NumaConfig&) noexcept = delete;
     NumaConfig& operator=(NumaConfig&&) noexcept      = default;
 
-    NumaIndex nodes_size() const noexcept { return nodes.size(); }
+    std::size_t nodes_size() const noexcept { return nodes.size(); }
 
-    CpuIndex node_cpus_size(NumaIndex numaId) const noexcept {
+    std::size_t node_cpus_size(NumaIndex numaId) const noexcept {
         assert(numaId < nodes_size());
 
         return nodes[numaId].size();
     }
 
-    CpuIndex cpus_size() const noexcept { return nodeByCpu.size(); }
+    CpuIndex node_cpus(NumaIndex numaId) const noexcept {
+        assert(numaId < nodes_size());
 
-    bool requires_memory_replication() const noexcept { return customAffinity || nodes_size() > 1; }
+        return *nodes[numaId].begin();
+    }
+
+    std::size_t cpus_size() const noexcept { return nodeByCpu.size(); }
 
     bool is_cpu_assigned(CpuIndex cpuId) const noexcept {
         return nodeByCpu.find(cpuId) != nodeByCpu.end();
     }
 
+    NumaIndex node_by_cpu(CpuIndex cpuId) const noexcept {
+        return is_cpu_assigned(cpuId) ? nodeByCpu.at(cpuId) : 0;
+    }
+
+    bool requires_memory_replication() const noexcept { return customAffinity || nodes_size() > 1; }
+
     std::string to_string() const noexcept {
         std::string numaConfig;
-        numaConfig.reserve(nodes.size() * 8);
+        numaConfig.reserve(8 * nodes_size());
 
         for (auto nodeItr = nodes.begin(); nodeItr != nodes.end(); ++nodeItr)
         {
@@ -805,7 +827,7 @@ class NumaConfig final {
         // Compute maximum node size
         std::size_t MaxNodeSize =
           std::max_element(nodes.begin(), nodes.end(),  //
-                           [](const auto& node1, const auto& node2) noexcept -> bool {
+                           [](const CpuIndexSet& node1, const CpuIndexSet& node2) noexcept -> bool {
                                return node1.size() < node2.size();
                            })
             ->size();
@@ -813,7 +835,7 @@ class NumaConfig final {
         // Count nodes considered 'not-small' (size > 60% of MaxNodeSize)
         std::size_t NotSmallNodeCount =
           std::count_if(nodes.begin(), nodes.end(),  //
-                        [MaxNodeSize](const auto& node) noexcept -> bool {
+                        [MaxNodeSize](const CpuIndexSet& node) noexcept -> bool {
                             constexpr double SmallNodeThreshold = 0.6;
                             // node considered 'not-small' if it exceeds threshold
                             return double(node.size()) / MaxNodeSize > SmallNodeThreshold;
@@ -872,7 +894,7 @@ class NumaConfig final {
 
 #if defined(_WIN64)
         // Requires Windows 11. No good way to set thread affinity spanning processor groups before that.
-        HMODULE hModule = GetModuleHandle(MODULE_NAME);
+        HMODULE hModule = GetModuleHandle(KERNEL_MODULE_NAME);
 
         auto setThreadSelectedCpuSetMasks = SetThreadSelectedCpuSetMasks_(
           (void (*)()) GetProcAddress(hModule, "SetThreadSelectedCpuSetMasks"));
@@ -997,9 +1019,6 @@ class NumaConfig final {
         th.join();
     }
 
-    std::vector<CpuIndexSet>                nodes;
-    std::unordered_map<CpuIndex, NumaIndex> nodeByCpu;
-
    private:
     static std::vector<CpuIndex> shortened_string_to_indices(std::string_view str) noexcept {
         std::vector<CpuIndex> indices;
@@ -1078,17 +1097,12 @@ class NumaConfig final {
 
         bool useFallback = false;
 
-        auto fallback = [&]() noexcept {
-            useFallback = true;
-            numaCfg     = empty();
-        };
-
         // /sys/devices/system/node/online contains information about active NUMA nodes
         auto nodeIdStr = read_file_to_string("/sys/devices/system/node/online");
 
         if (!nodeIdStr.has_value() || nodeIdStr->empty())
         {
-            fallback();
+            useFallback = true;
         }
         else
         {
@@ -1107,7 +1121,7 @@ class NumaConfig final {
                 // to have some whitespace, so need to handle that.
                 if (!cpuIdStr.has_value())
                 {
-                    fallback();
+                    useFallback = true;
                     break;
                 }
                 else
@@ -1123,6 +1137,8 @@ class NumaConfig final {
 
         if (useFallback)
         {
+            numaCfg = empty();
+
             for (CpuIndex cpuId = 0; cpuId < MAX_SYSTEM_THREADS; ++cpuId)
                 if (is_cpu_allowed(cpuId))
                     numaCfg.add_cpu_to_node(NumaIndex{0}, cpuId);
@@ -1184,17 +1200,18 @@ class NumaConfig final {
         CpuIndexSet seenCpus;
 
         auto next_unseen_cpu_id = [&seenCpus]() noexcept {
-            for (CpuIndex cpuId = 0;; ++cpuId)
-                if (!seenCpus.count(cpuId))
-                    return cpuId;
+            CpuIndex cpuId = 0;
+            while (seenCpus.find(cpuId) != seenCpus.end())
+                ++cpuId;
+            return cpuId;
         };
 
         while (true)
         {
-            CpuIndex nextCpuId = next_unseen_cpu_id();
+            CpuIndex nextUnseenCpuId = next_unseen_cpu_id();
 
             std::string path = std::string{"/sys/devices/system/cpu/cpu"}
-                             + std::to_string(nextCpuId)
+                             + std::to_string(nextUnseenCpuId)
                              + std::string{"/cache/index3/shared_cpu_list"};
 
             auto cpuIdStr = read_file_to_string(path);
@@ -1273,11 +1290,19 @@ class NumaConfig final {
         return numaCfg;
     }
 
-    void remove_empty_numa_nodes() noexcept {
 
-        nodes.erase(
-          std::remove_if(nodes.begin(), nodes.end(), [](const auto& node) { return node.empty(); }),
-          nodes.end());
+    void resize_numa_node(NumaIndex numaId) noexcept {
+        if (nodes_size() <= numaId)
+            nodes.resize(numaId + 1);  // default-construct missing elements
+    }
+
+    void insert_numa_node_cpu(NumaIndex numaId, CpuIndex cpuId) noexcept {
+        nodeByCpu[cpuId] = numaId;
+        maxCpuId         = std::max(cpuId, maxCpuId);
+    }
+    void insert_numa_node(NumaIndex numaId, CpuIndex cpuId) noexcept {
+        nodes[numaId].insert(cpuId);
+        insert_numa_node_cpu(numaId, cpuId);
     }
 
     // Returns true if successful
@@ -1288,15 +1313,26 @@ class NumaConfig final {
         if (is_cpu_assigned(cpuId))
             return false;
 
-        while (nodes_size() <= numaId)
-            nodes.emplace_back();
+        resize_numa_node(numaId);
 
-        nodes[numaId].insert(cpuId);
-        nodeByCpu[cpuId] = numaId;
-
-        maxCpuId = std::max(cpuId, maxCpuId);
+        insert_numa_node(numaId, cpuId);
 
         return true;
+    }
+
+    void remove_empty_numa_nodes() noexcept {
+        // Remove empty nodes
+        nodes.erase(std::remove_if(nodes.begin(), nodes.end(),
+                                   [](const CpuIndexSet& node) noexcept { return node.empty(); }),
+                    nodes.end());
+
+        // Rebuild nodeByCpu and maxCpuId
+        nodeByCpu.clear();
+        maxCpuId = 0;
+
+        for (NumaIndex numaId = 0; numaId < nodes.size(); ++numaId)
+            for (CpuIndex cpuId : nodes[numaId])
+                insert_numa_node_cpu(numaId, cpuId);
     }
 
     // Returns true if successful.
@@ -1308,22 +1344,18 @@ class NumaConfig final {
             if (is_cpu_assigned(cpuId))
                 return false;
 
-        while (nodes_size() <= numaId)
-            nodes.emplace_back();
+        resize_numa_node(numaId);
 
         for (auto cpuId = fstCpuId; cpuId <= lstCpuId; ++cpuId)
-        {
-            nodes[numaId].insert(cpuId);
-            nodeByCpu[cpuId] = numaId;
-        }
-
-        maxCpuId = std::max(lstCpuId, maxCpuId);
+            insert_numa_node(numaId, cpuId);
 
         return true;
     }
 
-    CpuIndex maxCpuId;
-    bool     customAffinity;
+    std::vector<CpuIndexSet>                nodes;
+    std::unordered_map<CpuIndex, NumaIndex> nodeByCpu;
+    CpuIndex                                maxCpuId;
+    bool                                    customAffinity;
 };
 
 class NumaReplicationContext;
@@ -1633,9 +1665,9 @@ class SystemWideLazyNumaReplicated final: public BaseNumaReplicated {
         NumaConfig sysCfg = NumaConfig::from_system(SystemNumaPolicy{}, false);
 
         // as a discriminator, locate the hardware/system numa-domain this CpuIndex belongs to
-        CpuIndex cpuId = *numaCfg.nodes[numaId].begin();  // get a CpuIndex from NumaIndex
+        CpuIndex cpuId = numaCfg.node_cpus(numaId);  // get a CpuIndex from NumaIndex
 
-        NumaIndex sysId = sysCfg.is_cpu_assigned(cpuId) ? sysCfg.nodeByCpu.at(cpuId) : 0;
+        NumaIndex sysId = sysCfg.node_by_cpu(cpuId);
 
         std::string sysStr = sysCfg.to_string();
 
@@ -1717,21 +1749,21 @@ class NumaReplicationContext final {
     }
 
     void attach(BaseNumaReplicated* numaRep) noexcept {
-        assert(trackedReplicated.count(numaRep) == 0);
+        assert(trackedReplicated.find(numaRep) == trackedReplicated.end());
 
         trackedReplicated.insert(numaRep);
     }
 
     void detach(BaseNumaReplicated* numaRep) noexcept {
-        assert(trackedReplicated.count(numaRep) == 1);
+        assert(trackedReplicated.find(numaRep) != trackedReplicated.end());
 
         trackedReplicated.erase(numaRep);
     }
 
     // oldObj may be invalid at this point
     void move_attached(BaseNumaReplicated* oldNumaRep, BaseNumaReplicated* newNumaRep) noexcept {
-        assert(trackedReplicated.count(oldNumaRep) == 1);
-        assert(trackedReplicated.count(newNumaRep) == 0);
+        assert(trackedReplicated.find(oldNumaRep) != trackedReplicated.end());
+        assert(trackedReplicated.find(newNumaRep) == trackedReplicated.end());
 
         trackedReplicated.erase(oldNumaRep);
         trackedReplicated.insert(newNumaRep);

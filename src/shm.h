@@ -94,32 +94,32 @@
         #include <unistd.h>
         #include <unordered_map>
     #endif
+    // Linux (non-Android)
     #if (defined(__linux__) && !defined(__ANDROID__))
-        // Linux (non-Android)
+    // macOS / iOS
     #elif defined(__APPLE__)
-        // macOS / iOS
         #include <mach-o/dyld.h>
         #include <sys/syslimits.h>
+    // Solaris / OpenSolaris / illumos
     #elif defined(__sun)
-        // Solaris / OpenSolaris / illumos
         #include <cstdlib>
         #include <libgen.h>
+    // FreeBSD
     #elif defined(__FreeBSD__)
-        // FreeBSD
         #include <sys/sysctl.h>
         #include <sys/types.h>
+    // NetBSD
     #elif defined(__NetBSD__)
-        // NetBSD
+    // DragonFly BSD
     #elif defined(__DragonFly__)
-        // DragonFly BSD
+    // IBM AIX
     #elif defined(_AIX)
-        // IBM AIX
+    // ARM 32-bit / 64-bit
     #elif defined(__arm__) || defined(__aarch64__)
-        // ARM 32-bit / 64-bit
+    // x86 32-bit / x86-64
     #elif defined(__i386__) || defined(__x86_64__)
-        // x86 32-bit / x86-64
+    // Andriod
     #elif defined(__ANDROID__)
-        // Andriod
     #else
         #error "Unsupported platform"
     #endif
@@ -475,7 +475,7 @@ class BackendSharedMemory final {
     Status      status = Status::NotInitialized;
 };
 #elif defined(__linux__) && !defined(__ANDROID__) /* Linux (non-Android) */ \
-  || defined(__APPLE__)                           /* macOS */ \
+  || defined(__APPLE__)                           /* macOS / iOS */ \
   || defined(__sun)                               /* Solaris */ \
   || defined(__FreeBSD__)                         /* FreeBSD */ \
   || defined(__NetBSD__)                          /* NetBSD */ \
@@ -625,7 +625,7 @@ class SharedMemoryRegistry final {
         // Mark cleanup as in-progress so other threads know not to register new memory
         cleanUpInProgress.store(true, std::memory_order_release);
 
-        OrderedList copiedOrderedList;
+        OrderedList snapShot;
         {
             std::lock_guard cleanLock(sharedMutex);
 
@@ -634,24 +634,25 @@ class SharedMemoryRegistry final {
             if (skipUnmapRegion)
             {
                 // Partial cleanup: just snapshot, keep registries intact
-                copiedOrderedList = orderedList;
+                snapShot = orderedList;
             }
             else
             {
                 // Full cleanup: take ownership and clear registries
-                copiedOrderedList = std::move(orderedList);
+                snapShot = std::move(orderedList);
                 orderedList.clear();
                 registryMap.clear();
             }
         }
 
         // Safe to iterate and close memory without holding the lock in true insertion order
-        for (auto* sharedMemory : copiedOrderedList)
+        for (auto* sharedMemory : snapShot)
             if (sharedMemory != nullptr)
                 sharedMemory->close(skipUnmapRegion);
 
         // Mark cleanup done and notify waiting registrants that cleanup has finished
         cleanUpInProgress.store(false, std::memory_order_release);
+
         condVar.notify_all();
     }
 
@@ -751,7 +752,7 @@ constexpr bool valid_pipe_fd(int fd) noexcept { return fd > INVALID_PIPE_FD; }
 // Close pipe descriptor
 inline void close_pipe_fd(int fd) noexcept {
     if (valid_pipe_fd(fd))
-        close(fd);
+        ::close(fd);
 }
 
 constexpr bool graceful_signal(int signal) noexcept {
