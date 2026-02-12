@@ -782,11 +782,11 @@ class NumaConfig final {
     NumaConfig(CpuIndex maxCpuIdx, bool customAff) noexcept :
         maxCpuId(maxCpuIdx),
         customAffinity(customAff) {
-        nodeByCpu.reserve(MAX_SYSTEM_THREADS);
+        init_node_cpus(MAX_SYSTEM_THREADS);
     }
 
     NumaConfig() noexcept {
-        nodeByCpu.reserve(MAX_SYSTEM_THREADS);
+        init_node_cpus(MAX_SYSTEM_THREADS);
 
         add_cpu_range_to_node(0, 0, MAX_SYSTEM_THREADS - 1);
     }
@@ -1229,7 +1229,7 @@ class NumaConfig final {
 
                 if (!l3Domain.cpus.empty())
                 {
-                    l3Domain.sysNumaId = sysCfg.nodeByCpu.at(*l3Domain.cpus.begin());
+                    l3Domain.sysNumaId = sysCfg.node_by_cpu(*l3Domain.cpus.begin());
 
                     l3Domains.push_back(std::move(l3Domain));
                 }
@@ -1269,7 +1269,7 @@ class NumaConfig final {
             {
                 if (is_cpu_allowed(cpuId))
                 {
-                    l3Domain.sysNumaId = sysCfg.nodeByCpu.at(cpuId);
+                    l3Domain.sysNumaId = sysCfg.node_by_cpu(cpuId);
                     l3Domain.cpus.insert(cpuId);
                 }
 
@@ -1323,10 +1323,10 @@ class NumaConfig final {
 
             for (const auto& l3Domain : ds)
             {
-                NumaIndex domainId = numaId++;
-
                 for (CpuIndex cpuId : l3Domain.cpus)
-                    numaCfg.add_cpu_to_node(domainId, cpuId);
+                    numaCfg.add_cpu_to_node(numaId, cpuId);
+
+                ++numaId;
             }
         }
 
@@ -1430,6 +1430,19 @@ class NumaConfig final {
         for (NumaIndex numaId = 0; numaId < nodes.size(); ++numaId)
             for (CpuIndex cpuId : nodes[numaId])
                 add_numa_node_cpu(numaId, cpuId);
+    }
+
+    void init_node_cpus(std::size_t cpusCount, float maxLoadFactor = 0.75f) noexcept {
+
+        if (maxLoadFactor != 0.0f)
+        {
+            nodeByCpu.max_load_factor(maxLoadFactor);
+            if (cpusCount != 0)
+            {
+                std::size_t bucketCount = std::size_t(cpusCount / maxLoadFactor) + 1;
+                nodeByCpu.rehash(bucketCount);
+            }
+        }
     }
 
     std::vector<CpuIndexSet>                nodes;
@@ -1747,16 +1760,16 @@ class SystemWideLazyNumaReplicated final: public BaseNumaReplicated {
         // as a discriminator, locate the hardware/system numa-domain this CpuIndex belongs to
         CpuIndex cpuId = numaCfg.node_cpus(numaId);  // get a CpuIndex from NumaIndex
 
-        NumaIndex sysId = sysCfg.node_by_cpu(cpuId);
+        NumaIndex sysNumaId = sysCfg.node_by_cpu(cpuId);
 
-        std::string sysStr = sysCfg.to_string();
+        std::string sysCfgStr = sysCfg.to_string();
 
         std::string str;
-        str.reserve(sysStr.size() + 1 + 8);
+        str.reserve(sysCfgStr.size() + 1 + 8);
 
-        str = sysStr;
+        str = sysCfgStr;
         str += '$';
-        str += std::to_string(sysId);
+        str += std::to_string(sysNumaId);
 
         return hash_string(str);
     }
@@ -1771,7 +1784,7 @@ class SystemWideLazyNumaReplicated final: public BaseNumaReplicated {
 
         std::lock_guard writeLock(mutex);
 
-        // Check again for races.
+        // Check again for races
         if (instances[numaId] != nullptr)
             return;
 
