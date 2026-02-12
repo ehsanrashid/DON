@@ -78,21 +78,21 @@ using NumaIndex = std::size_t;
 using CpuIndexVec = std::vector<CpuIndex>;
 using CpuIndexSet = std::unordered_set<CpuIndex>;
 
-inline CpuIndex hardware_concurrency() noexcept {
-    CpuIndex hardwareConcurrency = std::thread::hardware_concurrency();
+inline std::size_t hardware_concurrency() noexcept {
+    std::size_t hardwareConcurrency = std::thread::hardware_concurrency();
 
     // Get all processors across all processor groups on windows, since
     // ::hardware_concurrency() only returns the number of processors in
     // the first group, because only these are available to std::thread.
 #if defined(_WIN64)
     hardwareConcurrency =
-      std::max<CpuIndex>(GetActiveProcessorCount(ALL_PROCESSOR_GROUPS), hardwareConcurrency);
+      std::max<std::size_t>(GetActiveProcessorCount(ALL_PROCESSOR_GROUPS), hardwareConcurrency);
 #endif
 
     return hardwareConcurrency;
 }
 
-inline const CpuIndex MAX_SYSTEM_THREADS = std::max<CpuIndex>(hardware_concurrency(), 1);
+inline const std::size_t MAX_SYSTEM_THREADS = std::max<std::size_t>(hardware_concurrency(), 1);
 
 #if defined(_WIN64)
 inline constexpr LPCSTR KERNEL_MODULE_NAME = TEXT("kernel32.dll");
@@ -1326,10 +1326,23 @@ class NumaConfig final {
         return numaCfg;
     }
 
-
-    void resize_numa_node(NumaIndex numaId) noexcept {
-        if (nodes_size() <= numaId)
+    // maxLoadFactor    Effect
+    // 0.5              Very low collisions, slightly more memory
+    // 0.75             Moderate collisions, good balance
+    // 1.0 (default)    Acceptable for small sets, minimal memory
+    void resize_numa_node(NumaIndex   numaId,
+                          float       maxLoadFactor    = 0.75f,
+                          std::size_t expectedCpuCount = MAX_SYSTEM_THREADS) noexcept {
+        if (nodes.size() <= numaId)
+        {
             nodes.resize(numaId + 1);  // default-construct missing elements
+            nodes[numaId].max_load_factor(maxLoadFactor);
+            if (expectedCpuCount != 0)
+            {
+                std::size_t bucketCount = std::size_t(expectedCpuCount / maxLoadFactor) + 1;
+                nodes[numaId].rehash(bucketCount);  // preallocate enough buckets
+            }
+        }
     }
 
     void add_numa_node_cpu(NumaIndex numaId, CpuIndex cpuId) noexcept {
