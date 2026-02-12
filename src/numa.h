@@ -736,7 +736,7 @@ class NumaConfig final {
             numaCfg.add_cpu_to_node(NumaIndex{0}, cpuId);
 #endif
 
-        // Have to ensure no empty NUMA nodes persist.
+        // Have to ensure no empty NUMA nodes persist
         numaCfg.remove_empty_numa_nodes();
 
         // If the user explicitly opts out from respecting the current process affinity
@@ -1374,12 +1374,26 @@ class NumaConfig final {
     }
 
     void remove_empty_numa_nodes() noexcept {
-        // Remove empty nodes
+
+        bool hasEmpty = false;
+
+        for (const CpuIndexSet& node : nodes)
+            if (node.empty())
+            {
+                hasEmpty = true;
+                break;
+            }
+
+        // 1. Nothing removed -> skip everything
+        if (!hasEmpty)
+            return;
+
+        // 2. Remove empty nodes
         nodes.erase(std::remove_if(nodes.begin(), nodes.end(),
                                    [](const CpuIndexSet& node) noexcept { return node.empty(); }),
                     nodes.end());
 
-        // Rebuild nodeByCpu and maxCpuId
+        // 3. Rebuild mapping structures efficiently
         maxCpuId = 0;
         nodeByCpu.clear();
 
