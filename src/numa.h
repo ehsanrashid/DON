@@ -594,7 +594,7 @@ class NumaConfig final {
         // but at least guarantee that the number of allowed processors
         // is >= number of processors in the affinity mask. In case the user
         // is not satisfied they must set the processor numbers explicitly.
-        auto is_cpu_allowed = [respectProcessAffinity, &allowedCpus](CpuIndex cpuId) noexcept {
+        auto is_cpu_allowed = [&allowedCpus](CpuIndex cpuId) noexcept {
             return !allowedCpus.has_value() || allowedCpus->find(cpuId) != allowedCpus->end();
         };
     #elif (defined(__linux__) && !defined(__ANDROID__))
@@ -603,8 +603,8 @@ class NumaConfig final {
         if (respectProcessAffinity)
             allowedCpus = PROCESSOR_AFFINITY;
 
-        auto is_cpu_allowed = [respectProcessAffinity, &allowedCpus](CpuIndex cpuId) noexcept {
-            return !respectProcessAffinity || allowedCpus.find(cpuId) != allowedCpus.end();
+        auto is_cpu_allowed = [&allowedCpus](CpuIndex cpuId) noexcept {
+            return allowedCpus.find(cpuId) != allowedCpus.end();
         };
     #endif
 
@@ -734,8 +734,9 @@ class NumaConfig final {
         maxCpuId(maxCpuIdx),
         customAffinity(customAff) {}
 
-    NumaConfig() noexcept :
-        NumaConfig(0, false) {
+    NumaConfig() noexcept {
+
+        nodeByCpu.reserve(MAX_SYSTEM_THREADS);
 
         add_cpu_range_to_node(NumaIndex(0), CpuIndex(0), MAX_SYSTEM_THREADS - 1);
     }
@@ -1296,13 +1297,13 @@ class NumaConfig final {
             nodes.resize(numaId + 1);  // default-construct missing elements
     }
 
-    void insert_numa_node_cpu(NumaIndex numaId, CpuIndex cpuId) noexcept {
-        nodeByCpu[cpuId] = numaId;
+    void add_numa_node_cpu(NumaIndex numaId, CpuIndex cpuId) noexcept {
         maxCpuId         = std::max(cpuId, maxCpuId);
+        nodeByCpu[cpuId] = numaId;
     }
-    void insert_numa_node(NumaIndex numaId, CpuIndex cpuId) noexcept {
+    void add_numa_node(NumaIndex numaId, CpuIndex cpuId) noexcept {
         nodes[numaId].insert(cpuId);
-        insert_numa_node_cpu(numaId, cpuId);
+        add_numa_node_cpu(numaId, cpuId);
     }
 
     // Returns true if successful
@@ -1315,24 +1316,9 @@ class NumaConfig final {
 
         resize_numa_node(numaId);
 
-        insert_numa_node(numaId, cpuId);
+        add_numa_node(numaId, cpuId);
 
         return true;
-    }
-
-    void remove_empty_numa_nodes() noexcept {
-        // Remove empty nodes
-        nodes.erase(std::remove_if(nodes.begin(), nodes.end(),
-                                   [](const CpuIndexSet& node) noexcept { return node.empty(); }),
-                    nodes.end());
-
-        // Rebuild nodeByCpu and maxCpuId
-        nodeByCpu.clear();
-        maxCpuId = 0;
-
-        for (NumaIndex numaId = 0; numaId < nodes.size(); ++numaId)
-            for (CpuIndex cpuId : nodes[numaId])
-                insert_numa_node_cpu(numaId, cpuId);
     }
 
     // Returns true if successful.
@@ -1347,15 +1333,30 @@ class NumaConfig final {
         resize_numa_node(numaId);
 
         for (auto cpuId = fstCpuId; cpuId <= lstCpuId; ++cpuId)
-            insert_numa_node(numaId, cpuId);
+            add_numa_node(numaId, cpuId);
 
         return true;
     }
 
+    void remove_empty_numa_nodes() noexcept {
+        // Remove empty nodes
+        nodes.erase(std::remove_if(nodes.begin(), nodes.end(),
+                                   [](const CpuIndexSet& node) noexcept { return node.empty(); }),
+                    nodes.end());
+
+        // Rebuild nodeByCpu and maxCpuId
+        maxCpuId = 0;
+        nodeByCpu.clear();
+
+        for (NumaIndex numaId = 0; numaId < nodes.size(); ++numaId)
+            for (CpuIndex cpuId : nodes[numaId])
+                add_numa_node_cpu(numaId, cpuId);
+    }
+
+    CpuIndex                                maxCpuId       = 0;
+    bool                                    customAffinity = false;
     std::vector<CpuIndexSet>                nodes;
     std::unordered_map<CpuIndex, NumaIndex> nodeByCpu;
-    CpuIndex                                maxCpuId;
-    bool                                    customAffinity;
 };
 
 class NumaReplicationContext;
