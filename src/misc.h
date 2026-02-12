@@ -856,11 +856,8 @@ class MultiArray {
     void fill_n(std::size_t begIdx, std::size_t count, const U& v) noexcept {
         static_assert(is_strictly_assignable_v<T, U>, "Cannot assign fill value to element type");
 
-        std::size_t endIdx = begIdx + count;
+        std::size_t endIdx = std::min(begIdx + count, size());
         assert(begIdx <= endIdx && endIdx <= size());
-
-        if (endIdx > size())
-            endIdx = size();
 
         for (std::size_t idx = begIdx; idx < endIdx; ++idx)
         {

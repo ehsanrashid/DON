@@ -353,10 +353,10 @@ Thread* Threads::best_thread() const noexcept {
     Value minCurValue = +VALUE_NONE;
     // Find the minimum value of all threads
     for (auto* th : snapShot)
-        minCurValue = std::min(minCurValue, th->worker->rootMoves[0].curValue);
+        minCurValue = std::min(th->worker->rootMoves[0].curValue, minCurValue);
 
     // Vote according to value and depth, and select the best thread
-    auto thread_voting_value = [=](const Thread* th) noexcept -> std::uint32_t {
+    auto thread_voting_value = [minCurValue](const Thread* th) noexcept -> std::uint32_t {
         return (14 + th->worker->rootMoves[0].curValue - minCurValue) * th->worker->completedDepth;
     };
 

@@ -530,7 +530,6 @@ auto try_with_windows_lock_memory_privilege([[maybe_unused]] SuccessFunc&& succe
     auto&& ret = successFunc(LargePageSize);
 
     // Privilege no longer needed, restore the privileges
-    //if (oldTp.PrivilegeCount > 0)
     advapi.adjustTokenPrivileges(hProcess, FALSE, &oldTp, 0, nullptr, nullptr);
 
     return std::forward<decltype(ret)>(ret);

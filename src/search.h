@@ -313,7 +313,7 @@ struct Limit final {
     }
 
     std::uint16_t calls_count() const noexcept {
-        return nodes != 0 ? std::min(1 + int(std::ceil(nodes / 1024.0)), 512) : 512;
+        return nodes != 0 ? std::min(int(std::ceil(nodes / 1024.0)) + 1, 512) : 512;
     }
 
     TimePoint startTime = 0;
