@@ -552,9 +552,10 @@ class SharedMemoryRegistry final {
             // Prepare the registryMap: set load factor and pre-allocate buckets.
             // 'orderedList' is a std::list, which does not support reserve().
             // Memory allocation happens per-node dynamically, so no pre-allocation is needed.
-            registryMap.max_load_factor(MaxLoadFactor);
-            std::size_t bucketCount = std::size_t(ReserveCount / MaxLoadFactor) + 1;
-            registryMap.rehash(bucketCount);
+            if (MaxLoadFactor > 0.0f)
+                registryMap.max_load_factor(MaxLoadFactor);
+            if (ReserveCount != 0)
+                registryMap.reserve(ReserveCount);
         });
     }
 

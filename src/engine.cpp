@@ -58,6 +58,8 @@ constexpr std::size_t DEFAULT_HASH = std::max<std::size_t>(MIN_HASH, 16);
 // The user can always explicitly override this behavior.
 constexpr AutoNumaPolicy DEFAULT_NUMA_POLICY = BundledL3Policy{32};
 
+constexpr float MAX_LOAD_FACTOR = 0.75f;
+
 }  // namespace
 
 Engine::Engine(std::optional<std::string_view> path) noexcept :
@@ -121,6 +123,9 @@ Engine::Engine(std::optional<std::string_view> path) noexcept :
     load_networks();
 
     resize_threads_tt();
+
+    if (MAX_LOAD_FACTOR > 0.0f)
+        historiesMap.max_load_factor(MAX_LOAD_FACTOR);
 
     setup();
 }

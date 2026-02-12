@@ -504,9 +504,10 @@ class OstreamMutexRegistry final {
             constexpr std::size_t ReserveCount  = 16;
             constexpr float       MaxLoadFactor = 1.0f;
 
-            osMutexes.max_load_factor(MaxLoadFactor);
-            std::size_t bucketCount = std::size_t(ReserveCount / MaxLoadFactor) + 1;
-            osMutexes.rehash(bucketCount);
+            if (MaxLoadFactor > 0.0f)
+                osMutexes.max_load_factor(MaxLoadFactor);
+            if (ReserveCount != 0)
+                osMutexes.reserve(ReserveCount);
         });
     }
 
@@ -1140,10 +1141,11 @@ class FixedString final {
 template<typename Key, typename Value>
 class ConcurrentCache final {
    public:
-    ConcurrentCache(std::size_t reserveCount = 1024, float loadFactor = 0.75f) noexcept {
-        storage.max_load_factor(loadFactor);
-        std::size_t bucketCount = std::size_t(reserveCount / loadFactor) + 1;
-        storage.rehash(bucketCount);
+    ConcurrentCache(std::size_t reserveCount = 1024, float maxLoadFactor = 0.75f) noexcept {
+        if (maxLoadFactor > 0.0f)
+            storage.max_load_factor(maxLoadFactor);
+        if (reserveCount != 0)
+            storage.reserve(reserveCount);
     }
 
     template<typename... Args>

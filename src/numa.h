@@ -1333,13 +1333,9 @@ class NumaConfig final {
         return numaCfg;
     }
 
-    // maxLoadFactor    Effect
-    // 0.5              Very low collisions, slightly more memory
-    // 0.75             Moderate collisions, good balance
-    // 1.0 (default)    Acceptable for small sets, minimal memory
     void resize_numa_node(NumaIndex   newNumaId,
                           float       maxLoadFactor    = 0.75f,
-                          std::size_t expectedCpuCount = MAX_SYSTEM_THREADS) noexcept {
+                          std::size_t expectedCpuCount = MAX_SYSTEM_THREADS / 4) noexcept {
         std::size_t oldNumaId = nodes_size();
 
         if (oldNumaId <= newNumaId)
@@ -1347,17 +1343,12 @@ class NumaConfig final {
             nodes.resize(newNumaId + 1);  // default-construct missing elements
 
             // Apply tuning to all newly created sets
-            for (std::size_t i = oldNumaId; i <= newNumaId; ++i)
+            for (std::size_t i = oldNumaId; i < nodes.size(); ++i)
             {
-                if (maxLoadFactor != 0.0f)
-                {
+                if (maxLoadFactor > 0.0f)
                     nodes[i].max_load_factor(maxLoadFactor);
-                    if (expectedCpuCount != 0)
-                    {
-                        std::size_t bucketCount = std::size_t(expectedCpuCount / maxLoadFactor) + 1;
-                        nodes[i].rehash(bucketCount);  // preallocate enough buckets
-                    }
-                }
+                if (expectedCpuCount != 0)
+                    nodes[i].reserve(expectedCpuCount);
             }
         }
     }
@@ -1432,17 +1423,12 @@ class NumaConfig final {
                 add_numa_node_cpu(numaId, cpuId);
     }
 
-    void init_node_cpus(std::size_t cpusCount, float maxLoadFactor = 0.75f) noexcept {
+    void init_node_cpus(std::size_t expectedCpuCount, float maxLoadFactor = 0.75f) noexcept {
 
-        if (maxLoadFactor != 0.0f)
-        {
+        if (maxLoadFactor > 0.0f)
             nodeByCpu.max_load_factor(maxLoadFactor);
-            if (cpusCount != 0)
-            {
-                std::size_t bucketCount = std::size_t(cpusCount / maxLoadFactor) + 1;
-                nodeByCpu.rehash(bucketCount);
-            }
-        }
+        if (expectedCpuCount != 0)
+            nodeByCpu.reserve(expectedCpuCount);
     }
 
     std::vector<CpuIndexSet>                nodes;
