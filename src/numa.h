@@ -75,6 +75,7 @@ namespace DON {
 using CpuIndex  = std::size_t;
 using NumaIndex = std::size_t;
 
+using CpuIndexVec = std::vector<CpuIndex>;
 using CpuIndexSet = std::unordered_set<CpuIndex>;
 
 inline CpuIndex hardware_concurrency() noexcept {
@@ -481,11 +482,11 @@ inline CpuIndexSet get_process_affinity() noexcept {
         cpus.clear();
         cpus.reserve(MAX_SYSTEM_THREADS);
 
-        // Bulk insert using a temporary vector
-        std::vector<CpuIndex> vec(MAX_SYSTEM_THREADS);
-        std::iota(vec.begin(), vec.end(), 0);  // fill 0, 1, 2, ..., MAX_SYSTEM_THREADS-1
+        // Bulk insert using vector
+        CpuIndexVec cpuVec(MAX_SYSTEM_THREADS);
+        std::iota(cpuVec.begin(), cpuVec.end(), 0);  // fill 0, 1, 2, ..., MAX_SYSTEM_THREADS-1
 
-        cpus.insert(vec.begin(), vec.end());
+        cpus.insert(cpuVec.begin(), cpuVec.end());
     };
 
     // cpu_set_t by default holds 1024 entries. This may not be enough soon,
@@ -1031,8 +1032,8 @@ class NumaConfig final {
     }
 
    private:
-    static std::vector<CpuIndex> shortened_string_to_indices(std::string_view str) noexcept {
-        std::vector<CpuIndex> indices;
+    static CpuIndexVec shortened_string_to_indices(std::string_view str) noexcept {
+        CpuIndexVec indices;
 
         if (is_whitespace(str))
             return indices;
@@ -1044,20 +1045,25 @@ class NumaConfig final {
 
             auto parts = split(ss, "-");
 
-            if (parts.size() == 1)
+            switch (parts.size())
             {
+            case 1 : {
                 auto cpuId = CpuIndex(str_to_size_t(parts[0]));
+
                 indices.emplace_back(cpuId);
             }
-            else if (parts.size() == 2)
-            {
+            break;
+            case 2 : {
                 auto fstCpuId = CpuIndex(str_to_size_t(parts[0]));
                 auto lstCpuId = CpuIndex(str_to_size_t(parts[1]));
+
                 for (auto cpuId = fstCpuId; cpuId <= lstCpuId; ++cpuId)
                     indices.emplace_back(cpuId);
             }
-            else
+            break;
+            default :
                 assert(false);
+            }
         }
 
         return indices;
