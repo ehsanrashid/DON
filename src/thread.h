@@ -56,7 +56,7 @@ using JobFunc = std::function<void()>;
 
 #if defined(SUPPORTS_PTHREADS)
 
-// On OSX threads other than the main thread are created with a reduced stack
+// On OSX threads other than the main-thread are created with a reduced stack
 // size of 512KB by default, this is too low for deep searches,
 // which require somewhat more than 1MB stack, so adjust it to 8MB.
 class NativeThread final {
@@ -391,9 +391,9 @@ class Threads final {
 
     // --- queries ---
     bool is_active() const noexcept {
-        auto current = state.load(std::memory_order_acquire);
+        auto curState = state.load(std::memory_order_acquire);
 
-        return current == State::Active || current == State::Research;
+        return curState == State::Active || curState == State::Research;
     }
 
     bool is_researching() const noexcept {
@@ -401,9 +401,9 @@ class Threads final {
     }
 
     bool is_stopped() const noexcept {
-        auto current = state.load(std::memory_order_acquire);
+        auto curState = state.load(std::memory_order_acquire);
 
-        return current == State::Aborted || current == State::Stopped;
+        return curState == State::Aborted || curState == State::Stopped;
     }
 
     bool is_aborted() const noexcept {
@@ -412,36 +412,36 @@ class Threads final {
 
     // --- actions ---
     void request_research() noexcept {
-        auto current = state.load(std::memory_order_relaxed);
+        auto curState = state.load(std::memory_order_relaxed);
 
         while (true)
         {
             // Don't override aborted or stopped states
-            if (current == State::Aborted || current == State::Stopped)
+            if (curState == State::Aborted || curState == State::Stopped)
                 break;
 
             // Try to transition to Research
-            if (state.compare_exchange_weak(current, State::Research, std::memory_order_release,
+            if (state.compare_exchange_weak(curState, State::Research, std::memory_order_release,
                                             std::memory_order_relaxed))
                 break;
-            // current is updated on failure, loop continues
+            // current-state is updated on failure, loop continues
         }
     }
 
     void request_stop() noexcept {
-        auto current = state.load(std::memory_order_relaxed);
+        auto curState = state.load(std::memory_order_relaxed);
 
         while (true)
         {
             // Don't override aborted state
-            if (current == State::Aborted)
+            if (curState == State::Aborted)
                 break;
 
             // Try to transition to Stopped
-            if (state.compare_exchange_weak(current, State::Stopped, std::memory_order_release,
+            if (state.compare_exchange_weak(curState, State::Stopped, std::memory_order_release,
                                             std::memory_order_relaxed))
                 break;
-            // current is updated on failure, loop continues
+            // current-state is updated on failure, loop continues
         }
 
         notify_main_manager();
@@ -461,14 +461,14 @@ class Threads final {
         assert(!threads.empty());
 
         auto* mainThread = threads.front().get();
-        // Only proceed if main thread exists
+        // Only proceed if main-thread exists
         assert(mainThread != nullptr);
 
         auto* mainManager = mainThread->worker->main_manager();
-        // Only proceed if main manager exists
+        // Only proceed if main-manager exists
         assert(mainManager != nullptr);
 
-        // Try to acquire the main manager mutex to ensure the waiting thread
+        // Try to acquire the main-manager mutex to ensure the waiting thread
         // observes the updated state before it wakes.
         // If locking fails still notify — notify_one() is allowed without holding the lock.
         std::unique_lock condLock(mainManager->mutex, std::try_to_lock);
@@ -544,7 +544,7 @@ inline Threads::~Threads() noexcept { destroy(); }
 // Destroy any existing thread(s)
 inline void Threads::destroy() noexcept {
     Thread* mainThread = nullptr;
-    // Acquire shared lock once to safely snapshot main thread
+    // Acquire shared lock once to safely snapshot main-thread
     {
         std::shared_lock readLock(sharedMutex);
 
@@ -554,7 +554,7 @@ inline void Threads::destroy() noexcept {
 
     if (mainThread != nullptr)
     {
-        // Wake main manager (in case it is waiting)
+        // Wake main-manager (in case it is waiting)
         notify_main_manager();
 
         mainThread->wait_finish();
@@ -576,38 +576,37 @@ inline void Threads::init() const noexcept {
     for_each_thread([](Thread* th) noexcept { th->init(); });
     for_each_thread([](Thread* th) noexcept { th->wait_finish(); });
 
-    // Initialize main manager
-    if (auto mainManager = main_manager())
+    // Initialize main-manager
+    if (auto mainManager = main_manager(); mainManager != nullptr)
         mainManager->init();
 }
 
-// Get pointer to the main thread
+// Get pointer to the main-thread
 inline Thread* Threads::main_thread() const noexcept {
     std::shared_lock readLock(sharedMutex);
 
-    return threads.empty() ? nullptr : threads.front().get();
+    return !threads.empty() ? threads.front().get() : nullptr;
 }
 
 // Get pointer to the main search manager
 inline MainSearchManager* Threads::main_manager() const noexcept {
     std::shared_lock readLock(sharedMutex);
 
-    if (threads.empty())
-        return nullptr;
-
     // Avoid calling main_thread() here because it would try to lock sharedMutex again.
-    // Snapshot the main thread pointer under the shared lock and return its manager.
-    return threads.front()->worker != nullptr ? threads.front()->worker->main_manager() : nullptr;
+    // Snapshot the main-thread pointer under the shared lock and return its manager.
+    return !threads.empty() && threads.front()->worker != nullptr
+           ? threads.front()->worker->main_manager()
+           : nullptr;
 }
 
-// Start non-main threads
-// Will be invoked by main thread after it has started searching
+// Start non-main-threads
+// Will be invoked by main-thread after it has started searching
 inline void Threads::start_search() const noexcept {
     for_each_thread([](Thread* th) noexcept { th->start_search(); }, false);  // skip main
 }
 
-// Wait for non-main threads
-// Will be invoked by main thread after it has finished searching
+// Wait for non-main-threads
+// Will be invoked by main-thread after it has finished searching
 inline void Threads::wait_finish() const noexcept {
     for_each_thread([](Thread* th) noexcept { th->wait_finish(); }, false);  // skip main
 }

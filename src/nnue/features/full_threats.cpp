@@ -33,23 +33,25 @@ namespace DON::NNUE::Features {
 
 namespace {
 
-constexpr StdArray<std::uint8_t, PIECE_TYPE_CNT> MAX_TARGETS{6, 10, 8, 8, 10, 8};
+constexpr StdArray<std::uint16_t, PIECE_TYPE_CNT> MAX_TARGETS{3, 5, 4, 4, 5, 0};
 
-constexpr StdArray<std::int8_t, PIECE_TYPE_CNT, PIECE_TYPE_CNT> MAP{{
-  {0, +1, -1, +2, -1, -1},  //
-  {0, +1, +2, +3, +4, -1},  //
-  {0, +1, +2, +3, -1, -1},  //
-  {0, +1, +2, +3, -1, -1},  //
-  {0, +1, +2, +3, +4, -1},  //
-  {0, +1, +2, +3, -1, -1}   //
+constexpr StdArray<std::int16_t, PIECE_TYPE_CNT, PIECE_TYPE_CNT> MAP{{
+  {+0, +1, -1, +2, -1, -1},  //
+  {+0, +1, +2, +3, +4, -1},  //
+  {+0, +1, +2, +3, -1, -1},  //
+  {+0, +1, +2, +3, -1, -1},  //
+  {+0, +1, +2, +3, +4, -1},  //
+  {-1, -1, -1, -1, -1, -1}   //
 }};
 
 struct PieceThreat final {
-    std::uint32_t threatCount;  // Total number of threats this piece can generate
+   public:
     std::uint32_t baseOffset;   // Base index in the global threat table for this piece
+    std::uint32_t threatCount;  // Total number of threats this piece can generate
 };
 
 struct ThreatTable final {
+   public:
     StdArray<PieceThreat, PIECE_NB>              pieceThreats;
     StdArray<std::uint32_t, PIECE_NB, SQUARE_NB> squareOffsets;
 };
@@ -77,9 +79,9 @@ alignas(CACHE_LINE_SIZE) constexpr auto THREAT_TABLE = []() constexpr noexcept {
                 threatCount += constexpr_popcount(threatsBB);
             }
 
-            threatTable.pieceThreats[+pc] = {threatCount, baseOffset};
+            threatTable.pieceThreats[+pc] = {baseOffset, threatCount};
 
-            baseOffset += MAX_TARGETS[pt - 1] * threatCount;
+            baseOffset += 2 * MAX_TARGETS[pt - 1] * threatCount;
         }
 
     return threatTable;
@@ -107,25 +109,22 @@ alignas(CACHE_LINE_SIZE) constexpr auto LUT_DATAS = []() constexpr noexcept {
                 {
                     Piece attackedPc = make_piece(attackedC, attackedPt);
 
-                    bool enemy = int(attackerPc ^ attackedPc) == 8;
-
                     auto map = MAP[attackerPt - 1][attackedPt - 1];
-
-                    bool excluded = map < 0;
-
-                    if (excluded)
+                    // Excluded
+                    if (map < 0)
                     {
                         lutDatas[+attackerPc][+attackedPc] = FullThreats::Dimensions;
 
                         continue;
                     }
 
-                    bool semiExcluded = attackerPt == attackedPt && (enemy || attackerPt != PAWN);
+                    bool semiExcluded = attackerPt == attackedPt  //
+                                     && (attackerPt != PAWN || attackerC != attackedC);
 
                     std::uint32_t featureIndex =
                       PIECE_THREATS[+attackerPc].baseOffset
                       + PIECE_THREATS[+attackerPc].threatCount
-                          * (attackedC * (MAX_TARGETS[attackerPt - 1] / 2) + map);
+                          * (attackedC * MAX_TARGETS[attackerPt - 1] + map);
 
                     lutDatas[+attackerPc][+attackedPc] =
                       (std::uint32_t(semiExcluded) << SEMI_EXCLUDED_OFFSET) | featureIndex;
@@ -205,16 +204,16 @@ ALWAYS_INLINE IndexType make_index(Color  perspective,
 
     std::uint32_t lutData = LUT_DATAS[+attackerPc][+attackedPc];
 
-    if (  // Fully-excluded (fast path)
-      lutData == FullThreats::Dimensions
-      // Semi-excluded && Direction-dependent exclusion
-      || (is_semi_excluded(lutData) && orgSq < dstSq))
-        return FullThreats::Dimensions;
-
     // Compute final index
-    return feature_index(lutData)               //
-         + lut_index(attackerPc, orgSq, dstSq)  //
-         + SQUARE_OFFSETS[+attackerPc][orgSq];
+    return
+      // Fully-excluded (fast path)
+      lutData == FullThreats::Dimensions
+          // Semi-excluded && Direction-dependent exclusion
+          || (is_semi_excluded(lutData) && orgSq < dstSq)
+        ? FullThreats::Dimensions
+        : feature_index(lutData)                   //
+            + lut_index(attackerPc, orgSq, dstSq)  //
+            + SQUARE_OFFSETS[+attackerPc][orgSq];
 }
 
 }  // namespace

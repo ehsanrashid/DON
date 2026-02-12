@@ -313,7 +313,7 @@ struct Limit final {
     }
 
     std::uint16_t calls_count() const noexcept {
-        return nodes != 0 ? std::min(1 + int(std::ceil(nodes / 1024.0)), 512) : 512;
+        return nodes != 0 ? std::min(int(std::ceil(nodes / 1024.0)) + 1, 512) : 512;
     }
 
     TimePoint startTime = 0;
@@ -379,11 +379,11 @@ struct Skill final {
 
     void init(const Options& options) noexcept;
 
-    bool enabled() const noexcept { return level < MAX_LEVEL; }
+    constexpr bool enabled() const noexcept { return level < MAX_LEVEL; }
 
-    bool time_to_pick(Depth depth) const noexcept { return depth == 1 + int(level); }
+    constexpr bool time_to_pick(Depth depth) const noexcept { return depth == 1 + int(level); }
 
-    Value weakness() const noexcept { return Value(2.0 * (3.0 * MAX_LEVEL - level)); }
+    constexpr Value weakness() const noexcept { return Value(2.0 * (3.0 * MAX_LEVEL - level)); }
 
     Move pick_move(const RootMoves& rootMoves, std::size_t multiPV, bool pickBest = true) noexcept;
 
@@ -392,8 +392,6 @@ struct Skill final {
 
     static constexpr std::uint16_t MIN_ELO = 1320;
     static constexpr std::uint16_t MAX_ELO = 3190;
-
-    static constexpr std::size_t MIN_MULTI_PV = 4;
 
    private:
     double level    = MAX_LEVEL;

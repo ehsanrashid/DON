@@ -115,13 +115,6 @@ void memory_array_deleter(T* mem, FreeFunc&& freeFunc) noexcept {
     if constexpr (!std::is_trivially_destructible_v<T>)
     {
         std::size_t size = *reinterpret_cast<std::size_t*>(rawMem);
-
-        //// Explicitly call the destructor for each element in reverse order
-        //for (std::size_t i = size; i-- > 0;)
-        //    std::destroy_at(&mem[i]);  // mem[i].~T();
-
-        //// Forward order
-        //std::destroy(mem, mem + size);
         // Reverse order
         std::destroy(std::make_reverse_iterator(mem + size), std::make_reverse_iterator(mem));
     }
@@ -416,11 +409,26 @@ struct Advapi final {
    public:
     // clang-format off
     // https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-openprocesstoken
-    using OpenProcessToken_      = BOOL(WINAPI*)(HANDLE, DWORD, PHANDLE);
+    using OpenProcessToken_ = BOOL(WINAPI*)(
+      HANDLE  ProcessHandle,    // [in]  Handle to process
+      DWORD   DesiredAccess,    // [in]  Access rights for token
+      PHANDLE TokenHandle       // [out] Pointer to token handle
+    );
     // https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-lookupprivilegevaluea
-    using LookupPrivilegeValue_  = BOOL(WINAPI*)(LPCSTR, LPCSTR, PLUID);
+    using LookupPrivilegeValue_ = BOOL(WINAPI*)(
+      LPCSTR lpSystemName,      // [in] System name (NULL for local)
+      LPCSTR lpName,            // [in] Privilege name (e.g., SE_DEBUG_NAME)
+      PLUID  lpLuid             // [out] Receives LUID of privilege
+    );
     // https://learn.microsoft.com/en-us/windows/win32/api/securitybaseapi/nf-securitybaseapi-adjusttokenprivileges
-    using AdjustTokenPrivileges_ = BOOL(WINAPI*)(HANDLE, BOOL, PTOKEN_PRIVILEGES, DWORD, PTOKEN_PRIVILEGES, PDWORD);
+    using AdjustTokenPrivileges_ = BOOL(WINAPI*)(
+      HANDLE            TokenHandle,          // [in]      Access token handle
+      BOOL              DisableAllPrivileges, // [in]      Disable all privileges flag
+      PTOKEN_PRIVILEGES NewState,             // [in, opt] New privilege state
+      DWORD             BufferLength,         // [in]      Size of PreviousState buffer
+      PTOKEN_PRIVILEGES PreviousState,        // [out, opt] Previous privilege state
+      PDWORD            ReturnLength          // [out, opt] Required buffer size
+    );
     // clang-format on
 
     static constexpr LPCSTR MODULE_NAME = TEXT("advapi32.dll");
@@ -537,7 +545,6 @@ auto try_with_windows_lock_memory_privilege([[maybe_unused]] SuccessFunc&& succe
     auto&& ret = successFunc(LargePageSize);
 
     // Privilege no longer needed, restore the privileges
-    //if (oldTp.PrivilegeCount > 0)
     advapi.adjustTokenPrivileges(hProcess, FALSE, &oldTp, 0, nullptr, nullptr);
 
     return std::forward<decltype(ret)>(ret);

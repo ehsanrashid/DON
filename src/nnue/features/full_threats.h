@@ -37,7 +37,7 @@ class FullThreats final {
     static constexpr std::uint32_t Hash = 0x8F234CB8U;
 
     // Number of feature dimensions
-    static constexpr IndexType Dimensions = 66864;
+    static constexpr IndexType Dimensions = 60144;
 
     struct FusedData final {
         FusedData() = delete;

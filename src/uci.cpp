@@ -612,10 +612,8 @@ void UCI::bench(std::istream& is) noexcept {
         }
     }
 
-    elapsedTime += now() - startTime;
     // Ensure non-zero to avoid a 'divide by zero'
-    if (elapsedTime == 0)
-        elapsedTime = 1;
+    elapsedTime = std::max(elapsedTime + now() - startTime, TimePoint(1));
 
 #if !defined(NDEBUG)
     Debug::print();
@@ -726,8 +724,8 @@ void UCI::benchmark(std::istream& is) noexcept {
         for (std::size_t i = 0; i < HashfullAges.size(); ++i)
         {
             auto hashfull = engine.hashfull(HashfullAges[i]);
-            if (maxHashfull[i] < hashfull)
-                maxHashfull[i] = hashfull;
+
+            maxHashfull[i] = std::max(hashfull, maxHashfull[i]);
             sumHashfull[i] += hashfull;
         }
     };
@@ -779,10 +777,8 @@ void UCI::benchmark(std::istream& is) noexcept {
         }
     }
 
-    elapsedTime += now() - startTime;
     // Ensure non-zero to avoid a 'divide by zero'
-    if (elapsedTime == 0)
-        elapsedTime = 1;
+    elapsedTime = std::max(elapsedTime + now() - startTime, TimePoint(1));
 
 #if !defined(NDEBUG)
     Debug::print();

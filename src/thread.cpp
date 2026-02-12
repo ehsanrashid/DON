@@ -353,15 +353,10 @@ Thread* Threads::best_thread() const noexcept {
     Value minCurValue = +VALUE_NONE;
     // Find the minimum value of all threads
     for (auto* th : snapShot)
-    {
-        Value curValue = th->worker->rootMoves[0].curValue;
-
-        if (minCurValue > curValue)
-            minCurValue = curValue;
-    }
+        minCurValue = std::min(th->worker->rootMoves[0].curValue, minCurValue);
 
     // Vote according to value and depth, and select the best thread
-    auto thread_voting_value = [=](const Thread* th) noexcept -> std::uint32_t {
+    auto thread_voting_value = [minCurValue](const Thread* th) noexcept -> std::uint32_t {
         return (14 + th->worker->rootMoves[0].curValue - minCurValue) * th->worker->completedDepth;
     };
 
@@ -568,7 +563,7 @@ std::vector<std::size_t> Threads::get_bound_thread_counts() const noexcept {
             NumaIndex maxNumaId =
               *std::max_element(threadBoundNumaNodes.begin(), threadBoundNumaNodes.end());
 
-            threadCounts.resize(1 + maxNumaId, 0);
+            threadCounts.resize(maxNumaId + 1, 0);
 
             for (NumaIndex numaId : threadBoundNumaNodes)
                 ++threadCounts[numaId];
