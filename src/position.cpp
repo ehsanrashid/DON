@@ -2287,7 +2287,7 @@ std::ostream& operator<<(std::ostream& os, const Position& pos) noexcept {
 
     os << "\nKey: " << u64_to_string(pos.key());
 
-    os << "\nKing (s): ";
+    os << "\nKings: ";
     os << to_square(pos.square<KING>(pos.active_color())) << ", "
        << to_square(pos.square<KING>(~pos.active_color()));
 

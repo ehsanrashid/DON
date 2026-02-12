@@ -1349,11 +1349,14 @@ class NumaConfig final {
             // Apply tuning to all newly created sets
             for (std::size_t i = oldNumaId; i <= newNumaId; ++i)
             {
-                nodes[i].max_load_factor(maxLoadFactor);
-                if (expectedCpuCount != 0)
+                if (maxLoadFactor != 0.0f)
                 {
-                    std::size_t bucketCount = std::size_t(expectedCpuCount / maxLoadFactor) + 1;
-                    nodes[i].rehash(bucketCount);  // preallocate enough buckets
+                    nodes[i].max_load_factor(maxLoadFactor);
+                    if (expectedCpuCount != 0)
+                    {
+                        std::size_t bucketCount = std::size_t(expectedCpuCount / maxLoadFactor) + 1;
+                        nodes[i].rehash(bucketCount);  // preallocate enough buckets
+                    }
                 }
             }
         }
