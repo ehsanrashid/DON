@@ -358,17 +358,17 @@ struct IndexCount final {
 };
 
 constexpr IndexCount
-thread_index_count(std::size_t threadId, std::size_t threadCount, std::size_t totalSize) noexcept {
+thread_index_count(std::size_t threadId, std::size_t threadCount, std::size_t size) noexcept {
     assert(threadCount != 0 && threadId < threadCount);
 
-    std::size_t stride = totalSize / threadCount;
-    std::size_t remain = totalSize % threadCount;  // remainder to distribute
+    std::size_t stride = size / threadCount;
+    std::size_t remain = size % threadCount;  // remainder to distribute
 
     // Distribute remainder among the first 'remain' threads
     std::size_t begIdx = threadId * stride + std::min(threadId, remain);
     std::size_t count  = stride + std::size_t(threadId < remain);
 
-    assert(begIdx + count <= totalSize);
+    assert(begIdx + count <= size);
     return {begIdx, count};
 }
 
@@ -379,17 +379,17 @@ struct IndexRange final {
 };
 
 constexpr IndexRange
-thread_index_range(std::size_t threadId, std::size_t threadCount, std::size_t totalSize) noexcept {
+thread_index_range(std::size_t threadId, std::size_t threadCount, std::size_t size) noexcept {
     assert(threadCount != 0 && threadId < threadCount);
 
-    std::size_t stride = totalSize / threadCount;
-    std::size_t remain = totalSize % threadCount;  // remainder to distribute
+    std::size_t stride = size / threadCount;
+    std::size_t remain = size % threadCount;  // remainder to distribute
 
     // Distribute remainder among the first 'remain' threads
     std::size_t begIdx = threadId * stride + std::min(threadId, remain);
     std::size_t endIdx = begIdx + stride + std::size_t(threadId < remain);
 
-    assert(begIdx <= endIdx && endIdx <= totalSize);
+    assert(begIdx <= endIdx && endIdx <= size);
     return {begIdx, endIdx};
 }
 
@@ -935,9 +935,6 @@ class DynamicArray final {
     void fill(std::size_t begIdx, std::size_t endIdx, const U& v) noexcept {
         assert(begIdx <= endIdx && endIdx <= size());
 
-        //if (endIdx > size())
-        //    endIdx = size();
-
         for (std::size_t idx = begIdx; idx < endIdx; ++idx)
             data()[idx].fill(v);
     }
@@ -1088,14 +1085,12 @@ class FixedString final {
 
     FixedString& operator+=(std::string_view str) {
 
-        std::size_t Size = str.size();
-
-        if (size() + Size > capacity())
+        if (size() + str.size() > capacity())
             std::terminate();
 
-        std::memcpy(data() + size(), str.data(), Size);
+        std::memcpy(data() + size(), str.data(), str.size());
 
-        _size += Size;
+        _size += str.size();
         null_terminate();
 
         return *this;
@@ -1128,14 +1123,12 @@ class FixedString final {
    private:
     void assign(std::string_view str) {
 
-        std::size_t Size = str.size();
-
-        if (Size > capacity())
+        if (str.size() > capacity())
             std::terminate();
 
-        std::memcpy(data(), str.data(), Size);
+        std::memcpy(data(), str.data(), str.size());
 
-        _size = Size;
+        _size = str.size();
         null_terminate();
     }
 

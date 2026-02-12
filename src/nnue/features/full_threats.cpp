@@ -109,8 +109,9 @@ alignas(CACHE_LINE_SIZE) constexpr auto LUT_DATAS = []() constexpr noexcept {
                 {
                     Piece attackedPc = make_piece(attackedC, attackedPt);
 
+                    auto map = MAP[attackerPt - 1][attackedPt - 1];
                     // Excluded
-                    if (MAP[attackerPt - 1][attackedPt - 1] < 0)
+                    if (map < 0)
                     {
                         lutDatas[+attackerPc][+attackedPc] = FullThreats::Dimensions;
 
@@ -120,10 +121,10 @@ alignas(CACHE_LINE_SIZE) constexpr auto LUT_DATAS = []() constexpr noexcept {
                     bool semiExcluded = attackerPt == attackedPt  //
                                      && (attackerPt != PAWN || attackerC != attackedC);
 
-                    std::uint32_t featureIndex = PIECE_THREATS[+attackerPc].baseOffset
-                                               + PIECE_THREATS[+attackerPc].threatCount
-                                                   * (attackedC * MAX_TARGETS[attackerPt - 1]
-                                                      + MAP[attackerPt - 1][attackedPt - 1]);
+                    std::uint32_t featureIndex =
+                      PIECE_THREATS[+attackerPc].baseOffset
+                      + PIECE_THREATS[+attackerPc].threatCount
+                          * (attackedC * MAX_TARGETS[attackerPt - 1] + map);
 
                     lutDatas[+attackerPc][+attackedPc] =
                       (std::uint32_t(semiExcluded) << SEMI_EXCLUDED_OFFSET) | featureIndex;

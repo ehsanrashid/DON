@@ -167,7 +167,7 @@ void update_continuation_history(Stack* ss, Piece pc, Square dstSq, int bonus) n
 
     for (std::size_t i = 0; i < ContHistoryCount; ++i)
     {
-        const auto* ssi = (ss - 1) - i;
+        auto* ssi = (ss - 1) - i;
 
         if (!ssi->move.is_ok())
             break;
@@ -275,7 +275,7 @@ void Worker::start_search() noexcept {
         // When playing with strength handicap enable MultiPV search that
         // will use behind-the-scenes to retrieve a set of sub-optimal moves.
         if (mainManager->skill.enabled())
-            multiPV = std::max(Skill::MIN_MULTI_PV, multiPV);
+            multiPV = std::max(std::size_t(4), multiPV);
     }
 
     multiPV = std::min(rootMoves.size(), multiPV);
@@ -500,7 +500,8 @@ void Worker::iterative_deepening() noexcept {
         {
             if (curPV == endPV)
             {
-                begPV = endPV++;
+                begPV = endPV;
+                ++endPV;
                 while (endPV < rootMoves.size()
                        && rootMoves[endPV].tbRank == rootMoves[begPV].tbRank)
                     ++endPV;
@@ -535,10 +536,8 @@ void Worker::iterative_deepening() noexcept {
 
                 // Adjust the effective depth searched, but ensure at least one
                 // effective increment for every 4 researchCnt steps.
-                Depth adjustedDepth = rootDepth - failHighCnt - 3 * (1 + researchCnt) / 4;
-
-                if (adjustedDepth < 1)
-                    adjustedDepth = 1;
+                Depth adjustedDepth =
+                  std::max(rootDepth - failHighCnt - 3 * (1 + researchCnt) / 4, 1);
 
                 bestValue = search<NT::ROOT>(rootPos, ss, alpha, beta, adjustedDepth);
 
@@ -679,17 +678,14 @@ void Worker::iterative_deepening() noexcept {
             double instabilityFactor = 1.0200 + 2.1400 * mainManager->sumMoveChanges / thread_count();
 
             // Compute node effort factor that reduces time if root move has consumed a large fraction of total nodes
-            double nodeEffortExcess = -933.40 + 1000.0 * rootMoves[0].nodes / std::max(nodes_(), std::uint64_t(1));
-            if (nodeEffortExcess < 0.0)
-                nodeEffortExcess = 0.0;
+            double nodeEffortExcess = std::max(-933.40 + 1000.0 * rootMoves[0].nodes / std::max(nodes_(), std::uint64_t(1)), 0.0);
             double nodeEffortFactor = 1.0 - 37.5207e-4 * nodeEffortExcess;
 
             // Compute recapture factor that reduces time if recapture conditions are met
-            double recaptureFactor = 1.0;
-            if ( rootPos.captured_sq() == rootMoves[0].pv[0].dst_sq()
-             && (rootPos.captured_sq() & rootPos.pieces_bb(~ac))
-             && rootPos.see(rootMoves[0].pv[0]) >= 200)
-                recaptureFactor -= 4.0040e-3 * std::min(+stableDepth, 25);
+            double recaptureFactor = 1.0 - int( rootPos.captured_sq() == rootMoves[0].pv[0].dst_sq()
+                                            && (rootPos.captured_sq() & rootPos.pieces_bb(~ac))
+                                            &&  rootPos.see(rootMoves[0].pv[0]) >= 200)
+                                         * 4.0040e-3 * std::min(+stableDepth, 25);
 
             // Calculate total time by combining all factors with the optimum time
             TimePoint totalTime = mainManager->timeManager.optimum() * inconsistencyFactor * easeFactor * instabilityFactor * nodeEffortFactor * recaptureFactor;
@@ -701,12 +697,7 @@ void Worker::iterative_deepening() noexcept {
 
             // Cap totalTime in case of a single legal move for a better viewer experience
             if (rootMoves.size() == 1)
-            {
-                totalTime *= 0.5500;
-
-                if (totalTime > TimeManager::SINGLE_MOVE_MAX_TIME)
-                    totalTime = TimeManager::SINGLE_MOVE_MAX_TIME;
-            }
+                totalTime = std::min<TimePoint>(constexpr_round(0.5500 * totalTime), 512);
 
             TimePoint elapsedTime = mainManager->elapsed(threads);
 
@@ -1657,7 +1648,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
     // Don't let best value inflate too high (tb)
     if constexpr (PVNode)
     {
-        bestValue = std::min(bestValue, maxValue);
+        bestValue = std::min(maxValue, bestValue);
     }
 
     // If there is a move that produces search value greater than alpha update the history of searched moves
@@ -1680,7 +1671,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
         {
             // clang-format off
             int bonusScale = std::max(
-                            -215
+                            - 215
                             // Increase bonus when depth is high
                             + std::min(56 * depth, 489)
                             // Increase bonus when bestValue is lower than current static evaluation
@@ -2074,7 +2065,7 @@ void Worker::update_quiet_histories(const Position& pos, PawnHistory& pawnHistor
 // Updates history at the end of search() when a bestMove is found and other searched moves are known
 void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Stack* ss, Depth depth, Move bestMove, bool extra, const StdArray<SearchedMoves, 2>& searchedMoves) noexcept {
     assert(depth > DEPTH_ZERO);
-    assert(ss->moveCount > 0);
+    assert(ss->moveCount != 0);
 
     int bonus = std::clamp(-81 + 116 * depth + std::min(constexpr_round(31.2500e-3 * (ss - 1)->history / double(depth)), 512), 4, 2027)
               + int(extra) * 347;
@@ -2107,14 +2098,13 @@ void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Sta
         decayCaptureMalus = constexpr_round(0.9900 * decayCaptureMalus);
     }
 
-    Move preMove = (ss - 1)->move;
-
-    bool   preOk = preMove.is_ok();
-    Square preSq = preMove.dst_sq_();
-
     // Extra penalty for a quiet early move that was not a TT move in the previous ply when it gets refuted
-    if (preOk && pos.captured_pc() == Piece::NO_PIECE && (ss - 1)->moveCount == 1 + int((ss - 1)->ttMove != Move::None))
-        update_continuation_history(ss - 1, pos[preSq], preSq, -constexpr_round(0.5879 * malus));
+    auto* ss1 = ss - 1;
+    if (ss1->move.is_ok() && pos.captured_pc() == Piece::NO_PIECE && ss1->moveCount == 1 + int(ss1->ttMove != Move::None))
+    {
+        Square preSq = ss1->move.dst_sq_();
+        update_continuation_history(ss1, pos[preSq], preSq, -constexpr_round(0.5879 * malus));
+    }
 }
 
 // Updates correction histories at the end of search() when a bestMove is found
