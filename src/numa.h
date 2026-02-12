@@ -119,22 +119,27 @@ struct WindowsAffinity final {
    public:
     std::optional<CpuIndexSet> combined_cpus() const noexcept {
 
-        if (!oldCpus.has_value())
-            return newCpus;
+        // Both empty -> return std::nullopt
+        if (cpus[0].empty() && cpus[1].empty())
+            return std::nullopt;
 
-        if (!newCpus.has_value())
-            return oldCpus;
+        if (cpus[0].empty())
+            return cpus[1];
+
+        if (cpus[1].empty())
+            return cpus[0];
+
+        bool small = cpus[0].size() < cpus[1].size();
+
+        // Both are non-empty -> compute intersection
+        const CpuIndexSet& smaller = cpus[int(small)];
+        const CpuIndexSet& larger  = cpus[int(!small)];
 
         CpuIndexSet combinedCpus;
-        combinedCpus.reserve(std::min(oldCpus->size(), newCpus->size()));
+        combinedCpus.reserve(smaller.size());
 
-        bool oldSmall = oldCpus->size() < newCpus->size();
-
-        const auto& smallCpus = oldSmall ? *oldCpus : *newCpus;
-        const auto& largeCpus = oldSmall ? *newCpus : *oldCpus;
-
-        for (CpuIndex cpuId : smallCpus)
-            if (largeCpus.find(cpuId) != largeCpus.end())
+        for (CpuIndex cpuId : smaller)
+            if (larger.find(cpuId) != larger.end())
                 combinedCpus.insert(cpuId);
 
         return combinedCpus;
@@ -146,18 +151,16 @@ struct WindowsAffinity final {
     // affinity set by the old API already and want to override that.
     // Due to the limitations of the old API cannot detect its use reliably.
     // There will be cases where detect not use but it has actually been used and vice versa.
+    constexpr bool likely_use_cpus(std::size_t idx) const noexcept {
+        assert(idx < determinate.size() && idx < cpus.size());
 
-    bool likely_use_old_api() const noexcept { return oldCpus.has_value() || !oldDeterminate; }
+        return !determinate[idx] || !cpus[idx].empty();
+    }
 
-    std::optional<CpuIndexSet> oldCpus;
-    std::optional<CpuIndexSet> newCpus;
-
-    // Also provide diagnostic for when the affinity is set to nullopt
-    // whether it was due to being indeterminate. If affinity is indeterminate
-    // it is best to assume it is not set at all, so consistent with the meaning
-    // of the nullopt affinity.
-    bool newDeterminate = true;
-    bool oldDeterminate = true;
+    // Also provide diagnostic for when the affinity is set to nullopt whether it was due to being indeterminate.
+    // If affinity is indeterminate it is best to assume it is not set at all, so consistent with the meaning of the nullopt affinity.
+    StdArray<bool, 2>        determinate{true, true};
+    StdArray<CpuIndexSet, 2> cpus;
 };
 
 inline std::pair<BOOL, std::vector<USHORT>> get_process_group_affinity() noexcept {
@@ -184,9 +187,9 @@ inline std::pair<BOOL, std::vector<USHORT>> get_process_group_affinity() noexcep
         USHORT groupCount = requiredGroupCount;
 
         if (GetProcessGroupAffinity(GetCurrentProcess(), &groupCount, alignedGroupArray) == TRUE)
-            return std::make_pair(TRUE,
-                                  std::vector(alignedGroupArray, alignedGroupArray + groupCount));
-
+        {
+            return {TRUE, std::vector<USHORT>{alignedGroupArray, alignedGroupArray + groupCount}};
+        }
         else
         {
             if (GetLastError() != ERROR_INSUFFICIENT_BUFFER)
@@ -197,7 +200,7 @@ inline std::pair<BOOL, std::vector<USHORT>> get_process_group_affinity() noexcep
         requiredGroupCount = groupCount;
     }
 
-    return std::make_pair(FALSE, std::vector<USHORT>());
+    return {FALSE, std::vector<USHORT>{}};
 }
 
 // On Windows there are two ways to set affinity, and therefore 2 ways to get it.
@@ -217,7 +220,7 @@ inline WindowsAffinity get_process_affinity() noexcept {
     auto getThreadSelectedCpuSetMasks = GetThreadSelectedCpuSetMasks_(
       (void (*)()) GetProcAddress(hModule, "GetThreadSelectedCpuSetMasks"));
 
-    WindowsAffinity winAffinity{};
+    WindowsAffinity winAffinity;
 
     BOOL status;
 
@@ -230,7 +233,7 @@ inline WindowsAffinity get_process_affinity() noexcept {
         // Expect ERROR_INSUFFICIENT_BUFFER from GetThreadSelectedCpuSetMasks, but other failure is an actual error
         if (status == FALSE && GetLastError() != ERROR_INSUFFICIENT_BUFFER)
         {
-            winAffinity.newDeterminate = false;
+            winAffinity.determinate[1] = false;
         }
         else if (requiredMaskCount > 0)
         {
@@ -242,7 +245,7 @@ inline WindowsAffinity get_process_affinity() noexcept {
                                                   requiredMaskCount, &requiredMaskCount);
 
             if (status == FALSE)
-                winAffinity.newDeterminate = false;
+                winAffinity.determinate[1] = false;
             else
             {
                 CpuIndexSet cpus;
@@ -262,7 +265,7 @@ inline WindowsAffinity get_process_affinity() noexcept {
                             }
                 }
 
-                winAffinity.newCpus = std::move(cpus);
+                winAffinity.cpus[1] = std::move(cpus);
             }
         }
     }
@@ -281,7 +284,7 @@ inline WindowsAffinity get_process_affinity() noexcept {
     // So it will never be indeterminate here. Can only make assumptions later.
     if (status == FALSE || procMask == 0)
     {
-        winAffinity.oldDeterminate = false;
+        winAffinity.determinate[0] = false;
 
         return winAffinity;
     }
@@ -294,15 +297,14 @@ inline WindowsAffinity get_process_affinity() noexcept {
 
     if (status == FALSE)
     {
-        winAffinity.oldDeterminate = false;
+        winAffinity.determinate[0] = false;
 
         return winAffinity;
     }
 
     if (procGroupAffinity.size() == 1)
     {
-        // Detect the case when affinity is set to all processors and correctly
-        // leave affinity.oldCpus as nullopt.
+        // Detect the case when affinity is set to all processors and correctly leave affinity.cpus[0] as nullopt.
         if (GetActiveProcessorGroupCount() != 1 || procMask != sysMask)
         {
             CpuIndexSet cpus;
@@ -321,7 +323,7 @@ inline WindowsAffinity get_process_affinity() noexcept {
                     }
             }
 
-            winAffinity.oldCpus = std::move(cpus);
+            winAffinity.cpus[0] = std::move(cpus);
         }
     }
     else
@@ -364,7 +366,7 @@ inline WindowsAffinity get_process_affinity() noexcept {
                         if (SetThreadGroupAffinity(GetCurrentThread(), &groupAffinity, nullptr)
                             == FALSE)
                         {
-                            winAffinity.oldDeterminate = false;
+                            winAffinity.determinate[0] = false;
 
                             return;
                         }
@@ -376,7 +378,7 @@ inline WindowsAffinity get_process_affinity() noexcept {
                         if (GetProcessAffinityMask(GetCurrentProcess(), &thProcMask, &thSysMask)
                             == FALSE)
                         {
-                            winAffinity.oldDeterminate = false;
+                            winAffinity.determinate[0] = false;
 
                             return;
                         }
@@ -402,7 +404,7 @@ inline WindowsAffinity get_process_affinity() noexcept {
                 // or is set to all processors so that correctly produce as
                 // std::nullopt result.
                 if (!affinityFull)
-                    winAffinity.oldCpus = std::move(cpus);
+                    winAffinity.cpus[0] = std::move(cpus);
             });
 
             th.join();
@@ -414,7 +416,8 @@ inline WindowsAffinity get_process_affinity() noexcept {
 
 inline const auto PROCESSOR_AFFINITY = get_process_affinity();
 
-inline const auto LIKELY_USE_OLD_API = PROCESSOR_AFFINITY.likely_use_old_api();
+inline const auto LIKELY_USE_CPUS_0 = PROCESSOR_AFFINITY.likely_use_cpus(0);
+inline const auto LIKELY_USE_CPUS_1 = PROCESSOR_AFFINITY.likely_use_cpus(1);
 
 // Type machinery used to emulate Cache->GroupCount
 
@@ -698,7 +701,7 @@ class NumaConfig final {
         //     scheduled to processors on their primary group, but they are able to
         //     be scheduled to processors on any other group.
         //
-        // used to be guarded by if (LIKELY_USE_OLD_API)
+        // used to be guarded by if (LIKELY_USE_CPUS_0)
         {
             NumaConfig splitNumaCfg = empty();
 
@@ -1008,7 +1011,7 @@ class NumaConfig final {
         }
 
         // Sometimes need to force the old API, but do not use it unless necessary.
-        if (setThreadSelectedCpuSetMasks == nullptr || LIKELY_USE_OLD_API)
+        if (setThreadSelectedCpuSetMasks == nullptr || LIKELY_USE_CPUS_0)
         {
             // On earlier windows version (since windows 7)
             // cannot run a single thread on multiple processor groups, so need to restrict the group.
@@ -1343,12 +1346,12 @@ class NumaConfig final {
             nodes.resize(newNumaId + 1);  // default-construct missing elements
 
             // Apply tuning to all newly created sets
-            for (std::size_t i = oldNumaId; i < nodes.size(); ++i)
+            for (std::size_t numaId = oldNumaId; numaId < nodes_size(); ++numaId)
             {
                 if (maxLoadFactor > 0.0f)
-                    nodes[i].max_load_factor(maxLoadFactor);
+                    nodes[numaId].max_load_factor(maxLoadFactor);
                 if (expectedCpuCount != 0)
-                    nodes[i].reserve(expectedCpuCount);
+                    nodes[numaId].reserve(expectedCpuCount);
             }
         }
     }
@@ -1418,7 +1421,7 @@ class NumaConfig final {
         nodeByCpu.clear();
         maxCpuId = 0;
 
-        for (NumaIndex numaId = 0; numaId < nodes.size(); ++numaId)
+        for (NumaIndex numaId = 0; numaId < nodes_size(); ++numaId)
             for (CpuIndex cpuId : nodes[numaId])
                 add_numa_node_cpu(numaId, cpuId);
     }
