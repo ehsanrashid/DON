@@ -798,6 +798,12 @@ class NumaConfig final {
 
     std::size_t nodes_size() const noexcept { return nodes.size(); }
 
+    bool node_cpus_empty(NumaIndex numaId) const noexcept {
+        assert(numaId < nodes_size());
+
+        return nodes[numaId].empty();
+    }
+
     std::size_t node_cpus_size(NumaIndex numaId) const noexcept {
         assert(numaId < nodes_size());
 
@@ -957,7 +963,7 @@ class NumaConfig final {
     }
 
     NumaReplicatedAccessToken bind_current_thread_to_numa_node(NumaIndex numaId) const noexcept {
-        if (numaId >= nodes_size() || node_cpus_size(numaId) == 0)
+        if (numaId >= nodes_size() || node_cpus_empty(numaId))
             std::exit(EXIT_FAILURE);
 
 #if defined(_WIN64)
@@ -1061,8 +1067,9 @@ class NumaConfig final {
 
         if (sched_setaffinity(0, MaskSize, cpuMask) != 0)
         {
-            CPU_FREE(cpuMask);
+            DEBUG_LOG("sched_setaffinity failed");
 
+            CPU_FREE(cpuMask);
             std::exit(EXIT_FAILURE);
         }
 
@@ -1079,9 +1086,9 @@ class NumaConfig final {
     template<typename Func>
     void execute_on_numa_node(NumaIndex numaId, Func&& f) const noexcept {
 
-        std::thread th([this, &f, numaId]() noexcept {
+        std::thread th([this, f = std::forward<Func>(f), numaId]() mutable noexcept {
             bind_current_thread_to_numa_node(numaId);
-            std::forward<Func>(f)();
+            f();
         });
 
         th.join();
@@ -1330,16 +1337,17 @@ class NumaConfig final {
     // 0.5              Very low collisions, slightly more memory
     // 0.75             Moderate collisions, good balance
     // 1.0 (default)    Acceptable for small sets, minimal memory
-    void resize_numa_node(NumaIndex   numaId,
+    void resize_numa_node(NumaIndex   newNumaId,
                           float       maxLoadFactor    = 0.75f,
                           std::size_t expectedCpuCount = MAX_SYSTEM_THREADS) noexcept {
-        if (nodes.size() <= numaId)
+        std::size_t oldNumaId = nodes_size();
+
+        if (oldNumaId <= newNumaId)
         {
-            std::size_t oldNumaId = nodes.size();
-            nodes.resize(numaId + 1);  // default-construct missing elements
+            nodes.resize(newNumaId + 1);  // default-construct missing elements
 
             // Apply tuning to all newly created sets
-            for (std::size_t i = oldNumaId; i <= numaId; ++i)
+            for (std::size_t i = oldNumaId; i <= newNumaId; ++i)
             {
                 nodes[i].max_load_factor(maxLoadFactor);
                 if (expectedCpuCount != 0)
@@ -1362,9 +1370,8 @@ class NumaConfig final {
         add_numa_node_cpu(numaId, cpuId);
     }
 
-    // Returns true if successful
-    // Returns false if failed, i.e. when the cpu is already present
-    //                          strong guarantee, the structure remains unmodified
+    // Returns true if successful, false if failed.
+    // i.e. when the cpu is already present strong guarantee, the structure remains unmodified.
     bool add_cpu_to_node(NumaIndex numaId, CpuIndex cpuId) noexcept {
 
         if (is_cpu_assigned(cpuId))
@@ -1377,8 +1384,7 @@ class NumaConfig final {
         return true;
     }
 
-    // Returns true if successful.
-    // Returns false if failed.
+    // Returns true if successful, false if failed.
     // i.e. when any of the cpus is already present strong guarantee, the structure remains unmodified.
     bool add_cpu_range_to_node(NumaIndex numaId, CpuIndex begCpuId, CpuIndex endCpuId) noexcept {
 
