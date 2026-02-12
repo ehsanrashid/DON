@@ -483,10 +483,11 @@ inline CpuIndexSet get_process_affinity() noexcept {
         cpus.reserve(MAX_SYSTEM_THREADS);
 
         // Bulk insert using vector
-        CpuIndexVec cpuVec(MAX_SYSTEM_THREADS);
-        std::iota(cpuVec.begin(), cpuVec.end(), 0);  // fill 0, 1, 2, ..., MAX_SYSTEM_THREADS-1
+        CpuIndexVec rangeCpus(MAX_SYSTEM_THREADS);
+        std::iota(rangeCpus.begin(), rangeCpus.end(),
+                  0);  // fill 0, 1, 2, ..., MAX_SYSTEM_THREADS-1
 
-        cpus.insert(cpuVec.begin(), cpuVec.end());
+        cpus.insert(rangeCpus.begin(), rangeCpus.end());
     };
 
     // cpu_set_t by default holds 1024 entries. This may not be enough soon,
@@ -563,6 +564,43 @@ struct BundledL3Policy {
 };
 
 using AutoNumaPolicy = std::variant<SystemNumaPolicy, DomainsL3Policy, BundledL3Policy>;
+
+inline CpuIndexVec shortened_string_to_indices(std::string_view str) noexcept {
+    CpuIndexVec indices;
+
+    if (is_whitespace(str))
+        return indices;
+
+    for (auto ss : split(str, ","))
+    {
+        if (is_whitespace(ss))
+            continue;
+
+        auto parts = split(ss, "-");
+
+        switch (parts.size())
+        {
+        case 1 : {
+            auto cpuId = CpuIndex(str_to_size_t(parts[0]));
+
+            indices.emplace_back(cpuId);
+        }
+        break;
+        case 2 : {
+            auto begCpuId = CpuIndex(str_to_size_t(parts[0]));
+            auto endCpuId = CpuIndex(str_to_size_t(parts[1]));
+
+            for (auto cpuId = begCpuId; cpuId <= endCpuId; ++cpuId)
+                indices.emplace_back(cpuId);
+        }
+        break;
+        default :
+            assert(false);
+        }
+    }
+
+    return indices;
+}
 
 // Designed as immutable, because there is no good reason to alter an already
 // existing config in a way that doesn't require recreating it completely, and
@@ -743,13 +781,14 @@ class NumaConfig final {
 
     NumaConfig(CpuIndex maxCpuIdx, bool customAff) noexcept :
         maxCpuId(maxCpuIdx),
-        customAffinity(customAff) {}
+        customAffinity(customAff) {
+        nodeByCpu.reserve(MAX_SYSTEM_THREADS);
+    }
 
     NumaConfig() noexcept {
-
         nodeByCpu.reserve(MAX_SYSTEM_THREADS);
 
-        add_cpu_range_to_node(NumaIndex(0), CpuIndex(0), MAX_SYSTEM_THREADS - 1);
+        add_cpu_range_to_node(0, 0, MAX_SYSTEM_THREADS - 1);
     }
 
     NumaConfig(const NumaConfig&) noexcept            = delete;
@@ -784,34 +823,51 @@ class NumaConfig final {
     bool requires_memory_replication() const noexcept { return customAffinity || nodes_size() > 1; }
 
     std::string to_string() const noexcept {
-        std::string numaConfig;
-        numaConfig.reserve(8 * nodes_size());
+        std::string numaCfgStr;
+        numaCfgStr.reserve(8 * nodes_size());
 
         for (auto nodeItr = nodes.begin(); nodeItr != nodes.end(); ++nodeItr)
         {
             if (nodeItr != nodes.begin())
-                numaConfig += ':';
+                numaCfgStr += ':';
 
-            auto rangeItr = nodeItr->begin();
-            for (auto itr = nodeItr->begin(); itr != nodeItr->end(); ++itr)
+            if (nodeItr->empty())
+                continue;
+
+            // 1. Copy unordered_set -> vector
+            std::vector<CpuIndex> sortedCpus(nodeItr->begin(), nodeItr->end());
+            // 2. Sort vector
+            std::sort(sortedCpus.begin(), sortedCpus.end());
+
+            auto rangeItr = sortedCpus.begin();
+
+            for (auto itr = sortedCpus.begin(); itr != sortedCpus.end(); ++itr)
             {
                 auto nextItr = std::next(itr);
-                if (nextItr == nodeItr->end() || *nextItr != *itr + 1)
+
+                if (nextItr == sortedCpus.end() || *nextItr != *itr + 1)
                 {
-                    if (rangeItr != nodeItr->begin())
-                        numaConfig += ',';
+                    // cpus[i] is at the end of the range (may be of size 1)
+                    if (rangeItr != sortedCpus.begin())
+                        numaCfgStr += ',';
 
                     if (itr != rangeItr)
-                        numaConfig += std::to_string(*rangeItr) + '-';
-
-                    numaConfig += std::to_string(*itr);
+                    {
+                        numaCfgStr += std::to_string(*rangeItr);
+                        numaCfgStr += '-';
+                        numaCfgStr += std::to_string(*itr);
+                    }
+                    else
+                    {
+                        numaCfgStr += std::to_string(*itr);
+                    }
 
                     rangeItr = nextItr;
                 }
             }
         }
 
-        return numaConfig;
+        return numaCfgStr;
     }
 
     bool suggests_binding_threads(std::size_t threadCount) const noexcept {
@@ -1032,43 +1088,6 @@ class NumaConfig final {
     }
 
    private:
-    static CpuIndexVec shortened_string_to_indices(std::string_view str) noexcept {
-        CpuIndexVec indices;
-
-        if (is_whitespace(str))
-            return indices;
-
-        for (auto ss : split(str, ","))
-        {
-            if (is_whitespace(ss))
-                continue;
-
-            auto parts = split(ss, "-");
-
-            switch (parts.size())
-            {
-            case 1 : {
-                auto cpuId = CpuIndex(str_to_size_t(parts[0]));
-
-                indices.emplace_back(cpuId);
-            }
-            break;
-            case 2 : {
-                auto fstCpuId = CpuIndex(str_to_size_t(parts[0]));
-                auto lstCpuId = CpuIndex(str_to_size_t(parts[1]));
-
-                for (auto cpuId = fstCpuId; cpuId <= lstCpuId; ++cpuId)
-                    indices.emplace_back(cpuId);
-            }
-            break;
-            default :
-                assert(false);
-            }
-        }
-
-        return indices;
-    }
-
     // This function queries the system for the mapping of processors to NUMA nodes.
     // On Linux read from standardized kernel sysfs, with a fallback to single NUMA node.
     // On Windows utilize GetNumaProcessorNodeEx, which has its quirks,
@@ -1340,15 +1359,15 @@ class NumaConfig final {
     // Returns true if successful.
     // Returns false if failed.
     // i.e. when any of the cpus is already present strong guarantee, the structure remains unmodified.
-    bool add_cpu_range_to_node(NumaIndex numaId, CpuIndex fstCpuId, CpuIndex lstCpuId) noexcept {
+    bool add_cpu_range_to_node(NumaIndex numaId, CpuIndex begCpuId, CpuIndex endCpuId) noexcept {
 
-        for (auto cpuId = fstCpuId; cpuId <= lstCpuId; ++cpuId)
+        for (auto cpuId = begCpuId; cpuId <= endCpuId; ++cpuId)
             if (is_cpu_assigned(cpuId))
                 return false;
 
         resize_numa_node(numaId);
 
-        for (auto cpuId = fstCpuId; cpuId <= lstCpuId; ++cpuId)
+        for (auto cpuId = begCpuId; cpuId <= endCpuId; ++cpuId)
             add_numa_node(numaId, cpuId);
 
         return true;
