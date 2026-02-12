@@ -115,13 +115,6 @@ void memory_array_deleter(T* mem, FreeFunc&& freeFunc) noexcept {
     if constexpr (!std::is_trivially_destructible_v<T>)
     {
         std::size_t size = *reinterpret_cast<std::size_t*>(rawMem);
-
-        //// Explicitly call the destructor for each element in reverse order
-        //for (std::size_t i = size; i-- > 0;)
-        //    std::destroy_at(&mem[i]);  // mem[i].~T();
-
-        //// Forward order
-        //std::destroy(mem, mem + size);
         // Reverse order
         std::destroy(std::make_reverse_iterator(mem + size), std::make_reverse_iterator(mem));
     }

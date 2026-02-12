@@ -487,9 +487,9 @@ void Position::set(std::string_view fens, State* newSt) noexcept {
     st->rule50Count = std::abs(rule50Count);
     // Convert from moveNum starting from 1 to posPly starting from 0,
     // handle also common incorrect FEN with moveNum = 0.
-    gamePly = std::max(2 * (std::abs(moveNum) - 1), 0) + (ac == BLACK);
+    gamePly = std::max(2 * (std::abs(moveNum) - 1), 0) + int(ac == BLACK);
 
-    st->checkersBB = attackers_bb(square<KING>(ac)) & pieces_bb(~ac);
+    st->checkersBB = pieces_bb(~ac) & attackers_bb(square<KING>(ac));
 
     set_ext_state();
 

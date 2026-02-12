@@ -2474,7 +2474,7 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
     const auto&       tbConfig           = worker.tbConfig;
     const std::size_t multiPV            = worker.multiPV;
     const std::size_t curPV              = worker.curPV;
-    // Avoid division by zero
+    // Ensure non-zero to avoid a 'divide by zero'
     TimePoint     time     = std::max(elapsed(), TimePoint(1));
     std::uint64_t nodes    = threads.sum(&Worker::nodes);
     std::uint16_t hashfull = transpositionTable.hashfull();

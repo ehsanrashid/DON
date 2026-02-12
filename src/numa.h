@@ -81,15 +81,13 @@ inline CpuIndex hardware_concurrency() noexcept {
     // ::hardware_concurrency() only returns the number of processors in
     // the first group, because only these are available to std::thread.
 #if defined(_WIN64)
-    DWORD ActiveProcCount = GetActiveProcessorCount(ALL_PROCESSOR_GROUPS);
-    if (concurrency < ActiveProcCount)
-        concurrency = ActiveProcCount;
+    concurrency = std::max<CpuIndex>(GetActiveProcessorCount(ALL_PROCESSOR_GROUPS), concurrency);
 #endif
 
     return concurrency;
 }
 
-inline const CpuIndex MAX_SYSTEM_THREADS = std::max(int(hardware_concurrency()), 1);
+inline const CpuIndex MAX_SYSTEM_THREADS = std::max<CpuIndex>(hardware_concurrency(), 1);
 
 #if defined(_WIN64)
 inline constexpr LPCSTR MODULE_NAME = TEXT("kernel32.dll");
@@ -421,10 +419,7 @@ CpuIndexSet read_cache_members(const T* processorInfo, Pred&& is_cpu_allowed) no
     if constexpr (HasGroupCount<T>::value)
     {
         // On Windows 10 this will read a 0 because GroupCount doesn't exist
-        WORD groupCount = processorInfo->Cache.GroupCount;
-
-        if (groupCount < 1)
-            groupCount = 1;
+        WORD groupCount = std::max(processorInfo->Cache.GroupCount, WORD(1));
 
         for (WORD i = 0; i < groupCount; ++i)
         {
@@ -1299,8 +1294,7 @@ class NumaConfig final {
         nodes[numaId].insert(cpuId);
         nodeByCpu[cpuId] = numaId;
 
-        if (maxCpuId < cpuId)
-            maxCpuId = cpuId;
+        maxCpuId = std::max(cpuId, maxCpuId);
 
         return true;
     }
@@ -1323,8 +1317,7 @@ class NumaConfig final {
             nodeByCpu[cpuId] = numaId;
         }
 
-        if (maxCpuId < lstCpuId)
-            maxCpuId = lstCpuId;
+        maxCpuId = std::max(lstCpuId, maxCpuId);
 
         return true;
     }
