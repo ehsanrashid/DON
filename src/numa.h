@@ -57,6 +57,7 @@
         #undef small
     #endif
 #else
+    #include <numeric>
     // Linux (non-Android)
     #if (defined(__linux__) && !defined(__ANDROID__))
         #if !defined(_GNU_SOURCE)
@@ -476,8 +477,15 @@ inline CpuIndexSet get_process_affinity() noexcept {
     // For unsupported systems, or in case of a soft error,
     // may assume all processors are available for use.
     auto set_to_all_cpus = [&cpus]() noexcept {
-        for (CpuIndex cpuId = 0; cpuId < MAX_SYSTEM_THREADS; ++cpuId)
-            cpus.insert(cpuId);
+        // Ensure empty first
+        cpus.clear();
+        cpus.reserve(MAX_SYSTEM_THREADS);
+
+        // Bulk insert using a temporary vector
+        std::vector<CpuIndex> vec(MAX_SYSTEM_THREADS);
+        std::iota(vec.begin(), vec.end(), 0);  // fill 0, 1, 2, ..., MAX_SYSTEM_THREADS-1
+
+        cpus.insert(vec.begin(), vec.end());
     };
 
     // cpu_set_t by default holds 1024 entries. This may not be enough soon,
@@ -506,6 +514,8 @@ inline CpuIndexSet get_process_affinity() noexcept {
 
         return cpus;
     }
+
+    cpus.reserve(MaxCpusCount);
 
     for (CpuIndex cpuId = 0; cpuId < MaxCpusCount; ++cpuId)
         if (CPU_ISSET_S(cpuId, MaskSize, cpuMask))
