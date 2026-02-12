@@ -1335,19 +1335,27 @@ class NumaConfig final {
                           std::size_t expectedCpuCount = MAX_SYSTEM_THREADS) noexcept {
         if (nodes.size() <= numaId)
         {
+            std::size_t oldNumaId = nodes.size();
             nodes.resize(numaId + 1);  // default-construct missing elements
-            nodes[numaId].max_load_factor(maxLoadFactor);
-            if (expectedCpuCount != 0)
+
+            // Apply tuning to all newly created sets
+            for (std::size_t i = oldNumaId; i <= numaId; ++i)
             {
-                std::size_t bucketCount = std::size_t(expectedCpuCount / maxLoadFactor) + 1;
-                nodes[numaId].rehash(bucketCount);  // preallocate enough buckets
+                nodes[i].max_load_factor(maxLoadFactor);
+                if (expectedCpuCount != 0)
+                {
+                    std::size_t bucketCount = std::size_t(expectedCpuCount / maxLoadFactor) + 1;
+                    nodes[i].rehash(bucketCount);  // preallocate enough buckets
+                }
             }
         }
     }
 
     void add_numa_node_cpu(NumaIndex numaId, CpuIndex cpuId) noexcept {
-        maxCpuId         = std::max(cpuId, maxCpuId);
+        // insert/update mapping
         nodeByCpu[cpuId] = numaId;
+        // track max CPU ID
+        maxCpuId = std::max(cpuId, maxCpuId);
     }
     void add_numa_node(NumaIndex numaId, CpuIndex cpuId) noexcept {
         nodes[numaId].insert(cpuId);
@@ -1407,18 +1415,18 @@ class NumaConfig final {
                     nodes.end());
 
         // 3. Rebuild mapping structures efficiently
-        maxCpuId = 0;
         nodeByCpu.clear();
+        maxCpuId = 0;
 
         for (NumaIndex numaId = 0; numaId < nodes.size(); ++numaId)
             for (CpuIndex cpuId : nodes[numaId])
                 add_numa_node_cpu(numaId, cpuId);
     }
 
-    CpuIndex                                maxCpuId       = 0;
-    bool                                    customAffinity = false;
     std::vector<CpuIndexSet>                nodes;
     std::unordered_map<CpuIndex, NumaIndex> nodeByCpu;
+    CpuIndex                                maxCpuId       = 0;
+    bool                                    customAffinity = false;
 };
 
 class NumaReplicationContext;
