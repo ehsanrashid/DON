@@ -367,6 +367,13 @@ void Engine::verify_networks() const noexcept {
     }
 }
 
+void Engine::load_networks(const StdArray<std::string_view, 2>& netFiles) noexcept {
+    if (!netFiles[0].empty())
+        load_big_network(netFiles[0]);
+    if (!netFiles[1].empty())
+        load_small_network(netFiles[1]);
+}
+
 void Engine::load_big_network(std::string_view netFile) noexcept {
 
     networks.modify_and_replicate([this, &netFile](NNUE::Networks& nets) noexcept {  //
