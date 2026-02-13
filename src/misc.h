@@ -1101,7 +1101,8 @@ class FixedString final {
         if (size() + str.size() > capacity())
             std::terminate();
 
-        std::memcpy(data() + size(), str.data(), str.size());
+        if (!str.empty())
+            std::memcpy(data() + size(), str.data(), str.size());
 
         _size += str.size();
         null_terminate();

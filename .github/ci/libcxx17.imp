@@ -10,6 +10,9 @@
     { include: [ "<__system_error/errc.h>", private, "<system_error>", public ] },
     { include: [ "<__system_error/error_code.h>", private, "<system_error>", public ] },
 
+    # IWYU mapping for std::hash
+    { include: [ "<__hash>", private, "<functional>", public ] },
+
     # Mappings for includes between public headers
     { include: [ "<ios>", public, "<iostream>", public ] },
     { include: [ "<streambuf>", public, "<iostream>", public ] },

@@ -21,7 +21,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <iosfwd>
-#include <memory>
+#include <functional>
 #include <optional>
 #include <string>
 #include <string_view>
