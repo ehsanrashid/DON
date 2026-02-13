@@ -19,7 +19,6 @@
 
 #include "nmisc.h"
 
-#include <cmath>
 #include <cstdlib>
 #include <cstring>
 #include <iomanip>

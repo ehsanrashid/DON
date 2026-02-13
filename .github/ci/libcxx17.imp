@@ -10,9 +10,6 @@
     { include: [ "<__system_error/errc.h>", private, "<system_error>", public ] },
     { include: [ "<__system_error/error_code.h>", private, "<system_error>", public ] },
 
-    # IWYU mapping for std::hash
-    { include: [ "<__hash>", private, "<functional>", public ] },
-
     # Mappings for includes between public headers
     { include: [ "<ios>", public, "<iostream>", public ] },
     { include: [ "<streambuf>", public, "<iostream>", public ] },
@@ -23,4 +20,7 @@
     # Missing mappings in include-what-you-use's libcxx.imp
     { include: ["@<__condition_variable/.*>", private, "<condition_variable>", public ] },
     { include: ["@<__mutex/.*>", private, "<mutex>", public ] },
+
+    # Correct mapping for std::hash (symbol-based, not header-based)
+    { symbol: ["std::hash", private, "<functional>", public] }
 ]

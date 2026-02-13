@@ -16,20 +16,20 @@
 */
 
 #ifndef TYPES_H_INCLUDED
-    #define TYPES_H_INCLUDED
+#define TYPES_H_INCLUDED
 
-    #include <algorithm>
-    #include <array>
-    #include <cassert>
-    #include <cstddef>
-    #include <cstdint>
-    #include <functional>
-    #include <string>
-    #include <string_view>
-    #include <type_traits>
-    #include <vector>
+#include <algorithm>
+#include <array>
+#include <cassert>
+#include <cstddef>
+#include <cstdint>
+#include <functional>
+#include <string>
+#include <string_view>
+#include <type_traits>
+#include <vector>
 
-    #include "misc.h"
+#include "misc.h"
 
 // When compiling with provided Makefile (e.g. for Linux and OSX), configuration
 // is done automatically. To get started type 'make help'.
@@ -57,37 +57,37 @@
 // _WIN32                  Building on Windows (any)
 // _WIN64                  Building on Windows 64 bit
 
-    #if defined(_MSC_VER)
-        // Disable some silly and noisy warnings from MSVC compiler
-        #pragma warning(disable: 4127)  // Conditional expression is constant
-        #pragma warning(disable: 4146)  // Unary minus operator applied to unsigned type
-        #pragma warning(disable: 4800)  // Forcing value to bool 'true' or 'false'
+#if defined(_MSC_VER)
+    // Disable some silly and noisy warnings from MSVC compiler
+    #pragma warning(disable: 4127)  // Conditional expression is constant
+    #pragma warning(disable: 4146)  // Unary minus operator applied to unsigned type
+    #pragma warning(disable: 4800)  // Forcing value to bool 'true' or 'false'
 
-        #if defined(_WIN64)  // No Makefile used
-            #define IS_64BIT
-        #endif
+    #if defined(_WIN64)  // No Makefile used
+        #define IS_64BIT
     #endif
+#endif
 
-    // Enforce minimum Clang version
-    #if defined(__clang__)
-        #if __clang_major__ < 10
-            #error "DON requires Clang 10.0 or later for correct compilation"
-        #endif
-    // Enforce minimum GCC version
-    #elif defined(__GNUC__)
-        #if (__GNUC__ < 9) || (__GNUC__ == 9 && __GNUC_MINOR__ < 3)
-            #error "DON requires GCC 9.3 or later for correct compilation"
-        #endif
+// Enforce minimum Clang version
+#if defined(__clang__)
+    #if __clang_major__ < 10
+        #error "DON requires Clang 10.0 or later for correct compilation"
     #endif
+// Enforce minimum GCC version
+#elif defined(__GNUC__)
+    #if (__GNUC__ < 9) || (__GNUC__ == 9 && __GNUC_MINOR__ < 3)
+        #error "DON requires GCC 9.3 or later for correct compilation"
+    #endif
+#endif
 
 namespace DON {
 
 using Bitboard = std::uint64_t;
 static_assert(sizeof(Bitboard) == 8, "Bitboard size must be 8 bytes");
 
-    #if defined(USE_BMI2) && defined(USE_COMP)
+#if defined(USE_BMI2) && defined(USE_COMP)
 using Bitboard16 = std::uint16_t;
-    #endif
+#endif
 
 using Key = std::uint64_t;
 static_assert(sizeof(Key) == 8, "Key size must be 8 bytes");
@@ -154,13 +154,13 @@ constexpr StdArray<PieceType, PIECE_TYPE_CNT - 2> NON_PAWN_PIECE_TYPES{
 };
 
 // clang-format off
-    #define ENABLE_INCR_OPERATORS_ON(T) \
-        static_assert(std::is_enum_v<T>, "ENABLE_INCR_OPERATORS_ON requires an enum"); \
-        static_assert(std::is_convertible_v<T, int>, "ENABLE_INCR_OPERATORS_ON requires an *unscoped* enum (plain enum)"); \
-        constexpr T& operator++(T& v) noexcept { return v = T(int(v) + 1); }    \
-        constexpr T& operator--(T& v) noexcept { return v = T(int(v) - 1); }    \
-        constexpr T  operator++(T& v, int) noexcept { T u = v; ++v; return u; } \
-        constexpr T  operator--(T& v, int) noexcept { T u = v; --v; return u; }
+#define ENABLE_INCR_OPERATORS_ON(T) \
+    static_assert(std::is_enum_v<T>, "ENABLE_INCR_OPERATORS_ON requires an enum"); \
+    static_assert(std::is_convertible_v<T, int>, "ENABLE_INCR_OPERATORS_ON requires an *unscoped* enum (plain enum)"); \
+    constexpr T& operator++(T& v) noexcept { return v = T(int(v) + 1); }    \
+    constexpr T& operator--(T& v) noexcept { return v = T(int(v) - 1); }    \
+    constexpr T  operator++(T& v, int) noexcept { T u = v; ++v; return u; } \
+    constexpr T  operator--(T& v, int) noexcept { T u = v; --v; return u; }
 // clang-format on
 
 ENABLE_INCR_OPERATORS_ON(File)
@@ -168,7 +168,7 @@ ENABLE_INCR_OPERATORS_ON(Rank)
 ENABLE_INCR_OPERATORS_ON(Square)
 ENABLE_INCR_OPERATORS_ON(PieceType)
 
-    #undef ENABLE_INCR_OPERATORS_ON
+#undef ENABLE_INCR_OPERATORS_ON
 
 enum class Direction : std::int8_t {
     EAST  = 1,
@@ -198,8 +198,6 @@ constexpr Direction operator-(Direction d1, Direction d2) noexcept {
 
 constexpr Direction operator*(Direction d, int i) noexcept { return Direction(i * std::int8_t(d)); }
 constexpr Direction operator*(int i, Direction d) noexcept { return d * i; }
-
-//constexpr Direction operator-(Square s1, Square s2) noexcept { return Direction(int(s1) - int(s2)); }
 
 // Additional operators for File
 constexpr File  operator+(File f, int i) noexcept { return File(std::uint8_t(f) + i); }
@@ -541,28 +539,28 @@ constexpr std::string_view to_string(Bound bound) noexcept {
 
 // clang-format off
 #define ENABLE_BIT_OPERATORS_ON(T) \
-        static_assert(std::is_enum_v<T>, "ENABLE_BIT_OPERATORS_ON requires an enum"); \
-        constexpr auto operator+(T t) noexcept { using U = std::underlying_type_t<T>; return U(t); } \
-        constexpr T operator~(T t) noexcept { using U = std::underlying_type_t<T>; return T(~U(t)); } \
-        constexpr T operator&(T t1, T t2) noexcept { using U = std::underlying_type_t<T>; return T(U(t1) & U(t2)); } \
-        constexpr T operator|(T t1, T t2) noexcept { using U = std::underlying_type_t<T>; return T(U(t1) | U(t2)); } \
-        constexpr T operator^(T t1, T t2) noexcept { using U = std::underlying_type_t<T>; return T(U(t1) ^ U(t2)); } \
-        constexpr T operator&(T t, int i) noexcept { return t & T(i); } \
-        constexpr T operator|(T t, int i) noexcept { return t | T(i); } \
-        constexpr T operator^(T t, int i) noexcept { return t ^ T(i); } \
-        constexpr T& operator&=(T& t1, T t2) noexcept { return t1 = t1 & t2; } \
-        constexpr T& operator|=(T& t1, T t2) noexcept { return t1 = t1 | t2; } \
-        constexpr T& operator^=(T& t1, T t2) noexcept { return t1 = t1 ^ t2; } \
-        constexpr T& operator&=(T& t, int i) noexcept { return t = t & i; } \
-        constexpr T& operator|=(T& t, int i) noexcept { return t = t | i; } \
-        constexpr T& operator^=(T& t, int i) noexcept { return t = t ^ i; }
+    static_assert(std::is_enum_v<T>, "ENABLE_BIT_OPERATORS_ON requires an enum"); \
+    constexpr auto operator+(T t) noexcept { using U = std::underlying_type_t<T>; return U(t); } \
+    constexpr T operator~(T t) noexcept { using U = std::underlying_type_t<T>; return T(~U(t)); } \
+    constexpr T operator&(T t1, T t2) noexcept { using U = std::underlying_type_t<T>; return T(U(t1) & U(t2)); } \
+    constexpr T operator|(T t1, T t2) noexcept { using U = std::underlying_type_t<T>; return T(U(t1) | U(t2)); } \
+    constexpr T operator^(T t1, T t2) noexcept { using U = std::underlying_type_t<T>; return T(U(t1) ^ U(t2)); } \
+    constexpr T operator&(T t, int i) noexcept { return t & T(i); } \
+    constexpr T operator|(T t, int i) noexcept { return t | T(i); } \
+    constexpr T operator^(T t, int i) noexcept { return t ^ T(i); } \
+    constexpr T& operator&=(T& t1, T t2) noexcept { return t1 = t1 & t2; } \
+    constexpr T& operator|=(T& t1, T t2) noexcept { return t1 = t1 | t2; } \
+    constexpr T& operator^=(T& t1, T t2) noexcept { return t1 = t1 ^ t2; } \
+    constexpr T& operator&=(T& t, int i) noexcept { return t = t & i; } \
+    constexpr T& operator|=(T& t, int i) noexcept { return t = t | i; } \
+    constexpr T& operator^=(T& t, int i) noexcept { return t = t ^ i; }
 // clang-format on
 
 ENABLE_BIT_OPERATORS_ON(CastlingSide)
 ENABLE_BIT_OPERATORS_ON(CastlingRights)
 ENABLE_BIT_OPERATORS_ON(Bound)
 
-    #undef ENABLE_BIT_OPERATORS_ON
+#undef ENABLE_BIT_OPERATORS_ON
 
 constexpr CastlingSide make_cs(Square kingOrgSq, Square kingDstSq) noexcept {
     return kingOrgSq < kingDstSq ? CastlingSide::KING : CastlingSide::QUEEN;
@@ -795,5 +793,3 @@ struct std::hash<DON::Move> {
 };
 
 #endif  // #ifndef TYPES_H_INCLUDED
-
-//#include "tune.h"  // Global visibility to tuning setup
