@@ -353,8 +353,8 @@ bool Network<Arch, Transformer>::read_parameters(std::istream& is,
     if (!_read_parameters(is, featureTransformer))
         return false;
 
-    for (std::size_t i = 0; i < LayerStacks; ++i)
-        if (!_read_parameters(is, network[i]))
+    for (auto& arch : network)
+        if (!_read_parameters(is, arch))
             return false;
 
     return bool(is) && is.peek() == std::ios::traits_type::eof();
@@ -370,8 +370,8 @@ bool Network<Arch, Transformer>::write_parameters(
     if (!_write_parameters(os, featureTransformer))
         return false;
 
-    for (std::size_t i = 0; i < LayerStacks; ++i)
-        if (!_write_parameters(os, network[i]))
+    for (const auto& arch : network)
+        if (!_write_parameters(os, arch))
             return false;
 
     return bool(os);
