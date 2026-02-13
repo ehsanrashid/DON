@@ -153,19 +153,18 @@ void Network<Arch, Transformer>::load(std::string_view rootDirectory,
     if (netFile.empty())
         netFile = evalFile.defaultName;
 
+    initialized = false;
+
     for (auto dir : Directories)
         if (netFile != std::string_view(evalFile.currentName))
         {
             if (dir == "<embedded>" && netFile == std::string_view(evalFile.defaultName))
-            {
-                if (load_embedded())
-                    break;
-            }
+                load_embedded();
             else if (dir != "<embedded>")
-            {
-                if (load_file(dir, netFile))
-                    break;
-            }
+                load_file(dir, netFile);
+
+            if (initialized)
+                break;
         }
 }
 
@@ -309,7 +308,7 @@ bool Network<Arch, Transformer>::load_embedded() noexcept {
     MemoryStreamBuf buf(const_cast<char*>(reinterpret_cast<const char*>(embedded.data)),
                         std::size_t(embedded.size));
 
-    std::istream is(&buf);
+    std::istream is{&buf};
 
     auto netDescription = load(is);
 
