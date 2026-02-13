@@ -612,7 +612,7 @@ class Move {
     static constexpr std::uint8_t PROMO_OFFSET  = 12;
     static constexpr std::uint8_t TYPE_OFFSET   = 14;
 
-    static constexpr std::uint16_t TYPE_MASK = 3 << TYPE_OFFSET;
+    static constexpr std::uint16_t TYPE_MASK = 3ULL << TYPE_OFFSET;
 
     Move() noexcept = default;
     constexpr explicit Move(std::uint16_t d) noexcept :
