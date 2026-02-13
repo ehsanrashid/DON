@@ -372,9 +372,9 @@ void swap_entry(PolyBook::Entry* e) noexcept {
 
 // A PolyGlot book move is encoded as follows:
 //
-// bit  0- 5: destination square (from 0 to 63)
+// bit  0- 5: destiny square (from 0 to 63)
 // bit  6-11: origin square (from 0 to 63)
-// bit 12-14: promotion piece (from KNIGHT == 1 to QUEEN == 4)
+// bit 12-14: promotion piece type (from KNIGHT = 1 to QUEEN = 4)
 //
 // Castling moves follow "king captures rook" representation.
 // So in case book move is a promotion have to convert the representation,
@@ -382,16 +382,16 @@ void swap_entry(PolyBook::Entry* e) noexcept {
 // the special Move's flags (bit 14-15) that are not supported by PolyGlot.
 //
 // DON:
-// bit  0- 5: destination square (from 0 to 63)
+// bit  0- 5: destiny square (from 0 to 63)
 // bit  6-11: origin square (from 0 to 63)
-// bit 12-13: promotion piece type - 2 (from KNIGHT-2 to QUEEN-2)
-// bit 14-15: special move flag: promotion (1), en-passant (2), castling (3)
+// bit 12-13: promotion piece type (from KNIGHT = 0 to QUEEN = 3)
+// bit 14-15: special move flag
 Move pg_to_move(std::uint16_t pgMove, MoveList<GenType::LEGAL>& legalMoves) noexcept {
 
     Move move(pgMove);
 
-    if (int pt = (move.raw() >> Move::PROMO_OFFSET) & 0x7; pt != 0)
-        move = Move::make<MT::PROMOTION>(move.org_sq(), move.dst_sq(), PieceType(pt + 1));
+    if (std::uint16_t pt = (move.raw() >> Move::PROMO_OFFSET) & 0x7; pt != 0)
+        move = Move{move.org_sq(), move.dst_sq(), PieceType(pt + 1)};
 
     std::uint16_t moveRaw = move.raw() & ~Move::TYPE_MASK;
 

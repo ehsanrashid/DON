@@ -144,7 +144,7 @@ inline constexpr std::size_t ONE_MB = ONE_KB * ONE_KB;
 inline constexpr std::size_t UNROLL_8 = 8;
 inline constexpr std::size_t UNROLL_4 = 4;
 
-inline constexpr std::int64_t INT_LIMIT = 0x7FFFFFFF;
+inline constexpr std::int64_t INT_LIMIT = (1LL << 31) - 1;
 
 // Constants for Murmur Hashing
 inline constexpr std::uint64_t MURMUR_M = 0xC6A4A7935BD1E995ULL;
@@ -499,15 +499,13 @@ struct LazyValue final {
 //  - Mutexes are stored as object in the map.
 class OstreamMutexRegistry final {
    public:
-    static void ensure_initialized() noexcept {
-        callOnce([]() noexcept {
-            constexpr std::size_t ReserveCount  = 16;
-            constexpr float       MaxLoadFactor = 1.0f;
-
-            if (MaxLoadFactor > 0.0f)
-                osMutexes.max_load_factor(MaxLoadFactor);
-            if (ReserveCount != 0)
-                osMutexes.reserve(ReserveCount);
+    static void ensure_initialized(std::size_t reserveCount  = 16,
+                                   float       maxLoadFactor = 1.0f) noexcept {
+        callOnce([reserveCount, maxLoadFactor]() noexcept {
+            if (reserveCount > 0.0f)
+                osMutexes.max_load_factor(reserveCount);
+            if (maxLoadFactor != 0)
+                osMutexes.reserve(maxLoadFactor);
         });
     }
 

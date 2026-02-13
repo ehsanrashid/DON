@@ -91,7 +91,7 @@ constexpr auto& PIECE_THREATS  = THREAT_TABLE.pieceThreats;
 constexpr auto& SQUARE_OFFSETS = THREAT_TABLE.squareOffsets;
 
 constexpr std::uint8_t  SEMI_EXCLUDED_OFFSET = 31;
-constexpr std::uint32_t SEMI_EXCLUDED_MASK   = 1U << SEMI_EXCLUDED_OFFSET;
+constexpr std::uint32_t SEMI_EXCLUDED_MASK   = 1ULL << SEMI_EXCLUDED_OFFSET;
 constexpr std::uint32_t FEATURE_INDEX_MASK   = SEMI_EXCLUDED_MASK - 1;
 
 // LUT for getting feature base index and exclusion info

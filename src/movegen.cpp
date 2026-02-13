@@ -108,20 +108,20 @@ Move* splat_promotion_moves(Bitboard       dstBB,
 
         if constexpr (All || Capture)
         {
-            *moves++ = Move::make<MT::PROMOTION>(dstSq - D, dstSq, QUEEN);
+            *moves++ = Move{dstSq - D, dstSq, QUEEN};
 
             if ((knightChecksBB & dstSq) != 0)
-                *moves++ = Move::make<MT::PROMOTION>(dstSq - D, dstSq, KNIGHT);
+                *moves++ = Move{dstSq - D, dstSq, KNIGHT};
         }
 
         if constexpr (All || (Capture && Enemy) || (Quiet && !Enemy))
         {
-            *moves++ = Move::make<MT::PROMOTION>(dstSq - D, dstSq, ROOK);
+            *moves++ = Move{dstSq - D, dstSq, ROOK};
 
-            *moves++ = Move::make<MT::PROMOTION>(dstSq - D, dstSq, BISHOP);
+            *moves++ = Move{dstSq - D, dstSq, BISHOP};
 
             if ((knightChecksBB & dstSq) == 0)
-                *moves++ = Move::make<MT::PROMOTION>(dstSq - D, dstSq, KNIGHT);
+                *moves++ = Move{dstSq - D, dstSq, KNIGHT};
         }
     }
 
@@ -263,7 +263,7 @@ Move* generate_pawns_moves(const Position& pos, Move* RESTRICT moves, Bitboard t
                 else
                     orgSq = pop_msq(epPawnsBB);
 
-                *moves++ = Move::make<MT::EN_PASSANT>(orgSq, pos.en_passant_sq());
+                *moves++ = Move{orgSq, pos.en_passant_sq(), MT::EN_PASSANT};
             }
         }
     }
@@ -359,7 +359,7 @@ Move* generate_king_moves(const Position& pos, Move* RESTRICT moves, Bitboard ta
                     assert(is_ok(pos.castling_rook_sq(AC, cs))
                            && (pos.pieces_bb(AC, ROOK) & pos.castling_rook_sq(AC, cs)) != 0);
 
-                    *moves++ = Move::make<MT::CASTLING>(kingSq, pos.castling_rook_sq(AC, cs));
+                    *moves++ = Move{kingSq, pos.castling_rook_sq(AC, cs), MT::CASTLING};
 
                     if constexpr (Any)
                         return moves;

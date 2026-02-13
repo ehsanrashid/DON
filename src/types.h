@@ -612,18 +612,20 @@ class Move {
     static constexpr std::uint8_t PROMO_OFFSET  = 12;
     static constexpr std::uint8_t TYPE_OFFSET   = 14;
 
-    static constexpr std::uint16_t TYPE_MASK = 0x3 << TYPE_OFFSET;
-
-    // Factory method to create moves
-    template<MT T = MT::NORMAL>
-    static constexpr Move make(Square orgSq, Square dstSq, PieceType promoPt = KNIGHT) noexcept;
+    static constexpr std::uint16_t TYPE_MASK = 3 << TYPE_OFFSET;
 
     Move() noexcept = default;
     constexpr explicit Move(std::uint16_t d) noexcept :
         data(d) {}
-    constexpr Move(Square orgSq, Square dstSq) noexcept :
-        Move((int(MT::NORMAL) << TYPE_OFFSET) | (orgSq << ORG_SQ_OFFSET)
-             | (dstSq << DST_SQ_OFFSET)) {}
+    constexpr Move(Square orgSq, Square dstSq, MT mt = MT::NORMAL) noexcept :
+        data((std::uint16_t(mt) << TYPE_OFFSET)         //
+             | (std::uint16_t(orgSq) << ORG_SQ_OFFSET)  //
+             | (std::uint16_t(dstSq) << DST_SQ_OFFSET)) {}
+    constexpr Move(Square orgSq, Square dstSq, PieceType promoPt) noexcept :
+        data((std::uint16_t(MT::PROMOTION) << TYPE_OFFSET)        //
+             | (std::uint16_t(promoPt - KNIGHT) << PROMO_OFFSET)  //
+             | (std::uint16_t(orgSq) << ORG_SQ_OFFSET)            //
+             | (std::uint16_t(dstSq) << DST_SQ_OFFSET)) {}
 
     // Accessors: extract parts of the move
     constexpr Square org_sq() const noexcept {
@@ -640,11 +642,11 @@ class Move {
     // Same as dst_sq() but without assertion, for branchless code paths
     constexpr Square dst_sq_() const { return Square((data >> DST_SQ_OFFSET) & 0x3F); }
 
+    constexpr MT type() const noexcept { return MT((data >> TYPE_OFFSET) & 0x3); }
+
     constexpr PieceType promotion_type() const noexcept {
         return PieceType(KNIGHT + ((data >> PROMO_OFFSET) & 0x3));
     }
-
-    constexpr MT type() const noexcept { return MT((data >> TYPE_OFFSET) & 0x3); }
 
     constexpr Value promotion_value() const noexcept {
         return type() == MT::PROMOTION  //
@@ -676,27 +678,11 @@ class Move {
     std::uint16_t data;
 };
 
-using MT = Move::MT;
-
-// Implementation of the factory method
-template<MT T>
-constexpr Move Move::make(Square orgSq, Square dstSq, PieceType) noexcept {
-    static_assert(T != MT::PROMOTION, "Use make<PROMOTION>() for PROMOTION moves");
-
-    return Move((int(T) << TYPE_OFFSET) | (orgSq << ORG_SQ_OFFSET) | (dstSq << DST_SQ_OFFSET));
-}
-// Specialization for PROMOTION moves
-template<>
-constexpr Move Move::make<MT::PROMOTION>(Square orgSq, Square dstSq, PieceType promoPt) noexcept {
-    assert(KNIGHT <= promoPt && promoPt <= QUEEN);
-
-    return Move((int(MT::PROMOTION) << TYPE_OFFSET) | ((promoPt - KNIGHT) << PROMO_OFFSET)
-                | (orgSq << ORG_SQ_OFFSET) | (dstSq << DST_SQ_OFFSET));
-}
-
 // **Define the constexpr static members outside the class**
 inline constexpr Move Move::None{SQ_A1, SQ_A1};
 inline constexpr Move Move::Null{SQ_H8, SQ_H8};
+
+using MT = Move::MT;
 
 using Moves = std::vector<Move>;
 
@@ -719,6 +705,7 @@ struct DirtyThreat final {
     static constexpr std::uint8_t THREATENED_SQ_OFFSET = 8;
     static constexpr std::uint8_t PC_OFFSET            = 16;
     static constexpr std::uint8_t THREATENED_PC_OFFSET = 20;
+    static constexpr std::uint8_t ADD_OFFSET           = 31;
 
     DirtyThreat() noexcept {
         // Don't initialize data
@@ -727,8 +714,10 @@ struct DirtyThreat final {
         data(d) {}
     constexpr DirtyThreat(
       Square sq, Square threatenedSq, Piece pc, Piece threatenedPc, bool add) noexcept :
-        DirtyThreat((add << 31) | (+threatenedPc << THREATENED_PC_OFFSET) | (+pc << PC_OFFSET)
-                    | (threatenedSq << THREATENED_SQ_OFFSET) | (sq << SQ_OFFSET)) {}
+        data(
+          (std::uint32_t(add) << ADD_OFFSET) | (std::uint32_t(threatenedPc) << THREATENED_PC_OFFSET)
+          | (std::uint32_t(pc) << PC_OFFSET) | (std::uint32_t(threatenedSq) << THREATENED_SQ_OFFSET)
+          | (std::uint32_t(sq) << SQ_OFFSET)) {}
 
     constexpr Square sq() const noexcept {  //
         return Square((data >> SQ_OFFSET) & 0xFF);
@@ -742,7 +731,7 @@ struct DirtyThreat final {
     constexpr Piece threatened_pc() const noexcept {
         return Piece((data >> THREATENED_PC_OFFSET) & 0xF);
     }
-    constexpr bool add() const noexcept { return ((data >> 31) & 0x1) != 0; }
+    constexpr bool add() const noexcept { return ((data >> ADD_OFFSET) & 0x1) != 0; }
 
     constexpr std::uint32_t raw() const noexcept { return data; }
 
