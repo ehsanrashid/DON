@@ -802,7 +802,7 @@ class SharedMemoryCleanupManager final {
     //       but registry initialization and atexit registration still occur safely.
     static void ensure_initialized(std::size_t reserveCount  = 1024,
                                    float       maxLoadFactor = 0.75f) noexcept {
-        callOnce([]() noexcept {
+        callOnce([reserveCount, maxLoadFactor]() noexcept {
             //DEBUG_LOG("Initializing SharedMemoryCleanupManager.");
 
             // 1. Create async-signal-safe pipe, initialize to INVALID_PIPE_FD for safety
