@@ -1146,10 +1146,10 @@ inline void Position::update_pc_threats(Square                    s,
         return;
     }
 
-    Bitboard threatenedBB =
-      (type_of(pc) == PAWN ? attacksBB[color_of(pc)] : attacksBB[type_of(pc)]) & occupancyBB;
-
     // clang-format off
+    Bitboard threatenedBB = (type_of(pc) == PAWN ? attacksBB[color_of(pc)] : attacksBB[type_of(pc)])
+                          & occupancyBB;
+
     Bitboard nonSlidersBB = (pieces_bb(WHITE, PAWN)   & attacksBB[BLACK])
                           | (pieces_bb(BLACK, PAWN)   & attacksBB[WHITE])
                           | (pieces_bb(KNIGHT)        & attacksBB[KNIGHT])

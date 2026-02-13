@@ -129,7 +129,8 @@ struct WindowsAffinity final {
         if (cpus[1].empty())
             return cpus[0];
 
-        bool small = cpus[0].size() < cpus[1].size();
+        // false[0] if cpus[0].size() <= cpus[1].size(), otherwise true[1]
+        bool small = cpus[0].size() > cpus[1].size();
 
         // Both are non-empty -> compute intersection
         const CpuIndexSet& smaller = cpus[int(small)];
