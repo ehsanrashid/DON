@@ -800,7 +800,8 @@ class SharedMemoryCleanupManager final {
     //
     // Note: If pipe creation fails, signal handlers and monitor thread are skipped, to avoid unsafe signal handling
     //       but registry initialization and atexit registration still occur safely.
-    static void ensure_initialized() noexcept {
+    static void ensure_initialized(std::size_t reserveCount  = 1024,
+                                   float       maxLoadFactor = 0.75f) noexcept {
         callOnce([]() noexcept {
             //DEBUG_LOG("Initializing SharedMemoryCleanupManager.");
 
@@ -856,7 +857,7 @@ class SharedMemoryCleanupManager final {
             // Always do registry initialization + atexit registration, even if pipe failed
 
             // 4. Initialize registry (might trigger signals, now safe all is ready)
-            SharedMemoryRegistry::ensure_initialized();
+            SharedMemoryRegistry::ensure_initialized(reserveCount, maxLoadFactor);
             // 5. Register std::atexit() shutdown cleanup
             std::atexit(cleanup_on_exit);
         });
@@ -1230,7 +1231,8 @@ struct ShmHeader final {
         if (pthread_mutex_init(&mutex, &mutexAttr) != 0)
             return false;
 
-        set_initialized();
+        _initialize.store(true, std::memory_order_release);
+        refCount.store(0, std::memory_order_release);
 
         return true;
     }
@@ -1274,16 +1276,11 @@ struct ShmHeader final {
     }
 
     [[nodiscard]] bool initialized() const noexcept {
-        return initialize.load(std::memory_order_acquire);
+        return _initialize.load(std::memory_order_acquire);
     }
 
     [[nodiscard]] std::uint32_t ref_count() const noexcept {
         return refCount.load(std::memory_order_acquire);
-    }
-
-    void set_initialized() noexcept {
-        initialize.store(true, std::memory_order_release);
-        refCount.store(0, std::memory_order_release);
     }
 
     void increment_ref_count() noexcept { refCount.fetch_add(1, std::memory_order_acq_rel); }
@@ -1295,7 +1292,7 @@ struct ShmHeader final {
 
    private:
     pthread_mutex_t            mutex{};
-    std::atomic<bool>          initialize{false};
+    std::atomic<bool>          _initialize{false};
     std::atomic<std::uint32_t> refCount{0};
 };
 
@@ -1368,8 +1365,8 @@ class SharedMemory final: public BaseSharedMemory {
         if (SharedMemoryRegistry::cleanup_in_progress())
         {
             //DEBUG_LOG("Shared memory registry cleanup in progress, cannot open shared memory.");
-            avail = false;
-            return avail;
+            _available = false;
+            return _available;
         }
 
         // Try to open or create the shared memory region
@@ -1380,7 +1377,7 @@ class SharedMemory final: public BaseSharedMemory {
             if (opened())
             {
                 //DEBUG_LOG("Shared memory already open.");
-                avail = false;
+                _available = false;
                 break;
             }
 
@@ -1402,7 +1399,7 @@ class SharedMemory final: public BaseSharedMemory {
                 if (!valid_fd(fd))
                 {
                     //DEBUG_LOG("Failed to open shared memory, error = " << std::strerror(errno));
-                    avail = false;
+                    _available = false;
                     break;
                 }
             }
@@ -1419,7 +1416,7 @@ class SharedMemory final: public BaseSharedMemory {
             {
                 //DEBUG_LOG("Failed to lock shared memory file, error = " << std::strerror(errno));
                 cleanup(false, lockFile);
-                avail = false;
+                _available = false;
                 break;
             }
 
@@ -1443,7 +1440,7 @@ class SharedMemory final: public BaseSharedMemory {
                 }
 
                 //DEBUG_LOG("Failed to setup shared memory region.");
-                avail = false;
+                _available = false;
                 break;
             }
 
@@ -1459,7 +1456,7 @@ class SharedMemory final: public BaseSharedMemory {
                 }
 
                 //DEBUG_LOG("Shared memory header is null.");
-                avail = false;
+                _available = false;
                 break;
             }
 
@@ -1479,7 +1476,7 @@ class SharedMemory final: public BaseSharedMemory {
                     }
 
                     //DEBUG_LOG("Failed to lock shared memory header mutex.");
-                    avail = false;
+                    _available = false;
                     break;
                 }
 
@@ -1490,7 +1487,7 @@ class SharedMemory final: public BaseSharedMemory {
                     shmHeaderGuard.unlock();
 
                     cleanup(newCreated, lockFile);
-                    avail = false;
+                    _available = false;
                     break;
                 }
 
@@ -1500,7 +1497,7 @@ class SharedMemory final: public BaseSharedMemory {
 
             unlock_file();
 
-            avail = true;
+            _available = true;
 
             // Register this new resource
             SharedMemoryRegistry::attempt_register_memory(this);
@@ -1508,7 +1505,7 @@ class SharedMemory final: public BaseSharedMemory {
             break;
         }
 
-        return avail;
+        return _available;
     }
 
     void close(bool skipUnmapRegion = false) noexcept override {
@@ -1540,7 +1537,7 @@ class SharedMemory final: public BaseSharedMemory {
         cleanup(removeRegion, lockFile, skipUnmapRegion);
     }
 
-    [[nodiscard]] bool available() const noexcept { return avail; }
+    [[nodiscard]] bool available() const noexcept { return _available; }
 
     [[nodiscard]] bool opened() const noexcept {
         return valid_fd(fd) && mappedPtr != nullptr && dataPtr != nullptr;
@@ -1917,8 +1914,8 @@ class SharedMemory final: public BaseSharedMemory {
 
     static constexpr std::string_view DIRECTORY{"/dev/shm/"};
 
-    bool        avail = false;
-    int         fd    = INVALID_FD;
+    bool        _available = false;
+    int         fd         = INVALID_FD;
     FdGuard     fdGuard{fd};
     void*       mappedPtr  = INVALID_MMAP_PTR;
     std::size_t mappedSize = INVALID_MMAP_SIZE;
@@ -1938,7 +1935,7 @@ class BackendSharedMemory final {
         shm(shmName) {
         SharedMemoryCleanupManager::ensure_initialized();
 
-        initialize = shm.open_register(value);
+        initialized = shm.open_register(value);
     }
 
     BackendSharedMemory(const BackendSharedMemory&) noexcept            = delete;
@@ -1947,7 +1944,7 @@ class BackendSharedMemory final {
     BackendSharedMemory(BackendSharedMemory&& backendShm) noexcept            = default;
     BackendSharedMemory& operator=(BackendSharedMemory&& backendShm) noexcept = default;
 
-    bool valid() const noexcept { return initialize && shm.valid(); }
+    bool valid() const noexcept { return initialized && shm.valid(); }
 
     void* get() const noexcept {
         return valid() ? reinterpret_cast<void*>(const_cast<T*>(&shm.get())) : nullptr;
@@ -1959,7 +1956,7 @@ class BackendSharedMemory final {
     }
 
     std::string_view get_error_message() const noexcept {
-        if (!initialize)
+        if (!initialized)
             return "Shared memory not created.";
         if (!shm.available())
             return "Shared memory not available.";
@@ -1972,7 +1969,7 @@ class BackendSharedMemory final {
 
    private:
     SharedMemory<T> shm;
-    bool            initialize = false;
+    bool            initialized = false;
 };
 #else
 // For systems that don't have shared memory, or support is troublesome.
