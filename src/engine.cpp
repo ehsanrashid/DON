@@ -389,10 +389,10 @@ void Engine::load_small_network(std::string_view netFile) noexcept {
     threads.ensure_network_replicated();
 }
 
-void Engine::save_networks(const StdArray<std::optional<std::string>, 2>& netFiles) const noexcept {
+void Engine::save_networks(const StdArray<std::string_view, 2>& netFiles) const noexcept {
 
-    networks->big.save(netFiles[0]);
-    networks->small.save(netFiles[1]);
+    networks->save_big(netFiles[0]);
+    networks->save_small(netFiles[1]);
 }
 
 bool Engine::load_hash() noexcept { return transpositionTable.load(options["HashFile"], threads); }

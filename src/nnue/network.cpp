@@ -161,11 +161,11 @@ void Network<Arch, Transformer>::load(std::string_view rootDirectory,
 }
 
 template<typename Arch, typename Transformer>
-bool Network<Arch, Transformer>::save(const std::optional<std::string>& netFile) const noexcept {
+bool Network<Arch, Transformer>::save(std::string_view netFile) const noexcept {
     std::string evalFileName;
 
-    if (netFile.has_value())
-        evalFileName = netFile.value();
+    if (!netFile.empty())
+        evalFileName = netFile;
     else
     {
         if (std::string(evalFile.currentName) != std::string(evalFile.defaultName))

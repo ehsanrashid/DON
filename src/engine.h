@@ -100,7 +100,7 @@ class Engine final {
     void                            verify_networks() const noexcept;
     void                            load_big_network(std::string_view netFile) noexcept;
     void                            load_small_network(std::string_view netFile) noexcept;
-    void save_networks(const StdArray<std::optional<std::string>, 2>& netFiles) const noexcept;
+    void save_networks(const StdArray<std::string_view, 2>& netFiles) const noexcept;
 
     bool load_hash() noexcept;
     bool save_hash() const noexcept;

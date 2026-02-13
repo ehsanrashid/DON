@@ -364,11 +364,11 @@ void UCI::execute(std::string_view command) noexcept {
         std::cout << compiler_info() << std::endl;
         break;
     case Command::EXPORT_NET : {
-        StdArray<std::optional<std::string>, 2> netFiles;
+        StdArray<std::string, 2>      inputs;
+        StdArray<std::string_view, 2> netFiles;
 
-        std::string input;
-        for (std::size_t i = 0; i < netFiles.size() && iss >> input; ++i)
-            netFiles[i] = input;
+        for (std::size_t i = 0; i < netFiles.size() && iss >> inputs[i]; ++i)
+            netFiles[i] = inputs[i];
 
         engine.save_networks(netFiles);
     }

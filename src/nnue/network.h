@@ -62,7 +62,7 @@ class Network final {
     Network& operator=(Network&&) noexcept = default;
 
     void load(std::string_view rootDirectory, std::string_view netFile) noexcept;
-    bool save(const std::optional<std::string>& netFile) const noexcept;
+    bool save(std::string_view netFile) const noexcept;
 
     void verify(std::string netFile) const noexcept;
 
@@ -126,6 +126,9 @@ struct Networks final {
     void load_small(std::string_view rootDirectory, std::string_view netFile) noexcept {
         small.load(rootDirectory, netFile);
     }
+
+    void save_big(std::string_view netFile) const noexcept { big.save(netFile); }
+    void save_small(std::string_view netFile) const noexcept { small.save(netFile); }
 
     BigNetwork   big;
     SmallNetwork small;
