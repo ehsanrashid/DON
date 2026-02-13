@@ -1066,7 +1066,7 @@ inline void write_multiple_dirties(const StdArray<Piece, SQUARE_NB>& pieceMap,
     std::uint8_t maskCount = popcount(maskBB);
     assert(maskCount <= 16);
 
-    auto* dt = dts->dtList.make_space(maskCount);
+    auto* dtSpace = dts->dtList.make_space(maskCount);
 
     __m512i templateVal = _mm512_set1_epi32(templateDt.raw());
 
@@ -1082,9 +1082,9 @@ inline void write_multiple_dirties(const StdArray<Piece, SQUARE_NB>& pieceMap,
     threatSquares = _mm512_slli_epi32(threatSquares, SqShift);
     threatPieces  = _mm512_slli_epi32(threatPieces, PcShift);
 
-    // Combine into final dirty values                  A | B | C
+    // Combine into final dirty values (A | B | C = 254)
     __m512i dirties = _mm512_ternarylogic_epi32(templateVal, threatSquares, threatPieces, 254);
-    _mm512_storeu_si512(dt, dirties);
+    _mm512_storeu_si512(dtSpace, dirties);
 }
 #endif
 
