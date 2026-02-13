@@ -20,7 +20,6 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <memory>
 #include <string>
 #include <string_view>
 
@@ -41,7 +40,7 @@ struct EvalFile final {
    public:
     EvalFile(std::string_view defName,
              std::string_view curName = {"None"},
-             std::string_view netDesc = {}) :
+             std::string_view netDesc = {}) noexcept :
         defaultName(defName),
         currentName(curName),
         netDescription(netDesc) {}
