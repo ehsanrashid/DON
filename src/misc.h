@@ -30,8 +30,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
-#include <exception>  // IWYU pragma: keep
-// IWYU pragma: no_include <__exception/terminate.h>
+#include <exception>
 #include <fstream>
 #include <functional>
 #include <iostream>
