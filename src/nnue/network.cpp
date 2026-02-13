@@ -312,10 +312,10 @@ bool Network<Arch, Transformer>::load_embedded() noexcept {
 
     auto netDescription = load(is);
 
-    if (netDescription.has_value())
+    if (netDescription)
     {
         evalFile.currentName    = evalFile.defaultName;
-        evalFile.netDescription = netDescription.value();
+        evalFile.netDescription = *netDescription;
         return true;
     }
 
@@ -334,10 +334,10 @@ bool Network<Arch, Transformer>::load_file(std::string_view dir,
 
     auto netDescription = load(ifs);
 
-    if (netDescription.has_value())
+    if (netDescription)
     {
         evalFile.currentName    = netFile;
-        evalFile.netDescription = netDescription.value();
+        evalFile.netDescription = *netDescription;
         return true;
     }
 

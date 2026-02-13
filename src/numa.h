@@ -647,7 +647,7 @@ class NumaConfig final {
         // is >= number of processors in the affinity mask. In case the user
         // is not satisfied they must set the processor numbers explicitly.
         auto is_cpu_allowed = [&allowedCpus](CpuIndex cpuId) noexcept {
-            return !allowedCpus.has_value() || allowedCpus->find(cpuId) != allowedCpus->end();
+            return !allowedCpus || allowedCpus->find(cpuId) != allowedCpus->end();
         };
     #elif (defined(__linux__) && !defined(__ANDROID__))
         CpuIndexSet allowedCpus;
@@ -1146,7 +1146,7 @@ class NumaConfig final {
         // /sys/devices/system/node/online contains information about active NUMA nodes
         auto nodeIdStr = read_file_to_string("/sys/devices/system/node/online");
 
-        if (!nodeIdStr.has_value() || nodeIdStr->empty())
+        if (!nodeIdStr || nodeIdStr->empty())
         {
             useFallback = true;
         }
@@ -1165,7 +1165,7 @@ class NumaConfig final {
                 // Now, only bail if the file does not exist. Some nodes may be
                 // empty, that's fine. An empty node still has a file that appears
                 // to have some whitespace, so need to handle that.
-                if (!cpuIdStr.has_value())
+                if (!cpuIdStr)
                 {
                     useFallback = true;
                     break;
@@ -1263,7 +1263,7 @@ class NumaConfig final {
             auto cpuIdStr = read_file_to_string(path);
 
             // Have read all available CPUs
-            if (!cpuIdStr.has_value() || cpuIdStr->empty())
+            if (!cpuIdStr || cpuIdStr->empty())
                 break;
 
             L3Domain l3Domain{};

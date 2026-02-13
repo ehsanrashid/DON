@@ -240,9 +240,9 @@ void Engine::show() const noexcept { std::cout << pos << std::endl; }
 
 void Engine::dump(std::optional<std::string_view> dumpFile) const noexcept {
 
-    if (dumpFile.has_value())
+    if (dumpFile)
     {
-        std::ofstream ofs{std::string{dumpFile.value()}, std::ios::binary};
+        std::ofstream ofs{std::string{*dumpFile}, std::ios::binary};
 
         if (ofs.is_open())
         {
@@ -253,7 +253,7 @@ void Engine::dump(std::optional<std::string_view> dumpFile) const noexcept {
         }
 
         // Couldn't open file - optionally report and fall back
-        //DEBUG_LOG("Engine::dump: failed to open '" << dumpFile.value() << "', writing to stdout instead");
+        //DEBUG_LOG("Engine::dump: failed to open '" << *dumpFile << "', writing to stdout instead");
     }
 
     // Default: dump to console

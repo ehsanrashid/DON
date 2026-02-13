@@ -257,10 +257,8 @@ UCI::UCI(int argc, const char* argv[]) noexcept :
     engine(arguments()[0].data()) {
 
     options().set_info_callback([](std::optional<std::string> infoStr) noexcept {
-        if (!infoStr)
-            return;
-
-        print_info_string(*infoStr);
+        if (infoStr)
+            print_info_string(*infoStr);
     });
 
     set_update_callbacks();
