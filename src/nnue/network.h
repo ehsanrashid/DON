@@ -79,8 +79,8 @@ class Network final {
    private:
     std::optional<std::string> load(std::istream& is) noexcept;
 
-    void load_embedded() noexcept;
-    void load_file(std::string_view dir, std::string_view netFile) noexcept;
+    bool load_embedded() noexcept;
+    bool load_file(std::string_view dir, std::string_view netFile) noexcept;
 
     bool
     save(std::ostream& os, std::string_view name, std::string_view netDescription) const noexcept;

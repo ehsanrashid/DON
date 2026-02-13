@@ -22,6 +22,7 @@
 #include <deque>
 #include <fstream>
 #include <iostream>
+#include <memory>
 
 #include "evaluate.h"
 #include "movegen.h"
@@ -59,13 +60,24 @@ constexpr AutoNumaPolicy DEFAULT_NUMA_POLICY = BundledL3Policy{32};
 
 constexpr float MAX_LOAD_FACTOR = 0.75f;
 
+std::unique_ptr<NNUE::Networks> default_networks(std::string_view binaryDirectory) noexcept {
+    auto defaultNetworks =
+      std::make_unique<NNUE::Networks>(NNUE::EvalFile{BigEvalFileDefaultName, "None", ""},
+                                       NNUE::EvalFile{SmallEvalFileDefaultName, "None", ""});
+
+    defaultNetworks->load_big(binaryDirectory, "");
+    defaultNetworks->load_small(binaryDirectory, "");
+
+    return defaultNetworks;
+}
+
 }  // namespace
 
 Engine::Engine(std::optional<std::string_view> path) noexcept :
     // clang-format off
     binaryDirectory(path ? CommandLine::binary_directory(*path) : ""),
     numaContext(NumaConfig::from_system(DEFAULT_NUMA_POLICY)),
-    networks(numaContext, default_networks()) {
+    networks(numaContext, default_networks(binaryDirectory)) {
 
     using OnCng = Option::OnChange;
 
@@ -326,17 +338,6 @@ std::string Engine::get_thread_allocation_info_str() const noexcept {
     }
 
     return threadAllocation;
-}
-
-std::unique_ptr<NNUE::Networks> Engine::default_networks() const noexcept {
-    auto defaultNetworks =
-      std::make_unique<NNUE::Networks>(NNUE::EvalFile{BigEvalFileDefaultName, "None", ""},
-                                       NNUE::EvalFile{SmallEvalFileDefaultName, "None", ""});
-
-    defaultNetworks->load_big(binaryDirectory, "");
-    defaultNetworks->load_small(binaryDirectory, "");
-
-    return defaultNetworks;
 }
 
 void Engine::verify_networks() const noexcept {

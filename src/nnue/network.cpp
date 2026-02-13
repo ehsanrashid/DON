@@ -139,8 +139,11 @@ void Network<Arch, Transformer>::load(std::string_view rootDirectory,
 #endif
       ;
 
-    const StdArray<std::string_view, 3 + DirectoryCount> Directories{
-      "<embedded>", "", rootDirectory
+    const StdArray<std::string_view, DirectoryCount> Directories{
+      // --------------------------------------------------------
+      "<embedded>",  //
+      "",            //
+      rootDirectory
 #if defined(DEFAULT_NNUE_DIRECTORY)
       ,
       STRINGIFY(DEFAULT_NNUE_DIRECTORY)
@@ -154,9 +157,15 @@ void Network<Arch, Transformer>::load(std::string_view rootDirectory,
         if (netFile != std::string_view(evalFile.currentName))
         {
             if (dir == "<embedded>" && netFile == std::string_view(evalFile.defaultName))
-                load_embedded();
+            {
+                if (load_embedded())
+                    break;
+            }
             else if (dir != "<embedded>")
-                load_file(dir, netFile);
+            {
+                if (load_file(dir, netFile))
+                    break;
+            }
         }
 }
 
@@ -294,7 +303,7 @@ std::optional<std::string> Network<Arch, Transformer>::load(std::istream& is) no
 }
 
 template<typename Arch, typename Transformer>
-void Network<Arch, Transformer>::load_embedded() noexcept {
+bool Network<Arch, Transformer>::load_embedded() noexcept {
     auto embedded = get_embedded(embeddedType);
 
     MemoryStreamBuf buf(const_cast<char*>(reinterpret_cast<const char*>(embedded.data)),
@@ -308,11 +317,14 @@ void Network<Arch, Transformer>::load_embedded() noexcept {
     {
         evalFile.currentName    = evalFile.defaultName;
         evalFile.netDescription = netDescription.value();
+        return true;
     }
+
+    return false;
 }
 
 template<typename Arch, typename Transformer>
-void Network<Arch, Transformer>::load_file(std::string_view dir,
+bool Network<Arch, Transformer>::load_file(std::string_view dir,
                                            std::string_view netFile) noexcept {
     std::string path;
     path.reserve(dir.size() + netFile.size());
@@ -327,7 +339,10 @@ void Network<Arch, Transformer>::load_file(std::string_view dir,
     {
         evalFile.currentName    = netFile;
         evalFile.netDescription = netDescription.value();
+        return true;
     }
+
+    return false;
 }
 
 template<typename Arch, typename Transformer>
