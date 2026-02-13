@@ -218,8 +218,6 @@ constexpr std::uint8_t distance(Square, Square) noexcept {
     return 0;
 }
 
-constexpr std::uint8_t constexpr_abs(int x) noexcept { return x < 0 ? -x : x; }
-
 template<>
 constexpr std::uint8_t distance<File>(Square s1, Square s2) noexcept {
     assert(is_ok(s1) && is_ok(s2));

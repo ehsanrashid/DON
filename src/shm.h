@@ -547,10 +547,8 @@ class SharedMemoryRegistry final {
         callOnce([reserveCount, maxLoadFactor]() noexcept {
             //DEBUG_LOG("Initializing SharedMemoryRegistry with reserve-count " << reserveCount << " and max-load-factor " << maxLoadFactor);
 
-            if (maxLoadFactor > 0.0f)
-                registryMap.max_load_factor(maxLoadFactor);
-            if (reserveCount != 0)
-                registryMap.reserve(reserveCount);
+            registryMap.max_load_factor(max_load_factor(maxLoadFactor));
+            registryMap.reserve(reserve_count(reserveCount));
         });
     }
 

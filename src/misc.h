@@ -215,6 +215,15 @@ constexpr std::size_t round_up_to_pow2(std::size_t x) noexcept {
     return x + 1;
 }
 
+template<typename T>
+constexpr T constexpr_abs(T x) noexcept {
+    static_assert(std::is_integral_v<T>);
+
+    return x < 0 ? (x == std::numeric_limits<T>::min() ? x : -x) : x;
+}
+
+constexpr float constexpr_abs(float f) noexcept { return f < 0 ? -f : f; }
+
 constexpr int constexpr_round(double d) noexcept {
     return d >= 0.0 ? int(d + 0.4999) : int(d - 0.4999);
 }
@@ -255,6 +264,13 @@ constexpr double constexpr_log(double x) noexcept {
     // mantissa in [1,2) -> f in [0,1)
     // ln(x) = ln(m) + exponent * ln(2)
     return constexpr_approx_1p_log(x - 1.0) + exponent * LN2;
+}
+
+constexpr float max_load_factor(float maxLoadFactor = 0.75f) noexcept {
+    return std::clamp(constexpr_abs(maxLoadFactor), 0.1f, 1.0f);
+}
+constexpr std::size_t reserve_count(std::size_t reserveCount = 1024) noexcept {
+    return std::max(reserveCount, std::size_t(4));
 }
 
 std::string engine_info(bool uci = false) noexcept;
@@ -500,12 +516,10 @@ struct LazyValue final {
 class OstreamMutexRegistry final {
    public:
     static void ensure_initialized(std::size_t reserveCount  = 16,
-                                   float       maxLoadFactor = 1.0f) noexcept {
+                                   float       maxLoadFactor = 0.85f) noexcept {
         callOnce([reserveCount, maxLoadFactor]() noexcept {
-            if (reserveCount > 0.0f)
-                osMutexes.max_load_factor(reserveCount);
-            if (maxLoadFactor != 0)
-                osMutexes.reserve(maxLoadFactor);
+            osMutexes.max_load_factor(max_load_factor(maxLoadFactor));
+            osMutexes.reserve(reserve_count(reserveCount));
         });
     }
 
@@ -1140,10 +1154,8 @@ template<typename Key, typename Value>
 class ConcurrentCache final {
    public:
     ConcurrentCache(std::size_t reserveCount = 1024, float maxLoadFactor = 0.75f) noexcept {
-        if (maxLoadFactor > 0.0f)
-            storage.max_load_factor(maxLoadFactor);
-        if (reserveCount != 0)
-            storage.reserve(reserveCount);
+        storage.max_load_factor(max_load_factor(maxLoadFactor));
+        storage.reserve(reserve_count(reserveCount));
     }
 
     template<typename... Args>

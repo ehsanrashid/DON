@@ -124,8 +124,7 @@ Engine::Engine(std::optional<std::string_view> path) noexcept :
 
     resize_threads_tt();
 
-    if (MAX_LOAD_FACTOR > 0.0f)
-        historiesMap.max_load_factor(MAX_LOAD_FACTOR);
+    historiesMap.max_load_factor(max_load_factor(MAX_LOAD_FACTOR));
 
     setup();
 }

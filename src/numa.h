@@ -1348,10 +1348,8 @@ class NumaConfig final {
             // Apply tuning to all newly created sets
             for (std::size_t numaId = oldNumaId; numaId < nodes_size(); ++numaId)
             {
-                if (maxLoadFactor > 0.0f)
-                    nodes[numaId].max_load_factor(maxLoadFactor);
-                if (expectedCpuCount != 0)
-                    nodes[numaId].reserve(expectedCpuCount);
+                nodes[numaId].max_load_factor(max_load_factor(maxLoadFactor));
+                nodes[numaId].reserve(reserve_count(expectedCpuCount));
             }
         }
     }
@@ -1428,10 +1426,8 @@ class NumaConfig final {
 
     void init_node_cpus(std::size_t expectedCpuCount, float maxLoadFactor = 0.75f) noexcept {
 
-        if (maxLoadFactor > 0.0f)
-            nodeByCpu.max_load_factor(maxLoadFactor);
-        if (expectedCpuCount != 0)
-            nodeByCpu.reserve(expectedCpuCount);
+        nodeByCpu.max_load_factor(max_load_factor(maxLoadFactor));
+        nodeByCpu.reserve(reserve_count(expectedCpuCount));
     }
 
     std::vector<CpuIndexSet>                nodes;
