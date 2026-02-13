@@ -27,6 +27,7 @@
 #include <cstdint>
 #include <cstring>
 #include <iostream>
+#include <string_view>
 #include <type_traits>
 
 #if defined(USE_AVX512ICL)
@@ -71,8 +72,7 @@ inline constexpr std::uint8_t LEB128_MORE_BIT  = 0x80;           // Continuation
 inline constexpr std::uint8_t LEB128_SIGN_BIT  = 0x40;           // Sign bit of 7-bit group
 inline constexpr std::size_t  LEB128_BITS      = BYTE_BITS - 1;  // 7 bits per group
 
-inline constexpr const char  LEB128_MAGIC_STRING[]    = "COMPRESSED_LEB128";
-inline constexpr std::size_t LEB128_MAGIC_STRING_SIZE = sizeof(LEB128_MAGIC_STRING) - 1;
+inline constexpr std::string_view LEB128_MAGIC_STRING{"COMPRESSED_LEB128"};
 
 inline constexpr std::size_t MAX_SIMD_WIDTH = 32;
 
@@ -199,7 +199,9 @@ inline void _read_leb_128(std::istream&              is,
 
     std::size_t shift = 0;
 
-    for (std::size_t i = 0; i < Size;)
+    std::size_t i = 0;
+
+    while (i < Size)
     {
         // Refill buffer if needed
         if (bufferIdx == buffer.size())
@@ -214,6 +216,7 @@ inline void _read_leb_128(std::istream&              is,
         }
 
         // Guard against byteCount underflow
+        assert(byteCount != 0);
         if (byteCount == 0)
             break;
 
@@ -254,10 +257,11 @@ inline void _read_leb_128(std::istream&              is,
 template<typename... Arrays>
 inline void read_leb_128(std::istream& is, Arrays&... outs) noexcept {
     // Read and check the presence of LEB128 magic string
-    StdArray<char, LEB128_MAGIC_STRING_SIZE> leb128MagicString;
-    is.read(leb128MagicString.data(), LEB128_MAGIC_STRING_SIZE);
-    assert(std::strncmp(leb128MagicString.data(), LEB128_MAGIC_STRING, LEB128_MAGIC_STRING_SIZE)
-           == 0);
+    StdArray<char, LEB128_MAGIC_STRING.size()> leb128MagicString;
+    is.read(leb128MagicString.data(), LEB128_MAGIC_STRING.size());
+    assert(
+      std::strncmp(leb128MagicString.data(), LEB128_MAGIC_STRING.data(), LEB128_MAGIC_STRING.size())
+      == 0);
 
     std::size_t byteCount = read_little_endian<std::uint32_t>(is);
 
@@ -279,7 +283,7 @@ inline void write_leb_128(std::ostream& os, const std::array<IntType, Size>& in)
     static_assert(std::is_signed_v<IntType>, "Not implemented for unsigned types");
 
     // Write LEB128 magic string
-    os.write(LEB128_MAGIC_STRING, LEB128_MAGIC_STRING_SIZE);
+    os.write(LEB128_MAGIC_STRING.data(), LEB128_MAGIC_STRING.size());
 
     std::size_t byteCount = 0;
     for (std::size_t i = 0; i < Size; ++i)
