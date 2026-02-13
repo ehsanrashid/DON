@@ -22,7 +22,6 @@
 #include <deque>
 #include <fstream>
 #include <iostream>
-#include <memory>
 
 #include "evaluate.h"
 #include "movegen.h"
@@ -66,11 +65,7 @@ Engine::Engine(std::optional<std::string_view> path) noexcept :
     // clang-format off
     binaryDirectory(path ? CommandLine::binary_directory(*path) : ""),
     numaContext(NumaConfig::from_system(DEFAULT_NUMA_POLICY)),
-    networks(
-      numaContext,
-      // Heap-allocate because sizeof(NNUE::Networks) is large
-      std::make_unique<NNUE::Networks>(NNUE::EvalFile{BigEvalFileDefaultName  , "None", ""},
-                                       NNUE::EvalFile{SmallEvalFileDefaultName, "None", ""})) {
+    networks(numaContext, default_networks()) {
 
     using OnCng = Option::OnChange;
 
@@ -120,11 +115,9 @@ Engine::Engine(std::optional<std::string_view> path) noexcept :
     options.add("Stop Logger",          Option(OnCng([](const Option&) { Logger::stop(); return std::nullopt; })));
     // clang-format on
 
-    load_networks();
+    historiesMap.max_load_factor(max_load_factor(MAX_LOAD_FACTOR));
 
     resize_threads_tt();
-
-    historiesMap.max_load_factor(max_load_factor(MAX_LOAD_FACTOR));
 
     setup();
 }
@@ -335,6 +328,17 @@ std::string Engine::get_thread_allocation_info_str() const noexcept {
     return threadAllocation;
 }
 
+std::unique_ptr<NNUE::Networks> Engine::default_networks() const noexcept {
+    auto defaultNetworks =
+      std::make_unique<NNUE::Networks>(NNUE::EvalFile{BigEvalFileDefaultName, "None", ""},
+                                       NNUE::EvalFile{SmallEvalFileDefaultName, "None", ""});
+
+    defaultNetworks->load_big(binaryDirectory, "");
+    defaultNetworks->load_small(binaryDirectory, "");
+
+    return defaultNetworks;
+}
+
 void Engine::verify_networks() const noexcept {
 
     networks->big.verify(options["BigEvalFile"]);
@@ -363,22 +367,10 @@ void Engine::verify_networks() const noexcept {
     }
 }
 
-void Engine::load_networks() noexcept {
-
-    networks.modify_and_replicate([this](NNUE::Networks& nets) {
-        nets.big.load(binaryDirectory, options["BigEvalFile"]);
-        nets.small.load(binaryDirectory, options["SmallEvalFile"]);
-    });
-
-    threads.init();
-
-    threads.ensure_network_replicated();
-}
-
 void Engine::load_big_network(std::string_view netFile) noexcept {
 
-    networks.modify_and_replicate([this, &netFile](NNUE::Networks& nets) {
-        nets.big.load(binaryDirectory, std::string{netFile});
+    networks.modify_and_replicate([this, &netFile](NNUE::Networks& nets) noexcept {  //
+        nets.load_big(binaryDirectory, netFile);
     });
 
     threads.init();
@@ -388,8 +380,8 @@ void Engine::load_big_network(std::string_view netFile) noexcept {
 
 void Engine::load_small_network(std::string_view netFile) noexcept {
 
-    networks.modify_and_replicate([this, &netFile](NNUE::Networks& nets) {
-        nets.small.load(binaryDirectory, std::string{netFile});
+    networks.modify_and_replicate([this, &netFile](NNUE::Networks& nets) noexcept {  //
+        nets.load_small(binaryDirectory, netFile);
     });
 
     threads.init();

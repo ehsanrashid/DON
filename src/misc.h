@@ -35,6 +35,7 @@
 #include <fstream>
 #include <functional>
 #include <iostream>
+#include <limits>
 #include <memory>
 #include <mutex>
 #include <new>
@@ -57,13 +58,12 @@
         #define NAME_MAX 255
     #endif
 #else
-    #include <climits>  // IWYU pragma: keep
+    #include <limits.h>  // IWYU pragma: keep
 #endif
 
 #undef HAS_X86_PREFETCH
 #if defined(USE_PREFETCH) \
-  && (defined(_M_X64) || defined(__x86_64__) || defined(__i386) || defined(_M_IX86)) \
-  && (defined(_M_X64) || defined(__SSE__) || (defined(_M_IX86_FP) && _M_IX86_FP >= 1))
+  && (defined(_M_X64) || defined(__x86_64__) || defined(__i386__) || defined(_M_IX86))
     #define HAS_X86_PREFETCH
     #include <xmmintrin.h>  // SSE intrinsics header for _mm_prefetch()
 #endif

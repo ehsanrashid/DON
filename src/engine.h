@@ -20,6 +20,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -95,10 +96,10 @@ class Engine final {
     std::string get_thread_allocation_info_str() const noexcept;
 
     // Network related
-    void verify_networks() const noexcept;
-    void load_networks() noexcept;
-    void load_big_network(std::string_view netFile) noexcept;
-    void load_small_network(std::string_view netFile) noexcept;
+    std::unique_ptr<NNUE::Networks> default_networks() const noexcept;
+    void                            verify_networks() const noexcept;
+    void                            load_big_network(std::string_view netFile) noexcept;
+    void                            load_small_network(std::string_view netFile) noexcept;
     void save_networks(const StdArray<std::optional<std::string>, 2>& netFiles) const noexcept;
 
     bool load_hash() noexcept;

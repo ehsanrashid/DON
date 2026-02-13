@@ -61,7 +61,7 @@ class Network final {
     Network& operator=(const Network& net) = default;
     Network& operator=(Network&&) noexcept = default;
 
-    void load(std::string_view rootDirectory, std::string netFile) noexcept;
+    void load(std::string_view rootDirectory, std::string_view netFile) noexcept;
     bool save(const std::optional<std::string>& netFile) const noexcept;
 
     void verify(std::string netFile) const noexcept;
@@ -77,13 +77,13 @@ class Network final {
                        AccumulatorCaches::Cache<TFDimensions>& cache) const noexcept;
 
    private:
-    void load_internal() noexcept;
-    void load_user_net(const std::string& dir, const std::string& netFile) noexcept;
-
     std::optional<std::string> load(std::istream& is) noexcept;
-    bool                       save(std::ostream&      os,
-                                    const std::string& name,
-                                    const std::string& netDescription) const noexcept;
+
+    void load_embedded() noexcept;
+    void load_file(std::string_view dir, std::string_view netFile) noexcept;
+
+    bool
+    save(std::ostream& os, std::string_view name, std::string_view netDescription) const noexcept;
 
     bool read_parameters(std::istream& is, std::string& netDescription) noexcept;
     bool write_parameters(std::ostream& os, const std::string& netDescription) const noexcept;
@@ -119,6 +119,13 @@ struct Networks final {
     Networks(const EvalFile& bigFile, const EvalFile& smallFile) noexcept :
         big(bigFile, EmbeddedType::BIG),
         small(smallFile, EmbeddedType::SMALL) {}
+
+    void load_big(std::string_view rootDirectory, std::string_view netFile) noexcept {
+        big.load(rootDirectory, netFile);
+    }
+    void load_small(std::string_view rootDirectory, std::string_view netFile) noexcept {
+        small.load(rootDirectory, netFile);
+    }
 
     BigNetwork   big;
     SmallNetwork small;

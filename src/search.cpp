@@ -2082,11 +2082,11 @@ void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Sta
 
         int baseQuietMalus = std::max(malus - 20 * std::max<int>(searchedMoves[0].size() - 4, 0), 0);
         // Decrease history for all non-best quiet moves
-        int decayQuietMalus = constexpr_round(1.0596 * baseQuietMalus);
+        int decayQuietMalus = constexpr_round(0.9966 * baseQuietMalus);
         for (Move qm : searchedMoves[0])
         {
             update_quiet_histories(pos, pawnHistory, ss, qm, -decayQuietMalus);
-            decayQuietMalus = constexpr_round(0.9326 * decayQuietMalus);
+            decayQuietMalus = constexpr_round(0.9277 * decayQuietMalus);
         }
     }
 
