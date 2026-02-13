@@ -343,7 +343,7 @@ inline WindowsAffinity get_process_affinity() noexcept {
             std::thread th([&winAffinity, &procGroupAffinity]() noexcept {
                 CpuIndexSet cpus;
 
-                bool affinityFull = true;
+                bool fullAffinity = true;
 
                 for (WORD groupId : procGroupAffinity)
                 {
@@ -388,7 +388,7 @@ inline WindowsAffinity get_process_affinity() noexcept {
                     }
 
                     if (combinedProcMask != combinedSysMask)
-                        affinityFull = false;
+                        fullAffinity = false;
 
                     if (combinedProcMask != 0)
                         for (DWORD number = 0; number < WIN_PROCESSOR_GROUP_SIZE; ++number)
@@ -400,10 +400,9 @@ inline WindowsAffinity get_process_affinity() noexcept {
                             }
                 }
 
-                // Have to detect the case where the affinity was not set,
-                // or is set to all processors so that correctly produce as
-                // std::nullopt result.
-                if (!affinityFull)
+                // Have to detect the case where the affinity was not set, or
+                // is set to all processors so that correctly produce as std::nullopt result.
+                if (!fullAffinity)
                     winAffinity.cpus[0] = std::move(cpus);
             });
 
