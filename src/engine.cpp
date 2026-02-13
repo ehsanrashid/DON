@@ -62,11 +62,11 @@ constexpr float MAX_LOAD_FACTOR = 0.75f;
 
 std::unique_ptr<NNUE::Networks> default_networks(std::string_view binaryDirectory) noexcept {
     auto defaultNetworks =
-      std::make_unique<NNUE::Networks>(NNUE::EvalFile{BigEvalFileDefaultName, "None", ""},
-                                       NNUE::EvalFile{SmallEvalFileDefaultName, "None", ""});
+      std::make_unique<NNUE::Networks>(NNUE::EvalFile{BigEvalFileDefaultName},  //
+                                       NNUE::EvalFile{SmallEvalFileDefaultName});
 
-    defaultNetworks->load_big(binaryDirectory, "");
-    defaultNetworks->load_small(binaryDirectory, "");
+    defaultNetworks->load_big(binaryDirectory);
+    defaultNetworks->load_small(binaryDirectory);
 
     return defaultNetworks;
 }

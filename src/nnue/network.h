@@ -120,15 +120,15 @@ struct Networks final {
         big(bigFile, EmbeddedType::BIG),
         small(smallFile, EmbeddedType::SMALL) {}
 
-    void load_big(std::string_view rootDirectory, std::string_view netFile) noexcept {
+    void load_big(std::string_view rootDirectory, std::string_view netFile = {}) noexcept {
         big.load(rootDirectory, netFile);
     }
-    void load_small(std::string_view rootDirectory, std::string_view netFile) noexcept {
+    void load_small(std::string_view rootDirectory, std::string_view netFile = {}) noexcept {
         small.load(rootDirectory, netFile);
     }
 
-    void save_big(std::string_view netFile) const noexcept { big.save(netFile); }
-    void save_small(std::string_view netFile) const noexcept { small.save(netFile); }
+    void save_big(std::string_view netFile = {}) const noexcept { big.save(netFile); }
+    void save_small(std::string_view netFile = {}) const noexcept { small.save(netFile); }
 
     BigNetwork   big;
     SmallNetwork small;
