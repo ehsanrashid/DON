@@ -23,6 +23,7 @@
 #include <cstring>
 #include <iomanip>
 #include <iostream>
+#include <memory>
 #include <sstream>
 
 #include "../misc.h"
