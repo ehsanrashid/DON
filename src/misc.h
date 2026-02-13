@@ -447,14 +447,14 @@ struct LazyValue final {
     LazyValue& operator=(LazyValue&&)      = delete;
 
     ~LazyValue() noexcept {
-        if (is_initialized())
+        if (initialized())
             get_ptr()->~Value();
     }
 
     template<typename... Args>
     Value& init(Args&&... args) noexcept(std::is_nothrow_constructible_v<Value, Args...>) {
         // Fast path: already initialized
-        if (is_initialized())
+        if (initialized())
             return *get_ptr();
 
         // Initialize exactly once, use tuple to capture all arguments
@@ -470,16 +470,16 @@ struct LazyValue final {
     }
 
     Value& get() noexcept {
-        assert(is_initialized() && "LazyValue accessed before initialization");
+        assert(initialized() && "LazyValue accessed before initialization");
         return *get_ptr();
     }
 
     const Value& get() const noexcept {
-        assert(is_initialized() && "LazyValue accessed before initialization");
+        assert(initialized() && "LazyValue accessed before initialization");
         return *get_ptr();
     }
 
-    [[nodiscard]] bool is_initialized() const noexcept { return callOnce.initialized(); }
+    [[nodiscard]] bool initialized() const noexcept { return callOnce.initialized(); }
 
    private:
     Value* get_ptr() noexcept { return std::launder(reinterpret_cast<Value*>(&storage)); }
