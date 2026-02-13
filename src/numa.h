@@ -487,8 +487,8 @@ inline CpuIndexSet get_process_affinity() noexcept {
 
         // Bulk insert using vector
         CpuIndexVec rangeCpus(MAX_SYSTEM_THREADS);
-        std::iota(rangeCpus.begin(), rangeCpus.end(),
-                  0);  // fill 0, 1, 2, ..., MAX_SYSTEM_THREADS-1
+        // fill 0, 1, 2, ..., MAX_SYSTEM_THREADS-1
+        std::iota(rangeCpus.begin(), rangeCpus.end(), 0);
 
         cpus.insert(rangeCpus.begin(), rangeCpus.end());
     };
@@ -584,14 +584,14 @@ inline CpuIndexVec shortened_string_to_indices(std::string_view str) noexcept {
         switch (parts.size())
         {
         case 1 : {
-            auto cpuId = CpuIndex(str_to_size_t(parts[0]));
+            auto cpuId = CpuIndex{str_to_size_t(parts[0])};
 
             indices.emplace_back(cpuId);
         }
         break;
         case 2 : {
-            auto begCpuId = CpuIndex(str_to_size_t(parts[0]));
-            auto endCpuId = CpuIndex(str_to_size_t(parts[1]));
+            auto begCpuId = CpuIndex{str_to_size_t(parts[0])};
+            auto endCpuId = CpuIndex{str_to_size_t(parts[1])};
 
             for (auto cpuId = begCpuId; cpuId <= endCpuId; ++cpuId)
                 indices.emplace_back(cpuId);
@@ -736,7 +736,7 @@ class NumaConfig final {
 #else
         // Fallback for unsupported systems
         for (CpuIndex cpuId = 0; cpuId < MAX_SYSTEM_THREADS; ++cpuId)
-            numaCfg.add_cpu_to_node(NumaIndex{0}, cpuId);
+            numaCfg.add_cpu_to_node(0, cpuId);
 #endif
 
         // Have to ensure no empty NUMA nodes persist
@@ -1187,7 +1187,7 @@ class NumaConfig final {
 
             for (CpuIndex cpuId = 0; cpuId < MAX_SYSTEM_THREADS; ++cpuId)
                 if (is_cpu_allowed(cpuId))
-                    numaCfg.add_cpu_to_node(NumaIndex{0}, cpuId);
+                    numaCfg.add_cpu_to_node(0, cpuId);
         }
 #endif
 
