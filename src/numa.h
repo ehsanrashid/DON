@@ -831,49 +831,61 @@ class NumaConfig final {
 
     bool requires_memory_replication() const noexcept { return customAffinity || nodes_size() > 1; }
 
+    // Format: "node0_cpus:node1_cpus:..." where cpus = "0-2,4,6-7"
     std::string to_string() const noexcept {
+        // Estimate size
+        std::size_t cpusSize = 0;
+        for (const auto& node : nodes)
+            cpusSize += node.size();
+
         std::string numaCfg;
-        numaCfg.reserve(8 * nodes_size());
+        numaCfg.reserve(6 * cpusSize);  // ~6 chars per CPU
 
-        for (auto nodeItr = nodes.begin(); nodeItr != nodes.end(); ++nodeItr)
+        for (const auto& node : nodes)
         {
-            if (nodeItr != nodes.begin())
-                numaCfg += ':';
-
-            if (nodeItr->empty())
+            // Skip empty nodes
+            if (node.empty())
                 continue;
 
+            // Add node separator if needed
+            if (!numaCfg.empty())
+                numaCfg += ':';
+
             // 1. Copy unordered_set -> vector
-            std::vector<CpuIndex> sortedCpus(nodeItr->begin(), nodeItr->end());
+            std::vector<CpuIndex> sortedCpus(node.begin(), node.end());
             // 2. Sort vector
             std::sort(sortedCpus.begin(), sortedCpus.end());
+            // 3. Emit ranges
+            std::string rangeCfg;
 
-            auto rangeItr = sortedCpus.begin();
+            auto append_range = [&rangeCfg](CpuIndex rangeBeg, CpuIndex rangeEnd) noexcept {
+                // Add range separator if needed
+                if (!rangeCfg.empty())
+                    rangeCfg += ',';
 
-            for (auto itr = sortedCpus.begin(); itr != sortedCpus.end(); ++itr)
-            {
-                auto nextItr = std::next(itr);
-
-                if (nextItr == sortedCpus.end() || *nextItr != *itr + 1)
+                // Emit range: "single CPU" or "rangeBeg-rangeEnd"
+                rangeCfg += std::to_string(rangeBeg);
+                if (rangeBeg != rangeEnd)
                 {
-                    // cpus[i] is at the end of the range (may be of size 1)
-                    if (rangeItr != sortedCpus.begin())
-                        numaCfg += ',';
-
-                    if (itr != rangeItr)
-                    {
-                        numaCfg += std::to_string(*rangeItr);
-                        numaCfg += '-';
-                        numaCfg += std::to_string(*itr);
-                    }
-                    else
-                    {
-                        numaCfg += std::to_string(*itr);
-                    }
-
-                    rangeItr = nextItr;
+                    rangeCfg += '-';
+                    rangeCfg += std::to_string(rangeEnd);
                 }
+            };
+
+            auto itr = sortedCpus.begin();
+            while (itr != sortedCpus.end())
+            {
+                CpuIndex rangeBeg = *itr;
+                CpuIndex rangeEnd = rangeBeg;
+
+                // Extend range while CPUs are contiguous
+                while (++itr != sortedCpus.end() && *itr == rangeEnd + 1)
+                    ++rangeEnd;
+
+                append_range(rangeBeg, rangeEnd);
             }
+
+            numaCfg += rangeCfg;
         }
 
         return numaCfg;
@@ -1749,14 +1761,14 @@ class SystemWideLazyNumaReplicated final: public BaseNumaReplicated {
 
         std::string sysCfgStr = sysCfg.to_string();
 
-        std::string str;
-        str.reserve(sysCfgStr.size() + 1 + 8);
+        std::string discriminator;
+        discriminator.reserve(sysCfgStr.size() + 1 + 8);
 
-        str = sysCfgStr;
-        str += '$';
-        str += std::to_string(sysNumaId);
+        discriminator += sysCfgStr;
+        discriminator += '$';
+        discriminator += std::to_string(sysNumaId);
 
-        return hash_string(str);
+        return hash_string(discriminator);
     }
 
     void ensure_present(NumaIndex numaId) const noexcept {

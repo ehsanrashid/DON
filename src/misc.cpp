@@ -135,7 +135,7 @@ std::string engine_info(bool uci) noexcept {
     engineInfo.reserve(64);
 
     if (uci)
-        engineInfo = "id name ";
+        engineInfo += "id name ";
     engineInfo += version_info();
     engineInfo += uci ? "\nid author " : " by ";
     engineInfo += Author;
@@ -156,7 +156,7 @@ std::string version_info() noexcept {
     std::string versionInfo;
     versionInfo.reserve(32);
 
-    versionInfo = Name;
+    versionInfo += Name;
     versionInfo += ' ';
     versionInfo += Version;
 
@@ -197,7 +197,7 @@ std::string compiler_info() noexcept {
     std::string compilerInfo;
     compilerInfo.reserve(256);
 
-    compilerInfo = "\nCompiled by                : ";
+    compilerInfo += "\nCompiled by                : ";
 #if defined(__INTEL_LLVM_COMPILER)
     compilerInfo += "ICX ";
     compilerInfo += STRINGIFY(__INTEL_LLVM_COMPILER);
@@ -326,9 +326,9 @@ std::string format_time(const std::chrono::system_clock::time_point& timePoint) 
 
     StdArray<char, 32> buffer{};
 
-    std::size_t writtenSize;
+    std::size_t writtenSize = 0;
     // Format the YYYY.MM.DD-HH:MM:SS part
-    writtenSize = std::strftime(buffer.data(), buffer.size(), "%Y.%m.%d-%H:%M:%S", &tm);
+    writtenSize += std::strftime(buffer.data(), buffer.size(), "%Y.%m.%d-%H:%M:%S", &tm);
     // Append microseconds safely
     writtenSize += std::snprintf(buffer.data() + writtenSize, buffer.size() - writtenSize, ".%06" PRIu64, usec);
     // clang-format on
