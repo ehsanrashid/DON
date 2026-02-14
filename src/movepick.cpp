@@ -48,7 +48,7 @@ Iterator upper_bound_unrolled(Iterator RESTRICT beg,
     std::size_t i = n;
 
     // Unroll 8 elements at a time
-    for (; idx == n && i >= UNROLL_8; i -= UNROLL_8)
+    for (; idx == n && i >= BLOCK_8; i -= BLOCK_8)
         idx = comp(value, beg[i - 8]) ? i - 8
             : comp(value, beg[i - 7]) ? i - 7
             : comp(value, beg[i - 6]) ? i - 6
@@ -59,7 +59,7 @@ Iterator upper_bound_unrolled(Iterator RESTRICT beg,
             : comp(value, beg[i - 1]) ? i - 1
                                       : idx;
     // Unroll 4 elements at a time
-    for (; idx == n && i >= UNROLL_4; i -= UNROLL_4)
+    for (; idx == n && i >= BLOCK_4; i -= BLOCK_4)
         idx = comp(value, beg[i - 4]) ? i - 4
             : comp(value, beg[i - 3]) ? i - 3
             : comp(value, beg[i - 2]) ? i - 2

@@ -140,8 +140,10 @@ inline constexpr std::size_t HEX32_SIZE = 8;
 inline constexpr std::size_t ONE_KB = 1024;
 inline constexpr std::size_t ONE_MB = ONE_KB * ONE_KB;
 
-inline constexpr std::size_t UNROLL_8 = 8;
-inline constexpr std::size_t UNROLL_4 = 4;
+inline constexpr std::size_t BLOCK_4  = 4;
+inline constexpr std::size_t BLOCK_8  = 2 * BLOCK_4;
+inline constexpr std::size_t BLOCK_16 = 4 * BLOCK_4;
+inline constexpr std::size_t BLOCK_32 = 8 * BLOCK_4;
 
 inline constexpr std::int64_t INT_LIMIT = (1LL << 31) - 1;
 
@@ -1277,49 +1279,72 @@ hash_bytes(const char* RESTRICT data, std::size_t size, std::uint64_t seed = 0) 
     };
 
     const std::uint8_t* const RESTRICT beg = reinterpret_cast<const std::uint8_t*>(data);
-
     const std::uint8_t* const RESTRICT end = beg + size;
+    const std::uint8_t* RESTRICT       p   = beg;
 
-    const std::uint8_t* RESTRICT p = beg;
-
-    // Process 32-byte chunks (4 × 8 bytes) for better throughput
-    constexpr std::size_t              UNROLL_32  = 4 * UNROLL_8;
-    const std::uint8_t* const RESTRICT block32End = beg + (size & ~(UNROLL_32 - 1));
-    for (; p < block32End; p += UNROLL_32)
+    // Process 32-byte blocks (4 × 64-bit lanes) for better throughput.
+    // The end pointer is rounded down to the nearest multiple of BLOCK_32.
+    const std::uint8_t* const RESTRICT block32End = beg + (size & ~(BLOCK_32 - 1));
+    while (p < block32End)
     {
-        StdArray<std::uint64_t, 4> k;
+        std::uint64_t k0, k1, k2, k3;
+        // Unaligned loads are safe via memcpy and typically optimized by the compiler
+        std::memcpy(&k0, p + 0 * BLOCK_8, BLOCK_8);
+        std::memcpy(&k1, p + 1 * BLOCK_8, BLOCK_8);
+        std::memcpy(&k2, p + 2 * BLOCK_8, BLOCK_8);
+        std::memcpy(&k3, p + 3 * BLOCK_8, BLOCK_8);
 
-        std::memcpy(&k[0], p + 0 * UNROLL_8, UNROLL_8);
-        std::memcpy(&k[1], p + 1 * UNROLL_8, UNROLL_8);
-        std::memcpy(&k[2], p + 2 * UNROLL_8, UNROLL_8);
-        std::memcpy(&k[3], p + 3 * UNROLL_8, UNROLL_8);
+        k0 = Mix(k0);
+        k1 = Mix(k1);
+        k2 = Mix(k2);
+        k3 = Mix(k3);
+        // Merge each mixed lane into the running hash
+        h ^= k0;
+        h *= MURMUR_M;
+        h ^= k1;
+        h *= MURMUR_M;
+        h ^= k2;
+        h *= MURMUR_M;
+        h ^= k3;
+        h *= MURMUR_M;
 
-        k[0] = Mix(k[0]);
-        k[1] = Mix(k[1]);
-        k[2] = Mix(k[2]);
-        k[3] = Mix(k[3]);
-        // Incorporate blocks into the hash
-        h ^= k[0];
-        h *= MURMUR_M;
-        h ^= k[1];
-        h *= MURMUR_M;
-        h ^= k[2];
-        h *= MURMUR_M;
-        h ^= k[3];
-        h *= MURMUR_M;
+        p += BLOCK_32;
     }
+    // Process 16-byte blocks (2 × 64-bit words) for better throughput.
+    // The end pointer is rounded down to the nearest multiple of BLOCK_16.
+    const std::uint8_t* const RESTRICT block16End = p + ((end - p) & ~(BLOCK_16 - 1));
+    while (p < block16End)
+    {
+        std::uint64_t k0, k1;
+        // Unaligned loads are safe via memcpy and typically optimized by the compiler
+        std::memcpy(&k0, p + 0 * BLOCK_8, BLOCK_8);
+        std::memcpy(&k1, p + 1 * BLOCK_8, BLOCK_8);
 
-    // Process remaining full 8-byte blocks
-    const std::uint8_t* const RESTRICT block8End = p + ((end - p) & ~(UNROLL_8 - 1));
-    for (; p < block8End; p += UNROLL_8)
+        k0 = Mix(k0);
+        k1 = Mix(k1);
+        // Merge each word into the running hash
+        h ^= k0;
+        h *= MURMUR_M;
+        h ^= k1;
+        h *= MURMUR_M;
+
+        p += BLOCK_16;
+    }
+    // Process remaining full 8-byte blocks.
+    // The end pointer is rounded down to the nearest multiple of BLOCK_8.
+    const std::uint8_t* const RESTRICT block8End = p + ((end - p) & ~(BLOCK_8 - 1));
+    while (p < block8End)
     {
         std::uint64_t k;
-        std::memcpy(&k, p, UNROLL_8);  // Safe unaligned load
+        // Safe unaligned load
+        std::memcpy(&k, p, BLOCK_8);
 
         k = Mix(k);
-        // Incorporate block into the hash
+        // Merge block into the running hash
         h ^= k;
         h *= MURMUR_M;
+
+        p += BLOCK_8;
     }
     // Handle remaining tail bytes (< 8) at the end
     if (p < end)
@@ -1335,7 +1360,7 @@ hash_bytes(const char* RESTRICT data, std::size_t size, std::uint64_t seed = 0) 
             shift += BYTE_BITS;
             ++p;
         }
-
+        // Merge into the running hash
         h ^= k;
         h *= MURMUR_M;
     }
