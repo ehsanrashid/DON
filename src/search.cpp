@@ -2140,7 +2140,7 @@ int Worker::correction_value(const Position& pos, const Stack* ss) noexcept {
     std::int64_t correctionValue =
            + 5173LL * (histories.    pawn_correction<WHITE>(pos.    pawn_key(WHITE))[ac]
                      + histories.    pawn_correction<BLACK>(pos.    pawn_key(BLACK))[ac])
-           + 4411LL * (histories.   minor_correction<WHITE>(pos.   minor_key(WHITE))[ac]
+           + 4410LL * (histories.   minor_correction<WHITE>(pos.   minor_key(WHITE))[ac]
                      + histories.   minor_correction<BLACK>(pos.   minor_key(BLACK))[ac])
            +11665LL * (histories.non_pawn_correction<WHITE>(pos.non_pawn_key(WHITE))[ac]
                      + histories.non_pawn_correction<BLACK>(pos.non_pawn_key(BLACK))[ac]);
