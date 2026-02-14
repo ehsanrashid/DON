@@ -275,6 +275,31 @@ std::uint16_t Engine::hashfull(std::uint8_t maxAge) const noexcept {
     return transpositionTable.hashfull(maxAge);
 }
 
+auto Engine::get_bound_thread_counts() const noexcept
+  -> std::vector<std::pair<std::size_t, std::size_t>> {
+    std::vector<std::pair<std::size_t, std::size_t>> ratios;
+
+    auto  threadCounts = threads.get_bound_thread_counts();
+    auto& numaConfig   = numaContext.numa_config();
+
+    NumaIndex numaIdx = 0;
+
+    while (numaIdx < threadCounts.size())
+    {
+        ratios.emplace_back(threadCounts[numaIdx], numaConfig.node_cpus_size(numaIdx));
+        ++numaIdx;
+    }
+
+    if (!threadCounts.empty())
+        while (numaIdx < numaConfig.nodes_size())
+        {
+            ratios.emplace_back(0, numaConfig.node_cpus_size(numaIdx));
+            ++numaIdx;
+        }
+
+    return ratios;
+}
+
 std::string Engine::get_numa_config_str() const noexcept {
     return numaContext.numa_config().to_string();
 }
@@ -285,24 +310,6 @@ std::string Engine::get_numa_config_info_str() const noexcept {
     numaConfig += get_numa_config_str();
 
     return numaConfig;
-}
-
-std::vector<std::pair<std::size_t, std::size_t>> Engine::get_bound_thread_counts() const noexcept {
-    std::vector<std::pair<std::size_t, std::size_t>> ratios;
-
-    auto  threadCounts = threads.get_bound_thread_counts();
-    auto& numaConfig   = numaContext.numa_config();
-
-    NumaIndex numaIdx = 0;
-
-    for (; numaIdx < threadCounts.size(); ++numaIdx)
-        ratios.emplace_back(threadCounts[numaIdx], numaConfig.node_cpus_size(numaIdx));
-
-    if (!threadCounts.empty())
-        for (; numaIdx < numaConfig.nodes_size(); ++numaIdx)
-            ratios.emplace_back(0, numaConfig.node_cpus_size(numaIdx));
-
-    return ratios;
 }
 
 std::string Engine::get_thread_binding_info_str() const noexcept {
