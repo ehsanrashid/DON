@@ -64,7 +64,7 @@ class Network final {
     void load(std::string_view rootDirectory, std::string_view netFile) noexcept;
     bool save(std::string_view netFile) const noexcept;
 
-    void verify(std::string netFile) const noexcept;
+    void verify(std::string_view netFile) const noexcept;
 
     std::size_t content_hash() const noexcept;
 

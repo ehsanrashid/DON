@@ -196,15 +196,16 @@ bool Network<Arch, Transformer>::save(std::string_view netFile) const noexcept {
 }
 
 template<typename Arch, typename Transformer>
-void Network<Arch, Transformer>::verify(std::string netFile) const noexcept {
+void Network<Arch, Transformer>::verify(std::string_view netFile) const noexcept {
     if (netFile.empty())
         netFile = evalFile.defaultName;
 
-    if (netFile != std::string(evalFile.currentName))
+    if (netFile != std::string_view(evalFile.currentName))
     {
         std::string msg1{
           "Network evaluation parameters compatible with the engine must be available."};
-        std::string msg2{"The network file " + netFile + " was not loaded successfully."};
+        std::string msg2{"The network file " + std::string{netFile}
+                         + " was not loaded successfully."};
         std::string msg3{
           "The UCI option EvalFile might need to specify the full path, including the directory name, to the network file."};
         std::string msg4{
@@ -223,7 +224,7 @@ void Network<Arch, Transformer>::verify(std::string netFile) const noexcept {
 
     constexpr std::size_t TotalSize = sizeof(featureTransformer) + LayerStacks * sizeof(Arch);
 
-    std::string msg{"NNUE evaluation using " + netFile + " ("  //
+    std::string msg{"NNUE evaluation using " + std::string{netFile} + " ("  //
                     + std::to_string(TotalSize / ONE_MB) + "MiB, ("
                     + std::to_string(featureTransformer.TotalInputDimensions) + ", "
                     + std::to_string(network[0].TransformedFeatureDimensions) + ", "
