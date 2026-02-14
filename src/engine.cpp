@@ -313,20 +313,21 @@ std::string Engine::get_numa_config_info_str() const noexcept {
 }
 
 std::string Engine::get_thread_binding_info_str() const noexcept {
-    std::string threadBinding;
-
     auto boundThreadCounts = get_bound_thread_counts();
 
-    bool first = true;
+    std::string threadBinding;
+    threadBinding.reserve(8 * boundThreadCounts.size());
 
-    for (const auto& [key, value] : boundThreadCounts)
+    for (auto itr = boundThreadCounts.begin(); itr != boundThreadCounts.end(); ++itr)
     {
-        if (!first)
+        const auto& [numaId, threadCount] = *itr;
+
+        if (itr != boundThreadCounts.begin())
             threadBinding += ':';
 
-        first = false;
-
-        threadBinding += std::to_string(key) + '/' + std::to_string(value);
+        threadBinding += std::to_string(numaId);
+        threadBinding += '/';
+        threadBinding += std::to_string(threadCount);
     }
 
     return threadBinding;

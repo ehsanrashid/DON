@@ -85,6 +85,7 @@ class Engine final {
 
     std::uint16_t hashfull(std::uint8_t maxAge = 0) const noexcept;
 
+    // (numaId, threadCount)
     auto get_bound_thread_counts() const noexcept
       -> std::vector<std::pair<std::size_t, std::size_t>>;
 
