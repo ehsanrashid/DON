@@ -292,7 +292,7 @@ std::vector<std::pair<std::size_t, std::size_t>> Engine::bound_thread_counts() c
     if (!threadCounts.empty())
         while (numaIdx < numaConfig.nodes_size())
         {
-            ratios.emplace_back(0, numaConfig.node_cpus_size(numaIdx));
+            ratios.emplace_back(NumaIndex{0}, numaConfig.node_cpus_size(numaIdx));
             ++numaIdx;
         }
 

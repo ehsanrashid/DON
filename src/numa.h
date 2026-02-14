@@ -736,7 +736,7 @@ class NumaConfig final {
 #else
         // Fallback for unsupported systems
         for (CpuIndex cpuId = 0; cpuId < MAX_SYSTEM_THREADS; ++cpuId)
-            numaCfg.add_cpu_to_node(0, cpuId);
+            numaCfg.add_cpu_to_node(NumaIndex{0}, cpuId);
 #endif
 
         // Have to ensure no empty NUMA nodes persist
@@ -1187,7 +1187,7 @@ class NumaConfig final {
 
             for (CpuIndex cpuId = 0; cpuId < MAX_SYSTEM_THREADS; ++cpuId)
                 if (is_cpu_allowed(cpuId))
-                    numaCfg.add_cpu_to_node(0, cpuId);
+                    numaCfg.add_cpu_to_node(NumaIndex{0}, cpuId);
         }
 #endif
 
