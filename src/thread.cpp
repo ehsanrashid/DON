@@ -545,7 +545,7 @@ void Threads::wait_on_thread(std::size_t threadId) noexcept {
     thread->wait_finish();
 }
 
-std::vector<std::size_t> Threads::get_bound_thread_counts() const noexcept {
+std::vector<std::size_t> Threads::bound_thread_counts() const noexcept {
     std::vector<std::size_t> threadCounts;
     {
         std::shared_lock readLock(sharedMutex);

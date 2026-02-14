@@ -310,8 +310,8 @@ void UCI::execute(std::string_view command) noexcept {
         break;
     case Command::GO :
         // Send info strings after the go command is sent for old GUIs and python-chess
-        print_info_string(engine.get_numa_config_info_str());
-        print_info_string(engine.get_thread_allocation_info_str());
+        print_info_string(engine.numa_config_info());
+        print_info_string(engine.thread_allocation_info());
 
         go(iss);
         break;
@@ -785,7 +785,7 @@ void UCI::benchmark(std::istream& is) noexcept {
 
     std::cerr << '\n';
 
-    std::string threadBinding = engine.get_thread_binding_info_str();
+    std::string threadBinding = engine.thread_binding_info();
     if (threadBinding.empty())
         threadBinding = "<none>";
 
@@ -796,7 +796,7 @@ void UCI::benchmark(std::istream& is) noexcept {
               << "\nLarge page                 : " << bool_to_string(has_large_page())
               << "\nOriginal invocation        : " << "benchmark " << setup.originalInvocation
               << "\nCurrent invocation         : " << "benchmark " << setup.currentInvocation
-              << "\nAvailable processors       : " << engine.get_numa_config_str()
+              << "\nAvailable processors       : " << engine.numa_config()
               << "\nThread count               : " << setup.threads
               << "\nThread binding             : " << threadBinding
               << "\nTT size [MiB]              : " << setup.ttSize

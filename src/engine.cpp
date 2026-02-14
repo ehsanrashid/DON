@@ -84,12 +84,12 @@ Engine::Engine(std::string_view path) noexcept :
 
     options.add("NumaPolicy",           Option("auto", OnCng([this](const Option& o) {
         set_numa_config(o);
-        return get_numa_config_info_str() + '\n'
-             + get_thread_allocation_info_str();
+        return numa_config_info() + '\n'
+             + thread_allocation_info();
     })));
     options.add("Threads",              Option(DEFAULT_THREADS, MIN_THREADS, MAX_THREADS, OnCng([this](const Option&) {
         resize_threads_tt();
-        return get_thread_allocation_info_str();
+        return thread_allocation_info();
     })));
     options.add("Hash",                 Option(DEFAULT_HASH, MIN_HASH, MAX_HASH, OnCng([this](const Option& o) {
         resize_tt(o);
@@ -275,11 +275,10 @@ std::uint16_t Engine::hashfull(std::uint8_t maxAge) const noexcept {
     return transpositionTable.hashfull(maxAge);
 }
 
-auto Engine::get_bound_thread_counts() const noexcept
-  -> std::vector<std::pair<std::size_t, std::size_t>> {
+std::vector<std::pair<std::size_t, std::size_t>> Engine::bound_thread_counts() const noexcept {
     std::vector<std::pair<std::size_t, std::size_t>> ratios;
 
-    auto  threadCounts = threads.get_bound_thread_counts();
+    auto  threadCounts = threads.bound_thread_counts();
     auto& numaConfig   = numaContext.numa_config();
 
     NumaIndex numaIdx = 0;
@@ -300,20 +299,18 @@ auto Engine::get_bound_thread_counts() const noexcept
     return ratios;
 }
 
-std::string Engine::get_numa_config_str() const noexcept {
-    return numaContext.numa_config().to_string();
-}
+std::string Engine::numa_config() const noexcept { return numaContext.numa_config().to_string(); }
 
-std::string Engine::get_numa_config_info_str() const noexcept {
+std::string Engine::numa_config_info() const noexcept {
     std::string numaConfig{"Available Processors: "};
 
-    numaConfig += get_numa_config_str();
+    numaConfig += numa_config();
 
     return numaConfig;
 }
 
-std::string Engine::get_thread_binding_info_str() const noexcept {
-    auto boundThreadCounts = get_bound_thread_counts();
+std::string Engine::thread_binding_info() const noexcept {
+    auto boundThreadCounts = bound_thread_counts();
 
     std::string threadBinding;
     threadBinding.reserve(8 * boundThreadCounts.size());
@@ -333,12 +330,12 @@ std::string Engine::get_thread_binding_info_str() const noexcept {
     return threadBinding;
 }
 
-std::string Engine::get_thread_allocation_info_str() const noexcept {
+std::string Engine::thread_allocation_info() const noexcept {
     std::string threadAllocation{"Threads: "};
 
     threadAllocation += std::to_string(threads.size());
 
-    std::string threadBinding = get_thread_binding_info_str();
+    std::string threadBinding = thread_binding_info();
 
     if (!threadBinding.empty())
     {

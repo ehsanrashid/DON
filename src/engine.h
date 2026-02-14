@@ -86,13 +86,12 @@ class Engine final {
     std::uint16_t hashfull(std::uint8_t maxAge = 0) const noexcept;
 
     // (numaId, threadCount)
-    auto get_bound_thread_counts() const noexcept
-      -> std::vector<std::pair<std::size_t, std::size_t>>;
+    std::vector<std::pair<std::size_t, std::size_t>> bound_thread_counts() const noexcept;
 
-    std::string get_numa_config_str() const noexcept;
-    std::string get_numa_config_info_str() const noexcept;
-    std::string get_thread_binding_info_str() const noexcept;
-    std::string get_thread_allocation_info_str() const noexcept;
+    std::string numa_config() const noexcept;
+    std::string numa_config_info() const noexcept;
+    std::string thread_binding_info() const noexcept;
+    std::string thread_allocation_info() const noexcept;
 
     // Network related
     void verify_networks() const noexcept;
