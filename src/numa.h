@@ -832,13 +832,13 @@ class NumaConfig final {
     bool requires_memory_replication() const noexcept { return customAffinity || nodes_size() > 1; }
 
     std::string to_string() const noexcept {
-        std::string numaCfgStr;
-        numaCfgStr.reserve(8 * nodes_size());
+        std::string numaCfg;
+        numaCfg.reserve(8 * nodes_size());
 
         for (auto nodeItr = nodes.begin(); nodeItr != nodes.end(); ++nodeItr)
         {
             if (nodeItr != nodes.begin())
-                numaCfgStr += ':';
+                numaCfg += ':';
 
             if (nodeItr->empty())
                 continue;
@@ -858,17 +858,17 @@ class NumaConfig final {
                 {
                     // cpus[i] is at the end of the range (may be of size 1)
                     if (rangeItr != sortedCpus.begin())
-                        numaCfgStr += ',';
+                        numaCfg += ',';
 
                     if (itr != rangeItr)
                     {
-                        numaCfgStr += std::to_string(*rangeItr);
-                        numaCfgStr += '-';
-                        numaCfgStr += std::to_string(*itr);
+                        numaCfg += std::to_string(*rangeItr);
+                        numaCfg += '-';
+                        numaCfg += std::to_string(*itr);
                     }
                     else
                     {
-                        numaCfgStr += std::to_string(*itr);
+                        numaCfg += std::to_string(*itr);
                     }
 
                     rangeItr = nextItr;
@@ -876,7 +876,7 @@ class NumaConfig final {
             }
         }
 
-        return numaCfgStr;
+        return numaCfg;
     }
 
     bool suggests_binding_threads(std::size_t threadCount) const noexcept {
@@ -1339,14 +1339,14 @@ class NumaConfig final {
     void resize_numa_node(NumaIndex   newNumaId,
                           float       maxLoadFactor    = 0.75f,
                           std::size_t expectedCpuCount = MAX_SYSTEM_THREADS / 4) noexcept {
-        std::size_t oldNumaId = nodes_size();
+        NumaIndex oldNumaId = nodes_size();
 
         if (oldNumaId <= newNumaId)
         {
             nodes.resize(newNumaId + 1);  // default-construct missing elements
 
             // Apply tuning to all newly created sets
-            for (std::size_t numaId = oldNumaId; numaId < nodes_size(); ++numaId)
+            for (NumaIndex numaId = oldNumaId; numaId < nodes_size(); ++numaId)
             {
                 nodes[numaId].max_load_factor(max_load_factor(maxLoadFactor));
                 nodes[numaId].reserve(reserve_count(expectedCpuCount));
