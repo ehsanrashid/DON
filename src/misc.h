@@ -56,8 +56,11 @@
     #if !defined(NAME_MAX)
         #define NAME_MAX 255
     #endif
-#else
+#else                    // only on Linux/glibc
     #include <limits.h>  // IWYU pragma: keep
+    #if defined(__has_include) && __has_include(<features.h>)
+        #include <features.h>  // IWYU pragma: keep
+    #endif
 #endif
 
 #undef HAS_X86_PREFETCH
