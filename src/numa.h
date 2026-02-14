@@ -809,7 +809,7 @@ class NumaConfig final {
     NumaConfig& operator=(const NumaConfig&) noexcept = delete;
     NumaConfig& operator=(NumaConfig&&) noexcept      = default;
 
-    std::size_t nodes_size() const noexcept { return nodes.size(); }
+    NumaIndex nodes_size() const noexcept { return nodes.size(); }
 
     bool node_cpus_empty(NumaIndex numaId) const noexcept {
         assert(numaId < nodes_size());
@@ -817,7 +817,7 @@ class NumaConfig final {
         return nodes[numaId].empty();
     }
 
-    std::size_t node_cpus_size(NumaIndex numaId) const noexcept {
+    CpuIndex node_cpus_size(NumaIndex numaId) const noexcept {
         assert(numaId < nodes_size());
 
         return nodes[numaId].size();
@@ -829,7 +829,7 @@ class NumaConfig final {
         return *nodes[numaId].begin();
     }
 
-    std::size_t cpus_size() const noexcept { return nodeByCpu.size(); }
+    CpuIndex cpus_size() const noexcept { return nodeByCpu.size(); }
 
     bool is_cpu_assigned(CpuIndex cpuId) const noexcept {
         return nodeByCpu.find(cpuId) != nodeByCpu.end();
