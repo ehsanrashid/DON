@@ -61,7 +61,7 @@ class Option final {
         COMBO
     };
 
-    using OnChange = std::function<std::optional<std::string>(const Option&)>;
+    using OnChange = std::function<std::optional<std::string_view>(const Option&)>;
 
     static constexpr bool is_ok(Type t) noexcept;
 
@@ -115,7 +115,7 @@ class Options final {
       std::unordered_map<std::string_view, Option, CaseInsensitiveHash, CaseInsensitiveEqual>;
     using Pair = std::pair<UnorderedMap::key_type, UnorderedMap::mapped_type>;
 
-    using InfoCallback = std::function<void(std::optional<std::string>)>;
+    using InfoCallback = std::function<void(std::optional<std::string_view>)>;
 
     Options() noexcept                          = default;
     Options(const Options&) noexcept            = delete;

@@ -56,7 +56,7 @@
     #if !defined(NAME_MAX)
         #define NAME_MAX 255
     #endif
-#else                    // only on Linux/glibc
+#else
     #include <limits.h>  // IWYU pragma: keep
 #endif
 

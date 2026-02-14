@@ -20,7 +20,6 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <optional>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -41,7 +40,7 @@ namespace DON {
 
 class Engine final {
    public:
-    explicit Engine(std::optional<std::string_view> path = std::nullopt) noexcept;
+    explicit Engine(std::string_view path = {}) noexcept;
 
     // Cannot be movable due to components holding backreferences to fields
     Engine(const Engine&) noexcept            = delete;
@@ -79,7 +78,7 @@ class Engine final {
     void resize_tt(std::size_t ttSize) noexcept;
 
     void show() const noexcept;
-    void dump(std::optional<std::string_view> dumpFile = std::nullopt) const noexcept;
+    void dump(std::string_view dumpFile = {}) const noexcept;
     void eval() noexcept;
     void flip() noexcept;
     void mirror() noexcept;

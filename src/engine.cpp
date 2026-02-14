@@ -73,9 +73,9 @@ std::unique_ptr<NNUE::Networks> default_networks(std::string_view binaryDirector
 
 }  // namespace
 
-Engine::Engine(std::optional<std::string_view> path) noexcept :
+Engine::Engine(std::string_view path) noexcept :
     // clang-format off
-    binaryDirectory(path ? CommandLine::binary_directory(*path) : ""),
+    binaryDirectory(!path.empty() ? CommandLine::binary_directory(path) : ""),
     numaContext(NumaConfig::from_system(DEFAULT_NUMA_POLICY)),
     networks(numaContext, default_networks(binaryDirectory)) {
 
@@ -238,11 +238,11 @@ void Engine::resize_tt(std::size_t ttSize) noexcept {
 
 void Engine::show() const noexcept { std::cout << pos << std::endl; }
 
-void Engine::dump(std::optional<std::string_view> dumpFile) const noexcept {
+void Engine::dump(std::string_view dumpFile) const noexcept {
 
-    if (dumpFile)
+    if (!dumpFile.empty())
     {
-        std::ofstream ofs{std::string{*dumpFile}, std::ios::binary};
+        std::ofstream ofs{std::string{dumpFile}, std::ios::binary};
 
         if (ofs.is_open())
         {

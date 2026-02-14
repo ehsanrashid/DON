@@ -254,9 +254,9 @@ Limit parse_limit(std::istream& is) noexcept {
 
 UCI::UCI(int argc, const char* argv[]) noexcept :
     commandLine(argc, argv),
-    engine(arguments()[0].data()) {
+    engine(arguments()[0]) {
 
-    options().set_info_callback([](std::optional<std::string> infoStr) noexcept {
+    options().set_info_callback([](std::optional<std::string_view> infoStr) noexcept {
         if (infoStr)
             print_info_string(*infoStr);
     });
@@ -341,9 +341,9 @@ void UCI::execute(std::string_view command) noexcept {
         engine.show();
         break;
     case Command::DUMP : {
-        std::optional<std::string> dumpFile;
+        std::string      input;
+        std::string_view dumpFile;
 
-        std::string input;
         if (iss >> input)
             dumpFile = input;
 
