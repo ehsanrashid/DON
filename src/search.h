@@ -25,7 +25,7 @@
 #include <condition_variable>
 #include <cstddef>
 #include <cstdint>
-#include <cstdlib>
+#include <cstdlib>  // IWYU pragma: keep
 #include <functional>
 #include <initializer_list>
 #include <memory>
