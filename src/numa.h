@@ -906,7 +906,7 @@ class NumaConfig final {
         if (customAffinity)
             return true;
 
-        // Obviously cannot distribute a single thread, so a single thread should never be bound.
+        // Obviously cannot distribute a single thread, so a single thread should never be bound
         if (threadCount <= 1)
             return false;
 
@@ -931,9 +931,9 @@ class NumaConfig final {
                             return double(node.size()) / MaxNodeSize > SmallNodeThreshold;
                         });
 
-        // Only split if enough threads for either threshold
-        //   - more than half the max node size, OR
-        //   - at least four times the number of not-small nodes
+        // Split only if threadCount meets either threshold:
+        //   - more than half of MaxNodeSize, OR
+        //   - at least four times NotSmallNodeCount
         return threadCount >= std::min(1 + MaxNodeSize / 2, 4 * NotSmallNodeCount);
     }
 
