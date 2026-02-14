@@ -1268,34 +1268,67 @@ hash_bytes(const char* RESTRICT data, std::size_t size, std::uint64_t seed = 0) 
     // Initialize hash with seed and length (MurmurHash64A convention)
     std::uint64_t h = seed ^ (size * MURMUR_M);
 
-    const std::uint8_t* const RESTRICT dataBeg = reinterpret_cast<const std::uint8_t*>(data);
-
-    const std::uint8_t* const RESTRICT dataEnd = dataBeg + size;
-    // End of the full 8-byte blocks (size rounded down to a multiple of 8)
-    const std::uint8_t* const RESTRICT chunkEnd = dataEnd - (size & (UNROLL_8 - 1));
-
-    const std::uint8_t* RESTRICT p = dataBeg;
-    // Process the data in 8-byte (64-bit) chunks
-    for (; p < chunkEnd; p += UNROLL_8)
-    {
-        std::uint64_t k;
-        std::memcpy(&k, p, sizeof(k));  // Safe unaligned load
-
-        // Mix 64-bit block (MurmurHash64A core mixing step)
+    // Mix 64-bit block (MurmurHash64A core mixing step)
+    constexpr auto mix = [](std::uint64_t k) constexpr noexcept {
         k *= MURMUR_M;
         k ^= k >> MURMUR_R;
         k *= MURMUR_M;
+        return k;
+    };
+
+    const std::uint8_t* const RESTRICT beg = reinterpret_cast<const std::uint8_t*>(data);
+
+    const std::uint8_t* const RESTRICT end = beg + size;
+
+    const std::uint8_t* RESTRICT p = beg;
+
+    // Process 32-byte chunks (4 × 8 bytes) for better throughput
+    constexpr std::size_t              UNROLL_32  = 4 * UNROLL_8;
+    const std::uint8_t* const RESTRICT block32End = beg + (size & ~(UNROLL_32 - 1));
+    for (; p < block32End; p += UNROLL_32)
+    {
+        StdArray<std::uint64_t, 4> k;
+
+        std::memcpy(&k[0], p + 0 * UNROLL_8, UNROLL_8);
+        std::memcpy(&k[1], p + 1 * UNROLL_8, UNROLL_8);
+        std::memcpy(&k[2], p + 2 * UNROLL_8, UNROLL_8);
+        std::memcpy(&k[3], p + 3 * UNROLL_8, UNROLL_8);
+
+        k[0] = mix(k[0]);
+        k[1] = mix(k[1]);
+        k[2] = mix(k[2]);
+        k[3] = mix(k[3]);
+        // Incorporate blocks into the hash
+        h ^= k[0];
+        h *= MURMUR_M;
+        h ^= k[1];
+        h *= MURMUR_M;
+        h ^= k[2];
+        h *= MURMUR_M;
+        h ^= k[3];
+        h *= MURMUR_M;
+    }
+
+    // Process remaining full 8-byte blocks
+    const std::uint8_t* const RESTRICT block8End = p + ((end - p) & ~(UNROLL_8 - 1));
+    for (; p < block8End; p += UNROLL_8)
+    {
+        std::uint64_t k;
+        std::memcpy(&k, p, UNROLL_8);  // Safe unaligned load
+
+        k = mix(k);
         // Incorporate block into the hash
         h ^= k;
         h *= MURMUR_M;
     }
     // Handle remaining tail bytes (< 8) at the end
+    if (p < end)
     {
         std::uint64_t k = 0;
 
         std::uint8_t shift = 0;
         // Read remaining bytes in little-endian order
-        while (p < dataEnd)
+        while (p < end)
         {
             k |= std::uint64_t(*p) << shift;
 
@@ -1303,11 +1336,8 @@ hash_bytes(const char* RESTRICT data, std::size_t size, std::uint64_t seed = 0) 
             ++p;
         }
 
-        if (shift != 0)  // Only process if there were tail bytes
-        {
-            h ^= k;
-            h *= MURMUR_M;
-        }
+        h ^= k;
+        h *= MURMUR_M;
     }
 
     // Final avalanche mix to ensure strong bit diffusion
