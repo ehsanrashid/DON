@@ -7,13 +7,13 @@
   or container with small thread limits) to reliably trigger failure.
 */
 
-#include "thread.h"
-
 #include <chrono>
 #include <iostream>
 #include <memory>
 #include <thread>
 #include <vector>
+
+#include "thread.h"
 
 using namespace DON;
 
