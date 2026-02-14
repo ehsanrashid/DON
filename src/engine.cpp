@@ -76,7 +76,7 @@ std::unique_ptr<NNUE::Networks> default_networks(std::string_view binaryDirector
 
 Engine::Engine(std::string_view path) noexcept :
     // clang-format off
-    binaryDirectory(!path.empty() ? CommandLine::binary_directory(path) : ""),
+    binaryDirectory(!path.empty() ? CommandLine::binary_directory(path) : std::string{}),
     numaContext(NumaConfig::from_system(DEFAULT_NUMA_POLICY)),
     networks(numaContext, default_networks(binaryDirectory)) {
 
