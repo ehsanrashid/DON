@@ -211,8 +211,8 @@ inline std::pair<BOOL, std::vector<USHORT>> get_process_group_affinity() noexcep
 // affinity on different processor groups, set using SetThreadAffinityMask,
 // cannot retrieve the actual affinities.
 // From documentation on GetProcessAffinityMask:
-//     > If the calling process contains threads in multiple groups,
-//     > the function returns zero for both affinity masks.
+//   - If the calling process contains threads in multiple groups,
+//   - If the function returns zero for both affinity masks.
 // In such cases just give up and assume have affinity for all processors.
 // nullopt means no affinity is set, that is, all processors are allowed
 inline WindowsAffinity get_process_affinity() noexcept {
