@@ -1269,7 +1269,7 @@ hash_bytes(const char* RESTRICT data, std::size_t size, std::uint64_t seed = 0) 
     std::uint64_t h = seed ^ (size * MURMUR_M);
 
     // Mix 64-bit block (MurmurHash64A core mixing step)
-    constexpr auto mix = [](std::uint64_t k) constexpr noexcept {
+    constexpr auto Mix = [](std::uint64_t k) noexcept {
         k *= MURMUR_M;
         k ^= k >> MURMUR_R;
         k *= MURMUR_M;
@@ -1294,10 +1294,10 @@ hash_bytes(const char* RESTRICT data, std::size_t size, std::uint64_t seed = 0) 
         std::memcpy(&k[2], p + 2 * UNROLL_8, UNROLL_8);
         std::memcpy(&k[3], p + 3 * UNROLL_8, UNROLL_8);
 
-        k[0] = mix(k[0]);
-        k[1] = mix(k[1]);
-        k[2] = mix(k[2]);
-        k[3] = mix(k[3]);
+        k[0] = Mix(k[0]);
+        k[1] = Mix(k[1]);
+        k[2] = Mix(k[2]);
+        k[3] = Mix(k[3]);
         // Incorporate blocks into the hash
         h ^= k[0];
         h *= MURMUR_M;
@@ -1316,7 +1316,7 @@ hash_bytes(const char* RESTRICT data, std::size_t size, std::uint64_t seed = 0) 
         std::uint64_t k;
         std::memcpy(&k, p, UNROLL_8);  // Safe unaligned load
 
-        k = mix(k);
+        k = Mix(k);
         // Incorporate block into the hash
         h ^= k;
         h *= MURMUR_M;
