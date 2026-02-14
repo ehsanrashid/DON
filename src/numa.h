@@ -26,6 +26,7 @@
 #include <limits>
 #include <memory>
 #include <mutex>
+#include <numeric>
 #include <string>
 #include <string_view>
 #include <thread>
@@ -496,9 +497,9 @@ inline CpuIndexSet get_process_affinity() noexcept {
     // cpu_set_t by default holds 1024 entries. This may not be enough soon,
     // but there is no easy way to determine how many threads there actually is.
     // In this case just choose a reasonable upper bound.
-    constexpr CpuIndex MaxCpusCount = 64 * ONE_KB;
+    constexpr CpuIndex MaxCpuCount = 64 * ONE_KB;
 
-    cpu_set_t* cpuMask = CPU_ALLOC(MaxCpusCount);
+    cpu_set_t* cpuMask = CPU_ALLOC(MaxCpuCount);
 
     if (cpuMask == nullptr)
     {
@@ -507,7 +508,7 @@ inline CpuIndexSet get_process_affinity() noexcept {
         return cpus;
     }
 
-    std::size_t MaskSize = CPU_ALLOC_SIZE(MaxCpusCount);
+    std::size_t MaskSize = CPU_ALLOC_SIZE(MaxCpuCount);
 
     CPU_ZERO_S(MaskSize, cpuMask);
 
@@ -520,9 +521,9 @@ inline CpuIndexSet get_process_affinity() noexcept {
         return cpus;
     }
 
-    cpus.reserve(MaxCpusCount);
+    cpus.reserve(MaxCpuCount);
 
-    for (CpuIndex cpuId = 0; cpuId < MaxCpusCount; ++cpuId)
+    for (CpuIndex cpuId = 0; cpuId < MaxCpuCount; ++cpuId)
         if (CPU_ISSET_S(cpuId, MaskSize, cpuMask))
             cpus.insert(cpuId);
 
@@ -834,12 +835,12 @@ class NumaConfig final {
     // Format: "node0_cpus:node1_cpus:..." where cpus = "0-2,4,6-7"
     std::string to_string() const noexcept {
         // Estimate size
-        std::size_t cpusSize = 0;
-        for (const auto& node : nodes)
-            cpusSize += node.size();
+        std::size_t cpuCount = std::accumulate(
+          nodes.begin(), nodes.end(), std::size_t{0},
+          [](std::size_t sum, const CpuIndexSet& node) noexcept { return sum + node.size(); });
 
         std::string numaCfg;
-        numaCfg.reserve(6 * cpusSize);  // ~6 chars per CPU
+        numaCfg.reserve(6 * cpuCount);  // ~6 chars per CPU
 
         for (const auto& node : nodes)
         {
