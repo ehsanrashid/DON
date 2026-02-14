@@ -667,13 +667,13 @@ class NumaConfig final {
         {
             std::size_t l3BundleSize = 0;
 
-            if (const auto* v = std::get_if<BundledL3Policy>(&numaPolicy))
-                l3BundleSize = v->bundleSize;
+            if (const auto* l3Policy = std::get_if<BundledL3Policy>(&numaPolicy))
+                l3BundleSize = l3Policy->bundleSize;
 
-            if (auto l3Cfg =
-                  try_get_l3_aware_config(respectProcessAffinity, l3BundleSize, is_cpu_allowed))
+            if (auto l3NumaCfg =
+                  try_l3_domain(respectProcessAffinity, l3BundleSize, is_cpu_allowed))
             {
-                numaCfg = std::move(*l3Cfg);
+                numaCfg = std::move(*l3NumaCfg);
 
                 l3Success = true;
             }
@@ -764,18 +764,27 @@ class NumaConfig final {
         NumaConfig numaCfg = empty();
 
         NumaIndex numaId = 0;
-        for (auto&& cpuIdStr : split(str, ":"))
+
+        for (auto&& cpuIdsStr : split(str, ":"))
         {
-            auto cpuIds = shortened_string_to_indices(cpuIdStr);
+            auto cpuIds = shortened_string_to_indices(cpuIdsStr);
 
-            if (!cpuIds.empty())
+            if (cpuIds.empty())
+                continue;
+
+            for (CpuIndex cpuId : cpuIds)
             {
-                for (CpuIndex cpuId : cpuIds)
-                    if (!numaCfg.add_cpu_to_node(numaId, cpuId))
-                        std::exit(EXIT_FAILURE);
-
-                ++numaId;
+                bool success = numaCfg.add_cpu_to_node(numaId, cpuId);
+                if (!success)
+                {
+                    std::cerr << "NumaConfig parse error in segment '" << cpuIdsStr  //
+                              << "': CPU " << cpuId << " rejected for NUMA node " << numaId
+                              << std::endl;
+                    std::exit(EXIT_FAILURE);
+                }
             }
+
+            ++numaId;
         }
 
         numaCfg.customAffinity = true;
@@ -1173,21 +1182,21 @@ class NumaConfig final {
                 std::string path = std::string{"/sys/devices/system/node/node"}
                                  + std::to_string(nodeId) + std::string{"/cpulist"};
 
-                auto cpuIdStr = read_file_to_string(path);
+                auto cpuIdsStr = read_file_to_string(path);
 
                 // Now, only bail if the file does not exist. Some nodes may be
                 // empty, that's fine. An empty node still has a file that appears
                 // to have some whitespace, so need to handle that.
-                if (!cpuIdStr)
+                if (!cpuIdsStr)
                 {
                     useFallback = true;
                     break;
                 }
                 else
                 {
-                    *cpuIdStr = remove_whitespace(*cpuIdStr);
+                    *cpuIdsStr = remove_whitespace(*cpuIdsStr);
 
-                    for (CpuIndex cpuId : shortened_string_to_indices(*cpuIdStr))
+                    for (CpuIndex cpuId : shortened_string_to_indices(*cpuIdsStr))
                         if (is_cpu_allowed(cpuId))
                             numaCfg.add_cpu_to_node(nodeId, cpuId);
                 }
@@ -1209,9 +1218,9 @@ class NumaConfig final {
 
     template<typename Pred>
     static std::optional<NumaConfig>
-    try_get_l3_aware_config(bool                    respectProcessAffinity,
-                            std::size_t             bundleSize,
-                            [[maybe_unused]] Pred&& is_cpu_allowed) noexcept {
+    try_l3_domain(bool                    respectProcessAffinity,
+                  std::size_t             bundleSize,
+                  [[maybe_unused]] Pred&& is_cpu_allowed) noexcept {
         // Get the normal system configuration so that know to which NUMA node each L3 domain belongs
         NumaConfig sysCfg = NumaConfig::from_system(SystemNumaPolicy{}, respectProcessAffinity);
 
@@ -1273,15 +1282,15 @@ class NumaConfig final {
                              + std::to_string(nextUnseenCpuId)
                              + std::string{"/cache/index3/shared_cpu_list"};
 
-            auto cpuIdStr = read_file_to_string(path);
+            auto cpuIdsStr = read_file_to_string(path);
 
             // Have read all available CPUs
-            if (!cpuIdStr || cpuIdStr->empty())
+            if (!cpuIdsStr || cpuIdsStr->empty())
                 break;
 
             L3Domain l3Domain{};
 
-            for (CpuIndex cpuId : shortened_string_to_indices(*cpuIdStr))
+            for (CpuIndex cpuId : shortened_string_to_indices(*cpuIdsStr))
             {
                 if (is_cpu_allowed(cpuId))
                 {
@@ -1298,13 +1307,13 @@ class NumaConfig final {
 #endif
 
         if (!l3Domains.empty())
-            return NumaConfig::from_l3_info(std::move(l3Domains), bundleSize);
+            return NumaConfig::from_l3_domain(std::move(l3Domains), bundleSize);
 
         return std::nullopt;
     }
 
-    static NumaConfig from_l3_info(std::vector<L3Domain> l3Domains,
-                                   std::size_t           bundleSize) noexcept {
+    static NumaConfig from_l3_domain(std::vector<L3Domain> l3Domains,
+                                     std::size_t           bundleSize) noexcept {
         assert(!l3Domains.empty());
 
         std::unordered_map<NumaIndex, std::vector<L3Domain>> numaL3Domains;
@@ -1340,7 +1349,14 @@ class NumaConfig final {
             for (const auto& l3Domain : ds)
             {
                 for (CpuIndex cpuId : l3Domain.cpus)
-                    numaCfg.add_cpu_to_node(numaId, cpuId);
+                {
+                    bool success = numaCfg.add_cpu_to_node(numaId, cpuId);
+                    if (!success)
+                    {
+                        std::cerr << "NumaConfig l3 domain error: CPU " << cpuId
+                                  << " rejected for NUMA node " << numaId << std::endl;
+                    }
+                }
 
                 ++numaId;
             }
