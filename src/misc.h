@@ -58,9 +58,6 @@
     #endif
 #else                    // only on Linux/glibc
     #include <limits.h>  // IWYU pragma: keep
-    #if defined(__has_include) && __has_include(<features.h>)
-        #include <features.h>  // IWYU pragma: keep
-    #endif
 #endif
 
 #undef HAS_X86_PREFETCH
