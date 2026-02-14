@@ -61,7 +61,7 @@ class Option final {
         COMBO
     };
 
-    using OnChange = std::function<std::optional<std::string_view>(const Option&)>;
+    using OnChange = std::function<std::optional<std::string>(const Option&)>;
 
     static constexpr bool is_ok(Type t) noexcept;
 
