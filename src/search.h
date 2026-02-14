@@ -23,6 +23,7 @@
 #include <cassert>
 #include <cmath>
 #include <condition_variable>
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <initializer_list>

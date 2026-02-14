@@ -18,8 +18,6 @@
 #include "position.h"
 
 #include <cctype>
-#include <cmath>
-#include <cstdlib>
 #include <iomanip>
 #include <sstream>
 #include <utility>
