@@ -142,7 +142,7 @@ void build_continuation_history(const Stack*                    ss,
                                 const History<HType::PIECE_SQ>* out[CONT_HISTORY_COUNT]) noexcept {
     for (std::size_t i = 0; i < CONT_HISTORY_COUNT; ++i)
     {
-        const auto* ssi = (ss - 1) - i;
+        const Stack* ssi = (ss - 1) - i;
 
         // contHistory[i] refers to ssi->pieceSqHistory
         out[i] = ssi->pieceSqHistory;
@@ -167,7 +167,7 @@ void update_continuation_history(Stack* ss, Piece pc, Square dstSq, int bonus) n
 
     for (std::size_t i = 0; i < ContHistoryCount; ++i)
     {
-        auto* ssi = (ss - 1) - i;
+        Stack* ssi = (ss - 1) - i;
 
         if (!ssi->move.is_ok())
             break;
@@ -2070,7 +2070,7 @@ void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Sta
     int bonus = std::clamp(-81 + 116 * depth + std::min(constexpr_round(31.2500e-3 * (ss - 1)->history / double(depth)), 512), 4, 2027)
               + int(extra) * 347;
 
-    int malus = std::min(-207 + 848 * depth, 2446);
+    int malus = std::min(-207 + 800 * depth, 2200);
 
     if (pos.capture_promo(bestMove))
     {
@@ -2080,7 +2080,7 @@ void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Sta
     {
         update_quiet_histories(pos, pawnHistory, ss, bestMove, constexpr_round(0.8887 * bonus));
 
-        int baseQuietMalus = std::max(malus - 20 * std::max<int>(searchedMoves[0].size() - 4, 0), 0);
+        int baseQuietMalus = std::max(malus - 15 * std::max<int>(searchedMoves[0].size() - 4, 0), 0);
         // Decrease history for all non-best quiet moves
         int decayQuietMalus = constexpr_round(0.9966 * baseQuietMalus);
         for (Move qm : searchedMoves[0])
@@ -2099,7 +2099,7 @@ void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Sta
     }
 
     // Extra penalty for a quiet early move that was not a TT move in the previous ply when it gets refuted
-    auto* ss1 = ss - 1;
+    Stack* ss1 = ss - 1;
     if (ss1->move.is_ok() && pos.captured_pc() == Piece::NO_PIECE && ss1->moveCount == 1 + int(ss1->ttMove != Move::None))
     {
         Square preSq = ss1->move.dst_sq_();
