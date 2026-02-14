@@ -19,7 +19,6 @@
 
 #include <array>
 #include <chrono>
-#include <cstdlib>
 #include <cstring>
 #include <list>
 #include <random>

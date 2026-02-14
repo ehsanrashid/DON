@@ -23,6 +23,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
+#include <cstdlib>
 #include <functional>
 #include <iomanip>
 #include <memory>
@@ -76,7 +77,6 @@
         #include <cerrno>
         #include <chrono>
         #include <condition_variable>
-        #include <cstdlib>
         #include <dirent.h>
         #include <fcntl.h>
         #include <filesystem>
@@ -102,7 +102,6 @@
         #include <sys/syslimits.h>
     // Solaris / OpenSolaris / illumos
     #elif defined(__sun)
-        #include <cstdlib>
         #include <libgen.h>
     // FreeBSD
     #elif defined(__FreeBSD__)

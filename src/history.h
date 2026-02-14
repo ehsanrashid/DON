@@ -22,6 +22,7 @@
 #include <cassert>
 #include <cmath>
 #include <cstdint>
+#include <cstdlib>
 #include <limits>
 #include <type_traits>
 #include <unordered_map>

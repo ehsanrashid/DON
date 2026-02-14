@@ -6,10 +6,42 @@
   preserves relative order of equal-score elements and matches std::stable_sort result.
 
   The test is a lightweight replacement for exercising sort stability in move picking code.
+
+Steps:
+
+mkdir -p build
+
+g++ -std=c++17 -O2 -I./src \
+    tests/movepick_ordering.cpp \
+    $(ls src/*.cpp | grep -v 'src/main.cpp') \
+    src/nnue/*.cpp \
+    src/nnue/features/*.cpp \
+    src/syzygy/*.cpp \
+    -o build/movepick_ordering \
+    -lpthread
+g++ -std=c++17 -O2 -I./src \
+    tests/movepick_ordering.cpp \
+    $(for f in src/*.cpp; do [[ "$f" != "src/main.cpp" ]] && echo "$f"; done) \
+    src/nnue/*.cpp \
+    src/nnue/features/*.cpp \
+    src/syzygy/*.cpp \
+    -o build/movepick_ordering \
+    -lpthread
+g++ -std=c++17 -O2 -I./src `
+    tests/movepick_ordering.cpp `
+    $(Get-ChildItem src/*.cpp | Where-Object { $_.Name -ne "main.cpp" } | ForEach-Object { $_.FullName }) `
+    src/nnue/*.cpp `
+    src/nnue/features/*.cpp `
+    src/syzygy/*.cpp `
+    -o build/movepick_ordering `
+    -lpthread
+
+./build/movepick_ordering
 */
 
 #include <algorithm>
 #include <cassert>
+#include <cstdlib>
 #include <chrono>
 #include <iostream>
 #include <random>
