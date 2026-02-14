@@ -900,34 +900,36 @@ class TBTables final {
         if (!idealEntry.empty() && idealEntry.key == key)
             return idealEntry.get<T>();
 
-        // Robin Hood probing with early termination guarantees:
-        // 1. No key can be placed beyond (max_distance + 1) from its ideal bucket
-        // 2. If find an entry with distance < probe distance,
-        //    key would have displaced it during insert (wasn't present)
-        // 3. Empty slot means the key was never inserted (would have stopped here)
+        // Calculate safe probe limit:
+        // - max_distance() tracks the longest probe chain ever inserted
+        // - Any key would be within (max_distance + 1) of its ideal bucket
+        // - Cap at MAX_PROBE to prevent infinite loops on corrupt data
         std::size_t MaxProbe = std::min(max_distance(), MAX_PROBE - 1) + 1;
-
+        // Linear probe with Robin Hood early termination
         for (std::size_t distance = 1; distance <= MaxProbe; ++distance)
         {
             std::size_t bucket = (keyBucket + distance) & MASK;
 
             const Entry& entry = entries[bucket];
 
-            // Empty slot -> key was never inserted (would have claimed this slot)
+            // Case 1: Empty slot encountered
+            // - Key was never inserted (would have claimed this empty slot)
             if (entry.empty())
                 break;
 
-            // Found exact key match -> return the associated table
+            // Case 2: Exact key match found
+            // - Return the associated table
             if (entry.key == key)
                 return entry.get<T>();
 
-            // Robin Hood early exit condition:
-            // key would have been inserted earlier, so key not present
+            // Case 3: Robin Hood early exit condition
+            // - Key would have been inserted earlier, so key not present
             if (distance > probe_distance(entry, bucket))
                 break;
         }
 
-        // Key not found
+        // Case 4: Exhausted maximum probe distance
+        // - Key not found within expected range
         return nullptr;
     }
 
