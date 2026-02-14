@@ -282,7 +282,7 @@ int main() {
 
     std::cout << "exponential_upper_bound time: " << expTime << " ms\n";
 
-    std::cout << "Time diff: " << std::abs(int(stdTime) - int(expTime)) << "\n";
+    std::cout << "Time diff: " << constexpr_abs(int(stdTime) - int(expTime)) << "\n";
 
     return 0;
 }

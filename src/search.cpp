@@ -19,6 +19,8 @@
 
 #include <array>
 #include <chrono>
+#include <cstddef>
+#include <cstdlib>
 #include <cstring>
 #include <list>
 #include <random>
@@ -520,7 +522,7 @@ void Worker::iterative_deepening() noexcept {
             Value beta  = std::min(avgValue + delta, +VALUE_INFINITE);
 
             // Adjust optimism based on root move's avgValue
-            optimism[ac]  = 142 * avgValue / (91 + std::abs(avgValue));
+            optimism[ac]  = 142 * avgValue / (91 + constexpr_abs(avgValue));
             optimism[~ac] = -optimism[ac];
 
             // Start with a small aspiration window and, in the case of a fail
@@ -1009,7 +1011,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
         }
     }
 
-    int absCorrectionValue = std::abs(correctionValue);
+    int absCorrectionValue = constexpr_abs(correctionValue);
 
     const History<HType::PIECE_SQ>* contHistory[CONT_HISTORY_COUNT];
 
@@ -1332,8 +1334,8 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
                     }
 
                     // SEE based pruning for quiets and checks
-                    int threshold =
-                      std::max(int(check) * 64 * depth + 25 * lmrDepth * std::abs(lmrDepth), 0);
+                    int threshold = std::max(
+                      int(check) * 64 * depth + 25 * lmrDepth * constexpr_abs(lmrDepth), 0);
                     if (  // Avoid pruning sacrifices of our last piece for stalemate
                       (alpha >= VALUE_DRAW || nonPawnValue != piece_value(type_of(movedPc)))
                       && pos.see(move) < -threshold)
@@ -1591,7 +1593,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
         // In case have an alternative move equal in eval to the current bestMove,
         // promote it to bestMove by pretending it just exceeds alpha (but not beta).
         bool inc = value == bestValue && 2 + ss->ply >= rootDepth && (nodes_() & 0xE) == 0
-                && !is_win(std::abs(value) + 1);
+                && !is_win(constexpr_abs(value) + 1);
 
         if (bestValue < value + int(inc))
         {
@@ -2079,7 +2081,7 @@ void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Sta
     {
         update_quiet_histories(pos, pawnHistory, ss, bestMove, constexpr_round(0.8887 * bonus));
 
-        int baseQuietMalus = std::max(malus - 15 * std::max<int>(searchedMoves[0].size() - 4, 0), 0);
+        int baseQuietMalus = std::max(malus - 20 * std::max<int>(searchedMoves[0].size() - 4, 0), 0);
         // Decrease history for all non-best quiet moves
         int decayQuietMalus = constexpr_round(0.9966 * baseQuietMalus);
         for (Move qm : searchedMoves[0])
@@ -2534,12 +2536,12 @@ Score::Score(Value v, const Position& pos) noexcept {
     }
     else if (!is_mate(v))
     {
-        int ply = VALUE_TB - std::abs(v);
+        int ply = VALUE_TB - constexpr_abs(v);
         score   = Tablebase{v > 0 ? +ply : -ply, v > 0};
     }
     else
     {
-        int ply = VALUE_MATE - std::abs(v);
+        int ply = VALUE_MATE - constexpr_abs(v);
         score   = Mate{v > 0 ? +ply : -ply};
     }
 }

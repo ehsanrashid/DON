@@ -115,7 +115,7 @@ Limit parse_limit(std::istream& is) noexcept {
         {
             is >> limit.clocks[WHITE].time;
 
-            limit.clocks[WHITE].time = std::abs(limit.clocks[WHITE].time);
+            limit.clocks[WHITE].time = constexpr_abs(limit.clocks[WHITE].time);
 
             if (limit.clocks[WHITE].time == 0)
                 limit.clocks[WHITE].time = 1;
@@ -124,7 +124,7 @@ Limit parse_limit(std::istream& is) noexcept {
         {
             is >> limit.clocks[BLACK].time;
 
-            limit.clocks[BLACK].time = std::abs(limit.clocks[BLACK].time);
+            limit.clocks[BLACK].time = constexpr_abs(limit.clocks[BLACK].time);
 
             if (limit.clocks[BLACK].time == 0)
                 limit.clocks[BLACK].time = 1;
@@ -133,7 +133,7 @@ Limit parse_limit(std::istream& is) noexcept {
         {
             is >> limit.clocks[WHITE].inc;
 
-            limit.clocks[WHITE].inc = std::abs(limit.clocks[WHITE].inc);
+            limit.clocks[WHITE].inc = constexpr_abs(limit.clocks[WHITE].inc);
 
             if (limit.clocks[WHITE].inc == 0)
                 limit.clocks[WHITE].inc = 1;
@@ -142,7 +142,7 @@ Limit parse_limit(std::istream& is) noexcept {
         {
             is >> limit.clocks[BLACK].inc;
 
-            limit.clocks[BLACK].inc = std::abs(limit.clocks[BLACK].inc);
+            limit.clocks[BLACK].inc = constexpr_abs(limit.clocks[BLACK].inc);
 
             if (limit.clocks[BLACK].inc == 0)
                 limit.clocks[BLACK].inc = 1;
@@ -151,7 +151,7 @@ Limit parse_limit(std::istream& is) noexcept {
         {
             is >> limit.moveTime;
 
-            limit.moveTime = std::abs(limit.moveTime);
+            limit.moveTime = constexpr_abs(limit.moveTime);
 
             if (limit.moveTime == 0)
                 limit.moveTime = 1;
@@ -161,7 +161,7 @@ Limit parse_limit(std::istream& is) noexcept {
             std::int16_t movesToGo;
             is >> movesToGo;
 
-            movesToGo = std::abs(movesToGo);
+            movesToGo = constexpr_abs(movesToGo);
 
             limit.movesToGo = movesToGo;
 
@@ -176,7 +176,7 @@ Limit parse_limit(std::istream& is) noexcept {
             std::int16_t mate;
             is >> mate;
 
-            mate = std::abs(mate);
+            mate = constexpr_abs(mate);
 
             limit.mate = mate;
 
@@ -190,7 +190,7 @@ Limit parse_limit(std::istream& is) noexcept {
         {
             is >> limit.depth;
 
-            limit.depth = std::abs(limit.depth);
+            limit.depth = constexpr_abs(limit.depth);
 
             if (limit.depth == 0)
                 limit.depth = 1;
@@ -215,7 +215,7 @@ Limit parse_limit(std::istream& is) noexcept {
             is >> limit.depth;
             is >> std::boolalpha >> limit.detail;
 
-            limit.depth = std::abs(limit.depth);
+            limit.depth = constexpr_abs(limit.depth);
 
             if (limit.depth == 0)
                 limit.depth = 1;

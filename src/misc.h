@@ -223,10 +223,11 @@ constexpr T constexpr_abs(T x) noexcept {
     return x < 0 ? (x == std::numeric_limits<T>::min() ? x : -x) : x;
 }
 
-constexpr float constexpr_abs(float f) noexcept { return f < 0 ? -f : f; }
+constexpr float constexpr_abs(float f) noexcept { return f < 0.0f ? -f : f; }
+constexpr float constexpr_abs(double d) noexcept { return d < 0.0 ? -d : d; }
 
 constexpr int constexpr_round(double d) noexcept {
-    return d >= 0.0 ? int(d + 0.4999) : int(d - 0.4999);
+    return d < 0.0 ? int(d - 0.4999) : int(d + 0.4999);
 }
 
 // Minimax-style polynomial approximation for ln(1 + f), f in [0,1)

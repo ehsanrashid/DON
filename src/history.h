@@ -54,13 +54,13 @@ class StatsEntry final {
         // Make sure that bonus is in range [-D, +D]
         int clampedBonus = std::clamp(bonus, -D, +D);
         // Apply gravity-based adjustment
-        value += clampedBonus - value * std::abs(clampedBonus) / D;
+        value += clampedBonus - value * constexpr_abs(clampedBonus) / D;
 
-        assert(std::abs(value) <= D);
+        assert(constexpr_abs(value) <= D);
     }
 
     void operator*=(double m) noexcept {
-        assert(std::abs(m) <= 1.0);
+        assert(constexpr_abs(m) <= 1.0);
 
         value = constexpr_round(m * int(value));
     }

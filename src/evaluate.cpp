@@ -44,7 +44,7 @@ Value evaluate(const Position&          pos,
                std::int32_t             optimism) noexcept {
     assert(pos.checkers_bb() == 0);
 
-    Value absEvaluate = std::abs(pos.evaluate());
+    Value absEvaluate = constexpr_abs(pos.evaluate());
 
     bool smallNet = absEvaluate > 962;
 
@@ -62,7 +62,7 @@ Value evaluate(const Position&          pos,
         nnue   = compute_nnue();
 
         // Re-evaluate with the big-net if the small-net's NNUE evaluation is below a certain threshold
-        if (std::abs(nnue) < 277)
+        if (constexpr_abs(nnue) < 277)
         {
             smallNet = false;
 
@@ -76,7 +76,7 @@ Value evaluate(const Position&          pos,
         nnue   = compute_nnue();
     }
 
-    std::int32_t complexity = std::abs(netOut.psqt - netOut.positional);
+    std::int32_t complexity = constexpr_abs(netOut.psqt - netOut.positional);
 
     // Blend nnue and optimism with complexity
     nnue *= 1.0 - 54.8366e-6 * complexity;
