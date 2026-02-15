@@ -68,8 +68,6 @@ class UCI final {
                                           Position&                       pos,
                                           const MoveList<GenType::LEGAL>& legalMoves) noexcept;
 
-    static std::string build_pv_string(const Moves& pvMoves) noexcept;
-
     static inline bool InfoStringStop = false;
 
    private:

@@ -189,6 +189,20 @@ bool is_shuffling(const Position& pos, const Stack* ss, Move move) noexcept {
         && (ss - 4)->move.is_ok() && (ss - 2)->move.org_sq() == (ss - 4)->move.dst_sq();
 }
 
+// Optimized PV to string conversion (bulk copy style)
+std::string build_pv_string(const Moves& pvMoves) noexcept {
+    std::string pv;
+    pv.reserve(6 * pvMoves.size());
+
+    for (Move m : pvMoves)
+    {
+        pv += ' ';
+        pv += UCI::move_to_can(m);
+    }
+
+    return pv;
+}
+
 }  // namespace
 
 // Initialize the worker with its thread and NUMA information
@@ -2509,7 +2523,7 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
         if (ShowWDL)
             wdl = UCI::to_wdl(v, rootPos);
 
-        std::string pv = UCI::build_pv_string(rm.pv);
+        std::string pv = build_pv_string(rm.pv);
 
         updateContext.onUpdateFull(
           {{d, score}, rm.selDepth, i + 1, bound, wdl, time, nodes, hashfull, tbHits, pv});

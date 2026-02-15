@@ -1141,18 +1141,4 @@ Move UCI::mix_to_move(std::string                     mix,
     return m;
 }
 
-// Optimized PV to string conversion (bulk copy style)
-std::string UCI::build_pv_string(const Moves& pvMoves) noexcept {
-    std::string pv;
-    pv.reserve(6 * pvMoves.size());
-
-    for (Move m : pvMoves)
-    {
-        pv += ' ';
-        pv += move_to_can(m);
-    }
-
-    return pv;
-}
-
 }  // namespace DON
