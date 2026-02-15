@@ -392,7 +392,7 @@ bool MovePicker::select(Predicate&& pred) noexcept {
 }
 
 ALWAYS_INLINE bool MovePicker::good_capture_or_swap() noexcept {
-    if (pos.see(*cur) >= -constexpr_round(55.5555e-3 * cur->value))
+    if (pos.see(*cur) >= -constexpr_round(55.5555e-3 * double(cur->value)))
         return true;
     // Store bad captures
     std::iter_swap(endBadCapture++, cur);
