@@ -52,7 +52,7 @@ class StatsEntry final {
         // Make sure that bonus is in range [-D, +D]
         int clampedBonus = std::clamp(bonus, -D, +D);
         // Apply gravity-based adjustment
-        value += clampedBonus - value * constexpr_abs(clampedBonus) / D;
+        value += clampedBonus - int(value) * constexpr_abs(clampedBonus) / D;
 
         assert(constexpr_abs(value) <= D);
     }

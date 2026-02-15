@@ -2067,10 +2067,10 @@ void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Sta
     assert(depth > DEPTH_ZERO);
     assert(ss->moveCount != 0);
 
-    int bonus = std::clamp(-81 + 116 * int(depth) + std::min(constexpr_round(31.2500e-3 * (ss - 1)->history / double(depth)), 512), 4, 2027)
+    int bonus = std::clamp(-81 + 116 * int(depth) + std::min(constexpr_round(31.2500e-3 * (ss - 1)->history / double(depth)), 512), 4, +2027)
               + int(extra) * 347;
 
-    int malus = std::min(-207 + 800 * int(depth), 2200);
+    int malus = std::min(-207 + 848 * int(depth), +2446);
 
     if (pos.capture_promo(bestMove))
     {
@@ -2080,8 +2080,7 @@ void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Sta
     {
         update_quiet_histories(pos, pawnHistory, ss, bestMove, constexpr_round(0.8887 * bonus));
 
-        int quietCount = int(searchedMoves[0].size());
-        int baseQuietMalus = std::max(malus - 15 * std::max(quietCount - 4, 0), 0);
+        int baseQuietMalus = std::max(malus - 20 * std::max(int(searchedMoves[0].size()) - 4, 0), 0);
         // Decrease history for all non-best quiet moves
         int decayQuietMalus = constexpr_round(0.9966 * baseQuietMalus);
         for (Move qm : searchedMoves[0])
@@ -2139,12 +2138,12 @@ int Worker::correction_value(const Position& pos, const Stack* ss) noexcept {
     Color ac = pos.active_color();
 
     std::int64_t correctionValue =
-           + 5173LL * (histories.    pawn_correction<WHITE>(pos.    pawn_key(WHITE))[ac]
-                     + histories.    pawn_correction<BLACK>(pos.    pawn_key(BLACK))[ac])
-           + 4410LL * (histories.   minor_correction<WHITE>(pos.   minor_key(WHITE))[ac]
-                     + histories.   minor_correction<BLACK>(pos.   minor_key(BLACK))[ac])
-           +11665LL * (histories.non_pawn_correction<WHITE>(pos.non_pawn_key(WHITE))[ac]
-                     + histories.non_pawn_correction<BLACK>(pos.non_pawn_key(BLACK))[ac]);
+           + 5173LL * int(histories.    pawn_correction<WHITE>(pos.    pawn_key(WHITE))[ac]
+                        + histories.    pawn_correction<BLACK>(pos.    pawn_key(BLACK))[ac])
+           + 4411LL * int(histories.   minor_correction<WHITE>(pos.   minor_key(WHITE))[ac]
+                        + histories.   minor_correction<BLACK>(pos.   minor_key(BLACK))[ac])
+           +11665LL * int(histories.non_pawn_correction<WHITE>(pos.non_pawn_key(WHITE))[ac]
+                        + histories.non_pawn_correction<BLACK>(pos.non_pawn_key(BLACK))[ac]);
 
     Move preMove = (ss - 1)->move;
 
@@ -2155,9 +2154,9 @@ int Worker::correction_value(const Position& pos, const Stack* ss) noexcept {
     auto& h2 = *(ss - 2)->pieceSqCorrectionHistory;
     auto& h4 = *(ss - 4)->pieceSqCorrectionHistory;
 
-    correctionValue += 7841LL * (int(!preOk) * DEFAULT_PIECE_SQ_CORRECTION_HISTORY_VALUE
-                               + int( preOk) * (h2[+prePc][preSq]
-                                              + h4[+prePc][preSq]));
+    correctionValue += 7841LL * int(int(!preOk) * DEFAULT_PIECE_SQ_CORRECTION_HISTORY_VALUE
+                                  + int( preOk) * int(h2[+prePc][preSq]
+                                                    + h4[+prePc][preSq]));
 
     return std::clamp(correctionValue, -INT_LIMIT, +INT_LIMIT);
 }
