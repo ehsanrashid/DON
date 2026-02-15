@@ -454,13 +454,15 @@ void UCI::position(std::istream& is) noexcept {
     token = lower_case(token);
 
     std::string fen;
-    if (!token.empty() && token[0] == 's')  // "startpos"
+    if (token.empty() || char(std::tolower((unsigned char) token[0])) == 's')  // "startpos"
     {
+        token.clear();
         fen.assign(START_FEN);
         is >> token;  // Consume the "moves" token, if any
     }
-    else if (!token.empty() && token[0] == 'f')  // "fen"
+    else if (!token.empty() && char(std::tolower((unsigned char) token[0])) == 'f')  // "fen"
     {
+        token.clear();
         fen.reserve(64);
 
         std::size_t i = 0;
