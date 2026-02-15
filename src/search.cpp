@@ -2480,20 +2480,23 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
         if (i != 0 && depth == 1 && !updated)
             continue;
 
-        Depth d = updated ? depth : depth - int(depth > 1);
+        Depth d = depth - (int(!updated) & int(depth > 1));
 
-        Value v = updated ? rm.uciValue : rm.preValue;
+        Value updatedMask = -Value(updated);
+
+        Value v = (rm.uciValue & updatedMask) | (rm.preValue & ~updatedMask);
 
         if (v == -VALUE_INFINITE)
             v = VALUE_ZERO;
 
         bool tb = tbConfig.rootInTB && !is_mate(v);
 
-        if (tb)
-            v = rm.tbValue;
+        Value tbMask = -Value(tb);
+
+        v = (rm.tbValue & tbMask) | (v & ~tbMask);
 
         // tablebase- and previous-scores are exact
-        bool exact = i != curPV || tb || !updated;
+        bool exact = (int(i != curPV) | ~updatedMask | tbMask) != 0;
 
         // Potentially correct and extend the PV, and in exceptional cases value also
         if (is_decisive(v) && !is_mate(v) && (exact || rm.bound == Bound::NONE))
