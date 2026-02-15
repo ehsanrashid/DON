@@ -214,15 +214,23 @@ std::string compiler_info() noexcept {
       .append(1, '.')
       .append(std::to_string(_MSC_VER % 100))  // minor
       .append(1, '.')
-      .append(std::to_string(_MSC_FULL_VER - 100000 * _MSC_VER));  // patch/build
+      .append(std::to_string(_MSC_FULL_VER % 100000))  // patch
+    #if defined(_MSC_BUILD)
+      .append(1, '.')
+      .append(std::to_string(_MSC_BUILD))  // build
+    #endif
+      ;
 #elif defined(__e2k__) && defined(__LCC__)
     compiler  //
       .append("MCST LCC ")
-      .append(std::to_string(__LCC__ / 100))
+      .append(std::to_string(__LCC__ / 100))  // major
       .append(1, '.')
-      .append(std::to_string(__LCC__ % 100))
+      .append(std::to_string(__LCC__ % 100))  // minor
+    #if defined(__LCC_MINOR__)
       .append(1, '.')
-      .append(std::to_string(__LCC_MINOR__));
+      .append(std::to_string(__LCC_MINOR__))  // patch
+    #endif
+      ;
 #else
     compiler.append("(unknown compiler)");
 #endif

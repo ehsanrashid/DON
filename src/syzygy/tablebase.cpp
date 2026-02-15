@@ -299,18 +299,18 @@ class TBFile final {
 
         for (const auto& dir : TBPaths::get())
         {
-            std::string fn{(dir / file).string()};  // path concatenation
+            auto fn = dir / file;
 
-            if (std::ifstream{fn, std::ios::binary}.is_open())
+            if (std::filesystem::is_regular_file(fn))
             {
-                filename = std::move(fn);
+                filename = fn.string();
                 break;
             }
         }
     }
 
     TBFile(std::string_view base, std::string_view ext) noexcept :
-        TBFile{std::filesystem::path(base).replace_extension(ext).string()} {}
+        TBFile{std::filesystem::path(base).concat(ext).string()} {}
 
     std::string_view file_name() const noexcept { return filename; }
 
@@ -503,9 +503,10 @@ void* TBTable<T>::init(const Position& pos, Key materialKey) noexcept {
         std::string base;
         base.reserve(pieces[WHITE].size() + 1 + pieces[BLACK].size());
 
-        base += pieces[c ? WHITE : BLACK];
-        base += 'v';
-        base += pieces[c ? BLACK : WHITE];
+        base  //
+          .assign(pieces[Color(!c)])
+          .append(1, 'v')
+          .append(pieces[Color(c)]);
 
         TBFile tbFile(base, EXTS[T]);
 
@@ -1044,8 +1045,8 @@ void TBTables::add(const std::vector<PieceType>& pieces) noexcept {
     std::string code;
     code.reserve(pieces.size() + 2);
 
-    for (PieceType pt : pieces)
-        code += to_char(pt);
+    for (auto pt : pieces)
+        code.push_back(to_char(pt));
 
     std::size_t pos = code.find('K', 1);
 
@@ -1926,7 +1927,7 @@ void init(std::string_view paths) noexcept {
 
     UCI::print_info_string(tbTables.info());
 
-    DEBUG_LOG("\nMaxDistance: " << tbTables.max_distance());
+    DEBUG_LOG("max-distance: " << tbTables.max_distance());
 }
 
 // Probe the WDL table for a particular position.
