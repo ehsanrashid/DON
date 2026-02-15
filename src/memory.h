@@ -334,11 +334,11 @@ struct HandleGuard final {
     }
 
     HANDLE release() noexcept {
-        HANDLE tmpHandle = handle;
+        HANDLE oldHandle = handle;
 
         handle = INVALID_HANDLE;
 
-        return tmpHandle;
+        return oldHandle;
     }
 
    private:
@@ -393,11 +393,11 @@ struct MMapGuard final {
     }
 
     void* release() noexcept {
-        void* tmpMappedPtr = mappedPtr;
+        void* oldMappedPtr = mappedPtr;
 
         mappedPtr = INVALID_MMAP_PTR;
 
-        return tmpMappedPtr;
+        return oldMappedPtr;
     }
 
    private:
@@ -607,11 +607,11 @@ struct FdGuard final {
     }
 
     int release() noexcept {
-        int tmpFd = fd;
+        int oldFd = fd;
 
         fd = INVALID_FD;
 
-        return tmpFd;
+        return oldFd;
     }
 
    private:
@@ -679,12 +679,12 @@ struct MMapGuard final {
     }
 
     MMapInfo release() noexcept {
-        MMapInfo tmpMapInfo{mappedPtr, mappedSize};
+        MMapInfo oldMapInfo{mappedPtr, mappedSize};
 
         mappedPtr  = INVALID_MMAP_PTR;
         mappedSize = INVALID_MMAP_SIZE;
 
-        return tmpMapInfo;
+        return oldMapInfo;
     }
 
    private:
