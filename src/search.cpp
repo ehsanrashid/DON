@@ -190,15 +190,12 @@ bool is_shuffling(const Position& pos, const Stack* ss, Move move) noexcept {
 }
 
 // Optimized PV to string conversion (bulk copy style)
-std::string build_pv_string(const Moves& pvMoves) noexcept {
+std::string build_pv(const Moves& pvMoves) noexcept {
     std::string pv;
     pv.reserve(6 * pvMoves.size());
 
     for (Move m : pvMoves)
-    {
-        pv += ' ';
-        pv += UCI::move_to_can(m);
-    }
+        pv.append(" ").append(UCI::move_to_can(m));
 
     return pv;
 }
@@ -701,7 +698,7 @@ void Worker::iterative_deepening() noexcept {
                                          * 4.0040e-3 * std::min(+stableDepth, 25);
 
             // Calculate total time by combining all factors with the optimum time
-            TimePoint totalTime = mainManager->timeManager.optimum() * inconsistencyFactor * easeFactor * instabilityFactor * nodeEffortFactor * recaptureFactor;
+            TimePoint totalTime = TimePoint(mainManager->timeManager.optimum() * inconsistencyFactor * easeFactor * instabilityFactor * nodeEffortFactor * recaptureFactor);
             assert(totalTime >= 0.0);
             // clang-format on
 
@@ -710,7 +707,7 @@ void Worker::iterative_deepening() noexcept {
 
             // Cap totalTime in case of a single legal move for a better viewer experience
             if (rootMoves.size() == 1)
-                totalTime = std::min<TimePoint>(constexpr_round(0.5500 * double(totalTime)), 512);
+                totalTime = std::min(550 * totalTime / 1000, TimePoint{512});
 
             TimePoint elapsedTime = mainManager->elapsed(threads);
 
@@ -725,7 +722,7 @@ void Worker::iterative_deepening() noexcept {
                     threads.request_stop();
             }
 
-            if (!mainManager->ponder && elapsedTime > TimePoint(0.5030 * totalTime))
+            if (!mainManager->ponder && 1000 * elapsedTime > 503 * totalTime)
                 threads.request_research();
 
             mainManager->preBestCurValue = bestValue;
@@ -2475,7 +2472,7 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
     const std::size_t multiPV            = worker.multiPV;
     const std::size_t curPV              = worker.curPV;
     // Ensure non-zero to avoid a 'divide by zero'
-    TimePoint     time     = std::max(elapsed(), TimePoint(1));
+    TimePoint     time     = std::max(elapsed(), TimePoint{1});
     std::uint64_t nodes    = threads.sum(&Worker::nodes);
     std::uint16_t hashfull = transpositionTable.hashfull();
     std::uint64_t tbHits   = threads.sum(&Worker::tbHits,  //
@@ -2523,7 +2520,7 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
         if (ShowWDL)
             wdl = UCI::to_wdl(v, rootPos);
 
-        std::string pv = build_pv_string(rm.pv);
+        std::string pv = build_pv(rm.pv);
 
         updateContext.onUpdateFull(
           {{d, score}, rm.selDepth, i + 1, bound, wdl, time, nodes, hashfull, tbHits, pv});

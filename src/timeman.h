@@ -47,7 +47,9 @@ class TimeManager final {
 
     template<typename NodesFunc>
     TimePoint elapsed(NodesFunc&& nodes) const noexcept {
-        return use_nodes_time() ? TimePoint(std::forward<NodesFunc>(nodes)()) : elapsed();
+        if (use_nodes_time())
+            return std::forward<NodesFunc>(nodes)();
+        return elapsed();
     }
 
     void init() noexcept;

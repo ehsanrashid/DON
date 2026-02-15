@@ -116,7 +116,7 @@ void TimeManager::init(
         centiMTG = std::max<std::uint16_t>(5.0510 * ScaledTime, MIN_CENTI_MTG);
 
     // Make sure RemainTime > 0 since use it as a divisor
-    TimePoint RemainTime = std::max(clock.time + ((centiMTG - 100) * clock.inc - (centiMTG + 200) * moveOverhead) / 100, TimePoint(1));
+    TimePoint RemainTime = std::max(clock.time + ((centiMTG - 100) * clock.inc - (centiMTG + 200) * moveOverhead) / 100, TimePoint{1});
 
     // optimumScale is a percentage of available time to use for the current move.
     // maximumScale is a multiplier applied to optimumTime.
@@ -175,7 +175,7 @@ void TimeManager::init(
                     centiMTG >= MIN_CENTI_MTG
                     ? TimePoint(std::min(0.825179 * clock.time - moveOverhead, maximumScale * optimumTime)) - SAFETY_MARGIN_TIME
                     : clock.time - moveOverhead,
-                    TimePoint(1));
+                    TimePoint{1});
     // clang-format on
 
     if (options["Ponder"])

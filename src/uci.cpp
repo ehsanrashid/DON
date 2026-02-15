@@ -456,7 +456,7 @@ void UCI::position(std::istream& is) noexcept {
     std::string fen;
     if (!token.empty() && token[0] == 's')  // "startpos"
     {
-        fen = START_FEN;
+        fen.assign(START_FEN);
         is >> token;  // Consume the "moves" token, if any
     }
     else if (!token.empty() && token[0] == 'f')  // "fen"
@@ -470,13 +470,12 @@ void UCI::position(std::istream& is) noexcept {
                 && std::tolower((unsigned char) token[0]) == 'm')  // "moves"
                 break;
 
-            fen += token;
-            fen += ' ';
+            fen.append(token).append(" ");
             ++i;
         }
         while (i < 4)
         {
-            fen += "- ";
+            fen.append("- ");
             ++i;
         }
     }
@@ -517,9 +516,9 @@ void UCI::setoption(std::istream& is) noexcept {
     while (is >> token && lower_case(token) != "value")
     {
         if (!name.empty())
-            name += ' ';
+            name.append(" ");
 
-        name += token;
+        name.append(token);
     }
 
     // Read the option value (can contain spaces)
@@ -527,9 +526,9 @@ void UCI::setoption(std::istream& is) noexcept {
     while (is >> token)
     {
         if (!value.empty())
-            value += ' ';
+            value.append(" ");
 
-        value += token;
+        value.append(token);
     }
 
     options().set(name, value);
@@ -615,7 +614,7 @@ void UCI::bench(std::istream& is) noexcept {
     }
 
     // Ensure non-zero to avoid a 'divide by zero'
-    elapsedTime = std::max(elapsedTime + now() - startTime, TimePoint(1));
+    elapsedTime = std::max(elapsedTime + now() - startTime, TimePoint{1});
 
 #if !defined(NDEBUG)
     Debug::print();
@@ -780,7 +779,7 @@ void UCI::benchmark(std::istream& is) noexcept {
     }
 
     // Ensure non-zero to avoid a 'divide by zero'
-    elapsedTime = std::max(elapsedTime + now() - startTime, TimePoint(1));
+    elapsedTime = std::max(elapsedTime + now() - startTime, TimePoint{1});
 
 #if !defined(NDEBUG)
     Debug::print();
