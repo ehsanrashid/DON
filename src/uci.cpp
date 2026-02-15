@@ -1040,8 +1040,7 @@ std::string UCI::move_to_san(Move m, Position& pos) noexcept {
 
             if (movedPt != KING)
             {
-                // Add disambiguation if needed,
-                // when more then one piece of type 'pt' that can reach 'dst' with legal move.
+                // Add disambiguation when more then one piece can reach destiny with legal move.
                 switch (detect_ambiguity(m, pos))
                 {
                 case Ambiguity::RANK :
@@ -1057,15 +1056,12 @@ std::string UCI::move_to_san(Move m, Position& pos) noexcept {
                 }
             }
         }
-        // Capture indicator
         if (pos.capture(m))
         {
             san.append(std::size_t(movedPt == PAWN), to_char(file_of(orgSq)));
             san.append(std::size_t(1), 'x');
         }
-        // Destination square
         san.append(to_square(dstSq));
-        // Promotion type
         san.append(std::size_t(m.type() == MT::PROMOTION), '=');
         san.append(std::size_t(m.type() == MT::PROMOTION),
                    char(std::toupper(to_char(m.promotion_type()))));
@@ -1074,7 +1070,6 @@ std::string UCI::move_to_san(Move m, Position& pos) noexcept {
     State st;
     pos.do_move(m, st);
 
-    // Marker for check, checkmate & stalemate
     san.append(std::size_t(1),
                pos.checkers_bb() != 0  //
                  ? (MoveList<GenType::LEGAL, true>(pos).empty() ? '#' : '+')
