@@ -227,7 +227,8 @@ Limit parse_limit(std::istream& is) noexcept {
         else if (!token.empty() && token[0] == 's')  // "searchmoves"
         {
             auto pos = is.tellg();
-            while (is >> token && !(!token.empty() && std::tolower(token[0]) == 'i'))
+            while (is >> token
+                   && !(!token.empty() && std::tolower((unsigned char) token[0]) == 'i'))
             {
                 limit.searchMoves.push_back(token);
                 pos = is.tellg();
@@ -238,7 +239,8 @@ Limit parse_limit(std::istream& is) noexcept {
         else if (!token.empty() && token[0] == 'i')  // "ignoremoves"
         {
             auto pos = is.tellg();
-            while (is >> token && !(!token.empty() && std::tolower(token[0]) == 's'))
+            while (is >> token
+                   && !(!token.empty() && std::tolower((unsigned char) token[0]) == 's'))
             {
                 limit.ignoreMoves.push_back(token);
                 pos = is.tellg();
@@ -464,7 +466,8 @@ void UCI::position(std::istream& is) noexcept {
         std::size_t i = 0;
         while (is >> token && i < 6)  // Consume the "moves" token, if any
         {
-            if (i >= 2 && !token.empty() && std::tolower(token[0]) == 'm')  // "moves"
+            if (i >= 2 && !token.empty()
+                && std::tolower((unsigned char) token[0]) == 'm')  // "moves"
                 break;
 
             fen += token;
@@ -926,11 +929,10 @@ std::string UCI::move_to_can(Move m) noexcept {
     std::string can;
     can.reserve(5);
 
-    can += to_square(orgSq);
-    can += to_square(dstSq);
-
-    if (m.type() == MT::PROMOTION)
-        can += char(std::tolower(to_char(m.promotion_type())));
+    can.append(to_square(orgSq));
+    can.append(to_square(dstSq));
+    can.append(std::size_t(m.type() == MT::PROMOTION),
+               char(std::tolower((unsigned char) to_char(m.promotion_type()))));
 
     return can;
 }
@@ -1027,70 +1029,56 @@ std::string UCI::move_to_san(Move m, Position& pos) noexcept {
     {
         assert(movedPt == KING && rank_of(orgSq) == rank_of(dstSq));
 
-        san = to_string(make_cs(orgSq, dstSq));
+        san.assign(to_string(make_cs(orgSq, dstSq)));
     }
     else
     {
-        // clang-format off
-    // Note:: Piece letter (skip pawn as not needed because starting file is explicit)
-    if (movedPt != PAWN)
-    {
-        san = to_char(movedPt);
-
-        if (movedPt != KING)
+        // Note:: Piece letter (skip pawn as not needed because starting file is explicit)
+        if (movedPt != PAWN)
         {
-            // Add disambiguation if needed,
-            // when more then one piece of type 'pt' that can reach 'dst' with legal move.
-            switch (detect_ambiguity(m, pos))
+            san.assign(std::size_t(1), to_char(movedPt));
+
+            if (movedPt != KING)
             {
-            case Ambiguity::RANK :
-                san += to_char(file_of(orgSq));
-                break;
-            case Ambiguity::FILE :
-                san += to_char(rank_of(orgSq));
-                break;
-            case Ambiguity::SQUARE :
-                san += to_square(orgSq);
-                break;
-            default :;
+                // Add disambiguation if needed,
+                // when more then one piece of type 'pt' that can reach 'dst' with legal move.
+                switch (detect_ambiguity(m, pos))
+                {
+                case Ambiguity::RANK :
+                    san.append(std::size_t(1), to_char(file_of(orgSq)));
+                    break;
+                case Ambiguity::FILE :
+                    san.append(std::size_t(1), to_char(rank_of(orgSq)));
+                    break;
+                case Ambiguity::SQUARE :
+                    san.append(to_square(orgSq));
+                    break;
+                default :;
+                }
             }
         }
-    }
-
-    // Capture indicator
-    if (pos.capture(m))
-    {
-        if (movedPt == PAWN)
+        // Capture indicator
+        if (pos.capture(m))
         {
-            assert(san.empty());
-
-            san = to_char(file_of(orgSq));
+            san.append(std::size_t(movedPt == PAWN), to_char(file_of(orgSq)));
+            san.append(std::size_t(1), 'x');
         }
-
-        san += 'x';
-    }
-
-    // Destination square
-    san += to_square(dstSq);
-
-    // Promotion type
-    if (m.type() == MT::PROMOTION)
-    {
-        assert(movedPt == PAWN);
-
-        san += '=';
-        san += char(std::toupper(to_char(m.promotion_type())));
-    }
-        // clang-format on
+        // Destination square
+        san.append(to_square(dstSq));
+        // Promotion type
+        san.append(std::size_t(m.type() == MT::PROMOTION), '=');
+        san.append(std::size_t(m.type() == MT::PROMOTION),
+                   char(std::toupper(to_char(m.promotion_type()))));
     }
 
     State st;
     pos.do_move(m, st);
 
     // Marker for check, checkmate & stalemate
-    san += pos.checkers_bb() != 0  //
-           ? (MoveList<GenType::LEGAL, true>(pos).empty() ? '#' : '+')
-           : (MoveList<GenType::LEGAL, true>(pos).empty() ? '=' : '\0');
+    san.append(std::size_t(1),
+               pos.checkers_bb() != 0  //
+                 ? (MoveList<GenType::LEGAL, true>(pos).empty() ? '#' : '+')
+                 : (MoveList<GenType::LEGAL, true>(pos).empty() ? '=' : '\0'));
 
     pos.undo_move(m);
 
@@ -1102,7 +1090,8 @@ Move UCI::san_to_move(std::string                     san,
                       const MoveList<GenType::LEGAL>& legalMoves) noexcept {
     assert(2 <= san.size() && san.size() <= 9);
 
-    if (san.size() >= 2 && san[1] == '-' && (san[0] == '0' || std::tolower(san[0]) == 'o'))
+    if (san.size() >= 2 && san[1] == '-'
+        && (san[0] == '0' || std::tolower((unsigned char) san[0]) == 'o'))
         std::replace_if(san.begin(), san.end(), [](char c) { return c == 'o' || c == '0'; }, 'O');
 
     for (Move m : legalMoves)
@@ -1125,7 +1114,8 @@ Move UCI::mix_to_move(std::string                     mix,
 
     if (!legalMoves.empty() && mix.size() >= 2)
     {
-        if (mix.size() <= 3 || (mix[1] == '-' && (mix[0] == '0' || std::tolower(mix[0]) == 'o')))
+        if (mix.size() <= 3
+            || (mix[1] == '-' && (mix[0] == '0' || std::tolower((unsigned char) mix[0]) == 'o')))
         {
             m = san_to_move(mix, pos, legalMoves);
             return m;
