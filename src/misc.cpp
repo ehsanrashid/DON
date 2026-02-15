@@ -720,10 +720,10 @@ std::string CommandLine::working_directory() noexcept {
     return workingDirectory;
 }
 
-std::size_t str_to_size_t(std::string_view str) noexcept {
+std::size_t str_to_size_t(std::string_view sv) noexcept {
     // Use from_chars (no allocation, fast)
-    const char* begin = str.data();
-    const char* end   = begin + str.size();
+    const char* begin = sv.data();
+    const char* end   = begin + sv.size();
 
     unsigned long long value = 0;
 
@@ -737,9 +737,9 @@ std::size_t str_to_size_t(std::string_view str) noexcept {
     return std::size_t(value);
 }
 
-std::optional<std::string> read_file_to_string(std::string_view filePath) noexcept {
+std::optional<std::string> read_file_to_string(std::filesystem::path filePath) noexcept {
 
-    std::ifstream ifs{std::string{filePath}, std::ios::binary | std::ios::ate};
+    std::ifstream ifs{filePath, std::ios::binary | std::ios::ate};
     if (!ifs)
         return std::nullopt;
 

@@ -287,11 +287,14 @@ void UCI::process_input(std::istream& is) noexcept {
 
 void UCI::execute(std::string_view command) noexcept {
 
-    std::istringstream iss{std::string{command}};
-    iss >> std::skipws;
+    ViewStreamBuf buf(command);
+
+    std::istream is(&buf);
+
+    is >> std::skipws;
 
     std::string token;
-    iss >> token;
+    is >> token;
 
     if (token.empty())
         return;
@@ -309,17 +312,17 @@ void UCI::execute(std::string_view command) noexcept {
         engine.ponderhit();
         break;
     case Command::POSITION :
-        position(iss);
+        position(is);
         break;
     case Command::GO :
         // Send info strings after the go command is sent for old GUIs and python-chess
         print_info_string(engine.numa_config_info());
         print_info_string(engine.thread_allocation());
 
-        go(iss);
+        go(is);
         break;
     case Command::SETOPTION :
-        setoption(iss);
+        setoption(is);
         break;
     case Command::UCI :
         std::cout << engine_info(true) << '\n'  //
@@ -335,10 +338,10 @@ void UCI::execute(std::string_view command) noexcept {
     // Add custom non-UCI commands, mainly for debugging purposes.
     // These commands must not be used during a search!
     case Command::BENCH :
-        bench(iss);
+        bench(is);
         break;
     case Command::BENCHMARK :
-        benchmark(iss);
+        benchmark(is);
         break;
     case Command::SHOW :
         engine.show();
@@ -347,7 +350,7 @@ void UCI::execute(std::string_view command) noexcept {
         std::string      input;
         std::string_view dumpFile;
 
-        if (iss >> input)
+        if (is >> input)
             dumpFile = input;
 
         engine.dump(dumpFile);
@@ -369,7 +372,7 @@ void UCI::execute(std::string_view command) noexcept {
         StdArray<std::string, 2>      inputs;
         StdArray<std::string_view, 2> netFiles;
 
-        for (std::size_t i = 0; i < netFiles.size() && iss >> inputs[i]; ++i)
+        for (std::size_t i = 0; i < netFiles.size() && is >> inputs[i]; ++i)
             netFiles[i] = inputs[i];
 
         engine.save_networks(netFiles);

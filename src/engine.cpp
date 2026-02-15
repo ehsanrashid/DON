@@ -239,13 +239,13 @@ void Engine::resize_tt(std::size_t ttSize) noexcept {
 
 void Engine::show() const noexcept { std::cout << pos << std::endl; }
 
-void Engine::dump(std::string_view dumpFile) const noexcept {
+void Engine::dump(std::filesystem::path dumpFile) const noexcept {
 
     if (!dumpFile.empty())
     {
-        std::ofstream ofs{std::string{dumpFile}, std::ios::binary};
+        std::ofstream ofs{dumpFile, std::ios::binary};
 
-        if (ofs.is_open())
+        if (ofs)
         {
             pos.dump(ofs);
 
@@ -400,9 +400,13 @@ void Engine::save_networks(const StdArray<std::string_view, 2>& netFiles) const 
     networks->save_small(netFiles[1]);
 }
 
-bool Engine::load_hash() noexcept { return transpositionTable.load(options["HashFile"], threads); }
+bool Engine::load_hash() noexcept {
+    return transpositionTable.load(std::string_view{options["HashFile"]}, threads);
+}
 
-bool Engine::save_hash() const noexcept { return transpositionTable.save(options["HashFile"]); }
+bool Engine::save_hash() const noexcept {
+    return transpositionTable.save(std::string_view{options["HashFile"]});
+}
 
 void Engine::set_on_update_short(MainSearchManager::OnUpdateShort&& f) noexcept {
     updateContext.onUpdateShort = std::move(f);
