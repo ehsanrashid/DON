@@ -90,8 +90,8 @@ class Engine final {
 
     std::string numa_config() const noexcept;
     std::string numa_config_info() const noexcept;
-    std::string thread_binding_info() const noexcept;
-    std::string thread_allocation_info() const noexcept;
+    std::string thread_binding() const noexcept;
+    std::string thread_allocation() const noexcept;
 
     // Network related
     void verify_networks() const noexcept;

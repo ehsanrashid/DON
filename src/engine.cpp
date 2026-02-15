@@ -85,11 +85,11 @@ Engine::Engine(std::string_view path) noexcept :
     options.add("NumaPolicy",           Option("auto", OnCng([this](const Option& o) {
         set_numa_config(o);
         return numa_config_info() + '\n'
-             + thread_allocation_info();
+             + thread_allocation();
     })));
     options.add("Threads",              Option(DEFAULT_THREADS, MIN_THREADS, MAX_THREADS, OnCng([this](const Option&) {
         resize_threads_tt();
-        return thread_allocation_info();
+        return thread_allocation();
     })));
     options.add("Hash",                 Option(DEFAULT_HASH, MIN_HASH, MAX_HASH, OnCng([this](const Option& o) {
         resize_tt(o);
@@ -309,17 +309,15 @@ std::string Engine::numa_config_info() const noexcept {
     return numaConfig;
 }
 
-std::string Engine::thread_binding_info() const noexcept {
+std::string Engine::thread_binding() const noexcept {
     auto boundThreadCounts = bound_thread_counts();
 
     std::string threadBinding;
     threadBinding.reserve(8 * boundThreadCounts.size());
 
-    for (auto itr = boundThreadCounts.begin(); itr != boundThreadCounts.end(); ++itr)
+    for (const auto& [numaId, threadCount] : boundThreadCounts)
     {
-        const auto& [numaId, threadCount] = *itr;
-
-        if (itr != boundThreadCounts.begin())
+        if (!threadBinding.empty())
             threadBinding.push_back(':');
 
         threadBinding  //
@@ -331,11 +329,11 @@ std::string Engine::thread_binding_info() const noexcept {
     return threadBinding;
 }
 
-std::string Engine::thread_allocation_info() const noexcept {
+std::string Engine::thread_allocation() const noexcept {
     std::string threadAllocation{"Threads: "};
     threadAllocation.append(std::to_string(threads.size()));
 
-    if (std::string threadBinding = thread_binding_info(); !threadBinding.empty())
+    if (std::string threadBinding = thread_binding(); !threadBinding.empty())
         threadAllocation  //
           .append(" with NUMA node thread binding: ")
           .append(threadBinding);

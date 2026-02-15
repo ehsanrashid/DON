@@ -1587,7 +1587,7 @@ class SharedMemory final: public BaseSharedMemory {
         dataPtr   = nullptr;
         shmHeader = nullptr;
 
-        clear_sentinel_path();
+        sentinelPath.clear();
     }
 
     void unmap_region() noexcept {
@@ -1607,46 +1607,45 @@ class SharedMemory final: public BaseSharedMemory {
         while (true)
         {
             if (flock(fd, operation) == 0)
-                return true;
+                return true;  // Success
 
-            if (errno == EINTR)
-                continue;  // retry if interrupted by signal
+            int err = errno;
 
-            if (errno == EWOULDBLOCK || errno == EAGAIN)  // for LOCK_NB: lock is busy
-                return false;
+            if (err == EINTR)
+                continue;  // Interrupted, retry
 
-            break;  // real error
+            // Permanent failure (EWOULDBLOCK, EBADF, etc.)
+            break;
         }
-
         return false;
     }
 
-    void unlock_file() noexcept {
+    //[[nodiscard]]
+    bool unlock_file() noexcept {
         if (!valid_fd(fd))
-            return;
+            return false;
 
         while (true)
         {
             if (flock(fd, LOCK_UN) == 0)
-                break;
+                return true;  // Success
 
-            if (errno == EINTR)
-                continue;  // retry on signal
+            int err = errno;
 
-            break;  // ignore other errors (nothing useful to do)
+            if (err == EINTR)
+                continue;  // Interrupted, retry
+
+            // Unlock failure is serious!
+            break;
         }
+        return false;
     }
 
     void set_sentinel_path(pid_t pid) noexcept {
-        std::filesystem::path p(DIRECTORY);
-        p /= sentinelBase;
-        p += ".";
-        p += std::to_string(pid);
+        auto path = std::filesystem::path(DIRECTORY) / (sentinelBase + "." + std::to_string(pid));
 
-        sentinelPath = p.string();
+        sentinelPath = path.string();
     }
-
-    void clear_sentinel_path() noexcept { sentinelPath.clear(); }
 
     void increment_ref_count() noexcept {
         if (shmHeader != nullptr)
@@ -1691,7 +1690,7 @@ class SharedMemory final: public BaseSharedMemory {
             decrement_ref_count();
         }
 
-        clear_sentinel_path();
+        sentinelPath.clear();
 
         return false;
     }
@@ -1702,7 +1701,7 @@ class SharedMemory final: public BaseSharedMemory {
 
         ::unlink(sentinelPath.c_str());
 
-        clear_sentinel_path();
+        sentinelPath.clear();
     }
 
     void handle_ref_count_and_sentinel_file() noexcept {
