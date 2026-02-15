@@ -873,7 +873,7 @@ int UCI::to_cp(Value v, const Position& pos) noexcept {
 
     auto [a, b] = win_rate_params(pos);
 
-    return std::round(100 * int(v) / a);
+    return constexpr_round(100 * int(v) / a);
 }
 
 std::string UCI::to_wdl(Value v, const Position& pos) noexcept {

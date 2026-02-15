@@ -322,8 +322,9 @@ void Worker::start_search() noexcept {
     {
         rootMoves.emplace_back(Move::None);
 
-        Value       value = rootPos.checkers_bb() != 0 ? -VALUE_MATE : VALUE_DRAW;
-        std::string score = UCI::to_score({value, rootPos});
+        std::string score{
+          UCI::to_score({Value(rootPos.checkers_bb() != 0 ? -VALUE_MATE : VALUE_DRAW), rootPos})};
+
         mainManager->updateContext.onUpdateShort({DEPTH_ZERO, score});
     }
     else
@@ -2507,20 +2508,18 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
         bool exact = (int(i != curPV) | ~updatedMask | tbMask) != 0;
 
         // Potentially correct and extend the PV, and in exceptional cases value also
-        if (is_decisive(v) && !is_mate(v) && (exact || rm.bound == Bound::NONE))
+        if ((exact || rm.bound == Bound::NONE) && is_decisive(v) && !is_mate(v))
             worker.extend_tb_pv(i, v);
 
-        std::string score = UCI::to_score({v, rootPos});
+        std::string score{UCI::to_score({v, rootPos})};
 
-        std::string bound;
-        if (!exact && is_ok(rm.bound))
-            bound = to_string(rm.bound);
+        std::string bound{!exact && is_ok(rm.bound) ? to_string(rm.bound) : std::string_view{}};
 
         std::string wdl;
         if (ShowWDL)
-            wdl = UCI::to_wdl(v, rootPos);
+            wdl.assign(UCI::to_wdl(v, rootPos));
 
-        std::string pv = build_pv(rm.pv);
+        std::string pv{build_pv(rm.pv)};
 
         updateContext.onUpdateFull(
           {{d, score}, rm.selDepth, i + 1, bound, wdl, time, nodes, hashfull, tbHits, pv});
