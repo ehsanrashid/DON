@@ -195,7 +195,7 @@ std::string build_pv(const Moves& pvMoves) noexcept {
     pv.reserve(6 * pvMoves.size());
 
     for (Move m : pvMoves)
-        pv.append(" ").append(UCI::move_to_can(m));
+        pv.append(1, ' ').append(UCI::move_to_can(m));
 
     return pv;
 }

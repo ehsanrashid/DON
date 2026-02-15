@@ -464,15 +464,17 @@ void UCI::position(std::istream& is) noexcept {
         fen.reserve(64);
 
         std::size_t i = 0;
-        while (is >> token && i < 6)  // Consume the "moves" token, if any
+        // Read up to 6 tokens
+        while (i < 6 && is >> token)
         {
-            if (i >= 2 && !token.empty()
-                && std::tolower((unsigned char) token[0]) == 'm')  // "moves"
+            // Stop if reach "moves" token after the first two fields
+            if (i > 1 && !token.empty() && std::tolower((unsigned char) token[0]) == 'm')
                 break;
 
-            fen.append(token).append(" ");
+            fen.append(token).push_back(' ');
             ++i;
         }
+        // Fill missing fields with "-"
         while (i < 4)
         {
             fen.append("- ");
@@ -516,7 +518,7 @@ void UCI::setoption(std::istream& is) noexcept {
     while (is >> token && lower_case(token) != "value")
     {
         if (!name.empty())
-            name.append(" ");
+            name.push_back(' ');
 
         name.append(token);
     }
@@ -526,7 +528,7 @@ void UCI::setoption(std::istream& is) noexcept {
     while (is >> token)
     {
         if (!value.empty())
-            value.append(" ");
+            value.push_back(' ');
 
         value.append(token);
     }
@@ -1027,7 +1029,6 @@ std::string UCI::move_to_san(Move m, Position& pos) noexcept {
     if (m.type() == MT::CASTLING)
     {
         assert(movedPt == KING && rank_of(orgSq) == rank_of(dstSq));
-
         san.assign(to_string(make_cs(orgSq, dstSq)));
     }
     else
@@ -1036,17 +1037,16 @@ std::string UCI::move_to_san(Move m, Position& pos) noexcept {
         if (movedPt != PAWN)
         {
             san.assign(std::size_t(1), to_char(movedPt));
-
             if (movedPt != KING)
             {
                 // Add disambiguation when more then one piece can reach destiny with legal move.
                 switch (detect_ambiguity(m, pos))
                 {
                 case Ambiguity::RANK :
-                    san.append(std::size_t(1), to_char(file_of(orgSq)));
+                    san.push_back(to_char(file_of(orgSq)));
                     break;
                 case Ambiguity::FILE :
-                    san.append(std::size_t(1), to_char(rank_of(orgSq)));
+                    san.push_back(to_char(rank_of(orgSq)));
                     break;
                 case Ambiguity::SQUARE :
                     san.append(to_square(orgSq));
@@ -1056,10 +1056,7 @@ std::string UCI::move_to_san(Move m, Position& pos) noexcept {
             }
         }
         if (pos.capture(m))
-        {
-            san.append(std::size_t(movedPt == PAWN), to_char(file_of(orgSq)))
-              .append(std::size_t(1), 'x');
-        }
+            san.append(std::size_t(movedPt == PAWN), to_char(file_of(orgSq))).push_back('x');
         san.append(to_square(dstSq))
           .append(std::size_t(m.type() == MT::PROMOTION), '=')
           .append(std::size_t(m.type() == MT::PROMOTION),
@@ -1069,10 +1066,9 @@ std::string UCI::move_to_san(Move m, Position& pos) noexcept {
     State st;
     pos.do_move(m, st);
 
-    san.append(std::size_t(1),
-               pos.checkers_bb() != 0  //
-                 ? (MoveList<GenType::LEGAL, true>(pos).empty() ? '#' : '+')
-                 : (MoveList<GenType::LEGAL, true>(pos).empty() ? '=' : '\0'));
+    san.push_back(pos.checkers_bb() != 0
+                    ? (MoveList<GenType::LEGAL, true>(pos).empty() ? '#' : '+')
+                    : (MoveList<GenType::LEGAL, true>(pos).empty() ? '=' : '\0'));
 
     pos.undo_move(m);
 

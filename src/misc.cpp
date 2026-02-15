@@ -134,10 +134,10 @@ std::string engine_info(bool uci) noexcept {
     std::string engine;
     engine.reserve(64);
 
-    engine.assign(uci ? "id name " : "");
-    engine.append(version_info());
-    engine.append(uci ? "\nid author " : " by ");
-    engine.append(Author);
+    engine.assign(uci ? "id name " : "")
+      .append(version_info())
+      .append(uci ? "\nid author " : " by ")
+      .append(Author);
 
     return engine;
 }
@@ -155,19 +155,17 @@ std::string version_info() noexcept {
     std::string version;
     version.reserve(32);
 
-    version.assign(Name);
-    version.append(std::size_t(1), ' ');
-    version.append(Version);
+    version.assign(Name).append(" ").append(Version);
 
     if constexpr (Version == "dev")
     {
-        version.append(std::size_t(1), '-');
+        version.push_back('-');
 #if defined(GIT_DATE)
         version.append(STRINGIFY(GIT_DATE));
 #else
         version.append(format_date(__DATE__));
 #endif
-        version.append(std::size_t(1), '-');
+        version.push_back('-');
 #if defined(GIT_SHA)
         version.append(STRINGIFY(GIT_SHA));
 #else
@@ -211,11 +209,11 @@ std::string compiler_info() noexcept {
     compiler.append(STRINGIFY(_MSC_FULL_VER) "." STRINGIFY(_MSC_BUILD));
 #elif defined(__e2k__) && defined(__LCC__)
     compiler.append("MCST LCC ");
-    compiler.append(std::to_string(__LCC__ / 100));
-    compiler.append(".");
-    compiler.append(std::to_string(__LCC__ % 100));
-    compiler.append(".");
-    compiler.append(std::to_string(__LCC_MINOR__));
+    compiler.append(std::to_string(__LCC__ / 100))
+      .append(1, '.')
+      .append(std::to_string(__LCC__ % 100))
+      .append(1, '.')
+      .append(std::to_string(__LCC_MINOR__));
 #else
     compiler.append("(unknown compiler)");
 #endif
