@@ -723,7 +723,7 @@ void Worker::iterative_deepening() noexcept {
 // The main alpha-beta search function with negamax framework and
 // various enhancements like aspiration windows, late move reductions, etc.
 template<NT T>
-Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, std::int8_t red, Move excludedMove) noexcept {
+Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, int red, Move excludedMove) noexcept {
     // clang-format on
     constexpr bool RootNode = T == NT::ROOT;
     constexpr bool PVNode   = RootNode || T == NT::PV;
@@ -881,10 +881,10 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
     // Hindsight adjustment of reductions based on static evaluation difference.
     // The ply after beginning an LMR search, adjust the reduced depth based on
     // how the opponent's move affected the static evaluation.
-    if (red >= 3 && !worsen)
+    if (red >= 3200 && !worsen)
         depth = std::min(depth + 1, MAX_PLY - 1);
 
-    if (red >= 2 && ss->evalValue > 169 - (ss - 1)->evalValue)
+    if (red >= 2000 && ss->evalValue > 169 - (ss - 1)->evalValue)
         depth = std::max(depth - 1, 1);
 
     auto& pawnHistory = histories.pawn(pos.pawn_key());
@@ -1121,8 +1121,8 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
     // (*Scaler) Making IIR more aggressive scales poorly.
     if constexpr (!AllNode)
     {
-        if (depth > 5 && ttmNone && red <= 3)
-            --depth;
+        if (depth > 5 && ttmNone && red <= 3072)
+            depth = std::max(depth - 1, 1);
     }
 
     // Step 11. ProbCut
@@ -1464,8 +1464,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
         {
             Depth redDepth = std::max(std::min(newDepth - r / 1024, newDepth + 2), 1) + int(PVNode);
 
-            value =
-              -search<NT::CUT>(pos, ss + 1, -alpha - 1, -alpha, redDepth, newDepth - redDepth);
+            value = -search<NT::CUT>(pos, ss + 1, -alpha - 1, -alpha, redDepth, r);
 
             // (*Scaler) Do a full-depth search when reduced LMR search fails high
             // Shallower searches here don't scales well.
