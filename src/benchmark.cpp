@@ -476,25 +476,35 @@ Setup benchmark(std::istream& is) noexcept {
     std::size_t desiredMoveTime;
 
     if (is >> setup.threads)
-        setup.originalInvocation += std::to_string(setup.threads);
+        setup
+          .originalInvocation  //
+          .assign(std::to_string(setup.threads));
     else
         setup.threads = MAX_SYSTEM_THREADS;
 
     if (is >> setup.ttSize)
-        setup.originalInvocation += ' ' + std::to_string(setup.ttSize);
+        setup
+          .originalInvocation  //
+          .append(1, ' ')
+          .append(std::to_string(setup.ttSize));
     else
         setup.ttSize = DefaultThreadTTSize * setup.threads;
 
     if (is >> desiredMoveTime)
-        setup.originalInvocation += ' ' + std::to_string(desiredMoveTime);
+        setup
+          .originalInvocation  //
+          .append(1, ' ')
+          .append(std::to_string(desiredMoveTime));
     else
         desiredMoveTime = DefaultMoveTime;
 
-    setup.currentInvocation += std::to_string(setup.threads);
-    setup.currentInvocation += ' ';
-    setup.currentInvocation += std::to_string(setup.ttSize);
-    setup.currentInvocation += ' ';
-    setup.currentInvocation += std::to_string(desiredMoveTime);
+    setup
+      .currentInvocation  //
+      .assign(std::to_string(setup.threads))
+      .append(1, ' ')
+      .append(std::to_string(setup.ttSize))
+      .append(1, ' ')
+      .append(std::to_string(desiredMoveTime));
 
     auto get_move_time = [](std::uint16_t ply) noexcept {
         // time per move is fit roughly based on LTC games

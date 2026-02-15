@@ -533,15 +533,16 @@ void Position::set(std::string_view code, Color c, State* newSt) noexcept {
     std::string fens;
     fens.reserve(64);
 
-    fens += "8/";
-    fens += sides[WHITE];
-    fens += digit_to_char(8 - sides[WHITE].size());
-    fens += "/8/8/8/8/";
-    fens += sides[BLACK];
-    fens += digit_to_char(8 - sides[BLACK].size());
-    fens += "/8 ";
-    fens += c == WHITE ? 'w' : 'b';
-    fens += " - - 0 1";
+    fens  //
+      .assign("8/")
+      .append(sides[WHITE])
+      .append(1, digit_to_char(8 - sides[WHITE].size()))
+      .append("/8/8/8/8/")
+      .append(sides[BLACK])
+      .append(1, digit_to_char(8 - sides[BLACK].size()))
+      .append("/8")
+      .append(c == WHITE ? " w " : " b ")
+      .append("- - 0 1");
 
     set(fens, newSt);
 }
@@ -575,9 +576,9 @@ std::string Position::fen(bool complete) const noexcept {
             else
             {
                 if (emptyCount != 0)
-                    fens += digit_to_char(emptyCount);
+                    fens.push_back(digit_to_char(emptyCount));
 
-                fens += to_char(piece(s));
+                fens.push_back(to_char(piece(s)));
 
                 emptyCount = 0;
             }
@@ -585,59 +586,51 @@ std::string Position::fen(bool complete) const noexcept {
 
         // Handle trailing empty squares
         if (emptyCount != 0)
-            fens += digit_to_char(emptyCount);
+            fens.push_back(digit_to_char(emptyCount));
 
         if (r == RANK_1)
             break;
 
-        fens += '/';
+        fens.push_back('/');
     }
 
-    fens += active_color() == WHITE ? " w " : " b ";
+    fens.append(active_color() == WHITE ? " w " : " b ");
 
     if (has_castling_rights())
     {
-        Color c;
-
-        c = WHITE;
-
-        if (has_castling_rights(c, CastlingSide::KING))
-            fens += Chess960  //
-                    ? to_char<true>(file_of(castling_rook_sq(c, CastlingSide::KING)))
-                    : 'K';
-        if (has_castling_rights(c, CastlingSide::QUEEN))
-            fens += Chess960  //
-                    ? to_char<true>(file_of(castling_rook_sq(c, CastlingSide::QUEEN)))
-                    : 'Q';
-
-        c = BLACK;
-
-        if (has_castling_rights(c, CastlingSide::KING))
-            fens += Chess960  //
-                    ? to_char<false>(file_of(castling_rook_sq(c, CastlingSide::KING)))
-                    : 'k';
-        if (has_castling_rights(c, CastlingSide::QUEEN))
-            fens += Chess960  //
-                    ? to_char<false>(file_of(castling_rook_sq(c, CastlingSide::QUEEN)))
-                    : 'q';
+        if (has_castling_rights(WHITE, CastlingSide::KING))
+            fens.push_back(Chess960  //
+                             ? to_char<true>(file_of(castling_rook_sq(WHITE, CastlingSide::KING)))
+                             : 'K');
+        if (has_castling_rights(WHITE, CastlingSide::QUEEN))
+            fens.push_back(Chess960  //
+                             ? to_char<true>(file_of(castling_rook_sq(WHITE, CastlingSide::QUEEN)))
+                             : 'Q');
+        if (has_castling_rights(BLACK, CastlingSide::KING))
+            fens.push_back(Chess960  //
+                             ? to_char<false>(file_of(castling_rook_sq(BLACK, CastlingSide::KING)))
+                             : 'k');
+        if (has_castling_rights(BLACK, CastlingSide::QUEEN))
+            fens.push_back(Chess960  //
+                             ? to_char<false>(file_of(castling_rook_sq(BLACK, CastlingSide::QUEEN)))
+                             : 'q');
     }
     else
-        fens += '-';
+        fens.push_back('-');
 
-    fens += ' ';
+    fens.push_back(' ');
 
     if (en_passant_sq() != SQ_NONE)
-        fens += to_square(en_passant_sq());
+        fens.append(to_square(en_passant_sq()));
     else
-        fens += '-';
+        fens.push_back('-');
 
     if (complete)
-    {
-        fens += ' ';
-        fens += std::to_string(rule50_count());
-        fens += ' ';
-        fens += std::to_string(move_num());
-    }
+        fens  //
+          .append(1, ' ')
+          .append(std::to_string(rule50_count()))
+          .append(1, ' ')
+          .append(std::to_string(move_num()));
 
     return fens;
 }
@@ -1953,13 +1946,11 @@ void Position::flip() noexcept {
     case 'b' : token[0] = 'W'; break;
         // clang-format on
     }
-    fens += token;
-    fens += ' ';
+    fens.append(token).push_back(' ');
 
     // Castling rights
     iss >> token;
-    fens += token;
-    fens += ' ';
+    fens.append(token).push_back(' ');
 
     fens = toggle_case(fens);
 
@@ -1967,10 +1958,10 @@ void Position::flip() noexcept {
     iss >> token;
     if (token.size() == 2)
         token[1] = flip_rank(token[1]);
-    fens += token;
+    fens.append(token);
 
     std::getline(iss, token);  // Half and full moves
-    fens += token;
+    fens.append(token);
 
     set(fens, st);
 
@@ -1990,7 +1981,7 @@ void Position::mirror() noexcept {
 
         std::reverse(token.begin(), token.end());
 
-        fens.append(token).append(1, delim);
+        fens.append(token).push_back(delim);
 
         if (r == RANK_1)
             break;
@@ -1998,8 +1989,7 @@ void Position::mirror() noexcept {
 
     // Active color (will remain the same)
     iss >> token;
-    fens += token;
-    fens += ' ';
+    fens.append(token).push_back(' ');
 
     // Castling rights
     iss >> token;
@@ -2017,17 +2007,16 @@ void Position::mirror() noexcept {
                 // clang-format on
             }
         }
-    fens += token;
-    fens += ' ';
+    fens.append(token).push_back(' ');
 
     // En-passant square (flip the file)
     iss >> token;
     if (token.size() == 2)
         token[0] = flip_file(token[0]);
-    fens += token;
+    fens.append(token);
 
     std::getline(iss, token);  // Half and full moves
-    fens += token;
+    fens.append(token);
 
     set(fens, st);
 
@@ -2241,39 +2230,32 @@ bool Position::_is_ok() const noexcept {
 Position::operator std::string() const noexcept {
     constexpr std::string_view Sep{"\n  +---+---+---+---+---+---+---+---+\n"};
 
-    std::string str;
-    str.reserve(672);
+    std::string pos;
+    pos.reserve(672);
 
-    str += Sep;
+    pos.assign(Sep);
 
     for (Rank r = RANK_8;; --r)
     {
-        str += to_char(r);
+        pos.push_back(to_char(r));
 
         for (File f = FILE_A; f <= FILE_H; ++f)
-        {
-            str += " | ";
-            str += to_char(piece(make_square(f, r)));
-        }
+            pos.append(" | ").push_back(to_char(piece(make_square(f, r))));
 
-        str += " |";
-        str += Sep;
+        pos.append(" |").append(Sep);
 
         if (r == RANK_1)
             break;
     }
 
-    str += " ";
+    pos.push_back(' ');
 
     for (File f = FILE_A; f <= FILE_H; ++f)
-    {
-        str += "   ";
-        str += to_char<true>(f);
-    }
+        pos.append("   ").push_back(to_char<true>(f));
 
-    str += "\n";
+    pos.push_back('\n');
 
-    return str;
+    return pos;
 }
 
 // Prints to the output stream the position in ASCII + detailed info

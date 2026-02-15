@@ -242,37 +242,32 @@ void init() noexcept {
 std::string pretty_str(Bitboard b) noexcept {
     constexpr std::string_view Sep{"\n  +---+---+---+---+---+---+---+---+\n"};
 
-    std::string str;
-    str.reserve(646);
+    std::string bb;
+    bb.reserve(646);
 
-    str = Sep;
+    bb.assign(Sep);
 
     for (Rank r = RANK_8;; --r)
     {
-        str += to_char(r);
+        bb.push_back(to_char(r));
 
         for (File f = FILE_A; f <= FILE_H; ++f)
-        {
-            str += " | ";
-            str += (b & make_square(f, r)) ? '*' : ' ';
-        }
+            bb.append(" | ").push_back((b & make_square(f, r)) != 0 ? '*' : ' ');
 
-        str += " |";
-        str += Sep;
+        bb.append(" |").append(Sep);
 
         if (r == RANK_1)
             break;
     }
 
-    str += " ";
+    bb.push_back(' ');
 
     for (File f = FILE_A; f <= FILE_H; ++f)
-    {
-        str += "   ";
-        str += to_char<true>(f);
-    }
+        bb.append("   ").push_back(to_char<true>(f));
 
-    return str;
+    bb.push_back('\n');
+
+    return bb;
 }
 
 std::string_view pretty(Bitboard b) noexcept {

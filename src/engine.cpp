@@ -320,11 +320,12 @@ std::string Engine::thread_binding_info() const noexcept {
         const auto& [numaId, threadCount] = *itr;
 
         if (itr != boundThreadCounts.begin())
-            threadBinding += ':';
+            threadBinding.push_back(':');
 
-        threadBinding += std::to_string(numaId);
-        threadBinding += '/';
-        threadBinding += std::to_string(threadCount);
+        threadBinding  //
+          .append(std::to_string(numaId))
+          .append(1, '/')
+          .append(std::to_string(threadCount));
     }
 
     return threadBinding;

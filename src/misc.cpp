@@ -131,16 +131,15 @@ constexpr std::string_view Version{"dev"};
 }  // namespace
 
 std::string engine_info(bool uci) noexcept {
-    std::string engineInfo;
-    engineInfo.reserve(64);
+    std::string engine;
+    engine.reserve(64);
 
-    if (uci)
-        engineInfo += "id name ";
-    engineInfo += version_info();
-    engineInfo += uci ? "\nid author " : " by ";
-    engineInfo += Author;
+    engine.assign(uci ? "id name " : "")
+      .append(version_info())
+      .append(uci ? "\nid author " : " by ")
+      .append(Author);
 
-    return engineInfo;
+    return engine;
 }
 
 // Returns the full name of the current DON version.
@@ -153,30 +152,28 @@ std::string engine_info(bool uci) noexcept {
 // For releases (non-dev builds) only include the version number:
 //  - DON version
 std::string version_info() noexcept {
-    std::string versionInfo;
-    versionInfo.reserve(32);
+    std::string version;
+    version.reserve(32);
 
-    versionInfo += Name;
-    versionInfo += ' ';
-    versionInfo += Version;
+    version.assign(Name).append(" ").append(Version);
 
     if constexpr (Version == "dev")
     {
-        versionInfo += '-';
+        version.push_back('-');
 #if defined(GIT_DATE)
-        versionInfo += STRINGIFY(GIT_DATE);
+        version.append(STRINGIFY(GIT_DATE));
 #else
-        versionInfo += format_date(__DATE__);
+        version.append(format_date(__DATE__));
 #endif
-        versionInfo += '-';
+        version.push_back('-');
 #if defined(GIT_SHA)
-        versionInfo += STRINGIFY(GIT_SHA);
+        version.append(STRINGIFY(GIT_SHA));
 #else
-        versionInfo += "nogit";
+        version.append("nogit");
 #endif
     }
 
-    return versionInfo;
+    return version;
 }
 
 // Returns a string trying to describe the compiler used
@@ -194,119 +191,138 @@ std::string compiler_info() noexcept {
     // _WIN32                  Building on Windows (any)
     // _WIN64                  Building on Windows 64 bit
 
-    std::string compilerInfo;
-    compilerInfo.reserve(256);
+    std::string compiler;
+    compiler.reserve(256);
 
-    compilerInfo += "\nCompiled by                : ";
+    compiler.assign("\nCompiled by                : ");
 #if defined(__INTEL_LLVM_COMPILER)
-    compilerInfo += "ICX ";
-    compilerInfo += STRINGIFY(__INTEL_LLVM_COMPILER);
+    compiler  //
+      .append("ICX ")
+      .append(STRINGIFY(__INTEL_LLVM_COMPILER));
 #elif defined(__clang__)
-    compilerInfo += "clang++ ";
-    compilerInfo += VERSION_STRING(__clang_major__, __clang_minor__, __clang_patchlevel__);
+    compiler  //
+      .append("clang++ ")
+      .append(VERSION_STRING(__clang_major__, __clang_minor__, __clang_patchlevel__));
 #elif defined(__GNUC__)
-    compilerInfo += "g++ (GNUC) ";
-    compilerInfo += VERSION_STRING(__GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__);
+    compiler  //
+      .append("g++ (GNUC) ")
+      .append(VERSION_STRING(__GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__));
 #elif defined(_MSC_VER)
-    compilerInfo += "MSVC ";
-    compilerInfo += STRINGIFY(_MSC_FULL_VER) "." STRINGIFY(_MSC_BUILD);
+    compiler  //
+      .append("MSVC ")
+      .append(std::to_string(_MSC_VER / 100))  // major
+      .append(1, '.')
+      .append(std::to_string(_MSC_VER % 100))  // minor
+      .append(1, '.')
+      .append(std::to_string(_MSC_FULL_VER % 100000))  // patch
+    #if defined(_MSC_BUILD)
+      .append(1, '.')
+      .append(std::to_string(_MSC_BUILD))  // build
+    #endif
+      ;
 #elif defined(__e2k__) && defined(__LCC__)
-    compilerInfo += "MCST LCC ";
-    compilerInfo += std::to_string(__LCC__ / 100);
-    compilerInfo += ".";
-    compilerInfo += std::to_string(__LCC__ % 100);
-    compilerInfo += ".";
-    compilerInfo += std::to_string(__LCC_MINOR__);
+    compiler  //
+      .append("MCST LCC ")
+      .append(std::to_string(__LCC__ / 100))  // major
+      .append(1, '.')
+      .append(std::to_string(__LCC__ % 100))  // minor
+    #if defined(__LCC_MINOR__)
+      .append(1, '.')
+      .append(std::to_string(__LCC_MINOR__))  // patch
+    #endif
+      ;
 #else
-    compilerInfo += "(unknown compiler)";
+    compiler.append("(unknown compiler)");
 #endif
 
-    compilerInfo += "\nCompiled on                : ";
+    compiler.append("\nCompiled on                : ");
 #if defined(__APPLE__)
-    compilerInfo += "Apple";
+    compiler.append("Apple");
 #elif defined(__CYGWIN__)
-    compilerInfo += "Cygwin";
+    compiler.append("Cygwin");
 #elif defined(__MINGW64__)
-    compilerInfo += "MinGW64";
+    compiler.append("MinGW64");
 #elif defined(__MINGW32__)
-    compilerInfo += "MinGW32";
+    compiler.append("MinGW32");
 #elif defined(__ANDROID__)
-    compilerInfo += "Android";
+    compiler.append("Android");
 #elif defined(__linux__)
-    compilerInfo += "Linux";
-#elif defined(_WIN64)
-    compilerInfo += "Microsoft Windows 64-bit";
+    compiler.append("Linux");
 #elif defined(_WIN32)
-    compilerInfo += "Microsoft Windows 32-bit";
+    #if defined(_WIN64)
+    compiler.append("Microsoft Windows 64-bit");
+    #else defined(_WIN32)
+    compiler.append("Microsoft Windows 32-bit");
+    #endif
 #else
-    compilerInfo += "(unknown system)";
+    compiler.append("(unknown system)");
 #endif
 
-    compilerInfo += "\nCompilation architecture   : ";
+    compiler.append("\nCompilation architecture   : ");
 #if defined(ARCH)
-    compilerInfo += STRINGIFY(ARCH);
+    compiler.append(STRINGIFY(ARCH));
 #else
-    compilerInfo += "(undefined architecture)";
+    compiler.append("(unknown architecture)");
 #endif
 
-    compilerInfo += "\nCompilation settings       : ";
+    compiler.append("\nCompilation settings       : ");
 #if defined(IS_64BIT)
-    compilerInfo += "64-bit";
+    compiler.append("64-bit");
 #else
-    compilerInfo += "32-bit";
+    compiler.append("32-bit");
 #endif
 #if defined(USE_AVX512ICL)
-    compilerInfo += " AVX512ICL";
+    compiler.append(" AVX512ICL");
 #endif
 #if defined(USE_VNNI)
-    compilerInfo += " VNNI";
+    compiler.append(" VNNI");
 #endif
 #if defined(USE_AVX512)
-    compilerInfo += " AVX512";
+    compiler.append(" AVX512");
 #endif
 #if defined(USE_BMI2)
-    compilerInfo += " BMI2";
+    compiler.append(" BMI2");
     #if defined(USE_COMP)
-    compilerInfo += " COMP";
+    compiler.append(" COMP");
     #endif
 #endif
 #if defined(USE_AVX2)
-    compilerInfo += " AVX2";
+    compiler.append(" AVX2");
 #endif
 #if defined(USE_SSE41)
-    compilerInfo += " SSE41";
+    compiler.append(" SSE41");
 #endif
 #if defined(USE_SSSE3)
-    compilerInfo += " SSSE3";
+    compiler.append(" SSSE3");
 #endif
 #if defined(USE_SSE2)
-    compilerInfo += " SSE2";
+    compiler.append(" SSE2");
 #endif
 #if defined(USE_NEON)
     #if defined(USE_NEON_DOTPROD)
-    compilerInfo += " NEON_DOTPROD";
+    compiler.append(" NEON_DOTPROD");
     #else
-    compilerInfo += " NEON";
+    compiler.append(" NEON");
     #endif
 #endif
 #if defined(USE_POPCNT)
-    compilerInfo += " POPCNT";
+    compiler.append(" POPCNT");
 #endif
 
 #if !defined(NDEBUG)
-    compilerInfo += " DEBUG";
+    compiler.append(" DEBUG");
 #endif
 
-    compilerInfo += "\nCompiler __VERSION__ macro : ";
+    compiler.append("\nCompiler __VERSION__ macro : ");
 #if defined(__VERSION__)
-    compilerInfo += __VERSION__;
+    compiler.append(__VERSION__);
 #else
-    compilerInfo += "(undefined macro)";
+    compiler.append("(unknown macro)");
 #endif
 
 #undef VERSION_STRING
 
-    return compilerInfo;
+    return compiler;
 }
 
 std::string format_time(const std::chrono::system_clock::time_point& timePoint) noexcept {

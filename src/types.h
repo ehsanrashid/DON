@@ -98,7 +98,7 @@ inline constexpr std::uint16_t MAX_PLY   = 254;
 // Size of cache line (in bytes)
 inline constexpr std::size_t CACHE_LINE_SIZE = 64;
 
-inline constexpr std::string_view PIECE_CHAR{" PNBRQK  pnbrqk "};
+inline constexpr std::string_view PIECE_CHS{".PNBRQK..pnbrqk."};
 inline constexpr std::string_view START_FEN{
   "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"};
 
@@ -320,16 +320,16 @@ constexpr Direction pawn_dpush(Color c) noexcept {
     return c == WHITE ? Direction::NORTH_2 : Direction::SOUTH_2;
 }
 
-[[nodiscard]] constexpr char to_char(PieceType pt) noexcept {
-    return is_ok(pt) ? PIECE_CHAR[pt] : ' ';
+[[nodiscard]] constexpr char to_char(PieceType pt) noexcept {  //
+    return is_ok(pt) ? PIECE_CHS[pt] : ' ';
 }
 
 [[nodiscard]] constexpr char to_char(Piece pc) noexcept {  //
-    return is_ok(pc) ? PIECE_CHAR[+pc] : ' ';
+    return is_ok(pc) ? PIECE_CHS[+pc] : ' ';
 }
 
 [[nodiscard]] constexpr Piece to_piece(char pc) noexcept {
-    std::size_t pos = PIECE_CHAR.find(pc);
+    std::size_t pos = PIECE_CHS.find(pc);
 
     return pos != std::string_view::npos ? Piece(pos) : Piece::NO_PIECE;
 }
