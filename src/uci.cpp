@@ -929,10 +929,10 @@ std::string UCI::move_to_can(Move m) noexcept {
     std::string can;
     can.reserve(5);
 
-    can.append(to_square(orgSq));
-    can.append(to_square(dstSq));
-    can.append(std::size_t(m.type() == MT::PROMOTION),
-               char(std::tolower((unsigned char) to_char(m.promotion_type()))));
+    can.assign(to_square(orgSq))
+      .append(to_square(dstSq))
+      .append(std::size_t(m.type() == MT::PROMOTION),
+              char(std::tolower((unsigned char) to_char(m.promotion_type()))));
 
     return can;
 }
@@ -1058,13 +1058,13 @@ std::string UCI::move_to_san(Move m, Position& pos) noexcept {
         }
         if (pos.capture(m))
         {
-            san.append(std::size_t(movedPt == PAWN), to_char(file_of(orgSq)));
-            san.append(std::size_t(1), 'x');
+            san.append(std::size_t(movedPt == PAWN), to_char(file_of(orgSq)))
+              .append(std::size_t(1), 'x');
         }
-        san.append(to_square(dstSq));
-        san.append(std::size_t(m.type() == MT::PROMOTION), '=');
-        san.append(std::size_t(m.type() == MT::PROMOTION),
-                   char(std::toupper(to_char(m.promotion_type()))));
+        san.append(to_square(dstSq))
+          .append(std::size_t(m.type() == MT::PROMOTION), '=')
+          .append(std::size_t(m.type() == MT::PROMOTION),
+                  char(std::toupper((unsigned char) to_char(m.promotion_type()))));
     }
 
     State st;
