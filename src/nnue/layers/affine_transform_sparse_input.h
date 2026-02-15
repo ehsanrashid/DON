@@ -75,20 +75,22 @@ void find_nnz(const std::uint8_t* RESTRICT input,
               IndexType&                   outCount) noexcept {
 
     #if defined(USE_AVX512ICL)
-    constexpr IndexType SimdWidthIn  = 64;  // 512 bits
-    constexpr IndexType SimdWidthOut = 32;  // 512 bits / 16 bits
-    constexpr IndexType ChunkCount   = InputDimensions / SimdWidthOut;
+    constexpr IndexType InSimdWidth  = 64;  // 512 bits
+    constexpr IndexType OutSimdWidth = 32;  // 512 bits / 16 bits
+    constexpr IndexType ChunkCount   = InputDimensions / OutSimdWidth;
 
-    __m512i increment = _mm512_set1_epi16(SimdWidthOut);
-    __m512i base      = _mm512_set_epi16(  // Same permute order as _mm512_packus_epi32()
-      31, 30, 29, 28, 15, 14, 13, 12, 27, 26, 25, 24, 11, 10, 9, 8, 23, 22, 21, 20, 7, 6, 5, 4, 19,
-      18, 17, 16, 3, 2, 1, 0);
+    __m512i increment = _mm512_set1_epi16(OutSimdWidth);
+    __m512i base      = _mm512_set_epi16(   // Same permute order as _mm512_packus_epi32()
+      31, 30, 29, 28, 15, 14, 13, 12,  //
+      27, 26, 25, 24, 11, 10, 9, 8,    //
+      23, 22, 21, 20, 7, 6, 5, 4,      //
+      19, 18, 17, 16, 3, 2, 1, 0);
 
     IndexType count = 0;
     for (IndexType i = 0; i < ChunkCount; ++i)
     {
-        __m512i inputV0 = _mm512_load_si512(input + i * 2 * SimdWidthIn);
-        __m512i inputV1 = _mm512_load_si512(input + i * 2 * SimdWidthIn + SimdWidthIn);
+        __m512i inputV0 = _mm512_load_si512(input + i * 2 * InSimdWidth + 0 * InSimdWidth);
+        __m512i inputV1 = _mm512_load_si512(input + i * 2 * InSimdWidth + 1 * InSimdWidth);
 
         // Get a bitmask and gather non zero indices
         __m512i   inputV01 = _mm512_packus_epi32(inputV0, inputV1);
@@ -102,16 +104,19 @@ void find_nnz(const std::uint8_t* RESTRICT input,
     }
     outCount = count;
     #elif defined(USE_AVX512)
-    constexpr IndexType SimdWidth  = 16;  // 512 bits / 32 bits
-    constexpr IndexType ChunkCount = InputDimensions / SimdWidth;
+    constexpr IndexType InSimdWidth  = 64;  // 64 bytes per AVX-512 register
+    constexpr IndexType OutSimdWidth = 16;  // 512 bits / 32 bits
+    constexpr IndexType ChunkCount   = InputDimensions / OutSimdWidth;
 
-    __m512i increment = _mm512_set1_epi32(SimdWidth);
-    __m512i base      = _mm512_set_epi32(15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0);
+    __m512i increment = _mm512_set1_epi32(OutSimdWidth);
+    __m512i base      = _mm512_set_epi32(  //
+      15, 14, 13, 12, 11, 10, 9, 8,   //
+      7, 6, 5, 4, 3, 2, 1, 0);
 
     IndexType count = 0;
     for (IndexType i = 0; i < ChunkCount; ++i)
     {
-        __m512i inputV = _mm512_load_si512(input + i * SimdWidth * sizeof(std::uint32_t));
+        __m512i inputV = _mm512_load_si512(input + i * InSimdWidth);
 
         // Get a bitmask and gather non zero indices
         __mmask16 nnzMask = _mm512_test_epi32_mask(inputV, inputV);
@@ -126,7 +131,7 @@ void find_nnz(const std::uint8_t* RESTRICT input,
     #else
     using namespace SIMD;
 
-    constexpr IndexType InputSimdWidth = sizeof(vec_uint_t) / sizeof(std::int32_t);
+    constexpr IndexType InputSimdWidth = sizeof(vec_uint_t) / sizeof(std::uint32_t);
     // Outputs are processed 8 elements at a time, even if the SIMD width is narrower
     constexpr IndexType ChunkSize      = 8;
     constexpr IndexType ChunkCount     = InputDimensions / ChunkSize;
@@ -318,9 +323,9 @@ class AffineTransformSparseInput final {
             std::size_t i1 = beg[1];
             std::size_t i2 = beg[2];
 
-            invec_t in0 = vec_set_32(load_as<std::int32_t>(input + i0 * sizeof(std::int32_t)));
-            invec_t in1 = vec_set_32(load_as<std::int32_t>(input + i1 * sizeof(std::int32_t)));
-            invec_t in2 = vec_set_32(load_as<std::int32_t>(input + i2 * sizeof(std::int32_t)));
+            invec_t in0 = vec_set_32(load_as<std::int32_t>(input + i0 * sizeof(std::uint32_t)));
+            invec_t in1 = vec_set_32(load_as<std::int32_t>(input + i1 * sizeof(std::uint32_t)));
+            invec_t in2 = vec_set_32(load_as<std::int32_t>(input + i2 * sizeof(std::uint32_t)));
 
             const invec_t* col0 = reinterpret_cast<const invec_t*>(&weights[i0 * OutputDimensions * ChunkSize]);
             const invec_t* col1 = reinterpret_cast<const invec_t*>(&weights[i1 * OutputDimensions * ChunkSize]);
@@ -346,7 +351,7 @@ class AffineTransformSparseInput final {
         {
             std::size_t i = *beg;
 
-            invec_t in = vec_set_32(load_as<std::int32_t>(input + i * sizeof(std::int32_t)));
+            invec_t in = vec_set_32(load_as<std::int32_t>(input + i * sizeof(std::uint32_t)));
 
             const invec_t* col = reinterpret_cast<const invec_t*>(&weights[i * OutputDimensions * ChunkSize]);
 

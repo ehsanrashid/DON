@@ -5,15 +5,46 @@
 
   This test is best executed inside a constrained environment (CI job with ulimit -u low,
   or container with small thread limits) to reliably trigger failure.
-*/
 
-#include "thread.h"
+Steps:
+
+mkdir -p build
+
+g++ -std=c++17 -O2 -I./src \
+    tests/thread_creation.cpp \
+    $(ls src/*.cpp | grep -v 'src/main.cpp') \
+    src/nnue/*.cpp \
+    src/nnue/features/*.cpp \
+    src/syzygy/*.cpp \
+    -o build/thread_creation \
+    -lpthread
+g++ -std=c++17 -O2 -I./src \
+    tests/thread_creation.cpp \
+    $(for f in src/*.cpp; do [[ "$f" != "src/main.cpp" ]] && echo "$f"; done) \
+    src/nnue/*.cpp \
+    src/nnue/features/*.cpp \
+    src/syzygy/*.cpp \
+    -o build/thread_creation \
+    -lpthread
+g++ -std=c++17 -O2 -I./src `
+    tests/thread_creation.cpp `
+    $(Get-ChildItem src/*.cpp | Where-Object { $_.Name -ne "main.cpp" } | ForEach-Object { $_.FullName }) `
+    src/nnue/*.cpp `
+    src/nnue/features/*.cpp `
+    src/syzygy/*.cpp `
+    -o build/thread_creation `
+    -lpthread
+
+./build/thread_creation
+*/
 
 #include <chrono>
 #include <iostream>
 #include <memory>
 #include <thread>
 #include <vector>
+
+#include "thread.h"
 
 using namespace DON;
 

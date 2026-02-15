@@ -19,9 +19,7 @@
 
 #include <algorithm>
 #include <cassert>
-#include <cmath>
 #include <cstdio>
-#include <cstdlib>
 #include <memory>
 #include <utility>
 
@@ -44,7 +42,7 @@ Value evaluate(const Position&          pos,
                std::int32_t             optimism) noexcept {
     assert(pos.checkers_bb() == 0);
 
-    Value absEvaluate = std::abs(pos.evaluate());
+    Value absEvaluate = constexpr_abs(pos.evaluate());
 
     bool smallNet = absEvaluate > 962;
 
@@ -62,7 +60,7 @@ Value evaluate(const Position&          pos,
         nnue   = compute_nnue();
 
         // Re-evaluate with the big-net if the small-net's NNUE evaluation is below a certain threshold
-        if (std::abs(nnue) < 277)
+        if (constexpr_abs(nnue) < 277)
         {
             smallNet = false;
 
@@ -76,18 +74,18 @@ Value evaluate(const Position&          pos,
         nnue   = compute_nnue();
     }
 
-    std::int32_t complexity = std::abs(netOut.psqt - netOut.positional);
+    std::int32_t complexity = constexpr_abs(netOut.psqt - netOut.positional);
 
     // Blend nnue and optimism with complexity
     nnue *= 1.0 - 54.8366e-6 * complexity;
     optimism *= 1.0 + 21.0084e-4 * complexity;
 
-    std::int32_t material = pos.material();
+    double material = double(pos.material());
 
-    std::int32_t v = nnue + constexpr_round(15.2588e-6 * (nnue + optimism) * material);
+    std::int32_t v = nnue + constexpr_round(15.2588e-6 * double(nnue + optimism) * material);
 
     // Damp evaluation linearly based on the 50-move rule
-    v = constexpr_round(v * std::max(1.0 - 5.1021e-3 * int(pos.rule50_count()), 0.0));
+    v = constexpr_round(v * std::max(1.0 - 5.1021e-3 * double(pos.rule50_count()), 0.0));
 
     // Guarantee evaluation does not hit the table-base range
     return in_range(v);

@@ -20,7 +20,6 @@
 
 #include <algorithm>
 #include <cassert>
-#include <cmath>
 #include <cstdint>
 #include <limits>
 #include <type_traits>
@@ -53,15 +52,15 @@ class StatsEntry final {
         // Make sure that bonus is in range [-D, +D]
         int clampedBonus = std::clamp(bonus, -D, +D);
         // Apply gravity-based adjustment
-        value += clampedBonus - value * std::abs(clampedBonus) / D;
+        value += clampedBonus - int(value) * constexpr_abs(clampedBonus) / D;
 
-        assert(std::abs(value) <= D);
+        assert(constexpr_abs(value) <= D);
     }
 
     void operator*=(double m) noexcept {
-        assert(std::abs(m) <= 1.0);
+        assert(constexpr_abs(m) <= 1.0);
 
-        value = constexpr_round(m * int(value));
+        value = constexpr_round(m * double(value));
     }
 
    private:
@@ -73,15 +72,15 @@ inline constexpr std::uint16_t LOW_PLY_QUIET_SIZE = 5;
 
 inline constexpr int CORRECTION_HISTORY_LIMIT = 1024;
 
-inline constexpr std::size_t QUIET_HISTORY_SIZE = 0x10000;  // Max upto 16-bit
+inline constexpr std::size_t QUIET_HISTORY_SIZE = 1ULL << 16;  // Max upto 16-bit
 static_assert((QUIET_HISTORY_SIZE & (QUIET_HISTORY_SIZE - 1)) == 0,
               "QUIET_HISTORY_SIZE has to be power of 2");
 
-inline constexpr std::size_t PAWN_HISTORY_BASE_SIZE = 0x4000;
+inline constexpr std::size_t PAWN_HISTORY_BASE_SIZE = 1ULL << 14;
 static_assert((PAWN_HISTORY_BASE_SIZE & (PAWN_HISTORY_BASE_SIZE - 1)) == 0,
               "PAWN_HISTORY_BASE_SIZE has to be power of 2");
 
-inline constexpr std::size_t CORRECTION_HISTORY_BASE_SIZE = 0x10000;
+inline constexpr std::size_t CORRECTION_HISTORY_BASE_SIZE = 1ULL << 16;
 static_assert((CORRECTION_HISTORY_BASE_SIZE & (CORRECTION_HISTORY_BASE_SIZE - 1)) == 0,
               "CORRECTION_HISTORY_BASE_SIZE has to be power of 2");
 

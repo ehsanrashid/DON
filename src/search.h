@@ -586,7 +586,7 @@ class Worker final {
 
     // Main search function for NT nodes
     template<NT T>
-    Value search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, std::int8_t  red = 0, Move excludedMove = Move::None) noexcept;
+    Value search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, int red = 0, Move excludedMove = Move::None) noexcept;
 
     // Quiescence search function, which is called by the main search
     template<bool PVNode>

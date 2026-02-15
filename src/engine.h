@@ -20,7 +20,6 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <optional>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -41,7 +40,7 @@ namespace DON {
 
 class Engine final {
    public:
-    explicit Engine(std::optional<std::string_view> path = std::nullopt) noexcept;
+    explicit Engine(std::string_view path = {}) noexcept;
 
     // Cannot be movable due to components holding backreferences to fields
     Engine(const Engine&) noexcept            = delete;
@@ -79,27 +78,28 @@ class Engine final {
     void resize_tt(std::size_t ttSize) noexcept;
 
     void show() const noexcept;
-    void dump(std::optional<std::string_view> dumpFile = std::nullopt) const noexcept;
+    void dump(std::string_view dumpFile = {}) const noexcept;
     void eval() noexcept;
     void flip() noexcept;
     void mirror() noexcept;
 
     std::uint16_t hashfull(std::uint8_t maxAge = 0) const noexcept;
 
-    std::string get_numa_config_str() const noexcept;
-    std::string get_numa_config_info_str() const noexcept;
+    // (numaId, threadCount)
+    std::vector<std::pair<std::size_t, std::size_t>> bound_thread_counts() const noexcept;
 
-    std::vector<std::pair<std::size_t, std::size_t>>  //
-                get_bound_thread_counts() const noexcept;
-    std::string get_thread_binding_info_str() const noexcept;
-    std::string get_thread_allocation_info_str() const noexcept;
+    std::string numa_config() const noexcept;
+    std::string numa_config_info() const noexcept;
+    std::string thread_binding_info() const noexcept;
+    std::string thread_allocation_info() const noexcept;
 
     // Network related
     void verify_networks() const noexcept;
-    void load_networks() noexcept;
+
+    void load_networks(const StdArray<std::string_view, 2>& netFiles) noexcept;
     void load_big_network(std::string_view netFile) noexcept;
     void load_small_network(std::string_view netFile) noexcept;
-    void save_networks(const StdArray<std::optional<std::string>, 2>& netFiles) const noexcept;
+    void save_networks(const StdArray<std::string_view, 2>& netFiles) const noexcept;
 
     bool load_hash() noexcept;
     bool save_hash() const noexcept;

@@ -30,11 +30,11 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
-#include <exception>  // IWYU pragma: keep
-// IWYU pragma: no_include <__exception/terminate.h>
+#include <exception>
 #include <fstream>
 #include <functional>
 #include <iostream>
+#include <limits>
 #include <memory>
 #include <mutex>
 #include <new>
@@ -57,13 +57,12 @@
         #define NAME_MAX 255
     #endif
 #else
-    #include <climits>  // IWYU pragma: keep
+    #include <limits.h>  // IWYU pragma: keep
 #endif
 
 #undef HAS_X86_PREFETCH
 #if defined(USE_PREFETCH) \
-  && (defined(_M_X64) || defined(__x86_64__) || defined(__i386) || defined(_M_IX86)) \
-  && (defined(_M_X64) || defined(__SSE__) || (defined(_M_IX86_FP) && _M_IX86_FP >= 1))
+  && (defined(_M_X64) || defined(__x86_64__) || defined(__i386__) || defined(_M_IX86))
     #define HAS_X86_PREFETCH
     #include <xmmintrin.h>  // SSE intrinsics header for _mm_prefetch()
 #endif
@@ -141,10 +140,12 @@ inline constexpr std::size_t HEX32_SIZE = 8;
 inline constexpr std::size_t ONE_KB = 1024;
 inline constexpr std::size_t ONE_MB = ONE_KB * ONE_KB;
 
-inline constexpr std::size_t UNROLL_8 = 8;
-inline constexpr std::size_t UNROLL_4 = 4;
+inline constexpr std::size_t BLOCK_4  = 4;
+inline constexpr std::size_t BLOCK_8  = 2 * BLOCK_4;
+inline constexpr std::size_t BLOCK_16 = 4 * BLOCK_4;
+inline constexpr std::size_t BLOCK_32 = 8 * BLOCK_4;
 
-inline constexpr std::int64_t INT_LIMIT = 0x7FFFFFFF;
+inline constexpr std::int64_t INT_LIMIT = (1LL << 31) - 1;
 
 // Constants for Murmur Hashing
 inline constexpr std::uint64_t MURMUR_M = 0xC6A4A7935BD1E995ULL;
@@ -215,8 +216,18 @@ constexpr std::size_t round_up_to_pow2(std::size_t x) noexcept {
     return x + 1;
 }
 
+template<typename T>
+constexpr T constexpr_abs(T x) noexcept {
+    static_assert(std::is_integral_v<T>);
+
+    return x < 0 ? (x == std::numeric_limits<T>::min() ? x : -x) : x;
+}
+
+constexpr float constexpr_abs(float f) noexcept { return f < 0.0f ? -f : f; }
+constexpr float constexpr_abs(double d) noexcept { return d < 0.0 ? -d : d; }
+
 constexpr int constexpr_round(double d) noexcept {
-    return d >= 0.0 ? int(d + 0.4999) : int(d - 0.4999);
+    return d < 0.0 ? int(d - 0.4999) : int(d + 0.4999);
 }
 
 // Minimax-style polynomial approximation for ln(1 + f), f in [0,1)
@@ -255,6 +266,13 @@ constexpr double constexpr_log(double x) noexcept {
     // mantissa in [1,2) -> f in [0,1)
     // ln(x) = ln(m) + exponent * ln(2)
     return constexpr_approx_1p_log(x - 1.0) + exponent * LN2;
+}
+
+constexpr float max_load_factor(float maxLoadFactor = 0.75f) noexcept {
+    return std::clamp(constexpr_abs(maxLoadFactor), 0.1f, 1.0f);
+}
+constexpr std::size_t reserve_count(std::size_t reserveCount = 1024) noexcept {
+    return std::max(reserveCount, std::size_t(4));
 }
 
 std::string engine_info(bool uci = false) noexcept;
@@ -432,14 +450,14 @@ struct LazyValue final {
     LazyValue& operator=(LazyValue&&)      = delete;
 
     ~LazyValue() noexcept {
-        if (is_initialized())
+        if (initialized())
             get_ptr()->~Value();
     }
 
     template<typename... Args>
     Value& init(Args&&... args) noexcept(std::is_nothrow_constructible_v<Value, Args...>) {
         // Fast path: already initialized
-        if (is_initialized())
+        if (initialized())
             return *get_ptr();
 
         // Initialize exactly once, use tuple to capture all arguments
@@ -455,16 +473,16 @@ struct LazyValue final {
     }
 
     Value& get() noexcept {
-        assert(is_initialized() && "LazyValue accessed before initialization");
+        assert(initialized() && "LazyValue accessed before initialization");
         return *get_ptr();
     }
 
     const Value& get() const noexcept {
-        assert(is_initialized() && "LazyValue accessed before initialization");
+        assert(initialized() && "LazyValue accessed before initialization");
         return *get_ptr();
     }
 
-    [[nodiscard]] bool is_initialized() const noexcept { return callOnce.initialized(); }
+    [[nodiscard]] bool initialized() const noexcept { return callOnce.initialized(); }
 
    private:
     Value* get_ptr() noexcept { return std::launder(reinterpret_cast<Value*>(&storage)); }
@@ -499,14 +517,11 @@ struct LazyValue final {
 //  - Mutexes are stored as object in the map.
 class OstreamMutexRegistry final {
    public:
-    static void ensure_initialized() noexcept {
-        callOnce([]() noexcept {
-            constexpr std::size_t ReserveCount  = 16;
-            constexpr float       MaxLoadFactor = 1.0f;
-
-            osMutexes.max_load_factor(MaxLoadFactor);
-            std::size_t bucketCount = std::size_t(ReserveCount / MaxLoadFactor) + 1;
-            osMutexes.rehash(bucketCount);
+    static void ensure_initialized(std::size_t reserveCount  = 16,
+                                   float       maxLoadFactor = 0.85f) noexcept {
+        callOnce([reserveCount, maxLoadFactor]() noexcept {
+            osMutexes.max_load_factor(max_load_factor(maxLoadFactor));
+            osMutexes.reserve(reserve_count(reserveCount));
         });
     }
 
@@ -1088,7 +1103,8 @@ class FixedString final {
         if (size() + str.size() > capacity())
             std::terminate();
 
-        std::memcpy(data() + size(), str.data(), str.size());
+        if (!str.empty())
+            std::memcpy(data() + size(), str.data(), str.size());
 
         _size += str.size();
         null_terminate();
@@ -1126,7 +1142,8 @@ class FixedString final {
         if (str.size() > capacity())
             std::terminate();
 
-        std::memcpy(data(), str.data(), str.size());
+        if (!str.empty())
+            std::memcpy(data(), str.data(), str.size());
 
         _size = str.size();
         null_terminate();
@@ -1140,10 +1157,9 @@ class FixedString final {
 template<typename Key, typename Value>
 class ConcurrentCache final {
    public:
-    ConcurrentCache(std::size_t reserveCount = 1024, float loadFactor = 0.75f) noexcept {
-        storage.max_load_factor(loadFactor);
-        std::size_t bucketCount = std::size_t(reserveCount / loadFactor) + 1;
-        storage.rehash(bucketCount);
+    ConcurrentCache(std::size_t reserveCount = 1024, float maxLoadFactor = 0.75f) noexcept {
+        storage.max_load_factor(max_load_factor(maxLoadFactor));
+        storage.reserve(reserve_count(reserveCount));
     }
 
     template<typename... Args>
@@ -1255,46 +1271,99 @@ hash_bytes(const char* RESTRICT data, std::size_t size, std::uint64_t seed = 0) 
     // Initialize hash with seed and length (MurmurHash64A convention)
     std::uint64_t h = seed ^ (size * MURMUR_M);
 
-    const std::uint8_t* const RESTRICT dataBeg = reinterpret_cast<const std::uint8_t*>(data);
-
-    const std::uint8_t* const RESTRICT dataEnd = dataBeg + size;
-    // End of the full 8-byte blocks (size rounded down to a multiple of 8)
-    const std::uint8_t* const RESTRICT chunkEnd = dataEnd - (size & (UNROLL_8 - 1));
-
-    const std::uint8_t* RESTRICT p = dataBeg;
-    // Process the data in 8-byte (64-bit) chunks
-    for (; p < chunkEnd; p += UNROLL_8)
-    {
-        std::uint64_t k;
-        std::memcpy(&k, p, sizeof(k));  // Safe unaligned load
-
-        // Mix 64-bit block (MurmurHash64A core mixing step)
+    // Mix 64-bit block (MurmurHash64A core mixing step)
+    constexpr auto Mix = [](std::uint64_t k) noexcept {
         k *= MURMUR_M;
         k ^= k >> MURMUR_R;
         k *= MURMUR_M;
-        // Incorporate block into the hash
+        return k;
+    };
+
+    const std::uint8_t* const RESTRICT beg = reinterpret_cast<const std::uint8_t*>(data);
+    const std::uint8_t* const RESTRICT end = beg + size;
+    const std::uint8_t* RESTRICT       p   = beg;
+
+    // Process 32-byte blocks (4 × 64-bit lanes) for better throughput.
+    // The end pointer is rounded down to the nearest multiple of BLOCK_32.
+    const std::uint8_t* const RESTRICT block32End = beg + (size & ~(BLOCK_32 - 1));
+    while (p < block32End)
+    {
+        std::uint64_t k0, k1, k2, k3;
+        // Unaligned loads are safe via memcpy and typically optimized by the compiler
+        std::memcpy(&k0, p + 0 * BLOCK_8, BLOCK_8);
+        std::memcpy(&k1, p + 1 * BLOCK_8, BLOCK_8);
+        std::memcpy(&k2, p + 2 * BLOCK_8, BLOCK_8);
+        std::memcpy(&k3, p + 3 * BLOCK_8, BLOCK_8);
+
+        k0 = Mix(k0);
+        k1 = Mix(k1);
+        k2 = Mix(k2);
+        k3 = Mix(k3);
+        // Merge each mixed lane into the running hash
+        h ^= k0;
+        h *= MURMUR_M;
+        h ^= k1;
+        h *= MURMUR_M;
+        h ^= k2;
+        h *= MURMUR_M;
+        h ^= k3;
+        h *= MURMUR_M;
+
+        p += BLOCK_32;
+    }
+    // Process 16-byte blocks (2 × 64-bit words) for better throughput.
+    // The end pointer is rounded down to the nearest multiple of BLOCK_16.
+    const std::uint8_t* const RESTRICT block16End = p + ((end - p) & ~(BLOCK_16 - 1));
+    while (p < block16End)
+    {
+        std::uint64_t k0, k1;
+        // Unaligned loads are safe via memcpy and typically optimized by the compiler
+        std::memcpy(&k0, p + 0 * BLOCK_8, BLOCK_8);
+        std::memcpy(&k1, p + 1 * BLOCK_8, BLOCK_8);
+
+        k0 = Mix(k0);
+        k1 = Mix(k1);
+        // Merge each word into the running hash
+        h ^= k0;
+        h *= MURMUR_M;
+        h ^= k1;
+        h *= MURMUR_M;
+
+        p += BLOCK_16;
+    }
+    // Process remaining full 8-byte blocks.
+    // The end pointer is rounded down to the nearest multiple of BLOCK_8.
+    const std::uint8_t* const RESTRICT block8End = p + ((end - p) & ~(BLOCK_8 - 1));
+    while (p < block8End)
+    {
+        std::uint64_t k;
+        // Safe unaligned load
+        std::memcpy(&k, p, BLOCK_8);
+
+        k = Mix(k);
+        // Merge block into the running hash
         h ^= k;
         h *= MURMUR_M;
+
+        p += BLOCK_8;
     }
     // Handle remaining tail bytes (< 8) at the end
+    if (p < end)
     {
         std::uint64_t k = 0;
 
         std::uint8_t shift = 0;
         // Read remaining bytes in little-endian order
-        while (p < dataEnd)
+        while (p < end)
         {
             k |= std::uint64_t(*p) << shift;
 
             shift += BYTE_BITS;
             ++p;
         }
-
-        if (shift != 0)  // Only process if there were tail bytes
-        {
-            h ^= k;
-            h *= MURMUR_M;
-        }
+        // Merge into the running hash
+        h ^= k;
+        h *= MURMUR_M;
     }
 
     // Final avalanche mix to ensure strong bit diffusion

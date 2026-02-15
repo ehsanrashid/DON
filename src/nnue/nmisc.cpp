@@ -19,11 +19,10 @@
 
 #include "nmisc.h"
 
-#include <cmath>
-#include <cstdlib>
 #include <cstring>
 #include <iomanip>
 #include <iostream>
+#include <memory>
 #include <sstream>
 
 #include "../misc.h"
@@ -43,7 +42,7 @@ void format_cp_compact(char* buffer, Value v, const Position& pos) noexcept {
     // Set the sign character
     buffer[0] = (v < 0 ? '-' : v > 0 ? '+' : ' ');
     // Convert to centipawns and take absolute value
-    int cp = std::abs(UCI::to_cp(v, pos));
+    int cp = constexpr_abs(UCI::to_cp(v, pos));
     if (cp >= 10000)
     {
         buffer[1] = digit_to_char(cp / 10000);
@@ -80,7 +79,7 @@ void format_cp_aligned_dot(std::ostringstream& oss,
 
     auto v    = in_range(val);
     char sign = (v < 0 ? '-' : v > 0 ? '+' : ' ');
-    auto cp   = 0.01 * std::abs(UCI::to_cp(v, pos));
+    auto cp   = 0.01 * constexpr_abs(UCI::to_cp(v, pos));
     oss << sign << std::setw(6) << std::fixed << std::setprecision(2) << cp;
 }
 

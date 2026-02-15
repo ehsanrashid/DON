@@ -25,6 +25,7 @@
 #include <cstdint>
 #include <cstring>
 #include <iosfwd>
+#include <functional>
 #include <type_traits>
 #include <utility>
 

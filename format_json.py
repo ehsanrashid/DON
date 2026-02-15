@@ -3,7 +3,7 @@ import json
 import pathlib
 
 # Root folder of your repo
-repoRoot = pathlib.Path('.github')
+repoRoot = pathlib.Path('.')
 
 # Recursively find all JSON files
 for jsonFile in repoRoot.rglob('*.json'):

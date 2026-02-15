@@ -387,7 +387,7 @@ class Threads final {
 
     void wait_on_thread(std::size_t threadId) noexcept;
 
-    std::vector<std::size_t> get_bound_thread_counts() const noexcept;
+    std::vector<std::size_t> bound_thread_counts() const noexcept;
 
     // --- queries ---
     bool is_active() const noexcept {

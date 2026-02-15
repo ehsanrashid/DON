@@ -23,6 +23,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
+#include <functional>
 #include <optional>
 #include <sstream>
 #include <unordered_map>
@@ -114,7 +115,7 @@ Limit parse_limit(std::istream& is) noexcept {
         {
             is >> limit.clocks[WHITE].time;
 
-            limit.clocks[WHITE].time = std::abs(limit.clocks[WHITE].time);
+            limit.clocks[WHITE].time = constexpr_abs(limit.clocks[WHITE].time);
 
             if (limit.clocks[WHITE].time == 0)
                 limit.clocks[WHITE].time = 1;
@@ -123,7 +124,7 @@ Limit parse_limit(std::istream& is) noexcept {
         {
             is >> limit.clocks[BLACK].time;
 
-            limit.clocks[BLACK].time = std::abs(limit.clocks[BLACK].time);
+            limit.clocks[BLACK].time = constexpr_abs(limit.clocks[BLACK].time);
 
             if (limit.clocks[BLACK].time == 0)
                 limit.clocks[BLACK].time = 1;
@@ -132,7 +133,7 @@ Limit parse_limit(std::istream& is) noexcept {
         {
             is >> limit.clocks[WHITE].inc;
 
-            limit.clocks[WHITE].inc = std::abs(limit.clocks[WHITE].inc);
+            limit.clocks[WHITE].inc = constexpr_abs(limit.clocks[WHITE].inc);
 
             if (limit.clocks[WHITE].inc == 0)
                 limit.clocks[WHITE].inc = 1;
@@ -141,7 +142,7 @@ Limit parse_limit(std::istream& is) noexcept {
         {
             is >> limit.clocks[BLACK].inc;
 
-            limit.clocks[BLACK].inc = std::abs(limit.clocks[BLACK].inc);
+            limit.clocks[BLACK].inc = constexpr_abs(limit.clocks[BLACK].inc);
 
             if (limit.clocks[BLACK].inc == 0)
                 limit.clocks[BLACK].inc = 1;
@@ -150,7 +151,7 @@ Limit parse_limit(std::istream& is) noexcept {
         {
             is >> limit.moveTime;
 
-            limit.moveTime = std::abs(limit.moveTime);
+            limit.moveTime = constexpr_abs(limit.moveTime);
 
             if (limit.moveTime == 0)
                 limit.moveTime = 1;
@@ -160,7 +161,7 @@ Limit parse_limit(std::istream& is) noexcept {
             std::int16_t movesToGo;
             is >> movesToGo;
 
-            movesToGo = std::abs(movesToGo);
+            movesToGo = constexpr_abs(movesToGo);
 
             limit.movesToGo = movesToGo;
 
@@ -175,7 +176,7 @@ Limit parse_limit(std::istream& is) noexcept {
             std::int16_t mate;
             is >> mate;
 
-            mate = std::abs(mate);
+            mate = constexpr_abs(mate);
 
             limit.mate = mate;
 
@@ -189,7 +190,7 @@ Limit parse_limit(std::istream& is) noexcept {
         {
             is >> limit.depth;
 
-            limit.depth = std::abs(limit.depth);
+            limit.depth = constexpr_abs(limit.depth);
 
             if (limit.depth == 0)
                 limit.depth = 1;
@@ -214,7 +215,7 @@ Limit parse_limit(std::istream& is) noexcept {
             is >> limit.depth;
             is >> std::boolalpha >> limit.detail;
 
-            limit.depth = std::abs(limit.depth);
+            limit.depth = constexpr_abs(limit.depth);
 
             if (limit.depth == 0)
                 limit.depth = 1;
@@ -253,13 +254,11 @@ Limit parse_limit(std::istream& is) noexcept {
 
 UCI::UCI(int argc, const char* argv[]) noexcept :
     commandLine(argc, argv),
-    engine(arguments()[0].data()) {
+    engine(arguments()[0]) {
 
-    options().set_info_callback([](std::optional<std::string> infoStr) noexcept {
-        if (!infoStr)
-            return;
-
-        print_info_string(*infoStr);
+    options().set_info_callback([](std::optional<std::string_view> infoStr) noexcept {
+        if (infoStr)
+            print_info_string(*infoStr);
     });
 
     set_update_callbacks();
@@ -311,8 +310,8 @@ void UCI::execute(std::string_view command) noexcept {
         break;
     case Command::GO :
         // Send info strings after the go command is sent for old GUIs and python-chess
-        print_info_string(engine.get_numa_config_info_str());
-        print_info_string(engine.get_thread_allocation_info_str());
+        print_info_string(engine.numa_config_info());
+        print_info_string(engine.thread_allocation_info());
 
         go(iss);
         break;
@@ -342,9 +341,9 @@ void UCI::execute(std::string_view command) noexcept {
         engine.show();
         break;
     case Command::DUMP : {
-        std::optional<std::string> dumpFile;
+        std::string      input;
+        std::string_view dumpFile;
 
-        std::string input;
         if (iss >> input)
             dumpFile = input;
 
@@ -364,11 +363,11 @@ void UCI::execute(std::string_view command) noexcept {
         std::cout << compiler_info() << std::endl;
         break;
     case Command::EXPORT_NET : {
-        StdArray<std::optional<std::string>, 2> netFiles;
+        StdArray<std::string, 2>      inputs;
+        StdArray<std::string_view, 2> netFiles;
 
-        std::string input;
-        for (std::size_t i = 0; i < netFiles.size() && iss >> input; ++i)
-            netFiles[i] = input;
+        for (std::size_t i = 0; i < netFiles.size() && iss >> inputs[i]; ++i)
+            netFiles[i] = inputs[i];
 
         engine.save_networks(netFiles);
     }
@@ -786,7 +785,7 @@ void UCI::benchmark(std::istream& is) noexcept {
 
     std::cerr << '\n';
 
-    std::string threadBinding = engine.get_thread_binding_info_str();
+    std::string threadBinding = engine.thread_binding_info();
     if (threadBinding.empty())
         threadBinding = "<none>";
 
@@ -797,7 +796,7 @@ void UCI::benchmark(std::istream& is) noexcept {
               << "\nLarge page                 : " << bool_to_string(has_large_page())
               << "\nOriginal invocation        : " << "benchmark " << setup.originalInvocation
               << "\nCurrent invocation         : " << "benchmark " << setup.currentInvocation
-              << "\nAvailable processors       : " << engine.get_numa_config_str()
+              << "\nAvailable processors       : " << engine.numa_config()
               << "\nThread count               : " << setup.threads
               << "\nThread binding             : " << threadBinding
               << "\nTT size [MiB]              : " << setup.ttSize
@@ -1140,20 +1139,6 @@ Move UCI::mix_to_move(std::string                     mix,
     }
 
     return m;
-}
-
-// Optimized PV to string conversion (bulk copy style)
-std::string UCI::build_pv_string(const Moves& pvMoves) noexcept {
-    std::string pv;
-    pv.reserve(6 * pvMoves.size());
-
-    for (Move m : pvMoves)
-    {
-        pv += ' ';
-        pv += move_to_can(m);
-    }
-
-    return pv;
 }
 
 }  // namespace DON

@@ -6,15 +6,51 @@
   preserves relative order of equal-score elements and matches std::stable_sort result.
 
   The test is a lightweight replacement for exercising sort stability in move picking code.
+
+Steps:
+
+mkdir -p build
+
+g++ -std=c++17 -O2 -I./src \
+    tests/movepick_ordering.cpp \
+    $(ls src/*.cpp | grep -v 'src/main.cpp') \
+    src/nnue/*.cpp \
+    src/nnue/features/*.cpp \
+    src/syzygy/*.cpp \
+    -o build/movepick_ordering \
+    -lpthread
+g++ -std=c++17 -O2 -I./src \
+    tests/movepick_ordering.cpp \
+    $(for f in src/*.cpp; do [[ "$f" != "src/main.cpp" ]] && echo "$f"; done) \
+    src/nnue/*.cpp \
+    src/nnue/features/*.cpp \
+    src/syzygy/*.cpp \
+    -o build/movepick_ordering \
+    -lpthread
+g++ -std=c++17 -O2 -I./src `
+    tests/movepick_ordering.cpp `
+    $(Get-ChildItem src/*.cpp | Where-Object { $_.Name -ne "main.cpp" } | ForEach-Object { $_.FullName }) `
+    src/nnue/*.cpp `
+    src/nnue/features/*.cpp `
+    src/syzygy/*.cpp `
+    -o build/movepick_ordering `
+    -lpthread
+
+./build/movepick_ordering
 */
 
 #include <algorithm>
 #include <cassert>
+#include <cstdlib>
 #include <chrono>
 #include <iostream>
 #include <random>
 #include <string>
 #include <vector>
+
+#include "misc.h"
+
+using namespace DON;
 
 namespace {
 
@@ -51,43 +87,54 @@ void insertion_stable_desc(std::vector<Item>& v) noexcept {
 
 template<typename Iterator, typename T, typename Compare>
 Iterator
-upper_bound_small_unrolled(Iterator beg, Iterator end, const T& value, Compare comp) noexcept {
-    std::size_t n = end - beg;
+upper_bound_unrolled(Iterator beg, Iterator end, const T& value, Compare comp) noexcept {
+    Iterator ins = end;  // default = end (not found)
 
-    std::size_t idx = n;  // default = not found
+    std::size_t n = end - beg;
 
     std::size_t i = n;
 
     // Process blocks of 8 elements
-    for (; idx == n && i >= 8; i -= 8)
+    while (ins == end && i >= BLOCK_8)
     {
-        idx = comp(value, beg[i - 8]) ? i - 8
-            : comp(value, beg[i - 7]) ? i - 7
-            : comp(value, beg[i - 6]) ? i - 6
-            : comp(value, beg[i - 5]) ? i - 5
-            : comp(value, beg[i - 4]) ? i - 4
-            : comp(value, beg[i - 3]) ? i - 3
-            : comp(value, beg[i - 2]) ? i - 2
-            : comp(value, beg[i - 1]) ? i - 1
-                                      : idx;
+        i -= BLOCK_8;
+
+        Iterator base = beg + i;
+
+        ins = comp(value, base[0]) ? base + 0
+            : comp(value, base[1]) ? base + 1
+            : comp(value, base[2]) ? base + 2
+            : comp(value, base[3]) ? base + 3
+            : comp(value, base[4]) ? base + 4
+            : comp(value, base[5]) ? base + 5
+            : comp(value, base[6]) ? base + 6
+            : comp(value, base[7]) ? base + 7
+                                   : ins;
     }
     // Process blocks of 4 elements
-    for (; idx == n && i >= 4; i -= 4)
+    while (ins == end && i >= BLOCK_4)
     {
-        idx = comp(value, beg[i - 4]) ? i - 4
-            : comp(value, beg[i - 3]) ? i - 3
-            : comp(value, beg[i - 2]) ? i - 2
-            : comp(value, beg[i - 1]) ? i - 1
-                                      : idx;
+        i -= BLOCK_4;
+
+        Iterator base = beg + i;
+
+        ins = comp(value, base[0]) ? base + 0
+            : comp(value, base[1]) ? base + 1
+            : comp(value, base[2]) ? base + 2
+            : comp(value, base[3]) ? base + 3
+                                   : ins;
     }
     // Handle remaining elements
-    while (i > 0)
+    while (i >= 1)
     {
         --i;
-        idx = comp(value, beg[i]) ? i : idx;
+
+        Iterator base = beg + i;
+
+        ins = comp(value, *base) ? base : ins;
     }
 
-    return beg + idx;
+    return ins;
 }
 
 }  // namespace
@@ -150,7 +197,7 @@ int main() {
     */
 
     // Number of test items
-    constexpr std::size_t N = 20;
+    constexpr std::size_t N = 30;
 
     std::vector<Item> data;
     data.reserve(N);
@@ -181,10 +228,10 @@ int main() {
         auto beg = data.begin();
         auto end = data.end();
 
-        auto it1 = std::upper_bound(beg, end, item, item_descending);
-        auto it2 = upper_bound_small_unrolled(beg, end, item, item_descending);
+        auto itr1 = std::upper_bound(beg, end, item, item_descending);
+        auto itr2 = upper_bound_unrolled(beg, end, item, item_descending);
 
-        if (it1 != it2)
+        if (itr1 != itr2)
         {
             std::cerr << "Mismatch for value " << item.to_string() << "\n";
             return 1;
@@ -204,8 +251,8 @@ int main() {
     {
         Item item{tryData[i], i};
 
-        auto it = std::upper_bound(data.begin(), data.end(), item, item_descending);
-        stdSink += (it - data.begin());
+        auto itr = std::upper_bound(data.begin(), data.end(), item, item_descending);
+        stdSink += (itr - data.begin());
     }
 
     auto std_t1 = std::chrono::high_resolution_clock::now();
@@ -225,8 +272,8 @@ int main() {
     {
         Item item{tryData[i], i};
 
-        auto it = upper_bound_small_unrolled(data.begin(), data.end(), item, item_descending);
-        expSink += (it - data.begin());
+        auto itr = upper_bound_unrolled(data.begin(), data.end(), item, item_descending);
+        expSink += (itr - data.begin());
     }
 
     auto exp_t1 = std::chrono::high_resolution_clock::now();
@@ -235,7 +282,7 @@ int main() {
 
     std::cout << "exponential_upper_bound time: " << expTime << " ms\n";
 
-    std::cout << "Time diff: " << std::abs(int(stdTime) - int(expTime)) << "\n";
+    std::cout << "Time diff: " << constexpr_abs(int(stdTime) - int(expTime)) << "\n";
 
     return 0;
 }

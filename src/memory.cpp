@@ -17,11 +17,13 @@
 
 #include "memory.h"
 
-#include <cstdlib>
+#include <cstdlib>  // Header for malloc(), free(), aligned_alloc()
 
-#if defined(__has_include)
-    #if __has_include(<features.h>)
-        #include <features.h>
+#if defined(_WIN32)
+    #include <malloc.h>  // MSVC Header for _mm_malloc(), _mm_free()
+#else
+    #if defined(__has_include) && __has_include(<features.h>)
+        #include <features.h>  // only on Linux/glibc
     #endif
 #endif
 
@@ -49,17 +51,19 @@ void* alloc_aligned_std(std::size_t allocSize, std::size_t alignment) noexcept {
     #else
     return _aligned_malloc(allocSize, alignment);
     #endif
-#elif defined(_ISOC11_SOURCE)
+#elif defined(_ISOC11_SOURCE) || defined(__cpp_aligned_new)
+    // std::aligned_alloc requires size to be multiple of alignment
     allocSize = round_up_to_pow2_multiple(allocSize, alignment);
     return std::aligned_alloc(alignment, allocSize);
 #else
-    void* mem;
+    void* mem = nullptr;
     return posix_memalign(&mem, alignment, allocSize) != 0 ? nullptr : mem;
 #endif
 }
 
 void free_aligned_std(void* mem) noexcept {
-
+    if (mem == nullptr)
+        return;
 #if defined(_WIN32)
     #if !defined(_M_ARM) && !defined(_M_ARM64)
     _mm_free(mem);
@@ -146,9 +150,10 @@ void* alloc_aligned_large_page(std::size_t allocSize) noexcept {
 // Free aligned large page
 // The effect is a nop if mem == nullptr
 bool free_aligned_large_page(void* mem) noexcept {
-
+    if (mem == nullptr)
+        return true;
 #if defined(_WIN32)
-    if (mem != nullptr && !VirtualFree(mem, 0, MEM_RELEASE))
+    if (!VirtualFree(mem, 0, MEM_RELEASE))
     {
         DEBUG_LOG("Failed to free memory, error = " << error_to_string(GetLastError()));
         return false;

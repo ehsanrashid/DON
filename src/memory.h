@@ -334,11 +334,11 @@ struct HandleGuard final {
     }
 
     HANDLE release() noexcept {
-        HANDLE tmpHandle = handle;
+        HANDLE oldHandle = handle;
 
         handle = INVALID_HANDLE;
 
-        return tmpHandle;
+        return oldHandle;
     }
 
    private:
@@ -393,11 +393,11 @@ struct MMapGuard final {
     }
 
     void* release() noexcept {
-        void* tmpMappedPtr = mappedPtr;
+        void* oldMappedPtr = mappedPtr;
 
         mappedPtr = INVALID_MMAP_PTR;
 
-        return tmpMappedPtr;
+        return oldMappedPtr;
     }
 
    private:
@@ -416,16 +416,16 @@ struct Advapi final {
     );
     // https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-lookupprivilegevaluea
     using LookupPrivilegeValue_ = BOOL(WINAPI*)(
-      LPCSTR lpSystemName,      // [in] System name (NULL for local)
-      LPCSTR lpName,            // [in] Privilege name (e.g., SE_DEBUG_NAME)
+      LPCSTR lpSystemName,      // [in]  System name (NULL for local)
+      LPCSTR lpName,            // [in]  Privilege name (e.g., SE_DEBUG_NAME)
       PLUID  lpLuid             // [out] Receives LUID of privilege
     );
     // https://learn.microsoft.com/en-us/windows/win32/api/securitybaseapi/nf-securitybaseapi-adjusttokenprivileges
     using AdjustTokenPrivileges_ = BOOL(WINAPI*)(
-      HANDLE            TokenHandle,          // [in]      Access token handle
-      BOOL              DisableAllPrivileges, // [in]      Disable all privileges flag
-      PTOKEN_PRIVILEGES NewState,             // [in, opt] New privilege state
-      DWORD             BufferLength,         // [in]      Size of PreviousState buffer
+      HANDLE            TokenHandle,          // [in]       Access token handle
+      BOOL              DisableAllPrivileges, // [in]       Disable all privileges flag
+      PTOKEN_PRIVILEGES NewState,             // [in, opt]  New privilege state
+      DWORD             BufferLength,         // [in]       Size of PreviousState buffer
       PTOKEN_PRIVILEGES PreviousState,        // [out, opt] Previous privilege state
       PDWORD            ReturnLength          // [out, opt] Required buffer size
     );
@@ -607,11 +607,11 @@ struct FdGuard final {
     }
 
     int release() noexcept {
-        int tmpFd = fd;
+        int oldFd = fd;
 
         fd = INVALID_FD;
 
-        return tmpFd;
+        return oldFd;
     }
 
    private:
@@ -679,12 +679,12 @@ struct MMapGuard final {
     }
 
     MMapInfo release() noexcept {
-        MMapInfo tmpMapInfo{mappedPtr, mappedSize};
+        MMapInfo oldMapInfo{mappedPtr, mappedSize};
 
         mappedPtr  = INVALID_MMAP_PTR;
         mappedSize = INVALID_MMAP_SIZE;
 
-        return tmpMapInfo;
+        return oldMapInfo;
     }
 
    private:

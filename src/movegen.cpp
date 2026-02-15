@@ -108,20 +108,20 @@ Move* splat_promotion_moves(Bitboard       dstBB,
 
         if constexpr (All || Capture)
         {
-            *moves++ = Move::make<MT::PROMOTION>(dstSq - D, dstSq, QUEEN);
+            *moves++ = Move{dstSq - D, dstSq, QUEEN};
 
             if ((knightChecksBB & dstSq) != 0)
-                *moves++ = Move::make<MT::PROMOTION>(dstSq - D, dstSq, KNIGHT);
+                *moves++ = Move{dstSq - D, dstSq, KNIGHT};
         }
 
         if constexpr (All || (Capture && Enemy) || (Quiet && !Enemy))
         {
-            *moves++ = Move::make<MT::PROMOTION>(dstSq - D, dstSq, ROOK);
+            *moves++ = Move{dstSq - D, dstSq, ROOK};
 
-            *moves++ = Move::make<MT::PROMOTION>(dstSq - D, dstSq, BISHOP);
+            *moves++ = Move{dstSq - D, dstSq, BISHOP};
 
             if ((knightChecksBB & dstSq) == 0)
-                *moves++ = Move::make<MT::PROMOTION>(dstSq - D, dstSq, KNIGHT);
+                *moves++ = Move{dstSq - D, dstSq, KNIGHT};
         }
     }
 
@@ -263,7 +263,7 @@ Move* generate_pawns_moves(const Position& pos, Move* RESTRICT moves, Bitboard t
                 else
                     orgSq = pop_msq(epPawnsBB);
 
-                *moves++ = Move::make<MT::EN_PASSANT>(orgSq, pos.en_passant_sq());
+                *moves++ = Move{orgSq, pos.en_passant_sq(), MT::EN_PASSANT};
             }
         }
     }
@@ -290,6 +290,10 @@ Move* generate_piece_moves(const Position& pos, Move* RESTRICT moves, Bitboard t
                   "Unsupported piece type in generate_piece_moves()");
     assert(pos.checkers_bb() == 0 || !more_than_one(pos.checkers_bb()));
 
+    constexpr auto Comparator = [](Square s1, Square s2) noexcept {
+        return AC == WHITE ? s1 > s2 : s1 < s2;
+    };
+
     auto count = pos.count(AC, PT);
 
     if (count == 0)
@@ -303,8 +307,7 @@ Move* generate_piece_moves(const Position& pos, Move* RESTRICT moves, Bitboard t
     Square*          endSq = begSq + count;
 
     if (count > 1)
-        std::sort(begSq, endSq,
-                  [](Square s1, Square s2) noexcept { return AC == WHITE ? s1 > s2 : s1 < s2; });
+        std::sort(begSq, endSq, Comparator);
 
     Square   kingSq      = pos.square<KING>(AC);
     Bitboard occupancyBB = pos.pieces_bb();
@@ -359,7 +362,7 @@ Move* generate_king_moves(const Position& pos, Move* RESTRICT moves, Bitboard ta
                     assert(is_ok(pos.castling_rook_sq(AC, cs))
                            && (pos.pieces_bb(AC, ROOK) & pos.castling_rook_sq(AC, cs)) != 0);
 
-                    *moves++ = Move::make<MT::CASTLING>(kingSq, pos.castling_rook_sq(AC, cs));
+                    *moves++ = Move{kingSq, pos.castling_rook_sq(AC, cs), MT::CASTLING};
 
                     if constexpr (Any)
                         return moves;

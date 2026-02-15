@@ -20,7 +20,7 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <memory>
+#include <functional>
 #include <string>
 #include <string_view>
 
@@ -39,7 +39,9 @@ struct AccumulatorCaches;
 // EvalFile uses fixed string types because it's part of the network structure which must be trivial.
 struct EvalFile final {
    public:
-    EvalFile(std::string_view defName, std::string_view curName, std::string_view netDesc) :
+    EvalFile(std::string_view defName,
+             std::string_view curName = {"None"},
+             std::string_view netDesc = {}) noexcept :
         defaultName(defName),
         currentName(curName),
         netDescription(netDesc) {}

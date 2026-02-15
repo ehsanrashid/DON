@@ -129,34 +129,51 @@ bool _write_parameters(std::ostream& os, const T& reference) noexcept {
 
 template<typename Arch, typename Transformer>
 void Network<Arch, Transformer>::load(std::string_view rootDirectory,
-                                      std::string      netFile) noexcept {
+                                      std::string_view netFile) noexcept {
 
-    const Strings Dirs{"<internal>", "", std::string{rootDirectory}
+    constexpr std::size_t DirectoryCount = 3 +
 #if defined(DEFAULT_NNUE_DIRECTORY)
-                       ,
-                       STRINGIFY(DEFAULT_NNUE_DIRECTORY)
+                                           1
+#else
+                                           0
+#endif
+      ;
+
+    const StdArray<std::string_view, DirectoryCount> Directories{
+      // --------------------------------------------------------
+      "<embedded>",  //
+      "",            //
+      rootDirectory
+#if defined(DEFAULT_NNUE_DIRECTORY)
+      ,
+      STRINGIFY(DEFAULT_NNUE_DIRECTORY)
 #endif
     };
 
     if (netFile.empty())
         netFile = evalFile.defaultName;
 
-    for (const auto& directory : Dirs)
-        if (netFile != std::string(evalFile.currentName))
+    initialized = false;
+
+    for (auto dir : Directories)
+        if (netFile != std::string_view(evalFile.currentName))
         {
-            if (directory == "<internal>" && netFile == std::string(evalFile.defaultName))
-                load_internal();
-            else if (directory != "<internal>")
-                load_user_net(directory, netFile);
+            if (dir == "<embedded>" && netFile == std::string_view(evalFile.defaultName))
+                load_embedded();
+            else if (dir != "<embedded>")
+                load_file(dir, netFile);
+
+            if (initialized)
+                break;
         }
 }
 
 template<typename Arch, typename Transformer>
-bool Network<Arch, Transformer>::save(const std::optional<std::string>& netFile) const noexcept {
+bool Network<Arch, Transformer>::save(std::string_view netFile) const noexcept {
     std::string evalFileName;
 
-    if (netFile.has_value())
-        evalFileName = netFile.value();
+    if (!netFile.empty())
+        evalFileName = netFile;
     else
     {
         if (std::string(evalFile.currentName) != std::string(evalFile.defaultName))
@@ -179,15 +196,16 @@ bool Network<Arch, Transformer>::save(const std::optional<std::string>& netFile)
 }
 
 template<typename Arch, typename Transformer>
-void Network<Arch, Transformer>::verify(std::string netFile) const noexcept {
+void Network<Arch, Transformer>::verify(std::string_view netFile) const noexcept {
     if (netFile.empty())
         netFile = evalFile.defaultName;
 
-    if (netFile != std::string(evalFile.currentName))
+    if (netFile != std::string_view(evalFile.currentName))
     {
         std::string msg1{
           "Network evaluation parameters compatible with the engine must be available."};
-        std::string msg2{"The network file " + netFile + " was not loaded successfully."};
+        std::string msg2{"The network file " + std::string{netFile}
+                         + " was not loaded successfully."};
         std::string msg3{
           "The UCI option EvalFile might need to specify the full path, including the directory name, to the network file."};
         std::string msg4{
@@ -206,7 +224,7 @@ void Network<Arch, Transformer>::verify(std::string netFile) const noexcept {
 
     constexpr std::size_t TotalSize = sizeof(featureTransformer) + LayerStacks * sizeof(Arch);
 
-    std::string msg{"NNUE evaluation using " + netFile + " ("  //
+    std::string msg{"NNUE evaluation using " + std::string{netFile} + " ("  //
                     + std::to_string(TotalSize / ONE_MB) + "MiB, ("
                     + std::to_string(featureTransformer.TotalInputDimensions) + ", "
                     + std::to_string(network[0].TransformedFeatureDimensions) + ", "
@@ -273,56 +291,68 @@ Network<Arch, Transformer>::trace(const Position&                         pos,
 }
 
 template<typename Arch, typename Transformer>
-void Network<Arch, Transformer>::load_internal() noexcept {
-    auto embedded = get_embedded(embeddedType);
-
-    MemoryStreamBuf buf(const_cast<char*>(reinterpret_cast<const char*>(embedded.data)),
-                        std::size_t(embedded.size));
-
-    std::istream is(&buf);
-
-    auto description = load(is);
-
-    if (description.has_value())
-    {
-        evalFile.currentName    = evalFile.defaultName;
-        evalFile.netDescription = description.value();
-    }
-}
-
-template<typename Arch, typename Transformer>
-void Network<Arch, Transformer>::load_user_net(const std::string& dir,
-                                               const std::string& netFile) noexcept {
-    std::ifstream ifs{dir + netFile, std::ios::binary};
-
-    auto description = load(ifs);
-
-    if (description.has_value())
-    {
-        evalFile.currentName    = netFile;
-        evalFile.netDescription = description.value();
-    }
-}
-
-template<typename Arch, typename Transformer>
 std::optional<std::string> Network<Arch, Transformer>::load(std::istream& is) noexcept {
-    initialized = true;
 
     std::string netDescription;
     if (!read_parameters(is, netDescription))
         return std::nullopt;
 
+    initialized = true;
+
     return netDescription;
 }
 
 template<typename Arch, typename Transformer>
-bool Network<Arch, Transformer>::save(std::ostream&      os,
-                                      const std::string& name,
-                                      const std::string& netDescription) const noexcept {
+bool Network<Arch, Transformer>::load_embedded() noexcept {
+    auto embedded = get_embedded(embeddedType);
+
+    MemoryStreamBuf buf(const_cast<char*>(reinterpret_cast<const char*>(embedded.data)),
+                        std::size_t(embedded.size));
+
+    std::istream is{&buf};
+
+    auto netDescription = load(is);
+
+    if (netDescription)
+    {
+        evalFile.currentName    = evalFile.defaultName;
+        evalFile.netDescription = *netDescription;
+        return true;
+    }
+
+    return false;
+}
+
+template<typename Arch, typename Transformer>
+bool Network<Arch, Transformer>::load_file(std::string_view dir,
+                                           std::string_view netFile) noexcept {
+    std::string path;
+    path.reserve(dir.size() + netFile.size());
+    path += dir;
+    path += netFile;
+
+    std::ifstream ifs{path, std::ios::binary};
+
+    auto netDescription = load(ifs);
+
+    if (netDescription)
+    {
+        evalFile.currentName    = netFile;
+        evalFile.netDescription = *netDescription;
+        return true;
+    }
+
+    return false;
+}
+
+template<typename Arch, typename Transformer>
+bool Network<Arch, Transformer>::save(std::ostream&    os,
+                                      std::string_view name,
+                                      std::string_view netDescription) const noexcept {
     if (name.empty() || name == "None")
         return false;
 
-    return write_parameters(os, netDescription);
+    return write_parameters(os, std::string{netDescription});
 }
 
 template<typename Arch, typename Transformer>
@@ -338,8 +368,8 @@ bool Network<Arch, Transformer>::read_parameters(std::istream& is,
     if (!_read_parameters(is, featureTransformer))
         return false;
 
-    for (std::size_t i = 0; i < LayerStacks; ++i)
-        if (!_read_parameters(is, network[i]))
+    for (auto& arch : network)
+        if (!_read_parameters(is, arch))
             return false;
 
     return bool(is) && is.peek() == std::ios::traits_type::eof();
@@ -355,8 +385,8 @@ bool Network<Arch, Transformer>::write_parameters(
     if (!_write_parameters(os, featureTransformer))
         return false;
 
-    for (std::size_t i = 0; i < LayerStacks; ++i)
-        if (!_write_parameters(os, network[i]))
+    for (const auto& arch : network)
+        if (!_write_parameters(os, arch))
             return false;
 
     return bool(os);

@@ -1066,7 +1066,7 @@ inline void write_multiple_dirties(const StdArray<Piece, SQUARE_NB>& pieceMap,
     std::uint8_t maskCount = popcount(maskBB);
     assert(maskCount <= 16);
 
-    auto* dt = dts->dtList.make_space(maskCount);
+    auto* dtSpace = dts->dtList.make_space(maskCount);
 
     __m512i templateVal = _mm512_set1_epi32(templateDt.raw());
 
@@ -1082,9 +1082,9 @@ inline void write_multiple_dirties(const StdArray<Piece, SQUARE_NB>& pieceMap,
     threatSquares = _mm512_slli_epi32(threatSquares, SqShift);
     threatPieces  = _mm512_slli_epi32(threatPieces, PcShift);
 
-    // Combine into final dirty values                  A | B | C
+    // Combine into final dirty values (A | B | C = 254)
     __m512i dirties = _mm512_ternarylogic_epi32(templateVal, threatSquares, threatPieces, 254);
-    _mm512_storeu_si512(reinterpret_cast<__m512i*>(dt), dirties);
+    _mm512_storeu_si512(dtSpace, dirties);
 }
 #endif
 
@@ -1111,13 +1111,45 @@ inline void Position::update_pc_threats(Square                    s,
         return _;
     }();
 
-    Bitboard threatenedBB = type_of(pc) == PAWN ? attacksBB[color_of(pc)] : attacksBB[type_of(pc)];
-
-    threatenedBB &= occupancyBB;
+    Bitboard exOccupancyBB = occupancyBB ^ pieces_bb(KING);
 
     // clang-format off
-    Bitboard slidersBB    = (pieces_bb(QUEEN, BISHOP) & attacksBB[BISHOP])
-                          | (pieces_bb(QUEEN, ROOK)   & attacksBB[ROOK]);
+    Bitboard slidersBB = (pieces_bb(QUEEN, BISHOP) & attacksBB[BISHOP])
+                       | (pieces_bb(QUEEN, ROOK)   & attacksBB[ROOK]);
+    // clang-format on
+
+    if (type_of(pc) == KING)
+    {
+        if constexpr (ComputeRay)
+        {
+            while (slidersBB != 0)
+            {
+                Square sliderSq = pop_lsq(slidersBB);
+                Piece  sliderPc = piece(sliderSq);
+
+                Bitboard passRayBB    = pass_ray_bb(sliderSq, s);
+                Bitboard discoveredBB = passRayBB & attacksBB[QUEEN] & exOccupancyBB;
+
+                if (discoveredBB != 0 && (passRayBB & targetBB) != targetBB)
+                {
+                    assert(!more_than_one(discoveredBB));
+                    Square threatenedSq = lsq(discoveredBB);
+                    Piece  threatenedPc = piece(threatenedSq);
+
+                    assert(is_ok(threatenedPc));
+
+                    dts->add<!Put>(sliderSq, threatenedSq, sliderPc, threatenedPc);
+                }
+            }
+        }
+
+        return;
+    }
+
+    // clang-format off
+    Bitboard threatenedBB = (type_of(pc) == PAWN ? attacksBB[color_of(pc)] : attacksBB[type_of(pc)])
+                          & occupancyBB;
+
     Bitboard nonSlidersBB = (pieces_bb(WHITE, PAWN)   & attacksBB[BLACK])
                           | (pieces_bb(BLACK, PAWN)   & attacksBB[WHITE])
                           | (pieces_bb(KNIGHT)        & attacksBB[KNIGHT])
@@ -1170,8 +1202,7 @@ inline void Position::update_pc_threats(Square                    s,
             assert(is_ok(sliderPc));
 
             Bitboard passRayBB    = pass_ray_bb(sliderSq, s);
-            Bitboard discoveredBB = passRayBB & ~between_bb(sliderSq, s)  //
-                                  & attacksBB[QUEEN] & occupancyBB;
+            Bitboard discoveredBB = passRayBB & attacksBB[QUEEN] & exOccupancyBB;
 
             if (discoveredBB != 0 && (passRayBB & targetBB) != targetBB)
             {

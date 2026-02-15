@@ -18,8 +18,6 @@
 #include "position.h"
 
 #include <cctype>
-#include <cmath>
-#include <cstdlib>
 #include <iomanip>
 #include <sstream>
 #include <utility>
@@ -484,10 +482,10 @@ void Position::set(std::string_view fens, State* newSt) noexcept {
     get_int(rule50Count);
     get_int(moveNum);
 
-    st->rule50Count = std::abs(rule50Count);
+    st->rule50Count = constexpr_abs(rule50Count);
     // Convert from moveNum starting from 1 to posPly starting from 0,
     // handle also common incorrect FEN with moveNum = 0.
-    gamePly = std::max(2 * (std::abs(moveNum) - 1), 0) + int(ac == BLACK);
+    gamePly = std::max(2 * (constexpr_abs(moveNum) - 1), 0) + int(ac == BLACK);
 
     st->checkersBB = pieces_bb(~ac) & attackers_bb(square<KING>(ac));
 

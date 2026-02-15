@@ -23,6 +23,7 @@
 #include <fstream>
 #include <iostream>
 #include <memory>
+#include <optional>
 
 #include "evaluate.h"
 #include "movegen.h"
@@ -58,28 +59,37 @@ constexpr std::size_t DEFAULT_HASH = std::max<std::size_t>(MIN_HASH, 16);
 // The user can always explicitly override this behavior.
 constexpr AutoNumaPolicy DEFAULT_NUMA_POLICY = BundledL3Policy{32};
 
+constexpr float MAX_LOAD_FACTOR = 0.75f;
+
+std::unique_ptr<NNUE::Networks> default_networks(std::string_view binaryDirectory) noexcept {
+    auto defaultNetworks =
+      std::make_unique<NNUE::Networks>(NNUE::EvalFile{BigEvalFileDefaultName},  //
+                                       NNUE::EvalFile{SmallEvalFileDefaultName});
+
+    defaultNetworks->load_big(binaryDirectory);
+    defaultNetworks->load_small(binaryDirectory);
+
+    return defaultNetworks;
+}
+
 }  // namespace
 
-Engine::Engine(std::optional<std::string_view> path) noexcept :
+Engine::Engine(std::string_view path) noexcept :
     // clang-format off
-    binaryDirectory(path ? CommandLine::binary_directory(*path) : ""),
+    binaryDirectory(!path.empty() ? CommandLine::binary_directory(path) : std::string{}),
     numaContext(NumaConfig::from_system(DEFAULT_NUMA_POLICY)),
-    networks(
-      numaContext,
-      // Heap-allocate because sizeof(NNUE::Networks) is large
-      std::make_unique<NNUE::Networks>(NNUE::EvalFile{BigEvalFileDefaultName  , "None", ""},
-                                       NNUE::EvalFile{SmallEvalFileDefaultName, "None", ""})) {
+    networks(numaContext, default_networks(binaryDirectory)) {
 
     using OnCng = Option::OnChange;
 
     options.add("NumaPolicy",           Option("auto", OnCng([this](const Option& o) {
         set_numa_config(o);
-        return get_numa_config_info_str() + '\n'
-             + get_thread_allocation_info_str();
+        return numa_config_info() + '\n'
+             + thread_allocation_info();
     })));
     options.add("Threads",              Option(DEFAULT_THREADS, MIN_THREADS, MAX_THREADS, OnCng([this](const Option&) {
         resize_threads_tt();
-        return get_thread_allocation_info_str();
+        return thread_allocation_info();
     })));
     options.add("Hash",                 Option(DEFAULT_HASH, MIN_HASH, MAX_HASH, OnCng([this](const Option& o) {
         resize_tt(o);
@@ -118,7 +128,7 @@ Engine::Engine(std::optional<std::string_view> path) noexcept :
     options.add("Stop Logger",          Option(OnCng([](const Option&) { Logger::stop(); return std::nullopt; })));
     // clang-format on
 
-    load_networks();
+    historiesMap.max_load_factor(max_load_factor(MAX_LOAD_FACTOR));
 
     resize_threads_tt();
 
@@ -229,11 +239,11 @@ void Engine::resize_tt(std::size_t ttSize) noexcept {
 
 void Engine::show() const noexcept { std::cout << pos << std::endl; }
 
-void Engine::dump(std::optional<std::string_view> dumpFile) const noexcept {
+void Engine::dump(std::string_view dumpFile) const noexcept {
 
-    if (dumpFile.has_value())
+    if (!dumpFile.empty())
     {
-        std::ofstream ofs{std::string{dumpFile.value()}, std::ios::binary};
+        std::ofstream ofs{std::string{dumpFile}, std::ios::binary};
 
         if (ofs.is_open())
         {
@@ -244,7 +254,7 @@ void Engine::dump(std::optional<std::string_view> dumpFile) const noexcept {
         }
 
         // Couldn't open file - optionally report and fall back
-        //DEBUG_LOG("Engine::dump: failed to open '" << dumpFile.value() << "', writing to stdout instead");
+        //DEBUG_LOG("Engine::dump: failed to open '" << *dumpFile << "', writing to stdout instead");
     }
 
     // Default: dump to console
@@ -265,62 +275,67 @@ std::uint16_t Engine::hashfull(std::uint8_t maxAge) const noexcept {
     return transpositionTable.hashfull(maxAge);
 }
 
-std::string Engine::get_numa_config_str() const noexcept {
-    return numaContext.numa_config().to_string();
-}
-
-std::string Engine::get_numa_config_info_str() const noexcept {
-    std::string numaConfig{"Available Processors: "};
-
-    numaConfig += get_numa_config_str();
-
-    return numaConfig;
-}
-
-std::vector<std::pair<std::size_t, std::size_t>> Engine::get_bound_thread_counts() const noexcept {
+std::vector<std::pair<std::size_t, std::size_t>> Engine::bound_thread_counts() const noexcept {
     std::vector<std::pair<std::size_t, std::size_t>> ratios;
 
-    auto  threadCounts = threads.get_bound_thread_counts();
+    auto  threadCounts = threads.bound_thread_counts();
     auto& numaConfig   = numaContext.numa_config();
 
     NumaIndex numaIdx = 0;
 
-    for (; numaIdx < threadCounts.size(); ++numaIdx)
+    while (numaIdx < threadCounts.size())
+    {
         ratios.emplace_back(threadCounts[numaIdx], numaConfig.node_cpus_size(numaIdx));
+        ++numaIdx;
+    }
 
     if (!threadCounts.empty())
-        for (; numaIdx < numaConfig.nodes_size(); ++numaIdx)
-            ratios.emplace_back(0, numaConfig.node_cpus_size(numaIdx));
+        while (numaIdx < numaConfig.nodes_size())
+        {
+            ratios.emplace_back(NumaIndex{0}, numaConfig.node_cpus_size(numaIdx));
+            ++numaIdx;
+        }
 
     return ratios;
 }
 
-std::string Engine::get_thread_binding_info_str() const noexcept {
+std::string Engine::numa_config() const noexcept { return numaContext.numa_config().to_string(); }
+
+std::string Engine::numa_config_info() const noexcept {
+    std::string numaConfig{"Available Processors: "};
+
+    numaConfig += numa_config();
+
+    return numaConfig;
+}
+
+std::string Engine::thread_binding_info() const noexcept {
+    auto boundThreadCounts = bound_thread_counts();
+
     std::string threadBinding;
+    threadBinding.reserve(8 * boundThreadCounts.size());
 
-    auto boundThreadCounts = get_bound_thread_counts();
-
-    bool first = true;
-
-    for (const auto& [key, value] : boundThreadCounts)
+    for (auto itr = boundThreadCounts.begin(); itr != boundThreadCounts.end(); ++itr)
     {
-        if (!first)
+        const auto& [numaId, threadCount] = *itr;
+
+        if (itr != boundThreadCounts.begin())
             threadBinding += ':';
 
-        first = false;
-
-        threadBinding += std::to_string(key) + '/' + std::to_string(value);
+        threadBinding += std::to_string(numaId);
+        threadBinding += '/';
+        threadBinding += std::to_string(threadCount);
     }
 
     return threadBinding;
 }
 
-std::string Engine::get_thread_allocation_info_str() const noexcept {
+std::string Engine::thread_allocation_info() const noexcept {
     std::string threadAllocation{"Threads: "};
 
     threadAllocation += std::to_string(threads.size());
 
-    std::string threadBinding = get_thread_binding_info_str();
+    std::string threadBinding = thread_binding_info();
 
     if (!threadBinding.empty())
     {
@@ -359,22 +374,17 @@ void Engine::verify_networks() const noexcept {
     }
 }
 
-void Engine::load_networks() noexcept {
-
-    networks.modify_and_replicate([this](NNUE::Networks& nets) {
-        nets.big.load(binaryDirectory, options["BigEvalFile"]);
-        nets.small.load(binaryDirectory, options["SmallEvalFile"]);
-    });
-
-    threads.init();
-
-    threads.ensure_network_replicated();
+void Engine::load_networks(const StdArray<std::string_view, 2>& netFiles) noexcept {
+    if (!netFiles[0].empty())
+        load_big_network(netFiles[0]);
+    if (!netFiles[1].empty())
+        load_small_network(netFiles[1]);
 }
 
 void Engine::load_big_network(std::string_view netFile) noexcept {
 
-    networks.modify_and_replicate([this, &netFile](NNUE::Networks& nets) {
-        nets.big.load(binaryDirectory, std::string{netFile});
+    networks.modify_and_replicate([this, &netFile](NNUE::Networks& nets) noexcept {  //
+        nets.load_big(binaryDirectory, netFile);
     });
 
     threads.init();
@@ -384,8 +394,8 @@ void Engine::load_big_network(std::string_view netFile) noexcept {
 
 void Engine::load_small_network(std::string_view netFile) noexcept {
 
-    networks.modify_and_replicate([this, &netFile](NNUE::Networks& nets) {
-        nets.small.load(binaryDirectory, std::string{netFile});
+    networks.modify_and_replicate([this, &netFile](NNUE::Networks& nets) noexcept {  //
+        nets.load_small(binaryDirectory, netFile);
     });
 
     threads.init();
@@ -393,10 +403,10 @@ void Engine::load_small_network(std::string_view netFile) noexcept {
     threads.ensure_network_replicated();
 }
 
-void Engine::save_networks(const StdArray<std::optional<std::string>, 2>& netFiles) const noexcept {
+void Engine::save_networks(const StdArray<std::string_view, 2>& netFiles) const noexcept {
 
-    networks->big.save(netFiles[0]);
-    networks->small.save(netFiles[1]);
+    networks->save_big(netFiles[0]);
+    networks->save_small(netFiles[1]);
 }
 
 bool Engine::load_hash() noexcept { return transpositionTable.load(options["HashFile"], threads); }

@@ -41,38 +41,53 @@ Iterator upper_bound_unrolled(Iterator RESTRICT beg,
                               Iterator RESTRICT end,
                               const T&          value,
                               Compare           comp) noexcept {
-    std::size_t n = end - beg;
+    Iterator ins = end;  // default = end (not found)
 
-    std::size_t idx = n;  // default = n (not found)
+    std::size_t n = end - beg;
 
     std::size_t i = n;
 
-    // Unroll 8 elements at a time
-    for (; idx == n && i >= UNROLL_8; i -= UNROLL_8)
-        idx = comp(value, beg[i - 8]) ? i - 8
-            : comp(value, beg[i - 7]) ? i - 7
-            : comp(value, beg[i - 6]) ? i - 6
-            : comp(value, beg[i - 5]) ? i - 5
-            : comp(value, beg[i - 4]) ? i - 4
-            : comp(value, beg[i - 3]) ? i - 3
-            : comp(value, beg[i - 2]) ? i - 2
-            : comp(value, beg[i - 1]) ? i - 1
-                                      : idx;
-    // Unroll 4 elements at a time
-    for (; idx == n && i >= UNROLL_4; i -= UNROLL_4)
-        idx = comp(value, beg[i - 4]) ? i - 4
-            : comp(value, beg[i - 3]) ? i - 3
-            : comp(value, beg[i - 2]) ? i - 2
-            : comp(value, beg[i - 1]) ? i - 1
-                                      : idx;
+    // Process blocks of 8 elements
+    while (ins == end && i >= BLOCK_8)
+    {
+        i -= BLOCK_8;
+
+        Iterator base = beg + i;
+
+        ins = comp(value, base[0]) ? base + 0
+            : comp(value, base[1]) ? base + 1
+            : comp(value, base[2]) ? base + 2
+            : comp(value, base[3]) ? base + 3
+            : comp(value, base[4]) ? base + 4
+            : comp(value, base[5]) ? base + 5
+            : comp(value, base[6]) ? base + 6
+            : comp(value, base[7]) ? base + 7
+                                   : ins;
+    }
+    // Process blocks of 4 elements
+    while (ins == end && i >= BLOCK_4)
+    {
+        i -= BLOCK_4;
+
+        Iterator base = beg + i;
+
+        ins = comp(value, base[0]) ? base + 0
+            : comp(value, base[1]) ? base + 1
+            : comp(value, base[2]) ? base + 2
+            : comp(value, base[3]) ? base + 3
+                                   : ins;
+    }
     // Handle remaining elements
-    while (i > 0)
+    while (i >= 1)
     {
         --i;
-        idx = comp(value, beg[i]) ? i : idx;
+
+        Iterator base = beg + i;
+
+        ins = comp(value, *base) ? base : ins;
     }
 
-    return beg + idx;
+    return ins;
 }
 
 // Sort elements in descending order.
@@ -377,7 +392,7 @@ bool MovePicker::select(Predicate&& pred) noexcept {
 }
 
 ALWAYS_INLINE bool MovePicker::good_capture_or_swap() noexcept {
-    if (pos.see(*cur) >= -constexpr_round(55.5555e-3 * cur->value))
+    if (pos.see(*cur) >= -constexpr_round(55.5555e-3 * double(cur->value)))
         return true;
     // Store bad captures
     std::iter_swap(endBadCapture++, cur);
