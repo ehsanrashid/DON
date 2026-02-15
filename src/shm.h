@@ -1362,8 +1362,7 @@ class SharedMemory final: public BaseSharedMemory {
         if (SharedMemoryRegistry::cleanup_in_progress())
         {
             //DEBUG_LOG("Shared memory registry cleanup in progress, cannot open shared memory.");
-            _available = false;
-            return _available;
+            return false;
         }
 
         // Try to open or create the shared memory region
@@ -1374,8 +1373,7 @@ class SharedMemory final: public BaseSharedMemory {
             if (opened())
             {
                 //DEBUG_LOG("Shared memory already open.");
-                _available = false;
-                break;
+                return false;
             }
 
             // Try to create new shared memory region
@@ -1396,8 +1394,7 @@ class SharedMemory final: public BaseSharedMemory {
                 if (!valid_fd(fd))
                 {
                     //DEBUG_LOG("Failed to open shared memory, error = " << std::strerror(errno));
-                    _available = false;
-                    break;
+                    return false;
                 }
             }
             else
@@ -1413,8 +1410,7 @@ class SharedMemory final: public BaseSharedMemory {
             {
                 //DEBUG_LOG("Failed to lock shared memory file, error = " << std::strerror(errno));
                 cleanup(false, lockFile);
-                _available = false;
-                break;
+                return false;
             }
 
             // Track if header is invalid
@@ -1437,8 +1433,7 @@ class SharedMemory final: public BaseSharedMemory {
                 }
 
                 //DEBUG_LOG("Failed to setup shared memory region.");
-                _available = false;
-                break;
+                return false;
             }
 
             if (shmHeader == nullptr)
@@ -1453,8 +1448,7 @@ class SharedMemory final: public BaseSharedMemory {
                 }
 
                 //DEBUG_LOG("Shared memory header is null.");
-                _available = false;
-                break;
+                return false;
             }
 
             // RAII mutex scope lock
@@ -1473,8 +1467,7 @@ class SharedMemory final: public BaseSharedMemory {
                     }
 
                     //DEBUG_LOG("Failed to lock shared memory header mutex.");
-                    _available = false;
-                    break;
+                    return false;
                 }
 
                 if (!sentinel_file_locked_created())
@@ -1484,8 +1477,7 @@ class SharedMemory final: public BaseSharedMemory {
                     shmHeaderGuard.unlock();
 
                     cleanup(newCreated, lockFile);
-                    _available = false;
-                    break;
+                    return false;
                 }
 
                 increment_ref_count();
@@ -1494,15 +1486,13 @@ class SharedMemory final: public BaseSharedMemory {
 
             unlock_file();
 
-            _available = true;
-
             // Register this new resource
             SharedMemoryRegistry::attempt_register_memory(this);
 
-            break;
+            return true;
         }
 
-        return _available;
+        return false;
     }
 
     void close(bool skipUnmapRegion = false) noexcept override {
@@ -1533,8 +1523,6 @@ class SharedMemory final: public BaseSharedMemory {
 
         cleanup(removeRegion, lockFile, skipUnmapRegion);
     }
-
-    [[nodiscard]] bool available() const noexcept { return _available; }
 
     [[nodiscard]] bool opened() const noexcept {
         return valid_fd(fd) && mappedPtr != nullptr && dataPtr != nullptr;
@@ -1911,8 +1899,7 @@ class SharedMemory final: public BaseSharedMemory {
 
     static constexpr std::string_view DIRECTORY{"/dev/shm/"};
 
-    bool        _available = false;
-    int         fd         = INVALID_FD;
+    int         fd = INVALID_FD;
     FdGuard     fdGuard{fd};
     void*       mappedPtr  = INVALID_MMAP_PTR;
     std::size_t mappedSize = INVALID_MMAP_SIZE;
@@ -1955,12 +1942,10 @@ class BackendSharedMemory final {
     std::string_view get_error_message() const noexcept {
         if (!initialized)
             return "Shared memory not created.";
-        if (!shm.available())
-            return "Shared memory not available.";
         if (!shm.opened())
-            return "Shared memory is not open.";
+            return "Shared memory not opened.";
         if (!shm.initialized())
-            return "Shared memory is not initialized.";
+            return "Shared memory not initialized.";
         return {};
     }
 
