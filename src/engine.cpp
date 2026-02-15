@@ -333,16 +333,12 @@ std::string Engine::thread_binding_info() const noexcept {
 
 std::string Engine::thread_allocation_info() const noexcept {
     std::string threadAllocation{"Threads: "};
+    threadAllocation.append(std::to_string(threads.size()));
 
-    threadAllocation += std::to_string(threads.size());
-
-    std::string threadBinding = thread_binding_info();
-
-    if (!threadBinding.empty())
-    {
-        threadAllocation += " with NUMA node thread binding: ";
-        threadAllocation += threadBinding;
-    }
+    if (std::string threadBinding = thread_binding_info(); !threadBinding.empty())
+        threadAllocation  //
+          .append(" with NUMA node thread binding: ")
+          .append(threadBinding);
 
     return threadAllocation;
 }
@@ -359,17 +355,13 @@ void Engine::verify_networks() const noexcept {
         auto& [status, error] = statuses[i];
 
         std::string message{"Network replica "};
-
-        message += std::to_string(i);
-        message += ": ";
-
-        message += to_string(status);
+        message  //
+          .append(std::to_string(i))
+          .append(": ")
+          .append(to_string(status));
 
         if (!error.empty())
-        {
-            message += ". ";
-            message += error;
-        }
+            message.append(". ").append(error);
 
         UCI::print_info_string(message);
     }

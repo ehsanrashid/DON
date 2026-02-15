@@ -1768,7 +1768,7 @@ inline std::string hash_to_string(std::uint64_t hash) noexcept {
     StdArray<char, BufferSize> buffer{};
 
     int         writtenSize = std::snprintf(buffer.data(), buffer.size(), "%016" PRIX64, hash);
-    std::size_t copiedSize  = writtenSize >= 0  //
+    std::size_t copiedSize  = writtenSize > 0  //
                               ? std::min<std::size_t>(writtenSize, buffer.size() - 1)
                               : 0;
 
@@ -1781,7 +1781,7 @@ inline std::string u32_to_string(std::uint32_t u32) noexcept {
     StdArray<char, BufferSize> buffer{};
 
     int         writtenSize = std::snprintf(buffer.data(), buffer.size(), "0x%08" PRIX32, u32);
-    std::size_t copiedSize  = writtenSize >= 0  //
+    std::size_t copiedSize  = writtenSize > 0  //
                               ? std::min<std::size_t>(writtenSize, buffer.size() - 1)
                               : 0;
 
@@ -1793,7 +1793,7 @@ inline std::string u64_to_string(std::uint64_t u64) noexcept {
     StdArray<char, BufferSize> buffer{};
 
     int         writtenSize = std::snprintf(buffer.data(), buffer.size(), "0x%016" PRIX64, u64);
-    std::size_t copiedSize  = writtenSize >= 0  //
+    std::size_t copiedSize  = writtenSize > 0  //
                               ? std::min<std::size_t>(writtenSize, buffer.size() - 1)
                               : 0;
 

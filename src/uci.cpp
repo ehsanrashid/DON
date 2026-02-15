@@ -228,7 +228,7 @@ Limit parse_limit(std::istream& is) noexcept {
         {
             auto pos = is.tellg();
             while (is >> token
-                   && !(!token.empty() && std::tolower((unsigned char) token[0]) == 'i'))
+                   && !(!token.empty() && char(std::tolower((unsigned char) token[0])) == 'i'))
             {
                 limit.searchMoves.push_back(token);
                 pos = is.tellg();
@@ -240,7 +240,7 @@ Limit parse_limit(std::istream& is) noexcept {
         {
             auto pos = is.tellg();
             while (is >> token
-                   && !(!token.empty() && std::tolower((unsigned char) token[0]) == 's'))
+                   && !(!token.empty() && char(std::tolower((unsigned char) token[0])) == 's'))
             {
                 limit.ignoreMoves.push_back(token);
                 pos = is.tellg();
@@ -468,10 +468,11 @@ void UCI::position(std::istream& is) noexcept {
         while (is >> token && i < 6)
         {
             // Stop if reach "moves" token after the first two fields
-            if (i > 1 && !token.empty() && std::tolower((unsigned char) token[0]) == 'm')
+            if (i > 1 && !token.empty() && char(std::tolower((unsigned char) token[0])) == 'm')
                 break;
 
             fen.append(token).push_back(' ');
+            token.clear();
             ++i;
         }
         // Fill missing fields with "-"
@@ -486,6 +487,8 @@ void UCI::position(std::istream& is) noexcept {
         assert(false && "Invalid position command");
         return;
     }
+
+    assert(token.empty() || char(std::tolower((unsigned char) token[0])) == 'm');
 
     Strings moves;
     while (is >> token)
@@ -852,7 +855,7 @@ int win_rate_model(Value v, const Position& pos) noexcept {
 
     auto [a, b] = win_rate_params(pos);
     // Return the win rate in per mille units, rounded to the nearest integer
-    return int(0.5 + 1000 / (1 + std::exp((a - v) / b)));
+    return constexpr_round(1000 / (1 + std::exp((a - v) / b)));
 }
 
 template<typename... Ts>
@@ -931,7 +934,8 @@ std::string UCI::move_to_can(Move m) noexcept {
     std::string can;
     can.reserve(5);
 
-    can.assign(to_square(orgSq))
+    can  //
+      .assign(to_square(orgSq))
       .append(to_square(dstSq))
       .append(std::size_t(m.type() == MT::PROMOTION),
               char(std::tolower((unsigned char) to_char(m.promotion_type()))));
@@ -1083,7 +1087,7 @@ Move UCI::san_to_move(std::string                     san,
     assert(2 <= san.size() && san.size() <= 9);
 
     if (san.size() >= 2 && san[1] == '-'
-        && (san[0] == '0' || std::tolower((unsigned char) san[0]) == 'o'))
+        && (san[0] == '0' || char(std::tolower((unsigned char) san[0])) == 'o'))
         std::replace_if(san.begin(), san.end(), [](char c) { return c == 'o' || c == '0'; }, 'O');
 
     for (Move m : legalMoves)
@@ -1107,7 +1111,8 @@ Move UCI::mix_to_move(std::string                     mix,
     if (!legalMoves.empty() && mix.size() >= 2)
     {
         if (mix.size() <= 3
-            || (mix[1] == '-' && (mix[0] == '0' || std::tolower((unsigned char) mix[0]) == 'o')))
+            || (mix[1] == '-'
+                && (mix[0] == '0' || char(std::tolower((unsigned char) mix[0])) == 'o')))
         {
             m = san_to_move(mix, pos, legalMoves);
             return m;

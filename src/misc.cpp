@@ -54,8 +54,8 @@ constexpr std::string_view Version{"dev"};
         return std::string{NullDate};
 
     // Parse month (first 3 chars), then skip space(s), then day, then space, then year
-    const char* p   = date.data();
-    const char* end = p + date.size();
+    const char*       p   = date.data();
+    const char* const end = p + date.size();
 
     // Parse month (first 3 chars)
     if (end - p < 3)
@@ -113,19 +113,19 @@ constexpr std::string_view Version{"dev"};
         return std::string{NullDate};
 
     // Format YYYYMMDD manually (faster than snprintf)
-    StdArray<char, 9> buffer{};  // 8 chars + '\0'
+    StdArray<char, 8> buffer  // 8 chars
+      {
+        digit_to_char(year / 1000 % 10),   //
+        digit_to_char(year / 100 % 10),    //
+        digit_to_char(year / 10 % 10),     //
+        digit_to_char(year % 10),          //
+        digit_to_char(monthId / 10 % 10),  //
+        digit_to_char(monthId % 10),       //
+        digit_to_char(day / 10 % 10),      //
+        digit_to_char(day % 10)            //
+      };
 
-    buffer[0] = digit_to_char(year / 1000 % 10);
-    buffer[1] = digit_to_char(year / 100 % 10);
-    buffer[2] = digit_to_char(year / 10 % 10);
-    buffer[3] = digit_to_char(year % 10);
-    buffer[4] = digit_to_char(monthId / 10 % 10);
-    buffer[5] = digit_to_char(monthId % 10);
-    buffer[6] = digit_to_char(day / 10 % 10);
-    buffer[7] = digit_to_char(day % 10);
-    buffer[8] = '\0';
-
-    return std::string{buffer.data(), buffer.size() - 1};
+    return std::string{buffer.data(), buffer.size()};
 }
 
 }  // namespace

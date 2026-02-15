@@ -2058,7 +2058,7 @@ struct SystemWideSharedMemory final {
 
         std::string hashName;
 
-        if (writtenSize >= 0)
+        if (writtenSize > 0)
         {
             // Ensure size is within bounds
             // If snprintf truncated, use up to (buf.size() - 1) characters
