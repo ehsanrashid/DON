@@ -1121,8 +1121,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
     // (*Scaler) Making IIR more aggressive scales poorly.
     if constexpr (!AllNode)
     {
-        if (depth > 5 && ttmNone && red <= 3072)
-            depth = std::max(depth - 1, 1);
+        depth -= (int(depth > 5) & int(ttmNone) & int(red <= 3072));
     }
 
     // Step 11. ProbCut
@@ -2478,9 +2477,9 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
         if (i != 0 && depth == 1 && !updated)
             continue;
 
-        Depth d = depth - (int(!updated) & int(depth > 1));
-
         Value updatedMask = -Value(updated);
+
+        Depth d = depth - (int(depth > 1) & ~updatedMask);
 
         Value v = (rm.uciValue & updatedMask) | (rm.preValue & ~updatedMask);
 
