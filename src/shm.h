@@ -385,7 +385,7 @@ class BackendSharedMemory final {
 
         // Use named mutex to ensure only one initializer
         std::string mutexName{name_()};
-        mutexName += "$mutex";
+        mutexName.append("$mutex");
 
         HANDLE hMutex = CreateMutex(nullptr, FALSE, mutexName.c_str());
 
@@ -1721,8 +1721,7 @@ class SharedMemory final: public BaseSharedMemory {
         std::string prefix;
         prefix.reserve(sentinelBase.size() + 1);
 
-        prefix = sentinelBase;
-        prefix += '.';
+        prefix.assign(sentinelBase).push_back('.');
 
         bool found = false;
 
@@ -1762,7 +1761,7 @@ class SharedMemory final: public BaseSharedMemory {
             }
 
             std::string stalePath{DIRECTORY};
-            stalePath += entryName;
+            stalePath.append(entryName);
 
             ::unlink(stalePath.c_str());
 
@@ -2079,10 +2078,10 @@ struct SystemWideSharedMemory final {
                 << std::setw(16) << valueHash << '$'       //
                 << std::setw(16) << executableHash << '$'  //
                 << std::setw(16) << discriminator;
-            hashName = oss.str();
+            hashName.assign(oss.str());
         }
 
-        shmName += hashName;
+        shmName.append(hashName);
 
         // Since std::string::size() does not include '\0', allow at most (MAX - 1) characters,
         // to guarantee space for the terminator ('\0') in fixed-size buffers.

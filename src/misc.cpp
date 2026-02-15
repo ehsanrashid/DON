@@ -196,20 +196,29 @@ std::string compiler_info() noexcept {
 
     compiler.assign("\nCompiled by                : ");
 #if defined(__INTEL_LLVM_COMPILER)
-    compiler.append("ICX ");
-    compiler.append(STRINGIFY(__INTEL_LLVM_COMPILER));
+    compiler  //
+      .append("ICX ")
+      .append(STRINGIFY(__INTEL_LLVM_COMPILER));
 #elif defined(__clang__)
-    compiler.append("clang++ ");
-    compiler.append(VERSION_STRING(__clang_major__, __clang_minor__, __clang_patchlevel__));
+    compiler  //
+      .append("clang++ ")
+      .append(VERSION_STRING(__clang_major__, __clang_minor__, __clang_patchlevel__));
 #elif defined(__GNUC__)
-    compiler.append("g++ (GNUC) ");
-    compiler.append(VERSION_STRING(__GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__));
+    compiler  //
+      .append("g++ (GNUC) ")
+      .append(VERSION_STRING(__GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__));
 #elif defined(_MSC_VER)
-    compiler.append("MSVC ");
-    compiler.append(STRINGIFY(_MSC_FULL_VER) "." STRINGIFY(_MSC_BUILD));
+    compiler  //
+      .append("MSVC ")
+      .append(std::to_string(_MSC_VER / 100))  // major
+      .append(1, '.')
+      .append(std::to_string(_MSC_VER % 100))  // minor
+      .append(1, '.')
+      .append(std::to_string(_MSC_FULL_VER - 100000 * _MSC_VER));  // patch/build
 #elif defined(__e2k__) && defined(__LCC__)
-    compiler.append("MCST LCC ");
-    compiler.append(std::to_string(__LCC__ / 100))
+    compiler  //
+      .append("MCST LCC ")
+      .append(std::to_string(__LCC__ / 100))
       .append(1, '.')
       .append(std::to_string(__LCC__ % 100))
       .append(1, '.')

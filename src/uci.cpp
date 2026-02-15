@@ -465,7 +465,7 @@ void UCI::position(std::istream& is) noexcept {
 
         std::size_t i = 0;
         // Read up to 6 tokens
-        while (i < 6 && is >> token)
+        while (is >> token && i < 6)
         {
             // Stop if reach "moves" token after the first two fields
             if (i > 1 && !token.empty() && std::tolower((unsigned char) token[0]) == 'm')
@@ -881,18 +881,19 @@ int UCI::to_cp(Value v, const Position& pos) noexcept {
 std::string UCI::to_wdl(Value v, const Position& pos) noexcept {
     assert(is_ok(v));
 
-    auto wdlW = win_rate_model(+v, pos);
-    auto wdlL = win_rate_model(-v, pos);
-    auto wdlD = 1000 - (wdlW + wdlL);
+    int w = win_rate_model(+v, pos);
+    int l = win_rate_model(-v, pos);
+    int d = 1000 - (w + l);
 
     std::string wdl;
     wdl.reserve(16);
 
-    wdl += std::to_string(wdlW);
-    wdl += ' ';
-    wdl += std::to_string(wdlD);
-    wdl += ' ';
-    wdl += std::to_string(wdlL);
+    wdl  //
+      .assign(std::to_string(w))
+      .append(1, ' ')
+      .append(std::to_string(d))
+      .append(1, ' ')
+      .append(std::to_string(l));
 
     return wdl;
 }
@@ -1057,7 +1058,8 @@ std::string UCI::move_to_san(Move m, Position& pos) noexcept {
         }
         if (pos.capture(m))
             san.append(std::size_t(movedPt == PAWN), to_char(file_of(orgSq))).push_back('x');
-        san.append(to_square(dstSq))
+        san  //
+          .append(to_square(dstSq))
           .append(std::size_t(m.type() == MT::PROMOTION), '=')
           .append(std::size_t(m.type() == MT::PROMOTION),
                   char(std::toupper((unsigned char) to_char(m.promotion_type()))));
