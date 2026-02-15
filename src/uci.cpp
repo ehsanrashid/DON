@@ -273,6 +273,7 @@ Options& UCI::options() noexcept { return engine.get_options(); }
 void UCI::process_input(std::istream& is) noexcept {
 
     std::string command;
+    command.reserve(ONE_KB);
     do
     {
         // Wait for an input or an end-of-file (EOF) indication
