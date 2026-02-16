@@ -273,7 +273,7 @@ constexpr float max_load_factor(float maxLoadFactor = 0.75f) noexcept {
     return std::clamp(constexpr_abs(maxLoadFactor), 0.1f, 1.0f);
 }
 constexpr std::size_t reserve_count(std::size_t reserveCount = 1024) noexcept {
-    return std::max(reserveCount, std::size_t(4));
+    return std::max(reserveCount, std::size_t(8));
 }
 
 std::string engine_info(bool uci = false) noexcept;
