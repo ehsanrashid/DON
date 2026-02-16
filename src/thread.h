@@ -194,9 +194,6 @@ class ThreadToNumaNodeBinder final {
 
 using WorkerPtr = LargePagePtr<Worker>;
 
-struct ThreadProperty;
-struct ThreadBetterPolicy;
-
 // Abstraction of a thread. It contains a pointer to the worker and a native thread.
 // After construction, the native thread is started with idle_func()
 // waiting for a signal to start searching.
