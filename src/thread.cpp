@@ -355,8 +355,8 @@ const Thread* Threads::best_thread() const noexcept {
 
     std::unordered_map<Move, std::uint64_t> votes;
     votes.max_load_factor(0.85f);
-    votes.reserve(
-      constexpr_round(1.8 * std::min(snapShot.size(), bestThread->worker->rootMoves.size())));
+    votes.reserve(reserve_count(
+      constexpr_round(1.85 * std::min(snapShot.size(), bestThread->worker->rootMoves.size()))));
 
     for (const auto* th : snapShot)
         votes[th->worker->rootMoves[0].pv[0]] += thread_voting_value(th);
