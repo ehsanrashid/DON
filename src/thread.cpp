@@ -336,13 +336,13 @@ const Thread* Threads::best_thread() const noexcept {
         for (auto&& th : threads)
             if (!th->worker->rootMoves.empty())
             {
-                if (!is_ok(th->worker->rootMoves[0].curValue))
+                if (th->worker->rootMoves[0].curValue == -VALUE_INFINITE)
                 {
                     th->worker->rootMoves[0].curValue = th->worker->rootMoves[0].preValue;
                     th->worker->completedDepth -= int(th->worker->completedDepth > 1);
                 }
 
-                if (is_ok(th->worker->rootMoves[0].curValue))
+                if (th->worker->rootMoves[0].curValue != -VALUE_INFINITE)
                     snapShot.push_back(th.get());
             }
     }
@@ -363,7 +363,7 @@ const Thread* Threads::best_thread() const noexcept {
 
             const auto& rm = th->worker->rootMoves[0];
 
-            if (!is_ok(rm.preValue))
+            if (rm.preValue == -VALUE_INFINITE)
                 continue;
 
             if (bestThread == nullptr  //
