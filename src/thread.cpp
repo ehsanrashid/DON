@@ -361,10 +361,10 @@ const Thread* Threads::best_thread() const noexcept {
 
     // Cache initial best thread properties
     auto bestValue  = bestThread->worker->rootMoves[0].curValue;
-    auto bestVote   = votes[bestThread->worker->rootMoves[0].pv[0]];
-    auto bestVoting = thread_voting_value(bestThread);
     bool bestWin    = bestValue != +VALUE_INFINITE && is_win(bestValue);
     bool bestLoss   = bestValue != -VALUE_INFINITE && is_loss(bestValue);
+    auto bestVote   = votes[bestThread->worker->rootMoves[0].pv[0]];
+    auto bestVoting = thread_voting_value(bestThread);
     auto bestPvSize = bestThread->worker->rootMoves[0].pv.size();
 
     for (std::size_t i = 1; i < snapShot.size(); ++i)
@@ -373,10 +373,10 @@ const Thread* Threads::best_thread() const noexcept {
 
         // Get candidate thread properties
         auto nextValue  = nextThread->worker->rootMoves[0].curValue;
-        auto nextVote   = votes[nextThread->worker->rootMoves[0].pv[0]];
-        auto nextVoting = thread_voting_value(nextThread);
         bool nextWin    = nextValue != +VALUE_INFINITE && is_win(nextValue);
         bool nextLoss   = nextValue != -VALUE_INFINITE && is_loss(nextValue);
+        auto nextVote   = votes[nextThread->worker->rootMoves[0].pv[0]];
+        auto nextVoting = thread_voting_value(nextThread);
         auto nextPvSize = nextThread->worker->rootMoves[0].pv.size();
 
         if (
@@ -387,7 +387,7 @@ const Thread* Threads::best_thread() const noexcept {
           // Best = proven loss -> prefer escape, otherwise delay defeat
           (bestLoss
            && (!nextLoss                                 // Any non-loss (win/draw) is better
-               || (nextLoss && nextValue < bestValue)))  // Both losing -> prefer longer survival
+               || (nextLoss && nextValue > bestValue)))  // Both losing -> prefer longer survival
           ||
           // Best = normal (draw/unknown) -> win dominates, loss ignored
           (!bestWin && !bestLoss
@@ -401,10 +401,10 @@ const Thread* Threads::best_thread() const noexcept {
         {
             bestThread = nextThread;
             bestValue  = nextValue;
-            bestVote   = nextVote;
-            bestVoting = nextVoting;
             bestWin    = nextWin;
             bestLoss   = nextLoss;
+            bestVote   = nextVote;
+            bestVoting = nextVoting;
             bestPvSize = nextPvSize;
 
             // Early exit: mate in 1 found (can't improve further)

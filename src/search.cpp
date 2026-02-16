@@ -321,9 +321,9 @@ void Worker::start_search() noexcept {
     if (rootMoves.empty())
     {
         rootMoves.emplace_back(Move::None);
+        rootMoves[0].curValue = rootPos.checkers_bb() != 0 ? -VALUE_MATE : VALUE_DRAW;
 
-        std::string score{
-          UCI::to_score({Value(rootPos.checkers_bb() != 0 ? -VALUE_MATE : VALUE_DRAW), rootPos})};
+        std::string score{UCI::to_score({rootMoves[0].curValue, rootPos})};
 
         mainManager->updateContext.onUpdateShort({DEPTH_ZERO, score});
     }
