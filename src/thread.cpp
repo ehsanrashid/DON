@@ -339,7 +339,7 @@ const Thread* Threads::best_thread() const noexcept {
                 if (th->worker->rootMoves[0].curValue == -VALUE_INFINITE)
                 {
                     th->worker->rootMoves[0].curValue = th->worker->rootMoves[0].preValue;
-                    th->worker->completedDepth -= int(th->worker->completedDepth > 1);
+                    th->worker->rootMoves[0].promoted = true;
                 }
 
                 if (th->worker->rootMoves[0].curValue != -VALUE_INFINITE)
@@ -392,7 +392,8 @@ const Thread* Threads::best_thread() const noexcept {
     // Vote according to value and depth, and select the best thread
     auto thread_voting_value = [minCurValue](const Thread* th) noexcept -> std::uint64_t {
         return std::uint64_t(14 + th->worker->rootMoves[0].curValue - minCurValue)
-             * std::uint64_t(th->worker->completedDepth);
+             * std::uint64_t(
+                 std::max(th->worker->completedDepth - int(th->worker->rootMoves[0].promoted), 1));
     };
 
     // Aggregate votes

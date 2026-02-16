@@ -416,7 +416,9 @@ void Worker::start_search() noexcept {
 
             // Send PV info again if have a new best worker
             if (bestWorker != this)
-                mainManager->show_pv(*bestWorker, bestWorker->completedDepth);
+                mainManager->show_pv(
+                  *bestWorker,
+                  std::max(bestWorker->completedDepth - int(bestWorker->rootMoves[0].promoted), 1));
         }
 
         if (limit.use_time_manager())

@@ -111,6 +111,7 @@ struct RootMove final {
     std::uint64_t nodes    = 0;
     std::int32_t  tbRank   = 0;
     Value         tbValue  = -VALUE_INFINITE;
+    bool          promoted = false;
 
     Moves pv;
 };
