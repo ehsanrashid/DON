@@ -379,22 +379,35 @@ const Thread* Threads::best_thread() const noexcept {
         bool nextLoss   = nextValue != -VALUE_INFINITE && is_loss(nextValue);
         auto nextPvSize = nextThread->worker->rootMoves[0].pv.size();
 
-        if (
-          // - Win vs win -> prefer shorter mates
-          (nextWin && bestWin && nextValue > bestValue)
-          // - Win beats non-win (win > draw/loss)
-          || (nextWin && !bestWin)
-          // - Non-loss beats loss (win/draw > loss) escape
-          || (!nextLoss && bestLoss)
-          // - Loss vs loss -> prefer longer mated survival
-          || (nextLoss && bestLoss && nextValue > bestValue)
-          // - Normal -> compare voting metrics / voting value / PV size
-          || (!nextWin && !nextLoss && !bestWin && !bestLoss
-              && (nextVote > bestVote
-                  || (nextVote == bestVote
-                      && (nextVoting > bestVoting
-                          || (nextVoting == bestVoting  //
-                              && nextPvSize > bestPvSize))))))
+        bool nextBetter = false;
+
+        // Best is winning
+        if (bestWin)
+        {
+            // Next is winning -> prefer shorter mates
+            nextBetter = nextWin && nextValue > bestValue;
+        }
+        // Best is losing
+        else if (bestLoss)
+        {
+            // Next escape to non-loss, or longer mated
+            nextBetter = !nextLoss                             // Win/draw beats loss (escape!)
+                      || (nextLoss && nextValue > bestValue);  // prefer longer mated (survival)
+        }
+        // Best is normal (draw)
+        else
+        {
+            // Normal position -> win beats it, but loss doesn't
+            nextBetter = nextWin     // win always better
+                      || (!nextLoss  // Only compare normal vs normal
+                          && (nextVote > bestVote
+                              || (nextVote == bestVote
+                                  && (nextVoting > bestVoting
+                                      || (nextVoting == bestVoting  //
+                                          && nextPvSize > bestPvSize)))));
+        }
+
+        if (nextBetter)
         {
             bestThread = nextThread;
             bestValue  = nextValue;
