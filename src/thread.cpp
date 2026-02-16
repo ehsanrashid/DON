@@ -354,8 +354,7 @@ const Thread* Threads::best_thread() const noexcept {
     const auto* bestThread = snapShot.front();
 
     std::unordered_map<Move, std::uint64_t> votes;
-    votes.reserve(
-      reserve_count(2 * std::min(snapShot.size(), bestThread->worker->rootMoves.size())));
+    votes.reserve(2 * std::min(snapShot.size(), bestThread->worker->rootMoves.size()));
 
     for (const auto* th : snapShot)
         votes[th->worker->rootMoves[0].pv[0]] += thread_voting_value(th);
@@ -383,13 +382,13 @@ const Thread* Threads::best_thread() const noexcept {
         if (
           // - Win vs win -> prefer shorter mates
           (nextWin && bestWin && nextValue > bestValue)
-          // - Win beats non-win (win beats draw/loss)
+          // - Win beats non-win (win > draw/loss)
           || (nextWin && !bestWin)
-          // - Non-loss beats loss -> Escape (win/draw beats loss)
+          // - Non-loss beats loss (win/draw > loss) escape
           || (!nextLoss && bestLoss)
           // - Loss vs loss -> prefer longer mated survival
           || (nextLoss && bestLoss && nextValue > bestValue)
-          // - Normal -> compare votes / voting value / PV size
+          // - Normal -> compare voting metrics / voting value / PV size
           || (!nextWin && !nextLoss && !bestWin && !bestLoss
               && (nextVote > bestVote
                   || (nextVote == bestVote
@@ -405,9 +404,9 @@ const Thread* Threads::best_thread() const noexcept {
             bestLoss   = nextLoss;
             bestPvSize = nextPvSize;
 
-            // Early exit: best possible result (mate in 1) found
+            // Early exit: mate in 1 found (can't improve further)
             if (bestWin && bestValue >= VALUE_MATES_IN_1)
-                break;  // Can't get better than mate in 1!
+                break;
         }
     }
 
