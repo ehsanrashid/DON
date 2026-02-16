@@ -2462,7 +2462,7 @@ TimePoint MainSearchManager::elapsed(const Threads& threads) const noexcept {
 
 // Displays the principal variation (PV) along with associated information
 void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
-    assert(depth > DEPTH_ZERO);
+    assert(depth >= DEPTH_ZERO);
 
     const auto&       rootPos            = worker.rootPos;
     const auto&       rootMoves          = worker.rootMoves;
