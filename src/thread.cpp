@@ -394,7 +394,7 @@ const Thread* Threads::best_thread() const noexcept {
 
     // Aggregate votes
     std::unordered_map<Move, std::uint64_t> votes;
-    votes.max_load_factor(0.85f);
+    votes.max_load_factor(1.0f);
     votes.reserve(2 * std::min(snapShot.size(), bestThread->worker->rootMoves.size()));
 
     for (const auto* th : snapShot)
