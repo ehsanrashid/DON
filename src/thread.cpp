@@ -340,12 +340,12 @@ struct ThreadBetterPolicy final {
     bool operator()(const ThreadProperty& best, const ThreadProperty& next) const noexcept {
         // Best = proven win
         if (best.win)
-            // Only a better win can replace it
+            // Prefer better win
             return next.win && next.value > best.value;
 
         // Best = proven loss
         if (best.loss)
-            // Prefer escape, otherwise delay defeat
+            // Prefer escape, otherwise prefer longer survival (delay defeat)
             return !next.loss || (next.loss && next.value > best.value);
 
         // Best = normal position
