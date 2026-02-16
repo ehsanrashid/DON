@@ -407,7 +407,7 @@ void Worker::start_search() noexcept {
             for (auto&& th : threads)
                 th->worker->rootMoves.swap_to_front(skillMove);
         }
-        else if (thread_count() > 1 && multiPV == 1
+        else if (threads.size() > 1 && multiPV == 1
                  && limit.mate == 0
                  //&& limit.depth == DEPTH_ZERO
                  && rootMoves[0].pv[0] != Move::None)
@@ -2462,7 +2462,7 @@ TimePoint MainSearchManager::elapsed(const Threads& threads) const noexcept {
 
 // Displays the principal variation (PV) along with associated information
 void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
-    assert(depth >= DEPTH_ZERO);
+    assert(depth > DEPTH_ZERO);
 
     const auto&       rootPos            = worker.rootPos;
     const auto&       rootMoves          = worker.rootMoves;

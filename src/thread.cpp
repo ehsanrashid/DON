@@ -334,47 +334,83 @@ const Thread* Threads::best_thread() const noexcept {
         snapShot.reserve(threads.size());
 
         for (auto&& th : threads)
-            snapShot.push_back(th.get());
+            if (!th->worker->rootMoves.empty() && is_ok(th->worker->rootMoves[0].curValue))
+                snapShot.push_back(th.get());
     }
 
+    // Fallback: use preValue if no valid curValue threads
     if (snapShot.empty())
-        return nullptr;
+    {
+        const Thread* bestThread = nullptr;
+        Value         bestValue  = VALUE_NONE;
+        Depth         bestDepth  = DEPTH_ZERO;
 
-    Value minCurValue = VALUE_NONE;
+        std::shared_lock readLock(sharedMutex);
+
+        for (auto&& th : threads)
+        {
+            if (th->worker->rootMoves.empty())
+                continue;
+
+            const auto& rm = th->worker->rootMoves[0];
+
+            if (!is_ok(rm.preValue))
+                continue;
+
+            if (bestThread == nullptr  //
+                || rm.preValue > bestValue
+                || (rm.preValue == bestValue  //
+                    && th->worker->completedDepth > bestDepth))
+            {
+                bestThread = th.get();
+                bestValue  = rm.preValue;
+                bestDepth  = th->worker->completedDepth;
+            }
+        }
+
+        // final safety fallback
+        return bestThread != nullptr ? bestThread : threads.front().get();
+    }
+
+    // Initialize with first valid thread
+    const Thread* bestThread = snapShot.front();
+
+    Value minCurValue = bestThread->worker->rootMoves[0].curValue;
     // Find the minimum value of all threads
-    for (const auto* th : snapShot)
-        minCurValue = std::min(th->worker->rootMoves[0].curValue, minCurValue);
+    for (std::size_t i = 1; i < snapShot.size(); ++i)
+        minCurValue = std::min(snapShot[i]->worker->rootMoves[0].curValue, minCurValue);
 
     // Vote according to value and depth, and select the best thread
     auto thread_voting_value = [minCurValue](const Thread* th) noexcept -> std::uint64_t {
-        return (14 + th->worker->rootMoves[0].curValue - minCurValue)
+        return std::uint64_t(14 + th->worker->rootMoves[0].curValue - minCurValue)
              * std::uint64_t(th->worker->completedDepth);
     };
 
-    const auto* bestThread = snapShot.front();
-
-    std::unordered_map<Move, std::uint64_t> votes(
-      2 * std::min(snapShot.size(), bestThread->worker->rootMoves.size()));
+    // Aggregate votes
+    std::unordered_map<Move, std::uint64_t> votes;
+    votes.max_load_factor(0.85f);
+    votes.reserve(2 * std::min(snapShot.size(), bestThread->worker->rootMoves.size()));
 
     for (const auto* th : snapShot)
         votes[th->worker->rootMoves[0].pv[0]] += thread_voting_value(th);
 
     // Cache initial best thread properties
     auto bestValue  = bestThread->worker->rootMoves[0].curValue;
-    bool bestWin    = bestValue != +VALUE_INFINITE && is_win(bestValue);
-    bool bestLoss   = bestValue != -VALUE_INFINITE && is_loss(bestValue);
+    bool bestWin    = is_win(bestValue);
+    bool bestLoss   = is_loss(bestValue);
     auto bestVote   = votes[bestThread->worker->rootMoves[0].pv[0]];
     auto bestVoting = thread_voting_value(bestThread);
     auto bestPvSize = bestThread->worker->rootMoves[0].pv.size();
 
+    // Find best-thread
     for (std::size_t i = 1; i < snapShot.size(); ++i)
     {
         const auto* nextThread = snapShot[i];
 
         // Get candidate thread properties
         auto nextValue  = nextThread->worker->rootMoves[0].curValue;
-        bool nextWin    = nextValue != +VALUE_INFINITE && is_win(nextValue);
-        bool nextLoss   = nextValue != -VALUE_INFINITE && is_loss(nextValue);
+        bool nextWin    = is_win(nextValue);
+        bool nextLoss   = is_loss(nextValue);
         auto nextVote   = votes[nextThread->worker->rootMoves[0].pv[0]];
         auto nextVoting = thread_voting_value(nextThread);
         auto nextPvSize = nextThread->worker->rootMoves[0].pv.size();
@@ -387,7 +423,7 @@ const Thread* Threads::best_thread() const noexcept {
           // Best = proven loss -> prefer escape, otherwise delay defeat
           (bestLoss
            && (!nextLoss                                 // Any non-loss (win/draw) is better
-               || (nextLoss && nextValue > bestValue)))  // Both losing -> prefer longer survival
+               || (nextLoss && nextValue > bestValue)))  // Prefer longer mated / better TB loss
           ||
           // Best = normal (draw/unknown) -> win dominates, loss ignored
           (!bestWin && !bestLoss
