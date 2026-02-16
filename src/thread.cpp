@@ -354,7 +354,7 @@ const Thread* Threads::best_thread() const noexcept {
     const auto* bestThread = snapShot.front();
 
     std::unordered_map<Move, std::uint64_t> votes;
-    votes.max_load_factor(0.75f);  // slightly safer for absolute minimal collisions
+    votes.max_load_factor(0.85f);  // slightly safer for absolute minimal collisions
     votes.reserve(std::min(snapShot.size(), bestThread->worker->rootMoves.size()));
 
     for (const auto* th : snapShot)
