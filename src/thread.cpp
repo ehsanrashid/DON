@@ -381,37 +381,22 @@ const Thread* Threads::best_thread() const noexcept {
         bool nextLoss   = nextValue != -VALUE_INFINITE && is_loss(nextValue);
         auto nextPvSize = nextThread->worker->rootMoves[0].pv.size();
 
-        bool nextBetter = false;
-
-        // Case 1: Both winning -> shortest mates / TB conversion
-        if (bestWin)
-        {
-            nextBetter = nextWin && nextValue > bestValue;
-        }
-        // Case 2: Both losing -> shortest mated / TB conversion
-        else if (bestLoss)
-        {
-            nextBetter = nextLoss && nextValue < bestValue;
-        }
-        // Case 3: Mixed or normal positions -> use voting with tie-breakers
-        else
-        {
-            // Priority:
-            // 1. Winning position beats any non-win
-            // 2. Losing position (getting mated, but it's the best found)
-            // 3. Normal position: compare by vote count, then voting value, then PV length
-            nextBetter = nextWin  //
-                      || nextLoss
-                      || (nextVote > bestVote
-                          // Tie-breaker 1: voting value
-                          || (nextVote == bestVote
-                              && (nextVoting > bestVoting
-                                  // Tie-breaker 2: longer PV
-                                  || (nextVoting == bestVoting  //
-                                      && nextPvSize > bestPvSize))));
-        }
-
-        if (nextBetter)
+        if (
+          // - Win vs win -> prefer shorter mates
+          (nextWin && bestWin && nextValue > bestValue)
+          // - Win beats non-win (win beats draw/loss)
+          || (nextWin && !bestWin)
+          // - Non-loss beats loss -> Escape (win/draw beats loss)
+          || (!nextLoss && bestLoss)
+          // - Loss vs loss -> prefer longer mated survival
+          || (nextLoss && bestLoss && nextValue > bestValue)
+          // - Normal -> compare votes / voting value / PV size
+          || (!nextWin && !nextLoss && !bestWin && !bestLoss
+              && (nextVote > bestVote
+                  || (nextVote == bestVote
+                      && (nextVoting > bestVoting
+                          || (nextVoting == bestVoting  //
+                              && nextPvSize > bestPvSize))))))
         {
             bestThread = nextThread;
             bestValue  = nextValue;
