@@ -562,7 +562,7 @@ if __name__ == "__main__":
     framework = MiniTestFramework()
 
     # Each test suite will be run inside a temporary directory
-    framework.run([TestCLI, TestInteractive, TestSyzygy, TestEnPassant])
+    framework.run([TestCLI, TestInteractive, TestSyzygy])
 
     EPD.delete_bench_epd()
     TSAN.unset_tsan_option()

@@ -379,40 +379,25 @@ const Thread* Threads::best_thread() const noexcept {
         bool nextLoss   = nextValue != -VALUE_INFINITE && is_loss(nextValue);
         auto nextPvSize = nextThread->worker->rootMoves[0].pv.size();
 
-        bool nextBetter = false;
-
-        // Best is winning
-        if (bestWin)
-        {
-            // Among winning -> prefer shorter mates
-            nextBetter = nextWin && nextValue > bestValue;
-        }
-        // Best is losing
-        else if (bestLoss)
-        {
-            // Escape from loss is always better (win/draw beats loss) OR
-            // Among losing -> prefer longer mated
-            nextBetter = !nextLoss                             // Win or draw beats loss
-                      || (nextLoss && nextValue < bestValue);  // Longer survival within losses
-        }
-        // Best is normal (draw)
-        else
-        {
-            // Normal position:
-            // - Win always beats normal
-            // - Compare only normal vs normal by voting metrics, voting value, PV Size
-            nextBetter = nextWin     // win always better
-                      || (!nextLoss  // Only compare normal vs normal
-                          && (nextVote > bestVote
-                              // Tie-breaker 1: voting value
-                              || (nextVote == bestVote
-                                  && (nextVoting > bestVoting
-                                      // Tie-breaker 2: PV Size
-                                      || (nextVoting == bestVoting  //
-                                          && nextPvSize > bestPvSize)))));
-        }
-
-        if (nextBetter)
+        if (
+          // Best = proven win -> only a better win can replace it
+          (bestWin                                 //
+           && (nextWin && nextValue > bestValue))  // Prefer shorter mate / better TB win
+          ||
+          // Best = proven loss -> prefer escape, otherwise delay defeat
+          (bestLoss
+           && (!nextLoss                                 // Any non-loss (win/draw) is better
+               || (nextLoss && nextValue < bestValue)))  // Both losing -> prefer longer survival
+          ||
+          // Best = normal (draw/unknown) -> win dominates, loss ignored
+          (!bestWin && !bestLoss
+           && (nextWin                      // prefer win
+               || (!nextLoss                // ignore loss
+                   && (nextVote > bestVote  // Primary: vote count
+                       || (nextVote == bestVote
+                           && (nextVoting > bestVoting  // Tie-breaker 1: voting value
+                               || (nextVoting == bestVoting
+                                   && nextPvSize > bestPvSize))))))))  // Tie-breaker 2: PV size
         {
             bestThread = nextThread;
             bestValue  = nextValue;
