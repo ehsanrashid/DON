@@ -227,7 +227,8 @@ Limit parse_limit(std::istream& is) noexcept {
         else if (!token.empty() && token[0] == 's')  // "searchmoves"
         {
             auto pos = is.tellg();
-            while (is >> token && !(!token.empty() && std::tolower(token[0]) == 'i'))
+            while (is >> token
+                   && !(!token.empty() && char(std::tolower((unsigned char) token[0])) == 'i'))
             {
                 limit.searchMoves.push_back(token);
                 pos = is.tellg();
@@ -238,7 +239,8 @@ Limit parse_limit(std::istream& is) noexcept {
         else if (!token.empty() && token[0] == 'i')  // "ignoremoves"
         {
             auto pos = is.tellg();
-            while (is >> token && !(!token.empty() && std::tolower(token[0]) == 's'))
+            while (is >> token
+                   && !(!token.empty() && char(std::tolower((unsigned char) token[0])) == 's'))
             {
                 limit.ignoreMoves.push_back(token);
                 pos = is.tellg();
@@ -256,9 +258,9 @@ UCI::UCI(int argc, const char* argv[]) noexcept :
     commandLine(argc, argv),
     engine(arguments()[0]) {
 
-    options().set_info_callback([](std::optional<std::string_view> infoStr) noexcept {
-        if (infoStr)
-            print_info_string(*infoStr);
+    options().set_info_callback([](std::optional<std::string_view> infoSv) noexcept {
+        if (infoSv)
+            print_info_string(*infoSv);
     });
 
     set_update_callbacks();
@@ -271,6 +273,7 @@ Options& UCI::options() noexcept { return engine.get_options(); }
 void UCI::process_input(std::istream& is) noexcept {
 
     std::string command;
+    command.reserve(ONE_KB);
     do
     {
         // Wait for an input or an end-of-file (EOF) indication
@@ -284,11 +287,14 @@ void UCI::process_input(std::istream& is) noexcept {
 
 void UCI::execute(std::string_view command) noexcept {
 
-    std::istringstream iss{std::string{command}};
-    iss >> std::skipws;
+    StringViewStreamBuf buf{command};
+
+    std::istream is{&buf};
+
+    is >> std::skipws;
 
     std::string token;
-    iss >> token;
+    is >> token;
 
     if (token.empty())
         return;
@@ -306,17 +312,17 @@ void UCI::execute(std::string_view command) noexcept {
         engine.ponderhit();
         break;
     case Command::POSITION :
-        position(iss);
+        position(is);
         break;
     case Command::GO :
         // Send info strings after the go command is sent for old GUIs and python-chess
         print_info_string(engine.numa_config_info());
-        print_info_string(engine.thread_allocation_info());
+        print_info_string(engine.thread_allocation());
 
-        go(iss);
+        go(is);
         break;
     case Command::SETOPTION :
-        setoption(iss);
+        setoption(is);
         break;
     case Command::UCI :
         std::cout << engine_info(true) << '\n'  //
@@ -332,10 +338,10 @@ void UCI::execute(std::string_view command) noexcept {
     // Add custom non-UCI commands, mainly for debugging purposes.
     // These commands must not be used during a search!
     case Command::BENCH :
-        bench(iss);
+        bench(is);
         break;
     case Command::BENCHMARK :
-        benchmark(iss);
+        benchmark(is);
         break;
     case Command::SHOW :
         engine.show();
@@ -344,7 +350,7 @@ void UCI::execute(std::string_view command) noexcept {
         std::string      input;
         std::string_view dumpFile;
 
-        if (iss >> input)
+        if (is >> input)
             dumpFile = input;
 
         engine.dump(dumpFile);
@@ -366,7 +372,7 @@ void UCI::execute(std::string_view command) noexcept {
         StdArray<std::string, 2>      inputs;
         StdArray<std::string_view, 2> netFiles;
 
-        for (std::size_t i = 0; i < netFiles.size() && iss >> inputs[i]; ++i)
+        for (std::size_t i = 0; i < netFiles.size() && is >> inputs[i]; ++i)
             netFiles[i] = inputs[i];
 
         engine.save_networks(netFiles);
@@ -389,12 +395,12 @@ void UCI::execute(std::string_view command) noexcept {
     }
 }
 
-void UCI::print_info_string(std::string_view infoStr) noexcept {
+void UCI::print_info_string(std::string_view infoSv) noexcept {
 
     if (InfoStringStop)
         return;
 
-    for (auto str : split(infoStr, "\n", true))
+    for (auto str : split(infoSv, "\n", true))
         if (!is_whitespace(str))
             std::cout << "info string " << str << '\n';
 }
@@ -452,28 +458,33 @@ void UCI::position(std::istream& is) noexcept {
     token = lower_case(token);
 
     std::string fen;
-    if (!token.empty() && token[0] == 's')  // "startpos"
+    if (token.empty() || char(std::tolower((unsigned char) token[0])) == 's')  // "startpos"
     {
-        fen = START_FEN;
+        token.clear();
+        fen.assign(START_FEN);
         is >> token;  // Consume the "moves" token, if any
     }
-    else if (!token.empty() && token[0] == 'f')  // "fen"
+    else if (!token.empty() && char(std::tolower((unsigned char) token[0])) == 'f')  // "fen"
     {
+        token.clear();
         fen.reserve(64);
 
         std::size_t i = 0;
-        while (is >> token && i < 6)  // Consume the "moves" token, if any
+        // Read up to 6 tokens
+        while (is >> token && i < 6)
         {
-            if (i >= 2 && !token.empty() && std::tolower(token[0]) == 'm')  // "moves"
+            // Stop if reach "moves" token after the first two fields
+            if (i > 1 && !token.empty() && char(std::tolower((unsigned char) token[0])) == 'm')
                 break;
 
-            fen += token;
-            fen += ' ';
+            fen.append(token).push_back(' ');
+            token.clear();
             ++i;
         }
+        // Fill missing fields with "-"
         while (i < 4)
         {
-            fen += "- ";
+            fen.append("- ");
             ++i;
         }
     }
@@ -482,6 +493,8 @@ void UCI::position(std::istream& is) noexcept {
         assert(false && "Invalid position command");
         return;
     }
+
+    assert(token.empty() || char(std::tolower((unsigned char) token[0])) == 'm');
 
     Strings moves;
     while (is >> token)
@@ -514,9 +527,9 @@ void UCI::setoption(std::istream& is) noexcept {
     while (is >> token && lower_case(token) != "value")
     {
         if (!name.empty())
-            name += ' ';
+            name.push_back(' ');
 
-        name += token;
+        name.append(token);
     }
 
     // Read the option value (can contain spaces)
@@ -524,9 +537,9 @@ void UCI::setoption(std::istream& is) noexcept {
     while (is >> token)
     {
         if (!value.empty())
-            value += ' ';
+            value.push_back(' ');
 
-        value += token;
+        value.append(token);
     }
 
     options().set(name, value);
@@ -612,7 +625,7 @@ void UCI::bench(std::istream& is) noexcept {
     }
 
     // Ensure non-zero to avoid a 'divide by zero'
-    elapsedTime = std::max(elapsedTime + now() - startTime, TimePoint(1));
+    elapsedTime = std::max(elapsedTime + now() - startTime, TimePoint{1});
 
 #if !defined(NDEBUG)
     Debug::print();
@@ -777,7 +790,7 @@ void UCI::benchmark(std::istream& is) noexcept {
     }
 
     // Ensure non-zero to avoid a 'divide by zero'
-    elapsedTime = std::max(elapsedTime + now() - startTime, TimePoint(1));
+    elapsedTime = std::max(elapsedTime + now() - startTime, TimePoint{1});
 
 #if !defined(NDEBUG)
     Debug::print();
@@ -785,7 +798,7 @@ void UCI::benchmark(std::istream& is) noexcept {
 
     std::cerr << '\n';
 
-    std::string threadBinding = engine.thread_binding_info();
+    std::string threadBinding = engine.thread_binding();
     if (threadBinding.empty())
         threadBinding = "<none>";
 
@@ -848,7 +861,7 @@ int win_rate_model(Value v, const Position& pos) noexcept {
 
     auto [a, b] = win_rate_params(pos);
     // Return the win rate in per mille units, rounded to the nearest integer
-    return int(0.5 + 1000 / (1 + std::exp((a - v) / b)));
+    return constexpr_round(1000 / (1 + std::exp((a - v) / b)));
 }
 
 template<typename... Ts>
@@ -871,24 +884,25 @@ int UCI::to_cp(Value v, const Position& pos) noexcept {
 
     auto [a, b] = win_rate_params(pos);
 
-    return std::round(100 * int(v) / a);
+    return constexpr_round(100 * int(v) / a);
 }
 
 std::string UCI::to_wdl(Value v, const Position& pos) noexcept {
     assert(is_ok(v));
 
-    auto wdlW = win_rate_model(+v, pos);
-    auto wdlL = win_rate_model(-v, pos);
-    auto wdlD = 1000 - (wdlW + wdlL);
+    int w = win_rate_model(+v, pos);
+    int l = win_rate_model(-v, pos);
+    int d = 1000 - (w + l);
 
     std::string wdl;
     wdl.reserve(16);
 
-    wdl += std::to_string(wdlW);
-    wdl += ' ';
-    wdl += std::to_string(wdlD);
-    wdl += ' ';
-    wdl += std::to_string(wdlL);
+    wdl  //
+      .assign(std::to_string(w))
+      .append(1, ' ')
+      .append(std::to_string(d))
+      .append(1, ' ')
+      .append(std::to_string(l));
 
     return wdl;
 }
@@ -926,11 +940,11 @@ std::string UCI::move_to_can(Move m) noexcept {
     std::string can;
     can.reserve(5);
 
-    can += to_square(orgSq);
-    can += to_square(dstSq);
-
-    if (m.type() == MT::PROMOTION)
-        can += char(std::tolower(to_char(m.promotion_type())));
+    can  //
+      .assign(to_square(orgSq))
+      .append(to_square(dstSq))
+      .append(std::size_t(m.type() == MT::PROMOTION),
+              char(std::tolower((unsigned char) to_char(m.promotion_type()))));
 
     return can;
 }
@@ -1026,71 +1040,47 @@ std::string UCI::move_to_san(Move m, Position& pos) noexcept {
     if (m.type() == MT::CASTLING)
     {
         assert(movedPt == KING && rank_of(orgSq) == rank_of(dstSq));
-
-        san = to_string(make_cs(orgSq, dstSq));
+        san.assign(to_string(make_cs(orgSq, dstSq)));
     }
     else
     {
-        // clang-format off
-    // Note:: Piece letter (skip pawn as not needed because starting file is explicit)
-    if (movedPt != PAWN)
-    {
-        san = to_char(movedPt);
-
-        if (movedPt != KING)
+        // Note:: Piece letter (skip pawn as not needed because starting file is explicit)
+        if (movedPt != PAWN)
         {
-            // Add disambiguation if needed,
-            // when more then one piece of type 'pt' that can reach 'dst' with legal move.
-            switch (detect_ambiguity(m, pos))
+            san.assign(std::size_t(1), to_char(movedPt));
+            if (movedPt != KING)
             {
-            case Ambiguity::RANK :
-                san += to_char(file_of(orgSq));
-                break;
-            case Ambiguity::FILE :
-                san += to_char(rank_of(orgSq));
-                break;
-            case Ambiguity::SQUARE :
-                san += to_square(orgSq);
-                break;
-            default :;
+                // Add disambiguation when more then one piece can reach destiny with legal move.
+                switch (detect_ambiguity(m, pos))
+                {
+                case Ambiguity::RANK :
+                    san.push_back(to_char(file_of(orgSq)));
+                    break;
+                case Ambiguity::FILE :
+                    san.push_back(to_char(rank_of(orgSq)));
+                    break;
+                case Ambiguity::SQUARE :
+                    san.append(to_square(orgSq));
+                    break;
+                default :;
+                }
             }
         }
-    }
-
-    // Capture indicator
-    if (pos.capture(m))
-    {
-        if (movedPt == PAWN)
-        {
-            assert(san.empty());
-
-            san = to_char(file_of(orgSq));
-        }
-
-        san += 'x';
-    }
-
-    // Destination square
-    san += to_square(dstSq);
-
-    // Promotion type
-    if (m.type() == MT::PROMOTION)
-    {
-        assert(movedPt == PAWN);
-
-        san += '=';
-        san += char(std::toupper(to_char(m.promotion_type())));
-    }
-        // clang-format on
+        if (pos.capture(m))
+            san.append(std::size_t(movedPt == PAWN), to_char(file_of(orgSq))).push_back('x');
+        san  //
+          .append(to_square(dstSq))
+          .append(std::size_t(m.type() == MT::PROMOTION), '=')
+          .append(std::size_t(m.type() == MT::PROMOTION),
+                  char(std::toupper((unsigned char) to_char(m.promotion_type()))));
     }
 
     State st;
     pos.do_move(m, st);
 
-    // Marker for check, checkmate & stalemate
-    san += pos.checkers_bb() != 0  //
-           ? (MoveList<GenType::LEGAL, true>(pos).empty() ? '#' : '+')
-           : (MoveList<GenType::LEGAL, true>(pos).empty() ? '=' : '\0');
+    san.push_back(pos.checkers_bb() != 0
+                    ? (MoveList<GenType::LEGAL, true>(pos).empty() ? '#' : '+')
+                    : (MoveList<GenType::LEGAL, true>(pos).empty() ? '=' : '\0'));
 
     pos.undo_move(m);
 
@@ -1102,7 +1092,8 @@ Move UCI::san_to_move(std::string                     san,
                       const MoveList<GenType::LEGAL>& legalMoves) noexcept {
     assert(2 <= san.size() && san.size() <= 9);
 
-    if (san.size() >= 2 && san[1] == '-' && (san[0] == '0' || std::tolower(san[0]) == 'o'))
+    if (san.size() >= 2 && san[1] == '-'
+        && (san[0] == '0' || char(std::tolower((unsigned char) san[0])) == 'o'))
         std::replace_if(san.begin(), san.end(), [](char c) { return c == 'o' || c == '0'; }, 'O');
 
     for (Move m : legalMoves)
@@ -1125,7 +1116,9 @@ Move UCI::mix_to_move(std::string                     mix,
 
     if (!legalMoves.empty() && mix.size() >= 2)
     {
-        if (mix.size() <= 3 || (mix[1] == '-' && (mix[0] == '0' || std::tolower(mix[0]) == 'o')))
+        if (mix.size() <= 3
+            || (mix[1] == '-'
+                && (mix[0] == '0' || char(std::tolower((unsigned char) mix[0])) == 'o')))
         {
             m = san_to_move(mix, pos, legalMoves);
             return m;

@@ -20,8 +20,8 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <filesystem>
 #include <string>
-#include <string_view>
 #include <vector>
 
 #include "types.h"
@@ -64,7 +64,7 @@ class PolyBook final {
     PolyBook& operator=(const PolyBook&) noexcept = delete;
     PolyBook& operator=(PolyBook&&) noexcept      = delete;
 
-    bool load(std::string_view bookFile) noexcept;
+    bool load(std::filesystem::path bookFile) noexcept;
 
     bool empty() const noexcept { return entries.empty(); }
 

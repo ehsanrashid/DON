@@ -859,7 +859,7 @@ class NumaConfig final {
 
             // Add node separator if needed
             if (!numaCfg.empty())
-                numaCfg += ':';
+                numaCfg.push_back(':');
 
             // 1. Copy unordered_set -> vector
             std::vector<CpuIndex> sortedCpus(node.begin(), node.end());
@@ -871,14 +871,15 @@ class NumaConfig final {
             auto append_range = [&rangeCfg](CpuIndex rangeBeg, CpuIndex rangeEnd) noexcept {
                 // Add range separator if needed
                 if (!rangeCfg.empty())
-                    rangeCfg += ',';
+                    rangeCfg.push_back(',');
 
                 // Emit range: "single CPU" or "rangeBeg-rangeEnd"
-                rangeCfg += std::to_string(rangeBeg);
+                rangeCfg.append(std::to_string(rangeBeg));
                 if (rangeBeg != rangeEnd)
                 {
-                    rangeCfg += '-';
-                    rangeCfg += std::to_string(rangeEnd);
+                    rangeCfg  //
+                      .append(1, '-')
+                      .append(std::to_string(rangeEnd));
                 }
             };
 
@@ -1776,14 +1777,15 @@ class SystemWideLazyNumaReplicated final: public BaseNumaReplicated {
 
         NumaIndex sysNumaId = sysCfg.node_by_cpu(cpuId);
 
-        std::string sysCfgStr = sysCfg.to_string();
+        std::string sysCfgStr{sysCfg.to_string()};
 
         std::string discriminator;
         discriminator.reserve(sysCfgStr.size() + 1 + 8);
 
-        discriminator += sysCfgStr;
-        discriminator += '$';
-        discriminator += std::to_string(sysNumaId);
+        discriminator  //
+          .assign(sysCfgStr)
+          .append(1, '$')
+          .append(std::to_string(sysNumaId));
 
         return hash_string(discriminator);
     }

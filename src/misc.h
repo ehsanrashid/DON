@@ -31,6 +31,7 @@
 #include <cstdio>
 #include <cstring>
 #include <exception>
+#include <filesystem>
 #include <fstream>
 #include <functional>
 #include <iostream>
@@ -272,7 +273,7 @@ constexpr float max_load_factor(float maxLoadFactor = 0.75f) noexcept {
     return std::clamp(constexpr_abs(maxLoadFactor), 0.1f, 1.0f);
 }
 constexpr std::size_t reserve_count(std::size_t reserveCount = 1024) noexcept {
-    return std::max(reserveCount, std::size_t(4));
+    return std::max(reserveCount, std::size_t(8));
 }
 
 std::string engine_info(bool uci = false) noexcept;
@@ -1055,7 +1056,7 @@ class FixedString final {
    public:
     FixedString() noexcept { clear(); }
 
-    FixedString(std::string_view str) { assign(str); }
+    FixedString(std::string_view sv) { assign(sv); }
 
     [[nodiscard]] constexpr std::size_t capacity() const noexcept { return Capacity; }
 
@@ -1088,8 +1089,8 @@ class FixedString final {
 
     void null_terminate() noexcept { data()[size()] = '\0'; }
 
-    FixedString& operator=(std::string_view str) {
-        assign(str);
+    FixedString& operator=(std::string_view sv) {
+        assign(sv);
         return *this;
     }
     // Optional: assignment from const char*
@@ -1098,15 +1099,15 @@ class FixedString final {
         return *this;
     }
 
-    FixedString& operator+=(std::string_view str) {
+    FixedString& operator+=(std::string_view sv) {
 
-        if (size() + str.size() > capacity())
+        if (size() + sv.size() > capacity())
             std::terminate();
 
-        if (!str.empty())
-            std::memcpy(data() + size(), str.data(), str.size());
+        if (!sv.empty())
+            std::memcpy(data() + size(), sv.data(), sv.size());
 
-        _size += str.size();
+        _size += sv.size();
         null_terminate();
 
         return *this;
@@ -1137,15 +1138,15 @@ class FixedString final {
     }
 
    private:
-    void assign(std::string_view str) {
+    void assign(std::string_view sv) {
 
-        if (str.size() > capacity())
+        if (sv.size() > capacity())
             std::terminate();
 
-        if (!str.empty())
-            std::memcpy(data(), str.data(), str.size());
+        if (!sv.empty())
+            std::memcpy(data(), sv.data(), sv.size());
 
-        _size = str.size();
+        _size = sv.size();
         null_terminate();
     }
 
@@ -1374,8 +1375,8 @@ hash_bytes(const char* RESTRICT data, std::size_t size, std::uint64_t seed = 0) 
     return h;
 }
 
-inline std::uint64_t hash_string(std::string_view str) noexcept {
-    return hash_bytes(str.data(), str.size());
+inline std::uint64_t hash_string(std::string_view sv) noexcept {
+    return hash_bytes(sv.data(), sv.size());
 }
 
 template<typename T>
@@ -1399,12 +1400,23 @@ void combine_hash(std::size_t& seed, const T& v) noexcept {
     seed ^= x + 0x9E3779B9U + (seed << 6) + (seed >> 2);
 }
 
-// C++ way to prepare a buffer for a memory stream
+// Custom streambuf that wraps string_view
+class StringViewStreamBuf final: public std::streambuf {
+   public:
+    StringViewStreamBuf(std::string_view sv) noexcept {
+        // Cast away const (safe: only for reading via std::istream)
+        char* p = const_cast<char*>(sv.data());
+        setg(p, p, p + sv.size());  // Only GET area (reading enabled)
+        // Do NOT call setp(p, p + sv.size()) - no PUT area (writing disabled)
+    }
+};
+
+// Custom streambuf that wraps memory stream
 class MemoryStreamBuf final: public std::streambuf {
    public:
-    MemoryStreamBuf(char* p, std::size_t n) noexcept {
-        setg(p, p, p + n);
-        setp(p, p + n);
+    MemoryStreamBuf(char* p, std::size_t size) noexcept {
+        setg(p, p, p + size);  // Only GET area (reading enabled)
+        // Do NOT call setp(p, p + size) - no PUT area (writing disabled)
     }
 };
 
@@ -1524,7 +1536,7 @@ class Logger final {
     bool is_open() const noexcept { return ofs.is_open(); }
 
     void write_timestamp(std::string_view suffix) noexcept {
-        if (!ofs.is_open())
+        if (!ofs)
             return;
 
         ofs << '[' << format_time(std::chrono::system_clock::now()) << "] " << suffix << std::endl;
@@ -1647,49 +1659,49 @@ inline std::string remove_whitespace(std::string str) noexcept {
     return str;
 }
 
-[[nodiscard]] constexpr bool starts_with(std::string_view str, std::string_view prefix) noexcept {
-    return str.size() >= prefix.size()  //
-        && str.compare(0, prefix.size(), prefix) == 0;
+[[nodiscard]] constexpr bool starts_with(std::string_view sv, std::string_view prefix) noexcept {
+    return sv.size() >= prefix.size()  //
+        && sv.compare(0, prefix.size(), prefix) == 0;
 }
 
-[[nodiscard]] constexpr bool ends_with(std::string_view str, std::string_view suffix) noexcept {
-    return str.size() >= suffix.size()  //
-        && str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0;
+[[nodiscard]] constexpr bool ends_with(std::string_view sv, std::string_view suffix) noexcept {
+    return sv.size() >= suffix.size()  //
+        && sv.compare(sv.size() - suffix.size(), suffix.size(), suffix) == 0;
 }
 
-[[nodiscard]] constexpr bool is_whitespace(std::string_view str) noexcept {
-    return str.find_first_not_of(WHITE_SPACE) == std::string_view::npos;
+[[nodiscard]] constexpr bool is_whitespace(std::string_view sv) noexcept {
+    return sv.find_first_not_of(WHITE_SPACE) == std::string_view::npos;
 }
 
-[[nodiscard]] constexpr std::string_view ltrim(std::string_view str) noexcept {
+[[nodiscard]] constexpr std::string_view ltrim(std::string_view sv) noexcept {
     // Find the first non-whitespace character
-    std::size_t beg = str.find_first_not_of(WHITE_SPACE);
+    std::size_t beg = sv.find_first_not_of(WHITE_SPACE);
 
     if (beg == std::string_view::npos)
         return {};
 
-    return str.substr(beg);
+    return sv.substr(beg);
 }
 
-[[nodiscard]] constexpr std::string_view rtrim(std::string_view str) noexcept {
+[[nodiscard]] constexpr std::string_view rtrim(std::string_view sv) noexcept {
     // Find the last non-whitespace character
-    std::size_t end = str.find_last_not_of(WHITE_SPACE);
+    std::size_t end = sv.find_last_not_of(WHITE_SPACE);
 
     if (end == std::string_view::npos)
         return {};
 
-    return str.substr(0, end + 1);
+    return sv.substr(0, end + 1);
 }
 
-[[nodiscard]] constexpr std::string_view trim(std::string_view str) noexcept {
-    std::size_t beg = str.find_first_not_of(WHITE_SPACE);
+[[nodiscard]] constexpr std::string_view trim(std::string_view sv) noexcept {
+    std::size_t beg = sv.find_first_not_of(WHITE_SPACE);
 
     if (beg == std::string_view::npos)
         return {};
 
-    std::size_t end = str.find_last_not_of(WHITE_SPACE);
+    std::size_t end = sv.find_last_not_of(WHITE_SPACE);
 
-    return str.substr(beg, end - beg + 1);
+    return sv.substr(beg, end - beg + 1);
 }
 
 [[nodiscard]] constexpr std::string_view bool_to_string(bool b) noexcept {
@@ -1700,7 +1712,7 @@ inline std::string remove_whitespace(std::string str) noexcept {
     return value == "true" || value == "false";
 }
 
-[[nodiscard]] constexpr bool string_to_bool(std::string_view str) { return (trim(str) == "true"); }
+[[nodiscard]] constexpr bool string_to_bool(std::string_view sv) { return (trim(sv) == "true"); }
 
 inline std::string clamp_string(std::string_view value, int minValue, int maxValue) noexcept {
     int intValue = 0;
@@ -1722,10 +1734,10 @@ inline std::string clamp_string(std::string_view value, int minValue, int maxVal
 }
 
 inline StringViews
-split(std::string_view str, std::string_view delimiter, bool trimPart = false) noexcept {
+split(std::string_view sv, std::string_view delimiter, bool trimPart = false) noexcept {
     StringViews parts;
 
-    if (str.empty() || delimiter.empty())
+    if (sv.empty() || delimiter.empty())
         return parts;  // Avoid infinite loop for empty delimiter
 
     std::string_view part;
@@ -1734,12 +1746,12 @@ split(std::string_view str, std::string_view delimiter, bool trimPart = false) n
 
     while (true)
     {
-        std::size_t end = str.find(delimiter, beg);
+        std::size_t end = sv.find(delimiter, beg);
 
         if (end == std::string_view::npos)
             break;
 
-        part = str.substr(beg, end - beg);
+        part = sv.substr(beg, end - beg);
 
         if (trimPart)
             part = trim(part);
@@ -1751,7 +1763,7 @@ split(std::string_view str, std::string_view delimiter, bool trimPart = false) n
     }
 
     // Last part
-    part = str.substr(beg);
+    part = sv.substr(beg);
 
     if (trimPart)
         part = trim(part);
@@ -1768,7 +1780,7 @@ inline std::string hash_to_string(std::uint64_t hash) noexcept {
     StdArray<char, BufferSize> buffer{};
 
     int         writtenSize = std::snprintf(buffer.data(), buffer.size(), "%016" PRIX64, hash);
-    std::size_t copiedSize  = writtenSize >= 0  //
+    std::size_t copiedSize  = writtenSize > 0  //
                               ? std::min<std::size_t>(writtenSize, buffer.size() - 1)
                               : 0;
 
@@ -1781,7 +1793,7 @@ inline std::string u32_to_string(std::uint32_t u32) noexcept {
     StdArray<char, BufferSize> buffer{};
 
     int         writtenSize = std::snprintf(buffer.data(), buffer.size(), "0x%08" PRIX32, u32);
-    std::size_t copiedSize  = writtenSize >= 0  //
+    std::size_t copiedSize  = writtenSize > 0  //
                               ? std::min<std::size_t>(writtenSize, buffer.size() - 1)
                               : 0;
 
@@ -1793,18 +1805,18 @@ inline std::string u64_to_string(std::uint64_t u64) noexcept {
     StdArray<char, BufferSize> buffer{};
 
     int         writtenSize = std::snprintf(buffer.data(), buffer.size(), "0x%016" PRIX64, u64);
-    std::size_t copiedSize  = writtenSize >= 0  //
+    std::size_t copiedSize  = writtenSize > 0  //
                               ? std::min<std::size_t>(writtenSize, buffer.size() - 1)
                               : 0;
 
     return std::string{buffer.data(), copiedSize};
 }
 
-std::size_t str_to_size_t(std::string_view str) noexcept;
+std::size_t str_to_size_t(std::string_view sv) noexcept;
 
 // Reads the file as bytes.
 // Returns std::nullopt if the file does not exist.
-std::optional<std::string> read_file_to_string(std::string_view filePath) noexcept;
+std::optional<std::string> read_file_to_string(std::filesystem::path filePath) noexcept;
 
 #if defined(_WIN32)
 // Get the error message string, if any

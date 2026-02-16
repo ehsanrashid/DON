@@ -372,7 +372,7 @@ class Threads final {
 
     MainSearchManager* main_manager() const noexcept;
 
-    Thread* best_thread() const noexcept;
+    const Thread* best_thread() const noexcept;
 
     void
     start(Position& pos, StateListPtr& states, const Limit& limit, const Options& options) noexcept;

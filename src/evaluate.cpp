@@ -104,14 +104,19 @@ std::string trace(Position& pos, const NNUE::Networks& networks) noexcept {
 
     auto fmt = [](double value) noexcept -> std::string {
         StdArray<char, 8> buffer{};
-        std::snprintf(buffer.data(), buffer.size(), "%+01.2f", value);
-        return std::string{buffer.data(), buffer.size() - 1};
+
+        int         writtenSize = std::snprintf(buffer.data(), buffer.size(), "%+01.2f", value);
+        std::size_t copiedSize  = writtenSize > 0  //
+                                  ? std::min<std::size_t>(writtenSize, buffer.size() - 1)
+                                  : 0;
+
+        return std::string{buffer.data(), copiedSize};
     };
 
     std::string output;
     output.reserve(3072);
 
-    output = NNUE::trace(pos, networks, *accCaches) + "\n";
+    output.assign(NNUE::trace(pos, networks, *accCaches)).push_back('\n');
 
     auto netOut = networks.big.evaluate(pos, *accStack, accCaches->big);
 
@@ -120,14 +125,18 @@ std::string trace(Position& pos, const NNUE::Networks& networks) noexcept {
     v = netOut.psqt + netOut.positional;
     v = pos.active_color() == WHITE ? +v : -v;
 
-    output += "NNUE evaluation      : " + fmt(0.01 * UCI::to_cp(v, pos))  //
-            + " (white side)\n";
+    output  //
+      .append("NNUE evaluation      : ")
+      .append(fmt(0.01 * UCI::to_cp(v, pos)))
+      .append(" (white side)\n");
 
     v = evaluate(pos, networks, *accStack, *accCaches);
     v = pos.active_color() == WHITE ? +v : -v;
 
-    output += "Final evaluation     : " + fmt(0.01 * UCI::to_cp(v, pos))  //
-            + " (white side) [with scaled NNUE, ...]\n";
+    output  //
+      .append("Final evaluation     : ")
+      .append(fmt(0.01 * UCI::to_cp(v, pos)))
+      .append(" (white side) [with scaled NNUE, ...]\n");
 
     return output;
 }

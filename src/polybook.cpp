@@ -20,7 +20,6 @@
 #include <algorithm>
 #include <array>
 #include <cassert>
-#include <filesystem>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -420,17 +419,17 @@ bool is_draw(Position& pos, Move m) noexcept {
 
 void PolyBook::clear() noexcept { entries.clear(); }
 
-bool PolyBook::load(std::string_view bookFile) noexcept {
+bool PolyBook::load(std::filesystem::path bookFile) noexcept {
     clear();
 
     if (bookFile.empty())
         return false;
 
-    filename = bookFile;
+    filename = bookFile.string();
 
     std::error_code ec;
 
-    std::size_t fileSize = std::filesystem::file_size(filename, ec);
+    std::size_t fileSize = std::filesystem::file_size(bookFile, ec);
 
     if (ec)
     {
@@ -461,9 +460,9 @@ bool PolyBook::load(std::string_view bookFile) noexcept {
         //DEBUG_LOG("Warning: Bad size Book file " << filename << ", ignoring " << remainder << " trailing bytes");
     }
 
-    std::ifstream ifs{filename, std::ios::binary};
+    std::ifstream ifs{bookFile, std::ios::binary};
 
-    if (!ifs.is_open())
+    if (!ifs)
     {
         //DEBUG_LOG("Failed to open Book file " << filename);
         return false;

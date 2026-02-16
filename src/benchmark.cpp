@@ -18,6 +18,7 @@
 #include "benchmark.h"
 
 #include <cstdint>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <vector>
@@ -396,9 +397,7 @@ Strings bench(std::istream& is, std::string_view currentFen) noexcept {
     std::string fenFile   = (is >> token) ? token : "default";
     std::string limitType = (is >> token) ? token : "depth";
 
-    bool isGo = limitType != "eval";
-
-    std::string command = isGo ? "go " + limitType + " " + limitVal : "eval";
+    std::string command{limitType != "eval" ? "go " + limitType + " " + limitVal : "eval"};
 
     std::string fenOpt = lower_case(fenFile);
 
@@ -420,11 +419,24 @@ Strings bench(std::istream& is, std::string_view currentFen) noexcept {
     {
         std::ifstream ifs{fenFile};
 
-        if (!ifs.is_open())
+        if (!ifs)
+        {
             DEBUG_LOG("Unable to open fen filename " << fenFile);
+            return {};
+        }
         else
         {
+            constexpr std::size_t AverageFenLen = 64;
+
+            std::size_t fenFileSize = std::filesystem::file_size(fenFile);
+
+            std::size_t estimatedFens = fenFileSize / AverageFenLen;
+
+            fens.reserve(estimatedFens);
+
             std::string fen;
+            fen.reserve(AverageFenLen);  // avoids repeated reallocations for typical FEN length
+
             while (std::getline(ifs, fen))
                 if (!is_whitespace(fen))
                     fens.emplace_back(fen);
@@ -435,27 +447,23 @@ Strings bench(std::istream& is, std::string_view currentFen) noexcept {
 
     Strings commands;
 
-    if (isGo && !fens.empty())
+    if (limitType != "eval")
     {
         commands.emplace_back("setoption name Threads value " + threads);
         commands.emplace_back("setoption name Hash value " + ttSize);
         commands.emplace_back("ucinewgame");
     }
 
-    for (auto& fen : fens)
-    {
-        fen = std::string{trim(fen)};
-
-        bool setOption = fen.rfind("setoption ", 0) == 0;
-
-        if (!setOption)
-            fen = "position fen " + fen;
-
-        commands.emplace_back(fen);
-
-        if (!setOption)
+    for (const auto& fen : fens)
+        if (starts_with(trim(fen), "setoption "))
+        {
+            commands.emplace_back(fen);
+        }
+        else
+        {
+            commands.emplace_back("position fen " + fen);
             commands.emplace_back(command);
-    }
+        }
 
     return commands;
 }
@@ -476,25 +484,35 @@ Setup benchmark(std::istream& is) noexcept {
     std::size_t desiredMoveTime;
 
     if (is >> setup.threads)
-        setup.originalInvocation += std::to_string(setup.threads);
+        setup
+          .originalInvocation  //
+          .assign(std::to_string(setup.threads));
     else
         setup.threads = MAX_SYSTEM_THREADS;
 
     if (is >> setup.ttSize)
-        setup.originalInvocation += ' ' + std::to_string(setup.ttSize);
+        setup
+          .originalInvocation  //
+          .append(1, ' ')
+          .append(std::to_string(setup.ttSize));
     else
         setup.ttSize = DefaultThreadTTSize * setup.threads;
 
     if (is >> desiredMoveTime)
-        setup.originalInvocation += ' ' + std::to_string(desiredMoveTime);
+        setup
+          .originalInvocation  //
+          .append(1, ' ')
+          .append(std::to_string(desiredMoveTime));
     else
         desiredMoveTime = DefaultMoveTime;
 
-    setup.currentInvocation += std::to_string(setup.threads);
-    setup.currentInvocation += ' ';
-    setup.currentInvocation += std::to_string(setup.ttSize);
-    setup.currentInvocation += ' ';
-    setup.currentInvocation += std::to_string(desiredMoveTime);
+    setup
+      .currentInvocation  //
+      .assign(std::to_string(setup.threads))
+      .append(1, ' ')
+      .append(std::to_string(setup.ttSize))
+      .append(1, ' ')
+      .append(std::to_string(desiredMoveTime));
 
     auto get_move_time = [](std::uint16_t ply) noexcept {
         // time per move is fit roughly based on LTC games

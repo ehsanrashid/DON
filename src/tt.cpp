@@ -21,10 +21,8 @@
 #include <cassert>
 #include <cstdlib>
 #include <cstring>
-#include <filesystem>
 #include <fstream>
 #include <iostream>
-#include <string>
 #include <system_error>
 
 #include "memory.h"
@@ -275,7 +273,7 @@ std::uint16_t TranspositionTable::hashfull(std::uint8_t maxAge) const noexcept {
     return ceil_div(count * requiredCount, actualCount) / clusters->entries.size();
 }
 
-bool TranspositionTable::load(std::string_view hashFile, Threads& threads) noexcept {
+bool TranspositionTable::load(std::filesystem::path hashFile, Threads& threads) noexcept {
 
     if (hashFile.empty())
     {
@@ -285,7 +283,7 @@ bool TranspositionTable::load(std::string_view hashFile, Threads& threads) noexc
 
     std::error_code ec;
 
-    std::size_t fileSize = std::filesystem::file_size(std::string{hashFile}, ec);
+    std::size_t fileSize = std::filesystem::file_size(hashFile, ec);
 
     if (ec)
     {
@@ -299,9 +297,9 @@ bool TranspositionTable::load(std::string_view hashFile, Threads& threads) noexc
         return true;
     }
 
-    std::ifstream ifs{std::string{hashFile}, std::ios::binary};
+    std::ifstream ifs{hashFile, std::ios::binary};
 
-    if (!ifs.is_open())
+    if (!ifs)
     {
         //DEBUG_LOG("Failed to open Hash file " << hashFile);
         return false;
@@ -353,7 +351,7 @@ bool TranspositionTable::load(std::string_view hashFile, Threads& threads) noexc
     return readedSize == DataSize && ifs.good();
 }
 
-bool TranspositionTable::save(std::string_view hashFile) const noexcept {
+bool TranspositionTable::save(std::filesystem::path hashFile) const noexcept {
 
     if (hashFile.empty())
     {
@@ -361,9 +359,9 @@ bool TranspositionTable::save(std::string_view hashFile) const noexcept {
         return false;
     }
 
-    std::ofstream ofs{std::string{hashFile}, std::ios::binary};
+    std::ofstream ofs{hashFile, std::ios::binary};
 
-    if (!ofs.is_open())
+    if (!ofs)
     {
         //DEBUG_LOG("Failed to open Hash file " << hashFile);
         return false;

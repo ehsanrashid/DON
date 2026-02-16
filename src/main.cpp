@@ -54,9 +54,9 @@ int main(int argc, const char* argv[]) noexcept {
         for (std::size_t i = 1; i < uci.arguments().size(); ++i)
         {
             if (!command.empty())
-                command += ' ';
+                command.push_back(' ');
 
-            command += uci.arguments()[i];
+            command.append(uci.arguments()[i]);
         }
 
         uci.execute(command);

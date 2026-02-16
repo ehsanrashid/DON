@@ -85,11 +85,11 @@ Engine::Engine(std::string_view path) noexcept :
     options.add("NumaPolicy",           Option("auto", OnCng([this](const Option& o) {
         set_numa_config(o);
         return numa_config_info() + '\n'
-             + thread_allocation_info();
+             + thread_allocation();
     })));
     options.add("Threads",              Option(DEFAULT_THREADS, MIN_THREADS, MAX_THREADS, OnCng([this](const Option&) {
         resize_threads_tt();
-        return thread_allocation_info();
+        return thread_allocation();
     })));
     options.add("Hash",                 Option(DEFAULT_HASH, MIN_HASH, MAX_HASH, OnCng([this](const Option& o) {
         resize_tt(o);
@@ -239,13 +239,13 @@ void Engine::resize_tt(std::size_t ttSize) noexcept {
 
 void Engine::show() const noexcept { std::cout << pos << std::endl; }
 
-void Engine::dump(std::string_view dumpFile) const noexcept {
+void Engine::dump(std::filesystem::path dumpFile) const noexcept {
 
     if (!dumpFile.empty())
     {
-        std::ofstream ofs{std::string{dumpFile}, std::ios::binary};
+        std::ofstream ofs{dumpFile, std::ios::binary};
 
-        if (ofs.is_open())
+        if (ofs)
         {
             pos.dump(ofs);
 
@@ -309,39 +309,34 @@ std::string Engine::numa_config_info() const noexcept {
     return numaConfig;
 }
 
-std::string Engine::thread_binding_info() const noexcept {
+std::string Engine::thread_binding() const noexcept {
     auto boundThreadCounts = bound_thread_counts();
 
     std::string threadBinding;
     threadBinding.reserve(8 * boundThreadCounts.size());
 
-    for (auto itr = boundThreadCounts.begin(); itr != boundThreadCounts.end(); ++itr)
+    for (const auto& [numaId, threadCount] : boundThreadCounts)
     {
-        const auto& [numaId, threadCount] = *itr;
+        if (!threadBinding.empty())
+            threadBinding.push_back(':');
 
-        if (itr != boundThreadCounts.begin())
-            threadBinding += ':';
-
-        threadBinding += std::to_string(numaId);
-        threadBinding += '/';
-        threadBinding += std::to_string(threadCount);
+        threadBinding  //
+          .append(std::to_string(numaId))
+          .append(1, '/')
+          .append(std::to_string(threadCount));
     }
 
     return threadBinding;
 }
 
-std::string Engine::thread_allocation_info() const noexcept {
+std::string Engine::thread_allocation() const noexcept {
     std::string threadAllocation{"Threads: "};
+    threadAllocation.append(std::to_string(threads.size()));
 
-    threadAllocation += std::to_string(threads.size());
-
-    std::string threadBinding = thread_binding_info();
-
-    if (!threadBinding.empty())
-    {
-        threadAllocation += " with NUMA node thread binding: ";
-        threadAllocation += threadBinding;
-    }
+    if (std::string threadBinding = thread_binding(); !threadBinding.empty())
+        threadAllocation  //
+          .append(" with NUMA node thread binding: ")
+          .append(threadBinding);
 
     return threadAllocation;
 }
@@ -358,17 +353,13 @@ void Engine::verify_networks() const noexcept {
         auto& [status, error] = statuses[i];
 
         std::string message{"Network replica "};
-
-        message += std::to_string(i);
-        message += ": ";
-
-        message += to_string(status);
+        message  //
+          .append(std::to_string(i))
+          .append(": ")
+          .append(to_string(status));
 
         if (!error.empty())
-        {
-            message += ". ";
-            message += error;
-        }
+            message.append(". ").append(error);
 
         UCI::print_info_string(message);
     }
@@ -409,9 +400,13 @@ void Engine::save_networks(const StdArray<std::string_view, 2>& netFiles) const 
     networks->save_small(netFiles[1]);
 }
 
-bool Engine::load_hash() noexcept { return transpositionTable.load(options["HashFile"], threads); }
+bool Engine::load_hash() noexcept {
+    return transpositionTable.load(std::string_view{options["HashFile"]}, threads);
+}
 
-bool Engine::save_hash() const noexcept { return transpositionTable.save(options["HashFile"]); }
+bool Engine::save_hash() const noexcept {
+    return transpositionTable.save(std::string_view{options["HashFile"]});
+}
 
 void Engine::set_on_update_short(MainSearchManager::OnUpdateShort&& f) noexcept {
     updateContext.onUpdateShort = std::move(f);
