@@ -446,67 +446,67 @@ class TestEnPassant(metaclass=OrderedClassMembers):
         self.engine.send_command("position fen rnbqkbnr/ppp1p1pp/5p2/3pP3/8/8/PPPP1PPP/RNBQKBNR w kq d6 0 3")
         self.engine.send_command("show")
 
-        self.engine.expect_for_line_matching("Fen*", "*rnbqkbnr/ppp1p1pp/5p2/3pP3/8/8/PPPP1PPP/RNBQKBNR w kq d6 0 3*")
+        self.engine.expect_matching_line("Fen*", "*rnbqkbnr/ppp1p1pp/5p2/3pP3/8/8/PPPP1PPP/RNBQKBNR w kq d6 0 3*")
 
     def test_position_2(self):
         self.engine.send_command("position fen k7/8/8/1pP5/2K5/8/8/8 w - b6 0 1")
         self.engine.send_command("show")
 
-        self.engine.expect_for_line_matching("Fen*", "*k7/8/8/1pP5/2K5/8/8/8 w - b6 0 1*")
+        self.engine.expect_matching_line("Fen*", "*k7/8/8/1pP5/2K5/8/8/8 w - b6 0 1*")
 
     def test_position_3(self):
         self.engine.send_command("position fen k1r5/8/8/1pP5/2K5/8/8/8 w - b6 0 1")
         self.engine.send_command("show")
 
-        self.engine.expect_for_line_matching("Fen*", "*k1r5/8/8/1pP5/2K5/8/8/8 w - - 0 1*")
+        self.engine.expect_matching_line("Fen*", "*k1r5/8/8/1pP5/2K5/8/8/8 w - - 0 1*")
 
     def test_position_4(self):
         self.engine.send_command("position fen k1r5/8/8/1pP5/8/2K5/8/8 w - b6 0 1")
         self.engine.send_command("show")
 
-        self.engine.expect_for_line_matching("Fen*", "*k1r5/8/8/1pP5/8/2K5/8/8 w - - 0 1*")
+        self.engine.expect_matching_line("Fen*", "*k1r5/8/8/1pP5/8/2K5/8/8 w - - 0 1*")
 
     def test_position_5(self):
         self.engine.send_command("position fen k1r5/8/8/PpP5/8/2K5/8/8 w - b6 0 1")
         self.engine.send_command("show")
 
-        self.engine.expect_for_line_matching("Fen*", "*k1r5/8/8/PpP5/8/2K5/8/8 w - b6 0 1*")
+        self.engine.expect_matching_line("Fen*", "*k1r5/8/8/PpP5/8/2K5/8/8 w - b6 0 1*")
 
     def test_position_6(self):
         self.engine.send_command("position fen k1r5/8/8/PpP5/2K5/8/8/8 w - b6 0 1")
         self.engine.send_command("show")
 
-        self.engine.expect_for_line_matching("Fen*", "*k1r5/8/8/PpP5/2K5/8/8/8 w - b6 0 1*")
+        self.engine.expect_matching_line("Fen*", "*k1r5/8/8/PpP5/2K5/8/8/8 w - b6 0 1*")
 
     def test_position_7(self):
         self.engine.send_command("position fen k7/4b3/8/PpP5/1K6/8/8/8 w - b6 0 1")
         self.engine.send_command("show")
 
-        self.engine.expect_for_line_matching("Fen*", "*k7/4b3/8/PpP5/1K6/8/8/8 w - b6 0 1*")
+        self.engine.expect_matching_line("Fen*", "*k7/4b3/8/PpP5/1K6/8/8/8 w - b6 0 1*")
 
     def test_position_8(self):
         self.engine.send_command("position fen k7/b5b1/8/2PpP3/3K4/8/8/8 w - d6 0 1")
         self.engine.send_command("show")
 
-        self.engine.expect_for_line_matching("Fen*", "*k7/b5b1/8/2PpP3/3K4/8/8/8 w - - 0 1*")
+        self.engine.expect_matching_line("Fen*", "*k7/b5b1/8/2PpP3/3K4/8/8/8 w - - 0 1*")
 
     def test_position_9(self):
         self.engine.send_command("position fen k7/8/8/r2pPK2/8/8/8/8 w - d6 0 1")
         self.engine.send_command("show")
 
-        self.engine.expect_for_line_matching("Fen*", "*k7/8/8/r2pPK2/8/8/8/8 w - - 0 1*")
+        self.engine.expect_matching_line("Fen*", "*k7/8/8/r2pPK2/8/8/8/8 w - - 0 1*")
 
     def test_position_10(self):
         self.engine.send_command("position fen k7/8/8/r1PpPK2/8/8/8/8 w - d6 0 1")
         self.engine.send_command("show")
 
-        self.engine.expect_for_line_matching("Fen*", "*k7/8/8/r1PpPK2/8/8/8/8 w - d6 0 1*")
+        self.engine.expect_matching_line("Fen*", "*k7/8/8/r1PpPK2/8/8/8/8 w - d6 0 1*")
 
     def test_position_11(self):
         self.engine.send_command("position fen kb6/8/8/3pP3/5K2/8/8/8 w - d6 0 1")
         self.engine.send_command("show")
 
-        self.engine.expect_for_line_matching("Fen*", "*kb6/8/8/3pP3/5K2/8/8/8 w - d6 0 1*")
+        self.engine.expect_matching_line("Fen*", "*kb6/8/8/3pP3/5K2/8/8/8 w - d6 0 1*")
 
     def test_position_find_draw(self):
         self.engine.send_command("position fen q4kb1/3Q2nq/8/r3PpK1/2n5/7q/8/q7 w - f6 0 1 moves d7c8 f8f7 c8d7 f7f8 d7d8 f8f7")
@@ -562,7 +562,7 @@ if __name__ == "__main__":
     framework = MiniTestFramework()
 
     # Each test suite will be run inside a temporary directory
-    framework.run([TestCLI, TestInteractive, TestSyzygy, TestEnPassant]])
+    framework.run([TestCLI, TestInteractive, TestSyzygy, TestEnPassant])
 
     EPD.delete_bench_epd()
     TSAN.unset_tsan_option()

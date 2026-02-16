@@ -378,13 +378,13 @@ class DON:
                 return
 
     @timeout_decorator(MAX_TIMEOUT)    
-    def expect_for_line_matching(self, lineMatch: str, expected: str):
+    def expect_matching_line(self, linePattern: str, expectedOutput: str):
         for line in self.readline():
-            if fnmatch.fnmatch(line, lineMatch):
-                if fnmatch.fnmatch(line, expected):
+            if fnmatch.fnmatch(line, linePattern):
+                if fnmatch.fnmatch(line, expectedOutput):
                     break
                 else:
-                    raise UnexpectedOutputException(line, expected)
+                    raise UnexpectedOutputException(line, expectedOutput)
 
     def readline(self):
         if not self.process:
