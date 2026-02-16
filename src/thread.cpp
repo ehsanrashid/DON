@@ -340,7 +340,7 @@ const Thread* Threads::best_thread() const noexcept {
     if (snapShot.empty())
         return nullptr;
 
-    const Thread* bestThread = snapShot.front();
+    const auto* bestThread = snapShot.front();
 
     Value minCurValue = VALUE_NONE;
     // Find the minimum value of all threads
@@ -359,51 +359,78 @@ const Thread* Threads::best_thread() const noexcept {
     for (const auto* th : snapShot)
         votes[th->worker->rootMoves[0].pv[0]] += thread_voting_value(th);
 
-    for (const auto* nextThread : snapShot)
+    // Cache initial best thread properties
+    auto bestValue  = bestThread->worker->rootMoves[0].curValue;
+    auto bestVote   = votes[bestThread->worker->rootMoves[0].pv[0]];
+    auto bestVoting = thread_voting_value(bestThread);
+    bool bestWin    = bestValue != +VALUE_INFINITE && is_win(bestValue);
+    bool bestLoss   = bestValue != -VALUE_INFINITE && is_loss(bestValue);
+    auto bestPvSize = bestThread->worker->rootMoves[0].pv.size();
+
+    for (std::size_t i = 1; i < snapShot.size(); ++i)
     {
-        auto bestThreadValue = bestThread->worker->rootMoves[0].curValue;
-        auto nextThreadValue = nextThread->worker->rootMoves[0].curValue;
+        const auto* nextThread = snapShot[i];
 
-        auto& bestThreadPV = bestThread->worker->rootMoves[0].pv;
-        auto& nextThreadPV = nextThread->worker->rootMoves[0].pv;
+        // Get candidate thread properties
+        auto nextValue  = nextThread->worker->rootMoves[0].curValue;
+        auto nextVote   = votes[nextThread->worker->rootMoves[0].pv[0]];
+        auto nextVoting = thread_voting_value(nextThread);
+        bool nextWin    = nextValue != +VALUE_INFINITE && is_win(nextValue);
+        bool nextLoss   = nextValue != -VALUE_INFINITE && is_loss(nextValue);
+        auto nextPvSize = nextThread->worker->rootMoves[0].pv.size();
 
-        auto bestThreadMoveVote = votes[bestThreadPV[0]];
-        auto nextThreadMoveVote = votes[nextThreadPV[0]];
+        bool nextBetter = false;
 
-        auto bestThreadVotingValue = thread_voting_value(bestThread);
-        auto nextThreadVotingValue = thread_voting_value(nextThread);
+        bool bothWin  = bestWin && nextWin;
+        bool bothLoss = bestLoss && nextLoss;
 
-        bool bestThreadInProvenWin = bestThreadValue != +VALUE_INFINITE && is_win(bestThreadValue);
-        bool nextThreadInProvenWin = nextThreadValue != +VALUE_INFINITE && is_win(nextThreadValue);
-
-        bool bestThreadInProvenLoss =
-          bestThreadValue != -VALUE_INFINITE && is_loss(bestThreadValue);
-        bool nextThreadInProvenLoss =
-          nextThreadValue != -VALUE_INFINITE && is_loss(nextThreadValue);
-
-        if (bestThreadInProvenWin)
+        // Case 1 & 2: Both terminal (mate-related) positions -> prefer shorter mates
+        if (bothWin || bothLoss)
         {
-            // Make sure pick the shortest mate / TB conversion
-            if (nextThreadInProvenWin && bestThreadValue < nextThreadValue)
-                bestThread = nextThread;
+            nextBetter = nextValue > bestValue;
         }
-        else if (bestThreadInProvenLoss)
+        // Case 3: Mixed or normal positions
+        // next thread wins or best thread is a loss but next thread is not a loss
+        else if (nextWin || (bestLoss && !nextLoss))
         {
-            // Make sure pick the shortest mated / TB conversion
-            if (nextThreadInProvenLoss && bestThreadValue > nextThreadValue)
-                bestThread = nextThread;
+            nextBetter = true;  // Win beats non-win, non-loss beats loss
         }
-        // clang-format off
-        else if (nextThreadInProvenWin || nextThreadInProvenLoss
-              || (!is_loss(nextThreadValue)
-                  && (bestThreadMoveVote < nextThreadMoveVote
-                      || (bestThreadMoveVote == nextThreadMoveVote
-                          // Note that make sure not to pick a thread with truncated-PV for better viewer experience.
-                          && (bestThreadVotingValue < nextThreadVotingValue
-                              || (bestThreadVotingValue == nextThreadVotingValue
-                                  && bestThreadPV.size() < nextThreadPV.size()))))))
+        else if (!nextLoss && !bestWin)
+        {
+            // Normal position: use voting
+            if (nextVote > bestVote)
+            {
+                nextBetter = true;
+            }
+            else if (nextVote == bestVote)
+            {
+                // Tie-breaker 1: voting value
+                if (nextVoting > bestVoting)
+                {
+                    nextBetter = true;
+                }
+                else if (nextVoting == bestVoting)
+                {
+                    // Tie-breaker 2: longer PV
+                    nextBetter = nextPvSize > bestPvSize;
+                }
+            }
+        }
+
+        if (nextBetter)
+        {
             bestThread = nextThread;
-        // clang-format on
+            bestValue  = nextValue;
+            bestVote   = nextVote;
+            bestVoting = nextVoting;
+            bestWin    = nextWin;
+            bestLoss   = nextLoss;
+            bestPvSize = nextPvSize;
+
+            // Early exit: best possible result (mate in 1) found
+            if (bestWin && bestValue >= VALUE_MATES_IN_1)
+                break;  // Can't get better than mate in 1!
+        }
     }
 
     return bestThread;

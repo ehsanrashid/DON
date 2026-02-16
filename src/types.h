@@ -387,6 +387,7 @@ inline constexpr Value VALUE_NONE     = 0x7FFF;
 inline constexpr Value VALUE_INFINITE = VALUE_NONE - 1;
 
 inline constexpr Value VALUE_MATE             = VALUE_INFINITE - 1;
+inline constexpr Value VALUE_MATES_IN_1       = VALUE_MATE - 1;
 inline constexpr Value VALUE_MATES_IN_MAX_PLY = VALUE_MATE - MAX_PLY;
 inline constexpr Value VALUE_MATED_IN_MAX_PLY = -VALUE_MATES_IN_MAX_PLY;
 
