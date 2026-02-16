@@ -340,17 +340,18 @@ const Thread* Threads::best_thread() const noexcept {
     if (snapShot.empty())
         return nullptr;
 
-    const auto* bestThread = snapShot.front();
-
     Value minCurValue = VALUE_NONE;
     // Find the minimum value of all threads
     for (const auto* th : snapShot)
         minCurValue = std::min(th->worker->rootMoves[0].curValue, minCurValue);
 
     // Vote according to value and depth, and select the best thread
-    auto thread_voting_value = [minCurValue](const Thread* th) noexcept -> std::uint32_t {
-        return (14 + th->worker->rootMoves[0].curValue - minCurValue) * th->worker->completedDepth;
+    auto thread_voting_value = [minCurValue](const Thread* th) noexcept -> std::uint64_t {
+        return (14 + th->worker->rootMoves[0].curValue - minCurValue)
+             * std::uint64_t(th->worker->completedDepth);
     };
+
+    const auto* bestThread = snapShot.front();
 
     std::unordered_map<Move, std::uint64_t> votes;
     votes.max_load_factor(0.5f);  // slightly safer for absolute minimal collisions
