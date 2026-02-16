@@ -356,7 +356,7 @@ const Thread* Threads::best_thread() const noexcept {
     std::unordered_map<Move, std::uint64_t> votes;
     votes.max_load_factor(0.85f);
     votes.reserve(reserve_count(
-      constexpr_round(1.85 * std::min(snapShot.size(), bestThread->worker->rootMoves.size()))));
+      constexpr_round(1.75 * std::min(snapShot.size(), bestThread->worker->rootMoves.size()))));
 
     for (const auto* th : snapShot)
         votes[th->worker->rootMoves[0].pv[0]] += thread_voting_value(th);
@@ -383,40 +383,32 @@ const Thread* Threads::best_thread() const noexcept {
 
         bool nextBetter = false;
 
-        bool bothWin  = bestWin && nextWin;
-        bool bothLoss = bestLoss && nextLoss;
-
-        // Case 1 & 2: Both terminal (mate-related) positions -> prefer shorter mates
-        if (bothWin || bothLoss)
+        // Case 1: Both winning -> shortest mates / TB conversion
+        if (bestWin)
         {
-            nextBetter = nextValue > bestValue;
+            nextBetter = nextWin && nextValue > bestValue;
         }
-        // Case 3: Mixed or normal positions
-        // next thread wins or best thread is a loss but next thread is not a loss
-        else if (nextWin || (bestLoss && !nextLoss))
+        // Case 2: Both losing -> shortest mated / TB conversion
+        else if (bestLoss)
         {
-            nextBetter = true;  // Win beats non-win, non-loss beats loss
+            nextBetter = nextLoss && nextValue < bestValue;
         }
-        else if (!nextLoss && !bestWin)
+        // Case 3: Mixed or normal positions -> use voting with tie-breakers
+        else
         {
-            // Normal position: use voting
-            if (nextVote > bestVote)
-            {
-                nextBetter = true;
-            }
-            else if (nextVote == bestVote)
-            {
-                // Tie-breaker 1: voting value
-                if (nextVoting > bestVoting)
-                {
-                    nextBetter = true;
-                }
-                else if (nextVoting == bestVoting)
-                {
-                    // Tie-breaker 2: longer PV
-                    nextBetter = nextPvSize > bestPvSize;
-                }
-            }
+            // Priority:
+            // 1. Winning position beats any non-win
+            // 2. Losing position (getting mated, but it's the best found)
+            // 3. Normal position: compare by vote count, then voting value, then PV length
+            nextBetter = nextWin  //
+                      || nextLoss
+                      || (nextVote > bestVote
+                          // Tie-breaker 1: voting value
+                          || (nextVote == bestVote
+                              && (nextVoting > bestVoting
+                                  // Tie-breaker 2: longer PV
+                                  || (nextVoting == bestVoting  //
+                                      && nextPvSize > bestPvSize))));
         }
 
         if (nextBetter)
