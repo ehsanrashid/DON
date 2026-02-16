@@ -334,8 +334,14 @@ const Thread* Threads::best_thread() const noexcept {
         snapShot.reserve(threads.size());
 
         for (auto&& th : threads)
-            if (!th->worker->rootMoves.empty() && is_ok(th->worker->rootMoves[0].curValue))
-                snapShot.push_back(th.get());
+            if (!th->worker->rootMoves.empty())
+            {
+                if (!is_ok(th->worker->rootMoves[0].curValue))
+                    th->worker->rootMoves[0].curValue = th->worker->rootMoves[0].preValue;
+
+                if (is_ok(th->worker->rootMoves[0].curValue))
+                    snapShot.push_back(th.get());
+            }
     }
 
     // Fallback: use preValue if no valid curValue threads
