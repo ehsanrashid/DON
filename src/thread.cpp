@@ -337,7 +337,10 @@ const Thread* Threads::best_thread() const noexcept {
             if (!th->worker->rootMoves.empty())
             {
                 if (!is_ok(th->worker->rootMoves[0].curValue))
+                {
                     th->worker->rootMoves[0].curValue = th->worker->rootMoves[0].preValue;
+                    th->worker->completedDepth -= int(th->worker->completedDepth > 1);
+                }
 
                 if (is_ok(th->worker->rootMoves[0].curValue))
                     snapShot.push_back(th.get());
