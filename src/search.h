@@ -101,6 +101,10 @@ struct RootMove final {
         return !(rm1 < rm2);
     }
 
+    Value effective_value() const noexcept {
+        return curValue != -VALUE_INFINITE ? curValue : preValue;
+    }
+
     Value curValue = -VALUE_INFINITE;
     Value preValue = -VALUE_INFINITE;
     Value uciValue = -VALUE_INFINITE;
@@ -114,7 +118,6 @@ struct RootMove final {
     std::uint64_t nodes    = 0;
     std::int32_t  tbRank   = 0;
     Value         tbValue  = -VALUE_INFINITE;
-    bool          promoted = false;
 
     Moves pv;
 };
