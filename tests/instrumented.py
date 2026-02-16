@@ -2,9 +2,9 @@ import argparse
 import re
 import sys
 import subprocess
+import fnmatch
 import pathlib
 import os
-import fnmatch
 
 from testing import (
     EPD,

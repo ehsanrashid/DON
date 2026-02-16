@@ -1249,8 +1249,8 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
         {
             if (is_main_worker() && rootDepth > 30 && !options["ReportMinimal"])
             {
-                std::string currMove       = UCI::move_to_can(move);
-                std::size_t currMoveNumber = curPV + moveCount;
+                std::string currMove{UCI::move_to_can(move)};
+                std::size_t currMoveNumber{curPV + moveCount};
 
                 main_manager()->updateContext.onUpdateIter({rootDepth, currMove, currMoveNumber});
             }
