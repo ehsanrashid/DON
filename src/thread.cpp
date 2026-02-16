@@ -384,25 +384,30 @@ const Thread* Threads::best_thread() const noexcept {
         // Best is winning
         if (bestWin)
         {
-            // Next is winning -> prefer shorter mates
+            // Among winning -> prefer shorter mates
             nextBetter = nextWin && nextValue > bestValue;
         }
         // Best is losing
         else if (bestLoss)
         {
-            // Next escape to non-loss, or longer mated
-            nextBetter = !nextLoss                             // Win/draw beats loss (escape!)
-                      || (nextLoss && nextValue < bestValue);  // prefer longer mated (survival)
+            // Escape from loss is always better (win/draw beats loss) OR
+            // Among losing -> prefer longer mated
+            nextBetter = !nextLoss                             // Win or draw beats loss
+                      || (nextLoss && nextValue < bestValue);  // Longer survival within losses
         }
         // Best is normal (draw)
         else
         {
-            // Normal position -> win beats it, but loss doesn't
+            // Normal position:
+            // - Win always beats normal
+            // - Compare only normal vs normal by voting metrics, voting value, PV Size
             nextBetter = nextWin     // win always better
                       || (!nextLoss  // Only compare normal vs normal
                           && (nextVote > bestVote
+                              // Tie-breaker 1: voting value
                               || (nextVote == bestVote
                                   && (nextVoting > bestVoting
+                                      // Tie-breaker 2: PV Size
                                       || (nextVoting == bestVoting  //
                                           && nextPvSize > bestPvSize)))));
         }
