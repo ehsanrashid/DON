@@ -258,9 +258,9 @@ UCI::UCI(int argc, const char* argv[]) noexcept :
     commandLine(argc, argv),
     engine(arguments()[0]) {
 
-    options().set_info_callback([](std::optional<std::string_view> infoStr) noexcept {
-        if (infoStr)
-            print_info_string(*infoStr);
+    options().set_info_callback([](std::optional<std::string_view> infoSv) noexcept {
+        if (infoSv)
+            print_info_string(*infoSv);
     });
 
     set_update_callbacks();
@@ -287,9 +287,9 @@ void UCI::process_input(std::istream& is) noexcept {
 
 void UCI::execute(std::string_view command) noexcept {
 
-    ViewStreamBuf buf(command);
+    StringViewStreamBuf buf{command};
 
-    std::istream is(&buf);
+    std::istream is{&buf};
 
     is >> std::skipws;
 
@@ -395,12 +395,12 @@ void UCI::execute(std::string_view command) noexcept {
     }
 }
 
-void UCI::print_info_string(std::string_view infoStr) noexcept {
+void UCI::print_info_string(std::string_view infoSv) noexcept {
 
     if (InfoStringStop)
         return;
 
-    for (auto str : split(infoStr, "\n", true))
+    for (auto str : split(infoSv, "\n", true))
         if (!is_whitespace(str))
             std::cout << "info string " << str << '\n';
 }

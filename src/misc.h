@@ -1401,22 +1401,22 @@ void combine_hash(std::size_t& seed, const T& v) noexcept {
 }
 
 // Custom streambuf that wraps string_view
-class ViewStreamBuf final: public std::streambuf {
+class StringViewStreamBuf final: public std::streambuf {
    public:
-    ViewStreamBuf(std::string_view sv) noexcept {
+    StringViewStreamBuf(std::string_view sv) noexcept {
         // Cast away const (safe: only for reading via std::istream)
         char* p = const_cast<char*>(sv.data());
-        setg(p, p, p + sv.size());  // Only GET area (reading)
+        setg(p, p, p + sv.size());  // Only GET area (reading enabled)
         // Do NOT call setp(p, p + sv.size()) - no PUT area (writing disabled)
     }
 };
 
-// C++ way to prepare a buffer for a memory stream
+// Custom streambuf that wraps memory stream
 class MemoryStreamBuf final: public std::streambuf {
    public:
-    MemoryStreamBuf(char* p, std::size_t n) noexcept {
-        setg(p, p, p + n);
-        setp(p, p + n);
+    MemoryStreamBuf(char* p, std::size_t size) noexcept {
+        setg(p, p, p + size);  // Only GET area (reading enabled)
+        // Do NOT call setp(p, p + size) - no PUT area (writing disabled)
     }
 };
 

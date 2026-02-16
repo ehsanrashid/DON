@@ -325,7 +325,7 @@ void Threads::set(const NumaConfig&                       numaConfig,
     init();
 }
 
-Thread* Threads::best_thread() const noexcept {
+const Thread* Threads::best_thread() const noexcept {
     // snap-shot pointers under shared lock
     std::vector<Thread*> snapShot;
     {
@@ -340,11 +340,11 @@ Thread* Threads::best_thread() const noexcept {
     if (snapShot.empty())
         return nullptr;
 
-    Thread* bestThread = snapShot.front();
+    const Thread* bestThread = snapShot.front();
 
-    Value minCurValue = +VALUE_NONE;
+    Value minCurValue = VALUE_NONE;
     // Find the minimum value of all threads
-    for (auto* th : snapShot)
+    for (const auto* th : snapShot)
         minCurValue = std::min(th->worker->rootMoves[0].curValue, minCurValue);
 
     // Vote according to value and depth, and select the best thread
@@ -352,13 +352,14 @@ Thread* Threads::best_thread() const noexcept {
         return (14 + th->worker->rootMoves[0].curValue - minCurValue) * th->worker->completedDepth;
     };
 
-    std::unordered_map<Move, std::uint64_t> votes(
-      2 * std::min(snapShot.size(), bestThread->worker->rootMoves.size()));
+    std::unordered_map<Move, std::uint64_t> votes;
+    votes.max_load_factor(0.5f);  // slightly safer for absolute minimal collisions
+    votes.reserve(2 * std::min(snapShot.size(), bestThread->worker->rootMoves.size()));
 
-    for (auto* th : snapShot)
+    for (const auto* th : snapShot)
         votes[th->worker->rootMoves[0].pv[0]] += thread_voting_value(th);
 
-    for (auto* nextThread : snapShot)
+    for (const auto* nextThread : snapShot)
     {
         auto bestThreadValue = bestThread->worker->rootMoves[0].curValue;
         auto nextThreadValue = nextThread->worker->rootMoves[0].curValue;
