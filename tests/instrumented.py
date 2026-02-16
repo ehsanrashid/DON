@@ -2,6 +2,7 @@ import argparse
 import re
 import sys
 import subprocess
+import fnmatch
 import pathlib
 import os
 
@@ -170,7 +171,6 @@ class TestCLI(metaclass=OrderedClassMembers):
         diff = subprocess.run(["diff", network, f"verify.nnue"])
 
         assert diff.returncode == 0
-
 
 class TestInteractive(metaclass=OrderedClassMembers):
     def beforeAll(self):
@@ -372,7 +372,6 @@ class TestInteractive(metaclass=OrderedClassMembers):
         self.engine.starts_with("bestmove")
         self.engine.setoption("SkillLevel", "20")
 
-
 class TestSyzygy(metaclass=OrderedClassMembers):
     def beforeAll(self):
         self.engine = DON()
@@ -431,6 +430,94 @@ class TestSyzygy(metaclass=OrderedClassMembers):
         self.engine.check_output(callback)
         self.engine.expect("bestmove *")
 
+class TestEnPassant(metaclass=OrderedClassMembers):
+    def beforeAll(self):
+        self.engine = DON()
+
+    def afterAll(self):
+        self.engine.quit()
+        assert self.engine.close() == 0
+
+    def afterEach(self):
+        assert postfix_check(self.engine.get_output()) == True
+        self.engine.clear_output()
+
+    def test_position_1(self):
+        self.engine.send_command("position fen rnbqkbnr/ppp1p1pp/5p2/3pP3/8/8/PPPP1PPP/RNBQKBNR w kq d6 0 3")
+        self.engine.send_command("show")
+
+        self.engine.expect_matching_line("Fen*", "*rnbqkbnr/ppp1p1pp/5p2/3pP3/8/8/PPPP1PPP/RNBQKBNR w kq d6 0 3*")
+
+    def test_position_2(self):
+        self.engine.send_command("position fen k7/8/8/1pP5/2K5/8/8/8 w - b6 0 1")
+        self.engine.send_command("show")
+
+        self.engine.expect_matching_line("Fen*", "*k7/8/8/1pP5/2K5/8/8/8 w - b6 0 1*")
+
+    def test_position_3(self):
+        self.engine.send_command("position fen k1r5/8/8/1pP5/2K5/8/8/8 w - b6 0 1")
+        self.engine.send_command("show")
+
+        self.engine.expect_matching_line("Fen*", "*k1r5/8/8/1pP5/2K5/8/8/8 w - - 0 1*")
+
+    def test_position_4(self):
+        self.engine.send_command("position fen k1r5/8/8/1pP5/8/2K5/8/8 w - b6 0 1")
+        self.engine.send_command("show")
+
+        self.engine.expect_matching_line("Fen*", "*k1r5/8/8/1pP5/8/2K5/8/8 w - - 0 1*")
+
+    def test_position_5(self):
+        self.engine.send_command("position fen k1r5/8/8/PpP5/8/2K5/8/8 w - b6 0 1")
+        self.engine.send_command("show")
+
+        self.engine.expect_matching_line("Fen*", "*k1r5/8/8/PpP5/8/2K5/8/8 w - b6 0 1*")
+
+    def test_position_6(self):
+        self.engine.send_command("position fen k1r5/8/8/PpP5/2K5/8/8/8 w - b6 0 1")
+        self.engine.send_command("show")
+
+        self.engine.expect_matching_line("Fen*", "*k1r5/8/8/PpP5/2K5/8/8/8 w - b6 0 1*")
+
+    def test_position_7(self):
+        self.engine.send_command("position fen k7/4b3/8/PpP5/1K6/8/8/8 w - b6 0 1")
+        self.engine.send_command("show")
+
+        self.engine.expect_matching_line("Fen*", "*k7/4b3/8/PpP5/1K6/8/8/8 w - b6 0 1*")
+
+    def test_position_8(self):
+        self.engine.send_command("position fen k7/b5b1/8/2PpP3/3K4/8/8/8 w - d6 0 1")
+        self.engine.send_command("show")
+
+        self.engine.expect_matching_line("Fen*", "*k7/b5b1/8/2PpP3/3K4/8/8/8 w - - 0 1*")
+
+    def test_position_9(self):
+        self.engine.send_command("position fen k7/8/8/r2pPK2/8/8/8/8 w - d6 0 1")
+        self.engine.send_command("show")
+
+        self.engine.expect_matching_line("Fen*", "*k7/8/8/r2pPK2/8/8/8/8 w - - 0 1*")
+
+    def test_position_10(self):
+        self.engine.send_command("position fen k7/8/8/r1PpPK2/8/8/8/8 w - d6 0 1")
+        self.engine.send_command("show")
+
+        self.engine.expect_matching_line("Fen*", "*k7/8/8/r1PpPK2/8/8/8/8 w - d6 0 1*")
+
+    def test_position_11(self):
+        self.engine.send_command("position fen kb6/8/8/3pP3/5K2/8/8/8 w - d6 0 1")
+        self.engine.send_command("show")
+
+        self.engine.expect_matching_line("Fen*", "*kb6/8/8/3pP3/5K2/8/8/8 w - d6 0 1*")
+
+    def test_position_find_draw(self):
+        self.engine.send_command("position fen q4kb1/3Q2nq/8/r3PpK1/2n5/7q/8/q7 w - f6 0 1 moves d7c8 f8f7 c8d7 f7f8 d7d8 f8f7")
+        self.engine.send_command("go nodes 10000")
+
+        def check_output(output):
+            if fnmatch.fnmatch(output, "* score cp 0 * pv d8d7*"):
+                return True
+        
+        self.engine.check_output(check_output)
+        self.engine.expect("bestmove d8d7*")
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Run DON with testing options")
@@ -475,7 +562,7 @@ if __name__ == "__main__":
     framework = MiniTestFramework()
 
     # Each test suite will be run inside a temporary directory
-    framework.run([TestCLI, TestInteractive, TestSyzygy])
+    framework.run([TestCLI, TestInteractive, TestSyzygy, TestEnPassant])
 
     EPD.delete_bench_epd()
     TSAN.unset_tsan_option()

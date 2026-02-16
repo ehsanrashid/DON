@@ -1727,7 +1727,7 @@ class SharedMemory final: public BaseSharedMemory {
         // Iterate directory entries
         while (dirent* entry = readdir(dir))
         {
-            std::string entryName = entry->d_name;
+            std::string entryName{entry->d_name};
 
             // Check if entryName starts with prefix
             if (entryName.size() < prefix.size()

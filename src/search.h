@@ -30,6 +30,7 @@
 #include <memory>
 #include <mutex>
 #include <string_view>
+#include <unordered_map>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -47,7 +48,9 @@
 namespace DON {
 
 class Options;
+class Thread;
 class Threads;
+struct ThreadProperty;
 class TranspositionTable;
 
 namespace NNUE {
@@ -111,6 +114,7 @@ struct RootMove final {
     std::uint64_t nodes    = 0;
     std::int32_t  tbRank   = 0;
     Value         tbValue  = -VALUE_INFINITE;
+    bool          promoted = false;
 
     Moves pv;
 };
@@ -660,6 +664,11 @@ class Worker final {
 
     // Correction Histories
     CorrectionHistory<CHType::CONTINUATION> continuationCorrectionHistory;
+
+    template<typename VotingFunc>
+    friend ThreadProperty build_property(const Thread*                                  th,
+                                         const std::unordered_map<Move, std::uint64_t>& votes,
+                                         VotingFunc&& thread_voting_value) noexcept;
 
     friend class MainSearchManager;
     friend class Position;

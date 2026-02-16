@@ -321,9 +321,9 @@ void Worker::start_search() noexcept {
     if (rootMoves.empty())
     {
         rootMoves.emplace_back(Move::None);
+        rootMoves[0].curValue = rootPos.checkers_bb() != 0 ? -VALUE_MATE : VALUE_DRAW;
 
-        std::string score{
-          UCI::to_score({Value(rootPos.checkers_bb() != 0 ? -VALUE_MATE : VALUE_DRAW), rootPos})};
+        std::string score{UCI::to_score({rootMoves[0].curValue, rootPos})};
 
         mainManager->updateContext.onUpdateShort({DEPTH_ZERO, score});
     }
@@ -407,7 +407,7 @@ void Worker::start_search() noexcept {
             for (auto&& th : threads)
                 th->worker->rootMoves.swap_to_front(skillMove);
         }
-        else if (thread_count() > 1 && multiPV == 1
+        else if (threads.size() > 1 && multiPV == 1
                  && limit.mate == 0
                  //&& limit.depth == DEPTH_ZERO
                  && rootMoves[0].pv[0] != Move::None)
@@ -416,7 +416,9 @@ void Worker::start_search() noexcept {
 
             // Send PV info again if have a new best worker
             if (bestWorker != this)
-                mainManager->show_pv(*bestWorker, bestWorker->completedDepth);
+                mainManager->show_pv(
+                  *bestWorker,
+                  std::max(bestWorker->completedDepth - int(bestWorker->rootMoves[0].promoted), 1));
         }
 
         if (limit.use_time_manager())
@@ -1247,8 +1249,8 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
         {
             if (is_main_worker() && rootDepth > 30 && !options["ReportMinimal"])
             {
-                std::string currMove       = UCI::move_to_can(move);
-                std::size_t currMoveNumber = curPV + moveCount;
+                std::string currMove{UCI::move_to_can(move)};
+                std::size_t currMoveNumber{curPV + moveCount};
 
                 main_manager()->updateContext.onUpdateIter({rootDepth, currMove, currMoveNumber});
             }
@@ -2462,7 +2464,7 @@ TimePoint MainSearchManager::elapsed(const Threads& threads) const noexcept {
 
 // Displays the principal variation (PV) along with associated information
 void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
-    assert(depth >= DEPTH_ZERO);
+    assert(depth > DEPTH_ZERO);
 
     const auto&       rootPos            = worker.rootPos;
     const auto&       rootMoves          = worker.rootMoves;

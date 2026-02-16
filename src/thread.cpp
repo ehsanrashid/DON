@@ -325,105 +325,169 @@ void Threads::set(const NumaConfig&                       numaConfig,
     init();
 }
 
+struct ThreadProperty final {
+   public:
+    Value         value;
+    bool          win;
+    bool          loss;
+    std::uint64_t vote;
+    std::uint64_t voting;
+    std::size_t   pvSize;
+};
+
+struct ThreadBetterPolicy final {
+   public:
+    bool operator()(const ThreadProperty& best, const ThreadProperty& next) const noexcept {
+        // Best = proven win
+        if (best.win)
+            // Prefer better win
+            return next.win && next.value > best.value;
+
+        // Best = proven loss
+        if (best.loss)
+            // Prefer escape, otherwise prefer longer survival (delay defeat)
+            return !next.loss || (next.loss && next.value > best.value);
+
+        // Best = normal position
+        // Prefer win
+        if (next.win)
+            return true;
+        // Ignore loss
+        if (next.loss)
+            return false;
+
+        // Normal vs normal -> voting rules
+        // Primary metric: vote count
+        if (next.vote != best.vote)
+            return next.vote > best.vote;
+        // Tie-breaker 1: voting value
+        if (next.voting != best.voting)
+            return next.voting > best.voting;
+        // Tie-breaker 2: PV size
+        return next.pvSize > best.pvSize;
+    }
+};
+
+template<typename VotingFunc>
+ThreadProperty build_property(const Thread*                                  th,
+                              const std::unordered_map<Move, std::uint64_t>& votes,
+                              VotingFunc&& thread_voting_value) noexcept {
+    const auto& rm    = th->worker->rootMoves[0];
+    Value       value = rm.curValue;
+
+    return {
+      value,                    //
+      is_win(value),            //
+      is_loss(value),           //
+      votes.at(rm.pv[0]),       //
+      thread_voting_value(th),  //
+      rm.pv.size()              //
+    };
+}
+
 const Thread* Threads::best_thread() const noexcept {
     // snap-shot pointers under shared lock
     std::vector<Thread*> snapShot;
     {
-        std::shared_lock readLock(sharedMutex);
+        std::lock_guard writeLock(sharedMutex);
 
         snapShot.reserve(threads.size());
 
         for (auto&& th : threads)
-            snapShot.push_back(th.get());
+        {
+            if (th->worker->rootMoves.empty())
+                continue;
+
+            auto& rm = th->worker->rootMoves[0];
+
+            if (rm.curValue == -VALUE_INFINITE)
+            {
+                rm.curValue = rm.preValue;
+                rm.promoted = true;
+            }
+
+            if (rm.curValue != -VALUE_INFINITE)
+                snapShot.push_back(th.get());
+        }
     }
 
+    // Fallback: use preValue if no valid curValue threads
     if (snapShot.empty())
-        return nullptr;
+    {
+        const Thread* bestThread = nullptr;
+        Value         bestValue  = VALUE_NONE;
+        Depth         bestDepth  = DEPTH_ZERO;
 
-    Value minCurValue = VALUE_NONE;
+        std::shared_lock readLock(sharedMutex);
+
+        for (auto&& th : threads)
+        {
+            if (th->worker->rootMoves.empty())
+                continue;
+
+            const auto& rm = th->worker->rootMoves[0];
+
+            if (rm.preValue == -VALUE_INFINITE)
+                continue;
+
+            if (bestThread == nullptr  //
+                || rm.preValue > bestValue
+                || (rm.preValue == bestValue  //
+                    && th->worker->completedDepth > bestDepth))
+            {
+                bestThread = th.get();
+                bestValue  = rm.preValue;
+                bestDepth  = th->worker->completedDepth;
+            }
+        }
+
+        // final safety fallback
+        return bestThread != nullptr ? bestThread : threads.front().get();
+    }
+
+    // Initialize with first valid thread
+    const Thread* bestThread = snapShot.front();
+
+    Value minCurValue = bestThread->worker->rootMoves[0].curValue;
     // Find the minimum value of all threads
-    for (const auto* th : snapShot)
-        minCurValue = std::min(th->worker->rootMoves[0].curValue, minCurValue);
+    for (std::size_t i = 1; i < snapShot.size(); ++i)
+        minCurValue = std::min(snapShot[i]->worker->rootMoves[0].curValue, minCurValue);
 
     // Vote according to value and depth, and select the best thread
     auto thread_voting_value = [minCurValue](const Thread* th) noexcept -> std::uint64_t {
-        return (14 + th->worker->rootMoves[0].curValue - minCurValue)
-             * std::uint64_t(th->worker->completedDepth);
+        return std::uint64_t(14 + th->worker->rootMoves[0].curValue - minCurValue)
+             * std::uint64_t(
+                 std::max(th->worker->completedDepth - int(th->worker->rootMoves[0].promoted), 1));
     };
 
-    const auto* bestThread = snapShot.front();
-
-    std::unordered_map<Move, std::uint64_t> votes(
-      2 * std::min(snapShot.size(), bestThread->worker->rootMoves.size()));
+    // Aggregate votes
+    std::unordered_map<Move, std::uint64_t> votes;
+    votes.max_load_factor(1.0f);
+    votes.reserve(2 * std::min(snapShot.size(), bestThread->worker->rootMoves.size()));
 
     for (const auto* th : snapShot)
         votes[th->worker->rootMoves[0].pv[0]] += thread_voting_value(th);
 
-    // Cache initial best thread properties
-    auto bestValue  = bestThread->worker->rootMoves[0].curValue;
-    auto bestVote   = votes[bestThread->worker->rootMoves[0].pv[0]];
-    auto bestVoting = thread_voting_value(bestThread);
-    bool bestWin    = bestValue != +VALUE_INFINITE && is_win(bestValue);
-    bool bestLoss   = bestValue != -VALUE_INFINITE && is_loss(bestValue);
-    auto bestPvSize = bestThread->worker->rootMoves[0].pv.size();
+    ThreadBetterPolicy policy;
 
+    // Cache best thread properties
+    auto bestProperty = build_property(bestThread, votes, thread_voting_value);
+
+    // Find best-thread
     for (std::size_t i = 1; i < snapShot.size(); ++i)
     {
         const auto* nextThread = snapShot[i];
 
         // Get candidate thread properties
-        auto nextValue  = nextThread->worker->rootMoves[0].curValue;
-        auto nextVote   = votes[nextThread->worker->rootMoves[0].pv[0]];
-        auto nextVoting = thread_voting_value(nextThread);
-        bool nextWin    = nextValue != +VALUE_INFINITE && is_win(nextValue);
-        bool nextLoss   = nextValue != -VALUE_INFINITE && is_loss(nextValue);
-        auto nextPvSize = nextThread->worker->rootMoves[0].pv.size();
+        auto nextProperty = build_property(nextThread, votes, thread_voting_value);
 
-        bool nextBetter = false;
-
-        // Best is winning
-        if (bestWin)
+        if (policy(bestProperty, nextProperty))
         {
-            // Among winning -> prefer shorter mates
-            nextBetter = nextWin && nextValue > bestValue;
-        }
-        // Best is losing
-        else if (bestLoss)
-        {
-            // Escape from loss is always better (win/draw beats loss) OR
-            // Among losing -> prefer longer mated
-            nextBetter = !nextLoss                             // Win or draw beats loss
-                      || (nextLoss && nextValue < bestValue);  // Longer survival within losses
-        }
-        // Best is normal (draw)
-        else
-        {
-            // Normal position:
-            // - Win always beats normal
-            // - Compare only normal vs normal by voting metrics, voting value, PV Size
-            nextBetter = nextWin     // win always better
-                      || (!nextLoss  // Only compare normal vs normal
-                          && (nextVote > bestVote
-                              // Tie-breaker 1: voting value
-                              || (nextVote == bestVote
-                                  && (nextVoting > bestVoting
-                                      // Tie-breaker 2: PV Size
-                                      || (nextVoting == bestVoting  //
-                                          && nextPvSize > bestPvSize)))));
-        }
-
-        if (nextBetter)
-        {
-            bestThread = nextThread;
-            bestValue  = nextValue;
-            bestVote   = nextVote;
-            bestVoting = nextVoting;
-            bestWin    = nextWin;
-            bestLoss   = nextLoss;
-            bestPvSize = nextPvSize;
+            bestThread   = nextThread;
+            bestProperty = nextProperty;
 
             // Early exit: mate in 1 found (can't improve further)
-            if (bestWin && bestValue >= VALUE_MATES_IN_1)
+            if (bestProperty.win && bestProperty.value >= VALUE_MATES_IN_1)
                 break;
         }
     }
