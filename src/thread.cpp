@@ -392,7 +392,7 @@ const Thread* Threads::best_thread() const noexcept {
         {
             // Next escape to non-loss, or longer mated
             nextBetter = !nextLoss                             // Win/draw beats loss (escape!)
-                      || (nextLoss && nextValue > bestValue);  // prefer longer mated (survival)
+                      || (nextLoss && nextValue < bestValue);  // prefer longer mated (survival)
         }
         // Best is normal (draw)
         else
