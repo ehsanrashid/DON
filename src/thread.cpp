@@ -388,8 +388,8 @@ const Thread* Threads::best_thread() const noexcept {
           || (nextWin && !bestWin)
           // - Non-loss beats loss -> Escape (win/draw beats loss)
           || (!nextLoss && bestLoss)
-          // - Loss vs loss -> prefer longer mated survival
-          || (nextLoss && bestLoss && nextValue > bestValue)
+          // - Loss vs loss -> prefer shorter mated
+          || (nextLoss && bestLoss && nextValue < bestValue)
           // - Normal -> compare votes / voting value / PV size
           || (!nextWin && !nextLoss && !bestWin && !bestLoss
               && (nextVote > bestVote
