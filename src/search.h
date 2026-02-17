@@ -343,44 +343,6 @@ struct Limit final {
     Strings searchMoves{}, ignoreMoves{};
 };
 
-// Score represents the evaluation score of a position
-class Score final {
-   public:
-    struct Unit final {
-        int value;
-    };
-
-    struct Tablebase final {
-        int  ply;
-        bool win;
-    };
-
-    struct Mate final {
-        int ply;
-    };
-
-    Score() noexcept = delete;
-    Score(Value v, const Position& pos) noexcept;
-
-    template<typename T>
-    bool is() const noexcept {
-        return std::holds_alternative<T>(score);
-    }
-
-    template<typename T>
-    T get() const noexcept {
-        return std::get<T>(score);
-    }
-
-    template<typename F>
-    decltype(auto) visit(F&& f) const noexcept {
-        return std::visit(std::forward<F>(f), score);
-    }
-
-   private:
-    std::variant<Unit, Tablebase, Mate> score;
-};
-
 // Skill is used to implement engine strength limit.
 // If UCI_ELO is set, convert it to an appropriate skill level.
 // Skill 0..19 covers CCRL Blitz Elo from 1320 to 3190, approximately.

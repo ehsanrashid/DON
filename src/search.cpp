@@ -323,7 +323,7 @@ void Worker::start_search() noexcept {
         rootMoves.emplace_back(Move::None);
         rootMoves[0].curValue = rootPos.checkers_bb() != 0 ? -VALUE_MATE : VALUE_DRAW;
 
-        std::string score{UCI::to_score({rootMoves[0].curValue, rootPos})};
+        auto score{UCI::to_score({rootMoves[0].curValue, rootPos})};
 
         mainManager->updateContext.onUpdateShort({DEPTH_ZERO, score});
     }
@@ -2511,7 +2511,7 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
         if ((exact || rm.bound == Bound::NONE) && is_decisive(v) && !is_mate(v))
             worker.extend_tb_pv(i, v);
 
-        std::string score{UCI::to_score({v, rootPos})};
+        auto score{UCI::to_score({v, rootPos})};
 
         std::string bound{!exact && is_ok(rm.bound) ? to_string(rm.bound) : std::string_view{}};
 
@@ -2532,26 +2532,6 @@ void MainSearchManager::set_ponder(bool pond) noexcept {
     ponder = pond;
 
     condVar.notify_one();
-}
-
-// Converts a Value to a Score object, considering the position for centipawn conversion
-Score::Score(Value v, const Position& pos) noexcept {
-    assert(is_ok(v));
-
-    if (!is_decisive(v))
-    {
-        score = Unit{UCI::to_cp(v, pos)};
-    }
-    else if (!is_mate(v))
-    {
-        int ply = VALUE_TB - constexpr_abs(v);
-        score   = Tablebase{v > 0 ? +ply : -ply, v > 0};
-    }
-    else
-    {
-        int ply = VALUE_MATE - constexpr_abs(v);
-        score   = Mate{v > 0 ? +ply : -ply};
-    }
 }
 
 // Skill module for playing at reduced strength

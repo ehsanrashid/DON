@@ -33,6 +33,7 @@ namespace DON {
 class Position;
 class Options;
 class Score;
+struct ScoreText;
 
 class UCI final {
    public:
@@ -49,7 +50,7 @@ class UCI final {
 
     [[nodiscard]] static int         to_cp(Value v, const Position& pos) noexcept;
     [[nodiscard]] static std::string to_wdl(Value v, const Position& pos) noexcept;
-    [[nodiscard]] static std::string to_score(const Score& score) noexcept;
+    [[nodiscard]] static ScoreText   to_score(const Score& score) noexcept;
 
     [[nodiscard]] static std::string move_to_can(Move m) noexcept;
 
@@ -90,6 +91,60 @@ class UCI final {
     CommandLine commandLine;
     Engine      engine;
 };
+
+// Score represents the evaluation score of a position
+class Score final {
+   public:
+    struct Unit final {
+        int value;
+    };
+
+    struct Tablebase final {
+        int  ply;
+        bool win;
+    };
+
+    struct Mate final {
+        int ply;
+    };
+
+    Score() noexcept = delete;
+    Score(Value v, const Position& pos) noexcept;
+
+    template<typename T>
+    bool is() const noexcept {
+        return std::holds_alternative<T>(score);
+    }
+
+    template<typename T>
+    T get() const noexcept {
+        return std::get<T>(score);
+    }
+
+    template<typename F>
+    decltype(auto) visit(F&& f) const noexcept {
+        return std::visit(std::forward<F>(f), score);
+    }
+
+   private:
+    std::variant<Unit, Tablebase, Mate> score;
+};
+
+struct ScoreText final {
+   public:
+    std::string_view view() const noexcept { return {buffer.data(), length}; }
+    const char*      c_str() const noexcept { return buffer.data(); }
+
+    std::size_t size() const noexcept { return length; }
+
+    // implicit conversion if you want
+    operator std::string_view() const noexcept { return view(); }
+
+    StdArray<char, 15> buffer{};
+    std::uint8_t       length = 0;
+};
+
+static_assert(sizeof(ScoreText) == 16, "ScoreText size must be 16 bytes");
 
 }  // namespace DON
 
