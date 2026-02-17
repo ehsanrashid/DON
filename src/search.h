@@ -47,9 +47,7 @@
 namespace DON {
 
 class Options;
-class Thread;
 class Threads;
-struct ThreadMetrics;
 class TranspositionTable;
 
 namespace NNUE {
@@ -578,6 +576,8 @@ class Worker final {
 
     NumaReplicatedAccessToken numa_access_token() const noexcept { return numaAccessToken; }
 
+    const RootMoves& root_moves() const noexcept { return rootMoves; }
+
     std::uint64_t nodes_() const noexcept { return nodes.load(std::memory_order_relaxed); }
 
    private:
@@ -671,11 +671,6 @@ class Worker final {
 
     // Correction Histories
     CorrectionHistory<CHType::CONTINUATION> continuationCorrectionHistory;
-
-    template<typename VotingFunc>
-    friend ThreadMetrics build_thread_metrics(const Thread*                             th,
-                                              const StdArray<std::uint64_t, MAX_MOVES>& votes,
-                                              VotingFunc&& calc_vote_weight) noexcept;
 
     friend class MainSearchManager;
     friend class Position;

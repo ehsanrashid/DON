@@ -325,6 +325,7 @@ void Threads::set(const NumaConfig&                       numaConfig,
     init();
 }
 
+namespace {
 // Properties of thread used for best-thread selection
 struct ThreadMetrics final {
    public:
@@ -375,7 +376,7 @@ template<typename VotingFunc>
 ThreadMetrics build_thread_metrics(const Thread*                             th,
                                    const StdArray<std::uint64_t, MAX_MOVES>& votes,
                                    VotingFunc&& calc_vote_weight) noexcept {
-    const auto& rm = th->worker->rootMoves[0];
+    const auto& rm = th->worker->root_moves()[0];
 
     Value value = rm.effective_value();
 
@@ -386,6 +387,8 @@ ThreadMetrics build_thread_metrics(const Thread*                             th,
 
     return {value, is_win(value), is_loss(value), voteCount, calc_vote_weight(th), pvSize};
 }
+
+}  // namespace
 
 const Thread* Threads::best_thread() const noexcept {
     // snap-shot pointers under shared lock
