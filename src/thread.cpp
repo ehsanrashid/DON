@@ -396,8 +396,12 @@ const Thread* Threads::best_thread() const noexcept {
         snapShot.reserve(threads.size());
 
         for (auto&& th : threads)
-            if (th->worker->rootMoves[0].effective_value() != -VALUE_INFINITE)
+        {
+            const auto& rm = th->worker->rootMoves[0];
+
+            if (rm.effective_value() != -VALUE_INFINITE && !rm.pv.empty())
                 snapShot.push_back(th.get());
+        }
     }
 
     // Fallback: use preValue if no valid curValue threads
@@ -457,8 +461,7 @@ const Thread* Threads::best_thread() const noexcept {
     {
         const auto& rm = th->worker->rootMoves[0];
 
-        assert(rm.Id != UINT16_MAX);
-        assert(rm.Id < votes.size());
+        assert(rm.Id != UINT16_MAX && rm.Id < votes.size());
 
         votes[rm.Id] += calc_vote_weight(th);
     }
@@ -543,7 +546,7 @@ void Threads::start(Position&      pos,
         }
     }
 
-    // Assign stable IDs AFTER rootMoves is finalized
+    // Assign stable IDs after rootMoves is finalized
     for (std::uint16_t i = 0; i < rootMoves.size(); ++i)
         rootMoves[i].Id = i;
 
