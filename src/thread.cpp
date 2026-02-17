@@ -379,7 +379,7 @@ ThreadMetrics build_thread_metrics(const Thread*                             th,
 
     Value value = rm.effective_value();
 
-    // Defensive safety (never trust PV blindly)
+    assert(rm.Id != UINT16_MAX && rm.Id < votes.size());
     std::uint64_t voteCount = votes[rm.Id];
 
     std::size_t pvSize = rm.pv.size();
@@ -455,10 +455,12 @@ const Thread* Threads::best_thread() const noexcept {
     // Aggregate votes
     for (const auto* th : snapShot)
     {
-        assert(th->worker->rootMoves[0].Id != UINT16_MAX);
-        assert(th->worker->rootMoves[0].Id < votes.size());
+        const auto& rm = th->worker->rootMoves[0];
 
-        votes[th->worker->rootMoves[0].Id] += calc_vote_weight(th);
+        assert(rm.Id != UINT16_MAX);
+        assert(rm.Id < votes.size());
+
+        votes[rm.Id] += calc_vote_weight(th);
     }
 
     // Find best-thread
