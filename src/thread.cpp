@@ -218,27 +218,31 @@ void Threads::set(const NumaConfig&                       numaConfig,
         threadBindable = true;
 
     // Assign threads to NUMA nodes
+    std::vector<NumaIndex> thBoundNumaNodes;
+    // Count threads per NUMA node
+    std::unordered_map<NumaIndex, std::size_t> numaThreadCounts;
+    if (threadBindable)
     {
         std::lock_guard writeLock(sharedMutex);
 
-        threadBoundNumaNodes = threadBindable
-                               ? numaConfig.distribute_threads_among_numa_nodes(threadCount)
-                               : std::vector<NumaIndex>{};
-    }
+        threadBoundNumaNodes = numaConfig.distribute_threads_among_numa_nodes(threadCount);
 
-    // Count threads per NUMA node
-    std::unordered_map<NumaIndex, std::size_t> numaThreadCounts;
-    numaThreadCounts.reserve(threadBoundNumaNodes.empty() ? 1 : threadBoundNumaNodes.size());
+        thBoundNumaNodes = threadBoundNumaNodes;
 
-    if (threadBoundNumaNodes.empty())
-    {
-        // All threads belong to NUMA node 0
-        numaThreadCounts.emplace(NumaIndex{0}, threadCount);
+        numaThreadCounts.reserve(thBoundNumaNodes.size());
+        for (NumaIndex numaId : thBoundNumaNodes)
+            ++numaThreadCounts[numaId];
     }
     else
     {
-        for (NumaIndex numaId : threadBoundNumaNodes)
-            ++numaThreadCounts[numaId];
+        // Done in destroy()
+        //threadBoundNumaNodes.clear();
+
+        thBoundNumaNodes = std::vector<NumaIndex>(threadCount, 0);
+
+        numaThreadCounts.reserve(1);
+        // All threads belong to NUMA node 0
+        numaThreadCounts.emplace(NumaIndex{0}, threadCount);
     }
 
     // Prepare shared histories map
@@ -276,7 +280,7 @@ void Threads::set(const NumaConfig&                       numaConfig,
 
     for (std::size_t threadId = 0; threadId < threadCount; ++threadId)
     {
-        NumaIndex numaId = threadBindable ? threadBoundNumaNodes[threadId] : 0;
+        NumaIndex numaId = thBoundNumaNodes[threadId];
 
         std::size_t numaIdx       = numaIds[numaId]++;
         std::size_t numaThreadCnt = numaThreadCounts[numaId];
