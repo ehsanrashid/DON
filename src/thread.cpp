@@ -368,12 +368,13 @@ struct BetterThread final {
         if (best.loss)
             return !cand.loss || (cand.loss && cand.value > best.value);
 
-        // Case 3: Normal positions
-        return compare_normal(best, cand);
+        // Case 3: Normal/Draw positions
+        return tie_break(best, cand);
     }
 
    private:
-    static bool compare_normal(const ThreadMetrics& best, const ThreadMetrics& cand) noexcept {
+    // Tie-break for normal/draw positions
+    static bool tie_break(const ThreadMetrics& best, const ThreadMetrics& cand) noexcept {
         // Case 3a: Best is normal (draw) -> win dominates, ignore loss
         if (cand.win)
             return true;  // Win beats draw
@@ -393,7 +394,7 @@ struct BetterThread final {
 
 const Thread* Threads::best_thread() const noexcept {
     // snap-shot pointers under shared lock
-    std::vector<Thread*> snapShot;
+    std::vector<const Thread*> snapShot;
     {
         std::shared_lock readLock(sharedMutex);
 
