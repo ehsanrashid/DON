@@ -73,8 +73,8 @@
 
 namespace DON {
 
-using CpuIndex  = std::size_t;
 using NumaIndex = std::size_t;
+using CpuIndex  = std::size_t;
 
 using CpuIndexVec = std::vector<CpuIndex>;
 using CpuIndexSet = std::unordered_set<CpuIndex>;
