@@ -119,6 +119,8 @@ struct RootMove final {
     std::int32_t  tbRank   = 0;
     Value         tbValue  = -VALUE_INFINITE;
 
+    std::uint16_t moveId = UINT16_MAX;
+
     Moves pv;
 };
 
@@ -669,8 +671,8 @@ class Worker final {
     CorrectionHistory<CHType::CONTINUATION> continuationCorrectionHistory;
 
     template<typename VotingFunc>
-    friend ThreadMetrics build_thread_metrics(const Thread*                                  th,
-                                              const std::unordered_map<Move, std::uint64_t>& votes,
+    friend ThreadMetrics build_thread_metrics(const Thread*                     th,
+                                              const std::vector<std::uint64_t>& votes,
                                               VotingFunc&& calc_vote_weight) noexcept;
 
     friend class MainSearchManager;

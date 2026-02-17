@@ -372,16 +372,15 @@ struct BestThreadComparator final {
 };
 
 template<typename VotingFunc>
-ThreadMetrics build_thread_metrics(const Thread*                                  th,
-                                   const std::unordered_map<Move, std::uint64_t>& votes,
-                                   VotingFunc&& calc_vote_weight) noexcept {
+ThreadMetrics build_thread_metrics(const Thread*                     th,
+                                   const std::vector<std::uint64_t>& votes,
+                                   VotingFunc&&                      calc_vote_weight) noexcept {
     const auto& rm = th->worker->rootMoves[0];
 
     Value value = rm.effective_value();
 
-    // Lookup vote count (0 if move wasn't voted for)
-    auto          itr       = votes.find(rm.pv[0]);
-    std::uint64_t voteCount = itr != votes.end() ? itr->second : 0;
+    // Defensive safety (never trust PV blindly)
+    std::uint64_t voteCount = votes[rm.moveId];
 
     std::size_t pvSize = rm.pv.size();
 
@@ -451,13 +450,16 @@ const Thread* Threads::best_thread() const noexcept {
              * std::uint64_t(std::max(th->worker->completedDepth - int(penalty), 1));
     };
 
-    // Aggregate votes
-    std::unordered_map<Move, std::uint64_t> votes;
-    votes.max_load_factor(1.0f);
-    votes.reserve(std::min(snapShot.size(), bestThread->worker->rootMoves.size()));
+    std::vector<std::uint64_t> votes(bestThread->worker->rootMoves.size(), 0);
 
+    // Aggregate votes
     for (const auto* th : snapShot)
-        votes[th->worker->rootMoves[0].pv[0]] += calc_vote_weight(th);
+    {
+        assert(th->worker->rootMoves[0].moveId != UINT16_MAX);
+        assert(th->worker->rootMoves[0].moveId < votes.size());
+
+        votes[th->worker->rootMoves[0].moveId] += calc_vote_weight(th);
+    }
 
     // Find best-thread
     BestThreadComparator better_comp;
@@ -538,6 +540,10 @@ void Threads::start(Position&      pos,
                 erase = rootMoves.erase(m);
         }
     }
+
+    // Assign stable IDs AFTER rootMoves is finalized
+    for (std::uint16_t i = 0; i < rootMoves.size(); ++i)
+        rootMoves[i].moveId = i;
 
     auto& clock = limit.clocks[pos.active_color()];
 
