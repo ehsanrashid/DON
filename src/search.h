@@ -50,7 +50,7 @@ namespace DON {
 class Options;
 class Thread;
 class Threads;
-struct ThreadProperty;
+struct ThreadMetrics;
 class TranspositionTable;
 
 namespace NNUE {
@@ -669,9 +669,9 @@ class Worker final {
     CorrectionHistory<CHType::CONTINUATION> continuationCorrectionHistory;
 
     template<typename VotingFunc>
-    friend ThreadProperty build_property(const Thread*                                  th,
-                                         const std::unordered_map<Move, std::uint64_t>& votes,
-                                         VotingFunc&& thread_voting_value) noexcept;
+    friend ThreadMetrics build_thread_metrics(const Thread*                                  th,
+                                              const std::unordered_map<Move, std::uint64_t>& votes,
+                                              VotingFunc&& calc_vote_weight) noexcept;
 
     friend class MainSearchManager;
     friend class Position;
