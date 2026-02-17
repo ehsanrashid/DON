@@ -209,7 +209,7 @@ void Threads::set(const NumaConfig&                       numaConfig,
     // unless we know for sure that we span NUMA nodes and replication is required.
     std::string numaPolicy = sharedState.options["NumaPolicy"];
 
-    bool threadBindable = [&]() {
+    bool threadBindable = [&]() noexcept {
         if (numaPolicy == "none")
             return false;
 
@@ -237,7 +237,7 @@ void Threads::set(const NumaConfig&                       numaConfig,
     if (threadBoundNumaNodes.empty())
     {
         // All threads belong to NUMA node 0
-        numaThreadCounts.emplace(0, threadCount);
+        numaThreadCounts.emplace(NumaIndex{0}, threadCount);
     }
     else
     {

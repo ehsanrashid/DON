@@ -137,9 +137,11 @@ class RootMoves final {
     using const_reference = container_type::const_reference;
 
     RootMoves() noexcept { reserve(32); }
-    explicit RootMoves(container_type rms) noexcept :
+    explicit RootMoves(const container_type& rms) noexcept :
+        rootMoves(rms) {}
+    explicit RootMoves(container_type&& rms) noexcept :
         rootMoves(std::move(rms)) {}
-    RootMoves(std::initializer_list<value_type> initList) noexcept :
+    RootMoves(std::initializer_list<value_type> initList) :
         rootMoves(initList) {}
 
     [[nodiscard]] size_type capacity() const noexcept { return rootMoves.capacity(); }
