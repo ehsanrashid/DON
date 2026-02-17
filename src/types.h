@@ -541,19 +541,19 @@ constexpr std::string_view to_string(Bound bound) noexcept {
 // clang-format off
 #define ENABLE_BIT_OPERATORS_ON(T) \
     static_assert(std::is_enum_v<T>, "ENABLE_BIT_OPERATORS_ON requires an enum"); \
-    constexpr auto operator+(T t) noexcept { using U = std::underlying_type_t<T>; return U(t); } \
-    constexpr T operator~(T t) noexcept { using U = std::underlying_type_t<T>; return T(~U(t)); } \
+    constexpr auto operator+(T t) noexcept { using U = std::underlying_type_t<T>; return U(t); }                 \
+    constexpr T operator~(T t) noexcept { using U = std::underlying_type_t<T>; return T(~U(t)); }                \
     constexpr T operator&(T t1, T t2) noexcept { using U = std::underlying_type_t<T>; return T(U(t1) & U(t2)); } \
     constexpr T operator|(T t1, T t2) noexcept { using U = std::underlying_type_t<T>; return T(U(t1) | U(t2)); } \
     constexpr T operator^(T t1, T t2) noexcept { using U = std::underlying_type_t<T>; return T(U(t1) ^ U(t2)); } \
-    constexpr T operator&(T t, int i) noexcept { return t & T(i); } \
-    constexpr T operator|(T t, int i) noexcept { return t | T(i); } \
-    constexpr T operator^(T t, int i) noexcept { return t ^ T(i); } \
-    constexpr T& operator&=(T& t1, T t2) noexcept { return t1 = t1 & t2; } \
-    constexpr T& operator|=(T& t1, T t2) noexcept { return t1 = t1 | t2; } \
-    constexpr T& operator^=(T& t1, T t2) noexcept { return t1 = t1 ^ t2; } \
-    constexpr T& operator&=(T& t, int i) noexcept { return t = t & i; } \
-    constexpr T& operator|=(T& t, int i) noexcept { return t = t | i; } \
+    constexpr T operator&(T t, int i) noexcept { return t & T(i); }         \
+    constexpr T operator|(T t, int i) noexcept { return t | T(i); }         \
+    constexpr T operator^(T t, int i) noexcept { return t ^ T(i); }         \
+    constexpr T& operator&=(T& t1, T t2) noexcept { return t1 = t1 & t2; }  \
+    constexpr T& operator|=(T& t1, T t2) noexcept { return t1 = t1 | t2; }  \
+    constexpr T& operator^=(T& t1, T t2) noexcept { return t1 = t1 ^ t2; }  \
+    constexpr T& operator&=(T& t, int i) noexcept { return t = t & i; }     \
+    constexpr T& operator|=(T& t, int i) noexcept { return t = t | i; }     \
     constexpr T& operator^=(T& t, int i) noexcept { return t = t ^ i; }
 // clang-format on
 
@@ -570,10 +570,10 @@ constexpr CastlingSide make_cs(Square kingOrgSq, Square kingDstSq) noexcept {
 constexpr CastlingRights make_cr(Color c, CastlingSide cs) noexcept {
     assert(is_ok(c));
 
-    return CastlingRights(+(cs == CastlingSide::KING    ? CastlingRights::WHITE_OO
-                            : cs == CastlingSide::QUEEN ? CastlingRights::WHITE_OOO
-                                                        : CastlingRights::WHITE_CASTLING)
-                          << (c << 1));
+    CastlingRights cr = cs == CastlingSide::KING  ? CastlingRights::WHITE_OO
+                      : cs == CastlingSide::QUEEN ? CastlingRights::WHITE_OOO
+                                                  : CastlingRights::WHITE_CASTLING;
+    return CastlingRights(+cr << (c << 1));
 }
 
 // Move representation (16 bits)
