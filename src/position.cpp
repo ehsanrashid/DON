@@ -1369,6 +1369,7 @@ bool Position::legal(Move m) const noexcept {
 
     default :  // NONE
         assert(false);
+        UNREACHABLE();
     }
 
     return (checkers_bb() == 0 ||
@@ -1425,6 +1426,7 @@ bool Position::check(Move m) const noexcept {
         return (checks_bb(ROOK) & rook_castle_sq(orgSq, dstSq)) != 0;
     }
     assert(false);
+    UNREACHABLE();
     return false;
 }
 
@@ -1461,6 +1463,7 @@ bool Position::dbl_check(Move m) const noexcept {
         return false;
     }
     assert(false);
+    UNREACHABLE();
     return false;
 }
 
@@ -1487,10 +1490,10 @@ bool Position::fork(Move m) const noexcept {
     case KING :
         return more_than_one(pieces_bb(~ac) & ~pieces_bb(KING, QUEEN)
                              & attacks_bb<KING>(m.dst_sq()));
-    default :
-        return false;
+    default :;
     }
     assert(false);
+    UNREACHABLE();
     return false;
 }
 
@@ -1741,6 +1744,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
                 break;
             case QUEEN :
                 assert(false);
+                UNREACHABLE();
                 [[fallthrough]];
             default :;
             }

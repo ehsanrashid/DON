@@ -273,6 +273,7 @@ constexpr Bitboard shift_bb(Bitboard b) noexcept {
     if constexpr (D == Direction::SOUTH_WEST)
         return (b & ~FILE_A_BB) >> +Direction::NORTH_EAST;
     assert(false);
+    UNREACHABLE();
     return 0;
 }
 
@@ -445,10 +446,11 @@ constexpr Bitboard attacks_bb(Square s, Piece pc) noexcept {
         return attacks_bb<QUEEN>(s);
     case KING :
         return attacks_bb<KING>(s);
-    default :
-        assert(false);
-        return 0;
+    default :;
     }
+    assert(false);
+    UNREACHABLE();
+    return 0;
 }
 
 alignas(CACHE_LINE_SIZE) inline StdArray<Magic, SQUARE_NB, 2> MAGICS;  // BISHOP or ROOK
@@ -478,6 +480,7 @@ constexpr Bitboard attacks_bb(Square s, [[maybe_unused]] Bitboard occupancyBB) n
     if constexpr (PT == KING)
         return attacks_bb<KING>(s);
     assert(false);
+    UNREACHABLE();
     return 0;
 }
 
@@ -499,10 +502,11 @@ constexpr Bitboard attacks_bb(Square s, PieceType pt, Bitboard occupancyBB) noex
         return attacks_bb<QUEEN>(s, occupancyBB);
     case KING :
         return attacks_bb<KING>(s);
-    default :
-        assert(false);
-        return 0;
+    default :;
     }
+    assert(false);
+    UNREACHABLE();
+    return 0;
 }
 
 constexpr Bitboard attacks_bb(Square s, Piece pc, Bitboard occupancyBB) noexcept {

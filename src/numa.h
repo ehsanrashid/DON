@@ -600,6 +600,7 @@ inline CpuIndexVec shortened_string_to_indices(std::string_view str) noexcept {
         break;
         default :
             assert(false);
+            UNREACHABLE();
         }
     }
 
