@@ -1570,20 +1570,16 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
 
                 rm.pv.resize(1);  // keep root move at index 0
 
-                const Move* RESTRICT childPv = (ss + 1)->pv;
+                const Move* const childPv = (ss + 1)->pv;
                 assert(childPv != nullptr);
-
                 // Count child PV length
-                std::size_t count = 0;
-                while (childPv[count] != Move::None)
-                    ++count;
-
+                const Move* const end   = std::find(childPv, childPv + MAX_PLY + 1, Move::None);
+                std::size_t       count = end - childPv;
+                assert(childPv[count] == Move::None);
                 // Resize once
-                std::size_t oldSize = rm.pv.size();
-                rm.pv.resize(oldSize + count);
-
+                rm.pv.resize(1 + count);
                 // Bulk copy
-                std::memcpy(rm.pv.data() + oldSize, childPv, count * sizeof(Move));
+                std::memcpy(rm.pv.data() + 1, childPv, count * sizeof(Move));
 
                 // Record how often the best move has been changed in each iteration.
                 // This information is used for time management.

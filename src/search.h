@@ -26,8 +26,10 @@
 #include <condition_variable>
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <functional>
 #include <initializer_list>
+#include <iosfwd>
 #include <memory>
 #include <mutex>
 #include <string_view>
@@ -399,11 +401,11 @@ using ISearchManagerPtr = std::unique_ptr<ISearchManager>;
 struct ScoreText final {
    public:
     static ScoreText cp(int value) noexcept {
-        return ScoreText().write_prefix("cp ").write_int(value);
+        return ScoreText().write_prefix(CP_PREFIX).write_int(value);
     }
 
     static ScoreText mate(int value) noexcept {
-        return ScoreText().write_prefix("mate ").write_int(value);
+        return ScoreText().write_prefix(MATE_PREFIX).write_int(value);
     }
 
     std::string_view view() const noexcept { return {_data.data(), _size}; }
@@ -417,23 +419,22 @@ struct ScoreText final {
     friend std::ostream& operator<<(std::ostream& os, const ScoreText& scr) noexcept;
 
    private:
-    ScoreText& write_prefix(const char* txt) noexcept {
-        char* beg = _data.data();
-        char* p   = beg;
-        while (*txt != 0)
-            *p++ = *txt++;
-        _size = p - beg;
+    ScoreText& write_prefix(std::string_view txt) noexcept {
+        std::memcpy(_data.data(), txt.data(), txt.size());
+        _size = txt.size();
         return *this;
     }
 
     ScoreText& write_int(int v) noexcept {
-        char* beg = _data.data();
-        char* end = beg + _data.size();
-
+        char* beg      = _data.data();
+        char* end      = beg + _data.size();
         auto [ptr, ec] = std::to_chars(beg + _size, end, v);
         _size          = ptr - beg;
         return *this;
     }
+
+    static constexpr std::string_view CP_PREFIX{"cp "};
+    static constexpr std::string_view MATE_PREFIX{"mate "};
 
     StdArray<char, 15> _data{};
     std::uint8_t       _size = 0;
