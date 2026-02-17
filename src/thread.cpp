@@ -207,15 +207,15 @@ void Threads::set(const NumaConfig&                       numaConfig,
     // This is undesirable, and so the default behavior (i.e. when the user does not
     // change the NumaConfig UCI setting) is to not bind the threads to processors
     // unless we know for sure that we span NUMA nodes and replication is required.
-    const std::string& numaPolicy = sharedState.options["NumaPolicy"];
+    const std::string& NumaPolicy = sharedState.options["NumaPolicy"];
 
-    bool threadBindable =
-      numaPolicy != "none"
-      && (
-        // numaPolicy == "system", "hardware" or explicitly set by the user string
-        numaPolicy != "auto"
-        // numaPolicy == "auto"
-        || numaConfig.suggests_binding_threads(threadCount));
+    bool threadBindable = false;
+
+    if (NumaPolicy == "auto")
+        threadBindable = numaConfig.suggests_binding_threads(threadCount);
+    // "system", "hardware" or explicitly set by string
+    else if (NumaPolicy != "none")
+        threadBindable = true;
 
     // Assign threads to NUMA nodes
     {
@@ -223,17 +223,23 @@ void Threads::set(const NumaConfig&                       numaConfig,
 
         threadBoundNumaNodes = threadBindable
                                ? numaConfig.distribute_threads_among_numa_nodes(threadCount)
-                               : std::vector<NumaIndex>(threadCount, 0);
+                               : std::vector<NumaIndex>{};
     }
-    //DEBUG_LOG("Thread bound numa nodes size: " << threadBoundNumaNodes.size());
 
     // Count threads per NUMA node
     std::unordered_map<NumaIndex, std::size_t> numaThreadCounts;
-    numaThreadCounts.reserve(numaConfig.nodes_size());
-    for (NumaIndex numaId : threadBoundNumaNodes)
-        ++numaThreadCounts[numaId];
+    numaThreadCounts.reserve(threadBoundNumaNodes.empty() ? 1 : threadBoundNumaNodes.size());
 
-    //DEBUG_LOG("Numa thread counts size: " << numaThreadCounts.size());
+    if (threadBoundNumaNodes.empty())
+    {
+        // All threads belong to NUMA node 0
+        numaThreadCounts.emplace(NumaIndex{0}, threadCount);
+    }
+    else
+    {
+        for (NumaIndex numaId : threadBoundNumaNodes)
+            ++numaThreadCounts[numaId];
+    }
 
     // Prepare shared histories map
     auto& historiesMap = sharedState.historiesMap;
@@ -270,7 +276,7 @@ void Threads::set(const NumaConfig&                       numaConfig,
 
     for (std::size_t threadId = 0; threadId < threadCount; ++threadId)
     {
-        NumaIndex numaId = threadBoundNumaNodes[threadId];
+        NumaIndex numaId = threadBindable ? threadBoundNumaNodes[threadId] : 0;
 
         std::size_t numaIdx       = numaIds[numaId]++;
         std::size_t numaThreadCnt = numaThreadCounts[numaId];
