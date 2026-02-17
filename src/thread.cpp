@@ -405,7 +405,7 @@ const Thread* Threads::best_thread() const noexcept {
         }
     }
 
-    // Fallback: use completedDepth if no valid threads
+    // Fallback: use completed-depth if no valid threads
     if (snapThreads.empty())
     {
         const Thread* bestThread = nullptr;
@@ -415,6 +415,8 @@ const Thread* Threads::best_thread() const noexcept {
 
         for (auto&& th : threads)
         {
+            assert(th->worker->rootMoves[0].preValue == -VALUE_INFINITE);
+
             if (bestThread == nullptr || th->worker->completedDepth > bestDepth)
             {
                 bestThread = th.get();
