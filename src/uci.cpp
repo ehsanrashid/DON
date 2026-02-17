@@ -20,7 +20,6 @@
 #include <algorithm>
 #include <cassert>
 #include <cctype>
-#include <charconv>
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
@@ -911,47 +910,14 @@ std::string UCI::to_wdl(Value v, const Position& pos) noexcept {
 ScoreText UCI::to_score(const Score& score) noexcept {
     constexpr int TB_CP = 20000;
 
-    return score.visit(  //
-      Overload{          //
-               [](Score::Unit unit) -> ScoreText {
-                   ScoreText scr;
-                   char*     beg  = scr.buffer.data();
-                   char*     data = beg;
-                   char*     end  = beg + scr.buffer.size();
-                   *data++        = 'c';
-                   *data++        = 'p';
-                   *data++        = ' ';
-                   auto [ptr, ec] = std::to_chars(data, end, unit.value);
-                   scr.length     = ptr - beg;
-                   return scr;
-               },
+    return score.visit(
+      Overload{[](Score::Unit unit) -> ScoreText { return ScoreText::cp(unit.value); },
                [](Score::Tablebase tb) -> ScoreText {
-                   ScoreText scr;
-                   char*     beg  = scr.buffer.data();
-                   char*     data = beg;
-                   char*     end  = beg + scr.buffer.size();
-                   *data++        = 'c';
-                   *data++        = 'p';
-                   *data++        = ' ';
-                   auto [ptr, ec] = std::to_chars(data, end, (tb.win ? +TB_CP : -TB_CP) - tb.ply);
-                   scr.length     = ptr - beg;
-                   return scr;
+                   return ScoreText::cp((tb.win ? +TB_CP : -TB_CP) - tb.ply);
                },
                [](Score::Mate mate) -> ScoreText {
-                   ScoreText scr;
-                   char*     beg  = scr.buffer.data();
-                   char*     data = beg;
-                   char*     end  = beg + scr.buffer.size();
-                   *data++        = 'm';
-                   *data++        = 'a';
-                   *data++        = 't';
-                   *data++        = 'e';
-                   *data++        = ' ';
-                   auto [ptr, ec] = std::to_chars(data, end, (mate.ply + int(mate.ply > 0)) / 2);
-                   scr.length     = ptr - beg;
-                   return scr;
-               }}  //
-    );
+                   return ScoreText::mate((mate.ply + int(mate.ply > 0)) / 2);
+               }});
 }
 
 std::string UCI::move_to_can(Move m) noexcept {
@@ -1183,6 +1149,10 @@ Score::Score(Value v, const Position& pos) noexcept {
         int ply = VALUE_MATE - constexpr_abs(v);
         score   = Mate{v > 0 ? +ply : -ply};
     }
+}
+
+std::ostream& operator<<(std::ostream& os, const ScoreText& scr) noexcept {
+    return os << scr.view();
 }
 
 }  // namespace DON

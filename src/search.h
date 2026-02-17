@@ -21,6 +21,7 @@
 #include <algorithm>
 #include <atomic>
 #include <cassert>
+#include <charconv>
 #include <cmath>
 #include <condition_variable>
 #include <cstddef>
@@ -31,7 +32,6 @@
 #include <mutex>
 #include <string_view>
 #include <utility>
-#include <variant>
 #include <vector>
 
 #include "history.h"
@@ -49,6 +49,7 @@ namespace DON {
 class Options;
 class Threads;
 class TranspositionTable;
+struct ScoreText;
 
 namespace NNUE {
 struct Networks;
@@ -396,9 +397,58 @@ class ISearchManager {
 // Define a unique pointer type for ISearchManager
 using ISearchManagerPtr = std::unique_ptr<ISearchManager>;
 
+struct ScoreText final {
+   public:
+    static ScoreText cp(int value) noexcept {
+        ScoreText s;
+        s.write_prefix("cp ");
+        s.write_int(value);
+        return s;
+    }
+
+    static ScoreText mate(int value) noexcept {
+        ScoreText s;
+        s.write_prefix("mate ");
+        s.write_int(value);
+        return s;
+    }
+
+    std::string_view view() const noexcept { return {buffer.data(), length}; }
+    const char*      c_str() const noexcept { return buffer.data(); }
+
+    std::size_t size() const noexcept { return length; }
+
+    // implicit conversion if you want
+    operator std::string_view() const noexcept { return view(); }
+
+    friend std::ostream& operator<<(std::ostream& os, const ScoreText& scr) noexcept;
+
+   private:
+    void write_prefix(const char* txt) noexcept {
+        char* beg = buffer.data();
+        char* p   = beg;
+        while (*txt != 0)
+            *p++ = *txt++;
+        length = p - beg;
+    }
+
+    void write_int(int v) noexcept {
+        char* beg = buffer.data();
+        char* end = beg + buffer.size();
+
+        auto [ptr, ec] = std::to_chars(beg + length, end, v);
+        length         = ptr - beg;
+    }
+
+    StdArray<char, 15> buffer{};
+    std::uint8_t       length = 0;
+};
+
+static_assert(sizeof(ScoreText) == 16, "ScoreText size must be 16 bytes");
+
 struct ShortInfo {
-    Depth            depth;
-    std::string_view score;
+    Depth     depth;
+    ScoreText score;
 };
 struct FullInfo final: public ShortInfo {
     std::uint16_t    selDepth;
