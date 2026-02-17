@@ -30,7 +30,6 @@
 #include <memory>
 #include <mutex>
 #include <string_view>
-#include <unordered_map>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -50,7 +49,7 @@ namespace DON {
 class Options;
 class Thread;
 class Threads;
-struct ThreadProperty;
+struct ThreadMetrics;
 class TranspositionTable;
 
 namespace NNUE {
@@ -101,6 +100,10 @@ struct RootMove final {
         return !(rm1 < rm2);
     }
 
+    Value effective_value() const noexcept {
+        return curValue != -VALUE_INFINITE ? curValue : preValue;
+    }
+
     Value curValue = -VALUE_INFINITE;
     Value preValue = -VALUE_INFINITE;
     Value uciValue = -VALUE_INFINITE;
@@ -114,7 +117,8 @@ struct RootMove final {
     std::uint64_t nodes    = 0;
     std::int32_t  tbRank   = 0;
     Value         tbValue  = -VALUE_INFINITE;
-    bool          promoted = false;
+
+    std::uint16_t Id = UINT16_MAX;
 
     Moves pv;
 };
@@ -666,9 +670,9 @@ class Worker final {
     CorrectionHistory<CHType::CONTINUATION> continuationCorrectionHistory;
 
     template<typename VotingFunc>
-    friend ThreadProperty build_property(const Thread*                                  th,
-                                         const std::unordered_map<Move, std::uint64_t>& votes,
-                                         VotingFunc&& thread_voting_value) noexcept;
+    friend ThreadMetrics build_thread_metrics(const Thread*                             th,
+                                              const StdArray<std::uint64_t, MAX_MOVES>& votes,
+                                              VotingFunc&& calc_vote_weight) noexcept;
 
     friend class MainSearchManager;
     friend class Position;

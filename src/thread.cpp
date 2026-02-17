@@ -325,90 +325,79 @@ void Threads::set(const NumaConfig&                       numaConfig,
     init();
 }
 
-struct ThreadProperty final {
+// Properties of thread used for best-thread selection
+struct ThreadMetrics final {
    public:
-    Value         value;
-    bool          win;
-    bool          loss;
-    std::uint64_t vote;
-    std::uint64_t voting;
-    std::size_t   pvSize;
+    Value         value;       // Position evaluation
+    bool          win;         // Proven win (mate or TB win)
+    bool          loss;        // Proven loss (mated or TB loss)
+    std::uint64_t voteCount;   // Number of votes for this thread's move
+    std::uint64_t voteWeight;  // Weighted voting value (depth-adjusted)
+    std::size_t   pvSize;      // Principal variation length
 };
 
-struct ThreadBetterPolicy final {
+// Comparator for selecting the best thread based on position evaluation and voting
+struct BestThreadComparator final {
    public:
-    bool operator()(const ThreadProperty& best, const ThreadProperty& next) const noexcept {
-        // Best = proven win
+    // Returns true if next thread is better than current best
+    bool operator()(const ThreadMetrics& best, const ThreadMetrics& cand) const noexcept {
+        // Case 1: Winning positions
+        // Both winning -> prefer shorter mates (higher eval)
         if (best.win)
-            // Prefer better win
-            return next.win && next.value > best.value;
-
-        // Best = proven loss
+            return cand.win && cand.value > best.value;
+        // Case 2: Losing positions
+        // Best is losing -> prefer escape to non-loss, or longer mated (delay defeat)
         if (best.loss)
-            // Prefer escape, otherwise prefer longer survival (delay defeat)
-            return !next.loss || (next.loss && next.value > best.value);
+            return !cand.loss || (cand.loss && cand.value > best.value);
 
-        // Best = normal position
-        // Prefer win
-        if (next.win)
-            return true;
-        // Ignore loss
-        if (next.loss)
-            return false;
+        // Case 3: Normal positions
+        return compare_normal(best, cand);
+    }
 
-        // Normal vs normal -> voting rules
-        // Primary metric: vote count
-        if (next.vote != best.vote)
-            return next.vote > best.vote;
-        // Tie-breaker 1: voting value
-        if (next.voting != best.voting)
-            return next.voting > best.voting;
-        // Tie-breaker 2: PV size
-        return next.pvSize > best.pvSize;
+   private:
+    static bool compare_normal(const ThreadMetrics& best, const ThreadMetrics& cand) noexcept {
+        // Case 3a: Best is normal (draw) -> win dominates, ignore loss
+        if (cand.win)
+            return true;  // Win beats draw
+        if (cand.loss)
+            return false;  // Draw beats loss
+
+        // Case 3b: Both normal -> compare by voting metrics
+        if (cand.voteCount != best.voteCount)
+            return cand.voteCount > best.voteCount;  // Primary: vote count
+        if (cand.voteWeight != best.voteWeight)
+            return cand.voteWeight > best.voteWeight;  // Tie-break 1: depth-weighted value
+        return cand.pvSize > best.pvSize;              // Tie-break 2: PV size
     }
 };
 
 template<typename VotingFunc>
-ThreadProperty build_property(const Thread*                                  th,
-                              const std::unordered_map<Move, std::uint64_t>& votes,
-                              VotingFunc&& thread_voting_value) noexcept {
-    const auto& rm    = th->worker->rootMoves[0];
-    Value       value = rm.curValue;
+ThreadMetrics build_thread_metrics(const Thread*                             th,
+                                   const StdArray<std::uint64_t, MAX_MOVES>& votes,
+                                   VotingFunc&& calc_vote_weight) noexcept {
+    const auto& rm = th->worker->rootMoves[0];
 
-    return {
-      value,                    //
-      is_win(value),            //
-      is_loss(value),           //
-      votes.at(rm.pv[0]),       //
-      thread_voting_value(th),  //
-      rm.pv.size()              //
-    };
+    Value value = rm.effective_value();
+
+    // Defensive safety (never trust PV blindly)
+    std::uint64_t voteCount = votes[rm.Id];
+
+    std::size_t pvSize = rm.pv.size();
+
+    return {value, is_win(value), is_loss(value), voteCount, calc_vote_weight(th), pvSize};
 }
 
 const Thread* Threads::best_thread() const noexcept {
     // snap-shot pointers under shared lock
     std::vector<Thread*> snapShot;
     {
-        std::lock_guard writeLock(sharedMutex);
+        std::shared_lock readLock(sharedMutex);
 
         snapShot.reserve(threads.size());
 
         for (auto&& th : threads)
-        {
-            if (th->worker->rootMoves.empty())
-                continue;
-
-            auto& rm = th->worker->rootMoves[0];
-
-            if (rm.curValue == -VALUE_INFINITE)
-            {
-                rm.curValue = rm.preValue;
-                rm.promoted = true;
-            }
-
-            if (rm.curValue != -VALUE_INFINITE)
+            if (th->worker->rootMoves[0].effective_value() != -VALUE_INFINITE)
                 snapShot.push_back(th.get());
-        }
     }
 
     // Fallback: use preValue if no valid curValue threads
@@ -422,9 +411,6 @@ const Thread* Threads::best_thread() const noexcept {
 
         for (auto&& th : threads)
         {
-            if (th->worker->rootMoves.empty())
-                continue;
-
             const auto& rm = th->worker->rootMoves[0];
 
             if (rm.preValue == -VALUE_INFINITE)
@@ -448,46 +434,53 @@ const Thread* Threads::best_thread() const noexcept {
     // Initialize with first valid thread
     const Thread* bestThread = snapShot.front();
 
-    Value minCurValue = bestThread->worker->rootMoves[0].curValue;
+    Value minValue = bestThread->worker->rootMoves[0].effective_value();
     // Find the minimum value of all threads
     for (std::size_t i = 1; i < snapShot.size(); ++i)
-        minCurValue = std::min(snapShot[i]->worker->rootMoves[0].curValue, minCurValue);
+        minValue = std::min(snapShot[i]->worker->rootMoves[0].effective_value(), minValue);
 
     // Vote according to value and depth, and select the best thread
-    auto thread_voting_value = [minCurValue](const Thread* th) noexcept -> std::uint64_t {
-        return std::uint64_t(14 + th->worker->rootMoves[0].curValue - minCurValue)
-             * std::uint64_t(
-                 std::max(th->worker->completedDepth - int(th->worker->rootMoves[0].promoted), 1));
+    auto calc_vote_weight = [minValue](const Thread* th) noexcept -> std::uint64_t {
+        const auto& rm = th->worker->rootMoves[0];
+
+        Value value   = rm.effective_value();
+        bool  penalty = rm.curValue == -VALUE_INFINITE;
+
+        return std::uint64_t(14 + value - minValue)
+             * std::uint64_t(std::max(th->worker->completedDepth - int(penalty), 1));
     };
 
+    StdArray<std::uint64_t, MAX_MOVES> votes{};
+
     // Aggregate votes
-    std::unordered_map<Move, std::uint64_t> votes;
-    votes.max_load_factor(1.0f);
-    votes.reserve(2 * std::min(snapShot.size(), bestThread->worker->rootMoves.size()));
-
     for (const auto* th : snapShot)
-        votes[th->worker->rootMoves[0].pv[0]] += thread_voting_value(th);
+    {
+        assert(th->worker->rootMoves[0].Id != UINT16_MAX);
+        assert(th->worker->rootMoves[0].Id < votes.size());
 
-    ThreadBetterPolicy policy;
-
-    // Cache best thread properties
-    auto bestProperty = build_property(bestThread, votes, thread_voting_value);
+        votes[th->worker->rootMoves[0].Id] += calc_vote_weight(th);
+    }
 
     // Find best-thread
+    BestThreadComparator better_comp;
+
+    // Cache best thread properties
+    auto bestMetrics = build_thread_metrics(bestThread, votes, calc_vote_weight);
+
     for (std::size_t i = 1; i < snapShot.size(); ++i)
     {
-        const auto* nextThread = snapShot[i];
+        const auto* candThread = snapShot[i];
 
         // Get candidate thread properties
-        auto nextProperty = build_property(nextThread, votes, thread_voting_value);
+        auto candMetrics = build_thread_metrics(candThread, votes, calc_vote_weight);
 
-        if (policy(bestProperty, nextProperty))
+        if (better_comp(bestMetrics, candMetrics))
         {
-            bestThread   = nextThread;
-            bestProperty = nextProperty;
+            bestThread  = candThread;
+            bestMetrics = candMetrics;
 
             // Early exit: mate in 1 found (can't improve further)
-            if (bestProperty.win && bestProperty.value >= VALUE_MATES_IN_1)
+            if (bestMetrics.win && bestMetrics.value >= VALUE_MATES_IN_1)
                 break;
         }
     }
@@ -547,6 +540,10 @@ void Threads::start(Position&      pos,
                 erase = rootMoves.erase(m);
         }
     }
+
+    // Assign stable IDs AFTER rootMoves is finalized
+    for (std::uint16_t i = 0; i < rootMoves.size(); ++i)
+        rootMoves[i].Id = i;
 
     auto& clock = limit.clocks[pos.active_color()];
 
