@@ -89,7 +89,7 @@ struct MoveList final {
 
     StdArray<value_type, MAX_MOVES> moves;
 
-    const_iterator endMove = nullptr;
+    const_iterator endMove;
 };
 
 }  // namespace DON

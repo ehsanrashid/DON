@@ -136,7 +136,7 @@ class RootMoves final {
     using reference       = container_type::reference;
     using const_reference = container_type::const_reference;
 
-    RootMoves() noexcept = default;
+    RootMoves() noexcept { reserve(32); }
     explicit RootMoves(container_type rms) noexcept :
         rootMoves(std::move(rms)) {}
     RootMoves(std::initializer_list<value_type> initList) noexcept :
