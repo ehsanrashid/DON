@@ -329,16 +329,33 @@ namespace {
 // Properties of thread used for best-thread selection
 struct ThreadMetrics final {
    public:
+    // Factory function: build metrics for a thread {value, win/loss, votes, vote weight, PV size}
+    template<typename VotingFunc>
+    static ThreadMetrics from_thread(const Thread*                             th,
+                                     const StdArray<std::uint64_t, MAX_MOVES>& votes,
+                                     VotingFunc&& calc_vote_weight) noexcept {
+        const auto& rm = th->worker->root_moves()[0];
+
+        Value value = rm.effective_value();
+
+        assert(rm.Id != UINT16_MAX && rm.Id < votes.size());
+        std::uint64_t voteCount = votes[rm.Id];
+
+        std::size_t pvSize = rm.pv.size();
+
+        return {value, is_win(value), is_loss(value), voteCount, calc_vote_weight(th), pvSize};
+    }
+
     Value         value;       // Position evaluation
     bool          win;         // Proven win (mate or TB win)
     bool          loss;        // Proven loss (mated or TB loss)
     std::uint64_t voteCount;   // Number of votes for this thread's move
     std::uint64_t voteWeight;  // Weighted voting value (depth-adjusted)
-    std::size_t   pvSize;      // Principal variation length
+    std::size_t   pvSize;      // Principal variation size
 };
 
-// Comparator for selecting the best thread based on position evaluation and voting
-struct BestThreadComparator final {
+// Predicate: returns true if candidate thread is better than current best
+struct BetterThread final {
    public:
     // Returns true if next thread is better than current best
     bool operator()(const ThreadMetrics& best, const ThreadMetrics& cand) const noexcept {
@@ -371,22 +388,6 @@ struct BestThreadComparator final {
         return cand.pvSize > best.pvSize;              // Tie-break 2: PV size
     }
 };
-
-template<typename VotingFunc>
-ThreadMetrics build_thread_metrics(const Thread*                             th,
-                                   const StdArray<std::uint64_t, MAX_MOVES>& votes,
-                                   VotingFunc&& calc_vote_weight) noexcept {
-    const auto& rm = th->worker->root_moves()[0];
-
-    Value value = rm.effective_value();
-
-    assert(rm.Id != UINT16_MAX && rm.Id < votes.size());
-    std::uint64_t voteCount = votes[rm.Id];
-
-    std::size_t pvSize = rm.pv.size();
-
-    return {value, is_win(value), is_loss(value), voteCount, calc_vote_weight(th), pvSize};
-}
 
 }  // namespace
 
@@ -444,7 +445,11 @@ const Thread* Threads::best_thread() const noexcept {
     Value minValue = bestThread->worker->rootMoves[0].effective_value();
     // Find the minimum value of all threads
     for (std::size_t i = 1; i < snapShot.size(); ++i)
-        minValue = std::min(snapShot[i]->worker->rootMoves[0].effective_value(), minValue);
+    {
+        const auto& rm = snapShot[i]->worker->rootMoves[0];
+
+        minValue = std::min(rm.effective_value(), minValue);
+    }
 
     // Vote according to value and depth, and select the best thread
     auto calc_vote_weight = [minValue](const Thread* th) noexcept -> std::uint64_t {
@@ -470,19 +475,19 @@ const Thread* Threads::best_thread() const noexcept {
     }
 
     // Find best-thread
-    BestThreadComparator better_comp;
+    BetterThread betterThread;
 
     // Cache best thread properties
-    auto bestMetrics = build_thread_metrics(bestThread, votes, calc_vote_weight);
+    auto bestMetrics = ThreadMetrics::from_thread(bestThread, votes, calc_vote_weight);
 
     for (std::size_t i = 1; i < snapShot.size(); ++i)
     {
         const auto* candThread = snapShot[i];
 
         // Get candidate thread properties
-        auto candMetrics = build_thread_metrics(candThread, votes, calc_vote_weight);
+        auto candMetrics = ThreadMetrics::from_thread(candThread, votes, calc_vote_weight);
 
-        if (better_comp(bestMetrics, candMetrics))
+        if (betterThread(bestMetrics, candMetrics))
         {
             bestThread  = candThread;
             bestMetrics = candMetrics;
