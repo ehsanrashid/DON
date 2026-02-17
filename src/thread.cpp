@@ -429,8 +429,8 @@ const Thread* Threads::best_thread() const noexcept {
     // Initialize with first valid thread
     const Thread* bestThread = snapThreads.front();
 
-    Value minValue = bestThread->worker->rootMoves[0].effective_value();
     // Find the minimum value of all threads
+    Value minValue = bestThread->worker->rootMoves[0].effective_value();
     for (std::size_t i = 1; i < snapThreads.size(); ++i)
     {
         const auto& rm = snapThreads[i]->worker->rootMoves[0];

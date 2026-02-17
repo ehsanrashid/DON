@@ -1118,29 +1118,39 @@ inline void Position::update_pc_threats(Square                    s,
                        | (pieces_bb(QUEEN, ROOK)   & attacksBB[ROOK]);
     // clang-format on
 
+    auto process_sliders = [&](bool addDirectAttacks) noexcept {
+        while (slidersBB != 0)
+        {
+            Square sliderSq = pop_lsq(slidersBB);
+            Piece  sliderPc = piece(sliderSq);
+
+            assert(sliderSq != s);
+            assert(is_ok(sliderPc));
+
+            Bitboard passRayBB    = pass_ray_bb(sliderSq, s);
+            Bitboard discoveredBB = passRayBB & attacksBB[QUEEN] & exOccupancyBB;
+
+            if (discoveredBB != 0 && (passRayBB & targetBB) != targetBB)
+            {
+                assert(!more_than_one(discoveredBB));
+                Square threatenedSq = lsq(discoveredBB);
+                Piece  threatenedPc = piece(threatenedSq);
+
+                assert(is_ok(threatenedPc));
+
+                dts->add<!Put>(sliderSq, threatenedSq, sliderPc, threatenedPc);
+            }
+
+            if (addDirectAttacks)
+                dts->add<Put>(sliderSq, s, sliderPc, pc);
+        }
+    };
+
     if (type_of(pc) == KING)
     {
         if constexpr (ComputeRay)
         {
-            while (slidersBB != 0)
-            {
-                Square sliderSq = pop_lsq(slidersBB);
-                Piece  sliderPc = piece(sliderSq);
-
-                Bitboard passRayBB    = pass_ray_bb(sliderSq, s);
-                Bitboard discoveredBB = passRayBB & attacksBB[QUEEN] & exOccupancyBB;
-
-                if (discoveredBB != 0 && (passRayBB & targetBB) != targetBB)
-                {
-                    assert(!more_than_one(discoveredBB));
-                    Square threatenedSq = lsq(discoveredBB);
-                    Piece  threatenedPc = piece(threatenedSq);
-
-                    assert(is_ok(threatenedPc));
-
-                    dts->add<!Put>(sliderSq, threatenedSq, sliderPc, threatenedPc);
-                }
-            }
+            process_sliders(false);
         }
 
         return;
@@ -1193,31 +1203,11 @@ inline void Position::update_pc_threats(Square                    s,
 
     if constexpr (ComputeRay)
     {
-        while (slidersBB != 0)
-        {
-            Square sliderSq = pop_lsq(slidersBB);
-            Piece  sliderPc = piece(sliderSq);
-
-            assert(sliderSq != s);
-            assert(is_ok(sliderPc));
-
-            Bitboard passRayBB    = pass_ray_bb(sliderSq, s);
-            Bitboard discoveredBB = passRayBB & attacksBB[QUEEN] & exOccupancyBB;
-
-            if (discoveredBB != 0 && (passRayBB & targetBB) != targetBB)
-            {
-                assert(!more_than_one(discoveredBB));
-                Square threatenedSq = lsq(discoveredBB);
-                Piece  threatenedPc = piece(threatenedSq);
-
-                assert(is_ok(threatenedPc));
-
-                dts->add<!Put>(sliderSq, threatenedSq, sliderPc, threatenedPc);
-            }
-#if !defined(USE_AVX512ICL)  // for ICL, direct threats were processed earlier (attackersBB)
-            dts->add<Put>(sliderSq, s, sliderPc, pc);
+#if defined(USE_AVX512ICL)  // Direct threats were processed earlier (attackersBB)
+        process_sliders(false);
+#else
+        process_sliders(true);
 #endif
-        }
     }
     else
     {
