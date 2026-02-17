@@ -49,7 +49,6 @@ namespace DON {
 class Options;
 class Threads;
 class TranspositionTable;
-struct ScoreText;
 
 namespace NNUE {
 struct Networks;
@@ -400,23 +399,17 @@ using ISearchManagerPtr = std::unique_ptr<ISearchManager>;
 struct ScoreText final {
    public:
     static ScoreText cp(int value) noexcept {
-        ScoreText s;
-        s.write_prefix("cp ");
-        s.write_int(value);
-        return s;
+        return ScoreText().write_prefix("cp ").write_int(value);
     }
 
     static ScoreText mate(int value) noexcept {
-        ScoreText s;
-        s.write_prefix("mate ");
-        s.write_int(value);
-        return s;
+        return ScoreText().write_prefix("mate ").write_int(value);
     }
 
-    std::string_view view() const noexcept { return {buffer.data(), length}; }
-    const char*      c_str() const noexcept { return buffer.data(); }
+    std::string_view view() const noexcept { return {_data.data(), _size}; }
+    const char*      c_str() const noexcept { return _data.data(); }
 
-    std::size_t size() const noexcept { return length; }
+    std::size_t size() const noexcept { return _size; }
 
     // implicit conversion if you want
     operator std::string_view() const noexcept { return view(); }
@@ -424,24 +417,26 @@ struct ScoreText final {
     friend std::ostream& operator<<(std::ostream& os, const ScoreText& scr) noexcept;
 
    private:
-    void write_prefix(const char* txt) noexcept {
-        char* beg = buffer.data();
+    ScoreText& write_prefix(const char* txt) noexcept {
+        char* beg = _data.data();
         char* p   = beg;
         while (*txt != 0)
             *p++ = *txt++;
-        length = p - beg;
+        _size = p - beg;
+        return *this;
     }
 
-    void write_int(int v) noexcept {
-        char* beg = buffer.data();
-        char* end = beg + buffer.size();
+    ScoreText& write_int(int v) noexcept {
+        char* beg = _data.data();
+        char* end = beg + _data.size();
 
-        auto [ptr, ec] = std::to_chars(beg + length, end, v);
-        length         = ptr - beg;
+        auto [ptr, ec] = std::to_chars(beg + _size, end, v);
+        _size          = ptr - beg;
+        return *this;
     }
 
-    StdArray<char, 15> buffer{};
-    std::uint8_t       length = 0;
+    StdArray<char, 15> _data{};
+    std::uint8_t       _size = 0;
 };
 
 static_assert(sizeof(ScoreText) == 16, "ScoreText size must be 16 bytes");
