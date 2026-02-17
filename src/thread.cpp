@@ -372,15 +372,15 @@ struct BestThreadComparator final {
 };
 
 template<typename VotingFunc>
-ThreadMetrics build_thread_metrics(const Thread*                     th,
-                                   const std::vector<std::uint64_t>& votes,
-                                   VotingFunc&&                      calc_vote_weight) noexcept {
+ThreadMetrics build_thread_metrics(const Thread*                             th,
+                                   const StdArray<std::uint64_t, MAX_MOVES>& votes,
+                                   VotingFunc&& calc_vote_weight) noexcept {
     const auto& rm = th->worker->rootMoves[0];
 
     Value value = rm.effective_value();
 
     // Defensive safety (never trust PV blindly)
-    std::uint64_t voteCount = votes[rm.moveId];
+    std::uint64_t voteCount = votes[rm.Id];
 
     std::size_t pvSize = rm.pv.size();
 
@@ -450,15 +450,15 @@ const Thread* Threads::best_thread() const noexcept {
              * std::uint64_t(std::max(th->worker->completedDepth - int(penalty), 1));
     };
 
-    std::vector<std::uint64_t> votes(bestThread->worker->rootMoves.size(), 0);
+    StdArray<std::uint64_t, MAX_MOVES> votes{};
 
     // Aggregate votes
     for (const auto* th : snapShot)
     {
-        assert(th->worker->rootMoves[0].moveId != UINT16_MAX);
-        assert(th->worker->rootMoves[0].moveId < votes.size());
+        assert(th->worker->rootMoves[0].Id != UINT16_MAX);
+        assert(th->worker->rootMoves[0].Id < votes.size());
 
-        votes[th->worker->rootMoves[0].moveId] += calc_vote_weight(th);
+        votes[th->worker->rootMoves[0].Id] += calc_vote_weight(th);
     }
 
     // Find best-thread
@@ -543,7 +543,7 @@ void Threads::start(Position&      pos,
 
     // Assign stable IDs AFTER rootMoves is finalized
     for (std::uint16_t i = 0; i < rootMoves.size(); ++i)
-        rootMoves[i].moveId = i;
+        rootMoves[i].Id = i;
 
     auto& clock = limit.clocks[pos.active_color()];
 

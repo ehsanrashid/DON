@@ -30,7 +30,6 @@
 #include <memory>
 #include <mutex>
 #include <string_view>
-#include <unordered_map>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -119,7 +118,7 @@ struct RootMove final {
     std::int32_t  tbRank   = 0;
     Value         tbValue  = -VALUE_INFINITE;
 
-    std::uint16_t moveId = UINT16_MAX;
+    std::uint16_t Id = UINT16_MAX;
 
     Moves pv;
 };
@@ -671,8 +670,8 @@ class Worker final {
     CorrectionHistory<CHType::CONTINUATION> continuationCorrectionHistory;
 
     template<typename VotingFunc>
-    friend ThreadMetrics build_thread_metrics(const Thread*                     th,
-                                              const std::vector<std::uint64_t>& votes,
+    friend ThreadMetrics build_thread_metrics(const Thread*                             th,
+                                              const StdArray<std::uint64_t, MAX_MOVES>& votes,
                                               VotingFunc&& calc_vote_weight) noexcept;
 
     friend class MainSearchManager;
