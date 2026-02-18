@@ -121,10 +121,9 @@ alignas(CACHE_LINE_SIZE) constexpr auto LUT_DATAS = []() constexpr noexcept {
                     bool semiExcluded = attackerPt == attackedPt  //
                                      && (attackerPt != PAWN || attackerC != attackedC);
 
-                    std::uint32_t featureIndex =
-                      PIECE_THREATS[+attackerPc].baseOffset
-                      + PIECE_THREATS[+attackerPc].threatCount
-                          * (attackedC * MAX_TARGETS[attackerPt - 1] + map);
+                    std::uint32_t featureIndex = PIECE_THREATS[+attackerPc].baseOffset
+                                               + (attackedC * MAX_TARGETS[attackerPt - 1] + map)
+                                                   * PIECE_THREATS[+attackerPc].threatCount;
 
                     lutDatas[+attackerPc][+attackedPc] =
                       (std::uint32_t(semiExcluded) << SEMI_EXCLUDED_OFFSET) | featureIndex;

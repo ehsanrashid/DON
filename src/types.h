@@ -612,7 +612,9 @@ class Move {
     static constexpr std::uint8_t PROMO_OFFSET  = 12;
     static constexpr std::uint8_t TYPE_OFFSET   = 14;
 
-    static constexpr std::uint16_t TYPE_MASK = 3ULL << TYPE_OFFSET;
+    static constexpr std::uint16_t SQ_MASK    = (1U << 6) - 1;
+    static constexpr std::uint16_t PROMO_MASK = (1U << 2) - 1;
+    static constexpr std::uint16_t TYPE_MASK  = ((1U << 2) - 1) << TYPE_OFFSET;
 
     Move() noexcept = default;
     constexpr explicit Move(std::uint16_t d) noexcept :
@@ -631,21 +633,21 @@ class Move {
     constexpr Square org_sq() const noexcept {
         assert(is_ok());
 
-        return Square((data >> ORG_SQ_OFFSET) & 0x3F);
+        return Square((data >> ORG_SQ_OFFSET) & SQ_MASK);
     }
     constexpr Square dst_sq() const noexcept {
         assert(is_ok());
 
-        return Square((data >> DST_SQ_OFFSET) & 0x3F);
+        return Square((data >> DST_SQ_OFFSET) & SQ_MASK);
     }
 
     // Same as dst_sq() but without assertion, for branchless code paths
-    constexpr Square dst_sq_() const { return Square((data >> DST_SQ_OFFSET) & 0x3F); }
+    constexpr Square dst_sq_() const { return Square((data >> DST_SQ_OFFSET) & SQ_MASK); }
 
-    constexpr MT type() const noexcept { return MT((data >> TYPE_OFFSET) & 0x3); }
+    constexpr MT type() const noexcept { return MT((data & TYPE_MASK) >> TYPE_OFFSET); }
 
     constexpr PieceType promotion_type() const noexcept {
-        return PieceType(KNIGHT + ((data >> PROMO_OFFSET) & 0x3));
+        return PieceType(KNIGHT + ((data >> PROMO_OFFSET) & PROMO_MASK));
     }
 
     constexpr Value promotion_value() const noexcept {
@@ -707,6 +709,10 @@ struct DirtyThreat final {
     static constexpr std::uint8_t THREATENED_PC_OFFSET = 20;
     static constexpr std::uint8_t ADD_OFFSET           = 31;
 
+    static constexpr std::uint16_t SQ_MASK  = (1U << 8) - 1;
+    static constexpr std::uint16_t PC_MASK  = (1U << 4) - 1;
+    static constexpr std::uint16_t ADD_MASK = (1U << 1) - 1;
+
     DirtyThreat() noexcept {
         // Don't initialize data
     }
@@ -720,18 +726,18 @@ struct DirtyThreat final {
           | (std::uint32_t(sq) << SQ_OFFSET)) {}
 
     constexpr Square sq() const noexcept {  //
-        return Square((data >> SQ_OFFSET) & 0xFF);
+        return Square((data >> SQ_OFFSET) & SQ_MASK);
     }
     constexpr Square threatened_sq() const noexcept {
-        return Square((data >> THREATENED_SQ_OFFSET) & 0xFF);
+        return Square((data >> THREATENED_SQ_OFFSET) & SQ_MASK);
     }
     constexpr Piece pc() const noexcept {  //
-        return Piece((data >> PC_OFFSET) & 0xF);
+        return Piece((data >> PC_OFFSET) & PC_MASK);
     }
     constexpr Piece threatened_pc() const noexcept {
-        return Piece((data >> THREATENED_PC_OFFSET) & 0xF);
+        return Piece((data >> THREATENED_PC_OFFSET) & PC_MASK);
     }
-    constexpr bool add() const noexcept { return ((data >> ADD_OFFSET) & 0x1) != 0; }
+    constexpr bool add() const noexcept { return ((data >> ADD_OFFSET) & ADD_MASK) != 0; }
 
     constexpr std::uint32_t raw() const noexcept { return data; }
 
