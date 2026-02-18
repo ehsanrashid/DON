@@ -60,7 +60,8 @@ alignas(CACHE_LINE_SIZE) constexpr auto Reductions = []() constexpr noexcept {
 constexpr int
 reduction(Depth depth, std::uint16_t moveCount, int deltaRatio, bool improve) noexcept {
     int reductionScale = Reductions[depth] * Reductions[moveCount];
-    return 1182 + reductionScale - deltaRatio + int(!improve) * int(0.423828125 * reductionScale);
+    return 1182 + reductionScale - deltaRatio
+         + int(!improve) * int(0.423828125 * double(reductionScale));
 }
 
 // Add a small random value to draw evaluation to avoid 3-fold blindness
@@ -1465,7 +1466,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
         // Scale up reduction for AllNode
         if constexpr (AllNode)
         {
-            r = constexpr_round(r * (1.0 + 1.0 / (0.9202 + 0.9275 * double(depth))));
+            r = constexpr_round(double(r) * (1.0 + 1.0 / (0.9202 + 0.9275 * double(depth))));
         }
 
         // Step 17. Late moves reduction / extension (LMR)
