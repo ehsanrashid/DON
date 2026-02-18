@@ -892,7 +892,7 @@ FixedText UCI::to_wdl(Value v, const Position& pos) noexcept {
     int l = win_rate_model(-v, pos);
     int d = 1000 - (w + l);
 
-    return FixedText::wdl(w, d, l);
+    return FixedText().write(" wdl ").write(w).write(' ').write(d).write(' ').write(l);
 }
 
 FixedText UCI::to_score(const Score& score) noexcept {
@@ -900,13 +900,13 @@ FixedText UCI::to_score(const Score& score) noexcept {
 
     return score.visit(                             //
       Overload{[](Score::Unit unit) -> FixedText {  //
-                   return FixedText::cp(unit.value);
+                   return FixedText().write("cp ").write(unit.value);
                },
                [](Score::Tablebase tb) -> FixedText {
-                   return FixedText::cp((tb.win ? +TB_CP : -TB_CP) - tb.ply);
+                   return FixedText().write("cp ").write((tb.win ? +TB_CP : -TB_CP) - tb.ply);
                },
                [](Score::Mate mate) -> FixedText {
-                   return FixedText::mate((mate.ply + int(mate.ply > 0)) / 2);
+                   return FixedText().write("mate ").write((mate.ply + int(mate.ply > 0)) / 2);
                }});
 }
 
@@ -1139,13 +1139,6 @@ Score::Score(Value v, const Position& pos) noexcept {
         int ply = VALUE_MATE - constexpr_abs(v);
         score   = Mate{v > 0 ? +ply : -ply};
     }
-}
-
-std::ostream& operator<<(std::ostream& os, const FixedText& fixedText) noexcept {
-
-    os.write(fixedText.c_str(), std::streamsize(fixedText.size()));
-
-    return os;
 }
 
 }  // namespace DON

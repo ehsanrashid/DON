@@ -34,7 +34,6 @@ namespace DON {
 
 class Position;
 class Options;
-struct FixedText;
 
 // Score represents the evaluation score of a position
 class Score final {

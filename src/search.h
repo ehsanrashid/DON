@@ -398,69 +398,6 @@ class ISearchManager {
 // Define a unique pointer type for ISearchManager
 using ISearchManagerPtr = std::unique_ptr<ISearchManager>;
 
-struct FixedText final {
-   public:
-    static FixedText from_view(std::string_view sv) noexcept {  //
-        return FixedText().write(sv);
-    }
-
-    static FixedText cp(int value) noexcept {  //
-        return FixedText().write(CP_PREFIX).write(value);
-    }
-
-    static FixedText mate(int value) noexcept {  //
-        return FixedText().write(MATE_PREFIX).write(value);
-    }
-
-    static FixedText wdl(int w, int d, int l) noexcept {
-        return FixedText().write(WDL_PREFIX).write(w).write(' ').write(d).write(' ').write(l);
-    }
-
-    std::string_view view() const noexcept { return {_data.data(), _size}; }
-    const char*      c_str() const noexcept { return _data.data(); }
-
-    std::size_t size() const noexcept { return _size; }
-
-    bool empty() const noexcept { return size() == 0; }
-
-    // implicit conversion if you want
-    operator std::string_view() const noexcept { return view(); }
-
-    friend std::ostream& operator<<(std::ostream& os, const FixedText& fixedText) noexcept;
-
-   private:
-    FixedText& write(char ch) noexcept {
-        assert(size() < _data.size());
-        _data[_size] = ch;
-        ++_size;
-        return *this;
-    }
-
-    FixedText& write(std::string_view sv) noexcept {
-        assert(size() + sv.size() <= _data.size());
-        std::memcpy(_data.data() + size(), sv.data(), sv.size());
-        _size += sv.size();
-        return *this;
-    }
-
-    FixedText& write(int v) noexcept {
-        char* beg      = _data.data();
-        char* end      = beg + _data.size();
-        auto [ptr, ec] = std::to_chars(beg + _size, end, v);
-        _size          = ptr - beg;
-        return *this;
-    }
-
-    static constexpr std::string_view CP_PREFIX{"cp "};
-    static constexpr std::string_view MATE_PREFIX{"mate "};
-    static constexpr std::string_view WDL_PREFIX{" wdl "};
-
-    StdArray<char, 23> _data{};
-    std::uint8_t       _size = 0;
-};
-
-static_assert(sizeof(FixedText) == 24, "FixedText size must be 24 bytes");
-
 struct ShortInfo {
     Depth     depth;
     FixedText score;
