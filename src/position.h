@@ -1111,7 +1111,8 @@ inline void Position::update_pc_threats(Square                    s,
         return _;
     }();
 
-    Bitboard exOccupancyBB = occupancyBB ^ pieces_bb(KING);
+    Bitboard kings         = pieces_bb(KING);
+    Bitboard exOccupancyBB = occupancyBB ^ kings;
 
     // clang-format off
     Bitboard slidersBB = (pieces_bb(QUEEN, BISHOP) & attacksBB[BISHOP])
@@ -1157,13 +1158,14 @@ inline void Position::update_pc_threats(Square                    s,
     }
 
     // clang-format off
-    Bitboard threatenedBB = (type_of(pc) == PAWN ? attacksBB[color_of(pc)] : attacksBB[type_of(pc)])
-                          & occupancyBB;
+    Bitboard threatenedBB = (type_of(pc) == PAWN ? attacksBB[color_of(pc)]
+                                                 : attacksBB[type_of(pc)])
+                          & exOccupancyBB;
 
     Bitboard nonSlidersBB = (pieces_bb(WHITE, PAWN)   & attacksBB[BLACK])
                           | (pieces_bb(BLACK, PAWN)   & attacksBB[WHITE])
                           | (pieces_bb(KNIGHT)        & attacksBB[KNIGHT])
-                          | (pieces_bb(KING)          & attacksBB[KING]);
+                          | (kings                    & attacksBB[KING]);
     // clang-format on
 
 #if defined(USE_AVX512ICL)
