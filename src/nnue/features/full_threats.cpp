@@ -205,7 +205,7 @@ ALWAYS_INLINE IndexType make_index(Color  perspective,
     // Lookup LUT
     std::uint32_t lutData = LUT_DATAS[relAttackerPc][relAttackedPc];
 
-    // Excluded mask: 0xFFFFFFFF if excluded, 0x0 if valid
+    // Excluded mask: 0xFFFFFFFF if excluded, 0x0 if included
     std::uint32_t excludedMask = -std::uint32_t(
       // Fully-excluded (fast path)
       lutData == FullThreats::Dimensions
@@ -216,7 +216,7 @@ ALWAYS_INLINE IndexType make_index(Color  perspective,
     std::uint32_t index = feature_index(lutData)                                     //
                         + lut_index(Piece(relAttackerPc), Square(org), Square(dst))  //
                         + SQUARE_OFFSETS[relAttackerPc][org];
-
+    // Apply mask: keep index if included, otherwise use full-dimension sentinel
     return (index & ~excludedMask) | (FullThreats::Dimensions & excludedMask);
 }
 
@@ -231,7 +231,7 @@ void FullThreats::append_active_indices(Color           perspective,
     Bitboard occupancyBB = pos.pieces_bb();
 
     for (Color color : {WHITE, BLACK})
-        for (PieceType pt : PIECE_TYPES)
+        for (PieceType pt : EX_KING_PIECE_TYPES)
         {
             Color c          = Color(perspective ^ color);
             Piece attackerPc = make_piece(c, pt);

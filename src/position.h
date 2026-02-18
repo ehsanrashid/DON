@@ -1216,7 +1216,8 @@ inline void Position::update_pc_threats(Square                    s,
         nonSlidersBB |= slidersBB;
     }
 
-#if !defined(USE_AVX512ICL)
+#if defined(USE_AVX512ICL)
+#else
     while (nonSlidersBB != 0)
     {
         Square nonSliderSq = pop_lsq(nonSlidersBB);

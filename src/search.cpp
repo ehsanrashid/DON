@@ -1131,7 +1131,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
     // (*Scaler) Making IIR more aggressive scales poorly.
     if constexpr (!AllNode)
     {
-        depth -= (int(depth > 5) & int(ttmNone) & int(red <= 3072));
+        depth -= (depth > 5) & (ttmNone) & (red <= 3072);
     }
 
     // Step 11. ProbCut
@@ -2134,16 +2134,16 @@ void Worker::update_correction_histories(const Position& pos, Stack* ss, int bon
     histories.non_pawn_correction<BLACK>(pos.non_pawn_key(BLACK))[ac] << constexpr_round(NonPawnBonusScale * double(bonus));
 
     Move preMove = (ss - 1)->move;
-
-    bool   preOk = preMove.is_ok();
+    // 0 if false, -1 if true
+    int    preOk = -int(preMove.is_ok());
     Square preSq = preMove.dst_sq_();
     Piece  prePc = pos[preSq];
 
     auto& h2 = *(ss - 2)->pieceSqCorrectionHistory;
     auto& h4 = *(ss - 4)->pieceSqCorrectionHistory;
 
-    h2[+prePc][preSq] << int(preOk) * constexpr_round(1.0078 * double(bonus));
-    h4[+prePc][preSq] << int(preOk) * constexpr_round(0.4766 * double(bonus));
+    h2[+prePc][preSq] << (preOk & constexpr_round(1.0078 * double(bonus)));
+    h4[+prePc][preSq] << (preOk & constexpr_round(0.4766 * double(bonus)));
 }
 
 // Computes the correction value for the current position from the correction histories
@@ -2159,17 +2159,17 @@ int Worker::correction_value(const Position& pos, const Stack* ss) noexcept {
                         + histories.non_pawn_correction<BLACK>(pos.non_pawn_key(BLACK))[ac]);
 
     Move preMove = (ss - 1)->move;
-
-    bool   preOk = preMove.is_ok();
+    // 0 if false, -1 if true
+    int    preOk = -int(preMove.is_ok());
     Square preSq = preMove.dst_sq_();
     Piece  prePc = pos[preSq];
 
     auto& h2 = *(ss - 2)->pieceSqCorrectionHistory;
     auto& h4 = *(ss - 4)->pieceSqCorrectionHistory;
 
-    correctionValue += 8022LL * int(int(!preOk) * 8
-                                  + int( preOk) * int(h2[+prePc][preSq]
-                                                    + h4[+prePc][preSq]));
+    correctionValue += 8022LL * ( (preOk & int(h2[+prePc][preSq]
+                                             + h4[+prePc][preSq]))
+                                | (~preOk & 8));
 
     return std::clamp(correctionValue, -INT_LIMIT, +INT_LIMIT);
 }
