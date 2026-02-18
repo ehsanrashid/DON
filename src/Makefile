@@ -473,6 +473,10 @@ ifeq ($(COMP), gcc)
     else
         CXXFLAGS += -m$(bits)
         LDFLAGS += -m$(bits)
+        # Force SSE math on 32-bit x86 to avoid x87 precision differences
+        ifeq ($(bits), 32)
+            CXXFLAGS += -mfpmath=sse -msse2
+        endif
     endif
 
     ifeq ($(arch), $(filter $(arch), armv7))
