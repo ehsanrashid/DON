@@ -473,7 +473,7 @@ ifeq ($(COMP), gcc)
     else
         CXXFLAGS += -m$(bits)
         LDFLAGS += -m$(bits)
-        # Force SSE math on 32-bit x86 to avoid x87 precision differences
+        # Force SSE floating-point math on 32-bit x86 to avoid x87 extended-precision differences
         ifeq ($(bits), 32)
             CXXFLAGS += -mfpmath=sse -msse2
         endif
@@ -512,8 +512,7 @@ ifeq ($(COMP), mingw)
         endif
     endif
     CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-declarations
-
-    # Force deterministic FP math on 32-bit builds
+    # Force SSE floating-point math on 32-bit x86 to avoid x87 extended-precision differences
     ifeq ($(bits), 32)
         CXXFLAGS += -mfpmath=sse -msse2
     endif
