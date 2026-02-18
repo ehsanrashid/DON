@@ -254,10 +254,6 @@ ifeq ($(findstring -avx2, $(ARCH)), -avx2)
     avx2 = yes
 endif
 
-ifeq ($(findstring -comp, $(ARCH)), -comp)
-    _comp = yes
-endif
-
 ifeq ($(findstring -bmi2, $(ARCH)), -bmi2)
     popcnt = yes
     sse = yes
@@ -266,6 +262,10 @@ ifeq ($(findstring -bmi2, $(ARCH)), -bmi2)
     sse41 = yes
     avx2 = yes
     bmi2 = yes
+endif
+
+ifeq ($(findstring -comp, $(ARCH)), -comp)
+    _comp = yes
 endif
 
 ifeq ($(findstring -avxvnni, $(ARCH)), -avxvnni)
@@ -320,7 +320,7 @@ ifeq ($(sse), yes)
 endif
 
 # 64-bit bmi2 is not available on x86-32
-ifeq ($(bits), 32)
+ifeq ($(findstring x86-32, $(ARCH)), x86-32)
     bmi2 = no
 endif
 
@@ -603,11 +603,9 @@ ifdef COMPCXX
     CXX=$(COMPCXX)
 endif
 
-ifeq ($(bits), 32)
-    # Force SSE floating-point math on 32-bit x86 to avoid x87 extended-precision differences
-    ifeq ($(findstring x86-32, $(ARCH)), x86-32)
-        CXXFLAGS += -mfpmath=sse -msse2
-    endif
+# Force SSE floating-point math on 32-bit x86 to avoid x87 extended-precision differences
+ifeq ($(findstring x86-32, $(ARCH)), x86-32)
+    CXXFLAGS += -mfpmath=sse -msse2
 endif
 
 # llvm-profdata must be version compatible with the specified CXX (be it clang, or the gcc alias)
