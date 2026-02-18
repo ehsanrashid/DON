@@ -19,17 +19,15 @@
 #define SEARCH_H_INCLUDED
 
 #include <algorithm>
-#include <array>
+#include <array>  // IWYU pragma: keep
 #include <atomic>
 #include <cassert>
-#include <charconv>
 #include <cmath>
 #include <condition_variable>
 #include <cstdint>
 #include <cstring>
 #include <functional>
 #include <initializer_list>
-#include <iosfwd>
 #include <memory>
 #include <mutex>
 #include <string_view>
