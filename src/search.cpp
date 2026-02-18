@@ -1443,7 +1443,9 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
 
         // (*Scaler) Decrease reduction if position is or has been on the PV
         r -= int(ss->ttPv)
-           * (2823 + int(PVNode) * 1013 + int(is_valid(ttd.value) && ttd.value > alpha) * 910
+           * (+2823                 //
+              + int(PVNode) * 1013  //
+              + int(is_valid(ttd.value) && ttd.value > alpha) * 910
               + int(ttd.depth >= depth) * (933 + int(CutNode) * 979));
 
         // Increase reduction for CutNode

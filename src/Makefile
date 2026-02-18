@@ -473,10 +473,6 @@ ifeq ($(COMP), gcc)
     else
         CXXFLAGS += -m$(bits)
         LDFLAGS += -m$(bits)
-        # Force SSE floating-point math on 32-bit x86 to avoid x87 extended-precision differences
-        ifeq ($(bits), 32)
-            CXXFLAGS += -mfpmath=sse -msse2
-        endif
     endif
 
     ifeq ($(arch), $(filter $(arch), armv7))
@@ -512,10 +508,6 @@ ifeq ($(COMP), mingw)
         endif
     endif
     CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-declarations
-    # Force SSE floating-point math on 32-bit x86 to avoid x87 extended-precision differences
-    ifeq ($(bits), 32)
-        CXXFLAGS += -mfpmath=sse -msse2
-    endif
 endif
 
 ifeq ($(COMP), icx)
@@ -609,6 +601,13 @@ endif
 ### Allow overwriting CXX from command line
 ifdef COMPCXX
     CXX=$(COMPCXX)
+endif
+
+ifeq ($(bits), 32)
+    # Force SSE floating-point math on 32-bit x86 to avoid x87 extended-precision differences
+    ifeq ($(findstring x86-32, $(ARCH)), x86-32)
+        CXXFLAGS += -mfpmath=sse -msse2
+    endif
 endif
 
 # llvm-profdata must be version compatible with the specified CXX (be it clang, or the gcc alias)
