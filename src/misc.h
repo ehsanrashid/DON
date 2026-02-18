@@ -1056,20 +1056,10 @@ struct FixedText final {
 
     FixedText& write(char ch) noexcept {
         assert(size() < capacity());
-        if (size() < capacity())
-        {
-#if (defined(__GNUC__) && !defined(__clang__)) \
-  || (defined(__clang_major__) && __clang_major__ >= 13 && __clang_major__ <= 15)
-    #pragma GCC diagnostic push
-    #pragma GCC diagnostic ignored "-Wstringop-overflow"
-#endif
-            data()[size()] = ch;
-#if (defined(__GNUC__) && !defined(__clang__)) \
-  || (defined(__clang_major__) && __clang_major__ >= 13 && __clang_major__ <= 15)
-    #pragma GCC diagnostic pop
-#endif
-            ++_size;
-        }
+        if (size() >= capacity())
+            return *this;
+        data()[size()] = ch;
+        ++_size;
         return *this;
     }
 
