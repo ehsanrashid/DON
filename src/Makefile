@@ -527,7 +527,7 @@ ifeq ($(COMP), clang)
     CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-prototypes \
                 -Wconditional-uninitialized -flax-vector-conversions=none
 
-    ifeq ($(filter $(KERNEL), Darwin OpenBSD FreeBSD), )
+    ifneq ($(KERNEL), $(filter $(KERNEL), Darwin OpenBSD FreeBSD))
         ifeq ($(target_windows), )
             ifneq ($(RTLIB), compiler-rt)
                 LDFLAGS += -latomic
@@ -603,8 +603,8 @@ ifdef COMPCXX
     CXX=$(COMPCXX)
 endif
 
-# Force SSE floating-point math on 32-bit x86 to avoid x87 extended-precision differences
-ifeq ($(findstring x86-32, $(ARCH)), x86-32)
+# Force SSE floating-point math on 32-bit x86 or general-32 to avoid x87 extended-precision differences
+ifeq ($(ARCH), $(filter $(ARCH), x86-32 general-32))
     CXXFLAGS += -mfpmath=sse -msse2
 endif
 
@@ -1213,6 +1213,7 @@ icx-profile-use:
 .depend: $(SRCS)
 	-@$(CXX) $(DEPENDFLAGS) -I. -MM $(SRCS) > $@ 2>/dev/null
 
+# Include .depend only if no special goal is requested
 ifeq ($(filter $(MAKECMDGOALS), help strip install clean net objclean profileclean format config-sanity), )
     -include .depend
 endif
