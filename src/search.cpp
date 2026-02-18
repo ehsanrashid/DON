@@ -1467,7 +1467,10 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
         // Scale up reduction for AllNode
         if constexpr (AllNode)
         {
-            r = constexpr_round(double(r) * (1.0 + 1.0 / (0.9202 + 0.9275 * double(depth))));
+            constexpr double DepthScaling = 276.0 / 256.0;
+            constexpr double DepthBias    = 254.0 / 256.0;
+
+            r = constexpr_round(double(r) * (1.0 + DepthScaling / (DepthBias + double(depth))));
         }
 
         // Step 17. Late moves reduction / extension (LMR)
