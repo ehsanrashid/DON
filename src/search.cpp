@@ -1457,9 +1457,9 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
 
         // Increase reduction if next ply has many fail-highs
         int x = ss->cutoffCount - 1;
-        if (x > 0)
-            r += 256 + int(AllNode) * 1064 + 1024 * (x >> 1)  //
-               - 512 * (x >> 2) - 256 * (x >> 3) - 128 * (x >> 4) - 64 * (x >> 5) - 32 * (x >> 6);
+        r += int(x > 0)
+           * (256 + int(AllNode) * 1064 + 1024 * (x >> 1)  //
+              - 512 * (x >> 2) - 256 * (x >> 3) - 128 * (x >> 4) - 64 * (x >> 5) - 32 * (x >> 6));
 
         // For first picked move (ttMove) reduce reduction
         r -= int(ttm) * 2069;
