@@ -512,6 +512,11 @@ ifeq ($(COMP), mingw)
         endif
     endif
     CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-declarations
+
+    # Force deterministic FP math on 32-bit builds
+    ifeq ($(bits), 32)
+        CXXFLAGS += -mfpmath=sse -msse2
+    endif
 endif
 
 ifeq ($(COMP), icx)
