@@ -604,7 +604,7 @@ ifdef COMPCXX
 endif
 
 # Force SSE floating-point math on 32-bit x86 or general-32 to avoid x87 extended-precision differences
-ifeq ($(ARCH), $(filter $(ARCH), x86-32 general-32))
+ifneq ($(filter x86-32 general-32, $(ARCH)), )
     CXXFLAGS += -mfpmath=sse -msse2
 endif
 
