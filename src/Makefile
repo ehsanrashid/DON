@@ -712,9 +712,6 @@ ifeq ($(optimize), yes)
     endif
 endif
 
-# Suppress stringop-overflow warning for misc.o only
-misc.o: CXXFLAGS += -Wno-stringop-overflow
-
 ### 3.4 Bits
 ifeq ($(bits), 64)
     CXXFLAGS += -DIS_64BIT
