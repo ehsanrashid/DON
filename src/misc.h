@@ -1055,27 +1055,36 @@ struct FixedText final {
     static FixedText from_view(std::string_view sv) noexcept { return FixedText{}.write(sv); }
 
     FixedText& write(char ch) noexcept {
-        assert(size() < _data.size());
-        _data[_size] = ch;
-        ++_size;
+        assert(size() < capacity());
+        [[likely]] if (size() < capacity())
+        {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
+            data()[size()] = ch;
+#pragma GCC diagnostic pop
+            ++_size;
+        }
         return *this;
     }
 
     FixedText& write(std::string_view sv) noexcept {
-        assert(size() + sv.size() <= _data.size());
-        std::memcpy(_data.data() + size(), sv.data(), sv.size());
+        assert(size() + sv.size() <= capacity());
+        std::memcpy(data() + size(), sv.data(), sv.size());
         _size += sv.size();
         return *this;
     }
 
     FixedText& write(int v) noexcept {
-        char* beg      = _data.data();
-        char* end      = beg + _data.size();
-        auto [ptr, ec] = std::to_chars(beg + _size, end, v);
+        char* beg      = data();
+        char* end      = beg + capacity();
+        auto [ptr, ec] = std::to_chars(beg + size(), end, v);
         _size          = ptr - beg;
         return *this;
     }
 
+    constexpr std::size_t capacity() const noexcept { return _data.size(); }
+
+    char*       data() noexcept { return _data.data(); }
     const char* c_str() const noexcept { return _data.data(); }
     std::size_t size() const noexcept { return _size; }
 
