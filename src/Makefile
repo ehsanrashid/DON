@@ -159,6 +159,7 @@ optimize = yes
 debug = no
 sanitize = none
 bits = 64
+sse_fp = no
 prefetch = no
 popcnt = no
 sse = no
@@ -321,6 +322,7 @@ endif
 
 # 64-bit bmi2 is not available on x86-32
 ifeq ($(findstring x86-32, $(ARCH)), x86-32)
+    sse_fp = yes
     bmi2 = no
 endif
 
@@ -331,6 +333,7 @@ else
 ifeq ($(ARCH), general-32)
     arch = any
     bits = 32
+    sse_fp = yes
 endif
 
 ifeq ($(ARCH), general-64)
@@ -603,8 +606,8 @@ ifdef COMPCXX
     CXX=$(COMPCXX)
 endif
 
-# Force SSE floating-point math on 32-bit x86 or general-32 to avoid x87 extended-precision differences
-ifneq ($(filter x86-32 general-32, $(ARCH)), )
+# Force SSE floating-point math to avoid x87 extended-precision differences
+ifeq ($(sse_fp), yes)
     CXXFLAGS += -mfpmath=sse -msse2
 endif
 
