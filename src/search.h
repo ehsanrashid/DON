@@ -24,7 +24,6 @@
 #include <charconv>
 #include <cmath>
 #include <condition_variable>
-#include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <functional>
