@@ -397,14 +397,28 @@ class ISearchManager {
 // Define a unique pointer type for ISearchManager
 using ISearchManagerPtr = std::unique_ptr<ISearchManager>;
 
-struct ScoreText final {
+struct FixedText final {
    public:
-    static ScoreText cp(int value) noexcept {
-        return ScoreText().write_prefix(CP_PREFIX).write_int(value);
+    static FixedText from_view(std::string_view txt) noexcept {
+        return FixedText().write_prefix(txt);
     }
 
-    static ScoreText mate(int value) noexcept {
-        return ScoreText().write_prefix(MATE_PREFIX).write_int(value);
+    static FixedText cp(int value) noexcept {
+        return FixedText().write_prefix(CP_PREFIX).write_int(value);
+    }
+
+    static FixedText mate(int value) noexcept {
+        return FixedText().write_prefix(MATE_PREFIX).write_int(value);
+    }
+
+    static FixedText wdl(int w, int d, int l) noexcept {
+        return FixedText()
+          .write_prefix(WDL_PREFIX)
+          .write_int(w)
+          .write_char(' ')
+          .write_int(d)
+          .write_char(' ')
+          .write_int(l);
     }
 
     std::string_view view() const noexcept { return {_data.data(), _size}; }
@@ -412,19 +426,27 @@ struct ScoreText final {
 
     std::size_t size() const noexcept { return _size; }
 
+    bool empty() const noexcept { return size() == 0; }
+
     // implicit conversion if you want
     operator std::string_view() const noexcept { return view(); }
 
-    friend std::ostream& operator<<(std::ostream& os, const ScoreText& scr) noexcept;
+    friend std::ostream& operator<<(std::ostream& os, const FixedText& fixedText) noexcept;
 
    private:
-    ScoreText& write_prefix(std::string_view txt) noexcept {
+    FixedText& write_char(char c) noexcept {
+        _data[_size] = c;
+        ++_size;
+        return *this;
+    }
+
+    FixedText& write_prefix(std::string_view txt) noexcept {
         std::memcpy(_data.data(), txt.data(), txt.size());
         _size = txt.size();
         return *this;
     }
 
-    ScoreText& write_int(int v) noexcept {
+    FixedText& write_int(int v) noexcept {
         char* beg      = _data.data();
         char* end      = beg + _data.size();
         auto [ptr, ec] = std::to_chars(beg + _size, end, v);
@@ -434,22 +456,23 @@ struct ScoreText final {
 
     static constexpr std::string_view CP_PREFIX{"cp "};
     static constexpr std::string_view MATE_PREFIX{"mate "};
+    static constexpr std::string_view WDL_PREFIX{" wdl "};
 
     StdArray<char, 15> _data{};
     std::uint8_t       _size = 0;
 };
 
-static_assert(sizeof(ScoreText) == 16, "ScoreText size must be 16 bytes");
+static_assert(sizeof(FixedText) == 16, "FixedText size must be 16 bytes");
 
 struct ShortInfo {
     Depth     depth;
-    ScoreText score;
+    FixedText score;
 };
 struct FullInfo final: public ShortInfo {
     std::uint16_t    selDepth;
     std::size_t      multiPV;
-    std::string_view bound;
-    std::string_view wdl;
+    FixedText        bound;
+    FixedText        wdl;
     TimePoint        time;
     std::uint64_t    nodes;
     std::uint16_t    hashfull;

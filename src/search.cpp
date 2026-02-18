@@ -322,7 +322,7 @@ void Worker::start_search() noexcept {
         rootMoves.emplace_back(Move::None);
         rootMoves[0].curValue = rootPos.checkers_bb() != 0 ? -VALUE_MATE : VALUE_DRAW;
 
-        auto score{UCI::to_score({rootMoves[0].curValue, rootPos})};
+        FixedText score{UCI::to_score({rootMoves[0].curValue, rootPos})};
 
         mainManager->updateContext.onUpdateShort({DEPTH_ZERO, score});
     }
@@ -2517,13 +2517,15 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
         if ((exact || rm.bound == Bound::NONE) && is_decisive(v) && !is_mate(v))
             worker.extend_tb_pv(i, v);
 
-        auto score{UCI::to_score({v, rootPos})};
+        FixedText score{UCI::to_score({v, rootPos})};
 
-        std::string bound{!exact && is_ok(rm.bound) ? to_string(rm.bound) : std::string_view{}};
+        FixedText bound;
+        if (!exact && is_ok(rm.bound))
+            bound = FixedText::from_view(to_string(rm.bound));
 
-        std::string wdl;
+        FixedText wdl;
         if (ShowWDL)
-            wdl.assign(UCI::to_wdl(v, rootPos));
+            wdl = UCI::to_wdl(v, rootPos);
 
         std::string pv{build_pv(rm.pv)};
 

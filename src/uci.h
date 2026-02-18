@@ -34,7 +34,7 @@ namespace DON {
 
 class Position;
 class Options;
-struct ScoreText;
+struct FixedText;
 
 // Score represents the evaluation score of a position
 class Score final {
@@ -87,9 +87,9 @@ class UCI final {
 
     static void print_info_string(std::string_view infoStr) noexcept;
 
-    [[nodiscard]] static int         to_cp(Value v, const Position& pos) noexcept;
-    [[nodiscard]] static std::string to_wdl(Value v, const Position& pos) noexcept;
-    [[nodiscard]] static ScoreText   to_score(const Score& score) noexcept;
+    [[nodiscard]] static int       to_cp(Value v, const Position& pos) noexcept;
+    [[nodiscard]] static FixedText to_wdl(Value v, const Position& pos) noexcept;
+    [[nodiscard]] static FixedText to_score(const Score& score) noexcept;
 
     [[nodiscard]] static std::string move_to_can(Move m) noexcept;
 
