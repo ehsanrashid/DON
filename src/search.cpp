@@ -2057,7 +2057,7 @@ void Worker::update_low_ply_quiet_history(std::int16_t ssPly, Move m, int bonus)
 void Worker::update_quiet_histories(const Position& pos, PawnHistory& pawnHistory, Stack* ss, Move m, int bonus) noexcept {
     assert(m.is_ok());
 
-    update_pawn_history(pawnHistory, pos.moved_pc(m), m.dst_sq(), constexpr_round((0.5225 + double(bonus >= 0) * 0.4218) * double(bonus)));
+    update_pawn_history(pawnHistory, pos.moved_pc(m), m.dst_sq(), constexpr_round((bonus >= 0 ? 0.9443 : 0.5225) * double(bonus)));
 
     update_quiet_history(pos.active_color(), m, constexpr_round(1.0000 * double(bonus)));
 
