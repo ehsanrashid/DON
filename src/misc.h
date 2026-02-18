@@ -1052,7 +1052,7 @@ class FixedVector final {
 struct FixedText final {
    public:
     // from_view factory
-    static FixedText from_view(std::string_view sv) noexcept { return FixedText().write(sv); }
+    static FixedText from_view(std::string_view sv) noexcept { return FixedText{}.write(sv); }
 
     FixedText& write(char ch) noexcept {
         assert(size() < _data.size());
