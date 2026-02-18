@@ -910,8 +910,10 @@ std::string UCI::to_wdl(Value v, const Position& pos) noexcept {
 ScoreText UCI::to_score(const Score& score) noexcept {
     constexpr int TB_CP = 20000;
 
-    return score.visit(
-      Overload{[](Score::Unit unit) -> ScoreText { return ScoreText::cp(unit.value); },
+    return score.visit(                             //
+      Overload{[](Score::Unit unit) -> ScoreText {  //
+                   return ScoreText::cp(unit.value);
+               },
                [](Score::Tablebase tb) -> ScoreText {
                    return ScoreText::cp((tb.win ? +TB_CP : -TB_CP) - tb.ply);
                },
@@ -1152,7 +1154,10 @@ Score::Score(Value v, const Position& pos) noexcept {
 }
 
 std::ostream& operator<<(std::ostream& os, const ScoreText& scr) noexcept {
-    return os << scr.view();
+
+    os.write(scr.c_str(), std::streamsize(scr.size()));
+
+    return os;
 }
 
 }  // namespace DON

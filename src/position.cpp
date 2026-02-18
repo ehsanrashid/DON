@@ -2235,7 +2235,7 @@ Position::operator std::string() const noexcept {
     constexpr std::string_view Sep{"\n  +---+---+---+---+---+---+---+---+\n"};
 
     std::string pos;
-    pos.reserve(672);
+    pos.reserve(768);
 
     pos.assign(Sep);
 
@@ -2265,7 +2265,8 @@ Position::operator std::string() const noexcept {
 // Prints to the output stream the position in ASCII + detailed info
 std::ostream& operator<<(std::ostream& os, const Position& pos) noexcept {
 
-    os << std::string(pos);
+    std::string str = std::string(pos);
+    os.write(str.data(), std::streamsize(str.size()));
 
     os << "\nFen: " << pos.fen();
 
