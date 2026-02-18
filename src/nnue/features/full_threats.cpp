@@ -72,11 +72,10 @@ alignas(CACHE_LINE_SIZE) constexpr auto THREAT_TABLE = []() constexpr noexcept {
             {
                 threatTable.squareOffsets[+pc][s] = threatCount;
 
-                Bitboard threatsBB = pt != PAWN               ? attacks_bb(s, pt)
-                                   : SQ_A2 <= s && s <= SQ_H7 ? attacks_bb(s, c)
-                                                              : 0;
-
-                threatCount += constexpr_popcount(threatsBB);
+                if (pt != PAWN)
+                    threatCount += constexpr_popcount(attacks_bb(s, pt));
+                else if (SQ_A2 <= s && s <= SQ_H7)
+                    threatCount += constexpr_popcount(attacks_bb(s, c));
             }
 
             threatTable.pieceThreats[+pc] = {baseOffset, threatCount};
@@ -166,8 +165,8 @@ alignas(CACHE_LINE_SIZE) const auto LUT_INDICES = []() noexcept {
 }();
 
 // Get index within piece threats
-constexpr std::uint8_t lut_index(Piece pc, std::uint8_t s1, std::uint8_t s2) noexcept {
-    assert(is_ok(s1) && is_ok(s2));
+constexpr std::uint8_t lut_index(Piece pc, Square s1, Square s2) noexcept {
+    assert(is_ok(pc) && is_ok(s1) && is_ok(s2));
 
     if (type_of(pc) == PAWN)
         return LUT_INDICES[color_of(pc)][s1][s2];
@@ -200,11 +199,11 @@ ALWAYS_INLINE IndexType make_index(Color  perspective,
     std::uint8_t dst = std::uint8_t(dstSq) ^ relOrientation;
 
     // Compute perspective-relative pieces
-    Piece relAttackerPc = relative_piece(perspective, attackerPc);
-    Piece relAttackedPc = relative_piece(perspective, attackedPc);
+    std::uint8_t relAttackerPc = +relative_piece(perspective, attackerPc);
+    std::uint8_t relAttackedPc = +relative_piece(perspective, attackedPc);
 
     // Lookup LUT
-    std::uint32_t lutData = LUT_DATAS[+relAttackerPc][+relAttackedPc];
+    std::uint32_t lutData = LUT_DATAS[relAttackerPc][relAttackedPc];
 
     // Excluded mask: 0xFFFFFFFF if excluded, 0x0 if valid
     std::uint32_t excludedMask = -std::uint32_t(
@@ -214,9 +213,9 @@ ALWAYS_INLINE IndexType make_index(Color  perspective,
       || (semi_excluded(lutData) && org < dst));
 
     // Compute index components
-    std::uint32_t index = feature_index(lutData)              //
-                        + lut_index(relAttackerPc, org, dst)  //
-                        + SQUARE_OFFSETS[+relAttackerPc][org];
+    std::uint32_t index = feature_index(lutData)                                     //
+                        + lut_index(Piece(relAttackerPc), Square(org), Square(dst))  //
+                        + SQUARE_OFFSETS[relAttackerPc][org];
 
     return (index & ~excludedMask) | (FullThreats::Dimensions & excludedMask);
 }
