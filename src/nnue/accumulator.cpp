@@ -17,6 +17,7 @@
 
 #include "accumulator.h"
 
+#include <algorithm>
 #include <type_traits>
 #include <utility>
 
@@ -276,7 +277,7 @@ auto make_accumulator_update_context(Color                                 persp
 }
 
 template<IndexType TransformedFeatureDimensions>
-void update_accumulator_incremental_double(
+void update_accumulator_dbl_incr(
   Color                                                   perspective,
   const FeatureTransformer<TransformedFeatureDimensions>& featureTransformer,
   Square                                                  kingSq,
@@ -321,7 +322,7 @@ void update_accumulator_incremental_double(
 }
 
 template<IndexType TransformedFeatureDimensions>
-void update_accumulator_incremental_double(
+void update_accumulator_dbl_incr(
   Color                                                   perspective,
   const FeatureTransformer<TransformedFeatureDimensions>& featureTransformer,
   Square                                                  kingSq,
@@ -355,7 +356,7 @@ void update_accumulator_incremental_double(
 
 // Computes the accumulator of the next position, on given computedState
 template<bool Forward, typename FeatureSet, IndexType TransformedFeatureDimensions>
-void update_accumulator_incremental(
+void update_accumulator_incr(
   Color                                                   perspective,
   const FeatureTransformer<TransformedFeatureDimensions>& featureTransformer,
   Square                                                  kingSq,
@@ -836,7 +837,7 @@ void AccumulatorStack::evaluate(Color                                 perspectiv
 
     if ((accumulators<FeatureSet>()[lastAccIdx].template acc<Dimensions>()).computed[perspective])
     {
-        forward_update_incremental<FeatureSet>(perspective, pos, featureTransformer, lastAccIdx);
+        update_forward_incr<FeatureSet>(perspective, pos, featureTransformer, lastAccIdx);
     }
     else
     {
@@ -847,7 +848,7 @@ void AccumulatorStack::evaluate(Color                                 perspectiv
             update_threats_accumulator_full(perspective, featureTransformer, pos,
                                             mut_state<ThreatFeatureSet>());
 
-        backward_update_incremental<FeatureSet>(perspective, pos, featureTransformer, lastAccIdx);
+        update_backward_incr<FeatureSet>(perspective, pos, featureTransformer, lastAccIdx);
     }
 }
 
@@ -856,7 +857,7 @@ void AccumulatorStack::evaluate(Color                                 perspectiv
 template<typename FeatureSet, IndexType Dimensions>
 std::size_t AccumulatorStack::last_usable_accumulator_index(Color perspective) const noexcept {
 
-    for (std::size_t idx = size - 1; idx > 0; --idx)
+    for (std::size_t idx = size; idx-- > 0;)
     {
         if ((accumulators<FeatureSet>()[idx].template acc<Dimensions>()).computed[perspective])
             return idx;
@@ -869,18 +870,18 @@ std::size_t AccumulatorStack::last_usable_accumulator_index(Color perspective) c
 }
 
 template<typename FeatureSet, IndexType Dimensions>
-void AccumulatorStack::forward_update_incremental(
+void AccumulatorStack::update_forward_incr(  //
   Color                                 perspective,
   const Position&                       pos,
   const FeatureTransformer<Dimensions>& featureTransformer,
-  std::size_t                           begin) noexcept {
+  std::size_t                           beg) noexcept {
 
-    assert(begin < size && size <= MAX_SIZE);
-    assert((accumulators<FeatureSet>()[begin].template acc<Dimensions>()).computed[perspective]);
+    assert(beg < size && size <= MAX_SIZE);
+    assert((accumulators<FeatureSet>()[beg].template acc<Dimensions>()).computed[perspective]);
 
     Square kingSq = pos.square<KING>(perspective);
 
-    for (std::size_t idx = begin; ++idx < size;)
+    for (std::size_t idx = beg; ++idx < size;)
     {
         if (idx + 1 < size)
         {
@@ -895,9 +896,9 @@ void AccumulatorStack::forward_update_incremental(
                 {
                     Square capturedSq = dp1.dstSq;
                     dp1.dstSq = dp2.removedSq = SQ_NONE;
-                    update_accumulator_incremental_double(perspective, featureTransformer, kingSq,
-                                                          accumulators[idx - 1], accumulators[idx],
-                                                          accumulators[idx + 1]);
+                    update_accumulator_dbl_incr(perspective, featureTransformer, kingSq,
+                                                accumulators[idx - 1], accumulators[idx],
+                                                accumulators[idx + 1]);
                     dp1.dstSq = dp2.removedSq = capturedSq;
 
                     ++idx;
@@ -909,25 +910,25 @@ void AccumulatorStack::forward_update_incremental(
                 if (dp2.removedSq != SQ_NONE
                     && (accumulators[idx].dirty.threateningBB & dp2.removedSq) != 0)
                 {
-                    update_accumulator_incremental_double(perspective, featureTransformer, kingSq,
-                                                          accumulators[idx - 1], accumulators[idx],
-                                                          accumulators[idx + 1], dp2);
+                    update_accumulator_dbl_incr(perspective, featureTransformer, kingSq,
+                                                accumulators[idx - 1], accumulators[idx],
+                                                accumulators[idx + 1], dp2);
                     ++idx;
                     continue;
                 }
             }
         }
 
-        update_accumulator_incremental<true>(perspective, featureTransformer, kingSq,
-                                             accumulators<FeatureSet>()[idx - 1],
-                                             mut_accumulators<FeatureSet>()[idx]);
+        update_accumulator_incr<true>(perspective, featureTransformer, kingSq,
+                                      accumulators<FeatureSet>()[idx - 1],
+                                      mut_accumulators<FeatureSet>()[idx]);
     }
 
     assert((state<FeatureSet>().template acc<Dimensions>()).computed[perspective]);
 }
 
 template<typename FeatureSet, IndexType Dimensions>
-void AccumulatorStack::backward_update_incremental(
+void AccumulatorStack::update_backward_incr(  //
   Color                                 perspective,
   const Position&                       pos,
   const FeatureTransformer<Dimensions>& featureTransformer,
@@ -938,10 +939,10 @@ void AccumulatorStack::backward_update_incremental(
 
     Square kingSq = pos.square<KING>(perspective);
 
-    for (std::size_t idx = size != 0 ? size - 1 : 0; idx-- > end;)
-        update_accumulator_incremental<false>(perspective, featureTransformer, kingSq,
-                                              accumulators<FeatureSet>()[idx + 1],
-                                              mut_accumulators<FeatureSet>()[idx]);
+    for (std::size_t idx = std::max(size, std::size_t(1)) - 1; idx-- > end;)
+        update_accumulator_incr<false>(perspective, featureTransformer, kingSq,
+                                       accumulators<FeatureSet>()[idx + 1],
+                                       mut_accumulators<FeatureSet>()[idx]);
 
     assert((accumulators<FeatureSet>()[end].template acc<Dimensions>()).computed[perspective]);
 }

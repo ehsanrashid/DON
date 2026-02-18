@@ -1049,6 +1049,57 @@ class FixedVector final {
     SizeType              _size = 0;
 };
 
+struct FixedText final {
+   public:
+    // from_view factory
+    static FixedText from_view(std::string_view sv) noexcept { return FixedText{}.write(sv); }
+
+    FixedText& write(char ch) noexcept {
+        assert(size() < capacity());
+        if (size() >= capacity())
+            return *this;
+        data()[size()] = ch;
+        ++_size;
+        return *this;
+    }
+
+    FixedText& write(std::string_view sv) noexcept {
+        assert(size() + sv.size() <= capacity());
+        std::memcpy(data() + size(), sv.data(), sv.size());
+        _size += sv.size();
+        return *this;
+    }
+
+    FixedText& write(int v) noexcept {
+        char* beg      = data();
+        char* end      = beg + capacity();
+        auto [ptr, ec] = std::to_chars(beg + size(), end, v);
+        _size          = ptr - beg;
+        return *this;
+    }
+
+    constexpr std::size_t capacity() const noexcept { return _data.size(); }
+
+    char*       data() noexcept { return _data.data(); }
+    const char* c_str() const noexcept { return _data.data(); }
+    std::size_t size() const noexcept { return _size; }
+
+    bool empty() const noexcept { return size() == 0; }
+
+    std::string_view view() const noexcept { return {_data.data(), size()}; }
+
+    // implicit conversion if you want
+    operator std::string_view() const noexcept { return view(); }
+
+    friend std::ostream& operator<<(std::ostream& os, const FixedText& fixedText) noexcept;
+
+   private:
+    StdArray<char, 31> _data{};
+    std::uint8_t       _size = 0;
+};
+
+static_assert(sizeof(FixedText) == 32, "FixedText size must be 32 bytes");
+
 template<std::size_t Capacity>
 class FixedString final {
     static_assert(Capacity > 0, "Capacity must be > 0");

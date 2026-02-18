@@ -72,11 +72,10 @@ alignas(CACHE_LINE_SIZE) constexpr auto THREAT_TABLE = []() constexpr noexcept {
             {
                 threatTable.squareOffsets[+pc][s] = threatCount;
 
-                Bitboard threatsBB = pt != PAWN               ? attacks_bb(s, pt)
-                                   : SQ_A2 <= s && s <= SQ_H7 ? attacks_bb(s, c)
-                                                              : 0;
-
-                threatCount += constexpr_popcount(threatsBB);
+                if (pt != PAWN)
+                    threatCount += constexpr_popcount(attacks_bb(s, pt));
+                else if (SQ_A2 <= s && s <= SQ_H7)
+                    threatCount += constexpr_popcount(attacks_bb(s, c));
             }
 
             threatTable.pieceThreats[+pc] = {baseOffset, threatCount};
@@ -91,7 +90,7 @@ constexpr auto& PIECE_THREATS  = THREAT_TABLE.pieceThreats;
 constexpr auto& SQUARE_OFFSETS = THREAT_TABLE.squareOffsets;
 
 constexpr std::uint8_t  SEMI_EXCLUDED_OFFSET = 31;
-constexpr std::uint32_t SEMI_EXCLUDED_MASK   = 1ULL << SEMI_EXCLUDED_OFFSET;
+constexpr std::uint32_t SEMI_EXCLUDED_MASK   = 1U << SEMI_EXCLUDED_OFFSET;
 constexpr std::uint32_t FEATURE_INDEX_MASK   = SEMI_EXCLUDED_MASK - 1;
 
 // LUT for getting feature base index and exclusion info
@@ -121,10 +120,9 @@ alignas(CACHE_LINE_SIZE) constexpr auto LUT_DATAS = []() constexpr noexcept {
                     bool semiExcluded = attackerPt == attackedPt  //
                                      && (attackerPt != PAWN || attackerC != attackedC);
 
-                    std::uint32_t featureIndex =
-                      PIECE_THREATS[+attackerPc].baseOffset
-                      + PIECE_THREATS[+attackerPc].threatCount
-                          * (attackedC * MAX_TARGETS[attackerPt - 1] + map);
+                    std::uint32_t featureIndex = PIECE_THREATS[+attackerPc].baseOffset
+                                               + (attackedC * MAX_TARGETS[attackerPt - 1] + map)
+                                                   * PIECE_THREATS[+attackerPc].threatCount;
 
                     lutDatas[+attackerPc][+attackedPc] =
                       (std::uint32_t(semiExcluded) << SEMI_EXCLUDED_OFFSET) | featureIndex;
@@ -168,7 +166,7 @@ alignas(CACHE_LINE_SIZE) const auto LUT_INDICES = []() noexcept {
 
 // Get index within piece threats
 constexpr std::uint8_t lut_index(Piece pc, Square s1, Square s2) noexcept {
-    assert(is_ok(s1) && is_ok(s2));
+    assert(is_ok(pc) && is_ok(s1) && is_ok(s2));
 
     if (type_of(pc) == PAWN)
         return LUT_INDICES[color_of(pc)][s1][s2];
@@ -194,26 +192,32 @@ ALWAYS_INLINE IndexType make_index(Color  perspective,
                                    Square dstSq,
                                    Piece  attackerPc,
                                    Piece  attackedPc) noexcept {
+    // Compute perspective-relative squares
     std::uint8_t relOrientation = relative_sq(perspective, orientation(kingSq));
 
-    orgSq = Square(std::uint8_t(orgSq) ^ relOrientation);
-    dstSq = Square(std::uint8_t(dstSq) ^ relOrientation);
+    std::uint8_t org = std::uint8_t(orgSq) ^ relOrientation;
+    std::uint8_t dst = std::uint8_t(dstSq) ^ relOrientation;
 
-    attackerPc = relative_piece(perspective, attackerPc);
-    attackedPc = relative_piece(perspective, attackedPc);
+    // Compute perspective-relative pieces
+    std::uint8_t relAttackerPc = +relative_piece(perspective, attackerPc);
+    std::uint8_t relAttackedPc = +relative_piece(perspective, attackedPc);
 
-    std::uint32_t lutData = LUT_DATAS[+attackerPc][+attackedPc];
+    // Lookup LUT
+    std::uint32_t lutData = LUT_DATAS[relAttackerPc][relAttackedPc];
 
-    // Compute final index
-    return
+    // Excluded mask: 0xFFFFFFFF if excluded, 0x0 if valid
+    std::uint32_t excludedMask = -std::uint32_t(
       // Fully-excluded (fast path)
       lutData == FullThreats::Dimensions
-          // Semi-excluded && Direction-dependent exclusion
-          || (semi_excluded(lutData) && orgSq < dstSq)
-        ? FullThreats::Dimensions
-        : feature_index(lutData)                   //
-            + lut_index(attackerPc, orgSq, dstSq)  //
-            + SQUARE_OFFSETS[+attackerPc][orgSq];
+      // Semi-excluded && Direction-dependent exclusion
+      || (semi_excluded(lutData) && org < dst));
+
+    // Compute index components
+    std::uint32_t index = feature_index(lutData)                                     //
+                        + lut_index(Piece(relAttackerPc), Square(org), Square(dst))  //
+                        + SQUARE_OFFSETS[relAttackerPc][org];
+
+    return (index & ~excludedMask) | (FullThreats::Dimensions & excludedMask);
 }
 
 }  // namespace
@@ -236,10 +240,9 @@ void FullThreats::append_active_indices(Color           perspective,
 
             if (pt == PAWN)
             {
-                Bitboard lAttacksBB = c == WHITE  //
-                                      ? shift_bb<Direction::NORTH_EAST>(pcBB)
-                                      : shift_bb<Direction::SOUTH_WEST>(pcBB);
-                lAttacksBB &= occupancyBB;
+                Bitboard lAttacksBB = (c == WHITE ? shift_bb<Direction::NORTH_EAST>(pcBB)
+                                                  : shift_bb<Direction::SOUTH_WEST>(pcBB))
+                                    & occupancyBB;
 
                 Direction rDir = c == WHITE ? Direction::NORTH_EAST : Direction::SOUTH_WEST;
 
@@ -256,10 +259,9 @@ void FullThreats::append_active_indices(Color           perspective,
                         active.push_back(index);
                 }
 
-                Bitboard rAttacksBB = c == WHITE  //
-                                      ? shift_bb<Direction::NORTH_WEST>(pcBB)
-                                      : shift_bb<Direction::SOUTH_EAST>(pcBB);
-                rAttacksBB &= occupancyBB;
+                Bitboard rAttacksBB = (c == WHITE ? shift_bb<Direction::NORTH_WEST>(pcBB)
+                                                  : shift_bb<Direction::SOUTH_EAST>(pcBB))
+                                    & occupancyBB;
 
                 Direction lDir = c == WHITE ? Direction::NORTH_WEST : Direction::SOUTH_EAST;
 
@@ -282,8 +284,7 @@ void FullThreats::append_active_indices(Color           perspective,
                 {
                     Square orgSq = pop_lsq(pcBB);
 
-                    Bitboard attacksBB = attacks_bb(orgSq, pt, occupancyBB);
-                    attacksBB &= occupancyBB;
+                    Bitboard attacksBB = attacks_bb(orgSq, pt, occupancyBB) & occupancyBB;
 
                     while (attacksBB != 0)
                     {

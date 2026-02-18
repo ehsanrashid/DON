@@ -525,6 +525,7 @@ STAGE_SWITCH:
     default :;
     }
     assert(false);
+    UNREACHABLE();
     return Move::None;  // Silence warning
 }
 

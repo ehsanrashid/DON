@@ -80,9 +80,8 @@ Value evaluate(const Position&          pos,
     nnue *= 1.0 - 54.8366e-6 * complexity;
     optimism *= 1.0 + 21.0084e-4 * complexity;
 
-    double material = double(pos.material());
-
-    std::int32_t v = nnue + constexpr_round(15.2588e-6 * double(nnue + optimism) * material);
+    std::int32_t v =
+      nnue + constexpr_round(15.2588e-6 * double(nnue + optimism) * double(pos.material()));
 
     // Damp evaluation linearly based on the 50-move rule
     v = constexpr_round(v * std::max(1.0 - 5.1021e-3 * double(pos.rule50_count()), 0.0));

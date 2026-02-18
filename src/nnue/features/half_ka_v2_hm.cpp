@@ -80,8 +80,8 @@ static_assert(orientation(SQ_H8) == SQ_A1);
 // Index of a feature for king position and piece on square
 ALWAYS_INLINE constexpr IndexType
 make_index(Color perspective, Square kingSq, Square s, Piece pc) noexcept {
-    int relOrientation = relative_sq(perspective, orientation(kingSq));
-    return (int(s) ^ relOrientation)               //
+    std::uint8_t relOrientation = relative_sq(perspective, orientation(kingSq));
+    return (std::uint8_t(s) ^ relOrientation)      //
          + PIECE_SQUARE_INDICES[perspective][+pc]  //
          + KING_BUCKETS[relative_sq(perspective, kingSq)];
 }

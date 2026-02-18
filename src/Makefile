@@ -159,6 +159,7 @@ optimize = yes
 debug = no
 sanitize = none
 bits = 64
+sse_fp = no
 prefetch = no
 popcnt = no
 sse = no
@@ -254,10 +255,6 @@ ifeq ($(findstring -avx2, $(ARCH)), -avx2)
     avx2 = yes
 endif
 
-ifeq ($(findstring -comp, $(ARCH)), -comp)
-    _comp = yes
-endif
-
 ifeq ($(findstring -bmi2, $(ARCH)), -bmi2)
     popcnt = yes
     sse = yes
@@ -266,6 +263,10 @@ ifeq ($(findstring -bmi2, $(ARCH)), -bmi2)
     sse41 = yes
     avx2 = yes
     bmi2 = yes
+endif
+
+ifeq ($(findstring -comp, $(ARCH)), -comp)
+    _comp = yes
 endif
 
 ifeq ($(findstring -avxvnni, $(ARCH)), -avxvnni)
@@ -320,7 +321,8 @@ ifeq ($(sse), yes)
 endif
 
 # 64-bit bmi2 is not available on x86-32
-ifeq ($(bits), 32)
+ifeq ($(findstring x86-32, $(ARCH)), x86-32)
+    sse_fp = yes
     bmi2 = no
 endif
 
@@ -331,6 +333,7 @@ else
 ifeq ($(ARCH), general-32)
     arch = any
     bits = 32
+    sse_fp = yes
 endif
 
 ifeq ($(ARCH), general-64)
@@ -458,7 +461,7 @@ endif
 ifeq ($(COMP), gcc)
     comp=gcc
     CXX=g++
-    CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-declarations
+    CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-declarations -Wno-stringop-overflow
 
     ifeq ($(arch), $(filter $(arch), armv7 armv8 riscv64))
         ifeq ($(OS), Android)
@@ -513,8 +516,7 @@ endif
 ifeq ($(COMP), icx)
     comp=icx
     CXX=icpx
-    CXXFLAGS += --intel -pedantic -Wextra -Wshadow -Wmissing-prototypes \
-                -Wconditional-uninitialized -Wabi -Wdeprecated
+    CXXFLAGS += --intel -pedantic -Wextra -Wshadow -Wmissing-prototypes -Wconditional-uninitialized -Wabi -Wdeprecated
 endif
 
 ifeq ($(COMP), clang)
@@ -524,10 +526,9 @@ ifeq ($(COMP), clang)
         CXX=x86_64-w64-mingw32-clang++
     endif
 
-    CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-prototypes \
-                -Wconditional-uninitialized -flax-vector-conversions=none
+    CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-prototypes -Wconditional-uninitialized -flax-vector-conversions=none
 
-    ifeq ($(filter $(KERNEL), Darwin OpenBSD FreeBSD), )
+    ifneq ($(KERNEL), $(filter $(KERNEL), Darwin OpenBSD FreeBSD))
         ifeq ($(target_windows), )
             ifneq ($(RTLIB), compiler-rt)
                 LDFLAGS += -latomic
@@ -601,6 +602,11 @@ endif
 ### Allow overwriting CXX from command line
 ifdef COMPCXX
     CXX=$(COMPCXX)
+endif
+
+# Force SSE floating-point math to avoid x87 extended-precision differences
+ifeq ($(sse_fp), yes)
+    CXXFLAGS += -mfpmath=sse -msse2
 endif
 
 # llvm-profdata must be version compatible with the specified CXX (be it clang, or the gcc alias)
@@ -1208,6 +1214,7 @@ icx-profile-use:
 .depend: $(SRCS)
 	-@$(CXX) $(DEPENDFLAGS) -I. -MM $(SRCS) > $@ 2>/dev/null
 
+# Include .depend only if no special goal is requested
 ifeq ($(filter $(MAKECMDGOALS), help strip install clean net objclean profileclean format config-sanity), )
     -include .depend
 endif

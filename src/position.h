@@ -1041,7 +1041,7 @@ DirtyThreats::add(Square sq, Square threatenedSq, Piece pc, Piece threatenedPc) 
         threatenedBB |= threatenedSq;
     }
 
-    dtList.push_back({sq, threatenedSq, pc, threatenedPc, Put});
+    dtList.emplace_back(sq, threatenedSq, pc, threatenedPc, Put);
 }
 
 #if defined(USE_AVX512ICL)
@@ -1111,49 +1111,61 @@ inline void Position::update_pc_threats(Square                    s,
         return _;
     }();
 
-    Bitboard exOccupancyBB = occupancyBB ^ pieces_bb(KING);
+    Bitboard kings         = pieces_bb(KING);
+    Bitboard exOccupancyBB = occupancyBB ^ kings;
 
     // clang-format off
     Bitboard slidersBB = (pieces_bb(QUEEN, BISHOP) & attacksBB[BISHOP])
                        | (pieces_bb(QUEEN, ROOK)   & attacksBB[ROOK]);
     // clang-format on
 
+    auto process_sliders = [&](bool addDirectAttacks) noexcept {
+        while (slidersBB != 0)
+        {
+            Square sliderSq = pop_lsq(slidersBB);
+            Piece  sliderPc = piece(sliderSq);
+
+            assert(sliderSq != s);
+            assert(is_ok(sliderPc));
+
+            Bitboard passRayBB    = pass_ray_bb(sliderSq, s);
+            Bitboard discoveredBB = passRayBB & attacksBB[QUEEN] & exOccupancyBB;
+
+            if (discoveredBB != 0 && (passRayBB & targetBB) != targetBB)
+            {
+                assert(!more_than_one(discoveredBB));
+                Square threatenedSq = lsq(discoveredBB);
+                Piece  threatenedPc = piece(threatenedSq);
+
+                assert(is_ok(threatenedPc));
+
+                dts->add<!Put>(sliderSq, threatenedSq, sliderPc, threatenedPc);
+            }
+
+            if (addDirectAttacks)
+                dts->add<Put>(sliderSq, s, sliderPc, pc);
+        }
+    };
+
     if (type_of(pc) == KING)
     {
         if constexpr (ComputeRay)
         {
-            while (slidersBB != 0)
-            {
-                Square sliderSq = pop_lsq(slidersBB);
-                Piece  sliderPc = piece(sliderSq);
-
-                Bitboard passRayBB    = pass_ray_bb(sliderSq, s);
-                Bitboard discoveredBB = passRayBB & attacksBB[QUEEN] & exOccupancyBB;
-
-                if (discoveredBB != 0 && (passRayBB & targetBB) != targetBB)
-                {
-                    assert(!more_than_one(discoveredBB));
-                    Square threatenedSq = lsq(discoveredBB);
-                    Piece  threatenedPc = piece(threatenedSq);
-
-                    assert(is_ok(threatenedPc));
-
-                    dts->add<!Put>(sliderSq, threatenedSq, sliderPc, threatenedPc);
-                }
-            }
+            process_sliders(false);
         }
 
         return;
     }
 
     // clang-format off
-    Bitboard threatenedBB = (type_of(pc) == PAWN ? attacksBB[color_of(pc)] : attacksBB[type_of(pc)])
-                          & occupancyBB;
+    Bitboard threatenedBB = (type_of(pc) == PAWN ? attacksBB[color_of(pc)]
+                                                 : attacksBB[type_of(pc)])
+                          & exOccupancyBB;
 
     Bitboard nonSlidersBB = (pieces_bb(WHITE, PAWN)   & attacksBB[BLACK])
                           | (pieces_bb(BLACK, PAWN)   & attacksBB[WHITE])
                           | (pieces_bb(KNIGHT)        & attacksBB[KNIGHT])
-                          | (pieces_bb(KING)          & attacksBB[KING]);
+                          | (kings                    & attacksBB[KING]);
     // clang-format on
 
 #if defined(USE_AVX512ICL)
@@ -1193,31 +1205,11 @@ inline void Position::update_pc_threats(Square                    s,
 
     if constexpr (ComputeRay)
     {
-        while (slidersBB != 0)
-        {
-            Square sliderSq = pop_lsq(slidersBB);
-            Piece  sliderPc = piece(sliderSq);
-
-            assert(sliderSq != s);
-            assert(is_ok(sliderPc));
-
-            Bitboard passRayBB    = pass_ray_bb(sliderSq, s);
-            Bitboard discoveredBB = passRayBB & attacksBB[QUEEN] & exOccupancyBB;
-
-            if (discoveredBB != 0 && (passRayBB & targetBB) != targetBB)
-            {
-                assert(!more_than_one(discoveredBB));
-                Square threatenedSq = lsq(discoveredBB);
-                Piece  threatenedPc = piece(threatenedSq);
-
-                assert(is_ok(threatenedPc));
-
-                dts->add<!Put>(sliderSq, threatenedSq, sliderPc, threatenedPc);
-            }
-#if !defined(USE_AVX512ICL)  // for ICL, direct threats were processed earlier (attackersBB)
-            dts->add<Put>(sliderSq, s, sliderPc, pc);
+#if defined(USE_AVX512ICL)  // Direct threats were processed earlier (attackersBB)
+        process_sliders(false);
+#else
+        process_sliders(true);
 #endif
-        }
     }
     else
     {

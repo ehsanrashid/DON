@@ -22,6 +22,8 @@
 #include <iosfwd>
 #include <string>
 #include <string_view>
+#include <utility>
+#include <variant>
 
 #include "engine.h"
 #include "misc.h"
@@ -32,7 +34,44 @@ namespace DON {
 
 class Position;
 class Options;
-class Score;
+
+// Score represents the evaluation score of a position
+class Score final {
+   public:
+    struct Unit final {
+        int value;
+    };
+
+    struct Tablebase final {
+        int  ply;
+        bool win;
+    };
+
+    struct Mate final {
+        int ply;
+    };
+
+    Score() noexcept = delete;
+    Score(Value v, const Position& pos) noexcept;
+
+    template<typename T>
+    bool is() const noexcept {
+        return std::holds_alternative<T>(score);
+    }
+
+    template<typename T>
+    T get() const noexcept {
+        return std::get<T>(score);
+    }
+
+    template<typename F>
+    decltype(auto) visit(F&& f) const noexcept {
+        return std::visit(std::forward<F>(f), score);
+    }
+
+   private:
+    std::variant<Unit, Tablebase, Mate> score;
+};
 
 class UCI final {
    public:
@@ -47,9 +86,9 @@ class UCI final {
 
     static void print_info_string(std::string_view infoStr) noexcept;
 
-    [[nodiscard]] static int         to_cp(Value v, const Position& pos) noexcept;
-    [[nodiscard]] static std::string to_wdl(Value v, const Position& pos) noexcept;
-    [[nodiscard]] static std::string to_score(const Score& score) noexcept;
+    [[nodiscard]] static int       to_cp(Value v, const Position& pos) noexcept;
+    [[nodiscard]] static FixedText to_wdl(Value v, const Position& pos) noexcept;
+    [[nodiscard]] static FixedText to_score(const Score& score) noexcept;
 
     [[nodiscard]] static std::string move_to_can(Move m) noexcept;
 

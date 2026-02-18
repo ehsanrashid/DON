@@ -186,16 +186,16 @@ struct AccumulatorStack final {
     [[nodiscard]] std::size_t last_usable_accumulator_index(Color perspective) const noexcept;
 
     template<typename FeatureSet, IndexType Dimensions>
-    void forward_update_incremental(Color                                 perspective,
-                                    const Position&                       pos,
-                                    const FeatureTransformer<Dimensions>& featureTransformer,
-                                    std::size_t                           begin) noexcept;
+    void update_forward_incr(Color                                 perspective,
+                             const Position&                       pos,
+                             const FeatureTransformer<Dimensions>& featureTransformer,
+                             std::size_t                           beg) noexcept;
 
     template<typename FeatureSet, IndexType Dimensions>
-    void backward_update_incremental(Color                                 perspective,
-                                     const Position&                       pos,
-                                     const FeatureTransformer<Dimensions>& featureTransformer,
-                                     std::size_t                           end) noexcept;
+    void update_backward_incr(Color                                 perspective,
+                              const Position&                       pos,
+                              const FeatureTransformer<Dimensions>& featureTransformer,
+                              std::size_t                           end) noexcept;
 
     StdArray<AccumulatorState<PSQFeatureSet>, MAX_SIZE>    psqAccumulators;
     StdArray<AccumulatorState<ThreatFeatureSet>, MAX_SIZE> threatAccumulators;

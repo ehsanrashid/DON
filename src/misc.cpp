@@ -351,6 +351,13 @@ std::string format_time(const std::chrono::system_clock::time_point& timePoint) 
     return std::string{buffer.data(), std::min(writtenSize, buffer.size() - 1)};
 }
 
+std::ostream& operator<<(std::ostream& os, const FixedText& fixedText) noexcept {
+
+    os.write(fixedText.c_str(), std::streamsize(fixedText.size()));
+
+    return os;
+}
+
 #if !defined(NDEBUG)
 // Debug functions used mainly to collect run-time statistics
 namespace Debug {

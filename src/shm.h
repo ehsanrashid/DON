@@ -558,7 +558,8 @@ class SharedMemoryRegistry final {
     // Attempt to register shared memory; waits for cleanup if needed (bounded)
     static void attempt_register_memory(SharedMemoryPtr sharedMemory) noexcept {
         // Bounded wait for cleanup to finish
-        constexpr auto MaxWaitTime = std::chrono::milliseconds(200);
+        using namespace std::chrono_literals;
+        constexpr auto MaxWaitTime = 200ms;
 
         ensure_initialized();
 
@@ -567,19 +568,18 @@ class SharedMemoryRegistry final {
             //DEBUG_LOG("Attempted to register <NULL> shared memory.");
             return;
         }
-
-        std::unique_lock condLock(mutex);
-
-        // Wait for cleanup to finish if in progress (bounded)
-        if (!condVar.wait_for(condLock, MaxWaitTime,
-                              []() noexcept { return !cleanup_in_progress(); }))
         {
-            //DEBUG_LOG("Timeout waiting for SharedMemoryRegistry cleanup to finish : " << sharedMemory->name_());
-            // Timeout - silently fail to register (acceptable during shutdown)
-            return;
-        }
+            std::unique_lock condLock(mutex);
 
-        condLock.unlock();
+            // Wait for cleanup to finish if in progress (bounded)
+            if (!condVar.wait_for(condLock, MaxWaitTime,
+                                  []() noexcept { return !cleanup_in_progress(); }))
+            {
+                //DEBUG_LOG("Timeout waiting for SharedMemoryRegistry cleanup to finish : " << sharedMemory->name_());
+                // Timeout - silently fail to register (acceptable during shutdown)
+                return;
+            }
+        }
 
         // Safe insertion under write-lock
         std::lock_guard writeLock(sharedMutex);
@@ -618,7 +618,7 @@ class SharedMemoryRegistry final {
         // Mark cleanup as in-progress so other threads know not to register new memory
         cleanUpInProgress.store(true, std::memory_order_release);
 
-        OrderedList snapShot;
+        OrderedList snapOrderedList;
         {
             std::lock_guard cleanLock(sharedMutex);
 
@@ -627,19 +627,19 @@ class SharedMemoryRegistry final {
             if (skipUnmapRegion)
             {
                 // Partial cleanup: just snapshot, keep registries intact
-                snapShot = orderedList;
+                snapOrderedList = orderedList;
             }
             else
             {
                 // Full cleanup: take ownership and clear registries
-                snapShot = std::move(orderedList);
+                snapOrderedList = std::move(orderedList);
                 orderedList.clear();
                 registryMap.clear();
             }
         }
 
         // Safe to iterate and close memory without holding the lock in true insertion order
-        for (auto* sharedMemory : snapShot)
+        for (auto* sharedMemory : snapOrderedList)
             if (sharedMemory != nullptr)
                 sharedMemory->close(skipUnmapRegion);
 

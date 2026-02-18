@@ -21,7 +21,7 @@
 #include <cassert>
 #include <cctype>
 #include <cmath>
-#include <cstdlib>
+#include <cstddef>
 #include <iostream>
 #include <functional>
 #include <optional>
@@ -414,16 +414,14 @@ void on_update_short(const ShortInfo& sInfo) noexcept {
 }
 
 void on_update_full(const FullInfo& fInfo) noexcept {
-    std::cout << "info"                          //
-              << " depth " << fInfo.depth        //
-              << " seldepth " << fInfo.selDepth  //
-              << " multipv " << fInfo.multiPV    //
-              << " score " << fInfo.score;       //
-    if (!fInfo.bound.empty())
-        std::cout << fInfo.bound;
-    if (!fInfo.wdl.empty())
-        std::cout << " wdl " << fInfo.wdl;
-    std::cout << " time " << fInfo.time                      //
+    std::cout << "info"                                      //
+              << " depth " << fInfo.depth                    //
+              << " seldepth " << fInfo.selDepth              //
+              << " multipv " << fInfo.multiPV                //
+              << " score " << fInfo.score                    //
+              << fInfo.bound                                 //
+              << fInfo.wdl                                   //
+              << " time " << fInfo.time                      //
               << " nodes " << fInfo.nodes                    //
               << " nps " << 1000 * fInfo.nodes / fInfo.time  //
               << " hashfull " << fInfo.hashfull              //
@@ -887,40 +885,29 @@ int UCI::to_cp(Value v, const Position& pos) noexcept {
     return constexpr_round(100 * int(v) / a);
 }
 
-std::string UCI::to_wdl(Value v, const Position& pos) noexcept {
+FixedText UCI::to_wdl(Value v, const Position& pos) noexcept {
     assert(is_ok(v));
 
     int w = win_rate_model(+v, pos);
     int l = win_rate_model(-v, pos);
     int d = 1000 - (w + l);
 
-    std::string wdl;
-    wdl.reserve(16);
-
-    wdl  //
-      .assign(std::to_string(w))
-      .append(1, ' ')
-      .append(std::to_string(d))
-      .append(1, ' ')
-      .append(std::to_string(l));
-
-    return wdl;
+    return FixedText{}.write(" wdl ").write(w).write(' ').write(d).write(' ').write(l);
 }
 
-std::string UCI::to_score(const Score& score) noexcept {
+FixedText UCI::to_score(const Score& score) noexcept {
     constexpr int TB_CP = 20000;
 
-    auto format = Overload{[](Score::Unit unit) -> std::string {  //
-                               return "cp " + std::to_string(unit.value);
-                           },
-                           [](Score::Tablebase tb) -> std::string {  //
-                               return "cp " + std::to_string((tb.win ? +TB_CP : -TB_CP) - tb.ply);
-                           },
-                           [](Score::Mate mate) -> std::string {  //
-                               return "mate " + std::to_string((mate.ply + int(mate.ply > 0)) / 2);
-                           }};
-
-    return score.visit(format);
+    return score.visit(                             //
+      Overload{[](Score::Unit unit) -> FixedText {  //
+                   return FixedText{}.write("cp ").write(unit.value);
+               },
+               [](Score::Tablebase tb) -> FixedText {
+                   return FixedText{}.write("cp ").write((tb.win ? +TB_CP : -TB_CP) - tb.ply);
+               },
+               [](Score::Mate mate) -> FixedText {
+                   return FixedText{}.write("mate ").write((mate.ply + int(mate.ply > 0)) / 2);
+               }});
 }
 
 std::string UCI::move_to_can(Move m) noexcept {
@@ -1132,6 +1119,26 @@ Move UCI::mix_to_move(std::string                     mix,
     }
 
     return m;
+}
+
+// Converts a Value to a Score object, considering the position for centipawn conversion
+Score::Score(Value v, const Position& pos) noexcept {
+    assert(is_ok(v));
+
+    if (!is_decisive(v))
+    {
+        score = Unit{UCI::to_cp(v, pos)};
+    }
+    else if (!is_mate(v))
+    {
+        int ply = VALUE_TB - constexpr_abs(v);
+        score   = Tablebase{v > 0 ? +ply : -ply, v > 0};
+    }
+    else
+    {
+        int ply = VALUE_MATE - constexpr_abs(v);
+        score   = Mate{v > 0 ? +ply : -ply};
+    }
 }
 
 }  // namespace DON

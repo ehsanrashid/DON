@@ -19,19 +19,19 @@
 #define SEARCH_H_INCLUDED
 
 #include <algorithm>
+#include <array>  // IWYU pragma: keep
 #include <atomic>
 #include <cassert>
 #include <cmath>
 #include <condition_variable>
-#include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <functional>
 #include <initializer_list>
 #include <memory>
 #include <mutex>
 #include <string_view>
 #include <utility>
-#include <variant>
 #include <vector>
 
 #include "history.h"
@@ -47,9 +47,7 @@
 namespace DON {
 
 class Options;
-class Thread;
 class Threads;
-struct ThreadMetrics;
 class TranspositionTable;
 
 namespace NNUE {
@@ -138,10 +136,12 @@ class RootMoves final {
     using reference       = container_type::reference;
     using const_reference = container_type::const_reference;
 
-    RootMoves() noexcept = default;
-    explicit RootMoves(container_type rms) noexcept :
+    RootMoves() noexcept { reserve(32); }
+    explicit RootMoves(const container_type& rms) noexcept :
+        rootMoves(rms) {}
+    explicit RootMoves(container_type&& rms) noexcept :
         rootMoves(std::move(rms)) {}
-    RootMoves(std::initializer_list<value_type> initList) noexcept :
+    RootMoves(std::initializer_list<value_type> initList) :
         rootMoves(initList) {}
 
     [[nodiscard]] size_type capacity() const noexcept { return rootMoves.capacity(); }
@@ -182,7 +182,6 @@ class RootMoves final {
 
     const_iterator find(size_type beg, size_type end, Move m) const noexcept {
         assert(beg <= end && end <= size());
-
         return std::find(begin() + beg, begin() + end, m);
     }
     const_iterator find(size_type beg, size_type end, const value_type& v) const noexcept {
@@ -238,22 +237,24 @@ class RootMoves final {
     }
 
     bool erase(Move m) noexcept {
-        auto itr = find(m);
-
-        if (itr == end())
-            return false;
-
-        erase(itr);
-        return true;
+        auto newEnd  = remove(m);
+        bool removed = newEnd != end();
+        erase(newEnd, end());
+        return removed;
     }
     bool erase(const value_type& v) noexcept {
-        auto itr = find(v);
+        auto newEnd  = remove(v);
+        bool removed = newEnd != end();
+        erase(newEnd, end());
+        return removed;
+    }
 
-        if (itr == end())
-            return false;
-
-        erase(itr);
-        return true;
+    template<typename Predicate>
+    bool erase_if(Predicate&& pred) noexcept {
+        auto newEnd  = remove_if(std::forward<Predicate>(pred));
+        bool removed = newEnd != end();
+        erase(newEnd, end());
+        return removed;
     }
 
     template<typename Predicate>
@@ -271,7 +272,7 @@ class RootMoves final {
 
     bool swap_to_front(Move m) noexcept {
         auto itr = find(m);
-
+        // Nothing to swap or already at front
         if (itr == begin() || itr == end())
             return false;
 
@@ -281,8 +282,12 @@ class RootMoves final {
 
     void sort(size_type beg, size_type end) noexcept {
         assert(beg <= end && end <= size());
-
         std::stable_sort(begin() + beg, begin() + end);
+    }
+    template<typename Predicate>
+    void sort(size_type beg, size_type end, Predicate&& pred) noexcept {
+        assert(beg <= end && end <= size());
+        std::stable_sort(begin() + beg, begin() + end, std::forward<Predicate>(pred));
     }
     template<typename Predicate>
     void sort(Predicate&& pred) noexcept {
@@ -291,12 +296,10 @@ class RootMoves final {
 
     [[nodiscard]] reference operator[](size_type idx) noexcept {
         assert(idx < size());
-
         return rootMoves[idx];
     }
     [[nodiscard]] const_reference operator[](size_type idx) const noexcept {
         assert(idx < size());
-
         return rootMoves[idx];
     }
 
@@ -338,44 +341,6 @@ struct Limit final {
     bool          perft = false, detail = false;
 
     Strings searchMoves{}, ignoreMoves{};
-};
-
-// Score represents the evaluation score of a position
-class Score final {
-   public:
-    struct Unit final {
-        int value;
-    };
-
-    struct Tablebase final {
-        int  ply;
-        bool win;
-    };
-
-    struct Mate final {
-        int ply;
-    };
-
-    Score() noexcept = delete;
-    Score(Value v, const Position& pos) noexcept;
-
-    template<typename T>
-    bool is() const noexcept {
-        return std::holds_alternative<T>(score);
-    }
-
-    template<typename T>
-    T get() const noexcept {
-        return std::get<T>(score);
-    }
-
-    template<typename F>
-    decltype(auto) visit(F&& f) const noexcept {
-        return std::visit(std::forward<F>(f), score);
-    }
-
-   private:
-    std::variant<Unit, Tablebase, Mate> score;
 };
 
 // Skill is used to implement engine strength limit.
@@ -432,14 +397,14 @@ class ISearchManager {
 using ISearchManagerPtr = std::unique_ptr<ISearchManager>;
 
 struct ShortInfo {
-    Depth            depth;
-    std::string_view score;
+    Depth     depth;
+    FixedText score;
 };
 struct FullInfo final: public ShortInfo {
     std::uint16_t    selDepth;
     std::size_t      multiPV;
-    std::string_view bound;
-    std::string_view wdl;
+    FixedText        bound;
+    FixedText        wdl;
     TimePoint        time;
     std::uint64_t    nodes;
     std::uint16_t    hashfull;
@@ -575,6 +540,8 @@ class Worker final {
 
     NumaReplicatedAccessToken numa_access_token() const noexcept { return numaAccessToken; }
 
+    const RootMoves& root_moves() const noexcept { return rootMoves; }
+
     std::uint64_t nodes_() const noexcept { return nodes.load(std::memory_order_relaxed); }
 
    private:
@@ -668,11 +635,6 @@ class Worker final {
 
     // Correction Histories
     CorrectionHistory<CHType::CONTINUATION> continuationCorrectionHistory;
-
-    template<typename VotingFunc>
-    friend ThreadMetrics build_thread_metrics(const Thread*                             th,
-                                              const StdArray<std::uint64_t, MAX_MOVES>& votes,
-                                              VotingFunc&& calc_vote_weight) noexcept;
 
     friend class MainSearchManager;
     friend class Position;

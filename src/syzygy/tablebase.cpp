@@ -1597,14 +1597,16 @@ std::uint8_t* set_sizes(PairsData* pd, std::uint8_t* data) noexcept {
     // and containing 64 bit values so that pd->base64[i] >= pd->base64[i+1].
     std::size_t base64Size = pd->base64.size();
 
-    for (std::size_t i = base64Size != 0 ? base64Size - 1 : 0; i-- > 0;)
+    for (std::size_t i = std::max(base64Size, std::size_t(1)) - 1; i-- > 0;)
     {
-        pd->base64[i] = (pd->base64[i + 1]                                 //
-                         + number<Sym, Endian::LITTLE>(&pd->lowestSym[i])  //
-                         - number<Sym, Endian::LITTLE>(&pd->lowestSym[i + 1]))
-                      / 2;
+        const auto& nextBase64 = pd->base64[i + 1];
 
-        assert(2 * pd->base64[i] >= pd->base64[i + 1]);
+        auto curSym = number<Sym, Endian::LITTLE>(&pd->lowestSym[i + 0]);
+        auto nxtSym = number<Sym, Endian::LITTLE>(&pd->lowestSym[i + 1]);
+
+        pd->base64[i] = (nextBase64 + curSym - nxtSym) / 2;
+
+        assert(2 * pd->base64[i] >= nextBase64);
     }
 
     // Now left-shift by an amount so that pd->base64[i] gets shifted 1-bit more

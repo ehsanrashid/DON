@@ -223,9 +223,10 @@ std::ostream& operator<<(std::ostream& os, const Options& options) noexcept {
 
     std::vector<Options::Pair> sortedOptions(options.begin(), options.end());
 
-    std::sort(
-      sortedOptions.begin(), sortedOptions.end(),
-      [](const auto& op1, const auto& op2) noexcept -> bool { return op1.second < op2.second; });
+    std::sort(sortedOptions.begin(), sortedOptions.end(),
+              [](const Options::Pair& op1, const Options::Pair& op2) noexcept -> bool {
+                  return op1.second < op2.second;
+              });
 
     for (const auto& [name, option] : sortedOptions)
         os << "\noption name " << name << ' ' << option;

@@ -188,7 +188,7 @@ void Thread::idle_func() noexcept {
 void Thread::ensure_network_replicated() const noexcept { worker->ensure_network_replicated(); }
 
 
-// Destroys/Creates threads to match the requested number.
+// Destroys/Creates threads to match the thread-count.
 // Created and launched threads will immediately go to sleep in idle_func.
 // Upon resizing, threads are recreated to allow for binding if necessary.
 void Threads::set(const NumaConfig&                       numaConfig,
@@ -207,45 +207,43 @@ void Threads::set(const NumaConfig&                       numaConfig,
     // This is undesirable, and so the default behavior (i.e. when the user does not
     // change the NumaConfig UCI setting) is to not bind the threads to processors
     // unless we know for sure that we span NUMA nodes and replication is required.
-    std::string numaPolicy = sharedState.options["NumaPolicy"];
+    const std::string& NumaPolicy = sharedState.options["NumaPolicy"];
 
-    bool threadBindable = [&]() {
-        if (numaPolicy == "none")
-            return false;
+    bool threadBindable = false;
 
-        if (numaPolicy == "auto")
-            return numaConfig.suggests_binding_threads(threadCount);
+    if (NumaPolicy == "auto")
+        threadBindable = numaConfig.suggests_binding_threads(threadCount);
+    // "system", "hardware" or explicitly set by string
+    else if (NumaPolicy != "none")
+        threadBindable = true;
 
-        // numaPolicy == "system", "hardware" or explicitly set by the user string
-        return true;
-    }();
-
+    // Assign threads to NUMA nodes
+    std::vector<NumaIndex> thBoundNumaNodes;
+    // Count threads per NUMA node
+    std::unordered_map<NumaIndex, std::size_t> numaThreadCounts;
+    if (threadBindable)
     {
-        // protect mutation of threadBoundNumaNodes
         std::lock_guard writeLock(sharedMutex);
 
-        threadBoundNumaNodes = threadBindable
-                               ? numaConfig.distribute_threads_among_numa_nodes(threadCount)
-                               : std::vector<NumaIndex>{};
-    }
-    //DEBUG_LOG("Thread bound numa nodes size: " << threadBoundNumaNodes.size());
+        threadBoundNumaNodes = numaConfig.distribute_threads_among_numa_nodes(threadCount);
 
-    std::unordered_map<NumaIndex, std::size_t> numaThreadCounts;
+        thBoundNumaNodes = threadBoundNumaNodes;
 
-    numaThreadCounts.reserve(threadBoundNumaNodes.empty() ? 1 : threadBoundNumaNodes.size());
-
-    if (threadBoundNumaNodes.empty())
-    {
-        // All threads belong to NUMA node 0
-        numaThreadCounts.emplace(0, threadCount);
+        numaThreadCounts.reserve(thBoundNumaNodes.size());
+        for (NumaIndex numaId : thBoundNumaNodes)
+            ++numaThreadCounts[numaId];
     }
     else
     {
-        for (NumaIndex numaId : threadBoundNumaNodes)
-            ++numaThreadCounts[numaId];
-    }
+        // Done in destroy()
+        //threadBoundNumaNodes.clear();
 
-    //DEBUG_LOG("Numa thread counts size: " << numaThreadCounts.size());
+        thBoundNumaNodes = std::vector<NumaIndex>(threadCount, 0);
+
+        numaThreadCounts.reserve(1);
+        // All threads belong to NUMA node 0
+        numaThreadCounts.emplace(NumaIndex{0}, threadCount);
+    }
 
     // Prepare shared histories map
     auto& historiesMap = sharedState.historiesMap;
@@ -255,10 +253,10 @@ void Threads::set(const NumaConfig&                       numaConfig,
     historiesMap.reserve(numaThreadCounts.size());
 
     // Populate shared histories map (optionally NUMA-bound)
-    for (const auto& pair : numaThreadCounts)
+    for (const auto& _ : numaThreadCounts)
     {
-        NumaIndex   numaId = pair.first;
-        std::size_t count  = pair.second;
+        NumaIndex   numaId = _.first;
+        std::size_t count  = _.second;
 
         auto create_histories = [&]() noexcept {
             std::size_t roundedCount = round_up_to_pow2(count);
@@ -274,24 +272,18 @@ void Threads::set(const NumaConfig&                       numaConfig,
 
     const NumaConfig* numaConfigPtr = threadBindable ? &numaConfig : nullptr;
 
+    // Track per-NUMA indices
     std::unordered_map<NumaIndex, std::size_t> numaIds;
+    numaIds.reserve(numaThreadCounts.size());
 
     reserve(threadCount);
 
     for (std::size_t threadId = 0; threadId < threadCount; ++threadId)
     {
-        NumaIndex numaId = threadBindable ? threadBoundNumaNodes[threadId] : 0;
+        NumaIndex numaId = thBoundNumaNodes[threadId];
 
-        // Reserve a per-NUMA index under the lock now so the lambda does not need to touch
-        // the local maps by reference (avoids lifetime/use-after-free if callback is deferred).
-        std::size_t numaIdx;
-        std::size_t numaThreadCnt;
-        {
-            std::lock_guard writeLock(sharedMutex);
-
-            numaIdx       = numaIds[numaId]++;
-            numaThreadCnt = numaThreadCounts[numaId];
-        }
+        std::size_t numaIdx       = numaIds[numaId]++;
+        std::size_t numaThreadCnt = numaThreadCounts[numaId];
 
         auto create_thread = [this, threadId, threadCount, numaId, numaIdx, numaThreadCnt,
                               numaConfigPtr, &sharedState, &updateContext]() noexcept {
@@ -307,15 +299,18 @@ void Threads::set(const NumaConfig&                       numaConfig,
             // to trash cache in case the threads get scheduled on the same NUMA node.
             ThreadToNumaNodeBinder nodeBinder(numaId, numaConfigPtr);
 
-            // mutate threads under unique lock to avoid races
-            std::lock_guard writeLock(sharedMutex);
-
-            threads.emplace_back(
+            auto newThread =
               std::make_unique<Thread>(threadId, threadCount, numaIdx, numaThreadCnt, nodeBinder,
-                                       std::move(searchManager), sharedState, true));
+                                       std::move(searchManager), sharedState, true);
+            // Mutate threads list under write lock to avoid races
+            {
+                std::lock_guard writeLock(sharedMutex);
+
+                threads.emplace_back(std::move(newThread));
+            }
         };
 
-        // Ensure the worker thread inherits the intended NUMA affinity at creation
+        // Create thread on its target NUMA node for proper memory affinity
         if (threadBindable)
             numaConfig.execute_on_numa_node(numaId, create_thread);
         else
@@ -325,22 +320,40 @@ void Threads::set(const NumaConfig&                       numaConfig,
     init();
 }
 
+namespace {
 // Properties of thread used for best-thread selection
-struct ThreadMetrics final {
+struct ThreadMetric final {
    public:
+    // Factory function: build metrics for a thread {value, win/loss, votes, vote weight, PV size}
+    template<typename VotingFunc>
+    static ThreadMetric from_thread(const Thread*                             th,
+                                    const StdArray<std::uint64_t, MAX_MOVES>& votes,
+                                    VotingFunc&& calc_vote_weight) noexcept {
+        const auto& rm = th->worker->root_moves()[0];
+
+        Value value = rm.effective_value();
+
+        assert(rm.Id != UINT16_MAX && rm.Id < votes.size());
+        std::uint64_t voteCount = votes[rm.Id];
+
+        std::size_t pvSize = rm.pv.size();
+
+        return {value, is_win(value), is_loss(value), voteCount, calc_vote_weight(th), pvSize};
+    }
+
     Value         value;       // Position evaluation
     bool          win;         // Proven win (mate or TB win)
     bool          loss;        // Proven loss (mated or TB loss)
     std::uint64_t voteCount;   // Number of votes for this thread's move
     std::uint64_t voteWeight;  // Weighted voting value (depth-adjusted)
-    std::size_t   pvSize;      // Principal variation length
+    std::size_t   pvSize;      // Principal variation size
 };
 
-// Comparator for selecting the best thread based on position evaluation and voting
-struct BestThreadComparator final {
+// Predicate: returns true if candidate-thread is better than best-thread
+struct BetterThread final {
    public:
     // Returns true if next thread is better than current best
-    bool operator()(const ThreadMetrics& best, const ThreadMetrics& cand) const noexcept {
+    bool operator()(const ThreadMetric& best, const ThreadMetric& cand) const noexcept {
         // Case 1: Winning positions
         // Both winning -> prefer shorter mates (higher eval)
         if (best.win)
@@ -350,12 +363,13 @@ struct BestThreadComparator final {
         if (best.loss)
             return !cand.loss || (cand.loss && cand.value > best.value);
 
-        // Case 3: Normal positions
-        return compare_normal(best, cand);
+        // Case 3: Normal/Draw positions
+        return tie_break(best, cand);
     }
 
    private:
-    static bool compare_normal(const ThreadMetrics& best, const ThreadMetrics& cand) noexcept {
+    // Tie-break for normal/draw positions
+    static bool tie_break(const ThreadMetric& best, const ThreadMetric& cand) noexcept {
         // Case 3a: Best is normal (draw) -> win dominates, ignore loss
         if (cand.win)
             return true;  // Win beats draw
@@ -371,58 +385,41 @@ struct BestThreadComparator final {
     }
 };
 
-template<typename VotingFunc>
-ThreadMetrics build_thread_metrics(const Thread*                             th,
-                                   const StdArray<std::uint64_t, MAX_MOVES>& votes,
-                                   VotingFunc&& calc_vote_weight) noexcept {
-    const auto& rm = th->worker->rootMoves[0];
-
-    Value value = rm.effective_value();
-
-    // Defensive safety (never trust PV blindly)
-    std::uint64_t voteCount = votes[rm.Id];
-
-    std::size_t pvSize = rm.pv.size();
-
-    return {value, is_win(value), is_loss(value), voteCount, calc_vote_weight(th), pvSize};
-}
+}  // namespace
 
 const Thread* Threads::best_thread() const noexcept {
-    // snap-shot pointers under shared lock
-    std::vector<Thread*> snapShot;
+    assert(threads.size() > 1);
+    // Snap threads pointers under read-lock
+    std::vector<const Thread*> snapThreads;
     {
         std::shared_lock readLock(sharedMutex);
 
-        snapShot.reserve(threads.size());
+        snapThreads.reserve(threads.size());
 
         for (auto&& th : threads)
-            if (th->worker->rootMoves[0].effective_value() != -VALUE_INFINITE)
-                snapShot.push_back(th.get());
+        {
+            const auto& rm = th->worker->rootMoves[0];
+
+            if (rm.effective_value() != -VALUE_INFINITE && !rm.pv.empty())
+                snapThreads.push_back(th.get());
+        }
     }
 
-    // Fallback: use preValue if no valid curValue threads
-    if (snapShot.empty())
+    // Fallback: use completed-depth if no valid threads
+    if (snapThreads.empty())
     {
         const Thread* bestThread = nullptr;
-        Value         bestValue  = VALUE_NONE;
         Depth         bestDepth  = DEPTH_ZERO;
 
         std::shared_lock readLock(sharedMutex);
 
         for (auto&& th : threads)
         {
-            const auto& rm = th->worker->rootMoves[0];
+            assert(th->worker->rootMoves[0].preValue == -VALUE_INFINITE);
 
-            if (rm.preValue == -VALUE_INFINITE)
-                continue;
-
-            if (bestThread == nullptr  //
-                || rm.preValue > bestValue
-                || (rm.preValue == bestValue  //
-                    && th->worker->completedDepth > bestDepth))
+            if (bestThread == nullptr || th->worker->completedDepth > bestDepth)
             {
                 bestThread = th.get();
-                bestValue  = rm.preValue;
                 bestDepth  = th->worker->completedDepth;
             }
         }
@@ -432,12 +429,16 @@ const Thread* Threads::best_thread() const noexcept {
     }
 
     // Initialize with first valid thread
-    const Thread* bestThread = snapShot.front();
+    const Thread* bestThread = snapThreads.front();
 
-    Value minValue = bestThread->worker->rootMoves[0].effective_value();
     // Find the minimum value of all threads
-    for (std::size_t i = 1; i < snapShot.size(); ++i)
-        minValue = std::min(snapShot[i]->worker->rootMoves[0].effective_value(), minValue);
+    Value minValue = bestThread->worker->rootMoves[0].effective_value();
+    for (std::size_t i = 1; i < snapThreads.size(); ++i)
+    {
+        const auto& rm = snapThreads[i]->worker->rootMoves[0];
+
+        minValue = std::min(rm.effective_value(), minValue);
+    }
 
     // Vote according to value and depth, and select the best thread
     auto calc_vote_weight = [minValue](const Thread* th) noexcept -> std::uint64_t {
@@ -445,6 +446,7 @@ const Thread* Threads::best_thread() const noexcept {
 
         Value value   = rm.effective_value();
         bool  penalty = rm.curValue == -VALUE_INFINITE;
+        assert(value >= minValue);
 
         return std::uint64_t(14 + value - minValue)
              * std::uint64_t(std::max(th->worker->completedDepth - int(penalty), 1));
@@ -453,34 +455,35 @@ const Thread* Threads::best_thread() const noexcept {
     StdArray<std::uint64_t, MAX_MOVES> votes{};
 
     // Aggregate votes
-    for (const auto* th : snapShot)
+    for (const auto* th : snapThreads)
     {
-        assert(th->worker->rootMoves[0].Id != UINT16_MAX);
-        assert(th->worker->rootMoves[0].Id < votes.size());
+        const auto& rm = th->worker->rootMoves[0];
 
-        votes[th->worker->rootMoves[0].Id] += calc_vote_weight(th);
+        assert(rm.Id != UINT16_MAX && rm.Id < votes.size());
+
+        votes[rm.Id] += calc_vote_weight(th);
     }
 
     // Find best-thread
-    BestThreadComparator better_comp;
+    BetterThread betterThread;
 
     // Cache best thread properties
-    auto bestMetrics = build_thread_metrics(bestThread, votes, calc_vote_weight);
+    auto bestMetric = ThreadMetric::from_thread(bestThread, votes, calc_vote_weight);
 
-    for (std::size_t i = 1; i < snapShot.size(); ++i)
+    for (std::size_t i = 1; i < snapThreads.size(); ++i)
     {
-        const auto* candThread = snapShot[i];
+        const auto* candThread = snapThreads[i];
 
         // Get candidate thread properties
-        auto candMetrics = build_thread_metrics(candThread, votes, calc_vote_weight);
+        auto candMetric = ThreadMetric::from_thread(candThread, votes, calc_vote_weight);
 
-        if (better_comp(bestMetrics, candMetrics))
+        if (betterThread(bestMetric, candMetric))
         {
-            bestThread  = candThread;
-            bestMetrics = candMetrics;
+            bestMetric = candMetric;
+            bestThread = candThread;
 
             // Early exit: mate in 1 found (can't improve further)
-            if (bestMetrics.win && bestMetrics.value >= VALUE_MATES_IN_1)
+            if (bestMetric.win && bestMetric.value >= VALUE_MATES_IN_1)
                 break;
         }
     }
@@ -541,7 +544,7 @@ void Threads::start(Position&      pos,
         }
     }
 
-    // Assign stable IDs AFTER rootMoves is finalized
+    // Assign stable IDs after rootMoves is finalized
     for (std::uint16_t i = 0; i < rootMoves.size(); ++i)
         rootMoves[i].Id = i;
 
@@ -569,19 +572,19 @@ void Threads::start(Position&      pos,
         setupStates = std::move(states);  // Ownership transfer, states is now empty
 
     // snap-shot pointers under shared lock
-    std::vector<Thread*> snapShot;
+    std::vector<Thread*> snapThreads;
     {
         std::shared_lock readLock(sharedMutex);
 
-        snapShot.reserve(threads.size());
+        snapThreads.reserve(threads.size());
 
         for (auto&& th : threads)
-            snapShot.push_back(th.get());
+            snapThreads.push_back(th.get());
     }
 
     // Use Position::set() to set root position across threads.
     // The rootState is per thread, earlier states are shared since they are read-only.
-    for (auto* th : snapShot)
+    for (auto* th : snapThreads)
     {
         th->run_custom_job([th, &pos, &rootMoves, &limit, &tbConfig]() noexcept {
             auto* worker = th->worker.get();
@@ -597,7 +600,7 @@ void Threads::start(Position&      pos,
         });
     }
 
-    for (auto* th : snapShot)
+    for (auto* th : snapThreads)
         th->wait_finish();
 
     main_thread()->start_search();

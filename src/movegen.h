@@ -80,11 +80,6 @@ struct MoveList final {
     [[nodiscard]] pointer       data() noexcept { return moves.data(); }
     [[nodiscard]] const_pointer data() const noexcept { return moves.data(); }
 
-    //#if defined(__cpp_lib_span) && __cpp_lib_span >= 202002L
-    //    // Optional: span view (C++20)
-    //    [[nodiscard]] std::span<const Move> view() const noexcept { return {data(), size()}; }
-    //#endif
-
    private:
     MoveList() noexcept                           = delete;
     MoveList(const MoveList&) noexcept            = delete;
@@ -94,7 +89,7 @@ struct MoveList final {
 
     StdArray<value_type, MAX_MOVES> moves;
 
-    const_iterator endMove = nullptr;
+    const_iterator endMove;
 };
 
 }  // namespace DON

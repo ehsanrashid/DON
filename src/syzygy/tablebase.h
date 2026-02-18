@@ -27,9 +27,9 @@
 
 namespace DON {
 
+class Options;
 class Position;
 class RootMoves;
-class Options;
 
 using TimeFunc = std::function<bool()>;
 

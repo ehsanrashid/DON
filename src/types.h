@@ -541,19 +541,19 @@ constexpr std::string_view to_string(Bound bound) noexcept {
 // clang-format off
 #define ENABLE_BIT_OPERATORS_ON(T) \
     static_assert(std::is_enum_v<T>, "ENABLE_BIT_OPERATORS_ON requires an enum"); \
-    constexpr auto operator+(T t) noexcept { using U = std::underlying_type_t<T>; return U(t); } \
-    constexpr T operator~(T t) noexcept { using U = std::underlying_type_t<T>; return T(~U(t)); } \
+    constexpr auto operator+(T t) noexcept { using U = std::underlying_type_t<T>; return U(t); }                 \
+    constexpr T operator~(T t) noexcept { using U = std::underlying_type_t<T>; return T(~U(t)); }                \
     constexpr T operator&(T t1, T t2) noexcept { using U = std::underlying_type_t<T>; return T(U(t1) & U(t2)); } \
     constexpr T operator|(T t1, T t2) noexcept { using U = std::underlying_type_t<T>; return T(U(t1) | U(t2)); } \
     constexpr T operator^(T t1, T t2) noexcept { using U = std::underlying_type_t<T>; return T(U(t1) ^ U(t2)); } \
-    constexpr T operator&(T t, int i) noexcept { return t & T(i); } \
-    constexpr T operator|(T t, int i) noexcept { return t | T(i); } \
-    constexpr T operator^(T t, int i) noexcept { return t ^ T(i); } \
-    constexpr T& operator&=(T& t1, T t2) noexcept { return t1 = t1 & t2; } \
-    constexpr T& operator|=(T& t1, T t2) noexcept { return t1 = t1 | t2; } \
-    constexpr T& operator^=(T& t1, T t2) noexcept { return t1 = t1 ^ t2; } \
-    constexpr T& operator&=(T& t, int i) noexcept { return t = t & i; } \
-    constexpr T& operator|=(T& t, int i) noexcept { return t = t | i; } \
+    constexpr T operator&(T t, int i) noexcept { return t & T(i); }         \
+    constexpr T operator|(T t, int i) noexcept { return t | T(i); }         \
+    constexpr T operator^(T t, int i) noexcept { return t ^ T(i); }         \
+    constexpr T& operator&=(T& t1, T t2) noexcept { return t1 = t1 & t2; }  \
+    constexpr T& operator|=(T& t1, T t2) noexcept { return t1 = t1 | t2; }  \
+    constexpr T& operator^=(T& t1, T t2) noexcept { return t1 = t1 ^ t2; }  \
+    constexpr T& operator&=(T& t, int i) noexcept { return t = t & i; }     \
+    constexpr T& operator|=(T& t, int i) noexcept { return t = t | i; }     \
     constexpr T& operator^=(T& t, int i) noexcept { return t = t ^ i; }
 // clang-format on
 
@@ -570,10 +570,10 @@ constexpr CastlingSide make_cs(Square kingOrgSq, Square kingDstSq) noexcept {
 constexpr CastlingRights make_cr(Color c, CastlingSide cs) noexcept {
     assert(is_ok(c));
 
-    return CastlingRights(+(cs == CastlingSide::KING    ? CastlingRights::WHITE_OO
-                            : cs == CastlingSide::QUEEN ? CastlingRights::WHITE_OOO
-                                                        : CastlingRights::WHITE_CASTLING)
-                          << (c << 1));
+    CastlingRights cr = cs == CastlingSide::KING  ? CastlingRights::WHITE_OO
+                      : cs == CastlingSide::QUEEN ? CastlingRights::WHITE_OOO
+                                                  : CastlingRights::WHITE_CASTLING;
+    return CastlingRights(+cr << (c << 1));
 }
 
 // Move representation (16 bits)
@@ -612,7 +612,9 @@ class Move {
     static constexpr std::uint8_t PROMO_OFFSET  = 12;
     static constexpr std::uint8_t TYPE_OFFSET   = 14;
 
-    static constexpr std::uint16_t TYPE_MASK = 3ULL << TYPE_OFFSET;
+    static constexpr std::uint16_t SQ_MASK    = (1U << 6) - 1;
+    static constexpr std::uint16_t PROMO_MASK = (1U << 2) - 1;
+    static constexpr std::uint16_t TYPE_MASK  = ((1U << 2) - 1) << TYPE_OFFSET;
 
     Move() noexcept = default;
     constexpr explicit Move(std::uint16_t d) noexcept :
@@ -631,21 +633,21 @@ class Move {
     constexpr Square org_sq() const noexcept {
         assert(is_ok());
 
-        return Square((data >> ORG_SQ_OFFSET) & 0x3F);
+        return Square((data >> ORG_SQ_OFFSET) & SQ_MASK);
     }
     constexpr Square dst_sq() const noexcept {
         assert(is_ok());
 
-        return Square((data >> DST_SQ_OFFSET) & 0x3F);
+        return Square((data >> DST_SQ_OFFSET) & SQ_MASK);
     }
 
     // Same as dst_sq() but without assertion, for branchless code paths
-    constexpr Square dst_sq_() const { return Square((data >> DST_SQ_OFFSET) & 0x3F); }
+    constexpr Square dst_sq_() const { return Square((data >> DST_SQ_OFFSET) & SQ_MASK); }
 
-    constexpr MT type() const noexcept { return MT((data >> TYPE_OFFSET) & 0x3); }
+    constexpr MT type() const noexcept { return MT((data & TYPE_MASK) >> TYPE_OFFSET); }
 
     constexpr PieceType promotion_type() const noexcept {
-        return PieceType(KNIGHT + ((data >> PROMO_OFFSET) & 0x3));
+        return PieceType(KNIGHT + ((data >> PROMO_OFFSET) & PROMO_MASK));
     }
 
     constexpr Value promotion_value() const noexcept {
@@ -707,6 +709,10 @@ struct DirtyThreat final {
     static constexpr std::uint8_t THREATENED_PC_OFFSET = 20;
     static constexpr std::uint8_t ADD_OFFSET           = 31;
 
+    static constexpr std::uint16_t SQ_MASK  = (1U << 8) - 1;
+    static constexpr std::uint16_t PC_MASK  = (1U << 4) - 1;
+    static constexpr std::uint16_t ADD_MASK = (1U << 1) - 1;
+
     DirtyThreat() noexcept {
         // Don't initialize data
     }
@@ -720,18 +726,18 @@ struct DirtyThreat final {
           | (std::uint32_t(sq) << SQ_OFFSET)) {}
 
     constexpr Square sq() const noexcept {  //
-        return Square((data >> SQ_OFFSET) & 0xFF);
+        return Square((data >> SQ_OFFSET) & SQ_MASK);
     }
     constexpr Square threatened_sq() const noexcept {
-        return Square((data >> THREATENED_SQ_OFFSET) & 0xFF);
+        return Square((data >> THREATENED_SQ_OFFSET) & SQ_MASK);
     }
     constexpr Piece pc() const noexcept {  //
-        return Piece((data >> PC_OFFSET) & 0xF);
+        return Piece((data >> PC_OFFSET) & PC_MASK);
     }
     constexpr Piece threatened_pc() const noexcept {
-        return Piece((data >> THREATENED_PC_OFFSET) & 0xF);
+        return Piece((data >> THREATENED_PC_OFFSET) & PC_MASK);
     }
-    constexpr bool add() const noexcept { return ((data >> ADD_OFFSET) & 0x1) != 0; }
+    constexpr bool add() const noexcept { return ((data >> ADD_OFFSET) & ADD_MASK) != 0; }
 
     constexpr std::uint32_t raw() const noexcept { return data; }
 
