@@ -483,6 +483,10 @@ ifeq ($(COMP), )
     COMP=gcc
 endif
 
+gcc_version :=
+gcc_is_clang :=
+gcc_is_apple_clang :=
+
 ifeq ($(COMP), gcc)
     comp=gcc
     CXX=g++
@@ -490,19 +494,22 @@ ifeq ($(COMP), gcc)
     # Non-Darwin flags
     ifneq ($(KERNEL), Darwin)
         CXXFLAGS += -Wno-stringop-overflow
+        # Detect if GCC is actually Clang, to adjust profile build targets
+        gcc_version := $(shell $(CXX) --version 2>/dev/null)
+        gcc_is_clang := $(findstring clang, $(gcc_version))
+        gcc_is_apple_clang := $(findstring Apple, $(gcc_version))
+        # Detect GNU ld (needs separate call)
         # Add --no-as-needed only if using GNU ld
         ifeq ($(shell $(CXX) -Wl,--version 2>/dev/null | grep -iq "GNU ld" && echo yes), yes)
             LDFLAGS += -Wl,--no-as-needed
         endif
-        #  Detect if GCC is actually Clang, to adjust profile build targets
-        gcc_version        := $(shell $(CXX) --version 2>/dev/null)
-        gcc_is_clang       := $(findstring clang, $(gcc_version))
-        gcc_is_apple_clang := $(findstring Apple, $(gcc_version))
+        # Profile build adjustments for Clang masquerading as GCC
         ifneq ($(gcc_is_clang), )
             ifeq ($(gcc_is_apple_clang), )
                 profile_make = clang-profile-make
                 profile_use  = clang-profile-use
             endif
+        # Real GCC
         else
             CXXFLAGS += -Wstack-usage=128000
         endif
@@ -513,13 +520,14 @@ ifeq ($(COMP), gcc)
             CXXFLAGS += -m$(bits)
             LDFLAGS += -m$(bits)
         endif
+        # Atomic library only for archs that need it
+        ifeq ($(arch), $(filter $(arch), armv7 riscv64 loongarch64))
+            LDFLAGS += -latomic
+        endif
     else
+        # Generic architectures
         CXXFLAGS += -m$(bits)
-        LDFLAGS += -m$(bits)
-    endif
-    # Atomic library for specific architectures
-    ifeq ($(arch), $(filter $(arch), armv7 riscv64 loongarch64))
-        LDFLAGS += -latomic
+        LDFLAGS  += -m$(bits)
     endif
 endif
 
@@ -560,9 +568,7 @@ ifeq ($(COMP), clang)
     endif
     CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-prototypes -Wconditional-uninitialized -flax-vector-conversions=none
     # Atomic library for non-Darwin/FreeBSD/OpenBSD and non-Windows (unless compiler-rt)
-    ifneq ($(filter $(KERNEL), Darwin OpenBSD FreeBSD),)
-        # skip
-    else
+    ifeq ($(filter $(KERNEL), Darwin OpenBSD FreeBSD),)
         ifneq ($(target_windows), yes)
             ifneq ($(RTLIB), compiler-rt)
                 LDFLAGS += -latomic
@@ -972,8 +978,8 @@ else ifneq ($(KERNEL), Darwin)
     CXXFLAGS += -pipe
 endif
 
-MKDIR  := mkdir -p -m 755
-CP     := cp
+MKDIR := mkdir -p -m 755
+CP := cp
 
 ### ==========================================================================
 ### Section 4. Public Targets
