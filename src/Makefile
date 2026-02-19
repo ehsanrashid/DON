@@ -665,9 +665,9 @@ endif
 
 ### Detect if GCC is actually Clang, to adjust profile build targets
 ifeq ($(COMP), gcc)
-    gccversion := $(shell $(CXX) --version 2>/dev/null)
-    gccisclang := $(findstring clang, $(gccversion))
-    ifneq ($(gccisclang), )
+    gcc_version := $(shell $(CXX) --version 2>/dev/null)
+    gcc_is_clang := $(findstring clang, $(gcc_version))
+    ifneq ($(gcc_is_clang), )
         profile_make = clang-profile-make
         profile_use = clang-profile-use
     else
@@ -912,7 +912,7 @@ ifeq ($(optimize), yes)
                 ifeq ($(comp), clang)
                     LDFLAGS += -fuse-ld=lld
                 else ifeq ($(comp), gcc)
-                    ifneq ($(gccisclang), )
+                    ifneq ($(gcc_is_clang), )
                         LDFLAGS += -fuse-ld=lld
                     endif
                 endif
@@ -933,7 +933,7 @@ ifeq ($(optimize), yes)
                 # macOS + GCC: Don't add LTO
                 LDFLAGS += $(CXXFLAGS)
             else
-                ifeq ($(gccisclang), )
+                ifeq ($(gcc_is_clang), )
                     CXXFLAGS += -flto -flto-partition=one
                     LDFLAGS += $(CXXFLAGS) -flto=jobserver
                 else
@@ -965,11 +965,14 @@ ifeq ($(optimize), yes)
 endif
 
 CXXFLAGS += -pipe
-# Improve Windows build compatibility:
-# -fno-keep-inline-dllexport prevents issues with MSVC-style __declspec(dllexport)
-# when building inline functions in DLLs. Ignored on non-Windows targets.
+
+# Windows + GCC (not Clang): avoid inline dllexport issues in DLLs
 ifeq ($(target_windows), yes)
-    CXXFLAGS += -fno-keep-inline-dllexport
+    ifeq ($(COMP), gcc)
+        ifeq ($(gcc_is_clang), )
+            CXXFLAGS += -fno-keep-inline-dllexport
+        endif
+    endif
 endif
 
 # ----------------------------------------------------------------------------
