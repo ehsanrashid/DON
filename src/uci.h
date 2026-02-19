@@ -39,16 +39,18 @@ class Options;
 class Score final {
    public:
     struct Unit final {
+       public:
         int value;
     };
 
     struct Tablebase final {
-        int  ply;
-        bool win;
+       public:
+        int value;
     };
 
     struct Mate final {
-        int ply;
+       public:
+        int value;
     };
 
     Score() noexcept = delete;

@@ -427,6 +427,9 @@ class FeatureTransformer final {
             }
 #endif
         }
+#if defined(USE_MMX)
+        _mm_empty();
+#endif
 
         return psqt;
     }

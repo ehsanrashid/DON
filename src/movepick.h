@@ -154,7 +154,8 @@ class MovePicker final {
 
     StdArray<value_type, MAX_MOVES> moves;
 
-    iterator cur    = nullptr,  //
+    iterator                    //
+      cur           = nullptr,  //
       endCur        = nullptr,  //
       endBadCapture = nullptr,  //
       begBadQuiet   = nullptr,  //

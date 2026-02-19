@@ -114,6 +114,7 @@ VPATH := nnue:nnue/features:syzygy
 # bmi2 = yes/no       --- -DUSE_BMI2         --- Use pext & pdep x86_64 asm-instruction
 # avxvnni = yes/no    --- -mavxvnni          --- Use Intel Vector Neural Network Instructions AVX
 # avx512 = yes/no     --- -mavx512bw         --- Use Intel Advanced Vector Extensions 512
+# vnni256 = yes/no    --- -mavx256vnni       --- Use Intel Vector Neural Network Instructions 512 with 256bit operands
 # vnni512 = yes/no    --- -mavx512vnni       --- Use Intel Vector Neural Network Instructions 512
 # avx512icl = yes/no  --- ... multiple ...   --- Use All AVX-512 features available on both Intel Ice Lake and AMD Zen 4
 # altivec = yes/no    --- -maltivec          --- Use PowerPC Altivec SIMD extension
@@ -144,7 +145,7 @@ endif
 # explicitly check for the list of supported architectures (as listed with make help),
 # the user can override with 'make ARCH=x86-64-avx512icl SUPPORTED_ARCH=yes'
 ifeq ($(ARCH), $(filter $(ARCH), \
-                 x86-64-avx512icl-comp x86-64-avx512icl x86-64-vnni512-comp x86-64-vnni512 \
+                 x86-64-avx512icl-comp x86-64-avx512icl x86-64-vnni512-comp x86-64-vnni512 x86-64-vnni256-comp x86-64-vnni256 \
                  x86-64-avx512-comp x86-64-avx512 x86-64-avxvnni-comp x86-64-avxvnni x86-64-bmi2-comp x86-64-bmi2 \
                  x86-64-avx2 x86-64-sse41-popcnt x86-64-modern x86-64-sse41 x86-64-ssse3-popcnt x86-64-ssse3 x86-64 general-64 \
                  x86-32-sse41-popcnt x86-32-sse41 x86-32-sse2 x86-32 general-32 \
@@ -172,6 +173,7 @@ bmi2 = no
 _comp = no
 avxvnni = no
 avx512 = no
+vnni256 = no
 vnni512 = no
 avx512icl = no
 arm_version = 0
@@ -289,6 +291,17 @@ ifeq ($(findstring -avx512, $(ARCH)), -avx512)
     avx2 = yes
     bmi2 = yes
     avx512 = yes
+endif
+
+ifeq ($(findstring -vnni256, $(ARCH)), -vnni256)
+    popcnt = yes
+    sse = yes
+    sse2 = yes
+    ssse3 = yes
+    sse41 = yes
+    avx2 = yes
+    bmi2 = yes
+    vnni256 = yes
 endif
 
 ifeq ($(findstring -vnni512, $(ARCH)), -vnni512)
@@ -409,9 +422,9 @@ endif
 
 ifeq ($(findstring e2k, $(ARCH)), e2k)
     arch = e2k
-    mmx = yes
     bits = 64
     sse = yes
+    mmx = yes
     sse2 = yes
     ssse3 = yes
     sse41 = yes
@@ -528,8 +541,8 @@ ifeq ($(COMP), clang)
 
     CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-prototypes -Wconditional-uninitialized -flax-vector-conversions=none
 
-    ifneq ($(KERNEL), $(filter $(KERNEL), Darwin OpenBSD FreeBSD))
-        ifeq ($(target_windows), )
+    ifeq ($(filter $(KERNEL), Darwin OpenBSD FreeBSD), )
+        ifneq ($(target_windows), yes)
             ifneq ($(RTLIB), compiler-rt)
                 LDFLAGS += -latomic
             endif
@@ -657,7 +670,7 @@ ifneq ($(comp), mingw)
         ifneq ($(KERNEL), Haiku)
             ifneq ($(COMP), ndk)
                 LDFLAGS += -lpthread
-                ifeq ($(target_windows), no)
+                ifneq ($(target_windows), yes)
                     ifneq ($(KERNEL), Darwin)
                         LDFLAGS += -lrt
                     endif
@@ -735,14 +748,21 @@ endif
 ifeq ($(avx512icl), yes)
     CXXFLAGS += -DUSE_AVX512ICL
     ifeq ($(comp), $(filter $(comp), gcc clang mingw icx))
-        CXXFLAGS += -mavx512f -mavx512cd -mavx512vl -mavx512dq -mavx512bw -mavx512ifma -mavx512vbmi -mavx512vbmi2 -mavx512vpopcntdq -mavx512bitalg -mavx512vnni -mvpclmulqdq -mgfni -mvaes
+        CXXFLAGS += -mavx512vnni -mavx512vbmi2 -mavx512vbmi -mavx512vpopcntdq -mavx512bitalg -mavx512ifma -mavx512vl -mavx512dq -mavx512bw -mavx512cd -mavx512f -mvpclmulqdq -mgfni -mvaes
     endif
 endif
 
 ifeq ($(vnni512), yes)
     CXXFLAGS += -DUSE_VNNI
     ifeq ($(comp), $(filter $(comp), gcc clang mingw icx))
-        CXXFLAGS += -mavx512f -mavx512bw -mavx512vnni -mavx512dq -mavx512vl
+        CXXFLAGS += -mavx512vnni -mavx512f -mavx512bw -mavx512dq -mavx512vl -mprefer-vector-width=512
+    endif
+endif
+
+ifeq ($(vnni256),yes)
+    CXXFLAGS += -DUSE_VNNI
+    ifeq ($(comp), $(filter $(comp), gcc clang mingw icx))
+        CXXFLAGS += -mavx512vnni -mavx512f -mavx512bw -mavx512dq -mavx512vl -mprefer-vector-width=256
     endif
 endif
 
@@ -789,6 +809,7 @@ ifeq ($(sse2), yes)
 endif
 
 ifeq ($(mmx), yes)
+    #CXXFLAGS += -DUSE_MMX
     ifeq ($(comp), $(filter $(comp), gcc clang mingw icx))
         CXXFLAGS += -mmmx
     endif
@@ -930,6 +951,17 @@ ifeq ($(optimize), yes)
     endif
 endif
 
+# ----------------------------------------------------------------------------
+# Portable filesystem helpers
+# ----------------------------------------------------------------------------
+ifeq ($(OS), Windows_NT)
+    MKDIR  := mkdir -p -m 755
+    CP     := cp
+else
+    MKDIR  := mkdir -p -m 755
+    CP     := cp
+endif
+
 ### ==========================================================================
 ### Section 4. Public Targets
 ### ==========================================================================
@@ -955,6 +987,7 @@ help:
 	echo "native                  > select the best architecture for the host processor (default)" && \
 	echo "x86-64-avx512icl        > x86 64-bit with minimum avx512 support of Intel Ice Lake or AMD Zen 4" && \
 	echo "x86-64-vnni512          > x86 64-bit with vnni 512bit support" && \
+	echo "x86-64-vnni256          > x86 64-bit with vnni 512bit support, limit operands to 256-bit wide" && \
 	echo "x86-64-avx512           > x86 64-bit with avx512 support" && \
 	echo "x86-64-avxvnni          > x86 64-bit with vnni 256bit support" && \
 	echo "x86-64-bmi2             > x86 64-bit with bmi2 support" && \
@@ -969,7 +1002,7 @@ help:
 	echo "x86-32-sse41-popcnt     > x86 32-bit with sse41 and popcnt support" && \
 	echo "x86-32-sse41            > x86 32-bit with sse41 support" && \
 	echo "x86-32-sse2             > x86 32-bit with sse2 support" && \
-	echo "x86-32                  > x86 32-bit generic (with mmx compile support)" && \
+	echo "x86-32                  > x86 32-bit generic (with mmx support)" && \
 	echo "general-32              > unspecified 32-bit" && \
 	echo "ppc-64-altivec          > PPC 64-bit with altivec support" && \
 	echo "ppc-64-vsx              > PPC 64-bit with vsx support" && \
@@ -1044,9 +1077,9 @@ strip:
 	$(STRIP) $(EXE)
 
 install:
-	-mkdir -p -m 755 $(BINDIR)
-	-cp $(EXE) $(BINDIR)
-	$(STRIP) $(BINDIR)/$(EXE)
+	-$(MKDIR) "$(BINDIR)"
+	-$(CP) "$(EXE)" "$(BINDIR)/"
+	-$(STRIP) "$(BINDIR)/$(EXE)"
 
 # clean all
 clean: objclean profileclean
@@ -1054,7 +1087,7 @@ clean: objclean profileclean
 
 # clean binaries and objects
 objclean:
-	@rm -f $(EXE) *.o ./syzygy/*.o ./nnue/*.o ./nnue/features/*.o
+	@rm -f $(EXE) $(OBJS) ./syzygy/*.o ./nnue/*.o ./nnue/features/*.o
 
 # clean auxiliary profiling files
 profileclean:
@@ -1114,6 +1147,7 @@ config-sanity: net
 	echo "_comp: '$(_comp)'" && \
 	echo "avxvnni: '$(avxvnni)'" && \
 	echo "avx512: '$(avx512)'" && \
+	echo "vnni256: '$(vnni256)'" && \
 	echo "vnni512: '$(vnni512)'" && \
 	echo "avx512icl: '$(avx512icl)'" && \
 	echo "altivec: '$(altivec)'" && \
@@ -1152,6 +1186,7 @@ config-sanity: net
 	(test "$(bmi2)" = "yes" || test "$(bmi2)" = "no") && \
 	(test "$(_comp)" = "yes" || test "$(_comp)" = "no") && \
 	(test "$(avx512)" = "yes" || test "$(avx512)" = "no") && \
+	(test "$(vnni256)" = "yes" || test "$(vnni256)" = "no") && \
 	(test "$(vnni512)" = "yes" || test "$(vnni512)" = "no") && \
 	(test "$(avx512icl)" = "yes" || test "$(avx512icl)" = "no") && \
 	(test "$(altivec)" = "yes" || test "$(altivec)" = "no") && \
@@ -1215,6 +1250,6 @@ icx-profile-use:
 	-@$(CXX) $(DEPENDFLAGS) -I. -MM $(SRCS) > $@ 2>/dev/null
 
 # Include .depend only if no special goal is requested
-ifeq ($(filter $(MAKECMDGOALS), help strip install clean net objclean profileclean format config-sanity), )
+ifeq ($(filter $(MAKECMDGOALS), help strip install clean objclean profileclean net format config-sanity install-hooks), )
     -include .depend
 endif

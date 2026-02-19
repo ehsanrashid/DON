@@ -483,7 +483,7 @@ const Thread* Threads::best_thread() const noexcept {
             bestThread = candThread;
 
             // Early exit: mate in 1 found (can't improve further)
-            if (bestMetric.win && bestMetric.value >= VALUE_MATES_IN_1)
+            if (bestMetric.win && bestMetric.value >= VALUE_MATE_WIN_IN_1)
                 break;
         }
     }
