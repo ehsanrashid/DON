@@ -484,16 +484,28 @@ ifeq ($(COMP), )
 endif
 
 ifeq ($(COMP), gcc)
-    comp = gcc
-    CXX  = g++
+    comp=gcc
+    CXX=g++
     CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-declarations
-    # Non-Darwin specific flags
+    # Non-Darwin flags
     ifneq ($(KERNEL), Darwin)
-        # GCC-only warning suppression
         CXXFLAGS += -Wno-stringop-overflow
-         # Add --no-as-needed ONLY if using GNU ld (not lld, not Darwin)
+        # Add --no-as-needed only if using GNU ld
         ifeq ($(shell $(CXX) -Wl,--version 2>/dev/null | grep -iq "GNU ld" && echo yes), yes)
             LDFLAGS += -Wl,--no-as-needed
+        endif
+        #  Detect if GCC is actually Clang, to adjust profile build targets
+        gcc_version        := $(shell $(CXX) --version 2>/dev/null)
+        gcc_is_clang       := $(findstring clang, $(gcc_version))
+        gcc_is_apple_clang := $(findstring Apple, $(gcc_version))
+        ifneq ($(gcc_is_clang), )
+            ifeq ($(gcc_is_apple_clang), )
+                profile_make = clang-profile-make
+                profile_use  = clang-profile-use
+            endif
+        else
+            # True GCC -> add stack usage warning
+            CXXFLAGS += -Wstack-usage=128000
         endif
     endif
     # Architecture-specific flags
@@ -547,33 +559,33 @@ ifeq ($(COMP), clang)
     ifeq ($(target_windows), yes)
         CXX=x86_64-w64-mingw32-clang++
     endif
-
     CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-prototypes -Wconditional-uninitialized -flax-vector-conversions=none
-
-    ifeq ($(filter $(KERNEL), Darwin OpenBSD FreeBSD), )
+    # Atomic library for non-Darwin/FreeBSD/OpenBSD and non-Windows (unless compiler-rt)
+    ifneq ($(filter $(KERNEL), Darwin OpenBSD FreeBSD),)
+        # skip
+    else
         ifneq ($(target_windows), yes)
             ifneq ($(RTLIB), compiler-rt)
                 LDFLAGS += -latomic
             endif
         endif
     endif
-
-    ifeq ($(arch), $(filter $(arch), armv7 armv8 riscv64))
+    # Architecture-specific flags
+    ifeq ($(arch), $(filter $(arch), armv7 armv8 riscv64 loongarch64))
         ifeq ($(OS), Android)
             CXXFLAGS += -m$(bits)
-            LDFLAGS += -m$(bits)
+            LDFLAGS  += -m$(bits)
         endif
-        ifeq ($(ARCH), riscv64)
+        # Atomic library for specific architectures
+        ifeq ($(arch), $(filter $(arch), armv7 riscv64 loongarch64))
             LDFLAGS += -latomic
         endif
-    else ifeq ($(arch), loongarch64)
-        LDFLAGS += -latomic
     else
+        # Generic architectures
         CXXFLAGS += -m$(bits)
-        LDFLAGS += -m$(bits)
+        LDFLAGS  += -m$(bits)
     endif
-
-    # Add std::filesystem library for C++17 Linux/Clang
+    # Add std::filesystem library for Linux/Clang
     ifeq ($(KERNEL), Linux)
         LDFLAGS += -lstdc++fs
     endif
@@ -657,30 +669,6 @@ else
     profile_use = gcc-profile-use
     ifeq ($(KERNEL), Darwin)
         EXTRAPROFILEFLAGS = -fvisibility=hidden
-    endif
-endif
-
-### Detect if GCC is actually Clang, to adjust profile build targets
-ifeq ($(COMP), gcc)
-    ifneq ($(OS), Darwin)
-        # Non-Darwin: check compiler version
-        gcc_version        := $(shell $(CXX) --version 2>/dev/null)
-        gcc_is_clang       := $(findstring clang, $(gcc_version))
-        gcc_is_apple_clang := $(findstring Apple, $(gcc_version))
-        # Non-Apple Clang -> use clang profile targets
-        ifneq ($(gcc_is_clang), )
-            ifeq ($(gcc_is_apple_clang), )
-                profile_make = clang-profile-make
-                profile_use  = clang-profile-use
-            endif
-        else
-            # True GCC -> add stack usage warning
-            CXXFLAGS += -Wstack-usage=128000
-        endif
-    else
-        # macOS: always assume real GCC -> add stack usage warning
-        CXXFLAGS += -Wstack-usage=128000
-        gcc_is_clang :=
     endif
 endif
 
