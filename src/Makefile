@@ -954,11 +954,13 @@ endif
 # Portable filesystem helpers
 # ----------------------------------------------------------------------------
 ifeq ($(OS), Windows_NT)
-    MKDIR := mkdir
-    CP    := copy /Y
+    MKDIR  := mkdir -p -m 755
+    CP     := cp
+    STRIP  := strip
 else
-    MKDIR := mkdir -p -m 755
-    CP    := cp
+    MKDIR  := mkdir -p -m 755
+    CP     := cp
+    STRIP  := strip
 endif
 
 ### ==========================================================================
@@ -1077,7 +1079,7 @@ strip:
 
 install:
 	-$(MKDIR) "$(BINDIR)"
-	-$(CP) "$(EXE)" "$(BINDIR)"
+	-$(CP) "$(EXE)" "$(BINDIR)/"
 	-$(STRIP) "$(BINDIR)/$(EXE)"
 
 # clean all
