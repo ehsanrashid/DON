@@ -957,11 +957,9 @@ endif
 ifeq ($(OS), Windows_NT)
     MKDIR  := mkdir -p -m 755
     CP     := cp
-    STRIP  := strip
 else
     MKDIR  := mkdir -p -m 755
     CP     := cp
-    STRIP  := strip
 endif
 
 ### ==========================================================================
