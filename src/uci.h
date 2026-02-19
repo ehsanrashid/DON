@@ -45,13 +45,12 @@ class Score final {
 
     struct Tablebase final {
        public:
-        int  ply;
-        bool win;
+        int value;
     };
 
     struct Mate final {
        public:
-        int ply;
+        int value;
     };
 
     Score() noexcept = delete;

@@ -896,18 +896,10 @@ FixedText UCI::to_wdl(Value v, const Position& pos) noexcept {
 }
 
 FixedText UCI::to_score(const Score& score) noexcept {
-    constexpr int TB_CP = 20000;
-
-    return score.visit(                             //
-      Overload{[](Score::Unit unit) -> FixedText {  //
-                   return FixedText{}.write("cp ").write(unit.value);
-               },
-               [](Score::Tablebase tb) -> FixedText {
-                   return FixedText{}.write("cp ").write((tb.win ? +TB_CP : -TB_CP) - tb.ply);
-               },
-               [](Score::Mate mate) -> FixedText {
-                   return FixedText{}.write("mate ").write((mate.ply + int(mate.ply > 0)) / 2);
-               }});
+    return score.visit(Overload{
+      [](Score::Unit unit) -> FixedText { return FixedText{}.write("cp ").write(unit.value); },
+      [](Score::Tablebase tb) -> FixedText { return FixedText{}.write("cp ").write(tb.value); },
+      [](Score::Mate mate) -> FixedText { return FixedText{}.write("mate ").write(mate.value); }});
 }
 
 std::string UCI::move_to_can(Move m) noexcept {
@@ -1131,15 +1123,16 @@ Score::Score(Value v, const Position& pos) noexcept {
     }
     else if (!is_mate(v))
     {
-        bool win = v > 0;
-        int  ply = VALUE_TB - constexpr_abs(v);
-        score    = Tablebase{win ? +ply : -ply, win};
+        constexpr int TB_CP = 20000;
+        int           ply   = VALUE_TB - constexpr_abs(v);
+        int           value = v > 0 ? +TB_CP - ply : -TB_CP - ply;
+        score               = Tablebase{value};
     }
     else
     {
-        bool win = v > 0;
-        int  ply = VALUE_MATE - constexpr_abs(v);
-        score    = Mate{win ? +ply : -ply};
+        int ply   = VALUE_MATE - constexpr_abs(v);
+        int value = (v > 0 ? ply + 1 : -ply) / 2;
+        score     = Mate{value};
     }
 }
 
