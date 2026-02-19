@@ -31,7 +31,7 @@
 #elif defined(USE_SSE2)
     #include <emmintrin.h>
 #elif defined(USE_MMX)
-    #include <mmintrin.h>
+    #include <mmintrin.h>  // MMX intrinsics
 #elif defined(USE_NEON)
     #include <arm_neon.h>
 #else
@@ -194,6 +194,16 @@ using vec_uint_t = __m64;
 using vec_i8_t   = __m64;
     #define vec_load(a) (*(a))
     #define vec_store(a, b) *(a) = (b)
+inline __m64 vec_convert_8_16(vec_i8_t a) noexcept {
+    union {
+        vec_i8_t u64;
+        __m64    mm;
+    } v;
+    v.u64      = a;
+    __m64 zero = _mm_setzero_si64();
+    __m64 sign = _mm_cmpgt_pi8(zero, v.mm);
+    return _mm_unpacklo_pi8(v.mm, sign);
+}
     #define vec_add_16(a, b) _mm_add_pi16(a, b)
     #define vec_sub_16(a, b) _mm_sub_pi16(a, b)
     #define vec_mulhi_16(a, b) _mm_mulhi_pi16(a, b)

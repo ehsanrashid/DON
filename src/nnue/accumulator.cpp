@@ -199,6 +199,9 @@ struct AccumulatorUpdateContext final {
 
             threatWeights += Tiling::TileHeight;
         }
+    #if defined(USE_MMX)
+        _mm_empty();
+    #endif
 
         const auto* threatPsqtWeights = featureTransformer.threatPsqtWeights.data();
 
@@ -233,6 +236,9 @@ struct AccumulatorUpdateContext final {
 
             threatPsqtWeights += Tiling::PSQTTileHeight;
         }
+    #if defined(USE_MMX)
+        _mm_empty();
+    #endif
         // clang-format on
 #else
 
