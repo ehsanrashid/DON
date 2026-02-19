@@ -153,8 +153,11 @@ jobs:
           docker buildx build --platform ${{ matrix.config.platform }} --load -t don_builder - << EOF
           FROM ${{ matrix.config.base_image }}
           WORKDIR /app
-          RUN apk update && apk add make g++
-          CMD ["sh", "src/script.sh"]
+          # Install Bash, Make, and GCC
+          RUN apk update && apk add --no-cache bash make g++
+          # Optional: make /bin/bash the default shell
+          SHELL ["/bin/bash", "-c"]
+          CMD ["bash", "src/script.sh"]
           EOF
 
       - name: Download required macOS packages
