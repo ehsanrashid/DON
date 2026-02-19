@@ -484,34 +484,31 @@ ifeq ($(COMP), )
 endif
 
 ifeq ($(COMP), gcc)
-    comp=gcc
-    CXX=g++
-    CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-declarations -Wno-stringop-overflow
-
-    ifeq ($(arch), $(filter $(arch), armv7 armv8 riscv64))
-        ifeq ($(OS), Android)
-            CXXFLAGS += -m$(bits)
-            LDFLAGS += -m$(bits)
-        endif
-        ifeq ($(ARCH), riscv64)
-            LDFLAGS += -latomic
-        endif
-    else ifeq ($(arch), loongarch64)
-        LDFLAGS += -latomic
-    else
-        CXXFLAGS += -m$(bits)
-        LDFLAGS += -m$(bits)
-    endif
-
-    ifeq ($(arch), $(filter $(arch), armv7))
-        LDFLAGS += -latomic
-    endif
-
-    # Add --no-as-needed ONLY if using GNU ld (not lld, not Darwin)
+    comp = gcc
+    CXX  = g++
+    CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-declarations
+    # Non-Darwin specific flags
     ifneq ($(KERNEL), Darwin)
+        # GCC-only warning suppression
+        CXXFLAGS += -Wno-stringop-overflow
+         # Add --no-as-needed ONLY if using GNU ld (not lld, not Darwin)
         ifeq ($(shell $(CXX) -Wl,--version 2>/dev/null | grep -iq "GNU ld" && echo yes), yes)
             LDFLAGS += -Wl,--no-as-needed
         endif
+    endif
+    # Architecture-specific flags
+    ifeq ($(arch), $(filter $(arch), armv7 armv8 riscv64 loongarch64))
+        ifeq ($(OS), Android)
+            CXXFLAGS += -m$(bits)
+            LDFLAGS  += -m$(bits)
+        endif
+    else
+        CXXFLAGS += -m$(bits)
+        LDFLAGS  += -m$(bits)
+    endif
+    # Atomic library for specific architectures
+    ifeq ($(arch), $(filter $(arch), armv7 riscv64 loongarch64))
+        LDFLAGS += -latomic
     endif
 endif
 
