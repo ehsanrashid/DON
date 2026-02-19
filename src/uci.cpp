@@ -1124,15 +1124,14 @@ Score::Score(Value v, const Position& pos) noexcept {
     else if (!is_mate(v))
     {
         constexpr int TB_CP = 20000;
-        int           ply   = VALUE_TB - constexpr_abs(v);
-        int           value = v > 0 ? +TB_CP - ply : -TB_CP - ply;
-        score               = Tablebase{value};
+
+        int ply = VALUE_TB - constexpr_abs(v);
+        score   = Tablebase{v > 0 ? +TB_CP - ply : -TB_CP - ply};
     }
     else
     {
-        int ply   = VALUE_MATE - constexpr_abs(v);
-        int value = (v > 0 ? ply + 1 : -ply) / 2;
-        score     = Mate{value};
+        int ply = VALUE_MATE - constexpr_abs(v);
+        score   = Mate{(v > 0 ? ply + 1 : -ply) / 2};
     }
 }
 
