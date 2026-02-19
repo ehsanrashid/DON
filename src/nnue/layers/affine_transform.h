@@ -139,11 +139,9 @@ inline void transform_affine_non_ssse3(
 
         #endif
     }
-
         #if defined(USE_MMX)
     _mm_empty();
         #endif
-
     #else
     std::memcpy(output, biases.data(), OutputDimensions * sizeof(std::int32_t));
 

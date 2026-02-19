@@ -742,7 +742,7 @@ void update_threats_accumulator_full(Color                                 persp
     }
 #endif
 #if defined(USE_MMX)
-    vec_cleanup();
+    _mm_empty();
 #endif
 }
 

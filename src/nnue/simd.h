@@ -209,13 +209,11 @@ inline vec_t vec_min_16(vec_t a, vec_t b) noexcept {
 }
     #define vec_slli_16(a, b) _mm_slli_pi16(a, b)
     #define vec_packus_16(a, b) _mm_packs_pu16(a, b)
-    //#define vec_msb_pack_16(a, b) _mm_packs_pi16(_mm_srli_pi16(a, 7), _mm_srli_pi16(b, 7))
     #define vec_load_psqt(a) (*(a))
     #define vec_store_psqt(a, b) *(a) = (b)
     #define vec_add_psqt_32(a, b) _mm_add_pi32(a, b)
     #define vec_sub_psqt_32(a, b) _mm_sub_pi32(a, b)
     #define vec_zero_psqt() _mm_setzero_si64()
-    #define vec_cleanup() _mm_empty()
     #define MaxRegisterCount 8
     #define MaxChunkSize 8
 
