@@ -18,6 +18,9 @@
 ### Section 1. General Configuration
 ### ==========================================================================
 
+### Ensure Make uses Bash for shell commands
+SHELL := /bin/bash
+
 ### Establish the operating system name
 KERNEL := $(shell uname -s)
 ifeq ($(KERNEL), Linux)
@@ -90,6 +93,12 @@ VPATH := nnue:nnue/features:syzygy
 ### ==========================================================================
 ### Section 2. High-level Configuration
 ### ==========================================================================
+# To add a new ARCH:
+#    1. Update Section 2.1 (general defaults)
+#    2. Update Section 2.2 (architecture-specific settings)
+#    3. Run 'make help' to verify your new architecture appears correctly
+#
+# Note: The order of flags matters; SIMD flags should be enabled after setting bits/arch
 #
 # flag                --- Comp switch        --- Description
 # ----------------------------------------------------------------------------
@@ -112,6 +121,7 @@ VPATH := nnue:nnue/features:syzygy
 # sse41 = yes/no      --- -msse4.1           --- Use Intel Streaming SIMD Extensions 4.1
 # avx2 = yes/no       --- -mavx2             --- Use Intel Advanced Vector Extensions 2
 # bmi2 = yes/no       --- -DUSE_BMI2         --- Use pext & pdep x86_64 asm-instruction
+# _comp = yes/no      --- -DUSE_COMP         --- Internal flag for compressed-optimized variants
 # avxvnni = yes/no    --- -mavxvnni          --- Use Intel Vector Neural Network Instructions AVX
 # avx512 = yes/no     --- -mavx512bw         --- Use Intel Advanced Vector Extensions 512
 # vnni256 = yes/no    --- -mavx256vnni       --- Use Intel Vector Neural Network Instructions 512 with 256bit operands
@@ -123,6 +133,8 @@ VPATH := nnue:nnue/features:syzygy
 # dotprod = yes/no    --- -DUSE_NEON_DOTPROD --- Use ARM advanced SIMD Int8 dot product instructions
 # lsx = yes/no        --- -mlsx              --- Use Loongson SIMD eXtension
 # lasx = yes/no       --- -mlasx             --- use Loongson Advanced SIMD eXtension
+#
+# native              --- Auto-detect best architecture for host CPU using ../scripts/get_native_properties.sh
 #
 # Note that Makefile is space sensitive, so when adding new architectures
 # or modifying existing flags, you have to make sure there are no extra spaces
@@ -464,7 +476,7 @@ ifeq ($(MAKELEVEL), 0)
 endif
 
 CXXFLAGS = $(ENV_CXXFLAGS) -Wall -Wcast-qual -fno-exceptions -std=c++17 $(EXTRACXXFLAGS)
-DEPENDFLAGS = $(ENV_DEPENDFLAGS) -std=c++17
+DEPENDFLAGS = $(ENV_DEPENDFLAGS) -Wall -Wcast-qual -std=c++17
 LDFLAGS = $(ENV_LDFLAGS) $(EXTRALDFLAGS)
 
 ifeq ($(COMP), )
@@ -482,10 +494,10 @@ ifeq ($(COMP), gcc)
             LDFLAGS += -m$(bits)
         endif
         ifeq ($(ARCH), riscv64)
-            CXXFLAGS += -latomic
+            LDFLAGS += -latomic
         endif
     else ifeq ($(arch), loongarch64)
-        CXXFLAGS += -latomic
+        LDFLAGS += -latomic
     else
         CXXFLAGS += -m$(bits)
         LDFLAGS += -m$(bits)
@@ -555,10 +567,10 @@ ifeq ($(COMP), clang)
             LDFLAGS += -m$(bits)
         endif
         ifeq ($(ARCH), riscv64)
-            CXXFLAGS += -latomic
+            LDFLAGS += -latomic
         endif
     else ifeq ($(arch), loongarch64)
-        CXXFLAGS += -latomic
+        LDFLAGS += -latomic
     else
         CXXFLAGS += -m$(bits)
         LDFLAGS += -m$(bits)
@@ -618,6 +630,7 @@ ifdef COMPCXX
 endif
 
 # Force SSE floating-point math to avoid x87 extended-precision differences
+# Ensures consistent floating-point results across x86 CPUs
 ifeq ($(sse_fp), yes)
     CXXFLAGS += -mfpmath=sse -msse2
 endif
@@ -626,6 +639,7 @@ endif
 # make -j profile-build CXX=clang++-20 COMP=clang
 # Locate the version in the same directory as the compiler used,
 # with fallback to a generic one if it can't be located
+# Used for PGO (profile-guided optimization) builds
 LLVM_PROFDATA := $(dir $(realpath $(shell which $(CXX) 2>/dev/null)))llvm-profdata
 # for icx
 ifeq ($(wildcard $(LLVM_PROFDATA)), )
@@ -649,7 +663,7 @@ else
     endif
 endif
 
-### Sometimes gcc is really clang
+### Detect if GCC is actually Clang, to adjust profile build targets
 ifeq ($(COMP), gcc)
     gccversion := $(shell $(CXX) --version 2>/dev/null)
     gccisclang := $(findstring clang, $(gccversion))
@@ -937,8 +951,7 @@ ifeq ($(optimize), yes)
     endif
 endif
 
-### 3.10 Android 5 can only run position independent executables. Note that this
-### breaks Android 4.0 and earlier.
+### 3.10 Use PIE executables on Android 5+, incompatible with Android 4 and earlier
 ifeq ($(OS), Android)
     CXXFLAGS += -fPIE
     LDFLAGS += -fPIE -pie
@@ -949,6 +962,14 @@ ifeq ($(optimize), yes)
     ifeq ($(comp), clang)
         CXXFLAGS += -Xclang -mllvm -Xclang -inline-threshold=500
     endif
+endif
+
+CXXFLAGS += -pipe
+# Improve Windows build compatibility:
+# -fno-keep-inline-dllexport prevents issues with MSVC-style __declspec(dllexport)
+# when building inline functions in DLLs. Ignored on non-Windows targets.
+ifeq ($(target_windows), yes)
+    CXXFLAGS += -fno-keep-inline-dllexport
 endif
 
 # ----------------------------------------------------------------------------
@@ -986,8 +1007,8 @@ help:
 	echo "" && \
 	echo "native                  > select the best architecture for the host processor (default)" && \
 	echo "x86-64-avx512icl        > x86 64-bit with minimum avx512 support of Intel Ice Lake or AMD Zen 4" && \
-	echo "x86-64-vnni512          > x86 64-bit with vnni 512bit support" && \
-	echo "x86-64-vnni256          > x86 64-bit with vnni 512bit support, limit operands to 256-bit wide" && \
+	echo "x86-64-vnni512          > x86 64-bit with vnni support, operands 512-bit wide" && \
+	echo "x86-64-vnni256          > x86 64-bit with vnni support, operands limited to 256-bit wide" && \
 	echo "x86-64-avx512           > x86 64-bit with avx512 support" && \
 	echo "x86-64-avxvnni          > x86 64-bit with vnni 256bit support" && \
 	echo "x86-64-bmi2             > x86 64-bit with bmi2 support" && \
@@ -997,12 +1018,12 @@ help:
 	echo "x86-64-sse41            > x86 64-bit with sse41 support" && \
 	echo "x86-64-ssse3-popcnt     > x86 64-bit with ssse3 and popcnt support" && \
 	echo "x86-64-ssse3            > x86 64-bit with ssse3 support" && \
-	echo "x86-64                  > x86 64-bit generic (with sse2 support)" && \
+	echo "x86-64                  > x86 64-bit generic with sse2 support" && \
 	echo "general-64              > unspecified 64-bit" && \
 	echo "x86-32-sse41-popcnt     > x86 32-bit with sse41 and popcnt support" && \
 	echo "x86-32-sse41            > x86 32-bit with sse41 support" && \
 	echo "x86-32-sse2             > x86 32-bit with sse2 support" && \
-	echo "x86-32                  > x86 32-bit generic (with mmx support)" && \
+	echo "x86-32                  > x86 32-bit generic with mmx support" && \
 	echo "general-32              > unspecified 32-bit" && \
 	echo "ppc-64-altivec          > PPC 64-bit with altivec support" && \
 	echo "ppc-64-vsx              > PPC 64-bit with vsx support" && \
@@ -1045,7 +1066,7 @@ help:
 	fi
 
 .PHONY: help analyze build profile-build strip install clean \
-	objclean profileclean net config-sanity FORCE \
+	objclean profileclean net config-sanity FORCE all \
 	clang-profile-make clang-profile-use \
 	gcc-profile-make gcc-profile-use \
 	icx-profile-make icx-profile-use \
@@ -1079,6 +1100,7 @@ strip:
 install:
 	-$(MKDIR) "$(BINDIR)"
 	-$(CP) "$(EXE)" "$(BINDIR)/"
+	-chmod 755 "$(BINDIR)/$(EXE)"
 	-$(STRIP) "$(BINDIR)/$(EXE)"
 
 # clean all
@@ -1163,6 +1185,7 @@ config-sanity: net
 	echo "Flags:" && \
 	echo "CXX: $(CXX)" && \
 	echo "CXXFLAGS: $(CXXFLAGS)" && \
+	echo "DEPENDFLAGS: $(DEPENDFLAGS)" && \
 	echo "LDFLAGS: $(LDFLAGS)" && \
 	echo "" && \
 	echo "Testing config sanity. If this fails, try 'make help' ..." && \
@@ -1185,6 +1208,7 @@ config-sanity: net
 	(test "$(avx2)" = "yes" || test "$(avx2)" = "no") && \
 	(test "$(bmi2)" = "yes" || test "$(bmi2)" = "no") && \
 	(test "$(_comp)" = "yes" || test "$(_comp)" = "no") && \
+	(test "$(avxvnni)" = "yes" || test "$(avxvnni)" = "no") && \
 	(test "$(avx512)" = "yes" || test "$(avx512)" = "no") && \
 	(test "$(vnni256)" = "yes" || test "$(vnni256)" = "no") && \
 	(test "$(vnni512)" = "yes" || test "$(vnni512)" = "no") && \
@@ -1247,7 +1271,12 @@ icx-profile-use:
 	all
 
 .depend: $(SRCS)
-	-@$(CXX) $(DEPENDFLAGS) -I. -MM $(SRCS) > $@ 2>/dev/null
+	@echo Generating dependencies...
+	@set -o pipefail; \
+	$(CXX) $(DEPENDFLAGS) -MM -MP $(SRCS) 2>&1 | \
+		sed -E 's@(.*/)?DON/src/nnue/@nnue/@g; s@(.*/)?DON/src/syzygy/@syzygy/@g; s@(.*/)?DON/src/@../@g' \
+		> $@.tmp
+	@mv $@.tmp $@
 
 # Include .depend only if no special goal is requested
 ifeq ($(filter $(MAKECMDGOALS), help strip install clean objclean profileclean net format config-sanity install-hooks), )
