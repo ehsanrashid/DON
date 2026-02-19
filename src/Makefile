@@ -665,17 +665,18 @@ endif
 
 ### Detect if GCC is actually Clang, to adjust profile build targets
 ifeq ($(COMP), gcc)
-    # Skip false positive on macOS
-    ifneq ($(OS), Darwin)
-        gcc_version := $(shell $(CXX) --version 2>/dev/null)
-        gcc_is_clang := $(findstring clang, $(gcc_version))
-    else
-        gcc_is_clang :=
-    endif
+    gcc_version        := $(shell $(CXX) --version 2>/dev/null)
+    gcc_is_clang       := $(findstring clang, $(gcc_version))
+    gcc_is_apple_clang := $(findstring Apple, $(gcc_version))
+    # Real Clang (not Apple Clang) -> use clang profile targets
     ifneq ($(gcc_is_clang), )
-        profile_make = clang-profile-make
-        profile_use = clang-profile-use
-    else
+        ifeq ($(gcc_is_apple_clang), )
+            profile_make = clang-profile-make
+            profile_use = clang-profile-use
+        endif
+    endif
+    # True GCC -> add stack-usage warning
+    ifeq ($(gcc_is_clang), )
         CXXFLAGS += -Wstack-usage=128000
     endif
 endif
@@ -969,8 +970,6 @@ ifeq ($(optimize), yes)
     endif
 endif
 
-CXXFLAGS += -pipe
-
 # Windows + GCC (not Clang): avoid inline dllexport issues in DLLs
 ifeq ($(target_windows), yes)
     ifeq ($(COMP), gcc)
@@ -978,18 +977,13 @@ ifeq ($(target_windows), yes)
             CXXFLAGS += -fno-keep-inline-dllexport
         endif
     endif
+else
+    # only add -pipe on non-Windows
+    CXXFLAGS += -pipe
 endif
 
-# ----------------------------------------------------------------------------
-# Portable filesystem helpers
-# ----------------------------------------------------------------------------
-ifeq ($(OS), Windows_NT)
-    MKDIR  := mkdir -p -m 755
-    CP     := cp
-else
-    MKDIR  := mkdir -p -m 755
-    CP     := cp
-endif
+MKDIR  := mkdir -p -m 755
+CP     := cp
 
 ### ==========================================================================
 ### Section 4. Public Targets
