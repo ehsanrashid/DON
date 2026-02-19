@@ -1126,7 +1126,7 @@ Score::Score(Value v, const Position& pos) noexcept {
         constexpr int TB_CP = 20000;
 
         int ply = VALUE_TB - constexpr_abs(v);
-        score   = Tablebase{v > 0 ? +TB_CP - ply : -TB_CP - ply};
+        score   = Tablebase{v > 0 ? +TB_CP - ply : -TB_CP + ply};
     }
     else
     {
