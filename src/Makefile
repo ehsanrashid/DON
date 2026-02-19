@@ -665,8 +665,13 @@ endif
 
 ### Detect if GCC is actually Clang, to adjust profile build targets
 ifeq ($(COMP), gcc)
-    gcc_version := $(shell $(CXX) --version 2>/dev/null)
-    gcc_is_clang := $(findstring clang, $(gcc_version))
+    # Skip false positive on macOS
+    ifneq ($(OS), Darwin)
+        gcc_version := $(shell $(CXX) --version 2>/dev/null)
+        gcc_is_clang := $(findstring clang, $(gcc_version))
+    else
+        gcc_is_clang :=
+    endif
     ifneq ($(gcc_is_clang), )
         profile_make = clang-profile-make
         profile_use = clang-profile-use
