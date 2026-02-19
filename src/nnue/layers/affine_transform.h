@@ -53,12 +53,16 @@ inline void transform_affine_non_ssse3(
   const StdArray<std::int8_t, OutputDimensions * PaddedInputDimensions>& weights,
   const std::uint8_t* RESTRICT                                           input,
   std::int32_t* RESTRICT                                                 output) noexcept {
-    #if defined(USE_SSE2) || defined(USE_NEON)
+    #if defined(USE_SSE2) || defined(USE_MMX) || defined(USE_NEON)
         #if defined(USE_SSE2)
-    // At least a multiple of 16, with SSE2.
+    // At least a multiple of 16, with SSE2
     constexpr IndexType ChunkCount  = ceil_to_multiple<IndexType>(InputDimensions, 16) / 16;
     const auto*         inputVector = reinterpret_cast<const __m128i*>(input);
     const __m128i       Zeros       = _mm_setzero_si128();
+        #elif defined(USE_MMX)
+    constexpr IndexType ChunkCount  = ceil_to_multiple<IndexType>(InputDimensions, 8) / 8;
+    const auto          inputVector = reinterpret_cast<const __m64*>(input);
+    const __m64         Zeros       = _mm_setzero_si64();
         #elif defined(USE_NEON)
     using namespace SIMD;
     constexpr IndexType ChunkCount  = ceil_to_multiple<IndexType>(InputDimensions, 16) / 16;
@@ -96,6 +100,29 @@ inline void transform_affine_non_ssse3(
         sum             = _mm_add_epi32(sum, loSum32);
         output[i]       = _mm_cvtsi128_si32(sum);
 
+        #elif defined(USE_MMX)
+
+        __m64       loSum = _mm_cvtsi32_si64(biases[i]);
+        __m64       hiSum = Zeros;
+        const auto* row   = reinterpret_cast<const __m64*>(&weights[offset]);
+
+        for (IndexType j = 0; j < ChunkCount; ++j)
+        {
+            __m64 row_j           = row[j];
+            __m64 input_j         = inputVector[j];
+            __m64 loExtendedRow   = _mm_srai_pi16(_mm_unpacklo_pi8(row_j, row_j), 8);
+            __m64 hiExtendedRow   = _mm_srai_pi16(_mm_unpackhi_pi8(row_j, row_j), 8);
+            __m64 loExtendedInput = _mm_unpacklo_pi8(input_j, Zeros);
+            __m64 hiExtendedInput = _mm_unpackhi_pi8(input_j, Zeros);
+            __m64 loProduct       = _mm_madd_pi16(loExtendedRow, loExtendedInput);
+            __m64 hiProduct       = _mm_madd_pi16(hiExtendedRow, hiExtendedInput);
+            loSum                 = _mm_add_pi32(loSum, loProduct);
+            hiSum                 = _mm_add_pi32(hiSum, hiProduct);
+        }
+        __m64 sum = _mm_add_pi32(loSum, hiSum);
+        sum       = _mm_add_pi32(sum, _mm_unpackhi_pi32(sum, sum));
+        output[i] = _mm_cvtsi64_si32(sum);
+
         #elif defined(USE_NEON)
 
         int32x4_t   sum = {biases[i]};
@@ -112,6 +139,11 @@ inline void transform_affine_non_ssse3(
 
         #endif
     }
+
+        #if defined(USE_MMX)
+    _mm_empty();
+        #endif
+
     #else
     std::memcpy(output, biases.data(), OutputDimensions * sizeof(std::int32_t));
 

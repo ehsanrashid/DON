@@ -422,9 +422,9 @@ endif
 
 ifeq ($(findstring e2k, $(ARCH)), e2k)
     arch = e2k
-    mmx = yes
     bits = 64
     sse = yes
+    mmx = yes
     sse2 = yes
     ssse3 = yes
     sse41 = yes
@@ -809,6 +809,7 @@ ifeq ($(sse2), yes)
 endif
 
 ifeq ($(mmx), yes)
+    #CXXFLAGS += -DUSE_MMX
     ifeq ($(comp), $(filter $(comp), gcc clang mingw icx))
         CXXFLAGS += -mmmx
     endif
@@ -1003,7 +1004,7 @@ help:
 	echo "x86-32-sse41-popcnt     > x86 32-bit with sse41 and popcnt support" && \
 	echo "x86-32-sse41            > x86 32-bit with sse41 support" && \
 	echo "x86-32-sse2             > x86 32-bit with sse2 support" && \
-	echo "x86-32                  > x86 32-bit generic (with mmx compile support)" && \
+	echo "x86-32                  > x86 32-bit generic (with mmx support)" && \
 	echo "general-32              > unspecified 32-bit" && \
 	echo "ppc-64-altivec          > PPC 64-bit with altivec support" && \
 	echo "ppc-64-vsx              > PPC 64-bit with vsx support" && \

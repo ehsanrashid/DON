@@ -39,15 +39,18 @@ class Options;
 class Score final {
    public:
     struct Unit final {
+       public:
         int value;
     };
 
     struct Tablebase final {
+       public:
         int  ply;
         bool win;
     };
 
     struct Mate final {
+       public:
         int ply;
     };
 

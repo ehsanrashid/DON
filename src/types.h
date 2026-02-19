@@ -386,12 +386,12 @@ inline constexpr Value VALUE_DRAW = VALUE_ZERO;
 inline constexpr Value VALUE_NONE     = 0x7FFF;
 inline constexpr Value VALUE_INFINITE = VALUE_NONE - 1;
 
-inline constexpr Value VALUE_MATE             = VALUE_INFINITE - 1;
-inline constexpr Value VALUE_MATES_IN_1       = VALUE_MATE - 1;
-inline constexpr Value VALUE_MATES_IN_MAX_PLY = VALUE_MATE - MAX_PLY;
-inline constexpr Value VALUE_MATED_IN_MAX_PLY = -VALUE_MATES_IN_MAX_PLY;
+inline constexpr Value VALUE_MATE                 = VALUE_INFINITE - 1;
+inline constexpr Value VALUE_MATE_WIN_IN_1        = VALUE_MATE - 1;
+inline constexpr Value VALUE_MATE_WIN_IN_MAX_PLY  = VALUE_MATE - MAX_PLY;
+inline constexpr Value VALUE_MATE_LOSS_IN_MAX_PLY = -VALUE_MATE_WIN_IN_MAX_PLY;
 
-inline constexpr Value VALUE_TB                 = VALUE_MATES_IN_MAX_PLY - 1;
+inline constexpr Value VALUE_TB                 = VALUE_MATE_WIN_IN_MAX_PLY - 1;
 inline constexpr Value VALUE_TB_WIN_IN_MAX_PLY  = VALUE_TB - MAX_PLY;
 inline constexpr Value VALUE_TB_LOSS_IN_MAX_PLY = -VALUE_TB_WIN_IN_MAX_PLY;
 
@@ -443,13 +443,13 @@ constexpr bool is_decisive(Value value) noexcept { return is_win(value) || is_lo
 constexpr bool is_mate_win(Value value) noexcept {
     assert(is_valid(value));
 
-    return value >= VALUE_MATES_IN_MAX_PLY;
+    return value >= VALUE_MATE_WIN_IN_MAX_PLY;
 }
 
 constexpr bool is_mate_loss(Value value) noexcept {
     assert(is_valid(value));
 
-    return value <= VALUE_MATED_IN_MAX_PLY;
+    return value <= VALUE_MATE_LOSS_IN_MAX_PLY;
 }
 
 // Check if the value represents a mate score (win or loss)

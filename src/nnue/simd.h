@@ -30,6 +30,8 @@
     #include <tmmintrin.h>
 #elif defined(USE_SSE2)
     #include <emmintrin.h>
+#elif defined(USE_MMX)
+    #include <mmintrin.h>
 #elif defined(USE_NEON)
     #include <arm_neon.h>
 #else
@@ -183,6 +185,39 @@ inline __m128i vec_convert_8_16(std::uint64_t a) noexcept {
         #define MaxRegisterCount 6
     #endif
     #define MaxChunkSize 16
+
+#elif defined(USE_MMX)
+using vec_t      = __m64;
+using vec128_t   = __m64;
+using psqt_vec_t = __m64;
+using vec_uint_t = __m64;
+using vec_i8_t   = __m64;
+    #define vec_load(a) (*(a))
+    #define vec_store(a, b) *(a) = (b)
+    #define vec_add_16(a, b) _mm_add_pi16(a, b)
+    #define vec_sub_16(a, b) _mm_sub_pi16(a, b)
+    #define vec_mulhi_16(a, b) _mm_mulhi_pi16(a, b)
+    #define vec_zero() _mm_setzero_si64()
+    #define vec_set_16(a) _mm_set1_pi16(a)
+inline vec_t vec_max_16(vec_t a, vec_t b) noexcept {
+    vec_t comparison = _mm_cmpgt_pi16(a, b);
+    return _mm_or_si64(_mm_and_si64(comparison, a), _mm_andnot_si64(comparison, b));
+}
+inline vec_t vec_min_16(vec_t a, vec_t b) noexcept {
+    vec_t comparison = _mm_cmpgt_pi16(a, b);
+    return _mm_or_si64(_mm_and_si64(comparison, b), _mm_andnot_si64(comparison, a));
+}
+    #define vec_slli_16(a, b) _mm_slli_pi16(a, b)
+    #define vec_packus_16(a, b) _mm_packs_pu16(a, b)
+    //#define vec_msb_pack_16(a, b) _mm_packs_pi16(_mm_srli_pi16(a, 7), _mm_srli_pi16(b, 7))
+    #define vec_load_psqt(a) (*(a))
+    #define vec_store_psqt(a, b) *(a) = (b)
+    #define vec_add_psqt_32(a, b) _mm_add_pi32(a, b)
+    #define vec_sub_psqt_32(a, b) _mm_sub_pi32(a, b)
+    #define vec_zero_psqt() _mm_setzero_si64()
+    #define vec_cleanup() _mm_empty()
+    #define MaxRegisterCount 8
+    #define MaxChunkSize 8
 
 #elif defined(USE_NEON)
 using vec_i8x8_t __attribute__((may_alias))  = int8x8_t;

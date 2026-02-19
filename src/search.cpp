@@ -642,14 +642,14 @@ void Worker::iterative_deepening() noexcept {
             continue;
 
         // Have found "mate in x"?
-        if (limit.mate != 0 && rootMoves[0].curValue == rootMoves[0].uciValue
-            && (  // Check for mate win
-              (rootMoves[0].curValue != +VALUE_INFINITE && is_mate_win(rootMoves[0].curValue)
-               && VALUE_MATE - rootMoves[0].curValue <= 2 * limit.mate)
-              // Check for mate loss
-              || (rootMoves[0].curValue != -VALUE_INFINITE && is_mate_loss(rootMoves[0].curValue)
-                  && VALUE_MATE + rootMoves[0].curValue <= 2 * limit.mate)))
-            threads.request_stop();
+        if (limit.mate != 0 && rootMoves[0].curValue == rootMoves[0].uciValue)
+        {
+            auto value = rootMoves[0].curValue;
+            bool mate  = (value != +VALUE_INFINITE && is_mate_win(value))   // mate-win
+                     || (value != -VALUE_INFINITE && is_mate_loss(value));  // mate-loss
+            if (mate && VALUE_MATE - constexpr_abs(value) <= 2 * limit.mate)
+                threads.request_stop();
+        }
 
         // If the skill is enabled and time is up, pick a sub-optimal best move
         if (mainManager->skill.enabled() && mainManager->skill.time_to_pick(rootDepth))

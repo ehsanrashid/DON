@@ -741,6 +741,9 @@ void update_threats_accumulator_full(Color                                 persp
               featureTransformer.threatPsqtWeights[index * PSQTBuckets + i];
     }
 #endif
+#if defined(USE_MMX)
+    vec_cleanup();
+#endif
 }
 
 }  // namespace

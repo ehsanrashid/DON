@@ -395,7 +395,7 @@ class Position final {
 
     static inline bool Chess960 = false;
 
-    static inline std::uint8_t DrawMoveCount = 50;
+    static inline std::uint16_t DrawMoveCount = 50;
 
    private:
     struct Castlings final {
@@ -1250,7 +1250,7 @@ inline bool Position::SEE::operator>(int threshold) const noexcept {
 inline bool Position::SEE::operator<=(int threshold) const noexcept { return !(*this > threshold); }
 inline bool Position::SEE::operator<(int threshold) const noexcept { return !(*this >= threshold); }
 
-inline std::uint8_t rule50_threshold(std::int8_t r50 = -4) noexcept {
+inline std::uint16_t rule50_threshold(std::int16_t r50 = -4) noexcept {
     assert(r50 >= -2 * Position::DrawMoveCount);
 
     return r50 + 2 * Position::DrawMoveCount;
