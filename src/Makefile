@@ -504,7 +504,6 @@ ifeq ($(COMP), gcc)
                 profile_use  = clang-profile-use
             endif
         else
-            # True GCC -> add stack usage warning
             CXXFLAGS += -Wstack-usage=128000
         endif
     endif
@@ -512,11 +511,11 @@ ifeq ($(COMP), gcc)
     ifeq ($(arch), $(filter $(arch), armv7 armv8 riscv64 loongarch64))
         ifeq ($(OS), Android)
             CXXFLAGS += -m$(bits)
-            LDFLAGS  += -m$(bits)
+            LDFLAGS += -m$(bits)
         endif
     else
         CXXFLAGS += -m$(bits)
-        LDFLAGS  += -m$(bits)
+        LDFLAGS += -m$(bits)
     endif
     # Atomic library for specific architectures
     ifeq ($(arch), $(filter $(arch), armv7 riscv64 loongarch64))
@@ -574,7 +573,7 @@ ifeq ($(COMP), clang)
     ifeq ($(arch), $(filter $(arch), armv7 armv8 riscv64 loongarch64))
         ifeq ($(OS), Android)
             CXXFLAGS += -m$(bits)
-            LDFLAGS  += -m$(bits)
+            LDFLAGS += -m$(bits)
         endif
         # Atomic library for specific architectures
         ifeq ($(arch), $(filter $(arch), armv7 riscv64 loongarch64))
@@ -583,7 +582,7 @@ ifeq ($(COMP), clang)
     else
         # Generic architectures
         CXXFLAGS += -m$(bits)
-        LDFLAGS  += -m$(bits)
+        LDFLAGS += -m$(bits)
     endif
     # Add std::filesystem library for Linux/Clang
     ifeq ($(KERNEL), Linux)
@@ -968,8 +967,8 @@ ifeq ($(target_windows), yes)
             CXXFLAGS += -fno-keep-inline-dllexport
         endif
     endif
-else
-    # only add -pipe on non-Windows
+# only add -pipe on non-Windows, non-macOS
+else ifneq ($(KERNEL), Darwin)
     CXXFLAGS += -pipe
 endif
 
