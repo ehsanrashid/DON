@@ -476,7 +476,7 @@ endif
 
 CXXFLAGS = $(ENV_CXXFLAGS) -Wall -Wcast-qual -fno-exceptions -std=c++17 $(EXTRACXXFLAGS)
 DEPENDFLAGS = $(ENV_DEPENDFLAGS) -Wall -Wcast-qual -std=c++17
-LDFLAGS = $(ENV_LDFLAGS) $(EXTRALDFLAGS)
+LDFLAGS = $(ENV_LDFLAGS) $(EXTRALDFLAGS) $(EXTRACXXFLAGS)
 
 ifeq ($(COMP),)
     COMP=gcc
