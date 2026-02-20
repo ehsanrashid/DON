@@ -547,20 +547,22 @@ else
 endif
 # Architectures with special handling
 # Atomic library for specific architectures (not armv8)
-ifneq ($(filter armv7 armv8 riscv64,$(arch)),)
+ifneq ($(filter armv8 armv7 riscv64,$(arch)),)
 ifeq ($(OS),Android)
     CXXFLAGS += -m$(bits)
     LDFLAGS  += -m$(bits)
 endif
-ifeq ($(arch),riscv64)
+ifneq ($(filter armv7 riscv64,$(arch)),)
     LDFLAGS += -latomic
 endif
-else ifeq ($(arch),loongarch64)
+else
+ifeq ($(arch),loongarch64)
     LDFLAGS += -latomic
 # Generic architectures
 else
     CXXFLAGS += -m$(bits)
     LDFLAGS  += -m$(bits)
+endif
 endif
 
 else
@@ -584,20 +586,22 @@ endif
 endif
 # Architectures with special handling
 # Atomic library for specific architectures (not armv8)
-ifneq ($(filter armv7 armv8 riscv64,$(arch)),)
+ifneq ($(filter armv8 armv7 riscv64,$(arch)),)
 ifeq ($(OS),Android)
     CXXFLAGS += -m$(bits)
     LDFLAGS  += -m$(bits)
 endif
-ifeq ($(arch),riscv64)
+ifneq ($(filter armv7 riscv64,$(arch)),)
     LDFLAGS += -latomic
 endif
-else ifeq ($(arch),loongarch64)
+else
+ifeq ($(arch),loongarch64)
     LDFLAGS += -latomic
 # Generic architectures
 else
     CXXFLAGS += -m$(bits)
     LDFLAGS  += -m$(bits)
+endif
 endif
 # Link the separate filesystem library for Linux/Clang.
 # Older versions of Clang (pre-9) require -lstdc++fs to use std::filesystem,
