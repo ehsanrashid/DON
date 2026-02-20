@@ -930,35 +930,39 @@ ifeq ($(optimize), yes)
             endif
         endif
 
-        ifneq ($(filter clang icx ndk, $(COMP)), )
-            CXXFLAGS += -flto=full
-            ifeq ($(COMP), icx)
-                CXXFLAGS += -fwhole-program-vtables
-            endif
-            LDFLAGS += $(CXXFLAGS)
+        # Determine LTO flags
+        LTO_FLAGS :=
+        LDFLTO_EXTRA :=
 
         # GCC and CLANG use different methods for parallelizing LTO
         # and CLANG pretends to be GCC on some systems.
+        ifeq ($(filter clang icx ndk, $(COMP)), )
+            # Do nothing for Clang/ICX/NDK here; handled elsewhere
         else ifeq ($(COMP), gcc)
-            ifeq ($(KERNEL), Darwin)
-                # macOS + GCC: Don't add LTO
-                LDFLAGS += $(CXXFLAGS)
-            else
+            ifneq ($(KERNEL), Darwin)
                 ifeq ($(gcc_is_clang), )
-                    CXXFLAGS += -flto -flto-partition=one
-                    LDFLAGS += $(CXXFLAGS) -flto=jobserver
+                    # GCC (not pretending to be clang) uses parallel LTO
+                    LTO_FLAGS := -flto -flto-partition=one
+                    LDFLTO_EXTRA := -flto=jobserver
                 else
-                    CXXFLAGS += -flto=full
-                    LDFLAGS += $(CXXFLAGS)
+                    # GCC pretending to be clang
+                    LTO_FLAGS := -flto=full
                 endif
             endif
-
         # To use LTO and static linking on Windows,
         # the tool chain requires gcc version 10.1 or later.
         else ifeq ($(COMP), mingw)
-            CXXFLAGS += -flto -flto-partition=one
-            LDFLAGS += $(CXXFLAGS) -flto=jobserver -save-temps
+            LTO_FLAGS := -flto -flto-partition=one
+            LDFLTO_EXTRA := -flto=jobserver -save-temps
         endif
+        # ICX-specific flags
+        ifeq ($(COMP), icx)
+            LTO_FLAGS := -flto=full -fwhole-program-vtables
+        endif
+
+        # Apply LTO flags
+        CXXFLAGS += $(LTO_FLAGS)
+        LDFLAGS  += $(LTO_FLAGS) $(LDFLTO_EXTRA)
     endif
 endif
 
