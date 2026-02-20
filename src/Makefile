@@ -27,12 +27,29 @@ ifeq ($(KERNEL),Linux)
     OS := $(shell { uname -o 2>/dev/null || echo Linux; })
 endif
 
+OS_WINDOWS := no
+### Windows OS
+ifeq ($(OS),Windows_NT)
+ifneq ($(COMP),ndk)
+    OS_WINDOWS := yes
+endif
+else
+ifeq ($(COMP),mingw)
+    OS_WINDOWS := yes
+ifeq ($(RUN_PREFIX),)
+    RUN_PREFIX := $(shell which wine)
+endif
+endif
+endif
+
 ### Command prefix to run the built executable (e.g. wine, sde, qemu)
 ### Backward compatible alias: WINE_PATH (deprecated)
 ifneq ($(strip $(WINE_PATH)),)
+# Only assign RUN_PREFIX if empty
 ifeq ($(strip $(RUN_PREFIX)),)
     RUN_PREFIX := $(WINE_PATH)
 endif
+# Top-level warnings
 ifeq ($(MAKELEVEL),0)
 ifneq ($(strip $(RUN_PREFIX)),$(strip $(WINE_PATH)))
     $(warning *** Both RUN_PREFIX and WINE_PATH are set; ignoring WINE_PATH. ***)
@@ -42,24 +59,9 @@ endif
 endif
 endif
 
-target_windows := no
-### Target Windows OS
-ifeq ($(OS),Windows_NT)
-ifneq ($(COMP),ndk)
-    target_windows := yes
-endif
-else
-ifeq ($(COMP),mingw)
-    target_windows := yes
-ifeq ($(RUN_PREFIX),)
-    RUN_PREFIX := $(shell which wine)
-endif
-endif
-endif
-
 ### Executable name
 NAME := DON
-ifeq ($(target_windows),yes)
+ifeq ($(OS_WINDOWS),yes)
     EXE := $(NAME).exe
 else
     EXE := $(NAME)
@@ -157,16 +159,16 @@ ifeq ($(ARCH),native)
 endif
 
 # Explicitly check for the list of supported architectures (as listed with make help),
-# User can override with 'make ARCH=x86-64-avx512icl SUPPORTED_ARCH=yes'
+# User can override with 'make ARCH=x86-64-avx512icl ARCH_SUPPORT=yes'
 ifneq ($(filter x86-64-avx512icl-comp x86-64-avx512icl x86-64-vnni512-comp x86-64-vnni512 x86-64-vnni256-comp x86-64-vnni256 \
                 x86-64-avx512-comp x86-64-avx512 x86-64-avxvnni-comp x86-64-avxvnni x86-64-bmi2-comp x86-64-bmi2 \
                 x86-64-avx2 x86-64-sse41-popcnt x86-64-modern x86-64-sse41 x86-64-ssse3-popcnt x86-64-ssse3 x86-64 general-64 \
                 x86-32-sse41-popcnt x86-32-sse41 x86-32-sse2 x86-32 general-32 \
                 ppc-64-altivec ppc-64-vsx ppc-64 ppc-32 e2k armv7-neon armv7 armv8-dotprod armv8 apple-silicon riscv64 \
                 loongarch64-lasx loongarch64-lsx loongarch64,$(ARCH)),)
-   SUPPORTED_ARCH = yes
+   ARCH_SUPPORT = yes
 else
-   SUPPORTED_ARCH = no
+   ARCH_SUPPORT = no
 endif
 
 optimize = yes
@@ -198,11 +200,24 @@ lsx = no
 lasx = no
 STRIP = strip
 
-ifneq ($(shell which clang-format-20 2>/dev/null),)
-    CLANG_FORMAT = clang-format-20
+# Cross-platform command to detect executable
+ifeq ($(OS_WINDOWS),yes)
+    FIND_EXE = where $1 2>nul
 else
-    CLANG_FORMAT = clang-format
+    FIND_EXE = command -v $1 2>/dev/null
 endif
+
+# -------------------------------------------
+# Detect clang-format (prefer newest version)
+# -------------------------------------------
+CLANG_FORMAT := $(or \
+    $(if $(shell $(call FIND_EXE,clang-format-20)),clang-format-20), \
+    $(if $(shell $(call FIND_EXE,clang-format-19)),clang-format-19), \
+    $(if $(shell $(call FIND_EXE,clang-format-18)),clang-format-18), \
+    clang-format)
+
+# Optional: log which one was chosen
+#$(info Using CLANG_FORMAT = $(CLANG_FORMAT))
 
 ### 2.2 Architecture specific
 
@@ -484,16 +499,19 @@ ifeq ($(COMP),)
     COMP=gcc
 endif
 
-ifeq ($(target_windows),yes)
+ifeq ($(OS_WINDOWS),yes)
     LDFLAGS += -static
 endif
 
 # ----------------------------
 # Compiler configuration
 # ----------------------------
-gcc_version :=
-gcc_is_clang :=
-gcc_is_apple_clang :=
+
+# Detect if GCC is actually Clang
+GCC_VERSION := $(shell $(CXX) --version 2>/dev/null)
+GCC_CLANG := $(if $(findstring clang,$(GCC_VERSION)),yes,no)
+GCC_APPLE_CLANG := $(if $(findstring Apple,$(GCC_VERSION)),yes,no)
+GCC_GNU_LD := $(shell $(CXX) -Wl,--version 2>/dev/null | grep -iq "GNU ld" && echo yes)
 
 ifeq ($(COMP),gcc)
     CXX=g++
@@ -504,38 +522,31 @@ ifeq ($(KERNEL),Darwin)
 # Non-Darwin GCC
 else
     CXXFLAGS += -Wno-stringop-overflow
-    # Detect if GCC is actually Clang
-    gcc_version := $(shell $(CXX) --version 2>/dev/null)
-    gcc_is_clang := $(findstring clang,$(gcc_version))
-    gcc_is_apple_clang := $(findstring Apple,$(gcc_version))
 # Detect GNU ld separately
-ifeq ($(shell $(CXX) -Wl,--version 2>/dev/null | grep -iq "GNU ld" && echo yes),yes)
+ifeq ($(GCC_GNU_LD),yes)
     LDFLAGS += -Wl,--no-as-needed
 endif
 # Profile build adjustments for Clang masquerading as GCC
-ifneq ($(gcc_is_clang),)
-ifeq ($(gcc_is_apple_clang),)
+ifeq ($(GCC_CLANG),yes)
+ifeq ($(GCC_APPLE_CLANG),no)
 # Link std::filesystem for Linux Clang masquerading as GCC
 ifeq ($(KERNEL),Linux)
     LDFLAGS += -lstdc++fs
 endif
+endif
+endif
+endif
+# Set profile targets outside Darwin/non-Darwin split
+ifeq ($(GCC_CLANG),yes)
     profile_make = clang-profile-make
     profile_use  = clang-profile-use
-endif
-# Real GCC
 else
-    # Real GCC will fall through to common flags below
-    :
-endif
-endif
-# ---- COMMON FLAGS FOR REAL GCC ----
-ifeq ($(gcc_is_clang),)
     CXXFLAGS += -Wstack-usage=128000
     profile_make = gcc-profile-make
     profile_use  = gcc-profile-use
 endif
 # Architecture-specific flags
-ifneq ($(filter armv7 armv8 riscv64 loongarch64,$(arch)),)
+ifneq ($(filter armv8 armv7 riscv64 loongarch64,$(arch)),)
 ifeq ($(OS),Android)
     CXXFLAGS += -m$(bits)
     LDFLAGS += -m$(bits)
@@ -553,7 +564,7 @@ endif
 else
 ifeq ($(COMP),clang)
     CXX=clang++
-ifeq ($(target_windows),yes)
+ifeq ($(OS_WINDOWS),yes)
 ifeq ($(bits),64)
     CXX=x86_64-w64-mingw32-clang++
 else
@@ -562,7 +573,7 @@ endif
 endif
     CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-prototypes -Wconditional-uninitialized -flax-vector-conversions=none
 # Atomic library for non-Windows and non-[Darwin/FreeBSD/OpenBSD] (unless compiler-rt)
-ifneq ($(target_windows),yes)
+ifneq ($(OS_WINDOWS),yes)
 ifeq ($(filter $(KERNEL),Darwin OpenBSD FreeBSD),)
 ifneq ($(RTLIB),compiler-rt)
     LDFLAGS += -latomic
@@ -570,7 +581,7 @@ endif
 endif
 endif
 # Architecture-specific flags
-ifneq ($(filter armv7 armv8 riscv64 loongarch64,$(arch)),)
+ifneq ($(filter armv8 armv7 riscv64 loongarch64,$(arch)),)
 ifeq ($(OS),Android)
     CXXFLAGS += -m$(bits)
     LDFLAGS += -m$(bits)
@@ -708,7 +719,7 @@ ifneq ($(OS),Android)
 ifneq ($(KERNEL),Haiku)
 ifneq ($(COMP),ndk)
     LDFLAGS += -lpthread
-ifneq ($(target_windows),yes)
+ifneq ($(OS_WINDOWS),yes)
 ifneq ($(KERNEL),Darwin)
     LDFLAGS += -lrt
 endif
@@ -1005,7 +1016,7 @@ endif
 
 # Windows + GCC (not Clang):
 # Avoid inline dllexport issues specific to GCC-built DLLs.
-ifeq ($(target_windows),yes)
+ifeq ($(OS_WINDOWS),yes)
 ifeq ($(COMP),gcc)
 ifeq ($(gcc_is_clang),)
     CXXFLAGS += -fno-keep-inline-dllexport
@@ -1101,7 +1112,7 @@ help:
 	echo "make -j profile-build ARCH=x86-64-avxvnni COMP=gcc COMPCXX=g++-12.0" && \
 	echo "make -j build ARCH=x86-64-ssse3 COMP=clang" && \
 	echo ""
-	@if [ "$(SUPPORTED_ARCH)" = "no" ]; then \
+	@if [ "$(ARCH_SUPPORT)" = "no" ]; then \
 		echo "Specify a supported architecture with the ARCH option for more details"; \
 		echo ""; \
 	fi
@@ -1167,6 +1178,7 @@ net:
 	@$(SHELL) ../scripts/net.sh
 
 format:
+	@echo CLANG_FORMAT=$(CLANG_FORMAT)
 	@if [ -n "$(SRCS)$(HEADERS)" ]; then \
 	    $(CLANG_FORMAT) -i -style=file $(SRCS) $(HEADERS); \
 	fi
@@ -1220,7 +1232,7 @@ config-sanity: net
 	echo "arm_version: '$(arm_version)'" && \
 	echo "lsx: '$(lsx)'" && \
 	echo "lasx: '$(lasx)'" && \
-	echo "target_windows: '$(target_windows)'" && \
+	echo "OS_WINDOWS: '$(OS_WINDOWS)'" && \
 	echo "COMP: '$(COMP)'" && \
 	echo "" && \
 	echo "Flags:" && \
@@ -1233,7 +1245,7 @@ config-sanity: net
 	echo "" && \
 	(test "$(debug)" = "yes" || test "$(debug)" = "no") && \
 	(test "$(optimize)" = "yes" || test "$(optimize)" = "no") && \
-	(test "$(SUPPORTED_ARCH)" = "yes") && \
+	(test "$(ARCH_SUPPORT)" = "yes") && \
 	(test "$(arch)" = "any" || test "$(arch)" = "i386" || test "$(arch)" = "x86_64" || \
 	 test "$(arch)" = "ppc" || test "$(arch)" = "ppc64" || test "$(arch)" = "e2k" || \
 	 test "$(arch)" = "armv7" || test "$(arch)" = "armv8" || test "$(arch)" = "arm64" || \

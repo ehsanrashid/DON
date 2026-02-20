@@ -8,6 +8,7 @@ src/.depend
 src/DON*
 src/-lstdc++.res
 /src/profdir
+src/nul
 
 # Neural network for the NNUE evaluation
 *.nnue
