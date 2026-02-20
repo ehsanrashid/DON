@@ -33,21 +33,6 @@ else
     OS := $(KERNEL)
 endif
 
-OS_WINDOWS := no
-### Windows OS
-ifeq ($(OS),Windows_NT)
-ifneq ($(COMP),ndk)
-    OS_WINDOWS := yes
-endif
-else
-ifeq ($(COMP),mingw)
-    OS_WINDOWS := yes
-ifeq ($(RUN_PREFIX),)
-    RUN_PREFIX := $(shell which wine)
-endif
-endif
-endif
-
 ### Command prefix to run the built executable (e.g. wine, sde, qemu)
 ### Backward compatible alias: WINE_PATH (deprecated)
 ifneq ($(strip $(WINE_PATH)),)
@@ -61,6 +46,21 @@ ifneq ($(strip $(RUN_PREFIX)),$(strip $(WINE_PATH)))
     $(warning *** Both RUN_PREFIX and WINE_PATH are set; ignoring WINE_PATH. ***)
 else
     $(warning *** WINE_PATH is deprecated; use RUN_PREFIX instead. ***)
+endif
+endif
+endif
+
+OS_WINDOWS := no
+### Windows OS
+ifeq ($(OS),Windows_NT)
+ifneq ($(COMP),ndk)
+    OS_WINDOWS := yes
+endif
+else
+ifeq ($(COMP),mingw)
+    OS_WINDOWS := yes
+ifeq ($(RUN_PREFIX),)
+    RUN_PREFIX := $(shell command -v wine 2>/dev/null || echo "")
 endif
 endif
 endif
@@ -185,6 +185,9 @@ endif
 
 # Explicitly check for the list of supported architectures (as listed with make help),
 # User can override with 'make ARCH=x86-64-avx512icl ARCH_SUPPORT=yes'
+# GNU Make filter:
+#   - returns matches, not true/false
+#   - non-empty => ARCH found in supported list
 ifneq ($(filter x86-64-avx512icl-comp x86-64-avx512icl x86-64-vnni512-comp x86-64-vnni512 x86-64-vnni256-comp x86-64-vnni256 \
                 x86-64-avx512-comp x86-64-avx512 x86-64-avxvnni-comp x86-64-avxvnni x86-64-bmi2-comp x86-64-bmi2 \
                 x86-64-avx2 x86-64-sse41-popcnt x86-64-modern x86-64-sse41 x86-64-ssse3-popcnt x86-64-ssse3 x86-64 general-64 \
@@ -514,10 +517,10 @@ endif
 # ----------------------------
 
 # Detect if GCC is actually Clang
-GCC_VERSION := $(shell $(CXX) --version 2>/dev/null)
-GCC_CLANG := $(if $(findstring clang,$(GCC_VERSION)),yes,no)
+GCC_VERSION     := $(shell $(CXX) --version 2>/dev/null)
+GCC_CLANG       := $(if $(findstring clang,$(GCC_VERSION)),yes,no)
 GCC_APPLE_CLANG := $(if $(findstring Apple,$(GCC_VERSION)),yes,no)
-GCC_GNU_LD := $(shell $(CXX) -Wl,--version 2>/dev/null | grep -iq "GNU ld" && echo yes)
+GCC_GNU_LD      := $(shell $(CXX) -Wl,--version 2>/dev/null | grep -iq "GNU ld" && echo yes)
 
 ifeq ($(COMP),gcc)
     CXX=g++
@@ -966,9 +969,11 @@ ifeq ($(LLD_BIN),)
 endif
 # Only add -fuse-ld=lld if found LLD
 ifneq ($(LLD_BIN),)
+# clang always supports -fuse-ld=lld
 ifeq ($(COMP),clang)
     LDFLAGS += -fuse-ld=lld
 else
+# gcc builds that are clang-compatible
 ifeq ($(GCC_CLANG),yes)
     LDFLAGS += -fuse-ld=lld
 endif
@@ -1040,7 +1045,7 @@ endif
 # Enable -pipe for compile speed (disabled for Android NDK due to toolchain issues).
 else
 ifneq ($(KERNEL),Darwin)
-ifeq ($(COMP),ndk)
+ifneq ($(COMP),ndk)
     CXXFLAGS += -pipe
 endif
 endif
@@ -1315,15 +1320,13 @@ clang-profile-use:
 gcc-profile-make:
 	@mkdir -p profdir
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
-	EXTRACXXFLAGS='-fprofile-generate=profdir' \
-	EXTRACXXFLAGS+=$(EXTRAPROFILEFLAGS) \
+	EXTRACXXFLAGS='-fprofile-generate=profdir $(EXTRAPROFILEFLAGS)' \
 	EXTRALDFLAGS='-lgcov' \
 	all
 
 gcc-profile-use:
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
-	EXTRACXXFLAGS='-fprofile-use=profdir -fno-peel-loops -fno-tracer' \
-	EXTRACXXFLAGS+=$(EXTRAPROFILEFLAGS) \
+	EXTRACXXFLAGS='-fprofile-use=profdir -fno-peel-loops -fno-tracer $(EXTRAPROFILEFLAGS)' \
 	EXTRALDFLAGS='-lgcov' \
 	all
 
