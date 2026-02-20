@@ -487,6 +487,9 @@ ifeq ($(target_windows), yes)
     LDFLAGS += -static
 endif
 
+# ----------------------------
+# Compiler configuration
+# ----------------------------
 gcc_version :=
 gcc_is_clang :=
 gcc_is_apple_clang :=
@@ -498,7 +501,7 @@ ifeq ($(COMP), gcc)
     # Non-Darwin flags
     ifneq ($(KERNEL), Darwin)
         CXXFLAGS += -Wno-stringop-overflow
-        # Detect if GCC is actually Clang, to adjust profile build targets
+        # Detect if GCC is actually Clang
         gcc_version := $(shell $(CXX) --version 2>/dev/null)
         gcc_is_clang := $(findstring clang, $(gcc_version))
         gcc_is_apple_clang := $(findstring Apple, $(gcc_version))
@@ -509,23 +512,27 @@ ifeq ($(COMP), gcc)
         # Profile build adjustments for Clang masquerading as GCC
         ifneq ($(gcc_is_clang), )
             ifeq ($(gcc_is_apple_clang), )
+                # Link std::filesystem for Linux Clang masquerading as GCC
+                ifeq ($(KERNEL), Linux)
+                    LDFLAGS += -lstdc++fs
+                endif
                 profile_make = clang-profile-make
                 profile_use  = clang-profile-use
             endif
         # Real GCC
         else
-            profile_make = gcc-profile-make
-            profile_use  = gcc-profile-use
-            ifeq ($(KERNEL), Darwin)
-                EXTRAPROFILEFLAGS = -fvisibility=hidden
-            endif
-            CXXFLAGS += -Wstack-usage=128000
+            # Real GCC will fall through to common flags below
+            :
         endif
     # Darwin GCC
     else
+        EXTRAPROFILEFLAGS = -fvisibility=hidden
+    endif
+    # ---- COMMON FLAGS FOR REAL GCC ----
+    ifeq ($(gcc_is_clang), )
+        CXXFLAGS += -Wstack-usage=128000
         profile_make = gcc-profile-make
         profile_use  = gcc-profile-use
-        EXTRAPROFILEFLAGS = -fvisibility=hidden
     endif
     # Architecture-specific flags
     ifeq ($(arch), $(filter $(arch), armv7 armv8 riscv64 loongarch64))
@@ -540,33 +547,10 @@ ifeq ($(COMP), gcc)
     else
         # Generic architectures
         CXXFLAGS += -m$(bits)
-        LDFLAGS  += -m$(bits)
+        LDFLAGS += -m$(bits)
     endif
-endif
 
-ifeq ($(COMP), mingw)
-    comp=mingw
-
-    ifeq ($(bits), 64)
-        ifeq ($(shell which x86_64-w64-mingw32-c++-posix 2>/dev/null), )
-            CXX=x86_64-w64-mingw32-c++
-        else
-            CXX=x86_64-w64-mingw32-c++-posix
-        endif
-    else
-        ifeq ($(shell which i686-w64-mingw32-c++-posix 2>/dev/null), )
-            CXX=i686-w64-mingw32-c++
-        else
-            CXX=i686-w64-mingw32-c++-posix
-        endif
-    endif
-    CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-declarations
-    # Profile build for mingw (use GCC defaults)
-    profile_make = gcc-profile-make
-    profile_use  = gcc-profile-use
-endif
-
-ifeq ($(COMP), clang)
+else ifeq ($(COMP), clang)
     comp=clang
     CXX=clang++
     ifeq ($(target_windows), yes)
@@ -613,32 +597,38 @@ ifeq ($(COMP), clang)
     # Profile build for Clang
     profile_make = clang-profile-make
     profile_use  = clang-profile-use
-endif
 
-ifeq ($(COMP), icx)
+else ifeq ($(COMP), mingw)
+    comp=mingw
+    ifeq ($(bits), 64)
+        ifeq ($(shell which x86_64-w64-mingw32-c++-posix 2>/dev/null), )
+            CXX=x86_64-w64-mingw32-c++
+        else
+            CXX=x86_64-w64-mingw32-c++-posix
+        endif
+    else
+        ifeq ($(shell which i686-w64-mingw32-c++-posix 2>/dev/null), )
+            CXX=i686-w64-mingw32-c++
+        else
+            CXX=i686-w64-mingw32-c++-posix
+        endif
+    endif
+    CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-declarations
+    # Profile build for mingw (use GCC defaults)
+    profile_make = gcc-profile-make
+    profile_use  = gcc-profile-use
+
+else ifeq ($(COMP), icx)
     comp=icx
     CXX=icpx
     CXXFLAGS += --intel -pedantic -Wextra -Wshadow -Wmissing-prototypes -Wconditional-uninitialized -Wabi -Wdeprecated
     # Profile build for icx
     profile_make = icx-profile-make
     profile_use  = icx-profile-use
-endif
-
-
-ifeq ($(KERNEL), Darwin)
-    CXXFLAGS += -mmacosx-version-min=10.15
-    LDFLAGS += -mmacosx-version-min=10.15
-    ifneq ($(arch), any)
-        CXXFLAGS += -arch $(arch)
-        LDFLAGS += -arch $(arch)
-    endif
-    XCRUN = xcrun
-endif
-
 # To cross-compile for Android, use NDK version r27c or later
-ifeq ($(COMP), ndk)
-    CXXFLAGS += -stdlib=libc++
+else ifeq ($(COMP), ndk)
     comp=clang
+    CXXFLAGS += -stdlib=libc++
     ifeq ($(arch), armv7)
         CXX=armv7a-linux-androideabi29-clang++
         CXXFLAGS += -mthumb -march=armv7-a -mfloat-abi=softfp -mfpu=neon
@@ -647,16 +637,14 @@ ifeq ($(COMP), ndk)
         else
             STRIP=llvm-strip
         endif
-    endif
-    ifeq ($(arch), armv8)
+    else ifeq ($(arch), armv8)
         CXX=aarch64-linux-android29-clang++
         ifneq ($(shell which aarch64-linux-android-strip 2>/dev/null), )
             STRIP=aarch64-linux-android-strip
         else
             STRIP=llvm-strip
         endif
-    endif
-    ifeq ($(arch), x86_64)
+    else ifeq ($(arch), x86_64)
         CXX=x86_64-linux-android29-clang++
         ifneq ($(shell which x86_64-linux-android-strip 2>/dev/null), )
             STRIP=x86_64-linux-android-strip
@@ -668,6 +656,16 @@ ifeq ($(COMP), ndk)
     # Profile build for NDK/Clang
     profile_make = clang-profile-make
     profile_use  = clang-profile-use
+endif
+
+ifeq ($(KERNEL), Darwin)
+    XCRUN = xcrun
+    CXXFLAGS += -mmacosx-version-min=10.15
+    LDFLAGS += -mmacosx-version-min=10.15
+    ifneq ($(arch), any)
+        CXXFLAGS += -arch $(arch)
+        LDFLAGS += -arch $(arch)
+    endif
 endif
 
 ### Allow overwriting CXX from command line
@@ -1230,6 +1228,7 @@ config-sanity: net
 	(test "$(avx512icl)" = "yes" || test "$(avx512icl)" = "no") && \
 	(test "$(altivec)" = "yes" || test "$(altivec)" = "no") && \
 	(test "$(vsx)" = "yes" || test "$(vsx)" = "no") && \
+	(test "$(dotprod)" = "yes" || test "$(dotprod)" = "no") && \
 	(test "$(neon)" = "yes" || test "$(neon)" = "no") && \
 	(test "$(lsx)" = "yes" || test "$(lsx)" = "no") && \
 	(test "$(lasx)" = "yes" || test "$(lasx)" = "no") && \
