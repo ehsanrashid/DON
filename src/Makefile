@@ -18,6 +18,9 @@
 ### Section 1. General Configuration
 ### ==========================================================================
 
+### Ensure Make uses Bash for shell commands
+SHELL := /bin/bash
+
 ### Establish the operating system name
 KERNEL := $(shell uname -s)
 ifeq ($(KERNEL), Linux)
@@ -90,6 +93,12 @@ VPATH := nnue:nnue/features:syzygy
 ### ==========================================================================
 ### Section 2. High-level Configuration
 ### ==========================================================================
+# To add a new ARCH:
+#    1. Update Section 2.1 (general defaults)
+#    2. Update Section 2.2 (architecture-specific settings)
+#    3. Run 'make help' to verify your new architecture appears correctly
+#
+# Note: The order of flags matters; SIMD flags should be enabled after setting bits/arch
 #
 # flag                --- Comp switch        --- Description
 # ----------------------------------------------------------------------------
@@ -112,6 +121,7 @@ VPATH := nnue:nnue/features:syzygy
 # sse41 = yes/no      --- -msse4.1           --- Use Intel Streaming SIMD Extensions 4.1
 # avx2 = yes/no       --- -mavx2             --- Use Intel Advanced Vector Extensions 2
 # bmi2 = yes/no       --- -DUSE_BMI2         --- Use pext & pdep x86_64 asm-instruction
+# _comp = yes/no      --- -DUSE_COMP         --- Internal flag for compressed-optimized variants
 # avxvnni = yes/no    --- -mavxvnni          --- Use Intel Vector Neural Network Instructions AVX
 # avx512 = yes/no     --- -mavx512bw         --- Use Intel Advanced Vector Extensions 512
 # vnni256 = yes/no    --- -mavx256vnni       --- Use Intel Vector Neural Network Instructions 512 with 256bit operands
@@ -123,6 +133,8 @@ VPATH := nnue:nnue/features:syzygy
 # dotprod = yes/no    --- -DUSE_NEON_DOTPROD --- Use ARM advanced SIMD Int8 dot product instructions
 # lsx = yes/no        --- -mlsx              --- Use Loongson SIMD eXtension
 # lasx = yes/no       --- -mlasx             --- use Loongson Advanced SIMD eXtension
+#
+# native              --- Auto-detect best architecture for host CPU using ../scripts/get_native_properties.sh
 #
 # Note that Makefile is space sensitive, so when adding new architectures
 # or modifying existing flags, you have to make sure there are no extra spaces
@@ -464,47 +476,72 @@ ifeq ($(MAKELEVEL), 0)
 endif
 
 CXXFLAGS = $(ENV_CXXFLAGS) -Wall -Wcast-qual -fno-exceptions -std=c++17 $(EXTRACXXFLAGS)
-DEPENDFLAGS = $(ENV_DEPENDFLAGS) -std=c++17
+DEPENDFLAGS = $(ENV_DEPENDFLAGS) -Wall -Wcast-qual -std=c++17
 LDFLAGS = $(ENV_LDFLAGS) $(EXTRALDFLAGS)
 
 ifeq ($(COMP), )
     COMP=gcc
 endif
 
+ifeq ($(target_windows), yes)
+    LDFLAGS += -static
+endif
+
+gcc_version :=
+gcc_is_clang :=
+gcc_is_apple_clang :=
+
 ifeq ($(COMP), gcc)
     comp=gcc
     CXX=g++
-    CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-declarations -Wno-stringop-overflow
-
-    ifeq ($(arch), $(filter $(arch), armv7 armv8 riscv64))
+    CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-declarations
+    # Non-Darwin flags
+    ifneq ($(KERNEL), Darwin)
+        CXXFLAGS += -Wno-stringop-overflow
+        # Detect if GCC is actually Clang, to adjust profile build targets
+        gcc_version := $(shell $(CXX) --version 2>/dev/null)
+        gcc_is_clang := $(findstring clang, $(gcc_version))
+        gcc_is_apple_clang := $(findstring Apple, $(gcc_version))
+        # Detect GNU ld separately
+        ifeq ($(shell $(CXX) -Wl,--version 2>/dev/null | grep -iq "GNU ld" && echo yes), yes)
+            LDFLAGS += -Wl,--no-as-needed
+        endif
+        # Profile build adjustments for Clang masquerading as GCC
+        ifneq ($(gcc_is_clang), )
+            ifeq ($(gcc_is_apple_clang), )
+                profile_make = clang-profile-make
+                profile_use  = clang-profile-use
+            endif
+        # Real GCC
+        else
+            profile_make = gcc-profile-make
+            profile_use  = gcc-profile-use
+            ifeq ($(KERNEL), Darwin)
+                EXTRAPROFILEFLAGS = -fvisibility=hidden
+            endif
+            CXXFLAGS += -Wstack-usage=128000
+        endif
+    # Darwin GCC
+    else
+        profile_make = gcc-profile-make
+        profile_use  = gcc-profile-use
+        EXTRAPROFILEFLAGS = -fvisibility=hidden
+    endif
+    # Architecture-specific flags
+    ifeq ($(arch), $(filter $(arch), armv7 armv8 riscv64 loongarch64))
         ifeq ($(OS), Android)
             CXXFLAGS += -m$(bits)
             LDFLAGS += -m$(bits)
         endif
-        ifeq ($(ARCH), riscv64)
-            CXXFLAGS += -latomic
+        # Atomic library for specific architectures (not armv8)
+        ifeq ($(arch), $(filter $(arch), armv7 riscv64 loongarch64))
+            LDFLAGS += -latomic
         endif
-    else ifeq ($(arch), loongarch64)
-        CXXFLAGS += -latomic
     else
+        # Generic architectures
         CXXFLAGS += -m$(bits)
-        LDFLAGS += -m$(bits)
+        LDFLAGS  += -m$(bits)
     endif
-
-    ifeq ($(arch), $(filter $(arch), armv7))
-        LDFLAGS += -latomic
-    endif
-
-    # Add --no-as-needed ONLY if using GNU ld (not lld, not Darwin)
-    ifneq ($(KERNEL), Darwin)
-        ifeq ($(shell $(CXX) -Wl,--version 2>/dev/null | grep -iq "GNU ld" && echo yes), yes)
-            LDFLAGS += -Wl,--no-as-needed
-        endif
-    endif
-endif
-
-ifeq ($(target_windows), yes)
-    LDFLAGS += -static
 endif
 
 ifeq ($(COMP), mingw)
@@ -524,23 +561,25 @@ ifeq ($(COMP), mingw)
         endif
     endif
     CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-declarations
-endif
-
-ifeq ($(COMP), icx)
-    comp=icx
-    CXX=icpx
-    CXXFLAGS += --intel -pedantic -Wextra -Wshadow -Wmissing-prototypes -Wconditional-uninitialized -Wabi -Wdeprecated
+    # Profile build for mingw (use GCC defaults)
+    profile_make = gcc-profile-make
+    profile_use  = gcc-profile-use
 endif
 
 ifeq ($(COMP), clang)
     comp=clang
     CXX=clang++
     ifeq ($(target_windows), yes)
-        CXX=x86_64-w64-mingw32-clang++
+        ifeq ($(bits), 64)
+            CXX=x86_64-w64-mingw32-clang++
+        else ifeq ($(bits), 32)
+            CXX=i686-w64-mingw32-clang++
+        else
+            $(error Unknown bits for Windows target: $(bits))
+        endif
     endif
-
     CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-prototypes -Wconditional-uninitialized -flax-vector-conversions=none
-
+    # Atomic library for non-Darwin/FreeBSD/OpenBSD and non-Windows (unless compiler-rt)
     ifeq ($(filter $(KERNEL), Darwin OpenBSD FreeBSD), )
         ifneq ($(target_windows), yes)
             ifneq ($(RTLIB), compiler-rt)
@@ -548,27 +587,43 @@ ifeq ($(COMP), clang)
             endif
         endif
     endif
-
-    ifeq ($(arch), $(filter $(arch), armv7 armv8 riscv64))
+    # Architecture-specific flags
+    ifeq ($(arch), $(filter $(arch), armv7 armv8 riscv64 loongarch64))
         ifeq ($(OS), Android)
             CXXFLAGS += -m$(bits)
             LDFLAGS += -m$(bits)
         endif
-        ifeq ($(ARCH), riscv64)
-            CXXFLAGS += -latomic
+        # Atomic library for specific architectures (not armv8)
+        ifeq ($(arch), $(filter $(arch), armv7 riscv64 loongarch64))
+            LDFLAGS += -latomic
         endif
-    else ifeq ($(arch), loongarch64)
-        CXXFLAGS += -latomic
     else
+        # Generic architectures
         CXXFLAGS += -m$(bits)
         LDFLAGS += -m$(bits)
     endif
-
-    # Add std::filesystem library for C++17 Linux/Clang
+    # Link the separate filesystem library for Linux/Clang.
+    # Older versions of Clang (pre-9) require -lstdc++fs to use std::filesystem,
+    # because filesystem was not yet fully integrated into libstdc++.
+    # Modern Clang versions (9+) include filesystem in the standard library, 
+    # so this flag is usually harmless but may be unnecessary.
     ifeq ($(KERNEL), Linux)
         LDFLAGS += -lstdc++fs
     endif
+    # Profile build for Clang
+    profile_make = clang-profile-make
+    profile_use  = clang-profile-use
 endif
+
+ifeq ($(COMP), icx)
+    comp=icx
+    CXX=icpx
+    CXXFLAGS += --intel -pedantic -Wextra -Wshadow -Wmissing-prototypes -Wconditional-uninitialized -Wabi -Wdeprecated
+    # Profile build for icx
+    profile_make = icx-profile-make
+    profile_use  = icx-profile-use
+endif
+
 
 ifeq ($(KERNEL), Darwin)
     CXXFLAGS += -mmacosx-version-min=10.15
@@ -610,6 +665,9 @@ ifeq ($(COMP), ndk)
         endif
     endif
     LDFLAGS += -static-libstdc++
+    # Profile build for NDK/Clang
+    profile_make = clang-profile-make
+    profile_use  = clang-profile-use
 endif
 
 ### Allow overwriting CXX from command line
@@ -618,6 +676,7 @@ ifdef COMPCXX
 endif
 
 # Force SSE floating-point math to avoid x87 extended-precision differences
+# Ensures consistent floating-point results across x86 CPUs
 ifeq ($(sse_fp), yes)
     CXXFLAGS += -mfpmath=sse -msse2
 endif
@@ -626,6 +685,7 @@ endif
 # make -j profile-build CXX=clang++-20 COMP=clang
 # Locate the version in the same directory as the compiler used,
 # with fallback to a generic one if it can't be located
+# Used for PGO (profile-guided optimization) builds
 LLVM_PROFDATA := $(dir $(realpath $(shell which $(CXX) 2>/dev/null)))llvm-profdata
 # for icx
 ifeq ($(wildcard $(LLVM_PROFDATA)), )
@@ -633,32 +693,6 @@ ifeq ($(wildcard $(LLVM_PROFDATA)), )
 endif
 ifeq ($(wildcard $(LLVM_PROFDATA)), )
     LLVM_PROFDATA := llvm-profdata
-endif
-
-ifeq ($(comp), icx)
-    profile_make = icx-profile-make
-    profile_use = icx-profile-use
-else ifeq ($(comp), clang)
-    profile_make = clang-profile-make
-    profile_use = clang-profile-use
-else
-    profile_make = gcc-profile-make
-    profile_use = gcc-profile-use
-    ifeq ($(KERNEL), Darwin)
-        EXTRAPROFILEFLAGS = -fvisibility=hidden
-    endif
-endif
-
-### Sometimes gcc is really clang
-ifeq ($(COMP), gcc)
-    gccversion := $(shell $(CXX) --version 2>/dev/null)
-    gccisclang := $(findstring clang, $(gccversion))
-    ifneq ($(gccisclang), )
-        profile_make = clang-profile-make
-        profile_use = clang-profile-use
-    else
-        CXXFLAGS += -Wstack-usage=128000
-    endif
 endif
 
 ### On mingw use Windows threads, otherwise POSIX
@@ -696,7 +730,6 @@ endif
 
 ### 3.3 Optimization
 ifeq ($(optimize), yes)
-
     CXXFLAGS += -O3 -funroll-loops
 
     ifeq ($(KERNEL), Darwin)
@@ -898,7 +931,7 @@ ifeq ($(optimize), yes)
                 ifeq ($(comp), clang)
                     LDFLAGS += -fuse-ld=lld
                 else ifeq ($(comp), gcc)
-                    ifneq ($(gccisclang), )
+                    ifneq ($(gcc_is_clang), )
                         LDFLAGS += -fuse-ld=lld
                     endif
                 endif
@@ -919,7 +952,7 @@ ifeq ($(optimize), yes)
                 # macOS + GCC: Don't add LTO
                 LDFLAGS += $(CXXFLAGS)
             else
-                ifeq ($(gccisclang), )
+                ifeq ($(gcc_is_clang), )
                     CXXFLAGS += -flto -flto-partition=one
                     LDFLAGS += $(CXXFLAGS) -flto=jobserver
                 else
@@ -937,8 +970,7 @@ ifeq ($(optimize), yes)
     endif
 endif
 
-### 3.10 Android 5 can only run position independent executables. Note that this
-### breaks Android 4.0 and earlier.
+### 3.10 Use PIE executables on Android 5+, incompatible with Android 4 and earlier
 ifeq ($(OS), Android)
     CXXFLAGS += -fPIE
     LDFLAGS += -fPIE -pie
@@ -951,16 +983,20 @@ ifeq ($(optimize), yes)
     endif
 endif
 
-# ----------------------------------------------------------------------------
-# Portable filesystem helpers
-# ----------------------------------------------------------------------------
-ifeq ($(OS), Windows_NT)
-    MKDIR  := mkdir -p -m 755
-    CP     := cp
-else
-    MKDIR  := mkdir -p -m 755
-    CP     := cp
+# Windows + GCC (not Clang): avoid inline dllexport issues in DLLs
+ifeq ($(target_windows), yes)
+    ifeq ($(COMP), gcc)
+        ifeq ($(gcc_is_clang), )
+            CXXFLAGS += -fno-keep-inline-dllexport
+        endif
+    endif
+# only add -pipe on non-Windows, non-macOS
+else ifneq ($(KERNEL), Darwin)
+    CXXFLAGS += -pipe
 endif
+
+MKDIR := mkdir -p -m 755
+CP := cp
 
 ### ==========================================================================
 ### Section 4. Public Targets
@@ -986,8 +1022,8 @@ help:
 	echo "" && \
 	echo "native                  > select the best architecture for the host processor (default)" && \
 	echo "x86-64-avx512icl        > x86 64-bit with minimum avx512 support of Intel Ice Lake or AMD Zen 4" && \
-	echo "x86-64-vnni512          > x86 64-bit with vnni 512bit support" && \
-	echo "x86-64-vnni256          > x86 64-bit with vnni 512bit support, limit operands to 256-bit wide" && \
+	echo "x86-64-vnni512          > x86 64-bit with vnni support, operands 512-bit wide" && \
+	echo "x86-64-vnni256          > x86 64-bit with vnni support, operands limited to 256-bit wide" && \
 	echo "x86-64-avx512           > x86 64-bit with avx512 support" && \
 	echo "x86-64-avxvnni          > x86 64-bit with vnni 256bit support" && \
 	echo "x86-64-bmi2             > x86 64-bit with bmi2 support" && \
@@ -997,12 +1033,12 @@ help:
 	echo "x86-64-sse41            > x86 64-bit with sse41 support" && \
 	echo "x86-64-ssse3-popcnt     > x86 64-bit with ssse3 and popcnt support" && \
 	echo "x86-64-ssse3            > x86 64-bit with ssse3 support" && \
-	echo "x86-64                  > x86 64-bit generic (with sse2 support)" && \
+	echo "x86-64                  > x86 64-bit generic with sse2 support" && \
 	echo "general-64              > unspecified 64-bit" && \
 	echo "x86-32-sse41-popcnt     > x86 32-bit with sse41 and popcnt support" && \
 	echo "x86-32-sse41            > x86 32-bit with sse41 support" && \
 	echo "x86-32-sse2             > x86 32-bit with sse2 support" && \
-	echo "x86-32                  > x86 32-bit generic (with mmx support)" && \
+	echo "x86-32                  > x86 32-bit generic with mmx support" && \
 	echo "general-32              > unspecified 32-bit" && \
 	echo "ppc-64-altivec          > PPC 64-bit with altivec support" && \
 	echo "ppc-64-vsx              > PPC 64-bit with vsx support" && \
@@ -1045,7 +1081,7 @@ help:
 	fi
 
 .PHONY: help analyze build profile-build strip install clean \
-	objclean profileclean net config-sanity FORCE \
+	objclean profileclean net config-sanity FORCE all \
 	clang-profile-make clang-profile-use \
 	gcc-profile-make gcc-profile-use \
 	icx-profile-make icx-profile-use \
@@ -1079,6 +1115,7 @@ strip:
 install:
 	-$(MKDIR) "$(BINDIR)"
 	-$(CP) "$(EXE)" "$(BINDIR)/"
+	-chmod 755 "$(BINDIR)/$(EXE)"
 	-$(STRIP) "$(BINDIR)/$(EXE)"
 
 # clean all
@@ -1163,6 +1200,7 @@ config-sanity: net
 	echo "Flags:" && \
 	echo "CXX: $(CXX)" && \
 	echo "CXXFLAGS: $(CXXFLAGS)" && \
+	echo "DEPENDFLAGS: $(DEPENDFLAGS)" && \
 	echo "LDFLAGS: $(LDFLAGS)" && \
 	echo "" && \
 	echo "Testing config sanity. If this fails, try 'make help' ..." && \
@@ -1185,6 +1223,7 @@ config-sanity: net
 	(test "$(avx2)" = "yes" || test "$(avx2)" = "no") && \
 	(test "$(bmi2)" = "yes" || test "$(bmi2)" = "no") && \
 	(test "$(_comp)" = "yes" || test "$(_comp)" = "no") && \
+	(test "$(avxvnni)" = "yes" || test "$(avxvnni)" = "no") && \
 	(test "$(avx512)" = "yes" || test "$(avx512)" = "no") && \
 	(test "$(vnni256)" = "yes" || test "$(vnni256)" = "no") && \
 	(test "$(vnni512)" = "yes" || test "$(vnni512)" = "no") && \
@@ -1247,7 +1286,12 @@ icx-profile-use:
 	all
 
 .depend: $(SRCS)
-	-@$(CXX) $(DEPENDFLAGS) -I. -MM $(SRCS) > $@ 2>/dev/null
+	@echo Generating dependencies...
+	@set -o pipefail; \
+	$(CXX) $(DEPENDFLAGS) -MM -MP $(SRCS) 2>&1 | \
+		sed -E 's@(.*/)?DON/src/nnue/@nnue/@g; s@(.*/)?DON/src/syzygy/@syzygy/@g; s@(.*/)?DON/src/@../@g' \
+		> $@.tmp
+	@mv $@.tmp $@
 
 # Include .depend only if no special goal is requested
 ifeq ($(filter $(MAKECMDGOALS), help strip install clean objclean profileclean net format config-sanity install-hooks), )
