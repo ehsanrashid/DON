@@ -916,15 +916,16 @@ endif
 ifeq ($(optimize), yes)
     ifeq ($(debug), no)
         ifneq ($(KERNEL), Darwin)
-            ifneq ($(filter clang ndk, $(COMP)), )
-                # Android NDK / clang -> always use LLD
+            ifneq ($(filter ndk, $(COMP)), )
+                # Android NDK clang -> always use LLD
                 LDFLAGS += -fuse-ld=lld
             else
-                # Non-Android systems -> detect LLD in PATH
+                # Non-Android clang -> detect LLD first
                 LLD_BIN := $(shell command -v ld.lld 2>/dev/null)
                 ifeq ($(LLD_BIN), )
                     LLD_BIN := $(shell command -v lld 2>/dev/null)
                 endif
+                # Only add -fuse-ld=lld if found LLD
                 ifneq ($(LLD_BIN), )
                     ifneq ($(filter clang, $(COMP)), )
                         LDFLAGS += -fuse-ld=lld
