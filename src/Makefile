@@ -545,20 +545,22 @@ else
     profile_make = gcc-profile-make
     profile_use  = gcc-profile-use
 endif
-# Architecture-specific flags
-ifneq ($(filter armv8 armv7 riscv64 loongarch64,$(arch)),)
+# Architectures with special handling
+# Atomic library for specific architectures (not armv8)
+ifneq ($(filter armv7 armv8 riscv64,$(arch)),)
 ifeq ($(OS),Android)
     CXXFLAGS += -m$(bits)
-    LDFLAGS += -m$(bits)
+    LDFLAGS  += -m$(bits)
 endif
-# Atomic library for specific architectures (not armv8)
-ifneq ($(filter armv7 riscv64 loongarch64,$(arch)),)
+ifeq ($(arch),riscv64)
     LDFLAGS += -latomic
 endif
+else ifeq ($(arch),loongarch64)
+    LDFLAGS += -latomic
 # Generic architectures
 else
     CXXFLAGS += -m$(bits)
-    LDFLAGS += -m$(bits)
+    LDFLAGS  += -m$(bits)
 endif
 
 else
@@ -580,20 +582,22 @@ ifneq ($(RTLIB),compiler-rt)
 endif
 endif
 endif
-# Architecture-specific flags
-ifneq ($(filter armv8 armv7 riscv64 loongarch64,$(arch)),)
+# Architectures with special handling
+# Atomic library for specific architectures (not armv8)
+ifneq ($(filter armv7 armv8 riscv64,$(arch)),)
 ifeq ($(OS),Android)
     CXXFLAGS += -m$(bits)
-    LDFLAGS += -m$(bits)
+    LDFLAGS  += -m$(bits)
 endif
-# Atomic library for specific architectures (not armv8)
-ifneq ($(filter armv7 riscv64 loongarch64,$(arch)),)
+ifeq ($(arch),riscv64)
     LDFLAGS += -latomic
 endif
+else ifeq ($(arch),loongarch64)
+    LDFLAGS += -latomic
 # Generic architectures
 else
     CXXFLAGS += -m$(bits)
-    LDFLAGS += -m$(bits)
+    LDFLAGS  += -m$(bits)
 endif
 # Link the separate filesystem library for Linux/Clang.
 # Older versions of Clang (pre-9) require -lstdc++fs to use std::filesystem,
