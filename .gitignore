@@ -29,4 +29,9 @@ tests/tmp_bench.epd
 # IDE files
 .vs/*
 .vscode/*
+DON.sln
+DON.vcxproj
+DON.vcxproj.filters
+DON.vcxproj.user
+
 CppProperties.json
