@@ -240,7 +240,7 @@ class MiniTestFramework:
                 self.print_failure(f" {testMethod} (hit execution limit of {e.timeout} seconds)")
 
             if isinstance(e, UnexpectedOutputException):
-                self.print_failure(f" {testMethod} encountered unexpeted output: \"{e.actual}\" when output matching \"{e.expected}\" was expected")
+                self.print_failure(f" {testMethod} encountered unexpected output: \"{e.actual}\" when output matching \"{e.expected}\" was expected")
 
             if isinstance(e, AssertionError):
                 self.__handle_assertion_error(t0, testMethod)

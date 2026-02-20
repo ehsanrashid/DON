@@ -1,5 +1,5 @@
 #!/bin/bash
-# obtain and optionally verify Bench / signature
+# Obtain and optionally verify Bench / signature
 # if no reference is given, the output is deliberately limited to just the signature
 
 STDOUT_FILE=$(mktemp)
@@ -17,14 +17,14 @@ error() {
 
 trap 'error ${LINENO}' ERR
 
-# obtain signature
+# Obtain signature
 eval "$RUN_PREFIX ./DON bench" > "$STDOUT_FILE" 2> "$STDERR_FILE" || error ${LINENO}
 SIGNATURE=$(grep "Total nodes     : " "$STDERR_FILE" | awk '{print $4}')
 
 rm -f "$STDOUT_FILE" "$STDERR_FILE"
 
 if [ $# -gt 0 ]; then
-   # compare to given reference
+   # Compare to given reference
    if [ "$1" != "$SIGNATURE" ]; then
       if [ -z "$SIGNATURE" ]; then
          echo "No signature obtained from bench. Code crashed or assert triggered ?"
@@ -36,6 +36,6 @@ if [ $# -gt 0 ]; then
       echo "signature OK: $SIGNATURE."
    fi
 else
-   # just report signature
+   # Just report signature
    echo $SIGNATURE
 fi
