@@ -39,30 +39,36 @@ endif
 ### Command prefix to run the built executable (e.g. wine, sde, qemu)
 ### Backward compatible alias: WINE_PATH (deprecated)
 ifneq ($(strip $(WINE_PATH)),)
-    # Only assign RUN_PREFIX if empty
-    ifeq ($(strip $(RUN_PREFIX)),)
-        RUN_PREFIX := $(WINE_PATH)
-    endif
-    # Top-level warnings
-    ifeq ($(MAKELEVEL),0)
-        ifneq ($(strip $(RUN_PREFIX)),$(strip $(WINE_PATH)))
-            $(warning *** Both RUN_PREFIX and WINE_PATH are set; ignoring WINE_PATH. ***)
-        else
-            $(warning *** WINE_PATH is deprecated; use RUN_PREFIX instead. ***)
-        endif
-    endif
+# Only assign RUN_PREFIX if empty
+ifeq ($(strip $(RUN_PREFIX)),)
+    RUN_PREFIX := $(WINE_PATH)
+endif
+# Top-level warnings
+ifeq ($(MAKELEVEL),0)
+ifneq ($(strip $(RUN_PREFIX)),$(strip $(WINE_PATH)))
+    $(warning *** Both RUN_PREFIX and WINE_PATH are set; ignoring WINE_PATH. ***)
+else
+    $(warning *** WINE_PATH is deprecated; use RUN_PREFIX instead. ***)
+endif
+endif
 endif
 
 OS_WINDOWS := no
 # Detect Windows across all shell environments
 ifeq ($(ENV_OS),Windows_NT)
     OS_WINDOWS := yes
-else ifneq ($(findstring MINGW,$(UNAME_S)),)
+else
+ifneq ($(findstring MINGW,$(UNAME_S)),)
     OS_WINDOWS := yes
-else ifneq ($(findstring MSYS,$(UNAME_S)),)
+else
+ifneq ($(findstring MSYS,$(UNAME_S)),)
     OS_WINDOWS := yes
-else ifneq ($(findstring CYGWIN,$(UNAME_S)),)
+else
+ifneq ($(findstring CYGWIN,$(UNAME_S)),)
     OS_WINDOWS := yes
+endif
+endif
+endif
 endif
 
 # NDK cross-compile: building *for* Android, not Windows
@@ -72,9 +78,9 @@ endif
 
 # Cross-platform command to detect executable
 ifeq ($(OS_WINDOWS),yes)
-    FIND_EXE = where $1 2>nul
+    FIND_EXE = where "$1" 2>nul
 else
-    FIND_EXE = command -v $1 2>/dev/null
+    FIND_EXE = command -v "$1" 2>/dev/null
 endif
 
 # -------------------------------------------
