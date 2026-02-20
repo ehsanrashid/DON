@@ -100,7 +100,7 @@ VPATH := nnue:nnue/features:syzygy
 #
 # Note: The order of flags matters; SIMD flags should be enabled after setting bits/arch
 #
-# flag                --- Comp switch        --- Description
+# Flag                --- Comp switch        --- Description
 # ----------------------------------------------------------------------------
 #
 # debug = yes/no      --- -DNDEBUG           --- Enable/Disable debug mode
