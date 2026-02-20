@@ -726,12 +726,12 @@ ifeq ($(optimize), yes)
     CXXFLAGS += -O3 -funroll-loops
 
     ifeq ($(KERNEL), Darwin)
-        ifeq ($(COMP), gcc)
-            # macOS + GCC: Remove LTO completely to avoid runtime crashes
-            CXXFLAGS := $(filter-out -flto -flto-partition=one, $(CXXFLAGS))
-            LDFLAGS  := $(filter-out -flto -flto-partition=one -flto=jobserver, $(LDFLAGS))
-        else ifneq ($(filter clang icx ndk, $(COMP)), )
+        ifneq ($(filter clang icx ndk, $(COMP)), )
             CXXFLAGS += -mdynamic-no-pic
+        else ifeq ($(COMP), gcc)
+            ifneq ($(arch),arm64)
+                CXXFLAGS += -mdynamic-no-pic
+            endif
         endif
     endif
 
@@ -916,16 +916,21 @@ endif
 ifeq ($(optimize), yes)
     ifeq ($(debug), no)
         ifneq ($(KERNEL), Darwin)
-            LLD_BIN := $(shell command -v ld.lld 2>/dev/null)
-            ifeq ($(LLD_BIN), )
-                LLD_BIN := $(shell command -v lld 2>/dev/null)
-            endif
-            ifneq ($(LLD_BIN), )
-                # Determine if we should use LLD
-                use_lld := $(if $(filter clang ndk, $(COMP)), yes, $(if $(gcc_is_clang), yes, no))
-                # Apply LLD flags if needed
-                ifeq ($(use_lld), yes)
-                    LDFLAGS += -fuse-ld=lld
+            ifneq ($(filter clang ndk, $(COMP)), )
+                # Android NDK / clang -> always use LLD
+                LDFLAGS += -fuse-ld=lld
+            else
+                # Non-Android systems -> detect LLD in PATH
+                LLD_BIN := $(shell command -v ld.lld 2>/dev/null)
+                ifeq ($(LLD_BIN), )
+                    LLD_BIN := $(shell command -v lld 2>/dev/null)
+                endif
+                ifneq ($(LLD_BIN), )
+                    ifneq ($(filter clang, $(COMP)), )
+                        LDFLAGS += -fuse-ld=lld
+                    else ifeq ($(gcc_is_clang), yes)
+                        LDFLAGS += -fuse-ld=lld
+                    endif
                 endif
             endif
         endif
@@ -934,10 +939,11 @@ ifeq ($(optimize), yes)
         LTO_FLAGS :=
         LDFLTO_EXTRA :=
 
+        ifeq ($(filter clang icx ndk, $(COMP)), clang icx ndk)
+            # Clang / ICX / NDK -> always full LTO
+            LTO_FLAGS := -flto=full
         # GCC and CLANG use different methods for parallelizing LTO
         # and CLANG pretends to be GCC on some systems.
-        ifeq ($(filter clang icx ndk, $(COMP)), )
-            # Do nothing for Clang/ICX/NDK here; handled elsewhere
         else ifeq ($(COMP), gcc)
             ifneq ($(KERNEL), Darwin)
                 ifeq ($(gcc_is_clang), )
