@@ -544,8 +544,8 @@ ifeq ($(COMP), gcc)
         ifeq ($(arch), $(filter $(arch), armv7 riscv64 loongarch64))
             LDFLAGS += -latomic
         endif
+    # Generic architectures
     else
-        # Generic architectures
         CXXFLAGS += -m$(bits)
         LDFLAGS += -m$(bits)
     endif
@@ -581,8 +581,8 @@ else ifeq ($(COMP), clang)
         ifeq ($(arch), $(filter $(arch), armv7 riscv64 loongarch64))
             LDFLAGS += -latomic
         endif
+    # Generic architectures
     else
-        # Generic architectures
         CXXFLAGS += -m$(bits)
         LDFLAGS += -m$(bits)
     endif
