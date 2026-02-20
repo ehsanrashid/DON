@@ -29,6 +29,7 @@ tests/tmp_bench.epd
 # IDE files
 .vs/*
 .vscode/*
+/DON
 DON.sln
 DON.vcxproj
 DON.vcxproj.filters
