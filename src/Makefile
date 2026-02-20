@@ -25,6 +25,9 @@ SHELL := /bin/bash
 UNAME_S := $(shell uname -s 2>/dev/null)
 UNAME_O := $(shell uname -o 2>/dev/null)
 
+# Snapshot the environment OS *before* overwrite it
+ENV_OS := $(OS)
+
 KERNEL := $(UNAME_S)
 
 ifeq ($(KERNEL),Linux)
@@ -51,18 +54,20 @@ ifneq ($(strip $(WINE_PATH)),)
 endif
 
 OS_WINDOWS := no
-### Windows OS
-ifeq ($(OS),Windows_NT)
-    ifneq ($(COMP),ndk)
-        OS_WINDOWS := yes
-    endif
-else
-    ifeq ($(COMP),mingw)
-        OS_WINDOWS := yes
-        ifeq ($(RUN_PREFIX),)
-            RUN_PREFIX := $(shell command -v wine 2>/dev/null || echo "")
-        endif
-    endif
+# Detect Windows across all shell environments
+ifeq ($(ENV_OS),Windows_NT)
+    OS_WINDOWS := yes
+else ifneq ($(findstring MINGW,$(UNAME_S)),)
+    OS_WINDOWS := yes
+else ifneq ($(findstring MSYS,$(UNAME_S)),)
+    OS_WINDOWS := yes
+else ifneq ($(findstring CYGWIN,$(UNAME_S)),)
+    OS_WINDOWS := yes
+endif
+
+# NDK cross-compile: building *for* Android, not Windows
+ifeq ($(COMP),ndk)
+    OS_WINDOWS := no
 endif
 
 # Cross-platform command to detect executable
