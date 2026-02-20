@@ -24,7 +24,7 @@ SHELL := /bin/bash
 ### Establish the operating system name
 KERNEL := $(shell uname -s)
 ifeq ($(KERNEL), Linux)
-    OS := $(shell uname -o)
+    OS := $(shell { uname -o 2>/dev/null || echo Linux; })
 endif
 
 ### Command prefix to run the built executable (e.g. wine, sde, qemu)
@@ -121,7 +121,7 @@ VPATH := nnue:nnue/features:syzygy
 # sse41 = yes/no      --- -msse4.1           --- Use Intel Streaming SIMD Extensions 4.1
 # avx2 = yes/no       --- -mavx2             --- Use Intel Advanced Vector Extensions 2
 # bmi2 = yes/no       --- -DUSE_BMI2         --- Use pext & pdep x86_64 asm-instruction
-# _comp = yes/no      --- -DUSE_COMP         --- Internal flag for compressed-optimized variants
+# comp = yes/no       --- -DUSE_COMP         --- Internal flag for compressed-optimized variants
 # avxvnni = yes/no    --- -mavxvnni          --- Use Intel Vector Neural Network Instructions AVX
 # avx512 = yes/no     --- -mavx512bw         --- Use Intel Advanced Vector Extensions 512
 # vnni256 = yes/no    --- -mavx256vnni       --- Use Intel Vector Neural Network Instructions 512 with 256bit operands
@@ -156,13 +156,12 @@ endif
 
 # explicitly check for the list of supported architectures (as listed with make help),
 # the user can override with 'make ARCH=x86-64-avx512icl SUPPORTED_ARCH=yes'
-ifeq ($(ARCH), $(filter $(ARCH), \
-                 x86-64-avx512icl-comp x86-64-avx512icl x86-64-vnni512-comp x86-64-vnni512 x86-64-vnni256-comp x86-64-vnni256 \
-                 x86-64-avx512-comp x86-64-avx512 x86-64-avxvnni-comp x86-64-avxvnni x86-64-bmi2-comp x86-64-bmi2 \
-                 x86-64-avx2 x86-64-sse41-popcnt x86-64-modern x86-64-sse41 x86-64-ssse3-popcnt x86-64-ssse3 x86-64 general-64 \
-                 x86-32-sse41-popcnt x86-32-sse41 x86-32-sse2 x86-32 general-32 \
-                 ppc-64-altivec ppc-64-vsx ppc-64 ppc-32 e2k armv7-neon armv7 armv8-dotprod armv8 apple-silicon riscv64 \
-                 loongarch64-lasx loongarch64-lsx loongarch64))
+ifneq ($(filter x86-64-avx512icl-comp x86-64-avx512icl x86-64-vnni512-comp x86-64-vnni512 x86-64-vnni256-comp x86-64-vnni256 \
+                x86-64-avx512-comp x86-64-avx512 x86-64-avxvnni-comp x86-64-avxvnni x86-64-bmi2-comp x86-64-bmi2 \
+                x86-64-avx2 x86-64-sse41-popcnt x86-64-modern x86-64-sse41 x86-64-ssse3-popcnt x86-64-ssse3 x86-64 general-64 \
+                x86-32-sse41-popcnt x86-32-sse41 x86-32-sse2 x86-32 general-32 \
+                ppc-64-altivec ppc-64-vsx ppc-64 ppc-32 e2k armv7-neon armv7 armv8-dotprod armv8 apple-silicon riscv64 \
+                loongarch64-lasx loongarch64-lsx loongarch64, $(ARCH)), )
    SUPPORTED_ARCH = yes
 else
    SUPPORTED_ARCH = no
@@ -182,7 +181,7 @@ ssse3 = no
 sse41 = no
 avx2 = no
 bmi2 = no
-_comp = no
+comp = no
 avxvnni = no
 avx512 = no
 vnni256 = no
@@ -280,7 +279,7 @@ ifeq ($(findstring -bmi2, $(ARCH)), -bmi2)
 endif
 
 ifeq ($(findstring -comp, $(ARCH)), -comp)
-    _comp = yes
+    comp = yes
 endif
 
 ifeq ($(findstring -avxvnni, $(ARCH)), -avxvnni)
@@ -495,7 +494,6 @@ gcc_is_clang :=
 gcc_is_apple_clang :=
 
 ifeq ($(COMP), gcc)
-    comp=gcc
     CXX=g++
     CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-declarations
     # Non-Darwin flags
@@ -535,13 +533,13 @@ ifeq ($(COMP), gcc)
         profile_use  = gcc-profile-use
     endif
     # Architecture-specific flags
-    ifeq ($(arch), $(filter $(arch), armv7 armv8 riscv64 loongarch64))
+    ifneq ($(filter armv7 armv8 riscv64 loongarch64, $(arch)), )
         ifeq ($(OS), Android)
             CXXFLAGS += -m$(bits)
             LDFLAGS += -m$(bits)
         endif
         # Atomic library for specific architectures (not armv8)
-        ifeq ($(arch), $(filter $(arch), armv7 riscv64 loongarch64))
+        ifneq ($(filter armv7 riscv64 loongarch64, $(arch)), )
             LDFLAGS += -latomic
         endif
     # Generic architectures
@@ -551,7 +549,6 @@ ifeq ($(COMP), gcc)
     endif
 
 else ifeq ($(COMP), clang)
-    comp=clang
     CXX=clang++
     ifeq ($(target_windows), yes)
         ifeq ($(bits), 64)
@@ -563,22 +560,22 @@ else ifeq ($(COMP), clang)
         endif
     endif
     CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-prototypes -Wconditional-uninitialized -flax-vector-conversions=none
-    # Atomic library for non-Darwin/FreeBSD/OpenBSD and non-Windows (unless compiler-rt)
-    ifeq ($(filter $(KERNEL), Darwin OpenBSD FreeBSD), )
-        ifneq ($(target_windows), yes)
+    # Atomic library for non-Windows and non-[Darwin/FreeBSD/OpenBSD] (unless compiler-rt)
+    ifneq ($(target_windows), yes)
+        ifeq ($(filter Darwin OpenBSD FreeBSD, $(KERNEL)), )
             ifneq ($(RTLIB), compiler-rt)
                 LDFLAGS += -latomic
             endif
         endif
     endif
     # Architecture-specific flags
-    ifeq ($(arch), $(filter $(arch), armv7 armv8 riscv64 loongarch64))
+    ifneq ($(filter armv7 armv8 riscv64 loongarch64, $(arch)), )
         ifeq ($(OS), Android)
             CXXFLAGS += -m$(bits)
             LDFLAGS += -m$(bits)
         endif
         # Atomic library for specific architectures (not armv8)
-        ifeq ($(arch), $(filter $(arch), armv7 riscv64 loongarch64))
+        ifneq ($(filter armv7 riscv64 loongarch64, $(arch)), )
             LDFLAGS += -latomic
         endif
     # Generic architectures
@@ -599,7 +596,6 @@ else ifeq ($(COMP), clang)
     profile_use  = clang-profile-use
 
 else ifeq ($(COMP), mingw)
-    comp=mingw
     ifeq ($(bits), 64)
         ifeq ($(shell which x86_64-w64-mingw32-c++-posix 2>/dev/null), )
             CXX=x86_64-w64-mingw32-c++
@@ -619,7 +615,6 @@ else ifeq ($(COMP), mingw)
     profile_use  = gcc-profile-use
 
 else ifeq ($(COMP), icx)
-    comp=icx
     CXX=icpx
     CXXFLAGS += --intel -pedantic -Wextra -Wshadow -Wmissing-prototypes -Wconditional-uninitialized -Wabi -Wdeprecated
     # Profile build for icx
@@ -627,7 +622,6 @@ else ifeq ($(COMP), icx)
     profile_use  = icx-profile-use
 # To cross-compile for Android, use NDK version r27c or later
 else ifeq ($(COMP), ndk)
-    comp=clang
     CXXFLAGS += -stdlib=libc++
     ifeq ($(arch), armv7)
         CXX=armv7a-linux-androideabi29-clang++
@@ -694,7 +688,7 @@ ifeq ($(wildcard $(LLVM_PROFDATA)), )
 endif
 
 ### On mingw use Windows threads, otherwise POSIX
-ifneq ($(comp), mingw)
+ifneq ($(COMP), mingw)
     CXXFLAGS += -DUSE_PTHREADS
     # On Android Bionic's C library comes with its own pthread implementation bundled in
     ifneq ($(OS), Android)
@@ -717,6 +711,7 @@ ifeq ($(debug), no)
     CXXFLAGS += -DNDEBUG
 else
     CXXFLAGS += -g
+    # Enable libstdc++ debug checks (harmless on libc++)
     CXXFLAGS += -D_GLIBCXX_ASSERTIONS -D_GLIBCXX_DEBUG
 endif
 
@@ -731,22 +726,22 @@ ifeq ($(optimize), yes)
     CXXFLAGS += -O3 -funroll-loops
 
     ifeq ($(KERNEL), Darwin)
-        ifeq ($(comp), gcc)
+        ifeq ($(COMP), gcc)
             # macOS + GCC: Remove LTO completely to avoid runtime crashes
             CXXFLAGS := $(filter-out -flto -flto-partition=one, $(CXXFLAGS))
             LDFLAGS  := $(filter-out -flto -flto-partition=one -flto=jobserver, $(LDFLAGS))
-        else ifeq ($(comp), $(filter $(comp), clang icx))
+        else ifneq ($(filter clang icx ndk, $(COMP)), )
             CXXFLAGS += -mdynamic-no-pic
         endif
     endif
 
     ifeq ($(OS), Android)
-        ifeq ($(comp), gcc)
+        ifeq ($(COMP), gcc)
             CXXFLAGS += -fno-gcse -mthumb -march=armv7-a -mfloat-abi=softfp
         endif
     endif
 
-    ifeq ($(comp), clang)
+    ifneq ($(filter clang ndk, $(COMP)), )
         clangmajorversion := $(shell $(CXX) -dumpversion 2>/dev/null | cut -f1 -d.)
         ifeq ($(shell expr $(clangmajorversion) \< 16), 1)
             CXXFLAGS += -fexperimental-new-pass-manager
@@ -768,7 +763,7 @@ ifeq ($(prefetch), yes)
 endif
 
 ifeq ($(popcnt), yes)
-    ifeq ($(arch), $(filter $(arch), ppc64 ppc64-altivec ppc64-vsx armv7 armv8 arm64))
+    ifneq ($(filter ppc64 ppc64-altivec ppc64-vsx armv7 armv8 arm64, $(arch)), )
         CXXFLAGS += -DUSE_POPCNT
     else
         CXXFLAGS += -DUSE_POPCNT -msse3 -mpopcnt
@@ -778,70 +773,70 @@ endif
 ### 3.6 SIMD architectures
 ifeq ($(avx512icl), yes)
     CXXFLAGS += -DUSE_AVX512ICL
-    ifeq ($(comp), $(filter $(comp), gcc clang mingw icx))
+    ifneq ($(filter gcc clang mingw icx ndk, $(COMP)), )
         CXXFLAGS += -mavx512vnni -mavx512vbmi2 -mavx512vbmi -mavx512vpopcntdq -mavx512bitalg -mavx512ifma -mavx512vl -mavx512dq -mavx512bw -mavx512cd -mavx512f -mvpclmulqdq -mgfni -mvaes
     endif
 endif
 
 ifeq ($(vnni512), yes)
     CXXFLAGS += -DUSE_VNNI
-    ifeq ($(comp), $(filter $(comp), gcc clang mingw icx))
+    ifneq ($(filter gcc clang mingw icx ndk, $(COMP)), )
         CXXFLAGS += -mavx512vnni -mavx512f -mavx512bw -mavx512dq -mavx512vl -mprefer-vector-width=512
     endif
 endif
 
 ifeq ($(vnni256),yes)
     CXXFLAGS += -DUSE_VNNI
-    ifeq ($(comp), $(filter $(comp), gcc clang mingw icx))
+    ifneq ($(filter gcc clang mingw icx ndk, $(COMP)), )
         CXXFLAGS += -mavx512vnni -mavx512f -mavx512bw -mavx512dq -mavx512vl -mprefer-vector-width=256
     endif
 endif
 
 ifeq ($(avx512), yes)
     CXXFLAGS += -DUSE_AVX512
-    ifeq ($(comp), $(filter $(comp), gcc clang mingw icx))
+    ifneq ($(filter gcc clang mingw icx ndk, $(COMP)), )
         CXXFLAGS += -mavx512f -mavx512bw -mavx512dq -mavx512vl
     endif
 endif
 
 ifeq ($(avxvnni), yes)
     CXXFLAGS += -DUSE_AVXVNNI -DUSE_VNNI
-    ifeq ($(comp), $(filter $(comp), gcc clang mingw icx))
+    ifneq ($(filter gcc clang mingw icx ndk, $(COMP)), )
         CXXFLAGS += -mavxvnni
     endif
 endif
 
 ifeq ($(avx2), yes)
     CXXFLAGS += -DUSE_AVX2
-    ifeq ($(comp), $(filter $(comp), gcc clang mingw icx))
+    ifneq ($(filter gcc clang mingw icx ndk, $(COMP)), )
         CXXFLAGS += -mavx2 -mbmi
     endif
 endif
 
 ifeq ($(sse41), yes)
     CXXFLAGS += -DUSE_SSE41
-    ifeq ($(comp), $(filter $(comp), gcc clang mingw icx))
+    ifneq ($(filter gcc clang mingw icx ndk, $(COMP)), )
         CXXFLAGS += -msse4.1
     endif
 endif
 
 ifeq ($(ssse3), yes)
     CXXFLAGS += -DUSE_SSSE3
-    ifeq ($(comp), $(filter $(comp), gcc clang mingw icx))
+    ifneq ($(filter gcc clang mingw icx ndk, $(COMP)), )
         CXXFLAGS += -mssse3
     endif
 endif
 
 ifeq ($(sse2), yes)
     CXXFLAGS += -DUSE_SSE2
-    ifeq ($(comp), $(filter $(comp), gcc clang mingw icx))
+    ifneq ($(filter gcc clang mingw icx ndk, $(COMP)), )
         CXXFLAGS += -msse2
     endif
 endif
 
 ifeq ($(mmx), yes)
     #CXXFLAGS += -DUSE_MMX
-    ifeq ($(comp), $(filter $(comp), gcc clang mingw icx))
+    ifneq ($(filter gcc clang mingw icx ndk, $(COMP)), )
         CXXFLAGS += -mmmx
     endif
 endif
@@ -876,13 +871,13 @@ ifeq ($(dotprod), yes)
 endif
 
 ifeq ($(lasx), yes)
-    ifeq ($(comp), $(filter $(comp), gcc clang mingw icx))
+    ifneq ($(filter gcc clang mingw icx ndk, $(COMP)), )
         CXXFLAGS += -mlasx
     endif
 endif
 
 ifeq ($(lsx), yes)
-    ifeq ($(comp), $(filter $(comp), gcc clang mingw icx))
+    ifneq ($(filter gcc clang mingw icx ndk, $(COMP)), )
         CXXFLAGS += -mlsx
     endif
 endif
@@ -890,10 +885,10 @@ endif
 ### 3.7 bmi2
 ifeq ($(bmi2), yes)
     CXXFLAGS += -DUSE_BMI2
-    ifeq ($(comp), $(filter $(comp), gcc clang mingw icx))
+    ifneq ($(filter gcc clang mingw icx ndk, $(COMP)), )
         CXXFLAGS += -mbmi2
     endif
-    ifeq ($(_comp), yes)
+    ifeq ($(comp), yes)
         CXXFLAGS += -DUSE_COMP
     endif
 endif
@@ -926,9 +921,9 @@ ifeq ($(optimize), yes)
                 LLD_BIN := $(shell command -v lld 2>/dev/null)
             endif
             ifneq ($(LLD_BIN), )
-                ifeq ($(comp), clang)
+                ifneq ($(filter clang ndk, $(COMP)), )
                     LDFLAGS += -fuse-ld=lld
-                else ifeq ($(comp), gcc)
+                else ifeq ($(COMP), gcc)
                     ifneq ($(gcc_is_clang), )
                         LDFLAGS += -fuse-ld=lld
                     endif
@@ -936,16 +931,16 @@ ifeq ($(optimize), yes)
             endif
         endif
 
-        ifeq ($(comp), $(filter $(comp), clang icx))
+        ifneq ($(filter clang icx ndk, $(COMP)), )
             CXXFLAGS += -flto=full
-            ifeq ($(comp), icx)
+            ifeq ($(COMP), icx)
                 CXXFLAGS += -fwhole-program-vtables
             endif
             LDFLAGS += $(CXXFLAGS)
 
         # GCC and CLANG use different methods for parallelizing LTO
         # and CLANG pretends to be GCC on some systems.
-        else ifeq ($(comp), gcc)
+        else ifeq ($(COMP), gcc)
             ifeq ($(KERNEL), Darwin)
                 # macOS + GCC: Don't add LTO
                 LDFLAGS += $(CXXFLAGS)
@@ -961,7 +956,7 @@ ifeq ($(optimize), yes)
 
         # To use LTO and static linking on Windows,
         # the tool chain requires gcc version 10.1 or later.
-        else ifeq ($(comp), mingw)
+        else ifeq ($(COMP), mingw)
             CXXFLAGS += -flto -flto-partition=one
             LDFLAGS += $(CXXFLAGS) -flto=jobserver -save-temps
         endif
@@ -976,7 +971,7 @@ endif
 
 ### 3.11 Inline settings
 ifeq ($(optimize), yes)
-    ifeq ($(comp), clang)
+    ifneq ($(filter clang ndk, $(COMP)), )
         CXXFLAGS += -Xclang -mllvm -Xclang -inline-threshold=500
     endif
 endif
@@ -1179,7 +1174,7 @@ config-sanity: net
 	echo "sse41: '$(sse41)'" && \
 	echo "avx2: '$(avx2)'" && \
 	echo "bmi2: '$(bmi2)'" && \
-	echo "_comp: '$(_comp)'" && \
+	echo "comp: '$(comp)'" && \
 	echo "avxvnni: '$(avxvnni)'" && \
 	echo "avx512: '$(avx512)'" && \
 	echo "vnni256: '$(vnni256)'" && \
@@ -1193,7 +1188,7 @@ config-sanity: net
 	echo "lsx: '$(lsx)'" && \
 	echo "lasx: '$(lasx)'" && \
 	echo "target_windows: '$(target_windows)'" && \
-	echo "comp: '$(comp)'" && \
+	echo "COMP: '$(COMP)'" && \
 	echo "" && \
 	echo "Flags:" && \
 	echo "CXX: $(CXX)" && \
@@ -1220,7 +1215,7 @@ config-sanity: net
 	(test "$(sse41)" = "yes" || test "$(sse41)" = "no") && \
 	(test "$(avx2)" = "yes" || test "$(avx2)" = "no") && \
 	(test "$(bmi2)" = "yes" || test "$(bmi2)" = "no") && \
-	(test "$(_comp)" = "yes" || test "$(_comp)" = "no") && \
+	(test "$(comp)" = "yes" || test "$(comp)" = "no") && \
 	(test "$(avxvnni)" = "yes" || test "$(avxvnni)" = "no") && \
 	(test "$(avx512)" = "yes" || test "$(avx512)" = "no") && \
 	(test "$(vnni256)" = "yes" || test "$(vnni256)" = "no") && \
@@ -1232,9 +1227,9 @@ config-sanity: net
 	(test "$(neon)" = "yes" || test "$(neon)" = "no") && \
 	(test "$(lsx)" = "yes" || test "$(lsx)" = "no") && \
 	(test "$(lasx)" = "yes" || test "$(lasx)" = "no") && \
-	(test "$(comp)" = "gcc" || test "$(comp)" = "icx" || test "$(comp)" = "mingw" || \
-	 test "$(comp)" = "clang" || test "$(comp)" = "armv7a-linux-androideabi16-clang" || \
-	 test "$(comp)" = "aarch64-linux-android21-clang")
+	(test "$(COMP)" = "gcc" || test "$(COMP)" = "icx" || test "$(COMP)" = "mingw" || \
+	 test "$(COMP)" = "clang" || test "$(COMP)" = "armv7a-linux-androideabi16-clang" || \
+	 test "$(COMP)" = "aarch64-linux-android21-clang")
 
 $(EXE): $(OBJS)
 	+$(CXX) -o $@ $(OBJS) $(LDFLAGS)
@@ -1293,6 +1288,6 @@ icx-profile-use:
 	@mv $@.tmp $@
 
 # Include .depend only if no special goal is requested
-ifeq ($(filter $(MAKECMDGOALS), help strip install clean objclean profileclean net format config-sanity install-hooks), )
+ifeq ($(filter help strip install clean objclean profileclean net format config-sanity install-hooks, $(MAKECMDGOALS)), )
     -include .depend
 endif
