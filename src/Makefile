@@ -483,6 +483,10 @@ ifeq ($(COMP), )
     COMP=gcc
 endif
 
+ifeq ($(target_windows), yes)
+    LDFLAGS += -static
+endif
+
 gcc_version :=
 gcc_is_clang :=
 gcc_is_apple_clang :=
@@ -498,8 +502,7 @@ ifeq ($(COMP), gcc)
         gcc_version := $(shell $(CXX) --version 2>/dev/null)
         gcc_is_clang := $(findstring clang, $(gcc_version))
         gcc_is_apple_clang := $(findstring Apple, $(gcc_version))
-        # Detect GNU ld (needs separate call)
-        # Add --no-as-needed only if using GNU ld
+        # Detect GNU ld separately
         ifeq ($(shell $(CXX) -Wl,--version 2>/dev/null | grep -iq "GNU ld" && echo yes), yes)
             LDFLAGS += -Wl,--no-as-needed
         endif
@@ -511,8 +514,18 @@ ifeq ($(COMP), gcc)
             endif
         # Real GCC
         else
+            profile_make = gcc-profile-make
+            profile_use  = gcc-profile-use
+            ifeq ($(KERNEL), Darwin)
+                EXTRAPROFILEFLAGS = -fvisibility=hidden
+            endif
             CXXFLAGS += -Wstack-usage=128000
         endif
+    # Darwin GCC
+    else
+        profile_make = gcc-profile-make
+        profile_use  = gcc-profile-use
+        EXTRAPROFILEFLAGS = -fvisibility=hidden
     endif
     # Architecture-specific flags
     ifeq ($(arch), $(filter $(arch), armv7 armv8 riscv64 loongarch64))
@@ -520,7 +533,7 @@ ifeq ($(COMP), gcc)
             CXXFLAGS += -m$(bits)
             LDFLAGS += -m$(bits)
         endif
-        # Atomic library only for archs that need it
+        # Atomic library for specific architectures (not armv8)
         ifeq ($(arch), $(filter $(arch), armv7 riscv64 loongarch64))
             LDFLAGS += -latomic
         endif
@@ -529,10 +542,6 @@ ifeq ($(COMP), gcc)
         CXXFLAGS += -m$(bits)
         LDFLAGS  += -m$(bits)
     endif
-endif
-
-ifeq ($(target_windows), yes)
-    LDFLAGS += -static
 endif
 
 ifeq ($(COMP), mingw)
@@ -552,19 +561,22 @@ ifeq ($(COMP), mingw)
         endif
     endif
     CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-declarations
-endif
-
-ifeq ($(COMP), icx)
-    comp=icx
-    CXX=icpx
-    CXXFLAGS += --intel -pedantic -Wextra -Wshadow -Wmissing-prototypes -Wconditional-uninitialized -Wabi -Wdeprecated
+    # Profile build for mingw (use GCC defaults)
+    profile_make = gcc-profile-make
+    profile_use  = gcc-profile-use
 endif
 
 ifeq ($(COMP), clang)
     comp=clang
     CXX=clang++
     ifeq ($(target_windows), yes)
-        CXX=x86_64-w64-mingw32-clang++
+        ifeq ($(bits), 64)
+            CXX=x86_64-w64-mingw32-clang++
+        else ifeq ($(bits), 32)
+            CXX=i686-w64-mingw32-clang++
+        else
+            $(error Unknown bits for Windows target: $(bits))
+        endif
     endif
     CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-prototypes -Wconditional-uninitialized -flax-vector-conversions=none
     # Atomic library for non-Darwin/FreeBSD/OpenBSD and non-Windows (unless compiler-rt)
@@ -581,7 +593,7 @@ ifeq ($(COMP), clang)
             CXXFLAGS += -m$(bits)
             LDFLAGS += -m$(bits)
         endif
-        # Atomic library for specific architectures
+        # Atomic library for specific architectures (not armv8)
         ifeq ($(arch), $(filter $(arch), armv7 riscv64 loongarch64))
             LDFLAGS += -latomic
         endif
@@ -590,11 +602,28 @@ ifeq ($(COMP), clang)
         CXXFLAGS += -m$(bits)
         LDFLAGS += -m$(bits)
     endif
-    # Add std::filesystem library for Linux/Clang
+    # Link the separate filesystem library for Linux/Clang.
+    # Older versions of Clang (pre-9) require -lstdc++fs to use std::filesystem,
+    # because filesystem was not yet fully integrated into libstdc++.
+    # Modern Clang versions (9+) include filesystem in the standard library, 
+    # so this flag is usually harmless but may be unnecessary.
     ifeq ($(KERNEL), Linux)
         LDFLAGS += -lstdc++fs
     endif
+    # Profile build for Clang
+    profile_make = clang-profile-make
+    profile_use  = clang-profile-use
 endif
+
+ifeq ($(COMP), icx)
+    comp=icx
+    CXX=icpx
+    CXXFLAGS += --intel -pedantic -Wextra -Wshadow -Wmissing-prototypes -Wconditional-uninitialized -Wabi -Wdeprecated
+    # Profile build for icx
+    profile_make = icx-profile-make
+    profile_use  = icx-profile-use
+endif
+
 
 ifeq ($(KERNEL), Darwin)
     CXXFLAGS += -mmacosx-version-min=10.15
@@ -636,6 +665,9 @@ ifeq ($(COMP), ndk)
         endif
     endif
     LDFLAGS += -static-libstdc++
+    # Profile build for NDK/Clang
+    profile_make = clang-profile-make
+    profile_use  = clang-profile-use
 endif
 
 ### Allow overwriting CXX from command line
@@ -661,20 +693,6 @@ ifeq ($(wildcard $(LLVM_PROFDATA)), )
 endif
 ifeq ($(wildcard $(LLVM_PROFDATA)), )
     LLVM_PROFDATA := llvm-profdata
-endif
-
-ifeq ($(comp), icx)
-    profile_make = icx-profile-make
-    profile_use = icx-profile-use
-else ifeq ($(comp), clang)
-    profile_make = clang-profile-make
-    profile_use = clang-profile-use
-else
-    profile_make = gcc-profile-make
-    profile_use = gcc-profile-use
-    ifeq ($(KERNEL), Darwin)
-        EXTRAPROFILEFLAGS = -fvisibility=hidden
-    endif
 endif
 
 ### On mingw use Windows threads, otherwise POSIX
