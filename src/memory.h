@@ -48,8 +48,6 @@
     #if defined(small)
         #undef small
     #endif
-
-    #include <psapi.h>
 #else
     #include <sys/mman.h>  // mmap, munmap, MAP_*, PROT_*
     #include <unistd.h>
