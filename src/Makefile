@@ -729,7 +729,7 @@ ifeq ($(optimize), yes)
         ifneq ($(filter clang icx ndk, $(COMP)), )
             CXXFLAGS += -mdynamic-no-pic
         else ifeq ($(COMP), gcc)
-            ifneq ($(arch),arm64)
+            ifneq ($(arch), arm64)
                 CXXFLAGS += -mdynamic-no-pic
             endif
         endif
@@ -943,6 +943,10 @@ ifeq ($(optimize), yes)
         ifeq ($(filter clang icx ndk, $(COMP)), clang icx ndk)
             # Clang / ICX / NDK -> always full LTO
             LTO_FLAGS := -flto=full
+            # ICX-specific flags
+            ifeq ($(COMP), icx)
+                LTO_FLAGS += -fwhole-program-vtables
+            endif
         # GCC and CLANG use different methods for parallelizing LTO
         # and CLANG pretends to be GCC on some systems.
         else ifeq ($(COMP), gcc)
@@ -961,10 +965,6 @@ ifeq ($(optimize), yes)
         else ifeq ($(COMP), mingw)
             LTO_FLAGS := -flto -flto-partition=one
             LDFLTO_EXTRA := -flto=jobserver -save-temps
-        endif
-        # ICX-specific flags
-        ifeq ($(COMP), icx)
-            LTO_FLAGS := -flto=full -fwhole-program-vtables
         endif
 
         # Apply LTO flags
@@ -986,16 +986,20 @@ ifeq ($(optimize), yes)
     endif
 endif
 
-# Windows + GCC (not Clang): avoid inline dllexport issues in DLLs
+# Windows + GCC (not Clang):
+# Avoid inline dllexport issues specific to GCC-built DLLs.
 ifeq ($(target_windows), yes)
     ifeq ($(COMP), gcc)
         ifeq ($(gcc_is_clang), )
             CXXFLAGS += -fno-keep-inline-dllexport
         endif
     endif
-# only add -pipe on non-Windows, non-macOS
+# Non-Windows, non-macOS:
+# Enable -pipe for compile speed (disabled for Android NDK due to toolchain issues).
 else ifneq ($(KERNEL), Darwin)
-    CXXFLAGS += -pipe
+    ifneq ($(filter ndk, $(COMP)), ndk)
+        CXXFLAGS += -pipe
+    endif
 endif
 
 MKDIR := mkdir -p -m 755
