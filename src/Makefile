@@ -496,8 +496,11 @@ gcc_is_apple_clang :=
 ifeq ($(COMP),gcc)
     CXX=g++
     CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-declarations
-    # Non-Darwin flags
-ifneq ($(KERNEL),Darwin)
+# Darwin GCC
+ifeq ($(KERNEL),Darwin)
+    EXTRAPROFILEFLAGS = -fvisibility=hidden
+# Non-Darwin GCC
+else
     CXXFLAGS += -Wno-stringop-overflow
     # Detect if GCC is actually Clang
     gcc_version := $(shell $(CXX) --version 2>/dev/null)
@@ -522,9 +525,6 @@ else
     # Real GCC will fall through to common flags below
     :
 endif
-# Darwin GCC
-else
-    EXTRAPROFILEFLAGS = -fvisibility=hidden
 endif
 # ---- COMMON FLAGS FOR REAL GCC ----
 ifeq ($(gcc_is_clang),)
@@ -560,7 +560,7 @@ endif
     CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-prototypes -Wconditional-uninitialized -flax-vector-conversions=none
     # Atomic library for non-Windows and non-[Darwin/FreeBSD/OpenBSD] (unless compiler-rt)
 ifneq ($(target_windows),yes)
-ifeq ($(filter Darwin OpenBSD FreeBSD,$(KERNEL)),)
+ifeq ($(filter $(KERNEL),Darwin OpenBSD FreeBSD),)
 ifneq ($(RTLIB),compiler-rt)
     LDFLAGS += -latomic
 endif
@@ -1300,6 +1300,6 @@ icx-profile-use:
 	@mv $@.tmp $@
 
 # Include .depend only if no special goal is requested
-ifeq ($(filter help strip install clean objclean profileclean net format config-sanity install-hooks,$(MAKECMDGOALS)),)
+ifeq ($(filter $(MAKECMDGOALS),help strip install clean objclean profileclean net format config-sanity install-hooks),)
     -include .depend
 endif
