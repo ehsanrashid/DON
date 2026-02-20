@@ -580,7 +580,7 @@ ifeq ($(COMP), clang)
     endif
     CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-prototypes -Wconditional-uninitialized -flax-vector-conversions=none
     # Atomic library for non-Darwin/FreeBSD/OpenBSD and non-Windows (unless compiler-rt)
-    ifeq ($(filter $(KERNEL), Darwin OpenBSD FreeBSD),)
+    ifeq ($(filter $(KERNEL), Darwin OpenBSD FreeBSD), )
         ifneq ($(target_windows), yes)
             ifneq ($(RTLIB), compiler-rt)
                 LDFLAGS += -latomic
@@ -730,7 +730,6 @@ endif
 
 ### 3.3 Optimization
 ifeq ($(optimize), yes)
-
     CXXFLAGS += -O3 -funroll-loops
 
     ifeq ($(KERNEL), Darwin)
