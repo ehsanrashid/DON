@@ -22,9 +22,15 @@
 SHELL := /bin/bash
 
 ### Establish the operating system name
-KERNEL := $(shell uname -s)
+UNAME_S := $(shell uname -s 2>/dev/null)
+UNAME_O := $(shell uname -o 2>/dev/null)
+
+KERNEL := $(UNAME_S)
+
 ifeq ($(KERNEL),Linux)
-    OS := $(shell { uname -o 2>/dev/null || echo Linux; })
+    OS := $(if $(UNAME_O),$(UNAME_O),Linux)
+else
+    OS := $(KERNEL)
 endif
 
 OS_WINDOWS := no
@@ -58,6 +64,25 @@ else
 endif
 endif
 endif
+
+# Cross-platform command to detect executable
+ifeq ($(OS_WINDOWS),yes)
+    FIND_EXE = where $1 2>nul
+else
+    FIND_EXE = command -v $1 2>/dev/null
+endif
+
+# -------------------------------------------
+# Detect clang-format (prefer newest version)
+# -------------------------------------------
+CLANG_FORMAT := $(or \
+    $(if $(shell $(call FIND_EXE,clang-format-20)),clang-format-20), \
+    $(if $(shell $(call FIND_EXE,clang-format-19)),clang-format-19), \
+    $(if $(shell $(call FIND_EXE,clang-format-18)),clang-format-18), \
+    clang-format)
+
+# Optional: log which one was chosen
+#$(info Using CLANG_FORMAT = $(CLANG_FORMAT))
 
 ### Executable name
 NAME := DON
@@ -199,25 +224,6 @@ vsx = no
 lsx = no
 lasx = no
 STRIP = strip
-
-# Cross-platform command to detect executable
-ifeq ($(OS_WINDOWS),yes)
-    FIND_EXE = where $1 2>nul
-else
-    FIND_EXE = command -v $1 2>/dev/null
-endif
-
-# -------------------------------------------
-# Detect clang-format (prefer newest version)
-# -------------------------------------------
-CLANG_FORMAT := $(or \
-    $(if $(shell $(call FIND_EXE,clang-format-20)),clang-format-20), \
-    $(if $(shell $(call FIND_EXE,clang-format-19)),clang-format-19), \
-    $(if $(shell $(call FIND_EXE,clang-format-18)),clang-format-18), \
-    clang-format)
-
-# Optional: log which one was chosen
-#$(info Using CLANG_FORMAT = $(CLANG_FORMAT))
 
 ### 2.2 Architecture specific
 
@@ -963,7 +969,7 @@ ifneq ($(LLD_BIN),)
 ifeq ($(COMP),clang)
     LDFLAGS += -fuse-ld=lld
 else
-ifeq ($(gcc_is_clang),yes)
+ifeq ($(GCC_CLANG),yes)
     LDFLAGS += -fuse-ld=lld
 endif
 endif
@@ -986,7 +992,7 @@ else
 ifeq ($(COMP),gcc)
 ifneq ($(KERNEL),Darwin)
 # GCC (not pretending to be clang) uses parallel LTO
-ifeq ($(gcc_is_clang),)
+ifeq ($(GCC_CLANG),no)
     LTO_FLAGS := -flto -flto-partition=one
     LDFLTO_EXTRA := -flto=jobserver
 # GCC pretending to be clang
@@ -1026,7 +1032,7 @@ endif
 # Avoid inline dllexport issues specific to GCC-built DLLs.
 ifeq ($(OS_WINDOWS),yes)
 ifeq ($(COMP),gcc)
-ifeq ($(gcc_is_clang),)
+ifeq ($(GCC_CLANG),no)
     CXXFLAGS += -fno-keep-inline-dllexport
 endif
 endif
