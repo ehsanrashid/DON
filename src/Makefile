@@ -627,15 +627,6 @@ ifeq ($(COMP),icx)
 else
 ifeq ($(COMP),ndk)
     CXXFLAGS += -stdlib=libc++
-ifeq ($(arch),armv7)
-    CXX=armv7a-linux-androideabi29-clang++
-    CXXFLAGS += -mthumb -march=armv7-a -mfloat-abi=softfp -mfpu=neon
-ifneq ($(shell which arm-linux-androideabi-strip 2>/dev/null),)
-    STRIP=arm-linux-androideabi-strip
-else
-    STRIP=llvm-strip
-endif
-else
 ifeq ($(arch),armv8)
     CXX=aarch64-linux-android29-clang++
 ifneq ($(shell which aarch64-linux-android-strip 2>/dev/null),)
@@ -648,6 +639,15 @@ ifeq ($(arch),x86_64)
     CXX=x86_64-linux-android29-clang++
 ifneq ($(shell which x86_64-linux-android-strip 2>/dev/null),)
     STRIP=x86_64-linux-android-strip
+else
+    STRIP=llvm-strip
+endif
+else
+ifeq ($(arch),armv7)
+    CXX=armv7a-linux-androideabi29-clang++
+    CXXFLAGS += -mthumb -march=armv7-a -mfloat-abi=softfp -mfpu=neon
+ifneq ($(shell which arm-linux-androideabi-strip 2>/dev/null),)
+    STRIP=arm-linux-androideabi-strip
 else
     STRIP=llvm-strip
 endif
