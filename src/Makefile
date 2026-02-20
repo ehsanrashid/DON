@@ -921,12 +921,11 @@ ifeq ($(optimize), yes)
                 LLD_BIN := $(shell command -v lld 2>/dev/null)
             endif
             ifneq ($(LLD_BIN), )
-                ifneq ($(filter clang ndk, $(COMP)), )
+                # Determine if we should use LLD
+                use_lld := $(if $(filter clang ndk, $(COMP)), yes, $(if $(gcc_is_clang), yes, no))
+                # Apply LLD flags if needed
+                ifeq ($(use_lld), yes)
                     LDFLAGS += -fuse-ld=lld
-                else ifeq ($(COMP), gcc)
-                    ifneq ($(gcc_is_clang), )
-                        LDFLAGS += -fuse-ld=lld
-                    endif
                 endif
             endif
         endif
@@ -1227,8 +1226,10 @@ config-sanity: net
 	(test "$(neon)" = "yes" || test "$(neon)" = "no") && \
 	(test "$(lsx)" = "yes" || test "$(lsx)" = "no") && \
 	(test "$(lasx)" = "yes" || test "$(lasx)" = "no") && \
-	(test "$(COMP)" = "gcc" || test "$(COMP)" = "icx" || test "$(COMP)" = "mingw" || \
-	 test "$(COMP)" = "clang" || test "$(COMP)" = "armv7a-linux-androideabi16-clang" || \
+	(test "$(COMP)" = "gcc" || test "$(COMP)" = "clang" || \
+	 test "$(COMP)" = "mingw" || test "$(COMP)" = "icx" || \
+	 test "$(COMP)" = "ndk" || \
+	 test "$(COMP)" = "armv7a-linux-androideabi16-clang" || \
 	 test "$(COMP)" = "aarch64-linux-android21-clang")
 
 $(EXE): $(OBJS)
