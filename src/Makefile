@@ -497,15 +497,13 @@ endif
 ifeq ($(findstring loongarch64,$(ARCH)),loongarch64)
     arch = loongarch64
     prefetch = yes
-
-    ifeq ($(findstring -lsx,$(ARCH)),-lsx)
-        lsx = yes
-    endif
-
-    ifeq ($(findstring -lasx,$(ARCH)),-lasx)
-        lsx = yes
-        lasx = yes
-    endif
+ifeq ($(findstring -lsx,$(ARCH)),-lsx)
+    lsx = yes
+endif
+ifeq ($(findstring -lasx,$(ARCH)),-lasx)
+    lsx = yes
+    lasx = yes
+endif
 endif
 
 endif
@@ -848,17 +846,17 @@ endif
 ### 3.5 prefetch and popcount
 ifeq ($(prefetch),yes)
     CXXFLAGS += -DUSE_PREFETCH
-    ifeq ($(sse),yes)
-        CXXFLAGS += -msse
-    endif
+ifeq ($(sse),yes)
+    CXXFLAGS += -msse
+endif
 endif
 
 ifeq ($(popcnt),yes)
-    ifneq ($(filter ppc64 ppc64-altivec ppc64-vsx armv7 armv8 arm64,$(arch)),)
-        CXXFLAGS += -DUSE_POPCNT
-    else
-        CXXFLAGS += -DUSE_POPCNT -msse3 -mpopcnt
-    endif
+ifneq ($(filter ppc64 ppc64-altivec ppc64-vsx armv7 armv8 arm64,$(arch)),)
+    CXXFLAGS += -DUSE_POPCNT
+else
+    CXXFLAGS += -DUSE_POPCNT -msse3 -mpopcnt
+endif
 endif
 
 ### 3.6 SIMD architectures
