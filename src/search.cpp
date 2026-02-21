@@ -1632,7 +1632,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
                 alpha = value;  // Update alpha! Always alpha < beta
 
                 // Reduce depth for other moves if have found at least one score improvement
-                if (depth < 20 && !is_decisive(value))
+                if (depth < 24 && !is_decisive(value))
                     depth = std::max(depth - 1 - int(depth < 14), 1);
             }
         }
