@@ -546,12 +546,12 @@ ifeq ($(COMP),gcc)
         endif
         # Profile build adjustments for Clang masquerading as GCC
         ifeq ($(GCC_CLANG),yes)
-            ifeq ($(GCC_APPLE_CLANG),no)
-                # Link std::filesystem for Linux Clang masquerading as GCC
-                ifeq ($(KERNEL),Linux)
-                    LDFLAGS += -lstdc++fs
-                endif
-            endif
+        ifeq ($(GCC_APPLE_CLANG),no)
+        # Link std::filesystem for Linux Clang masquerading as GCC
+        ifeq ($(KERNEL),Linux)
+            LDFLAGS += -lstdc++fs
+        endif
+        endif
         endif
     endif
     # Set profile targets outside Darwin/non-Darwin split
@@ -566,15 +566,15 @@ ifeq ($(COMP),gcc)
     # Architectures with special handling
     # Atomic library for specific architectures (not armv8)
     ifneq ($(filter armv8 armv7 riscv64,$(arch)),)
-        ifeq ($(OS),Android)
-        ifneq ($(filter 32 64,$(bits)),)
-            CXXFLAGS += -m$(bits)
-            LDFLAGS  += -m$(bits)
-        endif
-        endif
-        ifneq ($(filter armv7 riscv64,$(arch)),)
-            LDFLAGS += -latomic
-        endif
+    ifeq ($(OS),Android)
+    ifneq ($(filter 32 64,$(bits)),)
+        CXXFLAGS += -m$(bits)
+        LDFLAGS  += -m$(bits)
+    endif
+    endif
+    ifneq ($(filter armv7 riscv64,$(arch)),)
+        LDFLAGS += -latomic
+    endif
     else ifeq ($(arch),loongarch64)
         LDFLAGS += -latomic
     # Generic architectures
@@ -711,7 +711,7 @@ endif
 
 ### Allow overwriting CXX from command line
 ifdef COMPCXX
-    CXX=$(COMPCXX)
+    CXX = $(COMPCXX)
 endif
 
 # Force SSE floating-point math to avoid x87 extended-precision differences
@@ -739,17 +739,17 @@ ifneq ($(COMP),mingw)
     CXXFLAGS += -DUSE_PTHREADS
     # On Android Bionic's C library comes with its own pthread implementation bundled in
     ifneq ($(OS),Android)
-        # Haiku has pthreads in its libroot, so only link it in on other platforms
-        ifneq ($(KERNEL),Haiku)
-            ifneq ($(COMP),ndk)
-                LDFLAGS += -lpthread
-                ifneq ($(OS_WINDOWS),yes)
-                ifneq ($(KERNEL),Darwin)
-                    LDFLAGS += -lrt
-                endif
-                endif
-            endif
+    # Haiku has pthreads in its libroot, so only link it in on other platforms
+    ifneq ($(KERNEL),Haiku)
+    ifneq ($(COMP),ndk)
+        LDFLAGS += -lpthread
+        ifneq ($(OS_WINDOWS),yes)
+        ifneq ($(KERNEL),Darwin)
+            LDFLAGS += -lrt
         endif
+        endif
+    endif
+    endif
     endif
 endif
 
@@ -786,13 +786,13 @@ ifeq ($(optimize),yes)
     endif
 
     ifeq ($(KERNEL),Darwin)
-        ifneq ($(filter clang icx ndk,$(COMP)),)
-            CXXFLAGS += -mdynamic-no-pic
-        else ifeq ($(COMP),gcc)
-            ifneq ($(arch),arm64)
-                CXXFLAGS += -mdynamic-no-pic
-            endif
-        endif
+    ifneq ($(filter clang icx ndk,$(COMP)),)
+        CXXFLAGS += -mdynamic-no-pic
+    else ifeq ($(COMP),gcc)
+    ifneq ($(arch),arm64)
+        CXXFLAGS += -mdynamic-no-pic
+    endif
+    endif
     endif
 endif
 
@@ -974,11 +974,9 @@ ifeq ($(debug),no)
                 # clang always supports -fuse-ld=lld
                 ifeq ($(COMP),clang)
                     LDFLAGS += -fuse-ld=lld
-                else
                 # gcc builds that are clang-compatible
-                ifeq ($(GCC_CLANG),yes)
+                else ifeq ($(GCC_CLANG),yes)
                     LDFLAGS += -fuse-ld=lld
-                endif
                 endif
             endif
         endif
