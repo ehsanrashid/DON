@@ -1204,7 +1204,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
 
                 if (!is_win(probCutValue))
                     // Adjust probCutValue to align with the current beta window
-                    return probCutValue - (probCutBeta - beta);
+                    return (probCutValue - (probCutBeta - beta));
             }
         }
         }

@@ -383,7 +383,7 @@ using SqrValue = std::int32_t;
 inline constexpr Value VALUE_ZERO = 0;
 inline constexpr Value VALUE_DRAW = VALUE_ZERO;
 
-inline constexpr Value VALUE_NONE     = 0x7FFF;
+inline constexpr Value VALUE_NONE     = (1 << 15) - 1;
 inline constexpr Value VALUE_INFINITE = VALUE_NONE - 1;
 
 inline constexpr Value VALUE_MATE                 = VALUE_INFINITE - 1;

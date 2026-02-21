@@ -225,7 +225,7 @@ avx512 = no
 vnni256 = no
 vnni512 = no
 avx512icl = no
-ARM_VERSION = 0
+arm_version = 0
 neon = no
 dotprod = no
 altivec = no
@@ -400,7 +400,7 @@ ifeq ($(ARCH),armv7)
     arch = armv7
     bits = 32
     prefetch = yes
-    ARM_VERSION = 7
+    arm_version = 7
 endif
 
 ifeq ($(ARCH),armv7-neon)
@@ -408,7 +408,7 @@ ifeq ($(ARCH),armv7-neon)
     bits = 32
     prefetch = yes
     popcnt = yes
-    ARM_VERSION = 7
+    arm_version = 7
     neon = yes
 endif
 
@@ -416,7 +416,7 @@ ifeq ($(ARCH),armv8)
     arch = armv8
     prefetch = yes
     popcnt = yes
-    ARM_VERSION = 8
+    arm_version = 8
     neon = yes
 endif
 
@@ -424,7 +424,7 @@ ifeq ($(ARCH),armv8-dotprod)
     arch = armv8
     prefetch = yes
     popcnt = yes
-    ARM_VERSION = 8
+    arm_version = 8
     neon = yes
     dotprod = yes
 endif
@@ -433,7 +433,7 @@ ifeq ($(ARCH),apple-silicon)
     arch = arm64
     prefetch = yes
     popcnt = yes
-    ARM_VERSION = 8
+    arm_version = 8
     neon = yes
     dotprod = yes
 endif
@@ -523,18 +523,18 @@ endif
 # ----------------------------
 
 # Detect if GCC is actually Clang
-GCC_VERSION     :=
-GCC_CLANG       := no
-GCC_APPLE_CLANG := no
-GCC_GNU_LD      := no
+GCC_VERSION :=
+GCC_CLANG   := no
+GCC_APPLE   := no
+GCC_GNU_LD  := no
 
 ifeq ($(COMP),gcc)
     CXX := g++
     CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-declarations
-    GCC_VERSION     := $(shell $(CXX) --version 2>/dev/null)
-    GCC_CLANG       := $(if $(findstring clang,$(GCC_VERSION)),yes,no)
-    GCC_APPLE_CLANG := $(if $(findstring Apple,$(GCC_VERSION)),yes,no)
-    GCC_GNU_LD      := $(if $(findstring GNU ld,$(shell $(CXX) -Wl,--version 2>/dev/null)),yes,no)
+    GCC_VERSION := $(shell $(CXX) --version 2>/dev/null)
+    GCC_CLANG   := $(if $(findstring clang,$(GCC_VERSION)),yes,no)
+    GCC_APPLE   := $(if $(findstring Apple,$(GCC_VERSION)),yes,no)
+    GCC_GNU_LD  := $(if $(findstring GNU ld,$(shell $(CXX) -Wl,--version 2>/dev/null)),yes,no)
     # Darwin GCC
     ifeq ($(KERNEL),Darwin)
         EXTRAPROFILEFLAGS = -fvisibility=hidden
@@ -546,7 +546,7 @@ ifeq ($(COMP),gcc)
         endif
         # Profile build adjustments for Clang masquerading as GCC
         ifeq ($(GCC_CLANG),yes)
-        ifeq ($(GCC_APPLE_CLANG),no)
+        ifeq ($(GCC_APPLE),no)
         # Link std::filesystem for Linux Clang masquerading as GCC
         ifeq ($(KERNEL),Linux)
             LDFLAGS += -lstdc++fs
@@ -594,7 +594,7 @@ else ifeq ($(COMP),clang)
     endif
     CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-prototypes -Wconditional-uninitialized -flax-vector-conversions=none
     # Atomic library for non-Windows and non-[Darwin/FreeBSD/OpenBSD] (unless compiler-rt)
-    ifneq ($(OS_WINDOWS),yes)
+    ifeq ($(OS_WINDOWS),no)
     ifeq ($(filter $(KERNEL),Darwin OpenBSD FreeBSD),)
     ifneq ($(RTLIB),compiler-rt)
         LDFLAGS += -latomic
@@ -743,7 +743,7 @@ ifneq ($(COMP),mingw)
     ifneq ($(KERNEL),Haiku)
     ifneq ($(COMP),ndk)
         LDFLAGS += -lpthread
-        ifneq ($(OS_WINDOWS),yes)
+        ifeq ($(OS_WINDOWS),no)
         ifneq ($(KERNEL),Darwin)
             LDFLAGS += -lrt
         endif
@@ -903,7 +903,7 @@ ifeq ($(vsx),yes)
 endif
 
 ifeq ($(neon),yes)
-    CXXFLAGS += -DUSE_NEON=$(ARM_VERSION)
+    CXXFLAGS += -DUSE_NEON=$(arm_version)
     ifeq ($(KERNEL),Linux)
     ifneq ($(COMP),ndk)
     ifneq ($(arch),armv8)
@@ -1241,7 +1241,7 @@ config-sanity: net
 	echo "vsx: '$(vsx)'" && \
 	echo "neon: '$(neon)'" && \
 	echo "dotprod: '$(dotprod)'" && \
-	echo "ARM_VERSION: '$(ARM_VERSION)'" && \
+	echo "arm_version: '$(arm_version)'" && \
 	echo "lsx: '$(lsx)'" && \
 	echo "lasx: '$(lasx)'" && \
 	echo "OS_WINDOWS: '$(OS_WINDOWS)'" && \
@@ -1284,6 +1284,7 @@ config-sanity: net
 	(test "$(neon)" = "yes" || test "$(neon)" = "no") && \
 	(test "$(lsx)" = "yes" || test "$(lsx)" = "no") && \
 	(test "$(lasx)" = "yes" || test "$(lasx)" = "no") && \
+	(test "$(OS_WINDOWS)" = "yes" || "$(OS_WINDOWS)" = "no") && \
 	(test "$(COMP)" = "gcc" || test "$(COMP)" = "clang" || \
 	 test "$(COMP)" = "mingw" || test "$(COMP)" = "icx" || \
 	 test "$(COMP)" = "ndk" || \
