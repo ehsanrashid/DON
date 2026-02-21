@@ -81,17 +81,15 @@ export OS_WINDOWS
 
 # Use Wine only when cross-running Windows binaries on non-Windows hosts
 ifeq ($(OS_WINDOWS),yes)
-ifneq ($(filter-out Windows_NT,$(ENV_OS)),)
 # Set RUN_PREFIX to wine if not already defined
 ifeq ($(RUN_PREFIX),)
     RUN_PREFIX := $(shell command -v wine 2>/dev/null)
 endif
 endif
-endif
 
 # Cross-platform command to detect executable
 ifeq ($(OS_WINDOWS),yes)
-    FIND_EXE = where "$1" 2>nul
+    FIND_EXE = where "$1" 2>/dev/null
 else
     FIND_EXE = command -v "$1" 2>/dev/null
 endif
@@ -533,7 +531,9 @@ ifeq ($(COMP),)
 endif
 
 ifeq ($(OS_WINDOWS),yes)
+ifneq ($(STATIC),no)
     LDFLAGS += -static
+endif
 endif
 
 # ----------------------------
@@ -542,17 +542,25 @@ endif
 
 # Detect if GCC is actually Clang
 GCC_VERSION :=
+GCC_DEFINES :=
 GCC_CLANG   := no
 GCC_APPLE   := no
 GCC_GNU_LD  := no
+GCC_MAJOR   :=
 
 ifeq ($(COMP),gcc)
     CXX := g++
     CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-declarations
-    GCC_VERSION := $(shell $(CXX) --version 2>/dev/null)
-    GCC_CLANG   := $(if $(findstring clang,$(GCC_VERSION)),yes,no)
-    GCC_APPLE   := $(if $(findstring Apple,$(GCC_VERSION)),yes,no)
+    #GCC_VERSION := $(shell $(CXX) --version 2>/dev/null)
+    # Compiler detection
+    GCC_DEFINES := $(shell echo | $(CXX) -dM -E -x c++ - 2>/dev/null)
+    GCC_CLANG   := $(if $(findstring __clang__,$(GCC_DEFINES)),yes,no)
+    GCC_APPLE   := $(if $(findstring __apple_build_version__,$(GCC_DEFINES)),yes,no)
+    # GNU linker detection
     GCC_GNU_LD  := $(if $(findstring GNU ld,$(shell $(CXX) -Wl,--version 2>/dev/null)),yes,no)
+    # Determine major version for Linux Clang masquerading as GCC
+    GCC_MAJOR   := $(if $(and $(filter yes,$(GCC_CLANG)),$(filter no,$(GCC_APPLE))),$(shell $(CXX) -dumpversion | cut -f1 -d.),)
+
     # Darwin GCC
     ifeq ($(KERNEL),Darwin)
         EXTRAPROFILEFLAGS = -fvisibility=hidden
@@ -562,13 +570,10 @@ ifeq ($(COMP),gcc)
         ifeq ($(GCC_GNU_LD),yes)
             LDFLAGS += -Wl,--no-as-needed
         endif
-        # Profile build adjustments for Clang masquerading as GCC
-        ifeq ($(GCC_CLANG),yes)
-        ifeq ($(GCC_APPLE),no)
-        # Link std::filesystem for Linux Clang masquerading as GCC
-        ifeq ($(KERNEL),Linux)
+        # Link std::filesystem if Linux Clang < 9
+        ifneq ($(GCC_MAJOR),)
+        ifeq ($(shell expr $(GCC_MAJOR) \< 9),1)
             LDFLAGS += -lstdc++fs
-        endif
         endif
         endif
     endif
@@ -596,9 +601,11 @@ ifeq ($(COMP),gcc)
     else ifeq ($(arch),loongarch64)
         LDFLAGS += -latomic
     # Generic architectures
-    else ifneq ($(filter 32 64,$(bits)),)
+    else
+    ifneq ($(filter 32 64,$(bits)),)
         CXXFLAGS += -m$(bits)
         LDFLAGS  += -m$(bits)
+    endif
     endif
 
 else ifeq ($(COMP),clang)
@@ -634,9 +641,11 @@ else ifeq ($(COMP),clang)
     else ifeq ($(arch),loongarch64)
         LDFLAGS += -latomic
     # Generic architectures
-    else ifneq ($(filter 32 64,$(bits)),)
+    else
+    ifneq ($(filter 32 64,$(bits)),)
         CXXFLAGS += -m$(bits)
         LDFLAGS  += -m$(bits)
+    endif
     endif
 
     # Link the separate filesystem library for Linux/Clang.
@@ -661,9 +670,7 @@ else ifeq ($(COMP),mingw)
     endif
 
     # Prefer POSIX variant if available
-    CXX := $(if $(shell command -v $(MINGW_CXX_POSIX) 2>/dev/null), \
-            $(MINGW_CXX_POSIX), \
-            $(MINGW_CXX))
+    CXX := $(if $(shell command -v $(MINGW_CXX_POSIX) 2>/dev/null),$(MINGW_CXX_POSIX),$(MINGW_CXX))
     CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-declarations
     # Profile build for mingw (use GCC defaults)
     profile_make = gcc-profile-make
@@ -709,7 +716,7 @@ else ifeq ($(COMP),ndk)
 
     # Correct STL usage
     CXXFLAGS += -stdlib=libc++
-    LDFLAGS  += -static-libstdc++ -lc++abi
+    LDFLAGS  += -static-libstdc++
 
     STRIP := $(TOOLCHAIN)/llvm-strip
     # Profile build for NDK/Clang
@@ -756,7 +763,7 @@ endif
 ifneq ($(COMP),mingw)
     CXXFLAGS += -DUSE_PTHREADS
 
-    # Link pthreads and optionally LRT on supported platforms
+    ## Link pthreads and optionally LRT on supported platforms
 
     # On Android Bionic's C library comes with its own pthread implementation bundled in
     ifneq ($(OS),Android)
@@ -765,18 +772,10 @@ ifneq ($(COMP),mingw)
     ifneq ($(COMP),ndk)
         LDFLAGS += -lpthread
         # Determine if LRT should be linked (realtime library)
-        LINK_LRT := yes
-        # Disable LRT on Windows
-        ifeq ($(OS_WINDOWS),yes)
-            LINK_LRT := no
-        endif
-        # Disable LRT on macOS
-        ifeq ($(KERNEL),Darwin)
-            LINK_LRT := no
-        endif
-        # Add LRT only if allowed
-        ifeq ($(LINK_LRT),yes)
+        ifneq ($(OS_WINDOWS),yes)
+        ifneq ($(KERNEL),Darwin)
             LDFLAGS += -lrt
+        endif
         endif
     endif
     endif
@@ -808,11 +807,13 @@ ifeq ($(optimize),yes)
     ifeq ($(OS),Android)
         CXXFLAGS += -fno-gcse -mthumb -march=armv7-a -mfloat-abi=softfp
     endif
-    else ifneq ($(filter clang ndk,$(COMP)),)
+    else
+    ifneq ($(filter clang ndk,$(COMP)),)
         CLANG_MAJOR_VERSION := $(shell $(CXX) -dumpversion 2>/dev/null | cut -f1 -d.)
         ifeq ($(shell expr $(CLANG_MAJOR_VERSION) \< 16),1)
             CXXFLAGS += -fexperimental-new-pass-manager
         endif
+    endif
     endif
 
     ifeq ($(KERNEL),Darwin)
@@ -1060,18 +1061,18 @@ endif
 # Compiler-specific flags
 # -------------------------------
 
-# Windows + GCC (not Clang, MinGW targets)
+# Windows + GCC (not Clang)
 # Only add -fno-keep-inline-dllexport for MinGW GCC DLL builds
-ifeq ($(COMP),gcc)
+ifeq ($(OS_WINDOWS),yes)
+ifneq ($(filter gcc mingw,$(COMP)),)
 ifeq ($(GCC_CLANG),no)
-ifneq ($(filter x86_64-w64-mingw32% i686-w64-mingw32%, $(CXX)),)
     CXXFLAGS += -fno-keep-inline-dllexport
 endif
 endif
 endif
 
-# Non-Windows, non-macOS: enable -pipe for faster compilation
-# Disabled for Android NDK due to toolchain issues
+# Not Windows, Not macOS (Darwin), Not Android NDK:
+# Enable -pipe for faster compilation, disabled for Android NDK due to toolchain issues
 ifneq ($(OS_WINDOWS),yes)
 ifneq ($(KERNEL),Darwin)
 ifneq ($(COMP),ndk)
