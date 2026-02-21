@@ -739,7 +739,7 @@ ifneq ($(COMP),mingw)
     ifneq ($(KERNEL),Haiku)
     ifneq ($(COMP),ndk)
         LDFLAGS += -lpthread
-        ifeq ($(OS_WINDOWS),no)
+        ifneq ($(OS_WINDOWS),yes)
         ifneq ($(KERNEL),Darwin)
             LDFLAGS += -lrt
         endif
@@ -1038,7 +1038,7 @@ endif
 
 # Non-Windows, non-macOS: enable -pipe for faster compilation
 # Disabled for Android NDK due to toolchain issues
-ifeq ($(OS_WINDOWS),no)
+ifneq ($(OS_WINDOWS),yes)
 ifneq ($(KERNEL),Darwin)
 ifneq ($(COMP),ndk)
     CXXFLAGS += -pipe
