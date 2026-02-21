@@ -225,7 +225,7 @@ void Engine::resize_threads_tt() noexcept {
 
     threads.set(numaContext.numa_config(), sharedState, updateContext);
 
-    // Reallocate the hash with the new threadpool size
+    // Reallocate the hash with the new thread-pool size
     resize_tt(options["Hash"]);
 
     threads.ensure_network_replicated();
@@ -239,13 +239,11 @@ void Engine::resize_tt(std::size_t ttSize) noexcept {
 
 void Engine::show() const noexcept { std::cout << pos << std::endl; }
 
-void Engine::dump(std::filesystem::path dumpFile) const noexcept {
+void Engine::dump(const std::filesystem::path& dumpFile) const noexcept {
 
     if (!dumpFile.empty())
     {
-        std::ofstream ofs{dumpFile, std::ios::binary};
-
-        if (ofs)
+        if (std::ofstream ofs{dumpFile, std::ios::binary})
         {
             pos.dump(ofs);
 

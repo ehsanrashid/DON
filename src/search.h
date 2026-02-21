@@ -552,7 +552,7 @@ class Worker final {
     MainSearchManager* main_manager() const noexcept {
         assert(is_main_worker());
 
-        return static_cast<MainSearchManager*>(manager.get());
+        return (MainSearchManager*) manager.get();
     }
 
     void iterative_deepening() noexcept;

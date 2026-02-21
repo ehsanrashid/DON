@@ -1867,7 +1867,7 @@ std::size_t str_to_size_t(std::string_view sv) noexcept;
 
 // Reads the file as bytes.
 // Returns std::nullopt if the file does not exist.
-std::optional<std::string> read_file_to_string(std::filesystem::path filePath) noexcept;
+std::optional<std::string> read_file_to_string(const std::filesystem::path& filePath) noexcept;
 
 #if defined(_WIN32)
 // Get the error message string, if any

@@ -64,7 +64,7 @@ class PolyBook final {
     PolyBook& operator=(const PolyBook&) noexcept = delete;
     PolyBook& operator=(PolyBook&&) noexcept      = delete;
 
-    bool load(std::filesystem::path bookFile) noexcept;
+    bool load(const std::filesystem::path& bookFile) noexcept;
 
     bool empty() const noexcept { return entries.empty(); }
 
