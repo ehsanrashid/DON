@@ -1017,17 +1017,23 @@ ifeq ($(OS),Android)
     LDFLAGS  += -fPIE -pie
 endif
 
-# Windows + GCC (not Clang):
-# Avoid inline dllexport issues specific to GCC-built DLLs.
-ifeq ($(OS_WINDOWS),yes)
+# -------------------------------
+# Compiler-specific flags
+# -------------------------------
+
+# Windows + GCC (not Clang, MinGW targets)
+# Only add -fno-keep-inline-dllexport for MinGW GCC DLL builds
 ifeq ($(COMP),gcc)
 ifeq ($(GCC_CLANG),no)
+ifneq ($(filter x86_64-w64-mingw32% i686-w64-mingw32%, $(CXX)),)
     CXXFLAGS += -fno-keep-inline-dllexport
 endif
 endif
-# Non-Windows, non-macOS:
-# Enable -pipe for compile speed (disabled for Android NDK due to toolchain issues).
-else
+endif
+
+# Non-Windows, non-macOS: enable -pipe for faster compilation
+# Disabled for Android NDK due to toolchain issues
+ifeq ($(OS_WINDOWS),no)
 ifneq ($(KERNEL),Darwin)
 ifneq ($(COMP),ndk)
     CXXFLAGS += -pipe
