@@ -131,7 +131,7 @@ using vec_uint_t = __m256i;
 
 #elif defined(USE_SSE2)
 using vec_t      = __m128i;
-using vec_i8_t   = std::uint64_t;  // for the correct size -- will be loaded into an xmm reg
+using vec_i8_t   = std::uint64_t;  // for the correct size -- will be loaded into a xmm reg
 using vec128_t   = __m128i;
 using psqt_vec_t = __m128i;
 using vec_uint_t = __m128i;
