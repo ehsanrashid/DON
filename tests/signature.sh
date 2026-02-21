@@ -6,13 +6,13 @@ STDOUT_FILE=$(mktemp)
 STDERR_FILE=$(mktemp)
 
 error() {
-  echo "running bench for signature failed on line $1"
-  echo "===== STDOUT ====="
-  cat "$STDOUT_FILE"
-  echo "===== STDERR ====="
-  cat "$STDERR_FILE"
-  rm -f "$STDOUT_FILE" "$STDERR_FILE"
-  exit 1
+    echo "running bench for signature failed on line $1"
+    echo "===== STDOUT ====="
+    cat "$STDOUT_FILE"
+    echo "===== STDERR ====="
+    cat "$STDERR_FILE"
+    rm -f "$STDOUT_FILE" "$STDERR_FILE"
+    exit 1
 }
 
 trap 'error ${LINENO}' ERR
@@ -24,18 +24,18 @@ SIGNATURE=$(grep "Total nodes     : " "$STDERR_FILE" | awk '{print $4}')
 rm -f "$STDOUT_FILE" "$STDERR_FILE"
 
 if [ $# -gt 0 ]; then
-   # Compare to given reference
-   if [ "$1" != "$SIGNATURE" ]; then
-      if [ -z "$SIGNATURE" ]; then
-         echo "No signature obtained from bench. Code crashed or assert triggered ?"
-      else
-         echo "signature mismatch: reference $1 obtained: $SIGNATURE."
-      fi
-      exit 1
-   else
-      echo "signature OK: $SIGNATURE."
-   fi
+    # Compare to given reference
+    if [ "$1" != "$SIGNATURE" ]; then
+        if [ -z "$SIGNATURE" ]; then
+            echo "No signature obtained from bench. Code crashed or assert triggered ?"
+        else
+            echo "signature mismatch: reference $1 obtained: $SIGNATURE."
+        fi
+        exit 1
+    else
+        echo "signature OK: $SIGNATURE."
+    fi
 else
-   # Just report signature
-   echo $SIGNATURE
+    # Just report signature
+    echo $SIGNATURE
 fi

@@ -4,8 +4,8 @@
 TESTS_FAILED=0
 
 error() {
-  echo "perft testing failed on line $1"
-  exit 1
+    echo "perft testing failed on line $1"
+    exit 1
 }
 trap 'error ${LINENO}' ERR
 
@@ -35,26 +35,26 @@ EOF
 chmod +x $EXPECT_SCRIPT
 
 run_test() {
-  local pos="$1"
-  local depth="$2"
-  local expected="$3"
-  local chess960="$4"
-  local tmpFile=$(mktemp)
-
-  echo -n "Testing depth $depth: ${pos:0:64}... "
-
-  if $EXPECT_SCRIPT "$pos" "$depth" "$expected" "$chess960" "$tmpFile" >/dev/null 2>&1; then
-    echo "OK"
-    rm -f "$tmpFile"
-  else
-    local exitCode=$?
-    echo "FAILED (exit code: $exitCode)"
-    echo "===== Output for failed test ====="
-    cat "$tmpFile"
-    echo "=================================="
-    rm -f "$tmpFile"
-    TESTS_FAILED=1
-  fi
+    local pos="$1"
+    local depth="$2"
+    local expected="$3"
+    local chess960="$4"
+    local tmpFile=$(mktemp)
+    
+    echo -n "Testing depth $depth: ${pos:0:64}... "
+    
+    if $EXPECT_SCRIPT "$pos" "$depth" "$expected" "$chess960" "$tmpFile" >/dev/null 2>&1; then
+        echo "OK"
+        rm -f "$tmpFile"
+    else
+        local exitCode=$?
+        echo "FAILED (exit code: $exitCode)"
+        echo "===== Output for failed test ====="
+        cat "$tmpFile"
+        echo "=================================="
+        rm -f "$tmpFile"
+        TESTS_FAILED=1
+    fi
 }
 
 # Standard positions
@@ -90,6 +90,6 @@ rm -f $EXPECT_SCRIPT
 echo "perft testing completed"
 
 if [[ $TESTS_FAILED -ne 0 ]]; then
-  echo "Some tests failed"
-  exit 1
+    echo "Some tests failed"
+    exit 1
 fi
