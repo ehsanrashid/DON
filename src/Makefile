@@ -83,6 +83,7 @@ export OS_WINDOWS
 ifeq ($(OS_WINDOWS),yes)
 # Set RUN_PREFIX to wine if not already defined
 ifeq ($(RUN_PREFIX),)
+    # wine is typically absent on native Windows; this is primarily for cross-compile
     RUN_PREFIX := $(shell command -v wine 2>/dev/null)
 endif
 endif
@@ -528,6 +529,10 @@ ifeq ($(COMP),)
     COMP=gcc
 endif
 
+# On Windows, use fully static linking by default.
+# This avoids runtime dependency issues (missing DLLs) and produces a
+# self-contained executable suitable for redistribution and CI environments.
+# Users can disable this by passing 'STATIC=no' in the make command.
 ifeq ($(OS_WINDOWS),yes)
 ifneq ($(STATIC),no)
     LDFLAGS += -static
@@ -757,11 +762,10 @@ ifeq ($(sse_fp),yes)
     CXXFLAGS += -mfpmath=sse -msse2
 endif
 
-# llvm-profdata must be version compatible with the specified CXX (be it clang, or the gcc alias)
+# Locate llvm-profdata compatible with CXX for PGO (profile-guided optimization) builds.
 # make -j profile-build CXX=clang++-20 COMP=clang
-# Locate the version in the same directory as the compiler used,
-# with fallback to a generic one if it can't be located
-# Used for PGO (profile-guided optimization) builds
+# fallback to a generic one if missing.
+# for clang or gcc
 LLVM_PROFDATA := $(dir $(realpath $(shell command -v $(CXX) 2>/dev/null)))llvm-profdata
 # for icx
 ifeq ($(wildcard $(LLVM_PROFDATA)),)
