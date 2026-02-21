@@ -128,9 +128,18 @@ void update_pv(Move* RESTRICT pv, Move m, const Move* RESTRICT childPv) noexcept
     assert(m.is_ok());
 
     *pv++ = m;
+
     if (childPv != nullptr)
-        while (*childPv != Move::None)
-            *pv++ = *childPv++;
+    {
+        const Move* const end = std::find(childPv, childPv + MAX_PLY + 1, Move::None);
+
+        std::size_t count = end - childPv;
+
+        std::memcpy(pv, childPv, count * sizeof(Move));
+
+        pv += count;
+    }
+
     *pv = Move::None;
 }
 
@@ -1632,8 +1641,8 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
                 alpha = value;  // Update alpha! Always alpha < beta
 
                 // Reduce depth for other moves if have found at least one score improvement
-                if (depth < 16 && !is_decisive(value))
-                    depth = std::max(depth - 1 - int(depth < 8), 1);
+                if (depth < 24 && !is_decisive(value))
+                    depth = std::max(depth - 1 - int(depth < 16), 1);
             }
         }
 
@@ -2151,9 +2160,9 @@ int Worker::correction_value(const Position& pos, const Stack* ss) noexcept {
     Color ac = pos.active_color();
 
     std::int64_t correctionValue =
-           + 5717LL * int(histories.    pawn_correction<WHITE>(pos.    pawn_key(WHITE))[ac]
+           + 5716LL * int(histories.    pawn_correction<WHITE>(pos.    pawn_key(WHITE))[ac]
                         + histories.    pawn_correction<BLACK>(pos.    pawn_key(BLACK))[ac])
-           + 4412LL * int(histories.   minor_correction<WHITE>(pos.   minor_key(WHITE))[ac]
+           + 4411LL * int(histories.   minor_correction<WHITE>(pos.   minor_key(WHITE))[ac]
                         + histories.   minor_correction<BLACK>(pos.   minor_key(BLACK))[ac])
            +12749LL * int(histories.non_pawn_correction<WHITE>(pos.non_pawn_key(WHITE))[ac]
                         + histories.non_pawn_correction<BLACK>(pos.non_pawn_key(BLACK))[ac]);
@@ -2335,8 +2344,11 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
 
         // Full PV shown will thus be validated and end in TB.
         // If can not validate the full PV in time, do not show it.
-        if (tbCfg.rootInTB && (aborted = time_to_abort()))
+        if (tbCfg.rootInTB && time_to_abort())
+        {
+            aborted = true;
             break;
+        }
     }
 
     // Resize the PV to the correct part
@@ -2346,8 +2358,13 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
     // top ranked moves (minimal DTZ), which gives optimal mates only for simple endgames e.g. KRvK
     while (!(UseRule50 && rootPos.is_draw(0)))
     {
-        if (aborted || (aborted = time_to_abort()))
+        if (aborted)
             break;
+        if (time_to_abort())
+        {
+            aborted = true;
+            break;
+        }
 
         RootMoves rms;
 

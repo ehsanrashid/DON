@@ -1098,7 +1098,7 @@ inline void Position::update_pc_threats(Square                    s,
     Bitboard occupancyBB = pieces_bb();
 
     auto attacksBB = [&]() noexcept {
-        StdArray<Bitboard, 1 + PIECE_TYPE_CNT> _;
+        StdArray<Bitboard, PIECE_TYPE_CNT> _;
 
         _[WHITE]  = attacks_bb<PAWN>(s, WHITE);
         _[BLACK]  = attacks_bb<PAWN>(s, BLACK);
@@ -1106,7 +1106,6 @@ inline void Position::update_pc_threats(Square                    s,
         _[BISHOP] = attacks_bb<BISHOP>(s, occupancyBB);
         _[ROOK]   = attacks_bb<ROOK>(s, occupancyBB);
         _[QUEEN]  = _[BISHOP] | _[ROOK];
-        _[KING]   = attacks_bb<KING>(s);
 
         return _;
     }();
@@ -1162,10 +1161,9 @@ inline void Position::update_pc_threats(Square                    s,
                                                  : attacksBB[type_of(pc)])
                           & exOccupancyBB;
 
-    Bitboard nonSlidersBB = (pieces_bb(WHITE, PAWN)   & attacksBB[BLACK])
-                          | (pieces_bb(BLACK, PAWN)   & attacksBB[WHITE])
-                          | (pieces_bb(KNIGHT)        & attacksBB[KNIGHT])
-                          | (kings                    & attacksBB[KING]);
+    Bitboard nonSlidersBB = (pieces_bb(WHITE, PAWN) & attacksBB[BLACK])
+                          | (pieces_bb(BLACK, PAWN) & attacksBB[WHITE])
+                          | (pieces_bb(KNIGHT)      & attacksBB[KNIGHT]);
     // clang-format on
 
 #if defined(USE_AVX512ICL)
