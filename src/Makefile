@@ -540,7 +540,7 @@ endif
 # Compiler configuration
 # ----------------------------
 
-# Detect if GCC is actually Clang
+# Detect if the compiler is GCC or Clang
 GCC_VERSION :=
 GCC_DEFINES :=
 GCC_CLANG   := no
@@ -552,25 +552,25 @@ ifeq ($(COMP),gcc)
     CXX := g++
     CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-declarations
     #GCC_VERSION := $(shell $(CXX) --version 2>/dev/null)
-    # Compiler detection
+    # Generate predefined macros to detect Clang/Apple Clang
     GCC_DEFINES := $(shell echo | $(CXX) -dM -E -x c++ - 2>/dev/null)
     GCC_CLANG   := $(if $(findstring __clang__,$(GCC_DEFINES)),yes,no)
     GCC_APPLE   := $(if $(findstring __apple_build_version__,$(GCC_DEFINES)),yes,no)
-    # GNU linker detection
+    # Detect if GNU ld is being used
     GCC_GNU_LD  := $(if $(findstring GNU ld,$(shell $(CXX) -Wl,--version 2>/dev/null)),yes,no)
     # Determine major version for Linux Clang masquerading as GCC
     GCC_MAJOR   := $(if $(and $(filter yes,$(GCC_CLANG)),$(filter no,$(GCC_APPLE))),$(shell $(CXX) -dumpversion | cut -f1 -d.),)
 
-    # Darwin GCC
+    # Darwin (macOS) specific compiler/linker flags
     ifeq ($(KERNEL),Darwin)
         EXTRAPROFILEFLAGS = -fvisibility=hidden
-    # Non-Darwin GCC
+    # Non-Darwin (Linux) specific compiler/linker flags
     else
         CXXFLAGS += -Wno-stringop-overflow
         ifeq ($(GCC_GNU_LD),yes)
             LDFLAGS += -Wl,--no-as-needed
         endif
-        # Link std::filesystem if Linux Clang < 9
+        # Link std::filesystem explicitly if using Linux Clang < 9
         ifneq ($(GCC_MAJOR),)
         ifeq ($(shell expr $(GCC_MAJOR) \< 9),1)
             LDFLAGS += -lstdc++fs
