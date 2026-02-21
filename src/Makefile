@@ -55,13 +55,10 @@ endif
 
 OS_WINDOWS := no
 # Detect Windows across all shell environments
-ifeq ($(ENV_OS),Windows_NT)
-    OS_WINDOWS := yes
-else ifneq ($(findstring MINGW,$(UNAME_S)),)
-    OS_WINDOWS := yes
-else ifneq ($(findstring MSYS,$(UNAME_S)),)
-    OS_WINDOWS := yes
-else ifneq ($(findstring CYGWIN,$(UNAME_S)),)
+ifneq ($(or $(if $(filter Windows_NT,$(ENV_OS)),yes), \
+           $(findstring MINGW,$(UNAME_S)), \
+           $(findstring MSYS,$(UNAME_S)), \
+           $(findstring CYGWIN,$(UNAME_S)))),)
     OS_WINDOWS := yes
 endif
 
