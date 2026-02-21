@@ -230,7 +230,7 @@ avx512 = no
 vnni256 = no
 vnni512 = no
 avx512icl = no
-arm_version = 0
+ARM_VERSION = 0
 neon = no
 dotprod = no
 altivec = no
@@ -405,7 +405,7 @@ ifeq ($(ARCH),armv7)
     arch = armv7
     bits = 32
     prefetch = yes
-    arm_version = 7
+    ARM_VERSION = 7
 endif
 
 ifeq ($(ARCH),armv7-neon)
@@ -413,7 +413,7 @@ ifeq ($(ARCH),armv7-neon)
     bits = 32
     prefetch = yes
     popcnt = yes
-    arm_version = 7
+    ARM_VERSION = 7
     neon = yes
 endif
 
@@ -421,7 +421,7 @@ ifeq ($(ARCH),armv8)
     arch = armv8
     prefetch = yes
     popcnt = yes
-    arm_version = 8
+    ARM_VERSION = 8
     neon = yes
 endif
 
@@ -429,7 +429,7 @@ ifeq ($(ARCH),armv8-dotprod)
     arch = armv8
     prefetch = yes
     popcnt = yes
-    arm_version = 8
+    ARM_VERSION = 8
     neon = yes
     dotprod = yes
 endif
@@ -438,7 +438,7 @@ ifeq ($(ARCH),apple-silicon)
     arch = arm64
     prefetch = yes
     popcnt = yes
-    arm_version = 8
+    ARM_VERSION = 8
     neon = yes
     dotprod = yes
 endif
@@ -506,14 +506,14 @@ endif
 
 ### 3.1 Selecting compiler (default = gcc)
 ifeq ($(MAKELEVEL),0)
-    export ENV_CXXFLAGS := $(CXXFLAGS)
+    export ENV_CXXFLAGS    := $(CXXFLAGS)
     export ENV_DEPENDFLAGS := $(DEPENDFLAGS)
-    export ENV_LDFLAGS := $(LDFLAGS)
+    export ENV_LDFLAGS     := $(LDFLAGS)
 endif
 
-CXXFLAGS = $(ENV_CXXFLAGS) -Wall -Wcast-qual -fno-exceptions -std=c++17 $(EXTRACXXFLAGS)
+CXXFLAGS    = $(ENV_CXXFLAGS) -Wall -Wcast-qual -fno-exceptions -std=c++17 $(EXTRACXXFLAGS)
 DEPENDFLAGS = $(ENV_DEPENDFLAGS) -Wall -Wcast-qual -std=c++17
-LDFLAGS = $(ENV_LDFLAGS) $(EXTRALDFLAGS) $(EXTRACXXFLAGS)
+LDFLAGS     = $(ENV_LDFLAGS) $(EXTRALDFLAGS) $(EXTRACXXFLAGS)
 
 ifeq ($(COMP),)
     COMP=gcc
@@ -934,7 +934,7 @@ ifeq ($(vsx),yes)
 endif
 
 ifeq ($(neon),yes)
-    CXXFLAGS += -DUSE_NEON=$(arm_version)
+    CXXFLAGS += -DUSE_NEON=$(ARM_VERSION)
     ifeq ($(KERNEL),Linux)
         ifneq ($(COMP),ndk)
             ifneq ($(arch),armv8)
@@ -999,10 +999,7 @@ ifeq ($(optimize),yes)
                 LDFLAGS += -fuse-ld=lld
             # Non-Android clang -> detect LLD first
             else
-                HAS_LLD := $(if $(or \
-                    $(shell command -v ld.lld 2>/dev/null), \
-                    $(shell command -v    lld 2>/dev/null)  \
-                    ), yes,no)
+                HAS_LLD := $(if $(shell command -v ld.lld 2>/dev/null || command -v lld 2>/dev/null),yes,no)
                 # Only add -fuse-ld=lld if found LLD
                 ifeq ($(HAS_LLD),yes)
                     # clang always supports -fuse-ld=lld
@@ -1034,7 +1031,7 @@ ifeq ($(optimize),yes)
             ifneq ($(KERNEL),Darwin)
                 # GCC (not pretending to be clang) uses parallel LTO
                 ifeq ($(GCC_CLANG),no)
-                    LTO_FLAGS := -flto -flto-partition=one
+                    LTO_FLAGS    := -flto -flto-partition=one
                     LDFLTO_EXTRA := -flto=jobserver
                 # GCC pretending to be clang
                 else
@@ -1045,7 +1042,7 @@ ifeq ($(optimize),yes)
         # the tool chain requires gcc version 10.1 or later.
         else
         ifeq ($(COMP),mingw)
-            LTO_FLAGS := -flto -flto-partition=one
+            LTO_FLAGS    := -flto -flto-partition=one
             LDFLTO_EXTRA := -flto=jobserver -save-temps
         endif
         endif
@@ -1088,7 +1085,7 @@ else
 endif
 
 MKDIR := mkdir -p -m 755
-CP := cp
+CP    := cp
 
 ### ==========================================================================
 ### Section 4. Public Targets
@@ -1284,7 +1281,7 @@ config-sanity: net
 	echo "vsx: '$(vsx)'" && \
 	echo "neon: '$(neon)'" && \
 	echo "dotprod: '$(dotprod)'" && \
-	echo "arm_version: '$(arm_version)'" && \
+	echo "ARM_VERSION: '$(ARM_VERSION)'" && \
 	echo "lsx: '$(lsx)'" && \
 	echo "lasx: '$(lasx)'" && \
 	echo "OS_WINDOWS: '$(OS_WINDOWS)'" && \
