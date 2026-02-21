@@ -590,7 +590,7 @@ else ifeq ($(COMP),clang)
     endif
     CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-prototypes -Wconditional-uninitialized -flax-vector-conversions=none
     # Atomic library for non-Windows and non-[Darwin/FreeBSD/OpenBSD] (unless compiler-rt)
-    ifeq ($(OS_WINDOWS),no)
+    ifneq ($(OS_WINDOWS),yes)
     ifeq ($(filter $(KERNEL),Darwin OpenBSD FreeBSD),)
     ifneq ($(RTLIB),compiler-rt)
         LDFLAGS += -latomic
@@ -733,16 +733,28 @@ endif
 ### On mingw use Windows threads, otherwise POSIX
 ifneq ($(COMP),mingw)
     CXXFLAGS += -DUSE_PTHREADS
+
+    # Link pthreads and optionally -lrt on supported platforms
+
     # On Android Bionic's C library comes with its own pthread implementation bundled in
     ifneq ($(OS),Android)
     # Haiku has pthreads in its libroot, so only link it in on other platforms
     ifneq ($(KERNEL),Haiku)
     ifneq ($(COMP),ndk)
         LDFLAGS += -lpthread
-        ifneq ($(OS_WINDOWS),yes)
-        ifneq ($(KERNEL),Darwin)
-            LDFLAGS += -lrt
+        # Determine if LRT should be linked (realtime library)
+        LINK_LRT := yes
+        # Disable LRT on Windows
+        ifeq ($(OS_WINDOWS),yes)
+            LINK_LRT := no
         endif
+        # Disable LRT on macOS
+        ifeq ($(KERNEL),Darwin)
+            LINK_LRT := no
+        endif
+        # Add LRT only if allowed
+        ifeq ($(LINK_LRT),yes)
+            LDFLAGS += -lrt
         endif
     endif
     endif
