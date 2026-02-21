@@ -58,7 +58,6 @@
         #undef small
     #endif
 #else
-    #include <numeric>
     // Linux (non-Android)
     #if (defined(__linux__) && !defined(__ANDROID__))
         #if !defined(_GNU_SOURCE)
