@@ -57,12 +57,13 @@ OS_WINDOWS := no
 # Windows OS
 ifeq ($(OS),Windows_NT)
 ifneq ($(COMP),ndk)
-    OS_WINDOWS = yes
+    OS_WINDOWS := yes
 endif
 else ifeq ($(COMP),mingw)
-    OS_WINDOWS = yes
+    OS_WINDOWS := yes
+# Set RUN_PREFIX to wine if not already set
 ifeq ($(RUN_PREFIX),)
-    RUN_PREFIX := $(shell which wine)
+    RUN_PREFIX := $(shell command -v wine 2>/dev/null)
 endif
 endif
 
@@ -1285,7 +1286,7 @@ config-sanity: net
 	(test "$(neon)" = "yes" || test "$(neon)" = "no") && \
 	(test "$(lsx)" = "yes" || test "$(lsx)" = "no") && \
 	(test "$(lasx)" = "yes" || test "$(lasx)" = "no") && \
-	(test "$(OS_WINDOWS)" = "yes" || "$(OS_WINDOWS)" = "no") && \
+	(test "$(OS_WINDOWS)" = "yes" || test "$(OS_WINDOWS)" = "no") && \
 	(test "$(COMP)" = "gcc" || test "$(COMP)" = "clang" || \
 	 test "$(COMP)" = "mingw" || test "$(COMP)" = "icx" || \
 	 test "$(COMP)" = "ndk" || \
