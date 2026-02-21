@@ -56,14 +56,36 @@ endif
 OS_WINDOWS := no
 # Windows OS
 ifeq ($(ENV_OS),Windows_NT)
-ifneq ($(COMP),ndk)
+    OS_WINDOWS := yes
+else
+ifneq ($(findstring MINGW,$(UNAME_S)),)
+    OS_WINDOWS := yes
+else
+ifneq ($(findstring MSYS,$(UNAME_S)),)
+    OS_WINDOWS := yes
+else
+ifneq ($(findstring CYGWIN,$(UNAME_S)),)
     OS_WINDOWS := yes
 endif
-else ifeq ($(COMP),mingw)
-    OS_WINDOWS := yes
-# Set RUN_PREFIX to wine if not already set
+endif
+endif
+endif
+
+# Android NDK is never treated as Windows
+ifeq ($(COMP),ndk)
+    OS_WINDOWS := no
+endif
+
+# Export so recursive $(MAKE) invocations don't re-detect incorrectly
+export OS_WINDOWS
+
+# Use Wine only when cross-running Windows binaries on non-Windows hosts
+ifeq ($(OS_WINDOWS),yes)
+ifneq ($(filter-out Windows_NT,$(ENV_OS)),)
+# Set RUN_PREFIX to wine if not already defined
 ifeq ($(RUN_PREFIX),)
     RUN_PREFIX := $(shell command -v wine 2>/dev/null)
+endif
 endif
 endif
 
@@ -734,7 +756,7 @@ endif
 ifneq ($(COMP),mingw)
     CXXFLAGS += -DUSE_PTHREADS
 
-    # Link pthreads and optionally -lrt on supported platforms
+    # Link pthreads and optionally LRT on supported platforms
 
     # On Android Bionic's C library comes with its own pthread implementation bundled in
     ifneq ($(OS),Android)
