@@ -54,12 +54,16 @@ endif
 endif
 
 OS_WINDOWS := no
-# Detect Windows across all shell environments
-ifneq ($(or $(if $(filter Windows_NT,$(ENV_OS)),yes), \
-           $(findstring MINGW,$(UNAME_S)), \
-           $(findstring MSYS,$(UNAME_S)), \
-           $(findstring CYGWIN,$(UNAME_S)))),)
-    OS_WINDOWS := yes
+# Windows OS
+ifeq ($(OS),Windows_NT)
+ifneq ($(COMP),ndk)
+    OS_WINDOWS = yes
+endif
+else ifeq ($(COMP),mingw)
+    OS_WINDOWS = yes
+ifeq ($(RUN_PREFIX),)
+    RUN_PREFIX := $(shell which wine)
+endif
 endif
 
 # Cross-platform command to detect executable
