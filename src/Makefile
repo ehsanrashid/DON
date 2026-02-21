@@ -552,7 +552,6 @@ ifeq ($(COMP),gcc)
     GCC_DEFINES    := $(shell echo | $(CXX) -dM -E -x c++ - 2>/dev/null)
     IS_CLANG       := $(if $(findstring __clang__,$(GCC_DEFINES)),yes,no)
     IS_APPLE_CLANG := $(if $(findstring __apple_build_version__,$(GCC_DEFINES)),yes,no)
-
 # Darwin (macOS) specific compiler/linker flags
 ifeq ($(KERNEL),Darwin)
     EXTRAPROFILEFLAGS = -fvisibility=hidden
@@ -560,12 +559,12 @@ ifeq ($(KERNEL),Darwin)
 else
     CXXFLAGS += -Wno-stringop-overflow
     # Detect if GNU ld is being used
-    GCC_GNU_LD     := $(if $(findstring GNU ld,$(shell $(CXX) -Wl,--version 2>/dev/null)),yes,no)
+    GCC_GNU_LD := $(if $(findstring GNU ld,$(shell $(CXX) -Wl,--version 2>/dev/null)),yes,no)
 ifeq ($(GCC_GNU_LD),yes)
     LDFLAGS += -Wl,--no-as-needed
 endif
     # Determine GCC major version for Linux Clang masquerading as GCC
-    GCC_MAJOR      := $(if $(and $(filter yes,$(IS_CLANG)),$(filter no,$(IS_APPLE_CLANG))),$(shell $(CXX) -dumpversion | cut -f1 -d.),)
+    GCC_MAJOR := $(shell [ "$(IS_CLANG)" = "yes" ] && [ "$(IS_APPLE_CLANG)" = "no" ] && $(CXX) -dumpversion 2>/dev/null | cut -f1 -d. || echo)
 # Link std::filesystem explicitly if using Linux Clang < 9
 ifneq ($(GCC_MAJOR),)
 ifeq ($(shell expr $(GCC_MAJOR) \< 9),1)
@@ -652,16 +651,10 @@ endif
     CLANG_DEFINES  := $(shell echo | $(CXX) -dM -E -x c++ - 2>/dev/null)
     IS_CLANG       := $(if $(findstring __clang__,$(CLANG_DEFINES)),yes,no)
     IS_APPLE_CLANG := $(if $(findstring __apple_build_version__,$(CLANG_DEFINES)),yes,no)
-# Link std::filesystem for Linux Clang < 9 (non-Apple)
+# Link std::filesystem for Linux Clang (non-Apple)
 ifeq ($(KERNEL),Linux)
 ifeq ($(IS_APPLE_CLANG),no)
-    # Determine Clang major version (robust)
-    CLANG_MAJOR    := $(shell $(CXX) -dumpversion 2>/dev/null | cut -f1 -d.)
-ifneq ($(CLANG_MAJOR),)
-ifeq ($(shell expr $(CLANG_MAJOR) \< 9),1)
     LDFLAGS += -lstdc++fs
-endif
-endif
 endif
 endif
     # Profile build for Clang
