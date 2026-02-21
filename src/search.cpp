@@ -2335,8 +2335,11 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
 
         // Full PV shown will thus be validated and end in TB.
         // If can not validate the full PV in time, do not show it.
-        if (tbCfg.rootInTB && (aborted = time_to_abort()))
+        if (tbCfg.rootInTB && time_to_abort())
+        {
+            aborted = true;
             break;
+        }
     }
 
     // Resize the PV to the correct part
@@ -2346,8 +2349,13 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
     // top ranked moves (minimal DTZ), which gives optimal mates only for simple endgames e.g. KRvK
     while (!(UseRule50 && rootPos.is_draw(0)))
     {
-        if (aborted || (aborted = time_to_abort()))
+        if (aborted)
             break;
+        if (time_to_abort())
+        {
+            aborted = true;
+            break;
+        }
 
         RootMoves rms;
 
