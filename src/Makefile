@@ -558,7 +558,7 @@ ifeq ($(COMP),gcc)
     GCC_APPLE   := $(if $(findstring __apple_build_version__,$(GCC_DEFINES)),yes,no)
     # Detect if GNU ld is being used
     GCC_GNU_LD  := $(if $(findstring GNU ld,$(shell $(CXX) -Wl,--version 2>/dev/null)),yes,no)
-    # Determine major version for Linux Clang masquerading as GCC
+    # Determine GCC major version for Linux Clang masquerading as GCC
     GCC_MAJOR   := $(if $(and $(filter yes,$(GCC_CLANG)),$(filter no,$(GCC_APPLE))),$(shell $(CXX) -dumpversion | cut -f1 -d.),)
 
 # Darwin (macOS) specific compiler/linker flags
@@ -655,8 +655,10 @@ endif
 # Link std::filesystem for Linux Clang < 9
 ifeq ($(GCC_CLANG),yes)
 ifeq ($(GCC_APPLE),no)
-ifneq ($(GCC_MAJOR),)
-ifeq ($(shell expr $(GCC_MAJOR) \< 9),1)
+    # Determine Clang major version
+    CLANG_MAJOR := $(shell $(CXX) -dumpversion 2>/dev/null | cut -f1 -d.)
+ifneq ($(CLANG_MAJOR),)
+ifeq ($(shell expr $(CLANG_MAJOR) \< 9),1)
     LDFLAGS += -lstdc++fs
 endif
 endif
@@ -822,9 +824,12 @@ ifeq ($(OS),Android)
 endif
 else
 ifneq ($(filter clang ndk,$(COMP)),)
-    CLANG_MAJOR_VERSION := $(shell $(CXX) -dumpversion 2>/dev/null | cut -f1 -d.)
-ifeq ($(shell expr $(CLANG_MAJOR_VERSION) \< 16),1)
+    # Determine Clang major version
+    CLANG_MAJOR := $(shell $(CXX) -dumpversion 2>/dev/null | cut -f1 -d.)
+ifneq ($(CLANG_MAJOR),)
+ifeq ($(shell expr $(CLANG_MAJOR) \< 16),1)
     CXXFLAGS += -fexperimental-new-pass-manager
+endif
 endif
 endif
 endif
