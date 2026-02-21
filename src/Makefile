@@ -652,11 +652,17 @@ ifneq ($(filter 32 64,$(bits)),)
 endif
 endif
 endif
-# Link std::filesystem for Linux Clang < 9
+    # Generate predefined macros to detect Clang/Apple Clang
+    GCC_DEFINES := $(shell echo | $(CXX) -dM -E -x c++ - 2>/dev/null)
+    GCC_CLANG   := $(if $(findstring __clang__,$(GCC_DEFINES)),yes,no)
+    GCC_APPLE   := $(if $(findstring __apple_build_version__,$(GCC_DEFINES)),yes,no)
+# Determine Clang major version (robust)
+ifeq ($(GCC_CLANG),yes)
+    CLANG_MAJOR := $(shell $(CXX) --version 2>/dev/null | head -n1 | grep -oE '[0-9]+' | head -n1)
+endif
+# Link std::filesystem for Linux Clang < 9 (non-Apple)
 ifeq ($(GCC_CLANG),yes)
 ifeq ($(GCC_APPLE),no)
-    # Determine Clang major version
-    CLANG_MAJOR := $(shell $(CXX) -dumpversion 2>/dev/null | cut -f1 -d.)
 ifneq ($(CLANG_MAJOR),)
 ifeq ($(shell expr $(CLANG_MAJOR) \< 9),1)
     LDFLAGS += -lstdc++fs
