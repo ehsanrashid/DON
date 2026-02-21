@@ -588,7 +588,7 @@ else ifeq ($(COMP),clang)
     endif
     CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-prototypes -Wconditional-uninitialized -flax-vector-conversions=none
     # Atomic library for non-Windows and non-[Darwin/FreeBSD/OpenBSD] (unless compiler-rt)
-    ifeq ($(OS_WINDOWS),no)
+    ifneq ($(OS_WINDOWS),yes)
     ifeq ($(filter $(KERNEL),Darwin OpenBSD FreeBSD),)
     ifneq ($(RTLIB),compiler-rt)
         LDFLAGS += -latomic
@@ -737,7 +737,7 @@ ifneq ($(COMP),mingw)
     ifneq ($(KERNEL),Haiku)
     ifneq ($(COMP),ndk)
         LDFLAGS += -lpthread
-        ifeq ($(OS_WINDOWS),no)
+        ifneq ($(OS_WINDOWS),yes)
         ifneq ($(KERNEL),Darwin)
             LDFLAGS += -lrt
         endif
