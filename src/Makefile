@@ -55,7 +55,7 @@ endif
 
 OS_WINDOWS := no
 # Windows OS
-ifeq ($(OS),Windows_NT)
+ifeq ($(ENV_OS),Windows_NT)
 ifneq ($(COMP),ndk)
     OS_WINDOWS := yes
 endif
@@ -1257,36 +1257,36 @@ config-sanity: net
 	echo "" && \
 	echo "Testing config sanity. If this fails, try 'make help' ..." && \
 	echo "" && \
-	(test "$(debug)" = "yes" || test "$(debug)" = "no") && \
-	(test "$(optimize)" = "yes" || test "$(optimize)" = "no") && \
+	(test "$(debug)"    = "no" || test "$(debug)"    = "yes") && \
+	(test "$(optimize)" = "no" || test "$(optimize)" = "yes") && \
 	(test "$(ARCH_SUPPORT)" = "yes") && \
 	(test "$(arch)" = "any" || test "$(arch)" = "i386" || test "$(arch)" = "x86_64" || \
 	 test "$(arch)" = "ppc" || test "$(arch)" = "ppc64" || test "$(arch)" = "e2k" || \
 	 test "$(arch)" = "armv7" || test "$(arch)" = "armv8" || test "$(arch)" = "arm64" || \
 	 test "$(arch)" = "riscv64" || test "$(arch)" = "loongarch64") && \
 	(test "$(bits)" = "32" || test "$(bits)" = "64") && \
-	(test "$(prefetch)" = "yes" || test "$(prefetch)" = "no") && \
-	(test "$(popcnt)" = "yes" || test "$(popcnt)" = "no") && \
-	(test "$(sse)" = "yes" || test "$(sse)" = "no") && \
-	(test "$(mmx)" = "yes" || test "$(mmx)" = "no") && \
-	(test "$(sse2)" = "yes" || test "$(sse2)" = "no") && \
-	(test "$(ssse3)" = "yes" || test "$(ssse3)" = "no") && \
-	(test "$(sse41)" = "yes" || test "$(sse41)" = "no") && \
-	(test "$(avx2)" = "yes" || test "$(avx2)" = "no") && \
-	(test "$(bmi2)" = "yes" || test "$(bmi2)" = "no") && \
-	(test "$(comp)" = "yes" || test "$(comp)" = "no") && \
-	(test "$(avxvnni)" = "yes" || test "$(avxvnni)" = "no") && \
-	(test "$(avx512)" = "yes" || test "$(avx512)" = "no") && \
-	(test "$(vnni256)" = "yes" || test "$(vnni256)" = "no") && \
-	(test "$(vnni512)" = "yes" || test "$(vnni512)" = "no") && \
-	(test "$(avx512icl)" = "yes" || test "$(avx512icl)" = "no") && \
-	(test "$(altivec)" = "yes" || test "$(altivec)" = "no") && \
-	(test "$(vsx)" = "yes" || test "$(vsx)" = "no") && \
-	(test "$(dotprod)" = "yes" || test "$(dotprod)" = "no") && \
-	(test "$(neon)" = "yes" || test "$(neon)" = "no") && \
-	(test "$(lsx)" = "yes" || test "$(lsx)" = "no") && \
-	(test "$(lasx)" = "yes" || test "$(lasx)" = "no") && \
-	(test "$(OS_WINDOWS)" = "yes" || test "$(OS_WINDOWS)" = "no") && \
+	(test "$(prefetch)" = "no" || test "$(prefetch)" = "yes") && \
+	(test "$(popcnt)"   = "no" || test "$(popcnt)"   = "yes") && \
+	(test "$(sse)"      = "no" || test "$(sse)"      = "yes") && \
+	(test "$(mmx)"      = "no" || test "$(mmx)"      = "yes") && \
+	(test "$(sse2)"     = "no" || test "$(sse2)"     = "yes") && \
+	(test "$(ssse3)"    = "no" || test "$(ssse3)"    = "yes") && \
+	(test "$(sse41)"    = "no" || test "$(sse41)"    = "yes") && \
+	(test "$(avx2)"     = "no" || test "$(avx2)"     = "yes") && \
+	(test "$(bmi2)"     = "no" || test "$(bmi2)"     = "yes") && \
+	(test "$(comp)"     = "no" || test "$(comp)"     = "yes") && \
+	(test "$(avxvnni)"  = "no" || test "$(avxvnni)"  = "yes") && \
+	(test "$(avx512)"   = "no" || test "$(avx512)"   = "yes") && \
+	(test "$(vnni256)"  = "no" || test "$(vnni256)"  = "yes") && \
+	(test "$(vnni512)"  = "no" || test "$(vnni512)"  = "yes") && \
+	(test "$(avx512icl)" = "no" || test "$(avx512icl)" = "yes") && \
+	(test "$(altivec)"  = "no" || test "$(altivec)"  = "yes") && \
+	(test "$(vsx)"      = "no" || test "$(vsx)"      = "yes") && \
+	(test "$(dotprod)"  = "no" || test "$(dotprod)"  = "yes") && \
+	(test "$(neon)"     = "no" || test "$(neon)"     = "yes") && \
+	(test "$(lsx)"      = "no" || test "$(lsx)"      = "yes") && \
+	(test "$(lasx)"     = "no" || test "$(lasx)"     = "yes") && \
+	(test "$(OS_WINDOWS)" = "no" || test "$(OS_WINDOWS)" = "yes") && \
 	(test "$(COMP)" = "gcc" || test "$(COMP)" = "clang" || \
 	 test "$(COMP)" = "mingw" || test "$(COMP)" = "icx" || \
 	 test "$(COMP)" = "ndk" || \
