@@ -396,11 +396,12 @@ inline constexpr Value VALUE_TB_WIN_IN_MAX_PLY  = VALUE_TB - MAX_PLY;
 inline constexpr Value VALUE_TB_LOSS_IN_MAX_PLY = -VALUE_TB_WIN_IN_MAX_PLY;
 
 // Piece values in centipawns
-inline constexpr Value VALUE_PAWN   = 208;
-inline constexpr Value VALUE_KNIGHT = 781;
-inline constexpr Value VALUE_BISHOP = 825;
-inline constexpr Value VALUE_ROOK   = 1276;
-inline constexpr Value VALUE_QUEEN  = 2538;
+inline constexpr Value VALUE_PAWN      = 208;
+inline constexpr Value VALUE_PAWN_EVAL = 534;
+inline constexpr Value VALUE_KNIGHT    = 781;
+inline constexpr Value VALUE_BISHOP    = 825;
+inline constexpr Value VALUE_ROOK      = 1276;
+inline constexpr Value VALUE_QUEEN     = 2538;
 
 inline constexpr int MAX_DELTA = 2 * VALUE_INFINITE;
 
