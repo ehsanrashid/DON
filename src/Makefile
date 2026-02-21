@@ -992,65 +992,69 @@ endif
 ### This is a mix of compile and link time options because the lto link phase
 ### needs access to the optimization flags.
 ifeq ($(optimize),yes)
-    ifeq ($(debug),no)
-        ifneq ($(KERNEL),Darwin)
-            # Android NDK clang -> always use LLD
-            ifeq ($(COMP),ndk)
-                LDFLAGS += -fuse-ld=lld
-            # Non-Android clang -> detect LLD first
-            else
-                HAS_LLD := $(if $(shell command -v ld.lld 2>/dev/null || command -v lld 2>/dev/null),yes,no)
-                # Only add -fuse-ld=lld if found LLD
-                ifeq ($(HAS_LLD),yes)
-                    # clang always supports -fuse-ld=lld
-                    ifeq ($(COMP),clang)
-                        LDFLAGS += -fuse-ld=lld
-                    else
-                    # gcc builds that are clang-compatible
-                    ifeq ($(GCC_CLANG),yes)
-                        LDFLAGS += -fuse-ld=lld
-                    endif
-                    endif
-                endif
-            endif
-        endif
-        # Determine LTO flags
-        LTO_FLAGS :=
-        LDFLTO_EXTRA :=
-        # Clang / ICX / NDK -> always full LTO
-        ifneq ($(filter clang icx ndk,$(COMP)),)
-            LTO_FLAGS := -flto=full
-            # ICX-specific flags
-            ifeq ($(COMP),icx)
-                LTO_FLAGS += -fwhole-program-vtables
-            endif
-        # GCC and CLANG use different methods for parallelizing LTO
-        # and CLANG pretends to be GCC on some systems.
+ifeq ($(debug),no)
+    ifneq ($(KERNEL),Darwin)
+        # Android NDK clang -> always use LLD
+        ifeq ($(COMP),ndk)
+            LDFLAGS += -fuse-ld=lld
+        # Non-Android clang -> detect LLD first
         else
-        ifeq ($(COMP),gcc)
-            ifneq ($(KERNEL),Darwin)
-                # GCC (not pretending to be clang) uses parallel LTO
-                ifeq ($(GCC_CLANG),no)
-                    LTO_FLAGS    := -flto -flto-partition=one
-                    LDFLTO_EXTRA := -flto=jobserver
-                # GCC pretending to be clang
+            HAS_LLD := $(if $(shell command -v ld.lld 2>/dev/null || command -v lld 2>/dev/null),yes,no)
+            # Only add -fuse-ld=lld if found LLD
+            ifeq ($(HAS_LLD),yes)
+                # clang always supports -fuse-ld=lld
+                ifeq ($(COMP),clang)
+                    LDFLAGS += -fuse-ld=lld
                 else
-                    LTO_FLAGS := -flto=full
+                # gcc builds that are clang-compatible
+                ifeq ($(GCC_CLANG),yes)
+                    LDFLAGS += -fuse-ld=lld
+                endif
                 endif
             endif
-        # To use LTO and static linking on Windows,
-        # the tool chain requires gcc version 10.1 or later.
-        else
-        ifeq ($(COMP),mingw)
-            LTO_FLAGS    := -flto -flto-partition=one
-            LDFLTO_EXTRA := -flto=jobserver -save-temps
         endif
-        endif
-        endif
-        # Apply LTO flags
-        CXXFLAGS += $(LTO_FLAGS)
-        LDFLAGS  += $(LTO_FLAGS) $(LDFLTO_EXTRA)
     endif
+    # Determine LTO flags
+    LTO_FLAGS :=
+    LDFLTO_EXTRA :=
+    # Clang / ICX / NDK -> always full LTO
+    ifneq ($(filter clang icx ndk,$(COMP)),)
+        LTO_FLAGS := -flto=full
+        # ICX-specific flags
+        ifeq ($(COMP),icx)
+            LTO_FLAGS += -fwhole-program-vtables
+        endif
+    # GCC and CLANG use different methods for parallelizing LTO
+    # and CLANG pretends to be GCC on some systems.
+    else
+    ifeq ($(COMP),gcc)
+        ifneq ($(KERNEL),Darwin)
+            # GCC (not pretending to be clang) uses parallel LTO
+            ifeq ($(GCC_CLANG),no)
+                LTO_FLAGS    := -flto -flto-partition=one
+                LDFLTO_EXTRA := -flto=jobserver
+            # GCC pretending to be clang
+            else
+                LTO_FLAGS := -flto=full
+            endif
+        endif
+    # To use LTO and static linking on Windows,
+    # the tool chain requires gcc version 10.1 or later.
+    else
+    ifeq ($(COMP),mingw)
+        LTO_FLAGS    := -flto -flto-partition=one
+        LDFLTO_EXTRA := -flto=jobserver -save-temps
+    endif
+    endif
+    endif
+    # Apply LTO flags
+    CXXFLAGS += $(LTO_FLAGS)
+    LDFLAGS  += $(LTO_FLAGS) $(LDFLTO_EXTRA)
+endif
+# Inline settings
+ifneq ($(filter clang ndk,$(COMP)),)
+    CXXFLAGS += -Xclang -mllvm -Xclang -inline-threshold=500
+endif
 endif
 
 ### 3.10 Use PIE executables on Android 5+, incompatible with Android 4 and earlier
@@ -1059,29 +1063,22 @@ ifeq ($(OS),Android)
     LDFLAGS  += -fPIE -pie
 endif
 
-### 3.11 Inline settings
-ifeq ($(optimize),yes)
-    ifneq ($(filter clang ndk,$(COMP)),)
-        CXXFLAGS += -Xclang -mllvm -Xclang -inline-threshold=500
-    endif
-endif
-
 # Windows + GCC (not Clang):
 # Avoid inline dllexport issues specific to GCC-built DLLs.
 ifeq ($(OS_WINDOWS),yes)
-    ifeq ($(COMP),gcc)
-        ifeq ($(GCC_CLANG),no)
-            CXXFLAGS += -fno-keep-inline-dllexport
-        endif
-    endif
-    # Non-Windows, non-macOS:
-    # Enable -pipe for compile speed (disabled for Android NDK due to toolchain issues).
+ifeq ($(COMP),gcc)
+ifeq ($(GCC_CLANG),no)
+    CXXFLAGS += -fno-keep-inline-dllexport
+endif
+endif
+# Non-Windows, non-macOS:
+# Enable -pipe for compile speed (disabled for Android NDK due to toolchain issues).
 else
-    ifneq ($(KERNEL),Darwin)
-        ifneq ($(COMP),ndk)
-            CXXFLAGS += -pipe
-        endif
-    endif
+ifneq ($(KERNEL),Darwin)
+ifneq ($(COMP),ndk)
+    CXXFLAGS += -pipe
+endif
+endif
 endif
 
 MKDIR := mkdir -p -m 755
