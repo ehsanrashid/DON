@@ -540,26 +540,18 @@ endif
 # Compiler configuration
 # ----------------------------
 
-# Detect if the compiler is GCC or Clang
-GCC_VERSION :=
-GCC_DEFINES :=
-GCC_CLANG   := no
-GCC_APPLE   := no
-GCC_GNU_LD  := no
-GCC_MAJOR   :=
+# Detect if the compiler is Clang/Apple Clang
+IS_CLANG       := no
+IS_APPLE_CLANG := no
+
 # GCC
 ifeq ($(COMP),gcc)
     CXX := g++
     CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-declarations
-    #GCC_VERSION := $(shell $(CXX) --version 2>/dev/null)
     # Generate predefined macros to detect Clang/Apple Clang
-    GCC_DEFINES := $(shell echo | $(CXX) -dM -E -x c++ - 2>/dev/null)
-    GCC_CLANG   := $(if $(findstring __clang__,$(GCC_DEFINES)),yes,no)
-    GCC_APPLE   := $(if $(findstring __apple_build_version__,$(GCC_DEFINES)),yes,no)
-    # Detect if GNU ld is being used
-    GCC_GNU_LD  := $(if $(findstring GNU ld,$(shell $(CXX) -Wl,--version 2>/dev/null)),yes,no)
-    # Determine GCC major version for Linux Clang masquerading as GCC
-    GCC_MAJOR   := $(if $(and $(filter yes,$(GCC_CLANG)),$(filter no,$(GCC_APPLE))),$(shell $(CXX) -dumpversion | cut -f1 -d.),)
+    GCC_DEFINES    := $(shell echo | $(CXX) -dM -E -x c++ - 2>/dev/null)
+    IS_CLANG       := $(if $(findstring __clang__,$(GCC_DEFINES)),yes,no)
+    IS_APPLE_CLANG := $(if $(findstring __apple_build_version__,$(GCC_DEFINES)),yes,no)
 
 # Darwin (macOS) specific compiler/linker flags
 ifeq ($(KERNEL),Darwin)
@@ -567,9 +559,13 @@ ifeq ($(KERNEL),Darwin)
 # Non-Darwin (Linux) specific compiler/linker flags
 else
     CXXFLAGS += -Wno-stringop-overflow
+    # Detect if GNU ld is being used
+    GCC_GNU_LD     := $(if $(findstring GNU ld,$(shell $(CXX) -Wl,--version 2>/dev/null)),yes,no)
 ifeq ($(GCC_GNU_LD),yes)
     LDFLAGS += -Wl,--no-as-needed
 endif
+    # Determine GCC major version for Linux Clang masquerading as GCC
+    GCC_MAJOR      := $(if $(and $(filter yes,$(IS_CLANG)),$(filter no,$(IS_APPLE_CLANG))),$(shell $(CXX) -dumpversion | cut -f1 -d.),)
 # Link std::filesystem explicitly if using Linux Clang < 9
 ifneq ($(GCC_MAJOR),)
 ifeq ($(shell expr $(GCC_MAJOR) \< 9),1)
@@ -578,7 +574,7 @@ endif
 endif
 endif
 # Set profile targets outside Darwin/non-Darwin split
-ifeq ($(GCC_CLANG),yes)
+ifeq ($(IS_CLANG),yes)
     profile_make = clang-profile-make
     profile_use  = clang-profile-use
 else
@@ -653,16 +649,14 @@ endif
 endif
 endif
     # Generate predefined macros to detect Clang/Apple Clang
-    GCC_DEFINES := $(shell echo | $(CXX) -dM -E -x c++ - 2>/dev/null)
-    GCC_CLANG   := $(if $(findstring __clang__,$(GCC_DEFINES)),yes,no)
-    GCC_APPLE   := $(if $(findstring __apple_build_version__,$(GCC_DEFINES)),yes,no)
-# Determine Clang major version (robust)
-ifeq ($(GCC_CLANG),yes)
-    CLANG_MAJOR := $(shell $(CXX) --version 2>/dev/null | head -n1 | grep -oE '[0-9]+' | head -n1)
-endif
+    CLANG_DEFINES  := $(shell echo | $(CXX) -dM -E -x c++ - 2>/dev/null)
+    IS_CLANG       := $(if $(findstring __clang__,$(CLANG_DEFINES)),yes,no)
+    IS_APPLE_CLANG := $(if $(findstring __apple_build_version__,$(CLANG_DEFINES)),yes,no)
 # Link std::filesystem for Linux Clang < 9 (non-Apple)
-ifeq ($(GCC_CLANG),yes)
-ifeq ($(GCC_APPLE),no)
+ifeq ($(KERNEL),Linux)
+ifeq ($(IS_APPLE_CLANG),no)
+    # Determine Clang major version (robust)
+    CLANG_MAJOR    := $(shell $(CXX) -dumpversion 2>/dev/null | cut -f1 -d.)
 ifneq ($(CLANG_MAJOR),)
 ifeq ($(shell expr $(CLANG_MAJOR) \< 9),1)
     LDFLAGS += -lstdc++fs
@@ -1033,7 +1027,7 @@ ifeq ($(COMP),clang)
     LDFLAGS += -fuse-ld=lld
 # gcc builds that are clang-compatible
 else
-ifeq ($(GCC_CLANG),yes)
+ifeq ($(IS_CLANG),yes)
     LDFLAGS += -fuse-ld=lld
 endif
 endif
@@ -1056,7 +1050,7 @@ else
 ifeq ($(COMP),gcc)
 ifneq ($(KERNEL),Darwin)
 # GCC (not pretending to be clang) uses parallel LTO
-ifeq ($(GCC_CLANG),no)
+ifeq ($(IS_CLANG),no)
     LTO_FLAGS    := -flto -flto-partition=one
     LDFLTO_EXTRA := -flto=jobserver
 # GCC pretending to be clang
@@ -1097,7 +1091,7 @@ endif
 # Only add -fno-keep-inline-dllexport for MinGW GCC DLL builds
 ifeq ($(OS_WINDOWS),yes)
 ifneq ($(filter gcc mingw,$(COMP)),)
-ifeq ($(GCC_CLANG),no)
+ifeq ($(IS_CLANG),no)
     CXXFLAGS += -fno-keep-inline-dllexport
 endif
 endif
