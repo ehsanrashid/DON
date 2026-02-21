@@ -71,11 +71,6 @@ endif
 endif
 endif
 
-# NDK cross-compile: building *for* Android, not Windows
-ifeq ($(COMP),ndk)
-    OS_WINDOWS := no
-endif
-
 # Cross-platform command to detect executable
 ifeq ($(OS_WINDOWS),yes)
     FIND_EXE = where "$1" 2>nul
@@ -86,11 +81,11 @@ endif
 # -------------------------------------------
 # Detect clang-format (prefer newest version)
 # -------------------------------------------
-CLANG_FORMAT := $(or \
-    $(if $(shell $(call FIND_EXE,clang-format-20)),clang-format-20), \
-    $(if $(shell $(call FIND_EXE,clang-format-19)),clang-format-19), \
-    $(if $(shell $(call FIND_EXE,clang-format-18)),clang-format-18), \
-    clang-format)
+CLANG_FORMAT := $(shell \
+    $(call FIND_EXE,clang-format-20) || \
+    $(call FIND_EXE,clang-format-19) || \
+    $(call FIND_EXE,clang-format-18) || \
+    echo clang-format)
 
 # Optional: log which one was chosen
 #$(info Using CLANG_FORMAT = $(CLANG_FORMAT))
