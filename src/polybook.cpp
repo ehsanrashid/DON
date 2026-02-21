@@ -45,10 +45,10 @@ union Zobrist final {
                                       + (COLOR_NB * CASTLING_SIDE_NB)            //
                                       + (FILE_NB) + 1;
 
-    constexpr Zobrist(const StdArray<Key, SIZE>& keys) noexcept :
+    explicit constexpr Zobrist(const StdArray<Key, SIZE>& keys) noexcept :
         Keys{keys} {}
 
-    Key key(const Position& pos) const noexcept {
+    [[nodiscard]] Key key(const Position& pos) const noexcept {
         Key key = 0;
 
         std::size_t n;

@@ -235,7 +235,7 @@ ProbResult TranspositionTable::probe(Key key) const noexcept {
 
     auto* ttc = cluster(key);
 
-    std::uint16_t key16 = std::uint16_t(key);
+    auto key16 = std::uint16_t(key);
 
     for (auto& entry : ttc->entries)
         if (entry.key() == key16)

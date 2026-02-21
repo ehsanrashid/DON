@@ -9,6 +9,14 @@ insert_final_newline = true
 trim_trailing_whitespace = true
 max_line_length = 120
 
+# ReSharper properties
+resharper_indent_nested_fixed_stmt = true
+resharper_indent_nested_foreach_stmt = true
+resharper_indent_nested_for_stmt = true
+resharper_indent_nested_lock_stmt = true
+resharper_indent_nested_usings_stmt = true
+resharper_indent_nested_while_stmt = true
+
 [*.{c,cpp,h,hpp,cxx,cc}]
 # C/C++ specific
 charset = utf-8

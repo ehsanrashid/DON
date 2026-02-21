@@ -109,7 +109,7 @@ class UCI final {
                                           Position&                       pos,
                                           const MoveList<GenType::LEGAL>& legalMoves) noexcept;
 
-    static inline bool InfoStringStop = false;
+    static inline bool stopInfoStr = false;
 
    private:
     UCI() noexcept                      = delete;

@@ -8,6 +8,7 @@ src/.depend
 src/DON*
 src/-lstdc++.res
 /src/profdir
+src/nul
 
 # Neural network for the NNUE evaluation
 *.nnue
@@ -28,4 +29,10 @@ tests/tmp_bench.epd
 # IDE files
 .vs/*
 .vscode/*
+/DON
+DON.sln
+DON.vcxproj
+DON.vcxproj.filters
+DON.vcxproj.user
+
 CppProperties.json

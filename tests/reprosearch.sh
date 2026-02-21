@@ -2,8 +2,8 @@
 # Verify reproducible search
 
 error() {
-  echo "reprosearch testing failed on line $1"
-  exit 1
+    echo "reprosearch testing failed on line $1"
+    exit 1
 }
 trap 'error ${LINENO}' ERR
 
@@ -46,13 +46,13 @@ EOF
 # the allowed number of nodes are varied systematically
 for i in `seq 1 20`
 do
-
-  nodes=$((100*3**i/2**i))
-  echo "reprosearch testing with $nodes nodes"
-
-  # Each line should appear exactly an even number of times
-  expect repeat.exp $nodes 2>&1 | grep -o "nodes [0-9]*" | sort | uniq -c | awk '{if ($1%2!=0) exit(1)}'
-
+    
+    nodes=$((100*3**i/2**i))
+    echo "reprosearch testing with $nodes nodes"
+    
+    # Each line should appear exactly an even number of times
+    expect repeat.exp $nodes 2>&1 | grep -o "nodes [0-9]*" | sort | uniq -c | awk '{if ($1%2!=0) exit(1)}'
+    
 done
 
 rm repeat.exp

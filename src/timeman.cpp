@@ -88,8 +88,7 @@ void TimeManager::init(
         {
             timeNodes = clock.time * NodesTime;  // Time is in msec
 
-            if (timeNodes < 1)
-                timeNodes = 1;
+            timeNodes = std::max(timeNodes, int64_t(1));
         }
 
         // Convert from milliseconds to nodes
@@ -113,7 +112,7 @@ void TimeManager::init(
 
     // If less than one second, gradually reduce mtg
     if (ScaledTime < 1000)
-        centiMTG = std::max<std::uint16_t>(5.0510 * ScaledTime, MIN_CENTI_MTG);
+        centiMTG = std::max<std::uint16_t>(5.0510 * double(ScaledTime), MIN_CENTI_MTG);
 
     // Make sure RemainTime > 0 since use it as a divisor
     TimePoint RemainTime = std::max(clock.time + ((centiMTG - 100) * clock.inc - (centiMTG + 200) * moveOverhead) / 100, TimePoint{1});
@@ -125,7 +124,7 @@ void TimeManager::init(
     if (limit.movesToGo == 0)
     {
         // Calculate time constants based on current remaining time
-        double LogScaledTime = std::log10(ScaledTime / 1000.0);
+        double LogScaledTime = std::log10(double(ScaledTime) / 1000.0);  // NOLINT(bugprone-narrowing-conversions)
 
         // 1) x basetime (sudden death)
         // Sudden death time control
@@ -138,7 +137,7 @@ void TimeManager::init(
         optimumScale = timeAdjust
                      * std::min(11.29900e-3 + std::min(3.47750e-3 + 28.41880e-5 * LogScaledTime, 4.06734e-3)
                                             * std::pow(2.82122 + ply, 0.466422),
-                                0.213035 * clock.time / RemainTime);
+                                0.213035 * double(clock.time) / RemainTime);
         maximumScale = std::min(std::max(3.66270 + 3.72690 * LogScaledTime, 2.75068) + 78.37482e-3 * ply,
                                 6.35772);
         }
@@ -154,7 +153,7 @@ void TimeManager::init(
         optimumScale = timeAdjust
                      * std::min(12.14310e-3 + std::min(3.21160e-3 + 32.11230e-5 * LogScaledTime, 5.08017e-3)
                                             * std::pow(2.94693 + ply, 0.461073),
-                                0.213035 * clock.time / RemainTime);
+                                0.213035 * double(clock.time) / RemainTime);
         maximumScale = std::min(std::max(3.39770 + 3.03950 * LogScaledTime, 2.94761) + 83.43972e-3 * ply,
                                 6.67704);
         }
@@ -163,7 +162,7 @@ void TimeManager::init(
     else
     {
         optimumScale = std::min((0.00880 + 85.91065e-6 * ply) / centiMTG,
-                                 0.88000 * clock.time / RemainTime);
+                                 0.88000 * double(clock.time) / RemainTime);
         maximumScale = std::min(1.30000 + 0.00110 * centiMTG,
                                 8.45000);
     }
@@ -173,7 +172,7 @@ void TimeManager::init(
 
     maximumTime = std::max(
                     centiMTG >= MIN_CENTI_MTG
-                    ? TimePoint(std::min(0.825179 * clock.time - moveOverhead, maximumScale * optimumTime)) - SAFETY_MARGIN_TIME
+                    ? TimePoint(std::min(0.825179 * double(clock.time) - moveOverhead, maximumScale * double(optimumTime))) - SAFETY_MARGIN_TIME
                     : clock.time - moveOverhead,
                     TimePoint{1});
     // clang-format on
