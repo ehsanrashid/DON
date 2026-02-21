@@ -588,7 +588,7 @@ else ifeq ($(COMP),clang)
     endif
     CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-prototypes -Wconditional-uninitialized -flax-vector-conversions=none
     # Atomic library for non-Windows and non-[Darwin/FreeBSD/OpenBSD] (unless compiler-rt)
-    ifneq ($(OS_WINDOWS),yes)
+    ifeq ($(OS_WINDOWS),no)
     ifeq ($(filter $(KERNEL),Darwin OpenBSD FreeBSD),)
     ifneq ($(RTLIB),compiler-rt)
         LDFLAGS += -latomic
@@ -737,7 +737,7 @@ ifneq ($(COMP),mingw)
     ifneq ($(KERNEL),Haiku)
     ifneq ($(COMP),ndk)
         LDFLAGS += -lpthread
-        ifneq ($(OS_WINDOWS),yes)
+        ifeq ($(OS_WINDOWS),no)
         ifneq ($(KERNEL),Darwin)
             LDFLAGS += -lrt
         endif
@@ -1030,9 +1030,11 @@ endif
 endif
 # Non-Windows, non-macOS:
 # Enable -pipe for compile speed (disabled for Android NDK due to toolchain issues).
-else ifneq ($(KERNEL),Darwin)
+else
+ifneq ($(KERNEL),Darwin)
 ifneq ($(COMP),ndk)
     CXXFLAGS += -pipe
+endif
 endif
 endif
 
