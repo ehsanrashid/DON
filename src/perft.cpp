@@ -259,7 +259,7 @@ ProbResult PerftTable::probe(Key key, Depth depth) const noexcept {
 
     auto* ptc = cluster(key);
 
-    std::uint32_t key32 = std::uint32_t(key);
+    auto key32 = std::uint32_t(key);
 
     for (auto& entry : ptc->entries)
         if (entry.key32 == key32 && entry.depth16 == depth)

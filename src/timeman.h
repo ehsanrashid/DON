@@ -71,8 +71,8 @@ class TimeManager final {
 
     double timeAdjust;
 
-    bool         useNodesTime;
     std::int64_t timeNodes;
+    bool         useNodesTime;
 };
 
 }  // namespace DON
