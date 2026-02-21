@@ -57,18 +57,12 @@ OS_WINDOWS := no
 # Detect Windows across all shell environments
 ifeq ($(ENV_OS),Windows_NT)
     OS_WINDOWS := yes
-else
-ifneq ($(findstring MINGW,$(UNAME_S)),)
+else ifneq ($(findstring MINGW,$(UNAME_S)),)
     OS_WINDOWS := yes
-else
-ifneq ($(findstring MSYS,$(UNAME_S)),)
+else ifneq ($(findstring MSYS,$(UNAME_S)),)
     OS_WINDOWS := yes
-else
-ifneq ($(findstring CYGWIN,$(UNAME_S)),)
+else ifneq ($(findstring CYGWIN,$(UNAME_S)),)
     OS_WINDOWS := yes
-endif
-endif
-endif
 endif
 
 # Cross-platform command to detect executable
@@ -820,97 +814,97 @@ endif
 ### 3.6 SIMD architectures
 ifeq ($(avx512icl),yes)
     CXXFLAGS += -DUSE_AVX512ICL
-    ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
-        CXXFLAGS += -mavx512vnni -mavx512vbmi2 -mavx512vbmi -mavx512vpopcntdq -mavx512bitalg -mavx512ifma -mavx512vl -mavx512dq -mavx512bw -mavx512cd -mavx512f -mvpclmulqdq -mgfni -mvaes
-    endif
+ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
+    CXXFLAGS += -mavx512vnni -mavx512vbmi2 -mavx512vbmi -mavx512vpopcntdq -mavx512bitalg -mavx512ifma -mavx512vl -mavx512dq -mavx512bw -mavx512cd -mavx512f -mvpclmulqdq -mgfni -mvaes
+endif
 endif
 
 ifeq ($(vnni512),yes)
     CXXFLAGS += -DUSE_VNNI
-    ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
-        CXXFLAGS += -mavx512vnni -mavx512f -mavx512bw -mavx512dq -mavx512vl -mprefer-vector-width=512
-    endif
+ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
+    CXXFLAGS += -mavx512vnni -mavx512f -mavx512bw -mavx512dq -mavx512vl -mprefer-vector-width=512
+endif
 endif
 
 ifeq ($(vnni256),yes)
     CXXFLAGS += -DUSE_VNNI
-    ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
-        CXXFLAGS += -mavx512vnni -mavx512f -mavx512bw -mavx512dq -mavx512vl -mprefer-vector-width=256
-    endif
+ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
+    CXXFLAGS += -mavx512vnni -mavx512f -mavx512bw -mavx512dq -mavx512vl -mprefer-vector-width=256
+endif
 endif
 
 ifeq ($(avx512),yes)
     CXXFLAGS += -DUSE_AVX512
-    ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
-        CXXFLAGS += -mavx512f -mavx512bw -mavx512dq -mavx512vl
-    endif
+ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
+    CXXFLAGS += -mavx512f -mavx512bw -mavx512dq -mavx512vl
+endif
 endif
 
 ifeq ($(avxvnni),yes)
     CXXFLAGS += -DUSE_AVXVNNI -DUSE_VNNI
-    ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
-        CXXFLAGS += -mavxvnni
-    endif
+ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
+    CXXFLAGS += -mavxvnni
+endif
 endif
 
 ifeq ($(avx2),yes)
     CXXFLAGS += -DUSE_AVX2
-    ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
-        CXXFLAGS += -mavx2 -mbmi
-    endif
+ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
+    CXXFLAGS += -mavx2 -mbmi
+endif
 endif
 
 ifeq ($(sse41),yes)
     CXXFLAGS += -DUSE_SSE41
-    ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
-        CXXFLAGS += -msse4.1
-    endif
+ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
+    CXXFLAGS += -msse4.1
+endif
 endif
 
 ifeq ($(ssse3),yes)
     CXXFLAGS += -DUSE_SSSE3
-    ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
-        CXXFLAGS += -mssse3
-    endif
+ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
+    CXXFLAGS += -mssse3
+endif
 endif
 
 ifeq ($(sse2),yes)
     CXXFLAGS += -DUSE_SSE2
-    ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
-        CXXFLAGS += -msse2
-    endif
+ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
+    CXXFLAGS += -msse2
+endif
 endif
 
 ifeq ($(mmx),yes)
     #CXXFLAGS += -DUSE_MMX
-    ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
-        CXXFLAGS += -mmmx
-    endif
+ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
+    CXXFLAGS += -mmmx
+endif
 endif
 
 ifeq ($(altivec),yes)
     CXXFLAGS += -maltivec
-    ifeq ($(COMP),gcc)
-        CXXFLAGS += -mabi=altivec
-    endif
+ifeq ($(COMP),gcc)
+    CXXFLAGS += -mabi=altivec
+endif
 endif
 
 ifeq ($(vsx),yes)
     CXXFLAGS += -mvsx
-    ifeq ($(COMP),gcc)
-        CXXFLAGS += -DNO_WARN_X86_INTRINSICS -DUSE_SSE2
-    endif
+ifeq ($(COMP),gcc)
+    CXXFLAGS += -DNO_WARN_X86_INTRINSICS -DUSE_SSE2
+endif
 endif
 
 ifeq ($(neon),yes)
     CXXFLAGS += -DUSE_NEON=$(arm_version)
-    ifeq ($(KERNEL),Linux)
-    ifneq ($(COMP),ndk)
-    ifneq ($(arch),armv8)
-        CXXFLAGS += -mfpu=neon
-    endif
-    endif
-    endif
+ifeq ($(KERNEL),Linux)
+ifneq ($(COMP),ndk)
+ifneq ($(arch),armv8)
+    CXXFLAGS += -mfpu=neon
+endif
+endif
+endif
 endif
 
 ifeq ($(dotprod),yes)
@@ -918,26 +912,26 @@ ifeq ($(dotprod),yes)
 endif
 
 ifeq ($(lasx),yes)
-    ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
-        CXXFLAGS += -mlasx
-    endif
+ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
+    CXXFLAGS += -mlasx
+endif
 endif
 
 ifeq ($(lsx),yes)
-    ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
-        CXXFLAGS += -mlsx
-    endif
+ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
+    CXXFLAGS += -mlsx
+endif
 endif
 
 ### 3.7 bmi2
 ifeq ($(bmi2),yes)
     CXXFLAGS += -DUSE_BMI2
-    ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
-        CXXFLAGS += -mbmi2
-    endif
-    ifeq ($(comp),yes)
-        CXXFLAGS += -DUSE_COMP
-    endif
+ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
+    CXXFLAGS += -mbmi2
+endif
+ifeq ($(comp),yes)
+    CXXFLAGS += -DUSE_COMP
+endif
 endif
 
 ### 3.8.1 Try to include git commit date for versioning
@@ -1036,11 +1030,9 @@ endif
 endif
 # Non-Windows, non-macOS:
 # Enable -pipe for compile speed (disabled for Android NDK due to toolchain issues).
-else
-ifneq ($(KERNEL),Darwin)
+else ifneq ($(KERNEL),Darwin)
 ifneq ($(COMP),ndk)
     CXXFLAGS += -pipe
-endif
 endif
 endif
 
