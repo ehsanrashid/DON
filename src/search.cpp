@@ -128,9 +128,18 @@ void update_pv(Move* RESTRICT pv, Move m, const Move* RESTRICT childPv) noexcept
     assert(m.is_ok());
 
     *pv++ = m;
+
     if (childPv != nullptr)
-        while (*childPv != Move::None)
-            *pv++ = *childPv++;
+    {
+        const Move* const end = std::find(childPv, childPv + MAX_PLY + 1, Move::None);
+
+        std::size_t count = end - childPv;
+
+        std::memcpy(pv, childPv, count * sizeof(Move));
+
+        pv += count;
+    }
+
     *pv = Move::None;
 }
 
