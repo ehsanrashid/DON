@@ -983,10 +983,10 @@ ifeq ($(optimize),yes)
                     ifeq ($(COMP),clang)
                         LDFLAGS += -fuse-ld=lld
                     else
-                        # gcc builds that are clang-compatible
-                        ifeq ($(GCC_CLANG),yes)
-                            LDFLAGS += -fuse-ld=lld
-                        endif
+                    # gcc builds that are clang-compatible
+                    ifeq ($(GCC_CLANG),yes)
+                        LDFLAGS += -fuse-ld=lld
+                    endif
                     endif
                 endif
             endif
