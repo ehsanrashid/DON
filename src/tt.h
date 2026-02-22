@@ -28,13 +28,13 @@ namespace DON {
 
 // There is only one global hash table for the engine and all its threads.
 // For chess in particular, even allow racy updates between threads to and from the TT,
-// as taking the time to synchronize access would cost thinking time and thus elo.
+// as taking the time to synchronize access would cost thinking time and thus Elo.
 // As a hash table, collisions are possible and may cause chess playing issues (bizarre blunders, faulty mate reports, etc).
 // Fixing these also loses elo; however such risk decreases quickly with larger TT size.
 //
 // 'probe' is the primary method: given a board position (key),
 // lookup its entry in the table, and return TTProbe:
-//   1) copy of the entry data (if any) (may be inconsistent due to read races)
+//   1) copy of the entry data (if any) (maybe inconsistent due to read races)
 //   2) pointer to this entry
 //   3) pointer to this cluster
 // The copied data and the updater are separated to maintain clear boundaries between local vs global objects.

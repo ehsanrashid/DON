@@ -25,6 +25,7 @@
 #include <cstring>
 #include <initializer_list>
 #include <iostream>
+#include <numeric>
 #include <string>
 #include <string_view>
 #include <type_traits>
@@ -840,12 +841,10 @@ inline Key Position::material_key() const noexcept {
 }
 
 inline Value Position::non_pawn_value(Color c) const noexcept {
-    Value nonPawnValue = VALUE_ZERO;
 
-    for (PieceType pt : NON_PAWN_PIECE_TYPES)
-        nonPawnValue += piece_value(pt) * count(c, pt);
-
-    return nonPawnValue;
+    return std::accumulate(
+      NON_PAWN_PIECE_TYPES.begin(), NON_PAWN_PIECE_TYPES.end(), VALUE_ZERO,
+      [&](Value acc, PieceType pt) { return acc + piece_value(pt) * count(c, pt); });
 }
 
 inline Value Position::non_pawn_value() const noexcept {
@@ -854,11 +853,8 @@ inline Value Position::non_pawn_value() const noexcept {
 
 inline bool Position::has_non_pawn(Color c) const noexcept {
 
-    for (PieceType pt : NON_PAWN_PIECE_TYPES)
-        if (pieces_bb(c, pt) != 0)
-            return true;
-
-    return false;
+    return std::any_of(NON_PAWN_PIECE_TYPES.begin(), NON_PAWN_PIECE_TYPES.end(),
+                       [&](PieceType pt) -> bool { return pieces_bb(c, pt) != 0; });
 }
 
 inline std::int16_t Position::rule50_count() const noexcept { return st->rule50Count; }
@@ -889,7 +885,9 @@ inline int Position::std_material() const noexcept {
     return 1 * count(PAWN) + 3 * count(KNIGHT, BISHOP) + 5 * count(ROOK) + 9 * count(QUEEN);
 }
 
-inline Value Position::material() const noexcept { return 560 * count(PAWN) + non_pawn_value(); }
+inline Value Position::material() const noexcept {
+    return VALUE_PAWN_EVAL * count(PAWN) + non_pawn_value();
+}
 
 // Returns a static, purely materialistic evaluation of the position from
 // the point of view of the side to move. It can be divided by VALUE_PAWN to get

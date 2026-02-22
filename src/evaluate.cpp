@@ -74,14 +74,15 @@ Value evaluate(const Position&          pos,
         nnue   = compute_nnue();
     }
 
-    std::int32_t complexity = constexpr_abs(netOut.psqt - netOut.positional);
-
+    double complexity = double(constexpr_abs(netOut.psqt - netOut.positional));
     // Blend nnue and optimism with complexity
-    nnue *= 1.0 - 54.8366e-6 * complexity;
-    optimism *= 1.0 + 21.0084e-4 * complexity;
+    nnue     = constexpr_round(double(nnue) * (1.0 - 54.8366e-6 * complexity));
+    optimism = constexpr_round(double(optimism) * (1.0 + 21.0084e-4 * complexity));
 
-    std::int32_t v =
-      nnue + constexpr_round(15.2588e-6 * double(nnue + optimism) * double(pos.material()));
+    std::int32_t v = nnue
+                   + constexpr_round(12.8417e-6
+                                     * (double(nnue + optimism) * double(pos.material())
+                                        + 32496.3930 * double(optimism)));
 
     // Damp evaluation linearly based on the 50-move rule
     v = constexpr_round(v * std::max(1.0 - 5.1021e-3 * double(pos.rule50_count()), 0.0));

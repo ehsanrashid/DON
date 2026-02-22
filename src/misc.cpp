@@ -747,7 +747,7 @@ std::size_t str_to_size_t(std::string_view sv) noexcept {
     return std::size_t(value);
 }
 
-std::optional<std::string> read_file_to_string(std::filesystem::path filePath) noexcept {
+std::optional<std::string> read_file_to_string(const std::filesystem::path& filePath) noexcept {
 
     std::ifstream ifs{filePath, std::ios::binary | std::ios::ate};
     if (!ifs)

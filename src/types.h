@@ -383,7 +383,7 @@ using SqrValue = std::int32_t;
 inline constexpr Value VALUE_ZERO = 0;
 inline constexpr Value VALUE_DRAW = VALUE_ZERO;
 
-inline constexpr Value VALUE_NONE     = 0x7FFF;
+inline constexpr Value VALUE_NONE     = (1 << 15) - 1;
 inline constexpr Value VALUE_INFINITE = VALUE_NONE - 1;
 
 inline constexpr Value VALUE_MATE                 = VALUE_INFINITE - 1;
@@ -396,11 +396,12 @@ inline constexpr Value VALUE_TB_WIN_IN_MAX_PLY  = VALUE_TB - MAX_PLY;
 inline constexpr Value VALUE_TB_LOSS_IN_MAX_PLY = -VALUE_TB_WIN_IN_MAX_PLY;
 
 // Piece values in centipawns
-inline constexpr Value VALUE_PAWN   = 208;
-inline constexpr Value VALUE_KNIGHT = 781;
-inline constexpr Value VALUE_BISHOP = 825;
-inline constexpr Value VALUE_ROOK   = 1276;
-inline constexpr Value VALUE_QUEEN  = 2538;
+inline constexpr Value VALUE_PAWN      = 208;
+inline constexpr Value VALUE_PAWN_EVAL = 534;
+inline constexpr Value VALUE_KNIGHT    = 781;
+inline constexpr Value VALUE_BISHOP    = 825;
+inline constexpr Value VALUE_ROOK      = 1276;
+inline constexpr Value VALUE_QUEEN     = 2538;
 
 inline constexpr int MAX_DELTA = 2 * VALUE_INFINITE;
 
@@ -658,13 +659,11 @@ class Move {
 
     constexpr std::uint16_t raw() const noexcept { return data; }
 
-    constexpr bool operator==(const Move& m) const noexcept { return data == m.data; }
-    constexpr bool operator!=(const Move& m) const noexcept { return !(*this == m); }
+    constexpr bool operator==(Move m) const noexcept { return data == m.data; }
+    constexpr bool operator!=(Move m) const noexcept { return !(*this == m); }
 
     // Validity check: ensures move is not None or Null
     constexpr bool is_ok() const noexcept { return data != 0x000 && data != 0xFFF; }
-
-    //constexpr explicit operator bool() const noexcept { return move != 0; }
 
     constexpr Move reverse() const noexcept {
         assert(type() == MT::NORMAL);
@@ -681,8 +680,8 @@ class Move {
 };
 
 // **Define the constexpr static members outside the class**
-inline constexpr Move Move::None{SQ_A1, SQ_A1};
-inline constexpr Move Move::Null{SQ_H8, SQ_H8};
+inline constexpr Move Move::None{0x000};
+inline constexpr Move Move::Null{0xFFF};
 
 using MT = Move::MT;
 
@@ -761,12 +760,10 @@ struct DirtyThreats final {
     template<bool Add>
     void add(Square sq, Square threatenedSq, Piece pc, Piece threatenedPc) noexcept;
 
-    Color  ac;
-    Square kingSq = SQ_NONE, preKingSq = SQ_NONE;
-
-    Bitboard threateningBB = 0, threatenedBB = 0;
-
     DirtyThreatList dtList;
+    Bitboard        threateningBB = 0, threatenedBB = 0;
+    Square          preKingSq = SQ_NONE, kingSq = SQ_NONE;
+    Color           ac;
 };
 
 // Keep track of all changes on the board by a move

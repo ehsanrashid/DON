@@ -1084,7 +1084,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
 
             // If ttEvalValue - margin >= beta, return a value adjusted for depth
             if (ttEvalValue - margin >= beta)
-                return (8 * beta + 7 * ttEvalValue) / 15;
+                return constexpr_ceil(0.5625 * double(beta) + 0.4375 * double(ttEvalValue));
         }
     }
 
@@ -1204,7 +1204,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
 
                 if (!is_win(probCutValue))
                     // Adjust probCutValue to align with the current beta window
-                    return probCutValue - (probCutBeta - beta);
+                    return (probCutValue - (probCutBeta - beta));
             }
         }
         }
@@ -1478,10 +1478,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
         // Scale up reduction for AllNode
         if constexpr (AllNode)
         {
-            constexpr double DepthScaling = 276.0 / 256.0;
-            constexpr double DepthBias    = 254.0 / 256.0;
-
-            r = constexpr_round(double(r) * (1.0 + DepthScaling / (DepthBias + double(depth))));
+            r = constexpr_round(double(r) * (1.0 + 1.0781250 / (0.9921875 + double(depth))));
         }
 
         // Step 17. Late moves reduction / extension (LMR)
@@ -1641,8 +1638,8 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
                 alpha = value;  // Update alpha! Always alpha < beta
 
                 // Reduce depth for other moves if have found at least one score improvement
-                if (depth < 24 && !is_decisive(value))
-                    depth = std::max(depth - 1 - int(depth < 16), 1);
+                if (!is_decisive(value))
+                    depth = std::max(depth - int(depth < 24) - int(depth < 16), 1);
             }
         }
 

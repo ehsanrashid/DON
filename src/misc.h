@@ -224,12 +224,14 @@ constexpr T constexpr_abs(T x) noexcept {
     return x < 0 ? (x == std::numeric_limits<T>::min() ? x : -x) : x;
 }
 
-constexpr float constexpr_abs(float f) noexcept { return f < 0.0f ? -f : f; }
-constexpr float constexpr_abs(double d) noexcept { return d < 0.0 ? -d : d; }
+constexpr float  constexpr_abs(float f) noexcept { return f < 0.0f ? -f : +f; }
+constexpr double constexpr_abs(double d) noexcept { return d < 0.0 ? -d : +d; }
 
 constexpr int constexpr_round(double d) noexcept {
     return d < 0.0 ? int(d - 0.4999) : int(d + 0.4999);
 }
+
+constexpr int constexpr_ceil(double d) noexcept { return int(d + 0.4999); }
 
 // Minimax-style polynomial approximation for ln(1 + f), f in [0,1)
 constexpr double constexpr_approx_1p_log(double f) noexcept {
@@ -1867,7 +1869,7 @@ std::size_t str_to_size_t(std::string_view sv) noexcept;
 
 // Reads the file as bytes.
 // Returns std::nullopt if the file does not exist.
-std::optional<std::string> read_file_to_string(std::filesystem::path filePath) noexcept;
+std::optional<std::string> read_file_to_string(const std::filesystem::path& filePath) noexcept;
 
 #if defined(_WIN32)
 // Get the error message string, if any

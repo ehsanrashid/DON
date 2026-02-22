@@ -115,95 +115,61 @@ Limit parse_limit(std::istream& is) noexcept {
         {
             is >> limit.clocks[WHITE].time;
 
-            limit.clocks[WHITE].time = constexpr_abs(limit.clocks[WHITE].time);
-
-            if (limit.clocks[WHITE].time == 0)
-                limit.clocks[WHITE].time = 1;
+            limit.clocks[WHITE].time =
+              std::max(constexpr_abs(limit.clocks[WHITE].time), TimePoint{1});
         }
         else if (token == "btime")
         {
             is >> limit.clocks[BLACK].time;
 
-            limit.clocks[BLACK].time = constexpr_abs(limit.clocks[BLACK].time);
-
-            if (limit.clocks[BLACK].time == 0)
-                limit.clocks[BLACK].time = 1;
+            limit.clocks[BLACK].time =
+              std::max(constexpr_abs(limit.clocks[BLACK].time), TimePoint{1});
         }
         else if (token == "winc")
         {
             is >> limit.clocks[WHITE].inc;
 
-            limit.clocks[WHITE].inc = constexpr_abs(limit.clocks[WHITE].inc);
-
-            if (limit.clocks[WHITE].inc == 0)
-                limit.clocks[WHITE].inc = 1;
+            limit.clocks[WHITE].inc =
+              std::max(constexpr_abs(limit.clocks[WHITE].inc), TimePoint{1});
         }
         else if (token == "binc")
         {
             is >> limit.clocks[BLACK].inc;
 
-            limit.clocks[BLACK].inc = constexpr_abs(limit.clocks[BLACK].inc);
-
-            if (limit.clocks[BLACK].inc == 0)
-                limit.clocks[BLACK].inc = 1;
+            limit.clocks[BLACK].inc =
+              std::max(constexpr_abs(limit.clocks[BLACK].inc), TimePoint{1});
         }
         else if (token == "movetime")
         {
             is >> limit.moveTime;
 
-            limit.moveTime = constexpr_abs(limit.moveTime);
-
-            if (limit.moveTime == 0)
-                limit.moveTime = 1;
+            limit.moveTime = std::max(constexpr_abs(limit.moveTime), TimePoint{1});
         }
         else if (token == "movestogo")
         {
             std::int16_t movesToGo;
             is >> movesToGo;
 
-            movesToGo = constexpr_abs(movesToGo);
-
-            limit.movesToGo = movesToGo;
-
-            if (movesToGo == 0)
-                limit.movesToGo = 1;
-
-            if (movesToGo > 255)
-                limit.movesToGo = 255;
+            limit.movesToGo = std::clamp<std::uint8_t>(constexpr_abs(movesToGo), 1, 255);
         }
         else if (token == "mate")
         {
             std::int16_t mate;
             is >> mate;
 
-            mate = constexpr_abs(mate);
-
-            limit.mate = mate;
-
-            if (mate == 0)
-                limit.mate = 1;
-
-            if (mate > 255)
-                limit.mate = 255;
+            limit.mate = std::clamp<std::uint8_t>(constexpr_abs(mate), 1, 255);
         }
         else if (token == "depth")
         {
             is >> limit.depth;
 
-            limit.depth = constexpr_abs(limit.depth);
-
-            if (limit.depth == 0)
-                limit.depth = 1;
-
-            if (limit.depth > MAX_PLY - 1)
-                limit.depth = MAX_PLY - 1;
+            limit.depth = std::clamp<Depth>(constexpr_abs(limit.depth), 1, MAX_PLY - 1);
         }
         else if (token == "nodes")
         {
             is >> limit.nodes;
 
-            if (limit.nodes == 0)
-                limit.nodes = 1;
+            limit.nodes = std::max(limit.nodes, std::uint64_t(1));
         }
         else if (token == "infinite")
             limit.infinite = true;
@@ -215,13 +181,7 @@ Limit parse_limit(std::istream& is) noexcept {
             is >> limit.depth;
             is >> std::boolalpha >> limit.detail;
 
-            limit.depth = constexpr_abs(limit.depth);
-
-            if (limit.depth == 0)
-                limit.depth = 1;
-
-            if (limit.depth > MAX_PLY - 1)
-                limit.depth = MAX_PLY - 1;
+            limit.depth = std::clamp<Depth>(constexpr_abs(limit.depth), 1, MAX_PLY - 1);
         }
         // "searchmoves" needs to be the last command on the line
         else if (!token.empty() && token[0] == 's')  // "searchmoves"

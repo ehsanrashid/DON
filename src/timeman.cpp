@@ -53,13 +53,13 @@ void TimeManager::init() noexcept {
 // Called at the beginning of the search and calculates
 // the bounds of time allowed for the current game ply.
 // Currently support:
-//      1) x basetime (sudden death)
-//      2) x basetime (+ z increment)
+//      1) x base-time (sudden death)
+//      2) x base-time (+ z increment)
 //      3) x moves in y time (+ z increment)
 void TimeManager::init(
   Color ac, std::int16_t ply, std::int32_t moveNum, const Options& options, Limit& limit) noexcept {
     // If have no time, no need to fully initialize TM.
-    // startTime is used by movetime and Nodes-Time is used in elapsed calls.
+    // start-time is used by move-time and Nodes-Time is used in elapsed calls.
     startTime = limit.startTime;
 
     auto& clock = limit.clocks[ac];
@@ -86,7 +86,7 @@ void TimeManager::init(
         // Only once at game start
         if (timeNodes == INIT_TIME_NODES)
         {
-            timeNodes = clock.time * NodesTime;  // Time is in msec
+            timeNodes = clock.time * NodesTime;  // Time is in milli-sec
 
             timeNodes = std::max(timeNodes, int64_t(1));
         }
@@ -126,7 +126,7 @@ void TimeManager::init(
         // Calculate time constants based on current remaining time
         double LogScaledTime = std::log10(double(ScaledTime) / 1000.0);  // NOLINT(bugprone-narrowing-conversions)
 
-        // 1) x basetime (sudden death)
+        // 1) x base-time (sudden death)
         // Sudden death time control
         if (clock.inc == 0)
         {
@@ -141,7 +141,7 @@ void TimeManager::init(
         maximumScale = std::min(std::max(3.66270 + 3.72690 * LogScaledTime, 2.75068) + 78.37482e-3 * ply,
                                 6.35772);
         }
-        // 2) x basetime (+ z increment)
+        // 2) x base-time (+ z increment)
         // If there is a healthy increment, remaining time can exceed the actual available
         // game time for the current move, so also cap to a percentage of available game time.
         else

@@ -75,7 +75,7 @@ struct TTEntry final {
     constexpr bool          pv() const noexcept { return (meta8 & 0x4) != 0; }
     constexpr std::uint8_t  generation() const noexcept { return meta8 & GENERATION_MASK; }
 
-    // Convert internal bitfields to TTData
+    // Convert internal bit fields to TTData
     TTData read() const noexcept {
         return {move(), value(), eval_value(), depth(), bound(), occupied(), pv()};
     }
@@ -251,8 +251,8 @@ ProbResult TranspositionTable::probe(Key key) const noexcept {
     return {TTData::empty(), TTUpdater{rte, ttc, key16, generation8}};
 }
 
-// Returns an approximation of the hashtable occupation during a search.
-// The hash is x permill full, as per UCI protocol.
+// Returns an approximation of the hash table occupation during a search.
+// The hash is x per mill full, as per UCI protocol.
 // Only counts entries which match the current generation. [maxAge: 0-31]
 std::uint16_t TranspositionTable::hashfull(std::uint8_t maxAge) const noexcept {
     assert(maxAge < 32);

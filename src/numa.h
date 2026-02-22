@@ -58,7 +58,6 @@
         #undef small
     #endif
 #else
-    #include <numeric>
     // Linux (non-Android)
     #if (defined(__linux__) && !defined(__ANDROID__))
         #if !defined(_GNU_SOURCE)
@@ -1114,7 +1113,7 @@ class NumaConfig final {
     void execute_on_numa_node(NumaIndex numaId, Func&& f) const noexcept {
 
         std::thread th([this, f = std::forward<Func>(f), numaId]() mutable noexcept {
-            bind_current_thread_to_numa_node(numaId);
+            [[maybe_unused]] auto token = bind_current_thread_to_numa_node(numaId);
             f();
         });
 

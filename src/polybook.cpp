@@ -419,7 +419,7 @@ bool is_draw(Position& pos, Move m) noexcept {
 
 void PolyBook::clear() noexcept { entries.clear(); }
 
-bool PolyBook::load(std::filesystem::path bookFile) noexcept {
+bool PolyBook::load(const std::filesystem::path& bookFile) noexcept {
     clear();
 
     if (bookFile.empty())

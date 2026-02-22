@@ -79,7 +79,7 @@ class Engine final {
     void resize_tt(std::size_t ttSize) noexcept;
 
     void show() const noexcept;
-    void dump(std::filesystem::path dumpFile = {}) const noexcept;
+    void dump(const std::filesystem::path& dumpFile = {}) const noexcept;
     void eval() noexcept;
     void flip() noexcept;
     void mirror() noexcept;

@@ -2,12 +2,17 @@
 
 # Download commands with a 5min time-out to ensure things fail if the server stalls
 wget_or_curl=$(
-    (command -v wget >/dev/null 2>&1 && echo "wget -qO- --timeout=300 --tries=1") ||
-(command -v curl >/dev/null 2>&1 && echo "curl -skL --max-time 300"))
+    (command -v wget >/dev/null 2>&1 && echo "wget -qO- --timeout=300 --tries=1") \
+|| (command -v curl >/dev/null 2>&1 && echo "curl -skL --max-time 300"))
+
+if [ -z "$wget_or_curl" ]; then
+    echo "Error: wget or curl not found" >&2
+    exit 1
+fi
 
 sha256sum=$(
-    (command -v shasum >/dev/null 2>&1 && echo "shasum -a 256") ||
-(command -v sha256sum >/dev/null 2>&1 && echo "sha256sum"))
+    (command -v shasum >/dev/null 2>&1 && echo "shasum -a 256") \
+|| (command -v sha256sum >/dev/null 2>&1 && echo "sha256sum"))
 
 if [ -z "$sha256sum" ]; then
     >&2 echo "sha256sum not found, NNUE files will be assumed valid."

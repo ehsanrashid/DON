@@ -117,7 +117,7 @@
     #elif defined(__arm__) || defined(__aarch64__)
     // x86 32-bit / x86-64
     #elif defined(__i386__) || defined(__x86_64__)
-    // Andriod
+    // Android
     #elif defined(__ANDROID__)
     #else
         #error "Unsupported platform"
@@ -226,7 +226,7 @@ inline std::string executable_path() noexcept {
 }
 
 #if defined(_WIN32)
-// Utilizes shared memory to store the value. It is deduplicated system-wide (for the single user)
+// Utilizes shared memory to store the value. It is reduplicated system-wide (for the single user)
 template<typename T>
 class BackendSharedMemory final {
    public:
@@ -507,10 +507,10 @@ class BaseSharedMemory {
 //
 // The registry maintains:
 //  - True insertion order for deterministic iteration and shutdown
-//  - O(1) registration and unregistration via list + hash map
+//  - O(1) registration and un-registration via list + hash map
 //
 // Key Features:
-//  - Thread-safe registration and unregistration
+//  - Thread-safe registration and un-registration
 //  - Bounded waiting during cleanup to avoid shutdown deadlocks
 //  - Deterministic cleanup order (preserves insertion order)
 //  - Safe bulk cleanup without iterator invalidation
@@ -623,7 +623,7 @@ class SharedMemoryRegistry final {
             std::lock_guard cleanLock(sharedMutex);
 
             // Move all registered shared memories into local list to allow safe iteration
-            // and prevent iterator invalidation if close() triggers unregistration.
+            // and prevent iterator invalidation if close() triggers un-registration.
             if (skipUnmapRegion)
             {
                 // Partial cleanup: just snapshot, keep registries intact

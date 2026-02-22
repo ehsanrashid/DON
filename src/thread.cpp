@@ -333,20 +333,27 @@ struct ThreadMetric final {
 
         Value value = rm.effective_value();
 
-        assert(rm.Id != UINT16_MAX && rm.Id < votes.size());
-        std::uint64_t voteCount = votes[rm.Id];
+        assert(rm.id != UINT16_MAX && rm.id < votes.size());
+        std::uint64_t voteCount = votes[rm.id];
 
         std::size_t pvSize = rm.pv.size();
 
-        return {value, is_win(value), is_loss(value), voteCount, calc_vote_weight(th), pvSize};
+        return {
+          voteCount,                                       //
+          std::forward<VotingFunc>(calc_vote_weight)(th),  //
+          pvSize,                                          //
+          value,                                           //
+          is_win(value),                                   //
+          is_loss(value)                                   //
+        };
     }
 
-    Value         value;       // Position evaluation
-    bool          win;         // Proven win (mate or TB win)
-    bool          loss;        // Proven loss (mated or TB loss)
     std::uint64_t voteCount;   // Number of votes for this thread's move
     std::uint64_t voteWeight;  // Weighted voting value (depth-adjusted)
     std::size_t   pvSize;      // Principal variation size
+    Value         value;       // Position evaluation
+    bool          win;         // Proven win (mate or TB win)
+    bool          loss;        // Proven loss (mated or TB loss)
 };
 
 // Predicate: returns true if candidate-thread is better than best-thread
@@ -459,17 +466,14 @@ const Thread* Threads::best_thread() const noexcept {
     {
         const auto& rm = th->worker->rootMoves[0];
 
-        assert(rm.Id != UINT16_MAX && rm.Id < votes.size());
+        assert(rm.id != UINT16_MAX && rm.id < votes.size());
 
-        votes[rm.Id] += calc_vote_weight(th);
+        votes[rm.id] += calc_vote_weight(th);
     }
-
-    // Find best-thread
-    BetterThread betterThread;
 
     // Cache best thread properties
     auto bestMetric = ThreadMetric::from_thread(bestThread, votes, calc_vote_weight);
-
+    // Find best-thread
     for (std::size_t i = 1; i < snapThreads.size(); ++i)
     {
         const auto* candThread = snapThreads[i];
@@ -477,7 +481,7 @@ const Thread* Threads::best_thread() const noexcept {
         // Get candidate thread properties
         auto candMetric = ThreadMetric::from_thread(candThread, votes, calc_vote_weight);
 
-        if (betterThread(bestMetric, candMetric))
+        if (BetterThread betterThread; betterThread(bestMetric, candMetric))
         {
             bestMetric = candMetric;
             bestThread = candThread;
@@ -546,7 +550,7 @@ void Threads::start(Position&      pos,
 
     // Assign stable IDs after rootMoves is finalized
     for (std::uint16_t i = 0; i < rootMoves.size(); ++i)
-        rootMoves[i].Id = i;
+        rootMoves[i].id = i;
 
     auto& clock = limit.clocks[pos.active_color()];
 
@@ -558,8 +562,9 @@ void Threads::start(Position&      pos,
         return limit.use_time_manager()
             && (options["NodesTime"] != 0
                 || std::chrono::duration<double, std::milli>(endTime - startTime).count()
-                     > (0.0500 + 0.0500 * std::clamp((clock.inc - clock.time) / 100.0, 0.0, 1.0))
-                         * clock.time);
+                     > (0.0500
+                        + 0.0500 * std::clamp(double(clock.inc - clock.time) / 100.0, 0.0, 1.0))
+                         * double(clock.time));
     };
 
     auto tbConfig = Tablebase::rank_root_moves(pos, rootMoves, options, false, time_to_abort);
