@@ -163,7 +163,7 @@ Limit parse_limit(std::istream& is) noexcept {
         {
             is >> limit.depth;
 
-            limit.depth = std::clamp<Depth>(constexpr_abs(limit.depth), 1, MAX_PLY - 1);
+            limit.depth = std::clamp<Depth>(constexpr_abs(limit.depth), 1, MAX_DEPTH);
         }
         else if (token == "nodes")
         {
@@ -181,7 +181,7 @@ Limit parse_limit(std::istream& is) noexcept {
             is >> limit.depth;
             is >> std::boolalpha >> limit.detail;
 
-            limit.depth = std::clamp<Depth>(constexpr_abs(limit.depth), 1, MAX_PLY - 1);
+            limit.depth = std::clamp<Depth>(constexpr_abs(limit.depth), 1, MAX_DEPTH);
         }
         // "searchmoves" needs to be the last command on the line
         else if (!token.empty() && token[0] == 's')  // "searchmoves"
