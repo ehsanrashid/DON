@@ -466,7 +466,6 @@ using Depth = std::int16_t;
 inline constexpr Depth MAX_DEPTH  = MAX_PLY - 1;
 inline constexpr Depth DEPTH_ZERO = 0;
 inline constexpr Depth DEPTH_NONE = -1;
-
 // Offset to convert depth to a non-negative array index.
 // It is used only for TT entry occupancy check.
 inline constexpr Depth DEPTH_OFFSET = DEPTH_NONE - 1;
