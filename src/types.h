@@ -760,12 +760,10 @@ struct DirtyThreats final {
     template<bool Add>
     void add(Square sq, Square threatenedSq, Piece pc, Piece threatenedPc) noexcept;
 
-    Color  ac;
-    Square kingSq = SQ_NONE, preKingSq = SQ_NONE;
-
-    Bitboard threateningBB = 0, threatenedBB = 0;
-
     DirtyThreatList dtList;
+    Bitboard        threateningBB = 0, threatenedBB = 0;
+    Square          preKingSq = SQ_NONE, kingSq = SQ_NONE;
+    Color           ac;
 };
 
 // Keep track of all changes on the board by a move
