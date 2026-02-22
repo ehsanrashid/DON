@@ -1517,7 +1517,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
             // Reduce search depth if expected reduction is high
             value = -search<~T>(pos, ss + 1, -alpha - 1, -alpha,
                                 newDepth - int(r > 4302) - int(r > 5919 && newDepth > 2)
-                                  - int(r > 8048 && newDepth > 3));
+                                  - int(r > 8060 && newDepth > 3));
         }
 
         // For PV nodes only, do a full PV search on the first move or after a fail high,
