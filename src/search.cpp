@@ -18,6 +18,7 @@
 #include "search.h"
 
 #include <chrono>
+#include <cmath>
 #include <cstring>
 #include <list>
 #include <random>
@@ -51,7 +52,7 @@ alignas(CACHE_LINE_SIZE) constexpr auto Reductions = []() constexpr noexcept {
 
     reductions[0] = 0;
     for (std::size_t i = 1; i < reductions.size(); ++i)
-        reductions[i] = int(21.9453125 * constexpr_log(i));
+        reductions[i] = constexpr_ceil(21.9453125 * constexpr_log(i));
 
     return reductions;
 }();
@@ -60,7 +61,7 @@ constexpr int
 reduction(Depth depth, std::uint16_t moveCount, int deltaRatio, bool improve) noexcept {
     int reductionScale = Reductions[depth] * Reductions[moveCount];
     return 1182 + reductionScale - deltaRatio
-         + int(!improve) * int(0.423828125 * double(reductionScale));
+         + int(!improve) * constexpr_ceil(0.423828125 * double(reductionScale));
 }
 
 // Add a small random value to draw evaluation to avoid 3-fold blindness
@@ -600,7 +601,7 @@ void Worker::iterative_deepening() noexcept {
                 else
                     break;
 
-                delta = std::min(constexpr_round(1.33334 * double(delta)), MAX_DELTA);
+                delta = std::min(constexpr_ceil(1.33334 * double(delta)), MAX_DELTA);
 
                 assert(-VALUE_INFINITE <= alpha && alpha < beta && beta <= +VALUE_INFINITE);
             }

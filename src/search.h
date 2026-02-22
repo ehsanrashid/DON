@@ -22,7 +22,6 @@
 #include <array>  // IWYU pragma: keep
 #include <atomic>
 #include <cassert>
-#include <cmath>
 #include <condition_variable>
 #include <cstdint>
 #include <cstring>
@@ -324,23 +323,23 @@ struct Limit final {
     }
 
     std::uint16_t calls_count() const noexcept {
-        return nodes != 0 ? std::min(int(std::ceil(nodes / 1024.0)) + 1, 512) : 512;
+        return nodes != 0 ? std::min(constexpr_ceil(double(nodes) / ONE_KB) + 1, 512) : 512;
     }
 
     TimePoint startTime = 0;
 
     StdArray<Clock, COLOR_NB> clocks{};
 
-    std::uint8_t  movesToGo = 0;
-    std::uint8_t  mate      = 0;
+    Strings searchMoves, ignoreMoves;
+
+    std::uint64_t nodes     = 0;
     TimePoint     moveTime  = 0;
     Depth         depth     = DEPTH_ZERO;
-    std::uint64_t nodes     = 0;
+    std::uint8_t  movesToGo = 0;
+    std::uint8_t  mate      = 0;
     bool          infinite  = false;
     bool          ponder    = false;
     bool          perft = false, detail = false;
-
-    Strings searchMoves{}, ignoreMoves{};
 };
 
 // Skill is used to implement engine strength limit.

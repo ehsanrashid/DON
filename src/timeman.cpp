@@ -101,7 +101,7 @@ void TimeManager::init(
 
     std::uint64_t ScaleFactor = use_nodes_time() ? NodesTime : 1;
 
-    TimePoint ScaledTime = std::max<TimePoint>(clock.time / ScaleFactor, 1);
+    TimePoint ScaledTime = std::max<TimePoint>(clock.time / ScaleFactor, TimePoint{1});
 
     // clang-format off
 
@@ -172,13 +172,13 @@ void TimeManager::init(
 
     maximumTime = std::max(
                     centiMTG >= MIN_CENTI_MTG
-                    ? TimePoint(std::min(0.825179 * double(clock.time) - moveOverhead, maximumScale * double(optimumTime))) - SAFETY_MARGIN_TIME
+                    ? TimePoint(std::min(0.825179 * double(clock.time) - double(moveOverhead), maximumScale * double(optimumTime))) - SAFETY_MARGIN_TIME
                     : clock.time - moveOverhead,
                     TimePoint{1});
     // clang-format on
 
     if (options["Ponder"])
-        optimumTime *= 1.2500;
+        optimumTime = constexpr_ceil(1.2500 * double(optimumTime));
 }
 
 // When in 'Nodes as Time' mode
