@@ -973,13 +973,12 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
     // Step 6. Tablebase probe
     if constexpr (!RootNode)
     {
-        if (!exclude && tbConfig.cardinality != 0)
+        if (!exclude && tbConfig.cardinality != 0 && !pos.has_castling_rights())
         {
             std::uint8_t pieceCount = pos.count();
 
             if (pieceCount <= tbConfig.cardinality
-                && (pieceCount < tbConfig.cardinality || depth >= tbConfig.probeDepth)
-                && pos.rule50_count() == 0 && !pos.has_castling_rights())
+                && (pieceCount < tbConfig.cardinality || depth >= tbConfig.probeDepth))
             {
                 Tablebase::ProbeState wdlPs;
 
@@ -2157,7 +2156,7 @@ void Worker::update_correction_histories(const Position& pos, Stack* ss, int bon
 }
 
 // Computes the correction value for the current position from the correction histories
-int Worker::correction_value(const Position& pos, const Stack* ss) noexcept {
+int Worker::correction_value(const Position& pos, const Stack* ss) const noexcept {
     Color ac = pos.active_color();
 
     std::int64_t correctionValue =
