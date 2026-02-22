@@ -338,15 +338,22 @@ struct ThreadMetric final {
 
         std::size_t pvSize = rm.pv.size();
 
-        return {value, is_win(value), is_loss(value), voteCount, calc_vote_weight(th), pvSize};
+        return {
+          voteCount,                                       //
+          std::forward<VotingFunc>(calc_vote_weight)(th),  //
+          pvSize,                                          //
+          value,                                           //
+          is_win(value),                                   //
+          is_loss(value)                                   //
+        };
     }
 
-    Value         value;       // Position evaluation
-    bool          win;         // Proven win (mate or TB win)
-    bool          loss;        // Proven loss (mated or TB loss)
     std::uint64_t voteCount;   // Number of votes for this thread's move
     std::uint64_t voteWeight;  // Weighted voting value (depth-adjusted)
     std::size_t   pvSize;      // Principal variation size
+    Value         value;       // Position evaluation
+    bool          win;         // Proven win (mate or TB win)
+    bool          loss;        // Proven loss (mated or TB loss)
 };
 
 // Predicate: returns true if candidate-thread is better than best-thread
@@ -464,12 +471,9 @@ const Thread* Threads::best_thread() const noexcept {
         votes[rm.Id] += calc_vote_weight(th);
     }
 
-    // Find best-thread
-    BetterThread betterThread;
-
     // Cache best thread properties
     auto bestMetric = ThreadMetric::from_thread(bestThread, votes, calc_vote_weight);
-
+    // Find best-thread
     for (std::size_t i = 1; i < snapThreads.size(); ++i)
     {
         const auto* candThread = snapThreads[i];
@@ -477,7 +481,7 @@ const Thread* Threads::best_thread() const noexcept {
         // Get candidate thread properties
         auto candMetric = ThreadMetric::from_thread(candThread, votes, calc_vote_weight);
 
-        if (betterThread(bestMetric, candMetric))
+        if (BetterThread betterThread; betterThread(bestMetric, candMetric))
         {
             bestMetric = candMetric;
             bestThread = candThread;
