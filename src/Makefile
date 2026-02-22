@@ -557,7 +557,7 @@ ifeq ($(COMP),gcc)
     IS_APPLE_CLANG := $(if $(findstring __apple_build_version__,$(GCC_DEFINES)),yes,no)
 # Darwin (macOS) specific compiler/linker flags
 ifeq ($(KERNEL),Darwin)
-    EXTRAPROFILEFLAGS = -fvisibility=hidden
+    EXTRAPROFILEFLAGS := -fvisibility=hidden
 # Non-Darwin (Linux) specific compiler/linker flags
 else
     CXXFLAGS += -Wno-stringop-overflow
@@ -1242,7 +1242,11 @@ objclean:
 # Clean auxiliary profiling files
 profileclean:
 	@rm -rf profdir
-	@rm -f bench.txt *.gcda *.gcno ./syzygy/*.gcda ./nnue/*.gcda ./nnue/features/*.gcda *.s PGOBENCH.out
+	@rm -f bench.txt *.gcda *.gcno \
+			./syzygy/*.gcda \
+			./nnue/*.gcda \
+			./nnue/features/*.gcda \
+			*.s PGOBENCH.out
 	@rm -f $(NAME).profdata *.profraw
 	@rm -f $(NAME).*args*
 	@rm -f $(NAME).*lt*
