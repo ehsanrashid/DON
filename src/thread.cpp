@@ -333,8 +333,8 @@ struct ThreadMetric final {
 
         Value value = rm.effective_value();
 
-        assert(rm.Id != UINT16_MAX && rm.Id < votes.size());
-        std::uint64_t voteCount = votes[rm.Id];
+        assert(rm.id != UINT16_MAX && rm.id < votes.size());
+        std::uint64_t voteCount = votes[rm.id];
 
         std::size_t pvSize = rm.pv.size();
 
@@ -466,9 +466,9 @@ const Thread* Threads::best_thread() const noexcept {
     {
         const auto& rm = th->worker->rootMoves[0];
 
-        assert(rm.Id != UINT16_MAX && rm.Id < votes.size());
+        assert(rm.id != UINT16_MAX && rm.id < votes.size());
 
-        votes[rm.Id] += calc_vote_weight(th);
+        votes[rm.id] += calc_vote_weight(th);
     }
 
     // Cache best thread properties
@@ -550,7 +550,7 @@ void Threads::start(Position&      pos,
 
     // Assign stable IDs after rootMoves is finalized
     for (std::uint16_t i = 0; i < rootMoves.size(); ++i)
-        rootMoves[i].Id = i;
+        rootMoves[i].id = i;
 
     auto& clock = limit.clocks[pos.active_color()];
 
@@ -562,8 +562,9 @@ void Threads::start(Position&      pos,
         return limit.use_time_manager()
             && (options["NodesTime"] != 0
                 || std::chrono::duration<double, std::milli>(endTime - startTime).count()
-                     > (0.0500 + 0.0500 * std::clamp((clock.inc - clock.time) / 100.0, 0.0, 1.0))
-                         * clock.time);
+                     > (0.0500
+                        + 0.0500 * std::clamp(double(clock.inc - clock.time) / 100.0, 0.0, 1.0))
+                         * double(clock.time));
     };
 
     auto tbConfig = Tablebase::rank_root_moves(pos, rootMoves, options, false, time_to_abort);

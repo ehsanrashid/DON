@@ -102,23 +102,23 @@ struct RootMove final {
         return curValue != -VALUE_INFINITE ? curValue : preValue;
     }
 
+    std::uint64_t nodes = 0;
+    Moves         pv;
+
     Value curValue = -VALUE_INFINITE;
     Value preValue = -VALUE_INFINITE;
     Value uciValue = -VALUE_INFINITE;
+    Value avgValue = -VALUE_INFINITE;
 
-    Value    avgValue    = -VALUE_INFINITE;
     SqrValue avgSqrValue = sign_sqr(-VALUE_INFINITE);
 
-    Bound bound = Bound::NONE;
-
-    std::uint16_t selDepth = 0;
-    std::uint64_t nodes    = 0;
     std::int32_t  tbRank   = 0;
     Value         tbValue  = -VALUE_INFINITE;
+    std::uint16_t selDepth = 0;
 
-    std::uint16_t Id = UINT16_MAX;
+    std::uint16_t id = UINT16_MAX;
 
-    Moves pv;
+    Bound bound = Bound::NONE;
 };
 
 constexpr bool root_move_descending(const RootMove& rm1, const RootMove& rm2) noexcept {
