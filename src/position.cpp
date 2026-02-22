@@ -1256,7 +1256,6 @@ void Position::do_null_move(State& newSt) noexcept {
 
     st->nullPly    = 0;
     st->capturedSq = SQ_NONE;
-    st->checkersBB = 0;
 
     activeColor = ~active_color();
 

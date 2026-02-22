@@ -22,7 +22,6 @@
 #include <array>  // IWYU pragma: keep
 #include <atomic>
 #include <cassert>
-#include <cmath>
 #include <condition_variable>
 #include <cstdint>
 #include <cstring>

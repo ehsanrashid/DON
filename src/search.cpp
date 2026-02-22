@@ -18,6 +18,7 @@
 #include "search.h"
 
 #include <chrono>
+#include <cmath>
 #include <cstring>
 #include <list>
 #include <random>
