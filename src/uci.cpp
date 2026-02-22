@@ -22,8 +22,8 @@
 #include <cctype>
 #include <cmath>
 #include <cstddef>
-#include <iostream>
 #include <functional>
+#include <iostream>
 #include <optional>
 #include <sstream>
 #include <unordered_map>
@@ -68,7 +68,7 @@ enum class Command : std::uint8_t {
 };
 
 // clang-format off
-const std::unordered_map<std::string_view, Command> COMMAND_MAP{
+const std::unordered_map<std::string_view, Command> COMMANDS{
   {"stop",       Command::STOP},
   {"quit",       Command::QUIT},
   {"ponderhit",  Command::PONDERHIT},
@@ -95,9 +95,9 @@ const std::unordered_map<std::string_view, Command> COMMAND_MAP{
 // clang-format on
 
 Command to_command(std::string_view command) noexcept {
-    auto itr = COMMAND_MAP.find(command);
+    auto itr = COMMANDS.find(command);
 
-    return itr != COMMAND_MAP.end() ? itr->second : Command::NONE;
+    return itr != COMMANDS.end() ? itr->second : Command::NONE;
 }
 
 Limit parse_limit(std::istream& is) noexcept {
@@ -163,7 +163,7 @@ Limit parse_limit(std::istream& is) noexcept {
         {
             is >> limit.depth;
 
-            limit.depth = std::clamp<Depth>(constexpr_abs(limit.depth), 1, MAX_PLY - 1);
+            limit.depth = std::clamp<Depth>(constexpr_abs(limit.depth), 1, MAX_DEPTH);
         }
         else if (token == "nodes")
         {
@@ -181,7 +181,7 @@ Limit parse_limit(std::istream& is) noexcept {
             is >> limit.depth;
             is >> std::boolalpha >> limit.detail;
 
-            limit.depth = std::clamp<Depth>(constexpr_abs(limit.depth), 1, MAX_PLY - 1);
+            limit.depth = std::clamp<Depth>(constexpr_abs(limit.depth), 1, MAX_DEPTH);
         }
         // "searchmoves" needs to be the last command on the line
         else if (!token.empty() && token[0] == 's')  // "searchmoves"

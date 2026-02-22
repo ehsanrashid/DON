@@ -24,9 +24,9 @@
 #include "memory.h"
 #include "misc.h"
 #include "position.h"
-#include "syzygy/tablebase.h"
 #include "tune.h"
 #include "uci.h"
+#include "syzygy/tablebase.h"
 
 using namespace DON;
 

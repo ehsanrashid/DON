@@ -27,13 +27,13 @@
 
 #include "evaluate.h"
 #include "movegen.h"
-#include "nnue/nmisc.h"
 #include "numa.h"
 #include "perft.h"
 #include "polybook.h"
 #include "shm.h"
-#include "syzygy/tablebase.h"
 #include "uci.h"
+#include "nnue/nmisc.h"
+#include "syzygy/tablebase.h"
 
 namespace DON {
 

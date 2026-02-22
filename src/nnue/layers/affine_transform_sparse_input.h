@@ -92,7 +92,7 @@ void find_nnz(const std::uint8_t* RESTRICT input,
         __m512i inputV0 = _mm512_load_si512(input + i * 2 * InSimdWidth + 0 * InSimdWidth);
         __m512i inputV1 = _mm512_load_si512(input + i * 2 * InSimdWidth + 1 * InSimdWidth);
 
-        // Get a bitmask and gather non zero indices
+        // Get a bitmask and gather non-zero indices
         __m512i   inputV01 = _mm512_packus_epi32(inputV0, inputV1);
         __mmask32 nnzMask  = _mm512_test_epi16_mask(inputV01, inputV01);
         __m512i   nnzVal   = _mm512_maskz_compress_epi16(nnzMask, base);
@@ -118,7 +118,7 @@ void find_nnz(const std::uint8_t* RESTRICT input,
     {
         __m512i inputV = _mm512_load_si512(input + i * InSimdWidth);
 
-        // Get a bitmask and gather non zero indices
+        // Get a bitmask and gather non-zero indices
         __mmask16 nnzMask = _mm512_test_epi32_mask(inputV, inputV);
         __m512i   nnzVal  = _mm512_maskz_compress_epi32(nnzMask, base);
 
@@ -296,10 +296,10 @@ class AffineTransformSparseInput final {
     #endif
           ;
 
-        std::uint16_t nnz[ChunkCount];
-        IndexType     count;
+        StdArray<std::uint16_t, ChunkCount> nnz;
+        IndexType                           count;
         // Find indices of nonzero 32-bit blocks
-        find_nnz<ChunkCount>(input, nnz, count);
+        find_nnz<ChunkCount>(input, nnz.data(), count);
 
         const outvec_t* biasVec = reinterpret_cast<const outvec_t*>(biases.data());
 
@@ -308,8 +308,8 @@ class AffineTransformSparseInput final {
         for (IndexType k = 0; k < AccCount; ++k)
             acc[k] = biasVec[k];
 
-        const auto* RESTRICT beg = nnz;
-        const auto* RESTRICT end = nnz + count;
+        const auto* RESTRICT beg = nnz.data();
+        const auto* RESTRICT end = beg + count;
 
             // clang-format off
     #if defined(USE_VNNI)

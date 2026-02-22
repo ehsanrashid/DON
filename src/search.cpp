@@ -29,12 +29,12 @@
 #include "evaluate.h"
 #include "movegen.h"
 #include "movepick.h"
-#include "nnue/network.h"
 #include "option.h"
 #include "prng.h"
 #include "thread.h"
 #include "tt.h"
 #include "uci.h"
+#include "nnue/network.h"
 
 namespace DON {
 
@@ -498,7 +498,7 @@ void Worker::iterative_deepening() noexcept {
     Depth lastBestDepth    = DEPTH_ZERO;
 
     // Iterative deepening loop until requested to stop or the target depth is reached
-    while (!threads.is_stopped() && ++rootDepth <= MAX_PLY - 1
+    while (!threads.is_stopped() && ++rootDepth <= MAX_DEPTH
            && (mainManager == nullptr || limit.depth == DEPTH_ZERO || rootDepth <= limit.depth))
     {
         // Age out PV variability metric
@@ -752,7 +752,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
     assert(-VALUE_INFINITE <= alpha && alpha < beta && beta <= +VALUE_INFINITE);
     assert(PVNode || (alpha + 1 == beta));
     assert(ss->ply >= 0);
-    assert(!RootNode || (DEPTH_ZERO < depth && depth <= MAX_PLY - 1));
+    assert(!RootNode || (DEPTH_ZERO < depth && depth <= MAX_DEPTH));
 
     Key key = pos.key();
 
@@ -772,9 +772,9 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
         }
 
         // Limit the depth if extensions made it too large
-        depth = std::min(+depth, MAX_PLY - 1);
+        depth = std::min(depth, MAX_DEPTH);
 
-        assert(DEPTH_ZERO < depth && depth <= MAX_PLY - 1);
+        assert(DEPTH_ZERO < depth && depth <= MAX_DEPTH);
     }
 
     // Check for the available remaining time
@@ -902,7 +902,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
     // The ply after beginning an LMR search, adjust the reduced depth based on
     // how the opponent's move affected the static evaluation.
     if (red >= 3200 && !worsen)
-        depth = std::min(depth + 1, MAX_PLY - 1);
+        depth = std::min(depth + 1, +MAX_DEPTH);
 
     if (red >= 2000 && ss->evalValue > 188 - (ss - 1)->evalValue)
         depth = std::max(depth - 1, 1);
@@ -973,13 +973,12 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
     // Step 6. Tablebase probe
     if constexpr (!RootNode)
     {
-        if (!exclude && tbConfig.cardinality != 0)
+        if (!exclude && tbConfig.cardinality != 0 && !pos.has_castling_rights())
         {
             std::uint8_t pieceCount = pos.count();
 
             if (pieceCount <= tbConfig.cardinality
-                && (pieceCount < tbConfig.cardinality || depth >= tbConfig.probeDepth)
-                && pos.rule50_count() == 0 && !pos.has_castling_rights())
+                && (pieceCount < tbConfig.cardinality || depth >= tbConfig.probeDepth))
             {
                 Tablebase::ProbeState wdlPs;
 
@@ -1008,7 +1007,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
                         || (bound == Bound::LOWER ? tbValue >= beta : tbValue <= alpha))
                     {
                         ttu.update(Move::None, value_to_tt(tbValue, ss->ply), evalValue,
-                                   std::min(depth + 6, MAX_PLY - 1), bound, ss->ttPv);
+                                   std::min(depth + 6, +MAX_DEPTH), bound, ss->ttPv);
 
                         return tbValue;
                     }
@@ -1201,7 +1200,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
                 // Save ProbCut data into transposition table
                 if (!exclude)
                     ttu.update(move, value_to_tt(probCutValue, ss->ply), evalValue,
-                               std::min(probCutDepth + 1, MAX_PLY - 1), Bound::LOWER, ss->ttPv);
+                               std::min(probCutDepth + 1, +MAX_DEPTH), Bound::LOWER, ss->ttPv);
 
                 if (!is_win(probCutValue))
                     // Adjust probCutValue to align with the current beta window
@@ -1398,7 +1397,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
                 extension = 1 + int(singularValue <= singularAlpha - doubleMargin)
                               + int(singularValue <= singularAlpha - tripleMargin);
 
-                depth = std::min(depth + 1, MAX_PLY - 1);
+                depth = std::min(depth + 1, +MAX_DEPTH);
             }
             // Multi-cut pruning
             // If the ttMove is assumed to fail high based on the bound of the TT entry, and
@@ -1516,7 +1515,10 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
 
             // Reduce search depth if expected reduction is high
             value = -search<~T>(pos, ss + 1, -alpha - 1, -alpha,
-                                newDepth - (int(r > 4302) + int(r > 5919 && newDepth > 2)));
+                                newDepth - int(r > 4302)  //
+                                  - (int(r > 5919) & int(newDepth > 2))
+                                  - (int(r > 8048) & int(newDepth > 3))
+                                  - (int(r > 10224) & int(newDepth > 4)));
         }
 
         // For PV nodes only, do a full PV search on the first move or after a fail high,
@@ -1729,7 +1731,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
     // Save gathered information in transposition table
     if ((!RootNode || curPV == 0) && !exclude)
         ttu.update(bestMove, value_to_tt(bestValue, ss->ply), evalValue,
-                   moveCount != 0 ? depth : std::min(depth + 6, MAX_PLY - 1),
+                   moveCount != 0 ? depth : std::min(depth + 6, +MAX_DEPTH),
                    bestValue >= beta                  ? Bound::LOWER
                    : PVNode && bestMove != Move::None ? Bound::EXACT
                                                       : Bound::UPPER,
@@ -2154,7 +2156,7 @@ void Worker::update_correction_histories(const Position& pos, Stack* ss, int bon
 }
 
 // Computes the correction value for the current position from the correction histories
-int Worker::correction_value(const Position& pos, const Stack* ss) noexcept {
+int Worker::correction_value(const Position& pos, const Stack* ss) const noexcept {
     Color ac = pos.active_color();
 
     std::int64_t correctionValue =

@@ -377,9 +377,9 @@ class Threads final {
     void
     start(Position& pos, StateListPtr& states, const Limit& limit, const Options& options) noexcept;
 
-    void start_search() const noexcept;
+    void start_search() noexcept;
 
-    void wait_finish() const noexcept;
+    void wait_finish() noexcept;
 
     void ensure_network_replicated() const noexcept;
 
@@ -601,19 +601,19 @@ inline MainSearchManager* Threads::main_manager() const noexcept {
 
 // Start non-main-threads
 // Will be invoked by main-thread after it has started searching
-inline void Threads::start_search() const noexcept {
+inline void Threads::start_search() noexcept {
     for_each_thread([](Thread* th) noexcept { th->start_search(); }, false);  // skip main
 }
 
 // Wait for non-main-threads
 // Will be invoked by main-thread after it has finished searching
-inline void Threads::wait_finish() const noexcept {
+inline void Threads::wait_finish() noexcept {
     for_each_thread([](Thread* th) noexcept { th->wait_finish(); }, false);  // skip main
 }
 
 // Ensure that all threads have their network replicated
 inline void Threads::ensure_network_replicated() const noexcept {
-    for_each_thread([](Thread* th) noexcept { th->ensure_network_replicated(); });
+    for_each_thread([](const Thread* th) noexcept { th->ensure_network_replicated(); });
 }
 
 }  // namespace DON

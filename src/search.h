@@ -35,13 +35,13 @@
 
 #include "history.h"
 #include "misc.h"
-#include "nnue/accumulator.h"
 #include "numa.h"
 #include "polybook.h"
 #include "position.h"
-#include "syzygy/tablebase.h"
 #include "timeman.h"
 #include "types.h"
+#include "nnue/accumulator.h"
+#include "syzygy/tablebase.h"
 
 namespace DON {
 
@@ -584,7 +584,7 @@ class Worker final {
     void update_histories(const Position& pos, PawnHistory& pawnHistory, Stack* ss, Depth depth, Move bestMove, bool extra, const StdArray<SearchedMoves, 2>& searchedMoves) noexcept;
 
     void update_correction_histories(const Position& pos, Stack* ss, int bonus) noexcept;
-    int  correction_value(const Position& pos, const Stack* ss) noexcept;
+    int  correction_value(const Position& pos, const Stack* ss) const noexcept;
 
     int history_value(bool capture, Move m, Piece movedPc, PieceType capturedPt, Color ac, const History<HType::PIECE_SQ>** contHistory) const noexcept;
     int history_value(const Position& pos, Move m, Color ac, const History<HType::PIECE_SQ>** contHistory) const noexcept;

@@ -26,6 +26,7 @@
 #include <cstdlib>
 #include <functional>
 #include <iomanip>
+#include <iostream>  // Only in DEBUG
 #include <memory>
 #include <new>
 #include <sstream>
@@ -34,7 +35,6 @@
 #include <type_traits>
 #include <utility>
 #include <variant>
-#include <iostream>  // Only in DEBUG
 
 #if defined(_WIN32)
     // Standard portable pattern for spin-wait / CPU pause hint

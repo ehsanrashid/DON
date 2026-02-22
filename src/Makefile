@@ -544,20 +544,20 @@ endif
 # ----------------------------
 
 # Detect if the compiler is Clang/Apple Clang
-IS_CLANG       := no
-IS_APPLE_CLANG := no
+GCC_CLANG       := no
+GCC_APPLE_CLANG := no
 
 # GCC
 ifeq ($(COMP),gcc)
     CXX := g++
     CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-declarations
     # Generate predefined macros to detect Clang/Apple Clang
-    GCC_DEFINES    := $(shell echo | $(CXX) -dM -E -x c++ - 2>/dev/null)
-    IS_CLANG       := $(if $(findstring __clang__,$(GCC_DEFINES)),yes,no)
-    IS_APPLE_CLANG := $(if $(findstring __apple_build_version__,$(GCC_DEFINES)),yes,no)
+    GCC_DEFINES     := $(shell echo | $(CXX) -dM -E -x c++ - 2>/dev/null)
+    GCC_CLANG       := $(if $(findstring __clang__,$(GCC_DEFINES)),yes,no)
+    GCC_APPLE_CLANG := $(if $(findstring __apple_build_version__,$(GCC_DEFINES)),yes,no)
 # Darwin (macOS) specific compiler/linker flags
 ifeq ($(KERNEL),Darwin)
-    EXTRAPROFILEFLAGS = -fvisibility=hidden
+    EXTRAPROFILEFLAGS := -fvisibility=hidden
 # Non-Darwin (Linux) specific compiler/linker flags
 else
     CXXFLAGS += -Wno-stringop-overflow
@@ -567,7 +567,7 @@ ifeq ($(GCC_GNU_LD),yes)
     LDFLAGS += -Wl,--no-as-needed
 endif
     # Determine GCC major version for Linux Clang masquerading as GCC
-    GCC_MAJOR := $(shell [ "$(IS_CLANG)" = "yes" ] && [ "$(IS_APPLE_CLANG)" = "no" ] && $(CXX) -dumpversion 2>/dev/null | cut -f1 -d. || echo)
+    GCC_MAJOR := $(shell [ "$(GCC_CLANG)" = "yes" ] && [ "$(GCC_APPLE_CLANG)" = "no" ] && $(CXX) -dumpversion 2>/dev/null | cut -f1 -d. || echo)
 # Link std::filesystem explicitly if using Linux Clang < 9
 ifneq ($(GCC_MAJOR),)
 ifeq ($(shell expr $(GCC_MAJOR) \< 9),1)
@@ -576,7 +576,7 @@ endif
 endif
 endif
 # Set profile targets outside Darwin/non-Darwin split
-ifeq ($(IS_CLANG),yes)
+ifeq ($(GCC_CLANG),yes)
     profile_make = clang-profile-make
     profile_use  = clang-profile-use
 else
@@ -619,9 +619,9 @@ else
 endif
 endif
     CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-prototypes -Wconditional-uninitialized -flax-vector-conversions=none
-# Atomic library for non-Windows and non-[Darwin/FreeBSD/OpenBSD] (unless compiler-rt)
-ifneq ($(OS_WINDOWS),yes)
-ifeq ($(filter $(KERNEL),Darwin OpenBSD FreeBSD),)
+# Atomic library for non-Windows and non-[Darwin/FreeBSD/OpenBSD/NetBSD] (unless compiler-rt)
+ifeq ($(OS_WINDOWS),no)
+ifeq ($(filter $(KERNEL),Darwin FreeBSD OpenBSD NetBSD),)
 ifneq ($(RTLIB),compiler-rt)
     LDFLAGS += -latomic
 endif
@@ -651,12 +651,12 @@ endif
 endif
 endif
     # Generate predefined macros to detect Clang/Apple Clang
-    CLANG_DEFINES  := $(shell echo | $(CXX) -dM -E -x c++ - 2>/dev/null)
-    IS_CLANG       := $(if $(findstring __clang__,$(CLANG_DEFINES)),yes,no)
-    IS_APPLE_CLANG := $(if $(findstring __apple_build_version__,$(CLANG_DEFINES)),yes,no)
+    CLANG_DEFINES   := $(shell echo | $(CXX) -dM -E -x c++ - 2>/dev/null)
+    GCC_CLANG       := $(if $(findstring __clang__,$(CLANG_DEFINES)),yes,no)
+    GCC_APPLE_CLANG := $(if $(findstring __apple_build_version__,$(CLANG_DEFINES)),yes,no)
 # Link std::filesystem for Linux Clang (non-Apple)
 ifeq ($(KERNEL),Linux)
-ifeq ($(IS_APPLE_CLANG),no)
+ifeq ($(GCC_APPLE_CLANG),no)
     LDFLAGS += -lstdc++fs
 endif
 endif
@@ -782,11 +782,17 @@ ifneq ($(COMP),mingw)
 # Skip linking on Android, Haiku, and NDK (they provide pthreads differently)
 # Android has Bionic's C library with its own pthread implementation bundled
 # Haiku has pthreads in its libroot
-ifeq ($(filter $(OS) $(KERNEL) $(COMP),Android Haiku ndk),)
+ifneq ($(OS),Android)
+ifneq ($(KERNEL),Haiku)
+ifneq ($(COMP),ndk)
     LDFLAGS += -lpthread
-# Link real-time library (librt) on non-Windows, non-Darwin platforms
-ifeq ($(filter $(OS_WINDOWS) $(KERNEL),yes Darwin),)
+# Link real-time library (librt) on non-Windows, non-[Darwin/FreeBSD/OpenBSD/NetBSD] platforms
+ifeq ($(OS_WINDOWS),no)
+ifeq ($(filter $(KERNEL),Darwin FreeBSD OpenBSD NetBSD),)
     LDFLAGS += -lrt
+endif
+endif
+endif
 endif
 endif
 endif
@@ -1022,7 +1028,7 @@ ifeq ($(COMP),clang)
     LDFLAGS += -fuse-ld=lld
 # gcc builds that are clang-compatible
 else
-ifeq ($(IS_CLANG),yes)
+ifeq ($(GCC_CLANG),yes)
     LDFLAGS += -fuse-ld=lld
 endif
 endif
@@ -1045,7 +1051,7 @@ else
 ifeq ($(COMP),gcc)
 ifneq ($(KERNEL),Darwin)
 # GCC (not pretending to be clang) uses parallel LTO
-ifeq ($(IS_CLANG),no)
+ifeq ($(GCC_CLANG),no)
     LTO_FLAGS    := -flto -flto-partition=one
     LDFLTO_EXTRA := -flto=jobserver
 # GCC pretending to be clang
@@ -1086,7 +1092,7 @@ endif
 # Only add -fno-keep-inline-dllexport for MinGW GCC DLL builds
 ifeq ($(OS_WINDOWS),yes)
 ifneq ($(filter gcc mingw,$(COMP)),)
-ifeq ($(IS_CLANG),no)
+ifeq ($(GCC_CLANG),no)
     CXXFLAGS += -fno-keep-inline-dllexport
 endif
 endif
@@ -1094,7 +1100,7 @@ endif
 
 # Not Windows, Not macOS (Darwin), Not Android NDK:
 # Enable -pipe for faster compilation, disabled for Android NDK due to toolchain issues
-ifneq ($(OS_WINDOWS),yes)
+ifeq ($(OS_WINDOWS),no)
 ifneq ($(KERNEL),Darwin)
 ifneq ($(COMP),ndk)
     CXXFLAGS += -pipe
@@ -1236,7 +1242,11 @@ objclean:
 # Clean auxiliary profiling files
 profileclean:
 	@rm -rf profdir
-	@rm -f bench.txt *.gcda *.gcno ./syzygy/*.gcda ./nnue/*.gcda ./nnue/features/*.gcda *.s PGOBENCH.out
+	@rm -f bench.txt *.gcda *.gcno \
+			./syzygy/*.gcda \
+			./nnue/*.gcda \
+			./nnue/features/*.gcda \
+			*.s PGOBENCH.out
 	@rm -f $(NAME).profdata *.profraw
 	@rm -f $(NAME).*args*
 	@rm -f $(NAME).*lt*
@@ -1250,7 +1260,7 @@ net:
 format:
 	@echo CLANG_FORMAT=$(CLANG_FORMAT)
 	@if [ -n "$(SRCS)$(HEADERS)" ]; then \
-	    $(CLANG_FORMAT) -i -style=file $(SRCS) $(HEADERS); \
+		$(CLANG_FORMAT) -i -style=file $(SRCS) $(HEADERS); \
 	fi
 
 install-hooks:
@@ -1259,8 +1269,8 @@ install-hooks:
 	dst="$$root/.git/hooks/pre-commit"; \
 	if [ ! -f "$$src" ]; then echo "Hook source not found: $$src"; exit 1; fi; \
 	if [ -f "$$dst" ]; then \
-	  bak="$$dst.bak.$$(date +%Y%m%d%H%M%S)"; \
-	  mv "$$dst" "$$bak" && echo "Existing hook moved to $$bak"; \
+		bak="$$dst.bak.$$(date +%Y%m%d%H%M%S)"; \
+		mv "$$dst" "$$bak" && echo "Existing hook moved to $$bak"; \
 	fi; \
 	cp "$$src" "$$dst" && chmod +x "$$dst" && echo "Installed pre-commit hook: $$dst"
 

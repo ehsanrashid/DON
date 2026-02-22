@@ -65,7 +65,7 @@ namespace DON {
 //
 // Notes:
 //  - The class is static-only; it cannot be instantiated. (Restriction)
-//  - All data is stored in 'inline static' arrays for fast, constant-time access.
+//  - All data is stored in 'inline-static' arrays for fast, constant-time access.
 //  - Ensure 'init()' is called before using any other function.
 //  - Accessors perform debug-time assertions to validate input values.
 //  - MR50 array handles the 50-move rule with offset and factor constants.
@@ -175,9 +175,6 @@ struct State final {
                          - reinterpret_cast<const char*>(st);
 
         assert(size <= sizeof(*this) && "size exceeds object size");
-        //// Defensive clamp (shouldn't be needed if member belongs to State)
-        //if (size > sizeof(*this))
-        //    size = sizeof(*this);
 
         std::memcpy(this, st, size);
 
@@ -887,7 +884,7 @@ inline int Position::std_material() const noexcept {
 }
 
 inline Value Position::material() const noexcept {
-    return VALUE_PAWN_EVAL * count(PAWN) + non_pawn_value();
+    return VALUE_EVAL_PAWN * count(PAWN) + non_pawn_value();
 }
 
 // Returns a static, purely materialistic evaluation of the position from
@@ -1069,7 +1066,7 @@ inline void write_multiple_dirties(const StdArray<Piece, SQUARE_NB>& pieceMap,
 
     __m512i templateVal = _mm512_set1_epi32(templateDt.raw());
 
-    // Extract the list of squares and upconvert to 32 bits.
+    // Extract the list of squares and up convert to 32 bits.
     // There are never more than 16 incoming threats so this is sufficient.
     __m512i threatSquares = _mm512_maskz_compress_epi8(maskBB, squares);
     threatSquares         = _mm512_cvtepi8_epi32(_mm512_castsi512_si128(threatSquares));
