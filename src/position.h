@@ -434,6 +434,7 @@ class Position final {
     // Initialization helpers (used while setting up a position)
     void set_castling_rights(Color c, Square rookOrgSq) noexcept;
     void set_state() noexcept;
+    void set_pinner_blocker() noexcept;
     void set_ext_state() noexcept;
 
     template<bool MoveDone = true>

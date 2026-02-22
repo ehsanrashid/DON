@@ -489,6 +489,7 @@ void Position::set(std::string_view fens, State* newSt) noexcept {
 
     st->checkersBB = pieces_bb(~ac) & attackers_bb(square<KING>(ac));
 
+    set_pinner_blocker();
     set_ext_state();
 
     if (enPassantSq != SQ_NONE)
@@ -700,15 +701,17 @@ void Position::set_state() noexcept {
     st->key ^= int(active_color() == BLACK) * Zobrist::turn();
 }
 
-// Set extra state, used for fast check detection
-void Position::set_ext_state() noexcept {
-
+void Position::set_pinner_blocker() noexcept {
     st->pinnersBB[WHITE] = st->pinnersBB[BLACK] = 0;
 
     st->blockersBB[WHITE] = blockers_bb(square<KING>(WHITE), pieces_bb(BLACK),  //
                                         st->pinnersBB[WHITE], st->pinnersBB[BLACK]);
     st->blockersBB[BLACK] = blockers_bb(square<KING>(BLACK), pieces_bb(WHITE),  //
                                         st->pinnersBB[BLACK], st->pinnersBB[WHITE]);
+}
+
+// Set extra state, used for fast check detection
+void Position::set_ext_state() noexcept {
 
     Color ac = active_color();
 
@@ -1109,6 +1112,7 @@ DirtyBoard Position::do_move(Move m, State& newSt, bool mayCheck, const Worker* 
 
     ac = activeColor = ~ac;
 
+    set_pinner_blocker();
     set_ext_state();
 
     if (enPassantSq != SQ_NONE)
@@ -1242,7 +1246,7 @@ void Position::do_null_move(State& newSt) noexcept {
     assert(&newSt != st);
     assert(checkers_bb() == 0);
 
-    newSt.switch_to_prefix(st, &State::checkersBB);
+    newSt.switch_to_prefix(st, &State::checksBB);
 
     st = &newSt;
 
