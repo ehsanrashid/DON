@@ -665,8 +665,6 @@ class Move {
     // Validity check: ensures move is not None or Null
     constexpr bool is_ok() const noexcept { return data != 0x000 && data != 0xFFF; }
 
-    //constexpr explicit operator bool() const noexcept { return move != 0; }
-
     constexpr Move reverse() const noexcept {
         assert(type() == MT::NORMAL);
 
@@ -682,8 +680,8 @@ class Move {
 };
 
 // **Define the constexpr static members outside the class**
-inline constexpr Move Move::None{SQ_A1, SQ_A1};
-inline constexpr Move Move::Null{SQ_H8, SQ_H8};
+inline constexpr Move Move::None{0x000};
+inline constexpr Move Move::Null{0xFFF};
 
 using MT = Move::MT;
 
