@@ -171,7 +171,7 @@ select_arch_from_table() {
         case $arch in
             '#'*) continue ;;
         esac
-        
+
         if [ -n "$args" ]; then
             # Intentional splitting of args into words for the predicate.
             # shellcheck disable=SC2086
@@ -233,13 +233,13 @@ set_arch_ppc_64() {
     if [ -r "$cpuinfo_path" ] && grep -q "altivec" "$cpuinfo_path" 2>/dev/null; then
         # Typical: "cpu : POWER8E" (extract the number after POWER)
         power=$(
-            awk -F: '/^cpu[ \t]*:/{print $2; exit}' "$cpuinfo_path" 2>/dev/null \
-            | sed -n 's/.*[Pp][Oo][Ww][Ee][Rr][^0-9]*\([0-9][0-9]*\).*/\1/p'
+            awk -F: '/^cpu[ \t]*:/{print $2; exit}' "$cpuinfo_path" 2>/dev/null | \
+            sed -n 's/.*[Pp][Oo][Ww][Ee][Rr][^0-9]*\([0-9][0-9]*\).*/\1/p'
         )
         if [ -z "$power" ]; then
             power=$(
-                awk -F: '/^cpu[ \t]*:/{print $2; exit}' "$cpuinfo_path" 2>/dev/null \
-                | sed -n 's/.*\([0-9][0-9]*\).*/\1/p'
+                awk -F: '/^cpu[ \t]*:/{print $2; exit}' "$cpuinfo_path" 2>/dev/null | \
+                sed -n 's/.*\([0-9][0-9]*\).*/\1/p'
             )
         fi
         case $power in
@@ -288,7 +288,7 @@ case "$uname_s" in
             ;;
         esac
     ;;
-    
+
     Linux)
         get_flags
         case "$uname_m" in
@@ -350,19 +350,19 @@ case "$uname_s" in
             ;;
         esac
     ;;
-    
+
     MINGW*ARM64*)
         # Windows ARM64 (MSYS2/MinGW)
         # Can't reliably detect ARM CPU features here
         true_arch='armv8-dotprod'
     ;;
-    
+
     CYGWIN*|MINGW*|MSYS*)
         # Windows x86_64 (MSYS2/Cygwin/MinGW)
         get_flags
         set_arch_x86_64
     ;;
-    
+
     *)
         die "Unsupported system type: $uname_s"
     ;;

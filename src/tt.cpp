@@ -273,7 +273,7 @@ std::uint16_t TranspositionTable::hashfull(std::uint8_t maxAge) const noexcept {
     return ceil_div(count * requiredCount, actualCount) / clusters->entries.size();
 }
 
-bool TranspositionTable::load(std::filesystem::path hashFile, Threads& threads) noexcept {
+bool TranspositionTable::load(const std::filesystem::path& hashFile, Threads& threads) noexcept {
 
     if (hashFile.empty())
     {
@@ -351,7 +351,7 @@ bool TranspositionTable::load(std::filesystem::path hashFile, Threads& threads) 
     return readedSize == DataSize && ifs.good();
 }
 
-bool TranspositionTable::save(std::filesystem::path hashFile) const noexcept {
+bool TranspositionTable::save(const std::filesystem::path& hashFile) const noexcept {
 
     if (hashFile.empty())
     {

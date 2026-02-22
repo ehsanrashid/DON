@@ -355,19 +355,19 @@ template<bool Upper = false>
 }
 
 // Build a compile-time table: "a1", "b1", ..., "h8"
-alignas(CACHE_LINE_SIZE) inline constexpr auto SQUARE_STRS = []() constexpr noexcept {
-    StdArray<char, SQUARE_NB, 3> squareStrs{};
+alignas(CACHE_LINE_SIZE) inline constexpr auto SQUARES = []() constexpr noexcept {
+    StdArray<char, SQUARE_NB, 3> squares{};
 
     for (Square s = SQ_A1; s <= SQ_H8; ++s)
-        squareStrs[s] = {to_char(file_of(s)), to_char(rank_of(s)), '\0'};
+        squares[s] = {to_char(file_of(s)), to_char(rank_of(s)), '\0'};
 
-    return squareStrs;
+    return squares;
 }();
 
 [[nodiscard]] constexpr std::string_view to_square(Square s) noexcept {
     assert(is_ok(s));
 
-    return {SQUARE_STRS[s].data(), SQUARE_STRS[s].size() - 1};
+    return {SQUARES[s].data(), SQUARES[s].size() - 1};
 }
 
 static_assert(to_square(SQ_A1) == "a1" && to_square(SQ_H8) == "h8",
@@ -397,7 +397,7 @@ inline constexpr Value VALUE_TB_LOSS_IN_MAX_PLY = -VALUE_TB_WIN_IN_MAX_PLY;
 
 // Piece values in centipawns
 inline constexpr Value VALUE_PAWN      = 208;
-inline constexpr Value VALUE_PAWN_EVAL = 534;
+inline constexpr Value VALUE_EVAL_PAWN = 534;
 inline constexpr Value VALUE_KNIGHT    = 781;
 inline constexpr Value VALUE_BISHOP    = 825;
 inline constexpr Value VALUE_ROOK      = 1276;

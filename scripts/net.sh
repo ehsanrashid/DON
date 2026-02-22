@@ -2,8 +2,8 @@
 
 # Download commands with a 5min time-out to ensure things fail if the server stalls
 wget_or_curl=$(
-    (command -v wget >/dev/null 2>&1 && echo "wget -qO- --timeout=300 --tries=1") \
-|| (command -v curl >/dev/null 2>&1 && echo "curl -skL --max-time 300"))
+    (command -v wget >/dev/null 2>&1 && echo "wget -qO- --timeout=300 --tries=1") || \
+    (command -v curl >/dev/null 2>&1 && echo "curl -skL --max-time 300"))
 
 if [ -z "$wget_or_curl" ]; then
     echo "Error: wget or curl not found" >&2
@@ -11,8 +11,8 @@ if [ -z "$wget_or_curl" ]; then
 fi
 
 sha256sum=$(
-    (command -v shasum >/dev/null 2>&1 && echo "shasum -a 256") \
-|| (command -v sha256sum >/dev/null 2>&1 && echo "sha256sum"))
+    (command -v shasum >/dev/null 2>&1 && echo "shasum -a 256") || \
+    (command -v sha256sum >/dev/null 2>&1 && echo "sha256sum"))
 
 if [ -z "$sha256sum" ]; then
     >&2 echo "sha256sum not found, NNUE files will be assumed valid."
@@ -37,12 +37,11 @@ validate_network() {
 
 fetch_network() {
     filename="$(get_nnue_filename "$1")"
-    
+
     if [ -z "$filename" ]; then
         >&2 echo "NNUE file name not found for: $1"
         return 1
     fi
-    
     if [ -f "$filename" ]; then
         if validate_network "$filename"; then
             echo "Existing $filename validated, skipping download"
@@ -51,12 +50,11 @@ fetch_network() {
             echo "Removing invalid NNUE file: $filename"
         fi
     fi
-    
     if [ -z "$wget_or_curl" ]; then
         >&2 echo "Neither wget or curl is installed. Install one of these tools to download NNUE files automatically."
         exit 1
     fi
-    
+
     for url in \
     "https://tests.stockfishchess.org/api/nn/$filename" \
     "https://github.com/official-stockfish/networks/raw/master/$filename"; do
@@ -76,8 +74,8 @@ fetch_network() {
             return
         fi
     done
-    
-    # Download was not successful in the loop, return false.
+
+    # Download was not successful in the loop, return false
     >&2 echo "Failed to download $filename"
     return 1
 }

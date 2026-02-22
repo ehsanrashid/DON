@@ -26,9 +26,9 @@
 #include "history.h"
 #include "movegen.h"
 #include "option.h"
-#include "syzygy/tablebase.h"
 #include "types.h"
 #include "uci.h"
+#include "syzygy/tablebase.h"
 
 #if !defined(SUPPORTS_PTHREADS)
     #include "misc.h"

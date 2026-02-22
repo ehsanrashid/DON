@@ -85,11 +85,7 @@ void TimeManager::init(
     {
         // Only once at game start
         if (timeNodes == INIT_TIME_NODES)
-        {
-            timeNodes = clock.time * NodesTime;  // Time is in milli-sec
-
-            timeNodes = std::max(timeNodes, int64_t(1));
-        }
+            timeNodes = std::max<TimePoint>(clock.time * NodesTime, TimePoint{1});
 
         // Convert from milliseconds to nodes
         clock.time = timeNodes;
@@ -137,7 +133,7 @@ void TimeManager::init(
         optimumScale = timeAdjust
                      * std::min(11.29900e-3 + std::min(3.47750e-3 + 28.41880e-5 * LogScaledTime, 4.06734e-3)
                                             * std::pow(2.82122 + ply, 0.466422),
-                                0.213035 * double(clock.time) / RemainTime);
+                                0.213035 * double(clock.time) / double(RemainTime));
         maximumScale = std::min(std::max(3.66270 + 3.72690 * LogScaledTime, 2.75068) + 78.37482e-3 * ply,
                                 6.35772);
         }
@@ -153,7 +149,7 @@ void TimeManager::init(
         optimumScale = timeAdjust
                      * std::min(12.14310e-3 + std::min(3.21160e-3 + 32.11230e-5 * LogScaledTime, 5.08017e-3)
                                             * std::pow(2.94693 + ply, 0.461073),
-                                0.213035 * double(clock.time) / RemainTime);
+                                0.213035 * double(clock.time) / double(RemainTime));
         maximumScale = std::min(std::max(3.39770 + 3.03950 * LogScaledTime, 2.94761) + 83.43972e-3 * ply,
                                 6.67704);
         }
@@ -162,7 +158,7 @@ void TimeManager::init(
     else
     {
         optimumScale = std::min((0.00880 + 85.91065e-6 * ply) / centiMTG,
-                                 0.88000 * double(clock.time) / RemainTime);
+                                 0.88000 * double(clock.time) / double(RemainTime));
         maximumScale = std::min(1.30000 + 0.00110 * centiMTG,
                                 8.45000);
     }

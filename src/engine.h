@@ -28,7 +28,6 @@
 
 #include "history.h"
 #include "misc.h"
-#include "nnue/network.h"
 #include "numa.h"
 #include "option.h"
 #include "position.h"
@@ -36,6 +35,7 @@
 #include "thread.h"
 #include "tt.h"
 #include "types.h"
+#include "nnue/network.h"
 
 namespace DON {
 

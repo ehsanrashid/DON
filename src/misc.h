@@ -967,7 +967,7 @@ class FixedVector final {
     static_assert(Capacity > 0, "Capacity must be > 0");
 
    public:
-    [[nodiscard]] constexpr SizeType capacity() const noexcept { return Capacity; }
+    [[nodiscard]] static constexpr SizeType capacity() noexcept { return Capacity; }
 
     [[nodiscard]] constexpr SizeType size() const noexcept { return _size; }
     [[nodiscard]] constexpr bool     empty() const noexcept { return size() == 0; }
@@ -1060,8 +1060,7 @@ struct FixedText final {
         assert(size() < capacity());
         if (size() >= capacity())
             return *this;
-        data()[size()] = ch;
-        ++_size;
+        data()[_size++] = ch;
         return *this;
     }
 
@@ -1111,7 +1110,7 @@ class FixedString final {
 
     FixedString(std::string_view sv) { assign(sv); }
 
-    [[nodiscard]] constexpr std::size_t capacity() const noexcept { return Capacity; }
+    [[nodiscard]] static constexpr std::size_t capacity() noexcept { return Capacity; }
 
     [[nodiscard]] std::size_t size() const noexcept { return _size; }
     [[nodiscard]] bool        empty() const noexcept { return size() == 0; }
@@ -1458,7 +1457,7 @@ class StringViewStreamBuf final: public std::streambuf {
    public:
     StringViewStreamBuf(std::string_view sv) noexcept {
         // Cast away const (safe: only for reading via std::istream)
-        char* p = const_cast<char*>(sv.data());
+        auto* p = const_cast<char*>(sv.data());
         setg(p, p, p + sv.size());  // Only GET area (reading enabled)
         // Do NOT call setp(p, p + sv.size()) - no PUT area (writing disabled)
     }
@@ -1529,8 +1528,8 @@ class TieStreamBuf final: public std::streambuf {
         return (r1 == 0 && r2 == 0) ? 0 : -1;
     }
 
-    std::streambuf* pbuf() { return pBuf; }
-    std::streambuf* mbuf() { return mBuf; }
+    std::streambuf* pbuf() const { return pBuf; }
+    std::streambuf* mbuf() const { return mBuf; }
 
    private:
     int_type
@@ -1568,9 +1567,9 @@ class Logger final {
 
    private:
     Logger() noexcept = delete;
-    Logger(std::istream& _is, std::ostream& _os) noexcept :
-        is(_is),
-        os(_os),
+    Logger(std::istream& isRef, std::ostream& osRef) noexcept :
+        is(isRef),
+        os(osRef),
         isBuf(is.rdbuf()),
         osBuf(os.rdbuf()),
         iTie(is.rdbuf(), ofs.rdbuf()),

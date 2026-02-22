@@ -35,13 +35,13 @@
 
 #include "history.h"
 #include "misc.h"
-#include "nnue/accumulator.h"
 #include "numa.h"
 #include "polybook.h"
 #include "position.h"
-#include "syzygy/tablebase.h"
 #include "timeman.h"
 #include "types.h"
+#include "nnue/accumulator.h"
+#include "syzygy/tablebase.h"
 
 namespace DON {
 

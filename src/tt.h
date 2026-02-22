@@ -112,8 +112,8 @@ class TranspositionTable final {
 
     std::uint16_t hashfull(std::uint8_t maxAge = 0) const noexcept;
 
-    bool load(std::filesystem::path hashFile, Threads& threads) noexcept;
-    bool save(std::filesystem::path hashFile) const noexcept;
+    bool load(const std::filesystem::path& hashFile, Threads& threads) noexcept;
+    bool save(const std::filesystem::path& hashFile) const noexcept;
 
    private:
     TranspositionTable(const TranspositionTable&) noexcept            = delete;

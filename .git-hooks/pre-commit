@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 # Enable pipefail only if the shell supports it (bash, zsh, ksh); harmless on dash.
 case "$(set -o 2>/dev/null)" in
-  *" pipefail "*) set -o pipefail ;;
+    *" pipefail "*) set -o pipefail ;;
 esac
 set -eu
 
@@ -15,6 +15,6 @@ make -C src format
 
 # Re-stage any changes made by formatting
 if ! git diff --quiet; then
-  echo "pre-commit: Formatting changed files."
-  git add -A
+    echo "pre-commit: Formatting changed files."
+    git add -A
 fi

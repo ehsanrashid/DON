@@ -619,9 +619,9 @@ else
 endif
 endif
     CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-prototypes -Wconditional-uninitialized -flax-vector-conversions=none
-# Atomic library for non-Windows and non-[Darwin/FreeBSD/OpenBSD] (unless compiler-rt)
-ifneq ($(OS_WINDOWS),yes)
-ifeq ($(filter $(KERNEL),Darwin OpenBSD FreeBSD),)
+# Atomic library for non-Windows and non-[Darwin/FreeBSD/OpenBSD/NetBSD] (unless compiler-rt)
+ifeq ($(OS_WINDOWS),no)
+ifeq ($(filter $(KERNEL),Darwin FreeBSD OpenBSD NetBSD),)
 ifneq ($(RTLIB),compiler-rt)
     LDFLAGS += -latomic
 endif
@@ -782,11 +782,17 @@ ifneq ($(COMP),mingw)
 # Skip linking on Android, Haiku, and NDK (they provide pthreads differently)
 # Android has Bionic's C library with its own pthread implementation bundled
 # Haiku has pthreads in its libroot
-ifeq ($(filter $(OS) $(KERNEL) $(COMP),Android Haiku ndk),)
+ifneq ($(OS),Android)
+ifneq ($(KERNEL),Haiku)
+ifneq ($(COMP),ndk)
     LDFLAGS += -lpthread
-# Link real-time library (librt) on non-Windows, non-Darwin platforms
-ifeq ($(filter $(OS_WINDOWS) $(KERNEL),yes Darwin),)
+# Link real-time library (librt) on non-Windows, non-[Darwin/FreeBSD/OpenBSD/NetBSD] platforms
+ifeq ($(OS_WINDOWS),no)
+ifeq ($(filter $(KERNEL),Darwin FreeBSD OpenBSD NetBSD),)
     LDFLAGS += -lrt
+endif
+endif
+endif
 endif
 endif
 endif
@@ -1094,7 +1100,7 @@ endif
 
 # Not Windows, Not macOS (Darwin), Not Android NDK:
 # Enable -pipe for faster compilation, disabled for Android NDK due to toolchain issues
-ifneq ($(OS_WINDOWS),yes)
+ifeq ($(OS_WINDOWS),no)
 ifneq ($(KERNEL),Darwin)
 ifneq ($(COMP),ndk)
     CXXFLAGS += -pipe
@@ -1250,7 +1256,7 @@ net:
 format:
 	@echo CLANG_FORMAT=$(CLANG_FORMAT)
 	@if [ -n "$(SRCS)$(HEADERS)" ]; then \
-	    $(CLANG_FORMAT) -i -style=file $(SRCS) $(HEADERS); \
+		$(CLANG_FORMAT) -i -style=file $(SRCS) $(HEADERS); \
 	fi
 
 install-hooks:
@@ -1259,8 +1265,8 @@ install-hooks:
 	dst="$$root/.git/hooks/pre-commit"; \
 	if [ ! -f "$$src" ]; then echo "Hook source not found: $$src"; exit 1; fi; \
 	if [ -f "$$dst" ]; then \
-	  bak="$$dst.bak.$$(date +%Y%m%d%H%M%S)"; \
-	  mv "$$dst" "$$bak" && echo "Existing hook moved to $$bak"; \
+		bak="$$dst.bak.$$(date +%Y%m%d%H%M%S)"; \
+		mv "$$dst" "$$bak" && echo "Existing hook moved to $$bak"; \
 	fi; \
 	cp "$$src" "$$dst" && chmod +x "$$dst" && echo "Installed pre-commit hook: $$dst"
 
