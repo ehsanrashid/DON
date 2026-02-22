@@ -336,12 +336,10 @@ struct ThreadMetric final {
         assert(rm.id != UINT16_MAX && rm.id < votes.size());
         std::uint64_t voteCount = votes[rm.id];
 
-        std::size_t pvSize = rm.pv.size();
-
         return {
           voteCount,                                       //
           std::forward<VotingFunc>(calc_vote_weight)(th),  //
-          pvSize,                                          //
+          rm.pv.size(),                                    //
           value,                                           //
           is_win(value),                                   //
           is_loss(value)                                   //
@@ -398,6 +396,8 @@ const Thread* Threads::best_thread() const noexcept {
     assert(threads.size() > 1);
     // Snap threads pointers under read-lock
     std::vector<const Thread*> snapThreads;
+    const Thread*              fallbackThread = threads.front().get();
+    Depth                      bestDepth      = fallbackThread->worker->completedDepth;
     {
         std::shared_lock readLock(sharedMutex);
 
@@ -409,31 +409,17 @@ const Thread* Threads::best_thread() const noexcept {
 
             if (rm.effective_value() != -VALUE_INFINITE && !rm.pv.empty())
                 snapThreads.push_back(th.get());
+            else if (th->worker->completedDepth > bestDepth)
+            {
+                fallbackThread = th.get();
+                bestDepth      = fallbackThread->worker->completedDepth;
+            }
         }
     }
 
     // Fallback: use completed-depth if no valid threads
     if (snapThreads.empty())
-    {
-        const Thread* bestThread = nullptr;
-        Depth         bestDepth  = DEPTH_ZERO;
-
-        std::shared_lock readLock(sharedMutex);
-
-        for (auto&& th : threads)
-        {
-            assert(th->worker->rootMoves[0].preValue == -VALUE_INFINITE);
-
-            if (bestThread == nullptr || th->worker->completedDepth > bestDepth)
-            {
-                bestThread = th.get();
-                bestDepth  = th->worker->completedDepth;
-            }
-        }
-
-        // final safety fallback
-        return bestThread != nullptr ? bestThread : threads.front().get();
-    }
+        return fallbackThread;
 
     // Initialize with first valid thread
     const Thread* bestThread = snapThreads.front();
