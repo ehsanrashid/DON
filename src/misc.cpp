@@ -128,6 +128,38 @@ constexpr std::string_view Version{"dev"};
     return std::string{buffer.data(), buffer.size()};
 }
 
+// Format time HH:MM:SS -> HHMMSS
+[[maybe_unused]] std::string format_time(std::string_view time) noexcept {
+
+    constexpr std::string_view NullTime{"000000"};
+
+    // Expect exactly "HH:MM:SS"
+    if (time.size() != 8)
+        return std::string{NullTime};
+
+    const char* p = time.data();
+
+    // Validate structure
+    if (!std::isdigit((unsigned char) p[0]) || !std::isdigit((unsigned char) p[1]) || p[2] != ':'
+        || !std::isdigit((unsigned char) p[3]) || !std::isdigit((unsigned char) p[4]) || p[5] != ':'
+        || !std::isdigit((unsigned char) p[6]) || !std::isdigit((unsigned char) p[7]))
+        return std::string{NullTime};
+
+    unsigned hour = char_to_digit(p[0]) * 10 + char_to_digit(p[1]);
+
+    unsigned min = char_to_digit(p[3]) * 10 + char_to_digit(p[4]);
+
+    unsigned sec = char_to_digit(p[6]) * 10 + char_to_digit(p[7]);
+
+    // Range validation (important)
+    if (hour > 23 || min > 59 || sec > 59)
+        return std::string{NullTime};
+
+    StdArray<char, 6> buffer{p[0], p[1], p[3], p[4], p[6], p[7]};
+
+    return std::string{buffer.data(), buffer.size()};
+}
+
 }  // namespace
 
 std::string engine_info(bool uci) noexcept {
@@ -174,15 +206,19 @@ void show_logo() noexcept {
               << ConsoleColor::RESET << std::endl;
 }
 
-// Returns the full name of the current DON version.
-// For dev compiles try to append the commit sha and commit date from git.
-// otherwise local compilation DATE-TIME is specified:
-//  - DON dev-YYYYMMDD-SHA
-// or
-//  - DON dev-YYYYMMDD-hh:mm:ss
+// Returns the full human-readable DON version string.
 //
-// For releases (non-dev builds) only include the version number:
-//  - DON version
+// Development builds:
+//   • If Git metadata is available, append commit information:
+//       DON dev-YYYYMMDD-SHA
+//
+//   • If Git metadata is unavailable (e.g. local/source builds),
+//     fall back to a timestamp-based identifier:
+//       DON dev-YYYYMMDD-HHMMSS-nogit
+//
+// Release builds:
+//   • Only include the semantic version number:
+//       DON X.Y (version)
 std::string version_info() noexcept {
     std::string version;
     version.reserve(32);
@@ -201,7 +237,7 @@ std::string version_info() noexcept {
 #if defined(GIT_SHA)
         version.append(STRINGIFY(GIT_SHA));
 #else
-        version.append(__TIME__);
+        version.append(format_time(__TIME__)).append("-nogit");
 #endif
     }
 
