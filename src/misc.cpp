@@ -143,15 +143,28 @@ std::string engine_info(bool uci) noexcept {
 }
 
 void show_logo() noexcept {
-    constexpr const char* CYAN  = "\033[31m";
-    constexpr const char* RESET = "\033[0m";
-
-    std::cout << CYAN << R"(
- _    __
-|  \ |  | |\ |
-|_ / |__| | \|
-
-)" << RESET << std::endl;
+    std::cout << ConsoleColor::RED <<
+    // Windows consoles always use ASCII-safe logo
+#if defined(_WIN32)
+      R"(
+  ____   ___  _   _
+ |  _ \ / _ \| \ | |
+ | | | | | | |  \| |
+ | |_| | |_| | |\  |
+ |____/ \___/|_| \_|
+)"
+// Unix-like systems usually handle UTF-8 + fonts properly
+#else
+      R"(
+██████╗  ██████╗ ███╗   ██╗
+██╔══██╗██╔═══██╗████╗  ██║
+██║  ██║██║   ██║██╔██╗ ██║
+██║  ██║██║   ██║██║╚██╗██║
+██████╔╝╚██████╔╝██║ ╚████║
+╚═════╝  ╚═════╝ ╚═╝  ╚═══╝
+)"
+#endif
+              << ConsoleColor::RESET << std::endl;
 }
 
 // Returns the full name of the current DON version.

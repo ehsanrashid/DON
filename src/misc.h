@@ -133,6 +133,14 @@ namespace DON {
 using Strings     = std::vector<std::string>;
 using StringViews = std::vector<std::string_view>;
 
+namespace ConsoleColor {
+
+inline constexpr const char* RED   = "\033[31m";
+inline constexpr const char* CYAN  = "\033[36m";
+inline constexpr const char* RESET = "\033[0m";
+
+}  // namespace ConsoleColor
+
 inline constexpr std::size_t BYTE_BITS = 8;
 
 inline constexpr std::size_t HEX64_SIZE = 16;
