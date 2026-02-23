@@ -142,6 +142,18 @@ std::string engine_info(bool uci) noexcept {
     return engine;
 }
 
+void show_logo() noexcept {
+    constexpr const char* CYAN  = "\033[31m";
+    constexpr const char* RESET = "\033[0m";
+
+    std::cout << CYAN << R"(
+ _    __
+|  \ |  | |\ |
+|_ / |__| | \|
+
+)" << RESET << std::endl;
+}
+
 // Returns the full name of the current DON version.
 // For local dev compiles try to append the commit sha and commit date from git.
 // If that fails only the local compilation date is set and "nogit" is specified:

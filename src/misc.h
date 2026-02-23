@@ -280,6 +280,8 @@ constexpr std::size_t reserve_count(std::size_t reserveCount = 1024) noexcept {
 
 std::string engine_info(bool uci = false) noexcept;
 
+void show_logo() noexcept;
+
 std::string version_info() noexcept;
 
 std::string compiler_info() noexcept;

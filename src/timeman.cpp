@@ -75,7 +75,7 @@ void TimeManager::init(
         return;
     }
 
-    TimePoint moveOverhead = options["MoveOverhead"];
+    TimePoint MoveOverhead = options["MoveOverhead"];
 
     // If have to play in 'Nodes as Time' mode, then convert from time to nodes,
     // and use resulting values in time management formulas.
@@ -92,7 +92,7 @@ void TimeManager::init(
 
         clock.inc *= NodesTime;
 
-        moveOverhead *= NodesTime;
+        MoveOverhead *= NodesTime;
     }
 
     std::uint64_t ScaleFactor = use_nodes_time() ? NodesTime : 1;
@@ -111,7 +111,9 @@ void TimeManager::init(
         centiMTG = std::max<std::uint16_t>(5.0510 * double(ScaledTime), MIN_CENTI_MTG);
 
     // Make sure RemainTime > 0 since use it as a divisor
-    TimePoint RemainTime = std::max(clock.time + ((centiMTG - 100) * clock.inc - (centiMTG + 200) * moveOverhead) / 100, TimePoint{1});
+    TimePoint RemainTime = std::max(clock.time + ((centiMTG - 100) * clock.inc - (centiMTG + 200) * MoveOverhead) / 100, TimePoint{1});
+
+    RemainTime = std::max(options["TimeScale"] * RemainTime / 100, TimePoint{1});
 
     // optimumScale is a percentage of available time to use for the current move.
     // maximumScale is a multiplier applied to optimumTime.
@@ -164,12 +166,12 @@ void TimeManager::init(
     }
 
     // Limit the maximum possible time for this move
-    optimumTime = TimePoint(optimumScale * RemainTime);
+    optimumTime = std::max<TimePoint>(optimumScale * RemainTime, options["MinMoveTime"]);
 
     maximumTime = std::max(
                     centiMTG >= MIN_CENTI_MTG
-                    ? TimePoint(std::min(0.825179 * double(clock.time) - double(moveOverhead), maximumScale * double(optimumTime))) - SAFETY_MARGIN_TIME
-                    : clock.time - moveOverhead,
+                    ? TimePoint(std::min(0.825179 * double(clock.time) - double(MoveOverhead), maximumScale * double(optimumTime))) - SAFETY_MARGIN_TIME
+                    : clock.time - MoveOverhead,
                     TimePoint{1});
     // clang-format on
 
