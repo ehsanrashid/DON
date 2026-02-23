@@ -558,11 +558,16 @@ struct L3Domain final {
 };
 
 // Use system NUMA nodes
-struct SystemNumaPolicy {};
+struct SystemNumaPolicy {
+   public:
+};
 // Use system-reported L3 domains
-struct DomainsL3Policy {};
+struct DomainsL3Policy {
+   public:
+};
 // Group system-reported L3 domains until they reach bundleSize
 struct BundledL3Policy {
+   public:
     std::size_t bundleSize;
 };
 
