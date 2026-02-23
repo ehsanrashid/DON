@@ -120,8 +120,8 @@ constexpr Bound fail_bound(bool failHigh) noexcept {
     return failHigh ? Bound::LOWER : Bound::UPPER;
 }
 
-Move legal_tt_move(Move ttMove, const Position& pos) noexcept {
-    return ttMove != Move::None && pos.legal(ttMove) ? ttMove : Move::None;
+Move legal_move(Move m, const Position& pos) noexcept {
+    return m != Move::None && pos.legal(m) ? m : Move::None;
 }
 
 // Appends move and appends child Pv[]
@@ -832,7 +832,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
     }
     else
     {
-        ttd.move = ttd.hit ? legal_tt_move(ttd.move, pos) : Move::None;
+        ttd.move = ttd.hit ? legal_move(ttd.move, pos) : Move::None;
         ttmNone  = ttd.move == Move::None;
         assert(ttmNone || pos.legal(ttd.move));
     }
@@ -977,8 +977,9 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
         {
             std::uint8_t pieceCount = pos.count();
 
-            if (pieceCount <= tbConfig.cardinality
-                && (pieceCount < tbConfig.cardinality || depth >= tbConfig.probeDepth))
+            if (pieceCount < tbConfig.cardinality
+                || (pieceCount == tbConfig.cardinality  //
+                    && depth >= tbConfig.probeDepth))
             {
                 Tablebase::ProbeState wdlPs;
 
@@ -1516,9 +1517,9 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
             // Reduce search depth if expected reduction is high
             value = -search<~T>(pos, ss + 1, -alpha - 1, -alpha,
                                 newDepth - int(r > 4302)  //
-                                  - (int(r > 5919) & int(newDepth > 2))
-                                  - (int(r > 8048) & int(newDepth > 3))
-                                  - (int(r > 10224) & int(newDepth > 4)));
+                                  - (int(newDepth > 2) & int(r > 5919))
+                                  - (int(newDepth > 3) & int(r > 8048))
+                                  - (int(newDepth > 4) & int(r > 10224)));
         }
 
         // For PV nodes only, do a full PV search on the first move or after a fail high,
@@ -1796,7 +1797,7 @@ Value Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta) noexcep
     auto [ttd, ttu] = transpositionTable.probe(key);
 
     ttd.value = ttd.hit ? value_from_tt(ttd.value, ss->ply, pos.rule50_count()) : VALUE_NONE;
-    ttd.move  = ttd.hit ? legal_tt_move(ttd.move, pos) : Move::None;
+    ttd.move  = ttd.hit ? legal_move(ttd.move, pos) : Move::None;
     assert(ttd.move == Move::None || pos.legal(ttd.move));
     ss->ttMove = ttd.move;
     bool ttPv  = ttd.hit && ttd.pv;
@@ -2236,7 +2237,7 @@ bool Worker::ponder_move_extracted() noexcept {
 
         auto [ttd, ttu] = transpositionTable.probe(rootPos.key());
 
-        ponderMove = ttd.hit ? legal_tt_move(ttd.move, rootPos) : Move::None;
+        ponderMove = ttd.hit ? legal_move(ttd.move, rootPos) : Move::None;
 
         if (ponderMove == Move::None || !oLegalMoves.contains(ponderMove))
         {
@@ -2290,10 +2291,10 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
     if (!options["SyzygyPVExtend"])
         return;
 
-    TimePoint MoveOverhead = options["MoveOverhead"];
+    TimePoint OverheadTime = options["OverheadTime"];
     bool      UseRule50    = options["Syzygy50MoveRule"];
 
-    // If time manager is active, don't use more than 50% of MoveOverhead time
+    // If time manager is active, don't use more than 50% of OverheadTime time
     auto startTime = std::chrono::steady_clock::now();
 
     auto time_to_abort = [&]() noexcept -> bool {
@@ -2301,7 +2302,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
         return limit.use_time_manager()
             && (options["NodesTime"] != 0
                 || std::chrono::duration<double, std::milli>(endTime - startTime).count()
-                     > 0.5000 * MoveOverhead);
+                     > 0.5000 * OverheadTime);
     };
 
     bool aborted = false;
@@ -2422,7 +2423,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
 
     if (aborted)
         UCI::print_info_string(
-          "Syzygy based PV extension requires more time, increase MoveOverhead as needed.");
+          "Syzygy based PV extension requires more time, increase Overhead-Time as needed.");
 }
 
 // Initializes the time manager and resets previous search info
@@ -2565,9 +2566,7 @@ void Skill::init(const Options& options) noexcept {
     {
         constexpr StdArray<double, 4> P{37.2473, -40.8525, 22.2943, -0.311438};
 
-        std::uint16_t UCI_ELO = options["UCI_ELO"];
-
-        double e = double(UCI_ELO - MIN_ELO) / (MAX_ELO - MIN_ELO);
+        double e = double(options["UCI_ELO"] - MIN_ELO) / (MAX_ELO - MIN_ELO);
 
         double l = ((P[0] * e + P[1]) * e + P[2]) * e + P[3];
 
