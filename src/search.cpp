@@ -120,8 +120,8 @@ constexpr Bound fail_bound(bool failHigh) noexcept {
     return failHigh ? Bound::LOWER : Bound::UPPER;
 }
 
-Move legal_tt_move(Move ttMove, const Position& pos) noexcept {
-    return ttMove != Move::None && pos.legal(ttMove) ? ttMove : Move::None;
+Move legal_move(Move m, const Position& pos) noexcept {
+    return m != Move::None && pos.legal(m) ? m : Move::None;
 }
 
 // Appends move and appends child Pv[]
@@ -832,7 +832,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
     }
     else
     {
-        ttd.move = ttd.hit ? legal_tt_move(ttd.move, pos) : Move::None;
+        ttd.move = ttd.hit ? legal_move(ttd.move, pos) : Move::None;
         ttmNone  = ttd.move == Move::None;
         assert(ttmNone || pos.legal(ttd.move));
     }
@@ -1797,7 +1797,7 @@ Value Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta) noexcep
     auto [ttd, ttu] = transpositionTable.probe(key);
 
     ttd.value = ttd.hit ? value_from_tt(ttd.value, ss->ply, pos.rule50_count()) : VALUE_NONE;
-    ttd.move  = ttd.hit ? legal_tt_move(ttd.move, pos) : Move::None;
+    ttd.move  = ttd.hit ? legal_move(ttd.move, pos) : Move::None;
     assert(ttd.move == Move::None || pos.legal(ttd.move));
     ss->ttMove = ttd.move;
     bool ttPv  = ttd.hit && ttd.pv;
@@ -2237,7 +2237,7 @@ bool Worker::ponder_move_extracted() noexcept {
 
         auto [ttd, ttu] = transpositionTable.probe(rootPos.key());
 
-        ponderMove = ttd.hit ? legal_tt_move(ttd.move, rootPos) : Move::None;
+        ponderMove = ttd.hit ? legal_move(ttd.move, rootPos) : Move::None;
 
         if (ponderMove == Move::None || !oLegalMoves.contains(ponderMove))
         {
