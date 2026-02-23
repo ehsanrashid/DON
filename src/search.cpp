@@ -977,8 +977,9 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
         {
             std::uint8_t pieceCount = pos.count();
 
-            if (pieceCount <= tbConfig.cardinality
-                && (pieceCount < tbConfig.cardinality || depth >= tbConfig.probeDepth))
+            if (pieceCount < tbConfig.cardinality
+                || (pieceCount == tbConfig.cardinality  //
+                    && depth >= tbConfig.probeDepth))
             {
                 Tablebase::ProbeState wdlPs;
 
