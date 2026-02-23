@@ -344,7 +344,7 @@ struct Limit final {
 
 // Skill is used to implement engine strength limit.
 // If UCI_ELO is set, convert it to an appropriate skill level.
-// Skill 0..19 covers CCRL Blitz Elo from 1320 to 3190, approximately.
+// Skill 0...19.99 covers CCRL Blitz Elo from 1320...3190, approximately.
 struct Skill final {
    public:
     constexpr Skill() noexcept = default;
@@ -406,8 +406,8 @@ struct FullInfo final: public ShortInfo {
     FixedText        wdl;
     TimePoint        time;
     std::uint64_t    nodes;
-    std::uint16_t    hashfull;
     std::uint64_t    tbHits;
+    std::uint16_t    hashfull;
     std::string_view pv;
 };
 struct IterInfo final {

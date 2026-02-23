@@ -175,7 +175,7 @@ std::string engine_info(bool uci) noexcept {
 }
 
 void show_logo() noexcept {
-    std::cout << ConsoleColor::BOLD << ConsoleColor::RED <<  //ConsoleColor::BG_WHITE <<
+    std::cout << ConsoleColor::BOLD << ConsoleColor::RED <<
     // Windows consoles always use ASCII-safe logo
 #if defined(_WIN32)
       R"(
@@ -185,7 +185,7 @@ void show_logo() noexcept {
   | |_| || |_| || |\  |  
   |____/  \___/ |_| \_|  
 )"
-// Unix-like systems usually handle UTF-8 + fonts properly
+    // Unix-like systems usually handle UTF-8 + fonts logo properly
 #else
       R"(
   ██████╗  ██████╗ ███╗   ██╗  

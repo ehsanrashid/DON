@@ -2547,7 +2547,7 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
         std::string pv{build_pv(rm.pv)};
 
         updateContext.onUpdateFull(
-          {{d, score}, rm.selDepth, i + 1, bound, wdl, time, nodes, hashfull, tbHits, pv});
+          {{d, score}, rm.selDepth, i + 1, bound, wdl, time, nodes, tbHits, hashfull, pv});
     }
 }
 

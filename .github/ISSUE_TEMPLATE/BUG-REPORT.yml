@@ -25,9 +25,13 @@ body:
       ```
       position startpos moves g2g4 e7e5 f2f3
       go mate 1
-      info string NNUE evaluation using nn-6877cd24400e.nnue enabled
-      info depth 1 seldepth 1 multipv 1 score mate 1 nodes 33 nps 11000 tbhits 0 time 3 pv d8h4
-      bestmove d8h4
+      info string Available Processors: 0-31
+      info string Threads: 1
+      info string NNUE evaluation using nn-5227780996d3.nnue (105MiB, (82672, 1024, 31, 32, 1))
+      info string NNUE evaluation using nn-37f18f62d772.nnue (6MiB, (22528, 128, 15, 32, 1))
+      info string Network replica 0: Shared memory.
+      info depth 1 seldepth 3 multipv 1 score mate 1 time 1 nodes 31 nps 31000 tbhits 0 hashfull 0 pv d8h4
+      bestmove d8h4 ponder (none)
       ```
   validations:
     required: true
