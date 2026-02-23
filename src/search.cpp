@@ -1516,9 +1516,9 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
             // Reduce search depth if expected reduction is high
             value = -search<~T>(pos, ss + 1, -alpha - 1, -alpha,
                                 newDepth - int(r > 4302)  //
-                                  - (int(r > 5919) & int(newDepth > 2))
-                                  - (int(r > 8048) & int(newDepth > 3))
-                                  - (int(r > 10224) & int(newDepth > 4)));
+                                  - (int(newDepth > 2) & int(r > 5919))
+                                  - (int(newDepth > 3) & int(r > 8048))
+                                  - (int(newDepth > 4) & int(r > 10224)));
         }
 
         // For PV nodes only, do a full PV search on the first move or after a fail high,
@@ -2565,9 +2565,7 @@ void Skill::init(const Options& options) noexcept {
     {
         constexpr StdArray<double, 4> P{37.2473, -40.8525, 22.2943, -0.311438};
 
-        std::uint16_t UCI_ELO = options["UCI_ELO"];
-
-        double e = double(UCI_ELO - MIN_ELO) / (MAX_ELO - MIN_ELO);
+        double e = double(options["UCI_ELO"] - MIN_ELO) / (MAX_ELO - MIN_ELO);
 
         double l = ((P[0] * e + P[1]) * e + P[2]) * e + P[3];
 
