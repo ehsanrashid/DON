@@ -142,6 +142,13 @@ std::string engine_info(bool uci) noexcept {
     return engine;
 }
 
+std::string timestamp_info() noexcept {
+    std::string timestamp;
+    timestamp.reserve(32);
+    timestamp.assign(__TIMESTAMP__);
+    return timestamp;
+}
+
 void show_logo() noexcept {
     std::cout << ConsoleColor::RED <<
     // Windows consoles always use ASCII-safe logo
@@ -168,11 +175,11 @@ void show_logo() noexcept {
 }
 
 // Returns the full name of the current DON version.
-// For local dev compiles try to append the commit sha and commit date from git.
-// If that fails only the local compilation date is set and "nogit" is specified:
+// For dev compiles try to append the commit sha and commit date from git.
+// otherwise local compilation DATE-TIME is specified:
 //  - DON dev-YYYYMMDD-SHA
 // or
-//  - DON dev-YYYYMMDD-nogit
+//  - DON dev-YYYYMMDD-hh:mm:ss
 //
 // For releases (non-dev builds) only include the version number:
 //  - DON version
@@ -194,7 +201,7 @@ std::string version_info() noexcept {
 #if defined(GIT_SHA)
         version.append(STRINGIFY(GIT_SHA));
 #else
-        version.append("nogit");
+        version.append(__TIME__);
 #endif
     }
 

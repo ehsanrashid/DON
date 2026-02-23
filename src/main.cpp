@@ -33,7 +33,7 @@ using namespace DON;
 int main(int argc, const char* argv[]) noexcept {
 
     std::cout << engine_info() << std::endl;
-    std::cout << "\nDATE TIME : " << __DATE__ << " " << __TIME__ << std::endl;
+    std::cout << timestamp_info() << std::endl;
     show_logo();
 
     BitBoard::init();
