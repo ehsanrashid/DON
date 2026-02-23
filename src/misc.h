@@ -51,6 +51,8 @@
 #include <vector>
 
 #if defined(_WIN32)
+    #include "platform_win.h"
+
     #if !defined(PATH_MAX)
         #define PATH_MAX (2 * 1024)  // 2K bytes, safe for almost all paths
     #endif

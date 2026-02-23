@@ -166,6 +166,10 @@ std::string engine_info(bool uci) noexcept {
     std::string engine;
     engine.reserve(64);
 
+#if defined(_WIN32)
+    SetConsoleOutputCP(CP_UTF8);
+#endif
+
     engine.assign(uci ? "id name " : "")
       .append(version_info())
       .append(uci ? "\nid author " : " by ")
@@ -175,28 +179,19 @@ std::string engine_info(bool uci) noexcept {
 }
 
 void show_logo() noexcept {
-    std::cout << ConsoleColor::BOLD << ConsoleColor::RED <<
-    // Windows consoles always use ASCII-safe logo
-#if defined(_WIN32)
-      R"(
-   ____    ___   _   _   
-  |  _ \  / _ \ | \ | |  
-  | | | || | | ||  \| |  
-  | |_| || |_| || |\  |  
-  |____/  \___/ |_| \_|  
-)"
-    // Unix-like systems usually handle UTF-8 + fonts logo properly
-#else
-      R"(
-  ██████╗  ██████╗ ███╗   ██╗  
-  ██╔══██╗██╔═══██╗████╗  ██║  
-  ██║  ██║██║   ██║██╔██╗ ██║  
-  ██║  ██║██║   ██║██║╚██╗██║  
-  ██████╔╝╚██████╔╝██║ ╚████║  
-  ╚═════╝  ╚═════╝ ╚═╝  ╚═══╝  
-)"
-#endif
-              << ConsoleColor::RESET << std::endl;
+    auto print_line = [](std::string_view sv) {
+        std::cout << ConsoleColor::BOLD << ConsoleColor::RED << ConsoleColor::BG_BLACK  //
+                  << sv << ConsoleColor::RESET << '\n';
+    };
+
+    print_line(R"(                               )");
+    print_line(R"(  ██████╗  ██████╗ ███╗   ██╗  )");
+    print_line(R"(  ██╔══██╗██╔═══██╗████╗  ██║  )");
+    print_line(R"(  ██║  ██║██║   ██║██╔██╗ ██║  )");
+    print_line(R"(  ██║  ██║██║   ██║██║╚██╗██║  )");
+    print_line(R"(  ██████╔╝╚██████╔╝██║ ╚████║  )");
+    print_line(R"(  ╚═════╝  ╚═════╝ ╚═╝  ╚═══╝  )");
+    print_line(R"(                               )");
 }
 
 // Returns the full human-readable DON version string.

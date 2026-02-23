@@ -46,6 +46,8 @@ namespace DON {
 
 namespace {
 
+constexpr double BetaBias = 8.0 / 15.0;
+
 // Reductions lookup table using [depth or moveCount]
 alignas(CACHE_LINE_SIZE) constexpr auto Reductions = []() constexpr noexcept {
     StdArray<std::int16_t, MAX_MOVES> reductions{};
@@ -1085,7 +1087,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
 
             // If ttEvalValue - margin >= beta, return a value adjusted for depth
             if (ttEvalValue - margin >= beta)
-                return constexpr_ceil(0.5625 * double(beta) + 0.4375 * double(ttEvalValue));
+                return constexpr_ceil(BetaBias * double(beta) + (1.0 - BetaBias) * double(ttEvalValue));
         }
     }
 
