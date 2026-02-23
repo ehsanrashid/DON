@@ -108,7 +108,7 @@ void TimeManager::init(
     // Make sure RemainTime > 0 since use it as a divisor
     TimePoint RemainTime = std::max(clock.time + ((centiMTG - 100) * clock.inc - (centiMTG + 200) * MoveOverhead) / 100, TimePoint{1});
 
-    RemainTime = std::max(options["TimeScale"] * RemainTime / 100, TimePoint{1});
+    RemainTime = constexpr_ceil(double(RemainTime) * double(options["TimeScale"]) / 100.0);
 
     // optimumScale is a percentage of available time to use for the current move.
     // maximumScale is a multiplier applied to optimumTime.
@@ -169,7 +169,7 @@ void TimeManager::init(
                                           constexpr_ceil(0.825179 * double(clock.time)) - MoveOverhead)
                     // Subtract small safety time from the allocated time to compensate for timer granularity, OS scheduling jitter, and measurement latency.
                     // Reduces the risk of accidental time forfeits (flagging) under heavy load or extreme time pressure.
-                    - options["SafetyTime"]
+                    - TimePoint{options["SafetyTime"]}
                     : clock.time - MoveOverhead,
                     TimePoint{1});
     // clang-format on
