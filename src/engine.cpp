@@ -104,8 +104,8 @@ Engine::Engine(std::string_view path) noexcept :
     options.add("MultiPV",              Option(1, 1, MAX_MOVES));
     options.add("SkillLevel",           Option(Skill::MAX_LEVEL, Skill::MIN_LEVEL, Skill::MAX_LEVEL));
     options.add("OverheadTime",         Option(25, 0, 5000));
-    options.add("MinimumThinkTime",     Option(20, 0, 5000));
-    options.add("ReservedTime",         Option(10, 10, 5000));
+    options.add("MinimumMoveTime",      Option(20, 0, 5000));
+    options.add("BufferTime",           Option(10, 10, 5000));
     options.add("TimePercent",          Option(80, 10, 1000));
     options.add("NodesTime",            Option(0, 0, 10000));
     options.add("DrawMoveCount",        Option(Position::DrawMoveCount, 5, 50, OnCng([](const Option& o) { Position::DrawMoveCount = int(o); return std::nullopt; })));
