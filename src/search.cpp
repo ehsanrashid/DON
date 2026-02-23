@@ -2291,10 +2291,10 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
     if (!options["SyzygyPVExtend"])
         return;
 
-    TimePoint MoveOverhead = options["MoveOverhead"];
+    TimePoint OverheadTime = options["OverheadTime"];
     bool      UseRule50    = options["Syzygy50MoveRule"];
 
-    // If time manager is active, don't use more than 50% of MoveOverhead time
+    // If time manager is active, don't use more than 50% of OverheadTime time
     auto startTime = std::chrono::steady_clock::now();
 
     auto time_to_abort = [&]() noexcept -> bool {
@@ -2302,7 +2302,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
         return limit.use_time_manager()
             && (options["NodesTime"] != 0
                 || std::chrono::duration<double, std::milli>(endTime - startTime).count()
-                     > 0.5000 * MoveOverhead);
+                     > 0.5000 * OverheadTime);
     };
 
     bool aborted = false;
@@ -2423,7 +2423,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
 
     if (aborted)
         UCI::print_info_string(
-          "Syzygy based PV extension requires more time, increase MoveOverhead as needed.");
+          "Syzygy based PV extension requires more time, increase Overhead-Time as needed.");
 }
 
 // Initializes the time manager and resets previous search info

@@ -103,7 +103,7 @@ Engine::Engine(std::string_view path) noexcept :
     options.add("Ponder",               Option(false));
     options.add("MultiPV",              Option(1, 1, MAX_MOVES));
     options.add("SkillLevel",           Option(Skill::MAX_LEVEL, Skill::MIN_LEVEL, Skill::MAX_LEVEL));
-    options.add("MoveOverhead",         Option(25, 0, 5000));
+    options.add("OverheadTime",         Option(25, 0, 5000));
     options.add("ThinkTime",             Option(20, 0, 5000));
     options.add("SafetyTime",           Option(10, 10, 5000));
     options.add("TimeScale",            Option(80, 10, 1000));

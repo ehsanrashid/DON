@@ -70,7 +70,7 @@ void TimeManager::init(
         return;
     }
 
-    TimePoint MoveOverhead = options["MoveOverhead"];
+    TimePoint OverheadTime = options["OverheadTime"];
 
     // If have to play in 'Nodes as Time' mode, then convert from time to nodes,
     // and use resulting values in time management formulas.
@@ -87,7 +87,7 @@ void TimeManager::init(
 
         clock.inc *= NodesTime;
 
-        MoveOverhead *= NodesTime;
+        OverheadTime *= NodesTime;
     }
 
     std::uint64_t ScaleFactor = use_nodes_time() ? NodesTime : 1;
@@ -106,7 +106,7 @@ void TimeManager::init(
         centiMTG = std::max<std::uint16_t>(constexpr_ceil(5.0510 * double(ScaledTime)), MIN_CENTI_MTG);
 
     // Make sure RemainTime > 0 since use it as a divisor
-    TimePoint RemainTime = std::max(clock.time + ((centiMTG - 100) * clock.inc - (centiMTG + 200) * MoveOverhead) / 100, TimePoint{1});
+    TimePoint RemainTime = std::max(clock.time + ((centiMTG - 100) * clock.inc - (centiMTG + 200) * OverheadTime) / 100, TimePoint{1});
 
     RemainTime = std::max<TimePoint>(constexpr_ceil(double(RemainTime) * double(options["TimeScale"]) / 100.0), TimePoint{1});
 
@@ -166,11 +166,11 @@ void TimeManager::init(
     maximumTime = std::max(
                     centiMTG >= MIN_CENTI_MTG
                     ? std::min<TimePoint>(constexpr_ceil(maximumScale * double(optimumTime)),
-                                          constexpr_ceil(0.825179 * double(clock.time)) - MoveOverhead)
+                                          constexpr_ceil(0.825179 * double(clock.time)) - OverheadTime)
                     // Subtract small safety time from the allocated time to compensate for timer granularity, OS scheduling jitter, and measurement latency.
                     // Reduces the risk of accidental time forfeits (flagging) under heavy load or extreme time pressure.
                     - TimePoint{options["SafetyTime"]}
-                    : clock.time - MoveOverhead,
+                    : clock.time - OverheadTime,
                     TimePoint{1});
     // clang-format on
 
