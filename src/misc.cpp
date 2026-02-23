@@ -174,13 +174,6 @@ std::string engine_info(bool uci) noexcept {
     return engine;
 }
 
-std::string timestamp_info() noexcept {
-    std::string timestamp;
-    timestamp.reserve(32);
-    timestamp.assign(__TIMESTAMP__);
-    return timestamp;
-}
-
 void show_logo() noexcept {
     std::cout << ConsoleColor::BOLD << ConsoleColor::RED <<  //ConsoleColor::BG_WHITE <<
     // Windows consoles always use ASCII-safe logo

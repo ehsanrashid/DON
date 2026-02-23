@@ -324,9 +324,9 @@ constexpr std::size_t reserve_count(std::size_t reserveCount = 1024) noexcept {
     return std::max(reserveCount, std::size_t(8));
 }
 
-std::string engine_info(bool uci = false) noexcept;
+constexpr std::string_view timestamp_info() noexcept { return __TIMESTAMP__; }
 
-std::string timestamp_info() noexcept;
+std::string engine_info(bool uci = false) noexcept;
 
 void show_logo() noexcept;
 
