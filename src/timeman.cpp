@@ -108,7 +108,7 @@ void TimeManager::init(
     // Make sure RemainTime > 0 since use it as a divisor
     TimePoint RemainTime = std::max(clock.time + ((centiMTG - 100) * clock.inc - (centiMTG + 200) * MoveOverhead) / 100, TimePoint{1});
 
-    RemainTime = constexpr_ceil(double(RemainTime) * double(options["TimeScale"]) / 100.0);
+    RemainTime = std::max<TimePoint>(constexpr_ceil(double(RemainTime) * double(options["TimeScale"]) / 100.0), TimePoint{1});
 
     // optimumScale is a percentage of available time to use for the current move.
     // maximumScale is a multiplier applied to optimumTime.
@@ -161,7 +161,7 @@ void TimeManager::init(
     }
 
     // Limit the maximum possible time for this move
-    optimumTime = std::max<TimePoint>(constexpr_ceil(optimumScale * double(RemainTime)), options["MinMoveTime"]);
+    optimumTime = std::max<TimePoint>(constexpr_ceil(optimumScale * double(RemainTime)), options["ThinkTime"]);
 
     maximumTime = std::max(
                     centiMTG >= MIN_CENTI_MTG
