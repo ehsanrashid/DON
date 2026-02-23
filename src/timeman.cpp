@@ -102,7 +102,7 @@ void TimeManager::init(
                   : std::min<std::uint16_t>(MAX_CENTI_MTG + 10 * std::max(100 * limit.movesToGo - MAX_CENTI_MTG, 0), 100 * limit.movesToGo);
 
     // If less than one second, gradually reduce mtg
-    if (ScaledTime < 1000)
+    if (centiMTG > MIN_CENTI_MTG && ScaledTime < 1000)
         centiMTG = std::max<std::uint16_t>(constexpr_ceil(5.0510 * double(ScaledTime)), MIN_CENTI_MTG);
 
     // Make sure RemainTime > 0 since use it as a divisor
@@ -164,13 +164,13 @@ void TimeManager::init(
     optimumTime = std::max<TimePoint>(constexpr_ceil(optimumScale * double(RemainTime)), options["ThinkTime"]);
 
     maximumTime = std::max(
-                    centiMTG >= MIN_CENTI_MTG
-                    ? std::min<TimePoint>(constexpr_ceil(maximumScale * double(optimumTime)),
+                    centiMTG < MIN_CENTI_MTG
+                    ? clock.time
+                    : std::min<TimePoint>(constexpr_ceil(maximumScale * double(optimumTime)),
                                           constexpr_ceil(0.825179 * double(clock.time)) - OverheadTime)
                     // Subtract small safety time from the allocated time to compensate for timer granularity, OS scheduling jitter, and measurement latency.
                     // Reduces the risk of accidental time forfeits (flagging) under heavy load or extreme time pressure.
-                    - TimePoint{options["SafetyTime"]}
-                    : clock.time - OverheadTime,
+                    - TimePoint{options["SafetyTime"]},
                     TimePoint{1});
     // clang-format on
 
