@@ -19,7 +19,6 @@
 #define TIMEMAN_H_INCLUDED
 
 #include <cstdint>
-#include <utility>
 
 #include "misc.h"
 #include "types.h"  // IWYU pragma: keep
@@ -45,11 +44,10 @@ class TimeManager final {
 
     TimePoint elapsed() const noexcept { return now() - startTime; }
 
+    // NodesFunc&& allows binding to temporaries without copying
     template<typename NodesFunc>
     TimePoint elapsed(NodesFunc&& nodes) const noexcept {
-        if (use_nodes_time())
-            return std::forward<NodesFunc>(nodes)();
-        return elapsed();
+        return use_nodes_time() ? TimePoint(nodes()) : elapsed();
     }
 
     void init() noexcept;
