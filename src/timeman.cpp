@@ -36,11 +36,6 @@ constexpr double MIN_TIME_ADJUST  = 1.0e-6;
 
 constexpr std::int64_t INIT_TIME_NODES = -1;
 
-// Safety margin subtracted from allocated time to account for
-// timer resolution, scheduling jitter, and measurement latency.
-// This helps avoid flagging under extreme time pressure.
-constexpr TimePoint SAFETY_MARGIN_TIME = 10;
-
 }  // namespace
 
 void TimeManager::init() noexcept {
@@ -166,11 +161,15 @@ void TimeManager::init(
     }
 
     // Limit the maximum possible time for this move
-    optimumTime = std::max<TimePoint>(optimumScale * RemainTime, options["MinMoveTime"]);
+    optimumTime = std::max<TimePoint>(constexpr_ceil(optimumScale * double(RemainTime)), options["MinMoveTime"]);
 
     maximumTime = std::max(
                     centiMTG >= MIN_CENTI_MTG
-                    ? TimePoint(std::min(0.825179 * double(clock.time) - double(MoveOverhead), maximumScale * double(optimumTime))) - SAFETY_MARGIN_TIME
+                    ? std::min<TimePoint>(constexpr_ceil(maximumScale * double(optimumTime)),
+                                          constexpr_ceil(0.825179 * double(clock.time)) - MoveOverhead)
+                    // Subtract small safety margin from the allocated time to compensate for timer granularity, OS scheduling jitter, and measurement latency.
+                    // Reduces the risk of accidental time forfeits (flagging) under heavy load or extreme time pressure.
+                    - options["SafetyTime"]
                     : clock.time - MoveOverhead,
                     TimePoint{1});
     // clang-format on
