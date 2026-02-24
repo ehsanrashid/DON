@@ -149,8 +149,11 @@ class MovePicker final {
     const History<HType::LOW_QUIET>* lowPlyQuietHistory  = nullptr;
     const History<HType::PIECE_SQ>** continuationHistory = nullptr;
     const std::int16_t               ssPly               = LOW_PLY_QUIET_SIZE;
-    const int                        threshold;
 
+   public:
+    int threshold;
+
+   private:
     Stage initStage;
     Stage curStage;
 
