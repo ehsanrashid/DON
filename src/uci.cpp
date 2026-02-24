@@ -819,7 +819,7 @@ int win_rate_model(Value v, const Position& pos) noexcept {
 
     auto [a, b] = win_rate_params(pos);
     // Return the win rate in per mille units, rounded to the nearest integer
-    return constexpr_round(1000 / (1 + std::exp((a - v) / b)));
+    return constexpr_round(1000.0 / (1.0 + std::exp((a - v) / b)));
 }
 
 template<typename... Ts>
