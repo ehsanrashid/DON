@@ -89,6 +89,17 @@ alignas(CACHE_LINE_SIZE) constexpr auto THREAT_TABLE = []() constexpr noexcept {
 constexpr auto& PIECE_THREATS  = THREAT_TABLE.pieceThreats;
 constexpr auto& SQUARE_OFFSETS = THREAT_TABLE.squareOffsets;
 
+constexpr IndexType dimensions() noexcept {
+    IndexType dimensions = 0;
+    for (Color c : {WHITE, BLACK})
+        for (PieceType pt : PIECE_TYPES)
+            dimensions += 2 * MAX_TARGETS[pt - 1] * PIECE_THREATS[+make_piece(c, pt)].threatCount;
+
+    return dimensions;
+}
+
+static_assert(dimensions() == FullThreats::Dimensions);
+
 constexpr std::uint8_t  SEMI_EXCLUDED_OFFSET = 31;
 constexpr std::uint32_t SEMI_EXCLUDED_MASK   = 1U << SEMI_EXCLUDED_OFFSET;
 constexpr std::uint32_t FEATURE_INDEX_MASK   = SEMI_EXCLUDED_MASK - 1;

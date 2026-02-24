@@ -29,7 +29,7 @@
 namespace DON::NNUE::Features {
 
 // Feature HalfKAv2_hm: Combination of the position of own king and the position of pieces.
-// Position mirrored such that king is always on e..h files.
+// Position mirrored such that king is always on e...h files.
 class HalfKAv2_hm final {
    public:
     // Hash value embedded in the evaluation file

@@ -170,7 +170,7 @@ void TimeManager::init(
                                           constexpr_ceil(0.825179 * double(clock.time)) - OverheadTime)
                     // Subtract small safety time from the allocated time to compensate for timer granularity, OS scheduling jitter, and measurement latency.
                     // Reduces the risk of accidental time forfeits (flagging) under heavy load or extreme time pressure.
-                    - TimePoint(options["BufferTime"]),
+                    - options["BufferTime"],
                     TimePoint{1});
     // clang-format on
 
