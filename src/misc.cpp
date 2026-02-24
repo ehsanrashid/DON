@@ -166,6 +166,10 @@ std::string engine_info(bool uci) noexcept {
     std::string engine;
     engine.reserve(64);
 
+#if defined(_WIN32)
+    SetConsoleOutputCP(CP_UTF8);
+#endif
+
     engine.assign(uci ? "id name " : "")
       .append(version_info())
       .append(uci ? "\nid author " : " by ")
@@ -175,28 +179,46 @@ std::string engine_info(bool uci) noexcept {
 }
 
 void show_logo() noexcept {
-    std::cout << ConsoleColor::BOLD << ConsoleColor::RED <<  //ConsoleColor::BG_WHITE <<
-    // Windows consoles always use ASCII-safe logo
-#if defined(_WIN32)
-      R"(
-   ____    ___   _   _   
-  |  _ \  / _ \ | \ | |  
-  | | | || | | ||  \| |  
-  | |_| || |_| || |\  |  
-  |____/  \___/ |_| \_|  
-)"
-// Unix-like systems usually handle UTF-8 + fonts properly
-#else
-      R"(
-  ██████╗  ██████╗ ███╗   ██╗  
-  ██╔══██╗██╔═══██╗████╗  ██║  
-  ██║  ██║██║   ██║██╔██╗ ██║  
-  ██║  ██║██║   ██║██║╚██╗██║  
-  ██████╔╝╚██████╔╝██║ ╚████║  
-  ╚═════╝  ╚═════╝ ╚═╝  ╚═══╝  
-)"
-#endif
-              << ConsoleColor::RESET << std::endl;
+    auto border = [](std::string_view sv) {
+        std::cout << ConsoleColor::BG_BLACK                                    //
+                  << ConsoleColor::BRIGHT_YELLOW << ConsoleColor::BLINK << sv  //
+                  << ConsoleColor::RESET << '\n';
+    };
+
+    auto mid1 = [](std::string_view sv, const char* color1) {
+        std::cout                                                         //
+          << ConsoleColor::BG_BLACK                                       //
+          << ConsoleColor::BRIGHT_YELLOW << ConsoleColor::BLINK << "  ║"  //
+          << ConsoleColor::RESET                                          //
+          << ConsoleColor::BG_BLACK                                       //
+          << color1 << sv << ConsoleColor::RESET                          //
+          << ConsoleColor::BG_BLACK                                       //
+          << ConsoleColor::BRIGHT_YELLOW << ConsoleColor::BLINK << "║  "  //
+          << ConsoleColor::RESET << '\n';
+    };
+    auto mid2 = [](std::string_view sv, const char* color1, const char* color2) {
+        std::cout                                                                  //
+          << ConsoleColor::BG_BLACK                                                //
+          << ConsoleColor::BRIGHT_YELLOW << ConsoleColor::BLINK << "  ║"           //
+          << ConsoleColor::RESET                                                   //
+          << ConsoleColor::BG_BLACK                                                //
+          << color1 << color2 << ConsoleColor::BLINK << sv << ConsoleColor::RESET  //
+          << ConsoleColor::BG_BLACK                                                //
+          << ConsoleColor::BRIGHT_YELLOW << ConsoleColor::BLINK << "║  "           //
+          << ConsoleColor::RESET << '\n';
+    };
+    std::cout << '\n';
+    // clang-format off
+    border("  ╔══════════════════════════════╗  ");
+         mid1("  ██████╗ ╔██████╗ ███╗  ██╗  ", ConsoleColor::RED);
+         mid2("  ██╔══██╗██╔═══██╗████╗ ██║  ", ConsoleColor::BRIGHT_RED, ConsoleColor::STRIKETHROUGH);
+         mid2("  ██║  ██║██║   ██║██╔██╗██║  ", ConsoleColor::BRIGHT_RED, ConsoleColor::STRIKETHROUGH);
+         mid2("  ██║  ██║██║   ██║██║╚████║  ", ConsoleColor::BRIGHT_RED, ConsoleColor::STRIKETHROUGH);
+         mid1("  ██████╔╝╚██████╔╝██║ ╚███║  ", ConsoleColor::RED);
+         mid1("  ╚═════╝  ╚═════╝ ╚═╝  ╚══╝  ", ConsoleColor::RED);
+    border("  ╚══════════════════════════════╝  ");
+    // clang-format on
+    std::cout << '\n';
 }
 
 // Returns the full human-readable DON version string.

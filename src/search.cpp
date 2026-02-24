@@ -46,6 +46,8 @@ namespace DON {
 
 namespace {
 
+constexpr double BetaBias = 0.68;
+
 // Reductions lookup table using [depth or moveCount]
 alignas(CACHE_LINE_SIZE) constexpr auto Reductions = []() constexpr noexcept {
     StdArray<std::int16_t, MAX_MOVES> reductions{};
@@ -1085,7 +1087,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
 
             // If ttEvalValue - margin >= beta, return a value adjusted for depth
             if (ttEvalValue - margin >= beta)
-                return constexpr_ceil(0.5625 * double(beta) + 0.4375 * double(ttEvalValue));
+                return constexpr_ceil(BetaBias * double(beta) + (1.0 - BetaBias) * double(ttEvalValue));
         }
     }
 
@@ -2547,7 +2549,7 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
         std::string pv{build_pv(rm.pv)};
 
         updateContext.onUpdateFull(
-          {{d, score}, rm.selDepth, i + 1, bound, wdl, time, nodes, hashfull, tbHits, pv});
+          {{d, score}, rm.selDepth, i + 1, bound, wdl, time, nodes, tbHits, hashfull, pv});
     }
 }
 

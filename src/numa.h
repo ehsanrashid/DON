@@ -38,25 +38,7 @@
 #include <vector>
 
 #if defined(_WIN32)
-    #if !defined(NOMINMAX)
-        #define NOMINMAX  // Disable min()/max() macros
-    #endif
-    #if !defined(WIN32_LEAN_AND_MEAN)
-        #define WIN32_LEAN_AND_MEAN
-    #endif
-    #include <sdkddkver.h>
-    #if defined(_WIN32_WINNT) && _WIN32_WINNT < _WIN32_WINNT_WIN7
-        #undef _WIN32_WINNT
-    #endif
-    #if !defined(_WIN32_WINNT)
-        // Force to include needed API prototypes
-        #define _WIN32_WINNT _WIN32_WINNT_WIN7  // or _WIN32_WINNT_WIN10
-    #endif
-    #undef UNICODE
-    #include <windows.h>
-    #if defined(small)
-        #undef small
-    #endif
+    #include "platform_win.h"
 #else
     // Linux (non-Android)
     #if (defined(__linux__) && !defined(__ANDROID__))
@@ -558,11 +540,16 @@ struct L3Domain final {
 };
 
 // Use system NUMA nodes
-struct SystemNumaPolicy {};
+struct SystemNumaPolicy {
+   public:
+};
 // Use system-reported L3 domains
-struct DomainsL3Policy {};
+struct DomainsL3Policy {
+   public:
+};
 // Group system-reported L3 domains until they reach bundleSize
 struct BundledL3Policy {
+   public:
     std::size_t bundleSize;
 };
 

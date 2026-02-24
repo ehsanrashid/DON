@@ -384,8 +384,8 @@ void on_update_full(const FullInfo& fInfo) noexcept {
               << " time " << fInfo.time                      //
               << " nodes " << fInfo.nodes                    //
               << " nps " << 1000 * fInfo.nodes / fInfo.time  //
-              << " hashfull " << fInfo.hashfull              //
               << " tbhits " << fInfo.tbHits                  //
+              << " hashfull " << fInfo.hashfull              //
               << " pv" << fInfo.pv << std::endl;
 }
 

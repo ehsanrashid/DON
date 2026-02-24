@@ -84,7 +84,8 @@ Iterator upper_bound_unrolled(Iterator RESTRICT beg,
 
         Iterator base = beg + i;
 
-        ins = comp(value, *base) ? base : ins;
+        if (comp(value, *base))
+            ins = base;
     }
 
     return ins;

@@ -2247,7 +2247,10 @@ Position::operator std::string() const noexcept {
         pos.push_back(to_char(r));
 
         for (File f = FILE_A; f <= FILE_H; ++f)
-            pos.append(" | ").push_back(to_char(piece(make_square(f, r))));
+            pos
+              .append(" | ")
+              //.push_back(to_char(piece(make_square(f, r))));
+              .append(to_figure(piece(make_square(f, r))));
 
         pos.append(" |").append(Sep);
 
