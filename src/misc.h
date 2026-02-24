@@ -196,6 +196,9 @@ inline constexpr std::size_t BLOCK_32 = 8 * BLOCK_4;
 
 inline constexpr std::int64_t INT_LIMIT = (1LL << 31) - 1;
 
+inline constexpr double LN2   = 0.693147180559945309417232121458176568;
+inline constexpr double SQRT2 = 1.41421356237309504880168872420969808;
+
 // Constants for Murmur Hashing
 inline constexpr std::uint64_t MURMUR_M = 0xC6A4A7935BD1E995ULL;
 inline constexpr std::uint8_t  MURMUR_R = 47;
@@ -271,7 +274,6 @@ constexpr T constexpr_abs(T x) noexcept {
 
     return x < 0 ? (x == std::numeric_limits<T>::min() ? x : -x) : x;
 }
-
 constexpr float  constexpr_abs(float f) noexcept { return f < 0.0f ? -f : +f; }
 constexpr double constexpr_abs(double d) noexcept { return d < 0.0 ? -d : +d; }
 
@@ -280,29 +282,48 @@ constexpr int constexpr_round(double d) noexcept {
 }
 
 constexpr int constexpr_ceil(double d) noexcept { return int(d + 0.4999); }
+constexpr int constexpr_floor(double d) noexcept { return int(d - 0.4999); }
 
-// Minimax-style polynomial approximation for ln(1 + f), f in [0,1)
-constexpr double constexpr_approx_1p_log(double f) noexcept {
+// Computes ln(1 + f) for f in (-1, sqrt(2)-1] via the identity
+//   ln(1+f) = 2 * atanh(s),   s = f / (2 + f)
+//
+// After the sqrt(2) range reduction below, |s| <= (sqrt(2)-1)/(sqrt(2)+1)
+// = 3 - 2*sqrt(2) ≈ 0.1716, so the series needs only ~10 terms for full
+// double precision (truncation error < 2e-17).
+constexpr double constexpr_log1p_log(double f) noexcept {
+    double s  = f / (2.0 + f);
+    double s2 = s * s;
     // clang-format off
-    return f * ( 1.0
-         + f * (-0.5
-         + f * ( 0.33333333333333333
-         + f * (-0.25
-         + f * ( 0.2
-         + f * (-0.16666666666666666))))));
+    double p = 1.0
+        + s2 * (1.0 / 3.0
+        + s2 * (1.0 / 5.0
+        + s2 * (1.0 / 7.0
+        + s2 * (1.0 / 9.0
+        + s2 * (1.0 / 11.0
+        + s2 * (1.0 / 13.0
+        + s2 * (1.0 / 15.0
+        + s2 * (1.0 / 17.0
+        + s2 *  1.0 / 19.0))))))));
     // clang-format on
+    return 2.0 * s * p;
 }
 
-// constexpr natural logarithm using range reduction + polynomial
+// constexpr natural logarithm using two-stage range reduction + atanh series.
+//
+// Stage 1: x = m * 2^e,  m in [1, 2)
+// Stage 2: if m >= sqrt(2), halve m and increment e  =>  m in [1/sqrt(2), sqrt(2))
+//
+// Then  ln(x) = ln(m) + e * ln(2),  where f = m - 1 in (-0.293, 0.414).
+//
+// Note: the while loops are O(|exponent|) iterations, which is fine for
+// compile-time table generation. For runtime use, prefer std::log.
 constexpr double constexpr_log(double x) noexcept {
-    constexpr double LN2 = 0.693147180559945309417232121458176568;
-
     if (x <= 0.0)
-        return -1e300;  // Undefined, but safe for compile-time tables
+        return -1e300;  // Undefined; not NaN/−inf so it stays constexpr-safe
 
     int exponent = 0;
 
-    // Range reduction: x = mantissa * 2^exponent : normalize x into [1, 2)
+    // Stage 1: reduce to [1, 2)
     while (x >= 2.0)
     {
         ++exponent;
@@ -314,9 +335,17 @@ constexpr double constexpr_log(double x) noexcept {
         x *= 2.0;
     }
 
-    // mantissa in [1,2) -> f in [0,1)
-    // ln(x) = ln(m) + exponent * ln(2)
-    return constexpr_approx_1p_log(x - 1.0) + exponent * LN2;
+    // Stage 2: reduce to [1/sqrt(2), sqrt(2))
+    // If x >= sqrt(2), folding the upper half down gives f = x - 1 closer to 0,
+    // keeping |s| <= ~0.172 and making the series converge in ~10 terms.
+    if (x >= SQRT2)
+    {
+        x *= 0.5;
+        ++exponent;
+    }
+
+    // f = x - 1  in  (-0.293, 0.414)
+    return constexpr_log1p_log(x - 1.0) + double(exponent) * LN2;
 }
 
 constexpr float max_load_factor(float maxLoadFactor = 0.75f) noexcept {
@@ -326,7 +355,46 @@ constexpr std::size_t reserve_count(std::size_t reserveCount = 1024) noexcept {
     return std::max(reserveCount, std::size_t(8));
 }
 
-constexpr std::string_view timestamp_info() noexcept { return __TIMESTAMP__; }
+enum class ConsoleOutputMode : std::uint8_t {
+    Default,  // Do nothing special
+    UTF7,     // Explicitly avoid UTF-8 changes
+    UTF8,     // Try to enable UTF-8 if possible
+    EnableVirtualTerminal,
+    FullyFeatured,
+};
+
+void set_console_output(ConsoleOutputMode mode = ConsoleOutputMode::Default) noexcept;
+
+[[nodiscard]] constexpr char digit_to_char(int digit) noexcept {
+    assert(0 <= digit && digit <= 9 && "digit_to_char: non-digit integer");
+
+    return 0 <= digit && digit <= 9 ? digit + '0' : '\0';
+}
+
+[[nodiscard]] constexpr int char_to_digit(char ch) noexcept {
+    assert('0' <= ch && ch <= '9' && "char_to_digit: non-digit character");
+
+    return '0' <= ch && ch <= '9' ? ch - '0' : -1;
+}
+
+constexpr std::string_view timestamp() noexcept { return __TIMESTAMP__; }
+
+inline unsigned to_month(std::string_view m) noexcept {
+    assert(m.size() == 3);
+    return std::tolower(m[0]) == 'j' && std::tolower(m[1]) == 'a' ? 1
+         : std::tolower(m[0]) == 'f'                              ? 2
+         : std::tolower(m[0]) == 'm' && std::tolower(m[2]) == 'r' ? 3
+         : std::tolower(m[0]) == 'a' && std::tolower(m[1]) == 'p' ? 4
+         : std::tolower(m[0]) == 'm' && std::tolower(m[2]) == 'y' ? 5
+         : std::tolower(m[0]) == 'j' && std::tolower(m[2]) == 'n' ? 6
+         : std::tolower(m[0]) == 'j' && std::tolower(m[2]) == 'l' ? 7
+         : std::tolower(m[0]) == 'a' && std::tolower(m[1]) == 'u' ? 8
+         : std::tolower(m[0]) == 's'                              ? 9
+         : std::tolower(m[0]) == 'o'                              ? 10
+         : std::tolower(m[0]) == 'n'                              ? 11
+         : std::tolower(m[0]) == 'd'                              ? 12
+                                                                  : 0;
+}
 
 std::string engine_info(bool uci = false) noexcept;
 
@@ -1725,18 +1793,6 @@ struct CommandLine final {
     StringViews arguments;
 };
 
-[[nodiscard]] constexpr char digit_to_char(int digit) noexcept {
-    assert(0 <= digit && digit <= 9 && "digit_to_char: non-digit integer");
-
-    return 0 <= digit && digit <= 9 ? digit + '0' : '\0';
-}
-
-[[nodiscard]] constexpr int char_to_digit(char ch) noexcept {
-    assert('0' <= ch && ch <= '9' && "char_to_digit: non-digit character");
-
-    return '0' <= ch && ch <= '9' ? ch - '0' : -1;
-}
-
 inline std::string lower_case(std::string str) noexcept {
     std::transform(str.begin(), str.end(), str.begin(),
                    [](unsigned char ch) noexcept -> char { return std::tolower(ch); });
@@ -1816,12 +1872,33 @@ inline std::string remove_whitespace(std::string str) noexcept {
     return value == "true" || value == "false";
 }
 
-[[nodiscard]] constexpr bool string_to_bool(std::string_view sv) { return (trim(sv) == "true"); }
+[[nodiscard]] constexpr bool sv_to_bool(std::string_view sv) { return (trim(sv) == "true"); }
 
-inline std::string clamp_string(std::string_view value, int minValue, int maxValue) noexcept {
+[[nodiscard]] constexpr int sv_to_int(std::string_view sv) noexcept {
+    int  intValue = 0;
+    bool neg      = false;
+
+    std::size_t i = 0;
+
+    while (i < sv.size() && sv[i] == '-')
+    {
+        neg = true;
+        ++i;
+    }
+
+    while (i < sv.size())
+    {
+        intValue = 10 * intValue + char_to_digit(sv[i]);
+        ++i;
+    }
+
+    return neg ? -intValue : +intValue;
+}
+
+inline std::string clamp_string(std::string_view sv, int minValue, int maxValue) noexcept {
     int intValue = 0;
 
-    auto [ptr, ec] = std::from_chars(value.data(), value.data() + value.size(), intValue);
+    auto [ptr, ec] = std::from_chars(sv.data(), sv.data() + sv.size(), intValue);
 
     switch (ec)
     {

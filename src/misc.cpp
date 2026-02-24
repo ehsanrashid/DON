@@ -20,7 +20,6 @@
 #include <cmath>
 #include <cstdlib>
 #include <ctime>
-#include <iterator>
 #include <limits>
 
 #if defined(_WIN32)
@@ -41,10 +40,6 @@ constexpr std::string_view Version{"dev"};
 
 // Format date to YYYYMMDD
 [[maybe_unused]] std::string format_date(std::string_view date) noexcept {
-    constexpr StdArray<std::string_view, 12> Months{
-      "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"  //
-    };
-
     constexpr std::string_view NullDate{"00000000"};
 
     // Tokenize: expect "Mon DD YYYY" where DD may have a trailing comma.
@@ -61,15 +56,13 @@ constexpr std::string_view Version{"dev"};
     if (end - p < 3)
         return std::string{NullDate};
 
-    std::string_view month{p, 3};
+    std::string_view m{p, 3};
     p += 3;
 
     // Find month index (1..12)
-    auto itr = std::find(Months.begin(), Months.end(), month);
-    if (itr == Months.end())
+    unsigned month = to_month(m);
+    if (month == 0)
         return std::string{NullDate};
-
-    unsigned monthId = 1 + std::distance(Months.begin(), itr);
 
     // Skip spaces
     while (p < end && std::isspace((unsigned char) (*p)))
@@ -115,14 +108,14 @@ constexpr std::string_view Version{"dev"};
     // Format YYYYMMDD manually (faster than snprintf)
     StdArray<char, 8> buffer  // 8 chars
       {
-        digit_to_char(year / 1000 % 10),   //
-        digit_to_char(year / 100 % 10),    //
-        digit_to_char(year / 10 % 10),     //
-        digit_to_char(year % 10),          //
-        digit_to_char(monthId / 10 % 10),  //
-        digit_to_char(monthId % 10),       //
-        digit_to_char(day / 10 % 10),      //
-        digit_to_char(day % 10)            //
+        digit_to_char(year / 1000 % 10),  //
+        digit_to_char(year / 100 % 10),   //
+        digit_to_char(year / 10 % 10),    //
+        digit_to_char(year % 10),         //
+        digit_to_char(month / 10 % 10),   //
+        digit_to_char(month % 10),        //
+        digit_to_char(day / 10 % 10),     //
+        digit_to_char(day % 10)           //
       };
 
     return std::string{buffer.data(), buffer.size()};
@@ -145,11 +138,11 @@ constexpr std::string_view Version{"dev"};
         || !std::isdigit((unsigned char) p[6]) || !std::isdigit((unsigned char) p[7]))
         return std::string{NullTime};
 
-    unsigned hour = char_to_digit(p[0]) * 10 + char_to_digit(p[1]);
+    unsigned hour = 10 * char_to_digit(p[0]) + char_to_digit(p[1]);
 
-    unsigned min = char_to_digit(p[3]) * 10 + char_to_digit(p[4]);
+    unsigned min = 10 * char_to_digit(p[3]) + char_to_digit(p[4]);
 
-    unsigned sec = char_to_digit(p[6]) * 10 + char_to_digit(p[7]);
+    unsigned sec = 10 * char_to_digit(p[6]) + char_to_digit(p[7]);
 
     // Range validation (important)
     if (hour > 23 || min > 59 || sec > 59)
@@ -162,13 +155,36 @@ constexpr std::string_view Version{"dev"};
 
 }  // namespace
 
+void set_console_output(ConsoleOutputMode mode) noexcept {
+    switch (mode)
+    {
+    case ConsoleOutputMode::UTF7 : {
+#if defined(_WIN32)
+        SetConsoleOutputCP(CP_UTF7);
+#endif
+    }
+    break;
+    case ConsoleOutputMode::Default : {
+    }
+    break;
+    case ConsoleOutputMode::EnableVirtualTerminal : {
+    }
+    break;
+    case ConsoleOutputMode::FullyFeatured : {
+    }
+    break;
+    case ConsoleOutputMode::UTF8 :
+    default : {
+#if defined(_WIN32)
+        SetConsoleOutputCP(CP_UTF8);
+#endif
+    }
+    }
+}
+
 std::string engine_info(bool uci) noexcept {
     std::string engine;
     engine.reserve(64);
-
-#if defined(_WIN32)
-    SetConsoleOutputCP(CP_UTF8);
-#endif
 
     engine.assign(uci ? "id name " : "")
       .append(version_info())

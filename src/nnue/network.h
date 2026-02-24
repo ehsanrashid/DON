@@ -68,9 +68,9 @@ class Network final {
 
     std::size_t content_hash() const noexcept;
 
-    NetworkOutput evaluate(const Position&                         pos,
-                           AccumulatorStack&                       accStack,
-                           AccumulatorCaches::Cache<TFDimensions>& cache) const noexcept;
+    std::int32_t evaluate(const Position&                         pos,
+                          AccumulatorStack&                       accStack,
+                          AccumulatorCaches::Cache<TFDimensions>& cache) const noexcept;
 
     NetworkTrace trace(const Position&                         pos,
                        AccumulatorStack&                       accStack,

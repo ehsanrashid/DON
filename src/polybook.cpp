@@ -591,7 +591,7 @@ Move PolyBook::probe(Position& pos, const RootMoves& rootMoves, const Options& o
     assert(!rootMoves.empty());
     static XorShift64Star prng(now());
 
-    if (!(options["OwnBook"] && !empty() && pos.move_num() <= options["BookProbeDepth"]))
+    if (!(options["Book"] && !empty() && pos.move_num() <= options["BookProbeDepth"]))
         return Move::None;
 
     Key key = PGZob.key(pos);

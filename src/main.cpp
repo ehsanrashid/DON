@@ -32,12 +32,18 @@ using namespace DON;
 
 int main(int argc, const char* argv[]) noexcept {
 
+    set_console_output(ConsoleOutputMode::UTF8);
+
     std::cout << engine_info() << std::endl;
-    std::cout << timestamp_info() << std::endl;
+
+    std::cout << timestamp() << std::endl;
+
     show_logo();
 
     BitBoard::init();
+
     Position::init();
+
     Tablebase::init();
 
     UCI uci(argc, argv);

@@ -102,18 +102,18 @@ Engine::Engine(std::string_view path) noexcept :
     options.add("Load Hash",            Option(OnCng([this](const Option&) { return load_hash() ? "Load succeeded" : "Load failed"; })));
     options.add("Ponder",               Option(false));
     options.add("MultiPV",              Option(1, 1, MAX_MOVES));
-    options.add("SkillLevel",           Option(Skill::MAX_LEVEL, Skill::MIN_LEVEL, Skill::MAX_LEVEL));
-    options.add("OverheadTime",         Option(25, 0, 5000));
-    options.add("MinimumMoveTime",      Option(20, 0, 5000));
-    options.add("BufferTime",           Option(10, 10, 5000));
-    options.add("TimePercent",          Option(80, 10, 1000));
-    options.add("NodesTime",            Option(0, 0, 10000));
-    options.add("DrawMoveCount",        Option(Position::DrawMoveCount, 5, 50, OnCng([](const Option& o) { Position::DrawMoveCount = int(o); return std::nullopt; })));
-    options.add("UCI_Chess960",         Option(Position::Chess960,             OnCng([](const Option& o) { Position::Chess960 = bool(o); return std::nullopt; })));
+    options.add("UCI_Chess960",         Option(Position::Chess960, OnCng([](const Option& o) { Position::Chess960 = bool(o); return std::nullopt; })));
     options.add("UCI_LimitStrength",    Option(false));
     options.add("UCI_ELO",              Option(Skill::MAX_ELO, Skill::MIN_ELO, Skill::MAX_ELO));
     options.add("UCI_ShowWDL",          Option(false));
-    options.add("OwnBook",              Option(false));
+    options.add("SkillLevel",           Option(Skill::MAX_LEVEL, Skill::MIN_LEVEL, Skill::MAX_LEVEL));
+    options.add("OverheadTime",         Option(25, 0, 5000));   // Overhead per move
+    options.add("MinimumMoveTime",      Option(20, 0, 5000));   // Time floor constraint
+    options.add("BufferTime",           Option(10, 0, 5000));   // Safety reserve (very intuitive)
+    options.add("TimePercent",          Option(80, 10, 1000));  // Time scaling factor (%age)
+    options.add("NodesTime",            Option(0, 0, 10000));
+    options.add("DrawMoveCount",        Option(Position::DrawMoveCount, 5, 50, OnCng([](const Option& o) { Position::DrawMoveCount = int(o); return std::nullopt; })));
+    options.add("Book",                 Option(false));
     options.add("BookFile",             Option("", OnCng([](const Option& o) { std::string_view bookFile = o;
                                                                                if (bookFile.empty()) return "";
                                                                                return Book.load(bookFile) ? "Load succeeded" : "Load failed"; })));
@@ -126,7 +126,7 @@ Engine::Engine(std::string_view path) noexcept :
     options.add("SyzygyPVExtend",       Option(true));
     options.add("BigEvalFile",          Option(BigEvalFileDefaultName  , OnCng([this](const Option& o) { load_big_network(o);   return std::nullopt; })));
     options.add("SmallEvalFile",        Option(SmallEvalFileDefaultName, OnCng([this](const Option& o) { load_small_network(o); return std::nullopt; })));
-    options.add("ReportMinimal",        Option(false));
+    options.add("MinimalInfo",          Option(false));
     options.add("LogFile",              Option("", OnCng([](const Option& o) { return Logger::start(o) ? "Logger started" : "Logger not started"; })));
     options.add("Stop Logger",          Option(OnCng([](const Option&) { Logger::stop(); return std::nullopt; })));
     // clang-format on

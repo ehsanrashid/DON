@@ -103,6 +103,8 @@ class MovePicker final {
 
     Move next_move() noexcept;
 
+    bool good_capture() noexcept;
+
     bool skipQuiets = false;
 
    private:
@@ -122,9 +124,9 @@ class MovePicker final {
     bool select(Predicate&& pred) noexcept;
 
     [[nodiscard]] iterator       begin() noexcept { return cur; }
-    [[nodiscard]] iterator       end() noexcept { return endCur; }
+    [[nodiscard]] iterator       end() noexcept { return curEnd; }
     [[nodiscard]] const_iterator begin() const noexcept { return cur; }
-    [[nodiscard]] const_iterator end() const noexcept { return endCur; }
+    [[nodiscard]] const_iterator end() const noexcept { return curEnd; }
 
     bool valid() const noexcept { return *cur != ttMove; }
 
@@ -156,10 +158,10 @@ class MovePicker final {
 
     iterator                    //
       cur           = nullptr,  //
-      endCur        = nullptr,  //
-      endBadCapture = nullptr,  //
-      begBadQuiet   = nullptr,  //
-      endBadQuiet   = nullptr;
+      curEnd        = nullptr,  //
+      badCaptureEnd = nullptr,  //
+      badQuietBeg   = nullptr,  //
+      badQuietEnd   = nullptr;
 };
 
 }  // namespace DON

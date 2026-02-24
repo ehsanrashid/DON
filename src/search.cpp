@@ -50,20 +50,20 @@ constexpr double BetaBias = 0.68;
 
 // Reductions lookup table using [depth or moveCount]
 alignas(CACHE_LINE_SIZE) constexpr auto Reductions = []() constexpr noexcept {
-    StdArray<std::int16_t, MAX_MOVES> reductions{};
+    StdArray<std::uint16_t, MAX_MOVES> reductions{};
 
     reductions[0] = 0;
     for (std::size_t i = 1; i < reductions.size(); ++i)
-        reductions[i] = constexpr_ceil(21.9453125 * constexpr_log(i));
+        reductions[i] = unsigned(21.9453125 * constexpr_log(double(i)));
 
     return reductions;
 }();
 
 constexpr int
 reduction(Depth depth, std::uint16_t moveCount, int deltaRatio, bool improve) noexcept {
-    int reductionScale = Reductions[depth] * Reductions[moveCount];
+    unsigned reductionScale = Reductions[depth] * Reductions[moveCount];
     return 1182 + reductionScale - deltaRatio
-         + int(!improve) * constexpr_ceil(0.423828125 * double(reductionScale));
+         + int(!improve) * unsigned(0.423828125 * double(reductionScale));
 }
 
 // Add a small random value to draw evaluation to avoid 3-fold blindness
@@ -730,7 +730,7 @@ void Worker::iterative_deepening() noexcept {
                 if (mainManager->ponder)
                     mainManager->ponderhitStop = true;
                 else
-                    threads.request_stop();
+                    threads.request_abort();
             }
 
             if (!mainManager->ponder && 1000 * elapsedTime > 503 * totalTime)
@@ -1255,7 +1255,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
 
         if constexpr (RootNode)
         {
-            if (is_main_worker() && rootDepth > 30 && !options["ReportMinimal"])
+            if (is_main_worker() && rootDepth > 30 && !options["MinimalInfo"])
             {
                 std::string currMove{UCI::move_to_can(move)};
                 std::size_t currMoveNumber{curPV + moveCount};
@@ -1319,7 +1319,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
                       std::max(185 * depth + constexpr_round(35.7143e-3 * double(history)), 0);
                     if (  // Avoid pruning sacrifices of our last piece for stalemate
                       (alpha >= VALUE_DRAW || nonPawnValue != piece_value(type_of(movedPc)))
-                      && pos.see(move) < -threshold)
+                      && (!mp.good_capture() || threshold < 128) && pos.see(move) < -threshold)
                         continue;
                 }
                 else
@@ -1357,7 +1357,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
                       int(check) * 64 * depth + 25 * lmrDepth * constexpr_abs(lmrDepth), 0);
                     if (  // Avoid pruning sacrifices of our last piece for stalemate
                       (alpha >= VALUE_DRAW || nonPawnValue != piece_value(type_of(movedPc)))
-                      && pos.see(move) < -threshold)
+                      && (!mp.good_capture() || threshold < 128) && pos.see(move) < -threshold)
                         continue;
                 }
             }
