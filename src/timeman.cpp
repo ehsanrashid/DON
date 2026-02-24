@@ -105,10 +105,10 @@ void TimeManager::init(
     if (centiMTG > MIN_CENTI_MTG && ScaledTime < 1000)
         centiMTG = std::max<std::uint16_t>(constexpr_ceil(5.0510 * double(ScaledTime)), MIN_CENTI_MTG);
 
-    // Make sure RemainTime > 0 since use it as a divisor
-    TimePoint RemainTime = std::max(clock.time + ((centiMTG - 100) * clock.inc - (centiMTG + 200) * OverheadTime) / 100, TimePoint{1});
+    // Make sure remainTime > 0 since use it as a divisor
+    TimePoint remainTime = std::max(clock.time + ((centiMTG - 100) * clock.inc - (centiMTG + 200) * OverheadTime) / 100, TimePoint{1});
 
-    RemainTime = std::max<TimePoint>(constexpr_ceil(double(RemainTime) * double(options["TimePercent"]) / 100.0), TimePoint{1});
+    remainTime = std::max<TimePoint>(constexpr_ceil(double(remainTime) * double(options["TimePercent"]) / 100.0), TimePoint{1});
 
     // optimumScale is a percentage of available time to use for the current move.
     // maximumScale is a multiplier applied to optimumTime.
@@ -125,12 +125,12 @@ void TimeManager::init(
         {
         // Extra time according to initial remaining Time (Only once at game start)
         if (timeAdjust == INIT_TIME_ADJUST)
-            timeAdjust = std::max(-0.4126 + 0.2862 * std::log10(RemainTime), MIN_TIME_ADJUST);
+            timeAdjust = std::max(-0.4126 + 0.2862 * std::log10(remainTime), MIN_TIME_ADJUST);
 
         optimumScale = timeAdjust
                      * std::min(11.29900e-3 + std::min(3.47750e-3 + 28.41880e-5 * LogScaledTime, 4.06734e-3)
                                             * std::pow(2.82122 + double(ply), 0.466422),
-                                0.213035 * double(clock.time) / double(RemainTime));
+                                0.213035 * double(clock.time) / double(remainTime));
         maximumScale = std::min(std::max(3.66270 + 3.72690 * LogScaledTime, 2.75068) + 78.37482e-3 * double(ply),
                                 6.35772);
         }
@@ -141,12 +141,12 @@ void TimeManager::init(
         {
         // Extra time according to initial remaining Time (Only once at game start)
         if (timeAdjust == INIT_TIME_ADJUST)
-            timeAdjust = std::max(-0.4354 + 0.3128 * std::log10(RemainTime), MIN_TIME_ADJUST);
+            timeAdjust = std::max(-0.4354 + 0.3128 * std::log10(remainTime), MIN_TIME_ADJUST);
 
         optimumScale = timeAdjust
                      * std::min(12.14310e-3 + std::min(3.21160e-3 + 32.11230e-5 * LogScaledTime, 5.08017e-3)
                                             * std::pow(2.94693 + double(ply), 0.461073),
-                                0.213035 * double(clock.time) / double(RemainTime));
+                                0.213035 * double(clock.time) / double(remainTime));
         maximumScale = std::min(std::max(3.39770 + 3.03950 * LogScaledTime, 2.94761) + 83.43972e-3 * double(ply),
                                 6.67704);
         }
@@ -155,13 +155,13 @@ void TimeManager::init(
     else
     {
         optimumScale = std::min((0.00880 + 85.91065e-6 * double(ply)) / double(centiMTG),
-                                 0.88000 * double(clock.time) / double(RemainTime));
+                                 0.88000 * double(clock.time) / double(remainTime));
         maximumScale = std::min(1.30000 + 0.00110 * double(centiMTG),
                                 8.45000);
     }
 
     // Limit the maximum possible time for this move
-    optimumTime = std::max<TimePoint>(constexpr_ceil(optimumScale * double(RemainTime)), options["MinimumMoveTime"]);
+    optimumTime = std::max<TimePoint>(constexpr_ceil(optimumScale * double(remainTime)), options["MinimumMoveTime"]);
 
     maximumTime = std::max(
                     centiMTG < MIN_CENTI_MTG

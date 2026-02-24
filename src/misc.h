@@ -350,7 +350,7 @@ void set_console_output(ConsoleOutputMode mode = ConsoleOutputMode::Default) noe
 
 constexpr std::string_view timestamp() noexcept { return __TIMESTAMP__; }
 
-constexpr unsigned to_month(std::string_view m) noexcept {
+inline unsigned to_month(std::string_view m) noexcept {
     assert(m.size() == 3);
     return std::tolower(m[0]) == 'j' && std::tolower(m[1]) == 'a' ? 1
          : std::tolower(m[0]) == 'f'                              ? 2
