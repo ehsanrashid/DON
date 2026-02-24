@@ -326,7 +326,46 @@ constexpr std::size_t reserve_count(std::size_t reserveCount = 1024) noexcept {
     return std::max(reserveCount, std::size_t(8));
 }
 
-constexpr std::string_view timestamp_info() noexcept { return __TIMESTAMP__; }
+enum class ConsoleOutputMode : std::uint8_t {
+    Default,  // Do nothing special
+    UTF7,     // Explicitly avoid UTF-8 changes
+    UTF8,     // Try to enable UTF-8 if possible
+    EnableVirtualTerminal,
+    FullyFeatured,
+};
+
+void set_console_output(ConsoleOutputMode mode = ConsoleOutputMode::Default) noexcept;
+
+[[nodiscard]] constexpr char digit_to_char(int digit) noexcept {
+    assert(0 <= digit && digit <= 9 && "digit_to_char: non-digit integer");
+
+    return 0 <= digit && digit <= 9 ? digit + '0' : '\0';
+}
+
+[[nodiscard]] constexpr int char_to_digit(char ch) noexcept {
+    assert('0' <= ch && ch <= '9' && "char_to_digit: non-digit character");
+
+    return '0' <= ch && ch <= '9' ? ch - '0' : -1;
+}
+
+constexpr std::string_view timestamp() noexcept { return __TIMESTAMP__; }
+
+constexpr unsigned to_month(std::string_view m) noexcept {
+    assert(m.size() == 3);
+    return std::tolower(m[0]) == 'j' && std::tolower(m[1]) == 'a' ? 1
+         : std::tolower(m[0]) == 'f'                              ? 2
+         : std::tolower(m[0]) == 'm' && std::tolower(m[2]) == 'r' ? 3
+         : std::tolower(m[0]) == 'a' && std::tolower(m[1]) == 'p' ? 4
+         : std::tolower(m[0]) == 'm' && std::tolower(m[2]) == 'y' ? 5
+         : std::tolower(m[0]) == 'j' && std::tolower(m[2]) == 'n' ? 6
+         : std::tolower(m[0]) == 'j' && std::tolower(m[2]) == 'l' ? 7
+         : std::tolower(m[0]) == 'a' && std::tolower(m[1]) == 'u' ? 8
+         : std::tolower(m[0]) == 's'                              ? 9
+         : std::tolower(m[0]) == 'o'                              ? 10
+         : std::tolower(m[0]) == 'n'                              ? 11
+         : std::tolower(m[0]) == 'd'                              ? 12
+                                                                  : 0;
+}
 
 std::string engine_info(bool uci = false) noexcept;
 
@@ -1724,18 +1763,6 @@ struct CommandLine final {
 
     StringViews arguments;
 };
-
-[[nodiscard]] constexpr char digit_to_char(int digit) noexcept {
-    assert(0 <= digit && digit <= 9 && "digit_to_char: non-digit integer");
-
-    return 0 <= digit && digit <= 9 ? digit + '0' : '\0';
-}
-
-[[nodiscard]] constexpr int char_to_digit(char ch) noexcept {
-    assert('0' <= ch && ch <= '9' && "char_to_digit: non-digit character");
-
-    return '0' <= ch && ch <= '9' ? ch - '0' : -1;
-}
 
 inline std::string lower_case(std::string str) noexcept {
     std::transform(str.begin(), str.end(), str.begin(),

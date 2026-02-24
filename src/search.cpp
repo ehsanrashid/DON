@@ -730,7 +730,7 @@ void Worker::iterative_deepening() noexcept {
                 if (mainManager->ponder)
                     mainManager->ponderhitStop = true;
                 else
-                    threads.request_stop();
+                    threads.request_abort();
             }
 
             if (!mainManager->ponder && 1000 * elapsedTime > 503 * totalTime)

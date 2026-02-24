@@ -248,10 +248,12 @@ std::size_t Network<Arch, Transformer>::content_hash() const noexcept {
 }
 
 template<typename Arch, typename Transformer>
-NetworkOutput
+std::int32_t
 Network<Arch, Transformer>::evaluate(const Position&                         pos,
                                      AccumulatorStack&                       accStack,
                                      AccumulatorCaches::Cache<TFDimensions>& cache) const noexcept {
+
+    constexpr std::int32_t Scale = 128;
 
     alignas(CACHE_LINE_SIZE)
       StdArray<TransformedFeatureType, FeatureTransformer<TFDimensions>::BufferSize>
@@ -263,7 +265,7 @@ Network<Arch, Transformer>::evaluate(const Position&                         pos
       featureTransformer.transform(pos, accStack, cache, bucket, transformedFeatures);
     std::int32_t positional = network[bucket].propagate(transformedFeatures);
 
-    return {psqt / OUTPUT_SCALE, positional / OUTPUT_SCALE};
+    return ((Scale - 3) * psqt + (Scale + 3) * positional) / (Scale * OUTPUT_SCALE);
 }
 
 template<typename Arch, typename Transformer>

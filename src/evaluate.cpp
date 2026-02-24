@@ -42,47 +42,39 @@ Value evaluate(const Position&          pos,
                std::int32_t             optimism) noexcept {
     assert(pos.checkers_bb() == 0);
 
-    Value absEvaluate = constexpr_abs(pos.evaluate());
+    Value posEvaluate = pos.evaluate();
 
-    bool smallNet = absEvaluate > 962;
+    bool smallNet = constexpr_abs(posEvaluate) > 962;
 
-    NNUE::NetworkOutput netOut{};
-
-    auto compute_nnue = [&netOut = std::as_const(netOut)]() noexcept -> std::int32_t {
-        return (125 * netOut.psqt + 131 * netOut.positional) / 128;
-    };
-
-    std::int32_t nnue = 0;
+    std::int32_t eval;
 
     if (smallNet)
     {
-        netOut = networks.small.evaluate(pos, accStack, accCaches.small);
-        nnue   = compute_nnue();
+        eval = networks.small.evaluate(pos, accStack, accCaches.small);
 
         // Re-evaluate with the big-net if the small-net's NNUE evaluation is below a certain threshold
-        if (constexpr_abs(nnue) < 277)
+        if (constexpr_abs(eval) < 277)
         {
             smallNet = false;
 
-            netOut = networks.big.evaluate(pos, accStack, accCaches.big);
-            nnue   = compute_nnue();
+            eval = networks.big.evaluate(pos, accStack, accCaches.big);
         }
     }
     else
     {
-        netOut = networks.big.evaluate(pos, accStack, accCaches.big);
-        nnue   = compute_nnue();
+        eval = networks.big.evaluate(pos, accStack, accCaches.big);
     }
 
-    double complexity = double(constexpr_abs(netOut.psqt - netOut.positional));
-    // Blend nnue and optimism with complexity
-    nnue     = constexpr_round(double(nnue) * (1.0 - 54.8366e-6 * complexity));
+    double complexity = constexpr_abs(2 * posEvaluate - eval) - 80 - int(smallNet) * 550;
+    // Blend eval and optimism with complexity
+    eval     = constexpr_round(double(eval) * (1.0 - 54.8366e-6 * complexity));
     optimism = constexpr_round(double(optimism) * (1.0 + 21.0084e-4 * complexity));
 
-    std::int32_t v = nnue
-                   + constexpr_round(12.8417e-6
-                                     * (double(nnue + optimism) * double(pos.material())
-                                        + 32496.3930 * double(optimism)));
+    std::int32_t v =  //
+      eval
+      + constexpr_round(
+        12.8417e-6
+        * (double(eval + optimism) * double(pos.material()) + 32496.3930 * double(optimism)));
 
     // Damp evaluation linearly based on the 50-move rule
     v = constexpr_round(v * std::max(1.0 - 5.1021e-3 * double(pos.rule50_count()), 0.0));
@@ -118,11 +110,9 @@ std::string trace(Position& pos, const NNUE::Networks& networks) noexcept {
 
     output.assign(NNUE::trace(pos, networks, *accCaches)).push_back('\n');
 
-    auto netOut = networks.big.evaluate(pos, *accStack, accCaches->big);
-
     Value v;
 
-    v = netOut.psqt + netOut.positional;
+    v = networks.big.evaluate(pos, *accStack, accCaches->big);
     v = pos.active_color() == WHITE ? +v : -v;
 
     output  //
