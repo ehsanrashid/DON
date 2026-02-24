@@ -1319,7 +1319,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
                       std::max(185 * depth + constexpr_round(35.7143e-3 * double(history)), 0);
                     if (  // Avoid pruning sacrifices of our last piece for stalemate
                       (alpha >= VALUE_DRAW || nonPawnValue != piece_value(type_of(movedPc)))
-                      && (!mp.good_captures() || threshold < 128) && pos.see(move) < -threshold)
+                      && (!mp.good_capture() || threshold < 128) && pos.see(move) < -threshold)
                         continue;
                 }
                 else
@@ -1357,7 +1357,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
                       int(check) * 64 * depth + 25 * lmrDepth * constexpr_abs(lmrDepth), 0);
                     if (  // Avoid pruning sacrifices of our last piece for stalemate
                       (alpha >= VALUE_DRAW || nonPawnValue != piece_value(type_of(movedPc)))
-                      && (!mp.good_captures() || threshold < 128) && pos.see(move) < -threshold)
+                      && (!mp.good_capture() || threshold < 128) && pos.see(move) < -threshold)
                         continue;
                 }
             }
