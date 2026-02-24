@@ -180,28 +180,40 @@ std::string engine_info(bool uci) noexcept {
 
 void show_logo() noexcept {
     auto border = [](std::string_view sv) {
-        std::cout << ConsoleColor::BOLD << ConsoleColor::BG_BLACK  //
-                  << ConsoleColor::BRIGHT_YELLOW << sv << ConsoleColor::RESET << '\n';
+        std::cout << ConsoleColor::BG_BLACK                                    //
+                  << ConsoleColor::BRIGHT_YELLOW << ConsoleColor::BLINK << sv  //
+                  << ConsoleColor::RESET << '\n';
     };
 
-    auto mid = [](std::string_view sv, const char* color) {
-        std::cout                                  //
-          << ConsoleColor::BG_BLACK                //
-          << ConsoleColor::BRIGHT_YELLOW << "  ║"  //
-          << color << sv                           //
-          << ConsoleColor::BRIGHT_YELLOW << "║  "  //
+    auto mid1 = [](std::string_view sv, const char* color1) {
+        std::cout                                                         //
+          << ConsoleColor::BG_BLACK                                       //
+          << ConsoleColor::BRIGHT_YELLOW << ConsoleColor::BLINK << "  ║"  //
+          << ConsoleColor::RESET                                          //
+          << color1 << sv << ConsoleColor::RESET                          //
+          << ConsoleColor::BG_BLACK                                       //
+          << ConsoleColor::BRIGHT_YELLOW << ConsoleColor::BLINK << "║  "  //
           << ConsoleColor::RESET << '\n';
     };
-
+    auto mid2 = [](std::string_view sv, const char* color1, const char* color2) {
+        std::cout                                                                  //
+          << ConsoleColor::BG_BLACK                                                //
+          << ConsoleColor::BRIGHT_YELLOW << ConsoleColor::BLINK << "  ║"           //
+          << ConsoleColor::RESET                                                   //
+          << color1 << color2 << ConsoleColor::BLINK << sv << ConsoleColor::RESET  //
+          << ConsoleColor::BG_BLACK                                                //
+          << ConsoleColor::BRIGHT_YELLOW << ConsoleColor::BLINK << "║  "           //
+          << ConsoleColor::RESET << '\n';
+    };
     std::cout << '\n';
     // clang-format off
     border("  ╔══════════════════════════════╗  ");
-          mid("  ██████╗ ╔██████╗ ███╗  ██╗  ", ConsoleColor::RED);
-          mid("  ██╔══██╗██╔═══██╗████╗ ██║  ", ConsoleColor::BRIGHT_RED);
-          mid("  ██║  ██║██║   ██║██╔██╗██║  ", ConsoleColor::BRIGHT_RED);
-          mid("  ██║  ██║██║   ██║██║╚████║  ", ConsoleColor::BRIGHT_RED);
-          mid("  ██████╔╝╚██████╔╝██║ ╚███║  ", ConsoleColor::RED);
-          mid("  ╚═════╝  ╚═════╝ ╚═╝  ╚══╝  ", ConsoleColor::RED);
+         mid1("  ██████╗ ╔██████╗ ███╗  ██╗  ", ConsoleColor::RED);
+         mid2("  ██╔══██╗██╔═══██╗████╗ ██║  ", ConsoleColor::BRIGHT_RED, ConsoleColor::STRIKETHROUGH);
+         mid2("  ██║  ██║██║   ██║██╔██╗██║  ", ConsoleColor::BRIGHT_RED, ConsoleColor::STRIKETHROUGH);
+         mid2("  ██║  ██║██║   ██║██║╚████║  ", ConsoleColor::BRIGHT_RED, ConsoleColor::STRIKETHROUGH);
+         mid1("  ██████╔╝╚██████╔╝██║ ╚███║  ", ConsoleColor::RED);
+         mid1("  ╚═════╝  ╚═════╝ ╚═╝  ╚══╝  ", ConsoleColor::RED);
     border("  ╚══════════════════════════════╝  ");
     // clang-format on
     std::cout << '\n';
