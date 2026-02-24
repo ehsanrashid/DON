@@ -196,6 +196,9 @@ inline constexpr std::size_t BLOCK_32 = 8 * BLOCK_4;
 
 inline constexpr std::int64_t INT_LIMIT = (1LL << 31) - 1;
 
+inline constexpr double LN2   = 0.693147180559945309417232121458176568;
+inline constexpr double SQRT2 = 1.41421356237309504880168872420969808;
+
 // Constants for Murmur Hashing
 inline constexpr std::uint64_t MURMUR_M = 0xC6A4A7935BD1E995ULL;
 inline constexpr std::uint8_t  MURMUR_R = 47;
@@ -271,7 +274,6 @@ constexpr T constexpr_abs(T x) noexcept {
 
     return x < 0 ? (x == std::numeric_limits<T>::min() ? x : -x) : x;
 }
-
 constexpr float  constexpr_abs(float f) noexcept { return f < 0.0f ? -f : +f; }
 constexpr double constexpr_abs(double d) noexcept { return d < 0.0 ? -d : +d; }
 
@@ -280,29 +282,48 @@ constexpr int constexpr_round(double d) noexcept {
 }
 
 constexpr int constexpr_ceil(double d) noexcept { return int(d + 0.4999); }
+constexpr int constexpr_floor(double d) noexcept { return int(d - 0.4999); }
 
-// Minimax-style polynomial approximation for ln(1 + f), f in [0,1)
-constexpr double constexpr_approx_1p_log(double f) noexcept {
+// Computes ln(1 + f) for f in (-1, sqrt(2)-1] via the identity
+//   ln(1+f) = 2 * atanh(s),   s = f / (2 + f)
+//
+// After the sqrt(2) range reduction below, |s| <= (sqrt(2)-1)/(sqrt(2)+1)
+// = 3 - 2*sqrt(2) ≈ 0.1716, so the series needs only ~10 terms for full
+// double precision (truncation error < 2e-17).
+constexpr double constexpr_log1p_log(double f) noexcept {
+    double s  = f / (2.0 + f);
+    double s2 = s * s;
     // clang-format off
-    return f * ( 1.0
-         + f * (-0.5
-         + f * ( 0.33333333333333333
-         + f * (-0.25
-         + f * ( 0.2
-         + f * (-0.16666666666666666))))));
+    double p = 1.0
+        + s2 * (1.0 / 3.0
+        + s2 * (1.0 / 5.0
+        + s2 * (1.0 / 7.0
+        + s2 * (1.0 / 9.0
+        + s2 * (1.0 / 11.0
+        + s2 * (1.0 / 13.0
+        + s2 * (1.0 / 15.0
+        + s2 * (1.0 / 17.0
+        + s2 *  1.0 / 19.0))))))));
     // clang-format on
+    return 2.0 * s * p;
 }
 
-// constexpr natural logarithm using range reduction + polynomial
+// constexpr natural logarithm using two-stage range reduction + atanh series.
+//
+// Stage 1: x = m * 2^e,  m in [1, 2)
+// Stage 2: if m >= sqrt(2), halve m and increment e  =>  m in [1/sqrt(2), sqrt(2))
+//
+// Then  ln(x) = ln(m) + e * ln(2),  where f = m - 1 in (-0.293, 0.414).
+//
+// Note: the while loops are O(|exponent|) iterations, which is fine for
+// compile-time table generation. For runtime use, prefer std::log.
 constexpr double constexpr_log(double x) noexcept {
-    constexpr double LN2 = 0.693147180559945309417232121458176568;
-
     if (x <= 0.0)
-        return -1e300;  // Undefined, but safe for compile-time tables
+        return -1e300;  // Undefined; not NaN/−inf so it stays constexpr-safe
 
     int exponent = 0;
 
-    // Range reduction: x = mantissa * 2^exponent : normalize x into [1, 2)
+    // Stage 1: reduce to [1, 2)
     while (x >= 2.0)
     {
         ++exponent;
@@ -314,9 +335,17 @@ constexpr double constexpr_log(double x) noexcept {
         x *= 2.0;
     }
 
-    // mantissa in [1,2) -> f in [0,1)
-    // ln(x) = ln(m) + exponent * ln(2)
-    return constexpr_approx_1p_log(x - 1.0) + exponent * LN2;
+    // Stage 2: reduce to [1/sqrt(2), sqrt(2))
+    // If x >= sqrt(2), folding the upper half down gives f = x - 1 closer to 0,
+    // keeping |s| <= ~0.172 and making the series converge in ~10 terms.
+    if (x >= SQRT2)
+    {
+        x *= 0.5;
+        ++exponent;
+    }
+
+    // f = x - 1  in  (-0.293, 0.414)
+    return constexpr_log1p_log(x - 1.0) + double(exponent) * LN2;
 }
 
 constexpr float max_load_factor(float maxLoadFactor = 0.75f) noexcept {
