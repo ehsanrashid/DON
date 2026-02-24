@@ -46,7 +46,7 @@ namespace DON {
 
 namespace {
 
-constexpr double BetaBias = 8.0 / 15.0;
+constexpr double BetaBias = 0.68;
 
 // Reductions lookup table using [depth or moveCount]
 alignas(CACHE_LINE_SIZE) constexpr auto Reductions = []() constexpr noexcept {

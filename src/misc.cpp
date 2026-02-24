@@ -179,19 +179,32 @@ std::string engine_info(bool uci) noexcept {
 }
 
 void show_logo() noexcept {
-    auto print_line = [](std::string_view sv) {
-        std::cout << ConsoleColor::BOLD << ConsoleColor::RED << ConsoleColor::BG_BLACK  //
-                  << sv << ConsoleColor::RESET << '\n';
+    auto border = [](std::string_view sv) {
+        std::cout << ConsoleColor::BOLD << ConsoleColor::BG_BLACK  //
+                  << ConsoleColor::BRIGHT_YELLOW << sv << ConsoleColor::RESET << '\n';
     };
 
-    print_line(R"(                               )");
-    print_line(R"(  ██████╗  ██████╗ ███╗   ██╗  )");
-    print_line(R"(  ██╔══██╗██╔═══██╗████╗  ██║  )");
-    print_line(R"(  ██║  ██║██║   ██║██╔██╗ ██║  )");
-    print_line(R"(  ██║  ██║██║   ██║██║╚██╗██║  )");
-    print_line(R"(  ██████╔╝╚██████╔╝██║ ╚████║  )");
-    print_line(R"(  ╚═════╝  ╚═════╝ ╚═╝  ╚═══╝  )");
-    print_line(R"(                               )");
+    auto mid = [](std::string_view sv, const char* color) {
+        std::cout                                  //<< ConsoleColor::BOLD
+          << ConsoleColor::BG_BLACK                //
+          << ConsoleColor::BRIGHT_YELLOW << "  ║"  //
+          << color << sv                           //
+          << ConsoleColor::BRIGHT_YELLOW << "║  "  //
+          << ConsoleColor::RESET << '\n';
+    };
+
+    std::cout << '\n';
+    // clang-format off
+    border("  ╔═══════════════════════════════╗  ");
+          mid("  ██████╗  ██████╗ ███╗   ██╗  ", ConsoleColor::RED);
+          mid("  ██╔══██╗██╔═══██╗████╗  ██║  ", ConsoleColor::BRIGHT_RED);
+          mid("  ██║  ██║██║   ██║██╔██╗ ██║  ", ConsoleColor::BRIGHT_RED);
+          mid("  ██║  ██║██║   ██║██║╚██╗██║  ", ConsoleColor::BRIGHT_RED);
+          mid("  ██████╔╝╚██████╔╝██║ ╚████║  ", ConsoleColor::RED);
+          mid("  ╚═════╝  ╚═════╝ ╚═╝  ╚═══╝  ", ConsoleColor::RED);
+    border("  ╚═══════════════════════════════╝  ");
+    // clang-format on
+    std::cout << '\n';
 }
 
 // Returns the full human-readable DON version string.
