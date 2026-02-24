@@ -526,8 +526,6 @@ STAGE_SWITCH:
             return move();
 
         return Move::None;
-
-    default :;
     }
     assert(false);
     UNREACHABLE();

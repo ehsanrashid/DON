@@ -1370,7 +1370,7 @@ bool Position::legal(Move m) const noexcept {
     }
     break;
 
-    default :  // NONE
+    default :  // CASTLING
         assert(false);
         UNREACHABLE();
     }
