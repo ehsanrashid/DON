@@ -513,9 +513,9 @@ void UCI::bench(std::istream& is) noexcept {
         on_update_full(info);
     });
 
-    auto reportMinimal = bool_to_string(options()["ReportMinimal"]);
+    auto minimalInfo = bool_to_string(options()["MinimalInfo"]);
 
-    options().set("ReportMinimal", bool_to_string(true));
+    options().set("MinimalInfo", bool_to_string(true));
 
     std::size_t num = std::count_if(commands.begin(), commands.end(), [](std::string_view command) {
         return starts_with(command, "go ") || starts_with(command, "eval");
@@ -594,7 +594,7 @@ void UCI::bench(std::istream& is) noexcept {
               << "\nTotal nodes     : " << nodes        //
               << "\nnodes/second    : " << 1000 * nodes / elapsedTime << std::endl;
 
-    options().set("ReportMinimal", reportMinimal);
+    options().set("MinimalInfo", minimalInfo);
     // Reset callback, to not capture a dangling reference to infoNodes
     engine.set_on_update_full(on_update_full);
 }

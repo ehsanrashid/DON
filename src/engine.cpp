@@ -126,7 +126,7 @@ Engine::Engine(std::string_view path) noexcept :
     options.add("SyzygyPVExtend",       Option(true));
     options.add("BigEvalFile",          Option(BigEvalFileDefaultName  , OnCng([this](const Option& o) { load_big_network(o);   return std::nullopt; })));
     options.add("SmallEvalFile",        Option(SmallEvalFileDefaultName, OnCng([this](const Option& o) { load_small_network(o); return std::nullopt; })));
-    options.add("ReportMinimal",        Option(false));
+    options.add("MinimalInfo",          Option(false));
     options.add("LogFile",              Option("", OnCng([](const Option& o) { return Logger::start(o) ? "Logger started" : "Logger not started"; })));
     options.add("Stop Logger",          Option(OnCng([](const Option&) { Logger::stop(); return std::nullopt; })));
     // clang-format on
