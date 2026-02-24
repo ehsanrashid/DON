@@ -226,9 +226,9 @@ void MovePicker::init_stage() noexcept {
     MoveList<GT> moveList(pos);
 
     cur    = moves.data();
-    endCur = score(moveList);
+    curEnd = score(moveList);
 
-    adaptive_stable_sort(cur, endCur);
+    adaptive_stable_sort(cur, curEnd);
 }
 
 // Assigns a numerical value to each move in a list, used for sorting.
@@ -386,9 +386,12 @@ MovePicker::score<GenType::EVA_QUIET>(MoveList<GenType::EVA_QUIET>& moveList) no
 template<typename Predicate>
 bool MovePicker::select(Predicate&& pred) noexcept {
 
-    for (; !empty(); next())
+    while (!empty())
+    {
         if (valid() && pred())
             return true;
+        next();
+    }
     return false;
 }
 
@@ -396,7 +399,7 @@ ALWAYS_INLINE bool MovePicker::good_capture_or_swap() noexcept {
     if (pos.see(*cur) >= -constexpr_round(55.5555e-3 * double(cur->value)))
         return true;
     // Store bad captures
-    std::iter_swap(endBadCapture++, cur);
+    std::iter_swap(badCaptureEnd++, cur);
     return false;
 }
 
@@ -427,7 +430,7 @@ STAGE_SWITCH:
         else
         {
             if (curStage == Stage::ENC_GOOD_CAPTURE)
-                endBadCapture = moves.data();
+                badCaptureEnd = moves.data();
 
             init_stage<GenType::ENC_CAPTURE>();
         }
@@ -442,34 +445,34 @@ STAGE_SWITCH:
         {
             MoveList<GenType::ENC_QUIET> moveList(pos);
 
-            endBadQuiet = endCur = score(moveList);
+            badQuietEnd = curEnd = score(moveList);
 
-            partial_insertion_sort(cur, endCur, GOOD_QUIET_THRESHOLD);
+            partial_insertion_sort(cur, curEnd, GOOD_QUIET_THRESHOLD);
         }
 
         curStage = Stage::ENC_GOOD_QUIET;
         [[fallthrough]];
 
     case Stage::ENC_GOOD_QUIET :
-        for (; !skipQuiets && !empty(); next())
+        while (!skipQuiets && !empty())
         {
-            if (!valid())
-                continue;
-
-            // Good quiet threshold
-            if (cur->value >= GOOD_QUIET_THRESHOLD)
+            if (valid())
+            {
+                // Good quiet threshold
+                if (cur->value < GOOD_QUIET_THRESHOLD)
+                    // Remaining quiets are bad
+                    break;
                 return move();
-
-            // Remaining quiets are bad
-            break;
+            }
+            next();
         }
 
         // Mark the beginning of bad quiets
-        begBadQuiet = cur;
+        badQuietBeg = cur;
 
         // Prepare the pointers to loop over the bad captures
         cur    = moves.data();
-        endCur = endBadCapture;
+        curEnd = badCaptureEnd;
 
         curStage = Stage::ENC_BAD_CAPTURE;
         [[fallthrough]];
@@ -481,10 +484,10 @@ STAGE_SWITCH:
         if (!skipQuiets)
         {
             // Prepare the pointers to loop over the bad quiets
-            cur    = begBadQuiet;
-            endCur = endBadQuiet;
+            cur    = badQuietBeg;
+            curEnd = badQuietEnd;
 
-            adaptive_stable_sort(cur, endCur);
+            adaptive_stable_sort(cur, curEnd);
         }
 
         curStage = Stage::ENC_BAD_QUIET;
@@ -499,12 +502,13 @@ STAGE_SWITCH:
     case Stage::EVA_CAPTURE :
         if (select(always_true))
             return move();
+
         {
             MoveList<GenType::EVA_QUIET> moveList(pos);
 
-            endCur = score(moveList);
+            curEnd = score(moveList);
 
-            insertion_sort(cur, endCur);
+            insertion_sort(cur, curEnd);
         }
 
         curStage = Stage::EVA_QUIET;

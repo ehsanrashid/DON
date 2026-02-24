@@ -1857,8 +1857,11 @@ inline std::string remove_whitespace(std::string str) noexcept {
         ++i;
     }
 
-    for (; i < sv.size(); ++i)
+    while (i < sv.size())
+    {
         intValue = 10 * intValue + char_to_digit(sv[i]);
+        ++i;
+    }
 
     return neg ? -intValue : +intValue;
 }
