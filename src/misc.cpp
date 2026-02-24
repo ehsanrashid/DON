@@ -195,14 +195,14 @@ void show_logo() noexcept {
 
     std::cout << '\n';
     // clang-format off
-    border("  ╔═══════════════════════════════╗  ");
-          mid("  ██████╗  ██████╗ ███╗   ██╗  ", ConsoleColor::RED);
-          mid("  ██╔══██╗██╔═══██╗████╗  ██║  ", ConsoleColor::BRIGHT_RED);
-          mid("  ██║  ██║██║   ██║██╔██╗ ██║  ", ConsoleColor::BRIGHT_RED);
-          mid("  ██║  ██║██║   ██║██║╚██╗██║  ", ConsoleColor::BRIGHT_RED);
-          mid("  ██████╔╝╚██████╔╝██║ ╚████║  ", ConsoleColor::RED);
-          mid("  ╚═════╝  ╚═════╝ ╚═╝  ╚═══╝  ", ConsoleColor::RED);
-    border("  ╚═══════════════════════════════╝  ");
+    border("  ╔══════════════════════════════╗  ");
+          mid("  ██████╗ ╔██████╗ ███╗  ██╗  ", ConsoleColor::RED);
+          mid("  ██╔══██╗██╔═══██╗████╗ ██║  ", ConsoleColor::BRIGHT_RED);
+          mid("  ██║  ██║██║   ██║██╔██╗██║  ", ConsoleColor::BRIGHT_RED);
+          mid("  ██║  ██║██║   ██║██║╚████║  ", ConsoleColor::BRIGHT_RED);
+          mid("  ██████╔╝╚██████╔╝██║ ╚███║  ", ConsoleColor::RED);
+          mid("  ╚═════╝  ╚═════╝ ╚═╝  ╚══╝  ", ConsoleColor::RED);
+    border("  ╚══════════════════════════════╝  ");
     // clang-format on
     std::cout << '\n';
 }
