@@ -532,4 +532,6 @@ STAGE_SWITCH:
     return Move::None;  // Silence warning
 }
 
+bool MovePicker::good_captures() noexcept { return curStage == Stage::ENC_GOOD_CAPTURE; }
+
 }  // namespace DON

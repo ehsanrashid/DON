@@ -103,6 +103,8 @@ class MovePicker final {
 
     Move next_move() noexcept;
 
+    bool good_captures() noexcept;
+
     bool skipQuiets = false;
 
    private:
