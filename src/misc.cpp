@@ -185,7 +185,7 @@ void show_logo() noexcept {
     };
 
     auto mid = [](std::string_view sv, const char* color) {
-        std::cout                                  //<< ConsoleColor::BOLD
+        std::cout                                  //
           << ConsoleColor::BG_BLACK                //
           << ConsoleColor::BRIGHT_YELLOW << "  ║"  //
           << color << sv                           //
