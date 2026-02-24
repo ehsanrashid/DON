@@ -50,20 +50,20 @@ constexpr double BetaBias = 0.68;
 
 // Reductions lookup table using [depth or moveCount]
 alignas(CACHE_LINE_SIZE) constexpr auto Reductions = []() constexpr noexcept {
-    StdArray<std::int16_t, MAX_MOVES> reductions{};
+    StdArray<std::uint16_t, MAX_MOVES> reductions{};
 
     reductions[0] = 0;
     for (std::size_t i = 1; i < reductions.size(); ++i)
-        reductions[i] = std::int16_t(21.9453125 * constexpr_log(double(i)));
+        reductions[i] = unsigned(21.9453125 * constexpr_log(double(i)));
 
     return reductions;
 }();
 
 constexpr int
 reduction(Depth depth, std::uint16_t moveCount, int deltaRatio, bool improve) noexcept {
-    int reductionScale = Reductions[depth] * Reductions[moveCount];
+    unsigned reductionScale = Reductions[depth] * Reductions[moveCount];
     return 1182 + reductionScale - deltaRatio
-         + int(!improve) * int(0.423828125 * double(reductionScale));
+         + int(!improve) * unsigned(0.423828125 * double(reductionScale));
 }
 
 // Add a small random value to draw evaluation to avoid 3-fold blindness
