@@ -190,6 +190,7 @@ void show_logo() noexcept {
           << ConsoleColor::BG_BLACK                                       //
           << ConsoleColor::BRIGHT_YELLOW << ConsoleColor::BLINK << "  ║"  //
           << ConsoleColor::RESET                                          //
+          << ConsoleColor::BG_BLACK                                       //
           << color1 << sv << ConsoleColor::RESET                          //
           << ConsoleColor::BG_BLACK                                       //
           << ConsoleColor::BRIGHT_YELLOW << ConsoleColor::BLINK << "║  "  //
@@ -200,6 +201,7 @@ void show_logo() noexcept {
           << ConsoleColor::BG_BLACK                                                //
           << ConsoleColor::BRIGHT_YELLOW << ConsoleColor::BLINK << "  ║"           //
           << ConsoleColor::RESET                                                   //
+          << ConsoleColor::BG_BLACK                                                //
           << color1 << color2 << ConsoleColor::BLINK << sv << ConsoleColor::RESET  //
           << ConsoleColor::BG_BLACK                                                //
           << ConsoleColor::BRIGHT_YELLOW << ConsoleColor::BLINK << "║  "           //
