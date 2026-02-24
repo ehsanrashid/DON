@@ -15,22 +15,15 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <cstddef>
 #include <iostream>
 #include <string>
-#include <string_view>
 
 #include "bitboard.h"
-#include "memory.h"
 #include "misc.h"
-#include "position.h"
-#include "tune.h"
-#include "uci.h"
-#include "tablebase/syzygy.h"
 
 using namespace DON;
 
-int main(int argc, const char* argv[]) noexcept {
+int main(int, const char*[]) noexcept {
 
     set_console_output(ConsoleOutputMode::UTF8);
 
@@ -40,35 +33,7 @@ int main(int argc, const char* argv[]) noexcept {
 
     show_logo();
 
-    BitBoard::init();
-
-    Position::init();
-
-    Tablebase::Syzygy::init();
-
-    UCI uci(argc, argv);
-
-    Tune::init(uci.options());
-
-    if (uci.arguments().size() <= 1)
-    {
-        uci.process_input(std::cin);
-    }
-    else
-    {
-        std::string command;
-        command.reserve(256);
-
-        for (std::size_t i = 1; i < uci.arguments().size(); ++i)
-        {
-            if (!command.empty())
-                command.push_back(' ');
-
-            command.append(uci.arguments()[i]);
-        }
-
-        uci.execute(command);
-    }
+    BitBoard::find_magic_seeds();
 
     return 0;
 }
