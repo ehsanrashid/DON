@@ -102,6 +102,10 @@ Engine::Engine(std::string_view path) noexcept :
     options.add("Load Hash",            Option(OnCng([this](const Option&) { return load_hash() ? "Load succeeded" : "Load failed"; })));
     options.add("Ponder",               Option(false));
     options.add("MultiPV",              Option(1, 1, MAX_MOVES));
+    options.add("UCI_Chess960",         Option(Position::Chess960, OnCng([](const Option& o) { Position::Chess960 = bool(o); return std::nullopt; })));
+    options.add("UCI_LimitStrength",    Option(false));
+    options.add("UCI_ELO",              Option(Skill::MAX_ELO, Skill::MIN_ELO, Skill::MAX_ELO));
+    options.add("UCI_ShowWDL",          Option(false));
     options.add("SkillLevel",           Option(Skill::MAX_LEVEL, Skill::MIN_LEVEL, Skill::MAX_LEVEL));
     options.add("OverheadTime",         Option(25, 0, 5000));   // Overhead per move
     options.add("MinimumMoveTime",      Option(20, 0, 5000));   // Time floor constraint
@@ -109,10 +113,6 @@ Engine::Engine(std::string_view path) noexcept :
     options.add("TimePercent",          Option(80, 10, 1000));  // Time scaling factor (%age)
     options.add("NodesTime",            Option(0, 0, 10000));
     options.add("DrawMoveCount",        Option(Position::DrawMoveCount, 5, 50, OnCng([](const Option& o) { Position::DrawMoveCount = int(o); return std::nullopt; })));
-    options.add("UCI_Chess960",         Option(Position::Chess960,             OnCng([](const Option& o) { Position::Chess960 = bool(o); return std::nullopt; })));
-    options.add("UCI_LimitStrength",    Option(false));
-    options.add("UCI_ELO",              Option(Skill::MAX_ELO, Skill::MIN_ELO, Skill::MAX_ELO));
-    options.add("UCI_ShowWDL",          Option(false));
     options.add("OwnBook",              Option(false));
     options.add("BookFile",             Option("", OnCng([](const Option& o) { std::string_view bookFile = o;
                                                                                if (bookFile.empty()) return "";
