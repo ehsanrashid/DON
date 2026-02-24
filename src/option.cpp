@@ -101,7 +101,7 @@ Option::Option(std::string_view v, std::string_view var, OnChange&& f) noexcept 
 Option::operator int() const noexcept {
     assert(type == Type::CHECK || type == Type::SPIN);
 
-    return type == Type::CHECK ? string_to_bool(currentValue) : std::stoi(currentValue);
+    return type == Type::CHECK ? sv_to_bool(currentValue) : sv_to_int(currentValue);
 }
 
 Option::operator std::string() const noexcept {

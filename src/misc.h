@@ -1843,12 +1843,30 @@ inline std::string remove_whitespace(std::string str) noexcept {
     return value == "true" || value == "false";
 }
 
-[[nodiscard]] constexpr bool string_to_bool(std::string_view sv) { return (trim(sv) == "true"); }
+[[nodiscard]] constexpr bool sv_to_bool(std::string_view sv) { return (trim(sv) == "true"); }
 
-inline std::string clamp_string(std::string_view value, int minValue, int maxValue) noexcept {
+[[nodiscard]] constexpr int sv_to_int(std::string_view sv) noexcept {
+    int  intValue = 0;
+    bool neg      = false;
+
+    std::size_t i = 0;
+
+    while (i < sv.size() && sv[i] == '-')
+    {
+        neg = true;
+        ++i;
+    }
+
+    for (; i < sv.size(); ++i)
+        intValue = 10 * intValue + char_to_digit(sv[i]);
+
+    return neg ? -intValue : +intValue;
+}
+
+inline std::string clamp_string(std::string_view sv, int minValue, int maxValue) noexcept {
     int intValue = 0;
 
-    auto [ptr, ec] = std::from_chars(value.data(), value.data() + value.size(), intValue);
+    auto [ptr, ec] = std::from_chars(sv.data(), sv.data() + sv.size(), intValue);
 
     switch (ec)
     {

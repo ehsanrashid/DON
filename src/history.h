@@ -215,18 +215,26 @@ class Histories final {
         pawnCorrectionHistory(correction_history_size()),
         minorCorrectionHistory(correction_history_size()),
         nonPawnCorrectionHistory(correction_history_size()) {
+#if !defined(NDEBUG)
         assert(count != 0 && (count & (count - 1)) == 0);
+#endif
     }
 
-    constexpr std::size_t history_size() const noexcept { return historySize; }
-    constexpr std::size_t history_mask() const noexcept { return history_size() - 1; }
+    constexpr std::size_t history_size() const noexcept {  //
+        return historySize;
+    }
+    constexpr std::size_t history_mask() const noexcept {  //
+        return history_size() - 1;
+    }
 
     constexpr std::size_t pawn_index(Key pawnKey) const noexcept {  //
         return pawnKey & history_mask();
     }
 
-    constexpr std::size_t correction_history_size() const noexcept { return correctionHistorySize; }
-    constexpr std::size_t correction_history_mask() const noexcept {
+    constexpr std::size_t correction_history_size() const noexcept {  //
+        return correctionHistorySize;
+    }
+    constexpr std::size_t correction_history_mask() const noexcept {  //
         return correction_history_size() - 1;
     }
 
