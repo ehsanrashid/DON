@@ -318,11 +318,11 @@ struct Limit final {
         TimePoint inc  = 0;
     };
 
-    bool use_time_manager() const noexcept {
+    constexpr bool use_time_manager() const noexcept {
         return clocks[WHITE].time != 0 || clocks[BLACK].time != 0;
     }
 
-    std::uint16_t calls_count() const noexcept {
+    constexpr std::uint16_t calls_count() const noexcept {
         return nodes != 0 ? std::min(constexpr_ceil(double(nodes) / ONE_KB) + 1, 512) : 512;
     }
 
