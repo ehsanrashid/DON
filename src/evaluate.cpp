@@ -41,9 +41,9 @@ Value evaluate(const Position&          pos,
                std::int32_t             optimism) noexcept {
     assert(pos.checkers_bb() == 0);
 
-    Value posEvaluate = pos.evaluate();
+    Value posEval = pos.evaluate();
 
-    bool smallNet = constexpr_abs(posEvaluate) > 962;
+    bool smallNet = constexpr_abs(posEval) > 962;
 
     std::int32_t eval;
 
@@ -64,7 +64,7 @@ Value evaluate(const Position&          pos,
         eval = networks.big.evaluate(pos, accStack, accCaches.big);
     }
 
-    double complexity = constexpr_abs(2 * posEvaluate - eval) - 80 - int(smallNet) * 550;
+    double complexity = constexpr_abs(2 * posEval - eval) - 80 - int(smallNet) * 550;
     // Blend eval and optimism with complexity
     eval     = constexpr_round(double(eval) * (1.0 - 54.8366e-6 * complexity));
     optimism = constexpr_round(double(optimism) * (1.0 + 21.0084e-4 * complexity));

@@ -39,37 +39,31 @@ namespace DON {
 
 namespace {
 
-constexpr std::size_t MIN_THREADS     = 1;
-const std::size_t     MAX_THREADS     = std::max<std::size_t>(4 * MAX_SYSTEM_THREADS, 1024);
-constexpr std::size_t DEFAULT_THREADS = std::max<std::size_t>(MIN_THREADS, 1);
+const std::size_t THREAD_MAX = std::max<std::size_t>(4 * SYSTEM_THREAD_MAX, 1024);
 
-constexpr std::size_t MIN_HASH = 1;
-constexpr std::size_t MAX_HASH =
+constexpr std::size_t HASH_MAX =
 #if defined(IS_64BIT)
   0x2000000U
 #else
   0x800U
 #endif
   ;
-constexpr std::size_t DEFAULT_HASH = std::max<std::size_t>(MIN_HASH, 16);
 
 // The default configuration will attempt to group L3 domains up to 32 threads.
 // This size was found to be a good balance between the Elo gain of increased
 // history sharing and the speed loss from more cross-cache accesses.
 // The user can always explicitly override this behavior.
-constexpr AutoNumaPolicy DEFAULT_NUMA_POLICY = BundledL3Policy{32};
+constexpr AutoNumaPolicy NUMA_POLICY_DEFAULT = BundledL3Policy{32};
 
-constexpr float MAX_LOAD_FACTOR = 0.75f;
-
-std::unique_ptr<NNUE::Networks> default_networks(std::string_view binaryDirectory) noexcept {
-    auto defaultNetworks =
+std::unique_ptr<NNUE::Networks> NETWORKS_DEFAULT(std::string_view binaryDirectory) noexcept {
+    auto NetworksDefault =
       std::make_unique<NNUE::Networks>(NNUE::EvalFile{BigEvalFileDefaultName},  //
                                        NNUE::EvalFile{SmallEvalFileDefaultName});
 
-    defaultNetworks->load_big(binaryDirectory);
-    defaultNetworks->load_small(binaryDirectory);
+    NetworksDefault->load_big(binaryDirectory);
+    NetworksDefault->load_small(binaryDirectory);
 
-    return defaultNetworks;
+    return NetworksDefault;
 }
 
 }  // namespace
@@ -77,8 +71,8 @@ std::unique_ptr<NNUE::Networks> default_networks(std::string_view binaryDirector
 Engine::Engine(std::string_view path) noexcept :
     // clang-format off
     binaryDirectory(!path.empty() ? CommandLine::binary_directory(path) : std::string{}),
-    numaContext(NumaConfig::from_system(DEFAULT_NUMA_POLICY)),
-    networks(numaContext, default_networks(binaryDirectory)) {
+    numaContext(NumaConfig::from_system(NUMA_POLICY_DEFAULT)),
+    networks(numaContext, NETWORKS_DEFAULT(binaryDirectory)) {
 
     using OnCng = Option::OnChange;
 
@@ -87,11 +81,11 @@ Engine::Engine(std::string_view path) noexcept :
         return numa_config_info() + '\n'
              + thread_allocation();
     })));
-    options.add("Threads",              Option(DEFAULT_THREADS, MIN_THREADS, MAX_THREADS, OnCng([this](const Option&) {
+    options.add("Threads",              Option(1, 1, THREAD_MAX, OnCng([this](const Option&) {
         resize_threads_tt();
         return thread_allocation();
     })));
-    options.add("Hash",                 Option(DEFAULT_HASH, MIN_HASH, MAX_HASH, OnCng([this](const Option& o) {
+    options.add("Hash",                 Option(16, 1, HASH_MAX, OnCng([this](const Option& o) {
         resize_tt(o);
         return "Hash: " + std::to_string(int(o));
     })));
@@ -101,12 +95,12 @@ Engine::Engine(std::string_view path) noexcept :
     options.add("Save Hash",            Option(OnCng([this](const Option&) { return save_hash() ? "Save succeeded" : "Save failed"; })));
     options.add("Load Hash",            Option(OnCng([this](const Option&) { return load_hash() ? "Load succeeded" : "Load failed"; })));
     options.add("Ponder",               Option(false));
-    options.add("MultiPV",              Option(1, 1, MAX_MOVES));
+    options.add("MultiPV",              Option(1, 1, MOVE_MAX));
     options.add("UCI_Chess960",         Option(Position::Chess960, OnCng([](const Option& o) { Position::Chess960 = bool(o); return std::nullopt; })));
     options.add("UCI_LimitStrength",    Option(false));
-    options.add("UCI_ELO",              Option(Skill::MAX_ELO, Skill::MIN_ELO, Skill::MAX_ELO));
+    options.add("UCI_ELO",              Option(Skill::ELO_MAX, Skill::ELO_MIN, Skill::ELO_MAX));
     options.add("UCI_ShowWDL",          Option(false));
-    options.add("SkillLevel",           Option(Skill::MAX_LEVEL, Skill::MIN_LEVEL, Skill::MAX_LEVEL));
+    options.add("SkillLevel",           Option(Skill::LEVEL_MAX, Skill::LEVEL_MIN, Skill::LEVEL_MAX));
     options.add("OverheadTime",         Option(25, 0, 5000));   // Overhead per move
     options.add("MinimumMoveTime",      Option(20, 0, 5000));   // Time floor constraint
     options.add("BufferTime",           Option(10, 0, 5000));   // Safety reserve (very intuitive)
@@ -120,7 +114,7 @@ Engine::Engine(std::string_view path) noexcept :
     options.add("BookProbeDepth",       Option(100, 1, 256));
     options.add("BookPickBest",         Option(true));
     options.add("SyzygyPath",           Option("", OnCng([](const Option& o) { Tablebase::init(o); return std::nullopt; })));
-    options.add("SyzygyProbeLimit",     Option(Tablebase::MAX_TB_PIECES, 0, Tablebase::MAX_TB_PIECES));
+    options.add("SyzygyProbeLimit",     Option(Tablebase::TB_PIECES_MAX, 0, Tablebase::TB_PIECES_MAX));
     options.add("SyzygyProbeDepth",     Option(1, 1, 100));
     options.add("Syzygy50MoveRule",     Option(true));
     options.add("SyzygyPVExtend",       Option(true));
@@ -131,7 +125,7 @@ Engine::Engine(std::string_view path) noexcept :
     options.add("Stop Logger",          Option(OnCng([](const Option&) { Logger::stop(); return std::nullopt; })));
     // clang-format on
 
-    historiesMap.max_load_factor(max_load_factor(MAX_LOAD_FACTOR));
+    historiesMap.max_load_factor(max_load_factor(0.75f));
 
     resize_threads_tt();
 
@@ -148,11 +142,11 @@ void Engine::set_numa_config(std::string_view str) noexcept {
         numaContext.set_numa_config(NumaConfig{});
 
     else if (str == "auto" || str == "system")
-        numaContext.set_numa_config(NumaConfig::from_system(DEFAULT_NUMA_POLICY, true));
+        numaContext.set_numa_config(NumaConfig::from_system(NUMA_POLICY_DEFAULT, true));
 
     else if (str == "hardware")
         // Don't respect affinity set in the system
-        numaContext.set_numa_config(NumaConfig::from_system(DEFAULT_NUMA_POLICY, false));
+        numaContext.set_numa_config(NumaConfig::from_system(NUMA_POLICY_DEFAULT, false));
 
     else
         numaContext.set_numa_config(NumaConfig::from_string(str));

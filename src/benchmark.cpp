@@ -471,24 +471,24 @@ Strings bench(std::istream& is, std::string_view currentFen) noexcept {
 // Examples:
 // benchmark [threads] [hash_MiB = 128] [time_s = 150]
 Setup benchmark(std::istream& is) noexcept {
-    // DefaultThreadTTSize is chosen so that roughly half of the hash
+    // TTSizeThreadDefault is chosen so that roughly half of the hash
     // is used for positions in the current sequence searched.
-    constexpr std::size_t DefaultThreadTTSize = 128;
-    constexpr std::size_t DefaultMoveTime     = 150;
+    constexpr std::size_t TTSizeThreadDefault = 128;
+    constexpr std::size_t MoveTimeDefault     = 150;
 
     Setup setup;
 
     // Assign default values to missing arguments
 
     // Desired time in seconds
-    std::size_t desiredMoveTime;
+    std::size_t moveTimeDesired;
 
     if (is >> setup.threads)
         setup
           .originalInvocation  //
           .assign(std::to_string(setup.threads));
     else
-        setup.threads = MAX_SYSTEM_THREADS;
+        setup.threads = SYSTEM_THREAD_MAX;
 
     if (is >> setup.ttSize)
         setup
@@ -496,15 +496,15 @@ Setup benchmark(std::istream& is) noexcept {
           .append(1, ' ')
           .append(std::to_string(setup.ttSize));
     else
-        setup.ttSize = DefaultThreadTTSize * setup.threads;
+        setup.ttSize = TTSizeThreadDefault * setup.threads;
 
-    if (is >> desiredMoveTime)
+    if (is >> moveTimeDesired)
         setup
           .originalInvocation  //
           .append(1, ' ')
-          .append(std::to_string(desiredMoveTime));
+          .append(std::to_string(moveTimeDesired));
     else
-        desiredMoveTime = DefaultMoveTime;
+        moveTimeDesired = MoveTimeDefault;
 
     setup
       .currentInvocation  //
@@ -512,9 +512,9 @@ Setup benchmark(std::istream& is) noexcept {
       .append(1, ' ')
       .append(std::to_string(setup.ttSize))
       .append(1, ' ')
-      .append(std::to_string(desiredMoveTime));
+      .append(std::to_string(moveTimeDesired));
 
-    auto get_move_time = [](std::uint16_t ply) noexcept {
+    auto calc_move_time = [](std::uint16_t ply) noexcept {
         // time per move is fit roughly based on LTC games
         // seconds =    50 / (15 + ply)
         // msec    = 50000 / (15 + ply)
@@ -523,7 +523,7 @@ Setup benchmark(std::istream& is) noexcept {
         return 50000.0 / double(15 + ply);
     };
 
-    double totalMoveTime = 0.0;
+    double MoveTimeSum = 0.0;
 
     for (const auto& game : Games)
     {
@@ -531,15 +531,15 @@ Setup benchmark(std::istream& is) noexcept {
 
         for (std::size_t i = 0; i < game.size(); ++i)
         {
-            double moveTime = get_move_time(ply);
+            double moveTime = calc_move_time(ply);
 
-            totalMoveTime += moveTime;
+            MoveTimeSum += moveTime;
 
             ++ply;
         }
     }
 
-    double TimeScaleFactor = 1000.0 * double(desiredMoveTime) / double(totalMoveTime);
+    double TimeScaleFactor = 1000.0 * double(moveTimeDesired) / double(MoveTimeSum);
 
     for (const auto& game : Games)
     {
@@ -551,7 +551,7 @@ Setup benchmark(std::istream& is) noexcept {
         {
             setup.commands.emplace_back("position fen " + fen);
 
-            std::size_t moveTime = get_move_time(ply) * TimeScaleFactor;
+            std::size_t moveTime = calc_move_time(ply) * TimeScaleFactor;
 
             setup.commands.emplace_back("go movetime " + std::to_string(moveTime));
 

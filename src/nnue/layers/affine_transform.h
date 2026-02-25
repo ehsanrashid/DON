@@ -171,9 +171,9 @@ class AffineTransform final {
     static constexpr IndexType OutputDimensions = OutDims;
 
     static constexpr IndexType PaddedInputDimensions =
-      ceil_to_multiple<IndexType>(InputDimensions, MAX_SIMD_WIDTH);
+      ceil_to_multiple<IndexType>(InputDimensions, SIMD_WIDTH_MAX);
     static constexpr IndexType PaddedOutputDimensions =
-      ceil_to_multiple<IndexType>(OutputDimensions, MAX_SIMD_WIDTH);
+      ceil_to_multiple<IndexType>(OutputDimensions, SIMD_WIDTH_MAX);
 
     using OutputBuffer = StdArray<OutputType, PaddedOutputDimensions>;
 

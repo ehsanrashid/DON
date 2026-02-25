@@ -110,7 +110,7 @@
 
 namespace DON {
 
-inline constexpr std::size_t SHM_NAME_MAX_SIZE = NAME_MAX > 0 ? NAME_MAX - 1 : 255 - 1;
+inline constexpr std::size_t SHM_NAME_MAX = NAME_MAX > 0 ? NAME_MAX - 1 : 255 - 1;
 
 // argv[0] CANNOT be used because need to identify the executable.
 // argv[0] contains the command used to invoke it, which does not involve the full path.
@@ -2066,8 +2066,8 @@ struct SystemWideSharedMemory final {
         // Since std::string::size() does not include '\0', allow at most (MAX - 1) characters,
         // to guarantee space for the terminator ('\0') in fixed-size buffers.
         // Truncate the name if necessary so that it fits within limits including the null terminator
-        if (shmName.size() > SHM_NAME_MAX_SIZE)
-            shmName.resize(SHM_NAME_MAX_SIZE);
+        if (shmName.size() > SHM_NAME_MAX)
+            shmName.resize(SHM_NAME_MAX);
 
         BackendSharedMemory<T> backendShmT(shmName, value);
 

@@ -326,8 +326,8 @@ struct ThreadMetric final {
    public:
     // Factory function: build metrics for a thread {value, win/loss, votes, vote weight, PV size}
     template<typename VotingFunc>
-    static ThreadMetric from_thread(const Thread*                             th,
-                                    const StdArray<std::uint64_t, MAX_MOVES>& votes,
+    static ThreadMetric from_thread(const Thread*                            th,
+                                    const StdArray<std::uint64_t, MOVE_MAX>& votes,
                                     VotingFunc&& calc_vote_weight) noexcept {
         const auto& rm = th->worker->root_moves()[0];
 
@@ -445,7 +445,7 @@ const Thread* Threads::best_thread() const noexcept {
              * std::uint64_t(std::max(th->worker->completedDepth - int(penalty), 1));
     };
 
-    StdArray<std::uint64_t, MAX_MOVES> votes{};
+    StdArray<std::uint64_t, MOVE_MAX> votes{};
 
     // Aggregate votes
     for (const auto* th : snapThreads)

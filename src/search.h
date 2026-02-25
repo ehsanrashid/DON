@@ -351,22 +351,22 @@ struct Skill final {
 
     void init(const Options& options) noexcept;
 
-    constexpr bool enabled() const noexcept { return level < MAX_LEVEL; }
+    constexpr bool enabled() const noexcept { return level < LEVEL_MAX; }
 
     constexpr bool time_to_pick(Depth depth) const noexcept { return depth == 1 + int(level); }
 
-    constexpr Value weakness() const noexcept { return Value(2.0 * (3.0 * MAX_LEVEL - level)); }
+    constexpr Value weakness() const noexcept { return Value(2.0 * (3.0 * LEVEL_MAX - level)); }
 
     Move pick_move(const RootMoves& rootMoves, std::size_t multiPV, bool pickBest = true) noexcept;
 
-    static constexpr double MIN_LEVEL = 00.0;
-    static constexpr double MAX_LEVEL = 20.0;
+    static constexpr double LEVEL_MIN = 00.0;
+    static constexpr double LEVEL_MAX = 20.0;
 
-    static constexpr std::uint16_t MIN_ELO = 1320;
-    static constexpr std::uint16_t MAX_ELO = 3190;
+    static constexpr std::uint16_t ELO_MIN = 1320;
+    static constexpr std::uint16_t ELO_MAX = 3190;
 
    private:
-    double level    = MAX_LEVEL;
+    double level    = LEVEL_MAX;
     Move   bestMove = Move::None;
 };
 
@@ -592,7 +592,7 @@ class Worker final {
 
     bool ponder_move_extracted() noexcept;
 
-    void extend_tb_pv(RootMove& rootMove, Value& value) noexcept;
+    void extend_tb_pv(std::size_t index, Value& value) noexcept;
 
     const std::size_t threadId, threadCount, numaId, numaThreadCount;
 

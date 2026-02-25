@@ -92,8 +92,8 @@ using Bitboard16 = std::uint16_t;
 using Key = std::uint64_t;
 static_assert(sizeof(Key) == 8, "Key size must be 8 bytes");
 
-inline constexpr std::uint16_t MAX_MOVES = 256;
-inline constexpr std::uint16_t MAX_PLY   = 254;
+inline constexpr std::uint16_t MOVE_MAX = 256;
+inline constexpr std::uint16_t PLY_MAX  = 254;
 
 // Size of cache line (in bytes)
 inline constexpr std::size_t CACHE_LINE_SIZE = 64;
@@ -397,12 +397,12 @@ inline constexpr Value VALUE_INFINITE = VALUE_NONE - 1;
 
 inline constexpr Value VALUE_MATE                 = VALUE_INFINITE - 1;
 inline constexpr Value VALUE_MATE_WIN_IN_1        = VALUE_MATE - 1;
-inline constexpr Value VALUE_MATE_WIN_IN_MAX_PLY  = VALUE_MATE - MAX_PLY;
-inline constexpr Value VALUE_MATE_LOSS_IN_MAX_PLY = -VALUE_MATE_WIN_IN_MAX_PLY;
+inline constexpr Value VALUE_MATE_WIN_IN_PLY_MAX  = VALUE_MATE - PLY_MAX;
+inline constexpr Value VALUE_MATE_LOSS_IN_PLY_MAX = -VALUE_MATE_WIN_IN_PLY_MAX;
 
-inline constexpr Value VALUE_TB                 = VALUE_MATE_WIN_IN_MAX_PLY - 1;
-inline constexpr Value VALUE_TB_WIN_IN_MAX_PLY  = VALUE_TB - MAX_PLY;
-inline constexpr Value VALUE_TB_LOSS_IN_MAX_PLY = -VALUE_TB_WIN_IN_MAX_PLY;
+inline constexpr Value VALUE_TB                 = VALUE_MATE_WIN_IN_PLY_MAX - 1;
+inline constexpr Value VALUE_TB_WIN_IN_PLY_MAX  = VALUE_TB - PLY_MAX;
+inline constexpr Value VALUE_TB_LOSS_IN_PLY_MAX = -VALUE_TB_WIN_IN_PLY_MAX;
 
 // Piece values in centipawns
 inline constexpr Value VALUE_PAWN      = 208;
@@ -412,7 +412,7 @@ inline constexpr Value VALUE_BISHOP    = 825;
 inline constexpr Value VALUE_ROOK      = 1276;
 inline constexpr Value VALUE_QUEEN     = 2538;
 
-inline constexpr int MAX_DELTA = 2 * VALUE_INFINITE;
+inline constexpr int DELTA_MAX = 2 * VALUE_INFINITE;
 
 // Returns the value of the given piece type
 constexpr Value piece_value(PieceType pt) noexcept {
@@ -430,21 +430,21 @@ constexpr bool is_ok(Value value) noexcept {
     return -VALUE_INFINITE < value && value < +VALUE_INFINITE;
 }
 
-// Clamp value to the range (VALUE_TB_LOSS_IN_MAX_PLY, VALUE_TB_WIN_IN_MAX_PLY)
+// Clamp value to the range (VALUE_TB_LOSS_IN_PLY_MAX, VALUE_TB_WIN_IN_PLY_MAX)
 constexpr Value in_range(std::int32_t value) noexcept {
-    return std::clamp(value, VALUE_TB_LOSS_IN_MAX_PLY + 1, VALUE_TB_WIN_IN_MAX_PLY - 1);
+    return std::clamp(value, VALUE_TB_LOSS_IN_PLY_MAX + 1, VALUE_TB_WIN_IN_PLY_MAX - 1);
 }
 
 constexpr bool is_win(Value value) noexcept {
     assert(is_valid(value));
 
-    return value >= VALUE_TB_WIN_IN_MAX_PLY;
+    return value >= VALUE_TB_WIN_IN_PLY_MAX;
 }
 
 constexpr bool is_loss(Value value) noexcept {
     assert(is_valid(value));
 
-    return value <= VALUE_TB_LOSS_IN_MAX_PLY;
+    return value <= VALUE_TB_LOSS_IN_PLY_MAX;
 }
 
 // Check if the value represents a decisive outcome (win or loss)
@@ -453,13 +453,13 @@ constexpr bool is_decisive(Value value) noexcept { return is_win(value) || is_lo
 constexpr bool is_mate_win(Value value) noexcept {
     assert(is_valid(value));
 
-    return value >= VALUE_MATE_WIN_IN_MAX_PLY;
+    return value >= VALUE_MATE_WIN_IN_PLY_MAX;
 }
 
 constexpr bool is_mate_loss(Value value) noexcept {
     assert(is_valid(value));
 
-    return value <= VALUE_MATE_LOSS_IN_MAX_PLY;
+    return value <= VALUE_MATE_LOSS_IN_PLY_MAX;
 }
 
 // Check if the value represents a mate score (win or loss)
@@ -472,13 +472,13 @@ constexpr Value mated_in(std::int16_t ply) noexcept { return -VALUE_MATE + ply; 
 // Depth is used as an alias for std::int16_t
 using Depth = std::int16_t;
 
-inline constexpr Depth MAX_DEPTH  = MAX_PLY - 1;
+inline constexpr Depth DEPTH_MAX  = PLY_MAX - 1;
 inline constexpr Depth DEPTH_ZERO = 0;
 inline constexpr Depth DEPTH_NONE = -1;
 // Offset to convert depth to a non-negative array index.
 // It is used only for TT entry occupancy check.
 inline constexpr Depth DEPTH_OFFSET = DEPTH_NONE - 1;
-static_assert(DEPTH_OFFSET == MAX_DEPTH - 0xFF, "DEPTH_OFFSET == MAX_DEPTH - 0xFF");
+static_assert(DEPTH_OFFSET == DEPTH_MAX - 0xFF, "DEPTH_OFFSET == DEPTH_MAX - 0xFF");
 
 enum class CastlingSide : std::uint8_t {
     KING,

@@ -76,7 +76,7 @@ inline constexpr std::size_t  LEB128_BITS      = BYTE_BITS - 1;  // 7 bits per g
 
 inline constexpr std::string_view LEB128_MAGIC_STRING{"COMPRESSED_LEB128"};
 
-inline constexpr std::size_t MAX_SIMD_WIDTH = 32;
+inline constexpr std::size_t SIMD_WIDTH_MAX = 32;
 
 // SIMD width (in bytes)
 #if defined(USE_AVX2)
