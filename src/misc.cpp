@@ -527,15 +527,15 @@ class ExtremeInfo final: public Info<3> {
 };
 
 
-constexpr std::size_t MAX_SLOT = 64;
+constexpr std::size_t SLOT_MAX = 64;
 
-StdArray<Info<2>, MAX_SLOT>     hit;
-StdArray<MinInfo, MAX_SLOT>     min;
-StdArray<MaxInfo, MAX_SLOT>     max;
-StdArray<ExtremeInfo, MAX_SLOT> extreme;
-StdArray<Info<2>, MAX_SLOT>     mean;
-StdArray<Info<3>, MAX_SLOT>     stdev;
-StdArray<Info<6>, MAX_SLOT>     correl;
+StdArray<Info<2>, SLOT_MAX>     hit;
+StdArray<MinInfo, SLOT_MAX>     min;
+StdArray<MaxInfo, SLOT_MAX>     max;
+StdArray<ExtremeInfo, SLOT_MAX> extreme;
+StdArray<Info<2>, SLOT_MAX>     mean;
+StdArray<Info<3>, SLOT_MAX>     stdev;
+StdArray<Info<6>, SLOT_MAX>     correl;
 
 }  // namespace
 

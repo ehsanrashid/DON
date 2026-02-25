@@ -74,7 +74,7 @@ inline std::size_t hardware_concurrency() noexcept {
     return hardwareConcurrency;
 }
 
-inline const std::size_t MAX_SYSTEM_THREADS = std::max<std::size_t>(hardware_concurrency(), 1);
+inline const std::size_t SYSTEM_THREAD_MAX = std::max<std::size_t>(hardware_concurrency(), 1);
 
 #if defined(_WIN64)
 inline constexpr LPCSTR KERNEL_MODULE_NAME = TEXT("kernel32.dll");
@@ -465,11 +465,11 @@ inline CpuIndexSet get_process_affinity() noexcept {
     auto set_to_all_cpus = [&cpus]() noexcept {
         // Ensure empty first
         cpus.clear();
-        cpus.reserve(MAX_SYSTEM_THREADS);
+        cpus.reserve(SYSTEM_THREAD_MAX);
 
         // Bulk insert using vector
-        CpuIndexVec rangeCpus(MAX_SYSTEM_THREADS);
-        // fill 0, 1, 2, ..., MAX_SYSTEM_THREADS-1
+        CpuIndexVec rangeCpus(SYSTEM_THREAD_MAX);
+        // fill 0, 1, 2, ..., SYSTEM_THREAD_MAX-1
         std::iota(rangeCpus.begin(), rangeCpus.end(), 0);
 
         cpus.insert(rangeCpus.begin(), rangeCpus.end());
@@ -723,7 +723,7 @@ class NumaConfig final {
     #endif
 #else
         // Fallback for unsupported systems
-        for (CpuIndex cpuId = 0; cpuId < MAX_SYSTEM_THREADS; ++cpuId)
+        for (CpuIndex cpuId = 0; cpuId < SYSTEM_THREAD_MAX; ++cpuId)
             numaCfg.add_cpu_to_node(NumaIndex{0}, cpuId);
 #endif
 
@@ -782,13 +782,13 @@ class NumaConfig final {
     NumaConfig(CpuIndex maxCpuIdx, bool customAff) noexcept :
         maxCpuId(maxCpuIdx),
         customAffinity(customAff) {
-        init_node_cpus(MAX_SYSTEM_THREADS);
+        init_node_cpus(SYSTEM_THREAD_MAX);
     }
 
     NumaConfig() noexcept {
-        init_node_cpus(MAX_SYSTEM_THREADS);
+        init_node_cpus(SYSTEM_THREAD_MAX);
 
-        add_cpu_range_to_node(0, 0, MAX_SYSTEM_THREADS - 1);
+        add_cpu_range_to_node(0, 0, SYSTEM_THREAD_MAX - 1);
     }
 
     NumaConfig(const NumaConfig&) noexcept            = delete;
@@ -1195,7 +1195,7 @@ class NumaConfig final {
         {
             numaCfg = empty();
 
-            for (CpuIndex cpuId = 0; cpuId < MAX_SYSTEM_THREADS; ++cpuId)
+            for (CpuIndex cpuId = 0; cpuId < SYSTEM_THREAD_MAX; ++cpuId)
                 if (is_cpu_allowed(cpuId))
                     numaCfg.add_cpu_to_node(NumaIndex{0}, cpuId);
         }
@@ -1355,7 +1355,7 @@ class NumaConfig final {
 
     void resize_numa_node(NumaIndex   newNumaId,
                           float       maxLoadFactor    = 0.75f,
-                          std::size_t expectedCpuCount = MAX_SYSTEM_THREADS / 4) noexcept {
+                          std::size_t expectedCpuCount = SYSTEM_THREAD_MAX / 4) noexcept {
         NumaIndex oldNumaId = nodes_size();
 
         if (oldNumaId <= newNumaId)

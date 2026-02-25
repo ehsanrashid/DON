@@ -87,7 +87,7 @@ struct MoveList final {
     MoveList& operator=(const MoveList&) noexcept = delete;
     MoveList& operator=(MoveList&&) noexcept      = delete;
 
-    StdArray<value_type, MAX_MOVES> moves;
+    StdArray<value_type, MOVE_MAX> moves;
 
     const_iterator moveEnd;
 };

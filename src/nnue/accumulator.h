@@ -152,10 +152,10 @@ struct AccumulatorState final {
 
 struct AccumulatorStack final {
    public:
-    static constexpr std::size_t MAX_SIZE = MAX_PLY + 1;
+    static constexpr std::size_t SIZE = PLY_MAX + 1;
 
     template<typename T>
-    [[nodiscard]] const StdArray<AccumulatorState<T>, MAX_SIZE>& accumulators() const noexcept;
+    [[nodiscard]] const StdArray<AccumulatorState<T>, SIZE>& accumulators() const noexcept;
 
     template<typename T>
     [[nodiscard]] const AccumulatorState<T>& state() const noexcept;
@@ -171,7 +171,7 @@ struct AccumulatorStack final {
 
    private:
     template<typename T>
-    [[nodiscard]] StdArray<AccumulatorState<T>, MAX_SIZE>& mut_accumulators() noexcept;
+    [[nodiscard]] StdArray<AccumulatorState<T>, SIZE>& mut_accumulators() noexcept;
 
     template<typename T>
     [[nodiscard]] AccumulatorState<T>& mut_state() noexcept;
@@ -197,9 +197,9 @@ struct AccumulatorStack final {
                               const FeatureTransformer<Dimensions>& featureTransformer,
                               std::size_t                           end) noexcept;
 
-    StdArray<AccumulatorState<PSQFeatureSet>, MAX_SIZE>    psqAccumulators;
-    StdArray<AccumulatorState<ThreatFeatureSet>, MAX_SIZE> threatAccumulators;
-    std::size_t                                            size = 1;
+    StdArray<AccumulatorState<PSQFeatureSet>, SIZE>    psqAccumulators;
+    StdArray<AccumulatorState<ThreatFeatureSet>, SIZE> threatAccumulators;
+    std::size_t                                        size = 1;
 };
 
 }  // namespace NNUE

@@ -157,7 +157,7 @@ class MovePicker final {
     Stage initStage;
     Stage curStage;
 
-    StdArray<value_type, MAX_MOVES> moves;
+    StdArray<value_type, MOVE_MAX> moves;
 
     iterator                    //
       cur           = nullptr,  //

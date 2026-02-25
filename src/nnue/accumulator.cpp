@@ -755,7 +755,7 @@ void update_threats_accumulator_full(Color                                 persp
 }  // namespace
 
 template<typename T>
-const StdArray<AccumulatorState<T>, AccumulatorStack::MAX_SIZE>&
+const StdArray<AccumulatorState<T>, AccumulatorStack::SIZE>&
 AccumulatorStack::accumulators() const noexcept {
     static_assert(std::is_same_v<T, PSQFeatureSet> || std::is_same_v<T, ThreatFeatureSet>,
                   "Invalid Feature Set Type");
@@ -768,7 +768,7 @@ AccumulatorStack::accumulators() const noexcept {
 }
 
 template<typename T>
-StdArray<AccumulatorState<T>, AccumulatorStack::MAX_SIZE>&
+StdArray<AccumulatorState<T>, AccumulatorStack::SIZE>&
 AccumulatorStack::mut_accumulators() noexcept {
     static_assert(std::is_same_v<T, PSQFeatureSet> || std::is_same_v<T, ThreatFeatureSet>,
                   "Invalid Feature Set Type");
@@ -805,7 +805,7 @@ void AccumulatorStack::reset() noexcept {
 }
 
 void AccumulatorStack::push(DirtyBoard&& db) noexcept {
-    assert(size < MAX_SIZE);
+    assert(size < SIZE);
 
     psqAccumulators[size].reset(std::move(db.dp));
     threatAccumulators[size].reset(std::move(db.dts));
@@ -885,7 +885,7 @@ void AccumulatorStack::update_forward_incr(  //
   const FeatureTransformer<Dimensions>& featureTransformer,
   std::size_t                           beg) noexcept {
 
-    assert(beg < size && size <= MAX_SIZE);
+    assert(beg < size && size <= SIZE);
     assert((accumulators<FeatureSet>()[beg].template acc<Dimensions>()).computed[perspective]);
 
     Square kingSq = pos.square<KING>(perspective);
@@ -943,7 +943,7 @@ void AccumulatorStack::update_backward_incr(  //
   const FeatureTransformer<Dimensions>& featureTransformer,
   std::size_t                           end) noexcept {
 
-    assert(end < size && size <= MAX_SIZE);
+    assert(end < size && size <= SIZE);
     assert((state<FeatureSet>().template acc<Dimensions>()).computed[perspective]);
 
     Square kingSq = pos.square<KING>(perspective);

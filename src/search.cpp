@@ -50,7 +50,7 @@ constexpr double BetaBias = 0.68;
 
 // Reductions lookup table using [depth or moveCount]
 alignas(CACHE_LINE_SIZE) constexpr auto Reductions = []() constexpr noexcept {
-    StdArray<std::uint16_t, MAX_MOVES> reductions{};
+    StdArray<std::uint16_t, MOVE_MAX> reductions{};
 
     reductions[0] = 0;
     for (std::size_t i = 1; i < reductions.size(); ++i)
@@ -93,11 +93,11 @@ constexpr Value value_from_tt(Value v, std::int16_t ply, std::int16_t rule50Coun
     {
         // Downgrade a potentially false mate value
         if (is_mate_win(v) && VALUE_MATE - v > 2 * Position::DrawMoveCount - rule50Count)
-            return VALUE_TB_WIN_IN_MAX_PLY - 1;
+            return VALUE_TB_WIN_IN_PLY_MAX - 1;
 
         // Downgrade a potentially false TB value
         if (VALUE_TB - v > 2 * Position::DrawMoveCount - rule50Count)
-            return VALUE_TB_WIN_IN_MAX_PLY - 1;
+            return VALUE_TB_WIN_IN_PLY_MAX - 1;
 
         return v - ply;
     }
@@ -106,11 +106,11 @@ constexpr Value value_from_tt(Value v, std::int16_t ply, std::int16_t rule50Coun
     {
         // Downgrade a potentially false mate value
         if (is_mate_loss(v) && VALUE_MATE + v > 2 * Position::DrawMoveCount - rule50Count)
-            return VALUE_TB_LOSS_IN_MAX_PLY + 1;
+            return VALUE_TB_LOSS_IN_PLY_MAX + 1;
 
         // Downgrade a potentially false TB value
         if (VALUE_TB + v > 2 * Position::DrawMoveCount - rule50Count)
-            return VALUE_TB_LOSS_IN_MAX_PLY + 1;
+            return VALUE_TB_LOSS_IN_PLY_MAX + 1;
 
         return v + ply;
     }
@@ -134,7 +134,7 @@ void update_pv(Move* RESTRICT pv, Move m, const Move* RESTRICT childPv) noexcept
 
     if (childPv != nullptr)
     {
-        const Move* const end = std::find(childPv, childPv + MAX_PLY + 1, Move::None);
+        const Move* const end = std::find(childPv, childPv + PLY_MAX + 1, Move::None);
 
         std::size_t count = end - childPv;
 
@@ -463,7 +463,7 @@ void Worker::iterative_deepening() noexcept {
 
     Color ac = rootPos.active_color();
 
-    StdArray<Stack, StackOffset + (MAX_PLY + 1) + 1> stacks{};
+    StdArray<Stack, StackOffset + (PLY_MAX + 1) + 1> stacks{};
 
     Stack* ss = &stacks[StackOffset];
 
@@ -482,10 +482,10 @@ void Worker::iterative_deepening() noexcept {
         // clang-format on
     }
 
-    assert(stacks[0].ply == -StackOffset && stacks[stacks.size() - 1].ply == MAX_PLY + 1);
+    assert(stacks[0].ply == -StackOffset && stacks[stacks.size() - 1].ply == PLY_MAX + 1);
     assert(ss->ply == 0);
 
-    StdArray<Move, MAX_PLY + 1> pv;
+    StdArray<Move, PLY_MAX + 1> pv;
 
     ss->pv = pv.data();
 
@@ -500,7 +500,7 @@ void Worker::iterative_deepening() noexcept {
     Depth lastBestDepth    = DEPTH_ZERO;
 
     // Iterative deepening loop until requested to stop or the target depth is reached
-    while (!threads.is_stopped() && ++rootDepth <= MAX_DEPTH
+    while (!threads.is_stopped() && ++rootDepth <= DEPTH_MAX
            && (mainManager == nullptr || limit.depth == DEPTH_ZERO || rootDepth <= limit.depth))
     {
         // Age out PV variability metric
@@ -754,7 +754,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
     assert(-VALUE_INFINITE <= alpha && alpha < beta && beta <= +VALUE_INFINITE);
     assert(PVNode || (alpha + 1 == beta));
     assert(ss->ply >= 0);
-    assert(!RootNode || (DEPTH_ZERO < depth && depth <= MAX_DEPTH));
+    assert(!RootNode || (DEPTH_ZERO < depth && depth <= DEPTH_MAX));
 
     Key key = pos.key();
 
@@ -774,16 +774,16 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
         }
 
         // Limit the depth if extensions made it too large
-        depth = std::min(depth, MAX_DEPTH);
+        depth = std::min(depth, DEPTH_MAX);
 
-        assert(DEPTH_ZERO < depth && depth <= MAX_DEPTH);
+        assert(DEPTH_ZERO < depth && depth <= DEPTH_MAX);
     }
 
     // Check for the available remaining time
     if (is_main_worker())
         main_manager()->check_time(*this);
 
-    StdArray<Move, MAX_PLY + 1> pv;
+    StdArray<Move, PLY_MAX + 1> pv;
 
     if constexpr (PVNode)
     {
@@ -799,8 +799,8 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
     if constexpr (!RootNode)
     {
         // Step 2. Check for stopped search or maximum ply reached or immediate draw
-        if (threads.is_stopped() || ss->ply >= MAX_PLY || pos.is_draw(ss->ply))
-            return ss->ply >= MAX_PLY && !ss->inCheck ? evaluate(pos) : draw_value(key, nodes_());
+        if (threads.is_stopped() || ss->ply >= PLY_MAX || pos.is_draw(ss->ply))
+            return ss->ply >= PLY_MAX && !ss->inCheck ? evaluate(pos) : draw_value(key, nodes_());
 
         // Step 3. Mate distance pruning.
         // Even if mate at the next move score would be at best mates_in(ss->ply + 1),
@@ -815,7 +815,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
             return alpha;
     }
 
-    assert(0 <= ss->ply && ss->ply <= MAX_PLY - 1);
+    assert(0 <= ss->ply && ss->ply < PLY_MAX);
 
     (ss + 1)->cutoffCount = 0;
 
@@ -904,7 +904,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
     // The ply after beginning an LMR search, adjust the reduced depth based on
     // how the opponent's move affected the static evaluation.
     if (red >= 3200 && !worsen)
-        depth = std::min(depth + 1, +MAX_DEPTH);
+        depth = std::min(depth + 1, +DEPTH_MAX);
 
     if (red >= 2000 && ss->evalValue > 188 - (ss - 1)->evalValue)
         depth = std::max(depth - 1, 1);
@@ -997,7 +997,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
 
                     int drawValue = int(tbConfig.useRule50);
 
-                    // Use the range VALUE_TB to VALUE_TB_WIN_IN_MAX_PLY to value
+                    // Use the range VALUE_TB to VALUE_TB_WIN_IN_PLY_MAX to value
                     Value tbValue = wdlScore < -drawValue ? -VALUE_TB + ss->ply
                                   : wdlScore > +drawValue ? +VALUE_TB - ss->ply
                                                           : VALUE_DRAW + 2 * wdlScore * drawValue;
@@ -1010,7 +1010,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
                         || (bound == Bound::LOWER ? tbValue >= beta : tbValue <= alpha))
                     {
                         ttu.update(Move::None, value_to_tt(tbValue, ss->ply), evalValue,
-                                   std::min(depth + 6, +MAX_DEPTH), bound, ss->ttPv);
+                                   std::min(depth + 6, +DEPTH_MAX), bound, ss->ttPv);
 
                         return tbValue;
                     }
@@ -1203,7 +1203,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
                 // Save ProbCut data into transposition table
                 if (!exclude)
                     ttu.update(move, value_to_tt(probCutValue, ss->ply), evalValue,
-                               std::min(probCutDepth + 1, +MAX_DEPTH), Bound::LOWER, ss->ttPv);
+                               std::min(probCutDepth + 1, +DEPTH_MAX), Bound::LOWER, ss->ttPv);
 
                 if (!is_win(probCutValue))
                     // Adjust probCutValue to align with the current beta window
@@ -1322,11 +1322,14 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
                     }
 
                     // SEE based pruning for captures and checks
-                    int threshold =
-                      std::max(185 * depth + constexpr_round(35.7143e-3 * double(history)), 0);
-                    if (safe_pruning(movedPc) && (!mp.good_capture() || mp.threshold > threshold)
-                        && pos.see(move) < -threshold)
-                        continue;
+                    if (safe_pruning(movedPc))
+                    {
+                        int threshold =
+                          std::max(185 * depth + constexpr_round(35.7143e-3 * double(history)), 0);
+                        if ((!mp.good_capture() || mp.threshold > threshold)
+                            && pos.see(move) < -threshold)
+                            continue;
+                    }
                 }
                 else
                 {
@@ -1359,10 +1362,13 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
                     }
 
                     // SEE based pruning for quiets and checks
-                    int threshold = std::max(
-                      int(check) * 64 * depth + 25 * lmrDepth * constexpr_abs(lmrDepth), 0);
-                    if (safe_pruning(movedPc) && pos.see(move) < -threshold)
-                        continue;
+                    if (safe_pruning(movedPc))
+                    {
+                        int threshold = std::max(
+                          int(check) * 64 * depth + 25 * lmrDepth * constexpr_abs(lmrDepth), 0);
+                        if (safe_pruning(movedPc) && pos.see(move) < -threshold)
+                            continue;
+                    }
                 }
             }
         }
@@ -1401,10 +1407,10 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
                 int doubleMargin = -4 + int(PVNode) * 213 - int(!ttmCapture) * 196 - corrMargin - int(ss->ply > rootDepth) * 45 - constexpr_round(7.6370e-3 * double(ttMoveHistory));
                 int tripleMargin = 73 + int(PVNode) * 324 - int(!ttmCapture) * 229 - corrMargin - int(ss->ply > rootDepth) * 50 + int(ss->ttPv) * 87;
 
-                extension = 1 + int(singularValue <= singularAlpha - doubleMargin)
-                              + int(singularValue <= singularAlpha - tripleMargin);
+                extension = 1 + int(singularValue + doubleMargin <= singularAlpha)
+                              + int(singularValue + tripleMargin <= singularAlpha);
 
-                depth = std::min(depth + 1, +MAX_DEPTH);
+                depth = std::min(depth + 1, +DEPTH_MAX);
             }
             // Multi-cut pruning
             // If the ttMove is assumed to fail high based on the bound of the TT entry, and
@@ -1436,7 +1442,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
         }
 
         // Add extension to new depth
-        newDepth += extension;
+        newDepth = std::clamp(newDepth + extension, +DEPTH_ZERO, +DEPTH_MAX);
 
         [[maybe_unused]] std::uint64_t preNodes;
         if constexpr (RootNode)
@@ -1505,7 +1511,8 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
                 bool reduce = value < 9 + bestValue;
 
                 // Adjust full-depth search based on LMR value
-                newDepth += int(extend) - int(reduce);
+                newDepth =
+                  std::clamp(newDepth + int(extend) - int(reduce), +DEPTH_ZERO, +DEPTH_MAX);
 
                 if (redDepth < newDepth)
                     value = -search<~T>(pos, ss + 1, -alpha - 1, -alpha, newDepth);
@@ -1594,7 +1601,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
                 const Move* const childPv = (ss + 1)->pv;
                 assert(childPv != nullptr);
                 // Count child PV length
-                const Move* const end   = std::find(childPv, childPv + MAX_PLY + 1, Move::None);
+                const Move* const end   = std::find(childPv, childPv + PLY_MAX + 1, Move::None);
                 std::size_t       count = end - childPv;
                 assert(childPv[count] == Move::None);
                 // Resize once
@@ -1738,7 +1745,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
     // Save gathered information in transposition table
     if ((!RootNode || curPV == 0) && !exclude)
         ttu.update(bestMove, value_to_tt(bestValue, ss->ply), evalValue,
-                   moveCount != 0 ? depth : std::min(depth + 6, +MAX_DEPTH),
+                   moveCount != 0 ? depth : std::min(depth + 6, +DEPTH_MAX),
                    bestValue >= beta                  ? Bound::LOWER
                    : PVNode && bestMove != Move::None ? Bound::EXACT
                                                       : Bound::UPPER,
@@ -1779,7 +1786,7 @@ Value Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta) noexcep
             return alpha;
     }
 
-    StdArray<Move, MAX_PLY + 1> pv;
+    StdArray<Move, PLY_MAX + 1> pv;
 
     if constexpr (PVNode)
     {
@@ -1794,10 +1801,10 @@ Value Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta) noexcep
     ss->inCheck = pos.checkers_bb() != 0;
 
     // Step 2. Check for maximum ply reached or immediate draw
-    if (ss->ply >= MAX_PLY || pos.is_draw(ss->ply))
-        return ss->ply >= MAX_PLY && !ss->inCheck ? evaluate(pos) : VALUE_DRAW;
+    if (ss->ply >= PLY_MAX || pos.is_draw(ss->ply))
+        return ss->ply >= PLY_MAX && !ss->inCheck ? evaluate(pos) : VALUE_DRAW;
 
-    assert(0 <= ss->ply && ss->ply <= MAX_PLY - 1);
+    assert(0 <= ss->ply && ss->ply < PLY_MAX);
 
     // Step 3. Transposition table lookup
     auto [ttd, ttu] = transpositionTable.probe(key);
@@ -2569,18 +2576,18 @@ void Skill::init(const Options& options) noexcept {
     {
         constexpr StdArray<double, 4> P{37.2473, -40.8525, 22.2943, -0.311438};
 
-        double e = double(options["UCI_ELO"] - MIN_ELO) / (MAX_ELO - MIN_ELO);
+        double e = double(options["UCI_ELO"] - ELO_MIN) / (ELO_MAX - ELO_MIN);
 
         double l = ((P[0] * e + P[1]) * e + P[2]) * e + P[3];
 
-        level = std::clamp(l, MIN_LEVEL, MAX_LEVEL - 0.01);
+        level = std::clamp(l, LEVEL_MIN, LEVEL_MAX - 0.01);
     }
     else
     {
         level = options["SkillLevel"];
     }
 
-    assert(level <= MAX_LEVEL);
+    assert(level <= LEVEL_MAX);
 
     bestMove = Move::None;
 }

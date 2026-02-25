@@ -124,7 +124,7 @@ struct Zobrist final {
     static constexpr std::uint8_t R50_OFFSET = 14;
     static constexpr std::uint8_t R50_FACTOR = 8;
 
-    static inline StdArray<Key, (MAX_PLY + 1 - R50_OFFSET) / R50_FACTOR + 2> MR50;
+    static inline StdArray<Key, (PLY_MAX + 1 - R50_OFFSET) / R50_FACTOR + 2> MR50;
 };
 
 // State struct stores information needed to restore Position object
