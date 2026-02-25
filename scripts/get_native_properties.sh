@@ -37,11 +37,11 @@ get_flags() {
         flags=$(
             awk '
         /^flags[ \t]*:|^Features[ \t]*:/ {
-          if (!found) {
-            gsub(/^flags[ \t]*:[ \t]*|^Features[ \t]*:[ \t]*|[_.]/, "");
-            line=$0
-            found=1
-          }
+            if (!found) {
+                gsub(/^flags[ \t]*:[ \t]*|^Features[ \t]*:[ \t]*|[_.]/, "");
+                line=$0
+                found=1
+            }
         }
         END { print line }
             ' "$cpuinfo_path" 2>/dev/null
@@ -82,14 +82,14 @@ get_arm_arch_level() {
     [ -r "$cpuinfo_path" ] || return 1
     awk '
     /^CPU architecture[ \t]*:/{
-      s=$0
-      sub(/^[^:]*:[ \t]*/, "", s)
-      if (match(s, /[0-9]+/)) { print substr(s, RSTART, RLENGTH); exit }
+        s=$0
+        sub(/^[^:]*:[ \t]*/, "", s)
+        if (match(s, /[0-9]+/)) { print substr(s, RSTART, RLENGTH); exit }
     }
     /^Processor[ \t]*:/{
-      s=$0
-      sub(/^[^:]*:[ \t]*/, "", s)
-      if (match(s, /ARMv[0-9]+/)) { print substr(s, RSTART+4, RLENGTH-4); exit }
+        s=$0
+        sub(/^[^:]*:[ \t]*/, "", s)
+        if (match(s, /ARMv[0-9]+/)) { print substr(s, RSTART+4, RLENGTH-4); exit }
     }
     ' "$cpuinfo_path" 2>/dev/null
 }
