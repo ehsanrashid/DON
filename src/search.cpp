@@ -1226,6 +1226,13 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
             return probCutBeta;
     }
 
+    // Pruning is safe if:
+    //  • The node is already drawish (no stalemate risk), OR
+    //  • The move does not sacrifice our last non-pawn material.
+    const auto safe_pruning = [&](Piece movedPc) noexcept -> bool {
+        return alpha >= VALUE_DRAW || nonPawnValue != piece_value(type_of(movedPc));
+    };
+
     Value value = bestValue;
 
     std::uint16_t moveCount = 0;
@@ -1293,7 +1300,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
         // Depth conditions are important for mate finding.
         if constexpr (!RootNode)
         {
-            if (hasNonPawn && !is_loss(bestValue))
+            if (hasNonPawn && !is_loss(bestValue) && safe_pruning(movedPc))
             {
                 // Skip quiet moves if moveCount exceeds Futility Move Count threshold
                 mp.skipQuiets |= moveCount >= ((3 + depth * depth) >> int(!improve));
@@ -1317,10 +1324,8 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
                     // SEE based pruning for captures and checks
                     int threshold =
                       std::max(185 * depth + constexpr_round(35.7143e-3 * double(history)), 0);
-                    if (  // Avoid pruning sacrifices of our last piece for stalemate
-                      (alpha >= VALUE_DRAW || nonPawnValue != piece_value(type_of(movedPc)))
-                      && (!mp.good_capture() || mp.threshold > threshold)
-                      && pos.see(move) < -threshold)
+                    if ((!mp.good_capture() || mp.threshold > threshold)
+                        && pos.see(move) < -threshold)
                         continue;
                 }
                 else
@@ -1356,9 +1361,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
                     // SEE based pruning for quiets and checks
                     int threshold = std::max(
                       int(check) * 64 * depth + 25 * lmrDepth * constexpr_abs(lmrDepth), 0);
-                    if (  // Avoid pruning sacrifices of our last piece for stalemate
-                      (alpha >= VALUE_DRAW || nonPawnValue != piece_value(type_of(movedPc)))
-                      && pos.see(move) < -threshold)
+                    if (pos.see(move) < -threshold)
                         continue;
                 }
             }
@@ -2288,8 +2291,7 @@ bool Worker::ponder_move_extracted() noexcept {
 // Used to correct and extend PVs for moves that have a TB (but not a mate) score.
 // Keeps the search based PV for as long as it is verified to maintain the game outcome, truncates afterwards.
 // Finally, extends to mate the PV, providing a possible continuation (but not a proven mating line).
-void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
-    assert(index < rootMoves.size());
+void Worker::extend_tb_pv(RootMove& rootMove, Value& value) noexcept {
 
     if (!options["SyzygyPVExtend"])
         return;
@@ -2309,8 +2311,6 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
     };
 
     bool aborted = false;
-
-    auto& rootMove = rootMoves[index];
 
     std::list<State> states;
 
@@ -2491,7 +2491,7 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
     assert(depth > DEPTH_ZERO);
 
     const auto&       rootPos            = worker.rootPos;
-    const auto&       rootMoves          = worker.rootMoves;
+    auto&             rootMoves          = worker.rootMoves;
     const auto&       options            = worker.options;
     const auto&       threads            = worker.threads;
     const auto&       transpositionTable = worker.transpositionTable;
@@ -2535,7 +2535,7 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
 
         // Potentially correct and extend the PV, and in exceptional cases value also
         if ((exact || rm.bound == Bound::NONE) && is_decisive(v) && !is_mate(v))
-            worker.extend_tb_pv(i, v);
+            worker.extend_tb_pv(rm, v);
 
         FixedText score{UCI::to_score({v, rootPos})};
 
