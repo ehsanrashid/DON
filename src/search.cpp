@@ -500,10 +500,10 @@ void Worker::iterative_deepening() noexcept {
 
     multiPV = std::min(rootMoves.size(), multiPV);
 
-    rootDepth = completedDepth = DEPTH_ZERO;
+    completedDepth = DEPTH_ZERO;
 
     // Iterative deepening loop
-    while (++rootDepth <= DEPTH_MAX)
+    for (rootDepth = 1; rootDepth <= DEPTH_MAX; ++rootDepth)
     {
         // Stop if requested to stop
         if (threads.is_stopped())
