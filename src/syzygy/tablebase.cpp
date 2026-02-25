@@ -199,37 +199,32 @@ static_assert(sizeof(LR) == 3, "LR size must be 3 bytes");
 //  TBTable:  one object for each file with corresponding indexing information
 //  TBTables: has ownership of TBTable objects, keeping a list and a hash
 
-// TBPaths manages the list of directories where tablebase files(.rtbw /.rtbz)
-// can be found. It provides a central repository for all search paths used
-// by tablebase loading routines.
+// TBPaths stores the list of directories used to locate Syzygy tablebase files(.rtbw / .rtbz).
+// The class acts as a central repository for all tablebase search paths used by probing and file-loading routines.
+//
 // Responsibilities:
-// 1. Initialize the tablebase paths from a platform-specific separator string.
-//    - ';' on Windows
-//    - ':' on Unix/Linux
-// 2. Store the paths internally as std::filesystem::path objects for safe
-//    concatenation and cross-platform handling of path separators.
-// 3. Provide read-only access to the list of paths for other classes, e.g. TBFile.
+// • Parse a platform-dependent separator list of directories:
+//     - ';' on Windows
+//     - ':' on Unix-like systems
+// • Store paths as std::filesystem::path for safe concatenation and
+//   cross-platform correctness.
+// • Provide read-only access to the configured directories.
 //
 // Usage:
-// - Call TBPaths::init(paths) once at startup to populate the path list.
-// - Use TBPaths::get() to access the paths when searching for files.
+// • Call TBPaths::init() once during engine startup.
+// • Use TBPaths::get() when resolving tablebase files.
 //
 // Example:
 //     TBPaths::init("C:\\tb\\wdl;D:\\tb\\dtz");
 //     for (const auto& dir : TBPaths::get()) { ... }
 //
 // Notes:
-// - The class is final and all members are static, making it essentially a
-//   singleton for the tablebase search paths.
-// - Paths are stored in std::filesystem::path to simplify concatenation
-//   with filenames and to be cross-platform safe.
+// • The class is static-only and non-instantiable by design.
+// • Re-initialization replaces the previous path set.
 class TBPaths final {
    public:
     static bool init(std::string_view paths) noexcept {
-        // Multiple directories are separated
-        // by ";" on Windows and
-        // by ":" on Unix-based operating systems
-        //
+        // Platform-specific directory separator
         // Example:
         // C:\tb\wdl345;C:\tb\wdl6;D:\tb\dtz345;D:\tb\dtz6
         constexpr char PathSeparator =
@@ -241,6 +236,7 @@ class TBPaths final {
           ;
 
         Paths.clear();
+        Paths.reserve(4);
 
         std::size_t beg = 0;
 
@@ -252,7 +248,12 @@ class TBPaths final {
                 end = paths.size();
 
             if (beg < end)
-                Paths.emplace_back(paths.substr(beg, end - beg));
+            {
+                auto path = trim(paths.substr(beg, end - beg));
+                // Optional robustness: ignore pure whitespace entries
+                if (!is_whitespace(path))
+                    Paths.emplace_back(path);
+            }
 
             beg = end + 1;
         }
@@ -272,8 +273,8 @@ class TBPaths final {
     static inline std::vector<std::filesystem::path> Paths;
 };
 
-// TBFile look for the file among the Paths directories
-// where the .rtbw and .rtbz files can be found.
+// TBFile resolves a tablebase filename by searching through TBPaths.
+// The first matching regular file is retained.
 class TBFile final {
    public:
     explicit TBFile(std::string_view file) noexcept {
