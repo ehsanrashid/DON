@@ -36,7 +36,7 @@ using TimeFunc = std::function<bool()>;
 namespace Tablebase {
 
 // Max number of supported piece
-inline constexpr std::size_t MAX_TB_PIECES = 7;
+inline constexpr std::size_t TB_PIECES_MAX = 7;
 
 enum WDLScore : std::int8_t {
     WDL_LOSS         = -2,  // Loss

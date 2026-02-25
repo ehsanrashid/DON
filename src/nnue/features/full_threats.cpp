@@ -33,7 +33,7 @@ namespace DON::NNUE::Features {
 
 namespace {
 
-constexpr StdArray<std::uint16_t, PIECE_TYPE_CNT> MAX_TARGETS{3, 5, 4, 4, 5, 0};
+constexpr StdArray<std::uint16_t, PIECE_TYPE_CNT> TARGET_MAX{3, 5, 4, 4, 5, 0};
 
 constexpr StdArray<std::int16_t, PIECE_TYPE_CNT, PIECE_TYPE_CNT> MAP{{
   {+0, +1, -1, +2, -1, -1},  //
@@ -80,7 +80,7 @@ alignas(CACHE_LINE_SIZE) constexpr auto THREAT_TABLE = []() constexpr noexcept {
 
             threatTable.pieceThreats[+pc] = {baseOffset, threatCount};
 
-            baseOffset += 2 * MAX_TARGETS[pt - 1] * threatCount;
+            baseOffset += 2 * TARGET_MAX[pt - 1] * threatCount;
         }
 
     return threatTable;
@@ -93,7 +93,7 @@ constexpr IndexType dimensions() noexcept {
     IndexType dimensions = 0;
     for (Color c : {WHITE, BLACK})
         for (PieceType pt : PIECE_TYPES)
-            dimensions += 2 * MAX_TARGETS[pt - 1] * PIECE_THREATS[+make_piece(c, pt)].threatCount;
+            dimensions += 2 * TARGET_MAX[pt - 1] * PIECE_THREATS[+make_piece(c, pt)].threatCount;
 
     return dimensions;
 }
@@ -132,7 +132,7 @@ alignas(CACHE_LINE_SIZE) constexpr auto LUT_DATAS = []() constexpr noexcept {
                                      && (attackerPt != PAWN || attackerC != attackedC);
 
                     std::uint32_t featureIndex = PIECE_THREATS[+attackerPc].baseOffset
-                                               + (attackedC * MAX_TARGETS[attackerPt - 1] + map)
+                                               + (attackedC * TARGET_MAX[attackerPt - 1] + map)
                                                    * PIECE_THREATS[+attackerPc].threatCount;
 
                     lutDatas[+attackerPc][+attackedPc] =

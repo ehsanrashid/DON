@@ -603,7 +603,7 @@ void Worker::iterative_deepening() noexcept {
                 else
                     break;
 
-                delta = std::min(constexpr_ceil(1.33334 * double(delta)), MAX_DELTA);
+                delta = std::min(constexpr_ceil(1.33334 * double(delta)), DELTA_MAX);
 
                 assert(-VALUE_INFINITE <= alpha && alpha < beta && beta <= +VALUE_INFINITE);
             }

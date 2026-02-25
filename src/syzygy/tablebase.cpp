@@ -80,7 +80,7 @@ enum TBFlag : std::uint8_t {
 };
 
 // Max DTZ supported (2 times), large enough to deal with the syzygy TB limit
-constexpr std::int32_t MAX_DTZ = 0x40000;
+constexpr std::int32_t DTZ_MAX = 0x40000;
 
 constexpr StdArray<std::string_view, TBTYPE_NB> EXTS{
   ".rtbw",  // Win-Draw-Loss    (WDL)
@@ -95,7 +95,7 @@ constexpr StdArray<std::uint8_t, TBTYPE_NB, 4> TB_MAGICS{{
 // clang-format off
 
 constexpr StdArray<int         , WDL_SCORE_NB> WDL_MAP  {        1,              3,          0,              2,        0 };
-constexpr StdArray<std::int32_t, WDL_SCORE_NB> WDL_RANK {-MAX_DTZ , -MAX_DTZ + 101,          0, +MAX_DTZ - 101, +MAX_DTZ };
+constexpr StdArray<std::int32_t, WDL_SCORE_NB> WDL_RANK {-DTZ_MAX , -DTZ_MAX + 101,          0, +DTZ_MAX - 101, +DTZ_MAX };
 constexpr StdArray<Value       , WDL_SCORE_NB> WDL_VALUE{-VALUE_TB, VALUE_DRAW - 2, VALUE_DRAW, VALUE_DRAW + 2, +VALUE_TB};
 
 constexpr std::size_t wdl_index(WDLScore wdlScore) noexcept { return std::size_t(wdlScore - WDL_LOSS); }
@@ -108,9 +108,9 @@ StdArray<std::size_t, SQUARE_NB>     A1D1D4Map;
 StdArray<std::size_t, 10, SQUARE_NB> KKMap;  // [A1D1D4Map][SQUARE_NB]
 StdArray<std::size_t, SQUARE_NB>     PawnsMap;
 
-StdArray<std::size_t, MAX_TB_PIECES - 1, SQUARE_NB>   Binomial;     // [k][n] k elements from a set of n elements
-StdArray<std::size_t, MAX_TB_PIECES - 1, SQUARE_NB>   LeadPawnIdx;  // [leadPawnCnt][SQUARE_NB]
-StdArray<std::size_t, MAX_TB_PIECES - 1, FILE_NB / 2> LeadPawnSize; // [leadPawnCnt][FILE_A..FILE_D]
+StdArray<std::size_t, TB_PIECES_MAX - 1, SQUARE_NB>   Binomial;     // [k][n] k elements from a set of n elements
+StdArray<std::size_t, TB_PIECES_MAX - 1, SQUARE_NB>   LeadPawnIdx;  // [leadPawnCnt][SQUARE_NB]
+StdArray<std::size_t, TB_PIECES_MAX - 1, FILE_NB / 2> LeadPawnSize; // [leadPawnCnt][FILE_A..FILE_D]
 
 // clang-format on
 
@@ -324,11 +324,11 @@ struct PairsData final {
       base64;  // base64[l - minSymLen] is the 64bit-padded lowest symbol of length l
     std::vector<std::uint8_t>
       symLen;  // Number of values (-1) represented by a given Huffman symbol: 1..256
-    StdArray<Piece, MAX_TB_PIECES>
+    StdArray<Piece, TB_PIECES_MAX>
       pieces;  // Position pieces: the order of pieces defines the groups
-    StdArray<std::uint64_t, MAX_TB_PIECES + 1>
+    StdArray<std::uint64_t, TB_PIECES_MAX + 1>
       groupIdx;  // Start index used for the encoding of the group's pieces
-    StdArray<std::int32_t, MAX_TB_PIECES + 1>
+    StdArray<std::int32_t, TB_PIECES_MAX + 1>
       groupLen;  // Number of pieces in a given group: KRKN -> (3, 1)
     StdArray<std::uint16_t, 4>
       mapIdx;  // WDLWin, WDLLoss, WDLCursedWin, WDLBlessedLoss (used in DTZ)
@@ -883,12 +883,12 @@ class TBTables final {
             return idealEntry.get<T>();
 
         // Calculate safe probe limit:
-        // - max_distance() tracks the longest probe chain ever inserted
-        // - Any key would be within (max_distance + 1) of its ideal bucket
-        // - Cap at MAX_PROBE to prevent infinite loops on corrupt data
-        std::size_t MaxProbe = std::min(max_distance(), MAX_PROBE - 1) + 1;
+        // - distance_max() tracks the longest probe chain ever inserted
+        // - Any key would be within (distance_max + 1) of its ideal bucket
+        // - Cap at PROBE_MAX to prevent infinite loops on corrupt data
+        std::size_t ProbeMax = std::min(distance_max(), PROBE_MAX - 1) + 1;
         // Linear probe with Robin Hood early termination
-        for (std::size_t distance = 1; distance <= MaxProbe; ++distance)
+        for (std::size_t distance = 1; distance <= ProbeMax; ++distance)
         {
             std::size_t bucket = (keyBucket + distance) & MASK;
 
@@ -922,7 +922,7 @@ class TBTables final {
         wdlTables.clear();
         dtzTables.clear();
 
-        MaxDistance = 0;
+        DistanceMax = 0;
     }
 
     std::string info() const noexcept {
@@ -932,7 +932,7 @@ class TBTables final {
              + " (up to " + std::to_string(MaxCardinality) + "-man).";
     }
 
-    std::size_t max_distance() const noexcept { return MaxDistance; }
+    std::size_t distance_max() const noexcept { return DistanceMax; }
 
     void add(const std::vector<PieceType>& pieces) noexcept;
 
@@ -957,9 +957,9 @@ class TBTables final {
             return true;
         }
 
-        for (std::size_t distance = 1; distance <= MAX_PROBE;)
+        for (std::size_t distance = 1; distance <= PROBE_MAX;)
         {
-            MaxDistance = std::max(distance, MaxDistance);
+            DistanceMax = std::max(distance, DistanceMax);
 
             std::size_t bucket = (newBucket + distance) & MASK;
 
@@ -1006,12 +1006,12 @@ class TBTables final {
     // - 32 = safe, good worst-case bound
     // - 24 = optimal balance between speed and collision handling
     // - 16 = faster but more strict (less tolerance for long probe chains)
-    static constexpr std::size_t MAX_PROBE = 32;
-    // Ensure MAX_PROBE does not exceed table size (compile-time safety)
-    static_assert(MAX_PROBE <= SIZE, "MAX_PROBE must be <= SIZE");
+    static constexpr std::size_t PROBE_MAX = 32;
+    // Ensure PROBE_MAX does not exceed table size (compile-time safety)
+    static_assert(PROBE_MAX <= SIZE, "PROBE_MAX must be <= SIZE");
 
     // Track the farthest any entry has been displaced
-    std::size_t MaxDistance = 0;
+    std::size_t DistanceMax = 0;
 
     StdArray<Entry, SIZE> entries;
 
@@ -1286,8 +1286,8 @@ Ret do_probe_table(
 
     int activeColor = flip ? ~pos.active_color() : pos.active_color();
 
-    StdArray<Square, MAX_TB_PIECES> squares{};
-    StdArray<Piece, MAX_TB_PIECES>  pieces;
+    StdArray<Square, TB_PIECES_MAX> squares{};
+    StdArray<Piece, TB_PIECES_MAX>  pieces;
 
     std::size_t size = 0;
 
@@ -1910,7 +1910,7 @@ void init(std::string_view paths) noexcept {
 
     UCI::print_info_string(tbTables.info());
 
-    DEBUG_LOG("max-distance: " << tbTables.max_distance());
+    DEBUG_LOG("distance-max: " << tbTables.distance_max());
 }
 
 // Probe the WDL table for a particular position.
@@ -2057,7 +2057,7 @@ bool rank_root_moves_dtz(Position& pos, RootMoves& rootMoves, bool useRule50, bo
     // Check whether the position was repeated since the last zeroing move
     bool hasRepeated = pos.has_repeated();
 
-    int bound = useRule50 ? (MAX_DTZ / 2 - 100) : 1;
+    int bound = useRule50 ? (DTZ_MAX / 2 - 100) : 1;
 
     // Probe and rank each move
     for (auto& rm : rootMoves)
@@ -2106,11 +2106,11 @@ bool rank_root_moves_dtz(Position& pos, RootMoves& rootMoves, bool useRule50, bo
         // Better moves are ranked higher. Certain wins are ranked equally.
         // Losing moves are ranked equally unless a 50-move draw is in sight.
         int r = dtzScore > 0 ? (+1 * dtzScore + rule50Count < 100 && !hasRepeated
-                                  ? +MAX_DTZ - (rankDTZ ? +dtzScore : 0)
-                                  : +MAX_DTZ / 2 - (+dtzScore + rule50Count))
+                                  ? +DTZ_MAX - (rankDTZ ? +dtzScore : 0)
+                                  : +DTZ_MAX / 2 - (+dtzScore + rule50Count))
               : dtzScore < 0 ? (-2 * dtzScore + rule50Count < 100
-                                  ? -MAX_DTZ + (rankDTZ ? -dtzScore : 0)
-                                  : -MAX_DTZ / 2 + (-dtzScore + rule50Count))
+                                  ? -DTZ_MAX + (rankDTZ ? -dtzScore : 0)
+                                  : -DTZ_MAX / 2 + (-dtzScore + rule50Count))
                              : 0;
 
         rm.tbRank = r;
@@ -2119,9 +2119,9 @@ bool rank_root_moves_dtz(Position& pos, RootMoves& rootMoves, bool useRule50, bo
         // Assign at least 1 cp to cursed wins and let it grow to 49 cp
         // as the positions gets closer to a real win.
         rm.tbValue = r >= bound ? +VALUE_TB
-                   : r > 0      ? Value((std::max(r - (MAX_DTZ / 2 - 200), +3) * VALUE_PAWN) / 200)
+                   : r > 0      ? Value((std::max(r - (DTZ_MAX / 2 - 200), +3) * VALUE_PAWN) / 200)
                    : r == 0     ? VALUE_DRAW
-                   : r > -bound ? Value((std::min(r + (MAX_DTZ / 2 - 200), -3) * VALUE_PAWN) / 200)
+                   : r > -bound ? Value((std::min(r + (DTZ_MAX / 2 - 200), -3) * VALUE_PAWN) / 200)
                                 : -VALUE_TB;
     }
 

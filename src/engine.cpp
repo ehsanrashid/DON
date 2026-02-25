@@ -114,7 +114,7 @@ Engine::Engine(std::string_view path) noexcept :
     options.add("BookProbeDepth",       Option(100, 1, 256));
     options.add("BookPickBest",         Option(true));
     options.add("SyzygyPath",           Option("", OnCng([](const Option& o) { Tablebase::init(o); return std::nullopt; })));
-    options.add("SyzygyProbeLimit",     Option(Tablebase::MAX_TB_PIECES, 0, Tablebase::MAX_TB_PIECES));
+    options.add("SyzygyProbeLimit",     Option(Tablebase::TB_PIECES_MAX, 0, Tablebase::TB_PIECES_MAX));
     options.add("SyzygyProbeDepth",     Option(1, 1, 100));
     options.add("Syzygy50MoveRule",     Option(true));
     options.add("SyzygyPVExtend",       Option(true));

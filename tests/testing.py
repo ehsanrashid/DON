@@ -23,7 +23,7 @@ GREEN_COLOR = "\033[32m"
 RESET_COLOR = "\033[0m"
 WHITE_BOLD = "\033[1m"
 
-MAX_TIMEOUT = 5 * 60
+TIMEOUT_MAX = 5 * 60
 
 PATH = pathlib.Path(__file__).parent.resolve()
 
@@ -344,31 +344,31 @@ class DON:
         self.process.stdin.write(command + "\n")
         self.process.stdin.flush()
 
-    @timeout_decorator(MAX_TIMEOUT)
+    @timeout_decorator(TIMEOUT_MAX)
     def equals(self, expectedOutput: str):
         for line in self.readline():
             if line == expectedOutput:
                 return
 
-    @timeout_decorator(MAX_TIMEOUT)
+    @timeout_decorator(TIMEOUT_MAX)
     def expect(self, expectedOutput: str):
         for line in self.readline():
             if fnmatch.fnmatch(line, expectedOutput):
                 return
 
-    @timeout_decorator(MAX_TIMEOUT)
+    @timeout_decorator(TIMEOUT_MAX)
     def contains(self, expectedOutput: str):
         for line in self.readline():
             if expectedOutput in line:
                 return
 
-    @timeout_decorator(MAX_TIMEOUT)
+    @timeout_decorator(TIMEOUT_MAX)
     def starts_with(self, expectedOutput: str):
         for line in self.readline():
             if line.startswith(expectedOutput):
                 return
 
-    @timeout_decorator(MAX_TIMEOUT)
+    @timeout_decorator(TIMEOUT_MAX)
     def check_output(self, callback):
         if not callback:
             raise ValueError("Callback function is required")
@@ -377,7 +377,7 @@ class DON:
             if callback(line):
                 return
 
-    @timeout_decorator(MAX_TIMEOUT)    
+    @timeout_decorator(TIMEOUT_MAX)    
     def expect_matching_line(self, linePattern: str, expectedOutput: str):
         for line in self.readline():
             if fnmatch.fnmatch(line, linePattern):
