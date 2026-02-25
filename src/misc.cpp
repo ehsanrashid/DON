@@ -200,7 +200,6 @@ void show_logo() noexcept {
                   << ConsoleColor::BRIGHT_YELLOW << ConsoleColor::BLINK << sv  //
                   << ConsoleColor::RESET << '\n';
     };
-
     auto mid1 = [](std::string_view sv, const char* color1) {
         std::cout                                                         //
           << ConsoleColor::BG_BLACK                                       //
@@ -213,14 +212,14 @@ void show_logo() noexcept {
           << ConsoleColor::RESET << '\n';
     };
     auto mid2 = [](std::string_view sv, const char* color1, const char* color2) {
-        std::cout                                                                  //
-          << ConsoleColor::BG_BLACK                                                //
-          << ConsoleColor::BRIGHT_YELLOW << ConsoleColor::BLINK << "  ║"           //
-          << ConsoleColor::RESET                                                   //
-          << ConsoleColor::BG_BLACK                                                //
-          << color1 << color2 << ConsoleColor::BLINK << sv << ConsoleColor::RESET  //
-          << ConsoleColor::BG_BLACK                                                //
-          << ConsoleColor::BRIGHT_YELLOW << ConsoleColor::BLINK << "║  "           //
+        std::cout                                                         //
+          << ConsoleColor::BG_BLACK                                       //
+          << ConsoleColor::BRIGHT_YELLOW << ConsoleColor::BLINK << "  ║"  //
+          << ConsoleColor::RESET                                          //
+          << ConsoleColor::BG_BLACK                                       //
+          << color1 << color2 << sv << ConsoleColor::RESET                //
+          << ConsoleColor::BG_BLACK                                       //
+          << ConsoleColor::BRIGHT_YELLOW << ConsoleColor::BLINK << "║  "  //
           << ConsoleColor::RESET << '\n';
     };
     std::cout << '\n';

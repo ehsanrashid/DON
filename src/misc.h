@@ -817,7 +817,7 @@ struct OffsetView final {
         _offset(offset),
         _size(size) {}
 
-    void set(off_type offset, size_type size) noexcept {
+    constexpr void set(off_type offset, size_type size) noexcept {
         _offset = offset;
         _size   = size;
     }
@@ -857,27 +857,20 @@ struct OffsetView final {
     const T& at(size_type idx, const T* base) const noexcept { return data(base)[idx]; }
 
     // --- STL-style iterable proxy ---
-    struct Iterable final {
+    struct ConstIterable final {
        public:
-        T*       begin() { return base; }
-        T*       end() { return begin() + count; }
         const T* begin() const { return base; }
         const T* end() const { return begin() + count; }
 
-        T*        base;
+        const T*  base;
         size_type count;
     };
 
     // --- Return iterable for range-based for ---
-    Iterable iterate(T* base, size_type count) noexcept {
+    ConstIterable iterate(const T* base, size_type count) const noexcept {
         assert(count <= size());
 
         return {data(base), count};
-    }
-    const Iterable iterate(const T* base, size_type count) const noexcept {
-        assert(count <= size());
-
-        return {const_cast<T*>(data(base)), count};
     }
 
    private:

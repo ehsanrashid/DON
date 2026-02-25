@@ -1380,7 +1380,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
         // To verify this do a reduced search on the position excluding the ttMove and
         // if the result is lower than ttValue minus a margin, then will extend the ttMove.
         // Recursive singular search is avoided.
-        Depth extension = 0;
+        Depth extension = DEPTH_ZERO;
 
         // (*Scaler) Generally, frequent extensions scales well.
         // This includes high singularAlpha values (i.e closer to ttValue) and low extension margins.
