@@ -1607,6 +1607,9 @@ class TieStreamBuf final: public std::streambuf {
         if (pBuf == nullptr)
             return traits_type::eof();
 
+        if (traits_type::eq_int_type(ch, traits_type::eof()))
+            return traits_type::not_eof(ch);
+
         int_type putCh = pBuf->sputc(traits_type::to_char_type(ch));
 
         if (traits_type::eq_int_type(putCh, traits_type::eof()))
@@ -1641,6 +1644,26 @@ class TieStreamBuf final: public std::streambuf {
         return (r1 == 0 && r2 == 0) ? 0 : -1;
     }
 
+    std::streamsize xsputn(const char_type* s, std::streamsize count) override {
+        if (pBuf == nullptr)
+            return 0;
+
+        std::streamsize written = pBuf->sputn(s, count);
+
+        if (mBuf != nullptr && written > 0)
+        {
+            // Prefix injection only once if needed
+            if (preOutCh == '\n')
+                mBuf->sputn("<< ", 3);
+
+            mBuf->sputn(s, written);
+
+            preOutCh = s[written - 1];  // track last char
+        }
+
+        return written;
+    }
+
     std::streambuf* pbuf() const { return pBuf; }
     std::streambuf* mbuf() const { return mBuf; }
 
@@ -1653,7 +1676,12 @@ class TieStreamBuf final: public std::streambuf {
         if (preCh == '\n')
             mBuf->sputn(prefix.data(), std::streamsize(prefix.size()));
 
-        return mBuf->sputc(preCh = traits_type::to_char_type(ch));
+        char_type c = traits_type::to_char_type(ch);
+        preCh       = c;
+
+        int_type r = mBuf->sputc(c);
+        return traits_type::eq_int_type(r, traits_type::eof()) ? traits_type::eof()
+                                                               : traits_type::not_eof(ch);
     }
 
     std::streambuf *pBuf, *mBuf;

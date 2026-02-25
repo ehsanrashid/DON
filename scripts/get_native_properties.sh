@@ -204,9 +204,9 @@ set_arch_x86_64() {
 x86-64-avx512icl|match_flags|avx512f avx512cd avx512vl avx512dq avx512bw avx512ifma avx512vbmi avx512vbmi2 avx512vpopcntdq avx512bitalg avx512vnni vpclmulqdq gfni vaes
 x86-64-vnni512|match_flags|avx512vnni avx512dq avx512f avx512bw avx512vl
 x86-64-avx512|match_flags|avx512f avx512bw
-x86-64-avxvnni-comp|match_flags|avxvnni comp
+x86-64-avxvnni-cmp|match_flags|avxvnni cmp
 x86-64-avxvnni|match_flags|avxvnni
-x86-64-bmi2-comp|match_not_znver12_and_flags|bmi2 comp
+x86-64-bmi2-cmp|match_not_znver12_and_flags|bmi2 cmp
 x86-64-bmi2|match_not_znver12_and_flags|bmi2
 x86-64-avx2|match_flags|avx2
 x86-64-sse41-popcnt|match_flags|sse41 popcnt

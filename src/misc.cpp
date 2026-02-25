@@ -380,8 +380,8 @@ std::string compiler_info() noexcept {
 #endif
 #if defined(USE_BMI2)
     compiler.append(" BMI2");
-    #if defined(USE_COMP)
-    compiler.append(" COMP");
+    #if defined(USE_CMP)
+    compiler.append("-CMP");
     #endif
 #endif
 #if defined(USE_AVX2)

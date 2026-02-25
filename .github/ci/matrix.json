@@ -61,9 +61,9 @@
     "x86-64-sse41-popcnt",
     "x86-64-avx2",
     "x86-64-bmi2",
-    "x86-64-bmi2-comp",
+    "x86-64-bmi2-cmp",
     "x86-64-avxvnni",
-    "x86-64-avxvnni-comp",
+    "x86-64-avxvnni-cmp",
     "x86-64-avx512",
     "x86-64-vnni512",
     "x86-64-avx512icl",
@@ -115,7 +115,7 @@
       }
     },
     {
-      "binaries": "x86-64-avxvnni-comp",
+      "binaries": "x86-64-avxvnni-cmp",
       "config": {
         "os": "macos-15-intel"
       }
@@ -181,7 +181,7 @@
       }
     },
     {
-      "binaries": "x86-64-bmi2-comp",
+      "binaries": "x86-64-bmi2-cmp",
       "config": {
         "os": "macos-15"
       }
@@ -193,7 +193,7 @@
       }
     },
     {
-      "binaries": "x86-64-avxvnni-comp",
+      "binaries": "x86-64-avxvnni-cmp",
       "config": {
         "os": "macos-15"
       }
@@ -289,7 +289,7 @@
       }
     },
     {
-      "binaries": "x86-64-bmi2-comp",
+      "binaries": "x86-64-bmi2-cmp",
       "config": {
         "os": "windows-11-arm"
       }
@@ -301,7 +301,7 @@
       }
     },
     {
-      "binaries": "x86-64-avxvnni-comp",
+      "binaries": "x86-64-avxvnni-cmp",
       "config": {
         "os": "windows-11-arm"
       }

@@ -85,7 +85,7 @@ namespace DON {
 using Bitboard = std::uint64_t;
 static_assert(sizeof(Bitboard) == 8, "Bitboard size must be 8 bytes");
 
-#if defined(USE_BMI2) && defined(USE_COMP)
+#if defined(USE_BMI2) && defined(USE_CMP)
 using Bitboard16 = std::uint16_t;
 #endif
 
