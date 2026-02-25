@@ -283,28 +283,6 @@ void Worker::ensure_network_replicated() noexcept {
 void Worker::start_search() noexcept {
     auto* mainManager = is_main_worker() ? main_manager() : nullptr;
 
-    multiPV = 1;
-
-    if (mainManager != nullptr)
-    {
-        multiPV = options["MultiPV"];
-
-        // When playing with strength handicap enable MultiPV search that
-        // will use behind-the-scenes to retrieve a set of sub-optimal moves.
-        if (mainManager->skill.enabled())
-            multiPV = std::max(std::size_t(4), multiPV);
-    }
-
-    multiPV = std::min(rootMoves.size(), multiPV);
-
-    accStack.reset();
-
-    for (auto& colorQuietHist : quietHistory)
-        for (auto& quietHist : colorQuietHist)
-            quietHist *= 0.7799;
-
-    lowPlyQuietHistory.fill(100);
-
     // Non-main threads go directly to iterative_deepening()
     if (mainManager == nullptr)
     {
@@ -498,7 +476,29 @@ void Worker::iterative_deepening() noexcept {
     Value lastBestUciValue = -VALUE_INFINITE;
     Depth lastBestDepth    = DEPTH_ZERO;
 
+    accStack.reset();
+
+    for (auto& colorQuietHist : quietHistory)
+        for (auto& quietHist : colorQuietHist)
+            quietHist *= 0.7799;
+
+    lowPlyQuietHistory.fill(100);
+
     nmpPly = 0;
+
+    multiPV = 1;
+
+    if (mainManager != nullptr)
+    {
+        multiPV = options["MultiPV"];
+
+        // When playing with strength handicap enable MultiPV search that
+        // will use behind-the-scenes to retrieve a set of sub-optimal moves.
+        if (mainManager->skill.enabled())
+            multiPV = std::max(std::size_t(4), multiPV);
+    }
+
+    multiPV = std::min(rootMoves.size(), multiPV);
 
     rootDepth = completedDepth = DEPTH_ZERO;
 
