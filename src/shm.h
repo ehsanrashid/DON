@@ -118,7 +118,7 @@ inline constexpr std::size_t SHM_NAME_MAX = NAME_MAX > 0 ? NAME_MAX - 1 : 255 - 
 // if it wasn't locked by the OS. If the path is longer than 4095 bytes the hash will be computed
 // from an unspecified amount of bytes of the path; in particular it can a hash of an empty string.
 
-enum class SharedMemoryAllocationStatus {
+enum class SharedMemoryAllocationStatus : std::uint8_t {
     NoAllocation,
     LocalMemory,
     SharedMemory
@@ -312,7 +312,7 @@ class BackendSharedMemory final {
 
    private:
     void initialize(const T& value) noexcept {
-        constexpr std::size_t TotalSize = sizeof(T) + sizeof(InitSharedState);
+        constexpr std::size_t TotalSize = sizeof(T) + sizeof(SharedState);
 
         // Try allocating with large page first
         hMapFile = try_with_windows_lock_memory_privilege(
@@ -393,24 +393,24 @@ class BackendSharedMemory final {
         // Object lives first to ensure alignment
         T* object = reinterpret_cast<T*>(mappedPtr);
 
-        auto* initState =
+        auto* sharedState =
           reinterpret_cast<volatile DWORD*>(reinterpret_cast<char*>(mappedPtr) + sizeof(T));
 
         // Attempt atomic initialization
-        if (InterlockedCompareExchange(initState, DWORD(InitSharedState::Initializing),
-                                       DWORD(InitSharedState::Uninitialized))
-            == DWORD(InitSharedState::Uninitialized))
+        if (InterlockedCompareExchange(sharedState, DWORD(SharedState::Initializing),
+                                       DWORD(SharedState::Uninitialized))
+            == DWORD(SharedState::Uninitialized))
         {
             // this thread is the initializer
             new (object) T{value};
 
             // Publish fully constructed object
-            InterlockedExchange(initState, DWORD(InitSharedState::Initialized));
+            InterlockedExchange(sharedState, DWORD(SharedState::Initialized));
         }
         else
         {
             // Wait until construction completes
-            while (*initState != DWORD(InitSharedState::Initialized))
+            while (*sharedState != DWORD(SharedState::Initialized))
                 PAUSE();  // portable "pause" for any architecture
         }
 
@@ -441,7 +441,7 @@ class BackendSharedMemory final {
         cleanup();
     }
 
-    enum class InitSharedState : DWORD {
+    enum class SharedState : std::uint8_t {
         Uninitialized = 0,
         Initializing  = 1,
         Initialized   = 2
