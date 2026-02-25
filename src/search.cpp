@@ -489,6 +489,8 @@ void Worker::iterative_deepening() noexcept {
 
     ss->pv = pv.data();
 
+    std::size_t rootMovesSize = rootMoves.size();
+
     std::uint16_t researchCnt = 0;
 
     Value bestValue = -VALUE_INFINITE;
@@ -515,18 +517,28 @@ void Worker::iterative_deepening() noexcept {
         if (threads.is_researching())
             ++researchCnt;
 
-        std::size_t begPV = endPV = 0;
+        // Precompute the start indices of each tbRank group
+        std::vector<std::size_t> tbRankGroup;
+        for (std::size_t i = 0; i < rootMovesSize;)
+        {
+            tbRankGroup.push_back(i);
+            auto tbRank = rootMoves[i].tbRank;
+            while (i < rootMovesSize && rootMoves[i].tbRank == tbRank)
+                ++i;
+        }
+        // Sentinel to simplify endPV access
+        tbRankGroup.push_back(rootMovesSize);
+
         // MultiPV loop. Perform a full root search for each PV line
         for (curPV = 0; curPV < multiPV; ++curPV)
         {
-            if (curPV == endPV)
-            {
-                begPV = endPV;
-                ++endPV;
-                while (endPV < rootMoves.size()
-                       && rootMoves[endPV].tbRank == rootMoves[begPV].tbRank)
-                    ++endPV;
-            }
+            // Find which group curPV belongs to
+            // upper_bound gives first group that starts AFTER curPV
+            auto itr = std::upper_bound(tbRankGroup.begin(), tbRankGroup.end(), curPV);
+            --itr;  // step back to group start containing curPV
+
+            std::size_t begPV = *itr;
+            /**/ endPV        = *(itr + 1);  // safe because of sentinel
 
             // Reset UCI info selDepth for each depth and each PV line
             selDepth = 1;
@@ -717,7 +729,7 @@ void Worker::iterative_deepening() noexcept {
             totalTime = std::min(mainManager->timeManager.maximum(), totalTime);
 
             // Cap totalTime in case of a single legal move for a better viewer experience
-            if (rootMoves.size() == 1)
+            if (rootMovesSize == 1)
                 totalTime = std::min(550 * totalTime / 1000, TimePoint{512});
 
             TimePoint elapsedTime = mainManager->elapsed(threads);
