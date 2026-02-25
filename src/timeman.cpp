@@ -19,7 +19,9 @@
 
 #include <algorithm>
 #include <cassert>
+#include <chrono>
 #include <cmath>
+#include <thread>
 
 #include "option.h"
 #include "search.h"
@@ -173,6 +175,9 @@ void TimeManager::init(
                     - options["BufferTime"],
                     TimePoint{1});
     // clang-format on
+
+    if (options["SleepOnStart"])
+        std::this_thread::sleep_for(std::chrono::milliseconds(optimumTime / 2));
 
     if (options["Ponder"])
         optimumTime = constexpr_ceil(1.2500 * double(optimumTime));
