@@ -501,13 +501,23 @@ void Worker::iterative_deepening() noexcept {
     Value lastBestUciValue = -VALUE_INFINITE;
     Depth lastBestDepth    = DEPTH_ZERO;
 
-    // Iterative deepening loop until requested to stop or the target depth is reached
-    while (!threads.is_stopped() && ++rootDepth <= DEPTH_MAX
-           && (mainManager == nullptr || limit.depth == DEPTH_ZERO || rootDepth <= limit.depth))
+    // Iterative deepening loop
+    while (++rootDepth <= DEPTH_MAX)
     {
-        // Age out PV variability metric
-        if (mainManager != nullptr && limit.use_time_manager())
-            mainManager->sumMoveChanges *= 0.50;
+        // Stop if requested to stop
+        if (threads.is_stopped())
+            break;
+
+        if (mainManager != nullptr)
+        {
+            // Stop if the fixed depth limit has been reached
+            if (limit.depth != DEPTH_ZERO && rootDepth > limit.depth)
+                break;
+
+            // Decay PV variability metric to reduce influence of previous iterations
+            if (limit.use_time_manager())
+                mainManager->sumMoveChanges *= 0.50;
+        }
 
         if (threads.is_researching())
             ++researchCnt;
@@ -515,12 +525,13 @@ void Worker::iterative_deepening() noexcept {
         // Precompute the start indices of each tbRank group
         StdArray<std::size_t, MOVE_MAX + 1> tbRankGroups;
         std::size_t                         tbRankGroupCount = 0;
-
+        // Two concerns in one loop
         std::size_t i = 0;
         while (i < rootMovesSize)
         {
             tbRankGroups[tbRankGroupCount++] = i;
-            auto tbRank                      = rootMoves[i].tbRank;
+            // Scan group: record boundaries and snapshot scores before search
+            auto tbRank = rootMoves[i].tbRank;
             while (i < rootMovesSize && rootMoves[i].tbRank == tbRank)
             {
                 // Save the last iteration's scores before the first PV line is searched and
@@ -529,7 +540,7 @@ void Worker::iterative_deepening() noexcept {
                 ++i;
             }
         }
-        // Sentinel to simplify endPV access
+        // Sentinel (critical) to simplify endPV access
         tbRankGroups[tbRankGroupCount] = rootMovesSize;
 
         std::size_t tbRankGroupIndex = 0;  // index in tbRankGroups
