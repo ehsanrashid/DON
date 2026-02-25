@@ -509,23 +509,25 @@ void Worker::iterative_deepening() noexcept {
         if (mainManager != nullptr && limit.use_time_manager())
             mainManager->sumMoveChanges *= 0.50;
 
-        // Save the last iteration's scores before the first PV line is searched and
-        // all the move scores except the (new) PV are set to -VALUE_INFINITE.
-        for (auto& rm : rootMoves)
-            rm.preValue = rm.curValue;
-
         if (threads.is_researching())
             ++researchCnt;
 
         // Precompute the start indices of each tbRank group
         StdArray<std::size_t, MOVE_MAX + 1> tbRankGroups;
         std::size_t                         tbRankGroupCount = 0;
-        for (std::size_t i = 0; i < rootMovesSize;)
+
+        std::size_t i = 0;
+        while (i < rootMovesSize)
         {
             tbRankGroups[tbRankGroupCount++] = i;
             auto tbRank                      = rootMoves[i].tbRank;
             while (i < rootMovesSize && rootMoves[i].tbRank == tbRank)
+            {
+                // Save the last iteration's scores before the first PV line is searched and
+                // all the move scores except the (new) PV are set to -VALUE_INFINITE.
+                rootMoves[i].preValue = rootMoves[i].curValue;
                 ++i;
+            }
         }
         // Sentinel to simplify endPV access
         tbRankGroups[tbRankGroupCount] = rootMovesSize;
