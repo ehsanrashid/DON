@@ -283,9 +283,6 @@ void Worker::ensure_network_replicated() noexcept {
 void Worker::start_search() noexcept {
     auto* mainManager = is_main_worker() ? main_manager() : nullptr;
 
-    rootDepth = completedDepth = DEPTH_ZERO;
-    nmpPly                     = 0;
-
     multiPV = 1;
 
     if (mainManager != nullptr)
@@ -500,6 +497,10 @@ void Worker::iterative_deepening() noexcept {
     Value lastBestPreValue = -VALUE_INFINITE;
     Value lastBestUciValue = -VALUE_INFINITE;
     Depth lastBestDepth    = DEPTH_ZERO;
+
+    nmpPly = 0;
+
+    rootDepth = completedDepth = DEPTH_ZERO;
 
     // Iterative deepening loop
     while (++rootDepth <= DEPTH_MAX)
