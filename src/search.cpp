@@ -1300,7 +1300,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
         // Depth conditions are important for mate finding.
         if constexpr (!RootNode)
         {
-            if (hasNonPawn && !is_loss(bestValue) && safe_pruning(movedPc))
+            if (hasNonPawn && !is_loss(bestValue))
             {
                 // Skip quiet moves if moveCount exceeds Futility Move Count threshold
                 mp.skipQuiets |= moveCount >= ((3 + depth * depth) >> int(!improve));
@@ -1324,7 +1324,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
                     // SEE based pruning for captures and checks
                     int threshold =
                       std::max(185 * depth + constexpr_round(35.7143e-3 * double(history)), 0);
-                    if ((!mp.good_capture() || mp.threshold > threshold)
+                    if (safe_pruning(movedPc) && (!mp.good_capture() || mp.threshold > threshold)
                         && pos.see(move) < -threshold)
                         continue;
                 }
@@ -1361,7 +1361,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
                     // SEE based pruning for quiets and checks
                     int threshold = std::max(
                       int(check) * 64 * depth + 25 * lmrDepth * constexpr_abs(lmrDepth), 0);
-                    if (pos.see(move) < -threshold)
+                    if (safe_pruning(movedPc) && pos.see(move) < -threshold)
                         continue;
                 }
             }
