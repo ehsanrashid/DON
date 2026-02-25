@@ -518,27 +518,30 @@ void Worker::iterative_deepening() noexcept {
             ++researchCnt;
 
         // Precompute the start indices of each tbRank group
-        std::vector<std::size_t> tbRankGroup;
+        StdArray<std::size_t, MOVE_MAX + 1> tbRankGroups;
+        std::size_t                         tbRankGroupCount = 0;
         for (std::size_t i = 0; i < rootMovesSize;)
         {
-            tbRankGroup.push_back(i);
-            auto tbRank = rootMoves[i].tbRank;
+            tbRankGroups[tbRankGroupCount++] = i;
+            auto tbRank                      = rootMoves[i].tbRank;
             while (i < rootMovesSize && rootMoves[i].tbRank == tbRank)
                 ++i;
         }
         // Sentinel to simplify endPV access
-        tbRankGroup.push_back(rootMovesSize);
+        tbRankGroups[tbRankGroupCount] = rootMovesSize;
 
+        std::size_t tbRankGroupIndex = 0;  // index in tbRankGroups
+        std::size_t begPV = endPV = 0;
         // MultiPV loop. Perform a full root search for each PV line
         for (curPV = 0; curPV < multiPV; ++curPV)
         {
-            // Find which group curPV belongs to
-            // upper_bound gives first group that starts AFTER curPV
-            auto itr = std::upper_bound(tbRankGroup.begin(), tbRankGroup.end(), curPV);
-            --itr;  // step back to group start containing curPV
-
-            std::size_t begPV = *itr;
-            /**/ endPV        = *(itr + 1);  // safe because of sentinel
+            // Advance group if curPV reached endPV
+            if (curPV == endPV)
+            {
+                begPV = tbRankGroups[tbRankGroupIndex];
+                endPV = tbRankGroups[tbRankGroupIndex + 1];  // safe because of sentinel
+                ++tbRankGroupIndex;
+            }
 
             // Reset UCI info selDepth for each depth and each PV line
             selDepth = 1;
