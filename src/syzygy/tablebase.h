@@ -96,10 +96,12 @@ WDLScore probe_wdl(Position& pos, ProbeState* ps) noexcept;
 int      probe_dtz(Position& pos, ProbeState* ps) noexcept;
 
 // clang-format off
+
 bool rank_root_moves_wdl(Position& pos, RootMoves& rootMoves, bool useRule50) noexcept;
 bool rank_root_moves_dtz(Position& pos, RootMoves& rootMoves, bool useRule50, bool rankDTZ = false, TimeFunc time_to_abort = []() { return false; }) noexcept;
 
 Config rank_root_moves(Position& pos, RootMoves& rootMoves, const Options& options, bool rankDTZ = false, TimeFunc time_to_abort = []() { return false; }) noexcept;
+
 // clang-format on
 
 }  // namespace Tablebase
