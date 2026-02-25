@@ -101,9 +101,9 @@ Engine::Engine(std::string_view path) noexcept :
     options.add("UCI_ELO",              Option(Skill::ELO_MAX, Skill::ELO_MIN, Skill::ELO_MAX));
     options.add("UCI_ShowWDL",          Option(false));
     options.add("SkillLevel",           Option(Skill::LEVEL_MAX, Skill::LEVEL_MIN, Skill::LEVEL_MAX));
-    options.add("OverheadTime",         Option(25, 0, 5000));   // Overhead per move
-    options.add("MinimumMoveTime",      Option(20, 0, 5000));   // Time floor constraint
-    options.add("BufferTime",           Option(10, 0, 5000));   // Safety reserve (very intuitive)
+    options.add("OverheadTime",         Option(25,  0, 5000));  // Overhead per move
+    options.add("MinimumMoveTime",      Option(20,  0, 5000));  // Time floor constraint
+    options.add("BufferTime",           Option(10,  0, 5000));  // Safety reserve (very intuitive)
     options.add("TimePercent",          Option(80, 10, 1000));  // Time scaling factor (%age)
     options.add("NodesTime",            Option(0, 0, 10000));
     options.add("SleepOnStart",         Option(false));
