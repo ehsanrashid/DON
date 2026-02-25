@@ -1442,7 +1442,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
         }
 
         // Add extension to new depth
-        newDepth = std::clamp(newDepth + extension, +DEPTH_ZERO, +DEPTH_MAX);
+        newDepth += extension;
 
         [[maybe_unused]] std::uint64_t preNodes;
         if constexpr (RootNode)
@@ -1511,8 +1511,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
                 bool reduce = value < 9 + bestValue;
 
                 // Adjust full-depth search based on LMR value
-                newDepth =
-                  std::clamp(newDepth + int(extend) - int(reduce), +DEPTH_ZERO, +DEPTH_MAX);
+                newDepth += int(extend) - int(reduce);
 
                 if (redDepth < newDepth)
                     value = -search<~T>(pos, ss + 1, -alpha - 1, -alpha, newDepth);
