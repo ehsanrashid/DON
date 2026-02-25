@@ -592,7 +592,7 @@ class Worker final {
 
     bool ponder_move_extracted() noexcept;
 
-    void extend_tb_pv(RootMove& rootMove, Value& value) noexcept;
+    void extend_tb_pv(std::size_t index, Value& value) noexcept;
 
     const std::size_t threadId, threadCount, numaId, numaThreadCount;
 

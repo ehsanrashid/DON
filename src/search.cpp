@@ -1545,10 +1545,10 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
                 (ss + 1)->pv = pv.data();
 
                 // Extends ttMove if about to dive into qsearch
-                if (ttm
+                if (newDepth <= DEPTH_ZERO && ttm
                     && (ttd.depth > 1
                         || (ttd.depth >= 1 && is_valid(ttd.value) && is_decisive(ttd.value))))
-                    newDepth = std::max(+newDepth, 1);
+                    newDepth = 1;
 
                 value = -search<NT::PV>(pos, ss + 1, -beta, -alpha, newDepth);
             }
@@ -2298,7 +2298,8 @@ bool Worker::ponder_move_extracted() noexcept {
 // Used to correct and extend PVs for moves that have a TB (but not a mate) score.
 // Keeps the search based PV for as long as it is verified to maintain the game outcome, truncates afterwards.
 // Finally, extends to mate the PV, providing a possible continuation (but not a proven mating line).
-void Worker::extend_tb_pv(RootMove& rootMove, Value& value) noexcept {
+void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
+    assert(index < rootMoves.size());
 
     if (!options["SyzygyPVExtend"])
         return;
@@ -2318,6 +2319,8 @@ void Worker::extend_tb_pv(RootMove& rootMove, Value& value) noexcept {
     };
 
     bool aborted = false;
+
+    auto& rootMove = rootMoves[index];
 
     std::list<State> states;
 
@@ -2498,7 +2501,7 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
     assert(depth > DEPTH_ZERO);
 
     const auto&       rootPos            = worker.rootPos;
-    auto&             rootMoves          = worker.rootMoves;
+    const auto&       rootMoves          = worker.rootMoves;
     const auto&       options            = worker.options;
     const auto&       threads            = worker.threads;
     const auto&       transpositionTable = worker.transpositionTable;
@@ -2542,7 +2545,7 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
 
         // Potentially correct and extend the PV, and in exceptional cases value also
         if ((exact || rm.bound == Bound::NONE) && is_decisive(v) && !is_mate(v))
-            worker.extend_tb_pv(rm, v);
+            worker.extend_tb_pv(i, v);
 
         FixedText score{UCI::to_score({v, rootPos})};
 
