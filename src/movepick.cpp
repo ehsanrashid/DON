@@ -435,7 +435,7 @@ STAGE_SWITCH:
 
             init_stage<GenType::ENC_CAPTURE>();
         }
-
+        // Init done, now dispatch
         goto STAGE_SWITCH;
 
     case Stage::ENC_GOOD_CAPTURE :

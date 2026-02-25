@@ -2508,11 +2508,10 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
     const std::size_t multiPV            = worker.multiPV;
     const std::size_t curPV              = worker.curPV;
     // Ensure non-zero to avoid a 'divide by zero'
-    TimePoint     time     = std::max(elapsed(), TimePoint{1});
-    std::uint64_t nodes    = threads.sum(&Worker::nodes);
+    TimePoint     time   = std::max(elapsed(), TimePoint{1});
+    std::uint64_t nodes  = threads.sum(&Worker::nodes);
+    std::uint64_t tbHits = threads.sum(&Worker::tbHits, int(tbConfig.rootInTB) * rootMoves.size());
     std::uint16_t hashfull = transpositionTable.hashfull();
-    std::uint64_t tbHits   = threads.sum(&Worker::tbHits,  //
-                                       tbConfig.rootInTB ? rootMoves.size() : 0);
     bool          ShowWDL  = options["UCI_ShowWDL"];
 
     for (std::size_t i = 0; i < multiPV; ++i)

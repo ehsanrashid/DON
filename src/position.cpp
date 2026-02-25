@@ -566,7 +566,7 @@ std::string Position::fen(bool complete) const noexcept {
 
     for (Rank r = RANK_8;; --r)
     {
-        std::uint32_t emptyCount = 0;
+        std::uint8_t emptyCount = 0;
 
         for (File f = FILE_A; f <= FILE_H; ++f)
         {
@@ -577,17 +577,21 @@ std::string Position::fen(bool complete) const noexcept {
             else
             {
                 if (emptyCount != 0)
+                {
                     fens.push_back(digit_to_char(emptyCount));
+                    emptyCount = 0;
+                }
 
                 fens.push_back(to_char(piece(s)));
-
-                emptyCount = 0;
             }
         }
 
         // Handle trailing empty squares
         if (emptyCount != 0)
+        {
             fens.push_back(digit_to_char(emptyCount));
+            //emptyCount = 0;
+        }
 
         if (r == RANK_1)
             break;

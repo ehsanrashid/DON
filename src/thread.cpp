@@ -235,10 +235,11 @@ void Threads::set(const NumaConfig&                       numaConfig,
     }
     else
     {
-        // Done in destroy()
-        //threadBoundNumaNodes.clear();
+        std::lock_guard writeLock(sharedMutex);
 
-        thBoundNumaNodes = std::vector<NumaIndex>(threadCount, 0);
+        threadBoundNumaNodes.clear();
+
+        thBoundNumaNodes = std::vector(threadCount, NumaIndex{0});
 
         numaThreadCounts.reserve(1);
         // All threads belong to NUMA node 0
