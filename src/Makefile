@@ -173,7 +173,7 @@ VPATH := nnue:nnue/features:syzygy
 # sse41 = yes/no      --- -msse4.1           --- Use Intel Streaming SIMD Extensions 4.1
 # avx2 = yes/no       --- -mavx2             --- Use Intel Advanced Vector Extensions 2
 # bmi2 = yes/no       --- -DUSE_BMI2         --- Use pext & pdep x86_64 asm-instruction
-# comp = yes/no       --- -DUSE_COMP         --- Internal flag for compressed-optimized variants
+# cmp = yes/no        --- -DUSE_CMP          --- Internal flag for compressed-optimized variants
 # avxvnni = yes/no    --- -mavxvnni          --- Use Intel Vector Neural Network Instructions AVX
 # avx512 = yes/no     --- -mavx512bw         --- Use Intel Advanced Vector Extensions 512
 # vnni256 = yes/no    --- -mavx256vnni       --- Use Intel Vector Neural Network Instructions 512 with 256bit operands
@@ -211,8 +211,8 @@ endif
 # GNU Make filter:
 #   - returns matches, not true/false
 #   - non-empty => ARCH found in supported list
-ifneq ($(filter x86-64-avx512icl-comp x86-64-avx512icl x86-64-vnni512-comp x86-64-vnni512 x86-64-vnni256-comp x86-64-vnni256 \
-                x86-64-avx512-comp x86-64-avx512 x86-64-avxvnni-comp x86-64-avxvnni x86-64-bmi2-comp x86-64-bmi2 \
+ifneq ($(filter x86-64-avx512icl-cmp x86-64-avx512icl x86-64-vnni512-cmp x86-64-vnni512 x86-64-vnni256-cmp x86-64-vnni256 \
+                x86-64-avx512-cmp x86-64-avx512 x86-64-avxvnni-cmp x86-64-avxvnni x86-64-bmi2-cmp x86-64-bmi2 \
                 x86-64-avx2 x86-64-sse41-popcnt x86-64-modern x86-64-sse41 x86-64-ssse3-popcnt x86-64-ssse3 x86-64 general-64 \
                 x86-32-sse41-popcnt x86-32-sse41 x86-32-sse2 x86-32 general-32 \
                 ppc-64-altivec ppc-64-vsx ppc-64 ppc-32 e2k armv7-neon armv7 armv8-dotprod armv8 apple-silicon riscv64 \
@@ -236,7 +236,7 @@ ssse3 = no
 sse41 = no
 avx2 = no
 bmi2 = no
-comp = no
+cmp = no
 avxvnni = no
 avx512 = no
 vnni256 = no
@@ -327,8 +327,8 @@ ifeq ($(findstring -bmi2,$(ARCH)),-bmi2)
     bmi2 = yes
 endif
 
-ifeq ($(findstring -comp,$(ARCH)),-comp)
-    comp = yes
+ifeq ($(findstring -cmp,$(ARCH)),-cmp)
+    cmp = yes
 endif
 
 ifeq ($(findstring -avxvnni,$(ARCH)),-avxvnni)
@@ -987,8 +987,8 @@ ifeq ($(bmi2),yes)
 ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
     CXXFLAGS += -mbmi2
 endif
-ifeq ($(comp),yes)
-    CXXFLAGS += -DUSE_COMP
+ifeq ($(cmp),yes)
+    CXXFLAGS += -DUSE_CMP
 endif
 endif
 
@@ -1299,7 +1299,7 @@ config-sanity: net
 	echo "sse41: '$(sse41)'" && \
 	echo "avx2: '$(avx2)'" && \
 	echo "bmi2: '$(bmi2)'" && \
-	echo "comp: '$(comp)'" && \
+	echo "cmp: '$(cmp)'" && \
 	echo "avxvnni: '$(avxvnni)'" && \
 	echo "avx512: '$(avx512)'" && \
 	echo "vnni256: '$(vnni256)'" && \
@@ -1340,7 +1340,7 @@ config-sanity: net
 	(test "$(sse41)"    = "no" || test "$(sse41)"    = "yes") && \
 	(test "$(avx2)"     = "no" || test "$(avx2)"     = "yes") && \
 	(test "$(bmi2)"     = "no" || test "$(bmi2)"     = "yes") && \
-	(test "$(comp)"     = "no" || test "$(comp)"     = "yes") && \
+	(test "$(cmp)"      = "no" || test "$(cmp)"      = "yes") && \
 	(test "$(avxvnni)"  = "no" || test "$(avxvnni)"  = "yes") && \
 	(test "$(avx512)"   = "no" || test "$(avx512)"   = "yes") && \
 	(test "$(vnni256)"  = "no" || test "$(vnni256)"  = "yes") && \

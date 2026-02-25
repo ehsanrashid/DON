@@ -106,7 +106,7 @@ struct Magic final {
 
 #if defined(USE_BMI2)
     void attacks_bb(Bitboard occupancyBB, Bitboard referenceBB) noexcept {
-    #if defined(USE_COMP)
+    #if defined(USE_CMP)
         attacksBBs[index(occupancyBB)] = _pext_u64(referenceBB, reMaskBB);
     #else
         attacksBBs[index(occupancyBB)] = referenceBB;
@@ -116,7 +116,7 @@ struct Magic final {
 
     Bitboard attacks_bb(Bitboard occupancyBB) const noexcept {
 #if defined(USE_BMI2)
-    #if defined(USE_COMP)
+    #if defined(USE_CMP)
         return _pdep_u64(attacksBBs[index(occupancyBB)], reMaskBB);
     #else
         return attacksBBs[index(occupancyBB)];
@@ -144,7 +144,7 @@ struct Magic final {
     }
 
 #if defined(USE_BMI2)
-    #if defined(USE_COMP)
+    #if defined(USE_CMP)
     Bitboard16* attacksBBs;
     Bitboard    maskBB;
     Bitboard    reMaskBB;
