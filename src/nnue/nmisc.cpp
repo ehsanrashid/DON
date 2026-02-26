@@ -42,8 +42,7 @@ void format_cp_compact(char* buffer, Value v, const Position& pos) noexcept {
     // Set the sign character
     buffer[0] = (v < 0 ? '-' : v > 0 ? '+' : ' ');
     // Convert to centipawns and take absolute value
-    int cp = constexpr_abs(UCI::to_cp(v, pos));
-    if (cp >= 10000)
+    if (int cp = constexpr_abs(UCI::to_cp(v, pos)); cp >= 10000)
     {
         buffer[1] = digit_to_char(cp / 10000);
         cp %= 10000;

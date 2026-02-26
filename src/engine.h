@@ -67,7 +67,7 @@ class Engine final {
     // Non-blocking call to stop searching
     void stop() noexcept;
 
-    void ponderhit() noexcept;
+    void ponderhit() const noexcept;
 
     // Blocking call to wait for search to finish
     void wait_finish() const noexcept;

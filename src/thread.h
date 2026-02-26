@@ -263,33 +263,29 @@ class Thread final {
 // This function blocks only until the thread is ready to accept a new job.
 // The actual job execution happens asynchronously in idle_func().
 inline void Thread::run_custom_job(JobFunc jobFn) noexcept {
+
+    std::unique_lock condLock(mutex);
+
+    // Wait until the thread is idle or being terminated.
+    // - If !busy, the thread is ready to accept a new job.
+    // - If dead, the thread is shutting down, so we shouldn't schedule work.
+    condVar.wait(condLock, [this] { return !busy || dead; });
+
+    // If the thread is still alive, schedule the job
+    if (!dead)
     {
-        std::unique_lock condLock(mutex);
+        // Move the job into the shared slot for idle_func() to pick up
+        jobFunc = std::move(jobFn);
+        jobFn   = nullptr;  // optional, defensive
 
-        // Wait until the thread is idle or being terminated.
-        // - If !busy, the thread is ready to accept a new job.
-        // - If dead, the thread is shutting down, so we shouldn't schedule work.
-        condVar.wait(condLock, [this] { return !busy || dead; });
+        // Mark the thread as busy so that other run_custom_job calls
+        // will wait until this job is complete.
+        busy = true;
 
-        // If the thread is still alive, schedule the job
-        if (!dead)
-        {
-            // Move the job into the shared slot for idle_func() to pick up
-            jobFunc = std::move(jobFn);
-            jobFn   = nullptr;  // optional, defensive
-
-            // Mark the thread as busy so that other run_custom_job calls
-            // will wait until this job is complete.
-            busy = true;
-        }
-        //// If thread is being torn down, don't schedule the job
-        //else
-        //{}
+        // Notify the thread that a new job is available.
+        // This wakes idle_func() if it is currently waiting.
+        condVar.notify_one();
     }
-
-    // Notify the thread that a new job is available.
-    // This wakes idle_func() if it is currently waiting.
-    condVar.notify_one();
 }
 
 // Wakes up the thread that will initialize the worker
@@ -390,12 +386,6 @@ class Threads final {
     std::vector<std::size_t> bound_thread_counts() const noexcept;
 
     // --- queries ---
-    bool is_active() const noexcept {
-        auto curState = state.load(std::memory_order_acquire);
-
-        return curState == State::Active || curState == State::Research;
-    }
-
     bool is_researching() const noexcept {
         return state.load(std::memory_order_acquire) == State::Research;
     }
@@ -488,9 +478,7 @@ class Threads final {
     // State transition diagram:
     // Active -> Research
     //   |          |
-    //   ---------->
-    //   |          |
-    //   ------------Stopped (final, cannot transition out)
+    //   >---------->Stopped (terminal, no exit)
     enum class State : std::uint8_t {
         Active,
         Research,

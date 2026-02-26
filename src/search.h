@@ -107,8 +107,8 @@ struct RootMove final {
     Value curValue = -VALUE_INFINITE;
     Value preValue = -VALUE_INFINITE;
     Value uciValue = -VALUE_INFINITE;
-    Value avgValue = -VALUE_INFINITE;
 
+    Value    avgValue    = -VALUE_INFINITE;
     SqrValue avgSqrValue = sign_sqr(-VALUE_INFINITE);
 
     std::int32_t  tbRank   = 0;
@@ -438,8 +438,7 @@ class MainSearchManager final: public ISearchManager {
     };
 
     MainSearchManager() noexcept = delete;
-    explicit MainSearchManager(const UpdateContext& updateCtx) noexcept :
-        updateContext(updateCtx) {}
+    explicit MainSearchManager(const UpdateContext& updateCtx) noexcept;
 
     void init() noexcept;
 
@@ -577,8 +576,6 @@ class Worker final {
 
     Value evaluate(const Position& pos) noexcept;
 
-    void update_pawn_history(PawnHistory& pawnHistory, Piece pc, Square dstSq, int bonus) noexcept;
-
     void update_capture_history(Piece pc, Square dstSq, PieceType captured, int bonus) noexcept;
     void update_capture_history(const Position& pos, Move m, int bonus) noexcept;
     void update_quiet_history(Color ac, Move m, int bonus) noexcept;
@@ -587,7 +584,7 @@ class Worker final {
     void update_quiet_histories(const Position& pos, PawnHistory& pawnHistory, Stack* ss, Move m, int bonus) noexcept;
     void update_histories(const Position& pos, PawnHistory& pawnHistory, Stack* ss, Depth depth, Move bestMove, bool extra, const StdArray<SearchedMoves, 2>& searchedMoves) noexcept;
 
-    void update_correction_histories(const Position& pos, Stack* ss, int bonus) noexcept;
+    void update_correction_histories(const Position& pos, const Stack* ss, int bonus) noexcept;
     int  correction_value(const Position& pos, const Stack* ss) const noexcept;
 
     int history_value(bool capture, Move m, Piece movedPc, PieceType capturedPt, Color ac, const History<HType::PIECE_SQ>** contHistory) const noexcept;

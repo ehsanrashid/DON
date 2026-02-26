@@ -186,6 +186,13 @@ void update_continuation_history(Stack* ss, Piece pc, Square dstSq, int bonus) n
     }
 }
 
+void update_pawn_history(PawnHistory& pawnHistory,
+                         Piece        movedPc,
+                         Square       dstSq,
+                         int          bonus) noexcept {
+    pawnHistory[+movedPc][dstSq] << bonus;
+}
+
 // Adjust raw evaluation according to various correction histories value
 // and guarantee evaluation does not hit the tablebase range.
 Value adjust_eval_value(Value evalValue, int correctionValue) noexcept {
@@ -235,7 +242,7 @@ Worker::Worker(std::size_t               threadIdx,
 
 // Initialize per-thread data structures
 void Worker::init() noexcept {
-
+    assert(thread_count() == threads.size());
     // Each thread initializes its NUMA-local range of history entries to prevent false sharing
 
     auto historyRange =
@@ -483,6 +490,7 @@ void Worker::iterative_deepening() noexcept {
         if (lastBestPV[0] != Move::None)
         {
             auto nowBestCurValue = rootMoves[0].curValue;
+            auto nowBestPreValue = rootMoves[0].preValue;
 
             bool nowIsWin   = is_win(nowBestCurValue);
             bool nowIsLoss  = is_loss(nowBestCurValue);
@@ -496,7 +504,14 @@ void Worker::iterative_deepening() noexcept {
             else if (nowIsLoss)
                 restore = !lastIsLoss || lastBestCurValue > nowBestCurValue;
             else
-                restore = rootMoves[0].pv.size() <= lastBestPV.size();
+            {
+                if (nowBestCurValue != lastBestCurValue)
+                    restore = nowBestCurValue < lastBestCurValue;
+                else if (nowBestPreValue != lastBestPreValue)
+                    restore = nowBestPreValue < lastBestPreValue;
+                else
+                    restore = rootMoves[0].pv.size() < lastBestPV.size();
+            }
 
             if (restore)
             {
@@ -613,7 +628,7 @@ void Worker::iterative_deepening() noexcept {
             auto avgSqrValue = rootMoves[curPV].avgSqrValue;
 
             // Reset aspiration window starting size
-            int delta = 5 + std::min(int(thread_count()) - 1, 8)
+            int delta = 5 + std::min(threads.size() - 1, std::size_t(8))
                       + constexpr_round(1.0032e-4 * double(constexpr_abs(avgSqrValue)));
 
             Value alpha = std::max(avgValue - delta, -VALUE_INFINITE);
@@ -2066,10 +2081,6 @@ Value Worker::evaluate(const Position& pos) noexcept {
 
 // clang-format off
 
-void Worker::update_pawn_history(PawnHistory& pawnHistory, Piece movedPc, Square dstSq, int bonus) noexcept {
-    pawnHistory[+movedPc][dstSq] << bonus;
-}
-
 void Worker::update_capture_history(Piece movedPc, Square dstSq, PieceType capturedPt, int bonus) noexcept {
     captureHistory[+movedPc][dstSq][capturedPt] << bonus;
 }
@@ -2144,7 +2155,7 @@ void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Sta
 }
 
 // Updates correction histories at the end of search() when a bestMove is found
-void Worker::update_correction_histories(const Position& pos, Stack* ss, int bonus) noexcept {
+void Worker::update_correction_histories(const Position& pos, const Stack* ss, int bonus) noexcept {
     constexpr double    PawnBonusScale = 1.0000;
     constexpr double   MinorBonusScale = 1.2109;
     constexpr double NonPawnBonusScale = 1.4141;
@@ -2300,7 +2311,7 @@ bool Worker::ponder_move_extracted() noexcept {
 }
 
 // Used to correct and extend PVs for moves that have a TB (but not a mate) score.
-// Keeps the search based PV for as long as it is verified to maintain the game outcome, truncates afterwards.
+// Keeps the search based PV for as long as it is verified to maintain the game outcome, truncates afterward.
 // Finally, extends to mate the PV, providing a possible continuation (but not a proven mating line).
 void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
     assert(index < rootMoves.size());
@@ -2443,6 +2454,9 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
           "Syzygy based PV extension requires more time, increase Overhead-Time as needed.");
 }
 
+MainSearchManager::MainSearchManager(const UpdateContext& updateCtx) noexcept :
+    updateContext(updateCtx) {}
+
 // Initializes the time manager and resets previous search info
 void MainSearchManager::init() noexcept {
 
@@ -2474,16 +2488,17 @@ void MainSearchManager::check_time(Worker& worker) noexcept {
     }
 #endif
 
+    // Should not stop pondering until told so by the GUI
+    if (ponder)
+        return;
+
+    if (worker.completedDepth <= DEPTH_ZERO)
+        return;
+
     // clang-format off
-    if (
-      // Should not stop pondering until told so by the GUI
-      !ponder
-      // Later rely on the fact that at least use the main-thread previous root-search
-      // score and PV in a multi-threaded environment to prove mated-in scores.
-      && worker.completedDepth > DEPTH_ZERO
-      && ((worker.limit.use_time_manager() &&      (ponderhitStop || elapsedTime >= timeManager.maximum()))
-       || (worker.limit.moveTime != 0      &&                        elapsedTime >= worker.limit.moveTime)
-       || (worker.limit.nodes != 0         && worker.threads.sum(&Worker::nodes) >= worker.limit.nodes)))
+    if ((worker.limit.use_time_manager() &&      (ponderhitStop || elapsedTime >= timeManager.maximum()))
+     || (worker.limit.moveTime != 0      &&                        elapsedTime >= worker.limit.moveTime)
+     || (worker.limit.nodes != 0         && worker.threads.sum(&Worker::nodes) >= worker.limit.nodes))
         worker.threads.request_stop();
     // clang-format on
 }
@@ -2567,8 +2582,9 @@ void MainSearchManager::handle_time_management(const Worker& worker,
             worker.threads.request_stop();
     }
 
-    if (!ponder && 1000 * elapsedTime > 503 * totalTime)
-        worker.threads.request_research();
+    if (!worker.threads.is_researching())
+        if (!ponder && 1000 * elapsedTime > 503 * totalTime)
+            worker.threads.request_research();
 
     preBestCurValue = bestValue;
 }
