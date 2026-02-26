@@ -466,13 +466,10 @@ void Worker::iterative_deepening() noexcept {
     Value lastBestUciValue = -VALUE_INFINITE;
 
     auto updateLastBest = [&]() {
-        if (rootMoves[0].pv[0] != lastBestPV[0])
-        {
-            lastBestPV       = rootMoves[0].pv;
-            lastBestCurValue = rootMoves[0].curValue;
-            lastBestPreValue = rootMoves[0].preValue;
-            lastBestUciValue = rootMoves[0].uciValue;
-        }
+        lastBestPV       = rootMoves[0].pv;
+        lastBestCurValue = rootMoves[0].curValue;
+        lastBestPreValue = rootMoves[0].preValue;
+        lastBestUciValue = rootMoves[0].uciValue;
     };
 
     auto restoreLastBest = [&]() {
@@ -686,6 +683,8 @@ void Worker::iterative_deepening() noexcept {
                 break;
         }
 
+        bool lastBestMoveChanged = rootMoves[0].pv[0] != lastBestPV[0];
+
         if (!threads.is_aborted())
             updateLastBest();
         else
@@ -695,7 +694,7 @@ void Worker::iterative_deepening() noexcept {
             break;
 
         completedDepth = rootDepth;
-        if (rootMoves[0].pv[0] != lastBestPV[0])
+        if (lastBestMoveChanged)
             lastCompletedDepth = rootDepth;
 
         if (mainManager != nullptr)
