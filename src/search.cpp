@@ -464,8 +464,6 @@ void Worker::iterative_deepening() noexcept {
 
     ss->pv = pv.data();
 
-    std::size_t rootMovesSize = rootMoves.size();
-
     std::uint16_t researchCnt = 0;
 
     Value bestValue = -VALUE_INFINITE;
@@ -475,6 +473,9 @@ void Worker::iterative_deepening() noexcept {
     Value lastBestPreValue = -VALUE_INFINITE;
     Value lastBestUciValue = -VALUE_INFINITE;
     Depth lastBestDepth    = DEPTH_ZERO;
+
+    std::size_t rootMovesSize = rootMoves.size();
+    assert(rootMovesSize != 0);
 
     accStack.reset();
 
@@ -496,9 +497,9 @@ void Worker::iterative_deepening() noexcept {
         // will use behind-the-scenes to retrieve a set of sub-optimal moves.
         if (mainManager->skill.enabled())
             multiPV = std::max(std::size_t(4), multiPV);
-    }
 
-    multiPV = std::min(rootMoves.size(), multiPV);
+        multiPV = std::min(rootMovesSize, multiPV);
+    }
 
     completedDepth = DEPTH_ZERO;
 
