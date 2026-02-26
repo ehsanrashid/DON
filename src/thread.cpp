@@ -363,11 +363,11 @@ struct BetterThread final {
         // Case 1: Winning positions
         // Both winning -> prefer shorter mates (higher eval)
         if (best.win)
-            return cand.win && cand.value > best.value;
+            return cand.win && best.value < cand.value;
         // Case 2: Losing positions
         // Best is losing -> prefer escape to non-loss, or longer mated (delay defeat)
         if (best.loss)
-            return !cand.loss || cand.value > best.value;
+            return !cand.loss || best.value < cand.value;
 
         // Case 3: Normal/Draw positions
         return tie_break(best, cand);
@@ -383,11 +383,11 @@ struct BetterThread final {
             return false;  // Draw beats loss
 
         // Case 3b: Both normal -> compare by voting metrics
-        if (cand.voteCount != best.voteCount)
-            return cand.voteCount > best.voteCount;  // Primary: vote count
-        if (cand.voteWeight != best.voteWeight)
-            return cand.voteWeight > best.voteWeight;  // Tie-break 1: depth-weighted value
-        return cand.pvSize > best.pvSize;              // Tie-break 2: PV size
+        if (best.voteCount != cand.voteCount)
+            return best.voteCount < cand.voteCount;  // Primary: vote count
+        if (best.voteWeight != cand.voteWeight)
+            return best.voteWeight < cand.voteWeight;  // Tie-break 1: depth-weighted value
+        return best.pvSize < cand.pvSize;              // Tie-break 2: PV size
     }
 };
 

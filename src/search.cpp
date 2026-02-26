@@ -490,6 +490,7 @@ void Worker::iterative_deepening() noexcept {
         if (lastBestPV[0] != Move::None)
         {
             auto nowBestCurValue = rootMoves[0].curValue;
+            auto nowBestPreValue = rootMoves[0].preValue;
 
             bool nowIsWin   = is_win(nowBestCurValue);
             bool nowIsLoss  = is_loss(nowBestCurValue);
@@ -503,7 +504,14 @@ void Worker::iterative_deepening() noexcept {
             else if (nowIsLoss)
                 restore = !lastIsLoss || lastBestCurValue > nowBestCurValue;
             else
-                restore = rootMoves[0].pv.size() <= lastBestPV.size();
+            {
+                if (nowBestCurValue != lastBestCurValue)
+                    restore = nowBestCurValue < lastBestCurValue;
+                else if (nowBestPreValue != lastBestPreValue)
+                    restore = nowBestPreValue < lastBestPreValue;
+                else
+                    restore = rootMoves[0].pv.size() < lastBestPV.size();
+            }
 
             if (restore)
             {
