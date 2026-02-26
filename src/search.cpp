@@ -465,26 +465,44 @@ void Worker::iterative_deepening() noexcept {
     Value lastBestPreValue = -VALUE_INFINITE;
     Value lastBestUciValue = -VALUE_INFINITE;
 
-    auto updateLastBest = [&]() {
+    auto update_last_best = [&]() {
         lastBestPV       = rootMoves[0].pv;
         lastBestCurValue = rootMoves[0].curValue;
         lastBestPreValue = rootMoves[0].preValue;
         lastBestUciValue = rootMoves[0].uciValue;
     };
 
-    auto restoreLastBest = [&]() {
+    auto restore_last_best = [&]() {
         // Make sure not to pick an unproven mated-in score,
         // in case this worker prematurely stopped the search (aborted-search).
-        if (lastBestPV[0] != Move::None && rootMoves[0].curValue != -VALUE_INFINITE
-            && is_loss(rootMoves[0].curValue))
+        if (lastBestPV[0] != Move::None)
         {
-            // Bring the last best rootMove to the front for best thread selection.
-            rootMoves.move_to_front([&lastBestPV = std::as_const(lastBestPV)](
-                                      const auto& rm) noexcept { return rm == lastBestPV[0]; });
-            rootMoves[0].pv       = lastBestPV;
-            rootMoves[0].curValue = lastBestCurValue;
-            rootMoves[0].preValue = lastBestPreValue;
-            rootMoves[0].uciValue = lastBestUciValue;
+            auto nowBestCurValue = rootMoves[0].curValue;
+
+            bool nowIsWin   = is_win(nowBestCurValue);
+            bool nowIsLoss  = is_loss(nowBestCurValue);
+            bool lastIsWin  = is_win(lastBestCurValue);
+            bool lastIsLoss = is_loss(lastBestCurValue);
+
+            bool restore;
+
+            if (nowIsWin)
+                restore = lastIsWin && lastBestCurValue > nowBestCurValue;
+            else if (nowIsLoss)
+                restore = !lastIsLoss || lastBestCurValue > nowBestCurValue;
+            else
+                restore = true;
+
+            if (restore)
+            {
+                // Bring the last best rootMove to the front for best thread selection.
+                rootMoves.move_to_front([&lastBestPV = std::as_const(lastBestPV)](
+                                          const auto& rm) noexcept { return rm == lastBestPV[0]; });
+                rootMoves[0].pv       = lastBestPV;
+                rootMoves[0].curValue = lastBestCurValue;
+                rootMoves[0].preValue = lastBestPreValue;
+                rootMoves[0].uciValue = lastBestUciValue;
+            }
         }
     };
 
@@ -669,25 +687,24 @@ void Worker::iterative_deepening() noexcept {
             // Sort the PV lines searched so far
             rootMoves.sort(begPV, curPV + 1);
 
-            // Give some update about the PV
-            if (
-              mainManager != nullptr
-              && (threads.is_stopped() || curPV + 1 == multiPV || rootDepth > 30)
-              // A thread that aborted search can have mated-in/TB-loss PV and score that cannot be trusted,
-              // i.e. it can be delayed or refuted if have had time to fully search other root-moves.
-              // Thus, suppress this output and below pick a proven score/PV for this thread (from the previous iteration).
-              && !(threads.is_aborted() && is_loss(rootMoves[0].uciValue)))
-                mainManager->show_pv(*this, rootDepth);
-
             if (threads.is_stopped())
                 break;
+
+            // Give some update about the PV
+            if (mainManager != nullptr && (curPV + 1 == multiPV || rootDepth > 30))
+                mainManager->show_pv(*this, rootDepth);
         }
 
-        if (threads.is_aborted())
-            restoreLastBest();
-
         if (threads.is_stopped())
+        {
+            restore_last_best();
+
+            // Give some update about the PV
+            if (mainManager != nullptr)
+                mainManager->show_pv(*this, completedDepth);
+
             break;
+        }
 
         bool lastBestMoveChanged = rootMoves[0].pv[0] != lastBestPV[0];
 
@@ -696,7 +713,7 @@ void Worker::iterative_deepening() noexcept {
         if (lastBestMoveChanged)
             lastCompletedDepth = rootDepth;
 
-        updateLastBest();
+        update_last_best();
 
         if (mainManager != nullptr)
         {
@@ -2462,7 +2479,7 @@ void MainSearchManager::check_time(Worker& worker) noexcept {
       && ((worker.limit.use_time_manager() &&      (ponderhitStop || elapsedTime >= timeManager.maximum()))
        || (worker.limit.moveTime != 0      &&                        elapsedTime >= worker.limit.moveTime)
        || (worker.limit.nodes != 0         && worker.threads.sum(&Worker::nodes) >= worker.limit.nodes)))
-        worker.threads.request_abort();
+        worker.threads.request_stop();
     // clang-format on
 }
 
@@ -2542,7 +2559,7 @@ void MainSearchManager::handle_time_management(const Worker& worker,
         if (ponder)
             ponderhitStop = true;
         else
-            worker.threads.request_abort();
+            worker.threads.request_stop();
     }
 
     if (!ponder && 1000 * elapsedTime > 503 * totalTime)

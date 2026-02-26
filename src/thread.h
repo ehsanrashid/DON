@@ -401,13 +401,7 @@ class Threads final {
     }
 
     bool is_stopped() const noexcept {
-        auto curState = state.load(std::memory_order_acquire);
-
-        return curState == State::Aborted || curState == State::Stopped;
-    }
-
-    bool is_aborted() const noexcept {
-        return state.load(std::memory_order_acquire) == State::Aborted;
+        return state.load(std::memory_order_acquire) == State::Stopped;
     }
 
     // --- actions ---
@@ -416,8 +410,8 @@ class Threads final {
 
         while (true)
         {
-            // Don't override aborted or stopped states
-            if (curState == State::Aborted || curState == State::Stopped)
+            // Don't override stopped states
+            if (curState == State::Stopped)
                 break;
 
             // Try to transition to Research
@@ -429,27 +423,8 @@ class Threads final {
     }
 
     void request_stop() noexcept {
-        auto curState = state.load(std::memory_order_relaxed);
-
-        while (true)
-        {
-            // Don't override aborted state
-            if (curState == State::Aborted)
-                break;
-
-            // Try to transition to Stopped
-            if (state.compare_exchange_weak(curState, State::Stopped, std::memory_order_release,
-                                            std::memory_order_relaxed))
-                break;
-            // current-state is updated on failure, loop continues
-        }
-
-        notify_main_manager();
-    }
-
-    void request_abort() noexcept {
-        // Always go to aborted
-        state.store(State::Aborted, std::memory_order_release);
+        // Always go to stopped state, even if currently researching or active
+        state.store(State::Stopped, std::memory_order_release);
 
         notify_main_manager();
     }
@@ -511,16 +486,15 @@ class Threads final {
 
    private:
     // State transition diagram:
-    // Active -> Research -> Stopped
-    //   |          |           |
-    //   ---------->----------->-
-    //   |          |           |
-    //   -------------------------> Aborted (final, cannot transition out)
+    // Active -> Research
+    //   |          |
+    //   ---------->
+    //   |          |
+    //   ------------Stopped (final, cannot transition out)
     enum class State : std::uint8_t {
         Active,
         Research,
-        Stopped,
-        Aborted
+        Stopped
     };
 
     Threads(const Threads&) noexcept            = delete;
