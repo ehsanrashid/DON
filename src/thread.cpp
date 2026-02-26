@@ -598,7 +598,7 @@ void Threads::start(Position&      pos,
     main_thread()->start_search();
 }
 
-void Threads::run_on_thread(std::size_t threadId, JobFunc job) noexcept {
+void Threads::run_on_thread(std::size_t threadId, JobFunc job) const noexcept {
     Thread* thread = nullptr;
     {
         std::shared_lock readLock(sharedMutex);
@@ -611,7 +611,7 @@ void Threads::run_on_thread(std::size_t threadId, JobFunc job) noexcept {
     thread->run_custom_job(std::move(job));
 }
 
-void Threads::wait_on_thread(std::size_t threadId) noexcept {
+void Threads::wait_on_thread(std::size_t threadId) const noexcept {
     Thread* thread = nullptr;
     {
         std::shared_lock readLock(sharedMutex);

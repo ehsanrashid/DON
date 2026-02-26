@@ -675,7 +675,7 @@ class NumaConfig final {
         // the new NUMA allocation behavior was introduced while there was
         // still no way to set thread affinity spanning multiple processor groups.
         // See https://learn.microsoft.com/en-us/windows/win32/procthread/numa-support
-        // Also do this is if need to force old API for some reason.
+        // Also do this if need to force old API for some reason.
         //
         // Later it appears that needed to actually always force this behavior.
         // While Windows allows this to work now, such assignments have bad interaction
@@ -739,7 +739,7 @@ class NumaConfig final {
         return numaCfg;
     }
 
-    static NumaConfig empty() noexcept { return NumaConfig(0, false); }
+    static NumaConfig empty() noexcept { return NumaConfig{0, false}; }
 
     // ':'-separated numa nodes
     // ','-separated cpu indices
@@ -1468,7 +1468,7 @@ class BaseNumaReplicated {
 
     virtual ~BaseNumaReplicated() noexcept;
 
-    const NumaConfig& numa_config() const noexcept;
+    [[nodiscard]] const NumaConfig& numa_config() const noexcept;
 
     virtual void on_numa_config_changed() noexcept = 0;
 

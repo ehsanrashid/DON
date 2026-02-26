@@ -40,6 +40,14 @@ constexpr std::int64_t TIME_NODES_INIT = -1;
 
 }  // namespace
 
+TimePoint TimeManager::optimum() const noexcept { return optimumTime; }
+
+TimePoint TimeManager::maximum() const noexcept { return maximumTime; }
+
+TimePoint TimeManager::elapsed() const noexcept { return now() - startTime; }
+
+bool TimeManager::use_nodes_time() const noexcept { return useNodesTime; }
+
 void TimeManager::init() noexcept {
 
     timeAdjust = TIME_ADJUST_INIT;

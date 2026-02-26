@@ -214,6 +214,28 @@ Limit parse_limit(std::istream& is) noexcept {
 
 }  // namespace
 
+// Converts a Value to a Score object, considering the position for centipawn conversion
+Score::Score(Value v, const Position& pos) noexcept {
+    assert(is_ok(v));
+
+    if (!is_decisive(v))
+    {
+        score = Unit{UCI::to_cp(v, pos)};
+    }
+    else if (!is_mate(v))
+    {
+        constexpr int TB_CP = 20000;
+
+        int ply = VALUE_TB - constexpr_abs(v);
+        score   = Tablebase{v > 0 ? +TB_CP - ply : -TB_CP + ply};
+    }
+    else
+    {
+        int ply = VALUE_MATE - constexpr_abs(v);
+        score   = Mate{(v > 0 ? ply + 1 : -ply) / 2};
+    }
+}
+
 UCI::UCI(int argc, const char* argv[]) noexcept :
     commandLine(argc, argv),
     engine(arguments()[0]) {
@@ -360,9 +382,9 @@ void UCI::print_info_string(std::string_view infoSv) noexcept {
     if (stopInfoStr)
         return;
 
-    for (auto str : split(infoSv, "\n", true))
-        if (!is_whitespace(str))
-            std::cout << "info string " << str << '\n';
+    for (auto sv : split(infoSv, "\n", true))
+        if (!is_whitespace(sv))
+            std::cout << "info string " << sv << '\n';
 }
 
 namespace {
@@ -774,7 +796,7 @@ void UCI::benchmark(std::istream& is) noexcept {
               << "\nHash max, sum, avg [mille] : Count=" << hashfullCount
               << "\n    Single search          : " << maxHashfull[0] << ", " << sumHashfull[0] << ", " << avg(sumHashfull[0])
               << "\n    Single game            : " << maxHashfull[1] << ", " << sumHashfull[1] << ", " << avg(sumHashfull[1])
-              << "\nTotal time [s]             : " << elapsedTime / 1000.0
+              << "\nTotal time [s]             : " << double(elapsedTime) / 1000.0
               << "\nTotal nodes                : " << nodes
               << "\nnodes/second               : " << 1000 * nodes / elapsedTime << std::endl;
     // clang-format on
@@ -902,8 +924,8 @@ Move UCI::can_to_move(std::string can, const MoveList<GenType::LEGAL>& legalMove
     return Move::None;
 }
 
-Move UCI::can_to_move(std::string can, const Position& pos) noexcept {
-    return can_to_move(can, MoveList<GenType::LEGAL>(pos));
+Move UCI::can_to_move(std::string_view can, const Position& pos) noexcept {
+    return can_to_move(std::string{can}, MoveList<GenType::LEGAL>(pos));
 }
 
 namespace {
@@ -1042,8 +1064,8 @@ Move UCI::san_to_move(std::string                     san,
     return Move::None;
 }
 
-Move UCI::san_to_move(std::string san, Position& pos) noexcept {
-    return san_to_move(san, pos, MoveList<GenType::LEGAL>(pos));
+Move UCI::san_to_move(std::string_view san, Position& pos) noexcept {
+    return san_to_move(std::string{san}, pos, MoveList<GenType::LEGAL>(pos));
 }
 
 Move UCI::mix_to_move(std::string                     mix,
@@ -1071,28 +1093,6 @@ Move UCI::mix_to_move(std::string                     mix,
     }
 
     return m;
-}
-
-// Converts a Value to a Score object, considering the position for centipawn conversion
-Score::Score(Value v, const Position& pos) noexcept {
-    assert(is_ok(v));
-
-    if (!is_decisive(v))
-    {
-        score = Unit{UCI::to_cp(v, pos)};
-    }
-    else if (!is_mate(v))
-    {
-        constexpr int TB_CP = 20000;
-
-        int ply = VALUE_TB - constexpr_abs(v);
-        score   = Tablebase{v > 0 ? +TB_CP - ply : -TB_CP + ply};
-    }
-    else
-    {
-        int ply = VALUE_MATE - constexpr_abs(v);
-        score   = Mate{(v > 0 ? ply + 1 : -ply) / 2};
-    }
 }
 
 }  // namespace DON

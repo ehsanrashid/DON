@@ -86,7 +86,7 @@ class UCI final {
 
     void execute(std::string_view command) noexcept;
 
-    static void print_info_string(std::string_view infoStr) noexcept;
+    static void print_info_string(std::string_view infoSv) noexcept;
 
     [[nodiscard]] static int       to_cp(Value v, const Position& pos) noexcept;
     [[nodiscard]] static FixedText to_wdl(Value v, const Position& pos) noexcept;
@@ -96,14 +96,14 @@ class UCI final {
 
     [[nodiscard]] static Move can_to_move(std::string                     can,
                                           const MoveList<GenType::LEGAL>& legalMoves) noexcept;
-    [[nodiscard]] static Move can_to_move(std::string can, const Position& pos) noexcept;
+    [[nodiscard]] static Move can_to_move(std::string_view can, const Position& pos) noexcept;
 
     [[nodiscard]] static std::string move_to_san(Move m, Position& pos) noexcept;
 
     [[nodiscard]] static Move san_to_move(std::string                     san,
                                           Position&                       pos,
                                           const MoveList<GenType::LEGAL>& legalMoves) noexcept;
-    [[nodiscard]] static Move san_to_move(std::string san, Position& pos) noexcept;
+    [[nodiscard]] static Move san_to_move(std::string_view san, Position& pos) noexcept;
 
     [[nodiscard]] static Move mix_to_move(std::string                     mix,
                                           Position&                       pos,

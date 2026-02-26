@@ -32,17 +32,13 @@ class Options;
 // the maximum available time, the game move number, and other parameters.
 class TimeManager final {
    public:
-    TimeManager() noexcept                              = default;
-    TimeManager(const TimeManager&) noexcept            = delete;
-    TimeManager(TimeManager&&) noexcept                 = delete;
-    TimeManager& operator=(const TimeManager&) noexcept = delete;
-    TimeManager& operator=(TimeManager&&) noexcept      = delete;
+    TimeManager() noexcept = default;
 
-    TimePoint optimum() const noexcept { return optimumTime; }
+    TimePoint optimum() const noexcept;
 
-    TimePoint maximum() const noexcept { return maximumTime; }
+    TimePoint maximum() const noexcept;
 
-    TimePoint elapsed() const noexcept { return now() - startTime; }
+    TimePoint elapsed() const noexcept;
 
     // NodesFunc&& allows binding to temporaries without copying
     template<typename NodesFunc>
@@ -58,11 +54,16 @@ class TimeManager final {
               const Options& options,
               Limit&         limit) noexcept;
 
-    bool use_nodes_time() const noexcept { return useNodesTime; }
+    bool use_nodes_time() const noexcept;
 
     void advance_time_nodes(std::int64_t nodes) noexcept;
 
    private:
+    TimeManager(const TimeManager&) noexcept            = delete;
+    TimeManager(TimeManager&&) noexcept                 = delete;
+    TimeManager& operator=(const TimeManager&) noexcept = delete;
+    TimeManager& operator=(TimeManager&&) noexcept      = delete;
+
     TimePoint startTime;
     TimePoint optimumTime;
     TimePoint maximumTime;

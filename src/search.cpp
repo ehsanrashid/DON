@@ -273,7 +273,7 @@ void Worker::init() noexcept {
 }
 
 // Ensure that the neural networks are replicated on this NUMA node
-void Worker::ensure_network_replicated() noexcept {
+void Worker::ensure_network_replicated() const noexcept {
     // Access once to force lazy initialization.
     // Do this because want to avoid initialization during search.
     (void) (networks[numa_access_token()]);
@@ -384,16 +384,21 @@ void Worker::start_search() noexcept {
             for (auto&& th : threads)
                 th->worker->rootMoves.swap_to_front(skillMove);
         }
-        else if (threads.size() > 1 && multiPV == 1
-                 && limit.mate == 0
-                 //&& limit.depth == DEPTH_ZERO
-                 && rootMoves[0].pv[0] != Move::None)
+        else
         {
-            bestWorker = threads.best_thread()->worker.get();
+            if (threads.size() > 1             //
+                && multiPV == 1                //
+                && limit.depth == DEPTH_ZERO   //
+                && limit.mate == 0             //
+                && rootMoves[0].pv[0].is_ok()  //
+            )
+            {
+                bestWorker = threads.best_thread()->worker.get();
 
-            // Send PV info again if have a new best worker
-            if (bestWorker != this)
-                mainManager->show_pv(*bestWorker, bestWorker->completedDepth);
+                // Send PV info again if have a new best worker
+                if (bestWorker != this)
+                    mainManager->show_pv(*bestWorker, bestWorker->completedDepth);
+            }
         }
 
         if (limit.use_time_manager())

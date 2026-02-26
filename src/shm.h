@@ -223,7 +223,7 @@ class BackendSharedMemory final {
     };
 
     BackendSharedMemory() noexcept :
-        status(Status::NotInitialized) {};
+        status(Status::NotInitialized) {}
 
     BackendSharedMemory(std::string_view shmName, const T& value) noexcept :
         name(shmName),
@@ -244,9 +244,9 @@ class BackendSharedMemory final {
     BackendSharedMemory(BackendSharedMemory&& backendShm) noexcept :
         name(backendShm.name_()),
         hMapFile(backendShm.hMapFile),
-        hMapFileGuard(hMapFile),
+        hMapFileGuard{hMapFile},
         mappedPtr(backendShm.mappedPtr),
-        mappedGuard(mappedPtr),
+        mappedGuard{mappedPtr},
         status(backendShm.status) {
         //DEBUG_LOG("Moving shared memory, name: " << name_());
 

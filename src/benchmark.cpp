@@ -531,9 +531,7 @@ Setup benchmark(std::istream& is) noexcept {
 
         for (std::size_t i = 0; i < game.size(); ++i)
         {
-            double moveTime = calc_move_time(ply);
-
-            MoveTimeSum += moveTime;
+            MoveTimeSum += calc_move_time(ply);
 
             ++ply;
         }
@@ -551,7 +549,7 @@ Setup benchmark(std::istream& is) noexcept {
         {
             setup.commands.emplace_back("position fen " + fen);
 
-            std::size_t moveTime = calc_move_time(ply) * TimeScaleFactor;
+            std::size_t moveTime = int(calc_move_time(ply) * TimeScaleFactor);
 
             setup.commands.emplace_back("go movetime " + std::to_string(moveTime));
 
