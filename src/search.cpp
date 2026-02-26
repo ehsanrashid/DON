@@ -508,10 +508,16 @@ void Worker::iterative_deepening() noexcept {
 
     if (mainManager != nullptr)
     {
+        mainManager->timeManager.init(rootPos.active_color(), rootPos.ply(), rootPos.move_num(),
+                                      options, limit);
+
+        mainManager->set_ponder(limit.ponder);
+
+        mainManager->callsCount = limit.calls_count();
+
         multiPV = options["MultiPV"];
 
         mainManager->skill.init(options);
-
         // When playing with strength handicap enable MultiPV search that
         // will use behind-the-scenes to retrieve a set of sub-optimal moves.
         if (mainManager->skill.enabled())
@@ -519,13 +525,11 @@ void Worker::iterative_deepening() noexcept {
 
         multiPV = std::min(rootMovesSize, multiPV);
 
-        mainManager->set_ponder(limit.ponder);
-        mainManager->callsCount     = limit.calls_count();
-        mainManager->ponderhitStop  = false;
+        mainManager->ponderhitStop = false;
+
         mainManager->sumMoveChanges = 0.0;
-        mainManager->timeReduction  = 1.0;
-        mainManager->timeManager.init(rootPos.active_color(), rootPos.ply(), rootPos.move_num(),
-                                      options, limit);
+
+        mainManager->timeReduction = 1.0;
 
         mainManager->completedDepth = DEPTH_ZERO;
     }
