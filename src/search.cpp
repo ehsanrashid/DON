@@ -475,7 +475,7 @@ void Worker::iterative_deepening() noexcept {
     Depth lastBestDepth    = DEPTH_ZERO;
 
     std::size_t rootMovesSize = rootMoves.size();
-    assert(rootMovesSize != 0);
+    assert(rootMovesSize != 0 && rootMovesSize <= MOVE_MAX);
 
     accStack.reset();
 
