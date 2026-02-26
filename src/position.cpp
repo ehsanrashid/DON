@@ -1370,7 +1370,7 @@ bool Position::legal(Move m) const noexcept {
               && en_passant_sq() == dstSq && rule50_count() == 0
               && (pieces_bb(~ac, PAWN) & (dstSq - pawn_spush(ac))) != 0
               && (empty(dstSq) && empty(dstSq + pawn_spush(ac)))  //
-              && (attacks_bb<PAWN>(dstSq, ~ac) & orgSq) != 0
+              && (attacks_bb<PAWN>(orgSq, ac) & dstSq) != 0
               && (pieces_bb(~ac)
                   & slide_attackers_bb(  //
                     kingSq, pieces_bb() ^ make_bb(orgSq, dstSq, dstSq - pawn_spush(ac))))
