@@ -527,7 +527,7 @@ class Worker final {
 
     void init() noexcept;
 
-    void ensure_network_replicated() noexcept;
+    void ensure_network_replicated() const noexcept;
 
     // Called when the program receives the UCI 'go' command.
     // It searches from the root position and outputs the "bestmove".

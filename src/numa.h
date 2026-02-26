@@ -1468,7 +1468,7 @@ class BaseNumaReplicated {
 
     virtual ~BaseNumaReplicated() noexcept;
 
-    const NumaConfig& numa_config() const noexcept;
+    [[nodiscard]] const NumaConfig& numa_config() const noexcept;
 
     virtual void on_numa_config_changed() noexcept = 0;
 

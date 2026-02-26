@@ -273,7 +273,7 @@ void Worker::init() noexcept {
 }
 
 // Ensure that the neural networks are replicated on this NUMA node
-void Worker::ensure_network_replicated() noexcept {
+void Worker::ensure_network_replicated() const noexcept {
     // Access once to force lazy initialization.
     // Do this because want to avoid initialization during search.
     (void) (networks[numa_access_token()]);
