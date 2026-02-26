@@ -384,7 +384,7 @@ struct SharedState final {
 class Worker;
 
 // Null Object Pattern, implement a common interface for the SearchManagers.
-// Null Object will be given to non-mainthread workers.
+// Null Object will be given to non-main-thread workers.
 class ISearchManager {
    public:
     virtual ~ISearchManager() noexcept = default;
