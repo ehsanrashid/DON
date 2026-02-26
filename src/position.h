@@ -707,7 +707,7 @@ inline Bitboard Position::slide_attackers_bb(Square s, Bitboard occupancyBB) con
 inline Bitboard Position::slide_attackers_bb(Square s) const noexcept {
     return slide_attackers_bb(s, pieces_bb());
 }
-// Computes a bitboard of all pieces which attack a given square on occupancy.
+// Computes a bitboard of all pieces which attack a given square on occupancy
 inline Bitboard Position::attackers_bb(Square s, Bitboard occupancyBB) const noexcept {
     return slide_attackers_bb(s, occupancyBB)
          | (pieces_bb(WHITE, PAWN) & attacks_bb<PAWN  >(s, BLACK))
@@ -719,7 +719,7 @@ inline Bitboard Position::attackers_bb(Square s) const noexcept {
     return attackers_bb(s, pieces_bb());
 }
 
-// Checks if there are any attackers to 's' from 'c'.
+// Checks if there are any attackers to 's' from 'c'
 inline bool Position::attackers_exists(Square s, Color c, Bitboard occupancyBB) const noexcept {
     Bitboard attackersBB = pieces_bb(c);
     return (attackersBB & pieces_bb(QUEEN, BISHOP) & attacks_bb<BISHOP>(s, occupancyBB)) != 0
