@@ -402,7 +402,7 @@ struct TBTable final: BaseTBTable {
 
     explicit TBTable(const TableData& tableData) noexcept;
 
-    ~TBTable() noexcept;
+    ~TBTable() noexcept override;
 
     void* init(const Position& pos, Key materialKey) noexcept;
 
@@ -1090,7 +1090,7 @@ TBTables tbTables;
 // Huffman codes are the same for all blocks in the table. A non-symmetric pawn less TB file
 // will have one table for wtm and one for btm, a TB file with pawns will have tables per
 // file a,b,c,d also, in this case, one set for wtm and one for btm.
-int decompress_pairs(PairsData* pd, std::uint64_t idx) noexcept {
+int decompress_pairs(const PairsData* pd, std::uint64_t idx) noexcept {
 
     // Special case where all table positions store the same value
     if (pd->flags & SINGLE_VALUE)
