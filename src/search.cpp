@@ -475,32 +475,29 @@ void Worker::iterative_deepening() noexcept {
     Depth lastCompletedDepth = DEPTH_ZERO;
 
     auto updateLastBest = [&]() {
-        if (!threads.is_aborted())
+        if (rootMoves[0].pv[0] != lastBestPV[0])
         {
-            if (rootMoves[0].pv[0] != lastBestPV[0])
-            {
-                lastBestPV         = rootMoves[0].pv;
-                lastBestCurValue   = rootMoves[0].curValue;
-                lastBestPreValue   = rootMoves[0].preValue;
-                lastBestUciValue   = rootMoves[0].uciValue;
-                lastCompletedDepth = completedDepth;
-            }
+            lastBestPV         = rootMoves[0].pv;
+            lastBestCurValue   = rootMoves[0].curValue;
+            lastBestPreValue   = rootMoves[0].preValue;
+            lastBestUciValue   = rootMoves[0].uciValue;
+            lastCompletedDepth = completedDepth;
         }
+    };
+
+    auto restoreLastBest = [&]() {
         // Make sure not to pick an unproven mated-in score,
         // in case this worker prematurely stopped the search (aborted-search).
-        else
+        if (lastBestPV[0] != Move::None && rootMoves[0].curValue != -VALUE_INFINITE
+            && is_loss(rootMoves[0].curValue))
         {
-            if (lastBestPV[0] != Move::None && rootMoves[0].curValue != -VALUE_INFINITE
-                && is_loss(rootMoves[0].curValue))
-            {
-                // Bring the last best rootMove to the front for best thread selection.
-                rootMoves.move_to_front([&lastBestPV = std::as_const(lastBestPV)](
-                                          const auto& rm) noexcept { return rm == lastBestPV[0]; });
-                rootMoves[0].pv       = lastBestPV;
-                rootMoves[0].curValue = lastBestCurValue;
-                rootMoves[0].preValue = lastBestPreValue;
-                rootMoves[0].uciValue = lastBestUciValue;
-            }
+            // Bring the last best rootMove to the front for best thread selection.
+            rootMoves.move_to_front([&lastBestPV = std::as_const(lastBestPV)](
+                                      const auto& rm) noexcept { return rm == lastBestPV[0]; });
+            rootMoves[0].pv       = lastBestPV;
+            rootMoves[0].curValue = lastBestCurValue;
+            rootMoves[0].preValue = lastBestPreValue;
+            rootMoves[0].uciValue = lastBestUciValue;
         }
     };
 
@@ -687,7 +684,10 @@ void Worker::iterative_deepening() noexcept {
         if (!threads.is_stopped())
             completedDepth = rootDepth;
 
-        updateLastBest();
+        if (!threads.is_aborted())
+            updateLastBest();
+        else
+            restoreLastBest();
 
         if (mainManager == nullptr)
             continue;
@@ -748,7 +748,7 @@ void Worker::iterative_deepening() noexcept {
                                          * 4.0040e-3 * std::min(+stableDepth, 25);
 
             // Calculate total time by combining all factors with the optimum time
-            TimePoint totalTime = TimePoint(mainManager->timeManager.optimum() * inconsistencyFactor * easeFactor * instabilityFactor * nodeEffortFactor * recaptureFactor);
+            TimePoint totalTime = constexpr_ceil(mainManager->timeManager.optimum() * inconsistencyFactor * easeFactor * instabilityFactor * nodeEffortFactor * recaptureFactor);
             assert(totalTime >= 0.0);
             // clang-format on
 
