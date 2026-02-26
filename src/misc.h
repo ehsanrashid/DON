@@ -1018,12 +1018,12 @@ class MultiArray {
     }
 
     template<bool NoExtraDimension = sizeof...(Sizes) == 0,
-             typename              = typename std::enable_if_t<NoExtraDimension, bool>>
+             typename              = std::enable_if_t<NoExtraDimension, bool>>
     constexpr operator StdArray<T, Size>&() noexcept {
         return _data;
     }
     template<bool NoExtraDimension = sizeof...(Sizes) == 0,
-             typename              = typename std::enable_if_t<NoExtraDimension, bool>>
+             typename              = std::enable_if_t<NoExtraDimension, bool>>
     constexpr operator const StdArray<T, Size>&() const noexcept {
         return _data;
     }
@@ -1376,7 +1376,7 @@ class ConcurrentCache final {
             entry = std::make_unique<Value>(std::forward<Args>(args)...);
     }
 
-    Value& get_value(StorageValue& entry) noexcept {
+    static Value& get_value(StorageValue& entry) noexcept {
         if constexpr (sizeof(Value) <= THRESHOLD_SIZE)
             return entry;
         else
@@ -2032,9 +2032,9 @@ inline std::string error_to_string(DWORD errorId) noexcept {
     // (because don't yet know how long the message string will be).
     std::size_t size = FormatMessage(
       FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-      NULL, errorId, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+      nullptr, errorId, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
       reinterpret_cast<LPSTR>(&buffer),  // must pass pointer to buffer pointer
-      0, NULL);
+      0, nullptr);
 
     if (size == 0 || buffer == nullptr)
     {
