@@ -560,11 +560,11 @@ void Worker::iterative_deepening() noexcept {
         // Precompute the start indices of each tbRank group
         StdArray<std::size_t, MOVE_MAX + 1> tbRankGroups;
         std::size_t                         tbRankGroupCount = 0;
-        // Two concerns in one loop
+        // Group moves by tbRank and snapshot scores before search
         for (std::size_t i = 0; i < rootMovesSize;)
         {
             tbRankGroups[tbRankGroupCount++] = i;
-            // Scan group: record boundaries and snapshot scores before search
+            // Scan group: record boundaries and snapshot scores
             auto tbRank = rootMoves[i].tbRank;
             do
             {
@@ -700,7 +700,11 @@ void Worker::iterative_deepening() noexcept {
         if (mainManager != nullptr)
         {
             if (rootMoves[0].pv[0] != lastBestPV[0])
-                mainManager->completedDepth = completedDepth;
+                mainManager->completedDepth = rootDepth;
+
+            // If the skill is enabled and time is up, pick a sub-optimal best move
+            if (mainManager->skill.enabled() && mainManager->skill.time_to_pick(rootDepth))
+                mainManager->skill.pick_move(rootMoves, multiPV);
 
             // Have found "mate in x"?
             if (limit.mate != 0 && rootMoves[0].curValue == rootMoves[0].uciValue)
@@ -709,12 +713,11 @@ void Worker::iterative_deepening() noexcept {
                 bool mate  = (value != +VALUE_INFINITE && is_mate_win(value))   // mate-win
                          || (value != -VALUE_INFINITE && is_mate_loss(value));  // mate-loss
                 if (mate && VALUE_MATE - constexpr_abs(value) <= 2 * limit.mate)
+                {
                     threads.request_stop();
+                    break;
+                }
             }
-
-            // If the skill is enabled and time is up, pick a sub-optimal best move
-            if (mainManager->skill.enabled() && mainManager->skill.time_to_pick(rootDepth))
-                mainManager->skill.pick_move(rootMoves, multiPV);
 
             // Do have time for the next iteration? Can stop searching now?
             if (limit.use_time_manager() && !threads.is_stopped() && !mainManager->ponderhitStop)
