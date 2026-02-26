@@ -265,7 +265,7 @@ ProbResult PerftTable::probe(Key key, Depth depth) const noexcept {
         if (entry.key32 == key32 && entry.depth16 == depth)
             return {true, &entry};
 
-    auto* fte = &ptc->entries[0];
+    auto* fte = ptc->entries.data();
     auto* rte = fte;
 
     for (std::size_t i = 1; i < ptc->entries.size(); ++i)

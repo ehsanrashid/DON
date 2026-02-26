@@ -141,7 +141,7 @@ TTData TTData::empty() noexcept {
     return {Move::None, VALUE_NONE, VALUE_NONE, DEPTH_OFFSET, Bound::NONE, false, false};
 }
 
-// TTCluster consists of bunch of TTEntry.
+// TTCluster consists of a bunch of TTEntry.
 // TTCluster size should divide the size of a cache-line for best performance,
 // as the cache-line is prefetched when possible.
 struct TTCluster final {
@@ -168,7 +168,7 @@ TTUpdater::TTUpdater(TTEntry* te, TTCluster* tc, std::uint16_t k, std::uint8_t g
 
 void TTUpdater::update(Move m, Value v, Value ev, Depth d, Bound b, bool pv) noexcept {
 
-    for (auto* fte = &ttc->entries[0]; tte != fte && (tte - 1)->key() == key; --tte)
+    for (auto* fte = ttc->entries.data(); tte != fte && (tte - 1)->key() == key; --tte)
         tte->clear();
 
     tte->save(key, m, v, ev, d, b, pv, generation);
@@ -242,7 +242,7 @@ ProbResult TranspositionTable::probe(Key key) const noexcept {
             return {entry.read(), TTUpdater{&entry, ttc, key16, generation8}};
 
     // Find an entry to be replaced according to the replacement strategy
-    auto* rte = &ttc->entries[0];
+    auto* rte = ttc->entries.data();
 
     for (std::size_t i = 1; i < ttc->entries.size(); ++i)
         if (rte->worth(generation8) > ttc->entries[i].worth(generation8))
