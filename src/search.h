@@ -448,7 +448,9 @@ class MainSearchManager final: public ISearchManager {
     TimePoint elapsed() const noexcept;
     TimePoint elapsed(const Threads& threads) const noexcept;
 
-    void handle_time_management(const Worker& worker, Value bestValue) noexcept;
+    void handle_time_management(const Worker& worker,
+                                Value         bestValue,
+                                Depth         lastCompletedDepth) noexcept;
 
     void show_pv(Worker& worker, Depth depth) const noexcept;
 
@@ -461,7 +463,6 @@ class MainSearchManager final: public ISearchManager {
     bool          ponderhitStop;
     double        sumMoveChanges;
     double        timeReduction;
-    Depth         completedDepth;
     Skill         skill;
     TimeManager   timeManager;
 
