@@ -530,11 +530,10 @@ void Worker::iterative_deepening() noexcept {
         mainManager->sumMoveChanges = 0.0;
 
         mainManager->timeReduction = 1.0;
-
-        mainManager->completedDepth = DEPTH_ZERO;
     }
 
-    completedDepth = DEPTH_ZERO;
+    Depth lastCompletedDepth = DEPTH_ZERO;
+    completedDepth           = DEPTH_ZERO;
 
     // Iterative deepening loop
     for (rootDepth = 1; rootDepth <= DEPTH_MAX; ++rootDepth)
@@ -696,12 +695,11 @@ void Worker::iterative_deepening() noexcept {
             break;
 
         completedDepth = rootDepth;
+        if (rootMoves[0].pv[0] != lastBestPV[0])
+            lastCompletedDepth = rootDepth;
 
         if (mainManager != nullptr)
         {
-            if (rootMoves[0].pv[0] != lastBestPV[0])
-                mainManager->completedDepth = rootDepth;
-
             // If the skill is enabled and time is up, pick a sub-optimal best move
             if (mainManager->skill.enabled() && mainManager->skill.time_to_pick(rootDepth))
                 mainManager->skill.pick_move(rootMoves, multiPV);
@@ -721,7 +719,7 @@ void Worker::iterative_deepening() noexcept {
 
             // Do have time for the next iteration? Can stop searching now?
             if (limit.use_time_manager() && !threads.is_stopped() && !mainManager->ponderhitStop)
-                mainManager->handle_time_management(*this, bestValue);
+                mainManager->handle_time_management(*this, bestValue, lastCompletedDepth);
         }
     }
 }
@@ -2480,7 +2478,9 @@ TimePoint MainSearchManager::elapsed(const Threads& threads) const noexcept {
     return timeManager.elapsed([&threads]() { return threads.sum(&Worker::nodes); });
 }
 
-void MainSearchManager::handle_time_management(const Worker& worker, Value bestValue) noexcept {
+void MainSearchManager::handle_time_management(const Worker& worker,
+                                               Value         bestValue,
+                                               Depth         lastCompletedDepth) noexcept {
 
     // Use part of the gained time from a previous stable move for the current move
     sumMoveChanges += worker.threads.sum(&Worker::moveChanges);
@@ -2498,7 +2498,7 @@ void MainSearchManager::handle_time_management(const Worker& worker, Value bestV
                                             1.0000 + !atFirst * 0.7000);
 
     // Compute stable depth (difference between the current search depth and the last best depth)
-    Depth stableDepth = worker.completedDepth - completedDepth;
+    Depth stableDepth = worker.completedDepth - lastCompletedDepth;
     assert(stableDepth >= DEPTH_ZERO);
 
     // Use the stability factor to adjust the time reduction
