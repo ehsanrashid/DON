@@ -141,14 +141,11 @@ const Options& Engine::get_options() const noexcept { return options; }
 void Engine::set_numa_config(std::string_view str) noexcept {
     if (str == "none")
         numaContext.set_numa_config(NumaConfig{});
-
     else if (str == "auto" || str == "system")
         numaContext.set_numa_config(NumaConfig::from_system(NUMA_POLICY_DEFAULT, true));
-
     else if (str == "hardware")
         // Don't respect affinity set in the system
         numaContext.set_numa_config(NumaConfig::from_system(NUMA_POLICY_DEFAULT, false));
-
     else
         numaContext.set_numa_config(NumaConfig::from_string(str));
 

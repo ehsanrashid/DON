@@ -1011,7 +1011,7 @@ std::string UCI::move_to_san(Move m, Position& pos) noexcept {
             san.assign(std::size_t(1), to_char(movedPt));
             if (movedPt != KING)
             {
-                // Add disambiguation when more then one piece can reach destiny with legal move.
+                // Add disambiguation when more than one piece can reach destiny with legal move.
                 switch (detect_ambiguity(m, pos))
                 {
                 case Ambiguity::RANK :
