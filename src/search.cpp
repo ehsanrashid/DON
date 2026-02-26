@@ -2484,13 +2484,13 @@ void MainSearchManager::check_time(Worker& worker) noexcept {
     if (ponder)
         return;
 
+    if (worker.completedDepth <= DEPTH_ZERO)
+        return;
+
     // clang-format off
-    if (// Later rely on the fact that at least use the main-thread previous root-search
-        // score and PV in a multi-threaded environment to prove mated-in scores.
-           worker.completedDepth > DEPTH_ZERO
-      && ((worker.limit.use_time_manager() &&      (ponderhitStop || elapsedTime >= timeManager.maximum()))
-       || (worker.limit.moveTime != 0      &&                        elapsedTime >= worker.limit.moveTime)
-       || (worker.limit.nodes != 0         && worker.threads.sum(&Worker::nodes) >= worker.limit.nodes)))
+    if ((worker.limit.use_time_manager() &&      (ponderhitStop || elapsedTime >= timeManager.maximum()))
+     || (worker.limit.moveTime != 0      &&                        elapsedTime >= worker.limit.moveTime)
+     || (worker.limit.nodes != 0         && worker.threads.sum(&Worker::nodes) >= worker.limit.nodes))
         worker.threads.request_stop();
     // clang-format on
 }
