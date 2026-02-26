@@ -491,7 +491,7 @@ void Worker::iterative_deepening() noexcept {
             else if (nowIsLoss)
                 restore = !lastIsLoss || lastBestCurValue > nowBestCurValue;
             else
-                restore = true;
+                restore = rootMoves[0].pv.size() <= lastBestPV.size();
 
             if (restore)
             {

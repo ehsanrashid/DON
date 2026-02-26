@@ -367,7 +367,7 @@ struct BetterThread final {
         // Case 2: Losing positions
         // Best is losing -> prefer escape to non-loss, or longer mated (delay defeat)
         if (best.loss)
-            return !cand.loss || (cand.loss && cand.value > best.value);
+            return !cand.loss || cand.value > best.value;
 
         // Case 3: Normal/Draw positions
         return tie_break(best, cand);
