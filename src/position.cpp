@@ -1333,14 +1333,13 @@ bool Position::legal(Move m) const noexcept {
             auto orgR = relative_rank(ac, orgSq);
             auto dstR = relative_rank(ac, dstSq);
 
-            bool singlePush = orgR < RANK_7 && dstR < RANK_8  //
-                           && orgSq + pawn_spush(ac) == dstSq && empty(dstSq);
-            bool doublePush = orgR == RANK_2 && dstR == RANK_4 && orgSq + pawn_dpush(ac) == dstSq
-                           && empty(dstSq) && empty(dstSq - pawn_spush(ac));
-            bool capture = orgR < RANK_7 && dstR < RANK_8
-                        && ((pieces_bb(~ac) & attacks_bb<PAWN>(orgSq, ac) & dstSq) != 0);
-
-            if (!(singlePush || doublePush || capture))
+            bool ok = (orgR < RANK_7 && dstR < RANK_8  //
+                       && orgSq + pawn_spush(ac) == dstSq && empty(dstSq))
+                   || (orgR == RANK_2 && dstR == RANK_4 && orgSq + pawn_dpush(ac) == dstSq
+                       && empty(dstSq) && empty(dstSq - pawn_spush(ac)))
+                   || (orgR < RANK_7 && dstR < RANK_8
+                       && ((pieces_bb(~ac) & attacks_bb<PAWN>(orgSq, ac) & dstSq) != 0));
+            if (!ok)
                 return false;
         }
         else
