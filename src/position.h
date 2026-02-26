@@ -275,6 +275,9 @@ class Position final {
     Bitboard attackers_bb(Square s, Bitboard occupancyBB) const noexcept;
     Bitboard attackers_bb(Square s) const noexcept;
 
+    bool attackers_exists(Square s, Color c, Bitboard occupancyBB) const noexcept;
+    bool attackers_exists(Square s, Color c) const noexcept;
+
     Bitboard blockers_bb(Square    s,
                          Bitboard  attackersBB,
                          Bitboard& ownPinnersBB,
@@ -714,6 +717,19 @@ inline Bitboard Position::attackers_bb(Square s, Bitboard occupancyBB) const noe
 }
 inline Bitboard Position::attackers_bb(Square s) const noexcept {
     return attackers_bb(s, pieces_bb());
+}
+
+// Checks if there are any attackers to 's' from 'c'.
+inline bool Position::attackers_exists(Square s, Color c, Bitboard occupancyBB) const noexcept {
+    Bitboard attackersBB = pieces_bb(c);
+    return (attackersBB & pieces_bb(QUEEN, BISHOP) & attacks_bb<BISHOP>(s, occupancyBB)) != 0
+        || (attackersBB & pieces_bb(QUEEN, ROOK  ) & attacks_bb<ROOK  >(s, occupancyBB)) != 0
+        || (attackersBB & pieces_bb(PAWN         ) & attacks_bb<PAWN  >(s, ~c)) != 0
+        || (attackersBB & pieces_bb(KNIGHT       ) & attacks_bb<KNIGHT>(s)) != 0
+        || (attackersBB & pieces_bb(KING         ) & attacks_bb<KING  >(s)) != 0;
+}
+inline bool Position::attackers_exists(Square s, Color c) const noexcept {
+    return attackers_exists(s, c, pieces_bb());
 }
 
 // clang-format on
