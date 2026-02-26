@@ -102,9 +102,9 @@ class TranspositionTable final {
 
     void increment_generation() const noexcept;
 
-    void resize(std::size_t ttSize, Threads& threads) noexcept;
+    void resize(std::size_t ttSize, const Threads& threads) noexcept;
 
-    void init(Threads& threads) noexcept;
+    void init(const Threads& threads) noexcept;
 
     TTCluster* cluster(Key key) const noexcept;
 
@@ -112,7 +112,7 @@ class TranspositionTable final {
 
     std::uint16_t hashfull(std::uint8_t maxAge = 0) const noexcept;
 
-    bool load(const std::filesystem::path& hashFile, Threads& threads) noexcept;
+    bool load(const std::filesystem::path& hashFile, const Threads& threads) noexcept;
     bool save(const std::filesystem::path& hashFile) const noexcept;
 
    private:

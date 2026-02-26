@@ -377,15 +377,15 @@ class Threads final {
     void
     start(Position& pos, StateListPtr& states, const Limit& limit, const Options& options) noexcept;
 
-    void start_search() noexcept;
+    void start_search() const noexcept;
 
-    void wait_finish() noexcept;
+    void wait_finish() const noexcept;
 
     void ensure_network_replicated() const noexcept;
 
-    void run_on_thread(std::size_t threadId, JobFunc job) noexcept;
+    void run_on_thread(std::size_t threadId, JobFunc job) const noexcept;
 
-    void wait_on_thread(std::size_t threadId) noexcept;
+    void wait_on_thread(std::size_t threadId) const noexcept;
 
     std::vector<std::size_t> bound_thread_counts() const noexcept;
 
@@ -575,13 +575,13 @@ inline MainSearchManager* Threads::main_manager() const noexcept {
 
 // Start non-main-threads
 // Will be invoked by main-thread after it has started searching
-inline void Threads::start_search() noexcept {
+inline void Threads::start_search() const noexcept {
     for_each_thread([](Thread* th) noexcept { th->start_search(); }, false);  // skip main
 }
 
 // Wait for non-main-threads
 // Will be invoked by main-thread after it has finished searching
-inline void Threads::wait_finish() noexcept {
+inline void Threads::wait_finish() const noexcept {
     for_each_thread([](Thread* th) noexcept { th->wait_finish(); }, false);  // skip main
 }
 

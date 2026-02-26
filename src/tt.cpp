@@ -187,7 +187,7 @@ void TranspositionTable::increment_generation() const noexcept { generation8 += 
 
 // Sets the size of the transposition table, measured in megabytes (MB).
 // Transposition table consists of even number of clusters.
-void TranspositionTable::resize(std::size_t ttSize, Threads& threads) noexcept {
+void TranspositionTable::resize(std::size_t ttSize, const Threads& threads) noexcept {
     free();
 
     clusterCount = ttSize * ONE_MB / sizeof(TTCluster);
@@ -206,7 +206,7 @@ void TranspositionTable::resize(std::size_t ttSize, Threads& threads) noexcept {
 }
 
 // Initializes the entire transposition table to zero, in a multi-threaded way.
-void TranspositionTable::init(Threads& threads) noexcept {
+void TranspositionTable::init(const Threads& threads) noexcept {
     generation8 = 0;
 
     std::size_t threadCount = threads.size();
@@ -273,7 +273,8 @@ std::uint16_t TranspositionTable::hashfull(std::uint8_t maxAge) const noexcept {
     return ceil_div(count * requiredCount, actualCount) / clusters->entries.size();
 }
 
-bool TranspositionTable::load(const std::filesystem::path& hashFile, Threads& threads) noexcept {
+bool TranspositionTable::load(const std::filesystem::path& hashFile,
+                              const Threads&               threads) noexcept {
 
     if (hashFile.empty())
     {
