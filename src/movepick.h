@@ -136,7 +136,7 @@ class MovePicker final {
 
     void next() noexcept { ++cur; }
 
-    Move move() noexcept { return Move{*cur++}; }
+    Move move() noexcept { return *cur++; }
 
     [[nodiscard]] pointer       data() noexcept { return moves.data(); }
     [[nodiscard]] const_pointer data() const noexcept { return moves.data(); }

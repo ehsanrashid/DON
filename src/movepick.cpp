@@ -37,10 +37,7 @@ ALWAYS_INLINE constexpr bool always_true() noexcept { return true; }
 
 // Unrolled upper_bound implementation for finding the insertion point
 template<typename Iterator, typename T, typename Compare>
-Iterator upper_bound_unrolled(Iterator RESTRICT beg,
-                              Iterator RESTRICT end,
-                              const T&          value,
-                              Compare           comp) noexcept {
+Iterator upper_bound_unrolled(Iterator beg, Iterator end, const T& value, Compare comp) noexcept {
     Iterator ins = end;  // default = end (not found)
 
     std::size_t n = end - beg;
@@ -94,7 +91,7 @@ Iterator upper_bound_unrolled(Iterator RESTRICT beg,
 // Sort elements in descending order.
 // Stable for all elements.
 template<typename Iterator>
-void insertion_sort(Iterator RESTRICT beg, Iterator RESTRICT end) noexcept {
+void insertion_sort(Iterator beg, Iterator end) noexcept {
     // Iterate over the range starting from the second element
     for (Iterator p = beg + 1; p < end; ++p)
     {
@@ -116,9 +113,7 @@ void insertion_sort(Iterator RESTRICT beg, Iterator RESTRICT end) noexcept {
 // leaving elements < limit untouched at their original positions.
 // Stable for elements >= limit.
 template<typename Iterator>
-void partial_insertion_sort(Iterator RESTRICT beg,
-                            Iterator RESTRICT end,
-                            int               limit = -INT_LIMIT) noexcept {
+void partial_insertion_sort(Iterator beg, Iterator end, int limit = -INT_LIMIT) noexcept {
     auto ext_move_descending_limit = [limit](const ExtMove& em1, const ExtMove& em2) noexcept {
         // Only compare elements >= limit
         if (em1.value < limit)
@@ -309,12 +304,13 @@ MovePicker::score<GenType::ENC_QUIET>(MoveList<GenType::ENC_QUIET>& moveList) no
 
         // Penalty for moving to square attacked by lesser piece
         // Bonus for escaping from square attacked by lesser piece
-        int weight =
-          ((pos.acc_less_attacks_bb(movedPt) & dstSq) != 0   ? int((blockersBB & orgSq) == 0) * -19
-           : (threatsBB & orgSq) != 0                        ? +23
-           : (pos.acc_less_attacks_bb(movedPt) & orgSq) != 0 ? +20
-                                                             : 0);
+        // clang-format off
+        int weight = (pos.acc_less_attacks_bb(movedPt) & dstSq) != 0 ? int((blockersBB & orgSq) == 0) * -19
+                   : (threatsBB & orgSq) != 0                        ? +23
+                   : (pos.acc_less_attacks_bb(movedPt) & orgSq) != 0 ? +20
+                                                                     : 0;
         value += weight * piece_value(movedPt);
+        // clang-format on
 
         // Penalty for moving pinner piece
         value -=
@@ -397,7 +393,7 @@ bool MovePicker::select(Predicate&& pred) noexcept {
 
 ALWAYS_INLINE bool MovePicker::good_capture_or_swap() noexcept {
     threshold = constexpr_round(55.5555e-3 * double(cur->value));
-    if (pos.see(Move{*cur}) >= -threshold)
+    if (pos.see(*cur) >= -threshold)
         return true;
     // Store bad captures
     std::iter_swap(badCaptureEnd++, cur);
