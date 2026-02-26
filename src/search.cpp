@@ -290,14 +290,6 @@ void Worker::start_search() noexcept {
         return;
     }
 
-    mainManager->set_ponder(limit.ponder);
-    mainManager->callsCount     = limit.calls_count();
-    mainManager->ponderhitStop  = false;
-    mainManager->sumMoveChanges = 0.0;
-    mainManager->timeReduction  = 1.0;
-    mainManager->skill.init(options);
-    mainManager->timeManager.init(rootPos.active_color(), rootPos.ply(), rootPos.move_num(),
-                                  options, limit);
     if (!limit.infinite)
         transpositionTable.increment_generation();
 
@@ -518,12 +510,22 @@ void Worker::iterative_deepening() noexcept {
     {
         multiPV = options["MultiPV"];
 
+        mainManager->skill.init(options);
+
         // When playing with strength handicap enable MultiPV search that
         // will use behind-the-scenes to retrieve a set of sub-optimal moves.
         if (mainManager->skill.enabled())
             multiPV = std::max(std::size_t(4), multiPV);
 
         multiPV = std::min(rootMovesSize, multiPV);
+
+        mainManager->set_ponder(limit.ponder);
+        mainManager->callsCount     = limit.calls_count();
+        mainManager->ponderhitStop  = false;
+        mainManager->sumMoveChanges = 0.0;
+        mainManager->timeReduction  = 1.0;
+        mainManager->timeManager.init(rootPos.active_color(), rootPos.ply(), rootPos.move_num(),
+                                      options, limit);
 
         mainManager->completedDepth = DEPTH_ZERO;
     }
