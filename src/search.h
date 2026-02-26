@@ -107,8 +107,8 @@ struct RootMove final {
     Value curValue = -VALUE_INFINITE;
     Value preValue = -VALUE_INFINITE;
     Value uciValue = -VALUE_INFINITE;
-    Value avgValue = -VALUE_INFINITE;
 
+    Value    avgValue    = -VALUE_INFINITE;
     SqrValue avgSqrValue = sign_sqr(-VALUE_INFINITE);
 
     std::int32_t  tbRank   = 0;
