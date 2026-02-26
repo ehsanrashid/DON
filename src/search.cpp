@@ -477,11 +477,10 @@ void Worker::iterative_deepening() noexcept {
     auto updateLastBest = [&]() {
         if (rootMoves[0].pv[0] != lastBestPV[0])
         {
-            lastBestPV         = rootMoves[0].pv;
-            lastBestCurValue   = rootMoves[0].curValue;
-            lastBestPreValue   = rootMoves[0].preValue;
-            lastBestUciValue   = rootMoves[0].uciValue;
-            lastCompletedDepth = completedDepth;
+            lastBestPV       = rootMoves[0].pv;
+            lastBestCurValue = rootMoves[0].curValue;
+            lastBestPreValue = rootMoves[0].preValue;
+            lastBestUciValue = rootMoves[0].uciValue;
         }
     };
 
@@ -613,8 +612,8 @@ void Worker::iterative_deepening() noexcept {
 
                 // Adjust the effective depth searched, but ensure at least one
                 // effective increment for every 4 researchCnt steps.
-                Depth adjustedDepth =
-                  std::max(rootDepth - failHighCnt - 3 * (1 + researchCnt) / 4, 1);
+                Depth adjustedDepth = std::max(
+                  rootDepth - failHighCnt - std::max((3 * (researchCnt + 1)) / 4, +DEPTH_ZERO), 1);
 
                 bestValue = search<NT::ROOT>(rootPos, ss, alpha, beta, adjustedDepth);
 
@@ -681,101 +680,38 @@ void Worker::iterative_deepening() noexcept {
                 break;
         }
 
-        if (!threads.is_stopped())
-            completedDepth = rootDepth;
-
         if (!threads.is_aborted())
             updateLastBest();
         else
             restoreLastBest();
 
-        if (mainManager == nullptr)
-            continue;
+        if (threads.is_stopped())
+            break;
 
-        // Have found "mate in x"?
-        if (limit.mate != 0 && rootMoves[0].curValue == rootMoves[0].uciValue)
+        completedDepth = rootDepth;
+
+        if (rootMoves[0].pv[0] != lastBestPV[0])
+            lastCompletedDepth = completedDepth;
+
+        if (mainManager != nullptr)
         {
-            auto value = rootMoves[0].curValue;
-            bool mate  = (value != +VALUE_INFINITE && is_mate_win(value))   // mate-win
-                     || (value != -VALUE_INFINITE && is_mate_loss(value));  // mate-loss
-            if (mate && VALUE_MATE - constexpr_abs(value) <= 2 * limit.mate)
-                threads.request_stop();
-        }
-
-        // If the skill is enabled and time is up, pick a sub-optimal best move
-        if (mainManager->skill.enabled() && mainManager->skill.time_to_pick(rootDepth))
-            mainManager->skill.pick_move(rootMoves, multiPV);
-
-        // Do have time for the next iteration? Can stop searching now?
-        if (limit.use_time_manager() && !(threads.is_stopped() || mainManager->ponderhitStop))
-        {
-            // Use part of the gained time from a previous stable move for the current move
-            mainManager->sumMoveChanges += threads.sum(&Worker::moveChanges);
-
-            // Reset move changes
-            threads.set(&Worker::moveChanges, 0U);
-
-            // clang-format off
-
-            // Compute evaluation inconsistency based on differences from previous best scores
-            double inconsistencyFactor = std::clamp(0.1185
-                                                  + 0.0224 * (mainManager->preBestAvgValue - bestValue)
-                                                  + 0.0093 * (mainManager->preBestCurValue - bestValue),
-                                                    1.0000 - !mainManager->atFirst * 0.4300,
-                                                    1.0000 + !mainManager->atFirst * 0.7000);
-
-            // Compute stable depth (difference between the current search depth and the last best depth)
-            Depth stableDepth = completedDepth - lastCompletedDepth;
-            assert(stableDepth >= DEPTH_ZERO);
-
-            // Use the stability factor to adjust the time reduction
-            mainManager->timeReduction = 0.6600 + 0.8500 / (0.9800 + std::exp(0.5100 * (12.1500 - stableDepth)));
-
-            // Compute ease factor that factors in previous time reduction
-            double easeFactor = 0.4386 * (1.4300 + mainManager->preTimeReduction) / mainManager->timeReduction;
-
-            // Compute move instability factor based on the total move changes and the number of threads
-            double instabilityFactor = 1.0200 + 2.1400 * mainManager->sumMoveChanges / thread_count();
-
-            // Compute node effort factor that reduces time if root move has consumed a large fraction of total nodes
-            double nodeEffortExcess = std::max(-933.40 + 1000.0 * rootMoves[0].nodes / std::max(nodes_(), std::uint64_t(1)), 0.0);
-            double nodeEffortFactor = 1.0 - 37.5207e-4 * nodeEffortExcess;
-
-            // Compute recapture factor that reduces time if recapture conditions are met
-            double recaptureFactor = 1.0 - int( rootPos.captured_sq() == rootMoves[0].pv[0].dst_sq()
-                                            && (rootPos.captured_sq() & rootPos.pieces_bb(~ac))
-                                            &&  rootPos.see(rootMoves[0].pv[0]) >= 200)
-                                         * 4.0040e-3 * std::min(+stableDepth, 25);
-
-            // Calculate total time by combining all factors with the optimum time
-            TimePoint totalTime = constexpr_ceil(mainManager->timeManager.optimum() * inconsistencyFactor * easeFactor * instabilityFactor * nodeEffortFactor * recaptureFactor);
-            assert(totalTime >= 0.0);
-            // clang-format on
-
-            // Cap totalTime to the available maximum time
-            totalTime = std::min(mainManager->timeManager.maximum(), totalTime);
-
-            // Cap totalTime in case of a single legal move for a better viewer experience
-            if (rootMovesSize == 1)
-                totalTime = std::min(550 * totalTime / 1000, TimePoint{512});
-
-            TimePoint elapsedTime = mainManager->elapsed(threads);
-
-            // Stop the search if have exceeded the total time
-            if (elapsedTime > totalTime)
+            // Have found "mate in x"?
+            if (limit.mate != 0 && rootMoves[0].curValue == rootMoves[0].uciValue)
             {
-                // If allowed to ponder do not stop the search now but
-                // keep pondering until the GUI sends "ponderhit" or "stop".
-                if (mainManager->ponder)
-                    mainManager->ponderhitStop = true;
-                else
-                    threads.request_abort();
+                auto value = rootMoves[0].curValue;
+                bool mate  = (value != +VALUE_INFINITE && is_mate_win(value))   // mate-win
+                         || (value != -VALUE_INFINITE && is_mate_loss(value));  // mate-loss
+                if (mate && VALUE_MATE - constexpr_abs(value) <= 2 * limit.mate)
+                    threads.request_stop();
             }
 
-            if (!mainManager->ponder && 1000 * elapsedTime > 503 * totalTime)
-                threads.request_research();
+            // If the skill is enabled and time is up, pick a sub-optimal best move
+            if (mainManager->skill.enabled() && mainManager->skill.time_to_pick(rootDepth))
+                mainManager->skill.pick_move(rootMoves, multiPV);
 
-            mainManager->preBestCurValue = bestValue;
+            // Do have time for the next iteration? Can stop searching now?
+            if (limit.use_time_manager() && !threads.is_stopped() && !mainManager->ponderhitStop)
+                mainManager->handle_time_management(*this, bestValue, lastCompletedDepth);
         }
     }
 }
@@ -2532,6 +2468,79 @@ TimePoint MainSearchManager::elapsed() const noexcept { return timeManager.elaps
 // based on predefined thresholds like total time or total nodes.
 TimePoint MainSearchManager::elapsed(const Threads& threads) const noexcept {
     return timeManager.elapsed([&threads]() { return threads.sum(&Worker::nodes); });
+}
+
+void MainSearchManager::handle_time_management(const Worker& worker,
+                                               Value         bestValue,
+                                               Depth         lastCompletedDepth) noexcept {
+
+    // Use part of the gained time from a previous stable move for the current move
+    sumMoveChanges += worker.threads.sum(&Worker::moveChanges);
+
+    // Reset move changes
+    worker.threads.set(&Worker::moveChanges, 0U);
+
+    // clang-format off
+
+    // Compute evaluation inconsistency based on differences from previous best scores
+    double inconsistencyFactor = std::clamp(0.1185
+                                            + 0.0224 * (preBestAvgValue - bestValue)
+                                            + 0.0093 * (preBestCurValue - bestValue),
+                                            1.0000 - !atFirst * 0.4300,
+                                            1.0000 + !atFirst * 0.7000);
+
+    // Compute stable depth (difference between the current search depth and the last best depth)
+    Depth stableDepth = worker.completedDepth - lastCompletedDepth;
+    assert(stableDepth >= DEPTH_ZERO);
+
+    // Use the stability factor to adjust the time reduction
+    timeReduction = 0.6600 + 0.8500 / (0.9800 + std::exp(0.5100 * (12.1500 - stableDepth)));
+
+    // Compute ease factor that factors in previous time reduction
+    double easeFactor = 0.4386 * (1.4300 + preTimeReduction) / timeReduction;
+
+    // Compute move instability factor based on the total move changes and the number of threads
+    double instabilityFactor = 1.0200 + 2.1400 * sumMoveChanges / worker.threads.size();
+
+    // Compute node effort factor that reduces time if root move has consumed a large fraction of total nodes
+    double nodeEffortExcess = std::max(-933.40 + 1000.0 * worker.rootMoves[0].nodes / std::max(worker.nodes_(), std::uint64_t(1)), 0.0);
+    double nodeEffortFactor = 1.0 - 37.5207e-4 * nodeEffortExcess;
+
+    // Compute recapture factor that reduces time if recapture conditions are met
+    double recaptureFactor = 1.0 - int( worker.rootPos.captured_sq() == worker.rootMoves[0].pv[0].dst_sq()
+                                    && (worker.rootPos.captured_sq() & worker.rootPos.pieces_bb(~worker.rootPos.active_color()))
+                                    &&  worker.rootPos.see(worker.rootMoves[0].pv[0]) >= 200)
+                                    * 4.0040e-3 * std::min(+stableDepth, 25);
+
+    // Calculate total time by combining all factors with the optimum time
+    TimePoint totalTime = constexpr_ceil(timeManager.optimum() * inconsistencyFactor * easeFactor * instabilityFactor * nodeEffortFactor * recaptureFactor);
+    assert(totalTime >= 0.0);
+    // clang-format on
+
+    // Cap totalTime to the available maximum time
+    totalTime = std::min(timeManager.maximum(), totalTime);
+
+    // Cap totalTime in case of a single legal move for a better viewer experience
+    if (worker.rootMoves.size() == 1)
+        totalTime = std::min(550 * totalTime / 1000, TimePoint{512});
+
+    TimePoint elapsedTime = elapsed(worker.threads);
+
+    // Stop the search if have exceeded the total time
+    if (elapsedTime > totalTime)
+    {
+        // If allowed to ponder do not stop the search now but
+        // keep pondering until the GUI sends "ponderhit" or "stop".
+        if (ponder)
+            ponderhitStop = true;
+        else
+            worker.threads.request_abort();
+    }
+
+    if (!ponder && 1000 * elapsedTime > 503 * totalTime)
+        worker.threads.request_research();
+
+    preBestCurValue = bestValue;
 }
 
 // Displays the principal variation (PV) along with associated information
