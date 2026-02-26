@@ -1326,18 +1326,21 @@ bool Position::legal(Move m) const noexcept {
         // Handle the special case of a pawn move
         if (type_of(movedPc) == PAWN)
         {
-            // Already handled promotion moves, so origin & destination cannot be on the 8th/1st rank
+            // Normal moves, so origin & destination cannot be on the 8th/1st rank
             if ((make_bb(orgSq, dstSq) & PROMOTION_RANKS_BB) != 0)
                 return false;
 
-            if (!((  // Single push
-                    (orgSq + pawn_spush(ac) == dstSq && empty(dstSq))
-                    // Capture
-                    || (pieces_bb(~ac) & attacks_bb<PAWN>(orgSq, ac) & dstSq) != 0)
-                  && relative_rank(ac, orgSq) < RANK_7 && relative_rank(ac, dstSq) < RANK_8)
-                && !(  // Double push
-                  orgSq + pawn_dpush(ac) == dstSq && empty(dstSq) && empty(dstSq - pawn_spush(ac))
-                  && relative_rank(ac, orgSq) == RANK_2 && relative_rank(ac, dstSq) == RANK_4))
+            auto orgR = relative_rank(ac, orgSq);
+            auto dstR = relative_rank(ac, dstSq);
+
+            bool singlePush = orgR < RANK_7 && dstR < RANK_8  //
+                           && orgSq + pawn_spush(ac) == dstSq && empty(dstSq);
+            bool doublePush = orgR == RANK_2 && dstR == RANK_4 && orgSq + pawn_dpush(ac) == dstSq
+                           && empty(dstSq) && empty(dstSq - pawn_spush(ac));
+            bool capture = orgR < RANK_7 && dstR < RANK_8
+                        && ((pieces_bb(~ac) & attacks_bb<PAWN>(orgSq, ac) & dstSq) != 0);
+
+            if (!(singlePush || doublePush || capture))
                 return false;
         }
         else
@@ -1350,30 +1353,30 @@ bool Position::legal(Move m) const noexcept {
                 return (acc_attacks_bb<KING>() & dstSq) == 0;
         }
         break;
-
     case MT::PROMOTION :
-        if (!(type_of(movedPc) == PAWN
-              && (  // Single push
-                (orgSq + pawn_spush(ac) == dstSq && empty(dstSq))
-                // Capture
-                || ((pieces_bb(~ac) & attacks_bb<PAWN>(orgSq, ac)) & dstSq) != 0)
-              && relative_rank(ac, orgSq) == RANK_7 && relative_rank(ac, dstSq) == RANK_8))
+        if (type_of(movedPc) != PAWN)
+            return false;
+
+        if (!(relative_rank(ac, orgSq) == RANK_7 && relative_rank(ac, dstSq) == RANK_8
+              && ((orgSq + pawn_spush(ac) == dstSq && empty(dstSq))
+                  || ((pieces_bb(~ac) & attacks_bb<PAWN>(orgSq, ac) & dstSq) != 0))))
             return false;
         break;
-
-    case MT::EN_PASSANT : {
-        Bitboard occupancyBB = pieces_bb() ^ make_bb(orgSq, dstSq, dstSq - pawn_spush(ac));
-
-        if (!(type_of(movedPc) == PAWN && en_passant_sq() == dstSq && rule50_count() == 0
-              && (pieces_bb(~ac, PAWN) & (dstSq - pawn_spush(ac))) != 0
-              && (empty(dstSq) && empty(dstSq + pawn_spush(ac)))
-              && (attacks_bb<PAWN>(dstSq, ~ac) & orgSq) != 0  //
-              && relative_rank(ac, orgSq) == RANK_5 && relative_rank(ac, dstSq) == RANK_6
-              && (pieces_bb(~ac) & slide_attackers_bb(kingSq, occupancyBB)) == 0))
+    case MT::EN_PASSANT :
+        if (type_of(movedPc) != PAWN)
             return false;
-    }
-    break;
 
+        if (!(relative_rank(ac, orgSq) == RANK_5 && relative_rank(ac, dstSq) == RANK_6
+              && en_passant_sq() == dstSq && rule50_count() == 0
+              && (pieces_bb(~ac, PAWN) & (dstSq - pawn_spush(ac))) != 0
+              && (empty(dstSq) && empty(dstSq + pawn_spush(ac)))  //
+              && (attacks_bb<PAWN>(dstSq, ~ac) & orgSq) != 0
+              && (pieces_bb(~ac)
+                  & slide_attackers_bb(  //
+                    kingSq, pieces_bb() ^ make_bb(orgSq, dstSq, dstSq - pawn_spush(ac))))
+                   == 0))
+            return false;
+        break;
     default :  // CASTLING
         assert(false);
         UNREACHABLE();
@@ -1416,18 +1419,16 @@ bool Position::check(Move m) const noexcept {
     {
     case MT::NORMAL :
         return false;
-
     case MT::PROMOTION :
         return (attacks_bb(dstSq, m.promotion_type(), pieces_bb() ^ orgSq) & kingSq) != 0;
-
     // En-passant capture with check? Already handled the case of direct check
     // and ordinary discovered check, so the only case need to handle is
     // the unusual case of a discovered check through the captured pawn.
-    case MT::EN_PASSANT : {
-        Bitboard occupancyBB = pieces_bb() ^ make_bb(orgSq, dstSq, dstSq - pawn_spush(ac));
-
-        return (pieces_bb(ac) & slide_attackers_bb(kingSq, occupancyBB)) != 0;
-    }
+    case MT::EN_PASSANT :
+        return (pieces_bb(ac)
+                & slide_attackers_bb(  //
+                  kingSq, pieces_bb() ^ make_bb(orgSq, dstSq, dstSq - pawn_spush(ac))))
+            != 0;
     case MT::CASTLING :
         // Castling is encoded as "king captures rook"
         return (checks_bb(ROOK) & rook_castle_sq(orgSq, dstSq)) != 0;
@@ -1455,11 +1456,9 @@ bool Position::dbl_check(Move m) const noexcept {
           (checks_bb(type_of(piece(orgSq))) & dstSq) != 0
           // Is there a discovered check?
           && (blockers_bb(~ac) & orgSq) != 0 && !aligned(kingSq, orgSq, dstSq);
-
     case MT::PROMOTION :
         return (blockers_bb(~ac) & orgSq) != 0
             && (attacks_bb(dstSq, m.promotion_type(), pieces_bb() ^ orgSq) & kingSq) != 0;
-
     case MT::EN_PASSANT : {
         Bitboard occupancyBB = pieces_bb() ^ make_bb(orgSq, dstSq, dstSq - pawn_spush(ac));
         Bitboard checkersBB  = pieces_bb(ac) & slide_attackers_bb(kingSq, occupancyBB);
