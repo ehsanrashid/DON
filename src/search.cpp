@@ -238,9 +238,7 @@ Worker::Worker(std::size_t               threadIdx,
     transpositionTable(sharedState.transpositionTable),
     threads(sharedState.threads),
     histories(sharedState.historiesMap.at(accessToken.numa_id())),
-    accCaches(networks[accessToken]) {
-    assert(threadCount == threads.size());
-}
+    accCaches(networks[accessToken]) {}
 
 // Initialize per-thread data structures
 void Worker::init() noexcept {
