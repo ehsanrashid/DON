@@ -468,11 +468,10 @@ void Worker::iterative_deepening() noexcept {
 
     Value bestValue = -VALUE_INFINITE;
 
-    auto  lastBestPV         = Moves{Move::None};
-    Value lastBestCurValue   = -VALUE_INFINITE;
-    Value lastBestPreValue   = -VALUE_INFINITE;
-    Value lastBestUciValue   = -VALUE_INFINITE;
-    Depth lastCompletedDepth = DEPTH_ZERO;
+    auto  lastBestPV       = Moves{Move::None};
+    Value lastBestCurValue = -VALUE_INFINITE;
+    Value lastBestPreValue = -VALUE_INFINITE;
+    Value lastBestUciValue = -VALUE_INFINITE;
 
     auto updateLastBest = [&]() {
         if (rootMoves[0].pv[0] != lastBestPV[0])
@@ -525,6 +524,8 @@ void Worker::iterative_deepening() noexcept {
             multiPV = std::max(std::size_t(4), multiPV);
 
         multiPV = std::min(rootMovesSize, multiPV);
+
+        mainManager->completedDepth = DEPTH_ZERO;
     }
 
     completedDepth = DEPTH_ZERO;
@@ -690,11 +691,11 @@ void Worker::iterative_deepening() noexcept {
 
         completedDepth = rootDepth;
 
-        if (rootMoves[0].pv[0] != lastBestPV[0])
-            lastCompletedDepth = completedDepth;
-
         if (mainManager != nullptr)
         {
+            if (rootMoves[0].pv[0] != lastBestPV[0])
+                mainManager->completedDepth = completedDepth;
+
             // Have found "mate in x"?
             if (limit.mate != 0 && rootMoves[0].curValue == rootMoves[0].uciValue)
             {
@@ -711,7 +712,7 @@ void Worker::iterative_deepening() noexcept {
 
             // Do have time for the next iteration? Can stop searching now?
             if (limit.use_time_manager() && !threads.is_stopped() && !mainManager->ponderhitStop)
-                mainManager->handle_time_management(*this, bestValue, lastCompletedDepth);
+                mainManager->handle_time_management(*this, bestValue);
         }
     }
 }
@@ -2470,9 +2471,7 @@ TimePoint MainSearchManager::elapsed(const Threads& threads) const noexcept {
     return timeManager.elapsed([&threads]() { return threads.sum(&Worker::nodes); });
 }
 
-void MainSearchManager::handle_time_management(const Worker& worker,
-                                               Value         bestValue,
-                                               Depth         lastCompletedDepth) noexcept {
+void MainSearchManager::handle_time_management(const Worker& worker, Value bestValue) noexcept {
 
     // Use part of the gained time from a previous stable move for the current move
     sumMoveChanges += worker.threads.sum(&Worker::moveChanges);
@@ -2490,7 +2489,7 @@ void MainSearchManager::handle_time_management(const Worker& worker,
                                             1.0000 + !atFirst * 0.7000);
 
     // Compute stable depth (difference between the current search depth and the last best depth)
-    Depth stableDepth = worker.completedDepth - lastCompletedDepth;
+    Depth stableDepth = worker.completedDepth - completedDepth;
     assert(stableDepth >= DEPTH_ZERO);
 
     // Use the stability factor to adjust the time reduction
@@ -2500,7 +2499,7 @@ void MainSearchManager::handle_time_management(const Worker& worker,
     double easeFactor = 0.4386 * (1.4300 + preTimeReduction) / timeReduction;
 
     // Compute move instability factor based on the total move changes and the number of threads
-    double instabilityFactor = 1.0200 + 2.1400 * sumMoveChanges / worker.threads.size();
+    double instabilityFactor = 1.0200 + 2.1400 * sumMoveChanges / std::max(worker.threads.size(), std::size_t(1));
 
     // Compute node effort factor that reduces time if root move has consumed a large fraction of total nodes
     double nodeEffortExcess = std::max(-933.40 + 1000.0 * worker.rootMoves[0].nodes / std::max(worker.nodes_(), std::uint64_t(1)), 0.0);
