@@ -599,7 +599,7 @@ void Threads::start(Position&      pos,
 }
 
 void Threads::run_on_thread(std::size_t threadId, JobFunc job) const noexcept {
-    Thread* thread;
+    Thread* thread = nullptr;
     {
         std::shared_lock readLock(sharedMutex);
 
@@ -612,7 +612,7 @@ void Threads::run_on_thread(std::size_t threadId, JobFunc job) const noexcept {
 }
 
 void Threads::wait_on_thread(std::size_t threadId) const noexcept {
-    Thread* thread;
+    Thread* thread = nullptr;
     {
         std::shared_lock readLock(sharedMutex);
 

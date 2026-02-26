@@ -2570,8 +2570,9 @@ void MainSearchManager::handle_time_management(const Worker& worker,
             worker.threads.request_stop();
     }
 
-    if (!ponder && 1000 * elapsedTime > 503 * totalTime)
-        worker.threads.request_research();
+    if (!worker.threads.is_researching())
+        if (!ponder && 1000 * elapsedTime > 503 * totalTime)
+            worker.threads.request_research();
 
     preBestCurValue = bestValue;
 }

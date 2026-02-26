@@ -386,12 +386,6 @@ class Threads final {
     std::vector<std::size_t> bound_thread_counts() const noexcept;
 
     // --- queries ---
-    bool is_active() const noexcept {
-        auto curState = state.load(std::memory_order_acquire);
-
-        return curState == State::Active || curState == State::Research;
-    }
-
     bool is_researching() const noexcept {
         return state.load(std::memory_order_acquire) == State::Research;
     }
@@ -484,9 +478,7 @@ class Threads final {
     // State transition diagram:
     // Active -> Research
     //   |          |
-    //   ---------->
-    //   |          |
-    //   ------------Stopped (final, cannot transition out)
+    //   >---------->Stopped (terminal, no exit)
     enum class State : std::uint8_t {
         Active,
         Research,
