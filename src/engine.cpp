@@ -200,7 +200,7 @@ void Engine::start(const Limit& limit) noexcept {
 
 void Engine::stop() noexcept { threads.request_stop(); }
 
-void Engine::ponderhit() noexcept { threads.main_manager()->set_ponder(false); }
+void Engine::ponderhit() const noexcept { threads.main_manager()->set_ponder(false); }
 
 void Engine::wait_finish() const noexcept { threads.main_thread()->wait_finish(); }
 

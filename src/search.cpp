@@ -2446,6 +2446,9 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
           "Syzygy based PV extension requires more time, increase Overhead-Time as needed.");
 }
 
+MainSearchManager::MainSearchManager(const UpdateContext& updateCtx) noexcept :
+    updateContext(updateCtx) {}
+
 // Initializes the time manager and resets previous search info
 void MainSearchManager::init() noexcept {
 
@@ -2477,13 +2480,14 @@ void MainSearchManager::check_time(Worker& worker) noexcept {
     }
 #endif
 
+    // Should not stop pondering until told so by the GUI
+    if (ponder)
+        return;
+
     // clang-format off
-    if (
-      // Should not stop pondering until told so by the GUI
-      !ponder
-      // Later rely on the fact that at least use the main-thread previous root-search
-      // score and PV in a multi-threaded environment to prove mated-in scores.
-      && worker.completedDepth > DEPTH_ZERO
+    if (// Later rely on the fact that at least use the main-thread previous root-search
+        // score and PV in a multi-threaded environment to prove mated-in scores.
+           worker.completedDepth > DEPTH_ZERO
       && ((worker.limit.use_time_manager() &&      (ponderhitStop || elapsedTime >= timeManager.maximum()))
        || (worker.limit.moveTime != 0      &&                        elapsedTime >= worker.limit.moveTime)
        || (worker.limit.nodes != 0         && worker.threads.sum(&Worker::nodes) >= worker.limit.nodes)))
