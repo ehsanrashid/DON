@@ -38,7 +38,9 @@
     #endif
     // Avoid UNICODE macro conflicts
     #undef UNICODE
+
     #include <windows.h>
+
     // Clean up annoying macros
     #if defined(small)
         #undef small

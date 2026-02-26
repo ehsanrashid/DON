@@ -103,7 +103,7 @@ class MovePicker final {
 
     Move next_move() noexcept;
 
-    bool good_capture() noexcept;
+    bool good_capture() const noexcept;
 
     bool skipQuiets = false;
 
@@ -136,7 +136,7 @@ class MovePicker final {
 
     void next() noexcept { ++cur; }
 
-    Move move() noexcept { return *cur++; }
+    Move move() noexcept { return Move(*cur++); }
 
     [[nodiscard]] pointer       data() noexcept { return moves.data(); }
     [[nodiscard]] const_pointer data() const noexcept { return moves.data(); }

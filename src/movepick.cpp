@@ -397,7 +397,7 @@ bool MovePicker::select(Predicate&& pred) noexcept {
 
 ALWAYS_INLINE bool MovePicker::good_capture_or_swap() noexcept {
     threshold = constexpr_round(55.5555e-3 * double(cur->value));
-    if (pos.see(*cur) >= -threshold)
+    if (pos.see(Move(*cur)) >= -threshold)
         return true;
     // Store bad captures
     std::iter_swap(badCaptureEnd++, cur);
@@ -405,7 +405,7 @@ ALWAYS_INLINE bool MovePicker::good_capture_or_swap() noexcept {
 }
 
 ALWAYS_INLINE bool MovePicker::above_threshold_capture() const noexcept {
-    return pos.see(*cur) >= threshold;
+    return pos.see(Move(*cur)) >= threshold;
 }
 
 // Most important method of the MovePicker class.
@@ -534,6 +534,6 @@ STAGE_SWITCH:
     return Move::None;  // Silence warning
 }
 
-bool MovePicker::good_capture() noexcept { return curStage == Stage::ENC_GOOD_CAPTURE; }
+bool MovePicker::good_capture() const noexcept { return curStage == Stage::ENC_GOOD_CAPTURE; }
 
 }  // namespace DON
