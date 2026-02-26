@@ -242,7 +242,7 @@ Worker::Worker(std::size_t               threadIdx,
 
 // Initialize per-thread data structures
 void Worker::init() noexcept {
-
+    assert(thread_count() == threads.size());
     // Each thread initializes its NUMA-local range of history entries to prevent false sharing
 
     auto historyRange =
