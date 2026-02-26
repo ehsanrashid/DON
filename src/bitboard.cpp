@@ -282,11 +282,11 @@ std::string_view pretty(Bitboard b) noexcept {
     // Standard intentional "leaky singleton" pattern.
     // Ensures the cache lives for the entire program, never deleted.
     //static auto& cache = *new ConcurrentCache<Bitboard, std::string>(ReserveCount, MaxLoadFactor);
-    static auto& cache = *([=] {
+    static auto& cache = *[=] {
         static auto cachePtr =
           std::make_unique<ConcurrentCache<Bitboard, std::string>>(ReserveCount, MaxLoadFactor);
         return cachePtr.get();
-    })();
+    }();
 
     //return cache.access_or_build(b, pretty_str(b));
     return cache.transform_access_or_build(
