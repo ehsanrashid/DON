@@ -1382,16 +1382,13 @@ bool Position::legal(Move m) const noexcept {
         UNREACHABLE();
     }
 
-    return (checkers_bb() == 0 ||
+    return (checkers_bb() == 0
             // Double check? In this case, a king move is required
-            (!more_than_one(checkers_bb())
-             // Pinned piece can never resolve a check
-             // NOTE: there is some issue with this condition
-             //&& !(blockers(ac) & orgSq)
-             // Our move must be a blocking interposition or a capture of the checking piece
-             && ((between_bb(kingSq, lsq(checkers_bb())) & dstSq) != 0
-                 || (m.type() == MT::EN_PASSANT
-                     && (checkers_bb() & (dstSq - pawn_spush(ac))) != 0))))
+            || (!more_than_one(checkers_bb())
+                // Our move must be a blocking interposition or a capture of the checking piece
+                && ((between_bb(kingSq, lsq(checkers_bb())) & dstSq) != 0
+                    || (m.type() == MT::EN_PASSANT
+                        && (checkers_bb() & (dstSq - pawn_spush(ac))) != 0))))
         && ((blockers_bb(ac) & orgSq) == 0 || aligned(kingSq, orgSq, dstSq));
 }
 
