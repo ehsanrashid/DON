@@ -389,12 +389,12 @@ Move* generate_moves(const Position& pos, Move* RESTRICT moves) noexcept {
     {
         switch (GT)
         {
-        case GenType::ENCOUNTER :   targetBB = ~pos.pieces_bb(AC);                                                 break;
-        case GenType::ENC_CAPTURE : targetBB =  pos.pieces_bb(~AC);                                                break;
-        case GenType::ENC_QUIET :   targetBB = ~pos.pieces_bb();                                                   break;
-        case GenType::EVASION :     targetBB = between_bb(pos.square<KING>(AC), lsq(pos.checkers_bb()));    break;
-        case GenType::EVA_CAPTURE : targetBB = pos.checkers_bb();                                                  break;
-        case GenType::EVA_QUIET :   targetBB = between_ex_bb(pos.square<KING>(AC), lsq(pos.checkers_bb())); break;
+        case GenType::ENCOUNTER   : targetBB = ~pos.pieces_bb(AC);                                          break;
+        case GenType::ENC_CAPTURE : targetBB =  pos.pieces_bb(~AC);                                         break;
+        case GenType::ENC_QUIET   : targetBB = ~pos.pieces_bb();                                            break;
+        case GenType::EVASION     : targetBB = between_bb(pos.square<KING>(AC), lsq(pos.checkers_bb()));    break;
+        case GenType::EVA_CAPTURE : targetBB = pos.checkers_bb();                                           break;
+        case GenType::EVA_QUIET   : targetBB = between_ex_bb(pos.square<KING>(AC), lsq(pos.checkers_bb())); break;
         }
 
         const Move* RESTRICT pMoves = moves;
@@ -414,9 +414,9 @@ Move* generate_moves(const Position& pos, Move* RESTRICT moves) noexcept {
     {
         switch (GT)
         {
-        case GenType::EVASION :     targetBB = ~pos.pieces_bb(AC);  break;
+        case GenType::EVASION     : targetBB = ~pos.pieces_bb(AC);  break;
         case GenType::EVA_CAPTURE : targetBB =  pos.pieces_bb(~AC); break;
-        case GenType::EVA_QUIET :   targetBB = ~pos.pieces_bb();    break;
+        case GenType::EVA_QUIET   : targetBB = ~pos.pieces_bb();    break;
         }
     }
     // clang-format on
