@@ -504,7 +504,7 @@ constexpr std::string_view to_string(CastlingSide cs) noexcept {
 }
 
 enum class CastlingRights : std::uint8_t {
-    NO_CASTLING,
+    NO_CASTLING = 0,
 
     WHITE_OO  = 1 << 0,
     WHITE_OOO = 1 << 1,
@@ -523,7 +523,7 @@ inline constexpr std::size_t CASTLING_RIGHTS_NB = 16;
 
 // Bound type for alpha-beta search
 enum class Bound : std::uint8_t {
-    NONE,
+    NONE = 0,
     UPPER,
     LOWER,
     EXACT = UPPER | LOWER
@@ -722,9 +722,7 @@ struct DirtyThreat final {
     static constexpr std::uint16_t PC_MASK  = (1U << 4) - 1;
     static constexpr std::uint16_t ADD_MASK = (1U << 1) - 1;
 
-    DirtyThreat() noexcept {
-        // Don't initialize data
-    }
+    DirtyThreat() noexcept = default;
     constexpr explicit DirtyThreat(std::uint32_t d) noexcept :
         data(d) {}
     constexpr DirtyThreat(
@@ -770,8 +768,8 @@ struct DirtyThreats final {
     template<bool Add>
     void add(Square sq, Square threatenedSq, Piece pc, Piece threatenedPc) noexcept;
 
-    DirtyThreatList dtList;
     Bitboard        threateningBB = 0, threatenedBB = 0;
+    DirtyThreatList dtList;
     Square          preKingSq = SQ_NONE, kingSq = SQ_NONE;
     Color           ac;
 };
