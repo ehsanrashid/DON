@@ -623,6 +623,111 @@ void TBTable<T>::unmap() noexcept {
 #endif
 }
 
+// In Recursive Pairing each symbol represents a pair of children symbols. So
+// read d->btree[] symbols data and expand each one in his left and right child
+// symbol until reaching the leaves that represent the symbol value.
+std::uint8_t set_symlen(PairsData* pd, std::size_t s, std::vector<bool>& visited) noexcept {
+
+    visited[s] = true;  // Can set it now because tree is acyclic
+
+    Sym rSym = pd->btree[s].get<false>();
+
+    if (rSym == INVALID_SYM)
+        return 0;
+
+    Sym lSym = pd->btree[s].get<true>();
+
+    if (!visited[lSym])
+        pd->symLen[lSym] = set_symlen(pd, lSym, visited);
+
+    if (!visited[rSym])
+        pd->symLen[rSym] = set_symlen(pd, rSym, visited);
+
+    return 1 + pd->symLen[lSym] + pd->symLen[rSym];
+}
+
+std::uint8_t* set_sizes(PairsData* pd, std::uint8_t* data) noexcept {
+
+    pd->flags = *data++;
+
+    if (pd->flags & SINGLE_VALUE)
+    {
+        pd->blockCount      = 0;
+        pd->blockLengthSize = 0;
+        pd->span            = 0;
+        pd->sparseIndexSize = 0;        // Broken MSVC zero-init
+        pd->minSymLen       = *data++;  // Here store the single value
+
+        return data;
+    }
+
+    // groupLen[] is a zero-terminated list of group lengths, the last groupIdx[]
+    // element stores the biggest index that is the tb size.
+    std::uint64_t tbSize =
+      pd->groupIdx[std::find(pd->groupLen.begin(), pd->groupLen.end(), 0) - pd->groupLen.begin()];
+
+    pd->blockSize       = 1ULL << *data++;
+    pd->span            = 1ULL << *data++;
+    pd->sparseIndexSize = ceil_div(tbSize, pd->span);  // Round up
+
+    auto padding = number<std::uint8_t, Endian::LITTLE>(data);
+    data += 1;
+    pd->blockCount = number<std::uint32_t, Endian::LITTLE>(data);
+    data += sizeof(std::uint32_t);
+    // Padded to ensure SparseIndex[] does not point out of range.
+    pd->blockLengthSize = pd->blockCount + padding;
+    pd->maxSymLen       = *data++;
+    pd->minSymLen       = *data++;
+    pd->lowestSym       = (Sym*) (data);
+    pd->base64.resize(pd->maxSymLen - pd->minSymLen + 1);
+
+    // See https://en.wikipedia.org/wiki/Huffman_coding
+    // The canonical code is ordered such that longer symbols (in terms of
+    // the number of bits of their Huffman code) have a lower numeric value,
+    // so that pd->lowestSym[i] >= pd->lowestSym[i+1] (when read as LittleEndian).
+    // Starting from this compute a base64[] table indexed by symbol length
+    // and containing 64 bit values so that pd->base64[i] >= pd->base64[i+1].
+    std::size_t base64Size = pd->base64.size();
+
+    for (std::size_t i = std::max(base64Size, std::size_t(1)) - 1; i-- > 0;)
+    {
+        const auto& nextBase64 = pd->base64[i + 1];
+
+        auto curSym = number<Sym, Endian::LITTLE>(&pd->lowestSym[i + 0]);
+        auto nxtSym = number<Sym, Endian::LITTLE>(&pd->lowestSym[i + 1]);
+
+        pd->base64[i] = (nextBase64 + curSym - nxtSym) / 2;
+
+        assert(2 * pd->base64[i] >= nextBase64);
+    }
+
+    // Now left-shift by an amount so that pd->base64[i] gets shifted 1-bit more
+    // than pd->base64[i+1] and given the above assert condition.
+    // Ensure that pd->base64[i] >= pd->base64[i+1].
+    // Moreover for any symbol s64 of length i and right-padded to 64 bits holds
+    // pd->base64[i-1] >= s64 >= pd->base64[i].
+    for (std::size_t i = 0; i < base64Size; ++i)
+        pd->base64[i] <<= 64 - i - pd->minSymLen;  // Right-padding to 64-bit
+
+    data += base64Size * sizeof(Sym);
+    pd->symLen.resize(number<std::uint16_t, Endian::LITTLE>(data));
+    data += sizeof(std::uint16_t);
+    pd->btree = (LR*) (data);
+
+    // The compression scheme used is "Recursive Pairing", that replaces the most
+    // frequent adjacent pair of symbols in the source message by a new symbol,
+    // reevaluating the frequencies of all of the symbol pairs with respect to
+    // the extended alphabet, and then repeating the process.
+    // See https://web.archive.org/web/20201106232444/http://www.larsson.dogma.net/dcc99.pdf
+    std::vector<bool> visited(pd->symLen.size());
+
+    for (std::size_t s = 0; s < pd->symLen.size(); ++s)
+        if (!visited[s])
+            pd->symLen[s] = set_symlen(pd, s, visited);
+
+    return data + pd->symLen.size() * sizeof(LR) + (pd->symLen.size() & 1);
+}
+
 // Populate entry's PairsData records with data from the just memory-mapped file.
 // Called at first access.
 template<TBType T>
@@ -1374,7 +1479,7 @@ Ret do_probe_table(
             squares[i] = flip_file(squares[i]);
     }
 
-    std::uint64_t idx = 0;
+    std::uint64_t idx;
     // Encode leading pawns starting with the one with minimum PawnsMap[] and
     // proceeding in ascending order.
     if (table->hasPawns)
@@ -1513,111 +1618,6 @@ Ret do_probe_table(
 }
 
 #undef CLANG_LOOP_VEC_DISABLE
-
-// In Recursive Pairing each symbol represents a pair of children symbols. So
-// read d->btree[] symbols data and expand each one in his left and right child
-// symbol until reaching the leaves that represent the symbol value.
-std::uint8_t set_symlen(PairsData* pd, Sym s, std::vector<bool>& visited) noexcept {
-
-    visited[s] = true;  // Can set it now because tree is acyclic
-
-    Sym rSym = pd->btree[s].get<false>();
-
-    if (rSym == INVALID_SYM)
-        return 0;
-
-    Sym lSym = pd->btree[s].get<true>();
-
-    if (!visited[lSym])
-        pd->symLen[lSym] = set_symlen(pd, lSym, visited);
-
-    if (!visited[rSym])
-        pd->symLen[rSym] = set_symlen(pd, rSym, visited);
-
-    return 1 + pd->symLen[lSym] + pd->symLen[rSym];
-}
-
-std::uint8_t* set_sizes(PairsData* pd, std::uint8_t* data) noexcept {
-
-    pd->flags = *data++;
-
-    if (pd->flags & SINGLE_VALUE)
-    {
-        pd->blockCount      = 0;
-        pd->blockLengthSize = 0;
-        pd->span            = 0;
-        pd->sparseIndexSize = 0;        // Broken MSVC zero-init
-        pd->minSymLen       = *data++;  // Here store the single value
-
-        return data;
-    }
-
-    // groupLen[] is a zero-terminated list of group lengths, the last groupIdx[]
-    // element stores the biggest index that is the tb size.
-    std::uint64_t tbSize =
-      pd->groupIdx[std::find(pd->groupLen.begin(), pd->groupLen.end(), 0) - pd->groupLen.begin()];
-
-    pd->blockSize       = 1ULL << *data++;
-    pd->span            = 1ULL << *data++;
-    pd->sparseIndexSize = ceil_div(tbSize, pd->span);  // Round up
-
-    auto padding = number<std::uint8_t, Endian::LITTLE>(data);
-    data += 1;
-    pd->blockCount = number<std::uint32_t, Endian::LITTLE>(data);
-    data += sizeof(std::uint32_t);
-    // Padded to ensure SparseIndex[] does not point out of range.
-    pd->blockLengthSize = pd->blockCount + padding;
-    pd->maxSymLen       = *data++;
-    pd->minSymLen       = *data++;
-    pd->lowestSym       = (Sym*) (data);
-    pd->base64.resize(pd->maxSymLen - pd->minSymLen + 1);
-
-    // See https://en.wikipedia.org/wiki/Huffman_coding
-    // The canonical code is ordered such that longer symbols (in terms of
-    // the number of bits of their Huffman code) have a lower numeric value,
-    // so that pd->lowestSym[i] >= pd->lowestSym[i+1] (when read as LittleEndian).
-    // Starting from this compute a base64[] table indexed by symbol length
-    // and containing 64 bit values so that pd->base64[i] >= pd->base64[i+1].
-    std::size_t base64Size = pd->base64.size();
-
-    for (std::size_t i = std::max(base64Size, std::size_t(1)) - 1; i-- > 0;)
-    {
-        const auto& nextBase64 = pd->base64[i + 1];
-
-        auto curSym = number<Sym, Endian::LITTLE>(&pd->lowestSym[i + 0]);
-        auto nxtSym = number<Sym, Endian::LITTLE>(&pd->lowestSym[i + 1]);
-
-        pd->base64[i] = (nextBase64 + curSym - nxtSym) / 2;
-
-        assert(2 * pd->base64[i] >= nextBase64);
-    }
-
-    // Now left-shift by an amount so that pd->base64[i] gets shifted 1-bit more
-    // than pd->base64[i+1] and given the above assert condition.
-    // Ensure that pd->base64[i] >= pd->base64[i+1].
-    // Moreover for any symbol s64 of length i and right-padded to 64 bits holds
-    // pd->base64[i-1] >= s64 >= pd->base64[i].
-    for (std::size_t i = 0; i < base64Size; ++i)
-        pd->base64[i] <<= 64 - i - pd->minSymLen;  // Right-padding to 64-bit
-
-    data += base64Size * sizeof(Sym);
-    pd->symLen.resize(number<std::uint16_t, Endian::LITTLE>(data));
-    data += sizeof(std::uint16_t);
-    pd->btree = (LR*) (data);
-
-    // The compression scheme used is "Recursive Pairing", that replaces the most
-    // frequent adjacent pair of symbols in the source message by a new symbol,
-    // reevaluating the frequencies of all of the symbol pairs with respect to
-    // the extended alphabet, and then repeating the process.
-    // See https://web.archive.org/web/20201106232444/http://www.larsson.dogma.net/dcc99.pdf
-    std::vector<bool> visited(pd->symLen.size());
-
-    for (Sym s = 0; s < pd->symLen.size(); ++s)
-        if (!visited[s])
-            pd->symLen[s] = set_symlen(pd, s, visited);
-
-    return data + pd->symLen.size() * sizeof(LR) + (pd->symLen.size() & 1);
-}
 
 template<TBType T, typename Ret = typename TBTable<T>::Ret>
 Ret probe_table(const Position& pos, ProbeState* ps, WDLScore wdlScore = WDL_DRAW) noexcept {
