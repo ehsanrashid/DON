@@ -584,9 +584,6 @@ void Worker::iterative_deepening() noexcept {
                 ++tbRankGroupIndex;
             }
 
-            // Reset UCI info selDepth for each depth and each PV line
-            selDepth = 1;
-
             auto avgValue    = rootMoves[curPV].avgValue;
             auto avgSqrValue = rootMoves[curPV].avgSqrValue;
 
@@ -596,6 +593,9 @@ void Worker::iterative_deepening() noexcept {
 
             Value alpha = std::max(avgValue - delta, -VALUE_INFINITE);
             Value beta  = std::min(avgValue + delta, +VALUE_INFINITE);
+
+            // Reset UCI info selDepth for each depth and each PV line
+            selDepth = 1;
 
             // Adjust optimism based on root move's avgValue
             optimism[ac]  = 142 * avgValue / (86 + constexpr_abs(avgValue));
