@@ -1833,26 +1833,6 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
         }
     }
 
-    if (ge == 0)
-    {
-        attackersBB &= occupancyBB;
-
-        ac = active_color();
-        occupancyBB |= dstSq;
-
-        acAttackersBB = pieces_bb(ac) & occupancyBB;
-
-        Square kingSq = square<KING>(~ac);
-        if ((occupancyBB & kingSq) != 0 && attackers_exists(kingSq, acAttackersBB, occupancyBB))
-            return true;
-
-        // Even when one of our non-queen pieces attacks opponent queen after exchanges
-        Bitboard queen = pieces_bb(~ac, QUEEN) & ~attackersBB & occupancyBB;
-        Square   sq    = queen != 0 ? lsq(queen) : SQ_NONE;
-        if (is_ok(sq) && attackers_exists(sq, acAttackersBB & ~pieces_bb(QUEEN), occupancyBB))
-            return true;
-    }
-
     return ge == 1;
 }
 

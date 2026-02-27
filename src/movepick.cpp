@@ -305,10 +305,15 @@ MovePicker::score<GenType::ENC_QUIET>(MoveList<GenType::ENC_QUIET>& moveList) no
         // Penalty for moving to square attacked by lesser piece
         // Bonus for escaping from square attacked by lesser piece
         // clang-format off
-        int weight = (pos.acc_less_attacks_bb(movedPt) & dstSq) != 0 ? int((blockersBB & orgSq) == 0) * -19
-                   : (threatsBB & orgSq) != 0                        ? +23
-                   : (pos.acc_less_attacks_bb(movedPt) & orgSq) != 0 ? +20
-                                                                     : 0;
+        Bitboard accLessAttacksBB = pos.acc_less_attacks_bb(movedPt);
+        int dstMask   = -int((accLessAttacksBB & dstSq) != 0);
+        int blockMask = -int((blockersBB & orgSq) == 0);
+        int threatMask= -int((threatsBB & orgSq) != 0);
+        int orgAttMask= -int((accLessAttacksBB & orgSq) != 0);
+        // Priority masking (mutually exclusive chain)
+        int weight = (dstMask & blockMask & -20)
+                   | (~dstMask & (  (threatMask & 23)
+                                  | (~threatMask & orgAttMask & 20)));
         value += weight * piece_value(movedPt);
         // clang-format on
 
