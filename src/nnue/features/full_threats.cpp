@@ -22,6 +22,7 @@
 #include <array>
 #include <cassert>
 #include <initializer_list>
+#include <utility>
 
 #include "../../bitboard.h"
 #include "../../misc.h"
