@@ -1251,7 +1251,7 @@ inline constexpr State* Position::state() const noexcept { return st; }
 
 // Position::SEE
 inline bool Position::SEE::operator>=(int threshold) const noexcept {
-    return pos.see_ge(move, threshold);
+    return pos.see_ge<true>(move, threshold);
 }
 inline bool Position::SEE::operator>(int threshold) const noexcept {
     return (*this >= 1 + threshold);
