@@ -268,7 +268,7 @@ void FullThreats::append_active_indices(Color           perspective,
     for (Color color : {WHITE, BLACK})
         for (PieceType pt : EX_KING_PIECE_TYPES)
         {
-            Color c          = Color(perspective ^ color);
+            auto  c          = Color(perspective ^ color);
             Piece attackerPc = make_piece(c, pt);
 
             Bitboard pcBB = pos.pieces_bb(c, pt);
