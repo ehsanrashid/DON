@@ -1852,11 +1852,22 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
             else
             {
                 // Even when one of our non-queen pieces attacks opponent queen after exchanges
-                Bitboard queen = pieces_bb(~ac, QUEEN) & ~attackersBB & occupancyBB;
-                Square   sq    = queen != 0 ? lsq(queen) : SQ_NONE;
-                if (sq != SQ_NONE
-                    && attackers_exists(sq, pieces_bb(ac, BISHOP, ROOK) & occupancyBB, occupancyBB))
-                    ge = true;
+                Bitboard oppQueen = pieces_bb(~ac, QUEEN) & ~attackersBB & occupancyBB;
+                Square   oppSq    = oppQueen != 0 ? lsq(oppQueen) : SQ_NONE;
+                if (oppSq != SQ_NONE
+                    && attackers_exists(oppSq, pieces_bb(ac, BISHOP, ROOK) & occupancyBB,
+                                        occupancyBB))
+                {
+                    Bitboard ownQueen = pieces_bb(ac, QUEEN) & ~attackersBB & occupancyBB;
+                    if (ownQueen != 0)
+                    {
+                        Square ownSq = lsq(ownQueen);
+                        if (!attackers_exists(ownSq, pieces_bb(~ac) & occupancyBB, occupancyBB))
+                            ge = true;
+                    }
+                    else
+                        ge = true;
+                }
             }
         }
     }
