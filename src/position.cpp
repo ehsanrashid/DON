@@ -1858,8 +1858,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
                     && attackers_exists(oppSq, pieces_bb(ac, BISHOP, ROOK) & occupancyBB,
                                         occupancyBB))
                 {
-                    Bitboard ownQueen = pieces_bb(ac, QUEEN) & ~attackersBB & occupancyBB;
-                    if (ownQueen != 0)
+                    if (Bitboard ownQueen = pieces_bb(ac, QUEEN) & occupancyBB; ownQueen != 0)
                     {
                         Square ownSq = lsq(ownQueen);
                         if (!attackers_exists(ownSq, pieces_bb(~ac) & occupancyBB, occupancyBB))
