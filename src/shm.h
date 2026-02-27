@@ -322,7 +322,7 @@ class BackendSharedMemory final {
 
     #if defined(_WIN64)
               DWORD hiTotalSize = roundedTotalSize >> 32;
-              DWORD loTotalSize = roundedTotalSize & 0xFFFFFFFFU;
+              DWORD loTotalSize = roundedTotalSize & 0xFFFFFFFFu;
     #else
               DWORD hiTotalSize = 0;
               DWORD loTotalSize = roundedTotalSize;
@@ -1264,7 +1264,7 @@ struct ShmHeader final {
     void increment_ref_count() noexcept { refCount.fetch_add(1, std::memory_order_acq_rel); }
     void decrement_ref_count() noexcept { refCount.fetch_sub(1, std::memory_order_acq_rel); }
 
-    static constexpr std::uint32_t MAGIC = 0xAD5F1A12U;
+    static constexpr std::uint32_t MAGIC = 0xAD5F1A12u;
 
     const std::uint32_t magic = MAGIC;
 

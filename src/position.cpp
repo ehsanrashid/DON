@@ -142,7 +142,7 @@ CuckooTable<0x2000> Cuckoos;
 }  // namespace
 
 void Zobrist::init() noexcept {
-    XorShift64Star prng(0x105524ULL);
+    XorShift64Star prng(0x105524ull);
 
     auto prng_rand = [&] { return prng.template rand<Key>(); };
 
@@ -1875,7 +1875,7 @@ bool Position::is_repetition(std::int16_t ply) const noexcept {
 }
 
 // Tests whether the current position is drawn by repetition or by 50-move rule.
-// It also detect stalemates.
+// It also detects stalemates.
 bool Position::is_draw(std::int16_t ply, bool useRule50, bool useStalemate) const noexcept {
     return
       // Draw by Repetition

@@ -33,7 +33,10 @@ namespace DON::NNUE::Features {
 
 namespace {
 
-constexpr StdArray<std::uint16_t, PIECE_TYPE_CNT> TARGET_MAX{3, 5, 4, 4, 5, 0};
+constexpr StdArray<std::uint16_t, COLOR_NB, PIECE_TYPE_CNT> TARGET_MAX{{
+  {5, 9, 7, 7, 9, 0},  //
+  {6, 9, 7, 7, 9, 0}   //
+}};
 
 constexpr StdArray<std::int16_t, PIECE_TYPE_CNT, PIECE_TYPE_CNT> MAP{{
   {+0, +1, -1, +2, -1, -1},  //
@@ -80,7 +83,7 @@ alignas(CACHE_LINE_SIZE) constexpr auto THREAT_TABLE = []() constexpr noexcept {
 
             threatTable.pieceThreats[+pc] = {baseOffset, threatCount};
 
-            baseOffset += 2 * TARGET_MAX[pt - 1] * threatCount;
+            baseOffset += TARGET_MAX[c][pt - 1] * threatCount;
         }
 
     return threatTable;
@@ -93,7 +96,7 @@ constexpr IndexType dimensions() noexcept {
     IndexType dimensions = 0;
     for (Color c : {WHITE, BLACK})
         for (PieceType pt : PIECE_TYPES)
-            dimensions += 2 * TARGET_MAX[pt - 1] * PIECE_THREATS[+make_piece(c, pt)].threatCount;
+            dimensions += TARGET_MAX[c][pt - 1] * PIECE_THREATS[+make_piece(c, pt)].threatCount;
 
     return dimensions;
 }
@@ -101,7 +104,7 @@ constexpr IndexType dimensions() noexcept {
 static_assert(dimensions() == FullThreats::Dimensions);
 
 constexpr std::uint8_t  SEMI_EXCLUDED_OFFSET = 31;
-constexpr std::uint32_t SEMI_EXCLUDED_MASK   = 1U << SEMI_EXCLUDED_OFFSET;
+constexpr std::uint32_t SEMI_EXCLUDED_MASK   = 1u << SEMI_EXCLUDED_OFFSET;
 constexpr std::uint32_t FEATURE_INDEX_MASK   = SEMI_EXCLUDED_MASK - 1;
 
 // LUT for getting feature base index and exclusion info
@@ -114,30 +117,48 @@ alignas(CACHE_LINE_SIZE) constexpr auto LUT_DATAS = []() constexpr noexcept {
         {
             Piece attackerPc = make_piece(attackerC, attackerPt);
 
+            StdArray<std::size_t, PIECE_NB> targetBuckets{};
+            for (auto& bucket : targetBuckets)
+                bucket = UINT32_MAX;
+
+            std::size_t nextTargetBucket = 0;
+
             for (Color attackedC : {WHITE, BLACK})
                 for (PieceType attackedPt : PIECE_TYPES)
                 {
                     Piece attackedPc = make_piece(attackedC, attackedPt);
 
                     auto map = MAP[attackerPt - 1][attackedPt - 1];
-                    // Excluded
-                    if (map < 0)
+
+                    bool excluded =
+                      map < 0 || (attackerPc == Piece::W_PAWN && attackedPc == Piece::B_PAWN);
+
+                    if (excluded)
                     {
                         lutDatas[+attackerPc][+attackedPc] = FullThreats::Dimensions;
 
                         continue;
                     }
 
-                    bool semiExcluded = attackerPt == attackedPt  //
-                                     && (attackerPt != PAWN || attackerC != attackedC);
+                    bool semiExcluded = attackerPt == attackedPt && attackerPt != PAWN;
 
-                    std::uint32_t featureIndex = PIECE_THREATS[+attackerPc].baseOffset
-                                               + (attackedC * TARGET_MAX[attackerPt - 1] + map)
-                                                   * PIECE_THREATS[+attackerPc].threatCount;
+                    Piece canonical = attackedPc;
+                    if (semiExcluded)
+                        canonical = attackerPc;
+
+                    auto& targetBucket = targetBuckets[+canonical];
+                    if (targetBucket == UINT32_MAX)
+                        targetBucket = nextTargetBucket++;
+
+                    std::uint32_t featureIndex =
+                      PIECE_THREATS[+attackerPc].baseOffset
+                      + PIECE_THREATS[+attackerPc].threatCount * targetBucket;
 
                     lutDatas[+attackerPc][+attackedPc] =
                       (std::uint32_t(semiExcluded) << SEMI_EXCLUDED_OFFSET) | featureIndex;
                 }
+
+            assert(nextTargetBucket == TARGET_MAX[attackerC][attackerPt - 1]);
         }
 
     return lutDatas;
@@ -222,6 +243,9 @@ ALWAYS_INLINE IndexType make_index(Color  perspective,
       lutData == FullThreats::Dimensions
       // Semi-excluded && Direction-dependent exclusion
       || (semi_excluded(lutData) && org < dst));
+
+    if (int(attackerPc ^ attackedPc) == 8 && type_of(attackerPc) > PAWN)
+        std::swap(org, dst);
 
     // Compute index components
     std::uint32_t index = feature_index(lutData)                                     //

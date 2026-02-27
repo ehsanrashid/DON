@@ -200,7 +200,7 @@ inline constexpr double LN2   = 0.693147180559945309417232121458176568;
 inline constexpr double SQRT2 = 1.41421356237309504880168872420969808;
 
 // Constants for Murmur Hashing
-inline constexpr std::uint64_t MURMUR_M = 0xC6A4A7935BD1E995ULL;
+inline constexpr std::uint64_t MURMUR_M = 0xC6A4A7935BD1E995ull;
 inline constexpr std::uint8_t  MURMUR_R = 47;
 
 inline constexpr std::string_view EMPTY_STRING{"<empty>"};
@@ -219,7 +219,7 @@ inline const bool IsLittleEndian = []() noexcept {
 }();
 #endif
 
-constexpr std::uint64_t bit(std::uint8_t b) noexcept { return (1ULL << b); }
+constexpr std::uint64_t bit(std::uint8_t b) noexcept { return (1ull << b); }
 
 template<typename To, typename From>
 constexpr bool is_strictly_assignable_v =

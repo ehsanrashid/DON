@@ -34,12 +34,13 @@ namespace DON::NNUE::Features {
 class FullThreats final {
    public:
     // Hash value embedded in the evaluation file
-    static constexpr std::uint32_t Hash = 0x8F234CB8U;
+    static constexpr std::uint32_t Hash = 0x8F234CB9u;
 
     // Number of feature dimensions
-    static constexpr IndexType Dimensions = 60144;
+    static constexpr IndexType Dimensions = 53564;
 
     struct FusedData final {
+       public:
         FusedData() = delete;
         FusedData(Square removedSq) noexcept :
             dp2removedSq(removedSq) {}

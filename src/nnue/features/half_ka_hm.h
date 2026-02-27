@@ -17,8 +17,8 @@
 
 // Definition of input features HalfKP of NNUE evaluation function
 
-#ifndef NNUE_FEATURES_HALF_KA_V2_HM_H_INCLUDED
-#define NNUE_FEATURES_HALF_KA_V2_HM_H_INCLUDED
+#ifndef NNUE_FEATURES_HALF_KA_HM_H_INCLUDED
+#define NNUE_FEATURES_HALF_KA_HM_H_INCLUDED
 
 #include <cstdint>
 
@@ -28,12 +28,12 @@
 
 namespace DON::NNUE::Features {
 
-// Feature HalfKAv2_hm: Combination of the position of own king and the position of pieces.
+// Feature HalfKA_hm: Combination of the position of own king and the position of pieces.
 // Position mirrored such that king is always on e...h files.
-class HalfKAv2_hm final {
+class HalfKA_hm final {
    public:
     // Hash value embedded in the evaluation file
-    static constexpr std::uint32_t Hash = 0x7F234CB8U;
+    static constexpr std::uint32_t Hash = 0x7F234CB8u;
 
     static constexpr IndexType PS_NB = 11 * SQUARE_NB;
 
@@ -61,14 +61,14 @@ class HalfKAv2_hm final {
     static bool refresh_required(Color perspective, const DirtyType& dp) noexcept;
 
    private:
-    HalfKAv2_hm() noexcept                              = delete;
-    ~HalfKAv2_hm() noexcept                             = delete;
-    HalfKAv2_hm(const HalfKAv2_hm&) noexcept            = delete;
-    HalfKAv2_hm(HalfKAv2_hm&&) noexcept                 = delete;
-    HalfKAv2_hm& operator=(const HalfKAv2_hm&) noexcept = delete;
-    HalfKAv2_hm& operator=(HalfKAv2_hm&&) noexcept      = delete;
+    HalfKA_hm() noexcept                            = delete;
+    ~HalfKA_hm() noexcept                           = delete;
+    HalfKA_hm(const HalfKA_hm&) noexcept            = delete;
+    HalfKA_hm(HalfKA_hm&&) noexcept                 = delete;
+    HalfKA_hm& operator=(const HalfKA_hm&) noexcept = delete;
+    HalfKA_hm& operator=(HalfKA_hm&&) noexcept      = delete;
 };
 
 }  // namespace DON::NNUE::Features
 
-#endif  // #ifndef NNUE_FEATURES_HALF_KA_V2_HM_H_INCLUDED
+#endif  // #ifndef NNUE_FEATURES_HALF_KA_HM_H_INCLUDED

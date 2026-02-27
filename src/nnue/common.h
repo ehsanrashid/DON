@@ -62,7 +62,7 @@ using IndexType        = std::size_t;
 using TransformedFeatureType = std::uint8_t;
 
 // Version of the evaluation file
-inline constexpr std::uint32_t FILE_VERSION = 0x7AF32F20U;
+inline constexpr std::uint32_t FILE_VERSION = 0x7AF32F20u;
 
 // Constant used in evaluation value calculation
 inline constexpr int OUTPUT_SCALE      = 16;
