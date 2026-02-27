@@ -1559,7 +1559,7 @@ Key Position::move_key(Move m) const noexcept {
 // Tests if the SEE (Static Exchange Evaluation) value of the move
 // is greater or equal to the given threshold.
 // An algorithm similar to alpha-beta pruning with a null window.
-template<bool NMP>
+template<bool Expose>
 bool Position::see_ge(Move m, int threshold) const noexcept {
     assert(legal(m));
 
@@ -1834,7 +1834,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
         }
     }
 
-    if constexpr (NMP)
+    if constexpr (Expose)
     {
         // If ge != 1, check if move exposes the king.
         // If so, treat as "good" (ge = 1)

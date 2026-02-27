@@ -300,7 +300,7 @@ MovePicker::score<GenType::ENC_QUIET>(MoveList<GenType::ENC_QUIET>& moveList) no
         if (pos.check(m))
             value += int(pos.see_ge<false>(m, -75)) * 0x4000 + int(pos.dbl_check(m)) * 0x1000;
 
-        value += int(pos.fork(m) && pos.see(m) >= -50) * 0x1000;
+        value += int(pos.fork(m) && pos.see_ge<false>(m, -50)) * 0x1000;
 
         // Penalty for moving to square attacked by lesser piece
         // Bonus for escaping from square attacked by lesser piece

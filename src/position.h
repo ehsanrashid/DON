@@ -357,7 +357,7 @@ class Position final {
     Value evaluate() const noexcept;
 
     // Static Exchange Evaluation:
-    template<bool NMP = true>
+    template<bool Expose = true>
     bool               see_ge(Move m, int threshold) const noexcept;
     [[nodiscard]] auto see(Move m) const noexcept { return SEE(*this, m); }
 
