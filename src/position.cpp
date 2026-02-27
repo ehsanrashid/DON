@@ -1845,10 +1845,9 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
             attackersBB &= occupancyBB;
             occupancyBB |= dstSq;
 
-            acAttackersBB = pieces_bb(ac) & occupancyBB;
-
             Square kingSq = square<KING>(~ac);
-            if ((occupancyBB & kingSq) != 0 && attackers_exists(kingSq, acAttackersBB, occupancyBB))
+            if ((occupancyBB & kingSq) != 0
+                && attackers_exists(kingSq, pieces_bb(ac) & occupancyBB, occupancyBB))
                 ge = true;
             else
             {
@@ -1856,7 +1855,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
                 Bitboard queen = pieces_bb(~ac, QUEEN) & ~attackersBB & occupancyBB;
                 Square   sq    = queen != 0 ? lsq(queen) : SQ_NONE;
                 if (sq != SQ_NONE
-                    && attackers_exists(sq, acAttackersBB & ~pieces_bb(QUEEN), occupancyBB))
+                    && attackers_exists(sq, pieces_bb(ac, BISHOP, ROOK) & occupancyBB, occupancyBB))
                     ge = true;
             }
         }
