@@ -1711,7 +1711,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
 
         if constexpr (!PVNode)
         {
-            ttMoveHistory << -860 + int(bestMove == ttd.move) * 1664;
+            ttMoveHistory << -860 + int(extra) * 1664;
         }
     }
     // If prior move is valid, that caused the fail low
