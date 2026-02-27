@@ -1559,6 +1559,7 @@ Key Position::move_key(Move m) const noexcept {
 // Tests if the SEE (Static Exchange Evaluation) value of the move
 // is greater or equal to the given threshold.
 // An algorithm similar to alpha-beta pruning with a null window.
+template<bool NMP>
 bool Position::see_ge(Move m, int threshold) const noexcept {
     assert(legal(m));
 
@@ -1833,23 +1834,39 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
         }
     }
 
-    // If ge != 1, check if move exposes the king.
-    // If so, treat as "good" (ge = 1)
-    if (ge != 1)
+    if constexpr (NMP)
     {
-        ac = active_color();
+        // If ge != 1, check if move exposes the king.
+        // If so, treat as "good" (ge = 1)
+        if (ge != 1)
+        {
+            ac = active_color();
 
-        attackersBB &= occupancyBB;
-        occupancyBB |= dstSq;
+            attackersBB &= occupancyBB;
+            occupancyBB |= dstSq;
 
-        Square kingSq = square<KING>(~ac);
-        if ((occupancyBB & kingSq) != 0
-            && attackers_exists(kingSq, pieces_bb(ac) & occupancyBB, occupancyBB))
-            ge = 1;
+            acAttackersBB = pieces_bb(ac) & occupancyBB;
+
+            Square kingSq = square<KING>(~ac);
+            if ((occupancyBB & kingSq) != 0 && attackers_exists(kingSq, acAttackersBB, occupancyBB))
+                ge = 1;
+            else
+            {
+                // Even when one of our non-queen pieces attacks opponent queen after exchanges
+                Bitboard queen = pieces_bb(~ac, QUEEN) & ~attackersBB & occupancyBB;
+                Square   sq    = queen != 0 ? lsq(queen) : SQ_NONE;
+                if (sq != SQ_NONE
+                    && attackers_exists(sq, acAttackersBB & ~pieces_bb(QUEEN), occupancyBB))
+                    ge = 1;
+            }
+        }
     }
     // Return whether move is "good" (ge == 1)
     return ge == 1;
 }
+// Explicit template instantiations:
+template bool Position::see_ge<true>(Move m, int threshold) const noexcept;
+template bool Position::see_ge<false>(Move m, int threshold) const noexcept;
 
 // Draw by Repetition: position repeats once earlier but strictly
 // after the root, or repeats twice before or at the root.

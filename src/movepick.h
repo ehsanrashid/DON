@@ -130,13 +130,13 @@ class MovePicker final {
 
     bool valid() const noexcept { return *cur != ttMove; }
 
-    bool good_capture_or_swap() noexcept;
+    [[nodiscard]] bool good_capture_or_swap() noexcept;
 
-    bool above_threshold_capture() const noexcept;
+    [[nodiscard]] bool above_threshold_capture() const noexcept;
 
     void next() noexcept { ++cur; }
 
-    Move move() noexcept { return *cur++; }
+    [[nodiscard]] Move move() noexcept { return *cur++; }
 
     [[nodiscard]] pointer       data() noexcept { return moves.data(); }
     [[nodiscard]] const_pointer data() const noexcept { return moves.data(); }

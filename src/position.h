@@ -357,6 +357,8 @@ class Position final {
     Value evaluate() const noexcept;
 
     // Static Exchange Evaluation
+    template<bool NMP = true>
+    bool               see_ge(Move m, int threshold) const noexcept;
     [[nodiscard]] auto see(Move m) const noexcept { return SEE(*this, m); }
 
     bool is_repetition(std::int16_t ply) const noexcept;
@@ -461,9 +463,6 @@ class Position final {
 
     void reset_en_passant_sq() noexcept;
     void reset_rule50_count() noexcept;
-
-    // Static Exchange Evaluation
-    bool see_ge(Move m, int threshold) const noexcept;
 
     static constexpr std::size_t TOTAL_CAPACITY = []() constexpr noexcept {
         std::size_t totalCapacity = 0;
