@@ -275,8 +275,8 @@ class Position final {
     Bitboard attackers_bb(Square s, Bitboard occupancyBB) const noexcept;
     Bitboard attackers_bb(Square s) const noexcept;
 
-    bool attackers_exists(Square s, Color c, Bitboard occupancyBB) const noexcept;
-    bool attackers_exists(Square s, Color c) const noexcept;
+    bool attackers_exists(Square s, Bitboard attackersBB, Bitboard occupancyBB) const noexcept;
+    bool attackers_exists(Square s, Bitboard attackersBB) const noexcept;
 
     Bitboard blockers_bb(Square    s,
                          Bitboard  attackersBB,
@@ -356,7 +356,9 @@ class Position final {
     Value material() const noexcept;
     Value evaluate() const noexcept;
 
-    // Static Exchange Evaluation
+    // Static Exchange Evaluation:
+    template<bool Expose = true>
+    bool               see_ge(Move m, int threshold) const noexcept;
     [[nodiscard]] auto see(Move m) const noexcept { return SEE(*this, m); }
 
     bool is_repetition(std::int16_t ply) const noexcept;
@@ -461,9 +463,6 @@ class Position final {
 
     void reset_en_passant_sq() noexcept;
     void reset_rule50_count() noexcept;
-
-    // Static Exchange Evaluation
-    bool see_ge(Move m, int threshold) const noexcept;
 
     static constexpr std::size_t TOTAL_CAPACITY = []() constexpr noexcept {
         std::size_t totalCapacity = 0;
@@ -720,16 +719,16 @@ inline Bitboard Position::attackers_bb(Square s) const noexcept {
 }
 
 // Checks if there are any attackers to 's' from 'c'
-inline bool Position::attackers_exists(Square s, Color c, Bitboard occupancyBB) const noexcept {
-    Bitboard attackersBB = pieces_bb(c);
+inline bool Position::attackers_exists(Square s, Bitboard attackersBB, Bitboard occupancyBB) const noexcept {
     return (attackersBB & pieces_bb(QUEEN, BISHOP) & attacks_bb<BISHOP>(s, occupancyBB)) != 0
         || (attackersBB & pieces_bb(QUEEN, ROOK  ) & attacks_bb<ROOK  >(s, occupancyBB)) != 0
-        || (attackersBB & pieces_bb(PAWN         ) & attacks_bb<PAWN  >(s, ~c)) != 0
+        || (attackersBB & ((pieces_bb(WHITE, PAWN) & attacks_bb<PAWN  >(s, BLACK))
+                         | (pieces_bb(BLACK, PAWN) & attacks_bb<PAWN  >(s, WHITE)))) != 0
         || (attackersBB & pieces_bb(KNIGHT       ) & attacks_bb<KNIGHT>(s)) != 0
         || (attackersBB & pieces_bb(KING         ) & attacks_bb<KING  >(s)) != 0;
 }
-inline bool Position::attackers_exists(Square s, Color c) const noexcept {
-    return attackers_exists(s, c, pieces_bb());
+inline bool Position::attackers_exists(Square s, Bitboard attackersBB) const noexcept {
+    return attackers_exists(s, attackersBB, pieces_bb());
 }
 
 // clang-format on
@@ -1252,7 +1251,7 @@ inline constexpr State* Position::state() const noexcept { return st; }
 
 // Position::SEE
 inline bool Position::SEE::operator>=(int threshold) const noexcept {
-    return pos.see_ge(move, threshold);
+    return pos.see_ge<true>(move, threshold);
 }
 inline bool Position::SEE::operator>(int threshold) const noexcept {
     return (*this >= 1 + threshold);

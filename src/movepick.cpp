@@ -298,17 +298,22 @@ MovePicker::score<GenType::ENC_QUIET>(MoveList<GenType::ENC_QUIET>& moveList) no
 
         // Bonus for checks
         if (pos.check(m))
-            value += int(pos.see(m) >= -75) * 0x4000 + int(pos.dbl_check(m)) * 0x1000;
+            value += int(pos.see_ge<false>(m, -75)) * 0x4000 + int(pos.dbl_check(m)) * 0x1000;
 
-        value += int(pos.fork(m) && pos.see(m) >= -50) * 0x1000;
+        value += int(pos.fork(m) && pos.see_ge<false>(m, -50)) * 0x1000;
 
         // Penalty for moving to square attacked by lesser piece
         // Bonus for escaping from square attacked by lesser piece
         // clang-format off
-        int weight = (pos.acc_less_attacks_bb(movedPt) & dstSq) != 0 ? int((blockersBB & orgSq) == 0) * -19
-                   : (threatsBB & orgSq) != 0                        ? +23
-                   : (pos.acc_less_attacks_bb(movedPt) & orgSq) != 0 ? +20
-                                                                     : 0;
+        Bitboard accLessAttacksBB = pos.acc_less_attacks_bb(movedPt);
+        int dstMask   = -int((accLessAttacksBB & dstSq) != 0);
+        int blockMask = -int((blockersBB & orgSq) == 0);
+        int threatMask= -int((threatsBB & orgSq) != 0);
+        int orgAttMask= -int((accLessAttacksBB & orgSq) != 0);
+        // Priority masking (mutually exclusive chain)
+        int weight = (dstMask & blockMask & -20)
+                   | (~dstMask & (  (threatMask & 23)
+                                  | (~threatMask & orgAttMask & 20)));
         value += weight * piece_value(movedPt);
         // clang-format on
 
@@ -389,19 +394,6 @@ bool MovePicker::select(Predicate&& pred) noexcept {
         next();
     }
     return false;
-}
-
-ALWAYS_INLINE bool MovePicker::good_capture_or_swap() noexcept {
-    threshold = constexpr_round(55.5555e-3 * double(cur->value));
-    if (pos.see(*cur) >= -threshold)
-        return true;
-    // Store bad captures
-    std::iter_swap(badCaptureEnd++, cur);
-    return false;
-}
-
-ALWAYS_INLINE bool MovePicker::above_threshold_capture() const noexcept {
-    return pos.see(Move(*cur)) >= threshold;
 }
 
 // Most important method of the MovePicker class.
@@ -531,5 +523,18 @@ STAGE_SWITCH:
 }
 
 bool MovePicker::good_capture() const noexcept { return curStage == Stage::ENC_GOOD_CAPTURE; }
+
+ALWAYS_INLINE bool MovePicker::good_capture_or_swap() noexcept {
+    threshold = constexpr_round(55.5555e-3 * double(cur->value));
+    if (pos.see(*cur) >= -threshold)
+        return true;
+    // Store bad captures
+    std::iter_swap(badCaptureEnd++, cur);
+    return false;
+}
+
+ALWAYS_INLINE bool MovePicker::above_threshold_capture() const noexcept {
+    return pos.see(Move(*cur)) >= threshold;
+}
 
 }  // namespace DON
