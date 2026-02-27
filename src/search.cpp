@@ -1114,7 +1114,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
     if constexpr (CutNode)
     {
         if (!exclude && hasNonPawn /*Zugzwang guard*/ && ss->ply >= nmpPly
-            && !is_loss(beta) && ss->evalValue - 359 + 17 * depth >= beta)
+            && !is_loss(beta) && ss->evalValue - 359 + int(improve) * 50 + 17 * depth >= beta)
         {
             assert(preMove != Move::Null);
 

@@ -623,9 +623,9 @@ class Move {
     static constexpr std::uint8_t PROMO_OFFSET  = 12;
     static constexpr std::uint8_t TYPE_OFFSET   = 14;
 
-    static constexpr std::uint16_t SQ_MASK    = (1U << 6) - 1;
-    static constexpr std::uint16_t PROMO_MASK = (1U << 2) - 1;
-    static constexpr std::uint16_t TYPE_MASK  = ((1U << 2) - 1) << TYPE_OFFSET;
+    static constexpr std::uint16_t SQ_MASK    = (1u << 6) - 1;
+    static constexpr std::uint16_t PROMO_MASK = (1u << 2) - 1;
+    static constexpr std::uint16_t TYPE_MASK  = ((1u << 2) - 1) << TYPE_OFFSET;
 
     Move() noexcept = default;
     constexpr explicit Move(std::uint16_t d) noexcept :
@@ -718,9 +718,9 @@ struct DirtyThreat final {
     static constexpr std::uint8_t THREATENED_PC_OFFSET = 20;
     static constexpr std::uint8_t ADD_OFFSET           = 31;
 
-    static constexpr std::uint16_t SQ_MASK  = (1U << 8) - 1;
-    static constexpr std::uint16_t PC_MASK  = (1U << 4) - 1;
-    static constexpr std::uint16_t ADD_MASK = (1U << 1) - 1;
+    static constexpr std::uint16_t SQ_MASK  = (1u << 8) - 1;
+    static constexpr std::uint16_t PC_MASK  = (1u << 4) - 1;
+    static constexpr std::uint16_t ADD_MASK = (1u << 1) - 1;
 
     DirtyThreat() noexcept = default;
     constexpr explicit DirtyThreat(std::uint32_t d) noexcept :
@@ -784,7 +784,7 @@ struct DirtyBoard final {
 // Linear Congruential Generator (LCG): X{n+1} = (c + a * X{n})
 // Based on a congruential pseudo-random number generator.
 constexpr std::uint64_t make_hash(std::uint64_t seed) noexcept {
-    return 0x14057B7EF767814FULL + 0x5851F42D4C957F2DULL * seed;
+    return 0x14057B7EF767814Full + 0x5851F42D4C957F2Dull * seed;
 }
 
 template<typename T, typename... Ts>

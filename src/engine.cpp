@@ -140,16 +140,16 @@ Engine::~Engine() noexcept { wait_finish(); }
 Options&       Engine::get_options() noexcept { return options; }
 const Options& Engine::get_options() const noexcept { return options; }
 
-void Engine::set_numa_config(std::string_view str) noexcept {
-    if (str == "none")
+void Engine::set_numa_config(std::string_view cfg) noexcept {
+    if (cfg == "none")
         numaContext.set_numa_config(NumaConfig{});
-    else if (str == "auto" || str == "system")
+    else if (cfg == "auto" || cfg == "system")
         numaContext.set_numa_config(NumaConfig::from_system(NUMA_POLICY_DEFAULT, true));
-    else if (str == "hardware")
+    else if (cfg == "hardware")
         // Don't respect affinity set in the system
         numaContext.set_numa_config(NumaConfig::from_system(NUMA_POLICY_DEFAULT, false));
     else
-        numaContext.set_numa_config(NumaConfig::from_string(str));
+        numaContext.set_numa_config(NumaConfig::from_string(cfg));
 
     // Force reallocation of threads in case affinities need to change
     resize_threads_tt();

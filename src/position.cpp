@@ -495,10 +495,10 @@ void Position::set(std::string_view fens, State* newSt) noexcept {
     if (enPassantSq != SQ_NONE)
     {
         // En-passant square will be considered only if
-        // a) there is an enemy pawn in front of epSquare
-        // b) there is no piece on epSquare or behind epSquare
-        // c) there is atleast one friend pawn threatening epSquare
-        // d) there is no enemy Bishop, Rook or Queen pinning
+        //   - there is an enemy pawn in front of epSquare
+        //   - there is no piece on epSquare or behind epSquare
+        //   - there is atleast one friend pawn threatening epSquare
+        //   - there is no enemy Bishop, Rook or Queen pinning
         if ((pieces_bb(~ac, PAWN) & (enPassantSq - pawn_spush(ac))) != 0
             && (empty(enPassantSq) && empty(enPassantSq + pawn_spush(ac)))
             && (pieces_bb(ac, PAWN) & attacks_bb<PAWN>(enPassantSq, ~ac)) != 0
@@ -526,8 +526,8 @@ void Position::set(std::string_view code, Color c, State* newSt) noexcept {
       std::string{code.substr(code.find('K', 1))},                // Weak
       std::string{code.substr(0, code.find_first_of("vK", 1))}};  // Strong
 
-    assert(0 < sides[WHITE].size() && sides[WHITE].size() < 8);
-    assert(0 < sides[BLACK].size() && sides[BLACK].size() < 8);
+    assert(!sides[WHITE].empty() && sides[WHITE].size() < 8);
+    assert(!sides[BLACK].empty() && sides[BLACK].size() < 8);
 
     sides[c] = lower_case(sides[c]);
 

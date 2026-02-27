@@ -147,7 +147,7 @@ int main() {
     constexpr std::size_t N = 256;
 
     // Deterministic RNG
-    std::mt19937_64 rng(123456789ULL);
+    std::mt19937_64 rng(123456789ull);
 
     // Build test vector with many duplicates
     std::vector<Item> vec;

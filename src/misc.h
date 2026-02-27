@@ -416,7 +416,7 @@ constexpr std::uint64_t mul_hi64(std::uint64_t u1, std::uint64_t u2) noexcept {
 #endif
 }
 
-static_assert(mul_hi64(0xDEADBEEFDEADBEEFULL, 0xCAFEBABECAFEBABEULL) == 0xB092AB7CE9F4B259ULL,
+static_assert(mul_hi64(0xDEADBEEFDEADBEEFull, 0xCAFEBABECAFEBABEull) == 0xB092AB7CE9F4B259ull,
               "mul_hi64(): Failed");
 
 // PrefetchAccess for explicit call-site control
@@ -1562,7 +1562,7 @@ void combine_hash(std::size_t& seed, const T& v) noexcept {
     else
         x = std::hash<T>{}(v);
 
-    seed ^= x + 0x9E3779B9U + (seed << 6) + (seed >> 2);
+    seed ^= x + 0x9E3779B9u + (seed << 6) + (seed >> 2);
 }
 
 // Custom streambuf that wraps string_view
