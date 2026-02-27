@@ -1833,19 +1833,18 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
         }
     }
 
-    // If ge == 0, check if move exposes the king.
+    // If ge != 1, check if move exposes the king.
     // If so, treat as "good" (ge = 1)
-    if (ge == 0)
+    if (ge != 1)
     {
-        attackersBB &= occupancyBB;
-
         ac = active_color();
+
+        attackersBB &= occupancyBB;
         occupancyBB |= dstSq;
 
-        acAttackersBB = pieces_bb(ac) & occupancyBB;
-
         Square kingSq = square<KING>(~ac);
-        if ((occupancyBB & kingSq) != 0 && attackers_exists(kingSq, acAttackersBB, occupancyBB))
+        if ((occupancyBB & kingSq) != 0
+            && attackers_exists(kingSq, pieces_bb(ac) & occupancyBB, occupancyBB))
             ge = 1;
     }
     // Return whether move is "good" (ge == 1)
