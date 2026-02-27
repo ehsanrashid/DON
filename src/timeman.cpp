@@ -171,7 +171,7 @@ void TimeManager::init(
     }
 
     // Limit the maximum possible time for this move
-    optimumTime = std::max<TimePoint>(constexpr_ceil(optimumScale * double(remainTime)), options["MinimumMoveTime"]);
+    optimumTime = std::max<TimePoint>(constexpr_ceil(optimumScale * double(remainTime)), options["MinMoveTime"]);
 
     maximumTime = std::max(
                     centiMTG < CENTI_MTG_MIN

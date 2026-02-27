@@ -101,12 +101,14 @@ Engine::Engine(std::string_view path) noexcept :
     options.add("UCI_ELO",              Option(Skill::ELO_MAX, Skill::ELO_MIN, Skill::ELO_MAX));
     options.add("UCI_ShowWDL",          Option(false));
     options.add("SkillLevel",           Option(int(Skill::LEVEL_MAX), int(Skill::LEVEL_MIN), int(Skill::LEVEL_MAX)));
-    options.add("OverheadTime",         Option(25,  0, 5000));  // Overhead per move
-    options.add("MinimumMoveTime",      Option(20,  0, 5000));  // Time floor constraint
-    options.add("BufferTime",           Option(10,  0, 5000));  // Safety reserve (very intuitive)
-    options.add("TimePercent",          Option(80, 10, 1000));  // Time scaling factor (%age)
+    options.add("OverheadTime",         Option(25,  0, 5000));  // Estimated overhead per move
+    options.add("MinMoveTime",          Option(20,  0, 5000));  // Minimum time allowed per move
+    options.add("MaxSingleTime",        Option(502, 0, 5000));  // Maximum time allowed for a single move
+    options.add("BufferTime",           Option(10,  0, 5000));  // Safety reserve to prevent time trouble
+    options.add("TimePercent",          Option(80, 10, 1000));  // Percentage of remaining time to use
     options.add("NodesTime",            Option(0, 0, 10000));
     options.add("SleepOnStart",         Option(false));
+    options.add("HistoryLoadFactor",    Option(75, 10, 100, OnCng([this](const Option& o) { historiesMap.max_load_factor(max_load_factor(o / 100.0f)); return std::nullopt; })));
     options.add("DrawMoveCount",        Option(Position::DrawMoveCount, 5, 50, OnCng([](const Option& o) { Position::DrawMoveCount = int(o); return std::nullopt; })));
     options.add("Book",                 Option(false));
     options.add("BookFile",             Option("", OnCng([](const Option& o) { std::string_view bookFile = o;
@@ -126,9 +128,9 @@ Engine::Engine(std::string_view path) noexcept :
     options.add("Stop Logger",          Option(OnCng([](const Option&) { Logger::stop(); return std::nullopt; })));
     // clang-format on
 
-    historiesMap.max_load_factor(max_load_factor(0.75f));
-
     resize_threads_tt();
+
+    historiesMap.max_load_factor(max_load_factor(options["HistoryLoadFactor"] / 100.0f));
 
     setup();
 }
