@@ -1625,7 +1625,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
     Bitboard qbBB = pieces_bb(QUEEN, BISHOP) & attacks_bb<BISHOP>(dstSq) & occupancyBB;
     Bitboard qrBB = pieces_bb(QUEEN, ROOK) & attacks_bb<ROOK>(dstSq) & occupancyBB;
 
-    std::int8_t ge = 1;
+    bool ge = true;
 
     Bitboard acAttackersBB;
 
@@ -1671,7 +1671,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
                 dstSq = lsq(b);
 
                 swap = piece_value(type_of(piece(orgSq))) - swap;
-                if ((swap = piece_value(type_of(piece(dstSq))) - swap) < ge)
+                if ((swap = piece_value(type_of(piece(dstSq))) - swap) < int(ge))
                     break;
 
                 occupancyBB ^= dstSq;
@@ -1693,7 +1693,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
                 break;
         }
 
-        ge ^= 1;
+        ge = !ge;
 
         if (enPassantSq == SQ_NONE && discovery[ac] && (b = blockers_bb(~ac) & acAttackersBB) != 0)
         {
@@ -1713,7 +1713,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
                 discovery[ac] = false;
 
                 ac = ~ac;
-                ge ^= 1;
+                ge = !ge;
                 continue;  // Resume without considering discovery
             }
 
@@ -1723,13 +1723,13 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
                 discovery[ac] = false;
 
                 ac = ~ac;
-                ge ^= 1;
+                ge = !ge;
                 continue;  // Resume without considering discovery
             }
 
             occupancyBB ^= (orgSq = sq);
 
-            if ((swap = piece_value(pt) - swap) < ge)
+            if ((swap = piece_value(pt) - swap) < int(ge))
                 break;
 
             switch (pt)
@@ -1758,7 +1758,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
         {
             occupancyBB ^= (orgSq = lsq(b));
 
-            if ((swap = VALUE_PAWN - swap) < ge)
+            if ((swap = VALUE_PAWN - swap) < int(ge))
                 break;
 
             if (qbBB != 0)
@@ -1785,14 +1785,14 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
         {
             occupancyBB ^= (orgSq = lsq(b));
 
-            if ((swap = VALUE_KNIGHT - swap) < ge)
+            if ((swap = VALUE_KNIGHT - swap) < int(ge))
                 break;
         }
         else if ((b = pieces_bb(BISHOP) & acAttackersBB) != 0)
         {
             occupancyBB ^= (orgSq = lsq(b));
 
-            if ((swap = VALUE_BISHOP - swap) < ge)
+            if ((swap = VALUE_BISHOP - swap) < int(ge))
                 break;
 
             qbBB &= occupancyBB;
@@ -1803,7 +1803,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
         {
             occupancyBB ^= (orgSq = lsq(b));
 
-            if ((swap = VALUE_ROOK - swap) < ge)
+            if ((swap = VALUE_ROOK - swap) < int(ge))
                 break;
 
             qrBB &= occupancyBB;
@@ -1814,7 +1814,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
         {
             occupancyBB ^= (orgSq = lsq(b));
 
-            if ((swap = VALUE_QUEEN - swap) < ge)
+            if ((swap = VALUE_QUEEN - swap) < int(ge))
                 break;
 
             qbBB &= occupancyBB;
@@ -1836,9 +1836,9 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
 
     if constexpr (Expose)
     {
-        // If ge != 1, check if move exposes the king.
-        // If so, treat as "good" (ge = 1)
-        if (ge != 1)
+        // If !ge, check if move exposes the king.
+        // If so, treat as "good" (ge = true)
+        if (!ge)
         {
             ac = active_color();
 
@@ -1849,7 +1849,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
 
             Square kingSq = square<KING>(~ac);
             if ((occupancyBB & kingSq) != 0 && attackers_exists(kingSq, acAttackersBB, occupancyBB))
-                ge = 1;
+                ge = true;
             else
             {
                 // Even when one of our non-queen pieces attacks opponent queen after exchanges
@@ -1857,12 +1857,12 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
                 Square   sq    = queen != 0 ? lsq(queen) : SQ_NONE;
                 if (sq != SQ_NONE
                     && attackers_exists(sq, acAttackersBB & ~pieces_bb(QUEEN), occupancyBB))
-                    ge = 1;
+                    ge = true;
             }
         }
     }
-    // Return whether move is "good" (ge == 1)
-    return ge == 1;
+    // Return whether move is "good" (ge = true)
+    return ge;
 }
 // Explicit template instantiations:
 template bool Position::see_ge<false>(Move m, int threshold) const noexcept;
