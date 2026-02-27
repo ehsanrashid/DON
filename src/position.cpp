@@ -1871,6 +1871,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
             }
         }
     }
+
     // Return whether move is "good" (ge = true)
     return ge;
 }
