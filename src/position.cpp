@@ -1865,8 +1865,8 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
     return ge == 1;
 }
 // Explicit template instantiations:
-template bool Position::see_ge<true>(Move m, int threshold) const noexcept;
 template bool Position::see_ge<false>(Move m, int threshold) const noexcept;
+template bool Position::see_ge<true>(Move m, int threshold) const noexcept;
 
 // Draw by Repetition: position repeats once earlier but strictly
 // after the root, or repeats twice before or at the root.
