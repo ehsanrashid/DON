@@ -64,9 +64,9 @@ std::string_view pretty(Bitboard b) noexcept;
 
 }  // namespace BitBoard
 
-inline constexpr Bitboard FULL_BB = 0xFFFFFFFFFFFFFFFFULL;
+inline constexpr Bitboard FULL_BB = 0xFFFFFFFFFFFFFFFFull;
 
-inline constexpr Bitboard FILE_A_BB = 0x0101010101010101ULL;
+inline constexpr Bitboard FILE_A_BB = 0x0101010101010101ull;
 inline constexpr Bitboard FILE_B_BB = FILE_A_BB << (1 * 1);
 inline constexpr Bitboard FILE_C_BB = FILE_A_BB << (2 * 1);
 inline constexpr Bitboard FILE_D_BB = FILE_A_BB << (3 * 1);
@@ -75,7 +75,7 @@ inline constexpr Bitboard FILE_F_BB = FILE_A_BB << (5 * 1);
 inline constexpr Bitboard FILE_G_BB = FILE_A_BB << (6 * 1);
 inline constexpr Bitboard FILE_H_BB = FILE_A_BB << (7 * 1);
 
-inline constexpr Bitboard RANK_1_BB = 0x00000000000000FFULL;
+inline constexpr Bitboard RANK_1_BB = 0x00000000000000FFull;
 inline constexpr Bitboard RANK_2_BB = RANK_1_BB << (1 * 8);
 inline constexpr Bitboard RANK_3_BB = RANK_1_BB << (2 * 8);
 inline constexpr Bitboard RANK_4_BB = RANK_1_BB << (3 * 8);
@@ -90,7 +90,7 @@ inline constexpr Bitboard PROMOTION_RANKS_BB = RANK_8_BB | RANK_1_BB;
 template<Color C>
 constexpr Bitboard color_bb() noexcept {
     static_assert(is_ok(C), "Invalid color for color_bb()");
-    constexpr Bitboard WhiteBB = 0x55AA55AA55AA55AAULL;
+    constexpr Bitboard WhiteBB = 0x55AA55AA55AA55AAull;
     constexpr Bitboard BlackBB = ~WhiteBB;
     return C == WHITE ? WhiteBB : BlackBB;
 }
@@ -163,7 +163,7 @@ struct Magic final {
 constexpr Bitboard square_bb(Square s) noexcept {
     assert(is_ok(s));
 
-    return (1ULL << s);
+    return (1ull << s);
 }
 
 // Overloads of bitwise operators between bitboard and square for testing
@@ -576,10 +576,10 @@ constexpr Bitboard pass_ray_bb(Square s1, Square s2) noexcept {
 
 constexpr std::uint8_t constexpr_popcount(Bitboard b) noexcept {
 
-    constexpr Bitboard K1 = 0x5555555555555555ULL;
-    constexpr Bitboard K2 = 0x3333333333333333ULL;
-    constexpr Bitboard K4 = 0x0F0F0F0F0F0F0F0FULL;
-    constexpr Bitboard Kf = 0x0101010101010101ULL;
+    constexpr Bitboard K1 = 0x5555555555555555ull;
+    constexpr Bitboard K2 = 0x3333333333333333ull;
+    constexpr Bitboard K4 = 0x0F0F0F0F0F0F0F0Full;
+    constexpr Bitboard Kf = 0x0101010101010101ull;
 
     b = b - ((b >> 1) & K1);
     b = (b & K2) + ((b >> 2) & K2);
@@ -599,7 +599,7 @@ constexpr std::uint8_t msb_index(Bitboard b) noexcept {
       13, 18, 8,  12, 7,  6,  5,  63   //
     };
 
-    constexpr Bitboard Debruijn64 = 0x03F79D71B4CB0A89ULL;
+    constexpr Bitboard Debruijn64 = 0x03F79D71B4CB0A89ull;
 
     return MSBIndices[(b * Debruijn64) >> 58];
 }
@@ -632,10 +632,10 @@ constexpr std::uint8_t constexpr_msb(Bitboard b) noexcept {
 #if !defined(USE_POPCNT)
 
 constexpr std::uint8_t constexpr_popcount16(std::uint16_t x) noexcept {
-    constexpr std::uint16_t K1 = 0x5555U;
-    constexpr std::uint16_t K2 = 0x3333U;
-    constexpr std::uint16_t K4 = 0x0F0FU;
-    constexpr std::uint16_t Kf = 0x0101U;
+    constexpr std::uint16_t K1 = 0x5555u;
+    constexpr std::uint16_t K2 = 0x3333u;
+    constexpr std::uint16_t K4 = 0x0F0Fu;
+    constexpr std::uint16_t Kf = 0x0101u;
 
     x = x - ((x >> 1) & K1);
     x = (x & K2) + ((x >> 2) & K2);

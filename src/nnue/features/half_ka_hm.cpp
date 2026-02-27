@@ -15,9 +15,9 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-// Definition of input features HalfKAv2_hm of NNUE evaluation function
+// Definition of input features HalfKA_hm of NNUE evaluation function
 
-#include "half_ka_v2_hm.h"
+#include "half_ka_hm.h"
 
 #include <array>
 
@@ -53,7 +53,7 @@ constexpr StdArray<IndexType, COLOR_NB, PIECE_NB> PIECE_SQUARE_INDICES{{
    PS_NONE, PS_W_PAWN, PS_W_KNIGHT, PS_W_BISHOP, PS_W_ROOK, PS_W_QUEEN, PS_KING, PS_NONE}   //
 }};
 
-#define B(v) (v * HalfKAv2_hm::PS_NB)
+#define B(v) (v * HalfKA_hm::PS_NB)
 constexpr StdArray<IndexType, SQUARE_NB> KING_BUCKETS{
   B(28), B(29), B(30), B(31), B(31), B(30), B(29), B(28),  //
   B(24), B(25), B(26), B(27), B(27), B(26), B(25), B(24),  //
@@ -89,11 +89,11 @@ make_index(Color perspective, Square kingSq, Square s, Piece pc) noexcept {
 }  // namespace
 
 // Get a list of indices for active features
-void HalfKAv2_hm::append_active_indices(Color                             perspective,
-                                        Square                            kingSq,
-                                        const StdArray<Piece, SQUARE_NB>& pieceMap,
-                                        Bitboard                          changedBB,
-                                        IndexList&                        active) noexcept {
+void HalfKA_hm::append_active_indices(Color                             perspective,
+                                      Square                            kingSq,
+                                      const StdArray<Piece, SQUARE_NB>& pieceMap,
+                                      Bitboard                          changedBB,
+                                      IndexList&                        active) noexcept {
     while (changedBB != 0)
     {
         Square s = pop_lsq(changedBB);
@@ -103,11 +103,11 @@ void HalfKAv2_hm::append_active_indices(Color                             perspe
 }
 
 // Get a list of indices for recently changed features
-void HalfKAv2_hm::append_changed_indices(Color            perspective,
-                                         Square           kingSq,
-                                         const DirtyType& dp,
-                                         IndexList&       removed,
-                                         IndexList&       added) noexcept {
+void HalfKA_hm::append_changed_indices(Color            perspective,
+                                       Square           kingSq,
+                                       const DirtyType& dp,
+                                       IndexList&       removed,
+                                       IndexList&       added) noexcept {
     removed.push_back(make_index(perspective, kingSq, dp.orgSq, dp.movedPc));
 
     if (dp.dstSq != SQ_NONE)
@@ -121,7 +121,7 @@ void HalfKAv2_hm::append_changed_indices(Color            perspective,
 }
 
 // Determine if a full refresh is required based on the dirty piece
-bool HalfKAv2_hm::refresh_required(Color perspective, const DirtyType& dp) noexcept {
+bool HalfKA_hm::refresh_required(Color perspective, const DirtyType& dp) noexcept {
     return dp.movedPc == make_piece(perspective, KING);
 }
 

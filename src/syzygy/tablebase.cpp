@@ -350,8 +350,8 @@ struct PairsData final {
         std::uint64_t tbSize =
           groupIdx[std::find(groupLen.begin(), groupLen.end(), 0) - groupLen.begin()];
 
-        blockSize       = 1ULL << *pData++;
-        span            = 1ULL << *pData++;
+        blockSize       = 1ull << *pData++;
+        span            = 1ull << *pData++;
         sparseIndexSize = ceil_div(tbSize, span);  // Round up
 
         auto padding = number<std::uint8_t, Endian::LITTLE>(pData);

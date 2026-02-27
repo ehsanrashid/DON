@@ -47,7 +47,7 @@ class ClippedReLU final {
 
     // Hash value embedded in the evaluation file
     static constexpr std::uint32_t hash(std::uint32_t preHash) noexcept {
-        std::uint32_t h = 0x538D24C7U;
+        std::uint32_t h = 0x538D24C7u;
         h += preHash;
         return h;
     }

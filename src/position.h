@@ -1087,7 +1087,7 @@ inline void write_multiple_dirties(const StdArray<Piece, SQUARE_NB>& pieceMap,
     threatSquares         = _mm512_cvtepi8_epi32(_mm512_castsi512_si128(threatSquares));
 
     __m512i threatPieces =
-      _mm512_maskz_permutexvar_epi8(0x1111111111111111ULL, threatSquares, pieceMapData);
+      _mm512_maskz_permutexvar_epi8(0x1111111111111111ull, threatSquares, pieceMapData);
 
     // Shift the piece and square into place
     threatSquares = _mm512_slli_epi32(threatSquares, SqShift);

@@ -29,7 +29,7 @@
 #include "../misc.h"
 #include "common.h"
 #include "features/full_threats.h"
-#include "features/half_ka_v2_hm.h"
+#include "features/half_ka_hm.h"
 #include "layers/affine_transform.h"
 #include "layers/affine_transform_sparse_input.h"
 #include "layers/clipped_relu.h"
@@ -38,8 +38,8 @@
 namespace DON::NNUE {
 
 // Input features used in evaluation function
-using PSQFeatureSet    = Features::HalfKAv2_hm;
 using ThreatFeatureSet = Features::FullThreats;
+using PSQFeatureSet    = Features::HalfKA_hm;
 
 // Number of input feature dimensions after conversion
 inline constexpr IndexType     BigTransformedFeatureDimensions = 1024;
@@ -70,7 +70,7 @@ struct NetworkArchitecture final {
     // Hash value embedded in the evaluation file
     static constexpr std::uint32_t hash() noexcept {
         // input slice hash
-        std::uint32_t h = 0xEC42E90DU;
+        std::uint32_t h = 0xEC42E90Du;
         h ^= 2 * TransformedFeatureDimensions;
 
         h = decltype(fc_0)::hash(h);
