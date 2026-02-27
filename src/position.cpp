@@ -1836,36 +1836,37 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
 
     if constexpr (Expose)
     {
-        // If !ge, check if move exposes the king.
-        // If so, treat as "good" (ge = true)
+        // If move looks bad, check if it exposes opponent's king or wins material
         if (!ge)
         {
             ac = active_color();
 
             attackersBB &= occupancyBB;
-            occupancyBB |= dstSq;
+            occupancyBB |= dstSq;  // Ensure moving piece is on destination
 
+            // Check 1: Does move expose opponent's king to attack?
             Square kingSq = square<KING>(~ac);
             if ((occupancyBB & kingSq) != 0
                 && attackers_exists(kingSq, pieces_bb(ac) & occupancyBB, occupancyBB))
                 ge = true;
+            // Check 2: Can minor pieces attack opponent's queen while own queen is safe?
             else
             {
-                // Even when one of our non-queen pieces attacks opponent queen after exchanges
-                Bitboard oppQueen = pieces_bb(~ac, QUEEN) & ~attackersBB & occupancyBB;
-                Square   oppSq    = oppQueen != 0 ? lsq(oppQueen) : SQ_NONE;
-                if (oppSq != SQ_NONE
-                    && attackers_exists(oppSq, pieces_bb(ac, BISHOP, ROOK) & occupancyBB,
-                                        occupancyBB))
+                Bitboard oppQueenBB = pieces_bb(~ac, QUEEN) & ~attackersBB & occupancyBB;
+                if (oppQueenBB != 0)
                 {
-                    if (Bitboard ownQueen = pieces_bb(ac, QUEEN) & occupancyBB; ownQueen != 0)
+                    // Check can attack opponent's queen with bishops/rooks
+                    if (attackers_exists(lsq(oppQueenBB), pieces_bb(ac, BISHOP, ROOK) & occupancyBB,
+                                         occupancyBB))
                     {
-                        Square ownSq = lsq(ownQueen);
-                        if (!attackers_exists(ownSq, pieces_bb(~ac) & occupancyBB, occupancyBB))
+                        // If there is a queen, make sure it's not hanging
+                        Bitboard ownQueenBB = pieces_bb(ac, QUEEN) & occupancyBB;
+                        // Queen trade is favorable?
+                        if (ownQueenBB == 0
+                            || !attackers_exists(lsq(ownQueenBB), pieces_bb(~ac) & occupancyBB,
+                                                 occupancyBB))
                             ge = true;
                     }
-                    else
-                        ge = true;
                 }
             }
         }

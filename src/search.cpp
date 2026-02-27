@@ -393,12 +393,11 @@ void Worker::start_search() noexcept {
         }
         else
         {
-            if (threads.size() > 1             //
-                && multiPV == 1                //
-                && limit.depth == DEPTH_ZERO   //
-                && limit.mate == 0             //
-                && rootMoves[0].pv[0].is_ok()  //
-            )
+            if (thread_count() > 1            //
+                && multiPV == 1               //
+                && limit.depth == DEPTH_ZERO  //
+                && limit.mate == 0            //
+                && rootMoves[0].pv[0].is_ok())
             {
                 bestWorker = threads.best_thread()->worker.get();
 
@@ -628,7 +627,7 @@ void Worker::iterative_deepening() noexcept {
             auto avgSqrValue = rootMoves[curPV].avgSqrValue;
 
             // Reset aspiration window starting size
-            int delta = 5 + std::min(threads.size() - 1, std::size_t(8))
+            int delta = 5 + std::min(thread_count() - 1, std::size_t(8))
                       + constexpr_round(1.0032e-4 * double(constexpr_abs(avgSqrValue)));
 
             Value alpha = std::max(avgValue - delta, -VALUE_INFINITE);
@@ -2545,7 +2544,7 @@ void MainSearchManager::handle_time_management(const Worker& worker,
     double easeFactor = 0.4386 * (1.4300 + preTimeReduction) / timeReduction;
 
     // Compute move instability factor based on the total move changes and the number of threads
-    double instabilityFactor = 1.0200 + 2.1400 * sumMoveChanges / std::max(worker.threads.size(), std::size_t(1));
+    double instabilityFactor = 1.0200 + 2.1400 * sumMoveChanges / std::max(worker.thread_count(), std::size_t(1));
 
     // Compute node effort factor that reduces time if root move has consumed a large fraction of total nodes
     double nodeEffortExcess = std::max(-933.40 + 1000.0 * worker.rootMoves[0].nodes / std::max(worker.nodes_(), std::uint64_t(1)), 0.0);
