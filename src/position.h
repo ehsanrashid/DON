@@ -356,7 +356,7 @@ class Position final {
     Value material() const noexcept;
     Value evaluate() const noexcept;
 
-    // Static Exchange Evaluation
+    // Static Exchange Evaluation:
     template<bool NMP = true>
     bool               see_ge(Move m, int threshold) const noexcept;
     [[nodiscard]] auto see(Move m) const noexcept { return SEE(*this, m); }
