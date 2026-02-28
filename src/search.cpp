@@ -645,10 +645,10 @@ void Worker::iterative_deepening() noexcept {
             std::uint16_t failHighCnt = 0;
             while (true)
             {
+                ss->cutoffCount = 0;
+
                 rootDelta = beta - alpha;
                 assert(rootDelta != 0);
-
-                ss->cutoffCount = 0;
 
                 // Adjust the effective depth searched, but ensure at least one
                 // effective increment for every 4 researchCnt steps.
