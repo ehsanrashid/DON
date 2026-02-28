@@ -572,16 +572,9 @@ void Worker::iterative_deepening() noexcept {
     Depth MaxDepth = limit.depth != DEPTH_ZERO ? limit.depth : DEPTH_MAX;
     for (rootDepth = 1; rootDepth <= MaxDepth; ++rootDepth)
     {
-        // Stop if requested to stop
-        if (threads.is_stopped())
-            break;
-
         // Decay PV variability metric to reduce influence of previous iterations
         if (mainManager != nullptr && limit.use_time_manager())
             mainManager->sumMoveChanges *= 0.50;
-
-        if (threads.is_researching())
-            ++researchCnt;
 
         // Precompute the start indices of each tbRank group
         StdArray<std::size_t, MOVE_MAX + 1> tbRankGroups;
@@ -748,6 +741,12 @@ void Worker::iterative_deepening() noexcept {
             if (limit.use_time_manager() && !threads.is_stopped() && !mainManager->ponderhitStop)
                 mainManager->handle_time_management(*this, bestValue, lastCompletedDepth);
         }
+
+        // Stop if requested to stop
+        if (threads.is_stopped())
+            break;
+        if (threads.is_researching())
+            ++researchCnt;
     }
 }
 
