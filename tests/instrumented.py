@@ -256,19 +256,22 @@ class TestInteractive(metaclass=OrderedClassMembers):
         self.engine.send_command("position startpos")
         self.engine.send_command("go depth 9")
 
-        depth = 1
+        depth = 0
 
         def callback(output):
             nonlocal depth
 
-            regex = rf"info depth {depth} seldepth \d+ multipv \d+ score cp -?\d+(?: lowerbound| upperbound)? wdl \d+ \d+ \d+ time \d+ nodes \d+ nps \d+ tbhits \d+ hashfull \d+ pv"
+            regex = r"info depth (\d+) seldepth \d+ multipv \d+ score cp -?\d+(?: lowerbound| upperbound)? wdl \d+ \d+ \d+ time \d+ nodes \d+ nps \d+ tbhits \d+ hashfull \d+ pv"
             if output.startswith("info depth"):
-                if not re.match(regex, output):
-                    print("Output did not match regex: ", output)
-                    #assert False
-                depth += 1
+                m = re.match(regex, output)
+                if not m:
+                    print("DEBUG: Regex mismatch")
+                    print("  Regex :", regex)
+                    print("  Output:", output)
+                else:
+                    depth = int(m.group(1))
             if output.startswith("bestmove"):
-                assert depth >= 10
+                assert depth == 9
                 return True
             return False
 

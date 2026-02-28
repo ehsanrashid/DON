@@ -336,9 +336,9 @@ class Position final {
     Key material_key() const noexcept;
     Key move_key(Move m) const noexcept;
 
+    bool  has_non_pawn(Color c) const noexcept;
     Value non_pawn_value(Color c) const noexcept;
     Value non_pawn_value() const noexcept;
-    bool  has_non_pawn(Color c) const noexcept;
 
     // Other properties
     std::int16_t rule50_count() const noexcept;
@@ -853,6 +853,12 @@ inline Key Position::material_key() const noexcept {
     return materialKey;
 }
 
+inline bool Position::has_non_pawn(Color c) const noexcept {
+
+    return std::any_of(NON_PAWN_PIECE_TYPES.begin(), NON_PAWN_PIECE_TYPES.end(),
+                       [&](PieceType pt) -> bool { return pieces_bb(c, pt) != 0; });
+}
+
 inline Value Position::non_pawn_value(Color c) const noexcept {
 
     return std::accumulate(
@@ -862,12 +868,6 @@ inline Value Position::non_pawn_value(Color c) const noexcept {
 
 inline Value Position::non_pawn_value() const noexcept {
     return non_pawn_value(WHITE) + non_pawn_value(BLACK);
-}
-
-inline bool Position::has_non_pawn(Color c) const noexcept {
-
-    return std::any_of(NON_PAWN_PIECE_TYPES.begin(), NON_PAWN_PIECE_TYPES.end(),
-                       [&](PieceType pt) -> bool { return pieces_bb(c, pt) != 0; });
 }
 
 inline std::int16_t Position::rule50_count() const noexcept { return st->rule50Count; }
