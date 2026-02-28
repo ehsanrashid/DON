@@ -161,6 +161,8 @@ void set_console_output(ConsoleOutputMode mode) noexcept {
     case ConsoleOutputMode::UTF7 :
 #if defined(_WIN32)
         SetConsoleOutputCP(CP_UTF7);
+#else
+      ;
 #endif
         break;
     case ConsoleOutputMode::Default :
@@ -173,6 +175,8 @@ void set_console_output(ConsoleOutputMode mode) noexcept {
     default :
 #if defined(_WIN32)
         SetConsoleOutputCP(CP_UTF8);
+#else
+      ;
 #endif
     }
 }
