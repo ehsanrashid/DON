@@ -506,7 +506,7 @@ void Worker::iterative_deepening() noexcept {
                 else if (nowBestPreValue != lastBestPreValue)
                     restore = nowBestPreValue < lastBestPreValue;
                 else
-                    restore = rootMoves[0].pv.size() < lastBestPV.size();
+                    restore = rootMoves[0].pv.size() <= lastBestPV.size();
             }
 
             if (restore)
@@ -572,10 +572,6 @@ void Worker::iterative_deepening() noexcept {
     Depth MaxDepth = limit.depth != DEPTH_ZERO ? limit.depth : DEPTH_MAX;
     for (rootDepth = 1; rootDepth <= MaxDepth; ++rootDepth)
     {
-        // Decay PV variability metric to reduce influence of previous iterations
-        if (mainManager != nullptr && limit.use_time_manager())
-            mainManager->sumMoveChanges *= 0.50;
-
         // Precompute the start indices of each tbRank group
         StdArray<std::size_t, MOVE_MAX + 1> tbRankGroups;
         std::size_t                         tbRankGroupCount = 0;
@@ -738,8 +734,13 @@ void Worker::iterative_deepening() noexcept {
             }
 
             // Do have time for the next iteration? Can stop searching now?
-            if (limit.use_time_manager() && !threads.is_stopped() && !mainManager->ponderhitStop)
-                mainManager->handle_time_management(*this, bestValue, lastCompletedDepth);
+            if (limit.use_time_manager() && !threads.is_stopped())
+            {
+                if (!mainManager->ponderhitStop)
+                    mainManager->handle_time_management(*this, bestValue, lastCompletedDepth);
+                // Decay PV variability metric on every completed iteration to reduce influence of previous iterations
+                mainManager->sumMoveChanges *= 0.50;
+            }
         }
 
         // Stop if requested to stop
