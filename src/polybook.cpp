@@ -608,9 +608,7 @@ Move PolyBook::probe(Position& pos, const RootMoves& rootMoves, const Options& o
 
     for (auto& candidate : candidates)
     {
-        if (maxWeight < candidate.weight)
-            maxWeight = candidate.weight;
-
+        maxWeight = std::max<uint32_t>(candidate.weight, maxWeight);
         sumWeight += candidate.weight;
     }
 
