@@ -399,10 +399,10 @@ void Worker::start_search() noexcept {
                 && rootMoves[0].pv[0].is_ok())
             {
                 bestWorker = threads.best_thread()->worker.get();
-                std::cout << "new worker\n";
                 // Send PV info again if have a new best worker
                 if (bestWorker != this)
-                    mainManager->show_pv(*bestWorker, bestWorker->completedDepth);
+                    mainManager->show_pv(*bestWorker,
+                                         std::max(bestWorker->completedDepth, limit.depth));
             }
         }
 
