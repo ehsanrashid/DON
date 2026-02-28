@@ -309,7 +309,9 @@ struct PairsData final {
     // In Recursive Pairing each symbol represents a pair of children symbols. So
     // read d->btree[] symbols data and expand each one in his left and right child
     // symbol until reaching the leaves that represent the symbol value.
-    std::uint8_t set_symlen(std::size_t s, std::vector<bool>& visited) noexcept {
+    std::uint8_t set_symlen(std::size_t s, std::vector<bool>& visited, int depth = 0) noexcept {
+        if (depth > 256)  // Safety limit (Huffman trees rarely exceed this depth)
+            return 0;
 
         visited[s] = true;  // Can set it now because tree is acyclic
 
@@ -321,10 +323,10 @@ struct PairsData final {
         Sym lSym = btree[s].get<true>();
 
         if (!visited[lSym])
-            symLen[lSym] = set_symlen(lSym, visited);
+            symLen[lSym] = set_symlen(lSym, visited, depth + 1);
 
         if (!visited[rSym])
-            symLen[rSym] = set_symlen(rSym, visited);
+            symLen[rSym] = set_symlen(rSym, visited, depth + 1);
 
         return 1 + symLen[lSym] + symLen[rSym];
     }
@@ -575,15 +577,15 @@ void* TBTable<T>::init(const Position& pos, Key materialKey) noexcept {
     if (callOnce.initialized())
         return mappedPtr;
 
+    // Pieces strings in decreasing order for each color, like ("KPP","KR")
+    StdArray<std::string, COLOR_NB> pieces{};
+
+    for (Color c : {WHITE, BLACK})
+        for (std::size_t i = PIECE_TYPES.size(); i-- > 0;)
+            pieces[c].append(pos.count(c, PIECE_TYPES[i]), to_char(PIECE_TYPES[i]));
+
     // Slow path: initialize exactly once using CallOnce
-    callOnce([this, &pos, materialKey]() noexcept {
-        // Pieces strings in decreasing order for each color, like ("KPP","KR")
-        StdArray<std::string, COLOR_NB> pieces{};
-
-        for (Color c : {WHITE, BLACK})
-            for (std::size_t i = PIECE_TYPES.size(); i-- > 0;)
-                pieces[c].append(pos.count(c, PIECE_TYPES[i]), to_char(PIECE_TYPES[i]));
-
+    callOnce([this, pieces = std::move(pieces), materialKey]() noexcept {
         bool c = key[WHITE] == materialKey;
 
         std::string base;
@@ -1098,8 +1100,8 @@ class TBTables final {
             ++distance;
         }
 
-        // May want to handle this case explicitly
-        assert(false && "TB table full!");
+        // Gracefully fail instead of asserting
+        DEBUG_LOG("TB hash table overflow");
         return false;
     }
 
@@ -1235,11 +1237,15 @@ int decompress_pairs(const PairsData* pd, std::uint64_t idx) noexcept {
     // that is when 0 <= offset <= d->blockLength[block]
     while (offset < 0)
     {
+        if (block == 0)
+            break;
         --block;
         offset += pd->blockLength[block] + 1;
     }
     while (offset > pd->blockLength[block])
     {
+        if (block >= pd->blockCount - 1)
+            break;
         offset -= pd->blockLength[block] + 1;
         ++block;
     }
@@ -1974,7 +1980,7 @@ int probe_dtz(Position& pos, ProbeState* ps) noexcept {
 
     // DTZ-score stores results for the other side, so need to do a 1-ply search
     // and find the winning move that minimizes DTZ-score.
-    int minDtzScore = 0xFFFF;
+    int minDtzScore = UINT16_MAX;
 
     for (Move m : MoveList<GenType::LEGAL>(pos))
     {
@@ -2009,7 +2015,7 @@ int probe_dtz(Position& pos, ProbeState* ps) noexcept {
     }
 
     // When there are no legal moves, the position is mate: return -1
-    return minDtzScore != 0xFFFF ? minDtzScore : -1;
+    return minDtzScore != UINT16_MAX ? minDtzScore : -1;
 }
 
 // clang-format off

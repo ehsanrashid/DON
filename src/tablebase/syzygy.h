@@ -70,11 +70,11 @@ constexpr std::string_view to_string(WDLScore wdlScore) noexcept {
 }
 
 // Possible states after a probing operation
-enum ProbeState : std::int8_t {
+enum ProbeState : std::uint8_t {
     PS_FAIL              = 0,   // Probe failed (missing file table)
     PS_OK                = +1,  // Probe successful
-    PS_AC_CHANGED        = -1,  // DTZ should check the other side
-    PS_BEST_MOVE_ZEROING = +2   // Best move zeroes DTZ (capture or pawn move)
+    PS_AC_CHANGED        = +2,  // DTZ should check the other side
+    PS_BEST_MOVE_ZEROING = +3   // Best move zeroes DTZ (capture or pawn move)
 };
 
 constexpr std::string_view to_string(ProbeState ps) noexcept {
@@ -93,6 +93,7 @@ constexpr std::string_view to_string(ProbeState ps) noexcept {
 }
 
 struct Config final {
+   public:
     bool         rootInTB    = false;
     std::uint8_t cardinality = 0;
     Depth        probeDepth  = DEPTH_ZERO;
