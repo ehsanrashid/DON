@@ -29,11 +29,11 @@
 #include "movegen.h"
 #include "numa.h"
 #include "perft.h"
-#include "polybook.h"
 #include "shm.h"
 #include "uci.h"
+#include "book/polyglot.h"
 #include "nnue/nmisc.h"
-#include "syzygy/tablebase.h"
+#include "tablebase/syzygy.h"
 
 namespace DON {
 
@@ -113,11 +113,11 @@ Engine::Engine(std::string_view path) noexcept :
     options.add("Book",                 Option(false));
     options.add("BookFile",             Option("", OnCng([](const Option& o) { std::string_view bookFile = o;
                                                                                if (bookFile.empty()) return "";
-                                                                               return Book.load(bookFile) ? "Load succeeded" : "Load failed"; })));
+                                                                               return pgBook.load(bookFile) ? "Load succeeded" : "Load failed"; })));
     options.add("BookProbeDepth",       Option(100, 1, 256));
     options.add("BookPickBest",         Option(true));
-    options.add("SyzygyPath",           Option("", OnCng([](const Option& o) { Tablebase::init(o); return std::nullopt; })));
-    options.add("SyzygyProbeLimit",     Option(Tablebase::TB_PIECES_MAX, 0, Tablebase::TB_PIECES_MAX));
+    options.add("SyzygyPath",           Option("", OnCng([](const Option& o) { Tablebase::Syzygy::init(o); return std::nullopt; })));
+    options.add("SyzygyProbeLimit",     Option(Tablebase::Syzygy::TB_PIECES_MAX, 0, Tablebase::Syzygy::TB_PIECES_MAX));
     options.add("SyzygyProbeDepth",     Option(1, 1, 100));
     options.add("Syzygy50MoveRule",     Option(true));
     options.add("SyzygyPVExtend",       Option(true));
@@ -209,7 +209,7 @@ void Engine::wait_finish() const noexcept { threads.main_thread()->wait_finish()
 void Engine::init() noexcept {
     wait_finish();
 
-    Tablebase::init(options["SyzygyPath"]);  // Free mapped files
+    Tablebase::Syzygy::init(options["SyzygyPath"]);  // Free mapped files
 
     if (options["HashRetain"])
         return;

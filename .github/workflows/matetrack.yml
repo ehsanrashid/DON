@@ -24,7 +24,7 @@ jobs:
         with:
           repository: vondele/matetrack
           path: matetrack
-          ref: 2d96fa3373f90edb032b7ea7468473fb9e6f0343
+          ref: 6c8405fac9028ca66a077f5c96c918fec0ef8d1d
           persist-credentials: false
 
       - name: Matetrack install deps
@@ -46,6 +46,12 @@ jobs:
         run: |
           wget --no-verbose -r -nH --cut-dirs=2 --no-parent --reject="index.html*" -e robots=off https://tablebase.lichess.ovh/tables/standard/3-4-5-wdl/
           wget --no-verbose -r -nH --cut-dirs=2 --no-parent --reject="index.html*" -e robots=off https://tablebase.lichess.ovh/tables/standard/3-4-5-dtz/
+
+      - name: Run matetrack gameplay th4
+        working-directory: matetrack
+        run: |
+          python matecheck.py --engine /home/runner/work/DON/DON/DON/src/DON --epdFile mates2000.epd --time 3 --timeinc 0.01 --threads 4 | tee matecheckoutgame4.out
+          ! grep "issues were detected" matecheckoutgame4.out > /dev/null
 
       - name: Run matetrack th1
         working-directory: matetrack

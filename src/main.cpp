@@ -26,7 +26,7 @@
 #include "position.h"
 #include "tune.h"
 #include "uci.h"
-#include "syzygy/tablebase.h"
+#include "tablebase/syzygy.h"
 
 using namespace DON;
 
@@ -44,7 +44,7 @@ int main(int argc, const char* argv[]) noexcept {
 
     Position::init();
 
-    Tablebase::init();
+    Tablebase::Syzygy::init();
 
     UCI uci(argc, argv);
 

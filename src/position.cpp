@@ -26,7 +26,7 @@
 #include "movegen.h"
 #include "prng.h"
 #include "search.h"
-#include "syzygy/tablebase.h"
+#include "tablebase/syzygy.h"
 #include "tt.h"
 
 namespace DON {
@@ -2335,16 +2335,16 @@ std::ostream& operator<<(std::ostream& os, const Position& pos) noexcept {
 
     os << "\nRepetition: " << pos.repetition();
 
-    if (Tablebase::MaxCardinality >= pos.count() && !pos.has_castling_rights())
+    if (Tablebase::Syzygy::MaxCardinality >= pos.count() && !pos.has_castling_rights())
     {
         State    st;
         Position p;
         p.set(pos, &st);
 
-        Tablebase::ProbeState wdlPs, dtzPs;
+        Tablebase::Syzygy::ProbeState wdlPs, dtzPs;
 
-        auto wdlScore = Tablebase::probe_wdl(p, &wdlPs);
-        auto dtzScore = Tablebase::probe_dtz(p, &dtzPs);
+        auto wdlScore = Tablebase::Syzygy::probe_wdl(p, &wdlPs);
+        auto dtzScore = Tablebase::Syzygy::probe_dtz(p, &dtzPs);
 
         os << "\nTablebase WDL: " << std::setw(4) << to_string(wdlScore)  //
            << " (" << to_string(wdlPs) << ")";

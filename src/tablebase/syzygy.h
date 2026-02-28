@@ -15,12 +15,11 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef SYZYGY_TABLEBASE_H_INCLUDED
-#define SYZYGY_TABLEBASE_H_INCLUDED
+#ifndef TABLEBASE_SYZYGY_H_INCLUDED
+#define TABLEBASE_SYZYGY_H_INCLUDED
 
 #include <cstddef>
 #include <cstdint>
-#include <functional>
 #include <string_view>
 
 #include "../types.h"
@@ -31,9 +30,7 @@ class Options;
 class Position;
 class RootMoves;
 
-using TimeFunc = std::function<bool()>;
-
-namespace Tablebase {
+namespace Tablebase::Syzygy {
 
 // Max number of supported piece
 inline constexpr std::size_t TB_PIECES_MAX = 7;
@@ -56,31 +53,47 @@ constexpr WDLScore normalize_wdl(WDLScore wdlScore) noexcept {
 }
 
 constexpr std::string_view to_string(WDLScore wdlScore) noexcept {
-    return wdlScore == WDL_LOSS         ? "Loss"
-         : wdlScore == WDL_BLESSED_LOSS ? "Blessed loss"
-         : wdlScore == WDL_DRAW         ? "Draw"
-         : wdlScore == WDL_CURSED_WIN   ? "Cursed win"
-         : wdlScore == WDL_WIN          ? "Win"
-                                        : "None";
+    switch (wdlScore)
+    {
+    case WDL_LOSS :
+        return "Loss";
+    case WDL_BLESSED_LOSS :
+        return "Blessed loss";
+    case WDL_DRAW :
+        return "Draw";
+    case WDL_CURSED_WIN :
+        return "Cursed win";
+    case WDL_WIN :
+        return "Win";
+    }
+    return "None";
 }
 
 // Possible states after a probing operation
-enum ProbeState : std::int8_t {
+enum ProbeState : std::uint8_t {
     PS_FAIL              = 0,   // Probe failed (missing file table)
     PS_OK                = +1,  // Probe successful
-    PS_AC_CHANGED        = -1,  // DTZ should check the other side
-    PS_BEST_MOVE_ZEROING = +2   // Best move zeroes DTZ (capture or pawn move)
+    PS_AC_CHANGED        = +2,  // DTZ should check the other side
+    PS_BEST_MOVE_ZEROING = +3   // Best move zeroes DTZ (capture or pawn move)
 };
 
 constexpr std::string_view to_string(ProbeState ps) noexcept {
-    return ps == PS_FAIL              ? "Failed"
-         : ps == PS_OK                ? "Success"
-         : ps == PS_AC_CHANGED        ? "Active color changed"
-         : ps == PS_BEST_MOVE_ZEROING ? "Best move zeroing"
-                                      : "None";
+    switch (ps)
+    {
+    case PS_FAIL :
+        return "Failed";
+    case PS_OK :
+        return "Success";
+    case PS_AC_CHANGED :
+        return "Active color changed";
+    case PS_BEST_MOVE_ZEROING :
+        return "Best move zeroing";
+    }
+    return "None";
 }
 
 struct Config final {
+   public:
     bool         rootInTB    = false;
     std::uint8_t cardinality = 0;
     Depth        probeDepth  = DEPTH_ZERO;
@@ -104,7 +117,7 @@ Config rank_root_moves(Position& pos, RootMoves& rootMoves, const Options& optio
 
 // clang-format on
 
-}  // namespace Tablebase
+}  // namespace Tablebase::Syzygy
 }  // namespace DON
 
-#endif  // #ifndef SYZYGY_TABLEBASE_H_INCLUDED
+#endif  // #ifndef TABLEBASE_SYZYGY_H_INCLUDED

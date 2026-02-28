@@ -86,7 +86,7 @@ class XorShift64Star final {
 
         std::uint64_t t = 0;
 
-        if (JumpMask != 0)
+        if constexpr (JumpMask != 0)
             for (std::uint8_t b = 0; b < 64; ++b)
             {
                 if ((JumpMask & bit(b)) != 0)

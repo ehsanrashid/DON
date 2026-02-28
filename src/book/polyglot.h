@@ -15,8 +15,8 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef POLYBOOK_H_INCLUDED
-#define POLYBOOK_H_INCLUDED
+#ifndef BOOK_POLYGLOT_H_INCLUDED
+#define BOOK_POLYGLOT_H_INCLUDED
 
 #include <cstddef>
 #include <cstdint>
@@ -24,7 +24,7 @@
 #include <string>
 #include <vector>
 
-#include "types.h"
+#include "../types.h"
 
 namespace DON {
 
@@ -32,7 +32,9 @@ class Position;
 class RootMoves;
 class Options;
 
-class PolyBook final {
+namespace Book {
+
+class PolyGlot final {
    public:
     struct Entry final {
        public:
@@ -58,11 +60,11 @@ class PolyBook final {
 
     using Entries = std::vector<Entry>;
 
-    PolyBook() noexcept                           = default;
-    PolyBook(const PolyBook&) noexcept            = delete;
-    PolyBook(PolyBook&&) noexcept                 = delete;
-    PolyBook& operator=(const PolyBook&) noexcept = delete;
-    PolyBook& operator=(PolyBook&&) noexcept      = delete;
+    PolyGlot() noexcept                           = default;
+    PolyGlot(const PolyGlot&) noexcept            = delete;
+    PolyGlot(PolyGlot&&) noexcept                 = delete;
+    PolyGlot& operator=(const PolyGlot&) noexcept = delete;
+    PolyGlot& operator=(PolyGlot&&) noexcept      = delete;
 
     bool load(const std::filesystem::path& bookFile) noexcept;
 
@@ -84,6 +86,7 @@ class PolyBook final {
     Entries entries;
 };
 
+}  // namespace Book
 }  // namespace DON
 
-#endif  // #ifndef POLYBOOK_H_INCLUDED
+#endif  // #ifndef BOOK_POLYGLOT_H_INCLUDED
