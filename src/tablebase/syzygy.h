@@ -53,12 +53,20 @@ constexpr WDLScore normalize_wdl(WDLScore wdlScore) noexcept {
 }
 
 constexpr std::string_view to_string(WDLScore wdlScore) noexcept {
-    return wdlScore == WDL_LOSS         ? "Loss"
-         : wdlScore == WDL_BLESSED_LOSS ? "Blessed loss"
-         : wdlScore == WDL_DRAW         ? "Draw"
-         : wdlScore == WDL_CURSED_WIN   ? "Cursed win"
-         : wdlScore == WDL_WIN          ? "Win"
-                                        : "None";
+    switch (wdlScore)
+    {
+    case WDL_LOSS :
+        return "Loss";
+    case WDL_BLESSED_LOSS :
+        return "Blessed loss";
+    case WDL_DRAW :
+        return "Draw";
+    case WDL_CURSED_WIN :
+        return "Cursed win";
+    case WDL_WIN :
+        return "Win";
+    }
+    return "None";
 }
 
 // Possible states after a probing operation
@@ -70,11 +78,18 @@ enum ProbeState : std::int8_t {
 };
 
 constexpr std::string_view to_string(ProbeState ps) noexcept {
-    return ps == PS_FAIL              ? "Failed"
-         : ps == PS_OK                ? "Success"
-         : ps == PS_AC_CHANGED        ? "Active color changed"
-         : ps == PS_BEST_MOVE_ZEROING ? "Best move zeroing"
-                                      : "None";
+    switch (ps)
+    {
+    case PS_FAIL :
+        return "Failed";
+    case PS_OK :
+        return "Success";
+    case PS_AC_CHANGED :
+        return "Active color changed";
+    case PS_BEST_MOVE_ZEROING :
+        return "Best move zeroing";
+    }
+    return "None";
 }
 
 struct Config final {
