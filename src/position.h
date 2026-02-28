@@ -1254,7 +1254,7 @@ inline bool Position::SEE::operator>=(int threshold) const noexcept {
     return pos.see_ge<true>(move, threshold);
 }
 inline bool Position::SEE::operator>(int threshold) const noexcept {
-    return (*this >= 1 + threshold);
+    return (*this >= threshold + 1);
 }
 inline bool Position::SEE::operator<=(int threshold) const noexcept { return !(*this > threshold); }
 inline bool Position::SEE::operator<(int threshold) const noexcept { return !(*this >= threshold); }

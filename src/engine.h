@@ -42,13 +42,6 @@ namespace DON {
 class Engine final {
    public:
     explicit Engine(std::string_view path = {}) noexcept;
-
-    // Cannot be movable due to components holding backreferences to fields
-    Engine(const Engine&) noexcept            = delete;
-    Engine(Engine&&) noexcept                 = delete;
-    Engine& operator=(const Engine&) noexcept = delete;
-    Engine& operator=(Engine&&) noexcept      = delete;
-
     ~Engine() noexcept;
 
     Options&       get_options() noexcept;
@@ -111,6 +104,12 @@ class Engine final {
     void set_on_update_move(MainSearchManager::OnUpdateMove&& f) noexcept;
 
    private:
+    // Cannot be movable due to components holding backreferences to fields
+    Engine(const Engine&) noexcept            = delete;
+    Engine(Engine&&) noexcept                 = delete;
+    Engine& operator=(const Engine&) noexcept = delete;
+    Engine& operator=(Engine&&) noexcept      = delete;
+
     const std::string binaryDirectory;
 
     NumaReplicationContext                       numaContext;

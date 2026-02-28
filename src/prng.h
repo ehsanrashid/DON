@@ -32,11 +32,11 @@ class SplitMix64 final {
         s(seed != 0 ? seed : 1) {}
 
     constexpr std::uint64_t next() noexcept {
-        s += 0x9E3779B97F4A7C15ULL;
+        s += 0x9E3779B97F4A7C15ull;
 
         std::uint64_t t = s;
-        t               = (t ^ (t >> 30)) * 0xBF58476D1CE4E5B9ULL;
-        t               = (t ^ (t >> 27)) * 0x94D049BB133111EBULL;
+        t               = (t ^ (t >> 30)) * 0xBF58476D1CE4E5B9ull;
+        t               = (t ^ (t >> 27)) * 0x94D049BB133111EBull;
         t               = (t ^ (t >> 31));
 
         return t;
@@ -82,7 +82,7 @@ class XorShift64Star final {
 
     // XorShift64* jump implementation
     constexpr void jump() noexcept {
-        constexpr std::uint64_t JumpMask = 0x9E3779B97F4A7C15ULL;
+        constexpr std::uint64_t JumpMask = 0x9E3779B97F4A7C15ull;
 
         std::uint64_t t = 0;
 
@@ -104,7 +104,7 @@ class XorShift64Star final {
         s ^= s >> 12;
         s ^= s << 25;
         s ^= s >> 27;
-        return 0x2545F4914F6CDD1DULL * s;
+        return 0x2545F4914F6CDD1Dull * s;
     }
 
     std::uint64_t s;

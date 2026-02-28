@@ -645,10 +645,10 @@ void Worker::iterative_deepening() noexcept {
             std::uint16_t failHighCnt = 0;
             while (true)
             {
+                ss->cutoffCount = 0;
+
                 rootDelta = beta - alpha;
                 assert(rootDelta != 0);
-
-                ss->cutoffCount = 0;
 
                 // Adjust the effective depth searched, but ensure at least one
                 // effective increment for every 4 researchCnt steps.
@@ -718,18 +718,16 @@ void Worker::iterative_deepening() noexcept {
         {
             restore_last_best();
 
-            // Give some update about the PV
+            // Always show final PV update on stop
             if (mainManager != nullptr)
                 mainManager->show_pv(*this, completedDepth);
 
             break;
         }
 
-        bool lastBestMoveChanged = rootMoves[0].pv[0] != lastBestPV[0];
-
         completedDepth = rootDepth;
 
-        if (lastBestMoveChanged)
+        if (rootMoves[0].pv[0] != lastBestPV[0])
             lastCompletedDepth = rootDepth;
 
         update_last_best();
@@ -1114,7 +1112,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
     if constexpr (CutNode)
     {
         if (!exclude && hasNonPawn /*Zugzwang guard*/ && ss->ply >= nmpPly
-            && !is_loss(beta) && ss->evalValue - 359 + 17 * depth >= beta)
+            && !is_loss(beta) && ss->evalValue - 359 + int(improve) * 50 + 17 * depth >= beta)
         {
             assert(preMove != Move::Null);
 
@@ -1711,7 +1709,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
 
         if constexpr (!PVNode)
         {
-            ttMoveHistory << -860 + int(bestMove == ttd.move) * 1664;
+            ttMoveHistory << -860 + int(extra) * 1664;
         }
     }
     // If prior move is valid, that caused the fail low
@@ -2188,7 +2186,7 @@ int Worker::correction_value(const Position& pos, const Stack* ss) const noexcep
     Color ac = pos.active_color();
 
     std::int64_t correctionValue =
-           + 5716LL * int(histories.    pawn_correction<WHITE>(pos.    pawn_key(WHITE))[ac]
+           + 5715LL * int(histories.    pawn_correction<WHITE>(pos.    pawn_key(WHITE))[ac]
                         + histories.    pawn_correction<BLACK>(pos.    pawn_key(BLACK))[ac])
            + 4411LL * int(histories.   minor_correction<WHITE>(pos.   minor_key(WHITE))[ac]
                         + histories.   minor_correction<BLACK>(pos.   minor_key(BLACK))[ac])
@@ -2566,7 +2564,8 @@ void MainSearchManager::handle_time_management(const Worker& worker,
 
     // Cap totalTime in case of a single legal move for a better viewer experience
     if (worker.rootMoves.size() == 1)
-        totalTime = std::min<TimePoint>(totalTime, worker.options["MaxForcedMoveTime"]);
+        totalTime =
+          std::min<TimePoint>(550 * totalTime / 1000, worker.options["MaxForcedMoveTime"]);
 
     TimePoint elapsedTime = elapsed(worker.threads);
 
