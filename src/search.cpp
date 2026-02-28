@@ -393,10 +393,9 @@ void Worker::start_search() noexcept {
         }
         else
         {
-            if (thread_count() > 1            //
-                && multiPV == 1               //
-                && limit.depth == DEPTH_ZERO  //
-                && limit.mate == 0            //
+            if (thread_count() > 1  //
+                && multiPV == 1     //
+                && limit.mate == 0  //
                 && rootMoves[0].pv[0].is_ok())
             {
                 bestWorker = threads.best_thread()->worker.get();
@@ -575,13 +574,12 @@ void Worker::iterative_deepening() noexcept {
         // Stop if requested to stop
         if (threads.is_stopped())
             break;
+        // Stop if the fixed depth limit has been reached
+        if (limit.depth != DEPTH_ZERO && rootDepth > limit.depth)
+            break;
 
         if (mainManager != nullptr)
         {
-            // Stop if the fixed depth limit has been reached
-            if (limit.depth != DEPTH_ZERO && rootDepth > limit.depth)
-                break;
-
             // Decay PV variability metric to reduce influence of previous iterations
             if (limit.use_time_manager())
                 mainManager->sumMoveChanges *= 0.50;
