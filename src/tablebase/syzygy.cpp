@@ -15,7 +15,7 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "tablebase.h"
+#include "syzygy.h"
 
 #include <algorithm>
 #include <array>
@@ -50,9 +50,7 @@
 #include "../types.h"
 #include "../uci.h"
 
-using namespace DON::Tablebase;
-
-namespace DON {
+namespace DON::Tablebase::Syzygy {
 
 namespace {
 
@@ -1724,8 +1722,6 @@ WDLScore search(Position& pos, ProbeState* ps) noexcept {
 
 }  // namespace
 
-namespace Tablebase {
-
 // Called at startup to create the various tables
 void init() noexcept {
 
@@ -2183,5 +2179,4 @@ Config rank_root_moves(Position& pos, RootMoves& rootMoves, const Options& optio
 
 // clang-format on
 
-}  // namespace Tablebase
-}  // namespace DON
+}  // namespace DON::Tablebase::Syzygy

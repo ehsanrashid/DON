@@ -36,12 +36,12 @@
 #include "history.h"
 #include "misc.h"
 #include "numa.h"
-#include "polybook.h"
 #include "position.h"
 #include "timeman.h"
 #include "types.h"
+#include "book/polybook.h"
 #include "nnue/accumulator.h"
-#include "syzygy/tablebase.h"
+#include "tablebase/syzygy.h"
 
 namespace DON {
 
@@ -57,7 +57,7 @@ inline constexpr std::size_t SEARCHED_MOVE_CAPACITY = 32;
 
 using SearchedMoves = FixedVector<Move, SEARCHED_MOVE_CAPACITY, std::uint16_t>;
 
-inline PolyBook Book;
+inline Book::PolyBook pgBook;
 
 // RootMove is used for moves at the root of the tree.
 // For each root move store a score and a PV
@@ -611,11 +611,11 @@ class Worker final {
     std::atomic<std::uint64_t> nodes, tbHits;
     std::atomic<std::uint32_t> moveChanges;
 
-    Position          rootPos;
-    State             rootState;
-    RootMoves         rootMoves;
-    Limit             limit;
-    Tablebase::Config tbConfig;
+    Position                  rootPos;
+    State                     rootState;
+    RootMoves                 rootMoves;
+    Limit                     limit;
+    Tablebase::Syzygy::Config tbConfig;
 
     Depth         rootDepth, completedDepth;
     std::size_t   multiPV, curPV, endPV;

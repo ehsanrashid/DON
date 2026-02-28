@@ -25,16 +25,16 @@
 #include <iostream>
 #include <system_error>
 
-#include "bitboard.h"
-#include "misc.h"
-#include "movegen.h"
-#include "option.h"
-#include "position.h"
-#include "prng.h"
-#include "search.h"
-#include "uci.h"
+#include "../bitboard.h"
+#include "../misc.h"
+#include "../movegen.h"
+#include "../option.h"
+#include "../position.h"
+#include "../prng.h"
+#include "../search.h"
+#include "../uci.h"
 
-namespace DON {
+namespace DON::Book {
 
 namespace {
 
@@ -716,4 +716,4 @@ Move PolyBook::probe(Position& pos, const RootMoves& rootMoves, const Options& o
     return Move::None;
 }
 
-}  // namespace DON
+}  // namespace DON::Book

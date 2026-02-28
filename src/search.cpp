@@ -317,7 +317,7 @@ void Worker::start_search() noexcept {
 
         // Check polyglot book
         if (!limit.infinite && limit.mate == 0)
-            bookBestMove = Book.probe(rootPos, rootMoves, options);
+            bookBestMove = pgBook.probe(rootPos, rootMoves, options);
 
         if (bookBestMove != Move::None)
         {
@@ -329,7 +329,7 @@ void Worker::start_search() noexcept {
             for (auto m : MoveList<GenType::LEGAL>(rootPos))
                 oRootMoves.emplace_back(m);
 
-            Move bookPonderMove = Book.probe(rootPos, oRootMoves, options);
+            Move bookPonderMove = pgBook.probe(rootPos, oRootMoves, options);
 
             rootPos.undo_move(bookBestMove);
 
@@ -569,7 +569,7 @@ void Worker::iterative_deepening() noexcept {
     completedDepth           = DEPTH_ZERO;
 
     // Iterative deepening loop
-    Depth MaxDepth = limit.depth != DEPTH_ZERO ? limit.depth : DEPTH_MAX;
+    Depth MaxDepth = limit.depth != DEPTH_ZERO ? std::min(limit.depth, DEPTH_MAX) : DEPTH_MAX;
     for (rootDepth = 1; rootDepth <= MaxDepth; ++rootDepth)
     {
         // Precompute the start indices of each tbRank group
@@ -993,15 +993,15 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
                 || (pieceCount == tbConfig.cardinality  //
                     && depth >= tbConfig.probeDepth))
             {
-                Tablebase::ProbeState wdlPs;
+                Tablebase::Syzygy::ProbeState wdlPs;
 
-                auto wdlScore = Tablebase::probe_wdl(pos, &wdlPs);
+                auto wdlScore = Tablebase::Syzygy::probe_wdl(pos, &wdlPs);
 
                 // Force check of time on the next occasion
                 if (is_main_worker())
                     main_manager()->callsCount = 1;
 
-                if (wdlPs != Tablebase::PS_FAIL)
+                if (wdlPs != Tablebase::Syzygy::PS_FAIL)
                 {
                     tbHits.fetch_add(1, std::memory_order_relaxed);
 
@@ -2344,7 +2344,8 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
         for (Move m : MoveList<GenType::LEGAL>(rootPos))
             rms.emplace_back(m);
 
-        auto tbCfg = Tablebase::rank_root_moves(rootPos, rms, options, false, time_to_abort);
+        auto tbCfg =
+          Tablebase::Syzygy::rank_root_moves(rootPos, rms, options, false, time_to_abort);
 
         if (rms.find(pvMove)->tbRank != rms[0].tbRank)
             break;
@@ -2410,7 +2411,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
         rms.sort(root_move_descending);
 
         // The winning side tries to minimize DTZ, the losing side maximizes it
-        auto tbCfg = Tablebase::rank_root_moves(rootPos, rms, options, true, time_to_abort);
+        auto tbCfg = Tablebase::Syzygy::rank_root_moves(rootPos, rms, options, true, time_to_abort);
 
         // If DTZ is not available might not find a mate, so bail out
         if (!tbCfg.rootInTB || tbCfg.cardinality != 0)

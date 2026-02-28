@@ -15,8 +15,8 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef POLYBOOK_H_INCLUDED
-#define POLYBOOK_H_INCLUDED
+#ifndef BOOK_POLYBOOK_H_INCLUDED
+#define BOOK_POLYBOOK_H_INCLUDED
 
 #include <cstddef>
 #include <cstdint>
@@ -24,13 +24,15 @@
 #include <string>
 #include <vector>
 
-#include "types.h"
+#include "../types.h"
 
 namespace DON {
 
 class Position;
 class RootMoves;
 class Options;
+
+namespace Book {
 
 class PolyBook final {
    public:
@@ -84,6 +86,7 @@ class PolyBook final {
     Entries entries;
 };
 
+}  // namespace Book
 }  // namespace DON
 
-#endif  // #ifndef POLYBOOK_H_INCLUDED
+#endif  // #ifndef BOOK_POLYBOOK_H_INCLUDED

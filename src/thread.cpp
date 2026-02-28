@@ -28,7 +28,7 @@
 #include "option.h"
 #include "types.h"
 #include "uci.h"
-#include "syzygy/tablebase.h"
+#include "tablebase/syzygy.h"
 
 #if !defined(SUPPORTS_PTHREADS)
     #include "misc.h"
@@ -554,7 +554,8 @@ void Threads::start(Position&      pos,
                          * double(clock.time));
     };
 
-    auto tbConfig = Tablebase::rank_root_moves(pos, rootMoves, options, false, time_to_abort);
+    auto tbConfig =
+      Tablebase::Syzygy::rank_root_moves(pos, rootMoves, options, false, time_to_abort);
 
     // After ownership transfer 'states' becomes empty, so if stop the search
     // and call 'go' again without setting a new position states.get() == nullptr.

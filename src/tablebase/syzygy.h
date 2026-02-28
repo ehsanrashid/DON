@@ -15,8 +15,8 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef SYZYGY_TABLEBASE_H_INCLUDED
-#define SYZYGY_TABLEBASE_H_INCLUDED
+#ifndef TABLEBASE_SYZYGY_H_INCLUDED
+#define TABLEBASE_SYZYGY_H_INCLUDED
 
 #include <cstddef>
 #include <cstdint>
@@ -33,7 +33,7 @@ class RootMoves;
 
 using TimeFunc = std::function<bool()>;
 
-namespace Tablebase {
+namespace Tablebase::Syzygy {
 
 // Max number of supported piece
 inline constexpr std::size_t TB_PIECES_MAX = 7;
@@ -104,7 +104,7 @@ Config rank_root_moves(Position& pos, RootMoves& rootMoves, const Options& optio
 
 // clang-format on
 
-}  // namespace Tablebase
+}  // namespace Tablebase::Syzygy
 }  // namespace DON
 
-#endif  // #ifndef SYZYGY_TABLEBASE_H_INCLUDED
+#endif  // #ifndef TABLEBASE_SYZYGY_H_INCLUDED

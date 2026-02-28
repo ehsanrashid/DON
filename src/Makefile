@@ -124,23 +124,23 @@ PGOBENCH := $(RUN_PREFIX) ./$(EXE) bench
 
 ### Source and object files
 SRCS := benchmark.cpp bitboard.cpp engine.cpp evaluate.cpp main.cpp memory.cpp \
-    misc.cpp movegen.cpp movepick.cpp option.cpp perft.cpp polybook.cpp \
-    position.cpp search.cpp thread.cpp timeman.cpp tt.cpp tune.cpp uci.cpp \
+    misc.cpp movegen.cpp movepick.cpp option.cpp perft.cpp position.cpp \
+    search.cpp thread.cpp timeman.cpp tt.cpp tune.cpp uci.cpp \
     nnue/features/full_threats.cpp nnue/features/half_ka_hm.cpp \
-    nnue/accumulator.cpp nnue/network.cpp nnue/nmisc.cpp syzygy/tablebase.cpp
+    nnue/accumulator.cpp nnue/network.cpp nnue/nmisc.cpp book/polybook.cpp tablebase/syzygy.cpp
 
 HEADERS := benchmark.h bitboard.h engine.h evaluate.h history.h memory.h misc.h movegen.h \
-    movepick.h numa.h option.h perft.h platform_win.h polybook.h position.h prng.h search.h \
+    movepick.h numa.h option.h perft.h platform_win.h position.h prng.h search.h \
     shm.h thread.h timeman.h tt.h tune.h types.h uci.h incbin/incbin.h \
     nnue/features/full_threats.h nnue/features/half_ka_hm.h \
     nnue/layers/affine_transform.h nnue/layers/affine_transform_sparse_input.h \
     nnue/layers/clipped_relu.h nnue/layers/sqr_clipped_relu.h \
     nnue/accumulator.h nnue/architecture.h nnue/common.h nnue/feature_transformer.h \
-    nnue/network.h nnue/nmisc.h nnue/simd.h syzygy/tablebase.h
+    nnue/network.h nnue/nmisc.h nnue/simd.h book/polybook.h tablebase/syzygy.h
 
 OBJS := $(notdir $(SRCS:.cpp=.o))
 
-VPATH := nnue:nnue/features:syzygy
+VPATH := nnue:nnue/features:book:tablebase
 
 ### ==========================================================================
 ### Section 2. High-level Configuration
@@ -1237,13 +1237,14 @@ clean: objclean profileclean
 
 # Clean binaries and objects
 objclean:
-	@rm -f $(EXE) $(OBJS) ./syzygy/*.o ./nnue/*.o ./nnue/features/*.o
+	@rm -f $(EXE) $(OBJS) ./book/*.o ./tablebase/*.o ./nnue/*.o ./nnue/features/*.o
 
 # Clean auxiliary profiling files
 profileclean:
 	@rm -rf profdir
 	@rm -f bench.txt *.gcda *.gcno \
-			./syzygy/*.gcda \
+			./book/*.gcda \
+			./tablebase/*.gcda \
 			./nnue/*.gcda \
 			./nnue/features/*.gcda \
 			*.s PGOBENCH.out
@@ -1409,7 +1410,7 @@ icx-profile-use:
 	@echo Generating dependencies...
 	@set -o pipefail; \
 	$(CXX) $(DEPENDFLAGS) -MM -MP $(SRCS) 2>&1 | \
-		sed -E 's@(.*/)?DON/src/nnue/@nnue/@g; s@(.*/)?DON/src/syzygy/@syzygy/@g; s@(.*/)?DON/src/@../@g' \
+		sed -E 's@(.*/)?DON/src/nnue/@nnue/@g; s@(.*/)?DON/src/book/@book/@g; s@(.*/)?DON/src/tablebase/@tablebase/@g; s@(.*/)?DON/src/@../@g' \
 		> $@.tmp
 	@mv $@.tmp $@
 
