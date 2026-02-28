@@ -264,7 +264,9 @@ class TestInteractive(metaclass=OrderedClassMembers):
             regex = rf"info depth {depth} seldepth \d+ multipv \d+ score cp -?\d+(?: lowerbound| upperbound)? wdl \d+ \d+ \d+ time \d+ nodes \d+ nps \d+ tbhits \d+ hashfull \d+ pv"
             if output.startswith("info depth"):
                 if not re.match(regex, output):
-                    print("Output did not match regex: ", output)
+                    print("DEBUG: Regex mismatch")
+                    print("  Regex :", regex)
+                    print("  Output:", output)
                     #assert False
                 depth += 1
             if output.startswith("bestmove"):
