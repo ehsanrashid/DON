@@ -15,8 +15,8 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef BOOK_POLYBOOK_H_INCLUDED
-#define BOOK_POLYBOOK_H_INCLUDED
+#ifndef BOOK_POLYGLOT_H_INCLUDED
+#define BOOK_POLYGLOT_H_INCLUDED
 
 #include <cstddef>
 #include <cstdint>
@@ -89,4 +89,4 @@ class PolyGlot final {
 }  // namespace Book
 }  // namespace DON
 
-#endif  // #ifndef BOOK_POLYBOOK_H_INCLUDED
+#endif  // #ifndef BOOK_POLYGLOT_H_INCLUDED
