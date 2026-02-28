@@ -58,6 +58,7 @@ struct MoveList final {
 
     // Generate moves into the internal buffer
     explicit MoveList(const Position& pos) noexcept :
+        moves(),
         moveEnd(generate<GT, Any>(pos, moves.data())) {
 #if !defined(NDEBUG)
         assert(moves.data() <= moveEnd && moveEnd <= moves.data() + moves.size());
