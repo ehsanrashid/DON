@@ -1568,7 +1568,7 @@ void combine_hash(std::size_t& seed, const T& v) noexcept {
 // Custom streambuf that wraps string_view
 class StringViewStreamBuf final: public std::streambuf {
    public:
-    StringViewStreamBuf(std::string_view sv) noexcept {
+    explicit StringViewStreamBuf(std::string_view sv) noexcept {
         // Cast away const (safe: only for reading via std::istream)
         auto* p = const_cast<char*>(sv.data());
         setg(p, p, p + sv.size());  // Only GET area (reading enabled)
