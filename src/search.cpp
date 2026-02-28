@@ -2564,7 +2564,8 @@ void MainSearchManager::handle_time_management(const Worker& worker,
 
     // Cap totalTime in case of a single legal move for a better viewer experience
     if (worker.rootMoves.size() == 1)
-        totalTime = std::min<TimePoint>(totalTime, worker.options["MaxForcedMoveTime"]);
+        totalTime =
+          std::min<TimePoint>(550 * totalTime / 1000, worker.options["MaxForcedMoveTime"]);
 
     TimePoint elapsedTime = elapsed(worker.threads);
 
