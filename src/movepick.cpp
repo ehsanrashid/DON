@@ -117,7 +117,7 @@ void partial_insertion_sort(Iterator beg, Iterator end, int limit = -INT_LIMIT) 
     auto ext_move_descending_limit = [limit](const ExtMove& em1, const ExtMove& em2) noexcept {
         // Only compare elements >= limit
         if (em1.value < limit)
-            return false;  // treat a as "already after" => never move it
+            return false;  // treat as "already after" => never move it
         if (em2.value < limit)
             return true;                       // value >= limit goes before elements < limit
         return ext_move_descending(em1, em2);  // usual descending
@@ -175,7 +175,8 @@ MovePicker::MovePicker(const Position&                  p,
     lowPlyQuietHistory(lowPlyQuietHist),
     continuationHistory(continuationHist),
     ssPly(ply),
-    threshold(th) {
+    threshold(th),
+    moves() {
     assert(ttMove == Move::None || pos.legal(ttMove));
     assert(continuationHistory != nullptr);
 
@@ -208,7 +209,8 @@ MovePicker::MovePicker(const Position&                p,
     pos(p),
     ttMove(ttm),
     captureHistory(captureHist),
-    threshold(th) {
+    threshold(th),
+    moves() {
     assert(pos.checkers_bb() == 0);
     assert(ttMove == Move::None || pos.legal(ttMove));
 

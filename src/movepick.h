@@ -101,9 +101,9 @@ class MovePicker final {
     [[nodiscard]] size_type size() const noexcept { return end() - begin(); }
     [[nodiscard]] bool      empty() const noexcept { return begin() == end(); }
 
-    Move next_move() noexcept;
+    [[nodiscard]] Move next_move() noexcept;
 
-    bool good_capture() const noexcept;
+    [[nodiscard]] bool good_capture() const noexcept;
 
     bool skipQuiets = false;
 
@@ -128,7 +128,7 @@ class MovePicker final {
     [[nodiscard]] const_iterator begin() const noexcept { return cur; }
     [[nodiscard]] const_iterator end() const noexcept { return curEnd; }
 
-    bool valid() const noexcept { return *cur != ttMove; }
+    [[nodiscard]] bool valid() const noexcept { return *cur != ttMove; }
 
     [[nodiscard]] bool good_capture_or_swap() noexcept;
 

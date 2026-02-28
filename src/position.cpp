@@ -178,7 +178,18 @@ void Position::init() noexcept {
     Cuckoos.init();
 }
 
-Position::Position() noexcept {
+Position::Position() noexcept :
+    squaresTable(),
+    pieceLists(),
+    indexMap(),
+    pieceMap(),
+    typeBBs(),
+    colorBBs(),
+    castlingRightsMasks(),
+    castlings(),
+    st(nullptr),
+    gamePly(0),
+    activeColor(NONE) {
 
     for (Color c : {WHITE, BLACK})
         for (PieceType pt : PIECE_TYPES)
