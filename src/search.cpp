@@ -725,11 +725,9 @@ void Worker::iterative_deepening() noexcept {
             break;
         }
 
-        bool lastBestMoveChanged = rootMoves[0].pv[0] != lastBestPV[0];
-
         completedDepth = rootDepth;
 
-        if (lastBestMoveChanged)
+        if (rootMoves[0].pv[0] != lastBestPV[0])
             lastCompletedDepth = rootDepth;
 
         update_last_best();
