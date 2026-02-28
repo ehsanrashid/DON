@@ -466,8 +466,6 @@ void Worker::iterative_deepening() noexcept {
 
     ss->pv = pv.data();
 
-    std::uint16_t researchCnt = 0;
-
     Value bestValue = -VALUE_INFINITE;
 
     Moves lastBestPV       = {Move::None};
@@ -564,6 +562,8 @@ void Worker::iterative_deepening() noexcept {
 
         mainManager->timeReduction = 1.0;
     }
+
+    std::uint16_t researchCnt = 0;
 
     Depth lastCompletedDepth = DEPTH_ZERO;
     completedDepth           = DEPTH_ZERO;
