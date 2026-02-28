@@ -158,27 +158,22 @@ constexpr std::string_view Version{"dev"};
 void set_console_output(ConsoleOutputMode mode) noexcept {
     switch (mode)
     {
-    case ConsoleOutputMode::UTF7 : {
+    case ConsoleOutputMode::UTF7 :
 #if defined(_WIN32)
         SetConsoleOutputCP(CP_UTF7);
 #endif
-    }
-    break;
-    case ConsoleOutputMode::Default : {
-    }
-    break;
-    case ConsoleOutputMode::EnableVirtualTerminal : {
-    }
-    break;
-    case ConsoleOutputMode::FullyFeatured : {
-    }
-    break;
+        break;
+    case ConsoleOutputMode::Default :
+        break;
+    case ConsoleOutputMode::EnableVirtualTerminal :
+        break;
+    case ConsoleOutputMode::FullyFeatured :
+        break;
     case ConsoleOutputMode::UTF8 :
-    default : {
+    default :
 #if defined(_WIN32)
         SetConsoleOutputCP(CP_UTF8);
 #endif
-    }
     }
 }
 
@@ -349,7 +344,7 @@ std::string compiler_info() noexcept {
 #elif defined(_WIN32)
     #if defined(_WIN64)
     compiler.append("Microsoft Windows 64-bit");
-    #else defined(_WIN32)
+    #else
     compiler.append("Microsoft Windows 32-bit");
     #endif
 #else
