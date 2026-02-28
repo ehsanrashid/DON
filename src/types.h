@@ -92,6 +92,8 @@ using Bitboard16 = std::uint16_t;
 using Key = std::uint64_t;
 static_assert(sizeof(Key) == 8, "Key size must be 8 bytes");
 
+using TimeFunc = std::function<bool()>;
+
 inline constexpr std::uint16_t MOVE_MAX = 256;
 inline constexpr std::uint16_t PLY_MAX  = 254;
 

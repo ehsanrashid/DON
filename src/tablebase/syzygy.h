@@ -31,8 +31,6 @@ class Options;
 class Position;
 class RootMoves;
 
-using TimeFunc = std::function<bool()>;
-
 namespace Tablebase::Syzygy {
 
 // Max number of supported piece

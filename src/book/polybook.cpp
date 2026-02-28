@@ -32,6 +32,7 @@
 #include "../position.h"
 #include "../prng.h"
 #include "../search.h"
+#include "../types.h"
 #include "../uci.h"
 
 namespace DON::Book {
