@@ -15,7 +15,7 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "polybook.h"
+#include "polyglot.h"
 
 #include <algorithm>
 #include <array>
@@ -361,7 +361,7 @@ std::uint64_t swap_uint64(std::uint64_t n) noexcept {
 #endif
 }
 
-void swap_entry(PolyBook::Entry* e) noexcept {
+void swap_entry(PolyGlot::Entry* e) noexcept {
     if (e == nullptr)
         return;
     e->key    = swap_uint64(e->key);
@@ -418,9 +418,9 @@ bool is_draw(Position& pos, Move m) noexcept {
 
 }  // namespace
 
-void PolyBook::clear() noexcept { entries.clear(); }
+void PolyGlot::clear() noexcept { entries.clear(); }
 
-bool PolyBook::load(const std::filesystem::path& bookFile) noexcept {
+bool PolyGlot::load(const std::filesystem::path& bookFile) noexcept {
     clear();
 
     if (bookFile.empty())
@@ -444,7 +444,7 @@ bool PolyBook::load(const std::filesystem::path& bookFile) noexcept {
         return true;
     }
 
-    constexpr std::size_t EntrySize = sizeof(PolyBook::Entry);
+    constexpr std::size_t EntrySize = sizeof(PolyGlot::Entry);
     static_assert(EntrySize > 0, "PolyEntry must have non-zero size");
 
     if (fileSize < EntrySize)
@@ -523,11 +523,11 @@ bool PolyBook::load(const std::filesystem::path& bookFile) noexcept {
     return true;
 }
 
-std::string PolyBook::info() const noexcept {
+std::string PolyGlot::info() const noexcept {
     return "Book: " + filename + " with " + std::to_string(entries.size()) + " entries";
 }
 
-std::size_t PolyBook::key_index(Key key) const noexcept {
+std::size_t PolyGlot::key_index(Key key) const noexcept {
     constexpr std::size_t Radius = 4;
 
     std::size_t begIndex = 0;
@@ -569,7 +569,7 @@ std::size_t PolyBook::key_index(Key key) const noexcept {
     return entries.size();
 }
 
-PolyBook::Entries PolyBook::key_candidates(Key key) const noexcept {
+PolyGlot::Entries PolyGlot::key_candidates(Key key) const noexcept {
     std::size_t index = key_index(key);
 
     Entries candidates;
@@ -588,7 +588,7 @@ PolyBook::Entries PolyBook::key_candidates(Key key) const noexcept {
     return candidates;
 }
 
-Move PolyBook::probe(Position& pos, const RootMoves& rootMoves, const Options& options) noexcept {
+Move PolyGlot::probe(Position& pos, const RootMoves& rootMoves, const Options& options) noexcept {
     assert(!rootMoves.empty());
     static XorShift64Star prng(now());
 

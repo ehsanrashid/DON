@@ -127,7 +127,7 @@ SRCS := benchmark.cpp bitboard.cpp engine.cpp evaluate.cpp main.cpp memory.cpp \
     misc.cpp movegen.cpp movepick.cpp option.cpp perft.cpp position.cpp \
     search.cpp thread.cpp timeman.cpp tt.cpp tune.cpp uci.cpp \
     nnue/features/full_threats.cpp nnue/features/half_ka_hm.cpp \
-    nnue/accumulator.cpp nnue/network.cpp nnue/nmisc.cpp book/polybook.cpp tablebase/syzygy.cpp
+    nnue/accumulator.cpp nnue/network.cpp nnue/nmisc.cpp book/polyglot.cpp tablebase/syzygy.cpp
 
 HEADERS := benchmark.h bitboard.h engine.h evaluate.h history.h memory.h misc.h movegen.h \
     movepick.h numa.h option.h perft.h platform_win.h position.h prng.h search.h \
@@ -136,7 +136,7 @@ HEADERS := benchmark.h bitboard.h engine.h evaluate.h history.h memory.h misc.h 
     nnue/layers/affine_transform.h nnue/layers/affine_transform_sparse_input.h \
     nnue/layers/clipped_relu.h nnue/layers/sqr_clipped_relu.h \
     nnue/accumulator.h nnue/architecture.h nnue/common.h nnue/feature_transformer.h \
-    nnue/network.h nnue/nmisc.h nnue/simd.h book/polybook.h tablebase/syzygy.h
+    nnue/network.h nnue/nmisc.h nnue/simd.h book/polyglot.h tablebase/syzygy.h
 
 OBJS := $(notdir $(SRCS:.cpp=.o))
 

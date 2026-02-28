@@ -31,7 +31,7 @@
 #include "perft.h"
 #include "shm.h"
 #include "uci.h"
-#include "book/polybook.h"
+#include "book/polyglot.h"
 #include "nnue/nmisc.h"
 #include "tablebase/syzygy.h"
 

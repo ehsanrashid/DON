@@ -34,7 +34,7 @@ class Options;
 
 namespace Book {
 
-class PolyBook final {
+class PolyGlot final {
    public:
     struct Entry final {
        public:
@@ -60,11 +60,11 @@ class PolyBook final {
 
     using Entries = std::vector<Entry>;
 
-    PolyBook() noexcept                           = default;
-    PolyBook(const PolyBook&) noexcept            = delete;
-    PolyBook(PolyBook&&) noexcept                 = delete;
-    PolyBook& operator=(const PolyBook&) noexcept = delete;
-    PolyBook& operator=(PolyBook&&) noexcept      = delete;
+    PolyGlot() noexcept                           = default;
+    PolyGlot(const PolyGlot&) noexcept            = delete;
+    PolyGlot(PolyGlot&&) noexcept                 = delete;
+    PolyGlot& operator=(const PolyGlot&) noexcept = delete;
+    PolyGlot& operator=(PolyGlot&&) noexcept      = delete;
 
     bool load(const std::filesystem::path& bookFile) noexcept;
 

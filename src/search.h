@@ -39,7 +39,7 @@
 #include "position.h"
 #include "timeman.h"
 #include "types.h"
-#include "book/polybook.h"
+#include "book/polyglot.h"
 #include "nnue/accumulator.h"
 #include "tablebase/syzygy.h"
 
@@ -57,7 +57,7 @@ inline constexpr std::size_t SEARCHED_MOVE_CAPACITY = 32;
 
 using SearchedMoves = FixedVector<Move, SEARCHED_MOVE_CAPACITY, std::uint16_t>;
 
-inline Book::PolyBook pgBook;
+inline Book::PolyGlot pgBook;
 
 // RootMove is used for moves at the root of the tree.
 // For each root move store a score and a PV
