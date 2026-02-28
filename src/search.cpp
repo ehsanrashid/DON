@@ -719,7 +719,7 @@ void Worker::iterative_deepening() noexcept {
             restore_last_best();
 
             // Give some update about the PV
-            if (mainManager != nullptr)
+            if (mainManager != nullptr && (curPV + 1 == multiPV || rootDepth > 30))
                 mainManager->show_pv(*this, completedDepth);
 
             break;
