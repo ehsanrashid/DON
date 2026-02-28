@@ -569,10 +569,8 @@ void Worker::iterative_deepening() noexcept {
     completedDepth           = DEPTH_ZERO;
 
     // Iterative deepening loop
-    for (rootDepth = 1; rootDepth <= DEPTH_MAX
-                        // Stop if the fixed depth limit has been reached
-                        && (limit.depth == DEPTH_ZERO || rootDepth <= limit.depth);
-         ++rootDepth)
+    Depth MaxDepth = limit.depth != DEPTH_ZERO ? limit.depth : DEPTH_MAX;
+    for (rootDepth = 1; rootDepth <= MaxDepth; ++rootDepth)
     {
         // Stop if requested to stop
         if (threads.is_stopped())
