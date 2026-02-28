@@ -66,11 +66,11 @@ void Tune::make_option(Options*           optionsPtr,
                        std::string_view   name,
                        int                value,
                        const RangeSetter& range) noexcept {
-    // Do not generate option when there is nothing to tune (ie. min = max)
+    // Do not generate option when there is nothing to tune (i.e. min = max)
     if (range(value).first == range(value).second)
         return;
 
-    if (TuneResults.count(name))
+    if (TuneResults.find(name) != TuneResults.end())
         value = TuneResults[name];
 
     optionsPtr->add(name, Option(value, range(value).first, range(value).second, on_tune));
