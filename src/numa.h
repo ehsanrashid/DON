@@ -1334,7 +1334,7 @@ class NumaConfig final {
                 // ds.size() has decreased if changed is true, so this loop will terminate
             } while (changed);
 
-            for (const auto& [_, cpus] : ds)
+            for (const auto& [__, cpus] : ds)
             {
                 for (CpuIndex cpuId : cpus)
                 {

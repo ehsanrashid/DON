@@ -103,12 +103,6 @@ Option::operator int() const noexcept {
     return type == Type::CHECK ? sv_to_bool(currentValue) : sv_to_int(currentValue);
 }
 
-Option::operator std::string() const noexcept {
-    assert(type == Type::STRING || type == Type::COMBO);
-
-    return currentValue;
-}
-
 Option::operator std::string_view() const noexcept {
     assert(type == Type::STRING || type == Type::COMBO);
 

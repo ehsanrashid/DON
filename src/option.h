@@ -77,7 +77,6 @@ class Option final {
     Option(std::string_view v, std::string_view var, OnChange&& f = nullptr) noexcept;
 
     operator int() const noexcept;
-    operator std::string() const noexcept;
     operator std::string_view() const noexcept;
 
     constexpr bool operator==(const Option& o) const noexcept {
