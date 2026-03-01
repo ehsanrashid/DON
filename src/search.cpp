@@ -513,12 +513,17 @@ void Worker::iterative_deepening() noexcept {
             if (restore)
             {
                 // Bring the last best rootMove to the front for best thread selection.
-                rootMoves.move_to_front([&lastBestPV = std::as_const(lastBestPV)](
-                                          const auto& rm) noexcept { return rm == lastBestPV[0]; });
-                rootMoves[0].pv       = lastBestPV;
-                rootMoves[0].curValue = lastBestCurValue;
-                rootMoves[0].preValue = lastBestPreValue;
-                rootMoves[0].uciValue = lastBestUciValue;
+                bool moved = rootMoves.move_to_front(
+                  [&lastBestPV = std::as_const(lastBestPV)](const auto& rm) noexcept {
+                      return rm == lastBestPV[0];
+                  });
+                if (moved)
+                {
+                    rootMoves[0].pv       = lastBestPV;
+                    rootMoves[0].curValue = lastBestCurValue;
+                    rootMoves[0].preValue = lastBestPreValue;
+                    rootMoves[0].uciValue = lastBestUciValue;
+                }
             }
         }
     };
