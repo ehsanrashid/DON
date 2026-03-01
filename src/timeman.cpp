@@ -115,7 +115,7 @@ void TimeManager::init(
         mtg = std::max<std::uint8_t>(constexpr_ceil(0.05505 * double(ScaledTime)), 2);
 
     // Make sure remainTime > 0 since use it as a divisor
-    TimePoint remainTime = std::max(clock.time + ((mtg - 1) * clock.inc - (mtg + 2) * OverheadTime) / 100, TimePoint{1});
+    TimePoint remainTime = std::max(clock.time + (mtg - 1) * clock.inc - (mtg + 2) * OverheadTime, TimePoint{1});
 
     remainTime = std::max<TimePoint>(constexpr_ceil(double(remainTime) * double(options["TimePercent"]) / 100.0), TimePoint{1});
 
