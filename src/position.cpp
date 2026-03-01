@@ -123,7 +123,7 @@ class CuckooTable final {
         assert(count == 3668);
     }
 
-    std::size_t find_key(Key key) const noexcept {
+    [[nodiscard]] std::size_t find_key(Key key) const noexcept {
         if (std::size_t index;  //
             (index = H<0>(key), cuckoos[index].key == key)
             || (index = H<1>(key), cuckoos[index].key == key))
@@ -2337,8 +2337,7 @@ std::ostream& operator<<(std::ostream& os, const Position& pos) noexcept {
        << to_square(pos.square<KING>(~pos.active_color()));
 
     os << "\nCheckers: ";
-    Bitboard checkersBB = pos.checkers_bb();
-    if (checkersBB != 0)
+    if (Bitboard checkersBB = pos.checkers_bb(); checkersBB != 0)
         while (checkersBB != 0)
             os << to_square(pop_lsq(checkersBB)) << " ";
     else
