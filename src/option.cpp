@@ -26,22 +26,22 @@
 
 namespace DON {
 
-std::size_t CaseInsensitiveHash::operator()(std::string_view str) const noexcept {
-    return std::hash<std::string_view>{}(lower_case(std::string{str}));
+std::size_t CaseInsensitiveHash::operator()(std::string_view sv) const noexcept {
+    return std::hash<std::string_view>{}(lower_case(std::string{sv}));
 }
 
-bool CaseInsensitiveEqual::operator()(std::string_view s1, std::string_view s2) const noexcept {
-    return s1.size() == s2.size()
-        && std::equal(s1.begin(), s1.end(), s2.begin(), s2.end(),
-                      [](unsigned char c1, unsigned char c2) noexcept {
-                          return std::tolower(c1) == std::tolower(c2);
+bool CaseInsensitiveEqual::operator()(std::string_view sv1, std::string_view sv2) const noexcept {
+    return sv1.size() == sv2.size()
+        && std::equal(sv1.begin(), sv1.end(), sv2.begin(), sv2.end(),
+                      [](unsigned char ch1, unsigned char ch2) noexcept {
+                          return std::tolower(ch1) == std::tolower(ch2);
                       });
 }
 
-bool CaseInsensitiveLess::operator()(std::string_view s1, std::string_view s2) const noexcept {
-    return std::lexicographical_compare(s1.begin(), s1.end(), s2.begin(), s2.end(),
-                                        [](unsigned char c1, unsigned char c2) noexcept {
-                                            return std::tolower(c1) < std::tolower(c2);
+bool CaseInsensitiveLess::operator()(std::string_view sv1, std::string_view sv2) const noexcept {
+    return std::lexicographical_compare(sv1.begin(), sv1.end(), sv2.begin(), sv2.end(),
+                                        [](unsigned char ch1, unsigned char ch2) noexcept {
+                                            return std::tolower(ch1) < std::tolower(ch2);
                                         });
 }
 
