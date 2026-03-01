@@ -240,7 +240,7 @@ template<std::size_t Alignment, typename T>
     static_assert(Alignment >= alignof(T), "Alignment must be >= alignof(T)");
 
     auto ptrInt = reinterpret_cast<std::uintptr_t>(ptr);
-    ptrInt      = round_up_to_pow2_multiple(ptrInt, static_cast<std::uintptr_t>(Alignment));
+    ptrInt      = round_up_to_pow2_multiple(ptrInt, Alignment);
     return reinterpret_cast<T*>(ptrInt);
 }
 
@@ -251,7 +251,7 @@ template<std::size_t Alignment, typename T>
 
 template<typename T, typename ByteT>
 [[nodiscard]] T load_as(const ByteT* buffer) noexcept {
-    static_assert(std::is_trivially_copyable<T>::value, "Type must be trivially copyable");
+    static_assert(std::is_trivially_copyable_v<T>, "Type must be trivially copyable");
     static_assert(sizeof(ByteT) == 1);
 
     T value;

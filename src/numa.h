@@ -1334,9 +1334,9 @@ class NumaConfig final {
                 // ds.size() has decreased if changed is true, so this loop will terminate
             } while (changed);
 
-            for (const auto& l3Domain : ds)
+            for (const auto& [__, cpus] : ds)
             {
-                for (CpuIndex cpuId : l3Domain.cpus)
+                for (CpuIndex cpuId : cpus)
                 {
                     bool success = numaCfg.add_cpu_to_node(numaId, cpuId);
                     if (!success)
