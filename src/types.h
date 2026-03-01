@@ -643,41 +643,46 @@ class Move {
              | (std::uint16_t(dstSq) << DST_SQ_OFFSET)) {}
 
     // Accessors: extract parts of the move
-    constexpr Square org_sq() const noexcept {
+    [[nodiscard]] constexpr Square org_sq() const noexcept {
         assert(is_ok());
 
         return Square((data >> ORG_SQ_OFFSET) & SQ_MASK);
     }
-    constexpr Square dst_sq() const noexcept {
+
+    [[nodiscard]] constexpr Square dst_sq() const noexcept {
         assert(is_ok());
 
         return Square((data >> DST_SQ_OFFSET) & SQ_MASK);
     }
 
     // Same as dst_sq() but without assertion, for branchless code paths
-    constexpr Square dst_sq_() const { return Square((data >> DST_SQ_OFFSET) & SQ_MASK); }
+    [[nodiscard]] constexpr Square dst_sq_() const {
+        return Square((data >> DST_SQ_OFFSET) & SQ_MASK);
+    }
 
-    constexpr MT type() const noexcept { return MT((data & TYPE_MASK) >> TYPE_OFFSET); }
+    [[nodiscard]] constexpr MT type() const noexcept {
+        return MT((data & TYPE_MASK) >> TYPE_OFFSET);
+    }
 
-    constexpr PieceType promotion_type() const noexcept {
+    [[nodiscard]] constexpr PieceType promotion_type() const noexcept {
         return PieceType(KNIGHT + ((data >> PROMO_OFFSET) & PROMO_MASK));
     }
 
-    constexpr Value promotion_value() const noexcept {
+    [[nodiscard]] constexpr Value promotion_value() const noexcept {
         return type() == MT::PROMOTION  //
                ? piece_value(promotion_type()) - VALUE_PAWN
                : VALUE_ZERO;
     }
 
-    constexpr std::uint16_t raw() const noexcept { return data; }
+    [[nodiscard]] constexpr std::uint16_t raw() const noexcept { return data; }
 
     constexpr bool operator==(Move m) const noexcept { return data == m.data; }
     constexpr bool operator!=(Move m) const noexcept { return !(*this == m); }
 
     // Validity check: ensures move is not None or Null
-    constexpr bool is_ok() const noexcept { return data != 0x000 && data != 0xFFF; }
+    [[nodiscard]] constexpr bool is_ok() const noexcept { return data != 0x000 && data != 0xFFF; }
 
-    constexpr Move reverse() const noexcept {
+    [[nodiscard]] constexpr Move reverse() const noexcept {
         assert(type() == MT::NORMAL);
 
         return Move{dst_sq(), org_sq()};
