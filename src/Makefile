@@ -1366,22 +1366,25 @@ FORCE:
 # Clang PGO
 # ------------------------
 clang-profile-make:
+	@rm -rf profdir
+	@mkdir -p profdir
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
-	EXTRACXXFLAGS='-fprofile-generate' \
-	EXTRALDFLAGS='-fprofile-generate' \
+	EXTRACXXFLAGS='-fprofile-generate=profdir' \
+	EXTRALDFLAGS='-fprofile-generate=profdir' \
 	all
 
 clang-profile-use:
-	$(XCRUN) $(LLVM_PROFDATA) merge -output=$(NAME).profdata *.profraw
+	$(XCRUN) $(LLVM_PROFDATA) merge -output=$(NAME).profdata profdir/*.profraw
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
 	EXTRACXXFLAGS='-fprofile-use=$(NAME).profdata' \
-	EXTRALDFLAGS='-fprofile-use' \
+	EXTRALDFLAGS='-fprofile-use=$(NAME).profdata' \
 	all
 
 # ------------------------
 # GCC PGO
 # ------------------------
 gcc-profile-make:
+	@rm -rf profdir
 	@mkdir -p profdir
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
 	EXTRACXXFLAGS='-fprofile-generate=profdir $(EXTRAPROFILEFLAGS)' \
@@ -1391,22 +1394,25 @@ gcc-profile-make:
 gcc-profile-use:
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
 	EXTRACXXFLAGS='-fprofile-use=profdir -fprofile-correction -fno-peel-loops -fno-tracer $(EXTRAPROFILEFLAGS)' \
+	EXTRALDFLAGS='-fprofile-use=profdir' \
 	all
 
 # ------------------------
 # ICC/ICX PGO
 # ------------------------
 icx-profile-make:
+	@rm -rf profdir
+	@mkdir -p profdir
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
-	EXTRACXXFLAGS='-fprofile-instr-generate' \
-	EXTRALDFLAGS='-fprofile-instr-generate' \
+	EXTRACXXFLAGS='-fprofile-instr-generate=profdir' \
+	EXTRALDFLAGS='-fprofile-instr-generate=profdir' \
 	all
 
 icx-profile-use:
-	$(XCRUN) $(LLVM_PROFDATA) merge -output=$(NAME).profdata *.profraw
+	$(XCRUN) $(LLVM_PROFDATA) merge -output=$(NAME).profdata profdir/*.profraw
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
 	EXTRACXXFLAGS='-fprofile-instr-use=$(NAME).profdata' \
-	EXTRALDFLAGS='-fprofile-use' \
+	EXTRALDFLAGS='-fprofile-instr-use=$(NAME).profdata' \
 	all
 
 .depend: $(SRCS)
