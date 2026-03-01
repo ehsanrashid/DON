@@ -21,6 +21,7 @@
 #include <chrono>
 #include <ratio>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 
 #include "history.h"
