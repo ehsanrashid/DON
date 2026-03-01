@@ -413,12 +413,6 @@ class Position final {
     // instead use the syntax "pos.see(move) >= threshold" and similar for other comparisons.
     struct SEE final {
        public:
-        SEE() noexcept                      = delete;
-        SEE(const SEE&) noexcept            = delete;
-        SEE(SEE&&) noexcept                 = delete;
-        SEE& operator=(const SEE&) noexcept = delete;
-        SEE& operator=(SEE&&) noexcept      = delete;
-
         constexpr SEE(const Position& p, Move m) noexcept :
             pos(p),
             move(m) {}
@@ -429,6 +423,12 @@ class Position final {
         [[nodiscard]] bool operator<(int threshold) const noexcept;
 
        private:
+        SEE() noexcept                      = delete;
+        SEE(const SEE&) noexcept            = delete;
+        SEE(SEE&&) noexcept                 = delete;
+        SEE& operator=(const SEE&) noexcept = delete;
+        SEE& operator=(SEE&&) noexcept      = delete;
+
         const Position& pos;
         Move            move;
     };
