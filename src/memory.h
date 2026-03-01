@@ -240,7 +240,7 @@ template<std::size_t Alignment, typename T>
     static_assert(Alignment >= alignof(T), "Alignment must be >= alignof(T)");
 
     auto ptrInt = reinterpret_cast<std::uintptr_t>(ptr);
-    ptrInt      = round_up_to_pow2_multiple(ptrInt, static_cast<std::uintptr_t>(Alignment));
+    ptrInt      = round_up_to_pow2_multiple(ptrInt, Alignment);
     return reinterpret_cast<T*>(ptrInt);
 }
 
