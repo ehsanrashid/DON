@@ -262,21 +262,21 @@ class FeatureTransformer final {
         const auto& psqAccState    = accStack.state<PSQFeatureSet>();
         const auto& threatAccState = accStack.state<ThreatFeatureSet>();
 
-        // clang-format off
-        const auto& psqtAccumulation       = (psqAccState.acc<HalfDimensions>()).psqtAccumulation;
-        const auto& threatPsqtAccumulation = (threatAccState.acc<HalfDimensions>()).psqtAccumulation;
+        const auto& psqtAccumulation =  //
+          (psqAccState.acc<HalfDimensions>()).psqtAccumulation;
+        const auto& threatPsqtAccumulation =  //
+          (threatAccState.acc<HalfDimensions>()).psqtAccumulation;
 
         StdArray<Color, COLOR_NB> perspectives{pos.active_color(), ~pos.active_color()};
 
         auto psqt = psqtAccumulation[perspectives[WHITE]][bucket]
                   - psqtAccumulation[perspectives[BLACK]][bucket];
 
-        if constexpr(UseThreats)
+        if constexpr (UseThreats)
             psqt += threatPsqtAccumulation[perspectives[WHITE]][bucket]
                   - threatPsqtAccumulation[perspectives[BLACK]][bucket];
 
         psqt /= 2;
-        // clang-format on
 
         const auto& accumulation       = (psqAccState.acc<HalfDimensions>()).accumulation;
         const auto& threatAccumulation = (threatAccState.acc<HalfDimensions>()).accumulation;
