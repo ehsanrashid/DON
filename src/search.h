@@ -148,12 +148,12 @@ class RootMoves final {
     [[nodiscard]] bool      empty() const noexcept { return rootMoves.empty(); }
     [[nodiscard]] size_type size() const noexcept { return rootMoves.size(); }
 
-    iterator       begin() noexcept { return rootMoves.begin(); }
-    iterator       end() noexcept { return rootMoves.end(); }
-    const_iterator begin() const noexcept { return rootMoves.begin(); }
-    const_iterator end() const noexcept { return rootMoves.end(); }
-    const_iterator cbegin() const noexcept { return rootMoves.cbegin(); }
-    const_iterator cend() const noexcept { return rootMoves.cend(); }
+    iterator                     begin() noexcept { return rootMoves.begin(); }
+    iterator                     end() noexcept { return rootMoves.end(); }
+    [[nodiscard]] const_iterator begin() const noexcept { return rootMoves.begin(); }
+    [[nodiscard]] const_iterator end() const noexcept { return rootMoves.end(); }
+    [[nodiscard]] const_iterator cbegin() const noexcept { return rootMoves.cbegin(); }
+    [[nodiscard]] const_iterator cend() const noexcept { return rootMoves.cend(); }
 
     [[nodiscard]] reference       front() noexcept { return rootMoves.front(); }
     [[nodiscard]] reference       back() noexcept { return rootMoves.back(); }
@@ -179,19 +179,23 @@ class RootMoves final {
     void resize(size_type newSize) noexcept { rootMoves.resize(newSize); }
     void reserve(size_type newCapacity) noexcept { rootMoves.reserve(newCapacity); }
 
-    const_iterator find(size_type beg, size_type end, Move m) const noexcept {
+    [[nodiscard]] const_iterator  //
+    find(size_type beg, size_type end, Move m) const noexcept {
         assert(beg <= end && end <= size());
         return std::find(begin() + beg, begin() + end, m);
     }
-    const_iterator find(size_type beg, size_type end, const value_type& v) const noexcept {
+    [[nodiscard]] const_iterator  //
+    find(size_type beg, size_type end, const value_type& v) const noexcept {
         return !v.pv.empty() ? find(beg, end, v.pv[0]) : begin() + end;
     }
 
     iterator find(Move m) noexcept { return std::find(begin(), end(), m); }
     iterator find(const value_type& v) noexcept { return !v.pv.empty() ? find(v.pv[0]) : end(); }
 
-    const_iterator find(Move m) const noexcept { return std::find(begin(), end(), m); }
-    const_iterator find(const value_type& v) const noexcept {
+    [[nodiscard]] const_iterator find(Move m) const noexcept {
+        return std::find(begin(), end(), m);
+    }
+    [[nodiscard]] const_iterator find(const value_type& v) const noexcept {
         return !v.pv.empty() ? find(v.pv[0]) : end();
     }
 
@@ -204,7 +208,7 @@ class RootMoves final {
         return std::find_if(begin(), end(), std::forward<Predicate>(pred));
     }
 
-    bool contains(size_type beg, size_type end, Move m) const noexcept {
+    [[nodiscard]] bool contains(size_type beg, size_type end, Move m) const noexcept {
         assert(beg <= end && end <= size());
 
         auto fst = begin() + beg;
@@ -212,14 +216,16 @@ class RootMoves final {
 
         return std::find(fst, lst, m) != lst;
     }
-    bool contains(size_type beg, size_type end, const value_type& v) const noexcept {
+    [[nodiscard]] bool contains(size_type beg, size_type end, const value_type& v) const noexcept {
         assert(beg <= end && end <= size());
 
         return v.pv.empty() || contains(beg, end, v.pv[0]);
     }
 
-    bool contains(Move m) const noexcept { return find(m) != end(); }
-    bool contains(const value_type& v) const noexcept { return v.pv.empty() || contains(v.pv[0]); }
+    [[nodiscard]] bool contains(Move m) const noexcept { return find(m) != end(); }
+    [[nodiscard]] bool contains(const value_type& v) const noexcept {
+        return v.pv.empty() || contains(v.pv[0]);
+    }
 
     iterator remove(Move m) noexcept { return std::remove(begin(), end(), m); }
     iterator remove(const value_type& v) noexcept { return std::remove(begin(), end(), v); }
@@ -351,11 +357,15 @@ struct Skill final {
 
     void init(const Options& options) noexcept;
 
-    constexpr bool enabled() const noexcept { return level < LEVEL_MAX; }
+    [[nodiscard]] constexpr bool enabled() const noexcept { return level < LEVEL_MAX; }
 
-    constexpr bool time_to_pick(Depth depth) const noexcept { return depth == 1 + int(level); }
+    [[nodiscard]] constexpr bool time_to_pick(Depth depth) const noexcept {
+        return depth == 1 + int(level);
+    }
 
-    constexpr Value weakness() const noexcept { return Value(2.0 * (3.0 * LEVEL_MAX - level)); }
+    [[nodiscard]] constexpr Value weakness() const noexcept {
+        return Value(2.0 * (3.0 * LEVEL_MAX - level));
+    }
 
     Move pick_move(const RootMoves& rootMoves, std::size_t multiPV, bool pickBest = true) noexcept;
 
@@ -444,8 +454,8 @@ class MainSearchManager final: public ISearchManager {
 
     void check_time(Worker& worker) noexcept override;
 
-    TimePoint elapsed() const noexcept;
-    TimePoint elapsed(const Threads& threads) const noexcept;
+    [[nodiscard]] TimePoint elapsed() const noexcept;
+    [[nodiscard]] TimePoint elapsed(const Threads& threads) const noexcept;
 
     void handle_time_management(const Worker& worker,
                                 Value         bestValue,
