@@ -123,7 +123,7 @@ class CuckooTable final {
         assert(count == 3668);
     }
 
-    std::size_t find_key(Key key) const noexcept {
+    [[nodiscard]] std::size_t find_key(Key key) const noexcept {
         if (std::size_t index;  //
             (index = H<0>(key), cuckoos[index].key == key)
             || (index = H<1>(key), cuckoos[index].key == key))
@@ -2239,7 +2239,7 @@ bool Position::_is_ok() const noexcept {
             for (Square s : squares(c, pt).iterate(base(c), count(c, pt)))
             {
                 if (piece(s) != pc || indexMap[s] != pcIdx)
-                    assert(0 && "Position::_is_ok(): Piece List");
+                    assert(false && "Position::_is_ok(): Piece List");
                 ++pcIdx;
             }
         }
@@ -2247,9 +2247,9 @@ bool Position::_is_ok() const noexcept {
     for (Color c : {WHITE, BLACK})
         for (PieceType pt : PIECE_TYPES)
         {
-            Piece pc  = make_piece(c, pt);
-            auto  cnt = count(c, pt);
-            if (cnt != popcount(pieces_bb(c, pt))
+            Piece pc = make_piece(c, pt);
+            if (auto cnt = count(c, pt);
+                cnt != popcount(pieces_bb(c, pt))
                 || cnt != std::count(piece_map().begin(), piece_map().end(), pc))
                 assert(false && "Position::_is_ok(): Piece List Count");
         }
@@ -2337,8 +2337,7 @@ std::ostream& operator<<(std::ostream& os, const Position& pos) noexcept {
        << to_square(pos.square<KING>(~pos.active_color()));
 
     os << "\nCheckers: ";
-    Bitboard checkersBB = pos.checkers_bb();
-    if (checkersBB != 0)
+    if (Bitboard checkersBB = pos.checkers_bb(); checkersBB != 0)
         while (checkersBB != 0)
             os << to_square(pop_lsq(checkersBB)) << " ";
     else

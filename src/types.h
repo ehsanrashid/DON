@@ -138,7 +138,7 @@ enum Square : std::uint8_t {
 inline constexpr std::size_t SQUARE_NB = 64;
 
 enum PieceType : std::uint8_t {
-    NO_PIECE_TYPE,
+    NO_PIECE_TYPE = 0,
     PAWN = 1, KNIGHT, BISHOP, ROOK, QUEEN, KING, ALL
 };
 // clang-format on

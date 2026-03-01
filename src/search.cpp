@@ -68,7 +68,7 @@ reduction(Depth depth, std::uint16_t moveCount, int deltaRatio, bool improve) no
 
 // Add a small random value to draw evaluation to avoid 3-fold blindness
 constexpr Value draw_value(Key key, std::uint64_t nodes) noexcept {
-    return VALUE_DRAW + (key & 1) - (nodes & 1);
+    return VALUE_DRAW + Value(key & 1) - Value(nodes & 1);
 }
 
 // Adjusts a mate or TB score from "plies to mate from the root"

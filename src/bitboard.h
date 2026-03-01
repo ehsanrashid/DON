@@ -145,17 +145,17 @@ struct Magic final {
 
 #if defined(USE_BMI2)
     #if defined(USE_CMP)
-    Bitboard16* attacksBBs;
     Bitboard    maskBB;
     Bitboard    reMaskBB;
+    Bitboard16* attacksBBs;
     #else
-    Bitboard* attacksBBs;
     Bitboard  maskBB;
+    Bitboard* attacksBBs;
     #endif
 #else
-    Bitboard*    attacksBBs;
     Bitboard     maskBB;
     Bitboard     magicBB;
+    Bitboard*    attacksBBs;
     std::uint8_t shift;
 #endif
 };
@@ -607,12 +607,24 @@ constexpr std::uint8_t msb_index(Bitboard b) noexcept {
 // Fills from the MSB down to bit 0.
 // e.g. 0001'0010 -> 0001'1111
 constexpr Bitboard fill_prefix_bb(Bitboard b) noexcept {
-    return b |= b >> 1, b |= b >> 2, b |= b >> 4, b |= b >> 8, b |= b >> 16, b |= b >> 32;
+    b |= b >> 1;
+    b |= b >> 2;
+    b |= b >> 4;
+    b |= b >> 8;
+    b |= b >> 16;
+    b |= b >> 32;
+    return b;
 }
 // Fills from the LSB up to bit 63.
 // e.g. 0001'0010 -> 1111'1110
 constexpr Bitboard fill_postfix_bb(Bitboard b) noexcept {
-    return b |= b << 1, b |= b << 2, b |= b << 4, b |= b << 8, b |= b << 16, b |= b << 32;
+    b |= b << 1;
+    b |= b << 2;
+    b |= b << 4;
+    b |= b << 8;
+    b |= b << 16;
+    b |= b << 32;
+    return b;
 }
 
 constexpr std::uint8_t constexpr_lsb(Bitboard b) noexcept {

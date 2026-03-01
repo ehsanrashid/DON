@@ -262,21 +262,21 @@ class FeatureTransformer final {
         const auto& psqAccState    = accStack.state<PSQFeatureSet>();
         const auto& threatAccState = accStack.state<ThreatFeatureSet>();
 
-        // clang-format off
-        const auto& psqtAccumulation       = (psqAccState.acc<HalfDimensions>()).psqtAccumulation;
-        const auto& threatPsqtAccumulation = (threatAccState.acc<HalfDimensions>()).psqtAccumulation;
+        const auto& psqtAccumulation =  //
+          (psqAccState.acc<HalfDimensions>()).psqtAccumulation;
+        const auto& threatPsqtAccumulation =  //
+          (threatAccState.acc<HalfDimensions>()).psqtAccumulation;
 
         StdArray<Color, COLOR_NB> perspectives{pos.active_color(), ~pos.active_color()};
 
         auto psqt = psqtAccumulation[perspectives[WHITE]][bucket]
                   - psqtAccumulation[perspectives[BLACK]][bucket];
 
-        if constexpr(UseThreats)
+        if constexpr (UseThreats)
             psqt += threatPsqtAccumulation[perspectives[WHITE]][bucket]
                   - threatPsqtAccumulation[perspectives[BLACK]][bucket];
 
         psqt /= 2;
-        // clang-format on
 
         const auto& accumulation       = (psqAccState.acc<HalfDimensions>()).accumulation;
         const auto& threatAccumulation = (threatAccState.acc<HalfDimensions>()).accumulation;
@@ -284,18 +284,16 @@ class FeatureTransformer final {
         for (Color p : {WHITE, BLACK})
         {
             IndexType offset = p * (HalfDimensions / 2);
-
+            // clang-format off
 #if defined(VECTOR)
             constexpr IndexType OutputChunkSize = MaxChunkSize;
             static_assert((HalfDimensions / 2) % OutputChunkSize == 0);
 
             constexpr IndexType OutputChunkCount = HalfDimensions / (2 * OutputChunkSize);
 
-            vec_t* out = reinterpret_cast<vec_t*>(&output[offset]);
-            // clang-format off
+            vec_t*       out = reinterpret_cast<vec_t*>(&output[offset]);
             const vec_t* in0 = reinterpret_cast<const vec_t*>(&(accumulation[perspectives[p]][0]));
             const vec_t* in1 = reinterpret_cast<const vec_t*>(&(accumulation[perspectives[p]][HalfDimensions / 2]));
-            // clang-format on
 
             // Per the NNUE architecture, here we want to multiply pairs of
             // clipped elements and divide the product by 128. To do this,
@@ -361,10 +359,9 @@ class FeatureTransformer final {
 
             if constexpr (UseThreats)
             {
-                // clang-format off
                 const vec_t* tin0 = reinterpret_cast<const vec_t*>(&(threatAccumulation[perspectives[p]][0]));
                 const vec_t* tin1 = reinterpret_cast<const vec_t*>(&(threatAccumulation[perspectives[p]][HalfDimensions / 2]));
-                // clang-format on
+
                 for (IndexType j = 0; j < OutputChunkCount; ++j)
                 {
                     vec_t acc00 = vec_add_16(in0[j * 2 + 0], tin0[j * 2 + 0]);
@@ -387,15 +384,10 @@ class FeatureTransformer final {
             {
                 for (IndexType j = 0; j < OutputChunkCount; ++j)
                 {
-                    vec_t acc00 = in0[j * 2 + 0];
-                    vec_t acc01 = in0[j * 2 + 1];
-                    vec_t acc10 = in1[j * 2 + 0];
-                    vec_t acc11 = in1[j * 2 + 1];
-
-                    vec_t sum00 = vec_slli_16(vec_max_16(vec_min_16(acc00, One), Zero), shift);
-                    vec_t sum01 = vec_slli_16(vec_max_16(vec_min_16(acc01, One), Zero), shift);
-                    vec_t sum10 = vec_min_16(acc10, One);
-                    vec_t sum11 = vec_min_16(acc11, One);
+                    vec_t sum00 = vec_slli_16(vec_max_16(vec_min_16(in0[j * 2 + 0], One), Zero), shift);
+                    vec_t sum01 = vec_slli_16(vec_max_16(vec_min_16(in0[j * 2 + 1], One), Zero), shift);
+                    vec_t sum10 = vec_min_16(in1[j * 2 + 0], One);
+                    vec_t sum11 = vec_min_16(in1[j * 2 + 1], One);
 
                     vec_t p0 = vec_mulhi_16(sum00, sum10);
                     vec_t p1 = vec_mulhi_16(sum01, sum11);
@@ -426,6 +418,7 @@ class FeatureTransformer final {
                 output[offset + j] = OutputType(unsigned(sum0 * sum1) / 512);
             }
 #endif
+            // clang-format on
         }
 #if defined(USE_MMX)
         _mm_empty();

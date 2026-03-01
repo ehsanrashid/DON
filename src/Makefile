@@ -1237,17 +1237,12 @@ clean: objclean profileclean
 
 # Clean binaries and objects
 objclean:
-	@rm -f $(EXE) $(OBJS) ./book/*.o ./tablebase/*.o ./nnue/*.o ./nnue/features/*.o
+	@rm -f $(EXE) $(OBJS) *.o ./book/*.o ./tablebase/*.o ./nnue/*.o ./nnue/features/*.o
 
 # Clean auxiliary profiling files
 profileclean:
 	@rm -rf profdir
-	@rm -f bench.txt *.gcda *.gcno \
-			./book/*.gcda \
-			./tablebase/*.gcda \
-			./nnue/*.gcda \
-			./nnue/features/*.gcda \
-			*.s PGOBENCH.out
+	@rm -f bench.txt *.gcda *.gcno ./book/*.gcda ./tablebase/*.gcda ./nnue/*.gcda ./nnue/features/*.gcda *.s PGOBENCH.out
 	@rm -f $(NAME).profdata *.profraw
 	@rm -f $(NAME).*args*
 	@rm -f $(NAME).*lt*
@@ -1367,6 +1362,9 @@ $(EXE): $(OBJS)
 misc.o: FORCE
 FORCE:
 
+# ------------------------
+# Clang PGO
+# ------------------------
 clang-profile-make:
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
 	EXTRACXXFLAGS='-fprofile-generate' \
@@ -1380,6 +1378,9 @@ clang-profile-use:
 	EXTRALDFLAGS='-fprofile-use' \
 	all
 
+# ------------------------
+# GCC PGO
+# ------------------------
 gcc-profile-make:
 	@mkdir -p profdir
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
@@ -1389,10 +1390,12 @@ gcc-profile-make:
 
 gcc-profile-use:
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
-	EXTRACXXFLAGS='-fprofile-use=profdir -fno-peel-loops -fno-tracer $(EXTRAPROFILEFLAGS)' \
-	EXTRALDFLAGS='-lgcov' \
+	EXTRACXXFLAGS='-fprofile-use=profdir -fprofile-correction -fno-peel-loops -fno-tracer $(EXTRAPROFILEFLAGS)' \
 	all
 
+# ------------------------
+# ICC/ICX PGO
+# ------------------------
 icx-profile-make:
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
 	EXTRACXXFLAGS='-fprofile-instr-generate' \
@@ -1408,11 +1411,9 @@ icx-profile-use:
 
 .depend: $(SRCS)
 	@echo Generating dependencies...
-	@set -o pipefail; \
-	$(CXX) $(DEPENDFLAGS) -MM -MP $(SRCS) 2>&1 | \
-		sed -E 's@(.*/)?DON/src/nnue/@nnue/@g; s@(.*/)?DON/src/book/@book/@g; s@(.*/)?DON/src/tablebase/@tablebase/@g; s@(.*/)?DON/src/@../@g' \
-		> $@.tmp
-	@mv $@.tmp $@
+	@$(CXX) $(DEPENDFLAGS) -MM -MP $(SRCS) > $@.tmp || { rm -f $@.tmp; exit 1; }
+	@sed -E 's@(.*/)?DON/src/nnue/@nnue/@g; s@(.*/)?DON/src/book/@book/@g; s@(.*/)?DON/src/tablebase/@tablebase/@g; s@(.*/)?DON/src/@../@g' $@.tmp > $@
+	@rm -f $@.tmp
 
 # Include .depend only if no special goal is requested
 ifeq ($(filter $(MAKECMDGOALS),help strip install clean objclean profileclean net format config-sanity install-hooks),)
