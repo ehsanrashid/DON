@@ -27,8 +27,7 @@
 namespace DON {
 
 std::size_t CaseInsensitiveHash::operator()(std::string_view str) const noexcept {
-    auto lowerStr = lower_case(std::string{str});
-    return std::hash<std::string_view>{}(std::string_view{lowerStr});
+    return std::hash<std::string_view>{}(lower_case(std::string{str}));
 }
 
 bool CaseInsensitiveEqual::operator()(std::string_view s1, std::string_view s2) const noexcept {
