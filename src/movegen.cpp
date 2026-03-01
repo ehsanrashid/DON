@@ -73,9 +73,9 @@ Move* splat_pawn_moves(Bitboard dstBB, Move* RESTRICT moves) noexcept {
     {
         Square dstSq;
         if constexpr (AC == WHITE)
-            dstSq = pop_msq(dstBB);
-        else
             dstSq = pop_lsq(dstBB);
+        else
+            dstSq = pop_msq(dstBB);
 
         *moves++ = Move{dstSq - D, dstSq};
     }
@@ -102,9 +102,9 @@ Move* splat_promotion_moves(Bitboard       dstBB,
     {
         Square dstSq;
         if constexpr (AC == WHITE)
-            dstSq = pop_msq(dstBB);
-        else
             dstSq = pop_lsq(dstBB);
+        else
+            dstSq = pop_msq(dstBB);
 
         if constexpr (All || Capture)
         {
@@ -156,9 +156,9 @@ Move* splat_moves(Square orgSq, Bitboard dstBB, Move* RESTRICT moves) noexcept {
     {
         Square dstSq;
         if constexpr (AC == WHITE)
-            dstSq = pop_msq(dstBB);
-        else
             dstSq = pop_lsq(dstBB);
+        else
+            dstSq = pop_msq(dstBB);
 
         *moves++ = Move{orgSq, dstSq};
     }
@@ -290,39 +290,37 @@ Move* generate_piece_moves(const Position& pos, Move* RESTRICT moves, Bitboard t
                   "Unsupported piece type in generate_piece_moves()");
     assert(pos.checkers_bb() == 0 || !more_than_one(pos.checkers_bb()));
 
-    constexpr auto Comparator = [](Square s1, Square s2) noexcept {
-        return AC == WHITE ? s1 > s2 : s1 < s2;
-    };
+    Bitboard bb = pos.pieces_bb(AC, PT);
 
-    auto count = pos.count(AC, PT);
-
-    if (count == 0)
+    if (bb == 0)
         return moves;
-
-    StdArray<Square, Position::CAPACITIES[PT - 1]> sqs;
-
-    std::memcpy(sqs.data(), pos.squares(AC, PT).data(pos.base(AC)), count * sizeof(Square));
-
-    Square* RESTRICT begSq = sqs.data();
-    Square*          endSq = begSq + count;
-
-    if (count > 1)
-        std::sort(begSq, endSq, Comparator);
 
     Square   kingSq      = pos.square<KING>(AC);
     Bitboard occupancyBB = pos.pieces_bb();
     Bitboard blockersBB  = pos.blockers_bb(AC);
 
-    for (; begSq != endSq; ++begSq)
-    {
-        Square orgSq = *begSq;
+    if constexpr (AC == WHITE)
+        while (bb != 0)
+        {
+            Square orgSq = pop_lsq(bb);
 
-        Bitboard maskBB = (blockersBB & orgSq) == 0 ? FULL_BB : line_bb(kingSq, orgSq);
+            Bitboard maskBB = (blockersBB & orgSq) == 0 ? FULL_BB : line_bb(kingSq, orgSq);
 
-        Bitboard dstBB = attacks_bb<PT>(orgSq, occupancyBB) & maskBB & targetBB;
+            Bitboard dstBB = attacks_bb<PT>(orgSq, occupancyBB) & maskBB & targetBB;
 
-        moves = splat_moves<AC>(orgSq, dstBB, moves);
-    }
+            moves = splat_moves<AC>(orgSq, dstBB, moves);
+        }
+    else
+        while (bb != 0)
+        {
+            Square orgSq = pop_msq(bb);
+
+            Bitboard maskBB = (blockersBB & orgSq) == 0 ? FULL_BB : line_bb(kingSq, orgSq);
+
+            Bitboard dstBB = attacks_bb<PT>(orgSq, occupancyBB) & maskBB & targetBB;
+
+            moves = splat_moves<AC>(orgSq, dstBB, moves);
+        }
 
     return moves;
 }
@@ -341,9 +339,9 @@ Move* generate_king_moves(const Position& pos, Move* RESTRICT moves, Bitboard ta
     {
         Square dstSq;
         if constexpr (AC == WHITE)
-            dstSq = pop_msq(dstBB);
-        else
             dstSq = pop_lsq(dstBB);
+        else
+            dstSq = pop_msq(dstBB);
 
         *moves++ = Move{kingSq, dstSq};
 

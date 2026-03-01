@@ -178,28 +178,7 @@ void Position::init() noexcept {
     Cuckoos.init();
 }
 
-Position::Position() noexcept :
-    squaresTable(),
-    pieceLists(),
-    indexMap(),
-    pieceMap(),
-    typeBBs(),
-    colorBBs(),
-    castlingRightsMasks(),
-    castlings(),
-    st(nullptr),
-    gamePly(0),
-    activeColor(NONE) {
-
-    for (Color c : {WHITE, BLACK})
-        for (PieceType pt : PIECE_TYPES)
-            pieceLists[c][pt].set(OFFSETS[pt - 1], CAPACITIES[pt - 1]);
-}
-
 void Position::clear() noexcept {
-    std::memset(squaresTable.data(), SQ_NONE, sizeof(squaresTable));
-    // No need to clear indexMap as it is always overwritten when putting/removing pieces
-    std::memset(indexMap.data(), INVALID_INDEX, sizeof(indexMap));
     std::memset(pieceMap.data(), +Piece::NO_PIECE, sizeof(pieceMap));
     std::memset(typeBBs.data(), 0, sizeof(typeBBs));
     std::memset(colorBBs.data(), 0, sizeof(colorBBs));
@@ -693,9 +672,10 @@ void Position::set_state() noexcept {
     for (Color c : {WHITE, BLACK})
         for (PieceType pt : PIECE_TYPES)
         {
-            for (Square s : squares(c, pt).iterate(base(c), count(c, pt)))
+            Bitboard bb = pieces_bb(c, pt);
+            while (bb != 0)
             {
-                Key key = Zobrist::piece_square(c, pt, s);
+                Key key = Zobrist::piece_square(c, pt, pop_lsq(bb));
                 assert(key != 0);
 
                 st->key ^= key;
@@ -2090,19 +2070,13 @@ void Position::mirror() noexcept {
 Key Position::compute_key() const noexcept {
     Key key = 0;
 
-    std::size_t n;
-    auto        sqs = squares(n);
-
-    auto beg = sqs.begin();
-    auto end = beg + n;
-    while (beg != end)
+    Bitboard bb = pieces_bb();
+    while (bb != 0)
     {
-        Square s  = *beg;
+        Square s  = pop_lsq(bb);
         Piece  pc = piece(s);
 
         key ^= Zobrist::piece_square(pc, s);
-
-        ++beg;
     }
 
     key ^= Zobrist::castling(castling_rights());
@@ -2117,21 +2091,15 @@ Key Position::compute_key() const noexcept {
 Key Position::compute_minor_key() const noexcept {
     Key minorKey = 0;
 
-    std::size_t n;
-    auto        sqs = squares(n);
-
-    auto beg = sqs.begin();
-    auto end = beg + n;
-    while (beg != end)
+    Bitboard bb = pieces_bb();
+    while (bb != 0)
     {
-        Square s  = *beg;
+        Square s  = pop_lsq(bb);
         Piece  pc = piece(s);
         auto   pt = type_of(pc);
 
         if (pt != PAWN && pt != KING && !is_major(pt))
             minorKey ^= Zobrist::piece_square(color_of(pc), pt, s);
-
-        ++beg;
     }
 
     return minorKey;
@@ -2140,21 +2108,15 @@ Key Position::compute_minor_key() const noexcept {
 Key Position::compute_major_key() const noexcept {
     Key majorKey = 0;
 
-    std::size_t n;
-    auto        sqs = squares(n);
-
-    auto beg = sqs.begin();
-    auto end = beg + n;
-    while (beg != end)
+    Bitboard bb = pieces_bb();
+    while (bb != 0)
     {
-        Square s  = *beg;
+        Square s  = pop_lsq(bb);
         Piece  pc = piece(s);
         auto   pt = type_of(pc);
 
         if (pt != PAWN && pt != KING && is_major(pt))
             majorKey ^= Zobrist::piece_square(color_of(pc), pt, s);
-
-        ++beg;
     }
 
     return majorKey;
@@ -2163,21 +2125,15 @@ Key Position::compute_major_key() const noexcept {
 Key Position::compute_non_pawn_key() const noexcept {
     Key nonPawnKey = 0;
 
-    std::size_t n;
-    auto        sqs = squares(n);
-
-    auto beg = sqs.begin();
-    auto end = beg + n;
-    while (beg != end)
+    Bitboard bb = pieces_bb();
+    while (bb != 0)
     {
-        Square s  = *beg;
+        Square s  = pop_lsq(bb);
         Piece  pc = piece(s);
         auto   pt = type_of(pc);
 
         if (pt != PAWN)
             nonPawnKey ^= Zobrist::piece_square(color_of(pc), pt, s);
-
-        ++beg;
     }
 
     return nonPawnKey;
@@ -2230,19 +2186,6 @@ bool Position::_is_ok() const noexcept {
         for (PieceType p2 : PIECE_TYPES)
             if (p1 != p2 && (pieces_bb(p1) & pieces_bb(p2)))
                 assert(false && "Position::_is_ok(): Bitboards");
-
-    for (Color c : {WHITE, BLACK})
-        for (PieceType pt : PIECE_TYPES)
-        {
-            Piece        pc    = make_piece(c, pt);
-            std::uint8_t pcIdx = 0;
-            for (Square s : squares(c, pt).iterate(base(c), count(c, pt)))
-            {
-                if (piece(s) != pc || indexMap[s] != pcIdx)
-                    assert(false && "Position::_is_ok(): Piece List");
-                ++pcIdx;
-            }
-        }
 
     for (Color c : {WHITE, BLACK})
         for (PieceType pt : PIECE_TYPES)
@@ -2446,55 +2389,6 @@ void Position::dump(std::ostream& os) const noexcept {
     {
         os << to_char(pt) << ":";
         os << BitBoard::pretty(pieces_bb(pt));
-        os << "\n";
-    }
-
-    os << "Piece Lists:\n";
-    for (Color c : {WHITE, BLACK})
-        for (PieceType pt : PIECE_TYPES)
-        {
-            os << to_char(make_piece(c, pt)) << ": ";
-            for (Square s : squares(c, pt).iterate(base(c), count(c, pt)))
-                os << to_square(s) << " ";
-            os << "\n";
-        }
-
-    os << "Index Map:";
-    os << Sep;
-    for (Rank r = RANK_8;; --r)
-    {
-        os << to_char(r);
-        for (File f = FILE_A; f <= FILE_H; ++f)
-        {
-            Square s = make_square(f, r);
-            os << " | ";
-            if (indexMap[s] != INVALID_INDEX)
-                os << std::setw(2) << int(indexMap[s]);
-            else
-                os << "  ";
-            os << " ";
-        }
-        os << " |";
-        os << Sep;
-
-        if (r == RANK_1)
-            break;
-    }
-    for (File f = FILE_A; f <= FILE_H; ++f)
-    {
-        os << "     ";
-        os << to_char<true>(f);
-    }
-    os << "\n";
-
-    os << "Square Table:\n";
-    for (Color c : {WHITE, BLACK})
-    {
-        for (Square s : squaresTable[c])
-        {
-            os << (s != SQ_NONE ? to_square(s) : "-");
-            os << " ";
-        }
         os << "\n";
     }
 
