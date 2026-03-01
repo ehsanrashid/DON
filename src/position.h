@@ -189,7 +189,7 @@ static_assert(std::is_standard_layout_v<State> && std::is_trivially_copyable_v<S
 class Worker;
 
 // Position class stores information regarding the board representation as
-// pieces, active color, hash keys, castling info, etc. (Size = 472)
+// pieces, active color, hash keys, castling info, etc. (Size = 248)
 // Important methods are do_move() and undo_move(),
 // used by the search to update node info when traversing the search tree.
 class Position final {
@@ -217,7 +217,6 @@ class Position final {
     [[nodiscard]] const auto& piece_map() const noexcept;
     [[nodiscard]] const auto& type_bbs() const noexcept;
     [[nodiscard]] const auto& color_bbs() const noexcept;
-    [[nodiscard]] const auto& piece_lists() const noexcept;
 
     [[nodiscard]] Piece    operator[](Square s) const noexcept;
     [[nodiscard]] Bitboard operator[](PieceType pt) const noexcept;
@@ -241,11 +240,6 @@ class Position final {
     std::uint8_t count(Color c, PieceTypes... pts) const noexcept;
     std::uint8_t count(Piece pc) const noexcept;
     std::uint8_t count() const noexcept;
-
-    [[nodiscard]] const auto& squares(Color c, PieceType pt) const noexcept;
-    [[nodiscard]] const auto& squares(Piece pc) const noexcept;
-    auto                      squares(Color c, std::size_t& n) const noexcept;
-    auto                      squares(std::size_t& n) const noexcept;
 
     template<PieceType PT>
     Square square(Color c) const noexcept;
@@ -382,9 +376,6 @@ class Position final {
     bool _is_ok() const noexcept;
 #endif
 
-    constexpr Square*       base(Color c) noexcept;
-    constexpr const Square* base(Color c) const noexcept;
-
     // Used by NNUE
     constexpr State* state() const noexcept;
 
@@ -483,7 +474,7 @@ class Position final {
     Color                                        activeColor;
 };
 
-//static_assert(sizeof(Position) == 472, "Position size must be 472 bytes");
+//static_assert(sizeof(Position) == 248, "Position size must be 248 bytes");
 
 inline const auto& Position::piece_map() const noexcept { return pieceMap; }
 
@@ -536,49 +527,6 @@ inline std::uint8_t Position::count(Piece pc) const noexcept {
 }
 
 inline std::uint8_t Position::count() const noexcept { return popcount(pieces_bb()); }
-
-inline auto Position::squares(Color c, std::size_t& n) const noexcept {
-    StdArray<Square, SQUARE_NB> sqs;
-    std::memset(sqs.data(), SQ_NONE, sizeof(sqs));
-
-    n = 0;
-
-    for (PieceType pt : PIECE_TYPES)
-    {
-        Bitboard bb = pieces_bb(c, pt);
-
-        if (c == WHITE)
-            while (bb != 0)
-                sqs[n++] = pop_msq(bb);
-        else
-            while (bb != 0)
-                sqs[n++] = pop_lsq(bb);
-    }
-
-    return sqs;
-}
-
-inline auto Position::squares(std::size_t& n) const noexcept {
-    StdArray<Square, SQUARE_NB> sqs;
-    std::memset(sqs.data(), SQ_NONE, sizeof(sqs));
-
-    n = 0;
-
-    for (Color c : {WHITE, BLACK})
-        for (PieceType pt : PIECE_TYPES)
-        {
-            Bitboard bb = pieces_bb(c, pt);
-
-            if (c == WHITE)
-                while (bb != 0)
-                    sqs[n++] = pop_msq(bb);
-            else
-                while (bb != 0)
-                    sqs[n++] = pop_lsq(bb);
-        }
-
-    return sqs;
-}
 
 template<PieceType PT>
 inline Square Position::square(Color c) const noexcept {
