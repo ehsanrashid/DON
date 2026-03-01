@@ -90,7 +90,7 @@ struct Zobrist final {
     }
 
     static Key castling(CastlingRights cr) noexcept {
-        assert(0 <= +cr && +cr < Castling.size());
+        assert(+cr < Castling.size());
 
         return Castling[+cr];
     }
