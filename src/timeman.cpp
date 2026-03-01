@@ -30,8 +30,7 @@ namespace DON {
 
 namespace {
 
-constexpr std::uint16_t CENTI_MTG_MIN = 101;
-constexpr std::uint16_t CENTI_MTG_MAX = 5051;
+constexpr std::uint8_t MTG_MAX = 50;  // Moves To Go maximum for time management formulas
 
 constexpr double TIME_ADJUST_INIT = -1.0;
 constexpr double TIME_ADJUST_MIN  = 1.0e-6;
@@ -107,16 +106,16 @@ void TimeManager::init(
     // clang-format off
 
     // Maximum move horizon
-    std::uint16_t centiMTG = limit.movesToGo == 0
-                  ? std::max<std::uint16_t>(CENTI_MTG_MAX - 10 * std::max(moveNum               - 20           , 0), CENTI_MTG_MAX - 1000)
-                  : std::min<std::uint16_t>(CENTI_MTG_MAX + 10 * std::max(100 * limit.movesToGo - CENTI_MTG_MAX, 0), 100 * limit.movesToGo);
+    std::uint8_t mtg = limit.movesToGo == 0
+                  ? std::max<std::uint8_t>(MTG_MAX - int(0.1 * std::max(moveNum         - 20     , 0)), MTG_MAX - 10)
+                  : std::min<std::uint8_t>(MTG_MAX + int(0.1 * std::max(limit.movesToGo - MTG_MAX, 0)), limit.movesToGo);
 
     // If less than one second, gradually reduce mtg
-    if (centiMTG > CENTI_MTG_MIN && ScaledTime < 1000)
-        centiMTG = std::max<std::uint16_t>(constexpr_ceil(5.0510 * double(ScaledTime)), CENTI_MTG_MIN);
+    if (mtg > 2 && ScaledTime < 1000)
+        mtg = std::max<std::uint8_t>(constexpr_ceil(0.55051 * double(ScaledTime)), 2);
 
     // Make sure remainTime > 0 since use it as a divisor
-    TimePoint remainTime = std::max(clock.time + ((centiMTG - 100) * clock.inc - (centiMTG + 200) * OverheadTime) / 100, TimePoint{1});
+    TimePoint remainTime = std::max(clock.time + ((mtg - 1) * clock.inc - (mtg + 2) * OverheadTime) / 100, TimePoint{1});
 
     remainTime = std::max<TimePoint>(constexpr_ceil(double(remainTime) * double(options["TimePercent"]) / 100.0), TimePoint{1});
 
@@ -164,17 +163,17 @@ void TimeManager::init(
     // 3) x moves in y time (+ z increment)
     else
     {
-        optimumScale = std::min((0.00880 + 85.91065e-6 * double(ply)) / double(centiMTG),
-                                 0.88000 * double(clock.time) / double(remainTime));
-        maximumScale = std::min(1.30000 + 0.00110 * double(centiMTG),
-                                8.45000);
+        optimumScale = std::min((0.8800 + 85.91065e-4 * double(ply)) / double(mtg),
+                                 0.8800 * double(clock.time) / double(remainTime));
+        maximumScale = std::min(1.3000 + 0.1100 * double(mtg),
+                                8.4500 + 0.0500 * double(mtg) + 0.0100 * double(ply));
     }
 
     // Limit the maximum possible time for this move
     optimumTime = std::max<TimePoint>(constexpr_ceil(optimumScale * double(remainTime)), options["MinMoveTime"]);
 
     maximumTime = std::max(
-                    centiMTG < CENTI_MTG_MIN
+                    mtg < 2
                     ? clock.time
                     : std::min<TimePoint>(constexpr_ceil(maximumScale * double(optimumTime)),
                                           constexpr_ceil(0.825179 * double(clock.time)) - OverheadTime)
