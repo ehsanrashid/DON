@@ -17,8 +17,6 @@
 
 #include "movegen.h"
 
-#include <algorithm>
-#include <cstring>
 #include <initializer_list>
 
 #if defined(USE_AVX512ICL)

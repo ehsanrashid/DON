@@ -2372,8 +2372,6 @@ void State::dump(std::ostream& os) const noexcept {
 }
 
 void Position::dump(std::ostream& os) const noexcept {
-    constexpr std::string_view Sep{"\n  +-----+-----+-----+-----+-----+-----+-----+-----+\n"};
-
     os << *this << "\n";
 
     os << "Color Bitboards:\n";
