@@ -1255,15 +1255,20 @@ net:
 
 format:
 	@echo CLANG_FORMAT=$(CLANG_FORMAT)
-	@if [ -n "$(SRCS)$(HEADERS)" ]; then \
+	@if [ -n "$(CLANG_FORMAT)" ] && [ -n "$(SRCS)$(HEADERS)" ]; then \
 		$(CLANG_FORMAT) -i -style=file $(SRCS) $(HEADERS); \
 	fi
 
 install-hooks:
-	@root="$$(git rev-parse --show-toplevel 2>/dev/null)" || { echo "Not a git repo"; exit 1; }; \
+	@root=$$(git rev-parse --show-toplevel 2> /dev/null); \
+	if [ -z "$$root" ]; then \
+		echo "Not a git repo"; exit 1; \
+	fi; \
 	src="$$root/.git-hooks/pre-commit"; \
 	dst="$$root/.git/hooks/pre-commit"; \
-	if [ ! -f "$$src" ]; then echo "Hook source not found: $$src"; exit 1; fi; \
+	if [ ! -f "$$src" ]; then \
+		echo "Hook source not found: $$src"; exit 1; \
+	fi; \
 	if [ -f "$$dst" ]; then \
 		bak="$$dst.bak.$$(date +%Y%m%d%H%M%S)"; \
 		mv "$$dst" "$$bak" && echo "Existing hook moved to $$bak"; \
