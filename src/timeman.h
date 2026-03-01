@@ -54,7 +54,7 @@ class TimeManager final {
               const Options& options,
               Limit&         limit) noexcept;
 
-    bool use_nodes_time() const noexcept;
+    [[nodiscard]] bool use_nodes_time() const noexcept;
 
     void advance_time_nodes(std::int64_t nodes) noexcept;
 
