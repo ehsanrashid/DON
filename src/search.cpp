@@ -61,9 +61,10 @@ alignas(CACHE_LINE_SIZE) constexpr auto Reductions = []() constexpr noexcept {
 
 constexpr int
 reduction(Depth depth, std::uint16_t moveCount, int deltaRatio, bool improve) noexcept {
-    unsigned reductionScale = Reductions[depth] * Reductions[moveCount];
-    return 1182 + reductionScale - deltaRatio
-         + int(!improve) * unsigned(0.423828125 * double(reductionScale));
+    int reductionScale = Reductions[depth] * Reductions[moveCount];
+    return std::max(1182 + reductionScale - deltaRatio
+                      + int(!improve) * int(0.423828125 * double(reductionScale)),
+                    0);
 }
 
 // Add a small random value to draw evaluation to avoid 3-fold blindness
