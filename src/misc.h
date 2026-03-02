@@ -785,7 +785,7 @@ class TableView final {
     constexpr T*       data() noexcept { return _data; }
     constexpr const T* data() const noexcept { return _data; }
 
-    constexpr std::size_t size() const noexcept { return _size; }
+    [[nodiscard]] constexpr std::size_t size() const noexcept { return _size; }
 
     constexpr T* begin() noexcept { return data(); }
     constexpr T* end() noexcept { return begin() + size(); }
@@ -976,7 +976,7 @@ class DynamicArray final {
         _data = make_unique_aligned_large_page<T[]>(size);
     }
 
-    std::size_t size() const noexcept { return _size; }
+    [[nodiscard]] std::size_t size() const noexcept { return _size; }
 
     T*       data() noexcept { return _data.get(); }
     const T* data() const noexcept { return _data.get(); }
@@ -1120,15 +1120,15 @@ struct FixedText final {
         return *this;
     }
 
-    constexpr std::size_t capacity() const noexcept { return _data.size(); }
+    [[nodiscard]] constexpr std::size_t capacity() const noexcept { return _data.size(); }
 
-    char*       data() noexcept { return _data.data(); }
-    const char* c_str() const noexcept { return _data.data(); }
-    std::size_t size() const noexcept { return _size; }
+    char*                     data() noexcept { return _data.data(); }
+    [[nodiscard]] const char* c_str() const noexcept { return _data.data(); }
+    [[nodiscard]] std::size_t size() const noexcept { return _size; }
 
-    bool empty() const noexcept { return size() == 0; }
+    [[nodiscard]] bool empty() const noexcept { return size() == 0; }
 
-    std::string_view view() const noexcept { return {_data.data(), size()}; }
+    [[nodiscard]] std::string_view view() const noexcept { return {_data.data(), size()}; }
 
     // implicit conversion if you want
     operator std::string_view() const noexcept { return view(); }
@@ -1157,17 +1157,17 @@ class FixedString final {
     [[nodiscard]] bool        empty() const noexcept { return size() == 0; }
     [[nodiscard]] bool        full() const noexcept { return size() == capacity(); }
 
-    constexpr char*       data() noexcept { return _data.data(); }
-    constexpr const char* data() const noexcept { return _data.data(); }
+    [[nodiscard]] constexpr char*       data() noexcept { return _data.data(); }
+    [[nodiscard]] constexpr const char* data() const noexcept { return _data.data(); }
 
-    constexpr const char* c_str() const noexcept { return data(); }
+    [[nodiscard]] constexpr const char* c_str() const noexcept { return data(); }
 
-    constexpr char*       begin() noexcept { return data(); }
-    constexpr char*       end() noexcept { return begin() + size(); }
-    constexpr const char* begin() const noexcept { return data(); }
-    constexpr const char* end() const noexcept { return begin() + size(); }
-    constexpr const char* cbegin() const noexcept { return data(); }
-    constexpr const char* cend() const noexcept { return cbegin() + size(); }
+    constexpr char*                     begin() noexcept { return data(); }
+    constexpr char*                     end() noexcept { return begin() + size(); }
+    [[nodiscard]] constexpr const char* begin() const noexcept { return data(); }
+    [[nodiscard]] constexpr const char* end() const noexcept { return begin() + size(); }
+    [[nodiscard]] constexpr const char* cbegin() const noexcept { return data(); }
+    [[nodiscard]] constexpr const char* cend() const noexcept { return cbegin() + size(); }
 
     constexpr char& operator[](std::size_t idx) noexcept {
         assert(idx < size());
@@ -1251,7 +1251,8 @@ class FixedString final {
 template<typename Key, typename Value>
 class ConcurrentCache final {
    public:
-    ConcurrentCache(std::size_t reserveCount = 1024, float maxLoadFactor = 0.75f) noexcept {
+    explicit ConcurrentCache(std::size_t reserveCount  = 1024,
+                             float       maxLoadFactor = 0.75f) noexcept {
         storage.max_load_factor(max_load_factor(maxLoadFactor));
         storage.reserve(reserve_count(reserveCount));
     }
