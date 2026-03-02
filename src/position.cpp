@@ -804,34 +804,32 @@ bool Position::enpassant_possible(Color     ac,
 
         return epPawnsBB != 0;
     }
-    else
+
+    bool epPossible = false;
+
+    // Check en-passant is legal for the position
+    Square   kingSq      = square<KING>(ac);
+    Bitboard occupancyBB = pieces_bb() ^ make_bb(capturedSq, enPassantSq);
+    Bitboard attackersBB = pieces_bb(~ac);
+
+    while (epPawnsBB != 0)
     {
-        bool epPossible = false;
+        Square epPawnSq = pop_lsq(epPawnsBB);
 
-        // Check en-passant is legal for the position
-        Square   kingSq      = square<KING>(ac);
-        Bitboard occupancyBB = pieces_bb() ^ make_bb(capturedSq, enPassantSq);
-        Bitboard attackersBB = pieces_bb(~ac);
+        bool legal = (attackersBB & slide_attackers_bb(kingSq, occupancyBB ^ epPawnSq)) == 0;
 
-        while (epPawnsBB != 0)
+        epPossible |= legal;
+
+        if (legal)
         {
-            Square epPawnSq = pop_lsq(epPawnsBB);
-
-            bool legal = (attackersBB & slide_attackers_bb(kingSq, occupancyBB ^ epPawnSq)) == 0;
-
-            epPossible |= legal;
-
-            if (legal)
-            {
-                if (!collect)
-                    break;
-            }
-            else if (collect)
-                *epPawnsBBp ^= epPawnSq;
+            if (!collect)
+                break;
         }
-
-        return epPossible;
+        else if (collect)
+            *epPawnsBBp ^= epPawnSq;
     }
+
+    return epPossible;
 }
 
 // Helper used to do/undo a castling move.
