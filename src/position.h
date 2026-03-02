@@ -661,9 +661,7 @@ inline Bitboard Position::blockers_bb(Square    s,
     {
         Square xSniperSq = pop_lsq(xSnipersBB);
 
-        Bitboard blockerBB = between_bb(s, xSniperSq) & occupancyBB;
-
-        if (exactly_one(blockerBB))
+        if (Bitboard blockerBB = between_bb(s, xSniperSq) & occupancyBB; exactly_one(blockerBB))
         {
             blockersBB |= blockerBB;
 
