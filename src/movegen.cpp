@@ -71,9 +71,9 @@ Move* splat_pawn_moves(Bitboard dstBB, Move* RESTRICT moves) noexcept {
     {
         Square dstSq;
         if constexpr (AC == WHITE)
-            dstSq = pop_msq(dstBB);
-        else
             dstSq = pop_lsq(dstBB);
+        else
+            dstSq = pop_msq(dstBB);
 
         *moves++ = Move{dstSq - D, dstSq};
     }
@@ -100,9 +100,9 @@ Move* splat_promotion_moves(Bitboard       dstBB,
     {
         Square dstSq;
         if constexpr (AC == WHITE)
-            dstSq = pop_msq(dstBB);
-        else
             dstSq = pop_lsq(dstBB);
+        else
+            dstSq = pop_msq(dstBB);
 
         if constexpr (All || Capture)
         {
@@ -154,9 +154,9 @@ Move* splat_moves(Square orgSq, Bitboard dstBB, Move* RESTRICT moves) noexcept {
     {
         Square dstSq;
         if constexpr (AC == WHITE)
-            dstSq = pop_msq(dstBB);
-        else
             dstSq = pop_lsq(dstBB);
+        else
+            dstSq = pop_msq(dstBB);
 
         *moves++ = Move{orgSq, dstSq};
     }
@@ -329,9 +329,9 @@ Move* generate_king_moves(const Position& pos, Move* RESTRICT moves, Bitboard ta
     {
         Square dstSq;
         if constexpr (AC == WHITE)
-            dstSq = pop_msq(dstBB);
-        else
             dstSq = pop_lsq(dstBB);
+        else
+            dstSq = pop_msq(dstBB);
 
         *moves++ = Move{kingSq, dstSq};
 
