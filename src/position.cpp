@@ -1125,9 +1125,7 @@ DirtyBoard Position::do_move(Move m, State& newSt, bool mayCheck, const Worker* 
     // negative in the 3-fold case, or zero when the position was not repeated.
     st->repetition = 0;
 
-    auto end = std::min(rule50_count(), null_ply());
-
-    if (end >= 4)
+    if (auto end = std::min(rule50_count(), null_ply()); end >= 4)
     {
         const State* preSt = st->preSt->preSt;
 
