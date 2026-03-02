@@ -1374,9 +1374,9 @@ hash_bytes(const char* RESTRICT data, std::size_t size, std::uint64_t seed = 0) 
         return k;
     };
 
-    const std::uint8_t* const RESTRICT beg = reinterpret_cast<const std::uint8_t*>(data);
-    const std::uint8_t* const RESTRICT end = beg + size;
-    const std::uint8_t* RESTRICT       p   = beg;
+    const auto                 beg = reinterpret_cast<const std::uint8_t*>(data);
+    const auto* const RESTRICT end = beg + size;
+    const auto* RESTRICT       p   = beg;
 
     // Process 32-byte blocks (4 × 64-bit lanes) for better throughput.
     // The end pointer is rounded down to the nearest multiple of BLOCK_32.
@@ -1408,7 +1408,7 @@ hash_bytes(const char* RESTRICT data, std::size_t size, std::uint64_t seed = 0) 
     }
     // Process 16-byte blocks (2 × 64-bit words) for better throughput.
     // The end pointer is rounded down to the nearest multiple of BLOCK_16.
-    const std::uint8_t* const RESTRICT block16End = p + ((end - p) & ~(BLOCK_16 - 1));
+    const auto* const RESTRICT block16End = p + ((end - p) & ~(BLOCK_16 - 1));
     while (p < block16End)
     {
         std::uint64_t k0, k1;
@@ -1428,7 +1428,7 @@ hash_bytes(const char* RESTRICT data, std::size_t size, std::uint64_t seed = 0) 
     }
     // Process remaining full 8-byte blocks.
     // The end pointer is rounded down to the nearest multiple of BLOCK_8.
-    const std::uint8_t* const RESTRICT block8End = p + ((end - p) & ~(BLOCK_8 - 1));
+    const auto* const RESTRICT block8End = p + ((end - p) & ~(BLOCK_8 - 1));
     while (p < block8End)
     {
         std::uint64_t k;
