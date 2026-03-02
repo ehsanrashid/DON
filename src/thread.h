@@ -212,15 +212,19 @@ class Thread final {
 
     ~Thread() noexcept;
 
-    constexpr std::size_t thread_id() const noexcept { return threadId; }
+    [[nodiscard]] constexpr std::size_t thread_id() const noexcept { return threadId; }
 
-    constexpr std::size_t thread_count() const noexcept { return threadCount; }
+    [[nodiscard]] constexpr std::size_t thread_count() const noexcept { return threadCount; }
 
-    constexpr std::size_t numa_id() const noexcept { return numaId; }
+    [[nodiscard]] constexpr std::size_t numa_id() const noexcept { return numaId; }
 
-    constexpr std::size_t numa_thread_count() const noexcept { return numaThreadCount; }
+    [[nodiscard]] constexpr std::size_t numa_thread_count() const noexcept {
+        return numaThreadCount;
+    }
 
-    NumaReplicatedAccessToken numa_access_token() const noexcept { return numaAccessToken; }
+    [[nodiscard]] NumaReplicatedAccessToken numa_access_token() const noexcept {
+        return numaAccessToken;
+    }
 
     void start() noexcept;
 
@@ -229,7 +233,7 @@ class Thread final {
     void ensure_network_replicated() const noexcept;
 
     // Schedule a job to be executed by this thread.
-    void run_custom_job(JobFunc job) noexcept;
+    void run_custom_job(JobFunc jobFn) noexcept;
 
     // Wakes up the thread that will initialize the worker
     void init() noexcept;
@@ -240,23 +244,22 @@ class Thread final {
     // Blocks on the condition variable until the thread has finished job
     void wait_finish() noexcept;
 
+    WorkerPtr worker;
+
    private:
     // The main function of the thread
     void idle_func() noexcept;
 
-    bool dead = false, busy = true;
-
-    const std::size_t threadId, threadCount, numaId, numaThreadCount;
+    JobFunc jobFunc;
 
     std::mutex                mutex;
     std::condition_variable   condVar;
     NativeThread              nativeThread;
     NumaReplicatedAccessToken numaAccessToken;
 
-    JobFunc jobFunc;
+    const std::size_t threadId, threadCount, numaId, numaThreadCount;
 
-   public:
-    WorkerPtr worker;
+    bool dead = false, busy = true;
 };
 
 // Schedule a job to be executed by this thread.

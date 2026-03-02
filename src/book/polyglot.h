@@ -68,18 +68,18 @@ class PolyGlot final {
 
     bool load(const std::filesystem::path& bookFile) noexcept;
 
-    bool empty() const noexcept { return entries.empty(); }
+    [[nodiscard]] bool empty() const noexcept { return entries.empty(); }
 
-    std::string info() const noexcept;
+    [[nodiscard]] std::string info() const noexcept;
 
     Move probe(Position& pos, const RootMoves& rootMoves, const Options& options) noexcept;
 
    private:
     void clear() noexcept;
 
-    std::size_t key_index(Key key) const noexcept;
+    [[nodiscard]] std::size_t key_index(Key key) const noexcept;
 
-    Entries key_candidates(Key key) const noexcept;
+    [[nodiscard]] Entries key_candidates(Key key) const noexcept;
 
     std::string filename;
 

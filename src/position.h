@@ -661,9 +661,7 @@ inline Bitboard Position::blockers_bb(Square    s,
     {
         Square xSniperSq = pop_lsq(xSnipersBB);
 
-        Bitboard blockerBB = between_bb(s, xSniperSq) & occupancyBB;
-
-        if (exactly_one(blockerBB))
+        if (Bitboard blockerBB = between_bb(s, xSniperSq) & occupancyBB; exactly_one(blockerBB))
         {
             blockersBB |= blockerBB;
 
@@ -863,12 +861,9 @@ inline void Position::put(Square s, Piece pc, DirtyThreats* dts) noexcept {
 
     Bitboard sBB = make_bb(s);
 
-    auto c  = color_of(pc);
-    auto pt = type_of(pc);
-
     pieceMap[s] = pc;
-    colorBBs[c] |= sBB;
-    typeBBs[ALL] |= typeBBs[pt] |= sBB;
+    colorBBs[color_of(pc)] |= sBB;
+    typeBBs[ALL] |= typeBBs[type_of(pc)] |= sBB;
 
     if (dts != nullptr)
         update_pc_threats<true>(s, pc, dts);
@@ -880,15 +875,13 @@ inline Piece Position::remove(Square s, DirtyThreats* dts) noexcept {
     Bitboard sBB = make_bb(s);
 
     Piece pc = piece(s);
-    auto  c  = color_of(pc);
-    auto  pt = type_of(pc);
 
     if (dts != nullptr)
         update_pc_threats<false>(s, pc, dts);
 
     pieceMap[s] = Piece::NO_PIECE;
-    colorBBs[c] ^= sBB;
-    typeBBs[pt] ^= sBB;
+    colorBBs[color_of(pc)] ^= sBB;
+    typeBBs[type_of(pc)] ^= sBB;
     typeBBs[ALL] ^= sBB;
 
     return pc;
@@ -900,16 +893,14 @@ inline Piece Position::move(Square s1, Square s2, DirtyThreats* dts) noexcept {
     Bitboard s1s2BB = make_bb(s1, s2);
 
     Piece pc = piece(s1);
-    auto  c  = color_of(pc);
-    auto  pt = type_of(pc);
 
     if (dts != nullptr)
         update_pc_threats<false>(s1, pc, dts, s1s2BB);
 
     pieceMap[s1] = Piece::NO_PIECE;
     pieceMap[s2] = pc;
-    colorBBs[c] ^= s1s2BB;
-    typeBBs[pt] ^= s1s2BB;
+    colorBBs[color_of(pc)] ^= s1s2BB;
+    typeBBs[type_of(pc)] ^= s1s2BB;
     typeBBs[ALL] ^= s1s2BB;
 
     if (dts != nullptr)
@@ -1142,7 +1133,7 @@ inline bool Position::SEE::operator>(int threshold) const noexcept {
 inline bool Position::SEE::operator<=(int threshold) const noexcept { return !(*this > threshold); }
 inline bool Position::SEE::operator<(int threshold) const noexcept { return !(*this >= threshold); }
 
-inline std::uint16_t rule50_threshold(std::int16_t r50 = -4) noexcept {
+inline std::int16_t rule50_threshold(std::int16_t r50 = -4) noexcept {
     assert(r50 >= -2 * Position::DrawMoveCount);
 
     return r50 + 2 * Position::DrawMoveCount;

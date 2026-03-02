@@ -97,7 +97,7 @@ struct RootMove final {
         return !(rm1 < rm2);
     }
 
-    Value effective_value() const noexcept {
+    [[nodiscard]] Value effective_value() const noexcept {
         return curValue != -VALUE_INFINITE ? curValue : preValue;
     }
 
@@ -467,21 +467,21 @@ class MainSearchManager final: public ISearchManager {
 
     const UpdateContext& updateContext;
 
-    std::uint16_t callsCount;
-    bool          ponder;
-    bool          ponderhitStop;
-    double        sumMoveChanges;
-    double        timeReduction;
-    Skill         skill;
-    TimeManager   timeManager;
-
     std::mutex              mutex;
     std::condition_variable condVar;
 
-    bool   atFirst;
+    TimeManager   timeManager;
+    Skill         skill;
+    double        sumMoveChanges;
+    double        timeReduction;
+    std::uint16_t callsCount;
+    bool          ponder;
+    bool          ponderhitStop;
+
     Value  preBestCurValue;
     Value  preBestAvgValue;
     double preTimeReduction;
+    bool   atFirst;
 };
 
 // NullSearchManager is a no-op implementation of ISearchManager

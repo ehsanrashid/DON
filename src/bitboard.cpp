@@ -31,12 +31,8 @@ constexpr StdArray<std::size_t, 2> TABLE_SIZES{0x1480, 0x19000};
 
 // Stores bishop & rook attacks
 alignas(CACHE_LINE_SIZE) StdArray<
-#if defined(USE_BMI2)
-    #if defined(USE_CMP)
+#if defined(USE_BMI2) && defined(USE_CMP)
   Bitboard16
-    #else
-  Bitboard
-    #endif
 #else
   Bitboard
 #endif
@@ -44,12 +40,8 @@ alignas(CACHE_LINE_SIZE) StdArray<
   TABLE_SIZES[0] + TABLE_SIZES[1]> AttacksTable;
 
 alignas(CACHE_LINE_SIZE) StdArray<TableView<
-#if defined(USE_BMI2)
-    #if defined(USE_CMP)
+#if defined(USE_BMI2) && defined(USE_CMP)
                                     Bitboard16
-    #else
-                                    Bitboard
-    #endif
 #else
                                     Bitboard
 #endif

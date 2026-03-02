@@ -409,10 +409,10 @@ void Worker::start_search() noexcept {
 
         if (limit.use_time_manager())
         {
-            mainManager->atFirst          = false;
             mainManager->preBestCurValue  = bestWorker->rootMoves[0].curValue;
             mainManager->preBestAvgValue  = bestWorker->rootMoves[0].avgValue;
             mainManager->preTimeReduction = mainManager->timeReduction;
+            mainManager->atFirst          = false;
         }
     }
 
@@ -548,10 +548,6 @@ void Worker::iterative_deepening() noexcept {
         mainManager->timeManager.init(rootPos.active_color(), rootPos.ply(), rootPos.move_num(),
                                       options, limit);
 
-        mainManager->set_ponder(limit.ponder);
-
-        mainManager->callsCount = limit.calls_count();
-
         multiPV = options["MultiPV"];
 
         mainManager->skill.init(options);
@@ -560,13 +556,17 @@ void Worker::iterative_deepening() noexcept {
         if (mainManager->skill.enabled())
             multiPV = std::max(std::size_t(4), multiPV);
 
-        multiPV = std::min(rootMovesSize, multiPV);
-
-        mainManager->ponderhitStop = false;
-
         mainManager->sumMoveChanges = 0.0;
 
         mainManager->timeReduction = 1.0;
+
+        multiPV = std::min(rootMovesSize, multiPV);
+
+        mainManager->set_ponder(limit.ponder);
+
+        mainManager->ponderhitStop = false;
+
+        mainManager->callsCount = limit.calls_count();
     }
 
     std::uint16_t researchCnt = 0;
@@ -2458,10 +2458,10 @@ MainSearchManager::MainSearchManager(const UpdateContext& updateCtx) noexcept :
 void MainSearchManager::init() noexcept {
 
     timeManager.init();
-    atFirst          = true;
     preBestCurValue  = VALUE_ZERO;
     preBestAvgValue  = VALUE_ZERO;
     preTimeReduction = 0.85;
+    atFirst          = true;
 }
 
 // Used to print debug info and, more importantly,
