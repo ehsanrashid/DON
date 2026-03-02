@@ -1593,8 +1593,8 @@ class TieStreamBuf final: public std::streambuf {
         return written;
     }
 
-    std::streambuf* pbuf() const { return pBuf; }
-    std::streambuf* mbuf() const { return mBuf; }
+    [[nodiscard]] std::streambuf* pbuf() const { return pBuf; }
+    [[nodiscard]] std::streambuf* mbuf() const { return mBuf; }
 
    private:
     int_type
@@ -1655,7 +1655,7 @@ class Logger final {
         return logger;
     }
 
-    bool is_open() const noexcept { return ofs.is_open(); }
+    [[nodiscard]] bool is_open() const noexcept { return ofs.is_open(); }
 
     void write_timestamp(std::string_view suffix) noexcept {
         if (!ofs)
