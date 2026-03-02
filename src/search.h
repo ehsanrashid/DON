@@ -467,6 +467,9 @@ class MainSearchManager final: public ISearchManager {
 
     const UpdateContext& updateContext;
 
+    std::mutex              mutex;
+    std::condition_variable condVar;
+
     TimeManager   timeManager;
     Skill         skill;
     double        sumMoveChanges;
@@ -474,9 +477,6 @@ class MainSearchManager final: public ISearchManager {
     std::uint16_t callsCount;
     bool          ponder;
     bool          ponderhitStop;
-
-    std::mutex              mutex;
-    std::condition_variable condVar;
 
     Value  preBestCurValue;
     Value  preBestAvgValue;
