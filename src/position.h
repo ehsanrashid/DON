@@ -208,10 +208,10 @@ class Position final {
     void clear() noexcept;
 
     // FEN string input/output
-    void        set(std::string_view fens, State* newSt) noexcept;
-    void        set(std::string_view code, Color c, State* newSt) noexcept;
-    void        set(const Position& pos, State* newSt) noexcept;
-    std::string fen(bool complete = true) const noexcept;
+    void                      set(std::string_view fens, State* newSt) noexcept;
+    void                      set(std::string_view code, Color c, State* newSt) noexcept;
+    void                      set(const Position& pos, State* newSt) noexcept;
+    [[nodiscard]] std::string fen(bool complete = true) const noexcept;
 
     // Position representation
     [[nodiscard]] const auto& piece_map() const noexcept;
@@ -222,55 +222,56 @@ class Position final {
     [[nodiscard]] Bitboard operator[](PieceType pt) const noexcept;
     [[nodiscard]] Bitboard operator[](Color c) const noexcept;
 
-    Piece piece(Square s) const noexcept;
-    bool  empty(Square s) const noexcept;
+    [[nodiscard]] Piece piece(Square s) const noexcept;
+    [[nodiscard]] bool  empty(Square s) const noexcept;
 
     template<typename... PieceTypes>
-    Bitboard pieces_bb(PieceTypes... pts) const noexcept;
-    Bitboard pieces_bb(Color c) const noexcept;
+    [[nodiscard]] Bitboard pieces_bb(PieceTypes... pts) const noexcept;
+    [[nodiscard]] Bitboard pieces_bb(Color c) const noexcept;
     template<typename... PieceTypes>
-    Bitboard pieces_bb(Color c, PieceTypes... pts) const noexcept;
-    Bitboard pieces_bb(Piece pc) const noexcept;
-    Bitboard pieces_bb() const noexcept;
+    [[nodiscard]] Bitboard pieces_bb(Color c, PieceTypes... pts) const noexcept;
+    [[nodiscard]] Bitboard pieces_bb(Piece pc) const noexcept;
+    [[nodiscard]] Bitboard pieces_bb() const noexcept;
 
     template<typename... PieceTypes>
-    std::uint8_t count(PieceTypes... pts) const noexcept;
-    std::uint8_t count(Color c) const noexcept;
+    [[nodiscard]] std::uint8_t count(PieceTypes... pts) const noexcept;
+    [[nodiscard]] std::uint8_t count(Color c) const noexcept;
     template<typename... PieceTypes>
-    std::uint8_t count(Color c, PieceTypes... pts) const noexcept;
-    std::uint8_t count(Piece pc) const noexcept;
-    std::uint8_t count() const noexcept;
+    [[nodiscard]] std::uint8_t count(Color c, PieceTypes... pts) const noexcept;
+    [[nodiscard]] std::uint8_t count(Piece pc) const noexcept;
+    [[nodiscard]] std::uint8_t count() const noexcept;
 
     template<PieceType PT>
-    Square square(Color c) const noexcept;
+    [[nodiscard]] Square square(Color c) const noexcept;
 
-    Square en_passant_sq() const noexcept;
-    Square captured_sq() const noexcept;
+    [[nodiscard]] Square en_passant_sq() const noexcept;
+    [[nodiscard]] Square captured_sq() const noexcept;
 
-    std::int16_t ply() const noexcept;
-    Color        active_color() const noexcept;
-    std::int32_t move_num() const noexcept;
+    [[nodiscard]] std::int16_t ply() const noexcept;
+    [[nodiscard]] Color        active_color() const noexcept;
+    [[nodiscard]] std::int32_t move_num() const noexcept;
 
-    CastlingRights castling_rights_mask(Square s) const noexcept;
-    CastlingRights castling_rights_mask(Square orgSq, Square dstSq) const noexcept;
+    [[nodiscard]] CastlingRights castling_rights_mask(Square s) const noexcept;
+    [[nodiscard]] CastlingRights castling_rights_mask(Square orgSq, Square dstSq) const noexcept;
 
-    CastlingRights castling_rights() const noexcept;
+    [[nodiscard]] CastlingRights castling_rights() const noexcept;
 
-    bool   has_castling_rights() const noexcept;
-    bool   has_castling_rights(Color c, CastlingSide cs) const noexcept;
-    bool   castling_full_path_clear(Color c, CastlingSide cs) const noexcept;
-    bool   castling_king_path_clear(Color c, CastlingSide cs) const noexcept;
-    Square castling_rook_sq(Color c, CastlingSide cs) const noexcept;
-    bool   castling_possible(Color c, CastlingSide cs) const noexcept;
+    [[nodiscard]] bool   has_castling_rights() const noexcept;
+    [[nodiscard]] bool   has_castling_rights(Color c, CastlingSide cs) const noexcept;
+    [[nodiscard]] bool   castling_full_path_clear(Color c, CastlingSide cs) const noexcept;
+    [[nodiscard]] bool   castling_king_path_clear(Color c, CastlingSide cs) const noexcept;
+    [[nodiscard]] Square castling_rook_sq(Color c, CastlingSide cs) const noexcept;
+    [[nodiscard]] bool   castling_possible(Color c, CastlingSide cs) const noexcept;
 
-    Bitboard xslide_attackers_bb(Square s) const noexcept;
-    Bitboard slide_attackers_bb(Square s, Bitboard occupancyBB) const noexcept;
-    Bitboard slide_attackers_bb(Square s) const noexcept;
-    Bitboard attackers_bb(Square s, Bitboard occupancyBB) const noexcept;
-    Bitboard attackers_bb(Square s) const noexcept;
+    [[nodiscard]] Bitboard xslide_attackers_bb(Square s) const noexcept;
+    [[nodiscard]] Bitboard slide_attackers_bb(Square s, Bitboard occupancyBB) const noexcept;
+    [[nodiscard]] Bitboard slide_attackers_bb(Square s) const noexcept;
+    [[nodiscard]] Bitboard attackers_bb(Square s, Bitboard occupancyBB) const noexcept;
+    [[nodiscard]] Bitboard attackers_bb(Square s) const noexcept;
 
-    bool attackers_exists(Square s, Bitboard attackersBB, Bitboard occupancyBB) const noexcept;
-    bool attackers_exists(Square s, Bitboard attackersBB) const noexcept;
+    [[nodiscard]] bool
+    attackers_exists(Square s, Bitboard attackersBB, Bitboard occupancyBB) const noexcept;
+    [[nodiscard]] bool attackers_exists(Square s, Bitboard attackersBB) const noexcept;
 
     Bitboard blockers_bb(Square    s,
                          Bitboard  attackersBB,
@@ -279,7 +280,7 @@ class Position final {
 
     // Attacks from a piece type
     template<PieceType PT>
-    Bitboard attacks_by_bb(Color c) const noexcept;
+    [[nodiscard]] Bitboard attacks_by_bb(Color c) const noexcept;
 
     // Doing and undoing moves
     DirtyBoard
@@ -289,76 +290,77 @@ class Position final {
     void undo_null_move() noexcept;
 
     // Properties of moves
-    bool  legal(Move m) const noexcept;
-    bool  capture(Move m) const noexcept;
-    bool  capture_promo(Move m) const noexcept;
-    bool  check(Move m) const noexcept;
-    bool  dbl_check(Move m) const noexcept;
-    bool  fork(Move m) const noexcept;
-    Piece moved_pc(Move m) const noexcept;
-    Piece captured_pc(Move m) const noexcept;
-    auto  captured_pt(Move m) const noexcept;
+    [[nodiscard]] bool  legal(Move m) const noexcept;
+    [[nodiscard]] bool  capture(Move m) const noexcept;
+    [[nodiscard]] bool  capture_promo(Move m) const noexcept;
+    [[nodiscard]] bool  check(Move m) const noexcept;
+    [[nodiscard]] bool  dbl_check(Move m) const noexcept;
+    [[nodiscard]] bool  fork(Move m) const noexcept;
+    [[nodiscard]] Piece moved_pc(Move m) const noexcept;
+    [[nodiscard]] Piece captured_pc(Move m) const noexcept;
+    [[nodiscard]] auto  captured_pt(Move m) const noexcept;
 
-    Bitboard checkers_bb() const noexcept;
-    Bitboard checks_bb(PieceType pt) const noexcept;
-    Bitboard pinners_bb(Color c) const noexcept;
-    Bitboard pinners_bb() const noexcept;
-    Bitboard blockers_bb(Color c) const noexcept;
-    Bitboard blockers_bb() const noexcept;
+    [[nodiscard]] Bitboard checkers_bb() const noexcept;
+    [[nodiscard]] Bitboard checks_bb(PieceType pt) const noexcept;
+    [[nodiscard]] Bitboard pinners_bb(Color c) const noexcept;
+    [[nodiscard]] Bitboard pinners_bb() const noexcept;
+    [[nodiscard]] Bitboard blockers_bb(Color c) const noexcept;
+    [[nodiscard]] Bitboard blockers_bb() const noexcept;
 
-    Bitboard acc_attacks_bb() const noexcept;
+    [[nodiscard]] Bitboard acc_attacks_bb() const noexcept;
     template<PieceType PT>
-    Bitboard acc_attacks_bb() const noexcept;
-    Bitboard acc_less_attacks_bb(PieceType pt) const noexcept;
-    Bitboard threats_bb() const noexcept;
+    [[nodiscard]] Bitboard acc_attacks_bb() const noexcept;
+    [[nodiscard]] Bitboard acc_less_attacks_bb(PieceType pt) const noexcept;
+    [[nodiscard]] Bitboard threats_bb() const noexcept;
 
-    Piece captured_pc() const noexcept;
-    Piece promoted_pc() const noexcept;
+    [[nodiscard]] Piece captured_pc() const noexcept;
+    [[nodiscard]] Piece promoted_pc() const noexcept;
 
     // Hash keys
-    Key raw_key() const noexcept;
-    Key key() const noexcept;
-    Key pawn_key(Color c) const noexcept;
-    Key pawn_key() const noexcept;
-    Key minor_key(Color c) const noexcept;
-    Key minor_key() const noexcept;
-    Key major_key(Color c) const noexcept;
-    Key major_key() const noexcept;
-    Key non_pawn_key(Color c) const noexcept;
-    Key non_pawn_key() const noexcept;
+    [[nodiscard]] Key raw_key() const noexcept;
+    [[nodiscard]] Key key() const noexcept;
+    [[nodiscard]] Key pawn_key(Color c) const noexcept;
+    [[nodiscard]] Key pawn_key() const noexcept;
+    [[nodiscard]] Key minor_key(Color c) const noexcept;
+    [[nodiscard]] Key minor_key() const noexcept;
+    [[nodiscard]] Key major_key(Color c) const noexcept;
+    [[nodiscard]] Key major_key() const noexcept;
+    [[nodiscard]] Key non_pawn_key(Color c) const noexcept;
+    [[nodiscard]] Key non_pawn_key() const noexcept;
 
-    Key material_key() const noexcept;
-    Key move_key(Move m) const noexcept;
+    [[nodiscard]] Key material_key() const noexcept;
+    [[nodiscard]] Key move_key(Move m) const noexcept;
 
-    bool  has_non_pawn(Color c) const noexcept;
-    Value non_pawn_value(Color c) const noexcept;
-    Value non_pawn_value() const noexcept;
+    [[nodiscard]] bool  has_non_pawn(Color c) const noexcept;
+    [[nodiscard]] Value non_pawn_value(Color c) const noexcept;
+    [[nodiscard]] Value non_pawn_value() const noexcept;
 
     // Other properties
-    std::int16_t rule50_count() const noexcept;
-    std::int16_t null_ply() const noexcept;
-    std::int16_t repetition() const noexcept;
+    [[nodiscard]] std::int16_t rule50_count() const noexcept;
+    [[nodiscard]] std::int16_t null_ply() const noexcept;
+    [[nodiscard]] std::int16_t repetition() const noexcept;
 
-    bool has_castled(Color c) const noexcept;
-    bool has_rule50_high() const noexcept;
-    bool bishop_paired(Color c) const noexcept;
-    bool bishop_opposite() const noexcept;
+    [[nodiscard]] bool has_castled(Color c) const noexcept;
+    [[nodiscard]] bool has_rule50_high() const noexcept;
+    [[nodiscard]] bool bishop_paired(Color c) const noexcept;
+    [[nodiscard]] bool bishop_opposite() const noexcept;
 
-    std::size_t bucket() const noexcept;
+    [[nodiscard]] std::size_t bucket() const noexcept;
 
-    int   std_material() const noexcept;
-    Value material() const noexcept;
-    Value evaluate() const noexcept;
+    [[nodiscard]] int   std_material() const noexcept;
+    [[nodiscard]] Value material() const noexcept;
+    [[nodiscard]] Value evaluate() const noexcept;
 
     // Static Exchange Evaluation:
     template<bool Expose = true>
-    bool               see_ge(Move m, int threshold) const noexcept;
+    [[nodiscard]] bool see_ge(Move m, int threshold) const noexcept;
     [[nodiscard]] auto see(Move m) const noexcept { return SEE(*this, m); }
 
-    bool is_repetition(std::int16_t ply) const noexcept;
-    bool is_draw(std::int16_t ply, bool useRule50 = true, bool useStalemate = false) const noexcept;
-    bool has_repeated() const noexcept;
-    bool is_upcoming_repetition(std::int16_t ply) const noexcept;
+    [[nodiscard]] bool is_repetition(std::int16_t ply) const noexcept;
+    [[nodiscard]] bool
+    is_draw(std::int16_t ply, bool useRule50 = true, bool useStalemate = false) const noexcept;
+    [[nodiscard]] bool has_repeated() const noexcept;
+    [[nodiscard]] bool is_upcoming_repetition(std::int16_t ply) const noexcept;
 
     void  put(Square s, Piece pc, DirtyThreats* dts = nullptr) noexcept;
     Piece remove(Square s, DirtyThreats* dts = nullptr) noexcept;
@@ -368,16 +370,16 @@ class Position final {
 
     // Position consistency check, for debugging
 #if !defined(NDEBUG)
-    Key compute_key() const noexcept;
-    Key compute_minor_key() const noexcept;
-    Key compute_major_key() const noexcept;
-    Key compute_non_pawn_key() const noexcept;
+    [[nodiscard]] Key compute_key() const noexcept;
+    [[nodiscard]] Key compute_minor_key() const noexcept;
+    [[nodiscard]] Key compute_major_key() const noexcept;
+    [[nodiscard]] Key compute_non_pawn_key() const noexcept;
 
-    bool _is_ok() const noexcept;
+    [[nodiscard]] bool _is_ok() const noexcept;
 #endif
 
     // Used by NNUE
-    constexpr State* state() const noexcept;
+    [[nodiscard]] constexpr State* state() const noexcept;
 
     operator std::string() const noexcept;
 
