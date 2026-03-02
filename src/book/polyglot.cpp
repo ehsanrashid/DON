@@ -471,7 +471,7 @@ bool PolyGlot::load(const std::filesystem::path& bookFile) noexcept {
 
     std::size_t dataSize = entryCount * EntrySize;
 
-    char* data = reinterpret_cast<char*>(entries.data());
+    auto* data = reinterpret_cast<char*>(entries.data());
 
     std::size_t readedSize = 0;
 
