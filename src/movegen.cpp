@@ -297,28 +297,20 @@ Move* generate_piece_moves(const Position& pos, Move* RESTRICT moves, Bitboard t
     Bitboard occupancyBB = pos.pieces_bb();
     Bitboard blockersBB  = pos.blockers_bb(AC);
 
-    if constexpr (AC == WHITE)
-        while (bb != 0)
-        {
-            Square orgSq = pop_lsq(bb);
+    while (bb != 0)
+    {
+        Square orgSq;
+        if constexpr (AC == WHITE)
+            orgSq = pop_lsq(bb);
+        else
+            orgSq = pop_msq(bb);
 
-            Bitboard maskBB = (blockersBB & orgSq) == 0 ? FULL_BB : line_bb(kingSq, orgSq);
+        Bitboard maskBB = (blockersBB & orgSq) == 0 ? FULL_BB : line_bb(kingSq, orgSq);
 
-            Bitboard dstBB = attacks_bb<PT>(orgSq, occupancyBB) & maskBB & targetBB;
+        Bitboard dstBB = attacks_bb<PT>(orgSq, occupancyBB) & maskBB & targetBB;
 
-            moves = splat_moves<AC>(orgSq, dstBB, moves);
-        }
-    else
-        while (bb != 0)
-        {
-            Square orgSq = pop_msq(bb);
-
-            Bitboard maskBB = (blockersBB & orgSq) == 0 ? FULL_BB : line_bb(kingSq, orgSq);
-
-            Bitboard dstBB = attacks_bb<PT>(orgSq, occupancyBB) & maskBB & targetBB;
-
-            moves = splat_moves<AC>(orgSq, dstBB, moves);
-        }
+        moves = splat_moves<AC>(orgSq, dstBB, moves);
+    }
 
     return moves;
 }
