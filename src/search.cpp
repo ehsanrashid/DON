@@ -740,13 +740,8 @@ void Worker::iterative_deepening() noexcept {
             }
 
             // Do have time for the next iteration? Can stop searching now?
-            if (limit.use_time_manager() && !threads.is_stopped())
-            {
-                if (!mainManager->ponderhitStop)
-                    mainManager->handle_time_management(*this, bestValue, lastCompletedDepth);
-                // Decay PV variability metric on every completed iteration to reduce influence of previous iterations
-                mainManager->sumMoveChanges *= 0.50;
-            }
+            if (limit.use_time_manager() && !threads.is_stopped() && !mainManager->ponderhitStop)
+                mainManager->handle_time_management(*this, bestValue, lastCompletedDepth);
         }
 
         // Stop if requested to stop
@@ -2578,6 +2573,8 @@ void MainSearchManager::handle_time_management(const Worker& worker,
         if (!ponder && 1000 * elapsedTime > 503 * totalTime)
             worker.threads.request_research();
 
+    // Decay PV variability metric on every completed iteration to reduce influence of previous iterations
+    sumMoveChanges *= 0.50;
     preBestCurValue = bestValue;
 }
 
