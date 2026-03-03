@@ -165,7 +165,7 @@ MovePicker::MovePicker(const Position&                  p,
                        const History<HType::QUIET>*     quietHist,
                        const History<HType::LOW_QUIET>* lowPlyQuietHist,
                        const History<HType::PIECE_SQ>** continuationHist,
-                       std::int16_t                     ply,
+                       std::uint16_t                    ply,
                        int                              th) noexcept :
     pos(p),
     ttMove(ttm),
@@ -238,7 +238,7 @@ MovePicker::score<GenType::ENC_CAPTURE>(MoveList<GenType::ENC_CAPTURE>& moveList
 
     const auto& captureHistoryRef = *captureHistory;
 
-    iterator itr = cur;
+    auto itr = cur;
 
     for (Move move : moveList)
     {
@@ -274,7 +274,7 @@ MovePicker::score<GenType::ENC_QUIET>(MoveList<GenType::ENC_QUIET>& moveList) no
     const auto* const* continuationHistoryPtr = continuationHistory;
     const auto&        pawnHistoryRef         = histories->pawn(pos.pawn_key());
 
-    iterator itr = cur;
+    auto itr = cur;
 
     for (Move move : moveList)
     {
@@ -335,7 +335,7 @@ template<>
 MovePicker::iterator
 MovePicker::score<GenType::EVA_CAPTURE>(MoveList<GenType::EVA_CAPTURE>& moveList) noexcept {
 
-    iterator itr = cur;
+    auto itr = cur;
 
     for (Move move : moveList)
     {
@@ -364,7 +364,7 @@ MovePicker::score<GenType::EVA_QUIET>(MoveList<GenType::EVA_QUIET>& moveList) no
     const auto&        quietHistoryRef        = *quietHistory;
     const auto* const* continuationHistoryPtr = continuationHistory;
 
-    iterator itr = cur;
+    auto itr = cur;
 
     for (Move move : moveList)
     {

@@ -1129,7 +1129,7 @@ DirtyBoard Position::do_move(Move m, State& newSt, bool mayCheck, const Worker* 
     {
         const State* preSt = st->preSt->preSt;
 
-        for (std::int16_t i = 4; i <= end; i += 2)
+        for (std::uint16_t i = 4; i <= end; i += 2)
         {
             preSt = preSt->preSt->preSt;
 
@@ -1913,7 +1913,7 @@ bool Position::is_upcoming_repetition(std::int16_t ply) const noexcept {
     const State* preSt   = st->preSt;
     Key          iterKey = baseKey ^ preSt->key ^ Zobrist::turn();
 
-    for (std::int16_t i = 3; i <= end; i += 2)
+    for (std::uint16_t i = 3; i <= end; i += 2)
     {
         iterKey ^= preSt->preSt->key ^ preSt->preSt->preSt->key ^ Zobrist::turn();
 

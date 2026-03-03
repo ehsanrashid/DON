@@ -128,7 +128,7 @@ struct Zobrist final {
 };
 
 // State struct stores information needed to restore Position object
-// to its previous state when retract any move. (Size = 248)
+// to its previous state when retract any move. (Size = 256)
 struct State final {
    public:
     State() noexcept                           = default;
@@ -147,11 +147,11 @@ struct State final {
     StdArray<Key, COLOR_NB, 2> nonPawnKeys;
     StdArray<bool, COLOR_NB>   hasCastleds;
 
+    std::uint16_t  rule50Count;
+    std::uint16_t  nullPly;  // Plies from Null-Move
     Square         enPassantSq;
     Square         capturedSq;
     CastlingRights castlingRights;
-    std::uint8_t   rule50Count;
-    std::uint8_t   nullPly;  // Plies from Null-Move
     bool           hasRule50High;
 
     // --- Not copied when making a move (will be recomputed anyhow)
@@ -184,7 +184,7 @@ struct State final {
 
 static_assert(std::is_standard_layout_v<State> && std::is_trivially_copyable_v<State>,
               "State must be standard-layout and trivially copyable");
-//static_assert(sizeof(State) == 248, "State size must be 248 bytes");
+//static_assert(sizeof(State) == 256, "State size must be 256 bytes");
 
 class Worker;
 
@@ -247,9 +247,9 @@ class Position final {
     [[nodiscard]] Square en_passant_sq() const noexcept;
     [[nodiscard]] Square captured_sq() const noexcept;
 
-    [[nodiscard]] std::int16_t ply() const noexcept;
-    [[nodiscard]] Color        active_color() const noexcept;
-    [[nodiscard]] std::int32_t move_num() const noexcept;
+    [[nodiscard]] std::uint16_t ply() const noexcept;
+    [[nodiscard]] Color         active_color() const noexcept;
+    [[nodiscard]] std::int32_t  move_num() const noexcept;
 
     [[nodiscard]] CastlingRights castling_rights_mask(Square s) const noexcept;
     [[nodiscard]] CastlingRights castling_rights_mask(Square orgSq, Square dstSq) const noexcept;
@@ -313,9 +313,6 @@ class Position final {
     [[nodiscard]] Bitboard acc_less_attacks_bb(PieceType pt) const noexcept;
     [[nodiscard]] Bitboard threats_bb() const noexcept;
 
-    [[nodiscard]] Piece captured_pc() const noexcept;
-    [[nodiscard]] Piece promoted_pc() const noexcept;
-
     // Hash keys
     [[nodiscard]] Key raw_key() const noexcept;
     [[nodiscard]] Key key() const noexcept;
@@ -336,14 +333,16 @@ class Position final {
     [[nodiscard]] Value non_pawn_value() const noexcept;
 
     // Other properties
-    [[nodiscard]] std::int16_t rule50_count() const noexcept;
-    [[nodiscard]] std::int16_t null_ply() const noexcept;
-    [[nodiscard]] std::int16_t repetition() const noexcept;
+    [[nodiscard]] std::uint16_t rule50_count() const noexcept;
+    [[nodiscard]] std::uint16_t null_ply() const noexcept;
+    [[nodiscard]] std::int16_t  repetition() const noexcept;
 
-    [[nodiscard]] bool has_castled(Color c) const noexcept;
-    [[nodiscard]] bool has_rule50_high() const noexcept;
-    [[nodiscard]] bool bishop_paired(Color c) const noexcept;
-    [[nodiscard]] bool bishop_opposite() const noexcept;
+    [[nodiscard]] bool  has_castled(Color c) const noexcept;
+    [[nodiscard]] bool  has_rule50_high() const noexcept;
+    [[nodiscard]] Piece captured_pc() const noexcept;
+    [[nodiscard]] Piece promoted_pc() const noexcept;
+    [[nodiscard]] bool  bishop_paired(Color c) const noexcept;
+    [[nodiscard]] bool  bishop_opposite() const noexcept;
 
     [[nodiscard]] std::size_t bucket() const noexcept;
 
@@ -472,7 +471,7 @@ class Position final {
     StdArray<CastlingRights, COLOR_NB * FILE_NB> castlingRightsMasks;
     Castlings                                    castlings;
     State*                                       st;
-    std::int16_t                                 gamePly;
+    std::uint16_t                                gamePly;
     Color                                        activeColor;
 };
 
@@ -541,7 +540,7 @@ inline Square Position::en_passant_sq() const noexcept { return st->enPassantSq;
 
 inline Square Position::captured_sq() const noexcept { return st->capturedSq; }
 
-inline std::int16_t Position::ply() const noexcept { return gamePly; }
+inline std::uint16_t Position::ply() const noexcept { return gamePly; }
 
 inline Color Position::active_color() const noexcept { return activeColor; }
 
@@ -724,10 +723,6 @@ inline Bitboard Position::threats_bb() const noexcept {
     return acc_attacks_bb<KING>() & ~acc_attacks_bb();
 }
 
-inline Piece Position::captured_pc() const noexcept { return st->capturedPc; }
-
-inline Piece Position::promoted_pc() const noexcept { return st->promotedPc; }
-
 inline Key Position::raw_key() const noexcept { return st->key; }
 
 inline Key Position::key() const noexcept { return raw_key() ^ Zobrist::mr50(rule50_count()); }
@@ -780,15 +775,19 @@ inline Value Position::non_pawn_value() const noexcept {
     return non_pawn_value(WHITE) + non_pawn_value(BLACK);
 }
 
-inline std::int16_t Position::rule50_count() const noexcept { return st->rule50Count; }
+inline std::uint16_t Position::rule50_count() const noexcept { return st->rule50Count; }
 
-inline std::int16_t Position::null_ply() const noexcept { return st->nullPly; }
+inline std::uint16_t Position::null_ply() const noexcept { return st->nullPly; }
 
 inline std::int16_t Position::repetition() const noexcept { return st->repetition; }
 
 inline bool Position::has_castled(Color c) const noexcept { return st->hasCastleds[c]; }
 
 inline bool Position::has_rule50_high() const noexcept { return st->hasRule50High; }
+
+inline Piece Position::captured_pc() const noexcept { return st->capturedPc; }
+
+inline Piece Position::promoted_pc() const noexcept { return st->promotedPc; }
 
 inline bool Position::bishop_paired(Color c) const noexcept {
     Bitboard bishops = pieces_bb(c, BISHOP);

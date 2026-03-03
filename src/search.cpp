@@ -84,7 +84,7 @@ constexpr Value value_to_tt(Value v, std::int16_t ply) noexcept {
 // current position) to "plies to mate/be mated (TB win/loss) from the root".
 // However, to avoid potentially false mate or TB scores related to the 50 moves rule
 // and the graph history interaction, return the highest non-TB score instead.
-constexpr Value value_from_tt(Value v, std::int16_t ply, std::int16_t rule50Count) noexcept {
+constexpr Value value_from_tt(Value v, std::uint16_t ply, std::uint16_t rule50Count) noexcept {
 
     if (!is_valid(v))
         return v;
@@ -740,13 +740,8 @@ void Worker::iterative_deepening() noexcept {
             }
 
             // Do have time for the next iteration? Can stop searching now?
-            if (limit.use_time_manager() && !threads.is_stopped())
-            {
-                if (!mainManager->ponderhitStop)
-                    mainManager->handle_time_management(*this, bestValue, lastCompletedDepth);
-                // Decay PV variability metric on every completed iteration to reduce influence of previous iterations
-                mainManager->sumMoveChanges *= 0.50;
-            }
+            if (limit.use_time_manager() && !threads.is_stopped() && !mainManager->ponderhitStop)
+                mainManager->handle_time_management(*this, bestValue, lastCompletedDepth);
         }
 
         // Stop if requested to stop
@@ -804,7 +799,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
     if constexpr (PVNode)
     {
         // Update selDepth (selDepth from 1, ply from 0)
-        selDepth = std::max(+selDepth, ss->ply + 1);
+        selDepth = std::max(ss->ply + 1, +selDepth);
     }
 
     // Step 1. Initialize node
@@ -1110,8 +1105,8 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
     // Step 9. Null move search with verification search
     if constexpr (CutNode)
     {
-        if (!exclude && hasNonPawn /*Zugzwang guard*/ && ss->ply >= nmpPly
-            && !is_loss(beta) && ss->evalValue - 359 + int(improve) * 50 + 17 * depth >= beta)
+        if (!exclude && hasNonPawn && ss->ply >= nmpPly && !is_loss(beta)
+            && ss->evalValue - 359 + int(improve) * 50 + 17 * depth >= beta)
         {
             assert(preMove != Move::Null);
 
@@ -1127,8 +1122,6 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
             // If null move fails high, do a verification search
             if (nullValue >= beta && !is_win(nullValue))
             {
-                assert(!is_loss(nullValue));
-
                 // At low depths or when verification is disabled,
                 // return immediately to avoid expensive verification search.
                 if (depth < 16 || nmpPly != 0)
@@ -1214,8 +1207,6 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
 
             if (probCutValue >= probCutBeta)
             {
-                assert(!is_loss(probCutValue));
-
                 // Save ProbCut data into transposition table
                 if (!exclude)
                     ttu.update(move, value_to_tt(probCutValue, ss->ply), evalValue,
@@ -1809,7 +1800,7 @@ Value Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta) noexcep
         (ss + 1)->pv = pv.data();
 
         // Update selDepth (selDepth from 1, ply from 0)
-        selDepth = std::max(+selDepth, ss->ply + 1);
+        selDepth = std::max(ss->ply + 1, +selDepth);
     }
 
     // Step 1. Initialize node
@@ -2582,6 +2573,8 @@ void MainSearchManager::handle_time_management(const Worker& worker,
         if (!ponder && 1000 * elapsedTime > 503 * totalTime)
             worker.threads.request_research();
 
+    // Decay PV variability metric on every completed iteration to reduce influence of previous iterations
+    sumMoveChanges *= 0.50;
     preBestCurValue = bestValue;
 }
 

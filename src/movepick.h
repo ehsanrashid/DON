@@ -90,7 +90,7 @@ class MovePicker final {
                const History<HType::QUIET>*     quietHist,
                const History<HType::LOW_QUIET>* lowPlyQuietHist,
                const History<HType::PIECE_SQ>** continuationHist,
-               std::int16_t                     ply,
+               std::uint16_t                    ply,
                int                              th = 0) noexcept;
 
     MovePicker(const Position&                p,
@@ -148,7 +148,7 @@ class MovePicker final {
     const History<HType::QUIET>*     quietHistory        = nullptr;
     const History<HType::LOW_QUIET>* lowPlyQuietHistory  = nullptr;
     const History<HType::PIECE_SQ>** continuationHistory = nullptr;
-    const std::int16_t               ssPly               = LOW_PLY_QUIET_SIZE;
+    const std::uint16_t              ssPly               = LOW_PLY_QUIET_SIZE;
 
    public:
     int threshold;
@@ -156,15 +156,15 @@ class MovePicker final {
    private:
     StdArray<value_type, MOVE_MAX> moves;
 
-    Stage initStage;
-    Stage curStage;
-
     iterator                    //
       cur           = nullptr,  //
       curEnd        = nullptr,  //
       badCaptureEnd = nullptr,  //
       badQuietBeg   = nullptr,  //
       badQuietEnd   = nullptr;
+
+    Stage initStage;
+    Stage curStage;
 };
 
 }  // namespace DON

@@ -1367,20 +1367,20 @@ hash_bytes(const char* RESTRICT data, std::size_t size, std::uint64_t seed = 0) 
     std::uint64_t h = seed ^ (size * MURMUR_M);
 
     // Mix 64-bit block (MurmurHash64A core mixing step)
-    constexpr auto Mix = [](std::uint64_t k) noexcept {
+    constexpr auto mix = [](std::uint64_t k) noexcept {
         k *= MURMUR_M;
         k ^= k >> MURMUR_R;
         k *= MURMUR_M;
         return k;
     };
 
-    const auto                 beg = reinterpret_cast<const std::uint8_t*>(data);
+    const auto*                beg = reinterpret_cast<const std::uint8_t*>(data);
     const auto* const RESTRICT end = beg + size;
     const auto* RESTRICT       p   = beg;
 
     // Process 32-byte blocks (4 × 64-bit lanes) for better throughput.
     // The end pointer is rounded down to the nearest multiple of BLOCK_32.
-    const std::uint8_t* const RESTRICT block32End = beg + (size & ~(BLOCK_32 - 1));
+    const auto* const RESTRICT block32End = beg + (size & ~(BLOCK_32 - 1));
     while (p < block32End)
     {
         std::uint64_t k0, k1, k2, k3;
@@ -1390,10 +1390,10 @@ hash_bytes(const char* RESTRICT data, std::size_t size, std::uint64_t seed = 0) 
         std::memcpy(&k2, p + 2 * BLOCK_8, BLOCK_8);
         std::memcpy(&k3, p + 3 * BLOCK_8, BLOCK_8);
 
-        k0 = Mix(k0);
-        k1 = Mix(k1);
-        k2 = Mix(k2);
-        k3 = Mix(k3);
+        k0 = mix(k0);
+        k1 = mix(k1);
+        k2 = mix(k2);
+        k3 = mix(k3);
         // Merge each mixed lane into the running hash
         h ^= k0;
         h *= MURMUR_M;
@@ -1416,8 +1416,8 @@ hash_bytes(const char* RESTRICT data, std::size_t size, std::uint64_t seed = 0) 
         std::memcpy(&k0, p + 0 * BLOCK_8, BLOCK_8);
         std::memcpy(&k1, p + 1 * BLOCK_8, BLOCK_8);
 
-        k0 = Mix(k0);
-        k1 = Mix(k1);
+        k0 = mix(k0);
+        k1 = mix(k1);
         // Merge each word into the running hash
         h ^= k0;
         h *= MURMUR_M;
@@ -1435,7 +1435,7 @@ hash_bytes(const char* RESTRICT data, std::size_t size, std::uint64_t seed = 0) 
         // Safe unaligned load
         std::memcpy(&k, p, BLOCK_8);
 
-        k = Mix(k);
+        k = mix(k);
         // Merge block into the running hash
         h ^= k;
         h *= MURMUR_M;

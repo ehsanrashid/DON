@@ -697,21 +697,15 @@ inline Square lsq(Bitboard b) noexcept {
     unsigned long idx;
     #if defined(_WIN64)  // (WIN64)
     _BitScanForward64(&idx, b);
-
     return Square(idx);
     #else                // (WIN32)
     if (auto bb = std::uint32_t(b); bb != 0)
     {
         _BitScanForward(&idx, bb);
-
         return Square(idx);
     }
-    else
-    {
-        _BitScanForward(&idx, std::uint32_t(b >> 32));
-
-        return Square(idx + 32);
-    }
+    _BitScanForward(&idx, std::uint32_t(b >> 32));
+    return Square(idx + 32);
     #endif
 #else  // Compiler is neither GCC nor MSVC compatible
     #error "Compiler not supported."
@@ -730,21 +724,15 @@ inline Square msq(Bitboard b) noexcept {
     unsigned long idx;
     #if defined(_WIN64)  // (WIN64)
     _BitScanReverse64(&idx, b);
-
     return Square(idx);
     #else                // (WIN32)
     if (auto bb = std::uint32_t(b >> 32); bb != 0)
     {
         _BitScanReverse(&idx, bb);
-
         return Square(idx + 32);
     }
-    else
-    {
-        _BitScanReverse(&idx, std::uint32_t(b));
-
-        return Square(idx);
-    }
+    _BitScanReverse(&idx, std::uint32_t(b));
+    return Square(idx);
     #endif
 #else  // Compiler is neither GCC nor MSVC compatible
     #error "Compiler not supported."

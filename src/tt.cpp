@@ -319,7 +319,7 @@ bool TranspositionTable::load(const std::filesystem::path& hashFile,
 
     std::size_t DataSize = clusterCount * ClusterSize;
 
-    auto data = reinterpret_cast<char*>(clusters);
+    auto* data = reinterpret_cast<char*>(clusters);
 
     std::size_t readedSize = 0;
 
