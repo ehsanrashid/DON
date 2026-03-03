@@ -165,7 +165,7 @@ MovePicker::MovePicker(const Position&                  p,
                        const History<HType::QUIET>*     quietHist,
                        const History<HType::LOW_QUIET>* lowPlyQuietHist,
                        const History<HType::PIECE_SQ>** continuationHist,
-                       std::int16_t                     ply,
+                       std::uint16_t                    ply,
                        int                              th) noexcept :
     pos(p),
     ttMove(ttm),
