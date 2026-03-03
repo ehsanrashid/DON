@@ -247,9 +247,9 @@ class Position final {
     [[nodiscard]] Square en_passant_sq() const noexcept;
     [[nodiscard]] Square captured_sq() const noexcept;
 
-    [[nodiscard]] std::int16_t ply() const noexcept;
-    [[nodiscard]] Color        active_color() const noexcept;
-    [[nodiscard]] std::int32_t move_num() const noexcept;
+    [[nodiscard]] std::uint16_t ply() const noexcept;
+    [[nodiscard]] Color         active_color() const noexcept;
+    [[nodiscard]] std::int32_t  move_num() const noexcept;
 
     [[nodiscard]] CastlingRights castling_rights_mask(Square s) const noexcept;
     [[nodiscard]] CastlingRights castling_rights_mask(Square orgSq, Square dstSq) const noexcept;
@@ -336,9 +336,9 @@ class Position final {
     [[nodiscard]] Value non_pawn_value() const noexcept;
 
     // Other properties
-    [[nodiscard]] std::int16_t rule50_count() const noexcept;
-    [[nodiscard]] std::int16_t null_ply() const noexcept;
-    [[nodiscard]] std::int16_t repetition() const noexcept;
+    [[nodiscard]] std::uint16_t rule50_count() const noexcept;
+    [[nodiscard]] std::uint16_t null_ply() const noexcept;
+    [[nodiscard]] std::int16_t  repetition() const noexcept;
 
     [[nodiscard]] bool has_castled(Color c) const noexcept;
     [[nodiscard]] bool has_rule50_high() const noexcept;
@@ -472,7 +472,7 @@ class Position final {
     StdArray<CastlingRights, COLOR_NB * FILE_NB> castlingRightsMasks;
     Castlings                                    castlings;
     State*                                       st;
-    std::int16_t                                 gamePly;
+    std::uint16_t                                gamePly;
     Color                                        activeColor;
 };
 
@@ -541,7 +541,7 @@ inline Square Position::en_passant_sq() const noexcept { return st->enPassantSq;
 
 inline Square Position::captured_sq() const noexcept { return st->capturedSq; }
 
-inline std::int16_t Position::ply() const noexcept { return gamePly; }
+inline std::uint16_t Position::ply() const noexcept { return gamePly; }
 
 inline Color Position::active_color() const noexcept { return activeColor; }
 
@@ -780,9 +780,9 @@ inline Value Position::non_pawn_value() const noexcept {
     return non_pawn_value(WHITE) + non_pawn_value(BLACK);
 }
 
-inline std::int16_t Position::rule50_count() const noexcept { return st->rule50Count; }
+inline std::uint16_t Position::rule50_count() const noexcept { return st->rule50Count; }
 
-inline std::int16_t Position::null_ply() const noexcept { return st->nullPly; }
+inline std::uint16_t Position::null_ply() const noexcept { return st->nullPly; }
 
 inline std::int16_t Position::repetition() const noexcept { return st->repetition; }
 
