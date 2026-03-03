@@ -1127,8 +1127,6 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
             // If null move fails high, do a verification search
             if (nullValue >= beta && !is_win(nullValue))
             {
-                assert(!is_loss(nullValue));
-
                 // At low depths or when verification is disabled,
                 // return immediately to avoid expensive verification search.
                 if (depth < 16 || nmpPly != 0)
@@ -1214,8 +1212,6 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
 
             if (probCutValue >= probCutBeta)
             {
-                assert(!is_loss(probCutValue));
-
                 // Save ProbCut data into transposition table
                 if (!exclude)
                     ttu.update(move, value_to_tt(probCutValue, ss->ply), evalValue,

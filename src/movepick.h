@@ -156,15 +156,15 @@ class MovePicker final {
    private:
     StdArray<value_type, MOVE_MAX> moves;
 
-    Stage initStage;
-    Stage curStage;
-
     iterator                    //
       cur           = nullptr,  //
       curEnd        = nullptr,  //
       badCaptureEnd = nullptr,  //
       badQuietBeg   = nullptr,  //
       badQuietEnd   = nullptr;
+
+    Stage initStage;
+    Stage curStage;
 };
 
 }  // namespace DON
