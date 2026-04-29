@@ -29,6 +29,7 @@
 #include "evaluate.h"
 #include "movegen.h"
 #include "movepick.h"
+#include "notation.h"
 #include "option.h"
 #include "prng.h"
 #include "thread.h"
@@ -213,7 +214,7 @@ std::string build_pv(const Moves& pvMoves) noexcept {
     pv.reserve(6 * pvMoves.size());
 
     for (Move m : pvMoves)
-        pv.append(1, ' ').append(UCI::move_to_can(m));
+        pv.append(1, ' ').append(move_to_can(m));
 
     return pv;
 }
@@ -304,7 +305,7 @@ void Worker::start_search() noexcept {
         rootMoves.emplace_back(Move::None);
         rootMoves[0].curValue = rootPos.checkers_bb() != 0 ? -VALUE_MATE : VALUE_DRAW;
 
-        FixedText score{UCI::to_score({rootMoves[0].curValue, rootPos})};
+        FixedText score{to_score({rootMoves[0].curValue, rootPos})};
 
         mainManager->updateContext.onUpdateShort({DEPTH_ZERO, score});
     }
@@ -415,11 +416,11 @@ void Worker::start_search() noexcept {
     assert(!bestWorker->rootMoves.empty() && !bestWorker->rootMoves[0].pv.empty());
     const auto& rm = bestWorker->rootMoves[0];
 
-    std::string bestMove   = UCI::move_to_can(rm.pv[0]);
-    std::string ponderMove = UCI::move_to_can(rm.pv.size() > 1                            //
-                                                  || bestWorker->ponder_move_extracted()  //
-                                                ? rm.pv[1]
-                                                : Move::None);
+    std::string bestMove   = move_to_can(rm.pv[0]);
+    std::string ponderMove = move_to_can(rm.pv.size() > 1                            //
+                                             || bestWorker->ponder_move_extracted()  //
+                                           ? rm.pv[1]
+                                           : Move::None);
 
     mainManager->updateContext.onUpdateMove({bestMove, ponderMove});
 }
@@ -1267,7 +1268,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
         {
             if (is_main_worker() && rootDepth > 30 && !options["MinimalInfo"])
             {
-                std::string currMove{UCI::move_to_can(move)};
+                std::string currMove{move_to_can(move)};
                 std::size_t currMoveNumber{curPV + moveCount};
 
                 main_manager()->updateContext.onUpdateIter({rootDepth, currMove, currMoveNumber});
@@ -2624,7 +2625,7 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
         if ((exact || rm.bound == Bound::NONE) && is_decisive(v) && !is_mate(v))
             worker.extend_tb_pv(i, v);
 
-        FixedText score{UCI::to_score({v, rootPos})};
+        FixedText score{to_score({v, rootPos})};
 
         FixedText bound;
         if (!exact && is_ok(rm.bound))
@@ -2632,7 +2633,7 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
 
         FixedText wdl;
         if (ShowWDL)
-            wdl = UCI::to_wdl(v, rootPos);
+            wdl = to_wdl(v, rootPos);
 
         std::string pv{build_pv(rm.pv)};
 

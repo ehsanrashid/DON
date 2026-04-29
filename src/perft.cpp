@@ -28,6 +28,7 @@
 #include "memory.h"
 #include "misc.h"
 #include "movegen.h"
+#include "notation.h"
 #include "position.h"
 #include "thread.h"
 #include "uci.h"
@@ -370,8 +371,8 @@ PerftData perft(Position& pos, Depth depth, bool detail) noexcept {
             ++count;
 
             std::string move =
-              //<< UCI::move_to_can(m)
-              UCI::move_to_san(m, pos);
+              //<< move_to_can(m)
+              move_to_san(m, pos);
 
             std::size_t append = 10 - move.size();
             if (append != 0)

@@ -27,6 +27,7 @@
 
 #include "../misc.h"
 #include "../position.h"
+#include "../notation.h"
 #include "../types.h"
 #include "../uci.h"
 #include "accumulator.h"
@@ -42,7 +43,7 @@ void format_cp_compact(char* buffer, Value v, const Position& pos) noexcept {
     // Set the sign character
     buffer[0] = (v < 0 ? '-' : v > 0 ? '+' : ' ');
     // Convert to centipawns and take absolute value
-    if (int cp = constexpr_abs(UCI::to_cp(v, pos)); cp >= 10000)
+    if (int cp = constexpr_abs(to_cp(v, pos)); cp >= 10000)
     {
         buffer[1] = digit_to_char(cp / 10000);
         cp %= 10000;
@@ -78,7 +79,7 @@ void format_cp_aligned_dot(std::ostringstream& oss,
 
     auto v    = in_range(val);
     char sign = (v < 0 ? '-' : v > 0 ? '+' : ' ');
-    auto cp   = 0.01 * constexpr_abs(UCI::to_cp(v, pos));
+    auto cp   = 0.01 * constexpr_abs(to_cp(v, pos));
     oss << sign << std::setw(6) << std::fixed << std::setprecision(2) << cp;
 }
 

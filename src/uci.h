@@ -23,7 +23,6 @@
 #include <string>
 #include <string_view>
 #include <utility>
-#include <variant>
 
 #include "engine.h"
 #include "misc.h"
@@ -35,49 +34,9 @@ namespace DON {
 class Position;
 class Options;
 
-// Score represents the evaluation score of a position
-class Score final {
-   public:
-    struct Unit final {
-       public:
-        int value;
-    };
-
-    struct Tablebase final {
-       public:
-        int value;
-    };
-
-    struct Mate final {
-       public:
-        int value;
-    };
-
-    Score() noexcept = delete;
-    Score(Value v, const Position& pos) noexcept;
-
-    template<typename T>
-    bool is() const noexcept {
-        return std::holds_alternative<T>(score);
-    }
-
-    template<typename T>
-    T get() const noexcept {
-        return std::get<T>(score);
-    }
-
-    template<typename F>
-    decltype(auto) visit(F&& f) const noexcept {
-        return std::visit(std::forward<F>(f), score);
-    }
-
-   private:
-    std::variant<Unit, Tablebase, Mate> score;
-};
-
 class UCI final {
    public:
-    UCI(int argc, const char* argv[]) noexcept;
+    UCI(std::string_view path = {}) noexcept;
 
     StringViews& arguments() noexcept;
     Options&     options() noexcept;
@@ -87,27 +46,6 @@ class UCI final {
     void execute(std::string_view command) noexcept;
 
     static void print_info_string(std::string_view infoSv) noexcept;
-
-    [[nodiscard]] static int       to_cp(Value v, const Position& pos) noexcept;
-    [[nodiscard]] static FixedText to_wdl(Value v, const Position& pos) noexcept;
-    [[nodiscard]] static FixedText to_score(const Score& score) noexcept;
-
-    [[nodiscard]] static std::string move_to_can(Move m) noexcept;
-
-    [[nodiscard]] static Move can_to_move(std::string                     can,
-                                          const MoveList<GenType::LEGAL>& legalMoves) noexcept;
-    [[nodiscard]] static Move can_to_move(std::string_view can, const Position& pos) noexcept;
-
-    [[nodiscard]] static std::string move_to_san(Move m, Position& pos) noexcept;
-
-    [[nodiscard]] static Move san_to_move(std::string                     san,
-                                          Position&                       pos,
-                                          const MoveList<GenType::LEGAL>& legalMoves) noexcept;
-    [[nodiscard]] static Move san_to_move(std::string_view san, Position& pos) noexcept;
-
-    [[nodiscard]] static Move mix_to_move(std::string                     mix,
-                                          Position&                       pos,
-                                          const MoveList<GenType::LEGAL>& legalMoves) noexcept;
 
     static inline bool stopInfoStr = false;
 
@@ -128,8 +66,8 @@ class UCI final {
 
     std::uint64_t perft(Depth depth, bool detail = false) noexcept;
 
-    CommandLine commandLine;
-    Engine      engine;
+
+    Engine engine;
 };
 
 }  // namespace DON

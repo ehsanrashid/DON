@@ -28,6 +28,7 @@
 #include "../bitboard.h"
 #include "../misc.h"
 #include "../movegen.h"
+#include "../notation.h"
 #include "../option.h"
 #include "../position.h"
 #include "../prng.h"
@@ -621,7 +622,7 @@ Move PolyGlot::probe(Position& pos, const RootMoves& rootMoves, const Options& o
                   << std::setw(2) << ++cnt
                   << " key: "    << u64_to_string(candidate.key)
                   << std::left << std::setfill(' ')
-                  << " move: "   << std::setw(8) << UCI::move_to_san(pg_to_move(candidate.move, legalMoves), pos)
+                  << " move: "   << std::setw(8) << move_to_san(pg_to_move(candidate.move, legalMoves), pos)
                   << std::right << std::setfill('0')
                   << " weight: " << std::setw(5) << candidate.weight
                   << " learn: "  << std::setw(2) << candidate.learn

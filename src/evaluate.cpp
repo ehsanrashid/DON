@@ -24,6 +24,7 @@
 
 #include "misc.h"
 #include "position.h"
+#include "notation.h"
 #include "uci.h"
 #include "nnue/accumulator.h"
 #include "nnue/network.h"
@@ -116,7 +117,7 @@ std::string trace(Position& pos, const NNUE::Networks& networks) noexcept {
 
     output  //
       .append("NNUE evaluation      : ")
-      .append(fmt(0.01 * UCI::to_cp(v, pos)))
+      .append(fmt(0.01 * to_cp(v, pos)))
       .append(" (white side)\n");
 
     v = evaluate(pos, networks, *accStack, *accCaches);
@@ -124,7 +125,7 @@ std::string trace(Position& pos, const NNUE::Networks& networks) noexcept {
 
     output  //
       .append("Final evaluation     : ")
-      .append(fmt(0.01 * UCI::to_cp(v, pos)))
+      .append(fmt(0.01 * to_cp(v, pos)))
       .append(" (white side) [with scaled NNUE, ...]\n");
 
     return output;
