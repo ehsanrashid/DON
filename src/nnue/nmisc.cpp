@@ -29,7 +29,6 @@
 #include "../position.h"
 #include "../notation.h"
 #include "../types.h"
-#include "../uci.h"
 #include "accumulator.h"
 #include "network.h"
 

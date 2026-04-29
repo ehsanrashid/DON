@@ -20,13 +20,10 @@
 
 #include <cstdint>
 #include <iosfwd>
-#include <string>
 #include <string_view>
-#include <utility>
 
 #include "engine.h"
 #include "misc.h"
-#include "movegen.h"
 #include "types.h"
 
 namespace DON {

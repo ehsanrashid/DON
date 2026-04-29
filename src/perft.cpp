@@ -31,7 +31,6 @@
 #include "notation.h"
 #include "position.h"
 #include "thread.h"
-#include "uci.h"
 
 namespace DON::Perft {
 

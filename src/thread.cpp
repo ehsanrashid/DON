@@ -29,7 +29,6 @@
 #include "notation.h"
 #include "option.h"
 #include "types.h"
-#include "uci.h"
 #include "tablebase/syzygy.h"
 
 #if !defined(SUPPORTS_PTHREADS)
