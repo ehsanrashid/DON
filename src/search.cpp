@@ -391,10 +391,7 @@ void Worker::start_search() noexcept {
         }
         else
         {
-            if (thread_count() > 1  //
-                && multiPV == 1     //
-                && limit.mate == 0  //
-                && rootMoves[0].pv[0].is_ok())
+            if (thread_count() > 1 && multiPV == 1 && rootMoves[0].pv[0].is_ok())
             {
                 bestWorker = threads.best_thread()->worker.get();
                 // Send PV info again if have a new best worker
@@ -470,60 +467,6 @@ void Worker::iterative_deepening() noexcept {
     Value lastBestCurValue = -VALUE_INFINITE;
     Value lastBestPreValue = -VALUE_INFINITE;
     Value lastBestUciValue = -VALUE_INFINITE;
-
-    auto update_last_best = [&]() {
-        lastBestPV       = rootMoves[0].pv;
-        lastBestCurValue = rootMoves[0].curValue;
-        lastBestPreValue = rootMoves[0].preValue;
-        lastBestUciValue = rootMoves[0].uciValue;
-    };
-
-    auto restore_last_best = [&]() {
-        // Make sure not to pick an unproven mated-in score,
-        // in case this worker prematurely stopped the search (aborted-search).
-        if (lastBestPV[0] != Move::None)
-        {
-            auto nowBestCurValue = rootMoves[0].curValue;
-            auto nowBestPreValue = rootMoves[0].preValue;
-
-            bool nowIsWin   = is_win(nowBestCurValue);
-            bool nowIsLoss  = is_loss(nowBestCurValue);
-            bool lastIsWin  = is_win(lastBestCurValue);
-            bool lastIsLoss = is_loss(lastBestCurValue);
-
-            bool restore;
-
-            if (nowIsWin)
-                restore = lastIsWin && lastBestCurValue > nowBestCurValue;
-            else if (nowIsLoss)
-                restore = !lastIsLoss || lastBestCurValue > nowBestCurValue;
-            else
-            {
-                if (nowBestCurValue != lastBestCurValue)
-                    restore = nowBestCurValue < lastBestCurValue;
-                else if (nowBestPreValue != lastBestPreValue)
-                    restore = nowBestPreValue < lastBestPreValue;
-                else
-                    restore = rootMoves[0].pv.size() <= lastBestPV.size();
-            }
-
-            if (restore)
-            {
-                // Bring the last best rootMove to the front for best thread selection.
-                bool moved = rootMoves.move_to_front(
-                  [&lastBestPV = std::as_const(lastBestPV)](const auto& rm) noexcept {
-                      return rm == lastBestPV[0];
-                  });
-                if (moved)
-                {
-                    rootMoves[0].pv       = lastBestPV;
-                    rootMoves[0].curValue = lastBestCurValue;
-                    rootMoves[0].preValue = lastBestPreValue;
-                    rootMoves[0].uciValue = lastBestUciValue;
-                }
-            }
-        }
-    };
 
     std::size_t rootMovesSize = rootMoves.size();
     assert(rootMovesSize != 0 && rootMovesSize <= MOVE_MAX);
@@ -693,48 +636,90 @@ void Worker::iterative_deepening() noexcept {
 
             if (threads.is_stopped())
                 break;
-
-            // Give some update about the PV
-            if (mainManager != nullptr && (curPV + 1 == multiPV || rootDepth > 30))
-                mainManager->show_pv(*this, rootDepth);
         }
 
-        if (threads.is_stopped())
+        if (curPV == multiPV)
         {
-            restore_last_best();
+            completedDepth = rootDepth;
 
-            // Always show final PV update on stop
-            if (mainManager != nullptr)
-                mainManager->show_pv(*this, completedDepth);
+            if (rootMoves[0].pv[0] != lastBestPV[0])
+                lastCompletedDepth = rootDepth;
 
-            break;
+            lastBestPV       = rootMoves[0].pv;
+            lastBestCurValue = rootMoves[0].curValue;
+            lastBestPreValue = rootMoves[0].preValue;
+            lastBestUciValue = rootMoves[0].uciValue;
+        }
+        else
+        {
+            // Make sure not to pick an unproven mated-in score,
+            // in case this worker prematurely stopped the search (aborted-search).
+            if (lastBestPV[0] != Move::None)
+            {
+                auto nowBestCurValue = rootMoves[0].curValue;
+                auto nowBestPreValue = rootMoves[0].preValue;
+
+                bool nowIsWin   = is_win(nowBestCurValue);
+                bool nowIsLoss  = is_loss(nowBestCurValue);
+                bool lastIsWin  = is_win(lastBestCurValue);
+                bool lastIsLoss = is_loss(lastBestCurValue);
+
+                bool restore;
+
+                if (nowIsWin)
+                    restore = lastIsWin && lastBestCurValue > nowBestCurValue;
+                else if (nowIsLoss)
+                    restore = !lastIsLoss || lastBestCurValue > nowBestCurValue;
+                else
+                {
+                    if (nowBestCurValue != lastBestCurValue)
+                        restore = nowBestCurValue < lastBestCurValue;
+                    else if (nowBestPreValue != lastBestPreValue)
+                        restore = nowBestPreValue < lastBestPreValue;
+                    else
+                        restore = rootMoves[0].pv.size() <= lastBestPV.size();
+                }
+
+                if (restore)
+                {
+                    // Bring the last best rootMove to the front for best thread selection.
+                    bool moved = rootMoves.move_to_front(
+                      [&lastBestPV = std::as_const(lastBestPV)](const auto& rm) noexcept {
+                          return rm == lastBestPV[0];
+                      });
+                    if (moved)
+                    {
+                        rootMoves[0].pv       = lastBestPV;
+                        rootMoves[0].curValue = lastBestCurValue;
+                        rootMoves[0].preValue = lastBestPreValue;
+                        rootMoves[0].uciValue = lastBestUciValue;
+                    }
+                }
+            }
         }
 
-        completedDepth = rootDepth;
+        // Have found "mate in x"?
+        if (limit.mate != 0 && rootMoves[0].curValue == rootMoves[0].uciValue)
+        {
+            auto value = rootMoves[0].curValue;
+            bool mate  = (value != +VALUE_INFINITE && is_mate_win(value))   // mate-win
+                     || (value != -VALUE_INFINITE && is_mate_loss(value));  // mate-loss
+            if (mate && VALUE_MATE - constexpr_abs(value) <= 2 * limit.mate)
+            {
+                threads.request_stop();
+                break;
+            }
+        }
 
-        if (rootMoves[0].pv[0] != lastBestPV[0])
-            lastCompletedDepth = rootDepth;
-
-        update_last_best();
+        // Always show final PV update on stop
+        if (mainManager != nullptr)
+            mainManager->show_pv(*this, completedDepth);
 
         if (mainManager != nullptr)
         {
             // If the skill is enabled and time is up, pick a sub-optimal best move
             if (mainManager->skill.enabled() && mainManager->skill.time_to_pick(rootDepth))
                 mainManager->skill.pick_move(rootMoves, multiPV);
-
-            // Have found "mate in x"?
-            if (limit.mate != 0 && rootMoves[0].curValue == rootMoves[0].uciValue)
-            {
-                auto value = rootMoves[0].curValue;
-                bool mate  = (value != +VALUE_INFINITE && is_mate_win(value))   // mate-win
-                         || (value != -VALUE_INFINITE && is_mate_loss(value));  // mate-loss
-                if (mate && VALUE_MATE - constexpr_abs(value) <= 2 * limit.mate)
-                {
-                    threads.request_stop();
-                    break;
-                }
-            }
 
             // Do have time for the next iteration? Can stop searching now?
             if (limit.use_time_manager() && !threads.is_stopped() && !mainManager->ponderhitStop)
