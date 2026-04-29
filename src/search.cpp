@@ -246,20 +246,16 @@ void Worker::init() noexcept {
     assert(thread_count() == threads.size());
     // Each thread initializes its NUMA-local range of history entries to prevent false sharing
 
-    auto historyRange =
-      thread_index_range(numa_id(), numa_thread_count(), histories.history_size());
+    auto historyRange = split_range(numa_id(), numa_thread_count(), histories.history_size());
 
-    histories.pawn().fill(historyRange.begIdx, historyRange.endIdx, -1238);
+    histories.pawn().fill(historyRange.beg, historyRange.end, -1238);
 
     auto correctionHistoryRange =
-      thread_index_range(numa_id(), numa_thread_count(), histories.correction_history_size());
+      split_range(numa_id(), numa_thread_count(), histories.correction_history_size());
 
-    histories.pawn_correction().fill(correctionHistoryRange.begIdx, correctionHistoryRange.endIdx,
-                                     5);
-    histories.minor_correction().fill(correctionHistoryRange.begIdx, correctionHistoryRange.endIdx,
-                                      0);
-    histories.non_pawn_correction().fill(correctionHistoryRange.begIdx,
-                                         correctionHistoryRange.endIdx, 0);
+    histories.pawn_correction().fill(correctionHistoryRange.beg, correctionHistoryRange.end, 5);
+    histories.minor_correction().fill(correctionHistoryRange.beg, correctionHistoryRange.end, 0);
+    histories.non_pawn_correction().fill(correctionHistoryRange.beg, correctionHistoryRange.end, 0);
 
     // Initialize histories
 
