@@ -17,8 +17,13 @@
 
 #include "notation.h"
 
+#include <assert.h>
+#include <algorithm>
+#include <cctype>
 #include <cmath>
-
+#include <cstddef>
+#include <cstdint>
+#include "bitboard.h"
 #include "position.h"
 
 namespace DON {

@@ -25,7 +25,6 @@
 #include "misc.h"
 #include "position.h"
 #include "notation.h"
-#include "uci.h"
 #include "nnue/accumulator.h"
 #include "nnue/network.h"
 #include "nnue/nmisc.h"

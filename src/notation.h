@@ -18,6 +18,9 @@
 #ifndef NOTATION_H_INCLUDED
 #define NOTATION_H_INCLUDED
 
+#include <string>
+#include <string_view>
+#include <utility>
 #include <variant>
 
 #include "misc.h"
