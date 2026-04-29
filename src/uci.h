@@ -28,7 +28,6 @@
 
 namespace DON {
 
-class Position;
 class Options;
 
 class UCI final {

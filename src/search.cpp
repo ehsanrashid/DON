@@ -406,7 +406,6 @@ void Worker::start_search() noexcept {
             mainManager->preBestCurValue  = bestWorker->rootMoves[0].curValue;
             mainManager->preBestAvgValue  = bestWorker->rootMoves[0].avgValue;
             mainManager->preTimeReduction = mainManager->timeReduction;
-            mainManager->atFirst          = false;
         }
     }
 
@@ -2431,10 +2430,9 @@ MainSearchManager::MainSearchManager(const UpdateContext& updateCtx) noexcept :
 void MainSearchManager::init() noexcept {
 
     timeManager.init();
-    preBestCurValue  = VALUE_ZERO;
-    preBestAvgValue  = VALUE_ZERO;
+    preBestCurValue  = VALUE_NONE;
+    preBestAvgValue  = VALUE_NONE;
     preTimeReduction = 0.85;
-    atFirst          = true;
 }
 
 // Used to print debug info and, more importantly,
@@ -2501,8 +2499,8 @@ void MainSearchManager::handle_time_management(const Worker& worker,
     double inconsistencyFactor = std::clamp(0.1185
                                             + 0.0224 * (preBestAvgValue - bestValue)
                                             + 0.0093 * (preBestCurValue - bestValue),
-                                            1.0000 - !atFirst * 0.4300,
-                                            1.0000 + !atFirst * 0.7000);
+                                            1.0000 - (preBestAvgValue != VALUE_NONE) * 0.4300,
+                                            1.0000 + (preBestAvgValue != VALUE_NONE) * 0.7000);
 
     // Compute stable depth (difference between the current search depth and the last best depth)
     Depth stableDepth = worker.completedDepth - lastCompletedDepth;

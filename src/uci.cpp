@@ -20,21 +20,19 @@
 #include <algorithm>
 #include <cassert>
 #include <cctype>
-#include <cmath>
 #include <cstddef>
 #include <functional>
 #include <iostream>
 #include <optional>
 #include <sstream>
+#include <string>
 #include <unordered_map>
 #include <utility>
 #include <vector>  // IWYU pragma: keep
 
 #include "benchmark.h"
-#include "bitboard.h"
 #include "memory.h"
 #include "option.h"
-#include "position.h"
 #include "search.h"
 
 namespace DON {

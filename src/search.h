@@ -481,7 +481,6 @@ class MainSearchManager final: public ISearchManager {
     Value  preBestCurValue;
     Value  preBestAvgValue;
     double preTimeReduction;
-    bool   atFirst;
 };
 
 // NullSearchManager is a no-op implementation of ISearchManager
