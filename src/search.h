@@ -517,6 +517,7 @@ struct Stack final {
     std::uint16_t cutoffCount;
     bool          inCheck;
     bool          ttPv;
+    bool          followPV;
 };
 
 // Worker does the actual search.
@@ -607,6 +608,8 @@ class Worker final {
     const std::size_t threadId, threadCount, numaId, numaThreadCount;
 
     const NumaReplicatedAccessToken numaAccessToken;
+
+    Moves lastIterationPV;
 
     ISearchManagerPtr                                   manager;
     const SystemWideLazyNumaReplicated<NNUE::Networks>& networks;

@@ -476,6 +476,7 @@ void Worker::iterative_deepening() noexcept {
     assert(rootMovesSize != 0 && rootMovesSize <= MOVE_MAX);
 
     accStack.reset();
+    lastIterationPV.clear();
 
     for (auto& colorQuietHist : quietHistory)
         for (auto& quietHist : colorQuietHist)
@@ -646,6 +647,8 @@ void Worker::iterative_deepening() noexcept {
         {
             completedDepth = rootDepth;
 
+            lastIterationPV = rootMoves[0].pv;
+
             if (rootMoves[0].pv[0] != lastBestPV[0])
                 lastCompletedDepth = rootDepth;
 
@@ -775,6 +778,10 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
 
         assert(DEPTH_ZERO < depth && depth <= DEPTH_MAX);
     }
+
+    ss->followPV = RootNode
+                || ((ss - 1)->followPV && ss->ply - 1 < int(lastIterationPV.size())
+                    && (ss - 1)->move == lastIterationPV[ss->ply - 1]);
 
     // Check for the available remaining time
     if (is_main_worker())
@@ -1138,7 +1145,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
     // (*Scaler) Making IIR more aggressive scales poorly.
     if constexpr (!AllNode)
     {
-        depth -= (depth > 5) & (ttmNone) & (red <= 3072);
+        depth -= (depth > 5) & !ss->followPV & (ttmNone) & (red <= 3072);
     }
 
     // Step 11. ProbCut
