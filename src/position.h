@@ -631,7 +631,7 @@ inline Bitboard Position::attackers_bb(Square s) const noexcept {
     return attackers_bb(s, pieces_bb());
 }
 
-// Checks if there are any slide attackers to 's' from 'c'
+// Checks if there are any slide attackers to 's'
 inline bool Position::slide_attackers_exists(Square s, Bitboard attackersBB, Bitboard occupancyBB) const noexcept {
     return (attackersBB & pieces_bb(QUEEN, BISHOP) & attacks_bb<BISHOP>(s, occupancyBB)) != 0
         || (attackersBB & pieces_bb(QUEEN, ROOK  ) & attacks_bb<ROOK  >(s, occupancyBB)) != 0;
@@ -639,7 +639,7 @@ inline bool Position::slide_attackers_exists(Square s, Bitboard attackersBB, Bit
 inline bool Position::slide_attackers_exists(Square s, Bitboard attackersBB) const noexcept {
     return slide_attackers_exists(s, attackersBB, pieces_bb());
 }
-// Checks if there are any attackers to 's' from 'c'
+// Checks if there are any attackers to 's'
 inline bool Position::attackers_exists(Square s, Bitboard attackersBB, Bitboard occupancyBB) const noexcept {
     return (attackersBB & pieces_bb(QUEEN, BISHOP) & attacks_bb<BISHOP>(s, occupancyBB)) != 0
         || (attackersBB & pieces_bb(QUEEN, ROOK  ) & attacks_bb<ROOK  >(s, occupancyBB)) != 0
