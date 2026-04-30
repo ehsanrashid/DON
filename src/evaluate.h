@@ -28,7 +28,7 @@ namespace DON {
 // The default net name MUST follow the format nn-[SHA256 first 12 digits].nnue
 // for the profile-build process to work.
 #define BigEvalFileDefaultName "nn-976caeb98569.nnue"
-#define SmallEvalFileDefaultName "nn-37f18f62d772.nnue"
+#define SmallEvalFileDefaultName "nn-47fc8b7fff06.nnue"
 
 class Position;
 

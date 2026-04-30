@@ -166,12 +166,13 @@ void build_continuation_history(const Stack*                    ss,
 void update_continuation_history(Stack* ss, Piece pc, Square dstSq, int bonus) noexcept {
     assert(dstSq != SQ_NONE);
 
-    constexpr StdArray<int, CONT_HISTORY_COUNT> ContHistoryOffsets{
-      82, 00, 00, 00, 00, 00, 00, 00  //
-    };
     constexpr StdArray<double, CONT_HISTORY_COUNT> ContHistoryWeights{
       1.0801, 0.6885, 0.3085, 0.5585, 0.1231, 0.41699, 0.1092, 0.2167  //
     };
+
+    // Multipliers for positive history consistency
+    constexpr int CMHCMultipliers[] = {87, 94, 106, 118, 114, 128, 128};
+    int           positiveCount     = 0;
 
     // In check only update 2-ply continuation history
     std::size_t ContHistoryCount = ss->inCheck ? 2 : CONT_HISTORY_COUNT;
@@ -183,8 +184,12 @@ void update_continuation_history(Stack* ss, Piece pc, Square dstSq, int bonus) n
         if (!ssi->move.is_ok())
             break;
 
-        (*ssi->pieceSqHistory)[+pc][dstSq]
-          << ContHistoryOffsets[i] + constexpr_round(ContHistoryWeights[i] * double(bonus));
+        auto& historyEntry = (*ssi->pieceSqHistory)[+pc][dstSq];
+        if (historyEntry > 0)
+            positiveCount++;
+
+        int multiplier = CMHCMultipliers[positiveCount];
+        historyEntry << constexpr_round(ContHistoryWeights[i] * multiplier * bonus) + (i < 2) * 82;
     }
 }
 
