@@ -113,8 +113,9 @@ std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& ac
 
     // Estimate the value of each piece by doing a differential evaluation from
     // the current base eval, simulating the removal of the piece from its square.
-    std::int32_t baseEval = networks.big.evaluate(pos, *accStack, accCaches.big);
-    baseEval              = pos.active_color() == WHITE ? +baseEval : -baseEval;
+    auto netOut   = networks.big.evaluate(pos, *accStack, accCaches.big);
+    auto baseEval = netOut.psqt + netOut.positional;
+    baseEval      = pos.active_color() == WHITE ? +baseEval : -baseEval;
 
     for (File f = FILE_A; f <= FILE_H; ++f)
         for (Rank r = RANK_1; r <= RANK_8; ++r)
@@ -129,10 +130,11 @@ std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& ac
 
                 accStack->reset();
 
-                std::int32_t curEval = networks.big.evaluate(pos, *accStack, accCaches.big);
-                curEval              = pos.active_color() == WHITE ? +curEval : -curEval;
+                netOut    = networks.big.evaluate(pos, *accStack, accCaches.big);
+                auto eval = netOut.psqt + netOut.positional;
+                eval      = pos.active_color() == WHITE ? +eval : -eval;
 
-                v = Value(baseEval - curEval);
+                v = baseEval - eval;
 
                 pos.put(sq, pc);
             }

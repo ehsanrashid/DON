@@ -270,6 +270,9 @@ class Position final {
     [[nodiscard]] Bitboard attackers_bb(Square s) const noexcept;
 
     [[nodiscard]] bool
+    slide_attackers_exists(Square s, Bitboard attackersBB, Bitboard occupancyBB) const noexcept;
+    [[nodiscard]] bool slide_attackers_exists(Square s, Bitboard attackersBB) const noexcept;
+    [[nodiscard]] bool
     attackers_exists(Square s, Bitboard attackersBB, Bitboard occupancyBB) const noexcept;
     [[nodiscard]] bool attackers_exists(Square s, Bitboard attackersBB) const noexcept;
 
@@ -351,8 +354,6 @@ class Position final {
     [[nodiscard]] Value evaluate() const noexcept;
 
     // Static Exchange Evaluation:
-    template<bool Expose = true>
-    [[nodiscard]] bool see_ge(Move m, int threshold) const noexcept;
     [[nodiscard]] auto see(Move m) const noexcept { return SEE(*this, m); }
 
     [[nodiscard]] bool is_repetition(std::int16_t ply) const noexcept;
@@ -428,6 +429,8 @@ class Position final {
     void set_state() noexcept;
     void set_pinner_blocker() noexcept;
     void set_ext_state() noexcept;
+
+    [[nodiscard]] bool see_ge(Move m, int threshold) const noexcept;
 
     template<bool MoveDone = true>
     bool
@@ -628,6 +631,14 @@ inline Bitboard Position::attackers_bb(Square s) const noexcept {
     return attackers_bb(s, pieces_bb());
 }
 
+// Checks if there are any slide attackers to 's' from 'c'
+inline bool Position::slide_attackers_exists(Square s, Bitboard attackersBB, Bitboard occupancyBB) const noexcept {
+    return (attackersBB & pieces_bb(QUEEN, BISHOP) & attacks_bb<BISHOP>(s, occupancyBB)) != 0
+        || (attackersBB & pieces_bb(QUEEN, ROOK  ) & attacks_bb<ROOK  >(s, occupancyBB)) != 0;
+}
+inline bool Position::slide_attackers_exists(Square s, Bitboard attackersBB) const noexcept {
+    return slide_attackers_exists(s, attackersBB, pieces_bb());
+}
 // Checks if there are any attackers to 's' from 'c'
 inline bool Position::attackers_exists(Square s, Bitboard attackersBB, Bitboard occupancyBB) const noexcept {
     return (attackersBB & pieces_bb(QUEEN, BISHOP) & attacks_bb<BISHOP>(s, occupancyBB)) != 0
@@ -1124,7 +1135,7 @@ inline constexpr State* Position::state() const noexcept { return st; }
 
 // Position::SEE
 inline bool Position::SEE::operator>=(int threshold) const noexcept {
-    return pos.see_ge<true>(move, threshold);
+    return pos.see_ge(move, threshold);
 }
 inline bool Position::SEE::operator>(int threshold) const noexcept {
     return (*this >= threshold + 1);
