@@ -21,6 +21,7 @@
 #include <cassert>
 #include <cstdio>
 #include <memory>
+#include <utility>
 
 #include "misc.h"
 #include "position.h"
