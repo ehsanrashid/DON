@@ -641,8 +641,7 @@ inline bool Position::slide_attackers_exists(Square s, Bitboard attackersBB) con
 }
 // Checks if there are any attackers to 's'
 inline bool Position::attackers_exists(Square s, Bitboard attackersBB, Bitboard occupancyBB) const noexcept {
-    return (attackersBB & pieces_bb(QUEEN, BISHOP) & attacks_bb<BISHOP>(s, occupancyBB)) != 0
-        || (attackersBB & pieces_bb(QUEEN, ROOK  ) & attacks_bb<ROOK  >(s, occupancyBB)) != 0
+    return slide_attackers_exists(s, attackersBB, occupancyBB)
         || (attackersBB & ((pieces_bb(WHITE, PAWN) & attacks_bb<PAWN  >(s, BLACK))
                          | (pieces_bb(BLACK, PAWN) & attacks_bb<PAWN  >(s, WHITE)))) != 0
         || (attackersBB & pieces_bb(KNIGHT       ) & attacks_bb<KNIGHT>(s)) != 0
