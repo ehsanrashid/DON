@@ -2260,12 +2260,12 @@ bool Worker::ponder_move_extracted() noexcept {
     State st;
     rootPos.do_move(bestMove, st, true, this);
 
-    //if (rootPos.is_draw(1))
-    //{
-    //    rootPos.undo_move(bestMove);
-    //
-    //    return false;
-    //}
+    if (rootPos.is_draw(1))
+    {
+        rootPos.undo_move(bestMove);
+
+        return false;
+    }
 
     // Legal moves for the opponent
     MoveList<GenType::LEGAL> oLegalMoves(rootPos);
