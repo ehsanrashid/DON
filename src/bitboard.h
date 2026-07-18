@@ -87,12 +87,13 @@ inline constexpr Bitboard RANK_8_BB = RANK_1_BB << (7 * 8);
 inline constexpr Bitboard EDGE_FILES_BB      = FILE_A_BB | FILE_H_BB;
 inline constexpr Bitboard PROMOTION_RANKS_BB = RANK_8_BB | RANK_1_BB;
 
+inline constexpr Bitboard WHITE_BB = 0x55AA55AA55AA55AAull;
+inline constexpr Bitboard BLACK_BB = ~WHITE_BB;
+
 template<Color C>
 constexpr Bitboard color_bb() noexcept {
     static_assert(is_ok(C), "Invalid color for color_bb()");
-    constexpr Bitboard WhiteBB = 0x55AA55AA55AA55AAull;
-    constexpr Bitboard BlackBB = ~WhiteBB;
-    return C == WHITE ? WhiteBB : BlackBB;
+    return C == WHITE ? WHITE_BB : BLACK_BB;
 }
 
 // Magic holds all magic bitboards relevant data for a single square
@@ -185,11 +186,6 @@ constexpr Bitboard operator|(Square s1, Square s2) noexcept { return square_bb(s
 template<typename... Squares>
 constexpr Bitboard make_bb(Squares... squares) noexcept {
     return (square_bb(squares) | ...);
-}
-// Returns complement bitboard from list of squares
-template<typename... Squares>
-constexpr Bitboard make_comp_bb(Squares... squares) noexcept {
-    return ~make_bb(squares...);
 }
 
 // Return a bitboard representing all the squares on the given file
@@ -703,15 +699,11 @@ inline Square lsq(Bitboard b) noexcept {
     if (auto bb = std::uint32_t(b); bb != 0)
     {
         _BitScanForward(&idx, bb);
-
         return Square(idx);
     }
-    else
-    {
-        _BitScanForward(&idx, std::uint32_t(b >> 32));
 
-        return Square(idx + 32);
-    }
+    _BitScanForward(&idx, std::uint32_t(b >> 32));
+    return Square(idx + 32);
     #endif
 #else  // Compiler is neither GCC nor MSVC compatible
     #error "Compiler not supported."
@@ -736,15 +728,11 @@ inline Square msq(Bitboard b) noexcept {
     if (auto bb = std::uint32_t(b >> 32); bb != 0)
     {
         _BitScanReverse(&idx, bb);
-
         return Square(idx + 32);
     }
-    else
-    {
-        _BitScanReverse(&idx, std::uint32_t(b));
 
-        return Square(idx);
-    }
+    _BitScanReverse(&idx, std::uint32_t(b));
+    return Square(idx);
     #endif
 #else  // Compiler is neither GCC nor MSVC compatible
     #error "Compiler not supported."
@@ -773,14 +761,6 @@ inline Square pop_msq(Bitboard& b) noexcept {
     b ^= s;
 
     return s;
-}
-
-// Returns the bitboard of the least significant square of the non-zero bitboard.
-// It is equivalent to square_bb(lsq(bb)).
-constexpr Bitboard lsq_bb(Bitboard b) noexcept {
-    assert(b != 0);
-
-    return b & -b;
 }
 
 }  // namespace DON

@@ -46,29 +46,30 @@ int main(int argc, const char* argv[]) noexcept {
 
     Tablebase::Syzygy::init();
 
-    UCI uci(argc, argv);
+    CommandLine commandLine(argc, argv);
+
+    UCI uci(commandLine.arguments[0]);
 
     Tune::init(uci.options());
 
-    if (uci.arguments().size() <= 1)
-    {
-        uci.process_input(std::cin);
-    }
-    else
+    if (commandLine.arguments.size() > 1)
     {
         std::string command;
         command.reserve(256);
 
-        for (std::size_t i = 1; i < uci.arguments().size(); ++i)
+        for (std::size_t i = 1; i < commandLine.arguments.size(); ++i)
         {
             if (!command.empty())
                 command.push_back(' ');
 
-            command.append(uci.arguments()[i]);
+            command.append(commandLine.arguments[i]);
         }
 
         uci.execute(command);
     }
-
+    else
+    {
+        uci.process_input(std::cin);
+    }
     return 0;
 }

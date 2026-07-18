@@ -27,10 +27,10 @@
 
 #include "evaluate.h"
 #include "movegen.h"
+#include "notation.h"
 #include "numa.h"
 #include "perft.h"
 #include "shm.h"
-#include "uci.h"
 #include "book/polyglot.h"
 #include "nnue/nmisc.h"
 #include "tablebase/syzygy.h"
@@ -154,7 +154,7 @@ void Engine::setup(std::string_view fen, const Strings& moves) noexcept {
 
     for (const auto& move : moves)
     {
-        Move m = UCI::mix_to_move(move, pos, MoveList<GenType::LEGAL>(pos));
+        Move m = mix_to_move(move, pos, MoveList<GenType::LEGAL>(pos));
 
         if (m == Move::None)
         {
@@ -344,7 +344,7 @@ void Engine::verify_networks() const noexcept {
         if (!error.empty())
             message.append(". ").append(error);
 
-        UCI::print_info_string(message);
+        print_info_string(message);
     }
 }
 

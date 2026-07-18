@@ -67,6 +67,7 @@ const Strings Positions{
   "r3k2r/3nnpbp/q2pp1p1/p7/Pp1PPPP1/4BNN1/1P5P/R2Q1RK1 w kq - 0 16",
   "3Qb1k1/1r2ppb1/pN1n2q1/Pp1Pp1Pr/4P2p/4BP2/4B1R1/1R5K b - - 11 40",
   "4k3/3q1r2/1N2r1b1/3ppN2/2nPP3/1B1R2n1/2R1Q3/3K4 w - - 5 4",
+  "1r6/1P4bk/3qr1p1/N6p/3pp2P/6R1/3Q1PP1/1R4K1 w - - 1 42",
 
   // Positions with high numbers of changed threats
   "k7/2n1n3/1nbNbn2/2NbRBn1/1nbRQR2/2NBRBN1/3N1N2/7K w - - 0 1",
@@ -523,21 +524,12 @@ Setup benchmark(std::istream& is) noexcept {
         return 50000.0 / double(15 + ply);
     };
 
-    double MoveTimeSum = 0.0;
-
+    double moveTimeSum = 0.0;
     for (const auto& game : Games)
-    {
-        std::uint16_t ply = 1;
-
         for (std::size_t i = 0; i < game.size(); ++i)
-        {
-            MoveTimeSum += calc_move_time(ply);
+            moveTimeSum += calc_move_time(i + 1);
 
-            ++ply;
-        }
-    }
-
-    double TimeScaleFactor = 1000.0 * double(moveTimeDesired) / double(MoveTimeSum);
+    double timeScaleFactor = 1000.0 * double(moveTimeDesired) / double(moveTimeSum);
 
     for (const auto& game : Games)
     {
@@ -549,7 +541,7 @@ Setup benchmark(std::istream& is) noexcept {
         {
             setup.commands.emplace_back("position fen " + fen);
 
-            std::size_t moveTime = int(calc_move_time(ply) * TimeScaleFactor);
+            std::size_t moveTime = int(calc_move_time(ply) * timeScaleFactor);
 
             setup.commands.emplace_back("go movetime " + std::to_string(moveTime));
 

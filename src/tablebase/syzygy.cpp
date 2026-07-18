@@ -45,11 +45,11 @@
 #include "../memory.h"
 #include "../misc.h"
 #include "../movegen.h"
+#include "../notation.h"
 #include "../option.h"
 #include "../position.h"
 #include "../search.h"
 #include "../types.h"
-#include "../uci.h"
 
 namespace DON::Tablebase::Syzygy {
 
@@ -1912,7 +1912,7 @@ void init(std::string_view paths) noexcept {
         }
     }
 
-    UCI::print_info_string(tbTables.info());
+    print_info_string(tbTables.info());
 
     DEBUG_LOG("distance-max: " << tbTables.distance_max());
 }
@@ -2103,7 +2103,7 @@ bool rank_root_moves_dtz(Position& pos, RootMoves& rootMoves, bool useRule50, bo
             return false;
         if (time_to_abort())
         {
-            UCI::print_info_string("Unable to completely probe Syzygy DTZ tables due to time pressure.");
+            print_info_string("Unable to completely probe Syzygy DTZ tables due to time pressure.");
             return false;
         }
 

@@ -186,8 +186,8 @@ inline constexpr std::size_t BYTE_BITS = 8;
 inline constexpr std::size_t HEX64_SIZE = 16;
 inline constexpr std::size_t HEX32_SIZE = 8;
 
-inline constexpr std::size_t ONE_KB = 1024;
-inline constexpr std::size_t ONE_MB = ONE_KB * ONE_KB;
+inline constexpr std::size_t _KB = 1024;
+inline constexpr std::size_t _MB = _KB * _KB;
 
 inline constexpr std::size_t BLOCK_4  = 4;
 inline constexpr std::size_t BLOCK_8  = 2 * BLOCK_4;
@@ -198,10 +198,6 @@ inline constexpr std::int64_t INT_LIMIT = (1LL << 31) - 1;
 
 inline constexpr double LN2   = 0.693147180559945309417232121458176568;
 inline constexpr double SQRT2 = 1.41421356237309504880168872420969808;
-
-// Constants for Murmur Hashing
-inline constexpr std::uint64_t MURMUR_M = 0xC6A4A7935BD1E995ull;
-inline constexpr std::uint8_t  MURMUR_R = 47;
 
 inline constexpr std::string_view EMPTY_STRING{"<empty>"};
 inline constexpr std::string_view WHITE_SPACE{" \t\n\r\f\v"};
@@ -492,46 +488,24 @@ inline TimePoint now() noexcept {
 
 std::string format_time(const std::chrono::system_clock::time_point& timePoint) noexcept;
 
-struct IndexCount final {
-   public:
-    std::size_t begIdx;
-    std::size_t count;
-};
-
-constexpr IndexCount
-thread_index_count(std::size_t threadId, std::size_t threadCount, std::size_t size) noexcept {
-    assert(threadCount != 0 && threadId < threadCount);
-
-    std::size_t stride = size / threadCount;
-    std::size_t remain = size % threadCount;  // remainder to distribute
-
-    // Distribute remainder among the first 'remain' threads
-    std::size_t begIdx = threadId * stride + std::min(threadId, remain);
-    std::size_t count  = stride + std::size_t(threadId < remain);
-
-    assert(begIdx + count <= size);
-    return {begIdx, count};
-}
-
 struct IndexRange final {
    public:
-    std::size_t begIdx;
-    std::size_t endIdx;
+    std::size_t beg;
+    std::size_t end;
 };
 
-constexpr IndexRange
-thread_index_range(std::size_t threadId, std::size_t threadCount, std::size_t size) noexcept {
-    assert(threadCount != 0 && threadId < threadCount);
+constexpr IndexRange split_range(std::size_t id, std::size_t parts, std::size_t size) noexcept {
+    assert(parts != 0 && id < parts);
 
-    std::size_t stride = size / threadCount;
-    std::size_t remain = size % threadCount;  // remainder to distribute
+    std::size_t base  = size / parts;
+    std::size_t extra = size % parts;  // remainder to distribute
 
-    // Distribute remainder among the first 'remain' threads
-    std::size_t begIdx = threadId * stride + std::min(threadId, remain);
-    std::size_t endIdx = begIdx + stride + std::size_t(threadId < remain);
+    // Distribute remainder among the first 'extra' threads
+    std::size_t beg = id * base + std::min(id, extra);
+    std::size_t end = beg + base + std::size_t(id < extra);
 
-    assert(begIdx <= endIdx && endIdx <= size);
-    return {begIdx, endIdx};
+    assert(beg <= end && end <= size);
+    return {beg, end};
 }
 
 struct CallOnce final {
@@ -912,13 +886,13 @@ class MultiArray {
     }
 
     template<typename U>
-    void fill_n(std::size_t begIdx, std::size_t count, const U& v) noexcept {
+    void fill_n(std::size_t beg, std::size_t count, const U& v) noexcept {
         static_assert(is_strictly_assignable_v<T, U>, "Cannot assign fill value to element type");
 
-        std::size_t endIdx = std::min(begIdx + count, size());
-        assert(begIdx <= endIdx && endIdx <= size());
+        std::size_t end = std::min(beg + count, size());
+        assert(beg <= end && end <= size());
 
-        for (std::size_t idx = begIdx; idx < endIdx; ++idx)
+        for (std::size_t idx = beg; idx < end; ++idx)
         {
             if constexpr (sizeof...(Sizes) == 0)
                 _data[idx] = v;
@@ -991,10 +965,10 @@ class DynamicArray final {
     }
 
     template<typename U>
-    void fill(std::size_t begIdx, std::size_t endIdx, const U& v) noexcept {
-        assert(begIdx <= endIdx && endIdx <= size());
+    void fill(std::size_t beg, std::size_t end, const U& v) noexcept {
+        assert(beg <= end && end <= size());
 
-        for (std::size_t idx = begIdx; idx < endIdx; ++idx)
+        for (std::size_t idx = beg; idx < end; ++idx)
             data()[idx].fill(v);
     }
 
@@ -1363,24 +1337,27 @@ struct FlagsGuard final {
 // Fast, non-cryptographic 64-bit hash suitable for general-purpose hashing.
 inline std::uint64_t
 hash_bytes(const char* RESTRICT data, std::size_t size, std::uint64_t seed = 0) noexcept {
+    constexpr std::uint64_t MurmurM = 0xC6A4A7935BD1E995ull;
+    constexpr std::uint8_t  MurmurR = 47;
+
     // Initialize hash with seed and length (MurmurHash64A convention)
-    std::uint64_t h = seed ^ (size * MURMUR_M);
+    std::uint64_t h = seed ^ (size * MurmurM);
 
     // Mix 64-bit block (MurmurHash64A core mixing step)
-    constexpr auto Mix = [](std::uint64_t k) noexcept {
-        k *= MURMUR_M;
-        k ^= k >> MURMUR_R;
-        k *= MURMUR_M;
+    constexpr auto mix = [](std::uint64_t k) noexcept {
+        k *= MurmurM;
+        k ^= k >> MurmurR;
+        k *= MurmurM;
         return k;
     };
 
-    const auto                 beg = reinterpret_cast<const std::uint8_t*>(data);
+    const auto*                beg = reinterpret_cast<const std::uint8_t*>(data);
     const auto* const RESTRICT end = beg + size;
     const auto* RESTRICT       p   = beg;
 
     // Process 32-byte blocks (4 × 64-bit lanes) for better throughput.
     // The end pointer is rounded down to the nearest multiple of BLOCK_32.
-    const std::uint8_t* const RESTRICT block32End = beg + (size & ~(BLOCK_32 - 1));
+    const auto* const RESTRICT block32End = beg + (size & ~(BLOCK_32 - 1));
     while (p < block32End)
     {
         std::uint64_t k0, k1, k2, k3;
@@ -1390,19 +1367,19 @@ hash_bytes(const char* RESTRICT data, std::size_t size, std::uint64_t seed = 0) 
         std::memcpy(&k2, p + 2 * BLOCK_8, BLOCK_8);
         std::memcpy(&k3, p + 3 * BLOCK_8, BLOCK_8);
 
-        k0 = Mix(k0);
-        k1 = Mix(k1);
-        k2 = Mix(k2);
-        k3 = Mix(k3);
+        k0 = mix(k0);
+        k1 = mix(k1);
+        k2 = mix(k2);
+        k3 = mix(k3);
         // Merge each mixed lane into the running hash
         h ^= k0;
-        h *= MURMUR_M;
+        h *= MurmurM;
         h ^= k1;
-        h *= MURMUR_M;
+        h *= MurmurM;
         h ^= k2;
-        h *= MURMUR_M;
+        h *= MurmurM;
         h ^= k3;
-        h *= MURMUR_M;
+        h *= MurmurM;
 
         p += BLOCK_32;
     }
@@ -1416,13 +1393,13 @@ hash_bytes(const char* RESTRICT data, std::size_t size, std::uint64_t seed = 0) 
         std::memcpy(&k0, p + 0 * BLOCK_8, BLOCK_8);
         std::memcpy(&k1, p + 1 * BLOCK_8, BLOCK_8);
 
-        k0 = Mix(k0);
-        k1 = Mix(k1);
+        k0 = mix(k0);
+        k1 = mix(k1);
         // Merge each word into the running hash
         h ^= k0;
-        h *= MURMUR_M;
+        h *= MurmurM;
         h ^= k1;
-        h *= MURMUR_M;
+        h *= MurmurM;
 
         p += BLOCK_16;
     }
@@ -1435,10 +1412,10 @@ hash_bytes(const char* RESTRICT data, std::size_t size, std::uint64_t seed = 0) 
         // Safe unaligned load
         std::memcpy(&k, p, BLOCK_8);
 
-        k = Mix(k);
+        k = mix(k);
         // Merge block into the running hash
         h ^= k;
-        h *= MURMUR_M;
+        h *= MurmurM;
 
         p += BLOCK_8;
     }
@@ -1458,13 +1435,13 @@ hash_bytes(const char* RESTRICT data, std::size_t size, std::uint64_t seed = 0) 
         }
         // Merge into the running hash
         h ^= k;
-        h *= MURMUR_M;
+        h *= MurmurM;
     }
 
     // Final avalanche mix to ensure strong bit diffusion
-    h ^= h >> MURMUR_R;
-    h *= MURMUR_M;
-    h ^= h >> MURMUR_R;
+    h ^= h >> MurmurR;
+    h *= MurmurM;
+    h ^= h >> MurmurR;
 
     return h;
 }

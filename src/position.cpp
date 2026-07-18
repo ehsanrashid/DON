@@ -655,7 +655,7 @@ void Position::set_castling_rights(Color c, Square rookOrgSq) noexcept {
     Bitboard kingPathBB = between_bb(kingOrgSq, kingDstSq);
     Bitboard rookPathBB = between_bb(rookOrgSq, rookDstSq);
 
-    castlings.fullPathBB[c][+cs] = (kingPathBB | rookPathBB) & make_comp_bb(kingOrgSq, rookOrgSq);
+    castlings.fullPathBB[c][+cs] = (kingPathBB | rookPathBB) & ~make_bb(kingOrgSq, rookOrgSq);
     castlings.kingPathBB[c][+cs] = kingPathBB;
     castlings.rookSq[c][+cs]     = rookOrgSq;
 }
@@ -775,7 +775,7 @@ bool Position::enpassant_possible(Color     ac,
     {
         // Step 1: If there are other checkers besides the pawn to be captured,
         // en-passant is never legal because it would leave the king in check.
-        if ((checkers_bb() & make_comp_bb(capturedSq)) != 0)
+        if ((checkers_bb() & ~make_bb(capturedSq)) != 0)
             epPawnsBB = 0;
         // Step 2: At least one pawn is either unpinned or aligned with the king along the en-passant line.
         else if (preSt != nullptr)
@@ -1546,7 +1546,6 @@ Key Position::move_key(Move m) const noexcept {
 // Tests if the SEE (Static Exchange Evaluation) value of the move
 // is greater or equal to the given threshold.
 // An algorithm similar to alpha-beta pruning with a null window.
-template<bool Expose>
 bool Position::see_ge(Move m, int threshold) const noexcept {
     assert(legal(m));
 
@@ -1821,50 +1820,24 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
         }
     }
 
-    if constexpr (Expose)
+    // If move looks bad, check if it exposes opponent's king or wins material
+    if (!ge)
     {
-        // If move looks bad, check if it exposes opponent's king or wins material
-        if (!ge)
-        {
-            ac = active_color();
+        ac = active_color();
 
-            attackersBB &= occupancyBB;
-            occupancyBB |= dstSq;  // Ensure moving piece is on destination
+        attackersBB &= occupancyBB;
+        occupancyBB |= dstSq;  // Ensure moving piece is on destination
 
-            // Check 1: Does move expose opponent's king to attack?
-            Square kingSq = square<KING>(~ac);
-            if ((occupancyBB & kingSq) != 0
-                && attackers_exists(kingSq, pieces_bb(ac) & occupancyBB, occupancyBB))
-                ge = true;
-            // Check 2: Can minor pieces attack opponent's queen while own queen is safe?
-            else
-            {
-                Bitboard oppQueenBB = pieces_bb(~ac, QUEEN) & ~attackersBB & occupancyBB;
-                if (oppQueenBB != 0)
-                {
-                    // Check can attack opponent's queen with bishops/rooks
-                    if (attackers_exists(lsq(oppQueenBB), pieces_bb(ac, BISHOP, ROOK) & occupancyBB,
-                                         occupancyBB))
-                    {
-                        // If there is a queen, make sure it's not hanging
-                        Bitboard ownQueenBB = pieces_bb(ac, QUEEN) & occupancyBB;
-                        // Queen trade is favorable?
-                        if (ownQueenBB == 0
-                            || !attackers_exists(lsq(ownQueenBB), pieces_bb(~ac) & occupancyBB,
-                                                 occupancyBB))
-                            ge = true;
-                    }
-                }
-            }
-        }
+        // Does move expose opponent's king to attack?
+        Square kingSq = square<KING>(~ac);
+        if ((occupancyBB & kingSq) != 0
+            && slide_attackers_exists(kingSq, pieces_bb(ac) & occupancyBB, occupancyBB))
+            ge = true;
     }
 
     // Return whether move is "good" (ge = true)
     return ge;
 }
-// Explicit template instantiations:
-template bool Position::see_ge<false>(Move m, int threshold) const noexcept;
-template bool Position::see_ge<true>(Move m, int threshold) const noexcept;
 
 // Draw by Repetition: position repeats once earlier but strictly
 // after the root, or repeats twice before or at the root.

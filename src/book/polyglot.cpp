@@ -30,10 +30,10 @@
 #include "../movegen.h"
 #include "../option.h"
 #include "../position.h"
+#include "../notation.h"
 #include "../prng.h"
 #include "../search.h"
 #include "../types.h"
-#include "../uci.h"
 
 namespace DON::Book {
 
@@ -467,7 +467,7 @@ bool PolyGlot::load(const std::filesystem::path& bookFile) noexcept {
 
     // Choose a chunk that balances system call overhead and memory pressure.
     // 2 MiB is a safe default; 4-64 MiB may be slightly faster on fast disks.
-    constexpr std::size_t ChunkSize = (2 * ONE_MB / EntrySize) * EntrySize;
+    constexpr std::size_t ChunkSize = (2 * _MB / EntrySize) * EntrySize;
 
     std::size_t dataSize = entryCount * EntrySize;
 
@@ -512,7 +512,7 @@ bool PolyGlot::load(const std::filesystem::path& bookFile) noexcept {
         for (std::size_t i = 0; i < entries.size(); ++i)
             swap_entry(&entries[i]);
 
-    UCI::print_info_string(info());
+    print_info_string(info());
 
     return true;
 }
@@ -621,7 +621,7 @@ Move PolyGlot::probe(Position& pos, const RootMoves& rootMoves, const Options& o
                   << std::setw(2) << ++cnt
                   << " key: "    << u64_to_string(candidate.key)
                   << std::left << std::setfill(' ')
-                  << " move: "   << std::setw(8) << UCI::move_to_san(pg_to_move(candidate.move, legalMoves), pos)
+                  << " move: "   << std::setw(8) << move_to_san(pg_to_move(candidate.move, legalMoves), pos)
                   << std::right << std::setfill('0')
                   << " weight: " << std::setw(5) << candidate.weight
                   << " learn: "  << std::setw(2) << candidate.learn

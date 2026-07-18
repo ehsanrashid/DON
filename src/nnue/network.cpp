@@ -28,8 +28,8 @@
 #include "../evaluate.h"
 #include "../misc.h"
 #include "../position.h"
+#include "../notation.h"
 #include "../types.h"
-#include "../uci.h"
 #include "common.h"
 
 // Macro to embed the default efficiently updatable neural network (NNUE) file
@@ -178,7 +178,7 @@ bool Network<Arch, Transformer>::save(std::string_view netFile) const noexcept {
     {
         if (std::string(evalFile.currentName) != std::string(evalFile.defaultName))
         {
-            UCI::print_info_string(
+            print_info_string(
               "Failed to export net. Non-embedded net can only be saved if the filename is specified");
             return false;
         }
@@ -190,8 +190,8 @@ bool Network<Arch, Transformer>::save(std::string_view netFile) const noexcept {
 
     bool saved = save(ofs, evalFile.currentName, evalFile.netDescription);
 
-    UCI::print_info_string(saved ? "Network saved successfully to " + evalFileName
-                                 : "Failed to export net");
+    print_info_string(saved ? "Network saved successfully to " + evalFileName
+                            : "Failed to export net");
     return saved;
 }
 
@@ -225,12 +225,12 @@ void Network<Arch, Transformer>::verify(std::string_view netFile) const noexcept
     constexpr std::size_t TotalSize = sizeof(featureTransformer) + LayerStacks * sizeof(Arch);
 
     std::string msg{"NNUE evaluation using " + std::string{netFile} + " ("  //
-                    + std::to_string(TotalSize / ONE_MB) + "MiB, ("
+                    + std::to_string(TotalSize / _MB) + "MiB, ("
                     + std::to_string(featureTransformer.TotalInputDimensions) + ", "
                     + std::to_string(network[0].TransformedFeatureDimensions) + ", "
                     + std::to_string(network[0].FC_0_Outputs) + ", "  //
                     + std::to_string(network[0].FC_1_Outputs) + ", 1))"};
-    UCI::print_info_string(msg);
+    print_info_string(msg);
 }
 
 template<typename Arch, typename Transformer>

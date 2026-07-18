@@ -199,9 +199,6 @@ struct AccumulatorUpdateContext final {
 
             threatWeights += Tiling::TileHeight;
         }
-    #if defined(USE_MMX)
-        _mm_empty();
-    #endif
 
         const auto* threatPsqtWeights = featureTransformer.threatPsqtWeights.data();
 
@@ -236,9 +233,6 @@ struct AccumulatorUpdateContext final {
 
             threatPsqtWeights += Tiling::PSQTTileHeight;
         }
-    #if defined(USE_MMX)
-        _mm_empty();
-    #endif
         // clang-format on
 #else
 
@@ -746,9 +740,6 @@ void update_threats_accumulator_full(Color                                 persp
             accumulator.psqtAccumulation[perspective][i] +=
               featureTransformer.threatPsqtWeights[index * PSQTBuckets + i];
     }
-#endif
-#if defined(USE_MMX)
-    _mm_empty();
 #endif
 }
 

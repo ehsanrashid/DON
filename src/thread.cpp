@@ -26,9 +26,9 @@
 
 #include "history.h"
 #include "movegen.h"
+#include "notation.h"
 #include "option.h"
 #include "types.h"
-#include "uci.h"
 #include "tablebase/syzygy.h"
 
 #if !defined(SUPPORTS_PTHREADS)
@@ -505,7 +505,7 @@ void Threads::start(Position&      pos,
             if (emplace && rootMoves.size() == legalMoves.size())
                 break;
 
-            Move m = UCI::mix_to_move(move, pos, legalMoves);
+            Move m = mix_to_move(move, pos, legalMoves);
 
             emplace = m != Move::None && !rootMoves.contains(m);
 
@@ -527,7 +527,7 @@ void Threads::start(Position&      pos,
             if (erase && rootMoves.empty())
                 break;
 
-            Move m = UCI::mix_to_move(move, pos, legalMoves);
+            Move m = mix_to_move(move, pos, legalMoves);
 
             erase = m != Move::None;
 
