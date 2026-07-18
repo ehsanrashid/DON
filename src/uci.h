@@ -39,10 +39,6 @@ class UCI final {
 
     void execute(std::string_view command) noexcept;
 
-    static void print_info_string(std::string_view infoSv) noexcept;
-
-    static inline bool stopInfoStr = false;
-
    private:
     UCI() noexcept                      = delete;
     UCI(const UCI&) noexcept            = delete;

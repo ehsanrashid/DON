@@ -345,7 +345,7 @@ void Engine::verify_networks() const noexcept {
         if (!error.empty())
             message.append(". ").append(error);
 
-        UCI::print_info_string(message);
+        print_info_string(message);
     }
 }
 

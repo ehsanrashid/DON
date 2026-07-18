@@ -33,6 +33,7 @@
 #include "benchmark.h"
 #include "memory.h"
 #include "misc.h"
+#include "notation.h"
 #include "option.h"
 #include "search.h"
 
@@ -352,16 +353,6 @@ void UCI::execute(std::string_view command) noexcept {
     }
 }
 
-void UCI::print_info_string(std::string_view infoSv) noexcept {
-
-    if (stopInfoStr)
-        return;
-
-    for (auto sv : split(infoSv, "\n", true))
-        if (!is_whitespace(sv))
-            std::cout << "info string " << sv << '\n';
-}
-
 namespace {
 
 void on_update_short(const ShortInfo& sInfo) noexcept {
@@ -613,7 +604,7 @@ void UCI::benchmark(std::istream& is) noexcept {
     engine.set_on_update_iter([](const auto&) {});
     engine.set_on_update_move([](const auto&) {});
 
-    stopInfoStr = true;
+    StopInfoStr = true;
 
     std::size_t num =
       std::count_if(setup.commands.begin(), setup.commands.end(),
@@ -776,7 +767,7 @@ void UCI::benchmark(std::istream& is) noexcept {
               << "\nnodes/second               : " << 1000 * nodes / elapsedTime << std::endl;
     // clang-format on
 
-    stopInfoStr = false;
+    StopInfoStr = false;
     set_update_callbacks();
 }
 

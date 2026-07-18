@@ -2445,7 +2445,7 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
         rootPos.undo_move(*itr);
 
     if (aborted)
-        UCI::print_info_string(
+        print_info_string(
           "Syzygy based PV extension requires more time, increase Overhead-Time as needed.");
 }
 

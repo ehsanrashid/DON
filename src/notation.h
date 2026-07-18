@@ -71,6 +71,10 @@ class Score final {
     std::variant<Unit, Tablebase, Mate> score;
 };
 
+inline bool StopInfoStr = false;
+
+void print_info_string(std::string_view infoSv) noexcept;
+
 [[nodiscard]] int       to_cp(Value v, const Position& pos) noexcept;
 [[nodiscard]] FixedText to_wdl(Value v, const Position& pos) noexcept;
 [[nodiscard]] FixedText to_score(const Score& score) noexcept;

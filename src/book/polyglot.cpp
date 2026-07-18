@@ -513,7 +513,7 @@ bool PolyGlot::load(const std::filesystem::path& bookFile) noexcept {
         for (std::size_t i = 0; i < entries.size(); ++i)
             swap_entry(&entries[i]);
 
-    UCI::print_info_string(info());
+    print_info_string(info());
 
     return true;
 }
