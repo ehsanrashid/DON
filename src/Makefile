@@ -215,8 +215,10 @@ ifneq ($(filter x86-64-avx512icl-cmp x86-64-avx512icl x86-64-vnni512-cmp x86-64-
                 x86-64-avx512-cmp x86-64-avx512 x86-64-avxvnni-cmp x86-64-avxvnni x86-64-bmi2-cmp x86-64-bmi2 \
                 x86-64-avx2 x86-64-sse41-popcnt x86-64-modern x86-64-sse41 x86-64-ssse3-popcnt x86-64-ssse3 x86-64 general-64 \
                 x86-32-sse41-popcnt x86-32-sse41 x86-32-sse2 x86-32 general-32 \
-                ppc-64-altivec ppc-64-vsx ppc-64 ppc-32 e2k armv7-neon armv7 armv8-dotprod armv8 apple-silicon riscv64 \
-                loongarch64-lasx loongarch64-lsx loongarch64,$(ARCH)),)
+                ppc-64-altivec ppc-64-vsx ppc-64 ppc-32 e2k armv7-neon armv7 armv8-dotprod armv8 apple-silicon \
+                riscv64 riscv64-rva23 \
+                loongarch64-lasx loongarch64-lsx loongarch64 \
+                wasm32 wasm32-relaxed-simd,$(ARCH)),)
    ARCH_SUPPORT = yes
 else
    ARCH_SUPPORT = no
@@ -491,8 +493,14 @@ ifeq ($(findstring e2k,$(ARCH)),e2k)
     popcnt = yes
 endif
 
-ifeq ($(ARCH),riscv64)
+ifeq ($(findstring riscv64,$(ARCH)),riscv64)
     arch = riscv64
+endif
+
+ifeq ($(findstring riscv64-rva23,$(ARCH)),riscv64-rva23)
+    rva23 = yes
+    popcnt = yes
+    prefetch = yes
 endif
 
 ifeq ($(findstring loongarch64,$(ARCH)),loongarch64)
@@ -508,7 +516,6 @@ endif
 endif
 
 endif
-
 
 ### ==========================================================================
 ### Section 3. Low-level Configuration
@@ -1163,6 +1170,7 @@ help:
 	echo "armv8-dotprod           > ARMv8 64-bit with popcnt, neon and dot product support" && \
 	echo "apple-silicon           > Apple silicon ARM64" && \
 	echo "riscv64                 > RISC-V 64-bit" && \
+	echo "riscv64-rva23           > RISC-V 64-bit RVA23 profile" && \
 	echo "loongarch64             > LoongArch 64-bit" && \
 	echo "loongarch64-lsx         > LoongArch 64-bit with SIMD eXtension" && \
 	echo "loongarch64-lasx        > LoongArch 64-bit with Advanced SIMD eXtension" && \
@@ -1329,7 +1337,9 @@ config-sanity: net
 	(test "$(arch)" = "any" || test "$(arch)" = "i386" || test "$(arch)" = "x86_64" || \
 	 test "$(arch)" = "ppc" || test "$(arch)" = "ppc64" || test "$(arch)" = "e2k" || \
 	 test "$(arch)" = "armv7" || test "$(arch)" = "armv8" || test "$(arch)" = "arm64" || \
-	 test "$(arch)" = "riscv64" || test "$(arch)" = "loongarch64") && \
+	 test "$(arch)" = "riscv64" || \
+	 test "$(arch)" = "loongarch64" || \
+	 test "$(arch)" = "wasm32") && \
 	(test "$(bits)" = "32" || test "$(bits)" = "64") && \
 	(test "$(prefetch)" = "no" || test "$(prefetch)" = "yes") && \
 	(test "$(popcnt)"   = "no" || test "$(popcnt)"   = "yes") && \
