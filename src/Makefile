@@ -185,6 +185,7 @@ VPATH := nnue:nnue/features:book:tablebase
 # dotprod = yes/no    --- -DUSE_NEON_DOTPROD --- Use ARM advanced SIMD Int8 dot product instructions
 # lsx = yes/no        --- -mlsx              --- Use Loongson SIMD eXtension
 # lasx = yes/no       --- -mlasx             --- use Loongson Advanced SIMD eXtension
+# syzygy = yes/no     --- -DNO_TABLEBASES    --- Support Syzygy tablebase probing
 #
 # native              --- Auto-detect best architecture for host CPU using ../scripts/get_native_properties.sh
 #
@@ -249,8 +250,10 @@ neon = no
 dotprod = no
 altivec = no
 vsx = no
+rva23 = no
 lsx = no
 lasx = no
+syzygy = yes
 STRIP = strip
 
 ### 2.2 Architecture specific
@@ -455,6 +458,17 @@ ifeq ($(ARCH),apple-silicon)
     arm_version = 8
     neon = yes
     dotprod = yes
+endif
+
+# WASM is largely compiled using emcc's x86 compatibility layer, with occasional
+# WASM-specific intrinsics
+ifeq ($(ARCH),wasm32)
+    arch = wasm32
+    sse = yes
+    sse2 = yes
+    ssse3 = yes
+    sse41 = yes
+    syzygy = no
 endif
 
 ifeq ($(ARCH),ppc-32)
@@ -998,6 +1012,11 @@ ifeq ($(cmp),yes)
 endif
 endif
 
+### Syzygy tablebases
+ifeq ($(syzygy),no)
+    CXXFLAGS += -DNO_TABLEBASES
+endif
+
 ### 3.8.1 Try to include git commit date for versioning
 GIT_DATE := $(shell git show -s --date=format:'%Y%m%d' --format=%cd HEAD 2>/dev/null)
 ifneq ($(GIT_DATE),)
@@ -1320,6 +1339,7 @@ config-sanity: net
 	echo "arm_version: '$(arm_version)'" && \
 	echo "lsx: '$(lsx)'" && \
 	echo "lasx: '$(lasx)'" && \
+	echo "syzygy: '$(syzygy)'" && \
 	echo "OS_WINDOWS: '$(OS_WINDOWS)'" && \
 	echo "COMP: '$(COMP)'" && \
 	echo "" && \
@@ -1362,6 +1382,7 @@ config-sanity: net
 	(test "$(neon)"     = "no" || test "$(neon)"     = "yes") && \
 	(test "$(lsx)"      = "no" || test "$(lsx)"      = "yes") && \
 	(test "$(lasx)"     = "no" || test "$(lasx)"     = "yes") && \
+	(test "$(syzygy)" = "yes" || test "$(syzygy)" = "no") && \
 	(test "$(OS_WINDOWS)" = "no" || test "$(OS_WINDOWS)" = "yes") && \
 	(test "$(COMP)" = "gcc" || test "$(COMP)" = "clang" || \
 	 test "$(COMP)" = "mingw" || test "$(COMP)" = "icx" || \
