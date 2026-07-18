@@ -165,15 +165,20 @@ void build_continuation_history(const Stack*                    ss,
 void update_continuation_history(Stack* ss, Piece pc, Square dstSq, int bonus) noexcept {
     assert(dstSq != SQ_NONE);
 
-    constexpr StdArray<int, CONT_HISTORY_COUNT> ContHistoryOffsets{
-      82, 00, 00, 00, 00, 00, 00, 00  //
-    };
     constexpr StdArray<double, CONT_HISTORY_COUNT> ContHistoryWeights{
       1.0801, 0.6885, 0.3085, 0.5585, 0.1231, 0.41699, 0.1092, 0.2167  //
+    };
+    constexpr StdArray<int, CONT_HISTORY_COUNT> Multipliers{
+      94, 103, 110, 106, 119, 121, 126, 128  //
+    };
+    constexpr StdArray<int, CONT_HISTORY_COUNT> ContHistoryOffsets{
+      73, 00, 00, 00, 00, 00, 00, 00  //
     };
 
     // In check only update 2-ply continuation history
     std::size_t ContHistoryCount = ss->inCheck ? 2 : CONT_HISTORY_COUNT;
+
+    int positiveCount = 0;
 
     for (std::size_t i = 0; i < ContHistoryCount; ++i)
     {
@@ -182,8 +187,15 @@ void update_continuation_history(Stack* ss, Piece pc, Square dstSq, int bonus) n
         if (!ssi->move.is_ok())
             break;
 
-        (*ssi->pieceSqHistory)[+pc][dstSq]
-          << ContHistoryOffsets[i] + constexpr_round(ContHistoryWeights[i] * double(bonus));
+        auto& historyEntry = (*ssi->pieceSqHistory)[+pc][dstSq];
+        bool  positive     = historyEntry > 0;
+
+        historyEntry << constexpr_round(ContHistoryWeights[i] * Multipliers[positiveCount] / 131072
+                                        * double(bonus))
+                          + ContHistoryOffsets[i];
+
+        if (positive)
+            ++positiveCount;
     }
 }
 
@@ -2533,7 +2545,7 @@ void MainSearchManager::handle_time_management(const Worker& worker,
     assert(stableDepth >= DEPTH_ZERO);
 
     // Use the stability factor to adjust the time reduction
-    timeReduction = 0.6600 + 0.8500 / (0.9800 + std::exp(0.5100 * (12.1500 - stableDepth)));
+    timeReduction = std::clamp(interpolate(double(stableDepth), 5.0, 18.0, 0.65, 1.55), 0.65, 1.55);
 
     // Compute ease factor that factors in previous time reduction
     double easeFactor = 0.4386 * (1.4300 + preTimeReduction) / timeReduction;
