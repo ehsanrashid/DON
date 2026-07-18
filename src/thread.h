@@ -156,7 +156,7 @@ class NativeThread final {
     }
 
    private:
-    static constexpr std::size_t TH_STACK_SIZE = 8 * ONE_MB;
+    static constexpr std::size_t TH_STACK_SIZE = 8 * _MB;
 
     pthread_t thread{};
     bool      joined = true;

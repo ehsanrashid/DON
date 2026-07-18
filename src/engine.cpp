@@ -27,6 +27,7 @@
 
 #include "evaluate.h"
 #include "movegen.h"
+#include "notation.h"
 #include "numa.h"
 #include "perft.h"
 #include "shm.h"
@@ -154,7 +155,7 @@ void Engine::setup(std::string_view fen, const Strings& moves) noexcept {
 
     for (const auto& move : moves)
     {
-        Move m = UCI::mix_to_move(move, pos, MoveList<GenType::LEGAL>(pos));
+        Move m = mix_to_move(move, pos, MoveList<GenType::LEGAL>(pos));
 
         if (m == Move::None)
         {

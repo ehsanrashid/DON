@@ -29,8 +29,8 @@
 #include "misc.h"
 #include "movegen.h"
 #include "position.h"
+#include "notation.h"
 #include "thread.h"
-#include "uci.h"
 
 namespace DON::Perft {
 
@@ -217,7 +217,7 @@ void PerftTable::free() noexcept {
 void PerftTable::resize(std::size_t ptSize, const Threads& threads) noexcept {
     free();
 
-    clusterCount = ptSize * ONE_MB / sizeof(PTCluster);
+    clusterCount = ptSize * _MB / sizeof(PTCluster);
 
     //DEBUG_LOG("Clustering perft table to " << clusterCount << " clusters.");
 
@@ -241,9 +241,9 @@ void PerftTable::init(const Threads& threads) noexcept {
     {
         threads.run_on_thread(threadId, [this, threadId, threadCount]() {
             // Each thread will zero its part of the hash table
-            auto [begIdx, count] = thread_index_count(threadId, threadCount, clusterCount);
+            auto [beg, end] = split_range(threadId, threadCount, clusterCount);
 
-            std::memset(&clusters[begIdx], 0, count * sizeof(PTCluster));
+            std::memset(&clusters[beg], 0, (end - beg) * sizeof(PTCluster));
         });
     }
 
@@ -370,8 +370,8 @@ PerftData perft(Position& pos, Depth depth, bool detail) noexcept {
             ++count;
 
             std::string move =
-              //<< UCI::move_to_can(m)
-              UCI::move_to_san(m, pos);
+              // move_to_can(m)
+              move_to_san(m, pos);
 
             std::size_t append = 10 - move.size();
             if (append != 0)

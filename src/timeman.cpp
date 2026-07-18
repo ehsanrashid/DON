@@ -111,8 +111,8 @@ void TimeManager::init(
                   : std::min<std::uint8_t>(MTG_MAX + int(0.1 * std::max(limit.movesToGo - MTG_MAX, 0)), limit.movesToGo);
 
     // If less than one second, gradually reduce mtg
-    if (mtg > 2 && ScaledTime < 1000)
-        mtg = std::max<std::uint8_t>(constexpr_ceil(0.05505 * double(ScaledTime)), 2);
+    if (mtg > 2 && ScaledTime < 1000 && clock.inc <= OverheadTime)
+        mtg = std::max<std::uint8_t>(constexpr_ceil(0.05051 * double(ScaledTime)), 2);
 
     // Make sure remainTime > 0 since use it as a divisor
     TimePoint remainTime = std::max(clock.time + (mtg - 1) * clock.inc - (mtg + 2) * OverheadTime, TimePoint{1});

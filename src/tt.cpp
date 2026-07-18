@@ -190,7 +190,7 @@ void TranspositionTable::increment_generation() const noexcept { generation8 += 
 void TranspositionTable::resize(std::size_t ttSize, const Threads& threads) noexcept {
     free();
 
-    clusterCount = ttSize * ONE_MB / sizeof(TTCluster);
+    clusterCount = ttSize * _MB / sizeof(TTCluster);
 
     //DEBUG_LOG("Clustering transposition table to " << clusterCount << " clusters.");
 
@@ -215,9 +215,9 @@ void TranspositionTable::init(const Threads& threads) noexcept {
     {
         threads.run_on_thread(threadId, [this, threadId, threadCount]() {
             // Each thread will zero its part of the hash table
-            auto [begIdx, count] = thread_index_count(threadId, threadCount, clusterCount);
+            auto [beg, end] = split_range(threadId, threadCount, clusterCount);
 
-            std::memset(&clusters[begIdx], 0, count * sizeof(TTCluster));
+            std::memset(&clusters[beg], 0, (end - beg) * sizeof(TTCluster));
         });
     }
 
@@ -306,7 +306,7 @@ bool TranspositionTable::load(const std::filesystem::path& hashFile,
         return false;
     }
 
-    std::size_t ttSize = fileSize / ONE_MB;
+    std::size_t ttSize = fileSize / _MB;
 
     resize(ttSize, threads);
 
@@ -315,11 +315,11 @@ bool TranspositionTable::load(const std::filesystem::path& hashFile,
 
     // Choose a chunk that balances system call overhead and memory pressure.
     // 2 MiB is a safe default; 4-64 MiB may be slightly faster on fast disks.
-    constexpr std::size_t ChunkSize = (2 * ONE_MB / ClusterSize) * ClusterSize;
+    constexpr std::size_t ChunkSize = (2 * _MB / ClusterSize) * ClusterSize;
 
     std::size_t DataSize = clusterCount * ClusterSize;
 
-    auto data = reinterpret_cast<char*>(clusters);
+    auto* data = reinterpret_cast<char*>(clusters);
 
     std::size_t readedSize = 0;
 
@@ -373,7 +373,7 @@ bool TranspositionTable::save(const std::filesystem::path& hashFile) const noexc
 
     // Choose a chunk that balances system call overhead and memory pressure.
     // 2 MiB is a safe default; 4-64 MiB may be slightly faster on fast disks.
-    constexpr std::size_t ChunkSize = (2 * ONE_MB / ClusterSize) * ClusterSize;
+    constexpr std::size_t ChunkSize = (2 * _MB / ClusterSize) * ClusterSize;
 
     std::size_t DataSize = clusterCount * ClusterSize;
 

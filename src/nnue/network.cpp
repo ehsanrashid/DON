@@ -225,7 +225,7 @@ void Network<Arch, Transformer>::verify(std::string_view netFile) const noexcept
     constexpr std::size_t TotalSize = sizeof(featureTransformer) + LayerStacks * sizeof(Arch);
 
     std::string msg{"NNUE evaluation using " + std::string{netFile} + " ("  //
-                    + std::to_string(TotalSize / ONE_MB) + "MiB, ("
+                    + std::to_string(TotalSize / _MB) + "MiB, ("
                     + std::to_string(featureTransformer.TotalInputDimensions) + ", "
                     + std::to_string(network[0].TransformedFeatureDimensions) + ", "
                     + std::to_string(network[0].FC_0_Outputs) + ", "  //

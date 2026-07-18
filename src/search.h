@@ -329,7 +329,7 @@ struct Limit final {
     }
 
     constexpr std::uint16_t calls_count() const noexcept {
-        return nodes != 0 ? std::min(constexpr_ceil(double(nodes) / ONE_KB) + 1, 512) : 512;
+        return nodes != 0 ? std::min(constexpr_ceil(double(nodes) / _KB) + 1, 512) : 512;
     }
 
     TimePoint startTime = 0;
