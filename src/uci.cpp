@@ -32,6 +32,7 @@
 
 #include "benchmark.h"
 #include "memory.h"
+#include "misc.h"
 #include "option.h"
 #include "search.h"
 
