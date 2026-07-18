@@ -185,7 +185,7 @@ VPATH := nnue:nnue/features:book:tablebase
 # dotprod = yes/no    --- -DUSE_NEON_DOTPROD --- Use ARM advanced SIMD Int8 dot product instructions
 # lsx = yes/no        --- -mlsx              --- Use Loongson SIMD eXtension
 # lasx = yes/no       --- -mlasx             --- use Loongson Advanced SIMD eXtension
-# syzygy = yes/no     --- -DNO_TABLEBASES    --- Support Syzygy tablebase probing
+# tablebases = yes/no --- -DNO_TABLEBASES    --- Support tablebase probing
 #
 # native              --- Auto-detect best architecture for host CPU using ../scripts/get_native_properties.sh
 #
@@ -253,7 +253,7 @@ vsx = no
 rva23 = no
 lsx = no
 lasx = no
-syzygy = yes
+tablebases = yes
 STRIP = strip
 
 ### 2.2 Architecture specific
@@ -468,7 +468,7 @@ ifeq ($(ARCH),wasm32)
     sse2 = yes
     ssse3 = yes
     sse41 = yes
-    syzygy = no
+    tablebases = no
 endif
 
 ifeq ($(ARCH),ppc-32)
@@ -1013,7 +1013,7 @@ endif
 endif
 
 ### Syzygy tablebases
-ifeq ($(syzygy),no)
+ifeq ($(tablebases),no)
     CXXFLAGS += -DNO_TABLEBASES
 endif
 
@@ -1339,7 +1339,7 @@ config-sanity: net
 	echo "arm_version: '$(arm_version)'" && \
 	echo "lsx: '$(lsx)'" && \
 	echo "lasx: '$(lasx)'" && \
-	echo "syzygy: '$(syzygy)'" && \
+	echo "tablebases: '$(tablebases)'" && \
 	echo "OS_WINDOWS: '$(OS_WINDOWS)'" && \
 	echo "COMP: '$(COMP)'" && \
 	echo "" && \
@@ -1382,7 +1382,7 @@ config-sanity: net
 	(test "$(neon)"     = "no" || test "$(neon)"     = "yes") && \
 	(test "$(lsx)"      = "no" || test "$(lsx)"      = "yes") && \
 	(test "$(lasx)"     = "no" || test "$(lasx)"     = "yes") && \
-	(test "$(syzygy)" = "yes" || test "$(syzygy)" = "no") && \
+	(test "$(tablebases)" = "yes" || test "$(tablebases)" = "no") && \
 	(test "$(OS_WINDOWS)" = "no" || test "$(OS_WINDOWS)" = "yes") && \
 	(test "$(COMP)" = "gcc" || test "$(COMP)" = "clang" || \
 	 test "$(COMP)" = "mingw" || test "$(COMP)" = "icx" || \
