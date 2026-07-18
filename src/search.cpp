@@ -1491,12 +1491,13 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
 
         // Increase reduction if next ply has many fail-highs
         int x = ss->cutoffCount - 1;
-        r += int(x > 0)
-           * (256 + int(AllNode) * 1064 + 1024 * (x >> 1)  //
-              - 512 * (x >> 2) - 256 * (x >> 3) - 128 * (x >> 4) - 64 * (x >> 5) - 32 * (x >> 6));
-
-        // For first picked move (ttMove) reduce reduction
-        r -= int(ttm) * 2069;
+        if (x > 0)
+            r +=
+              (256 + int(AllNode) * 1064 + 1024 * (x >> 1)  //
+               - 512 * (x >> 2) - 256 * (x >> 3) - 128 * (x >> 4) - 64 * (x >> 5) - 32 * (x >> 6));
+        // Decrease reduction for first picked move (ttMove)
+        else
+            r -= int(ttm) * 2069;
 
         // Decrease/Increase reduction for moves with a good/bad history
         r -= constexpr_round(110.8398e-3 * double(ss->history));
