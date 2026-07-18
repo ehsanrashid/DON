@@ -23,6 +23,8 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <iostream>
+
 #include "bitboard.h"
 #include "position.h"
 

@@ -34,7 +34,6 @@
 #include "prng.h"
 #include "thread.h"
 #include "tt.h"
-#include "uci.h"
 #include "nnue/network.h"
 
 namespace DON {
