@@ -39,18 +39,18 @@ endif
 ### Command prefix to run the built executable (e.g. wine, sde, qemu)
 ### Backward compatible alias: WINE_PATH (deprecated)
 ifneq ($(strip $(WINE_PATH)),)
-# Only assign RUN_PREFIX if empty
-ifeq ($(strip $(RUN_PREFIX)),)
-    RUN_PREFIX := $(WINE_PATH)
-endif
-# Top-level warnings
-ifeq ($(MAKELEVEL),0)
-ifneq ($(strip $(RUN_PREFIX)),$(strip $(WINE_PATH)))
-    $(warning *** Both RUN_PREFIX and WINE_PATH are set; ignoring WINE_PATH. ***)
-else
-    $(warning *** WINE_PATH is deprecated; use RUN_PREFIX instead. ***)
-endif
-endif
+    # Only assign RUN_PREFIX if empty
+    ifeq ($(strip $(RUN_PREFIX)),)
+        RUN_PREFIX := $(WINE_PATH)
+    endif
+    # Top-level warnings
+    ifeq ($(MAKELEVEL),0)
+        ifneq ($(strip $(RUN_PREFIX)),$(strip $(WINE_PATH)))
+            $(warning *** Both RUN_PREFIX and WINE_PATH are set; ignoring WINE_PATH. ***)
+        else
+            $(warning *** WINE_PATH is deprecated; use RUN_PREFIX instead. ***)
+        endif
+    endif
 endif
 
 OS_WINDOWS := no
@@ -81,11 +81,11 @@ export OS_WINDOWS
 
 # Use Wine only when cross-running Windows binaries on non-Windows hosts
 ifeq ($(OS_WINDOWS),yes)
-# Set RUN_PREFIX to wine if not already defined
-ifeq ($(RUN_PREFIX),)
-    # wine is typically absent on native Windows; this is primarily for cross-compile
-    RUN_PREFIX := $(shell command -v wine 2>/dev/null)
-endif
+    # Set RUN_PREFIX to wine if not already defined
+    ifeq ($(RUN_PREFIX),)
+        # wine is typically absent on native Windows; this is primarily for cross-compile
+        RUN_PREFIX := $(shell command -v wine 2>/dev/null)
+    endif
 endif
 
 # Cross-platform command to detect executable
@@ -185,6 +185,7 @@ VPATH := nnue:nnue/features:book:tablebase
 # dotprod = yes/no    --- -DUSE_NEON_DOTPROD --- Use ARM advanced SIMD Int8 dot product instructions
 # lsx = yes/no        --- -mlsx              --- Use Loongson SIMD eXtension
 # lasx = yes/no       --- -mlasx             --- use Loongson Advanced SIMD eXtension
+# tablebases = yes/no --- -DNO_TABLEBASES    --- Support tablebase probing
 #
 # native              --- Auto-detect best architecture for host CPU using ../scripts/get_native_properties.sh
 #
@@ -249,8 +250,10 @@ neon = no
 dotprod = no
 altivec = no
 vsx = no
+rva23 = no
 lsx = no
 lasx = no
+tablebases = yes
 STRIP = strip
 
 ### 2.2 Architecture specific
@@ -457,6 +460,17 @@ ifeq ($(ARCH),apple-silicon)
     dotprod = yes
 endif
 
+# WASM is largely compiled using emcc's x86 compatibility layer, with occasional
+# WASM-specific intrinsics
+ifeq ($(ARCH),wasm32)
+    arch = wasm32
+    sse = yes
+    sse2 = yes
+    ssse3 = yes
+    sse41 = yes
+    tablebases = no
+endif
+
 ifeq ($(ARCH),ppc-32)
     arch = ppc
     bits = 32
@@ -506,13 +520,13 @@ endif
 ifeq ($(findstring loongarch64,$(ARCH)),loongarch64)
     arch = loongarch64
     prefetch = yes
-ifeq ($(findstring -lsx,$(ARCH)),-lsx)
-    lsx = yes
-endif
-ifeq ($(findstring -lasx,$(ARCH)),-lasx)
-    lsx = yes
-    lasx = yes
-endif
+    ifeq ($(findstring -lsx,$(ARCH)),-lsx)
+        lsx = yes
+    endif
+    ifeq ($(findstring -lasx,$(ARCH)),-lasx)
+        lsx = yes
+        lasx = yes
+    endif
 endif
 
 endif
@@ -541,9 +555,9 @@ endif
 # self-contained executable suitable for redistribution and CI environments.
 # Users can disable this by passing 'STATIC=no' in the make command.
 ifeq ($(OS_WINDOWS),yes)
-ifneq ($(STATIC),no)
-    LDFLAGS += -static
-endif
+    ifneq ($(STATIC),no)
+        LDFLAGS += -static
+    endif
 endif
 
 # ----------------------------
@@ -562,124 +576,124 @@ ifeq ($(COMP),gcc)
     GCC_DEFINES     := $(shell echo | $(CXX) -dM -E -x c++ - 2>/dev/null)
     GCC_CLANG       := $(if $(findstring __clang__,$(GCC_DEFINES)),yes,no)
     GCC_APPLE_CLANG := $(if $(findstring __apple_build_version__,$(GCC_DEFINES)),yes,no)
-# Darwin (macOS) specific compiler/linker flags
-ifeq ($(KERNEL),Darwin)
-    EXTRAPROFILEFLAGS := -fvisibility=hidden
-# Non-Darwin (Linux) specific compiler/linker flags
-else
-    CXXFLAGS += -Wno-stringop-overflow
-    # Detect if GNU ld is being used
-    GCC_GNU_LD := $(if $(findstring GNU ld,$(shell $(CXX) -Wl,--version 2>/dev/null)),yes,no)
-ifeq ($(GCC_GNU_LD),yes)
-    LDFLAGS += -Wl,--no-as-needed
-endif
-    # Determine GCC major version for Linux Clang masquerading as GCC
-    GCC_MAJOR := $(shell [ "$(GCC_CLANG)" = "yes" ] && [ "$(GCC_APPLE_CLANG)" = "no" ] && $(CXX) -dumpversion 2>/dev/null | cut -f1 -d. || echo)
-# Link std::filesystem explicitly if using Linux Clang < 9
-ifneq ($(GCC_MAJOR),)
-ifeq ($(shell expr $(GCC_MAJOR) \< 9),1)
-    LDFLAGS += -lstdc++fs
-endif
-endif
-endif
-# Set profile targets outside Darwin/non-Darwin split
-ifeq ($(GCC_CLANG),yes)
-    profile_make = clang-profile-make
-    profile_use  = clang-profile-use
-else
-    CXXFLAGS += -Wstack-usage=128000 -fno-ipa-cp-clone
-    profile_make = gcc-profile-make
-    profile_use  = gcc-profile-use
-endif
-# Architectures with special handling
-# Atomic library for specific architectures (not armv8)
-ifneq ($(filter armv8 armv7 riscv64,$(arch)),)
-ifeq ($(OS),Android)
-ifneq ($(filter 32 64,$(bits)),)
-    CXXFLAGS += -m$(bits)
-    LDFLAGS  += -m$(bits)
-endif
-endif
-ifneq ($(filter armv7 riscv64,$(arch)),)
-    LDFLAGS += -latomic
-endif
-else
-ifeq ($(arch),loongarch64)
-    LDFLAGS += -latomic
-# Generic architectures
-else
-ifneq ($(filter 32 64,$(bits)),)
-    CXXFLAGS += -m$(bits)
-    LDFLAGS  += -m$(bits)
-endif
-endif
-endif
+    # Darwin (macOS) specific compiler/linker flags
+    ifeq ($(KERNEL),Darwin)
+        EXTRAPROFILEFLAGS := -fvisibility=hidden
+    # Non-Darwin (Linux) specific compiler/linker flags
+    else
+        CXXFLAGS += -Wno-stringop-overflow
+        # Detect if GNU ld is being used
+        GCC_GNU_LD := $(if $(findstring GNU ld,$(shell $(CXX) -Wl,--version 2>/dev/null)),yes,no)
+        ifeq ($(GCC_GNU_LD),yes)
+            LDFLAGS += -Wl,--no-as-needed
+        endif
+        # Determine GCC major version for Linux Clang masquerading as GCC
+        GCC_MAJOR := $(shell [ "$(GCC_CLANG)" = "yes" ] && [ "$(GCC_APPLE_CLANG)" = "no" ] && $(CXX) -dumpversion 2>/dev/null | cut -f1 -d. || echo)
+        # Link std::filesystem explicitly if using Linux Clang < 9
+        ifneq ($(GCC_MAJOR),)
+            ifeq ($(shell expr $(GCC_MAJOR) \< 9),1)
+                LDFLAGS += -lstdc++fs
+            endif
+        endif
+    endif
+    # Set profile targets outside Darwin/non-Darwin split
+    ifeq ($(GCC_CLANG),yes)
+        profile_make = clang-profile-make
+        profile_use  = clang-profile-use
+    else
+        CXXFLAGS += -Wstack-usage=128000 -fno-ipa-cp-clone
+        profile_make = gcc-profile-make
+        profile_use  = gcc-profile-use
+    endif
+    # Architectures with special handling
+    # Atomic library for specific architectures (not armv8)
+    ifneq ($(filter armv8 armv7 riscv64,$(arch)),)
+        ifeq ($(OS),Android)
+            ifneq ($(filter 32 64,$(bits)),)
+                CXXFLAGS += -m$(bits)
+                LDFLAGS  += -m$(bits)
+            endif
+        endif
+        ifneq ($(filter armv7 riscv64,$(arch)),)
+            LDFLAGS += -latomic
+        endif
+    else
+    ifeq ($(arch),loongarch64)
+        LDFLAGS += -latomic
+    # Generic architectures
+    else
+    ifneq ($(filter 32 64,$(bits)),)
+        CXXFLAGS += -m$(bits)
+        LDFLAGS  += -m$(bits)
+    endif
+    endif
+    endif
 # Clang
 else
 ifeq ($(COMP),clang)
     CXX := clang++
-ifeq ($(OS_WINDOWS),yes)
-ifeq ($(bits),64)
-    CXX := x86_64-w64-mingw32-clang++
-else
-    CXX := i686-w64-mingw32-clang++
-endif
-endif
+    ifeq ($(OS_WINDOWS),yes)
+        ifeq ($(bits),64)
+            CXX := x86_64-w64-mingw32-clang++
+        else
+            CXX := i686-w64-mingw32-clang++
+        endif
+    endif
     CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-prototypes -Wconditional-uninitialized -flax-vector-conversions=none
-# Atomic library for non-Windows and non-[Darwin/FreeBSD/OpenBSD/NetBSD] (unless compiler-rt)
-ifeq ($(OS_WINDOWS),no)
-ifeq ($(filter $(KERNEL),Darwin FreeBSD OpenBSD NetBSD),)
-ifneq ($(RTLIB),compiler-rt)
-    LDFLAGS += -latomic
-endif
-endif
-endif
-# Architectures with special handling
-# Atomic library for specific architectures (not armv8)
-ifneq ($(filter armv8 armv7 riscv64,$(arch)),)
-ifeq ($(OS),Android)
-ifneq ($(filter 32 64,$(bits)),)
-    CXXFLAGS += -m$(bits)
-    LDFLAGS  += -m$(bits)
-endif
-endif
-ifneq ($(filter armv7 riscv64,$(arch)),)
-    LDFLAGS += -latomic
-endif
-else
-ifeq ($(arch),loongarch64)
-    LDFLAGS += -latomic
-# Generic architectures
-else
-ifneq ($(filter 32 64,$(bits)),)
-    CXXFLAGS += -m$(bits)
-    LDFLAGS  += -m$(bits)
-endif
-endif
-endif
+    # Atomic library for non-Windows and non-[Darwin/FreeBSD/OpenBSD/NetBSD] (unless compiler-rt)
+    ifeq ($(OS_WINDOWS),no)
+        ifeq ($(filter $(KERNEL),Darwin FreeBSD OpenBSD NetBSD),)
+            ifneq ($(RTLIB),compiler-rt)
+                LDFLAGS += -latomic
+            endif
+        endif
+    endif
+    # Architectures with special handling
+    # Atomic library for specific architectures (not armv8)
+    ifneq ($(filter armv8 armv7 riscv64,$(arch)),)
+        ifeq ($(OS),Android)
+            ifneq ($(filter 32 64,$(bits)),)
+                CXXFLAGS += -m$(bits)
+                LDFLAGS  += -m$(bits)
+            endif
+        endif
+        ifneq ($(filter armv7 riscv64,$(arch)),)
+            LDFLAGS += -latomic
+        endif
+    else
+    ifeq ($(arch),loongarch64)
+        LDFLAGS += -latomic
+    # Generic architectures
+    else
+    ifneq ($(filter 32 64,$(bits)),)
+        CXXFLAGS += -m$(bits)
+        LDFLAGS  += -m$(bits)
+    endif
+    endif
+    endif
     # Generate predefined macros to detect Clang/Apple Clang
     CLANG_DEFINES   := $(shell echo | $(CXX) -dM -E -x c++ - 2>/dev/null)
     GCC_CLANG       := $(if $(findstring __clang__,$(CLANG_DEFINES)),yes,no)
     GCC_APPLE_CLANG := $(if $(findstring __apple_build_version__,$(CLANG_DEFINES)),yes,no)
-# Link std::filesystem for Linux Clang (non-Apple)
-ifeq ($(KERNEL),Linux)
-ifeq ($(GCC_APPLE_CLANG),no)
-    LDFLAGS += -lstdc++fs
-endif
-endif
+    # Link std::filesystem for Linux Clang (non-Apple)
+    ifeq ($(KERNEL),Linux)
+        ifeq ($(GCC_APPLE_CLANG),no)
+            LDFLAGS += -lstdc++fs
+        endif
+    endif
     # Profile build for Clang
     profile_make = clang-profile-make
     profile_use  = clang-profile-use
 # mingw
 else
 ifeq ($(COMP),mingw)
-ifeq ($(bits),64)
-    MINGW_CXX       := x86_64-w64-mingw32-c++
-    MINGW_CXX_POSIX := x86_64-w64-mingw32-c++-posix
-else
-    MINGW_CXX       := i686-w64-mingw32-c++
-    MINGW_CXX_POSIX := i686-w64-mingw32-c++-posix
-endif
+    ifeq ($(bits),64)
+        MINGW_CXX       := x86_64-w64-mingw32-c++
+        MINGW_CXX_POSIX := x86_64-w64-mingw32-c++-posix
+    else
+        MINGW_CXX       := i686-w64-mingw32-c++
+        MINGW_CXX_POSIX := i686-w64-mingw32-c++-posix
+    endif
     # Prefer POSIX variant if available
     CXX := $(if $(shell command -v $(MINGW_CXX_POSIX) 2>/dev/null),$(MINGW_CXX_POSIX),$(MINGW_CXX))
     CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-declarations -fno-ipa-cp-clone
@@ -698,42 +712,42 @@ ifeq ($(COMP),icx)
 else
 ifeq ($(COMP),ndk)
     # Detect host tag (simplified common cases)
-ifeq ($(OS_WINDOWS),yes)
-    HOST_TAG := windows-x86_64
-else
-ifeq ($(KERNEL),Darwin)
-    HOST_TAG := darwin-x86_64
-else
-    HOST_TAG := linux-x86_64
-endif
-endif
+    ifeq ($(OS_WINDOWS),yes)
+        HOST_TAG := windows-x86_64
+    else
+    ifeq ($(KERNEL),Darwin)
+        HOST_TAG := darwin-x86_64
+    else
+        HOST_TAG := linux-x86_64
+    endif
+    endif
 
     NDK ?= $(ANDROID_NDK_ROOT)
     TOOLCHAIN := $(NDK)/toolchains/llvm/prebuilt/$(HOST_TAG)/bin
     ANDROID_API ?= 29
 
-ifeq ($(arch),armv8)
-    TARGET := aarch64-linux-android
-    CXX := $(TOOLCHAIN)/$(TARGET)$(ANDROID_API)-clang++
-else
-ifeq ($(arch),x86_64)
-    TARGET := x86_64-linux-android
-    CXX := $(TOOLCHAIN)/$(TARGET)$(ANDROID_API)-clang++
-else
-ifeq ($(arch),armv7)
-    TARGET := armv7a-linux-androideabi
-    CXX := $(TOOLCHAIN)/$(TARGET)$(ANDROID_API)-clang++
-    CXXFLAGS += -mthumb -march=armv7-a -mfloat-abi=softfp -mfpu=neon
-else
-ifeq ($(arch),x86)
-    TARGET := i686-linux-android
-    CXX := $(TOOLCHAIN)/$(TARGET)$(ANDROID_API)-clang++
-else
-    $(error Unsupported NDK arch: $(arch))
-endif
-endif
-endif
-endif
+    ifeq ($(arch),armv8)
+        TARGET := aarch64-linux-android
+        CXX := $(TOOLCHAIN)/$(TARGET)$(ANDROID_API)-clang++
+    else
+    ifeq ($(arch),x86_64)
+        TARGET := x86_64-linux-android
+        CXX := $(TOOLCHAIN)/$(TARGET)$(ANDROID_API)-clang++
+    else
+    ifeq ($(arch),armv7)
+        TARGET := armv7a-linux-androideabi
+        CXX := $(TOOLCHAIN)/$(TARGET)$(ANDROID_API)-clang++
+        CXXFLAGS += -mthumb -march=armv7-a -mfloat-abi=softfp -mfpu=neon
+    else
+    ifeq ($(arch),x86)
+        TARGET := i686-linux-android
+        CXX := $(TOOLCHAIN)/$(TARGET)$(ANDROID_API)-clang++
+    else
+        $(error Unsupported NDK arch: $(arch))
+    endif
+    endif
+    endif
+    endif
     # Correct STL usage
     CXXFLAGS += -stdlib=libc++
     LDFLAGS  += -static-libstdc++
@@ -752,10 +766,10 @@ ifeq ($(KERNEL),Darwin)
     XCRUN = xcrun
     CXXFLAGS += -mmacosx-version-min=10.15
     LDFLAGS  += -mmacosx-version-min=10.15
-ifneq ($(arch),any)
-    CXXFLAGS += -arch $(arch)
-    LDFLAGS  += -arch $(arch)
-endif
+    ifneq ($(arch),any)
+        CXXFLAGS += -arch $(arch)
+        LDFLAGS  += -arch $(arch)
+    endif
 endif
 
 ### Allow overwriting CXX from command line
@@ -785,23 +799,23 @@ endif
 ### Use POSIX threads unless compiling with MinGW (Windows threads)
 ifneq ($(COMP),mingw)
     CXXFLAGS += -DUSE_PTHREADS
-## Link pthreads and optionally LRT on supported platforms
-# Skip linking on Android, Haiku, and NDK (they provide pthreads differently)
-# Android has Bionic's C library with its own pthread implementation bundled
-# Haiku has pthreads in its libroot
-ifneq ($(OS),Android)
-ifneq ($(KERNEL),Haiku)
-ifneq ($(COMP),ndk)
-    LDFLAGS += -lpthread
-# Link real-time library (librt) on non-Windows, non-[Darwin/FreeBSD/OpenBSD/NetBSD] platforms
-ifeq ($(OS_WINDOWS),no)
-ifeq ($(filter $(KERNEL),Darwin FreeBSD OpenBSD NetBSD),)
-    LDFLAGS += -lrt
-endif
-endif
-endif
-endif
-endif
+    ## Link pthreads and optionally LRT on supported platforms
+    # Skip linking on Android, Haiku, and NDK (they provide pthreads differently)
+    # Android has Bionic's C library with its own pthread implementation bundled
+    # Haiku has pthreads in its libroot
+    ifneq ($(OS),Android)
+        ifneq ($(KERNEL),Haiku)
+            ifneq ($(COMP),ndk)
+                LDFLAGS += -lpthread
+                # Link real-time library (librt) on non-Windows, non-[Darwin/FreeBSD/OpenBSD/NetBSD] platforms
+                ifeq ($(OS_WINDOWS),no)
+                    ifeq ($(filter $(KERNEL),Darwin FreeBSD OpenBSD NetBSD),)
+                        LDFLAGS += -lrt
+                    endif
+                endif
+            endif
+        endif
+    endif
 endif
 
 ### 3.2.1 Debugging
@@ -826,33 +840,33 @@ endif
 ifeq ($(optimize),yes)
     CXXFLAGS += -O3 -funroll-loops
 
-ifeq ($(COMP),gcc)
-ifeq ($(OS),Android)
-    CXXFLAGS += -fno-gcse -mthumb -march=armv7-a -mfloat-abi=softfp
-endif
-else
-ifneq ($(filter clang ndk,$(COMP)),)
-    # Determine Clang major version
-    CLANG_MAJOR := $(shell $(CXX) -dumpversion 2>/dev/null | cut -f1 -d.)
-ifneq ($(CLANG_MAJOR),)
-ifeq ($(shell expr $(CLANG_MAJOR) \< 16),1)
-    CXXFLAGS += -fexperimental-new-pass-manager
-endif
-endif
-endif
-endif
+    ifeq ($(COMP),gcc)
+        ifeq ($(OS),Android)
+            CXXFLAGS += -fno-gcse -mthumb -march=armv7-a -mfloat-abi=softfp
+        endif
+    else
+    ifneq ($(filter clang ndk,$(COMP)),)
+        # Determine Clang major version
+        CLANG_MAJOR := $(shell $(CXX) -dumpversion 2>/dev/null | cut -f1 -d.)
+        ifneq ($(CLANG_MAJOR),)
+            ifeq ($(shell expr $(CLANG_MAJOR) \< 16),1)
+                CXXFLAGS += -fexperimental-new-pass-manager
+            endif
+        endif
+    endif
+    endif
 
-ifeq ($(KERNEL),Darwin)
-ifneq ($(filter clang icx ndk,$(COMP)),)
-    CXXFLAGS += -mdynamic-no-pic
-else
-ifeq ($(COMP),gcc)
-ifneq ($(arch),arm64)
-    CXXFLAGS += -mdynamic-no-pic
-endif
-endif
-endif
-endif
+    ifeq ($(KERNEL),Darwin)
+        ifneq ($(filter clang icx ndk,$(COMP)),)
+            CXXFLAGS += -mdynamic-no-pic
+        else
+        ifeq ($(COMP),gcc)
+            ifneq ($(arch),arm64)
+                CXXFLAGS += -mdynamic-no-pic
+            endif
+        endif
+        endif
+    endif
 endif
 
 ### 3.4 Bits
@@ -863,112 +877,112 @@ endif
 ### 3.5 prefetch and popcount
 ifeq ($(prefetch),yes)
     CXXFLAGS += -DUSE_PREFETCH
-ifeq ($(sse),yes)
-    CXXFLAGS += -msse
-endif
+    ifeq ($(sse),yes)
+        CXXFLAGS += -msse
+    endif
 endif
 
 ifeq ($(popcnt),yes)
-ifneq ($(filter ppc64 ppc64-altivec ppc64-vsx armv7 armv8 arm64,$(arch)),)
-    CXXFLAGS += -DUSE_POPCNT
-else
-    CXXFLAGS += -DUSE_POPCNT -msse3 -mpopcnt
-endif
+    ifneq ($(filter ppc64 ppc64-altivec ppc64-vsx armv7 armv8 arm64,$(arch)),)
+        CXXFLAGS += -DUSE_POPCNT
+    else
+        CXXFLAGS += -DUSE_POPCNT -msse3 -mpopcnt
+    endif
 endif
 
 ### 3.6 SIMD architectures
 ifeq ($(avx512icl),yes)
     CXXFLAGS += -DUSE_AVX512ICL
-ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
-    CXXFLAGS += -mavx512vnni -mavx512vbmi2 -mavx512vbmi -mavx512vpopcntdq -mavx512bitalg -mavx512ifma -mavx512vl -mavx512dq -mavx512bw -mavx512cd -mavx512f -mvpclmulqdq -mgfni -mvaes
-endif
+    ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
+        CXXFLAGS += -mavx512vnni -mavx512vbmi2 -mavx512vbmi -mavx512vpopcntdq -mavx512bitalg -mavx512ifma -mavx512vl -mavx512dq -mavx512bw -mavx512cd -mavx512f -mvpclmulqdq -mgfni -mvaes
+    endif
 endif
 
 ifeq ($(vnni512),yes)
     CXXFLAGS += -DUSE_VNNI
-ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
-    CXXFLAGS += -mavx512vnni -mavx512f -mavx512bw -mavx512dq -mavx512vl -mprefer-vector-width=512
-endif
+    ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
+        CXXFLAGS += -mavx512vnni -mavx512f -mavx512bw -mavx512dq -mavx512vl -mprefer-vector-width=512
+    endif
 endif
 
 ifeq ($(vnni256),yes)
     CXXFLAGS += -DUSE_VNNI
-ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
-    CXXFLAGS += -mavx512vnni -mavx512f -mavx512bw -mavx512dq -mavx512vl -mprefer-vector-width=256
-endif
+    ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
+        CXXFLAGS += -mavx512vnni -mavx512f -mavx512bw -mavx512dq -mavx512vl -mprefer-vector-width=256
+    endif
 endif
 
 ifeq ($(avx512),yes)
     CXXFLAGS += -DUSE_AVX512
-ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
-    CXXFLAGS += -mavx512f -mavx512bw -mavx512dq -mavx512vl
-endif
+    ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
+        CXXFLAGS += -mavx512f -mavx512bw -mavx512dq -mavx512vl
+    endif
 endif
 
 ifeq ($(avxvnni),yes)
     CXXFLAGS += -DUSE_AVXVNNI -DUSE_VNNI
-ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
-    CXXFLAGS += -mavxvnni
-endif
+    ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
+        CXXFLAGS += -mavxvnni
+    endif
 endif
 
 ifeq ($(avx2),yes)
     CXXFLAGS += -DUSE_AVX2
-ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
-    CXXFLAGS += -mavx2 -mbmi
-endif
+    ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
+        CXXFLAGS += -mavx2 -mbmi
+    endif
 endif
 
 ifeq ($(sse41),yes)
     CXXFLAGS += -DUSE_SSE41
-ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
-    CXXFLAGS += -msse4.1
-endif
+    ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
+        CXXFLAGS += -msse4.1
+    endif
 endif
 
 ifeq ($(ssse3),yes)
     CXXFLAGS += -DUSE_SSSE3
-ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
-    CXXFLAGS += -mssse3
-endif
+    ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
+        CXXFLAGS += -mssse3
+    endif
 endif
 
 ifeq ($(sse2),yes)
     CXXFLAGS += -DUSE_SSE2
-ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
-    CXXFLAGS += -msse2
-endif
+    ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
+        CXXFLAGS += -msse2
+    endif
 endif
 
 ifeq ($(mmx),yes)
-ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
-    CXXFLAGS += -mmmx
-endif
+    ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
+        CXXFLAGS += -mmmx
+    endif
 endif
 
 ifeq ($(altivec),yes)
     CXXFLAGS += -maltivec
-ifeq ($(COMP),gcc)
-    CXXFLAGS += -mabi=altivec
-endif
+    ifeq ($(COMP),gcc)
+        CXXFLAGS += -mabi=altivec
+    endif
 endif
 
 ifeq ($(vsx),yes)
     CXXFLAGS += -mvsx
-ifeq ($(COMP),gcc)
-    CXXFLAGS += -DNO_WARN_X86_INTRINSICS -DUSE_SSE2
-endif
+    ifeq ($(COMP),gcc)
+        CXXFLAGS += -DNO_WARN_X86_INTRINSICS -DUSE_SSE2
+    endif
 endif
 
 ifeq ($(neon),yes)
     CXXFLAGS += -DUSE_NEON=$(arm_version)
-ifeq ($(KERNEL),Linux)
-ifneq ($(COMP),ndk)
-ifneq ($(arch),armv8)
-    CXXFLAGS += -mfpu=neon
-endif
-endif
-endif
+    ifeq ($(KERNEL),Linux)
+        ifneq ($(COMP),ndk)
+            ifneq ($(arch),armv8)
+                CXXFLAGS += -mfpu=neon
+            endif
+        endif
+    endif
 endif
 
 ifeq ($(dotprod),yes)
@@ -976,26 +990,31 @@ ifeq ($(dotprod),yes)
 endif
 
 ifeq ($(lasx),yes)
-ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
-    CXXFLAGS += -mlasx
-endif
+    ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
+        CXXFLAGS += -mlasx
+    endif
 endif
 
 ifeq ($(lsx),yes)
-ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
-    CXXFLAGS += -mlsx
-endif
+    ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
+        CXXFLAGS += -mlsx
+    endif
 endif
 
 ### 3.7 bmi2
 ifeq ($(bmi2),yes)
     CXXFLAGS += -DUSE_BMI2
-ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
-    CXXFLAGS += -mbmi2
+    ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
+        CXXFLAGS += -mbmi2
+    endif
+    ifeq ($(cmp),yes)
+        CXXFLAGS += -DUSE_CMP
+    endif
 endif
-ifeq ($(cmp),yes)
-    CXXFLAGS += -DUSE_CMP
-endif
+
+### Syzygy tablebases
+ifeq ($(tablebases),no)
+    CXXFLAGS += -DNO_TABLEBASES
 endif
 
 ### 3.8.1 Try to include git commit date for versioning
@@ -1019,69 +1038,69 @@ endif
 ### This is a mix of compile and link time options because the lto link phase
 ### needs access to the optimization flags.
 ifeq ($(optimize),yes)
-ifeq ($(debug),no)
-ifneq ($(KERNEL),Darwin)
-# Android NDK clang -> always use LLD
-ifeq ($(COMP),ndk)
-    LDFLAGS += -fuse-ld=lld
-# Non-Android clang -> detect LLD first
-else
-    HAS_LLD := $(if $(shell command -v ld.lld 2>/dev/null || command -v lld 2>/dev/null),yes,no)
-# Only add -fuse-ld=lld if found LLD
-ifeq ($(HAS_LLD),yes)
-# clang always supports -fuse-ld=lld
-ifeq ($(COMP),clang)
-    LDFLAGS += -fuse-ld=lld
-# gcc builds that are clang-compatible
-else
-ifeq ($(GCC_CLANG),yes)
-    LDFLAGS += -fuse-ld=lld
-endif
-endif
-endif
-endif
-endif
-    # Determine LTO flags
-    LTO_FLAGS :=
-    LDFLTO_EXTRA :=
-# Clang / ICX / NDK -> always full LTO
-ifneq ($(filter clang icx ndk,$(COMP)),)
-    LTO_FLAGS := -flto=full
-# ICX-specific flags
-ifeq ($(COMP),icx)
-    LTO_FLAGS += -fwhole-program-vtables
-endif
-# GCC and CLANG use different methods for parallelizing LTO
-# and CLANG pretends to be GCC on some systems.
-else
-ifeq ($(COMP),gcc)
-ifneq ($(KERNEL),Darwin)
-# GCC (not pretending to be clang) uses parallel LTO
-ifeq ($(GCC_CLANG),no)
-    LTO_FLAGS    := -flto -flto-partition=one
-    LDFLTO_EXTRA := -flto=jobserver
-# GCC pretending to be clang
-else
-    LTO_FLAGS := -flto=full
-endif
-endif
-# To use LTO and static linking on Windows,
-# the tool chain requires gcc version 10.1 or later.
-else
-ifeq ($(COMP),mingw)
-    LTO_FLAGS    := -flto -flto-partition=one
-    LDFLTO_EXTRA := -flto=jobserver -save-temps
-endif
-endif
-endif
-    # Apply LTO flags
-    CXXFLAGS += $(LTO_FLAGS)
-    LDFLAGS  += $(LTO_FLAGS) $(LDFLTO_EXTRA)
-endif
-# Inline settings
-ifneq ($(filter clang ndk,$(COMP)),)
-    CXXFLAGS += -Xclang -mllvm -Xclang -inline-threshold=500
-endif
+    ifeq ($(debug),no)
+        ifneq ($(KERNEL),Darwin)
+            # Android NDK clang -> always use LLD
+            ifeq ($(COMP),ndk)
+                LDFLAGS += -fuse-ld=lld
+            # Non-Android clang -> detect LLD first
+            else
+                HAS_LLD := $(if $(shell command -v ld.lld 2>/dev/null || command -v lld 2>/dev/null),yes,no)
+                # Only add -fuse-ld=lld if found LLD
+                ifeq ($(HAS_LLD),yes)
+                    # clang always supports -fuse-ld=lld
+                    ifeq ($(COMP),clang)
+                        LDFLAGS += -fuse-ld=lld
+                    # gcc builds that are clang-compatible
+                    else
+                    ifeq ($(GCC_CLANG),yes)
+                        LDFLAGS += -fuse-ld=lld
+                    endif
+                    endif
+                endif
+            endif
+        endif
+        # Determine LTO flags
+        LTO_FLAGS :=
+        LDFLTO_EXTRA :=
+        # Clang / ICX / NDK -> always full LTO
+        ifneq ($(filter clang icx ndk,$(COMP)),)
+            LTO_FLAGS := -flto=full
+            # ICX-specific flags
+            ifeq ($(COMP),icx)
+                LTO_FLAGS += -fwhole-program-vtables
+            endif
+        # GCC and CLANG use different methods for parallelizing LTO
+        # and CLANG pretends to be GCC on some systems.
+        else
+        ifeq ($(COMP),gcc)
+            ifneq ($(KERNEL),Darwin)
+                # GCC (not pretending to be clang) uses parallel LTO
+                ifeq ($(GCC_CLANG),no)
+                    LTO_FLAGS    := -flto -flto-partition=one
+                    LDFLTO_EXTRA := -flto=jobserver
+                # GCC pretending to be clang
+                else
+                    LTO_FLAGS := -flto=full
+                endif
+            endif
+        # To use LTO and static linking on Windows,
+        # the tool chain requires gcc version 10.1 or later.
+        else
+        ifeq ($(COMP),mingw)
+            LTO_FLAGS    := -flto -flto-partition=one
+            LDFLTO_EXTRA := -flto=jobserver -save-temps
+        endif
+        endif
+        endif
+        # Apply LTO flags
+        CXXFLAGS += $(LTO_FLAGS)
+        LDFLAGS  += $(LTO_FLAGS) $(LDFLTO_EXTRA)
+    endif
+    # Inline settings
+    ifneq ($(filter clang ndk,$(COMP)),)
+        CXXFLAGS += -Xclang -mllvm -Xclang -inline-threshold=500
+    endif
 endif
 
 ### 3.10 Use PIE executables on Android 5+, incompatible with Android 4 and earlier
@@ -1097,21 +1116,21 @@ endif
 # Windows + GCC (not Clang)
 # Only add -fno-keep-inline-dllexport for MinGW GCC DLL builds
 ifeq ($(OS_WINDOWS),yes)
-ifneq ($(filter gcc mingw,$(COMP)),)
-ifeq ($(GCC_CLANG),no)
-    CXXFLAGS += -fno-keep-inline-dllexport
-endif
-endif
+    ifneq ($(filter gcc mingw,$(COMP)),)
+        ifeq ($(GCC_CLANG),no)
+            CXXFLAGS += -fno-keep-inline-dllexport
+        endif
+    endif
 endif
 
 # Not Windows, Not macOS (Darwin), Not Android NDK:
 # Enable -pipe for faster compilation, disabled for Android NDK due to toolchain issues
 ifeq ($(OS_WINDOWS),no)
-ifneq ($(KERNEL),Darwin)
-ifneq ($(COMP),ndk)
-    CXXFLAGS += -pipe
-endif
-endif
+    ifneq ($(KERNEL),Darwin)
+        ifneq ($(COMP),ndk)
+            CXXFLAGS += -pipe
+        endif
+    endif
 endif
 
 MKDIR := mkdir -p -m 755
@@ -1320,6 +1339,7 @@ config-sanity: net
 	echo "arm_version: '$(arm_version)'" && \
 	echo "lsx: '$(lsx)'" && \
 	echo "lasx: '$(lasx)'" && \
+	echo "tablebases: '$(tablebases)'" && \
 	echo "OS_WINDOWS: '$(OS_WINDOWS)'" && \
 	echo "COMP: '$(COMP)'" && \
 	echo "" && \
@@ -1362,6 +1382,7 @@ config-sanity: net
 	(test "$(neon)"     = "no" || test "$(neon)"     = "yes") && \
 	(test "$(lsx)"      = "no" || test "$(lsx)"      = "yes") && \
 	(test "$(lasx)"     = "no" || test "$(lasx)"     = "yes") && \
+	(test "$(tablebases)" = "yes" || test "$(tablebases)" = "no") && \
 	(test "$(OS_WINDOWS)" = "no" || test "$(OS_WINDOWS)" = "yes") && \
 	(test "$(COMP)" = "gcc" || test "$(COMP)" = "clang" || \
 	 test "$(COMP)" = "mingw" || test "$(COMP)" = "icx" || \

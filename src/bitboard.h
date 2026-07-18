@@ -26,27 +26,26 @@
 #include <string>
 #include <string_view>
 
-#if !defined(USE_POPCNT)
-    #include <cstring>
+#if defined(USE_AVX512)
+    #include <immintrin.h>
 #endif
-
+#if defined(USE_BMI2)
+    #include <immintrin.h>  // Header for _pext_u64() & _pdep_u64() intrinsic
+    // * _pext_u64(src, mask) - Parallel Bits Extract
+    // Extracts the bits from the 64-bit 'src' corresponding to the 1-bits in 'mask',
+    // and packs them contiguously into the lower bits.
+    // * _pdep_u64(src, mask) - Parallel Bits Deposit
+    // Deposits the lower bits of 'src' into the positions of the 1-bits in 'mask',
+    // leaving all other bits as zero.
+#endif
 #if defined(_MSC_VER)
     #include <intrin.h>  // Microsoft header for _BitScanForward64() & _BitScanForward()
     #if defined(USE_POPCNT)
         #include <nmmintrin.h>  // Microsoft header for _mm_popcnt_u64()
     #endif
 #endif
-
-#if defined(USE_BMI2)
-    #include <immintrin.h>  // Header for _pext_u64() & _pdep_u64() intrinsic
-
-    // * _pext_u64(src, mask) - Parallel Bits Extract
-    // Extracts the bits from the 64-bit 'src' corresponding to the 1-bits in 'mask',
-    // and packs them contiguously into the lower bits.
-
-    // * _pdep_u64(src, mask) - Parallel Bits Deposit
-    // Deposits the lower bits of 'src' into the positions of the 1-bits in 'mask',
-    // leaving all other bits as zero.
+#if !defined(USE_POPCNT)
+    #include <cstring>
 #endif
 
 #include "misc.h"
@@ -89,6 +88,20 @@ inline constexpr Bitboard PROMOTION_RANKS_BB = RANK_8_BB | RANK_1_BB;
 
 inline constexpr Bitboard WHITE_BB = 0x55AA55AA55AA55AAull;
 inline constexpr Bitboard BLACK_BB = ~WHITE_BB;
+
+#if defined(USE_AVX512)
+// clang-format off
+inline const __m512i ALL_SQUARES = _mm512_set_epi8(
+    63, 62, 61, 60, 59, 58, 57, 56, //
+    55, 54, 53, 52, 51, 50, 49, 48, //
+    47, 46, 45, 44, 43, 42, 41, 40, //
+    39, 38, 37, 36, 35, 34, 33, 32, //
+    31, 30, 29, 28, 27, 26, 25, 24, //
+    23, 22, 21, 20, 19, 18, 17, 16, //
+    15, 14, 13, 12, 11, 10,  9,  8, //
+     7,  6,  5,  4,  3,  2,  1,  0);
+// clang-format on
+#endif
 
 template<Color C>
 constexpr Bitboard color_bb() noexcept {

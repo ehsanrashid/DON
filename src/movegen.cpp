@@ -30,15 +30,6 @@ namespace DON {
 
 namespace {
 
-#if defined(USE_AVX512ICL)
-Move* write_moves(std::uint32_t mask, __m512i vector, Move* RESTRICT moves) noexcept {
-    // Avoid _mm512_mask_compressstoreu_epi16() as it's 256 uOps on Zen4
-    _mm512_storeu_si512(reinterpret_cast<__m512i*>(moves),
-                        _mm512_maskz_compress_epi16(mask, vector));
-    return moves + popcount(mask);
-}
-#endif
-
 // Splat pawn moves
 template<Color AC, Direction D>
 Move* splat_pawn_moves(Bitboard dstBB, Move* RESTRICT moves) noexcept {
@@ -50,22 +41,15 @@ Move* splat_pawn_moves(Bitboard dstBB, Move* RESTRICT moves) noexcept {
 
 #if defined(USE_AVX512ICL)
     (void) AC;
-    alignas(CACHE_LINE_SIZE) constexpr auto SplatTable = []() constexpr noexcept {
-        StdArray<Move, SQUARE_NB> table{};
-
-        for (Square s = SQ_A1; s <= SQ_H8; ++s)
-        {
-            Square sq = std::clamp(s - D, SQ_A1, SQ_H8);
-            table[s]  = Move{sq, s};
-        }
-
-        return table;
-    }();
-
-    const auto* table = reinterpret_cast<const __m512i*>(SplatTable.data());
-
-    moves = write_moves(std::uint32_t(dstBB >> 00), _mm512_load_si512(table + 0), moves);
-    moves = write_moves(std::uint32_t(dstBB >> 32), _mm512_load_si512(table + 1), moves);
+    assert(popcount(dstBB) <= 8);  // <= 8 pawns per side
+    // clang-format off
+    const __m128i dstSquares = _mm_cvtepi8_epi16(_mm512_castsi512_si128(_mm512_maskz_compress_epi8(dstBB, ALL_SQUARES)));
+    const __m128i orgSquares = _mm_subs_epi16(dstSquares, _mm_set1_epi16(+D));
+    const __m128i movesList  = _mm_or_si128(_mm_slli_epi16(orgSquares, Move::DST_SQ_OFFSET),
+                                            _mm_slli_epi16(dstSquares, Move::ORG_SQ_OFFSET));
+    // clang-format on
+    _mm_storeu_si128(reinterpret_cast<__m128i*>(moves), movesList);
+    moves += popcount(dstBB);
 #else
     while (dstBB != 0)
     {
@@ -132,23 +116,14 @@ Move* splat_moves(Square orgSq, Bitboard dstBB, Move* RESTRICT moves) noexcept {
 
 #if defined(USE_AVX512ICL)
     (void) AC;
-    alignas(CACHE_LINE_SIZE) constexpr auto SplatTable = []() constexpr noexcept {
-        StdArray<Move, SQUARE_NB> table{};
-
-        for (Square s = SQ_A1; s <= SQ_H8; ++s)
-            table[s] = Move{SQUARE_ZERO, s};
-
-        return table;
-    }();
-
-    __m512i orgVec = _mm512_set1_epi16(Move{orgSq, SQUARE_ZERO}.raw());
-
-    const auto* table = reinterpret_cast<const __m512i*>(SplatTable.data());
-
-    moves = write_moves(std::uint32_t(dstBB >> 00),
-                        _mm512_or_si512(_mm512_load_si512(table + 0), orgVec), moves);
-    moves = write_moves(std::uint32_t(dstBB >> 32),
-                        _mm512_or_si512(_mm512_load_si512(table + 1), orgVec), moves);
+    assert(popcount(dstBB) <= 32);  // Q can attack up to 27 squares
+    // clang-format off
+    const __m512i orgVec     = _mm512_set1_epi16(Move(orgSq, SQUARE_ZERO).raw());
+    const __m512i dstSquares = _mm512_cvtepi8_epi16(_mm512_castsi512_si256(_mm512_maskz_compress_epi8(dstBB, ALL_SQUARES)));
+    const __m512i movesList  = _mm512_or_si512(orgVec, _mm512_slli_epi16(dstSquares, Move::DST_SQ_OFFSET));
+    // clang-format on
+    _mm512_storeu_si512(moves, movesList);
+    moves += popcount(dstBB);
 #else
     while (dstBB != 0)
     {

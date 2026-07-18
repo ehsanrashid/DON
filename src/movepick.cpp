@@ -234,7 +234,7 @@ void MovePicker::init_stage() noexcept {
 // Quiets moves are ordered by using the history tables.
 template<>
 MovePicker::iterator
-MovePicker::score<GenType::ENC_CAPTURE>(MoveList<GenType::ENC_CAPTURE>& moveList) noexcept {
+MovePicker::score<GenType::ENC_CAPTURE>(const MoveList<GenType::ENC_CAPTURE>& moveList) noexcept {
 
     const auto& captureHistoryRef = *captureHistory;
 
@@ -262,7 +262,7 @@ MovePicker::score<GenType::ENC_CAPTURE>(MoveList<GenType::ENC_CAPTURE>& moveList
 
 template<>
 MovePicker::iterator
-MovePicker::score<GenType::ENC_QUIET>(MoveList<GenType::ENC_QUIET>& moveList) noexcept {
+MovePicker::score<GenType::ENC_QUIET>(const MoveList<GenType::ENC_QUIET>& moveList) noexcept {
     Color ac = pos.active_color();
 
     Bitboard blockersBB = pos.blockers_bb(~ac);
@@ -333,7 +333,7 @@ MovePicker::score<GenType::ENC_QUIET>(MoveList<GenType::ENC_QUIET>& moveList) no
 
 template<>
 MovePicker::iterator
-MovePicker::score<GenType::EVA_CAPTURE>(MoveList<GenType::EVA_CAPTURE>& moveList) noexcept {
+MovePicker::score<GenType::EVA_CAPTURE>(const MoveList<GenType::EVA_CAPTURE>& moveList) noexcept {
 
     auto itr = cur;
 
@@ -357,7 +357,7 @@ MovePicker::score<GenType::EVA_CAPTURE>(MoveList<GenType::EVA_CAPTURE>& moveList
 
 template<>
 MovePicker::iterator
-MovePicker::score<GenType::EVA_QUIET>(MoveList<GenType::EVA_QUIET>& moveList) noexcept {
+MovePicker::score<GenType::EVA_QUIET>(const MoveList<GenType::EVA_QUIET>& moveList) noexcept {
 
     Color ac = pos.active_color();
 

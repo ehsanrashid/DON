@@ -351,6 +351,12 @@ constexpr std::size_t reserve_count(std::size_t reserveCount = 1024) noexcept {
     return std::max(reserveCount, std::size_t(8));
 }
 
+template<typename T1, typename T2>
+inline constexpr T2 interpolate(T1 x, T1 x0, T1 x1, T2 y0, T2 y1) noexcept {
+    assert(x0 != x1);
+    return T2(y0 + (y1 - y0) * (x - x0) / (x1 - x0));
+}
+
 enum class ConsoleOutputMode : std::uint8_t {
     Default,  // Do nothing special
     UTF7,     // Explicitly avoid UTF-8 changes

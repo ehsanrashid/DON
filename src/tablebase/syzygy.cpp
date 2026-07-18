@@ -53,6 +53,31 @@
 
 namespace DON::Tablebase::Syzygy {
 
+#if defined(NO_TABLEBASES)
+
+void init() noexcept {}
+void init(std::string_view) noexcept {}
+
+WDLScore probe_wdl(Position&, ProbeState* ps) noexcept {
+    *ps = PS_FAIL;
+    return WDL_DRAW;
+}
+int probe_dtz(Position&, ProbeState* ps) noexcept {
+    *ps = PS_FAIL;
+    return 0;
+}
+
+// clang-format off
+
+bool rank_root_moves_wdl(Position&, RootMoves&, bool) noexcept { return false; }
+bool rank_root_moves_dtz(Position&, RootMoves&, bool, bool, TimeFunc) noexcept { return false; }
+
+Config rank_root_moves(Position&, RootMoves&, const Options&, bool, TimeFunc) noexcept { return Config{}; }
+
+// clang-format on
+
+#else
+
 namespace {
 
 enum class Endian : std::uint8_t {
@@ -227,11 +252,11 @@ class TBPaths final {
         // Example:
         // C:\tb\wdl345;C:\tb\wdl6;D:\tb\dtz345;D:\tb\dtz6
         constexpr char PathSeparator =
-#if defined(_WIN32)
+    #if defined(_WIN32)
           ';'
-#else
+    #else
           ':'
-#endif
+    #endif
           ;
 
         Paths.clear();
@@ -536,17 +561,17 @@ struct TBTable final: BaseTBTable {
 
    private:
     StdArray<PairsData, SIDES, FILE_NB / 2> items;  // [color][FILE_A..FILE_D]
-#if defined(_WIN32)
+    #if defined(_WIN32)
     HANDLE      hMapFile = INVALID_HANDLE;
     HandleGuard hMapFileGuard{hMapFile};
 
     void*     mappedPtr = INVALID_MMAP_PTR;
     MMapGuard mappedGuard{mappedPtr};
-#else
+    #else
     void*       mappedPtr  = INVALID_MMAP_PTR;
     std::size_t mappedSize = INVALID_MMAP_SIZE;
     MMapGuard   mappedGuard{mappedPtr, mappedSize};
-#endif
+    #endif
     std::uint8_t* mapPtr = nullptr;
     CallOnce      callOnce;
 };
@@ -609,7 +634,7 @@ void* TBTable<T>::init(const Position& pos, Key materialKey) noexcept {
 // Files are mapped at first access: at init time only existence of the file is checked.
 template<TBType T>
 std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
-#if defined(_WIN32)
+    #if defined(_WIN32)
     // Note FILE_FLAG_RANDOM_ACCESS is only a hint to Windows and as such may get ignored
     HANDLE hFile = CreateFile(filename.data(), GENERIC_READ, FILE_SHARE_READ, nullptr,
                               OPEN_EXISTING, FILE_FLAG_RANDOM_ACCESS, nullptr);
@@ -659,7 +684,7 @@ std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
 
         return nullptr;
     }
-#else
+    #else
     int fd = ::open(filename.data(), O_RDONLY);
 
     FdGuard fdGuard{fd};
@@ -696,14 +721,14 @@ std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
         return nullptr;
     }
 
-    #if defined(MADV_RANDOM)
+        #if defined(MADV_RANDOM)
     //DEBUG_LOG("Using madvise() to inform the OS of random access pattern for file " << filename << " mappedSize = " << mappedSize);
     if (mappedPtr != nullptr && mappedSize != 0 && madvise(mappedPtr, mappedSize, MADV_RANDOM) != 0)
     {
         //DEBUG_LOG("madvise() failed, name = " << filename << " mappedSize = " << mappedSize << ", error = " << std::strerror(errno));
     }
+        #endif
     #endif
-#endif
 
     std::uint8_t* data = (std::uint8_t*) (mappedPtr);
 
@@ -724,9 +749,9 @@ std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
 template<TBType T>
 void TBTable<T>::unmap() noexcept {
     mappedGuard.close();
-#if defined(_WIN32)
+    #if defined(_WIN32)
     hMapFileGuard.close();
-#endif
+    #endif
 }
 
 // Populate entry's PairsData records with data from the just memory-mapped file.
@@ -1364,12 +1389,12 @@ int map_score(TBTable<DTZ>* table, File f, int value, WDLScore wdlScore) noexcep
     return value + 1;
 }
 
-// Temporary workaround for Clang compiler >= 15 vectorization bug
-#if defined(__clang__) && defined(__clang_major__) && __clang_major__ >= 15
-    #define CLANG_LOOP_VEC_DISABLE _Pragma("clang loop vectorize(disable)")
-#else
-    #define CLANG_LOOP_VEC_DISABLE
-#endif
+    // Temporary workaround for Clang compiler >= 15 vectorization bug
+    #if defined(__clang__) && defined(__clang_major__) && __clang_major__ >= 15
+        #define CLANG_LOOP_VEC_DISABLE _Pragma("clang loop vectorize(disable)")
+    #else
+        #define CLANG_LOOP_VEC_DISABLE
+    #endif
 
 // Compute a unique index out of a position and use it to probe the TB file.
 // To encode k pieces of the same type and color, first sort the pieces by square
@@ -1622,7 +1647,7 @@ Ret do_probe_table(
     return map_score(table, tbFile, decompress_pairs(pd, idx), wdlScore);
 }
 
-#undef CLANG_LOOP_VEC_DISABLE
+    #undef CLANG_LOOP_VEC_DISABLE
 
 template<TBType T, typename Ret = typename TBTable<T>::Ret>
 Ret probe_table(const Position& pos, ProbeState* ps, WDLScore wdlScore = WDL_DRAW) noexcept {
@@ -2185,5 +2210,7 @@ Config rank_root_moves(Position& pos, RootMoves& rootMoves, const Options& optio
 }
 
 // clang-format on
+
+#endif  // NO_TABLEBASES
 
 }  // namespace DON::Tablebase::Syzygy

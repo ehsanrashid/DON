@@ -171,16 +171,13 @@ void TimeManager::init(
 
     // Limit the maximum possible time for this move
     optimumTime = std::max<TimePoint>(constexpr_ceil(optimumScale * double(remainTime)), options["MinMoveTime"]);
-
     maximumTime = std::max(
                     mtg < 2
                     ? clock.time
                     : std::min<TimePoint>(constexpr_ceil(maximumScale * double(optimumTime)),
                                           constexpr_ceil(0.825179 * double(clock.time)) - OverheadTime)
-                    // Subtract small safety time from the allocated time to compensate for timer granularity, OS scheduling jitter, and measurement latency.
-                    // Reduces the risk of accidental time forfeits (flagging) under heavy load or extreme time pressure.
                     - options["BufferTime"],
-                    TimePoint{1});
+                    optimumTime);
     // clang-format on
 
     if (options["SleepOnStart"])
