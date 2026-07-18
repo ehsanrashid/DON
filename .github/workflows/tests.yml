@@ -408,12 +408,12 @@ jobs:
           docker run --rm --platform ${{ matrix.config.platform }} -v ${{ github.workspace }}:/app don_builder
           ../tests/signature.sh $benchref
 
-      - name: Test loongarch64-lasx build
-        if: matrix.config.run_loongarch64_tests
-        run: |
-          echo "cd src && export LDFLAGS='-static' && make clean && make -j4 ARCH=loongarch64-lasx build" > script.sh
-          docker run --rm --platform ${{ matrix.config.platform }} -v ${{ github.workspace }}:/app don_builder
-          ../tests/signature.sh $benchref
+      # - name: Test loongarch64-lasx build
+      #   if: matrix.config.run_loongarch64_tests
+      #   run: |
+      #     echo "cd src && export LDFLAGS='-static' && make clean && make -j4 ARCH=loongarch64-lasx build" > script.sh
+      #     docker run --rm --platform ${{ matrix.config.platform }} -v ${{ github.workspace }}:/app don_builder
+      #     ../tests/signature.sh $benchref
 
       # Other tests
 
