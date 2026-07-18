@@ -54,7 +54,7 @@ Score::Score(Value v, const Position& pos) noexcept {
 
 void print_info_string(std::string_view infoSv) noexcept {
 
-    if (StopInfoStr)
+    if (InfoStrStop)
         return;
 
     for (auto sv : split(infoSv, "\n", true))

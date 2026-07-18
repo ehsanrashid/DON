@@ -604,7 +604,7 @@ void UCI::benchmark(std::istream& is) noexcept {
     engine.set_on_update_iter([](const auto&) {});
     engine.set_on_update_move([](const auto&) {});
 
-    StopInfoStr = true;
+    InfoStrStop = true;
 
     std::size_t num =
       std::count_if(setup.commands.begin(), setup.commands.end(),
@@ -767,7 +767,7 @@ void UCI::benchmark(std::istream& is) noexcept {
               << "\nnodes/second               : " << 1000 * nodes / elapsedTime << std::endl;
     // clang-format on
 
-    StopInfoStr = false;
+    InfoStrStop = false;
     set_update_callbacks();
 }
 

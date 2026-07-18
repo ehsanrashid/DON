@@ -71,7 +71,7 @@ class Score final {
     std::variant<Unit, Tablebase, Mate> score;
 };
 
-inline bool StopInfoStr = false;
+inline bool InfoStrStop = false;
 
 void print_info_string(std::string_view infoSv) noexcept;
 
