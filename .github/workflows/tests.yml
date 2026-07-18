@@ -10,7 +10,7 @@ jobs:
       COMP: ${{ matrix.config.comp }}
       CXXFLAGS: "-Werror"
     # auto-cancel
-    timeout-minutes: 45
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
