@@ -524,21 +524,12 @@ Setup benchmark(std::istream& is) noexcept {
         return 50000.0 / double(15 + ply);
     };
 
-    double MoveTimeSum = 0.0;
-
+    double moveTimeSum = 0.0;
     for (const auto& game : Games)
-    {
-        std::uint16_t ply = 1;
-
         for (std::size_t i = 0; i < game.size(); ++i)
-        {
-            MoveTimeSum += calc_move_time(ply);
+            moveTimeSum += calc_move_time(i + 1);
 
-            ++ply;
-        }
-    }
-
-    double TimeScaleFactor = 1000.0 * double(moveTimeDesired) / double(MoveTimeSum);
+    double timeScaleFactor = 1000.0 * double(moveTimeDesired) / double(moveTimeSum);
 
     for (const auto& game : Games)
     {
@@ -550,7 +541,7 @@ Setup benchmark(std::istream& is) noexcept {
         {
             setup.commands.emplace_back("position fen " + fen);
 
-            std::size_t moveTime = int(calc_move_time(ply) * TimeScaleFactor);
+            std::size_t moveTime = int(calc_move_time(ply) * timeScaleFactor);
 
             setup.commands.emplace_back("go movetime " + std::to_string(moveTime));
 

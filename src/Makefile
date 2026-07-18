@@ -580,7 +580,7 @@ ifeq ($(GCC_CLANG),yes)
     profile_make = clang-profile-make
     profile_use  = clang-profile-use
 else
-    CXXFLAGS += -Wstack-usage=128000
+    CXXFLAGS += -Wstack-usage=128000 -fno-ipa-cp-clone
     profile_make = gcc-profile-make
     profile_use  = gcc-profile-use
 endif
@@ -675,7 +675,7 @@ else
 endif
     # Prefer POSIX variant if available
     CXX := $(if $(shell command -v $(MINGW_CXX_POSIX) 2>/dev/null),$(MINGW_CXX_POSIX),$(MINGW_CXX))
-    CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-declarations
+    CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-declarations -fno-ipa-cp-clone
     # Profile build for mingw (use GCC defaults)
     profile_make = gcc-profile-make
     profile_use  = gcc-profile-use
