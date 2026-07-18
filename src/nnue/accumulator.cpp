@@ -282,7 +282,7 @@ void update_accumulator_dbl_incr(
   const FeatureTransformer<TransformedFeatureDimensions>& featureTransformer,
   Square                                                  kingSq,
   const AccumulatorState<PSQFeatureSet>&                  computedState,
-  AccumulatorState<PSQFeatureSet>&                        middleState,
+  const AccumulatorState<PSQFeatureSet>&                  middleState,
   AccumulatorState<PSQFeatureSet>&                        targetState) noexcept {
 
     assert(computedState.acc<TransformedFeatureDimensions>().computed[perspective]);
@@ -327,7 +327,7 @@ void update_accumulator_dbl_incr(
   const FeatureTransformer<TransformedFeatureDimensions>& featureTransformer,
   Square                                                  kingSq,
   const AccumulatorState<ThreatFeatureSet>&               computedState,
-  AccumulatorState<ThreatFeatureSet>&                     middleState,
+  const AccumulatorState<ThreatFeatureSet>&               middleState,
   AccumulatorState<ThreatFeatureSet>&                     targetState,
   const DirtyPiece&                                       dp2) noexcept {
 
