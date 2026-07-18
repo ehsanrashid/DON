@@ -655,7 +655,7 @@ void Position::set_castling_rights(Color c, Square rookOrgSq) noexcept {
     Bitboard kingPathBB = between_bb(kingOrgSq, kingDstSq);
     Bitboard rookPathBB = between_bb(rookOrgSq, rookDstSq);
 
-    castlings.fullPathBB[c][+cs] = (kingPathBB | rookPathBB) & make_comp_bb(kingOrgSq, rookOrgSq);
+    castlings.fullPathBB[c][+cs] = (kingPathBB | rookPathBB) & ~make_bb(kingOrgSq, rookOrgSq);
     castlings.kingPathBB[c][+cs] = kingPathBB;
     castlings.rookSq[c][+cs]     = rookOrgSq;
 }
@@ -775,7 +775,7 @@ bool Position::enpassant_possible(Color     ac,
     {
         // Step 1: If there are other checkers besides the pawn to be captured,
         // en-passant is never legal because it would leave the king in check.
-        if ((checkers_bb() & make_comp_bb(capturedSq)) != 0)
+        if ((checkers_bb() & ~make_bb(capturedSq)) != 0)
             epPawnsBB = 0;
         // Step 2: At least one pawn is either unpinned or aligned with the king along the en-passant line.
         else if (preSt != nullptr)
