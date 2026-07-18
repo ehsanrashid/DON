@@ -934,7 +934,6 @@ endif
 endif
 
 ifeq ($(mmx),yes)
-    #CXXFLAGS += -DUSE_MMX
 ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
     CXXFLAGS += -mmmx
 endif

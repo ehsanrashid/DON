@@ -393,9 +393,6 @@ class FeatureTransformer final {
 #endif
             // clang-format on
         }
-#if defined(USE_MMX)
-        _mm_empty();
-#endif
 
         return psqt;
     }

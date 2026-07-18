@@ -42,8 +42,6 @@
     #include <tmmintrin.h>
 #elif defined(USE_SSE2)
     #include <emmintrin.h>
-#elif defined(USE_MMX)
-    #include <mmintrin.h>  // MMX intrinsics
 #elif defined(USE_NEON)
     #include <arm_neon.h>
 #endif
@@ -83,8 +81,6 @@ inline constexpr std::size_t SIMD_WIDTH_MAX = 32;
 inline constexpr std::size_t SIMD_WIDTH = 32;
 #elif defined(USE_SSE2)
 inline constexpr std::size_t SIMD_WIDTH = 16;
-#elif defined(USE_MMX)
-inline constexpr std::size_t SIMD_WIDTH = 8;
 #elif defined(USE_NEON)
 inline constexpr std::size_t SIMD_WIDTH = 16;
 #endif

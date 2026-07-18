@@ -395,9 +395,6 @@ std::string compiler_info() noexcept {
 #if defined(USE_SSE2)
     compiler.append(" SSE2");
 #endif
-#if defined(USE_MMX)
-    compiler.append(" MMX");
-#endif
 #if defined(USE_NEON)
     #if defined(USE_NEON_DOTPROD)
     compiler.append(" NEON_DOTPROD");
