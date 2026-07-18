@@ -165,22 +165,6 @@ class FeatureTransformer final {
             permute<8>(threatWeights, Order);
     }
 
-    template<bool Read>
-    void scale_weights() noexcept {
-
-        for (auto& bias : biases)
-            if constexpr (Read)
-                bias *= 2;
-            else
-                bias /= 2;
-
-        for (auto& weight : weights)
-            if constexpr (Read)
-                weight *= 2;
-            else
-                weight /= 2;
-    }
-
     // Read network parameters
     bool read_parameters(std::istream& is) noexcept {
 
@@ -203,9 +187,6 @@ class FeatureTransformer final {
 
         permute_weights<true>();
 
-        if constexpr (!UseThreats)
-            scale_weights<true>();
-
         return !is.fail();
     }
 
@@ -214,9 +195,6 @@ class FeatureTransformer final {
         auto copy = std::make_unique<FeatureTransformer>(*this);
 
         copy->template permute_weights<false>();
-
-        if constexpr (!UseThreats)
-            copy->template scale_weights<false>();
 
         write_leb_128(os, copy->biases);
 
@@ -347,7 +325,7 @@ class FeatureTransformer final {
             // to the left by 1, so we compensate by shifting less before
             // the multiplication.
             vec_t Zero = vec_zero();
-            vec_t One  = vec_set_16(UseThreats ? 255 : 127 * 2);
+            vec_t One  = vec_set_16(255);
 
             constexpr int shift =
     #if defined(USE_SSE2)
@@ -403,17 +381,12 @@ class FeatureTransformer final {
 
                 if constexpr (UseThreats)
                 {
-                    BiasType tsum0 = threatAccumulation[perspectives[p]][j + 0];
-                    BiasType tsum1 = threatAccumulation[perspectives[p]][j + HalfDimensions / 2];
+                    sum0 += threatAccumulation[perspectives[p]][j + 0];
+                    sum1 += threatAccumulation[perspectives[p]][j + HalfDimensions / 2];
+                }
 
-                    sum0 = std::clamp<BiasType>(sum0 + tsum0, 0, 255);
-                    sum1 = std::clamp<BiasType>(sum1 + tsum1, 0, 255);
-                }
-                else
-                {
-                    sum0 = std::clamp<BiasType>(sum0, 0, 127 * 2);
-                    sum1 = std::clamp<BiasType>(sum1, 0, 127 * 2);
-                }
+                sum0 = std::clamp<BiasType>(sum0, 0, 255);
+                sum1 = std::clamp<BiasType>(sum1, 0, 255);
 
                 output[offset + j] = OutputType(unsigned(sum0 * sum1) / 512);
             }
