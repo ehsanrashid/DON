@@ -36,12 +36,12 @@ namespace DON::NNUE::Features {
 
 namespace {
 
-constexpr StdArray<u16, COLOR_NB, PIECE_TYPE_CNT> TARGET_MAX{{
+constexpr Array<u16, COLOR_NB, PIECE_TYPE_CNT> TARGET_MAX{{
   {5, 9, 7, 7, 9, 0},  //
   {6, 9, 7, 7, 9, 0}   //
 }};
 
-constexpr StdArray<i16, PIECE_TYPE_CNT, PIECE_TYPE_CNT> MAP{{
+constexpr Array<i16, PIECE_TYPE_CNT, PIECE_TYPE_CNT> MAP{{
   {+0, +1, -1, +2, -1, -1},  //
   {+0, +1, +2, +3, +4, -1},  //
   {+0, +1, +2, +3, -1, -1},  //
@@ -58,8 +58,8 @@ struct PieceThreat final {
 
 struct ThreatTable final {
    public:
-    StdArray<PieceThreat, PIECE_NB>    pieceThreats;
-    StdArray<u32, PIECE_NB, SQUARE_NB> squareOffsets;
+    Array<PieceThreat, PIECE_NB>    pieceThreats;
+    Array<u32, PIECE_NB, SQUARE_NB> squareOffsets;
 };
 
 alignas(CACHE_LINE_SIZE) constexpr auto THREAT_TABLE = []() constexpr noexcept {
@@ -113,14 +113,14 @@ constexpr u32 FEATURE_INDEX_MASK   = SEMI_EXCLUDED_MASK - 1;
 // LUT for getting feature base index and exclusion info
 // [attackerPc][attackedPc]
 alignas(CACHE_LINE_SIZE) constexpr auto LUT_DATAS = []() constexpr noexcept {
-    StdArray<u32, PIECE_NB, PIECE_NB> lutDatas{};
+    Array<u32, PIECE_NB, PIECE_NB> lutDatas{};
 
     for (Color attackerC : {WHITE, BLACK})
         for (PieceType attackerPt : PIECE_TYPES)
         {
             Piece attackerPc = make_piece(attackerC, attackerPt);
 
-            StdArray<usize, PIECE_NB> targetBuckets{};
+            Array<usize, PIECE_NB> targetBuckets{};
             for (auto& bucket : targetBuckets)
                 bucket = UINT32_MAX;
 
@@ -174,7 +174,7 @@ constexpr IndexType feature_index(u32 lutData) noexcept { return lutData & FEATU
 // LUT for getting index within piece threats
 // [attackerPt][orgSq][dstSq]
 alignas(CACHE_LINE_SIZE) const auto LUT_INDICES = []() noexcept {
-    StdArray<u8, 1 + PIECE_TYPE_CNT, SQUARE_NB, SQUARE_NB> lutIndices{};
+    Array<u8, 1 + PIECE_TYPE_CNT, SQUARE_NB, SQUARE_NB> lutIndices{};
 
     for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
         for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)

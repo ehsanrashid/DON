@@ -112,14 +112,14 @@ struct NetworkArchitecture final {
     }
 
     // Forward propagation
-    i32 propagate(const StdArray<TransformedFeatureType, TransformedFeatureDimensions>&
+    i32 propagate(const Array<TransformedFeatureType, TransformedFeatureDimensions>&
                     transformedFeatures) const noexcept {
 
         struct alignas(CACHE_LINE_SIZE) Buffer final {
             alignas(CACHE_LINE_SIZE) typename decltype(fc_0)::OutputBuffer fc_0_out;
             alignas(CACHE_LINE_SIZE)
-              StdArray<typename decltype(ac_sqr_0)::OutputType,
-                       ceil_to_multiple<IndexType>(FC_0_Outputs * 2, 32)> ac_sqr_0_out;
+              Array<typename decltype(ac_sqr_0)::OutputType,
+                    ceil_to_multiple<IndexType>(FC_0_Outputs * 2, 32)> ac_sqr_0_out;
             alignas(CACHE_LINE_SIZE) typename decltype(ac_0)::OutputBuffer ac_0_out;
             alignas(CACHE_LINE_SIZE) typename decltype(fc_1)::OutputBuffer fc_1_out;
             alignas(CACHE_LINE_SIZE) typename decltype(ac_1)::OutputBuffer ac_1_out;

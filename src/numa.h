@@ -140,8 +140,8 @@ struct WindowsAffinity final {
 
     // Also provide diagnostic for when the affinity is set to nullopt whether it was due to being indeterminate.
     // If affinity is indeterminate it is best to assume it is not set at all, so consistent with the meaning of the nullopt affinity.
-    StdArray<bool, 2>        determinate{true, true};
-    StdArray<CpuIndexSet, 2> cpus;
+    Array<bool, 2>        determinate{true, true};
+    Array<CpuIndexSet, 2> cpus;
 };
 
 inline std::pair<BOOL, std::vector<USHORT>> get_process_group_affinity() noexcept {

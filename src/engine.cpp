@@ -346,7 +346,7 @@ void Engine::verify_networks() const noexcept {
     }
 }
 
-void Engine::load_networks(const StdArray<std::string_view, 2>& netFiles) noexcept {
+void Engine::load_networks(const Array<std::string_view, 2>& netFiles) noexcept {
     if (!netFiles[0].empty())
         load_big_network(netFiles[0]);
     if (!netFiles[1].empty())
@@ -375,7 +375,7 @@ void Engine::load_small_network(std::string_view netFile) noexcept {
     threads.ensure_network_replicated();
 }
 
-void Engine::save_networks(const StdArray<std::string_view, 2>& netFiles) const noexcept {
+void Engine::save_networks(const Array<std::string_view, 2>& netFiles) const noexcept {
 
     networks->save_big(netFiles[0]);
     networks->save_small(netFiles[1]);

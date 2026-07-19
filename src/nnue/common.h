@@ -105,7 +105,7 @@ inline IntType read_little_endian(std::istream& is) noexcept {
         is.read(reinterpret_cast<char*>(&value), IntSize);
     else
     {
-        StdArray<u8, IntSize> u;
+        Array<u8, IntSize> u;
 
         UIntType v = 0;
 
@@ -134,7 +134,7 @@ inline void write_little_endian(std::ostream& os, IntType value) noexcept {
         os.write(reinterpret_cast<const char*>(&value), IntSize);
     else
     {
-        StdArray<u8, IntSize> u;
+        Array<u8, IntSize> u;
 
         UIntType v = value;
 
@@ -255,7 +255,7 @@ inline void _read_leb_128(std::istream&              is,
 template<typename... Arrays>
 inline void read_leb_128(std::istream& is, Arrays&... outs) noexcept {
     // Read and check the presence of LEB128 magic string
-    StdArray<char, LEB128_MAGIC_STRING.size()> leb128MagicString;
+    Array<char, LEB128_MAGIC_STRING.size()> leb128MagicString;
     is.read(leb128MagicString.data(), LEB128_MAGIC_STRING.size());
     assert(
       std::strncmp(leb128MagicString.data(), LEB128_MAGIC_STRING.data(), LEB128_MAGIC_STRING.size())
@@ -263,7 +263,7 @@ inline void read_leb_128(std::istream& is, Arrays&... outs) noexcept {
 
     usize byteCount = read_little_endian<u32>(is);
 
-    StdArray<u8, 8192> buffer;
+    Array<u8, 8192> buffer;
 
     usize bufferIdx = buffer.size();
 
@@ -301,7 +301,7 @@ inline void write_leb_128(std::ostream& os, const std::array<IntType, Size>& in)
 
     write_little_endian<u32>(os, byteCount);
 
-    StdArray<u8, 4096> buffer;
+    Array<u8, 4096> buffer;
 
     usize bufferIdx = 0;
 

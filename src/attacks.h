@@ -58,7 +58,7 @@ constexpr u8 distance<Rank>(Square s1, Square s2) noexcept {
 }
 
 alignas(CACHE_LINE_SIZE) inline constexpr auto DISTANCES = []() constexpr noexcept {
-    StdArray<u8, SQUARE_NB, SQUARE_NB> distances{};
+    Array<u8, SQUARE_NB, SQUARE_NB> distances{};
 
     for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
         for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
@@ -144,7 +144,7 @@ constexpr Bitboard sliding_attacks_bb(Square s, Bitboard occupancyBB = 0) noexce
     static_assert(PT == BISHOP || PT == ROOK, "Unsupported piece type in sliding_attacks_bb()");
     assert(is_ok(s));
 
-    constexpr StdArray<Direction, 2, 4> Directions{{
+    constexpr Array<Direction, 2, 4> Directions{{
       {
         Direction::SOUTH_WEST,  //
         Direction::SOUTH_EAST,  //
@@ -220,7 +220,7 @@ constexpr Bitboard king_attacks_bb(Square s) noexcept {
 }
 
 alignas(CACHE_LINE_SIZE) inline constexpr auto ATTACKS_BBs = []() constexpr noexcept {
-    StdArray<Bitboard, SQUARE_NB, 1 + PIECE_TYPE_CNT> attacksBBs{};
+    Array<Bitboard, SQUARE_NB, 1 + PIECE_TYPE_CNT> attacksBBs{};
 
     for (Square s = SQ_A1; s <= SQ_H8; ++s)
     {
@@ -343,10 +343,10 @@ struct Magic final {
 #endif
 };
 
-alignas(CACHE_LINE_SIZE) inline StdArray<Magic, SQUARE_NB, 2> MAGICS;  // BISHOP or ROOK
+alignas(CACHE_LINE_SIZE) inline Array<Magic, SQUARE_NB, 2> MAGICS;  // BISHOP or ROOK
 
 template<PieceType PT>
-constexpr Bitboard attacks_bb(const StdArray<Magic, 2>& magic, Bitboard occupancyBB) noexcept {
+constexpr Bitboard attacks_bb(const Array<Magic, 2>& magic, Bitboard occupancyBB) noexcept {
     static_assert(PT == BISHOP || PT == ROOK, "Unsupported piece type in attacks_bb()");
 
     return magic[PT - BISHOP].attacks_bb(occupancyBB);
@@ -409,7 +409,7 @@ constexpr Bitboard attacks_bb(Square s, Piece pc, Bitboard occupancyBB) noexcept
 }
 
 alignas(CACHE_LINE_SIZE) inline constexpr auto LINE_BBs = []() constexpr noexcept {
-    StdArray<Bitboard, SQUARE_NB, SQUARE_NB> lineBBs{};
+    Array<Bitboard, SQUARE_NB, SQUARE_NB> lineBBs{};
 
     for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
         for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
@@ -437,7 +437,7 @@ constexpr bool aligned(Square s1, Square s2, Square s3) noexcept {
     return (line_bb(s1, s2) & s3) != 0;
 }
 
-alignas(CACHE_LINE_SIZE) inline StdArray<Bitboard, SQUARE_NB, SQUARE_NB> BETWEEN_BBs;
+alignas(CACHE_LINE_SIZE) inline Array<Bitboard, SQUARE_NB, SQUARE_NB> BETWEEN_BBs;
 
 // Returns a bitboard representing the squares in the semi-open segment
 // between the squares s1 and s2 (excluding s1 but including s2).
@@ -455,7 +455,7 @@ constexpr Bitboard between_bb(Square s1, Square s2) noexcept {
 // Returns a bitboard between the squares s1 and s2 (excluding s1 and s2).
 constexpr Bitboard between_ex_bb(Square s1, Square s2) noexcept { return between_bb(s1, s2) ^ s2; }
 
-alignas(CACHE_LINE_SIZE) inline StdArray<Bitboard, SQUARE_NB, SQUARE_NB> PASS_RAY_BBs;
+alignas(CACHE_LINE_SIZE) inline Array<Bitboard, SQUARE_NB, SQUARE_NB> PASS_RAY_BBs;
 
 // Returns a bitboard representing a ray from the square s1 passing s2.
 constexpr Bitboard pass_ray_bb(Square s1, Square s2) noexcept {

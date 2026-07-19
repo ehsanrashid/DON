@@ -137,7 +137,7 @@ void Network<Arch, Transformer>::load(std::string_view rootDirectory,
 #endif
       ;
 
-    const StdArray<std::string_view, DirectoryCount> Directories{
+    const Array<std::string_view, DirectoryCount> Directories{
       // --------------------------------------------------------
       "<embedded>",  //
       "",            //
@@ -254,7 +254,7 @@ i32 Network<Arch, Transformer>::evaluate(
     constexpr i32 Scale = 128;
 
     alignas(CACHE_LINE_SIZE)
-      StdArray<TransformedFeatureType, FeatureTransformer<TFDimensions>::BufferSize>
+      Array<TransformedFeatureType, FeatureTransformer<TFDimensions>::BufferSize>
         transformedFeatures;
 
     usize bucket = pos.bucket();
@@ -272,7 +272,7 @@ Network<Arch, Transformer>::trace(const Position&                         pos,
                                   AccumulatorCaches::Cache<TFDimensions>& cache) const noexcept {
 
     alignas(CACHE_LINE_SIZE)
-      StdArray<TransformedFeatureType, FeatureTransformer<TFDimensions>::BufferSize>
+      Array<TransformedFeatureType, FeatureTransformer<TFDimensions>::BufferSize>
         transformedFeatures;
 
     NetworkTrace netTrace;

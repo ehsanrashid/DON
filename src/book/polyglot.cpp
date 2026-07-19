@@ -46,7 +46,7 @@ union Zobrist final {
                                 + (COLOR_NB * CASTLING_SIDE_NB)            //
                                 + (FILE_NB) + 1;
 
-    explicit constexpr Zobrist(const StdArray<Key, SIZE>& keys) noexcept :
+    explicit constexpr Zobrist(const Array<Key, SIZE>& keys) noexcept :
         Keys{keys} {}
 
     [[nodiscard]] Key key(const Position& pos) const noexcept {
@@ -79,13 +79,13 @@ union Zobrist final {
     Zobrist& operator=(const Zobrist&) noexcept = delete;
     Zobrist& operator=(Zobrist&&) noexcept      = delete;
 
-    StdArray<Key, SIZE> Keys;
+    Array<Key, SIZE> Keys;
 
     struct {
-        StdArray<Key, COLOR_NB, PIECE_TYPE_CNT, SQUARE_NB> PieceSquare;
-        StdArray<Key, COLOR_NB * CASTLING_SIDE_NB>         Castling;
-        StdArray<Key, FILE_NB>                             Enpassant;
-        Key                                                Turn;
+        Array<Key, COLOR_NB, PIECE_TYPE_CNT, SQUARE_NB> PieceSquare;
+        Array<Key, COLOR_NB * CASTLING_SIDE_NB>         Castling;
+        Array<Key, FILE_NB>                             Enpassant;
+        Key                                             Turn;
     } _;
 };
 

@@ -809,13 +809,13 @@ class MultiArray;
 namespace internal {
 
 template<typename T, usize Size, usize... Sizes>
-struct StdArrayDef final {
+struct ArrayDef final {
     static_assert(Size >= 0, "dimension must be >= 0");
-    using type = std::array<typename StdArrayDef<T, Sizes...>::type, Size>;
+    using type = std::array<typename ArrayDef<T, Sizes...>::type, Size>;
 };
 
 template<typename T, usize Size>
-struct StdArrayDef<T, Size> final {
+struct ArrayDef<T, Size> final {
     static_assert(Size >= 0, "dimension must be >= 0");
     using type = std::array<T, Size>;
 };
@@ -836,15 +836,15 @@ struct MultiArrayDef<T, Size> final {
 }  // namespace internal
 
 template<typename T, usize Size, usize... Sizes>
-using StdArray = typename internal::StdArrayDef<T, Size, Sizes...>::type;
+using Array = typename internal::ArrayDef<T, Size, Sizes...>::type;
 
 // MultiArray is a generic N-dimensional array.
 // The template parameter T is the base type of the MultiArray
 // The template parameters (Size and Sizes) is the dimensions of the MultiArray.
 template<typename T, usize Size, usize... Sizes>
-class MultiArray {
+class MultiArray final {
     using ElementType = typename internal::MultiArrayDef<T, Size, Sizes...>::Type;
-    using ArrayType   = StdArray<ElementType, Size>;
+    using ArrayType   = Array<ElementType, Size>;
 
    public:
     using value_type             = typename ArrayType::value_type;
@@ -944,16 +944,16 @@ class MultiArray {
 
     template<bool NoExtraDimension = sizeof...(Sizes) == 0,
              typename              = std::enable_if_t<NoExtraDimension, bool>>
-    constexpr operator StdArray<T, Size>&() noexcept {
+    constexpr operator Array<T, Size>&() noexcept {
         return _data;
     }
     template<bool NoExtraDimension = sizeof...(Sizes) == 0,
              typename              = std::enable_if_t<NoExtraDimension, bool>>
-    constexpr operator const StdArray<T, Size>&() const noexcept {
+    constexpr operator const Array<T, Size>&() const noexcept {
         return _data;
     }
 
-    constexpr MultiArray& operator=(const StdArray<T, Size, Sizes...>& stdArr) noexcept {
+    constexpr MultiArray& operator=(const Array<T, Size, Sizes...>& stdArr) noexcept {
         for (usize i = 0; i < Size; ++i)
             _data[i] = stdArr[i];
         return *this;
@@ -1085,8 +1085,8 @@ class FixedVector final {
     void clear() noexcept { _size = 0; }
 
    private:
-    StdArray<T, Capacity> _data;
-    SizeType              _size = 0;
+    Array<T, Capacity> _data;
+    SizeType           _size = 0;
 };
 
 struct FixedText final {
@@ -1133,8 +1133,8 @@ struct FixedText final {
     friend std::ostream& operator<<(std::ostream& os, const FixedText& fixedText) noexcept;
 
    private:
-    StdArray<char, 31> _data{};
-    u8                 _size = 0;
+    Array<char, 31> _data{};
+    u8              _size = 0;
 };
 
 static_assert(sizeof(FixedText) == 32, "FixedText size must be 32 bytes");
@@ -1240,8 +1240,8 @@ class FixedString final {
         null_terminate();
     }
 
-    StdArray<char, Capacity + 1> _data;  // +1 for null terminator
-    usize                        _size;
+    Array<char, Capacity + 1> _data;  // +1 for null terminator
+    usize                     _size;
 };
 
 // ConcurrentCache: groups (mutex + storage + pre-reserve)
@@ -1904,7 +1904,7 @@ split(std::string_view sv, std::string_view delimiter, bool trimPart = false) no
 inline std::string hash_to_string(u64 hash) noexcept {
     constexpr usize BufferSize = HEX64_SIZE + 1;  // 16 hex + '\0'
 
-    StdArray<char, BufferSize> buffer{};
+    Array<char, BufferSize> buffer{};
 
     int   writtenSize = std::snprintf(buffer.data(), buffer.size(), "%016" PRIX64, hash);
     usize copiedSize  = writtenSize > 0  //
@@ -1917,7 +1917,7 @@ inline std::string hash_to_string(u64 hash) noexcept {
 inline std::string u32_to_string(u32 v) noexcept {
     constexpr usize BufferSize = 2 + HEX32_SIZE + 1;  // "0x" + 8 hex + '\0'
 
-    StdArray<char, BufferSize> buffer{};
+    Array<char, BufferSize> buffer{};
 
     int   writtenSize = std::snprintf(buffer.data(), buffer.size(), "0x%08" PRIX32, v);
     usize copiedSize  = writtenSize > 0  //
@@ -1929,7 +1929,7 @@ inline std::string u32_to_string(u32 v) noexcept {
 inline std::string u64_to_string(u64 v) noexcept {
     constexpr usize BufferSize = 2 + HEX64_SIZE + 1;  // "0x" + 16 hex + '\0'
 
-    StdArray<char, BufferSize> buffer{};
+    Array<char, BufferSize> buffer{};
 
     int   writtenSize = std::snprintf(buffer.data(), buffer.size(), "0x%016" PRIX64, v);
     usize copiedSize  = writtenSize > 0  //

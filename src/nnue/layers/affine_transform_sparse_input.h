@@ -38,8 +38,8 @@ struct Lookup final {
     static constexpr usize SIZE       = 256;
     static constexpr u8    INDEX_SIZE = 8;
 
-    StdArray<u16, SIZE, INDEX_SIZE> indices{};
-    StdArray<u8, SIZE>              popcounts{};
+    Array<u16, SIZE, INDEX_SIZE> indices{};
+    Array<u8, SIZE>              popcounts{};
 
     constexpr Lookup() noexcept {
 
@@ -193,7 +193,7 @@ class AffineTransformSparseInput final {
 #endif
       ;
 
-    using OutputBuffer = StdArray<OutputType, PaddedOutputDimensions>;
+    using OutputBuffer = Array<OutputType, PaddedOutputDimensions>;
 
     // Hash value embedded in the evaluation file
     static constexpr u32 hash(u32 preHash) noexcept {
@@ -293,8 +293,8 @@ class AffineTransformSparseInput final {
     #endif
           ;
 
-        StdArray<u16, ChunkCount> nnz;
-        IndexType                 count;
+        Array<u16, ChunkCount> nnz;
+        IndexType              count;
         // Find indices of nonzero 32-bit blocks
         find_nnz<ChunkCount>(input, nnz.data(), count);
 
@@ -378,8 +378,8 @@ class AffineTransformSparseInput final {
     using BiasType   = OutputType;
     using WeightType = i8;
 
-    alignas(CACHE_LINE_SIZE) StdArray<BiasType, OutputDimensions> biases;
-    alignas(CACHE_LINE_SIZE) StdArray<WeightType, OutputDimensions * PaddedInputDimensions> weights;
+    alignas(CACHE_LINE_SIZE) Array<BiasType, OutputDimensions> biases;
+    alignas(CACHE_LINE_SIZE) Array<WeightType, OutputDimensions * PaddedInputDimensions> weights;
 };
 
 }  // namespace DON::NNUE::Layers

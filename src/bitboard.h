@@ -176,7 +176,7 @@ constexpr u8 constexpr_popcount(T v) noexcept {
 }
 
 constexpr u8 msb_index(Bitboard b) noexcept {
-    constexpr StdArray<u8, SQUARE_NB> MSBIndices{
+    constexpr Array<u8, SQUARE_NB> MSBIndices{
       0,  47, 1,  56, 48, 27, 2,  60,  //
       57, 49, 41, 37, 28, 16, 3,  61,  //
       54, 58, 35, 52, 50, 42, 21, 44,  //
@@ -232,7 +232,7 @@ constexpr u8 constexpr_msb(Bitboard b) noexcept {
 #if !defined(USE_POPCNT)
 
 alignas(CACHE_LINE_SIZE) inline const auto POP_CNTS = []() {
-    StdArray<u8, 0x10000> popCnts{};
+    Array<u8, 0x10000> popCnts{};
 
     for (usize i = 0; i < popCnts.size(); ++i)
         popCnts[i] = constexpr_popcount(i);
@@ -246,7 +246,7 @@ alignas(CACHE_LINE_SIZE) inline const auto POP_CNTS = []() {
 inline u8 popcount(Bitboard b) noexcept {
 
 #if !defined(USE_POPCNT)
-    StdArray<u16, 4> b16;
+    Array<u16, 4> b16;
     static_assert(sizeof(b16) == sizeof(b));
 
     std::memcpy(b16.data(), &b, sizeof(b16));

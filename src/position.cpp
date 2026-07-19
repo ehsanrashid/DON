@@ -131,8 +131,8 @@ class CuckooTable final {
     }
 
    private:
-    StdArray<Cuckoo, Size> cuckoos;
-    usize                  count;
+    Array<Cuckoo, Size> cuckoos;
+    usize               count;
 };
 
 CuckooTable<0x2000> Cuckoos;
@@ -510,7 +510,7 @@ void Position::set(std::string_view code, Color c, State* newSt) noexcept {
     assert(is_ok(c));
     assert(newSt != nullptr);
 
-    StdArray<std::string, COLOR_NB> sides{
+    Array<std::string, COLOR_NB> sides{
       std::string{code.substr(code.find('K', 1))},                // Weak
       std::string{code.substr(0, code.find_first_of("vK", 1))}};  // Strong
 
@@ -713,7 +713,7 @@ void Position::set_ext_state() noexcept {
     Bitboard occupancyBB = pieces_bb();
 
     // clang-format off
-    StdArray<Bitboard, 2> attacksBB{
+    Array<Bitboard, 2> attacksBB{
       attacks_bb<BISHOP>(kingSq, occupancyBB),
       attacks_bb<ROOK  >(kingSq, occupancyBB)
     };
@@ -1615,7 +1615,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
 
     const auto* magic = &MAGICS[dstSq];
 
-    StdArray<bool, COLOR_NB> discovery{true, true};
+    Array<bool, COLOR_NB> discovery{true, true};
 
     while (true)
     {

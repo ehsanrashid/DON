@@ -70,8 +70,8 @@ struct WinRateParams final {
 WinRateParams win_rate_params(const Position& pos) noexcept {
 
     // clang-format off
-    constexpr StdArray<double, 4> A{-72.32565836,  185.93832038, -144.58862193, 416.44950446};
-    constexpr StdArray<double, 4> B{ 83.86794042, -136.06112997,   69.98820887,  47.62901433};
+    constexpr Array<double, 4> A{-72.32565836,  185.93832038, -144.58862193, 416.44950446};
+    constexpr Array<double, 4> B{ 83.86794042, -136.06112997,   69.98820887,  47.62901433};
     // clang-format on
 
     // The fitted model only uses data for material counts in [17, 78], and is anchored at count 58 (17.2414e-3).

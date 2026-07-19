@@ -42,8 +42,8 @@ namespace DON::NNUE {
 
 // Returns the inverse of a permutation
 template<usize Size>
-constexpr StdArray<usize, Size> invert_permutation(const std::array<usize, Size>& order) noexcept {
-    StdArray<usize, Size> inverse{};
+constexpr Array<usize, Size> invert_permutation(const std::array<usize, Size>& order) noexcept {
+    Array<usize, Size> inverse{};
     for (usize i = 0; i < order.size(); ++i)
         inverse[order[i]] = i;
     return inverse;
@@ -64,7 +64,7 @@ constexpr void permute(std::array<T, DataSize>&            data,
     {
         auto* values = &byts[i];
 
-        StdArray<u8, ChunkSize> buffer;
+        Array<u8, ChunkSize> buffer;
 
         for (usize j = 0; j < order.size(); ++j)
         {
@@ -111,7 +111,7 @@ class FeatureTransformer final {
     // Store the order by which 128-bit blocks of a 1024-bit data must
     // be permuted so that calling packus on adjacent vectors of 16-bit
     // integers loaded from the data results in the pre-permutation order
-    static constexpr auto PackusEpi16Order = []() -> StdArray<usize, 8> {
+    static constexpr auto PackusEpi16Order = []() -> Array<usize, 8> {
         return
 #if defined(USE_AVX512)
           // _mm512_packus_epi16 after permutation:
@@ -202,7 +202,7 @@ class FeatureTransformer final {
             write_leb_128<WeightType>(os, copy->weights);
 
             auto combinedPsqtWeights =
-              std::make_unique<StdArray<PSQTWeightType, TotalInputDimensions * PSQTBuckets>>();
+              std::make_unique<Array<PSQTWeightType, TotalInputDimensions * PSQTBuckets>>();
 
             std::copy(copy->threatPsqtWeights.begin(),
                       copy->threatPsqtWeights.begin() + ThreatInputDimensions * PSQTBuckets,
@@ -229,7 +229,7 @@ class FeatureTransformer final {
                   AccumulatorStack&                         accStack,
                   AccumulatorCaches::Cache<HalfDimensions>& cache,
                   usize                                     bucket,
-                  StdArray<OutputType, BufferSize>&         output) const noexcept {
+                  Array<OutputType, BufferSize>&            output) const noexcept {
         using namespace SIMD;
 
         accStack.evaluate(pos, *this, cache);
@@ -242,7 +242,7 @@ class FeatureTransformer final {
         const auto& threatPsqtAccumulation =  //
           (threatAccState.acc<HalfDimensions>()).psqtAccumulation;
 
-        StdArray<Color, COLOR_NB> perspectives{pos.active_color(), ~pos.active_color()};
+        Array<Color, COLOR_NB> perspectives{pos.active_color(), ~pos.active_color()};
 
         auto psqt = psqtAccumulation[perspectives[WHITE]][bucket]
                   - psqtAccumulation[perspectives[BLACK]][bucket];
@@ -395,11 +395,11 @@ class FeatureTransformer final {
     }
 
     // clang-format off
-    alignas(CACHE_LINE_SIZE) StdArray<BiasType        , HalfDimensions>                                          biases;
-    alignas(CACHE_LINE_SIZE) StdArray<WeightType      , InputDimensions * HalfDimensions>                        weights;
-    alignas(CACHE_LINE_SIZE) StdArray<ThreatWeightType, UseThreats ? ThreatInputDimensions * HalfDimensions : 0> threatWeights;
-    alignas(CACHE_LINE_SIZE) StdArray<PSQTWeightType  , InputDimensions * PSQTBuckets>                           psqtWeights;
-    alignas(CACHE_LINE_SIZE) StdArray<PSQTWeightType  , UseThreats ? ThreatInputDimensions * PSQTBuckets : 0>    threatPsqtWeights;
+    alignas(CACHE_LINE_SIZE) Array<BiasType        , HalfDimensions>                                          biases;
+    alignas(CACHE_LINE_SIZE) Array<WeightType      , InputDimensions * HalfDimensions>                        weights;
+    alignas(CACHE_LINE_SIZE) Array<ThreatWeightType, UseThreats ? ThreatInputDimensions * HalfDimensions : 0> threatWeights;
+    alignas(CACHE_LINE_SIZE) Array<PSQTWeightType  , InputDimensions * PSQTBuckets>                           psqtWeights;
+    alignas(CACHE_LINE_SIZE) Array<PSQTWeightType  , UseThreats ? ThreatInputDimensions * PSQTBuckets : 0>    threatPsqtWeights;
     // clang-format on
 };
 

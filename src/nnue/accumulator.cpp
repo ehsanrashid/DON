@@ -260,11 +260,11 @@ struct AccumulatorUpdateContext final {
 #endif
     }
 
-    const FeatureTransformer<Dimensions>&        featureTransformer;
-    const StdArray<BiasType, Dimensions>&        computedAcc;
-    const StdArray<PSQTWeightType, PSQTBuckets>& computedPsqtAcc;
-    StdArray<BiasType, Dimensions>&              targetAcc;
-    StdArray<PSQTWeightType, PSQTBuckets>&       targetPsqtAcc;
+    const FeatureTransformer<Dimensions>&     featureTransformer;
+    const Array<BiasType, Dimensions>&        computedAcc;
+    const Array<PSQTWeightType, PSQTBuckets>& computedPsqtAcc;
+    Array<BiasType, Dimensions>&              targetAcc;
+    Array<PSQTWeightType, PSQTBuckets>&       targetPsqtAcc;
 };
 
 template<typename FeatureSet, IndexType Dimensions>
@@ -453,8 +453,8 @@ void update_accumulator_incr(
     (targetState.template acc<TransformedFeatureDimensions>()).computed[perspective] = true;
 }
 
-Bitboard changed_bb(const StdArray<Piece, SQUARE_NB>& oldPieces,
-                    const StdArray<Piece, SQUARE_NB>& newPieces) noexcept {
+Bitboard changed_bb(const Array<Piece, SQUARE_NB>& oldPieces,
+                    const Array<Piece, SQUARE_NB>& newPieces) noexcept {
 #if defined(USE_AVX512) || defined(USE_AVX2)
     Bitboard samedBB = 0;
 
@@ -744,7 +744,7 @@ void update_threats_accumulator_full(Color                                 persp
 }  // namespace
 
 template<typename T>
-const StdArray<AccumulatorState<T>, AccumulatorStack::SIZE>&
+const Array<AccumulatorState<T>, AccumulatorStack::SIZE>&
 AccumulatorStack::accumulators() const noexcept {
     static_assert(std::is_same_v<T, PSQFeatureSet> || std::is_same_v<T, ThreatFeatureSet>,
                   "Invalid Feature Set Type");
@@ -757,8 +757,7 @@ AccumulatorStack::accumulators() const noexcept {
 }
 
 template<typename T>
-StdArray<AccumulatorState<T>, AccumulatorStack::SIZE>&
-AccumulatorStack::mut_accumulators() noexcept {
+Array<AccumulatorState<T>, AccumulatorStack::SIZE>& AccumulatorStack::mut_accumulators() noexcept {
     static_assert(std::is_same_v<T, PSQFeatureSet> || std::is_same_v<T, ThreatFeatureSet>,
                   "Invalid Feature Set Type");
 

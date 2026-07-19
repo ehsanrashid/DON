@@ -47,9 +47,9 @@ namespace DON::NNUE::Layers {
 
 template<IndexType InputDimensions, IndexType PaddedInputDimensions, IndexType OutputDimensions>
 inline void
-transform_affine_non_ssse3(const StdArray<i32, OutputDimensions>&                        biases,
-                           const StdArray<i8, OutputDimensions * PaddedInputDimensions>& weights,
-                           const u8* RESTRICT                                            input,
+transform_affine_non_ssse3(const Array<i32, OutputDimensions>&                        biases,
+                           const Array<i8, OutputDimensions * PaddedInputDimensions>& weights,
+                           const u8* RESTRICT                                         input,
                            i32* RESTRICT output) noexcept {
     #if defined(USE_SSE2) || defined(USE_NEON)
         #if defined(USE_SSE2)
@@ -143,7 +143,7 @@ class AffineTransform final {
     static constexpr IndexType PaddedOutputDimensions =
       ceil_to_multiple<IndexType>(OutputDimensions, SIMD_WIDTH_MAX);
 
-    using OutputBuffer = StdArray<OutputType, PaddedOutputDimensions>;
+    using OutputBuffer = Array<OutputType, PaddedOutputDimensions>;
 
     // Hash value embedded in the evaluation file
     static constexpr u32 hash(u32 preHash) noexcept {
@@ -309,8 +309,8 @@ class AffineTransform final {
     using BiasType   = OutputType;
     using WeightType = i8;
 
-    alignas(CACHE_LINE_SIZE) StdArray<BiasType, OutputDimensions> biases;
-    alignas(CACHE_LINE_SIZE) StdArray<WeightType, OutputDimensions * PaddedInputDimensions> weights;
+    alignas(CACHE_LINE_SIZE) Array<BiasType, OutputDimensions> biases;
+    alignas(CACHE_LINE_SIZE) Array<WeightType, OutputDimensions * PaddedInputDimensions> weights;
 };
 
 }  // namespace DON::NNUE::Layers

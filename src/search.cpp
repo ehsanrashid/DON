@@ -50,7 +50,7 @@ constexpr double BetaBias = 0.68;
 
 // Reductions lookup table using [depth or moveCount]
 alignas(CACHE_LINE_SIZE) constexpr auto Reductions = []() constexpr noexcept {
-    StdArray<u16, MOVE_MAX> reductions{};
+    Array<u16, MOVE_MAX> reductions{};
 
     reductions[0] = 0;
     for (usize i = 1; i < reductions.size(); ++i)
@@ -164,13 +164,13 @@ void build_continuation_history(const Stack*                    ss,
 void update_continuation_history(Stack* ss, Piece pc, Square dstSq, int bonus) noexcept {
     assert(dstSq != SQ_NONE);
 
-    constexpr StdArray<double, CONT_HISTORY_COUNT> ContHistoryWeights{
+    constexpr Array<double, CONT_HISTORY_COUNT> ContHistoryWeights{
       1.0801, 0.6885, 0.3085, 0.5585, 0.1231, 0.41699, 0.1092, 0.2167  //
     };
-    constexpr StdArray<int, CONT_HISTORY_COUNT> Multipliers{
+    constexpr Array<int, CONT_HISTORY_COUNT> Multipliers{
       94, 103, 110, 106, 119, 121, 126, 128  //
     };
-    constexpr StdArray<int, CONT_HISTORY_COUNT> ContHistoryOffsets{
+    constexpr Array<int, CONT_HISTORY_COUNT> ContHistoryOffsets{
       73, 00, 00, 00, 00, 00, 00, 00  //
     };
 
@@ -448,7 +448,7 @@ void Worker::iterative_deepening() noexcept {
 
     Color ac = rootPos.active_color();
 
-    StdArray<Stack, StackOffset + (PLY_MAX + 1) + 1> stacks{};
+    Array<Stack, StackOffset + (PLY_MAX + 1) + 1> stacks{};
 
     Stack* ss = &stacks[StackOffset];
 
@@ -470,7 +470,7 @@ void Worker::iterative_deepening() noexcept {
     assert(stacks[0].ply == -StackOffset && stacks[stacks.size() - 1].ply == PLY_MAX + 1);
     assert(ss->ply == 0);
 
-    StdArray<Move, PLY_MAX + 1> pv;
+    Array<Move, PLY_MAX + 1> pv;
 
     ss->pv = pv.data();
 
@@ -586,8 +586,8 @@ void Worker::iterative_deepening() noexcept {
     for (rootDepth = 1; rootDepth <= MaxDepth; ++rootDepth)
     {
         // Precompute the start indices of each tbRank group
-        StdArray<usize, MOVE_MAX + 1> tbRankGroups;
-        usize                         tbRankGroupCount = 0;
+        Array<usize, MOVE_MAX + 1> tbRankGroups;
+        usize                      tbRankGroupCount = 0;
         // Group moves by tbRank and snapshot scores before search
         for (usize i = 0; i < rootMovesSize;)
         {
@@ -806,7 +806,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
     if (is_main_worker())
         main_manager()->check_time(*this);
 
-    StdArray<Move, PLY_MAX + 1> pv;
+    Array<Move, PLY_MAX + 1> pv;
 
     if constexpr (PVNode)
     {
@@ -1260,7 +1260,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
 
     u16 moveCount = 0;
 
-    StdArray<SearchedMoves, 2> searchedMoves;
+    Array<SearchedMoves, 2> searchedMoves;
 
     MovePicker mp(pos, ttd.move, &histories, &captureHistory, &quietHistory, &lowPlyQuietHistory,
                   contHistory, ss->ply, -1);
@@ -1809,7 +1809,7 @@ Value Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta) noexcep
             return alpha;
     }
 
-    StdArray<Move, PLY_MAX + 1> pv;
+    Array<Move, PLY_MAX + 1> pv;
 
     if constexpr (PVNode)
     {
@@ -2115,7 +2115,7 @@ void Worker::update_quiet_histories(const Position& pos, PawnHistory& pawnHistor
 }
 
 // Updates history at the end of search() when a bestMove is found and other searched moves are known
-void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Stack* ss, Depth depth, Move bestMove, bool extra, const StdArray<SearchedMoves, 2>& searchedMoves) noexcept {
+void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Stack* ss, Depth depth, Move bestMove, bool extra, const Array<SearchedMoves, 2>& searchedMoves) noexcept {
     assert(depth > DEPTH_ZERO);
     assert(ss->moveCount != 0);
 
@@ -2680,7 +2680,7 @@ void Skill::init(const Options& options) noexcept {
 
     if (options["UCI_LimitStrength"])
     {
-        constexpr StdArray<double, 4> P{37.2473, -40.8525, 22.2943, -0.311438};
+        constexpr Array<double, 4> P{37.2473, -40.8525, 22.2943, -0.311438};
 
         double e = double(options["UCI_ELO"] - ELO_MIN) / (ELO_MAX - ELO_MIN);
 

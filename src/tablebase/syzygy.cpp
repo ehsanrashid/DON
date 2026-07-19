@@ -108,35 +108,35 @@ enum TBFlag : u8 {
 // Max DTZ supported (2 times), large enough to deal with the syzygy TB limit
 constexpr i32 DTZ_MAX = 0x40000;
 
-constexpr StdArray<std::string_view, TBTYPE_NB> EXTS{
+constexpr Array<std::string_view, TBTYPE_NB> EXTS{
   ".rtbw",  // Win-Draw-Loss    (WDL)
   ".rtbz"   // Distance-to-Zero (DTZ)
 };
 
-constexpr StdArray<u8, TBTYPE_NB, 4> TB_MAGICS{{
+constexpr Array<u8, TBTYPE_NB, 4> TB_MAGICS{{
   {0x71, 0xE8, 0x23, 0x5D},  // Win-Draw-Loss    (WDL) = 0x5D23E871
   {0xD7, 0x66, 0x0C, 0xA5}   // Distance-to-Zero (DTZ) = 0xA50C66D7
 }};
 
 // clang-format off
 
-constexpr StdArray<int         , WDL_SCORE_NB> WDL_MAP  {        1,              3,          0,              2,        0 };
-constexpr StdArray<i32, WDL_SCORE_NB> WDL_RANK {-DTZ_MAX , -DTZ_MAX + 101,          0, +DTZ_MAX - 101, +DTZ_MAX };
-constexpr StdArray<Value       , WDL_SCORE_NB> WDL_VALUE{-VALUE_TB, VALUE_DRAW - 2, VALUE_DRAW, VALUE_DRAW + 2, +VALUE_TB};
+constexpr Array<int         , WDL_SCORE_NB> WDL_MAP  {        1,              3,          0,              2,        0 };
+constexpr Array<i32, WDL_SCORE_NB> WDL_RANK {-DTZ_MAX , -DTZ_MAX + 101,          0, +DTZ_MAX - 101, +DTZ_MAX };
+constexpr Array<Value       , WDL_SCORE_NB> WDL_VALUE{-VALUE_TB, VALUE_DRAW - 2, VALUE_DRAW, VALUE_DRAW + 2, +VALUE_TB};
 
 constexpr usize wdl_index(WDLScore wdlScore) noexcept { return usize(wdlScore - WDL_LOSS); }
 
 constexpr int off_A1H8(Square s) noexcept { return int(rank_of(s)) - int(file_of(s)); }
 //constexpr int off_A8H1(Square s) noexcept { return int(rank_of(s)) + int(file_of(s)); }
 
-StdArray<usize, SQUARE_NB>     B1H1H7Map;
-StdArray<usize, SQUARE_NB>     A1D1D4Map;
-StdArray<usize, 10, SQUARE_NB> KKMap;  // [A1D1D4Map][SQUARE_NB]
-StdArray<usize, SQUARE_NB>     PawnsMap;
+Array<usize, SQUARE_NB>     B1H1H7Map;
+Array<usize, SQUARE_NB>     A1D1D4Map;
+Array<usize, 10, SQUARE_NB> KKMap;  // [A1D1D4Map][SQUARE_NB]
+Array<usize, SQUARE_NB>     PawnsMap;
 
-StdArray<usize, TB_PIECES_MAX - 1, SQUARE_NB>   Binomial;     // [k][n] k elements from a set of n elements
-StdArray<usize, TB_PIECES_MAX - 1, SQUARE_NB>   LeadPawnIdx;  // [leadPawnCnt][SQUARE_NB]
-StdArray<usize, TB_PIECES_MAX - 1, FILE_NB / 2> LeadPawnSize; // [leadPawnCnt][FILE_A..FILE_D]
+Array<usize, TB_PIECES_MAX - 1, SQUARE_NB>   Binomial;     // [k][n] k elements from a set of n elements
+Array<usize, TB_PIECES_MAX - 1, SQUARE_NB>   LeadPawnIdx;  // [leadPawnCnt][SQUARE_NB]
+Array<usize, TB_PIECES_MAX - 1, FILE_NB / 2> LeadPawnSize; // [leadPawnCnt][FILE_A..FILE_D]
 
 // clang-format on
 
@@ -194,8 +194,8 @@ T number(const void* addr) noexcept {
 // Numbers in little-endian used by sparseIndex[] to point into blockLength[]
 struct SparseEntry final {
    public:
-    StdArray<char, 4> block;   // Number of block
-    StdArray<char, 2> offset;  // Offset within the block
+    Array<char, 4> block;   // Number of block
+    Array<char, 2> offset;  // Offset within the block
 };
 
 static_assert(sizeof(SparseEntry) == 6, "SparseEntry size must be 6 bytes");
@@ -215,7 +215,7 @@ struct LR final {
 
     // First 12 bits is the left-hand symbol, second 12 bits is the right-hand symbol.
     // If the symbol has length 1, then the left-hand symbol is the stored value.
-    StdArray<u8, 3> data;
+    Array<u8, 3> data;
 };
 
 static_assert(sizeof(LR) == 3, "LR size must be 3 bytes");
@@ -454,21 +454,20 @@ struct PairsData final {
     u8*              data;             // Start of Huffman compressed data
     std::vector<u64> base64;  // base64[l - minSymLen] is the 64bit-padded lowest symbol of length l
     std::vector<u8>  symLen;  // Number of values (-1) represented by a given Huffman symbol: 1..256
-    StdArray<Piece, TB_PIECES_MAX>
-      pieces;  // Position pieces: the order of pieces defines the groups
-    StdArray<u64, TB_PIECES_MAX + 1>
+    Array<Piece, TB_PIECES_MAX> pieces;  // Position pieces: the order of pieces defines the groups
+    Array<u64, TB_PIECES_MAX + 1>
       groupIdx;  // Start index used for the encoding of the group's pieces
-    StdArray<i32, TB_PIECES_MAX + 1> groupLen;  // Number of pieces in a given group: KRKN -> (3, 1)
-    StdArray<u16, 4> mapIdx;  // WDLWin, WDLLoss, WDLCursedWin, WDLBlessedLoss (used in DTZ)
+    Array<i32, TB_PIECES_MAX + 1> groupLen;  // Number of pieces in a given group: KRKN -> (3, 1)
+    Array<u16, 4> mapIdx;  // WDLWin, WDLLoss, WDLCursedWin, WDLBlessedLoss (used in DTZ)
 };
 
 struct TableData final {
    public:
-    StdArray<Key, COLOR_NB> key;
-    StdArray<u8, COLOR_NB>  pawnCount;
-    u8                      pieceCount;
-    bool                    hasPawns;
-    bool                    hasUniquePieces;
+    Array<Key, COLOR_NB> key;
+    Array<u8, COLOR_NB>  pawnCount;
+    u8                   pieceCount;
+    bool                 hasPawns;
+    bool                 hasUniquePieces;
 };
 
 TableData make_table_data(std::string_view code) noexcept {
@@ -491,7 +490,7 @@ TableData make_table_data(std::string_view code) noexcept {
             if (pos.count(c, pt) == 1)
                 tableData.hasUniquePieces = true;
 
-    StdArray<u8, COLOR_NB> pawnCnt{
+    Array<u8, COLOR_NB> pawnCnt{
       pos.count(WHITE, PAWN),  //
       pos.count(BLACK, PAWN)   //
     };
@@ -514,7 +513,7 @@ struct BaseTBTable {
    public:
     virtual ~BaseTBTable() noexcept = default;
 
-    StdArray<Key, COLOR_NB> key;
+    Array<Key, COLOR_NB> key;
 };
 
 // TBTable contains indexing information to access the corresponding TBFile.
@@ -539,7 +538,7 @@ struct TBTable final: BaseTBTable {
 
     void set(u8* data) noexcept;
 
-    void set_groups(PairsData* pd, const StdArray<int, 2>& order, File f) noexcept;
+    void set_groups(PairsData* pd, const Array<int, 2>& order, File f) noexcept;
 
     u8* set_dtz_map(u8* data, File) noexcept;
 
@@ -550,13 +549,13 @@ struct TBTable final: BaseTBTable {
     static constexpr usize SIDES = T == WDL ? 2 : 1;
     static constexpr usize MASK  = SIDES - 1;
 
-    u8                     pieceCount;
-    bool                   hasPawns;
-    bool                   hasUniquePieces;
-    StdArray<u8, COLOR_NB> pawnCount;  // [Lead color / other color]
+    u8                  pieceCount;
+    bool                hasPawns;
+    bool                hasUniquePieces;
+    Array<u8, COLOR_NB> pawnCount;  // [Lead color / other color]
 
    private:
-    StdArray<PairsData, SIDES, FILE_NB / 2> items;  // [color][FILE_A..FILE_D]
+    Array<PairsData, SIDES, FILE_NB / 2> items;  // [color][FILE_A..FILE_D]
     #if defined(_WIN32)
     HANDLE      hMapFile = INVALID_HANDLE;
     HandleGuard hMapFileGuard{hMapFile};
@@ -599,7 +598,7 @@ void* TBTable<T>::init(const Position& pos, Key materialKey) noexcept {
         return mappedPtr;
 
     // Pieces strings in decreasing order for each color, like ("KPP","KR")
-    StdArray<std::string, COLOR_NB> pieces{};
+    Array<std::string, COLOR_NB> pieces{};
 
     for (Color c : {WHITE, BLACK})
         for (usize i = PIECE_TYPES.size(); i-- > 0;)
@@ -776,7 +775,7 @@ void TBTable<T>::set(u8* data) noexcept {
         for (usize i = 0; i < Sides; ++i)
             *get(i, f) = PairsData();
 
-        const StdArray<int, 2, 2> order{{
+        const Array<int, 2, 2> order{{
           {{int(*data & 0xF), int(pp ? *(data + 1) & 0xF : 0xF)}},
           {{int(*data >> 4), int(pp ? *(data + 1) >> 4 : 0xF)}}  //
         }};
@@ -839,7 +838,7 @@ void TBTable<T>::set(u8* data) noexcept {
 // The actual grouping depends on the TB generator and can be inferred from the
 // sequence of pieces in piece[] array.
 template<TBType T>
-void TBTable<T>::set_groups(PairsData* pd, const StdArray<int, 2>& order, File f) noexcept {
+void TBTable<T>::set_groups(PairsData* pd, const Array<int, 2>& order, File f) noexcept {
 
     usize n = 0;
 
@@ -983,8 +982,8 @@ class TBTables final {
             return static_cast<TBTable<T>*>(tables[T]);
         }
 
-        Key                               key;
-        StdArray<BaseTBTable*, TBTYPE_NB> tables;
+        Key                            key;
+        Array<BaseTBTable*, TBTYPE_NB> tables;
     };
 
     static_assert(std::is_trivially_destructible_v<Entry>, "Entry must be trivially destructible");
@@ -1140,7 +1139,7 @@ class TBTables final {
     // Track the farthest any entry has been displaced
     usize DistanceMax = 0;
 
-    StdArray<Entry, SIZE> entries;
+    Array<Entry, SIZE> entries;
 
     std::deque<TBTable<WDL>> wdlTables;
     std::deque<TBTable<DTZ>> dtzTables;
@@ -1165,7 +1164,7 @@ void TBTables::add(const std::vector<PieceType>& pieces) noexcept {
 
     code.insert(pos, 1, 'v');  // KRK -> KRvK
 
-    StdArray<bool, TBTYPE_NB> Exists{
+    Array<bool, TBTYPE_NB> Exists{
       TBFile(code, EXTS[WDL]).exists(), TBFile(code, EXTS[DTZ]).exists()  //
     };
 
@@ -1417,8 +1416,8 @@ Ret do_probe_table(
 
     int activeColor = flip ? ~pos.active_color() : pos.active_color();
 
-    StdArray<Square, TB_PIECES_MAX> squares{};
-    StdArray<Piece, TB_PIECES_MAX>  pieces;
+    Array<Square, TB_PIECES_MAX> squares{};
+    Array<Piece, TB_PIECES_MAX>  pieces;
 
     usize size = 0;
 

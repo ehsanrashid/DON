@@ -94,7 +94,7 @@ std::string trace(Position& pos, const NNUE::Networks& networks) noexcept {
     auto accCaches = std::make_unique<NNUE::AccumulatorCaches>(networks);
 
     auto fmt = [](double value) noexcept -> std::string {
-        StdArray<char, 8> buffer{};
+        Array<char, 8> buffer{};
 
         int   writtenSize = std::snprintf(buffer.data(), buffer.size(), "%+01.2f", value);
         usize copiedSize  = writtenSize > 0  //

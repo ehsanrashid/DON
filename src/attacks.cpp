@@ -27,10 +27,10 @@ namespace Attacks {
 
 namespace {
 
-constexpr StdArray<usize, 2> TABLE_SIZES{0x1480, 0x19000};
+constexpr Array<usize, 2> TABLE_SIZES{0x1480, 0x19000};
 
 // Stores bishop & rook attacks
-alignas(CACHE_LINE_SIZE) StdArray<
+alignas(CACHE_LINE_SIZE) Array<
 #if defined(USE_BMI2) && defined(USE_CMP)
   u16
 #else
@@ -39,14 +39,14 @@ alignas(CACHE_LINE_SIZE) StdArray<
   ,
   TABLE_SIZES[0] + TABLE_SIZES[1]> AttacksTable;
 
-alignas(CACHE_LINE_SIZE) StdArray<TableView<
+alignas(CACHE_LINE_SIZE) Array<TableView<
 #if defined(USE_BMI2) && defined(USE_CMP)
-                                    u16
+                                 u16
 #else
-                                    Bitboard
+                                 Bitboard
 #endif
-                                    >,
-                                  2> TableViews{
+                                 >,
+                               2> TableViews{
   TableView{AttacksTable.data() + 0x000000000000, TABLE_SIZES[0]},
   TableView{AttacksTable.data() + TABLE_SIZES[0], TABLE_SIZES[1]}};
 
@@ -59,10 +59,10 @@ void init_magics() noexcept {
     static_assert(PT == BISHOP || PT == ROOK, "Unsupported piece type in init_magics()");
 
 #if !defined(USE_BMI2)
-    constexpr StdArray<usize, 2> BlockSizes{0x200, 0x1000};
+    constexpr Array<usize, 2> BlockSizes{0x200, 0x1000};
 
     // Optimal PRNG seeds to pick the correct magics in the shortest time
-    constexpr StdArray<u16, 2, RANK_NB> Seeds{{
+    constexpr Array<u16, 2, RANK_NB> Seeds{{
     #if defined(IS_64BIT)
       {0xE4D9, 0xB1E5, 0x4F73, 0x82A9, 0x323A, 0xFFF4, 0x0C61, 0x5EFA},
       {0x8B99, 0x9A36, 0xD27A, 0x5F4C, 0xFC29, 0x0982, 0x10E1, 0x00AA}
@@ -103,8 +103,8 @@ void init_magics() noexcept {
         magic.reMaskBB = pseudoAttacksBB;
     #endif
 #else
-        StdArray<Bitboard, BlockSizes[PT - BISHOP]> occupancyBBs;
-        StdArray<Bitboard, BlockSizes[PT - BISHOP]> referenceBBs;
+        Array<Bitboard, BlockSizes[PT - BISHOP]> occupancyBBs;
+        Array<Bitboard, BlockSizes[PT - BISHOP]> referenceBBs;
 #endif
 
         size = 0;
@@ -143,8 +143,8 @@ void init_magics() noexcept {
         XorShift64Star prng(Seeds[PT - BISHOP][rank_of(s)]);
 
         // Epoch array to speed-up the magic verification process
-        StdArray<u32, BlockSizes[PT - BISHOP]> epoch{};
-        u32                                    cnt = 0;
+        Array<u32, BlockSizes[PT - BISHOP]> epoch{};
+        u32                                 cnt = 0;
 
         // Find a magic for square picking up an (almost) random number
         // until find the one that passes the verification test.

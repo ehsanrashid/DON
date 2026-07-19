@@ -151,7 +151,7 @@ class MovePicker final {
     int threshold;
 
    private:
-    StdArray<value_type, MOVE_MAX> moves;
+    Array<value_type, MOVE_MAX> moves;
 
     iterator                    //
       cur           = nullptr,  //

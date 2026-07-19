@@ -60,8 +60,8 @@ struct NetworkOutput final {
 
 struct NetworkTrace final {
    public:
-    StdArray<NetworkOutput, LayerStacks> netOut;
-    usize                                correctBucket;
+    Array<NetworkOutput, LayerStacks> netOut;
+    usize                             correctBucket;
 };
 
 std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& accCaches) noexcept;

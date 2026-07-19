@@ -142,8 +142,8 @@ struct TTCluster final {
     TTCluster() noexcept                            = default;
     TTCluster& operator=(const TTCluster&) noexcept = default;
 
-    StdArray<TTEntry, 3> entries;
-    StdArray<char, 2>    padding;  // Pad to 32 bytes
+    Array<TTEntry, 3> entries;
+    Array<char, 2>    padding;  // Pad to 32 bytes
 
    private:
     TTCluster(const TTCluster&) noexcept       = delete;

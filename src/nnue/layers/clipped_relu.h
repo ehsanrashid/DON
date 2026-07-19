@@ -42,7 +42,7 @@ class ClippedReLU final {
     static constexpr IndexType PaddedOutputDimensions =
       ceil_to_multiple<IndexType>(OutputDimensions, 32);
 
-    using OutputBuffer = StdArray<OutputType, PaddedOutputDimensions>;
+    using OutputBuffer = Array<OutputType, PaddedOutputDimensions>;
 
     // Hash value embedded in the evaluation file
     static constexpr u32 hash(u32 preHash) noexcept {

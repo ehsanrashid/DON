@@ -326,8 +326,8 @@ void UCI::execute(std::string_view command) noexcept {
         std::cout << compiler_info() << std::endl;
         break;
     case Command::EXPORT_NET : {
-        StdArray<std::string, 2>      inputs;
-        StdArray<std::string_view, 2> netFiles;
+        Array<std::string, 2>      inputs;
+        Array<std::string_view, 2> netFiles;
 
         for (usize i = 0; i < netFiles.size() && is >> inputs[i]; ++i)
             netFiles[i] = inputs[i];
@@ -666,14 +666,14 @@ void UCI::benchmark(std::istream& is) noexcept {
     nodes = 0;
 
     // Only normal hashfull and touched hash
-    constexpr StdArray<u8, 2> HashfullAges{0, 31};
+    constexpr Array<u8, 2> HashfullAges{0, 31};
 
     static_assert(HashfullAges.size() == 2 && HashfullAges[0] == 0 && HashfullAges[1] == 31,
                   "Incorrect HashfullAges[].");
 
-    u16                                hashfullCount = 0;
-    StdArray<u16, HashfullAges.size()> maxHashfull{};
-    StdArray<u32, HashfullAges.size()> sumHashfull{};
+    u16                             hashfullCount = 0;
+    Array<u16, HashfullAges.size()> maxHashfull{};
+    Array<u32, HashfullAges.size()> sumHashfull{};
 
     auto update_hashfull = [&]() noexcept -> void {
         ++hashfullCount;

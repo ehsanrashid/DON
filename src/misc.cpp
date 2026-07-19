@@ -106,7 +106,7 @@ constexpr std::string_view Version{"dev"};
         return std::string{NullDate};
 
     // Format YYYYMMDD manually (faster than snprintf)
-    StdArray<char, 8> buffer  // 8 chars
+    Array<char, 8> buffer  // 8 chars
       {
         digit_to_char(year / 1000 % 10),  //
         digit_to_char(year / 100 % 10),   //
@@ -148,7 +148,7 @@ constexpr std::string_view Version{"dev"};
     if (hour > 23 || min > 59 || sec > 59)
         return std::string{NullTime};
 
-    StdArray<char, 6> buffer{p[0], p[1], p[3], p[4], p[6], p[7]};
+    Array<char, 6> buffer{p[0], p[1], p[3], p[4], p[6], p[7]};
 
     return std::string{buffer.data(), buffer.size()};
 }
@@ -424,8 +424,8 @@ std::string compiler_info() noexcept {
 
 std::string format_time(const std::chrono::system_clock::time_point& timePoint) noexcept {
     // clang-format off
-    std::time_t   time = std::chrono::system_clock::to_time_t(timePoint);
-    u64 usec = std::chrono::duration_cast<std::chrono::microseconds>(timePoint.time_since_epoch()).count() % 1000000;
+    std::time_t time = std::chrono::system_clock::to_time_t(timePoint);
+    u64 usec         = std::chrono::duration_cast<std::chrono::microseconds>(timePoint.time_since_epoch()).count() % 1000000;
 
     std::tm tm{};
 #if defined(_WIN32)  // Windows
@@ -437,7 +437,7 @@ std::string format_time(const std::chrono::system_clock::time_point& timePoint) 
     tm = *std::localtime(&time);
 #endif
 
-    StdArray<char, 32> buffer{};
+    Array<char, 32> buffer{};
 
     usize writtenSize = 0;
     // Format the YYYY.MM.DD-HH:MM:SS part
@@ -496,7 +496,7 @@ class Info {
     }
 
    protected:
-    StdArray<std::atomic<i64>, Size> _data;
+    Array<std::atomic<i64>, Size> _data;
 };
 
 class MinInfo final: public Info<2> {
@@ -524,13 +524,13 @@ class ExtremeInfo final: public Info<3> {
 
 constexpr usize SLOT_MAX = 64;
 
-StdArray<Info<2>, SLOT_MAX>     hit;
-StdArray<MinInfo, SLOT_MAX>     min;
-StdArray<MaxInfo, SLOT_MAX>     max;
-StdArray<ExtremeInfo, SLOT_MAX> extreme;
-StdArray<Info<2>, SLOT_MAX>     mean;
-StdArray<Info<3>, SLOT_MAX>     stdev;
-StdArray<Info<6>, SLOT_MAX>     correl;
+Array<Info<2>, SLOT_MAX>     hit;
+Array<MinInfo, SLOT_MAX>     min;
+Array<MaxInfo, SLOT_MAX>     max;
+Array<ExtremeInfo, SLOT_MAX> extreme;
+Array<Info<2>, SLOT_MAX>     mean;
+Array<Info<3>, SLOT_MAX>     stdev;
+Array<Info<6>, SLOT_MAX>     correl;
 
 }  // namespace
 
@@ -813,7 +813,7 @@ std::string CommandLine::binary_directory(std::string_view path) noexcept {
 std::string CommandLine::working_directory() noexcept {
     std::string workingDirectory;
 
-    StdArray<char, PATH_MAX> currentWorkingDirectory{};
+    Array<char, PATH_MAX> currentWorkingDirectory{};
 
     char* cwd = GETCWD(currentWorkingDirectory.data(), currentWorkingDirectory.size());
     if (cwd == nullptr)

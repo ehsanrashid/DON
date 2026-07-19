@@ -167,7 +167,7 @@ struct PTCluster final {
     PTCluster() noexcept                            = default;
     PTCluster& operator=(const PTCluster&) noexcept = default;
 
-    StdArray<PTEntry, 4> entries;
+    Array<PTEntry, 4> entries;
 
    private:
     PTCluster(const PTCluster&) noexcept       = delete;

@@ -116,15 +116,15 @@ struct Zobrist final {
     Zobrist& operator=(const Zobrist&) noexcept = delete;
     Zobrist& operator=(Zobrist&&) noexcept      = delete;
 
-    static inline StdArray<Key, COLOR_NB, 1 + PIECE_TYPE_CNT, SQUARE_NB> PieceSquare;
-    static inline StdArray<Key, CASTLING_RIGHTS_NB>                      Castling;
-    static inline StdArray<Key, FILE_NB>                                 Enpassant;
-    static inline Key                                                    Turn;
+    static inline Array<Key, COLOR_NB, 1 + PIECE_TYPE_CNT, SQUARE_NB> PieceSquare;
+    static inline Array<Key, CASTLING_RIGHTS_NB>                      Castling;
+    static inline Array<Key, FILE_NB>                                 Enpassant;
+    static inline Key                                                 Turn;
 
     static constexpr u8 R50_OFFSET = 14;
     static constexpr u8 R50_FACTOR = 8;
 
-    static inline StdArray<Key, (PLY_MAX + 1 - R50_OFFSET) / R50_FACTOR + 2> MR50;
+    static inline Array<Key, (PLY_MAX + 1 - R50_OFFSET) / R50_FACTOR + 2> MR50;
 };
 
 // State struct stores information needed to restore Position object
@@ -142,10 +142,10 @@ struct State final {
     void dump(std::ostream& os = std::cout) const noexcept;
 
     // --- Copied when making a move
-    Key                        key;
-    StdArray<Key, COLOR_NB>    pawnKeys;
-    StdArray<Key, COLOR_NB, 2> nonPawnKeys;
-    StdArray<bool, COLOR_NB>   hasCastleds;
+    Key                     key;
+    Array<Key, COLOR_NB>    pawnKeys;
+    Array<Key, COLOR_NB, 2> nonPawnKeys;
+    Array<bool, COLOR_NB>   hasCastleds;
 
     u16            rule50Count;
     u16            nullPly;  // Plies from Null-Move
@@ -155,15 +155,15 @@ struct State final {
     bool           hasRule50High;
 
     // --- Not copied when making a move (will be recomputed anyhow)
-    Bitboard                          checkersBB;
-    StdArray<Bitboard, COLOR_NB>      pinnersBB;
-    StdArray<Bitboard, COLOR_NB>      blockersBB;
-    StdArray<Bitboard, PIECE_TYPE_NB> checksBB;
-    StdArray<Bitboard, PIECE_TYPE_NB> accAttacksBB;
-    i16                               repetition;
-    Piece                             capturedPc;
-    Piece                             promotedPc;
-    const State*                      preSt;
+    Bitboard                       checkersBB;
+    Array<Bitboard, COLOR_NB>      pinnersBB;
+    Array<Bitboard, COLOR_NB>      blockersBB;
+    Array<Bitboard, PIECE_TYPE_NB> checksBB;
+    Array<Bitboard, PIECE_TYPE_NB> accAttacksBB;
+    i16                            repetition;
+    Piece                          capturedPc;
+    Piece                          promotedPc;
+    const State*                   preSt;
 
     // Copy relevant fields from the state.
     // excluding those that will recomputed from scratch anyway and
@@ -394,9 +394,9 @@ class Position final {
    private:
     struct Castlings final {
        public:
-        StdArray<Bitboard, COLOR_NB, CASTLING_SIDE_NB> fullPathBB;
-        StdArray<Bitboard, COLOR_NB, CASTLING_SIDE_NB> kingPathBB;
-        StdArray<Square, COLOR_NB, CASTLING_SIDE_NB>   rookSq;
+        Array<Bitboard, COLOR_NB, CASTLING_SIDE_NB> fullPathBB;
+        Array<Bitboard, COLOR_NB, CASTLING_SIDE_NB> kingPathBB;
+        Array<Square, COLOR_NB, CASTLING_SIDE_NB>   rookSq;
     };
 
     // SEE struct used to get a nice syntax for SEE comparisons.
@@ -458,7 +458,7 @@ class Position final {
     void reset_rule50_count() noexcept;
 
     static constexpr auto CASTLING_RIGHTS_INDICES = []() constexpr noexcept {
-        StdArray<u8, SQUARE_NB> castlingRightsIndices{};
+        Array<u8, SQUARE_NB> castlingRightsIndices{};
 
         for (Square s = SQ_A1; s <= SQ_H8; ++s)
             castlingRightsIndices[s] = rank_of(s) == RANK_1 ? WHITE * FILE_NB + file_of(s)
@@ -468,14 +468,14 @@ class Position final {
         return castlingRightsIndices;
     }();
 
-    StdArray<Piece, SQUARE_NB>                   pieceMap;
-    StdArray<Bitboard, PIECE_TYPE_NB>            typeBBs;
-    StdArray<Bitboard, COLOR_NB>                 colorBBs;
-    StdArray<CastlingRights, COLOR_NB * FILE_NB> castlingRightsMasks;
-    Castlings                                    castlings;
-    State*                                       st;
-    u16                                          gamePly;
-    Color                                        activeColor;
+    Array<Piece, SQUARE_NB>                   pieceMap;
+    Array<Bitboard, PIECE_TYPE_NB>            typeBBs;
+    Array<Bitboard, COLOR_NB>                 colorBBs;
+    Array<CastlingRights, COLOR_NB * FILE_NB> castlingRightsMasks;
+    Castlings                                 castlings;
+    State*                                    st;
+    u16                                       gamePly;
+    Color                                     activeColor;
 };
 
 //static_assert(sizeof(Position) == 248, "Position size must be 248 bytes");
@@ -947,10 +947,10 @@ DirtyThreats::add(Square sq, Square threatenedSq, Piece pc, Piece threatenedPc) 
 // Given a DirtyThreat template and bit offsets to insert the piece type and square,
 // write the threats present at the given bitboard.
 template<int SqShift, int PcShift>
-inline void write_multiple_dirties(const StdArray<Piece, SQUARE_NB>& pieceMap,
-                                   Bitboard                          maskBB,
-                                   DirtyThreat                       templateDt,
-                                   DirtyThreats*                     dts) noexcept {
+inline void write_multiple_dirties(const Array<Piece, SQUARE_NB>& pieceMap,
+                                   Bitboard                       maskBB,
+                                   DirtyThreat                    templateDt,
+                                   DirtyThreats*                  dts) noexcept {
     __m512i squares = _mm512_set_epi8(63, 62, 61, 60, 59, 58, 57, 56,  //
                                       55, 54, 53, 52, 51, 50, 49, 48,  //
                                       47, 46, 45, 44, 43, 42, 41, 40,  //
@@ -997,7 +997,7 @@ inline void Position::update_pc_threats(Square                    s,
     Bitboard occupancyBB = pieces_bb();
 
     auto attacksBB = [&]() noexcept {
-        StdArray<Bitboard, PIECE_TYPE_CNT> _;
+        Array<Bitboard, PIECE_TYPE_CNT> _;
 
         _[WHITE]  = attacks_bb<PAWN>(s, WHITE);
         _[BLACK]  = attacks_bb<PAWN>(s, BLACK);

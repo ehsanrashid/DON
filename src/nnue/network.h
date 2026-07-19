@@ -90,7 +90,7 @@ class Network final {
     Transformer featureTransformer;
 
     // Evaluation function
-    StdArray<Arch, LayerStacks> network;
+    Array<Arch, LayerStacks> network;
 
     EvalFile     evalFile;
     EmbeddedType embeddedType;

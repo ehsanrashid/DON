@@ -333,7 +333,7 @@ struct Limit final {
 
     TimePoint startTime = 0;
 
-    StdArray<Clock, COLOR_NB> clocks{};
+    Array<Clock, COLOR_NB> clocks{};
 
     Strings searchMoves, ignoreMoves;
 
@@ -591,7 +591,7 @@ class Worker final {
     void update_low_ply_quiet_history(i16 ssPly, Move m, int bonus) noexcept;
 
     void update_quiet_histories(const Position& pos, PawnHistory& pawnHistory, Stack* ss, Move m, int bonus) noexcept;
-    void update_histories(const Position& pos, PawnHistory& pawnHistory, Stack* ss, Depth depth, Move bestMove, bool extra, const StdArray<SearchedMoves, 2>& searchedMoves) noexcept;
+    void update_histories(const Position& pos, PawnHistory& pawnHistory, Stack* ss, Depth depth, Move bestMove, bool extra, const Array<SearchedMoves, 2>& searchedMoves) noexcept;
 
     void update_correction_histories(const Position& pos, const Stack* ss, int bonus) noexcept;
     int  correction_value(const Position& pos, const Stack* ss) const noexcept;
@@ -632,7 +632,7 @@ class Worker final {
     u16   rootDelta;
     i16   nmpPly;
 
-    StdArray<i32, COLOR_NB> optimism;
+    Array<i32, COLOR_NB> optimism;
 
     // Histories
     History<HType::CAPTURE>   captureHistory;
@@ -640,7 +640,7 @@ class Worker final {
     History<HType::LOW_QUIET> lowPlyQuietHistory;
     History<HType::TT_MOVE>   ttMoveHistory;
 
-    StdArray<History<HType::CONTINUATION>, 2, 2> continuationHistory;  // [inCheck][capture]
+    Array<History<HType::CONTINUATION>, 2, 2> continuationHistory;  // [inCheck][capture]
 
     // Correction Histories
     CorrectionHistory<CHType::CONTINUATION> continuationCorrectionHistory;

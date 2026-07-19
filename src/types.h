@@ -94,8 +94,8 @@ inline constexpr u16 PLY_MAX  = 254;
 // Size of cache line (in bytes)
 inline constexpr usize CACHE_LINE_SIZE = 64;
 
-inline constexpr std::string_view               PIECE_UNI{".PNBRQK..pnbrqk."};
-inline constexpr StdArray<std::string_view, 16> PIECE_UTF8{
+inline constexpr std::string_view            PIECE_UNI{".PNBRQK..pnbrqk."};
+inline constexpr Array<std::string_view, 16> PIECE_UTF8{
   ".", u8"♙", u8"♘", u8"♗", u8"♖", u8"♕", u8"♔", ".",
   ".", u8"♟", u8"♞", u8"♝", u8"♜", u8"♛", u8"♚", "."  //
 };
@@ -144,13 +144,13 @@ inline constexpr usize PIECE_TYPE_CNT = 6;
 
 [[nodiscard]] constexpr bool is_major(PieceType pt) noexcept { return (pt >= ROOK); }
 
-constexpr StdArray<PieceType, PIECE_TYPE_CNT> PIECE_TYPES{
+constexpr Array<PieceType, PIECE_TYPE_CNT> PIECE_TYPES{
   PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING  //
 };
-constexpr StdArray<PieceType, PIECE_TYPE_CNT - 1> EX_KING_PIECE_TYPES{
+constexpr Array<PieceType, PIECE_TYPE_CNT - 1> EX_KING_PIECE_TYPES{
   PAWN, KNIGHT, BISHOP, ROOK, QUEEN  //
 };
-constexpr StdArray<PieceType, PIECE_TYPE_CNT - 2> NON_PAWN_PIECE_TYPES{
+constexpr Array<PieceType, PIECE_TYPE_CNT - 2> NON_PAWN_PIECE_TYPES{
   KNIGHT, BISHOP, ROOK, QUEEN  //
 };
 
@@ -361,7 +361,7 @@ template<bool Upper = false>
 
 // Build a compile-time table: "a1", "b1", ..., "h8"
 alignas(CACHE_LINE_SIZE) inline constexpr auto SQUARES = []() constexpr noexcept {
-    StdArray<char, SQUARE_NB, 3> squares{};
+    Array<char, SQUARE_NB, 3> squares{};
 
     for (Square s = SQ_A1; s <= SQ_H8; ++s)
         squares[s] = {to_char(file_of(s)), to_char(rank_of(s)), '\0'};
@@ -412,7 +412,7 @@ inline constexpr int DELTA_MAX = 2 * VALUE_INFINITE;
 
 // Returns the value of the given piece type
 constexpr Value piece_value(PieceType pt) noexcept {
-    constexpr StdArray<Value, 1 + PIECE_TYPE_CNT> PieceValues{
+    constexpr Array<Value, 1 + PIECE_TYPE_CNT> PieceValues{
       VALUE_ZERO, VALUE_PAWN, VALUE_KNIGHT, VALUE_BISHOP, VALUE_ROOK, VALUE_QUEEN, VALUE_ZERO};
 
     return PieceValues[pt];

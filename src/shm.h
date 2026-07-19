@@ -135,8 +135,8 @@ enum class SharedMemoryAllocationStatus : u8 {
 }
 
 inline std::string executable_path() noexcept {
-    StdArray<char, PATH_MAX> executablePath{};
-    usize                    executableSize = 0;
+    Array<char, PATH_MAX> executablePath{};
+    usize                 executableSize = 0;
 
 #if defined(_WIN32)
     DWORD size = GetModuleFileName(nullptr, executablePath.data(), DWORD(executablePath.size()));
@@ -169,7 +169,7 @@ inline std::string executable_path() noexcept {
         executablePath[executableSize] = '\0';
     }
 #elif defined(__FreeBSD__)
-    constexpr StdArray<int, 4> MIB{CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME, -1};
+    constexpr Array<int, 4> MIB{CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME, -1};
 
     usize size = executablePath.size();
 
@@ -1132,17 +1132,17 @@ class SharedMemoryCleanupManager final {
     };
 
     // All handled signals, available at compile-time
-    static constexpr StdArray<int, 12> SIGNALS{SIGHUP,  SIGINT,  SIGQUIT, SIGILL, SIGABRT, SIGFPE,
-                                               SIGSEGV, SIGTERM, SIGBUS,  SIGSYS, SIGXCPU, SIGXFSZ};
+    static constexpr Array<int, 12> SIGNALS{SIGHUP,  SIGINT,  SIGQUIT, SIGILL, SIGABRT, SIGFPE,
+                                            SIGSEGV, SIGTERM, SIGBUS,  SIGSYS, SIGXCPU, SIGXFSZ};
 
     static constexpr int INVALID_SIGNAL = -1;
 
-    static inline CallOnce                      callOnce;
-    static inline std::atomic<u64>              pendingSignals{0};
-    static inline StdArray<std::atomic<int>, 2> signalPipeFds{INVALID_PIPE_FD, INVALID_PIPE_FD};
-    static inline std::atomic<ThreadState>      monitorThreadState{ThreadState::NotStarted};
-    static inline std::thread                   monitorThread;
-    static inline std::atomic<bool>             cleanupDone{false};
+    static inline CallOnce                   callOnce;
+    static inline std::atomic<u64>           pendingSignals{0};
+    static inline Array<std::atomic<int>, 2> signalPipeFds{INVALID_PIPE_FD, INVALID_PIPE_FD};
+    static inline std::atomic<ThreadState>   monitorThreadState{ThreadState::NotStarted};
+    static inline std::thread                monitorThread;
+    static inline std::atomic<bool>          cleanupDone{false};
 };
 
 inline constexpr int INVALID_PID = 0;
@@ -2021,7 +2021,7 @@ struct SystemWideSharedMemory final {
         // 3 hex digits per 64-bit part + 2 dollar signs + null terminator
         constexpr usize BufferSize = 3 * HEX64_SIZE + 2 + 1;
         // Build the three-part hex identifier safely into a temporary buffer
-        StdArray<char, BufferSize> buffer{};
+        Array<char, BufferSize> buffer{};
 
         u64 valueHash      = std::hash<T>{}(value);
         u64 executableHash = hash_string(executable_path());
