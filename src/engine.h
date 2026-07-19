@@ -54,7 +54,7 @@ class Engine final {
     // Set a new position, moves are in UCI or SAN format
     void setup(std::string_view fen = START_FEN, const Strings& moves = {}) noexcept;
 
-    std::uint64_t perft(Depth depth, bool detail = false) noexcept;
+    u64 perft(Depth depth, bool detail = false) noexcept;
     // Non-blocking call to start searching
     void start(const Limit& limit) noexcept;
     // Non-blocking call to stop searching
@@ -69,7 +69,7 @@ class Engine final {
 
     void resize_threads_tt() noexcept;
 
-    void resize_tt(std::size_t ttSize) noexcept;
+    void resize_tt(usize ttSize) noexcept;
 
     void show() const noexcept;
     void dump(const std::filesystem::path& dumpFile = {}) const noexcept;
@@ -77,10 +77,10 @@ class Engine final {
     void flip() noexcept;
     void mirror() noexcept;
 
-    std::uint16_t hashfull(std::uint8_t maxAge = 0) const noexcept;
+    u16 hashfull(u8 maxAge = 0) const noexcept;
 
     // (numaId, threadCount)
-    std::vector<std::pair<std::size_t, std::size_t>> bound_thread_counts() const noexcept;
+    std::vector<std::pair<usize, usize>> bound_thread_counts() const noexcept;
 
     std::string numa_config() const noexcept;
     std::string numa_config_info() const noexcept;

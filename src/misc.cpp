@@ -93,7 +93,7 @@ constexpr std::string_view Version{"dev"};
         return std::string{NullDate};
 
     unsigned year = 0;
-    for (std::size_t i = 0; i < 4; ++i)
+    for (usize i = 0; i < 4; ++i)
     {
         if (!std::isdigit((unsigned char) (p[i])))
             return std::string{NullDate};
@@ -425,7 +425,7 @@ std::string compiler_info() noexcept {
 std::string format_time(const std::chrono::system_clock::time_point& timePoint) noexcept {
     // clang-format off
     std::time_t   time = std::chrono::system_clock::to_time_t(timePoint);
-    std::uint64_t usec = std::chrono::duration_cast<std::chrono::microseconds>(timePoint.time_since_epoch()).count() % 1000000;
+    u64 usec = std::chrono::duration_cast<std::chrono::microseconds>(timePoint.time_since_epoch()).count() % 1000000;
 
     std::tm tm{};
 #if defined(_WIN32)  // Windows
@@ -439,7 +439,7 @@ std::string format_time(const std::chrono::system_clock::time_point& timePoint) 
 
     StdArray<char, 32> buffer{};
 
-    std::size_t writtenSize = 0;
+    usize writtenSize = 0;
     // Format the YYYY.MM.DD-HH:MM:SS part
     writtenSize += std::strftime(buffer.data(), buffer.size(), "%Y.%m.%d-%H:%M:%S", &tm);
     // Append microseconds safely
@@ -460,16 +460,16 @@ std::ostream& operator<<(std::ostream& os, const FixedText& fixedText) noexcept 
 namespace Debug {
 namespace {
 
-template<std::size_t Size>
+template<usize Size>
 class Info {
    public:
     Info() noexcept {
-        for (std::size_t i = 0; i < Size; ++i)
+        for (usize i = 0; i < Size; ++i)
             _data[i].store(0, std::memory_order_relaxed);
     }
 
     Info(const Info& info) noexcept {
-        for (std::size_t i = 0; i < Size; ++i)
+        for (usize i = 0; i < Size; ++i)
             _data[i].store(info._data[i].load(std::memory_order_relaxed),
                            std::memory_order_relaxed);
     }
@@ -477,7 +477,7 @@ class Info {
         if (this == &info)
             return *this;
 
-        for (std::size_t i = 0; i < Size; ++i)
+        for (usize i = 0; i < Size; ++i)
             _data[i].store(info._data[i].load(std::memory_order_relaxed),
                            std::memory_order_relaxed);
         return *this;
@@ -486,43 +486,43 @@ class Info {
     Info(Info&&) noexcept            = delete;
     Info& operator=(Info&&) noexcept = delete;
 
-    [[nodiscard]] decltype(auto) operator[](std::size_t index) const noexcept {
+    [[nodiscard]] decltype(auto) operator[](usize index) const noexcept {
         assert(index < Size && "Index out of bounds");
         return _data[index];
     }
-    [[nodiscard]] decltype(auto) operator[](std::size_t index) noexcept {
+    [[nodiscard]] decltype(auto) operator[](usize index) noexcept {
         assert(index < Size && "Index out of bounds");
         return _data[index];
     }
 
    protected:
-    StdArray<std::atomic<std::int64_t>, Size> _data;
+    StdArray<std::atomic<i64>, Size> _data;
 };
 
 class MinInfo final: public Info<2> {
    public:
     MinInfo() noexcept {
-        _data[1].store(std::numeric_limits<std::int64_t>::max(), std::memory_order_relaxed);
+        _data[1].store(std::numeric_limits<i64>::max(), std::memory_order_relaxed);
     }
 };
 
 class MaxInfo final: public Info<2> {
    public:
     MaxInfo() noexcept {
-        _data[1].store(std::numeric_limits<std::int64_t>::min(), std::memory_order_relaxed);
+        _data[1].store(std::numeric_limits<i64>::min(), std::memory_order_relaxed);
     }
 };
 
 class ExtremeInfo final: public Info<3> {
    public:
     ExtremeInfo() noexcept {
-        _data[1].store(std::numeric_limits<std::int64_t>::max(), std::memory_order_relaxed);
-        _data[2].store(std::numeric_limits<std::int64_t>::min(), std::memory_order_relaxed);
+        _data[1].store(std::numeric_limits<i64>::max(), std::memory_order_relaxed);
+        _data[2].store(std::numeric_limits<i64>::min(), std::memory_order_relaxed);
     }
 };
 
 
-constexpr std::size_t SLOT_MAX = 64;
+constexpr usize SLOT_MAX = 64;
 
 StdArray<Info<2>, SLOT_MAX>     hit;
 StdArray<MinInfo, SLOT_MAX>     min;
@@ -544,7 +544,7 @@ void clear() noexcept {
     correl.fill({});
 }
 
-void hit_on(bool cond, std::size_t slot) noexcept {
+void hit_on(bool cond, usize slot) noexcept {
     assert(slot < hit.size());
     if (slot >= hit.size())
         return;
@@ -555,7 +555,7 @@ void hit_on(bool cond, std::size_t slot) noexcept {
         info[1].fetch_add(1, std::memory_order_relaxed);
 }
 
-void min_of(std::int64_t value, std::size_t slot) noexcept {
+void min_of(i64 value, usize slot) noexcept {
     assert(slot < min.size());
     if (slot >= min.size())
         return;
@@ -573,7 +573,7 @@ void min_of(std::int64_t value, std::size_t slot) noexcept {
     }
 }
 
-void max_of(std::int64_t value, std::size_t slot) noexcept {
+void max_of(i64 value, usize slot) noexcept {
     assert(slot < max.size());
     if (slot >= max.size())
         return;
@@ -591,7 +591,7 @@ void max_of(std::int64_t value, std::size_t slot) noexcept {
     }
 }
 
-void extreme_of(std::int64_t value, std::size_t slot) noexcept {
+void extreme_of(i64 value, usize slot) noexcept {
     assert(slot < extreme.size());
     if (slot >= extreme.size())
         return;
@@ -618,7 +618,7 @@ void extreme_of(std::int64_t value, std::size_t slot) noexcept {
     }
 }
 
-void mean_of(std::int64_t value, std::size_t slot) noexcept {
+void mean_of(i64 value, usize slot) noexcept {
     assert(slot < mean.size());
     if (slot >= mean.size())
         return;
@@ -628,7 +628,7 @@ void mean_of(std::int64_t value, std::size_t slot) noexcept {
     info[1].fetch_add(value, std::memory_order_relaxed);
 }
 
-void stdev_of(std::int64_t value, std::size_t slot) noexcept {
+void stdev_of(i64 value, usize slot) noexcept {
     assert(slot < stdev.size());
     if (slot >= stdev.size())
         return;
@@ -639,7 +639,7 @@ void stdev_of(std::int64_t value, std::size_t slot) noexcept {
     info[2].fetch_add(value * value, std::memory_order_relaxed);
 }
 
-void correl_of(std::int64_t value1, std::int64_t value2, std::size_t slot) noexcept {
+void correl_of(i64 value1, i64 value2, usize slot) noexcept {
     assert(slot < correl.size());
     if (slot >= correl.size())
         return;
@@ -655,10 +655,10 @@ void correl_of(std::int64_t value1, std::int64_t value2, std::size_t slot) noexc
 
 void print() noexcept {
 
-    std::int64_t n;
-    auto         avg = [&n](std::int64_t x) noexcept { return double(x) / n; };
+    i64  n;
+    auto avg = [&n](i64 x) noexcept { return double(x) / n; };
 
-    for (std::size_t i = 0; i < hit.size(); ++i)
+    for (usize i = 0; i < hit.size(); ++i)
     {
         auto& info = hit[i];
 
@@ -672,7 +672,7 @@ void print() noexcept {
                   << " Hit Rate (%)=" << 100 * avg(hits) << std::endl;
     }
 
-    for (std::size_t i = 0; i < min.size(); ++i)
+    for (usize i = 0; i < min.size(); ++i)
     {
         auto& info = min[i];
 
@@ -685,7 +685,7 @@ void print() noexcept {
                   << " Min=" << minValue << std::endl;
     }
 
-    for (std::size_t i = 0; i < max.size(); ++i)
+    for (usize i = 0; i < max.size(); ++i)
     {
         auto& info = max[i];
 
@@ -698,7 +698,7 @@ void print() noexcept {
                   << " Max=" << maxValue << std::endl;
     }
 
-    for (std::size_t i = 0; i < extreme.size(); ++i)
+    for (usize i = 0; i < extreme.size(); ++i)
     {
         auto& info = extreme[i];
 
@@ -713,7 +713,7 @@ void print() noexcept {
                   << " Max=" << maxValue << std::endl;
     }
 
-    for (std::size_t i = 0; i < mean.size(); ++i)
+    for (usize i = 0; i < mean.size(); ++i)
     {
         auto& info = mean[i];
 
@@ -727,7 +727,7 @@ void print() noexcept {
                   << " Mean=" << avg(sum) << std::endl;
     }
 
-    for (std::size_t i = 0; i < stdev.size(); ++i)
+    for (usize i = 0; i < stdev.size(); ++i)
     {
         auto& info = stdev[i];
 
@@ -743,7 +743,7 @@ void print() noexcept {
                   << " Stdev=" << r << std::endl;
     }
 
-    for (std::size_t i = 0; i < correl.size(); ++i)
+    for (usize i = 0; i < correl.size(); ++i)
     {
         auto& info = correl[i];
 
@@ -767,11 +767,11 @@ void print() noexcept {
 #endif
 
 CommandLine::CommandLine(int argc, const char* argv[]) noexcept {
-    std::size_t argSize = argc;
+    usize argSize = argc;
 
     arguments.reserve(argSize);
 
-    for (std::size_t i = 0; i < argSize; ++i)
+    for (usize i = 0; i < argSize; ++i)
         arguments.emplace_back(argv[i]);  // no copy, just view
 }
 
@@ -796,7 +796,7 @@ std::string CommandLine::binary_directory(std::string_view path) noexcept {
     std::string currentDirectory{"."};
     currentDirectory += pathSeparator;
 
-    std::size_t size = binaryDirectory.find_last_of("\\/");
+    usize size = binaryDirectory.find_last_of("\\/");
 
     if (size == std::string::npos)
         binaryDirectory = currentDirectory;
@@ -824,7 +824,7 @@ std::string CommandLine::working_directory() noexcept {
     return workingDirectory;
 }
 
-std::size_t str_to_size_t(std::string_view sv) noexcept {
+usize str_to_size_t(std::string_view sv) noexcept {
     // Use from_chars (no allocation, fast)
     const char* begin = sv.data();
     const char* end   = begin + sv.size();
@@ -835,10 +835,10 @@ std::size_t str_to_size_t(std::string_view sv) noexcept {
     if (ec != std::errc() || ptr != end)
         std::exit(EXIT_FAILURE);
 
-    if (value > std::numeric_limits<std::size_t>::max())
+    if (value > std::numeric_limits<usize>::max())
         std::exit(EXIT_FAILURE);
 
-    return std::size_t(value);
+    return usize(value);
 }
 
 std::optional<std::string> read_file_to_string(const std::filesystem::path& filePath) noexcept {
@@ -853,7 +853,7 @@ std::optional<std::string> read_file_to_string(const std::filesystem::path& file
         return std::nullopt;
 
     std::string str;
-    str.reserve(std::size_t(size));
+    str.reserve(usize(size));
 
     ifs.seekg(0, std::ios::beg);
 

@@ -29,7 +29,7 @@ namespace DON {
 
 class Position;
 
-enum class GenType : std::uint8_t {
+enum class GenType : u8 {
     ENCOUNTER,
     ENC_CAPTURE,
     ENC_QUIET,
@@ -54,7 +54,7 @@ struct MoveList final {
     using reference       = const_reference;
     using const_iterator  = const_pointer;
     using iterator        = const_iterator;
-    using size_type       = std::size_t;
+    using size_type       = usize;
 
     // Generate moves into the internal buffer
     explicit MoveList(const Position& pos) noexcept :

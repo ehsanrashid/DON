@@ -109,7 +109,7 @@
 
 namespace DON {
 
-inline constexpr std::size_t SHM_NAME_MAX = NAME_MAX > 0 ? NAME_MAX - 1 : 255 - 1;
+inline constexpr usize SHM_NAME_MAX = NAME_MAX > 0 ? NAME_MAX - 1 : 255 - 1;
 
 // argv[0] CANNOT be used because need to identify the executable.
 // argv[0] contains the command used to invoke it, which does not involve the full path.
@@ -117,7 +117,7 @@ inline constexpr std::size_t SHM_NAME_MAX = NAME_MAX > 0 ? NAME_MAX - 1 : 255 - 
 // if it wasn't locked by the OS. If the path is longer than 4095 bytes the hash will be computed
 // from an unspecified amount of bytes of the path; in particular it can a hash of an empty string.
 
-enum class SharedMemoryAllocationStatus : std::uint8_t {
+enum class SharedMemoryAllocationStatus : u8 {
     NoAllocation,
     LocalMemory,
     SharedMemory
@@ -138,16 +138,16 @@ enum class SharedMemoryAllocationStatus : std::uint8_t {
 
 inline std::string executable_path() noexcept {
     StdArray<char, PATH_MAX> executablePath{};
-    std::size_t              executableSize = 0;
+    usize                    executableSize = 0;
 
 #if defined(_WIN32)
     DWORD size = GetModuleFileName(nullptr, executablePath.data(), DWORD(executablePath.size()));
 
-    executableSize = std::min<std::size_t>(size, executablePath.size() - 1);
+    executableSize = std::min<usize>(size, executablePath.size() - 1);
 
     executablePath[executableSize] = '\0';
 #elif defined(__APPLE__)
-    std::uint32_t size = std::uint32_t(executablePath.size());
+    u32 size = u32(executablePath.size());
 
     if (_NSGetExecutablePath(executablePath.data(), &size) == 0)
         executableSize = std::strlen(executablePath.data());
@@ -173,11 +173,11 @@ inline std::string executable_path() noexcept {
 #elif defined(__FreeBSD__)
     constexpr StdArray<int, 4> MIB{CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME, -1};
 
-    std::size_t size = executablePath.size();
+    usize size = executablePath.size();
 
     if (sysctl(MIB.data(), MIB.size(), executablePath.data(), &size, nullptr, 0) == 0)
     {
-        executableSize = std::min<std::size_t>(size, executablePath.size() - 1);
+        executableSize = std::min<usize>(size, executablePath.size() - 1);
 
         executablePath[executableSize] = '\0';
     }
@@ -186,7 +186,7 @@ inline std::string executable_path() noexcept {
 
     if (size >= 0)
     {
-        executableSize = std::min<std::size_t>(size, executablePath.size() - 1);
+        executableSize = std::min<usize>(size, executablePath.size() - 1);
 
         executablePath[executableSize] = '\0';
     }
@@ -195,7 +195,7 @@ inline std::string executable_path() noexcept {
 
     if (size >= 0)
     {
-        executableSize = std::min<std::size_t>(size, executablePath.size() - 1);
+        executableSize = std::min<usize>(size, executablePath.size() - 1);
 
         executablePath[executableSize] = '\0';
     }
@@ -210,7 +210,7 @@ inline std::string executable_path() noexcept {
 template<typename T>
 class BackendSharedMemory final {
    public:
-    enum class Status : std::uint8_t {
+    enum class Status : u8 {
         Success,
         NotInitialized,
         FileMapping,
@@ -311,13 +311,13 @@ class BackendSharedMemory final {
 
    private:
     void initialize(const T& value) noexcept {
-        constexpr std::size_t TotalSize = sizeof(T) + sizeof(SharedState);
+        constexpr usize TotalSize = sizeof(T) + sizeof(SharedState);
 
         // Try allocating with large page first
         hMapFile = try_with_windows_lock_memory_privilege(
-          [&](std::size_t LargePageSize) noexcept {
+          [&](usize LargePageSize) noexcept {
               // Round up size to full large page
-              std::size_t roundedTotalSize = round_up_to_pow2_multiple(TotalSize, LargePageSize);
+              usize roundedTotalSize = round_up_to_pow2_multiple(TotalSize, LargePageSize);
 
     #if defined(_WIN64)
               DWORD hiTotalSize = roundedTotalSize >> 32;
@@ -440,7 +440,7 @@ class BackendSharedMemory final {
         cleanup();
     }
 
-    enum class SharedState : std::uint8_t {
+    enum class SharedState : u8 {
         Uninitialized = 0,
         Initializing  = 1,
         Initialized   = 2
@@ -521,8 +521,8 @@ class SharedMemoryRegistry final {
 
    public:
     // Ensure internal containers are ready
-    static void ensure_initialized(std::size_t reserveCount  = 1024,
-                                   float       maxLoadFactor = 0.75f) noexcept {
+    static void ensure_initialized(usize reserveCount  = 1024,
+                                   float maxLoadFactor = 0.75f) noexcept {
         callOnce([reserveCount, maxLoadFactor]() noexcept {
             //DEBUG_LOG("Initializing SharedMemoryRegistry with reserve-count " << reserveCount << " and max-load-factor " << maxLoadFactor);
 
@@ -629,7 +629,7 @@ class SharedMemoryRegistry final {
         condVar.notify_all();
     }
 
-    static std::size_t size() noexcept {
+    static usize size() noexcept {
         std::shared_lock readLock(sharedMutex);
 
         return registryMap.size();
@@ -640,7 +640,7 @@ class SharedMemoryRegistry final {
         std::shared_lock readLock(sharedMutex);
 
         DEBUG_LOG("Registered shared memories (insertion order) [" << registryMap.size() << "]:");
-        [[maybe_unused]] std::size_t i = 0;
+        [[maybe_unused]] usize i = 0;
         for ([[maybe_unused]] auto* sharedMemory : orderedList)
             DEBUG_LOG("[" << i++ << "] "
                           << (sharedMemory != nullptr ? sharedMemory->name_() : "<NULL>"));
@@ -777,8 +777,8 @@ class SharedMemoryCleanupManager final {
     //
     // Note: If pipe creation fails, signal handlers and monitor thread are skipped, to avoid unsafe signal handling
     //       but registry initialization and atexit registration still occur safely.
-    static void ensure_initialized(std::size_t reserveCount  = 1024,
-                                   float       maxLoadFactor = 0.75f) noexcept {
+    static void ensure_initialized(usize reserveCount  = 1024,
+                                   float maxLoadFactor = 0.75f) noexcept {
         callOnce([reserveCount, maxLoadFactor]() noexcept {
             //DEBUG_LOG("Initializing SharedMemoryCleanupManager.");
 
@@ -980,14 +980,14 @@ class SharedMemoryCleanupManager final {
 
                 // Get and clear all pending signals atomically
                 // Multiple signals of the same type are coalesced; all signals are processed in batches
-                std::uint64_t signals = pendingSignals.exchange(0, std::memory_order_acquire);
+                u64 signals = pendingSignals.exchange(0, std::memory_order_acquire);
 
                 if (signals == 0)
                     continue;
 
                 // Process all pending signals for cleanup, but only re-raise the first one
                 bool first = true;
-                for (std::size_t bitPos = 0; bitPos < SIGNALS.size(); ++bitPos)
+                for (usize bitPos = 0; bitPos < SIGNALS.size(); ++bitPos)
                 {
                     if ((signals & bit(bitPos)) == 0)
                         continue;
@@ -1035,14 +1035,14 @@ class SharedMemoryCleanupManager final {
 
     // Wake monitor thread
     static void wake_monitor_thread() noexcept {
-        constexpr std::size_t MaxAttempt = 4;
+        constexpr usize MaxAttempt = 4;
 
         int fd1 = signalPipeFds[1].load(std::memory_order_acquire);
         // Pipe not initialized, skip notification
         if (!valid_pipe_fd(fd1))
             return;
 
-        for (std::size_t attempt = 0; attempt < MaxAttempt; ++attempt)
+        for (usize attempt = 0; attempt < MaxAttempt; ++attempt)
         {
             char byte = 0;
 
@@ -1110,7 +1110,7 @@ class SharedMemoryCleanupManager final {
 
     // Map signal numbers to bit positions (0-11 for your 12 signals)
     static constexpr int signal_to_bit(int signal) noexcept {
-        for (std::size_t bitPos = 0; bitPos < SIGNALS.size(); ++bitPos)
+        for (usize bitPos = 0; bitPos < SIGNALS.size(); ++bitPos)
             if (SIGNALS[bitPos] == signal)
                 return bitPos;
         // Not listed
@@ -1127,7 +1127,7 @@ class SharedMemoryCleanupManager final {
     // Thread state machine:
     // NotStarted -> Running (on thread creation)
     // Running -> Shutdown (on thread exit OR atexit cleanup)
-    enum class ThreadState : std::uint8_t {
+    enum class ThreadState : u8 {
         NotStarted,
         Running,
         Shutdown
@@ -1140,7 +1140,7 @@ class SharedMemoryCleanupManager final {
     static constexpr int INVALID_SIGNAL = -1;
 
     static inline CallOnce                      callOnce;
-    static inline std::atomic<std::uint64_t>    pendingSignals{0};
+    static inline std::atomic<u64>              pendingSignals{0};
     static inline StdArray<std::atomic<int>, 2> signalPipeFds{INVALID_PIPE_FD, INVALID_PIPE_FD};
     static inline std::atomic<ThreadState>      monitorThreadState{ThreadState::NotStarted};
     static inline std::thread                   monitorThread;
@@ -1256,21 +1256,21 @@ struct ShmHeader final {
         return _initialize.load(std::memory_order_acquire);
     }
 
-    [[nodiscard]] std::uint32_t ref_count() const noexcept {
+    [[nodiscard]] u32 ref_count() const noexcept {
         return refCount.load(std::memory_order_acquire);
     }
 
     void increment_ref_count() noexcept { refCount.fetch_add(1, std::memory_order_acq_rel); }
     void decrement_ref_count() noexcept { refCount.fetch_sub(1, std::memory_order_acq_rel); }
 
-    static constexpr std::uint32_t MAGIC = 0xAD5F1A12u;
+    static constexpr u32 MAGIC = 0xAD5F1A12u;
 
-    const std::uint32_t magic = MAGIC;
+    const u32 magic = MAGIC;
 
    private:
-    pthread_mutex_t            mutex{};
-    std::atomic<bool>          _initialize{false};
-    std::atomic<std::uint32_t> refCount{0};
+    pthread_mutex_t   mutex{};
+    std::atomic<bool> _initialize{false};
+    std::atomic<u32>  refCount{0};
 };
 
 struct ShmHeaderGuard final {
@@ -1518,14 +1518,14 @@ class SharedMemory final: public BaseSharedMemory {
         return shmHeader != nullptr ? shmHeader->initialized() : false;
     }
 
-    [[nodiscard]] std::uint32_t ref_count() const noexcept {
+    [[nodiscard]] u32 ref_count() const noexcept {
         return shmHeader != nullptr ? shmHeader->ref_count() : 0;
     }
 
     bool valid() const noexcept { return opened() && initialized(); }
 
    private:
-    static constexpr std::size_t mapped_size() noexcept { return sizeof(T) + sizeof(ShmHeader); }
+    static constexpr usize mapped_size() noexcept { return sizeof(T) + sizeof(ShmHeader); }
 
     // Unregister SharedMemory object and release resources
     void unregister_close() noexcept {
@@ -1638,7 +1638,7 @@ class SharedMemory final: public BaseSharedMemory {
     }
 
     bool sentinel_file_locked_created() noexcept {
-        constexpr std::size_t MaxAttempt = 4;
+        constexpr usize MaxAttempt = 4;
 
         if (shmHeader == nullptr)
             return false;
@@ -1650,7 +1650,7 @@ class SharedMemory final: public BaseSharedMemory {
 
         set_sentinel_path(pid);
 
-        for (std::size_t attempt = 0; attempt < MaxAttempt; ++attempt)
+        for (usize attempt = 0; attempt < MaxAttempt; ++attempt)
         {
             int    oflag = O_CREAT | O_EXCL | O_WRONLY | O_CLOEXEC;
             mode_t mode  = S_IRUSR | S_IWUSR;
@@ -1828,7 +1828,7 @@ class SharedMemory final: public BaseSharedMemory {
         if (fstat(fd, &Stat) == -1)
             return false;
 
-        if (std::size_t(Stat.st_size) < mappedSize)
+        if (usize(Stat.st_size) < mappedSize)
             return false;
 
         mappedPtr = mmap(nullptr, mappedSize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
@@ -1880,7 +1880,7 @@ class SharedMemory final: public BaseSharedMemory {
     int         fd = INVALID_FD;
     FdGuard     fdGuard{fd};
     void*       mappedPtr  = INVALID_MMAP_PTR;
-    std::size_t mappedSize = INVALID_MMAP_SIZE;
+    usize       mappedSize = INVALID_MMAP_SIZE;
     MMapGuard   mappedGuard{mappedPtr, mappedSize};
     T*          dataPtr   = nullptr;
     ShmHeader*  shmHeader = nullptr;
@@ -2015,18 +2015,18 @@ struct SystemWideSharedMemory final {
     // Content is addressed by its hash.
     // An additional discriminator can be added to account for differences
     // that are not present in the content, for example NUMA node allocation.
-    SystemWideSharedMemory(const T& value, std::uint64_t discriminator = 0) noexcept {
+    SystemWideSharedMemory(const T& value, u64 discriminator = 0) noexcept {
 
         std::string shmName{"DON_"};
 
         // Create a unique name based on the value, executable path, and discriminator
         // 3 hex digits per 64-bit part + 2 dollar signs + null terminator
-        constexpr std::size_t BufferSize = 3 * HEX64_SIZE + 2 + 1;
+        constexpr usize BufferSize = 3 * HEX64_SIZE + 2 + 1;
         // Build the three-part hex identifier safely into a temporary buffer
         StdArray<char, BufferSize> buffer{};
 
-        std::uint64_t valueHash      = std::hash<T>{}(value);
-        std::uint64_t executableHash = hash_string(executable_path());
+        u64 valueHash      = std::hash<T>{}(value);
+        u64 executableHash = hash_string(executable_path());
 
         // snprintf returns the number of chars that would have been written (excluding NUL)
         int writtenSize = std::snprintf(buffer.data(), buffer.size(),
@@ -2041,7 +2041,7 @@ struct SystemWideSharedMemory final {
         {
             // Ensure size is within bounds
             // If snprintf truncated, use up to (buf.size() - 1) characters
-            std::size_t copySize = std::min<std::size_t>(writtenSize, buffer.size() - 1);
+            usize copySize = std::min<usize>(writtenSize, buffer.size() - 1);
             // Shrink to actual content
             hashName.assign(buffer.data(), copySize);
         }

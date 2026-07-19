@@ -38,14 +38,14 @@ Value evaluate(const Position&          pos,
                const NNUE::Networks&    networks,
                NNUE::AccumulatorStack&  accStack,
                NNUE::AccumulatorCaches& accCaches,
-               std::int32_t             optimism) noexcept {
+               i32                      optimism) noexcept {
     assert(pos.checkers_bb() == 0);
 
     Value posEval = pos.evaluate();
 
     bool smallNet = constexpr_abs(posEval) > 962;
 
-    std::int32_t eval;
+    i32 eval;
 
     if (smallNet)
     {
@@ -69,7 +69,7 @@ Value evaluate(const Position&          pos,
     eval     = constexpr_round(double(eval) * (1.0 - 54.8366e-6 * complexity));
     optimism = constexpr_round(double(optimism) * (1.0 + 21.0084e-4 * complexity));
 
-    std::int32_t v =  //
+    i32 v =  //
       eval
       + constexpr_round(
         12.8417e-6
@@ -96,10 +96,10 @@ std::string trace(Position& pos, const NNUE::Networks& networks) noexcept {
     auto fmt = [](double value) noexcept -> std::string {
         StdArray<char, 8> buffer{};
 
-        int         writtenSize = std::snprintf(buffer.data(), buffer.size(), "%+01.2f", value);
-        std::size_t copiedSize  = writtenSize > 0  //
-                                  ? std::min<std::size_t>(writtenSize, buffer.size() - 1)
-                                  : 0;
+        int   writtenSize = std::snprintf(buffer.data(), buffer.size(), "%+01.2f", value);
+        usize copiedSize  = writtenSize > 0  //
+                            ? std::min<usize>(writtenSize, buffer.size() - 1)
+                            : 0;
 
         return std::string{buffer.data(), copiedSize};
     };

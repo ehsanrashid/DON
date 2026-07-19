@@ -25,9 +25,65 @@
 
 namespace DON {
 
+// Returns an ASCII representation of a bitboard suitable
+// to be printed to standard output. Useful for debugging.
+std::string pretty_str(Bitboard b) noexcept {
+    constexpr std::string_view Sep{"\n  +---+---+---+---+---+---+---+---+\n"};
+
+    std::string bb;
+    bb.reserve(646);
+
+    bb.assign(Sep);
+
+    for (Rank r = RANK_8;; --r)
+    {
+        bb.push_back(to_char(r));
+
+        for (File f = FILE_A; f <= FILE_H; ++f)
+            bb.append(" | ").push_back((b & make_square(f, r)) != 0 ? '*' : ' ');
+
+        bb.append(" |").append(Sep);
+
+        if (r == RANK_1)
+            break;
+    }
+
+    bb.push_back(' ');
+
+    for (File f = FILE_A; f <= FILE_H; ++f)
+        bb.append("   ").push_back(to_char<true>(f));
+
+    bb.push_back('\n');
+
+    return bb;
+}
+
+std::string_view pretty(Bitboard b) noexcept {
+    constexpr usize ReserveCount  = 1024;
+    constexpr float MaxLoadFactor = 0.75f;
+
+    // Thread-safe static initialization
+
+    // Fully RAII-compliant — destructor runs at program exit
+    //static auto cache = ConcurrentCache<Bitboard, std::string>(ReserveCount, MaxLoadFactor);
+
+    // Standard intentional "leaky singleton" pattern.
+    // Ensures the cache lives for the entire program, never deleted.
+    //static auto& cache = *new ConcurrentCache<Bitboard, std::string>(ReserveCount, MaxLoadFactor);
+    static auto& cache = *[=] {
+        static auto cachePtr =
+          std::make_unique<ConcurrentCache<Bitboard, std::string>>(ReserveCount, MaxLoadFactor);
+        return cachePtr.get();
+    }();
+
+    //return cache.access_or_build(b, pretty_str(b));
+    return cache.transform_access_or_build(
+      b, [](const std::string& str) noexcept -> std::string_view { return str; }, pretty_str(b));
+}
+
 namespace {
 
-constexpr StdArray<std::size_t, 2> TABLE_SIZES{0x1480, 0x19000};
+constexpr StdArray<usize, 2> TABLE_SIZES{0x1480, 0x19000};
 
 // Stores bishop & rook attacks
 alignas(CACHE_LINE_SIZE) StdArray<
@@ -59,10 +115,10 @@ void init_magics() noexcept {
     static_assert(PT == BISHOP || PT == ROOK, "Unsupported piece type in init_magics()");
 
 #if !defined(USE_BMI2)
-    constexpr StdArray<std::size_t, 2> BlockSizes{0x200, 0x1000};
+    constexpr StdArray<usize, 2> BlockSizes{0x200, 0x1000};
 
     // Optimal PRNG seeds to pick the correct magics in the shortest time
-    constexpr StdArray<std::uint16_t, 2, RANK_NB> Seeds{{
+    constexpr StdArray<u16, 2, RANK_NB> Seeds{{
     #if defined(IS_64BIT)
       {0xE4D9, 0xB1E5, 0x4F73, 0x82A9, 0x323A, 0xFFF4, 0x0C61, 0x5EFA},
       {0x8B99, 0x9A36, 0xD27A, 0x5F4C, 0xFC29, 0x0982, 0x10E1, 0x00AA}
@@ -73,9 +129,9 @@ void init_magics() noexcept {
     }};
 #endif
 
-    [[maybe_unused]] std::size_t totalSize = 0;
+    [[maybe_unused]] usize totalSize = 0;
 
-    std::uint16_t size = 0;
+    u16 size = 0;
 
     for (Square s = SQ_A1; s <= SQ_H8; ++s)
     {
@@ -143,8 +199,8 @@ void init_magics() noexcept {
         XorShift64Star prng(Seeds[PT - BISHOP][rank_of(s)]);
 
         // Epoch array to speed-up the magic verification process
-        StdArray<std::uint32_t, BlockSizes[PT - BISHOP]> epoch{};
-        std::uint32_t                                    cnt = 0;
+        StdArray<u32, BlockSizes[PT - BISHOP]> epoch{};
+        u32                                    cnt = 0;
 
         // Find a magic for square picking up an (almost) random number
         // until find the one that passes the verification test.
@@ -165,9 +221,9 @@ void init_magics() noexcept {
             // Note that build up the database for square as a side effect of verifying the magic.
             // Keep track of the attempt count and save it in epoch[], little speed-up
             // trick to avoid resetting magic.attacksBBs[] after every failed attempt.
-            for (std::uint16_t i = 0; i < size; ++i)
+            for (u16 i = 0; i < size; ++i)
             {
-                std::uint16_t idx = magic.index(occupancyBBs[i]);
+                u16 idx = magic.index(occupancyBBs[i]);
 
                 if (epoch[idx] < cnt)
                 {
@@ -196,7 +252,7 @@ template void init_magics<ROOK>() noexcept;
 
 }  // namespace
 
-namespace BitBoard {
+namespace Attacks {
 
 // Initializes various bitboard tables.
 // It is called at startup.
@@ -229,61 +285,5 @@ void init() noexcept {
     }
 }
 
-// Returns an ASCII representation of a bitboard suitable
-// to be printed to standard output. Useful for debugging.
-std::string pretty_str(Bitboard b) noexcept {
-    constexpr std::string_view Sep{"\n  +---+---+---+---+---+---+---+---+\n"};
-
-    std::string bb;
-    bb.reserve(646);
-
-    bb.assign(Sep);
-
-    for (Rank r = RANK_8;; --r)
-    {
-        bb.push_back(to_char(r));
-
-        for (File f = FILE_A; f <= FILE_H; ++f)
-            bb.append(" | ").push_back((b & make_square(f, r)) != 0 ? '*' : ' ');
-
-        bb.append(" |").append(Sep);
-
-        if (r == RANK_1)
-            break;
-    }
-
-    bb.push_back(' ');
-
-    for (File f = FILE_A; f <= FILE_H; ++f)
-        bb.append("   ").push_back(to_char<true>(f));
-
-    bb.push_back('\n');
-
-    return bb;
-}
-
-std::string_view pretty(Bitboard b) noexcept {
-    constexpr std::size_t ReserveCount  = 1024;
-    constexpr float       MaxLoadFactor = 0.75f;
-
-    // Thread-safe static initialization
-
-    // Fully RAII-compliant — destructor runs at program exit
-    //static auto cache = ConcurrentCache<Bitboard, std::string>(ReserveCount, MaxLoadFactor);
-
-    // Standard intentional "leaky singleton" pattern.
-    // Ensures the cache lives for the entire program, never deleted.
-    //static auto& cache = *new ConcurrentCache<Bitboard, std::string>(ReserveCount, MaxLoadFactor);
-    static auto& cache = *[=] {
-        static auto cachePtr =
-          std::make_unique<ConcurrentCache<Bitboard, std::string>>(ReserveCount, MaxLoadFactor);
-        return cachePtr.get();
-    }();
-
-    //return cache.access_or_build(b, pretty_str(b));
-    return cache.transform_access_or_build(
-      b, [](const std::string& str) noexcept -> std::string_view { return str; }, pretty_str(b));
-}
-
-}  // namespace BitBoard
+}  // namespace Attacks
 }  // namespace DON

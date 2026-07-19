@@ -30,12 +30,12 @@ namespace DON {
 
 namespace {
 
-constexpr std::uint8_t MTG_MAX = 50;  // Moves To Go maximum for time management formulas
+constexpr u8 MTG_MAX = 50;  // Moves To Go maximum for time management formulas
 
 constexpr double TIME_ADJUST_INIT = -1.0;
 constexpr double TIME_ADJUST_MIN  = 1.0e-6;
 
-constexpr std::int64_t TIME_NODES_INIT = -1;
+constexpr i64 TIME_NODES_INIT = -1;
 
 }  // namespace
 
@@ -61,14 +61,14 @@ void TimeManager::init() noexcept {
 //      2) x base-time (+ z increment)
 //      3) x moves in y time (+ z increment)
 void TimeManager::init(
-  Color ac, std::int16_t ply, std::int32_t moveNum, const Options& options, Limit& limit) noexcept {
+  Color ac, i16 ply, i32 moveNum, const Options& options, Limit& limit) noexcept {
     // If have no time, no need to fully initialize TM.
     // start-time is used by move-time and Nodes-Time is used in elapsed calls.
     startTime = limit.startTime;
 
     auto& clock = limit.clocks[ac];
 
-    std::uint64_t NodesTime = options["NodesTime"];
+    u64 NodesTime = options["NodesTime"];
 
     useNodesTime = NodesTime != 0;
 
@@ -99,20 +99,20 @@ void TimeManager::init(
         OverheadTime *= NodesTime;
     }
 
-    std::uint64_t ScaleFactor = use_nodes_time() ? NodesTime : 1;
+    u64 ScaleFactor = use_nodes_time() ? NodesTime : 1;
 
     TimePoint ScaledTime = std::max<TimePoint>(clock.time / ScaleFactor, TimePoint{1});
 
     // clang-format off
 
     // Maximum move horizon
-    std::uint8_t mtg = limit.movesToGo == 0
-                  ? std::max<std::uint8_t>(MTG_MAX - int(0.1 * std::max(moveNum         - 20     , 0)), MTG_MAX - 10)
-                  : std::min<std::uint8_t>(MTG_MAX + int(0.1 * std::max(limit.movesToGo - MTG_MAX, 0)), limit.movesToGo);
+    u8 mtg = limit.movesToGo == 0
+                  ? std::max<u8>(MTG_MAX - int(0.1 * std::max(moveNum         - 20     , 0)), MTG_MAX - 10)
+                  : std::min<u8>(MTG_MAX + int(0.1 * std::max(limit.movesToGo - MTG_MAX, 0)), limit.movesToGo);
 
     // If less than one second, gradually reduce mtg
     if (mtg > 2 && ScaledTime < 1000 && clock.inc <= OverheadTime)
-        mtg = std::max<std::uint8_t>(constexpr_ceil(0.05051 * double(ScaledTime)), 2);
+        mtg = std::max<u8>(constexpr_ceil(0.05051 * double(ScaledTime)), 2);
 
     // Make sure remainTime > 0 since use it as a divisor
     TimePoint remainTime = std::max(clock.time + (mtg - 1) * clock.inc - (mtg + 2) * OverheadTime, TimePoint{1});
@@ -188,10 +188,10 @@ void TimeManager::init(
 }
 
 // When in 'Nodes as Time' mode
-void TimeManager::advance_time_nodes(std::int64_t nodes) noexcept {
+void TimeManager::advance_time_nodes(i64 nodes) noexcept {
     assert(use_nodes_time());
 
-    timeNodes = std::max(timeNodes - nodes, std::int64_t(0));
+    timeNodes = std::max(timeNodes - nodes, i64(0));
 }
 
 }  // namespace DON

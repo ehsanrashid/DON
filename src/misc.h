@@ -132,6 +132,24 @@
 
 namespace DON {
 
+using u64 = std::uint64_t;
+using u32 = std::uint32_t;
+using u16 = std::uint16_t;
+using u8  = std::uint8_t;
+
+using i64 = std::int64_t;
+using i32 = std::int32_t;
+using i16 = std::int16_t;
+using i8  = std::int8_t;
+
+using usize = std::size_t;
+using isize = std::ptrdiff_t;
+
+#if defined(__GNUC__) && defined(IS_64BIT)
+__extension__ using u128 = unsigned __int128;
+__extension__ using i128 = signed __int128;
+#endif
+
 using Strings     = std::vector<std::string>;
 using StringViews = std::vector<std::string_view>;
 
@@ -181,20 +199,20 @@ inline constexpr const char* BG_WHITE   = "\033[47m";
 
 }  // namespace ConsoleColor
 
-inline constexpr std::size_t BYTE_BITS = 8;
+inline constexpr usize BYTE_BITS = 8;
 
-inline constexpr std::size_t HEX64_SIZE = 16;
-inline constexpr std::size_t HEX32_SIZE = 8;
+inline constexpr usize HEX64_SIZE = 16;
+inline constexpr usize HEX32_SIZE = 8;
 
-inline constexpr std::size_t _KB = 1024;
-inline constexpr std::size_t _MB = _KB * _KB;
+inline constexpr usize _KB = 1024;
+inline constexpr usize _MB = _KB * _KB;
 
-inline constexpr std::size_t BLOCK_4  = 4;
-inline constexpr std::size_t BLOCK_8  = 2 * BLOCK_4;
-inline constexpr std::size_t BLOCK_16 = 4 * BLOCK_4;
-inline constexpr std::size_t BLOCK_32 = 8 * BLOCK_4;
+inline constexpr usize BLOCK_4  = 4;
+inline constexpr usize BLOCK_8  = 2 * BLOCK_4;
+inline constexpr usize BLOCK_16 = 4 * BLOCK_4;
+inline constexpr usize BLOCK_32 = 8 * BLOCK_4;
 
-inline constexpr std::int64_t INT_LIMIT = (1LL << 31) - 1;
+inline constexpr i64 INT_LIMIT = (1LL << 31) - 1;
 
 inline constexpr double LN2   = 0.693147180559945309417232121458176568;
 inline constexpr double SQRT2 = 1.41421356237309504880168872420969808;
@@ -210,12 +228,12 @@ inline constexpr bool IsLittleEndian = true;
 #else
 // Fallback runtime check
 inline const bool IsLittleEndian = []() noexcept {
-    constexpr std::uint16_t LE = 1;
-    return *reinterpret_cast<const std::uint8_t*>(&LE) == 1;
+    constexpr u16 LE = 1;
+    return *reinterpret_cast<const u8*>(&LE) == 1;
 }();
 #endif
 
-constexpr std::uint64_t bit(std::uint8_t b) noexcept { return (1ull << b); }
+constexpr u64 bit(u8 b) noexcept { return (1ull << b); }
 
 template<typename To, typename From>
 constexpr bool is_strictly_assignable_v =
@@ -246,9 +264,9 @@ constexpr auto sign_sqr(T x) noexcept {
     return sign(x) * sqr(x);
 }
 
-constexpr std::size_t ceil_div(std::size_t n, std::size_t d) noexcept { return (n + d - 1) / d; }
+constexpr usize ceil_div(usize n, usize d) noexcept { return (n + d - 1) / d; }
 
-constexpr std::size_t round_up_to_pow2(std::size_t x) noexcept {
+constexpr usize round_up_to_pow2(usize x) noexcept {
     if (x == 0)
         return 1;
 
@@ -347,8 +365,8 @@ constexpr double constexpr_log(double x) noexcept {
 constexpr float max_load_factor(float maxLoadFactor = 0.75f) noexcept {
     return std::clamp(constexpr_abs(maxLoadFactor), 0.1f, 1.0f);
 }
-constexpr std::size_t reserve_count(std::size_t reserveCount = 1024) noexcept {
-    return std::max(reserveCount, std::size_t(8));
+constexpr usize reserve_count(usize reserveCount = 1024) noexcept {
+    return std::max(reserveCount, usize(8));
 }
 
 template<typename T1, typename T2>
@@ -357,7 +375,7 @@ inline constexpr T2 interpolate(T1 x, T1 x0, T1 x1, T2 y0, T2 y1) noexcept {
     return T2(y0 + (y1 - y0) * (x - x0) / (x1 - x0));
 }
 
-enum class ConsoleOutputMode : std::uint8_t {
+enum class ConsoleOutputMode : u8 {
     Default,  // Do nothing special
     UTF7,     // Explicitly avoid UTF-8 changes
     UTF8,     // Try to enable UTF-8 if possible
@@ -406,15 +424,15 @@ std::string version_info() noexcept;
 
 std::string compiler_info() noexcept;
 
-constexpr std::uint64_t mul_hi64(std::uint64_t u1, std::uint64_t u2) noexcept {
+constexpr u64 mul_hi64(u64 u1, u64 u2) noexcept {
 #if defined(__GNUC__) && defined(IS_64BIT)
     __extension__ using uint128 = unsigned __int128;
     return (uint128(u1) * uint128(u2)) >> 64;
 #else
-    std::uint64_t u1L = std::uint32_t(u1), u1H = u1 >> 32;
-    std::uint64_t u2L = std::uint32_t(u2), u2H = u2 >> 32;
-    std::uint64_t mid = u1H * u2L + ((u1L * u2L) >> 32);
-    return u1H * u2H + ((u1L * u2H + std::uint32_t(mid)) >> 32) + (mid >> 32);
+    u64 u1L = u32(u1), u1H = u1 >> 32;
+    u64 u2L = u32(u2), u2H = u2 >> 32;
+    u64 mid = u1H * u2L + ((u1L * u2L) >> 32);
+    return u1H * u2H + ((u1L * u2H + u32(mid)) >> 32) + (mid >> 32);
 #endif
 }
 
@@ -422,7 +440,7 @@ static_assert(mul_hi64(0xDEADBEEFDEADBEEFull, 0xCAFEBABECAFEBABEull) == 0xB092AB
               "mul_hi64(): Failed");
 
 // PrefetchAccess for explicit call-site control
-enum class PrefetchAccess : std::uint8_t {
+enum class PrefetchAccess : u8 {
     READ,
     WRITE
 };
@@ -430,7 +448,7 @@ enum class PrefetchAccess : std::uint8_t {
 // PrefetchLoc controls locality / cache level, not whether a prefetch is issued.
 // In particular, PrefetchLoc::NONE maps to a non-temporal / lowest-locality prefetch
 // (Intel: _MM_HINT_NTA, GCC/Clang: locality = 0) and therefore still performs a prefetch.
-enum class PrefetchLoc : std::uint8_t {
+enum class PrefetchLoc : u8 {
     NONE,      // Non-temporal / no cache locality (still issues a prefetch)
     LOW,       // Low locality (e.g. T2 / L2)
     MODERATE,  // Moderate locality (e.g. T1 / L1)
@@ -484,7 +502,7 @@ inline void prefetch(const void*) noexcept {}
 #endif
 
 using TimePoint = std::chrono::milliseconds::rep;  // A value in milliseconds
-static_assert(sizeof(TimePoint) == sizeof(std::int64_t), "TimePoint size must be 8 bytes");
+static_assert(sizeof(TimePoint) == sizeof(i64), "TimePoint size must be 8 bytes");
 
 inline TimePoint now() noexcept {
     return std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -496,19 +514,19 @@ std::string format_time(const std::chrono::system_clock::time_point& timePoint) 
 
 struct IndexRange final {
    public:
-    std::size_t beg;
-    std::size_t end;
+    usize beg;
+    usize end;
 };
 
-constexpr IndexRange split_range(std::size_t id, std::size_t parts, std::size_t size) noexcept {
+constexpr IndexRange split_range(usize id, usize parts, usize size) noexcept {
     assert(parts != 0 && id < parts);
 
-    std::size_t base  = size / parts;
-    std::size_t extra = size % parts;  // remainder to distribute
+    usize base  = size / parts;
+    usize extra = size % parts;  // remainder to distribute
 
     // Distribute remainder among the first 'extra' threads
-    std::size_t beg = id * base + std::min(id, extra);
-    std::size_t end = beg + base + std::size_t(id < extra);
+    usize beg = id * base + std::min(id, extra);
+    usize end = beg + base + usize(id < extra);
 
     assert(beg <= end && end <= size);
     return {beg, end};
@@ -620,8 +638,7 @@ struct LazyValue final {
 //  - Mutexes are stored as object in the map.
 class OstreamMutexRegistry final {
    public:
-    static void ensure_initialized(std::size_t reserveCount  = 16,
-                                   float       maxLoadFactor = 0.85f) noexcept {
+    static void ensure_initialized(usize reserveCount = 16, float maxLoadFactor = 0.85f) noexcept {
         callOnce([reserveCount, maxLoadFactor]() noexcept {
             osMutexes.max_load_factor(max_load_factor(maxLoadFactor));
             osMutexes.reserve(reserve_count(reserveCount));
@@ -758,59 +775,59 @@ class [[nodiscard]] SyncOstream final {
 template<typename T>
 class TableView final {
    public:
-    constexpr TableView(T* data, std::size_t size) noexcept :
+    constexpr TableView(T* data, usize size) noexcept :
         _data(data),
         _size(size) {}
 
     constexpr T*       data() noexcept { return _data; }
     constexpr const T* data() const noexcept { return _data; }
 
-    [[nodiscard]] constexpr std::size_t size() const noexcept { return _size; }
+    [[nodiscard]] constexpr usize size() const noexcept { return _size; }
 
     constexpr T* begin() noexcept { return data(); }
     constexpr T* end() noexcept { return begin() + size(); }
     constexpr T* begin() const noexcept { return data(); }
     constexpr T* end() const noexcept { return begin() + size(); }
 
-    constexpr T& operator[](std::size_t idx) noexcept {
+    constexpr T& operator[](usize idx) noexcept {
         assert(idx < size());
         return data()[idx];
     }
-    constexpr T& operator[](std::size_t idx) const noexcept {
+    constexpr T& operator[](usize idx) const noexcept {
         assert(idx < size());
         return data()[idx];
     }
 
    private:
-    T*          _data = nullptr;
-    std::size_t _size = 0;
+    T*    _data = nullptr;
+    usize _size = 0;
 };
 
-template<typename T, std::size_t Size, std::size_t... Sizes>
+template<typename T, usize Size, usize... Sizes>
 class MultiArray;
 
 namespace internal {
 
-template<typename T, std::size_t Size, std::size_t... Sizes>
+template<typename T, usize Size, usize... Sizes>
 struct StdArrayDef final {
     static_assert(Size >= 0, "dimension must be >= 0");
     using type = std::array<typename StdArrayDef<T, Sizes...>::type, Size>;
 };
 
-template<typename T, std::size_t Size>
+template<typename T, usize Size>
 struct StdArrayDef<T, Size> final {
     static_assert(Size >= 0, "dimension must be >= 0");
     using type = std::array<T, Size>;
 };
 
 // Recursive template to define multi-dimensional array
-template<typename T, std::size_t Size, std::size_t... Sizes>
+template<typename T, usize Size, usize... Sizes>
 struct MultiArrayDef final {
     static_assert(Size >= 0, "dimension must be >= 0");
     using Type = MultiArray<T, Sizes...>;
 };
 // Base case: single-dimensional array
-template<typename T, std::size_t Size>
+template<typename T, usize Size>
 struct MultiArrayDef<T, Size> final {
     static_assert(Size >= 0, "dimension must be >= 0");
     using Type = T;
@@ -818,13 +835,13 @@ struct MultiArrayDef<T, Size> final {
 
 }  // namespace internal
 
-template<typename T, std::size_t Size, std::size_t... Sizes>
+template<typename T, usize Size, usize... Sizes>
 using StdArray = typename internal::StdArrayDef<T, Size, Sizes...>::type;
 
 // MultiArray is a generic N-dimensional array.
 // The template parameter T is the base type of the MultiArray
 // The template parameters (Size and Sizes) is the dimensions of the MultiArray.
-template<typename T, std::size_t Size, std::size_t... Sizes>
+template<typename T, usize Size, usize... Sizes>
 class MultiArray {
     using ElementType = typename internal::MultiArrayDef<T, Size, Sizes...>::Type;
     using ArrayType   = StdArray<ElementType, Size>;
@@ -892,13 +909,13 @@ class MultiArray {
     }
 
     template<typename U>
-    void fill_n(std::size_t beg, std::size_t count, const U& v) noexcept {
+    void fill_n(usize beg, usize count, const U& v) noexcept {
         static_assert(is_strictly_assignable_v<T, U>, "Cannot assign fill value to element type");
 
-        std::size_t end = std::min(beg + count, size());
+        usize end = std::min(beg + count, size());
         assert(beg <= end && end <= size());
 
-        for (std::size_t idx = beg; idx < end; ++idx)
+        for (usize idx = beg; idx < end; ++idx)
         {
             if constexpr (sizeof...(Sizes) == 0)
                 _data[idx] = v;
@@ -937,7 +954,7 @@ class MultiArray {
     }
 
     constexpr MultiArray& operator=(const StdArray<T, Size, Sizes...>& stdArr) noexcept {
-        for (std::size_t i = 0; i < Size; ++i)
+        for (usize i = 0; i < Size; ++i)
             _data[i] = stdArr[i];
         return *this;
     }
@@ -949,41 +966,41 @@ class MultiArray {
 template<typename T>
 class DynamicArray final {
    public:
-    explicit DynamicArray(std::size_t size) noexcept :
+    explicit DynamicArray(usize size) noexcept :
         _size(size) {
         assert(size != 0);
 
         _data = make_unique_aligned_large_page<T[]>(size);
     }
 
-    [[nodiscard]] std::size_t size() const noexcept { return _size; }
+    [[nodiscard]] usize size() const noexcept { return _size; }
 
     T*       data() noexcept { return _data.get(); }
     const T* data() const noexcept { return _data.get(); }
 
-    T& operator[](std::size_t idx) noexcept {
+    T& operator[](usize idx) noexcept {
         assert(idx < size());
         return data()[idx];
     }
-    const T& operator[](std::size_t idx) const noexcept {
+    const T& operator[](usize idx) const noexcept {
         assert(idx < size());
         return data()[idx];
     }
 
     template<typename U>
-    void fill(std::size_t beg, std::size_t end, const U& v) noexcept {
+    void fill(usize beg, usize end, const U& v) noexcept {
         assert(beg <= end && end <= size());
 
-        for (std::size_t idx = beg; idx < end; ++idx)
+        for (usize idx = beg; idx < end; ++idx)
             data()[idx].fill(v);
     }
 
    private:
     LargePagePtr<T[]> _data;
-    std::size_t       _size;
+    usize             _size;
 };
 
-template<typename T, std::size_t Capacity, typename SizeType = std::size_t>
+template<typename T, usize Capacity, typename SizeType = usize>
 class FixedVector final {
     static_assert(Capacity > 0, "Capacity must be > 0");
 
@@ -1100,11 +1117,11 @@ struct FixedText final {
         return *this;
     }
 
-    [[nodiscard]] constexpr std::size_t capacity() const noexcept { return _data.size(); }
+    [[nodiscard]] constexpr usize capacity() const noexcept { return _data.size(); }
 
     char*                     data() noexcept { return _data.data(); }
     [[nodiscard]] const char* c_str() const noexcept { return _data.data(); }
-    [[nodiscard]] std::size_t size() const noexcept { return _size; }
+    [[nodiscard]] usize       size() const noexcept { return _size; }
 
     [[nodiscard]] bool empty() const noexcept { return size() == 0; }
 
@@ -1117,12 +1134,12 @@ struct FixedText final {
 
    private:
     StdArray<char, 31> _data{};
-    std::uint8_t       _size = 0;
+    u8                 _size = 0;
 };
 
 static_assert(sizeof(FixedText) == 32, "FixedText size must be 32 bytes");
 
-template<std::size_t Capacity>
+template<usize Capacity>
 class FixedString final {
     static_assert(Capacity > 0, "Capacity must be > 0");
 
@@ -1131,11 +1148,11 @@ class FixedString final {
 
     FixedString(std::string_view sv) { assign(sv); }
 
-    [[nodiscard]] static constexpr std::size_t capacity() noexcept { return Capacity; }
+    [[nodiscard]] static constexpr usize capacity() noexcept { return Capacity; }
 
-    [[nodiscard]] std::size_t size() const noexcept { return _size; }
-    [[nodiscard]] bool        empty() const noexcept { return size() == 0; }
-    [[nodiscard]] bool        full() const noexcept { return size() == capacity(); }
+    [[nodiscard]] usize size() const noexcept { return _size; }
+    [[nodiscard]] bool  empty() const noexcept { return size() == 0; }
+    [[nodiscard]] bool  full() const noexcept { return size() == capacity(); }
 
     [[nodiscard]] constexpr char*       data() noexcept { return _data.data(); }
     [[nodiscard]] constexpr const char* data() const noexcept { return _data.data(); }
@@ -1149,12 +1166,12 @@ class FixedString final {
     [[nodiscard]] constexpr const char* cbegin() const noexcept { return data(); }
     [[nodiscard]] constexpr const char* cend() const noexcept { return cbegin() + size(); }
 
-    constexpr char& operator[](std::size_t idx) noexcept {
+    constexpr char& operator[](usize idx) noexcept {
         assert(idx < size());
 
         return data()[idx];
     }
-    constexpr const char& operator[](std::size_t idx) const noexcept {
+    constexpr const char& operator[](usize idx) const noexcept {
         assert(idx < size());
 
         return data()[idx];
@@ -1224,15 +1241,14 @@ class FixedString final {
     }
 
     StdArray<char, Capacity + 1> _data;  // +1 for null terminator
-    std::size_t                  _size;
+    usize                        _size;
 };
 
 // ConcurrentCache: groups (mutex + storage + pre-reserve)
 template<typename Key, typename Value>
 class ConcurrentCache final {
    public:
-    explicit ConcurrentCache(std::size_t reserveCount  = 1024,
-                             float       maxLoadFactor = 0.75f) noexcept {
+    explicit ConcurrentCache(usize reserveCount = 1024, float maxLoadFactor = 0.75f) noexcept {
         storage.max_load_factor(max_load_factor(maxLoadFactor));
         storage.reserve(reserve_count(reserveCount));
     }
@@ -1270,7 +1286,7 @@ class ConcurrentCache final {
     }
 
    private:
-    static constexpr std::size_t THRESHOLD_SIZE = 128;
+    static constexpr usize THRESHOLD_SIZE = 128;
 
     // Define StorageValue type alias
     using StorageValue =
@@ -1341,23 +1357,22 @@ struct FlagsGuard final {
 
 // Hash function based on public domain MurmurHash64A by Austin Appleby.
 // Fast, non-cryptographic 64-bit hash suitable for general-purpose hashing.
-inline std::uint64_t
-hash_bytes(const char* RESTRICT data, std::size_t size, std::uint64_t seed = 0) noexcept {
-    constexpr std::uint64_t MurmurM = 0xC6A4A7935BD1E995ull;
-    constexpr std::uint8_t  MurmurR = 47;
+inline u64 hash_bytes(const char* RESTRICT data, usize size, u64 seed = 0) noexcept {
+    constexpr u64 MurmurM = 0xC6A4A7935BD1E995ull;
+    constexpr u8  MurmurR = 47;
 
     // Initialize hash with seed and length (MurmurHash64A convention)
-    std::uint64_t h = seed ^ (size * MurmurM);
+    u64 h = seed ^ (size * MurmurM);
 
     // Mix 64-bit block (MurmurHash64A core mixing step)
-    constexpr auto mix = [](std::uint64_t k) noexcept {
+    constexpr auto mix = [](u64 k) noexcept {
         k *= MurmurM;
         k ^= k >> MurmurR;
         k *= MurmurM;
         return k;
     };
 
-    const auto*                beg = reinterpret_cast<const std::uint8_t*>(data);
+    const auto*                beg = reinterpret_cast<const u8*>(data);
     const auto* const RESTRICT end = beg + size;
     const auto* RESTRICT       p   = beg;
 
@@ -1366,7 +1381,7 @@ hash_bytes(const char* RESTRICT data, std::size_t size, std::uint64_t seed = 0) 
     const auto* const RESTRICT block32End = beg + (size & ~(BLOCK_32 - 1));
     while (p < block32End)
     {
-        std::uint64_t k0, k1, k2, k3;
+        u64 k0, k1, k2, k3;
         // Unaligned loads are safe via memcpy and typically optimized by the compiler
         std::memcpy(&k0, p + 0 * BLOCK_8, BLOCK_8);
         std::memcpy(&k1, p + 1 * BLOCK_8, BLOCK_8);
@@ -1394,7 +1409,7 @@ hash_bytes(const char* RESTRICT data, std::size_t size, std::uint64_t seed = 0) 
     const auto* const RESTRICT block16End = p + ((end - p) & ~(BLOCK_16 - 1));
     while (p < block16End)
     {
-        std::uint64_t k0, k1;
+        u64 k0, k1;
         // Unaligned loads are safe via memcpy and typically optimized by the compiler
         std::memcpy(&k0, p + 0 * BLOCK_8, BLOCK_8);
         std::memcpy(&k1, p + 1 * BLOCK_8, BLOCK_8);
@@ -1414,7 +1429,7 @@ hash_bytes(const char* RESTRICT data, std::size_t size, std::uint64_t seed = 0) 
     const auto* const RESTRICT block8End = p + ((end - p) & ~(BLOCK_8 - 1));
     while (p < block8End)
     {
-        std::uint64_t k;
+        u64 k;
         // Safe unaligned load
         std::memcpy(&k, p, BLOCK_8);
 
@@ -1428,13 +1443,13 @@ hash_bytes(const char* RESTRICT data, std::size_t size, std::uint64_t seed = 0) 
     // Handle remaining tail bytes (< 8) at the end
     if (p < end)
     {
-        std::uint64_t k = 0;
+        u64 k = 0;
 
-        std::uint8_t shift = 0;
+        u8 shift = 0;
         // Read remaining bytes in little-endian order
         while (p < end)
         {
-            k |= std::uint64_t(*p) << shift;
+            k |= u64(*p) << shift;
 
             shift += BYTE_BITS;
             ++p;
@@ -1452,12 +1467,10 @@ hash_bytes(const char* RESTRICT data, std::size_t size, std::uint64_t seed = 0) 
     return h;
 }
 
-inline std::uint64_t hash_string(std::string_view sv) noexcept {
-    return hash_bytes(sv.data(), sv.size());
-}
+inline u64 hash_string(std::string_view sv) noexcept { return hash_bytes(sv.data(), sv.size()); }
 
 template<typename T>
-std::uint64_t hash_raw_data(const T& value) noexcept {
+u64 hash_raw_data(const T& value) noexcept {
     // Must have no padding bytes because reinterpreting as char*
     static_assert(std::has_unique_object_representations<T>());
 
@@ -1465,8 +1478,8 @@ std::uint64_t hash_raw_data(const T& value) noexcept {
 }
 
 template<typename T>
-void combine_hash(std::size_t& seed, const T& v) noexcept {
-    std::size_t x;
+void combine_hash(usize& seed, const T& v) noexcept {
+    usize x;
     // For primitive types we avoid using the default hasher, which may be
     // nondeterministic across program invocations
     if constexpr (std::is_integral<T>())
@@ -1491,7 +1504,7 @@ class StringViewStreamBuf final: public std::streambuf {
 // Custom streambuf that wraps memory stream
 class MemoryStreamBuf final: public std::streambuf {
    public:
-    MemoryStreamBuf(char* p, std::size_t size) noexcept {
+    MemoryStreamBuf(char* p, usize size) noexcept {
         setg(p, p, p + size);  // Only GET area (reading enabled)
         // Do NOT call setp(p, p + size) - no PUT area (writing disabled)
     }
@@ -1704,13 +1717,13 @@ class Logger final {
 namespace Debug {
 
 void clear() noexcept;
-void hit_on(bool cond, std::size_t slot = 0) noexcept;
-void min_of(std::int64_t value, std::size_t slot = 0) noexcept;
-void max_of(std::int64_t value, std::size_t slot = 0) noexcept;
-void extreme_of(std::int64_t value, std::size_t slot = 0) noexcept;
-void mean_of(std::int64_t value, std::size_t slot = 0) noexcept;
-void stdev_of(std::int64_t value, std::size_t slot = 0) noexcept;
-void correl_of(std::int64_t value1, std::int64_t value2, std::size_t slot = 0) noexcept;
+void hit_on(bool cond, usize slot = 0) noexcept;
+void min_of(i64 value, usize slot = 0) noexcept;
+void max_of(i64 value, usize slot = 0) noexcept;
+void extreme_of(i64 value, usize slot = 0) noexcept;
+void mean_of(i64 value, usize slot = 0) noexcept;
+void stdev_of(i64 value, usize slot = 0) noexcept;
+void correl_of(i64 value1, i64 value2, usize slot = 0) noexcept;
 
 void print() noexcept;
 }  // namespace Debug
@@ -1768,7 +1781,7 @@ inline std::string remove_whitespace(std::string str) noexcept {
 
 [[nodiscard]] constexpr std::string_view ltrim(std::string_view sv) noexcept {
     // Find the first non-whitespace character
-    std::size_t beg = sv.find_first_not_of(WHITE_SPACE);
+    usize beg = sv.find_first_not_of(WHITE_SPACE);
 
     if (beg == std::string_view::npos)
         return {};
@@ -1778,7 +1791,7 @@ inline std::string remove_whitespace(std::string str) noexcept {
 
 [[nodiscard]] constexpr std::string_view rtrim(std::string_view sv) noexcept {
     // Find the last non-whitespace character
-    std::size_t end = sv.find_last_not_of(WHITE_SPACE);
+    usize end = sv.find_last_not_of(WHITE_SPACE);
 
     if (end == std::string_view::npos)
         return {};
@@ -1787,12 +1800,12 @@ inline std::string remove_whitespace(std::string str) noexcept {
 }
 
 [[nodiscard]] constexpr std::string_view trim(std::string_view sv) noexcept {
-    std::size_t beg = sv.find_first_not_of(WHITE_SPACE);
+    usize beg = sv.find_first_not_of(WHITE_SPACE);
 
     if (beg == std::string_view::npos)
         return {};
 
-    std::size_t end = sv.find_last_not_of(WHITE_SPACE);
+    usize end = sv.find_last_not_of(WHITE_SPACE);
 
     return sv.substr(beg, end - beg + 1);
 }
@@ -1811,7 +1824,7 @@ inline std::string remove_whitespace(std::string str) noexcept {
     int  intValue = 0;
     bool neg      = false;
 
-    std::size_t i = 0;
+    usize i = 0;
 
     while (i < sv.size() && sv[i] == '-')
     {
@@ -1856,11 +1869,11 @@ split(std::string_view sv, std::string_view delimiter, bool trimPart = false) no
 
     std::string_view part;
 
-    std::size_t beg = 0;
+    usize beg = 0;
 
     while (true)
     {
-        std::size_t end = sv.find(delimiter, beg);
+        usize end = sv.find(delimiter, beg);
 
         if (end == std::string_view::npos)
             break;
@@ -1888,45 +1901,45 @@ split(std::string_view sv, std::string_view delimiter, bool trimPart = false) no
     return parts;
 }
 
-inline std::string hash_to_string(std::uint64_t hash) noexcept {
-    constexpr std::size_t BufferSize = HEX64_SIZE + 1;  // 16 hex + '\0'
+inline std::string hash_to_string(u64 hash) noexcept {
+    constexpr usize BufferSize = HEX64_SIZE + 1;  // 16 hex + '\0'
 
     StdArray<char, BufferSize> buffer{};
 
-    int         writtenSize = std::snprintf(buffer.data(), buffer.size(), "%016" PRIX64, hash);
-    std::size_t copiedSize  = writtenSize > 0  //
-                              ? std::min<std::size_t>(writtenSize, buffer.size() - 1)
-                              : 0;
+    int   writtenSize = std::snprintf(buffer.data(), buffer.size(), "%016" PRIX64, hash);
+    usize copiedSize  = writtenSize > 0  //
+                        ? std::min<usize>(writtenSize, buffer.size() - 1)
+                        : 0;
 
     return std::string{buffer.data(), copiedSize};
 }
 
-inline std::string u32_to_string(std::uint32_t u32) noexcept {
-    constexpr std::size_t BufferSize = 2 + HEX32_SIZE + 1;  // "0x" + 8 hex + '\0'
+inline std::string u32_to_string(u32 v) noexcept {
+    constexpr usize BufferSize = 2 + HEX32_SIZE + 1;  // "0x" + 8 hex + '\0'
 
     StdArray<char, BufferSize> buffer{};
 
-    int         writtenSize = std::snprintf(buffer.data(), buffer.size(), "0x%08" PRIX32, u32);
-    std::size_t copiedSize  = writtenSize > 0  //
-                              ? std::min<std::size_t>(writtenSize, buffer.size() - 1)
-                              : 0;
+    int   writtenSize = std::snprintf(buffer.data(), buffer.size(), "0x%08" PRIX32, v);
+    usize copiedSize  = writtenSize > 0  //
+                        ? std::min<usize>(writtenSize, buffer.size() - 1)
+                        : 0;
 
     return std::string{buffer.data(), copiedSize};
 }
-inline std::string u64_to_string(std::uint64_t u64) noexcept {
-    constexpr std::size_t BufferSize = 2 + HEX64_SIZE + 1;  // "0x" + 16 hex + '\0'
+inline std::string u64_to_string(u64 v) noexcept {
+    constexpr usize BufferSize = 2 + HEX64_SIZE + 1;  // "0x" + 16 hex + '\0'
 
     StdArray<char, BufferSize> buffer{};
 
-    int         writtenSize = std::snprintf(buffer.data(), buffer.size(), "0x%016" PRIX64, u64);
-    std::size_t copiedSize  = writtenSize > 0  //
-                              ? std::min<std::size_t>(writtenSize, buffer.size() - 1)
-                              : 0;
+    int   writtenSize = std::snprintf(buffer.data(), buffer.size(), "0x%016" PRIX64, v);
+    usize copiedSize  = writtenSize > 0  //
+                        ? std::min<usize>(writtenSize, buffer.size() - 1)
+                        : 0;
 
     return std::string{buffer.data(), copiedSize};
 }
 
-std::size_t str_to_size_t(std::string_view sv) noexcept;
+usize str_to_size_t(std::string_view sv) noexcept;
 
 // Reads the file as bytes.
 // Returns std::nullopt if the file does not exist.
@@ -1942,7 +1955,7 @@ inline std::string error_to_string(DWORD errorId) noexcept {
     // Ask Win32 to give us the string version of that message ID.
     // The parameters pass in, tell Win32 to create the buffer that holds the message
     // (because don't yet know how long the message string will be).
-    std::size_t size = FormatMessage(
+    usize size = FormatMessage(
       FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
       nullptr, errorId, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
       reinterpret_cast<LPSTR>(&buffer),  // must pass pointer to buffer pointer
@@ -1968,9 +1981,9 @@ inline std::string error_to_string(DWORD errorId) noexcept {
 
 }  // namespace DON
 
-template<std::size_t N>
+template<DON::usize N>
 struct std::hash<DON::FixedString<N>> {
-    std::size_t operator()(const DON::FixedString<N>& fixedStr) const noexcept {
+    DON::usize operator()(const DON::FixedString<N>& fixedStr) const noexcept {
         return DON::hash_bytes(fixedStr.data(), fixedStr.size());
     }
 };

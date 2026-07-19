@@ -40,7 +40,7 @@ int main(int argc, const char* argv[]) noexcept {
 
     show_logo();
 
-    BitBoard::init();
+    Attacks::init();
 
     Position::init();
 
@@ -57,7 +57,7 @@ int main(int argc, const char* argv[]) noexcept {
         std::string command;
         command.reserve(256);
 
-        for (std::size_t i = 1; i < commandLine.arguments.size(); ++i)
+        for (usize i = 1; i < commandLine.arguments.size(); ++i)
         {
             if (!command.empty())
                 command.push_back(' ');

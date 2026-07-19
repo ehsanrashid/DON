@@ -42,9 +42,9 @@ namespace {
 union Zobrist final {
    public:
     // SIZE = 2 * 6 * 64 + 2 * 2 + 8 + 1 = 768 + 4 + 8 + 1 = 781
-    static constexpr std::size_t SIZE = (COLOR_NB * PIECE_TYPE_CNT * SQUARE_NB)  //
-                                      + (COLOR_NB * CASTLING_SIDE_NB)            //
-                                      + (FILE_NB) + 1;
+    static constexpr usize SIZE = (COLOR_NB * PIECE_TYPE_CNT * SQUARE_NB)  //
+                                + (COLOR_NB * CASTLING_SIDE_NB)            //
+                                + (FILE_NB) + 1;
 
     explicit constexpr Zobrist(const StdArray<Key, SIZE>& keys) noexcept :
         Keys{keys} {}
@@ -305,7 +305,7 @@ constexpr Zobrist PGZob{{
   0xF8D626AAAF278509ull  //
 }};
 
-std::uint16_t swap_uint16(std::uint16_t n) noexcept {
+u16 swap_uint16(u16 n) noexcept {
 #if defined(__clang__)
     return __builtin_bswap16(n);
 #elif defined(__GNUC__)
@@ -319,7 +319,7 @@ std::uint16_t swap_uint16(std::uint16_t n) noexcept {
 #endif
 }
 
-std::uint32_t swap_uint32(std::uint32_t n) noexcept {
+u32 swap_uint32(u32 n) noexcept {
 #if defined(__clang__)
     return __builtin_bswap32(n);
 #elif defined(__GNUC__)
@@ -335,7 +335,7 @@ std::uint32_t swap_uint32(std::uint32_t n) noexcept {
 #endif
 }
 
-std::uint64_t swap_uint64(std::uint64_t n) noexcept {
+u64 swap_uint64(u64 n) noexcept {
 #if defined(__clang__)
     return __builtin_bswap64(n);
 #elif defined(__GNUC__)
@@ -380,14 +380,14 @@ void swap_entry(PolyGlot::Entry* e) noexcept {
 // bit  6-11: origin square (from 0 to 63)
 // bit 12-13: promotion piece type (from KNIGHT = 0 to QUEEN = 3)
 // bit 14-15: special move flag
-Move pg_to_move(std::uint16_t pgMove, MoveList<GenType::LEGAL>& legalMoves) noexcept {
+Move pg_to_move(u16 pgMove, MoveList<GenType::LEGAL>& legalMoves) noexcept {
 
     Move move(pgMove);
 
-    if (std::uint16_t pt = (move.raw() >> Move::PROMO_OFFSET) & 0x7; pt != 0)
+    if (u16 pt = (move.raw() >> Move::PROMO_OFFSET) & 0x7; pt != 0)
         move = Move{move.org_sq(), move.dst_sq(), PieceType(pt + 1)};
 
-    std::uint16_t moveRaw = move.raw() & ~Move::TYPE_MASK;
+    u16 moveRaw = move.raw() & ~Move::TYPE_MASK;
 
     for (Move m : legalMoves)
         if ((m.raw() & ~Move::TYPE_MASK) == moveRaw)
@@ -424,7 +424,7 @@ bool PolyGlot::load(const std::filesystem::path& bookFile) noexcept {
 
     std::error_code ec;
 
-    std::size_t fileSize = std::filesystem::file_size(bookFile, ec);
+    usize fileSize = std::filesystem::file_size(bookFile, ec);
 
     if (ec)
     {
@@ -438,7 +438,7 @@ bool PolyGlot::load(const std::filesystem::path& bookFile) noexcept {
         return true;
     }
 
-    constexpr std::size_t EntrySize = sizeof(PolyGlot::Entry);
+    constexpr usize EntrySize = sizeof(PolyGlot::Entry);
     static_assert(EntrySize > 0, "PolyEntry must have non-zero size");
 
     if (fileSize < EntrySize)
@@ -447,8 +447,8 @@ bool PolyGlot::load(const std::filesystem::path& bookFile) noexcept {
         return false;
     }
 
-    std::size_t entryCount = fileSize / EntrySize;
-    std::size_t remainder  = fileSize % EntrySize;
+    usize entryCount = fileSize / EntrySize;
+    usize remainder  = fileSize % EntrySize;
 
     if (remainder != 0)
     {
@@ -467,13 +467,13 @@ bool PolyGlot::load(const std::filesystem::path& bookFile) noexcept {
 
     // Choose a chunk that balances system call overhead and memory pressure.
     // 2 MiB is a safe default; 4-64 MiB may be slightly faster on fast disks.
-    constexpr std::size_t ChunkSize = (2 * _MB / EntrySize) * EntrySize;
+    constexpr usize ChunkSize = (2 * _MB / EntrySize) * EntrySize;
 
-    std::size_t dataSize = entryCount * EntrySize;
+    usize dataSize = entryCount * EntrySize;
 
     auto* data = reinterpret_cast<char*>(entries.data());
 
-    std::size_t readedSize = 0;
+    usize readedSize = 0;
 
     while (readedSize < dataSize)
     {
@@ -509,7 +509,7 @@ bool PolyGlot::load(const std::filesystem::path& bookFile) noexcept {
     ifs.close();
 
     if (IsLittleEndian)
-        for (std::size_t i = 0; i < entries.size(); ++i)
+        for (usize i = 0; i < entries.size(); ++i)
             swap_entry(&entries[i]);
 
     print_info_string(info());
@@ -521,17 +521,17 @@ std::string PolyGlot::info() const noexcept {
     return "Book: " + filename + " with " + std::to_string(entries.size()) + " entries";
 }
 
-std::size_t PolyGlot::key_index(Key key) const noexcept {
-    constexpr std::size_t Radius = 4;
+usize PolyGlot::key_index(Key key) const noexcept {
+    constexpr usize Radius = 4;
 
-    std::size_t begIndex = 0;
-    std::size_t endIndex = entries.size() - 1;
-    std::size_t window   = endIndex - begIndex + 1;
+    usize begIndex = 0;
+    usize endIndex = entries.size() - 1;
+    usize window   = endIndex - begIndex + 1;
     // Binary scan
     while (window > 2 * Radius)
     {
-        std::size_t midIndex = begIndex + window / 2;
-        Key         midKey   = entries[midIndex].key;
+        usize midIndex = begIndex + window / 2;
+        Key   midKey   = entries[midIndex].key;
 
         if (midKey == key)
         {
@@ -551,7 +551,7 @@ std::size_t PolyGlot::key_index(Key key) const noexcept {
     }
 
     // Rewind to first occurrence if multiple identical keys
-    std::size_t index = begIndex;
+    usize index = begIndex;
     while (index > 0 && entries[index - 1].key == key)
         --index;
 
@@ -564,14 +564,14 @@ std::size_t PolyGlot::key_index(Key key) const noexcept {
 }
 
 PolyGlot::Entries PolyGlot::key_candidates(Key key) const noexcept {
-    std::size_t index = key_index(key);
+    usize index = key_index(key);
 
     Entries candidates;
 
     if (index >= entries.size())
         return candidates;
 
-    for (std::size_t idx = index; idx < entries.size(); ++idx)
+    for (usize idx = index; idx < entries.size(); ++idx)
     {
         if (entries[idx].key != entries[index].key)
             break;
@@ -598,8 +598,8 @@ Move PolyGlot::probe(Position& pos, const RootMoves& rootMoves, const Options& o
 
     MoveList<GenType::LEGAL> legalMoves(pos);
 
-    std::uint32_t maxWeight = 0;
-    std::uint64_t sumWeight = 0;
+    u32 maxWeight = 0;
+    u64 sumWeight = 0;
 
     for (auto& candidate : candidates)
     {
@@ -613,7 +613,7 @@ Move PolyGlot::probe(Position& pos, const RootMoves& rootMoves, const Options& o
            << "\nWeight Max: " << maxWeight
            << "\nWeight Sum: " << sumWeight);
 
-    std::size_t cnt = 0;
+    usize cnt = 0;
 
     for (const auto& candidate : candidates)
     {
@@ -636,7 +636,7 @@ Move PolyGlot::probe(Position& pos, const RootMoves& rootMoves, const Options& o
 
     if (options["BookPickBest"])
     {
-        std::int32_t bestWeight = -0xFFFF;
+        i32 bestWeight = -0xFFFF;
 
         for (const auto& candidate : candidates)
             if (bestWeight < candidate.weight)
@@ -651,7 +651,7 @@ Move PolyGlot::probe(Position& pos, const RootMoves& rootMoves, const Options& o
     }
     else if (sumWeight != 0)
     {
-        std::uint64_t randWeight = prng.rand<std::uint64_t>() % sumWeight;
+        u64 randWeight = prng.rand<u64>() % sumWeight;
 
         sumWeight = 0;
 
@@ -703,7 +703,7 @@ Move PolyGlot::probe(Position& pos, const RootMoves& rootMoves, const Options& o
             candidateMoves.push_back(move);
     }
 
-    for (std::size_t i = 0, n = candidateMoves.size(); i < n; ++i)
+    for (usize i = 0, n = candidateMoves.size(); i < n; ++i)
         if (i == n - 1 || !is_draw(pos, candidateMoves[i]))
             return candidateMoves[i];
 

@@ -34,14 +34,14 @@ namespace DON {
 namespace {
 
 // Number of bits reserved for other fields in the data8 byte
-constexpr std::uint8_t RESERVED_BITS = 3;
+constexpr u8 RESERVED_BITS = 3;
 // Increment value for the generation field, used to bump generation
-constexpr std::uint8_t GENERATION_DELTA = 1 << RESERVED_BITS;
+constexpr u8 GENERATION_DELTA = 1 << RESERVED_BITS;
 // Mask to extract the generation field from data8 upper bits only
-constexpr std::uint8_t GENERATION_MASK = (0xFF << RESERVED_BITS) & 0xFF;
+constexpr u8 GENERATION_MASK = (0xFF << RESERVED_BITS) & 0xFF;
 // Generation cycle length, handles overflow correctly
 // Maximum generation value before wrapping around
-constexpr std::uint16_t GENERATION_CYCLE = 0xFF + GENERATION_DELTA;
+constexpr u16 GENERATION_CYCLE = 0xFF + GENERATION_DELTA;
 
 }  // namespace
 
@@ -65,15 +65,15 @@ struct TTEntry final {
     TTEntry() noexcept                          = default;
     TTEntry& operator=(const TTEntry&) noexcept = default;
 
-    constexpr std::uint16_t key() const noexcept { return key16; }
-    constexpr bool          occupied() const noexcept { return depth8 != 0; }
-    constexpr Depth         depth() const noexcept { return Depth(depth8 + DEPTH_OFFSET); }
-    constexpr Move          move() const noexcept { return move16; }
-    constexpr Value         value() const noexcept { return val16; }
-    constexpr Value         eval_value() const noexcept { return eVal16; }
-    constexpr Bound         bound() const noexcept { return Bound(meta8 & 0x3); }
-    constexpr bool          pv() const noexcept { return (meta8 & 0x4) != 0; }
-    constexpr std::uint8_t  generation() const noexcept { return meta8 & GENERATION_MASK; }
+    constexpr u16   key() const noexcept { return key16; }
+    constexpr bool  occupied() const noexcept { return depth8 != 0; }
+    constexpr Depth depth() const noexcept { return Depth(depth8 + DEPTH_OFFSET); }
+    constexpr Move  move() const noexcept { return move16; }
+    constexpr Value value() const noexcept { return val16; }
+    constexpr Value eval_value() const noexcept { return eVal16; }
+    constexpr Bound bound() const noexcept { return Bound(meta8 & 0x3); }
+    constexpr bool  pv() const noexcept { return (meta8 & 0x4) != 0; }
+    constexpr u8    generation() const noexcept { return meta8 & GENERATION_MASK; }
 
     // Convert internal bit fields to TTData
     TTData read() const noexcept {
@@ -81,7 +81,7 @@ struct TTEntry final {
     }
 
     // The returned age is a multiple of GENERATION_DELTA
-    std::uint8_t relative_age(std::uint8_t gen) const noexcept {
+    u8 relative_age(u8 gen) const noexcept {
         // Due to packed storage format for generation and its cyclic nature
         // add GENERATION_CYCLE (256 is the modulus, plus what is needed to keep
         // the unrelated lowest n bits from affecting the relative age)
@@ -89,18 +89,11 @@ struct TTEntry final {
         return (GENERATION_CYCLE + gen - meta8) & GENERATION_MASK;
     }
 
-    std::int16_t worth(std::uint8_t gen) const noexcept { return depth8 - relative_age(gen); }
+    i16 worth(u8 gen) const noexcept { return depth8 - relative_age(gen); }
 
     // Populates the TTEntry with a new node's data, possibly
     // overwriting an old position. The update is not atomic and can be racy.
-    void save(std::uint16_t k,
-              Move          m,
-              Value         v,
-              Value         ev,
-              Depth         d,
-              Bound         b,
-              bool          pv,
-              std::uint8_t  gen) noexcept {
+    void save(u16 k, Move m, Value v, Value ev, Depth d, Bound b, bool pv, u8 gen) noexcept {
         assert(d > DEPTH_OFFSET);
         assert(d <= 0xFF + DEPTH_OFFSET);
 
@@ -116,7 +109,7 @@ struct TTEntry final {
             val16  = v;
             eVal16 = ev;
             depth8 = d - DEPTH_OFFSET;
-            meta8  = gen | std::uint8_t(int(pv) << 2) | +b;
+            meta8  = gen | u8(int(pv) << 2) | +b;
         }
     }
 
@@ -127,12 +120,12 @@ struct TTEntry final {
     TTEntry(TTEntry&&) noexcept            = delete;
     TTEntry& operator=(TTEntry&&) noexcept = delete;
 
-    std::uint16_t key16;
-    Move          move16;
-    Value         val16;
-    Value         eVal16;
-    std::uint8_t  depth8;
-    std::uint8_t  meta8;
+    u16   key16;
+    Move  move16;
+    Value val16;
+    Value eVal16;
+    u8    depth8;
+    u8    meta8;
 };
 
 static_assert(sizeof(TTEntry) == 10, "TTEntry size must be 10 bytes");
@@ -160,7 +153,7 @@ struct TTCluster final {
 
 static_assert(sizeof(TTCluster) == 32, "TTCluster size must be 32 bytes");
 
-TTUpdater::TTUpdater(TTEntry* te, TTCluster* tc, std::uint16_t k, std::uint8_t gen) noexcept :
+TTUpdater::TTUpdater(TTEntry* te, TTCluster* tc, u16 k, u8 gen) noexcept :
     tte(te),
     ttc(tc),
     key(k),
@@ -181,13 +174,13 @@ void TranspositionTable::free() noexcept {
     assert(success);
 }
 
-std::uint8_t TranspositionTable::generation() const noexcept { return generation8; }
+u8 TranspositionTable::generation() const noexcept { return generation8; }
 
 void TranspositionTable::increment_generation() const noexcept { generation8 += GENERATION_DELTA; }
 
 // Sets the size of the transposition table, measured in megabytes (MB).
 // Transposition table consists of even number of clusters.
-void TranspositionTable::resize(std::size_t ttSize, const Threads& threads) noexcept {
+void TranspositionTable::resize(usize ttSize, const Threads& threads) noexcept {
     free();
 
     clusterCount = ttSize * _MB / sizeof(TTCluster);
@@ -209,9 +202,9 @@ void TranspositionTable::resize(std::size_t ttSize, const Threads& threads) noex
 void TranspositionTable::init(const Threads& threads) noexcept {
     generation8 = 0;
 
-    std::size_t threadCount = threads.size();
+    usize threadCount = threads.size();
 
-    for (std::size_t threadId = 0; threadId < threadCount; ++threadId)
+    for (usize threadId = 0; threadId < threadCount; ++threadId)
     {
         threads.run_on_thread(threadId, [this, threadId, threadCount]() {
             // Each thread will zero its part of the hash table
@@ -221,7 +214,7 @@ void TranspositionTable::init(const Threads& threads) noexcept {
         });
     }
 
-    for (std::size_t threadId = 0; threadId < threadCount; ++threadId)
+    for (usize threadId = 0; threadId < threadCount; ++threadId)
         threads.wait_on_thread(threadId);
 }
 
@@ -235,7 +228,7 @@ ProbResult TranspositionTable::probe(Key key) const noexcept {
 
     auto* ttc = cluster(key);
 
-    auto key16 = std::uint16_t(key);
+    auto key16 = u16(key);
 
     for (auto& entry : ttc->entries)
         if (entry.key() == key16)
@@ -244,7 +237,7 @@ ProbResult TranspositionTable::probe(Key key) const noexcept {
     // Find an entry to be replaced according to the replacement strategy
     auto* rte = ttc->entries.data();
 
-    for (std::size_t i = 1; i < ttc->entries.size(); ++i)
+    for (usize i = 1; i < ttc->entries.size(); ++i)
         if (rte->worth(generation8) > ttc->entries[i].worth(generation8))
             rte = &ttc->entries[i];
 
@@ -254,18 +247,18 @@ ProbResult TranspositionTable::probe(Key key) const noexcept {
 // Returns an approximation of the hash table occupation during a search.
 // The hash is x per mill full, as per UCI protocol.
 // Only counts entries which match the current generation. [maxAge: 0-31]
-std::uint16_t TranspositionTable::hashfull(std::uint8_t maxAge) const noexcept {
+u16 TranspositionTable::hashfull(u8 maxAge) const noexcept {
     assert(maxAge < 32);
 
-    constexpr std::size_t requiredCount = 1000;
+    constexpr usize requiredCount = 1000;
 
-    std::size_t actualCount = std::min(requiredCount, clusterCount);
+    usize actualCount = std::min(requiredCount, clusterCount);
 
-    std::uint8_t relMaxAge = maxAge * GENERATION_DELTA;
+    u8 relMaxAge = maxAge * GENERATION_DELTA;
 
-    std::uint32_t count = 0;
+    u32 count = 0;
 
-    for (std::size_t idx = 0; idx < actualCount; ++idx)
+    for (usize idx = 0; idx < actualCount; ++idx)
         for (const auto& entry : clusters[idx].entries)
             count += entry.occupied() && entry.relative_age(generation8) <= relMaxAge;
 
@@ -284,7 +277,7 @@ bool TranspositionTable::load(const std::filesystem::path& hashFile,
 
     std::error_code ec;
 
-    std::size_t fileSize = std::filesystem::file_size(hashFile, ec);
+    usize fileSize = std::filesystem::file_size(hashFile, ec);
 
     if (ec)
     {
@@ -306,22 +299,22 @@ bool TranspositionTable::load(const std::filesystem::path& hashFile,
         return false;
     }
 
-    std::size_t ttSize = fileSize / _MB;
+    usize ttSize = fileSize / _MB;
 
     resize(ttSize, threads);
 
-    constexpr std::size_t ClusterSize = sizeof(TTCluster);
+    constexpr usize ClusterSize = sizeof(TTCluster);
     static_assert(ClusterSize > 0, "Cluster must have non-zero size");
 
     // Choose a chunk that balances system call overhead and memory pressure.
     // 2 MiB is a safe default; 4-64 MiB may be slightly faster on fast disks.
-    constexpr std::size_t ChunkSize = (2 * _MB / ClusterSize) * ClusterSize;
+    constexpr usize ChunkSize = (2 * _MB / ClusterSize) * ClusterSize;
 
-    std::size_t DataSize = clusterCount * ClusterSize;
+    usize DataSize = clusterCount * ClusterSize;
 
     auto* data = reinterpret_cast<char*>(clusters);
 
-    std::size_t readedSize = 0;
+    usize readedSize = 0;
 
     while (readedSize < DataSize)
     {
@@ -368,18 +361,18 @@ bool TranspositionTable::save(const std::filesystem::path& hashFile) const noexc
         return false;
     }
 
-    constexpr std::size_t ClusterSize = sizeof(TTCluster);
+    constexpr usize ClusterSize = sizeof(TTCluster);
     static_assert(ClusterSize > 0, "Cluster must have non-zero size");
 
     // Choose a chunk that balances system call overhead and memory pressure.
     // 2 MiB is a safe default; 4-64 MiB may be slightly faster on fast disks.
-    constexpr std::size_t ChunkSize = (2 * _MB / ClusterSize) * ClusterSize;
+    constexpr usize ChunkSize = (2 * _MB / ClusterSize) * ClusterSize;
 
-    std::size_t DataSize = clusterCount * ClusterSize;
+    usize DataSize = clusterCount * ClusterSize;
 
     const auto* data = reinterpret_cast<const char*>(clusters);
 
-    std::size_t writtenSize = 0;
+    usize writtenSize = 0;
 
     while (writtenSize < DataSize)
     {

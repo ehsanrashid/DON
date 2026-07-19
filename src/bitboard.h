@@ -53,16 +53,6 @@
 
 namespace DON {
 
-namespace BitBoard {
-
-void init() noexcept;
-
-std::string pretty_str(Bitboard b) noexcept;
-
-std::string_view pretty(Bitboard b) noexcept;
-
-}  // namespace BitBoard
-
 inline constexpr Bitboard FULL_BB = 0xFFFFFFFFFFFFFFFFull;
 
 inline constexpr Bitboard FILE_A_BB = 0x0101010101010101ull;
@@ -108,71 +98,6 @@ constexpr Bitboard color_bb() noexcept {
     static_assert(is_ok(C), "Invalid color for color_bb()");
     return C == WHITE ? WHITE_BB : BLACK_BB;
 }
-
-// Magic holds all magic bitboards relevant data for a single square
-struct Magic final {
-   public:
-    Magic() noexcept                        = default;
-    Magic(const Magic&) noexcept            = delete;
-    Magic(Magic&&) noexcept                 = delete;
-    Magic& operator=(const Magic&) noexcept = delete;
-    Magic& operator=(Magic&&) noexcept      = delete;
-
-#if defined(USE_BMI2)
-    void attacks_bb(Bitboard occupancyBB, Bitboard referenceBB) noexcept {
-    #if defined(USE_CMP)
-        attacksBBs[index(occupancyBB)] = _pext_u64(referenceBB, reMaskBB);
-    #else
-        attacksBBs[index(occupancyBB)] = referenceBB;
-    #endif
-    }
-#endif
-
-    Bitboard attacks_bb(Bitboard occupancyBB) const noexcept {
-#if defined(USE_BMI2)
-    #if defined(USE_CMP)
-        return _pdep_u64(attacksBBs[index(occupancyBB)], reMaskBB);
-    #else
-        return attacksBBs[index(occupancyBB)];
-    #endif
-#else
-        return attacksBBs[index(occupancyBB)];
-#endif
-    }
-
-    // Compute the attack's index using the 'magic bitboards' approach
-    std::uint16_t index(Bitboard occupancyBB) const noexcept {
-#if defined(USE_BMI2)
-        return _pext_u64(occupancyBB, maskBB);
-#else
-    #if defined(IS_64BIT)
-        return ((occupancyBB & maskBB) * magicBB) >> shift;
-    #else
-        std::uint32_t loO = std::uint32_t(occupancyBB >> 00) & std::uint32_t(maskBB >> 00);
-        std::uint32_t hiO = std::uint32_t(occupancyBB >> 32) & std::uint32_t(maskBB >> 32);
-        std::uint32_t loM = std::uint32_t(magicBB >> 00);
-        std::uint32_t hiM = std::uint32_t(magicBB >> 32);
-        return ((loO * loM) ^ (hiO * hiM)) >> shift;
-    #endif
-#endif
-    }
-
-#if defined(USE_BMI2)
-    #if defined(USE_CMP)
-    Bitboard    maskBB;
-    Bitboard    reMaskBB;
-    Bitboard16* attacksBBs;
-    #else
-    Bitboard  maskBB;
-    Bitboard* attacksBBs;
-    #endif
-#else
-    Bitboard     maskBB;
-    Bitboard     magicBB;
-    Bitboard*    attacksBBs;
-    std::uint8_t shift;
-#endif
-};
 
 constexpr Bitboard square_bb(Square s) noexcept {
     assert(is_ok(s));
@@ -220,29 +145,241 @@ constexpr Bitboard operator^(Bitboard b, Rank r) noexcept { return b ^ rank_bb(r
 constexpr bool more_than_one(Bitboard b) noexcept { return (b & (b - 1)) != 0; }
 constexpr bool exactly_one(Bitboard b) noexcept { return b != 0 && !more_than_one(b); }
 
+template<typename T>
+constexpr u8 constexpr_popcount(T v) noexcept {
+    static_assert(std::is_integral_v<T>, "constexpr_popcount is undefined for non-integral types");
+    static_assert(std::is_unsigned_v<T>, "constexpr_popcount requires an unsigned integral type");
+
+    if constexpr (sizeof(T) <= 8)
+    {
+        constexpr u64 K1 = 0x5555555555555555ull;
+        constexpr u64 K2 = 0x3333333333333333ull;
+        constexpr u64 K4 = 0x0F0F0F0F0F0F0F0Full;
+        constexpr u64 Kf = 0x0101010101010101ull;
+
+        u64 b = static_cast<std::make_unsigned_t<T>>(v);
+        b     = b - ((b >> 1) & K1);
+        b     = (b & K2) + ((b >> 2) & K2);
+        b     = (b + (b >> 4)) & K4;
+        return (b * Kf) >> 56;
+    }
+    else
+    {
+        u8 count = 0;
+
+        while (v != 0)
+        {
+            if ((v & 1) != 0)
+                ++count;
+            v >>= 1;
+        }
+
+        return count;
+    }
+}
+
+constexpr u8 msb_index(Bitboard b) noexcept {
+    constexpr StdArray<u8, SQUARE_NB> MSBIndices{
+      0,  47, 1,  56, 48, 27, 2,  60,  //
+      57, 49, 41, 37, 28, 16, 3,  61,  //
+      54, 58, 35, 52, 50, 42, 21, 44,  //
+      38, 32, 29, 23, 17, 11, 4,  62,  //
+      46, 55, 26, 59, 40, 36, 15, 53,  //
+      34, 51, 20, 43, 31, 22, 10, 45,  //
+      25, 39, 14, 33, 19, 30, 9,  24,  //
+      13, 18, 8,  12, 7,  6,  5,  63   //
+    };
+
+    constexpr u64 Debruijn64 = 0x03F79D71B4CB0A89ull;
+
+    return MSBIndices[(b * Debruijn64) >> 58];
+}
+
+// Fills from the MSB down to bit 0.
+// e.g. 0001'0010 -> 0001'1111
+constexpr Bitboard fill_prefix_bb(Bitboard b) noexcept {
+    b |= b >> 1;
+    b |= b >> 2;
+    b |= b >> 4;
+    b |= b >> 8;
+    b |= b >> 16;
+    b |= b >> 32;
+    return b;
+}
+// Fills from the LSB up to bit 63.
+// e.g. 0001'0010 -> 1111'1110
+constexpr Bitboard fill_postfix_bb(Bitboard b) noexcept {
+    b |= b << 1;
+    b |= b << 2;
+    b |= b << 4;
+    b |= b << 8;
+    b |= b << 16;
+    b |= b << 32;
+    return b;
+}
+
+constexpr u8 constexpr_lsb(Bitboard b) noexcept {
+    assert(b != 0);
+
+    b ^= b - 1;
+    return msb_index(b);
+}
+
+constexpr u8 constexpr_msb(Bitboard b) noexcept {
+    assert(b != 0);
+
+    b = fill_prefix_bb(b);
+    return msb_index(b);
+}
+
+#if !defined(USE_POPCNT)
+
+alignas(CACHE_LINE_SIZE) inline const auto POP_CNTS = []() {
+    StdArray<u8, 0x10000> popCnts{};
+
+    for (usize i = 0; i < popCnts.size(); ++i)
+        popCnts[i] = constexpr_popcount(i);
+
+    return popCnts;
+}();
+
+#endif
+
+// Counts the number of non-zero bits in the bitboard
+inline u8 popcount(Bitboard b) noexcept {
+
+#if !defined(USE_POPCNT)
+    StdArray<u16, 4> b16;
+    static_assert(sizeof(b16) == sizeof(b));
+
+    std::memcpy(b16.data(), &b, sizeof(b16));
+
+    return POP_CNTS[b16[0]] + POP_CNTS[b16[1]] + POP_CNTS[b16[2]] + POP_CNTS[b16[3]];
+#elif defined(__GNUC__)  // (GCC, Clang, ICX)
+    return __builtin_popcountll(b);
+#elif defined(_MSC_VER)
+    return _mm_popcnt_u64(b);
+#else  // Compiler is neither GCC nor MSVC compatible
+    #error "Compiler not supported."
+    // Using a fallback implementation
+    return constexpr_popcount(b);
+#endif
+}
+
+// Returns the least significant bit in the non-zero bitboard
+inline Square lsq(Bitboard b) noexcept {
+    assert(b != 0);
+
+#if defined(__GNUC__)  // (GCC, Clang, ICX)
+    return Square(__builtin_ctzll(b));
+#elif defined(_MSC_VER)
+    unsigned long idx;
+    #if defined(_WIN64)  // (WIN64)
+    _BitScanForward64(&idx, b);
+
+    return Square(idx);
+    #else                // (WIN32)
+    if (auto bb = u32(b); bb != 0)
+    {
+        _BitScanForward(&idx, bb);
+        return Square(idx);
+    }
+
+    _BitScanForward(&idx, u32(b >> 32));
+    return Square(idx + 32);
+    #endif
+#else  // Compiler is neither GCC nor MSVC compatible
+    #error "Compiler not supported."
+    // Using a fallback implementation
+    return Square(constexpr_lsb(b));
+#endif
+}
+
+// Returns the most significant bit in the non-zero bitboard
+inline Square msq(Bitboard b) noexcept {
+    assert(b != 0);
+
+#if defined(__GNUC__)  // (GCC, Clang, ICX)
+    return Square(__builtin_clzll(b) ^ 63);
+#elif defined(_MSC_VER)
+    unsigned long idx;
+    #if defined(_WIN64)  // (WIN64)
+    _BitScanReverse64(&idx, b);
+
+    return Square(idx);
+    #else                // (WIN32)
+    if (auto bb = u32(b >> 32); bb != 0)
+    {
+        _BitScanReverse(&idx, bb);
+        return Square(idx + 32);
+    }
+
+    _BitScanReverse(&idx, u32(b));
+    return Square(idx);
+    #endif
+#else  // Compiler is neither GCC nor MSVC compatible
+    #error "Compiler not supported."
+    // Using a fallback implementation
+    return Square(constexpr_msb(b));
+#endif
+}
+
+// Returns and clears the least significant bit in the non-zero bitboard
+inline Square pop_lsq(Bitboard& b) noexcept {
+    assert(b != 0);
+
+    Square s = lsq(b);
+
+    b &= b - 1;
+
+    return s;
+}
+
+// Returns and clears the most significant bit in the non-zero bitboard
+inline Square pop_msq(Bitboard& b) noexcept {
+    assert(b != 0);
+
+    Square s = msq(b);
+
+    b ^= s;
+
+    return s;
+}
+
+std::string pretty_str(Bitboard b) noexcept;
+
+std::string_view pretty(Bitboard b) noexcept;
+
+// Attacks
+namespace Attacks {
+
+void init() noexcept;
+
+}  // namespace Attacks
+
 // Return the distance between s1 and s2, defined as the number of steps for a king in s1 to reach s2.
 template<typename T = Square>
-constexpr std::uint8_t distance(Square, Square) noexcept {
+constexpr u8 distance(Square, Square) noexcept {
     static_assert(sizeof(T) == 0, "Unsupported distance type");
     return 0;
 }
 
 template<>
-constexpr std::uint8_t distance<File>(Square s1, Square s2) noexcept {
+constexpr u8 distance<File>(Square s1, Square s2) noexcept {
     assert(is_ok(s1) && is_ok(s2));
 
     return constexpr_abs(int(file_of(s1)) - int(file_of(s2)));
 }
 
 template<>
-constexpr std::uint8_t distance<Rank>(Square s1, Square s2) noexcept {
+constexpr u8 distance<Rank>(Square s1, Square s2) noexcept {
     assert(is_ok(s1) && is_ok(s2));
 
     return constexpr_abs(int(rank_of(s1)) - int(rank_of(s2)));
 }
 
 alignas(CACHE_LINE_SIZE) inline constexpr auto DISTANCES = []() constexpr noexcept {
-    StdArray<std::uint8_t, SQUARE_NB, SQUARE_NB> distances{};
+    StdArray<u8, SQUARE_NB, SQUARE_NB> distances{};
 
     for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
         for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
@@ -252,7 +389,7 @@ alignas(CACHE_LINE_SIZE) inline constexpr auto DISTANCES = []() constexpr noexce
 }();
 
 template<>
-constexpr std::uint8_t distance<Square>(Square s1, Square s2) noexcept {
+constexpr u8 distance<Square>(Square s1, Square s2) noexcept {
     assert(is_ok(s1) && is_ok(s2));
 
     return DISTANCES[s1][s2];
@@ -314,7 +451,7 @@ constexpr Bitboard pawn_attacks_bb(Bitboard pawns, Color c) noexcept {
 
 // Returns the bitboard of target square from the given square for the given step.
 // If the step is off the board, returns empty bitboard.
-constexpr Bitboard destination_bb(Square s, Direction d, std::uint8_t dist = 1) noexcept {
+constexpr Bitboard destination_bb(Square s, Direction d, u8 dist = 1) noexcept {
     assert(is_ok(s));
 
     Square nextSq = s + d;
@@ -420,7 +557,7 @@ alignas(CACHE_LINE_SIZE) inline constexpr auto ATTACKS_BBs = []() constexpr noex
     return attacksBBs;
 }();
 
-constexpr Bitboard attacks_bb(Square s, std::size_t idx) noexcept {
+constexpr Bitboard attacks_bb(Square s, usize idx) noexcept {
     assert(is_ok(s));
 
     return ATTACKS_BBs[s][idx];
@@ -461,6 +598,71 @@ constexpr Bitboard attacks_bb(Square s, Piece pc) noexcept {
     UNREACHABLE();
     return 0;
 }
+
+// Magic holds all magic bitboards relevant data for a single square
+struct Magic final {
+   public:
+    Magic() noexcept                        = default;
+    Magic(const Magic&) noexcept            = delete;
+    Magic(Magic&&) noexcept                 = delete;
+    Magic& operator=(const Magic&) noexcept = delete;
+    Magic& operator=(Magic&&) noexcept      = delete;
+
+#if defined(USE_BMI2)
+    void attacks_bb(Bitboard occupancyBB, Bitboard referenceBB) noexcept {
+    #if defined(USE_CMP)
+        attacksBBs[index(occupancyBB)] = _pext_u64(referenceBB, reMaskBB);
+    #else
+        attacksBBs[index(occupancyBB)] = referenceBB;
+    #endif
+    }
+#endif
+
+    Bitboard attacks_bb(Bitboard occupancyBB) const noexcept {
+#if defined(USE_BMI2)
+    #if defined(USE_CMP)
+        return _pdep_u64(attacksBBs[index(occupancyBB)], reMaskBB);
+    #else
+        return attacksBBs[index(occupancyBB)];
+    #endif
+#else
+        return attacksBBs[index(occupancyBB)];
+#endif
+    }
+
+    // Compute the attack's index using the 'magic bitboards' approach
+    u16 index(Bitboard occupancyBB) const noexcept {
+#if defined(USE_BMI2)
+        return _pext_u64(occupancyBB, maskBB);
+#else
+    #if defined(IS_64BIT)
+        return ((occupancyBB & maskBB) * magicBB) >> shift;
+    #else
+        u32 loO = u32(occupancyBB >> 00) & u32(maskBB >> 00);
+        u32 hiO = u32(occupancyBB >> 32) & u32(maskBB >> 32);
+        u32 loM = u32(magicBB >> 00);
+        u32 hiM = u32(magicBB >> 32);
+        return ((loO * loM) ^ (hiO * hiM)) >> shift;
+    #endif
+#endif
+    }
+
+#if defined(USE_BMI2)
+    #if defined(USE_CMP)
+    Bitboard    maskBB;
+    Bitboard    reMaskBB;
+    Bitboard16* attacksBBs;
+    #else
+    Bitboard  maskBB;
+    Bitboard* attacksBBs;
+    #endif
+#else
+    Bitboard  maskBB;
+    Bitboard  magicBB;
+    Bitboard* attacksBBs;
+    u8        shift;
+#endif
+};
 
 alignas(CACHE_LINE_SIZE) inline StdArray<Magic, SQUARE_NB, 2> MAGICS;  // BISHOP or ROOK
 
@@ -581,199 +783,6 @@ constexpr Bitboard pass_ray_bb(Square s1, Square s2) noexcept {
     assert(is_ok(s1) && is_ok(s2));
 
     return PASS_RAY_BBs[s1][s2];
-}
-
-constexpr std::uint8_t constexpr_popcount(Bitboard b) noexcept {
-
-    constexpr Bitboard K1 = 0x5555555555555555ull;
-    constexpr Bitboard K2 = 0x3333333333333333ull;
-    constexpr Bitboard K4 = 0x0F0F0F0F0F0F0F0Full;
-    constexpr Bitboard Kf = 0x0101010101010101ull;
-
-    b = b - ((b >> 1) & K1);
-    b = (b & K2) + ((b >> 2) & K2);
-    b = (b + (b >> 4)) & K4;
-    return (b * Kf) >> 56;
-}
-
-constexpr std::uint8_t msb_index(Bitboard b) noexcept {
-    constexpr StdArray<std::uint8_t, SQUARE_NB> MSBIndices{
-      0,  47, 1,  56, 48, 27, 2,  60,  //
-      57, 49, 41, 37, 28, 16, 3,  61,  //
-      54, 58, 35, 52, 50, 42, 21, 44,  //
-      38, 32, 29, 23, 17, 11, 4,  62,  //
-      46, 55, 26, 59, 40, 36, 15, 53,  //
-      34, 51, 20, 43, 31, 22, 10, 45,  //
-      25, 39, 14, 33, 19, 30, 9,  24,  //
-      13, 18, 8,  12, 7,  6,  5,  63   //
-    };
-
-    constexpr Bitboard Debruijn64 = 0x03F79D71B4CB0A89ull;
-
-    return MSBIndices[(b * Debruijn64) >> 58];
-}
-
-// Fills from the MSB down to bit 0.
-// e.g. 0001'0010 -> 0001'1111
-constexpr Bitboard fill_prefix_bb(Bitboard b) noexcept {
-    b |= b >> 1;
-    b |= b >> 2;
-    b |= b >> 4;
-    b |= b >> 8;
-    b |= b >> 16;
-    b |= b >> 32;
-    return b;
-}
-// Fills from the LSB up to bit 63.
-// e.g. 0001'0010 -> 1111'1110
-constexpr Bitboard fill_postfix_bb(Bitboard b) noexcept {
-    b |= b << 1;
-    b |= b << 2;
-    b |= b << 4;
-    b |= b << 8;
-    b |= b << 16;
-    b |= b << 32;
-    return b;
-}
-
-constexpr std::uint8_t constexpr_lsb(Bitboard b) noexcept {
-    assert(b != 0);
-
-    b ^= b - 1;
-    return msb_index(b);
-}
-
-constexpr std::uint8_t constexpr_msb(Bitboard b) noexcept {
-    assert(b != 0);
-
-    b = fill_prefix_bb(b);
-    return msb_index(b);
-}
-
-#if !defined(USE_POPCNT)
-
-constexpr std::uint8_t constexpr_popcount16(std::uint16_t x) noexcept {
-    constexpr std::uint16_t K1 = 0x5555u;
-    constexpr std::uint16_t K2 = 0x3333u;
-    constexpr std::uint16_t K4 = 0x0F0Fu;
-    constexpr std::uint16_t Kf = 0x0101u;
-
-    x = x - ((x >> 1) & K1);
-    x = (x & K2) + ((x >> 2) & K2);
-    x = (x + (x >> 4)) & K4;
-    return (x * Kf) >> 8;
-}
-
-alignas(CACHE_LINE_SIZE) inline const auto POP_CNTS = []() {
-    StdArray<std::uint8_t, 0x10000> popCnts{};
-
-    for (std::size_t i = 0; i < popCnts.size(); ++i)
-        popCnts[i] = constexpr_popcount16(i);
-
-    return popCnts;
-}();
-
-#endif
-
-// Counts the number of non-zero bits in the bitboard
-inline std::uint8_t popcount(Bitboard b) noexcept {
-
-#if !defined(USE_POPCNT)
-    StdArray<std::uint16_t, 4> b16;
-    static_assert(sizeof(b16) == sizeof(b));
-
-    std::memcpy(b16.data(), &b, sizeof(b16));
-
-    return POP_CNTS[b16[0]] + POP_CNTS[b16[1]] + POP_CNTS[b16[2]] + POP_CNTS[b16[3]];
-#elif defined(__GNUC__)  // (GCC, Clang, ICX)
-    return __builtin_popcountll(b);
-#elif defined(_MSC_VER)
-    return _mm_popcnt_u64(b);
-#else  // Compiler is neither GCC nor MSVC compatible
-    #error "Compiler not supported."
-    // Using a fallback implementation
-    return constexpr_popcount(b);
-#endif
-}
-
-// Returns the least significant bit in the non-zero bitboard
-inline Square lsq(Bitboard b) noexcept {
-    assert(b != 0);
-
-#if defined(__GNUC__)  // (GCC, Clang, ICX)
-    return Square(__builtin_ctzll(b));
-#elif defined(_MSC_VER)
-    unsigned long idx;
-    #if defined(_WIN64)  // (WIN64)
-    _BitScanForward64(&idx, b);
-
-    return Square(idx);
-    #else                // (WIN32)
-    if (auto bb = std::uint32_t(b); bb != 0)
-    {
-        _BitScanForward(&idx, bb);
-        return Square(idx);
-    }
-
-    _BitScanForward(&idx, std::uint32_t(b >> 32));
-    return Square(idx + 32);
-    #endif
-#else  // Compiler is neither GCC nor MSVC compatible
-    #error "Compiler not supported."
-    // Using a fallback implementation
-    return Square(constexpr_lsb(b));
-#endif
-}
-
-// Returns the most significant bit in the non-zero bitboard
-inline Square msq(Bitboard b) noexcept {
-    assert(b != 0);
-
-#if defined(__GNUC__)  // (GCC, Clang, ICX)
-    return Square(__builtin_clzll(b) ^ 63);
-#elif defined(_MSC_VER)
-    unsigned long idx;
-    #if defined(_WIN64)  // (WIN64)
-    _BitScanReverse64(&idx, b);
-
-    return Square(idx);
-    #else                // (WIN32)
-    if (auto bb = std::uint32_t(b >> 32); bb != 0)
-    {
-        _BitScanReverse(&idx, bb);
-        return Square(idx + 32);
-    }
-
-    _BitScanReverse(&idx, std::uint32_t(b));
-    return Square(idx);
-    #endif
-#else  // Compiler is neither GCC nor MSVC compatible
-    #error "Compiler not supported."
-    // Using a fallback implementation
-    return Square(constexpr_msb(b));
-#endif
-}
-
-// Returns and clears the least significant bit in the non-zero bitboard
-inline Square pop_lsq(Bitboard& b) noexcept {
-    assert(b != 0);
-
-    Square s = lsq(b);
-
-    b &= b - 1;
-
-    return s;
-}
-
-// Returns and clears the most significant bit in the non-zero bitboard
-inline Square pop_msq(Bitboard& b) noexcept {
-    assert(b != 0);
-
-    Square s = msq(b);
-
-    b ^= s;
-
-    return s;
 }
 
 }  // namespace DON

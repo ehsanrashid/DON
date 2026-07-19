@@ -37,7 +37,7 @@ namespace DON {
 
 // Define a custom case-insensitive hash
 struct CaseInsensitiveHash final {
-    std::size_t operator()(std::string_view sv) const noexcept;
+    usize operator()(std::string_view sv) const noexcept;
 };
 // Define a custom case-insensitive equality
 struct CaseInsensitiveEqual final {
@@ -53,7 +53,7 @@ class Options;
 // Option class implements each option as specified by the UCI protocol
 class Option final {
    public:
-    enum class Type : std::uint8_t {
+    enum class Type : u8 {
         BUTTON,
         CHECK,
         STRING,
@@ -99,7 +99,7 @@ class Option final {
     StringViews comboValues;
     OnChange    onChange;
 
-    std::uint16_t  idx;
+    u16            idx;
     const Options* optionsPtr = nullptr;
 
     friend class Options;

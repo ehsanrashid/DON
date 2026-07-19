@@ -78,11 +78,11 @@ Embedded get_embedded(EmbeddedType embType) noexcept {
 }
 
 // Read network header
-bool _read_header(std::istream& is, std::uint32_t& hash, std::string& netDescription) noexcept {
-    std::uint32_t fileVersion, descSize;
-    fileVersion = read_little_endian<std::uint32_t>(is);
-    hash        = read_little_endian<std::uint32_t>(is);
-    descSize    = read_little_endian<std::uint32_t>(is);
+bool _read_header(std::istream& is, u32& hash, std::string& netDescription) noexcept {
+    u32 fileVersion, descSize;
+    fileVersion = read_little_endian<u32>(is);
+    hash        = read_little_endian<u32>(is);
+    descSize    = read_little_endian<u32>(is);
 
     if (!is || fileVersion != FILE_VERSION)
         return false;
@@ -94,12 +94,10 @@ bool _read_header(std::istream& is, std::uint32_t& hash, std::string& netDescrip
 }
 
 // Write network header
-bool _write_header(std::ostream&      os,
-                   std::uint32_t      hash,
-                   const std::string& netDescription) noexcept {
-    write_little_endian<std::uint32_t>(os, FILE_VERSION);
-    write_little_endian<std::uint32_t>(os, hash);
-    write_little_endian<std::uint32_t>(os, netDescription.size());
+bool _write_header(std::ostream& os, u32 hash, const std::string& netDescription) noexcept {
+    write_little_endian<u32>(os, FILE_VERSION);
+    write_little_endian<u32>(os, hash);
+    write_little_endian<u32>(os, netDescription.size());
     os.write(netDescription.data(), netDescription.size());
 
     return !os.fail();
@@ -108,8 +106,8 @@ bool _write_header(std::ostream&      os,
 // Read evaluation function parameters
 template<typename T>
 bool _read_parameters(std::istream& is, T& reference) noexcept {
-    std::uint32_t hash;
-    hash = read_little_endian<std::uint32_t>(is);
+    u32 hash;
+    hash = read_little_endian<u32>(is);
 
     if (!is || hash != T::hash())
         return false;
@@ -120,7 +118,7 @@ bool _read_parameters(std::istream& is, T& reference) noexcept {
 // Write evaluation function parameters
 template<typename T>
 bool _write_parameters(std::ostream& os, const T& reference) noexcept {
-    write_little_endian<std::uint32_t>(os, T::hash());
+    write_little_endian<u32>(os, T::hash());
 
     return reference.write_parameters(os);
 }
@@ -131,11 +129,11 @@ template<typename Arch, typename Transformer>
 void Network<Arch, Transformer>::load(std::string_view rootDirectory,
                                       std::string_view netFile) noexcept {
 
-    constexpr std::size_t DirectoryCount = 3 +
+    constexpr usize DirectoryCount = 3 +
 #if defined(DEFAULT_NNUE_DIRECTORY)
-                                           1
+                                     1
 #else
-                                           0
+                                     0
 #endif
       ;
 
@@ -222,7 +220,7 @@ void Network<Arch, Transformer>::verify(std::string_view netFile) const noexcept
         std::exit(EXIT_FAILURE);
     }
 
-    constexpr std::size_t TotalSize = sizeof(featureTransformer) + LayerStacks * sizeof(Arch);
+    constexpr usize TotalSize = sizeof(featureTransformer) + LayerStacks * sizeof(Arch);
 
     std::string msg{"NNUE evaluation using " + std::string{netFile} + " ("  //
                     + std::to_string(TotalSize / _MB) + "MiB, ("
@@ -234,11 +232,11 @@ void Network<Arch, Transformer>::verify(std::string_view netFile) const noexcept
 }
 
 template<typename Arch, typename Transformer>
-std::size_t Network<Arch, Transformer>::content_hash() const noexcept {
+usize Network<Arch, Transformer>::content_hash() const noexcept {
     if (!initialized)
         return 0;
 
-    std::size_t h = 0;
+    usize h = 0;
     combine_hash(h, featureTransformer);
     for (auto&& arch : network)
         combine_hash(h, arch);
@@ -248,22 +246,21 @@ std::size_t Network<Arch, Transformer>::content_hash() const noexcept {
 }
 
 template<typename Arch, typename Transformer>
-std::int32_t
-Network<Arch, Transformer>::evaluate(const Position&                         pos,
-                                     AccumulatorStack&                       accStack,
-                                     AccumulatorCaches::Cache<TFDimensions>& cache) const noexcept {
+i32 Network<Arch, Transformer>::evaluate(
+  const Position&                         pos,
+  AccumulatorStack&                       accStack,
+  AccumulatorCaches::Cache<TFDimensions>& cache) const noexcept {
 
-    constexpr std::int32_t Scale = 128;
+    constexpr i32 Scale = 128;
 
     alignas(CACHE_LINE_SIZE)
       StdArray<TransformedFeatureType, FeatureTransformer<TFDimensions>::BufferSize>
         transformedFeatures;
 
-    std::size_t bucket = pos.bucket();
+    usize bucket = pos.bucket();
 
-    std::int32_t psqt =
-      featureTransformer.transform(pos, accStack, cache, bucket, transformedFeatures);
-    std::int32_t positional = network[bucket].propagate(transformedFeatures);
+    i32 psqt = featureTransformer.transform(pos, accStack, cache, bucket, transformedFeatures);
+    i32 positional = network[bucket].propagate(transformedFeatures);
 
     return ((Scale - 3) * psqt + (Scale + 3) * positional) / (Scale * OUTPUT_SCALE);
 }
@@ -282,9 +279,8 @@ Network<Arch, Transformer>::trace(const Position&                         pos,
     netTrace.correctBucket = pos.bucket();
     for (IndexType bucket = 0; bucket < LayerStacks; ++bucket)
     {
-        std::int32_t psqt =
-          featureTransformer.transform(pos, accStack, cache, bucket, transformedFeatures);
-        std::int32_t positional = network[bucket].propagate(transformedFeatures);
+        i32 psqt = featureTransformer.transform(pos, accStack, cache, bucket, transformedFeatures);
+        i32 positional = network[bucket].propagate(transformedFeatures);
 
         netTrace.netOut[bucket] = {psqt / OUTPUT_SCALE, positional / OUTPUT_SCALE};
     }
@@ -309,7 +305,7 @@ bool Network<Arch, Transformer>::load_embedded() noexcept {
     auto embedded = get_embedded(embeddedType);
 
     MemoryStreamBuf buf(const_cast<char*>(reinterpret_cast<const char*>(embedded.data)),
-                        std::size_t(embedded.size));
+                        usize(embedded.size));
 
     std::istream is{&buf};
 
@@ -360,7 +356,7 @@ bool Network<Arch, Transformer>::save(std::ostream&    os,
 template<typename Arch, typename Transformer>
 bool Network<Arch, Transformer>::read_parameters(std::istream& is,
                                                  std::string&  netDescription) noexcept {
-    std::uint32_t hash;
+    u32 hash;
     if (!_read_header(is, hash, netDescription))
         return false;
 

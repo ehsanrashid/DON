@@ -427,11 +427,11 @@ Strings bench(std::istream& is, std::string_view currentFen) noexcept {
         }
         else
         {
-            constexpr std::size_t AverageFenLen = 64;
+            constexpr usize AverageFenLen = 64;
 
-            std::size_t fenFileSize = std::filesystem::file_size(fenFile);
+            usize fenFileSize = std::filesystem::file_size(fenFile);
 
-            std::size_t estimatedFens = fenFileSize / AverageFenLen;
+            usize estimatedFens = fenFileSize / AverageFenLen;
 
             fens.reserve(estimatedFens);
 
@@ -474,15 +474,15 @@ Strings bench(std::istream& is, std::string_view currentFen) noexcept {
 Setup benchmark(std::istream& is) noexcept {
     // TTSizeThreadDefault is chosen so that roughly half of the hash
     // is used for positions in the current sequence searched.
-    constexpr std::size_t TTSizeThreadDefault = 128;
-    constexpr std::size_t MoveTimeDefault     = 150;
+    constexpr usize TTSizeThreadDefault = 128;
+    constexpr usize MoveTimeDefault     = 150;
 
     Setup setup;
 
     // Assign default values to missing arguments
 
     // Desired time in seconds
-    std::size_t moveTimeDesired;
+    usize moveTimeDesired;
 
     if (is >> setup.threads)
         setup
@@ -515,7 +515,7 @@ Setup benchmark(std::istream& is) noexcept {
       .append(1, ' ')
       .append(std::to_string(moveTimeDesired));
 
-    auto calc_move_time = [](std::uint16_t ply) noexcept {
+    auto calc_move_time = [](u16 ply) noexcept {
         // time per move is fit roughly based on LTC games
         // seconds =    50 / (15 + ply)
         // msec    = 50000 / (15 + ply)
@@ -526,7 +526,7 @@ Setup benchmark(std::istream& is) noexcept {
 
     double moveTimeSum = 0.0;
     for (const auto& game : Games)
-        for (std::size_t i = 0; i < game.size(); ++i)
+        for (usize i = 0; i < game.size(); ++i)
             moveTimeSum += calc_move_time(i + 1);
 
     double timeScaleFactor = 1000.0 * double(moveTimeDesired) / double(moveTimeSum);
@@ -535,13 +535,13 @@ Setup benchmark(std::istream& is) noexcept {
     {
         setup.commands.emplace_back("ucinewgame");
 
-        std::uint16_t ply = 1;
+        u16 ply = 1;
 
         for (const auto& fen : game)
         {
             setup.commands.emplace_back("position fen " + fen);
 
-            std::size_t moveTime = int(calc_move_time(ply) * timeScaleFactor);
+            usize moveTime = int(calc_move_time(ply) * timeScaleFactor);
 
             setup.commands.emplace_back("go movetime " + std::to_string(moveTime));
 

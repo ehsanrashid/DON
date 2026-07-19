@@ -33,7 +33,7 @@ namespace DON::NNUE::Features {
 class HalfKA_hm final {
    public:
     // Hash value embedded in the evaluation file
-    static constexpr std::uint32_t Hash = 0x7F234CB8u;
+    static constexpr u32 Hash = 0x7F234CB8u;
 
     static constexpr IndexType PS_NB = 11 * SQUARE_NB;
 

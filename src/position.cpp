@@ -49,7 +49,7 @@ struct Cuckoo final {
 
 // Cuckoo Table: fixed-size hash table with two hash functions and cuckoo eviction,
 // contains Zobrist hashes of valid reversible moves, and the moves themselves
-template<std::size_t Size>
+template<usize Size>
 class CuckooTable final {
     static_assert((Size & (Size - 1)) == 0, "Size has to be power of 2");
 
@@ -68,23 +68,21 @@ class CuckooTable final {
     [[nodiscard]] constexpr auto size() const noexcept { return cuckoos.size(); }
     [[nodiscard]] constexpr bool empty() const noexcept { return cuckoos.empty(); }
 
-    [[nodiscard]] constexpr decltype(auto) operator[](std::size_t idx) const noexcept {
+    [[nodiscard]] constexpr decltype(auto) operator[](usize idx) const noexcept {
         return cuckoos[idx];
     }
-    [[nodiscard]] constexpr decltype(auto) operator[](std::size_t idx) noexcept {
-        return cuckoos[idx];
-    }
+    [[nodiscard]] constexpr decltype(auto) operator[](usize idx) noexcept { return cuckoos[idx]; }
 
     // Hash function for indexing the cuckoo table
-    template<std::size_t Part>
-    constexpr std::size_t H(Key key) const noexcept {
+    template<usize Part>
+    constexpr usize H(Key key) const noexcept {
         return (key >> (16 * Part)) & (size() - 1);
     }
 
     void insert(Cuckoo newCuckoo) noexcept {
         assert(!newCuckoo.empty());
 
-        std::size_t index = H<0>(newCuckoo.key);
+        usize index = H<0>(newCuckoo.key);
 
         while (true)
         {
@@ -123,8 +121,8 @@ class CuckooTable final {
         assert(count == 3668);
     }
 
-    [[nodiscard]] std::size_t find_key(Key key) const noexcept {
-        if (std::size_t index;  //
+    [[nodiscard]] usize find_key(Key key) const noexcept {
+        if (usize index;  //
             (index = H<0>(key), cuckoos[index].key == key)
             || (index = H<1>(key), cuckoos[index].key == key))
             return index;
@@ -134,7 +132,7 @@ class CuckooTable final {
 
    private:
     StdArray<Cuckoo, Size> cuckoos;
-    std::size_t            count;
+    usize                  count;
 };
 
 CuckooTable<0x2000> Cuckoos;
@@ -361,7 +359,7 @@ void Position::set(std::string_view fens, State* newSt) noexcept {
     // the game instead of KQkq and also X-FEN standard that, in case of Chess960,
     // if an inner rook is associated with the castling right, the castling tag is
     // replaced by the file letter of the involved rook, as for the Shredder-FEN.
-    [[maybe_unused]] std::size_t castlingRightsCount = 0;
+    [[maybe_unused]] usize castlingRightsCount = 0;
     while (not_space())
     {
         token = get();
@@ -556,7 +554,7 @@ std::string Position::fen(bool complete) const noexcept {
 
     for (Rank r = RANK_8;; --r)
     {
-        std::uint8_t emptyCount = 0;
+        u8 emptyCount = 0;
 
         for (File f = FILE_A; f <= FILE_H; ++f)
         {
@@ -1129,7 +1127,7 @@ DirtyBoard Position::do_move(Move m, State& newSt, bool mayCheck, const Worker* 
     {
         const State* preSt = st->preSt->preSt;
 
-        for (std::int16_t i = 4; i <= end; i += 2)
+        for (i16 i = 4; i <= end; i += 2)
         {
             preSt = preSt->preSt->preSt;
 
@@ -1841,13 +1839,13 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
 
 // Draw by Repetition: position repeats once earlier but strictly
 // after the root, or repeats twice before or at the root.
-bool Position::is_repetition(std::int16_t ply) const noexcept {
+bool Position::is_repetition(i16 ply) const noexcept {
     return repetition() != 0 && repetition() < ply;
 }
 
 // Tests whether the current position is drawn by repetition or by 50-move rule.
 // It also detects stalemates.
-bool Position::is_draw(std::int16_t ply, bool useRule50, bool useStalemate) const noexcept {
+bool Position::is_draw(i16 ply, bool useRule50, bool useStalemate) const noexcept {
     return
       // Draw by Repetition
       is_repetition(ply)
@@ -1876,7 +1874,7 @@ bool Position::has_repeated() const noexcept {
 
 // Tests if the current position has a move which draws by repetition.
 // Accurately matches the outcome of is_draw() over all legal moves.
-bool Position::is_upcoming_repetition(std::int16_t ply) const noexcept {
+bool Position::is_upcoming_repetition(i16 ply) const noexcept {
     auto end = std::min(rule50_count(), null_ply());
     // Enough reversible moves played
     if (end < 3)
@@ -1886,7 +1884,7 @@ bool Position::is_upcoming_repetition(std::int16_t ply) const noexcept {
     const State* preSt   = st->preSt;
     Key          iterKey = baseKey ^ preSt->key ^ Zobrist::turn();
 
-    for (std::int16_t i = 3; i <= end; i += 2)
+    for (i16 i = 3; i <= end; i += 2)
     {
         iterKey ^= preSt->preSt->key ^ preSt->preSt->preSt->key ^ Zobrist::turn();
 
@@ -1898,7 +1896,7 @@ bool Position::is_upcoming_repetition(std::int16_t ply) const noexcept {
 
         Key moveKey = baseKey ^ preSt->key;
         // 'moveKey' is a single move
-        std::size_t index = Cuckoos.find_key(moveKey);
+        usize index = Cuckoos.find_key(moveKey);
 
         if (index >= Cuckoos.size())
             continue;
@@ -2303,7 +2301,7 @@ void State::dump(std::ostream& os) const noexcept {
     for (Color c : {WHITE, BLACK})
     {
         os << (c == WHITE ? "W" : "B") << ":";
-        os << BitBoard::pretty(pinnersBB[c]);
+        os << pretty(pinnersBB[c]);
         os << "\n";
     }
 
@@ -2311,7 +2309,7 @@ void State::dump(std::ostream& os) const noexcept {
     for (Color c : {WHITE, BLACK})
     {
         os << (c == WHITE ? "W" : "B") << ":";
-        os << BitBoard::pretty(blockersBB[c]);
+        os << pretty(blockersBB[c]);
         os << "\n";
     }
 
@@ -2319,7 +2317,7 @@ void State::dump(std::ostream& os) const noexcept {
     for (PieceType pt : PIECE_TYPES)
     {
         os << to_char(pt) << ":";
-        os << BitBoard::pretty(checksBB[pt]);
+        os << pretty(checksBB[pt]);
         os << "\n";
     }
 
@@ -2327,7 +2325,7 @@ void State::dump(std::ostream& os) const noexcept {
     for (PieceType pt = PAWN; pt <= ALL; ++pt)
     {
         os << to_char(pt) << ":";
-        os << BitBoard::pretty(accAttacksBB[pt]) << "\n";
+        os << pretty(accAttacksBB[pt]) << "\n";
     }
 
     os << "Repetition: " << repetition;
@@ -2347,7 +2345,7 @@ void Position::dump(std::ostream& os) const noexcept {
     for (Color c : {WHITE, BLACK})
     {
         os << (c == WHITE ? "W" : "B") << ":";
-        os << BitBoard::pretty(pieces_bb(c));
+        os << pretty(pieces_bb(c));
         os << "\n";
     }
 
@@ -2355,7 +2353,7 @@ void Position::dump(std::ostream& os) const noexcept {
     for (PieceType pt : PIECE_TYPES)
     {
         os << to_char(pt) << ":";
-        os << BitBoard::pretty(pieces_bb(pt));
+        os << pretty(pieces_bb(pt));
         os << "\n";
     }
 
@@ -2366,9 +2364,9 @@ void Position::dump(std::ostream& os) const noexcept {
         {
             os << (c == WHITE ? "W|" : "B|") << (cs == CastlingSide::KING ? "O-O" : "O-O-O")
                << ":\n";
-            os << BitBoard::pretty(castlings.fullPathBB[c][+cs]);
+            os << pretty(castlings.fullPathBB[c][+cs]);
             os << "\n";
-            os << BitBoard::pretty(castlings.kingPathBB[c][+cs]);
+            os << pretty(castlings.kingPathBB[c][+cs]);
             os << "\n";
             os << (castlings.rookSq[c][+cs] != SQ_NONE ? to_square(castlings.rookSq[c][+cs]) : "-");
             os << "\n";

@@ -152,7 +152,7 @@ struct AccumulatorState final {
 
 struct AccumulatorStack final {
    public:
-    static constexpr std::size_t SIZE = PLY_MAX + 1;
+    static constexpr usize SIZE = PLY_MAX + 1;
 
     template<typename T>
     [[nodiscard]] const StdArray<AccumulatorState<T>, SIZE>& accumulators() const noexcept;
@@ -183,23 +183,23 @@ struct AccumulatorStack final {
                   AccumulatorCaches::Cache<Dimensions>& cache) noexcept;
 
     template<typename FeatureSet, IndexType Dimensions>
-    [[nodiscard]] std::size_t last_usable_accumulator_index(Color perspective) const noexcept;
+    [[nodiscard]] usize last_usable_accumulator_index(Color perspective) const noexcept;
 
     template<typename FeatureSet, IndexType Dimensions>
     void update_forward_incr(Color                                 perspective,
                              const Position&                       pos,
                              const FeatureTransformer<Dimensions>& featureTransformer,
-                             std::size_t                           beg) noexcept;
+                             usize                                 beg) noexcept;
 
     template<typename FeatureSet, IndexType Dimensions>
     void update_backward_incr(Color                                 perspective,
                               const Position&                       pos,
                               const FeatureTransformer<Dimensions>& featureTransformer,
-                              std::size_t                           end) noexcept;
+                              usize                                 end) noexcept;
 
     StdArray<AccumulatorState<PSQFeatureSet>, SIZE>    psqAccumulators;
     StdArray<AccumulatorState<ThreatFeatureSet>, SIZE> threatAccumulators;
-    std::size_t                                        size = 1;
+    usize                                              size = 1;
 };
 
 }  // namespace NNUE

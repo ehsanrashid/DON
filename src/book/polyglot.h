@@ -52,10 +52,10 @@ class PolyGlot final {
         constexpr bool operator<=(const Entry& e) const noexcept { return !(e < *this); }
         constexpr bool operator>=(const Entry& e) const noexcept { return !(*this < e); }
 
-        Key           key;
-        std::uint16_t move;
-        std::uint16_t weight;
-        std::uint32_t learn;
+        Key key;
+        u16 move;
+        u16 weight;
+        u32 learn;
     };
 
     using Entries = std::vector<Entry>;
@@ -77,7 +77,7 @@ class PolyGlot final {
    private:
     void clear() noexcept;
 
-    [[nodiscard]] std::size_t key_index(Key key) const noexcept;
+    [[nodiscard]] usize key_index(Key key) const noexcept;
 
     [[nodiscard]] Entries key_candidates(Key key) const noexcept;
 

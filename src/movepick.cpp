@@ -29,9 +29,9 @@ namespace DON {
 namespace {
 
 // Threshold below which insertion sort is used
-constexpr std::size_t INSERTION_SORT_THRESHOLD = 52;
+constexpr usize INSERTION_SORT_THRESHOLD = 52;
 // Threshold for considering a move "good enough" to be sorted to the front
-constexpr std::int32_t GOOD_QUIET_THRESHOLD = -14000;
+constexpr i32 GOOD_QUIET_THRESHOLD = -14000;
 
 ALWAYS_INLINE constexpr bool always_true() noexcept { return true; }
 
@@ -40,9 +40,9 @@ template<typename Iterator, typename T, typename Compare>
 Iterator upper_bound_unrolled(Iterator beg, Iterator end, const T& value, Compare comp) noexcept {
     Iterator ins = end;  // default = end (not found)
 
-    std::size_t n = end - beg;
+    usize n = end - beg;
 
-    std::size_t i = n;
+    usize i = n;
 
     // Process blocks of 8 elements
     while (ins == end && i >= BLOCK_8)
@@ -145,7 +145,7 @@ void partial_insertion_sort(Iterator beg, Iterator end, int limit = -INT_LIMIT) 
 
 template<typename Iterator>
 ALWAYS_INLINE void adaptive_stable_sort(Iterator beg, Iterator end) noexcept {
-    if (std::size_t(end - beg) <= INSERTION_SORT_THRESHOLD)
+    if (usize(end - beg) <= INSERTION_SORT_THRESHOLD)
         insertion_sort(beg, end);
     else
         std::stable_sort(beg, end, ext_move_descending);
@@ -165,7 +165,7 @@ MovePicker::MovePicker(const Position&                  p,
                        const History<HType::QUIET>*     quietHist,
                        const History<HType::LOW_QUIET>* lowPlyQuietHist,
                        const History<HType::PIECE_SQ>** continuationHist,
-                       std::uint16_t                    ply,
+                       u16                              ply,
                        int                              th) noexcept :
     pos(p),
     ttMove(ttm),
@@ -187,7 +187,7 @@ MovePicker::MovePicker(const Position&                  p,
     }
     else if (threshold < 0)
     {
-        for (std::size_t i = 0; i < CONT_HISTORY_COUNT; ++i)
+        for (usize i = 0; i < CONT_HISTORY_COUNT; ++i)
             assert(continuationHistory[i] != nullptr && "continuationHistory[i] must not be null");
 
         initStage = Stage::ENC_GOOD_CAPTURE;
@@ -287,12 +287,12 @@ MovePicker::score<GenType::ENC_QUIET>(const MoveList<GenType::ENC_QUIET>& moveLi
         Piece  movedPc = pos.moved_pc(m);
         auto   movedPt = type_of(movedPc);
 
-        std::int64_t value;
+        i64 value;
 
         value = 2 * quietHistoryRef[ac][m.raw()];
         value += 2 * pawnHistoryRef[+movedPc][dstSq];
         // Accumulate continuation history entries
-        for (std::size_t i = 0; i < CONT_HISTORY_COUNT; ++i)
+        for (usize i = 0; i < CONT_HISTORY_COUNT; ++i)
             value += (*continuationHistoryPtr[i])[+movedPc][dstSq];
 
         if (ssPly < LOW_PLY_QUIET_SIZE)

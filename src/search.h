@@ -53,9 +53,9 @@ namespace NNUE {
 struct Networks;
 }
 
-inline constexpr std::size_t SEARCHED_MOVE_CAPACITY = 32;
+inline constexpr usize SEARCHED_MOVE_CAPACITY = 32;
 
-using SearchedMoves = FixedVector<Move, SEARCHED_MOVE_CAPACITY, std::uint16_t>;
+using SearchedMoves = FixedVector<Move, SEARCHED_MOVE_CAPACITY, u16>;
 
 inline Book::PolyGlot pgBook;
 
@@ -101,8 +101,8 @@ struct RootMove final {
         return curValue != -VALUE_INFINITE ? curValue : preValue;
     }
 
-    std::uint64_t nodes = 0;
-    Moves         pv;
+    u64   nodes = 0;
+    Moves pv;
 
     Value curValue = -VALUE_INFINITE;
     Value preValue = -VALUE_INFINITE;
@@ -111,11 +111,11 @@ struct RootMove final {
     Value    avgValue    = -VALUE_INFINITE;
     SqrValue avgSqrValue = sign_sqr(-VALUE_INFINITE);
 
-    std::int32_t  tbRank   = 0;
-    Value         tbValue  = -VALUE_INFINITE;
-    std::uint16_t selDepth = 0;
+    i32   tbRank   = 0;
+    Value tbValue  = -VALUE_INFINITE;
+    u16   selDepth = 0;
 
-    std::uint16_t id = UINT16_MAX;
+    u16 id = UINT16_MAX;
 
     Bound bound = Bound::NONE;
 };
@@ -328,7 +328,7 @@ struct Limit final {
         return clocks[WHITE].time != 0 || clocks[BLACK].time != 0;
     }
 
-    constexpr std::uint16_t calls_count() const noexcept {
+    constexpr u16 calls_count() const noexcept {
         return nodes != 0 ? std::min(constexpr_ceil(double(nodes) / _KB) + 1, 512) : 512;
     }
 
@@ -338,14 +338,14 @@ struct Limit final {
 
     Strings searchMoves, ignoreMoves;
 
-    std::uint64_t nodes     = 0;
-    TimePoint     moveTime  = 0;
-    Depth         depth     = DEPTH_ZERO;
-    std::uint8_t  movesToGo = 0;
-    std::uint8_t  mate      = 0;
-    bool          infinite  = false;
-    bool          ponder    = false;
-    bool          perft = false, detail = false;
+    u64       nodes     = 0;
+    TimePoint moveTime  = 0;
+    Depth     depth     = DEPTH_ZERO;
+    u8        movesToGo = 0;
+    u8        mate      = 0;
+    bool      infinite  = false;
+    bool      ponder    = false;
+    bool      perft = false, detail = false;
 };
 
 // Skill is used to implement engine strength limit.
@@ -367,13 +367,13 @@ struct Skill final {
         return Value(2.0 * (3.0 * LEVEL_MAX - level));
     }
 
-    Move pick_move(const RootMoves& rootMoves, std::size_t multiPV, bool pickBest = true) noexcept;
+    Move pick_move(const RootMoves& rootMoves, usize multiPV, bool pickBest = true) noexcept;
 
     static constexpr double LEVEL_MIN = 00.0;
     static constexpr double LEVEL_MAX = 20.0;
 
-    static constexpr std::uint16_t ELO_MIN = 1320;
-    static constexpr std::uint16_t ELO_MAX = 3190;
+    static constexpr u16 ELO_MIN = 1320;
+    static constexpr u16 ELO_MAX = 3190;
 
    private:
     double level    = LEVEL_MAX;
@@ -410,20 +410,20 @@ struct ShortInfo {
     FixedText score;
 };
 struct FullInfo final: public ShortInfo {
-    std::uint16_t    selDepth;
-    std::size_t      multiPV;
+    u16              selDepth;
+    usize            multiPV;
     FixedText        bound;
     FixedText        wdl;
     TimePoint        time;
-    std::uint64_t    nodes;
-    std::uint64_t    tbHits;
-    std::uint16_t    hashfull;
+    u64              nodes;
+    u64              tbHits;
+    u16              hashfull;
     std::string_view pv;
 };
 struct IterInfo final {
     Depth            depth;
     std::string_view currMove;
-    std::size_t      currMoveNumber;
+    usize            currMoveNumber;
 };
 struct MoveInfo final {
     std::string_view bestMove;
@@ -470,13 +470,13 @@ class MainSearchManager final: public ISearchManager {
     std::mutex              mutex;
     std::condition_variable condVar;
 
-    TimeManager   timeManager;
-    Skill         skill;
-    double        sumMoveChanges;
-    double        timeReduction;
-    std::uint16_t callsCount;
-    bool          ponder;
-    bool          ponderhitStop;
+    TimeManager timeManager;
+    Skill       skill;
+    double      sumMoveChanges;
+    double      timeReduction;
+    u16         callsCount;
+    bool        ponder;
+    bool        ponderhitStop;
 
     Value  preBestCurValue;
     Value  preBestAvgValue;
@@ -491,14 +491,14 @@ class NullSearchManager final: public ISearchManager {
 };
 
 // NT indicates the type of node in the search tree
-enum class NT : std::uint8_t {
+enum class NT : u8 {
     ALL  = 0,
     CUT  = 1,
     PV   = 2,
     ROOT = 6,
 };
 
-constexpr NT operator~(NT nt) noexcept { return NT((std::uint8_t(nt) ^ 1) & 1); }
+constexpr NT operator~(NT nt) noexcept { return NT((u8(nt) ^ 1) & 1); }
 
 // Stack keeps track of the information need to remember from nodes
 // shallower and deeper in the tree during the search.
@@ -509,15 +509,15 @@ struct Stack final {
     History<HType::PIECE_SQ>*            pieceSqHistory;
     CorrectionHistory<CHType::PIECE_SQ>* pieceSqCorrectionHistory;
 
-    int           history;
-    Value         evalValue;
-    std::int16_t  ply;
-    Move          move;
-    Move          ttMove;
-    std::uint16_t moveCount;
-    std::uint16_t cutoffCount;
-    bool          inCheck;
-    bool          ttPv;
+    int   history;
+    Value evalValue;
+    i16   ply;
+    Move  move;
+    Move  ttMove;
+    u16   moveCount;
+    u16   cutoffCount;
+    bool  inCheck;
+    bool  ttPv;
 };
 
 // Worker does the actual search.
@@ -526,10 +526,10 @@ struct Stack final {
 class Worker final {
    public:
     Worker() noexcept = delete;
-    Worker(std::size_t               threadIdx,
-           std::size_t               threadCnt,
-           std::size_t               numaIdx,
-           std::size_t               numaThreadCnt,
+    Worker(usize                     threadIdx,
+           usize                     threadCnt,
+           usize                     numaIdx,
+           usize                     numaThreadCnt,
            NumaReplicatedAccessToken accessToken,
            ISearchManagerPtr         searchManager,
            const SharedState&        sharedState) noexcept;
@@ -542,19 +542,19 @@ class Worker final {
     // It searches from the root position and outputs the "bestmove".
     void start_search() noexcept;
 
-    constexpr std::size_t thread_id() const noexcept { return threadId; }
+    constexpr usize thread_id() const noexcept { return threadId; }
 
-    constexpr std::size_t thread_count() const noexcept { return threadCount; }
+    constexpr usize thread_count() const noexcept { return threadCount; }
 
-    constexpr std::size_t numa_id() const noexcept { return numaId; }
+    constexpr usize numa_id() const noexcept { return numaId; }
 
-    constexpr std::size_t numa_thread_count() const noexcept { return numaThreadCount; }
+    constexpr usize numa_thread_count() const noexcept { return numaThreadCount; }
 
     NumaReplicatedAccessToken numa_access_token() const noexcept { return numaAccessToken; }
 
     const RootMoves& root_moves() const noexcept { return rootMoves; }
 
-    std::uint64_t nodes_() const noexcept { return nodes.load(std::memory_order_relaxed); }
+    u64 nodes_() const noexcept { return nodes.load(std::memory_order_relaxed); }
 
    private:
     bool is_main_worker() const noexcept { return thread_id() == 0; }
@@ -589,7 +589,7 @@ class Worker final {
     void update_capture_history(Piece pc, Square dstSq, PieceType captured, int bonus) noexcept;
     void update_capture_history(const Position& pos, Move m, int bonus) noexcept;
     void update_quiet_history(Color ac, Move m, int bonus) noexcept;
-    void update_low_ply_quiet_history(std::int16_t ssPly, Move m, int bonus) noexcept;
+    void update_low_ply_quiet_history(i16 ssPly, Move m, int bonus) noexcept;
 
     void update_quiet_histories(const Position& pos, PawnHistory& pawnHistory, Stack* ss, Move m, int bonus) noexcept;
     void update_histories(const Position& pos, PawnHistory& pawnHistory, Stack* ss, Depth depth, Move bestMove, bool extra, const StdArray<SearchedMoves, 2>& searchedMoves) noexcept;
@@ -603,9 +603,9 @@ class Worker final {
 
     bool ponder_move_extracted() noexcept;
 
-    void extend_tb_pv(std::size_t index, Value& value) noexcept;
+    void extend_tb_pv(usize index, Value& value) noexcept;
 
-    const std::size_t threadId, threadCount, numaId, numaThreadCount;
+    const usize threadId, threadCount, numaId, numaThreadCount;
 
     const NumaReplicatedAccessToken numaAccessToken;
 
@@ -618,8 +618,8 @@ class Worker final {
     NNUE::AccumulatorCaches                             accCaches;
     NNUE::AccumulatorStack                              accStack;
 
-    std::atomic<std::uint64_t> nodes, tbHits;
-    std::atomic<std::uint32_t> moveChanges;
+    std::atomic<u64> nodes, tbHits;
+    std::atomic<u32> moveChanges;
 
     Position                  rootPos;
     State                     rootState;
@@ -627,13 +627,13 @@ class Worker final {
     Limit                     limit;
     Tablebase::Syzygy::Config tbConfig;
 
-    Depth         rootDepth, completedDepth;
-    std::size_t   multiPV, curPV, endPV;
-    std::uint16_t selDepth;
-    std::uint16_t rootDelta;
-    std::int16_t  nmpPly;
+    Depth rootDepth, completedDepth;
+    usize multiPV, curPV, endPV;
+    u16   selDepth;
+    u16   rootDelta;
+    i16   nmpPly;
 
-    StdArray<std::int32_t, COLOR_NB> optimism;
+    StdArray<i32, COLOR_NB> optimism;
 
     // Histories
     History<HType::CAPTURE>   captureHistory;

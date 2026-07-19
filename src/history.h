@@ -68,23 +68,23 @@ class StatsEntry final {
 };
 
 
-inline constexpr std::uint16_t LOW_PLY_QUIET_SIZE = 5;
+inline constexpr u16 LOW_PLY_QUIET_SIZE = 5;
 
 inline constexpr int CORRECTION_HISTORY_LIMIT = 1024;
 
-inline constexpr std::size_t QUIET_HISTORY_SIZE = 1u << 16;  // Max upto 16-bit
+inline constexpr usize QUIET_HISTORY_SIZE = 1u << 16;  // Max upto 16-bit
 static_assert((QUIET_HISTORY_SIZE & (QUIET_HISTORY_SIZE - 1)) == 0,
               "QUIET_HISTORY_SIZE has to be power of 2");
 
-inline constexpr std::size_t PAWN_HISTORY_BASE_SIZE = 1u << 14;
+inline constexpr usize PAWN_HISTORY_BASE_SIZE = 1u << 14;
 static_assert((PAWN_HISTORY_BASE_SIZE & (PAWN_HISTORY_BASE_SIZE - 1)) == 0,
               "PAWN_HISTORY_BASE_SIZE has to be power of 2");
 
-inline constexpr std::size_t CORRECTION_HISTORY_BASE_SIZE = 1u << 16;
+inline constexpr usize CORRECTION_HISTORY_BASE_SIZE = 1u << 16;
 static_assert((CORRECTION_HISTORY_BASE_SIZE & (CORRECTION_HISTORY_BASE_SIZE - 1)) == 0,
               "CORRECTION_HISTORY_BASE_SIZE has to be power of 2");
 
-enum class HType : std::uint8_t {
+enum class HType : u8 {
     CAPTURE,       // By move's [piece][dstSq][captured piece type]
     QUIET,         // By color and move's orgSq and dstSq squares
     PAWN,          // By pawn structure and a move's [piece][dstSq]
@@ -96,8 +96,8 @@ enum class HType : std::uint8_t {
 
 namespace internal {
 
-template<int D, std::size_t... Sizes>
-using Stats = MultiArray<StatsEntry<std::int16_t, D>, Sizes...>;
+template<int D, usize... Sizes>
+using Stats = MultiArray<StatsEntry<i16, D>, Sizes...>;
 
 }  // namespace internal
 
@@ -134,7 +134,7 @@ struct HistoryDef<HType::LOW_QUIET> final {
 
 template<>
 struct HistoryDef<HType::TT_MOVE> final {
-    using Type = StatsEntry<std::int16_t, 8192>;
+    using Type = StatsEntry<i16, 8192>;
 };
 
 template<>
@@ -157,7 +157,7 @@ using History = typename internal::HistoryDef<T>::Type;
 // It is used to improve the static evaluation used by some search heuristics.
 // see https://www.chessprogramming.org/Static_Evaluation_Correction_History
 
-enum class CHType : std::uint8_t {
+enum class CHType : u8 {
     PAWN,          // By color and pawn structure
     MINOR,         // By color and minor piece (Knight, Bishop) structure
     NON_PAWN,      // By color and non-pawn piece structure
@@ -167,7 +167,7 @@ enum class CHType : std::uint8_t {
 
 namespace internal {
 
-template<std::size_t... Sizes>
+template<usize... Sizes>
 using CorrectionStats = Stats<CORRECTION_HISTORY_LIMIT, Sizes...>;
 
 template<CHType T>
@@ -208,7 +208,7 @@ using CorrectionHistory = typename internal::CorrectionHistoryDef<T>::Type;
 class Histories final {
    public:
     Histories() noexcept = delete;
-    Histories(std::size_t count) noexcept :
+    Histories(usize count) noexcept :
         historySize(count * PAWN_HISTORY_BASE_SIZE),
         correctionHistorySize(count * CORRECTION_HISTORY_BASE_SIZE),
         pawnHistory(history_size()),
@@ -220,25 +220,25 @@ class Histories final {
 #endif
     }
 
-    constexpr std::size_t history_size() const noexcept {  //
+    constexpr usize history_size() const noexcept {  //
         return historySize;
     }
-    constexpr std::size_t history_mask() const noexcept {  //
+    constexpr usize history_mask() const noexcept {  //
         return history_size() - 1;
     }
 
-    constexpr std::size_t pawn_index(Key pawnKey) const noexcept {  //
+    constexpr usize pawn_index(Key pawnKey) const noexcept {  //
         return pawnKey & history_mask();
     }
 
-    constexpr std::size_t correction_history_size() const noexcept {  //
+    constexpr usize correction_history_size() const noexcept {  //
         return correctionHistorySize;
     }
-    constexpr std::size_t correction_history_mask() const noexcept {  //
+    constexpr usize correction_history_mask() const noexcept {  //
         return correction_history_size() - 1;
     }
 
-    constexpr std::size_t correction_index(Key correctionKey) const noexcept {  //
+    constexpr usize correction_index(Key correctionKey) const noexcept {  //
         return correctionKey & correction_history_mask();
     }
 
@@ -282,8 +282,8 @@ class Histories final {
     }
 
    private:
-    const std::size_t historySize;
-    const std::size_t correctionHistorySize;
+    const usize historySize;
+    const usize correctionHistorySize;
 
     History<HType::PAWN>                pawnHistory;
     CorrectionHistory<CHType::PAWN>     pawnCorrectionHistory;
@@ -291,7 +291,7 @@ class Histories final {
     CorrectionHistory<CHType::NON_PAWN> nonPawnCorrectionHistory;
 };
 
-using HistoriesMap = std::unordered_map<std::size_t, Histories>;
+using HistoriesMap = std::unordered_map<usize, Histories>;
 
 }  // namespace DON
 

@@ -61,7 +61,7 @@ struct Item final {
     }
 
     int         score;
-    std::size_t id;  // original insertion order
+    usize id;  // original insertion order
 };
 
 bool item_descending(const Item& item1, const Item& item2) noexcept {
@@ -70,10 +70,10 @@ bool item_descending(const Item& item1, const Item& item2) noexcept {
 
 // Simple stable insertion-like sort (descending) used in movepick for small ranges.
 void insertion_stable_desc(std::vector<Item>& v) noexcept {
-    for (std::size_t i = 1; i < v.size(); ++i)
+    for (usize i = 1; i < v.size(); ++i)
     {
         Item        tmp = std::move(v[i]);
-        std::size_t j   = i;
+        usize j   = i;
         // stable: first element equal should remain earlier
         while (j > 0 && item_descending(tmp, v[j - 1]))
         {
@@ -90,9 +90,9 @@ Iterator
 upper_bound_unrolled(Iterator beg, Iterator end, const T& value, Compare comp) noexcept {
     Iterator ins = end;  // default = end (not found)
 
-    std::size_t n = end - beg;
+    usize n = end - beg;
 
-    std::size_t i = n;
+    usize i = n;
 
     // Process blocks of 8 elements
     while (ins == end && i >= BLOCK_8)
@@ -144,7 +144,7 @@ int main() {
     /*
    
     // Number of test items
-    constexpr std::size_t N = 256;
+    constexpr usize N = 256;
 
     // Deterministic RNG
     std::mt19937_64 rng(123456789ull);
@@ -153,7 +153,7 @@ int main() {
     std::vector<Item> vec;
     vec.reserve(N);
 
-    for (std::size_t i = 0; i < N; ++i)
+    for (usize i = 0; i < N; ++i)
     {
         // produce a limited range of scores to force many ties
         int score = int(rng() % 16) - 8;  // range [-8,7]
@@ -174,7 +174,7 @@ int main() {
         ok = false;
     else
     {
-        for (std::size_t i = 0; i < ref.size(); ++i)
+        for (usize i = 0; i < ref.size(); ++i)
         {
             if (ref[i].score != test[i].score || ref[i].id != test[i].id)
             {
@@ -197,31 +197,31 @@ int main() {
     */
 
     // Number of test items
-    constexpr std::size_t N = 30;
+    constexpr usize N = 30;
 
     std::vector<Item> data;
     data.reserve(N);
 
     std::cout << N << "\n";
 
-    for (std::size_t i = 0; i < N; ++i)
+    for (usize i = 0; i < N; ++i)
         data.push_back(Item{int((N - 1 - i) * 2), i});
 
     std::mt19937                       rng(123);
     std::uniform_int_distribution<int> dist(0, int(N * 2));
 
-    constexpr std::size_t Trials = 5000000;
+    constexpr usize Trials = 5000000;
 
     std::vector<int> tryData;
     tryData.reserve(Trials);
 
-    for (std::size_t i = 0; i < Trials; ++i)
+    for (usize i = 0; i < Trials; ++i)
         tryData.push_back(dist(rng));
 
     // ----------------------------
     // Correctness check
     // ----------------------------
-    for (std::size_t i = 0; i < 10000; ++i)
+    for (usize i = 0; i < 10000; ++i)
     {
         Item item{dist(rng), i};
 
@@ -245,9 +245,9 @@ int main() {
     // ----------------------------
     auto std_t0 = std::chrono::high_resolution_clock::now();
 
-    volatile std::size_t stdSink = 0;
+    volatile usize stdSink = 0;
 
-    for (std::size_t i = 0; i < Trials; ++i)
+    for (usize i = 0; i < Trials; ++i)
     {
         Item item{tryData[i], i};
 
@@ -266,9 +266,9 @@ int main() {
     // ----------------------------
     auto exp_t0 = std::chrono::high_resolution_clock::now();
 
-    volatile std::size_t expSink = 0;
+    volatile usize expSink = 0;
 
-    for (std::size_t i = 0; i < Trials; ++i)
+    for (usize i = 0; i < Trials; ++i)
     {
         Item item{tryData[i], i};
 

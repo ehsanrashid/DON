@@ -53,10 +53,10 @@ namespace DON {
 // Preconditions:
 //   - numa_thread_count() != 0
 //   - numa_id() < numa_thread_count()
-Thread::Thread(std::size_t                   threadIdx,
-               std::size_t                   threadCnt,
-               std::size_t                   numaIdx,
-               std::size_t                   numaThreadCnt,
+Thread::Thread(usize                         threadIdx,
+               usize                         threadCnt,
+               usize                         numaIdx,
+               usize                         numaThreadCnt,
                const ThreadToNumaNodeBinder& nodeBinder,
                ISearchManagerPtr             searchManager,
                const SharedState&            sharedState,
@@ -197,7 +197,7 @@ void Threads::set(const NumaConfig&                       numaConfig,
                   const MainSearchManager::UpdateContext& updateContext) noexcept {
     destroy();
 
-    std::size_t threadCount = sharedState.options["Threads"];
+    usize threadCount = sharedState.options["Threads"];
     assert(threadCount != 0);
 
     // Create new thread(s)
@@ -221,7 +221,7 @@ void Threads::set(const NumaConfig&                       numaConfig,
     // Assign threads to NUMA nodes
     std::vector<NumaIndex> thBoundNumaNodes;
     // Count threads per NUMA node
-    std::unordered_map<NumaIndex, std::size_t> numaThreadCounts;
+    std::unordered_map<NumaIndex, usize> numaThreadCounts;
     if (threadBindable)
     {
         std::lock_guard writeLock(sharedMutex);
@@ -257,11 +257,11 @@ void Threads::set(const NumaConfig&                       numaConfig,
     // Populate shared histories map (optionally NUMA-bound)
     for (const auto& _ : numaThreadCounts)
     {
-        NumaIndex   numaId = _.first;
-        std::size_t count  = _.second;
+        NumaIndex numaId = _.first;
+        usize     count  = _.second;
 
         auto create_histories = [&]() noexcept {
-            std::size_t roundedCount = round_up_to_pow2(count);
+            usize roundedCount = round_up_to_pow2(count);
 
             historiesMap.try_emplace(numaId, roundedCount);
         };
@@ -275,17 +275,17 @@ void Threads::set(const NumaConfig&                       numaConfig,
     const NumaConfig* numaConfigPtr = threadBindable ? &numaConfig : nullptr;
 
     // Track per-NUMA indices
-    std::unordered_map<NumaIndex, std::size_t> numaIds;
+    std::unordered_map<NumaIndex, usize> numaIds;
     numaIds.reserve(numaThreadCounts.size());
 
     reserve(threadCount);
 
-    for (std::size_t threadId = 0; threadId < threadCount; ++threadId)
+    for (usize threadId = 0; threadId < threadCount; ++threadId)
     {
         NumaIndex numaId = thBoundNumaNodes[threadId];
 
-        std::size_t numaIdx       = numaIds[numaId]++;
-        std::size_t numaThreadCnt = numaThreadCounts[numaId];
+        usize numaIdx       = numaIds[numaId]++;
+        usize numaThreadCnt = numaThreadCounts[numaId];
 
         auto create_thread = [this, threadId, threadCount, numaId, numaIdx, numaThreadCnt,
                               numaConfigPtr, &sharedState, &updateContext]() noexcept {
@@ -328,15 +328,15 @@ struct ThreadMetric final {
    public:
     // Factory function: build metrics for a thread {value, win/loss, votes, vote weight, PV size}
     template<typename VotingFunc>
-    static ThreadMetric from_thread(const Thread*                            th,
-                                    const StdArray<std::uint64_t, MOVE_MAX>& votes,
-                                    VotingFunc&& calc_vote_weight) noexcept {
+    static ThreadMetric from_thread(const Thread*                  th,
+                                    const StdArray<u64, MOVE_MAX>& votes,
+                                    VotingFunc&&                   calc_vote_weight) noexcept {
         const auto& rm = th->worker->root_moves()[0];
 
         Value value = rm.effective_value();
 
         assert(rm.id != UINT16_MAX && rm.id < votes.size());
-        std::uint64_t voteCount = votes[rm.id];
+        u64 voteCount = votes[rm.id];
 
         return {
           voteCount,                                       //
@@ -348,12 +348,12 @@ struct ThreadMetric final {
         };
     }
 
-    std::uint64_t voteCount;   // Number of votes for this thread's move
-    std::uint64_t voteWeight;  // Weighted voting value (depth-adjusted)
-    std::size_t   pvSize;      // Principal variation size
-    Value         value;       // Position evaluation
-    bool          win;         // Proven win (mate or TB win)
-    bool          loss;        // Proven loss (mated or TB loss)
+    u64   voteCount;   // Number of votes for this thread's move
+    u64   voteWeight;  // Weighted voting value (depth-adjusted)
+    usize pvSize;      // Principal variation size
+    Value value;       // Position evaluation
+    bool  win;         // Proven win (mate or TB win)
+    bool  loss;        // Proven loss (mated or TB loss)
 };
 
 // Predicate: returns true if candidate-thread is better than best-thread
@@ -428,7 +428,7 @@ const Thread* Threads::best_thread() const noexcept {
 
     // Find the minimum value of all threads
     Value minValue = bestThread->worker->rootMoves[0].effective_value();
-    for (std::size_t i = 1; i < snapThreads.size(); ++i)
+    for (usize i = 1; i < snapThreads.size(); ++i)
     {
         const auto& rm = snapThreads[i]->worker->rootMoves[0];
 
@@ -436,18 +436,18 @@ const Thread* Threads::best_thread() const noexcept {
     }
 
     // Vote according to value and depth, and select the best thread
-    auto calc_vote_weight = [minValue](const Thread* th) noexcept -> std::uint64_t {
+    auto calc_vote_weight = [minValue](const Thread* th) noexcept -> u64 {
         const auto& rm = th->worker->rootMoves[0];
 
         Value value   = rm.effective_value();
         bool  penalty = rm.curValue == -VALUE_INFINITE;
         assert(value >= minValue);
 
-        return std::uint64_t(14 + value - minValue)
-             * std::uint64_t(std::max(th->worker->completedDepth - int(penalty), 1));
+        return u64(14 + value - minValue)
+             * u64(std::max(th->worker->completedDepth - int(penalty), 1));
     };
 
-    StdArray<std::uint64_t, MOVE_MAX> votes{};
+    StdArray<u64, MOVE_MAX> votes{};
 
     // Aggregate votes
     for (const auto* th : snapThreads)
@@ -462,7 +462,7 @@ const Thread* Threads::best_thread() const noexcept {
     // Cache best thread properties
     auto bestMetric = ThreadMetric::from_thread(bestThread, votes, calc_vote_weight);
     // Find best-thread
-    for (std::size_t i = 1; i < snapThreads.size(); ++i)
+    for (usize i = 1; i < snapThreads.size(); ++i)
     {
         const auto* candThread = snapThreads[i];
 
@@ -537,7 +537,7 @@ void Threads::start(Position&      pos,
     }
 
     // Assign stable IDs after rootMoves is finalized
-    for (std::uint16_t i = 0; i < rootMoves.size(); ++i)
+    for (u16 i = 0; i < rootMoves.size(); ++i)
         rootMoves[i].id = i;
 
     auto& clock = limit.clocks[pos.active_color()];
@@ -600,7 +600,7 @@ void Threads::start(Position&      pos,
     main_thread()->start_search();
 }
 
-void Threads::run_on_thread(std::size_t threadId, JobFunc job) const noexcept {
+void Threads::run_on_thread(usize threadId, JobFunc job) const noexcept {
     Thread* thread = nullptr;
     {
         std::shared_lock readLock(sharedMutex);
@@ -613,7 +613,7 @@ void Threads::run_on_thread(std::size_t threadId, JobFunc job) const noexcept {
     thread->run_custom_job(std::move(job));
 }
 
-void Threads::wait_on_thread(std::size_t threadId) const noexcept {
+void Threads::wait_on_thread(usize threadId) const noexcept {
     Thread* thread = nullptr;
     {
         std::shared_lock readLock(sharedMutex);
@@ -626,8 +626,8 @@ void Threads::wait_on_thread(std::size_t threadId) const noexcept {
     thread->wait_finish();
 }
 
-std::vector<std::size_t> Threads::bound_thread_counts() const noexcept {
-    std::vector<std::size_t> threadCounts;
+std::vector<usize> Threads::bound_thread_counts() const noexcept {
+    std::vector<usize> threadCounts;
     {
         std::shared_lock readLock(sharedMutex);
 

@@ -26,7 +26,7 @@
 
 namespace DON {
 
-std::size_t CaseInsensitiveHash::operator()(std::string_view sv) const noexcept {
+usize CaseInsensitiveHash::operator()(std::string_view sv) const noexcept {
     return std::hash<std::string_view>{}(lower_case(std::string{sv}));
 }
 
@@ -184,7 +184,7 @@ void Options::set_info_callback(InfoCallback&& iCallback) noexcept {
 
 // Add option and assigns idx in the correct insertion order
 void Options::add(std::string_view name, const Option& option) noexcept {
-    static std::uint16_t insertOrder = 0;
+    static u16 insertOrder = 0;
 
     if (contains(name))
     {

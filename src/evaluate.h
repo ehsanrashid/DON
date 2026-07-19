@@ -44,7 +44,7 @@ Value evaluate(const Position&          pos,
                const NNUE::Networks&    networks,
                NNUE::AccumulatorStack&  accStack,
                NNUE::AccumulatorCaches& accCaches,
-               std::int32_t             optimism = 0) noexcept;
+               i32                      optimism = 0) noexcept;
 
 std::string trace(Position& pos, const NNUE::Networks& networks) noexcept;
 

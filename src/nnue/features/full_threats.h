@@ -34,7 +34,7 @@ namespace DON::NNUE::Features {
 class FullThreats final {
    public:
     // Hash value embedded in the evaluation file
-    static constexpr std::uint32_t Hash = 0x8F234CB9u;
+    static constexpr u32 Hash = 0x8F234CB9u;
 
     // Number of feature dimensions
     static constexpr IndexType Dimensions = 53564;
@@ -68,7 +68,7 @@ class FullThreats final {
                                        FusedData*              fusedData = nullptr,
                                        bool                    first     = false,
                                        const ThreatWeightType* pfBase    = nullptr,
-                                       std::size_t             pfStride  = 0) noexcept;
+                                       usize                   pfStride  = 0) noexcept;
 
     static bool refresh_required(Color perspective, const DirtyType& dts) noexcept;
 

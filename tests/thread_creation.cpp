@@ -52,11 +52,11 @@ int main() {
 
     std::vector<std::unique_ptr<NativeThread>> threads;
 
-    constexpr std::size_t MaxAttempt = 10000;  // upper bound
+    constexpr usize MaxAttempt = 10000;  // upper bound
 
     bool failureObserved = false;
 
-    for (std::size_t i = 0; i < MaxAttempt; ++i)
+    for (usize i = 0; i < MaxAttempt; ++i)
     {
         try
         {

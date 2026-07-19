@@ -67,7 +67,7 @@ class TTUpdater final {
    public:
     TTUpdater(TTUpdater&&) noexcept = default;
 
-    TTUpdater(TTEntry* te, TTCluster* tc, std::uint16_t k, std::uint8_t gen) noexcept;
+    TTUpdater(TTEntry* te, TTCluster* tc, u16 k, u8 gen) noexcept;
 
     void update(Move m, Value v, Value ev, Depth d, Bound b, bool pv) noexcept;
 
@@ -77,10 +77,10 @@ class TTUpdater final {
     TTUpdater& operator=(const TTUpdater&) noexcept = delete;
     TTUpdater& operator=(TTUpdater&&) noexcept      = delete;
 
-    TTEntry*            tte;
-    TTCluster* const    ttc;
-    const std::uint16_t key;
-    const std::uint8_t  generation;
+    TTEntry*         tte;
+    TTCluster* const ttc;
+    const u16        key;
+    const u8         generation;
 };
 
 struct ProbResult final {
@@ -98,11 +98,11 @@ class TranspositionTable final {
     TranspositionTable() noexcept = default;
     ~TranspositionTable() noexcept;
 
-    std::uint8_t generation() const noexcept;
+    u8 generation() const noexcept;
 
     void increment_generation() const noexcept;
 
-    void resize(std::size_t ttSize, const Threads& threads) noexcept;
+    void resize(usize ttSize, const Threads& threads) noexcept;
 
     void init(const Threads& threads) noexcept;
 
@@ -110,7 +110,7 @@ class TranspositionTable final {
 
     ProbResult probe(Key key) const noexcept;
 
-    std::uint16_t hashfull(std::uint8_t maxAge = 0) const noexcept;
+    u16 hashfull(u8 maxAge = 0) const noexcept;
 
     bool load(const std::filesystem::path& hashFile, const Threads& threads) noexcept;
     bool save(const std::filesystem::path& hashFile) const noexcept;
@@ -123,9 +123,9 @@ class TranspositionTable final {
 
     void free() noexcept;
 
-    TTCluster*           clusters = nullptr;
-    std::size_t          clusterCount;
-    mutable std::uint8_t generation8;
+    TTCluster* clusters = nullptr;
+    usize      clusterCount;
+    mutable u8 generation8;
 };
 
 }  // namespace DON

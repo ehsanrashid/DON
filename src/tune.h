@@ -152,9 +152,9 @@ class Tune final {
     }
 
     // Template specialization for arrays: recursively handle multi-dimensional arrays
-    template<typename T, std::size_t N, typename... Args>
+    template<typename T, usize N, typename... Args>
     int add(const RangeSetter& range, std::string&& names, T (&value)[N], Args&&... args) noexcept {
-        for (std::size_t i = 0; i < N; ++i)
+        for (usize i = 0; i < N; ++i)
             add(range, next(names, i == N - 1) + "[" + std::to_string(i) + "]", value[i]);
         return add(range, std::move(names), args...);
     }
