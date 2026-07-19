@@ -21,10 +21,9 @@
 #include <algorithm>
 #include <cctype>
 #include <cmath>
-#include <cstddef>
-#include <cstdint>
 #include <iostream>
 
+#include "attacks.h"
 #include "bitboard.h"
 #include "position.h"
 
@@ -71,8 +70,8 @@ struct WinRateParams final {
 WinRateParams win_rate_params(const Position& pos) noexcept {
 
     // clang-format off
-    constexpr StdArray<double, 4> A{-72.32565836,  185.93832038, -144.58862193, 416.44950446};
-    constexpr StdArray<double, 4> B{ 83.86794042, -136.06112997,   69.98820887,  47.62901433};
+    constexpr Array<double, 4> A{-72.32565836,  185.93832038, -144.58862193, 416.44950446};
+    constexpr Array<double, 4> B{ 83.86794042, -136.06112997,   69.98820887,  47.62901433};
     // clang-format on
 
     // The fitted model only uses data for material counts in [17, 78], and is anchored at count 58 (17.2414e-3).
@@ -153,7 +152,7 @@ std::string move_to_can(Move m) noexcept {
     can  //
       .assign(to_square(orgSq))
       .append(to_square(dstSq))
-      .append(std::size_t(m.type() == MT::PROMOTION),
+      .append(usize(m.type() == MT::PROMOTION),
               char(std::tolower((unsigned char) to_char(m.promotion_type()))));
 
     return can;
@@ -179,7 +178,7 @@ Move can_to_move(std::string_view can, const Position& pos) noexcept {
 
 namespace {
 
-enum class Ambiguity : std::uint8_t {
+enum class Ambiguity : u8 {
     NONE,    // No ambiguity
     RANK,    // Same file, different rank
     FILE,    // Same rank, different file
@@ -257,7 +256,7 @@ std::string move_to_san(Move m, Position& pos) noexcept {
         // Note:: Piece letter (skip pawn as not needed because starting file is explicit)
         if (movedPt != PAWN)
         {
-            san.assign(std::size_t(1), to_char(movedPt));
+            san.assign(usize(1), to_char(movedPt));
             if (movedPt != KING)
             {
                 // Add disambiguation when more than one piece can reach destiny with legal move.
@@ -277,11 +276,11 @@ std::string move_to_san(Move m, Position& pos) noexcept {
             }
         }
         if (pos.capture(m))
-            san.append(std::size_t(movedPt == PAWN), to_char(file_of(orgSq))).push_back('x');
+            san.append(usize(movedPt == PAWN), to_char(file_of(orgSq))).push_back('x');
         san  //
           .append(to_square(dstSq))
-          .append(std::size_t(m.type() == MT::PROMOTION), '=')
-          .append(std::size_t(m.type() == MT::PROMOTION),
+          .append(usize(m.type() == MT::PROMOTION), '=')
+          .append(usize(m.type() == MT::PROMOTION),
                   char(std::toupper((unsigned char) to_char(m.promotion_type()))));
     }
 

@@ -18,11 +18,11 @@
 #ifndef UCI_H_INCLUDED
 #define UCI_H_INCLUDED
 
-#include <cstdint>
 #include <iosfwd>
 #include <string_view>
 
 #include "engine.h"
+#include "misc.h"
 #include "types.h"
 
 namespace DON {
@@ -54,7 +54,7 @@ class UCI final {
     void bench(std::istream& is) noexcept;
     void benchmark(std::istream& is) noexcept;
 
-    std::uint64_t perft(Depth depth, bool detail = false) noexcept;
+    u64 perft(Depth depth, bool detail = false) noexcept;
 
     Engine engine;
 };

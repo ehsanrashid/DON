@@ -19,8 +19,6 @@
 #define NUMA_H_INCLUDED
 
 #include <algorithm>
-#include <cstddef>
-#include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <limits>
@@ -54,34 +52,34 @@
 
 namespace DON {
 
-using NumaIndex = std::size_t;
-using CpuIndex  = std::size_t;
+using NumaIndex = usize;
+using CpuIndex  = usize;
 
 using CpuIndexVec = std::vector<CpuIndex>;
 using CpuIndexSet = std::unordered_set<CpuIndex>;
 
-inline std::size_t hardware_concurrency() noexcept {
-    std::size_t hardwareConcurrency = std::thread::hardware_concurrency();
+inline usize hardware_concurrency() noexcept {
+    usize hardwareConcurrency = std::thread::hardware_concurrency();
 
     // Get all processors across all processor groups on windows, since
     // ::hardware_concurrency() only returns the number of processors in
     // the first group, because only these are available to std::thread.
 #if defined(_WIN64)
     hardwareConcurrency =
-      std::max<std::size_t>(GetActiveProcessorCount(ALL_PROCESSOR_GROUPS), hardwareConcurrency);
+      std::max<usize>(GetActiveProcessorCount(ALL_PROCESSOR_GROUPS), hardwareConcurrency);
 #endif
 
     return hardwareConcurrency;
 }
 
-inline const std::size_t SYSTEM_THREAD_MAX = std::max<std::size_t>(hardware_concurrency(), 1);
+inline const usize SYSTEM_THREAD_MAX = std::max<usize>(hardware_concurrency(), 1);
 
 #if defined(_WIN64)
 inline constexpr LPCSTR KERNEL_MODULE_NAME = TEXT("kernel32.dll");
 
 // On Windows each processor group can have up to 64 processors.
 // https://learn.microsoft.com/en-us/windows/win32/procthread/processor-groups
-inline constexpr std::size_t WIN_PROCESSOR_GROUP_SIZE = 64;
+inline constexpr usize WIN_PROCESSOR_GROUP_SIZE = 64;
 
 // https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getthreadselectedcpusetmasks
 using GetThreadSelectedCpuSetMasks_ = BOOL(WINAPI*)(
@@ -134,7 +132,7 @@ struct WindowsAffinity final {
     // affinity set by the old API already and want to override that.
     // Due to the limitations of the old API cannot detect its use reliably.
     // There will be cases where detect not use but it has actually been used and vice versa.
-    constexpr bool likely_use_cpus(std::size_t idx) const noexcept {
+    constexpr bool likely_use_cpus(usize idx) const noexcept {
         assert(idx < determinate.size() && idx < cpus.size());
 
         return !determinate[idx] || !cpus[idx].empty();
@@ -142,26 +140,26 @@ struct WindowsAffinity final {
 
     // Also provide diagnostic for when the affinity is set to nullopt whether it was due to being indeterminate.
     // If affinity is indeterminate it is best to assume it is not set at all, so consistent with the meaning of the nullopt affinity.
-    StdArray<bool, 2>        determinate{true, true};
-    StdArray<CpuIndexSet, 2> cpus;
+    Array<bool, 2>        determinate{true, true};
+    Array<CpuIndexSet, 2> cpus;
 };
 
 inline std::pair<BOOL, std::vector<USHORT>> get_process_group_affinity() noexcept {
     // GetProcessGroupAffinity requires the groupArray argument to be aligned to 4 bytes instead of just 2
-    constexpr std::size_t MinAlignment           = alignof(USHORT);
-    constexpr std::size_t GroupArrayMinAlignment = 4;
+    constexpr usize MinAlignment           = alignof(USHORT);
+    constexpr usize GroupArrayMinAlignment = 4;
     static_assert(GroupArrayMinAlignment >= MinAlignment);
 
-    constexpr std::size_t ExtraGroupCount = ceil_div(GroupArrayMinAlignment, MinAlignment);
+    constexpr usize ExtraGroupCount = ceil_div(GroupArrayMinAlignment, MinAlignment);
 
-    constexpr std::size_t MaxAttempt = 4;
+    constexpr usize MaxAttempt = 4;
 
     USHORT requiredGroupCount = 1;
 
     // The function should succeed the second time, but it may fail if the
     // group affinity has changed between GetProcessGroupAffinity calls.
     // In such case consider this a hard error, can't work with unstable affinities anyway.
-    for (std::size_t attempt = 0; attempt < MaxAttempt; ++attempt)
+    for (usize attempt = 0; attempt < MaxAttempt; ++attempt)
     {
         auto groupArray = std::make_unique<USHORT[]>(requiredGroupCount + ExtraGroupCount);
 
@@ -489,7 +487,7 @@ inline CpuIndexSet get_process_affinity() noexcept {
         return cpus;
     }
 
-    std::size_t MaskSize = CPU_ALLOC_SIZE(MaxCpuCount);
+    usize MaskSize = CPU_ALLOC_SIZE(MaxCpuCount);
 
     CPU_ZERO_S(MaskSize, cpuMask);
 
@@ -550,7 +548,7 @@ struct DomainsL3Policy {
 // Group system-reported L3 domains until they reach bundleSize
 struct BundledL3Policy {
    public:
-    std::size_t bundleSize;
+    usize bundleSize;
 };
 
 using AutoNumaPolicy = std::variant<SystemNumaPolicy, DomainsL3Policy, BundledL3Policy>;
@@ -652,7 +650,7 @@ class NumaConfig final {
 
         if (!std::holds_alternative<SystemNumaPolicy>(numaPolicy))
         {
-            std::size_t l3BundleSize = 0;
+            usize l3BundleSize = 0;
 
             if (const auto* l3Policy = std::get_if<BundledL3Policy>(&numaPolicy))
                 l3BundleSize = l3Policy->bundleSize;
@@ -831,9 +829,9 @@ class NumaConfig final {
     // Format: "node0_cpus:node1_cpus:..." where cpus = "0-2,4,6-7"
     std::string to_string() const noexcept {
         // Estimate size
-        std::size_t cpuCount = std::accumulate(
-          nodes.begin(), nodes.end(), std::size_t{0},
-          [](std::size_t sum, const CpuIndexSet& node) noexcept { return sum + node.size(); });
+        usize cpuCount = std::accumulate(
+          nodes.begin(), nodes.end(), usize{0},
+          [](usize sum, const CpuIndexSet& node) noexcept { return sum + node.size(); });
 
         std::string numaCfg;
         numaCfg.reserve(6 * cpuCount);  // ~6 chars per CPU
@@ -889,7 +887,7 @@ class NumaConfig final {
         return numaCfg;
     }
 
-    bool suggests_binding_threads(std::size_t threadCount) const noexcept {
+    bool suggests_binding_threads(usize threadCount) const noexcept {
         // If can reasonably determine that the threads can't be contained
         // by the OS within the first NUMA node then advise distributing
         // and binding threads. When the threads are not bound can only use
@@ -912,7 +910,7 @@ class NumaConfig final {
             return false;
 
         // Compute maximum node size
-        std::size_t MaxNodeSize =
+        usize MaxNodeSize =
           std::max_element(nodes.begin(), nodes.end(),  //
                            [](const CpuIndexSet& node1, const CpuIndexSet& node2) noexcept -> bool {
                                return node1.size() < node2.size();
@@ -920,7 +918,7 @@ class NumaConfig final {
             ->size();
 
         // Count nodes considered 'not-small' (size > 60% of MaxNodeSize)
-        std::size_t NotSmallNodeCount =
+        usize NotSmallNodeCount =
           std::count_if(nodes.begin(), nodes.end(),  //
                         [MaxNodeSize](const CpuIndexSet& node) noexcept -> bool {
                             constexpr double SmallNodeThreshold = 0.6;
@@ -934,8 +932,7 @@ class NumaConfig final {
         return threadCount >= std::min(1 + MaxNodeSize / 2, 4 * NotSmallNodeCount);
     }
 
-    std::vector<NumaIndex>
-    distribute_threads_among_numa_nodes(std::size_t threadCount) const noexcept {
+    std::vector<NumaIndex> distribute_threads_among_numa_nodes(usize threadCount) const noexcept {
         std::vector<NumaIndex> numaNodes;
 
         if (nodes_size() == 1)
@@ -946,9 +943,9 @@ class NumaConfig final {
         }
         else
         {
-            std::vector<std::size_t> occupation(nodes_size(), 0);
+            std::vector<usize> occupation(nodes_size(), 0);
 
-            for (std::size_t threadId = 0; threadId < threadCount; ++threadId)
+            for (usize threadId = 0; threadId < threadCount; ++threadId)
             {
                 NumaIndex bestNumaId = 0;
 
@@ -1071,7 +1068,7 @@ class NumaConfig final {
         if (cpuMask == nullptr)
             std::exit(EXIT_FAILURE);
 
-        std::size_t MaskSize = CPU_ALLOC_SIZE(maxCpuId + 1);
+        usize MaskSize = CPU_ALLOC_SIZE(maxCpuId + 1);
 
         CPU_ZERO_S(MaskSize, cpuMask);
 
@@ -1207,7 +1204,7 @@ class NumaConfig final {
     template<typename Pred>
     static std::optional<NumaConfig>
     try_l3_domain(bool                    respectProcessAffinity,
-                  std::size_t             bundleSize,
+                  usize                   bundleSize,
                   [[maybe_unused]] Pred&& is_cpu_allowed) noexcept {
         // Get the normal system configuration so that know to which NUMA node each L3 domain belongs
         NumaConfig sysCfg = NumaConfig::from_system(SystemNumaPolicy{}, respectProcessAffinity);
@@ -1300,8 +1297,7 @@ class NumaConfig final {
         return std::nullopt;
     }
 
-    static NumaConfig from_l3_domain(std::vector<L3Domain> l3Domains,
-                                     std::size_t           bundleSize) noexcept {
+    static NumaConfig from_l3_domain(std::vector<L3Domain> l3Domains, usize bundleSize) noexcept {
         assert(!l3Domains.empty());
 
         std::unordered_map<NumaIndex, std::vector<L3Domain>> numaL3Domains;
@@ -1321,7 +1317,7 @@ class NumaConfig final {
             {
                 changed = false;
 
-                for (std::size_t i = 0; i + 1 < ds.size(); ++i)
+                for (usize i = 0; i + 1 < ds.size(); ++i)
                     if (ds[i].cpus.size() + ds[i + 1].cpus.size() <= bundleSize)
                     {
                         ds[i].cpus.merge(ds[i + 1].cpus);
@@ -1353,9 +1349,9 @@ class NumaConfig final {
         return numaCfg;
     }
 
-    void resize_numa_node(NumaIndex   newNumaId,
-                          float       maxLoadFactor    = 0.75f,
-                          std::size_t expectedCpuCount = SYSTEM_THREAD_MAX / 4) noexcept {
+    void resize_numa_node(NumaIndex newNumaId,
+                          float     maxLoadFactor    = 0.75f,
+                          usize     expectedCpuCount = SYSTEM_THREAD_MAX / 4) noexcept {
         NumaIndex oldNumaId = nodes_size();
 
         if (oldNumaId <= newNumaId)
@@ -1441,7 +1437,7 @@ class NumaConfig final {
                 add_numa_node_cpu(numaId, cpuId);
     }
 
-    void init_node_cpus(std::size_t expectedCpuCount, float maxLoadFactor = 0.75f) noexcept {
+    void init_node_cpus(usize expectedCpuCount, float maxLoadFactor = 0.75f) noexcept {
 
         nodeByCpu.max_load_factor(max_load_factor(maxLoadFactor));
         nodeByCpu.reserve(reserve_count(expectedCpuCount));
@@ -1753,7 +1749,7 @@ class SystemWideLazyNumaReplicated final: public BaseNumaReplicated {
     }
 
    private:
-    std::uint64_t get_discriminator(NumaIndex numaId) const noexcept {
+    u64 get_discriminator(NumaIndex numaId) const noexcept {
 
         const NumaConfig& numaCfg = numa_config();
 

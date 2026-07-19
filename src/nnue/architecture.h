@@ -21,7 +21,6 @@
 #define NNUE_ARCHITECTURE_H_INCLUDED
 
 #include <array>
-#include <cstdint>
 #include <cstring>
 #include <functional>
 #include <iosfwd>
@@ -35,20 +34,21 @@
 #include "layers/clipped_relu.h"
 #include "layers/sqr_clipped_relu.h"
 
-namespace DON::NNUE {
+namespace DON {
+namespace NNUE {
 
 // Input features used in evaluation function
 using ThreatFeatureSet = Features::FullThreats;
 using PSQFeatureSet    = Features::HalfKA_hm;
 
 // Number of input feature dimensions after conversion
-inline constexpr IndexType     BigTransformedFeatureDimensions = 1024;
-inline constexpr std::uint32_t BigL2                           = 31;
-inline constexpr std::uint32_t BigL3                           = 32;
+inline constexpr IndexType BigTransformedFeatureDimensions = 1024;
+inline constexpr u32       BigL2                           = 31;
+inline constexpr u32       BigL3                           = 32;
 
-inline constexpr IndexType     SmallTransformedFeatureDimensions = 128;
-inline constexpr std::uint32_t SmallL2                           = 15;
-inline constexpr std::uint32_t SmallL3                           = 32;
+inline constexpr IndexType SmallTransformedFeatureDimensions = 128;
+inline constexpr u32       SmallL2                           = 15;
+inline constexpr u32       SmallL3                           = 32;
 
 inline constexpr IndexType PSQTBuckets = 8;
 inline constexpr IndexType LayerStacks = 8;
@@ -60,17 +60,17 @@ static_assert(LayerStacks == PSQTBuckets);
 static_assert(PSQTBuckets % 8 == 0,
               "Per feature PSQT values cannot be processed at granularity lower than 8 at a time.");
 
-template<IndexType L1, std::uint32_t L2, std::uint32_t L3>
+template<IndexType L1, u32 L2, u32 L3>
 struct NetworkArchitecture final {
    public:
-    static constexpr IndexType     TransformedFeatureDimensions = L1;
-    static constexpr std::uint32_t FC_0_Outputs                 = L2;
-    static constexpr std::uint32_t FC_1_Outputs                 = L3;
+    static constexpr IndexType TransformedFeatureDimensions = L1;
+    static constexpr u32       FC_0_Outputs                 = L2;
+    static constexpr u32       FC_1_Outputs                 = L3;
 
     // Hash value embedded in the evaluation file
-    static constexpr std::uint32_t hash() noexcept {
+    static constexpr u32 hash() noexcept {
         // input slice hash
-        std::uint32_t h = 0xEC42E90Du;
+        u32 h = 0xEC42E90Du;
         h ^= 2 * TransformedFeatureDimensions;
 
         h = decltype(fc_0)::hash(h);
@@ -81,8 +81,8 @@ struct NetworkArchitecture final {
         return h;
     }
 
-    std::size_t content_hash() const noexcept {
-        std::size_t h = 0;
+    usize content_hash() const noexcept {
+        usize h = 0;
         combine_hash(h, fc_0.content_hash());
         combine_hash(h, ac_sqr_0.content_hash());
         combine_hash(h, ac_0.content_hash());
@@ -112,14 +112,14 @@ struct NetworkArchitecture final {
     }
 
     // Forward propagation
-    std::int32_t propagate(const StdArray<TransformedFeatureType, TransformedFeatureDimensions>&
-                             transformedFeatures) const noexcept {
+    i32 propagate(const Array<TransformedFeatureType, TransformedFeatureDimensions>&
+                    transformedFeatures) const noexcept {
 
         struct alignas(CACHE_LINE_SIZE) Buffer final {
             alignas(CACHE_LINE_SIZE) typename decltype(fc_0)::OutputBuffer fc_0_out;
             alignas(CACHE_LINE_SIZE)
-              StdArray<typename decltype(ac_sqr_0)::OutputType,
-                       ceil_to_multiple<IndexType>(FC_0_Outputs * 2, 32)> ac_sqr_0_out;
+              Array<typename decltype(ac_sqr_0)::OutputType,
+                    ceil_to_multiple<IndexType>(FC_0_Outputs * 2, 32)> ac_sqr_0_out;
             alignas(CACHE_LINE_SIZE) typename decltype(ac_0)::OutputBuffer ac_0_out;
             alignas(CACHE_LINE_SIZE) typename decltype(fc_1)::OutputBuffer fc_1_out;
             alignas(CACHE_LINE_SIZE) typename decltype(ac_1)::OutputBuffer ac_1_out;
@@ -148,9 +148,9 @@ struct NetworkArchitecture final {
 
         // buffer.fc_0_out[FC_0_OUTPUTS] is such that 1.0 is equal to 127 * (1 << WEIGHT_SCALE_BITS)
         // in quantized form, but want 1.0 to be equal to 600 * OUTPUT_SCALE
-        std::int32_t fwdOut =
+        i32 fwdOut =
           (buffer.fc_0_out[FC_0_Outputs]) * (600 * OUTPUT_SCALE) / (127 * (1 << WEIGHT_SCALE_BITS));
-        std::int32_t outputValue = buffer.fc_2_out[0] + fwdOut;
+        i32 outputValue = buffer.fc_2_out[0] + fwdOut;
 
         return outputValue;
     }
@@ -164,11 +164,12 @@ struct NetworkArchitecture final {
     Layers::AffineTransform<FC_1_Outputs, 1>                                           fc_2;
 };
 
-}  // namespace DON::NNUE
+}  // namespace NNUE
+}  // namespace DON
 
-template<DON::NNUE::IndexType L1, std::uint32_t L2, std::uint32_t L3>
+template<DON::NNUE::IndexType L1, DON::u32 L2, DON::u32 L3>
 struct std::hash<DON::NNUE::NetworkArchitecture<L1, L2, L3>> {
-    std::size_t operator()(const DON::NNUE::NetworkArchitecture<L1, L2, L3>& arch) const noexcept {
+    DON::usize operator()(const DON::NNUE::NetworkArchitecture<L1, L2, L3>& arch) const noexcept {
         return arch.content_hash();
     }
 };

@@ -42,9 +42,9 @@ class FeatureTransformer;
 template<IndexType Size>
 struct alignas(CACHE_LINE_SIZE) Accumulator final {
    public:
-    StdArray<BiasType, COLOR_NB, Size>              accumulation;
-    StdArray<PSQTWeightType, COLOR_NB, PSQTBuckets> psqtAccumulation;
-    StdArray<bool, COLOR_NB>                        computed;
+    Array<BiasType, COLOR_NB, Size>              accumulation;
+    Array<PSQTWeightType, COLOR_NB, PSQTBuckets> psqtAccumulation;
+    Array<bool, COLOR_NB>                        computed;
 };
 
 using BigAccumulator   = Accumulator<BigTransformedFeatureDimensions>;
@@ -65,7 +65,7 @@ struct AccumulatorCaches final {
            public:
             // To initialize a refresh entry, set all its bitboards empty,
             // so put the biases in the accumulation, without any weights on top
-            void init(const StdArray<BiasType, Size>& biases) noexcept {
+            void init(const Array<BiasType, Size>& biases) noexcept {
                 // Initialize accumulation with given biases
                 accumulation = biases;
                 auto offset  = offsetof(Entry, psqtAccumulation);
@@ -74,10 +74,10 @@ struct AccumulatorCaches final {
                             sizeof(*this) - offset);
             }
 
-            StdArray<BiasType, Size>              accumulation;
-            StdArray<PSQTWeightType, PSQTBuckets> psqtAccumulation;
-            StdArray<Piece, SQUARE_NB>            pieceMap;
-            Bitboard                              piecesBB;
+            Array<BiasType, Size>              accumulation;
+            Array<PSQTWeightType, PSQTBuckets> psqtAccumulation;
+            Array<Piece, SQUARE_NB>            pieceMap;
+            Bitboard                           piecesBB;
         };
 
         template<typename Network>
@@ -88,11 +88,11 @@ struct AccumulatorCaches final {
                     entry.init(network.featureTransformer.biases);
         }
 
-        const StdArray<Entry, COLOR_NB>& operator[](Square s) const noexcept { return entries[s]; }
-        StdArray<Entry, COLOR_NB>&       operator[](Square s) noexcept { return entries[s]; }
+        const Array<Entry, COLOR_NB>& operator[](Square s) const noexcept { return entries[s]; }
+        Array<Entry, COLOR_NB>&       operator[](Square s) noexcept { return entries[s]; }
 
        private:
-        StdArray<Entry, SQUARE_NB, COLOR_NB> entries;
+        Array<Entry, SQUARE_NB, COLOR_NB> entries;
     };
 
     using BigCache   = Cache<BigTransformedFeatureDimensions>;
@@ -152,10 +152,10 @@ struct AccumulatorState final {
 
 struct AccumulatorStack final {
    public:
-    static constexpr std::size_t SIZE = PLY_MAX + 1;
+    static constexpr usize SIZE = PLY_MAX + 1;
 
     template<typename T>
-    [[nodiscard]] const StdArray<AccumulatorState<T>, SIZE>& accumulators() const noexcept;
+    [[nodiscard]] const Array<AccumulatorState<T>, SIZE>& accumulators() const noexcept;
 
     template<typename T>
     [[nodiscard]] const AccumulatorState<T>& state() const noexcept;
@@ -171,7 +171,7 @@ struct AccumulatorStack final {
 
    private:
     template<typename T>
-    [[nodiscard]] StdArray<AccumulatorState<T>, SIZE>& mut_accumulators() noexcept;
+    [[nodiscard]] Array<AccumulatorState<T>, SIZE>& mut_accumulators() noexcept;
 
     template<typename T>
     [[nodiscard]] AccumulatorState<T>& mut_state() noexcept;
@@ -183,23 +183,23 @@ struct AccumulatorStack final {
                   AccumulatorCaches::Cache<Dimensions>& cache) noexcept;
 
     template<typename FeatureSet, IndexType Dimensions>
-    [[nodiscard]] std::size_t last_usable_accumulator_index(Color perspective) const noexcept;
+    [[nodiscard]] usize last_usable_accumulator_index(Color perspective) const noexcept;
 
     template<typename FeatureSet, IndexType Dimensions>
     void update_forward_incr(Color                                 perspective,
                              const Position&                       pos,
                              const FeatureTransformer<Dimensions>& featureTransformer,
-                             std::size_t                           beg) noexcept;
+                             usize                                 beg) noexcept;
 
     template<typename FeatureSet, IndexType Dimensions>
     void update_backward_incr(Color                                 perspective,
                               const Position&                       pos,
                               const FeatureTransformer<Dimensions>& featureTransformer,
-                              std::size_t                           end) noexcept;
+                              usize                                 end) noexcept;
 
-    StdArray<AccumulatorState<PSQFeatureSet>, SIZE>    psqAccumulators;
-    StdArray<AccumulatorState<ThreatFeatureSet>, SIZE> threatAccumulators;
-    std::size_t                                        size = 1;
+    Array<AccumulatorState<PSQFeatureSet>, SIZE>    psqAccumulators;
+    Array<AccumulatorState<ThreatFeatureSet>, SIZE> threatAccumulators;
+    usize                                           size = 1;
 };
 
 }  // namespace NNUE

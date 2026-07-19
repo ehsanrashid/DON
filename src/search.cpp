@@ -24,6 +24,7 @@
 #include <ratio>
 #include <string>
 
+#include "attacks.h"
 #include "bitboard.h"
 #include "evaluate.h"
 #include "movegen.h"
@@ -49,17 +50,16 @@ constexpr double BetaBias = 0.68;
 
 // Reductions lookup table using [depth or moveCount]
 alignas(CACHE_LINE_SIZE) constexpr auto Reductions = []() constexpr noexcept {
-    StdArray<std::uint16_t, MOVE_MAX> reductions{};
+    Array<u16, MOVE_MAX> reductions{};
 
     reductions[0] = 0;
-    for (std::size_t i = 1; i < reductions.size(); ++i)
-        reductions[i] = std::uint16_t(21.9453125 * constexpr_log(double(i)));
+    for (usize i = 1; i < reductions.size(); ++i)
+        reductions[i] = u16(21.9453125 * constexpr_log(double(i)));
 
     return reductions;
 }();
 
-constexpr int
-reduction(Depth depth, std::uint16_t moveCount, int deltaRatio, bool improve) noexcept {
+constexpr int reduction(Depth depth, u16 moveCount, int deltaRatio, bool improve) noexcept {
     int reductionScale = Reductions[depth] * Reductions[moveCount];
     return std::max(1182 + reductionScale - deltaRatio
                       + int(!improve) * int(0.423828125 * double(reductionScale)),
@@ -67,14 +67,14 @@ reduction(Depth depth, std::uint16_t moveCount, int deltaRatio, bool improve) no
 }
 
 // Add a small random value to draw evaluation to avoid 3-fold blindness
-constexpr Value draw_value(Key key, std::uint64_t nodes) noexcept {
+constexpr Value draw_value(Key key, u64 nodes) noexcept {
     return VALUE_DRAW + Value(key & 1) - Value(nodes & 1);
 }
 
 // Adjusts a mate or TB score from "plies to mate from the root"
 // to "plies to mate from the current position". Standard scores are unchanged.
 // The function is called before storing a value in the transposition table.
-constexpr Value value_to_tt(Value v, std::int16_t ply) noexcept {
+constexpr Value value_to_tt(Value v, i16 ply) noexcept {
     return is_win(v) ? v + ply : is_loss(v) ? v - ply : v;
 }
 
@@ -83,7 +83,7 @@ constexpr Value value_to_tt(Value v, std::int16_t ply) noexcept {
 // current position) to "plies to mate/be mated (TB win/loss) from the root".
 // However, to avoid potentially false mate or TB scores related to the 50 moves rule
 // and the graph history interaction, return the highest non-TB score instead.
-constexpr Value value_from_tt(Value v, std::int16_t ply, std::int16_t rule50Count) noexcept {
+constexpr Value value_from_tt(Value v, i16 ply, i16 rule50Count) noexcept {
 
     if (!is_valid(v))
         return v;
@@ -136,7 +136,7 @@ void update_pv(Move* RESTRICT pv, Move m, const Move* RESTRICT childPv) noexcept
     {
         const Move* const end = std::find(childPv, childPv + PLY_MAX + 1, Move::None);
 
-        std::size_t count = end - childPv;
+        usize count = end - childPv;
 
         std::memcpy(pv, childPv, count * sizeof(Move));
 
@@ -149,7 +149,7 @@ void update_pv(Move* RESTRICT pv, Move m, const Move* RESTRICT childPv) noexcept
 // Build contHistory pointers from the stack frame and validate them in debug builds.
 void build_continuation_history(const Stack*                    ss,
                                 const History<HType::PIECE_SQ>* out[CONT_HISTORY_COUNT]) noexcept {
-    for (std::size_t i = 0; i < CONT_HISTORY_COUNT; ++i)
+    for (usize i = 0; i < CONT_HISTORY_COUNT; ++i)
     {
         const Stack* ssi = (ss - 1) - i;
 
@@ -164,22 +164,22 @@ void build_continuation_history(const Stack*                    ss,
 void update_continuation_history(Stack* ss, Piece pc, Square dstSq, int bonus) noexcept {
     assert(dstSq != SQ_NONE);
 
-    constexpr StdArray<double, CONT_HISTORY_COUNT> ContHistoryWeights{
+    constexpr Array<double, CONT_HISTORY_COUNT> ContHistoryWeights{
       1.0801, 0.6885, 0.3085, 0.5585, 0.1231, 0.41699, 0.1092, 0.2167  //
     };
-    constexpr StdArray<int, CONT_HISTORY_COUNT> Multipliers{
+    constexpr Array<int, CONT_HISTORY_COUNT> Multipliers{
       94, 103, 110, 106, 119, 121, 126, 128  //
     };
-    constexpr StdArray<int, CONT_HISTORY_COUNT> ContHistoryOffsets{
+    constexpr Array<int, CONT_HISTORY_COUNT> ContHistoryOffsets{
       73, 00, 00, 00, 00, 00, 00, 00  //
     };
 
     // In check only update 2-ply continuation history
-    std::size_t ContHistoryCount = ss->inCheck ? 2 : CONT_HISTORY_COUNT;
+    usize ContHistoryCount = ss->inCheck ? 2 : CONT_HISTORY_COUNT;
 
     int positiveCount = 0;
 
-    for (std::size_t i = 0; i < ContHistoryCount; ++i)
+    for (usize i = 0; i < ContHistoryCount; ++i)
     {
         Stack* ssi = (ss - 1) - i;
 
@@ -232,10 +232,10 @@ std::string build_pv(const Moves& pvMoves) noexcept {
 }  // namespace
 
 // Initialize the worker with its thread and NUMA information
-Worker::Worker(std::size_t               threadIdx,
-               std::size_t               threadCnt,
-               std::size_t               numaIdx,
-               std::size_t               numaThreadCnt,
+Worker::Worker(usize                     threadIdx,
+               usize                     threadCnt,
+               usize                     numaIdx,
+               usize                     numaThreadCnt,
                NumaReplicatedAccessToken accessToken,
                ISearchManagerPtr         searchManager,
                const SharedState&        sharedState) noexcept :
@@ -444,15 +444,15 @@ void Worker::iterative_deepening() noexcept {
     // Allocate stack with extra size to allow access from (ss - 9) to (ss + 1):
     // (ss - 9) is needed for update_continuation_history(ss - 1) which accesses (ss - 8),
     // (ss + 1) is needed for initialization of cutoffCount.
-    constexpr std::uint16_t StackOffset = 9;
+    constexpr u16 StackOffset = 9;
 
     Color ac = rootPos.active_color();
 
-    StdArray<Stack, StackOffset + (PLY_MAX + 1) + 1> stacks{};
+    Array<Stack, StackOffset + (PLY_MAX + 1) + 1> stacks{};
 
     Stack* ss = &stacks[StackOffset];
 
-    for (std::int16_t i = 0 - StackOffset; i < int(stacks.size()) - StackOffset; ++i)
+    for (i16 i = 0 - StackOffset; i < int(stacks.size()) - StackOffset; ++i)
     {
         (ss + i)->ply = i;
 
@@ -470,7 +470,7 @@ void Worker::iterative_deepening() noexcept {
     assert(stacks[0].ply == -StackOffset && stacks[stacks.size() - 1].ply == PLY_MAX + 1);
     assert(ss->ply == 0);
 
-    StdArray<Move, PLY_MAX + 1> pv;
+    Array<Move, PLY_MAX + 1> pv;
 
     ss->pv = pv.data();
 
@@ -535,7 +535,7 @@ void Worker::iterative_deepening() noexcept {
         }
     };
 
-    std::size_t rootMovesSize = rootMoves.size();
+    usize rootMovesSize = rootMoves.size();
     assert(rootMovesSize != 0 && rootMovesSize <= MOVE_MAX);
 
     accStack.reset();
@@ -561,7 +561,7 @@ void Worker::iterative_deepening() noexcept {
         // When playing with strength handicap enable MultiPV search that
         // will use behind-the-scenes to retrieve a set of sub-optimal moves.
         if (mainManager->skill.enabled())
-            multiPV = std::max(std::size_t(4), multiPV);
+            multiPV = std::max(usize(4), multiPV);
 
         mainManager->sumMoveChanges = 0.0;
 
@@ -576,7 +576,7 @@ void Worker::iterative_deepening() noexcept {
         mainManager->callsCount = limit.calls_count();
     }
 
-    std::uint16_t researchCnt = 0;
+    u16 researchCnt = 0;
 
     Depth lastCompletedDepth = DEPTH_ZERO;
     completedDepth           = DEPTH_ZERO;
@@ -586,10 +586,10 @@ void Worker::iterative_deepening() noexcept {
     for (rootDepth = 1; rootDepth <= MaxDepth; ++rootDepth)
     {
         // Precompute the start indices of each tbRank group
-        StdArray<std::size_t, MOVE_MAX + 1> tbRankGroups;
-        std::size_t                         tbRankGroupCount = 0;
+        Array<usize, MOVE_MAX + 1> tbRankGroups;
+        usize                      tbRankGroupCount = 0;
         // Group moves by tbRank and snapshot scores before search
-        for (std::size_t i = 0; i < rootMovesSize;)
+        for (usize i = 0; i < rootMovesSize;)
         {
             tbRankGroups[tbRankGroupCount++] = i;
             // Scan group: record boundaries and snapshot scores
@@ -605,8 +605,8 @@ void Worker::iterative_deepening() noexcept {
         // Sentinel (critical) to simplify endPV access
         tbRankGroups[tbRankGroupCount] = rootMovesSize;
 
-        std::size_t tbRankGroupIndex = 0;  // index in tbRankGroups
-        std::size_t begPV = endPV = 0;
+        usize tbRankGroupIndex = 0;  // index in tbRankGroups
+        usize begPV = endPV = 0;
         // MultiPV loop. Perform a full root search for each PV line
         for (curPV = 0; curPV < multiPV; ++curPV)
         {
@@ -622,7 +622,7 @@ void Worker::iterative_deepening() noexcept {
             auto avgSqrValue = rootMoves[curPV].avgSqrValue;
 
             // Reset aspiration window starting size
-            int delta = 5 + std::min(thread_count() - 1, std::size_t(8))
+            int delta = 5 + std::min(thread_count() - 1, usize(8))
                       + constexpr_round(1.0032e-4 * double(constexpr_abs(avgSqrValue)));
 
             Value alpha = std::max(avgValue - delta, -VALUE_INFINITE);
@@ -637,7 +637,7 @@ void Worker::iterative_deepening() noexcept {
 
             // Start with a small aspiration window and, in the case of a fail
             // high/low, research with a bigger window until don't fail high/low anymore.
-            std::uint16_t failHighCnt = 0;
+            u16 failHighCnt = 0;
             while (true)
             {
                 ss->cutoffCount = 0;
@@ -806,7 +806,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
     if (is_main_worker())
         main_manager()->check_time(*this);
 
-    StdArray<Move, PLY_MAX + 1> pv;
+    Array<Move, PLY_MAX + 1> pv;
 
     if constexpr (PVNode)
     {
@@ -1000,7 +1000,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
     {
         if (!exclude && tbConfig.cardinality != 0 && !pos.has_castling_rights())
         {
-            std::uint8_t pieceCount = pos.count();
+            u8 pieceCount = pos.count();
 
             if (pieceCount < tbConfig.cardinality
                 || (pieceCount == tbConfig.cardinality  //
@@ -1258,9 +1258,9 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
 
     Value value = bestValue;
 
-    std::uint16_t moveCount = 0;
+    u16 moveCount = 0;
 
-    StdArray<SearchedMoves, 2> searchedMoves;
+    Array<SearchedMoves, 2> searchedMoves;
 
     MovePicker mp(pos, ttd.move, &histories, &captureHistory, &quietHistory, &lowPlyQuietHistory,
                   contHistory, ss->ply, -1);
@@ -1288,7 +1288,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
             if (is_main_worker() && rootDepth > 30 && !options["MinimalInfo"])
             {
                 std::string currMove{move_to_can(move)};
-                std::size_t currMoveNumber{curPV + moveCount};
+                usize       currMoveNumber{curPV + moveCount};
 
                 main_manager()->updateContext.onUpdateIter({rootDepth, currMove, currMoveNumber});
             }
@@ -1467,7 +1467,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
         // Add extension to new depth
         newDepth += extension;
 
-        [[maybe_unused]] std::uint64_t preNodes;
+        [[maybe_unused]] u64 preNodes;
         if constexpr (RootNode)
         {
             preNodes = nodes_();
@@ -1625,7 +1625,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
                 assert(childPv != nullptr);
                 // Count child PV length
                 const Move* const end   = std::find(childPv, childPv + PLY_MAX + 1, Move::None);
-                std::size_t       count = end - childPv;
+                usize             count = end - childPv;
                 assert(childPv[count] == Move::None);
                 // Resize once
                 rm.pv.resize(1 + count);
@@ -1809,7 +1809,7 @@ Value Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta) noexcep
             return alpha;
     }
 
-    StdArray<Move, PLY_MAX + 1> pv;
+    Array<Move, PLY_MAX + 1> pv;
 
     if constexpr (PVNode)
     {
@@ -1914,7 +1914,7 @@ Value Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta) noexcep
 
     Move move, bestMove = Move::None;
 
-    std::uint16_t moveCount = 0;
+    u16 moveCount = 0;
 
     const History<HType::PIECE_SQ>* contHistory[1]{(ss - 1)->pieceSqHistory};
 
@@ -2094,7 +2094,7 @@ void Worker::update_capture_history(const Position& pos, Move m, int bonus) noex
 void Worker::update_quiet_history(Color ac, Move m, int bonus) noexcept {
     quietHistory[ac][m.raw()] << bonus;
 }
-void Worker::update_low_ply_quiet_history(std::int16_t ssPly, Move m, int bonus) noexcept {
+void Worker::update_low_ply_quiet_history(i16 ssPly, Move m, int bonus) noexcept {
     assert(m.is_ok());
 
     if (ssPly < LOW_PLY_QUIET_SIZE)
@@ -2115,7 +2115,7 @@ void Worker::update_quiet_histories(const Position& pos, PawnHistory& pawnHistor
 }
 
 // Updates history at the end of search() when a bestMove is found and other searched moves are known
-void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Stack* ss, Depth depth, Move bestMove, bool extra, const StdArray<SearchedMoves, 2>& searchedMoves) noexcept {
+void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Stack* ss, Depth depth, Move bestMove, bool extra, const Array<SearchedMoves, 2>& searchedMoves) noexcept {
     assert(depth > DEPTH_ZERO);
     assert(ss->moveCount != 0);
 
@@ -2192,7 +2192,7 @@ void Worker::update_correction_histories(const Position& pos, const Stack* ss, i
 int Worker::correction_value(const Position& pos, const Stack* ss) const noexcept {
     Color ac = pos.active_color();
 
-    std::int64_t correctionValue =
+    i64 correctionValue =
            + 5715LL * int(histories.    pawn_correction<WHITE>(pos.    pawn_key(WHITE))[ac]
                         + histories.    pawn_correction<BLACK>(pos.    pawn_key(BLACK))[ac])
            + 4411LL * int(histories.   minor_correction<WHITE>(pos.   minor_key(WHITE))[ac]
@@ -2308,7 +2308,7 @@ bool Worker::ponder_move_extracted() noexcept {
 
             if (ponderMove == Move::None)
             {
-                std::uniform_int_distribution<std::size_t> distribution(0, oLegalMoves.size() - 1);
+                std::uniform_int_distribution<usize> distribution(0, oLegalMoves.size() - 1);
                 ponderMove = *(oLegalMoves.begin() + distribution(prng));
             }
         }
@@ -2324,7 +2324,7 @@ bool Worker::ponder_move_extracted() noexcept {
 // Used to correct and extend PVs for moves that have a TB (but not a mate) score.
 // Keeps the search based PV for as long as it is verified to maintain the game outcome, truncates afterward.
 // Finally, extends to mate the PV, providing a possible continuation (but not a proven mating line).
-void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
+void Worker::extend_tb_pv(usize index, Value& value) noexcept {
     assert(index < rootMoves.size());
 
     if (!options["SyzygyPVExtend"])
@@ -2354,9 +2354,9 @@ void Worker::extend_tb_pv(std::size_t index, Value& value) noexcept {
     auto& rootSt = states.emplace_back();
     rootPos.do_move(rootMove.pv[0], rootSt);
 
-    std::int16_t ply = 1;
+    i16 ply = 1;
     // Step 1. Walk the PV to the last position in TB with correct decisive score
-    while (std::size_t(ply) < rootMove.pv.size())
+    while (usize(ply) < rootMove.pv.size())
     {
         Move pvMove = rootMove.pv[ply];
 
@@ -2557,10 +2557,10 @@ void MainSearchManager::handle_time_management(const Worker& worker,
     double easeFactor = 0.4386 * (1.4300 + preTimeReduction) / timeReduction;
 
     // Compute move instability factor based on the total move changes and the number of threads
-    double instabilityFactor = 1.0200 + 2.1400 * sumMoveChanges / std::max(worker.thread_count(), std::size_t(1));
+    double instabilityFactor = 1.0200 + 2.1400 * sumMoveChanges / std::max(worker.thread_count(), usize(1));
 
     // Compute node effort factor that reduces time if root move has consumed a large fraction of total nodes
-    double nodeEffortExcess = std::max(-933.40 + 1000.0 * worker.rootMoves[0].nodes / std::max(worker.nodes_(), std::uint64_t(1)), 0.0);
+    double nodeEffortExcess = std::max(-933.40 + 1000.0 * worker.rootMoves[0].nodes / std::max(worker.nodes_(), u64(1)), 0.0);
     double nodeEffortFactor = 1.0 - 37.5207e-4 * nodeEffortExcess;
 
     // Compute recapture factor that reduces time if recapture conditions are met
@@ -2604,22 +2604,22 @@ void MainSearchManager::handle_time_management(const Worker& worker,
 void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
     assert(depth > DEPTH_ZERO);
 
-    const auto&       rootPos            = worker.rootPos;
-    const auto&       rootMoves          = worker.rootMoves;
-    const auto&       options            = worker.options;
-    const auto&       threads            = worker.threads;
-    const auto&       transpositionTable = worker.transpositionTable;
-    const auto&       tbConfig           = worker.tbConfig;
-    const std::size_t multiPV            = worker.multiPV;
-    const std::size_t curPV              = worker.curPV;
+    const auto& rootPos            = worker.rootPos;
+    const auto& rootMoves          = worker.rootMoves;
+    const auto& options            = worker.options;
+    const auto& threads            = worker.threads;
+    const auto& transpositionTable = worker.transpositionTable;
+    const auto& tbConfig           = worker.tbConfig;
+    const usize multiPV            = worker.multiPV;
+    const usize curPV              = worker.curPV;
     // Ensure non-zero to avoid a 'divide by zero'
-    TimePoint     time   = std::max(elapsed(), TimePoint{1});
-    std::uint64_t nodes  = threads.sum(&Worker::nodes);
-    std::uint64_t tbHits = threads.sum(&Worker::tbHits, int(tbConfig.rootInTB) * rootMoves.size());
-    std::uint16_t hashfull = transpositionTable.hashfull();
-    bool          ShowWDL  = options["UCI_ShowWDL"];
+    TimePoint time     = std::max(elapsed(), TimePoint{1});
+    u64       nodes    = threads.sum(&Worker::nodes);
+    u64       tbHits   = threads.sum(&Worker::tbHits, int(tbConfig.rootInTB) * rootMoves.size());
+    u16       hashfull = transpositionTable.hashfull();
+    bool      ShowWDL  = options["UCI_ShowWDL"];
 
-    for (std::size_t i = 0; i < multiPV; ++i)
+    for (usize i = 0; i < multiPV; ++i)
     {
         auto& rm = rootMoves[i];
 
@@ -2680,7 +2680,7 @@ void Skill::init(const Options& options) noexcept {
 
     if (options["UCI_LimitStrength"])
     {
-        constexpr StdArray<double, 4> P{37.2473, -40.8525, 22.2943, -0.311438};
+        constexpr Array<double, 4> P{37.2473, -40.8525, 22.2943, -0.311438};
 
         double e = double(options["UCI_ELO"] - ELO_MIN) / (ELO_MAX - ELO_MIN);
 
@@ -2700,7 +2700,7 @@ void Skill::init(const Options& options) noexcept {
 
 // When playing with strength handicap, choose the best move among a set of RootMoves
 // using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
-Move Skill::pick_move(const RootMoves& rootMoves, std::size_t multiPV, bool pickBest) noexcept {
+Move Skill::pick_move(const RootMoves& rootMoves, usize multiPV, bool pickBest) noexcept {
     assert(1 <= multiPV && multiPV <= rootMoves.size());
     static XorShift64Star prng(now());  // PRNG sequence should be non-deterministic
 
@@ -2715,11 +2715,11 @@ Move Skill::pick_move(const RootMoves& rootMoves, std::size_t multiPV, bool pick
         // Choose best move. For each move value add two terms, both dependent on weakness.
         // One is deterministic and bigger for weaker levels, and one is random.
         // Then choose the move with the resulting highest value.
-        for (std::size_t i = 0; i < multiPV; ++i)
+        for (usize i = 0; i < multiPV; ++i)
         {
             Value curValue = rootMoves[i].curValue;
             Value diff     = maxValue - curValue;
-            Value noise    = prng.rand<std::uint32_t>() % weakness();
+            Value noise    = prng.rand<u32>() % weakness();
             Value push     = (weakness() * diff + delta * noise) / 128;
             Value value    = curValue + push;
 

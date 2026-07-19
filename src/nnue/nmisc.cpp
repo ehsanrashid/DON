@@ -72,9 +72,7 @@ void format_cp_compact(char* buffer, Value v, const Position& pos) noexcept {
 }
 
 // Converts a value into pawns, always keeping two decimals
-void format_cp_aligned_dot(std::ostringstream& oss,
-                           std::int32_t        val,
-                           const Position&     pos) noexcept {
+void format_cp_aligned_dot(std::ostringstream& oss, i32 val, const Position& pos) noexcept {
 
     auto v    = in_range(val);
     char sign = (v < 0 ? '-' : v > 0 ? '+' : ' ');
@@ -96,11 +94,11 @@ std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& ac
 
     // A lambda to output one box of the board
     auto write_square = [&board, &pos](File file, Rank rank, Piece pc, Value value) noexcept {
-        std::size_t x = 8 * int(file);
-        std::size_t y = 3 * (7 - int(rank));
-        for (std::size_t i = 1; i < 8; ++i)
+        usize x = 8 * int(file);
+        usize y = 3 * (7 - int(rank));
+        for (usize i = 1; i < 8; ++i)
             board[y][x + i] = board[y + 3][x + i] = '-';
-        for (std::size_t j = 1; j < 3; ++j)
+        for (usize j = 1; j < 3; ++j)
             board[y + j][x] = board[y + j][x + 8] = '|';
         board[y][x] = board[y][x + 8] = board[y + 3][x + 8] = board[y + 3][x] = '+';
         if (is_ok(pc))
@@ -113,8 +111,8 @@ std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& ac
 
     // Estimate the value of each piece by doing a differential evaluation from
     // the current base eval, simulating the removal of the piece from its square.
-    std::int32_t baseEval = networks.big.evaluate(pos, *accStack, accCaches.big);
-    baseEval              = pos.active_color() == WHITE ? +baseEval : -baseEval;
+    i32 baseEval = networks.big.evaluate(pos, *accStack, accCaches.big);
+    baseEval     = pos.active_color() == WHITE ? +baseEval : -baseEval;
 
     for (File f = FILE_A; f <= FILE_H; ++f)
         for (Rank r = RANK_1; r <= RANK_8; ++r)
@@ -129,8 +127,8 @@ std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& ac
 
                 accStack->reset();
 
-                std::int32_t curEval = networks.big.evaluate(pos, *accStack, accCaches.big);
-                curEval              = pos.active_color() == WHITE ? +curEval : -curEval;
+                i32 curEval = networks.big.evaluate(pos, *accStack, accCaches.big);
+                curEval     = pos.active_color() == WHITE ? +curEval : -curEval;
 
                 v = Value(baseEval - curEval);
 
@@ -159,7 +157,7 @@ std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& ac
     oss << "|            |   (PSQT)   |  (Layers)  |            |\n";
     oss << Sep;
 
-    for (std::size_t bucket = 0; bucket < LayerStacks; ++bucket)
+    for (usize bucket = 0; bucket < LayerStacks; ++bucket)
     {
         oss << "|  " << bucket << "         |  ";
         format_cp_aligned_dot(oss, netTrace.netOut[bucket].psqt, pos);

@@ -20,6 +20,7 @@
 #include <algorithm>
 #include <array>
 #include <cassert>
+#include <cstdint>
 #include <cstring>
 #include <deque>
 #include <filesystem>
@@ -41,6 +42,7 @@
     #include <unistd.h>  // IWYU pragma: keep
 #endif
 
+#include "../attacks.h"
 #include "../bitboard.h"
 #include "../memory.h"
 #include "../misc.h"
@@ -80,21 +82,21 @@ Config rank_root_moves(Position&, RootMoves&, const Options&, bool, TimeFunc) no
 
 namespace {
 
-enum class Endian : std::uint8_t {
+enum class Endian : u8 {
     BIG,
     LITTLE
 };
 
 // Used as template parameter
-enum TBType : std::uint8_t {
+enum TBType : u8 {
     WDL,
     DTZ
 };
 
-constexpr std::size_t TBTYPE_NB = 2;
+constexpr usize TBTYPE_NB = 2;
 
 // Each table has a set of flags: all of them refer to DTZ-tables, the last one to WDL-tables
-enum TBFlag : std::uint8_t {
+enum TBFlag : u8 {
     ACTIVE_COLOR = 1,
     MAPPED       = 2,
     WIN_PLIES    = 4,
@@ -104,37 +106,37 @@ enum TBFlag : std::uint8_t {
 };
 
 // Max DTZ supported (2 times), large enough to deal with the syzygy TB limit
-constexpr std::int32_t DTZ_MAX = 0x40000;
+constexpr i32 DTZ_MAX = 0x40000;
 
-constexpr StdArray<std::string_view, TBTYPE_NB> EXTS{
+constexpr Array<std::string_view, TBTYPE_NB> EXTS{
   ".rtbw",  // Win-Draw-Loss    (WDL)
   ".rtbz"   // Distance-to-Zero (DTZ)
 };
 
-constexpr StdArray<std::uint8_t, TBTYPE_NB, 4> TB_MAGICS{{
+constexpr Array<u8, TBTYPE_NB, 4> TB_MAGICS{{
   {0x71, 0xE8, 0x23, 0x5D},  // Win-Draw-Loss    (WDL) = 0x5D23E871
   {0xD7, 0x66, 0x0C, 0xA5}   // Distance-to-Zero (DTZ) = 0xA50C66D7
 }};
 
 // clang-format off
 
-constexpr StdArray<int         , WDL_SCORE_NB> WDL_MAP  {        1,              3,          0,              2,        0 };
-constexpr StdArray<std::int32_t, WDL_SCORE_NB> WDL_RANK {-DTZ_MAX , -DTZ_MAX + 101,          0, +DTZ_MAX - 101, +DTZ_MAX };
-constexpr StdArray<Value       , WDL_SCORE_NB> WDL_VALUE{-VALUE_TB, VALUE_DRAW - 2, VALUE_DRAW, VALUE_DRAW + 2, +VALUE_TB};
+constexpr Array<int         , WDL_SCORE_NB> WDL_MAP  {        1,              3,          0,              2,        0 };
+constexpr Array<i32, WDL_SCORE_NB> WDL_RANK {-DTZ_MAX , -DTZ_MAX + 101,          0, +DTZ_MAX - 101, +DTZ_MAX };
+constexpr Array<Value       , WDL_SCORE_NB> WDL_VALUE{-VALUE_TB, VALUE_DRAW - 2, VALUE_DRAW, VALUE_DRAW + 2, +VALUE_TB};
 
-constexpr std::size_t wdl_index(WDLScore wdlScore) noexcept { return std::size_t(wdlScore - WDL_LOSS); }
+constexpr usize wdl_index(WDLScore wdlScore) noexcept { return usize(wdlScore - WDL_LOSS); }
 
 constexpr int off_A1H8(Square s) noexcept { return int(rank_of(s)) - int(file_of(s)); }
 //constexpr int off_A8H1(Square s) noexcept { return int(rank_of(s)) + int(file_of(s)); }
 
-StdArray<std::size_t, SQUARE_NB>     B1H1H7Map;
-StdArray<std::size_t, SQUARE_NB>     A1D1D4Map;
-StdArray<std::size_t, 10, SQUARE_NB> KKMap;  // [A1D1D4Map][SQUARE_NB]
-StdArray<std::size_t, SQUARE_NB>     PawnsMap;
+Array<usize, SQUARE_NB>     B1H1H7Map;
+Array<usize, SQUARE_NB>     A1D1D4Map;
+Array<usize, 10, SQUARE_NB> KKMap;  // [A1D1D4Map][SQUARE_NB]
+Array<usize, SQUARE_NB>     PawnsMap;
 
-StdArray<std::size_t, TB_PIECES_MAX - 1, SQUARE_NB>   Binomial;     // [k][n] k elements from a set of n elements
-StdArray<std::size_t, TB_PIECES_MAX - 1, SQUARE_NB>   LeadPawnIdx;  // [leadPawnCnt][SQUARE_NB]
-StdArray<std::size_t, TB_PIECES_MAX - 1, FILE_NB / 2> LeadPawnSize; // [leadPawnCnt][FILE_A..FILE_D]
+Array<usize, TB_PIECES_MAX - 1, SQUARE_NB>   Binomial;     // [k][n] k elements from a set of n elements
+Array<usize, TB_PIECES_MAX - 1, SQUARE_NB>   LeadPawnIdx;  // [leadPawnCnt][SQUARE_NB]
+Array<usize, TB_PIECES_MAX - 1, FILE_NB / 2> LeadPawnSize; // [leadPawnCnt][FILE_A..FILE_D]
 
 // clang-format on
 
@@ -166,9 +168,9 @@ void swap_endian(T& x) noexcept {
 
     if constexpr (sizeof(T) > 1)
     {
-        auto* bytes = reinterpret_cast<std::uint8_t*>(&x);
+        auto* bytes = reinterpret_cast<u8*>(&x);
 
-        for (std::size_t i = 0; i < sizeof(T) / 2; ++i)
+        for (usize i = 0; i < sizeof(T) / 2; ++i)
             std::swap(bytes[i], bytes[sizeof(T) - 1 - i]);
     }
 }
@@ -183,7 +185,7 @@ T number(const void* addr) noexcept {
     else  // Unaligned pointer (very rare)
         std::memcpy(&v, addr, sizeof(T));
 
-    if (std::uint8_t(E) != IsLittleEndian)
+    if (u8(E) != IsLittleEndian)
         swap_endian(v);
 
     return v;
@@ -192,13 +194,13 @@ T number(const void* addr) noexcept {
 // Numbers in little-endian used by sparseIndex[] to point into blockLength[]
 struct SparseEntry final {
    public:
-    StdArray<char, 4> block;   // Number of block
-    StdArray<char, 2> offset;  // Offset within the block
+    Array<char, 4> block;   // Number of block
+    Array<char, 2> offset;  // Offset within the block
 };
 
 static_assert(sizeof(SparseEntry) == 6, "SparseEntry size must be 6 bytes");
 
-using Sym = std::uint16_t;  // Huffman symbol
+using Sym = u16;  // Huffman symbol
 
 constexpr Sym INVALID_SYM = 0xFFF;
 
@@ -213,7 +215,7 @@ struct LR final {
 
     // First 12 bits is the left-hand symbol, second 12 bits is the right-hand symbol.
     // If the symbol has length 1, then the left-hand symbol is the stored value.
-    StdArray<std::uint8_t, 3> data;
+    Array<u8, 3> data;
 };
 
 static_assert(sizeof(LR) == 3, "LR size must be 3 bytes");
@@ -262,11 +264,11 @@ class TBPaths final {
         Paths.clear();
         Paths.reserve(4);
 
-        std::size_t beg = 0;
+        usize beg = 0;
 
         while (beg < paths.size())
         {
-            std::size_t end = paths.find(PathSeparator, beg);
+            usize end = paths.find(PathSeparator, beg);
 
             if (end == std::string_view::npos)
                 end = paths.size();
@@ -334,7 +336,7 @@ struct PairsData final {
     // In Recursive Pairing each symbol represents a pair of children symbols. So
     // read d->btree[] symbols data and expand each one in his left and right child
     // symbol until reaching the leaves that represent the symbol value.
-    std::uint8_t set_symlen(std::size_t s, std::vector<bool>& visited, int depth = 0) noexcept {
+    u8 set_symlen(usize s, std::vector<bool>& visited, int depth = 0) noexcept {
         if (depth > 256)  // Safety limit (Huffman trees rarely exceed this depth)
             return 0;
 
@@ -356,7 +358,7 @@ struct PairsData final {
         return 1 + symLen[lSym] + symLen[rSym];
     }
 
-    std::uint8_t* set_sizes(std::uint8_t* pData) noexcept {
+    u8* set_sizes(u8* pData) noexcept {
 
         flags = *pData++;
 
@@ -373,17 +375,16 @@ struct PairsData final {
 
         // groupLen[] is a zero-terminated list of group lengths, the last groupIdx[]
         // element stores the biggest index that is the tb size.
-        std::uint64_t tbSize =
-          groupIdx[std::find(groupLen.begin(), groupLen.end(), 0) - groupLen.begin()];
+        u64 tbSize = groupIdx[std::find(groupLen.begin(), groupLen.end(), 0) - groupLen.begin()];
 
-        blockSize       = 1ull << *pData++;
-        span            = 1ull << *pData++;
+        blockSize       = u64{1} << *pData++;
+        span            = u64{1} << *pData++;
         sparseIndexSize = ceil_div(tbSize, span);  // Round up
 
-        auto padding = number<std::uint8_t, Endian::LITTLE>(pData);
+        auto padding = number<u8, Endian::LITTLE>(pData);
         pData += 1;
-        blockCount = number<std::uint32_t, Endian::LITTLE>(pData);
-        pData += sizeof(std::uint32_t);
+        blockCount = number<u32, Endian::LITTLE>(pData);
+        pData += sizeof(u32);
         // Padded to ensure SparseIndex[] does not point out of range.
         blockLengthSize = blockCount + padding;
         maxSymLen       = *pData++;
@@ -397,9 +398,9 @@ struct PairsData final {
         // so that lowestSym[i] >= lowestSym[i+1] (when read as LittleEndian).
         // Starting from this compute a base64[] table indexed by symbol length
         // and containing 64 bit values so that base64[i] >= base64[i+1].
-        std::size_t base64Size = base64.size();
+        usize base64Size = base64.size();
 
-        for (std::size_t i = std::max(base64Size, std::size_t(1)) - 1; i-- > 0;)
+        for (usize i = std::max(base64Size, usize(1)) - 1; i-- > 0;)
         {
             const auto& nextBase64 = base64[i + 1];
 
@@ -416,12 +417,12 @@ struct PairsData final {
         // Ensure that base64[i] >= base64[i+1].
         // Moreover for any symbol s64 of length i and right-padded to 64 bits holds
         // base64[i-1] >= s64 >= base64[i].
-        for (std::size_t i = 0; i < base64Size; ++i)
+        for (usize i = 0; i < base64Size; ++i)
             base64[i] <<= 64 - i - minSymLen;  // Right-padding to 64-bit
 
         pData += base64Size * sizeof(Sym);
-        symLen.resize(number<std::uint16_t, Endian::LITTLE>(pData));
-        pData += sizeof(std::uint16_t);
+        symLen.resize(number<u16, Endian::LITTLE>(pData));
+        pData += sizeof(u16);
         btree = (LR*) (pData);
 
         // The compression scheme used is "Recursive Pairing", that replaces the most
@@ -431,48 +432,42 @@ struct PairsData final {
         // See https://web.archive.org/web/20201106232444/http://www.larsson.dogma.net/dcc99.pdf
         std::vector<bool> visited(symLen.size());
 
-        for (std::size_t s = 0; s < symLen.size(); ++s)
+        for (usize s = 0; s < symLen.size(); ++s)
             if (!visited[s])
                 symLen[s] = set_symlen(s, visited);
 
         return pData + symLen.size() * sizeof(LR) + (symLen.size() & 1);
     }
 
-    std::uint8_t   flags;        // Table flags, see enum TBFlag
-    std::uint8_t   maxSymLen;    // Maximum length in bits of the Huffman symbols
-    std::uint8_t   minSymLen;    // Minimum length in bits of the Huffman symbols
-    std::uint32_t  blockCount;   // Number of blocks in the TB file
-    std::size_t    blockSize;    // Block size in bytes
-    std::size_t    span;         // About every span values there is a SparseIndex[] entry
-    Sym*           lowestSym;    // lowestSym[l] is the symbol of length l with the lowest value
-    LR*            btree;        // btree[sym] stores the left and right symbols that expand sym
-    std::uint16_t* blockLength;  // Number of stored positions (minus one) for each block: 1..65536
-    std::uint32_t
-      blockLengthSize;  // Size of blockLength[] table: padded so it's bigger than blockCount
-    SparseEntry*  sparseIndex;      // Partial indices into blockLength[]
-    std::size_t   sparseIndexSize;  // Size of SparseIndex[] table
-    std::uint8_t* data;             // Start of Huffman compressed data
-    std::vector<std::uint64_t>
-      base64;  // base64[l - minSymLen] is the 64bit-padded lowest symbol of length l
-    std::vector<std::uint8_t>
-      symLen;  // Number of values (-1) represented by a given Huffman symbol: 1..256
-    StdArray<Piece, TB_PIECES_MAX>
-      pieces;  // Position pieces: the order of pieces defines the groups
-    StdArray<std::uint64_t, TB_PIECES_MAX + 1>
+    u8    flags;            // Table flags, see enum TBFlag
+    u8    maxSymLen;        // Maximum length in bits of the Huffman symbols
+    u8    minSymLen;        // Minimum length in bits of the Huffman symbols
+    u32   blockCount;       // Number of blocks in the TB file
+    usize blockSize;        // Block size in bytes
+    usize span;             // About every span values there is a SparseIndex[] entry
+    Sym*  lowestSym;        // lowestSym[l] is the symbol of length l with the lowest value
+    LR*   btree;            // btree[sym] stores the left and right symbols that expand sym
+    u16*  blockLength;      // Number of stored positions (minus one) for each block: 1..65536
+    u32   blockLengthSize;  // Size of blockLength[] table: padded so it's bigger than blockCount
+    SparseEntry*     sparseIndex;      // Partial indices into blockLength[]
+    usize            sparseIndexSize;  // Size of SparseIndex[] table
+    u8*              data;             // Start of Huffman compressed data
+    std::vector<u64> base64;  // base64[l - minSymLen] is the 64bit-padded lowest symbol of length l
+    std::vector<u8>  symLen;  // Number of values (-1) represented by a given Huffman symbol: 1..256
+    Array<Piece, TB_PIECES_MAX> pieces;  // Position pieces: the order of pieces defines the groups
+    Array<u64, TB_PIECES_MAX + 1>
       groupIdx;  // Start index used for the encoding of the group's pieces
-    StdArray<std::int32_t, TB_PIECES_MAX + 1>
-      groupLen;  // Number of pieces in a given group: KRKN -> (3, 1)
-    StdArray<std::uint16_t, 4>
-      mapIdx;  // WDLWin, WDLLoss, WDLCursedWin, WDLBlessedLoss (used in DTZ)
+    Array<i32, TB_PIECES_MAX + 1> groupLen;  // Number of pieces in a given group: KRKN -> (3, 1)
+    Array<u16, 4> mapIdx;  // WDLWin, WDLLoss, WDLCursedWin, WDLBlessedLoss (used in DTZ)
 };
 
 struct TableData final {
    public:
-    StdArray<Key, COLOR_NB>          key;
-    StdArray<std::uint8_t, COLOR_NB> pawnCount;
-    std::uint8_t                     pieceCount;
-    bool                             hasPawns;
-    bool                             hasUniquePieces;
+    Array<Key, COLOR_NB> key;
+    Array<u8, COLOR_NB>  pawnCount;
+    u8                   pieceCount;
+    bool                 hasPawns;
+    bool                 hasUniquePieces;
 };
 
 TableData make_table_data(std::string_view code) noexcept {
@@ -495,7 +490,7 @@ TableData make_table_data(std::string_view code) noexcept {
             if (pos.count(c, pt) == 1)
                 tableData.hasUniquePieces = true;
 
-    StdArray<std::uint8_t, COLOR_NB> pawnCnt{
+    Array<u8, COLOR_NB> pawnCnt{
       pos.count(WHITE, PAWN),  //
       pos.count(BLACK, PAWN)   //
     };
@@ -518,7 +513,7 @@ struct BaseTBTable {
    public:
     virtual ~BaseTBTable() noexcept = default;
 
-    StdArray<Key, COLOR_NB> key;
+    Array<Key, COLOR_NB> key;
 };
 
 // TBTable contains indexing information to access the corresponding TBFile.
@@ -537,30 +532,30 @@ struct TBTable final: BaseTBTable {
 
     void* init(const Position& pos, Key materialKey) noexcept;
 
-    std::uint8_t* map(std::string_view filename) noexcept;
+    u8* map(std::string_view filename) noexcept;
 
     void unmap() noexcept;
 
-    void set(std::uint8_t* data) noexcept;
+    void set(u8* data) noexcept;
 
-    void set_groups(PairsData* pd, const StdArray<int, 2>& order, File f) noexcept;
+    void set_groups(PairsData* pd, const Array<int, 2>& order, File f) noexcept;
 
-    std::uint8_t* set_dtz_map(std::uint8_t* data, File) noexcept;
+    u8* set_dtz_map(u8* data, File) noexcept;
 
-    std::uint8_t* map_ptr() noexcept { return mapPtr; }
+    u8* map_ptr() noexcept { return mapPtr; }
 
     PairsData* get(int ac, File f) noexcept { return &items[ac & MASK][hasPawns ? f : FILE_A]; }
 
-    static constexpr std::size_t SIDES = T == WDL ? 2 : 1;
-    static constexpr std::size_t MASK  = SIDES - 1;
+    static constexpr usize SIDES = T == WDL ? 2 : 1;
+    static constexpr usize MASK  = SIDES - 1;
 
-    std::uint8_t                     pieceCount;
-    bool                             hasPawns;
-    bool                             hasUniquePieces;
-    StdArray<std::uint8_t, COLOR_NB> pawnCount;  // [Lead color / other color]
+    u8                  pieceCount;
+    bool                hasPawns;
+    bool                hasUniquePieces;
+    Array<u8, COLOR_NB> pawnCount;  // [Lead color / other color]
 
    private:
-    StdArray<PairsData, SIDES, FILE_NB / 2> items;  // [color][FILE_A..FILE_D]
+    Array<PairsData, SIDES, FILE_NB / 2> items;  // [color][FILE_A..FILE_D]
     #if defined(_WIN32)
     HANDLE      hMapFile = INVALID_HANDLE;
     HandleGuard hMapFileGuard{hMapFile};
@@ -568,12 +563,12 @@ struct TBTable final: BaseTBTable {
     void*     mappedPtr = INVALID_MMAP_PTR;
     MMapGuard mappedGuard{mappedPtr};
     #else
-    void*       mappedPtr  = INVALID_MMAP_PTR;
-    std::size_t mappedSize = INVALID_MMAP_SIZE;
-    MMapGuard   mappedGuard{mappedPtr, mappedSize};
+    void*     mappedPtr  = INVALID_MMAP_PTR;
+    usize     mappedSize = INVALID_MMAP_SIZE;
+    MMapGuard mappedGuard{mappedPtr, mappedSize};
     #endif
-    std::uint8_t* mapPtr = nullptr;
-    CallOnce      callOnce;
+    u8*      mapPtr = nullptr;
+    CallOnce callOnce;
 };
 
 template<TBType T>
@@ -603,10 +598,10 @@ void* TBTable<T>::init(const Position& pos, Key materialKey) noexcept {
         return mappedPtr;
 
     // Pieces strings in decreasing order for each color, like ("KPP","KR")
-    StdArray<std::string, COLOR_NB> pieces{};
+    Array<std::string, COLOR_NB> pieces{};
 
     for (Color c : {WHITE, BLACK})
-        for (std::size_t i = PIECE_TYPES.size(); i-- > 0;)
+        for (usize i = PIECE_TYPES.size(); i-- > 0;)
             pieces[c].append(pos.count(c, PIECE_TYPES[i]), to_char(PIECE_TYPES[i]));
 
     // Slow path: initialize exactly once using CallOnce
@@ -633,7 +628,7 @@ void* TBTable<T>::init(const Position& pos, Key materialKey) noexcept {
 // Files are memory mapped for best performance.
 // Files are mapped at first access: at init time only existence of the file is checked.
 template<TBType T>
-std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
+u8* TBTable<T>::map(std::string_view filename) noexcept {
     #if defined(_WIN32)
     // Note FILE_FLAG_RANDOM_ACCESS is only a hint to Windows and as such may get ignored
     HANDLE hFile = CreateFile(filename.data(), GENERIC_READ, FILE_SHARE_READ, nullptr,
@@ -730,7 +725,7 @@ std::uint8_t* TBTable<T>::map(std::string_view filename) noexcept {
         #endif
     #endif
 
-    std::uint8_t* data = (std::uint8_t*) (mappedPtr);
+    u8* data = (u8*) (mappedPtr);
 
     constexpr auto& TBMagic = TB_MAGICS[T];
 
@@ -757,7 +752,7 @@ void TBTable<T>::unmap() noexcept {
 // Populate entry's PairsData records with data from the just memory-mapped file.
 // Called at first access.
 template<TBType T>
-void TBTable<T>::set(std::uint8_t* data) noexcept {
+void TBTable<T>::set(u8* data) noexcept {
 
     if (data == nullptr)
         return;
@@ -767,7 +762,7 @@ void TBTable<T>::set(std::uint8_t* data) noexcept {
 
     ++data;  // First byte stores flags
 
-    std::size_t Sides = SIDES == 2 && key[WHITE] != key[BLACK] ? 2 : 1;
+    usize Sides = SIDES == 2 && key[WHITE] != key[BLACK] ? 2 : 1;
 
     File maxFile = hasPawns ? FILE_D : FILE_A;
 
@@ -777,28 +772,28 @@ void TBTable<T>::set(std::uint8_t* data) noexcept {
 
     for (File f = FILE_A; f <= maxFile; ++f)
     {
-        for (std::size_t i = 0; i < Sides; ++i)
+        for (usize i = 0; i < Sides; ++i)
             *get(i, f) = PairsData();
 
-        const StdArray<int, 2, 2> order{{
+        const Array<int, 2, 2> order{{
           {{int(*data & 0xF), int(pp ? *(data + 1) & 0xF : 0xF)}},
           {{int(*data >> 4), int(pp ? *(data + 1) >> 4 : 0xF)}}  //
         }};
 
         data += 1 + pp;
 
-        for (std::uint8_t k = 0; k < pieceCount; ++k, ++data)
-            for (std::size_t i = 0; i < Sides; ++i)
+        for (u8 k = 0; k < pieceCount; ++k, ++data)
+            for (usize i = 0; i < Sides; ++i)
                 get(i, f)->pieces[k] = Piece(i != 0 ? (*data >> 4) : (*data & 0xF));
 
-        for (std::size_t i = 0; i < Sides; ++i)
+        for (usize i = 0; i < Sides; ++i)
             set_groups(get(i, f), order[i], f);
     }
 
     data += std::uintptr_t(data) & 1;  // Word alignment
 
     for (File f = FILE_A; f <= maxFile; ++f)
-        for (std::size_t i = 0; i < Sides; ++i)
+        for (usize i = 0; i < Sides; ++i)
             data = get(i, f)->set_sizes(data);
 
     data = set_dtz_map(data, maxFile);
@@ -806,7 +801,7 @@ void TBTable<T>::set(std::uint8_t* data) noexcept {
     PairsData* pd;
 
     for (File f = FILE_A; f <= maxFile; ++f)
-        for (std::size_t i = 0; i < Sides; ++i)
+        for (usize i = 0; i < Sides; ++i)
         {
             (pd = get(i, f))->sparseIndex = (SparseEntry*) (data);
 
@@ -814,17 +809,17 @@ void TBTable<T>::set(std::uint8_t* data) noexcept {
         }
 
     for (File f = FILE_A; f <= maxFile; ++f)
-        for (std::size_t i = 0; i < Sides; ++i)
+        for (usize i = 0; i < Sides; ++i)
         {
-            (pd = get(i, f))->blockLength = (std::uint16_t*) (data);
+            (pd = get(i, f))->blockLength = (u16*) (data);
 
-            data += pd->blockLengthSize * sizeof(std::uint16_t);
+            data += pd->blockLengthSize * sizeof(u16);
         }
 
     for (File f = FILE_A; f <= maxFile; ++f)
-        for (std::size_t i = 0; i < Sides; ++i)
+        for (usize i = 0; i < Sides; ++i)
         {
-            data = (std::uint8_t*) ((std::uintptr_t(data) + 0x3F) & ~0x3F);  // 64 byte alignment
+            data = (u8*) ((std::uintptr_t(data) + 0x3F) & ~0x3F);  // 64 byte alignment
 
             (pd = get(i, f))->data = data;
 
@@ -843,16 +838,16 @@ void TBTable<T>::set(std::uint8_t* data) noexcept {
 // The actual grouping depends on the TB generator and can be inferred from the
 // sequence of pieces in piece[] array.
 template<TBType T>
-void TBTable<T>::set_groups(PairsData* pd, const StdArray<int, 2>& order, File f) noexcept {
+void TBTable<T>::set_groups(PairsData* pd, const Array<int, 2>& order, File f) noexcept {
 
-    std::size_t n = 0;
+    usize n = 0;
 
     pd->groupLen[n] = 1;
 
-    std::size_t firstLen = hasPawns ? 0 : hasUniquePieces ? 3 : 2;
+    usize firstLen = hasPawns ? 0 : hasUniquePieces ? 3 : 2;
     // Number of pieces per group is stored in groupLen[], for instance in KRKN
     // the encoder will default on '111', so groupLen[] will be (3, 1).
-    for (std::uint8_t i = 1; i < pieceCount; ++i)
+    for (u8 i = 1; i < pieceCount; ++i)
     {
         // Determine whether to extend current group
         bool extend = firstLen > 1 || pd->pieces[i] == pd->pieces[i - 1];
@@ -879,11 +874,11 @@ void TBTable<T>::set_groups(PairsData* pd, const StdArray<int, 2>& order, File f
     // are at order[1] position.
     bool pp = hasPawns && pawnCount[BLACK] != 0;  // Pawns on both sides
 
-    std::size_t next = pp ? 2 : 1;
+    usize next = pp ? 2 : 1;
 
-    std::size_t freeLen = SQUARE_NB - pd->groupLen[0] - (pp ? pd->groupLen[1] : 0);
+    usize freeLen = SQUARE_NB - pd->groupLen[0] - (pp ? pd->groupLen[1] : 0);
 
-    std::uint64_t idx = 1;
+    u64 idx = 1;
 
     for (int k = 0; k == order[0] || k == order[1] || next < n; ++k)
     {
@@ -923,13 +918,12 @@ void TBTable<T>::set_groups(PairsData* pd, const StdArray<int, 2>& order, File f
 }
 
 template<>
-std::uint8_t* TBTable<WDL>::set_dtz_map(std::uint8_t*         data,
-                                        [[maybe_unused]] File maxFile) noexcept {
+u8* TBTable<WDL>::set_dtz_map(u8* data, [[maybe_unused]] File maxFile) noexcept {
     return data;
 }
 
 template<>
-std::uint8_t* TBTable<DTZ>::set_dtz_map(std::uint8_t* data, File maxFile) noexcept {
+u8* TBTable<DTZ>::set_dtz_map(u8* data, File maxFile) noexcept {
     mapPtr = data;
 
     for (File f = FILE_A; f <= maxFile; ++f)
@@ -944,17 +938,17 @@ std::uint8_t* TBTable<DTZ>::set_dtz_map(std::uint8_t* data, File maxFile) noexce
             {
                 data += std::uintptr_t(data) & 1;  // Word alignment, may have a mixed table
 
-                for (std::size_t i = 0; i < 4; ++i)
+                for (usize i = 0; i < 4; ++i)
                 {
                     // Sequence like 3,x,x,x,1,x,0,2,x,x
-                    pd->mapIdx[i] = 1 + (std::uint16_t*) (data) - (std::uint16_t*) (mapPtr);
+                    pd->mapIdx[i] = 1 + (u16*) (data) - (u16*) (mapPtr);
 
-                    data += 2 + 2 * number<std::uint16_t, Endian::LITTLE>(data);
+                    data += 2 + 2 * number<u16, Endian::LITTLE>(data);
                 }
             }
             else
             {
-                for (std::size_t i = 0; i < 4; ++i)
+                for (usize i = 0; i < 4; ++i)
                 {
                     pd->mapIdx[i] = 1 + data - mapPtr;
 
@@ -979,7 +973,7 @@ class TBTables final {
             key(k),
             tables{wdlTable, dtzTable} {}
 
-        std::size_t bucket() const noexcept { return key & MASK; }
+        usize bucket() const noexcept { return key & MASK; }
 
         bool empty() const noexcept { return tables[WDL] == nullptr && tables[DTZ] == nullptr; }
 
@@ -988,8 +982,8 @@ class TBTables final {
             return static_cast<TBTable<T>*>(tables[T]);
         }
 
-        Key                               key;
-        StdArray<BaseTBTable*, TBTYPE_NB> tables;
+        Key                            key;
+        Array<BaseTBTable*, TBTYPE_NB> tables;
     };
 
     static_assert(std::is_trivially_destructible_v<Entry>, "Entry must be trivially destructible");
@@ -1006,7 +1000,7 @@ class TBTables final {
     template<TBType T>
     [[nodiscard]] TBTable<T>* get(Key key) const noexcept {
 
-        std::size_t keyBucket = key & MASK;
+        usize keyBucket = key & MASK;
 
         const Entry& idealEntry = entries[keyBucket];
 
@@ -1018,11 +1012,11 @@ class TBTables final {
         // - distance_max() tracks the longest probe chain ever inserted
         // - Any key would be within (distance_max + 1) of its ideal bucket
         // - Cap at PROBE_MAX to prevent infinite loops on corrupt data
-        std::size_t ProbeMax = std::min(distance_max(), PROBE_MAX - 1) + 1;
+        usize ProbeMax = std::min(distance_max(), PROBE_MAX - 1) + 1;
         // Linear probe with Robin Hood early termination
-        for (std::size_t distance = 1; distance <= ProbeMax; ++distance)
+        for (usize distance = 1; distance <= ProbeMax; ++distance)
         {
-            std::size_t bucket = (keyBucket + distance) & MASK;
+            usize bucket = (keyBucket + distance) & MASK;
 
             const Entry& entry = entries[bucket];
 
@@ -1064,20 +1058,20 @@ class TBTables final {
              + " (up to " + std::to_string(MaxCardinality) + "-man).";
     }
 
-    std::size_t distance_max() const noexcept { return DistanceMax; }
+    usize distance_max() const noexcept { return DistanceMax; }
 
     void add(const std::vector<PieceType>& pieces) noexcept;
 
    private:
-    static std::size_t probe_distance(const Entry& entry, std::size_t actualBucket) noexcept {
+    static usize probe_distance(const Entry& entry, usize actualBucket) noexcept {
         return (actualBucket - entry.bucket() /*idealBucket*/) & MASK;
     }
 
 
     bool insert(Entry newEntry) noexcept {
 
-        Key         newKey    = newEntry.key;
-        std::size_t newBucket = newEntry.bucket();
+        Key   newKey    = newEntry.key;
+        usize newBucket = newEntry.bucket();
 
         Entry& idealEntry = entries[newBucket];
 
@@ -1089,11 +1083,11 @@ class TBTables final {
             return true;
         }
 
-        for (std::size_t distance = 1; distance <= PROBE_MAX;)
+        for (usize distance = 1; distance <= PROBE_MAX;)
         {
             DistanceMax = std::max(distance, DistanceMax);
 
-            std::size_t bucket = (newBucket + distance) & MASK;
+            usize bucket = (newBucket + distance) & MASK;
 
             Entry& entry = entries[bucket];
 
@@ -1105,7 +1099,7 @@ class TBTables final {
                 return true;
             }
 
-            std::size_t entryDistance = probe_distance(entry, bucket);
+            usize entryDistance = probe_distance(entry, bucket);
             // Case 2: Robin Hood strategy rule: compare probe distances
             // If the new entry has probed farther than the current entry,
             // steal the slot and continue with the displaced entry.
@@ -1131,21 +1125,21 @@ class TBTables final {
     }
 
     // Total number of buckets in the table (must be power of 2 for bit-masking)
-    static constexpr std::size_t SIZE = 0x1000;  // 4096 entries, 12-bit index
+    static constexpr usize SIZE = 0x1000;  // 4096 entries, 12-bit index
     // Mask for wrapping bucket indices efficiently: index % SIZE
-    static constexpr std::size_t MASK = SIZE - 1;
+    static constexpr usize MASK = SIZE - 1;
     // Maximum number of probe allowed during insertion/search
     // - 32 = safe, good worst-case bound
     // - 24 = optimal balance between speed and collision handling
     // - 16 = faster but more strict (less tolerance for long probe chains)
-    static constexpr std::size_t PROBE_MAX = 32;
+    static constexpr usize PROBE_MAX = 32;
     // Ensure PROBE_MAX does not exceed table size (compile-time safety)
     static_assert(PROBE_MAX <= SIZE, "PROBE_MAX must be <= SIZE");
 
     // Track the farthest any entry has been displaced
-    std::size_t DistanceMax = 0;
+    usize DistanceMax = 0;
 
-    StdArray<Entry, SIZE> entries;
+    Array<Entry, SIZE> entries;
 
     std::deque<TBTable<WDL>> wdlTables;
     std::deque<TBTable<DTZ>> dtzTables;
@@ -1161,7 +1155,7 @@ void TBTables::add(const std::vector<PieceType>& pieces) noexcept {
     for (auto pt : pieces)
         code.push_back(to_char(pt));
 
-    std::size_t pos = code.find('K', 1);
+    usize pos = code.find('K', 1);
 
     assert(!code.empty() && code[0] == 'K' && pos != std::string::npos);
 
@@ -1170,14 +1164,14 @@ void TBTables::add(const std::vector<PieceType>& pieces) noexcept {
 
     code.insert(pos, 1, 'v');  // KRK -> KRvK
 
-    StdArray<bool, TBTYPE_NB> Exists{
+    Array<bool, TBTYPE_NB> Exists{
       TBFile(code, EXTS[WDL]).exists(), TBFile(code, EXTS[DTZ]).exists()  //
     };
 
     if (!(Exists[WDL] || Exists[DTZ]))
         return;
 
-    MaxCardinality = std::max(std::uint8_t(pieces.size()), MaxCardinality);
+    MaxCardinality = std::max(u8(pieces.size()), MaxCardinality);
 
     TBTable<WDL>* wdlTable = nullptr;
     TBTable<DTZ>* dtzTable = nullptr;
@@ -1221,7 +1215,7 @@ TBTables tbTables;
 // Huffman codes are the same for all blocks in the table. A non-symmetric pawn less TB file
 // will have one table for wtm and one for btm, a TB file with pawns will have tables per
 // file a,b,c,d also, in this case, one set for wtm and one for btm.
-int decompress_pairs(const PairsData* pd, std::uint64_t idx) noexcept {
+int decompress_pairs(const PairsData* pd, u64 idx) noexcept {
 
     // Special case where all table positions store the same value
     if (pd->flags & SINGLE_VALUE)
@@ -1242,11 +1236,11 @@ int decompress_pairs(const PairsData* pd, std::uint64_t idx) noexcept {
     //       I(k) = k * d->span + d->span / 2       (1)
 
     // First step is to get the 'k' of the I(k) nearest to our idx, using definition (1)
-    auto k = std::uint32_t(idx / pd->span);
+    auto k = u32(idx / pd->span);
 
     // Then read the corresponding SparseIndex[] entry
-    auto block  = number<std::uint32_t, Endian::LITTLE>(pd->sparseIndex[k].block.data());
-    int  offset = number<std::uint16_t, Endian::LITTLE>(pd->sparseIndex[k].offset.data());
+    auto block  = number<u32, Endian::LITTLE>(pd->sparseIndex[k].block.data());
+    int  offset = number<u16, Endian::LITTLE>(pd->sparseIndex[k].offset.data());
 
     // Now compute the difference idx - I(k). From the definition of k,
     //
@@ -1276,12 +1270,12 @@ int decompress_pairs(const PairsData* pd, std::uint64_t idx) noexcept {
     }
 
     // Finally, find the start address of block of canonical Huffman symbols
-    auto* ptr = (std::uint32_t*) (pd->data + (std::uint64_t(block) * pd->blockSize));
+    auto* ptr = (u32*) (pd->data + (u64(block) * pd->blockSize));
 
     // Read the first 64 bits in our block, this is a (truncated) sequence of
     // unknown number of symbols of unknown length but the first one
     // is at the beginning of this 64-bit sequence.
-    auto buf64 = number<std::uint64_t, Endian::BIG>(ptr);
+    auto buf64 = number<u64, Endian::BIG>(ptr);
     ptr += 2;
 
     int buf64Size = 64;
@@ -1289,7 +1283,7 @@ int decompress_pairs(const PairsData* pd, std::uint64_t idx) noexcept {
 
     while (true)
     {
-        std::size_t len = 0;  // This is the symbol length - d->min_sym_len
+        usize len = 0;  // This is the symbol length - d->min_sym_len
 
         // Now get the symbol length.
         // For any symbol s64 of length 'l' right-padded to 64 bits that
@@ -1319,7 +1313,7 @@ int decompress_pairs(const PairsData* pd, std::uint64_t idx) noexcept {
         if (buf64Size <= 32)
         {
             buf64Size += 32;
-            buf64 |= std::uint64_t(number<std::uint32_t, Endian::BIG>(ptr++)) << (64 - buf64Size);
+            buf64 |= u64(number<u32, Endian::BIG>(ptr++)) << (64 - buf64Size);
         }
     }
 
@@ -1376,7 +1370,7 @@ int map_score(TBTable<DTZ>* table, File f, int value, WDLScore wdlScore) noexcep
 
         auto idx = mapIdx[WDL_MAP[wdl_index(wdlScore)]] + value;
 
-        value = (flags & WIDE) != 0 ? ((std::uint16_t*) mapPtr)[idx] : mapPtr[idx];
+        value = (flags & WIDE) != 0 ? ((u16*) mapPtr)[idx] : mapPtr[idx];
     }
 
     // DTZ-tables store distance to zero in number of moves or plies.
@@ -1422,13 +1416,13 @@ Ret do_probe_table(
 
     int activeColor = flip ? ~pos.active_color() : pos.active_color();
 
-    StdArray<Square, TB_PIECES_MAX> squares{};
-    StdArray<Piece, TB_PIECES_MAX>  pieces;
+    Array<Square, TB_PIECES_MAX> squares{};
+    Array<Piece, TB_PIECES_MAX>  pieces;
 
-    std::size_t size = 0;
+    usize size = 0;
 
-    Bitboard    leadPawnsBB = 0;
-    std::size_t leadPawnCnt = 0;
+    Bitboard leadPawnsBB = 0;
+    usize    leadPawnCnt = 0;
 
     File tbFile = FILE_A;
 
@@ -1491,8 +1485,8 @@ Ret do_probe_table(
 
     // Then reorder the pieces to have the same sequence as the one stored
     // in pieces[i]: the sequence that ensures the best compression.
-    for (std::size_t i = leadPawnCnt; i < size - 1; ++i)
-        for (std::size_t j = i + 1; j < size; ++j)
+    for (usize i = leadPawnCnt; i < size - 1; ++i)
+        for (usize j = i + 1; j < size; ++j)
             if (pd->pieces[i] == pieces[j])
             {
                 std::swap(pieces[i], pieces[j]);
@@ -1505,11 +1499,11 @@ Ret do_probe_table(
     if (file_of(squares[0]) > FILE_D)
     {
         CLANG_LOOP_VEC_DISABLE
-        for (std::size_t i = 0; i < size; ++i)
+        for (usize i = 0; i < size; ++i)
             squares[i] = flip_file(squares[i]);
     }
 
-    std::uint64_t idx;
+    u64 idx;
     // Encode leading pawns starting with the one with minimum PawnsMap[] and
     // proceeding in ascending order.
     if (table->hasPawns)
@@ -1518,7 +1512,7 @@ Ret do_probe_table(
 
         std::stable_sort(squares.begin() + 1, squares.begin() + leadPawnCnt, pawns_comp);
 
-        for (std::size_t i = 1; i < leadPawnCnt; ++i)
+        for (usize i = 1; i < leadPawnCnt; ++i)
             idx += Binomial[i][PawnsMap[squares[i]]];
     }
     else
@@ -1529,14 +1523,14 @@ Ret do_probe_table(
     if (rank_of(squares[0]) > RANK_4)
     {
         CLANG_LOOP_VEC_DISABLE
-        for (std::size_t i = 0; i < size; ++i)
+        for (usize i = 0; i < size; ++i)
             squares[i] = flip_rank(squares[i]);
     }
 
     // Look for the first piece of the leading group not on the A1-D4 diagonal
     // and ensure it is mapped below the diagonal.
     CLANG_LOOP_VEC_DISABLE
-    for (std::int32_t i = 0; i < pd->groupLen[0]; ++i)
+    for (i32 i = 0; i < pd->groupLen[0]; ++i)
     {
         if (off_A1H8(squares[i]) == 0)
             continue;
@@ -1544,7 +1538,7 @@ Ret do_probe_table(
         if (off_A1H8(squares[i]) > 0)  // A1-H8 diagonal flip: SQ_A3 -> SQ_C1
         {
             CLANG_LOOP_VEC_DISABLE
-            for (std::size_t j = i; j < size; ++j)
+            for (usize j = i; j < size; ++j)
                 squares[j] = Square(((squares[j] >> 3) | (squares[j] << 3)) & 0x3F);
         }
 
@@ -1619,16 +1613,16 @@ Ret do_probe_table(
     // Encode remaining pawns and then pieces according to square, in ascending order
     bool pawnsRemaining = table->hasPawns && table->pawnCount[BLACK];
 
-    std::size_t next = 0;
+    usize next = 0;
 
     while (pd->groupLen[++next])
     {
         std::stable_sort(groupSq, groupSq + pd->groupLen[next]);
 
-        std::uint64_t n = 0;
+        u64 n = 0;
         // Map down a square if "comes later" than a square in the previous
         // groups (similar to what was done earlier for leading group pieces).
-        for (std::int32_t i = 0; i < pd->groupLen[next]; ++i)
+        for (i32 i = 0; i < pd->groupLen[next]; ++i)
         {
             auto adjust = std::count_if(squares.data(), groupSq,  //
                                         [&](Square s) { return groupSq[i] > s; });
@@ -1688,7 +1682,7 @@ WDLScore search(Position& pos, ProbeState* ps) noexcept {
 
     MoveList<GenType::LEGAL> legalMoves(pos);
 
-    std::uint8_t moveCount = 0;
+    u8 moveCount = 0;
 
     for (Move m : legalMoves)
     {
@@ -1757,7 +1751,7 @@ WDLScore search(Position& pos, ProbeState* ps) noexcept {
 // Called at startup to create the various tables
 void init() noexcept {
 
-    std::size_t code;
+    usize code;
 
     // B1H1H7Map[] encodes a square below a1-h8 diagonal to 0..27
     code = 0;
@@ -1792,7 +1786,7 @@ void init() noexcept {
     // If the first king is on the a1-d4 diagonal, the other one shall not be above the a1-h8 diagonal.
     code = 0;
     std::vector<std::pair<int, Square>> bothOnDiagonal;
-    for (std::size_t map = 0; map < KKMap.size(); ++map)
+    for (usize map = 0; map < KKMap.size(); ++map)
     {
         for (Square s1 = SQ_A1; s1 <= SQ_D4; ++s1)
         {
@@ -1824,9 +1818,9 @@ void init() noexcept {
 
     // Binomial[] stores the Binomial Coefficients using Pascal rule.
     // There are Binomial[k][n] ways to choose k elements from a set of n elements.
-    for (std::size_t k = 0; k < Binomial.size(); ++k)
+    for (usize k = 0; k < Binomial.size(); ++k)
     {
-        std::size_t n = 0;
+        usize n = 0;
         for (; n < k; ++n)
         {
             Binomial[k][n] = 0;
@@ -1846,13 +1840,13 @@ void init() noexcept {
     code = 47;  // Available squares when lead pawn is in a2
     // Init the tables for the encoding of leading pawn group:
     // with 7-men TB can have up to 5 leading pawns (KPPPPPK).
-    for (std::size_t leadPawnCnt = 1; leadPawnCnt < LeadPawnSize.size(); ++leadPawnCnt)
+    for (usize leadPawnCnt = 1; leadPawnCnt < LeadPawnSize.size(); ++leadPawnCnt)
     {
         for (File f = FILE_A; f <= FILE_D; ++f)
         {
             // Restart the index at every file because TB table is split
             // by file, so can reuse the same index for different files.
-            std::size_t idx = 0;
+            usize idx = 0;
 
             // Sum all possible combinations for a given file, starting with
             // the leading pawn on rank 2 and increasing the rank.
@@ -2081,7 +2075,7 @@ bool rank_root_moves_wdl(Position& pos, RootMoves& rootMoves, bool useRule50) no
 // A return value false indicates that not all probes were successful.
 bool rank_root_moves_dtz(Position& pos, RootMoves& rootMoves, bool useRule50, bool rankDTZ, TimeFunc time_to_abort) noexcept {
     // Obtain 50-move counter for the root position
-    std::int16_t rule50Count = pos.rule50_count();
+    i16 rule50Count = pos.rule50_count();
 
     // Check whether the position was repeated since the last zeroing move
     bool hasRepeated = pos.has_repeated();

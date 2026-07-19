@@ -23,8 +23,6 @@
 #include <algorithm>
 #include <array>
 #include <cassert>
-#include <cstddef>
-#include <cstdint>
 #include <cstring>
 #include <iostream>
 #include <string_view>
@@ -50,39 +48,39 @@
 
 namespace DON::NNUE {
 
-using BiasType         = std::int16_t;
-using WeightType       = std::int16_t;
-using PSQTWeightType   = std::int32_t;
-using ThreatWeightType = std::int8_t;
-using IndexType        = std::size_t;
+using BiasType         = i16;
+using WeightType       = i16;
+using PSQTWeightType   = i32;
+using ThreatWeightType = i8;
+using IndexType        = usize;
 
 // Type of input feature after conversion
-using TransformedFeatureType = std::uint8_t;
+using TransformedFeatureType = u8;
 
 // Version of the evaluation file
-inline constexpr std::uint32_t FILE_VERSION = 0x7AF32F20u;
+inline constexpr u32 FILE_VERSION = 0x7AF32F20u;
 
 // Constant used in evaluation value calculation
 inline constexpr int OUTPUT_SCALE      = 16;
 inline constexpr int WEIGHT_SCALE_BITS = 6;
 
 // LEB128 constants
-inline constexpr std::uint8_t LEB128_DATA_MASK = 0x7F;           // 7 data bits
-inline constexpr std::uint8_t LEB128_MORE_BIT  = 0x80;           // Continuation bit
-inline constexpr std::uint8_t LEB128_SIGN_BIT  = 0x40;           // Sign bit of 7-bit group
-inline constexpr std::size_t  LEB128_BITS      = BYTE_BITS - 1;  // 7 bits per group
+inline constexpr u8    LEB128_DATA_MASK = 0x7F;           // 7 data bits
+inline constexpr u8    LEB128_MORE_BIT  = 0x80;           // Continuation bit
+inline constexpr u8    LEB128_SIGN_BIT  = 0x40;           // Sign bit of 7-bit group
+inline constexpr usize LEB128_BITS      = BYTE_BITS - 1;  // 7 bits per group
 
 inline constexpr std::string_view LEB128_MAGIC_STRING{"COMPRESSED_LEB128"};
 
-inline constexpr std::size_t SIMD_WIDTH_MAX = 32;
+inline constexpr usize SIMD_WIDTH_MAX = 32;
 
 // SIMD width (in bytes)
 #if defined(USE_AVX2)
-inline constexpr std::size_t SIMD_WIDTH = 32;
+inline constexpr usize SIMD_WIDTH = 32;
 #elif defined(USE_SSE2)
-inline constexpr std::size_t SIMD_WIDTH = 16;
+inline constexpr usize SIMD_WIDTH = 16;
 #elif defined(USE_NEON)
-inline constexpr std::size_t SIMD_WIDTH = 16;
+inline constexpr usize SIMD_WIDTH = 16;
 #endif
 
 // Round n up to be a multiple of base
@@ -99,7 +97,7 @@ inline IntType read_little_endian(std::istream& is) noexcept {
 
     using UIntType = std::make_unsigned_t<IntType>;
 
-    constexpr std::size_t IntSize = sizeof(IntType);
+    constexpr usize IntSize = sizeof(IntType);
 
     IntType value;
 
@@ -107,12 +105,12 @@ inline IntType read_little_endian(std::istream& is) noexcept {
         is.read(reinterpret_cast<char*>(&value), IntSize);
     else
     {
-        StdArray<std::uint8_t, IntSize> u;
+        Array<u8, IntSize> u;
 
         UIntType v = 0;
 
         is.read(reinterpret_cast<char*>(u.data()), IntSize);
-        for (std::size_t i = 0; i < IntSize; ++i)
+        for (usize i = 0; i < IntSize; ++i)
             v = (v << BYTE_BITS) | u[IntSize - i - 1];
 
         std::memcpy(&value, &v, IntSize);
@@ -130,17 +128,17 @@ inline void write_little_endian(std::ostream& os, IntType value) noexcept {
 
     using UIntType = std::make_unsigned_t<IntType>;
 
-    constexpr std::size_t IntSize = sizeof(IntType);
+    constexpr usize IntSize = sizeof(IntType);
 
     if (IsLittleEndian)
         os.write(reinterpret_cast<const char*>(&value), IntSize);
     else
     {
-        StdArray<std::uint8_t, IntSize> u;
+        Array<u8, IntSize> u;
 
         UIntType v = value;
 
-        std::size_t i = 0;
+        usize i = 0;
         // if constexpr to silence the warning about shift by BYTE_BITS
         if constexpr (IntSize > 1)
         {
@@ -158,37 +156,37 @@ inline void write_little_endian(std::ostream& os, IntType value) noexcept {
 
 // Read integers in bulk from a little-endian istream.
 // This reads N integers from istream and puts them in array out.
-template<typename IntType, std::size_t Size>
+template<typename IntType, usize Size>
 inline void read_little_endian(std::istream& is, std::array<IntType, Size>& out) noexcept {
 
-    constexpr std::size_t IntSize = sizeof(IntType);
+    constexpr usize IntSize = sizeof(IntType);
 
     if (IsLittleEndian)
         is.read(reinterpret_cast<char*>(out.data()), Size * IntSize);
     else
-        for (std::size_t i = 0; i < Size; ++i)
+        for (usize i = 0; i < Size; ++i)
             out[i] = read_little_endian<IntType>(is);
 }
 
 // Write integers in bulk to a little-endian ostream.
 // This takes N integers from array in and writes them on ostream.
-template<typename IntType, std::size_t Size>
+template<typename IntType, usize Size>
 inline void write_little_endian(std::ostream& os, const std::array<IntType, Size>& in) noexcept {
 
-    constexpr std::size_t IntSize = sizeof(IntType);
+    constexpr usize IntSize = sizeof(IntType);
 
     if (IsLittleEndian)
         os.write(reinterpret_cast<const char*>(in.data()), Size * IntSize);
     else
-        for (std::size_t i = 0; i < Size; ++i)
+        for (usize i = 0; i < Size; ++i)
             write_little_endian<IntType>(os, in[i]);
 }
 
-template<typename BufType, typename IntType, std::size_t Size>
+template<typename BufType, typename IntType, usize Size>
 inline void _read_leb_128(std::istream&              is,
                           BufType&                   buffer,
-                          std::size_t&               bufferIdx,
-                          std::size_t&               byteCount,
+                          usize&                     bufferIdx,
+                          usize&                     byteCount,
                           std::array<IntType, Size>& out) noexcept {
     static_assert(std::is_signed_v<IntType>, "Not implemented for unsigned types");
     static_assert(sizeof(IntType) <= 4, "Not implemented for types larger than 32 bit");
@@ -197,9 +195,9 @@ inline void _read_leb_128(std::istream&              is,
 
     IntType value = 0;
 
-    std::size_t shift = 0;
+    usize shift = 0;
 
-    std::size_t i = 0;
+    usize i = 0;
 
     while (i < Size)
     {
@@ -220,7 +218,7 @@ inline void _read_leb_128(std::istream&              is,
         if (byteCount == 0)
             break;
 
-        std::uint8_t b = buffer[bufferIdx];
+        u8 b = buffer[bufferIdx];
 
         ++bufferIdx;
         --byteCount;
@@ -257,17 +255,17 @@ inline void _read_leb_128(std::istream&              is,
 template<typename... Arrays>
 inline void read_leb_128(std::istream& is, Arrays&... outs) noexcept {
     // Read and check the presence of LEB128 magic string
-    StdArray<char, LEB128_MAGIC_STRING.size()> leb128MagicString;
+    Array<char, LEB128_MAGIC_STRING.size()> leb128MagicString;
     is.read(leb128MagicString.data(), LEB128_MAGIC_STRING.size());
     assert(
       std::strncmp(leb128MagicString.data(), LEB128_MAGIC_STRING.data(), LEB128_MAGIC_STRING.size())
       == 0);
 
-    std::size_t byteCount = read_little_endian<std::uint32_t>(is);
+    usize byteCount = read_little_endian<u32>(is);
 
-    StdArray<std::uint8_t, 8192> buffer;
+    Array<u8, 8192> buffer;
 
-    std::size_t bufferIdx = buffer.size();
+    usize bufferIdx = buffer.size();
 
     (_read_leb_128(is, buffer, bufferIdx, byteCount, outs), ...);
 
@@ -278,22 +276,22 @@ inline void read_leb_128(std::istream& is, Arrays&... outs) noexcept {
 // This takes N integers from array in, compresses them with
 // the LEB128 algorithm and writes the value to the ostream.
 // See https://en.wikipedia.org/wiki/LEB128 for a description of the compression scheme.
-template<typename IntType, std::size_t Size>
+template<typename IntType, usize Size>
 inline void write_leb_128(std::ostream& os, const std::array<IntType, Size>& in) noexcept {
     static_assert(std::is_signed_v<IntType>, "Not implemented for unsigned types");
 
     // Write LEB128 magic string
     os.write(LEB128_MAGIC_STRING.data(), LEB128_MAGIC_STRING.size());
 
-    std::size_t byteCount = 0;
-    for (std::size_t i = 0; i < Size; ++i)
+    usize byteCount = 0;
+    for (usize i = 0; i < Size; ++i)
     {
         IntType value = in[i];
 
         bool last;
         do
         {
-            std::uint8_t b = value & LEB128_DATA_MASK;
+            u8 b = value & LEB128_DATA_MASK;
             value >>= LEB128_BITS;
             last = (b & LEB128_SIGN_BIT) == 0 ? value == 0    // Positive: done when 0
                                               : value == -1;  // Negative: done when -1
@@ -301,11 +299,11 @@ inline void write_leb_128(std::ostream& os, const std::array<IntType, Size>& in)
         } while (!last);
     }
 
-    write_little_endian<std::uint32_t>(os, byteCount);
+    write_little_endian<u32>(os, byteCount);
 
-    StdArray<std::uint8_t, 4096> buffer;
+    Array<u8, 4096> buffer;
 
-    std::size_t bufferIdx = 0;
+    usize bufferIdx = 0;
 
     auto flush = [&]() noexcept {
         if (bufferIdx == 0)
@@ -314,20 +312,20 @@ inline void write_leb_128(std::ostream& os, const std::array<IntType, Size>& in)
         bufferIdx = 0;
     };
 
-    auto write = [&](std::uint8_t b) noexcept {
+    auto write = [&](u8 b) noexcept {
         buffer[bufferIdx++] = b;
         if (bufferIdx == buffer.size())
             flush();
     };
 
-    for (std::size_t i = 0; i < Size; ++i)
+    for (usize i = 0; i < Size; ++i)
     {
         IntType value = in[i];
         // Encode signed value as LEB128
         bool last;
         do
         {
-            std::uint8_t b = value & LEB128_DATA_MASK;
+            u8 b = value & LEB128_DATA_MASK;
             value >>= LEB128_BITS;                            // Arithmetic right shift by 7
             last = (b & LEB128_SIGN_BIT) == 0 ? value == 0    // Positive: done when 0
                                               : value == -1;  // Negative: done when -1

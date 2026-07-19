@@ -20,7 +20,6 @@
 #include <algorithm>
 #include <cassert>
 #include <cctype>
-#include <cstddef>
 #include <functional>
 #include <iostream>
 #include <optional>
@@ -41,7 +40,7 @@ namespace DON {
 
 namespace {
 
-enum class Command : std::uint8_t {
+enum class Command : u8 {
     STOP,
     QUIT,
     PONDERHIT,
@@ -147,17 +146,17 @@ Limit parse_limit(std::istream& is) noexcept {
         }
         else if (token == "movestogo")
         {
-            std::int16_t movesToGo;
+            i16 movesToGo;
             is >> movesToGo;
 
-            limit.movesToGo = std::clamp<std::uint8_t>(constexpr_abs(movesToGo), 1, 255);
+            limit.movesToGo = std::clamp<u8>(constexpr_abs(movesToGo), 1, 255);
         }
         else if (token == "mate")
         {
-            std::int16_t mate;
+            i16 mate;
             is >> mate;
 
-            limit.mate = std::clamp<std::uint8_t>(constexpr_abs(mate), 1, 255);
+            limit.mate = std::clamp<u8>(constexpr_abs(mate), 1, 255);
         }
         else if (token == "depth")
         {
@@ -169,7 +168,7 @@ Limit parse_limit(std::istream& is) noexcept {
         {
             is >> limit.nodes;
 
-            limit.nodes = std::max(limit.nodes, std::uint64_t(1));
+            limit.nodes = std::max(limit.nodes, u64(1));
         }
         else if (token == "infinite")
             limit.infinite = true;
@@ -327,10 +326,10 @@ void UCI::execute(std::string_view command) noexcept {
         std::cout << compiler_info() << std::endl;
         break;
     case Command::EXPORT_NET : {
-        StdArray<std::string, 2>      inputs;
-        StdArray<std::string_view, 2> netFiles;
+        Array<std::string, 2>      inputs;
+        Array<std::string_view, 2> netFiles;
 
-        for (std::size_t i = 0; i < netFiles.size() && is >> inputs[i]; ++i)
+        for (usize i = 0; i < netFiles.size() && is >> inputs[i]; ++i)
             netFiles[i] = inputs[i];
 
         engine.save_networks(netFiles);
@@ -415,7 +414,7 @@ void UCI::position(std::istream& is) noexcept {
         token.clear();
         fen.reserve(64);
 
-        std::size_t i = 0;
+        usize i = 0;
         // Read up to 6 tokens
         while (is >> token && i < 6)
         {
@@ -495,7 +494,7 @@ void UCI::bench(std::istream& is) noexcept {
 
     auto commands = Benchmark::bench(is, engine.fen());
 
-    std::uint64_t infoNodes = 0;
+    u64 infoNodes = 0;
     engine.set_on_update_full([&infoNodes](const auto& info) {
         infoNodes = info.nodes;
         on_update_full(info);
@@ -505,7 +504,7 @@ void UCI::bench(std::istream& is) noexcept {
 
     options().set("MinimalInfo", bool_to_string(true));
 
-    std::size_t num = std::count_if(commands.begin(), commands.end(), [](std::string_view command) {
+    usize num = std::count_if(commands.begin(), commands.end(), [](std::string_view command) {
         return starts_with(command, "go ") || starts_with(command, "eval");
     });
 
@@ -516,8 +515,8 @@ void UCI::bench(std::istream& is) noexcept {
     TimePoint startTime   = now();
     TimePoint elapsedTime = 0;
 
-    std::size_t   cnt   = 0;
-    std::uint64_t nodes = 0;
+    usize cnt   = 0;
+    u64   nodes = 0;
 
     for (const auto& command : commands)
     {
@@ -589,7 +588,7 @@ void UCI::bench(std::istream& is) noexcept {
 
 void UCI::benchmark(std::istream& is) noexcept {
     // Probably not very important for a test this long, but include for completeness and sanity.
-    constexpr std::size_t WarmupPositionCount = 3;
+    constexpr usize WarmupPositionCount = 3;
 
     auto setup = Benchmark::benchmark(is);
 
@@ -598,7 +597,7 @@ void UCI::benchmark(std::istream& is) noexcept {
     options().set("Hash", std::to_string(setup.ttSize));
     options().set("UCI_Chess960", bool_to_string(false));
 
-    std::uint64_t infoNodes = 0;
+    u64 infoNodes = 0;
     engine.set_on_update_short([](const auto&) {});
     engine.set_on_update_full([&](const auto& info) { infoNodes = info.nodes; });
     engine.set_on_update_iter([](const auto&) {});
@@ -606,9 +605,8 @@ void UCI::benchmark(std::istream& is) noexcept {
 
     InfoStrStop = true;
 
-    std::size_t num =
-      std::count_if(setup.commands.begin(), setup.commands.end(),
-                    [](std::string_view command) { return starts_with(command, "go "); });
+    usize num = std::count_if(setup.commands.begin(), setup.commands.end(),
+                              [](std::string_view command) { return starts_with(command, "go "); });
 
 #if !defined(NDEBUG)
     Debug::clear();
@@ -617,8 +615,8 @@ void UCI::benchmark(std::istream& is) noexcept {
     TimePoint startTime   = now();
     TimePoint elapsedTime = 0;
 
-    std::size_t   cnt   = 0;
-    std::uint64_t nodes = 0;
+    usize cnt   = 0;
+    u64   nodes = 0;
     // Warmup
     for (const auto& command : setup.commands)
     {
@@ -668,18 +666,18 @@ void UCI::benchmark(std::istream& is) noexcept {
     nodes = 0;
 
     // Only normal hashfull and touched hash
-    constexpr StdArray<std::uint8_t, 2> HashfullAges{0, 31};
+    constexpr Array<u8, 2> HashfullAges{0, 31};
 
     static_assert(HashfullAges.size() == 2 && HashfullAges[0] == 0 && HashfullAges[1] == 31,
                   "Incorrect HashfullAges[].");
 
-    std::uint16_t                                hashfullCount = 0;
-    StdArray<std::uint16_t, HashfullAges.size()> maxHashfull{};
-    StdArray<std::uint32_t, HashfullAges.size()> sumHashfull{};
+    u16                             hashfullCount = 0;
+    Array<u16, HashfullAges.size()> maxHashfull{};
+    Array<u32, HashfullAges.size()> sumHashfull{};
 
     auto update_hashfull = [&]() noexcept -> void {
         ++hashfullCount;
-        for (std::size_t i = 0; i < HashfullAges.size(); ++i)
+        for (usize i = 0; i < HashfullAges.size(); ++i)
         {
             auto hashfull = engine.hashfull(HashfullAges[i]);
 
@@ -688,7 +686,7 @@ void UCI::benchmark(std::istream& is) noexcept {
         }
     };
 
-    auto avg = [&hashfullCount](std::uint32_t x) noexcept { return double(x) / hashfullCount; };
+    auto avg = [&hashfullCount](u32 x) noexcept { return double(x) / hashfullCount; };
 
     elapsedTime += now() - startTime;
     engine.init();  // May take a while
@@ -771,8 +769,8 @@ void UCI::benchmark(std::istream& is) noexcept {
     set_update_callbacks();
 }
 
-std::uint64_t UCI::perft(Depth depth, bool detail) noexcept {
-    std::uint64_t nodes = engine.perft(depth, detail);
+u64 UCI::perft(Depth depth, bool detail) noexcept {
+    u64 nodes = engine.perft(depth, detail);
 
     std::cout << "\nTotal nodes: " << nodes << '\n' << std::endl;
 

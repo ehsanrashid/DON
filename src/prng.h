@@ -18,8 +18,6 @@
 #ifndef PRNG_H_INCLUDED
 #define PRNG_H_INCLUDED
 
-#include <cstdint>
-
 #include "misc.h"
 
 namespace DON {
@@ -28,22 +26,22 @@ namespace DON {
 // This is the standard, high-quality way to expand a single seed.
 class SplitMix64 final {
    public:
-    explicit constexpr SplitMix64(std::uint64_t seed = 1) noexcept :
+    explicit constexpr SplitMix64(u64 seed = 1) noexcept :
         s(seed != 0 ? seed : 1) {}
 
-    constexpr std::uint64_t next() noexcept {
-        s += 0x9E3779B97F4A7C15ull;
+    constexpr u64 next() noexcept {
+        s += u64{0x9E3779B97F4A7C15};
 
-        std::uint64_t t = s;
-        t               = (t ^ (t >> 30)) * 0xBF58476D1CE4E5B9ull;
-        t               = (t ^ (t >> 27)) * 0x94D049BB133111EBull;
-        t               = (t ^ (t >> 31));
+        u64 t = s;
+        t     = (t ^ (t >> 30)) * u64{0xBF58476D1CE4E5B9};
+        t     = (t ^ (t >> 27)) * u64{0x94D049BB133111EB};
+        t     = (t ^ (t >> 31));
 
         return t;
     }
 
    private:
-    std::uint64_t s;
+    u64 s;
 };
 
 // XorShift64* Pseudo-Random Number Generator
@@ -62,7 +60,7 @@ class SplitMix64 final {
 //   <http://vigna.di.unimi.it/ftp/papers/xorshift.pdf>
 class XorShift64Star final {
    public:
-    explicit constexpr XorShift64Star(std::uint64_t seed = 1) noexcept :
+    explicit constexpr XorShift64Star(u64 seed = 1) noexcept :
         s(SplitMix64(seed).next()) {
         // Avoid zero state
         if (s == 0)
@@ -82,12 +80,12 @@ class XorShift64Star final {
 
     // XorShift64* jump implementation
     constexpr void jump() noexcept {
-        constexpr std::uint64_t JumpMask = 0x9E3779B97F4A7C15ull;
+        constexpr u64 JumpMask = u64{0x9E3779B97F4A7C15};
 
-        std::uint64_t t = 0;
+        u64 t = 0;
 
         if constexpr (JumpMask != 0)
-            for (std::uint8_t b = 0; b < 64; ++b)
+            for (u8 b = 0; b < 64; ++b)
             {
                 if ((JumpMask & bit(b)) != 0)
                     t ^= s;
@@ -100,14 +98,14 @@ class XorShift64Star final {
 
    private:
     // XorShift64* algorithm implementation
-    constexpr std::uint64_t rand64() noexcept {
+    constexpr u64 rand64() noexcept {
         s ^= s >> 12;
         s ^= s << 25;
         s ^= s >> 27;
-        return 0x2545F4914F6CDD1Dull * s;
+        return u64{0x2545F4914F6CDD1D} * s;
     }
 
-    std::uint64_t s;
+    u64 s;
 };
 
 }  // namespace DON

@@ -20,8 +20,6 @@
 #ifndef NNUE_FEATURES_HALF_KA_HM_H_INCLUDED
 #define NNUE_FEATURES_HALF_KA_HM_H_INCLUDED
 
-#include <cstdint>
-
 #include "../../misc.h"
 #include "../../types.h"
 #include "../common.h"
@@ -33,7 +31,7 @@ namespace DON::NNUE::Features {
 class HalfKA_hm final {
    public:
     // Hash value embedded in the evaluation file
-    static constexpr std::uint32_t Hash = 0x7F234CB8u;
+    static constexpr u32 Hash = 0x7F234CB8u;
 
     static constexpr IndexType PS_NB = 11 * SQUARE_NB;
 
@@ -46,11 +44,11 @@ class HalfKA_hm final {
     using DirtyType = DirtyPiece;
     using IndexList = FixedVector<IndexType, MaxActiveDimensions>;
 
-    static void append_active_indices(Color                             perspective,
-                                      Square                            kingSq,
-                                      const StdArray<Piece, SQUARE_NB>& pieceMap,
-                                      Bitboard                          changedBB,
-                                      IndexList&                        active) noexcept;
+    static void append_active_indices(Color                          perspective,
+                                      Square                         kingSq,
+                                      const Array<Piece, SQUARE_NB>& pieceMap,
+                                      Bitboard                       changedBB,
+                                      IndexList&                     active) noexcept;
 
     static void append_changed_indices(Color            perspective,
                                        Square           kingSq,

@@ -18,10 +18,9 @@
 #ifndef TABLEBASE_SYZYGY_H_INCLUDED
 #define TABLEBASE_SYZYGY_H_INCLUDED
 
-#include <cstddef>
-#include <cstdint>
 #include <string_view>
 
+#include "../misc.h"
 #include "../types.h"
 
 namespace DON {
@@ -33,9 +32,9 @@ class RootMoves;
 namespace Tablebase::Syzygy {
 
 // Max number of supported piece
-inline constexpr std::size_t TB_PIECES_MAX = 7;
+inline constexpr usize TB_PIECES_MAX = 7;
 
-enum WDLScore : std::int8_t {
+enum WDLScore : i8 {
     WDL_LOSS         = -2,  // Loss
     WDL_BLESSED_LOSS = -1,  // Loss, but draw under 50-move rule
     WDL_DRAW         = 0,   // Draw
@@ -43,7 +42,7 @@ enum WDLScore : std::int8_t {
     WDL_WIN          = +2,  // Win
 };
 
-inline constexpr std::size_t WDL_SCORE_NB = 5;
+inline constexpr usize WDL_SCORE_NB = 5;
 
 constexpr WDLScore operator-(WDLScore wdlScore) noexcept { return WDLScore(-int(wdlScore)); }
 
@@ -70,7 +69,7 @@ constexpr std::string_view to_string(WDLScore wdlScore) noexcept {
 }
 
 // Possible states after a probing operation
-enum ProbeState : std::uint8_t {
+enum ProbeState : u8 {
     PS_FAIL              = 0,   // Probe failed (missing file table)
     PS_OK                = +1,  // Probe successful
     PS_AC_CHANGED        = +2,  // DTZ should check the other side
@@ -94,13 +93,13 @@ constexpr std::string_view to_string(ProbeState ps) noexcept {
 
 struct Config final {
    public:
-    bool         rootInTB    = false;
-    std::uint8_t cardinality = 0;
-    Depth        probeDepth  = DEPTH_ZERO;
-    bool         useRule50   = false;
+    bool  rootInTB    = false;
+    u8    cardinality = 0;
+    Depth probeDepth  = DEPTH_ZERO;
+    bool  useRule50   = false;
 };
 
-inline std::uint8_t MaxCardinality;
+inline u8 MaxCardinality;
 
 void init() noexcept;
 void init(std::string_view paths) noexcept;

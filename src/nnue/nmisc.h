@@ -18,8 +18,6 @@
 #ifndef NNUE_NMISC_H_INCLUDED
 #define NNUE_NMISC_H_INCLUDED
 
-#include <cstddef>
-#include <cstdint>
 #include <functional>
 #include <string>
 #include <string_view>
@@ -56,14 +54,14 @@ struct EvalFile final {
 
 struct NetworkOutput final {
    public:
-    std::int32_t psqt       = 0;
-    std::int32_t positional = 0;
+    i32 psqt       = 0;
+    i32 positional = 0;
 };
 
 struct NetworkTrace final {
    public:
-    StdArray<NetworkOutput, LayerStacks> netOut;
-    std::size_t                          correctBucket;
+    Array<NetworkOutput, LayerStacks> netOut;
+    usize                             correctBucket;
 };
 
 std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& accCaches) noexcept;
@@ -73,8 +71,8 @@ std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& ac
 
 template<>
 struct std::hash<DON::NNUE::EvalFile> {
-    std::size_t operator()(const DON::NNUE::EvalFile& evalFile) const noexcept {
-        std::size_t h = 0;
+    DON::usize operator()(const DON::NNUE::EvalFile& evalFile) const noexcept {
+        DON::usize h = 0;
         DON::combine_hash(h, evalFile.defaultName);
         DON::combine_hash(h, evalFile.currentName);
         DON::combine_hash(h, evalFile.netDescription);

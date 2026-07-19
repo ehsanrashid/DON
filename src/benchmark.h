@@ -18,7 +18,6 @@
 #ifndef BENCHMARK_H_INCLUDED
 #define BENCHMARK_H_INCLUDED
 
-#include <cstddef>
 #include <iosfwd>
 #include <string>
 #include <string_view>
@@ -32,8 +31,8 @@ Strings bench(std::istream& is, std::string_view currentFen = START_FEN) noexcep
 
 struct Setup final {
    public:
-    std::size_t threads;
-    std::size_t ttSize;
+    usize       threads;
+    usize       ttSize;
     std::string originalInvocation;
     std::string currentInvocation;
     Strings     commands;

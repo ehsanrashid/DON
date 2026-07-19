@@ -19,7 +19,6 @@
 #define NNUE_LAYERS_AFFINE_TRANSFORM_SPARSE_INPUT_H_INCLUDED
 
 #include <algorithm>
-#include <cstdint>
 #include <iostream>
 
 #include "../../bitboard.h"
@@ -36,17 +35,17 @@ namespace DON::NNUE::Layers {
 #if defined(USE_SSSE3) || (defined(USE_NEON) && USE_NEON >= 8)
 struct Lookup final {
 
-    static constexpr std::size_t  SIZE       = 256;
-    static constexpr std::uint8_t INDEX_SIZE = 8;
+    static constexpr usize SIZE       = 256;
+    static constexpr u8    INDEX_SIZE = 8;
 
-    StdArray<std::uint16_t, SIZE, INDEX_SIZE> indices{};
-    StdArray<std::uint8_t, SIZE>              popcounts{};
+    Array<u16, SIZE, INDEX_SIZE> indices{};
+    Array<u8, SIZE>              popcounts{};
 
     constexpr Lookup() noexcept {
 
-        for (std::size_t i = 0; i < SIZE; ++i)
+        for (usize i = 0; i < SIZE; ++i)
         {
-            std::uint8_t c = 0;
+            u8 c = 0;
 
             Bitboard b = i;
             while (b != 0)
@@ -68,11 +67,9 @@ alignas(CACHE_LINE_SIZE) inline constexpr Lookup LOOKUP{};
 
 
 // Find indices of nonzero 32-bit values in a packed byte buffer.
-// The input pointer addresses a sequence of 32-bit blocks stored in a std::uint8_t array.
+// The input pointer addresses a sequence of 32-bit blocks stored in a u8 array.
 template<IndexType InputDimensions>
-void find_nnz(const std::uint8_t* RESTRICT input,
-              std::uint16_t* RESTRICT      outNnz,
-              IndexType&                   outCount) noexcept {
+void find_nnz(const u8* RESTRICT input, u16* RESTRICT outNnz, IndexType& outCount) noexcept {
 
     #if defined(USE_AVX512ICL)
     constexpr IndexType InSimdWidth  = 64;  // 512 bits
@@ -131,7 +128,7 @@ void find_nnz(const std::uint8_t* RESTRICT input,
     #else
     using namespace SIMD;
 
-    constexpr IndexType InputSimdWidth = sizeof(vec_uint_t) / sizeof(std::uint32_t);
+    constexpr IndexType InputSimdWidth = sizeof(vec_uint_t) / sizeof(u32);
     // Outputs are processed 8 elements at a time, even if the SIMD width is narrower
     constexpr IndexType ChunkSize      = 8;
     constexpr IndexType ChunkCount     = InputDimensions / ChunkSize;
@@ -173,8 +170,8 @@ template<IndexType InDims, IndexType OutDims>
 class AffineTransformSparseInput final {
    public:
     // Input/output type
-    using InputType  = std::uint8_t;
-    using OutputType = std::int32_t;
+    using InputType  = u8;
+    using OutputType = i32;
 
     // Number of input/output dimensions
     static constexpr IndexType InputDimensions  = InDims;
@@ -196,11 +193,11 @@ class AffineTransformSparseInput final {
 #endif
       ;
 
-    using OutputBuffer = StdArray<OutputType, PaddedOutputDimensions>;
+    using OutputBuffer = Array<OutputType, PaddedOutputDimensions>;
 
     // Hash value embedded in the evaluation file
-    static constexpr std::uint32_t hash(std::uint32_t preHash) noexcept {
-        std::uint32_t h = 0xCC03DAE4u;
+    static constexpr u32 hash(u32 preHash) noexcept {
+        u32 h = 0xCC03DAE4u;
         h += OutputDimensions;
         h ^= preHash >> 1;
         h ^= preHash << 31;
@@ -216,8 +213,8 @@ class AffineTransformSparseInput final {
 #endif
     }
 
-    std::size_t content_hash() const noexcept {
-        std::size_t h = 0;
+    usize content_hash() const noexcept {
+        usize h = 0;
         combine_hash(h, hash_raw_data(biases));
         combine_hash(h, hash_raw_data(weights));
         combine_hash(h, hash(0));
@@ -296,8 +293,8 @@ class AffineTransformSparseInput final {
     #endif
           ;
 
-        StdArray<std::uint16_t, ChunkCount> nnz;
-        IndexType                           count;
+        Array<u16, ChunkCount> nnz;
+        IndexType              count;
         // Find indices of nonzero 32-bit blocks
         find_nnz<ChunkCount>(input, nnz.data(), count);
 
@@ -319,13 +316,13 @@ class AffineTransformSparseInput final {
 
         while (beg + 3 <= end)
         {
-            std::size_t i0 = beg[0];
-            std::size_t i1 = beg[1];
-            std::size_t i2 = beg[2];
+            usize i0 = beg[0];
+            usize i1 = beg[1];
+            usize i2 = beg[2];
 
-            invec_t in0 = vec_set_32(load_as<std::int32_t>(input + i0 * sizeof(std::uint32_t)));
-            invec_t in1 = vec_set_32(load_as<std::int32_t>(input + i1 * sizeof(std::uint32_t)));
-            invec_t in2 = vec_set_32(load_as<std::int32_t>(input + i2 * sizeof(std::uint32_t)));
+            invec_t in0 = vec_set_32(load_as<i32>(input + i0 * sizeof(u32)));
+            invec_t in1 = vec_set_32(load_as<i32>(input + i1 * sizeof(u32)));
+            invec_t in2 = vec_set_32(load_as<i32>(input + i2 * sizeof(u32)));
 
             const invec_t* col0 = reinterpret_cast<const invec_t*>(&weights[i0 * OutputDimensions * ChunkSize]);
             const invec_t* col1 = reinterpret_cast<const invec_t*>(&weights[i1 * OutputDimensions * ChunkSize]);
@@ -349,9 +346,9 @@ class AffineTransformSparseInput final {
 
         while (beg < end)
         {
-            std::size_t i = *beg;
+            usize i = *beg;
 
-            invec_t in = vec_set_32(load_as<std::int32_t>(input + i * sizeof(std::uint32_t)));
+            invec_t in = vec_set_32(load_as<i32>(input + i * sizeof(u32)));
 
             const invec_t* col = reinterpret_cast<const invec_t*>(&weights[i * OutputDimensions * ChunkSize]);
 
@@ -379,10 +376,10 @@ class AffineTransformSparseInput final {
 
    private:
     using BiasType   = OutputType;
-    using WeightType = std::int8_t;
+    using WeightType = i8;
 
-    alignas(CACHE_LINE_SIZE) StdArray<BiasType, OutputDimensions> biases;
-    alignas(CACHE_LINE_SIZE) StdArray<WeightType, OutputDimensions * PaddedInputDimensions> weights;
+    alignas(CACHE_LINE_SIZE) Array<BiasType, OutputDimensions> biases;
+    alignas(CACHE_LINE_SIZE) Array<WeightType, OutputDimensions * PaddedInputDimensions> weights;
 };
 
 }  // namespace DON::NNUE::Layers

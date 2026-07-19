@@ -21,8 +21,6 @@
 #include <atomic>
 #include <cassert>
 #include <condition_variable>
-#include <cstddef>
-#include <cstdint>
 #include <deque>
 #include <functional>
 #include <memory>
@@ -46,6 +44,7 @@
 #endif
 
 #include "memory.h"
+#include "misc.h"
 #include "numa.h"
 #include "position.h"
 #include "search.h"
@@ -156,7 +155,7 @@ class NativeThread final {
     }
 
    private:
-    static constexpr std::size_t TH_STACK_SIZE = 8 * _MB;
+    static constexpr usize TH_STACK_SIZE = 8 * _MB;
 
     pthread_t thread{};
     bool      joined = true;
@@ -201,10 +200,10 @@ using WorkerPtr = LargePagePtr<Worker>;
 // the search is finished, it goes back to idle_func() waiting for a new signal.
 class Thread final {
    public:
-    Thread(std::size_t                   threadIdx,
-           std::size_t                   threadCnt,
-           std::size_t                   numaIdx,
-           std::size_t                   numaThreadCnt,
+    Thread(usize                         threadIdx,
+           usize                         threadCnt,
+           usize                         numaIdx,
+           usize                         numaThreadCnt,
            const ThreadToNumaNodeBinder& nodeBinder,
            ISearchManagerPtr             searchManager,
            const SharedState&            sharedState,
@@ -212,15 +211,13 @@ class Thread final {
 
     ~Thread() noexcept;
 
-    [[nodiscard]] constexpr std::size_t thread_id() const noexcept { return threadId; }
+    [[nodiscard]] constexpr usize thread_id() const noexcept { return threadId; }
 
-    [[nodiscard]] constexpr std::size_t thread_count() const noexcept { return threadCount; }
+    [[nodiscard]] constexpr usize thread_count() const noexcept { return threadCount; }
 
-    [[nodiscard]] constexpr std::size_t numa_id() const noexcept { return numaId; }
+    [[nodiscard]] constexpr usize numa_id() const noexcept { return numaId; }
 
-    [[nodiscard]] constexpr std::size_t numa_thread_count() const noexcept {
-        return numaThreadCount;
-    }
+    [[nodiscard]] constexpr usize numa_thread_count() const noexcept { return numaThreadCount; }
 
     [[nodiscard]] NumaReplicatedAccessToken numa_access_token() const noexcept {
         return numaAccessToken;
@@ -257,7 +254,7 @@ class Thread final {
     NativeThread              nativeThread;
     NumaReplicatedAccessToken numaAccessToken;
 
-    const std::size_t threadId, threadCount, numaId, numaThreadCount;
+    const usize threadId, threadCount, numaId, numaThreadCount;
 
     bool dead = false, busy = true;
 };
@@ -336,7 +333,7 @@ class Threads final {
     auto begin() const noexcept { return threads.begin(); }
     auto end() const noexcept { return threads.end(); }
 
-    std::size_t size() const noexcept {
+    usize size() const noexcept {
         std::shared_lock readLock(sharedMutex);
 
         return threads.size();
@@ -347,7 +344,7 @@ class Threads final {
         return threads.empty();
     }
 
-    void reserve(std::size_t threadCount) noexcept {
+    void reserve(usize threadCount) noexcept {
         std::lock_guard writeLock(sharedMutex);
 
         threads.reserve(threadCount);
@@ -382,11 +379,11 @@ class Threads final {
 
     void ensure_network_replicated() const noexcept;
 
-    void run_on_thread(std::size_t threadId, JobFunc job) const noexcept;
+    void run_on_thread(usize threadId, JobFunc job) const noexcept;
 
-    void wait_on_thread(std::size_t threadId) const noexcept;
+    void wait_on_thread(usize threadId) const noexcept;
 
-    std::vector<std::size_t> bound_thread_counts() const noexcept;
+    std::vector<usize> bound_thread_counts() const noexcept;
 
     // --- queries ---
     bool is_researching() const noexcept {
@@ -466,11 +463,10 @@ class Threads final {
     }
 
     template<typename T>
-    std::uint64_t sum(std::atomic<T> Worker::* member,
-                      std::uint64_t            initialSum = 0) const noexcept {
+    u64 sum(std::atomic<T> Worker::* member, u64 initialSum = 0) const noexcept {
         std::shared_lock readLock(sharedMutex);
 
-        std::uint64_t sum = initialSum;
+        u64 sum = initialSum;
         for (auto&& th : threads)
             sum += (th->worker.get()->*member).load(std::memory_order_relaxed);
 
@@ -482,7 +478,7 @@ class Threads final {
     // Active -> Research
     //   |          |
     //   >---------->Stopped (terminal, no exit)
-    enum class State : std::uint8_t {
+    enum class State : u8 {
         Active,
         Research,
         Stopped

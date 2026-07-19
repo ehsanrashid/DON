@@ -21,7 +21,6 @@
 #define NNUE_LAYERS_SQR_CLIPPED_RELU_H_INCLUDED
 
 #include <algorithm>
-#include <cstdint>
 #include <iosfwd>
 
 #include "../../misc.h"
@@ -34,8 +33,8 @@ template<IndexType InDims>
 class SqrClippedReLU final {
    public:
     // Input/output type
-    using InputType  = std::int32_t;
-    using OutputType = std::uint8_t;
+    using InputType  = i32;
+    using OutputType = u8;
 
     // Number of input/output dimensions
     static constexpr IndexType InputDimensions  = InDims;
@@ -43,17 +42,17 @@ class SqrClippedReLU final {
     static constexpr IndexType PaddedOutputDimensions =
       ceil_to_multiple<IndexType>(OutputDimensions, 32);
 
-    using OutputBuffer = StdArray<OutputType, PaddedOutputDimensions>;
+    using OutputBuffer = Array<OutputType, PaddedOutputDimensions>;
 
     // Hash value embedded in the evaluation file
-    static constexpr std::uint32_t hash(std::uint32_t preHash) noexcept {
-        std::uint32_t h = 0x538D24C7u;
+    static constexpr u32 hash(u32 preHash) noexcept {
+        u32 h = 0x538D24C7u;
         h += preHash;
         return h;
     }
 
-    std::size_t content_hash() const noexcept {
-        std::size_t h = 0;
+    usize content_hash() const noexcept {
+        usize h = 0;
         combine_hash(h, hash(0));
         return h;
     }

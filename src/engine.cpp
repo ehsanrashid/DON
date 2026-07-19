@@ -39,9 +39,9 @@ namespace DON {
 
 namespace {
 
-const std::size_t THREAD_MAX = std::max<std::size_t>(4 * SYSTEM_THREAD_MAX, 1024);
+const usize THREAD_MAX = std::max<usize>(4 * SYSTEM_THREAD_MAX, 1024);
 
-constexpr std::size_t HASH_MAX =
+constexpr usize HASH_MAX =
 #if defined(IS_64BIT)
   0x2000000U
 #else
@@ -150,7 +150,7 @@ void Engine::setup(std::string_view fen, const Strings& moves) noexcept {
     states = std::make_unique<StateList>(1);
     pos.set(fen, &states->back());
 
-    [[maybe_unused]] std::int16_t ply = 1;
+    [[maybe_unused]] i16 ply = 1;
 
     for (const auto& move : moves)
     {
@@ -171,7 +171,7 @@ void Engine::setup(std::string_view fen, const Strings& moves) noexcept {
     }
 }
 
-std::uint64_t Engine::perft(Depth depth, bool detail) noexcept {
+u64 Engine::perft(Depth depth, bool detail) noexcept {
 
     State    st;
     Position p;
@@ -216,7 +216,7 @@ void Engine::resize_threads_tt() noexcept {
     threads.ensure_network_replicated();
 }
 
-void Engine::resize_tt(std::size_t ttSize) noexcept {
+void Engine::resize_tt(usize ttSize) noexcept {
     wait_finish();
 
     transpositionTable.resize(ttSize, threads);
@@ -254,12 +254,10 @@ void Engine::flip() noexcept { pos.flip(); }
 
 void Engine::mirror() noexcept { pos.mirror(); }
 
-std::uint16_t Engine::hashfull(std::uint8_t maxAge) const noexcept {
-    return transpositionTable.hashfull(maxAge);
-}
+u16 Engine::hashfull(u8 maxAge) const noexcept { return transpositionTable.hashfull(maxAge); }
 
-std::vector<std::pair<std::size_t, std::size_t>> Engine::bound_thread_counts() const noexcept {
-    std::vector<std::pair<std::size_t, std::size_t>> ratios;
+std::vector<std::pair<usize, usize>> Engine::bound_thread_counts() const noexcept {
+    std::vector<std::pair<usize, usize>> ratios;
 
     auto  threadCounts = threads.bound_thread_counts();
     auto& numaConfig   = numaContext.numa_config();
@@ -331,7 +329,7 @@ void Engine::verify_networks() const noexcept {
 
     auto statuses = networks.get_status_and_errors();
 
-    for (std::size_t i = 0; i < statuses.size(); ++i)
+    for (usize i = 0; i < statuses.size(); ++i)
     {
         auto& [status, error] = statuses[i];
 
@@ -348,7 +346,7 @@ void Engine::verify_networks() const noexcept {
     }
 }
 
-void Engine::load_networks(const StdArray<std::string_view, 2>& netFiles) noexcept {
+void Engine::load_networks(const Array<std::string_view, 2>& netFiles) noexcept {
     if (!netFiles[0].empty())
         load_big_network(netFiles[0]);
     if (!netFiles[1].empty())
@@ -377,7 +375,7 @@ void Engine::load_small_network(std::string_view netFile) noexcept {
     threads.ensure_network_replicated();
 }
 
-void Engine::save_networks(const StdArray<std::string_view, 2>& netFiles) const noexcept {
+void Engine::save_networks(const Array<std::string_view, 2>& netFiles) const noexcept {
 
     networks->save_big(netFiles[0]);
     networks->save_small(netFiles[1]);

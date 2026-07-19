@@ -21,7 +21,6 @@
 #include <algorithm>
 #include <array>
 #include <cassert>
-#include <cstdint>
 #include <cstring>
 #include <initializer_list>
 #include <iostream>
@@ -34,6 +33,7 @@
     #include <immintrin.h>
 #endif
 
+#include "attacks.h"
 #include "bitboard.h"
 #include "misc.h"
 #include "types.h"
@@ -101,12 +101,12 @@ struct Zobrist final {
 
     static Key turn() noexcept { return Turn; }
 
-    static Key mr50(std::int16_t rule50Count) noexcept {
+    static Key mr50(i16 rule50Count) noexcept {
         return int(rule50Count >= R50_OFFSET)
              * MR50[std::clamp((rule50Count - R50_OFFSET) / R50_FACTOR, 0, int(MR50.size()) - 1)];
     }
 
-    static constexpr std::size_t PAWN_OFFSET = 8;
+    static constexpr usize PAWN_OFFSET = 8;
 
    private:
     Zobrist() noexcept                          = delete;
@@ -116,15 +116,15 @@ struct Zobrist final {
     Zobrist& operator=(const Zobrist&) noexcept = delete;
     Zobrist& operator=(Zobrist&&) noexcept      = delete;
 
-    static inline StdArray<Key, COLOR_NB, 1 + PIECE_TYPE_CNT, SQUARE_NB> PieceSquare;
-    static inline StdArray<Key, CASTLING_RIGHTS_NB>                      Castling;
-    static inline StdArray<Key, FILE_NB>                                 Enpassant;
-    static inline Key                                                    Turn;
+    static inline Array<Key, COLOR_NB, 1 + PIECE_TYPE_CNT, SQUARE_NB> PieceSquare;
+    static inline Array<Key, CASTLING_RIGHTS_NB>                      Castling;
+    static inline Array<Key, FILE_NB>                                 Enpassant;
+    static inline Key                                                 Turn;
 
-    static constexpr std::uint8_t R50_OFFSET = 14;
-    static constexpr std::uint8_t R50_FACTOR = 8;
+    static constexpr u8 R50_OFFSET = 14;
+    static constexpr u8 R50_FACTOR = 8;
 
-    static inline StdArray<Key, (PLY_MAX + 1 - R50_OFFSET) / R50_FACTOR + 2> MR50;
+    static inline Array<Key, (PLY_MAX + 1 - R50_OFFSET) / R50_FACTOR + 2> MR50;
 };
 
 // State struct stores information needed to restore Position object
@@ -142,28 +142,28 @@ struct State final {
     void dump(std::ostream& os = std::cout) const noexcept;
 
     // --- Copied when making a move
-    Key                        key;
-    StdArray<Key, COLOR_NB>    pawnKeys;
-    StdArray<Key, COLOR_NB, 2> nonPawnKeys;
-    StdArray<bool, COLOR_NB>   hasCastleds;
+    Key                     key;
+    Array<Key, COLOR_NB>    pawnKeys;
+    Array<Key, COLOR_NB, 2> nonPawnKeys;
+    Array<bool, COLOR_NB>   hasCastleds;
 
-    std::uint16_t  rule50Count;
-    std::uint16_t  nullPly;  // Plies from Null-Move
+    u16            rule50Count;
+    u16            nullPly;  // Plies from Null-Move
     Square         enPassantSq;
     Square         capturedSq;
     CastlingRights castlingRights;
     bool           hasRule50High;
 
     // --- Not copied when making a move (will be recomputed anyhow)
-    Bitboard                          checkersBB;
-    StdArray<Bitboard, COLOR_NB>      pinnersBB;
-    StdArray<Bitboard, COLOR_NB>      blockersBB;
-    StdArray<Bitboard, PIECE_TYPE_NB> checksBB;
-    StdArray<Bitboard, PIECE_TYPE_NB> accAttacksBB;
-    std::int16_t                      repetition;
-    Piece                             capturedPc;
-    Piece                             promotedPc;
-    const State*                      preSt;
+    Bitboard                       checkersBB;
+    Array<Bitboard, COLOR_NB>      pinnersBB;
+    Array<Bitboard, COLOR_NB>      blockersBB;
+    Array<Bitboard, PIECE_TYPE_NB> checksBB;
+    Array<Bitboard, PIECE_TYPE_NB> accAttacksBB;
+    i16                            repetition;
+    Piece                          capturedPc;
+    Piece                          promotedPc;
+    const State*                   preSt;
 
     // Copy relevant fields from the state.
     // excluding those that will recomputed from scratch anyway and
@@ -171,8 +171,8 @@ struct State final {
     template<typename T = Bitboard>
     void switch_to_prefix(const State* st, T State::* member = &State::checkersBB) noexcept {
         // Compute offset dynamically for this object
-        std::size_t size = reinterpret_cast<const char*>(&(st->*member))  //
-                         - reinterpret_cast<const char*>(st);
+        usize size = reinterpret_cast<const char*>(&(st->*member))  //
+                   - reinterpret_cast<const char*>(st);
 
         assert(size <= sizeof(*this) && "size exceeds object size");
 
@@ -234,12 +234,12 @@ class Position final {
     [[nodiscard]] Bitboard pieces_bb() const noexcept;
 
     template<typename... PieceTypes>
-    [[nodiscard]] std::uint8_t count(PieceTypes... pts) const noexcept;
-    [[nodiscard]] std::uint8_t count(Color c) const noexcept;
+    [[nodiscard]] u8 count(PieceTypes... pts) const noexcept;
+    [[nodiscard]] u8 count(Color c) const noexcept;
     template<typename... PieceTypes>
-    [[nodiscard]] std::uint8_t count(Color c, PieceTypes... pts) const noexcept;
-    [[nodiscard]] std::uint8_t count(Piece pc) const noexcept;
-    [[nodiscard]] std::uint8_t count() const noexcept;
+    [[nodiscard]] u8 count(Color c, PieceTypes... pts) const noexcept;
+    [[nodiscard]] u8 count(Piece pc) const noexcept;
+    [[nodiscard]] u8 count() const noexcept;
 
     template<PieceType PT>
     [[nodiscard]] Square square(Color c) const noexcept;
@@ -247,9 +247,9 @@ class Position final {
     [[nodiscard]] Square en_passant_sq() const noexcept;
     [[nodiscard]] Square captured_sq() const noexcept;
 
-    [[nodiscard]] std::uint16_t ply() const noexcept;
-    [[nodiscard]] Color         active_color() const noexcept;
-    [[nodiscard]] std::int32_t  move_num() const noexcept;
+    [[nodiscard]] u16   ply() const noexcept;
+    [[nodiscard]] Color active_color() const noexcept;
+    [[nodiscard]] i32   move_num() const noexcept;
 
     [[nodiscard]] CastlingRights castling_rights_mask(Square s) const noexcept;
     [[nodiscard]] CastlingRights castling_rights_mask(Square orgSq, Square dstSq) const noexcept;
@@ -336,9 +336,9 @@ class Position final {
     [[nodiscard]] Value non_pawn_value() const noexcept;
 
     // Other properties
-    [[nodiscard]] std::uint16_t rule50_count() const noexcept;
-    [[nodiscard]] std::uint16_t null_ply() const noexcept;
-    [[nodiscard]] std::int16_t  repetition() const noexcept;
+    [[nodiscard]] u16 rule50_count() const noexcept;
+    [[nodiscard]] u16 null_ply() const noexcept;
+    [[nodiscard]] i16 repetition() const noexcept;
 
     [[nodiscard]] bool  has_castled(Color c) const noexcept;
     [[nodiscard]] bool  has_rule50_high() const noexcept;
@@ -347,7 +347,7 @@ class Position final {
     [[nodiscard]] bool  bishop_paired(Color c) const noexcept;
     [[nodiscard]] bool  bishop_opposite() const noexcept;
 
-    [[nodiscard]] std::size_t bucket() const noexcept;
+    [[nodiscard]] usize bucket() const noexcept;
 
     [[nodiscard]] int   std_material() const noexcept;
     [[nodiscard]] Value material() const noexcept;
@@ -356,11 +356,11 @@ class Position final {
     // Static Exchange Evaluation:
     [[nodiscard]] auto see(Move m) const noexcept { return SEE(*this, m); }
 
-    [[nodiscard]] bool is_repetition(std::int16_t ply) const noexcept;
+    [[nodiscard]] bool is_repetition(i16 ply) const noexcept;
     [[nodiscard]] bool
-    is_draw(std::int16_t ply, bool useRule50 = true, bool useStalemate = false) const noexcept;
+    is_draw(i16 ply, bool useRule50 = true, bool useStalemate = false) const noexcept;
     [[nodiscard]] bool has_repeated() const noexcept;
-    [[nodiscard]] bool is_upcoming_repetition(std::int16_t ply) const noexcept;
+    [[nodiscard]] bool is_upcoming_repetition(i16 ply) const noexcept;
 
     void  put(Square s, Piece pc, DirtyThreats* dts = nullptr) noexcept;
     Piece remove(Square s, DirtyThreats* dts = nullptr) noexcept;
@@ -389,14 +389,14 @@ class Position final {
 
     static inline bool Chess960 = false;
 
-    static inline std::uint16_t DrawMoveCount = 50;
+    static inline u16 DrawMoveCount = 50;
 
    private:
     struct Castlings final {
        public:
-        StdArray<Bitboard, COLOR_NB, CASTLING_SIDE_NB> fullPathBB;
-        StdArray<Bitboard, COLOR_NB, CASTLING_SIDE_NB> kingPathBB;
-        StdArray<Square, COLOR_NB, CASTLING_SIDE_NB>   rookSq;
+        Array<Bitboard, COLOR_NB, CASTLING_SIDE_NB> fullPathBB;
+        Array<Bitboard, COLOR_NB, CASTLING_SIDE_NB> kingPathBB;
+        Array<Square, COLOR_NB, CASTLING_SIDE_NB>   rookSq;
     };
 
     // SEE struct used to get a nice syntax for SEE comparisons.
@@ -458,7 +458,7 @@ class Position final {
     void reset_rule50_count() noexcept;
 
     static constexpr auto CASTLING_RIGHTS_INDICES = []() constexpr noexcept {
-        StdArray<std::uint8_t, SQUARE_NB> castlingRightsIndices{};
+        Array<u8, SQUARE_NB> castlingRightsIndices{};
 
         for (Square s = SQ_A1; s <= SQ_H8; ++s)
             castlingRightsIndices[s] = rank_of(s) == RANK_1 ? WHITE * FILE_NB + file_of(s)
@@ -468,14 +468,14 @@ class Position final {
         return castlingRightsIndices;
     }();
 
-    StdArray<Piece, SQUARE_NB>                   pieceMap;
-    StdArray<Bitboard, PIECE_TYPE_NB>            typeBBs;
-    StdArray<Bitboard, COLOR_NB>                 colorBBs;
-    StdArray<CastlingRights, COLOR_NB * FILE_NB> castlingRightsMasks;
-    Castlings                                    castlings;
-    State*                                       st;
-    std::uint16_t                                gamePly;
-    Color                                        activeColor;
+    Array<Piece, SQUARE_NB>                   pieceMap;
+    Array<Bitboard, PIECE_TYPE_NB>            typeBBs;
+    Array<Bitboard, COLOR_NB>                 colorBBs;
+    Array<CastlingRights, COLOR_NB * FILE_NB> castlingRightsMasks;
+    Castlings                                 castlings;
+    State*                                    st;
+    u16                                       gamePly;
+    Color                                     activeColor;
 };
 
 //static_assert(sizeof(Position) == 248, "Position size must be 248 bytes");
@@ -515,22 +515,20 @@ inline Bitboard Position::pieces_bb(Piece pc) const noexcept {
 inline Bitboard Position::pieces_bb() const noexcept { return typeBBs[ALL]; }
 
 template<typename... PieceTypes>
-inline std::uint8_t Position::count(PieceTypes... pts) const noexcept {
+inline u8 Position::count(PieceTypes... pts) const noexcept {
     return popcount(pieces_bb(pts...));
 }
 
-inline std::uint8_t Position::count(Color c) const noexcept { return popcount(pieces_bb(c)); }
+inline u8 Position::count(Color c) const noexcept { return popcount(pieces_bb(c)); }
 
 template<typename... PieceTypes>
-inline std::uint8_t Position::count(Color c, PieceTypes... pts) const noexcept {
+inline u8 Position::count(Color c, PieceTypes... pts) const noexcept {
     return popcount(pieces_bb(c, pts...));
 }
 
-inline std::uint8_t Position::count(Piece pc) const noexcept {
-    return count(color_of(pc), type_of(pc));
-}
+inline u8 Position::count(Piece pc) const noexcept { return count(color_of(pc), type_of(pc)); }
 
-inline std::uint8_t Position::count() const noexcept { return popcount(pieces_bb()); }
+inline u8 Position::count() const noexcept { return popcount(pieces_bb()); }
 
 template<PieceType PT>
 inline Square Position::square(Color c) const noexcept {
@@ -543,11 +541,11 @@ inline Square Position::en_passant_sq() const noexcept { return st->enPassantSq;
 
 inline Square Position::captured_sq() const noexcept { return st->capturedSq; }
 
-inline std::uint16_t Position::ply() const noexcept { return gamePly; }
+inline u16 Position::ply() const noexcept { return gamePly; }
 
 inline Color Position::active_color() const noexcept { return activeColor; }
 
-inline std::int32_t Position::move_num() const noexcept {
+inline i32 Position::move_num() const noexcept {
     return 1 + (ply() - (active_color() == BLACK)) / 2;
 }
 
@@ -785,11 +783,11 @@ inline Value Position::non_pawn_value() const noexcept {
     return non_pawn_value(WHITE) + non_pawn_value(BLACK);
 }
 
-inline std::uint16_t Position::rule50_count() const noexcept { return st->rule50Count; }
+inline u16 Position::rule50_count() const noexcept { return st->rule50Count; }
 
-inline std::uint16_t Position::null_ply() const noexcept { return st->nullPly; }
+inline u16 Position::null_ply() const noexcept { return st->nullPly; }
 
-inline std::int16_t Position::repetition() const noexcept { return st->repetition; }
+inline i16 Position::repetition() const noexcept { return st->repetition; }
 
 inline bool Position::has_castled(Color c) const noexcept { return st->hasCastleds[c]; }
 
@@ -811,7 +809,7 @@ inline bool Position::bishop_opposite() const noexcept {
         && color_opposite(square<BISHOP>(WHITE), square<BISHOP>(BLACK));
 }
 
-inline std::size_t Position::bucket() const noexcept { return (count() - 1) / 4; }
+inline usize Position::bucket() const noexcept { return (count() - 1) / 4; }
 
 inline int Position::std_material() const noexcept {
     return 1 * count(PAWN) + 3 * count(KNIGHT, BISHOP) + 5 * count(ROOK) + 9 * count(QUEEN);
@@ -949,10 +947,10 @@ DirtyThreats::add(Square sq, Square threatenedSq, Piece pc, Piece threatenedPc) 
 // Given a DirtyThreat template and bit offsets to insert the piece type and square,
 // write the threats present at the given bitboard.
 template<int SqShift, int PcShift>
-inline void write_multiple_dirties(const StdArray<Piece, SQUARE_NB>& pieceMap,
-                                   Bitboard                          maskBB,
-                                   DirtyThreat                       templateDt,
-                                   DirtyThreats*                     dts) noexcept {
+inline void write_multiple_dirties(const Array<Piece, SQUARE_NB>& pieceMap,
+                                   Bitboard                       maskBB,
+                                   DirtyThreat                    templateDt,
+                                   DirtyThreats*                  dts) noexcept {
     __m512i squares = _mm512_set_epi8(63, 62, 61, 60, 59, 58, 57, 56,  //
                                       55, 54, 53, 52, 51, 50, 49, 48,  //
                                       47, 46, 45, 44, 43, 42, 41, 40,  //
@@ -964,7 +962,7 @@ inline void write_multiple_dirties(const StdArray<Piece, SQUARE_NB>& pieceMap,
 
     __m512i pieceMapData = _mm512_loadu_si512(pieceMap.data());
 
-    std::uint8_t maskCount = popcount(maskBB);
+    u8 maskCount = popcount(maskBB);
     assert(maskCount <= 16);
 
     auto* dtSpace = dts->dtList.make_space(maskCount);
@@ -977,7 +975,7 @@ inline void write_multiple_dirties(const StdArray<Piece, SQUARE_NB>& pieceMap,
     threatSquares         = _mm512_cvtepi8_epi32(_mm512_castsi512_si128(threatSquares));
 
     __m512i threatPieces =
-      _mm512_maskz_permutexvar_epi8(0x1111111111111111ull, threatSquares, pieceMapData);
+      _mm512_maskz_permutexvar_epi8(u64{0x1111111111111111}, threatSquares, pieceMapData);
 
     // Shift the piece and square into place
     threatSquares = _mm512_slli_epi32(threatSquares, SqShift);
@@ -999,7 +997,7 @@ inline void Position::update_pc_threats(Square                    s,
     Bitboard occupancyBB = pieces_bb();
 
     auto attacksBB = [&]() noexcept {
-        StdArray<Bitboard, PIECE_TYPE_CNT> _;
+        Array<Bitboard, PIECE_TYPE_CNT> _;
 
         _[WHITE]  = attacks_bb<PAWN>(s, WHITE);
         _[BLACK]  = attacks_bb<PAWN>(s, BLACK);
@@ -1144,7 +1142,7 @@ inline bool Position::SEE::operator>(int threshold) const noexcept {
 inline bool Position::SEE::operator<=(int threshold) const noexcept { return !(*this > threshold); }
 inline bool Position::SEE::operator<(int threshold) const noexcept { return !(*this >= threshold); }
 
-inline std::int16_t rule50_threshold(std::int16_t r50 = -4) noexcept {
+inline i16 rule50_threshold(i16 r50 = -4) noexcept {
     assert(r50 >= -2 * Position::DrawMoveCount);
 
     return r50 + 2 * Position::DrawMoveCount;

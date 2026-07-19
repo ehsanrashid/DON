@@ -21,8 +21,6 @@
 #include <algorithm>
 #include <array>
 #include <cassert>
-#include <cstddef>
-#include <cstdint>
 #include <cstring>
 #include <iosfwd>
 #include <functional>
@@ -43,33 +41,32 @@ namespace DON::NNUE {
 // A class that converts the input features of the NNUE evaluation function
 
 // Returns the inverse of a permutation
-template<std::size_t Size>
-constexpr StdArray<std::size_t, Size>
-invert_permutation(const std::array<std::size_t, Size>& order) noexcept {
-    StdArray<std::size_t, Size> inverse{};
-    for (std::size_t i = 0; i < order.size(); ++i)
+template<usize Size>
+constexpr Array<usize, Size> invert_permutation(const std::array<usize, Size>& order) noexcept {
+    Array<usize, Size> inverse{};
+    for (usize i = 0; i < order.size(); ++i)
         inverse[order[i]] = i;
     return inverse;
 }
 
 // Divide a byte region of size TotalSize to chunks of size BlockSize,
 // and permute the blocks by a given order
-template<std::size_t BlockSize, typename T, std::size_t DataSize, std::size_t OrderSize>
-constexpr void permute(std::array<T, DataSize>&                  data,
-                       const std::array<std::size_t, OrderSize>& order) noexcept {
-    constexpr std::size_t TotalSize = DataSize * sizeof(T);
-    constexpr std::size_t ChunkSize = BlockSize * OrderSize;
+template<usize BlockSize, typename T, usize DataSize, usize OrderSize>
+constexpr void permute(std::array<T, DataSize>&            data,
+                       const std::array<usize, OrderSize>& order) noexcept {
+    constexpr usize TotalSize = DataSize * sizeof(T);
+    constexpr usize ChunkSize = BlockSize * OrderSize;
     static_assert(TotalSize % ChunkSize == 0, "ChunkSize must perfectly divide TotalSize");
 
-    auto* byts = reinterpret_cast<std::uint8_t*>(data.data());
+    auto* byts = reinterpret_cast<u8*>(data.data());
 
-    for (std::size_t i = 0; i < TotalSize; i += ChunkSize)
+    for (usize i = 0; i < TotalSize; i += ChunkSize)
     {
         auto* values = &byts[i];
 
-        StdArray<std::uint8_t, ChunkSize> buffer;
+        Array<u8, ChunkSize> buffer;
 
-        for (std::size_t j = 0; j < order.size(); ++j)
+        for (usize j = 0; j < order.size(); ++j)
         {
             auto* valueChunk  = &values[order[j] * BlockSize];
             auto* bufferChunk = &buffer[j * BlockSize];
@@ -104,17 +101,17 @@ class FeatureTransformer final {
     static constexpr IndexType OutputDimensions = HalfDimensions;
 
     // Size of forward propagation buffer
-    static constexpr std::size_t BufferSize = OutputDimensions * sizeof(OutputType);
+    static constexpr usize BufferSize = OutputDimensions * sizeof(OutputType);
 
     // Hash value embedded in the evaluation file
-    static constexpr std::uint32_t hash() noexcept {
+    static constexpr u32 hash() noexcept {
         return (UseThreats ? ThreatFeatureSet::Hash : PSQFeatureSet::Hash) ^ (2 * OutputDimensions);
     }
 
     // Store the order by which 128-bit blocks of a 1024-bit data must
     // be permuted so that calling packus on adjacent vectors of 16-bit
     // integers loaded from the data results in the pre-permutation order
-    static constexpr auto PackusEpi16Order = []() -> StdArray<std::size_t, 8> {
+    static constexpr auto PackusEpi16Order = []() -> Array<usize, 8> {
         return
 #if defined(USE_AVX512)
           // _mm512_packus_epi16 after permutation:
@@ -135,8 +132,8 @@ class FeatureTransformer final {
 
     static constexpr auto InversePackusEpi16Order = invert_permutation(PackusEpi16Order);
 
-    std::size_t content_hash() const noexcept {
-        std::size_t h = 0;
+    usize content_hash() const noexcept {
+        usize h = 0;
 
         combine_hash(h, hash_raw_data(biases));
         combine_hash(h, hash_raw_data(weights));
@@ -205,7 +202,7 @@ class FeatureTransformer final {
             write_leb_128<WeightType>(os, copy->weights);
 
             auto combinedPsqtWeights =
-              std::make_unique<StdArray<PSQTWeightType, TotalInputDimensions * PSQTBuckets>>();
+              std::make_unique<Array<PSQTWeightType, TotalInputDimensions * PSQTBuckets>>();
 
             std::copy(copy->threatPsqtWeights.begin(),
                       copy->threatPsqtWeights.begin() + ThreatInputDimensions * PSQTBuckets,
@@ -228,11 +225,11 @@ class FeatureTransformer final {
     }
 
     // Convert input features
-    std::int32_t transform(const Position&                           pos,
-                           AccumulatorStack&                         accStack,
-                           AccumulatorCaches::Cache<HalfDimensions>& cache,
-                           std::size_t                               bucket,
-                           StdArray<OutputType, BufferSize>&         output) const noexcept {
+    i32 transform(const Position&                           pos,
+                  AccumulatorStack&                         accStack,
+                  AccumulatorCaches::Cache<HalfDimensions>& cache,
+                  usize                                     bucket,
+                  Array<OutputType, BufferSize>&            output) const noexcept {
         using namespace SIMD;
 
         accStack.evaluate(pos, *this, cache);
@@ -245,7 +242,7 @@ class FeatureTransformer final {
         const auto& threatPsqtAccumulation =  //
           (threatAccState.acc<HalfDimensions>()).psqtAccumulation;
 
-        StdArray<Color, COLOR_NB> perspectives{pos.active_color(), ~pos.active_color()};
+        Array<Color, COLOR_NB> perspectives{pos.active_color(), ~pos.active_color()};
 
         auto psqt = psqtAccumulation[perspectives[WHITE]][bucket]
                   - psqtAccumulation[perspectives[BLACK]][bucket];
@@ -398,11 +395,11 @@ class FeatureTransformer final {
     }
 
     // clang-format off
-    alignas(CACHE_LINE_SIZE) StdArray<BiasType        , HalfDimensions>                                          biases;
-    alignas(CACHE_LINE_SIZE) StdArray<WeightType      , InputDimensions * HalfDimensions>                        weights;
-    alignas(CACHE_LINE_SIZE) StdArray<ThreatWeightType, UseThreats ? ThreatInputDimensions * HalfDimensions : 0> threatWeights;
-    alignas(CACHE_LINE_SIZE) StdArray<PSQTWeightType  , InputDimensions * PSQTBuckets>                           psqtWeights;
-    alignas(CACHE_LINE_SIZE) StdArray<PSQTWeightType  , UseThreats ? ThreatInputDimensions * PSQTBuckets : 0>    threatPsqtWeights;
+    alignas(CACHE_LINE_SIZE) Array<BiasType        , HalfDimensions>                                          biases;
+    alignas(CACHE_LINE_SIZE) Array<WeightType      , InputDimensions * HalfDimensions>                        weights;
+    alignas(CACHE_LINE_SIZE) Array<ThreatWeightType, UseThreats ? ThreatInputDimensions * HalfDimensions : 0> threatWeights;
+    alignas(CACHE_LINE_SIZE) Array<PSQTWeightType  , InputDimensions * PSQTBuckets>                           psqtWeights;
+    alignas(CACHE_LINE_SIZE) Array<PSQTWeightType  , UseThreats ? ThreatInputDimensions * PSQTBuckets : 0>    threatPsqtWeights;
     // clang-format on
 };
 
@@ -410,7 +407,7 @@ class FeatureTransformer final {
 
 template<DON::NNUE::IndexType TransformedFeatureDimensions>
 struct std::hash<DON::NNUE::FeatureTransformer<TransformedFeatureDimensions>> {
-    std::size_t operator()(
+    DON::usize operator()(
       const DON::NNUE::FeatureTransformer<TransformedFeatureDimensions>& ft) const noexcept {
         return ft.content_hash();
     }

@@ -18,8 +18,6 @@
 #ifndef NNUE_NETWORK_H_INCLUDED
 #define NNUE_NETWORK_H_INCLUDED
 
-#include <cstddef>
-#include <cstdint>
 #include <iosfwd>
 #include <functional>
 #include <optional>
@@ -39,7 +37,7 @@ class Position;
 
 namespace NNUE {
 
-enum class EmbeddedType : std::uint8_t {
+enum class EmbeddedType : u8 {
     BIG,
     SMALL
 };
@@ -49,7 +47,7 @@ class Network final {
    private:
     static constexpr IndexType TFDimensions = Arch::TransformedFeatureDimensions;
     // Hash value of evaluation function structure
-    static constexpr std::uint32_t Hash = Arch::hash() ^ Transformer::hash();
+    static constexpr u32 Hash = Arch::hash() ^ Transformer::hash();
 
    public:
     Network(const EvalFile& evFile, EmbeddedType embType) noexcept :
@@ -66,11 +64,11 @@ class Network final {
 
     void verify(std::string_view netFile) const noexcept;
 
-    std::size_t content_hash() const noexcept;
+    usize content_hash() const noexcept;
 
-    std::int32_t evaluate(const Position&                         pos,
-                          AccumulatorStack&                       accStack,
-                          AccumulatorCaches::Cache<TFDimensions>& cache) const noexcept;
+    i32 evaluate(const Position&                         pos,
+                 AccumulatorStack&                       accStack,
+                 AccumulatorCaches::Cache<TFDimensions>& cache) const noexcept;
 
     NetworkTrace trace(const Position&                         pos,
                        AccumulatorStack&                       accStack,
@@ -92,7 +90,7 @@ class Network final {
     Transformer featureTransformer;
 
     // Evaluation function
-    StdArray<Arch, LayerStacks> network;
+    Array<Arch, LayerStacks> network;
 
     EvalFile     evalFile;
     EmbeddedType embeddedType;
@@ -139,7 +137,7 @@ struct Networks final {
 
 template<typename Arch, typename FeatureTransformer>
 struct std::hash<DON::NNUE::Network<Arch, FeatureTransformer>> {
-    std::size_t
+    DON::usize
     operator()(const DON::NNUE::Network<Arch, FeatureTransformer>& network) const noexcept {
         return network.content_hash();
     }
@@ -147,8 +145,8 @@ struct std::hash<DON::NNUE::Network<Arch, FeatureTransformer>> {
 
 template<>
 struct std::hash<DON::NNUE::Networks> {
-    std::size_t operator()(const DON::NNUE::Networks& networks) const noexcept {
-        std::size_t h = 0;
+    DON::usize operator()(const DON::NNUE::Networks& networks) const noexcept {
+        DON::usize h = 0;
         DON::combine_hash(h, networks.big);
         DON::combine_hash(h, networks.small);
         return h;

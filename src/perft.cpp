@@ -42,16 +42,16 @@ struct PerftData final {
 
     void operator+=(const PerftData& perftData) noexcept;
 
-    std::uint64_t nodes     = 0;
-    std::uint32_t capture   = 0;
-    std::uint32_t enpassant = 0;
-    std::uint32_t anyCheck  = 0;
-    std::uint32_t dscCheck  = 0;
-    std::uint32_t dblCheck  = 0;
-    std::uint32_t castle    = 0;
-    std::uint32_t promotion = 0;
-    std::uint32_t checkmate = 0;
-    std::uint32_t stalemate = 0;
+    u64 nodes     = 0;
+    u32 capture   = 0;
+    u32 enpassant = 0;
+    u32 anyCheck  = 0;
+    u32 dscCheck  = 0;
+    u32 dblCheck  = 0;
+    u32 castle    = 0;
+    u32 promotion = 0;
+    u32 checkmate = 0;
+    u32 stalemate = 0;
 };
 
 void PerftData::classify(Position& pos, Move m) noexcept {
@@ -136,9 +136,9 @@ struct PTEntry final {
     PTEntry() noexcept                          = default;
     PTEntry& operator=(const PTEntry&) noexcept = default;
 
-    constexpr std::uint64_t nodes() const noexcept { return nodes64; }
+    constexpr u64 nodes() const noexcept { return nodes64; }
 
-    void save(std::uint32_t k, Depth d, std::uint64_t n) noexcept {
+    void save(u32 k, Depth d, u64 n) noexcept {
 
         if ((key32 != k || depth16 < d) && nodes64 < 10000 + n)
         {
@@ -153,9 +153,9 @@ struct PTEntry final {
     PTEntry(PTEntry&&) noexcept            = delete;
     PTEntry& operator=(PTEntry&&) noexcept = delete;
 
-    std::uint32_t key32;
-    Depth         depth16;
-    std::uint64_t nodes64;
+    u32   key32;
+    Depth depth16;
+    u64   nodes64;
 
     friend class PerftTable;
 };
@@ -167,7 +167,7 @@ struct PTCluster final {
     PTCluster() noexcept                            = default;
     PTCluster& operator=(const PTCluster&) noexcept = default;
 
-    StdArray<PTEntry, 4> entries;
+    Array<PTEntry, 4> entries;
 
    private:
     PTCluster(const PTCluster&) noexcept       = delete;
@@ -192,7 +192,7 @@ class PerftTable final {
     PerftTable& operator=(PerftTable&&) noexcept      = delete;
     ~PerftTable() noexcept;
 
-    void resize(std::size_t ptSize, const Threads& threads) noexcept;
+    void resize(usize ptSize, const Threads& threads) noexcept;
 
     void init(const Threads& threads) noexcept;
 
@@ -203,8 +203,8 @@ class PerftTable final {
    private:
     void free() noexcept;
 
-    PTCluster*  clusters = nullptr;
-    std::size_t clusterCount;
+    PTCluster* clusters = nullptr;
+    usize      clusterCount;
 };
 
 PerftTable::~PerftTable() noexcept { free(); }
@@ -214,7 +214,7 @@ void PerftTable::free() noexcept {
     assert(success);
 }
 
-void PerftTable::resize(std::size_t ptSize, const Threads& threads) noexcept {
+void PerftTable::resize(usize ptSize, const Threads& threads) noexcept {
     free();
 
     clusterCount = ptSize * _MB / sizeof(PTCluster);
@@ -235,9 +235,9 @@ void PerftTable::resize(std::size_t ptSize, const Threads& threads) noexcept {
 // Initializes the entire perft table to zero, in a multi-threaded way.
 void PerftTable::init(const Threads& threads) noexcept {
 
-    const std::size_t threadCount = threads.size();
+    const usize threadCount = threads.size();
 
-    for (std::size_t threadId = 0; threadId < threadCount; ++threadId)
+    for (usize threadId = 0; threadId < threadCount; ++threadId)
     {
         threads.run_on_thread(threadId, [this, threadId, threadCount]() {
             // Each thread will zero its part of the hash table
@@ -247,7 +247,7 @@ void PerftTable::init(const Threads& threads) noexcept {
         });
     }
 
-    for (std::size_t threadId = 0; threadId < threadCount; ++threadId)
+    for (usize threadId = 0; threadId < threadCount; ++threadId)
         threads.wait_on_thread(threadId);
 }
 
@@ -259,7 +259,7 @@ ProbResult PerftTable::probe(Key key, Depth depth) const noexcept {
 
     auto* ptc = cluster(key);
 
-    auto key32 = std::uint32_t(key);
+    auto key32 = u32(key);
 
     for (auto& entry : ptc->entries)
         if (entry.key32 == key32 && entry.depth16 == depth)
@@ -268,7 +268,7 @@ ProbResult PerftTable::probe(Key key, Depth depth) const noexcept {
     auto* fte = ptc->entries.data();
     auto* rte = fte;
 
-    for (std::size_t i = 1; i < ptc->entries.size(); ++i)
+    for (usize i = 1; i < ptc->entries.size(); ++i)
         if (rte->depth16 > ptc->entries[i].depth16)
             rte = &ptc->entries[i];
 
@@ -304,7 +304,7 @@ PerftData perft(Position& pos, Depth depth, bool detail) noexcept {
         std::cout << std::endl;
     }
 
-    std::uint16_t count = 0;
+    u16 count = 0;
 
     PerftData perftData;
 
@@ -351,7 +351,7 @@ PerftData perft(Position& pos, Depth depth, bool detail) noexcept {
                     {
                         iPerftData = perft<false>(pos, depth - 1, detail);
 
-                        pte->save(std::uint32_t(key), depth - 1, iPerftData.nodes);
+                        pte->save(u32(key), depth - 1, iPerftData.nodes);
                     }
                 }
                 else
@@ -373,7 +373,7 @@ PerftData perft(Position& pos, Depth depth, bool detail) noexcept {
               // move_to_can(m)
               move_to_san(m, pos);
 
-            std::size_t append = 10 - move.size();
+            usize append = 10 - move.size();
             if (append != 0)
             {
                 bool special = move.back() == '+' || move.back() == '#' || move.back() == '=';
@@ -428,8 +428,7 @@ template PerftData perft<true>(Position& pos, Depth depth, bool detail) noexcept
 
 }  // namespace
 
-std::uint64_t perft(
-  Position& pos, std::size_t ptSize, const Threads& threads, Depth depth, bool detail) noexcept {
+u64 perft(Position& pos, usize ptSize, const Threads& threads, Depth depth, bool detail) noexcept {
 
     if (use_perft_table(depth, detail))
         perftTable.resize(ptSize, threads);

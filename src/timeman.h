@@ -18,8 +18,6 @@
 #ifndef TIMEMAN_H_INCLUDED
 #define TIMEMAN_H_INCLUDED
 
-#include <cstdint>
-
 #include "misc.h"
 #include "types.h"  // IWYU pragma: keep
 
@@ -48,15 +46,11 @@ class TimeManager final {
 
     void init() noexcept;
 
-    void init(Color          ac,
-              std::int16_t   ply,
-              std::int32_t   moveNum,
-              const Options& options,
-              Limit&         limit) noexcept;
+    void init(Color ac, i16 ply, i32 moveNum, const Options& options, Limit& limit) noexcept;
 
     [[nodiscard]] bool use_nodes_time() const noexcept;
 
-    void advance_time_nodes(std::int64_t nodes) noexcept;
+    void advance_time_nodes(i64 nodes) noexcept;
 
    private:
     TimeManager(const TimeManager&) noexcept            = delete;
@@ -70,8 +64,8 @@ class TimeManager final {
 
     double timeAdjust;
 
-    std::int64_t timeNodes;
-    bool         useNodesTime;
+    i64  timeNodes;
+    bool useNodesTime;
 };
 
 }  // namespace DON
