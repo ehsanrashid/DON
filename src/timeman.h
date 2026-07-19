@@ -18,8 +18,6 @@
 #ifndef TIMEMAN_H_INCLUDED
 #define TIMEMAN_H_INCLUDED
 
-#include <cstdint>
-
 #include "misc.h"
 #include "types.h"  // IWYU pragma: keep
 

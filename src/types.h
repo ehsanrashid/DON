@@ -85,10 +85,6 @@ namespace DON {
 using Bitboard = u64;
 static_assert(sizeof(Bitboard) == 8, "Bitboard size must be 8 bytes");
 
-#if defined(USE_BMI2) && defined(USE_CMP)
-using Bitboard16 = u16;
-#endif
-
 using Key = u64;
 static_assert(sizeof(Key) == 8, "Key size must be 8 bytes");
 

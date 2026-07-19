@@ -603,7 +603,7 @@ Move PolyGlot::probe(Position& pos, const RootMoves& rootMoves, const Options& o
 
     for (auto& candidate : candidates)
     {
-        maxWeight = std::max<uint32_t>(candidate.weight, maxWeight);
+        maxWeight = std::max<u32>(candidate.weight, maxWeight);
         sumWeight += candidate.weight;
     }
 

@@ -18,11 +18,11 @@
 #ifndef UCI_H_INCLUDED
 #define UCI_H_INCLUDED
 
-#include <cstdint>
 #include <iosfwd>
 #include <string_view>
 
 #include "engine.h"
+#include "misc.h"
 #include "types.h"
 
 namespace DON {

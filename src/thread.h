@@ -21,8 +21,6 @@
 #include <atomic>
 #include <cassert>
 #include <condition_variable>
-#include <cstddef>
-#include <cstdint>
 #include <deque>
 #include <functional>
 #include <memory>
@@ -46,6 +44,7 @@
 #endif
 
 #include "memory.h"
+#include "misc.h"
 #include "numa.h"
 #include "position.h"
 #include "search.h"

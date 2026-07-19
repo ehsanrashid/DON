@@ -18,10 +18,9 @@
 #ifndef TABLEBASE_SYZYGY_H_INCLUDED
 #define TABLEBASE_SYZYGY_H_INCLUDED
 
-#include <cstddef>
-#include <cstdint>
 #include <string_view>
 
+#include "../misc.h"
 #include "../types.h"
 
 namespace DON {

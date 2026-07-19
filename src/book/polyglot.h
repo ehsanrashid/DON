@@ -18,12 +18,11 @@
 #ifndef BOOK_POLYGLOT_H_INCLUDED
 #define BOOK_POLYGLOT_H_INCLUDED
 
-#include <cstddef>
-#include <cstdint>
 #include <filesystem>
 #include <string>
 #include <vector>
 
+#include "../misc.h"
 #include "../types.h"
 
 namespace DON {

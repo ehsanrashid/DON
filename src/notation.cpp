@@ -21,8 +21,6 @@
 #include <algorithm>
 #include <cctype>
 #include <cmath>
-#include <cstddef>
-#include <cstdint>
 #include <iostream>
 
 #include "bitboard.h"

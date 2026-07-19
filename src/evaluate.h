@@ -18,9 +18,9 @@
 #ifndef EVALUATE_H_INCLUDED
 #define EVALUATE_H_INCLUDED
 
-#include <cstdint>
 #include <string>
 
+#include "misc.h"
 #include "types.h"
 
 namespace DON {

@@ -18,8 +18,6 @@
 #ifndef OPTION_H_INCLUDED
 #define OPTION_H_INCLUDED
 
-#include <cstddef>
-#include <cstdint>
 #include <functional>
 #include <iosfwd>
 #include <optional>

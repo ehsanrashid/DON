@@ -18,8 +18,6 @@
 #ifndef NNUE_NMISC_H_INCLUDED
 #define NNUE_NMISC_H_INCLUDED
 
-#include <cstddef>
-#include <cstdint>
 #include <functional>
 #include <string>
 #include <string_view>

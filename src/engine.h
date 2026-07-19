@@ -18,8 +18,6 @@
 #ifndef ENGINE_H_INCLUDED
 #define ENGINE_H_INCLUDED
 
-#include <cstddef>
-#include <cstdint>
 #include <filesystem>
 #include <string>
 #include <string_view>

@@ -25,6 +25,7 @@
 #include <initializer_list>
 #include <string>
 #include <string_view>
+#include <type_traits>
 
 #if defined(USE_AVX512)
     #include <immintrin.h>
@@ -649,9 +650,9 @@ struct Magic final {
 
 #if defined(USE_BMI2)
     #if defined(USE_CMP)
-    Bitboard    maskBB;
-    Bitboard    reMaskBB;
-    Bitboard16* attacksBBs;
+    Bitboard maskBB;
+    Bitboard reMaskBB;
+    u16*     attacksBBs;
     #else
     Bitboard  maskBB;
     Bitboard* attacksBBs;

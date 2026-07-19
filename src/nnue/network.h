@@ -18,8 +18,6 @@
 #ifndef NNUE_NETWORK_H_INCLUDED
 #define NNUE_NETWORK_H_INCLUDED
 
-#include <cstddef>
-#include <cstdint>
 #include <iosfwd>
 #include <functional>
 #include <optional>

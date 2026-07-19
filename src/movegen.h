@@ -19,8 +19,6 @@
 #define MOVEGEN_H_INCLUDED
 
 #include <cassert>
-#include <cstddef>
-#include <cstdint>
 
 #include "misc.h"
 #include "types.h"

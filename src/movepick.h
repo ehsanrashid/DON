@@ -18,9 +18,6 @@
 #ifndef MOVEPICK_H_INCLUDED
 #define MOVEPICK_H_INCLUDED
 
-#include <cstddef>
-#include <cstdint>
-
 #include "history.h"
 #include "misc.h"
 #include "movegen.h"

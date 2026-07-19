@@ -18,9 +18,7 @@
 #ifndef PERFT_H_INCLUDED
 #define PERFT_H_INCLUDED
 
-#include <cstddef>
-#include <cstdint>
-
+#include "misc.h"
 #include "types.h"
 
 namespace DON {

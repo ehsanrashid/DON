@@ -18,7 +18,6 @@
 #ifndef BENCHMARK_H_INCLUDED
 #define BENCHMARK_H_INCLUDED
 
-#include <cstddef>
 #include <iosfwd>
 #include <string>
 #include <string_view>
