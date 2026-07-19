@@ -1617,7 +1617,7 @@ class TieStreamBuf final: public std::streambuf {
 class Logger final {
    public:
     // Start logging. Returns true on success.
-    static bool start(std::string_view logFile) noexcept {
+    static bool start(const std::filesystem::path& logFile) noexcept {
         std::lock_guard writeLock(instance().mutex);
 
         return instance().open(logFile);
@@ -1661,8 +1661,8 @@ class Logger final {
 
     // Open log file; caller must hold mutex
     // If another file is already open, it will be closed first.
-    bool open(std::string_view logFile) noexcept {
-        if (logFile == filename && is_open())
+    bool open(const std::filesystem::path& logFile) noexcept {
+        if (filename == logFile.string() && is_open())
             return true;  // Already open
 
         close();  // Close any previous log file
@@ -1670,7 +1670,7 @@ class Logger final {
         if (logFile.empty())
             return true;
 
-        filename = logFile;
+        filename = logFile.string();
 
         ofs.open(filename, std::ios::out | std::ios::app);
 
@@ -1732,8 +1732,8 @@ struct CommandLine final {
    public:
     CommandLine(int argc, const char* argv[]) noexcept;
 
-    static std::string binary_directory(std::string_view path) noexcept;
-    static std::string working_directory() noexcept;
+    static std::filesystem::path binary_directory(std::filesystem::path path) noexcept;
+    static std::filesystem::path working_directory() noexcept;
 
     StringViews arguments;
 };
@@ -1937,6 +1937,8 @@ inline std::string u64_to_string(u64 v) noexcept {
 
     return std::string{buffer.data(), copiedSize};
 }
+
+std::filesystem::path path_from_utf8(std::string_view path) noexcept;
 
 usize str_to_size_t(std::string_view sv) noexcept;
 

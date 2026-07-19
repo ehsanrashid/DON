@@ -22,14 +22,6 @@
 #include <ctime>
 #include <limits>
 
-#if defined(_WIN32)
-    #include <direct.h>
-    #define GETCWD _getcwd
-#else
-    #include <unistd.h>
-    #define GETCWD getcwd
-#endif
-
 namespace DON {
 
 namespace {
@@ -775,53 +767,42 @@ CommandLine::CommandLine(int argc, const char* argv[]) noexcept {
         arguments.emplace_back(argv[i]);  // no copy, just view
 }
 
-// Extract the binary directory
-std::string CommandLine::binary_directory(std::string_view path) noexcept {
+std::filesystem::path CommandLine::binary_directory(std::filesystem::path path) noexcept {
 #if defined(_WIN32)
-    std::string pathSeparator{"\\"};
-    #if defined(_MSC_VER)
-    // Under windows path may not have the extension.
-    // Also _get_pgmptr() had issues in some Windows 10 versions,
-    // so check returned values carefully.
-    char* pgmPtr = nullptr;
-    if (_get_pgmptr(&pgmPtr) == 0 && pgmPtr != nullptr && *pgmPtr)
-        path = pgmPtr;  // NOT std::string{pgmPtr}
-    #endif
-#else
-    std::string pathSeparator{"/"};
+    // Prefer the executable path reported by Windows. Unlike _get_wpgmptr,
+    // this does not depend on whether the CRT used a narrow or wide entry
+    // point. Windows paths cannot exceed 32767 characters, so a fixed
+    // buffer is always sufficient. Falls back to argv0 if the API fails.
+    constexpr DWORD MaxPath = 32768;
+    CHAR            fname[MaxPath]{};
+
+    if (const DWORD length = GetModuleFileName(nullptr, fname, MaxPath); length != 0)
+    {
+        fname[length] = '\0';
+        path          = std::filesystem::path(fname, fname + length);
+    }
 #endif
-    // now owns memory for resizing etc.
-    std::string binaryDirectory{path};
 
-    std::string currentDirectory{"."};
-    currentDirectory += pathSeparator;
-
-    usize size = binaryDirectory.find_last_of("\\/");
-
-    if (size == std::string::npos)
-        binaryDirectory = currentDirectory;
-    else
-        binaryDirectory.resize(size + 1);
-
-    // Pattern replacement: "./" at the start of path is replaced by the working directory
-    if (binaryDirectory.find(currentDirectory) == 0)
-        binaryDirectory.replace(0, 1, working_directory());
-
+    auto binaryDirectory{path.parent_path()};
+    if (binaryDirectory.empty())
+        binaryDirectory = std::filesystem::path(".");
     return binaryDirectory;
 }
-// Extract the working directory
-std::string CommandLine::working_directory() noexcept {
-    std::string workingDirectory;
+std::filesystem::path CommandLine::working_directory() noexcept {
+    return std::filesystem::current_path();
+}
 
-    Array<char, PATH_MAX> currentWorkingDirectory{};
+std::filesystem::path path_from_utf8(std::string_view path) noexcept {
+#if defined(_WIN32)
+    int u8len = static_cast<int>(path.size());
+    int wlen  = MultiByteToWideChar(CP_UTF8, 0, path.data(), u8len, NULL, 0);
 
-    char* cwd = GETCWD(currentWorkingDirectory.data(), currentWorkingDirectory.size());
-    if (cwd == nullptr)
-        DEBUG_LOG("GETCWD(): Failed");
-    else
-        workingDirectory = cwd;
-
-    return workingDirectory;
+    std::wstring wstr(static_cast<usize>(wlen), L'\0');
+    MultiByteToWideChar(CP_UTF8, 0, path.data(), u8len, wstr.data(), wlen);
+    return {wstr};
+#else
+    return {path};
+#endif
 }
 
 usize str_to_size_t(std::string_view sv) noexcept {

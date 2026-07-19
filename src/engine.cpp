@@ -55,22 +55,23 @@ constexpr usize HASH_MAX =
 // The user can always explicitly override this behavior.
 constexpr AutoNumaPolicy NUMA_POLICY_DEFAULT = BundledL3Policy{32};
 
-std::unique_ptr<NNUE::Networks> NETWORKS_DEFAULT(std::string_view binaryDirectory) noexcept {
+std::unique_ptr<NNUE::Networks>
+NETWORKS_DEFAULT(const std::filesystem::path& binaryDirectory) noexcept {
     auto NetworksDefault =
       std::make_unique<NNUE::Networks>(NNUE::EvalFile{BigEvalFileDefaultName},  //
                                        NNUE::EvalFile{SmallEvalFileDefaultName});
 
-    NetworksDefault->load_big(binaryDirectory);
-    NetworksDefault->load_small(binaryDirectory);
+    NetworksDefault->load_big(binaryDirectory.string());
+    NetworksDefault->load_small(binaryDirectory.string());
 
     return NetworksDefault;
 }
 
 }  // namespace
 
-Engine::Engine(std::string_view path) noexcept :
+Engine::Engine(const std::filesystem::path& path) noexcept :
     // clang-format off
-    binaryDirectory(!path.empty() ? CommandLine::binary_directory(path) : std::string{}),
+    binaryDirectory(!path.empty() ? CommandLine::binary_directory(path) : std::filesystem::path{}),
     numaContext(NumaConfig::from_system(NUMA_POLICY_DEFAULT)),
     networks(numaContext, NETWORKS_DEFAULT(binaryDirectory)) {
 
@@ -112,7 +113,7 @@ Engine::Engine(std::string_view path) noexcept :
     options.add("BigEvalFile",       Option(BigEvalFileDefaultName  , OnCng([this](const Option& o) { load_big_network(o);   return std::nullopt; })));
     options.add("SmallEvalFile",     Option(SmallEvalFileDefaultName, OnCng([this](const Option& o) { load_small_network(o); return std::nullopt; })));
     options.add("MinimalInfo",       Option(false));
-    options.add("LogFile",           Option("", OnCng([](const Option& o) { return Logger::start(o) ? "Logger started" : "Logger not started"; })));
+    options.add("LogFile",           Option("", OnCng([](const Option& o) { return Logger::start(path_from_utf8(o)) ? "Logger started" : "Logger not started"; })));
     options.add("Stop Logger",       Option(OnCng([](const Option&) { Logger::stop(); return std::nullopt; })));
     // clang-format on
 
@@ -356,7 +357,7 @@ void Engine::load_networks(const Array<std::string_view, 2>& netFiles) noexcept 
 void Engine::load_big_network(std::string_view netFile) noexcept {
 
     networks.modify_and_replicate([this, &netFile](NNUE::Networks& nets) noexcept {  //
-        nets.load_big(binaryDirectory, netFile);
+        nets.load_big(binaryDirectory.string(), netFile);
     });
 
     threads.init();
@@ -367,7 +368,7 @@ void Engine::load_big_network(std::string_view netFile) noexcept {
 void Engine::load_small_network(std::string_view netFile) noexcept {
 
     networks.modify_and_replicate([this, &netFile](NNUE::Networks& nets) noexcept {  //
-        nets.load_small(binaryDirectory, netFile);
+        nets.load_small(binaryDirectory.string(), netFile);
     });
 
     threads.init();
