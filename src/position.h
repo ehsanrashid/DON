@@ -33,6 +33,7 @@
     #include <immintrin.h>
 #endif
 
+#include "attacks.h"
 #include "bitboard.h"
 #include "misc.h"
 #include "types.h"

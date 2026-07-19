@@ -19,7 +19,7 @@
 #include <string>
 #include <string_view>
 
-#include "bitboard.h"
+#include "attacks.h"
 #include "memory.h"
 #include "misc.h"
 #include "position.h"

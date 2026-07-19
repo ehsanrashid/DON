@@ -23,6 +23,7 @@
     #include <immintrin.h>
 #endif
 
+#include "attacks.h"
 #include "bitboard.h"
 #include "position.h"
 
