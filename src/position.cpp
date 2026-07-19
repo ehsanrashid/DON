@@ -140,7 +140,7 @@ CuckooTable<0x2000> Cuckoos;
 }  // namespace
 
 void Zobrist::init() noexcept {
-    XorShift64Star prng(0x105524ull);
+    XorShift64Star prng(u64{0x105524});
 
     auto prng_rand = [&] { return prng.template rand<Key>(); };
 

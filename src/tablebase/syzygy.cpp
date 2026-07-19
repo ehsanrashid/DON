@@ -377,8 +377,8 @@ struct PairsData final {
         // element stores the biggest index that is the tb size.
         u64 tbSize = groupIdx[std::find(groupLen.begin(), groupLen.end(), 0) - groupLen.begin()];
 
-        blockSize       = 1ull << *pData++;
-        span            = 1ull << *pData++;
+        blockSize       = u64{1} << *pData++;
+        span            = u64{1} << *pData++;
         sparseIndexSize = ceil_div(tbSize, span);  // Round up
 
         auto padding = number<u8, Endian::LITTLE>(pData);

@@ -233,7 +233,7 @@ inline const bool IsLittleEndian = []() noexcept {
 }();
 #endif
 
-constexpr u64 bit(u8 b) noexcept { return (1ull << b); }
+constexpr u64 bit(u8 b) noexcept { return (u64{1} << b); }
 
 template<typename To, typename From>
 constexpr bool is_strictly_assignable_v =
@@ -425,9 +425,8 @@ std::string version_info() noexcept;
 std::string compiler_info() noexcept;
 
 constexpr u64 mul_hi64(u64 u1, u64 u2) noexcept {
-#if defined(__GNUC__) && defined(IS_64BIT)
-    __extension__ using uint128 = unsigned __int128;
-    return (uint128(u1) * uint128(u2)) >> 64;
+#if defined(IS_64BIT) && defined(__GNUC__) && !defined(__wasm__)
+    return (u128(u1) * u128(u2)) >> 64;
 #else
     u64 u1L = u32(u1), u1H = u1 >> 32;
     u64 u2L = u32(u2), u2H = u2 >> 32;
@@ -436,7 +435,7 @@ constexpr u64 mul_hi64(u64 u1, u64 u2) noexcept {
 #endif
 }
 
-static_assert(mul_hi64(0xDEADBEEFDEADBEEFull, 0xCAFEBABECAFEBABEull) == 0xB092AB7CE9F4B259ull,
+static_assert(mul_hi64(u64{0xDEADBEEFDEADBEEF}, u64{0xCAFEBABECAFEBABE}) == u64{0xB092AB7CE9F4B259},
               "mul_hi64(): Failed");
 
 // PrefetchAccess for explicit call-site control
@@ -1358,7 +1357,7 @@ struct FlagsGuard final {
 // Hash function based on public domain MurmurHash64A by Austin Appleby.
 // Fast, non-cryptographic 64-bit hash suitable for general-purpose hashing.
 inline u64 hash_bytes(const char* RESTRICT data, usize size, u64 seed = 0) noexcept {
-    constexpr u64 MurmurM = 0xC6A4A7935BD1E995ull;
+    constexpr u64 MurmurM = u64{0xC6A4A7935BD1E995};
     constexpr u8  MurmurR = 47;
 
     // Initialize hash with seed and length (MurmurHash64A convention)
