@@ -56,7 +56,7 @@ int main(int argc, const char* argv[]) noexcept {
     if (commandLine.arguments.size() > 1)
     {
         std::string command;
-        command.reserve(256);
+        command.reserve(KB / 2);
 
         for (usize i = 1; i < commandLine.arguments.size(); ++i)
         {
@@ -72,5 +72,6 @@ int main(int argc, const char* argv[]) noexcept {
     {
         uci.process_input(std::cin);
     }
+
     return 0;
 }

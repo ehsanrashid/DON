@@ -183,7 +183,7 @@ void TranspositionTable::increment_generation() const noexcept { generation8 += 
 void TranspositionTable::resize(usize ttSize, const Threads& threads) noexcept {
     free();
 
-    clusterCount = ttSize * _MB / sizeof(TTCluster);
+    clusterCount = ttSize * MB / sizeof(TTCluster);
 
     //DEBUG_LOG("Clustering transposition table to " << clusterCount << " clusters.");
 
@@ -299,7 +299,7 @@ bool TranspositionTable::load(const std::filesystem::path& hashFile,
         return false;
     }
 
-    usize ttSize = fileSize / _MB;
+    usize ttSize = fileSize / MB;
 
     resize(ttSize, threads);
 
@@ -308,7 +308,7 @@ bool TranspositionTable::load(const std::filesystem::path& hashFile,
 
     // Choose a chunk that balances system call overhead and memory pressure.
     // 2 MiB is a safe default; 4-64 MiB may be slightly faster on fast disks.
-    constexpr usize ChunkSize = (2 * _MB / ClusterSize) * ClusterSize;
+    constexpr usize ChunkSize = (2 * MB / ClusterSize) * ClusterSize;
 
     usize DataSize = clusterCount * ClusterSize;
 
@@ -366,7 +366,7 @@ bool TranspositionTable::save(const std::filesystem::path& hashFile) const noexc
 
     // Choose a chunk that balances system call overhead and memory pressure.
     // 2 MiB is a safe default; 4-64 MiB may be slightly faster on fast disks.
-    constexpr usize ChunkSize = (2 * _MB / ClusterSize) * ClusterSize;
+    constexpr usize ChunkSize = (2 * MB / ClusterSize) * ClusterSize;
 
     usize DataSize = clusterCount * ClusterSize;
 

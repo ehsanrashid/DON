@@ -217,7 +217,7 @@ void PerftTable::free() noexcept {
 void PerftTable::resize(usize ptSize, const Threads& threads) noexcept {
     free();
 
-    clusterCount = ptSize * _MB / sizeof(PTCluster);
+    clusterCount = ptSize * MB / sizeof(PTCluster);
 
     //DEBUG_LOG("Clustering perft table to " << clusterCount << " clusters.");
 

@@ -90,7 +90,7 @@ void* alloc_windows_aligned_large_page(usize allocSize) noexcept {
                                    MEM_LARGE_PAGES | MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
           if (mem == nullptr)
               DEBUG_LOG("Failed to allocate large page memory for "
-                        << roundedAllocSize / _MB
+                        << roundedAllocSize / MB
                         << "MB, error = " << error_to_string(GetLastError()));
           return mem;
       },
@@ -112,9 +112,9 @@ void* alloc_aligned_large_page(usize allocSize) noexcept {
     {
         constexpr usize Alignment =
     #if defined(_WIN64)
-          4 * _KB
+          4 * KB
     #else
-          1 * _KB
+          1 * KB
     #endif
           ;
 
@@ -122,16 +122,16 @@ void* alloc_aligned_large_page(usize allocSize) noexcept {
 
         mem = VirtualAlloc(nullptr, roundedAllocSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
         if (mem == nullptr)
-            DEBUG_LOG("Failed to allocate memory for " << roundedAllocSize / _MB << "MB, error = "
+            DEBUG_LOG("Failed to allocate memory for " << roundedAllocSize / MB << "MB, error = "
                                                        << error_to_string(GetLastError()));
     }
 #else
     // Choose a heuristic alignment for huge pages / fallback
     constexpr usize Alignment =
     #if defined(__linux__)
-      2 * _MB  // Assume 2MB page-size
+      2 * MB  // Assume 2MB page-size
     #else
-      4 * _KB  // Assume small page-size
+      4 * KB  // Assume small page-size
     #endif
       ;
 
@@ -139,7 +139,7 @@ void* alloc_aligned_large_page(usize allocSize) noexcept {
 
     mem = alloc_aligned_std(roundedAllocSize, Alignment);
     #if defined(MADV_HUGEPAGE)
-    //DEBUG_LOG("Using madvise() to advise kernel to use huge pages for " << roundedAllocSize / _MB << "MB allocation");
+    //DEBUG_LOG("Using madvise() to advise kernel to use huge pages for " << roundedAllocSize / MB << "MB allocation");
     if (mem != nullptr && madvise(mem, roundedAllocSize, MADV_HUGEPAGE) != 0)
     {
         //DEBUG_LOG("madvise() failed, error = " << strerror(errno));
@@ -170,7 +170,7 @@ bool free_aligned_large_page(void* mem) noexcept {
 bool has_large_page() noexcept {
 
 #if defined(_WIN32)
-    void* mem = alloc_windows_aligned_large_page(2 * _MB);  // 2MB page-size assumed
+    void* mem = alloc_windows_aligned_large_page(2 * MB);  // 2MB page-size assumed
     if (mem == nullptr)
         return false;
     [[maybe_unused]] bool success = free_aligned_large_page(mem);
