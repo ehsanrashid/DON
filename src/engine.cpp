@@ -71,7 +71,7 @@ NETWORKS_DEFAULT(const std::filesystem::path& binaryDirectory) noexcept {
 
 Engine::Engine(const std::filesystem::path& path) noexcept :
     // clang-format off
-    binaryDirectory(!path.empty() ? CommandLine::binary_directory(path) : std::filesystem::path{}),
+    binaryDirectory(CommandLine::binary_directory(path)),
     numaContext(NumaConfig::from_system(NUMA_POLICY_DEFAULT)),
     networks(numaContext, NETWORKS_DEFAULT(binaryDirectory)) {
 
