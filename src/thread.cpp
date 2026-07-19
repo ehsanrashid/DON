@@ -538,8 +538,8 @@ void Threads::start(Position&      pos,
     }
 
     // Assign stable IDs after rootMoves is finalized
-    for (u16 i = 0; i < rootMoves.size(); ++i)
-        rootMoves[i].id = i;
+    for (usize i = 0; i < rootMoves.size(); ++i)
+        rootMoves[i].id = u16(i);
 
     auto& clock = limit.clocks[pos.active_color()];
 
