@@ -19,7 +19,6 @@
 #define NNUE_LAYERS_AFFINE_TRANSFORM_SPARSE_INPUT_H_INCLUDED
 
 #include <algorithm>
-#include <cstdint>
 #include <iostream>
 
 #include "../../bitboard.h"

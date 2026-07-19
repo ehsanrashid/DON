@@ -20,8 +20,6 @@
 #ifndef NNUE_LAYERS_AFFINE_TRANSFORM_H_INCLUDED
 #define NNUE_LAYERS_AFFINE_TRANSFORM_H_INCLUDED
 
-#include <cstddef>
-#include <cstdint>
 #include <iostream>
 
 #include "../../memory.h"

@@ -19,8 +19,6 @@
 #define NUMA_H_INCLUDED
 
 #include <algorithm>
-#include <cstddef>
-#include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <limits>

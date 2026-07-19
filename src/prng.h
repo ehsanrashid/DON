@@ -18,8 +18,6 @@
 #ifndef PRNG_H_INCLUDED
 #define PRNG_H_INCLUDED
 
-#include <cstdint>
-
 #include "misc.h"
 
 namespace DON {

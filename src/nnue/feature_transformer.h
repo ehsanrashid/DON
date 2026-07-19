@@ -21,8 +21,6 @@
 #include <algorithm>
 #include <array>
 #include <cassert>
-#include <cstddef>
-#include <cstdint>
 #include <cstring>
 #include <iosfwd>
 #include <functional>

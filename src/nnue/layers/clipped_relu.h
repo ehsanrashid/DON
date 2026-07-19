@@ -21,7 +21,6 @@
 #define NNUE_LAYERS_CLIPPED_RELU_H_INCLUDED
 
 #include <algorithm>
-#include <cstdint>
 #include <iosfwd>
 
 #include "../../misc.h"
