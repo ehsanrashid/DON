@@ -278,7 +278,7 @@ class TBPaths final {
                 auto path = trim(paths.substr(beg, end - beg));
                 // Optional robustness: ignore pure whitespace entries
                 if (!is_whitespace(path))
-                    Paths.emplace_back(path);
+                    Paths.emplace_back(path_from_utf8(path));
             }
 
             beg = end + 1;
