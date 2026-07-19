@@ -214,7 +214,7 @@ Limit parse_limit(std::istream& is) noexcept {
 }  // namespace
 
 
-UCI::UCI(std::string_view path) noexcept :
+UCI::UCI(const std::filesystem::path& path) noexcept :
     engine(path) {
 
     options().set_info_callback([](std::optional<std::string_view> infoSv) noexcept {

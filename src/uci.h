@@ -19,6 +19,7 @@
 #define UCI_H_INCLUDED
 
 #include <iosfwd>
+#include <filesystem>
 #include <string_view>
 
 #include "engine.h"
@@ -31,7 +32,7 @@ class Options;
 
 class UCI final {
    public:
-    UCI(std::string_view path = {}) noexcept;
+    UCI(const std::filesystem::path& path = {}) noexcept;
 
     Options& options() noexcept;
 

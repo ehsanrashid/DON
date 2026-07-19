@@ -346,6 +346,7 @@ class Position final {
     [[nodiscard]] Piece promoted_pc() const noexcept;
     [[nodiscard]] bool  bishop_paired(Color c) const noexcept;
     [[nodiscard]] bool  bishop_opposite() const noexcept;
+    [[nodiscard]] bool  dtz_is_dtm() const noexcept;
 
     [[nodiscard]] usize bucket() const noexcept;
 
@@ -807,6 +808,10 @@ inline bool Position::bishop_opposite() const noexcept {
     return count(WHITE, BISHOP) == 1  //
         && count(BLACK, BISHOP) == 1
         && color_opposite(square<BISHOP>(WHITE), square<BISHOP>(BLACK));
+}
+
+inline bool Position::dtz_is_dtm() const noexcept {
+    return count(PAWN) == 0 && (count() == 3 || (count() == 4 && pieces_bb(QUEEN, ROOK) == 0));
 }
 
 inline usize Position::bucket() const noexcept { return (count() - 1) / 4; }

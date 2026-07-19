@@ -278,7 +278,7 @@ class TBPaths final {
                 auto path = trim(paths.substr(beg, end - beg));
                 // Optional robustness: ignore pure whitespace entries
                 if (!is_whitespace(path))
-                    Paths.emplace_back(path);
+                    Paths.emplace_back(path_from_utf8(path));
             }
 
             beg = end + 1;
@@ -2173,6 +2173,9 @@ Config rank_root_moves(Position& pos, RootMoves& rootMoves, const Options& optio
 
     if (config.cardinality >= pos.count() && !pos.has_castling_rights())
     {
+        // Use DTZ to rank the moves if checkmate is the only zeroing move
+        rankDTZ = rankDTZ || pos.dtz_is_dtm();
+
         // Rank moves using DTZ-tables, Exit early if the time_to_abort() returns true
         config.rootInTB = rank_root_moves_dtz(pos, rootMoves, config.useRule50, rankDTZ, time_to_abort);
 

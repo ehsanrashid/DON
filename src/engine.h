@@ -39,7 +39,7 @@ namespace DON {
 
 class Engine final {
    public:
-    explicit Engine(std::string_view path = {}) noexcept;
+    explicit Engine(const std::filesystem::path& path = {}) noexcept;
     ~Engine() noexcept;
 
     Options&       get_options() noexcept;
@@ -108,7 +108,7 @@ class Engine final {
     Engine& operator=(const Engine&) noexcept = delete;
     Engine& operator=(Engine&&) noexcept      = delete;
 
-    const std::string binaryDirectory;
+    const std::filesystem::path binaryDirectory;
 
     NumaReplicationContext                       numaContext;
     SystemWideLazyNumaReplicated<NNUE::Networks> networks;
