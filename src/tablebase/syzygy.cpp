@@ -2173,6 +2173,9 @@ Config rank_root_moves(Position& pos, RootMoves& rootMoves, const Options& optio
 
     if (config.cardinality >= pos.count() && !pos.has_castling_rights())
     {
+        // Use DTZ to rank the moves if checkmate is the only zeroing move
+        rankDTZ = rankDTZ || pos.dtz_is_dtm();
+
         // Rank moves using DTZ-tables, Exit early if the time_to_abort() returns true
         config.rootInTB = rank_root_moves_dtz(pos, rootMoves, config.useRule50, rankDTZ, time_to_abort);
 
