@@ -81,6 +81,8 @@ std::string_view pretty(Bitboard b) noexcept {
       b, [](const std::string& str) noexcept -> std::string_view { return str; }, pretty_str(b));
 }
 
+namespace Attacks {
+
 namespace {
 
 constexpr StdArray<usize, 2> TABLE_SIZES{0x1480, 0x19000};
@@ -252,8 +254,6 @@ template void init_magics<ROOK>() noexcept;
 
 }  // namespace
 
-namespace Attacks {
-
 // Initializes various bitboard tables.
 // It is called at startup.
 void init() noexcept {
@@ -286,4 +286,5 @@ void init() noexcept {
 }
 
 }  // namespace Attacks
+
 }  // namespace DON
