@@ -47,7 +47,7 @@ int main(int argc, const char* argv[]) noexcept {
 
     CommandLine commandLine(argc, argv);
 
-    UCI uci(commandLine.arguments[0]);
+    UCI uci(path_from_utf8(commandLine.arguments[0]));
 
     Tune::init(uci.options());
 
