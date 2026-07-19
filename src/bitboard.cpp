@@ -17,6 +17,8 @@
 
 #include "bitboard.h"
 
+#include <memory>
+
 namespace DON {
 
 // Returns an ASCII representation of a bitboard suitable

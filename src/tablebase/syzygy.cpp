@@ -42,6 +42,7 @@
     #include <unistd.h>  // IWYU pragma: keep
 #endif
 
+#include "../attacks.h"
 #include "../bitboard.h"
 #include "../memory.h"
 #include "../misc.h"

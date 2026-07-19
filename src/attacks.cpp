@@ -17,8 +17,6 @@
 
 #include "attacks.h"
 
-#include <memory>
-
 #if !defined(USE_BMI2)
     #include "prng.h"
 #endif

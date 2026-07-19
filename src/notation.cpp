@@ -23,6 +23,7 @@
 #include <cmath>
 #include <iostream>
 
+#include "attacks.h"
 #include "bitboard.h"
 #include "position.h"
 

@@ -18,6 +18,11 @@
 #ifndef ATTACKS_H_INCLUDED
 #define ATTACKS_H_INCLUDED
 
+#include <assert.h>
+#include <algorithm>
+#include <array>
+#include <initializer_list>
+
 #include "bitboard.h"
 #include "misc.h"
 #include "types.h"

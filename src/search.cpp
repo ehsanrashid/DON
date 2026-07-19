@@ -24,6 +24,7 @@
 #include <ratio>
 #include <string>
 
+#include "attacks.h"
 #include "bitboard.h"
 #include "evaluate.h"
 #include "movegen.h"

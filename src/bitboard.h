@@ -18,10 +18,7 @@
 #ifndef BITBOARD_H_INCLUDED
 #define BITBOARD_H_INCLUDED
 
-#include <algorithm>
-#include <array>
 #include <cassert>
-#include <initializer_list>
 #include <string>
 #include <string_view>
 #include <type_traits>
