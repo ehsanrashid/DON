@@ -113,7 +113,7 @@ std::string trace(Position& pos, const NNUE::Networks& networks) noexcept {
     };
 
     std::string output;
-    output.reserve(3072);
+    output.reserve(3 * KB);
 
     output.assign(NNUE::trace(pos, networks, *accCaches)).push_back('\n');
 
