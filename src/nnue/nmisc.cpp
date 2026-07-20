@@ -111,8 +111,9 @@ std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& ac
 
     // Estimate the value of each piece by doing a differential evaluation from
     // the current base eval, simulating the removal of the piece from its square.
-    i32 baseEval = networks.big.evaluate(pos, *accStack, accCaches.big);
-    baseEval     = pos.active_color() == WHITE ? +baseEval : -baseEval;
+    auto baseNetOut = networks.big.evaluate(pos, *accStack, accCaches.big);
+    auto baseEval   = baseNetOut.psqt + baseNetOut.positional;
+    baseEval        = pos.active_color() == WHITE ? +baseEval : -baseEval;
 
     for (File f = FILE_A; f <= FILE_H; ++f)
         for (Rank r = RANK_1; r <= RANK_8; ++r)
@@ -127,8 +128,9 @@ std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& ac
 
                 accStack->reset();
 
-                i32 curEval = networks.big.evaluate(pos, *accStack, accCaches.big);
-                curEval     = pos.active_color() == WHITE ? +curEval : -curEval;
+                auto curNetOut = networks.big.evaluate(pos, *accStack, accCaches.big);
+                auto curEval   = curNetOut.psqt + curNetOut.positional;
+                curEval        = pos.active_color() == WHITE ? +curEval : -curEval;
 
                 v = Value(baseEval - curEval);
 
@@ -150,7 +152,7 @@ std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& ac
 
     auto netTrace = networks.big.trace(pos, *accStack, accCaches.big);
 
-    oss << " NNUE network contributions (";
+    oss << " NNUE network contributions (Normalized, ";
     oss << (pos.active_color() == WHITE ? "White" : "Black") << " to move):\n";
     oss << Sep;
     oss << "|   Bucket   |  Material  | Positional |   Total    |\n";
