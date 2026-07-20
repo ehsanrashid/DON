@@ -156,10 +156,10 @@ void Network<Arch, Transformer>::load(std::string_view rootDirectory,
     for (auto dir : Directories)
         if (netFile != std::string_view(evalFile.currentName))
         {
-            if (dir == "<embedded>" && netFile == std::string_view(evalFile.defaultName))
-                load_embedded();
-            else if (dir != "<embedded>")
+            if (dir != "<embedded>")
                 load_file(dir, netFile);
+            else if (netFile == std::string_view(evalFile.defaultName))
+                load_embedded();
 
             if (initialized)
                 break;
@@ -223,7 +223,7 @@ void Network<Arch, Transformer>::verify(std::string_view netFile) const noexcept
     constexpr usize TotalSize = sizeof(featureTransformer) + LayerStacks * sizeof(Arch);
 
     std::string msg{"NNUE evaluation using " + std::string{netFile} + " ("  //
-                    + std::to_string(TotalSize / _MB) + "MiB, ("
+                    + std::to_string(TotalSize / MB) + "MiB, ("
                     + std::to_string(featureTransformer.TotalInputDimensions) + ", "
                     + std::to_string(network[0].TransformedFeatureDimensions) + ", "
                     + std::to_string(network[0].FC_0_Outputs) + ", "  //
@@ -246,23 +246,21 @@ usize Network<Arch, Transformer>::content_hash() const noexcept {
 }
 
 template<typename Arch, typename Transformer>
-i32 Network<Arch, Transformer>::evaluate(
-  const Position&                         pos,
-  AccumulatorStack&                       accStack,
-  AccumulatorCaches::Cache<TFDimensions>& cache) const noexcept {
-
-    constexpr i32 Scale = 128;
+NetworkOutput
+Network<Arch, Transformer>::evaluate(const Position&                         pos,
+                                     AccumulatorStack&                       accStack,
+                                     AccumulatorCaches::Cache<TFDimensions>& cache) const noexcept {
 
     alignas(CACHE_LINE_SIZE)
       Array<TransformedFeatureType, FeatureTransformer<TFDimensions>::BufferSize>
         transformedFeatures;
 
-    usize bucket = pos.bucket();
+    auto bucket = pos.bucket();
 
-    i32 psqt = featureTransformer.transform(pos, accStack, cache, bucket, transformedFeatures);
-    i32 positional = network[bucket].propagate(transformedFeatures);
+    auto psqt = featureTransformer.transform(pos, accStack, cache, bucket, transformedFeatures);
+    auto positional = network[bucket].propagate(transformedFeatures);
 
-    return ((Scale - 3) * psqt + (Scale + 3) * positional) / (Scale * OUTPUT_SCALE);
+    return {psqt / OUTPUT_SCALE, positional / OUTPUT_SCALE};
 }
 
 template<typename Arch, typename Transformer>

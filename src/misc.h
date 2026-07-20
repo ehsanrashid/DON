@@ -204,8 +204,8 @@ inline constexpr usize BYTE_BITS = 8;
 inline constexpr usize HEX64_SIZE = 16;
 inline constexpr usize HEX32_SIZE = 8;
 
-inline constexpr usize _KB = 1024;
-inline constexpr usize _MB = _KB * _KB;
+inline constexpr usize KB = 1024;
+inline constexpr usize MB = KB * KB;
 
 inline constexpr usize BLOCK_4  = 4;
 inline constexpr usize BLOCK_8  = 2 * BLOCK_4;

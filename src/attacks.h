@@ -18,9 +18,9 @@
 #ifndef ATTACKS_H_INCLUDED
 #define ATTACKS_H_INCLUDED
 
-#include <assert.h>
 #include <algorithm>
 #include <array>
+#include <cassert>
 #include <initializer_list>
 
 #include "bitboard.h"

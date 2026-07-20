@@ -37,8 +37,6 @@
 
 #if defined(SUPPORTS_PTHREADS)
     #include <pthread.h>
-
-    #include "misc.h"
 #else  // Default case: use STL classes
     #include <thread>
 #endif
@@ -155,7 +153,7 @@ class NativeThread final {
     }
 
    private:
-    static constexpr usize TH_STACK_SIZE = 8 * _MB;
+    static constexpr usize TH_STACK_SIZE = 8 * MB;
 
     pthread_t thread{};
     bool      joined = true;

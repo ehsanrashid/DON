@@ -17,8 +17,8 @@
 
 #include "notation.h"
 
-#include <assert.h>
 #include <algorithm>
+#include <cassert>
 #include <cctype>
 #include <cmath>
 #include <iostream>

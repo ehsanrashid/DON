@@ -769,24 +769,20 @@ CommandLine::CommandLine(int argc, const char* argv[]) noexcept {
 
 std::filesystem::path CommandLine::binary_directory(std::filesystem::path path) noexcept {
 #if defined(_WIN32)
-    // Prefer the executable path reported by Windows. Unlike _get_wpgmptr,
-    // this does not depend on whether the CRT used a narrow or wide entry
-    // point. Windows paths cannot exceed 32767 characters, so a fixed
-    // buffer is always sufficient. Falls back to argv0 if the API fails.
-    constexpr DWORD MaxPath = 32768;
-    CHAR            fname[MaxPath]{};
+    // Prefer the executable path reported by Windows.
+    // Unlike _get_wpgmptr, this does not depend on whether the CRT used a narrow or wide entry point.
+    // Windows paths cannot exceed 32767 characters, so a fixed buffer is always sufficient.
+    // Falls back to path if the API fails.
+    constexpr DWORD BuffSize = 32768;
+    WCHAR           filename[BuffSize]{};
 
-    if (const DWORD length = GetModuleFileName(nullptr, fname, MaxPath); length != 0)
-    {
-        fname[length] = '\0';
-        path          = std::filesystem::path(fname, fname + length);
-    }
+    DWORD length = GetModuleFileNameW(nullptr, filename, BuffSize);
+    if (length != 0 && length < BuffSize)
+        path = std::filesystem::path(filename, filename + length);
 #endif
 
     auto binaryDirectory{path.parent_path()};
-    if (binaryDirectory.empty())
-        binaryDirectory = std::filesystem::path(".");
-    return binaryDirectory;
+    return binaryDirectory.empty() ? std::filesystem::path(".") : binaryDirectory;
 }
 std::filesystem::path CommandLine::working_directory() noexcept {
     return std::filesystem::current_path();
@@ -794,10 +790,13 @@ std::filesystem::path CommandLine::working_directory() noexcept {
 
 std::filesystem::path path_from_utf8(std::string_view path) noexcept {
 #if defined(_WIN32)
-    int u8len = static_cast<int>(path.size());
+    usize size = path.size();
+    if (size > INT_MAX)
+        return {};
+    int u8len = int(size);
     int wlen  = MultiByteToWideChar(CP_UTF8, 0, path.data(), u8len, NULL, 0);
 
-    std::wstring wstr(static_cast<usize>(wlen), L'\0');
+    std::wstring wstr(usize(wlen), L'\0');
     MultiByteToWideChar(CP_UTF8, 0, path.data(), u8len, wstr.data(), wlen);
     return {wstr};
 #else

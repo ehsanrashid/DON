@@ -54,8 +54,8 @@ struct EvalFile final {
 
 struct NetworkOutput final {
    public:
-    i32 psqt       = 0;
-    i32 positional = 0;
+    i32 psqt;
+    i32 positional;
 };
 
 struct NetworkTrace final {

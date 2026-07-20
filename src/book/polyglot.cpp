@@ -469,7 +469,7 @@ bool PolyGlot::load(const std::filesystem::path& bookFile) noexcept {
 
     // Choose a chunk that balances system call overhead and memory pressure.
     // 2 MiB is a safe default; 4-64 MiB may be slightly faster on fast disks.
-    constexpr usize ChunkSize = (2 * _MB / EntrySize) * EntrySize;
+    constexpr usize ChunkSize = (2 * MB / EntrySize) * EntrySize;
 
     usize dataSize = entryCount * EntrySize;
 
