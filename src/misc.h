@@ -66,6 +66,7 @@
 #undef HAS_X86_PREFETCH
 #if defined(USE_PREFETCH) \
   && (defined(_M_X64) || defined(__x86_64__) || defined(__i386__) || defined(_M_IX86))
+    //|| defined(_MSC_VER) || defined(__INTEL_COMPILER)
     #define HAS_X86_PREFETCH
     #include <xmmintrin.h>  // SSE intrinsics header for _mm_prefetch()
 #endif
@@ -425,7 +426,7 @@ std::string version_info() noexcept;
 std::string compiler_info() noexcept;
 
 constexpr u64 mul_hi64(u64 u1, u64 u2) noexcept {
-#if defined(IS_64BIT) && defined(__GNUC__) && !defined(__wasm__)
+#if defined(__GNUC__) && defined(IS_64BIT) && !defined(__wasm__)
     return (u128(u1) * u128(u2)) >> 64;
 #else
     u64 u1L = u32(u1), u1H = u1 >> 32;
@@ -458,7 +459,7 @@ enum class PrefetchLoc : u8 {
 // Preloads the given address into cache.
 // Non-blocking operation that doesn't stall the CPU waiting for data to be loaded from memory.
 // NOTE:
-// On x86, _mm_prefetch does NOT truly distinguish READ vs WRITE.
+// On x86, _mm_prefetch() does NOT truly distinguish READ vs WRITE.
 // PrefetchAccess::WRITE is a best-effort hint only and may behave identically to READ.
 // On GCC/Clang, __builtin_prefetch supports Access as a separate hint.
 template<PrefetchAccess Access = PrefetchAccess::READ, PrefetchLoc Loc = PrefetchLoc::HIGH>
