@@ -41,8 +41,8 @@ namespace Evaluate {
 
 Value evaluate(const Position&          pos,
                const NNUE::Network&     network,
-               NNUE::AccumulatorStack&  accStack,
                NNUE::AccumulatorCaches& accCaches,
+               NNUE::AccumulatorStack&  accStack,
                i32                      optimism = 0) noexcept;
 
 std::string trace(Position& pos, const NNUE::Network& network) noexcept;

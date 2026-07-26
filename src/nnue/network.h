@@ -60,11 +60,12 @@ class Network final {
     usize content_hash() const noexcept;
 
     NetworkOutput evaluate(const Position&    pos,
-                           AccumulatorStack&  accStack,
-                           AccumulatorCaches& cache) const noexcept;
+                           AccumulatorCaches& accCaches,
+                           AccumulatorStack&  accStack) const noexcept;
 
-    NetworkTrace
-    trace(const Position& pos, AccumulatorStack& accStack, AccumulatorCaches& cache) const noexcept;
+    NetworkTrace trace(const Position&    pos,
+                       AccumulatorCaches& accCaches,
+                       AccumulatorStack&  accStack) const noexcept;
 
    private:
     std::optional<std::string> load(std::istream& is) noexcept;

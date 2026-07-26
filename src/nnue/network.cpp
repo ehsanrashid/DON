@@ -216,23 +216,23 @@ usize Network::content_hash() const noexcept {
 }
 
 NetworkOutput Network::evaluate(const Position&    pos,
-                                AccumulatorStack&  accStack,
-                                AccumulatorCaches& cache) const noexcept {
+                                AccumulatorCaches& accCaches,
+                                AccumulatorStack&  accStack) const noexcept {
 
     alignas(CACHE_LINE_SIZE) Array<TransformedFeatureType, FeatureTransformer::BufferSize>
       transformedFeatures;
 
     auto bucket = pos.bucket();
 
-    auto psqt = featureTransformer.transform(pos, accStack, cache, bucket, transformedFeatures);
+    auto psqt = featureTransformer.transform(pos, accStack, accCaches, bucket, transformedFeatures);
     auto positional = network[bucket].propagate(transformedFeatures);
 
     return {psqt / OUTPUT_SCALE, positional / OUTPUT_SCALE};
 }
 
 NetworkTrace Network::trace(const Position&    pos,
-                            AccumulatorStack&  accStack,
-                            AccumulatorCaches& cache) const noexcept {
+                            AccumulatorCaches& accCaches,
+                            AccumulatorStack&  accStack) const noexcept {
 
     alignas(CACHE_LINE_SIZE) Array<TransformedFeatureType, FeatureTransformer::BufferSize>
       transformedFeatures;
@@ -241,7 +241,8 @@ NetworkTrace Network::trace(const Position&    pos,
     netTrace.correctBucket = pos.bucket();
     for (IndexType bucket = 0; bucket < LayerStacks; ++bucket)
     {
-        i32 psqt = featureTransformer.transform(pos, accStack, cache, bucket, transformedFeatures);
+        i32 psqt =
+          featureTransformer.transform(pos, accStack, accCaches, bucket, transformedFeatures);
         i32 positional = network[bucket].propagate(transformedFeatures);
 
         netTrace.netOut[bucket] = {psqt / OUTPUT_SCALE, positional / OUTPUT_SCALE};

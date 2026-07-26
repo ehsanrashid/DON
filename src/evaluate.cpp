@@ -36,12 +36,12 @@ namespace DON::Evaluate {
 // from the point of view of the side to move.
 Value evaluate(const Position&          pos,
                const NNUE::Network&     network,
-               NNUE::AccumulatorStack&  accStack,
                NNUE::AccumulatorCaches& accCaches,
+               NNUE::AccumulatorStack&  accStack,
                i32                      optimism) noexcept {
     assert(pos.checkers_bb() == 0);
 
-    auto [psqt, positional] = network.evaluate(pos, accStack, accCaches);
+    auto [psqt, positional] = network.evaluate(pos, accCaches, accStack);
 
     i32 nnue = (125 * psqt + 131 * positional) / 128;
 
@@ -70,8 +70,8 @@ std::string trace(Position& pos, const NNUE::Network& network) noexcept {
     if (pos.checkers_bb() != 0)
         return "Final evaluation     : none (in check)";
 
-    auto accStack  = std::make_unique<NNUE::AccumulatorStack>();
     auto accCaches = std::make_unique<NNUE::AccumulatorCaches>(network);
+    auto accStack  = std::make_unique<NNUE::AccumulatorStack>();
 
     auto fmt = [](double value) noexcept -> std::string {
         Array<char, 8> buffer{};
@@ -89,9 +89,9 @@ std::string trace(Position& pos, const NNUE::Network& network) noexcept {
 
     output.assign(NNUE::trace(pos, network, *accCaches)).push_back('\n');
 
-    Value v;
+    auto [psqt, positional] = network.evaluate(pos, *accCaches, *accStack);
 
-    auto [psqt, positional] = network.evaluate(pos, *accStack, *accCaches);
+    Value v;
 
     v = psqt + positional;
     v = pos.active_color() == WHITE ? +v : -v;
@@ -101,7 +101,7 @@ std::string trace(Position& pos, const NNUE::Network& network) noexcept {
       .append(fmt(0.01 * to_cp(v, pos)))
       .append(" (white side)\n");
 
-    v = evaluate(pos, network, *accStack, *accCaches);
+    v = evaluate(pos, network, *accCaches, *accStack);
     v = pos.active_color() == WHITE ? +v : -v;
 
     output  //

@@ -119,7 +119,7 @@ struct AccumulatorStack final {
     void evaluate(const Position&           pos,
                   const FeatureTransformer& featureTransformer,
                   // Silence spurious warning on GCC 10
-                  [[maybe_unused]] AccumulatorCaches& cache) noexcept;
+                  [[maybe_unused]] AccumulatorCaches& accCaches) noexcept;
 
    private:
     template<typename T>
@@ -133,7 +133,7 @@ struct AccumulatorStack final {
                   const Position&           pos,
                   const FeatureTransformer& featureTransformer,
                   // Silence spurious warning on GCC 10
-                  [[maybe_unused]] AccumulatorCaches& cache) noexcept;
+                  [[maybe_unused]] AccumulatorCaches& accCaches) noexcept;
 
     template<typename FeatureSet>
     [[nodiscard]] usize last_usable_accumulator_index(Color perspective) const noexcept;
