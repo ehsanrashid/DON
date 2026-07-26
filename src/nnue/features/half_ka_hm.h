@@ -35,7 +35,7 @@ class HalfKA_hm final {
 
     static constexpr IndexType PS_NB = 11 * SQUARE_NB;
 
-    // Number of feature dimensions -> PS_NB * SQUARE_NB / 2
+    // Number of feature dimensions
     static constexpr IndexType Dimensions = PS_NB * SQUARE_NB / 2;
 
     // Maximum number of simultaneously active features

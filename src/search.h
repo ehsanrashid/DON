@@ -379,7 +379,7 @@ struct Skill final {
     Move   bestMove = Move::None;
 };
 
-// SharedState stores the engine options, networks, thread pool, and transposition table.
+// SharedState stores the shared resources.
 // It is used to easily forward data to the Worker class.
 struct SharedState final {
    public:

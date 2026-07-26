@@ -341,7 +341,6 @@ void FullThreats::append_changed_indices(Color                   perspective,
                     if (first)
                     {
                         fusedData->dp2removedOriginBB |= dstSq;
-
                         continue;
                     }
                 }
@@ -356,7 +355,6 @@ void FullThreats::append_changed_indices(Color                   perspective,
                     if (first)
                     {
                         fusedData->dp2removedTargetBB |= orgSq;
-
                         continue;
                     }
                 }

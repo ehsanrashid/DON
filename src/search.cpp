@@ -255,6 +255,7 @@ Worker::Worker(usize                     threadIdx,
 // Initialize per-thread data structures
 void Worker::init() noexcept {
     assert(thread_count() == threads.size());
+
     // Each thread initializes its NUMA-local range of history entries to prevent false sharing
 
     auto historyRange = split_range(numa_id(), numa_thread_count(), histories.history_size());
@@ -287,7 +288,7 @@ void Worker::init() noexcept {
     accCache.init(network[numa_access_token()]);
 }
 
-// Ensure that the neural networks are replicated on this NUMA node
+// Ensure that the neural network is replicated on this NUMA node
 void Worker::ensure_network_replicated() const noexcept {
     // Access once to force lazy initialization.
     // Do this because want to avoid initialization during search.
