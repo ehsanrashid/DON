@@ -94,12 +94,12 @@ struct AccumulatorCaches final {
 template<typename FeatureSet>
 struct AccumulatorState final: public Accumulator {
    public:
-    typename FeatureSet::DirtyType dirty;
-
     void reset(typename FeatureSet::DirtyType&& dt) noexcept {
         dirty = std::move(dt);
         computed.fill(false);
     }
+
+    typename FeatureSet::DirtyType dirty;
 };
 
 struct AccumulatorStack final {
