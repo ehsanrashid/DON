@@ -256,7 +256,8 @@ std::string move_to_san(Move m, Position& pos) noexcept {
         // Note:: Piece letter (skip pawn as not needed because starting file is explicit)
         if (movedPt != PAWN)
         {
-            san.assign(usize(1), to_char(movedPt));
+            san.assign(1, to_char(movedPt));
+
             if (movedPt != KING)
             {
                 // Add disambiguation when more than one piece can reach destiny with legal move.
@@ -275,8 +276,10 @@ std::string move_to_san(Move m, Position& pos) noexcept {
                 }
             }
         }
+
         if (pos.capture(m))
             san.append(usize(movedPt == PAWN), to_char(file_of(orgSq))).push_back('x');
+
         san  //
           .append(to_square(dstSq))
           .append(usize(m.type() == MT::PROMOTION), '=')

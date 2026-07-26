@@ -922,7 +922,7 @@ void AccumulatorStack::update_backward_incr(Color                     perspectiv
 
     Square kingSq = pos.square<KING>(perspective);
 
-    for (usize idx = std::max(size, usize(1)) - 1; idx-- > end;)
+    for (usize idx = std::max(size, usize{1}) - 1; idx-- > end;)
         update_accumulator_incr<false>(perspective, featureTransformer, kingSq,
                                        accumulators<FeatureSet>()[idx + 1],
                                        mut_accumulators<FeatureSet>()[idx]);

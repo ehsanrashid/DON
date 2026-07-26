@@ -2559,7 +2559,7 @@ void MainSearchManager::handle_time_management(const Worker& worker,
     double easeFactor = 0.4386 * (1.4300 + preTimeReduction) / timeReduction;
 
     // Compute move instability factor based on the total move changes and the number of threads
-    double instabilityFactor = 1.0200 + 2.1400 * sumMoveChanges / std::max(worker.thread_count(), usize(1));
+    double instabilityFactor = 1.0200 + 2.1400 * sumMoveChanges / std::max(worker.thread_count(), usize{1});
 
     // Compute node effort factor that reduces time if root move has consumed a large fraction of total nodes
     double nodeEffortExcess = std::max(-933.40 + 1000.0 * worker.rootMoves[0].nodes / std::max(worker.nodes_(), u64(1)), 0.0);
