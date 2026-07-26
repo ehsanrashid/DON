@@ -25,9 +25,7 @@
 #include <string_view>
 
 #include "../misc.h"
-#include "accumulator.h"
 #include "architecture.h"
-#include "common.h"
 #include "feature_transformer.h"
 #include "nmisc.h"
 
@@ -36,6 +34,9 @@ namespace DON {
 class Position;
 
 namespace NNUE {
+
+struct AccumulatorCaches;
+struct AccumulatorStack;
 
 class Network final {
    private:

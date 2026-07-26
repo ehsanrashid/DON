@@ -30,6 +30,7 @@
 #include "../position.h"
 #include "../notation.h"
 #include "../types.h"
+#include "accumulator.h"
 #include "common.h"
 
 // Macro to embed the default efficiently updatable neural network (NNUE) file

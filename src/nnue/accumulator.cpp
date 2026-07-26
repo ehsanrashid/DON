@@ -21,10 +21,12 @@
 #include <type_traits>
 #include <utility>
 
+#include "../bitboard.h"
 #include "../misc.h"
 #include "../position.h"
 #include "../types.h"
 #include "feature_transformer.h"  // IWYU pragma: keep
+#include "features/full_threats.h"
 #include "features/half_ka_hm.h"
 #include "simd.h"
 
