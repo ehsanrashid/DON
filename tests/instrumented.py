@@ -157,7 +157,7 @@ class TestCLI(metaclass=OrderedClassMembers):
 
         # find line
         for line in output.split("\n"):
-            if "option name BigEvalFile type string default" in line:
+            if "option name EvalFile type string default" in line:
                 network = line.split(" ")[-1]
                 break
 
@@ -353,7 +353,7 @@ class TestInteractive(metaclass=OrderedClassMembers):
     def test_verify_nnue_network_startpos_go_depth_5(self):
         currentPath = os.path.abspath(os.getcwd())
         DON(f"export_net {os.path.join(currentPath, 'verify.nnue')}".split(" "), True)
-        self.engine.setoption("BigEvalFile", "verify.nnue")
+        self.engine.setoption("EvalFile", "verify.nnue")
         self.engine.send_command("position startpos")
         self.engine.send_command("go depth 5")
         self.engine.starts_with("bestmove")

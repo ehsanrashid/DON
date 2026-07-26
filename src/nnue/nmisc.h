@@ -31,7 +31,7 @@ class Position;
 
 namespace NNUE {
 
-struct Networks;
+class Network;
 struct AccumulatorCaches;
 
 // EvalFile uses fixed string types because it's part of the network structure which must be trivial.
@@ -64,7 +64,7 @@ struct NetworkTrace final {
     usize                             correctBucket;
 };
 
-std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& accCaches) noexcept;
+std::string trace(Position& pos, const Network& network, AccumulatorCaches& accCaches) noexcept;
 
 }  // namespace NNUE
 }  // namespace DON

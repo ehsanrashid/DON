@@ -21,7 +21,6 @@
 #include <cassert>
 #include <cstdio>
 #include <memory>
-#include <utility>
 
 #include "misc.h"
 #include "position.h"
@@ -36,45 +35,17 @@ namespace DON::Evaluate {
 // It returns a static evaluation of the position
 // from the point of view of the side to move.
 Value evaluate(const Position&          pos,
-               const NNUE::Networks&    networks,
+               const NNUE::Network&     network,
                NNUE::AccumulatorStack&  accStack,
                NNUE::AccumulatorCaches& accCaches,
                i32                      optimism) noexcept {
     assert(pos.checkers_bb() == 0);
 
-    Value posEval = pos.evaluate();
+    auto [psqt, positional] = network.evaluate(pos, accStack, accCaches);
 
-    bool smallNet = constexpr_abs(posEval) > 962;
+    i32 nnue = (125 * psqt + 131 * positional) / 128;
 
-    NNUE::NetworkOutput netOut{};
-
-    auto compute_nnue = [&netOut = std::as_const(netOut)]() noexcept -> i32 {
-        return (125 * netOut.psqt + 131 * netOut.positional) / 128;
-    };
-
-    i32 nnue;
-
-    if (smallNet)
-    {
-        netOut = networks.small.evaluate(pos, accStack, accCaches.small);
-        nnue   = compute_nnue();
-
-        // Re-evaluate with the big-net if the small-net's NNUE evaluation is below a certain threshold
-        if (constexpr_abs(nnue) < 277)
-        {
-            smallNet = false;
-
-            netOut = networks.big.evaluate(pos, accStack, accCaches.big);
-            nnue   = compute_nnue();
-        }
-    }
-    else
-    {
-        netOut = networks.big.evaluate(pos, accStack, accCaches.big);
-        nnue   = compute_nnue();
-    }
-
-    double complexity = constexpr_abs(netOut.psqt - netOut.positional);
+    double complexity = constexpr_abs(psqt - positional);
     // Blend eval and optimism with complexity
     nnue     = constexpr_round(double(nnue) * (1.0 - 54.8366e-6 * complexity));
     optimism = constexpr_round(double(optimism) * (1.0 + 21.0084e-4 * complexity));
@@ -95,12 +66,12 @@ Value evaluate(const Position&          pos,
 // it returns a string (suitable for outputting to stdout)
 // that contains the detailed descriptions and values of each evaluation term.
 // Trace scores are from white's point of view.
-std::string trace(Position& pos, const NNUE::Networks& networks) noexcept {
+std::string trace(Position& pos, const NNUE::Network& network) noexcept {
     if (pos.checkers_bb() != 0)
         return "Final evaluation     : none (in check)";
 
     auto accStack  = std::make_unique<NNUE::AccumulatorStack>();
-    auto accCaches = std::make_unique<NNUE::AccumulatorCaches>(networks);
+    auto accCaches = std::make_unique<NNUE::AccumulatorCaches>(network);
 
     auto fmt = [](double value) noexcept -> std::string {
         Array<char, 8> buffer{};
@@ -116,13 +87,13 @@ std::string trace(Position& pos, const NNUE::Networks& networks) noexcept {
     std::string output;
     output.reserve(3 * KB);
 
-    output.assign(NNUE::trace(pos, networks, *accCaches)).push_back('\n');
+    output.assign(NNUE::trace(pos, network, *accCaches)).push_back('\n');
 
     Value v;
 
-    auto netOut = networks.big.evaluate(pos, *accStack, accCaches->big);
+    auto [psqt, positional] = network.evaluate(pos, *accStack, *accCaches);
 
-    v = netOut.psqt + netOut.positional;
+    v = psqt + positional;
     v = pos.active_color() == WHITE ? +v : -v;
 
     output  //
@@ -130,7 +101,7 @@ std::string trace(Position& pos, const NNUE::Networks& networks) noexcept {
       .append(fmt(0.01 * to_cp(v, pos)))
       .append(" (white side)\n");
 
-    v = evaluate(pos, networks, *accStack, *accCaches);
+    v = evaluate(pos, network, *accStack, *accCaches);
     v = pos.active_color() == WHITE ? +v : -v;
 
     output  //

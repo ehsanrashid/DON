@@ -86,12 +86,10 @@ class Engine final {
     std::string thread_allocation() const noexcept;
 
     // Network related
-    void verify_networks() const noexcept;
+    void verify_network() const noexcept;
 
-    void load_networks(const Array<std::string_view, 2>& netFiles) noexcept;
-    void load_big_network(std::string_view netFile) noexcept;
-    void load_small_network(std::string_view netFile) noexcept;
-    void save_networks(const Array<std::string_view, 2>& netFiles) const noexcept;
+    void load_network(std::string_view netFile) noexcept;
+    void save_network(std::string_view netFile) const noexcept;
 
     bool load_hash() noexcept;
     bool save_hash() const noexcept;
@@ -110,14 +108,14 @@ class Engine final {
 
     const std::filesystem::path binaryDirectory;
 
-    NumaReplicationContext                       numaContext;
-    SystemWideLazyNumaReplicated<NNUE::Networks> networks;
-    Options                                      options;
-    Threads                                      threads;
-    TranspositionTable                           transpositionTable;
-    HistoriesMap                                 historiesMap;
+    NumaReplicationContext                      numaContext;
+    SystemWideLazyNumaReplicated<NNUE::Network> network;
+    Options                                     options;
+    Threads                                     threads;
+    TranspositionTable                          transpositionTable;
+    HistoriesMap                                historiesMap;
 
-    SharedState sharedState{networks, options, transpositionTable, threads, historiesMap};
+    SharedState sharedState{network, options, transpositionTable, threads, historiesMap};
 
     StateListPtr states;
     Position     pos;

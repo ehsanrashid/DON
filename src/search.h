@@ -49,7 +49,7 @@ class Threads;
 class TranspositionTable;
 
 namespace NNUE {
-struct Networks;
+class Network;
 }
 
 inline constexpr usize SEARCHED_MOVE_CAPACITY = 32;
@@ -383,11 +383,11 @@ struct Skill final {
 // It is used to easily forward data to the Worker class.
 struct SharedState final {
    public:
-    const SystemWideLazyNumaReplicated<NNUE::Networks>& networks;
-    const Options&                                      options;
-    const TranspositionTable&                           transpositionTable;
-    Threads&                                            threads;
-    HistoriesMap&                                       historiesMap;
+    const SystemWideLazyNumaReplicated<NNUE::Network>& network;
+    const Options&                                     options;
+    const TranspositionTable&                          transpositionTable;
+    Threads&                                           threads;
+    HistoriesMap&                                      historiesMap;
 };
 
 class Worker;
@@ -608,14 +608,14 @@ class Worker final {
 
     const NumaReplicatedAccessToken numaAccessToken;
 
-    ISearchManagerPtr                                   manager;
-    const SystemWideLazyNumaReplicated<NNUE::Networks>& networks;
-    const Options&                                      options;
-    const TranspositionTable&                           transpositionTable;
-    Threads&                                            threads;
-    Histories&                                          histories;
-    NNUE::AccumulatorCaches                             accCaches;
-    NNUE::AccumulatorStack                              accStack;
+    ISearchManagerPtr                                  manager;
+    const SystemWideLazyNumaReplicated<NNUE::Network>& network;
+    const Options&                                     options;
+    const TranspositionTable&                          transpositionTable;
+    Threads&                                           threads;
+    Histories&                                         histories;
+    NNUE::AccumulatorCaches                            accCaches;
+    NNUE::AccumulatorStack                             accStack;
 
     std::atomic<u64> nodes, tbHits;
     std::atomic<u32> moveChanges;

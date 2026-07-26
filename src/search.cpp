@@ -245,12 +245,12 @@ Worker::Worker(usize                     threadIdx,
     numaThreadCount(numaThreadCnt),
     numaAccessToken(accessToken),
     manager(std::move(searchManager)),
-    networks(sharedState.networks),
+    network(sharedState.network),
     options(sharedState.options),
     transpositionTable(sharedState.transpositionTable),
     threads(sharedState.threads),
     histories(sharedState.historiesMap.at(accessToken.numa_id())),
-    accCaches(networks[accessToken]) {}
+    accCaches(network[accessToken]) {}
 
 // Initialize per-thread data structures
 void Worker::init() noexcept {
@@ -284,14 +284,14 @@ void Worker::init() noexcept {
         for (auto& pieceSqCorrHist : toPieceSqCorrHist)
             pieceSqCorrHist.fill(7);
 
-    accCaches.init(networks[numa_access_token()]);
+    accCaches.init(network[numa_access_token()]);
 }
 
 // Ensure that the neural networks are replicated on this NUMA node
 void Worker::ensure_network_replicated() const noexcept {
     // Access once to force lazy initialization.
     // Do this because want to avoid initialization during search.
-    (void) (networks[numa_access_token()]);
+    (void) (network[numa_access_token()]);
 }
 
 // Called when the program receives the UCI 'go' command.
@@ -2079,7 +2079,7 @@ void Worker::do_null_move(Position& pos, State& st, Stack* ss) noexcept {
 void Worker::undo_null_move(Position& pos) const noexcept { pos.undo_null_move(); }
 
 Value Worker::evaluate(const Position& pos) noexcept {
-    return Evaluate::evaluate(pos, networks[numa_access_token()], accStack, accCaches,
+    return Evaluate::evaluate(pos, network[numa_access_token()], accStack, accCaches,
                               optimism[pos.active_color()]);
 }
 

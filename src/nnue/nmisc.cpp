@@ -84,7 +84,7 @@ void format_cp_aligned_dot(std::ostringstream& oss, i32 val, const Position& pos
 
 // Returns a string with the value of each piece on a board,
 // and a table for (PSQT, Layers) values bucket by bucket.
-std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& accCaches) noexcept {
+std::string trace(Position& pos, const Network& network, AccumulatorCaches& accCaches) noexcept {
     constexpr std::string_view Sep{"+------------+------------+------------+------------+\n"};
 
     char board[3 * 8 + 1][8 * 8 + 2];
@@ -107,11 +107,13 @@ std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& ac
             format_cp_compact(&board[y + 2][x + 2], value, pos);
     };
 
+    std::ostringstream oss{};
+
     auto accStack = std::make_unique<AccumulatorStack>();
 
     // Estimate the value of each piece by doing a differential evaluation from
     // the current base eval, simulating the removal of the piece from its square.
-    auto baseNetOut = networks.big.evaluate(pos, *accStack, accCaches.big);
+    auto baseNetOut = network.evaluate(pos, *accStack, accCaches);
     auto baseEval   = baseNetOut.psqt + baseNetOut.positional;
     baseEval        = pos.active_color() == WHITE ? +baseEval : -baseEval;
 
@@ -128,7 +130,7 @@ std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& ac
 
                 accStack->reset();
 
-                auto curNetOut = networks.big.evaluate(pos, *accStack, accCaches.big);
+                auto curNetOut = network.evaluate(pos, *accStack, accCaches);
                 auto curEval   = curNetOut.psqt + curNetOut.positional;
                 curEval        = pos.active_color() == WHITE ? +curEval : -curEval;
 
@@ -140,7 +142,6 @@ std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& ac
             write_square(f, r, pc, v);
         }
 
-    std::ostringstream oss{};
 
     oss << " NNUE derived piece values:\n";
 
@@ -150,7 +151,7 @@ std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& ac
 
     accStack->reset();
 
-    auto netTrace = networks.big.trace(pos, *accStack, accCaches.big);
+    auto netTrace = network.trace(pos, *accStack, accCaches);
 
     oss << " NNUE network contributions (Normalized, ";
     oss << (pos.active_color() == WHITE ? "White" : "Black") << " to move):\n";

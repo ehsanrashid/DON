@@ -35,20 +35,15 @@ class Position;
 
 namespace NNUE {
 
-template<IndexType TransformedFeatureDimensions>
 class FeatureTransformer;
 
 // Accumulator holds the result of affine transformation of input features
-template<IndexType Size>
-struct alignas(CACHE_LINE_SIZE) Accumulator final {
+struct alignas(CACHE_LINE_SIZE) Accumulator {
    public:
-    Array<BiasType, COLOR_NB, Size>              accumulation;
+    Array<BiasType, COLOR_NB, L1>                accumulation;
     Array<PSQTWeightType, COLOR_NB, PSQTBuckets> psqtAccumulation;
     Array<bool, COLOR_NB>                        computed;
 };
-
-using BigAccumulator   = Accumulator<BigTransformedFeatureDimensions>;
-using SmallAccumulator = Accumulator<SmallTransformedFeatureDimensions>;
 
 // AccumulatorCaches provides per-thread accumulator caches,
 // where each cache contains multiple entries for each of the possible king squares.
@@ -58,96 +53,52 @@ using SmallAccumulator = Accumulator<SmallTransformedFeatureDimensions>;
 // is commonly referred to as "Finny Tables".
 struct AccumulatorCaches final {
    public:
-    template<IndexType Size>
-    struct alignas(CACHE_LINE_SIZE) Cache final {
+    struct alignas(CACHE_LINE_SIZE) Entry final {
        public:
-        struct alignas(CACHE_LINE_SIZE) Entry final {
-           public:
-            // To initialize a refresh entry, set all its bitboards empty,
-            // so put the biases in the accumulation, without any weights on top
-            void init(const Array<BiasType, Size>& biases) noexcept {
-                // Initialize accumulation with given biases
-                accumulation = biases;
-                auto offset  = offsetof(Entry, psqtAccumulation);
-                assert(offset <= sizeof(*this) && "offset exceeds object size");
-                std::memset(reinterpret_cast<unsigned char*>(this) + offset, 0,
-                            sizeof(*this) - offset);
-            }
-
-            Array<BiasType, Size>              accumulation;
-            Array<PSQTWeightType, PSQTBuckets> psqtAccumulation;
-            Array<Piece, SQUARE_NB>            pieceMap;
-            Bitboard                           piecesBB;
-        };
-
-        template<typename Network>
-        void init(const Network& network) noexcept {
-
-            for (auto& sqEntries : entries)
-                for (auto& entry : sqEntries)
-                    entry.init(network.featureTransformer.biases);
+        // To initialize a refresh entry, set all its bitboards empty,
+        // so put the biases in the accumulation, without any weights on top
+        void init(const Array<BiasType, L1>& biases) noexcept {
+            // Initialize accumulation with given biases
+            accumulation = biases;
+            auto offset  = offsetof(Entry, psqtAccumulation);
+            assert(offset <= sizeof(*this) && "offset exceeds object size");
+            std::memset(reinterpret_cast<unsigned char*>(this) + offset, 0, sizeof(*this) - offset);
         }
 
-        const Array<Entry, COLOR_NB>& operator[](Square s) const noexcept { return entries[s]; }
-        Array<Entry, COLOR_NB>&       operator[](Square s) noexcept { return entries[s]; }
-
-       private:
-        Array<Entry, SQUARE_NB, COLOR_NB> entries;
+        Array<BiasType, L1>                accumulation;
+        Array<PSQTWeightType, PSQTBuckets> psqtAccumulation;
+        Array<Piece, SQUARE_NB>            pieceMap;
+        Bitboard                           piecesBB;
     };
 
-    using BigCache   = Cache<BigTransformedFeatureDimensions>;
-    using SmallCache = Cache<SmallTransformedFeatureDimensions>;
-
-    template<typename Networks>
-    explicit AccumulatorCaches(const Networks& networks) noexcept {
-        init(networks);
+    template<typename Network>
+    explicit AccumulatorCaches(const Network& network) noexcept {
+        init(network);
     }
 
-    template<typename Networks>
-    void init(const Networks& networks) noexcept {
-        big.init(networks.big);
-        small.init(networks.small);
+    template<typename Network>
+    void init(const Network& network) noexcept {
+        for (auto& sqEntries : entries)
+            for (auto& entry : sqEntries)
+                entry.init(network.featureTransformer.biases);
     }
 
-    BigCache   big;
-    SmallCache small;
+    const Array<Entry, COLOR_NB>& operator[](Square s) const noexcept { return entries[s]; }
+    Array<Entry, COLOR_NB>&       operator[](Square s) noexcept { return entries[s]; }
+
+   private:
+    Array<Entry, SQUARE_NB, COLOR_NB> entries;
 };
 
 template<typename FeatureSet>
-struct AccumulatorState final {
+struct AccumulatorState final: public Accumulator {
    public:
-    template<IndexType Size>
-    const auto& acc() const noexcept {
-        static_assert(Size == BigTransformedFeatureDimensions
-                        || Size == SmallTransformedFeatureDimensions,
-                      "Invalid size for accumulator");
-
-        if constexpr (Size == BigTransformedFeatureDimensions)
-            return big;
-        if constexpr (Size == SmallTransformedFeatureDimensions)
-            return small;
-    }
-    template<IndexType Size>
-    auto& acc() noexcept {
-        static_assert(Size == BigTransformedFeatureDimensions
-                        || Size == SmallTransformedFeatureDimensions,
-                      "Invalid size for accumulator");
-
-        if constexpr (Size == BigTransformedFeatureDimensions)
-            return big;
-        if constexpr (Size == SmallTransformedFeatureDimensions)
-            return small;
-    }
+    typename FeatureSet::DirtyType dirty;
 
     void reset(typename FeatureSet::DirtyType&& dt) noexcept {
         dirty = std::move(dt);
-        big.computed.fill(false);
-        small.computed.fill(false);
+        computed.fill(false);
     }
-
-    typename FeatureSet::DirtyType dirty;
-    BigAccumulator                 big;
-    SmallAccumulator               small;
 };
 
 struct AccumulatorStack final {
@@ -164,10 +115,10 @@ struct AccumulatorStack final {
     void push(DirtyBoard&& db) noexcept;
     void pop() noexcept;
 
-    template<IndexType Dimensions>
-    void evaluate(const Position&                       pos,
-                  const FeatureTransformer<Dimensions>& featureTransformer,
-                  AccumulatorCaches::Cache<Dimensions>& cache) noexcept;
+    void evaluate(const Position&           pos,
+                  const FeatureTransformer& featureTransformer,
+                  // Silence spurious warning on GCC 10
+                  [[maybe_unused]] AccumulatorCaches& cache) noexcept;
 
    private:
     template<typename T>
@@ -176,26 +127,27 @@ struct AccumulatorStack final {
     template<typename T>
     [[nodiscard]] AccumulatorState<T>& mut_state() noexcept;
 
-    template<typename FeatureSet, IndexType Dimensions>
-    void evaluate(Color                                 perspective,
-                  const Position&                       pos,
-                  const FeatureTransformer<Dimensions>& featureTransformer,
-                  AccumulatorCaches::Cache<Dimensions>& cache) noexcept;
+    template<typename FeatureSet>
+    void evaluate(Color                     perspective,
+                  const Position&           pos,
+                  const FeatureTransformer& featureTransformer,
+                  // Silence spurious warning on GCC 10
+                  [[maybe_unused]] AccumulatorCaches& cache) noexcept;
 
-    template<typename FeatureSet, IndexType Dimensions>
+    template<typename FeatureSet>
     [[nodiscard]] usize last_usable_accumulator_index(Color perspective) const noexcept;
 
-    template<typename FeatureSet, IndexType Dimensions>
-    void update_forward_incr(Color                                 perspective,
-                             const Position&                       pos,
-                             const FeatureTransformer<Dimensions>& featureTransformer,
-                             usize                                 beg) noexcept;
+    template<typename FeatureSet>
+    void update_forward_incr(Color                     perspective,
+                             const Position&           pos,
+                             const FeatureTransformer& featureTransformer,
+                             usize                     beg) noexcept;
 
-    template<typename FeatureSet, IndexType Dimensions>
-    void update_backward_incr(Color                                 perspective,
-                              const Position&                       pos,
-                              const FeatureTransformer<Dimensions>& featureTransformer,
-                              usize                                 end) noexcept;
+    template<typename FeatureSet>
+    void update_backward_incr(Color                     perspective,
+                              const Position&           pos,
+                              const FeatureTransformer& featureTransformer,
+                              usize                     end) noexcept;
 
     Array<AccumulatorState<PSQFeatureSet>, SIZE>    psqAccumulators;
     Array<AccumulatorState<ThreatFeatureSet>, SIZE> threatAccumulators;

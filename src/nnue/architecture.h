@@ -42,13 +42,9 @@ using ThreatFeatureSet = Features::FullThreats;
 using PSQFeatureSet    = Features::HalfKA_hm;
 
 // Number of input feature dimensions after conversion
-inline constexpr IndexType BigTransformedFeatureDimensions = 1024;
-inline constexpr u32       BigL2                           = 31;
-inline constexpr u32       BigL3                           = 32;
-
-inline constexpr IndexType SmallTransformedFeatureDimensions = 128;
-inline constexpr u32       SmallL2                           = 15;
-inline constexpr u32       SmallL3                           = 32;
+inline constexpr IndexType L1 = 1024;
+inline constexpr u32       L2 = 31;
+inline constexpr u32       L3 = 32;
 
 inline constexpr IndexType PSQTBuckets = 8;
 inline constexpr IndexType LayerStacks = 8;
@@ -60,7 +56,6 @@ static_assert(LayerStacks == PSQTBuckets);
 static_assert(PSQTBuckets % 8 == 0,
               "Per feature PSQT values cannot be processed at granularity lower than 8 at a time.");
 
-template<IndexType L1, u32 L2, u32 L3>
 struct NetworkArchitecture final {
    public:
     static constexpr IndexType TransformedFeatureDimensions = L1;
@@ -167,9 +162,9 @@ struct NetworkArchitecture final {
 }  // namespace NNUE
 }  // namespace DON
 
-template<DON::NNUE::IndexType L1, DON::u32 L2, DON::u32 L3>
-struct std::hash<DON::NNUE::NetworkArchitecture<L1, L2, L3>> {
-    DON::usize operator()(const DON::NNUE::NetworkArchitecture<L1, L2, L3>& arch) const noexcept {
+template<>
+struct std::hash<DON::NNUE::NetworkArchitecture> {
+    DON::usize operator()(const DON::NNUE::NetworkArchitecture& arch) const noexcept {
         return arch.content_hash();
     }
 };

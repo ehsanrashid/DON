@@ -352,7 +352,6 @@ class Position final {
 
     [[nodiscard]] int   std_material() const noexcept;
     [[nodiscard]] Value material() const noexcept;
-    [[nodiscard]] Value evaluate() const noexcept;
 
     // Static Exchange Evaluation:
     [[nodiscard]] auto see(Move m) const noexcept { return SEE(*this, m); }
@@ -822,16 +821,6 @@ inline int Position::std_material() const noexcept {
 
 inline Value Position::material() const noexcept {
     return VALUE_EVAL_PAWN * count(PAWN) + non_pawn_value();
-}
-
-// Returns a static, purely materialistic evaluation of the position from
-// the point of view of the side to move. It can be divided by VALUE_PAWN to get
-// an approximation of the material advantage on the board in terms of pawns.
-inline Value Position::evaluate() const noexcept {
-    Color ac = active_color();
-
-    return VALUE_PAWN * (count(ac, PAWN) - count(~ac, PAWN))
-         + (non_pawn_value(ac) - non_pawn_value(~ac));
 }
 
 inline bool Position::capture(Move m) const noexcept {

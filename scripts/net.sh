@@ -80,8 +80,4 @@ fetch_network() {
     return 1
 }
 
-for net in \
-BigEvalFileDefaultName \
-SmallEvalFileDefaultName; do
-    fetch_network "$net" || exit 1
-done
+fetch_network EvalFileDefaultName || exit 1

@@ -27,13 +27,12 @@ namespace DON {
 
 // The default net name MUST follow the format nn-[SHA256 first 12 digits].nnue
 // for the profile-build process to work.
-#define BigEvalFileDefaultName "nn-9a0cc2a62c52.nnue"
-#define SmallEvalFileDefaultName "nn-47fc8b7fff06.nnue"
+#define EvalFileDefaultName "nn-9a0cc2a62c52.nnue"
 
 class Position;
 
 namespace NNUE {
-struct Networks;
+class Network;
 struct AccumulatorCaches;
 struct AccumulatorStack;
 }  // namespace NNUE
@@ -41,12 +40,12 @@ struct AccumulatorStack;
 namespace Evaluate {
 
 Value evaluate(const Position&          pos,
-               const NNUE::Networks&    networks,
+               const NNUE::Network&     network,
                NNUE::AccumulatorStack&  accStack,
                NNUE::AccumulatorCaches& accCaches,
                i32                      optimism = 0) noexcept;
 
-std::string trace(Position& pos, const NNUE::Networks& networks) noexcept;
+std::string trace(Position& pos, const NNUE::Network& network) noexcept;
 
 }  // namespace Evaluate
 }  // namespace DON
