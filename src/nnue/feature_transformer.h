@@ -209,13 +209,13 @@ class FeatureTransformer final {
 
     // Convert input features
     i32 transform(const Position&                pos,
+                  AccumulatorCache&              accCache,
                   AccumulatorStack&              accStack,
-                  AccumulatorCaches&             cache,
                   usize                          bucket,
                   Array<OutputType, BufferSize>& output) const noexcept {
         using namespace SIMD;
 
-        accStack.evaluate(pos, *this, cache);
+        accStack.evaluate(pos, *this, accCache);
 
         const auto& psqAccState    = accStack.state<PSQFeatureSet>();
         const auto& threatAccState = accStack.state<ThreatFeatureSet>();

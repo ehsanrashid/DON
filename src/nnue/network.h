@@ -35,7 +35,7 @@ class Position;
 
 namespace NNUE {
 
-struct AccumulatorCaches;
+struct AccumulatorCache;
 struct AccumulatorStack;
 
 class Network final {
@@ -59,13 +59,13 @@ class Network final {
 
     usize content_hash() const noexcept;
 
-    NetworkOutput evaluate(const Position&    pos,
-                           AccumulatorCaches& accCaches,
-                           AccumulatorStack&  accStack) const noexcept;
+    NetworkOutput evaluate(const Position&   pos,
+                           AccumulatorCache& accCache,
+                           AccumulatorStack& accStack) const noexcept;
 
-    NetworkTrace trace(const Position&    pos,
-                       AccumulatorCaches& accCaches,
-                       AccumulatorStack&  accStack) const noexcept;
+    NetworkTrace trace(const Position&   pos,
+                       AccumulatorCache& accCache,
+                       AccumulatorStack& accStack) const noexcept;
 
    private:
     std::optional<std::string> load(std::istream& is) noexcept;
@@ -89,7 +89,7 @@ class Network final {
 
     bool initialized = false;
 
-    friend struct AccumulatorCaches;
+    friend struct AccumulatorCache;
 };
 
 }  // namespace NNUE

@@ -494,12 +494,12 @@ void update_accumulator_refresh_cache(Color                            perspecti
                                       const FeatureTransformer&        featureTransformer,
                                       const Position&                  pos,
                                       AccumulatorState<PSQFeatureSet>& accState,
-                                      AccumulatorCaches&               accCaches) noexcept {
+                                      AccumulatorCache&                accCache) noexcept {
     constexpr auto Dimensions = FeatureTransformer::OutputDimensions;
 
     Square kingSq = pos.square<KING>(perspective);
 
-    auto& entry = accCaches[kingSq][perspective];
+    auto& entry = accCache[kingSq][perspective];
 
     PSQFeatureSet::IndexList removed, added;
 
@@ -803,20 +803,20 @@ void AccumulatorStack::pop() noexcept {
 
 void AccumulatorStack::evaluate(const Position&           pos,
                                 const FeatureTransformer& featureTransformer,
-                                AccumulatorCaches&        accCaches) noexcept {
+                                AccumulatorCache&         accCache) noexcept {
 
-    evaluate<PSQFeatureSet>(WHITE, pos, featureTransformer, accCaches);
-    evaluate<PSQFeatureSet>(BLACK, pos, featureTransformer, accCaches);
+    evaluate<PSQFeatureSet>(WHITE, pos, featureTransformer, accCache);
+    evaluate<PSQFeatureSet>(BLACK, pos, featureTransformer, accCache);
 
-    evaluate<ThreatFeatureSet>(WHITE, pos, featureTransformer, accCaches);
-    evaluate<ThreatFeatureSet>(BLACK, pos, featureTransformer, accCaches);
+    evaluate<ThreatFeatureSet>(WHITE, pos, featureTransformer, accCache);
+    evaluate<ThreatFeatureSet>(BLACK, pos, featureTransformer, accCache);
 }
 
 template<typename FeatureSet>
 void AccumulatorStack::evaluate(Color                     perspective,
                                 const Position&           pos,
                                 const FeatureTransformer& featureTransformer,
-                                AccumulatorCaches&        accCaches) noexcept {
+                                AccumulatorCache&         accCache) noexcept {
 
     auto lastAccIdx = last_usable_accumulator_index<FeatureSet>(perspective);
 
@@ -828,7 +828,7 @@ void AccumulatorStack::evaluate(Color                     perspective,
     {
         if constexpr (std::is_same_v<FeatureSet, PSQFeatureSet>)
             update_accumulator_refresh_cache(perspective, featureTransformer, pos,
-                                             mut_state<PSQFeatureSet>(), accCaches);
+                                             mut_state<PSQFeatureSet>(), accCache);
         else
             update_threats_accumulator_full(perspective, featureTransformer, pos,
                                             mut_state<ThreatFeatureSet>());

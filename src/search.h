@@ -614,7 +614,7 @@ class Worker final {
     const TranspositionTable&                          transpositionTable;
     Threads&                                           threads;
     Histories&                                         histories;
-    NNUE::AccumulatorCaches                            accCaches;
+    NNUE::AccumulatorCache                             accCache;
     NNUE::AccumulatorStack                             accStack;
 
     std::atomic<u64> nodes, tbHits;

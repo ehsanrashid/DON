@@ -46,13 +46,13 @@ struct alignas(CACHE_LINE_SIZE) Accumulator {
     Array<bool, COLOR_NB>                        computed;
 };
 
-// AccumulatorCaches provides per-thread accumulator caches,
+// AccumulatorCache provides per-thread accumulator cache,
 // where each cache contains multiple entries for each of the possible king squares.
 // When the accumulator needs to be refreshed, the cached entry is used to more
 // efficiently update the accumulator, instead of rebuilding it from scratch.
 // This idea, was first described by Luecx (author of Koivisto) and
 // is commonly referred to as "Finny Tables".
-struct AccumulatorCaches final {
+struct AccumulatorCache final {
    public:
     struct alignas(CACHE_LINE_SIZE) Entry final {
        public:
@@ -73,7 +73,7 @@ struct AccumulatorCaches final {
     };
 
     template<typename Network>
-    explicit AccumulatorCaches(const Network& network) noexcept {
+    explicit AccumulatorCache(const Network& network) noexcept {
         init(network);
     }
 
@@ -119,7 +119,7 @@ struct AccumulatorStack final {
     void evaluate(const Position&           pos,
                   const FeatureTransformer& featureTransformer,
                   // Silence spurious warning on GCC 10
-                  [[maybe_unused]] AccumulatorCaches& accCaches) noexcept;
+                  [[maybe_unused]] AccumulatorCache& accCache) noexcept;
 
    private:
     template<typename T>
@@ -133,7 +133,7 @@ struct AccumulatorStack final {
                   const Position&           pos,
                   const FeatureTransformer& featureTransformer,
                   // Silence spurious warning on GCC 10
-                  [[maybe_unused]] AccumulatorCaches& accCaches) noexcept;
+                  [[maybe_unused]] AccumulatorCache& accCache) noexcept;
 
     template<typename FeatureSet>
     [[nodiscard]] usize last_usable_accumulator_index(Color perspective) const noexcept;

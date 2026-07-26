@@ -250,7 +250,7 @@ Worker::Worker(usize                     threadIdx,
     transpositionTable(sharedState.transpositionTable),
     threads(sharedState.threads),
     histories(sharedState.historiesMap.at(accessToken.numa_id())),
-    accCaches(network[accessToken]) {}
+    accCache(network[accessToken]) {}
 
 // Initialize per-thread data structures
 void Worker::init() noexcept {
@@ -284,7 +284,7 @@ void Worker::init() noexcept {
         for (auto& pieceSqCorrHist : toPieceSqCorrHist)
             pieceSqCorrHist.fill(7);
 
-    accCaches.init(network[numa_access_token()]);
+    accCache.init(network[numa_access_token()]);
 }
 
 // Ensure that the neural networks are replicated on this NUMA node
@@ -2079,7 +2079,7 @@ void Worker::do_null_move(Position& pos, State& st, Stack* ss) noexcept {
 void Worker::undo_null_move(Position& pos) const noexcept { pos.undo_null_move(); }
 
 Value Worker::evaluate(const Position& pos) noexcept {
-    return Evaluate::evaluate(pos, network[numa_access_token()], accCaches, accStack,
+    return Evaluate::evaluate(pos, network[numa_access_token()], accCache, accStack,
                               optimism[pos.active_color()]);
 }
 
