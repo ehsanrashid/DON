@@ -99,7 +99,7 @@ Engine::Engine(const std::filesystem::path& path) noexcept :
     options.add("HistoryLoadFactor", Option(75, 10, 100, OnCng([this](const Option& o) { historiesMap.max_load_factor(max_load_factor(o / 100.0f)); return std::nullopt; })));
     options.add("DrawMoveCount",     Option(Position::DrawMoveCount, 5, 50, OnCng([](const Option& o) { Position::DrawMoveCount = int(o); return std::nullopt; })));
     options.add("Book",              Option(false));
-    options.add("BookFile",          Option("", OnCng([](const Option& o) { std::string_view bookFile = o; if (bookFile.empty()) return ""; return pgBook.load(bookFile) ? "Load succeeded" : "Load failed"; })));
+    options.add("BookFile",          Option("", OnCng([](const Option& o) { auto bookFile = path_from_utf8(o); if (bookFile.empty()) return ""; return pgBook.load(bookFile) ? "Load succeeded" : "Load failed"; })));
     options.add("BookProbeDepth",    Option(100, 1, 256));
     options.add("BookPickBest",      Option(true));
     options.add("SyzygyPath",        Option("", OnCng([](const Option& o) { Tablebase::Syzygy::init(o); return std::nullopt; })));

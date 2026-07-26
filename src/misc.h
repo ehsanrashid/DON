@@ -133,15 +133,17 @@
 
 namespace DON {
 
-using u64 = std::uint64_t;
-using u32 = std::uint32_t;
-using u16 = std::uint16_t;
-using u8  = std::uint8_t;
+using u64   = std::uint64_t;
+using u32   = std::uint32_t;
+using u16   = std::uint16_t;
+using u8    = std::uint8_t;
+using uchar = unsigned char;
 
-using i64 = std::int64_t;
-using i32 = std::int32_t;
-using i16 = std::int16_t;
-using i8  = std::int8_t;
+using i64   = std::int64_t;
+using i32   = std::int32_t;
+using i16   = std::int16_t;
+using i8    = std::int8_t;
+using ichar = char;
 
 using usize = std::size_t;
 using isize = std::ptrdiff_t;
@@ -1741,18 +1743,18 @@ struct CommandLine final {
 
 inline std::string lower_case(std::string str) noexcept {
     std::transform(str.begin(), str.end(), str.begin(),
-                   [](unsigned char ch) noexcept -> char { return std::tolower(ch); });
+                   [](uchar ch) noexcept -> ichar { return std::tolower(ch); });
     return str;
 }
 
 inline std::string upper_case(std::string str) noexcept {
     std::transform(str.begin(), str.end(), str.begin(),
-                   [](unsigned char ch) noexcept -> char { return std::toupper(ch); });
+                   [](uchar ch) noexcept -> ichar { return std::toupper(ch); });
     return str;
 }
 
 inline std::string toggle_case(std::string str) noexcept {
-    std::transform(str.begin(), str.end(), str.begin(), [](unsigned char ch) noexcept -> char {
+    std::transform(str.begin(), str.end(), str.begin(), [](uchar ch) noexcept -> ichar {
         return std::islower(ch) ? std::toupper(ch) : std::isupper(ch) ? std::tolower(ch) : ch;
     });
     return str;
@@ -1760,7 +1762,7 @@ inline std::string toggle_case(std::string str) noexcept {
 
 inline std::string remove_whitespace(std::string str) noexcept {
     str.erase(std::remove_if(str.begin(), str.end(),
-                             [](unsigned char ch) noexcept { return std::isspace(ch); }),
+                             [](uchar ch) noexcept -> bool { return std::isspace(ch); }),
               str.end());
     return str;
 }

@@ -57,15 +57,15 @@ constexpr std::string_view Version{"dev"};
         return std::string{NullDate};
 
     // Skip spaces
-    while (p < end && std::isspace((unsigned char) (*p)))
+    while (p < end && std::isspace(uchar(*p)))
         ++p;
 
     // Parse day (1-2 digits)
-    if (end - p < 1 || !std::isdigit((unsigned char) (*p)))
+    if (end - p < 1 || !std::isdigit(uchar(*p)))
         return std::string{NullDate};
 
     unsigned day = 0;
-    while (p < end && std::isdigit((unsigned char) (*p)))
+    while (p < end && std::isdigit(uchar(*p)))
     {
         day *= 10;
         day += char_to_digit(*p);
@@ -77,7 +77,7 @@ constexpr std::string_view Version{"dev"};
         return std::string{NullDate};
 
     // Skip spaces/comma
-    while (p < end && (std::isspace((unsigned char) (*p)) || *p == ','))
+    while (p < end && (std::isspace(uchar(*p)) || *p == ','))
         ++p;
 
     // Parse year (4 digits)
@@ -87,7 +87,7 @@ constexpr std::string_view Version{"dev"};
     unsigned year = 0;
     for (usize i = 0; i < 4; ++i)
     {
-        if (!std::isdigit((unsigned char) (p[i])))
+        if (!std::isdigit(uchar(p[i])))
             return std::string{NullDate};
         year *= 10;
         year += char_to_digit(p[i]);
@@ -122,12 +122,12 @@ constexpr std::string_view Version{"dev"};
     if (time.size() != 8)
         return std::string{NullTime};
 
-    const char* p = time.data();
+    const auto* p = time.data();
 
     // Validate structure
-    if (!std::isdigit((unsigned char) p[0]) || !std::isdigit((unsigned char) p[1]) || p[2] != ':'
-        || !std::isdigit((unsigned char) p[3]) || !std::isdigit((unsigned char) p[4]) || p[5] != ':'
-        || !std::isdigit((unsigned char) p[6]) || !std::isdigit((unsigned char) p[7]))
+    if (!std::isdigit(uchar(p[0])) || !std::isdigit(uchar(p[1])) || p[2] != ':'
+        || !std::isdigit(uchar(p[3])) || !std::isdigit(uchar(p[4])) || p[5] != ':'
+        || !std::isdigit(uchar(p[6])) || !std::isdigit(uchar(p[7])))
         return std::string{NullTime};
 
     unsigned hour = 10 * char_to_digit(p[0]) + char_to_digit(p[1]);

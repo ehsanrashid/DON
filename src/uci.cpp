@@ -186,8 +186,7 @@ Limit parse_limit(std::istream& is) noexcept {
         else if (!token.empty() && token[0] == 's')  // "searchmoves"
         {
             auto pos = is.tellg();
-            while (is >> token
-                   && !(!token.empty() && char(std::tolower((unsigned char) token[0])) == 'i'))
+            while (is >> token && !(!token.empty() && ichar(std::tolower(uchar(token[0]))) == 'i'))
             {
                 limit.searchMoves.push_back(token);
                 pos = is.tellg();
@@ -198,8 +197,7 @@ Limit parse_limit(std::istream& is) noexcept {
         else if (!token.empty() && token[0] == 'i')  // "ignoremoves"
         {
             auto pos = is.tellg();
-            while (is >> token
-                   && !(!token.empty() && char(std::tolower((unsigned char) token[0])) == 's'))
+            while (is >> token && !(!token.empty() && ichar(std::tolower(uchar(token[0]))) == 's'))
             {
                 limit.ignoreMoves.push_back(token);
                 pos = is.tellg();
@@ -403,13 +401,13 @@ void UCI::position(std::istream& is) noexcept {
     token = lower_case(token);
 
     std::string fen;
-    if (token.empty() || char(std::tolower((unsigned char) token[0])) == 's')  // "startpos"
+    if (token.empty() || ichar(std::tolower(uchar(token[0]))) == 's')  // "startpos"
     {
         token.clear();
         fen.assign(START_FEN);
         is >> token;  // Consume the "moves" token, if any
     }
-    else if (!token.empty() && char(std::tolower((unsigned char) token[0])) == 'f')  // "fen"
+    else if (!token.empty() && ichar(std::tolower(uchar(token[0]))) == 'f')  // "fen"
     {
         token.clear();
         fen.reserve(64);
@@ -419,7 +417,7 @@ void UCI::position(std::istream& is) noexcept {
         while (is >> token && i < 6)
         {
             // Stop if reach "moves" token after the first two fields
-            if (i > 1 && !token.empty() && char(std::tolower((unsigned char) token[0])) == 'm')
+            if (i > 1 && !token.empty() && ichar(std::tolower(uchar(token[0]))) == 'm')
                 break;
 
             fen.append(token).push_back(' ');
@@ -439,7 +437,7 @@ void UCI::position(std::istream& is) noexcept {
         return;
     }
 
-    assert(token.empty() || char(std::tolower((unsigned char) token[0])) == 'm');
+    assert(token.empty() || ichar(std::tolower(uchar(token[0]))) == 'm');
 
     Strings moves;
     while (is >> token)
