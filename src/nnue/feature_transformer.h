@@ -103,9 +103,22 @@ class FeatureTransformer final {
     // Size of forward propagation buffer
     static constexpr usize BufferSize = OutputDimensions * sizeof(OutputType);
 
+    static constexpr std::uint32_t
+    combine_hashes(std::initializer_list<std::uint32_t> hashes) noexcept {
+        std::uint32_t hash = 0;
+        for (const auto component_hash : hashes)
+        {
+            hash = (hash << 1) | (hash >> 31);
+            hash ^= component_hash;
+        }
+        return hash;
+    }
+
     // Hash value embedded in the evaluation file
     static constexpr u32 hash() noexcept {
-        return (UseThreats ? ThreatFeatureSet::Hash : PSQFeatureSet::Hash) ^ (2 * OutputDimensions);
+        return (UseThreats ? combine_hashes({ThreatFeatureSet::Hash, PSQFeatureSet::Hash})
+                           : PSQFeatureSet::Hash)
+             ^ (2 * OutputDimensions);
     }
 
     // Store the order by which 128-bit blocks of a 1024-bit data must
