@@ -241,9 +241,9 @@ NetworkTrace Network::trace(const Position&   pos,
     netTrace.correctBucket = pos.bucket();
     for (IndexType bucket = 0; bucket < LayerStacks; ++bucket)
     {
-        i32 psqt       = featureTransformer.transform(  //
+        auto psqt       = featureTransformer.transform(  //
           pos, accCache, accStack, bucket, transformedFeatures);
-        i32 positional = network[bucket].propagate(transformedFeatures);
+        auto positional = network[bucket].propagate(transformedFeatures);
 
         netTrace.netOut[bucket] = {psqt / OUTPUT_SCALE, positional / OUTPUT_SCALE};
     }

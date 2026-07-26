@@ -146,7 +146,7 @@ using i8  = std::int8_t;
 using usize = std::size_t;
 using isize = std::ptrdiff_t;
 
-#if defined(__GNUC__) && defined(IS_64BIT)
+#if defined(IS_64BIT) && defined(__GNUC__)
 __extension__ using u128 = unsigned __int128;
 __extension__ using i128 = signed __int128;
 #endif
@@ -213,7 +213,7 @@ inline constexpr usize BLOCK_8  = 2 * BLOCK_4;
 inline constexpr usize BLOCK_16 = 4 * BLOCK_4;
 inline constexpr usize BLOCK_32 = 8 * BLOCK_4;
 
-inline constexpr i64 INT_LIMIT = (1LL << 31) - 1;
+inline constexpr i64 INT_LIMIT = (i64{1} << 31) - 1;
 
 inline constexpr double LN2   = 0.693147180559945309417232121458176568;
 inline constexpr double SQRT2 = 1.41421356237309504880168872420969808;
@@ -426,7 +426,7 @@ std::string version_info() noexcept;
 std::string compiler_info() noexcept;
 
 constexpr u64 mul_hi64(u64 u1, u64 u2) noexcept {
-#if defined(__GNUC__) && defined(IS_64BIT) && !defined(__wasm__)
+#if defined(IS_64BIT) && defined(__GNUC__) && !defined(__wasm__)
     return (u128(u1) * u128(u2)) >> 64;
 #else
     u64 u1L = u32(u1), u1H = u1 >> 32;

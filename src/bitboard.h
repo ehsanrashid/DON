@@ -41,9 +41,9 @@
 
 namespace DON {
 
-inline constexpr Bitboard FULL_BB = u64{0xFFFFFFFFFFFFFFFF};
+inline constexpr Bitboard FULL_BB = Bitboard{0xFFFFFFFFFFFFFFFF};
 
-inline constexpr Bitboard FILE_A_BB = u64{0x0101010101010101};
+inline constexpr Bitboard FILE_A_BB = Bitboard{0x0101010101010101};
 inline constexpr Bitboard FILE_B_BB = FILE_A_BB << (1 * 1);
 inline constexpr Bitboard FILE_C_BB = FILE_A_BB << (2 * 1);
 inline constexpr Bitboard FILE_D_BB = FILE_A_BB << (3 * 1);
@@ -52,7 +52,7 @@ inline constexpr Bitboard FILE_F_BB = FILE_A_BB << (5 * 1);
 inline constexpr Bitboard FILE_G_BB = FILE_A_BB << (6 * 1);
 inline constexpr Bitboard FILE_H_BB = FILE_A_BB << (7 * 1);
 
-inline constexpr Bitboard RANK_1_BB = u64{0x00000000000000FF};
+inline constexpr Bitboard RANK_1_BB = Bitboard{0x00000000000000FF};
 inline constexpr Bitboard RANK_2_BB = RANK_1_BB << (1 * 8);
 inline constexpr Bitboard RANK_3_BB = RANK_1_BB << (2 * 8);
 inline constexpr Bitboard RANK_4_BB = RANK_1_BB << (3 * 8);
@@ -64,7 +64,7 @@ inline constexpr Bitboard RANK_8_BB = RANK_1_BB << (7 * 8);
 inline constexpr Bitboard EDGE_FILES_BB      = FILE_A_BB | FILE_H_BB;
 inline constexpr Bitboard PROMOTION_RANKS_BB = RANK_8_BB | RANK_1_BB;
 
-inline constexpr Bitboard WHITE_BB = u64{0x55AA55AA55AA55AA};
+inline constexpr Bitboard WHITE_BB = Bitboard{0x55AA55AA55AA55AA};
 inline constexpr Bitboard BLACK_BB = ~WHITE_BB;
 
 #if defined(USE_AVX512)
@@ -90,7 +90,7 @@ constexpr Bitboard color_bb() noexcept {
 constexpr Bitboard square_bb(Square s) noexcept {
     assert(is_ok(s));
 
-    return (u64{1} << s);
+    return (Bitboard{1} << s);
 }
 
 // Overloads of bitwise operators between bitboard and square for testing
