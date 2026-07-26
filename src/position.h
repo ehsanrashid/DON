@@ -1065,7 +1065,7 @@ inline void Position::update_pc_threats(Square                    s,
         dts->threatenedBB |= threatenedBB;
         // A bit may only be set if that square actually produces a threat, so we
         // must guard setting the square accordingly
-        dts->threateningBB |= Bitboard(threatenedBB != 0) << s;
+        dts->threateningBB |= Bitboard{threatenedBB != 0} << s;
     }
 
     DirtyThreat templateDt1{s, SQUARE_ZERO, pc, Piece::NO_PIECE, Put};
@@ -1076,7 +1076,7 @@ inline void Position::update_pc_threats(Square                    s,
 
     if constexpr (Put)
     {
-        dts->threatenedBB |= Bitboard(attackersBB != 0) << s;
+        dts->threatenedBB |= Bitboard{attackersBB != 0} << s;
         dts->threateningBB |= attackersBB;
     }
 

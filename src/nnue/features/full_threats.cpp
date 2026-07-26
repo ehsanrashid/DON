@@ -121,18 +121,16 @@ alignas(CACHE_LINE_SIZE) constexpr auto LUT_DATAS = []() constexpr noexcept {
                 {
                     Piece attackedPc = make_piece(attackedC, attackedPt);
 
-                    bool enemy = int(attackerPc ^ attackedPc) == 8;
-
                     auto map = MAP[attackerPt - 1][attackedPt - 1];
 
-                    bool excluded = map < 0;
-
-                    if (excluded)
+                    // Excluded
+                    if (map < 0)
                     {
                         lutDatas[+attackerPc][+attackedPc] = FullThreats::Dimensions;
-
                         continue;
                     }
+
+                    bool enemy = attackerC != attackedC;
 
                     bool semiExcluded = attackerPt == attackedPt && (enemy || attackerPt != PAWN);
 
