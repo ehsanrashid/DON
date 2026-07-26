@@ -654,7 +654,7 @@ void print() noexcept {
     {
         auto& info = hit[i];
 
-        if (!(n = info[0].load(std::memory_order_relaxed)))
+        if ((n = info[0].load(std::memory_order_relaxed)) == 0)
             continue;
 
         auto hits = info[1].load(std::memory_order_relaxed);
@@ -668,7 +668,7 @@ void print() noexcept {
     {
         auto& info = min[i];
 
-        if (!(n = info[0].load(std::memory_order_relaxed)))
+        if ((n = info[0].load(std::memory_order_relaxed)) == 0)
             continue;
 
         auto minValue = info[1].load(std::memory_order_relaxed);
@@ -681,7 +681,7 @@ void print() noexcept {
     {
         auto& info = max[i];
 
-        if (!(n = info[0].load(std::memory_order_relaxed)))
+        if ((n = info[0].load(std::memory_order_relaxed)) == 0)
             continue;
 
         auto maxValue = info[1].load(std::memory_order_relaxed);
@@ -694,7 +694,7 @@ void print() noexcept {
     {
         auto& info = extreme[i];
 
-        if (!(n = info[0].load(std::memory_order_relaxed)))
+        if ((n = info[0].load(std::memory_order_relaxed)) == 0)
             continue;
 
         auto minValue = info[1].load(std::memory_order_relaxed);
@@ -709,7 +709,7 @@ void print() noexcept {
     {
         auto& info = mean[i];
 
-        if (!(n = info[0].load(std::memory_order_relaxed)))
+        if ((n = info[0].load(std::memory_order_relaxed)) == 0)
             continue;
 
         auto sum = info[1].load(std::memory_order_relaxed);
@@ -723,7 +723,7 @@ void print() noexcept {
     {
         auto& info = stdev[i];
 
-        if (!(n = info[0].load(std::memory_order_relaxed)))
+        if ((n = info[0].load(std::memory_order_relaxed)) == 0)
             continue;
 
         auto sum   = info[1].load(std::memory_order_relaxed);
@@ -739,7 +739,7 @@ void print() noexcept {
     {
         auto& info = correl[i];
 
-        if (!(n = info[0].load(std::memory_order_relaxed)))
+        if ((n = info[0].load(std::memory_order_relaxed)) == 0)
             continue;
 
         auto sumV1   = info[1].load(std::memory_order_relaxed);

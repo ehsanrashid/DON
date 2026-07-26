@@ -93,16 +93,16 @@ enum class HType : u8 {
     CONTINUATION,  // By combination of pair of moves
 };
 
-namespace internal {
+namespace Internal {
 
 template<int D, usize... Sizes>
 using Stats = MultiArray<StatsEntry<i16, D>, Sizes...>;
 
-}  // namespace internal
+}  // namespace Internal
 
-using PawnHistory = typename internal::Stats<8192, PIECE_NB, SQUARE_NB>;
+using PawnHistory = typename Internal::Stats<8192, PIECE_NB, SQUARE_NB>;
 
-namespace internal {
+namespace Internal {
 
 template<HType T>
 struct HistoryDef;
@@ -146,11 +146,11 @@ struct HistoryDef<HType::CONTINUATION> final {
     using Type = MultiArray<HistoryDef<HType::PIECE_SQ>::Type, PIECE_NB, SQUARE_NB>;
 };
 
-}  // namespace internal
+}  // namespace Internal
 
 // Alias template for convenience
 template<HType T>
-using History = typename internal::HistoryDef<T>::Type;
+using History = typename Internal::HistoryDef<T>::Type;
 
 // Correction histories record differences between the static evaluation of positions and their search score.
 // It is used to improve the static evaluation used by some search heuristics.
@@ -164,7 +164,7 @@ enum class CHType : u8 {
     CONTINUATION,  // By combination of pair of moves
 };
 
-namespace internal {
+namespace Internal {
 
 template<usize... Sizes>
 using CorrectionStats = Stats<CORRECTION_HISTORY_LIMIT, Sizes...>;
@@ -197,11 +197,11 @@ struct CorrectionHistoryDef<CHType::CONTINUATION> final {
     using Type = MultiArray<CorrectionHistoryDef<CHType::PIECE_SQ>::Type, PIECE_NB, SQUARE_NB>;
 };
 
-}  // namespace internal
+}  // namespace Internal
 
 // Alias template for convenience
 template<CHType T>
-using CorrectionHistory = typename internal::CorrectionHistoryDef<T>::Type;
+using CorrectionHistory = typename Internal::CorrectionHistoryDef<T>::Type;
 
 
 class Histories final {

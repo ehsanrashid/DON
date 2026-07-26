@@ -808,7 +808,7 @@ class TableView final {
 template<typename T, usize Size, usize... Sizes>
 class MultiArray;
 
-namespace internal {
+namespace Internal {
 
 template<typename T, usize Size, usize... Sizes>
 struct ArrayDef final {
@@ -835,17 +835,17 @@ struct MultiArrayDef<T, Size> final {
     using Type = T;
 };
 
-}  // namespace internal
+}  // namespace Internal
 
 template<typename T, usize Size, usize... Sizes>
-using Array = typename internal::ArrayDef<T, Size, Sizes...>::type;
+using Array = typename Internal::ArrayDef<T, Size, Sizes...>::type;
 
 // MultiArray is a generic N-dimensional array.
 // The template parameter T is the base type of the MultiArray
 // The template parameters (Size and Sizes) is the dimensions of the MultiArray.
 template<typename T, usize Size, usize... Sizes>
 class MultiArray final {
-    using ElementType = typename internal::MultiArrayDef<T, Size, Sizes...>::Type;
+    using ElementType = typename Internal::MultiArrayDef<T, Size, Sizes...>::Type;
     using ArrayType   = Array<ElementType, Size>;
 
    public:
