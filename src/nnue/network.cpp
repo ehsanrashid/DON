@@ -19,6 +19,7 @@
 
 #include <cassert>
 #include <cstdlib>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 
@@ -322,10 +323,7 @@ bool Network<Arch, Transformer>::load_embedded() noexcept {
 template<typename Arch, typename Transformer>
 bool Network<Arch, Transformer>::load_file(std::string_view dir,
                                            std::string_view netFile) noexcept {
-    std::string path;
-    path.reserve(dir.size() + netFile.size());
-    path += dir;
-    path += netFile;
+    std::filesystem::path path = std::filesystem::path(dir) / netFile;
 
     std::ifstream ifs{path, std::ios::binary};
 

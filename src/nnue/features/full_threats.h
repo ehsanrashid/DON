@@ -31,10 +31,10 @@ namespace DON::NNUE::Features {
 class FullThreats final {
    public:
     // Hash value embedded in the evaluation file
-    static constexpr u32 Hash = 0x8F234CB9u;
+    static constexpr u32 Hash = 0x8F234CB8u;
 
     // Number of feature dimensions
-    static constexpr IndexType Dimensions = 53564;
+    static constexpr IndexType Dimensions = 60144;
 
     struct FusedData final {
        public:
