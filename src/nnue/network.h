@@ -25,9 +25,7 @@
 #include <string_view>
 
 #include "../misc.h"
-#include "accumulator.h"
 #include "architecture.h"
-#include "common.h"
 #include "feature_transformer.h"
 #include "nmisc.h"
 
@@ -37,26 +35,21 @@ class Position;
 
 namespace NNUE {
 
-enum class EmbeddedType : u8 {
-    BIG,
-    SMALL
-};
+struct AccumulatorCache;
+struct AccumulatorStack;
 
-template<typename Arch, typename Transformer>
 class Network final {
    private:
-    static constexpr IndexType TFDimensions = Arch::TransformedFeatureDimensions;
     // Hash value of evaluation function structure
-    static constexpr u32 Hash = Arch::hash() ^ Transformer::hash();
+    static constexpr u32 Hash = NetworkArchitecture::hash() ^ FeatureTransformer::hash();
 
    public:
-    Network(const EvalFile& evFile, EmbeddedType embType) noexcept :
-        evalFile(evFile),
-        embeddedType(embType) {}
+    Network(const EvalFile& evFile) noexcept :
+        evalFile(evFile) {}
 
-    Network(const Network& net)            = default;
+    Network(const Network&)                = default;
     Network(Network&&) noexcept            = default;
-    Network& operator=(const Network& net) = default;
+    Network& operator=(const Network&)     = default;
     Network& operator=(Network&&) noexcept = default;
 
     void load(std::string_view rootDirectory, std::string_view netFile) noexcept;
@@ -66,13 +59,13 @@ class Network final {
 
     usize content_hash() const noexcept;
 
-    NetworkOutput evaluate(const Position&                         pos,
-                           AccumulatorStack&                       accStack,
-                           AccumulatorCaches::Cache<TFDimensions>& cache) const noexcept;
+    NetworkOutput evaluate(const Position&   pos,
+                           AccumulatorCache& accCache,
+                           AccumulatorStack& accStack) const noexcept;
 
-    NetworkTrace trace(const Position&                         pos,
-                       AccumulatorStack&                       accStack,
-                       AccumulatorCaches::Cache<TFDimensions>& cache) const noexcept;
+    NetworkTrace trace(const Position&   pos,
+                       AccumulatorCache& accCache,
+                       AccumulatorStack& accStack) const noexcept;
 
    private:
     std::optional<std::string> load(std::istream& is) noexcept;
@@ -87,69 +80,25 @@ class Network final {
     bool write_parameters(std::ostream& os, const std::string& netDescription) const noexcept;
 
     // Input feature converter
-    Transformer featureTransformer;
+    FeatureTransformer featureTransformer;
 
     // Evaluation function
-    Array<Arch, LayerStacks> network;
+    Array<NetworkArchitecture, LayerStacks> network;
 
-    EvalFile     evalFile;
-    EmbeddedType embeddedType;
+    EvalFile evalFile;
 
     bool initialized = false;
 
-    template<IndexType Size>
-    friend struct AccumulatorCaches::Cache;
-};
-
-// Definitions of the network types
-using BigNetworkArchitecture = NetworkArchitecture<BigTransformedFeatureDimensions, BigL2, BigL3>;
-using BigFeatureTransformer  = FeatureTransformer<BigTransformedFeatureDimensions>;
-
-using SmallNetworkArchitecture =
-  NetworkArchitecture<SmallTransformedFeatureDimensions, SmallL2, SmallL3>;
-using SmallFeatureTransformer = FeatureTransformer<SmallTransformedFeatureDimensions>;
-
-using BigNetwork   = Network<BigNetworkArchitecture, BigFeatureTransformer>;
-using SmallNetwork = Network<SmallNetworkArchitecture, SmallFeatureTransformer>;
-
-struct Networks final {
-   public:
-    Networks(const EvalFile& bigFile, const EvalFile& smallFile) noexcept :
-        big(bigFile, EmbeddedType::BIG),
-        small(smallFile, EmbeddedType::SMALL) {}
-
-    void load_big(std::string_view rootDirectory, std::string_view netFile = {}) noexcept {
-        big.load(rootDirectory, netFile);
-    }
-    void load_small(std::string_view rootDirectory, std::string_view netFile = {}) noexcept {
-        small.load(rootDirectory, netFile);
-    }
-
-    void save_big(std::string_view netFile = {}) const noexcept { big.save(netFile); }
-    void save_small(std::string_view netFile = {}) const noexcept { small.save(netFile); }
-
-    BigNetwork   big;
-    SmallNetwork small;
+    friend struct AccumulatorCache;
 };
 
 }  // namespace NNUE
 }  // namespace DON
 
-template<typename Arch, typename FeatureTransformer>
-struct std::hash<DON::NNUE::Network<Arch, FeatureTransformer>> {
-    DON::usize
-    operator()(const DON::NNUE::Network<Arch, FeatureTransformer>& network) const noexcept {
-        return network.content_hash();
-    }
-};
-
 template<>
-struct std::hash<DON::NNUE::Networks> {
-    DON::usize operator()(const DON::NNUE::Networks& networks) const noexcept {
-        DON::usize h = 0;
-        DON::combine_hash(h, networks.big);
-        DON::combine_hash(h, networks.small);
-        return h;
+struct std::hash<DON::NNUE::Network> {
+    DON::usize operator()(const DON::NNUE::Network& network) const noexcept {
+        return network.content_hash();
     }
 };
 

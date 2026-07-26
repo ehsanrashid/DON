@@ -55,16 +55,13 @@ constexpr usize HASH_MAX =
 // The user can always explicitly override this behavior.
 constexpr AutoNumaPolicy NUMA_POLICY_DEFAULT = BundledL3Policy{32};
 
-std::unique_ptr<NNUE::Networks>
-NETWORKS_DEFAULT(const std::filesystem::path& binaryDirectory) noexcept {
-    auto NetworksDefault =
-      std::make_unique<NNUE::Networks>(NNUE::EvalFile{BigEvalFileDefaultName},  //
-                                       NNUE::EvalFile{SmallEvalFileDefaultName});
+std::unique_ptr<NNUE::Network>
+default_network(const std::filesystem::path& binaryDirectory) noexcept {
+    auto defaultNetwork = std::make_unique<NNUE::Network>(NNUE::EvalFile{EvalFileDefaultName});
 
-    NetworksDefault->load_big(binaryDirectory.string());
-    NetworksDefault->load_small(binaryDirectory.string());
+    defaultNetwork->load(binaryDirectory.string(), "");
 
-    return NetworksDefault;
+    return defaultNetwork;
 }
 
 }  // namespace
@@ -73,7 +70,7 @@ Engine::Engine(const std::filesystem::path& path) noexcept :
     // clang-format off
     binaryDirectory(CommandLine::binary_directory(path)),
     numaContext(NumaConfig::from_system(NUMA_POLICY_DEFAULT)),
-    networks(numaContext, NETWORKS_DEFAULT(binaryDirectory)) {
+    network(numaContext, default_network(binaryDirectory)) {
 
     using OnCng = Option::OnChange;
 
@@ -110,8 +107,7 @@ Engine::Engine(const std::filesystem::path& path) noexcept :
     options.add("SyzygyProbeDepth",  Option(1, 1, 100));
     options.add("Syzygy50MoveRule",  Option(true));
     options.add("SyzygyPVExtend",    Option(true));
-    options.add("BigEvalFile",       Option(BigEvalFileDefaultName  , OnCng([this](const Option& o) { load_big_network(o);   return std::nullopt; })));
-    options.add("SmallEvalFile",     Option(SmallEvalFileDefaultName, OnCng([this](const Option& o) { load_small_network(o); return std::nullopt; })));
+    options.add("EvalFile",          Option(EvalFileDefaultName, OnCng([this](const Option& o) { load_network(o);   return std::nullopt; })));
     options.add("MinimalInfo",       Option(false));
     options.add("LogFile",           Option("", OnCng([](const Option& o) { return Logger::start(path_from_utf8(o)) ? "Logger started" : "Logger not started"; })));
     options.add("Stop Logger",       Option(OnCng([](const Option&) { Logger::stop(); return std::nullopt; })));
@@ -184,7 +180,7 @@ u64 Engine::perft(Depth depth, bool detail) noexcept {
 void Engine::start(const Limit& limit) noexcept {
     assert(!limit.perft);
 
-    verify_networks();
+    verify_network();
 
     threads.start(pos, states, limit, options);
 }
@@ -246,9 +242,9 @@ void Engine::dump(const std::filesystem::path& dumpFile) const noexcept {
 }
 
 void Engine::eval() noexcept {
-    verify_networks();
+    verify_network();
 
-    std::cout << '\n' << Evaluate::trace(pos, *networks) << std::endl;
+    std::cout << '\n' << Evaluate::trace(pos, *network) << std::endl;
 }
 
 void Engine::flip() noexcept { pos.flip(); }
@@ -323,12 +319,11 @@ std::string Engine::thread_allocation() const noexcept {
     return threadAllocation;
 }
 
-void Engine::verify_networks() const noexcept {
+void Engine::verify_network() const noexcept {
 
-    networks->big.verify(options["BigEvalFile"]);
-    networks->small.verify(options["SmallEvalFile"]);
+    network->verify(options["EvalFile"]);
 
-    auto statuses = networks.get_status_and_errors();
+    auto statuses = network.get_status_and_errors();
 
     for (usize i = 0; i < statuses.size(); ++i)
     {
@@ -347,17 +342,10 @@ void Engine::verify_networks() const noexcept {
     }
 }
 
-void Engine::load_networks(const Array<std::string_view, 2>& netFiles) noexcept {
-    if (!netFiles[0].empty())
-        load_big_network(netFiles[0]);
-    if (!netFiles[1].empty())
-        load_small_network(netFiles[1]);
-}
+void Engine::load_network(std::string_view netFile) noexcept {
 
-void Engine::load_big_network(std::string_view netFile) noexcept {
-
-    networks.modify_and_replicate([this, &netFile](NNUE::Networks& nets) noexcept {  //
-        nets.load_big(binaryDirectory.string(), netFile);
+    network.modify_and_replicate([this, &netFile](NNUE::Network& net) noexcept {  //
+        net.load(binaryDirectory.string(), netFile);
     });
 
     threads.init();
@@ -365,22 +353,7 @@ void Engine::load_big_network(std::string_view netFile) noexcept {
     threads.ensure_network_replicated();
 }
 
-void Engine::load_small_network(std::string_view netFile) noexcept {
-
-    networks.modify_and_replicate([this, &netFile](NNUE::Networks& nets) noexcept {  //
-        nets.load_small(binaryDirectory.string(), netFile);
-    });
-
-    threads.init();
-
-    threads.ensure_network_replicated();
-}
-
-void Engine::save_networks(const Array<std::string_view, 2>& netFiles) const noexcept {
-
-    networks->save_big(netFiles[0]);
-    networks->save_small(netFiles[1]);
-}
+void Engine::save_network(std::string_view netFile) const noexcept { network->save(netFile); }
 
 bool Engine::load_hash() noexcept {
     return transpositionTable.load(std::string_view{options["HashFile"]}, threads);

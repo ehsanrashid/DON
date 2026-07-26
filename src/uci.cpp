@@ -326,13 +326,13 @@ void UCI::execute(std::string_view command) noexcept {
         std::cout << compiler_info() << std::endl;
         break;
     case Command::EXPORT_NET : {
-        Array<std::string, 2>      inputs;
-        Array<std::string_view, 2> netFiles;
+        std::string      input;
+        std::string_view netFile;
 
-        for (usize i = 0; i < netFiles.size() && is >> inputs[i]; ++i)
-            netFiles[i] = inputs[i];
+        if (is >> input)
+            netFile = input;
 
-        engine.save_networks(netFiles);
+        engine.save_network(netFile);
     }
     break;
     case Command::HELP :

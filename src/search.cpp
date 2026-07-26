@@ -245,12 +245,12 @@ Worker::Worker(usize                     threadIdx,
     numaThreadCount(numaThreadCnt),
     numaAccessToken(accessToken),
     manager(std::move(searchManager)),
-    networks(sharedState.networks),
+    network(sharedState.network),
     options(sharedState.options),
     transpositionTable(sharedState.transpositionTable),
     threads(sharedState.threads),
     histories(sharedState.historiesMap.at(accessToken.numa_id())),
-    accCaches(networks[accessToken]) {}
+    accCache(network[accessToken]) {}
 
 // Initialize per-thread data structures
 void Worker::init() noexcept {
@@ -284,14 +284,14 @@ void Worker::init() noexcept {
         for (auto& pieceSqCorrHist : toPieceSqCorrHist)
             pieceSqCorrHist.fill(7);
 
-    accCaches.init(networks[numa_access_token()]);
+    accCache.init(network[numa_access_token()]);
 }
 
 // Ensure that the neural networks are replicated on this NUMA node
 void Worker::ensure_network_replicated() const noexcept {
     // Access once to force lazy initialization.
     // Do this because want to avoid initialization during search.
-    (void) (networks[numa_access_token()]);
+    (void) (network[numa_access_token()]);
 }
 
 // Called when the program receives the UCI 'go' command.
@@ -2079,7 +2079,7 @@ void Worker::do_null_move(Position& pos, State& st, Stack* ss) noexcept {
 void Worker::undo_null_move(Position& pos) const noexcept { pos.undo_null_move(); }
 
 Value Worker::evaluate(const Position& pos) noexcept {
-    return Evaluate::evaluate(pos, networks[numa_access_token()], accStack, accCaches,
+    return Evaluate::evaluate(pos, network[numa_access_token()], accCache, accStack,
                               optimism[pos.active_color()]);
 }
 
@@ -2193,12 +2193,12 @@ int Worker::correction_value(const Position& pos, const Stack* ss) const noexcep
     Color ac = pos.active_color();
 
     i64 correctionValue =
-           + 5715LL * int(histories.    pawn_correction<WHITE>(pos.    pawn_key(WHITE))[ac]
-                        + histories.    pawn_correction<BLACK>(pos.    pawn_key(BLACK))[ac])
-           + 4411LL * int(histories.   minor_correction<WHITE>(pos.   minor_key(WHITE))[ac]
-                        + histories.   minor_correction<BLACK>(pos.   minor_key(BLACK))[ac])
-           +12749LL * int(histories.non_pawn_correction<WHITE>(pos.non_pawn_key(WHITE))[ac]
-                        + histories.non_pawn_correction<BLACK>(pos.non_pawn_key(BLACK))[ac]);
+           + i64{5713} * int(histories.    pawn_correction<WHITE>(pos.    pawn_key(WHITE))[ac]
+                           + histories.    pawn_correction<BLACK>(pos.    pawn_key(BLACK))[ac])
+           + i64{4411} * int(histories.   minor_correction<WHITE>(pos.   minor_key(WHITE))[ac]
+                           + histories.   minor_correction<BLACK>(pos.   minor_key(BLACK))[ac])
+           +i64{12749} * int(histories.non_pawn_correction<WHITE>(pos.non_pawn_key(WHITE))[ac]
+                           + histories.non_pawn_correction<BLACK>(pos.non_pawn_key(BLACK))[ac]);
 
     Move preMove = (ss - 1)->move;
     // 0 if false, -1 if true
@@ -2209,9 +2209,9 @@ int Worker::correction_value(const Position& pos, const Stack* ss) const noexcep
     auto& h2 = *(ss - 2)->pieceSqCorrectionHistory;
     auto& h4 = *(ss - 4)->pieceSqCorrectionHistory;
 
-    correctionValue += 8022LL * ( (preOk & int(h2[+prePc][preSq]
+    correctionValue += i64{8022} * ( (preOk & int(h2[+prePc][preSq]
                                              + h4[+prePc][preSq]))
-                                | (~preOk & 8));
+                                   | (~preOk & 8));
 
     return std::clamp(correctionValue, -INT_LIMIT, +INT_LIMIT);
 }

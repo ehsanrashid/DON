@@ -17,7 +17,6 @@
 
 #include "network.h"
 
-#include <cassert>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
@@ -31,6 +30,7 @@
 #include "../position.h"
 #include "../notation.h"
 #include "../types.h"
+#include "accumulator.h"  // IWYU pragma: keep
 #include "common.h"
 
 // Macro to embed the default efficiently updatable neural network (NNUE) file
@@ -41,42 +41,16 @@
 //     const unsigned int         gEmbeddedSize;    // size of the embedded file
 // Note that this does not work in Microsoft Visual Studio.
 #if !defined(_MSC_VER) && !defined(NNUE_EMBEDDING_OFF)
-INCBIN(BigEmbedded, BigEvalFileDefaultName);
-INCBIN(SmallEmbedded, SmallEvalFileDefaultName);
+INCBIN(Embedded, EvalFileDefaultName);
 #else
-const unsigned char        gBigEmbeddedData[1]   = {0x0};
-const unsigned char* const gBigEmbeddedEnd       = &gBigEmbeddedData[1];
-const unsigned int         gBigEmbeddedSize      = 1;
-const unsigned char        gSmallEmbeddedData[1] = {0x0};
-const unsigned char* const gSmallEmbeddedEnd     = &gSmallEmbeddedData[1];
-const unsigned int         gSmallEmbeddedSize    = 1;
+const unsigned char        gEmbeddedData[1] = {0x0};
+const unsigned char* const gEmbeddedEnd     = &gEmbeddedData[1];
+const unsigned int         gEmbeddedSize    = 1;
 #endif
 
 namespace DON::NNUE {
 
 namespace {
-
-struct Embedded final {
-   public:
-    Embedded(const unsigned char*       embeddedData,
-             const unsigned char* const embeddedEnd,
-             const unsigned int         embeddedSize) noexcept :
-        data(embeddedData),
-        end(embeddedEnd),
-        size(embeddedSize) {}
-
-    const unsigned char*       data;
-    const unsigned char* const end;
-    const unsigned int         size;
-};
-
-Embedded get_embedded(EmbeddedType embType) noexcept {
-    assert(embType == EmbeddedType::BIG || embType == EmbeddedType::SMALL);
-
-    return embType == EmbeddedType::BIG
-           ? Embedded(gBigEmbeddedData, gBigEmbeddedEnd, gBigEmbeddedSize)
-           : Embedded(gSmallEmbeddedData, gSmallEmbeddedEnd, gSmallEmbeddedSize);
-}
 
 // Read network header
 bool _read_header(std::istream& is, u32& hash, std::string& netDescription) noexcept {
@@ -126,9 +100,7 @@ bool _write_parameters(std::ostream& os, const T& reference) noexcept {
 
 }  // namespace
 
-template<typename Arch, typename Transformer>
-void Network<Arch, Transformer>::load(std::string_view rootDirectory,
-                                      std::string_view netFile) noexcept {
+void Network::load(std::string_view rootDirectory, std::string_view netFile) noexcept {
 
     constexpr usize DirectoryCount = 3 +
 #if defined(DEFAULT_NNUE_DIRECTORY)
@@ -167,8 +139,7 @@ void Network<Arch, Transformer>::load(std::string_view rootDirectory,
         }
 }
 
-template<typename Arch, typename Transformer>
-bool Network<Arch, Transformer>::save(std::string_view netFile) const noexcept {
+bool Network::save(std::string_view netFile) const noexcept {
     std::string evalFileName;
 
     if (!netFile.empty())
@@ -194,8 +165,7 @@ bool Network<Arch, Transformer>::save(std::string_view netFile) const noexcept {
     return saved;
 }
 
-template<typename Arch, typename Transformer>
-void Network<Arch, Transformer>::verify(std::string_view netFile) const noexcept {
+void Network::verify(std::string_view netFile) const noexcept {
     if (netFile.empty())
         netFile = evalFile.defaultName;
 
@@ -221,19 +191,19 @@ void Network<Arch, Transformer>::verify(std::string_view netFile) const noexcept
         std::exit(EXIT_FAILURE);
     }
 
-    constexpr usize TotalSize = sizeof(featureTransformer) + LayerStacks * sizeof(Arch);
+    constexpr usize TotalSize =
+      sizeof(featureTransformer) + LayerStacks * sizeof(NetworkArchitecture);
 
     std::string msg{"NNUE evaluation using " + std::string{netFile} + " ("  //
                     + std::to_string(TotalSize / MB) + "MiB, ("
-                    + std::to_string(featureTransformer.TotalInputDimensions) + ", "
+                    + std::to_string(featureTransformer.InputDimensions) + ", "
                     + std::to_string(network[0].TransformedFeatureDimensions) + ", "
                     + std::to_string(network[0].FC_0_Outputs) + ", "  //
                     + std::to_string(network[0].FC_1_Outputs) + ", 1))"};
     print_info_string(msg);
 }
 
-template<typename Arch, typename Transformer>
-usize Network<Arch, Transformer>::content_hash() const noexcept {
+usize Network::content_hash() const noexcept {
     if (!initialized)
         return 0;
 
@@ -242,43 +212,37 @@ usize Network<Arch, Transformer>::content_hash() const noexcept {
     for (auto&& arch : network)
         combine_hash(h, arch);
     combine_hash(h, evalFile);
-    combine_hash(h, embeddedType);
     return h;
 }
 
-template<typename Arch, typename Transformer>
-NetworkOutput
-Network<Arch, Transformer>::evaluate(const Position&                         pos,
-                                     AccumulatorStack&                       accStack,
-                                     AccumulatorCaches::Cache<TFDimensions>& cache) const noexcept {
+NetworkOutput Network::evaluate(const Position&   pos,
+                                AccumulatorCache& accCache,
+                                AccumulatorStack& accStack) const noexcept {
 
-    alignas(CACHE_LINE_SIZE)
-      Array<TransformedFeatureType, FeatureTransformer<TFDimensions>::BufferSize>
-        transformedFeatures;
+    alignas(CACHE_LINE_SIZE) Array<TransformedFeatureType, FeatureTransformer::BufferSize>
+      transformedFeatures;
 
     auto bucket = pos.bucket();
 
-    auto psqt = featureTransformer.transform(pos, accStack, cache, bucket, transformedFeatures);
+    auto psqt = featureTransformer.transform(pos, accCache, accStack, bucket, transformedFeatures);
     auto positional = network[bucket].propagate(transformedFeatures);
 
     return {psqt / OUTPUT_SCALE, positional / OUTPUT_SCALE};
 }
 
-template<typename Arch, typename Transformer>
-NetworkTrace
-Network<Arch, Transformer>::trace(const Position&                         pos,
-                                  AccumulatorStack&                       accStack,
-                                  AccumulatorCaches::Cache<TFDimensions>& cache) const noexcept {
+NetworkTrace Network::trace(const Position&   pos,
+                            AccumulatorCache& accCache,
+                            AccumulatorStack& accStack) const noexcept {
 
-    alignas(CACHE_LINE_SIZE)
-      Array<TransformedFeatureType, FeatureTransformer<TFDimensions>::BufferSize>
-        transformedFeatures;
+    alignas(CACHE_LINE_SIZE) Array<TransformedFeatureType, FeatureTransformer::BufferSize>
+      transformedFeatures;
 
     NetworkTrace netTrace;
     netTrace.correctBucket = pos.bucket();
     for (IndexType bucket = 0; bucket < LayerStacks; ++bucket)
     {
-        i32 psqt = featureTransformer.transform(pos, accStack, cache, bucket, transformedFeatures);
+        i32 psqt       = featureTransformer.transform(  //
+          pos, accCache, accStack, bucket, transformedFeatures);
         i32 positional = network[bucket].propagate(transformedFeatures);
 
         netTrace.netOut[bucket] = {psqt / OUTPUT_SCALE, positional / OUTPUT_SCALE};
@@ -287,8 +251,7 @@ Network<Arch, Transformer>::trace(const Position&                         pos,
     return netTrace;
 }
 
-template<typename Arch, typename Transformer>
-std::optional<std::string> Network<Arch, Transformer>::load(std::istream& is) noexcept {
+std::optional<std::string> Network::load(std::istream& is) noexcept {
 
     std::string netDescription;
     if (!read_parameters(is, netDescription))
@@ -299,12 +262,10 @@ std::optional<std::string> Network<Arch, Transformer>::load(std::istream& is) no
     return netDescription;
 }
 
-template<typename Arch, typename Transformer>
-bool Network<Arch, Transformer>::load_embedded() noexcept {
-    auto embedded = get_embedded(embeddedType);
+bool Network::load_embedded() noexcept {
 
-    MemoryStreamBuf buf(const_cast<char*>(reinterpret_cast<const char*>(embedded.data)),
-                        usize(embedded.size));
+    MemoryStreamBuf buf(const_cast<char*>(reinterpret_cast<const char*>(gEmbeddedData)),
+                        usize(gEmbeddedSize));
 
     std::istream is{&buf};
 
@@ -320,9 +281,7 @@ bool Network<Arch, Transformer>::load_embedded() noexcept {
     return false;
 }
 
-template<typename Arch, typename Transformer>
-bool Network<Arch, Transformer>::load_file(std::string_view dir,
-                                           std::string_view netFile) noexcept {
+bool Network::load_file(std::string_view dir, std::string_view netFile) noexcept {
     std::filesystem::path path = std::filesystem::path(dir) / netFile;
 
     std::ifstream ifs{path, std::ios::binary};
@@ -339,19 +298,16 @@ bool Network<Arch, Transformer>::load_file(std::string_view dir,
     return false;
 }
 
-template<typename Arch, typename Transformer>
-bool Network<Arch, Transformer>::save(std::ostream&    os,
-                                      std::string_view name,
-                                      std::string_view netDescription) const noexcept {
+bool Network::save(std::ostream&    os,
+                   std::string_view name,
+                   std::string_view netDescription) const noexcept {
     if (name.empty() || name == "None")
         return false;
 
     return write_parameters(os, std::string{netDescription});
 }
 
-template<typename Arch, typename Transformer>
-bool Network<Arch, Transformer>::read_parameters(std::istream& is,
-                                                 std::string&  netDescription) noexcept {
+bool Network::read_parameters(std::istream& is, std::string& netDescription) noexcept {
     u32 hash;
     if (!_read_header(is, hash, netDescription))
         return false;
@@ -369,9 +325,7 @@ bool Network<Arch, Transformer>::read_parameters(std::istream& is,
     return bool(is) && is.peek() == std::ios::traits_type::eof();
 }
 
-template<typename Arch, typename Transformer>
-bool Network<Arch, Transformer>::write_parameters(
-  std::ostream& os, const std::string& netDescription) const noexcept {
+bool Network::write_parameters(std::ostream& os, const std::string& netDescription) const noexcept {
 
     if (!_write_header(os, Network::Hash, netDescription))
         return false;
@@ -385,11 +339,5 @@ bool Network<Arch, Transformer>::write_parameters(
 
     return bool(os);
 }
-
-// Explicit template instantiations:
-template class Network<NetworkArchitecture<BigTransformedFeatureDimensions, BigL2, BigL3>,
-                       FeatureTransformer<BigTransformedFeatureDimensions>>;
-template class Network<NetworkArchitecture<SmallTransformedFeatureDimensions, SmallL2, SmallL3>,
-                       FeatureTransformer<SmallTransformedFeatureDimensions>>;
 
 }  // namespace DON::NNUE

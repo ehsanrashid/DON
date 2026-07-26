@@ -105,13 +105,13 @@ inline IntType read_little_endian(std::istream& is) noexcept {
         is.read(reinterpret_cast<char*>(&value), IntSize);
     else
     {
-        Array<u8, IntSize> u;
+        Array<u8, IntSize> arr;
 
         UIntType v = 0;
 
-        is.read(reinterpret_cast<char*>(u.data()), IntSize);
+        is.read(reinterpret_cast<char*>(arr.data()), IntSize);
         for (usize i = 0; i < IntSize; ++i)
-            v = (v << BYTE_BITS) | u[IntSize - i - 1];
+            v = (v << BYTE_BITS) | arr[IntSize - i - 1];
 
         std::memcpy(&value, &v, IntSize);
     }
@@ -134,7 +134,7 @@ inline void write_little_endian(std::ostream& os, IntType value) noexcept {
         os.write(reinterpret_cast<const char*>(&value), IntSize);
     else
     {
-        Array<u8, IntSize> u;
+        Array<u8, IntSize> arr;
 
         UIntType v = value;
 
@@ -144,13 +144,13 @@ inline void write_little_endian(std::ostream& os, IntType value) noexcept {
         {
             for (; i + 1 < IntSize; ++i)
             {
-                u[i] = v;
+                arr[i] = v;
                 v >>= BYTE_BITS;
             }
         }
-        u[i] = v;
+        arr[i] = v;
 
-        os.write(reinterpret_cast<const char*>(u.data()), IntSize);
+        os.write(reinterpret_cast<const char*>(arr.data()), IntSize);
     }
 }
 

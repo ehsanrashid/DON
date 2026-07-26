@@ -34,7 +34,7 @@ namespace DON::NNUE::Features {
 
 namespace {
 
-constexpr Array<u16, PIECE_TYPE_CNT> TARGET_MAX{6, 10, 8, 8, 10, 0};
+constexpr Array<u16, PIECE_TYPE_CNT> TARGET_MAX{3, 5, 4, 4, 5, 0};
 
 constexpr Array<i16, PIECE_TYPE_CNT, PIECE_TYPE_CNT> MAP{{
   {+0, +1, -1, +2, -1, -1},  //
@@ -81,7 +81,7 @@ alignas(CACHE_LINE_SIZE) constexpr auto THREAT_TABLE = []() constexpr noexcept {
 
             threatTable.pieceThreats[+pc] = {baseOffset, threatCount};
 
-            baseOffset += TARGET_MAX[pt - 1] * threatCount;
+            baseOffset += 2 * TARGET_MAX[pt - 1] * threatCount;
         }
 
     return threatTable;
@@ -94,7 +94,7 @@ constexpr IndexType dimensions() noexcept {
     IndexType dims = 0;
     for (Color c : {WHITE, BLACK})
         for (PieceType pt : PIECE_TYPES)
-            dims += IndexType(TARGET_MAX[pt - 1])  //
+            dims += 2 * TARGET_MAX[pt - 1]  //
                   * PIECE_THREATS[+make_piece(c, pt)].threatCount;
 
     return dims;
