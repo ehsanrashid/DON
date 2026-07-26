@@ -17,8 +17,8 @@
 
 #include "network.h"
 
-#include <cassert>
 #include <cstdlib>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 
