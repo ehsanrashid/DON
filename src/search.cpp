@@ -1350,7 +1350,8 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
                     {
                         int threshold =
                           std::max(185 * depth + constexpr_round(35.7143e-3 * double(history)), 0);
-                        if ((!mp.good_capture() || mp.threshold > threshold)
+                        if ((mp.stage() != MovePicker::Stage::ENC_GOOD_CAPTURE
+                             || mp.threshold_value() > threshold)
                             && pos.see(move) < -threshold)
                             continue;
                     }

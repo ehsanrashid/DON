@@ -525,7 +525,9 @@ STAGE_SWITCH:
     return Move::None;  // Silence warning
 }
 
-bool MovePicker::good_capture() const noexcept { return curStage == Stage::ENC_GOOD_CAPTURE; }
+MovePicker::Stage MovePicker::stage() const noexcept { return curStage; }
+
+int MovePicker::threshold_value() const noexcept { return threshold; }
 
 ALWAYS_INLINE bool MovePicker::good_capture_or_swap() noexcept {
     threshold = constexpr_round(55.5555e-3 * double(cur->value));

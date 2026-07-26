@@ -405,10 +405,12 @@ class ISearchManager {
 using ISearchManagerPtr = std::unique_ptr<ISearchManager>;
 
 struct ShortInfo {
+   public:
     Depth     depth;
     FixedText score;
 };
 struct FullInfo final: public ShortInfo {
+   public:
     u16              selDepth;
     usize            multiPV;
     FixedText        bound;
@@ -420,11 +422,13 @@ struct FullInfo final: public ShortInfo {
     std::string_view pv;
 };
 struct IterInfo final {
+   public:
     Depth            depth;
     std::string_view currMove;
     usize            currMoveNumber;
 };
 struct MoveInfo final {
+   public:
     std::string_view bestMove;
     std::string_view ponderMove;
 };
