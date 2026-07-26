@@ -21,9 +21,7 @@
 
 #include <array>
 #include <cassert>
-#include <cstdint>
 #include <initializer_list>
-#include <utility>
 
 #include "../../attacks.h"
 #include "../../bitboard.h"
