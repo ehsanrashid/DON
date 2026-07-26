@@ -91,12 +91,13 @@ constexpr auto& PIECE_THREATS  = THREAT_TABLE.pieceThreats;
 constexpr auto& SQUARE_OFFSETS = THREAT_TABLE.squareOffsets;
 
 constexpr IndexType dimensions() noexcept {
-    IndexType dimensions = 0;
+    IndexType dims = 0;
     for (Color c : {WHITE, BLACK})
         for (PieceType pt : PIECE_TYPES)
-            dimensions += TARGET_MAX[pt - 1] * PIECE_THREATS[+make_piece(c, pt)].threatCount;
+            dims += IndexType(TARGET_MAX[pt - 1])  //
+                  * PIECE_THREATS[+make_piece(c, pt)].threatCount;
 
-    return dimensions;
+    return dims;
 }
 
 static_assert(dimensions() == FullThreats::Dimensions);
