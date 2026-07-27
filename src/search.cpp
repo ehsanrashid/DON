@@ -444,9 +444,11 @@ void Worker::iterative_deepening() noexcept {
     Value bestValue = -VALUE_INFINITE;
 
     PVMoves lastBestPV;
-    Value   lastBestCurValue = -VALUE_INFINITE;
-    Value   lastBestPreValue = -VALUE_INFINITE;
-    Value   lastBestUciValue = -VALUE_INFINITE;
+    lastBestPV.push_back(Move::None);
+
+    Value lastBestCurValue = -VALUE_INFINITE;
+    Value lastBestPreValue = -VALUE_INFINITE;
+    Value lastBestUciValue = -VALUE_INFINITE;
 
     auto update_last_best = [&]() {
         lastBestPV       = rootMoves[0].pv;

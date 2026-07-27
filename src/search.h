@@ -66,8 +66,8 @@ struct PVMoves final {
     Move*       begin() noexcept { return moves.data(); }
     const Move* begin() const noexcept { return moves.data(); }
 
-    Move*       end() noexcept { return moves.data() + _size; }
-    const Move* end() const noexcept { return moves.data() + _size; }
+    Move*       end() noexcept { return moves.data() + size(); }
+    const Move* end() const noexcept { return moves.data() + size(); }
 
     Move&       front() noexcept { return moves.front(); }
     const Move& front() const noexcept { return moves.front(); }
@@ -75,19 +75,19 @@ struct PVMoves final {
     Move&       operator[](usize index) noexcept { return moves[index]; }
     const Move& operator[](usize index) const noexcept { return moves[index]; }
 
-    bool  empty() const noexcept { return _size == 0; }
     usize size() const noexcept { return _size; }
+    bool  empty() const noexcept { return size() == 0; }
 
     void clear() noexcept { _size = 0; }
 
     void push_back(Move move) noexcept {
-        assert(_size < moves.size());
-        moves[_size] = move;
+        assert(size() < moves.size());
+        moves[size()] = move;
         ++_size;
     }
 
     void resize(usize newSize) noexcept {
-        assert(newSize <= _size);
+        assert(newSize <= size());
         _size = newSize;
     }
 
@@ -162,8 +162,7 @@ struct RootMove final {
         return curValue != -VALUE_INFINITE ? curValue : preValue;
     }
 
-    u64     nodes = 0;
-    PVMoves pv;
+    u64 nodes = 0;
 
     Value curValue = -VALUE_INFINITE;
     Value preValue = -VALUE_INFINITE;
@@ -179,6 +178,8 @@ struct RootMove final {
     u16 id = UINT16_MAX;
 
     Bound bound = Bound::NONE;
+
+    PVMoves pv;
 };
 
 constexpr bool root_move_descending(const RootMove& rm1, const RootMove& rm2) noexcept {
