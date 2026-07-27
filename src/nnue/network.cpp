@@ -112,26 +112,26 @@ void Network::load(const std::filesystem::path& rootDirectory,
 
     const Array<std::filesystem::path, DirectoryCount> Directories{
       // --------------------------------------------------------
-      "<embedded>",  //
-      "",            //
+      std::filesystem::path{"<embedded>"},  //
+      std::filesystem::path{},              //
       rootDirectory
 #if defined(DEFAULT_NNUE_DIRECTORY)
       ,
-      STRINGIFY(DEFAULT_NNUE_DIRECTORY)
+      path_from_utf8(STRINGIFY(DEFAULT_NNUE_DIRECTORY))
 #endif
     };
 
     if (netFile.empty())
-        netFile = std::filesystem::path(std::string_view{evalFile.defaultName});
+        netFile = path_from_utf8(evalFile.defaultName);
 
     initialized = false;
 
     for (auto dir : Directories)
-        if (netFile != std::filesystem::path(std::string_view{evalFile.currentName}))
+        if (netFile != path_from_utf8(evalFile.currentName))
         {
-            if (dir != "<embedded>")
+            if (dir != std::filesystem::path{"<embedded>"})
                 load_file(dir, netFile);
-            else if (netFile == std::filesystem::path(std::string_view{evalFile.defaultName}))
+            else if (netFile == path_from_utf8(evalFile.defaultName))
                 load_embedded();
 
             if (initialized)
@@ -146,7 +146,7 @@ bool Network::save(const std::filesystem::path& netFile) const noexcept {
         evalFileName = netFile.string();
     else
     {
-        if (std::string(evalFile.currentName) != std::string(evalFile.defaultName))
+        if (std::string_view{evalFile.currentName} != std::string_view{evalFile.defaultName})
         {
             print_info_string(
               "Failed to export net. Non-embedded net can only be saved if the filename is specified");
@@ -167,9 +167,9 @@ bool Network::save(const std::filesystem::path& netFile) const noexcept {
 
 void Network::verify(std::filesystem::path netFile) const noexcept {
     if (netFile.empty())
-        netFile = std::filesystem::path(std::string_view{evalFile.defaultName});
+        netFile = path_from_utf8(evalFile.defaultName);
 
-    if (netFile != std::filesystem::path(std::string_view{evalFile.currentName}))
+    if (netFile != path_from_utf8(evalFile.currentName))
     {
         std::string msg1{
           "Network evaluation parameters compatible with the engine must be available."};
@@ -178,7 +178,7 @@ void Network::verify(std::filesystem::path netFile) const noexcept {
           "The UCI option EvalFile might need to specify the full path, including the directory name, to the network file."};
         std::string msg4{
           "The default net can be downloaded from: https://tests.stockfishchess.org/api/nn/"
-          + std::string(evalFile.defaultName)};
+          + std::string{evalFile.defaultName}};
         std::string msg5{"The engine will be terminated now."};
 
         std::cerr << "ERROR: " << msg1 << '\n'  //
