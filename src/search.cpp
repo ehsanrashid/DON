@@ -21,7 +21,6 @@
 #include <list>
 #include <random>
 #include <ratio>
-#include <string>
 
 #include "attacks.h"
 #include "bitboard.h"
@@ -1593,7 +1592,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
                 const auto* const childPv = (ss + 1)->pv;
                 assert(childPv != nullptr);
 
-                for (Move m : *(ss + 1)->pv)
+                for (Move m : *childPv)
                     rm.pv.push_back(m);
 
                 // Record how often the best move has been changed in each iteration.
