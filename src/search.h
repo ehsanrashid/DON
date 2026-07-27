@@ -63,29 +63,31 @@ inline Book::PolyGlot pgBook;
 
 struct PVMoves final {
    public:
-    Move*       begin() noexcept { return moves.data(); }
-    const Move* begin() const noexcept { return moves.data(); }
+    Move*       begin() noexcept { return data(); }
+    const Move* begin() const noexcept { return data(); }
 
-    Move*       end() noexcept { return moves.data() + size(); }
-    const Move* end() const noexcept { return moves.data() + size(); }
+    Move*       end() noexcept { return data() + size(); }
+    const Move* end() const noexcept { return data() + size(); }
 
-    Move&       front() noexcept { return moves.front(); }
-    const Move& front() const noexcept { return moves.front(); }
+    Move&       front() noexcept { return _data.front(); }
+    const Move& front() const noexcept { return _data.front(); }
 
-    Move&       operator[](usize index) noexcept { return moves[index]; }
-    const Move& operator[](usize index) const noexcept { return moves[index]; }
+    Move&       operator[](usize index) noexcept { return _data[index]; }
+    const Move& operator[](usize index) const noexcept { return _data[index]; }
 
     usize size() const noexcept { return _size; }
     bool  empty() const noexcept { return size() == 0; }
 
-    [[nodiscard]] Move*       data() noexcept { return moves.data(); }
-    [[nodiscard]] const Move* data() const noexcept { return moves.data(); }
+    [[nodiscard]] constexpr usize capacity() noexcept { return _data.size(); }
+
+    [[nodiscard]] Move*       data() noexcept { return _data.data(); }
+    [[nodiscard]] const Move* data() const noexcept { return _data.data(); }
 
     void clear() noexcept { _size = 0; }
 
     void push_back(Move move) noexcept {
-        assert(size() < moves.size());
-        moves[size()] = move;
+        assert(size() < capacity());
+        data()[size()] = move;
         ++_size;
     }
 
@@ -96,16 +98,16 @@ struct PVMoves final {
 
     // Appends move and child-Pv[]
     void update(Move move, const PVMoves* childPv) noexcept {
-        assert(childPv == nullptr || childPv->size() < moves.size());
+        assert(childPv == nullptr || childPv->size() < capacity());
 
-        moves[0] = move;
-        _size    = 1;
+        data()[0] = move;
+        _size     = 1;
 
         if (childPv != nullptr)
         {
             auto childPvSize = childPv->size();
 
-            std::memcpy(data() + size(), childPv->data(), childPvSize * sizeof(Move));
+            std::memcpy(end(), childPv->data(), childPvSize * sizeof(Move));
             _size += childPvSize;
         }
     }
@@ -118,15 +120,15 @@ struct PVMoves final {
         for (usize i = 0; i < size(); ++i)
         {
             pv.push_back(' ');
-            pv.append(move_to_can(moves[i]));
+            pv.append(move_to_can(data()[i]));
         }
 
         return pv;
     }
 
    private:
-    std::array<Move, PLY_MAX + 1> moves;
-    usize                         _size = 0;
+    Array<Move, PLY_MAX + 1> _data;
+    usize                    _size = 0;
 };
 
 // RootMove is used for moves at the root of the tree.
