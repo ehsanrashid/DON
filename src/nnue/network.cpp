@@ -103,7 +103,7 @@ void Network::load(const std::filesystem::path& rootDirectory,
                    std::filesystem::path        evalFilePath,
                    EvalFile&                    evalFile) noexcept {
 
-    constexpr usize DirectoryCount =
+    constexpr usize DirectorySize =
 #if defined(DEFAULT_NNUE_DIRECTORY)
       3
 #else
@@ -111,7 +111,7 @@ void Network::load(const std::filesystem::path& rootDirectory,
 #endif
       ;
 
-    const Array<std::filesystem::path, DirectoryCount> Directories{
+    const Array<std::filesystem::path, DirectorySize> Directories{
       // --------------------------------------------------------
       std::filesystem::path{},  //
       rootDirectory
@@ -210,13 +210,13 @@ void Network::verify(std::filesystem::path evalFilePath, const EvalFile& evalFil
 }
 
 usize Network::content_hash() const noexcept {
-    if (!initialized)
-        return 0;
-
     usize h = 0;
-    combine_hash(h, featureTransformer);
-    for (auto&& arch : networkArchitectures)
-        combine_hash(h, arch);
+    if (initialized)
+    {
+        combine_hash(h, featureTransformer);
+        for (auto&& arch : networkArchitectures)
+            combine_hash(h, arch);
+    }
     return h;
 }
 
