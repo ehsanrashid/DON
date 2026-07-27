@@ -22,6 +22,13 @@
 #include <ctime>
 #include <limits>
 
+#if defined(_WIN32)
+    #if !defined(NOMINMAX)
+        #define NOMINMAX
+    #endif
+    #include <shellapi.h>
+#endif
+
 namespace DON {
 
 namespace {
@@ -147,23 +154,42 @@ constexpr std::string_view Version{"dev"};
 
 }  // namespace
 
-void set_console_output(ConsoleOutputMode mode) noexcept {
+void set_console_input(ConsoleMode mode) noexcept {
     switch (mode)
     {
-    case ConsoleOutputMode::UTF7 :
+    case ConsoleMode::UTF7 :
+#if defined(_WIN32)
+        SetConsoleCP(CP_UTF7);
+#else
+      ;
+#endif
+        break;
+    case ConsoleMode::UTF8 :
+    default :
+#if defined(_WIN32)
+        SetConsoleCP(CP_UTF8);
+#else
+      ;
+#endif
+    }
+}
+void set_console_output(ConsoleMode mode) noexcept {
+    switch (mode)
+    {
+    case ConsoleMode::UTF7 :
 #if defined(_WIN32)
         SetConsoleOutputCP(CP_UTF7);
 #else
       ;
 #endif
         break;
-    case ConsoleOutputMode::Default :
+    case ConsoleMode::Default :
         break;
-    case ConsoleOutputMode::EnableVirtualTerminal :
+    case ConsoleMode::EnableVirtualTerminal :
         break;
-    case ConsoleOutputMode::FullyFeatured :
+    case ConsoleMode::FullyFeatured :
         break;
-    case ConsoleOutputMode::UTF8 :
+    case ConsoleMode::UTF8 :
     default :
 #if defined(_WIN32)
         SetConsoleOutputCP(CP_UTF8);
@@ -759,11 +785,39 @@ void print() noexcept {
 #endif
 
 CommandLine::CommandLine(int argc, const char* argv[]) noexcept {
-    usize argSize = argc;
+#if defined(_WIN32)
+    int     wargc = 0;
+    LPWSTR* wargv = CommandLineToArgvW(GetCommandLineW(), &wargc);
 
-    arguments.reserve(argSize);
+    if (wargv != nullptr)
+    {
+        argStorage.reserve(usize(wargc));
 
-    for (usize i = 0; i < argSize; ++i)
+        for (int i = 0; i < wargc; ++i)
+            argStorage.emplace_back(utf8_from_wstring(wargv[i]));
+
+        LocalFree(wargv);
+
+        arguments.reserve(argStorage.size());
+
+        for (const auto& arg : argStorage)
+            arguments.emplace_back(arg);
+    }
+    else
+    {
+        set_arguments(argc, argv);
+    }
+#else
+    set_arguments(argc, argv);
+#endif
+}
+
+void CommandLine::set_arguments(int argc, const char* argv[]) noexcept {
+    usize argCount = argc;
+
+    arguments.reserve(argCount);
+
+    for (usize i = 0; i < argCount; ++i)
         arguments.emplace_back(argv[i]);  // no copy, just view
 }
 
@@ -786,6 +840,25 @@ std::filesystem::path CommandLine::binary_directory(std::filesystem::path path) 
 }
 std::filesystem::path CommandLine::working_directory() noexcept {
     return std::filesystem::current_path();
+}
+
+std::string utf8_from_wstring(std::wstring_view wsv) noexcept {
+#if defined(_WIN32)
+    if (wsv.empty())
+        return {};
+
+    int size =
+      WideCharToMultiByte(CP_UTF8, 0, wsv.data(), int(wsv.size()), nullptr, 0, nullptr, nullptr);
+    if (size <= 0)
+        return {};
+
+    std::string out(size, '\0');
+    WideCharToMultiByte(CP_UTF8, 0, wsv.data(), int(wsv.size()), out.data(), size, nullptr,
+                        nullptr);
+    return out;
+#else
+    return std::string{wsv.begin(), wsv.end()};
+#endif
 }
 
 std::filesystem::path path_from_utf8(std::string_view path) noexcept {

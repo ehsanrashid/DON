@@ -378,7 +378,7 @@ inline constexpr T2 interpolate(T1 x, T1 x0, T1 x1, T2 y0, T2 y1) noexcept {
     return T2(y0 + (y1 - y0) * (x - x0) / (x1 - x0));
 }
 
-enum class ConsoleOutputMode : u8 {
+enum class ConsoleMode : u8 {
     Default,  // Do nothing special
     UTF7,     // Explicitly avoid UTF-8 changes
     UTF8,     // Try to enable UTF-8 if possible
@@ -386,7 +386,8 @@ enum class ConsoleOutputMode : u8 {
     FullyFeatured,
 };
 
-void set_console_output(ConsoleOutputMode mode = ConsoleOutputMode::Default) noexcept;
+void set_console_input(ConsoleMode mode = ConsoleMode::Default) noexcept;
+void set_console_output(ConsoleMode mode = ConsoleMode::Default) noexcept;
 
 [[nodiscard]] constexpr char digit_to_char(int digit) noexcept {
     assert(0 <= digit && digit <= 9 && "digit_to_char: non-digit integer");
@@ -1739,6 +1740,13 @@ struct CommandLine final {
     static std::filesystem::path working_directory() noexcept;
 
     StringViews arguments;
+
+   private:
+    void set_arguments(int argc, const char* argv[]) noexcept;
+
+#if defined(_WIN32)
+    Strings argStorage;
+#endif
 };
 
 inline std::string lower_case(std::string str) noexcept {
@@ -1941,6 +1949,7 @@ inline std::string u64_to_string(u64 v) noexcept {
     return std::string{buffer.data(), copiedSize};
 }
 
+std::string           utf8_from_wstring(std::wstring_view s) noexcept;
 std::filesystem::path path_from_utf8(std::string_view path) noexcept;
 
 usize str_to_size_t(std::string_view sv) noexcept;

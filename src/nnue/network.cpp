@@ -102,11 +102,11 @@ bool _write_parameters(std::ostream& os, const T& reference) noexcept {
 void Network::load(const std::filesystem::path& rootDirectory,
                    std::filesystem::path        netFile) noexcept {
 
-    constexpr usize DirectoryCount = 3 +
+    constexpr usize DirectoryCount =
 #if defined(DEFAULT_NNUE_DIRECTORY)
-                                     1
+      4
 #else
-                                     0
+      3
 #endif
       ;
 
