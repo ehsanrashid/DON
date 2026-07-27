@@ -122,7 +122,7 @@ void Network::load(const std::filesystem::path& rootDirectory,
     };
 
     if (evalFilePath.empty())
-        evalFilePath = path_from_utf8(evalFile.DefaultName);
+        evalFilePath = evalFile.DefaultName;
 
     initialized = false;
 
@@ -152,10 +152,11 @@ bool Network::save(const std::optional<std::filesystem::path>& evalFilePath,
           "Failed to export a net. No network file is currently loaded. Please load a network file first.");
         return false;
     }
+
     if (!evalFilePath && evalFile.currentPath != evalFile.DefaultName)
     {
-        print_info_string("Failed to export a net. A non-embedded net can only be "
-                          "saved if the filename is specified");
+        print_info_string(
+          "Failed to export a net. A non-embedded net can only be saved if the filename is specified.");
         return false;
     }
 
@@ -165,14 +166,14 @@ bool Network::save(const std::optional<std::filesystem::path>& evalFilePath,
 
     bool saved = save(ofs, evalFile.netDescription);
 
-    print_info_string(saved ? "Network saved successfully to " + evalFileName.string()
-                            : "Failed to export net");
+    print_info_string(saved ? "Network saved successfully to " + evalFileName.string() + "."
+                            : "Failed to export net.");
     return saved;
 }
 
 void Network::verify(std::filesystem::path evalFilePath, const EvalFile& evalFile) const noexcept {
     if (evalFilePath.empty())
-        evalFilePath = path_from_utf8(evalFile.DefaultName);
+        evalFilePath = evalFile.DefaultName;
 
     if (evalFile.currentPath != evalFilePath)
     {
@@ -255,17 +256,6 @@ NetworkTrace Network::trace(const Position&   pos,
     return netTrace;
 }
 
-std::optional<std::string> Network::load(std::istream& is) noexcept {
-
-    std::string netDescription;
-    if (!read_parameters(is, netDescription))
-        return std::nullopt;
-
-    initialized = true;
-
-    return netDescription;
-}
-
 bool Network::load_embedded(EvalFile& evalFile) noexcept {
 
     MemoryStreamBuf buf(const_cast<char*>(reinterpret_cast<const char*>(gEmbeddedData)),
@@ -277,7 +267,7 @@ bool Network::load_embedded(EvalFile& evalFile) noexcept {
 
     if (netDescription)
     {
-        evalFile.currentPath    = path_from_utf8(evalFile.DefaultName);
+        evalFile.currentPath    = evalFile.DefaultName;
         evalFile.netDescription = *netDescription;
         return true;
     }
@@ -304,6 +294,17 @@ bool Network::load_external(const std::filesystem::path& dir,
     }
 
     return false;
+}
+
+std::optional<std::string> Network::load(std::istream& is) noexcept {
+
+    std::string netDescription;
+    if (!read_parameters(is, netDescription))
+        return std::nullopt;
+
+    initialized = true;
+
+    return netDescription;
 }
 
 bool Network::save(std::ostream& os, std::string_view netDescription) const noexcept {

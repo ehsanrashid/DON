@@ -70,13 +70,12 @@ class Network final {
                        AccumulatorStack& accStack) const noexcept;
 
    private:
-    std::optional<std::string> load(std::istream& is) noexcept;
-
     bool load_embedded(EvalFile& evalFile) noexcept;
     bool load_external(const std::filesystem::path& dir,
                        const std::filesystem::path& evalFilePath,
                        EvalFile&                    evalFile) noexcept;
 
+    std::optional<std::string> load(std::istream& is) noexcept;
     bool save(std::ostream& os, std::string_view netDescription) const noexcept;
 
     bool read_parameters(std::istream& is, std::string& netDescription) noexcept;
