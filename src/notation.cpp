@@ -290,9 +290,12 @@ std::string move_to_san(Move m, Position& pos) noexcept {
     State st;
     pos.do_move(m, st);
 
-    san.push_back(pos.checkers_bb() != 0
-                    ? (MoveList<GenType::LEGAL, true>(pos).empty() ? '#' : '+')
-                    : (MoveList<GenType::LEGAL, true>(pos).empty() ? '=' : '\0'));
+    bool legalMovesEmpty = MoveList<GenType::LEGAL, true>(pos).empty();
+
+    if (pos.checkers_bb() != 0)
+        san.push_back(legalMovesEmpty ? '#' : '+');
+    else if (legalMovesEmpty)
+        san.push_back('=');
 
     pos.undo_move(m);
 
