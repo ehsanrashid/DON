@@ -296,6 +296,8 @@ constexpr Piece relative_piece(Color c, Piece pc) noexcept {
     return Piece(+pc ^ (c * PIECE_TYPE_NB));
 }
 
+using PieceMap = Array<Piece, SQUARE_NB>;
+
 constexpr File fold_to_edge(File f) noexcept { return std::min<File>(f, FILE_H - f); }
 constexpr Rank fold_to_edge(Rank r) noexcept { return std::min<Rank>(r, RANK_8 - r); }
 

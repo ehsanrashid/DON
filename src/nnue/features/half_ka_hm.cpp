@@ -89,11 +89,11 @@ make_index(Color perspective, Square kingSq, Square s, Piece pc) noexcept {
 }  // namespace
 
 // Get a list of indices for active features
-void HalfKA_hm::append_active_indices(Color                          perspective,
-                                      Square                         kingSq,
-                                      const Array<Piece, SQUARE_NB>& pieceMap,
-                                      Bitboard                       changedBB,
-                                      IndexList&                     active) noexcept {
+void HalfKA_hm::append_active_indices(Color           perspective,
+                                      Square          kingSq,
+                                      const PieceMap& pieceMap,
+                                      Bitboard        changedBB,
+                                      IndexList&      active) noexcept {
     while (changedBB != 0)
     {
         Square s = pop_lsq(changedBB);

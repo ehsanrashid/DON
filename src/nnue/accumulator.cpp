@@ -452,8 +452,7 @@ void update_accumulator_incr(Color                               perspective,
     targetState.computed[perspective] = true;
 }
 
-Bitboard changed_bb(const Array<Piece, SQUARE_NB>& oldPieceMap,
-                    const Array<Piece, SQUARE_NB>& newPieceMap) noexcept {
+Bitboard changed_bb(const PieceMap& oldPieceMap, const PieceMap& newPieceMap) noexcept {
 #if defined(USE_AVX512) || defined(USE_AVX2)
     Bitboard samedBB = 0;
 

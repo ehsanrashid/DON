@@ -44,11 +44,11 @@ class HalfKA_hm final {
     using DirtyType = DirtyPiece;
     using IndexList = FixedVector<IndexType, MaxActiveDimensions>;
 
-    static void append_active_indices(Color                          perspective,
-                                      Square                         kingSq,
-                                      const Array<Piece, SQUARE_NB>& pieceMap,
-                                      Bitboard                       changedBB,
-                                      IndexList&                     active) noexcept;
+    static void append_active_indices(Color           perspective,
+                                      Square          kingSq,
+                                      const PieceMap& pieceMap,
+                                      Bitboard        changedBB,
+                                      IndexList&      active) noexcept;
 
     static void append_changed_indices(Color            perspective,
                                        Square           kingSq,

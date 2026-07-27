@@ -468,7 +468,7 @@ class Position final {
         return castlingRightsIndices;
     }();
 
-    Array<Piece, SQUARE_NB>                   pieceMap;
+    PieceMap                                  pieceMap;
     Array<Bitboard, PIECE_TYPE_NB>            typeBBs;
     Array<Bitboard, COLOR_NB>                 colorBBs;
     Array<CastlingRights, COLOR_NB * FILE_NB> castlingRightsMasks;
@@ -941,10 +941,10 @@ DirtyThreats::add(Square sq, Square threatenedSq, Piece pc, Piece threatenedPc) 
 // Given a DirtyThreat template and bit offsets to insert the piece type and square,
 // write the threats present at the given bitboard.
 template<int SqShift, int PcShift>
-inline void write_multiple_dirties(const Array<Piece, SQUARE_NB>& pieceMap,
-                                   Bitboard                       maskBB,
-                                   DirtyThreat                    templateDt,
-                                   DirtyThreats*                  dts) noexcept {
+inline void write_multiple_dirties(const PieceMap& pieceMap,
+                                   Bitboard        maskBB,
+                                   DirtyThreat     templateDt,
+                                   DirtyThreats*   dts) noexcept {
     __m512i squares = _mm512_set_epi8(63, 62, 61, 60, 59, 58, 57, 56,  //
                                       55, 54, 53, 52, 51, 50, 49, 48,  //
                                       47, 46, 45, 44, 43, 42, 41, 40,  //

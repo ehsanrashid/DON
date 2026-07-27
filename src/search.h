@@ -24,6 +24,7 @@
 #include <cassert>
 #include <condition_variable>
 #include <cstdint>
+#include <cstring>
 #include <functional>
 #include <initializer_list>
 #include <memory>
@@ -34,6 +35,7 @@
 
 #include "history.h"
 #include "misc.h"
+#include "notation.h"
 #include "numa.h"
 #include "position.h"
 #include "timeman.h"
@@ -58,6 +60,66 @@ using SearchedMoves = FixedVector<Move, SEARCHED_MOVE_CAPACITY, u16>;
 
 inline Book::PolyGlot pgBook;
 
+struct PVMoves final {
+   public:
+    Move*       begin() noexcept { return moves.data(); }
+    const Move* begin() const noexcept { return moves.data(); }
+
+    Move*       end() noexcept { return moves.data() + _size; }
+    const Move* end() const noexcept { return moves.data() + _size; }
+
+    Move&       front() noexcept { return moves.front(); }
+    const Move& front() const noexcept { return moves.front(); }
+
+    Move&       operator[](usize index) noexcept { return moves[index]; }
+    const Move& operator[](usize index) const noexcept { return moves[index]; }
+
+    bool  empty() const noexcept { return _size == 0; }
+    usize size() const noexcept { return _size; }
+
+    void clear() noexcept { _size = 0; }
+
+    void push_back(Move move) noexcept {
+        assert(_size < moves.size());
+        moves[_size] = move;
+        ++_size;
+    }
+
+    void resize(usize newSize) noexcept {
+        assert(newSize <= _size);
+        _size = newSize;
+    }
+
+    // Appends move and child-Pv[]
+    void update(Move move, const PVMoves* childPv) noexcept {
+        assert(childPv == nullptr || childPv->size() < moves.size());
+
+        moves[0] = move;
+        _size    = 1;
+
+        if (childPv != nullptr)
+        {
+            std::memcpy(moves.data() + 1, childPv->moves.data(), childPv->size() * sizeof(Move));
+            _size += childPv->size();
+        }
+    }
+
+    // Optimized PV to string conversion (bulk copy)
+    std::string build_pv() const noexcept {
+        std::string pv;
+        pv.reserve(6 * size());
+
+        for (usize i = 0; i < size(); ++i)
+            pv.append(1, ' ').append(move_to_can(moves[i]));
+
+        return pv;
+    }
+
+   private:
+    std::array<Move, PLY_MAX + 1> moves;
+    usize                         _size = 0;
+};
+
 // RootMove is used for moves at the root of the tree.
 // For each root move store a score and a PV
 // (really a refutation in the case of moves which fail low).
@@ -65,8 +127,7 @@ inline Book::PolyGlot pgBook;
 struct RootMove final {
    public:
     RootMove() noexcept = default;
-    explicit RootMove(Move m) noexcept :
-        pv(1, m) {}
+    explicit RootMove(Move m) noexcept { pv.push_back(m); }
 
     friend bool operator==(const RootMove& rm, Move m) noexcept {
         return !rm.pv.empty() && rm.pv.front() == m;
@@ -100,8 +161,8 @@ struct RootMove final {
         return curValue != -VALUE_INFINITE ? curValue : preValue;
     }
 
-    u64   nodes = 0;
-    Moves pv;
+    u64     nodes = 0;
+    PVMoves pv;
 
     Value curValue = -VALUE_INFINITE;
     Value preValue = -VALUE_INFINITE;
@@ -508,7 +569,7 @@ constexpr NT operator~(NT nt) noexcept { return NT((u8(nt) ^ 1) & 1); }
 // Each search thread has its own array of Stack objects, indexed by the ply. (Size = 40)
 struct Stack final {
    public:
-    Move*                                pv;
+    PVMoves*                             pv;
     History<HType::PIECE_SQ>*            pieceSqHistory;
     CorrectionHistory<CHType::PIECE_SQ>* pieceSqCorrectionHistory;
 
