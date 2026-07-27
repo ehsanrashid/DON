@@ -100,8 +100,9 @@ struct PVMoves final {
     void update(Move move, const PVMoves* childPv) noexcept {
         assert(childPv == nullptr || childPv->size() < capacity());
 
-        data()[0] = move;
-        _size     = 1;
+        clear();
+
+        push_back(move);
 
         if (childPv != nullptr)
         {
@@ -115,9 +116,12 @@ struct PVMoves final {
     // Optimized PV to string conversion (bulk copy)
     std::string build_pv() const noexcept {
         std::string pv;
-        pv.reserve(6 * size());
 
-        for (usize i = 0; i < size(); ++i)
+        auto pvSize = size();
+
+        pv.reserve(6 * pvSize);
+
+        for (usize i = 0; i < pvSize; ++i)
         {
             pv.push_back(' ');
             pv.append(move_to_can(data()[i]));

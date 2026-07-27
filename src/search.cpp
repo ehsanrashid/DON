@@ -444,11 +444,9 @@ void Worker::iterative_deepening() noexcept {
     Value bestValue = -VALUE_INFINITE;
 
     PVMoves lastBestPV;
-    lastBestPV.push_back(Move::None);
-
-    Value lastBestCurValue = -VALUE_INFINITE;
-    Value lastBestPreValue = -VALUE_INFINITE;
-    Value lastBestUciValue = -VALUE_INFINITE;
+    Value   lastBestCurValue = -VALUE_INFINITE;
+    Value   lastBestPreValue = -VALUE_INFINITE;
+    Value   lastBestUciValue = -VALUE_INFINITE;
 
     auto update_last_best = [&]() {
         lastBestPV       = rootMoves[0].pv;
@@ -460,7 +458,7 @@ void Worker::iterative_deepening() noexcept {
     auto restore_last_best = [&]() {
         // Make sure not to pick an unproven mated-in score,
         // in case this worker prematurely stopped the search (aborted-search).
-        if (lastBestPV[0] != Move::None)
+        if (!lastBestPV.empty() && lastBestPV[0] != Move::None)
         {
             auto nowBestCurValue = rootMoves[0].curValue;
             auto nowBestPreValue = rootMoves[0].preValue;
@@ -691,7 +689,7 @@ void Worker::iterative_deepening() noexcept {
 
         completedDepth = rootDepth;
 
-        if (rootMoves[0].pv[0] != lastBestPV[0])
+        if (lastBestPV.empty() || lastBestPV[0] != rootMoves[0].pv[0])
             lastCompletedDepth = rootDepth;
 
         update_last_best();
