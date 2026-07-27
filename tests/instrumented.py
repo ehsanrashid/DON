@@ -357,7 +357,7 @@ class TestInteractive(metaclass=OrderedClassMembers):
         self.engine.send_command("position startpos")
         self.engine.send_command("go depth 5")
         self.engine.starts_with("bestmove")
-    
+
     def test_multipv_setting_startpos_go_depth_5(self):
         self.engine.setoption("MultiPV", "4")
         self.engine.send_command("position startpos")
@@ -514,7 +514,7 @@ class TestEnPassant(metaclass=OrderedClassMembers):
         def check_output(output):
             if fnmatch.fnmatch(output, "* score cp 0 * pv d8d7*"):
                 return True
-        
+
         self.engine.check_output(check_output)
         self.engine.expect("bestmove d8d7*")
 

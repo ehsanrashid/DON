@@ -1615,13 +1615,13 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
         bool inc = value == bestValue && 2 + ss->ply >= rootDepth && (nodes_() & 0xE) == 0
                 && !is_win(constexpr_abs(value) + 1);
 
-        Value newValue = value + int(inc);
+        Value incValue = value + int(inc);
 
-        if (bestValue < newValue)
+        if (bestValue < incValue)
         {
             bestValue = value;
 
-            if (alpha < newValue)
+            if (alpha < incValue)
             {
                 bestMove = move;
 
