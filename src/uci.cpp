@@ -27,7 +27,6 @@
 #include <string>
 #include <unordered_map>
 #include <utility>
-#include <vector>  // IWYU pragma: keep
 
 #include "benchmark.h"
 #include "memory.h"

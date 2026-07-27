@@ -78,6 +78,9 @@ struct PVMoves final {
     usize size() const noexcept { return _size; }
     bool  empty() const noexcept { return size() == 0; }
 
+    [[nodiscard]] Move*       data() noexcept { return moves.data(); }
+    [[nodiscard]] const Move* data() const noexcept { return moves.data(); }
+
     void clear() noexcept { _size = 0; }
 
     void push_back(Move move) noexcept {
@@ -100,8 +103,10 @@ struct PVMoves final {
 
         if (childPv != nullptr)
         {
-            std::memcpy(moves.data() + 1, childPv->moves.data(), childPv->size() * sizeof(Move));
-            _size += childPv->size();
+            auto childPvSize = childPv->size();
+
+            std::memcpy(data() + size(), childPv->data(), childPvSize * sizeof(Move));
+            _size += childPvSize;
         }
     }
 
@@ -111,7 +116,10 @@ struct PVMoves final {
         pv.reserve(6 * size());
 
         for (usize i = 0; i < size(); ++i)
-            pv.append(1, ' ').append(move_to_can(moves[i]));
+        {
+            pv.push_back(' ');
+            pv.append(move_to_can(moves[i]));
+        }
 
         return pv;
     }
