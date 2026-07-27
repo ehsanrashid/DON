@@ -63,6 +63,8 @@ inline Book::PolyGlot pgBook;
 
 struct PVMoves final {
    public:
+    PVMoves() noexcept { clear(); }
+
     Move*       begin() noexcept { return data(); }
     const Move* begin() const noexcept { return data(); }
 
@@ -72,8 +74,14 @@ struct PVMoves final {
     Move&       front() noexcept { return _data.front(); }
     const Move& front() const noexcept { return _data.front(); }
 
-    Move&       operator[](usize index) noexcept { return _data[index]; }
-    const Move& operator[](usize index) const noexcept { return _data[index]; }
+    Move& operator[](usize idx) noexcept {
+        assert(idx < size());
+        return _data[idx];
+    }
+    const Move& operator[](usize idx) const noexcept {
+        assert(idx < size());
+        return _data[idx];
+    }
 
     usize size() const noexcept { return _size; }
     bool  empty() const noexcept { return size() == 0; }
@@ -83,11 +91,14 @@ struct PVMoves final {
     [[nodiscard]] Move*       data() noexcept { return _data.data(); }
     [[nodiscard]] const Move* data() const noexcept { return _data.data(); }
 
-    void clear() noexcept { _size = 0; }
+    void clear() noexcept {
+        _data[0] = Move::None;  // Reset first element to Move::None
+        _size    = 0;
+    }
 
     void push_back(Move move) noexcept {
         assert(size() < capacity());
-        data()[size()] = move;
+        *end() = move;
         ++_size;
     }
 
@@ -132,7 +143,7 @@ struct PVMoves final {
 
    private:
     Array<Move, PLY_MAX + 1> _data;
-    usize                    _size = 0;
+    usize                    _size;
 };
 
 // RootMove is used for moves at the root of the tree.
