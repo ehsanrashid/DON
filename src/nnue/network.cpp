@@ -42,9 +42,8 @@
 #if !defined(_MSC_VER) && !defined(NNUE_EMBEDDING_OFF)
 INCBIN(Embedded, EvalFileDefaultName);
 #else
-const unsigned char        gEmbeddedData[1] = {0x0};
-const unsigned char* const gEmbeddedEnd     = &gEmbeddedData[1];
-const unsigned int         gEmbeddedSize    = 1;
+const unsigned char gEmbeddedData[1] = {0x0};
+const unsigned int  gEmbeddedSize    = 1;
 #endif
 
 namespace DON::NNUE {

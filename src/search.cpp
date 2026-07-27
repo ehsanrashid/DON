@@ -2519,14 +2519,15 @@ void MainSearchManager::handle_time_management(const Worker& worker,
     timeReduction = std::clamp(interpolate(double(stableDepth), 5.0, 18.0, 0.65, 1.55), 0.65, 1.55);
 
     // Compute ease factor that factors in previous time reduction
-    double easeFactor = 0.4386 * (1.4300 + preTimeReduction) / timeReduction;
+    double easeFactor = 0.4378 * (1.4680 + preTimeReduction) / timeReduction;
 
     // Compute move instability factor based on the total move changes and the number of threads
-    double instabilityFactor = 1.0200 + 2.1400 * sumMoveChanges / std::max(worker.thread_count(), usize{1});
+    double instabilityFactor = 1.0770 + 2.2290 * sumMoveChanges / std::max<usize>(worker.thread_count(), 1);
 
     // Compute node effort factor that reduces time if root move has consumed a large fraction of total nodes
-    double nodeEffortExcess = std::max(-933.40 + 1000.0 * worker.rootMoves[0].nodes / std::max(worker.nodes_(), u64(1)), 0.0);
-    double nodeEffortFactor = 1.0 - 37.5207e-4 * nodeEffortExcess;
+    u64 nodesEffort = 100000 * worker.rootMoves[0].nodes / std::max<u64>(worker.nodes_(), 1);
+
+    double nodeEffortFactor = std::clamp(interpolate(i64(nodesEffort), i64(75800), i64(104510), 0.969, 0.714), 0.693, 0.838);
 
     // Compute recapture factor that reduces time if recapture conditions are met
     double recaptureFactor = 1.0 - int( worker.rootPos.captured_sq() == worker.rootMoves[0].pv[0].dst_sq()
