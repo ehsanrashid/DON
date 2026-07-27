@@ -114,34 +114,34 @@ Limit parse_limit(std::istream& is) noexcept {
             is >> limit.clocks[WHITE].time;
 
             limit.clocks[WHITE].time =
-              std::max(constexpr_abs(limit.clocks[WHITE].time), TimePoint{1});
+              std::max<TimePoint>(constexpr_abs(limit.clocks[WHITE].time), 1);
         }
         else if (token == "btime")
         {
             is >> limit.clocks[BLACK].time;
 
             limit.clocks[BLACK].time =
-              std::max(constexpr_abs(limit.clocks[BLACK].time), TimePoint{1});
+              std::max<TimePoint>(constexpr_abs(limit.clocks[BLACK].time), 1);
         }
         else if (token == "winc")
         {
             is >> limit.clocks[WHITE].inc;
 
             limit.clocks[WHITE].inc =
-              std::max(constexpr_abs(limit.clocks[WHITE].inc), TimePoint{1});
+              std::max<TimePoint>(constexpr_abs(limit.clocks[WHITE].inc), 1);
         }
         else if (token == "binc")
         {
             is >> limit.clocks[BLACK].inc;
 
             limit.clocks[BLACK].inc =
-              std::max(constexpr_abs(limit.clocks[BLACK].inc), TimePoint{1});
+              std::max<TimePoint>(constexpr_abs(limit.clocks[BLACK].inc), 1);
         }
         else if (token == "movetime")
         {
             is >> limit.moveTime;
 
-            limit.moveTime = std::max(constexpr_abs(limit.moveTime), TimePoint{1});
+            limit.moveTime = std::max<TimePoint>(constexpr_abs(limit.moveTime), 1);
         }
         else if (token == "movestogo")
         {
@@ -167,7 +167,7 @@ Limit parse_limit(std::istream& is) noexcept {
         {
             is >> limit.nodes;
 
-            limit.nodes = std::max(limit.nodes, u64(1));
+            limit.nodes = std::max<u64>(limit.nodes, 1);
         }
         else if (token == "infinite")
             limit.infinite = true;
@@ -228,15 +228,15 @@ void UCI::process_input(std::istream& is) noexcept {
 
     std::string command;
     command.reserve(1 * KB);
-    do
-    {
-        // Wait for an input or an end-of-file (EOF) indication
-        if (!std::getline(is, command))
-            command = "quit";
 
+    // Wait for an input or an end-of-file (EOF) indication
+    while (std::getline(is, command))
+    {
         execute(command);
 
-    } while (command != "quit");
+        if (command == "quit")
+            break;
+    }
 }
 
 void UCI::execute(std::string_view command) noexcept {
@@ -567,7 +567,7 @@ void UCI::bench(std::istream& is) noexcept {
     }
 
     // Ensure non-zero to avoid a 'divide by zero'
-    elapsedTime = std::max(elapsedTime + now() - startTime, TimePoint{1});
+    elapsedTime = std::max<TimePoint>(elapsedTime + now() - startTime, 1);
 
 #if !defined(NDEBUG)
     Debug::print();
@@ -731,7 +731,7 @@ void UCI::benchmark(std::istream& is) noexcept {
     }
 
     // Ensure non-zero to avoid a 'divide by zero'
-    elapsedTime = std::max(elapsedTime + now() - startTime, TimePoint{1});
+    elapsedTime = std::max<TimePoint>(elapsedTime + now() - startTime, 1);
 
 #if !defined(NDEBUG)
     Debug::print();

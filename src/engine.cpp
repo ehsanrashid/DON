@@ -81,7 +81,7 @@ Engine::Engine(const std::filesystem::path& path) noexcept :
     options.add("SkillLevel",        Option(int(Skill::LEVEL_MAX), int(Skill::LEVEL_MIN), int(Skill::LEVEL_MAX)));
     options.add("OverheadTime",      Option(25,  0, 5000));  // Estimated overhead per move
     options.add("MinMoveTime",       Option(20,  0, 5000));  // Minimum time allowed per move
-    options.add("MaxForcedMoveTime", Option(502, 0, 5000));  // Maximum time allowed for a forced move
+    options.add("MaxForcedMoveTime", Option(500, 0, 5000));  // Maximum time allowed for a forced move
     options.add("BufferTime",        Option(10,  0, 5000));  // Safety reserve to prevent time trouble
     options.add("TimePercent",       Option(80, 10, 1000));  // Percentage of remaining time to use
     options.add("NodesTime",         Option(0, 0, 10000));

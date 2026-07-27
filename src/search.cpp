@@ -2531,7 +2531,7 @@ void MainSearchManager::handle_time_management(const Worker& worker,
 
     // Compute recapture factor that reduces time if recapture conditions are met
     double recaptureFactor = 1.0 - int( worker.rootPos.captured_sq() == worker.rootMoves[0].pv[0].dst_sq()
-                                    && (worker.rootPos.captured_sq() & worker.rootPos.pieces_bb(~worker.rootPos.active_color()))
+                                    && (worker.rootPos.captured_sq() & worker.rootPos.pieces_bb(~worker.rootPos.active_color())) != 0
                                     &&  worker.rootPos.see(worker.rootMoves[0].pv[0]) >= 200)
                                     * 4.0040e-3 * std::min<Depth>(stableDepth, 25);
 
@@ -2579,7 +2579,7 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
     const usize multiPV            = worker.multiPV;
     const usize curPV              = worker.curPV;
     // Ensure non-zero to avoid a 'divide by zero'
-    TimePoint time     = std::max(elapsed(), TimePoint{1});
+    TimePoint time     = std::max<TimePoint>(elapsed(), 1);
     u64       nodes    = threads.sum(&Worker::nodes);
     u64       tbHits   = threads.sum(&Worker::tbHits, int(tbConfig.rootInTB) * rootMoves.size());
     u16       hashfull = transpositionTable.hashfull();

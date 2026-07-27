@@ -89,7 +89,7 @@ void TimeManager::init(
     {
         // Only once at game start
         if (timeNodes == TIME_NODES_INIT)
-            timeNodes = std::max<TimePoint>(clock.time * NodesTime, TimePoint{1});
+            timeNodes = std::max<TimePoint>(clock.time * NodesTime, 1);
 
         // Convert from milliseconds to nodes
         clock.time = timeNodes;
@@ -101,7 +101,7 @@ void TimeManager::init(
 
     u64 ScaleFactor = use_nodes_time() ? NodesTime : 1;
 
-    TimePoint ScaledTime = std::max<TimePoint>(clock.time / ScaleFactor, TimePoint{1});
+    TimePoint ScaledTime = std::max<TimePoint>(clock.time / ScaleFactor, 1);
 
     // clang-format off
 
@@ -115,9 +115,9 @@ void TimeManager::init(
         mtg = std::max<u8>(constexpr_ceil(0.05051 * double(ScaledTime)), 2);
 
     // Make sure remainTime > 0 since use it as a divisor
-    TimePoint remainTime = std::max(clock.time + (mtg - 1) * clock.inc - (mtg + 2) * OverheadTime, TimePoint{1});
+    TimePoint remainTime = std::max<TimePoint>(clock.time + (mtg - 1) * clock.inc - (mtg + 2) * OverheadTime, 1);
 
-    remainTime = std::max<TimePoint>(constexpr_ceil(double(remainTime) * double(options["TimePercent"]) / 100.0), TimePoint{1});
+    remainTime = std::max<TimePoint>(constexpr_ceil(double(remainTime) * double(options["TimePercent"]) / 100.0), 1);
 
     // optimumScale is a percentage of available time to use for the current move.
     // maximumScale is a multiplier applied to optimumTime.
