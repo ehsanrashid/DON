@@ -45,18 +45,19 @@ class Network final {
     static constexpr u32 Hash = NetworkArchitecture::hash() ^ FeatureTransformer::hash();
 
    public:
-    Network(const EvalFile& evFile) noexcept :
-        evalFile(evFile) {}
-
+    Network() noexcept                     = default;
     Network(const Network&)                = default;
     Network(Network&&) noexcept            = default;
     Network& operator=(const Network&)     = default;
     Network& operator=(Network&&) noexcept = default;
 
-    void load(const std::filesystem::path& rootDirectory, std::filesystem::path netFile) noexcept;
-    bool save(const std::filesystem::path& netFile) const noexcept;
+    void load(const std::filesystem::path& rootDirectory,
+              std::filesystem::path        evalFilePath,
+              EvalFile&                    evalFile) noexcept;
+    bool save(const std::optional<std::filesystem::path>& evalFilePath,
+              const EvalFile&                             evalFile) const noexcept;
 
-    void verify(std::filesystem::path netFile) const noexcept;
+    void verify(std::filesystem::path evalFilePath, const EvalFile& evalFile) const noexcept;
 
     usize content_hash() const noexcept;
 
@@ -71,11 +72,12 @@ class Network final {
    private:
     std::optional<std::string> load(std::istream& is) noexcept;
 
-    bool load_embedded() noexcept;
-    bool load_file(const std::filesystem::path& dir, const std::filesystem::path& netFile) noexcept;
+    bool load_embedded(EvalFile& evalFile) noexcept;
+    bool load_file(const std::filesystem::path& dir,
+                   const std::filesystem::path& evalFilePath,
+                   EvalFile&                    evalFile) noexcept;
 
-    bool
-    save(std::ostream& os, std::string_view name, std::string_view netDescription) const noexcept;
+    bool save(std::ostream& os, std::string_view netDescription) const noexcept;
 
     bool read_parameters(std::istream& is, std::string& netDescription) noexcept;
     bool write_parameters(std::ostream& os, const std::string& netDescription) const noexcept;
@@ -85,8 +87,6 @@ class Network final {
 
     // Evaluation function
     Array<NetworkArchitecture, LayerStacks> network;
-
-    EvalFile evalFile;
 
     bool initialized = false;
 

@@ -386,8 +386,8 @@ enum class ConsoleMode : u8 {
     FullyFeatured,
 };
 
-void set_console_input(ConsoleMode mode = ConsoleMode::Default) noexcept;
-void set_console_output(ConsoleMode mode = ConsoleMode::Default) noexcept;
+void set_console_input(ConsoleMode consoleMode = ConsoleMode::Default) noexcept;
+void set_console_output(ConsoleMode consoleMode = ConsoleMode::Default) noexcept;
 
 [[nodiscard]] constexpr char digit_to_char(int digit) noexcept {
     assert(0 <= digit && digit <= 9 && "digit_to_char: non-digit integer");
@@ -1142,111 +1142,6 @@ struct FixedText final {
 
 static_assert(sizeof(FixedText) == 32, "FixedText size must be 32 bytes");
 
-template<usize Capacity>
-class FixedString final {
-    static_assert(Capacity > 0, "Capacity must be > 0");
-
-   public:
-    FixedString() noexcept { clear(); }
-
-    FixedString(std::string_view sv) { assign(sv); }
-
-    [[nodiscard]] static constexpr usize capacity() noexcept { return Capacity; }
-
-    [[nodiscard]] usize size() const noexcept { return _size; }
-    [[nodiscard]] bool  empty() const noexcept { return size() == 0; }
-    [[nodiscard]] bool  full() const noexcept { return size() == capacity(); }
-
-    [[nodiscard]] constexpr char*       data() noexcept { return _data.data(); }
-    [[nodiscard]] constexpr const char* data() const noexcept { return _data.data(); }
-
-    [[nodiscard]] constexpr const char* c_str() const noexcept { return data(); }
-
-    constexpr char*                     begin() noexcept { return data(); }
-    constexpr char*                     end() noexcept { return begin() + size(); }
-    [[nodiscard]] constexpr const char* begin() const noexcept { return data(); }
-    [[nodiscard]] constexpr const char* end() const noexcept { return begin() + size(); }
-    [[nodiscard]] constexpr const char* cbegin() const noexcept { return data(); }
-    [[nodiscard]] constexpr const char* cend() const noexcept { return cbegin() + size(); }
-
-    constexpr char& operator[](usize idx) noexcept {
-        assert(idx < size());
-
-        return data()[idx];
-    }
-    constexpr const char& operator[](usize idx) const noexcept {
-        assert(idx < size());
-
-        return data()[idx];
-    }
-
-    void null_terminate() noexcept { data()[size()] = '\0'; }
-
-    FixedString& operator=(std::string_view sv) {
-        assign(sv);
-        return *this;
-    }
-    // Optional: assignment from const char*
-    FixedString& operator=(const char* str) {
-        assign(str);
-        return *this;
-    }
-
-    FixedString& operator+=(std::string_view sv) {
-
-        if (size() + sv.size() > capacity())
-            std::terminate();
-
-        if (!sv.empty())
-            std::memcpy(data() + size(), sv.data(), sv.size());
-
-        _size += sv.size();
-        null_terminate();
-
-        return *this;
-    }
-
-    FixedString& operator+=(const FixedString& fixedStr) {
-        *this += fixedStr.data();
-
-        return *this;
-    }
-
-    operator std::string() const noexcept { return std::string{data(), size()}; }
-
-    operator std::string_view() const noexcept { return std::string_view{data(), size()}; }
-
-    template<typename T>
-    bool operator==(const T& t) const noexcept {
-        return (std::string_view) (*this) == t;
-    }
-    template<typename T>
-    bool operator!=(const T& t) const noexcept {
-        return !(*this == t);
-    }
-
-    void clear() noexcept {
-        _size = 0;
-        null_terminate();
-    }
-
-   private:
-    void assign(std::string_view sv) {
-
-        if (sv.size() > capacity())
-            std::terminate();
-
-        if (!sv.empty())
-            std::memcpy(data(), sv.data(), sv.size());
-
-        _size = sv.size();
-        null_terminate();
-    }
-
-    Array<char, Capacity + 1> _data;  // +1 for null terminator
-    usize                     _size;
-};
-
 // ConcurrentCache: groups (mutex + storage + pre-reserve)
 template<typename Key, typename Value>
 class ConcurrentCache final {
@@ -1993,12 +1888,5 @@ inline std::string error_to_string(DWORD errorId) noexcept {
 #endif
 
 }  // namespace DON
-
-template<DON::usize N>
-struct std::hash<DON::FixedString<N>> {
-    DON::usize operator()(const DON::FixedString<N>& fixedStr) const noexcept {
-        return DON::hash_bytes(fixedStr.data(), fixedStr.size());
-    }
-};
 
 #endif  // #ifndef MISC_H_INCLUDED

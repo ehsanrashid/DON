@@ -154,8 +154,8 @@ constexpr std::string_view Version{"dev"};
 
 }  // namespace
 
-void set_console_input(ConsoleMode mode) noexcept {
-    switch (mode)
+void set_console_input(ConsoleMode consoleMode) noexcept {
+    switch (consoleMode)
     {
     case ConsoleMode::UTF7 :
 #if defined(_WIN32)
@@ -163,6 +163,12 @@ void set_console_input(ConsoleMode mode) noexcept {
 #else
       ;
 #endif
+        break;
+    case ConsoleMode::EnableVirtualTerminal :
+        break;
+    case ConsoleMode::FullyFeatured :
+        break;
+    case ConsoleMode::Default :
         break;
     case ConsoleMode::UTF8 :
     default :
@@ -173,8 +179,8 @@ void set_console_input(ConsoleMode mode) noexcept {
 #endif
     }
 }
-void set_console_output(ConsoleMode mode) noexcept {
-    switch (mode)
+void set_console_output(ConsoleMode consoleMode) noexcept {
+    switch (consoleMode)
     {
     case ConsoleMode::UTF7 :
 #if defined(_WIN32)
@@ -183,11 +189,11 @@ void set_console_output(ConsoleMode mode) noexcept {
       ;
 #endif
         break;
-    case ConsoleMode::Default :
-        break;
     case ConsoleMode::EnableVirtualTerminal :
         break;
     case ConsoleMode::FullyFeatured :
+        break;
+    case ConsoleMode::Default :
         break;
     case ConsoleMode::UTF8 :
     default :
@@ -852,10 +858,10 @@ std::string utf8_from_wstring(std::wstring_view wsv) noexcept {
     if (size <= 0)
         return {};
 
-    std::string out(size, '\0');
-    WideCharToMultiByte(CP_UTF8, 0, wsv.data(), int(wsv.size()), out.data(), size, nullptr,
+    std::string str(usize(size), '\0');
+    WideCharToMultiByte(CP_UTF8, 0, wsv.data(), int(wsv.size()), str.data(), size, nullptr,
                         nullptr);
-    return out;
+    return str;
 #else
     return std::string{wsv.begin(), wsv.end()};
 #endif

@@ -55,22 +55,14 @@ constexpr usize HASH_MAX =
 // The user can always explicitly override this behavior.
 constexpr AutoNumaPolicy NUMA_POLICY_DEFAULT = BundledL3Policy{32};
 
-std::unique_ptr<NNUE::Network>
-default_network(const std::filesystem::path& binaryDirectory) noexcept {
-    auto defaultNetwork = std::make_unique<NNUE::Network>(NNUE::EvalFile{EvalFileDefaultName});
-
-    defaultNetwork->load(binaryDirectory, std::filesystem::path{});
-
-    return defaultNetwork;
-}
-
 }  // namespace
 
 Engine::Engine(const std::filesystem::path& path) noexcept :
     // clang-format off
     binaryDirectory(CommandLine::binary_directory(path)),
     numaContext(NumaConfig::from_system(NUMA_POLICY_DEFAULT)),
-    network(numaContext, default_network(binaryDirectory)) {
+    networkFile{std::nullopt, {}},
+    network(numaContext, default_network()) {
 
     using OnCng = Option::OnChange;
 
@@ -319,9 +311,19 @@ std::string Engine::thread_allocation() const noexcept {
     return threadAllocation;
 }
 
+std::unique_ptr<NNUE::Network> Engine::default_network() noexcept {
+    auto defaultNetwork = std::make_unique<NNUE::Network>();
+
+    defaultNetwork->load(binaryDirectory, std::filesystem::path{}, networkFile);
+
+    return defaultNetwork;
+}
+
 void Engine::verify_network() const noexcept {
 
-    network->verify(path_from_utf8(options["EvalFile"]));
+    auto filePath = path_from_utf8(options["EvalFile"]);
+
+    network->verify(filePath, networkFile);
 
     auto statuses = network.get_status_and_errors();
 
@@ -342,10 +344,10 @@ void Engine::verify_network() const noexcept {
     }
 }
 
-void Engine::load_network(const std::filesystem::path& netFile) noexcept {
+void Engine::load_network(const std::filesystem::path& evalFilePath) noexcept {
 
-    network.modify_and_replicate([this, &netFile](NNUE::Network& net) noexcept {  //
-        net.load(binaryDirectory, netFile);
+    network.modify_and_replicate([this, &evalFilePath](NNUE::Network& net) noexcept {  //
+        net.load(binaryDirectory, evalFilePath, networkFile);
     });
 
     threads.init();
@@ -353,8 +355,8 @@ void Engine::load_network(const std::filesystem::path& netFile) noexcept {
     threads.ensure_network_replicated();
 }
 
-void Engine::save_network(const std::filesystem::path& netFile) const noexcept {
-    network->save(netFile);
+void Engine::save_network(const std::filesystem::path& evalFilePath) const noexcept {
+    network->save(evalFilePath, networkFile);
 }
 
 bool Engine::load_hash(const std::filesystem::path& hashFile) noexcept {

@@ -18,10 +18,13 @@
 #ifndef NNUE_NMISC_H_INCLUDED
 #define NNUE_NMISC_H_INCLUDED
 
+#include <filesystem>
 #include <functional>
 #include <string>
 #include <string_view>
+#include <optional>
 
+#include "../evaluate.h"
 #include "../misc.h"
 #include "architecture.h"
 
@@ -34,22 +37,22 @@ namespace NNUE {
 class Network;
 struct AccumulatorCache;
 
-// EvalFile uses fixed string types because it's part of the network structure which must be trivial.
+// EvalFile stores the currently selected evaluation network and its metadata.
+// The network path may be explicitly selected through a UCI option or fall back to the default network,
+// while the description is extracted from the loaded network file.
 struct EvalFile final {
    public:
-    EvalFile(std::string_view defName,
-             std::string_view curName = {"None"},
-             std::string_view netDesc = {}) noexcept :
-        defaultName(defName),
-        currentName(curName),
+    EvalFile(std::optional<std::filesystem::path> curPath = std::nullopt,
+             std::string_view                     netDesc = {}) noexcept :
+        currentPath(std::move(curPath)),
         netDescription(netDesc) {}
 
-    // Default net name, will use the *EvalFileDefaultName macros defined in evaluate.h
-    FixedString<256> defaultName;
-    // Selected net name, either via uci option or default
-    FixedString<256> currentName;
+    // Default net name, will use the EvalFileDefaultName macros defined in evaluate.h
+    static constexpr std::string_view defaultName = EvalFileDefaultName;
+    // Selected net path, either via UCI option or default
+    std::optional<std::filesystem::path> currentPath;
     // Net description extracted from the net file
-    FixedString<256> netDescription;
+    std::string netDescription;
 };
 
 struct NetworkOutput final {
@@ -68,16 +71,5 @@ std::string trace(Position& pos, const Network& network, AccumulatorCache& accCa
 
 }  // namespace NNUE
 }  // namespace DON
-
-template<>
-struct std::hash<DON::NNUE::EvalFile> {
-    DON::usize operator()(const DON::NNUE::EvalFile& evalFile) const noexcept {
-        DON::usize h = 0;
-        DON::combine_hash(h, evalFile.defaultName);
-        DON::combine_hash(h, evalFile.currentName);
-        DON::combine_hash(h, evalFile.netDescription);
-        return h;
-    }
-};
 
 #endif  // #ifndef NNUE_NMISC_H_INCLUDED
