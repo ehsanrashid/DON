@@ -30,6 +30,8 @@ namespace DON {
 
 class Options;
 
+inline constexpr std::string_view QuitCommand{"quit"};
+
 class UCI final {
    public:
     UCI(const std::filesystem::path& path = {}) noexcept;
