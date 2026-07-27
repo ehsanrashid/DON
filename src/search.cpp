@@ -1615,11 +1615,13 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
         bool inc = value == bestValue && 2 + ss->ply >= rootDepth && (nodes_() & 0xE) == 0
                 && !is_win(constexpr_abs(value) + 1);
 
-        if (bestValue < value + int(inc))
+        Value newValue = value + int(inc);
+
+        if (bestValue < newValue)
         {
             bestValue = value;
 
-            if (alpha < value + int(inc))
+            if (alpha < newValue)
             {
                 bestMove = move;
 
@@ -2423,7 +2425,7 @@ void Worker::extend_tb_pv(usize index, Value& value) noexcept {
         value = VALUE_DRAW;
 
     // Undo the PV moves
-    for (usize i = std::max(rootMove.pv.size(), usize{1}); i-- > 0;)
+    for (usize i = rootMove.pv.size(); i-- > 0;)
         rootPos.undo_move(rootMove.pv[i]);
 
     if (aborted)
