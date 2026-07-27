@@ -126,10 +126,9 @@ struct PVMoves final {
 
     // Optimized PV to string conversion (bulk copy)
     std::string build_pv() const noexcept {
-        std::string pv;
-
         auto pvSize = size();
 
+        std::string pv;
         pv.reserve(6 * pvSize);
 
         for (usize i = 0; i < pvSize; ++i)
