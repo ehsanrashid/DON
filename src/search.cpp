@@ -682,7 +682,7 @@ void Worker::iterative_deepening() noexcept {
 
             // Always show final PV update on stop
             if (mainManager != nullptr)
-                mainManager->show_pv(*this, completedDepth);
+                mainManager->show_pv(*this, std::max<Depth>(completedDepth, 1));
 
             break;
         }
