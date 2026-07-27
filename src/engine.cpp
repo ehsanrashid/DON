@@ -319,9 +319,9 @@ std::unique_ptr<NNUE::Network> Engine::default_network() noexcept {
 
 void Engine::verify_network() const noexcept {
 
-    auto filePath = path_from_utf8(options["EvalFile"]);
+    auto evalFilePath = path_from_utf8(options["EvalFile"]);
 
-    network->verify(filePath, networkFile);
+    network->verify(evalFilePath, networkFile);
 
     auto statuses = network.get_status_and_errors();
 

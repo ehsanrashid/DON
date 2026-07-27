@@ -279,7 +279,6 @@ bool Network::load_external(const std::filesystem::path& dir,
                             const std::filesystem::path& evalFilePath,
                             EvalFile&                    evalFile) noexcept {
 
-
     std::filesystem::path path = dir / evalFilePath;
 
     std::ifstream ifs{path, std::ios::binary};
