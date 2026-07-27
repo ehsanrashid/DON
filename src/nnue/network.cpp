@@ -68,7 +68,7 @@ bool _read_header(std::istream& is, u32& hash, std::string& netDescription) noex
 }
 
 // Write network header
-bool _write_header(std::ostream& os, u32 hash, const std::string& netDescription) noexcept {
+bool _write_header(std::ostream& os, u32 hash, std::string_view netDescription) noexcept {
     write_little_endian<u32>(os, FILE_VERSION);
     write_little_endian<u32>(os, hash);
     write_little_endian<u32>(os, netDescription.size());
@@ -307,7 +307,7 @@ bool Network::load_external(const std::filesystem::path& dir,
 }
 
 bool Network::save(std::ostream& os, std::string_view netDescription) const noexcept {
-    return write_parameters(os, std::string{netDescription});
+    return write_parameters(os, netDescription);
 }
 
 bool Network::read_parameters(std::istream& is, std::string& netDescription) noexcept {
@@ -328,7 +328,7 @@ bool Network::read_parameters(std::istream& is, std::string& netDescription) noe
     return bool(is) && is.peek() == std::ios::traits_type::eof();
 }
 
-bool Network::write_parameters(std::ostream& os, const std::string& netDescription) const noexcept {
+bool Network::write_parameters(std::ostream& os, std::string_view netDescription) const noexcept {
 
     if (!_write_header(os, Network::Hash, netDescription))
         return false;

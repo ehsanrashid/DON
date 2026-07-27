@@ -80,7 +80,7 @@ class Network final {
     bool save(std::ostream& os, std::string_view netDescription) const noexcept;
 
     bool read_parameters(std::istream& is, std::string& netDescription) noexcept;
-    bool write_parameters(std::ostream& os, const std::string& netDescription) const noexcept;
+    bool write_parameters(std::ostream& os, std::string_view netDescription) const noexcept;
 
     // Input feature converter
     FeatureTransformer featureTransformer;
