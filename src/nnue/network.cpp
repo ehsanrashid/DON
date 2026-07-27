@@ -137,10 +137,10 @@ void Network::load(const std::filesystem::path& rootDirectory,
     for (const auto& dir : Directories)
         if (evalFile.currentPath != evalFilePath)
         {
-            load_file(dir, evalFilePath, evalFile);
+            load_external(dir, evalFilePath, evalFile);
 
             if (initialized)
-                break;
+                return;
         }
 }
 
@@ -199,12 +199,12 @@ void Network::verify(std::filesystem::path evalFilePath, const EvalFile& evalFil
     constexpr usize TotalSize =
       sizeof(featureTransformer) + LayerStacks * sizeof(NetworkArchitecture);
 
-    std::string msg{"NNUE evaluation using " + evalFilePath.string() + " ("  //
+    std::string msg{"NNUE evaluation using " + evalFilePath.string() + " ("
                     + std::to_string(TotalSize / MB) + "MiB, ("
                     + std::to_string(featureTransformer.InputDimensions) + ", "
-                    + std::to_string(network[0].TransformedFeatureDimensions) + ", "
-                    + std::to_string(network[0].FC_0_Outputs) + ", "  //
-                    + std::to_string(network[0].FC_1_Outputs) + ", 1))"};
+                    + std::to_string(networkArchitectures[0].TransformedFeatureDimensions) + ", "
+                    + std::to_string(networkArchitectures[0].FC_0_Outputs) + ", "
+                    + std::to_string(networkArchitectures[0].FC_1_Outputs) + ", 1))"};
     print_info_string(msg);
 }
 
@@ -214,7 +214,7 @@ usize Network::content_hash() const noexcept {
 
     usize h = 0;
     combine_hash(h, featureTransformer);
-    for (auto&& arch : network)
+    for (auto&& arch : networkArchitectures)
         combine_hash(h, arch);
     return h;
 }
@@ -229,7 +229,7 @@ NetworkOutput Network::evaluate(const Position&   pos,
     auto bucket = pos.bucket();
 
     auto psqt = featureTransformer.transform(pos, accCache, accStack, bucket, transformedFeatures);
-    auto positional = network[bucket].propagate(transformedFeatures);
+    auto positional = networkArchitectures[bucket].propagate(transformedFeatures);
 
     return {psqt / OUTPUT_SCALE, positional / OUTPUT_SCALE};
 }
@@ -247,7 +247,7 @@ NetworkTrace Network::trace(const Position&   pos,
     {
         auto psqt       = featureTransformer.transform(  //
           pos, accCache, accStack, bucket, transformedFeatures);
-        auto positional = network[bucket].propagate(transformedFeatures);
+        auto positional = networkArchitectures[bucket].propagate(transformedFeatures);
 
         netTrace.netOut[bucket] = {psqt / OUTPUT_SCALE, positional / OUTPUT_SCALE};
     }
@@ -285,9 +285,9 @@ bool Network::load_embedded(EvalFile& evalFile) noexcept {
     return false;
 }
 
-bool Network::load_file(const std::filesystem::path& dir,
-                        const std::filesystem::path& evalFilePath,
-                        EvalFile&                    evalFile) noexcept {
+bool Network::load_external(const std::filesystem::path& dir,
+                            const std::filesystem::path& evalFilePath,
+                            EvalFile&                    evalFile) noexcept {
 
 
     std::filesystem::path path = dir / evalFilePath;
@@ -321,7 +321,7 @@ bool Network::read_parameters(std::istream& is, std::string& netDescription) noe
     if (!_read_parameters(is, featureTransformer))
         return false;
 
-    for (auto& arch : network)
+    for (auto& arch : networkArchitectures)
         if (!_read_parameters(is, arch))
             return false;
 
@@ -336,7 +336,7 @@ bool Network::write_parameters(std::ostream& os, const std::string& netDescripti
     if (!_write_parameters(os, featureTransformer))
         return false;
 
-    for (const auto& arch : network)
+    for (const auto& arch : networkArchitectures)
         if (!_write_parameters(os, arch))
             return false;
 

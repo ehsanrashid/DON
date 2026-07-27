@@ -73,9 +73,9 @@ class Network final {
     std::optional<std::string> load(std::istream& is) noexcept;
 
     bool load_embedded(EvalFile& evalFile) noexcept;
-    bool load_file(const std::filesystem::path& dir,
-                   const std::filesystem::path& evalFilePath,
-                   EvalFile&                    evalFile) noexcept;
+    bool load_external(const std::filesystem::path& dir,
+                       const std::filesystem::path& evalFilePath,
+                       EvalFile&                    evalFile) noexcept;
 
     bool save(std::ostream& os, std::string_view netDescription) const noexcept;
 
@@ -86,7 +86,7 @@ class Network final {
     FeatureTransformer featureTransformer;
 
     // Evaluation function
-    Array<NetworkArchitecture, LayerStacks> network;
+    Array<NetworkArchitecture, LayerStacks> networkArchitectures;
 
     bool initialized = false;
 
