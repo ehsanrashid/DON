@@ -122,11 +122,11 @@ void Network::load(const std::filesystem::path& rootDirectory,
     };
 
     if (evalFilePath.empty())
-        evalFilePath = path_from_utf8(evalFile.defaultName);
+        evalFilePath = path_from_utf8(evalFile.DefaultName);
 
     initialized = false;
 
-    if (evalFile.currentPath != evalFilePath && evalFilePath == evalFile.defaultName)
+    if (evalFile.currentPath != evalFilePath && evalFilePath == evalFile.DefaultName)
     {
         load_embedded(evalFile);
 
@@ -152,14 +152,14 @@ bool Network::save(const std::optional<std::filesystem::path>& evalFilePath,
           "Failed to export a net. No network file is currently loaded. Please load a network file first.");
         return false;
     }
-    if (!evalFilePath && evalFile.currentPath != evalFile.defaultName)
+    if (!evalFilePath && evalFile.currentPath != evalFile.DefaultName)
     {
         print_info_string("Failed to export a net. A non-embedded net can only be "
                           "saved if the filename is specified");
         return false;
     }
 
-    std::filesystem::path evalFileName = evalFilePath.value_or(evalFile.defaultName);
+    std::filesystem::path evalFileName = evalFilePath.value_or(evalFile.DefaultName);
 
     std::ofstream ofs{evalFileName, std::ios::binary};
 
@@ -172,7 +172,7 @@ bool Network::save(const std::optional<std::filesystem::path>& evalFilePath,
 
 void Network::verify(std::filesystem::path evalFilePath, const EvalFile& evalFile) const noexcept {
     if (evalFilePath.empty())
-        evalFilePath = path_from_utf8(evalFile.defaultName);
+        evalFilePath = path_from_utf8(evalFile.DefaultName);
 
     if (evalFile.currentPath != evalFilePath)
     {
@@ -184,7 +184,7 @@ void Network::verify(std::filesystem::path evalFilePath, const EvalFile& evalFil
           "The UCI option EvalFile might need to specify the full path, including the directory name, to the network file."};
         std::string msg4{
           "The default net can be downloaded from: https://tests.stockfishchess.org/api/nn/"
-          + std::string{evalFile.defaultName}};
+          + std::string{evalFile.DefaultName}};
         std::string msg5{"The engine will be terminated now."};
 
         std::cerr << "ERROR: " << msg1 << '\n'  //
@@ -277,7 +277,7 @@ bool Network::load_embedded(EvalFile& evalFile) noexcept {
 
     if (netDescription)
     {
-        evalFile.currentPath    = path_from_utf8(evalFile.defaultName);
+        evalFile.currentPath    = path_from_utf8(evalFile.DefaultName);
         evalFile.netDescription = *netDescription;
         return true;
     }

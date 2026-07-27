@@ -22,7 +22,6 @@
 #include <deque>
 #include <fstream>
 #include <iostream>
-#include <memory>
 #include <optional>
 
 #include "evaluate.h"
@@ -32,7 +31,6 @@
 #include "perft.h"
 #include "shm.h"
 #include "book/polyglot.h"
-#include "nnue/nmisc.h"
 #include "tablebase/syzygy.h"
 
 namespace DON {
@@ -344,10 +342,10 @@ void Engine::verify_network() const noexcept {
     }
 }
 
-void Engine::load_network(const std::filesystem::path& evalFilePath) noexcept {
+void Engine::load_network(const std::filesystem::path& networkFilePath) noexcept {
 
-    network.modify_and_replicate([this, &evalFilePath](NNUE::Network& net) noexcept {  //
-        net.load(binaryDirectory, evalFilePath, networkFile);
+    network.modify_and_replicate([this, &networkFilePath](NNUE::Network& net) noexcept {  //
+        net.load(binaryDirectory, networkFilePath, networkFile);
     });
 
     threads.init();
@@ -355,8 +353,8 @@ void Engine::load_network(const std::filesystem::path& evalFilePath) noexcept {
     threads.ensure_network_replicated();
 }
 
-void Engine::save_network(const std::filesystem::path& evalFilePath) const noexcept {
-    network->save(evalFilePath, networkFile);
+void Engine::save_network(const std::filesystem::path& networkFilePath) const noexcept {
+    network->save(networkFilePath, networkFile);
 }
 
 bool Engine::load_hash(const std::filesystem::path& hashFile) noexcept {

@@ -30,7 +30,6 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
-#include <exception>
 #include <filesystem>
 #include <fstream>
 #include <functional>

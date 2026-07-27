@@ -19,10 +19,10 @@
 #define NNUE_NMISC_H_INCLUDED
 
 #include <filesystem>
-#include <functional>
 #include <string>
 #include <string_view>
 #include <optional>
+#include <utility>
 
 #include "../evaluate.h"
 #include "../misc.h"
@@ -48,7 +48,7 @@ struct EvalFile final {
         netDescription(netDesc) {}
 
     // Default net name, will use the EvalFileDefaultName macros defined in evaluate.h
-    static constexpr std::string_view defaultName = EvalFileDefaultName;
+    static constexpr std::string_view DefaultName = EvalFileDefaultName;
     // Selected net path, either via UCI option or default
     std::optional<std::filesystem::path> currentPath;
     // Net description extracted from the net file

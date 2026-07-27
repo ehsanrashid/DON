@@ -19,6 +19,7 @@
 #define ENGINE_H_INCLUDED
 
 #include <filesystem>
+#include <memory>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -91,8 +92,8 @@ class Engine final {
 
     void verify_network() const noexcept;
 
-    void load_network(const std::filesystem::path& evalFilePath) noexcept;
-    void save_network(const std::filesystem::path& evalFilePath) const noexcept;
+    void load_network(const std::filesystem::path& networkFilePath) noexcept;
+    void save_network(const std::filesystem::path& networkFilePath) const noexcept;
 
     bool load_hash(const std::filesystem::path& hashFile) noexcept;
     bool save_hash(const std::filesystem::path& hashFile) const noexcept;
