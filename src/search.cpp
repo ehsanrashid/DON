@@ -2505,18 +2505,18 @@ void MainSearchManager::handle_time_management(const Worker& worker,
     // clang-format off
 
     // Compute evaluation inconsistency based on differences from previous best scores
-    double inconsistencyFactor = std::clamp(0.1185
-                                            + 0.0224 * (preBestAvgValue - bestValue)
-                                            + 0.0093 * (preBestCurValue - bestValue),
-                                            1.0000 - !atFirst * 0.4300,
-                                            1.0000 + !atFirst * 0.7000);
+    double inconsistencyFactor = std::clamp(0.1148
+                                            + 0.0230 * (preBestAvgValue - bestValue)
+                                            + 0.0011 * (preBestCurValue - bestValue),
+                                            1.0000 - int(!atFirst) * 0.4240,
+                                            1.0000 + int(!atFirst) * 0.7280);
 
     // Compute stable depth (difference between the current search depth and the last best depth)
     Depth stableDepth = worker.completedDepth - lastCompletedDepth;
     assert(stableDepth >= DEPTH_ZERO);
 
     // Use the stability factor to adjust the time reduction
-    timeReduction = std::clamp(interpolate(double(stableDepth), 5.0, 18.0, 0.65, 1.55), 0.65, 1.55);
+    timeReduction = std::clamp(interpolate(double(stableDepth), 4.96, 18.79, 0.6390, 1.7120), 0.6290, 1.5440);
 
     // Compute ease factor that factors in previous time reduction
     double easeFactor = 0.4378 * (1.4680 + preTimeReduction) / timeReduction;
@@ -2527,7 +2527,7 @@ void MainSearchManager::handle_time_management(const Worker& worker,
     // Compute node effort factor that reduces time if root move has consumed a large fraction of total nodes
     u64 nodesEffort = 100000 * worker.rootMoves[0].nodes / std::max<u64>(worker.nodes_(), 1);
 
-    double nodeEffortFactor = std::clamp(interpolate(i64(nodesEffort), i64(75800), i64(104510), 0.969, 0.714), 0.693, 0.838);
+    double nodesEffortFactor = std::clamp(interpolate(i64(nodesEffort), i64(75800), i64(104510), 0.9690, 0.7140), 0.6930, 0.8380);
 
     // Compute recapture factor that reduces time if recapture conditions are met
     double recaptureFactor = 1.0 - int( worker.rootPos.captured_sq() == worker.rootMoves[0].pv[0].dst_sq()
@@ -2536,7 +2536,7 @@ void MainSearchManager::handle_time_management(const Worker& worker,
                                     * 4.0040e-3 * std::min<Depth>(stableDepth, 25);
 
     // Calculate total time by combining all factors with the optimum time
-    TimePoint totalTime = constexpr_ceil(timeManager.optimum() * inconsistencyFactor * easeFactor * instabilityFactor * nodeEffortFactor * recaptureFactor);
+    TimePoint totalTime = constexpr_ceil(timeManager.optimum() * inconsistencyFactor * easeFactor * instabilityFactor * nodesEffortFactor * recaptureFactor);
     assert(totalTime >= 0.0);
     // clang-format on
 
