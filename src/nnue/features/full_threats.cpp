@@ -121,18 +121,16 @@ alignas(CACHE_LINE_SIZE) constexpr auto LUT_DATAS = []() constexpr noexcept {
                 {
                     Piece attackedPc = make_piece(attackedC, attackedPt);
 
-                    bool enemy = int(attackerPc ^ attackedPc) == 8;
-
                     auto map = MAP[attackerPt - 1][attackedPt - 1];
 
-                    bool excluded = map < 0;
-
-                    if (excluded)
+                    // Excluded
+                    if (map < 0)
                     {
                         lutDatas[+attackerPc][+attackedPc] = FullThreats::Dimensions;
-
                         continue;
                     }
+
+                    bool enemy = attackerC != attackedC;
 
                     bool semiExcluded = attackerPt == attackedPt && (enemy || attackerPt != PAWN);
 
@@ -225,9 +223,9 @@ ALWAYS_INLINE IndexType make_index(Color  perspective,
       || (semi_excluded(lutData) && org < dst));
 
     // Compute index components
-    u32 index = feature_index(lutData)                                     //
-              + lut_index(Piece(relAttackerPc), Square(org), Square(dst))  //
-              + SQUARE_OFFSETS[relAttackerPc][org];
+    IndexType index = feature_index(lutData)                                     //
+                    + lut_index(Piece(relAttackerPc), Square(org), Square(dst))  //
+                    + SQUARE_OFFSETS[relAttackerPc][org];
     // Apply mask: keep index if included, otherwise use full-dimension sentinel
     return (index & ~excludedMask) | (FullThreats::Dimensions & excludedMask);
 }
@@ -245,7 +243,7 @@ void FullThreats::append_active_indices(Color           perspective,
     for (Color color : {WHITE, BLACK})
         for (PieceType pt : EX_KING_PIECE_TYPES)
         {
-            auto  c          = Color(perspective ^ color);
+            Color c          = Color(perspective ^ color);
             Piece attackerPc = make_piece(c, pt);
 
             Bitboard pcBB = pos.pieces_bb(c, pt);
@@ -264,7 +262,7 @@ void FullThreats::append_active_indices(Color           perspective,
                     Square orgSq      = dstSq - rDir;
                     Piece  attackedPc = pos[dstSq];
 
-                    IndexType index =
+                    auto index =
                       make_index(perspective, kingSq, orgSq, dstSq, attackerPc, attackedPc);
 
                     if (index < Dimensions)
@@ -283,7 +281,7 @@ void FullThreats::append_active_indices(Color           perspective,
                     Square orgSq      = dstSq - lDir;
                     Piece  attackedPc = pos[dstSq];
 
-                    IndexType index =
+                    auto index =
                       make_index(perspective, kingSq, orgSq, dstSq, attackerPc, attackedPc);
 
                     if (index < Dimensions)
@@ -303,7 +301,7 @@ void FullThreats::append_active_indices(Color           perspective,
                         Square dstSq      = pop_lsq(attacksBB);
                         Piece  attackedPc = pos[dstSq];
 
-                        IndexType index =
+                        auto index =
                           make_index(perspective, kingSq, orgSq, dstSq, attackerPc, attackedPc);
 
                         if (index < Dimensions)
@@ -341,7 +339,6 @@ void FullThreats::append_changed_indices(Color                   perspective,
                     if (first)
                     {
                         fusedData->dp2removedOriginBB |= dstSq;
-
                         continue;
                     }
                 }
@@ -356,7 +353,6 @@ void FullThreats::append_changed_indices(Color                   perspective,
                     if (first)
                     {
                         fusedData->dp2removedTargetBB |= orgSq;
-
                         continue;
                     }
                 }
@@ -365,9 +361,9 @@ void FullThreats::append_changed_indices(Color                   perspective,
             }
         }
 
-        IndexList& changed = add ? added : removed;
+        auto& changed = add ? added : removed;
 
-        IndexType index = make_index(perspective, kingSq, orgSq, dstSq, attackerPc, attackedPc);
+        auto index = make_index(perspective, kingSq, orgSq, dstSq, attackerPc, attackedPc);
 
         if (index < Dimensions)
         {

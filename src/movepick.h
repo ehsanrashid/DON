@@ -42,7 +42,7 @@ struct ExtMove final: public Move {
     int value;
 };
 
-static_assert(sizeof(ExtMove) == 8, "ExtMove size must be Move + int32_t = 8 bytes");
+static_assert(sizeof(ExtMove) == 8, "ExtMove size must be Move + int = 8 bytes");
 
 constexpr bool ext_move_descending(const ExtMove& em1, const ExtMove& em2) noexcept {
     return em1 > em2;
@@ -100,7 +100,8 @@ class MovePicker final {
 
     [[nodiscard]] Move next_move() noexcept;
 
-    [[nodiscard]] bool good_capture() const noexcept;
+    [[nodiscard]] Stage stage() const noexcept;
+    [[nodiscard]] int   threshold_value() const noexcept;
 
     bool skipQuiets = false;
 
@@ -146,9 +147,7 @@ class MovePicker final {
     const History<HType::LOW_QUIET>* lowPlyQuietHistory  = nullptr;
     const History<HType::PIECE_SQ>** continuationHistory = nullptr;
     const u16                        ssPly               = LOW_PLY_QUIET_SIZE;
-
-   public:
-    int threshold;
+    int                              threshold;
 
    private:
     Array<value_type, MOVE_MAX> moves;

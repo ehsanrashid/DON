@@ -18,7 +18,6 @@
 #include "network.h"
 
 #include <cstdlib>
-#include <filesystem>
 #include <fstream>
 #include <iostream>
 
@@ -69,7 +68,7 @@ bool _read_header(std::istream& is, u32& hash, std::string& netDescription) noex
 }
 
 // Write network header
-bool _write_header(std::ostream& os, u32 hash, const std::string& netDescription) noexcept {
+bool _write_header(std::ostream& os, u32 hash, std::string_view netDescription) noexcept {
     write_little_endian<u32>(os, FILE_VERSION);
     write_little_endian<u32>(os, hash);
     write_little_endian<u32>(os, netDescription.size());
@@ -100,86 +99,93 @@ bool _write_parameters(std::ostream& os, const T& reference) noexcept {
 
 }  // namespace
 
-void Network::load(std::string_view rootDirectory, std::string_view netFile) noexcept {
+void Network::load(const std::filesystem::path& rootDirectory,
+                   std::filesystem::path        evalFilePath,
+                   EvalFile&                    evalFile) noexcept {
 
-    constexpr usize DirectoryCount = 3 +
+    constexpr usize DirectorySize =
 #if defined(DEFAULT_NNUE_DIRECTORY)
-                                     1
+      3
 #else
-                                     0
+      2
 #endif
       ;
 
-    const Array<std::string_view, DirectoryCount> Directories{
+    const Array<std::filesystem::path, DirectorySize> Directories{
       // --------------------------------------------------------
-      "<embedded>",  //
-      "",            //
+      std::filesystem::path{},  //
       rootDirectory
 #if defined(DEFAULT_NNUE_DIRECTORY)
       ,
-      STRINGIFY(DEFAULT_NNUE_DIRECTORY)
+      path_from_utf8(STRINGIFY(DEFAULT_NNUE_DIRECTORY))
 #endif
     };
 
-    if (netFile.empty())
-        netFile = evalFile.defaultName;
+    if (evalFilePath.empty())
+        evalFilePath = evalFile.DefaultName;
 
     initialized = false;
 
-    for (auto dir : Directories)
-        if (netFile != std::string_view(evalFile.currentName))
+    if (evalFile.currentPath != evalFilePath && evalFilePath == evalFile.DefaultName)
+    {
+        load_embedded(evalFile);
+
+        if (initialized)
+            return;
+    }
+
+    for (const auto& dir : Directories)
+        if (evalFile.currentPath != evalFilePath)
         {
-            if (dir != "<embedded>")
-                load_file(dir, netFile);
-            else if (netFile == std::string_view(evalFile.defaultName))
-                load_embedded();
+            load_external(dir, evalFilePath, evalFile);
 
             if (initialized)
-                break;
+                return;
         }
 }
 
-bool Network::save(std::string_view netFile) const noexcept {
-    std::string evalFileName;
-
-    if (!netFile.empty())
-        evalFileName = netFile;
-    else
+bool Network::save(const std::optional<std::filesystem::path>& evalFilePath,
+                   const EvalFile&                             evalFile) const noexcept {
+    if (!evalFile.currentPath)
     {
-        if (std::string(evalFile.currentName) != std::string(evalFile.defaultName))
-        {
-            print_info_string(
-              "Failed to export net. Non-embedded net can only be saved if the filename is specified");
-            return false;
-        }
-
-        evalFileName = evalFile.defaultName;
+        print_info_string(
+          "Failed to export a net. No network file is currently loaded. Please load a network file first.");
+        return false;
     }
+
+    if (!evalFilePath && evalFile.currentPath != evalFile.DefaultName)
+    {
+        print_info_string(
+          "Failed to export a net. A non-embedded net can only be saved if the filename is specified.");
+        return false;
+    }
+
+    std::filesystem::path evalFileName = evalFilePath.value_or(evalFile.DefaultName);
 
     std::ofstream ofs{evalFileName, std::ios::binary};
 
-    bool saved = save(ofs, evalFile.currentName, evalFile.netDescription);
+    bool saved = save(ofs, evalFile.netDescription);
 
-    print_info_string(saved ? "Network saved successfully to " + evalFileName
-                            : "Failed to export net");
+    print_info_string(saved ? "Network saved successfully to " + evalFileName.string() + "."
+                            : "Failed to export net.");
     return saved;
 }
 
-void Network::verify(std::string_view netFile) const noexcept {
-    if (netFile.empty())
-        netFile = evalFile.defaultName;
+void Network::verify(std::filesystem::path evalFilePath, const EvalFile& evalFile) const noexcept {
+    if (evalFilePath.empty())
+        evalFilePath = evalFile.DefaultName;
 
-    if (netFile != std::string_view(evalFile.currentName))
+    if (evalFile.currentPath != evalFilePath)
     {
         std::string msg1{
           "Network evaluation parameters compatible with the engine must be available."};
-        std::string msg2{"The network file " + std::string{netFile}
+        std::string msg2{"The network file " + evalFilePath.string()
                          + " was not loaded successfully."};
         std::string msg3{
           "The UCI option EvalFile might need to specify the full path, including the directory name, to the network file."};
         std::string msg4{
           "The default net can be downloaded from: https://tests.stockfishchess.org/api/nn/"
-          + std::string(evalFile.defaultName)};
+          + std::string{evalFile.DefaultName}};
         std::string msg5{"The engine will be terminated now."};
 
         std::cerr << "ERROR: " << msg1 << '\n'  //
@@ -194,24 +200,23 @@ void Network::verify(std::string_view netFile) const noexcept {
     constexpr usize TotalSize =
       sizeof(featureTransformer) + LayerStacks * sizeof(NetworkArchitecture);
 
-    std::string msg{"NNUE evaluation using " + std::string{netFile} + " ("  //
+    std::string msg{"NNUE evaluation using " + evalFilePath.string() + " ("
                     + std::to_string(TotalSize / MB) + "MiB, ("
                     + std::to_string(featureTransformer.InputDimensions) + ", "
-                    + std::to_string(network[0].TransformedFeatureDimensions) + ", "
-                    + std::to_string(network[0].FC_0_Outputs) + ", "  //
-                    + std::to_string(network[0].FC_1_Outputs) + ", 1))"};
+                    + std::to_string(networkArchitectures[0].TransformedFeatureDimensions) + ", "
+                    + std::to_string(networkArchitectures[0].FC_0_Outputs) + ", "
+                    + std::to_string(networkArchitectures[0].FC_1_Outputs) + ", 1))"};
     print_info_string(msg);
 }
 
 usize Network::content_hash() const noexcept {
-    if (!initialized)
-        return 0;
-
     usize h = 0;
-    combine_hash(h, featureTransformer);
-    for (auto&& arch : network)
-        combine_hash(h, arch);
-    combine_hash(h, evalFile);
+    if (initialized)
+    {
+        combine_hash(h, featureTransformer);
+        for (auto&& arch : networkArchitectures)
+            combine_hash(h, arch);
+    }
     return h;
 }
 
@@ -225,7 +230,7 @@ NetworkOutput Network::evaluate(const Position&   pos,
     auto bucket = pos.bucket();
 
     auto psqt = featureTransformer.transform(pos, accCache, accStack, bucket, transformedFeatures);
-    auto positional = network[bucket].propagate(transformedFeatures);
+    auto positional = networkArchitectures[bucket].propagate(transformedFeatures);
 
     return {psqt / OUTPUT_SCALE, positional / OUTPUT_SCALE};
 }
@@ -241,14 +246,53 @@ NetworkTrace Network::trace(const Position&   pos,
     netTrace.correctBucket = pos.bucket();
     for (IndexType bucket = 0; bucket < LayerStacks; ++bucket)
     {
-        i32 psqt       = featureTransformer.transform(  //
+        auto psqt       = featureTransformer.transform(  //
           pos, accCache, accStack, bucket, transformedFeatures);
-        i32 positional = network[bucket].propagate(transformedFeatures);
+        auto positional = networkArchitectures[bucket].propagate(transformedFeatures);
 
         netTrace.netOut[bucket] = {psqt / OUTPUT_SCALE, positional / OUTPUT_SCALE};
     }
 
     return netTrace;
+}
+
+bool Network::load_embedded(EvalFile& evalFile) noexcept {
+
+    MemoryStreamBuf buf(const_cast<char*>(reinterpret_cast<const char*>(gEmbeddedData)),
+                        usize(gEmbeddedSize));
+
+    std::istream is{&buf};
+
+    auto netDescription = load(is);
+
+    if (netDescription)
+    {
+        evalFile.currentPath    = evalFile.DefaultName;
+        evalFile.netDescription = *netDescription;
+        return true;
+    }
+
+    return false;
+}
+
+bool Network::load_external(const std::filesystem::path& dir,
+                            const std::filesystem::path& evalFilePath,
+                            EvalFile&                    evalFile) noexcept {
+
+    std::filesystem::path path = dir / evalFilePath;
+
+    std::ifstream ifs{path, std::ios::binary};
+
+    auto netDescription = load(ifs);
+
+    if (netDescription)
+    {
+        evalFile.currentPath    = evalFilePath;
+        evalFile.netDescription = *netDescription;
+        return true;
+    }
+
+    return false;
 }
 
 std::optional<std::string> Network::load(std::istream& is) noexcept {
@@ -262,49 +306,8 @@ std::optional<std::string> Network::load(std::istream& is) noexcept {
     return netDescription;
 }
 
-bool Network::load_embedded() noexcept {
-
-    MemoryStreamBuf buf(const_cast<char*>(reinterpret_cast<const char*>(gEmbeddedData)),
-                        usize(gEmbeddedSize));
-
-    std::istream is{&buf};
-
-    auto netDescription = load(is);
-
-    if (netDescription)
-    {
-        evalFile.currentName    = evalFile.defaultName;
-        evalFile.netDescription = *netDescription;
-        return true;
-    }
-
-    return false;
-}
-
-bool Network::load_file(std::string_view dir, std::string_view netFile) noexcept {
-    std::filesystem::path path = std::filesystem::path(dir) / netFile;
-
-    std::ifstream ifs{path, std::ios::binary};
-
-    auto netDescription = load(ifs);
-
-    if (netDescription)
-    {
-        evalFile.currentName    = netFile;
-        evalFile.netDescription = *netDescription;
-        return true;
-    }
-
-    return false;
-}
-
-bool Network::save(std::ostream&    os,
-                   std::string_view name,
-                   std::string_view netDescription) const noexcept {
-    if (name.empty() || name == "None")
-        return false;
-
-    return write_parameters(os, std::string{netDescription});
+bool Network::save(std::ostream& os, std::string_view netDescription) const noexcept {
+    return write_parameters(os, netDescription);
 }
 
 bool Network::read_parameters(std::istream& is, std::string& netDescription) noexcept {
@@ -318,14 +321,14 @@ bool Network::read_parameters(std::istream& is, std::string& netDescription) noe
     if (!_read_parameters(is, featureTransformer))
         return false;
 
-    for (auto& arch : network)
+    for (auto& arch : networkArchitectures)
         if (!_read_parameters(is, arch))
             return false;
 
     return bool(is) && is.peek() == std::ios::traits_type::eof();
 }
 
-bool Network::write_parameters(std::ostream& os, const std::string& netDescription) const noexcept {
+bool Network::write_parameters(std::ostream& os, std::string_view netDescription) const noexcept {
 
     if (!_write_header(os, Network::Hash, netDescription))
         return false;
@@ -333,7 +336,7 @@ bool Network::write_parameters(std::ostream& os, const std::string& netDescripti
     if (!_write_parameters(os, featureTransformer))
         return false;
 
-    for (const auto& arch : network)
+    for (const auto& arch : networkArchitectures)
         if (!_write_parameters(os, arch))
             return false;
 

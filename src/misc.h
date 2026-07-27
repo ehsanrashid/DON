@@ -30,7 +30,6 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
-#include <exception>
 #include <filesystem>
 #include <fstream>
 #include <functional>
@@ -133,20 +132,22 @@
 
 namespace DON {
 
-using u64 = std::uint64_t;
-using u32 = std::uint32_t;
-using u16 = std::uint16_t;
-using u8  = std::uint8_t;
+using u64   = std::uint64_t;
+using u32   = std::uint32_t;
+using u16   = std::uint16_t;
+using u8    = std::uint8_t;
+using uchar = unsigned char;
 
-using i64 = std::int64_t;
-using i32 = std::int32_t;
-using i16 = std::int16_t;
-using i8  = std::int8_t;
+using i64   = std::int64_t;
+using i32   = std::int32_t;
+using i16   = std::int16_t;
+using i8    = std::int8_t;
+using ichar = char;
 
 using usize = std::size_t;
 using isize = std::ptrdiff_t;
 
-#if defined(__GNUC__) && defined(IS_64BIT)
+#if defined(IS_64BIT) && defined(__GNUC__)
 __extension__ using u128 = unsigned __int128;
 __extension__ using i128 = signed __int128;
 #endif
@@ -213,7 +214,7 @@ inline constexpr usize BLOCK_8  = 2 * BLOCK_4;
 inline constexpr usize BLOCK_16 = 4 * BLOCK_4;
 inline constexpr usize BLOCK_32 = 8 * BLOCK_4;
 
-inline constexpr i64 INT_LIMIT = (1LL << 31) - 1;
+inline constexpr i64 INT_LIMIT = (i64{1} << 31) - 1;
 
 inline constexpr double LN2   = 0.693147180559945309417232121458176568;
 inline constexpr double SQRT2 = 1.41421356237309504880168872420969808;
@@ -376,7 +377,7 @@ inline constexpr T2 interpolate(T1 x, T1 x0, T1 x1, T2 y0, T2 y1) noexcept {
     return T2(y0 + (y1 - y0) * (x - x0) / (x1 - x0));
 }
 
-enum class ConsoleOutputMode : u8 {
+enum class ConsoleMode : u8 {
     Default,  // Do nothing special
     UTF7,     // Explicitly avoid UTF-8 changes
     UTF8,     // Try to enable UTF-8 if possible
@@ -384,7 +385,8 @@ enum class ConsoleOutputMode : u8 {
     FullyFeatured,
 };
 
-void set_console_output(ConsoleOutputMode mode = ConsoleOutputMode::Default) noexcept;
+void set_console_input(ConsoleMode consoleMode = ConsoleMode::Default) noexcept;
+void set_console_output(ConsoleMode consoleMode = ConsoleMode::Default) noexcept;
 
 [[nodiscard]] constexpr char digit_to_char(int digit) noexcept {
     assert(0 <= digit && digit <= 9 && "digit_to_char: non-digit integer");
@@ -426,7 +428,7 @@ std::string version_info() noexcept;
 std::string compiler_info() noexcept;
 
 constexpr u64 mul_hi64(u64 u1, u64 u2) noexcept {
-#if defined(__GNUC__) && defined(IS_64BIT) && !defined(__wasm__)
+#if defined(IS_64BIT) && defined(__GNUC__) && !defined(__wasm__)
     return (u128(u1) * u128(u2)) >> 64;
 #else
     u64 u1L = u32(u1), u1H = u1 >> 32;
@@ -806,7 +808,7 @@ class TableView final {
 template<typename T, usize Size, usize... Sizes>
 class MultiArray;
 
-namespace internal {
+namespace Internal {
 
 template<typename T, usize Size, usize... Sizes>
 struct ArrayDef final {
@@ -833,17 +835,17 @@ struct MultiArrayDef<T, Size> final {
     using Type = T;
 };
 
-}  // namespace internal
+}  // namespace Internal
 
 template<typename T, usize Size, usize... Sizes>
-using Array = typename internal::ArrayDef<T, Size, Sizes...>::type;
+using Array = typename Internal::ArrayDef<T, Size, Sizes...>::type;
 
 // MultiArray is a generic N-dimensional array.
 // The template parameter T is the base type of the MultiArray
 // The template parameters (Size and Sizes) is the dimensions of the MultiArray.
 template<typename T, usize Size, usize... Sizes>
 class MultiArray final {
-    using ElementType = typename internal::MultiArrayDef<T, Size, Sizes...>::Type;
+    using ElementType = typename Internal::MultiArrayDef<T, Size, Sizes...>::Type;
     using ArrayType   = Array<ElementType, Size>;
 
    public:
@@ -1138,111 +1140,6 @@ struct FixedText final {
 };
 
 static_assert(sizeof(FixedText) == 32, "FixedText size must be 32 bytes");
-
-template<usize Capacity>
-class FixedString final {
-    static_assert(Capacity > 0, "Capacity must be > 0");
-
-   public:
-    FixedString() noexcept { clear(); }
-
-    FixedString(std::string_view sv) { assign(sv); }
-
-    [[nodiscard]] static constexpr usize capacity() noexcept { return Capacity; }
-
-    [[nodiscard]] usize size() const noexcept { return _size; }
-    [[nodiscard]] bool  empty() const noexcept { return size() == 0; }
-    [[nodiscard]] bool  full() const noexcept { return size() == capacity(); }
-
-    [[nodiscard]] constexpr char*       data() noexcept { return _data.data(); }
-    [[nodiscard]] constexpr const char* data() const noexcept { return _data.data(); }
-
-    [[nodiscard]] constexpr const char* c_str() const noexcept { return data(); }
-
-    constexpr char*                     begin() noexcept { return data(); }
-    constexpr char*                     end() noexcept { return begin() + size(); }
-    [[nodiscard]] constexpr const char* begin() const noexcept { return data(); }
-    [[nodiscard]] constexpr const char* end() const noexcept { return begin() + size(); }
-    [[nodiscard]] constexpr const char* cbegin() const noexcept { return data(); }
-    [[nodiscard]] constexpr const char* cend() const noexcept { return cbegin() + size(); }
-
-    constexpr char& operator[](usize idx) noexcept {
-        assert(idx < size());
-
-        return data()[idx];
-    }
-    constexpr const char& operator[](usize idx) const noexcept {
-        assert(idx < size());
-
-        return data()[idx];
-    }
-
-    void null_terminate() noexcept { data()[size()] = '\0'; }
-
-    FixedString& operator=(std::string_view sv) {
-        assign(sv);
-        return *this;
-    }
-    // Optional: assignment from const char*
-    FixedString& operator=(const char* str) {
-        assign(str);
-        return *this;
-    }
-
-    FixedString& operator+=(std::string_view sv) {
-
-        if (size() + sv.size() > capacity())
-            std::terminate();
-
-        if (!sv.empty())
-            std::memcpy(data() + size(), sv.data(), sv.size());
-
-        _size += sv.size();
-        null_terminate();
-
-        return *this;
-    }
-
-    FixedString& operator+=(const FixedString& fixedStr) {
-        *this += fixedStr.data();
-
-        return *this;
-    }
-
-    operator std::string() const noexcept { return std::string{data(), size()}; }
-
-    operator std::string_view() const noexcept { return std::string_view{data(), size()}; }
-
-    template<typename T>
-    bool operator==(const T& t) const noexcept {
-        return (std::string_view) (*this) == t;
-    }
-    template<typename T>
-    bool operator!=(const T& t) const noexcept {
-        return !(*this == t);
-    }
-
-    void clear() noexcept {
-        _size = 0;
-        null_terminate();
-    }
-
-   private:
-    void assign(std::string_view sv) {
-
-        if (sv.size() > capacity())
-            std::terminate();
-
-        if (!sv.empty())
-            std::memcpy(data(), sv.data(), sv.size());
-
-        _size = sv.size();
-        null_terminate();
-    }
-
-    Array<char, Capacity + 1> _data;  // +1 for null terminator
-    usize                     _size;
-};
 
 // ConcurrentCache: groups (mutex + storage + pre-reserve)
 template<typename Key, typename Value>
@@ -1737,22 +1634,29 @@ struct CommandLine final {
     static std::filesystem::path working_directory() noexcept;
 
     StringViews arguments;
+
+   private:
+    void set_arguments(int argc, const char* argv[]) noexcept;
+
+#if defined(_WIN32)
+    Strings argStorage;
+#endif
 };
 
 inline std::string lower_case(std::string str) noexcept {
     std::transform(str.begin(), str.end(), str.begin(),
-                   [](unsigned char ch) noexcept -> char { return std::tolower(ch); });
+                   [](uchar ch) noexcept -> ichar { return std::tolower(ch); });
     return str;
 }
 
 inline std::string upper_case(std::string str) noexcept {
     std::transform(str.begin(), str.end(), str.begin(),
-                   [](unsigned char ch) noexcept -> char { return std::toupper(ch); });
+                   [](uchar ch) noexcept -> ichar { return std::toupper(ch); });
     return str;
 }
 
 inline std::string toggle_case(std::string str) noexcept {
-    std::transform(str.begin(), str.end(), str.begin(), [](unsigned char ch) noexcept -> char {
+    std::transform(str.begin(), str.end(), str.begin(), [](uchar ch) noexcept -> ichar {
         return std::islower(ch) ? std::toupper(ch) : std::isupper(ch) ? std::tolower(ch) : ch;
     });
     return str;
@@ -1760,7 +1664,7 @@ inline std::string toggle_case(std::string str) noexcept {
 
 inline std::string remove_whitespace(std::string str) noexcept {
     str.erase(std::remove_if(str.begin(), str.end(),
-                             [](unsigned char ch) noexcept { return std::isspace(ch); }),
+                             [](uchar ch) noexcept -> bool { return std::isspace(ch); }),
               str.end());
     return str;
 }
@@ -1939,6 +1843,7 @@ inline std::string u64_to_string(u64 v) noexcept {
     return std::string{buffer.data(), copiedSize};
 }
 
+std::string           utf8_from_wstring(std::wstring_view s) noexcept;
 std::filesystem::path path_from_utf8(std::string_view path) noexcept;
 
 usize str_to_size_t(std::string_view sv) noexcept;
@@ -1982,12 +1887,5 @@ inline std::string error_to_string(DWORD errorId) noexcept {
 #endif
 
 }  // namespace DON
-
-template<DON::usize N>
-struct std::hash<DON::FixedString<N>> {
-    DON::usize operator()(const DON::FixedString<N>& fixedStr) const noexcept {
-        return DON::hash_bytes(fixedStr.data(), fixedStr.size());
-    }
-};
 
 #endif  // #ifndef MISC_H_INCLUDED

@@ -19,6 +19,7 @@
 #define ENGINE_H_INCLUDED
 
 #include <filesystem>
+#include <memory>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -33,6 +34,7 @@
 #include "thread.h"
 #include "tt.h"
 #include "types.h"
+#include "nnue/nmisc.h"
 #include "nnue/network.h"
 
 namespace DON {
@@ -86,13 +88,15 @@ class Engine final {
     std::string thread_allocation() const noexcept;
 
     // Network related
+    std::unique_ptr<NNUE::Network> default_network() noexcept;
+
     void verify_network() const noexcept;
 
-    void load_network(std::string_view netFile) noexcept;
-    void save_network(std::string_view netFile) const noexcept;
+    void load_network(const std::filesystem::path& networkFilePath) noexcept;
+    void save_network(const std::filesystem::path& networkFilePath) const noexcept;
 
-    bool load_hash() noexcept;
-    bool save_hash() const noexcept;
+    bool load_hash(const std::filesystem::path& hashFile) noexcept;
+    bool save_hash(const std::filesystem::path& hashFile) const noexcept;
 
     void set_on_update_short(MainSearchManager::OnUpdateShort&& f) noexcept;
     void set_on_update_full(MainSearchManager::OnUpdateFull&& f) noexcept;
@@ -109,6 +113,7 @@ class Engine final {
     const std::filesystem::path binaryDirectory;
 
     NumaReplicationContext                      numaContext;
+    NNUE::EvalFile                              networkFile;
     SystemWideLazyNumaReplicated<NNUE::Network> network;
     Options                                     options;
     Threads                                     threads;

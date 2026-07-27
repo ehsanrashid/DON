@@ -468,7 +468,7 @@ class Position final {
         return castlingRightsIndices;
     }();
 
-    Array<Piece, SQUARE_NB>                   pieceMap;
+    PieceMap                                  pieceMap;
     Array<Bitboard, PIECE_TYPE_NB>            typeBBs;
     Array<Bitboard, COLOR_NB>                 colorBBs;
     Array<CastlingRights, COLOR_NB * FILE_NB> castlingRightsMasks;
@@ -941,19 +941,10 @@ DirtyThreats::add(Square sq, Square threatenedSq, Piece pc, Piece threatenedPc) 
 // Given a DirtyThreat template and bit offsets to insert the piece type and square,
 // write the threats present at the given bitboard.
 template<int SqShift, int PcShift>
-inline void write_multiple_dirties(const Array<Piece, SQUARE_NB>& pieceMap,
-                                   Bitboard                       maskBB,
-                                   DirtyThreat                    templateDt,
-                                   DirtyThreats*                  dts) noexcept {
-    __m512i squares = _mm512_set_epi8(63, 62, 61, 60, 59, 58, 57, 56,  //
-                                      55, 54, 53, 52, 51, 50, 49, 48,  //
-                                      47, 46, 45, 44, 43, 42, 41, 40,  //
-                                      39, 38, 37, 36, 35, 34, 33, 32,  //
-                                      31, 30, 29, 28, 27, 26, 25, 24,  //
-                                      23, 22, 21, 20, 19, 18, 17, 16,  //
-                                      15, 14, 13, 12, 11, 10, 9, 8,    //
-                                      7, 6, 5, 4, 3, 2, 1, 0);
-
+inline void write_multiple_dirties(const PieceMap& pieceMap,
+                                   Bitboard        maskBB,
+                                   DirtyThreat     templateDt,
+                                   DirtyThreats*   dts) noexcept {
     __m512i pieceMapData = _mm512_loadu_si512(pieceMap.data());
 
     u8 maskCount = popcount(maskBB);
@@ -965,7 +956,7 @@ inline void write_multiple_dirties(const Array<Piece, SQUARE_NB>& pieceMap,
 
     // Extract the list of squares and up convert to 32 bits.
     // There are never more than 16 incoming threats so this is sufficient.
-    __m512i threatSquares = _mm512_maskz_compress_epi8(maskBB, squares);
+    __m512i threatSquares = _mm512_maskz_compress_epi8(maskBB, ALL_SQUARES);
     threatSquares         = _mm512_cvtepi8_epi32(_mm512_castsi512_si128(threatSquares));
 
     __m512i threatPieces =
@@ -977,7 +968,9 @@ inline void write_multiple_dirties(const Array<Piece, SQUARE_NB>& pieceMap,
 
     // Combine into final dirty values (A | B | C = 254)
     __m512i dirties = _mm512_ternarylogic_epi32(templateVal, threatSquares, threatPieces, 254);
-    _mm512_storeu_si512(dtSpace, dirties);
+
+    __mmask16 storeMask = (u16{1} << maskCount) - 1;
+    _mm512_mask_storeu_epi32(dtSpace, storeMask, dirties);
 }
 #endif
 
@@ -1065,7 +1058,7 @@ inline void Position::update_pc_threats(Square                    s,
         dts->threatenedBB |= threatenedBB;
         // A bit may only be set if that square actually produces a threat, so we
         // must guard setting the square accordingly
-        dts->threateningBB |= Bitboard(threatenedBB != 0) << s;
+        dts->threateningBB |= Bitboard{threatenedBB != 0} << s;
     }
 
     DirtyThreat templateDt1{s, SQUARE_ZERO, pc, Piece::NO_PIECE, Put};
@@ -1076,7 +1069,7 @@ inline void Position::update_pc_threats(Square                    s,
 
     if constexpr (Put)
     {
-        dts->threatenedBB |= Bitboard(attackersBB != 0) << s;
+        dts->threatenedBB |= Bitboard{attackersBB != 0} << s;
         dts->threateningBB |= attackersBB;
     }
 

@@ -63,12 +63,12 @@ struct AccumulatorCache final {
             accumulation = biases;
             auto offset  = offsetof(Entry, psqtAccumulation);
             assert(offset <= sizeof(*this) && "offset exceeds object size");
-            std::memset(reinterpret_cast<unsigned char*>(this) + offset, 0, sizeof(*this) - offset);
+            std::memset(reinterpret_cast<uchar*>(this) + offset, 0, sizeof(*this) - offset);
         }
 
         Array<BiasType, L1>                accumulation;
         Array<PSQTWeightType, PSQTBuckets> psqtAccumulation;
-        Array<Piece, SQUARE_NB>            pieceMap;
+        PieceMap                           pieceMap;
         Bitboard                           piecesBB;
     };
 

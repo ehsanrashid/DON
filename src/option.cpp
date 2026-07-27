@@ -32,17 +32,15 @@ usize CaseInsensitiveHash::operator()(std::string_view sv) const noexcept {
 
 bool CaseInsensitiveEqual::operator()(std::string_view sv1, std::string_view sv2) const noexcept {
     return sv1.size() == sv2.size()
-        && std::equal(sv1.begin(), sv1.end(), sv2.begin(), sv2.end(),
-                      [](unsigned char ch1, unsigned char ch2) noexcept {
-                          return std::tolower(ch1) == std::tolower(ch2);
-                      });
+        && std::equal(
+             sv1.begin(), sv1.end(), sv2.begin(), sv2.end(),
+             [](uchar ch1, uchar ch2) noexcept { return std::tolower(ch1) == std::tolower(ch2); });
 }
 
 bool CaseInsensitiveLess::operator()(std::string_view sv1, std::string_view sv2) const noexcept {
-    return std::lexicographical_compare(sv1.begin(), sv1.end(), sv2.begin(), sv2.end(),
-                                        [](unsigned char ch1, unsigned char ch2) noexcept {
-                                            return std::tolower(ch1) < std::tolower(ch2);
-                                        });
+    return std::lexicographical_compare(
+      sv1.begin(), sv1.end(), sv2.begin(), sv2.end(),
+      [](uchar ch1, uchar ch2) noexcept { return std::tolower(ch1) < std::tolower(ch2); });
 }
 
 

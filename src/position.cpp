@@ -239,20 +239,18 @@ void Position::set(std::string_view fens, State* newSt) noexcept {
     st = newSt;
 
     // Fast, allocation-free parser over std::string_view (replacement for std::istringstream).
-    const char*       p   = fens.data();
-    const char* const end = p + fens.size();
+    const auto*       p   = fens.data();
+    const auto* const end = p + fens.size();
 
     // Returns '\0' when p >= end (EOF sentinel)
-    auto peek        = [&p, &end]() noexcept -> char { return p < end ? *p : '\0'; };
+    auto peek        = [&p, &end]() noexcept -> ichar { return p < end ? *p : '\0'; };
     auto skip_spaces = [&p, &end]() noexcept {
-        while (p < end && std::isspace((unsigned char) (*p)))
+        while (p < end && std::isspace(uchar(*p)))
             ++p;
     };
-    auto not_space = [&p, &end]() noexcept -> bool {
-        return p < end && !std::isspace((unsigned char) (*p));
-    };
-    auto get     = [&p, &end]() noexcept -> char { return p < end ? *p++ : '\0'; };
-    auto get_int = [&p, &end, &skip_spaces](int& out) noexcept -> bool {
+    auto not_space = [&p, &end]() noexcept -> bool { return p < end && !std::isspace(uchar(*p)); };
+    auto get       = [&p, &end]() noexcept -> ichar { return p < end ? *p++ : '\0'; };
+    auto get_int   = [&p, &end, &skip_spaces](int& out) noexcept -> bool {
         skip_spaces();
 
         bool neg = false;
@@ -265,7 +263,7 @@ void Position::set(std::string_view fens, State* newSt) noexcept {
         int val = 0;
 
         bool any = false;
-        while (p < end && std::isdigit((unsigned char) (*p)))
+        while (p < end && std::isdigit(uchar(*p)))
         {
             any = true;
             val = val * 10 + (int) (*p - '0');
@@ -279,7 +277,7 @@ void Position::set(std::string_view fens, State* newSt) noexcept {
         return true;
     };
 
-    char token;
+    ichar token;
 
     File file = FILE_A;
     Rank rank = RANK_8;
@@ -295,7 +293,7 @@ void Position::set(std::string_view fens, State* newSt) noexcept {
             file = FILE_A;
             --rank;
         }
-        else if (std::isdigit((unsigned char) token))
+        else if (std::isdigit(uchar(token)))
         {
             if ('1' <= token && token <= '8')
             {
@@ -339,7 +337,7 @@ void Position::set(std::string_view fens, State* newSt) noexcept {
     // 2. Active color
     token = get();
 
-    switch (char(std::tolower((unsigned char) token)))
+    switch (ichar(std::tolower(uchar(token))))
     {
     case 'w' :
         activeColor = WHITE;
@@ -374,8 +372,8 @@ void Position::set(std::string_view fens, State* newSt) noexcept {
             continue;
         }
 
-        Color c = std::isupper((unsigned char) token) ? WHITE : BLACK;
-        token   = char(std::tolower((unsigned char) token));
+        Color c = std::isupper(uchar(token)) ? WHITE : BLACK;
+        token   = ichar(std::tolower(uchar(token)));
 
         if (relative_rank(c, square<KING>(c)) != RANK_1)
         {
@@ -446,11 +444,11 @@ void Position::set(std::string_view fens, State* newSt) noexcept {
         }
         else
         {
-            char epFile = get();
+            ichar epFile = get();
 
             if (p < end)
             {
-                char epRank = get();
+                ichar epRank = get();
 
                 if ('a' <= epFile && epFile <= 'h' && epRank == (ac == WHITE ? '6' : '3'))
                     enPassantSq = make_square(to_file(epFile), to_rank(epRank));

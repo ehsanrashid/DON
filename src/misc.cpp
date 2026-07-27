@@ -22,6 +22,13 @@
 #include <ctime>
 #include <limits>
 
+#if defined(_WIN32)
+    #if !defined(NOMINMAX)
+        #define NOMINMAX
+    #endif
+    #include <shellapi.h>
+#endif
+
 namespace DON {
 
 namespace {
@@ -57,15 +64,15 @@ constexpr std::string_view Version{"dev"};
         return std::string{NullDate};
 
     // Skip spaces
-    while (p < end && std::isspace((unsigned char) (*p)))
+    while (p < end && std::isspace(uchar(*p)))
         ++p;
 
     // Parse day (1-2 digits)
-    if (end - p < 1 || !std::isdigit((unsigned char) (*p)))
+    if (end - p < 1 || !std::isdigit(uchar(*p)))
         return std::string{NullDate};
 
     unsigned day = 0;
-    while (p < end && std::isdigit((unsigned char) (*p)))
+    while (p < end && std::isdigit(uchar(*p)))
     {
         day *= 10;
         day += char_to_digit(*p);
@@ -77,7 +84,7 @@ constexpr std::string_view Version{"dev"};
         return std::string{NullDate};
 
     // Skip spaces/comma
-    while (p < end && (std::isspace((unsigned char) (*p)) || *p == ','))
+    while (p < end && (std::isspace(uchar(*p)) || *p == ','))
         ++p;
 
     // Parse year (4 digits)
@@ -87,7 +94,7 @@ constexpr std::string_view Version{"dev"};
     unsigned year = 0;
     for (usize i = 0; i < 4; ++i)
     {
-        if (!std::isdigit((unsigned char) (p[i])))
+        if (!std::isdigit(uchar(p[i])))
             return std::string{NullDate};
         year *= 10;
         year += char_to_digit(p[i]);
@@ -122,12 +129,12 @@ constexpr std::string_view Version{"dev"};
     if (time.size() != 8)
         return std::string{NullTime};
 
-    const char* p = time.data();
+    const auto* p = time.data();
 
     // Validate structure
-    if (!std::isdigit((unsigned char) p[0]) || !std::isdigit((unsigned char) p[1]) || p[2] != ':'
-        || !std::isdigit((unsigned char) p[3]) || !std::isdigit((unsigned char) p[4]) || p[5] != ':'
-        || !std::isdigit((unsigned char) p[6]) || !std::isdigit((unsigned char) p[7]))
+    if (!std::isdigit(uchar(p[0])) || !std::isdigit(uchar(p[1])) || p[2] != ':'
+        || !std::isdigit(uchar(p[3])) || !std::isdigit(uchar(p[4])) || p[5] != ':'
+        || !std::isdigit(uchar(p[6])) || !std::isdigit(uchar(p[7])))
         return std::string{NullTime};
 
     unsigned hour = 10 * char_to_digit(p[0]) + char_to_digit(p[1]);
@@ -147,23 +154,48 @@ constexpr std::string_view Version{"dev"};
 
 }  // namespace
 
-void set_console_output(ConsoleOutputMode mode) noexcept {
-    switch (mode)
+void set_console_input(ConsoleMode consoleMode) noexcept {
+    switch (consoleMode)
     {
-    case ConsoleOutputMode::UTF7 :
+    case ConsoleMode::UTF7 :
+#if defined(_WIN32)
+        SetConsoleCP(CP_UTF7);
+#else
+      ;
+#endif
+        break;
+    case ConsoleMode::EnableVirtualTerminal :
+        break;
+    case ConsoleMode::FullyFeatured :
+        break;
+    case ConsoleMode::Default :
+        break;
+    case ConsoleMode::UTF8 :
+    default :
+#if defined(_WIN32)
+        SetConsoleCP(CP_UTF8);
+#else
+      ;
+#endif
+    }
+}
+void set_console_output(ConsoleMode consoleMode) noexcept {
+    switch (consoleMode)
+    {
+    case ConsoleMode::UTF7 :
 #if defined(_WIN32)
         SetConsoleOutputCP(CP_UTF7);
 #else
       ;
 #endif
         break;
-    case ConsoleOutputMode::Default :
+    case ConsoleMode::EnableVirtualTerminal :
         break;
-    case ConsoleOutputMode::EnableVirtualTerminal :
+    case ConsoleMode::FullyFeatured :
         break;
-    case ConsoleOutputMode::FullyFeatured :
+    case ConsoleMode::Default :
         break;
-    case ConsoleOutputMode::UTF8 :
+    case ConsoleMode::UTF8 :
     default :
 #if defined(_WIN32)
         SetConsoleOutputCP(CP_UTF8);
@@ -654,7 +686,7 @@ void print() noexcept {
     {
         auto& info = hit[i];
 
-        if (!(n = info[0].load(std::memory_order_relaxed)))
+        if ((n = info[0].load(std::memory_order_relaxed)) == 0)
             continue;
 
         auto hits = info[1].load(std::memory_order_relaxed);
@@ -668,7 +700,7 @@ void print() noexcept {
     {
         auto& info = min[i];
 
-        if (!(n = info[0].load(std::memory_order_relaxed)))
+        if ((n = info[0].load(std::memory_order_relaxed)) == 0)
             continue;
 
         auto minValue = info[1].load(std::memory_order_relaxed);
@@ -681,7 +713,7 @@ void print() noexcept {
     {
         auto& info = max[i];
 
-        if (!(n = info[0].load(std::memory_order_relaxed)))
+        if ((n = info[0].load(std::memory_order_relaxed)) == 0)
             continue;
 
         auto maxValue = info[1].load(std::memory_order_relaxed);
@@ -694,7 +726,7 @@ void print() noexcept {
     {
         auto& info = extreme[i];
 
-        if (!(n = info[0].load(std::memory_order_relaxed)))
+        if ((n = info[0].load(std::memory_order_relaxed)) == 0)
             continue;
 
         auto minValue = info[1].load(std::memory_order_relaxed);
@@ -709,7 +741,7 @@ void print() noexcept {
     {
         auto& info = mean[i];
 
-        if (!(n = info[0].load(std::memory_order_relaxed)))
+        if ((n = info[0].load(std::memory_order_relaxed)) == 0)
             continue;
 
         auto sum = info[1].load(std::memory_order_relaxed);
@@ -723,7 +755,7 @@ void print() noexcept {
     {
         auto& info = stdev[i];
 
-        if (!(n = info[0].load(std::memory_order_relaxed)))
+        if ((n = info[0].load(std::memory_order_relaxed)) == 0)
             continue;
 
         auto sum   = info[1].load(std::memory_order_relaxed);
@@ -739,7 +771,7 @@ void print() noexcept {
     {
         auto& info = correl[i];
 
-        if (!(n = info[0].load(std::memory_order_relaxed)))
+        if ((n = info[0].load(std::memory_order_relaxed)) == 0)
             continue;
 
         auto sumV1   = info[1].load(std::memory_order_relaxed);
@@ -759,11 +791,39 @@ void print() noexcept {
 #endif
 
 CommandLine::CommandLine(int argc, const char* argv[]) noexcept {
-    usize argSize = argc;
+#if defined(_WIN32)
+    int     wargc = 0;
+    LPWSTR* wargv = CommandLineToArgvW(GetCommandLineW(), &wargc);
 
-    arguments.reserve(argSize);
+    if (wargv != nullptr)
+    {
+        argStorage.reserve(usize(wargc));
 
-    for (usize i = 0; i < argSize; ++i)
+        for (int i = 0; i < wargc; ++i)
+            argStorage.emplace_back(utf8_from_wstring(wargv[i]));
+
+        LocalFree(wargv);
+
+        arguments.reserve(argStorage.size());
+
+        for (const auto& arg : argStorage)
+            arguments.emplace_back(arg);
+    }
+    else
+    {
+        set_arguments(argc, argv);
+    }
+#else
+    set_arguments(argc, argv);
+#endif
+}
+
+void CommandLine::set_arguments(int argc, const char* argv[]) noexcept {
+    usize argCount = argc;
+
+    arguments.reserve(argCount);
+
+    for (usize i = 0; i < argCount; ++i)
         arguments.emplace_back(argv[i]);  // no copy, just view
 }
 
@@ -786,6 +846,25 @@ std::filesystem::path CommandLine::binary_directory(std::filesystem::path path) 
 }
 std::filesystem::path CommandLine::working_directory() noexcept {
     return std::filesystem::current_path();
+}
+
+std::string utf8_from_wstring(std::wstring_view wsv) noexcept {
+#if defined(_WIN32)
+    if (wsv.empty())
+        return {};
+
+    int size =
+      WideCharToMultiByte(CP_UTF8, 0, wsv.data(), int(wsv.size()), nullptr, 0, nullptr, nullptr);
+    if (size <= 0)
+        return {};
+
+    std::string str(usize(size), '\0');
+    WideCharToMultiByte(CP_UTF8, 0, wsv.data(), int(wsv.size()), str.data(), size, nullptr,
+                        nullptr);
+    return str;
+#else
+    return std::string{wsv.begin(), wsv.end()};
+#endif
 }
 
 std::filesystem::path path_from_utf8(std::string_view path) noexcept {

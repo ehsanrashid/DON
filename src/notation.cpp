@@ -153,7 +153,7 @@ std::string move_to_can(Move m) noexcept {
       .assign(to_square(orgSq))
       .append(to_square(dstSq))
       .append(usize(m.type() == MT::PROMOTION),
-              char(std::tolower((unsigned char) to_char(m.promotion_type()))));
+              ichar(std::tolower(uchar(to_char(m.promotion_type())))));
 
     return can;
 }
@@ -256,7 +256,8 @@ std::string move_to_san(Move m, Position& pos) noexcept {
         // Note:: Piece letter (skip pawn as not needed because starting file is explicit)
         if (movedPt != PAWN)
         {
-            san.assign(usize(1), to_char(movedPt));
+            san.assign(1, to_char(movedPt));
+
             if (movedPt != KING)
             {
                 // Add disambiguation when more than one piece can reach destiny with legal move.
@@ -275,21 +276,26 @@ std::string move_to_san(Move m, Position& pos) noexcept {
                 }
             }
         }
+
         if (pos.capture(m))
             san.append(usize(movedPt == PAWN), to_char(file_of(orgSq))).push_back('x');
+
         san  //
           .append(to_square(dstSq))
           .append(usize(m.type() == MT::PROMOTION), '=')
           .append(usize(m.type() == MT::PROMOTION),
-                  char(std::toupper((unsigned char) to_char(m.promotion_type()))));
+                  ichar(std::toupper(uchar(to_char(m.promotion_type())))));
     }
 
     State st;
     pos.do_move(m, st);
 
-    san.push_back(pos.checkers_bb() != 0
-                    ? (MoveList<GenType::LEGAL, true>(pos).empty() ? '#' : '+')
-                    : (MoveList<GenType::LEGAL, true>(pos).empty() ? '=' : '\0'));
+    bool legalMovesEmpty = MoveList<GenType::LEGAL, true>(pos).empty();
+
+    if (pos.checkers_bb() != 0)
+        san.push_back(legalMovesEmpty ? '#' : '+');
+    else if (legalMovesEmpty)
+        san.push_back('=');
 
     pos.undo_move(m);
 
@@ -302,8 +308,8 @@ Move san_to_move(std::string                     san,
     assert(2 <= san.size() && san.size() <= 9);
 
     if (san.size() >= 2 && san[1] == '-'
-        && (san[0] == '0' || char(std::tolower((unsigned char) san[0])) == 'o'))
-        std::replace_if(san.begin(), san.end(), [](char c) { return c == 'o' || c == '0'; }, 'O');
+        && (san[0] == '0' || ichar(std::tolower(uchar(san[0]))) == 'o'))
+        std::replace_if(san.begin(), san.end(), [](ichar c) { return c == 'o' || c == '0'; }, 'O');
 
     for (Move m : legalMoves)
         if (san == move_to_san(m, pos))
@@ -326,8 +332,7 @@ Move mix_to_move(std::string                     mix,
     if (!legalMoves.empty() && mix.size() >= 2)
     {
         if (mix.size() <= 3
-            || (mix[1] == '-'
-                && (mix[0] == '0' || char(std::tolower((unsigned char) mix[0])) == 'o')))
+            || (mix[1] == '-' && (mix[0] == '0' || ichar(std::tolower(uchar(mix[0]))) == 'o')))
         {
             m = san_to_move(mix, pos, legalMoves);
             return m;

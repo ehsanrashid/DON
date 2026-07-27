@@ -22,7 +22,6 @@
 #include <deque>
 #include <fstream>
 #include <iostream>
-#include <memory>
 #include <optional>
 
 #include "evaluate.h"
@@ -32,7 +31,6 @@
 #include "perft.h"
 #include "shm.h"
 #include "book/polyglot.h"
-#include "nnue/nmisc.h"
 #include "tablebase/syzygy.h"
 
 namespace DON {
@@ -55,22 +53,14 @@ constexpr usize HASH_MAX =
 // The user can always explicitly override this behavior.
 constexpr AutoNumaPolicy NUMA_POLICY_DEFAULT = BundledL3Policy{32};
 
-std::unique_ptr<NNUE::Network>
-default_network(const std::filesystem::path& binaryDirectory) noexcept {
-    auto defaultNetwork = std::make_unique<NNUE::Network>(NNUE::EvalFile{EvalFileDefaultName});
-
-    defaultNetwork->load(binaryDirectory.string(), "");
-
-    return defaultNetwork;
-}
-
 }  // namespace
 
 Engine::Engine(const std::filesystem::path& path) noexcept :
     // clang-format off
     binaryDirectory(CommandLine::binary_directory(path)),
     numaContext(NumaConfig::from_system(NUMA_POLICY_DEFAULT)),
-    network(numaContext, default_network(binaryDirectory)) {
+    networkFile{std::nullopt, {}},
+    network(numaContext, default_network()) {
 
     using OnCng = Option::OnChange;
 
@@ -80,8 +70,8 @@ Engine::Engine(const std::filesystem::path& path) noexcept :
     options.add("Clear Hash",        Option(OnCng([this](const Option&) { init(); return std::nullopt; })));
     options.add("HashRetain",        Option(false));
     options.add("HashFile",          Option(""));
-    options.add("Save Hash",         Option(OnCng([this](const Option&) { return save_hash() ? "Save succeeded" : "Save failed"; })));
-    options.add("Load Hash",         Option(OnCng([this](const Option&) { return load_hash() ? "Load succeeded" : "Load failed"; })));
+    options.add("Save Hash",         Option(OnCng([this](const Option&) { return save_hash(path_from_utf8(options["HashFile"])) ? "Save succeeded" : "Save failed"; })));
+    options.add("Load Hash",         Option(OnCng([this](const Option&) { return load_hash(path_from_utf8(options["HashFile"])) ? "Load succeeded" : "Load failed"; })));
     options.add("Ponder",            Option(false));
     options.add("MultiPV",           Option(1, 1, MOVE_MAX));
     options.add("UCI_Chess960",      Option(Position::Chess960, OnCng([](const Option& o) { Position::Chess960 = bool(o); return std::nullopt; })));
@@ -99,7 +89,7 @@ Engine::Engine(const std::filesystem::path& path) noexcept :
     options.add("HistoryLoadFactor", Option(75, 10, 100, OnCng([this](const Option& o) { historiesMap.max_load_factor(max_load_factor(o / 100.0f)); return std::nullopt; })));
     options.add("DrawMoveCount",     Option(Position::DrawMoveCount, 5, 50, OnCng([](const Option& o) { Position::DrawMoveCount = int(o); return std::nullopt; })));
     options.add("Book",              Option(false));
-    options.add("BookFile",          Option("", OnCng([](const Option& o) { std::string_view bookFile = o; if (bookFile.empty()) return ""; return pgBook.load(bookFile) ? "Load succeeded" : "Load failed"; })));
+    options.add("BookFile",          Option("", OnCng([](const Option& o) { auto bookFile = path_from_utf8(o); if (bookFile.empty()) return ""; return pgBook.load(bookFile) ? "Load succeeded" : "Load failed"; })));
     options.add("BookProbeDepth",    Option(100, 1, 256));
     options.add("BookPickBest",      Option(true));
     options.add("SyzygyPath",        Option("", OnCng([](const Option& o) { Tablebase::Syzygy::init(o); return std::nullopt; })));
@@ -107,7 +97,7 @@ Engine::Engine(const std::filesystem::path& path) noexcept :
     options.add("SyzygyProbeDepth",  Option(1, 1, 100));
     options.add("Syzygy50MoveRule",  Option(true));
     options.add("SyzygyPVExtend",    Option(true));
-    options.add("EvalFile",          Option(EvalFileDefaultName, OnCng([this](const Option& o) { load_network(o);   return std::nullopt; })));
+    options.add("EvalFile",          Option(EvalFileDefaultName, OnCng([this](const Option& o) { load_network(path_from_utf8(o)); return std::nullopt; })));
     options.add("MinimalInfo",       Option(false));
     options.add("LogFile",           Option("", OnCng([](const Option& o) { return Logger::start(path_from_utf8(o)) ? "Logger started" : "Logger not started"; })));
     options.add("Stop Logger",       Option(OnCng([](const Option&) { Logger::stop(); return std::nullopt; })));
@@ -319,9 +309,19 @@ std::string Engine::thread_allocation() const noexcept {
     return threadAllocation;
 }
 
+std::unique_ptr<NNUE::Network> Engine::default_network() noexcept {
+    auto defaultNetwork = std::make_unique<NNUE::Network>();
+
+    defaultNetwork->load(binaryDirectory, std::filesystem::path{}, networkFile);
+
+    return defaultNetwork;
+}
+
 void Engine::verify_network() const noexcept {
 
-    network->verify(options["EvalFile"]);
+    auto evalFilePath = path_from_utf8(options["EvalFile"]);
+
+    network->verify(evalFilePath, networkFile);
 
     auto statuses = network.get_status_and_errors();
 
@@ -342,10 +342,10 @@ void Engine::verify_network() const noexcept {
     }
 }
 
-void Engine::load_network(std::string_view netFile) noexcept {
+void Engine::load_network(const std::filesystem::path& networkFilePath) noexcept {
 
-    network.modify_and_replicate([this, &netFile](NNUE::Network& net) noexcept {  //
-        net.load(binaryDirectory.string(), netFile);
+    network.modify_and_replicate([this, &networkFilePath](NNUE::Network& net) noexcept {  //
+        net.load(binaryDirectory, networkFilePath, networkFile);
     });
 
     threads.init();
@@ -353,14 +353,16 @@ void Engine::load_network(std::string_view netFile) noexcept {
     threads.ensure_network_replicated();
 }
 
-void Engine::save_network(std::string_view netFile) const noexcept { network->save(netFile); }
-
-bool Engine::load_hash() noexcept {
-    return transpositionTable.load(std::string_view{options["HashFile"]}, threads);
+void Engine::save_network(const std::filesystem::path& networkFilePath) const noexcept {
+    network->save(networkFilePath, networkFile);
 }
 
-bool Engine::save_hash() const noexcept {
-    return transpositionTable.save(std::string_view{options["HashFile"]});
+bool Engine::load_hash(const std::filesystem::path& hashFile) noexcept {
+    return transpositionTable.load(hashFile, threads);
+}
+
+bool Engine::save_hash(const std::filesystem::path& hashFile) const noexcept {
+    return transpositionTable.save(hashFile);
 }
 
 void Engine::set_on_update_short(MainSearchManager::OnUpdateShort&& f) noexcept {

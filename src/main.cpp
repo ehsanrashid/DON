@@ -31,7 +31,8 @@ using namespace DON;
 
 int main(int argc, const char* argv[]) noexcept {
 
-    set_console_output(ConsoleOutputMode::UTF8);
+    set_console_input(ConsoleMode::UTF8);
+    set_console_output(ConsoleMode::UTF8);
 
     std::cout << engine_info() << std::endl;
 

@@ -18,18 +18,15 @@
 #include "search.h"
 
 #include <chrono>
-#include <cstring>
 #include <list>
 #include <random>
 #include <ratio>
-#include <string>
 
 #include "attacks.h"
 #include "bitboard.h"
 #include "evaluate.h"
 #include "movegen.h"
 #include "movepick.h"
-#include "notation.h"
 #include "option.h"
 #include "prng.h"
 #include "thread.h"
@@ -126,26 +123,6 @@ Move legal_move(Move m, const Position& pos) noexcept {
     return m != Move::None && pos.legal(m) ? m : Move::None;
 }
 
-// Appends move and appends child Pv[]
-void update_pv(Move* RESTRICT pv, Move m, const Move* RESTRICT childPv) noexcept {
-    assert(m.is_ok());
-
-    *pv++ = m;
-
-    if (childPv != nullptr)
-    {
-        const Move* const end = std::find(childPv, childPv + PLY_MAX + 1, Move::None);
-
-        usize count = end - childPv;
-
-        std::memcpy(pv, childPv, count * sizeof(Move));
-
-        pv += count;
-    }
-
-    *pv = Move::None;
-}
-
 // Build contHistory pointers from the stack frame and validate them in debug builds.
 void build_continuation_history(const Stack*                    ss,
                                 const History<HType::PIECE_SQ>* out[CONT_HISTORY_COUNT]) noexcept {
@@ -218,17 +195,6 @@ bool is_shuffling(const Position& pos, const Stack* ss, Move move) noexcept {
         && (ss - 4)->move.is_ok() && (ss - 2)->move.org_sq() == (ss - 4)->move.dst_sq();
 }
 
-// Optimized PV to string conversion (bulk copy style)
-std::string build_pv(const Moves& pvMoves) noexcept {
-    std::string pv;
-    pv.reserve(6 * pvMoves.size());
-
-    for (Move m : pvMoves)
-        pv.append(1, ' ').append(move_to_can(m));
-
-    return pv;
-}
-
 }  // namespace
 
 // Initialize the worker with its thread and NUMA information
@@ -255,6 +221,7 @@ Worker::Worker(usize                     threadIdx,
 // Initialize per-thread data structures
 void Worker::init() noexcept {
     assert(thread_count() == threads.size());
+
     // Each thread initializes its NUMA-local range of history entries to prevent false sharing
 
     auto historyRange = split_range(numa_id(), numa_thread_count(), histories.history_size());
@@ -287,7 +254,7 @@ void Worker::init() noexcept {
     accCache.init(network[numa_access_token()]);
 }
 
-// Ensure that the neural networks are replicated on this NUMA node
+// Ensure that the neural network is replicated on this NUMA node
 void Worker::ensure_network_replicated() const noexcept {
     // Access once to force lazy initialization.
     // Do this because want to avoid initialization during search.
@@ -470,16 +437,16 @@ void Worker::iterative_deepening() noexcept {
     assert(stacks[0].ply == -StackOffset && stacks[stacks.size() - 1].ply == PLY_MAX + 1);
     assert(ss->ply == 0);
 
-    Array<Move, PLY_MAX + 1> pv;
+    PVMoves pv;
 
-    ss->pv = pv.data();
+    ss->pv = &pv;
 
     Value bestValue = -VALUE_INFINITE;
 
-    Moves lastBestPV       = {Move::None};
-    Value lastBestCurValue = -VALUE_INFINITE;
-    Value lastBestPreValue = -VALUE_INFINITE;
-    Value lastBestUciValue = -VALUE_INFINITE;
+    PVMoves lastBestPV;
+    Value   lastBestCurValue = -VALUE_INFINITE;
+    Value   lastBestPreValue = -VALUE_INFINITE;
+    Value   lastBestUciValue = -VALUE_INFINITE;
 
     auto update_last_best = [&]() {
         lastBestPV       = rootMoves[0].pv;
@@ -491,7 +458,7 @@ void Worker::iterative_deepening() noexcept {
     auto restore_last_best = [&]() {
         // Make sure not to pick an unproven mated-in score,
         // in case this worker prematurely stopped the search (aborted-search).
-        if (lastBestPV[0] != Move::None)
+        if (!lastBestPV.empty() && lastBestPV[0] != Move::None)
         {
             auto nowBestCurValue = rootMoves[0].curValue;
             auto nowBestPreValue = rootMoves[0].preValue;
@@ -722,7 +689,7 @@ void Worker::iterative_deepening() noexcept {
 
         completedDepth = rootDepth;
 
-        if (rootMoves[0].pv[0] != lastBestPV[0])
+        if (lastBestPV.empty() || lastBestPV[0] != rootMoves[0].pv[0])
             lastCompletedDepth = rootDepth;
 
         update_last_best();
@@ -806,12 +773,12 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
     if (is_main_worker())
         main_manager()->check_time(*this);
 
-    Array<Move, PLY_MAX + 1> pv;
+    PVMoves pv;
 
     if constexpr (PVNode)
     {
         // Update selDepth (selDepth from 1, ply from 0)
-        selDepth = std::max(+selDepth, ss->ply + 1);
+        selDepth = std::max<u16>(selDepth, ss->ply + 1);
     }
 
     // Step 1. Initialize node
@@ -1349,7 +1316,8 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
                     {
                         int threshold =
                           std::max(185 * depth + constexpr_round(35.7143e-3 * double(history)), 0);
-                        if ((!mp.good_capture() || mp.threshold > threshold)
+                        if ((mp.stage() != MovePicker::Stage::ENC_GOOD_CAPTURE
+                             || mp.threshold_value() > threshold)
                             && pos.see(move) < -threshold)
                             continue;
                     }
@@ -1379,7 +1347,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
                         if (futility <= alpha)
                         {
                             if (!is_win(futility))
-                                bestValue = std::max(+bestValue, futility);
+                                bestValue = std::max<Value>(bestValue, futility);
                             continue;
                         }
                     }
@@ -1564,8 +1532,8 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
         {
             if (moveCount == 1 || value > alpha)
             {
-                pv[0]        = Move::None;
-                (ss + 1)->pv = pv.data();
+                pv.clear();
+                (ss + 1)->pv = &pv;
 
                 // Extends ttMove if about to dive into qsearch
                 if (newDepth <= DEPTH_ZERO && ttm
@@ -1621,16 +1589,11 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
 
                 rm.pv.resize(1);  // keep root move at index 0
 
-                const Move* const childPv = (ss + 1)->pv;
+                const auto* const childPv = (ss + 1)->pv;
                 assert(childPv != nullptr);
-                // Count child PV length
-                const Move* const end   = std::find(childPv, childPv + PLY_MAX + 1, Move::None);
-                usize             count = end - childPv;
-                assert(childPv[count] == Move::None);
-                // Resize once
-                rm.pv.resize(1 + count);
-                // Bulk copy
-                std::memcpy(rm.pv.data() + 1, childPv, count * sizeof(Move));
+
+                for (Move m : *childPv)
+                    rm.pv.push_back(m);
 
                 // Record how often the best move has been changed in each iteration.
                 // This information is used for time management.
@@ -1650,18 +1613,20 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
         bool inc = value == bestValue && 2 + ss->ply >= rootDepth && (nodes_() & 0xE) == 0
                 && !is_win(constexpr_abs(value) + 1);
 
-        if (bestValue < value + int(inc))
+        Value incValue = value + int(inc);
+
+        if (bestValue < incValue)
         {
             bestValue = value;
 
-            if (alpha < value + int(inc))
+            if (alpha < incValue)
             {
                 bestMove = move;
 
                 if constexpr (PVNode && !RootNode)
                 {
                     // Update pv even in fail-high case
-                    update_pv(ss->pv, move, (ss + 1)->pv);
+                    ss->pv->update(move, (ss + 1)->pv);
                 }
 
                 if (value >= beta)
@@ -1809,15 +1774,15 @@ Value Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta) noexcep
             return alpha;
     }
 
-    Array<Move, PLY_MAX + 1> pv;
+    PVMoves pv;
 
     if constexpr (PVNode)
     {
-        ss->pv[0]    = Move::None;
-        (ss + 1)->pv = pv.data();
+        ss->pv->clear();
+        (ss + 1)->pv = &pv;
 
         // Update selDepth (selDepth from 1, ply from 0)
-        selDepth = std::max(+selDepth, ss->ply + 1);
+        selDepth = std::max<u16>(selDepth, ss->ply + 1);
     }
 
     // Step 1. Initialize node
@@ -1952,7 +1917,7 @@ Value Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta) noexcep
                 if (futility <= alpha)
                 {
                     if (!is_win(futility))
-                        bestValue = std::max(+bestValue, futility);
+                        bestValue = std::max<Value>(bestValue, futility);
                     continue;
                 }
 
@@ -1960,9 +1925,9 @@ Value Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta) noexcep
                 int threshold = std::max(baseFutility - alpha, -1);
                 if (pos.see(move) < -threshold)
                 {
-                    int minFutility = std::min(+alpha, baseFutility);
+                    int minFutility = std::min<Value>(alpha, baseFutility);
                     if (!is_win(minFutility))
-                        bestValue = std::max(+bestValue, minFutility);
+                        bestValue = std::max<Value>(bestValue, minFutility);
                     continue;
                 }
             }
@@ -1998,7 +1963,7 @@ Value Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta) noexcep
                 if constexpr (PVNode)
                 {
                     // Update pv even in fail-high case
-                    update_pv(ss->pv, move, (ss + 1)->pv);
+                    ss->pv->update(move, (ss + 1)->pv);
                 }
 
                 if (value >= beta)
@@ -2458,8 +2423,8 @@ void Worker::extend_tb_pv(usize index, Value& value) noexcept {
         value = VALUE_DRAW;
 
     // Undo the PV moves
-    for (auto itr = rootMove.pv.rbegin(); itr != rootMove.pv.rend(); ++itr)
-        rootPos.undo_move(*itr);
+    for (usize i = rootMove.pv.size(); i-- > 0;)
+        rootPos.undo_move(rootMove.pv[i]);
 
     if (aborted)
         print_info_string(
@@ -2557,7 +2522,7 @@ void MainSearchManager::handle_time_management(const Worker& worker,
     double easeFactor = 0.4386 * (1.4300 + preTimeReduction) / timeReduction;
 
     // Compute move instability factor based on the total move changes and the number of threads
-    double instabilityFactor = 1.0200 + 2.1400 * sumMoveChanges / std::max(worker.thread_count(), usize(1));
+    double instabilityFactor = 1.0200 + 2.1400 * sumMoveChanges / std::max(worker.thread_count(), usize{1});
 
     // Compute node effort factor that reduces time if root move has consumed a large fraction of total nodes
     double nodeEffortExcess = std::max(-933.40 + 1000.0 * worker.rootMoves[0].nodes / std::max(worker.nodes_(), u64(1)), 0.0);
@@ -2567,7 +2532,7 @@ void MainSearchManager::handle_time_management(const Worker& worker,
     double recaptureFactor = 1.0 - int( worker.rootPos.captured_sq() == worker.rootMoves[0].pv[0].dst_sq()
                                     && (worker.rootPos.captured_sq() & worker.rootPos.pieces_bb(~worker.rootPos.active_color()))
                                     &&  worker.rootPos.see(worker.rootMoves[0].pv[0]) >= 200)
-                                    * 4.0040e-3 * std::min(+stableDepth, 25);
+                                    * 4.0040e-3 * std::min<Depth>(stableDepth, 25);
 
     // Calculate total time by combining all factors with the optimum time
     TimePoint totalTime = constexpr_ceil(timeManager.optimum() * inconsistencyFactor * easeFactor * instabilityFactor * nodeEffortFactor * recaptureFactor);
@@ -2660,7 +2625,7 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
         if (ShowWDL)
             wdl = to_wdl(v, rootPos);
 
-        std::string pv{build_pv(rm.pv)};
+        std::string pv{rm.pv.build_pv()};
 
         updateContext.onUpdateFull(
           {{d, score}, rm.selDepth, i + 1, bound, wdl, time, nodes, tbHits, hashfull, pv});

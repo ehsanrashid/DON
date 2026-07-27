@@ -24,16 +24,19 @@
 #include <cassert>
 #include <condition_variable>
 #include <cstdint>
+#include <cstring>
 #include <functional>
 #include <initializer_list>
 #include <memory>
 #include <mutex>
+#include <string>
 #include <string_view>
 #include <utility>
 #include <vector>
 
 #include "history.h"
 #include "misc.h"
+#include "notation.h"
 #include "numa.h"
 #include "position.h"
 #include "timeman.h"
@@ -58,6 +61,90 @@ using SearchedMoves = FixedVector<Move, SEARCHED_MOVE_CAPACITY, u16>;
 
 inline Book::PolyGlot pgBook;
 
+struct PVMoves final {
+   public:
+    PVMoves() noexcept {
+        _moves[0] = Move::None;  // Initialize first element to Move::None
+        clear();
+    }
+
+    Move*       begin() noexcept { return data(); }
+    const Move* begin() const noexcept { return data(); }
+
+    Move*       end() noexcept { return data() + size(); }
+    const Move* end() const noexcept { return data() + size(); }
+
+    Move&       front() noexcept { return _moves.front(); }
+    const Move& front() const noexcept { return _moves.front(); }
+
+    Move& operator[](usize idx) noexcept {
+        assert(idx < size());
+        return _moves[idx];
+    }
+    const Move& operator[](usize idx) const noexcept {
+        assert(idx < size());
+        return _moves[idx];
+    }
+
+    usize size() const noexcept { return _size; }
+    bool  empty() const noexcept { return size() == 0; }
+
+    [[nodiscard]] constexpr usize capacity() noexcept { return _moves.size(); }
+
+    [[nodiscard]] Move*       data() noexcept { return _moves.data(); }
+    [[nodiscard]] const Move* data() const noexcept { return _moves.data(); }
+
+    void clear() noexcept { _size = 0; }
+
+    void push_back(Move move) noexcept {
+        assert(size() < capacity());
+        *end() = move;
+        ++_size;
+    }
+
+    void resize(usize newSize) noexcept {
+        assert(newSize <= size());
+        _size = newSize;
+    }
+
+    // Appends move and child-Pv[]
+    void update(Move move, const PVMoves* childPv) noexcept {
+        assert(childPv == nullptr || childPv->size() < capacity());
+
+        clear();
+
+        push_back(move);
+
+        if (childPv != nullptr)
+        {
+            auto childPvSize = childPv->size();
+
+            std::memcpy(end(), childPv->data(), childPvSize * sizeof(Move));
+            _size += childPvSize;
+        }
+    }
+
+    // Optimized PV to string conversion (bulk copy)
+    std::string build_pv() const noexcept {
+        auto pvSize = size();
+
+        std::string pv;
+        pv.reserve(6 * pvSize);
+
+        for (usize i = 0; i < pvSize; ++i)
+        {
+            pv.push_back(' ');
+            pv.append(move_to_can(data()[i]));
+        }
+
+        return pv;
+    }
+
+   private:
+    Array<Move, PLY_MAX + 1> _moves;
+    usize                    _size;
+};
+
 // RootMove is used for moves at the root of the tree.
 // For each root move store a score and a PV
 // (really a refutation in the case of moves which fail low).
@@ -65,8 +152,7 @@ inline Book::PolyGlot pgBook;
 struct RootMove final {
    public:
     RootMove() noexcept = default;
-    explicit RootMove(Move m) noexcept :
-        pv(1, m) {}
+    explicit RootMove(Move m) noexcept { pv.push_back(m); }
 
     friend bool operator==(const RootMove& rm, Move m) noexcept {
         return !rm.pv.empty() && rm.pv.front() == m;
@@ -100,8 +186,7 @@ struct RootMove final {
         return curValue != -VALUE_INFINITE ? curValue : preValue;
     }
 
-    u64   nodes = 0;
-    Moves pv;
+    u64 nodes = 0;
 
     Value curValue = -VALUE_INFINITE;
     Value preValue = -VALUE_INFINITE;
@@ -117,6 +202,8 @@ struct RootMove final {
     u16 id = UINT16_MAX;
 
     Bound bound = Bound::NONE;
+
+    PVMoves pv;
 };
 
 constexpr bool root_move_descending(const RootMove& rm1, const RootMove& rm2) noexcept {
@@ -136,47 +223,47 @@ class RootMoves final {
 
     RootMoves() noexcept { reserve(32); }
     explicit RootMoves(const container_type& rms) noexcept :
-        rootMoves(rms) {}
+        _rootMoves(rms) {}
     explicit RootMoves(container_type&& rms) noexcept :
-        rootMoves(std::move(rms)) {}
+        _rootMoves(std::move(rms)) {}
     RootMoves(std::initializer_list<value_type> initList) :
-        rootMoves(initList) {}
+        _rootMoves(initList) {}
 
-    [[nodiscard]] size_type capacity() const noexcept { return rootMoves.capacity(); }
+    [[nodiscard]] size_type capacity() const noexcept { return _rootMoves.capacity(); }
 
-    [[nodiscard]] bool      empty() const noexcept { return rootMoves.empty(); }
-    [[nodiscard]] size_type size() const noexcept { return rootMoves.size(); }
+    [[nodiscard]] bool      empty() const noexcept { return _rootMoves.empty(); }
+    [[nodiscard]] size_type size() const noexcept { return _rootMoves.size(); }
 
-    iterator                     begin() noexcept { return rootMoves.begin(); }
-    iterator                     end() noexcept { return rootMoves.end(); }
-    [[nodiscard]] const_iterator begin() const noexcept { return rootMoves.begin(); }
-    [[nodiscard]] const_iterator end() const noexcept { return rootMoves.end(); }
-    [[nodiscard]] const_iterator cbegin() const noexcept { return rootMoves.cbegin(); }
-    [[nodiscard]] const_iterator cend() const noexcept { return rootMoves.cend(); }
+    iterator                     begin() noexcept { return _rootMoves.begin(); }
+    iterator                     end() noexcept { return _rootMoves.end(); }
+    [[nodiscard]] const_iterator begin() const noexcept { return _rootMoves.begin(); }
+    [[nodiscard]] const_iterator end() const noexcept { return _rootMoves.end(); }
+    [[nodiscard]] const_iterator cbegin() const noexcept { return _rootMoves.cbegin(); }
+    [[nodiscard]] const_iterator cend() const noexcept { return _rootMoves.cend(); }
 
-    [[nodiscard]] reference       front() noexcept { return rootMoves.front(); }
-    [[nodiscard]] reference       back() noexcept { return rootMoves.back(); }
-    [[nodiscard]] const_reference front() const noexcept { return rootMoves.front(); }
-    [[nodiscard]] const_reference back() const noexcept { return rootMoves.back(); }
+    [[nodiscard]] reference       front() noexcept { return _rootMoves.front(); }
+    [[nodiscard]] reference       back() noexcept { return _rootMoves.back(); }
+    [[nodiscard]] const_reference front() const noexcept { return _rootMoves.front(); }
+    [[nodiscard]] const_reference back() const noexcept { return _rootMoves.back(); }
 
     template<typename... Args>
     reference emplace_back(Args&&... args) noexcept {
-        return rootMoves.emplace_back(std::forward<Args>(args)...);
+        return _rootMoves.emplace_back(std::forward<Args>(args)...);
     }
     template<typename... Args>
     iterator emplace(const_iterator where, Args&&... args) noexcept {
-        return rootMoves.emplace(where, std::forward<Args>(args)...);
+        return _rootMoves.emplace(where, std::forward<Args>(args)...);
     }
 
-    void push_back(const value_type& v) { rootMoves.push_back(v); }
-    void push_back(value_type&& v) { rootMoves.push_back(std::move(v)); }
+    void push_back(const value_type& v) { _rootMoves.push_back(v); }
+    void push_back(value_type&& v) { _rootMoves.push_back(std::move(v)); }
 
-    void pop_back() noexcept { rootMoves.pop_back(); }
+    void pop_back() noexcept { _rootMoves.pop_back(); }
 
-    void clear() noexcept { rootMoves.clear(); }
+    void clear() noexcept { _rootMoves.clear(); }
 
-    void resize(size_type newSize) noexcept { rootMoves.resize(newSize); }
-    void reserve(size_type newCapacity) noexcept { rootMoves.reserve(newCapacity); }
+    void resize(size_type newSize) noexcept { _rootMoves.resize(newSize); }
+    void reserve(size_type newCapacity) noexcept { _rootMoves.reserve(newCapacity); }
 
     [[nodiscard]] const_iterator  //
     find(size_type beg, size_type end, Move m) const noexcept {
@@ -235,9 +322,9 @@ class RootMoves final {
         return std::remove_if(begin(), end(), std::forward<Predicate>(pred));
     }
 
-    iterator erase(const_iterator where) noexcept { return rootMoves.erase(where); }
+    iterator erase(const_iterator where) noexcept { return _rootMoves.erase(where); }
     iterator erase(const_iterator beg, const_iterator end) noexcept {
-        return rootMoves.erase(beg, end);
+        return _rootMoves.erase(beg, end);
     }
 
     bool erase(Move m) noexcept {
@@ -300,18 +387,18 @@ class RootMoves final {
 
     [[nodiscard]] reference operator[](size_type idx) noexcept {
         assert(idx < size());
-        return rootMoves[idx];
+        return _rootMoves[idx];
     }
     [[nodiscard]] const_reference operator[](size_type idx) const noexcept {
         assert(idx < size());
-        return rootMoves[idx];
+        return _rootMoves[idx];
     }
 
-    [[nodiscard]] reference       at(size_type idx) { return rootMoves.at(idx); }
-    [[nodiscard]] const_reference at(size_type idx) const { return rootMoves.at(idx); }
+    [[nodiscard]] reference       at(size_type idx) { return _rootMoves.at(idx); }
+    [[nodiscard]] const_reference at(size_type idx) const { return _rootMoves.at(idx); }
 
    private:
-    container_type rootMoves;
+    container_type _rootMoves;
 };
 
 // Limit encapsulates various search limits and time controls, including per-color clocks
@@ -379,7 +466,7 @@ struct Skill final {
     Move   bestMove = Move::None;
 };
 
-// SharedState stores the engine options, networks, thread pool, and transposition table.
+// SharedState stores the shared resources.
 // It is used to easily forward data to the Worker class.
 struct SharedState final {
    public:
@@ -405,10 +492,12 @@ class ISearchManager {
 using ISearchManagerPtr = std::unique_ptr<ISearchManager>;
 
 struct ShortInfo {
+   public:
     Depth     depth;
     FixedText score;
 };
 struct FullInfo final: public ShortInfo {
+   public:
     u16              selDepth;
     usize            multiPV;
     FixedText        bound;
@@ -420,11 +509,13 @@ struct FullInfo final: public ShortInfo {
     std::string_view pv;
 };
 struct IterInfo final {
+   public:
     Depth            depth;
     std::string_view currMove;
     usize            currMoveNumber;
 };
 struct MoveInfo final {
+   public:
     std::string_view bestMove;
     std::string_view ponderMove;
 };
@@ -504,7 +595,7 @@ constexpr NT operator~(NT nt) noexcept { return NT((u8(nt) ^ 1) & 1); }
 // Each search thread has its own array of Stack objects, indexed by the ply. (Size = 40)
 struct Stack final {
    public:
-    Move*                                pv;
+    PVMoves*                             pv;
     History<HType::PIECE_SQ>*            pieceSqHistory;
     CorrectionHistory<CHType::PIECE_SQ>* pieceSqCorrectionHistory;
 

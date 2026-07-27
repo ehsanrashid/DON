@@ -60,51 +60,50 @@ void PerftData::classify(Position& pos, Move m) noexcept {
 
     State st;
 
-    castle += m.type() == MT::CASTLING;
+    castle += int(m.type() == MT::CASTLING);
 
-    promotion += m.type() == MT::PROMOTION;
+    promotion += int(m.type() == MT::PROMOTION);
 
     if (pos.capture(m))
     {
         ++capture;
 
-        enpassant += m.type() == MT::EN_PASSANT;
+        enpassant += int(m.type() == MT::EN_PASSANT);
     }
 
     if (pos.check(m))
     {
         ++anyCheck;
 
-        if ((pos.checks_bb(m.type() != MT::PROMOTION ? type_of(pos[orgSq]) : m.promotion_type())
-             & dstSq)
-            == 0)
+        auto movedPt = m.type() != MT::PROMOTION ? type_of(pos[orgSq]) : m.promotion_type();
+        if ((pos.checks_bb(movedPt) & dstSq) == 0)
         {
             Color ac = pos.active_color();
 
-            if (pos.blockers_bb(~ac) & orgSq)
+            if ((pos.blockers_bb(~ac) & orgSq) != 0)
                 ++dscCheck;
             else if (m.type() == MT::EN_PASSANT)
             {
                 Bitboard occupancyBB =
                   pos.pieces_bb() ^ make_bb(orgSq, dstSq, dstSq - pawn_spush(ac));
 
-                dscCheck +=
+                dscCheck += int(
                   (pos.slide_attackers_bb(pos.square<KING>(~ac), occupancyBB) & pos.pieces_bb(ac))
-                  != 0;
+                  != 0);
             }
             //else if (m.type() == MT::CASTLING)
-            //    dscCheck += (pos.checks_bb(ROOK) & rook_castle_sq(orgSq, dstSq)) != 0;
+            //    dscCheck += int((pos.checks_bb(ROOK) & rook_castle_sq(orgSq, dstSq)) != 0);
         }
 
-        //dblCheck += pos.dbl_check(m);
+        //dblCheck += int(pos.dbl_check(m));
 
         pos.do_move(m, st);
 
         assert(pos.checkers_bb() != 0);
 
-        dblCheck += more_than_one(pos.checkers_bb());
+        dblCheck += int(more_than_one(pos.checkers_bb()));
 
-        checkmate += MoveList<GenType::LEGAL, true>(pos).empty();
+        checkmate += int(MoveList<GenType::LEGAL, true>(pos).empty());
     }
     else
     {
@@ -112,7 +111,7 @@ void PerftData::classify(Position& pos, Move m) noexcept {
 
         assert(pos.checkers_bb() == 0);
 
-        stalemate += MoveList<GenType::LEGAL, true>(pos).empty();
+        stalemate += int(MoveList<GenType::LEGAL, true>(pos).empty());
     }
 
     pos.undo_move(m);

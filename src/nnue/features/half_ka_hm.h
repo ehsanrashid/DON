@@ -35,7 +35,7 @@ class HalfKA_hm final {
 
     static constexpr IndexType PS_NB = 11 * SQUARE_NB;
 
-    // Number of feature dimensions -> PS_NB * SQUARE_NB / 2
+    // Number of feature dimensions
     static constexpr IndexType Dimensions = PS_NB * SQUARE_NB / 2;
 
     // Maximum number of simultaneously active features
@@ -44,11 +44,11 @@ class HalfKA_hm final {
     using DirtyType = DirtyPiece;
     using IndexList = FixedVector<IndexType, MaxActiveDimensions>;
 
-    static void append_active_indices(Color                          perspective,
-                                      Square                         kingSq,
-                                      const Array<Piece, SQUARE_NB>& pieceMap,
-                                      Bitboard                       changedBB,
-                                      IndexList&                     active) noexcept;
+    static void append_active_indices(Color           perspective,
+                                      Square          kingSq,
+                                      const PieceMap& pieceMap,
+                                      Bitboard        changedBB,
+                                      IndexList&      active) noexcept;
 
     static void append_changed_indices(Color            perspective,
                                        Square           kingSq,

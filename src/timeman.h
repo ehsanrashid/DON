@@ -32,23 +32,23 @@ class TimeManager final {
    public:
     TimeManager() noexcept = default;
 
-    TimePoint optimum() const noexcept;
+    [[nodiscard]] TimePoint optimum() const noexcept;
 
-    TimePoint maximum() const noexcept;
+    [[nodiscard]] TimePoint maximum() const noexcept;
 
-    TimePoint elapsed() const noexcept;
+    [[nodiscard]] TimePoint elapsed() const noexcept;
+
+    [[nodiscard]] bool use_nodes_time() const noexcept;
 
     // NodesFunc&& allows binding to temporaries without copying
     template<typename NodesFunc>
-    TimePoint elapsed(NodesFunc&& nodes) const noexcept {
+    [[nodiscard]] TimePoint elapsed(NodesFunc&& nodes) const noexcept {
         return use_nodes_time() ? TimePoint(nodes()) : elapsed();
     }
 
     void init() noexcept;
 
     void init(Color ac, i16 ply, i32 moveNum, const Options& options, Limit& limit) noexcept;
-
-    [[nodiscard]] bool use_nodes_time() const noexcept;
 
     void advance_time_nodes(i64 nodes) noexcept;
 

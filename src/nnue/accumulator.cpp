@@ -452,24 +452,23 @@ void update_accumulator_incr(Color                               perspective,
     targetState.computed[perspective] = true;
 }
 
-Bitboard changed_bb(const Array<Piece, SQUARE_NB>& oldPieces,
-                    const Array<Piece, SQUARE_NB>& newPieces) noexcept {
+Bitboard changed_bb(const PieceMap& oldPieceMap, const PieceMap& newPieceMap) noexcept {
 #if defined(USE_AVX512) || defined(USE_AVX2)
     Bitboard samedBB = 0;
 
     for (usize s : {usize(0), SQUARE_NB / 2})
     {
-        __m256i oldV = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&oldPieces[s]));
-        __m256i newV = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&newPieces[s]));
+        __m256i oldV = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&oldPieceMap[s]));
+        __m256i newV = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&newPieceMap[s]));
         __m256i cmp  = _mm256_cmpeq_epi8(oldV, newV);
         u32     mask = _mm256_movemask_epi8(cmp);
-        samedBB |= Bitboard(mask) << s;
+        samedBB |= Bitboard{mask} << s;
     }
 
     return ~samedBB;
 #elif defined(USE_NEON)
-    uint8x16x4_t oldV = vld4q_u8(reinterpret_cast<const u8*>(oldPieces.data()));
-    uint8x16x4_t newV = vld4q_u8(reinterpret_cast<const u8*>(newPieces.data()));
+    uint8x16x4_t oldV = vld4q_u8(reinterpret_cast<const u8*>(oldPieceMap.data()));
+    uint8x16x4_t newV = vld4q_u8(reinterpret_cast<const u8*>(newPieceMap.data()));
 
     auto cmp = [&oldV, &newV](usize i) noexcept { return vceqq_u8(oldV.val[i], newV.val[i]); };
 
@@ -484,7 +483,7 @@ Bitboard changed_bb(const Array<Piece, SQUARE_NB>& oldPieces,
     Bitboard changedBB = 0;
 
     for (usize s = 0; s < SQUARE_NB; ++s)
-        changedBB |= Bitboard(oldPieces[s] != newPieces[s]) << s;
+        changedBB |= Bitboard{oldPieceMap[s] != newPieceMap[s]} << s;
 
     return changedBB;
 #endif
@@ -922,7 +921,7 @@ void AccumulatorStack::update_backward_incr(Color                     perspectiv
 
     Square kingSq = pos.square<KING>(perspective);
 
-    for (usize idx = std::max(size, usize(1)) - 1; idx-- > end;)
+    for (usize idx = std::max(size, usize{1}) - 1; idx-- > end;)
         update_accumulator_incr<false>(perspective, featureTransformer, kingSq,
                                        accumulators<FeatureSet>()[idx + 1],
                                        mut_accumulators<FeatureSet>()[idx]);
