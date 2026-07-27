@@ -18,7 +18,6 @@
 #include "network.h"
 
 #include <cstdlib>
-#include <filesystem>
 #include <fstream>
 #include <iostream>
 
@@ -100,7 +99,8 @@ bool _write_parameters(std::ostream& os, const T& reference) noexcept {
 
 }  // namespace
 
-void Network::load(std::string_view rootDirectory, std::string_view netFile) noexcept {
+void Network::load(const std::filesystem::path& rootDirectory,
+                   std::filesystem::path        netFile) noexcept {
 
     constexpr usize DirectoryCount = 3 +
 #if defined(DEFAULT_NNUE_DIRECTORY)
@@ -110,7 +110,7 @@ void Network::load(std::string_view rootDirectory, std::string_view netFile) noe
 #endif
       ;
 
-    const Array<std::string_view, DirectoryCount> Directories{
+    const Array<std::filesystem::path, DirectoryCount> Directories{
       // --------------------------------------------------------
       "<embedded>",  //
       "",            //
@@ -122,16 +122,16 @@ void Network::load(std::string_view rootDirectory, std::string_view netFile) noe
     };
 
     if (netFile.empty())
-        netFile = evalFile.defaultName;
+        netFile = std::filesystem::path(std::string_view{evalFile.defaultName});
 
     initialized = false;
 
     for (auto dir : Directories)
-        if (netFile != std::string_view(evalFile.currentName))
+        if (netFile != std::filesystem::path(std::string_view{evalFile.currentName}))
         {
             if (dir != "<embedded>")
                 load_file(dir, netFile);
-            else if (netFile == std::string_view(evalFile.defaultName))
+            else if (netFile == std::filesystem::path(std::string_view{evalFile.defaultName}))
                 load_embedded();
 
             if (initialized)
@@ -139,11 +139,11 @@ void Network::load(std::string_view rootDirectory, std::string_view netFile) noe
         }
 }
 
-bool Network::save(std::string_view netFile) const noexcept {
+bool Network::save(const std::filesystem::path& netFile) const noexcept {
     std::string evalFileName;
 
     if (!netFile.empty())
-        evalFileName = netFile;
+        evalFileName = netFile.string();
     else
     {
         if (std::string(evalFile.currentName) != std::string(evalFile.defaultName))
@@ -165,16 +165,15 @@ bool Network::save(std::string_view netFile) const noexcept {
     return saved;
 }
 
-void Network::verify(std::string_view netFile) const noexcept {
+void Network::verify(std::filesystem::path netFile) const noexcept {
     if (netFile.empty())
-        netFile = evalFile.defaultName;
+        netFile = std::filesystem::path(std::string_view{evalFile.defaultName});
 
-    if (netFile != std::string_view(evalFile.currentName))
+    if (netFile != std::filesystem::path(std::string_view{evalFile.currentName}))
     {
         std::string msg1{
           "Network evaluation parameters compatible with the engine must be available."};
-        std::string msg2{"The network file " + std::string{netFile}
-                         + " was not loaded successfully."};
+        std::string msg2{"The network file " + netFile.string() + " was not loaded successfully."};
         std::string msg3{
           "The UCI option EvalFile might need to specify the full path, including the directory name, to the network file."};
         std::string msg4{
@@ -194,7 +193,7 @@ void Network::verify(std::string_view netFile) const noexcept {
     constexpr usize TotalSize =
       sizeof(featureTransformer) + LayerStacks * sizeof(NetworkArchitecture);
 
-    std::string msg{"NNUE evaluation using " + std::string{netFile} + " ("  //
+    std::string msg{"NNUE evaluation using " + netFile.string() + " ("  //
                     + std::to_string(TotalSize / MB) + "MiB, ("
                     + std::to_string(featureTransformer.InputDimensions) + ", "
                     + std::to_string(network[0].TransformedFeatureDimensions) + ", "
@@ -281,8 +280,9 @@ bool Network::load_embedded() noexcept {
     return false;
 }
 
-bool Network::load_file(std::string_view dir, std::string_view netFile) noexcept {
-    std::filesystem::path path = std::filesystem::path(dir) / netFile;
+bool Network::load_file(const std::filesystem::path& dir,
+                        const std::filesystem::path& netFile) noexcept {
+    std::filesystem::path path = dir / netFile;
 
     std::ifstream ifs{path, std::ios::binary};
 
@@ -290,7 +290,7 @@ bool Network::load_file(std::string_view dir, std::string_view netFile) noexcept
 
     if (netDescription)
     {
-        evalFile.currentName    = netFile;
+        evalFile.currentName    = netFile.string();
         evalFile.netDescription = *netDescription;
         return true;
     }

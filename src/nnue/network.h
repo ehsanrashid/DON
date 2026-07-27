@@ -19,6 +19,7 @@
 #define NNUE_NETWORK_H_INCLUDED
 
 #include <iosfwd>
+#include <filesystem>
 #include <functional>
 #include <optional>
 #include <string>
@@ -52,10 +53,10 @@ class Network final {
     Network& operator=(const Network&)     = default;
     Network& operator=(Network&&) noexcept = default;
 
-    void load(std::string_view rootDirectory, std::string_view netFile) noexcept;
-    bool save(std::string_view netFile) const noexcept;
+    void load(const std::filesystem::path& rootDirectory, std::filesystem::path netFile) noexcept;
+    bool save(const std::filesystem::path& netFile) const noexcept;
 
-    void verify(std::string_view netFile) const noexcept;
+    void verify(std::filesystem::path netFile) const noexcept;
 
     usize content_hash() const noexcept;
 
@@ -71,7 +72,7 @@ class Network final {
     std::optional<std::string> load(std::istream& is) noexcept;
 
     bool load_embedded() noexcept;
-    bool load_file(std::string_view dir, std::string_view netFile) noexcept;
+    bool load_file(const std::filesystem::path& dir, const std::filesystem::path& netFile) noexcept;
 
     bool
     save(std::ostream& os, std::string_view name, std::string_view netDescription) const noexcept;

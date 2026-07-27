@@ -324,11 +324,11 @@ void UCI::execute(std::string_view command) noexcept {
         std::cout << compiler_info() << std::endl;
         break;
     case Command::EXPORT_NET : {
-        std::string      input;
-        std::string_view netFile;
+        std::string           input;
+        std::filesystem::path netFile;
 
         if (is >> input)
-            netFile = input;
+            netFile = path_from_utf8(input);
 
         engine.save_network(netFile);
     }

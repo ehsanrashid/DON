@@ -59,7 +59,7 @@ std::unique_ptr<NNUE::Network>
 default_network(const std::filesystem::path& binaryDirectory) noexcept {
     auto defaultNetwork = std::make_unique<NNUE::Network>(NNUE::EvalFile{EvalFileDefaultName});
 
-    defaultNetwork->load(binaryDirectory.string(), "");
+    defaultNetwork->load(binaryDirectory, std::filesystem::path{});
 
     return defaultNetwork;
 }
@@ -80,8 +80,8 @@ Engine::Engine(const std::filesystem::path& path) noexcept :
     options.add("Clear Hash",        Option(OnCng([this](const Option&) { init(); return std::nullopt; })));
     options.add("HashRetain",        Option(false));
     options.add("HashFile",          Option(""));
-    options.add("Save Hash",         Option(OnCng([this](const Option&) { return save_hash() ? "Save succeeded" : "Save failed"; })));
-    options.add("Load Hash",         Option(OnCng([this](const Option&) { return load_hash() ? "Load succeeded" : "Load failed"; })));
+    options.add("Save Hash",         Option(OnCng([this](const Option&) { return save_hash(path_from_utf8(options["HashFile"])) ? "Save succeeded" : "Save failed"; })));
+    options.add("Load Hash",         Option(OnCng([this](const Option&) { return load_hash(path_from_utf8(options["HashFile"])) ? "Load succeeded" : "Load failed"; })));
     options.add("Ponder",            Option(false));
     options.add("MultiPV",           Option(1, 1, MOVE_MAX));
     options.add("UCI_Chess960",      Option(Position::Chess960, OnCng([](const Option& o) { Position::Chess960 = bool(o); return std::nullopt; })));
@@ -107,7 +107,7 @@ Engine::Engine(const std::filesystem::path& path) noexcept :
     options.add("SyzygyProbeDepth",  Option(1, 1, 100));
     options.add("Syzygy50MoveRule",  Option(true));
     options.add("SyzygyPVExtend",    Option(true));
-    options.add("EvalFile",          Option(EvalFileDefaultName, OnCng([this](const Option& o) { load_network(o);   return std::nullopt; })));
+    options.add("EvalFile",          Option(EvalFileDefaultName, OnCng([this](const Option& o) { load_network(path_from_utf8(o)); return std::nullopt; })));
     options.add("MinimalInfo",       Option(false));
     options.add("LogFile",           Option("", OnCng([](const Option& o) { return Logger::start(path_from_utf8(o)) ? "Logger started" : "Logger not started"; })));
     options.add("Stop Logger",       Option(OnCng([](const Option&) { Logger::stop(); return std::nullopt; })));
@@ -321,7 +321,7 @@ std::string Engine::thread_allocation() const noexcept {
 
 void Engine::verify_network() const noexcept {
 
-    network->verify(options["EvalFile"]);
+    network->verify(path_from_utf8(options["EvalFile"]));
 
     auto statuses = network.get_status_and_errors();
 
@@ -342,10 +342,10 @@ void Engine::verify_network() const noexcept {
     }
 }
 
-void Engine::load_network(std::string_view netFile) noexcept {
+void Engine::load_network(const std::filesystem::path& netFile) noexcept {
 
     network.modify_and_replicate([this, &netFile](NNUE::Network& net) noexcept {  //
-        net.load(binaryDirectory.string(), netFile);
+        net.load(binaryDirectory, netFile);
     });
 
     threads.init();
@@ -353,14 +353,16 @@ void Engine::load_network(std::string_view netFile) noexcept {
     threads.ensure_network_replicated();
 }
 
-void Engine::save_network(std::string_view netFile) const noexcept { network->save(netFile); }
-
-bool Engine::load_hash() noexcept {
-    return transpositionTable.load(std::string_view{options["HashFile"]}, threads);
+void Engine::save_network(const std::filesystem::path& netFile) const noexcept {
+    network->save(netFile);
 }
 
-bool Engine::save_hash() const noexcept {
-    return transpositionTable.save(std::string_view{options["HashFile"]});
+bool Engine::load_hash(const std::filesystem::path& hashFile) noexcept {
+    return transpositionTable.load(hashFile, threads);
+}
+
+bool Engine::save_hash(const std::filesystem::path& hashFile) const noexcept {
+    return transpositionTable.save(hashFile);
 }
 
 void Engine::set_on_update_short(MainSearchManager::OnUpdateShort&& f) noexcept {
