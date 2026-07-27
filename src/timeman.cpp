@@ -191,7 +191,7 @@ void TimeManager::init(
 void TimeManager::advance_time_nodes(i64 nodes) noexcept {
     assert(use_nodes_time());
 
-    timeNodes = std::max(timeNodes - nodes, i64(0));
+    timeNodes = std::max<i64>(timeNodes - nodes, 0);
 }
 
 }  // namespace DON
