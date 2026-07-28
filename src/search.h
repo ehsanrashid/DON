@@ -612,6 +612,7 @@ struct Stack final {
     u16   cutoffCount;
     bool  inCheck;
     bool  ttPv;
+    bool  followPV;
 };
 
 // Worker does the actual search.
@@ -726,6 +727,8 @@ class Worker final {
     u16   selDepth;
     u16   rootDelta;
     i16   nmpPly;
+
+    PVMoves lastIterationPV;
 
     Array<i32, COLOR_NB> optimism;
 

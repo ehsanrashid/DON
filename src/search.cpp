@@ -375,7 +375,7 @@ void Worker::start_search() noexcept {
                 // Send PV info again if have a new best worker
                 if (bestWorker != this)
                     mainManager->show_pv(*bestWorker,
-                                         std::max(bestWorker->completedDepth, limit.depth));
+                                         std::max<Depth>(bestWorker->completedDepth, limit.depth));
             }
         }
 
@@ -511,6 +511,8 @@ void Worker::iterative_deepening() noexcept {
 
     accStack.reset();
 
+    lastIterationPV.clear();
+
     for (auto& colorQuietHist : quietHistory)
         for (auto& quietHist : colorQuietHist)
             quietHist *= 0.7799;
@@ -532,13 +534,13 @@ void Worker::iterative_deepening() noexcept {
         // When playing with strength handicap enable MultiPV search that
         // will use behind-the-scenes to retrieve a set of sub-optimal moves.
         if (mainManager->skill.enabled())
-            multiPV = std::max(usize(4), multiPV);
+            multiPV = std::max<usize>(4, multiPV);
 
         mainManager->sumMoveChanges = 0.0;
 
         mainManager->timeReduction = 1.0;
 
-        multiPV = std::min(rootMovesSize, multiPV);
+        multiPV = std::min<usize>(rootMovesSize, multiPV);
 
         mainManager->set_ponder(limit.ponder);
 
@@ -553,7 +555,8 @@ void Worker::iterative_deepening() noexcept {
     completedDepth           = DEPTH_ZERO;
 
     // Iterative deepening loop
-    Depth MaxDepth = limit.depth != DEPTH_ZERO ? std::min(limit.depth, DEPTH_MAX) : DEPTH_MAX;
+    Depth MaxDepth =
+      limit.depth != DEPTH_ZERO ? std::min<Depth>(limit.depth, DEPTH_MAX) : DEPTH_MAX;
     for (rootDepth = 1; rootDepth <= MaxDepth; ++rootDepth)
     {
         // Precompute the start indices of each tbRank group
@@ -593,11 +596,11 @@ void Worker::iterative_deepening() noexcept {
             auto avgSqrValue = rootMoves[curPV].avgSqrValue;
 
             // Reset aspiration window starting size
-            int delta = 5 + std::min(thread_count() - 1, usize(8))
+            int delta = 5 + std::min<usize>(thread_count() - 1, 8)
                       + constexpr_round(1.0032e-4 * double(constexpr_abs(avgSqrValue)));
 
-            Value alpha = std::max(avgValue - delta, -VALUE_INFINITE);
-            Value beta  = std::min(avgValue + delta, +VALUE_INFINITE);
+            Value alpha = std::max<int>(avgValue - delta, -VALUE_INFINITE);
+            Value beta  = std::min<int>(avgValue + delta, +VALUE_INFINITE);
 
             // Reset UCI info selDepth for each depth and each PV line
             selDepth = 1;
@@ -618,8 +621,10 @@ void Worker::iterative_deepening() noexcept {
 
                 // Adjust the effective depth searched, but ensure at least one
                 // effective increment for every 4 researchCnt steps.
-                Depth adjustedDepth = std::max(
-                  rootDepth - failHighCnt - std::max((3 * (researchCnt + 1)) / 4, +DEPTH_ZERO), 1);
+                Depth adjustedDepth =
+                  std::max<Depth>(rootDepth - failHighCnt
+                                    - std::max<Depth>((3 * (researchCnt + 1)) / 4, DEPTH_ZERO),
+                                  1);
 
                 bestValue = search<NT::ROOT>(rootPos, ss, alpha, beta, adjustedDepth);
 
@@ -692,6 +697,8 @@ void Worker::iterative_deepening() noexcept {
         }
 
         completedDepth = rootDepth;
+
+        lastIterationPV = rootMoves[0].pv;
 
         if (lastBestPV.empty() || lastBestPV[0] != rootMoves[0].pv[0])
             lastCompletedDepth = rootDepth;
@@ -768,7 +775,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
         }
 
         // Limit the depth if extensions made it too large
-        depth = std::min(depth, DEPTH_MAX);
+        depth = std::min<Depth>(depth, DEPTH_MAX);
 
         assert(DEPTH_ZERO < depth && depth <= DEPTH_MAX);
     }
@@ -785,10 +792,16 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
         selDepth = std::max<u16>(selDepth, ss->ply + 1);
     }
 
+    usize pvIndex = ss->ply > 0 ? ss->ply - 1 : 0;
+
     // Step 1. Initialize node
     ss->inCheck   = pos.checkers_bb() != 0;
     ss->moveCount = 0;
     ss->history   = 0;
+    ss->followPV =
+      RootNode
+      || ((ss - 1)->followPV
+          && (pvIndex < lastIterationPV.size() && (ss - 1)->move == lastIterationPV[pvIndex]));
 
     if constexpr (!RootNode)
     {
@@ -802,8 +815,8 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
         // then there is no need to search further because will never beat the current alpha.
         // Same logic but with a reversed signs apply also in the opposite condition of being mated
         // instead of giving mate. In this case, return a fail-high score.
-        alpha = std::max(mated_in(ss->ply + 0), alpha);
-        beta  = std::min(mates_in(ss->ply + 1), beta);
+        alpha = std::max<int>(mated_in(ss->ply + 0), alpha);
+        beta  = std::min<int>(mates_in(ss->ply + 1), beta);
 
         if (alpha >= beta)
             return alpha;
@@ -898,10 +911,10 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
     // The ply after beginning an LMR search, adjust the reduced depth based on
     // how the opponent's move affected the static evaluation.
     if (red >= 3200 && !worsen)
-        depth = std::min(depth + 1, +DEPTH_MAX);
+        depth = std::min<Depth>(depth + 1, DEPTH_MAX);
 
     if (red >= 2000 && ss->evalValue > 188 - (ss - 1)->evalValue)
-        depth = std::max(depth - 1, 1);
+        depth = std::max<Depth>(depth - 1, 1);
 
     auto& pawnHistory = histories.pawn(pos.pawn_key());
 
@@ -1004,7 +1017,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
                         || (bound == Bound::LOWER ? tbValue >= beta : tbValue <= alpha))
                     {
                         ttu.update(Move::None, value_to_tt(tbValue, ss->ply), evalValue,
-                                   std::min(depth + 6, +DEPTH_MAX), bound, ss->ttPv);
+                                   std::min<Depth>(depth + 6, DEPTH_MAX), bound, ss->ttPv);
 
                         return tbValue;
                     }
@@ -1015,7 +1028,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
                         {
                             bestValue = tbValue;
 
-                            alpha = std::max(tbValue, alpha);
+                            alpha = std::max<int>(tbValue, alpha);
                         }
                         else
                             maxValue = tbValue;
@@ -1052,7 +1065,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
     {
         if (!exclude && ttEvalValue + 507 + 321 * depth * depth <= alpha)
         {
-            Value razorAlpha = std::max(alpha - 1, -VALUE_INFINITE);
+            Value razorAlpha = std::max<int>(alpha - 1, -VALUE_INFINITE);
 
             Value razorValue = qsearch<false>(pos, ss, razorAlpha, razorAlpha + 1);
 
@@ -1137,7 +1150,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
     // (*Scaler) Making IIR more aggressive scales poorly.
     if constexpr (!AllNode)
     {
-        depth -= (depth > 5) & (ttmNone) & (red <= 3072);
+        depth -= (depth > 5) & (ttmNone) & (red <= 3072) & !ss->followPV;
     }
 
     // Step 11. ProbCut
@@ -1197,7 +1210,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
                 // Save ProbCut data into transposition table
                 if (!exclude)
                     ttu.update(move, value_to_tt(probCutValue, ss->ply), evalValue,
-                               std::min(probCutDepth + 1, +DEPTH_MAX), Bound::LOWER, ss->ttPv);
+                               std::min<Depth>(probCutDepth + 1, DEPTH_MAX), Bound::LOWER, ss->ttPv);
 
                 if (!is_win(probCutValue))
                     // Adjust probCutValue to align with the current beta window
@@ -1326,7 +1339,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
                             continue;
                     }
                 }
-                else
+                else if (!PVNode || !ss->followPV)
                 {
                     int history = pawnHistory[+movedPc][dstSq]  //
                                 + (*contHistory[0])[+movedPc][dstSq]
@@ -1351,7 +1364,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
                         if (futility <= alpha)
                         {
                             if (!is_win(futility))
-                                bestValue = std::max<Value>(bestValue, futility);
+                                bestValue = std::max<int>(bestValue, futility);
                             continue;
                         }
                     }
@@ -1405,7 +1418,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
                 extension = 1 + int(singularValue + doubleMargin <= singularAlpha)
                               + int(singularValue + tripleMargin <= singularAlpha);
 
-                depth = std::min(depth + 1, +DEPTH_MAX);
+                depth = std::min<Depth>(depth + 1, DEPTH_MAX);
             }
             // Multi-cut pruning
             // If the ttMove is assumed to fail high based on the bound of the TT entry, and
@@ -1493,7 +1506,8 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
         // Step 17. Late moves reduction / extension (LMR)
         if (depth > 1 && moveCount > 1)
         {
-            Depth redDepth = std::max(std::min(newDepth - r / 1024, newDepth + 2), 1) + int(PVNode);
+            Depth redDepth =
+              std::max<Depth>(std::min<Depth>(newDepth - r / 1024, newDepth + 2), 1) + int(PVNode);
 
             value = -search<NT::CUT>(pos, ss + 1, -alpha - 1, -alpha, redDepth, r);
 
@@ -1647,7 +1661,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
 
                 // Reduce depth for other moves if have found at least one score improvement
                 if (!is_decisive(value))
-                    depth = std::max(depth - int(depth < 24) - int(depth < 16), 1);
+                    depth = std::max<Depth>(depth - int(depth < 24) - int(depth < 16), 1);
             }
         }
 
@@ -1672,7 +1686,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
     // Don't let best value inflate too high (tb)
     if constexpr (PVNode)
     {
-        bestValue = std::min(maxValue, bestValue);
+        bestValue = std::min<int>(maxValue, bestValue);
     }
 
     // If there is a move that produces search value greater than alpha update the history of searched moves
@@ -1736,7 +1750,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
     // Save gathered information in transposition table
     if ((!RootNode || curPV == 0) && !exclude)
         ttu.update(bestMove, value_to_tt(bestValue, ss->ply), evalValue,
-                   moveCount != 0 ? depth : std::min(depth + 6, +DEPTH_MAX),
+                   moveCount != 0 ? depth : std::min<Depth>(depth + 6, DEPTH_MAX),
                    bestValue >= beta                  ? Bound::LOWER
                    : PVNode && bestMove != Move::None ? Bound::EXACT
                                                       : Bound::UPPER,
@@ -1920,7 +1934,7 @@ Value Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta) noexcep
                 if (futility <= alpha)
                 {
                     if (!is_win(futility))
-                        bestValue = std::max<Value>(bestValue, futility);
+                        bestValue = std::max<int>(bestValue, futility);
                     continue;
                 }
 
@@ -1928,9 +1942,9 @@ Value Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta) noexcep
                 int threshold = std::max(baseFutility - alpha, -1);
                 if (pos.see(move) < -threshold)
                 {
-                    int minFutility = std::min<Value>(alpha, baseFutility);
+                    int minFutility = std::min<int>(alpha, baseFutility);
                     if (!is_win(minFutility))
-                        bestValue = std::max<Value>(bestValue, minFutility);
+                        bestValue = std::max<int>(bestValue, minFutility);
                     continue;
                 }
             }
@@ -2544,7 +2558,7 @@ void MainSearchManager::handle_time_management(const Worker& worker,
     // clang-format on
 
     // Cap totalTime to the available maximum time
-    totalTime = std::min(timeManager.maximum(), totalTime);
+    totalTime = std::min<TimePoint>(timeManager.maximum(), totalTime);
     // Cap totalTime to either 55% of total time or MaxForcedMoveTime ms in case of forced move for a better viewer experience
     if (worker.rootMoves.size() == 1)
         totalTime = std::min<TimePoint>(55 * totalTime / 100, worker.options["MaxForcedMoveTime"]);
@@ -2678,7 +2692,7 @@ Move Skill::pick_move(const RootMoves& rootMoves, usize multiPV, bool pickBest) 
         // RootMoves are already sorted by value in descending order
         Value maxValue = rootMoves[0].curValue;
 
-        Value delta = std::min(maxValue - rootMoves[multiPV - 1].curValue, +VALUE_PAWN);
+        Value delta = std::min<int>(maxValue - rootMoves[multiPV - 1].curValue, VALUE_PAWN);
 
         Value bestValue = -VALUE_INFINITE;
         // Choose best move. For each move value add two terms, both dependent on weakness.

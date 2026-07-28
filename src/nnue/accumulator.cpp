@@ -508,9 +508,9 @@ void update_accumulator_refresh_cache(Color                            perspecti
     Bitboard changedBB = changed_bb(entry.pieceMap, pieceMap);
 
     Bitboard removedBB = changedBB & entry.piecesBB;
-    PSQFeatureSet::append_active_indices(perspective, kingSq, entry.pieceMap, removedBB, removed);
+    Bitboard addedBB   = changedBB & piecesBB;
 
-    Bitboard addedBB = changedBB & piecesBB;
+    PSQFeatureSet::append_active_indices(perspective, kingSq, entry.pieceMap, removedBB, removed);
     PSQFeatureSet::append_active_indices(perspective, kingSq, pieceMap, addedBB, added);
 
     entry.pieceMap = pieceMap;
