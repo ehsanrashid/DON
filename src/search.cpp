@@ -43,7 +43,7 @@ namespace DON {
 
 namespace {
 
-constexpr Depth OutputDepthLimit = 30;
+constexpr Depth OutputLimitDepth = 30;
 
 constexpr double BetaBias = 0.68;
 
@@ -498,6 +498,12 @@ void Worker::iterative_deepening() noexcept {
                 }
             }
         }
+        else
+        {
+            // For an aborted search label the loss score as inexact.
+            if (rootMoves[0].bound != Bound::LOWER)
+                rootMoves[0].bound = Bound::UPPER;
+        }
     };
 
     usize rootMovesSize = rootMoves.size();
@@ -631,7 +637,7 @@ void Worker::iterative_deepening() noexcept {
                     break;
 
                 // When failing high/low give some update before a re-search
-                if (mainManager != nullptr && multiPV == 1 && rootDepth > OutputDepthLimit
+                if (mainManager != nullptr && multiPV == 1 && rootDepth > OutputLimitDepth
                     && (alpha >= bestValue || bestValue >= beta))
                     mainManager->show_pv(*this, rootDepth);
 
@@ -670,7 +676,7 @@ void Worker::iterative_deepening() noexcept {
                 break;
 
             // Give some update about the PV
-            if (mainManager != nullptr && (curPV + 1 == multiPV || rootDepth > OutputDepthLimit))
+            if (mainManager != nullptr && (curPV + 1 == multiPV || rootDepth > OutputLimitDepth))
                 mainManager->show_pv(*this, rootDepth);
         }
 
@@ -1250,7 +1256,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
 
         if constexpr (RootNode)
         {
-            if (is_main_worker() && rootDepth > OutputDepthLimit && !options["MinimalInfo"])
+            if (is_main_worker() && rootDepth > OutputLimitDepth && !options["MinimalInfo"])
             {
                 std::string currMove{move_to_can(move)};
                 usize       currMoveNumber{curPV + moveCount};

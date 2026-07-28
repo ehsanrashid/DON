@@ -186,6 +186,8 @@ struct RootMove final {
         return curValue != -VALUE_INFINITE ? curValue : preValue;
     }
 
+    [[nodiscard]] bool has_bound() const noexcept { return is_ok(bound); }
+
     u64 nodes = 0;
 
     Value curValue = -VALUE_INFINITE;

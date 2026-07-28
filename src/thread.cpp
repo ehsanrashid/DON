@@ -344,8 +344,8 @@ struct ThreadMetric final {
           std::forward<VotingFunc>(calc_vote_weight)(th),  //
           rm.pv.size(),                                    //
           value,                                           //
-          is_win(value),                                   //
-          is_loss(value)                                   //
+          is_win(value) && !rm.has_bound(),                //
+          is_loss(value) && !rm.has_bound()                //
         };
     }
 
