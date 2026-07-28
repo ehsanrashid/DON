@@ -699,7 +699,8 @@ void Worker::iterative_deepening() noexcept {
         update_last_best();
 
         // Have found "mate in x"?
-        if (limit.mate != 0 && rootMoves[0].curValue == rootMoves[0].uciValue)
+        if (limit.mate != 0 && rootMoves[0].curValue == rootMoves[0].uciValue
+            && !rootMoves[0].has_bound())
         {
             auto value = rootMoves[0].curValue;
             bool mate  = (value != +VALUE_INFINITE && is_mate_win(value))   // mate-win
