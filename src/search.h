@@ -457,7 +457,7 @@ struct Skill final {
         return Value(2.0 * (3.0 * LEVEL_MAX - level));
     }
 
-    Move pick_move(const RootMoves& rootMoves, usize multiPV, bool pickBest = true) noexcept;
+    Move pick_move(const RootMoves& rootMoves, usize multiPv, bool pickBest = true) noexcept;
 
     static constexpr double LEVEL_MIN = 00.0;
     static constexpr double LEVEL_MAX = 20.0;
@@ -503,7 +503,7 @@ struct ShortInfo {
 struct FullInfo final: public ShortInfo {
    public:
     u16              selDepth;
-    usize            multiPV;
+    usize            multiPv;
     FixedText        bound;
     FixedText        wdl;
     TimePoint        time;
@@ -723,7 +723,7 @@ class Worker final {
     Tablebase::Syzygy::Config tbConfig;
 
     Depth rootDepth, completedDepth;
-    usize multiPV, curPV, endPV;
+    usize multiPv, pvCur, pvEnd;
     u16   selDepth;
     u16   rootDelta;
     i16   nmpPly;

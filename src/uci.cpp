@@ -361,7 +361,7 @@ void on_update_full(const FullInfo& fInfo) noexcept {
     std::cout << "info"                                      //
               << " depth " << fInfo.depth                    //
               << " seldepth " << fInfo.selDepth              //
-              << " multipv " << fInfo.multiPV                //
+              << " multipv " << fInfo.multiPv                //
               << " score " << fInfo.score                    //
               << fInfo.bound                                 //
               << fInfo.wdl                                   //

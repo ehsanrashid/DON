@@ -361,14 +361,14 @@ void Worker::start_search() noexcept {
         // If the skill is enabled, swap the best PV line with the sub-optimal one
         if (mainManager->skill.enabled())
         {
-            Move skillMove = mainManager->skill.pick_move(rootMoves, multiPV, false);
+            Move skillMove = mainManager->skill.pick_move(rootMoves, multiPv, false);
 
             for (auto&& th : threads)
                 th->worker->rootMoves.swap_to_front(skillMove);
         }
         else
         {
-            if (thread_count() > 1 && multiPV == 1 && limit.mate == 0)
+            if (thread_count() > 1 && multiPv == 1 && limit.mate == 0)
             {
                 bestWorker = threads.best_thread()->worker.get();
 
@@ -515,26 +515,26 @@ void Worker::iterative_deepening() noexcept {
 
     nmpPly = 0;
 
-    multiPV = 1;
+    multiPv = 1;
 
     if (mainManager != nullptr)
     {
         mainManager->timeManager.init(rootPos.active_color(), rootPos.ply(), rootPos.move_num(),
                                       options, limit);
 
-        multiPV = options["MultiPV"];
+        multiPv = options["MultiPV"];
 
         mainManager->skill.init(options);
         // When playing with strength handicap enable MultiPV search that
         // will use behind-the-scenes to retrieve a set of sub-optimal moves.
         if (mainManager->skill.enabled())
-            multiPV = std::max<usize>(4, multiPV);
+            multiPv = std::max<usize>(4, multiPv);
 
         mainManager->sumMoveChanges = 0.0;
 
         mainManager->timeReduction = 1.0;
 
-        multiPV = std::min<usize>(rootMovesSize, multiPV);
+        multiPv = std::min<usize>(rootMovesSize, multiPv);
 
         mainManager->set_ponder(limit.ponder);
 
@@ -570,24 +570,24 @@ void Worker::iterative_deepening() noexcept {
                 ++i;
             } while (i < rootMovesSize && rootMoves[i].tbRank == tbRank);
         }
-        // Sentinel (critical) to simplify endPV access
+        // Sentinel (critical) to simplify pvEnd access
         tbRankGroups[tbRankGroupCount] = rootMovesSize;
 
         usize tbRankGroupIndex = 0;  // index in tbRankGroups
-        usize begPV = endPV = 0;
+        usize pvBeg = pvEnd = 0;
         // MultiPV loop. Perform a full root search for each PV line
-        for (curPV = 0; curPV < multiPV; ++curPV)
+        for (pvCur = 0; pvCur < multiPv; ++pvCur)
         {
-            // Advance group if curPV reached endPV
-            if (curPV == endPV)
+            // Advance group if pvCur reached pvEnd
+            if (pvCur == pvEnd)
             {
-                begPV = tbRankGroups[tbRankGroupIndex];
-                endPV = tbRankGroups[tbRankGroupIndex + 1];  // safe because of sentinel
+                pvBeg = tbRankGroups[tbRankGroupIndex];
+                pvEnd = tbRankGroups[tbRankGroupIndex + 1];  // safe because of sentinel
                 ++tbRankGroupIndex;
             }
 
-            auto avgValue    = rootMoves[curPV].avgValue;
-            auto avgSqrValue = rootMoves[curPV].avgSqrValue;
+            auto avgValue    = rootMoves[pvCur].avgValue;
+            auto avgSqrValue = rootMoves[pvCur].avgSqrValue;
 
             // Reset aspiration window starting size
             int delta = 5 + std::min<usize>(thread_count() - 1, 8)
@@ -613,12 +613,9 @@ void Worker::iterative_deepening() noexcept {
                 rootDelta = beta - alpha;
                 assert(rootDelta != 0);
 
-                // Adjust the effective depth searched, but ensure at least one
-                // effective increment for every 4 researchCnt steps.
-                Depth adjustedDepth =
-                  std::max<Depth>(rootDepth - failHighCnt
-                                    - std::max<Depth>((3 * (researchCnt + 1)) / 4, DEPTH_ZERO),
-                                  1);
+                // Reduce search depth according to fail-highs and research count.
+                Depth penaltyDepth  = failHighCnt + 3 * (1 + researchCnt) / 4;
+                Depth adjustedDepth = std::max<Depth>(rootDepth - penaltyDepth, 1);
 
                 bestValue = search<NT::ROOT>(rootPos, ss, alpha, beta, adjustedDepth);
 
@@ -628,7 +625,7 @@ void Worker::iterative_deepening() noexcept {
                 // and want to keep the same order for all the moves except the
                 // new PV that goes to the front. Note that in the case of MultiPV
                 // search the already searched PV lines are preserved.
-                rootMoves.sort(curPV, endPV);
+                rootMoves.sort(pvCur, pvEnd);
 
                 // If the search has been stopped, break immediately.
                 // Sorting is safe because RootMoves is still valid, although it refers to the previous iteration.
@@ -636,7 +633,7 @@ void Worker::iterative_deepening() noexcept {
                     break;
 
                 // When failing high/low give some update before a re-search
-                if (mainManager != nullptr && multiPV == 1 && rootDepth > OutputLimitDepth
+                if (mainManager != nullptr && multiPv == 1 && rootDepth > OutputLimitDepth
                     && (alpha >= bestValue || bestValue >= beta))
                     mainManager->show_pv(*this, rootDepth);
 
@@ -646,7 +643,7 @@ void Worker::iterative_deepening() noexcept {
                     assert(alpha > -VALUE_INFINITE);
 
                     beta  = alpha;
-                    alpha = std::max(bestValue - delta, -VALUE_INFINITE);
+                    alpha = std::max<int>(bestValue - delta, -VALUE_INFINITE);
 
                     failHighCnt = 0;
 
@@ -655,27 +652,27 @@ void Worker::iterative_deepening() noexcept {
                 }
                 else if (bestValue >= beta)
                 {
-                    alpha = std::max(beta - delta, +alpha);
-                    beta  = std::min(bestValue + delta, +VALUE_INFINITE);
+                    alpha = std::max<int>(beta - delta, alpha);
+                    beta  = std::min<int>(bestValue + delta, +VALUE_INFINITE);
 
                     ++failHighCnt;
                 }
                 else
                     break;
 
-                delta = std::min(constexpr_ceil(1.33334 * double(delta)), DELTA_MAX);
+                delta = std::min<int>(constexpr_ceil(1.33334 * double(delta)), DELTA_MAX);
 
                 assert(-VALUE_INFINITE <= alpha && alpha < beta && beta <= +VALUE_INFINITE);
             }
 
             // Sort the PV lines searched so far
-            rootMoves.sort(begPV, curPV + 1);
+            rootMoves.sort(pvBeg, pvCur + 1);
 
             if (threads.is_stopped())
                 break;
 
             // Give some update about the PV
-            if (mainManager != nullptr && (curPV + 1 == multiPV || rootDepth > OutputLimitDepth))
+            if (mainManager != nullptr && (pvCur + 1 == multiPv || rootDepth > OutputLimitDepth))
                 mainManager->show_pv(*this, rootDepth);
         }
 
@@ -716,7 +713,7 @@ void Worker::iterative_deepening() noexcept {
         {
             // If the skill is enabled and time is up, pick a sub-optimal best move
             if (mainManager->skill.enabled() && mainManager->skill.time_to_pick(rootDepth))
-                mainManager->skill.pick_move(rootMoves, multiPV);
+                mainManager->skill.pick_move(rootMoves, multiPv);
 
             // Do have time for the next iteration? Can stop searching now?
             if (limit.use_time_manager() && !threads.is_stopped())
@@ -830,7 +827,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
     bool ttmNone;
     if constexpr (RootNode)
     {
-        ttd.move = rootMoves[curPV].pv[0];
+        ttd.move = rootMoves[pvCur].pv[0];
         ttmNone  = false;
     }
     else
@@ -1177,7 +1174,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
             // In MultiPV mode also skip PV moves that have been already searched and those of lower "TB rank".
             if constexpr (RootNode)
             {
-                if (!rootMoves.contains(curPV, endPV, move))
+                if (!rootMoves.contains(pvCur, pvEnd, move))
                     continue;
             }
 
@@ -1255,7 +1252,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
         // In MultiPV mode also skip PV moves that have been already searched and those of lower "TB rank".
         if constexpr (RootNode)
         {
-            if (!rootMoves.contains(curPV, endPV, move))
+            if (!rootMoves.contains(pvCur, pvEnd, move))
                 continue;
         }
 
@@ -1266,7 +1263,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
             if (is_main_worker() && rootDepth > OutputLimitDepth && !options["MinimalInfo"])
             {
                 std::string currMove{move_to_can(move)};
-                usize       currMoveNumber{curPV + moveCount};
+                usize       currMoveNumber{pvCur + moveCount};
 
                 main_manager()->updateContext.onUpdateIter({rootDepth, currMove, currMoveNumber});
             }
@@ -1609,7 +1606,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
                 // Record how often the best move has been changed in each iteration.
                 // This information is used for time management.
                 // In MultiPV mode, must take care to only do this for the first PV line.
-                if (moveCount > 1 && curPV == 0)
+                if (moveCount > 1 && pvCur == 0)
                     moveChanges.fetch_add(1, std::memory_order_relaxed);
             }
             else
@@ -1742,7 +1739,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
     ss->ttPv |= (bestValue <= alpha) & (ss - 1)->ttPv;
 
     // Save gathered information in transposition table
-    if ((!RootNode || curPV == 0) && !exclude)
+    if ((!RootNode || pvCur == 0) && !exclude)
         ttu.update(bestMove, value_to_tt(bestValue, ss->ply), evalValue,
                    moveCount != 0 ? depth : std::min<Depth>(depth + 6, DEPTH_MAX),
                    bestValue >= beta                  ? Bound::LOWER
@@ -2587,8 +2584,8 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
     const auto& threads            = worker.threads;
     const auto& transpositionTable = worker.transpositionTable;
     const auto& tbConfig           = worker.tbConfig;
-    const usize multiPV            = worker.multiPV;
-    const usize curPV              = worker.curPV;
+    const usize multiPv            = worker.multiPv;
+    const usize pvCur              = worker.pvCur;
     // Ensure non-zero to avoid a 'divide by zero'
     TimePoint time     = std::max<TimePoint>(elapsed(), 1);
     u64       nodes    = threads.sum(&Worker::nodes);
@@ -2596,7 +2593,7 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
     u16       hashfull = transpositionTable.hashfull();
     bool      ShowWDL  = options["UCI_ShowWDL"];
 
-    for (usize i = 0; i < multiPV; ++i)
+    for (usize i = 0; i < multiPv; ++i)
     {
         auto& rm = rootMoves[i];
 
@@ -2621,7 +2618,7 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
         v = (rm.tbValue & tbMask) | (v & ~tbMask);
 
         // tablebase- and previous-scores are exact
-        bool exact = (int(i != curPV) | ~updatedMask | tbMask) != 0;
+        bool exact = (int(i != pvCur) | ~updatedMask | tbMask) != 0;
 
         // Potentially correct and extend the PV, and in exceptional cases value also
         if ((exact || rm.bound == Bound::NONE) && is_decisive(v) && !is_mate(v))
@@ -2677,8 +2674,8 @@ void Skill::init(const Options& options) noexcept {
 
 // When playing with strength handicap, choose the best move among a set of RootMoves
 // using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
-Move Skill::pick_move(const RootMoves& rootMoves, usize multiPV, bool pickBest) noexcept {
-    assert(1 <= multiPV && multiPV <= rootMoves.size());
+Move Skill::pick_move(const RootMoves& rootMoves, usize multiPv, bool pickBest) noexcept {
+    assert(1 <= multiPv && multiPv <= rootMoves.size());
     static XorShift64Star prng(now());  // PRNG sequence should be non-deterministic
 
     if (pickBest || bestMove == Move::None)
@@ -2686,13 +2683,13 @@ Move Skill::pick_move(const RootMoves& rootMoves, usize multiPV, bool pickBest) 
         // RootMoves are already sorted by value in descending order
         Value maxValue = rootMoves[0].curValue;
 
-        Value delta = std::min<int>(maxValue - rootMoves[multiPV - 1].curValue, VALUE_PAWN);
+        Value delta = std::min<int>(maxValue - rootMoves[multiPv - 1].curValue, VALUE_PAWN);
 
         Value bestValue = -VALUE_INFINITE;
         // Choose best move. For each move value add two terms, both dependent on weakness.
         // One is deterministic and bigger for weaker levels, and one is random.
         // Then choose the move with the resulting highest value.
-        for (usize i = 0; i < multiPV; ++i)
+        for (usize i = 0; i < multiPv; ++i)
         {
             Value curValue = rootMoves[i].curValue;
             Value diff     = maxValue - curValue;
