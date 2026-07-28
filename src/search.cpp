@@ -43,6 +43,8 @@ namespace DON {
 
 namespace {
 
+constexpr Depth OutputDepthLimit = 30;
+
 constexpr double BetaBias = 0.68;
 
 // Reductions lookup table using [depth or moveCount]
@@ -629,7 +631,7 @@ void Worker::iterative_deepening() noexcept {
                     break;
 
                 // When failing high/low give some update before a re-search
-                if (mainManager != nullptr && multiPV == 1 && rootDepth > 30
+                if (mainManager != nullptr && multiPV == 1 && rootDepth > OutputDepthLimit
                     && (alpha >= bestValue || bestValue >= beta))
                     mainManager->show_pv(*this, rootDepth);
 
@@ -668,7 +670,7 @@ void Worker::iterative_deepening() noexcept {
                 break;
 
             // Give some update about the PV
-            if (mainManager != nullptr && (curPV + 1 == multiPV || rootDepth > 30))
+            if (mainManager != nullptr && (curPV + 1 == multiPV || rootDepth > OutputDepthLimit))
                 mainManager->show_pv(*this, rootDepth);
         }
 
@@ -1248,7 +1250,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
 
         if constexpr (RootNode)
         {
-            if (is_main_worker() && rootDepth > 30 && !options["MinimalInfo"])
+            if (is_main_worker() && rootDepth > OutputDepthLimit && !options["MinimalInfo"])
             {
                 std::string currMove{move_to_can(move)};
                 usize       currMoveNumber{curPV + moveCount};
