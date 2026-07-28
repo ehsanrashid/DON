@@ -561,11 +561,8 @@ class MainSearchManager final: public ISearchManager {
 
     const UpdateContext& updateContext;
 
-    std::mutex              mutex;
-    std::condition_variable condVar;
-
-    TimeManager timeManager;
     Skill       skill;
+    TimeManager timeManager;
     double      sumMoveChanges;
     double      timeReduction;
     u16         callsCount;
@@ -576,6 +573,9 @@ class MainSearchManager final: public ISearchManager {
     Value  preBestAvgValue;
     double preTimeReduction;
     bool   atFirst;
+
+    std::mutex              mutex;
+    std::condition_variable condVar;
 };
 
 // NullSearchManager is a no-op implementation of ISearchManager
@@ -730,7 +730,7 @@ class Worker final {
 
     Array<i32, COLOR_NB> optimism;
 
-    PVMoves preIterationPV;
+    PVMoves lastIterationPV;
 
     // Histories
     History<HType::CAPTURE>   captureHistory;

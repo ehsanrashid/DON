@@ -392,10 +392,8 @@ void Worker::start_search() noexcept {
     const auto& rm = bestWorker->rootMoves[0];
 
     std::string bestMove   = move_to_can(rm.pv[0]);
-    std::string ponderMove = move_to_can(rm.pv.size() > 1                            //
-                                             || bestWorker->ponder_move_extracted()  //
-                                           ? rm.pv[1]
-                                           : Move::None);
+    std::string ponderMove = move_to_can(  //
+      rm.pv.size() > 1 || bestWorker->ponder_move_extracted() ? rm.pv[1] : Move::None);
 
     mainManager->updateContext.onUpdateMove({bestMove, ponderMove});
 }
@@ -503,9 +501,13 @@ void Worker::iterative_deepening() noexcept {
     usize rootMovesSize = rootMoves.size();
     assert(rootMovesSize != 0 && rootMovesSize <= MOVE_MAX);
 
+    multiPv = 1;
+
+    nmpPly = 0;
+
     accStack.reset();
 
-    preIterationPV.clear();
+    lastIterationPV.clear();
 
     for (auto& colorQuietHist : quietHistory)
         for (auto& quietHist : colorQuietHist)
@@ -513,15 +515,8 @@ void Worker::iterative_deepening() noexcept {
 
     lowPlyQuietHistory.fill(100);
 
-    nmpPly = 0;
-
-    multiPv = 1;
-
     if (mainManager != nullptr)
     {
-        mainManager->timeManager.init(rootPos.active_color(), rootPos.ply(), rootPos.move_num(),
-                                      options, limit);
-
         multiPv = options["MultiPV"];
 
         mainManager->skill.init(options);
@@ -530,11 +525,14 @@ void Worker::iterative_deepening() noexcept {
         if (mainManager->skill.enabled())
             multiPv = std::max<usize>(4, multiPv);
 
+        multiPv = std::min<usize>(rootMovesSize, multiPv);
+
+        mainManager->timeManager.init(rootPos.active_color(), rootPos.ply(), rootPos.move_num(),
+                                      options, limit);
+
         mainManager->sumMoveChanges = 0.0;
 
         mainManager->timeReduction = 1.0;
-
-        multiPv = std::min<usize>(rootMovesSize, multiPv);
 
         mainManager->set_ponder(limit.ponder);
 
@@ -555,11 +553,11 @@ void Worker::iterative_deepening() noexcept {
     {
         // Precompute the start indices of each tbRank group
         Array<usize, MOVE_MAX + 1> tbRankGroups;
-        usize                      tbRankGroupCount = 0;
+        usize                      tbRankGroupCnt = 0;
         // Group moves by tbRank and snapshot scores before search
         for (usize i = 0; i < rootMovesSize;)
         {
-            tbRankGroups[tbRankGroupCount++] = i;
+            tbRankGroups[tbRankGroupCnt++] = i;
             // Scan group: record boundaries and snapshot scores
             auto tbRank = rootMoves[i].tbRank;
             do
@@ -571,9 +569,10 @@ void Worker::iterative_deepening() noexcept {
             } while (i < rootMovesSize && rootMoves[i].tbRank == tbRank);
         }
         // Sentinel (critical) to simplify pvEnd access
-        tbRankGroups[tbRankGroupCount] = rootMovesSize;
+        tbRankGroups[tbRankGroupCnt] = rootMovesSize;
 
-        usize tbRankGroupIndex = 0;  // index in tbRankGroups
+        // Index in tbRankGroups
+        usize tbRankGroupIdx = 0;
         usize pvBeg = pvEnd = 0;
         // MultiPV loop. Perform a full root search for each PV line
         for (pvCur = 0; pvCur < multiPv; ++pvCur)
@@ -581,9 +580,9 @@ void Worker::iterative_deepening() noexcept {
             // Advance group if pvCur reached pvEnd
             if (pvCur == pvEnd)
             {
-                pvBeg = tbRankGroups[tbRankGroupIndex];
-                pvEnd = tbRankGroups[tbRankGroupIndex + 1];  // safe because of sentinel
-                ++tbRankGroupIndex;
+                pvBeg = tbRankGroups[tbRankGroupIdx];
+                pvEnd = tbRankGroups[tbRankGroupIdx + 1];  // safe because of sentinel
+                ++tbRankGroupIdx;
             }
 
             auto avgValue    = rootMoves[pvCur].avgValue;
@@ -689,7 +688,7 @@ void Worker::iterative_deepening() noexcept {
 
         completedDepth = rootDepth;
 
-        preIterationPV = rootMoves[0].pv;
+        lastIterationPV = rootMoves[0].pv;
 
         if (lastBestPV.empty() || lastBestPV[0] != rootMoves[0].pv[0])
             lastCompletedDepth = rootDepth;
@@ -697,7 +696,8 @@ void Worker::iterative_deepening() noexcept {
         update_last_best();
 
         // Have found "mate in x"?
-        if (mainManager != nullptr && limit.mate != 0 && !rootMoves[0].has_bound())
+        if (mainManager != nullptr && limit.mate != 0
+            && rootMoves[0].curValue == rootMoves[0].uciValue)
         {
             auto value = rootMoves[0].curValue;
             bool mate  = (value != +VALUE_INFINITE && is_mate_win(value))   // mate-win
@@ -789,10 +789,10 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
     ss->inCheck   = pos.checkers_bb() != 0;
     ss->moveCount = 0;
     ss->history   = 0;
-    ss->followPv  = RootNode                              //
-                || ((ss - 1)->followPv                    //
-                    && (prePvIdx < preIterationPV.size()  //
-                        && (ss - 1)->move == preIterationPV[prePvIdx]));
+    ss->followPv  = RootNode                               //
+                || ((ss - 1)->followPv                     //
+                    && (prePvIdx < lastIterationPV.size()  //
+                        && (ss - 1)->move == lastIterationPV[prePvIdx]));
 
     if constexpr (!RootNode)
     {
