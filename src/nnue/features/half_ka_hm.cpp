@@ -88,7 +88,6 @@ make_index(Color perspective, Square kingSq, Square s, Piece pc) noexcept {
 
 }  // namespace
 
-#if defined(USE_AVX512ICL)
 // Append lists of indices for recently changed features from the piece map
 void HalfKA_hm::append_map_changed_indices(Color           perspective,
                                            Square          kingSq,
@@ -98,6 +97,7 @@ void HalfKA_hm::append_map_changed_indices(Color           perspective,
                                            Bitboard        addedBB,
                                            IndexList&      removed,
                                            IndexList&      added) noexcept {
+#if defined(USE_AVX512ICL)
     auto* removedWrite = removed.make_space(popcount(removedBB));
     auto* addedWrite   = added.make_space(popcount(addedBB));
 
@@ -134,17 +134,7 @@ void HalfKA_hm::append_map_changed_indices(Color           perspective,
     _mm512_storeu_si512(addedWrite     , _mm512_cvtepu16_epi32(_mm512_castsi512_si256(addedIndices)));
     _mm512_storeu_si512(addedWrite + 16, _mm512_cvtepu16_epi32(_mm512_extracti64x4_epi64(addedIndices, 1)));
     // clang-format on
-}
 #else
-// Append lists of indices for recently changed features from the piece map
-void HalfKA_hm::append_map_changed_indices(Color           perspective,
-                                           Square          kingSq,
-                                           const PieceMap& oldPieceMap,
-                                           const PieceMap& newPieceMap,
-                                           Bitboard        removedBB,
-                                           Bitboard        addedBB,
-                                           IndexList&      removed,
-                                           IndexList&      added) noexcept {
     while (removedBB != 0)
     {
         Square s = pop_lsq(removedBB);
@@ -158,8 +148,8 @@ void HalfKA_hm::append_map_changed_indices(Color           perspective,
 
         added.push_back(make_index(perspective, kingSq, s, newPieceMap[s]));
     }
-}
 #endif
+}
 
 // Append lists of indices for recently changed features
 void HalfKA_hm::append_changed_indices(Color            perspective,
