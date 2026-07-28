@@ -89,15 +89,15 @@ make_index(Color perspective, Square kingSq, Square s, Piece pc) noexcept {
 }  // namespace
 
 #if defined(USE_AVX512ICL)
-// Write lists of indices for recently changed features from the piece map
-void HalfKA_hm::write_map_changed_indices(Color           perspective,
-                                          Square          kingSq,
-                                          const PieceMap& oldPieceMap,
-                                          const PieceMap& newPieceMap,
-                                          Bitboard        removedBB,
-                                          Bitboard        addedBB,
-                                          IndexList&      removed,
-                                          IndexList&      added) noexcept {
+// Append lists of indices for recently changed features from the piece map
+void HalfKA_hm::append_map_changed_indices(Color           perspective,
+                                           Square          kingSq,
+                                           const PieceMap& oldPieceMap,
+                                           const PieceMap& newPieceMap,
+                                           Bitboard        removedBB,
+                                           Bitboard        addedBB,
+                                           IndexList&      removed,
+                                           IndexList&      added) noexcept {
     auto* removedWrite = removed.make_space(popcount(removedBB));
     auto* addedWrite   = added.make_space(popcount(addedBB));
 

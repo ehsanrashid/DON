@@ -15,7 +15,7 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-// Definition of input features HalfKP of NNUE evaluation function
+// Definition of input features HalfKA_hm of NNUE evaluation function
 
 #ifndef NNUE_FEATURES_HALF_KA_HM_H_INCLUDED
 #define NNUE_FEATURES_HALF_KA_HM_H_INCLUDED
@@ -45,14 +45,14 @@ class HalfKA_hm final {
     using IndexList = FixedVector<IndexType, MaxActiveDimensions>;
 
 #if defined(USE_AVX512ICL)
-    static void write_map_changed_indices(Color           perspective,
-                                          Square          kingSq,
-                                          const PieceMap& oldPieceMap,
-                                          const PieceMap& newPieceMap,
-                                          Bitboard        removedBB,
-                                          Bitboard        addedBB,
-                                          IndexList&      removed,
-                                          IndexList&      added) noexcept;
+    static void append_map_changed_indices(Color           perspective,
+                                           Square          kingSq,
+                                           const PieceMap& oldPieceMap,
+                                           const PieceMap& newPieceMap,
+                                           Bitboard        removedBB,
+                                           Bitboard        addedBB,
+                                           IndexList&      removed,
+                                           IndexList&      added) noexcept;
 #else
     static void append_map_changed_indices(Color           perspective,
                                            Square          kingSq,
