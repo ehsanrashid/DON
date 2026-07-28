@@ -186,6 +186,10 @@ struct RootMove final {
         return curValue != -VALUE_INFINITE ? curValue : preValue;
     }
 
+    [[nodiscard]] bool has_bound() const noexcept {
+        return bound == Bound::LOWER || bound == Bound::UPPER;
+    }
+
     u64 nodes = 0;
 
     Value curValue = -VALUE_INFINITE;
@@ -453,7 +457,7 @@ struct Skill final {
         return Value(2.0 * (3.0 * LEVEL_MAX - level));
     }
 
-    Move pick_move(const RootMoves& rootMoves, usize multiPV, bool pickBest = true) noexcept;
+    Move pick_move(const RootMoves& rootMoves, usize multiPv, bool pickBest = true) noexcept;
 
     static constexpr double LEVEL_MIN = 00.0;
     static constexpr double LEVEL_MAX = 20.0;
@@ -499,7 +503,7 @@ struct ShortInfo {
 struct FullInfo final: public ShortInfo {
    public:
     u16              selDepth;
-    usize            multiPV;
+    usize            multiPv;
     FixedText        bound;
     FixedText        wdl;
     TimePoint        time;
@@ -557,11 +561,8 @@ class MainSearchManager final: public ISearchManager {
 
     const UpdateContext& updateContext;
 
-    std::mutex              mutex;
-    std::condition_variable condVar;
-
-    TimeManager timeManager;
     Skill       skill;
+    TimeManager timeManager;
     double      sumMoveChanges;
     double      timeReduction;
     u16         callsCount;
@@ -572,6 +573,9 @@ class MainSearchManager final: public ISearchManager {
     Value  preBestAvgValue;
     double preTimeReduction;
     bool   atFirst;
+
+    std::mutex              mutex;
+    std::condition_variable condVar;
 };
 
 // NullSearchManager is a no-op implementation of ISearchManager
@@ -608,6 +612,7 @@ struct Stack final {
     u16   cutoffCount;
     bool  inCheck;
     bool  ttPv;
+    bool  followPv;
 };
 
 // Worker does the actual search.
@@ -718,12 +723,14 @@ class Worker final {
     Tablebase::Syzygy::Config tbConfig;
 
     Depth rootDepth, completedDepth;
-    usize multiPV, curPV, endPV;
+    usize multiPv, pvCur, pvEnd;
     u16   selDepth;
     u16   rootDelta;
     i16   nmpPly;
 
     Array<i32, COLOR_NB> optimism;
+
+    PVMoves lastIterationPV;
 
     // Histories
     History<HType::CAPTURE>   captureHistory;

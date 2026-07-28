@@ -15,7 +15,7 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-// Definition of input features HalfKP of NNUE evaluation function
+// Definition of input features HalfKA_hm of NNUE evaluation function
 
 #ifndef NNUE_FEATURES_HALF_KA_HM_H_INCLUDED
 #define NNUE_FEATURES_HALF_KA_HM_H_INCLUDED
@@ -33,7 +33,7 @@ class HalfKA_hm final {
     // Hash value embedded in the evaluation file
     static constexpr u32 Hash = 0x7F234CB8u;
 
-    static constexpr IndexType PS_NB = 11 * SQUARE_NB;
+    static constexpr u16 PS_NB = 11 * SQUARE_NB;
 
     // Number of feature dimensions
     static constexpr IndexType Dimensions = PS_NB * SQUARE_NB / 2;
@@ -44,11 +44,14 @@ class HalfKA_hm final {
     using DirtyType = DirtyPiece;
     using IndexList = FixedVector<IndexType, MaxActiveDimensions>;
 
-    static void append_active_indices(Color           perspective,
-                                      Square          kingSq,
-                                      const PieceMap& pieceMap,
-                                      Bitboard        changedBB,
-                                      IndexList&      active) noexcept;
+    static void append_map_changed_indices(Color           perspective,
+                                           Square          kingSq,
+                                           const PieceMap& oldPieceMap,
+                                           const PieceMap& newPieceMap,
+                                           Bitboard        removedBB,
+                                           Bitboard        addedBB,
+                                           IndexList&      removed,
+                                           IndexList&      added) noexcept;
 
     static void append_changed_indices(Color            perspective,
                                        Square           kingSq,

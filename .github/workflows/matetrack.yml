@@ -7,6 +7,9 @@ jobs:
   Matetrack:
     name: Matetrack
     runs-on: ubuntu-22.04
+    defaults:
+      run:
+        shell: bash
     steps:
       - name: Checkout DON repo 
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -57,14 +60,14 @@ jobs:
       - name: Run matetrack th1
         working-directory: matetrack
         run: |
-          python matecheck.py --syzygyPath 3-4-5-wdl/:3-4-5-dtz/ --engine /home/runner/work/DON/DON/DON/src/DON --epdFile mates2000.epd --nodes 100000 | tee matecheckout1.out
-          ! grep "issues were detected" matecheckout1.out >/dev/null
+          python matecheck.py --syzygyPath 3-4-5-wdl/:3-4-5-dtz/ --engine /home/runner/work/DON/DON/DON/src/DON --epdFile mates2000.epd --nodes 100000 | tee matecheck1.out
+          ! grep "issues were detected" matecheck1.out >/dev/null
 
       - name: Run matetrack th4
         working-directory: matetrack
         run: |
-          python matecheck.py --syzygyPath 3-4-5-wdl/:3-4-5-dtz/ --engine /home/runner/work/DON/DON/DON/src/DON --epdFile mates2000.epd --nodes 100000 --threads 4 | tee matecheckout4.out
-          ! grep "issues were detected" matecheckout4.out >/dev/null
+          python matecheck.py --syzygyPath 3-4-5-wdl/:3-4-5-dtz/ --engine /home/runner/work/DON/DON/DON/src/DON --epdFile mates2000.epd --nodes 100000 --threads 4 | tee matecheck4.out
+          ! grep "issues were detected" matecheck4.out >/dev/null
 
       - name: Run matetrack th4 gameplay
         working-directory: matetrack

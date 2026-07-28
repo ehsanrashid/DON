@@ -34,9 +34,9 @@ namespace DON::NNUE::Features {
 
 namespace {
 
-constexpr Array<u16, PIECE_TYPE_CNT> TARGET_MAX{3, 5, 4, 4, 5, 0};
+alignas(CACHE_LINE_SIZE) constexpr Array<u16, PIECE_TYPE_CNT> TARGET_MAX{3, 5, 4, 4, 5, 0};
 
-constexpr Array<i16, PIECE_TYPE_CNT, PIECE_TYPE_CNT> MAP{{
+alignas(CACHE_LINE_SIZE) constexpr Array<i16, PIECE_TYPE_CNT, PIECE_TYPE_CNT> MAP{{
   {+0, +1, -1, +2, -1, -1},  //
   {+0, +1, +2, +3, +4, -1},  //
   {+0, +1, +2, +3, -1, -1},  //
@@ -232,7 +232,7 @@ ALWAYS_INLINE IndexType make_index(Color  perspective,
 
 }  // namespace
 
-// Get a list of indices for active features in ascending order
+// Append list of indices for active features in ascending order
 void FullThreats::append_active_indices(Color           perspective,
                                         const Position& pos,
                                         IndexList&      active) noexcept {
@@ -312,7 +312,7 @@ void FullThreats::append_active_indices(Color           perspective,
         }
 }
 
-// Get a list of indices for recently changed features
+// Append lists of indices for recently changed features
 void FullThreats::append_changed_indices(Color                   perspective,
                                          Square                  kingSq,
                                          const DirtyType&        dts,

@@ -1539,8 +1539,8 @@ Key Position::move_key(Move m) const noexcept {
          ^ Zobrist::mr50(capturedPc != Piece::NO_PIECE || movedPt == PAWN ? 0 : rule50_count() + 1);
 }
 
-// Tests if the SEE (Static Exchange Evaluation) value of the move
-// is greater or equal to the given threshold.
+// Tests if the SEE (Static Exchange Evaluation)
+// value of the move is greater or equal to the given threshold.
 // An algorithm similar to alpha-beta pruning with a null window.
 bool Position::see_ge(Move m, int threshold) const noexcept {
     assert(legal(m));

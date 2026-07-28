@@ -74,5 +74,7 @@ int main(int argc, const char* argv[]) noexcept {
         uci.process_input(std::cin);
     }
 
+    uci.execute(QuitCommand);
+
     return 0;
 }
