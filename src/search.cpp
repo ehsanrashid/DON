@@ -368,7 +368,7 @@ void Worker::start_search() noexcept {
         }
         else
         {
-            if (thread_count() > 1 && multiPV == 1)
+            if (thread_count() > 1 && multiPV == 1 && limit.mate == 0)
             {
                 bestWorker = threads.best_thread()->worker.get();
 
@@ -498,12 +498,6 @@ void Worker::iterative_deepening() noexcept {
                 }
             }
         }
-        //else
-        //{
-        //    // For an aborted search label the loss score as inexact.
-        //    if (!rootMoves[0].has_bound())
-        //        rootMoves[0].bound = Bound::UPPER;
-        //}
     };
 
     usize rootMovesSize = rootMoves.size();
@@ -511,7 +505,7 @@ void Worker::iterative_deepening() noexcept {
 
     accStack.reset();
 
-    lastIterationPV.clear();
+    preIterationPV.clear();
 
     for (auto& colorQuietHist : quietHistory)
         for (auto& quietHist : colorQuietHist)
@@ -698,7 +692,7 @@ void Worker::iterative_deepening() noexcept {
 
         completedDepth = rootDepth;
 
-        lastIterationPV = rootMoves[0].pv;
+        preIterationPV = rootMoves[0].pv;
 
         if (lastBestPV.empty() || lastBestPV[0] != rootMoves[0].pv[0])
             lastCompletedDepth = rootDepth;
@@ -792,16 +786,16 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
         selDepth = std::max<u16>(selDepth, ss->ply + 1);
     }
 
-    usize pvIndex = ss->ply > 0 ? ss->ply - 1 : 0;
+    usize prePvIdx = std::max<int>((ss - 1)->ply, 0);
 
     // Step 1. Initialize node
     ss->inCheck   = pos.checkers_bb() != 0;
     ss->moveCount = 0;
     ss->history   = 0;
-    ss->followPV =
-      RootNode
-      || ((ss - 1)->followPV
-          && (pvIndex < lastIterationPV.size() && (ss - 1)->move == lastIterationPV[pvIndex]));
+    ss->followPv  = RootNode                              //
+                || ((ss - 1)->followPv                    //
+                    && (prePvIdx < preIterationPV.size()  //
+                        && (ss - 1)->move == preIterationPV[prePvIdx]));
 
     if constexpr (!RootNode)
     {
@@ -1150,7 +1144,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
     // (*Scaler) Making IIR more aggressive scales poorly.
     if constexpr (!AllNode)
     {
-        depth -= (depth > 5) & (ttmNone) & (red <= 3072) & !ss->followPV;
+        depth -= (depth > 5) & (ttmNone) & (red <= 3072) & !ss->followPv;
     }
 
     // Step 11. ProbCut
@@ -1339,7 +1333,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
                             continue;
                     }
                 }
-                else if (!PVNode || !ss->followPV)
+                else if (!PVNode || !ss->followPv)
                 {
                     int history = pawnHistory[+movedPc][dstSq]  //
                                 + (*contHistory[0])[+movedPc][dstSq]
