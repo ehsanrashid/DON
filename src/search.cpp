@@ -501,7 +501,7 @@ void Worker::iterative_deepening() noexcept {
         else
         {
             // For an aborted search label the loss score as inexact.
-            if (rootMoves[0].bound != Bound::LOWER)
+            if (!rootMoves[0].has_bound())
                 rootMoves[0].bound = Bound::UPPER;
         }
     };
@@ -699,7 +699,7 @@ void Worker::iterative_deepening() noexcept {
         update_last_best();
 
         // Have found "mate in x"?
-        if (limit.mate != 0 && !rootMoves[0].has_bound())
+        if (mainManager != nullptr && limit.mate != 0 && !rootMoves[0].has_bound())
         {
             auto value = rootMoves[0].curValue;
             bool mate  = (value != +VALUE_INFINITE && is_mate_win(value))   // mate-win
@@ -1576,9 +1576,8 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
             if (moveCount == 1 || value > alpha)
             {
                 rm.selDepth = selDepth;
+                rm.bound    = Bound::NONE;
                 rm.curValue = rm.uciValue = value;
-
-                rm.bound = Bound::NONE;
 
                 if (value >= beta)
                 {
