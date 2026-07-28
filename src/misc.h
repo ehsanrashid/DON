@@ -33,6 +33,7 @@
 #include <filesystem>
 #include <fstream>
 #include <functional>
+#include <initializer_list>
 #include <iostream>
 #include <limits>
 #include <memory>
@@ -1385,6 +1386,16 @@ void combine_hash(usize& seed, const T& v) noexcept {
         x = std::hash<T>{}(v);
 
     seed ^= x + 0x9E3779B9u + (seed << 6) + (seed >> 2);
+}
+
+constexpr u32 combine_hashes(std::initializer_list<u32> hashes) noexcept {
+    u32 h = 0;
+    for (const auto hash : hashes)
+    {
+        h = (h << 1) | (h >> 31);
+        h ^= hash;
+    }
+    return h;
 }
 
 // Custom streambuf that wraps string_view

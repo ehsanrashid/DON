@@ -97,16 +97,6 @@ class FeatureTransformer final {
     // Size of forward propagation buffer
     static constexpr usize BufferSize = OutputDimensions * sizeof(OutputType);
 
-    static constexpr u32 combine_hashes(std::initializer_list<u32> hashes) noexcept {
-        u32 hash = 0;
-        for (const auto componentHash : hashes)
-        {
-            hash = (hash << 1) | (hash >> 31);
-            hash ^= componentHash;
-        }
-        return hash;
-    }
-
     // Hash value embedded in the evaluation file
     static constexpr u32 hash() noexcept {
         return combine_hashes({ThreatFeatureSet::Hash, PSQFeatureSet::Hash})
