@@ -232,7 +232,7 @@ ALWAYS_INLINE IndexType make_index(Color  perspective,
 
 }  // namespace
 
-// Get a list of indices for active features in ascending order
+// Get list of indices for active features in ascending order
 void FullThreats::append_active_indices(Color           perspective,
                                         const Position& pos,
                                         IndexList&      active) noexcept {
@@ -312,7 +312,7 @@ void FullThreats::append_active_indices(Color           perspective,
         }
 }
 
-// Get a list of indices for recently changed features
+// Get lists of indices for recently changed features
 void FullThreats::append_changed_indices(Color                   perspective,
                                          Square                  kingSq,
                                          const DirtyType&        dts,

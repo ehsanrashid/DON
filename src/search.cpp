@@ -1137,7 +1137,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
     improve |= ss->evalValue >= beta;
 
     // Step 10. Internal iterative reductions
-    // For deep enough nodes without ttMoves, reduce search depth.
+    // Reduce search depth for PV/Cut deep enough nodes without ttMoves.
     // (*Scaler) Making IIR more aggressive scales poorly.
     if constexpr (!AllNode)
     {

@@ -88,21 +88,31 @@ make_index(Color perspective, Square kingSq, Square s, Piece pc) noexcept {
 
 }  // namespace
 
-// Get a list of indices for active features
-void HalfKA_hm::append_active_indices(Color           perspective,
-                                      Square          kingSq,
-                                      const PieceMap& pieceMap,
-                                      Bitboard        changedBB,
-                                      IndexList&      active) noexcept {
-    while (changedBB != 0)
+// Get lists of indices for recently changed features from the piece map
+void HalfKA_hm::append_map_changed_indices(Color           perspective,
+                                           Square          kingSq,
+                                           const PieceMap& oldPieceMap,
+                                           const PieceMap& newPieceMap,
+                                           Bitboard        removedBB,
+                                           Bitboard        addedBB,
+                                           IndexList&      removed,
+                                           IndexList&      added) noexcept {
+    while (removedBB != 0)
     {
-        Square s = pop_lsq(changedBB);
+        Square s = pop_lsq(removedBB);
 
-        active.push_back(make_index(perspective, kingSq, s, pieceMap[s]));
+        removed.push_back(make_index(perspective, kingSq, s, oldPieceMap[s]));
+    }
+
+    while (addedBB != 0)
+    {
+        Square s = pop_lsq(addedBB);
+
+        added.push_back(make_index(perspective, kingSq, s, newPieceMap[s]));
     }
 }
 
-// Get a list of indices for recently changed features
+// Get lists of indices for recently changed features
 void HalfKA_hm::append_changed_indices(Color            perspective,
                                        Square           kingSq,
                                        const DirtyType& dp,
