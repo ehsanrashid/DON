@@ -371,9 +371,7 @@ PerftData perft(Position& pos, Depth depth, bool detail) noexcept {
             std::string move =
               // move_to_can(m)
               move_to_san(m, pos);
-
-            usize append = 10 - move.size();
-            move.append(append, ' ');
+            move.append(10 - move.size(), ' ');
 
             std::cout << std::right << std::setfill('0') << std::setw(2) << count << " "  //
                       << std::left << move << ":"                                         //
@@ -396,7 +394,7 @@ PerftData perft(Position& pos, Depth depth, bool detail) noexcept {
 
     if (RootNode)
     {
-        std::cout << "Sum         :";
+        std::cout << "Sum          :";
         std::cout << std::right << std::setfill('.');
         std::cout << std::setw(16) << perftData.nodes;
 
