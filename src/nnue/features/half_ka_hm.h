@@ -33,7 +33,7 @@ class HalfKA_hm final {
     // Hash value embedded in the evaluation file
     static constexpr u32 Hash = 0x7F234CB8u;
 
-    static constexpr IndexType PS_NB = 11 * SQUARE_NB;
+    static constexpr u16 PS_NB = 11 * SQUARE_NB;
 
     // Number of feature dimensions
     static constexpr IndexType Dimensions = PS_NB * SQUARE_NB / 2;

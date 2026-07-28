@@ -498,12 +498,12 @@ void Worker::iterative_deepening() noexcept {
                 }
             }
         }
-        else
-        {
-            // For an aborted search label the loss score as inexact.
-            if (!rootMoves[0].has_bound())
-                rootMoves[0].bound = Bound::UPPER;
-        }
+        //else
+        //{
+        //    // For an aborted search label the loss score as inexact.
+        //    if (!rootMoves[0].has_bound())
+        //        rootMoves[0].bound = Bound::UPPER;
+        //}
     };
 
     usize rootMovesSize = rootMoves.size();

@@ -31,20 +31,20 @@ namespace DON::NNUE::Features {
 namespace {
 
 // Unique number for each piece type on each square
-constexpr IndexType PS_NONE     = 0;
-constexpr IndexType PS_W_PAWN   = 0 * SQUARE_NB;
-constexpr IndexType PS_B_PAWN   = 1 * SQUARE_NB;
-constexpr IndexType PS_W_KNIGHT = 2 * SQUARE_NB;
-constexpr IndexType PS_B_KNIGHT = 3 * SQUARE_NB;
-constexpr IndexType PS_W_BISHOP = 4 * SQUARE_NB;
-constexpr IndexType PS_B_BISHOP = 5 * SQUARE_NB;
-constexpr IndexType PS_W_ROOK   = 6 * SQUARE_NB;
-constexpr IndexType PS_B_ROOK   = 7 * SQUARE_NB;
-constexpr IndexType PS_W_QUEEN  = 8 * SQUARE_NB;
-constexpr IndexType PS_B_QUEEN  = 9 * SQUARE_NB;
-constexpr IndexType PS_KING     = 10 * SQUARE_NB;
+constexpr u16 PS_NONE     = 0;
+constexpr u16 PS_W_PAWN   = 0 * SQUARE_NB;
+constexpr u16 PS_B_PAWN   = 1 * SQUARE_NB;
+constexpr u16 PS_W_KNIGHT = 2 * SQUARE_NB;
+constexpr u16 PS_B_KNIGHT = 3 * SQUARE_NB;
+constexpr u16 PS_W_BISHOP = 4 * SQUARE_NB;
+constexpr u16 PS_B_BISHOP = 5 * SQUARE_NB;
+constexpr u16 PS_W_ROOK   = 6 * SQUARE_NB;
+constexpr u16 PS_B_ROOK   = 7 * SQUARE_NB;
+constexpr u16 PS_W_QUEEN  = 8 * SQUARE_NB;
+constexpr u16 PS_B_QUEEN  = 9 * SQUARE_NB;
+constexpr u16 PS_KING     = 10 * SQUARE_NB;
 
-constexpr Array<IndexType, COLOR_NB, PIECE_NB> PIECE_SQUARE_INDICES{{
+constexpr Array<u16, COLOR_NB, PIECE_NB> PIECE_SQUARE_INDICES{{
   // Convention: W - us, B - them
   // Viewed from other side, W and B are reversed
   {PS_NONE, PS_W_PAWN, PS_W_KNIGHT, PS_W_BISHOP, PS_W_ROOK, PS_W_QUEEN, PS_KING, PS_NONE,   //
