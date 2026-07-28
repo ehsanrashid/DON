@@ -373,11 +373,7 @@ PerftData perft(Position& pos, Depth depth, bool detail) noexcept {
               move_to_san(m, pos);
 
             usize append = 10 - move.size();
-            if (append != 0)
-            {
-                bool special = move.back() == '+' || move.back() == '#' || move.back() == '=';
-                move.append(append - special, ' ');
-            }
+            move.append(append, ' ');
 
             std::cout << std::right << std::setfill('0') << std::setw(2) << count << " "  //
                       << std::left << move << ":"                                         //
