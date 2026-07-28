@@ -275,56 +275,54 @@ void Worker::start_search() noexcept {
     if (!limit.infinite)
         transpositionTable.increment_generation();
 
-    bool think = false;
-
     if (rootMoves.empty())
     {
-        rootMoves.emplace_back(Move::None);
-        rootMoves[0].curValue = rootPos.checkers_bb() != 0 ? -VALUE_MATE : VALUE_DRAW;
-
-        FixedText score{to_score({rootMoves[0].curValue, rootPos})};
+        FixedText score{
+          to_score({Value(rootPos.checkers_bb() != 0 ? -VALUE_MATE : VALUE_DRAW), rootPos})};
 
         mainManager->updateContext.onUpdateShort({DEPTH_ZERO, score});
+        mainManager->updateContext.onUpdateMove({move_to_can(Move::None), {}});
+        return;
+    }
+
+    bool think = false;
+
+    Move bookBestMove = Move::None;
+
+    // Check polyglot book
+    if (!limit.infinite && limit.mate == 0)
+        bookBestMove = pgBook.probe(rootPos, rootMoves, options);
+
+    if (bookBestMove != Move::None)
+    {
+        State st;
+        rootPos.do_move(bookBestMove, st, true, this);
+
+        RootMoves oRootMoves;
+
+        for (auto m : MoveList<GenType::LEGAL>(rootPos))
+            oRootMoves.emplace_back(m);
+
+        Move bookPonderMove = pgBook.probe(rootPos, oRootMoves, options);
+
+        rootPos.undo_move(bookBestMove);
+
+        for (auto&& th : threads)
+        {
+            auto& rms = th->worker->rootMoves;
+
+            rms.swap_to_front(bookBestMove);
+
+            if (bookPonderMove != Move::None)
+                rms[0].pv.push_back(bookPonderMove);
+        }
     }
     else
     {
-        Move bookBestMove = Move::None;
+        think = true;
 
-        // Check polyglot book
-        if (!limit.infinite && limit.mate == 0)
-            bookBestMove = pgBook.probe(rootPos, rootMoves, options);
-
-        if (bookBestMove != Move::None)
-        {
-            State st;
-            rootPos.do_move(bookBestMove, st, true, this);
-
-            RootMoves oRootMoves;
-
-            for (auto m : MoveList<GenType::LEGAL>(rootPos))
-                oRootMoves.emplace_back(m);
-
-            Move bookPonderMove = pgBook.probe(rootPos, oRootMoves, options);
-
-            rootPos.undo_move(bookBestMove);
-
-            for (auto&& th : threads)
-            {
-                auto& rms = th->worker->rootMoves;
-
-                rms.swap_to_front(bookBestMove);
-
-                if (bookPonderMove != Move::None)
-                    rms[0].pv.push_back(bookPonderMove);
-            }
-        }
-        else
-        {
-            think = true;
-
-            threads.start_search();  // start non-main threads
-            iterative_deepening();   // main thread start searching
-        }
+        threads.start_search();  // start non-main threads
+        iterative_deepening();   // main thread start searching
     }
 
     // When reach the maximum depth, can arrive here without a raise of threads.stop.
@@ -368,12 +366,10 @@ void Worker::start_search() noexcept {
         }
         else
         {
-            if (thread_count() > 1  //
-                && multiPV == 1     //
-                && limit.mate == 0  //
-                && rootMoves[0].pv[0].is_ok())
+            if (thread_count() > 1 && multiPV == 1 && limit.mate == 0)
             {
                 bestWorker = threads.best_thread()->worker.get();
+
                 // Send PV info again if have a new best worker
                 if (bestWorker != this)
                     mainManager->show_pv(*bestWorker,

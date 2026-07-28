@@ -381,7 +381,10 @@ void on_update_iter(const IterInfo& iInfo) noexcept {
 }
 
 void on_update_move(const MoveInfo& mInfo) noexcept {
-    std::cout << "bestmove " << mInfo.bestMove << " ponder " << mInfo.ponderMove << std::endl;
+    std::cout << "bestmove " << mInfo.bestMove;
+    if (!mInfo.ponderMove.empty())
+        std::cout << " ponder " << mInfo.ponderMove;
+    std::cout << std::endl;
 }
 
 }  // namespace
