@@ -366,7 +366,7 @@ void Worker::start_search() noexcept {
         }
         else
         {
-            if (thread_count() > 1 && multiPV == 1 && limit.mate == 0)
+            if (thread_count() > 1 && multiPV == 1)
             {
                 bestWorker = threads.best_thread()->worker.get();
 
@@ -690,24 +690,24 @@ void Worker::iterative_deepening() noexcept {
 
         update_last_best();
 
+        // Have found "mate in x"?
+        if (limit.mate != 0 && rootMoves[0].curValue == rootMoves[0].uciValue)
+        {
+            auto value = rootMoves[0].curValue;
+            bool mate  = (value != +VALUE_INFINITE && is_mate_win(value))   // mate-win
+                     || (value != -VALUE_INFINITE && is_mate_loss(value));  // mate-loss
+            if (mate && VALUE_MATE - constexpr_abs(value) <= 2 * limit.mate)
+            {
+                threads.request_stop();
+                break;
+            }
+        }
+
         if (mainManager != nullptr)
         {
             // If the skill is enabled and time is up, pick a sub-optimal best move
             if (mainManager->skill.enabled() && mainManager->skill.time_to_pick(rootDepth))
                 mainManager->skill.pick_move(rootMoves, multiPV);
-
-            // Have found "mate in x"?
-            if (limit.mate != 0 && rootMoves[0].curValue == rootMoves[0].uciValue)
-            {
-                auto value = rootMoves[0].curValue;
-                bool mate  = (value != +VALUE_INFINITE && is_mate_win(value))   // mate-win
-                         || (value != -VALUE_INFINITE && is_mate_loss(value));  // mate-loss
-                if (mate && VALUE_MATE - constexpr_abs(value) <= 2 * limit.mate)
-                {
-                    threads.request_stop();
-                    break;
-                }
-            }
 
             // Do have time for the next iteration? Can stop searching now?
             if (limit.use_time_manager() && !threads.is_stopped())
