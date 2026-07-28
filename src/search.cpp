@@ -2175,7 +2175,7 @@ int Worker::correction_value(const Position& pos, const Stack* ss) const noexcep
     Color ac = pos.active_color();
 
     i64 correctionValue =
-           + i64{5713} * int(histories.    pawn_correction<WHITE>(pos.    pawn_key(WHITE))[ac]
+           + i64{5710} * int(histories.    pawn_correction<WHITE>(pos.    pawn_key(WHITE))[ac]
                            + histories.    pawn_correction<BLACK>(pos.    pawn_key(BLACK))[ac])
            + i64{4411} * int(histories.   minor_correction<WHITE>(pos.   minor_key(WHITE))[ac]
                            + histories.   minor_correction<BLACK>(pos.   minor_key(BLACK))[ac])
