@@ -44,7 +44,7 @@ constexpr u16 PS_W_QUEEN  = 8 * SQUARE_NB;
 constexpr u16 PS_B_QUEEN  = 9 * SQUARE_NB;
 constexpr u16 PS_KING     = 10 * SQUARE_NB;
 
-constexpr Array<u16, COLOR_NB, PIECE_NB> PIECE_SQUARE_INDICES{{
+alignas(CACHE_LINE_SIZE) constexpr Array<u16, COLOR_NB, PIECE_NB> PIECE_SQUARE_INDICES{{
   // Convention: W - us, B - them
   // Viewed from other side, W and B are reversed
   {PS_NONE, PS_W_PAWN, PS_W_KNIGHT, PS_W_BISHOP, PS_W_ROOK, PS_W_QUEEN, PS_KING, PS_NONE,   //
@@ -54,7 +54,7 @@ constexpr Array<u16, COLOR_NB, PIECE_NB> PIECE_SQUARE_INDICES{{
 }};
 
 #define B(v) (v * HalfKA_hm::PS_NB)
-constexpr Array<IndexType, SQUARE_NB> KING_BUCKETS{
+alignas(CACHE_LINE_SIZE) constexpr Array<IndexType, SQUARE_NB> KING_BUCKETS{
   B(28), B(29), B(30), B(31), B(31), B(30), B(29), B(28),  //
   B(24), B(25), B(26), B(27), B(27), B(26), B(25), B(24),  //
   B(20), B(21), B(22), B(23), B(23), B(22), B(21), B(20),  //
@@ -88,7 +88,55 @@ make_index(Color perspective, Square kingSq, Square s, Piece pc) noexcept {
 
 }  // namespace
 
-// Get lists of indices for recently changed features from the piece map
+#if defined(USE_AVX512ICL)
+// Write lists of indices for recently changed features from the piece map
+void HalfKA_hm::write_map_changed_indices(Color           perspective,
+                                          Square          kingSq,
+                                          const PieceMap& oldPieceMap,
+                                          const PieceMap& newPieceMap,
+                                          Bitboard        removedBB,
+                                          Bitboard        addedBB,
+                                          IndexList&      removed,
+                                          IndexList&      added) noexcept {
+    auto* removedWrite = removed.make_space(popcount(removedBB));
+    auto* addedWrite   = added.make_space(popcount(addedBB));
+
+    const __m512i oldPieceVec = _mm512_loadu_si512(oldPieceMap.data());
+    const __m512i newPieceVec = _mm512_loadu_si512(newPieceMap.data());
+
+    // PieceSquareIndex and KingBuckets are multiples of 64, while s and orient
+    // use only the low six bits. Therefore no carry crosses bit 6, and
+    // (s ^ orient) + psi[pc] + bucket == s ^ (psi[pc] + bucket + orient),
+    // allowing the orientation to be folded into the per-piece lookup offset.
+    const u16 flip   = 56 * perspective;
+    const u16 orient = u16(orientation(kingSq)) ^ flip;
+
+    // clang-format off
+    const __m512i psi       = _mm512_castsi256_si512(_mm256_loadu_si256((const __m256i*) PIECE_SQUARE_INDICES[perspective].data()));
+    const __m512i psiOffset = _mm512_add_epi16(psi, _mm512_set1_epi16(u16(KING_BUCKETS[u8(kingSq) ^ flip] + orient)));
+
+    __m512i removedSquares = _mm512_maskz_compress_epi8(removedBB, ALL_SQUARES);
+    __m512i removedPieces  = _mm512_maskz_compress_epi8(removedBB, oldPieceVec);
+    __m512i addedSquares   = _mm512_maskz_compress_epi8(addedBB, ALL_SQUARES);
+    __m512i addedPieces    = _mm512_maskz_compress_epi8(addedBB, newPieceVec);
+
+    removedSquares = _mm512_cvtepi8_epi16(_mm512_castsi512_si256(removedSquares));
+    removedPieces  = _mm512_cvtepi8_epi16(_mm512_castsi512_si256(removedPieces));
+    addedSquares   = _mm512_cvtepi8_epi16(_mm512_castsi512_si256(addedSquares));
+    addedPieces    = _mm512_cvtepi8_epi16(_mm512_castsi512_si256(addedPieces));
+
+    const __m512i removedIndices = _mm512_xor_si512(removedSquares, _mm512_permutexvar_epi16(removedPieces, psiOffset));
+    const __m512i addedIndices   = _mm512_xor_si512(addedSquares, _mm512_permutexvar_epi16(addedPieces, psiOffset));
+
+    _mm512_storeu_si512(removedWrite     , _mm512_cvtepu16_epi32(_mm512_castsi512_si256(removedIndices)));
+    _mm512_storeu_si512(removedWrite + 16, _mm512_cvtepu16_epi32(_mm512_extracti64x4_epi64(removedIndices, 1)));
+
+    _mm512_storeu_si512(addedWrite     , _mm512_cvtepu16_epi32(_mm512_castsi512_si256(addedIndices)));
+    _mm512_storeu_si512(addedWrite + 16, _mm512_cvtepu16_epi32(_mm512_extracti64x4_epi64(addedIndices, 1)));
+    // clang-format on
+}
+#else
+// Append lists of indices for recently changed features from the piece map
 void HalfKA_hm::append_map_changed_indices(Color           perspective,
                                            Square          kingSq,
                                            const PieceMap& oldPieceMap,
@@ -111,8 +159,9 @@ void HalfKA_hm::append_map_changed_indices(Color           perspective,
         added.push_back(make_index(perspective, kingSq, s, newPieceMap[s]));
     }
 }
+#endif
 
-// Get lists of indices for recently changed features
+// Append lists of indices for recently changed features
 void HalfKA_hm::append_changed_indices(Color            perspective,
                                        Square           kingSq,
                                        const DirtyType& dp,

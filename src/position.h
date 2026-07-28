@@ -945,14 +945,14 @@ inline void write_multiple_dirties(const PieceMap& pieceMap,
                                    Bitboard        maskBB,
                                    DirtyThreat     templateDt,
                                    DirtyThreats*   dts) noexcept {
-    __m512i pieceMapData = _mm512_loadu_si512(pieceMap.data());
+    const __m512i pieceVec = _mm512_loadu_si512(pieceMap.data());
 
     u8 maskCount = popcount(maskBB);
     assert(maskCount <= 16);
 
     auto* dtSpace = dts->dtList.make_space(maskCount);
 
-    __m512i templateVal = _mm512_set1_epi32(templateDt.raw());
+    const __m512i templateVal = _mm512_set1_epi32(templateDt.raw());
 
     // Extract the list of squares and up convert to 32 bits.
     // There are never more than 16 incoming threats so this is sufficient.
@@ -960,16 +960,17 @@ inline void write_multiple_dirties(const PieceMap& pieceMap,
     threatSquares         = _mm512_cvtepi8_epi32(_mm512_castsi512_si128(threatSquares));
 
     __m512i threatPieces =
-      _mm512_maskz_permutexvar_epi8(u64{0x1111111111111111}, threatSquares, pieceMapData);
+      _mm512_maskz_permutexvar_epi8(u64{0x1111111111111111}, threatSquares, pieceVec);
 
     // Shift the piece and square into place
     threatSquares = _mm512_slli_epi32(threatSquares, SqShift);
     threatPieces  = _mm512_slli_epi32(threatPieces, PcShift);
 
     // Combine into final dirty values (A | B | C = 254)
-    __m512i dirties = _mm512_ternarylogic_epi32(templateVal, threatSquares, threatPieces, 254);
+    const __m512i dirties =
+      _mm512_ternarylogic_epi32(templateVal, threatSquares, threatPieces, 254);
 
-    __mmask16 storeMask = (u16{1} << maskCount) - 1;
+    const __mmask16 storeMask = (u16{1} << maskCount) - 1;
     _mm512_mask_storeu_epi32(dtSpace, storeMask, dirties);
 }
 #endif

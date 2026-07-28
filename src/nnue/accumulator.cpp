@@ -510,8 +510,13 @@ void update_accumulator_refresh_cache(Color                            perspecti
     Bitboard removedBB = changedBB & entry.piecesBB;
     Bitboard addedBB   = changedBB & piecesBB;
 
+#if defined(USE_AVX512ICL)
+    PSQFeatureSet::write_map_changed_indices(perspective, kingSq, entry.pieceMap, pieceMap,
+                                             removedBB, addedBB, removed, added);
+#else
     PSQFeatureSet::append_map_changed_indices(perspective, kingSq, entry.pieceMap, pieceMap,
                                               removedBB, addedBB, removed, added);
+#endif
 
     entry.pieceMap = pieceMap;
     entry.piecesBB = piecesBB;

@@ -44,6 +44,16 @@ class HalfKA_hm final {
     using DirtyType = DirtyPiece;
     using IndexList = FixedVector<IndexType, MaxActiveDimensions>;
 
+#if defined(USE_AVX512ICL)
+    static void write_map_changed_indices(Color           perspective,
+                                          Square          kingSq,
+                                          const PieceMap& oldPieceMap,
+                                          const PieceMap& newPieceMap,
+                                          Bitboard        removedBB,
+                                          Bitboard        addedBB,
+                                          IndexList&      removed,
+                                          IndexList&      added) noexcept;
+#else
     static void append_map_changed_indices(Color           perspective,
                                            Square          kingSq,
                                            const PieceMap& oldPieceMap,
@@ -52,6 +62,7 @@ class HalfKA_hm final {
                                            Bitboard        addedBB,
                                            IndexList&      removed,
                                            IndexList&      added) noexcept;
+#endif
 
     static void append_changed_indices(Color            perspective,
                                        Square           kingSq,
