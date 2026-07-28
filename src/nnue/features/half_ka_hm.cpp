@@ -21,6 +21,10 @@
 
 #include <array>
 
+#if defined(USE_AVX512ICL)
+    #include <immintrin.h>
+#endif
+
 #include "../../bitboard.h"
 #include "../../misc.h"
 #include "../../types.h"
