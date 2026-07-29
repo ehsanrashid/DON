@@ -277,123 +277,130 @@ void Worker::start_search() noexcept {
     if (!limit.infinite)
         transpositionTable.increment_generation();
 
+    std::string bestMove, ponderMove;
+
     if (rootMoves.empty())
     {
         FixedText score{
           to_score({Value(rootPos.checkers_bb() != 0 ? -VALUE_MATE : VALUE_DRAW), rootPos})};
 
         mainManager->updateContext.onUpdateShort({DEPTH_ZERO, score});
-        mainManager->updateContext.onUpdateMove({move_to_can(Move::None), {}});
-        return;
-    }
 
-    bool think = false;
-
-    Move bookBestMove = Move::None;
-
-    // Check polyglot book
-    if (!limit.infinite && limit.mate == 0)
-        bookBestMove = pgBook.probe(rootPos, rootMoves, options);
-
-    if (bookBestMove != Move::None)
-    {
-        State st;
-        rootPos.do_move(bookBestMove, st, true, this);
-
-        RootMoves oRootMoves;
-
-        for (auto m : MoveList<GenType::LEGAL>(rootPos))
-            oRootMoves.emplace_back(m);
-
-        Move bookPonderMove = pgBook.probe(rootPos, oRootMoves, options);
-
-        rootPos.undo_move(bookBestMove);
-
-        for (auto&& th : threads)
-        {
-            auto& rms = th->worker->rootMoves;
-
-            rms.swap_to_front(bookBestMove);
-
-            if (bookPonderMove != Move::None)
-                rms[0].pv.push_back(bookPonderMove);
-        }
+        bestMove   = move_to_can(Move::None);
+        ponderMove = {};
     }
     else
     {
-        think = true;
+        bool think = false;
 
-        threads.start_search();  // start non-main threads
-        iterative_deepening();   // main thread start searching
-    }
+        Move bookBestMove = Move::None;
 
-    // When reach the maximum depth, can arrive here without a raise of threads.stop.
-    // However, if pondering or in an infinite search, the UCI protocol states that
-    // shouldn't print the best move before the GUI sends a "stop" or "ponderhit" command.
-    // Therefore simply wait here until the GUI sends one of those commands.
-    {
-        std::unique_lock condLock(mainManager->mutex);
+        // Check polyglot book
+        if (!limit.infinite && limit.mate == 0)
+            bookBestMove = pgBook.probe(rootPos, rootMoves, options);
 
-        // Wait until either:
-        // 1. Threads are stopped, OR
-        // 2. Not in infinite search AND Not pondering
-        mainManager->condVar.wait(condLock, [&]() noexcept {
-            return threads.is_stopped() || (!limit.infinite && !mainManager->ponder);
-        });
-    }
-
-    // Stop the threads if not already stopped
-    // (also raise the stop if "ponderhit" just reset mainManager->ponder).
-    threads.request_stop();
-
-    // Wait until all threads have finished
-    threads.wait_finish();
-
-    Worker* bestWorker = this;
-
-    if (think)
-    {
-        // When playing in 'Nodes as Time' mode, advance the time nodes before exiting.
-        if (mainManager->timeManager.use_nodes_time())
-            mainManager->timeManager.advance_time_nodes(threads.sum(&Worker::nodes)
-                                                        - limit.clocks[rootPos.active_color()].inc);
-
-        // If the skill is enabled, swap the best PV line with the sub-optimal one
-        if (mainManager->skill.enabled())
+        if (bookBestMove != Move::None)
         {
-            Move skillMove = mainManager->skill.pick_move(rootMoves, multiPv, false);
+            State st;
+            rootPos.do_move(bookBestMove, st, true, this);
+
+            RootMoves oRootMoves;
+
+            for (auto m : MoveList<GenType::LEGAL>(rootPos))
+                oRootMoves.emplace_back(m);
+
+            Move bookPonderMove = pgBook.probe(rootPos, oRootMoves, options);
+
+            rootPos.undo_move(bookBestMove);
 
             for (auto&& th : threads)
-                th->worker->rootMoves.swap_to_front(skillMove);
+            {
+                auto& rms = th->worker->rootMoves;
+
+                rms.swap_to_front(bookBestMove);
+
+                if (bookPonderMove != Move::None)
+                    rms[0].pv.push_back(bookPonderMove);
+            }
         }
         else
         {
-            if (thread_count() > 1 && multiPv == 1 && limit.mate == 0)
-            {
-                bestWorker = threads.best_thread()->worker.get();
+            think = true;
 
-                // Send PV info again if have a new best worker
-                if (bestWorker != this)
-                    mainManager->show_pv(*bestWorker,
-                                         std::max<Depth>(bestWorker->completedDepth, limit.depth));
+            threads.start_search();  // start non-main threads
+            iterative_deepening();   // main thread start searching
+        }
+
+        // When reach the maximum depth, can arrive here without a raise of threads.stop.
+        // However, if pondering or in an infinite search, the UCI protocol states that
+        // shouldn't print the best move before the GUI sends a "stop" or "ponderhit" command.
+        // Therefore simply wait here until the GUI sends one of those commands.
+        {
+            std::unique_lock condLock(mainManager->mutex);
+
+            // Wait until either:
+            // 1. Threads are stopped, OR
+            // 2. Not in infinite search AND Not pondering
+            mainManager->condVar.wait(condLock, [&]() noexcept {
+                return threads.is_stopped() || (!limit.infinite && !mainManager->ponder);
+            });
+        }
+
+        // Stop the threads if not already stopped
+        // (also raise the stop if "ponderhit" just reset mainManager->ponder).
+        threads.request_stop();
+
+        // Wait until all threads have finished
+        threads.wait_finish();
+
+        Worker* bestWorker = this;
+
+        if (think)
+        {
+            // When playing in 'Nodes as Time' mode, advance the time nodes before exiting.
+            if (mainManager->timeManager.use_nodes_time())
+                mainManager->timeManager.advance_time_nodes(
+                  threads.sum(&Worker::nodes) - limit.clocks[rootPos.active_color()].inc);
+
+            // If the skill is enabled, swap the best PV line with the sub-optimal one
+            if (mainManager->skill.enabled())
+            {
+                Move skillMove = mainManager->skill.pick_move(rootMoves, multiPv, false);
+
+                for (auto&& th : threads)
+                    th->worker->rootMoves.swap_to_front(skillMove);
+            }
+            else
+            {
+                if (thread_count() > 1 && multiPv == 1 && limit.mate == 0)
+                {
+                    bestWorker = threads.best_thread()->worker.get();
+
+                    // Send PV info again if have a new best worker
+                    if (bestWorker != this)
+                        mainManager->show_pv(
+                          *bestWorker, std::max<Depth>(bestWorker->completedDepth, limit.depth));
+                }
+            }
+
+            if (limit.use_time_manager())
+            {
+                mainManager->preBestCurValue  = bestWorker->rootMoves[0].curValue;
+                mainManager->preBestAvgValue  = bestWorker->rootMoves[0].avgValue;
+                mainManager->preTimeReduction = mainManager->timeReduction;
+                mainManager->atFirst          = false;
             }
         }
 
-        if (limit.use_time_manager())
-        {
-            mainManager->preBestCurValue  = bestWorker->rootMoves[0].curValue;
-            mainManager->preBestAvgValue  = bestWorker->rootMoves[0].avgValue;
-            mainManager->preTimeReduction = mainManager->timeReduction;
-            mainManager->atFirst          = false;
-        }
+        assert(!bestWorker->rootMoves.empty() && !bestWorker->rootMoves[0].pv.empty());
+
+        const auto& rm = bestWorker->rootMoves[0];
+
+        bestMove   = move_to_can(rm.pv[0]);
+        ponderMove = move_to_can(rm.pv.size() > 1 || bestWorker->ponder_move_extracted()  //
+                                   ? rm.pv[1]
+                                   : Move::None);
     }
-
-    assert(!bestWorker->rootMoves.empty() && !bestWorker->rootMoves[0].pv.empty());
-    const auto& rm = bestWorker->rootMoves[0];
-
-    std::string bestMove   = move_to_can(rm.pv[0]);
-    std::string ponderMove = move_to_can(  //
-      rm.pv.size() > 1 || bestWorker->ponder_move_extracted() ? rm.pv[1] : Move::None);
 
     mainManager->updateContext.onUpdateMove({bestMove, ponderMove});
 }
