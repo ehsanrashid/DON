@@ -787,7 +787,7 @@ struct DirtyBoard final {
 // Linear Congruential Generator (LCG): X{n+1} = (c + a * X{n})
 // Based on a congruential pseudo-random number generator.
 constexpr u64 make_hash(u64 seed) noexcept {
-    return 0x14057B7EF767814Full + 0x5851F42D4C957F2Dull * seed;
+    return u64{0x14057B7EF767814F} + u64{0x5851F42D4C957F2D} * seed;
 }
 
 template<typename T, typename... Ts>
