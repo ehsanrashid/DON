@@ -789,8 +789,8 @@ void AccumulatorStack::reset() noexcept {
 void AccumulatorStack::push(DirtyBoard&& db) noexcept {
     assert(size < SIZE);
 
-    psqAccumulators[size].reset(std::move(db.dp));
-    threatAccumulators[size].reset(std::move(db.dts));
+    psqAccumulators[size].reset(std::move(db.dirtyPiece));
+    threatAccumulators[size].reset(std::move(db.dirtyThreats));
     ++size;
 }
 

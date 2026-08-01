@@ -2045,9 +2045,11 @@ void Worker::do_move(Position& pos, Move m, State& st, Stack* ss, bool mayCheck)
 
     nodes.fetch_add(1, std::memory_order_relaxed);
 
-    ss->move           = m;
-    ss->pieceSqHistory = &continuationHistory[ss->inCheck][capture][+db.dp.movedPc][m.dst_sq()];
-    ss->pieceSqCorrectionHistory = &continuationCorrectionHistory[+db.dp.movedPc][m.dst_sq()];
+    ss->move = m;
+    ss->pieceSqHistory =
+      &continuationHistory[ss->inCheck][capture][+db.dirtyPiece.movedPc][m.dst_sq()];
+    ss->pieceSqCorrectionHistory =
+      &continuationCorrectionHistory[+db.dirtyPiece.movedPc][m.dst_sq()];
 
     accStack.push(std::move(db));
 }

@@ -780,8 +780,8 @@ struct DirtyThreats final {
 // Keep track of all changes on the board by a move
 struct DirtyBoard final {
    public:
-    DirtyPiece   dp;
-    DirtyThreats dts;
+    DirtyPiece   dirtyPiece;
+    DirtyThreats dirtyThreats;
 };
 
 // Linear Congruential Generator (LCG): X{n+1} = (c + a * X{n})
