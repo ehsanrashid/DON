@@ -1351,10 +1351,11 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
                     if (!check && history < -4136 * depth)
                         continue;
 
-                    history += constexpr_round(2.15625 * double(quietHistory[ac][move.raw()]));
+                    history += constexpr_round(2.15625 * quietHistory[ac][move.raw()]);
 
                     // (*Scaler) Generally, higher history scales well
-                    lmrDepth += history / LMRDivisor[std::min<int>(depth, LMRDivisor.size()) - 1];
+                    assert(depth > DEPTH_ZERO);
+                    lmrDepth += history / LMRDivisor[std::min<usize>(depth, LMRDivisor.size()) - 1];
 
                     // Futility pruning: for quiets
                     // (*Scaler) Generally, more frequent futility pruning scales well
@@ -1665,7 +1666,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
 
                 alpha = value;  // Update alpha! Always alpha < beta
 
-                // Reduce depth for other moves if have found at least one score improvement
+                // Reduce depth for subsequent moves after a non-decisive score improvement
                 if (depth > 3 && !is_decisive(value))
                     depth = std::max<Depth>(
                       depth - int(depth < 8) - int(depth < 16) - int(depth < 24), 3);
