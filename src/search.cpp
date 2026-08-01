@@ -47,8 +47,10 @@ constexpr Depth OutputLimitDepth = 30;
 
 constexpr double BetaBias = 0.67;
 
-constexpr Array<int, 16> LMRDivisor{3637, 2787, 2761, 2939, 3171, 3347, 3147, 2762,
-                                    2772, 3106, 3107, 3060, 3112, 2991, 3090, 3542};
+constexpr Array<int, 16> LMRDivisor{
+  3637, 2787, 2761, 2939, 3171, 3347, 3147, 2762,  //
+  2772, 3106, 3107, 3060, 3112, 2991, 3090, 3542   //
+};
 
 // Reductions lookup table using [depth or moveCount]
 alignas(CACHE_LINE_SIZE) constexpr auto Reductions = []() constexpr noexcept {
