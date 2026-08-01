@@ -748,7 +748,7 @@ void Worker::iterative_deepening() noexcept {
 // The main alpha-beta search function with negamax framework and
 // various enhancements like aspiration windows, late move reductions, etc.
 template<NT T>
-Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, int red, Move excludedMove) noexcept {
+Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, i16 red, Move excludedMove) noexcept {
     // clang-format on
     constexpr bool RootNode = T == NT::ROOT;
     constexpr bool PVNode   = RootNode || T == NT::PV;
@@ -1513,7 +1513,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
             Depth redDepth =
               std::max<Depth>(std::min<Depth>(newDepth - r / 1024, newDepth + 2), 1) + int(PVNode);
 
-            int reduction = newDepth - redDepth;
+            i16 reduction = newDepth - redDepth;
 
             value = -search<NT::CUT>(pos, ss + 1, -alpha - 1, -alpha, redDepth, reduction);
 
@@ -1666,9 +1666,8 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
                 alpha = value;  // Update alpha! Always alpha < beta
 
                 // Reduce depth for other moves if have found at least one score improvement
-                if (!is_decisive(value))
-                    depth = std::max<Depth>(
-                      depth - int(depth < 24) - int(depth < 16) - int(depth < 8), 1);
+                if (depth > 3 && !is_decisive(value))
+                    depth -= int(depth < 8) + int(depth < 16) + int(depth < 24);
             }
         }
 
@@ -2200,7 +2199,7 @@ int Worker::correction_value(const Position& pos, const Stack* ss) const noexcep
     auto& h4 = *(ss - 4)->pieceSqCorrectionHistory;
 
     correctionValue += i64{8761} * ( ( preOk & int(h2[+prePc][preSq]
-                                                + h4[+prePc][preSq]))
+                                                 + h4[+prePc][preSq]))
                                    | (~preOk & int(64049)));
 
     return std::clamp(correctionValue, -INT_LIMIT, +INT_LIMIT);
