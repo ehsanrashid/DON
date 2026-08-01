@@ -1065,20 +1065,22 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
     // If eval is really low, check with qsearch then return speculative fail low.
     if constexpr (!PVNode)
     {
-        if (!exclude && ttEvalValue + 483 + 318 * depth * depth <= alpha)
-        {
-            Value razorAlpha = std::max<int>(alpha - 1, -VALUE_INFINITE);
+    if (!exclude && ttEvalValue + 483 + 318 * depth * depth <= alpha)
+    {
+        Value razorAlpha = std::max<int>(alpha - 1, -VALUE_INFINITE);
 
-            Value razorValue = qsearch<false>(pos, ss, razorAlpha, razorAlpha + 1);
+        Value razorValue = qsearch<false>(pos, ss, razorAlpha, razorAlpha + 1);
 
-            if (razorValue <= razorAlpha && !is_loss(razorValue))
-                return razorValue;
+        if (razorValue <= razorAlpha && !is_loss(razorValue))
+            return razorValue;
 
-            ss->ttMove = ttd.move;
-        }
+        ss->ttMove = ttd.move;
+    }
     }
 
     // Step 8. Reverse Futility Pruning: child node
+    if constexpr (!PVNode)
+    {
     // The depth condition is important for mate finding
     if (!exclude && !ss->ttPv && depth < 19 && !is_win(ttEvalValue) && !is_loss(beta)
         && (ttmNone || history_value(pos, ttd.move, ac, contHistory) >= 32768 - int(ttmCapture) * 25968))
@@ -1094,50 +1096,51 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
         if (ttEvalValue - futility >= beta)
             return (661 * beta + 363 * ttEvalValue) / 1024;
     }
+    }
 
     // Step 9. Null move search with verification search
     if constexpr (CutNode)
     {
-        if (!exclude && hasNonPawn /*Zugzwang guard*/ && ss->ply >= nmpPly
-            && beta >= -2000 && ss->evalValue - 365 + int(improve) * 47 + 18 * depth >= beta)
+    if (!exclude && hasNonPawn /*Zugzwang guard*/ && ss->ply >= nmpPly
+        && beta >= -2000 && ss->evalValue - 365 + int(improve) * 47 + 18 * depth >= beta)
+    {
+        assert(preMove != Move::Null);
+
+        // Null move dynamic reduction
+        Depth R = 7 + depth / 3 + std::max((ss->evalValue - beta) / 256, 0);
+
+        do_null_move(pos, st, ss);
+
+        Value nullValue = -search<NT::ALL>(pos, ss + 1, -beta, -beta + 1, depth - R);
+
+        undo_null_move(pos);
+
+        // If null move fails high, do a verification search
+        if (nullValue >= beta && !is_win(nullValue))
         {
-            assert(preMove != Move::Null);
+            assert(!is_loss(nullValue));
 
-            // Null move dynamic reduction
-            Depth R = 7 + depth / 3 + std::max((ss->evalValue - beta) / 256, 0);
+            // At low depths or when verification is disabled,
+            // return immediately to avoid expensive verification search.
+            if (depth < 16 || nmpPly != 0)
+                return nullValue;
 
-            do_null_move(pos, st, ss);
+            assert(nmpPly == 0);  // Recursive verification is not allowed
 
-            Value nullValue = -search<NT::ALL>(pos, ss + 1, -beta, -beta + 1, depth - R);
+            // Do verification search at high depths,
+            // with null move pruning disabled until ply exceeds nmpPly.
+            nmpPly = ss->ply + 3 * (depth - R) / 4;
 
-            undo_null_move(pos);
+            Value verifyValue = search<NT::ALL>(pos, ss, beta - 1, beta, depth - R);
 
-            // If null move fails high, do a verification search
-            if (nullValue >= beta && !is_win(nullValue))
-            {
-                assert(!is_loss(nullValue));
+            nmpPly = 0;
 
-                // At low depths or when verification is disabled,
-                // return immediately to avoid expensive verification search.
-                if (depth < 16 || nmpPly != 0)
-                    return nullValue;
+            if (verifyValue >= beta)
+                return nullValue;
 
-                assert(nmpPly == 0);  // Recursive verification is not allowed
-
-                // Do verification search at high depths,
-                // with null move pruning disabled until ply exceeds nmpPly.
-                nmpPly = ss->ply + 3 * (depth - R) / 4;
-
-                Value verifyValue = search<NT::ALL>(pos, ss, beta - 1, beta, depth - R);
-
-                nmpPly = 0;
-
-                if (verifyValue >= beta)
-                    return nullValue;
-
-                ss->ttMove = ttd.move;
-            }
+            ss->ttMove = ttd.move;
         }
+    }
     }
 
     improve |= ss->evalValue >= beta;
@@ -1147,7 +1150,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
     // (*Scaler) Making IIR more aggressive scales poorly.
     if constexpr (!AllNode)
     {
-        depth -= (depth > 5) & (ttmNone) & !ss->followPv;
+    depth -= (depth > 5) & (ttmNone) & !ss->followPv;
     }
 
     // Step 11. ProbCut
