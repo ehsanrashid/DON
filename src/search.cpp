@@ -2193,9 +2193,9 @@ int Worker::correction_value(const Position& pos, const Stack* ss) const noexcep
     Square preSq = preMove.dst_sq_();
     Piece  prePc = pos[preSq];
 
-    correctionValue += ( preOk & i64{8761} * int((*(ss - 2)->pieceSqCorrectionHistory)[+prePc][preSq]
-                                               + (*(ss - 4)->pieceSqCorrectionHistory)[+prePc][preSq]))
-                     | (~preOk & int(64049));
+    correctionValue += ( preOk & (i64{8761} * int((*(ss - 2)->pieceSqCorrectionHistory)[+prePc][preSq]
+                                                + (*(ss - 4)->pieceSqCorrectionHistory)[+prePc][preSq])))
+                     | (~preOk & i64{64049});
 
     return std::clamp(correctionValue, -INT_LIMIT, +INT_LIMIT);
 }
@@ -2208,11 +2208,11 @@ int Worker::history_value(bool                             capture,
                           PieceType                        capturedPt,
                           Color                            ac,
                           const History<HType::PIECE_SQ>** contHistory) const noexcept {
-    return capture ? int(6.96875 * double(piece_value(capturedPt)))  //
+    return capture ? int(6.8203 * double(piece_value(capturedPt)))  //
                        + captureHistory[+movedPc][m.dst_sq()][capturedPt]
-                   : 2 * quietHistory[ac][m.raw()]                //
-                       + (*contHistory[0])[+movedPc][m.dst_sq()]  //
-                       + (*contHistory[1])[+movedPc][m.dst_sq()];
+                   : int(2.1992 * quietHistory[ac][m.raw()]                  //
+                         + 1.0996 * (*contHistory[0])[+movedPc][m.dst_sq()]  //
+                         + 1.0673 * (*contHistory[1])[+movedPc][m.dst_sq()]);
 }
 
 int Worker::history_value(const Position&                  pos,
