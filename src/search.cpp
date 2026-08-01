@@ -2040,17 +2040,18 @@ Value Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta) noexcep
 }
 
 void Worker::do_move(Position& pos, Move m, State& st, Stack* ss, bool mayCheck) noexcept {
+    assert(ss != nullptr);
+
     bool capture = pos.capture_promo(m);
 
     DirtyBoard db = pos.do_move(m, st, mayCheck, this);
 
     nodes.fetch_add(1, std::memory_order_relaxed);
 
-    ss->move = m;
-    ss->pieceSqHistory =
-      &continuationHistory[ss->inCheck][capture][+db.dirtyPiece.movedPc][m.dst_sq()];
-    ss->pieceSqCorrectionHistory =
-      &continuationCorrectionHistory[+db.dirtyPiece.movedPc][m.dst_sq()];
+    auto movedPc                 = db.dirtyPiece.movedPc;
+    ss->move                     = m;
+    ss->pieceSqHistory           = &continuationHistory[ss->inCheck][capture][+movedPc][m.dst_sq()];
+    ss->pieceSqCorrectionHistory = &continuationCorrectionHistory[+movedPc][m.dst_sq()];
 
     accStack.push(std::move(db));
 }
@@ -2062,6 +2063,8 @@ void Worker::undo_move(Position& pos, Move m) noexcept {
 }
 
 void Worker::do_null_move(Position& pos, State& st, Stack* ss) noexcept {
+    assert(ss != nullptr);
+
     pos.do_null_move(st);
 
     ss->move                     = Move::Null;
