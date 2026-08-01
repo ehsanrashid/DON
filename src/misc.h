@@ -373,7 +373,7 @@ constexpr usize reserve_count(usize reserveCount = 1024) noexcept {
 }
 
 template<typename T1, typename T2>
-inline constexpr T2 interpolate(T1 x, T1 x0, T1 x1, T2 y0, T2 y1) noexcept {
+constexpr T2 interpolate(T1 x, T1 x0, T1 x1, T2 y0, T2 y1) noexcept {
     assert(x0 != x1);
     return T2(y0 + (y1 - y0) * (x - x0) / (x1 - x0));
 }

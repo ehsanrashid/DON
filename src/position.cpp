@@ -852,20 +852,21 @@ void Position::do_castling(Color       ac,
 
     if constexpr (Do)
     {
-        db->dp.dstSq     = kingDstSq;
-        db->dp.removedSq = rookOrgSq;
-        db->dp.addedSq   = rookDstSq;
-        db->dp.removedPc = db->dp.addedPc = rookPc;
+        db->dirtyPiece.dstSq     = kingDstSq;
+        db->dirtyPiece.removedSq = rookOrgSq;
+        db->dirtyPiece.addedSq   = rookDstSq;
+        db->dirtyPiece.removedPc = db->dirtyPiece.addedPc = rookPc;
 
         st->hasCastleds[ac] = true;
     }
     // Remove rook first since squares could overlap in Chess960
     if (rookMoved)
-        remove(Do ? rookOrgSq : rookDstSq, Do ? &db->dts : nullptr);
+        remove(Do ? rookOrgSq : rookDstSq, Do ? &db->dirtyThreats : nullptr);
     if (kingMoved)
-        move(Do ? kingOrgSq : kingDstSq, Do ? kingDstSq : kingOrgSq, Do ? &db->dts : nullptr);
+        move(Do ? kingOrgSq : kingDstSq, Do ? kingDstSq : kingOrgSq,
+             Do ? &db->dirtyThreats : nullptr);
     if (rookMoved)
-        put(Do ? rookDstSq : rookOrgSq, rookPc, Do ? &db->dts : nullptr);
+        put(Do ? rookDstSq : rookOrgSq, rookPc, Do ? &db->dirtyThreats : nullptr);
 }
 
 // Makes a move, and saves all necessary information to new state.
@@ -901,14 +902,14 @@ DirtyBoard Position::do_move(Move m, State& newSt, bool mayCheck, const Worker* 
 
     DirtyBoard db;
 
-    db.dp.movedPc        = movedPc;
-    db.dp.orgSq          = orgSq;
-    db.dp.dstSq          = dstSq;
-    db.dp.addedSq        = SQ_NONE;
-    db.dts.ac            = ac;
-    db.dts.preKingSq     = square<KING>(ac);
-    db.dts.threateningBB = db.dts.threatenedBB = 0;
-    assert(db.dts.dtList.empty());
+    db.dirtyPiece.movedPc         = movedPc;
+    db.dirtyPiece.orgSq           = orgSq;
+    db.dirtyPiece.dstSq           = dstSq;
+    db.dirtyPiece.addedSq         = SQ_NONE;
+    db.dirtyThreats.ac            = ac;
+    db.dirtyThreats.preKingSq     = square<KING>(ac);
+    db.dirtyThreats.threateningBB = db.dirtyThreats.threatenedBB = 0;
+    assert(db.dirtyThreats.dtList.empty());
 
     st->key ^= Zobrist::turn() ^ Zobrist::enpassant(en_passant_sq());
 
@@ -988,8 +989,8 @@ DirtyBoard Position::do_move(Move m, State& newSt, bool mayCheck, const Worker* 
             st->nonPawnKeys[~ac][is_major(capturedPt)] ^= capturedKey;
         }
 
-        db.dp.removedSq = capturedSq;
-        db.dp.removedPc = capturedPc;
+        db.dirtyPiece.removedSq = capturedSq;
+        db.dirtyPiece.removedPc = capturedPc;
 
         st->capturedSq = dstSq;
 
@@ -1001,12 +1002,12 @@ DirtyBoard Position::do_move(Move m, State& newSt, bool mayCheck, const Worker* 
 
     if (capture && m.type() != MT::EN_PASSANT)
     {
-        remove(orgSq, &db.dts);
-        swap(dstSq, movedPc, &db.dts);
+        remove(orgSq, &db.dirtyThreats);
+        swap(dstSq, movedPc, &db.dirtyThreats);
     }
     else
     {
-        move(orgSq, dstSq, &db.dts);
+        move(orgSq, dstSq, &db.dirtyThreats);
     }
 
     // If the moving piece is a pawn do some special extra work
@@ -1023,11 +1024,11 @@ DirtyBoard Position::do_move(Move m, State& newSt, bool mayCheck, const Worker* 
             movedPt    = promotedPt;
             promotedPc = make_piece(ac, promotedPt);
 
-            db.dp.dstSq   = SQ_NONE;
-            db.dp.addedSq = dstSq;
-            db.dp.addedPc = promotedPc;
+            db.dirtyPiece.dstSq   = SQ_NONE;
+            db.dirtyPiece.addedSq = dstSq;
+            db.dirtyPiece.addedPc = promotedPc;
 
-            swap(dstSq, promotedPc, &db.dts);
+            swap(dstSq, promotedPc, &db.dirtyThreats);
 
             assert(count(promotedPc) != 0);
             assert(Zobrist::piece_square(ac, PAWN, dstSq) == 0);
@@ -1061,7 +1062,7 @@ DirtyBoard Position::do_move(Move m, State& newSt, bool mayCheck, const Worker* 
     }
     // clang-format on
 
-    db.dts.kingSq = square<KING>(ac);
+    db.dirtyThreats.kingSq = square<KING>(ac);
 
     // Update hash key
     st->key ^= movedKey;
@@ -1143,11 +1144,12 @@ DirtyBoard Position::do_move(Move m, State& newSt, bool mayCheck, const Worker* 
 
     assert(_is_ok());
 
-    assert((db.dp.movedPc != Piece::NO_PIECE));
-    assert((db.dp.orgSq != SQ_NONE));
-    assert((db.dp.dstSq != SQ_NONE) ^ !(m.type() != MT::PROMOTION));
-    assert((db.dp.removedSq != SQ_NONE) ^ !(capture || m.type() == MT::CASTLING));
-    assert((db.dp.addedSq != SQ_NONE) ^ !(m.type() == MT::PROMOTION || m.type() == MT::CASTLING));
+    assert((db.dirtyPiece.movedPc != Piece::NO_PIECE));
+    assert((db.dirtyPiece.orgSq != SQ_NONE));
+    assert((db.dirtyPiece.dstSq != SQ_NONE) ^ !(m.type() != MT::PROMOTION));
+    assert((db.dirtyPiece.removedSq != SQ_NONE) ^ !(capture || m.type() == MT::CASTLING));
+    assert((db.dirtyPiece.addedSq != SQ_NONE)
+           ^ !(m.type() == MT::PROMOTION || m.type() == MT::CASTLING));
     return db;
 }
 
