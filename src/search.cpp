@@ -1425,7 +1425,14 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
             // and can prune the whole subtree by returning a soft-bound.
             else if (singularValue >= beta && !is_decisive(singularValue))
             {
-                ttMoveHistory << -std::min(+394 + 105 * depth, +3692);
+                ttMoveHistory << (-421 - 110 * depth);
+
+                if (!ss->inCheck && singularValue > ss->evalValue)
+                {
+                    int bonus = (singularValue - ss->evalValue) * singularDepth * 177 / 1024;
+
+                    update_correction_histories(pos, ss, bonus);
+                }
 
                 return singularValue;
             }
@@ -1435,14 +1442,9 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
             // do not know if the ttMove is singular or can do a multi-cut,
             // so reduce the ttMove in favor of other moves based on some conditions:
 
-            // If the ttMove is assumed to fail high over current beta
-            else if (ttd.value >= beta)
+            // If on CutNode or the ttMove is assumed to fail high over current beta
+            else if (CutNode || ttd.value >= beta)
                 extension = -3;
-            // If on CutNode but the ttMove is not assumed to fail high over current beta
-            else if constexpr (CutNode)
-            {
-                extension = -2;
-            }
         }
             // clang-format on
         }
