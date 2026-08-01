@@ -1079,25 +1079,20 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
     }
 
     // Step 8. Reverse Futility Pruning: child node
-    if constexpr (!PVNode)
+    // The depth condition is important for mate finding
+    if (!exclude && !ss->ttPv && depth < 19 && !is_win(ttEvalValue) && !is_loss(beta)
+        && (ttmNone || history_value(pos, ttd.move, ac, contHistory) >= 32768 - int(ttmCapture) * 25968))
     {
-        // The depth condition is important for mate finding
-        if (!ss->ttPv && !exclude && depth < 19 && !is_win(ttEvalValue) && !is_loss(beta)
-            && (ttmNone || history_value(pos, ttd.move, ac, contHistory) >= 32768 - int(ttmCapture) * 25968))
-        {
-            // Compute base futility
-            int baseFutility = std::min(+25 + 4 * depth, +65) + int(ttd.hit) * 20;
-            // Compute margin
-            int margin = std::max(
-                                  depth * baseFutility
-                                - constexpr_round((double(improve) * 2.7236 + double(worsen) * 0.3271) * double(baseFutility))
-                                + constexpr_round(5.0394e-6 * double(absCorrectionValue)),
-                                  0);
+        // Compute base futility
+        int baseFutility = std::min(+25 + 4 * depth, +65) + int(ttd.hit) * 20;
+        // Compute futility
+        int futility = std::max(depth * baseFutility
+                              - constexpr_round((double(improve) * 2.7236 + double(worsen) * 0.3271) * double(baseFutility))
+                              + constexpr_round(5.0394e-6 * double(absCorrectionValue)),
+                                0);
 
-            // If ttEvalValue - margin >= beta, return a value adjusted for depth
-            if (ttEvalValue - margin >= beta)
-                return (661 * beta + 363 * ttEvalValue) / 1024;
-        }
+        if (ttEvalValue - futility >= beta)
+            return (661 * beta + 363 * ttEvalValue) / 1024;
     }
 
     // Step 9. Null move search with verification search
