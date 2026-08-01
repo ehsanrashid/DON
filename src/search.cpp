@@ -791,7 +791,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
     if constexpr (PVNode)
     {
         // Update selDepth (selDepth from 1, ply from 0)
-        selDepth = std::max<u16>(selDepth, ss->ply + 1);
+        selDepth = std::max<u16>(ss->ply + 1, selDepth);
     }
 
     usize prePvIdx = std::max<int>((ss - 1)->ply, 0);
@@ -1808,7 +1808,7 @@ Value Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta) noexcep
         (ss + 1)->pv = &pv;
 
         // Update selDepth (selDepth from 1, ply from 0)
-        selDepth = std::max<u16>(selDepth, ss->ply + 1);
+        selDepth = std::max<u16>(ss->ply + 1, selDepth);
     }
 
     // Step 1. Initialize node
