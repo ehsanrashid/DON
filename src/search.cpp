@@ -1408,10 +1408,10 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
 
             if (singularValue <= singularAlpha)
             {
-                int corrMargin = constexpr_round(4.3351e-6 * double(absCorrectionValue));
+                int corrMargin = constexpr_round(5.0411e-6 * double(absCorrectionValue));
 
-                int doubleMargin = -4 + int(PVNode) * 213 - int(!ttmCapture) * 196 - corrMargin - int(ss->ply > rootDepth) * 45 - constexpr_round(7.6370e-3 * double(ttMoveHistory));
-                int tripleMargin = 73 + int(PVNode) * 324 - int(!ttmCapture) * 229 - corrMargin - int(ss->ply > rootDepth) * 50 + int(ss->ttPv) * 87;
+                int doubleMargin = -2 + int(PVNode) * 204 - int(!ttmCapture) * 152 - corrMargin - int(ss->ply > rootDepth) * 38 - constexpr_round(10.290e-3 * double(ttMoveHistory));
+                int tripleMargin = 70 + int(PVNode) * 279 - int(!ttmCapture) * 188 - corrMargin - int(ss->ply > rootDepth) * 43 + int(ss->ttPv) * 81;
 
                 extension = 1 + int(singularValue + doubleMargin <= singularAlpha)
                               + int(singularValue + tripleMargin <= singularAlpha);
@@ -1425,11 +1425,11 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
             // and can prune the whole subtree by returning a soft-bound.
             else if (singularValue >= beta && !is_decisive(singularValue))
             {
-                ttMoveHistory << (-421 - 110 * depth);
+                ttMoveHistory << -(+421 + 110 * depth);
 
                 if (!ss->inCheck && singularValue > ss->evalValue)
                 {
-                    int bonus = (singularValue - ss->evalValue) * singularDepth * 177 / 1024;
+                    int bonus = constexpr_round(0.1729 * (singularValue - ss->evalValue) * singularDepth);
 
                     update_correction_histories(pos, ss, bonus);
                 }
@@ -1761,7 +1761,8 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
     if (!ss->inCheck && (bestMove == Move::None || !pos.capture(bestMove))
         && (bestValue > ss->evalValue) == (bestMove != Move::None))
     {
-        int bonus = (bestValue - ss->evalValue) * depth / (8 + int(bestMove != Move::None) * 2);
+        int bonus = constexpr_round((bestMove != Move::None ? 0.0938 : 0.1406)
+                                    * (bestValue - ss->evalValue) * depth);
 
         update_correction_histories(pos, ss, bonus);
     }
