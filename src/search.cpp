@@ -1154,7 +1154,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
     // (*Scaler) Making IIR more aggressive scales poorly.
     if constexpr (!AllNode)
     {
-        depth -= (depth > 5) & (ttmNone) & !ss->followPv;
+        depth -= (depth > 5) & (ttmNone) & (red <= 4096) & !ss->followPv;
     }
 
     // Step 11. ProbCut
