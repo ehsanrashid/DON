@@ -239,19 +239,19 @@ void Worker::init() noexcept {
 
     // Initialize histories
 
-    captureHistory.fill(-689);
-    quietHistory.fill(0);
+    captureHistory.fill(-742);
+    quietHistory.fill(-5);
     ttMoveHistory = 0;
 
     for (bool inCheck : {false, true})
         for (bool capture : {false, true})
             for (auto& toPieceSqHist : continuationHistory[inCheck][capture])
                 for (auto& pieceSqHist : toPieceSqHist)
-                    pieceSqHist.fill(-541);
+                    pieceSqHist.fill(-586);
 
     for (auto& toPieceSqCorrHist : continuationCorrectionHistory)
         for (auto& pieceSqCorrHist : toPieceSqCorrHist)
-            pieceSqCorrHist.fill(7);
+            pieceSqCorrHist.fill(5);
 
     accCache.init(network[numa_access_token()]);
 }
@@ -2144,8 +2144,8 @@ void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Sta
 // Updates correction histories at the end of search() when a bestMove is found
 void Worker::update_correction_histories(const Position& pos, const Stack* ss, int bonus) noexcept {
     constexpr double    PawnBonusScale = 1.0000;
-    constexpr double   MinorBonusScale = 1.2109;
-    constexpr double NonPawnBonusScale = 1.4141;
+    constexpr double   MinorBonusScale = 1.1719;
+    constexpr double NonPawnBonusScale = 1.4531;
 
     Color ac = pos.active_color();
 
@@ -2167,8 +2167,8 @@ void Worker::update_correction_histories(const Position& pos, const Stack* ss, i
     auto& h2 = *(ss - 2)->pieceSqCorrectionHistory;
     auto& h4 = *(ss - 4)->pieceSqCorrectionHistory;
 
-    h2[+prePc][preSq] << (preOk & constexpr_round(1.0078 * double(bonus)));
-    h4[+prePc][preSq] << (preOk & constexpr_round(0.4766 * double(bonus)));
+    h2[+prePc][preSq] << (preOk & constexpr_round(1.0156 * double(bonus)));
+    h4[+prePc][preSq] << (preOk & constexpr_round(0.5469 * double(bonus)));
 }
 
 // Computes the correction value for the current position from the correction histories
@@ -2176,11 +2176,11 @@ int Worker::correction_value(const Position& pos, const Stack* ss) const noexcep
     Color ac = pos.active_color();
 
     i64 correctionValue =
-           + i64{5710} * int(histories.    pawn_correction<WHITE>(pos.    pawn_key(WHITE))[ac]
+           + i64{7670} * int(histories.    pawn_correction<WHITE>(pos.    pawn_key(WHITE))[ac]
                            + histories.    pawn_correction<BLACK>(pos.    pawn_key(BLACK))[ac])
-           + i64{4411} * int(histories.   minor_correction<WHITE>(pos.   minor_key(WHITE))[ac]
+           + i64{5284} * int(histories.   minor_correction<WHITE>(pos.   minor_key(WHITE))[ac]
                            + histories.   minor_correction<BLACK>(pos.   minor_key(BLACK))[ac])
-           +i64{12749} * int(histories.non_pawn_correction<WHITE>(pos.non_pawn_key(WHITE))[ac]
+           +i64{12906} * int(histories.non_pawn_correction<WHITE>(pos.non_pawn_key(WHITE))[ac]
                            + histories.non_pawn_correction<BLACK>(pos.non_pawn_key(BLACK))[ac]);
 
     Move preMove = (ss - 1)->move;
@@ -2192,9 +2192,9 @@ int Worker::correction_value(const Position& pos, const Stack* ss) const noexcep
     auto& h2 = *(ss - 2)->pieceSqCorrectionHistory;
     auto& h4 = *(ss - 4)->pieceSqCorrectionHistory;
 
-    correctionValue += i64{8022} * ( (preOk & int(h2[+prePc][preSq]
-                                             + h4[+prePc][preSq]))
-                                   | (~preOk & 8));
+    correctionValue += i64{8761} * ( (preOk & int(h2[+prePc][preSq]
+                                                + h4[+prePc][preSq]))
+                                   | (~preOk & 64049));
 
     return std::clamp(correctionValue, -INT_LIMIT, +INT_LIMIT);
 }
