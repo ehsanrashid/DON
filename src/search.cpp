@@ -2208,11 +2208,11 @@ int Worker::history_value(bool                             capture,
                           PieceType                        capturedPt,
                           Color                            ac,
                           const History<HType::PIECE_SQ>** contHistory) const noexcept {
-    return capture ? int(6.8203 * double(piece_value(capturedPt)))  //
-                       + captureHistory[+movedPc][m.dst_sq()][capturedPt]
-                   : int(2.1992 * quietHistory[ac][m.raw()]                  //
-                         + 1.0996 * (*contHistory[0])[+movedPc][m.dst_sq()]  //
-                         + 1.0673 * (*contHistory[1])[+movedPc][m.dst_sq()]);
+    return constexpr_round(capture ? 6.8203 * double(piece_value(capturedPt))  //
+                                       + captureHistory[+movedPc][m.dst_sq()][capturedPt]
+                                   : 2.1992 * quietHistory[ac][m.raw()]                    //
+                                       + 1.0996 * (*contHistory[0])[+movedPc][m.dst_sq()]  //
+                                       + 1.0673 * (*contHistory[1])[+movedPc][m.dst_sq()]);
 }
 
 int Worker::history_value(const Position&                  pos,
