@@ -1667,7 +1667,8 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
 
                 // Reduce depth for other moves if have found at least one score improvement
                 if (depth > 3 && !is_decisive(value))
-                    depth -= int(depth < 8) + int(depth < 16) + int(depth < 24);
+                    depth = std::max<Depth>(
+                      depth - int(depth < 8) - int(depth < 16) - int(depth < 24), 3);
             }
         }
 
@@ -2170,11 +2171,8 @@ void Worker::update_correction_histories(const Position& pos, const Stack* ss, i
     Square preSq = preMove.dst_sq_();
     Piece  prePc = pos[preSq];
 
-    auto& h2 = *(ss - 2)->pieceSqCorrectionHistory;
-    auto& h4 = *(ss - 4)->pieceSqCorrectionHistory;
-
-    h2[+prePc][preSq] << (preOk & constexpr_round(1.0156 * double(bonus)));
-    h4[+prePc][preSq] << (preOk & constexpr_round(0.5469 * double(bonus)));
+    (*(ss - 2)->pieceSqCorrectionHistory)[+prePc][preSq] << (preOk & constexpr_round(1.0156 * double(bonus)));
+    (*(ss - 4)->pieceSqCorrectionHistory)[+prePc][preSq] << (preOk & constexpr_round(0.5469 * double(bonus)));
 }
 
 // Computes the correction value for the current position from the correction histories
@@ -2195,12 +2193,9 @@ int Worker::correction_value(const Position& pos, const Stack* ss) const noexcep
     Square preSq = preMove.dst_sq_();
     Piece  prePc = pos[preSq];
 
-    auto& h2 = *(ss - 2)->pieceSqCorrectionHistory;
-    auto& h4 = *(ss - 4)->pieceSqCorrectionHistory;
-
-    correctionValue += i64{8761} * ( ( preOk & int(h2[+prePc][preSq]
-                                                 + h4[+prePc][preSq]))
-                                   | (~preOk & int(64049)));
+    correctionValue += ( preOk & i64{8761} * int((*(ss - 2)->pieceSqCorrectionHistory)[+prePc][preSq]
+                                               + (*(ss - 4)->pieceSqCorrectionHistory)[+prePc][preSq]))
+                     | (~preOk & int(64049));
 
     return std::clamp(correctionValue, -INT_LIMIT, +INT_LIMIT);
 }
