@@ -45,8 +45,6 @@ namespace {
 
 constexpr Depth OutputLimitDepth = 30;
 
-constexpr double BetaBias = 0.67;
-
 constexpr Array<int, 16> LMRDivisor{
   3637, 2787, 2761, 2939, 3171, 3347, 3147, 2762,  //
   2772, 3106, 3107, 3060, 3112, 2991, 3090, 3542   //
@@ -1098,7 +1096,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
 
             // If ttEvalValue - margin >= beta, return a value adjusted for depth
             if (ttEvalValue - margin >= beta)
-                return constexpr_ceil(BetaBias * double(beta) + (1.0 - BetaBias) * double(ttEvalValue));
+                return (661 * beta + 363 * ttEvalValue) / 1024;
         }
     }
 
@@ -1154,7 +1152,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
     // (*Scaler) Making IIR more aggressive scales poorly.
     if constexpr (!AllNode)
     {
-        depth -= (depth > 5) & (ttmNone) & (red <= 4096) & !ss->followPv;
+        depth -= (depth > 5) & (ttmNone) & !ss->followPv;
     }
 
     // Step 11. ProbCut
@@ -1360,7 +1358,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
 
                     // Futility pruning: for quiets
                     // (*Scaler) Generally, more frequent futility pruning scales well
-                    if (!check && lmrDepth < 13 && !ss->inCheck)
+                    if (!check && lmrDepth < 12 && !ss->inCheck)
                     {
                         int futility = 39 + ss->evalValue + 119 * lmrDepth  //
                                      + int(ss->evalValue > alpha) * 90      //
@@ -2095,13 +2093,13 @@ void Worker::update_low_ply_quiet_history(i16 ssPly, Move m, int bonus) noexcept
 void Worker::update_quiet_histories(const Position& pos, PawnHistory& pawnHistory, Stack* ss, Move m, int bonus) noexcept {
     assert(m.is_ok());
 
-    update_pawn_history(pawnHistory, pos.moved_pc(m), m.dst_sq(), constexpr_round((0.5225 + double(bonus >= 0) * 0.4218) * double(bonus)));
+    update_pawn_history(pawnHistory, pos.moved_pc(m), m.dst_sq(), constexpr_round((0.4482 + int(bonus > -4) * 0.6299) * double(bonus)));
 
     update_quiet_history(pos.active_color(), m, constexpr_round(1.0000 * double(bonus)));
 
-    update_low_ply_quiet_history(ss->ply, m, constexpr_round(0.6973 * double(bonus)));
+    update_low_ply_quiet_history(ss->ply, m, constexpr_round(0.6953 * double(bonus)));
 
-    update_continuation_history(ss, pos.moved_pc(m), m.dst_sq(), constexpr_round(0.8769 * double(bonus)));
+    update_continuation_history(ss, pos.moved_pc(m), m.dst_sq(), constexpr_round(0.7324 * double(bonus)));
 }
 
 // Updates history at the end of search() when a bestMove is found and other searched moves are known
