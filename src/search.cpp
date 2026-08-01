@@ -522,9 +522,9 @@ void Worker::iterative_deepening() noexcept {
 
     for (auto& colorQuietHist : quietHistory)
         for (auto& quietHist : colorQuietHist)
-            quietHist *= 0.7799;
+            quietHist *= 0.7119;
 
-    lowPlyQuietHistory.fill(100);
+    lowPlyQuietHistory.fill(102);
 
     if (mainManager != nullptr)
     {
