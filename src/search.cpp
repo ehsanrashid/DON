@@ -912,10 +912,10 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
     // Hindsight adjustment of reductions based on static evaluation difference.
     // The ply after beginning an LMR search, adjust the reduced depth based on
     // how the opponent's move affected the static evaluation.
-    if (red >= 3200 && !worsen)
+    if (red >= 3 && !worsen)
         depth = std::min<Depth>(depth + 1, DEPTH_MAX);
 
-    if (red >= 2000 && ss->evalValue > 166 - (ss - 1)->evalValue)
+    if (red >= 2 && ss->evalValue > 166 - (ss - 1)->evalValue)
         depth = std::max<Depth>(depth - 1, 1);
 
     auto& pawnHistory = histories.pawn(pos.pawn_key());
@@ -1513,7 +1513,9 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
             Depth redDepth =
               std::max<Depth>(std::min<Depth>(newDepth - r / 1024, newDepth + 2), 1) + int(PVNode);
 
-            value = -search<NT::CUT>(pos, ss + 1, -alpha - 1, -alpha, redDepth, r);
+            int reduction = newDepth - redDepth;
+
+            value = -search<NT::CUT>(pos, ss + 1, -alpha - 1, -alpha, redDepth, reduction);
 
             // (*Scaler) Do a full-depth search when reduced LMR search fails high
             // Shallower searches here don't scales well.
