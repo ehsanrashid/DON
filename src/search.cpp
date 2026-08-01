@@ -45,7 +45,7 @@ namespace {
 
 constexpr Depth OutputLimitDepth = 30;
 
-constexpr double BetaBias = 0.68;
+constexpr double BetaBias = 0.67;
 
 // Reductions lookup table using [depth or moveCount]
 alignas(CACHE_LINE_SIZE) constexpr auto Reductions = []() constexpr noexcept {
@@ -53,15 +53,15 @@ alignas(CACHE_LINE_SIZE) constexpr auto Reductions = []() constexpr noexcept {
 
     reductions[0] = 0;
     for (usize i = 1; i < reductions.size(); ++i)
-        reductions[i] = u16(21.9453125 * constexpr_log(double(i)));
+        reductions[i] = u16(22.4375 * constexpr_log(double(i)));
 
     return reductions;
 }();
 
 constexpr int reduction(Depth depth, u16 moveCount, int deltaRatio, bool improve) noexcept {
     int reductionScale = Reductions[depth] * Reductions[moveCount];
-    return std::max(1182 + reductionScale - deltaRatio
-                      + int(!improve) * int(0.423828125 * double(reductionScale)),
+    return std::max(982 + reductionScale - deltaRatio
+                      + int(!improve) * int(0.384765625 * double(reductionScale)),
                     0);
 }
 
@@ -607,7 +607,7 @@ void Worker::iterative_deepening() noexcept {
             selDepth = 1;
 
             // Adjust optimism based on root move's avgValue
-            optimism[ac]  = 142 * avgValue / (86 + constexpr_abs(avgValue));
+            optimism[ac]  = 114 * avgValue / (85 + constexpr_abs(avgValue));
             optimism[~ac] = -optimism[ac];
 
             // Start with a small aspiration window and, in the case of a fail
@@ -667,7 +667,7 @@ void Worker::iterative_deepening() noexcept {
                 else
                     break;
 
-                delta = std::min<int>(constexpr_ceil(1.33334 * double(delta)), DELTA_MAX);
+                delta = std::min<int>(constexpr_ceil(1.3672 * double(delta)), DELTA_MAX);
 
                 assert(-VALUE_INFINITE <= alpha && alpha < beta && beta <= +VALUE_INFINITE);
             }
@@ -912,7 +912,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
     if (red >= 3200 && !worsen)
         depth = std::min<Depth>(depth + 1, DEPTH_MAX);
 
-    if (red >= 2000 && ss->evalValue > 188 - (ss - 1)->evalValue)
+    if (red >= 2000 && ss->evalValue > 166 - (ss - 1)->evalValue)
         depth = std::max<Depth>(depth - 1, 1);
 
     auto& pawnHistory = histories.pawn(pos.pawn_key());
@@ -924,7 +924,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
     {
         if (!exclude && is_valid(ttd.value)                   //
             && ttd.depth > depth - (ttd.value <= beta)        //
-            && (CutNode == (ttd.value >= beta) || depth > 5)  //
+            && (CutNode == (ttd.value >= beta) || depth > 4)  //
             && is_ok(ttd.bound & fail_bound(ttd.value >= beta)))
         {
             // If ttMove fails high, update move sorting heuristics on TT hit
@@ -933,11 +933,11 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
                 // Bonus for a quiet ttMove
                 if (!ttmCapture)
                     update_quiet_histories(pos, pawnHistory, ss, ttd.move,
-                                           std::min(-75 + 121 * depth, +932));
+                                           std::min(-0 + 112 * depth, +695));
 
                 // Extra penalty for early quiet moves of the previous ply
-                if (preOk && !preCapture && (ss - 1)->moveCount < 4)
-                    update_continuation_history(ss - 1, pos[preSq], preSq, -2104);
+                if (preOk && !preCapture && (ss - 1)->moveCount < 5)
+                    update_continuation_history(ss - 1, pos[preSq], preSq, -2210);
             }
 
             // Partial workaround for the graph history interaction problem
@@ -1050,7 +1050,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
     // Use static evaluation difference to improve quiet move ordering
     if (preOk && !preCapture && !(ss - 1)->inCheck)
     {
-        int bonus = 59 + std::clamp(-((ss - 1)->evalValue + (ss - 0)->evalValue), -213, +175);
+        int bonus = 60 + std::clamp(-((ss - 1)->evalValue + (ss - 0)->evalValue), -189, +194);
 
         if (!ttd.hit && preNonPawn)
             update_pawn_history(pawnHistory, pos[preSq], preSq, 13 * bonus);
@@ -1062,7 +1062,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
     // If eval is really low, check with qsearch then return speculative fail low.
     if constexpr (!PVNode)
     {
-        if (!exclude && ttEvalValue + 507 + 321 * depth * depth <= alpha)
+        if (!exclude && ttEvalValue + 483 + 318 * depth * depth <= alpha)
         {
             Value razorAlpha = std::max<int>(alpha - 1, -VALUE_INFINITE);
 
@@ -1079,16 +1079,16 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
     if constexpr (!PVNode)
     {
         // The depth condition is important for mate finding
-        if (!ss->ttPv && !exclude && depth < 16 && !is_win(ttEvalValue) && !is_loss(beta)
+        if (!ss->ttPv && !exclude && depth < 19 && !is_win(ttEvalValue) && !is_loss(beta)
             && (ttmNone || history_value(pos, ttd.move, ac, contHistory) >= 32768 - int(ttmCapture) * 25968))
         {
             // Compute base futility
-            int baseFutility = 55 + int(ttd.hit) * 22;
+            int baseFutility = std::min(+25 + 4 * depth, +65) + int(ttd.hit) * 20;
             // Compute margin
             int margin = std::max(
                                   depth * baseFutility
-                                - constexpr_round((double(improve) * 2.5986 + double(worsen) * 0.3467) * double(baseFutility))
-                                + constexpr_round(5.6529e-6 * double(absCorrectionValue)),
+                                - constexpr_round((double(improve) * 2.7236 + double(worsen) * 0.3271) * double(baseFutility))
+                                + constexpr_round(5.0394e-6 * double(absCorrectionValue)),
                                   0);
 
             // If ttEvalValue - margin >= beta, return a value adjusted for depth
@@ -1101,12 +1101,12 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
     if constexpr (CutNode)
     {
         if (!exclude && hasNonPawn /*Zugzwang guard*/ && ss->ply >= nmpPly
-            && !is_loss(beta) && ss->evalValue - 359 + int(improve) * 50 + 17 * depth >= beta)
+            && beta >= -2000 && ss->evalValue - 365 + int(improve) * 47 + 18 * depth >= beta)
         {
             assert(preMove != Move::Null);
 
             // Null move dynamic reduction
-            Depth R = 7 + depth / 3;
+            Depth R = 7 + depth / 3 + std::max((ss->evalValue - beta) / 256, 0);
 
             do_null_move(pos, st, ss);
 
@@ -1157,13 +1157,13 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
     // returns a value much above beta, can (almost) safely prune previous move.
     if (depth > 2 && !is_loss(beta))
     {
-        Value probCutBeta = std::min(229 + beta - int(improve) * 63, +VALUE_INFINITE);
+        Value probCutBeta = std::min(241 + beta - int(improve) * 64, +VALUE_INFINITE);
         assert(beta <= probCutBeta && probCutBeta <= +VALUE_INFINITE);
 
         // If value from transposition table is less than probCutBeta, Don't attempt probCut
         if (!(is_valid(ttd.value) && ttd.value < probCutBeta))
         {
-        Depth probCutDepth     = depth - 4;
+        Depth probCutDepth     = depth - 3 - int(improve) * 2;
         int   probCutThreshold = probCutBeta - ss->evalValue;
 
         MovePicker mp(pos, ttd.move, &captureHistory, probCutThreshold);
@@ -1226,7 +1226,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
     // Step 12. Small ProbCut idea
     if (!is_loss(beta) && is_valid(ttd.value) && !is_win(ttd.value))
     {
-        Value probCutBeta = std::min(416 + beta, +VALUE_INFINITE);
+        Value probCutBeta = std::min(428 + beta, +VALUE_INFINITE);
 
         if (ttd.value >= probCutBeta && ttd.depth >= depth - 4 && is_ok(ttd.bound & Bound::LOWER))
             return probCutBeta;
@@ -1295,7 +1295,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
         // Calculate new depth for this move
         Depth newDepth = depth - 1;
 
-        int deltaRatio = 576 * (beta - alpha) / rootDelta;
+        int deltaRatio = 577 * (beta - alpha) / rootDelta;
 
         int r = reduction(depth, moveCount, deltaRatio, improve);
 
