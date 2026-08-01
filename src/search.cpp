@@ -228,14 +228,15 @@ void Worker::init() noexcept {
 
     auto historyRange = split_range(numa_id(), numa_thread_count(), histories.history_size());
 
-    histories.pawn().fill(historyRange.beg, historyRange.end, -1238);
+    histories.pawn().fill(historyRange.beg, historyRange.end, -1338);
 
     auto correctionHistoryRange =
       split_range(numa_id(), numa_thread_count(), histories.correction_history_size());
 
-    histories.pawn_correction().fill(correctionHistoryRange.beg, correctionHistoryRange.end, 5);
-    histories.minor_correction().fill(correctionHistoryRange.beg, correctionHistoryRange.end, 0);
-    histories.non_pawn_correction().fill(correctionHistoryRange.beg, correctionHistoryRange.end, 0);
+    histories.pawn_correction().fill(correctionHistoryRange.beg, correctionHistoryRange.end, -5);
+    histories.minor_correction().fill(correctionHistoryRange.beg, correctionHistoryRange.end, -5);
+    histories.non_pawn_correction().fill(correctionHistoryRange.beg, correctionHistoryRange.end,
+                                         -5);
 
     // Initialize histories
 
@@ -2102,30 +2103,30 @@ void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Sta
     assert(depth > DEPTH_ZERO);
     assert(ss->moveCount != 0);
 
-    int bonus = std::clamp(-84 + 124 * depth + std::min(constexpr_round(31.2500e-3 * double((ss - 1)->history) / double(depth)), 512), +4, +1888)
-              + int(extra) * 349;
+    int bonus = std::clamp(-81 + 133 * depth + std::min(constexpr_round(31.2500e-3 * double((ss - 1)->history) / double(depth)), 512), +4, +1888)
+              + int(extra) * 364;
 
-    int malus = std::min(-212 + 872 * depth, +2104);
+    int malus = std::min(-235 + 968 * depth, +2244);
 
     if (pos.capture_promo(bestMove))
     {
-        update_capture_history(pos, bestMove, constexpr_round(1.2598 * double(bonus)));
+        update_capture_history(pos, bestMove, constexpr_round(1.3936 * double(bonus)));
     }
     else
     {
-        update_quiet_histories(pos, pawnHistory, ss, bestMove, constexpr_round(0.7910 * double(bonus)));
+        update_quiet_histories(pos, pawnHistory, ss, bestMove, constexpr_round(0.8779 * double(bonus)));
 
         // Decrease history for all non-best quiet moves
-        int decayQuietMalus = constexpr_round(1.0644 * double(malus));
+        int decayQuietMalus = constexpr_round(1.0180 * double(malus));
         for (Move qm : searchedMoves[0])
         {
             update_quiet_histories(pos, pawnHistory, ss, qm, -decayQuietMalus);
-            decayQuietMalus = constexpr_round(0.9404 * double(decayQuietMalus));
+            decayQuietMalus = constexpr_round(0.8994 * double(decayQuietMalus));
         }
     }
 
     // Decrease history for all non-best capture moves
-    int decayCaptureMalus = constexpr_round(1.5244 * double(malus));
+    int decayCaptureMalus = constexpr_round(1.4541 * double(malus));
     for (Move cm : searchedMoves[1])
     {
         update_capture_history(pos, cm, -decayCaptureMalus);
@@ -2137,7 +2138,7 @@ void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Sta
     if (ss1->move.is_ok() && pos.captured_pc() == Piece::NO_PIECE && ss1->moveCount == 1 + int(ss1->ttMove != Move::None))
     {
         Square preSq = ss1->move.dst_sq_();
-        update_continuation_history(ss1, pos[preSq], preSq, -constexpr_round(0.5821 * double(malus)));
+        update_continuation_history(ss1, pos[preSq], preSq, -constexpr_round(0.6963 * double(malus)));
     }
 }
 
@@ -2192,9 +2193,9 @@ int Worker::correction_value(const Position& pos, const Stack* ss) const noexcep
     auto& h2 = *(ss - 2)->pieceSqCorrectionHistory;
     auto& h4 = *(ss - 4)->pieceSqCorrectionHistory;
 
-    correctionValue += i64{8761} * ( (preOk & int(h2[+prePc][preSq]
+    correctionValue += i64{8761} * ( ( preOk & int(h2[+prePc][preSq]
                                                 + h4[+prePc][preSq]))
-                                   | (~preOk & 64049));
+                                   | (~preOk & int(64049)));
 
     return std::clamp(correctionValue, -INT_LIMIT, +INT_LIMIT);
 }
