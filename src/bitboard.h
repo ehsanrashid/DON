@@ -273,7 +273,6 @@ inline Square lsq(Bitboard b) noexcept {
     unsigned long idx;
     #if defined(_WIN64)  // (WIN64)
     _BitScanForward64(&idx, b);
-
     return Square(idx);
     #else                // (WIN32)
     if (auto bb = u32(b); bb != 0)
@@ -302,7 +301,6 @@ inline Square msq(Bitboard b) noexcept {
     unsigned long idx;
     #if defined(_WIN64)  // (WIN64)
     _BitScanReverse64(&idx, b);
-
     return Square(idx);
     #else                // (WIN32)
     if (auto bb = u32(b >> 32); bb != 0)
