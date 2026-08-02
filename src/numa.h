@@ -19,16 +19,17 @@
 #define NUMA_H_INCLUDED
 
 #include <algorithm>
+#include <cassert>
 #include <cstdlib>
-#include <cstring>
+#include <iostream>
 #include <limits>
 #include <memory>
 #include <mutex>
 #include <numeric>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <thread>
-#include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
@@ -36,6 +37,9 @@
 #include <vector>
 
 #if defined(_WIN32)
+    #include <cstring>
+    #include <type_traits>
+
     #include "platform_win.h"
 #elif defined(__ANDROID__)
     // Android-specific configuration (currently none)
