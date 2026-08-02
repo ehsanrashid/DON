@@ -39,39 +39,48 @@
     #if defined(_M_X64) || defined(_M_IX86) || defined(__x86_64__) || defined(__i386__)
         #include <emmintrin.h>  // x86/x64: SSE2 use _mm_pause()
         #define PAUSE() _mm_pause()
-    #elif defined(__arm__) || defined(__aarch64__)
-        // ARM CPUs: use inline "yield" instruction to other hardware threads
-        #define PAUSE() __asm__ volatile("yield" ::: "memory")
     #else
         // Fallback: portable C++ hint (PowerPC, RISC-V, MIPS, etc.)
         #include <thread>
         #define PAUSE() std::this_thread::yield()
     #endif
     #include "platform_win.h"
+#elif (defined(__linux__) && !defined(__ANDROID__)) /* Linux (non-Android) */ \
+  || defined(__APPLE__)                             /* macOS / iOS */ \
+  || defined(__sun)                                 /* Solaris */ \
+  || defined(__FreeBSD__)                           /* FreeBSD */ \
+  || defined(__OpenBSD__)                           /* OpenBSD */ \
+  || defined(__NetBSD__)                            /* NetBSD */ \
+  || defined(__DragonFly__)                         /* DragonFly BSD */ \
+  || defined(_AIX)                                  /* AIX */
+    #define USE_UNIX_SHM
 #else
-    #if !defined(__ANDROID__)
-        #include <atomic>
-        #include <cassert>
-        #include <cerrno>
-        #include <chrono>
-        #include <condition_variable>
-        #include <dirent.h>
-        #include <fcntl.h>
-        #include <filesystem>
-        #include <inttypes.h>
-        #include <list>
-        #include <mutex>
-        #include <pthread.h>
-        #include <semaphore.h>
-        #include <shared_mutex>
-        #include <signal.h>
-        #include <sys/file.h>
-        #include <sys/mman.h>  // mmap, munmap, MAP_*, PROT_*
-        #include <sys/stat.h>
-        #include <thread>
-        #include <unistd.h>
-        #include <unordered_map>
-    #endif
+    #error "Unsupported operating system"
+#endif
+
+#if defined(USE_UNIX_SHM)
+    #include <atomic>
+    #include <cassert>
+    #include <cerrno>
+    #include <chrono>
+    #include <condition_variable>
+    #include <dirent.h>
+    #include <fcntl.h>
+    #include <filesystem>
+    #include <inttypes.h>
+    #include <list>
+    #include <mutex>
+    #include <pthread.h>
+    #include <semaphore.h>
+    #include <shared_mutex>
+    #include <signal.h>
+    #include <sys/file.h>
+    #include <sys/mman.h>  // mmap, munmap, MAP_*, PROT_*
+    #include <sys/stat.h>
+    #include <thread>
+    #include <unistd.h>
+    #include <unordered_map>
+
     // Linux (non-Android)
     #if (defined(__linux__) && !defined(__ANDROID__))
     // macOS / iOS
@@ -85,20 +94,16 @@
     #elif defined(__FreeBSD__)
         #include <sys/sysctl.h>
         #include <sys/types.h>
+    // OpenBSD
+    #elif defined(__OpenBSD__)
     // NetBSD
     #elif defined(__NetBSD__)
     // DragonFly BSD
     #elif defined(__DragonFly__)
     // IBM AIX
     #elif defined(_AIX)
-    // ARM 32-bit / 64-bit
-    #elif defined(__arm__) || defined(__aarch64__)
-    // x86 32-bit / x86-64
-    #elif defined(__i386__) || defined(__x86_64__)
-    // Android
-    #elif defined(__ANDROID__)
     #else
-        #error "Unsupported platform"
+        #error "Unsupported Unix platform"
     #endif
 #endif
 
@@ -451,14 +456,7 @@ class BackendSharedMemory final {
     MMapGuard   mappedGuard{mappedPtr};
     Status      status = Status::NotInitialized;
 };
-#elif defined(__linux__) && !defined(__ANDROID__) /* Linux (non-Android) */ \
-  || defined(__APPLE__)                           /* macOS / iOS */ \
-  || defined(__sun)                               /* Solaris */ \
-  || defined(__FreeBSD__)                         /* FreeBSD */ \
-  || defined(__NetBSD__)                          /* NetBSD */ \
-  || defined(__DragonFly__)                       /* DragonFly BSD */ \
-  || defined(_AIX)                                /* AIX */
-// Linux (not Android), macOS, Solaris, FreeBSD, NetBSD, DragonFly, AIX
+#elif defined(USE_UNIX_SHM)
 class BaseSharedMemory {
    public:
     explicit BaseSharedMemory(std::string_view shmName) noexcept :
