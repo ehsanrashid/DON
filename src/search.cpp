@@ -1359,9 +1359,8 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
                     // (*Scaler) Generally, more frequent futility pruning scales well
                     if (!check && lmrDepth < 12 && !ss->inCheck)
                     {
-                        int futility = 39 + ss->evalValue + 119 * lmrDepth  //
-                                     + int(ss->evalValue > alpha) * 90      //
-                                     + int(bestMove == Move::None) * 127;
+                        int futility = 164 + ss->evalValue + 119 * lmrDepth  //
+                                     + int(ss->evalValue > alpha) * 90;
                         if (futility <= alpha)
                         {
                             if (!is_win(futility))
