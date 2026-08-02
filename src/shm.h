@@ -41,10 +41,10 @@
 #elif (defined(__linux__) && !defined(__ANDROID__)) /* Linux (non-Android) */ \
   || defined(__APPLE__)                             /* macOS / iOS */ \
   || defined(__sun)                                 /* Solaris */ \
-  || defined(__FreeBSD__)                           /* FreeBSD */ \
-  || defined(__OpenBSD__)                           /* OpenBSD */ \
-  || defined(__NetBSD__)                            /* NetBSD */ \
-  || defined(__DragonFly__)                         /* DragonFly BSD */ \
+  || defined(__FreeBSD__)                           /* Free-BSD */ \
+  || defined(__OpenBSD__)                           /* Open-BSD */ \
+  || defined(__NetBSD__)                            /* Net-BSD */ \
+  || defined(__DragonFly__)                         /* DragonFly-BSD */ \
   || defined(_AIX)                                  /* AIX */
     #define USE_UNIX_SHM
 #else
@@ -70,6 +70,7 @@
     #include <sys/file.h>
     #include <sys/mman.h>  // mmap, munmap, MAP_*, PROT_*
     #include <sys/stat.h>
+    #include <sys/types.h>
     #include <thread>
     #include <unistd.h>
     #include <unordered_map>
@@ -83,15 +84,15 @@
     // Solaris / OpenSolaris / illumos
     #elif defined(__sun)
         #include <libgen.h>
-    // FreeBSD
+    // Free-BSD
     #elif defined(__FreeBSD__)
         #include <sys/sysctl.h>
-        #include <sys/types.h>
-    // OpenBSD
+    // Open-BSD
     #elif defined(__OpenBSD__)
-    // NetBSD
+        #include <sys/sysctl.h>
+    // Net-BSD
     #elif defined(__NetBSD__)
-    // DragonFly BSD
+    // DragonFly-BSD
     #elif defined(__DragonFly__)
     // IBM AIX
     #elif defined(_AIX)
@@ -151,20 +152,14 @@ inline std::string executable_path() noexcept {
 #if defined(_WIN32)
     DWORD size = GetModuleFileName(nullptr, executablePath.data(), DWORD(executablePath.size()));
 
-    executableSize = std::min<usize>(size, executablePath.size() - 1);
-
+    executableSize                 = std::min<usize>(size, executablePath.size() - 1);
     executablePath[executableSize] = '\0';
 #elif defined(__APPLE__)
     u32 size = u32(executablePath.size());
 
     if (_NSGetExecutablePath(executablePath.data(), &size) == 0)
-        executableSize = std::strlen(executablePath.data());
-    else
     {
-        // Buffer too small
-        if (size < executablePath.size())
-            if (_NSGetExecutablePath(executablePath.data(), &size) == 0)
-                executableSize = std::strlen(executablePath.data());
+        executableSize = std::strlen(executablePath.data());
     }
 #elif defined(__sun)  // Solaris
     const char* path = getexecname();
@@ -174,8 +169,7 @@ inline std::string executable_path() noexcept {
         std::strncpy(executablePath.data(), path, executablePath.size() - 1);
 
         // Determine actual length copied
-        executableSize = std::strnlen(path, executablePath.size() - 1);
-
+        executableSize                 = std::strnlen(path, executablePath.size() - 1);
         executablePath[executableSize] = '\0';
     }
 #elif defined(__FreeBSD__)
@@ -185,8 +179,15 @@ inline std::string executable_path() noexcept {
 
     if (sysctl(MIB.data(), MIB.size(), executablePath.data(), &size, nullptr, 0) == 0)
     {
-        executableSize = std::min<usize>(size, executablePath.size() - 1);
+        executableSize                 = std::min<usize>(size, executablePath.size() - 1);
+        executablePath[executableSize] = '\0';
+    }
+#elif defined(__OpenBSD__)
+    ssize_t size = readlink("/proc/curproc/file", executablePath.data(), executablePath.size() - 1);
 
+    if (size >= 0)
+    {
+        executableSize                 = std::min<usize>(size, executablePath.size() - 1);
         executablePath[executableSize] = '\0';
     }
 #elif defined(__NetBSD__) || defined(__DragonFly__)
@@ -194,8 +195,7 @@ inline std::string executable_path() noexcept {
 
     if (size >= 0)
     {
-        executableSize = std::min<usize>(size, executablePath.size() - 1);
-
+        executableSize                 = std::min<usize>(size, executablePath.size() - 1);
         executablePath[executableSize] = '\0';
     }
 #elif defined(__linux__)
@@ -203,10 +203,11 @@ inline std::string executable_path() noexcept {
 
     if (size >= 0)
     {
-        executableSize = std::min<usize>(size, executablePath.size() - 1);
-
+        executableSize                 = std::min<usize>(size, executablePath.size() - 1);
         executablePath[executableSize] = '\0';
     }
+#else
+    #error "Unsupported platform"
 #endif
 
     // In case of any error the path will be empty
