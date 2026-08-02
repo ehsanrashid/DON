@@ -26,7 +26,6 @@
 #include <functional>
 #include <iomanip>
 #include <iostream>  // Only in DEBUG
-#include <memory>
 #include <new>
 #include <sstream>
 #include <string>

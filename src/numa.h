@@ -37,14 +37,13 @@
 
 #if defined(_WIN32)
     #include "platform_win.h"
-#else
-    // Linux (non-Android)
-    #if (defined(__linux__) && !defined(__ANDROID__))
-        #if !defined(_GNU_SOURCE)
-            #define _GNU_SOURCE
-        #endif
-        #include <sched.h>
+#elif defined(__ANDROID__)
+    // Android-specific configuration (currently none)
+#elif (defined(__linux__) && !defined(__ANDROID__)) /* Linux (non-Android) */
+    #if !defined(_GNU_SOURCE)
+        #define _GNU_SOURCE
     #endif
+    #include <sched.h>
 #endif
 
 #include "misc.h"
@@ -58,19 +57,20 @@ using CpuIndex  = usize;
 using CpuIndexVec = std::vector<CpuIndex>;
 using CpuIndexSet = std::unordered_set<CpuIndex>;
 
-inline usize hardware_concurrency() noexcept {
-    usize hardwareConcurrency = std::thread::hardware_concurrency();
-
-    // Get all processors across all processor groups on windows, since
-    // ::hardware_concurrency() only returns the number of processors in
-    // the first group, because only these are available to std::thread.
-#if defined(_WIN64)
-    hardwareConcurrency =
-      std::max<usize>(GetActiveProcessorCount(ALL_PROCESSOR_GROUPS), hardwareConcurrency);
-#endif
-
-    return hardwareConcurrency;
-}
+usize hardware_concurrency() noexcept;
+//inline usize hardware_concurrency() noexcept {
+//    usize hardwareConcurrency = std::thread::hardware_concurrency();
+//
+//    // Get all processors across all processor groups on windows, since
+//    // ::hardware_concurrency() only returns the number of processors in
+//    // the first group, because only these are available to std::thread.
+//#if defined(_WIN64)
+//    hardwareConcurrency =
+//      std::max<usize>(GetActiveProcessorCount(ALL_PROCESSOR_GROUPS), hardwareConcurrency);
+//#endif
+//
+//    return hardwareConcurrency;
+//}
 
 inline const usize SYSTEM_THREAD_MAX = std::max<usize>(hardware_concurrency(), 1);
 
