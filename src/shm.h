@@ -20,6 +20,7 @@
 
 #include <algorithm>
 #include <cinttypes>
+#include <cstddef>
 #include <cstdio>
 #include <cstdlib>
 #include <functional>
@@ -52,27 +53,27 @@
 #endif
 
 #if defined(USE_UNIX_SHM)
+    #include <dirent.h>
+    #include <fcntl.h>
+    #include <limits.h>
+    #include <pthread.h>
+    #include <signal.h>
+    #include <sys/file.h>
+    #include <sys/mman.h>
+    #include <sys/stat.h>
+    #include <sys/types.h>
+    #include <unistd.h>
+
     #include <atomic>
     #include <cassert>
     #include <cerrno>
     #include <chrono>
     #include <condition_variable>
-    #include <dirent.h>
-    #include <fcntl.h>
     #include <filesystem>
-    #include <inttypes.h>
     #include <list>
     #include <mutex>
-    #include <pthread.h>
-    #include <semaphore.h>
     #include <shared_mutex>
-    #include <signal.h>
-    #include <sys/file.h>
-    #include <sys/mman.h>  // mmap, munmap, MAP_*, PROT_*
-    #include <sys/stat.h>
-    #include <sys/types.h>
     #include <thread>
-    #include <unistd.h>
     #include <unordered_map>
 
     // Linux (non-Android)
@@ -101,6 +102,13 @@
 #endif
 
 #if defined(_WIN32)
+    #if !defined(PATH_MAX)
+        #define PATH_MAX (2 * 1024)  // 2K bytes, safe for almost all paths
+    #endif
+    #if !defined(NAME_MAX)
+        #define NAME_MAX 255
+    #endif
+
     // Standard portable pattern for spin-wait / CPU pause hint
     #if defined(_M_X64) || defined(_M_IX86) || defined(__x86_64__) || defined(__i386__)
         #include <emmintrin.h>  // x86/x64: SSE2 use _mm_pause()
@@ -1728,7 +1736,7 @@ class SharedMemory final: public BaseSharedMemory {
                 || errno == ERANGE)  // Overflow/underflow
                 continue;
             // Validate PID range
-            if (pidVal <= INVALID_PID || pidVal > std::numeric_limits<pid_t>::max())
+            if (pidVal <= INVALID_PID)
                 continue;  // Invalid PID
 
             // Get PID
