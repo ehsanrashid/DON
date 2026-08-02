@@ -35,16 +35,9 @@
 #include <variant>
 
 #if defined(_WIN32)
-    // Standard portable pattern for spin-wait / CPU pause hint
-    #if defined(_M_X64) || defined(_M_IX86) || defined(__x86_64__) || defined(__i386__)
-        #include <emmintrin.h>  // x86/x64: SSE2 use _mm_pause()
-        #define PAUSE() _mm_pause()
-    #else
-        // Fallback: portable C++ hint (PowerPC, RISC-V, MIPS, etc.)
-        #include <thread>
-        #define PAUSE() std::this_thread::yield()
-    #endif
     #include "platform_win.h"
+#elif defined(__ANDROID__)
+    // Android-specific configuration (currently none)
 #elif (defined(__linux__) && !defined(__ANDROID__)) /* Linux (non-Android) */ \
   || defined(__APPLE__)                             /* macOS / iOS */ \
   || defined(__sun)                                 /* Solaris */ \
@@ -54,8 +47,6 @@
   || defined(__DragonFly__)                         /* DragonFly BSD */ \
   || defined(_AIX)                                  /* AIX */
     #define USE_UNIX_SHM
-#elif defined(__ANDROID__)
-    // Android-specific configuration (currently none)
 #else
     #error "Unsupported operating system"
 #endif
@@ -106,6 +97,18 @@
     #elif defined(_AIX)
     #else
         #error "Unsupported Unix platform"
+    #endif
+#endif
+
+#if defined(_WIN32)
+    // Standard portable pattern for spin-wait / CPU pause hint
+    #if defined(_M_X64) || defined(_M_IX86) || defined(__x86_64__) || defined(__i386__)
+        #include <emmintrin.h>  // x86/x64: SSE2 use _mm_pause()
+        #define PAUSE() _mm_pause()
+    #else
+        // Fallback: portable C++ hint (PowerPC, RISC-V, MIPS, etc.)
+        #include <thread>
+        #define PAUSE() std::this_thread::yield()
     #endif
 #endif
 
