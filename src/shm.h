@@ -83,13 +83,12 @@
         #include <sys/syslimits.h>
     // Solaris / OpenSolaris / illumos
     #elif defined(__sun)
-        #include <libgen.h>
+        #include <stdlib.h>
     // FreeBSD
     #elif defined(__FreeBSD__)
         #include <sys/sysctl.h>
     // OpenBSD
     #elif defined(__OpenBSD__)
-        #include <sys/sysctl.h>
     // NetBSD
     #elif defined(__NetBSD__)
     // DragonFly BSD
