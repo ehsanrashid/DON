@@ -54,6 +54,8 @@
   || defined(__DragonFly__)                         /* DragonFly BSD */ \
   || defined(_AIX)                                  /* AIX */
     #define USE_UNIX_SHM
+#elif defined(__ANDROID__)
+    // Android-specific configuration (currently none)
 #else
     #error "Unsupported operating system"
 #endif
