@@ -41,10 +41,10 @@
 #elif (defined(__linux__) && !defined(__ANDROID__)) /* Linux (non-Android) */ \
   || defined(__APPLE__)                             /* macOS / iOS */ \
   || defined(__sun)                                 /* Solaris */ \
-  || defined(__FreeBSD__)                           /* Free-BSD */ \
-  || defined(__OpenBSD__)                           /* Open-BSD */ \
-  || defined(__NetBSD__)                            /* Net-BSD */ \
-  || defined(__DragonFly__)                         /* DragonFly-BSD */ \
+  || defined(__FreeBSD__)                           /* FreeBSD */ \
+  || defined(__OpenBSD__)                           /* OpenBSD */ \
+  || defined(__NetBSD__)                            /* NetBSD */ \
+  || defined(__DragonFly__)                         /* DragonFly BSD */ \
   || defined(_AIX)                                  /* AIX */
     #define USE_UNIX_SHM
 #else
@@ -84,15 +84,15 @@
     // Solaris / OpenSolaris / illumos
     #elif defined(__sun)
         #include <libgen.h>
-    // Free-BSD
+    // FreeBSD
     #elif defined(__FreeBSD__)
         #include <sys/sysctl.h>
-    // Open-BSD
+    // OpenBSD
     #elif defined(__OpenBSD__)
         #include <sys/sysctl.h>
-    // Net-BSD
+    // NetBSD
     #elif defined(__NetBSD__)
-    // DragonFly-BSD
+    // DragonFly BSD
     #elif defined(__DragonFly__)
     // IBM AIX
     #elif defined(_AIX)
