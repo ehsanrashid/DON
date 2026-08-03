@@ -68,13 +68,12 @@
     #include <fcntl.h>
     #include <limits.h>
     #include <poll.h>
-    #include <pthread.h>
-    #include <signal.h>
     #include <sys/file.h>
     #include <sys/mman.h>
     #include <sys/socket.h>
     #include <sys/stat.h>
-    #include <sys/types.h>
+    #include <sys/time.h>
+    #include <sys/uio.h>
     #include <sys/un.h>
     #include <unistd.h>
 
@@ -83,7 +82,7 @@
     #include <cerrno>
     #include <chrono>
     #include <condition_variable>
-    #include <filesystem>
+    #include <cstring>
     #include <list>
     #include <mutex>
     #include <optional>
@@ -911,8 +910,8 @@ class SharedMemory final: public BaseSharedMemory {
                 return false;
 
             // Try to receive the shared memfd
-            UniqueFd                 memfd;
-            std::vector<std::string> peer_sockets = get_peer_sockets();
+            UniqueFd memfd;
+            Strings  peer_sockets = get_peer_sockets();
             for (const auto& sock_path : peer_sockets)
             {
                 memfd = try_receive_memfd(sock_path);
@@ -952,7 +951,7 @@ class SharedMemory final: public BaseSharedMemory {
             if (mapped_mem == MAP_FAILED)
                 return false;
 
-    #ifdef MADV_HUGEPAGE
+    #if defined(MADV_HUGEPAGE)
             (void) madvise(mapped_mem, sizeof(T), MADV_HUGEPAGE);
     #endif
 
@@ -1069,8 +1068,8 @@ class SharedMemory final: public BaseSharedMemory {
     }
 
     // Discover all peers in the shared dir
-    std::vector<std::string> get_peer_sockets() noexcept {
-        std::vector<std::string> peer_sockets;
+    Strings get_peer_sockets() noexcept {
+        Strings peer_sockets;
         if (DIR* dir = opendir(shared_dir_.c_str()))
         {
             struct dirent* entry;
@@ -1094,7 +1093,7 @@ class SharedMemory final: public BaseSharedMemory {
     }
 
     static UniqueFd create_unix_socket() {
-    #ifdef SOCK_CLOEXEC
+    #if defined(SOCK_CLOEXEC)
         UniqueFd fd(socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0));
     #else
         UniqueFd fd(socket(AF_UNIX, SOCK_STREAM, 0));
@@ -1143,11 +1142,14 @@ class SharedMemory final: public BaseSharedMemory {
             msg.msg_controllen = sizeof(control_msg.buf);
 
             ssize_t bytes_recv;
-    #ifdef MSG_CMSG_CLOEXEC
-            int flags = MSG_CMSG_CLOEXEC;
+            int     flags =
+    #if defined(MSG_CMSG_CLOEXEC)
+              MSG_CMSG_CLOEXEC
     #else
-            int flags = 0;
+              0
     #endif
+              ;
+
             do
                 bytes_recv = recvmsg(peer_fd.get(), &msg, flags);
             while (bytes_recv < 0 && errno == EINTR);
