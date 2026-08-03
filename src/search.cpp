@@ -951,17 +951,19 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
                 // If the depth is big enough, verify that the ttMove is really a good move
                 if (depth >= 7 && !is_decisive(ttd.value) && !ttmNone && pos.legal(ttd.move))
                 {
-                    pos.do_move(ttd.move, st, true, this);
+                    pos.do_move(ttd.move, st);
 
-                    auto [ttd_, ttu_] = transpositionTable.probe(pos.key());
-                    ttd_.value        = ttd_.hit  //
-                                        ? value_from_tt(ttd_.value, ss->ply, pos.rule50_count())
-                                        : VALUE_NONE;
+                    auto [ttdNext, ttuNext] = transpositionTable.probe(pos.key());
+
+                    ttdNext.value = ttdNext.hit
+                                    ? value_from_tt(ttdNext.value, ss->ply, pos.rule50_count())
+                                    : VALUE_NONE;
 
                     pos.undo_move(ttd.move);
 
                     // Check that the ttValue after the ttMove would also trigger a cutoff
-                    if (!is_valid(ttd_.value) || ((ttd.value >= beta) == (-ttd_.value >= beta)))
+                    if (!is_valid(ttdNext.value)
+                        || ((ttd.value >= beta) == (-ttdNext.value >= beta)))
                         return ttd.value;
                 }
                 else
