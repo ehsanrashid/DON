@@ -1176,20 +1176,20 @@ struct TempRoot final {
     std::string path;
 };
 
-// Wrapper around flock() on a file
-struct InitLock final {
+// Wrapper around ::flock() on a file
+struct InitFileLock final {
    public:
-    InitLock() noexcept = default;
+    InitFileLock() noexcept = default;
 
-    InitLock(const InitLock&) noexcept            = delete;
-    InitLock& operator=(const InitLock&) noexcept = delete;
+    InitFileLock(const InitFileLock&) noexcept            = delete;
+    InitFileLock& operator=(const InitFileLock&) noexcept = delete;
 
-    ~InitLock() noexcept {
-        if (lockUniqueFd.is_valid())
-            ::flock(lockUniqueFd.get(), LOCK_UN);
-    }
+    InitFileLock(InitFileLock&&) noexcept            = default;
+    InitFileLock& operator=(InitFileLock&&) noexcept = default;
 
-    static InitLock wait_for_init_lock(std::string_view path) noexcept {
+    ~InitFileLock() noexcept { unlock(); }
+
+    static InitFileLock wait_for_init_lock(std::string_view path) noexcept {
         int fd = ::open(path.data(), O_CREAT | O_RDWR | O_CLOEXEC, 0666);
 
         UniqueFd uniqueFd(fd);
@@ -1204,16 +1204,21 @@ struct InitLock final {
                 return {};
         }
 
-        return InitLock(std::move(uniqueFd));
+        return InitFileLock(std::move(uniqueFd));
     }
 
-    [[nodiscard]] bool is_valid() const noexcept { return lockUniqueFd.is_valid(); }
+    [[nodiscard]] bool is_valid() const noexcept { return lockFd.is_valid(); }
 
    private:
-    explicit InitLock(UniqueFd uniqueFd) noexcept :
-        lockUniqueFd(std::move(uniqueFd)) {}
+    explicit InitFileLock(UniqueFd fd) noexcept :
+        lockFd(std::move(fd)) {}
 
-    UniqueFd lockUniqueFd;
+    void unlock() noexcept {
+        if (lockFd.is_valid())
+            ::flock(lockFd.get(), LOCK_UN);
+    }
+
+    UniqueFd lockFd;
 };
 
 inline constexpr int INVALID_PID = 0;

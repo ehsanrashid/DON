@@ -274,30 +274,20 @@ struct HandleGuard final {
    public:
     explicit HandleGuard(HANDLE& refHandle) noexcept :
         handle(refHandle) {}
-    HandleGuard() noexcept                              = delete;
+
+    HandleGuard() noexcept = delete;
+
     HandleGuard(const HandleGuard&) noexcept            = delete;
     HandleGuard& operator=(const HandleGuard&) noexcept = delete;
 
-    HandleGuard(HandleGuard&& handleGuard) noexcept :
-        handle(handleGuard.handle) {
-        handleGuard.release();
-    }
-    HandleGuard& operator=(HandleGuard&& handleGuard) noexcept {
-        if (this == &handleGuard)
-            return *this;
-
-        reset();
-
-        handle = handleGuard.handle;
-
-        handleGuard.release();
-
-        return *this;
-    }
+    HandleGuard(HandleGuard&&) noexcept            = delete;
+    HandleGuard& operator=(HandleGuard&&) noexcept = delete;
 
     ~HandleGuard() noexcept { reset(); }
 
     [[nodiscard]] bool is_valid() const noexcept { return is_valid_handle(handle); }
+
+    [[nodiscard]] HANDLE get() const noexcept { return handle; }
 
     void reset(HANDLE newHandle = INVALID_HANDLE) noexcept {
         if (handle != newHandle)
@@ -309,8 +299,6 @@ struct HandleGuard final {
         }
     }
 
-    HANDLE release() noexcept { return std::exchange(handle, INVALID_HANDLE); }
-
    private:
     HANDLE& handle;
 };
@@ -320,32 +308,19 @@ struct MMapGuard final {
     explicit MMapGuard(void*& refPtr) noexcept :
         mappedPtr(refPtr) {}
 
-    MMapGuard()                            = delete;
-    MMapGuard(const MMapGuard&)            = delete;
-    MMapGuard& operator=(const MMapGuard&) = delete;
+    MMapGuard() noexcept = delete;
 
-    MMapGuard(MMapGuard&& mMapGuard) noexcept :
-        mappedPtr(mMapGuard.mappedPtr) {
-        mMapGuard.release();
-    }
-    MMapGuard& operator=(MMapGuard&& mMapGuard) noexcept {
-        if (this == &mMapGuard)
-            return *this;
+    MMapGuard(const MMapGuard&) noexcept            = delete;
+    MMapGuard& operator=(const MMapGuard&) noexcept = delete;
 
-        reset();
-
-        mappedPtr = mMapGuard.mappedPtr;
-
-        mMapGuard.release();
-
-        return *this;
-    }
+    MMapGuard(MMapGuard&&) noexcept            = delete;
+    MMapGuard& operator=(MMapGuard&&) noexcept = delete;
 
     ~MMapGuard() noexcept { reset(); }
 
     [[nodiscard]] bool is_valid() const noexcept { return mappedPtr != INVALID_MMAP_PTR; }
 
-    void* get() const noexcept { return mappedPtr; }
+    [[nodiscard]] void* get() const noexcept { return mappedPtr; }
 
     void reset(void* newPtr = INVALID_MMAP_PTR) noexcept {
         if (mappedPtr != newPtr)
@@ -356,8 +331,6 @@ struct MMapGuard final {
             mappedPtr = newPtr;
         }
     }
-
-    void* release() noexcept { return std::exchange(mappedPtr, INVALID_MMAP_PTR); }
 
    private:
     void*& mappedPtr;
@@ -538,6 +511,8 @@ struct FdGuard final {
 
     [[nodiscard]] bool is_valid() const noexcept { return is_valid_fd(fd); }
 
+    [[nodiscard]] int get() const noexcept { return fd; }
+
     void reset(int newFd = INVALID_FD) noexcept {
         if (fd != newFd)
         {
@@ -548,19 +523,12 @@ struct FdGuard final {
         }
     }
 
-    int release() noexcept { return std::exchange(fd, INVALID_FD); }
-
    private:
     int& fd;
 };
 
 struct MMapGuard final {
    public:
-    struct MMapInfo final {
-        void* const       ptr;
-        const std::size_t size;
-    };
-
     MMapGuard(void*& refPtr, std::size_t& refSize) noexcept :
         mappedPtr(refPtr),
         mappedSize(refSize) {}
@@ -577,9 +545,9 @@ struct MMapGuard final {
 
     [[nodiscard]] bool is_valid() const noexcept { return mappedPtr != INVALID_MMAP_PTR; }
 
-    void* get() const noexcept { return mappedPtr; }
+    [[nodiscard]] void* get_ptr() const noexcept { return mappedPtr; }
 
-    std::size_t get_size() const noexcept { return mappedSize; }
+    [[nodiscard]] std::size_t get_size() const noexcept { return mappedSize; }
 
     void reset(void* newPtr = INVALID_MMAP_PTR, std::size_t newSize = INVALID_MMAP_SIZE) noexcept {
         if (mappedPtr != newPtr)
@@ -590,15 +558,6 @@ struct MMapGuard final {
             mappedPtr  = newPtr;
             mappedSize = newSize;
         }
-    }
-
-    MMapInfo release() noexcept {
-        MMapInfo oldMapInfo{mappedPtr, mappedSize};
-
-        mappedPtr  = INVALID_MMAP_PTR;
-        mappedSize = INVALID_MMAP_SIZE;
-
-        return oldMapInfo;
     }
 
    private:
