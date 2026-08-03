@@ -299,6 +299,8 @@ struct HandleGuard final {
         }
     }
 
+    void dismiss() noexcept { handle = INVALID_HANDLE; }
+
    private:
     HANDLE& handle;
 };
@@ -331,6 +333,8 @@ struct MMapGuard final {
             mappedPtr = newPtr;
         }
     }
+
+    void dismiss() noexcept { mappedPtr = INVALID_MMAP_PTR; }
 
    private:
     void*& mappedPtr;
@@ -523,6 +527,8 @@ struct FdGuard final {
         }
     }
 
+    void dismiss() noexcept { fd = INVALID_FD; }
+
    private:
     int& fd;
 };
@@ -558,6 +564,11 @@ struct MMapGuard final {
             mappedPtr  = newPtr;
             mappedSize = newSize;
         }
+    }
+
+    void dismiss() noexcept {
+        mappedPtr  = INVALID_MMAP_PTR;
+        mappedSize = INVALID_MMAP_SIZE;
     }
 
    private:

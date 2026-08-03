@@ -1634,9 +1634,9 @@ class SharedMemory final: public BaseSharedMemory {
 
     void reset() noexcept {
 
-        fdGuard.release();
+        fdGuard.dismiss();
 
-        mappedGuard.release();
+        mappedGuard.dismiss();
 
         dataPtr   = nullptr;
         shmHeader = nullptr;
