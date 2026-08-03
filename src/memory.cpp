@@ -57,7 +57,7 @@ void* alloc_aligned_std(std::size_t allocSize, std::size_t alignment) noexcept {
     return std::aligned_alloc(alignment, allocSize);
 #else
     void* mem = nullptr;
-    return posix_memalign(&mem, alignment, allocSize) != 0 ? nullptr : mem;
+    return ::posix_memalign(&mem, alignment, allocSize) != 0 ? nullptr : mem;
 #endif
 }
 
@@ -71,7 +71,7 @@ void free_aligned_std(void* mem) noexcept {
     _aligned_free(mem);
     #endif
 #else
-    std::free(mem);
+    ::free(mem);
 #endif
 }
 
