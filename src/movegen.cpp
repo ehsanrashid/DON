@@ -67,7 +67,9 @@ Move* splat_pawn_moves(Bitboard dstBB, Move* RESTRICT moves) noexcept {
         else
             dstSq = pop_msq(dstBB);
 
-        *moves++ = Move{dstSq - D, dstSq};
+        Square orgSq = dstSq - D;
+
+        *moves++ = Move{orgSq, dstSq};
     }
 #endif
 
@@ -96,22 +98,24 @@ Move* splat_promotion_moves(Bitboard       dstBB,
         else
             dstSq = pop_msq(dstBB);
 
+        [[maybe_unused]] Square orgSq = dstSq - D;
+
         if constexpr (All || Capture)
         {
-            *moves++ = Move{dstSq - D, dstSq, QUEEN};
+            *moves++ = Move{orgSq, dstSq, QUEEN};
 
             if ((knightChecksBB & dstSq) != 0)
-                *moves++ = Move{dstSq - D, dstSq, KNIGHT};
+                *moves++ = Move{orgSq, dstSq, KNIGHT};
         }
 
         if constexpr (All || (Capture && Enemy) || (Quiet && !Enemy))
         {
-            *moves++ = Move{dstSq - D, dstSq, ROOK};
+            *moves++ = Move{orgSq, dstSq, ROOK};
 
-            *moves++ = Move{dstSq - D, dstSq, BISHOP};
+            *moves++ = Move{orgSq, dstSq, BISHOP};
 
             if ((knightChecksBB & dstSq) == 0)
-                *moves++ = Move{dstSq - D, dstSq, KNIGHT};
+                *moves++ = Move{orgSq, dstSq, KNIGHT};
         }
     }
 
