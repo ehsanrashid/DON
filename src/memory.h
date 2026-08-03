@@ -31,7 +31,7 @@
 #if defined(_WIN32)
     #include "platform_win.h"
 #else
-    #include <sys/mman.h>  // mmap, munmap, MAP_*, PROT_*
+    #include <sys/mman.h>
     #include <unistd.h>
 #endif
 
@@ -270,8 +270,8 @@ inline constexpr void* INVALID_MMAP_PTR = nullptr;
 
 struct HandleGuard final {
    public:
-    explicit HandleGuard(HANDLE& handleRef) noexcept :
-        handle(handleRef) {}
+    explicit HandleGuard(HANDLE& refHandle) noexcept :
+        handle(refHandle) {}
     HandleGuard() noexcept                              = delete;
     HandleGuard(const HandleGuard&) noexcept            = delete;
     HandleGuard& operator=(const HandleGuard&) noexcept = delete;
@@ -327,8 +327,8 @@ struct HandleGuard final {
 
 struct MMapGuard final {
    public:
-    explicit MMapGuard(void*& ptrRef) noexcept :
-        mappedPtr(ptrRef) {}
+    explicit MMapGuard(void*& refPtr) noexcept :
+        mappedPtr(refPtr) {}
 
     MMapGuard()                            = delete;
     MMapGuard(const MMapGuard&)            = delete;
@@ -544,8 +544,8 @@ inline constexpr std::size_t INVALID_MMAP_SIZE = 0;
 
 struct FdGuard final {
    public:
-    explicit FdGuard(int& fdRef) noexcept :
-        fd(fdRef) {}
+    explicit FdGuard(int& refFd) noexcept :
+        fd(refFd) {}
     FdGuard()                          = delete;
     FdGuard(const FdGuard&)            = delete;
     FdGuard& operator=(const FdGuard&) = delete;
@@ -605,9 +605,9 @@ struct MMapGuard final {
         const std::size_t size;
     };
 
-    MMapGuard(void*& ptrRef, std::size_t& sizeRef) noexcept :
-        mappedPtr(ptrRef),
-        mappedSize(sizeRef) {}
+    MMapGuard(void*& refPtr, std::size_t& refSize) noexcept :
+        mappedPtr(refPtr),
+        mappedSize(refSize) {}
 
     MMapGuard()                            = delete;
     MMapGuard(const MMapGuard&)            = delete;
@@ -670,6 +670,52 @@ struct MMapGuard final {
    private:
     void*&       mappedPtr;
     std::size_t& mappedSize;
+};
+
+struct UniqueFd final {
+   public:
+    UniqueFd() noexcept = default;
+
+    explicit UniqueFd(int iFd) noexcept :
+        fd{iFd} {}
+
+    UniqueFd(const UniqueFd&)            = delete;
+    UniqueFd& operator=(const UniqueFd&) = delete;
+
+    UniqueFd(UniqueFd&& uniqueFd) noexcept :
+        fd{uniqueFd.release()} {}
+
+    UniqueFd& operator=(UniqueFd&& uniqueFd) noexcept {
+        if (this == &uniqueFd)
+            return *this;
+
+        reset(uniqueFd.release());
+
+        return *this;
+    }
+
+    ~UniqueFd() { reset(); }
+
+    [[nodiscard]] int get() const noexcept { return fd; }
+
+    [[nodiscard]] bool is_valid() const noexcept { return valid_fd(fd); }
+
+    [[nodiscard]] explicit operator bool() const noexcept { return is_valid(); }
+
+    [[nodiscard]] int release() noexcept { return std::exchange(fd, INVALID_FD); }
+
+    void reset(int newFd = INVALID_FD) noexcept {
+        if (fd != newFd)
+        {
+            if (valid_fd(fd))
+                ::close(fd);
+
+            fd = newFd;
+        }
+    }
+
+   private:
+    int fd = INVALID_FD;
 };
 
 #endif

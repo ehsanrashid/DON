@@ -25,7 +25,7 @@
 #include <cstdlib>
 #include <functional>
 #include <iomanip>
-#include <iostream>  // Only in DEBUG
+#include <iostream>
 #include <new>
 #include <sstream>
 #include <string>
@@ -34,24 +34,37 @@
 #include <utility>
 #include <variant>
 
-#if defined(_WIN32)
-    #include "platform_win.h"
-#elif defined(__ANDROID__)
-    // Android-specific configuration (currently none)
-#elif (defined(__linux__) && !defined(__ANDROID__)) /* Linux (non-Android) */ \
-  || defined(__APPLE__)                             /* macOS / iOS */ \
-  || defined(__sun)                                 /* Solaris */ \
-  || defined(__FreeBSD__)                           /* FreeBSD */ \
-  || defined(__OpenBSD__)                           /* OpenBSD */ \
-  || defined(__NetBSD__)                            /* NetBSD */ \
-  || defined(__DragonFly__)                         /* DragonFly BSD */ \
-  || defined(_AIX)                                  /* AIX */
+#if !defined(_WIN32) && !defined(__ANDROID__) \
+  && ((defined(__linux__) && !defined(__ANDROID__)) /* Linux (non-Android) */ \
+      || defined(__APPLE__)                         /* macOS / iOS */ \
+      || defined(__sun)                             /* Solaris */ \
+      || defined(__FreeBSD__)                       /* FreeBSD */ \
+      || defined(__OpenBSD__)                       /* OpenBSD */ \
+      || defined(__NetBSD__)                        /* NetBSD */ \
+      || defined(__DragonFly__)                     /* DragonFly BSD */ \
+      || defined(_AIX))                             /* AIX */
     #define USE_UNIX_SHM
-#else
-    #error "Unsupported operating system"
 #endif
 
-#if defined(USE_UNIX_SHM)
+#if defined(_WIN32)
+    #if !defined(PATH_MAX)
+        #define PATH_MAX (2 * 1024)  // 2K bytes, safe for almost all paths
+    #endif
+    #if !defined(NAME_MAX)
+        #define NAME_MAX 255
+    #endif
+
+    // Standard portable pattern for spin-wait / CPU pause hint
+    #if defined(_M_X64) || defined(_M_IX86) || defined(__x86_64__) || defined(__i386__)
+        #include <emmintrin.h>  // x86/x64: SSE2 use _mm_pause()
+        #define PAUSE() _mm_pause()
+    #else
+        // Fallback: portable C++ hint (PowerPC, RISC-V, MIPS, etc.)
+        #include <thread>
+        #define PAUSE() std::this_thread::yield()
+    #endif
+    #include "platform_win.h"
+#elif defined(USE_UNIX_SHM)
     #include <dirent.h>
     #include <fcntl.h>
     #include <limits.h>
@@ -97,25 +110,6 @@
     #elif defined(_AIX)
     #else
         #error "Unsupported Unix platform"
-    #endif
-#endif
-
-#if defined(_WIN32)
-    #if !defined(PATH_MAX)
-        #define PATH_MAX (2 * 1024)  // 2K bytes, safe for almost all paths
-    #endif
-    #if !defined(NAME_MAX)
-        #define NAME_MAX 255
-    #endif
-
-    // Standard portable pattern for spin-wait / CPU pause hint
-    #if defined(_M_X64) || defined(_M_IX86) || defined(__x86_64__) || defined(__i386__)
-        #include <emmintrin.h>  // x86/x64: SSE2 use _mm_pause()
-        #define PAUSE() _mm_pause()
-    #else
-        // Fallback: portable C++ hint (PowerPC, RISC-V, MIPS, etc.)
-        #include <thread>
-        #define PAUSE() std::this_thread::yield()
     #endif
 #endif
 

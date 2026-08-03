@@ -273,7 +273,7 @@ void Threads::set(const NumaConfig&                       numaConfig,
             create_histories();
     }
 
-    const NumaConfig* numaConfigPtr = threadBindable ? &numaConfig : nullptr;
+    const NumaConfig* ptrNumaConfig = threadBindable ? &numaConfig : nullptr;
 
     // Track per-NUMA indices
     std::unordered_map<NumaIndex, usize> numaIds;
@@ -289,7 +289,7 @@ void Threads::set(const NumaConfig&                       numaConfig,
         usize numaThreadCnt = numaThreadCounts[numaId];
 
         auto create_thread = [this, threadId, threadCount, numaId, numaIdx, numaThreadCnt,
-                              numaConfigPtr, &sharedState, &updateContext]() noexcept {
+                              ptrNumaConfig, &sharedState, &updateContext]() noexcept {
             // Search manager for this thread
             ISearchManagerPtr searchManager;
             if (threadId == 0)
@@ -300,7 +300,7 @@ void Threads::set(const NumaConfig&                       numaConfig,
             // When not binding threads want to force all access to happen from the same
             // NUMA node, because in case of NUMA replicated memory accesses don't want
             // to trash cache in case the threads get scheduled on the same NUMA node.
-            ThreadToNumaNodeBinder nodeBinder(numaId, numaConfigPtr);
+            ThreadToNumaNodeBinder nodeBinder(numaId, ptrNumaConfig);
 
             auto newThread =
               std::make_unique<Thread>(threadId, threadCount, numaIdx, numaThreadCnt, nodeBinder,

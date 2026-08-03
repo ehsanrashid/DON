@@ -640,20 +640,20 @@ class OstreamMutexRegistry final {
     }
 
     // Return a mutex associated with the given ostream pointer.
-    // If osPtr is nullptr, returns a null-mutex to safely ignore locking.
+    // If ptrOs is nullptr, returns a null-mutex to safely ignore locking.
     // This ensures no accidental insertion of null keys into the map.
-    static std::mutex& get(std::ostream* osPtr) noexcept {
+    static std::mutex& get(std::ostream* ptrOs) noexcept {
         ensure_initialized();
 
         // Fallback for null pointers
-        if (osPtr == nullptr)
+        if (ptrOs == nullptr)
             return nullMutex;
 
         // Lock the registry while accessing the map
         std::lock_guard writeLock(mutex);
 
         // Return mutex, create if missing
-        return osMutexes[osPtr];
+        return osMutexes[ptrOs];
     }
 
    private:
@@ -699,12 +699,12 @@ class OstreamMutexRegistry final {
 class [[nodiscard]] SyncOstream final {
    public:
     explicit SyncOstream(std::ostream& os) noexcept :
-        osPtr(&os),
-        lock(OstreamMutexRegistry::get(osPtr)) {}
+        ptrOs(&os),
+        lock(OstreamMutexRegistry::get(ptrOs)) {}
     SyncOstream(const SyncOstream&) noexcept = delete;
     // Move-constructible so factories can return by value
     SyncOstream(SyncOstream&& syncOs) noexcept :
-        osPtr(syncOs.osPtr),
+        ptrOs(syncOs.ptrOs),
         lock(std::move(syncOs.lock)) {}
 
     SyncOstream& operator=(const SyncOstream&) noexcept = delete;
@@ -713,51 +713,51 @@ class [[nodiscard]] SyncOstream final {
 
     template<typename T>
     SyncOstream& operator<<(T&& x) & {
-        assert(osPtr != nullptr && "Use of moved-from SyncOstream");
+        assert(ptrOs != nullptr && "Use of moved-from SyncOstream");
 
-        *osPtr << std::forward<T>(x);
+        *ptrOs << std::forward<T>(x);
         return *this;
     }
     template<typename T>
     SyncOstream&& operator<<(T&& x) && {
-        assert(osPtr != nullptr && "Use of moved-from SyncOstream");
+        assert(ptrOs != nullptr && "Use of moved-from SyncOstream");
 
-        *osPtr << std::forward<T>(x);
+        *ptrOs << std::forward<T>(x);
         return std::move(*this);
     }
 
     using IosManipulator = std::ios& (*) (std::ios&);
 
     SyncOstream& operator<<(IosManipulator manip) & {
-        assert(osPtr != nullptr && "Use of moved-from SyncOstream");
+        assert(ptrOs != nullptr && "Use of moved-from SyncOstream");
 
-        manip(*osPtr);
+        manip(*ptrOs);
         return *this;
     }
     SyncOstream&& operator<<(IosManipulator manip) && {
-        assert(osPtr != nullptr && "Use of moved-from SyncOstream");
+        assert(ptrOs != nullptr && "Use of moved-from SyncOstream");
 
-        manip(*osPtr);
+        manip(*ptrOs);
         return std::move(*this);
     }
 
     using OstreamManipulator = std::ostream& (*) (std::ostream&);
 
     SyncOstream& operator<<(OstreamManipulator manip) & {
-        assert(osPtr != nullptr && "Use of moved-from SyncOstream");
+        assert(ptrOs != nullptr && "Use of moved-from SyncOstream");
 
-        manip(*osPtr);
+        manip(*ptrOs);
         return *this;
     }
     SyncOstream&& operator<<(OstreamManipulator manip) && {
-        assert(osPtr != nullptr && "Use of moved-from SyncOstream");
+        assert(ptrOs != nullptr && "Use of moved-from SyncOstream");
 
-        manip(*osPtr);
+        manip(*ptrOs);
         return std::move(*this);
     }
 
    private:
-    std::ostream* const          osPtr;
+    std::ostream* const          ptrOs;
     std::unique_lock<std::mutex> lock;
 };
 

@@ -98,7 +98,7 @@ class Option final {
     OnChange    onChange;
 
     u16            idx;
-    const Options* optionsPtr = nullptr;
+    const Options* ptrOptions = nullptr;
 
     friend class Options;
 };

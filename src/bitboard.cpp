@@ -67,9 +67,9 @@ std::string_view pretty(Bitboard b) noexcept {
     // Ensures the cache lives for the entire program, never deleted.
     //static auto& cache = *new ConcurrentCache<Bitboard, std::string>(ReserveCount, MaxLoadFactor);
     static auto& cache = *[=] {
-        static auto cachePtr =
+        static auto ptrCache =
           std::make_unique<ConcurrentCache<Bitboard, std::string>>(ReserveCount, MaxLoadFactor);
-        return cachePtr.get();
+        return ptrCache.get();
     }();
 
     //return cache.access_or_build(b, pretty_str(b));
