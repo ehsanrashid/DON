@@ -83,6 +83,7 @@
     #include <filesystem>
     #include <list>
     #include <mutex>
+    #include <optional>
     #include <shared_mutex>
     #include <thread>
     #include <unordered_map>
@@ -1145,10 +1146,9 @@ struct TempRoot final {
    public:
     static const std::optional<TempRoot>& get_temp_root() noexcept {
         static const auto tempRoot = []() -> std::optional<TempRoot> {
+            const uid_t uid = getuid();
+
             std::string path{"/tmp/DON-"};
-
-            uid_t uid = getuid();
-
             path += std::to_string(uid);
 
             if (mkdir(path.c_str(), 0700) == 0)
@@ -1157,6 +1157,7 @@ struct TempRoot final {
             if (errno != EEXIST)
                 return std::nullopt;
 
+            // Temp root already exists, verify ownership and permissions
             struct stat stStat{};
 
             if (lstat(path.c_str(), &stStat) == 0  //
@@ -1172,7 +1173,7 @@ struct TempRoot final {
     }
 
     // /tmp/DON-[uid], with appropriate permissions
-    std::string prefix;
+    std::string path;
 };
 
 
