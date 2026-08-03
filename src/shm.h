@@ -185,7 +185,7 @@ inline std::string executable_path() noexcept {
         executablePath[executableSize] = '\0';
     }
 #elif defined(__OpenBSD__)
-    ssize_t size =
+    ssize_t size =  //
       ::readlink("/proc/curproc/file", executablePath.data(), executablePath.size() - 1);
 
     if (size >= 0)
@@ -194,7 +194,7 @@ inline std::string executable_path() noexcept {
         executablePath[executableSize] = '\0';
     }
 #elif defined(__NetBSD__) || defined(__DragonFly__)
-    ssize_t size =
+    ssize_t size =  //
       ::readlink("/proc/curproc/exe", executablePath.data(), executablePath.size() - 1);
 
     if (size >= 0)
@@ -203,7 +203,8 @@ inline std::string executable_path() noexcept {
         executablePath[executableSize] = '\0';
     }
 #elif defined(__linux__)
-    ssize_t size = ::readlink("/proc/self/exe", executablePath.data(), executablePath.size() - 1);
+    ssize_t size =  //
+      ::readlink("/proc/self/exe", executablePath.data(), executablePath.size() - 1);
 
     if (size >= 0)
     {
@@ -714,26 +715,31 @@ class SharedMemoryRegistry final {
 
 // SharedMemoryCleanupManager
 //
-// Utility class that ensures **automatic cleanup of shared memory** when the program exits
+// Utility class that manages automatic cleanup of shared memory resources
+// during normal program termination.
 //
 // Usage:
-//   Call SharedMemoryCleanupManager::ensure_initialized() early in main()
-//   This guarantees that SharedMemoryRegistry::cleanup() will be
-//   invoked automatically on program exit or abnormal termination.
+//   Call SharedMemoryCleanupManager::ensure_initialized() early in main().
+//   This initializes the shared memory registry and registers a cleanup
+//   handler that is invoked automatically when the program exits normally.
 //
 // Key Points:
-//   - Uses CallOnce to register hooks only once, even if called multiple times.
-//   - Prevents instantiation and copying (all constructors/destructor deleted).
+//   - Uses CallOnce to ensure initialization happens only once, even if
+//     ensure_initialized() is called multiple times.
+//   - Prevents instantiation, copying, and moving; this class only provides
+//     static functionality.
 //
 // Note:
-//  - The class is static-only; it cannot be instantiated. (Restriction)
+//   - Cleanup via std::atexit() is only guaranteed during normal termination.
+//     It will not run after forced termination (SIGKILL), crashes, or abort().
+//   - The class is static-only; it cannot be instantiated. (Restriction)
 class SharedMemoryCleanupManager final {
    public:
-    // Ensures that the SharedMemoryCleanupManager is initialized only once.
-    //   1. Initializing the shared memory registry.
-    //   2. Registering cleanup via std::atexit().
+    // Initializes the shared memory registry once and
+    // registers the cleanup callback with std::atexit().
     static void ensure_initialized(usize reserveCount  = 1024,
                                    float maxLoadFactor = 0.75f) noexcept {
+        // Only the parameters from the first call are used
         callOnce([reserveCount, maxLoadFactor]() noexcept {
             //DEBUG_LOG("Initializing SharedMemoryCleanupManager.");
             // 1. Initialize registry
@@ -754,9 +760,30 @@ class SharedMemoryCleanupManager final {
     static inline CallOnce callOnce;
 };
 
+// TempRoot
+//
+// Manages a private temporary directory used by the application for storing
+// temporary runtime files.
+//
+// The directory is created under /tmp using the format:
+//     /tmp/DON-[uid]
+//
+// The directory is created with owner-only permissions (0700). If the directory
+// already exists, its ownership and permissions are verified before reuse to
+// prevent using an unsafe or unexpected directory.
+//
+// Usage:
+//   const auto& root = TempRoot::temp_root();
+//
+// Key Points:
+//   - Initialized lazily on the first call to temp_root().
+//   - Uses a static instance to ensure the same validated temporary root is
+//     reused throughout the program lifetime.
+//   - Returns std::nullopt if the directory cannot be created or fails the
+//     ownership/permission checks.
 struct TempRoot final {
    public:
-    static const std::optional<TempRoot>& get_temp_root() noexcept {
+    static const std::optional<TempRoot>& temp_root() noexcept {
         static const auto tempRoot = []() -> std::optional<TempRoot> {
             const uid_t uid = ::getuid();
 
@@ -847,75 +874,74 @@ class SharedMemory final: public BaseSharedMemory {
    public:
     explicit SharedMemory(std::string_view shmName, const TempRoot& tempRoot) noexcept :
         BaseSharedMemory(shmName),
-        shared_dir_(tempRoot.path + "/" + make_sentinel_base(name())),
-        init_lock_path_(shared_dir_ + "/init_lock"),
-        socket_path_(shared_dir_ + "/" + std::to_string(::getpid()) + ".sock"),
-        server_thread_(std::nullopt) {}
+        sharedDir(tempRoot.path + "/" + make_sentinel_base(name())),
+        initLockPath(sharedDir + "/init_lock"),
+        socketPath(sharedDir + "/" + std::to_string(::getpid()) + ".sock"),
+        serverThread(std::nullopt) {}
 
     ~SharedMemory() noexcept override { unregister_close(); }
 
     SharedMemory(const SharedMemory&)            = delete;
     SharedMemory& operator=(const SharedMemory&) = delete;
 
-    SharedMemory(SharedMemory&& other) noexcept :
-        BaseSharedMemory(std::move(other.name_)),
-        mapped_ptr_(other.mapped_ptr_),
-        data_ptr_(other.data_ptr_),
-        shared_dir_(std::move(other.shared_dir_)),
-        init_lock_path_(std::move(other.init_lock_path_)),
-        socket_path_(std::move(other.socket_path_)),
-        server_thread_(std::move(other.server_thread_)),
-        shutdown_(std::move(other.shutdown_)) {
+    SharedMemory(SharedMemory&& sharedMemory) noexcept :
+        BaseSharedMemory(std::move(sharedMemory.name_)),
+        mappedPtr(sharedMemory.mappedPtr),
+        dataPtr(sharedMemory.dataPtr),
+        sharedDir(std::move(sharedMemory.sharedDir)),
+        initLockPath(std::move(sharedMemory.initLockPath)),
+        socketPath(std::move(sharedMemory.socketPath)),
+        serverThread(std::move(sharedMemory.serverThread)),
+        shutdownFd(std::move(sharedMemory.shutdownFd)) {
 
-        SharedMemoryRegistry::unregister_memory(&other);
+        SharedMemoryRegistry::unregister_memory(&sharedMemory);
         SharedMemoryRegistry::attempt_register_memory(this);
 
-        other.mapped_ptr_ = nullptr;
-        other.data_ptr_   = nullptr;
+        sharedMemory.mappedPtr = nullptr;
+        sharedMemory.dataPtr   = nullptr;
     }
-    SharedMemory& operator=(SharedMemory&& other) noexcept {
-        if (this == &other)
+    SharedMemory& operator=(SharedMemory&& sharedMemory) noexcept {
+        if (this == &sharedMemory)
             return *this;
 
-        SharedMemoryRegistry::unregister_memory(this);
-        close(CloseType::Normal);
+        unregister_close();
 
-        name_           = std::move(other.name_);
-        mapped_ptr_     = other.mapped_ptr_;
-        data_ptr_       = other.data_ptr_;
-        shared_dir_     = std::move(other.shared_dir_);
-        init_lock_path_ = std::move(other.init_lock_path_);
-        socket_path_    = std::move(other.socket_path_);
-        server_thread_  = std::move(other.server_thread_);
-        shutdown_       = std::move(other.shutdown_);
+        name_        = std::move(sharedMemory.name_);
+        mappedPtr    = sharedMemory.mappedPtr;
+        dataPtr      = sharedMemory.dataPtr;
+        sharedDir    = std::move(sharedMemory.sharedDir);
+        initLockPath = std::move(sharedMemory.initLockPath);
+        socketPath   = std::move(sharedMemory.socketPath);
+        serverThread = std::move(sharedMemory.serverThread);
+        shutdownFd   = std::move(sharedMemory.shutdownFd);
 
-        SharedMemoryRegistry::unregister_memory(&other);
+        SharedMemoryRegistry::unregister_memory(&sharedMemory);
         SharedMemoryRegistry::attempt_register_memory(this);
 
-        other.mapped_ptr_ = nullptr;
-        other.data_ptr_   = nullptr;
+        sharedMemory.mappedPtr = nullptr;
+        sharedMemory.dataPtr   = nullptr;
 
         return *this;
     }
 
-    [[nodiscard]] bool open(const T& initial_value) noexcept {
-        if (socket_path_.size() >= sizeof(sockaddr_un::sun_path))
+    [[nodiscard]] bool open(const T& value) noexcept {
+        if (socketPath.size() >= sizeof(sockaddr_un::sun_path))
             return false;
 
-        if (mkdir(shared_dir_.c_str(), 0700) != 0 && errno != EEXIST)
+        if (::mkdir(sharedDir.c_str(), 0700) != 0 && errno != EEXIST)
             return false;
 
         {
-            auto initLock = InitLock::acquire_lock(init_lock_path_);
+            auto initLock = InitLock::acquire_lock(initLockPath);
             if (!initLock.is_valid())
                 return false;
 
             // Try to receive the shared memfd
             UniqueFd memfd;
-            Strings  peer_sockets = get_peer_sockets();
-            for (const auto& sock_path : peer_sockets)
+            Strings  peerSockets = get_peer_sockets();
+            for (const auto& sockPath : peerSockets)
             {
-                memfd = try_receive_memfd(sock_path);
+                memfd = try_receive_memfd(sockPath);
                 if (memfd.is_valid())
                     break;
             }
@@ -926,78 +952,77 @@ class SharedMemory final: public BaseSharedMemory {
             {
     #if defined(__linux__) || defined(__FreeBSD__)
                 // Failed to get it from a peer (no peers, or only dead peers), so create
-                memfd.reset(memfd_create("replicated_data", MFD_CLOEXEC));
+                memfd.reset(::memfd_create("replicated_data", MFD_CLOEXEC));
                 if (!memfd.is_valid())
                     return false;
     #else
                 char temp_path[PATH_MAX];
-                strncpy(temp_path, "/tmp/stockfish_replicated_data.XXXXXX", PATH_MAX);
+                std::strncpy(temp_path, "/tmp/stockfish_replicated_data.XXXXXX", PATH_MAX);
 
-                memfd.reset(mkstemp(temp_path));
+                memfd.reset(::mkstemp(temp_path));
                 if (!memfd.is_valid())
                     return false;
                 set_cloexec(memfd.get());
-                unlink(temp_path);
+                ::unlink(temp_path);
     #endif
 
-                if (ftruncate(memfd.get(), sizeof(T)) != 0)
+                if (::ftruncate(memfd.get(), sizeof(T)) != 0)
                     return false;
             }
 
             assert(memfd.is_valid());
 
             // Try to map the memfd
-            T* mapped_mem = static_cast<T*>(
-              mmap(NULL, sizeof(T), PROT_READ | PROT_WRITE, MAP_SHARED, memfd.get(), 0));
-            if (mapped_mem == MAP_FAILED)
+            T* mappedMem = static_cast<T*>(
+              ::mmap(NULL, sizeof(T), PROT_READ | PROT_WRITE, MAP_SHARED, memfd.get(), 0));
+            if (mappedMem == MAP_FAILED)
                 return false;
 
     #if defined(MADV_HUGEPAGE)
-            (void) madvise(mapped_mem, sizeof(T), MADV_HUGEPAGE);
+            (void) ::madvise(mappedMem, sizeof(T), MADV_HUGEPAGE);
     #endif
 
             if (creator)
             {
                 // Creator is responsible for initialization
-                *mapped_mem = initial_value;
+                *mappedMem = value;
             }
 
-            mapped_ptr_ = data_ptr_ = mapped_mem;
+            mappedPtr = dataPtr = mappedMem;
 
             SharedMemoryRegistry::attempt_register_memory(this);  // register for cleanup at exit
 
-            int shutdown_pipe[2];
+            int shutdownPipe[2];
     #if !defined(__APPLE__)
-            if (pipe2(shutdown_pipe, O_CLOEXEC) != 0)
+            if (::pipe2(shutdownPipe, O_CLOEXEC) != 0)
                 return false;
     #else
-            if (pipe(shutdown_pipe) != 0)
+            if (::pipe(shutdownPipe) != 0)
                 return false;
-            set_cloexec(shutdown_pipe[0]);
-            set_cloexec(shutdown_pipe[1]);
+            set_cloexec(shutdownPipe[0]);
+            set_cloexec(shutdownPipe[1]);
     #endif
-            UniqueFd shutdown_receiver(shutdown_pipe[0]);
-            shutdown_ = UniqueFd(shutdown_pipe[1]);
+            UniqueFd shutdownReceiver(shutdownPipe[0]);
+            shutdownFd = UniqueFd(shutdownPipe[1]);
 
-            auto server_fd = create_unix_socket();
-            if (!server_fd.is_valid())
+            auto serverFd = create_unix_socket();
+            if (!serverFd.is_valid())
                 return false;
 
-            struct sockaddr_un addr = {};
-            addr.sun_family         = AF_UNIX;
-            strncpy(addr.sun_path, socket_path_.c_str(), sizeof(addr.sun_path) - 1);
+            struct sockaddr_un addr{};
+            addr.sun_family = AF_UNIX;
+            std::strncpy(addr.sun_path, socketPath.c_str(), sizeof(addr.sun_path) - 1);
 
-            unlink(socket_path_.c_str());
-            if (bind(server_fd.get(), reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr)) == -1
-                || listen(server_fd.get(), 5) == -1)
-            {
+            ::unlink(socketPath.c_str());
+            if (::bind(serverFd.get(), reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr))
+                  == -1
+                || ::listen(serverFd.get(), 5) == -1)
                 return false;
-            }
 
             // Don't release the init lock until we've actually made a socket that
             // other fishes can use.
-            server_thread_ = make_server_thread(std::move(memfd), std::move(shutdown_receiver),
-                                                std::move(server_fd));
+            serverThread = make_server_thread(std::move(memfd), std::move(shutdownReceiver),
+                                              std::move(serverFd));
         }
 
         return true;
@@ -1008,10 +1033,10 @@ class SharedMemory final: public BaseSharedMemory {
         {
             // Don't unmap on exit as this may cause currently searching threads to segfault.
             // Also, don't join() the server thread on exit.
-            if (server_thread_)
+            if (serverThread)
             {
-                server_thread_->detach();
-                server_thread_ = std::nullopt;
+                serverThread->detach();
+                serverThread = std::nullopt;
             }
         }
         else
@@ -1030,59 +1055,59 @@ class SharedMemory final: public BaseSharedMemory {
         close(CloseType::Normal);
     }
 
-    bool is_mapped() const noexcept { return mapped_ptr_ != nullptr; }
+    bool is_mapped() const noexcept { return mappedPtr != nullptr; }
 
-    bool is_serving() const noexcept { return server_thread_.has_value(); }
+    bool is_serving() const noexcept { return bool(serverThread); }
 
     const T& get() const noexcept {
-        assert(data_ptr_ != nullptr);
+        assert(dataPtr != nullptr);
 
-        return *data_ptr_;
+        return *dataPtr;
     }
 
    private:
     void reset() noexcept {
-        if (!socket_path_.empty())
+        if (!socketPath.empty())
         {
-            unlink(socket_path_.c_str());
+            ::unlink(socketPath.c_str());
         }
 
-        shutdown_.reset();
+        shutdownFd.reset();
 
-        if (server_thread_ && server_thread_->joinable())
+        if (serverThread && serverThread->joinable())
         {
-            server_thread_->join();
-            server_thread_ = std::nullopt;
+            serverThread->join();
+            serverThread = std::nullopt;
         }
 
-        mapped_ptr_ = nullptr;
-        data_ptr_   = nullptr;
+        mappedPtr = nullptr;
+        dataPtr   = nullptr;
     }
 
     void unmap_region() noexcept {
-        if (mapped_ptr_)
+        if (mappedPtr != nullptr)
         {
-            munmap(mapped_ptr_, sizeof(T));
-            mapped_ptr_ = nullptr;
-            data_ptr_   = nullptr;
+            ::munmap(mappedPtr, sizeof(T));
+            mappedPtr = nullptr;
+            dataPtr   = nullptr;
         }
     }
 
     // Discover all peers in the shared dir
     Strings get_peer_sockets() noexcept {
-        Strings peer_sockets;
-        if (DIR* dir = opendir(shared_dir_.c_str()))
+        Strings peerSockets;
+        if (DIR* dir = ::opendir(sharedDir.c_str()))
         {
             struct dirent* entry;
-            while ((entry = readdir(dir)) != nullptr)
+            while ((entry = ::readdir(dir)) != nullptr)
             {
-                std::string name = entry->d_name;
-                if (name.size() >= 5 && name.compare(name.size() - 5, 5, ".sock") == 0)
-                    peer_sockets.push_back(shared_dir_ + "/" + name);
+                std::string dName = entry->d_name;
+                if (dName.size() >= 5 && dName.compare(dName.size() - 5, 5, ".sock") == 0)
+                    peerSockets.push_back(sharedDir + "/" + dName);
             }
-            closedir(dir);
+            ::closedir(dir);
         }
-        return peer_sockets;
+        return peerSockets;
     }
 
     static std::string make_sentinel_base(std::string_view name) noexcept {
@@ -1093,34 +1118,42 @@ class SharedMemory final: public BaseSharedMemory {
         return buf;
     }
 
-    static UniqueFd create_unix_socket() {
+    static UniqueFd create_unix_socket() noexcept {
+        int domain = AF_UNIX;
+        int type   = SOCK_STREAM;
     #if defined(SOCK_CLOEXEC)
-        UniqueFd fd(socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0));
-    #else
-        UniqueFd fd(socket(AF_UNIX, SOCK_STREAM, 0));
-        set_cloexec(fd.get());
+        type |= SOCK_CLOEXEC;
     #endif
+        int protocol = 0;
+
+        UniqueFd fd(socket(domain, type, protocol));
+
+    #if !defined(SOCK_CLOEXEC)
+        if (fd.is_valid())
+            set_cloexec(fd.get());
+    #endif
+
         return fd;
     }
 
-    UniqueFd try_receive_memfd(const std::string& their_path) noexcept {
-        auto peer_fd = create_unix_socket();
-        if (!peer_fd.is_valid())
+    UniqueFd try_receive_memfd(const std::string& sockPath) noexcept {
+        auto peerFd = create_unix_socket();
+        if (!peerFd.is_valid())
             return {};
 
         // 1-second timeout for connect and receive
         struct timeval tv = {1, 0};
-        setsockopt(peer_fd.get(), SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
-        setsockopt(peer_fd.get(), SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+        setsockopt(peerFd.get(), SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
+        setsockopt(peerFd.get(), SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
 
-        struct sockaddr_un addr = {};
-        addr.sun_family         = AF_UNIX;
-        std::strncpy(addr.sun_path, their_path.c_str(), sizeof(addr.sun_path) - 1);
+        struct sockaddr_un addr{};
+        addr.sun_family = AF_UNIX;
+        std::strncpy(addr.sun_path, sockPath.c_str(), sizeof(addr.sun_path) - 1);
 
         // Connect to peer socket and request access to the memfd
         int ret;
         do
-            ret = connect(peer_fd.get(), reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr));
+            ret = connect(peerFd.get(), reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr));
         while (ret < 0 && errno == EINTR);
 
         if (ret == 0)
@@ -1137,13 +1170,12 @@ class SharedMemory final: public BaseSharedMemory {
             union {
                 char           buf[CMSG_SPACE(sizeof(int))];
                 struct cmsghdr align;
-            } control_msg = {};
+            } controlMsg = {};
 
-            msg.msg_control    = control_msg.buf;
-            msg.msg_controllen = sizeof(control_msg.buf);
+            msg.msg_control    = controlMsg.buf;
+            msg.msg_controllen = sizeof(controlMsg.buf);
 
-            ssize_t bytes_recv;
-            int     flags =
+            int flags =
     #if defined(MSG_CMSG_CLOEXEC)
               MSG_CMSG_CLOEXEC
     #else
@@ -1151,29 +1183,31 @@ class SharedMemory final: public BaseSharedMemory {
     #endif
               ;
 
-            do
-                bytes_recv = recvmsg(peer_fd.get(), &msg, flags);
-            while (bytes_recv < 0 && errno == EINTR);
+            ssize_t bytesRecv;
 
-            if (bytes_recv > 0)
+            do
+                bytesRecv = ::recvmsg(peerFd.get(), &msg, flags);
+            while (bytesRecv < 0 && errno == EINTR);
+
+            if (bytesRecv > 0)
             {
                 cmsghdr* cmsg = CMSG_FIRSTHDR(&msg);
                 // Receive rights to the memfd from the peer; see make_server_thread
                 if (cmsg && cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SCM_RIGHTS)
                 {
-                    int received_fd;
-                    memcpy(&received_fd, CMSG_DATA(cmsg), sizeof(received_fd));
+                    int receivedFd;
+                    std::memcpy(&receivedFd, CMSG_DATA(cmsg), sizeof(receivedFd));
     #ifndef MSG_CMSG_CLOEXEC
-                    set_cloexec(received_fd);
+                    set_cloexec(receivedFd);
     #endif
-                    return UniqueFd(received_fd);
+                    return UniqueFd(receivedFd);
                 }
             }
         }
         else if (errno == ECONNREFUSED || errno == ENOENT)
         {
             // Failed to connect, clean up dead peer
-            unlink(their_path.c_str());
+            ::unlink(sockPath.c_str());
         }
 
         return {};
@@ -1181,12 +1215,12 @@ class SharedMemory final: public BaseSharedMemory {
 
     // Server thread:
     //  - Forwards the file descriptor fd
-    //  - Exits when shutdown_receiver is hung up on
-    //  - Listens on server_fd
+    //  - Exits when shutdownReceiver is hung up on
+    //  - Listens on serverFd
     static std::thread
-    make_server_thread(UniqueFd fd, UniqueFd shutdown_receiver, UniqueFd server_fd) {
-        return std::thread([fd = std::move(fd), shutdown_receiver = std::move(shutdown_receiver),
-                            server_fd = std::move(server_fd)]() {
+    make_server_thread(UniqueFd fd, UniqueFd shutdownReceiver, UniqueFd serverFd) noexcept {
+        return std::thread([fd = std::move(fd), shutdownReceiver = std::move(shutdownReceiver),
+                            serverFd = std::move(serverFd)]() noexcept {
             enum {
                 FdServer,
                 FdShutdown,
@@ -1194,15 +1228,15 @@ class SharedMemory final: public BaseSharedMemory {
             };
 
             struct pollfd fds[FdCount];
-            fds[FdServer].fd     = server_fd.get();
+            fds[FdServer].fd     = serverFd.get();
             fds[FdServer].events = POLLIN;
 
-            fds[FdShutdown].fd     = shutdown_receiver.get();
+            fds[FdShutdown].fd     = shutdownReceiver.get();
             fds[FdShutdown].events = POLLIN;
 
             while (true)
             {
-                int ret = poll(fds, FdCount, -1);
+                int ret = ::poll(fds, FdCount, -1);
                 if (ret < 0)
                 {
                     if (errno == EINTR)
@@ -1218,12 +1252,12 @@ class SharedMemory final: public BaseSharedMemory {
                 {
                         // Another fish wants access
     #if !defined(__APPLE__)
-                    UniqueFd client_fd(accept4(server_fd.get(), nullptr, nullptr, SOCK_CLOEXEC));
+                    UniqueFd clientFd(accept4(serverFd.get(), nullptr, nullptr, SOCK_CLOEXEC));
     #else
-                    UniqueFd client_fd(accept(server_fd.get(), nullptr, nullptr));
-                    set_cloexec(client_fd.get());
+                    UniqueFd clientFd(accept(serverFd.get(), nullptr, nullptr));
+                    set_cloexec(clientFd.get());
     #endif
-                    if (!client_fd.is_valid())
+                    if (!clientFd.is_valid())
                         continue;  // including EINTR
 
                     msghdr msg    = {};
@@ -1237,44 +1271,44 @@ class SharedMemory final: public BaseSharedMemory {
                     union {
                         char           buf[CMSG_SPACE(sizeof(int))];
                         struct cmsghdr align;
-                    } control_msg = {};
+                    } controlMsg = {};
 
-                    msg.msg_control    = control_msg.buf;
-                    msg.msg_controllen = sizeof(control_msg.buf);
+                    msg.msg_control    = controlMsg.buf;
+                    msg.msg_controllen = sizeof(controlMsg.buf);
 
                     // Send over rights to the memfd (SCM_RIGHTS). The fd may be given a different number, but
                     // will refer to the same underlying file. Once it's mmapped then it will share physical memory
                     // between the processes.
                     // See https://man7.org/linux/man-pages/man7/unix.7.html for more information on SCM_RIGHTS
-                    int             raw_fd = fd.get();
-                    struct cmsghdr* cmsg   = CMSG_FIRSTHDR(&msg);
-                    cmsg->cmsg_level       = SOL_SOCKET;
-                    cmsg->cmsg_type        = SCM_RIGHTS;
-                    cmsg->cmsg_len         = CMSG_LEN(sizeof(raw_fd));
-                    memcpy(CMSG_DATA(cmsg), &raw_fd, sizeof(raw_fd));
+                    int             rawFd = fd.get();
+                    struct cmsghdr* cmsg  = CMSG_FIRSTHDR(&msg);
+                    cmsg->cmsg_level      = SOL_SOCKET;
+                    cmsg->cmsg_type       = SCM_RIGHTS;
+                    cmsg->cmsg_len        = CMSG_LEN(sizeof(rawFd));
+                    std::memcpy(CMSG_DATA(cmsg), &rawFd, sizeof(rawFd));
 
-                    while (sendmsg(client_fd.get(), &msg, 0) < 0 && errno == EINTR)
+                    while (::sendmsg(clientFd.get(), &msg, 0) < 0 && errno == EINTR)
                     {}
                 }
             }
         });
     }
 
-    void* mapped_ptr_ = nullptr;
-    T*    data_ptr_   = nullptr;
+    void* mappedPtr = nullptr;
+    T*    dataPtr   = nullptr;
 
     // Fishes will put their .sock files in this folder, and each folder is associated with a single underlying
     // shared memfd. Therefore in a NUMA setting, we may have multiple such folders
-    std::string shared_dir_;
+    std::string sharedDir;
 
     // Threads need to successfully and exclusively lock this file to initialize the memfd. If another process has
     // a lock on it, then we wait for it to finish initializing (or die) and release the lock
-    std::string init_lock_path_;
+    std::string initLockPath;
 
     // serve requests for the shared segment on this .sock
-    std::string                socket_path_;
-    std::optional<std::thread> server_thread_;
-    UniqueFd                   shutdown_;  // close to signal server thread shutdown
+    std::string                socketPath;
+    std::optional<std::thread> serverThread;
+    UniqueFd                   shutdownFd;  // close to signal server thread shutdown
 };
 
 template<typename T>
@@ -1282,7 +1316,7 @@ template<typename T>
                                                                   const T&         value) noexcept {
     SharedMemoryCleanupManager::ensure_initialized();
 
-    auto tempRoot = TempRoot::get_temp_root();
+    auto tempRoot = TempRoot::temp_root();
     if (!tempRoot.has_value())
         return std::nullopt;
     SharedMemory<T> shm(name, *tempRoot);
