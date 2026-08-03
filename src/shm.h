@@ -337,7 +337,6 @@ class BackendSharedMemory final {
     #endif
 
               //DEBUG_LOG("Allocating large page shared memory, size = " << roundedTotalSize << " bytes");
-
               return CreateFileMapping(INVALID_HANDLE_VALUE, nullptr,
                                        PAGE_READWRITE | SEC_COMMIT | SEC_LARGE_PAGES,  //
                                        hiTotalSize, loTotalSize, name().data());
@@ -348,7 +347,6 @@ class BackendSharedMemory final {
         if (!valid_handle(hMapFile))
         {
             //DEBUG_LOG("Allocating normal shared memory, size = " << TotalSize << " bytes");
-
             hMapFile = CreateFileMapping(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE,  //
                                          0, TotalSize, name().data());
         }
@@ -357,7 +355,6 @@ class BackendSharedMemory final {
         {
             //DEBUG_LOG("CreateFileMapping() failed, name = " << name() << ", error = " << error_to_string(GetLastError()));
             status = Status::FileMapping;
-
             return;
         }
 
@@ -367,7 +364,6 @@ class BackendSharedMemory final {
         {
             //DEBUG_LOG("MapViewOfFile() failed, name = " << name() << ", error = " << error_to_string(GetLastError()));
             status = Status::MapView;
-
             cleanup();
             return;
         }
@@ -384,7 +380,6 @@ class BackendSharedMemory final {
         {
             //DEBUG_LOG("CreateMutex() failed, name = " << mutexName << ", error = " << error_to_string(GetLastError()));
             status = Status::MutexCreate;
-
             cleanup();
             return;
         }
@@ -393,7 +388,6 @@ class BackendSharedMemory final {
         {
             //DEBUG_LOG("WaitForSingleObject() failed, name = " << mutexName << ", error = " << error_to_string(GetLastError()));
             status = Status::MutexWait;
-
             cleanup();
             return;
         }
@@ -426,7 +420,6 @@ class BackendSharedMemory final {
         {
             //DEBUG_LOG("ReleaseMutex() failed, name = " << mutexName << ", error = " << error_to_string(GetLastError()));
             status = Status::MutexRelease;
-
             cleanup();
             return;
         }
@@ -437,15 +430,12 @@ class BackendSharedMemory final {
 
     void cleanup() noexcept {
         //DEBUG_LOG("Cleaning up shared memory, name: " << name());
-
         mappedGuard.close();
-
         hMapFileGuard.close();
     }
 
     void destroy() noexcept {
         //DEBUG_LOG("Destroying shared memory, name: " << name());
-
         cleanup();
     }
 
@@ -466,20 +456,21 @@ class BackendSharedMemory final {
 class BaseSharedMemory {
    public:
     explicit BaseSharedMemory(std::string_view shmName) noexcept :
-        name(shmName) {
+        name_(shmName) {
         // POSIX named shared memory names must start with slash ('/')
         constexpr char Prefix = '/';
-        if (name_().empty() || name_()[0] != Prefix)
-            name.insert(name.begin(), Prefix);
+        if (name().empty() || name()[0] != Prefix)
+            name_.insert(name_.begin(), Prefix);
     }
 
     virtual ~BaseSharedMemory() noexcept = default;
 
     virtual void close(bool skipUnmapRegion = false) noexcept = 0;
 
-    std::string_view name_() const noexcept { return name; }
+    std::string_view name() const noexcept { return name_; }
 
-    std::string name;
+   protected:
+    std::string name_;
 };
 
 // SharedMemoryRegistry
@@ -557,7 +548,7 @@ class SharedMemoryRegistry final {
             if (!condVar.wait_for(condLock, MaxWaitTime,
                                   []() noexcept { return !cleanup_in_progress(); }))
             {
-                //DEBUG_LOG("Timeout waiting for SharedMemoryRegistry cleanup to finish : " << sharedMemory->name_());
+                //DEBUG_LOG("Timeout waiting for SharedMemoryRegistry cleanup to finish : " << sharedMemory->name());
                 // Timeout - silently fail to register (acceptable during shutdown)
                 return;
             }
@@ -645,7 +636,7 @@ class SharedMemoryRegistry final {
         [[maybe_unused]] usize i = 0;
         for ([[maybe_unused]] auto* sharedMemory : orderedList)
             DEBUG_LOG("[" << i++ << "] "
-                          << (sharedMemory != nullptr ? sharedMemory->name_() : "<NULL>"));
+                          << (sharedMemory != nullptr ? sharedMemory->name() : "<NULL>"));
         DEBUG_LOG("");
     }
 
@@ -672,7 +663,7 @@ class SharedMemoryRegistry final {
         if (!inserted)
             return false;
 
-        //DEBUG_LOG("Registering shared memory: " << sharedMemory->name_());
+        //DEBUG_LOG("Registering shared memory: " << sharedMemory->name());
 
         // Append to the ordered list and obtain a stable list iterator
         auto insertId = orderedList.emplace(orderedList.end(), sharedMemory);
@@ -691,7 +682,7 @@ class SharedMemoryRegistry final {
         if (eraseReg == registryMap.end())
             return false;
 
-        //DEBUG_LOG("Unregistering shared memory: " << sharedMemory->name_());
+        //DEBUG_LOG("Unregistering shared memory: " << sharedMemory->name());
 
         // Retrieve the stable list iterator associated with this entry
         auto eraseId = eraseReg->second;
@@ -1322,7 +1313,7 @@ class SharedMemory final: public BaseSharedMemory {
     SharedMemory& operator=(const SharedMemory&) = delete;
 
     SharedMemory(SharedMemory&& sharedMemory) noexcept :
-        BaseSharedMemory(sharedMemory.name_()) {
+        BaseSharedMemory(sharedMemory.name()) {
         move_with_registry(sharedMemory);
     }
     SharedMemory& operator=(SharedMemory&& sharedMemory) noexcept {
@@ -1332,7 +1323,7 @@ class SharedMemory final: public BaseSharedMemory {
         unregister_close();
 
         // Move-assign the base class
-        name = sharedMemory.name_();
+        name_ = sharedMemory.name();
         move_with_registry(sharedMemory);
 
         return *this;
@@ -1366,12 +1357,12 @@ class SharedMemory final: public BaseSharedMemory {
 
             oflag = O_CREAT | O_EXCL | O_RDWR;
             mode  = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH;
-            fd    = shm_open(name_().data(), oflag, mode);
+            fd    = shm_open(name().data(), oflag, mode);
 
             if (!valid_fd(fd))
             {
                 oflag = O_RDWR;
-                fd    = shm_open(name_().data(), oflag, mode);
+                fd    = shm_open(name().data(), oflag, mode);
 
                 if (!valid_fd(fd))
                 {
@@ -1381,7 +1372,7 @@ class SharedMemory final: public BaseSharedMemory {
             }
             else
             {
-                //DEBUG_LOG("Created new shared memory region: " << name_());
+                //DEBUG_LOG("Created new shared memory region: " << name());
                 newCreated = true;
             }
 
@@ -1869,7 +1860,7 @@ class SharedMemory final: public BaseSharedMemory {
             unlock_file();
 
         if (removeRegion)
-            shm_unlink(name_().data());
+            shm_unlink(name().data());
 
         fdGuard.close();
 
