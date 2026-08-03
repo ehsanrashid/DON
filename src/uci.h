@@ -45,8 +45,8 @@ class UCI final {
    private:
     UCI() noexcept                      = delete;
     UCI(const UCI&) noexcept            = delete;
-    UCI(UCI&&) noexcept                 = delete;
     UCI& operator=(const UCI&) noexcept = delete;
+    UCI(UCI&&) noexcept                 = delete;
     UCI& operator=(UCI&&) noexcept      = delete;
 
     void set_update_callbacks() noexcept;

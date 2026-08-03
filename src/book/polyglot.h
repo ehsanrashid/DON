@@ -61,8 +61,8 @@ class PolyGlot final {
 
     PolyGlot() noexcept                           = default;
     PolyGlot(const PolyGlot&) noexcept            = delete;
-    PolyGlot(PolyGlot&&) noexcept                 = delete;
     PolyGlot& operator=(const PolyGlot&) noexcept = delete;
+    PolyGlot(PolyGlot&&) noexcept                 = delete;
     PolyGlot& operator=(PolyGlot&&) noexcept      = delete;
 
     bool load(const std::filesystem::path& bookFile) noexcept;

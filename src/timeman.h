@@ -54,8 +54,8 @@ class TimeManager final {
 
    private:
     TimeManager(const TimeManager&) noexcept            = delete;
-    TimeManager(TimeManager&&) noexcept                 = delete;
     TimeManager& operator=(const TimeManager&) noexcept = delete;
+    TimeManager(TimeManager&&) noexcept                 = delete;
     TimeManager& operator=(TimeManager&&) noexcept      = delete;
 
     TimePoint startTime;

@@ -265,7 +265,7 @@ template<typename T, typename ByteT>
 inline constexpr HANDLE INVALID_HANDLE = nullptr;
 
 [[nodiscard]] constexpr bool is_valid_handle(HANDLE handle) noexcept {
-    return handle != INVALID_HANDLE;
+    return handle != INVALID_HANDLE && handle != INVALID_HANDLE_VALUE;
 }
 
 inline constexpr void* INVALID_MMAP_PTR = nullptr;
@@ -303,8 +303,7 @@ struct HandleGuard final {
         if (handle != newHandle)
         {
             if (is_valid())
-                if (handle != INVALID_HANDLE_VALUE)
-                    CloseHandle(handle);
+                CloseHandle(handle);
 
             handle = newHandle;
         }
@@ -526,26 +525,14 @@ struct FdGuard final {
    public:
     explicit FdGuard(int& refFd) noexcept :
         fd(refFd) {}
-    FdGuard()                          = delete;
-    FdGuard(const FdGuard&)            = delete;
-    FdGuard& operator=(const FdGuard&) = delete;
 
-    FdGuard(FdGuard&& fdGuard) noexcept :
-        fd(fdGuard.fd) {
-        fdGuard.release();
-    }
-    FdGuard& operator=(FdGuard&& fdGuard) noexcept {
-        if (this == &fdGuard)
-            return *this;
+    FdGuard() noexcept = delete;
 
-        reset();
+    FdGuard(const FdGuard&) noexcept            = delete;
+    FdGuard& operator=(const FdGuard&) noexcept = delete;
 
-        fd = fdGuard.fd;
-
-        fdGuard.release();
-
-        return *this;
-    }
+    FdGuard(FdGuard&&) noexcept            = delete;
+    FdGuard& operator=(FdGuard&&) noexcept = delete;
 
     ~FdGuard() noexcept { reset(); }
 
@@ -578,28 +565,13 @@ struct MMapGuard final {
         mappedPtr(refPtr),
         mappedSize(refSize) {}
 
-    MMapGuard()                            = delete;
-    MMapGuard(const MMapGuard&)            = delete;
-    MMapGuard& operator=(const MMapGuard&) = delete;
+    MMapGuard() noexcept = delete;
 
-    MMapGuard(MMapGuard&& mMapGuard) noexcept :
-        mappedPtr(mMapGuard.mappedPtr),
-        mappedSize(mMapGuard.mappedSize) {
-        mMapGuard.release();
-    }
-    MMapGuard& operator=(MMapGuard&& mMapGuard) noexcept {
-        if (this == &mMapGuard)
-            return *this;
+    MMapGuard(const MMapGuard&) noexcept            = delete;
+    MMapGuard& operator=(const MMapGuard&) noexcept = delete;
 
-        reset();
-
-        mappedPtr  = mMapGuard.mappedPtr;
-        mappedSize = mMapGuard.mappedSize;
-
-        mMapGuard.release();
-
-        return *this;
-    }
+    MMapGuard(MMapGuard&&) noexcept            = delete;
+    MMapGuard& operator=(MMapGuard&&) noexcept = delete;
 
     ~MMapGuard() noexcept { reset(); }
 
@@ -613,7 +585,7 @@ struct MMapGuard final {
         if (mappedPtr != newPtr)
         {
             if (is_valid())
-                munmap(mappedPtr, mappedSize);
+                ::munmap(mappedPtr, mappedSize);
 
             mappedPtr  = newPtr;
             mappedSize = newSize;
@@ -636,10 +608,10 @@ struct MMapGuard final {
 
 struct UniqueFd final {
    public:
-    UniqueFd() noexcept = default;
-
     explicit UniqueFd(int iFd) noexcept :
         fd{iFd} {}
+
+    UniqueFd() noexcept = default;
 
     UniqueFd(const UniqueFd&)            = delete;
     UniqueFd& operator=(const UniqueFd&) = delete;

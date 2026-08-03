@@ -116,8 +116,8 @@ class Options final {
 
     Options() noexcept                          = default;
     Options(const Options&) noexcept            = delete;
-    Options(Options&&) noexcept                 = delete;
     Options& operator=(const Options&) noexcept = delete;
+    Options(Options&&) noexcept                 = delete;
     Options& operator=(Options&&) noexcept      = delete;
 
     auto begin() const noexcept { return options.begin(); }

@@ -85,8 +85,8 @@ class Tune final {
 
     Tune() noexcept { read_results(); }
     Tune(const Tune&) noexcept            = delete;
-    Tune(Tune&&) noexcept                 = delete;
     Tune& operator=(const Tune&) noexcept = delete;
+    Tune(Tune&&) noexcept                 = delete;
     Tune& operator=(Tune&&) noexcept      = delete;
 
     void read_results() noexcept;
@@ -120,8 +120,8 @@ class Tune final {
 
         // Because 'value' is a reference
         Entry(const Entry&) noexcept            = delete;
-        Entry(Entry&&) noexcept                 = delete;
         Entry& operator=(const Entry&) noexcept = delete;
+        Entry(Entry&&) noexcept                 = delete;
         Entry& operator=(Entry&&) noexcept      = delete;
 
         void init_option() noexcept override;

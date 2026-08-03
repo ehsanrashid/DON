@@ -483,8 +483,8 @@ class Threads final {
     };
 
     Threads(const Threads&) noexcept            = delete;
-    Threads(Threads&&) noexcept                 = delete;
     Threads& operator=(const Threads&) noexcept = delete;
+    Threads(Threads&&) noexcept                 = delete;
     Threads& operator=(Threads&&) noexcept      = delete;
 
     // Protects concurrent access to the threads vector for short snapshots.

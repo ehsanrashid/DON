@@ -108,8 +108,8 @@ class MovePicker final {
    private:
     MovePicker() noexcept                             = delete;
     MovePicker(const MovePicker&) noexcept            = delete;
-    MovePicker(MovePicker&&) noexcept                 = delete;
     MovePicker& operator=(const MovePicker&) noexcept = delete;
+    MovePicker(MovePicker&&) noexcept                 = delete;
     MovePicker& operator=(MovePicker&&) noexcept      = delete;
 
     template<GenType GT>

@@ -37,7 +37,7 @@
 #else
     #include <cerrno>
     #include <fcntl.h>
-    #include <sys/mman.h>  // mmap, munmap, MAP_*, PROT_*
+    #include <sys/mman.h>
     #include <sys/stat.h>
     #include <unistd.h>  // IWYU pragma: keep
 #endif
@@ -292,8 +292,8 @@ class TBPaths final {
    private:
     TBPaths() noexcept                          = delete;
     TBPaths(const TBPaths&) noexcept            = delete;
-    TBPaths(TBPaths&&) noexcept                 = delete;
     TBPaths& operator=(const TBPaths&) noexcept = delete;
+    TBPaths(TBPaths&&) noexcept                 = delete;
     TBPaths& operator=(TBPaths&&) noexcept      = delete;
 
     static inline std::vector<std::filesystem::path> Paths;
@@ -636,7 +636,7 @@ u8* TBTable<T>::map(std::string_view filename) noexcept {
 
     HandleGuard hFileGuard{hFile};
 
-    if (hFile == INVALID_HANDLE_VALUE)
+    if (!hFileGuard.is_valid())
     {
         //DEBUG_LOG("CreateFile() failed, name = " << filename << ", error = " << error_to_string(GetLastError()));
         return nullptr;
@@ -684,7 +684,7 @@ u8* TBTable<T>::map(std::string_view filename) noexcept {
 
     FdGuard fdGuard{fd};
 
-    if (!is_valid_fd(fd))
+    if (!fdGuard.is_valid())
     {
         //DEBUG_LOG("::open() failed, name = " << filename << ", error = " << std::strerror(errno));
         return nullptr;
@@ -707,7 +707,7 @@ u8* TBTable<T>::map(std::string_view filename) noexcept {
 
     mappedSize = stStat.st_size;
 
-    mappedPtr = mmap(nullptr, mappedSize, PROT_READ, MAP_SHARED, fd, 0);
+    mappedPtr = ::mmap(nullptr, mappedSize, PROT_READ, MAP_SHARED, fd, 0);
 
     if (mappedPtr == MAP_FAILED)
     {

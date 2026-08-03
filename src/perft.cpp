@@ -186,9 +186,10 @@ class PerftTable final {
    public:
     PerftTable() noexcept                             = default;
     PerftTable(const PerftTable&) noexcept            = delete;
-    PerftTable(PerftTable&&) noexcept                 = delete;
     PerftTable& operator=(const PerftTable&) noexcept = delete;
+    PerftTable(PerftTable&&) noexcept                 = delete;
     PerftTable& operator=(PerftTable&&) noexcept      = delete;
+
     ~PerftTable() noexcept;
 
     void resize(usize ptSize, const Threads& threads) noexcept;

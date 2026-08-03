@@ -106,8 +106,8 @@ class Engine final {
    private:
     // Cannot be movable due to components holding backreferences to fields
     Engine(const Engine&) noexcept            = delete;
-    Engine(Engine&&) noexcept                 = delete;
     Engine& operator=(const Engine&) noexcept = delete;
+    Engine(Engine&&) noexcept                 = delete;
     Engine& operator=(Engine&&) noexcept      = delete;
 
     const std::filesystem::path binaryDirectory;

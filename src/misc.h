@@ -528,11 +528,11 @@ constexpr IndexRange split_range(usize id, usize parts, usize size) noexcept {
 
 struct CallOnce final {
    public:
-    CallOnce()                           = default;
-    CallOnce(const CallOnce&)            = delete;
-    CallOnce(CallOnce&&)                 = delete;
-    CallOnce& operator=(const CallOnce&) = delete;
-    CallOnce& operator=(CallOnce&&)      = delete;
+    CallOnce() noexcept                           = default;
+    CallOnce(const CallOnce&) noexcept            = delete;
+    CallOnce& operator=(const CallOnce&) noexcept = delete;
+    CallOnce(CallOnce&&) noexcept                 = delete;
+    CallOnce& operator=(CallOnce&&) noexcept      = delete;
 
     // Initialize using the provided function
     // The function will be called exactly once, even if multiple threads call this
@@ -558,11 +558,11 @@ struct CallOnce final {
 template<typename Value>
 struct LazyValue final {
    public:
-    LazyValue()                            = default;
-    LazyValue(const LazyValue&)            = delete;
-    LazyValue(LazyValue&&)                 = delete;
-    LazyValue& operator=(const LazyValue&) = delete;
-    LazyValue& operator=(LazyValue&&)      = delete;
+    LazyValue() noexcept                            = default;
+    LazyValue(const LazyValue&) noexcept            = delete;
+    LazyValue& operator=(const LazyValue&) noexcept = delete;
+    LazyValue(LazyValue&&) noexcept                 = delete;
+    LazyValue& operator=(LazyValue&&) noexcept      = delete;
 
     ~LazyValue() noexcept {
         if (initialized())
@@ -660,8 +660,8 @@ class OstreamMutexRegistry final {
     OstreamMutexRegistry() noexcept                                       = delete;
     ~OstreamMutexRegistry() noexcept                                      = delete;
     OstreamMutexRegistry(const OstreamMutexRegistry&) noexcept            = delete;
-    OstreamMutexRegistry(OstreamMutexRegistry&&) noexcept                 = delete;
     OstreamMutexRegistry& operator=(const OstreamMutexRegistry&) noexcept = delete;
+    OstreamMutexRegistry(OstreamMutexRegistry&&) noexcept                 = delete;
     OstreamMutexRegistry& operator=(OstreamMutexRegistry&&) noexcept      = delete;
 
     static inline CallOnce callOnce;
@@ -701,12 +701,12 @@ class [[nodiscard]] SyncOstream final {
     explicit SyncOstream(std::ostream& os) noexcept :
         ptrOs(&os),
         lock(OstreamMutexRegistry::get(ptrOs)) {}
-    SyncOstream(const SyncOstream&) noexcept = delete;
     // Move-constructible so factories can return by value
     SyncOstream(SyncOstream&& syncOs) noexcept :
         ptrOs(syncOs.ptrOs),
         lock(std::move(syncOs.lock)) {}
 
+    SyncOstream(const SyncOstream&) noexcept            = delete;
     SyncOstream& operator=(const SyncOstream&) noexcept = delete;
     // Prefer deleting move-assignment to avoid unlock window
     SyncOstream& operator=(SyncOstream&&) noexcept = delete;

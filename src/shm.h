@@ -163,7 +163,7 @@ std::string executable_path() noexcept;
 //        executableSize = std::strlen(executablePath.data());
 //    }
 //#elif defined(__sun)  // Solaris
-//    const char* path = getexecname();
+//    const char* path = ::getexecname();
 //
 //    if (path != nullptr)
 //    {
@@ -178,7 +178,7 @@ std::string executable_path() noexcept;
 //
 //    usize size = executablePath.size();
 //
-//    if (sysctl(MIB.data(), MIB.size(), executablePath.data(), &size, nullptr, 0) == 0)
+//    if (::sysctl(MIB.data(), MIB.size(), executablePath.data(), &size, nullptr, 0) == 0)
 //    {
 //        executableSize                 = std::min<usize>(size, executablePath.size() - 1);
 //        executablePath[executableSize] = '\0';
@@ -1146,7 +1146,7 @@ struct TempRoot final {
    public:
     static const std::optional<TempRoot>& get_temp_root() noexcept {
         static const auto tempRoot = []() -> std::optional<TempRoot> {
-            const uid_t uid = getuid();
+            const uid_t uid = ::getuid();
 
             std::string tempPath{"/tmp/DON-"};
             tempPath += std::to_string(uid);
@@ -1186,19 +1186,20 @@ struct InitLock final {
 
     ~InitLock() noexcept {
         if (lockUniqueFd.is_valid())
-            flock(lockUniqueFd.get(), LOCK_UN);
+            ::flock(lockUniqueFd.get(), LOCK_UN);
     }
 
     static InitLock wait_for_init_lock(std::string_view path) noexcept {
-        std::string filePath(path);
+        int fd = ::open(path.data(), O_CREAT | O_RDWR | O_CLOEXEC, 0666);
 
-        UniqueFd uniqueFd(::open(filePath.c_str(), O_CREAT | O_RDWR | O_CLOEXEC, 0666));
+        UniqueFd uniqueFd(fd);
 
         if (!uniqueFd.is_valid())
             return {};
 
-        while (flock(uniqueFd.get(), LOCK_EX) == -1)
+        while (::flock(uniqueFd.get(), LOCK_EX) == -1)
         {
+            // Failed to acquire
             if (errno != EINTR)
                 return {};
         }
@@ -1654,7 +1655,7 @@ class SharedMemory final: public BaseSharedMemory {
 
         while (true)
         {
-            if (flock(fd, operation) == 0)
+            if (::flock(fd, operation) == 0)
                 return true;  // Success
 
             int err = errno;
@@ -1675,7 +1676,7 @@ class SharedMemory final: public BaseSharedMemory {
 
         while (true)
         {
-            if (flock(fd, LOCK_UN) == 0)
+            if (::flock(fd, LOCK_UN) == 0)
                 return true;  // Success
 
             int err = errno;

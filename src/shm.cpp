@@ -20,7 +20,7 @@ std::string executable_path() noexcept {
         executableSize = std::strlen(executablePath.data());
     }
 #elif defined(__sun)  // Solaris
-    const char* path = getexecname();
+    const char* path = ::getexecname();
 
     if (path != nullptr)
     {
@@ -35,7 +35,7 @@ std::string executable_path() noexcept {
 
     usize size = executablePath.size();
 
-    if (sysctl(MIB.data(), MIB.size(), executablePath.data(), &size, nullptr, 0) == 0)
+    if (::sysctl(MIB.data(), MIB.size(), executablePath.data(), &size, nullptr, 0) == 0)
     {
         executableSize                 = std::min<usize>(size, executablePath.size() - 1);
         executablePath[executableSize] = '\0';

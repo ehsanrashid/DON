@@ -793,8 +793,8 @@ class NumaConfig final {
     }
 
     NumaConfig(const NumaConfig&) noexcept            = delete;
-    NumaConfig(NumaConfig&&) noexcept                 = default;
     NumaConfig& operator=(const NumaConfig&) noexcept = delete;
+    NumaConfig(NumaConfig&&) noexcept                 = default;
     NumaConfig& operator=(NumaConfig&&) noexcept      = default;
 
     NumaIndex nodes_size() const noexcept { return nodes.size(); }
@@ -1460,9 +1460,10 @@ class BaseNumaReplicated {
    public:
     BaseNumaReplicated(NumaReplicationContext& ctx) noexcept;
 
-    BaseNumaReplicated(const BaseNumaReplicated&) noexcept = delete;
-    BaseNumaReplicated(BaseNumaReplicated&& baseNumaRep) noexcept;
+    BaseNumaReplicated(const BaseNumaReplicated&) noexcept            = delete;
     BaseNumaReplicated& operator=(const BaseNumaReplicated&) noexcept = delete;
+
+    BaseNumaReplicated(BaseNumaReplicated&& baseNumaRep) noexcept;
     BaseNumaReplicated& operator=(BaseNumaReplicated&& baseNumaRep) noexcept;
 
     virtual ~BaseNumaReplicated() noexcept;
@@ -1493,12 +1494,12 @@ class NumaReplicated final: public BaseNumaReplicated {
         replicate_from(std::move(source));
     }
 
-    NumaReplicated(const NumaReplicated&) noexcept = delete;
+    NumaReplicated(const NumaReplicated&) noexcept            = delete;
+    NumaReplicated& operator=(const NumaReplicated&) noexcept = delete;
+
     NumaReplicated(NumaReplicated&& numaRep) noexcept :
         BaseNumaReplicated(std::move(numaRep)),
         instances(std::exchange(numaRep.instances, {})) {}
-
-    NumaReplicated& operator=(const NumaReplicated&) noexcept = delete;
     NumaReplicated& operator=(NumaReplicated&& numaRep) noexcept {
         if (this == &numaRep)
             return *this;
@@ -1578,12 +1579,12 @@ class LazyNumaReplicated final: public BaseNumaReplicated {
         prepare_replicate_from(std::move(source));
     }
 
-    LazyNumaReplicated(const LazyNumaReplicated&) noexcept = delete;
+    LazyNumaReplicated(const LazyNumaReplicated&) noexcept            = delete;
+    LazyNumaReplicated& operator=(const LazyNumaReplicated&) noexcept = delete;
+
     LazyNumaReplicated(LazyNumaReplicated&& lazyNumaRep) noexcept :
         BaseNumaReplicated(std::move(lazyNumaRep)),
         instances(std::exchange(lazyNumaRep.instances, {})) {}
-
-    LazyNumaReplicated& operator=(const LazyNumaReplicated&) noexcept = delete;
     LazyNumaReplicated& operator=(LazyNumaReplicated&& lazyNumaRep) noexcept {
         if (this == &lazyNumaRep)
             return *this;
@@ -1694,12 +1695,12 @@ class SystemWideLazyNumaReplicated final: public BaseNumaReplicated {
         prepare_replicate_from(std::move(source));
     }
 
-    SystemWideLazyNumaReplicated(const SystemWideLazyNumaReplicated&) noexcept = delete;
+    SystemWideLazyNumaReplicated(const SystemWideLazyNumaReplicated&) noexcept            = delete;
+    SystemWideLazyNumaReplicated& operator=(const SystemWideLazyNumaReplicated&) noexcept = delete;
+
     SystemWideLazyNumaReplicated(SystemWideLazyNumaReplicated&& sysNumaRep) noexcept :
         BaseNumaReplicated(std::move(sysNumaRep)),
         instances(std::exchange(sysNumaRep.instances, {})) {}
-
-    SystemWideLazyNumaReplicated& operator=(const SystemWideLazyNumaReplicated&) noexcept = delete;
     SystemWideLazyNumaReplicated& operator=(SystemWideLazyNumaReplicated&& sysNumaRep) noexcept {
         if (this == &sysNumaRep)
             return *this;
@@ -1833,9 +1834,10 @@ class NumaReplicationContext final {
         numaConfig(std::move(numaCfg)) {}
 
     NumaReplicationContext(const NumaReplicationContext&) noexcept            = delete;
-    NumaReplicationContext(NumaReplicationContext&&) noexcept                 = delete;
     NumaReplicationContext& operator=(const NumaReplicationContext&) noexcept = delete;
-    NumaReplicationContext& operator=(NumaReplicationContext&&) noexcept      = delete;
+
+    NumaReplicationContext(NumaReplicationContext&&) noexcept            = delete;
+    NumaReplicationContext& operator=(NumaReplicationContext&&) noexcept = delete;
 
     ~NumaReplicationContext() noexcept {
         // The context must outlive replicated objects
