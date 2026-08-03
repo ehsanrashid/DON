@@ -1434,12 +1434,12 @@ class SharedMemory final: public BaseSharedMemory {
             mode  = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH;
             fd    = shm_open(name().data(), oflag, mode);
 
-            if (!valid_fd(fd))
+            if (!is_valid_fd(fd))
             {
                 oflag = O_RDWR;
                 fd    = shm_open(name().data(), oflag, mode);
 
-                if (!valid_fd(fd))
+                if (!is_valid_fd(fd))
                 {
                     //DEBUG_LOG("Failed to open shared memory, error = " << std::strerror(errno));
                     return false;
@@ -1544,7 +1544,7 @@ class SharedMemory final: public BaseSharedMemory {
     }
 
     void close(bool skipUnmapRegion = false) noexcept override {
-        if (!valid_fd(fd) && mappedPtr == INVALID_MMAP_PTR)
+        if (!is_valid_fd(fd) && mappedPtr == INVALID_MMAP_PTR)
             return;
 
         bool removeRegion = false;
@@ -1573,7 +1573,7 @@ class SharedMemory final: public BaseSharedMemory {
     }
 
     [[nodiscard]] bool opened() const noexcept {
-        return valid_fd(fd) && mappedPtr != nullptr && dataPtr != nullptr;
+        return is_valid_fd(fd) && mappedPtr != nullptr && dataPtr != nullptr;
     }
 
     [[nodiscard]] const T& get() const noexcept { return *dataPtr; }
@@ -1649,7 +1649,7 @@ class SharedMemory final: public BaseSharedMemory {
     }
 
     [[nodiscard]] bool lock_file(int operation) noexcept {
-        if (!valid_fd(fd))
+        if (!is_valid_fd(fd))
             return false;
 
         while (true)
@@ -1670,7 +1670,7 @@ class SharedMemory final: public BaseSharedMemory {
 
     //[[nodiscard]]
     bool unlock_file() noexcept {
-        if (!valid_fd(fd))
+        if (!is_valid_fd(fd))
             return false;
 
         while (true)
@@ -1727,7 +1727,7 @@ class SharedMemory final: public BaseSharedMemory {
 
             FdGuard tmpFdGuard{tmpFd};
 
-            if (valid_fd(tmpFd))
+            if (is_valid_fd(tmpFd))
                 return true;
 
             if (errno != EEXIST)

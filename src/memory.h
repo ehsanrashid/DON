@@ -537,7 +537,7 @@ auto try_with_windows_lock_memory_privilege([[maybe_unused]] SuccessFunc&& succe
 
 inline constexpr int INVALID_FD = -1;
 
-constexpr bool valid_fd(int fd) noexcept { return fd > INVALID_FD; }
+[[nodiscard]] constexpr bool is_valid_fd(int fd) noexcept { return fd > INVALID_FD; }
 
 inline constexpr void*       INVALID_MMAP_PTR  = nullptr;
 inline constexpr std::size_t INVALID_MMAP_SIZE = 0;
@@ -569,10 +569,10 @@ struct FdGuard final {
 
     ~FdGuard() noexcept { close(); }
 
-    bool valid() const noexcept { return valid_fd(fd); }
+    [[nodiscard]] bool is_valid() const noexcept { return is_valid_fd(fd); }
 
     void close() noexcept {
-        if (valid())
+        if (is_valid())
         {
             ::close(fd);
 
@@ -586,13 +586,7 @@ struct FdGuard final {
         fd = newFd;
     }
 
-    int release() noexcept {
-        int oldFd = fd;
-
-        fd = INVALID_FD;
-
-        return oldFd;
-    }
+    int release() noexcept { return std::exchange(fd, INVALID_FD); }
 
    private:
     int& fd;
@@ -698,7 +692,7 @@ struct UniqueFd final {
 
     [[nodiscard]] int get() const noexcept { return fd; }
 
-    [[nodiscard]] bool is_valid() const noexcept { return valid_fd(fd); }
+    [[nodiscard]] bool is_valid() const noexcept { return is_valid_fd(fd); }
 
     [[nodiscard]] explicit operator bool() const noexcept { return is_valid(); }
 
@@ -707,7 +701,7 @@ struct UniqueFd final {
     void reset(int newFd = INVALID_FD) noexcept {
         if (fd != newFd)
         {
-            if (valid_fd(fd))
+            if (is_valid_fd(fd))
                 ::close(fd);
 
             fd = newFd;

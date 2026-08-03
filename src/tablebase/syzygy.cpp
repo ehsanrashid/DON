@@ -684,7 +684,7 @@ u8* TBTable<T>::map(std::string_view filename) noexcept {
 
     FdGuard fdGuard{fd};
 
-    if (!valid_fd(fd))
+    if (!is_valid_fd(fd))
     {
         //DEBUG_LOG("::open() failed, name = " << filename << ", error = " << std::strerror(errno));
         return nullptr;
