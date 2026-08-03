@@ -1201,49 +1201,6 @@ class ConcurrentCache final {
     std::unordered_map<Key, StorageValue> storage;
 };
 
-// RAII guard for resetting atomic bool flags
-struct FlagGuard final {
-   public:
-    explicit FlagGuard(std::atomic<bool>& flagRef) noexcept :
-        flag(flagRef) {}
-
-    ~FlagGuard() noexcept { reset(); }
-
-    // Manually reset the flag if needed before destruction
-    void reset() noexcept { flag.store(false, std::memory_order_release); }
-
-   private:
-    // Non-copyable, non-movable to ensure unique ownership
-    FlagGuard(const FlagGuard&)            = delete;
-    FlagGuard(FlagGuard&&)                 = delete;
-    FlagGuard& operator=(const FlagGuard&) = delete;
-    FlagGuard& operator=(FlagGuard&&)      = delete;
-
-    std::atomic<bool>& flag;
-};
-
-// RAII guard for resetting atomic int flags
-template<typename T>
-struct FlagsGuard final {
-   public:
-    explicit FlagsGuard(std::atomic<T>& flagsRef) noexcept :
-        flags(flagsRef) {}
-
-    ~FlagsGuard() noexcept { reset(); }
-
-    // Manually reset the flag if needed before destruction
-    void reset() noexcept { flags.store(0, std::memory_order_release); }
-
-   private:
-    // Non-copyable, non-movable to ensure unique ownership
-    FlagsGuard(const FlagsGuard&)            = delete;
-    FlagsGuard(FlagsGuard&&)                 = delete;
-    FlagsGuard& operator=(const FlagsGuard&) = delete;
-    FlagsGuard& operator=(FlagsGuard&&)      = delete;
-
-    std::atomic<T>& flags;
-};
-
 // Hash function based on public domain MurmurHash64A by Austin Appleby.
 // Fast, non-cryptographic 64-bit hash suitable for general-purpose hashing.
 inline u64 hash_bytes(const char* RESTRICT data, usize size, u64 seed = 0) noexcept {
