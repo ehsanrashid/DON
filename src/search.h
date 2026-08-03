@@ -64,7 +64,7 @@ inline Book::PolyGlot pgBook;
 struct PVMoves final {
    public:
     PVMoves() noexcept {
-        _moves[0] = Move::None;  // Initialize first element to Move::None
+        moves_[0] = Move::None;  // Initialize first element to Move::None
         clear();
     }
 
@@ -74,37 +74,37 @@ struct PVMoves final {
     Move*       end() noexcept { return data() + size(); }
     const Move* end() const noexcept { return data() + size(); }
 
-    Move&       front() noexcept { return _moves.front(); }
-    const Move& front() const noexcept { return _moves.front(); }
+    Move&       front() noexcept { return moves_.front(); }
+    const Move& front() const noexcept { return moves_.front(); }
 
     Move& operator[](usize idx) noexcept {
         assert(idx < size());
-        return _moves[idx];
+        return moves_[idx];
     }
     const Move& operator[](usize idx) const noexcept {
         assert(idx < size());
-        return _moves[idx];
+        return moves_[idx];
     }
 
-    usize size() const noexcept { return _size; }
+    usize size() const noexcept { return size_; }
     bool  empty() const noexcept { return size() == 0; }
 
-    [[nodiscard]] constexpr usize capacity() noexcept { return _moves.size(); }
+    [[nodiscard]] constexpr usize capacity() noexcept { return moves_.size(); }
 
-    [[nodiscard]] Move*       data() noexcept { return _moves.data(); }
-    [[nodiscard]] const Move* data() const noexcept { return _moves.data(); }
+    [[nodiscard]] Move*       data() noexcept { return moves_.data(); }
+    [[nodiscard]] const Move* data() const noexcept { return moves_.data(); }
 
-    void clear() noexcept { _size = 0; }
+    void clear() noexcept { size_ = 0; }
 
     void push_back(Move move) noexcept {
         assert(size() < capacity());
         *end() = move;
-        ++_size;
+        ++size_;
     }
 
     void resize(usize newSize) noexcept {
         assert(newSize <= size());
-        _size = newSize;
+        size_ = newSize;
     }
 
     // Appends move and child-Pv[]
@@ -120,7 +120,7 @@ struct PVMoves final {
             auto childPvSize = childPv->size();
 
             std::memcpy(end(), childPv->data(), childPvSize * sizeof(Move));
-            _size += childPvSize;
+            size_ += childPvSize;
         }
     }
 
@@ -141,8 +141,8 @@ struct PVMoves final {
     }
 
    private:
-    Array<Move, PLY_MAX + 1> _moves;
-    usize                    _size;
+    Array<Move, PLY_MAX + 1> moves_;
+    usize                    size_;
 };
 
 // RootMove is used for moves at the root of the tree.
@@ -227,47 +227,47 @@ class RootMoves final {
 
     RootMoves() noexcept { reserve(32); }
     explicit RootMoves(const container_type& rms) noexcept :
-        _rootMoves(rms) {}
+        rootMoves_(rms) {}
     explicit RootMoves(container_type&& rms) noexcept :
-        _rootMoves(std::move(rms)) {}
+        rootMoves_(std::move(rms)) {}
     RootMoves(std::initializer_list<value_type> initList) :
-        _rootMoves(initList) {}
+        rootMoves_(initList) {}
 
-    [[nodiscard]] size_type capacity() const noexcept { return _rootMoves.capacity(); }
+    [[nodiscard]] size_type capacity() const noexcept { return rootMoves_.capacity(); }
 
-    [[nodiscard]] bool      empty() const noexcept { return _rootMoves.empty(); }
-    [[nodiscard]] size_type size() const noexcept { return _rootMoves.size(); }
+    [[nodiscard]] bool      empty() const noexcept { return rootMoves_.empty(); }
+    [[nodiscard]] size_type size() const noexcept { return rootMoves_.size(); }
 
-    iterator                     begin() noexcept { return _rootMoves.begin(); }
-    iterator                     end() noexcept { return _rootMoves.end(); }
-    [[nodiscard]] const_iterator begin() const noexcept { return _rootMoves.begin(); }
-    [[nodiscard]] const_iterator end() const noexcept { return _rootMoves.end(); }
-    [[nodiscard]] const_iterator cbegin() const noexcept { return _rootMoves.cbegin(); }
-    [[nodiscard]] const_iterator cend() const noexcept { return _rootMoves.cend(); }
+    iterator                     begin() noexcept { return rootMoves_.begin(); }
+    iterator                     end() noexcept { return rootMoves_.end(); }
+    [[nodiscard]] const_iterator begin() const noexcept { return rootMoves_.begin(); }
+    [[nodiscard]] const_iterator end() const noexcept { return rootMoves_.end(); }
+    [[nodiscard]] const_iterator cbegin() const noexcept { return rootMoves_.cbegin(); }
+    [[nodiscard]] const_iterator cend() const noexcept { return rootMoves_.cend(); }
 
-    [[nodiscard]] reference       front() noexcept { return _rootMoves.front(); }
-    [[nodiscard]] reference       back() noexcept { return _rootMoves.back(); }
-    [[nodiscard]] const_reference front() const noexcept { return _rootMoves.front(); }
-    [[nodiscard]] const_reference back() const noexcept { return _rootMoves.back(); }
+    [[nodiscard]] reference       front() noexcept { return rootMoves_.front(); }
+    [[nodiscard]] reference       back() noexcept { return rootMoves_.back(); }
+    [[nodiscard]] const_reference front() const noexcept { return rootMoves_.front(); }
+    [[nodiscard]] const_reference back() const noexcept { return rootMoves_.back(); }
 
     template<typename... Args>
     reference emplace_back(Args&&... args) noexcept {
-        return _rootMoves.emplace_back(std::forward<Args>(args)...);
+        return rootMoves_.emplace_back(std::forward<Args>(args)...);
     }
     template<typename... Args>
     iterator emplace(const_iterator where, Args&&... args) noexcept {
-        return _rootMoves.emplace(where, std::forward<Args>(args)...);
+        return rootMoves_.emplace(where, std::forward<Args>(args)...);
     }
 
-    void push_back(const value_type& v) { _rootMoves.push_back(v); }
-    void push_back(value_type&& v) { _rootMoves.push_back(std::move(v)); }
+    void push_back(const value_type& v) { rootMoves_.push_back(v); }
+    void push_back(value_type&& v) { rootMoves_.push_back(std::move(v)); }
 
-    void pop_back() noexcept { _rootMoves.pop_back(); }
+    void pop_back() noexcept { rootMoves_.pop_back(); }
 
-    void clear() noexcept { _rootMoves.clear(); }
+    void clear() noexcept { rootMoves_.clear(); }
 
-    void resize(size_type newSize) noexcept { _rootMoves.resize(newSize); }
-    void reserve(size_type newCapacity) noexcept { _rootMoves.reserve(newCapacity); }
+    void resize(size_type newSize) noexcept { rootMoves_.resize(newSize); }
+    void reserve(size_type newCapacity) noexcept { rootMoves_.reserve(newCapacity); }
 
     [[nodiscard]] const_iterator  //
     find(size_type beg, size_type end, Move m) const noexcept {
@@ -326,9 +326,9 @@ class RootMoves final {
         return std::remove_if(begin(), end(), std::forward<Predicate>(pred));
     }
 
-    iterator erase(const_iterator where) noexcept { return _rootMoves.erase(where); }
+    iterator erase(const_iterator where) noexcept { return rootMoves_.erase(where); }
     iterator erase(const_iterator beg, const_iterator end) noexcept {
-        return _rootMoves.erase(beg, end);
+        return rootMoves_.erase(beg, end);
     }
 
     bool erase(Move m) noexcept {
@@ -391,18 +391,18 @@ class RootMoves final {
 
     [[nodiscard]] reference operator[](size_type idx) noexcept {
         assert(idx < size());
-        return _rootMoves[idx];
+        return rootMoves_[idx];
     }
     [[nodiscard]] const_reference operator[](size_type idx) const noexcept {
         assert(idx < size());
-        return _rootMoves[idx];
+        return rootMoves_[idx];
     }
 
-    [[nodiscard]] reference       at(size_type idx) { return _rootMoves.at(idx); }
-    [[nodiscard]] const_reference at(size_type idx) const { return _rootMoves.at(idx); }
+    [[nodiscard]] reference       at(size_type idx) { return rootMoves_.at(idx); }
+    [[nodiscard]] const_reference at(size_type idx) const { return rootMoves_.at(idx); }
 
    private:
-    container_type _rootMoves;
+    container_type rootMoves_;
 };
 
 // Limit encapsulates various search limits and time controls, including per-color clocks

@@ -770,13 +770,13 @@ template<typename T>
 class TableView final {
    public:
     constexpr TableView(T* data, usize size) noexcept :
-        _data(data),
-        _size(size) {}
+        data_(data),
+        size_(size) {}
 
-    constexpr T*       data() noexcept { return _data; }
-    constexpr const T* data() const noexcept { return _data; }
+    constexpr T*       data() noexcept { return data_; }
+    constexpr const T* data() const noexcept { return data_; }
 
-    [[nodiscard]] constexpr usize size() const noexcept { return _size; }
+    [[nodiscard]] constexpr usize size() const noexcept { return size_; }
 
     constexpr T* begin() noexcept { return data(); }
     constexpr T* end() noexcept { return begin() + size(); }
@@ -793,8 +793,8 @@ class TableView final {
     }
 
    private:
-    T*    _data = nullptr;
-    usize _size = 0;
+    T*    data_ = nullptr;
+    usize size_ = 0;
 };
 
 template<typename T, usize Size, usize... Sizes>
@@ -853,47 +853,47 @@ class MultiArray final {
     using reverse_iterator       = typename ArrayType::reverse_iterator;
     using const_reverse_iterator = typename ArrayType::const_reverse_iterator;
 
-    constexpr auto begin() const noexcept { return _data.begin(); }
-    constexpr auto end() const noexcept { return _data.end(); }
-    constexpr auto begin() noexcept { return _data.begin(); }
-    constexpr auto end() noexcept { return _data.end(); }
+    constexpr auto begin() const noexcept { return data_.begin(); }
+    constexpr auto end() const noexcept { return data_.end(); }
+    constexpr auto begin() noexcept { return data_.begin(); }
+    constexpr auto end() noexcept { return data_.end(); }
 
-    constexpr auto cbegin() const noexcept { return _data.cbegin(); }
-    constexpr auto cend() const noexcept { return _data.cend(); }
+    constexpr auto cbegin() const noexcept { return data_.cbegin(); }
+    constexpr auto cend() const noexcept { return data_.cend(); }
 
-    constexpr auto rbegin() const noexcept { return _data.rbegin(); }
-    constexpr auto rend() const noexcept { return _data.rend(); }
-    constexpr auto rbegin() noexcept { return _data.rbegin(); }
-    constexpr auto rend() noexcept { return _data.rend(); }
+    constexpr auto rbegin() const noexcept { return data_.rbegin(); }
+    constexpr auto rend() const noexcept { return data_.rend(); }
+    constexpr auto rbegin() noexcept { return data_.rbegin(); }
+    constexpr auto rend() noexcept { return data_.rend(); }
 
-    constexpr auto crbegin() const noexcept { return _data.crbegin(); }
-    constexpr auto crend() const noexcept { return _data.crend(); }
+    constexpr auto crbegin() const noexcept { return data_.crbegin(); }
+    constexpr auto crend() const noexcept { return data_.crend(); }
 
-    constexpr auto&       front() noexcept { return _data.front(); }
-    constexpr const auto& front() const noexcept { return _data.front(); }
-    constexpr auto&       back() noexcept { return _data.back(); }
-    constexpr const auto& back() const noexcept { return _data.back(); }
+    constexpr auto&       front() noexcept { return data_.front(); }
+    constexpr const auto& front() const noexcept { return data_.front(); }
+    constexpr auto&       back() noexcept { return data_.back(); }
+    constexpr const auto& back() const noexcept { return data_.back(); }
 
-    auto*       data() noexcept { return _data.data(); }
-    const auto* data() const noexcept { return _data.data(); }
+    auto*       data() noexcept { return data_.data(); }
+    const auto* data() const noexcept { return data_.data(); }
 
-    constexpr auto max_size() const noexcept { return _data.max_size(); }
+    constexpr auto max_size() const noexcept { return data_.max_size(); }
 
-    constexpr auto size() const noexcept { return _data.size(); }
-    constexpr auto empty() const noexcept { return _data.empty(); }
+    constexpr auto size() const noexcept { return data_.size(); }
+    constexpr auto empty() const noexcept { return data_.empty(); }
 
-    constexpr const auto& at(size_type idx) const noexcept { return _data.at(idx); }
-    constexpr auto&       at(size_type idx) noexcept { return _data.at(idx); }
+    constexpr const auto& at(size_type idx) const noexcept { return data_.at(idx); }
+    constexpr auto&       at(size_type idx) noexcept { return data_.at(idx); }
 
-    constexpr auto& operator[](size_type idx) const noexcept { return _data[idx]; }
-    constexpr auto& operator[](size_type idx) noexcept { return _data[idx]; }
+    constexpr auto& operator[](size_type idx) const noexcept { return data_[idx]; }
+    constexpr auto& operator[](size_type idx) noexcept { return data_[idx]; }
 
     // Recursively fill all dimensions by calling the sub fill method
     template<typename U>
     void fill(const U& v) noexcept {
         static_assert(is_strictly_assignable_v<T, U>, "Cannot assign fill value to element type");
 
-        for (auto& element : _data)
+        for (auto& element : data_)
         {
             if constexpr (sizeof...(Sizes) == 0)
                 element = v;
@@ -912,16 +912,16 @@ class MultiArray final {
         for (usize idx = beg; idx < end; ++idx)
         {
             if constexpr (sizeof...(Sizes) == 0)
-                _data[idx] = v;
+                data_[idx] = v;
             else
-                _data[idx].fill(v);
+                data_[idx].fill(v);
         }
     }
 
     // void print() const noexcept {
     //     std::cout << Size << ':' << sizeof...(Sizes) << std::endl;
     //
-    //     for (auto& element : _data)
+    //     for (auto& element : data_)
     //     {
     //         if constexpr (sizeof...(Sizes) == 0)
     //             std::cout << element << ' ';
@@ -933,44 +933,44 @@ class MultiArray final {
     // }
 
     constexpr void swap(MultiArray<T, Size, Sizes...>& multiArr) noexcept {
-        _data.swap(multiArr._data);
+        data_.swap(multiArr.data_);
     }
 
     template<bool NoExtraDimension = sizeof...(Sizes) == 0,
              typename              = std::enable_if_t<NoExtraDimension, bool>>
     constexpr operator Array<T, Size>&() noexcept {
-        return _data;
+        return data_;
     }
     template<bool NoExtraDimension = sizeof...(Sizes) == 0,
              typename              = std::enable_if_t<NoExtraDimension, bool>>
     constexpr operator const Array<T, Size>&() const noexcept {
-        return _data;
+        return data_;
     }
 
     constexpr MultiArray& operator=(const Array<T, Size, Sizes...>& stdArr) noexcept {
         for (usize i = 0; i < Size; ++i)
-            _data[i] = stdArr[i];
+            data_[i] = stdArr[i];
         return *this;
     }
 
    private:
-    ArrayType _data;
+    ArrayType data_;
 };
 
 template<typename T>
 class DynamicArray final {
    public:
     explicit DynamicArray(usize size) noexcept :
-        _size(size) {
+        size_(size) {
         assert(size != 0);
 
-        _data = make_unique_aligned_large_page<T[]>(size);
+        data_ = make_unique_aligned_large_page<T[]>(size);
     }
 
-    [[nodiscard]] usize size() const noexcept { return _size; }
+    [[nodiscard]] usize size() const noexcept { return size_; }
 
-    T*       data() noexcept { return _data.get(); }
-    const T* data() const noexcept { return _data.get(); }
+    T*       data() noexcept { return data_.get(); }
+    const T* data() const noexcept { return data_.get(); }
 
     T& operator[](usize idx) noexcept {
         assert(idx < size());
@@ -990,8 +990,8 @@ class DynamicArray final {
     }
 
    private:
-    LargePagePtr<T[]> _data;
-    usize             _size;
+    LargePagePtr<T[]> data_;
+    usize             size_;
 };
 
 template<typename T, usize Capacity, typename SizeType = usize>
@@ -1001,12 +1001,12 @@ class FixedVector final {
    public:
     [[nodiscard]] static constexpr SizeType capacity() noexcept { return Capacity; }
 
-    [[nodiscard]] constexpr SizeType size() const noexcept { return _size; }
+    [[nodiscard]] constexpr SizeType size() const noexcept { return size_; }
     [[nodiscard]] constexpr bool     empty() const noexcept { return size() == 0; }
     [[nodiscard]] constexpr bool     full() const noexcept { return size() == capacity(); }
 
-    T*       data() noexcept { return _data.data(); }
-    const T* data() const noexcept { return _data.data(); }
+    T*       data() noexcept { return data_.data(); }
+    const T* data() const noexcept { return data_.data(); }
 
     T*       begin() noexcept { return data(); }
     T*       end() noexcept { return begin() + size(); }
@@ -1018,27 +1018,27 @@ class FixedVector final {
     bool push_back(const T& value) noexcept {
         assert(size() < capacity());
 
-        data()[_size++] = value;  // copy-assign into pre-initialized slot
+        data()[size_++] = value;  // copy-assign into pre-initialized slot
         return true;
     }
     bool push_back(T&& value) noexcept {
         assert(size() < capacity());
 
-        data()[_size++] = std::move(value);
+        data()[size_++] = std::move(value);
         return true;
     }
     template<typename... Args>
     bool emplace_back(Args&&... args) noexcept {
         assert(size() < capacity());
 
-        data()[_size++] = T(std::forward<Args>(args)...);
+        data()[size_++] = T(std::forward<Args>(args)...);
         return true;
     }
 
     void pop_back() noexcept {
         assert(size() != 0);
 
-        --_size;
+        --size_;
     }
 
     T& back() noexcept {
@@ -1065,7 +1065,7 @@ class FixedVector final {
 
     void resize(SizeType newSize) noexcept {
         // Note: doesn't construct/destroy elements
-        _size = std::min(newSize, capacity());
+        size_ = std::min(newSize, capacity());
     }
 
     T* make_space(SizeType space) noexcept {
@@ -1076,11 +1076,11 @@ class FixedVector final {
         return data() + oldSize;
     }
 
-    void clear() noexcept { _size = 0; }
+    void clear() noexcept { size_ = 0; }
 
    private:
-    Array<T, Capacity> _data;
-    SizeType           _size = 0;
+    Array<T, Capacity> data_;
+    SizeType           size_ = 0;
 };
 
 struct FixedText final {
@@ -1092,14 +1092,14 @@ struct FixedText final {
         assert(size() < capacity());
         if (size() >= capacity())
             return *this;
-        data()[_size++] = ch;
+        data()[size_++] = ch;
         return *this;
     }
 
     FixedText& write(std::string_view sv) noexcept {
         assert(size() + sv.size() <= capacity());
         std::memcpy(data() + size(), sv.data(), sv.size());
-        _size += sv.size();
+        size_ += sv.size();
         return *this;
     }
 
@@ -1107,19 +1107,19 @@ struct FixedText final {
         char* beg      = data();
         char* end      = beg + capacity();
         auto [ptr, ec] = std::to_chars(beg + size(), end, v);
-        _size          = ptr - beg;
+        size_          = ptr - beg;
         return *this;
     }
 
-    [[nodiscard]] constexpr usize capacity() const noexcept { return _data.size(); }
+    [[nodiscard]] constexpr usize capacity() const noexcept { return data_.size(); }
 
-    char*                     data() noexcept { return _data.data(); }
-    [[nodiscard]] const char* c_str() const noexcept { return _data.data(); }
-    [[nodiscard]] usize       size() const noexcept { return _size; }
+    char*                     data() noexcept { return data_.data(); }
+    [[nodiscard]] const char* c_str() const noexcept { return data_.data(); }
+    [[nodiscard]] usize       size() const noexcept { return size_; }
 
     [[nodiscard]] bool empty() const noexcept { return size() == 0; }
 
-    [[nodiscard]] std::string_view view() const noexcept { return {_data.data(), size()}; }
+    [[nodiscard]] std::string_view view() const noexcept { return {data_.data(), size()}; }
 
     // implicit conversion if you want
     operator std::string_view() const noexcept { return view(); }
@@ -1127,8 +1127,8 @@ struct FixedText final {
     friend std::ostream& operator<<(std::ostream& os, const FixedText& fixedText) noexcept;
 
    private:
-    Array<char, 31> _data{};
-    u8              _size = 0;
+    Array<char, 31> data_{};
+    u8              size_ = 0;
 };
 
 static_assert(sizeof(FixedText) == 32, "FixedText size must be 32 bytes");

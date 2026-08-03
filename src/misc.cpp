@@ -489,12 +489,12 @@ class Info {
    public:
     Info() noexcept {
         for (usize i = 0; i < Size; ++i)
-            _data[i].store(0, std::memory_order_relaxed);
+            data_[i].store(0, std::memory_order_relaxed);
     }
 
     Info(const Info& info) noexcept {
         for (usize i = 0; i < Size; ++i)
-            _data[i].store(info._data[i].load(std::memory_order_relaxed),
+            data_[i].store(info.data_[i].load(std::memory_order_relaxed),
                            std::memory_order_relaxed);
     }
     Info& operator=(const Info& info) noexcept {
@@ -502,7 +502,7 @@ class Info {
             return *this;
 
         for (usize i = 0; i < Size; ++i)
-            _data[i].store(info._data[i].load(std::memory_order_relaxed),
+            data_[i].store(info.data_[i].load(std::memory_order_relaxed),
                            std::memory_order_relaxed);
         return *this;
     }
@@ -512,36 +512,36 @@ class Info {
 
     [[nodiscard]] decltype(auto) operator[](usize index) const noexcept {
         assert(index < Size && "Index out of bounds");
-        return _data[index];
+        return data_[index];
     }
     [[nodiscard]] decltype(auto) operator[](usize index) noexcept {
         assert(index < Size && "Index out of bounds");
-        return _data[index];
+        return data_[index];
     }
 
    protected:
-    Array<std::atomic<i64>, Size> _data;
+    Array<std::atomic<i64>, Size> data_;
 };
 
 class MinInfo final: public Info<2> {
    public:
     MinInfo() noexcept {
-        _data[1].store(std::numeric_limits<i64>::max(), std::memory_order_relaxed);
+        data_[1].store(std::numeric_limits<i64>::max(), std::memory_order_relaxed);
     }
 };
 
 class MaxInfo final: public Info<2> {
    public:
     MaxInfo() noexcept {
-        _data[1].store(std::numeric_limits<i64>::min(), std::memory_order_relaxed);
+        data_[1].store(std::numeric_limits<i64>::min(), std::memory_order_relaxed);
     }
 };
 
 class ExtremeInfo final: public Info<3> {
    public:
     ExtremeInfo() noexcept {
-        _data[1].store(std::numeric_limits<i64>::max(), std::memory_order_relaxed);
-        _data[2].store(std::numeric_limits<i64>::min(), std::memory_order_relaxed);
+        data_[1].store(std::numeric_limits<i64>::max(), std::memory_order_relaxed);
+        data_[2].store(std::numeric_limits<i64>::min(), std::memory_order_relaxed);
     }
 };
 

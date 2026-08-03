@@ -953,15 +953,15 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
                 {
                     pos.do_move(ttd.move, st, true, this);
 
-                    auto [_ttd, _ttu] = transpositionTable.probe(pos.key());
-                    _ttd.value        = _ttd.hit  //
-                                        ? value_from_tt(_ttd.value, ss->ply, pos.rule50_count())
+                    auto [ttd_, ttu_] = transpositionTable.probe(pos.key());
+                    ttd_.value        = ttd_.hit  //
+                                        ? value_from_tt(ttd_.value, ss->ply, pos.rule50_count())
                                         : VALUE_NONE;
 
                     pos.undo_move(ttd.move);
 
                     // Check that the ttValue after the ttMove would also trigger a cutoff
-                    if (!is_valid(_ttd.value) || ((ttd.value >= beta) == (-_ttd.value >= beta)))
+                    if (!is_valid(ttd_.value) || ((ttd.value >= beta) == (-ttd_.value >= beta)))
                         return ttd.value;
                 }
                 else
