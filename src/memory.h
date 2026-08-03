@@ -548,7 +548,7 @@ struct FdGuard final {
         if (this == &fdGuard)
             return *this;
 
-        close();
+        reset();
 
         fd = fdGuard.fd;
 
@@ -557,23 +557,18 @@ struct FdGuard final {
         return *this;
     }
 
-    ~FdGuard() noexcept { close(); }
+    ~FdGuard() noexcept { reset(); }
 
     [[nodiscard]] bool is_valid() const noexcept { return is_valid_fd(fd); }
 
-    void close() noexcept {
-        if (is_valid())
-        {
-            ::close(fd);
-
-            fd = INVALID_FD;
-        }
-    }
-
     void reset(int newFd = INVALID_FD) noexcept {
-        close();
+        if (fd != newFd)
+        {
+            if (is_valid())
+                ::close(fd);
 
-        fd = newFd;
+            fd = newFd;
+        }
     }
 
     int release() noexcept { return std::exchange(fd, INVALID_FD); }
@@ -606,7 +601,7 @@ struct MMapGuard final {
         if (this == &mMapGuard)
             return *this;
 
-        close();
+        reset();
 
         mappedPtr  = mMapGuard.mappedPtr;
         mappedSize = mMapGuard.mappedSize;
@@ -616,30 +611,23 @@ struct MMapGuard final {
         return *this;
     }
 
-    ~MMapGuard() noexcept { close(); }
+    ~MMapGuard() noexcept { reset(); }
 
-    bool valid() const noexcept { return mappedPtr != INVALID_MMAP_PTR; }
+    [[nodiscard]] bool is_valid() const noexcept { return mappedPtr != INVALID_MMAP_PTR; }
 
     void* get() const noexcept { return mappedPtr; }
 
     std::size_t get_size() const noexcept { return mappedSize; }
 
-    void close() noexcept {
-        if (valid())
-        {
-            munmap(mappedPtr, mappedSize);
-
-            mappedPtr = INVALID_MMAP_PTR;
-        }
-
-        mappedSize = INVALID_MMAP_SIZE;
-    }
-
     void reset(void* newPtr = INVALID_MMAP_PTR, std::size_t newSize = INVALID_MMAP_SIZE) noexcept {
-        close();
+        if (mappedPtr != newPtr)
+        {
+            if (is_valid())
+                munmap(mappedPtr, mappedSize);
 
-        mappedPtr  = newPtr;
-        mappedSize = newSize;
+            mappedPtr  = newPtr;
+            mappedSize = newSize;
+        }
     }
 
     MMapInfo release() noexcept {

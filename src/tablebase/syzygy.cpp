@@ -743,7 +743,7 @@ u8* TBTable<T>::map(std::string_view filename) noexcept {
 
 template<TBType T>
 void TBTable<T>::unmap() noexcept {
-    mappedGuard.close();
+    mappedGuard.reset();
     #if defined(_WIN32)
     hMapFileGuard.close();
     #endif

@@ -1642,7 +1642,7 @@ class SharedMemory final: public BaseSharedMemory {
         if (mappedPtr == INVALID_MMAP_PTR)
             return;
 
-        mappedGuard.close();
+        mappedGuard.reset();
 
         dataPtr   = nullptr;
         shmHeader = nullptr;
@@ -1937,7 +1937,7 @@ class SharedMemory final: public BaseSharedMemory {
         if (removeRegion)
             shm_unlink(name().data());
 
-        fdGuard.close();
+        fdGuard.reset();
 
         if (!skipUnmapRegion)
             reset();
