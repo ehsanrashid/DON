@@ -1148,11 +1148,11 @@ struct TempRoot final {
         static const auto tempRoot = []() -> std::optional<TempRoot> {
             const uid_t uid = getuid();
 
-            std::string path{"/tmp/DON-"};
-            path += std::to_string(uid);
+            std::string tempPath{"/tmp/DON-"};
+            tempPath += std::to_string(uid);
 
-            if (mkdir(path.c_str(), 0700) == 0)
-                return TempRoot{path};
+            if (mkdir(tempPath.c_str(), 0700) == 0)
+                return TempRoot{tempPath};
 
             if (errno != EEXIST)
                 return std::nullopt;
@@ -1160,11 +1160,11 @@ struct TempRoot final {
             // Temp root already exists, verify ownership and permissions
             struct stat stStat{};
 
-            if (lstat(path.c_str(), &stStat) == 0  //
-                && S_ISDIR(stStat.st_mode)         //
-                && stStat.st_uid == uid            //
+            if (lstat(tempPath.c_str(), &stStat) == 0  //
+                && S_ISDIR(stStat.st_mode)             //
+                && stStat.st_uid == uid                //
                 && (stStat.st_mode & 07777) == 0700)
-                return TempRoot{path};
+                return TempRoot{tempPath};
 
             return std::nullopt;
         }();
@@ -1176,6 +1176,44 @@ struct TempRoot final {
     std::string path;
 };
 
+// Wrapper around flock() on a file
+struct InitLock final {
+   public:
+    InitLock() noexcept = default;
+
+    InitLock(const InitLock&) noexcept            = delete;
+    InitLock& operator=(const InitLock&) noexcept = delete;
+
+    ~InitLock() noexcept {
+        if (lockUniqueFd.is_valid())
+            flock(lockUniqueFd.get(), LOCK_UN);
+    }
+
+    static InitLock wait_for_init_lock(std::string_view path) noexcept {
+        std::string filePath(path);
+
+        UniqueFd uniqueFd(::open(filePath.c_str(), O_CREAT | O_RDWR | O_CLOEXEC, 0666));
+
+        if (!uniqueFd.is_valid())
+            return {};
+
+        while (flock(uniqueFd.get(), LOCK_EX) == -1)
+        {
+            if (errno != EINTR)
+                return {};
+        }
+
+        return InitLock(std::move(uniqueFd));
+    }
+
+    [[nodiscard]] bool is_valid() const noexcept { return lockUniqueFd.is_valid(); }
+
+   private:
+    explicit InitLock(UniqueFd uniqueFd) noexcept :
+        lockUniqueFd(std::move(uniqueFd)) {}
+
+    UniqueFd lockUniqueFd;
+};
 
 inline constexpr int INVALID_PID = 0;
 
