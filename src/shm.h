@@ -632,12 +632,13 @@ class SharedMemoryRegistry final {
         // Acquire shared lock to safely read the registry without blocking writers
         std::shared_lock readLock(sharedMutex);
 
-        DEBUG_LOG("Registered shared memories (insertion order) [" << registryMap.size() << "]:");
+        std::cout << "Registered shared memories (insertion order) [" << registryMap.size()
+                  << "]:\n";
         [[maybe_unused]] usize i = 0;
         for ([[maybe_unused]] auto* sharedMemory : orderedList)
-            DEBUG_LOG("[" << i++ << "] "
-                          << (sharedMemory != nullptr ? sharedMemory->name() : "<NULL>"));
-        DEBUG_LOG("");
+            std::cout << "[" << i++ << "] "
+                      << (sharedMemory != nullptr ? sharedMemory->name() : "<NULL>") << "\n";
+        std::cout << std::endl;
     }
 
    private:
@@ -1139,6 +1140,41 @@ class SharedMemoryCleanupManager final {
     static inline std::thread                monitorThread;
     static inline std::atomic<bool>          cleanupDone{false};
 };
+
+struct TempRoot final {
+   public:
+    static const std::optional<TempRoot>& get_temp_root() noexcept {
+        static const auto tempRoot = []() -> std::optional<TempRoot> {
+            std::string path{"/tmp/DON-"};
+
+            uid_t uid = getuid();
+
+            path += std::to_string(uid);
+
+            if (mkdir(path.c_str(), 0700) == 0)
+                return TempRoot{path};
+
+            if (errno != EEXIST)
+                return std::nullopt;
+
+            struct stat stStat{};
+
+            if (lstat(path.c_str(), &stStat) == 0  //
+                && S_ISDIR(stStat.st_mode)         //
+                && stStat.st_uid == uid            //
+                && (stStat.st_mode & 07777) == 0700)
+                return TempRoot{path};
+
+            return std::nullopt;
+        }();
+
+        return tempRoot;
+    }
+
+    // /tmp/DON-[uid], with appropriate permissions
+    std::string prefix;
+};
+
 
 inline constexpr int INVALID_PID = 0;
 
@@ -1816,12 +1852,12 @@ class SharedMemory final: public BaseSharedMemory {
     [[nodiscard]] bool setup_existing_region(bool& headerInvalid) noexcept {
         headerInvalid = false;
 
-        struct stat Stat{};
+        struct stat stStat{};
 
-        if (fstat(fd, &Stat) == -1)
+        if (fstat(fd, &stStat) == -1)
             return false;
 
-        if (usize(Stat.st_size) < mappedSize)
+        if (usize(stStat.st_size) < mappedSize)
             return false;
 
         mappedPtr = mmap(nullptr, mappedSize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
