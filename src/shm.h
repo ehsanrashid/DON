@@ -234,14 +234,14 @@ class BackendSharedMemory final {
         status(Status::NotInitialized) {}
 
     BackendSharedMemory(std::string_view shmName, const T& value) noexcept :
-        name(shmName),
+        name_(shmName),
         status(Status::NotInitialized) {
         // Windows named shared memory names must start with "Local\" or "Global\"
         constexpr std::string_view Prefix{"Local\\"};
-        if (name_().size() < Prefix.size() || name_().compare(0, Prefix.size(), Prefix) != 0)
-            name.insert(0, Prefix);
+        if (name().size() < Prefix.size() || name().compare(0, Prefix.size(), Prefix) != 0)
+            name_.insert(0, Prefix);
 
-        //DEBUG_LOG("Creating shared memory with name: " << name_());
+        //DEBUG_LOG("Creating shared memory with name: " << name());
 
         initialize(value);
     }
@@ -250,13 +250,13 @@ class BackendSharedMemory final {
     BackendSharedMemory& operator=(const BackendSharedMemory&) noexcept = delete;
 
     BackendSharedMemory(BackendSharedMemory&& backendShm) noexcept :
-        name(backendShm.name_()),
+        name_(backendShm.name()),
         hMapFile(backendShm.hMapFile),
         hMapFileGuard{hMapFile},
         mappedPtr(backendShm.mappedPtr),
         mappedGuard{mappedPtr},
         status(backendShm.status) {
-        //DEBUG_LOG("Moving shared memory, name: " << name_());
+        //DEBUG_LOG("Moving shared memory, name: " << name());
 
         backendShm.hMapFile  = INVALID_HANDLE;
         backendShm.mappedPtr = INVALID_MMAP_PTR;
@@ -268,12 +268,12 @@ class BackendSharedMemory final {
 
         destroy();
 
-        name      = backendShm.name_();
+        name_     = backendShm.name();
         hMapFile  = backendShm.hMapFile;
         mappedPtr = backendShm.mappedPtr;
         status    = backendShm.status;
 
-        //DEBUG_LOG("Moving shared memory, name: " << name_());
+        //DEBUG_LOG("Moving shared memory, name: " << name());
 
         backendShm.hMapFile  = INVALID_HANDLE;
         backendShm.mappedPtr = INVALID_MMAP_PTR;
@@ -316,7 +316,7 @@ class BackendSharedMemory final {
         return "Shared memory: unknown error.";
     }
 
-    std::string_view name_() const noexcept { return name; }
+    std::string_view name() const noexcept { return name_; }
 
    private:
     void initialize(const T& value) noexcept {
@@ -340,7 +340,7 @@ class BackendSharedMemory final {
 
               return CreateFileMapping(INVALID_HANDLE_VALUE, nullptr,
                                        PAGE_READWRITE | SEC_COMMIT | SEC_LARGE_PAGES,  //
-                                       hiTotalSize, loTotalSize, name_().data());
+                                       hiTotalSize, loTotalSize, name().data());
           },
           []() { return INVALID_HANDLE; });
 
@@ -350,12 +350,12 @@ class BackendSharedMemory final {
             //DEBUG_LOG("Allocating normal shared memory, size = " << TotalSize << " bytes");
 
             hMapFile = CreateFileMapping(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE,  //
-                                         0, TotalSize, name_().data());
+                                         0, TotalSize, name().data());
         }
 
         if (!valid_handle(hMapFile))
         {
-            //DEBUG_LOG("CreateFileMapping() failed, name = " << name_() << , error = " << error_to_string(GetLastError()));
+            //DEBUG_LOG("CreateFileMapping() failed, name = " << name() << ", error = " << error_to_string(GetLastError()));
             status = Status::FileMapping;
 
             return;
@@ -365,7 +365,7 @@ class BackendSharedMemory final {
 
         if (mappedPtr == INVALID_MMAP_PTR)
         {
-            //DEBUG_LOG("MapViewOfFile() failed, name = " << name_() << ", error = " << error_to_string(GetLastError()));
+            //DEBUG_LOG("MapViewOfFile() failed, name = " << name() << ", error = " << error_to_string(GetLastError()));
             status = Status::MapView;
 
             cleanup();
@@ -373,7 +373,7 @@ class BackendSharedMemory final {
         }
 
         // Use named mutex to ensure only one initializer
-        std::string mutexName{name_()};
+        std::string mutexName{name()};
         mutexName.append("$mutex");
 
         HANDLE hMutex = CreateMutex(nullptr, FALSE, mutexName.c_str());
@@ -431,12 +431,12 @@ class BackendSharedMemory final {
             return;
         }
 
-        //DEBUG_LOG("Shared memory initialized successfully, name: " << name_());
+        //DEBUG_LOG("Shared memory initialized successfully, name: " << name());
         status = Status::Success;
     }
 
     void cleanup() noexcept {
-        //DEBUG_LOG("Cleaning up shared memory, name: " << name_());
+        //DEBUG_LOG("Cleaning up shared memory, name: " << name());
 
         mappedGuard.close();
 
@@ -444,7 +444,7 @@ class BackendSharedMemory final {
     }
 
     void destroy() noexcept {
-        //DEBUG_LOG("Destroying shared memory, name: " << name_());
+        //DEBUG_LOG("Destroying shared memory, name: " << name());
 
         cleanup();
     }
@@ -455,7 +455,7 @@ class BackendSharedMemory final {
         Initialized   = 2
     };
 
-    std::string name;
+    std::string name_;
     HANDLE      hMapFile = INVALID_HANDLE;
     HandleGuard hMapFileGuard{hMapFile};
     void*       mappedPtr = INVALID_MMAP_PTR;
