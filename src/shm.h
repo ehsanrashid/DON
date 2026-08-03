@@ -431,8 +431,8 @@ class BackendSharedMemory final {
 
     void cleanup() noexcept {
         //DEBUG_LOG("Cleaning up shared memory, name: " << name());
-        mappedGuard.close();
-        hMapFileGuard.close();
+        mappedGuard.reset();
+        hMapFileGuard.reset();
     }
 
     void destroy() noexcept {

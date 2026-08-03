@@ -286,7 +286,7 @@ struct HandleGuard final {
         if (this == &handleGuard)
             return *this;
 
-        close();
+        reset();
 
         handle = handleGuard.handle;
 
@@ -295,24 +295,19 @@ struct HandleGuard final {
         return *this;
     }
 
-    ~HandleGuard() noexcept { close(); }
+    ~HandleGuard() noexcept { reset(); }
 
     [[nodiscard]] bool is_valid() const noexcept { return is_valid_handle(handle); }
 
-    void close() noexcept {
-        if (is_valid())
-        {
-            if (handle != INVALID_HANDLE_VALUE)
-                CloseHandle(handle);
-
-            handle = INVALID_HANDLE;
-        }
-    }
-
     void reset(HANDLE newHandle = INVALID_HANDLE) noexcept {
-        close();
+        if (handle != newHandle)
+        {
+            if (is_valid())
+                if (handle != INVALID_HANDLE_VALUE)
+                    CloseHandle(handle);
 
-        handle = newHandle;
+            handle = newHandle;
+        }
     }
 
     HANDLE release() noexcept { return std::exchange(handle, INVALID_HANDLE); }
@@ -338,7 +333,7 @@ struct MMapGuard final {
         if (this == &mMapGuard)
             return *this;
 
-        close();
+        reset();
 
         mappedPtr = mMapGuard.mappedPtr;
 
@@ -347,25 +342,20 @@ struct MMapGuard final {
         return *this;
     }
 
-    ~MMapGuard() noexcept { close(); }
+    ~MMapGuard() noexcept { reset(); }
 
     [[nodiscard]] bool is_valid() const noexcept { return mappedPtr != INVALID_MMAP_PTR; }
 
     void* get() const noexcept { return mappedPtr; }
 
-    void close() noexcept {
-        if (is_valid())
-        {
-            UnmapViewOfFile(mappedPtr);
-
-            mappedPtr = INVALID_MMAP_PTR;
-        }
-    }
-
     void reset(void* newPtr = INVALID_MMAP_PTR) noexcept {
-        close();
+        if (mappedPtr != newPtr)
+        {
+            if (is_valid())
+                UnmapViewOfFile(mappedPtr);
 
-        mappedPtr = newPtr;
+            mappedPtr = newPtr;
+        }
     }
 
     void* release() noexcept { return std::exchange(mappedPtr, INVALID_MMAP_PTR); }

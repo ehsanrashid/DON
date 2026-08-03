@@ -675,7 +675,7 @@ u8* TBTable<T>::map(std::string_view filename) noexcept {
         DEBUG_LOG("MapViewOfFile() failed, name = " << filename << ", error = "
                                                     << error_to_string(GetLastError()));
 
-        hMapFileGuard.close();
+        hMapFileGuard.reset();
 
         return nullptr;
     }
@@ -745,7 +745,7 @@ template<TBType T>
 void TBTable<T>::unmap() noexcept {
     mappedGuard.reset();
     #if defined(_WIN32)
-    hMapFileGuard.close();
+    hMapFileGuard.reset();
     #endif
 }
 
