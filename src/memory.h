@@ -264,7 +264,9 @@ template<typename T, typename ByteT>
 
 inline constexpr HANDLE INVALID_HANDLE = nullptr;
 
-constexpr bool valid_handle(HANDLE handle) noexcept { return handle != INVALID_HANDLE; }
+[[nodiscard]] constexpr bool is_valid_handle(HANDLE handle) noexcept {
+    return handle != INVALID_HANDLE;
+}
 
 inline constexpr void* INVALID_MMAP_PTR = nullptr;
 
@@ -295,10 +297,10 @@ struct HandleGuard final {
 
     ~HandleGuard() noexcept { close(); }
 
-    bool valid() const noexcept { return valid_handle(handle); }
+    [[nodiscard]] bool is_valid() const noexcept { return is_valid_handle(handle); }
 
     void close() noexcept {
-        if (valid())
+        if (is_valid())
         {
             if (handle != INVALID_HANDLE_VALUE)
                 CloseHandle(handle);
@@ -313,13 +315,7 @@ struct HandleGuard final {
         handle = newHandle;
     }
 
-    HANDLE release() noexcept {
-        HANDLE oldHandle = handle;
-
-        handle = INVALID_HANDLE;
-
-        return oldHandle;
-    }
+    HANDLE release() noexcept { return std::exchange(handle, INVALID_HANDLE); }
 
    private:
     HANDLE& handle;
@@ -353,12 +349,12 @@ struct MMapGuard final {
 
     ~MMapGuard() noexcept { close(); }
 
-    bool valid() const noexcept { return mappedPtr != INVALID_MMAP_PTR; }
+    [[nodiscard]] bool is_valid() const noexcept { return mappedPtr != INVALID_MMAP_PTR; }
 
     void* get() const noexcept { return mappedPtr; }
 
     void close() noexcept {
-        if (valid())
+        if (is_valid())
         {
             UnmapViewOfFile(mappedPtr);
 
@@ -372,13 +368,7 @@ struct MMapGuard final {
         mappedPtr = newPtr;
     }
 
-    void* release() noexcept {
-        void* oldMappedPtr = mappedPtr;
-
-        mappedPtr = INVALID_MMAP_PTR;
-
-        return oldMappedPtr;
-    }
+    void* release() noexcept { return std::exchange(mappedPtr, INVALID_MMAP_PTR); }
 
    private:
     void*& mappedPtr;

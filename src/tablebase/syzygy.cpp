@@ -661,7 +661,7 @@ u8* TBTable<T>::map(std::string_view filename) noexcept {
 
     hMapFile = CreateFileMapping(hFile, nullptr, PAGE_READONLY, hiSize, loSize, nullptr);
 
-    if (!valid_handle(hMapFile))
+    if (!is_valid_handle(hMapFile))
     {
         DEBUG_LOG("CreateFileMapping() failed, name = " << filename << ", error = "
                                                         << error_to_string(GetLastError()));

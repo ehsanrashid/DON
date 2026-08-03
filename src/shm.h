@@ -345,14 +345,14 @@ class BackendSharedMemory final {
           []() { return INVALID_HANDLE; });
 
         // Fallback to normal allocation if no large page available
-        if (!valid_handle(hMapFile))
+        if (!is_valid_handle(hMapFile))
         {
             //DEBUG_LOG("Allocating normal shared memory, size = " << TotalSize << " bytes");
             hMapFile = CreateFileMapping(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE,  //
                                          0, TotalSize, name().data());
         }
 
-        if (!valid_handle(hMapFile))
+        if (!is_valid_handle(hMapFile))
         {
             //DEBUG_LOG("CreateFileMapping() failed, name = " << name() << ", error = " << error_to_string(GetLastError()));
             status = Status::FileMapping;
