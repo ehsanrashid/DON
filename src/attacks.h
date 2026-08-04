@@ -91,7 +91,7 @@ inline Bitboard reverse_bb(Bitboard bb) noexcept {
 // See https://www.chessprogramming.org/Hyperbola_Quintessence
 struct Magic final {
    public:
-    WW Bitboard hyperbola(Square s, Bitboard occupancyBB, Bitboard maskBB) const noexcept {
+    Bitboard hyperbola(Square s, Bitboard occupancyBB, Bitboard maskBB) const noexcept {
         Bitboard occBB = occupancyBB & maskBB;
         Bitboard fwdBB = occBB - square_bb(s);
         Bitboard revBB = reverse_bb(occBB) - square_bb(reverse_sq(s));
