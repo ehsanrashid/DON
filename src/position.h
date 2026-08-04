@@ -860,7 +860,7 @@ inline void Position::reset_rule50_count() noexcept { st->rule50Count = 0; }
 inline void Position::put(Square s, Piece pc, DirtyThreats* dts) noexcept {
     assert(is_ok(s) && is_ok(pc) && empty(s));
 
-    Bitboard sBB = make_bb(s);
+    Bitboard sBB = square_bb(s);
 
     pieceMap[s] = pc;
     colorBBs[color_of(pc)] |= sBB;
@@ -873,7 +873,7 @@ inline void Position::put(Square s, Piece pc, DirtyThreats* dts) noexcept {
 inline Piece Position::remove(Square s, DirtyThreats* dts) noexcept {
     assert(is_ok(s) && !empty(s));
 
-    Bitboard sBB = make_bb(s);
+    Bitboard sBB = square_bb(s);
 
     Piece pc = piece(s);
 
@@ -891,7 +891,7 @@ inline Piece Position::remove(Square s, DirtyThreats* dts) noexcept {
 inline Piece Position::move(Square s1, Square s2, DirtyThreats* dts) noexcept {
     assert(is_ok(s1) && is_ok(s2) && s1 != s2 && !empty(s1));
 
-    Bitboard s1s2BB = make_bb(s1, s2);
+    Bitboard s1s2BB = square_bb(s1) | square_bb(s2);
 
     Piece pc = piece(s1);
 

@@ -30,25 +30,12 @@ namespace {
 constexpr Array<usize, 2> TABLE_SIZES{0x1480, 0x19000};
 
 // Stores bishop & rook attacks
-alignas(CACHE_LINE_SIZE) Array<
-#if defined(USE_BMI2) && defined(USE_CMP)
-  u16
-#else
-  Bitboard
-#endif
-  ,
-  TABLE_SIZES[0] + TABLE_SIZES[1]> AttacksTable;
+alignas(CACHE_LINE_SIZE) Array<MagicMask, TABLE_SIZES[0] + TABLE_SIZES[1]> AttacksTable;
 
-alignas(CACHE_LINE_SIZE) Array<TableView<
-#if defined(USE_BMI2) && defined(USE_CMP)
-                                 u16
-#else
-                                 Bitboard
-#endif
-                                 >,
-                               2> TableViews{
+alignas(CACHE_LINE_SIZE) Array<TableView<MagicMask>, 2> TableViews{
   TableView{AttacksTable.data() + 0x000000000000, TABLE_SIZES[0]},
-  TableView{AttacksTable.data() + TABLE_SIZES[0], TABLE_SIZES[1]}};
+  TableView{AttacksTable.data() + TABLE_SIZES[0], TABLE_SIZES[1]}  //
+};
 
 // Computes all bishop & rook attacks at startup.
 // Magic bitboards are used to look up attacks of sliding pieces.
@@ -205,11 +192,11 @@ void init() noexcept {
 
     for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
     {
-        Bitboard s1BB = make_bb(s1);
+        Bitboard s1BB = square_bb(s1);
 
         for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
         {
-            Bitboard s2BB = make_bb(s2);
+            Bitboard s2BB = square_bb(s2);
 
             for (PieceType pt : {BISHOP, ROOK})
             {

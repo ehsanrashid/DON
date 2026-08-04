@@ -49,6 +49,12 @@
 
 namespace DON {
 
+#if defined(USE_BMI2) && defined(USE_CMP)
+using MagicMask = u16;
+#else
+using MagicMask = Bitboard;
+#endif
+
 // Attacks
 namespace Attacks {
 
@@ -346,18 +352,13 @@ struct Magic final {
 #endif
     }
 
-    Bitboard maskBB;
-#if defined(USE_BMI2)
-    #if defined(USE_CMP)
-    u16*     attacksBBs;
+    Bitboard   maskBB;
+    MagicMask* attacksBBs;
+#if defined(USE_BMI2) && defined(USE_CMP)
     Bitboard pseudoAttacksBB;
-    #else
-    Bitboard* attacksBBs;
-    #endif
 #else
-    Bitboard* attacksBBs;
-    Bitboard  magicBB;
-    u8        shift;
+    Bitboard magicBB;
+    u8       shift;
 #endif
 };
 
@@ -433,7 +434,8 @@ alignas(CACHE_LINE_SIZE) inline constexpr auto LINE_BBs = []() constexpr noexcep
         for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
             for (PieceType pt : {BISHOP, ROOK})
                 if ((attacks_bb(s1, pt) & s2) != 0)
-                    lineBBs[s1][s2] = (attacks_bb(s1, pt) & attacks_bb(s2, pt)) | s1 | s2;
+                    lineBBs[s1][s2] =
+                      (attacks_bb(s1, pt) & attacks_bb(s2, pt)) | square_bb(s1) | square_bb(s2);
 
     return lineBBs;
 }();

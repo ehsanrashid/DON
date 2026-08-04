@@ -104,18 +104,20 @@ constexpr Bitboard square_bb(Square s) noexcept {
 
 // Overloads of bitwise operators between bitboard and square for testing
 // whether a given bit is set in bitboard, and for setting and clearing bits.
-constexpr Bitboard operator&(Bitboard b, Square s) noexcept { return b & square_bb(s); }
-constexpr Bitboard operator|(Bitboard b, Square s) noexcept { return b | square_bb(s); }
-constexpr Bitboard operator^(Bitboard b, Square s) noexcept { return b ^ square_bb(s); }
-constexpr Bitboard operator&(Square s, Bitboard b) noexcept { return b & s; }
-constexpr Bitboard operator|(Square s, Bitboard b) noexcept { return b | s; }
-constexpr Bitboard operator^(Square s, Bitboard b) noexcept { return b ^ s; }
+constexpr Bitboard  operator&(Bitboard b, Square s) noexcept { return b & square_bb(s); }
+constexpr Bitboard  operator|(Bitboard b, Square s) noexcept { return b | square_bb(s); }
+constexpr Bitboard  operator^(Bitboard b, Square s) noexcept { return b ^ square_bb(s); }
+constexpr Bitboard& operator&=(Bitboard& b, Square s) noexcept { return b &= square_bb(s); }
+constexpr Bitboard& operator|=(Bitboard& b, Square s) noexcept { return b |= square_bb(s); }
+constexpr Bitboard& operator^=(Bitboard& b, Square s) noexcept { return b ^= square_bb(s); }
 
-constexpr Bitboard& operator&=(Bitboard& b, Square s) noexcept { return b = b & s; }
-constexpr Bitboard& operator|=(Bitboard& b, Square s) noexcept { return b = b | s; }
-constexpr Bitboard& operator^=(Bitboard& b, Square s) noexcept { return b = b ^ s; }
+constexpr Bitboard operator&(Square s, Bitboard b) noexcept { return b & square_bb(s); }
+constexpr Bitboard operator|(Square s, Bitboard b) noexcept { return b | square_bb(s); }
+constexpr Bitboard operator^(Square s, Bitboard b) noexcept { return b ^ square_bb(s); }
 
-constexpr Bitboard operator|(Square s1, Square s2) noexcept { return square_bb(s1) | s2; }
+constexpr Bitboard operator|(Square s1, Square s2) noexcept {
+    return square_bb(s1) | square_bb(s2);
+}
 
 // Returns bitboard from list of squares
 template<typename... Squares>
