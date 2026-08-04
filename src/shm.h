@@ -474,6 +474,12 @@ class BaseSharedMemory {
             name_.insert(name_.begin(), Prefix);
     }
 
+    BaseSharedMemory(const BaseSharedMemory&)            = delete;
+    BaseSharedMemory& operator=(const BaseSharedMemory&) = delete;
+
+    BaseSharedMemory(BaseSharedMemory&&) noexcept            = default;
+    BaseSharedMemory& operator=(BaseSharedMemory&&) noexcept = default;
+
     virtual ~BaseSharedMemory() noexcept = default;
 
     virtual void close(CloseType closeType) noexcept = 0;
@@ -878,9 +884,9 @@ class SharedMemory final: public BaseSharedMemory {
     SharedMemory& operator=(const SharedMemory&) = delete;
 
     SharedMemory(SharedMemory&& sharedMemory) noexcept :
-        BaseSharedMemory(std::move(sharedMemory.name_)),
-        mappedPtr(sharedMemory.mappedPtr),
-        dataPtr(sharedMemory.dataPtr),
+        BaseSharedMemory(std::move(sharedMemory)),
+        mappedPtr(std::exchange(sharedMemory.mappedPtr, nullptr)),
+        dataPtr(std::exchange(sharedMemory.dataPtr, nullptr)),
         sharedDir(std::move(sharedMemory.sharedDir)),
         initLockPath(std::move(sharedMemory.initLockPath)),
         socketPath(std::move(sharedMemory.socketPath)),
@@ -889,9 +895,6 @@ class SharedMemory final: public BaseSharedMemory {
 
         SharedMemoryRegistry::unregister_memory(&sharedMemory);
         SharedMemoryRegistry::attempt_register_memory(this);
-
-        sharedMemory.mappedPtr = nullptr;
-        sharedMemory.dataPtr   = nullptr;
     }
     SharedMemory& operator=(SharedMemory&& sharedMemory) noexcept {
         if (this == &sharedMemory)
@@ -899,9 +902,9 @@ class SharedMemory final: public BaseSharedMemory {
 
         unregister_close();
 
-        name_        = std::move(sharedMemory.name_);
-        mappedPtr    = sharedMemory.mappedPtr;
-        dataPtr      = sharedMemory.dataPtr;
+        BaseSharedMemory::operator=(std::move(sharedMemory));
+        mappedPtr    = std::exchange(sharedMemory.mappedPtr, nullptr);
+        dataPtr      = std::exchange(sharedMemory.dataPtr, nullptr);
         sharedDir    = std::move(sharedMemory.sharedDir);
         initLockPath = std::move(sharedMemory.initLockPath);
         socketPath   = std::move(sharedMemory.socketPath);
@@ -910,9 +913,6 @@ class SharedMemory final: public BaseSharedMemory {
 
         SharedMemoryRegistry::unregister_memory(&sharedMemory);
         SharedMemoryRegistry::attempt_register_memory(this);
-
-        sharedMemory.mappedPtr = nullptr;
-        sharedMemory.dataPtr   = nullptr;
 
         return *this;
     }
