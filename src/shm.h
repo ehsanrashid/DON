@@ -256,17 +256,13 @@ class BackendSharedMemory final {
     BackendSharedMemory& operator=(const BackendSharedMemory&) noexcept = delete;
 
     BackendSharedMemory(BackendSharedMemory&& backendShm) noexcept :
-        name_(backendShm.name()),
-        hMapFile(backendShm.hMapFile),
+        name_(std::move(backendShm.name_)),
+        hMapFile(std::exchange(backendShm.hMapFile, INVALID_HANDLE)),
         hMapFileGuard{hMapFile},
-        mappedPtr(backendShm.mappedPtr),
+        mappedPtr(std::exchange(backendShm.mappedPtr, INVALID_MMAP_PTR)),
         mappedGuard{mappedPtr},
-        status(backendShm.status) {
+        status(std::exchange(backendShm.status, Status::NotInitialized)) {
         //DEBUG_LOG("Moving shared memory, name: " << name());
-
-        backendShm.hMapFile  = INVALID_HANDLE;
-        backendShm.mappedPtr = INVALID_MMAP_PTR;
-        backendShm.status    = Status::NotInitialized;
     }
     BackendSharedMemory& operator=(BackendSharedMemory&& backendShm) noexcept {
         if (this == &backendShm)
@@ -274,32 +270,28 @@ class BackendSharedMemory final {
 
         destroy();
 
-        name_     = backendShm.name();
-        hMapFile  = backendShm.hMapFile;
-        mappedPtr = backendShm.mappedPtr;
-        status    = backendShm.status;
+        name_     = std::move(backendShm.name_);
+        hMapFile  = std::exchange(backendShm.hMapFile, INVALID_HANDLE);
+        mappedPtr = std::exchange(backendShm.mappedPtr, INVALID_MMAP_PTR);
+        status    = std::exchange(backendShm.status, Status::NotInitialized);
 
         //DEBUG_LOG("Moving shared memory, name: " << name());
-
-        backendShm.hMapFile  = INVALID_HANDLE;
-        backendShm.mappedPtr = INVALID_MMAP_PTR;
-        backendShm.status    = Status::NotInitialized;
 
         return *this;
     }
 
     ~BackendSharedMemory() noexcept { destroy(); }
 
-    bool is_valid() const noexcept { return status == Status::Success; }
+    [[nodiscard]] bool is_valid() const noexcept { return status == Status::Success; }
 
-    void* get() const noexcept { return is_valid() ? mappedPtr : INVALID_MMAP_PTR; }
+    [[nodiscard]] void* get() const noexcept { return is_valid() ? mappedPtr : INVALID_MMAP_PTR; }
 
-    SharedMemoryAllocationStatus get_status() const noexcept {
+    [[nodiscard]] SharedMemoryAllocationStatus get_status() const noexcept {
         return status == Status::Success ? SharedMemoryAllocationStatus::SharedMemory
                                          : SharedMemoryAllocationStatus::NoAllocation;
     }
 
-    std::string_view get_error_message() const noexcept {
+    [[nodiscard]] std::string_view get_error_message() const noexcept {
         switch (status)
         {
         case Status::Success :
@@ -322,7 +314,7 @@ class BackendSharedMemory final {
         return "Shared memory: unknown error.";
     }
 
-    std::string_view name() const noexcept { return name_; }
+    [[nodiscard]] std::string_view name() const noexcept { return name_; }
 
    private:
     void initialize(const T& value) noexcept {
@@ -1265,26 +1257,24 @@ class SharedMemory final: public BaseSharedMemory {
         reset();
     }
 
-    // Unregister SharedMemory object and release resources
-    void unregister_close() noexcept {
-        // 1. Unregister from registry
-        SharedMemoryRegistry::unregister_memory(this);
+    [[nodiscard]] bool is_mapped() const noexcept { return mappedPtr != nullptr; }
 
-        // 2. Close and release
-        close(CloseType::Normal);
-    }
+    [[nodiscard]] bool is_serving() const noexcept { return bool(serverThread); }
 
-    bool is_mapped() const noexcept { return mappedPtr != nullptr; }
-
-    bool is_serving() const noexcept { return bool(serverThread); }
-
-    const T& get() const noexcept {
+    [[nodiscard]] const T& get() const noexcept {
         assert(dataPtr != nullptr);
 
         return *dataPtr;
     }
 
    private:
+    // Unregister SharedMemory object and release resources
+    void unregister_close() noexcept {
+        SharedMemoryRegistry::unregister_memory(this);
+
+        close(CloseType::Normal);
+    }
+
     void reset() noexcept {
         if (!socketPath.empty())
         {
@@ -1357,13 +1347,15 @@ class BackendSharedMemory final {
     BackendSharedMemory(BackendSharedMemory&& backendShm) noexcept            = default;
     BackendSharedMemory& operator=(BackendSharedMemory&& backendShm) noexcept = default;
 
-    bool is_valid() const noexcept { return shm && shm->is_mapped() && shm->is_serving(); }
+    [[nodiscard]] bool is_valid() const noexcept {
+        return shm && shm->is_mapped() && shm->is_serving();
+    }
 
-    void* get() const noexcept {
+    [[nodiscard]] void* get() const noexcept {
         return is_valid() ? reinterpret_cast<void*>(const_cast<T*>(&shm->get())) : nullptr;
     }
 
-    SharedMemoryAllocationStatus get_status() const noexcept {
+    [[nodiscard]] SharedMemoryAllocationStatus get_status() const noexcept {
         return is_valid() ? SharedMemoryAllocationStatus::SharedMemory
                           : SharedMemoryAllocationStatus::NoAllocation;
     }
@@ -1398,15 +1390,15 @@ class BackendSharedMemory final {
     BackendSharedMemory(BackendSharedMemory&& backendShm) noexcept            = default;
     BackendSharedMemory& operator=(BackendSharedMemory&& backendShm) noexcept = default;
 
-    bool is_valid() const noexcept { return false; }
+    [[nodiscard]] bool is_valid() const noexcept { return false; }
 
-    void* get() const noexcept { return nullptr; }
+    [[nodiscard]] void* get() const noexcept { return nullptr; }
 
-    SharedMemoryAllocationStatus get_status() const noexcept {
+    [[nodiscard]] SharedMemoryAllocationStatus get_status() const noexcept {
         return SharedMemoryAllocationStatus::NoAllocation;
     }
 
-    std::string_view get_error_message() const noexcept {
+    [[nodiscard]] std::string_view get_error_message() const noexcept {
         return "Shared memory: [Dummy] (non-functional).";
     }
 };
@@ -1432,14 +1424,14 @@ struct FallbackBackendSharedMemory final {
         return *this;
     }
 
-    void* get() const noexcept { return fallbackObj.get(); }
+    [[nodiscard]] void* get() const noexcept { return fallbackObj.get(); }
 
-    SharedMemoryAllocationStatus get_status() const noexcept {
+    [[nodiscard]] SharedMemoryAllocationStatus get_status() const noexcept {
         return fallbackObj != nullptr ? SharedMemoryAllocationStatus::LocalMemory
                                       : SharedMemoryAllocationStatus::NoAllocation;
     }
 
-    std::string_view get_error_message() const noexcept {
+    [[nodiscard]] std::string_view get_error_message() const noexcept {
         if (fallbackObj == nullptr)
             return "Shared memory not created.";
         return "Shared memory not supported by the OS. Local allocation fallback.";
@@ -1543,7 +1535,7 @@ struct SystemWideSharedMemory final {
     bool operator==(std::nullptr_t) const noexcept { return get_ptr() == nullptr; }
     bool operator!=(std::nullptr_t) const noexcept { return !(*this == nullptr); }
 
-    SharedMemoryAllocationStatus get_status() const noexcept {
+    [[nodiscard]] SharedMemoryAllocationStatus get_status() const noexcept {
         return std::visit(
           [](const auto& end) -> SharedMemoryAllocationStatus {
               if constexpr (std::is_same_v<std::decay_t<decltype(end)>, std::monostate>)
@@ -1554,7 +1546,7 @@ struct SystemWideSharedMemory final {
           backendShm);
     }
 
-    std::string_view get_error_message() const noexcept {
+    [[nodiscard]] std::string_view get_error_message() const noexcept {
         return std::visit(
           [](const auto& end) -> std::string_view {
               if constexpr (std::is_same_v<std::decay_t<decltype(end)>, std::monostate>)
