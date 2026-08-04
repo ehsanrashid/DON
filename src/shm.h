@@ -358,7 +358,7 @@ class BackendSharedMemory final {
 
         mappedPtr = MapViewOfFile(hMapFile, FILE_MAP_ALL_ACCESS, 0, 0, TotalSize);
 
-        if (mappedPtr == INVALID_MMAP_PTR)
+        if (!mappedGuard.is_valid())
         {
             //DEBUG_LOG("MapViewOfFile() failed, name = " << name() << ", error = " << error_to_string(GetLastError()));
             status = Status::MapView;

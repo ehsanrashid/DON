@@ -670,7 +670,7 @@ u8* TBTable<T>::map(std::string_view filename) noexcept {
 
     mappedPtr = MapViewOfFile(hMapFile, FILE_MAP_READ, 0, 0, 0);
 
-    if (mappedPtr == INVALID_MMAP_PTR)
+    if (!mappedGuard.is_valid())
     {
         DEBUG_LOG("MapViewOfFile() failed, name = " << filename << ", error = "
                                                     << error_to_string(GetLastError()));
