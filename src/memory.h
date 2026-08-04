@@ -611,7 +611,7 @@ struct UniqueFd final {
     void reset(int newFd = INVALID_FD) noexcept {
         if (fd != newFd)
         {
-            if (is_valid_fd(fd))
+            if (is_valid())
                 ::close(fd);
 
             fd = newFd;
