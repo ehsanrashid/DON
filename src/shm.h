@@ -459,13 +459,13 @@ class BackendSharedMemory final {
     Status      status = Status::NotInitialized;
 };
 #elif defined(USE_UNIX_SHM)
+enum class CloseType : u8 {
+    Normal,
+    AtExit,
+};
+
 class BaseSharedMemory {
    public:
-    enum class CloseType {
-        Normal,
-        AtExit,
-    };
-
     explicit BaseSharedMemory(std::string_view shmName) noexcept :
         name_(shmName) {
         // POSIX named shared memory names must start with slash ('/')
@@ -527,6 +527,7 @@ class SharedMemoryRegistry final {
     // Ensure internal containers are ready
     static void ensure_initialized(usize reserveCount  = 1024,
                                    float maxLoadFactor = 0.75f) noexcept {
+        // Only the parameters from the first call are used
         callOnce([reserveCount, maxLoadFactor]() noexcept {
             //DEBUG_LOG("Initializing SharedMemoryRegistry with reserve-count " << reserveCount << " and max-load-factor " << maxLoadFactor);
 
@@ -544,8 +545,6 @@ class SharedMemoryRegistry final {
         // Bounded wait for cleanup to finish
         using namespace std::chrono_literals;
         constexpr auto MaxWaitTime = 200ms;
-
-        ensure_initialized();
 
         if (sharedMemory == nullptr)
         {
@@ -594,8 +593,6 @@ class SharedMemoryRegistry final {
     //    invalidating iterators or causing race conditions.
     //  - Notifies all threads waiting on registration that cleanup is complete.
     static void cleanup() noexcept {
-        ensure_initialized();
-
         // Mark cleanup as in-progress so other threads know not to register new memory
         cleanUpInProgress.store(true, std::memory_order_release);
 
@@ -613,7 +610,7 @@ class SharedMemoryRegistry final {
         // Safe to iterate and close memory without holding the lock in true insertion order
         for (auto* sharedMemory : snapOrderedList)
             if (sharedMemory != nullptr)
-                sharedMemory->close(BaseSharedMemory::CloseType::AtExit);
+                sharedMemory->close(CloseType::AtExit);
 
         // Mark cleanup done and notify waiting registrants that cleanup has finished
         cleanUpInProgress.store(false, std::memory_order_release);
@@ -733,8 +730,8 @@ class SharedMemoryRegistry final {
 //   - The class is static-only; it cannot be instantiated. (Restriction)
 class SharedMemoryCleanupManager final {
    public:
-    // Initializes the shared memory registry once and
-    // registers the cleanup callback with std::atexit().
+    // Ensure the shared memory registry is initialized
+    // and the cleanup callback is registered with std::atexit().
     static void ensure_initialized(usize reserveCount  = 1024,
                                    float maxLoadFactor = 0.75f) noexcept {
         // Only the parameters from the first call are used
@@ -1127,7 +1124,7 @@ class SharedMemory final: public BaseSharedMemory {
     #endif
         int protocol = 0;
 
-        UniqueFd fd(socket(domain, type, protocol));
+        UniqueFd fd(::socket(domain, type, protocol));
 
     #if !defined(SOCK_CLOEXEC)
         if (fd.is_valid())
