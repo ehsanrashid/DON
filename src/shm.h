@@ -282,6 +282,8 @@ class BackendSharedMemory final {
 
     ~BackendSharedMemory() noexcept { destroy(); }
 
+    [[nodiscard]] std::string_view name() const noexcept { return name_; }
+
     [[nodiscard]] bool is_valid() const noexcept { return status == Status::Success; }
 
     [[nodiscard]] void* get() const noexcept { return is_valid() ? mappedPtr : INVALID_MMAP_PTR; }
@@ -313,8 +315,6 @@ class BackendSharedMemory final {
         }
         return "Shared memory: unknown error.";
     }
-
-    [[nodiscard]] std::string_view name() const noexcept { return name_; }
 
    private:
     void initialize(const T& value) noexcept {
