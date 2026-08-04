@@ -568,7 +568,7 @@ class SharedMemoryRegistry final {
         // Safe insertion under write-lock
         std::lock_guard writeLock(sharedMutex);
 
-        // RECHECK after acquiring registry lock
+        // Recheck after acquiring registry lock
         if (cleanup_in_progress())
             return;
 
@@ -587,14 +587,11 @@ class SharedMemoryRegistry final {
     //
     // Performs a bulk shutdown of all currently registered shared memories.
     // Preserves true insertion order during cleanup.
-    // Parameters:
-    //  - skipUnmapRegion: if true, the actual unmapping of memory regions
-    //    is skipped (useful during controlled shutdown or testing).
     // Thread-safety and concurrency:
     //  - Sets 'cleanUpInProgress' to prevent new registrations during cleanup.
-    //  - Uses a temporary local list to store the registry contents, so that
-    //    'close()' can safely call 'unregister_memory()' without invalidating
-    //    iterators or causing race conditions.
+    //  - Uses a temporary local list to store the registry contents,
+    //    so that 'close()' can be called safely without
+    //    invalidating iterators or causing race conditions.
     //  - Notifies all threads waiting on registration that cleanup is complete.
     static void cleanup() noexcept {
         ensure_initialized();
@@ -660,7 +657,7 @@ class SharedMemoryRegistry final {
         // - Patch the map entry with the real list iterator.
         //
         // This two-phase approach avoids a second map lookup and keeps
-        // map ↔ list consistency explicit and efficient.
+        // map <-> list consistency explicit and efficient.
         auto [insertReg, inserted] = registryMap.emplace(sharedMemory, orderedList.end());
         // Already registered -> don't insert
         if (!inserted)
@@ -1030,8 +1027,9 @@ class SharedMemory final: public BaseSharedMemory {
     }
 
     void close(CloseType closeType) noexcept override {
-        if (closeType == CloseType::AtExit)
+        switch (closeType)
         {
+        case CloseType::AtExit :
             // Don't unmap on exit as this may cause currently searching threads to segfault.
             // Also, don't join() the server thread on exit.
             if (serverThread)
@@ -1039,11 +1037,13 @@ class SharedMemory final: public BaseSharedMemory {
                 serverThread->detach();
                 serverThread = std::nullopt;
             }
-        }
-        else
-        {
+            break;
+        case CloseType::Normal :
+        default :
             unmap_region();
+            break;
         }
+
         reset();
     }
 
