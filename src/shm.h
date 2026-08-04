@@ -484,7 +484,7 @@ class BaseSharedMemory {
 
     virtual void close(CloseType closeType) noexcept = 0;
 
-    std::string_view name() const noexcept { return name_; }
+    [[nodiscard]] std::string_view name() const noexcept { return name_; }
 
    protected:
     std::string name_;
@@ -935,45 +935,45 @@ class SharedMemory final: public BaseSharedMemory {
             if (!initLock.is_valid())
                 return false;
 
-            // Try to receive the shared memfd
-            UniqueFd memfd;
+            // Try to receive the shared memFd
+            UniqueFd memFd;
             Strings  peerSockets = get_peer_sockets();
             for (const auto& sockPath : peerSockets)
             {
-                memfd = try_receive_memfd(sockPath);
-                if (memfd.is_valid())
+                memFd = try_receive_memfd(sockPath);
+                if (memFd.is_valid())
                     break;
             }
 
-            const bool creator = !memfd.is_valid();  // We must create it
+            const bool creator = !memFd.is_valid();  // We must create it
 
             if (creator)
             {
     #if defined(MFD_CLOEXEC)
                 // Failed to get it from a peer (no peers, or only dead peers), so create
-                memfd.reset(::memfd_create("replicated_data", MFD_CLOEXEC));
-                if (!memfd.is_valid())
+                memFd.reset(::memfd_create("replicated_data", MFD_CLOEXEC));
+                if (!memFd.is_valid())
                     return false;
     #else
                 char tempPath[PATH_MAX];
                 std::strncpy(tempPath, "/tmp/DON_replicated_data.XXXXXX", PATH_MAX);
 
-                memfd.reset(::mkstemp(tempPath));
-                if (!memfd.is_valid())
+                memFd.reset(::mkstemp(tempPath));
+                if (!memFd.is_valid())
                     return false;
-                set_cloexec(memfd.get());
+                set_cloexec(memFd.get());
                 ::unlink(tempPath);
     #endif
 
-                if (::ftruncate(memfd.get(), sizeof(T)) != 0)
+                if (::ftruncate(memFd.get(), sizeof(T)) != 0)
                     return false;
             }
 
-            assert(memfd.is_valid());
+            assert(memFd.is_valid());
 
-            // Try to map the memfd
+            // Try to map the memFd
             T* mappedMem = static_cast<T*>(
-              ::mmap(NULL, sizeof(T), PROT_READ | PROT_WRITE, MAP_SHARED, memfd.get(), 0));
+              ::mmap(NULL, sizeof(T), PROT_READ | PROT_WRITE, MAP_SHARED, memFd.get(), 0));
             if (mappedMem == MAP_FAILED)
                 return false;
 
@@ -1019,7 +1019,7 @@ class SharedMemory final: public BaseSharedMemory {
                 return false;
 
             // Don't release the init lock until we've actually made a socket that other DONs can use
-            serverThread = make_server_thread(std::move(memfd), std::move(shutdownReceiver),
+            serverThread = make_server_thread(std::move(memFd), std::move(shutdownReceiver),
                                               std::move(serverFd));
         }
 
@@ -1152,7 +1152,7 @@ class SharedMemory final: public BaseSharedMemory {
         addr.sun_family = AF_UNIX;
         std::strncpy(addr.sun_path, sockPath.c_str(), sizeof(addr.sun_path) - 1);
 
-        // Connect to peer socket and request access to the memfd
+        // Connect to peer socket and request access to the memFd
         int ret;
         do
             ret = ::connect(peerFd.get(), reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr));
@@ -1194,12 +1194,12 @@ class SharedMemory final: public BaseSharedMemory {
             if (bytesRecv > 0)
             {
                 cmsghdr* cmsg = CMSG_FIRSTHDR(&msg);
-                // Receive rights to the memfd from the peer; see make_server_thread
+                // Receive rights to the memFd from the peer; see make_server_thread
                 if (cmsg && cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SCM_RIGHTS)
                 {
                     int receivedFd;
                     std::memcpy(&receivedFd, CMSG_DATA(cmsg), sizeof(receivedFd));
-    #ifndef MSG_CMSG_CLOEXEC
+    #if !defined(MSG_CMSG_CLOEXEC)
                     set_cloexec(receivedFd);
     #endif
                     return UniqueFd(receivedFd);
@@ -1278,7 +1278,7 @@ class SharedMemory final: public BaseSharedMemory {
                     msg.msg_control    = controlMsg.buf;
                     msg.msg_controllen = sizeof(controlMsg.buf);
 
-                    // Send over rights to the memfd (SCM_RIGHTS). The fd may be given a different number, but
+                    // Send over rights to the memFd (SCM_RIGHTS). The fd may be given a different number, but
                     // will refer to the same underlying file. Once it's mmapped then it will share physical memory
                     // between the processes.
                     // See https://man7.org/linux/man-pages/man7/unix.7.html for more information on SCM_RIGHTS
@@ -1312,10 +1312,10 @@ class SharedMemory final: public BaseSharedMemory {
     T*    dataPtr   = nullptr;
 
     // DONs will put their .sock files in this folder, and each folder is associated with a single underlying
-    // shared memfd. Therefore in a NUMA setting, we may have multiple such folders
+    // shared memFd. Therefore in a NUMA setting, we may have multiple such folders
     std::string sharedDir;
 
-    // Threads need to successfully and exclusively lock this file to initialize the memfd. If another process has
+    // Threads need to successfully and exclusively lock this file to initialize the memFd. If another process has
     // a lock on it, then we wait for it to finish initializing (or die) and release the lock
     std::string initLockPath;
 
