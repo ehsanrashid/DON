@@ -537,7 +537,7 @@ inline void Threads::reset() const noexcept {
 
     // Initialize main-manager
     if (auto mainManager = main_manager(); mainManager != nullptr)
-        mainManager->init();
+        mainManager->reset();
 }
 
 // Get pointer to the main-thread

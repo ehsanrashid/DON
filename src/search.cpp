@@ -2459,9 +2459,9 @@ MainSearchManager::MainSearchManager(const UpdateContext& updateCtx) noexcept :
     updateContext(updateCtx) {}
 
 // Initializes the time manager and resets previous search info
-void MainSearchManager::init() noexcept {
+void MainSearchManager::reset() noexcept {
 
-    timeManager.init();
+    timeManager.reset();
     preBestCurValue  = VALUE_ZERO;
     preBestAvgValue  = VALUE_ZERO;
     preTimeReduction = 0.85;

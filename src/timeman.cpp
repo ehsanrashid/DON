@@ -47,7 +47,7 @@ TimePoint TimeManager::elapsed() const noexcept { return now() - startTime; }
 
 bool TimeManager::use_nodes_time() const noexcept { return useNodesTime; }
 
-void TimeManager::init() noexcept {
+void TimeManager::reset() noexcept {
 
     timeAdjust = TIME_ADJUST_INIT;
 

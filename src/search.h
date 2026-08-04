@@ -544,7 +544,7 @@ class MainSearchManager final: public ISearchManager {
     MainSearchManager() noexcept = delete;
     explicit MainSearchManager(const UpdateContext& updateCtx) noexcept;
 
-    void init() noexcept;
+    void reset() noexcept;
 
     void check_time(Worker& worker) noexcept override;
 
