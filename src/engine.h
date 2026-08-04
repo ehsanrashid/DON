@@ -47,8 +47,6 @@ class Engine final {
     Options&       get_options() noexcept;
     const Options& get_options() const noexcept;
 
-    void set_numa_config(std::string_view str) noexcept;
-
     std::string fen() const noexcept;
 
     // Set a new position, moves are in UCI or SAN format
@@ -80,6 +78,8 @@ class Engine final {
     u16 hashfull(u8 maxAge = 0) const noexcept;
 
     // (numaId, threadCount)
+    bool set_numa_config(std::string_view str) noexcept;
+
     std::vector<std::pair<usize, usize>> bound_thread_counts() const noexcept;
 
     std::string numa_config() const noexcept;

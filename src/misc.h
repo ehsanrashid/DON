@@ -1805,7 +1805,7 @@ inline std::string u64_to_string(u64 v) noexcept {
 std::string           utf8_from_wstring(std::wstring_view s) noexcept;
 std::filesystem::path path_from_utf8(std::string_view path) noexcept;
 
-usize str_to_size_t(std::string_view sv) noexcept;
+std::optional<usize> str_to_size_t(std::string_view sv) noexcept;
 
 // Reads the file as bytes.
 // Returns std::nullopt if the file does not exist.

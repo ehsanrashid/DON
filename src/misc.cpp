@@ -881,7 +881,9 @@ std::filesystem::path path_from_utf8(std::string_view path) noexcept {
 #endif
 }
 
-usize str_to_size_t(std::string_view sv) noexcept {
+std::optional<usize> str_to_size_t(std::string_view sv) noexcept {
+    if (sv.empty() || sv[0] == '-')
+        return std::nullopt;
     // Use from_chars (no allocation, fast)
     const char* begin = sv.data();
     const char* end   = begin + sv.size();
@@ -890,10 +892,10 @@ usize str_to_size_t(std::string_view sv) noexcept {
 
     auto [ptr, ec] = std::from_chars(begin, end, value);
     if (ec != std::errc() || ptr != end)
-        std::exit(EXIT_FAILURE);
+        return std::nullopt;
 
     if (value > std::numeric_limits<usize>::max())
-        std::exit(EXIT_FAILURE);
+        return std::nullopt;
 
     return usize(value);
 }

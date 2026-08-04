@@ -572,17 +572,22 @@ inline CpuIndexVec shortened_string_to_indices(std::string_view str) noexcept {
         switch (parts.size())
         {
         case 1 : {
-            auto cpuId = CpuIndex{str_to_size_t(parts[0])};
-
-            indices.emplace_back(cpuId);
+            auto cpuId = str_to_size_t(parts[0]);
+            if (cpuId)
+                indices.emplace_back(*cpuId);
         }
         break;
         case 2 : {
-            auto begCpuId = CpuIndex{str_to_size_t(parts[0])};
-            auto endCpuId = CpuIndex{str_to_size_t(parts[1])};
+            constexpr usize MaxIndices = 1u << 20;  // prevent oom
 
-            for (auto cpuId = begCpuId; cpuId <= endCpuId; ++cpuId)
-                indices.emplace_back(cpuId);
+            auto begCpuId = str_to_size_t(parts[0]);
+            auto endCpuId = str_to_size_t(parts[1]);
+
+            if (begCpuId && endCpuId       //
+                && *begCpuId <= *endCpuId  //
+                && *endCpuId - *begCpuId < MaxIndices)
+                for (auto cpuId = *begCpuId; cpuId <= *endCpuId; ++cpuId)
+                    indices.emplace_back(cpuId);
         }
         break;
         default :
@@ -748,7 +753,7 @@ class NumaConfig final {
     // For example:
     // "0-7:8-15:16-23:24-31"
     // "0-15,128-143:16-31,144-159:32-47,160-175:48-63,176-191"
-    static NumaConfig from_string(std::string_view str) noexcept {
+    static std::optional<NumaConfig> from_string(std::string_view str) noexcept {
         NumaConfig numaCfg = empty();
 
         NumaIndex numaId = 0;
@@ -768,12 +773,16 @@ class NumaConfig final {
                     std::cerr << "NumaConfig parse error in segment '" << cpuIdsStr  //
                               << "': CPU " << cpuId << " rejected for NUMA node " << numaId
                               << std::endl;
-                    std::exit(EXIT_FAILURE);
+                    return std::nullopt;
                 }
             }
 
             ++numaId;
         }
+
+        // Failed to parse any nodes
+        if (numaId == 0)
+            return std::nullopt;
 
         numaCfg.customAffinity = true;
 
@@ -1255,26 +1264,19 @@ class NumaConfig final {
 #elif (defined(__linux__) && !defined(__ANDROID__))
         CpuIndexSet seenCpus;
 
-        auto next_unseen_cpu_id = [&seenCpus]() noexcept {
-            CpuIndex cpuId = 0;
-            while (seenCpus.find(cpuId) != seenCpus.end())
-                ++cpuId;
-            return cpuId;
-        };
-
-        while (true)
+        for (const auto& [nextCpuId, _] : sysCfg.nodeByCpu)
         {
-            CpuIndex nextUnseenCpuId = next_unseen_cpu_id();
+            if (seenCpus.find(nextCpuId) != seenCpus.end())
+                continue;
 
-            std::string path = std::string{"/sys/devices/system/cpu/cpu"}
-                             + std::to_string(nextUnseenCpuId)
-                             + std::string{"/cache/index3/shared_cpu_list"};
+            std::string path{std::string{"/sys/devices/system/cpu/cpu"}  //
+                             + std::to_string(nextCpuId)                 //
+                             + std::string{"/cache/index3/shared_cpu_list"}};
 
             auto cpuIdsStr = read_file_to_string(path);
 
-            // Have read all available CPUs
             if (!cpuIdsStr || cpuIdsStr->empty())
-                break;
+                continue;
 
             L3Domain l3Domain{};
 
@@ -1684,11 +1686,6 @@ class LazyNumaReplicated final: public BaseNumaReplicated {
 template<typename T>
 class SystemWideLazyNumaReplicated final: public BaseNumaReplicated {
    public:
-    SystemWideLazyNumaReplicated(NumaReplicationContext& ctx) noexcept :
-        BaseNumaReplicated(ctx) {
-        prepare_replicate_from(std::make_unique<T>());
-    }
-
     SystemWideLazyNumaReplicated(NumaReplicationContext& ctx, std::unique_ptr<T>&& source) noexcept
         :
         BaseNumaReplicated(ctx) {
