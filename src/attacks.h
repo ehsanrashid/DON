@@ -415,7 +415,7 @@ constexpr Bitboard attacks_bb(Square s, Piece pc) noexcept {
     return 0;
 }
 
-#if !defined(USE_DUAL_HYPERBOLA_QUINT)
+//#if !defined(USE_DUAL_HYPERBOLA_QUINT)
 
 alignas(CACHE_LINE_SIZE) inline Array<Magic, SQUARE_NB, 2> MAGICS;  // BISHOP or ROOK
 
@@ -427,7 +427,7 @@ constexpr const Magic& magic(Square s) noexcept {
     return MAGICS[s][PT - BISHOP];
 }
 
-#endif
+//#endif
 
 // Returns the attacks by the given piece type.
 // Sliding piece attacks do not continue passed an occupied square.
