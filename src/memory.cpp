@@ -62,8 +62,7 @@ void* alloc_aligned_std(std::size_t allocSize, std::size_t alignment) noexcept {
 }
 
 void free_aligned_std(void* mem) noexcept {
-    if (mem == nullptr)
-        return;
+
 #if defined(_WIN32)
     #if !defined(_M_ARM) && !defined(_M_ARM64)
     _mm_free(mem);
