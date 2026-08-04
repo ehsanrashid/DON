@@ -1223,10 +1223,11 @@ class SharedMemory final: public BaseSharedMemory {
             std::strncpy(addr.sun_path, socketPath.c_str(), sizeof(addr.sun_path) - 1);
 
             ::unlink(socketPath.c_str());
-            if (::bind(serverFd.get(), reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr))
-                  == -1
+            // clang-format off
+            if (   ::bind(serverFd.get(), reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr)) == -1
                 || ::listen(serverFd.get(), 5) == -1)
                 return false;
+            // clang-format on
 
             // Don't release the init lock until we've actually made a socket that other DONs can use
             serverThread = make_server_thread(std::move(memFd), std::move(shutdownReceiver),
