@@ -885,7 +885,7 @@ class SharedMemory final: public BaseSharedMemory {
     SharedMemory& operator=(const SharedMemory&) = delete;
 
     SharedMemory(SharedMemory&& sharedMemory) noexcept :
-        BaseSharedMemory(std::move(sharedMemory.name_)),
+        name_(std::move(sharedMemory.name_)),
         mappedPtr(sharedMemory.mappedPtr),
         dataPtr(sharedMemory.dataPtr),
         sharedDir(std::move(sharedMemory.sharedDir)),
@@ -950,20 +950,20 @@ class SharedMemory final: public BaseSharedMemory {
 
             if (creator)
             {
-    #if defined(__linux__) || defined(__FreeBSD__)
+    #if defined(MFD_CLOEXEC)
                 // Failed to get it from a peer (no peers, or only dead peers), so create
                 memfd.reset(::memfd_create("replicated_data", MFD_CLOEXEC));
                 if (!memfd.is_valid())
                     return false;
     #else
-                char temp_path[PATH_MAX];
-                std::strncpy(temp_path, "/tmp/stockfish_replicated_data.XXXXXX", PATH_MAX);
+                char tempPath[PATH_MAX];
+                std::strncpy(tempPath, "/tmp/DON_replicated_data.XXXXXX", PATH_MAX);
 
-                memfd.reset(::mkstemp(temp_path));
+                memfd.reset(::mkstemp(tempPath));
                 if (!memfd.is_valid())
                     return false;
                 set_cloexec(memfd.get());
-                ::unlink(temp_path);
+                ::unlink(tempPath);
     #endif
 
                 if (::ftruncate(memfd.get(), sizeof(T)) != 0)
@@ -1142,9 +1142,9 @@ class SharedMemory final: public BaseSharedMemory {
             return {};
 
         // 1-second timeout for connect and receive
-        struct timeval tv = {1, 0};
-        setsockopt(peerFd.get(), SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
-        setsockopt(peerFd.get(), SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+        struct timeval tv{1, 0};
+        ::setsockopt(peerFd.get(), SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
+        ::setsockopt(peerFd.get(), SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
 
         struct sockaddr_un addr{};
         addr.sun_family = AF_UNIX;
@@ -1153,7 +1153,7 @@ class SharedMemory final: public BaseSharedMemory {
         // Connect to peer socket and request access to the memfd
         int ret;
         do
-            ret = connect(peerFd.get(), reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr));
+            ret = ::connect(peerFd.get(), reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr));
         while (ret < 0 && errno == EINTR);
 
         if (ret == 0)
@@ -1287,7 +1287,19 @@ class SharedMemory final: public BaseSharedMemory {
                     cmsg->cmsg_len        = CMSG_LEN(sizeof(rawFd));
                     std::memcpy(CMSG_DATA(cmsg), &rawFd, sizeof(rawFd));
 
-                    while (::sendmsg(clientFd.get(), &msg, 0) < 0 && errno == EINTR)
+    #if defined(SO_NOSIGPIPE)
+                    int yes = 1;
+                    ::setsockopt(client_fd.get(), SOL_SOCKET, SO_NOSIGPIPE, &yes, sizeof(yes));
+    #endif
+                    int flags =
+    #if defined(MSG_NOSIGNAL)
+                      MSG_NOSIGNAL
+    #else
+                      0
+    #endif
+                      ;
+
+                    while (::sendmsg(client_fd.get(), &msg, flags) < 0 && errno == EINTR)
                     {}
                 }
             }
