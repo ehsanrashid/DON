@@ -692,9 +692,9 @@ u8* TBTable<T>::map(std::string_view filename) noexcept {
 
     struct stat fileStat{};
 
-    if (fstat(fd, &fileStat) == -1)
+    if (::fstat(fdGuard.get(), &fileStat) == -1)
     {
-        DEBUG_LOG("fstat() failed, name = " << filename << ", error = " << std::strerror(errno));
+        DEBUG_LOG("::fstat() failed, name = " << filename << ", error = " << std::strerror(errno));
         return nullptr;
     }
 
@@ -707,20 +707,20 @@ u8* TBTable<T>::map(std::string_view filename) noexcept {
 
     mappedSize = fileStat.st_size;
 
-    mappedPtr = ::mmap(nullptr, mappedSize, PROT_READ, MAP_SHARED, fd, 0);
+    mappedPtr = ::mmap(nullptr, mappedSize, PROT_READ, MAP_SHARED, fdGuard.get(), 0);
 
-    if (mappedPtr == MAP_FAILED)
+    if (!mappedGuard.is_valid())
     {
-        DEBUG_LOG("mmap() failed, name = " << filename << ", size = " << mappedSize << ": "
-                                           << std::strerror(errno));
+        DEBUG_LOG("::mmap() failed, name = " << filename << ", size = " << mappedSize << ": "
+                                             << std::strerror(errno));
         return nullptr;
     }
 
         #if defined(MADV_RANDOM)
-    //DEBUG_LOG("Using madvise() to inform the OS of random access pattern for file " << filename << " mappedSize = " << mappedSize);
-    if (mappedPtr != nullptr && mappedSize != 0 && madvise(mappedPtr, mappedSize, MADV_RANDOM) != 0)
+    if (mappedGuard.get_ptr() != nullptr && mappedGuard.get_size() != 0
+        && ::madvise(mappedGuard.get_ptr(), mappedGuard.get_size(), MADV_RANDOM) != 0)
     {
-        //DEBUG_LOG("madvise() failed, name = " << filename << " mappedSize = " << mappedSize << ", error = " << std::strerror(errno));
+        //DEBUG_LOG("::madvise() failed, name = " << filename << " mappedSize = " << mappedGuard.get_size() << ", error = " << std::strerror(errno));
     }
         #endif
     #endif
