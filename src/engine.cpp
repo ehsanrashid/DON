@@ -67,7 +67,7 @@ Engine::Engine(const std::filesystem::path& path) noexcept :
     options.add("NumaPolicy",        Option("auto", OnCng([this](const Option& o) { return set_numa_config(o) ? numa_config_info() + '\n' + thread_allocation() : "NumaPolicy: invalid value '" + std::string(o) + "', keeping previous config."; })));
     options.add("Threads",           Option(1, 1, THREAD_MAX, OnCng([this](const Option&) { resize_threads_tt(); return thread_allocation(); })));
     options.add("Hash",              Option(16, 1, HASH_MAX, OnCng([this](const Option& o) { resize_tt(o); return "Hash: " + std::to_string(int(o)); })));
-    options.add("Clear Hash",        Option(OnCng([this](const Option&) { init(); return std::nullopt; })));
+    options.add("Clear Hash",        Option(OnCng([this](const Option&) { reset(); return std::nullopt; })));
     options.add("HashRetain",        Option(false));
     options.add("HashFile",          Option(""));
     options.add("Save Hash",         Option(OnCng([this](const Option&) { return save_hash(path_from_utf8(options["HashFile"])) ? "Save succeeded" : "Save failed"; })));
@@ -166,7 +166,7 @@ void Engine::ponderhit() const noexcept { threads.main_manager()->set_ponder(fal
 
 void Engine::wait_finish() const noexcept { threads.main_thread()->wait_finish(); }
 
-void Engine::init() noexcept {
+void Engine::reset() noexcept {
     wait_finish();
 
     Tablebase::Syzygy::init(options["SyzygyPath"]);  // Free mapped files
@@ -174,8 +174,8 @@ void Engine::init() noexcept {
     if (options["HashRetain"])
         return;
 
-    threads.init();
-    transpositionTable.init(threads);
+    threads.reset();
+    transpositionTable.reset(threads);
 }
 
 void Engine::resize_threads_tt() noexcept {
@@ -357,7 +357,7 @@ void Engine::load_network(const std::filesystem::path& networkFilePath) noexcept
         net.load(binaryDirectory, networkFilePath, networkFile);
     });
 
-    threads.init();
+    threads.reset();
 
     threads.ensure_network_replicated();
 }

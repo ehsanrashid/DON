@@ -320,7 +320,7 @@ void Threads::set(const NumaConfig&                       numaConfig,
             create_thread();
     }
 
-    init();
+    reset();
 }
 
 namespace {

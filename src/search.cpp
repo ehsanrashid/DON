@@ -223,11 +223,11 @@ Worker::Worker(usize                     threadIdx,
     histories(sharedState.historiesMap.at(accessToken.numa_id())),
     accCache(network[accessToken]) {}
 
-// Initialize per-thread data structures
-void Worker::init() noexcept {
+// Reset per-thread data structures
+void Worker::reset() noexcept {
     assert(thread_count() == threads.size());
 
-    // Each thread initializes its NUMA-local range of history entries to prevent false sharing
+    // Each thread resets its NUMA-local range of history entries to prevent false sharing
 
     auto historyRange = split_range(numa_id(), numa_thread_count(), histories.history_size());
 
@@ -241,7 +241,7 @@ void Worker::init() noexcept {
     histories.non_pawn_correction().fill(correctionHistoryRange.beg, correctionHistoryRange.end,
                                          -5);
 
-    // Initialize histories
+    // Reset histories
 
     captureHistory.fill(-742);
     quietHistory.fill(-5);

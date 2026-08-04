@@ -63,7 +63,7 @@ class Engine final {
     // Blocking call to wait for search to finish
     void wait_finish() const noexcept;
 
-    void init() noexcept;
+    void reset() noexcept;
 
     void resize_threads_tt() noexcept;
 

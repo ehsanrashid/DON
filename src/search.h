@@ -629,7 +629,7 @@ class Worker final {
            ISearchManagerPtr         searchManager,
            const SharedState&        sharedState) noexcept;
 
-    void init() noexcept;
+    void reset() noexcept;
 
     void ensure_network_replicated() const noexcept;
 

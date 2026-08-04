@@ -103,7 +103,7 @@ class TranspositionTable final {
 
     void resize(usize ttSize, const Threads& threads) noexcept;
 
-    void init(const Threads& threads) noexcept;
+    void reset(const Threads& threads) noexcept;
 
     TTCluster* cluster(Key key) const noexcept;
 

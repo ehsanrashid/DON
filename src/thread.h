@@ -230,8 +230,8 @@ class Thread final {
     // Schedule a job to be executed by this thread.
     void run_custom_job(JobFunc jobFn) noexcept;
 
-    // Wakes up the thread that will initialize the worker
-    void init() noexcept;
+    // Wakes up the thread that will reset the worker
+    void reset() noexcept;
 
     // Wakes up the thread that will start the search on worker
     void start_search() noexcept;
@@ -286,11 +286,11 @@ inline void Thread::run_custom_job(JobFunc jobFn) noexcept {
     }
 }
 
-// Wakes up the thread that will initialize the worker
-inline void Thread::init() noexcept {
+// Wakes up the thread that will reset the worker
+inline void Thread::reset() noexcept {
     assert(worker != nullptr);
 
-    run_custom_job([this]() { worker->init(); });
+    run_custom_job([this]() { worker->reset(); });
 }
 
 // Wakes up the thread that will start the search on worker
@@ -360,7 +360,7 @@ class Threads final {
              SharedState&                            sharedState,
              const MainSearchManager::UpdateContext& updateContext) noexcept;
 
-    void init() const noexcept;
+    void reset() const noexcept;
 
     Thread* main_thread() const noexcept;
 
@@ -527,12 +527,12 @@ inline void Threads::destroy() noexcept {
 }
 
 // Sets data to initial values
-inline void Threads::init() const noexcept {
+inline void Threads::reset() const noexcept {
     if (empty())
         return;
 
-    // Initialize all threads (including main)
-    for_each_thread([](Thread* th) noexcept { th->init(); });
+    // Reset all threads (including main)
+    for_each_thread([](Thread* th) noexcept { th->reset(); });
     for_each_thread([](Thread* th) noexcept { th->wait_finish(); });
 
     // Initialize main-manager
