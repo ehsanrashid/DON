@@ -885,7 +885,7 @@ class SharedMemory final: public BaseSharedMemory {
     SharedMemory& operator=(const SharedMemory&) = delete;
 
     SharedMemory(SharedMemory&& sharedMemory) noexcept :
-        name_(std::move(sharedMemory.name_)),
+        BaseSharedMemory(std::move(sharedMemory.name_)),
         mappedPtr(sharedMemory.mappedPtr),
         dataPtr(sharedMemory.dataPtr),
         sharedDir(std::move(sharedMemory.sharedDir)),
