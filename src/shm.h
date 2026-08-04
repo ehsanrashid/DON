@@ -1289,7 +1289,7 @@ class SharedMemory final: public BaseSharedMemory {
 
     #if defined(SO_NOSIGPIPE)
                     int yes = 1;
-                    ::setsockopt(client_fd.get(), SOL_SOCKET, SO_NOSIGPIPE, &yes, sizeof(yes));
+                    ::setsockopt(clientFd.get(), SOL_SOCKET, SO_NOSIGPIPE, &yes, sizeof(yes));
     #endif
                     int flags =
     #if defined(MSG_NOSIGNAL)
@@ -1299,7 +1299,7 @@ class SharedMemory final: public BaseSharedMemory {
     #endif
                       ;
 
-                    while (::sendmsg(client_fd.get(), &msg, flags) < 0 && errno == EINTR)
+                    while (::sendmsg(clientFd.get(), &msg, flags) < 0 && errno == EINTR)
                     {}
                 }
             }
