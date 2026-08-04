@@ -1012,8 +1012,7 @@ class SharedMemory final: public BaseSharedMemory {
                 || ::listen(serverFd.get(), 5) == -1)
                 return false;
 
-            // Don't release the init lock until we've actually made a socket that
-            // other fishes can use.
+            // Don't release the init lock until we've actually made a socket that other DONs can use
             serverThread = make_server_thread(std::move(memfd), std::move(shutdownReceiver),
                                               std::move(serverFd));
         }
@@ -1092,16 +1091,18 @@ class SharedMemory final: public BaseSharedMemory {
     // Discover all peers in the shared dir
     Strings get_peer_sockets() noexcept {
         Strings peerSockets;
-        if (DIR* dir = ::opendir(sharedDir.c_str()))
+
+        DIR* ptrDir = ::opendir(sharedDir.c_str());
+        if (ptrDir != nullptr)
         {
-            struct dirent* entry;
-            while ((entry = ::readdir(dir)) != nullptr)
+            struct dirent* ptrDirEntry;
+            while ((ptrDirEntry = ::readdir(ptrDir)) != nullptr)
             {
-                std::string dName = entry->d_name;
+                std::string dName{ptrDirEntry->d_name};
                 if (dName.size() >= 5 && dName.compare(dName.size() - 5, 5, ".sock") == 0)
                     peerSockets.push_back(sharedDir + "/" + dName);
             }
-            ::closedir(dir);
+            ::closedir(ptrDir);
         }
         return peerSockets;
     }
