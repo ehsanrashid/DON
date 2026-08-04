@@ -111,9 +111,9 @@ constexpr Bitboard& operator&=(Bitboard& b, Square s) noexcept { return b &= squ
 constexpr Bitboard& operator|=(Bitboard& b, Square s) noexcept { return b |= square_bb(s); }
 constexpr Bitboard& operator^=(Bitboard& b, Square s) noexcept { return b ^= square_bb(s); }
 
-constexpr Bitboard operator&(Square s, Bitboard b) noexcept { return b & square_bb(s); }
-constexpr Bitboard operator|(Square s, Bitboard b) noexcept { return b | square_bb(s); }
-constexpr Bitboard operator^(Square s, Bitboard b) noexcept { return b ^ square_bb(s); }
+constexpr Bitboard operator&(Square s, Bitboard b) noexcept { return b & s; }
+constexpr Bitboard operator|(Square s, Bitboard b) noexcept { return b | s; }
+constexpr Bitboard operator^(Square s, Bitboard b) noexcept { return b ^ s; }
 
 constexpr Bitboard operator|(Square s1, Square s2) noexcept {
     return square_bb(s1) | square_bb(s2);

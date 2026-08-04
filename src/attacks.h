@@ -171,18 +171,8 @@ constexpr Bitboard sliding_attacks_bb(Square s, Bitboard occupancyBB = 0) noexce
     assert(is_ok(s));
 
     constexpr Array<Direction, 2, 4> Directions{{
-      {
-        Direction::SOUTH_WEST,  //
-        Direction::SOUTH_EAST,  //
-        Direction::NORTH_WEST,  //
-        Direction::NORTH_EAST   //
-      },
-      {
-        Direction::SOUTH,  //
-        Direction::WEST,   //
-        Direction::EAST,   //
-        Direction::NORTH   //
-      }  //
+      {Direction::SOUTH_WEST, Direction::SOUTH_EAST, Direction::NORTH_WEST, Direction::NORTH_EAST},
+      {Direction::SOUTH, Direction::WEST, Direction::EAST, Direction::NORTH}  //
     }};
 
     Bitboard attacksBB = 0;
@@ -191,22 +181,16 @@ constexpr Bitboard sliding_attacks_bb(Square s, Bitboard occupancyBB = 0) noexce
     {
         Square curSq = s;
 
-        while (true)
+        Bitboard destBB = 0;
+        while ((destBB = destination_bb(curSq, d)) != 0)
         {
-            Square nextSq = curSq + d;
-
-            // Stop if next square is off-board or not adjacent (wrap-around)
-            if (!is_ok(nextSq) || distance(curSq, nextSq) > 1)
-                break;
-
-            // Move to next square
-            curSq = nextSq;
-
-            attacksBB |= curSq;
+            attacksBB |= destBB;
 
             // Stop if occupied - sliding blocked
-            if ((occupancyBB & curSq) != 0)
+            if ((occupancyBB & destBB) != 0)
                 break;
+
+            curSq += d;
         }
     }
 
