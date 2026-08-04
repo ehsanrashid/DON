@@ -630,8 +630,8 @@ class SharedMemoryRegistry final {
 
         std::cout << "Registered shared memories (insertion order) [" << registryMap.size()
                   << "]:\n";
-        [[maybe_unused]] usize i = 0;
-        for ([[maybe_unused]] auto* sharedMemory : orderedList)
+        usize i = 0;
+        for (auto* sharedMemory : orderedList)
             std::cout << "[" << i++ << "] "
                       << (sharedMemory != nullptr ? sharedMemory->name() : "<NULL>") << "\n";
         std::cout << std::endl;
