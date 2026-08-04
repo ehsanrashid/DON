@@ -1125,8 +1125,7 @@ class SharedMemory final: public BaseSharedMemory {
         UniqueFd fd(::socket(domain, type, protocol));
 
     #if !defined(SOCK_CLOEXEC)
-        if (fd.is_valid())
-            set_cloexec(fd.get());
+        set_cloexec(fd.get());
     #endif
 
         return fd;
@@ -1154,7 +1153,7 @@ class SharedMemory final: public BaseSharedMemory {
 
         if (ret == 0)
         {
-            msghdr msg = {};
+            msghdr msg{};
 
             char         buf[1];
             struct iovec iov[1];
@@ -1256,7 +1255,7 @@ class SharedMemory final: public BaseSharedMemory {
                     if (!clientFd.is_valid())
                         continue;  // including EINTR
 
-                    msghdr msg    = {};
+                    msghdr msg{};
                     char   buf[1] = {};
                     iovec  iov[1];
                     iov[0].iov_base = buf;
