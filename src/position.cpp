@@ -1613,8 +1613,6 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
 
     Bitboard acAttackersBB;
 
-    const auto* magic = &MAGICS[dstSq];
-
     Array<bool, COLOR_NB> discovery{true, true};
 
     while (true)
@@ -1668,8 +1666,6 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
                 qbBB = pieces_bb(QUEEN, BISHOP) & attacks_bb<BISHOP>(dstSq) & occupancyBB;
                 qrBB = pieces_bb(QUEEN, ROOK) & attacks_bb<ROOK>(dstSq) & occupancyBB;
 
-                magic = &MAGICS[dstSq];
-
                 acAttackersBB = pieces_bb(ac) & attackersBB;
             }
 
@@ -1722,12 +1718,12 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
             case BISHOP :
                 qbBB &= occupancyBB;
                 if (qbBB != 0)
-                    attackersBB |= qbBB & attacks_bb<BISHOP>(*magic, occupancyBB);
+                    attackersBB |= qbBB & attacks_bb<BISHOP>(dstSq, occupancyBB);
                 break;
             case ROOK :
                 qrBB &= occupancyBB;
                 if (qrBB != 0)
-                    attackersBB |= qrBB & attacks_bb<ROOK>(*magic, occupancyBB);
+                    attackersBB |= qrBB & attacks_bb<ROOK>(dstSq, occupancyBB);
                 break;
             case QUEEN :
                 assert(false);
@@ -1746,7 +1742,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
                 break;
 
             if (qbBB != 0)
-                attackersBB |= qbBB & attacks_bb<BISHOP>(*magic, occupancyBB);
+                attackersBB |= qbBB & attacks_bb<BISHOP>(dstSq, occupancyBB);
 
             if (enPassantSq != SQ_NONE && rank_of(orgSq) == rank_of(dstSq))
             {
@@ -1761,8 +1757,6 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
 
                 qbBB = pieces_bb(QUEEN, BISHOP) & attacks_bb<BISHOP>(dstSq) & occupancyBB;
                 qrBB = pieces_bb(QUEEN, ROOK) & attacks_bb<ROOK>(dstSq) & occupancyBB;
-
-                magic = &MAGICS[dstSq];
             }
         }
         else if ((b = pieces_bb(KNIGHT) & acAttackersBB) != 0)
@@ -1781,7 +1775,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
 
             qbBB &= occupancyBB;
             if (qbBB != 0)
-                attackersBB |= qbBB & attacks_bb<BISHOP>(*magic, occupancyBB);
+                attackersBB |= qbBB & attacks_bb<BISHOP>(dstSq, occupancyBB);
         }
         else if ((b = pieces_bb(ROOK) & acAttackersBB) != 0)
         {
@@ -1792,7 +1786,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
 
             qrBB &= occupancyBB;
             if (qrBB != 0)
-                attackersBB |= qrBB & attacks_bb<ROOK>(*magic, occupancyBB);
+                attackersBB |= qrBB & attacks_bb<ROOK>(dstSq, occupancyBB);
         }
         else if ((b = pieces_bb(QUEEN) & acAttackersBB) != 0)
         {
@@ -1803,11 +1797,11 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
 
             qbBB &= occupancyBB;
             if (qbBB != 0)
-                attackersBB |= qbBB & attacks_bb<BISHOP>(*magic, occupancyBB);
+                attackersBB |= qbBB & attacks_bb<BISHOP>(dstSq, occupancyBB);
 
             qrBB &= occupancyBB;
             if (qrBB != 0)
-                attackersBB |= qrBB & attacks_bb<ROOK>(*magic, occupancyBB);
+                attackersBB |= qrBB & attacks_bb<ROOK>(dstSq, occupancyBB);
         }
         else  // KING
         {

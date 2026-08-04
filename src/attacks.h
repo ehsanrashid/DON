@@ -485,13 +485,6 @@ constexpr Bitboard attacks_bb(Square s, Piece pc, Bitboard occupancyBB) noexcept
     return attacks_bb(s, type_of(pc), occupancyBB);
 }
 
-template<PieceType PT>
-constexpr Bitboard attacks_bb(const Array<Magic, 2>& magic, Bitboard occupancyBB) noexcept {
-    static_assert(PT == BISHOP || PT == ROOK, "Unsupported piece type in attacks_bb()");
-
-    return magic[PT - BISHOP].attacks_bb(SQUARE_ZERO, occupancyBB);
-}
-
 alignas(CACHE_LINE_SIZE) inline constexpr auto LINE_BBs = []() constexpr noexcept {
     Array<Bitboard, SQUARE_NB, SQUARE_NB> lineBBs{};
 
