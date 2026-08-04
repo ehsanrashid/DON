@@ -293,8 +293,8 @@ struct Magic final {
    public:
     Magic() noexcept                        = default;
     Magic(const Magic&) noexcept            = delete;
-    Magic(Magic&&) noexcept                 = delete;
     Magic& operator=(const Magic&) noexcept = delete;
+    Magic(Magic&&) noexcept                 = delete;
     Magic& operator=(Magic&&) noexcept      = delete;
 
 #if defined(USE_BMI2)

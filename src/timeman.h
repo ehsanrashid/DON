@@ -46,7 +46,7 @@ class TimeManager final {
         return use_nodes_time() ? TimePoint(nodes()) : elapsed();
     }
 
-    void init() noexcept;
+    void reset() noexcept;
 
     void init(Color ac, i16 ply, i32 moveNum, const Options& options, Limit& limit) noexcept;
 
@@ -54,8 +54,8 @@ class TimeManager final {
 
    private:
     TimeManager(const TimeManager&) noexcept            = delete;
-    TimeManager(TimeManager&&) noexcept                 = delete;
     TimeManager& operator=(const TimeManager&) noexcept = delete;
+    TimeManager(TimeManager&&) noexcept                 = delete;
     TimeManager& operator=(TimeManager&&) noexcept      = delete;
 
     TimePoint startTime;

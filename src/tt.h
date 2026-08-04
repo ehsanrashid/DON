@@ -42,8 +42,8 @@ struct TTData final {
    public:
     TTData() noexcept                         = delete;
     TTData(const TTData&) noexcept            = delete;
-    TTData(TTData&&) noexcept                 = default;
     TTData& operator=(const TTData&) noexcept = delete;
+    TTData(TTData&&) noexcept                 = default;
     TTData& operator=(TTData&&) noexcept      = delete;
 
     static TTData empty() noexcept;
@@ -72,8 +72,8 @@ class TTUpdater final {
 
    private:
     TTUpdater() noexcept                            = delete;
-    TTUpdater(const TTUpdater&) noexcept            = delete;
     TTUpdater& operator=(const TTUpdater&) noexcept = delete;
+    TTUpdater(const TTUpdater&) noexcept            = delete;
     TTUpdater& operator=(TTUpdater&&) noexcept      = delete;
 
     TTEntry*         tte;
@@ -103,7 +103,7 @@ class TranspositionTable final {
 
     void resize(usize ttSize, const Threads& threads) noexcept;
 
-    void init(const Threads& threads) noexcept;
+    void reset(const Threads& threads) noexcept;
 
     TTCluster* cluster(Key key) const noexcept;
 
@@ -116,8 +116,8 @@ class TranspositionTable final {
 
    private:
     TranspositionTable(const TranspositionTable&) noexcept            = delete;
-    TranspositionTable(TranspositionTable&&) noexcept                 = delete;
     TranspositionTable& operator=(const TranspositionTable&) noexcept = delete;
+    TranspositionTable(TranspositionTable&&) noexcept                 = delete;
     TranspositionTable& operator=(TranspositionTable&&) noexcept      = delete;
 
     void free() noexcept;

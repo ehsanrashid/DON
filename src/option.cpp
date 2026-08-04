@@ -148,8 +148,8 @@ void Option::operator=(std::string value) noexcept {
     {
         auto infoStr = onChange(*this);
 
-        if (optionsPtr != nullptr && optionsPtr->infoCallback && infoStr)
-            optionsPtr->infoCallback(infoStr);
+        if (ptrOptions != nullptr && ptrOptions->infoCallback && infoStr)
+            ptrOptions->infoCallback(infoStr);
     }
 }
 
@@ -194,7 +194,7 @@ void Options::add(std::string_view name, const Option& option) noexcept {
     auto& o = options.emplace(name, option).first->second;
 
     o.idx        = insertOrder++;
-    o.optionsPtr = this;
+    o.ptrOptions = this;
 }
 
 void Options::set(std::string_view name, std::string_view value) noexcept {

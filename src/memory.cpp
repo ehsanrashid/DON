@@ -23,7 +23,7 @@
     #include <malloc.h>  // MSVC Header for _mm_malloc(), _mm_free()
 #else
     #if defined(__has_include) && __has_include(<features.h>)
-        #include <features.h>  // only on Linux/glibc
+        #include <features.h>  // __GLIBC__ feature-test macros
     #endif
 #endif
 
@@ -57,13 +57,12 @@ void* alloc_aligned_std(std::size_t allocSize, std::size_t alignment) noexcept {
     return std::aligned_alloc(alignment, allocSize);
 #else
     void* mem = nullptr;
-    return posix_memalign(&mem, alignment, allocSize) != 0 ? nullptr : mem;
+    return ::posix_memalign(&mem, alignment, allocSize) != 0 ? nullptr : mem;
 #endif
 }
 
 void free_aligned_std(void* mem) noexcept {
-    if (mem == nullptr)
-        return;
+
 #if defined(_WIN32)
     #if !defined(_M_ARM) && !defined(_M_ARM64)
     _mm_free(mem);
@@ -71,7 +70,7 @@ void free_aligned_std(void* mem) noexcept {
     _aligned_free(mem);
     #endif
 #else
-    std::free(mem);
+    ::free(mem);
 #endif
 }
 
@@ -140,7 +139,7 @@ void* alloc_aligned_large_page(std::size_t allocSize) noexcept {
     mem = alloc_aligned_std(roundedAllocSize, Alignment);
     #if defined(MADV_HUGEPAGE)
     //DEBUG_LOG("Using madvise() to advise kernel to use huge pages for " << roundedAllocSize / MB << "MB allocation");
-    if (mem != nullptr && madvise(mem, roundedAllocSize, MADV_HUGEPAGE) != 0)
+    if (mem != nullptr && ::madvise(mem, roundedAllocSize, MADV_HUGEPAGE) != 0)
     {
         //DEBUG_LOG("madvise() failed, error = " << strerror(errno));
     }

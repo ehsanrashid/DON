@@ -47,8 +47,6 @@ class Engine final {
     Options&       get_options() noexcept;
     const Options& get_options() const noexcept;
 
-    void set_numa_config(std::string_view str) noexcept;
-
     std::string fen() const noexcept;
 
     // Set a new position, moves are in UCI or SAN format
@@ -65,7 +63,7 @@ class Engine final {
     // Blocking call to wait for search to finish
     void wait_finish() const noexcept;
 
-    void init() noexcept;
+    void reset() noexcept;
 
     void resize_threads_tt() noexcept;
 
@@ -80,6 +78,8 @@ class Engine final {
     u16 hashfull(u8 maxAge = 0) const noexcept;
 
     // (numaId, threadCount)
+    bool set_numa_config(std::string_view str) noexcept;
+
     std::vector<std::pair<usize, usize>> bound_thread_counts() const noexcept;
 
     std::string numa_config() const noexcept;
@@ -106,8 +106,8 @@ class Engine final {
    private:
     // Cannot be movable due to components holding backreferences to fields
     Engine(const Engine&) noexcept            = delete;
-    Engine(Engine&&) noexcept                 = delete;
     Engine& operator=(const Engine&) noexcept = delete;
+    Engine(Engine&&) noexcept                 = delete;
     Engine& operator=(Engine&&) noexcept      = delete;
 
     const std::filesystem::path binaryDirectory;

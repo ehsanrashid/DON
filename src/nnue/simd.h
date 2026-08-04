@@ -371,8 +371,8 @@ class Tiling final {
     Tiling() noexcept                         = delete;
     ~Tiling() noexcept                        = delete;
     Tiling(const Tiling&) noexcept            = delete;
-    Tiling(Tiling&&) noexcept                 = delete;
     Tiling& operator=(const Tiling&) noexcept = delete;
+    Tiling(Tiling&&) noexcept                 = delete;
     Tiling& operator=(Tiling&&) noexcept      = delete;
 
         // Use __m* types as template arguments, which causes GCC to emit warnings

@@ -75,8 +75,8 @@ union Zobrist final {
    private:
     Zobrist() noexcept                          = delete;
     Zobrist(const Zobrist&) noexcept            = delete;
-    Zobrist(Zobrist&&) noexcept                 = delete;
     Zobrist& operator=(const Zobrist&) noexcept = delete;
+    Zobrist(Zobrist&&) noexcept                 = delete;
     Zobrist& operator=(Zobrist&&) noexcept      = delete;
 
     Array<Key, SIZE> Keys;

@@ -64,10 +64,10 @@ Engine::Engine(const std::filesystem::path& path) noexcept :
 
     using OnCng = Option::OnChange;
 
-    options.add("NumaPolicy",        Option("auto", OnCng([this](const Option& o) { set_numa_config(o); return numa_config_info() + '\n' + thread_allocation(); })));
+    options.add("NumaPolicy",        Option("auto", OnCng([this](const Option& o) { return set_numa_config(o) ? numa_config_info() + '\n' + thread_allocation() : "NumaPolicy: invalid value '" + std::string(o) + "', keeping previous config."; })));
     options.add("Threads",           Option(1, 1, THREAD_MAX, OnCng([this](const Option&) { resize_threads_tt(); return thread_allocation(); })));
     options.add("Hash",              Option(16, 1, HASH_MAX, OnCng([this](const Option& o) { resize_tt(o); return "Hash: " + std::to_string(int(o)); })));
-    options.add("Clear Hash",        Option(OnCng([this](const Option&) { init(); return std::nullopt; })));
+    options.add("Clear Hash",        Option(OnCng([this](const Option&) { reset(); return std::nullopt; })));
     options.add("HashRetain",        Option(false));
     options.add("HashFile",          Option(""));
     options.add("Save Hash",         Option(OnCng([this](const Option&) { return save_hash(path_from_utf8(options["HashFile"])) ? "Save succeeded" : "Save failed"; })));
@@ -114,21 +114,6 @@ Engine::~Engine() noexcept { wait_finish(); }
 
 Options&       Engine::get_options() noexcept { return options; }
 const Options& Engine::get_options() const noexcept { return options; }
-
-void Engine::set_numa_config(std::string_view cfg) noexcept {
-    if (cfg == "none")
-        numaContext.set_numa_config(NumaConfig{});
-    else if (cfg == "auto" || cfg == "system")
-        numaContext.set_numa_config(NumaConfig::from_system(NUMA_POLICY_DEFAULT, true));
-    else if (cfg == "hardware")
-        // Don't respect affinity set in the system
-        numaContext.set_numa_config(NumaConfig::from_system(NUMA_POLICY_DEFAULT, false));
-    else
-        numaContext.set_numa_config(NumaConfig::from_string(cfg));
-
-    // Force reallocation of threads in case affinities need to change
-    resize_threads_tt();
-}
 
 std::string Engine::fen() const noexcept { return pos.fen(); }
 
@@ -181,7 +166,7 @@ void Engine::ponderhit() const noexcept { threads.main_manager()->set_ponder(fal
 
 void Engine::wait_finish() const noexcept { threads.main_thread()->wait_finish(); }
 
-void Engine::init() noexcept {
+void Engine::reset() noexcept {
     wait_finish();
 
     Tablebase::Syzygy::init(options["SyzygyPath"]);  // Free mapped files
@@ -189,8 +174,8 @@ void Engine::init() noexcept {
     if (options["HashRetain"])
         return;
 
-    threads.init();
-    transpositionTable.init(threads);
+    threads.reset();
+    transpositionTable.reset(threads);
 }
 
 void Engine::resize_threads_tt() noexcept {
@@ -242,6 +227,30 @@ void Engine::flip() noexcept { pos.flip(); }
 void Engine::mirror() noexcept { pos.mirror(); }
 
 u16 Engine::hashfull(u8 maxAge) const noexcept { return transpositionTable.hashfull(maxAge); }
+
+bool Engine::set_numa_config(std::string_view cfg) noexcept {
+    if (cfg == "none")
+        numaContext.set_numa_config(NumaConfig{});
+    else if (cfg == "auto" || cfg == "system")
+        numaContext.set_numa_config(NumaConfig::from_system(NUMA_POLICY_DEFAULT, true));
+    else if (cfg == "hardware")
+        // Don't respect affinity set in the system
+        numaContext.set_numa_config(NumaConfig::from_system(NUMA_POLICY_DEFAULT, false));
+    else
+    {
+        auto numaCfg = NumaConfig::from_string(cfg);
+        if (!numaCfg)
+        {
+            DEBUG_LOG("Failed to parse NUMA configuration string: " << cfg);
+            return false;
+        }
+        numaContext.set_numa_config(std::move(*numaCfg));
+    }
+
+    // Force reallocation of threads in case affinities need to change
+    resize_threads_tt();
+    return true;
+}
 
 std::vector<std::pair<usize, usize>> Engine::bound_thread_counts() const noexcept {
     std::vector<std::pair<usize, usize>> ratios;
@@ -348,7 +357,7 @@ void Engine::load_network(const std::filesystem::path& networkFilePath) noexcept
         net.load(binaryDirectory, networkFilePath, networkFile);
     });
 
-    threads.init();
+    threads.reset();
 
     threads.ensure_network_replicated();
 }

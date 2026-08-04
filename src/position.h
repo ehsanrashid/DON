@@ -112,8 +112,8 @@ struct Zobrist final {
     Zobrist() noexcept                          = delete;
     ~Zobrist() noexcept                         = delete;
     Zobrist(const Zobrist&) noexcept            = delete;
-    Zobrist(Zobrist&&) noexcept                 = delete;
     Zobrist& operator=(const Zobrist&) noexcept = delete;
+    Zobrist(Zobrist&&) noexcept                 = delete;
     Zobrist& operator=(Zobrist&&) noexcept      = delete;
 
     static inline Array<Key, COLOR_NB, 1 + PIECE_TYPE_CNT, SQUARE_NB> PieceSquare;
@@ -133,8 +133,8 @@ struct State final {
    public:
     State() noexcept                           = default;
     State(const State&) noexcept               = default;
-    State(State&&) noexcept                    = delete;
     State& operator=(const State& st) noexcept = default;
+    State(State&&) noexcept                    = delete;
     State& operator=(State&&) noexcept         = delete;
 
     void clear() noexcept;
@@ -416,8 +416,8 @@ class Position final {
        private:
         SEE() noexcept                      = delete;
         SEE(const SEE&) noexcept            = delete;
-        SEE(SEE&&) noexcept                 = delete;
         SEE& operator=(const SEE&) noexcept = delete;
+        SEE(SEE&&) noexcept                 = delete;
         SEE& operator=(SEE&&) noexcept      = delete;
 
         const Position& pos;

@@ -64,15 +64,15 @@ class NativeThread final {
     template<typename Function, typename... Args>
     explicit NativeThread(Function&& func, Args&&... args) noexcept {
         // Use RAII to manage JobFunc memory
-        auto jobFuncPtr = std::make_unique<JobFunc>(
+        auto ptrJobFunc = std::make_unique<JobFunc>(
           std::bind(std::forward<Function>(func), std::forward<Args>(args)...));
 
         auto start_routine = [](void* ptr) noexcept -> void* {
             // Take ownership of JobFunc and delete when done
-            std::unique_ptr<JobFunc> fnPtr(static_cast<JobFunc*>(ptr));
+            std::unique_ptr<JobFunc> ptrFn(static_cast<JobFunc*>(ptr));
 
             // Call the function
-            (*fnPtr)();
+            (*ptrFn)();
 
             // std::unique_ptr deletes the object when lambda exits
             return nullptr;
@@ -92,11 +92,11 @@ class NativeThread final {
         }
 
         // Pass the raw pointer to pthread_create
-        // pthread_create takes ownership of jobFuncPtr only on success
-        if (pthread_create(&thread, &threadAttr, start_routine, jobFuncPtr.get()) != 0)
+        // pthread_create takes ownership of ptrJobFunc only on success
+        if (pthread_create(&thread, &threadAttr, start_routine, ptrJobFunc.get()) != 0)
         {
             //DEBUG_LOG("pthread_create() failed to create thread.");
-            // Thread creation failed, jobFuncPtr will be deleted automatically
+            // Thread creation failed, ptrJobFunc will be deleted automatically
             joined = true;
         }
         else
@@ -104,7 +104,7 @@ class NativeThread final {
             // Mark thread as now joinable, not joined yet
             joined = false;
             // Thread now owns it
-            jobFuncPtr.release();
+            ptrJobFunc.release();
         }
 
         // Destroy thread attr
@@ -172,21 +172,21 @@ using NativeThread = std::thread;
 // such that the recipient does not need to know whether the binding happened or not.
 class ThreadToNumaNodeBinder final {
    public:
-    ThreadToNumaNodeBinder(NumaIndex numaIdx, const NumaConfig* numaCfgPtr) noexcept :
+    ThreadToNumaNodeBinder(NumaIndex numaIdx, const NumaConfig* ptrNumaCfg) noexcept :
         numaId(numaIdx),
-        numaConfigPtr(numaCfgPtr) {}
+        ptrNumaConfig(ptrNumaCfg) {}
 
     explicit ThreadToNumaNodeBinder(NumaIndex numaIdx) noexcept :
         ThreadToNumaNodeBinder(numaIdx, nullptr) {}
 
     NumaReplicatedAccessToken operator()() const noexcept {
-        return numaConfigPtr != nullptr ? numaConfigPtr->bind_current_thread_to_numa_node(numaId)
+        return ptrNumaConfig != nullptr ? ptrNumaConfig->bind_current_thread_to_numa_node(numaId)
                                         : NumaReplicatedAccessToken(numaId);
     }
 
    private:
     const NumaIndex         numaId;
-    const NumaConfig* const numaConfigPtr;
+    const NumaConfig* const ptrNumaConfig;
 };
 
 using WorkerPtr = LargePagePtr<Worker>;
@@ -230,8 +230,8 @@ class Thread final {
     // Schedule a job to be executed by this thread.
     void run_custom_job(JobFunc jobFn) noexcept;
 
-    // Wakes up the thread that will initialize the worker
-    void init() noexcept;
+    // Wakes up the thread that will reset the worker
+    void reset() noexcept;
 
     // Wakes up the thread that will start the search on worker
     void start_search() noexcept;
@@ -286,11 +286,11 @@ inline void Thread::run_custom_job(JobFunc jobFn) noexcept {
     }
 }
 
-// Wakes up the thread that will initialize the worker
-inline void Thread::init() noexcept {
+// Wakes up the thread that will reset the worker
+inline void Thread::reset() noexcept {
     assert(worker != nullptr);
 
-    run_custom_job([this]() { worker->init(); });
+    run_custom_job([this]() { worker->reset(); });
 }
 
 // Wakes up the thread that will start the search on worker
@@ -360,7 +360,7 @@ class Threads final {
              SharedState&                            sharedState,
              const MainSearchManager::UpdateContext& updateContext) noexcept;
 
-    void init() const noexcept;
+    void reset() const noexcept;
 
     Thread* main_thread() const noexcept;
 
@@ -483,8 +483,8 @@ class Threads final {
     };
 
     Threads(const Threads&) noexcept            = delete;
-    Threads(Threads&&) noexcept                 = delete;
     Threads& operator=(const Threads&) noexcept = delete;
+    Threads(Threads&&) noexcept                 = delete;
     Threads& operator=(Threads&&) noexcept      = delete;
 
     // Protects concurrent access to the threads vector for short snapshots.
@@ -527,17 +527,17 @@ inline void Threads::destroy() noexcept {
 }
 
 // Sets data to initial values
-inline void Threads::init() const noexcept {
+inline void Threads::reset() const noexcept {
     if (empty())
         return;
 
-    // Initialize all threads (including main)
-    for_each_thread([](Thread* th) noexcept { th->init(); });
+    // Reset all threads (including main)
+    for_each_thread([](Thread* th) noexcept { th->reset(); });
     for_each_thread([](Thread* th) noexcept { th->wait_finish(); });
 
     // Initialize main-manager
     if (auto mainManager = main_manager(); mainManager != nullptr)
-        mainManager->init();
+        mainManager->reset();
 }
 
 // Get pointer to the main-thread

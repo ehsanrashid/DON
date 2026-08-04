@@ -223,11 +223,11 @@ Worker::Worker(usize                     threadIdx,
     histories(sharedState.historiesMap.at(accessToken.numa_id())),
     accCache(network[accessToken]) {}
 
-// Initialize per-thread data structures
-void Worker::init() noexcept {
+// Reset per-thread data structures
+void Worker::reset() noexcept {
     assert(thread_count() == threads.size());
 
-    // Each thread initializes its NUMA-local range of history entries to prevent false sharing
+    // Each thread resets its NUMA-local range of history entries to prevent false sharing
 
     auto historyRange = split_range(numa_id(), numa_thread_count(), histories.history_size());
 
@@ -241,7 +241,7 @@ void Worker::init() noexcept {
     histories.non_pawn_correction().fill(correctionHistoryRange.beg, correctionHistoryRange.end,
                                          -5);
 
-    // Initialize histories
+    // Reset histories
 
     captureHistory.fill(-742);
     quietHistory.fill(-5);
@@ -951,17 +951,19 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
                 // If the depth is big enough, verify that the ttMove is really a good move
                 if (depth >= 7 && !is_decisive(ttd.value) && !ttmNone && pos.legal(ttd.move))
                 {
-                    pos.do_move(ttd.move, st, true, this);
+                    pos.do_move(ttd.move, st);
 
-                    auto [_ttd, _ttu] = transpositionTable.probe(pos.key());
-                    _ttd.value        = _ttd.hit  //
-                                        ? value_from_tt(_ttd.value, ss->ply, pos.rule50_count())
-                                        : VALUE_NONE;
+                    auto [ttdNext, ttuNext] = transpositionTable.probe(pos.key());
+
+                    ttdNext.value = ttdNext.hit
+                                    ? value_from_tt(ttdNext.value, ss->ply, pos.rule50_count())
+                                    : VALUE_NONE;
 
                     pos.undo_move(ttd.move);
 
                     // Check that the ttValue after the ttMove would also trigger a cutoff
-                    if (!is_valid(_ttd.value) || ((ttd.value >= beta) == (-_ttd.value >= beta)))
+                    if (!is_valid(ttdNext.value)
+                        || ((ttd.value >= beta) == (-ttdNext.value >= beta)))
                         return ttd.value;
                 }
                 else
@@ -1359,9 +1361,8 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
                     // (*Scaler) Generally, more frequent futility pruning scales well
                     if (!check && lmrDepth < 12 && !ss->inCheck)
                     {
-                        int futility = 39 + ss->evalValue + 119 * lmrDepth  //
-                                     + int(ss->evalValue > alpha) * 90      //
-                                     + int(bestMove == Move::None) * 127;
+                        int futility = 164 + ss->evalValue + 119 * lmrDepth  //
+                                     + int(ss->evalValue > alpha) * 90;
                         if (futility <= alpha)
                         {
                             if (!is_win(futility))
@@ -2458,9 +2459,9 @@ MainSearchManager::MainSearchManager(const UpdateContext& updateCtx) noexcept :
     updateContext(updateCtx) {}
 
 // Initializes the time manager and resets previous search info
-void MainSearchManager::init() noexcept {
+void MainSearchManager::reset() noexcept {
 
-    timeManager.init();
+    timeManager.reset();
     preBestCurValue  = VALUE_ZERO;
     preBestAvgValue  = VALUE_ZERO;
     preTimeReduction = 0.85;

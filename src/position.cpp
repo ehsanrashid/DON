@@ -56,8 +56,8 @@ class CuckooTable final {
    public:
     constexpr CuckooTable() noexcept                    = default;
     CuckooTable(const CuckooTable&) noexcept            = delete;
-    CuckooTable(CuckooTable&&) noexcept                 = delete;
     CuckooTable& operator=(const CuckooTable&) noexcept = delete;
+    CuckooTable(CuckooTable&&) noexcept                 = delete;
     CuckooTable& operator=(CuckooTable&&) noexcept      = delete;
 
     [[nodiscard]] constexpr auto begin() noexcept { return cuckoos.begin(); }

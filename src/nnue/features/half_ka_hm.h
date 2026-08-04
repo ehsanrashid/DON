@@ -65,8 +65,8 @@ class HalfKA_hm final {
     HalfKA_hm() noexcept                            = delete;
     ~HalfKA_hm() noexcept                           = delete;
     HalfKA_hm(const HalfKA_hm&) noexcept            = delete;
-    HalfKA_hm(HalfKA_hm&&) noexcept                 = delete;
     HalfKA_hm& operator=(const HalfKA_hm&) noexcept = delete;
+    HalfKA_hm(HalfKA_hm&&) noexcept                 = delete;
     HalfKA_hm& operator=(HalfKA_hm&&) noexcept      = delete;
 };
 

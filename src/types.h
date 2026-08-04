@@ -489,7 +489,7 @@ inline constexpr usize CASTLING_SIDE_NB = 2;
 
 [[nodiscard]] constexpr bool is_ok(CastlingSide cs) noexcept { return (cs <= CastlingSide::QUEEN); }
 
-constexpr std::string_view to_string(CastlingSide cs) noexcept {
+[[nodiscard]] constexpr std::string_view to_string(CastlingSide cs) noexcept {
     switch (cs)
     {
     case CastlingSide::KING :
@@ -534,7 +534,7 @@ constexpr bool is_ok(Bound bound) noexcept {
     return (Bound::UPPER <= bound && bound <= Bound::EXACT);
 }
 
-constexpr std::string_view to_string(Bound bound) noexcept {
+[[nodiscard]] constexpr std::string_view to_string(Bound bound) noexcept {
     switch (bound)
     {
     case Bound::UPPER :

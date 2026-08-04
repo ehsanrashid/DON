@@ -18,7 +18,6 @@
 #include "misc.h"
 
 #include <cmath>
-#include <cstdlib>
 #include <ctime>
 #include <limits>
 
@@ -489,21 +488,19 @@ class Info {
    public:
     Info() noexcept {
         for (usize i = 0; i < Size; ++i)
-            _data[i].store(0, std::memory_order_relaxed);
+            data[i].store(0, std::memory_order_relaxed);
     }
 
     Info(const Info& info) noexcept {
         for (usize i = 0; i < Size; ++i)
-            _data[i].store(info._data[i].load(std::memory_order_relaxed),
-                           std::memory_order_relaxed);
+            data[i].store(info.data[i].load(std::memory_order_relaxed), std::memory_order_relaxed);
     }
     Info& operator=(const Info& info) noexcept {
         if (this == &info)
             return *this;
 
         for (usize i = 0; i < Size; ++i)
-            _data[i].store(info._data[i].load(std::memory_order_relaxed),
-                           std::memory_order_relaxed);
+            data[i].store(info.data[i].load(std::memory_order_relaxed), std::memory_order_relaxed);
         return *this;
     }
 
@@ -512,36 +509,36 @@ class Info {
 
     [[nodiscard]] decltype(auto) operator[](usize index) const noexcept {
         assert(index < Size && "Index out of bounds");
-        return _data[index];
+        return data[index];
     }
     [[nodiscard]] decltype(auto) operator[](usize index) noexcept {
         assert(index < Size && "Index out of bounds");
-        return _data[index];
+        return data[index];
     }
 
    protected:
-    Array<std::atomic<i64>, Size> _data;
+    Array<std::atomic<i64>, Size> data;
 };
 
 class MinInfo final: public Info<2> {
    public:
     MinInfo() noexcept {
-        _data[1].store(std::numeric_limits<i64>::max(), std::memory_order_relaxed);
+        data[1].store(std::numeric_limits<i64>::max(), std::memory_order_relaxed);
     }
 };
 
 class MaxInfo final: public Info<2> {
    public:
     MaxInfo() noexcept {
-        _data[1].store(std::numeric_limits<i64>::min(), std::memory_order_relaxed);
+        data[1].store(std::numeric_limits<i64>::min(), std::memory_order_relaxed);
     }
 };
 
 class ExtremeInfo final: public Info<3> {
    public:
     ExtremeInfo() noexcept {
-        _data[1].store(std::numeric_limits<i64>::max(), std::memory_order_relaxed);
-        _data[2].store(std::numeric_limits<i64>::min(), std::memory_order_relaxed);
+        data[1].store(std::numeric_limits<i64>::max(), std::memory_order_relaxed);
+        data[2].store(std::numeric_limits<i64>::min(), std::memory_order_relaxed);
     }
 };
 
@@ -883,7 +880,9 @@ std::filesystem::path path_from_utf8(std::string_view path) noexcept {
 #endif
 }
 
-usize str_to_size_t(std::string_view sv) noexcept {
+std::optional<usize> str_to_size_t(std::string_view sv) noexcept {
+    if (sv.empty() || sv[0] == '-')
+        return std::nullopt;
     // Use from_chars (no allocation, fast)
     const char* begin = sv.data();
     const char* end   = begin + sv.size();
@@ -892,10 +891,10 @@ usize str_to_size_t(std::string_view sv) noexcept {
 
     auto [ptr, ec] = std::from_chars(begin, end, value);
     if (ec != std::errc() || ptr != end)
-        std::exit(EXIT_FAILURE);
+        return std::nullopt;
 
     if (value > std::numeric_limits<usize>::max())
-        std::exit(EXIT_FAILURE);
+        return std::nullopt;
 
     return usize(value);
 }

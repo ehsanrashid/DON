@@ -98,7 +98,7 @@ class Option final {
     OnChange    onChange;
 
     u16            idx;
-    const Options* optionsPtr = nullptr;
+    const Options* ptrOptions = nullptr;
 
     friend class Options;
 };
@@ -116,8 +116,8 @@ class Options final {
 
     Options() noexcept                          = default;
     Options(const Options&) noexcept            = delete;
-    Options(Options&&) noexcept                 = delete;
     Options& operator=(const Options&) noexcept = delete;
+    Options(Options&&) noexcept                 = delete;
     Options& operator=(Options&&) noexcept      = delete;
 
     auto begin() const noexcept { return options.begin(); }

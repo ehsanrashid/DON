@@ -19,16 +19,17 @@
 #define NUMA_H_INCLUDED
 
 #include <algorithm>
+#include <cassert>
 #include <cstdlib>
-#include <cstring>
+#include <iostream>
 #include <limits>
 #include <memory>
 #include <mutex>
 #include <numeric>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <thread>
-#include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
@@ -36,15 +37,17 @@
 #include <vector>
 
 #if defined(_WIN32)
+    #include <cstring>
+    #include <type_traits>
+
     #include "platform_win.h"
-#else
-    // Linux (non-Android)
-    #if (defined(__linux__) && !defined(__ANDROID__))
-        #if !defined(_GNU_SOURCE)
-            #define _GNU_SOURCE
-        #endif
-        #include <sched.h>
+#elif defined(__ANDROID__)
+    // Android-specific configuration (currently none)
+#elif (defined(__linux__) && !defined(__ANDROID__)) /* Linux (non-Android) */
+    #if !defined(_GNU_SOURCE)
+        #define _GNU_SOURCE
     #endif
+    #include <sched.h>
 #endif
 
 #include "misc.h"
@@ -569,17 +572,22 @@ inline CpuIndexVec shortened_string_to_indices(std::string_view str) noexcept {
         switch (parts.size())
         {
         case 1 : {
-            auto cpuId = CpuIndex{str_to_size_t(parts[0])};
-
-            indices.emplace_back(cpuId);
+            auto cpuId = str_to_size_t(parts[0]);
+            if (cpuId)
+                indices.emplace_back(*cpuId);
         }
         break;
         case 2 : {
-            auto begCpuId = CpuIndex{str_to_size_t(parts[0])};
-            auto endCpuId = CpuIndex{str_to_size_t(parts[1])};
+            constexpr usize MaxIndices = 1u << 20;  // prevent oom
 
-            for (auto cpuId = begCpuId; cpuId <= endCpuId; ++cpuId)
-                indices.emplace_back(cpuId);
+            auto begCpuId = str_to_size_t(parts[0]);
+            auto endCpuId = str_to_size_t(parts[1]);
+
+            if (begCpuId && endCpuId       //
+                && *begCpuId <= *endCpuId  //
+                && *endCpuId - *begCpuId < MaxIndices)
+                for (auto cpuId = *begCpuId; cpuId <= *endCpuId; ++cpuId)
+                    indices.emplace_back(cpuId);
         }
         break;
         default :
@@ -745,7 +753,7 @@ class NumaConfig final {
     // For example:
     // "0-7:8-15:16-23:24-31"
     // "0-15,128-143:16-31,144-159:32-47,160-175:48-63,176-191"
-    static NumaConfig from_string(std::string_view str) noexcept {
+    static std::optional<NumaConfig> from_string(std::string_view str) noexcept {
         NumaConfig numaCfg = empty();
 
         NumaIndex numaId = 0;
@@ -765,12 +773,16 @@ class NumaConfig final {
                     std::cerr << "NumaConfig parse error in segment '" << cpuIdsStr  //
                               << "': CPU " << cpuId << " rejected for NUMA node " << numaId
                               << std::endl;
-                    std::exit(EXIT_FAILURE);
+                    return std::nullopt;
                 }
             }
 
             ++numaId;
         }
+
+        // Failed to parse any nodes
+        if (numaId == 0)
+            return std::nullopt;
 
         numaCfg.customAffinity = true;
 
@@ -790,8 +802,8 @@ class NumaConfig final {
     }
 
     NumaConfig(const NumaConfig&) noexcept            = delete;
-    NumaConfig(NumaConfig&&) noexcept                 = default;
     NumaConfig& operator=(const NumaConfig&) noexcept = delete;
+    NumaConfig(NumaConfig&&) noexcept                 = default;
     NumaConfig& operator=(NumaConfig&&) noexcept      = default;
 
     NumaIndex nodes_size() const noexcept { return nodes.size(); }
@@ -1252,26 +1264,19 @@ class NumaConfig final {
 #elif (defined(__linux__) && !defined(__ANDROID__))
         CpuIndexSet seenCpus;
 
-        auto next_unseen_cpu_id = [&seenCpus]() noexcept {
-            CpuIndex cpuId = 0;
-            while (seenCpus.find(cpuId) != seenCpus.end())
-                ++cpuId;
-            return cpuId;
-        };
-
-        while (true)
+        for (const auto& [nextCpuId, _] : sysCfg.nodeByCpu)
         {
-            CpuIndex nextUnseenCpuId = next_unseen_cpu_id();
+            if (seenCpus.find(nextCpuId) != seenCpus.end())
+                continue;
 
-            std::string path = std::string{"/sys/devices/system/cpu/cpu"}
-                             + std::to_string(nextUnseenCpuId)
-                             + std::string{"/cache/index3/shared_cpu_list"};
+            std::string path{std::string{"/sys/devices/system/cpu/cpu"}  //
+                             + std::to_string(nextCpuId)                 //
+                             + std::string{"/cache/index3/shared_cpu_list"}};
 
             auto cpuIdsStr = read_file_to_string(path);
 
-            // Have read all available CPUs
             if (!cpuIdsStr || cpuIdsStr->empty())
-                break;
+                continue;
 
             L3Domain l3Domain{};
 
@@ -1457,9 +1462,10 @@ class BaseNumaReplicated {
    public:
     BaseNumaReplicated(NumaReplicationContext& ctx) noexcept;
 
-    BaseNumaReplicated(const BaseNumaReplicated&) noexcept = delete;
-    BaseNumaReplicated(BaseNumaReplicated&& baseNumaRep) noexcept;
+    BaseNumaReplicated(const BaseNumaReplicated&) noexcept            = delete;
     BaseNumaReplicated& operator=(const BaseNumaReplicated&) noexcept = delete;
+
+    BaseNumaReplicated(BaseNumaReplicated&& baseNumaRep) noexcept;
     BaseNumaReplicated& operator=(BaseNumaReplicated&& baseNumaRep) noexcept;
 
     virtual ~BaseNumaReplicated() noexcept;
@@ -1490,12 +1496,12 @@ class NumaReplicated final: public BaseNumaReplicated {
         replicate_from(std::move(source));
     }
 
-    NumaReplicated(const NumaReplicated&) noexcept = delete;
+    NumaReplicated(const NumaReplicated&) noexcept            = delete;
+    NumaReplicated& operator=(const NumaReplicated&) noexcept = delete;
+
     NumaReplicated(NumaReplicated&& numaRep) noexcept :
         BaseNumaReplicated(std::move(numaRep)),
         instances(std::exchange(numaRep.instances, {})) {}
-
-    NumaReplicated& operator=(const NumaReplicated&) noexcept = delete;
     NumaReplicated& operator=(NumaReplicated&& numaRep) noexcept {
         if (this == &numaRep)
             return *this;
@@ -1575,12 +1581,12 @@ class LazyNumaReplicated final: public BaseNumaReplicated {
         prepare_replicate_from(std::move(source));
     }
 
-    LazyNumaReplicated(const LazyNumaReplicated&) noexcept = delete;
+    LazyNumaReplicated(const LazyNumaReplicated&) noexcept            = delete;
+    LazyNumaReplicated& operator=(const LazyNumaReplicated&) noexcept = delete;
+
     LazyNumaReplicated(LazyNumaReplicated&& lazyNumaRep) noexcept :
         BaseNumaReplicated(std::move(lazyNumaRep)),
         instances(std::exchange(lazyNumaRep.instances, {})) {}
-
-    LazyNumaReplicated& operator=(const LazyNumaReplicated&) noexcept = delete;
     LazyNumaReplicated& operator=(LazyNumaReplicated&& lazyNumaRep) noexcept {
         if (this == &lazyNumaRep)
             return *this;
@@ -1680,23 +1686,18 @@ class LazyNumaReplicated final: public BaseNumaReplicated {
 template<typename T>
 class SystemWideLazyNumaReplicated final: public BaseNumaReplicated {
    public:
-    SystemWideLazyNumaReplicated(NumaReplicationContext& ctx) noexcept :
-        BaseNumaReplicated(ctx) {
-        prepare_replicate_from(std::make_unique<T>());
-    }
-
     SystemWideLazyNumaReplicated(NumaReplicationContext& ctx, std::unique_ptr<T>&& source) noexcept
         :
         BaseNumaReplicated(ctx) {
         prepare_replicate_from(std::move(source));
     }
 
-    SystemWideLazyNumaReplicated(const SystemWideLazyNumaReplicated&) noexcept = delete;
+    SystemWideLazyNumaReplicated(const SystemWideLazyNumaReplicated&) noexcept            = delete;
+    SystemWideLazyNumaReplicated& operator=(const SystemWideLazyNumaReplicated&) noexcept = delete;
+
     SystemWideLazyNumaReplicated(SystemWideLazyNumaReplicated&& sysNumaRep) noexcept :
         BaseNumaReplicated(std::move(sysNumaRep)),
         instances(std::exchange(sysNumaRep.instances, {})) {}
-
-    SystemWideLazyNumaReplicated& operator=(const SystemWideLazyNumaReplicated&) noexcept = delete;
     SystemWideLazyNumaReplicated& operator=(SystemWideLazyNumaReplicated&& sysNumaRep) noexcept {
         if (this == &sysNumaRep)
             return *this;
@@ -1830,9 +1831,10 @@ class NumaReplicationContext final {
         numaConfig(std::move(numaCfg)) {}
 
     NumaReplicationContext(const NumaReplicationContext&) noexcept            = delete;
-    NumaReplicationContext(NumaReplicationContext&&) noexcept                 = delete;
     NumaReplicationContext& operator=(const NumaReplicationContext&) noexcept = delete;
-    NumaReplicationContext& operator=(NumaReplicationContext&&) noexcept      = delete;
+
+    NumaReplicationContext(NumaReplicationContext&&) noexcept            = delete;
+    NumaReplicationContext& operator=(NumaReplicationContext&&) noexcept = delete;
 
     ~NumaReplicationContext() noexcept {
         // The context must outlive replicated objects

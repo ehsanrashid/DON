@@ -284,7 +284,7 @@ void UCI::execute(std::string_view command) noexcept {
                   << "uciok" << std::endl;
         break;
     case Command::UCINEWGAME :
-        engine.init();
+        engine.reset();
         break;
     case Command::ISREADY :
         std::cout << "readyok" << std::endl;
@@ -562,7 +562,7 @@ void UCI::bench(std::istream& is) noexcept {
             break;
         case Command::UCINEWGAME :
             elapsedTime += now() - startTime;
-            engine.init();  // May take a while
+            engine.reset();  // May take a while
             startTime = now();
             break;
         default :;
@@ -650,7 +650,7 @@ void UCI::benchmark(std::istream& is) noexcept {
             break;
         case Command::UCINEWGAME :
             elapsedTime += now() - startTime;
-            engine.init();  // May take a while
+            engine.reset();  // May take a while
             startTime = now();
             break;
         default :;
@@ -689,7 +689,7 @@ void UCI::benchmark(std::istream& is) noexcept {
     auto avg = [&hashfullCount](u32 x) noexcept { return double(x) / hashfullCount; };
 
     elapsedTime += now() - startTime;
-    engine.init();  // May take a while
+    engine.reset();  // May take a while
     startTime = now();
 
     for (const auto& command : setup.commands)
@@ -726,7 +726,7 @@ void UCI::benchmark(std::istream& is) noexcept {
             break;
         case Command::UCINEWGAME :
             elapsedTime += now() - startTime;
-            engine.init();  // May take a while
+            engine.reset();  // May take a while
             startTime = now();
             break;
         default :;

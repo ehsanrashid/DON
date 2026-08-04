@@ -195,14 +195,14 @@ void TranspositionTable::resize(usize ttSize, const Threads& threads) noexcept {
         std::exit(EXIT_FAILURE);
     }
 
-    init(threads);
+    reset(threads);
 }
 
-// Initializes the entire transposition table to zero, in a multi-threaded way.
-void TranspositionTable::init(const Threads& threads) noexcept {
+// Resets the entire transposition table to zero, in a multi-threaded way
+void TranspositionTable::reset(const Threads& threads) noexcept {
     generation8 = 0;
 
-    usize threadCount = threads.size();
+    const usize threadCount = threads.size();
 
     for (usize threadId = 0; threadId < threadCount; ++threadId)
     {

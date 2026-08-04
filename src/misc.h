@@ -52,15 +52,6 @@
 
 #if defined(_WIN32)
     #include "platform_win.h"
-
-    #if !defined(PATH_MAX)
-        #define PATH_MAX (2 * 1024)  // 2K bytes, safe for almost all paths
-    #endif
-    #if !defined(NAME_MAX)
-        #define NAME_MAX 255
-    #endif
-#else
-    #include <limits.h>  // IWYU pragma: keep
 #endif
 
 #undef HAS_X86_PREFETCH
@@ -537,11 +528,11 @@ constexpr IndexRange split_range(usize id, usize parts, usize size) noexcept {
 
 struct CallOnce final {
    public:
-    CallOnce()                           = default;
-    CallOnce(const CallOnce&)            = delete;
-    CallOnce(CallOnce&&)                 = delete;
-    CallOnce& operator=(const CallOnce&) = delete;
-    CallOnce& operator=(CallOnce&&)      = delete;
+    CallOnce() noexcept                           = default;
+    CallOnce(const CallOnce&) noexcept            = delete;
+    CallOnce& operator=(const CallOnce&) noexcept = delete;
+    CallOnce(CallOnce&&) noexcept                 = delete;
+    CallOnce& operator=(CallOnce&&) noexcept      = delete;
 
     // Initialize using the provided function
     // The function will be called exactly once, even if multiple threads call this
@@ -567,11 +558,11 @@ struct CallOnce final {
 template<typename Value>
 struct LazyValue final {
    public:
-    LazyValue()                            = default;
-    LazyValue(const LazyValue&)            = delete;
-    LazyValue(LazyValue&&)                 = delete;
-    LazyValue& operator=(const LazyValue&) = delete;
-    LazyValue& operator=(LazyValue&&)      = delete;
+    LazyValue() noexcept                            = default;
+    LazyValue(const LazyValue&) noexcept            = delete;
+    LazyValue& operator=(const LazyValue&) noexcept = delete;
+    LazyValue(LazyValue&&) noexcept                 = delete;
+    LazyValue& operator=(LazyValue&&) noexcept      = delete;
 
     ~LazyValue() noexcept {
         if (initialized())
@@ -649,28 +640,28 @@ class OstreamMutexRegistry final {
     }
 
     // Return a mutex associated with the given ostream pointer.
-    // If osPtr is nullptr, returns a null-mutex to safely ignore locking.
+    // If ptrOs is nullptr, returns a null-mutex to safely ignore locking.
     // This ensures no accidental insertion of null keys into the map.
-    static std::mutex& get(std::ostream* osPtr) noexcept {
+    static std::mutex& get(std::ostream* ptrOs) noexcept {
         ensure_initialized();
 
         // Fallback for null pointers
-        if (osPtr == nullptr)
+        if (ptrOs == nullptr)
             return nullMutex;
 
         // Lock the registry while accessing the map
         std::lock_guard writeLock(mutex);
 
         // Return mutex, create if missing
-        return osMutexes[osPtr];
+        return osMutexes[ptrOs];
     }
 
    private:
     OstreamMutexRegistry() noexcept                                       = delete;
     ~OstreamMutexRegistry() noexcept                                      = delete;
     OstreamMutexRegistry(const OstreamMutexRegistry&) noexcept            = delete;
-    OstreamMutexRegistry(OstreamMutexRegistry&&) noexcept                 = delete;
     OstreamMutexRegistry& operator=(const OstreamMutexRegistry&) noexcept = delete;
+    OstreamMutexRegistry(OstreamMutexRegistry&&) noexcept                 = delete;
     OstreamMutexRegistry& operator=(OstreamMutexRegistry&&) noexcept      = delete;
 
     static inline CallOnce callOnce;
@@ -708,65 +699,65 @@ class OstreamMutexRegistry final {
 class [[nodiscard]] SyncOstream final {
    public:
     explicit SyncOstream(std::ostream& os) noexcept :
-        osPtr(&os),
-        lock(OstreamMutexRegistry::get(osPtr)) {}
-    SyncOstream(const SyncOstream&) noexcept = delete;
+        ptrOs(&os),
+        lock(OstreamMutexRegistry::get(ptrOs)) {}
     // Move-constructible so factories can return by value
     SyncOstream(SyncOstream&& syncOs) noexcept :
-        osPtr(syncOs.osPtr),
+        ptrOs(syncOs.ptrOs),
         lock(std::move(syncOs.lock)) {}
 
+    SyncOstream(const SyncOstream&) noexcept            = delete;
     SyncOstream& operator=(const SyncOstream&) noexcept = delete;
     // Prefer deleting move-assignment to avoid unlock window
     SyncOstream& operator=(SyncOstream&&) noexcept = delete;
 
     template<typename T>
     SyncOstream& operator<<(T&& x) & {
-        assert(osPtr != nullptr && "Use of moved-from SyncOstream");
+        assert(ptrOs != nullptr && "Use of moved-from SyncOstream");
 
-        *osPtr << std::forward<T>(x);
+        *ptrOs << std::forward<T>(x);
         return *this;
     }
     template<typename T>
     SyncOstream&& operator<<(T&& x) && {
-        assert(osPtr != nullptr && "Use of moved-from SyncOstream");
+        assert(ptrOs != nullptr && "Use of moved-from SyncOstream");
 
-        *osPtr << std::forward<T>(x);
+        *ptrOs << std::forward<T>(x);
         return std::move(*this);
     }
 
     using IosManipulator = std::ios& (*) (std::ios&);
 
     SyncOstream& operator<<(IosManipulator manip) & {
-        assert(osPtr != nullptr && "Use of moved-from SyncOstream");
+        assert(ptrOs != nullptr && "Use of moved-from SyncOstream");
 
-        manip(*osPtr);
+        manip(*ptrOs);
         return *this;
     }
     SyncOstream&& operator<<(IosManipulator manip) && {
-        assert(osPtr != nullptr && "Use of moved-from SyncOstream");
+        assert(ptrOs != nullptr && "Use of moved-from SyncOstream");
 
-        manip(*osPtr);
+        manip(*ptrOs);
         return std::move(*this);
     }
 
     using OstreamManipulator = std::ostream& (*) (std::ostream&);
 
     SyncOstream& operator<<(OstreamManipulator manip) & {
-        assert(osPtr != nullptr && "Use of moved-from SyncOstream");
+        assert(ptrOs != nullptr && "Use of moved-from SyncOstream");
 
-        manip(*osPtr);
+        manip(*ptrOs);
         return *this;
     }
     SyncOstream&& operator<<(OstreamManipulator manip) && {
-        assert(osPtr != nullptr && "Use of moved-from SyncOstream");
+        assert(ptrOs != nullptr && "Use of moved-from SyncOstream");
 
-        manip(*osPtr);
+        manip(*ptrOs);
         return std::move(*this);
     }
 
    private:
-    std::ostream* const          osPtr;
+    std::ostream* const          ptrOs;
     std::unique_lock<std::mutex> lock;
 };
 
@@ -779,13 +770,13 @@ template<typename T>
 class TableView final {
    public:
     constexpr TableView(T* data, usize size) noexcept :
-        _data(data),
-        _size(size) {}
+        data_(data),
+        size_(size) {}
 
-    constexpr T*       data() noexcept { return _data; }
-    constexpr const T* data() const noexcept { return _data; }
+    constexpr T*       data() noexcept { return data_; }
+    constexpr const T* data() const noexcept { return data_; }
 
-    [[nodiscard]] constexpr usize size() const noexcept { return _size; }
+    [[nodiscard]] constexpr usize size() const noexcept { return size_; }
 
     constexpr T* begin() noexcept { return data(); }
     constexpr T* end() noexcept { return begin() + size(); }
@@ -802,8 +793,8 @@ class TableView final {
     }
 
    private:
-    T*    _data = nullptr;
-    usize _size = 0;
+    T*    data_ = nullptr;
+    usize size_ = 0;
 };
 
 template<typename T, usize Size, usize... Sizes>
@@ -862,47 +853,47 @@ class MultiArray final {
     using reverse_iterator       = typename ArrayType::reverse_iterator;
     using const_reverse_iterator = typename ArrayType::const_reverse_iterator;
 
-    constexpr auto begin() const noexcept { return _data.begin(); }
-    constexpr auto end() const noexcept { return _data.end(); }
-    constexpr auto begin() noexcept { return _data.begin(); }
-    constexpr auto end() noexcept { return _data.end(); }
+    constexpr auto begin() const noexcept { return data_.begin(); }
+    constexpr auto end() const noexcept { return data_.end(); }
+    constexpr auto begin() noexcept { return data_.begin(); }
+    constexpr auto end() noexcept { return data_.end(); }
 
-    constexpr auto cbegin() const noexcept { return _data.cbegin(); }
-    constexpr auto cend() const noexcept { return _data.cend(); }
+    constexpr auto cbegin() const noexcept { return data_.cbegin(); }
+    constexpr auto cend() const noexcept { return data_.cend(); }
 
-    constexpr auto rbegin() const noexcept { return _data.rbegin(); }
-    constexpr auto rend() const noexcept { return _data.rend(); }
-    constexpr auto rbegin() noexcept { return _data.rbegin(); }
-    constexpr auto rend() noexcept { return _data.rend(); }
+    constexpr auto rbegin() const noexcept { return data_.rbegin(); }
+    constexpr auto rend() const noexcept { return data_.rend(); }
+    constexpr auto rbegin() noexcept { return data_.rbegin(); }
+    constexpr auto rend() noexcept { return data_.rend(); }
 
-    constexpr auto crbegin() const noexcept { return _data.crbegin(); }
-    constexpr auto crend() const noexcept { return _data.crend(); }
+    constexpr auto crbegin() const noexcept { return data_.crbegin(); }
+    constexpr auto crend() const noexcept { return data_.crend(); }
 
-    constexpr auto&       front() noexcept { return _data.front(); }
-    constexpr const auto& front() const noexcept { return _data.front(); }
-    constexpr auto&       back() noexcept { return _data.back(); }
-    constexpr const auto& back() const noexcept { return _data.back(); }
+    constexpr auto&       front() noexcept { return data_.front(); }
+    constexpr const auto& front() const noexcept { return data_.front(); }
+    constexpr auto&       back() noexcept { return data_.back(); }
+    constexpr const auto& back() const noexcept { return data_.back(); }
 
-    auto*       data() noexcept { return _data.data(); }
-    const auto* data() const noexcept { return _data.data(); }
+    auto*       data() noexcept { return data_.data(); }
+    const auto* data() const noexcept { return data_.data(); }
 
-    constexpr auto max_size() const noexcept { return _data.max_size(); }
+    constexpr auto max_size() const noexcept { return data_.max_size(); }
 
-    constexpr auto size() const noexcept { return _data.size(); }
-    constexpr auto empty() const noexcept { return _data.empty(); }
+    constexpr auto size() const noexcept { return data_.size(); }
+    constexpr auto empty() const noexcept { return data_.empty(); }
 
-    constexpr const auto& at(size_type idx) const noexcept { return _data.at(idx); }
-    constexpr auto&       at(size_type idx) noexcept { return _data.at(idx); }
+    constexpr const auto& at(size_type idx) const noexcept { return data_.at(idx); }
+    constexpr auto&       at(size_type idx) noexcept { return data_.at(idx); }
 
-    constexpr auto& operator[](size_type idx) const noexcept { return _data[idx]; }
-    constexpr auto& operator[](size_type idx) noexcept { return _data[idx]; }
+    constexpr auto& operator[](size_type idx) const noexcept { return data_[idx]; }
+    constexpr auto& operator[](size_type idx) noexcept { return data_[idx]; }
 
     // Recursively fill all dimensions by calling the sub fill method
     template<typename U>
     void fill(const U& v) noexcept {
         static_assert(is_strictly_assignable_v<T, U>, "Cannot assign fill value to element type");
 
-        for (auto& element : _data)
+        for (auto& element : data_)
         {
             if constexpr (sizeof...(Sizes) == 0)
                 element = v;
@@ -921,16 +912,16 @@ class MultiArray final {
         for (usize idx = beg; idx < end; ++idx)
         {
             if constexpr (sizeof...(Sizes) == 0)
-                _data[idx] = v;
+                data_[idx] = v;
             else
-                _data[idx].fill(v);
+                data_[idx].fill(v);
         }
     }
 
     // void print() const noexcept {
     //     std::cout << Size << ':' << sizeof...(Sizes) << std::endl;
     //
-    //     for (auto& element : _data)
+    //     for (auto& element : data_)
     //     {
     //         if constexpr (sizeof...(Sizes) == 0)
     //             std::cout << element << ' ';
@@ -942,44 +933,44 @@ class MultiArray final {
     // }
 
     constexpr void swap(MultiArray<T, Size, Sizes...>& multiArr) noexcept {
-        _data.swap(multiArr._data);
+        data_.swap(multiArr.data_);
     }
 
     template<bool NoExtraDimension = sizeof...(Sizes) == 0,
              typename              = std::enable_if_t<NoExtraDimension, bool>>
     constexpr operator Array<T, Size>&() noexcept {
-        return _data;
+        return data_;
     }
     template<bool NoExtraDimension = sizeof...(Sizes) == 0,
              typename              = std::enable_if_t<NoExtraDimension, bool>>
     constexpr operator const Array<T, Size>&() const noexcept {
-        return _data;
+        return data_;
     }
 
     constexpr MultiArray& operator=(const Array<T, Size, Sizes...>& stdArr) noexcept {
         for (usize i = 0; i < Size; ++i)
-            _data[i] = stdArr[i];
+            data_[i] = stdArr[i];
         return *this;
     }
 
    private:
-    ArrayType _data;
+    ArrayType data_;
 };
 
 template<typename T>
 class DynamicArray final {
    public:
     explicit DynamicArray(usize size) noexcept :
-        _size(size) {
+        size_(size) {
         assert(size != 0);
 
-        _data = make_unique_aligned_large_page<T[]>(size);
+        data_ = make_unique_aligned_large_page<T[]>(size);
     }
 
-    [[nodiscard]] usize size() const noexcept { return _size; }
+    [[nodiscard]] usize size() const noexcept { return size_; }
 
-    T*       data() noexcept { return _data.get(); }
-    const T* data() const noexcept { return _data.get(); }
+    T*       data() noexcept { return data_.get(); }
+    const T* data() const noexcept { return data_.get(); }
 
     T& operator[](usize idx) noexcept {
         assert(idx < size());
@@ -999,8 +990,8 @@ class DynamicArray final {
     }
 
    private:
-    LargePagePtr<T[]> _data;
-    usize             _size;
+    LargePagePtr<T[]> data_;
+    usize             size_;
 };
 
 template<typename T, usize Capacity, typename SizeType = usize>
@@ -1010,12 +1001,12 @@ class FixedVector final {
    public:
     [[nodiscard]] static constexpr SizeType capacity() noexcept { return Capacity; }
 
-    [[nodiscard]] constexpr SizeType size() const noexcept { return _size; }
+    [[nodiscard]] constexpr SizeType size() const noexcept { return size_; }
     [[nodiscard]] constexpr bool     empty() const noexcept { return size() == 0; }
     [[nodiscard]] constexpr bool     full() const noexcept { return size() == capacity(); }
 
-    T*       data() noexcept { return _data.data(); }
-    const T* data() const noexcept { return _data.data(); }
+    T*       data() noexcept { return data_.data(); }
+    const T* data() const noexcept { return data_.data(); }
 
     T*       begin() noexcept { return data(); }
     T*       end() noexcept { return begin() + size(); }
@@ -1027,27 +1018,27 @@ class FixedVector final {
     bool push_back(const T& value) noexcept {
         assert(size() < capacity());
 
-        data()[_size++] = value;  // copy-assign into pre-initialized slot
+        data()[size_++] = value;  // copy-assign into pre-initialized slot
         return true;
     }
     bool push_back(T&& value) noexcept {
         assert(size() < capacity());
 
-        data()[_size++] = std::move(value);
+        data()[size_++] = std::move(value);
         return true;
     }
     template<typename... Args>
     bool emplace_back(Args&&... args) noexcept {
         assert(size() < capacity());
 
-        data()[_size++] = T(std::forward<Args>(args)...);
+        data()[size_++] = T(std::forward<Args>(args)...);
         return true;
     }
 
     void pop_back() noexcept {
         assert(size() != 0);
 
-        --_size;
+        --size_;
     }
 
     T& back() noexcept {
@@ -1074,7 +1065,7 @@ class FixedVector final {
 
     void resize(SizeType newSize) noexcept {
         // Note: doesn't construct/destroy elements
-        _size = std::min(newSize, capacity());
+        size_ = std::min(newSize, capacity());
     }
 
     T* make_space(SizeType space) noexcept {
@@ -1085,11 +1076,11 @@ class FixedVector final {
         return data() + oldSize;
     }
 
-    void clear() noexcept { _size = 0; }
+    void clear() noexcept { size_ = 0; }
 
    private:
-    Array<T, Capacity> _data;
-    SizeType           _size = 0;
+    Array<T, Capacity> data_;
+    SizeType           size_ = 0;
 };
 
 struct FixedText final {
@@ -1101,14 +1092,14 @@ struct FixedText final {
         assert(size() < capacity());
         if (size() >= capacity())
             return *this;
-        data()[_size++] = ch;
+        data()[size_++] = ch;
         return *this;
     }
 
     FixedText& write(std::string_view sv) noexcept {
         assert(size() + sv.size() <= capacity());
         std::memcpy(data() + size(), sv.data(), sv.size());
-        _size += sv.size();
+        size_ += sv.size();
         return *this;
     }
 
@@ -1116,19 +1107,19 @@ struct FixedText final {
         char* beg      = data();
         char* end      = beg + capacity();
         auto [ptr, ec] = std::to_chars(beg + size(), end, v);
-        _size          = ptr - beg;
+        size_          = ptr - beg;
         return *this;
     }
 
-    [[nodiscard]] constexpr usize capacity() const noexcept { return _data.size(); }
+    [[nodiscard]] constexpr usize capacity() const noexcept { return data_.size(); }
 
-    char*                     data() noexcept { return _data.data(); }
-    [[nodiscard]] const char* c_str() const noexcept { return _data.data(); }
-    [[nodiscard]] usize       size() const noexcept { return _size; }
+    char*                     data() noexcept { return data_.data(); }
+    [[nodiscard]] const char* c_str() const noexcept { return data_.data(); }
+    [[nodiscard]] usize       size() const noexcept { return size_; }
 
     [[nodiscard]] bool empty() const noexcept { return size() == 0; }
 
-    [[nodiscard]] std::string_view view() const noexcept { return {_data.data(), size()}; }
+    [[nodiscard]] std::string_view view() const noexcept { return {data_.data(), size()}; }
 
     // implicit conversion if you want
     operator std::string_view() const noexcept { return view(); }
@@ -1136,8 +1127,8 @@ struct FixedText final {
     friend std::ostream& operator<<(std::ostream& os, const FixedText& fixedText) noexcept;
 
    private:
-    Array<char, 31> _data{};
-    u8              _size = 0;
+    Array<char, 31> data_{};
+    u8              size_ = 0;
 };
 
 static_assert(sizeof(FixedText) == 32, "FixedText size must be 32 bytes");
@@ -1208,49 +1199,6 @@ class ConcurrentCache final {
 
     std::shared_mutex                     sharedMutex;
     std::unordered_map<Key, StorageValue> storage;
-};
-
-// RAII guard for resetting atomic bool flags
-struct FlagGuard final {
-   public:
-    explicit FlagGuard(std::atomic<bool>& flagRef) noexcept :
-        flag(flagRef) {}
-
-    ~FlagGuard() noexcept { reset(); }
-
-    // Manually reset the flag if needed before destruction
-    void reset() noexcept { flag.store(false, std::memory_order_release); }
-
-   private:
-    // Non-copyable, non-movable to ensure unique ownership
-    FlagGuard(const FlagGuard&)            = delete;
-    FlagGuard(FlagGuard&&)                 = delete;
-    FlagGuard& operator=(const FlagGuard&) = delete;
-    FlagGuard& operator=(FlagGuard&&)      = delete;
-
-    std::atomic<bool>& flag;
-};
-
-// RAII guard for resetting atomic int flags
-template<typename T>
-struct FlagsGuard final {
-   public:
-    explicit FlagsGuard(std::atomic<T>& flagsRef) noexcept :
-        flags(flagsRef) {}
-
-    ~FlagsGuard() noexcept { reset(); }
-
-    // Manually reset the flag if needed before destruction
-    void reset() noexcept { flags.store(0, std::memory_order_release); }
-
-   private:
-    // Non-copyable, non-movable to ensure unique ownership
-    FlagsGuard(const FlagsGuard&)            = delete;
-    FlagsGuard(FlagsGuard&&)                 = delete;
-    FlagsGuard& operator=(const FlagsGuard&) = delete;
-    FlagsGuard& operator=(FlagsGuard&&)      = delete;
-
-    std::atomic<T>& flags;
 };
 
 // Hash function based on public domain MurmurHash64A by Austin Appleby.
@@ -1857,7 +1805,7 @@ inline std::string u64_to_string(u64 v) noexcept {
 std::string           utf8_from_wstring(std::wstring_view s) noexcept;
 std::filesystem::path path_from_utf8(std::string_view path) noexcept;
 
-usize str_to_size_t(std::string_view sv) noexcept;
+std::optional<usize> str_to_size_t(std::string_view sv) noexcept;
 
 // Reads the file as bytes.
 // Returns std::nullopt if the file does not exist.

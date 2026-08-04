@@ -186,14 +186,15 @@ class PerftTable final {
    public:
     PerftTable() noexcept                             = default;
     PerftTable(const PerftTable&) noexcept            = delete;
-    PerftTable(PerftTable&&) noexcept                 = delete;
     PerftTable& operator=(const PerftTable&) noexcept = delete;
+    PerftTable(PerftTable&&) noexcept                 = delete;
     PerftTable& operator=(PerftTable&&) noexcept      = delete;
+
     ~PerftTable() noexcept;
 
     void resize(usize ptSize, const Threads& threads) noexcept;
 
-    void init(const Threads& threads) noexcept;
+    void reset(const Threads& threads) noexcept;
 
     PTCluster* cluster(Key key) const noexcept;
 
@@ -228,11 +229,11 @@ void PerftTable::resize(usize ptSize, const Threads& threads) noexcept {
         std::exit(EXIT_FAILURE);
     }
 
-    init(threads);
+    reset(threads);
 }
 
-// Initializes the entire perft table to zero, in a multi-threaded way.
-void PerftTable::init(const Threads& threads) noexcept {
+// Resets the entire perft table to zero, in a multi-threaded way
+void PerftTable::reset(const Threads& threads) noexcept {
 
     const usize threadCount = threads.size();
 
