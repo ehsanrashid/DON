@@ -234,6 +234,8 @@ constexpr File file_of(Square s) noexcept { return File((u8(s) >> 0) & 0x7); }
 
 constexpr Rank rank_of(Square s) noexcept { return Rank((u8(s) >> 3) & 0x7); }
 
+constexpr Square reverse_sq(Square s) noexcept { return Square(63 - u8(s)); }
+
 [[nodiscard]] constexpr bool is_light(Square s) noexcept {
     return ((/*file_of*/ s ^ rank_of(s)) & 0x1) != 0;
 }

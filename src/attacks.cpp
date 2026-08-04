@@ -27,6 +27,24 @@ namespace Attacks {
 
 namespace {
 
+#if defined(USE_HYPERBOLA_QUINT)
+
+void init_magics() noexcept {
+
+    for (Square s = SQ_A1; s <= SQ_H8; ++s)
+    {
+        Magic& bMagic  = MAGICS[s][BISHOP - BISHOP];
+        bMagic.mask1BB = line_bb(s, Direction::NORTH_EAST, Direction::SOUTH_WEST);
+        bMagic.mask2BB = line_bb(s, Direction::NORTH_WEST, Direction::SOUTH_EAST);
+
+        Magic& rMagic  = MAGICS[s][ROOK - BISHOP];
+        rMagic.mask1BB = line_bb(s, Direction::NORTH, Direction::SOUTH);
+        rMagic.mask2BB = line_bb(s, Direction::EAST, Direction::WEST);
+    }
+}
+
+#else
+
 constexpr Array<usize, 2> TABLE_SIZES{0x1480, 0x19000};
 
 // Stores bishop & rook attacks
@@ -45,20 +63,20 @@ template<PieceType PT>
 void init_magics() noexcept {
     static_assert(PT == BISHOP || PT == ROOK, "Unsupported piece type in init_magics()");
 
-#if !defined(USE_BMI2)
+    #if !defined(USE_BMI2)
     constexpr Array<usize, 2> BlockSizes{0x200, 0x1000};
 
     // Optimal PRNG seeds to pick the correct magics in the shortest time
     constexpr Array<u16, 2, RANK_NB> Seeds{{
-    #if defined(IS_64BIT)
+        #if defined(IS_64BIT)
       {0xE4D9, 0xB1E5, 0x4F73, 0x82A9, 0x323A, 0xFFF4, 0x0C61, 0x5EFA},
       {0x8B99, 0x9A36, 0xD27A, 0x5F4C, 0xFC29, 0x0982, 0x10E1, 0x00AA}
-    #else
+        #else
       {0xFE9A, 0x4968, 0xA30A, 0x3429, 0xAA36, 0xAEAF, 0x228A, 0xAA4C},
       {0x02F6, 0x00C0, 0x8522, 0x0972, 0xF31A, 0xF6D0, 0xDA74, 0x98E5}
-    #endif
+        #endif
     }};
-#endif
+    #endif
 
     [[maybe_unused]] usize totalSize = 0;
 
@@ -85,14 +103,14 @@ void init_magics() noexcept {
         // Compute the mask of relevant occupancy bits for the square and piece type
         magic.maskBB = pseudoAttacksBB & ~edgesBB;
 
-#if defined(USE_BMI2)
-    #if defined(USE_CMP)
+    #if defined(USE_BMI2)
+        #if defined(USE_CMP)
         magic.pseudoAttacksBB = pseudoAttacksBB;
-    #endif
-#else
+        #endif
+    #else
         Array<Bitboard, BlockSizes[PT - BISHOP]> occupancyBBs;
         Array<Bitboard, BlockSizes[PT - BISHOP]> referenceBBs;
-#endif
+    #endif
 
         size = 0;
         // Use Carry-Rippler trick to enumerate all subsets of masks[s] and
@@ -102,12 +120,12 @@ void init_magics() noexcept {
         {
             Bitboard slidingAttacksBB = sliding_attacks_bb<PT>(s, occupancyBB);
 
-#if defined(USE_BMI2)
+    #if defined(USE_BMI2)
             magic.attacks_bb(occupancyBB, slidingAttacksBB);
-#else
+    #else
             occupancyBBs[size] = occupancyBB;
             referenceBBs[size] = slidingAttacksBB;
-#endif
+    #endif
             ++size;
             occupancyBB = (occupancyBB - magic.maskBB) & magic.maskBB;
 
@@ -115,16 +133,16 @@ void init_magics() noexcept {
 
         totalSize += size;
 
-#if !defined(USE_BMI2)
+    #if !defined(USE_BMI2)
         assert(size <= BlockSizes[PT - BISHOP]);
 
         // Compute the shift value (to apply to the 64-bits or 32-bits) used in the index computation
         magic.shift =
-    #if defined(IS_64BIT)
+        #if defined(IS_64BIT)
           64
-    #else
+        #else
           32
-    #endif
+        #endif
           - popcount(magic.maskBB);
 
         XorShift64Star prng(Seeds[PT - BISHOP][rank_of(s)]);
@@ -171,7 +189,7 @@ void init_magics() noexcept {
             if (magicOk)
                 break;
         }
-#endif
+    #endif
     }
 
     assert(totalSize == TABLE_SIZES[PT - BISHOP]);
@@ -181,14 +199,21 @@ void init_magics() noexcept {
 template void init_magics<BISHOP>() noexcept;
 template void init_magics<ROOK>() noexcept;
 
+#endif
+
 }  // namespace
 
 // Initializes various bitboard tables.
 // It is called at startup.
 void init() noexcept {
 
+#if defined(USE_HYPERBOLA_QUINT)
+    init_magics();
+//#elif !defined(USE_DUAL_HYPERBOLA_QUINT)
+#else
     init_magics<BISHOP>();
     init_magics<ROOK>();
+#endif
 
     for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
     {

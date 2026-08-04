@@ -39,8 +39,8 @@
 #elif defined(__loongarch__) && (__loongarch_grlen == 64)
     #define USE_HYPERBOLA_QUINT
 #elif defined(USE_AVX2)
-    #include <immintrin.h>
-    #define USE_DUAL_HYPERBOLA_QUINT
+    //#include <immintrin.h>
+    //#define USE_DUAL_HYPERBOLA_QUINT
 #endif
 
 #include "bitboard.h"
@@ -61,6 +61,113 @@ namespace Attacks {
 void init() noexcept;
 
 }  // namespace Attacks
+
+#if defined(USE_HYPERBOLA_QUINT)
+
+inline Bitboard reverse_bb(Bitboard bb) noexcept {
+    #if __has_builtin(__builtin_bitreverse64)
+    return __builtin_bitreverse64(bb);
+    #else
+        #if defined(__aarch64__)
+            #if defined(__GNUC__) && !defined(__clang__) \
+              && (__GNUC__ < 12 || (__GNUC__ == 12 && __GNUC_MINOR__ < 2))
+    // no rbit in arm_acle.h
+    Bitboard rb;
+    asm("rbit %0, %1" : "=r"(rb) : "r"(bb));
+    return rb;
+            #else
+    return __rbitll(bb);
+            #endif
+        #else  // loongarch
+    Bitboard rb;
+    asm("bitrev.d %0, %1" : "=r"(rb) : "r"(bb));
+    return rb;
+        #endif
+    #endif
+}
+
+// Hyperbola quintessence implementation for ARM
+// thanks to the availability of an efficient bit reversal instruction.
+// See https://www.chessprogramming.org/Hyperbola_Quintessence
+struct Magic final {
+   public:
+    WW Bitboard hyperbola(Square s, Bitboard occupancyBB, Bitboard maskBB) const noexcept {
+        Bitboard occBB = occupancyBB & maskBB;
+        Bitboard fwdBB = occBB - square_bb(s);
+        Bitboard revBB = reverse_bb(occBB) - square_bb(reverse_sq(s));
+        return (fwdBB ^ reverse_bb(revBB)) & maskBB;
+    }
+
+    Bitboard attacks_bb(Square s, Bitboard occupancyBB) const noexcept {
+        return hyperbola(s, occupancyBB, mask1BB) | hyperbola(s, occupancyBB, mask2BB);
+    }
+
+    // For rooks: file/rank attacks
+    // For bishops: diagonal/anti-diagonal attacks
+    Bitboard mask1BB, mask2BB;
+};
+
+#else
+
+// Magic holds all magic bitboards relevant data for a single square
+struct Magic final {
+   public:
+    Magic() noexcept                        = default;
+    Magic(const Magic&) noexcept            = delete;
+    Magic& operator=(const Magic&) noexcept = delete;
+    Magic(Magic&&) noexcept                 = delete;
+    Magic& operator=(Magic&&) noexcept      = delete;
+
+    #if defined(USE_BMI2)
+    void attacks_bb(Bitboard occupancyBB, Bitboard referenceBB) noexcept {
+        #if defined(USE_CMP)
+        attacksBBs[index(occupancyBB)] = _pext_u64(referenceBB, pseudoAttacksBB);
+        #else
+        attacksBBs[index(occupancyBB)] = referenceBB;
+        #endif
+    }
+    #endif
+
+    Bitboard attacks_bb([[maybe_unused]] Square s, Bitboard occupancyBB) const noexcept {
+    #if defined(USE_BMI2)
+        #if defined(USE_CMP)
+        return _pdep_u64(attacksBBs[index(occupancyBB)], pseudoAttacksBB);
+        #else
+        return attacksBBs[index(occupancyBB)];
+        #endif
+    #else
+        return attacksBBs[index(occupancyBB)];
+    #endif
+    }
+
+    // Compute the attack's index using the 'magic bitboards' approach
+    u16 index(Bitboard occupancyBB) const noexcept {
+    #if defined(USE_BMI2)
+        return _pext_u64(occupancyBB, maskBB);
+    #else
+        #if defined(IS_64BIT)
+        return ((occupancyBB & maskBB) * magicBB) >> shift;
+        #else
+        u32 loO = u32(occupancyBB >> 00) & u32(maskBB >> 00);
+        u32 hiO = u32(occupancyBB >> 32) & u32(maskBB >> 32);
+        u32 loM = u32(magicBB >> 00);
+        u32 hiM = u32(magicBB >> 32);
+        return ((loO * loM) ^ (hiO * hiM)) >> shift;
+        #endif
+    #endif
+    }
+
+    Bitboard   maskBB;
+    MagicMask* attacksBBs;
+    #if defined(USE_BMI2) && defined(USE_CMP)
+    Bitboard pseudoAttacksBB;
+    #else
+    Bitboard magicBB;
+    u8       shift;
+    #endif
+};
+
+#endif
 
 // Return the distance between s1 and s2, defined as the number of steps for a king in s1 to reach s2.
 template<typename T = Square>
@@ -162,6 +269,26 @@ constexpr Bitboard destination_bb(Square s, Direction d, u8 dist = 1) noexcept {
     Square nextSq = s + d;
 
     return is_ok(nextSq) && distance(s, nextSq) <= dist ? square_bb(nextSq) : 0;
+}
+
+constexpr Bitboard line_bb(Square s, Direction d1, Direction d2) noexcept {
+    assert(is_ok(s));
+
+    Bitboard lineBB = 0;
+
+    for (Direction d : {d1, d2})
+    {
+        Square curSq = s;
+
+        Bitboard destBB = 0;
+        while ((destBB = destination_bb(curSq, d)) != 0)
+        {
+            lineBB |= destBB;
+            curSq += d;
+        }
+    }
+
+    return lineBB;
 }
 
 // Computes sliding attack
@@ -288,72 +415,19 @@ constexpr Bitboard attacks_bb(Square s, Piece pc) noexcept {
     return 0;
 }
 
-// Magic holds all magic bitboards relevant data for a single square
-struct Magic final {
-   public:
-    Magic() noexcept                        = default;
-    Magic(const Magic&) noexcept            = delete;
-    Magic& operator=(const Magic&) noexcept = delete;
-    Magic(Magic&&) noexcept                 = delete;
-    Magic& operator=(Magic&&) noexcept      = delete;
-
-#if defined(USE_BMI2)
-    void attacks_bb(Bitboard occupancyBB, Bitboard referenceBB) noexcept {
-    #if defined(USE_CMP)
-        attacksBBs[index(occupancyBB)] = _pext_u64(referenceBB, pseudoAttacksBB);
-    #else
-        attacksBBs[index(occupancyBB)] = referenceBB;
-    #endif
-    }
-#endif
-
-    Bitboard attacks_bb(Bitboard occupancyBB) const noexcept {
-#if defined(USE_BMI2)
-    #if defined(USE_CMP)
-        return _pdep_u64(attacksBBs[index(occupancyBB)], pseudoAttacksBB);
-    #else
-        return attacksBBs[index(occupancyBB)];
-    #endif
-#else
-        return attacksBBs[index(occupancyBB)];
-#endif
-    }
-
-    // Compute the attack's index using the 'magic bitboards' approach
-    u16 index(Bitboard occupancyBB) const noexcept {
-#if defined(USE_BMI2)
-        return _pext_u64(occupancyBB, maskBB);
-#else
-    #if defined(IS_64BIT)
-        return ((occupancyBB & maskBB) * magicBB) >> shift;
-    #else
-        u32 loO = u32(occupancyBB >> 00) & u32(maskBB >> 00);
-        u32 hiO = u32(occupancyBB >> 32) & u32(maskBB >> 32);
-        u32 loM = u32(magicBB >> 00);
-        u32 hiM = u32(magicBB >> 32);
-        return ((loO * loM) ^ (hiO * hiM)) >> shift;
-    #endif
-#endif
-    }
-
-    Bitboard   maskBB;
-    MagicMask* attacksBBs;
-#if defined(USE_BMI2) && defined(USE_CMP)
-    Bitboard pseudoAttacksBB;
-#else
-    Bitboard magicBB;
-    u8       shift;
-#endif
-};
+#if !defined(USE_DUAL_HYPERBOLA_QUINT)
 
 alignas(CACHE_LINE_SIZE) inline Array<Magic, SQUARE_NB, 2> MAGICS;  // BISHOP or ROOK
 
 template<PieceType PT>
-constexpr Bitboard attacks_bb(const Array<Magic, 2>& magic, Bitboard occupancyBB) noexcept {
+constexpr const Magic& magic(Square s) noexcept {
     static_assert(PT == BISHOP || PT == ROOK, "Unsupported piece type in attacks_bb()");
+    assert(is_ok(s));
 
-    return magic[PT - BISHOP].attacks_bb(occupancyBB);
+    return MAGICS[s][PT - BISHOP];
 }
+
+#endif
 
 // Returns the attacks by the given piece type.
 // Sliding piece attacks do not continue passed an occupied square.
@@ -365,9 +439,9 @@ constexpr Bitboard attacks_bb(Square s, [[maybe_unused]] Bitboard occupancyBB) n
     if constexpr (PT == KNIGHT)
         return attacks_bb<KNIGHT>(s);
     if constexpr (PT == BISHOP)
-        return attacks_bb<BISHOP>(MAGICS[s], occupancyBB);
+        return magic<BISHOP>(s).attacks_bb(s, occupancyBB);
     if constexpr (PT == ROOK)
-        return attacks_bb<ROOK>(MAGICS[s], occupancyBB);
+        return magic<ROOK>(s).attacks_bb(s, occupancyBB);
     if constexpr (PT == QUEEN)
         return attacks_bb<BISHOP>(s, occupancyBB) | attacks_bb<ROOK>(s, occupancyBB);
     if constexpr (PT == KING)
@@ -409,6 +483,13 @@ constexpr Bitboard attacks_bb(Square s, Piece pc, Bitboard occupancyBB) noexcept
         return attacks_bb<PAWN>(s, color_of(pc));
 
     return attacks_bb(s, type_of(pc), occupancyBB);
+}
+
+template<PieceType PT>
+constexpr Bitboard attacks_bb(const Array<Magic, 2>& magic, Bitboard occupancyBB) noexcept {
+    static_assert(PT == BISHOP || PT == ROOK, "Unsupported piece type in attacks_bb()");
+
+    return magic[PT - BISHOP].attacks_bb(SQUARE_ZERO, occupancyBB);
 }
 
 alignas(CACHE_LINE_SIZE) inline constexpr auto LINE_BBs = []() constexpr noexcept {
