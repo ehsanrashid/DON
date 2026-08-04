@@ -1514,10 +1514,10 @@ struct SystemWideSharedMemory final {
         if (shmName.size() > SHM_NAME_MAX)
             shmName.resize(SHM_NAME_MAX);
 
-        BackendSharedMemory<T> backendShmT(shmName, value);
+        BackendSharedMemory<T> tempBackendShm(shmName, value);
 
-        if (backendShmT.is_valid())
-            backendShm = std::move(backendShmT);
+        if (tempBackendShm.is_valid())
+            backendShm = std::move(tempBackendShm);
         else
             backendShm = FallbackBackendSharedMemory<T>(shmName, value);
     }
