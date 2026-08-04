@@ -824,9 +824,7 @@ struct InitLock final {
     ~InitLock() noexcept { unlock(); }
 
     static InitLock acquire_lock(std::string_view path) noexcept {
-        int fd_ = ::open(path.data(), O_CREAT | O_RDWR | O_CLOEXEC, 0666);
-
-        UniqueFd fd(fd_);
+        UniqueFd fd(::open(path.data(), O_CREAT | O_RDWR | O_CLOEXEC, 0666));
 
         if (!fd.is_valid())
             return {};
@@ -1248,11 +1246,11 @@ class SharedMemory final: public BaseSharedMemory {
 
                 if (fds[FdServer].revents & POLLIN)
                 {
-                        // Another fish wants access
+                        // Another DON wants access
     #if !defined(__APPLE__)
-                    UniqueFd clientFd(accept4(serverFd.get(), nullptr, nullptr, SOCK_CLOEXEC));
+                    UniqueFd clientFd(::accept4(serverFd.get(), nullptr, nullptr, SOCK_CLOEXEC));
     #else
-                    UniqueFd clientFd(accept(serverFd.get(), nullptr, nullptr));
+                    UniqueFd clientFd(::accept(serverFd.get(), nullptr, nullptr));
                     set_cloexec(clientFd.get());
     #endif
                     if (!clientFd.is_valid())
@@ -1307,7 +1305,7 @@ class SharedMemory final: public BaseSharedMemory {
     void* mappedPtr = nullptr;
     T*    dataPtr   = nullptr;
 
-    // Fishes will put their .sock files in this folder, and each folder is associated with a single underlying
+    // DONs will put their .sock files in this folder, and each folder is associated with a single underlying
     // shared memfd. Therefore in a NUMA setting, we may have multiple such folders
     std::string sharedDir;
 
