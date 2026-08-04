@@ -33,6 +33,16 @@
     // leaving all other bits as zero.
 #endif
 
+#if defined(__aarch64__)
+    #include <arm_acle.h>
+    #define USE_HYPERBOLA_QUINT
+#elif defined(__loongarch__) && (__loongarch_grlen == 64)
+    #define USE_HYPERBOLA_QUINT
+#elif defined(USE_AVX2)
+    #include <immintrin.h>
+    #define USE_DUAL_HYPERBOLA_QUINT
+#endif
+
 #include "bitboard.h"
 #include "misc.h"
 #include "types.h"
@@ -300,7 +310,7 @@ struct Magic final {
 #if defined(USE_BMI2)
     void attacks_bb(Bitboard occupancyBB, Bitboard referenceBB) noexcept {
     #if defined(USE_CMP)
-        attacksBBs[index(occupancyBB)] = _pext_u64(referenceBB, reMaskBB);
+        attacksBBs[index(occupancyBB)] = _pext_u64(referenceBB, pseudoAttacksBB);
     #else
         attacksBBs[index(occupancyBB)] = referenceBB;
     #endif
@@ -310,7 +320,7 @@ struct Magic final {
     Bitboard attacks_bb(Bitboard occupancyBB) const noexcept {
 #if defined(USE_BMI2)
     #if defined(USE_CMP)
-        return _pdep_u64(attacksBBs[index(occupancyBB)], reMaskBB);
+        return _pdep_u64(attacksBBs[index(occupancyBB)], pseudoAttacksBB);
     #else
         return attacksBBs[index(occupancyBB)];
     #endif
@@ -336,19 +346,17 @@ struct Magic final {
 #endif
     }
 
+    Bitboard maskBB;
 #if defined(USE_BMI2)
     #if defined(USE_CMP)
-    Bitboard maskBB;
-    Bitboard reMaskBB;
     u16*     attacksBBs;
+    Bitboard pseudoAttacksBB;
     #else
-    Bitboard  maskBB;
     Bitboard* attacksBBs;
     #endif
 #else
-    Bitboard  maskBB;
-    Bitboard  magicBB;
     Bitboard* attacksBBs;
+    Bitboard  magicBB;
     u8        shift;
 #endif
 };

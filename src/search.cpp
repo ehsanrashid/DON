@@ -1353,7 +1353,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
 
                     history += constexpr_round(2.15625 * quietHistory[ac][move.raw()]);
 
-                    // (*Scaler) Generally, higher history scales well
+                    // (*Scaler) Generally, lower divisor scales well
                     assert(depth > DEPTH_ZERO);
                     lmrDepth += history / LMRDivisor[std::min<usize>(depth, LMRDivisor.size()) - 1];
 

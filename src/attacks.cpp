@@ -100,7 +100,7 @@ void init_magics() noexcept {
 
 #if defined(USE_BMI2)
     #if defined(USE_CMP)
-        magic.reMaskBB = pseudoAttacksBB;
+        magic.pseudoAttacksBB = pseudoAttacksBB;
     #endif
 #else
         Array<Bitboard, BlockSizes[PT - BISHOP]> occupancyBBs;
