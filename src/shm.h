@@ -1002,7 +1002,7 @@ class SharedMemory final: public BaseSharedMemory {
             set_cloexec(shutdownPipe[1]);
     #endif
             UniqueFd shutdownReceiver(shutdownPipe[0]);
-            shutdownFd = UniqueFd(shutdownPipe[1]);
+            shutdownFd = UniqueFd{shutdownPipe[1]};
 
             auto serverFd = create_unix_socket();
             if (!serverFd.is_valid())
@@ -1202,7 +1202,7 @@ class SharedMemory final: public BaseSharedMemory {
     #if !defined(MSG_CMSG_CLOEXEC)
                     set_cloexec(receivedFd);
     #endif
-                    return UniqueFd(receivedFd);
+                    return UniqueFd{receivedFd};
                 }
             }
         }
@@ -1221,24 +1221,31 @@ class SharedMemory final: public BaseSharedMemory {
     //  - Listens on serverFd
     static std::thread
     make_server_thread(UniqueFd fd, UniqueFd shutdownReceiver, UniqueFd serverFd) noexcept {
-        return std::thread([fd = std::move(fd), shutdownReceiver = std::move(shutdownReceiver),
-                            serverFd = std::move(serverFd)]() noexcept {
-            enum {
-                FdServer,
-                FdShutdown,
-                FdCount,
-            };
+        enum FD : u8 {
+            FD_SERVER,
+            FD_SHUTDOWN,
+        };
 
-            struct pollfd fds[FdCount];
-            fds[FdServer].fd     = serverFd.get();
-            fds[FdServer].events = POLLIN;
+        constexpr usize FD_NB = 2;
 
-            fds[FdShutdown].fd     = shutdownReceiver.get();
-            fds[FdShutdown].events = POLLIN;
+        union ControlMsg {
+            char           buf[CMSG_SPACE(sizeof(int))];
+            struct cmsghdr align;
+        };
+
+        return std::thread([fd               = std::move(fd),                //
+                            shutdownReceiver = std::move(shutdownReceiver),  //
+                            serverFd         = std::move(serverFd)]() noexcept {
+            struct pollfd fds[FD_NB];
+            fds[FD_SERVER].fd     = serverFd.get();
+            fds[FD_SERVER].events = POLLIN;
+
+            fds[FD_SHUTDOWN].fd     = shutdownReceiver.get();
+            fds[FD_SHUTDOWN].events = POLLIN;
 
             while (true)
             {
-                int ret = ::poll(fds, FdCount, -1);
+                int ret = ::poll(fds, FD_NB, -1);
                 if (ret < 0)
                 {
                     if (errno == EINTR)
@@ -1247,10 +1254,11 @@ class SharedMemory final: public BaseSharedMemory {
                     break;
                 }
 
-                if (fds[FdShutdown].revents)
-                    break;  // shutdown requested by main thread
+                // Shutdown requested by main thread
+                if (fds[FD_SHUTDOWN].revents != 0)
+                    break;
 
-                if (fds[FdServer].revents & POLLIN)
+                if ((fds[FD_SERVER].revents & POLLIN) != 0)
                 {
                         // Another DON wants access
     #if !defined(__APPLE__)
@@ -1270,10 +1278,7 @@ class SharedMemory final: public BaseSharedMemory {
                     msg.msg_iov     = iov;
                     msg.msg_iovlen  = 1;
 
-                    union {
-                        char           buf[CMSG_SPACE(sizeof(int))];
-                        struct cmsghdr align;
-                    } controlMsg = {};
+                    ControlMsg controlMsg{};
 
                     msg.msg_control    = controlMsg.buf;
                     msg.msg_controllen = sizeof(controlMsg.buf);
