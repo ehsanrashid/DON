@@ -798,12 +798,12 @@ struct TempRoot final {
                 return std::nullopt;
 
             // Temp root already exists, verify ownership and permissions
-            struct stat statObj{};
+            struct stat fileStat{};
 
-            if (lstat(tempPath.c_str(), &statObj) == 0  //
-                && S_ISDIR(statObj.st_mode)             //
-                && statObj.st_uid == uid                //
-                && (statObj.st_mode & 07777) == 0700)
+            if (lstat(tempPath.c_str(), &fileStat) == 0  //
+                && S_ISDIR(fileStat.st_mode)             //
+                && fileStat.st_uid == uid                //
+                && (fileStat.st_mode & 07777) == 0700)
                 return TempRoot{tempPath};
 
             return std::nullopt;
@@ -812,8 +812,14 @@ struct TempRoot final {
         return tempRoot;
     }
 
+    [[nodiscard]] std::string_view path() const noexcept { return path_; }
+
+   private:
+    explicit TempRoot(std::string path) noexcept :
+        path_(std::move(path)) {}
+
     // /tmp/DON-[uid], with appropriate permissions
-    std::string path;
+    std::string path_;
 };
 
 // Wrapper around ::flock() on a file
@@ -873,7 +879,7 @@ class SharedMemory final: public BaseSharedMemory {
    public:
     explicit SharedMemory(std::string_view shmName, const TempRoot& tempRoot) noexcept :
         BaseSharedMemory(shmName),
-        sharedDir(tempRoot.path + "/" + make_sentinel_base(name())),
+        sharedDir(std::string{tempRoot.path()} + "/" + make_sentinel_base(name())),
         initLockPath(sharedDir + "/init_lock"),
         socketPath(sharedDir + "/" + std::to_string(::getpid()) + ".sock"),
         serverThread(std::nullopt) {}

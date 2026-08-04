@@ -690,22 +690,22 @@ u8* TBTable<T>::map(std::string_view filename) noexcept {
         return nullptr;
     }
 
-    struct stat statObj{};
+    struct stat fileStat{};
 
-    if (fstat(fd, &statObj) == -1)
+    if (fstat(fd, &fileStat) == -1)
     {
         DEBUG_LOG("fstat() failed, name = " << filename << ", error = " << std::strerror(errno));
         return nullptr;
     }
 
-    if (statObj.st_size % 64 != 16)
+    if (fileStat.st_size % 64 != 16)
     {
         DEBUG_LOG("Corrupt tablebase size, name = " << filename
                                                     << ", error = " << std::strerror(errno));
         return nullptr;
     }
 
-    mappedSize = statObj.st_size;
+    mappedSize = fileStat.st_size;
 
     mappedPtr = ::mmap(nullptr, mappedSize, PROT_READ, MAP_SHARED, fd, 0);
 
