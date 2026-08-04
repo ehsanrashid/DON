@@ -643,7 +643,7 @@ u8* TBTable<T>::map(std::string_view filename) noexcept {
     }
 
     DWORD hiSize;
-    DWORD loSize = GetFileSize(hFile, &hiSize);
+    DWORD loSize = GetFileSize(hFileGuard.get(), &hiSize);
 
     if (loSize == INVALID_FILE_SIZE && GetLastError() != NO_ERROR)
     {
@@ -659,7 +659,7 @@ u8* TBTable<T>::map(std::string_view filename) noexcept {
         return nullptr;
     }
 
-    hMapFile = CreateFileMapping(hFile, nullptr, PAGE_READONLY, hiSize, loSize, nullptr);
+    hMapFile = CreateFileMapping(hFileGuard.get(), nullptr, PAGE_READONLY, hiSize, loSize, nullptr);
 
     if (!hMapFileGuard.is_valid())
     {
@@ -668,7 +668,7 @@ u8* TBTable<T>::map(std::string_view filename) noexcept {
         return nullptr;
     }
 
-    mappedPtr = MapViewOfFile(hMapFile, FILE_MAP_READ, 0, 0, 0);
+    mappedPtr = MapViewOfFile(hMapFileGuard.get(), FILE_MAP_READ, 0, 0, 0);
 
     if (!mappedGuard.is_valid())
     {

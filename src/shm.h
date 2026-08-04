@@ -356,7 +356,7 @@ class BackendSharedMemory final {
             return;
         }
 
-        mappedPtr = MapViewOfFile(hMapFile, FILE_MAP_ALL_ACCESS, 0, 0, TotalSize);
+        mappedPtr = MapViewOfFile(hMapFileGuard.get(), FILE_MAP_ALL_ACCESS, 0, 0, TotalSize);
 
         if (!mappedGuard.is_valid())
         {
@@ -374,7 +374,7 @@ class BackendSharedMemory final {
 
         HandleGuard hMutexGuard{hMutex};
 
-        if (hMutex == nullptr)
+        if (!hMutexGuard.is_valid())
         {
             //DEBUG_LOG("CreateMutex() failed, name = " << mutexName << ", error = " << error_to_string(GetLastError()));
             status = Status::MutexCreate;
@@ -382,7 +382,7 @@ class BackendSharedMemory final {
             return;
         }
         // Wait for ownership
-        if (WaitForSingleObject(hMutex, INFINITE) != WAIT_OBJECT_0)
+        if (WaitForSingleObject(hMutexGuard.get(), INFINITE) != WAIT_OBJECT_0)
         {
             //DEBUG_LOG("WaitForSingleObject() failed, name = " << mutexName << ", error = " << error_to_string(GetLastError()));
             status = Status::MutexWait;
@@ -391,10 +391,10 @@ class BackendSharedMemory final {
         }
 
         // Object lives first to ensure alignment
-        T* object = reinterpret_cast<T*>(mappedPtr);
+        T* object = reinterpret_cast<T*>(mappedGuard.get());
 
         auto* sharedState =
-          reinterpret_cast<volatile DWORD*>(reinterpret_cast<char*>(mappedPtr) + sizeof(T));
+          reinterpret_cast<volatile DWORD*>(reinterpret_cast<char*>(mappedGuard.get()) + sizeof(T));
 
         // Attempt atomic initialization
         if (InterlockedCompareExchange(sharedState, DWORD(SharedState::Initializing),
@@ -414,7 +414,7 @@ class BackendSharedMemory final {
                 PAUSE();  // portable "pause" for any architecture
         }
 
-        if (!ReleaseMutex(hMutex))
+        if (!ReleaseMutex(hMutexGuard.get()))
         {
             //DEBUG_LOG("ReleaseMutex() failed, name = " << mutexName << ", error = " << error_to_string(GetLastError()));
             status = Status::MutexRelease;
