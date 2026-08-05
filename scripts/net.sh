@@ -55,7 +55,7 @@ fetch_network() {
                     "Install one of these tools to download NNUE files automatically."
         exit 1
     fi
-    printf 'wget_or_curl=[%s]\n' "$wget_or_curl"
+
     for url in "https://tests.stockfishchess.org/api/nn/$filename" \
                "https://github.com/official-stockfish/networks/raw/master/$filename"
     do
