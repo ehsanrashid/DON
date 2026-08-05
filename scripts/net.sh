@@ -2,8 +2,9 @@
 
 # Download commands with a 5min time-out to ensure things fail if the server stalls
 wget_or_curl=$(
-    (command -v wget >/dev/null 2>&1 && echo "wget -qO- --timeout=300 --tries=1") || \
-    (command -v curl >/dev/null 2>&1 && echo "curl -skL --max-time 300"))
+    command -v wget >/dev/null 2>&1 && echo "wget -qO- --timeout=300 --tries=1" ||
+    command -v curl >/dev/null 2>&1 && echo "curl -skL --max-time 300"
+)
 
 if [ -z "$wget_or_curl" ]; then
     echo "Error: wget or curl not found" >&2
@@ -11,8 +12,9 @@ if [ -z "$wget_or_curl" ]; then
 fi
 
 sha256sum=$(
-    (command -v shasum >/dev/null 2>&1 && echo "shasum -a 256") || \
-    (command -v sha256sum >/dev/null 2>&1 && echo "sha256sum"))
+    command -v shasum >/dev/null 2>&1 && echo "shasum -a 256" ||
+    command -v sha256sum >/dev/null 2>&1 && echo "sha256sum"
+)
 
 if [ -z "$sha256sum" ]; then
     >&2 echo "sha256sum not found, NNUE files will be assumed valid."
@@ -23,15 +25,12 @@ get_nnue_filename() {
 }
 
 validate_network() {
-    # If no sha256sum command is available, assume the file is valid.
-    if [ -z "$sha256sum" ]; then
-        return 0
-    fi
-    if [ -f "$1" ]; then
-        if [ "$1" != "nn-$($sha256sum "$1" | cut -c 1-12).nnue" ]; then
-            rm -f "$1"
-            return 1
-        fi
+    # If no sha256sum command is available, assume the file is always valid
+    [ -z "$sha256sum" ] && return 0
+
+    if [ -f "$1" ] && [ "$1" != "nn-$($sha256sum "$1" | cut -c 1-12).nnue" ]; then
+        rm -f "$1"
+        return 1
     fi
 }
 
@@ -51,7 +50,9 @@ fetch_network() {
         fi
     fi
     if [ -z "$wget_or_curl" ]; then
-        >&2 echo "Neither wget or curl is installed. Install one of these tools to download NNUE files automatically."
+        >&2 printf "%s\n" \
+                    "Neither wget nor curl is installed." \
+                    "Install one of these tools to download NNUE files automatically."
         exit 1
     fi
 

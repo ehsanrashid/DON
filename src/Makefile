@@ -1176,6 +1176,8 @@ help:
 	echo "x86-64-avxvnni          > x86 64-bit with vnni 256bit support" && \
 	echo "x86-64-bmi2             > x86 64-bit with bmi2 support" && \
 	echo "x86-64-avx2             > x86 64-bit with avx2 support" && \
+	echo "x86-64-bitmanip-cmp     > x86 64-bit with bit manipulation support and compressed instructions" && \
+	echo "x86-64-bitmanip         > x86 64-bit with bit manipulation support" && \
 	echo "x86-64-sse41-popcnt     > x86 64-bit with sse41 and popcnt support" && \
 	echo "x86-64-modern           > deprecated, currently x86-64-sse41-popcnt" && \
 	echo "x86-64-sse41            > x86 64-bit with sse41 support" && \
