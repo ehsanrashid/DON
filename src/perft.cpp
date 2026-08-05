@@ -56,7 +56,7 @@ struct PerftData final {
 
 void PerftData::classify(Position& pos, Move m) noexcept {
 
-    Square orgSq = m.org_sq(), dstSq = m.dst_sq();
+    const Square orgSq = m.org_sq(), dstSq = m.dst_sq();
 
     State st;
 
@@ -75,10 +75,10 @@ void PerftData::classify(Position& pos, Move m) noexcept {
     {
         ++anyCheck;
 
-        auto movedPt = m.type() != MT::PROMOTION ? type_of(pos[orgSq]) : m.promotion_type();
+        const auto movedPt = m.type() != MT::PROMOTION ? type_of(pos[orgSq]) : m.promotion_type();
         if ((pos.checks_bb(movedPt) & dstSq) == 0)
         {
-            Color ac = pos.active_color();
+            const Color ac = pos.active_color();
 
             if ((pos.blockers_bb(~ac) & orgSq) != 0)
                 ++dscCheck;
@@ -339,7 +339,7 @@ PerftData perft(Position& pos, Depth depth, bool detail) noexcept {
             {
                 if (use_perft_table(depth, detail))
                 {
-                    Key key = pos.raw_key();
+                    const Key key = pos.raw_key();
 
                     auto [ptHit, pte] = perftTable.probe(key, depth - 1);
 

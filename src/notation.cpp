@@ -212,11 +212,11 @@ Ambiguity detect_ambiguity(Move m, const Position& pos) noexcept {
     Bitboard b = candidatesBB;
     while (b != 0)
     {
-        Square oSq = pop_lsq(b);
+        const Square oSq = pop_lsq(b);
 
-        Move testMove(oSq, dstSq);
+        const Move move{oSq, dstSq};
 
-        if (!pos.legal(testMove))
+        if (!pos.legal(move))
             candidatesBB ^= oSq;
     }
 
