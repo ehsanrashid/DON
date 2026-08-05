@@ -425,6 +425,12 @@ std::string compiler_info() noexcept {
     compiler.append(" NEON");
     #endif
 #endif
+#if defined(USE_LASX)
+    compiler.append(" LASX");
+#endif
+#if defined(USE_LSX)
+    compiler.append(" LSX");
+#endif
 #if defined(USE_POPCNT)
     compiler.append(" POPCNT");
 #endif
