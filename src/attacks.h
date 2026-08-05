@@ -67,7 +67,7 @@ void init() noexcept;
 
 struct alignas(32) DualMagic final {
    public:
-    // We always compute [bishop, rook] attacks at once, then rely on
+    // Always compute [bishop, rook] attacks at once, then rely on
     // compiler's DCE and CSE to eliminate unneeded re-computations or extractions.
     //
     // When using hyperbola quintessence, file, diagonal and antidiagonal attacks
@@ -543,7 +543,7 @@ constexpr const Magic& magic(Square s) noexcept {
 #endif
 
 // Returns the attacks by the given piece type.
-// Sliding piece attacks do not continue passed an occupied square.
+// Sliding piece attacks do not continue past an occupied square.
 template<PieceType PT>
 constexpr Bitboard attacks_bb(Square s, [[maybe_unused]] Bitboard occupancyBB) noexcept {
     static_assert(PT != PAWN, "Unsupported piece type in attacks_bb()");
@@ -551,6 +551,8 @@ constexpr Bitboard attacks_bb(Square s, [[maybe_unused]] Bitboard occupancyBB) n
 
     if constexpr (PT == KNIGHT)
         return attacks_bb<KNIGHT>(s);
+    if constexpr (PT == KING)
+        return attacks_bb<KING>(s);
 
 #if defined(USE_DUAL_HYPERBOLA_QUINT)
     [[maybe_unused]] const auto [bishop, rook] = dual_magic(s).attacks_pair_bb(occupancyBB);
@@ -562,16 +564,11 @@ constexpr Bitboard attacks_bb(Square s, [[maybe_unused]] Bitboard occupancyBB) n
     if constexpr (PT == QUEEN)
         return bishop | rook;
 #else
-    if constexpr (PT == BISHOP)
-        return magic<BISHOP>(s).attacks_bb(s, occupancyBB);
-    if constexpr (PT == ROOK)
-        return magic<ROOK>(s).attacks_bb(s, occupancyBB);
+    if constexpr (PT == BISHOP || PT == ROOK)
+        return magic<PT>(s).attacks_bb(s, occupancyBB);
     if constexpr (PT == QUEEN)
         return attacks_bb<BISHOP>(s, occupancyBB) | attacks_bb<ROOK>(s, occupancyBB);
 #endif
-
-    if constexpr (PT == KING)
-        return attacks_bb<KING>(s);
 
     assert(false);
     UNREACHABLE();
@@ -579,7 +576,7 @@ constexpr Bitboard attacks_bb(Square s, [[maybe_unused]] Bitboard occupancyBB) n
 }
 
 // Returns the attacks by the given piece type.
-// Sliding piece attacks do not continue passed an occupied square.
+// Sliding piece attacks do not continue past an occupied square.
 constexpr Bitboard attacks_bb(Square s, PieceType pt, Bitboard occupancyBB) noexcept {
     assert(pt != PAWN);
     assert(is_ok(s));
@@ -612,7 +609,7 @@ constexpr Bitboard attacks_bb(Square s, Piece pc, Bitboard occupancyBB) noexcept
     return attacks_bb(s, type_of(pc), occupancyBB);
 }
 
-inline std::pair<Bitboard, Bitboard> attacks_pair_bb(Square s) noexcept {
+constexpr std::pair<Bitboard, Bitboard> attacks_pair_bb(Square s) noexcept {
     return {attacks_bb<BISHOP>(s), attacks_bb<ROOK>(s)};
 }
 
