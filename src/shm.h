@@ -1137,13 +1137,17 @@ class SharedMemory final: public BaseSharedMemory {
                                                                const T&         value) noexcept {
         SharedMemoryCleanupManager::ensure_initialized();
 
-        auto tempRoot = TempRoot::temp_root();
+        const auto& tempRoot = TempRoot::temp_root();
+
         if (!tempRoot)
             return std::nullopt;
+
         SharedMemory<T> shm(name, *tempRoot);
-        if (shm.open(value))
-            return shm;
-        return std::nullopt;
+
+        if (!shm.open(value))
+            return std::nullopt;
+
+        return shm;
     }
 
     [[nodiscard]] bool open(const T& value) noexcept {
