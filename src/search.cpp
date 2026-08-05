@@ -759,7 +759,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
     assert(ss->ply >= 0);
     assert(!RootNode || (DEPTH_ZERO < depth && depth <= DEPTH_MAX));
 
-    Key key = pos.key();
+    const Key key = pos.key();
 
     if constexpr (!RootNode)
     {
@@ -794,7 +794,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
         selDepth = std::max<u16>(ss->ply + 1, selDepth);
     }
 
-    usize prePvIdx = std::max<int>((ss - 1)->ply, 0);
+    const usize prePvIdx = std::max<int>((ss - 1)->ply, 0);
 
     // Step 1. Initialize node
     ss->inCheck   = pos.checkers_bb() != 0;
@@ -828,7 +828,7 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
 
     (ss + 1)->cutoffCount = 0;
 
-    bool exclude = excludedMove != Move::None;
+    const bool exclude = excludedMove != Move::None;
 
     // Step 4. Transposition table lookup
     auto [ttd, ttu] = transpositionTable.probe(key);
@@ -848,21 +848,22 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
         assert(ttmNone || pos.legal(ttd.move));
     }
 
-    ss->ttMove      = ttd.move;
-    bool ttmCapture = !ttmNone && pos.capture_promo(ttd.move);
+    ss->ttMove = ttd.move;
+
+    const bool ttmCapture = !ttmNone && pos.capture_promo(ttd.move);
 
     if (!exclude)
         ss->ttPv = PVNode || (ttd.hit && ttd.pv);
 
-    Move preMove = (ss - 1)->move;
+    const Move preMove = (ss - 1)->move;
 
-    bool   preOk = preMove.is_ok();
-    Square preSq = preMove.dst_sq_();
+    const bool   preOk = preMove.is_ok();
+    const Square preSq = preMove.dst_sq_();
 
-    bool preCapture = pos.captured_pc() != Piece::NO_PIECE;
-    bool preNonPawn = preOk && type_of(pos[preSq]) != PAWN && preMove.type() != MT::PROMOTION;
+    const bool preCapture = pos.captured_pc() != Piece::NO_PIECE;
+    const bool preNonPawn = preOk && type_of(pos[preSq]) != PAWN && preMove.type() != MT::PROMOTION;
 
-    int correctionValue = correction_value(pos, ss);
+    const int correctionValue = correction_value(pos, ss);
 
     Value evalValue, ttEvalValue;
 
@@ -972,10 +973,10 @@ Value Worker::search(Position& pos, Stack* ss, Value alpha, Value beta, Depth de
         }
     }
 
-    Color ac = pos.active_color();
+    const Color ac = pos.active_color();
 
-    bool  hasNonPawn   = pos.has_non_pawn(ac);
-    Value nonPawnValue = hasNonPawn ? pos.non_pawn_value(ac) : VALUE_ZERO;
+    const bool  hasNonPawn   = pos.has_non_pawn(ac);
+    const Value nonPawnValue = hasNonPawn ? pos.non_pawn_value(ac) : VALUE_ZERO;
 
     Value bestValue = -VALUE_INFINITE;
 
@@ -1788,7 +1789,7 @@ Value Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta) noexcep
     assert(-VALUE_INFINITE <= alpha && alpha < beta && beta <= +VALUE_INFINITE);
     assert(PVNode || (alpha + 1 == beta));
 
-    Key key = pos.key();
+    const Key key = pos.key();
 
     // Check if have an upcoming move that draws by repetition
     if (alpha < VALUE_DRAW && pos.is_upcoming_repetition(ss->ply))
@@ -1825,8 +1826,8 @@ Value Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta) noexcep
     ttd.value = ttd.hit ? value_from_tt(ttd.value, ss->ply, pos.rule50_count()) : VALUE_NONE;
     ttd.move  = ttd.hit ? legal_move(ttd.move, pos) : Move::None;
     assert(ttd.move == Move::None || pos.legal(ttd.move));
-    ss->ttMove = ttd.move;
-    bool ttPv  = ttd.hit && ttd.pv;
+    ss->ttMove      = ttd.move;
+    const bool ttPv = ttd.hit && ttd.pv;
 
     // Check for an early TT cutoff at non-pv nodes
     if constexpr (!PVNode)
@@ -1836,7 +1837,7 @@ Value Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta) noexcep
             return ttd.value;
     }
 
-    int correctionValue = ss->inCheck ? 0 : correction_value(pos, ss);
+    const int correctionValue = ss->inCheck ? 0 : correction_value(pos, ss);
 
     Value evalValue, bestValue;
 
@@ -1895,8 +1896,8 @@ Value Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta) noexcep
 
     Move preMove = (ss - 1)->move;
 
-    bool   preOk = preMove.is_ok();
-    Square preSq = preMove.dst_sq_();
+    const bool   preOk = preMove.is_ok();
+    const Square preSq = preMove.dst_sq_();
 
     State st;
 
