@@ -882,10 +882,9 @@ ifeq ($(prefetch),yes)
 endif
 
 ifeq ($(popcnt),yes)
-    ifneq ($(filter ppc64 ppc64-altivec ppc64-vsx armv7 armv8 arm64,$(arch)),)
-        CXXFLAGS += -DUSE_POPCNT
-    else
-        CXXFLAGS += -DUSE_POPCNT -msse3 -mpopcnt
+    CXXFLAGS += -DUSE_POPCNT
+    ifeq ($(filter ppc64 ppc64-altivec ppc64-vsx armv7 armv8 arm64,$(arch)),)
+        CXXFLAGS += -msse3 -mpopcnt
     endif
 endif
 

@@ -255,11 +255,10 @@ inline u8 popcount(Bitboard b) noexcept {
 
     return POP_CNTS[b16[0]] + POP_CNTS[b16[1]] + POP_CNTS[b16[2]] + POP_CNTS[b16[3]];
 #elif defined(__GNUC__)  // (GCC, Clang, ICX)
-    return __builtin_popcountll(b);
+    return u8(__builtin_popcountll(b));
 #elif defined(_MSC_VER)
-    return _mm_popcnt_u64(b);
+    return u8(_mm_popcnt_u64(b));
 #else  // Compiler is neither GCC nor MSVC compatible
-    #error "Compiler not supported."
     // Using a fallback implementation
     return constexpr_popcount(b);
 #endif
@@ -287,7 +286,6 @@ inline Square lsq(Bitboard b) noexcept {
     return Square(idx + 32);
     #endif
 #else  // Compiler is neither GCC nor MSVC compatible
-    #error "Compiler not supported."
     // Using a fallback implementation
     return Square(constexpr_lsb(b));
 #endif
@@ -315,7 +313,6 @@ inline Square msq(Bitboard b) noexcept {
     return Square(idx);
     #endif
 #else  // Compiler is neither GCC nor MSVC compatible
-    #error "Compiler not supported."
     // Using a fallback implementation
     return Square(constexpr_msb(b));
 #endif
