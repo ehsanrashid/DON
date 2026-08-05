@@ -882,12 +882,13 @@ DirtyBoard Position::do_move(Move m, State& newSt, bool mayCheck, const Worker* 
     ++st->nullPly;
     st->hasRule50High |= rule50_count() >= rule50_threshold();
 
-    Color ac = active_color();
+    const Color ac = active_color();
 
-    Square orgSq = m.org_sq(), dstSq = m.dst_sq();
-    Piece  movedPc    = piece(orgSq);
-    Piece  capturedPc = piece(m.type() != MT::EN_PASSANT ? dstSq : dstSq - pawn_spush(ac));
-    Piece  promotedPc = Piece::NO_PIECE;
+    const Square orgSq      = m.org_sq();
+    Square       dstSq      = m.dst_sq();
+    Piece        movedPc    = piece(orgSq);
+    Piece        capturedPc = piece(m.type() != MT::EN_PASSANT ? dstSq : dstSq - pawn_spush(ac));
+    Piece        promotedPc = Piece::NO_PIECE;
     assert(color_of(movedPc) == ac);
     assert(capturedPc == Piece::NO_PIECE
            || (color_of(capturedPc) == (m.type() != MT::CASTLING ? ~ac : ac)
@@ -1095,14 +1096,14 @@ DirtyBoard Position::do_move(Move m, State& newSt, bool mayCheck, const Worker* 
         assert(popcount(checkers_bb()) <= 2 && (checkers_bb() & square<KING>(ac)) == 0);
     }
 
-    ac = activeColor = ~ac;
+    activeColor = ~ac;
 
     set_pinner_blocker();
     set_ext_state();
 
     if (enPassantSq != SQ_NONE)
     {
-        if (enpassant_possible(ac, enPassantSq))
+        if (enpassant_possible(active_color(), enPassantSq))
         {
             st->enPassantSq = enPassantSq;
             st->key ^= Zobrist::enpassant(enPassantSq);
@@ -1151,9 +1152,10 @@ DirtyBoard Position::do_move(Move m, State& newSt, bool mayCheck, const Worker* 
 // Unmakes a move, restoring the position to its exact state before the move was made.
 void Position::undo_move(Move m) noexcept {
 
-    Color ac = activeColor = ~active_color();
+    const Color ac = activeColor = ~active_color();
 
-    Square orgSq = m.org_sq(), dstSq = m.dst_sq();
+    const Square orgSq = m.org_sq();
+    Square       dstSq = m.dst_sq();
     assert(empty(orgSq) || m.type() == MT::CASTLING);
 
     if (m.type() == MT::CASTLING)

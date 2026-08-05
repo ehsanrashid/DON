@@ -138,7 +138,8 @@ std::string move_to_can(Move m) noexcept {
     if (m == Move::Null)
         return "0000";
 
-    Square orgSq = m.org_sq(), dstSq = m.dst_sq();
+    const Square orgSq = m.org_sq();
+    Square       dstSq = m.dst_sq();
 
     if (!Position::Chess960 && m.type() == MT::CASTLING)
     {
@@ -190,11 +191,11 @@ enum class Ambiguity : u8 {
 Ambiguity detect_ambiguity(Move m, const Position& pos) noexcept {
     assert(pos.legal(m));
 
-    Color ac = pos.active_color();
+    const Color ac = pos.active_color();
 
-    Square orgSq = m.org_sq(), dstSq = m.dst_sq();
+    const Square orgSq = m.org_sq(), dstSq = m.dst_sq();
     assert(color_of(pos[orgSq]) == ac);
-    auto movedPt = type_of(pos[orgSq]);
+    const auto movedPt = type_of(pos[orgSq]);
 
     // Only one piece of this piece-type -> no ambiguity
     if (pos.count(ac, movedPt) == 1)
@@ -238,10 +239,10 @@ std::string move_to_san(Move m, Position& pos) noexcept {
 
     assert(MoveList<GenType::LEGAL>(pos).contains(m));
 
-    Square orgSq = m.org_sq(), dstSq = m.dst_sq();
+    const Square orgSq = m.org_sq(), dstSq = m.dst_sq();
     assert(color_of(pos[orgSq]) == pos.active_color());
 
-    auto movedPt = type_of(pos[orgSq]);
+    const auto movedPt = type_of(pos[orgSq]);
 
     std::string san;
     san.reserve(9);
@@ -290,7 +291,7 @@ std::string move_to_san(Move m, Position& pos) noexcept {
     State st;
     pos.do_move(m, st);
 
-    bool legalMovesEmpty = MoveList<GenType::LEGAL, true>(pos).empty();
+    const bool legalMovesEmpty = MoveList<GenType::LEGAL, true>(pos).empty();
 
     if (pos.checkers_bb() != 0)
         san.push_back(legalMovesEmpty ? '#' : '+');
