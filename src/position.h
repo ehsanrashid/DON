@@ -276,10 +276,10 @@ class Position final {
     attackers_exists(Square s, Bitboard attackersBB, Bitboard occupancyBB) const noexcept;
     [[nodiscard]] bool attackers_exists(Square s, Bitboard attackersBB) const noexcept;
 
-    Bitboard blockers_bb(Square    s,
-                         Bitboard  attackersBB,
-                         Bitboard& ownPinnersBB,
-                         Bitboard& oppPinnersBB) const noexcept;
+    [[nodiscard]] Bitboard blockers_bb(Square    s,
+                                       Bitboard  attackersBB,
+                                       Bitboard& ownPinnersBB,
+                                       Bitboard& oppPinnersBB) const noexcept;
 
     // Attacks from a piece type
     template<PieceType PT>
@@ -606,13 +606,15 @@ inline bool Position::castling_possible(Color c, CastlingSide cs) const noexcept
 
 // Computes a bitboard of all x-ray sliding pieces which attack a given square.
 inline Bitboard Position::xslide_attackers_bb(Square s) const noexcept {
-    return (pieces_bb(QUEEN, BISHOP) & attacks_bb<BISHOP>(s))
-         | (pieces_bb(QUEEN, ROOK  ) & attacks_bb<ROOK  >(s));
+    const auto [bAttacksBB, rAttacksBB] = attacks_pair_bb(s);
+    return (pieces_bb(QUEEN, BISHOP) & bAttacksBB)
+         | (pieces_bb(QUEEN, ROOK  ) & rAttacksBB);
 }
 // Computes a bitboard of all sliding pieces which attack a given square on occupancy.
 inline Bitboard Position::slide_attackers_bb(Square s, Bitboard occupancyBB) const noexcept {
-    return (pieces_bb(QUEEN, BISHOP) & attacks_bb<BISHOP>(s, occupancyBB))
-         | (pieces_bb(QUEEN, ROOK  ) & attacks_bb<ROOK  >(s, occupancyBB));
+    const auto [bAttacksBB, rAttacksBB] = attacks_pair_bb(s, occupancyBB);
+    return (pieces_bb(QUEEN, BISHOP) & bAttacksBB)
+         | (pieces_bb(QUEEN, ROOK  ) & rAttacksBB);
 }
 inline Bitboard Position::slide_attackers_bb(Square s) const noexcept {
     return slide_attackers_bb(s, pieces_bb());
@@ -631,8 +633,9 @@ inline Bitboard Position::attackers_bb(Square s) const noexcept {
 
 // Checks if there are any slide attackers to 's'
 inline bool Position::slide_attackers_exists(Square s, Bitboard attackersBB, Bitboard occupancyBB) const noexcept {
-    return (attackersBB & pieces_bb(QUEEN, BISHOP) & attacks_bb<BISHOP>(s, occupancyBB)) != 0
-        || (attackersBB & pieces_bb(QUEEN, ROOK  ) & attacks_bb<ROOK  >(s, occupancyBB)) != 0;
+    const auto [bAttacksBB, rAttacksBB] = attacks_pair_bb(s, occupancyBB);
+    return (attackersBB & pieces_bb(QUEEN, BISHOP) & bAttacksBB) != 0
+        || (attackersBB & pieces_bb(QUEEN, ROOK  ) & rAttacksBB) != 0;
 }
 inline bool Position::slide_attackers_exists(Square s, Bitboard attackersBB) const noexcept {
     return slide_attackers_exists(s, attackersBB, pieces_bb());

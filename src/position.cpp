@@ -708,19 +708,14 @@ void Position::set_ext_state() noexcept {
 
     Square kingSq = square<KING>(~ac);
 
-    Bitboard occupancyBB = pieces_bb();
+    const auto [bAttacksBB, rAttacksBB] = attacks_pair_bb(kingSq, pieces_bb());
 
     // clang-format off
-    Array<Bitboard, 2> attacksBB{
-      attacks_bb<BISHOP>(kingSq, occupancyBB),
-      attacks_bb<ROOK  >(kingSq, occupancyBB)
-    };
-
     st->checksBB[PAWN  ] = attacks_bb<PAWN  >(kingSq, ~ac);
     st->checksBB[KNIGHT] = attacks_bb<KNIGHT>(kingSq);
-    st->checksBB[BISHOP] = attacksBB[0];
-    st->checksBB[ROOK  ] = attacksBB[1];
-    st->checksBB[QUEEN ] = attacksBB[0] | attacksBB[1];
+    st->checksBB[BISHOP] = bAttacksBB;
+    st->checksBB[ROOK  ] = rAttacksBB;
+    st->checksBB[QUEEN ] = st->checksBB[BISHOP] | st->checksBB[ROOK];
     st->checksBB[KING  ] = 0;
 
     st->accAttacksBB[NO_PIECE_TYPE] = 0;
@@ -1606,8 +1601,10 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
     else
         enPassantSq = SQ_NONE;
 
-    Bitboard qbBB = pieces_bb(QUEEN, BISHOP) & attacks_bb<BISHOP>(dstSq) & occupancyBB;
-    Bitboard qrBB = pieces_bb(QUEEN, ROOK) & attacks_bb<ROOK>(dstSq) & occupancyBB;
+    auto [bAttacksBB, rAttacksBB] = attacks_pair_bb(dstSq);
+
+    Bitboard qbBB = pieces_bb(QUEEN, BISHOP) & bAttacksBB & occupancyBB;
+    Bitboard qrBB = pieces_bb(QUEEN, ROOK) & rAttacksBB & occupancyBB;
 
     bool ge = true;
 
@@ -1663,8 +1660,10 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
                 if (attackersBB == 0)
                     break;
 
-                qbBB = pieces_bb(QUEEN, BISHOP) & attacks_bb<BISHOP>(dstSq) & occupancyBB;
-                qrBB = pieces_bb(QUEEN, ROOK) & attacks_bb<ROOK>(dstSq) & occupancyBB;
+                auto [bNewAttacksBB, rNewAttacksBB] = attacks_pair_bb(dstSq);
+
+                qbBB = pieces_bb(QUEEN, BISHOP) & bNewAttacksBB & occupancyBB;
+                qrBB = pieces_bb(QUEEN, ROOK) & rNewAttacksBB & occupancyBB;
 
                 acAttackersBB = pieces_bb(ac) & attackersBB;
             }
@@ -1717,13 +1716,11 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
             case PAWN :
             case BISHOP :
                 qbBB &= occupancyBB;
-                if (qbBB != 0)
-                    attackersBB |= qbBB & attacks_bb<BISHOP>(dstSq, occupancyBB);
+                attackersBB |= qbBB & attacks_bb<BISHOP>(dstSq, occupancyBB);
                 break;
             case ROOK :
                 qrBB &= occupancyBB;
-                if (qrBB != 0)
-                    attackersBB |= qrBB & attacks_bb<ROOK>(dstSq, occupancyBB);
+                attackersBB |= qrBB & attacks_bb<ROOK>(dstSq, occupancyBB);
                 break;
             case QUEEN :
                 assert(false);
@@ -1741,8 +1738,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
             if ((swap = VALUE_PAWN - swap) < int(ge))
                 break;
 
-            if (qbBB != 0)
-                attackersBB |= qbBB & attacks_bb<BISHOP>(dstSq, occupancyBB);
+            attackersBB |= qbBB & attacks_bb<BISHOP>(dstSq, occupancyBB);
 
             if (enPassantSq != SQ_NONE && rank_of(orgSq) == rank_of(dstSq))
             {
@@ -1755,8 +1751,10 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
                 if (attackersBB == 0)
                     break;
 
-                qbBB = pieces_bb(QUEEN, BISHOP) & attacks_bb<BISHOP>(dstSq) & occupancyBB;
-                qrBB = pieces_bb(QUEEN, ROOK) & attacks_bb<ROOK>(dstSq) & occupancyBB;
+                auto [bNewAttacksBB, rNewAttacksBB] = attacks_pair_bb(dstSq);
+
+                qbBB = pieces_bb(QUEEN, BISHOP) & bNewAttacksBB & occupancyBB;
+                qrBB = pieces_bb(QUEEN, ROOK) & rNewAttacksBB & occupancyBB;
             }
         }
         else if ((b = pieces_bb(KNIGHT) & acAttackersBB) != 0)
@@ -1774,8 +1772,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
                 break;
 
             qbBB &= occupancyBB;
-            if (qbBB != 0)
-                attackersBB |= qbBB & attacks_bb<BISHOP>(dstSq, occupancyBB);
+            attackersBB |= qbBB & attacks_bb<BISHOP>(dstSq, occupancyBB);
         }
         else if ((b = pieces_bb(ROOK) & acAttackersBB) != 0)
         {
@@ -1785,8 +1782,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
                 break;
 
             qrBB &= occupancyBB;
-            if (qrBB != 0)
-                attackersBB |= qrBB & attacks_bb<ROOK>(dstSq, occupancyBB);
+            attackersBB |= qrBB & attacks_bb<ROOK>(dstSq, occupancyBB);
         }
         else if ((b = pieces_bb(QUEEN) & acAttackersBB) != 0)
         {
@@ -1796,12 +1792,11 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
                 break;
 
             qbBB &= occupancyBB;
-            if (qbBB != 0)
-                attackersBB |= qbBB & attacks_bb<BISHOP>(dstSq, occupancyBB);
-
             qrBB &= occupancyBB;
-            if (qrBB != 0)
-                attackersBB |= qrBB & attacks_bb<ROOK>(dstSq, occupancyBB);
+
+            auto [bNewAttacksBB, rNewAttacksBB] = attacks_pair_bb(dstSq, occupancyBB);
+
+            attackersBB |= (qbBB & bNewAttacksBB) | (qrBB & rNewAttacksBB);
         }
         else  // KING
         {
