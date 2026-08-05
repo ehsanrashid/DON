@@ -2320,14 +2320,14 @@ void Worker::extend_tb_pv(usize index, Value& value) noexcept {
     if (!options["SyzygyPVExtend"])
         return;
 
-    TimePoint OverheadTime = options["OverheadTime"];
-    bool      UseRule50    = options["Syzygy50MoveRule"];
+    const TimePoint OverheadTime = options["OverheadTime"];
+    const bool      UseRule50    = options["Syzygy50MoveRule"];
 
     // If time manager is active, don't use more than 50% of OverheadTime time
-    auto startTime = std::chrono::steady_clock::now();
+    const auto startTime = std::chrono::steady_clock::now();
 
     auto time_to_abort = [&]() noexcept -> bool {
-        auto endTime = std::chrono::steady_clock::now();
+        const auto endTime = std::chrono::steady_clock::now();
         return limit.use_time_manager()
             && (options["NodesTime"] != 0
                 || std::chrono::duration<double, std::milli>(endTime - startTime).count()
@@ -2348,14 +2348,14 @@ void Worker::extend_tb_pv(usize index, Value& value) noexcept {
     // Step 1. Walk the PV to the last position in TB with correct decisive score
     while (usize(ply) < rootMove.pv.size())
     {
-        Move pvMove = rootMove.pv[ply];
+        const Move pvMove = rootMove.pv[ply];
 
         RootMoves rms;
 
         for (Move m : MoveList<GenType::LEGAL>(rootPos))
             rms.emplace_back(m);
 
-        auto tbCfg =
+        const auto tbCfg =
           Tablebase::Syzygy::rank_root_moves(rootPos, rms, options, false, time_to_abort);
 
         if (rms.find(pvMove)->tbRank != rms[0].tbRank)
@@ -2422,15 +2422,16 @@ void Worker::extend_tb_pv(usize index, Value& value) noexcept {
         rms.sort(root_move_descending);
 
         // The winning side tries to minimize DTZ, the losing side maximizes it
-        auto tbCfg = Tablebase::Syzygy::rank_root_moves(rootPos, rms, options, true, time_to_abort);
+        const auto tbCfg =
+          Tablebase::Syzygy::rank_root_moves(rootPos, rms, options, true, time_to_abort);
 
         // If DTZ is not available might not find a mate, so bail out
         if (!tbCfg.rootInTB || tbCfg.cardinality != 0)
             break;
 
-        auto pvMove = rms[0].pv[0];
+        const Move pvMove = rms[0].pv[0];
         rootMove.pv.push_back(pvMove);
-        auto& st = states.emplace_back();
+        State& st = states.emplace_back();
         rootPos.do_move(pvMove, st);
     }
 
@@ -2478,12 +2479,12 @@ void MainSearchManager::check_time(Worker& worker) noexcept {
     // When using nodes, ensure checking rate is not lower than 0.1% of nodes
     callsCount = worker.limit.calls_count();
 
-    TimePoint elapsedTime = elapsed(worker.threads);
+    const TimePoint elapsedTime = elapsed(worker.threads);
 
 #if !defined(NDEBUG)
     static TimePoint infoTime = now();
 
-    if (TimePoint curTime = worker.limit.startTime + elapsedTime; curTime - infoTime > 1000)
+    if (const TimePoint curTime = worker.limit.startTime + elapsedTime; curTime - infoTime > 1000)
     {
         infoTime = curTime;
         Debug::print();
@@ -2544,18 +2545,18 @@ void MainSearchManager::handle_time_management(const Worker& worker,
     timeReduction = std::clamp(interpolate(double(stableDepth), 4.96, 18.79, 0.6390, 1.7120), 0.6290, 1.5440);
 
     // Compute ease factor that factors in previous time reduction
-    double easeFactor = 0.4378 * (1.4680 + preTimeReduction) / timeReduction;
+    const double easeFactor = 0.4378 * (1.4680 + preTimeReduction) / timeReduction;
 
     // Compute move instability factor based on the total move changes and the number of threads
-    double instabilityFactor = 1.0770 + 2.2290 * sumMoveChanges / std::max<usize>(worker.thread_count(), 1);
+    const double instabilityFactor = 1.0770 + 2.2290 * sumMoveChanges / std::max<usize>(worker.thread_count(), 1);
 
     // Compute node effort factor that reduces time if root move has consumed a large fraction of total nodes
-    u64 nodesEffort = 100000 * worker.rootMoves[0].nodes / std::max<u64>(worker.nodes_(), 1);
+    const u64 nodesEffort = 100000 * worker.rootMoves[0].nodes / std::max<u64>(worker.nodes_(), 1);
 
-    double nodesEffortFactor = std::clamp(interpolate(i64(nodesEffort), i64(75800), i64(104510), 0.9690, 0.7140), 0.6930, 0.8380);
+    const double nodesEffortFactor = std::clamp(interpolate(i64(nodesEffort), i64(75800), i64(104510), 0.9690, 0.7140), 0.6930, 0.8380);
 
     // Compute recapture factor that reduces time if recapture conditions are met
-    double recaptureFactor = 1.0 - int( worker.rootPos.captured_sq() == worker.rootMoves[0].pv[0].dst_sq()
+    const double recaptureFactor = 1.0 - int( worker.rootPos.captured_sq() == worker.rootMoves[0].pv[0].dst_sq()
                                     && (worker.rootPos.captured_sq() & worker.rootPos.pieces_bb(~worker.rootPos.active_color())) != 0
                                     &&  worker.rootPos.see(worker.rootMoves[0].pv[0]) >= 200)
                                     * 4.0040e-3 * std::min<Depth>(stableDepth, 25);
