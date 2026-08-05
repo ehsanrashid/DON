@@ -1550,7 +1550,8 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
 
     Color ac = active_color();
 
-    Square      orgSq = m.org_sq(), dstSq = m.dst_sq();
+    Square orgSq = m.org_sq(), dstSq = m.dst_sq();
+
     const Piece movedPc = piece(orgSq);
     assert((pieces_bb(ac) & orgSq) != 0 && !empty(orgSq) && color_of(movedPc) == ac);
 
@@ -1871,7 +1872,7 @@ bool Position::is_upcoming_repetition(i16 ply) const noexcept {
     if (end < 3)
         return false;
 
-    Key          baseKey = st->key;
+    const Key    baseKey = st->key;
     const State* preSt   = st->preSt;
     Key          iterKey = baseKey ^ preSt->key ^ Zobrist::turn();
 
@@ -1925,8 +1926,8 @@ void Position::flip() noexcept {
     // Piece placement (vertical flip)
     for (Rank r = RANK_8;; --r)
     {
-        char rDelim = r > RANK_1 ? '/' : ' ';
-        char wDelim = r < RANK_8 ? '/' : ' ';
+        const char rDelim = r > RANK_1 ? '/' : ' ';
+        const char wDelim = r < RANK_8 ? '/' : ' ';
 
         std::getline(iss, token, rDelim);
 
@@ -1974,7 +1975,7 @@ void Position::mirror() noexcept {
     // Piece placement (horizontal flip)
     for (Rank r = RANK_8;; --r)
     {
-        char delim = r > RANK_1 ? '/' : ' ';
+        const char delim = r > RANK_1 ? '/' : ' ';
 
         std::getline(iss, token, delim);
 
@@ -2254,8 +2255,8 @@ std::ostream& operator<<(std::ostream& os, const Position& pos) noexcept {
 
         Tablebase::Syzygy::ProbeState wdlPs, dtzPs;
 
-        auto wdlScore = Tablebase::Syzygy::probe_wdl(p, &wdlPs);
-        auto dtzScore = Tablebase::Syzygy::probe_dtz(p, &dtzPs);
+        const auto wdlScore = Tablebase::Syzygy::probe_wdl(p, &wdlPs);
+        const auto dtzScore = Tablebase::Syzygy::probe_dtz(p, &dtzPs);
 
         os << "\nTablebase WDL: " << std::setw(4) << to_string(wdlScore)  //
            << " (" << to_string(wdlPs) << ")";
