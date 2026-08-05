@@ -708,7 +708,7 @@ void Position::set_ext_state() noexcept {
 
     Square kingSq = square<KING>(~ac);
 
-    const auto [bAttacksBB, rAttacksBB] = attacks_pair_bb(kingSq, pieces_bb());
+    const auto [bAttacksBB, rAttacksBB] = attacks_bb_pair(kingSq, pieces_bb());
 
     // clang-format off
     st->checksBB[PAWN  ] = attacks_bb<PAWN  >(kingSq, ~ac);
@@ -1601,7 +1601,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
     else
         enPassantSq = SQ_NONE;
 
-    auto [bAttacksBB, rAttacksBB] = attacks_pair_bb(dstSq);
+    auto [bAttacksBB, rAttacksBB] = attacks_bb_pair(dstSq);
 
     Bitboard qbBB = pieces_bb(QUEEN, BISHOP) & bAttacksBB & occupancyBB;
     Bitboard qrBB = pieces_bb(QUEEN, ROOK) & rAttacksBB & occupancyBB;
@@ -1660,7 +1660,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
                 if (attackersBB == 0)
                     break;
 
-                auto [bNewAttacksBB, rNewAttacksBB] = attacks_pair_bb(dstSq);
+                auto [bNewAttacksBB, rNewAttacksBB] = attacks_bb_pair(dstSq);
 
                 qbBB = pieces_bb(QUEEN, BISHOP) & bNewAttacksBB & occupancyBB;
                 qrBB = pieces_bb(QUEEN, ROOK) & rNewAttacksBB & occupancyBB;
@@ -1751,7 +1751,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
                 if (attackersBB == 0)
                     break;
 
-                auto [bNewAttacksBB, rNewAttacksBB] = attacks_pair_bb(dstSq);
+                auto [bNewAttacksBB, rNewAttacksBB] = attacks_bb_pair(dstSq);
 
                 qbBB = pieces_bb(QUEEN, BISHOP) & bNewAttacksBB & occupancyBB;
                 qrBB = pieces_bb(QUEEN, ROOK) & rNewAttacksBB & occupancyBB;
@@ -1794,7 +1794,7 @@ bool Position::see_ge(Move m, int threshold) const noexcept {
             qbBB &= occupancyBB;
             qrBB &= occupancyBB;
 
-            auto [bNewAttacksBB, rNewAttacksBB] = attacks_pair_bb(dstSq, occupancyBB);
+            auto [bNewAttacksBB, rNewAttacksBB] = attacks_bb_pair(dstSq, occupancyBB);
 
             attackersBB |= (qbBB & bNewAttacksBB) | (qrBB & rNewAttacksBB);
         }

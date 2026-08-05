@@ -75,7 +75,7 @@ struct alignas(32) DualMagic final {
     // reside in different bytes). Rank attacks cannot. Thus, for rank attacks
     // only, we use a compact lookup table indexed by the 6 inner bits of the rank's
     // occupancy (the edge squares never affect the attack set).
-    std::pair<Bitboard, Bitboard> attacks_pair_bb(Bitboard occupancyBB) const noexcept {
+    std::pair<Bitboard, Bitboard> attacks_bb_pair(Bitboard occupancyBB) const noexcept {
         // Byteswap within 128-bit elements
         const auto bswap = [](__m256i v) noexcept {
             return _mm256_shuffle_epi8(v, _mm256_set_epi8(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
@@ -555,7 +555,7 @@ constexpr Bitboard attacks_bb(Square s, [[maybe_unused]] Bitboard occupancyBB) n
         return attacks_bb<KING>(s);
 
 #if defined(USE_DUAL_HYPERBOLA_QUINT)
-    [[maybe_unused]] const auto [bishop, rook] = dual_magic(s).attacks_pair_bb(occupancyBB);
+    [[maybe_unused]] const auto [bishop, rook] = dual_magic(s).attacks_bb_pair(occupancyBB);
 
     if constexpr (PT == BISHOP)
         return bishop;
@@ -609,13 +609,13 @@ constexpr Bitboard attacks_bb(Square s, Piece pc, Bitboard occupancyBB) noexcept
     return attacks_bb(s, type_of(pc), occupancyBB);
 }
 
-constexpr std::pair<Bitboard, Bitboard> attacks_pair_bb(Square s) noexcept {
+constexpr std::pair<Bitboard, Bitboard> attacks_bb_pair(Square s) noexcept {
     return {attacks_bb<BISHOP>(s), attacks_bb<ROOK>(s)};
 }
 
-inline std::pair<Bitboard, Bitboard> attacks_pair_bb(Square s, Bitboard occupancyBB) noexcept {
+inline std::pair<Bitboard, Bitboard> attacks_bb_pair(Square s, Bitboard occupancyBB) noexcept {
 #if defined(USE_DUAL_HYPERBOLA_QUINT)
-    return dual_magic(s).attacks_pair_bb(occupancyBB);
+    return dual_magic(s).attacks_bb_pair(occupancyBB);
 #else
     return {attacks_bb<BISHOP>(s, occupancyBB), attacks_bb<ROOK>(s, occupancyBB)};
 #endif
