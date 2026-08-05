@@ -266,29 +266,34 @@ constexpr Bitboard pawn_attacks_bb(Bitboard pawns, Color c) noexcept {
 constexpr Bitboard destination_bb(Square s, Direction d, u8 dist = 1) noexcept {
     assert(is_ok(s));
 
-    Square nextSq = s + d;
+    Square destSq = s + d;
 
-    return is_ok(nextSq) && distance(s, nextSq) <= dist ? square_bb(nextSq) : 0;
+    return is_ok(destSq) && distance(s, destSq) <= dist ? square_bb(destSq) : 0;
 }
 
-constexpr Bitboard line_bb(Square s, Direction d1, Direction d2) noexcept {
+template<typename... Directions>
+constexpr Bitboard ray_bb(Square s, Directions... ds) noexcept {
+    static_assert((std::is_same_v<Directions, Direction> && ...),
+                  "All arguments must be Direction");
+
     assert(is_ok(s));
 
-    Bitboard lineBB = 0;
+    Bitboard rayBB = 0;
 
-    for (Direction d : {d1, d2})
-    {
+    const auto add_ray_bb = [&](Direction d) noexcept {
         Square curSq = s;
 
         Bitboard destBB = 0;
         while ((destBB = destination_bb(curSq, d)) != 0)
         {
-            lineBB |= destBB;
+            rayBB |= destBB;
             curSq += d;
         }
-    }
+    };
 
-    return lineBB;
+    (add_ray_bb(ds), ...);
+
+    return rayBB;
 }
 
 // Computes sliding attack
@@ -327,16 +332,16 @@ constexpr Bitboard sliding_attacks_bb(Square s, Bitboard occupancyBB = 0) noexce
 constexpr Bitboard knight_attacks_bb(Square s) noexcept {
     assert(is_ok(s));
 
+    constexpr Array<Direction, 8> Directions{
+      Direction::SOUTH_2 + Direction::WEST, Direction::SOUTH_2 + Direction::EAST,
+      Direction::WEST_2 + Direction::SOUTH, Direction::EAST_2 + Direction::SOUTH,
+      Direction::WEST_2 + Direction::NORTH, Direction::EAST_2 + Direction::NORTH,
+      Direction::NORTH_2 + Direction::WEST, Direction::NORTH_2 + Direction::EAST  //
+    };
+
     Bitboard attacksBB = 0;
 
-    for (Direction d : {Direction::SOUTH_2 + Direction::WEST,  //
-                        Direction::SOUTH_2 + Direction::EAST,  //
-                        Direction::WEST_2 + Direction::SOUTH,  //
-                        Direction::EAST_2 + Direction::SOUTH,  //
-                        Direction::WEST_2 + Direction::NORTH,  //
-                        Direction::EAST_2 + Direction::NORTH,  //
-                        Direction::NORTH_2 + Direction::WEST,  //
-                        Direction::NORTH_2 + Direction::EAST})
+    for (Direction d : Directions)
         attacksBB |= destination_bb(s, d, 2);
 
     return attacksBB;
@@ -345,12 +350,14 @@ constexpr Bitboard knight_attacks_bb(Square s) noexcept {
 constexpr Bitboard king_attacks_bb(Square s) noexcept {
     assert(is_ok(s));
 
+    constexpr Array<Direction, 8> Directions{
+      Direction::SOUTH_WEST, Direction::SOUTH,      Direction::SOUTH_EAST, Direction::WEST,
+      Direction::EAST,       Direction::NORTH_WEST, Direction::NORTH,      Direction::NORTH_EAST  //
+    };
+
     Bitboard attacksBB = 0;
 
-    for (Direction d : {Direction::SOUTH_WEST, Direction::SOUTH,  //
-                        Direction::SOUTH_EAST, Direction::WEST,   //
-                        Direction::EAST, Direction::NORTH_WEST,   //
-                        Direction::NORTH, Direction::NORTH_EAST})
+    for (Direction d : Directions)
         attacksBB |= destination_bb(s, d);
 
     return attacksBB;
@@ -415,19 +422,19 @@ constexpr Bitboard attacks_bb(Square s, Piece pc) noexcept {
     return 0;
 }
 
-//#if !defined(USE_DUAL_HYPERBOLA_QUINT)
+#if !defined(USE_DUAL_HYPERBOLA_QUINT)
 
 alignas(CACHE_LINE_SIZE) inline Array<Magic, SQUARE_NB, 2> MAGICS;  // BISHOP or ROOK
 
 template<PieceType PT>
 constexpr const Magic& magic(Square s) noexcept {
-    static_assert(PT == BISHOP || PT == ROOK, "Unsupported piece type in attacks_bb()");
+    static_assert(PT == BISHOP || PT == ROOK, "Unsupported piece type in magic()");
     assert(is_ok(s));
 
     return MAGICS[s][PT - BISHOP];
 }
 
-//#endif
+#endif
 
 // Returns the attacks by the given piece type.
 // Sliding piece attacks do not continue passed an occupied square.

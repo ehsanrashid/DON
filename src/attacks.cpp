@@ -33,13 +33,13 @@ void init_magics() noexcept {
 
     for (Square s = SQ_A1; s <= SQ_H8; ++s)
     {
-        Magic& bMagic  = MAGICS[s][BISHOP - BISHOP];
-        bMagic.mask1BB = line_bb(s, Direction::NORTH_EAST, Direction::SOUTH_WEST);
-        bMagic.mask2BB = line_bb(s, Direction::NORTH_WEST, Direction::SOUTH_EAST);
+        auto& bMagic   = MAGICS[s][BISHOP - BISHOP];
+        bMagic.mask1BB = ray_bb(s, Direction::NORTH_EAST, Direction::SOUTH_WEST);
+        bMagic.mask2BB = ray_bb(s, Direction::NORTH_WEST, Direction::SOUTH_EAST);
 
-        Magic& rMagic  = MAGICS[s][ROOK - BISHOP];
-        rMagic.mask1BB = line_bb(s, Direction::NORTH, Direction::SOUTH);
-        rMagic.mask2BB = line_bb(s, Direction::EAST, Direction::WEST);
+        auto& rMagic   = MAGICS[s][ROOK - BISHOP];
+        rMagic.mask1BB = ray_bb(s, Direction::NORTH, Direction::SOUTH);
+        rMagic.mask2BB = ray_bb(s, Direction::EAST, Direction::WEST);
     }
 }
 
