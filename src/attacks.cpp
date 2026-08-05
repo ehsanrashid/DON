@@ -27,7 +27,9 @@ namespace Attacks {
 
 namespace {
 
-#if defined(USE_HYPERBOLA_QUINT)
+#if defined(USE_DUAL_HYPERBOLA_QUINT)
+// The magic bitboards are computed using the "dual hyperbola quintessence" approach.
+#elif defined(USE_HYPERBOLA_QUINT)
 
 void init_magics() noexcept {
 
@@ -207,9 +209,10 @@ template void init_magics<ROOK>() noexcept;
 // It is called at startup.
 void init() noexcept {
 
-#if defined(USE_HYPERBOLA_QUINT)
+#if defined(USE_DUAL_HYPERBOLA_QUINT)
+    // The magic bitboards are computed using the "dual hyperbola quintessence" approach.
+#elif defined(USE_HYPERBOLA_QUINT)
     init_magics();
-//#elif !defined(USE_DUAL_HYPERBOLA_QUINT)
 #else
     init_magics<BISHOP>();
     init_magics<ROOK>();

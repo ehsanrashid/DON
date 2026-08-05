@@ -22,6 +22,7 @@
 #include <array>
 #include <cassert>
 #include <initializer_list>
+#include <utility>
 
 #if defined(USE_BMI2)
     #include <immintrin.h>  // Header for _pext_u64() & _pdep_u64() intrinsic
@@ -33,14 +34,14 @@
     // leaving all other bits as zero.
 #endif
 
-#if defined(__aarch64__)
+#if defined(USE_AVX2)
+    #include <immintrin.h>
+    #define USE_DUAL_HYPERBOLA_QUINT
+#elif defined(__aarch64__)
     #include <arm_acle.h>
     #define USE_HYPERBOLA_QUINT
 #elif defined(__loongarch__) && (__loongarch_grlen == 64)
     #define USE_HYPERBOLA_QUINT
-#elif defined(USE_AVX2)
-    //#include <immintrin.h>
-    //#define USE_DUAL_HYPERBOLA_QUINT
 #endif
 
 #include "bitboard.h"
@@ -62,7 +63,59 @@ void init() noexcept;
 
 }  // namespace Attacks
 
-#if defined(USE_HYPERBOLA_QUINT)
+#if defined(USE_DUAL_HYPERBOLA_QUINT)
+
+struct alignas(32) DualMagic final {
+   public:
+    // We always compute [bishop, rook] attacks at once, then rely on
+    // compiler's DCE and CSE to eliminate unneeded re-computations or extractions.
+    //
+    // When using hyperbola quintessence, file, diagonal and antidiagonal attacks
+    // can use a byte reversal rather than a full bit reversal (because all squares
+    // reside in different bytes). Rank attacks cannot. Thus, for rank attacks
+    // only, we use a compact lookup table indexed by the 6 inner bits of the rank's
+    // occupancy (the edge squares never affect the attack set).
+    std::pair<Bitboard, Bitboard> both_attacks_bb(Bitboard occupancyBB) const noexcept {
+        // Byteswap within 128-bit elements
+        const auto bswap = [](__m256i v) noexcept {
+            return _mm256_shuffle_epi8(v, _mm256_set_epi8(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
+                                                          13, 14, 15, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
+                                                          10, 11, 12, 13, 14, 15));
+        };
+
+        // Each lane contains a mask and we follow the same HQ algorithm as
+        // given above in the ARM64 code path
+        const __m256i mask = _mm256_load_si256(reinterpret_cast<const __m256i*>(this));
+        const __m256i rs   = _mm256_set1_epi64x(r);
+        const __m256i rrs  = _mm256_set1_epi64x(rr);
+
+        __m256i o      = _mm256_and_si256(mask, _mm256_set1_epi64x(occupancyBB));
+        __m256i fwd    = _mm256_sub_epi64(o, rs);
+        __m256i rev    = bswap(_mm256_sub_epi64(bswap(o), rrs));
+        __m256i result = _mm256_and_si256(_mm256_xor_si256(fwd, rev), mask);
+
+        // Lane 0: rook attacks (file only); lane 1: bishop attacks
+        __m128i rookBishop =
+          _mm_or_si128(_mm256_extracti128_si256(result, 1), _mm256_castsi256_si128(result));
+
+        Bitboard rowOccupancy = rankAttacksLookup[(occupancyBB >> (shift + 1)) & 0x3f];
+        Bitboard rankAttacks  = rowOccupancy << shift;
+
+        // [bishop, rook]
+        return {_mm_extract_epi64(rookBishop, 1), _mm_cvtsi128_si64(rookBishop) + rankAttacks};
+    }
+
+    // file, diagonal, unused, antidiagonal
+    Bitboard maskFile, maskDiag, maskNone, maskAntidiag;
+    // Precomputed 2 * square_bb(sq), 2 * reverse(square_bb(sq))
+    Bitboard r, rr;
+
+    const u8* RESTRICT rankAttacksLookup;
+    // 8 * rank_of(sq)
+    int shift;
+};
+
+#elif defined(USE_HYPERBOLA_QUINT)
 
 inline Bitboard reverse_bb(Bitboard bb) noexcept {
     #if __has_builtin(__builtin_bitreverse64)
@@ -439,7 +492,43 @@ constexpr Bitboard attacks_bb(Square s, Piece pc) noexcept {
     return 0;
 }
 
-#if !defined(USE_DUAL_HYPERBOLA_QUINT)
+#if defined(USE_DUAL_HYPERBOLA_QUINT)
+
+// Sliding attacks within a rank, indexed by the slider's file and the
+// 6 inner bits of the rank occupancy (edge squares never affect the
+// attack set), yielding the 8-bit attack set on that rank
+alignas(CACHE_LINE_SIZE) inline constexpr auto RANK_ATTACKS = []() constexpr noexcept {
+    Array<u8, FILE_NB, SQUARE_NB> rankAttacks{};
+
+    for (Square f = SQ_A1; f <= SQ_H1; ++f)
+        for (u16 occ6 = 0; occ6 < 64; ++occ6)
+            rankAttacks[f][occ6] = u8(sliding_attacks_bb<ROOK>(f, Bitboard{occ6} << 1));
+
+    return rankAttacks;
+}();
+
+alignas(CACHE_LINE_SIZE) inline constexpr auto DUAL_MAGICS = []() constexpr noexcept {
+    Array<DualMagic, SQUARE_NB> dualMagics{};
+
+    for (Square s = SQ_A1; s <= SQ_H8; ++s)
+    {
+        auto& dm             = dualMagics[s];
+        dm.maskFile          = ray_bb(s, Direction::NORTH, Direction::SOUTH);
+        dm.maskDiag          = ray_bb(s, Direction::NORTH_EAST, Direction::SOUTH_WEST);
+        dm.maskNone          = 0;
+        dm.maskAntidiag      = ray_bb(s, Direction::NORTH_WEST, Direction::SOUTH_EAST);
+        dm.r                 = square_bb(s) * 2;
+        dm.rr                = square_bb(reverse_sq(s)) * 2;
+        dm.rankAttacksLookup = RANK_ATTACKS[file_of(s)].data();
+        dm.shift             = 8 * int(rank_of(s));
+    }
+
+    return dualMagics;
+}();
+
+constexpr const DualMagic& dual_magic(Square s) { return DUAL_MAGICS[s]; }
+
+#else
 
 alignas(CACHE_LINE_SIZE) inline Array<Magic, SQUARE_NB, 2> MAGICS;  // BISHOP or ROOK
 
@@ -462,14 +551,28 @@ constexpr Bitboard attacks_bb(Square s, [[maybe_unused]] Bitboard occupancyBB) n
 
     if constexpr (PT == KNIGHT)
         return attacks_bb<KNIGHT>(s);
+
+#if defined(USE_DUAL_HYPERBOLA_QUINT)
+    [[maybe_unused]] const auto [bishop, rook] = dual_magic(s).both_attacks_bb(occupancyBB);
+
+    if constexpr (PT == BISHOP)
+        return bishop;
+    if constexpr (PT == ROOK)
+        return rook;
+    if constexpr (PT == QUEEN)
+        return bishop | rook;
+#else
     if constexpr (PT == BISHOP)
         return magic<BISHOP>(s).attacks_bb(s, occupancyBB);
     if constexpr (PT == ROOK)
         return magic<ROOK>(s).attacks_bb(s, occupancyBB);
     if constexpr (PT == QUEEN)
         return attacks_bb<BISHOP>(s, occupancyBB) | attacks_bb<ROOK>(s, occupancyBB);
+#endif
+
     if constexpr (PT == KING)
         return attacks_bb<KING>(s);
+
     assert(false);
     UNREACHABLE();
     return 0;
@@ -507,6 +610,14 @@ constexpr Bitboard attacks_bb(Square s, Piece pc, Bitboard occupancyBB) noexcept
         return attacks_bb<PAWN>(s, color_of(pc));
 
     return attacks_bb(s, type_of(pc), occupancyBB);
+}
+
+inline std::pair<Bitboard, Bitboard> both_attacks_bb(Square s, Bitboard occupied) {
+#if defined(USE_DUAL_HYPERBOLA_QUINT)
+    return dual_magic(s).both_attacks_bb(occupied);
+#else
+    return {attacks_bb<BISHOP>(s, occupied), attacks_bb<ROOK>(s, occupied)};
+#endif
 }
 
 alignas(CACHE_LINE_SIZE) inline constexpr auto LINE_BBs = []() constexpr noexcept {
