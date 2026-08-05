@@ -50,12 +50,6 @@
 
 namespace DON {
 
-#if defined(USE_BMI2) && defined(USE_CMP)
-using MagicMask = u16;
-#else
-using MagicMask = Bitboard;
-#endif
-
 // Attacks
 namespace Attacks {
 
@@ -161,6 +155,12 @@ struct Magic final {
 };
 
 #else
+
+    #if defined(USE_BMI2) && defined(USE_CMP)
+using MagicMask = u16;
+    #else
+using MagicMask = Bitboard;
+    #endif
 
 // Magic holds all magic bitboards relevant data for a single square
 struct Magic final {

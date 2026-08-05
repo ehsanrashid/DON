@@ -63,7 +63,6 @@
     "x86-64-bmi2",
     "x86-64-bmi2-cmp",
     "x86-64-avxvnni",
-    "x86-64-avxvnni-cmp",
     "x86-64-avx512",
     "x86-64-vnni512",
     "x86-64-avx512icl",
@@ -115,12 +114,6 @@
       }
     },
     {
-      "binaries": "x86-64-avxvnni-cmp",
-      "config": {
-        "os": "macos-15-intel"
-      }
-    },
-    {
       "binaries": "x86-64-avx512",
       "config": {
         "os": "macos-15-intel"
@@ -188,12 +181,6 @@
     },
     {
       "binaries": "x86-64-avxvnni",
-      "config": {
-        "os": "macos-15"
-      }
-    },
-    {
-      "binaries": "x86-64-avxvnni-cmp",
       "config": {
         "os": "macos-15"
       }
@@ -296,12 +283,6 @@
     },
     {
       "binaries": "x86-64-avxvnni",
-      "config": {
-        "os": "windows-11-arm"
-      }
-    },
-    {
-      "binaries": "x86-64-avxvnni-cmp",
       "config": {
         "os": "windows-11-arm"
       }
