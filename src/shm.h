@@ -1133,6 +1133,19 @@ class SharedMemory final: public BaseSharedMemory {
         return *this;
     }
 
+    [[nodiscard]] static std::optional<SharedMemory<T>> create(std::string_view name,
+                                                               const T&         value) noexcept {
+        SharedMemoryCleanupManager::ensure_initialized();
+
+        auto tempRoot = TempRoot::temp_root();
+        if (!tempRoot)
+            return std::nullopt;
+        SharedMemory<T> shm(name, *tempRoot);
+        if (shm.open(value))
+            return shm;
+        return std::nullopt;
+    }
+
     [[nodiscard]] bool open(const T& value) noexcept {
         if (socketPath.size() >= sizeof(sockaddr_un::sun_path))
             return false;
@@ -1321,26 +1334,12 @@ class SharedMemory final: public BaseSharedMemory {
 };
 
 template<typename T>
-[[nodiscard]] std::optional<SharedMemory<T>> create_shared_memory(std::string_view name,
-                                                                  const T&         value) noexcept {
-    SharedMemoryCleanupManager::ensure_initialized();
-
-    auto tempRoot = TempRoot::temp_root();
-    if (!tempRoot.has_value())
-        return std::nullopt;
-    SharedMemory<T> shm(name, *tempRoot);
-    if (shm.open(value))
-        return shm;
-    return std::nullopt;
-}
-
-template<typename T>
 class BackendSharedMemory final {
    public:
     BackendSharedMemory() noexcept = default;
 
     BackendSharedMemory(std::string_view shmName, const T& value) noexcept :
-        shm(create_shared_memory<T>(shmName, value)) {}
+        shm(SharedMemory<T>::create(shmName, value)) {}
 
     BackendSharedMemory(const BackendSharedMemory&) noexcept            = delete;
     BackendSharedMemory& operator=(const BackendSharedMemory&) noexcept = delete;
