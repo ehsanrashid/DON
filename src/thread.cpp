@@ -506,7 +506,7 @@ void Threads::start(Position&      pos,
             if (emplace && rootMoves.size() == legalMoves.size())
                 break;
 
-            Move m = mix_to_move(move, pos, legalMoves);
+            const Move m = mix_to_move(move, pos, legalMoves);
 
             emplace = m != Move::None && !rootMoves.contains(m);
 
@@ -528,7 +528,7 @@ void Threads::start(Position&      pos,
             if (erase && rootMoves.empty())
                 break;
 
-            Move m = mix_to_move(move, pos, legalMoves);
+            const Move m = mix_to_move(move, pos, legalMoves);
 
             erase = m != Move::None;
 
@@ -544,10 +544,10 @@ void Threads::start(Position&      pos,
     auto& clock = limit.clocks[pos.active_color()];
 
     // If time manager is active, don't use more than 5% of clock time
-    auto startTime = std::chrono::steady_clock::now();
+    const auto startTime = std::chrono::steady_clock::now();
 
     auto time_to_abort = [&]() noexcept -> bool {
-        auto endTime = std::chrono::steady_clock::now();
+        const auto endTime = std::chrono::steady_clock::now();
         return limit.use_time_manager()
             && (options["NodesTime"] != 0
                 || std::chrono::duration<double, std::milli>(endTime - startTime).count()

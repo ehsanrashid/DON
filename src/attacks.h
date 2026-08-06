@@ -22,6 +22,7 @@
 #include <array>
 #include <cassert>
 #include <initializer_list>
+#include <utility>
 
 #if defined(USE_BMI2)
     #include <immintrin.h>  // Header for _pext_u64() & _pdep_u64() intrinsic
@@ -31,6 +32,16 @@
     // * _pdep_u64(src, mask) - Parallel Bits Deposit
     // Deposits the lower bits of 'src' into the positions of the 1-bits in 'mask',
     // leaving all other bits as zero.
+#endif
+
+#if defined(USE_AVX2)
+    #include <immintrin.h>
+    #define USE_DUAL_HYPERBOLA_QUINT
+#elif defined(__aarch64__)
+    #include <arm_acle.h>
+    #define USE_HYPERBOLA_QUINT
+#elif defined(__loongarch__) && (__loongarch_grlen == 64)
+    #define USE_HYPERBOLA_QUINT
 #endif
 
 #include "bitboard.h"
@@ -45,6 +56,171 @@ namespace Attacks {
 void init() noexcept;
 
 }  // namespace Attacks
+
+#if defined(USE_DUAL_HYPERBOLA_QUINT)
+
+struct alignas(32) DualMagic final {
+   public:
+    // Always compute [bishop, rook] attacks at once, then rely on
+    // compiler's DCE and CSE to eliminate unneeded re-computations or extractions.
+    //
+    // When using hyperbola quintessence, file, diagonal and antidiagonal attacks
+    // can use a byte reversal rather than a full bit reversal (because all squares
+    // reside in different bytes). Rank attacks cannot. Thus, for rank attacks
+    // only, we use a compact lookup table indexed by the 6 inner bits of the rank's
+    // occupancy (the edge squares never affect the attack set).
+    std::pair<Bitboard, Bitboard> attacks_bb_pair(Bitboard occupancyBB) const noexcept {
+        // Byteswap within 128-bit elements
+        const auto bswap = [](__m256i v) noexcept {
+            return _mm256_shuffle_epi8(v, _mm256_set_epi8(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
+                                                          13, 14, 15, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
+                                                          10, 11, 12, 13, 14, 15));
+        };
+
+        // Each lane contains a mask and we follow the same HQ algorithm as
+        // given above in the ARM64 code path
+        const __m256i mask = _mm256_load_si256(reinterpret_cast<const __m256i*>(this));
+        const __m256i rs   = _mm256_set1_epi64x(rBB);
+        const __m256i rrs  = _mm256_set1_epi64x(rrBB);
+
+        __m256i o      = _mm256_and_si256(mask, _mm256_set1_epi64x(occupancyBB));
+        __m256i fwd    = _mm256_sub_epi64(o, rs);
+        __m256i rev    = bswap(_mm256_sub_epi64(bswap(o), rrs));
+        __m256i attack = _mm256_and_si256(_mm256_xor_si256(fwd, rev), mask);
+
+        // Lane 0: rook attacks (file only); lane 1: bishop attacks
+        __m128i rookBishop =
+          _mm_or_si128(_mm256_extracti128_si256(attack, 1), _mm256_castsi256_si128(attack));
+
+        Bitboard rowOccupancy = rankAttacksLookup[(occupancyBB >> (shift + 1)) & 0x3F];
+        Bitboard rankAttacks  = rowOccupancy << shift;
+
+        // [bishop, rook]
+        return {_mm_extract_epi64(rookBishop, 1), _mm_cvtsi128_si64(rookBishop) + rankAttacks};
+    }
+
+    // file, diagonal, unused, antidiagonal
+    Bitboard maskFileBB, maskDiagBB, maskNoneBB, maskAntidiagBB;
+    // Precomputed 2 * square_bb(sq), 2 * reverse(square_bb(sq))
+    Bitboard rBB, rrBB;
+
+    const u8* RESTRICT rankAttacksLookup;
+    // 8 * rank_of(sq)
+    int shift;
+};
+
+#elif defined(USE_HYPERBOLA_QUINT)
+
+inline Bitboard reverse_bb(Bitboard bb) noexcept {
+    #if __has_builtin(__builtin_bitreverse64)
+    return __builtin_bitreverse64(bb);
+    #else
+        #if defined(__aarch64__)
+            #if defined(__GNUC__) && !defined(__clang__) \
+              && (__GNUC__ < 12 || (__GNUC__ == 12 && __GNUC_MINOR__ < 2))
+    // no rbit in arm_acle.h
+    Bitboard rb;
+    asm("rbit %0, %1" : "=r"(rb) : "r"(bb));
+    return rb;
+            #else
+    return __rbitll(bb);
+            #endif
+        #else  // loongarch
+    Bitboard rb;
+    asm("bitrev.d %0, %1" : "=r"(rb) : "r"(bb));
+    return rb;
+        #endif
+    #endif
+}
+
+// Hyperbola quintessence implementation for ARM
+// thanks to the availability of an efficient bit reversal instruction.
+// See https://www.chessprogramming.org/Hyperbola_Quintessence
+struct Magic final {
+   public:
+    Bitboard hyperbola(Square s, Bitboard occupancyBB, Bitboard maskBB) const noexcept {
+        Bitboard occBB = occupancyBB & maskBB;
+        Bitboard fwdBB = occBB - square_bb(s);
+        Bitboard revBB = reverse_bb(occBB) - square_bb(reverse_sq(s));
+        return (fwdBB ^ reverse_bb(revBB)) & maskBB;
+    }
+
+    Bitboard attacks_bb(Square s, Bitboard occupancyBB) const noexcept {
+        return hyperbola(s, occupancyBB, mask1BB) | hyperbola(s, occupancyBB, mask2BB);
+    }
+
+    // For rooks: file/rank attacks
+    // For bishops: diagonal/anti-diagonal attacks
+    Bitboard mask1BB, mask2BB;
+};
+
+#else
+
+    #if defined(USE_BMI2) && defined(USE_CMP)
+using MagicMask = u16;
+    #else
+using MagicMask = Bitboard;
+    #endif
+
+// Magic holds all magic bitboards relevant data for a single square
+struct Magic final {
+   public:
+    Magic() noexcept                        = default;
+    Magic(const Magic&) noexcept            = delete;
+    Magic& operator=(const Magic&) noexcept = delete;
+    Magic(Magic&&) noexcept                 = delete;
+    Magic& operator=(Magic&&) noexcept      = delete;
+
+    #if defined(USE_BMI2)
+    void attacks_bb(Bitboard occupancyBB, Bitboard referenceBB) noexcept {
+        #if defined(USE_CMP)
+        attacksBBs[index(occupancyBB)] = _pext_u64(referenceBB, pseudoAttacksBB);
+        #else
+        attacksBBs[index(occupancyBB)] = referenceBB;
+        #endif
+    }
+    #endif
+
+    Bitboard attacks_bb([[maybe_unused]] Square s, Bitboard occupancyBB) const noexcept {
+    #if defined(USE_BMI2)
+        #if defined(USE_CMP)
+        return _pdep_u64(attacksBBs[index(occupancyBB)], pseudoAttacksBB);
+        #else
+        return attacksBBs[index(occupancyBB)];
+        #endif
+    #else
+        return attacksBBs[index(occupancyBB)];
+    #endif
+    }
+
+    // Compute the attack's index using the 'magic bitboards' approach
+    u16 index(Bitboard occupancyBB) const noexcept {
+    #if defined(USE_BMI2)
+        return _pext_u64(occupancyBB, maskBB);
+    #else
+        #if defined(IS_64BIT)
+        return ((occupancyBB & maskBB) * magicBB) >> shift;
+        #else
+        u32 loO = u32(occupancyBB >> 00) & u32(maskBB >> 00);
+        u32 hiO = u32(occupancyBB >> 32) & u32(maskBB >> 32);
+        u32 loM = u32(magicBB >> 00);
+        u32 hiM = u32(magicBB >> 32);
+        return ((loO * loM) ^ (hiO * hiM)) >> shift;
+        #endif
+    #endif
+    }
+
+    Bitboard   maskBB;
+    MagicMask* attacksBBs;
+    #if defined(USE_BMI2) && defined(USE_CMP)
+    Bitboard pseudoAttacksBB;
+    #else
+    Bitboard magicBB;
+    u8       shift;
+    #endif
+};
+
+#endif
 
 // Return the distance between s1 and s2, defined as the number of steps for a king in s1 to reach s2.
 template<typename T = Square>
@@ -143,9 +319,68 @@ constexpr Bitboard pawn_attacks_bb(Bitboard pawns, Color c) noexcept {
 constexpr Bitboard destination_bb(Square s, Direction d, u8 dist = 1) noexcept {
     assert(is_ok(s));
 
-    Square nextSq = s + d;
+    Square destSq = s + d;
 
-    return is_ok(nextSq) && distance(s, nextSq) <= dist ? square_bb(nextSq) : 0;
+    return is_ok(destSq) && distance(s, destSq) <= dist ? square_bb(destSq) : 0;
+}
+
+template<typename... Directions>
+constexpr Bitboard ray_bb(Square s, Directions... ds) noexcept {
+    static_assert((std::is_same_v<Directions, Direction> && ...),
+                  "All arguments must be Direction");
+
+    assert(is_ok(s));
+
+    Bitboard rayBB = 0;
+
+    const auto add_ray_bb = [&](Direction d) noexcept {
+        Square curSq = s;
+
+        Bitboard destBB = 0;
+        while ((destBB = destination_bb(curSq, d)) != 0)
+        {
+            rayBB |= destBB;
+            curSq += d;
+        }
+    };
+
+    (add_ray_bb(ds), ...);
+
+    return rayBB;
+}
+
+constexpr Bitboard knight_attacks_bb(Square s) noexcept {
+    assert(is_ok(s));
+
+    constexpr Array<Direction, 8> Directions{
+      Direction::SOUTH_2 + Direction::WEST, Direction::SOUTH_2 + Direction::EAST,
+      Direction::WEST_2 + Direction::SOUTH, Direction::EAST_2 + Direction::SOUTH,
+      Direction::WEST_2 + Direction::NORTH, Direction::EAST_2 + Direction::NORTH,
+      Direction::NORTH_2 + Direction::WEST, Direction::NORTH_2 + Direction::EAST  //
+    };
+
+    Bitboard attacksBB = 0;
+
+    for (Direction d : Directions)
+        attacksBB |= destination_bb(s, d, 2);
+
+    return attacksBB;
+}
+
+constexpr Bitboard king_attacks_bb(Square s) noexcept {
+    assert(is_ok(s));
+
+    constexpr Array<Direction, 8> Directions{
+      Direction::SOUTH_WEST, Direction::SOUTH,      Direction::SOUTH_EAST, Direction::WEST,
+      Direction::EAST,       Direction::NORTH_WEST, Direction::NORTH,      Direction::NORTH_EAST  //
+    };
+
+    Bitboard attacksBB = 0;
+
+    for (Direction d : Directions)
+        attacksBB |= destination_bb(s, d);
+
+    return attacksBB;
 }
 
 // Computes sliding attack
@@ -155,18 +390,8 @@ constexpr Bitboard sliding_attacks_bb(Square s, Bitboard occupancyBB = 0) noexce
     assert(is_ok(s));
 
     constexpr Array<Direction, 2, 4> Directions{{
-      {
-        Direction::SOUTH_WEST,  //
-        Direction::SOUTH_EAST,  //
-        Direction::NORTH_WEST,  //
-        Direction::NORTH_EAST   //
-      },
-      {
-        Direction::SOUTH,  //
-        Direction::WEST,   //
-        Direction::EAST,   //
-        Direction::NORTH   //
-      }  //
+      {Direction::SOUTH_WEST, Direction::SOUTH_EAST, Direction::NORTH_WEST, Direction::NORTH_EAST},
+      {Direction::SOUTH, Direction::WEST, Direction::EAST, Direction::NORTH}  //
     }};
 
     Bitboard attacksBB = 0;
@@ -175,81 +400,60 @@ constexpr Bitboard sliding_attacks_bb(Square s, Bitboard occupancyBB = 0) noexce
     {
         Square curSq = s;
 
-        while (true)
+        Bitboard destBB = 0;
+        while ((destBB = destination_bb(curSq, d)) != 0)
         {
-            Square nextSq = curSq + d;
-
-            // Stop if next square is off-board or not adjacent (wrap-around)
-            if (!is_ok(nextSq) || distance(curSq, nextSq) > 1)
-                break;
-
-            // Move to next square
-            curSq = nextSq;
-
-            attacksBB |= curSq;
+            attacksBB |= destBB;
 
             // Stop if occupied - sliding blocked
-            if ((occupancyBB & curSq) != 0)
+            if ((occupancyBB & destBB) != 0)
                 break;
+
+            curSq += d;
         }
     }
 
     return attacksBB;
 }
 
-constexpr Bitboard knight_attacks_bb(Square s) noexcept {
-    assert(is_ok(s));
-
-    Bitboard attacksBB = 0;
-
-    for (Direction d : {Direction::SOUTH_2 + Direction::WEST,  //
-                        Direction::SOUTH_2 + Direction::EAST,  //
-                        Direction::WEST_2 + Direction::SOUTH,  //
-                        Direction::EAST_2 + Direction::SOUTH,  //
-                        Direction::WEST_2 + Direction::NORTH,  //
-                        Direction::EAST_2 + Direction::NORTH,  //
-                        Direction::NORTH_2 + Direction::WEST,  //
-                        Direction::NORTH_2 + Direction::EAST})
-        attacksBB |= destination_bb(s, d, 2);
-
-    return attacksBB;
+template<PieceType PT>
+constexpr Bitboard pseudo_attacks_bb(Square s) noexcept {
+    if constexpr (PT == KNIGHT)
+        return knight_attacks_bb(s);
+    if constexpr (PT == BISHOP)
+        return sliding_attacks_bb<BISHOP>(s, 0);
+    if constexpr (PT == ROOK)
+        return sliding_attacks_bb<ROOK>(s, 0);
+    if constexpr (PT == QUEEN)
+        return pseudo_attacks_bb<BISHOP>(s) | pseudo_attacks_bb<ROOK>(s);
+    if constexpr (PT == KING)
+        return king_attacks_bb(s);
+    assert(false);
+    UNREACHABLE();
+    return 0;
 }
 
-constexpr Bitboard king_attacks_bb(Square s) noexcept {
-    assert(is_ok(s));
-
-    Bitboard attacksBB = 0;
-
-    for (Direction d : {Direction::SOUTH_WEST, Direction::SOUTH,  //
-                        Direction::SOUTH_EAST, Direction::WEST,   //
-                        Direction::EAST, Direction::NORTH_WEST,   //
-                        Direction::NORTH, Direction::NORTH_EAST})
-        attacksBB |= destination_bb(s, d);
-
-    return attacksBB;
-}
-
-alignas(CACHE_LINE_SIZE) inline constexpr auto ATTACKS_BBs = []() constexpr noexcept {
-    Array<Bitboard, SQUARE_NB, 1 + PIECE_TYPE_CNT> attacksBBs{};
+alignas(CACHE_LINE_SIZE) inline constexpr auto PSEUDO_ATTACKS_BBs = []() constexpr noexcept {
+    Array<Bitboard, SQUARE_NB, 1 + PIECE_TYPE_CNT> pseudoAttacksBB{};
 
     for (Square s = SQ_A1; s <= SQ_H8; ++s)
     {
-        attacksBBs[s][WHITE]  = pawn_attacks_bb<WHITE>(square_bb(s));
-        attacksBBs[s][BLACK]  = pawn_attacks_bb<BLACK>(square_bb(s));
-        attacksBBs[s][KNIGHT] = knight_attacks_bb(s);
-        attacksBBs[s][BISHOP] = sliding_attacks_bb<BISHOP>(s, 0);
-        attacksBBs[s][ROOK]   = sliding_attacks_bb<ROOK>(s, 0);
-        attacksBBs[s][QUEEN]  = attacksBBs[s][BISHOP] | attacksBBs[s][ROOK];
-        attacksBBs[s][KING]   = king_attacks_bb(s);
+        pseudoAttacksBB[s][WHITE]  = pawn_attacks_bb<WHITE>(square_bb(s));
+        pseudoAttacksBB[s][BLACK]  = pawn_attacks_bb<BLACK>(square_bb(s));
+        pseudoAttacksBB[s][KNIGHT] = pseudo_attacks_bb<KNIGHT>(s);
+        pseudoAttacksBB[s][BISHOP] = pseudo_attacks_bb<BISHOP>(s);
+        pseudoAttacksBB[s][ROOK]   = pseudo_attacks_bb<ROOK>(s);
+        pseudoAttacksBB[s][QUEEN]  = pseudoAttacksBB[s][BISHOP] | pseudoAttacksBB[s][ROOK];
+        pseudoAttacksBB[s][KING]   = pseudo_attacks_bb<KING>(s);
     }
 
-    return attacksBBs;
+    return pseudoAttacksBB;
 }();
 
-constexpr Bitboard attacks_bb(Square s, usize idx) noexcept {
+constexpr Bitboard pseudo_attacks_bb(Square s, usize idx) noexcept {
     assert(is_ok(s));
 
-    return ATTACKS_BBs[s][idx];
+    return PSEUDO_ATTACKS_BBs[s][idx];
 }
 
 // Returns the pseudo attacks of the given piece type assuming an empty board
@@ -259,9 +463,9 @@ constexpr Bitboard attacks_bb(Square s, [[maybe_unused]] Color c = NONE) noexcep
     assert(is_ok(s) && (PT != PAWN || is_ok(c)));
 
     if constexpr (PT == PAWN)
-        return attacks_bb(s, c);
+        return pseudo_attacks_bb(s, c);
 
-    return attacks_bb(s, PT);
+    return pseudo_attacks_bb(s, PT);
 }
 
 constexpr Bitboard attacks_bb(Square s, Piece pc) noexcept {
@@ -288,82 +492,58 @@ constexpr Bitboard attacks_bb(Square s, Piece pc) noexcept {
     return 0;
 }
 
-// Magic holds all magic bitboards relevant data for a single square
-struct Magic final {
-   public:
-    Magic() noexcept                        = default;
-    Magic(const Magic&) noexcept            = delete;
-    Magic& operator=(const Magic&) noexcept = delete;
-    Magic(Magic&&) noexcept                 = delete;
-    Magic& operator=(Magic&&) noexcept      = delete;
+#if defined(USE_DUAL_HYPERBOLA_QUINT)
 
-#if defined(USE_BMI2)
-    void attacks_bb(Bitboard occupancyBB, Bitboard referenceBB) noexcept {
-    #if defined(USE_CMP)
-        attacksBBs[index(occupancyBB)] = _pext_u64(referenceBB, reMaskBB);
-    #else
-        attacksBBs[index(occupancyBB)] = referenceBB;
-    #endif
-    }
-#endif
+// Sliding attacks within a rank, indexed by the slider's file and the
+// 6 inner bits of the rank occupancy (edge squares never affect the
+// attack set), yielding the 8-bit attack set on that rank
+alignas(CACHE_LINE_SIZE) inline constexpr auto RANK_ATTACKS = []() constexpr noexcept {
+    Array<u8, FILE_NB, SQUARE_NB> rankAttacks{};
 
-    Bitboard attacks_bb(Bitboard occupancyBB) const noexcept {
-#if defined(USE_BMI2)
-    #if defined(USE_CMP)
-        return _pdep_u64(attacksBBs[index(occupancyBB)], reMaskBB);
-    #else
-        return attacksBBs[index(occupancyBB)];
-    #endif
-#else
-        return attacksBBs[index(occupancyBB)];
-#endif
-    }
+    for (Square f = SQ_A1; f <= SQ_H1; ++f)
+        for (u16 occ6 = 0; occ6 < 64; ++occ6)
+            rankAttacks[f][occ6] = u8(sliding_attacks_bb<ROOK>(f, Bitboard{occ6} << 1));
 
-    // Compute the attack's index using the 'magic bitboards' approach
-    u16 index(Bitboard occupancyBB) const noexcept {
-#if defined(USE_BMI2)
-        return _pext_u64(occupancyBB, maskBB);
-#else
-    #if defined(IS_64BIT)
-        return ((occupancyBB & maskBB) * magicBB) >> shift;
-    #else
-        u32 loO = u32(occupancyBB >> 00) & u32(maskBB >> 00);
-        u32 hiO = u32(occupancyBB >> 32) & u32(maskBB >> 32);
-        u32 loM = u32(magicBB >> 00);
-        u32 hiM = u32(magicBB >> 32);
-        return ((loO * loM) ^ (hiO * hiM)) >> shift;
-    #endif
-#endif
+    return rankAttacks;
+}();
+
+alignas(CACHE_LINE_SIZE) inline constexpr auto DUAL_MAGICS = []() constexpr noexcept {
+    Array<DualMagic, SQUARE_NB> dualMagics{};
+
+    for (Square s = SQ_A1; s <= SQ_H8; ++s)
+    {
+        auto& dm             = dualMagics[s];
+        dm.maskFileBB        = ray_bb(s, Direction::NORTH, Direction::SOUTH);
+        dm.maskDiagBB        = ray_bb(s, Direction::NORTH_EAST, Direction::SOUTH_WEST);
+        dm.maskNoneBB        = 0;
+        dm.maskAntidiagBB    = ray_bb(s, Direction::NORTH_WEST, Direction::SOUTH_EAST);
+        dm.rBB               = 2 * square_bb(s);
+        dm.rrBB              = 2 * square_bb(reverse_sq(s));
+        dm.rankAttacksLookup = RANK_ATTACKS[file_of(s)].data();
+        dm.shift             = 8 * int(rank_of(s));
     }
 
-#if defined(USE_BMI2)
-    #if defined(USE_CMP)
-    Bitboard maskBB;
-    Bitboard reMaskBB;
-    u16*     attacksBBs;
-    #else
-    Bitboard  maskBB;
-    Bitboard* attacksBBs;
-    #endif
+    return dualMagics;
+}();
+
+constexpr const DualMagic& dual_magic(Square s) { return DUAL_MAGICS[s]; }
+
 #else
-    Bitboard  maskBB;
-    Bitboard  magicBB;
-    Bitboard* attacksBBs;
-    u8        shift;
-#endif
-};
 
 alignas(CACHE_LINE_SIZE) inline Array<Magic, SQUARE_NB, 2> MAGICS;  // BISHOP or ROOK
 
 template<PieceType PT>
-constexpr Bitboard attacks_bb(const Array<Magic, 2>& magic, Bitboard occupancyBB) noexcept {
-    static_assert(PT == BISHOP || PT == ROOK, "Unsupported piece type in attacks_bb()");
+constexpr const Magic& magic(Square s) noexcept {
+    static_assert(PT == BISHOP || PT == ROOK, "Unsupported piece type in magic()");
+    assert(is_ok(s));
 
-    return magic[PT - BISHOP].attacks_bb(occupancyBB);
+    return MAGICS[s][PT - BISHOP];
 }
 
+#endif
+
 // Returns the attacks by the given piece type.
-// Sliding piece attacks do not continue passed an occupied square.
+// Sliding piece attacks do not continue past an occupied square.
 template<PieceType PT>
 constexpr Bitboard attacks_bb(Square s, [[maybe_unused]] Bitboard occupancyBB) noexcept {
     static_assert(PT != PAWN, "Unsupported piece type in attacks_bb()");
@@ -371,21 +551,32 @@ constexpr Bitboard attacks_bb(Square s, [[maybe_unused]] Bitboard occupancyBB) n
 
     if constexpr (PT == KNIGHT)
         return attacks_bb<KNIGHT>(s);
-    if constexpr (PT == BISHOP)
-        return attacks_bb<BISHOP>(MAGICS[s], occupancyBB);
-    if constexpr (PT == ROOK)
-        return attacks_bb<ROOK>(MAGICS[s], occupancyBB);
-    if constexpr (PT == QUEEN)
-        return attacks_bb<BISHOP>(s, occupancyBB) | attacks_bb<ROOK>(s, occupancyBB);
     if constexpr (PT == KING)
         return attacks_bb<KING>(s);
+
+#if defined(USE_DUAL_HYPERBOLA_QUINT)
+    [[maybe_unused]] const auto [bishop, rook] = dual_magic(s).attacks_bb_pair(occupancyBB);
+
+    if constexpr (PT == BISHOP)
+        return bishop;
+    if constexpr (PT == ROOK)
+        return rook;
+    if constexpr (PT == QUEEN)
+        return bishop | rook;
+#else
+    if constexpr (PT == BISHOP || PT == ROOK)
+        return magic<PT>(s).attacks_bb(s, occupancyBB);
+    if constexpr (PT == QUEEN)
+        return attacks_bb<BISHOP>(s, occupancyBB) | attacks_bb<ROOK>(s, occupancyBB);
+#endif
+
     assert(false);
     UNREACHABLE();
     return 0;
 }
 
 // Returns the attacks by the given piece type.
-// Sliding piece attacks do not continue passed an occupied square.
+// Sliding piece attacks do not continue past an occupied square.
 constexpr Bitboard attacks_bb(Square s, PieceType pt, Bitboard occupancyBB) noexcept {
     assert(pt != PAWN);
     assert(is_ok(s));
@@ -418,14 +609,27 @@ constexpr Bitboard attacks_bb(Square s, Piece pc, Bitboard occupancyBB) noexcept
     return attacks_bb(s, type_of(pc), occupancyBB);
 }
 
+constexpr std::pair<Bitboard, Bitboard> attacks_bb_pair(Square s) noexcept {
+    return {attacks_bb<BISHOP>(s), attacks_bb<ROOK>(s)};
+}
+
+inline std::pair<Bitboard, Bitboard> attacks_bb_pair(Square s, Bitboard occupancyBB) noexcept {
+#if defined(USE_DUAL_HYPERBOLA_QUINT)
+    return dual_magic(s).attacks_bb_pair(occupancyBB);
+#else
+    return {attacks_bb<BISHOP>(s, occupancyBB), attacks_bb<ROOK>(s, occupancyBB)};
+#endif
+}
+
 alignas(CACHE_LINE_SIZE) inline constexpr auto LINE_BBs = []() constexpr noexcept {
     Array<Bitboard, SQUARE_NB, SQUARE_NB> lineBBs{};
 
     for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
         for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
             for (PieceType pt : {BISHOP, ROOK})
-                if ((attacks_bb(s1, pt) & s2) != 0)
-                    lineBBs[s1][s2] = (attacks_bb(s1, pt) & attacks_bb(s2, pt)) | s1 | s2;
+                if ((pseudo_attacks_bb(s1, pt) & s2) != 0)
+                    lineBBs[s1][s2] = (pseudo_attacks_bb(s1, pt) & pseudo_attacks_bb(s2, pt))
+                                    | square_bb(s1) | square_bb(s2);
 
     return lineBBs;
 }();

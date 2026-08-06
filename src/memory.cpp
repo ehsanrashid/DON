@@ -138,10 +138,9 @@ void* alloc_aligned_large_page(std::size_t allocSize) noexcept {
 
     mem = alloc_aligned_std(roundedAllocSize, Alignment);
     #if defined(MADV_HUGEPAGE)
-    //DEBUG_LOG("Using madvise() to advise kernel to use huge pages for " << roundedAllocSize / MB << "MB allocation");
     if (mem != nullptr && ::madvise(mem, roundedAllocSize, MADV_HUGEPAGE) != 0)
     {
-        //DEBUG_LOG("madvise() failed, error = " << strerror(errno));
+        //DEBUG_LOG("::madvise() failed, error = " << strerror(errno));
     }
     #endif
 #endif

@@ -126,7 +126,7 @@ void Engine::setup(std::string_view fen, const Strings& moves) noexcept {
 
     for (const auto& move : moves)
     {
-        Move m = mix_to_move(move, pos, MoveList<GenType::LEGAL>(pos));
+        const Move m = mix_to_move(move, pos, MoveList<GenType::LEGAL>(pos));
 
         if (m == Move::None)
         {

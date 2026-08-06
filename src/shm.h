@@ -356,9 +356,9 @@ class BackendSharedMemory final {
             return;
         }
 
-        mappedPtr = MapViewOfFile(hMapFile, FILE_MAP_ALL_ACCESS, 0, 0, TotalSize);
+        mappedPtr = MapViewOfFile(hMapFileGuard.get(), FILE_MAP_ALL_ACCESS, 0, 0, TotalSize);
 
-        if (mappedPtr == INVALID_MMAP_PTR)
+        if (!mappedGuard.is_valid())
         {
             //DEBUG_LOG("MapViewOfFile() failed, name = " << name() << ", error = " << error_to_string(GetLastError()));
             status = Status::MapView;
@@ -374,7 +374,7 @@ class BackendSharedMemory final {
 
         HandleGuard hMutexGuard{hMutex};
 
-        if (hMutex == nullptr)
+        if (!hMutexGuard.is_valid())
         {
             //DEBUG_LOG("CreateMutex() failed, name = " << mutexName << ", error = " << error_to_string(GetLastError()));
             status = Status::MutexCreate;
@@ -382,7 +382,7 @@ class BackendSharedMemory final {
             return;
         }
         // Wait for ownership
-        if (WaitForSingleObject(hMutex, INFINITE) != WAIT_OBJECT_0)
+        if (WaitForSingleObject(hMutexGuard.get(), INFINITE) != WAIT_OBJECT_0)
         {
             //DEBUG_LOG("WaitForSingleObject() failed, name = " << mutexName << ", error = " << error_to_string(GetLastError()));
             status = Status::MutexWait;
@@ -391,10 +391,10 @@ class BackendSharedMemory final {
         }
 
         // Object lives first to ensure alignment
-        T* object = reinterpret_cast<T*>(mappedPtr);
+        T* object = reinterpret_cast<T*>(mappedGuard.get());
 
         auto* sharedState =
-          reinterpret_cast<volatile DWORD*>(reinterpret_cast<char*>(mappedPtr) + sizeof(T));
+          reinterpret_cast<volatile DWORD*>(reinterpret_cast<char*>(mappedGuard.get()) + sizeof(T));
 
         // Attempt atomic initialization
         if (InterlockedCompareExchange(sharedState, DWORD(SharedState::Initializing),
@@ -414,7 +414,7 @@ class BackendSharedMemory final {
                 PAUSE();  // portable "pause" for any architecture
         }
 
-        if (!ReleaseMutex(hMutex))
+        if (!ReleaseMutex(hMutexGuard.get()))
         {
             //DEBUG_LOG("ReleaseMutex() failed, name = " << mutexName << ", error = " << error_to_string(GetLastError()));
             status = Status::MutexRelease;
@@ -1133,6 +1133,23 @@ class SharedMemory final: public BaseSharedMemory {
         return *this;
     }
 
+    [[nodiscard]] static std::optional<SharedMemory<T>> create(std::string_view name,
+                                                               const T&         value) noexcept {
+        SharedMemoryCleanupManager::ensure_initialized();
+
+        const auto& tempRoot = TempRoot::temp_root();
+
+        if (!tempRoot)
+            return std::nullopt;
+
+        SharedMemory<T> shm(name, *tempRoot);
+
+        if (!shm.open(value))
+            return std::nullopt;
+
+        return shm;
+    }
+
     [[nodiscard]] bool open(const T& value) noexcept {
         if (socketPath.size() >= sizeof(sockaddr_un::sun_path))
             return false;
@@ -1223,10 +1240,11 @@ class SharedMemory final: public BaseSharedMemory {
             std::strncpy(addr.sun_path, socketPath.c_str(), sizeof(addr.sun_path) - 1);
 
             ::unlink(socketPath.c_str());
-            if (::bind(serverFd.get(), reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr))
-                  == -1
+            // clang-format off
+            if (   ::bind(serverFd.get(), reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr)) == -1
                 || ::listen(serverFd.get(), 5) == -1)
                 return false;
+            // clang-format on
 
             // Don't release the init lock until we've actually made a socket that other DONs can use
             serverThread = make_server_thread(std::move(memFd), std::move(shutdownReceiver),
@@ -1320,26 +1338,12 @@ class SharedMemory final: public BaseSharedMemory {
 };
 
 template<typename T>
-[[nodiscard]] std::optional<SharedMemory<T>> create_shared_memory(std::string_view name,
-                                                                  const T&         value) noexcept {
-    SharedMemoryCleanupManager::ensure_initialized();
-
-    auto tempRoot = TempRoot::temp_root();
-    if (!tempRoot.has_value())
-        return std::nullopt;
-    SharedMemory<T> shm(name, *tempRoot);
-    if (shm.open(value))
-        return shm;
-    return std::nullopt;
-}
-
-template<typename T>
 class BackendSharedMemory final {
    public:
     BackendSharedMemory() noexcept = default;
 
     BackendSharedMemory(std::string_view shmName, const T& value) noexcept :
-        shm(create_shared_memory<T>(shmName, value)) {}
+        shm(SharedMemory<T>::create(shmName, value)) {}
 
     BackendSharedMemory(const BackendSharedMemory&) noexcept            = delete;
     BackendSharedMemory& operator=(const BackendSharedMemory&) noexcept = delete;

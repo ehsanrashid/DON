@@ -248,9 +248,9 @@ MovePicker::score<GenType::ENC_CAPTURE>(const MoveList<GenType::ENC_CAPTURE>& mo
 
         assert(pos.capture_promo(m));
 
-        Square dstSq      = m.dst_sq();
-        Piece  movedPc    = pos.moved_pc(m);
-        auto   capturedPt = pos.captured_pt(m);
+        const Square dstSq      = m.dst_sq();
+        const Piece  movedPc    = pos.moved_pc(m);
+        const auto   capturedPt = pos.captured_pt(m);
 
         m.value = 7 * piece_value(capturedPt)  //
                 + refCaptureHistory[+movedPc][dstSq][capturedPt];
@@ -264,11 +264,11 @@ MovePicker::score<GenType::ENC_CAPTURE>(const MoveList<GenType::ENC_CAPTURE>& mo
 template<>
 MovePicker::iterator
 MovePicker::score<GenType::ENC_QUIET>(const MoveList<GenType::ENC_QUIET>& moveList) noexcept {
-    Color ac = pos.active_color();
+    const Color ac = pos.active_color();
 
-    Bitboard blockersBB = pos.blockers_bb(~ac);
-    Bitboard pinnersBB  = pos.pinners_bb();
-    Bitboard threatsBB  = pos.threats_bb();
+    const Bitboard blockersBB = pos.blockers_bb(~ac);
+    const Bitboard pinnersBB  = pos.pinners_bb();
+    const Bitboard threatsBB  = pos.threats_bb();
 
     const auto&        refQuietHistory        = *quietHistory;
     const auto&        refLowPlyQuietHistory  = *lowPlyQuietHistory;
@@ -284,9 +284,9 @@ MovePicker::score<GenType::ENC_QUIET>(const MoveList<GenType::ENC_QUIET>& moveLi
 
         assert(!pos.capture_promo(m));
 
-        Square orgSq = m.org_sq(), dstSq = m.dst_sq();
-        Piece  movedPc = pos.moved_pc(m);
-        auto   movedPt = type_of(movedPc);
+        const Square orgSq = m.org_sq(), dstSq = m.dst_sq();
+        const Piece  movedPc = pos.moved_pc(m);
+        const auto   movedPt = type_of(movedPc);
 
         i64 value;
 
@@ -308,15 +308,15 @@ MovePicker::score<GenType::ENC_QUIET>(const MoveList<GenType::ENC_QUIET>& moveLi
         // Penalty for moving to square attacked by lesser piece
         // Bonus for escaping from square attacked by lesser piece
         // clang-format off
-        Bitboard accLessAttacksBB = pos.acc_less_attacks_bb(movedPt);
-        int dstMask   = -int((accLessAttacksBB & dstSq) != 0);
-        int blockMask = -int((blockersBB & orgSq) == 0);
-        int threatMask= -int((threatsBB & orgSq) != 0);
-        int orgAttMask= -int((accLessAttacksBB & orgSq) != 0);
+        const Bitboard accLessAttacksBB = pos.acc_less_attacks_bb(movedPt);
+        const int dstMask    = -int((accLessAttacksBB & dstSq) != 0);
+        const int blockMask  = -int((blockersBB & orgSq) == 0);
+        const int threatMask = -int((threatsBB & orgSq) != 0);
+        const int orgAttMask = -int((accLessAttacksBB & orgSq) != 0);
         // Priority masking (mutually exclusive chain)
-        int weight = (dstMask & blockMask & -20)
-                   | (~dstMask & (  (threatMask & 23)
-                                  | (~threatMask & orgAttMask & 20)));
+        const int weight = ( dstMask & blockMask & -20)
+                         | (~dstMask & (  ( threatMask & 23)
+                                        | (~threatMask & orgAttMask & 20)));
         value += weight * piece_value(movedPt);
         // clang-format on
 
@@ -346,7 +346,7 @@ MovePicker::score<GenType::EVA_CAPTURE>(const MoveList<GenType::EVA_CAPTURE>& mo
         assert(pos.capture_promo(m));
         assert(m.type() != MT::CASTLING);
 
-        auto capturedPt = pos.captured_pt(m);
+        const auto capturedPt = pos.captured_pt(m);
 
         m.value = piece_value(capturedPt);
 
@@ -360,7 +360,7 @@ template<>
 MovePicker::iterator
 MovePicker::score<GenType::EVA_QUIET>(const MoveList<GenType::EVA_QUIET>& moveList) noexcept {
 
-    Color ac = pos.active_color();
+    const Color ac = pos.active_color();
 
     const auto&        refQuietHistory        = *quietHistory;
     const auto* const* ptrContinuationHistory = continuationHistory;
@@ -375,8 +375,8 @@ MovePicker::score<GenType::EVA_QUIET>(const MoveList<GenType::EVA_QUIET>& moveLi
         assert(!pos.capture_promo(m));
         assert(m.type() != MT::CASTLING);
 
-        Square dstSq   = m.dst_sq();
-        Piece  movedPc = pos.moved_pc(m);
+        const Square dstSq   = m.dst_sq();
+        const Piece  movedPc = pos.moved_pc(m);
 
         m.value = refQuietHistory[ac][m.raw()]  //
                 + (*ptrContinuationHistory[0])[+movedPc][dstSq];

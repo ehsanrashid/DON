@@ -230,9 +230,11 @@ constexpr Square& operator-=(Square& s, Direction d) noexcept { return s = s - d
 
 [[nodiscard]] constexpr bool is_ok(Square s) noexcept { return (s <= SQ_H8); }
 
-constexpr File file_of(Square s) noexcept { return File((u8(s) >> 0) & 0x7); }
+[[nodiscard]] constexpr File file_of(Square s) noexcept { return File((u8(s) >> 0) & 0x7); }
 
-constexpr Rank rank_of(Square s) noexcept { return Rank((u8(s) >> 3) & 0x7); }
+[[nodiscard]] constexpr Rank rank_of(Square s) noexcept { return Rank((u8(s) >> 3) & 0x7); }
+
+[[nodiscard]] constexpr Square reverse_sq(Square s) noexcept { return Square(u8(SQ_H8) - u8(s)); }
 
 [[nodiscard]] constexpr bool is_light(Square s) noexcept {
     return ((/*file_of*/ s ^ rank_of(s)) & 0x1) != 0;
@@ -242,9 +244,9 @@ constexpr Rank rank_of(Square s) noexcept { return Rank((u8(s) >> 3) & 0x7); }
 }
 
 // Swap A1 <-> H1, B1 <-> G1, ...
-constexpr Square flip_file(Square s) noexcept { return Square(s ^ SQ_H1); }
+[[nodiscard]] constexpr Square flip_file(Square s) noexcept { return Square(s ^ SQ_H1); }
 // Swap A1 <-> H8, B1 <-> G8, ...
-constexpr Square flip_rank(Square s) noexcept { return Square(s ^ SQ_A8); }
+[[nodiscard]] constexpr Square flip_rank(Square s) noexcept { return Square(s ^ SQ_A8); }
 
 enum Color : u8 {
     WHITE,
@@ -257,7 +259,7 @@ inline constexpr usize COLOR_NB = 2;
 [[nodiscard]] constexpr bool is_ok(Color c) noexcept { return (c <= BLACK); }
 
 // Toggle color
-constexpr Color operator~(Color c) noexcept { return Color(c ^ BLACK); }
+[[nodiscard]] constexpr Color operator~(Color c) noexcept { return Color(c ^ BLACK); }
 
 // clang-format off
 enum class Piece : u8 {
@@ -290,35 +292,41 @@ constexpr PieceType type_of(Piece pc) noexcept { return PieceType((+pc >> 0) & 0
 constexpr Color color_of(Piece pc) noexcept { return Color((+pc >> 3) & 0x1); }
 
 // Swap color of piece B_KNIGHT <-> W_KNIGHT
-constexpr Piece flip_color(Piece pc) noexcept { return Piece(+pc ^ PIECE_TYPE_NB); }
+[[nodiscard]] constexpr Piece flip_color(Piece pc) noexcept { return Piece(+pc ^ PIECE_TYPE_NB); }
 
-constexpr Piece relative_piece(Color c, Piece pc) noexcept {
+[[nodiscard]] constexpr Piece relative_piece(Color c, Piece pc) noexcept {
     return Piece(+pc ^ (c * PIECE_TYPE_NB));
 }
 
 using PieceMap = Array<Piece, SQUARE_NB>;
 
-constexpr File fold_to_edge(File f) noexcept { return std::min<File>(f, FILE_H - f); }
-constexpr Rank fold_to_edge(Rank r) noexcept { return std::min<Rank>(r, RANK_8 - r); }
+[[nodiscard]] constexpr File fold_to_edge(File f) noexcept { return std::min<File>(f, FILE_H - f); }
+[[nodiscard]] constexpr Rank fold_to_edge(Rank r) noexcept { return std::min<Rank>(r, RANK_8 - r); }
 
-constexpr Square relative_sq(Color c, Square s) noexcept { return Square(s ^ (c * SQ_A8)); }
+[[nodiscard]] constexpr Square relative_sq(Color c, Square s) noexcept {
+    return Square(s ^ (c * SQ_A8));
+}
 
-constexpr Rank relative_rank(Color c, Rank r) noexcept { return Rank(r ^ (c * RANK_8)); }
+[[nodiscard]] constexpr Rank relative_rank(Color c, Rank r) noexcept {
+    return Rank(r ^ (c * RANK_8));
+}
 
-constexpr Rank relative_rank(Color c, Square s) noexcept { return relative_rank(c, rank_of(s)); }
+[[nodiscard]] constexpr Rank relative_rank(Color c, Square s) noexcept {
+    return relative_rank(c, rank_of(s));
+}
 
-constexpr Square king_castle_sq(Square kingOrgSq, Square kingDstSq) noexcept {
+[[nodiscard]] constexpr Square king_castle_sq(Square kingOrgSq, Square kingDstSq) noexcept {
     return make_square(kingOrgSq < kingDstSq ? FILE_G : FILE_C, rank_of(kingOrgSq));
 }
-constexpr Square rook_castle_sq(Square kingOrgSq, Square kingDstSq) noexcept {
+[[nodiscard]] constexpr Square rook_castle_sq(Square kingOrgSq, Square kingDstSq) noexcept {
     return make_square(kingOrgSq < kingDstSq ? FILE_F : FILE_D, rank_of(kingOrgSq));
 }
 
-constexpr Direction pawn_spush(Color c) noexcept {
+[[nodiscard]] constexpr Direction pawn_spush(Color c) noexcept {
     assert(is_ok(c));
     return c == WHITE ? Direction::NORTH : Direction::SOUTH;
 }
-constexpr Direction pawn_dpush(Color c) noexcept {
+[[nodiscard]] constexpr Direction pawn_dpush(Color c) noexcept {
     assert(is_ok(c));
     return c == WHITE ? Direction::NORTH_2 : Direction::SOUTH_2;
 }

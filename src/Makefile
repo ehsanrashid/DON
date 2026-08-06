@@ -212,9 +212,9 @@ endif
 # GNU Make filter:
 #   - returns matches, not true/false
 #   - non-empty => ARCH found in supported list
-ifneq ($(filter x86-64-avx512icl-cmp x86-64-avx512icl x86-64-vnni512-cmp x86-64-vnni512 x86-64-vnni256-cmp x86-64-vnni256 \
-                x86-64-avx512-cmp x86-64-avx512 x86-64-avxvnni-cmp x86-64-avxvnni x86-64-bmi2-cmp x86-64-bmi2 \
-                x86-64-avx2 x86-64-sse41-popcnt x86-64-modern x86-64-sse41 x86-64-ssse3-popcnt x86-64-ssse3 x86-64 general-64 \
+ifneq ($(filter x86-64-avx512icl x86-64-vnni512 x86-64-vnni256 x86-64-avx512 x86-64-avxvnni \
+                x86-64-bmi2 x86-64-avx2 x86-64-bitmanip-cmp x86-64-bitmanip \
+                x86-64-sse41-popcnt x86-64-modern x86-64-sse41 x86-64-ssse3-popcnt x86-64-ssse3 x86-64 general-64 \
                 x86-32-sse41-popcnt x86-32-sse41 x86-32-sse2 x86-32 general-32 \
                 ppc-64-altivec ppc-64-vsx ppc-64 ppc-32 e2k armv7-neon armv7 armv8-dotprod armv8 apple-silicon \
                 riscv64 riscv64-rva23 \
@@ -313,6 +313,19 @@ ifeq ($(findstring -modern,$(ARCH)),-modern)
     sse41 = yes
 endif
 
+ifeq ($(findstring -bitmanip,$(ARCH)),-bitmanip)
+    popcnt = yes
+    sse = yes
+    sse2 = yes
+    ssse3 = yes
+    sse41 = yes
+    bmi2 = yes
+endif
+
+ifeq ($(findstring -bitmanip-cmp,$(ARCH)),-bitmanip-cmp)
+    cmp = yes
+endif
+
 ifeq ($(findstring -avx2,$(ARCH)),-avx2)
     popcnt = yes
     sse = yes
@@ -330,10 +343,6 @@ ifeq ($(findstring -bmi2,$(ARCH)),-bmi2)
     sse41 = yes
     avx2 = yes
     bmi2 = yes
-endif
-
-ifeq ($(findstring -cmp,$(ARCH)),-cmp)
-    cmp = yes
 endif
 
 ifeq ($(findstring -avxvnni,$(ARCH)),-avxvnni)
@@ -883,10 +892,9 @@ ifeq ($(prefetch),yes)
 endif
 
 ifeq ($(popcnt),yes)
-    ifneq ($(filter ppc64 ppc64-altivec ppc64-vsx armv7 armv8 arm64,$(arch)),)
-        CXXFLAGS += -DUSE_POPCNT
-    else
-        CXXFLAGS += -DUSE_POPCNT -msse3 -mpopcnt
+    CXXFLAGS += -DUSE_POPCNT
+    ifeq ($(filter ppc64 ppc64-altivec ppc64-vsx armv7 armv8 arm64,$(arch)),)
+        CXXFLAGS += -msse3 -mpopcnt
     endif
 endif
 
@@ -990,12 +998,14 @@ ifeq ($(dotprod),yes)
 endif
 
 ifeq ($(lasx),yes)
+    CXXFLAGS += -DUSE_LASX
     ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
         CXXFLAGS += -mlasx
     endif
 endif
 
 ifeq ($(lsx),yes)
+    CXXFLAGS += -DUSE_LSX
     ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
         CXXFLAGS += -mlsx
     endif
@@ -1166,6 +1176,8 @@ help:
 	echo "x86-64-avxvnni          > x86 64-bit with vnni 256bit support" && \
 	echo "x86-64-bmi2             > x86 64-bit with bmi2 support" && \
 	echo "x86-64-avx2             > x86 64-bit with avx2 support" && \
+	echo "x86-64-bitmanip-cmp     > x86 64-bit with bit manipulation support and compressed instructions" && \
+	echo "x86-64-bitmanip         > x86 64-bit with bit manipulation support" && \
 	echo "x86-64-sse41-popcnt     > x86 64-bit with sse41 and popcnt support" && \
 	echo "x86-64-modern           > deprecated, currently x86-64-sse41-popcnt" && \
 	echo "x86-64-sse41            > x86 64-bit with sse41 support" && \
