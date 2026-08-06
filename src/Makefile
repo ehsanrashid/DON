@@ -1250,7 +1250,7 @@ help:
 	clang-profile-make clang-profile-use \
 	gcc-profile-make gcc-profile-use \
 	icx-profile-make icx-profile-use \
-	format install-hooks FORCE
+	format install-hooks
 
 analyze: net config-sanity objclean
 	$(MAKE) -k ARCH=$(ARCH) COMP=$(COMP) $(OBJS)
