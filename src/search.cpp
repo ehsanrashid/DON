@@ -2050,7 +2050,7 @@ void Worker::do_move(
 
     DirtyBoard db = pos.do_move(m, st, mayCheck, this);
 
-    //assert(moveKey == pos.key());
+    assert(moveKey == pos.key());
 
     nodes.fetch_add(1, std::memory_order_relaxed);
 

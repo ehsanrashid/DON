@@ -760,10 +760,10 @@ bool Position::enpassant_possible(Color     ac,
 
     assert((pieces_bb(~ac, PAWN) & capturedSq) != 0);
 
-    const auto* preSt = state()->preSt;
-
     if constexpr (MoveDone)
     {
+        const auto* preSt = state()->preSt;
+
         // Step 1: If there are other checkers besides the pawn to be captured,
         // en-passant is never legal because it would leave the king in check.
         if ((checkers_bb() & ~make_bb(capturedSq)) != 0)
@@ -784,16 +784,6 @@ bool Position::enpassant_possible(Color     ac,
     {
         if (collect)
             *epPawnsBBp = epPawnsBB;
-    }
-
-    if (preSt != nullptr)
-    {
-        epPawnsBB &= ~blockers_bb(ac) | line_bb(square<KING>(ac), enPassantSq);
-
-        if (collect)
-            *epPawnsBBp = epPawnsBB;
-
-        return epPawnsBB != 0;
     }
 
     bool epPossible = false;
