@@ -132,7 +132,7 @@ FixedText to_score(const Score& score) noexcept {
       [](Score::Mate mate) -> FixedText { return FixedText{}.write("mate ").write(mate.value); }});
 }
 
-std::string move_to_can(Move m) noexcept {
+std::string move_to_can(const Move m) noexcept {
     if (m == Move::None)
         return "(none)";
     if (m == Move::Null)
@@ -231,7 +231,7 @@ Ambiguity detect_ambiguity(Move m, const Position& pos) noexcept {
 
 }  // namespace
 
-std::string move_to_san(Move m, Position& pos) noexcept {
+std::string move_to_san(const Move m, Position& pos) noexcept {
     if (m == Move::None)
         return "(none)";
     if (m == Move::Null)

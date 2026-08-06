@@ -2214,12 +2214,12 @@ int Worker::correction_value(const Position& pos, const Stack* const ss) const n
 
 // clang-format on
 
-int Worker::history_value(bool                             capture,
-                          Move                             m,
-                          Piece                            movedPc,
-                          PieceType                        capturedPt,
-                          Color                            ac,
-                          const History<HType::PIECE_SQ>** contHistory) const noexcept {
+int Worker::history_value(const bool                             capture,
+                          const Move                             m,
+                          const Piece                            movedPc,
+                          const PieceType                        capturedPt,
+                          const Color                            ac,
+                          const History<HType::PIECE_SQ>** const contHistory) const noexcept {
     return int(capture ? 6.8203 * piece_value(capturedPt)                      //
                            + captureHistory[+movedPc][m.dst_sq()][capturedPt]  //
                        : 2.1992 * quietHistory[ac][m.raw()]                    //
@@ -2227,10 +2227,10 @@ int Worker::history_value(bool                             capture,
                            + 1.0673 * (*contHistory[1])[+movedPc][m.dst_sq()]);
 }
 
-int Worker::history_value(const Position&                  pos,
-                          Move                             m,
-                          Color                            ac,
-                          const History<HType::PIECE_SQ>** contHistory) const noexcept {
+int Worker::history_value(const Position&                        pos,
+                          const Move                             m,
+                          const Color                            ac,
+                          const History<HType::PIECE_SQ>** const contHistory) const noexcept {
     Piece movedPc    = pos.moved_pc(m);
     bool  capture    = pos.capture_promo(m);
     auto  capturedPt = capture ? pos.captured_pt(m) : NO_PIECE_TYPE;
@@ -2248,7 +2248,7 @@ bool Worker::ponder_move_extracted() noexcept {
     auto& rm0 = rootMoves[0];
     assert(rm0.pv.size() == 1);
 
-    Move bestMove = rm0.pv[0];
+    const Move bestMove = rm0.pv[0];
 
     if (bestMove == Move::None)
         return false;
@@ -2347,7 +2347,7 @@ void Worker::extend_tb_pv(usize index, Value& value) noexcept {
     std::list<State> states;
 
     // Step 0. Do the rootMove, no correction allowed, as needed for MultiPV in TB
-    auto& rootSt = states.emplace_back();
+    State& rootSt = states.emplace_back();
     rootPos.do_move(rootMove.pv[0], rootSt);
 
     i16 ply = 1;
