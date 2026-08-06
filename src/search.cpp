@@ -2572,7 +2572,7 @@ void MainSearchManager::handle_time_management(const Worker& worker,
     if (worker.rootMoves.size() == 1)
         totalTime = std::min<TimePoint>(55 * totalTime / 100, worker.options["MaxForcedMoveTime"]);
 
-    TimePoint elapsedTime = elapsed(worker.threads);
+    const TimePoint elapsedTime = elapsed(worker.threads);
 
     // Stop the search if have exceeded the total time
     if (elapsedTime > totalTime)
@@ -2585,9 +2585,8 @@ void MainSearchManager::handle_time_management(const Worker& worker,
             worker.threads.request_stop();
     }
 
-    if (!worker.threads.is_researching())
-        if (!ponder && 1000 * elapsedTime > 503 * totalTime)
-            worker.threads.request_research();
+    if (!worker.threads.is_researching() && !ponder && elapsedTime > 0.5000 * totalTime)
+        worker.threads.request_research();
 
     preBestCurValue = bestValue;
 }
