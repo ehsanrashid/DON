@@ -539,7 +539,7 @@ class SharedMemoryRegistry final {
     }
 
     // Attempt to register shared memory; waits for cleanup if needed (bounded)
-    static void attempt_register_memory(SharedMemoryPtr sharedMemory) noexcept {
+    static bool attempt_register_memory(SharedMemoryPtr sharedMemory) noexcept {
         // Bounded wait for cleanup to finish
         using namespace std::chrono_literals;
         constexpr auto MaxWaitTime = 200ms;
@@ -547,7 +547,7 @@ class SharedMemoryRegistry final {
         if (sharedMemory == nullptr)
         {
             //DEBUG_LOG("Attempted to register <NULL> shared memory.");
-            return;
+            return false;
         }
         {
             std::unique_lock condLock(mutex);
@@ -558,7 +558,7 @@ class SharedMemoryRegistry final {
             {
                 //DEBUG_LOG("Timeout waiting for SharedMemoryRegistry cleanup to finish : " << sharedMemory->name());
                 // Timeout - silently fail to register (acceptable during shutdown)
-                return;
+                return false;
             }
         }
 
@@ -567,9 +567,9 @@ class SharedMemoryRegistry final {
 
         // Recheck after acquiring registry lock
         if (cleanup_in_progress())
-            return;
+            return false;
 
-        insert_memory_nolock(sharedMemory);
+        return insert_memory_nolock(sharedMemory);
     }
 
     // Unregister a shared memory object from the global registry.
