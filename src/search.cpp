@@ -2043,11 +2043,14 @@ void Worker::do_move(
   Position& pos, const Move m, State& st, Stack* const ss, bool mayCheck) noexcept {
     assert(ss != nullptr);
     // Speculative prefetch as early as possible
-    prefetch(transpositionTable.cluster(pos.move_key(m)));
+    const Key moveKey = pos.move_key(m);
+    prefetch(transpositionTable.cluster(moveKey));
 
     bool capture = pos.capture_promo(m);
 
     DirtyBoard db = pos.do_move(m, st, mayCheck, this);
+
+    //assert(moveKey == pos.key());
 
     nodes.fetch_add(1, std::memory_order_relaxed);
 

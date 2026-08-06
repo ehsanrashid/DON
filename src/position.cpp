@@ -704,9 +704,9 @@ void Position::set_pinner_blocker() noexcept {
 // Set extra state, used for fast check detection
 void Position::set_ext_state() noexcept {
 
-    Color ac = active_color();
+    const Color ac = active_color();
 
-    Square kingSq = square<KING>(~ac);
+    const Square kingSq = square<KING>(~ac);
 
     const auto [bAttacksBB, rAttacksBB] = attacks_bb_pair(kingSq, pieces_bb());
 
@@ -740,9 +740,9 @@ template<bool MoveDone>
 bool Position::enpassant_possible(Color     ac,
                                   Square    enPassantSq,
                                   Bitboard* epPawnsBBp) const noexcept {
-    assert(enPassantSq != SQ_NONE);
+    assert(is_ok(enPassantSq));
 
-    bool collect = epPawnsBBp != nullptr;
+    const bool collect = epPawnsBBp != nullptr;
 
     Bitboard epPawnsBB = pieces_bb(ac, PAWN) & attacks_bb<PAWN>(enPassantSq, ~ac);
 
@@ -754,9 +754,9 @@ bool Position::enpassant_possible(Color     ac,
         return false;
     }
 
-    Square capturedSq = MoveDone  //
-                        ? enPassantSq - pawn_spush(ac)
-                        : enPassantSq + pawn_spush(ac);
+    const Square capturedSq = MoveDone  //
+                              ? enPassantSq - pawn_spush(ac)
+                              : enPassantSq + pawn_spush(ac);
 
     assert((pieces_bb(~ac, PAWN) & capturedSq) != 0);
 
@@ -799,15 +799,15 @@ bool Position::enpassant_possible(Color     ac,
     bool epPossible = false;
 
     // Check en-passant is legal for the position
-    Square   kingSq      = square<KING>(ac);
-    Bitboard occupancyBB = pieces_bb() ^ make_bb(capturedSq, enPassantSq);
-    Bitboard attackersBB = pieces_bb(~ac);
+    const Square   kingSq      = square<KING>(ac);
+    const Bitboard occupancyBB = pieces_bb() ^ make_bb(capturedSq, enPassantSq);
+    const Bitboard attackersBB = pieces_bb(~ac);
 
     while (epPawnsBB != 0)
     {
-        Square epPawnSq = pop_lsq(epPawnsBB);
+        const Square epPawnSq = pop_lsq(epPawnsBB);
 
-        bool legal = (attackersBB & slide_attackers_bb(kingSq, occupancyBB ^ epPawnSq)) == 0;
+        const bool legal = (attackersBB & slide_attackers_bb(kingSq, occupancyBB ^ epPawnSq)) == 0;
 
         epPossible |= legal;
 
@@ -839,11 +839,11 @@ void Position::do_castling(Color       ac,
     rookDstSq = rook_castle_sq(kingOrgSq, rookOrgSq);
 
     assert(piece(Do ? kingOrgSq : kingDstSq) == make_piece(ac, KING));
-    Piece rookPc = piece(Do ? rookOrgSq : rookDstSq);
+    const Piece rookPc = piece(Do ? rookOrgSq : rookDstSq);
     assert(rookPc == make_piece(ac, ROOK));
 
-    bool kingMoved = kingOrgSq != kingDstSq;
-    bool rookMoved = rookOrgSq != rookDstSq;
+    const bool kingMoved = kingOrgSq != kingDstSq;
+    const bool rookMoved = rookOrgSq != rookDstSq;
 
     if constexpr (Do)
     {
@@ -1887,9 +1887,9 @@ bool Position::is_upcoming_repetition(i16 ply) const noexcept {
         if (iterKey != 0)
             continue;
 
-        Key moveKey = baseKey ^ preSt->key;
+        const Key moveKey = baseKey ^ preSt->key;
         // 'moveKey' is a single move
-        usize index = Cuckoos.find_key(moveKey);
+        const usize index = Cuckoos.find_key(moveKey);
 
         if (index >= Cuckoos.size())
             continue;
