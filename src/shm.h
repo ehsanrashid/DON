@@ -781,7 +781,7 @@ struct TempRoot final {
             std::string tempPath{"/tmp/DON-"};
             tempPath += std::to_string(uid);
 
-            if (mkdir(tempPath.c_str(), 0700) == 0)
+            if (::mkdir(tempPath.c_str(), 0700) == 0)
                 return TempRoot{tempPath};
 
             if (errno != EEXIST)
@@ -790,9 +790,9 @@ struct TempRoot final {
             // Temp root already exists, verify ownership and permissions
             struct stat fileStat{};
 
-            if (lstat(tempPath.c_str(), &fileStat) == 0  //
-                && S_ISDIR(fileStat.st_mode)             //
-                && fileStat.st_uid == uid                //
+            if (::lstat(tempPath.c_str(), &fileStat) == 0  //
+                && S_ISDIR(fileStat.st_mode)               //
+                && fileStat.st_uid == uid                  //
                 && (fileStat.st_mode & 07777) == 0700)
                 return TempRoot{tempPath};
 
@@ -1155,99 +1155,95 @@ class SharedMemory final: public BaseSharedMemory {
         if (::mkdir(sharedDir.c_str(), 0700) != 0 && errno != EEXIST)
             return false;
 
+        auto initLock = InitLock::acquire_lock(initLockPath);
+        if (!initLock.is_valid())
+            return false;
+
+        // Try to receive the shared memFd
+        UniqueFd memFd;
+        Strings  peerSockets = get_peer_sockets(sharedDir);
+        for (const auto& sockPath : peerSockets)
         {
-            auto initLock = InitLock::acquire_lock(initLockPath);
-            if (!initLock.is_valid())
-                return false;
+            memFd = try_receive_memfd(sockPath);
+            if (memFd.is_valid())
+                break;
+        }
 
-            // Try to receive the shared memFd
-            UniqueFd memFd;
-            Strings  peerSockets = get_peer_sockets(sharedDir);
-            for (const auto& sockPath : peerSockets)
-            {
-                memFd = try_receive_memfd(sockPath);
-                if (memFd.is_valid())
-                    break;
-            }
+        const bool creator = !memFd.is_valid();  // We must create it
 
-            const bool creator = !memFd.is_valid();  // We must create it
-
-            if (creator)
-            {
+        if (creator)
+        {
     #if defined(MFD_CLOEXEC)
-                // Failed to get it from a peer (no peers, or only dead peers), so create
-                memFd.reset(::memfd_create("replicated_data", MFD_CLOEXEC));
-                if (!memFd.is_valid())
-                    return false;
+            // Failed to get it from a peer (no peers, or only dead peers), so create
+            memFd.reset(::memfd_create("replicated_data", MFD_CLOEXEC));
+            if (!memFd.is_valid())
+                return false;
     #else
-                char tempPath[PATH_MAX];
-                std::strncpy(tempPath, "/tmp/DON_replicated_data.XXXXXX", PATH_MAX);
+            char tempPath[PATH_MAX];
+            std::strncpy(tempPath, "/tmp/DON_replicated_data.XXXXXX", PATH_MAX);
 
-                memFd.reset(::mkstemp(tempPath));
-                if (!memFd.is_valid())
-                    return false;
-                set_cloexec(memFd.get());
-                ::unlink(tempPath);
+            memFd.reset(::mkstemp(tempPath));
+            if (!memFd.is_valid())
+                return false;
+            set_cloexec(memFd.get());
+            ::unlink(tempPath);
     #endif
 
-                if (::ftruncate(memFd.get(), sizeof(T)) != 0)
-                    return false;
-            }
-
-            assert(memFd.is_valid());
-
-            // Try to map the memFd
-            T* mappedMem = static_cast<T*>(
-              ::mmap(NULL, sizeof(T), PROT_READ | PROT_WRITE, MAP_SHARED, memFd.get(), 0));
-            if (mappedMem == MAP_FAILED)
+            if (::ftruncate(memFd.get(), sizeof(T)) != 0)
                 return false;
+        }
+
+        assert(memFd.is_valid());
+
+        // Try to map the memFd
+        T* mappedMem = static_cast<T*>(
+          ::mmap(NULL, sizeof(T), PROT_READ | PROT_WRITE, MAP_SHARED, memFd.get(), 0));
+        if (mappedMem == MAP_FAILED)
+            return false;
 
     #if defined(MADV_HUGEPAGE)
-            (void) ::madvise(mappedMem, sizeof(T), MADV_HUGEPAGE);
+        (void) ::madvise(mappedMem, sizeof(T), MADV_HUGEPAGE);
     #endif
 
-            if (creator)
-            {
-                // Creator is responsible for initialization
-                *mappedMem = value;
-            }
-
-            mappedPtr = dataPtr = mappedMem;
-
-            SharedMemoryRegistry::attempt_register_memory(this);  // register for cleanup at exit
-
-            int shutdownPipe[2];
-    #if !defined(__APPLE__)
-            if (::pipe2(shutdownPipe, O_CLOEXEC) != 0)
-                return false;
-    #else
-            if (::pipe(shutdownPipe) != 0)
-                return false;
-            set_cloexec(shutdownPipe[0]);
-            set_cloexec(shutdownPipe[1]);
-    #endif
-            UniqueFd shutdownReceiver(shutdownPipe[0]);
-            shutdownFd = UniqueFd{shutdownPipe[1]};
-
-            auto serverFd = create_unix_socket();
-            if (!serverFd.is_valid())
-                return false;
-
-            struct sockaddr_un addr{};
-            addr.sun_family = AF_UNIX;
-            std::strncpy(addr.sun_path, socketPath.c_str(), sizeof(addr.sun_path) - 1);
-
-            ::unlink(socketPath.c_str());
-            // clang-format off
-            if (   ::bind(serverFd.get(), reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr)) == -1
-                || ::listen(serverFd.get(), 5) == -1)
-                return false;
-            // clang-format on
-
-            // Don't release the init lock until we've actually made a socket that other DONs can use
-            serverThread = make_server_thread(std::move(memFd), std::move(shutdownReceiver),
-                                              std::move(serverFd));
+        if (creator)
+        {
+            // Creator is responsible for initialization
+            *mappedMem = value;
         }
+
+        mappedPtr = dataPtr = mappedMem;
+
+        SharedMemoryRegistry::attempt_register_memory(this);  // register for cleanup at exit
+
+        int shutdownPipe[2];
+    #if !defined(__APPLE__)
+        if (::pipe2(shutdownPipe, O_CLOEXEC) != 0)
+            return false;
+    #else
+        if (::pipe(shutdownPipe) != 0)
+            return false;
+        set_cloexec(shutdownPipe[0]);
+        set_cloexec(shutdownPipe[1]);
+    #endif
+        UniqueFd shutdownReceiver(shutdownPipe[0]);
+        shutdownFd = UniqueFd{shutdownPipe[1]};
+
+        auto serverFd = create_unix_socket();
+        if (!serverFd.is_valid())
+            return false;
+
+        struct sockaddr_un addr{};
+        addr.sun_family = AF_UNIX;
+        std::strncpy(addr.sun_path, socketPath.c_str(), sizeof(addr.sun_path) - 1);
+
+        ::unlink(socketPath.c_str());
+        if (::bind(serverFd.get(), reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr)) == -1
+            || ::listen(serverFd.get(), 5) == -1)
+            return false;
+
+        // Don't release the init lock until we've actually made a socket that other DONs can use
+        serverThread =
+          make_server_thread(std::move(memFd), std::move(shutdownReceiver), std::move(serverFd));
 
         return true;
     }
