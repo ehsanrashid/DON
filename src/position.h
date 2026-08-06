@@ -549,14 +549,15 @@ inline i32 Position::move_num() const noexcept {
     return 1 + (ply() - (active_color() == BLACK)) / 2;
 }
 
-inline CastlingRights Position::castling_rights_mask(Square s) const noexcept {
+inline CastlingRights Position::castling_rights_mask(const Square s) const noexcept {
     auto sIdx = CASTLING_RIGHTS_INDICES[s];
 
     return sIdx < castlingRightsMasks.size() ? castlingRightsMasks[sIdx]
                                              : CastlingRights::NO_CASTLING;
 }
 
-inline CastlingRights Position::castling_rights_mask(Square orgSq, Square dstSq) const noexcept {
+inline CastlingRights Position::castling_rights_mask(const Square orgSq,
+                                                     const Square dstSq) const noexcept {
     return castling_rights_mask(orgSq) | castling_rights_mask(dstSq);
 }
 
@@ -566,31 +567,33 @@ inline bool Position::has_castling_rights() const noexcept {
     return castling_rights() != CastlingRights::NO_CASTLING;
 }
 
-inline bool Position::has_castling_rights(Color c, CastlingSide cs) const noexcept {
+inline bool Position::has_castling_rights(const Color c, const CastlingSide cs) const noexcept {
     return (castling_rights() & make_cr(c, cs)) != CastlingRights::NO_CASTLING;
 }
 
 // Checks if squares between king and rook are empty
-inline bool Position::castling_full_path_clear(Color c, CastlingSide cs) const noexcept {
+inline bool Position::castling_full_path_clear(const Color        c,
+                                               const CastlingSide cs) const noexcept {
     assert(is_ok(c) && is_ok(cs));
 
     return (castlings.fullPathBB[c][+cs] & pieces_bb()) == 0;
 }
 
 // Checks if the castling king path is attacked
-inline bool Position::castling_king_path_clear(Color c, CastlingSide cs) const noexcept {
+inline bool Position::castling_king_path_clear(const Color        c,
+                                               const CastlingSide cs) const noexcept {
     assert(is_ok(c) && is_ok(cs));
 
     return (castlings.kingPathBB[c][+cs] & acc_attacks_bb<KING>()) == 0;
 }
 
-inline Square Position::castling_rook_sq(Color c, CastlingSide cs) const noexcept {
+inline Square Position::castling_rook_sq(const Color c, const CastlingSide cs) const noexcept {
     assert(is_ok(c) && is_ok(cs));
 
     return castlings.rookSq[c][+cs];
 }
 
-inline bool Position::castling_possible(Color c, CastlingSide cs) const noexcept {
+inline bool Position::castling_possible(const Color c, const CastlingSide cs) const noexcept {
     assert(is_ok(c) && is_ok(cs));
 
     return has_castling_rights(c, cs)
@@ -605,50 +608,50 @@ inline bool Position::castling_possible(Color c, CastlingSide cs) const noexcept
 // clang-format off
 
 // Computes a bitboard of all x-ray sliding pieces which attack a given square.
-inline Bitboard Position::xslide_attackers_bb(Square s) const noexcept {
+inline Bitboard Position::xslide_attackers_bb(const Square s) const noexcept {
     const auto [bAttacksBB, rAttacksBB] = attacks_bb_pair(s);
     return (pieces_bb(QUEEN, BISHOP) & bAttacksBB)
          | (pieces_bb(QUEEN, ROOK  ) & rAttacksBB);
 }
 // Computes a bitboard of all sliding pieces which attack a given square on occupancy.
-inline Bitboard Position::slide_attackers_bb(Square s, Bitboard occupancyBB) const noexcept {
+inline Bitboard Position::slide_attackers_bb(const Square s, const Bitboard occupancyBB) const noexcept {
     const auto [bAttacksBB, rAttacksBB] = attacks_bb_pair(s, occupancyBB);
     return (pieces_bb(QUEEN, BISHOP) & bAttacksBB)
          | (pieces_bb(QUEEN, ROOK  ) & rAttacksBB);
 }
-inline Bitboard Position::slide_attackers_bb(Square s) const noexcept {
+inline Bitboard Position::slide_attackers_bb(const Square s) const noexcept {
     return slide_attackers_bb(s, pieces_bb());
 }
 // Computes a bitboard of all pieces which attack a given square on occupancy
-inline Bitboard Position::attackers_bb(Square s, Bitboard occupancyBB) const noexcept {
+inline Bitboard Position::attackers_bb(const Square s, const Bitboard occupancyBB) const noexcept {
     return slide_attackers_bb(s, occupancyBB)
          | (pieces_bb(WHITE, PAWN) & attacks_bb<PAWN  >(s, BLACK))
          | (pieces_bb(BLACK, PAWN) & attacks_bb<PAWN  >(s, WHITE))
          | (pieces_bb(KNIGHT     ) & attacks_bb<KNIGHT>(s))
          | (pieces_bb(KING       ) & attacks_bb<KING  >(s));
 }
-inline Bitboard Position::attackers_bb(Square s) const noexcept {
+inline Bitboard Position::attackers_bb(const Square s) const noexcept {
     return attackers_bb(s, pieces_bb());
 }
 
 // Checks if there are any slide attackers to 's'
-inline bool Position::slide_attackers_exists(Square s, Bitboard attackersBB, Bitboard occupancyBB) const noexcept {
+inline bool Position::slide_attackers_exists(const Square s, const Bitboard attackersBB, const Bitboard occupancyBB) const noexcept {
     const auto [bAttacksBB, rAttacksBB] = attacks_bb_pair(s, occupancyBB);
     return ((attackersBB & pieces_bb(QUEEN, BISHOP) & bAttacksBB)
           | (attackersBB & pieces_bb(QUEEN, ROOK)   & rAttacksBB)) != 0;
 }
-inline bool Position::slide_attackers_exists(Square s, Bitboard attackersBB) const noexcept {
+inline bool Position::slide_attackers_exists(const Square s, const Bitboard attackersBB) const noexcept {
     return slide_attackers_exists(s, attackersBB, pieces_bb());
 }
 // Checks if there are any attackers to 's'
-inline bool Position::attackers_exists(Square s, Bitboard attackersBB, Bitboard occupancyBB) const noexcept {
+inline bool Position::attackers_exists(const Square s, const Bitboard attackersBB, const Bitboard occupancyBB) const noexcept {
     return slide_attackers_exists(s, attackersBB, occupancyBB)
         || ((attackersBB & ((pieces_bb(WHITE, PAWN) & attacks_bb<PAWN  >(s, BLACK))
                           | (pieces_bb(BLACK, PAWN) & attacks_bb<PAWN  >(s, WHITE))))
           | (attackersBB & pieces_bb(KNIGHT       ) & attacks_bb<KNIGHT>(s))
           | (attackersBB & pieces_bb(KING         ) & attacks_bb<KING  >(s))) != 0;
 }
-inline bool Position::attackers_exists(Square s, Bitboard attackersBB) const noexcept {
+inline bool Position::attackers_exists(const Square s, const Bitboard attackersBB) const noexcept {
     return attackers_exists(s, attackersBB, pieces_bb());
 }
 
@@ -657,21 +660,22 @@ inline bool Position::attackers_exists(Square s, Bitboard attackersBB) const noe
 // Computes the blockers that are pinned pieces to 's' from a set of attackers.
 // Blockers are pieces that, when removed, would expose an x-ray attack to 's'.
 // Pinners are also returned via the ownPinners and oppPinners reference.
-inline Bitboard Position::blockers_bb(Square    s,
-                                      Bitboard  attackersBB,
-                                      Bitboard& ownPinnersBB,
-                                      Bitboard& oppPinnersBB) const noexcept {
+inline Bitboard Position::blockers_bb(const Square   s,
+                                      const Bitboard attackersBB,
+                                      Bitboard&      ownPinnersBB,
+                                      Bitboard&      oppPinnersBB) const noexcept {
     Bitboard blockersBB = 0;
 
     // xSnipers are x-ray attackers that attack 's' when blockers are removed
-    Bitboard xSnipersBB  = xslide_attackers_bb(s) & attackersBB;
-    Bitboard occupancyBB = pieces_bb() ^ xSnipersBB;
+    Bitboard       xSnipersBB  = xslide_attackers_bb(s) & attackersBB;
+    const Bitboard occupancyBB = pieces_bb() ^ xSnipersBB;
 
     while (xSnipersBB != 0)
     {
-        Square xSniperSq = pop_lsq(xSnipersBB);
+        const Square xSniperSq = pop_lsq(xSnipersBB);
 
-        if (Bitboard blockerBB = between_bb(s, xSniperSq) & occupancyBB; exactly_one(blockerBB))
+        if (const Bitboard blockerBB = between_bb(s, xSniperSq) & occupancyBB;
+            exactly_one(blockerBB))
         {
             blockersBB |= blockerBB;
 
