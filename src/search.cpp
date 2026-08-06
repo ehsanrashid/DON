@@ -169,13 +169,13 @@ void update_continuation_history(Stack* ss, Piece pc, Square dstSq, int bonus) n
             break;
 
         auto&      historyEntry = (*ssi->pieceSqHistory)[+pc][dstSq];
-        const bool positive     = historyEntry > 0;
+        const bool positiveHist = historyEntry > 0;
 
         historyEntry << constexpr_round(ContHistoryWeights[i] * Multipliers[positiveCount] / 131072
                                         * double(bonus))
                           + ContHistoryOffsets[i];
 
-        if (positive)
+        if (positiveHist)
             ++positiveCount;
     }
 }
