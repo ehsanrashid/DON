@@ -124,7 +124,7 @@ constexpr Bound fail_bound(bool failHigh) noexcept {
     return failHigh ? Bound::LOWER : Bound::UPPER;
 }
 
-Move legal_move(Move m, const Position& pos) noexcept {
+Move legal_move(const Move m, const Position& pos) noexcept {
     return m != Move::None && pos.legal(m) ? m : Move::None;
 }
 

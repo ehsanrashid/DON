@@ -826,26 +826,26 @@ inline Value Position::material() const noexcept {
     return VALUE_EVAL_PAWN * count(PAWN) + non_pawn_value();
 }
 
-inline bool Position::capture(Move m) const noexcept {
+inline bool Position::capture(const Move m) const noexcept {
     assert(legal(m));
 
     return (m.type() != MT::CASTLING && !empty(m.dst_sq())) || m.type() == MT::EN_PASSANT;
 }
 
-inline bool Position::capture_promo(Move m) const noexcept {
+inline bool Position::capture_promo(const Move m) const noexcept {
     return capture(m)
         || (m.type() == MT::PROMOTION
             && (m.promotion_type() == QUEEN
                 || (m.promotion_type() == KNIGHT && (checks_bb(KNIGHT) & m.dst_sq()) != 0)));
 }
 
-inline Piece Position::moved_pc(Move m) const noexcept {
+inline Piece Position::moved_pc(const Move m) const noexcept {
     assert(legal(m));
 
     return piece(m.org_sq());
 }
 
-inline Piece Position::captured_pc(Move m) const noexcept {
+inline Piece Position::captured_pc(const Move m) const noexcept {
     assert(legal(m));
     assert(m.type() != MT::CASTLING);
 
@@ -854,7 +854,7 @@ inline Piece Position::captured_pc(Move m) const noexcept {
            : piece(m.dst_sq());
 }
 
-inline auto Position::captured_pt(Move m) const noexcept { return type_of(captured_pc(m)); }
+inline auto Position::captured_pt(const Move m) const noexcept { return type_of(captured_pc(m)); }
 
 inline void Position::reset_en_passant_sq() noexcept { st->enPassantSq = SQ_NONE; }
 
@@ -863,7 +863,7 @@ inline void Position::reset_rule50_count() noexcept { st->rule50Count = 0; }
 inline void Position::put(Square s, Piece pc, DirtyThreats* dts) noexcept {
     assert(is_ok(s) && is_ok(pc) && empty(s));
 
-    Bitboard sBB = square_bb(s);
+    const Bitboard sBB = square_bb(s);
 
     pieceMap[s] = pc;
     colorBBs[color_of(pc)] |= sBB;
@@ -876,9 +876,9 @@ inline void Position::put(Square s, Piece pc, DirtyThreats* dts) noexcept {
 inline Piece Position::remove(Square s, DirtyThreats* dts) noexcept {
     assert(is_ok(s) && !empty(s));
 
-    Bitboard sBB = square_bb(s);
+    const Bitboard sBB = square_bb(s);
 
-    Piece pc = piece(s);
+    const Piece pc = piece(s);
 
     if (dts != nullptr)
         update_pc_threats<false>(s, pc, dts);
@@ -894,9 +894,9 @@ inline Piece Position::remove(Square s, DirtyThreats* dts) noexcept {
 inline Piece Position::move(Square s1, Square s2, DirtyThreats* dts) noexcept {
     assert(is_ok(s1) && is_ok(s2) && s1 != s2 && !empty(s1));
 
-    Bitboard s1s2BB = square_bb(s1) | square_bb(s2);
+    const Bitboard s1s2BB = square_bb(s1) | square_bb(s2);
 
-    Piece pc = piece(s1);
+    const Piece pc = piece(s1);
 
     if (dts != nullptr)
         update_pc_threats<false>(s1, pc, dts, s1s2BB);
@@ -915,7 +915,7 @@ inline Piece Position::move(Square s1, Square s2, DirtyThreats* dts) noexcept {
 
 inline Piece Position::swap(Square s, Piece newPc, DirtyThreats* dts) noexcept {
 
-    Piece oldPc = remove(s);
+    const Piece oldPc = remove(s);
 
     if (dts != nullptr)
         update_pc_threats<false, false>(s, oldPc, dts);
