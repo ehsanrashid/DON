@@ -759,7 +759,7 @@ class SharedMemoryCleanupManager final {
 // The directory is created under /tmp using the format:
 //     /tmp/DON-[uid]
 //
-// The directory is created with owner-only permissions (0700). If the directory
+// The directory is created with owner-only permissions (S_IRWXU = 0700). If the directory
 // already exists, its ownership and permissions are verified before reuse to
 // prevent using an unsafe or unexpected directory.
 //
@@ -781,7 +781,7 @@ struct TempRoot final {
             std::string tempPath{"/tmp/DON-"};
             tempPath += std::to_string(uid);
 
-            if (::mkdir(tempPath.c_str(), 0700) == 0)
+            if (::mkdir(tempPath.c_str(), S_IRWXU) == 0)
                 return TempRoot{tempPath};
 
             if (errno != EEXIST)
@@ -790,13 +790,19 @@ struct TempRoot final {
             // Temp root already exists, verify ownership and permissions
             struct stat fileStat{};
 
-            if (::lstat(tempPath.c_str(), &fileStat) == 0  //
-                && S_ISDIR(fileStat.st_mode)               //
-                && fileStat.st_uid == uid                  //
-                && (fileStat.st_mode & 07777) == 0700)
-                return TempRoot{tempPath};
+            if (::lstat(tempPath.c_str(), &fileStat) != 0)
+                return std::nullopt;
 
-            return std::nullopt;
+            if (!S_ISDIR(fileStat.st_mode))
+                return std::nullopt;
+
+            if (fileStat.st_uid != uid)
+                return std::nullopt;
+
+            if ((fileStat.st_mode & ACCESSPERMS) != S_IRWXU)
+                return std::nullopt;
+
+            return TempRoot{tempPath};
         }();
 
         return tempRoot;
@@ -1152,8 +1158,9 @@ class SharedMemory final: public BaseSharedMemory {
         if (socketPath.size() >= sizeof(sockaddr_un::sun_path))
             return false;
 
-        if (::mkdir(sharedDir.c_str(), 0700) != 0 && errno != EEXIST)
-            return false;
+        if (::mkdir(sharedDir.c_str(), S_IRWXU) != 0)
+            if (errno != EEXIST)
+                return false;
 
         auto initLock = InitLock::acquire_lock(initLockPath);
         if (!initLock.is_valid())

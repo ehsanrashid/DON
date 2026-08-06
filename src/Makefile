@@ -607,7 +607,6 @@ ifeq ($(COMP),gcc)
     endif
     # Configure compiler-specific flags and profile targets
     ifeq ($(GCC_CLANG),yes)
-        CXXFLAGS += -fconstexpr-steps=500000000
         profile_make = clang-profile-make
         profile_use  = clang-profile-use
     else
