@@ -2087,16 +2087,16 @@ Value Worker::evaluate(const Position& pos) noexcept {
 
 // clang-format off
 
-void Worker::update_capture_history(Piece movedPc, Square dstSq, PieceType capturedPt, int bonus) noexcept {
+void Worker::update_capture_history(const Piece movedPc, const Square dstSq, const PieceType capturedPt, const int bonus) noexcept {
     captureHistory[+movedPc][dstSq][capturedPt] << bonus;
 }
-void Worker::update_capture_history(const Position& pos, const Move m, int bonus) noexcept {
+void Worker::update_capture_history(const Position& pos, const Move m, const int bonus) noexcept {
     update_capture_history(pos.moved_pc(m), m.dst_sq(), pos.captured_pt(m), bonus);
 }
-void Worker::update_quiet_history(Color ac, const Move m, int bonus) noexcept {
+void Worker::update_quiet_history(const Color ac, const Move m, const int bonus) noexcept {
     quietHistory[ac][m.raw()] << bonus;
 }
-void Worker::update_low_ply_quiet_history(i16 ssPly, const Move m, int bonus) noexcept {
+void Worker::update_low_ply_quiet_history(const i16 ssPly, const Move m, const int bonus) noexcept {
     assert(m.is_ok());
 
     if (ssPly < LOW_PLY_QUIET_SIZE)
@@ -2104,7 +2104,7 @@ void Worker::update_low_ply_quiet_history(i16 ssPly, const Move m, int bonus) no
 }
 
 // Updates quiet histories (move sorting heuristics)
-void Worker::update_quiet_histories(const Position& pos, PawnHistory& pawnHistory, Stack* const ss, Move m, int bonus) noexcept {
+void Worker::update_quiet_histories(const Position& pos, PawnHistory& pawnHistory, Stack* const ss, const Move m, const int bonus) noexcept {
     assert(m.is_ok());
 
     update_pawn_history(pawnHistory, pos.moved_pc(m), m.dst_sq(), constexpr_round((0.4482 + int(bonus > -4) * 0.6299) * double(bonus)));
@@ -2117,7 +2117,7 @@ void Worker::update_quiet_histories(const Position& pos, PawnHistory& pawnHistor
 }
 
 // Updates history at the end of search() when a bestMove is found and other searched moves are known
-void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Stack* const ss, Depth depth, Move bestMove, bool extra, const Array<SearchedMoves, 2>& searchedMoves) noexcept {
+void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Stack* const ss, const Depth depth, const Move bestMove, const bool extra, const Array<SearchedMoves, 2>& searchedMoves) noexcept {
     assert(depth > DEPTH_ZERO);
     assert(ss->moveCount != 0);
 
@@ -2320,7 +2320,7 @@ bool Worker::ponder_move_extracted() noexcept {
 // Used to correct and extend PVs for moves that have a TB (but not a mate) score.
 // Keeps the search based PV for as long as it is verified to maintain the game outcome, truncates afterward.
 // Finally, extends to mate the PV, providing a possible continuation (but not a proven mating line).
-void Worker::extend_tb_pv(usize index, Value& value) noexcept {
+void Worker::extend_tb_pv(const usize index, Value& value) noexcept {
     assert(index < rootMoves.size());
 
     if (!options["SyzygyPVExtend"])
@@ -2525,8 +2525,8 @@ TimePoint MainSearchManager::elapsed(const Threads& threads) const noexcept {
 }
 
 void MainSearchManager::handle_time_management(const Worker& worker,
-                                               Value         bestValue,
-                                               Depth         lastCompletedDepth) noexcept {
+                                               const Value   bestValue,
+                                               const Depth   lastCompletedDepth) noexcept {
 
     // Use part of the gained time from a previous stable move for the current move
     sumMoveChanges += worker.threads.sum(&Worker::moveChanges);
@@ -2537,14 +2537,14 @@ void MainSearchManager::handle_time_management(const Worker& worker,
     // clang-format off
 
     // Compute evaluation inconsistency based on differences from previous best scores
-    double inconsistencyFactor = std::clamp(0.1148
-                                            + 0.0230 * (preBestAvgValue - bestValue)
-                                            + 0.0011 * (preBestCurValue - bestValue),
-                                            1.0000 - int(!atFirst) * 0.4240,
-                                            1.0000 + int(!atFirst) * 0.7280);
+    const double inconsistencyFactor = std::clamp(0.1148
+                                                + 0.0230 * (preBestAvgValue - bestValue)
+                                                + 0.0011 * (preBestCurValue - bestValue),
+                                                1.0000 - int(!atFirst) * 0.4240,
+                                                1.0000 + int(!atFirst) * 0.7280);
 
     // Compute stable depth (difference between the current search depth and the last best depth)
-    Depth stableDepth = worker.completedDepth - lastCompletedDepth;
+    const Depth stableDepth = worker.completedDepth - lastCompletedDepth;
     assert(stableDepth >= DEPTH_ZERO);
 
     // Use the stability factor to adjust the time reduction
