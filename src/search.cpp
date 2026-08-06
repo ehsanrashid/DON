@@ -2040,7 +2040,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
 }
 
 void Worker::do_move(
-  Position& pos, const Move m, State& st, Stack* const ss, bool mayCheck) noexcept {
+  Position& pos, const Move m, State& st, Stack* const ss, const bool mayCheck) noexcept {
     assert(ss != nullptr);
     // Speculative prefetch as early as possible
     const Key moveKey = pos.move_key(m);

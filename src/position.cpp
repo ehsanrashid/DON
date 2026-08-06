@@ -857,8 +857,10 @@ void Position::do_castling(Color       ac,
 // Makes a move, and saves all necessary information to new state.
 // Also prefetch tt and histories for the new position.
 // The move is assumed to be legal.
-DirtyBoard
-Position::do_move(const Move m, State& newSt, bool mayCheck, const Worker* worker) noexcept {
+DirtyBoard Position::do_move(const Move          m,
+                             State&              newSt,
+                             const bool          mayCheck,
+                             const Worker* const worker) noexcept {
     assert(legal(m));
     assert(&newSt != st);
 
@@ -1109,7 +1111,7 @@ Position::do_move(const Move m, State& newSt, bool mayCheck, const Worker* worke
     // negative in the 3-fold case, or zero when the position was not repeated.
     st->repetition = 0;
 
-    if (auto end = std::min(rule50_count(), null_ply()); end >= 4)
+    if (const auto end = std::min(rule50_count(), null_ply()); end >= 4)
     {
         const State* preSt = st->preSt->preSt;
 
@@ -1120,7 +1122,6 @@ Position::do_move(const Move m, State& newSt, bool mayCheck, const Worker* worke
             if (preSt->key == st->key)
             {
                 st->repetition = preSt->repetition != 0 ? -i : +i;
-
                 break;
             }
         }
