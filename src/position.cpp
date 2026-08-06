@@ -1527,7 +1527,7 @@ Key Position::move_key(const Move m) const noexcept {
 
     return moveKey  //
          ^ Zobrist::piece_square(~ac, type_of(capturedPc), capturedSq)
-         ^ Zobrist::mr50(capturedPc != Piece::NO_PIECE || movedPt == PAWN ? 0 : rule50_count() + 1);
+         ^ Zobrist::mr50(movedPt == PAWN || is_ok(capturedPc) ? 0 : rule50_count() + 1);
 }
 
 // Tests if the SEE (Static Exchange Evaluation)
