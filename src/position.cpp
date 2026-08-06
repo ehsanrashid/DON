@@ -762,11 +762,11 @@ bool Position::enpassant_possible(Color     ac,
 
     if constexpr (MoveDone)
     {
-        const auto* preSt = state()->preSt;
+        const State* preSt = state()->preSt;
 
         // Step 1: If there are other checkers besides the pawn to be captured,
         // en-passant is never legal because it would leave the king in check.
-        if ((checkers_bb() & ~make_bb(capturedSq)) != 0)
+        if ((checkers_bb() & ~square_bb(capturedSq)) != 0)
             epPawnsBB = 0;
         // Step 2: At least one pawn is either unpinned or aligned with the king along the en-passant line.
         else if (preSt != nullptr)
