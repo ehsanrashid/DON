@@ -730,13 +730,11 @@ class SharedMemoryCleanupManager final {
    public:
     // Ensure the shared memory registry is initialized
     // and the cleanup callback is registered with std::atexit().
-    static void ensure_initialized(usize reserveCount  = 1024,
-                                   float maxLoadFactor = 0.75f) noexcept {
-        // Only the parameters from the first call are used
-        callOnce([reserveCount, maxLoadFactor]() noexcept {
+    static void ensure_initialized() noexcept {
+        callOnce([]() noexcept {
             //DEBUG_LOG("Initializing SharedMemoryCleanupManager.");
             // 1. Initialize registry
-            SharedMemoryRegistry::ensure_initialized(reserveCount, maxLoadFactor);
+            SharedMemoryRegistry::ensure_initialized();
             // 2. Register std::atexit() shutdown cleanup
             std::atexit(SharedMemoryRegistry::cleanup);
         });
