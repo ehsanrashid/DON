@@ -605,12 +605,13 @@ ifeq ($(COMP),gcc)
             endif
         endif
     endif
-    # Set profile targets outside Darwin/non-Darwin split
+    # Configure compiler-specific flags and profile targets
     ifeq ($(GCC_CLANG),yes)
+        CXXFLAGS += -fconstexpr-steps=500000000
         profile_make = clang-profile-make
         profile_use  = clang-profile-use
     else
-        CXXFLAGS += -Wstack-usage=128000 -fno-ipa-cp-clone
+        CXXFLAGS += -Wstack-usage=128000 -fno-ipa-cp-clone -fconstexpr-ops-limit=500000000
         profile_make = gcc-profile-make
         profile_use  = gcc-profile-use
     endif
@@ -648,7 +649,7 @@ ifeq ($(COMP),clang)
             CXX := i686-w64-mingw32-clang++
         endif
     endif
-    CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-prototypes -Wconditional-uninitialized -flax-vector-conversions=none
+    CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-prototypes -Wconditional-uninitialized -flax-vector-conversions=none -fconstexpr-steps=500000000
     # Atomic library for non-Windows and non-[Darwin/FreeBSD/OpenBSD/NetBSD] (unless compiler-rt)
     ifeq ($(OS_WINDOWS),no)
         ifeq ($(filter $(KERNEL),Darwin FreeBSD OpenBSD NetBSD),)
@@ -705,7 +706,7 @@ ifeq ($(COMP),mingw)
     endif
     # Prefer POSIX variant if available
     CXX := $(if $(shell command -v $(MINGW_CXX_POSIX) 2>/dev/null),$(MINGW_CXX_POSIX),$(MINGW_CXX))
-    CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-declarations -fno-ipa-cp-clone
+    CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-declarations -fno-ipa-cp-clone -fconstexpr-ops-limit=500000000
     # Profile build for mingw (use GCC defaults)
     profile_make = gcc-profile-make
     profile_use  = gcc-profile-use
@@ -713,7 +714,7 @@ ifeq ($(COMP),mingw)
 else
 ifeq ($(COMP),icx)
     CXX := icpx
-    CXXFLAGS += --intel -pedantic -Wextra -Wshadow -Wmissing-prototypes -Wconditional-uninitialized -Wabi -Wdeprecated
+    CXXFLAGS += --intel -pedantic -Wextra -Wshadow -Wmissing-prototypes -Wconditional-uninitialized -Wabi -Wdeprecated -fconstexpr-steps=500000000
     # Profile build for icx
     profile_make = icx-profile-make
     profile_use  = icx-profile-use
@@ -1033,7 +1034,7 @@ BUILD_SHA_FILE       := .build_sha.txt
 BUILD_DIFFINDEX_FILE := .build_diffindex.txt
 GIT_DATE             := $(shell git show -s --date=format:%Y%m%d --format=%cd HEAD 2>/dev/null || true)
 GIT_SHA              := $(shell git rev-parse HEAD 2>/dev/null | cut -c 1-8 || true)
-GIT_DIFFINDEX        := $(shell git update-index --refresh >/dev/null 2>&1; git -c core.filemode=false -c core.autocrlf=false  diff-index --quiet HEAD -- 2>/dev/null; [ $$? -eq 1 ] && echo 1 || true)
+GIT_DIFFINDEX        := $(shell git update-index --refresh >/dev/null 2>&1; git -c core.filemode=false -c core.autocrlf=false diff-index --quiet HEAD -- 2>/dev/null; [ $$? -eq 1 ] && echo 1 || true)
 COMPILER_DATE        := $(shell date +%Y%m%d 2>/dev/null)
 
 BUILD_DATE           := $(if $(GIT_DATE),$(GIT_DATE),$(COMPILER_DATE))
@@ -1245,11 +1246,11 @@ help:
 	fi
 
 .PHONY: help analyze build profile-build strip install clean \
-	objclean profileclean net config-sanity FORCE all \
+	objclean profileclean net config-sanity all \
 	clang-profile-make clang-profile-use \
 	gcc-profile-make gcc-profile-use \
 	icx-profile-make icx-profile-use \
-	format install-hooks
+	format install-hooks FORCE
 
 analyze: net config-sanity objclean
 	$(MAKE) -k ARCH=$(ARCH) COMP=$(COMP) $(OBJS)

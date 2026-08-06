@@ -163,13 +163,15 @@ void Engine::start(const Limit& limit) noexcept {
 void Engine::stop() noexcept { threads.request_stop(); }
 
 void Engine::ponderhit() const noexcept {
-    if (!threads.empty())
-        threads.main_manager()->set_ponder(false);
+    auto* mainManager = threads.main_manager();
+    if (mainManager != nullptr)
+        mainManager->set_ponder(false);
 }
 
 void Engine::wait_finish() const noexcept {
-    if (!threads.empty())
-        threads.main_thread()->wait_finish();
+    auto* mainThread = threads.main_thread();
+    if (mainThread != nullptr)
+        mainThread->wait_finish();
 }
 
 void Engine::reset() noexcept {
