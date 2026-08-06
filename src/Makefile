@@ -1027,19 +1027,32 @@ ifeq ($(tablebases),no)
     CXXFLAGS += -DNO_TABLEBASES
 endif
 
-### 3.8.1 Try to include git commit date for versioning
-GIT_DATE := $(shell git show -s --date=format:'%Y%m%d' --format=%cd HEAD 2>/dev/null)
-ifneq ($(GIT_DATE),)
-    CXXFLAGS += -DGIT_DATE=$(GIT_DATE)
+### 3.8.1 Try to include git info for versioning and avoid recompiles if nothing changes
+BUILD_DATE_FILE      := .build_date.txt
+BUILD_SHA_FILE       := .build_sha.txt
+BUILD_DIFFINDEX_FILE := .build_diffindex.txt
+GIT_DATE             := $(shell git show -s --date=format:%Y%m%d --format=%cd HEAD 2>/dev/null || true)
+GIT_SHA              := $(shell git rev-parse HEAD 2>/dev/null | cut -c 1-8 || true)
+GIT_DIFFINDEX        := $(shell git update-index --refresh >/dev/null 2>&1; git -c core.filemode=false -c core.autocrlf=false  diff-index --quiet HEAD -- 2>/dev/null; [ $$? -eq 1 ] && echo 1 || true)
+COMPILER_DATE        := $(shell date +%Y%m%d 2>/dev/null)
+
+BUILD_DATE           := $(if $(GIT_DATE),$(GIT_DATE),$(COMPILER_DATE))
+
+define cache_file_contents
+$(shell \
+	if [ ! -f "$(1)" ] || [ "$$(cat "$(1)" 2>/dev/null)" != "$(2)" ]; then \
+		printf '%s\n' "$(2)" > "$(1)"; \
+	fi
+)
+endef
+
+ifneq ($(filter $(MAKECMDGOALS),help strip install clean net objclean profileclean format config-sanity),$(MAKECMDGOALS))
+_ := $(call cache_file_contents,$(BUILD_DATE_FILE),$(BUILD_DATE))
+_ := $(call cache_file_contents,$(BUILD_SHA_FILE),$(GIT_SHA))
+_ := $(call cache_file_contents,$(BUILD_DIFFINDEX_FILE),$(BUILD_DIFFINDEX))
 endif
 
-### 3.8.2 Try to include git commit sha for versioning
-GIT_SHA := $(shell git rev-parse HEAD 2>/dev/null | cut -c 1-8)
-ifneq ($(GIT_SHA),)
-    CXXFLAGS += -DGIT_SHA=$(GIT_SHA)
-endif
-
-### 3.8.3 Try to include architecture
+### 3.8.2 Try to include architecture
 ifneq ($(ARCH),)
     CXXFLAGS += -DARCH=$(ARCH)
 endif
@@ -1275,7 +1288,7 @@ clean: objclean profileclean
 
 # Clean binaries and objects
 objclean:
-	@rm -f $(EXE) $(OBJS) *.o ./book/*.o ./tablebase/*.o ./nnue/*.o ./nnue/features/*.o
+	@rm -f $(EXE) $(OBJS) *.o ./book/*.o ./tablebase/*.o ./nnue/*.o ./nnue/features/*.o $(BUILD_DATE_FILE) $(BUILD_SHA_FILE) $(BUILD_DIFFINDEX_FILE)
 
 # Clean auxiliary profiling files
 profileclean:
@@ -1405,9 +1418,11 @@ config-sanity: net
 $(EXE): $(OBJS)
 	+$(CXX) -o $@ $(OBJS) $(LDFLAGS)
 
-# Force recompilation to ensure version info is up-to-date
-misc.o: FORCE
-FORCE:
+%.o: %.cpp
+	$(strip $(CXX) $(CPPFLAGS) $(CXXFLAGS)) -c -o $@ $<
+
+misc.o: misc.cpp $(BUILD_DATE_FILE) $(BUILD_SHA_FILE) $(BUILD_DIFFINDEX_FILE)
+	$(strip $(CXX) $(CPPFLAGS) $(CXXFLAGS) $(if $(GIT_DATE),-DGIT_DATE=$(GIT_DATE)) $(if $(GIT_SHA),-DGIT_SHA=$(GIT_SHA))) $(if $(GIT_DIFFINDEX),-DGIT_DIFFINDEX=$(GIT_DIFFINDEX)) -c -o $@ $<
 
 # ------------------------
 # Clang PGO

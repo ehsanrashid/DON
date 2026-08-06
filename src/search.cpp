@@ -168,8 +168,8 @@ void update_continuation_history(Stack* ss, Piece pc, Square dstSq, int bonus) n
         if (!ssi->move.is_ok())
             break;
 
-        auto& historyEntry = (*ssi->pieceSqHistory)[+pc][dstSq];
-        bool  positive     = historyEntry > 0;
+        auto&      historyEntry = (*ssi->pieceSqHistory)[+pc][dstSq];
+        const bool positive     = historyEntry > 0;
 
         historyEntry << constexpr_round(ContHistoryWeights[i] * Multipliers[positiveCount] / 131072
                                         * double(bonus))
