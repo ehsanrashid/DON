@@ -1488,8 +1488,8 @@ bool Position::fork(const Move m) const noexcept {
 Key Position::move_key(const Move m) const noexcept {
     Key moveKey = st->key ^ Zobrist::turn() ^ Zobrist::enpassant(en_passant_sq());
 
-    if (m == Move::Null)
-        return moveKey;
+    //if (m == Move::Null)
+    //    return moveKey;
 
     assert(legal(m));
 

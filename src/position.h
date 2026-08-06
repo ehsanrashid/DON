@@ -79,12 +79,12 @@ struct Zobrist final {
     static void init() noexcept;
 
     static Key piece_square(Color c, PieceType pt, Square s) noexcept {
-        assert(is_ok(c) && is_ok(pt) && is_ok(s));
+        assert(is_ok(c) && is_ok(s));
 
         return PieceSquare[c][pt][s];
     }
     static Key piece_square(Piece pc, Square s) noexcept {
-        assert(is_ok(pc) && is_ok(s));
+        assert(is_ok(s));
 
         return piece_square(color_of(pc), type_of(pc), s);
     }

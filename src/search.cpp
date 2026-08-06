@@ -2039,8 +2039,11 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     return bestValue;
 }
 
-void Worker::do_move(Position& pos, Move m, State& st, Stack* const ss, bool mayCheck) noexcept {
+void Worker::do_move(
+  Position& pos, const Move m, State& st, Stack* const ss, bool mayCheck) noexcept {
     assert(ss != nullptr);
+    // Speculative prefetch as early as possible
+    prefetch(transpositionTable.cluster(pos.move_key(m)));
 
     bool capture = pos.capture_promo(m);
 
@@ -2056,7 +2059,7 @@ void Worker::do_move(Position& pos, Move m, State& st, Stack* const ss, bool may
     accStack.push(std::move(db));
 }
 
-void Worker::undo_move(Position& pos, Move m) noexcept {
+void Worker::undo_move(Position& pos, const Move m) noexcept {
     accStack.pop();
 
     pos.undo_move(m);
@@ -2084,13 +2087,13 @@ Value Worker::evaluate(const Position& pos) noexcept {
 void Worker::update_capture_history(Piece movedPc, Square dstSq, PieceType capturedPt, int bonus) noexcept {
     captureHistory[+movedPc][dstSq][capturedPt] << bonus;
 }
-void Worker::update_capture_history(const Position& pos, Move m, int bonus) noexcept {
+void Worker::update_capture_history(const Position& pos, const Move m, int bonus) noexcept {
     update_capture_history(pos.moved_pc(m), m.dst_sq(), pos.captured_pt(m), bonus);
 }
-void Worker::update_quiet_history(Color ac, Move m, int bonus) noexcept {
+void Worker::update_quiet_history(Color ac, const Move m, int bonus) noexcept {
     quietHistory[ac][m.raw()] << bonus;
 }
-void Worker::update_low_ply_quiet_history(i16 ssPly, Move m, int bonus) noexcept {
+void Worker::update_low_ply_quiet_history(i16 ssPly, const Move m, int bonus) noexcept {
     assert(m.is_ok());
 
     if (ssPly < LOW_PLY_QUIET_SIZE)
