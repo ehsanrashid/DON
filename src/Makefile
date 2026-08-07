@@ -609,10 +609,9 @@ ifeq ($(COMP),gcc)
     ifeq ($(GCC_CLANG),yes)
         ifeq ($(GCC_APPLE_CLANG),yes)
             # Apple Clang
-            CXXFLAGS += -Wstack-usage=128000
         else
             # LLVM Clang
-            CXXFLAGS += -Wstack-usage=128000 -fconstexpr-steps=500000000
+            CXXFLAGS += -fconstexpr-steps=500000000
         endif
         profile_make = clang-profile-make
         profile_use  = clang-profile-use
