@@ -213,21 +213,15 @@ ALWAYS_INLINE IndexType make_index(Color  perspective,
     u8 relAttackedPc = +relative_piece(perspective, attackedPc);
 
     // Lookup LUT
-    u32 lutData = LUT_DATAS[relAttackerPc][relAttackedPc];
+    auto lutData = LUT_DATAS[relAttackerPc][relAttackedPc];
 
-    // Excluded mask: 0xFFFFFFFF if excluded, 0x0 if included
-    u32 excludedMask = -u32(
-      // Fully-excluded (fast path)
-      lutData == FullThreats::Dimensions
-      // Semi-excluded && Direction-dependent exclusion
-      || (semi_excluded(lutData) && org < dst));
+    if (lutData == FullThreats::Dimensions || (semi_excluded(lutData) && org < dst))
+        return FullThreats::Dimensions;
 
     // Compute index components
-    IndexType index = feature_index(lutData)                                     //
-                    + lut_index(Piece(relAttackerPc), Square(org), Square(dst))  //
-                    + SQUARE_OFFSETS[relAttackerPc][org];
-    // Apply mask: keep index if included, otherwise use full-dimension sentinel
-    return (index & ~excludedMask) | (FullThreats::Dimensions & excludedMask);
+    return feature_index(lutData)                                     //
+         + lut_index(Piece(relAttackerPc), Square(org), Square(dst))  //
+         + SQUARE_OFFSETS[relAttackerPc][org];
 }
 
 }  // namespace

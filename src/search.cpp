@@ -800,8 +800,8 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     ss->inCheck   = pos.checkers_bb() != 0;
     ss->moveCount = 0;
     ss->history   = 0;
-    ss->followPv  = RootNode                               //
-                || ((ss - 1)->followPv                     //
+    ss->pvFollow  = RootNode                               //
+                || ((ss - 1)->pvFollow                     //
                     && (prePvIdx < lastIterationPV.size()  //
                         && (ss - 1)->move == lastIterationPV[prePvIdx]));
 
@@ -853,12 +853,12 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     const bool ttmCapture = !ttmNone && pos.capture_promo(ttd.move);
 
     if (!exclude)
-        ss->ttPv = PVNode || (ttd.hit && ttd.pv);
+        ss->pvTT = PVNode || (ttd.hit && ttd.pv);
 
     const Move preMove = (ss - 1)->move;
 
     const bool   preOk = preMove.is_ok();
-    const Square preSq = preMove.dst_sq_();
+    const Square preSq = preOk ? preMove.dst_sq() : SQ_NONE;
 
     const bool preCapture = pos.captured_pc() != Piece::NO_PIECE;
     const bool preNonPawn = preOk && type_of(pos[preSq]) != PAWN && preMove.type() != MT::PROMOTION;
@@ -900,7 +900,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
         ss->evalValue = ttEvalValue = adjust_eval_value(evalValue, correctionValue);
 
-        ttu.update(Move::None, VALUE_NONE, evalValue, DEPTH_NONE, Bound::NONE, ss->ttPv);
+        ttu.update(Move::None, VALUE_NONE, evalValue, DEPTH_NONE, Bound::NONE, ss->pvTT);
     }
 
     // Set up the improve and worsen flags.
@@ -1022,7 +1022,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
                         || (bound == Bound::LOWER ? tbValue >= beta : tbValue <= alpha))
                     {
                         ttu.update(Move::None, value_to_tt(tbValue, ss->ply), evalValue,
-                                   std::min<Depth>(depth + 6, DEPTH_MAX), bound, ss->ttPv);
+                                   std::min<Depth>(depth + 6, DEPTH_MAX), bound, ss->pvTT);
 
                         return tbValue;
                     }
@@ -1085,7 +1085,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     if constexpr (!PVNode)
     {
     // The depth condition is important for mate finding
-    if (!exclude && !ss->ttPv && depth < 19 && !is_win(ttEvalValue) && !is_loss(beta)
+    if (!exclude && !ss->pvTT && depth < 19 && !is_win(ttEvalValue) && !is_loss(beta)
         && (ttmNone || history_value(pos, ttd.move, ac, contHistory) >= 32768 - int(ttmCapture) * 25968))
     {
         // Compute base futility
@@ -1153,7 +1153,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     // (*Scaler) Making IIR more aggressive scales poorly.
     if constexpr (!AllNode)
     {
-    depth -= (depth > 5) & (ttmNone) & !ss->followPv;
+    depth -= (depth > 5) & (ttmNone) & !ss->pvFollow;
     }
 
     // Step 11. ProbCut
@@ -1213,7 +1213,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
                 // Save ProbCut data into transposition table
                 if (!exclude)
                     ttu.update(move, value_to_tt(probCutValue, ss->ply), evalValue,
-                               std::min<Depth>(probCutDepth + 1, DEPTH_MAX), Bound::LOWER, ss->ttPv);
+                               std::min<Depth>(probCutDepth + 1, DEPTH_MAX), Bound::LOWER, ss->pvTT);
 
                 if (!is_win(probCutValue))
                     // Adjust probCutValue to align with the current beta window
@@ -1304,7 +1304,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         int r = reduction(depth, moveCount, deltaRatio, improve);
 
         // (*Scaler) Increase reduction for pvHit nodes, Larger values scales well
-        r += int(ss->ttPv) * 929;
+        r += int(ss->pvTT) * 929;
 
         // Step 14. Pruning at shallow depths
         // Depth conditions are important for mate finding.
@@ -1312,8 +1312,8 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         {
             if (hasNonPawn && !is_loss(bestValue))
             {
-                // Skip quiet moves if moveCount exceeds Futility Move Count threshold
-                mp.skipQuiets |= moveCount >= ((3 + depth * depth) >> int(!improve));
+                // Skip quiet moves if moveCount exceeds moveCount threshold
+                mp.update_quiets_skip(moveCount >= ((3 + depth * depth) / (1 + int(!improve) * 1)));
 
                 // Reduced depth of the next LMR search
                 Depth lmrDepth = newDepth - r / 1024;
@@ -1342,7 +1342,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
                             continue;
                     }
                 }
-                else if (!PVNode || !ss->followPv)
+                else if (!PVNode || !ss->pvFollow)
                 {
                     int history = pawnHistory[+movedPc][dstSq]  //
                                 + (*contHistory[0])[+movedPc][dstSq]
@@ -1398,10 +1398,10 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         if constexpr (!RootNode)
         {
             // clang-format off
-        if (!exclude && ttm && depth > 5 + int(ss->ttPv) && is_valid(ttd.value) && !is_decisive(ttd.value)
+        if (!exclude && ttm && depth > 5 + int(ss->pvTT) && is_valid(ttd.value) && !is_decisive(ttd.value)
              && ttd.depth >= depth - 3 && is_ok(ttd.bound & Bound::LOWER) && !is_shuffling(pos, ss, move))
         {
-            Value singularAlpha = std::max(ttd.value - 1 - constexpr_round((0.9365 + double(!PVNode && ss->ttPv) * 1.0476) * double(depth)), -VALUE_INFINITE);
+            Value singularAlpha = std::max(ttd.value - 1 - constexpr_round((0.9365 + double(!PVNode && ss->pvTT) * 1.0476) * double(depth)), -VALUE_INFINITE);
 
             Depth singularDepth = newDepth / 2;
             assert(singularDepth > DEPTH_ZERO);
@@ -1416,7 +1416,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
                 int corrMargin = constexpr_round(5.0411e-6 * double(absCorrectionValue));
 
                 int doubleMargin = -2 + int(PVNode) * 204 - int(!ttmCapture) * 152 - corrMargin - int(ss->ply > rootDepth) * 38 - constexpr_round(10.290e-3 * double(ttMoveHistory));
-                int tripleMargin = 70 + int(PVNode) * 279 - int(!ttmCapture) * 188 - corrMargin - int(ss->ply > rootDepth) * 43 + int(ss->ttPv) * 81;
+                int tripleMargin = 70 + int(PVNode) * 279 - int(!ttmCapture) * 188 - corrMargin - int(ss->ply > rootDepth) * 43 + int(ss->pvTT) * 81;
 
                 extension = 1 + int(singularValue + doubleMargin <= singularAlpha)
                               + int(singularValue + tripleMargin <= singularAlpha);
@@ -1476,7 +1476,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         r -= constexpr_round(38.00836e-6 * double(absCorrectionValue));
 
         // (*Scaler) Decrease reduction if position is or has been on the PV
-        r -= int(ss->ttPv)
+        r -= int(ss->pvTT)
            * (+3023                 //
               + int(PVNode) * 1004  //
               + int(is_valid(ttd.value) && ttd.value > alpha) * 885
@@ -1753,7 +1753,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
     // If no good move is found and the previous position was pvHit, then the previous
     // opponent move is probably good and the new position is added to the search tree.
-    ss->ttPv |= (bestValue <= alpha) & (ss - 1)->ttPv;
+    ss->pvTT |= bestValue <= alpha && (ss - 1)->pvTT;
 
     // Save gathered information in transposition table
     if ((!RootNode || pvCur == 0) && !exclude)
@@ -1762,7 +1762,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
                    bestValue >= beta                  ? Bound::LOWER
                    : PVNode && bestMove != Move::None ? Bound::EXACT
                                                       : Bound::UPPER,
-                   ss->ttPv);
+                   ss->pvTT);
 
     // Adjust correction history if the best move is none or not a capture
     // and the error direction matches whether the above/below bounds.
@@ -1827,7 +1827,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     ttd.move  = ttd.hit ? legal_move(ttd.move, pos) : Move::None;
     assert(ttd.move == Move::None || pos.legal(ttd.move));
     ss->ttMove      = ttd.move;
-    const bool ttPv = ttd.hit && ttd.pv;
+    const bool pvTT = ttd.hit && ttd.pv;
 
     // Check for an early TT cutoff at non-pv nodes
     if constexpr (!PVNode)
@@ -1897,7 +1897,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     Move preMove = (ss - 1)->move;
 
     const bool   preOk = preMove.is_ok();
-    const Square preSq = preMove.dst_sq_();
+    const Square preSq = preOk ? preMove.dst_sq() : SQ_NONE;
 
     State st;
 
@@ -2013,17 +2013,15 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
         }
         else
         {
-            Color ac = pos.active_color();
+            const Color ac = pos.active_color();
 
-            pos.state()->checkersBB = PROMOTION_RANKS_BB;
             if (bestValue != VALUE_DRAW  //
-                && type_of(pos.captured_pc()) >= ROOK
-                && !pos.has_non_pawn(ac)
+                && type_of(pos.captured_pc()) >= KNIGHT
                 // No pawn pushes available
                 && (pawn_push_bb(pos.pieces_bb(ac, PAWN), ac) & ~pos.pieces_bb()) == 0
+                && !pos.has_non_pawn(ac)  //
                 && MoveList<GenType::LEGAL, true>(pos).empty())
                 bestValue = VALUE_DRAW;
-            pos.state()->checkersBB = 0;
         }
     }
     // Adjust best value for fail high cases
@@ -2032,7 +2030,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
 
     // Save gathered info in transposition table
     ttu.update(bestMove, value_to_tt(bestValue, ss->ply), evalValue, DEPTH_ZERO,
-               fail_bound(bestValue >= beta), ttPv);
+               fail_bound(bestValue >= beta), pvTT);
 
     assert(is_ok(bestValue));
 
@@ -2152,10 +2150,10 @@ void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Sta
     }
 
     // Extra penalty for a quiet early move that was not a TT move in the previous ply when it gets refuted
-    Stack* ss1 = ss - 1;
+    Stack* const ss1 = ss - 1;
     if (ss1->move.is_ok() && pos.captured_pc() == Piece::NO_PIECE && ss1->moveCount == 1 + int(ss1->ttMove != Move::None))
     {
-        Square preSq = ss1->move.dst_sq_();
+        const Square preSq = ss1->move.dst_sq();
         update_continuation_history(ss1, pos[preSq], preSq, -constexpr_round(0.6963 * double(malus)));
     }
 }
@@ -2178,13 +2176,14 @@ void Worker::update_correction_histories(const Position& pos, const Stack* const
     histories.non_pawn_correction<BLACK>(pos.non_pawn_key(BLACK))[ac] << constexpr_round(NonPawnBonusScale * double(bonus));
 
     const Move preMove = (ss - 1)->move;
-    // 0 if false, -1 if true
-    const int    preOk = -int(preMove.is_ok());
-    const Square preSq = preMove.dst_sq_();
-    const Piece  prePc = pos[preSq];
+    if (preMove.is_ok())
+    {
+        const Square preSq = preMove.dst_sq();
+        const Piece  prePc = pos[preSq];
 
-    (*(ss - 2)->pieceSqCorrectionHistory)[+prePc][preSq] << (preOk & constexpr_round(1.0156 * double(bonus)));
-    (*(ss - 4)->pieceSqCorrectionHistory)[+prePc][preSq] << (preOk & constexpr_round(0.5469 * double(bonus)));
+        (*(ss - 2)->pieceSqCorrectionHistory)[+prePc][preSq] << constexpr_round(1.0156 * double(bonus));
+        (*(ss - 4)->pieceSqCorrectionHistory)[+prePc][preSq] << constexpr_round(0.5469 * double(bonus));
+    }
 }
 
 // Computes the correction value for the current position from the correction histories
@@ -2200,14 +2199,16 @@ int Worker::correction_value(const Position& pos, const Stack* const ss) const n
                            + histories.non_pawn_correction<BLACK>(pos.non_pawn_key(BLACK))[ac]);
 
     const Move preMove = (ss - 1)->move;
-    // 0 if false, -1 if true
-    const int    preOk = -int(preMove.is_ok());
-    const Square preSq = preMove.dst_sq_();
-    const Piece  prePc = pos[preSq];
+    if (preMove.is_ok())
+    {
+        const Square preSq = preMove.dst_sq();
+        const Piece  prePc = pos[preSq];
 
-    correctionValue += ( preOk & (i64{8761} * int((*(ss - 2)->pieceSqCorrectionHistory)[+prePc][preSq]
-                                                + (*(ss - 4)->pieceSqCorrectionHistory)[+prePc][preSq])))
-                     | (~preOk & i64{64049});
+        correctionValue += i64{8761} * int((*(ss - 2)->pieceSqCorrectionHistory)[+prePc][preSq]
+                                         + (*(ss - 4)->pieceSqCorrectionHistory)[+prePc][preSq]);
+    }
+    else
+        correctionValue += i64{64049};
 
     return std::clamp(correctionValue, -INT_LIMIT, +INT_LIMIT);
 }
@@ -2610,38 +2611,34 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
     const usize multiPv            = worker.multiPv;
     const usize pvCur              = worker.pvCur;
     // Ensure non-zero to avoid a 'divide by zero'
-    TimePoint time     = std::max<TimePoint>(elapsed(), 1);
-    u64       nodes    = threads.sum(&Worker::nodes);
-    u64       tbHits   = threads.sum(&Worker::tbHits, int(tbConfig.rootInTB) * rootMoves.size());
-    u16       hashfull = transpositionTable.hashfull();
-    bool      ShowWDL  = options["UCI_ShowWDL"];
+    const TimePoint time   = std::max<TimePoint>(elapsed(), 1);
+    const u64       nodes  = threads.sum(&Worker::nodes);
+    const u64       tbHits = threads.sum(&Worker::tbHits, tbConfig.rootInTB ? rootMoves.size() : 0);
+    const u16       hashfull = transpositionTable.hashfull();
+    const bool      ShowWDL  = options["UCI_ShowWDL"];
 
     for (usize i = 0; i < multiPv; ++i)
     {
-        auto& rm = rootMoves[i];
+        const auto& rm = rootMoves[i];
 
-        bool updated = rm.curValue != -VALUE_INFINITE;
+        const bool updated = rm.curValue != -VALUE_INFINITE;
 
         if (i != 0 && depth == 1 && !updated)
             continue;
 
-        Value updatedMask = -Value(updated);
-
-        Depth d = depth - (int(depth > 1) & ~updatedMask);
-
-        Value v = (rm.uciValue & updatedMask) | (rm.preValue & ~updatedMask);
+        const Depth d = updated ? depth : depth - int(depth > 1);
+        Value       v = updated ? rm.uciValue : rm.preValue;
 
         if (v == -VALUE_INFINITE)
             v = VALUE_ZERO;
 
-        bool tb = tbConfig.rootInTB && !is_mate(v);
+        const bool tb = tbConfig.rootInTB && !is_mate(v);
 
-        Value tbMask = -Value(tb);
-
-        v = (rm.tbValue & tbMask) | (v & ~tbMask);
+        if (tb)
+            v = rm.tbValue;
 
         // tablebase- and previous-scores are exact
-        bool exact = (int(i != pvCur) | ~updatedMask | tbMask) != 0;
+        bool exact = tb || !updated || i != pvCur;
 
         // Potentially correct and extend the PV, and in exceptional cases value also
         if ((exact || rm.bound == Bound::NONE) && is_decisive(v) && !is_mate(v))

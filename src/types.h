@@ -660,11 +660,6 @@ class Move {
         return Square((data >> DST_SQ_OFFSET) & SQ_MASK);
     }
 
-    // Same as dst_sq() but without assertion, for branchless code paths
-    [[nodiscard]] constexpr Square dst_sq_() const {
-        return Square((data >> DST_SQ_OFFSET) & SQ_MASK);
-    }
-
     [[nodiscard]] constexpr MT type() const noexcept {
         return MT((data & TYPE_MASK) >> TYPE_OFFSET);
     }

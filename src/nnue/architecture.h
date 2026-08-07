@@ -120,17 +120,10 @@ struct NetworkArchitecture final {
             alignas(CACHE_LINE_SIZE) typename decltype(ac_1)::OutputBuffer ac_1_out;
             alignas(CACHE_LINE_SIZE) typename decltype(fc_2)::OutputBuffer fc_2_out;
 
-            Buffer() noexcept { std::memset(this, 0, sizeof(*this)); }
+            Buffer() noexcept { std::memset(ac_sqr_0_out.data(), 0, sizeof(ac_sqr_0_out)); }
         };
 
-#if defined(__clang__) && defined(__APPLE__)
-        // workaround for a bug reported with xcode 12
-        static thread_local auto ptrBuffer = std::make_unique<Buffer>();
-        // Access TLS only once, cache result.
-        Buffer& buffer = *ptrBuffer;
-#else
-        alignas(CACHE_LINE_SIZE) static thread_local Buffer buffer;
-#endif
+        Buffer buffer;
 
         fc_0.propagate(transformedFeatures.data(), buffer.fc_0_out.data());
         ac_sqr_0.propagate(buffer.fc_0_out.data(), buffer.ac_sqr_0_out.data());
