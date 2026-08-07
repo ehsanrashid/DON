@@ -248,10 +248,12 @@ class AffineTransform final {
     #if defined(USE_AVX512)
             using vec_t = __m512i;
         #define vec_set_32 _mm512_set1_epi32
+        #define vec_add_32 _mm512_add_epi32
         #define vec_add_dpbusd_32 SIMD::m512_add_dpbusd_epi32
     #elif defined(USE_AVX2)
             using vec_t = __m256i;
         #define vec_set_32 _mm256_set1_epi32
+        #define vec_add_32 _mm256_add_epi32
         #define vec_add_dpbusd_32 SIMD::m256_add_dpbusd_epi32
     #elif defined(USE_SSSE3)
             using vec_t = __m128i;
@@ -270,23 +272,54 @@ class AffineTransform final {
             static_assert(OutputDimensions % OutputSimdWidth == 0);
 
             constexpr IndexType ChunkCount = ceil_to_multiple<IndexType>(InputDimensions, 8) / 4;
-            constexpr IndexType RegCount   = OutputDimensions / OutputSimdWidth;
+            constexpr IndexType AccCount   = OutputDimensions / OutputSimdWidth;
+    #if defined(USE_VNNI)
+            constexpr IndexType RegCount = 2 * AccCount;
+    #else
+            constexpr IndexType RegCount = AccCount;
+    #endif
 
             const vec_t* biasVec = reinterpret_cast<const vec_t*>(biases.data());
 
             vec_t acc[RegCount];
 
-            for (IndexType k = 0; k < RegCount; ++k)
+            for (IndexType k = 0; k < AccCount; ++k)
                 acc[k] = biasVec[k];
+            for (IndexType k = AccCount; k < RegCount; ++k)
+                acc[k] = vec_set_32(0);
 
-            for (IndexType i = 0; i < ChunkCount; ++i)
+            IndexType i = 0;
+    #if defined(USE_VNNI)  //|| defined(USE_NEON_DOTPROD)
+            for (; i < ChunkCount; i += 2)
             {
-                // clang-format off
-                vec_t in         = vec_set_32(load_as<i32>(input + i * sizeof(i32)));
-                const vec_t* col = reinterpret_cast<const vec_t*>(&weights[i * OutputDimensions * 4]);
-                // clang-format on
+                const vec_t  in0 = vec_set_32(load_as<i32>(input + (i + 0) * sizeof(i32)));
+                const vec_t  in1 = vec_set_32(load_as<i32>(input + (i + 1) * sizeof(i32)));
+                const vec_t* col0 =
+                  reinterpret_cast<const vec_t*>(&weights[(i + 0) * OutputDimensions * 4]);
+                const vec_t* col1 =
+                  reinterpret_cast<const vec_t*>(&weights[(i + 1) * OutputDimensions * 4]);
 
-                for (IndexType k = 0; k < RegCount; ++k)
+                for (IndexType k = 0; k < AccCount; ++k)
+                {
+                    vec_add_dpbusd_32(acc[k + AccCount * 0], in0, col0[k]);
+                    vec_add_dpbusd_32(acc[k + AccCount * 1], in1, col1[k]);
+                }
+            }
+
+            for (IndexType k = 0; k < AccCount; ++k)
+        #if defined(USE_VNNI)
+                acc[k] = vec_add_32(acc[k], acc[k + AccCount]);
+        //#elif defined(USE_NEON_DOTPROD)
+        //        acc[k] = vaddq_s32(acc[k], acc[k + AccCount]);
+        #endif
+    #endif
+            for (; i < ChunkCount; ++i)
+            {
+                const vec_t  in = vec_set_32(load_as<i32>(input + i * sizeof(i32)));
+                const vec_t* col =
+                  reinterpret_cast<const vec_t*>(&weights[i * OutputDimensions * 4]);
+
+                for (IndexType k = 0; k < AccCount; ++k)
                     vec_add_dpbusd_32(acc[k], in, col[k]);
             }
 

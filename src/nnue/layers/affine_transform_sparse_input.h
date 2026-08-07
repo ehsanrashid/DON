@@ -309,10 +309,14 @@ class AffineTransformSparseInput final {
         const auto* RESTRICT end = beg + count;
 
             // clang-format off
-    #if defined(USE_VNNI)
+    #if defined(USE_VNNI) || defined(USE_NEON_DOTPROD)
 
         for (IndexType k = AccCount; k < RegCount; ++k)
+        #if defined(USE_VNNI)
             acc[k] = vec_zero();
+        #elif defined(USE_NEON_DOTPROD)
+            acc[k] = vdupq_n_s32(0);
+        #endif
 
         while (beg + 3 <= end)
         {
@@ -339,9 +343,15 @@ class AffineTransformSparseInput final {
         }
 
         for (IndexType k = 0; k < AccCount; ++k)
+        #if defined(USE_VNNI)
             acc[k] = vec_add_32(vec_add_32(acc[k + AccCount * 0],
                                            acc[k + AccCount * 1]),
                                            acc[k + AccCount * 2]);
+        #elif defined(USE_NEON_DOTPROD)
+            acc[k] = vaddq_s32(vaddq_s32(acc[k + AccCount * 0],
+                                         acc[k + AccCount * 1]),
+                                         acc[k + AccCount * 2]);
+        #endif
     #endif
 
         while (beg < end)
