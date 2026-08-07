@@ -585,12 +585,6 @@ ifeq ($(COMP),gcc)
     CXX_VERSION     := $(shell $(CXX) --version 2>/dev/null | head -n 1 | tr '[:upper:]' '[:lower:]')
     GCC_CLANG       := $(if $(findstring clang,$(CXX_VERSION)),yes,no)
     GCC_APPLE_CLANG := $(if $(findstring apple clang,$(CXX_VERSION)),yes,no)
-    $(info ===== Compiler detection =====)
-    $(info CXX=$(CXX))
-    $(info CXX_VERSION=$(CXX_VERSION))
-    $(info GCC_CLANG=$(GCC_CLANG))
-    $(info GCC_APPLE_CLANG=$(GCC_APPLE_CLANG))
-    $(info =============================)
     # Darwin (macOS) specific compiler/linker flags
     ifeq ($(KERNEL),Darwin)
         EXTRAPROFILEFLAGS := -fvisibility=hidden
@@ -613,10 +607,17 @@ ifeq ($(COMP),gcc)
     endif
     # Configure compiler-specific flags and profile targets
     ifeq ($(GCC_CLANG),yes)
-        CXXFLAGS += -fconstexpr-steps=500000000
+        ifeq ($(GCC_APPLE_CLANG),yes)
+            # Apple Clang
+            CXXFLAGS += -Wstack-usage=128000
+        else
+            # LLVM Clang
+            CXXFLAGS += -Wstack-usage=128000 -fconstexpr-steps=500000000
+        endif
         profile_make = clang-profile-make
         profile_use  = clang-profile-use
     else
+        # GCC
         CXXFLAGS += -Wstack-usage=128000 -fno-ipa-cp-clone -fconstexpr-ops-limit=500000000
         profile_make = gcc-profile-make
         profile_use  = gcc-profile-use
