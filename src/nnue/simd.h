@@ -221,8 +221,9 @@ inline constexpr u32 Mask[4]{1, 2, 4, 8};
     #define vec128_add(a, b) vaddq_u16(a, b)
 
     #if defined(__arm__) && !defined(__aarch64__)
-// Single instruction doesn't exist on 32-bit ARM
-inline int16x8_t vmovl_high_s8(int8x16_t a) noexcept { return vmovl_s8(vget_high_s8(a)); }
+// Instructions that don't exist on 32-bit ARM
+inline int16x8_t vaddw_high_s8(int16x8_t a, int8x16_t b) { return vaddw_s8(a, vget_high_s8(b)); }
+inline int16x8_t vsubw_high_s8(int16x8_t a, int8x16_t b) { return vsubw_s8(a, vget_high_s8(b)); }
     #endif
 
     #define MaxRegisterCount 16
