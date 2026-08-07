@@ -858,7 +858,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     const Move preMove = (ss - 1)->move;
 
     const bool   preOk = preMove.is_ok();
-    const Square preSq = preMove.dst_sq_();
+    const Square preSq = preOk ? preMove.dst_sq() : SQ_NONE;
 
     const bool preCapture = pos.captured_pc() != Piece::NO_PIECE;
     const bool preNonPawn = preOk && type_of(pos[preSq]) != PAWN && preMove.type() != MT::PROMOTION;
@@ -1897,7 +1897,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     Move preMove = (ss - 1)->move;
 
     const bool   preOk = preMove.is_ok();
-    const Square preSq = preMove.dst_sq_();
+    const Square preSq = preOk ? preMove.dst_sq() : SQ_NONE;
 
     State st;
 
@@ -2150,10 +2150,10 @@ void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Sta
     }
 
     // Extra penalty for a quiet early move that was not a TT move in the previous ply when it gets refuted
-    Stack* ss1 = ss - 1;
+    Stack* const ss1 = ss - 1;
     if (ss1->move.is_ok() && pos.captured_pc() == Piece::NO_PIECE && ss1->moveCount == 1 + int(ss1->ttMove != Move::None))
     {
-        Square preSq = ss1->move.dst_sq_();
+        const Square preSq = ss1->move.dst_sq();
         update_continuation_history(ss1, pos[preSq], preSq, -constexpr_round(0.6963 * double(malus)));
     }
 }
@@ -2176,13 +2176,14 @@ void Worker::update_correction_histories(const Position& pos, const Stack* const
     histories.non_pawn_correction<BLACK>(pos.non_pawn_key(BLACK))[ac] << constexpr_round(NonPawnBonusScale * double(bonus));
 
     const Move preMove = (ss - 1)->move;
-    // 0 if false, -1 if true
-    const int    preOk = -int(preMove.is_ok());
-    const Square preSq = preMove.dst_sq_();
-    const Piece  prePc = pos[preSq];
+    if (preMove.is_ok())
+    {
+        const Square preSq = preMove.dst_sq();
+        const Piece  prePc = pos[preSq];
 
-    (*(ss - 2)->pieceSqCorrectionHistory)[+prePc][preSq] << (preOk & constexpr_round(1.0156 * double(bonus)));
-    (*(ss - 4)->pieceSqCorrectionHistory)[+prePc][preSq] << (preOk & constexpr_round(0.5469 * double(bonus)));
+        (*(ss - 2)->pieceSqCorrectionHistory)[+prePc][preSq] << constexpr_round(1.0156 * double(bonus));
+        (*(ss - 4)->pieceSqCorrectionHistory)[+prePc][preSq] << constexpr_round(0.5469 * double(bonus));
+    }
 }
 
 // Computes the correction value for the current position from the correction histories
@@ -2198,14 +2199,16 @@ int Worker::correction_value(const Position& pos, const Stack* const ss) const n
                            + histories.non_pawn_correction<BLACK>(pos.non_pawn_key(BLACK))[ac]);
 
     const Move preMove = (ss - 1)->move;
-    // 0 if false, -1 if true
-    const int    preOk = -int(preMove.is_ok());
-    const Square preSq = preMove.dst_sq_();
-    const Piece  prePc = pos[preSq];
+    if (preMove.is_ok())
+    {
+        const Square preSq = preMove.dst_sq();
+        const Piece  prePc = pos[preSq];
 
-    correctionValue += ( preOk & (i64{8761} * int((*(ss - 2)->pieceSqCorrectionHistory)[+prePc][preSq]
-                                                + (*(ss - 4)->pieceSqCorrectionHistory)[+prePc][preSq])))
-                     | (~preOk & i64{64049});
+        correctionValue += i64{8761} * int((*(ss - 2)->pieceSqCorrectionHistory)[+prePc][preSq]
+                                         + (*(ss - 4)->pieceSqCorrectionHistory)[+prePc][preSq]);
+    }
+    else
+        correctionValue += i64{64049};
 
     return std::clamp(correctionValue, -INT_LIMIT, +INT_LIMIT);
 }
