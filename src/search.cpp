@@ -1312,8 +1312,8 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         {
             if (hasNonPawn && !is_loss(bestValue))
             {
-                // Skip quiet moves if moveCount exceeds Futility Move Count threshold
-                mp.skipQuiets |= moveCount >= ((3 + depth * depth) >> int(!improve));
+                // Skip quiet moves if moveCount exceeds moveCount threshold
+                mp.skipQuiets |= moveCount >= ((3 + depth * depth) / (improve ? 1 : 2));
 
                 // Reduced depth of the next LMR search
                 Depth lmrDepth = newDepth - r / 1024;
@@ -2611,34 +2611,34 @@ void MainSearchManager::show_pv(Worker& worker, Depth depth) const noexcept {
     const usize multiPv            = worker.multiPv;
     const usize pvCur              = worker.pvCur;
     // Ensure non-zero to avoid a 'divide by zero'
-    TimePoint time     = std::max<TimePoint>(elapsed(), 1);
-    u64       nodes    = threads.sum(&Worker::nodes);
-    u64       tbHits   = threads.sum(&Worker::tbHits, int(tbConfig.rootInTB) * rootMoves.size());
-    u16       hashfull = transpositionTable.hashfull();
-    bool      ShowWDL  = options["UCI_ShowWDL"];
+    const TimePoint time   = std::max<TimePoint>(elapsed(), 1);
+    const u64       nodes  = threads.sum(&Worker::nodes);
+    const u64       tbHits = threads.sum(&Worker::tbHits, tbConfig.rootInTB ? rootMoves.size() : 0);
+    const u16       hashfull = transpositionTable.hashfull();
+    const bool      ShowWDL  = options["UCI_ShowWDL"];
 
     for (usize i = 0; i < multiPv; ++i)
     {
-        auto& rm = rootMoves[i];
+        const auto& rm = rootMoves[i];
 
-        bool updated = rm.curValue != -VALUE_INFINITE;
+        const bool updated = rm.curValue != -VALUE_INFINITE;
 
         if (i != 0 && depth == 1 && !updated)
             continue;
 
-        Depth d = updated ? depth : depth - int(depth > 1);
-        Value v = updated ? rm.uciValue : rm.preValue;
+        const Depth d = updated ? depth : depth - int(depth > 1);
+        Value       v = updated ? rm.uciValue : rm.preValue;
 
         if (v == -VALUE_INFINITE)
             v = VALUE_ZERO;
 
-        bool tb = tbConfig.rootInTB && !is_mate(v);
+        const bool tb = tbConfig.rootInTB && !is_mate(v);
 
         if (tb)
             v = rm.tbValue;
 
         // tablebase- and previous-scores are exact
-        bool exact = i != pvCur || !updated || tb;
+        bool exact = tb || !updated || i != pvCur;
 
         // Potentially correct and extend the PV, and in exceptional cases value also
         if ((exact || rm.bound == Bound::NONE) && is_decisive(v) && !is_mate(v))
