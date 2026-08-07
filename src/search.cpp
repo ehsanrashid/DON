@@ -2013,17 +2013,15 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
         }
         else
         {
-            Color ac = pos.active_color();
+            const Color ac = pos.active_color();
 
-            pos.state()->checkersBB = PROMOTION_RANKS_BB;
             if (bestValue != VALUE_DRAW  //
-                && type_of(pos.captured_pc()) >= ROOK
-                && !pos.has_non_pawn(ac)
+                && type_of(pos.captured_pc()) >= KNIGHT
                 // No pawn pushes available
                 && (pawn_push_bb(pos.pieces_bb(ac, PAWN), ac) & ~pos.pieces_bb()) == 0
+                && !pos.has_non_pawn(ac)  //
                 && MoveList<GenType::LEGAL, true>(pos).empty())
                 bestValue = VALUE_DRAW;
-            pos.state()->checkersBB = 0;
         }
     }
     // Adjust best value for fail high cases
