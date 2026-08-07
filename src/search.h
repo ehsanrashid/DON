@@ -611,8 +611,8 @@ struct Stack final {
     u16   moveCount;
     u16   cutoffCount;
     bool  inCheck;
-    bool  ttPv;
-    bool  followPv;
+    bool  pvTT;
+    bool  pvFollow;
 };
 
 // Worker does the actual search.

@@ -429,7 +429,7 @@ STAGE_SWITCH:
         if (select([this]() noexcept -> bool { return good_capture_or_swap(); }))
             return move();
 
-        if (!skipQuiets)
+        if (!quietsSkip)
         {
             MoveList<GenType::ENC_QUIET> moveList(pos);
 
@@ -442,7 +442,7 @@ STAGE_SWITCH:
         [[fallthrough]];
 
     case Stage::ENC_GOOD_QUIET :
-        while (!skipQuiets && !empty())
+        while (!quietsSkip && !empty())
         {
             if (valid())
             {
@@ -469,7 +469,7 @@ STAGE_SWITCH:
         if (select(always_true))
             return move();
 
-        if (!skipQuiets)
+        if (!quietsSkip)
         {
             // Prepare the pointers to loop over the bad quiets
             cur    = badQuietBeg;
@@ -482,7 +482,7 @@ STAGE_SWITCH:
         [[fallthrough]];
 
     case Stage::ENC_BAD_QUIET :
-        if (!skipQuiets && select(always_true))
+        if (!quietsSkip && select(always_true))
             return move();
 
         return Move::None;
@@ -524,7 +524,7 @@ MovePicker::Stage MovePicker::stage() const noexcept { return curStage; }
 
 int MovePicker::threshold_value() const noexcept { return threshold; }
 
-void MovePicker::update_skip_quiets(const bool condition) noexcept { skipQuiets |= condition; }
+void MovePicker::update_quiets_skip(const bool condition) noexcept { quietsSkip |= condition; }
 
 ALWAYS_INLINE bool MovePicker::good_capture_or_swap() noexcept {
     threshold = constexpr_round(55.5555e-3 * double(cur->value));

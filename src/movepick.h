@@ -103,7 +103,7 @@ class MovePicker final {
     [[nodiscard]] Stage stage() const noexcept;
     [[nodiscard]] int   threshold_value() const noexcept;
 
-    void update_skip_quiets(bool condition) noexcept;
+    void update_quiets_skip(bool condition) noexcept;
 
    private:
     MovePicker() noexcept                             = delete;
@@ -152,7 +152,7 @@ class MovePicker final {
     Stage initStage;
     Stage curStage;
 
-    bool skipQuiets = false;
+    bool quietsSkip = false;
 
     Array<value_type, MOVE_MAX> moves;
 
