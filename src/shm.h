@@ -91,10 +91,6 @@
     #include <thread>
     #include <unordered_map>
 
-    #if !defined(ACCESSPERMS)
-        #define ACCESSPERMS (S_IRWXU | S_IRWXG | S_IRWXO)
-    #endif
-
     // Linux (non-Android)
     #if (defined(__linux__) && !defined(__ANDROID__))
     // macOS / iOS
@@ -117,6 +113,10 @@
     #elif defined(_AIX)
     #else
         #error "Unsupported Unix platform"
+    #endif
+
+    #if !defined(ACCESSPERMS)
+        #define ACCESSPERMS (S_IRWXU | S_IRWXG | S_IRWXO)
     #endif
 #endif
 

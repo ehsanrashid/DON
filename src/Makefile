@@ -581,10 +581,10 @@ GCC_APPLE_CLANG := no
 ifeq ($(COMP),gcc)
     CXX := g++
     CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-declarations
-    # Generate predefined macros to detect Clang/Apple Clang
-    GCC_DEFINES     := $(shell echo | $(CXX) -dM -E -x c++ - 2>/dev/null)
-    GCC_CLANG       := $(if $(findstring __clang__,$(GCC_DEFINES)),yes,no)
-    GCC_APPLE_CLANG := $(if $(findstring __apple_build_version__,$(GCC_DEFINES)),yes,no)
+    # Detect whether the selected compiler is actually Clang
+    CXX_VERSION     := $(shell $(CXX) --version 2>/dev/null)
+    GCC_CLANG       := $(if $(findstring clang,$(CXX_VERSION)),yes,no)
+    GCC_APPLE_CLANG := $(if $(findstring Apple clang,$(CXX_VERSION)),yes,no)
     # Darwin (macOS) specific compiler/linker flags
     ifeq ($(KERNEL),Darwin)
         EXTRAPROFILEFLAGS := -fvisibility=hidden
@@ -607,6 +607,7 @@ ifeq ($(COMP),gcc)
     endif
     # Configure compiler-specific flags and profile targets
     ifeq ($(GCC_CLANG),yes)
+        CXXFLAGS += -fconstexpr-steps=500000000
         profile_make = clang-profile-make
         profile_use  = clang-profile-use
     else
@@ -641,6 +642,11 @@ ifeq ($(COMP),gcc)
 else
 ifeq ($(COMP),clang)
     CXX := clang++
+    CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-prototypes -Wconditional-uninitialized -flax-vector-conversions=none -fconstexpr-steps=500000000
+    # Detect whether the selected compiler is actually Clang
+    CXX_VERSION     := $(shell $(CXX) --version 2>/dev/null)
+    GCC_CLANG       := $(if $(findstring clang,$(CXX_VERSION)),yes,no)
+    GCC_APPLE_CLANG := $(if $(findstring Apple clang,$(CXX_VERSION)),yes,no)
     ifeq ($(OS_WINDOWS),yes)
         ifeq ($(bits),64)
             CXX := x86_64-w64-mingw32-clang++
@@ -648,7 +654,6 @@ ifeq ($(COMP),clang)
             CXX := i686-w64-mingw32-clang++
         endif
     endif
-    CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-prototypes -Wconditional-uninitialized -flax-vector-conversions=none -fconstexpr-steps=500000000
     # Atomic library for non-Windows and non-[Darwin/FreeBSD/OpenBSD/NetBSD] (unless compiler-rt)
     ifeq ($(OS_WINDOWS),no)
         ifeq ($(filter $(KERNEL),Darwin FreeBSD OpenBSD NetBSD),)
@@ -680,10 +685,6 @@ ifeq ($(COMP),clang)
     endif
     endif
     endif
-    # Generate predefined macros to detect Clang/Apple Clang
-    CLANG_DEFINES   := $(shell echo | $(CXX) -dM -E -x c++ - 2>/dev/null)
-    GCC_CLANG       := $(if $(findstring __clang__,$(CLANG_DEFINES)),yes,no)
-    GCC_APPLE_CLANG := $(if $(findstring __apple_build_version__,$(CLANG_DEFINES)),yes,no)
     # Link std::filesystem for Linux Clang (non-Apple)
     ifeq ($(KERNEL),Linux)
         ifeq ($(GCC_APPLE_CLANG),no)
