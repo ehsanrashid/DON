@@ -307,18 +307,13 @@ MovePicker::score<GenType::ENC_QUIET>(const MoveList<GenType::ENC_QUIET>& moveLi
 
         // Penalty for moving to square attacked by lesser piece
         // Bonus for escaping from square attacked by lesser piece
-        // clang-format off
         const Bitboard accLessAttacksBB = pos.acc_less_attacks_bb(movedPt);
-        const int dstMask    = -int((accLessAttacksBB & dstSq) != 0);
-        const int blockMask  = -int((blockersBB & orgSq) == 0);
-        const int threatMask = -int((threatsBB & orgSq) != 0);
-        const int orgAttMask = -int((accLessAttacksBB & orgSq) != 0);
-        // Priority masking (mutually exclusive chain)
-        const int weight = ( dstMask & blockMask & -20)
-                         | (~dstMask & (  ( threatMask & 23)
-                                        | (~threatMask & orgAttMask & 20)));
+
+        const int weight = (accLessAttacksBB & dstSq) != 0 ? int((blockersBB & orgSq) == 0) * -20
+                         : (threatsBB & orgSq) != 0        ? +23
+                         : (accLessAttacksBB & orgSq) != 0 ? +20
+                                                           : 0;
         value += weight * piece_value(movedPt);
-        // clang-format on
 
         // Penalty for moving pinner piece
         value -=
