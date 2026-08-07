@@ -273,11 +273,13 @@ class AffineTransform final {
 
             constexpr IndexType ChunkCount = ceil_to_multiple<IndexType>(InputDimensions, 8) / 4;
             constexpr IndexType AccCount   = OutputDimensions / OutputSimdWidth;
-    #if defined(USE_VNNI)
-            constexpr IndexType RegCount = 2 * AccCount;
+            constexpr IndexType RegCount =
+    #if defined(USE_VNNI)  //|| defined(USE_NEON_DOTPROD)
+              AccCount * 2
     #else
-            constexpr IndexType RegCount = AccCount;
+              AccCount
     #endif
+              ;
 
             const vec_t* biasVec = reinterpret_cast<const vec_t*>(biases.data());
 
@@ -307,11 +309,13 @@ class AffineTransform final {
             }
 
             for (IndexType k = 0; k < AccCount; ++k)
+                acc[k] =
         #if defined(USE_VNNI)
-                acc[k] = vec_add_32(acc[k], acc[k + AccCount]);
+                  vec_add_32(acc[k], acc[k + AccCount])
         //#elif defined(USE_NEON_DOTPROD)
-        //        acc[k] = vaddq_s32(acc[k], acc[k + AccCount]);
+        //        vaddq_s32(acc[k], acc[k + AccCount])
         #endif
+                  ;
     #endif
             for (; i < ChunkCount; ++i)
             {

@@ -286,7 +286,7 @@ class AffineTransformSparseInput final {
         // If using high-latency dot product instructions, split the accumulators
         // to create 3 separate dependency chains and merge at the end
         constexpr IndexType RegCount =
-    #if defined(USE_VNNI)
+    #if defined(USE_VNNI) || defined(USE_NEON_DOTPROD)
           AccCount * 3
     #else
           AccCount
@@ -312,11 +312,13 @@ class AffineTransformSparseInput final {
     #if defined(USE_VNNI) || defined(USE_NEON_DOTPROD)
 
         for (IndexType k = AccCount; k < RegCount; ++k)
+            acc[k] =
         #if defined(USE_VNNI)
-            acc[k] = vec_zero();
+              vec_zero()
         #elif defined(USE_NEON_DOTPROD)
-            acc[k] = vdupq_n_s32(0);
+              vdupq_n_s32(0)
         #endif
+              ;
 
         while (beg + 3 <= end)
         {
@@ -343,15 +345,17 @@ class AffineTransformSparseInput final {
         }
 
         for (IndexType k = 0; k < AccCount; ++k)
+            acc[k] =
         #if defined(USE_VNNI)
-            acc[k] = vec_add_32(vec_add_32(acc[k + AccCount * 0],
-                                           acc[k + AccCount * 1]),
-                                           acc[k + AccCount * 2]);
+              vec_add_32(vec_add_32(acc[k + AccCount * 0],
+                                    acc[k + AccCount * 1]),
+                                    acc[k + AccCount * 2])
         #elif defined(USE_NEON_DOTPROD)
-            acc[k] = vaddq_s32(vaddq_s32(acc[k + AccCount * 0],
-                                         acc[k + AccCount * 1]),
-                                         acc[k + AccCount * 2]);
+              vaddq_s32(vaddq_s32(acc[k + AccCount * 0],
+                                  acc[k + AccCount * 1]),
+                                  acc[k + AccCount * 2])
         #endif
+              ;
     #endif
 
         while (beg < end)
