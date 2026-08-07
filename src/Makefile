@@ -584,7 +584,13 @@ ifeq ($(COMP),gcc)
     # Detect whether the selected compiler is actually Clang
     CXX_VERSION     := $(shell $(CXX) --version 2>/dev/null | head -n 1 | tr '[:upper:]' '[:lower:]')
     GCC_CLANG       := $(if $(findstring clang,$(CXX_VERSION)),yes,no)
-    GCC_APPLE_CLANG := $(if $(findstring Apple clang,$(CXX_VERSION)),yes,no)
+    GCC_APPLE_CLANG := $(if $(findstring apple clang,$(CXX_VERSION)),yes,no)
+    $(info ===== Compiler detection =====)
+    $(info CXX=$(CXX))
+    $(info CXX_VERSION=$(CXX_VERSION))
+    $(info GCC_CLANG=$(GCC_CLANG))
+    $(info GCC_APPLE_CLANG=$(GCC_APPLE_CLANG))
+    $(info =============================)
     # Darwin (macOS) specific compiler/linker flags
     ifeq ($(KERNEL),Darwin)
         EXTRAPROFILEFLAGS := -fvisibility=hidden
@@ -646,7 +652,7 @@ ifeq ($(COMP),clang)
     # Detect whether the selected compiler is actually Clang
     CXX_VERSION     := $(shell $(CXX) --version 2>/dev/null | head -n 1 | tr '[:upper:]' '[:lower:]')
     GCC_CLANG       := $(if $(findstring clang,$(CXX_VERSION)),yes,no)
-    GCC_APPLE_CLANG := $(if $(findstring Apple clang,$(CXX_VERSION)),yes,no)
+    GCC_APPLE_CLANG := $(if $(findstring apple clang,$(CXX_VERSION)),yes,no)
     ifeq ($(OS_WINDOWS),yes)
         ifeq ($(bits),64)
             CXX := x86_64-w64-mingw32-clang++
