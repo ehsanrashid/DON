@@ -582,7 +582,7 @@ ifeq ($(COMP),gcc)
     CXX := g++
     CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-declarations
     # Detect whether the selected compiler is actually Clang
-    CXX_VERSION     := $(shell $(CXX) --version 2>/dev/null)
+    CXX_VERSION     := $(shell $(CXX) --version 2>/dev/null | head -n 1 | tr '[:upper:]' '[:lower:]')
     GCC_CLANG       := $(if $(findstring clang,$(CXX_VERSION)),yes,no)
     GCC_APPLE_CLANG := $(if $(findstring Apple clang,$(CXX_VERSION)),yes,no)
     # Darwin (macOS) specific compiler/linker flags
@@ -644,7 +644,7 @@ ifeq ($(COMP),clang)
     CXX := clang++
     CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-prototypes -Wconditional-uninitialized -flax-vector-conversions=none -fconstexpr-steps=500000000
     # Detect whether the selected compiler is actually Clang
-    CXX_VERSION     := $(shell $(CXX) --version 2>/dev/null)
+    CXX_VERSION     := $(shell $(CXX) --version 2>/dev/null | head -n 1 | tr '[:upper:]' '[:lower:]')
     GCC_CLANG       := $(if $(findstring clang,$(CXX_VERSION)),yes,no)
     GCC_APPLE_CLANG := $(if $(findstring Apple clang,$(CXX_VERSION)),yes,no)
     ifeq ($(OS_WINDOWS),yes)
