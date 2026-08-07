@@ -291,6 +291,10 @@ std::string version_info() noexcept {
 #else
         version.append(format_time(__TIME__)).append("-nogit");
 #endif
+#if defined(GIT_DIFFINDEX)
+        version.append("-m");
+        version.append(STRINGIFY(GIT_DIFFINDEX));
+#endif
     }
 
     return version;
