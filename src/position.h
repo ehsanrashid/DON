@@ -1014,23 +1014,23 @@ inline void Position::update_pc_threats(Square                    s,
                        | (pieces_bb(QUEEN, ROOK)   & attacksBB[ROOK]);
     // clang-format on
 
-    auto process_sliders = [&](bool addDirectAttacks) noexcept {
+    auto process_sliders = [&](const bool addDirectAttacks) noexcept {
         while (slidersBB != 0)
         {
-            Square sliderSq = pop_lsq(slidersBB);
-            Piece  sliderPc = piece(sliderSq);
+            const Square sliderSq = pop_lsq(slidersBB);
+            const Piece  sliderPc = piece(sliderSq);
 
             assert(sliderSq != s);
             assert(is_ok(sliderPc));
 
-            Bitboard passRayBB    = pass_ray_bb(sliderSq, s);
-            Bitboard discoveredBB = passRayBB & attacksBB[QUEEN] & exOccupancyBB;
+            const Bitboard passRayBB    = pass_ray_bb(sliderSq, s);
+            const Bitboard discoveredBB = passRayBB & attacksBB[QUEEN] & exOccupancyBB;
 
             if (discoveredBB != 0 && (passRayBB & targetBB) != targetBB)
             {
                 assert(!more_than_one(discoveredBB));
-                Square threatenedSq = lsq(discoveredBB);
-                Piece  threatenedPc = piece(threatenedSq);
+                const Square threatenedSq = lsq(discoveredBB);
+                const Piece  threatenedPc = piece(threatenedSq);
 
                 assert(is_ok(threatenedPc));
 
@@ -1075,7 +1075,7 @@ inline void Position::update_pc_threats(Square                    s,
     write_multiple_dirties<DirtyThreat::THREATENED_SQ_OFFSET, DirtyThreat::THREATENED_PC_OFFSET>(
       piece_map(), threatenedBB, templateDt1, dts);
 
-    Bitboard attackersBB = slidersBB | nonSlidersBB;
+    const Bitboard attackersBB = slidersBB | nonSlidersBB;
 
     if constexpr (Put)
     {
@@ -1089,8 +1089,8 @@ inline void Position::update_pc_threats(Square                    s,
 #else
     while (threatenedBB != 0)
     {
-        Square threatenedSq = pop_lsq(threatenedBB);
-        Piece  threatenedPc = piece(threatenedSq);
+        const Square threatenedSq = pop_lsq(threatenedBB);
+        const Piece  threatenedPc = piece(threatenedSq);
 
         assert(threatenedSq != s);
         assert(is_ok(threatenedPc));
@@ -1116,8 +1116,8 @@ inline void Position::update_pc_threats(Square                    s,
 #else
     while (nonSlidersBB != 0)
     {
-        Square nonSliderSq = pop_lsq(nonSlidersBB);
-        Piece  nonSliderPc = piece(nonSliderSq);
+        const Square nonSliderSq = pop_lsq(nonSlidersBB);
+        const Piece  nonSliderPc = piece(nonSliderSq);
 
         assert(nonSliderSq != s);
         assert(is_ok(nonSliderPc));
