@@ -524,6 +524,8 @@ MovePicker::Stage MovePicker::stage() const noexcept { return curStage; }
 
 int MovePicker::threshold_value() const noexcept { return threshold; }
 
+void MovePicker::update_skip_quiets(const bool condition) noexcept { skipQuiets |= condition; }
+
 ALWAYS_INLINE bool MovePicker::good_capture_or_swap() noexcept {
     threshold = constexpr_round(55.5555e-3 * double(cur->value));
     if (pos.see(*cur) >= -threshold)

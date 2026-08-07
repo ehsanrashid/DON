@@ -1313,7 +1313,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
             if (hasNonPawn && !is_loss(bestValue))
             {
                 // Skip quiet moves if moveCount exceeds moveCount threshold
-                mp.skipQuiets |= moveCount >= ((3 + depth * depth) / (improve ? 1 : 2));
+                mp.update_skip_quiets(moveCount >= ((3 + depth * depth) / (1 + int(!improve) * 1)));
 
                 // Reduced depth of the next LMR search
                 Depth lmrDepth = newDepth - r / 1024;

@@ -103,7 +103,7 @@ class MovePicker final {
     [[nodiscard]] Stage stage() const noexcept;
     [[nodiscard]] int   threshold_value() const noexcept;
 
-    bool skipQuiets = false;
+    void update_skip_quiets(bool condition) noexcept;
 
    private:
     MovePicker() noexcept                             = delete;
@@ -149,7 +149,11 @@ class MovePicker final {
     const u16                        ssPly               = LOW_PLY_QUIET_SIZE;
     int                              threshold;
 
-   private:
+    Stage initStage;
+    Stage curStage;
+
+    bool skipQuiets = false;
+
     Array<value_type, MOVE_MAX> moves;
 
     iterator                    //
@@ -158,9 +162,6 @@ class MovePicker final {
       badCaptureEnd = nullptr,  //
       badQuietBeg   = nullptr,  //
       badQuietEnd   = nullptr;
-
-    Stage initStage;
-    Stage curStage;
 };
 
 }  // namespace DON
