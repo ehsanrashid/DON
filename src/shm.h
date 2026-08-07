@@ -91,6 +91,10 @@
     #include <thread>
     #include <unordered_map>
 
+    #if !defined(ACCESSPERMS)
+        #define ACCESSPERMS (S_IRWXU | S_IRWXG | S_IRWXO)
+    #endif
+
     // Linux (non-Android)
     #if (defined(__linux__) && !defined(__ANDROID__))
     // macOS / iOS
