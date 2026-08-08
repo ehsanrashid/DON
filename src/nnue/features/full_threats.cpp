@@ -203,12 +203,12 @@ static_assert(orientation(SQ_A8) == SQ_A1);
 static_assert(orientation(SQ_H8) == SQ_H1);
 
 // Index of a feature for a given king position and another piece on square
-ALWAYS_INLINE IndexType make_index(Color  perspective,
-                                   Square kingSq,
-                                   Square orgSq,
-                                   Square dstSq,
-                                   Piece  attackerPc,
-                                   Piece  attackedPc) noexcept {
+ALWAYS_INLINE IndexType make_index(const Color  perspective,
+                                   const Square kingSq,
+                                   const Square orgSq,
+                                   const Square dstSq,
+                                   const Piece  attackerPc,
+                                   const Piece  attackedPc) noexcept {
     // Compute perspective-relative squares
     u8 relOrientation = relative_sq(perspective, orientation(kingSq));
 
@@ -229,6 +229,26 @@ ALWAYS_INLINE IndexType make_index(Color  perspective,
     return feature_index(lutData)                                     //
          + lut_index(Piece(relAttackerPc), Square(org), Square(dst))  //
          + SQUARE_OFFSETS[relAttackerPc][org];
+}
+
+ALWAYS_INLINE void append_pawn_active_indices(Bitboard                attacksBB,
+                                              const Direction         dir,
+                                              const Color             perspective,
+                                              const Position&         pos,
+                                              const Square            kingSq,
+                                              const Piece             attackerPc,
+                                              FullThreats::IndexList& active) noexcept {
+    while (attacksBB != 0)
+    {
+        const Square dstSq      = pop_lsq(attacksBB);
+        const Square orgSq      = dstSq - dir;
+        const Piece  attackedPc = pos[dstSq];
+
+        const auto index = make_index(perspective, kingSq, orgSq, dstSq, attackerPc, attackedPc);
+
+        if (index < FullThreats::Dimensions)
+            active.push_back(index);
+    }
 }
 
 }  // namespace
@@ -252,53 +272,29 @@ void FullThreats::append_active_indices(Color           perspective,
 
             if (pt == PAWN)
             {
-                Bitboard lAttacksBB = (attackerC == WHITE ? shift_bb<Direction::NORTH_EAST>(pcBB)
-                                                          : shift_bb<Direction::SOUTH_WEST>(pcBB))
-                                    & occupancyBB;
+                append_pawn_active_indices(
+                  (attackerC == WHITE ? shift_bb<Direction::NORTH_EAST>(pcBB)
+                                      : shift_bb<Direction::SOUTH_WEST>(pcBB))
+                    & occupancyBB,
+                  attackerC == WHITE ? Direction::NORTH_EAST : Direction::SOUTH_WEST,  //
+                  perspective, pos, kingSq, attackerPc, active);
 
-                const Direction rDir =
-                  attackerC == WHITE ? Direction::NORTH_EAST : Direction::SOUTH_WEST;
-
-                while (lAttacksBB != 0)
-                {
-                    const Square dstSq      = pop_lsq(lAttacksBB);
-                    const Square orgSq      = dstSq - rDir;
-                    const Piece  attackedPc = pos[dstSq];
-
-                    const auto index =
-                      make_index(perspective, kingSq, orgSq, dstSq, attackerPc, attackedPc);
-
-                    if (index < Dimensions)
-                        active.push_back(index);
-                }
-
-                Bitboard rAttacksBB = (attackerC == WHITE ? shift_bb<Direction::NORTH_WEST>(pcBB)
-                                                          : shift_bb<Direction::SOUTH_EAST>(pcBB))
-                                    & occupancyBB;
-
-                const Direction lDir =
-                  attackerC == WHITE ? Direction::NORTH_WEST : Direction::SOUTH_EAST;
-
-                while (rAttacksBB != 0)
-                {
-                    const Square dstSq      = pop_lsq(rAttacksBB);
-                    const Square orgSq      = dstSq - lDir;
-                    const Piece  attackedPc = pos[dstSq];
-
-                    const auto index =
-                      make_index(perspective, kingSq, orgSq, dstSq, attackerPc, attackedPc);
-
-                    if (index < Dimensions)
-                        active.push_back(index);
-                }
+                append_pawn_active_indices(
+                  (attackerC == WHITE ? shift_bb<Direction::NORTH_WEST>(pcBB)
+                                      : shift_bb<Direction::SOUTH_EAST>(pcBB))
+                    & occupancyBB,
+                  attackerC == WHITE ? Direction::NORTH_WEST : Direction::SOUTH_EAST,  //
+                  perspective, pos, kingSq, attackerPc, active);
 
                 // Set of pawns which are prevented from movement by a pawn in front of them
-                Bitboard pushers =
+                const Direction dir = pawn_spush(attackerC);
+
+                Bitboard pushersBB =
                   pos.pieces_bb(attackerC, PAWN) & pawn_push_bb(pawnsBB, ~attackerC);
-                while (pushers != 0)
+                while (pushersBB != 0)
                 {
-                    const Square orgSq      = pop_lsq(pushers);
-                    const Square dstSq      = orgSq + pawn_spush(attackerC);
+                    const Square orgSq      = pop_lsq(pushersBB);
+                    const Square dstSq      = orgSq + dir;
                     const Piece  attackedPc = pos[dstSq];
                     assert(type_of(attackedPc) == PAWN);
 
