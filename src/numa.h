@@ -897,7 +897,7 @@ class NumaConfig final {
         return numaCfg;
     }
 
-    bool suggests_binding_threads(usize threadCount) const noexcept {
+    bool suggests_binding_threads(const usize threadCount) const noexcept {
         // If can reasonably determine that the threads can't be contained
         // by the OS within the first NUMA node then advise distributing
         // and binding threads. When the threads are not bound can only use
@@ -942,7 +942,8 @@ class NumaConfig final {
         return threadCount >= std::min(1 + MaxNodeSize / 2, 4 * NotSmallNodeCount);
     }
 
-    std::vector<NumaIndex> distribute_threads_among_numa_nodes(usize threadCount) const noexcept {
+    std::vector<NumaIndex>
+    distribute_threads_among_numa_nodes(const usize threadCount) const noexcept {
         std::vector<NumaIndex> numaNodes;
 
         if (nodes_size() == 1)
@@ -963,7 +964,7 @@ class NumaConfig final {
 
                 for (NumaIndex numaId = 0; numaId < nodes_size(); ++numaId)
                 {
-                    double nodeFill = double(1 + occupation[numaId]) / node_cpus_size(numaId);
+                    const double nodeFill = double(1 + occupation[numaId]) / node_cpus_size(numaId);
                     // NOTE: Do want to perhaps fill the first available node up to 50% first before considering other nodes?
                     //       Probably not, because it would interfere with running multiple instances.
                     //       Basically shouldn't favor any particular node.
@@ -982,7 +983,8 @@ class NumaConfig final {
         return numaNodes;
     }
 
-    NumaReplicatedAccessToken bind_current_thread_to_numa_node(NumaIndex numaId) const noexcept {
+    NumaReplicatedAccessToken
+    bind_current_thread_to_numa_node(const NumaIndex numaId) const noexcept {
         if (numaId >= nodes_size() || node_cpus_empty(numaId))
             std::exit(EXIT_FAILURE);
 
@@ -1000,8 +1002,8 @@ class NumaConfig final {
         if (setThreadSelectedCpuSetMasks != nullptr)
         {
             // Only available on Windows 11 and Windows Server 2022 onwards
-            WORD procGroupCount = ((maxCpuId + 1) + WIN_PROCESSOR_GROUP_SIZE - 1)  //
-                                / WIN_PROCESSOR_GROUP_SIZE;
+            const WORD procGroupCount = ((maxCpuId + 1) + WIN_PROCESSOR_GROUP_SIZE - 1)  //
+                                      / WIN_PROCESSOR_GROUP_SIZE;
 
             auto groupAffinities = std::make_unique<GROUP_AFFINITY[]>(procGroupCount);
             std::memset(groupAffinities.get(), 0, procGroupCount * sizeof(*groupAffinities.get()));
@@ -1011,8 +1013,8 @@ class NumaConfig final {
 
             for (CpuIndex cpuId : nodes[numaId])
             {
-                WORD groupId       = cpuId / WIN_PROCESSOR_GROUP_SIZE;
-                BYTE inProcGroupId = cpuId % WIN_PROCESSOR_GROUP_SIZE;
+                const WORD groupId       = cpuId / WIN_PROCESSOR_GROUP_SIZE;
+                const BYTE inProcGroupId = cpuId % WIN_PROCESSOR_GROUP_SIZE;
 
                 groupAffinities[groupId].Mask |= bit(inProcGroupId);
             }
@@ -1048,21 +1050,19 @@ class NumaConfig final {
             std::memset(&groupAffinity, 0, sizeof(groupAffinity));
 
             // Use an ordered set so guaranteed to get the smallest cpu number here
-            WORD forcedGroupId = *nodes[numaId].begin() / WIN_PROCESSOR_GROUP_SIZE;
+            const WORD forcedGroupId = *nodes[numaId].begin() / WIN_PROCESSOR_GROUP_SIZE;
 
             groupAffinity.Group = forcedGroupId;
 
             for (CpuIndex cpuId : nodes[numaId])
             {
-                WORD groupId       = cpuId / WIN_PROCESSOR_GROUP_SIZE;
-                WORD inProcGroupId = cpuId % WIN_PROCESSOR_GROUP_SIZE;
+                const WORD groupId       = cpuId / WIN_PROCESSOR_GROUP_SIZE;
+                const WORD inProcGroupId = cpuId % WIN_PROCESSOR_GROUP_SIZE;
                 // Skip processors that are not in the same processor group.
                 // If everything was set up correctly this will never be an issue,
                 // but have to account for bad NUMA node specification.
-                if (groupId != forcedGroupId)
-                    continue;
-
-                groupAffinity.Mask |= bit(inProcGroupId);
+                if (groupId == forcedGroupId)
+                    groupAffinity.Mask |= bit(inProcGroupId);
             }
 
             if (SetThreadGroupAffinity(GetCurrentThread(), &groupAffinity, nullptr) == FALSE)
@@ -1078,16 +1078,16 @@ class NumaConfig final {
         if (cpuMask == nullptr)
             std::exit(EXIT_FAILURE);
 
-        usize MaskSize = CPU_ALLOC_SIZE(maxCpuId + 1);
+        const usize MaskSize = CPU_ALLOC_SIZE(maxCpuId + 1);
 
         CPU_ZERO_S(MaskSize, cpuMask);
 
         for (CpuIndex cpuId : nodes[numaId])
             CPU_SET_S(cpuId, MaskSize, cpuMask);
 
-        if (sched_setaffinity(0, MaskSize, cpuMask) != 0)
+        if (::sched_setaffinity(0, MaskSize, cpuMask) != 0)
         {
-            DEBUG_LOG("sched_setaffinity failed");
+            DEBUG_LOG("::sched_setaffinity() failed");
 
             CPU_FREE(cpuMask);
             std::exit(EXIT_FAILURE);
@@ -1097,7 +1097,7 @@ class NumaConfig final {
 
         // Yield this thread just to be sure it gets rescheduled.
         // This is defensive, allowed because this code is not performance critical.
-        sched_yield();
+        ::sched_yield();
 #endif
 
         return NumaReplicatedAccessToken(numaId);
@@ -1125,11 +1125,11 @@ class NumaConfig final {
         NumaConfig numaCfg = empty();
 
 #if defined(_WIN64)
-        WORD ActiveProcGroupCount = GetActiveProcessorGroupCount();
+        const WORD ActiveProcGroupCount = GetActiveProcessorGroupCount();
 
         for (WORD groupId = 0; groupId < ActiveProcGroupCount; ++groupId)
         {
-            DWORD ActiveProcCount = GetActiveProcessorCount(groupId);
+            const DWORD ActiveProcCount = GetActiveProcessorCount(groupId);
 
             for (DWORD number = 0; number < ActiveProcCount; ++number)
             {
@@ -1336,14 +1336,11 @@ class NumaConfig final {
             for (const auto& [__, cpus] : ds)
             {
                 for (CpuIndex cpuId : cpus)
-                {
-                    bool success = numaCfg.add_cpu_to_node(numaId, cpuId);
-                    if (!success)
+                    if (!numaCfg.add_cpu_to_node(numaId, cpuId))
                     {
                         std::cerr << "NumaConfig l3 domain error: CPU " << cpuId
                                   << " rejected for NUMA node " << numaId << std::endl;
                     }
-                }
 
                 ++numaId;
             }
