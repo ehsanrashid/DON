@@ -126,9 +126,7 @@ void find_nnz(const u8* RESTRICT input, u16* RESTRICT outNnz, IndexType& outCoun
     }
     outCount = count;
     #else
-    using namespace SIMD;
-
-    constexpr IndexType InputSimdWidth = sizeof(vec_uint_t) / sizeof(u32);
+    constexpr IndexType InputSimdWidth = sizeof(SIMD::vec_uint_t) / sizeof(u32);
     // Outputs are processed 8 elements at a time, even if the SIMD width is narrower
     constexpr IndexType ChunkSize      = 8;
     constexpr IndexType ChunkCount     = InputDimensions / ChunkSize;
@@ -136,11 +134,11 @@ void find_nnz(const u8* RESTRICT input, u16* RESTRICT outNnz, IndexType& outCoun
 
     static_assert(InputsPerChunk > 0 && "SIMD width too wide");
 
-    const auto* inputVector = reinterpret_cast<const vec_uint_t*>(input);
+    const auto* inputVector = reinterpret_cast<const SIMD::vec_uint_t*>(input);
 
-    const vec128_t increment = vec128_set_16(8);
+    const SIMD::vec128_t increment = vec128_set_16(8);
 
-    vec128_t base = vec128_zero;
+    SIMD::vec128_t base = vec128_zero;
 
     IndexType count = 0;
     for (IndexType i = 0; i < ChunkCount; ++i)
@@ -149,15 +147,15 @@ void find_nnz(const u8* RESTRICT input, u16* RESTRICT outNnz, IndexType& outCoun
         unsigned nnz = 0;
         for (IndexType j = 0; j < InputsPerChunk; ++j)
         {
-            const vec_uint_t inputChunk = inputVector[i * InputsPerChunk + j];
+            const SIMD::vec_uint_t inputChunk = inputVector[i * InputsPerChunk + j];
 
             nnz |= unsigned(vec_nnz(inputChunk)) << (j * InputSimdWidth);
         }
 
-        const vec128_t offsets =
-          vec128_load(reinterpret_cast<const vec128_t*>(&LOOKUP.indices[nnz]));
+        const SIMD::vec128_t offsets =
+          vec128_load(reinterpret_cast<const SIMD::vec128_t*>(&LOOKUP.indices[nnz]));
 
-        vec128_storeu(reinterpret_cast<vec128_t*>(outNnz + count), vec128_add(base, offsets));
+        vec128_storeu(reinterpret_cast<SIMD::vec128_t*>(outNnz + count), vec128_add(base, offsets));
 
         count += LOOKUP.popcounts[nnz];
         base = vec128_add(base, increment);
