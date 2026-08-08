@@ -309,7 +309,7 @@ MovePicker::score<GenType::ENC_QUIET>(const MoveList<GenType::ENC_QUIET>& moveLi
         // Bonus for escaping from square attacked by lesser piece
         const Bitboard accLessAttacksBB = pos.acc_less_attacks_bb(movedPt);
 
-        const int weight = (accLessAttacksBB & dstSq) != 0 ? ((blockersBB & orgSq) == 0 ? -20 : 0)
+        const int weight = (accLessAttacksBB & dstSq) != 0 ? ((blockersBB & orgSq) != 0 ? -3 : -20)
                          : (threatsBB & orgSq) != 0        ? +23
                          : (accLessAttacksBB & orgSq) != 0 ? +20
                                                            : 0;
