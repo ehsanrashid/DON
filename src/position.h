@@ -444,7 +444,7 @@ class Position final {
     void update_pc_threats(Square        s,
                            Piece         pc,
                            DirtyThreats* dts,
-                           Bitboard      targetBB = FULL_BB) const noexcept;
+                           Bitboard      noRayBB = FULL_BB) const noexcept;
 
     template<bool Do>
     void do_castling(Color       ac,
@@ -989,30 +989,32 @@ template<bool Put, bool ComputeRay>
 inline void Position::update_pc_threats(Square                    s,
                                         Piece                     pc,
                                         DirtyThreats*             dts,
-                                        [[maybe_unused]] Bitboard targetBB) const noexcept {
+                                        [[maybe_unused]] Bitboard noRayBB) const noexcept {
 
-    Bitboard occupancyBB = pieces_bb();
+    const Bitboard occupancyBB = pieces_bb();
 
-    auto attacksBB = [&]() noexcept {
+    const auto attacksBB = [&]() noexcept {
         Array<Bitboard, PIECE_TYPE_CNT> _;
 
         _[WHITE]  = attacks_bb<PAWN>(s, WHITE);
         _[BLACK]  = attacks_bb<PAWN>(s, BLACK);
         _[KNIGHT] = attacks_bb<KNIGHT>(s);
-        _[BISHOP] = attacks_bb<BISHOP>(s, occupancyBB);
-        _[ROOK]   = attacks_bb<ROOK>(s, occupancyBB);
+
+        const auto [bAttacksBB, rAttacksBB] = attacks_bb_pair(s, occupancyBB);
+
+        _[BISHOP] = bAttacksBB;
+        _[ROOK]   = rAttacksBB;
         _[QUEEN]  = _[BISHOP] | _[ROOK];
 
         return _;
     }();
 
-    Bitboard kings         = pieces_bb(KING);
-    Bitboard exOccupancyBB = occupancyBB ^ kings;
+    const Bitboard kingsBB = pieces_bb(KING);
 
-    // clang-format off
-    Bitboard slidersBB = (pieces_bb(QUEEN, BISHOP) & attacksBB[BISHOP])
-                       | (pieces_bb(QUEEN, ROOK)   & attacksBB[ROOK]);
-    // clang-format on
+    const Bitboard exOccupancyBB = occupancyBB ^ kingsBB;
+
+    Bitboard slidersBB = (pieces_bb(QUEEN, BISHOP) & attacksBB[BISHOP])  //
+                       | (pieces_bb(QUEEN, ROOK) & attacksBB[ROOK]);
 
     auto process_sliders = [&](const bool addDirectAttacks) noexcept {
         while (slidersBB != 0)
@@ -1026,7 +1028,7 @@ inline void Position::update_pc_threats(Square                    s,
             const Bitboard passRayBB    = pass_ray_bb(sliderSq, s);
             const Bitboard discoveredBB = passRayBB & attacksBB[QUEEN] & exOccupancyBB;
 
-            if (discoveredBB != 0 && (passRayBB & targetBB) != targetBB)
+            if (discoveredBB != 0 && (passRayBB & noRayBB) != noRayBB)
             {
                 assert(!more_than_one(discoveredBB));
                 const Square threatenedSq = lsq(discoveredBB);
@@ -1052,15 +1054,33 @@ inline void Position::update_pc_threats(Square                    s,
         return;
     }
 
-    // clang-format off
-    Bitboard threatenedBB = (type_of(pc) == PAWN ? attacksBB[color_of(pc)]
-                                                 : attacksBB[type_of(pc)])
+    Bitboard threatenedBB = (type_of(pc) == PAWN  //
+                               ? attacksBB[color_of(pc)]
+                               : attacksBB[type_of(pc)])
                           & exOccupancyBB;
 
-    Bitboard nonSlidersBB = (pieces_bb(WHITE, PAWN) & attacksBB[BLACK])
-                          | (pieces_bb(BLACK, PAWN) & attacksBB[WHITE])
-                          | (pieces_bb(KNIGHT)      & attacksBB[KNIGHT]);
-    // clang-format on
+    Bitboard nonSlidersBB = (pieces_bb(KNIGHT) & attacksBB[KNIGHT]);
+
+    // Compute both incoming and outgoing pawn threats.
+    // Incoming pawn pushers are only added if 'pc' is a pawn.
+    if (type_of(pc) == PAWN)
+    {
+        const Bitboard sBB = square_bb(s);
+
+        const Bitboard wpPushAttacksBB = pawn_push_or_attacks_bb<WHITE>(sBB);
+        const Bitboard bpPushAttacksBB = pawn_push_or_attacks_bb<BLACK>(sBB);
+
+        threatenedBB |=
+          pieces_bb(PAWN) & (color_of(pc) == WHITE ? wpPushAttacksBB : bpPushAttacksBB);
+
+        nonSlidersBB |= (pieces_bb(WHITE, PAWN) & bpPushAttacksBB)  //
+                      | (pieces_bb(BLACK, PAWN) & wpPushAttacksBB);
+    }
+    else
+    {
+        nonSlidersBB |= (pieces_bb(WHITE, PAWN) & attacksBB[BLACK])  //
+                      | (pieces_bb(BLACK, PAWN) & attacksBB[WHITE]);
+    }
 
 #if defined(USE_AVX512ICL)
     if constexpr (Put)

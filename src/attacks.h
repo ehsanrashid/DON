@@ -314,6 +314,19 @@ constexpr Bitboard pawn_attacks_bb(Bitboard pawns, Color c) noexcept {
     return c == WHITE ? pawn_attacks_bb<WHITE>(pawns) : pawn_attacks_bb<BLACK>(pawns);
 }
 
+template<Color C>
+constexpr Bitboard pawn_push_or_attacks_bb(Bitboard pawns) noexcept {
+    static_assert(is_ok(C), "Invalid color for pawn_push_or_attacks_bb()");
+
+    return pawn_push_bb<C>(pawns) | pawn_attacks_bb<C>(pawns);
+}
+constexpr Bitboard pawn_push_or_attacks_bb(Bitboard pawns, Color c) noexcept {
+    assert(is_ok(c));
+
+    return c == WHITE ? pawn_push_or_attacks_bb<WHITE>(pawns)
+                      : pawn_push_or_attacks_bb<BLACK>(pawns);
+}
+
 // Returns the bitboard of target square from the given square for the given step.
 // If the step is off the board, returns empty bitboard.
 constexpr Bitboard destination_bb(Square s, Direction d, u8 dist = 1) noexcept {

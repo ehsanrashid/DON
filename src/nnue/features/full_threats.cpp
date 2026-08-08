@@ -76,7 +76,10 @@ alignas(CACHE_LINE_SIZE) constexpr auto THREAT_TABLE = []() constexpr noexcept {
                 if (pt != PAWN)
                     threatCount += constexpr_popcount(pseudo_attacks_bb(s, pt));
                 else if (SQ_A2 <= s && s <= SQ_H7)
-                    threatCount += constexpr_popcount(pseudo_attacks_bb(s, c));
+                {
+                    const Bitboard pPushAttacksBB = pawn_push_or_attacks_bb(square_bb(s), c);
+                    threatCount += constexpr_popcount(pPushAttacksBB);
+                }
             }
 
             threatTable.pieceThreats[+pc] = {baseOffset, threatCount};
@@ -157,12 +160,15 @@ alignas(CACHE_LINE_SIZE) const auto LUT_INDICES = []() noexcept {
     Array<u8, 1 + PIECE_TYPE_CNT, SQUARE_NB, SQUARE_NB> lutIndices{};
 
     for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
+    {
+        const Bitboard s1BB = square_bb(s1);
+
         for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
         {
-            Bitboard s2MaskBB = square_bb(s2) - 1;
+            const Bitboard s2MaskBB = square_bb(s2) - 1;
             // clang-format off
-            lutIndices[WHITE ][s1][s2] = constexpr_popcount(s2MaskBB & pseudo_attacks_bb(s1, WHITE));
-            lutIndices[BLACK ][s1][s2] = constexpr_popcount(s2MaskBB & pseudo_attacks_bb(s1, BLACK));
+            lutIndices[WHITE ][s1][s2] = constexpr_popcount(s2MaskBB & pawn_push_or_attacks_bb(s1BB, WHITE));
+            lutIndices[BLACK ][s1][s2] = constexpr_popcount(s2MaskBB & pawn_push_or_attacks_bb(s1BB, BLACK));
             lutIndices[KNIGHT][s1][s2] = constexpr_popcount(s2MaskBB & pseudo_attacks_bb(s1, KNIGHT));
             lutIndices[BISHOP][s1][s2] = constexpr_popcount(s2MaskBB & pseudo_attacks_bb(s1, BISHOP));
             lutIndices[ROOK  ][s1][s2] = constexpr_popcount(s2MaskBB & pseudo_attacks_bb(s1, ROOK));
@@ -170,6 +176,7 @@ alignas(CACHE_LINE_SIZE) const auto LUT_INDICES = []() noexcept {
             lutIndices[KING  ][s1][s2] = constexpr_popcount(s2MaskBB & pseudo_attacks_bb(s1, KING));
             // clang-format on
         }
+    }
 
     return lutIndices;
 }();
@@ -233,6 +240,7 @@ void FullThreats::append_active_indices(Color           perspective,
     Square kingSq = pos.square<KING>(perspective);
 
     Bitboard occupancyBB = pos.pieces_bb();
+    Bitboard pawns       = pos.pieces_bb(PAWN);
 
     for (Color color : {WHITE, BLACK})
         for (PieceType pt : EX_KING_PIECE_TYPES)
@@ -274,6 +282,22 @@ void FullThreats::append_active_indices(Color           perspective,
                     Square dstSq      = pop_lsq(rAttacksBB);
                     Square orgSq      = dstSq - lDir;
                     Piece  attackedPc = pos[dstSq];
+
+                    auto index =
+                      make_index(perspective, kingSq, orgSq, dstSq, attackerPc, attackedPc);
+
+                    if (index < Dimensions)
+                        active.push_back(index);
+                }
+
+                // Set of pawns which are prevented from movement by a pawn in front of them
+                Bitboard pushers = pawn_push_bb(pawns, ~c) & pos.pieces_bb(c, PAWN);
+                while (pushers != 0)
+                {
+                    Square orgSq      = pop_lsq(pushers);
+                    Square dstSq      = orgSq + pawn_spush(c);
+                    Piece  attackedPc = pos[dstSq];
+                    assert(type_of(attackedPc) == PAWN);
 
                     auto index =
                       make_index(perspective, kingSq, orgSq, dstSq, attackerPc, attackedPc);

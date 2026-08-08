@@ -1300,9 +1300,7 @@ class SharedMemory final: public BaseSharedMemory {
 
     void reset() noexcept {
         if (!socketPath.empty())
-        {
             ::unlink(socketPath.c_str());
-        }
 
         shutdownFd.reset();
 
