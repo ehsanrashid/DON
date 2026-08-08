@@ -315,16 +315,15 @@ constexpr Bitboard pawn_attacks_bb(Bitboard pawns, Color c) noexcept {
 }
 
 template<Color C>
-constexpr Bitboard pawn_push_or_attacks_bb(Bitboard pawns) noexcept {
-    static_assert(is_ok(C), "Invalid color for pawn_push_or_attacks_bb()");
+constexpr Bitboard pawn_push_attacks_bb(Bitboard pawns) noexcept {
+    static_assert(is_ok(C), "Invalid color for pawn_push_attacks_bb()");
 
     return pawn_push_bb<C>(pawns) | pawn_attacks_bb<C>(pawns);
 }
-constexpr Bitboard pawn_push_or_attacks_bb(Bitboard pawns, Color c) noexcept {
+constexpr Bitboard pawn_push_attacks_bb(Bitboard pawns, Color c) noexcept {
     assert(is_ok(c));
 
-    return c == WHITE ? pawn_push_or_attacks_bb<WHITE>(pawns)
-                      : pawn_push_or_attacks_bb<BLACK>(pawns);
+    return c == WHITE ? pawn_push_attacks_bb<WHITE>(pawns) : pawn_push_attacks_bb<BLACK>(pawns);
 }
 
 // Returns the bitboard of target square from the given square for the given step.

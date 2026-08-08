@@ -62,10 +62,10 @@ alignas(CACHE_LINE_SIZE) constexpr auto THREAT_TABLE = []() constexpr noexcept {
 
     u32 baseOffset = 0;
 
-    for (Color c : {WHITE, BLACK})
-        for (PieceType pt : PIECE_TYPES)
+    for (const Color c : {WHITE, BLACK})
+        for (const PieceType pt : PIECE_TYPES)
         {
-            Piece pc = make_piece(c, pt);
+            const Piece pc = make_piece(c, pt);
 
             u32 threatCount = 0;
 
@@ -77,7 +77,7 @@ alignas(CACHE_LINE_SIZE) constexpr auto THREAT_TABLE = []() constexpr noexcept {
                     threatCount += constexpr_popcount(pseudo_attacks_bb(s, pt));
                 else if (SQ_A2 <= s && s <= SQ_H7)
                 {
-                    const Bitboard pPushAttacksBB = pawn_push_or_attacks_bb(square_bb(s), c);
+                    const Bitboard pPushAttacksBB = pawn_push_attacks_bb(square_bb(s), c);
                     threatCount += constexpr_popcount(pPushAttacksBB);
                 }
             }
@@ -95,8 +95,8 @@ constexpr auto& SQUARE_OFFSETS = THREAT_TABLE.squareOffsets;
 
 constexpr IndexType dimensions() noexcept {
     IndexType dims = 0;
-    for (Color c : {WHITE, BLACK})
-        for (PieceType pt : PIECE_TYPES)
+    for (const Color c : {WHITE, BLACK})
+        for (const PieceType pt : PIECE_TYPES)
             dims += 2 * TARGET_MAX[pt - 1]  //
                   * PIECE_THREATS[+make_piece(c, pt)].threatCount;
 
@@ -167,8 +167,8 @@ alignas(CACHE_LINE_SIZE) const auto LUT_INDICES = []() noexcept {
         {
             const Bitboard s2MaskBB = square_bb(s2) - 1;
             // clang-format off
-            lutIndices[WHITE ][s1][s2] = constexpr_popcount(s2MaskBB & pawn_push_or_attacks_bb(s1BB, WHITE));
-            lutIndices[BLACK ][s1][s2] = constexpr_popcount(s2MaskBB & pawn_push_or_attacks_bb(s1BB, BLACK));
+            lutIndices[WHITE ][s1][s2] = constexpr_popcount(s2MaskBB & pawn_push_attacks_bb(s1BB, WHITE));
+            lutIndices[BLACK ][s1][s2] = constexpr_popcount(s2MaskBB & pawn_push_attacks_bb(s1BB, BLACK));
             lutIndices[KNIGHT][s1][s2] = constexpr_popcount(s2MaskBB & pseudo_attacks_bb(s1, KNIGHT));
             lutIndices[BISHOP][s1][s2] = constexpr_popcount(s2MaskBB & pseudo_attacks_bb(s1, BISHOP));
             lutIndices[ROOK  ][s1][s2] = constexpr_popcount(s2MaskBB & pseudo_attacks_bb(s1, ROOK));
@@ -242,21 +242,22 @@ void FullThreats::append_active_indices(Color           perspective,
     const Bitboard occupancyBB = pos.pieces_bb();
     const Bitboard pawnsBB     = pos.pieces_bb(PAWN);
 
-    for (Color color : {WHITE, BLACK})
-        for (PieceType pt : EX_KING_PIECE_TYPES)
+    for (const Color c : {WHITE, BLACK})
+        for (const PieceType pt : EX_KING_PIECE_TYPES)
         {
-            const Color c          = Color(perspective ^ color);
-            const Piece attackerPc = make_piece(c, pt);
+            const Color attackerC  = Color(perspective ^ c);
+            const Piece attackerPc = make_piece(attackerC, pt);
 
-            Bitboard pcBB = pos.pieces_bb(c, pt);
+            Bitboard pcBB = pos.pieces_bb(attackerC, pt);
 
             if (pt == PAWN)
             {
-                Bitboard lAttacksBB = (c == WHITE ? shift_bb<Direction::NORTH_EAST>(pcBB)
-                                                  : shift_bb<Direction::SOUTH_WEST>(pcBB))
+                Bitboard lAttacksBB = (attackerC == WHITE ? shift_bb<Direction::NORTH_EAST>(pcBB)
+                                                          : shift_bb<Direction::SOUTH_WEST>(pcBB))
                                     & occupancyBB;
 
-                const Direction rDir = c == WHITE ? Direction::NORTH_EAST : Direction::SOUTH_WEST;
+                const Direction rDir =
+                  attackerC == WHITE ? Direction::NORTH_EAST : Direction::SOUTH_WEST;
 
                 while (lAttacksBB != 0)
                 {
@@ -271,11 +272,12 @@ void FullThreats::append_active_indices(Color           perspective,
                         active.push_back(index);
                 }
 
-                Bitboard rAttacksBB = (c == WHITE ? shift_bb<Direction::NORTH_WEST>(pcBB)
-                                                  : shift_bb<Direction::SOUTH_EAST>(pcBB))
+                Bitboard rAttacksBB = (attackerC == WHITE ? shift_bb<Direction::NORTH_WEST>(pcBB)
+                                                          : shift_bb<Direction::SOUTH_EAST>(pcBB))
                                     & occupancyBB;
 
-                const Direction lDir = c == WHITE ? Direction::NORTH_WEST : Direction::SOUTH_EAST;
+                const Direction lDir =
+                  attackerC == WHITE ? Direction::NORTH_WEST : Direction::SOUTH_EAST;
 
                 while (rAttacksBB != 0)
                 {
@@ -291,11 +293,12 @@ void FullThreats::append_active_indices(Color           perspective,
                 }
 
                 // Set of pawns which are prevented from movement by a pawn in front of them
-                Bitboard pushers = pos.pieces_bb(c, PAWN) & pawn_push_bb(pawnsBB, ~c);
+                Bitboard pushers =
+                  pos.pieces_bb(attackerC, PAWN) & pawn_push_bb(pawnsBB, ~attackerC);
                 while (pushers != 0)
                 {
                     const Square orgSq      = pop_lsq(pushers);
-                    const Square dstSq      = orgSq + pawn_spush(c);
+                    const Square dstSq      = orgSq + pawn_spush(attackerC);
                     const Piece  attackedPc = pos[dstSq];
                     assert(type_of(attackedPc) == PAWN);
 

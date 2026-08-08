@@ -1067,8 +1067,8 @@ inline void Position::update_pc_threats(Square                    s,
     {
         const Bitboard sBB = square_bb(s);
 
-        const Bitboard wpPushAttacksBB = pawn_push_or_attacks_bb<WHITE>(sBB);
-        const Bitboard bpPushAttacksBB = pawn_push_or_attacks_bb<BLACK>(sBB);
+        const Bitboard wpPushAttacksBB = pawn_push_attacks_bb<WHITE>(sBB);
+        const Bitboard bpPushAttacksBB = pawn_push_attacks_bb<BLACK>(sBB);
 
         threatenedBB |=
           pieces_bb(PAWN) & (color_of(pc) == WHITE ? wpPushAttacksBB : bpPushAttacksBB);
