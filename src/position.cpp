@@ -889,6 +889,8 @@ DirtyBoard Position::do_move(const Move          m,
 
     auto movedPt = type_of(movedPc);
 
+    bool pieceMove = m.type() != MT::PROMOTION;
+
     DirtyBoard db;
 
     db.dirtyPiece.movedPc         = movedPc;
@@ -965,6 +967,7 @@ DirtyBoard Position::do_move(const Move          m,
                 assert(st->preSt->enPassantSq == dstSq);
                 assert(st->preSt->rule50Count == 0);
 
+                pieceMove = false;
                 // Remove the captured pawn
                 remove(capturedSq, &db.dirtyThreats);
                 move(orgSq, dstSq, &db.dirtyThreats);
@@ -979,7 +982,7 @@ DirtyBoard Position::do_move(const Move          m,
             st->nonPawnKeys[~ac][is_major(capturedPt)] ^= capturedKey;
         }
 
-        if (m.type() != MT::PROMOTION && m.type() != MT::EN_PASSANT)
+        if (pieceMove)
         {
             remove(orgSq, &db.dirtyThreats);
             swap(dstSq, movedPc, &db.dirtyThreats);
@@ -997,7 +1000,7 @@ DirtyBoard Position::do_move(const Move          m,
     }
     else
     {
-        if (m.type() != MT::PROMOTION)
+        if (pieceMove)
             move(orgSq, dstSq, &db.dirtyThreats);
     }
 
