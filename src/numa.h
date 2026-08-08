@@ -415,25 +415,31 @@ template<typename T, typename Pred>
 CpuIndexSet read_cache_members(const T* processorInfo, Pred&& is_cpu_allowed) noexcept {
     CpuIndexSet cpus;
 
+    const auto add_group_cpus = [&](WORD groupId, KAFFINITY groupMask) noexcept {
+        for (DWORD number = 0; number < WIN_PROCESSOR_GROUP_SIZE; ++number)
+        {
+            if ((groupMask & bit(number)) != 0)
+            {
+                const CpuIndex cpuId = groupId * WIN_PROCESSOR_GROUP_SIZE + number;
+
+                if (is_cpu_allowed(cpuId))
+                    cpus.insert(cpuId);
+            }
+        }
+    };
+
     // Handle types with Cache.GroupCount
     if constexpr (HasGroupCount<T>::value)
     {
         // On Windows 10 this will read a 0 because GroupCount doesn't exist
-        const WORD groupCount = std::max(processorInfo->Cache.GroupCount, WORD(1));
+        const WORD groupCount = std::max<WORD>(processorInfo->Cache.GroupCount, 1);
 
         for (WORD i = 0; i < groupCount; ++i)
         {
             const WORD      groupId   = processorInfo->Cache.GroupMasks[i].Group;
             const KAFFINITY groupMask = processorInfo->Cache.GroupMasks[i].Mask;
 
-            for (DWORD number = 0; number < WIN_PROCESSOR_GROUP_SIZE; ++number)
-                if ((groupMask & bit(number)) != 0)
-                {
-                    const CpuIndex cpuId = groupId * WIN_PROCESSOR_GROUP_SIZE + number;
-
-                    if (is_cpu_allowed(cpuId))
-                        cpus.insert(cpuId);
-                }
+            add_group_cpus(groupId, groupMask);
         }
     }
     // Handle types without Cache.GroupCount
@@ -442,14 +448,7 @@ CpuIndexSet read_cache_members(const T* processorInfo, Pred&& is_cpu_allowed) no
         const WORD      groupId   = processorInfo->Cache.GroupMask.Group;
         const KAFFINITY groupMask = processorInfo->Cache.GroupMask.Mask;
 
-        for (DWORD number = 0; number < WIN_PROCESSOR_GROUP_SIZE; ++number)
-            if ((groupMask & bit(number)) != 0)
-            {
-                const CpuIndex cpuId = groupId * WIN_PROCESSOR_GROUP_SIZE + number;
-
-                if (is_cpu_allowed(cpuId))
-                    cpus.insert(cpuId);
-            }
+        add_group_cpus(groupId, groupMask);
     }
 
     return cpus;

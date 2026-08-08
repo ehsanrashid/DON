@@ -1218,7 +1218,7 @@ inline u64 hash_bytes(const char* RESTRICT data, usize size, u64 seed = 0) noexc
     // Initialize hash with seed and length (MurmurHash64A convention)
     u64 h = seed ^ (size * MurmurM);
 
-    const auto*                beg = reinterpret_cast<const u8*>(data);
+    const auto* const RESTRICT beg = reinterpret_cast<const u8*>(data);
     const auto* const RESTRICT end = beg + size;
     const auto* RESTRICT       p   = beg;
 

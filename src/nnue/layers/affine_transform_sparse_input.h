@@ -305,8 +305,9 @@ class AffineTransformSparseInput final {
         for (IndexType k = 0; k < AccCount; ++k)
             acc[k] = biasVec[k];
 
-        const auto* RESTRICT beg = nnz.data();
-        const auto* RESTRICT end = beg + count;
+        const auto* const RESTRICT beg = nnz.data();
+        const auto* const RESTRICT end = beg + count;
+        const auto* RESTRICT       p   = beg;
 
             // clang-format off
     #if defined(USE_VNNI) || defined(USE_NEON_DOTPROD)
@@ -320,11 +321,11 @@ class AffineTransformSparseInput final {
         #endif
               ;
 
-        while (beg + 2 < end)
+        while (p + 2 < end)
         {
-            usize i0 = *beg++;
-            usize i1 = *beg++;
-            usize i2 = *beg++;
+            usize i0 = *p++;
+            usize i1 = *p++;
+            usize i2 = *p++;
 
             invec_t in0 = vec_set_32(load_as<i32>(input + i0 * sizeof(u32)));
             invec_t in1 = vec_set_32(load_as<i32>(input + i1 * sizeof(u32)));
@@ -356,9 +357,9 @@ class AffineTransformSparseInput final {
               ;
     #endif
 
-        while (beg < end)
+        while (p < end)
         {
-            usize i = *beg++;
+            usize i = *p++;
 
             invec_t in = vec_set_32(load_as<i32>(input + i * sizeof(u32)));
 
