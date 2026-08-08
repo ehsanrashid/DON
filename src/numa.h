@@ -1144,7 +1144,7 @@ class NumaConfig final {
                 {
                     if (nodeNumber != std::numeric_limits<USHORT>::max())
                     {
-                        CpuIndex cpuId = groupId * WIN_PROCESSOR_GROUP_SIZE + number;
+                        const CpuIndex cpuId = groupId * WIN_PROCESSOR_GROUP_SIZE + number;
 
                         if (is_cpu_allowed(cpuId))
                             numaCfg.add_cpu_to_node(nodeNumber, cpuId);
@@ -1171,11 +1171,11 @@ class NumaConfig final {
         {
             *nodeIdStr = remove_whitespace(*nodeIdStr);
 
-            for (NumaIndex nodeId : shortened_string_to_indices(*nodeIdStr))
+            for (const NumaIndex nodeId : shortened_string_to_indices(*nodeIdStr))
             {
                 // /sys/devices/system/node/node.../cpulist
-                std::string path = std::string{"/sys/devices/system/node/node"}
-                                 + std::to_string(nodeId) + std::string{"/cpulist"};
+                const std::string path{std::string{"/sys/devices/system/node/node"}
+                                       + std::to_string(nodeId) + std::string{"/cpulist"}};
 
                 auto cpuIdsStr = read_file_to_string(path);
 
@@ -1352,7 +1352,7 @@ class NumaConfig final {
     void resize_numa_node(NumaIndex newNumaId,
                           float     maxLoadFactor    = 0.75f,
                           usize     expectedCpuCount = SYSTEM_THREAD_MAX / 4) noexcept {
-        NumaIndex oldNumaId = nodes_size();
+        const NumaIndex oldNumaId = nodes_size();
 
         if (oldNumaId <= newNumaId)
         {
@@ -1749,14 +1749,14 @@ class SystemWideLazyNumaReplicated final: public BaseNumaReplicated {
 
         const NumaConfig& numaCfg = numa_config();
 
-        NumaConfig sysCfg = NumaConfig::from_system(SystemNumaPolicy{}, false);
+        const NumaConfig sysCfg = NumaConfig::from_system(SystemNumaPolicy{}, false);
 
         // as a discriminator, locate the hardware/system numa-domain this CpuIndex belongs to
-        CpuIndex cpuId = numaCfg.node_cpus(numaId);  // get a CpuIndex from NumaIndex
+        const CpuIndex cpuId = numaCfg.node_cpus(numaId);  // get a CpuIndex from NumaIndex
 
-        NumaIndex sysNumaId = sysCfg.node_by_cpu(cpuId);
+        const NumaIndex sysNumaId = sysCfg.node_by_cpu(cpuId);
 
-        std::string sysCfgStr{sysCfg.to_string()};
+        const std::string sysCfgStr{sysCfg.to_string()};
 
         std::string discriminator;
         discriminator.reserve(sysCfgStr.size() + 1 + 8);
