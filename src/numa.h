@@ -537,17 +537,18 @@ struct L3Domain final {
     CpuIndexSet cpus;
 };
 
-// Use system NUMA nodes
+// Use system-reported NUMA nodes
 struct SystemNumaPolicy {};
 // Use system-reported L3 domains
-struct DomainsL3Policy {};
-// Group system-reported L3 domains until they reach bundleSize
+struct L3DomainsPolicy {};
+// Group system-reported L3 domains into bundles up to bundleSize
 struct BundledL3Policy {
    public:
     usize bundleSize;
 };
 
-using AutoNumaPolicy = std::variant<SystemNumaPolicy, DomainsL3Policy, BundledL3Policy>;
+// Automatically select the NUMA policy
+using AutoNumaPolicy = std::variant<SystemNumaPolicy, L3DomainsPolicy, BundledL3Policy>;
 
 inline CpuIndexVec shortened_string_to_indices(std::string_view str) noexcept {
     CpuIndexVec indices;
@@ -571,14 +572,18 @@ inline CpuIndexVec shortened_string_to_indices(std::string_view str) noexcept {
         }
         break;
         case 2 : {
-            constexpr usize MaxIndices = 1u << 20;  // prevent oom
+            // Limit expansion to 1M CPU IDs
+            constexpr usize MaxIndices = 1 * MB;
+
+            if (indices.size() >= MaxIndices)
+                break;
 
             const auto begCpuId = str_to_size_t(parts[0]);
             const auto endCpuId = str_to_size_t(parts[1]);
 
             if (begCpuId && endCpuId       //
                 && *begCpuId <= *endCpuId  //
-                && *endCpuId - *begCpuId < MaxIndices)
+                && *endCpuId - *begCpuId < MaxIndices - indices.size())
                 for (auto cpuId = *begCpuId; cpuId <= *endCpuId; ++cpuId)
                     indices.emplace_back(cpuId);
         }

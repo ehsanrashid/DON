@@ -117,7 +117,7 @@ struct PVMoves final {
 
         if (childPv != nullptr)
         {
-            auto childPvSize = childPv->size();
+            const auto childPvSize = childPv->size();
 
             std::memcpy(end(), childPv->data(), childPvSize * sizeof(Move));
             size_ += childPvSize;
@@ -126,15 +126,13 @@ struct PVMoves final {
 
     // Optimized PV to string conversion (bulk copy)
     std::string build_pv() const noexcept {
-        auto pvSize = size();
-
         std::string pv;
-        pv.reserve(6 * pvSize);
+        pv.reserve(6 * size());
 
-        for (usize i = 0; i < pvSize; ++i)
+        for (const Move move : *this)
         {
             pv.push_back(' ');
-            pv.append(move_to_can(data()[i]));
+            pv.append(move_to_can(move));
         }
 
         return pv;
