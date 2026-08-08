@@ -568,14 +568,15 @@ constexpr Bitboard attacks_bb(Square s, [[maybe_unused]] Bitboard occupancyBB) n
         return attacks_bb<KING>(s);
 
 #if defined(USE_DUAL_HYPERBOLA_QUINT)
-    [[maybe_unused]] const auto [bishop, rook] = dual_magic(s).attacks_bb_pair(occupancyBB);
+    [[maybe_unused]] const auto [bAttacksBB, rAttacksBB] =
+      dual_magic(s).attacks_bb_pair(occupancyBB);
 
     if constexpr (PT == BISHOP)
-        return bishop;
+        return bAttacksBB;
     if constexpr (PT == ROOK)
-        return rook;
+        return rAttacksBB;
     if constexpr (PT == QUEEN)
-        return bishop | rook;
+        return bAttacksBB | rAttacksBB;
 #else
     if constexpr (PT == BISHOP || PT == ROOK)
         return magic<PT>(s).attacks_bb(s, occupancyBB);

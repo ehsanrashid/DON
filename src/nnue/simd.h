@@ -145,8 +145,8 @@ inline __m128i _mm_cvtsi64_si128(i64 a) noexcept {
         #define vec_convert_8_16(a) _mm_cvtepi8_epi16(_mm_cvtsi64_si128(i64(a)))
     #else
 inline __m128i vec_convert_8_16(u64 a) noexcept {
-    __m128i v8   = _mm_cvtsi64_si128(i64(a));
-    __m128i sign = _mm_cmpgt_epi8(_mm_setzero_si128(), v8);
+    const __m128i v8   = _mm_cvtsi64_si128(i64(a));
+    const __m128i sign = _mm_cmpgt_epi8(_mm_setzero_si128(), v8);
     return _mm_unpacklo_epi8(v8, sign);
 }
     #endif
@@ -220,17 +220,18 @@ inline constexpr u32 Mask[4]{1, 2, 4, 8};
     #define vec128_storeu(a, b) vst1q_u16(reinterpret_cast<u16*>(a), b)
     #define vec128_add(a, b) vaddq_u16(a, b)
 
+    #define MaxRegisterCount 16
+    #define MaxChunkSize 16
+
     #if defined(__arm__) && !defined(__aarch64__)
 // Instructions that don't exist on 32-bit ARM
 inline int16x8_t vaddw_high_s8(int16x8_t a, int8x16_t b) { return vaddw_s8(a, vget_high_s8(b)); }
 inline int16x8_t vsubw_high_s8(int16x8_t a, int8x16_t b) { return vsubw_s8(a, vget_high_s8(b)); }
     #endif
 
-    #define MaxRegisterCount 16
-    #define MaxChunkSize 16
-
 #else
     #undef VECTOR
+
 #endif
 
 struct Vec16Wrapper final {
@@ -299,7 +300,8 @@ inline void m512_add_dpbusd_epi32(__m512i& acc, __m512i a, __m512i b) noexcept {
     acc              = _mm512_add_epi32(acc, product0);
     #endif
 }
-#endif
+
+#endif  // USE_AVX512
 
 #if defined(USE_AVX2)
 inline int m256_hadd(__m256i sum, int bias) noexcept {
@@ -318,7 +320,8 @@ inline void m256_add_dpbusd_epi32(__m256i& acc, __m256i a, __m256i b) noexcept {
     acc              = _mm256_add_epi32(acc, product0);
     #endif
 }
-#endif
+
+#endif  // USE_AVX2
 
 #if defined(USE_SSSE3)
 inline int m128_hadd(__m128i sum, int bias) noexcept {
@@ -332,7 +335,7 @@ inline void m128_add_dpbusd_epi32(__m128i& acc, __m128i a, __m128i b) noexcept {
     product0         = _mm_madd_epi16(product0, _mm_set1_epi16(1));
     acc              = _mm_add_epi32(acc, product0);
 }
-#endif
+#endif  // USE_SSSE3
 
 #if defined(USE_NEON)
 inline int neon_m128_reduce_add_epi32(int32x4_t s) noexcept {
@@ -362,7 +365,7 @@ inline void dotprod_m128_add_dpbusd_epi32(int32x4_t& acc, int8x16_t a, int8x16_t
 }
     #endif
 
-#endif
+#endif  // USE_NEON
 
 #if defined(VECTOR)
 // Compute optimal SIMD register count for feature transformer accumulation.

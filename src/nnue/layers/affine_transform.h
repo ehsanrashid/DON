@@ -58,14 +58,13 @@ transform_affine_non_ssse3(const Array<i32, OutputDimensions>&                  
     const auto*         inputVector = reinterpret_cast<const __m128i*>(input);
     const __m128i       Zeros       = _mm_setzero_si128();
         #elif defined(USE_NEON)
-    using namespace SIMD;
     constexpr IndexType ChunkCount  = ceil_to_multiple<IndexType>(InputDimensions, 16) / 16;
-    const auto*         inputVector = reinterpret_cast<const vec_i8x8_t*>(input);
+    const auto*         inputVector = reinterpret_cast<const int8x8_t*>(input);
         #endif
 
     for (IndexType i = 0; i < OutputDimensions; ++i)
     {
-        usize offset = i * PaddedInputDimensions;
+        const usize offset = i * PaddedInputDimensions;
 
         #if defined(USE_SSE2)
 
@@ -97,7 +96,7 @@ transform_affine_non_ssse3(const Array<i32, OutputDimensions>&                  
         #elif defined(USE_NEON)
 
         int32x4_t   sum = {biases[i]};
-        const auto* row = reinterpret_cast<const vec_i8x8_t*>(&weights[offset]);
+        const auto* row = reinterpret_cast<const SIMD::vec_i8x8_t*>(&weights[offset]);
 
         for (IndexType j = 0; j < ChunkCount; ++j)
         {
@@ -105,7 +104,6 @@ transform_affine_non_ssse3(const Array<i32, OutputDimensions>&                  
             product           = vmlal_s8(product, inputVector[j * 2 + 1], row[j * 2 + 1]);
             sum               = vpadalq_s16(sum, product);
         }
-
         output[i] = SIMD::neon_m128_reduce_add_epi32(sum);
 
         #endif
@@ -125,7 +123,7 @@ transform_affine_non_ssse3(const Array<i32, OutputDimensions>&                  
     #endif
 }
 
-#endif  // #if !defined(ENABLE_SEQ_OPT)
+#endif  // !ENABLE_SEQ_OPT
 
 template<IndexType InDims, IndexType OutDims>
 class AffineTransform final {
@@ -248,8 +246,9 @@ class AffineTransform final {
     #if defined(USE_VNNI)  //|| defined(USE_NEON_DOTPROD)
             for (; i + 1 < ChunkCount; i += 2)
             {
-                const vec_t  in0 = vec_set_32(load_as<i32>(input + (i + 0) * sizeof(i32)));
-                const vec_t  in1 = vec_set_32(load_as<i32>(input + (i + 1) * sizeof(i32)));
+                const vec_t in0 = vec_set_32(load_as<i32>(input + (i + 0) * sizeof(i32)));
+                const vec_t in1 = vec_set_32(load_as<i32>(input + (i + 1) * sizeof(i32)));
+
                 const vec_t* col0 =
                   reinterpret_cast<const vec_t*>(&weights[(i + 0) * OutputDimensions * 4]);
                 const vec_t* col1 =
@@ -273,7 +272,8 @@ class AffineTransform final {
     #endif
             for (; i < ChunkCount; ++i)
             {
-                const vec_t  in = vec_set_32(load_as<i32>(input + i * sizeof(i32)));
+                const vec_t in = vec_set_32(load_as<i32>(input + i * sizeof(i32)));
+
                 const vec_t* col =
                   reinterpret_cast<const vec_t*>(&weights[i * OutputDimensions * 4]);
 
