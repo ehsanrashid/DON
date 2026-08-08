@@ -241,7 +241,7 @@ MovePicker::score<GenType::ENC_CAPTURE>(const MoveList<GenType::ENC_CAPTURE>& mo
 
     auto itr = cur;
 
-    for (Move move : moveList)
+    for (const Move move : moveList)
     {
         auto& m = *itr;
         m       = move;
@@ -277,7 +277,7 @@ MovePicker::score<GenType::ENC_QUIET>(const MoveList<GenType::ENC_QUIET>& moveLi
 
     auto itr = cur;
 
-    for (Move move : moveList)
+    for (const Move move : moveList)
     {
         auto& m = *itr;
         m       = move;
@@ -333,7 +333,7 @@ MovePicker::score<GenType::EVA_CAPTURE>(const MoveList<GenType::EVA_CAPTURE>& mo
 
     auto itr = cur;
 
-    for (Move move : moveList)
+    for (const Move move : moveList)
     {
         auto& m = *itr;
         m       = move;
@@ -362,7 +362,7 @@ MovePicker::score<GenType::EVA_QUIET>(const MoveList<GenType::EVA_QUIET>& moveLi
 
     auto itr = cur;
 
-    for (Move move : moveList)
+    for (const Move move : moveList)
     {
         auto& m = *itr;
         m       = move;
