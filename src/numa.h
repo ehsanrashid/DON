@@ -236,14 +236,14 @@ inline WindowsAffinity get_process_affinity() noexcept {
 
                 for (USHORT i = 0; i < requiredMaskCount; ++i)
                 {
-                    WORD      groupId   = groupAffinities[i].Group;
-                    KAFFINITY groupMask = groupAffinities[i].Mask;
+                    const WORD      groupId   = groupAffinities[i].Group;
+                    const KAFFINITY groupMask = groupAffinities[i].Mask;
 
                     if (groupMask != 0)
                         for (DWORD number = 0; number < WIN_PROCESSOR_GROUP_SIZE; ++number)
                             if ((groupMask & bit(number)) != 0)
                             {
-                                CpuIndex cpuId = groupId * WIN_PROCESSOR_GROUP_SIZE + number;
+                                const CpuIndex cpuId = groupId * WIN_PROCESSOR_GROUP_SIZE + number;
 
                                 cpus.insert(cpuId);
                             }
@@ -295,13 +295,13 @@ inline WindowsAffinity get_process_affinity() noexcept {
 
             if (procMask != 0)
             {
-                WORD      groupId   = procGroupAffinity[0];
-                KAFFINITY groupMask = procMask;
+                const WORD      groupId   = procGroupAffinity[0];
+                const KAFFINITY groupMask = procMask;
 
                 for (DWORD number = 0; number < WIN_PROCESSOR_GROUP_SIZE; ++number)
                     if ((groupMask & bit(number)) != 0)
                     {
-                        CpuIndex cpuId = groupId * WIN_PROCESSOR_GROUP_SIZE + number;
+                        const CpuIndex cpuId = groupId * WIN_PROCESSOR_GROUP_SIZE + number;
 
                         cpus.insert(cpuId);
                     }
@@ -331,7 +331,7 @@ inline WindowsAffinity get_process_affinity() noexcept {
 
                 for (WORD groupId : procGroupAffinity)
                 {
-                    DWORD ActiveProcCount = GetActiveProcessorCount(groupId);
+                    const DWORD ActiveProcCount = GetActiveProcessorCount(groupId);
 
                     // Have to schedule to 2 different processors and the affinities.
                     // Otherwise processor choice could influence the resulting affinity.
@@ -378,7 +378,7 @@ inline WindowsAffinity get_process_affinity() noexcept {
                         for (DWORD number = 0; number < WIN_PROCESSOR_GROUP_SIZE; ++number)
                             if ((combinedProcMask & bit(number)) != 0)
                             {
-                                CpuIndex cpuId = groupId * WIN_PROCESSOR_GROUP_SIZE + number;
+                                const CpuIndex cpuId = groupId * WIN_PROCESSOR_GROUP_SIZE + number;
 
                                 cpus.insert(cpuId);
                             }
@@ -419,39 +419,37 @@ CpuIndexSet read_cache_members(const T* processorInfo, Pred&& is_cpu_allowed) no
     if constexpr (HasGroupCount<T>::value)
     {
         // On Windows 10 this will read a 0 because GroupCount doesn't exist
-        WORD groupCount = std::max(processorInfo->Cache.GroupCount, WORD(1));
+        const WORD groupCount = std::max(processorInfo->Cache.GroupCount, WORD(1));
 
         for (WORD i = 0; i < groupCount; ++i)
         {
+            const WORD      groupId   = processorInfo->Cache.GroupMasks[i].Group;
+            const KAFFINITY groupMask = processorInfo->Cache.GroupMasks[i].Mask;
+
             for (DWORD number = 0; number < WIN_PROCESSOR_GROUP_SIZE; ++number)
-            {
-                WORD      groupId   = processorInfo->Cache.GroupMasks[i].Group;
-                KAFFINITY groupMask = processorInfo->Cache.GroupMasks[i].Mask;
+                if ((groupMask & bit(number)) != 0)
+                {
+                    const CpuIndex cpuId = groupId * WIN_PROCESSOR_GROUP_SIZE + number;
 
-                CpuIndex cpuId = groupId * WIN_PROCESSOR_GROUP_SIZE + number;
-
-                if ((groupMask & bit(number)) == 0 || !is_cpu_allowed(cpuId))
-                    continue;
-
-                cpus.insert(cpuId);
-            }
+                    if (is_cpu_allowed(cpuId))
+                        cpus.insert(cpuId);
+                }
         }
     }
     // Handle types without Cache.GroupCount
     else
     {
+        const WORD      groupId   = processorInfo->Cache.GroupMask.Group;
+        const KAFFINITY groupMask = processorInfo->Cache.GroupMask.Mask;
+
         for (DWORD number = 0; number < WIN_PROCESSOR_GROUP_SIZE; ++number)
-        {
-            WORD      groupId   = processorInfo->Cache.GroupMask.Group;
-            KAFFINITY groupMask = processorInfo->Cache.GroupMask.Mask;
+            if ((groupMask & bit(number)) != 0)
+            {
+                const CpuIndex cpuId = groupId * WIN_PROCESSOR_GROUP_SIZE + number;
 
-            CpuIndex cpuId = groupId * WIN_PROCESSOR_GROUP_SIZE + number;
-
-            if ((groupMask & bit(number)) == 0 || !is_cpu_allowed(cpuId))
-                continue;
-
-            cpus.insert(cpuId);
-        }
+                if (is_cpu_allowed(cpuId))
+                    cpus.insert(cpuId);
+            }
     }
 
     return cpus;
@@ -541,13 +539,9 @@ struct L3Domain final {
 };
 
 // Use system NUMA nodes
-struct SystemNumaPolicy {
-   public:
-};
+struct SystemNumaPolicy {};
 // Use system-reported L3 domains
-struct DomainsL3Policy {
-   public:
-};
+struct DomainsL3Policy {};
 // Group system-reported L3 domains until they reach bundleSize
 struct BundledL3Policy {
    public:
@@ -562,17 +556,17 @@ inline CpuIndexVec shortened_string_to_indices(std::string_view str) noexcept {
     if (is_whitespace(str))
         return indices;
 
-    for (auto ss : split(str, ","))
+    for (const auto ss : split(str, ","))
     {
         if (is_whitespace(ss))
             continue;
 
-        auto parts = split(ss, "-");
+        const auto parts = split(ss, "-");
 
         switch (parts.size())
         {
         case 1 : {
-            auto cpuId = str_to_size_t(parts[0]);
+            const auto cpuId = str_to_size_t(parts[0]);
             if (cpuId)
                 indices.emplace_back(*cpuId);
         }
@@ -580,8 +574,8 @@ inline CpuIndexVec shortened_string_to_indices(std::string_view str) noexcept {
         case 2 : {
             constexpr usize MaxIndices = 1u << 20;  // prevent oom
 
-            auto begCpuId = str_to_size_t(parts[0]);
-            auto endCpuId = str_to_size_t(parts[1]);
+            const auto begCpuId = str_to_size_t(parts[0]);
+            const auto endCpuId = str_to_size_t(parts[1]);
 
             if (begCpuId && endCpuId       //
                 && *begCpuId <= *endCpuId  //
@@ -709,7 +703,7 @@ class NumaConfig final {
 
                 for (CpuIndex cpuId : cpus)
                 {
-                    WORD groupId = cpuId / WIN_PROCESSOR_GROUP_SIZE;
+                    const WORD groupId = cpuId / WIN_PROCESSOR_GROUP_SIZE;
 
                     if (lstGroupId != groupId)
                     {
@@ -760,7 +754,7 @@ class NumaConfig final {
 
         for (auto&& cpuIdsStr : split(str, ":"))
         {
-            auto cpuIds = shortened_string_to_indices(cpuIdsStr);
+            const auto cpuIds = shortened_string_to_indices(cpuIdsStr);
 
             if (cpuIds.empty())
                 continue;
