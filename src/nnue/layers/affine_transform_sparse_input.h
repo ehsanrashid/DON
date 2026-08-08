@@ -320,11 +320,11 @@ class AffineTransformSparseInput final {
         #endif
               ;
 
-        while (beg + 3 <= end)
+        while (beg + 2 < end)
         {
-            usize i0 = beg[0];
-            usize i1 = beg[1];
-            usize i2 = beg[2];
+            usize i0 = *beg++;
+            usize i1 = *beg++;
+            usize i2 = *beg++;
 
             invec_t in0 = vec_set_32(load_as<i32>(input + i0 * sizeof(u32)));
             invec_t in1 = vec_set_32(load_as<i32>(input + i1 * sizeof(u32)));
@@ -340,8 +340,6 @@ class AffineTransformSparseInput final {
                 vec_add_dpbusd_32(acc[k + AccCount * 1], in1, col1[k]);
                 vec_add_dpbusd_32(acc[k + AccCount * 2], in2, col2[k]);
             }
-
-            beg += 3;
         }
 
         for (IndexType k = 0; k < AccCount; ++k)
@@ -360,7 +358,7 @@ class AffineTransformSparseInput final {
 
         while (beg < end)
         {
-            usize i = *beg;
+            usize i = *beg++;
 
             invec_t in = vec_set_32(load_as<i32>(input + i * sizeof(u32)));
 
@@ -368,8 +366,6 @@ class AffineTransformSparseInput final {
 
             for (IndexType k = 0; k < AccCount; ++k)
                 vec_add_dpbusd_32(acc[k], in, col[k]);
-
-            ++beg;
         }
         // clang-format on
 

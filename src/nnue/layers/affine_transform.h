@@ -292,7 +292,7 @@ class AffineTransform final {
 
             IndexType i = 0;
     #if defined(USE_VNNI)  //|| defined(USE_NEON_DOTPROD)
-            for (; i < ChunkCount; i += 2)
+            for (; i + 1 < ChunkCount; i += 2)
             {
                 const vec_t  in0 = vec_set_32(load_as<i32>(input + (i + 0) * sizeof(i32)));
                 const vec_t  in1 = vec_set_32(load_as<i32>(input + (i + 1) * sizeof(i32)));
