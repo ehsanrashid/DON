@@ -634,8 +634,8 @@ void Worker::iterative_deepening() noexcept {
                 assert(rootDelta != 0);
 
                 // Reduce search depth according to fail-highs and research count.
-                Depth penaltyDepth  = failHighCnt + 3 * (1 + researchCnt) / 4;
-                Depth adjustedDepth = std::max<Depth>(rootDepth - penaltyDepth, 1);
+                const Depth penaltyDepth  = failHighCnt + 3 * (1 + researchCnt) / 4;
+                const Depth adjustedDepth = std::max<Depth>(rootDepth - penaltyDepth, 1);
 
                 bestValue = search<NT::ROOT>(rootPos, ss, alpha, beta, adjustedDepth);
 

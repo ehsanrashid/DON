@@ -882,11 +882,19 @@ class MultiArray final {
     constexpr auto size() const noexcept { return data_.size(); }
     constexpr auto empty() const noexcept { return data_.empty(); }
 
-    constexpr const auto& at(size_type idx) const noexcept { return data_.at(idx); }
-    constexpr auto&       at(size_type idx) noexcept { return data_.at(idx); }
+    constexpr const auto& at(size_type idx) const { return data_.at(idx); }
+    constexpr auto&       at(size_type idx) { return data_.at(idx); }
 
-    constexpr auto& operator[](size_type idx) const noexcept { return data_[idx]; }
-    constexpr auto& operator[](size_type idx) noexcept { return data_[idx]; }
+    constexpr const auto& operator[](size_type idx) const noexcept {
+        assert(idx < size());
+
+        return data_[idx];
+    }
+    constexpr auto& operator[](size_type idx) noexcept {
+        assert(idx < size());
+
+        return data_[idx];
+    }
 
     // Recursively fill all dimensions by calling the sub fill method
     template<typename U>

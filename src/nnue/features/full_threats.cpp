@@ -233,7 +233,7 @@ ALWAYS_INLINE IndexType make_index(const Color  perspective,
 }
 
 ALWAYS_INLINE void append_pawn_active_indices(Bitboard                attacksBB,
-                                              const Direction         dir,
+                                              const Direction         attkDir,
                                               const Color             perspective,
                                               const Position&         pos,
                                               const Square            kingSq,
@@ -242,8 +242,10 @@ ALWAYS_INLINE void append_pawn_active_indices(Bitboard                attacksBB,
     while (attacksBB != 0)
     {
         const Square dstSq      = pop_lsq(attacksBB);
-        const Square orgSq      = dstSq - dir;
+        const Square orgSq      = dstSq - attkDir;
         const Piece  attackedPc = pos[dstSq];
+
+        assert(file_of(orgSq) != file_of(dstSq) || type_of(attackedPc) == PAWN);
 
         const auto index = make_index(perspective, kingSq, orgSq, dstSq, attackerPc, attackedPc);
 
@@ -287,22 +289,12 @@ void FullThreats::append_active_indices(Color           perspective,
                   perspective, pos, kingSq, attackerPc, active);
 
                 // Set of pawns which are prevented from movement by a pawn in front of them
-                const Direction dir = pawn_spush(attackerC);
-
-                Bitboard pushersBB =
-                  pos.pieces_bb(attackerC, PAWN) & pawn_push_bb(pawnsBB, ~attackerC);
-                while (pushersBB != 0)
-                {
-                    const Square orgSq      = pop_lsq(pushersBB);
-                    const Square dstSq      = orgSq + dir;
-                    const Piece  attackedPc = pos[dstSq];
-                    assert(type_of(attackedPc) == PAWN);
-
-                    const auto index =
-                      make_index(perspective, kingSq, orgSq, dstSq, attackerPc, attackedPc);
-
-                    active.push_back_if_lt(index, Dimensions);
-                }
+                const Bitboard pushersBB = pcBB & pawn_push_bb(pawnsBB, ~attackerC);
+                append_pawn_active_indices((attackerC == WHITE
+                                              ? shift_bb<Direction::NORTH>(pushersBB)
+                                              : shift_bb<Direction::SOUTH>(pushersBB)),
+                                           pawn_spush(attackerC),  //
+                                           perspective, pos, kingSq, attackerPc, active);
             }
             else
             {
@@ -360,8 +352,7 @@ void FullThreats::append_changed_indices(Color                   perspective,
                 else if ((fusedData->dp2removedOriginBB & dstSq) != 0)
                     continue;
             }
-
-            if (is_ok(dstSq) && dstSq == fusedData->dp2removedSq)
+            else if (is_ok(dstSq) && dstSq == fusedData->dp2removedSq)
             {
                 if (add)
                 {

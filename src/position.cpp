@@ -328,7 +328,7 @@ void Position::set(std::string_view fens, State* newSt) noexcept {
     assert(count(WHITE, PAWN) <= 8 && count(BLACK, PAWN) <= 8);
     assert(count(WHITE, KING) == 1 && count(BLACK, KING) == 1);
     assert(count(PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING) == count());
-    assert((pieces_bb(PAWN) & PROMOTION_RANKS_BB) == 0);
+    assert((PROMOTION_RANKS_BB & pieces_bb(PAWN)) == 0);
     assert(square<KING>(WHITE) != SQ_NONE && square<KING>(BLACK) != SQ_NONE);
     assert(distance(square<KING>(WHITE), square<KING>(BLACK)) > 1);
 
@@ -1311,7 +1311,7 @@ bool Position::legal(const Move m) const noexcept {
         if (type_of(movedPc) == PAWN)
         {
             // Normal moves, so origin & destination cannot be on the 8th/1st rank
-            if ((make_bb(orgSq, dstSq) & PROMOTION_RANKS_BB) != 0)
+            if ((PROMOTION_RANKS_BB & make_bb(orgSq, dstSq)) != 0)
                 return false;
 
             const auto orgR = relative_rank(ac, orgSq);
@@ -2131,7 +2131,7 @@ bool Position::_is_ok() const noexcept {
     if (non_pawn_key() != compute_non_pawn_key())
         assert(false && "Position::_is_ok(): NonPawn Key");
 
-    if ((pieces_bb(PAWN) & PROMOTION_RANKS_BB) != 0  //
+    if ((PROMOTION_RANKS_BB & pieces_bb(PAWN)) != 0  //
         || count(WHITE, PAWN) > 8 || count(BLACK, PAWN) > 8)
         assert(false && "Position::_is_ok(): Pawns");
 
