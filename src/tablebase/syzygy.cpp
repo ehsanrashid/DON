@@ -762,11 +762,11 @@ void TBTable<T>::set(u8* data) noexcept {
 
     ++data;  // First byte stores flags
 
-    usize Sides = SIDES == 2 && key[WHITE] != key[BLACK] ? 2 : 1;
+    const usize Sides = SIDES == 2 && key[WHITE] != key[BLACK] ? 2 : 1;
 
-    File maxFile = hasPawns ? FILE_D : FILE_A;
+    const File maxFile = hasPawns ? FILE_D : FILE_A;
 
-    bool pp = hasPawns && pawnCount[BLACK] != 0;  // Pawns on both sides
+    const bool pp = hasPawns && pawnCount[BLACK] != 0;  // Pawns on both sides
 
     assert(!pp || pawnCount[WHITE] != 0);
 
@@ -804,7 +804,6 @@ void TBTable<T>::set(u8* data) noexcept {
         for (usize i = 0; i < Sides; ++i)
         {
             (pd = get(i, f))->sparseIndex = (SparseEntry*) (data);
-
             data += pd->sparseIndexSize * sizeof(SparseEntry);
         }
 
@@ -812,7 +811,6 @@ void TBTable<T>::set(u8* data) noexcept {
         for (usize i = 0; i < Sides; ++i)
         {
             (pd = get(i, f))->blockLength = (u16*) (data);
-
             data += pd->blockLengthSize * sizeof(u16);
         }
 
@@ -820,9 +818,7 @@ void TBTable<T>::set(u8* data) noexcept {
         for (usize i = 0; i < Sides; ++i)
         {
             data = (u8*) ((std::uintptr_t(data) + 0x3F) & ~0x3F);  // 64 byte alignment
-
             (pd = get(i, f))->data = data;
-
             data += pd->blockCount * pd->blockSize;
         }
 }
@@ -838,7 +834,7 @@ void TBTable<T>::set(u8* data) noexcept {
 // The actual grouping depends on the TB generator and can be inferred from the
 // sequence of pieces in piece[] array.
 template<TBType T>
-void TBTable<T>::set_groups(PairsData* pd, const Array<int, 2>& order, File f) noexcept {
+void TBTable<T>::set_groups(PairsData* pd, const Array<int, 2>& order, const File f) noexcept {
 
     usize n = 0;
 
@@ -886,32 +882,23 @@ void TBTable<T>::set_groups(PairsData* pd, const Array<int, 2>& order, File f) n
         if (k == order[0])
         {
             pd->groupIdx[0] = idx;
-
-            idx *= hasPawns  //
-                   ? LeadPawnSize[pd->groupLen[0]][f]
-                   : hasUniquePieces  //
-                       ? 31332
-                       : 462;
+            idx *= hasPawns ? LeadPawnSize[pd->groupLen[0]][f] : hasUniquePieces ? 31332 : 462;
         }
         // Remaining pawns
         else if (k == order[1])
         {
             pd->groupIdx[1] = idx;
-
             idx *= Binomial[pd->groupLen[1]][48 - pd->groupLen[0]];
         }
         // Remaining pieces
         else
         {
             const auto groupLen = pd->groupLen[next];
-
-            pd->groupIdx[next] = idx;
-
-            idx *= Binomial[groupLen][freeLen];
             assert(freeLen >= usize(groupLen));
 
+            pd->groupIdx[next] = idx;
+            idx *= Binomial[groupLen][freeLen];
             freeLen -= groupLen;
-
             ++next;
         }
     }
@@ -920,12 +907,12 @@ void TBTable<T>::set_groups(PairsData* pd, const Array<int, 2>& order, File f) n
 }
 
 template<>
-u8* TBTable<WDL>::set_dtz_map(u8* data, [[maybe_unused]] File maxFile) noexcept {
+u8* TBTable<WDL>::set_dtz_map(u8* data, [[maybe_unused]] const File maxFile) noexcept {
     return data;
 }
 
 template<>
-u8* TBTable<DTZ>::set_dtz_map(u8* data, File maxFile) noexcept {
+u8* TBTable<DTZ>::set_dtz_map(u8* data, const File maxFile) noexcept {
     mapPtr = data;
 
     for (File f = FILE_A; f <= maxFile; ++f)
