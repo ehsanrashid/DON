@@ -482,8 +482,8 @@ using Depth = i16;
 inline constexpr Depth DEPTH_MAX  = PLY_MAX - 1;
 inline constexpr Depth DEPTH_ZERO = 0;
 inline constexpr Depth DEPTH_NONE = -1;
-// Offset to convert depth to a non-negative array index.
-// It is used only for TT entry occupancy check.
+// Offset to convert depth to a non-negative depth.
+// It is used only for TT entry occupancy check, should thus be lower than DEPTH_NONE.
 inline constexpr Depth DEPTH_OFFSET = DEPTH_NONE - 1;
 static_assert(DEPTH_OFFSET == DEPTH_MAX - 0xFF, "DEPTH_OFFSET == DEPTH_MAX - 0xFF");
 

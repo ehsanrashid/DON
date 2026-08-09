@@ -33,15 +33,13 @@ namespace DON {
 
 namespace {
 
-// Number of bits reserved for other fields in the data8 byte
-constexpr u8 RESERVED_BITS = 3;
-// Increment value for the generation field, used to bump generation
-constexpr u8 GENERATION_DELTA = 1 << RESERVED_BITS;
-// Mask to extract the generation field from data8 upper bits only
-constexpr u8 GENERATION_MASK = (0xFF << RESERVED_BITS) & 0xFF;
-// Generation cycle length, handles overflow correctly
-// Maximum generation value before wrapping around
-constexpr u16 GENERATION_CYCLE = 0xFF + GENERATION_DELTA;
+// Pv, bound and generation are packed in a single byte
+constexpr u8 GENERATION_BITS = 5;
+constexpr u8 GENERATION_MASK = (u8{1} << GENERATION_BITS) - 1;
+constexpr u8 BOUND_SHIFT     = GENERATION_BITS;
+constexpr u8 BOUND_MASK      = u8{3 << BOUND_SHIFT};
+constexpr u8 PV_SHIFT        = BOUND_SHIFT + 2;
+constexpr u8 PV_MASK         = u8{1 << PV_SHIFT};
 
 }  // namespace
 
@@ -53,12 +51,11 @@ constexpr u16 GENERATION_CYCLE = 0xFF + GENERATION_DELTA;
 // evalValue    16 bit
 // depth         8 bit
 // meta          8 bit
-//  - bound      2 bit
 //  - pv         1 bit
+//  - bound      2 bit
 //  - generation 5 bit
 //
-// These fields are in the same order as accessed by TT::probe(),
-// since memory is fastest sequentially.
+// These fields are in the same order as accessed by TT::probe(), since memory is fastest sequentially.
 // Equally, the store order in save() matches this order.
 struct TTEntry final {
    public:
@@ -67,12 +64,12 @@ struct TTEntry final {
 
     constexpr u16   key() const noexcept { return key16; }
     constexpr bool  occupied() const noexcept { return depth8 != 0; }
-    constexpr Depth depth() const noexcept { return Depth(depth8 + DEPTH_OFFSET); }
+    constexpr Depth depth() const noexcept { return Depth(DEPTH_OFFSET + depth8); }
     constexpr Move  move() const noexcept { return move16; }
     constexpr Value value() const noexcept { return val16; }
     constexpr Value eval_value() const noexcept { return eVal16; }
-    constexpr Bound bound() const noexcept { return Bound(meta8 & 0x3); }
-    constexpr bool  pv() const noexcept { return (meta8 & 0x4) != 0; }
+    constexpr Bound bound() const noexcept { return Bound((meta8 & BOUND_MASK) >> BOUND_SHIFT); }
+    constexpr bool  pv() const noexcept { return ((meta8 & PV_MASK) >> PV_SHIFT) != 0; }
     constexpr u8    generation() const noexcept { return meta8 & GENERATION_MASK; }
 
     // Convert internal bit fields to TTData
@@ -80,22 +77,20 @@ struct TTEntry final {
         return {move(), value(), eval_value(), depth(), bound(), occupied(), pv()};
     }
 
-    // The returned age is a multiple of GENERATION_DELTA
-    u8 relative_age(u8 gen) const noexcept {
-        // Due to packed storage format for generation and its cyclic nature
-        // add GENERATION_CYCLE (256 is the modulus, plus what is needed to keep
-        // the unrelated lowest n bits from affecting the relative age)
-        // to calculate the entry age correctly even after gen overflows into the next cycle.
-        return (GENERATION_CYCLE + gen - meta8) & GENERATION_MASK;
+    u8 relative_age(const u8 gen) const noexcept {
+        // Returns this entry's age. Count generations like clocks count hours,
+        // i.e. require 0 - 1 == 31. Unsigned subtraction guarantees the required
+        // borrowing regardless of the upper pv/bound bits.
+        return (gen - meta8) & GENERATION_MASK;
     }
 
-    i16 worth(u8 gen) const noexcept { return depth8 - relative_age(gen); }
+    i16 worth(const u8 gen) const noexcept { return depth8 - 8 * relative_age(gen); }
 
     // Populates the TTEntry with a new node's data, possibly
-    // overwriting an old position. The update is not atomic and can be racy.
+    // overwriting an old position. The update is non-atomic and can be racy.
     void save(u16 k, Move m, Value v, Value ev, Depth d, Bound b, bool pv, u8 gen) noexcept {
         assert(d > DEPTH_OFFSET);
-        assert(d <= 0xFF + DEPTH_OFFSET);
+        assert(d <= DEPTH_OFFSET + 0xFF);
 
         // Preserve the old move if don't have a new one
         if (key() != k || m != Move::None)
@@ -109,7 +104,7 @@ struct TTEntry final {
             val16  = v;
             eVal16 = ev;
             depth8 = d - DEPTH_OFFSET;
-            meta8  = gen | u8(int(pv) << 2) | +b;
+            meta8  = u8(pv) << PV_SHIFT | u8(b) << BOUND_SHIFT | gen;
         }
     }
 
@@ -176,7 +171,11 @@ void TranspositionTable::free() noexcept {
 
 u8 TranspositionTable::generation() const noexcept { return generation8; }
 
-void TranspositionTable::increment_generation() const noexcept { generation8 += GENERATION_DELTA; }
+void TranspositionTable::increment_generation() const noexcept {
+    ++generation8;
+    // Don't overflow into the other bits
+    generation8 &= GENERATION_MASK;
+}
 
 // Sets the size of the transposition table, measured in megabytes (MB).
 // Transposition table consists of even number of clusters.
@@ -224,6 +223,10 @@ TTCluster* TranspositionTable::cluster(Key key) const noexcept {
 
 // Looks up the current position (key) in the transposition table.
 // It returns pointer to the TTEntry if the position is found.
+// `probe` is the primary method: given a board position, lookup its entry in the table,
+// and returns:
+//   1) copy of the prior data, if any (may be self-inconsistent due to read races)
+//   2) updater object to the entry
 ProbResult TranspositionTable::probe(Key key) const noexcept {
 
     auto* ttc = cluster(key);
@@ -248,19 +251,17 @@ ProbResult TranspositionTable::probe(Key key) const noexcept {
 // The hash is x per mill full, as per UCI protocol.
 // Only counts entries which match the current generation. [maxAge: 0-31]
 u16 TranspositionTable::hashfull(u8 maxAge) const noexcept {
-    assert(maxAge < 32);
+    assert(maxAge <= GENERATION_MASK);
 
     constexpr usize requiredCount = 1000;
 
-    usize actualCount = std::min(requiredCount, clusterCount);
-
-    u8 relMaxAge = maxAge * GENERATION_DELTA;
+    const usize actualCount = std::min(requiredCount, clusterCount);
 
     u32 count = 0;
 
     for (usize idx = 0; idx < actualCount; ++idx)
         for (const auto& entry : clusters[idx].entries)
-            count += entry.occupied() && entry.relative_age(generation8) <= relMaxAge;
+            count += entry.occupied() && entry.relative_age(generation8) <= maxAge;
 
     // Normalize per entries per cluster
     return ceil_div(count * requiredCount, actualCount) / clusters->entries.size();
