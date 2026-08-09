@@ -766,6 +766,7 @@ static_assert(sizeof(DirtyThreat) == 4, "DirtyThreat size must be 4 bytes");
 // By similar logic, a castling move can change at most (5 + 1 + 3 + 9) * 2 = 36 features.
 // Thus, 80 should work as an upper bound.
 // Finally, 16 entries are added to accommodate unmasked vector stores near the end of the list.
+// So, 80 + 16 = 96.
 using DirtyThreatList = FixedVector<DirtyThreat, 96, u8>;
 
 // Keep track of all threats (attacks) that change on the board by a move

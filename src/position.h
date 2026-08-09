@@ -442,7 +442,7 @@ class Position final {
 
     template<bool ComputeRay = true>
     void update_piece_threats(
-      Square s, Piece pc, bool put, DirtyThreats* dts, Bitboard noRayBB = FULL_BB) const noexcept;
+      Square s, Piece pc, DirtyThreats* dts, bool put, Bitboard noRayBB = FULL_BB) const noexcept;
 
     template<bool Do>
     void do_castling(Color       ac,
@@ -872,7 +872,7 @@ inline void Position::put(const Square s, const Piece pc, DirtyThreats* const dt
     typeBBs[ALL] |= typeBBs[type_of(pc)] |= sBB;
 
     if (dts != nullptr)
-        update_piece_threats(s, pc, true, dts);
+        update_piece_threats(s, pc, dts, true);
 }
 
 inline Piece Position::remove(const Square s, DirtyThreats* const dts) noexcept {
@@ -883,7 +883,7 @@ inline Piece Position::remove(const Square s, DirtyThreats* const dts) noexcept 
     const Piece pc = piece(s);
 
     if (dts != nullptr)
-        update_piece_threats(s, pc, false, dts);
+        update_piece_threats(s, pc, dts, false);
 
     pieceMap[s] = Piece::NO_PIECE;
     colorBBs[color_of(pc)] ^= sBB;
@@ -901,7 +901,7 @@ inline Piece Position::move(const Square s1, const Square s2, DirtyThreats* cons
     const Piece pc = piece(s1);
 
     if (dts != nullptr)
-        update_piece_threats(s1, pc, false, dts, s1s2BB);
+        update_piece_threats(s1, pc, dts, false, s1s2BB);
 
     pieceMap[s1] = Piece::NO_PIECE;
     pieceMap[s2] = pc;
@@ -910,7 +910,7 @@ inline Piece Position::move(const Square s1, const Square s2, DirtyThreats* cons
     typeBBs[ALL] ^= s1s2BB;
 
     if (dts != nullptr)
-        update_piece_threats(s2, pc, true, dts, s1s2BB);
+        update_piece_threats(s2, pc, dts, true, s1s2BB);
 
     return pc;
 }
@@ -920,12 +920,12 @@ inline Piece Position::swap(const Square s, const Piece newPc, DirtyThreats* con
     const Piece oldPc = remove(s);
 
     if (dts != nullptr)
-        update_piece_threats<false>(s, oldPc, false, dts);
+        update_piece_threats<false>(s, oldPc, dts, false);
 
     put(s, newPc);
 
     if (dts != nullptr)
-        update_piece_threats<false>(s, newPc, true, dts);
+        update_piece_threats<false>(s, newPc, dts, true);
 
     return oldPc;
 }
@@ -942,18 +942,18 @@ inline void DirtyThreats::add(const Square sq,
 // Given a DirtyThreat template and bit offsets to insert the piece type and square,
 // write the threats present at the given bitboard.
 template<int SqShift, int PcShift>
-inline void write_multiple_dirties(const PieceMap& pieceMap,
-                                   Bitboard        maskBB,
-                                   DirtyThreat     templateDt,
-                                   DirtyThreats*   dts) noexcept {
+void write_multiple_dirties(const PieceMap&     pieceMap,
+                            const Bitboard      maskBB,
+                            const DirtyThreat   dirtyThreat,
+                            DirtyThreats* const dts) noexcept {
     const __m512i pieceVec = _mm512_loadu_si512(pieceMap.data());
 
-    u8 maskCount = popcount(maskBB);
+    const auto maskCount = popcount(maskBB);
     assert(maskCount <= 16);
 
     auto* dtSpace = dts->dtList.make_space(maskCount);
 
-    const __m512i templateVal = _mm512_set1_epi32(templateDt.raw());
+    const __m512i dirtyThreatVal = _mm512_set1_epi32(dirtyThreat.raw());
 
     // Extract the list of squares and up convert to 32 bits.
     // There are never more than 16 incoming threats so this is sufficient.
@@ -969,7 +969,7 @@ inline void write_multiple_dirties(const PieceMap& pieceMap,
 
     // Combine into final dirty values (A | B | C = 254)
     const __m512i dirties =
-      _mm512_ternarylogic_epi32(templateVal, threatSquares, threatPieces, 254);
+      _mm512_ternarylogic_epi32(dirtyThreatVal, threatSquares, threatPieces, 254);
 
     const __mmask16 storeMask = (u16{1} << maskCount) - 1;
     _mm512_mask_storeu_epi32(dtSpace, storeMask, dirties);
@@ -978,10 +978,10 @@ inline void write_multiple_dirties(const PieceMap& pieceMap,
 
 // Put newly threatened pieces
 template<bool ComputeRay>
-inline void Position::update_piece_threats(Square                    s,
-                                           Piece                     pc,
-                                           bool                      put,
-                                           DirtyThreats*             dts,
+inline void Position::update_piece_threats(const Square              s,
+                                           const Piece               pc,
+                                           DirtyThreats* const       dts,
+                                           const bool                put,
                                            [[maybe_unused]] Bitboard noRayBB) const noexcept {
 
     const Bitboard occupancyBB = pieces_bb();
@@ -1076,15 +1076,15 @@ inline void Position::update_piece_threats(Square                    s,
     }
 
 #if defined(USE_AVX512ICL)
-    DirtyThreat templateDt1{s, SQUARE_ZERO, pc, Piece::NO_PIECE, put};
+    DirtyThreat dirtyThreat1{s, SQUARE_ZERO, pc, Piece::NO_PIECE, put};
     write_multiple_dirties<DirtyThreat::THREATENED_SQ_OFFSET, DirtyThreat::THREATENED_PC_OFFSET>(
-      piece_map(), threatenedBB, templateDt1, dts);
+      piece_map(), threatenedBB, dirtyThreat1, dts);
 
     const Bitboard attackersBB = slidersBB | nonSlidersBB;
 
-    DirtyThreat templateDt2{SQUARE_ZERO, s, Piece::NO_PIECE, pc, put};
+    DirtyThreat dirtyThreat2{SQUARE_ZERO, s, Piece::NO_PIECE, pc, put};
     write_multiple_dirties<DirtyThreat::SQ_OFFSET, DirtyThreat::PC_OFFSET>(piece_map(), attackersBB,
-                                                                           templateDt2, dts);
+                                                                           dirtyThreat2, dts);
 #else
     while (threatenedBB != 0)
     {
