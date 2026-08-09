@@ -777,7 +777,8 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         }
 
         // Limit the depth if extensions made it too large
-        depth = std::min<Depth>(depth, DEPTH_MAX);
+        if (depth > DEPTH_MAX)
+            depth = DEPTH_MAX;
 
         assert(DEPTH_ZERO < depth && depth <= DEPTH_MAX);
     }
@@ -913,11 +914,11 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     // Hindsight adjustment of reductions based on static evaluation difference.
     // The ply after beginning an LMR search, adjust the reduced depth based on
     // how the opponent's move affected the static evaluation.
-    if (red >= 3 && !worsen)
-        depth = std::min<Depth>(depth + 1, DEPTH_MAX);
+    if (depth < DEPTH_MAX && red >= 3 && !worsen)
+        ++depth;
 
-    if (red >= 2 && ss->evalValue > 166 - (ss - 1)->evalValue)
-        depth = std::max<Depth>(depth - 1, 1);
+    if (depth > 1 && red >= 2 && ss->evalValue > 166 - (ss - 1)->evalValue)
+        --depth;
 
     auto& pawnHistory = histories.pawn(pos.pawn_key());
 
@@ -963,8 +964,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
                     pos.undo_move(ttd.move);
 
                     // Check that the ttValue after the ttMove would also trigger a cutoff
-                    if (!is_valid(ttdNext.value)
-                        || ((ttd.value >= beta) == (-ttdNext.value >= beta)))
+                    if (!is_valid(ttdNext.value) || (ttd.value >= beta) == (-ttdNext.value >= beta))
                         return ttd.value;
                 }
                 else
@@ -1230,7 +1230,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     // Step 12. Small ProbCut idea
     if (!is_loss(beta) && is_valid(ttd.value) && !is_win(ttd.value))
     {
-        Value probCutBeta = std::min(428 + beta, +VALUE_INFINITE);
+        const Value probCutBeta = std::min(428 + beta, +VALUE_INFINITE);
 
         if (ttd.value >= probCutBeta && ttd.depth >= depth - 4 && is_ok(ttd.bound & Bound::LOWER))
             return probCutBeta;
@@ -1421,7 +1421,8 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
                 extension = 1 + int(singularValue + doubleMargin <= singularAlpha)
                               + int(singularValue + tripleMargin <= singularAlpha);
 
-                depth = std::min<Depth>(depth + 1, DEPTH_MAX);
+                if (depth < DEPTH_MAX)
+                    ++depth;
             }
             // Multi-cut pruning
             // If the ttMove is assumed to fail high based on the bound of the TT entry, and
@@ -2012,8 +2013,8 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
         }
         else
         {
+            // Only check for stalemate under specific conditions
             const Color ac = pos.active_color();
-
             if (bestValue != VALUE_DRAW  //
                 && type_of(pos.captured_pc()) >= KNIGHT
                 // No pawn pushes available
