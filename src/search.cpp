@@ -61,7 +61,10 @@ alignas(CACHE_LINE_SIZE) constexpr auto Reductions = []() constexpr noexcept {
     return reductions;
 }();
 
-constexpr int reduction(Depth depth, u16 moveCount, int deltaRatio, bool improve) noexcept {
+constexpr int reduction(const Depth depth,
+                        const u16   moveCount,
+                        const int   deltaRatio,
+                        const bool  improve) noexcept {
     int reductionScale = Reductions[depth] * Reductions[moveCount];
     return std::max(982 + reductionScale - deltaRatio
                       + int(!improve) * int(0.384765625 * double(reductionScale)),
@@ -69,14 +72,14 @@ constexpr int reduction(Depth depth, u16 moveCount, int deltaRatio, bool improve
 }
 
 // Add a small random value to draw evaluation to avoid 3-fold blindness
-constexpr Value draw_value(Key key, u64 nodes) noexcept {
+constexpr Value draw_value(const Key key, const u64 nodes) noexcept {
     return VALUE_DRAW + Value(key & 1) - Value(nodes & 1);
 }
 
 // Adjusts a mate or TB score from "plies to mate from the root"
 // to "plies to mate from the current position". Standard scores are unchanged.
 // The function is called before storing a value in the transposition table.
-constexpr Value value_to_tt(Value v, i16 ply) noexcept {
+constexpr Value value_to_tt(const Value v, const i16 ply) noexcept {
     return is_win(v) ? v + ply : is_loss(v) ? v - ply : v;
 }
 
@@ -85,7 +88,7 @@ constexpr Value value_to_tt(Value v, i16 ply) noexcept {
 // current position) to "plies to mate/be mated (TB win/loss) from the root".
 // However, to avoid potentially false mate or TB scores related to the 50 moves rule
 // and the graph history interaction, return the highest non-TB score instead.
-constexpr Value value_from_tt(Value v, i16 ply, i16 rule50Count) noexcept {
+constexpr Value value_from_tt(const Value v, const i16 ply, const i16 rule50Count) noexcept {
 
     if (!is_valid(v))
         return v;
@@ -118,6 +121,13 @@ constexpr Value value_from_tt(Value v, i16 ply, i16 rule50Count) noexcept {
     }
 
     return v;
+}
+
+constexpr Value blend_values(const Value bestValue,
+                             const Value targetValue,
+                             const i32   bestWeight,
+                             const i32   totalWeight) noexcept {
+    return (bestWeight * bestValue + (totalWeight - bestWeight) * targetValue) / totalWeight;
 }
 
 constexpr Bound fail_bound(bool failHigh) noexcept {
@@ -1690,7 +1700,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         bestValue = exclude ? alpha : ss->inCheck ? mated_in(ss->ply) : VALUE_DRAW;
     // Adjust best value for fail high cases
     else if (bestValue > beta && !is_win(bestValue) && !is_loss(beta))
-        bestValue = (depth * bestValue + beta) / (depth + 1);
+        bestValue = blend_values(bestValue, beta, depth, depth + 1);
 
     // Don't let best value inflate too high (tb)
     if constexpr (PVNode)
@@ -1880,7 +1890,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     if (bestValue >= beta)
     {
         if (bestValue > beta && !is_win(bestValue) && !is_loss(beta))
-            bestValue = (441 * bestValue + 583 * beta) / 1024;
+            bestValue = blend_values(bestValue, beta, 441, 1024);
 
         if (!ttd.hit)
             ttu.update(Move::None, VALUE_NONE, evalValue, DEPTH_NONE, Bound::LOWER, false);
@@ -2026,7 +2036,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     }
     // Adjust best value for fail high cases
     else if (bestValue > beta && !is_win(bestValue) && !is_loss(beta))
-        bestValue = (462 * bestValue + 562 * beta) / 1024;
+        bestValue = blend_values(bestValue, beta, 462, 1024);
 
     // Save gathered info in transposition table
     ttu.update(bestMove, value_to_tt(bestValue, ss->ply), evalValue, DEPTH_ZERO,
