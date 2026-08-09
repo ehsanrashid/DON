@@ -241,11 +241,9 @@ void UCI::process_input(std::istream& is) noexcept {
 
 void UCI::execute(std::string_view command) noexcept {
 
-    StringViewStreamBuf buf{command};
+    StringViewStreamBuf svBuf{command};
 
-    std::istream is{&buf};
-
-    is >> std::skipws;
+    std::istream is{&svBuf};
 
     std::string token;
     is >> token;
@@ -521,7 +519,6 @@ void UCI::bench(std::istream& is) noexcept {
     for (const auto& command : commands)
     {
         std::istringstream iss{command};
-        iss >> std::skipws;
 
         std::string token;
         iss >> token;
@@ -621,7 +618,6 @@ void UCI::benchmark(std::istream& is) noexcept {
     for (const auto& command : setup.commands)
     {
         std::istringstream iss{command};
-        iss >> std::skipws;
 
         std::string token;
         iss >> token;
@@ -695,7 +691,6 @@ void UCI::benchmark(std::istream& is) noexcept {
     for (const auto& command : setup.commands)
     {
         std::istringstream iss{command};
-        iss >> std::skipws;
 
         std::string token;
         iss >> token;

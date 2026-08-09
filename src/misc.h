@@ -1351,7 +1351,8 @@ constexpr u32 combine_hashes(std::initializer_list<u32> hashes) noexcept {
 class StringViewStreamBuf final: public std::streambuf {
    public:
     explicit StringViewStreamBuf(std::string_view sv) noexcept {
-        // Cast away const (safe: only for reading via std::istream)
+        // std::streambuf requires char* for the get area.
+        // The buffer is read-only; no characters are modified.
         auto* p = const_cast<char*>(sv.data());
         setg(p, p, p + sv.size());  // Only GET area (reading enabled)
         // Do NOT call setp(p, p + sv.size()) - no PUT area (writing disabled)
