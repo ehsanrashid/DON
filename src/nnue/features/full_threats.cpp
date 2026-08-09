@@ -256,7 +256,7 @@ ALWAYS_INLINE void append_pawn_active_indices(Bitboard                attacksBB,
 }  // namespace
 
 // Append list of indices for active features in ascending order
-void FullThreats::append_active_indices(Color           perspective,
+void FullThreats::append_active_indices(const Color     perspective,
                                         const Position& pos,
                                         IndexList&      active) noexcept {
     const Square kingSq = pos.square<KING>(perspective);
@@ -322,15 +322,13 @@ void FullThreats::append_active_indices(Color           perspective,
 }
 
 // Append lists of indices for recently changed features
-void FullThreats::append_changed_indices(Color                   perspective,
-                                         Square                  kingSq,
+void FullThreats::append_changed_indices(const Color             perspective,
+                                         const Square            kingSq,
                                          const DirtyType&        dts,
                                          IndexList&              removed,
                                          IndexList&              added,
-                                         FusedData*              fusedData,
-                                         bool                    first,
                                          const ThreatWeightType* pfBase,
-                                         usize                   pfStride) noexcept {
+                                         const usize             pfStride) noexcept {
     for (const auto& dt : dts.dtList)
     {
         const auto orgSq      = dt.sq();
@@ -338,36 +336,6 @@ void FullThreats::append_changed_indices(Color                   perspective,
         const auto attackerPc = dt.pc();
         const auto attackedPc = dt.threatened_pc();
         const auto add        = dt.add();
-
-        if (fusedData != nullptr)
-        {
-            if (orgSq == fusedData->dp2removedSq)
-            {
-                if (add)
-                {
-                    if (first)
-                    {
-                        fusedData->dp2removedOriginBB |= dstSq;
-                        continue;
-                    }
-                }
-                else if ((fusedData->dp2removedOriginBB & dstSq) != 0)
-                    continue;
-            }
-            else if (is_ok(dstSq) && dstSq == fusedData->dp2removedSq)
-            {
-                if (add)
-                {
-                    if (first)
-                    {
-                        fusedData->dp2removedTargetBB |= orgSq;
-                        continue;
-                    }
-                }
-                else if ((fusedData->dp2removedTargetBB & orgSq) != 0)
-                    continue;
-            }
-        }
 
         auto& changed = add ? added : removed;
 
@@ -382,7 +350,7 @@ void FullThreats::append_changed_indices(Color                   perspective,
 }
 
 // Determine if a full refresh is required based on the dirty threats
-bool FullThreats::refresh_required(Color perspective, const DirtyType& dts) noexcept {
+bool FullThreats::refresh_required(const Color perspective, const DirtyType& dts) noexcept {
     return dts.ac == perspective && orientation(dts.kingSq) != orientation(dts.preKingSq);
 }
 

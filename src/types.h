@@ -771,10 +771,8 @@ using DirtyThreatList = FixedVector<DirtyThreat, 96, u8>;
 // Keep track of all threats (attacks) that change on the board by a move
 struct DirtyThreats final {
    public:
-    template<bool Add>
-    void add(Square sq, Square threatenedSq, Piece pc, Piece threatenedPc) noexcept;
+    void add(Square sq, Square threatenedSq, Piece pc, Piece threatenedPc, bool put) noexcept;
 
-    Bitboard        threateningBB = 0, threatenedBB = 0;
     DirtyThreatList dtList;
     Square          preKingSq = SQ_NONE, kingSq = SQ_NONE;
     Color           ac;

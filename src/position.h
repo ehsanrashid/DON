@@ -440,11 +440,9 @@ class Position final {
     Piece move(Square s1, Square s2, DirtyThreats* dts = nullptr) noexcept;
     Piece swap(Square s, Piece newPc, DirtyThreats* dts = nullptr) noexcept;
 
-    template<bool Put, bool ComputeRay = true>
-    void update_pc_threats(Square        s,
-                           Piece         pc,
-                           DirtyThreats* dts,
-                           Bitboard      noRayBB = FULL_BB) const noexcept;
+    template<bool ComputeRay = true>
+    void update_piece_threats(
+      Square s, Piece pc, bool put, DirtyThreats* dts, Bitboard noRayBB = FULL_BB) const noexcept;
 
     template<bool Do>
     void do_castling(Color       ac,
@@ -874,7 +872,7 @@ inline void Position::put(const Square s, const Piece pc, DirtyThreats* const dt
     typeBBs[ALL] |= typeBBs[type_of(pc)] |= sBB;
 
     if (dts != nullptr)
-        update_pc_threats<true>(s, pc, dts);
+        update_piece_threats(s, pc, true, dts);
 }
 
 inline Piece Position::remove(const Square s, DirtyThreats* const dts) noexcept {
@@ -885,7 +883,7 @@ inline Piece Position::remove(const Square s, DirtyThreats* const dts) noexcept 
     const Piece pc = piece(s);
 
     if (dts != nullptr)
-        update_pc_threats<false>(s, pc, dts);
+        update_piece_threats(s, pc, false, dts);
 
     pieceMap[s] = Piece::NO_PIECE;
     colorBBs[color_of(pc)] ^= sBB;
@@ -903,7 +901,7 @@ inline Piece Position::move(const Square s1, const Square s2, DirtyThreats* cons
     const Piece pc = piece(s1);
 
     if (dts != nullptr)
-        update_pc_threats<false>(s1, pc, dts, s1s2BB);
+        update_piece_threats(s1, pc, false, dts, s1s2BB);
 
     pieceMap[s1] = Piece::NO_PIECE;
     pieceMap[s2] = pc;
@@ -912,7 +910,7 @@ inline Piece Position::move(const Square s1, const Square s2, DirtyThreats* cons
     typeBBs[ALL] ^= s1s2BB;
 
     if (dts != nullptr)
-        update_pc_threats<true>(s2, pc, dts, s1s2BB);
+        update_piece_threats(s2, pc, true, dts, s1s2BB);
 
     return pc;
 }
@@ -922,28 +920,22 @@ inline Piece Position::swap(const Square s, const Piece newPc, DirtyThreats* con
     const Piece oldPc = remove(s);
 
     if (dts != nullptr)
-        update_pc_threats<false, false>(s, oldPc, dts);
+        update_piece_threats<false>(s, oldPc, false, dts);
 
     put(s, newPc);
 
     if (dts != nullptr)
-        update_pc_threats<true, false>(s, newPc, dts);
+        update_piece_threats<false>(s, newPc, true, dts);
 
     return oldPc;
 }
 
-template<bool Put>
 inline void DirtyThreats::add(const Square sq,
                               const Square threatenedSq,
                               const Piece  pc,
-                              const Piece  threatenedPc) noexcept {
-    if constexpr (Put)
-    {
-        threateningBB |= sq;
-        threatenedBB |= threatenedSq;
-    }
-
-    dtList.emplace_back(sq, threatenedSq, pc, threatenedPc, Put);
+                              const Piece  threatenedPc,
+                              const bool   put) noexcept {
+    dtList.emplace_back(sq, threatenedSq, pc, threatenedPc, put);
 }
 
 #if defined(USE_AVX512ICL)
@@ -985,11 +977,12 @@ inline void write_multiple_dirties(const PieceMap& pieceMap,
 #endif
 
 // Put newly threatened pieces
-template<bool Put, bool ComputeRay>
-inline void Position::update_pc_threats(Square                    s,
-                                        Piece                     pc,
-                                        DirtyThreats*             dts,
-                                        [[maybe_unused]] Bitboard noRayBB) const noexcept {
+template<bool ComputeRay>
+inline void Position::update_piece_threats(Square                    s,
+                                           Piece                     pc,
+                                           bool                      put,
+                                           DirtyThreats*             dts,
+                                           [[maybe_unused]] Bitboard noRayBB) const noexcept {
 
     const Bitboard occupancyBB = pieces_bb();
 
@@ -1036,11 +1029,11 @@ inline void Position::update_pc_threats(Square                    s,
 
                 assert(is_ok(threatenedPc));
 
-                dts->add<!Put>(sliderSq, threatenedSq, sliderPc, threatenedPc);
+                dts->add(sliderSq, threatenedSq, sliderPc, threatenedPc, !put);
             }
 
             if (addDirectAttacks)
-                dts->add<Put>(sliderSq, s, sliderPc, pc);
+                dts->add(sliderSq, s, sliderPc, pc, put);
         }
     };
 
@@ -1083,27 +1076,13 @@ inline void Position::update_pc_threats(Square                    s,
     }
 
 #if defined(USE_AVX512ICL)
-    if constexpr (Put)
-    {
-        dts->threatenedBB |= threatenedBB;
-        // A bit may only be set if that square actually produces a threat, so we
-        // must guard setting the square accordingly
-        dts->threateningBB |= Bitboard{threatenedBB != 0} << s;
-    }
-
-    DirtyThreat templateDt1{s, SQUARE_ZERO, pc, Piece::NO_PIECE, Put};
+    DirtyThreat templateDt1{s, SQUARE_ZERO, pc, Piece::NO_PIECE, put};
     write_multiple_dirties<DirtyThreat::THREATENED_SQ_OFFSET, DirtyThreat::THREATENED_PC_OFFSET>(
       piece_map(), threatenedBB, templateDt1, dts);
 
     const Bitboard attackersBB = slidersBB | nonSlidersBB;
 
-    if constexpr (Put)
-    {
-        dts->threatenedBB |= Bitboard{attackersBB != 0} << s;
-        dts->threateningBB |= attackersBB;
-    }
-
-    DirtyThreat templateDt2{SQUARE_ZERO, s, Piece::NO_PIECE, pc, Put};
+    DirtyThreat templateDt2{SQUARE_ZERO, s, Piece::NO_PIECE, pc, put};
     write_multiple_dirties<DirtyThreat::SQ_OFFSET, DirtyThreat::PC_OFFSET>(piece_map(), attackersBB,
                                                                            templateDt2, dts);
 #else
@@ -1115,7 +1094,7 @@ inline void Position::update_pc_threats(Square                    s,
         assert(threatenedSq != s);
         assert(is_ok(threatenedPc));
 
-        dts->add<Put>(s, threatenedSq, pc, threatenedPc);
+        dts->add(s, threatenedSq, pc, threatenedPc, put);
     }
 #endif
 
@@ -1142,7 +1121,7 @@ inline void Position::update_pc_threats(Square                    s,
         assert(nonSliderSq != s);
         assert(is_ok(nonSliderPc));
 
-        dts->add<Put>(nonSliderSq, s, nonSliderPc, pc);
+        dts->add(nonSliderSq, s, nonSliderPc, pc, put);
     }
 #endif
 }

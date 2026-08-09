@@ -36,17 +36,6 @@ class FullThreats final {
     // Number of feature dimensions
     static constexpr IndexType Dimensions = 60720;
 
-    struct FusedData final {
-       public:
-        FusedData() = delete;
-        FusedData(Square removedSq) noexcept :
-            dp2removedSq(removedSq) {}
-
-        Square   dp2removedSq;
-        Bitboard dp2removedOriginBB = 0;
-        Bitboard dp2removedTargetBB = 0;
-    };
-
     // Maximum number of simultaneously active features
     static constexpr IndexType MaxActiveDimensions = 128;
 
@@ -62,10 +51,8 @@ class FullThreats final {
                                        const DirtyType&        dts,
                                        IndexList&              removed,
                                        IndexList&              added,
-                                       FusedData*              fusedData = nullptr,
-                                       bool                    first     = false,
-                                       const ThreatWeightType* pfBase    = nullptr,
-                                       usize                   pfStride  = 0) noexcept;
+                                       const ThreatWeightType* pfBase   = nullptr,
+                                       usize                   pfStride = 0) noexcept;
 
     static bool refresh_required(Color perspective, const DirtyType& dts) noexcept;
 

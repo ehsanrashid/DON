@@ -272,80 +272,6 @@ auto make_accumulator_update_context(Color                               perspec
                                                 targetState};
 }
 
-void update_accumulator_dbl_incr(Color                                  perspective,
-                                 const FeatureTransformer&              featureTransformer,
-                                 Square                                 kingSq,
-                                 const AccumulatorState<PSQFeatureSet>& computedState,
-                                 const AccumulatorState<PSQFeatureSet>& middleState,
-                                 AccumulatorState<PSQFeatureSet>&       targetState) noexcept {
-
-    assert(computedState.computed[perspective]);
-    assert(!middleState.computed[perspective]);
-    assert(!targetState.computed[perspective]);
-
-    PSQFeatureSet::IndexList removed, added;
-    PSQFeatureSet::append_changed_indices(perspective, kingSq, middleState.dirty, removed, added);
-    PSQFeatureSet::append_changed_indices(perspective, kingSq, targetState.dirty, removed, added);
-
-    [[maybe_unused]] const usize removedSize = removed.size();
-    [[maybe_unused]] const usize addedSize   = added.size();
-
-    // Can't capture a piece that was just involved in castling since the rook ends up in a square that the king passed
-    assert(removedSize == 2 || removedSize == 3);
-    assert(addedSize == 1);
-
-    // Workaround compiler warning for uninitialized variables, replicated on
-    // profile builds on windows with gcc 14.2.0.
-    // Also helps with optimizations on some compilers.
-    ASSUME(removedSize == 2 || removedSize == 3);
-    ASSUME(addedSize == 1);
-
-    auto updateContext =
-      make_accumulator_update_context(perspective, featureTransformer, computedState, targetState);
-
-    if (removedSize == 2)
-        updateContext
-          .template apply<UpdateOperation::Add, UpdateOperation::Sub, UpdateOperation::Sub>(
-            added[0], removed[0], removed[1]);
-    else
-        updateContext.template apply<UpdateOperation::Add, UpdateOperation::Sub,
-                                     UpdateOperation::Sub, UpdateOperation::Sub>(
-          added[0], removed[0], removed[1], removed[2]);
-
-    targetState.computed[perspective] = true;
-}
-
-void update_accumulator_dbl_incr(Color                                     perspective,
-                                 const FeatureTransformer&                 featureTransformer,
-                                 Square                                    kingSq,
-                                 const AccumulatorState<ThreatFeatureSet>& computedState,
-                                 const AccumulatorState<ThreatFeatureSet>& middleState,
-                                 AccumulatorState<ThreatFeatureSet>&       targetState,
-                                 const DirtyPiece&                         dp2) noexcept {
-
-    assert(computedState.computed[perspective]);
-    assert(!middleState.computed[perspective]);
-    assert(!targetState.computed[perspective]);
-
-    ThreatFeatureSet::FusedData fusedData{dp2.removedSq};
-
-    const auto* pfBase   = featureTransformer.threatWeights.data();
-    usize       pfStride = FeatureTransformer::OutputDimensions;
-
-    ThreatFeatureSet::IndexList removed, added;
-    ThreatFeatureSet::append_changed_indices(perspective, kingSq, middleState.dirty, removed, added,
-                                             &fusedData, true, pfBase, pfStride);
-    ThreatFeatureSet::append_changed_indices(perspective, kingSq, targetState.dirty, removed, added,
-                                             &fusedData, false, pfBase, pfStride);
-
-    auto updateContext =
-      make_accumulator_update_context(perspective, featureTransformer, computedState, targetState);
-
-    updateContext.apply(removed, added);
-
-    targetState.computed[perspective] = true;
-}
-
 // Computes the accumulator of the next position, on given computedState
 template<bool Forward, typename FeatureSet>
 void update_accumulator_incr(Color                               perspective,
@@ -368,14 +294,14 @@ void update_accumulator_incr(Color                               perspective,
     if constexpr (std::is_same_v<FeatureSet, ThreatFeatureSet>)
     {
         const auto* pfBase   = featureTransformer.threatWeights.data();
-        usize       pfStride = FeatureTransformer::OutputDimensions;
+        const usize pfStride = FeatureTransformer::OutputDimensions;
 
         if constexpr (Forward)
             FeatureSet::append_changed_indices(perspective, kingSq, targetState.dirty, removed,
-                                               added, nullptr, false, pfBase, pfStride);
+                                               added, pfBase, pfStride);
         else
             FeatureSet::append_changed_indices(perspective, kingSq, computedState.dirty, added,
-                                               removed, nullptr, false, pfBase, pfStride);
+                                               removed, pfBase, pfStride);
     }
     else
     {
@@ -836,47 +762,9 @@ void AccumulatorStack::update_forward_incr(Color                     perspective
     const Square kingSq = pos.square<KING>(perspective);
 
     for (usize idx = beg; ++idx < size;)
-    {
-        if (idx + 1 < size)
-        {
-            auto& dp1 = mut_accumulators<PSQFeatureSet>()[idx].dirty;
-            auto& dp2 = mut_accumulators<PSQFeatureSet>()[idx + 1].dirty;
-
-            auto& accumulators = mut_accumulators<FeatureSet>();
-
-            if constexpr (std::is_same_v<FeatureSet, PSQFeatureSet>)
-            {
-                if (dp1.dstSq != SQ_NONE && dp1.dstSq == dp2.removedSq)
-                {
-                    Square capturedSq = dp1.dstSq;
-                    dp1.dstSq = dp2.removedSq = SQ_NONE;
-                    update_accumulator_dbl_incr(perspective, featureTransformer, kingSq,
-                                                accumulators[idx - 1], accumulators[idx],
-                                                accumulators[idx + 1]);
-                    dp1.dstSq = dp2.removedSq = capturedSq;
-
-                    ++idx;
-                    continue;
-                }
-            }
-            if constexpr (std::is_same_v<FeatureSet, ThreatFeatureSet>)
-            {
-                if (dp2.removedSq != SQ_NONE
-                    && (accumulators[idx].dirty.threateningBB & dp2.removedSq) != 0)
-                {
-                    update_accumulator_dbl_incr(perspective, featureTransformer, kingSq,
-                                                accumulators[idx - 1], accumulators[idx],
-                                                accumulators[idx + 1], dp2);
-                    ++idx;
-                    continue;
-                }
-            }
-        }
-
         update_accumulator_incr<true>(perspective, featureTransformer, kingSq,
                                       accumulators<FeatureSet>()[idx - 1],
                                       mut_accumulators<FeatureSet>()[idx]);
-    }
 
     assert(state<FeatureSet>().computed[perspective]);
 }

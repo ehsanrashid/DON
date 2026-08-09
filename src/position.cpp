@@ -891,13 +891,12 @@ DirtyBoard Position::do_move(const Move          m,
 
     DirtyBoard db;
 
-    db.dirtyPiece.movedPc         = movedPc;
-    db.dirtyPiece.orgSq           = orgSq;
-    db.dirtyPiece.dstSq           = dstSq;
-    db.dirtyPiece.addedSq         = SQ_NONE;
-    db.dirtyThreats.ac            = ac;
-    db.dirtyThreats.preKingSq     = square<KING>(ac);
-    db.dirtyThreats.threateningBB = db.dirtyThreats.threatenedBB = 0;
+    db.dirtyPiece.movedPc     = movedPc;
+    db.dirtyPiece.orgSq       = orgSq;
+    db.dirtyPiece.dstSq       = dstSq;
+    db.dirtyPiece.addedSq     = SQ_NONE;
+    db.dirtyThreats.ac        = ac;
+    db.dirtyThreats.preKingSq = square<KING>(ac);
     assert(db.dirtyThreats.dtList.empty());
 
     st->key ^= Zobrist::turn() ^ Zobrist::enpassant(en_passant_sq());

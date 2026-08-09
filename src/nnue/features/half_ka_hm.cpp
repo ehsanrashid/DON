@@ -93,8 +93,8 @@ make_index(Color perspective, Square kingSq, Square s, Piece pc) noexcept {
 }  // namespace
 
 // Append lists of indices for recently changed features from the piece map
-void HalfKA_hm::append_map_changed_indices(Color           perspective,
-                                           Square          kingSq,
+void HalfKA_hm::append_map_changed_indices(const Color     perspective,
+                                           const Square    kingSq,
                                            const PieceMap& oldPieceMap,
                                            const PieceMap& newPieceMap,
                                            Bitboard        removedBB,
@@ -156,8 +156,8 @@ void HalfKA_hm::append_map_changed_indices(Color           perspective,
 }
 
 // Append lists of indices for recently changed features
-void HalfKA_hm::append_changed_indices(Color            perspective,
-                                       Square           kingSq,
+void HalfKA_hm::append_changed_indices(const Color      perspective,
+                                       const Square     kingSq,
                                        const DirtyType& dp,
                                        IndexList&       removed,
                                        IndexList&       added) noexcept {
@@ -174,7 +174,7 @@ void HalfKA_hm::append_changed_indices(Color            perspective,
 }
 
 // Determine if a full refresh is required based on the dirty piece
-bool HalfKA_hm::refresh_required(Color perspective, const DirtyType& dp) noexcept {
+bool HalfKA_hm::refresh_required(const Color perspective, const DirtyType& dp) noexcept {
     return dp.movedPc == make_piece(perspective, KING);
 }
 
