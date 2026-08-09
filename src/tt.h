@@ -97,7 +97,7 @@ class TranspositionTable final {
 
     u8 generation() const noexcept;
 
-    void increment_generation() const noexcept;
+    void advance_generation() const noexcept;
 
     void resize(usize ttSize, const Threads& threads) noexcept;
 

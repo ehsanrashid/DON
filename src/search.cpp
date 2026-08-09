@@ -279,7 +279,7 @@ void Worker::start_search() noexcept {
     }
 
     if (!limit.infinite)
-        transpositionTable.increment_generation();
+        transpositionTable.advance_generation();
 
     std::string bestMove, ponderMove;
 
