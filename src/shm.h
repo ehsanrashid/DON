@@ -782,8 +782,7 @@ struct TempRoot final {
         static const auto tempRoot = []() -> std::optional<TempRoot> {
             const uid_t uid = ::getuid();
 
-            std::string tempPath{"/tmp/DON-"};
-            tempPath += std::to_string(uid);
+            const std::string tempPath{std::string{"/tmp/DON-"} + std::to_string(uid)};
 
             if (::mkdir(tempPath.c_str(), S_IRWXU) == 0)
                 return TempRoot{tempPath};
@@ -1300,9 +1299,7 @@ class SharedMemory final: public BaseSharedMemory {
 
     void reset() noexcept {
         if (!socketPath.empty())
-        {
             ::unlink(socketPath.c_str());
-        }
 
         shutdownFd.reset();
 

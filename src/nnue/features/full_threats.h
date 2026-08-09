@@ -34,7 +34,7 @@ class FullThreats final {
     static constexpr u32 Hash = 0x8F234CB8u;
 
     // Number of feature dimensions
-    static constexpr IndexType Dimensions = 60144;
+    static constexpr IndexType Dimensions = 60720;
 
     struct FusedData final {
        public:

@@ -129,21 +129,21 @@ Move legal_move(const Move m, const Position& pos) noexcept {
 }
 
 // Build contHistory pointers from the stack frame and validate them in debug builds.
-void build_continuation_history(const Stack*                    ss,
-                                const History<HType::PIECE_SQ>* out[CONT_HISTORY_COUNT]) noexcept {
+void build_continuation_histories(
+  const Stack* ss, const History<HType::PIECE_SQ>* contHistory[CONT_HISTORY_COUNT]) noexcept {
     for (usize i = 0; i < CONT_HISTORY_COUNT; ++i)
     {
         const Stack* ssi = (ss - 1) - i;
 
         // contHistory[i] refers to ssi->pieceSqHistory
-        out[i] = ssi->pieceSqHistory;
-        assert(out[i] != nullptr && "continuation history pointer must not be null");
+        contHistory[i] = ssi->pieceSqHistory;
+        assert(contHistory[i] != nullptr && "continuation history pointer must not be null");
     }
 }
 
 // Updates the continuation histories for the move pairs formed
 // by the current move and the moves played in previous plies.
-void update_continuation_history(Stack* ss, Piece pc, Square dstSq, int bonus) noexcept {
+void update_continuation_histories(Stack* ss, Piece pc, Square dstSq, int bonus) noexcept {
     assert(dstSq != SQ_NONE);
 
     constexpr Array<double, CONT_HISTORY_COUNT> ContHistoryWeights{
@@ -181,9 +181,9 @@ void update_continuation_history(Stack* ss, Piece pc, Square dstSq, int bonus) n
 }
 
 void update_pawn_history(PawnHistory& pawnHistory,
-                         Piece        movedPc,
-                         Square       dstSq,
-                         int          bonus) noexcept {
+                         const Piece  movedPc,
+                         const Square dstSq,
+                         const int    bonus) noexcept {
     pawnHistory[+movedPc][dstSq] << bonus;
 }
 
@@ -193,9 +193,9 @@ Value adjust_eval_value(Value evalValue, int correctionValue) noexcept {
     return in_range(evalValue + constexpr_round(7.6294e-6 * double(correctionValue)));
 }
 
-bool is_shuffling(const Position& pos, const Stack* ss, Move move) noexcept {
+bool is_shuffling(const Position& pos, const Stack* const ss, const Move move) noexcept {
     return !(pos.capture_promo(move) || pos.rule50_count() < 11 || pos.null_ply() <= 6
-             || ss->ply < 19)
+             || ss->ply < 18)
         && (ss - 2)->move.is_ok() && move.org_sq() == (ss - 2)->move.dst_sq()
         && (ss - 4)->move.is_ok() && (ss - 2)->move.org_sq() == (ss - 4)->move.dst_sq();
 }
@@ -416,7 +416,7 @@ void Worker::iterative_deepening() noexcept {
     auto* mainManager = is_main_worker() ? main_manager() : nullptr;
 
     // Allocate stack with extra size to allow access from (ss - 9) to (ss + 1):
-    // (ss - 9) is needed for update_continuation_history(ss - 1) which accesses (ss - 8),
+    // (ss - 9) is needed for update_continuation_histories(ss - 1) which accesses (ss - 8),
     // (ss + 1) is needed for initialization of cutoffCount.
     constexpr u16 StackOffset = 9;
 
@@ -941,7 +941,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
                 // Extra penalty for early quiet moves of the previous ply
                 if (preOk && !preCapture && (ss - 1)->moveCount < 5)
-                    update_continuation_history(ss - 1, pos[preSq], preSq, -2210);
+                    update_continuation_histories(ss - 1, pos[preSq], preSq, -2210);
             }
 
             // Partial workaround for the graph history interaction problem
@@ -1047,7 +1047,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
     const History<HType::PIECE_SQ>* contHistory[CONT_HISTORY_COUNT];
 
-    build_continuation_history(ss, contHistory);
+    build_continuation_histories(ss, contHistory);
 
     // Skip early pruning when in check
     if (!ss->inCheck)
@@ -1105,7 +1105,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     if constexpr (CutNode)
     {
     if (!exclude && hasNonPawn /*Zugzwang guard*/ && ss->ply >= nmpPly
-        && beta >= -2000 && ss->evalValue - 365 + int(improve) * 47 + 18 * depth >= beta)
+        && beta >= -2000 && ss->evalValue - 365 + int(improve) * 47 + 13 * depth >= beta)
     {
         assert(preMove != Move::Null);
 
@@ -1534,7 +1534,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
                     value = -search<~T>(pos, ss + 1, -alpha - 1, -alpha, newDepth);
 
                 // Post LMR continuation history updates
-                update_continuation_history(ss, movedPc, dstSq, 1342);
+                update_continuation_histories(ss, movedPc, dstSq, 1342);
             }
         }
         // Step 18. Full-depth search when LMR is skipped
@@ -1738,8 +1738,8 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
             update_quiet_history(~ac, preMove, constexpr_round(6.5613e-3 * double(bonus)));
 
-            update_continuation_history(ss - 1, pos[preSq], preSq,
-                                        constexpr_round(16.0522e-3 * double(bonus)));
+            update_continuation_histories(ss - 1, pos[preSq], preSq,
+                                          constexpr_round(16.0522e-3 * double(bonus)));
         }
         // Bonus for prior capture move
         else
@@ -2111,7 +2111,7 @@ void Worker::update_quiet_histories(const Position& pos, PawnHistory& pawnHistor
 
     update_low_ply_quiet_history(ss->ply, m, constexpr_round(0.6953 * double(bonus)));
 
-    update_continuation_history(ss, pos.moved_pc(m), m.dst_sq(), constexpr_round(0.7324 * double(bonus)));
+    update_continuation_histories(ss, pos.moved_pc(m), m.dst_sq(), constexpr_round(0.7324 * double(bonus)));
 }
 
 // Updates history at the end of search() when a bestMove is found and other searched moves are known
@@ -2154,7 +2154,7 @@ void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Sta
     if (ss1->move.is_ok() && pos.captured_pc() == Piece::NO_PIECE && ss1->moveCount == 1 + int(ss1->ttMove != Move::None))
     {
         const Square preSq = ss1->move.dst_sq();
-        update_continuation_history(ss1, pos[preSq], preSq, -constexpr_round(0.6963 * double(malus)));
+        update_continuation_histories(ss1, pos[preSq], preSq, -constexpr_round(0.6963 * double(malus)));
     }
 }
 

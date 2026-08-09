@@ -855,36 +855,36 @@ std::filesystem::path CommandLine::working_directory() noexcept {
     return std::filesystem::current_path();
 }
 
-std::string utf8_from_wstring(std::wstring_view wsv) noexcept {
+std::string utf8_from_wstring(std::wstring_view wSv) noexcept {
 #if defined(_WIN32)
-    if (wsv.empty())
+    if (wSv.empty())
         return {};
 
-    int size =
-      WideCharToMultiByte(CP_UTF8, 0, wsv.data(), int(wsv.size()), nullptr, 0, nullptr, nullptr);
+    const int size =
+      WideCharToMultiByte(CP_UTF8, 0, wSv.data(), int(wSv.size()), nullptr, 0, nullptr, nullptr);
     if (size <= 0)
         return {};
 
     std::string str(usize(size), '\0');
-    WideCharToMultiByte(CP_UTF8, 0, wsv.data(), int(wsv.size()), str.data(), size, nullptr,
+    WideCharToMultiByte(CP_UTF8, 0, wSv.data(), int(wSv.size()), str.data(), size, nullptr,
                         nullptr);
     return str;
 #else
-    return std::string{wsv.begin(), wsv.end()};
+    return std::string{wSv.begin(), wSv.end()};
 #endif
 }
 
 std::filesystem::path path_from_utf8(std::string_view path) noexcept {
 #if defined(_WIN32)
-    usize size = path.size();
+    const usize size = path.size();
     if (size > INT_MAX)
         return {};
-    int u8len = int(size);
-    int wlen  = MultiByteToWideChar(CP_UTF8, 0, path.data(), u8len, NULL, 0);
+    int u8Size = int(size);
+    int wSize  = MultiByteToWideChar(CP_UTF8, 0, path.data(), u8Size, nullptr, 0);
 
-    std::wstring wstr(usize(wlen), L'\0');
-    MultiByteToWideChar(CP_UTF8, 0, path.data(), u8len, wstr.data(), wlen);
-    return {wstr};
+    std::wstring wStr(usize(wSize), L'\0');
+    MultiByteToWideChar(CP_UTF8, 0, path.data(), u8Size, wStr.data(), wSize);
+    return {wStr};
 #else
     return {path};
 #endif

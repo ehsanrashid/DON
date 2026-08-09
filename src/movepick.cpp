@@ -241,7 +241,7 @@ MovePicker::score<GenType::ENC_CAPTURE>(const MoveList<GenType::ENC_CAPTURE>& mo
 
     auto itr = cur;
 
-    for (Move move : moveList)
+    for (const Move move : moveList)
     {
         auto& m = *itr;
         m       = move;
@@ -277,7 +277,7 @@ MovePicker::score<GenType::ENC_QUIET>(const MoveList<GenType::ENC_QUIET>& moveLi
 
     auto itr = cur;
 
-    for (Move move : moveList)
+    for (const Move move : moveList)
     {
         auto& m = *itr;
         m       = move;
@@ -309,7 +309,7 @@ MovePicker::score<GenType::ENC_QUIET>(const MoveList<GenType::ENC_QUIET>& moveLi
         // Bonus for escaping from square attacked by lesser piece
         const Bitboard accLessAttacksBB = pos.acc_less_attacks_bb(movedPt);
 
-        const int weight = (accLessAttacksBB & dstSq) != 0 ? ((blockersBB & orgSq) == 0 ? -20 : 0)
+        const int weight = (accLessAttacksBB & dstSq) != 0 ? ((blockersBB & orgSq) != 0 ? -3 : -20)
                          : (threatsBB & orgSq) != 0        ? +23
                          : (accLessAttacksBB & orgSq) != 0 ? +20
                                                            : 0;
@@ -333,7 +333,7 @@ MovePicker::score<GenType::EVA_CAPTURE>(const MoveList<GenType::EVA_CAPTURE>& mo
 
     auto itr = cur;
 
-    for (Move move : moveList)
+    for (const Move move : moveList)
     {
         auto& m = *itr;
         m       = move;
@@ -362,7 +362,7 @@ MovePicker::score<GenType::EVA_QUIET>(const MoveList<GenType::EVA_QUIET>& moveLi
 
     auto itr = cur;
 
-    for (Move move : moveList)
+    for (const Move move : moveList)
     {
         auto& m = *itr;
         m       = move;

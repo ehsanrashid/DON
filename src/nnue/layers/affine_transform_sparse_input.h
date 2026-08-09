@@ -76,8 +76,8 @@ void find_nnz(const u8* RESTRICT input, u16* RESTRICT outNnz, IndexType& outCoun
     constexpr IndexType OutSimdWidth = 32;  // 512 bits / 16 bits
     constexpr IndexType ChunkCount   = InputDimensions / OutSimdWidth;
 
-    __m512i increment = _mm512_set1_epi16(OutSimdWidth);
-    __m512i base      = _mm512_set_epi16(   // Same permute order as _mm512_packus_epi32()
+    const __m512i increment = _mm512_set1_epi16(OutSimdWidth);
+    __m512i       base      = _mm512_set_epi16(   // Same permute order as _mm512_packus_epi32()
       31, 30, 29, 28, 15, 14, 13, 12,  //
       27, 26, 25, 24, 11, 10, 9, 8,    //
       23, 22, 21, 20, 7, 6, 5, 4,      //
@@ -86,13 +86,13 @@ void find_nnz(const u8* RESTRICT input, u16* RESTRICT outNnz, IndexType& outCoun
     IndexType count = 0;
     for (IndexType i = 0; i < ChunkCount; ++i)
     {
-        __m512i inputV0 = _mm512_load_si512(input + i * 2 * InSimdWidth + 0 * InSimdWidth);
-        __m512i inputV1 = _mm512_load_si512(input + i * 2 * InSimdWidth + 1 * InSimdWidth);
+        const __m512i inputV0 = _mm512_load_si512(input + i * 2 * InSimdWidth + 0 * InSimdWidth);
+        const __m512i inputV1 = _mm512_load_si512(input + i * 2 * InSimdWidth + 1 * InSimdWidth);
 
         // Get a bitmask and gather non-zero indices
-        __m512i   inputV01 = _mm512_packus_epi32(inputV0, inputV1);
-        __mmask32 nnzMask  = _mm512_test_epi16_mask(inputV01, inputV01);
-        __m512i   nnzVal   = _mm512_maskz_compress_epi16(nnzMask, base);
+        const __m512i   inputV01 = _mm512_packus_epi32(inputV0, inputV1);
+        const __mmask32 nnzMask  = _mm512_test_epi16_mask(inputV01, inputV01);
+        const __m512i   nnzVal   = _mm512_maskz_compress_epi16(nnzMask, base);
 
         _mm512_storeu_si512(outNnz + count, nnzVal);
 
@@ -105,19 +105,19 @@ void find_nnz(const u8* RESTRICT input, u16* RESTRICT outNnz, IndexType& outCoun
     constexpr IndexType OutSimdWidth = 16;  // 512 bits / 32 bits
     constexpr IndexType ChunkCount   = InputDimensions / OutSimdWidth;
 
-    __m512i increment = _mm512_set1_epi32(OutSimdWidth);
-    __m512i base      = _mm512_set_epi32(  //
+    const __m512i increment = _mm512_set1_epi32(OutSimdWidth);
+    __m512i       base      = _mm512_set_epi32(  //
       15, 14, 13, 12, 11, 10, 9, 8,   //
       7, 6, 5, 4, 3, 2, 1, 0);
 
     IndexType count = 0;
     for (IndexType i = 0; i < ChunkCount; ++i)
     {
-        __m512i inputV = _mm512_load_si512(input + i * InSimdWidth);
+        const __m512i inputV = _mm512_load_si512(input + i * InSimdWidth);
 
         // Get a bitmask and gather non-zero indices
-        __mmask16 nnzMask = _mm512_test_epi32_mask(inputV, inputV);
-        __m512i   nnzVal  = _mm512_maskz_compress_epi32(nnzMask, base);
+        const __mmask16 nnzMask = _mm512_test_epi32_mask(inputV, inputV);
+        const __m512i   nnzVal  = _mm512_maskz_compress_epi32(nnzMask, base);
 
         _mm512_mask_cvtepi32_storeu_epi16(outNnz + count, 0xFFFF, nnzVal);
 
@@ -126,9 +126,7 @@ void find_nnz(const u8* RESTRICT input, u16* RESTRICT outNnz, IndexType& outCoun
     }
     outCount = count;
     #else
-    using namespace SIMD;
-
-    constexpr IndexType InputSimdWidth = sizeof(vec_uint_t) / sizeof(u32);
+    constexpr IndexType InputSimdWidth = sizeof(SIMD::vec_uint_t) / sizeof(u32);
     // Outputs are processed 8 elements at a time, even if the SIMD width is narrower
     constexpr IndexType ChunkSize      = 8;
     constexpr IndexType ChunkCount     = InputDimensions / ChunkSize;
@@ -136,10 +134,11 @@ void find_nnz(const u8* RESTRICT input, u16* RESTRICT outNnz, IndexType& outCoun
 
     static_assert(InputsPerChunk > 0 && "SIMD width too wide");
 
-    const auto* inputVector = reinterpret_cast<const vec_uint_t*>(input);
+    const auto* inputVector = reinterpret_cast<const SIMD::vec_uint_t*>(input);
 
-    vec128_t increment = vec128_set_16(8);
-    vec128_t base      = vec128_zero;
+    const SIMD::vec128_t increment = vec128_set_16(8);
+
+    SIMD::vec128_t base = vec128_zero;
 
     IndexType count = 0;
     for (IndexType i = 0; i < ChunkCount; ++i)
@@ -148,14 +147,15 @@ void find_nnz(const u8* RESTRICT input, u16* RESTRICT outNnz, IndexType& outCoun
         unsigned nnz = 0;
         for (IndexType j = 0; j < InputsPerChunk; ++j)
         {
-            vec_uint_t inputChunk = inputVector[i * InputsPerChunk + j];
+            const SIMD::vec_uint_t inputChunk = inputVector[i * InputsPerChunk + j];
 
             nnz |= unsigned(vec_nnz(inputChunk)) << (j * InputSimdWidth);
         }
 
-        vec128_t offsets = vec128_load(reinterpret_cast<const vec128_t*>(&LOOKUP.indices[nnz]));
+        const SIMD::vec128_t offsets =
+          vec128_load(reinterpret_cast<const SIMD::vec128_t*>(&LOOKUP.indices[nnz]));
 
-        vec128_storeu(reinterpret_cast<vec128_t*>(outNnz + count), vec128_add(base, offsets));
+        vec128_storeu(reinterpret_cast<SIMD::vec128_t*>(outNnz + count), vec128_add(base, offsets));
 
         count += LOOKUP.popcounts[nnz];
         base = vec128_add(base, increment);
@@ -305,8 +305,9 @@ class AffineTransformSparseInput final {
         for (IndexType k = 0; k < AccCount; ++k)
             acc[k] = biasVec[k];
 
-        const auto* RESTRICT beg = nnz.data();
-        const auto* RESTRICT end = beg + count;
+        const auto* const RESTRICT beg = nnz.data();
+        const auto* const RESTRICT end = beg + count;
+        const auto* RESTRICT       p   = beg;
 
             // clang-format off
     #if defined(USE_VNNI) || defined(USE_NEON_DOTPROD)
@@ -320,15 +321,15 @@ class AffineTransformSparseInput final {
         #endif
               ;
 
-        while (beg + 3 <= end)
+        while (p + 2 < end)
         {
-            usize i0 = beg[0];
-            usize i1 = beg[1];
-            usize i2 = beg[2];
+            const usize i0 = *p++;
+            const usize i1 = *p++;
+            const usize i2 = *p++;
 
-            invec_t in0 = vec_set_32(load_as<i32>(input + i0 * sizeof(u32)));
-            invec_t in1 = vec_set_32(load_as<i32>(input + i1 * sizeof(u32)));
-            invec_t in2 = vec_set_32(load_as<i32>(input + i2 * sizeof(u32)));
+            const invec_t in0 = vec_set_32(load_as<i32>(input + i0 * sizeof(u32)));
+            const invec_t in1 = vec_set_32(load_as<i32>(input + i1 * sizeof(u32)));
+            const invec_t in2 = vec_set_32(load_as<i32>(input + i2 * sizeof(u32)));
 
             const invec_t* col0 = reinterpret_cast<const invec_t*>(&weights[i0 * OutputDimensions * ChunkSize]);
             const invec_t* col1 = reinterpret_cast<const invec_t*>(&weights[i1 * OutputDimensions * ChunkSize]);
@@ -340,8 +341,6 @@ class AffineTransformSparseInput final {
                 vec_add_dpbusd_32(acc[k + AccCount * 1], in1, col1[k]);
                 vec_add_dpbusd_32(acc[k + AccCount * 2], in2, col2[k]);
             }
-
-            beg += 3;
         }
 
         for (IndexType k = 0; k < AccCount; ++k)
@@ -358,18 +357,16 @@ class AffineTransformSparseInput final {
               ;
     #endif
 
-        while (beg < end)
+        while (p < end)
         {
-            usize i = *beg;
+            const usize i = *p++;
 
-            invec_t in = vec_set_32(load_as<i32>(input + i * sizeof(u32)));
+            const invec_t in = vec_set_32(load_as<i32>(input + i * sizeof(u32)));
 
             const invec_t* col = reinterpret_cast<const invec_t*>(&weights[i * OutputDimensions * ChunkSize]);
 
             for (IndexType k = 0; k < AccCount; ++k)
                 vec_add_dpbusd_32(acc[k], in, col[k]);
-
-            ++beg;
         }
         // clang-format on
 
@@ -378,7 +375,9 @@ class AffineTransformSparseInput final {
         for (IndexType k = 0; k < AccCount; ++k)
             outVec[k] = acc[k];
 
-    #undef vec_add_32
+    #if defined(vec_add_32)
+        #undef vec_add_32
+    #endif
     #undef vec_set_32
     #undef vec_add_dpbusd_32
 #else

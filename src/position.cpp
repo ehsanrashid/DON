@@ -934,6 +934,8 @@ DirtyBoard Position::do_move(const Move          m,
     // clang-format off
     else
     {
+    bool pieceMove = m.type() != MT::PROMOTION;
+
     movedKey = Zobrist::piece_square(ac, movedPt, orgSq)  //
              ^ Zobrist::piece_square(ac, movedPt, dstSq);
 
@@ -965,8 +967,10 @@ DirtyBoard Position::do_move(const Move          m,
                 assert(st->preSt->enPassantSq == dstSq);
                 assert(st->preSt->rule50Count == 0);
 
+                pieceMove = false;
                 // Remove the captured pawn
-                remove(capturedSq);
+                remove(capturedSq, &db.dirtyThreats);
+                move(orgSq, dstSq, &db.dirtyThreats);
 
                 capturedKey = Zobrist::piece_square(~ac, capturedPt, capturedSq);
             }
@@ -976,6 +980,12 @@ DirtyBoard Position::do_move(const Move          m,
         else
         {
             st->nonPawnKeys[~ac][is_major(capturedPt)] ^= capturedKey;
+        }
+
+        if (pieceMove)
+        {
+            remove(orgSq, &db.dirtyThreats);
+            swap(dstSq, movedPc, &db.dirtyThreats);
         }
 
         db.dirtyPiece.removedSq = capturedSq;
@@ -988,15 +998,10 @@ DirtyBoard Position::do_move(const Move          m,
         // Reset rule 50 draw counter
         reset_rule50_count();
     }
-
-    if (capture && m.type() != MT::EN_PASSANT)
-    {
-        remove(orgSq, &db.dirtyThreats);
-        swap(dstSq, movedPc, &db.dirtyThreats);
-    }
     else
     {
-        move(orgSq, dstSq, &db.dirtyThreats);
+        if (pieceMove)
+            move(orgSq, dstSq, &db.dirtyThreats);
     }
 
     // If the moving piece is a pawn do some special extra work
@@ -1017,7 +1022,12 @@ DirtyBoard Position::do_move(const Move          m,
             db.dirtyPiece.addedSq = dstSq;
             db.dirtyPiece.addedPc = promotedPc;
 
-            swap(dstSq, promotedPc, &db.dirtyThreats);
+            remove(orgSq, &db.dirtyThreats);
+
+            if (capture)
+                swap(dstSq, promotedPc, &db.dirtyThreats);
+            else
+                put(dstSq, promotedPc, &db.dirtyThreats);
 
             assert(count(promotedPc) != 0);
             assert(Zobrist::piece_square(ac, PAWN, dstSq) == 0);

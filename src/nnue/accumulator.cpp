@@ -496,7 +496,7 @@ void update_accumulator_refresh_cache(Color                            perspecti
                                       AccumulatorCache&                accCache) noexcept {
     constexpr auto Dimensions = FeatureTransformer::OutputDimensions;
 
-    Square kingSq = pos.square<KING>(perspective);
+    const Square kingSq = pos.square<KING>(perspective);
 
     auto& entry = accCache[kingSq][perspective];
 
@@ -862,7 +862,7 @@ void AccumulatorStack::update_forward_incr(Color                     perspective
     assert(beg < size && size <= SIZE);
     assert(accumulators<FeatureSet>()[beg].computed[perspective]);
 
-    Square kingSq = pos.square<KING>(perspective);
+    const Square kingSq = pos.square<KING>(perspective);
 
     for (usize idx = beg; ++idx < size;)
     {
@@ -919,7 +919,7 @@ void AccumulatorStack::update_backward_incr(Color                     perspectiv
     assert(end < size && size <= SIZE);
     assert(state<FeatureSet>().computed[perspective]);
 
-    Square kingSq = pos.square<KING>(perspective);
+    const Square kingSq = pos.square<KING>(perspective);
 
     for (usize idx = std::max(size, usize{1}) - 1; idx-- > end;)
         update_accumulator_incr<false>(perspective, featureTransformer, kingSq,

@@ -1207,9 +1207,6 @@ inline u64 hash_bytes(const char* RESTRICT data, usize size, u64 seed = 0) noexc
     constexpr u64 MurmurM = u64{0xC6A4A7935BD1E995};
     constexpr u8  MurmurR = 47;
 
-    // Initialize hash with seed and length (MurmurHash64A convention)
-    u64 h = seed ^ (size * MurmurM);
-
     // Mix 64-bit block (MurmurHash64A core mixing step)
     constexpr auto mix = [](u64 k) noexcept {
         k *= MurmurM;
@@ -1218,14 +1215,17 @@ inline u64 hash_bytes(const char* RESTRICT data, usize size, u64 seed = 0) noexc
         return k;
     };
 
-    const auto*                beg = reinterpret_cast<const u8*>(data);
+    // Initialize hash with seed and length (MurmurHash64A convention)
+    u64 h = seed ^ (size * MurmurM);
+
+    const auto* const RESTRICT beg = reinterpret_cast<const u8*>(data);
     const auto* const RESTRICT end = beg + size;
     const auto* RESTRICT       p   = beg;
 
     // Process 32-byte blocks (4 × 64-bit lanes) for better throughput.
     // The end pointer is rounded down to the nearest multiple of BLOCK_32.
     const auto* const RESTRICT block32End = beg + (size & ~(BLOCK_32 - 1));
-    while (p < block32End)
+    for (; p < block32End; p += BLOCK_32)
     {
         u64 k0, k1, k2, k3;
         // Unaligned loads are safe via memcpy and typically optimized by the compiler
@@ -1247,13 +1247,11 @@ inline u64 hash_bytes(const char* RESTRICT data, usize size, u64 seed = 0) noexc
         h *= MurmurM;
         h ^= k3;
         h *= MurmurM;
-
-        p += BLOCK_32;
     }
     // Process 16-byte blocks (2 × 64-bit words) for better throughput.
     // The end pointer is rounded down to the nearest multiple of BLOCK_16.
     const auto* const RESTRICT block16End = p + ((end - p) & ~(BLOCK_16 - 1));
-    while (p < block16End)
+    for (; p < block16End; p += BLOCK_16)
     {
         u64 k0, k1;
         // Unaligned loads are safe via memcpy and typically optimized by the compiler
@@ -1267,13 +1265,11 @@ inline u64 hash_bytes(const char* RESTRICT data, usize size, u64 seed = 0) noexc
         h *= MurmurM;
         h ^= k1;
         h *= MurmurM;
-
-        p += BLOCK_16;
     }
     // Process remaining full 8-byte blocks.
     // The end pointer is rounded down to the nearest multiple of BLOCK_8.
     const auto* const RESTRICT block8End = p + ((end - p) & ~(BLOCK_8 - 1));
-    while (p < block8End)
+    for (; p < block8End; p += BLOCK_8)
     {
         u64 k;
         // Safe unaligned load
@@ -1283,8 +1279,6 @@ inline u64 hash_bytes(const char* RESTRICT data, usize size, u64 seed = 0) noexc
         // Merge block into the running hash
         h ^= k;
         h *= MurmurM;
-
-        p += BLOCK_8;
     }
     // Handle remaining tail bytes (< 8) at the end
     if (p < end)
@@ -1293,12 +1287,11 @@ inline u64 hash_bytes(const char* RESTRICT data, usize size, u64 seed = 0) noexc
 
         u8 shift = 0;
         // Read remaining bytes in little-endian order
-        while (p < end)
+        for (; p < end; ++p)
         {
             k |= u64(*p) << shift;
 
             shift += BYTE_BITS;
-            ++p;
         }
         // Merge into the running hash
         h ^= k;
