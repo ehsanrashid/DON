@@ -903,12 +903,14 @@ void TBTable<T>::set_groups(PairsData* pd, const Array<int, 2>& order, File f) n
         // Remaining pieces
         else
         {
+            const auto groupLen = pd->groupLen[next];
+
             pd->groupIdx[next] = idx;
 
-            idx *= Binomial[pd->groupLen[next]][freeLen];
-            assert(int(freeLen) >= pd->groupLen[next]);
+            idx *= Binomial[groupLen][freeLen];
+            assert(freeLen >= usize(groupLen));
 
-            freeLen -= pd->groupLen[next];
+            freeLen -= groupLen;
 
             ++next;
         }
@@ -1613,28 +1615,28 @@ Ret do_probe_table(
     // Encode remaining pawns and then pieces according to square, in ascending order
     bool pawnsRemaining = table->hasPawns && table->pawnCount[BLACK];
 
-    usize next = 0;
-
-    while (pd->groupLen[++next])
+    for (usize next = 1; pd->groupLen[next] != 0; ++next)
     {
-        std::stable_sort(groupSq, groupSq + pd->groupLen[next]);
+        const auto groupLen = pd->groupLen[next];
+
+        std::stable_sort(groupSq, groupSq + groupLen);
 
         u64 n = 0;
         // Map down a square if "comes later" than a square in the previous
         // groups (similar to what was done earlier for leading group pieces).
-        for (i32 i = 0; i < pd->groupLen[next]; ++i)
+        for (i32 i = 0; i < groupLen; ++i)
         {
-            auto adjust = std::count_if(squares.data(), groupSq,  //
-                                        [&](Square s) { return groupSq[i] > s; });
+            usize adjust = 0;
+            CLANG_LOOP_VEC_DISABLE
+            for (const Square* s = squares.data(); s != groupSq; ++s)
+                adjust += usize(groupSq[i] > *s);
 
-            n += Binomial[i + 1][int(groupSq[i]) - adjust - (pawnsRemaining ? 8 : 0)];
+            n += Binomial[i + 1][usize(groupSq[i]) - adjust - usize(pawnsRemaining) * 8];
         }
 
         pawnsRemaining = false;
-
         idx += n * pd->groupIdx[next];
-
-        groupSq += pd->groupLen[next];
+        groupSq += groupLen;
     }
 
     // Now that have the index, decompress the pair and get the WDL-score
