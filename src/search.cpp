@@ -195,7 +195,7 @@ Value adjust_eval_value(Value evalValue, int correctionValue) noexcept {
 
 bool is_shuffling(const Position& pos, const Stack* ss, Move move) noexcept {
     return !(pos.capture_promo(move) || pos.rule50_count() < 11 || pos.null_ply() <= 6
-             || ss->ply < 19)
+             || ss->ply < 18)
         && (ss - 2)->move.is_ok() && move.org_sq() == (ss - 2)->move.dst_sq()
         && (ss - 4)->move.is_ok() && (ss - 2)->move.org_sq() == (ss - 4)->move.dst_sq();
 }
@@ -1105,7 +1105,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     if constexpr (CutNode)
     {
     if (!exclude && hasNonPawn /*Zugzwang guard*/ && ss->ply >= nmpPly
-        && beta >= -2000 && ss->evalValue - 365 + int(improve) * 47 + 18 * depth >= beta)
+        && beta >= -2000 && ss->evalValue - 365 + int(improve) * 47 + 13 * depth >= beta)
     {
         assert(preMove != Move::Null);
 
