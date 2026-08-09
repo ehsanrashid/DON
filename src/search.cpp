@@ -331,8 +331,8 @@ void Worker::start_search() noexcept {
         {
             think = true;
 
-            threads.start_search();  // start non-main threads
-            iterative_deepening();   // main thread start searching
+            threads.start_search();  // Starts non-main threads search
+            iterative_deepening();   // Start main-thread search
         }
 
         // When reach the maximum depth, can arrive here without a raise of threads.stop.
@@ -1882,8 +1882,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
             bestValue = (441 * bestValue + 583 * beta) / 1024;
 
         if (!ttd.hit)
-            ttu.update(Move::None, value_to_tt(bestValue, ss->ply), evalValue, DEPTH_NONE,
-                       Bound::LOWER, false);
+            ttu.update(Move::None, VALUE_NONE, evalValue, DEPTH_NONE, Bound::LOWER, false);
 
         return bestValue;
     }
@@ -1894,7 +1893,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
         // clang-format on
     }
 
-    Move preMove = (ss - 1)->move;
+    const Move preMove = (ss - 1)->move;
 
     const bool   preOk = preMove.is_ok();
     const Square preSq = preOk ? preMove.dst_sq() : SQ_NONE;
@@ -2250,9 +2249,7 @@ bool Worker::ponder_move_extracted() noexcept {
     assert(rm0.pv.size() == 1);
 
     const Move bestMove = rm0.pv[0];
-
-    if (bestMove == Move::None)
-        return false;
+    assert(bestMove != Move::None);
 
     State st;
     rootPos.do_move(bestMove, st, true, this);
@@ -2265,9 +2262,9 @@ bool Worker::ponder_move_extracted() noexcept {
     }
 
     // Legal moves for the opponent
-    MoveList<GenType::LEGAL> oLegalMoves(rootPos);
+    MoveList<GenType::LEGAL> legalMoves(rootPos);
 
-    if (!oLegalMoves.empty())
+    if (!legalMoves.empty())
     {
         Move ponderMove;
 
@@ -2275,7 +2272,7 @@ bool Worker::ponder_move_extracted() noexcept {
 
         ponderMove = ttd.hit ? legal_move(ttd.move, rootPos) : Move::None;
 
-        if (ponderMove == Move::None || !oLegalMoves.contains(ponderMove))
+        if (ponderMove == Move::None || !legalMoves.contains(ponderMove))
         {
             ponderMove = Move::None;
 
@@ -2305,8 +2302,8 @@ bool Worker::ponder_move_extracted() noexcept {
 
             if (ponderMove == Move::None)
             {
-                std::uniform_int_distribution<usize> distribution(0, oLegalMoves.size() - 1);
-                ponderMove = *(oLegalMoves.begin() + distribution(prng));
+                std::uniform_int_distribution<usize> distribution(0, legalMoves.size() - 1);
+                ponderMove = *(legalMoves.begin() + distribution(prng));
             }
         }
 
