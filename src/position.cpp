@@ -889,8 +889,6 @@ DirtyBoard Position::do_move(const Move          m,
 
     auto movedPt = type_of(movedPc);
 
-    bool pieceMove = m.type() != MT::PROMOTION;
-
     DirtyBoard db;
 
     db.dirtyPiece.movedPc         = movedPc;
@@ -936,6 +934,8 @@ DirtyBoard Position::do_move(const Move          m,
     // clang-format off
     else
     {
+    bool pieceMove = m.type() != MT::PROMOTION;
+
     movedKey = Zobrist::piece_square(ac, movedPt, orgSq)  //
              ^ Zobrist::piece_square(ac, movedPt, dstSq);
 
