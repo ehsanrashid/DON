@@ -1207,7 +1207,7 @@ class SharedMemory final: public BaseSharedMemory {
 
         // Try to map the memFd
         T* mappedMem = static_cast<T*>(
-          ::mmap(NULL, sizeof(T), PROT_READ | PROT_WRITE, MAP_SHARED, memFd.get(), 0));
+          ::mmap(nullptr, sizeof(T), PROT_READ | PROT_WRITE, MAP_SHARED, memFd.get(), 0));
         if (mappedMem == MAP_FAILED)
             return false;
 

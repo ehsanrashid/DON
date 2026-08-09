@@ -1015,24 +1015,32 @@ class FixedVector final {
     const T* cbegin() const noexcept { return data(); }
     const T* cend() const noexcept { return cbegin() + size(); }
 
-    bool push_back(const T& value) noexcept {
+    void push_back(const T& value) noexcept {
         assert(size() < capacity());
 
-        data()[size_++] = value;  // copy-assign into pre-initialized slot
-        return true;
+        *end() = value;  // copy-assign into pre-initialized slot
+        ++size_;
     }
-    bool push_back(T&& value) noexcept {
+    void push_back(T&& value) noexcept {
         assert(size() < capacity());
 
-        data()[size_++] = std::move(value);
-        return true;
+        *end() = std::move(value);
+        ++size_;
     }
     template<typename... Args>
-    bool emplace_back(Args&&... args) noexcept {
+    void emplace_back(Args&&... args) noexcept {
         assert(size() < capacity());
 
-        data()[size_++] = T(std::forward<Args>(args)...);
-        return true;
+        *end() = T(std::forward<Args>(args)...);
+        ++size_;
+    }
+
+    // Append value if value < max
+    void push_back_if_lt(const T& value, const T& max) noexcept {
+        assert(size() < capacity());
+
+        *end() = value;
+        size_ += usize(value < max);
     }
 
     void pop_back() noexcept {

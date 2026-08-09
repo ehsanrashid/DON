@@ -246,8 +246,7 @@ ALWAYS_INLINE void append_pawn_active_indices(Bitboard                attacksBB,
 
         const auto index = make_index(perspective, kingSq, orgSq, dstSq, attackerPc, attackedPc);
 
-        if (index < FullThreats::Dimensions)
-            active.push_back(index);
+        active.push_back_if_lt(index, FullThreats::Dimensions);
     }
 }
 
@@ -301,8 +300,7 @@ void FullThreats::append_active_indices(Color           perspective,
                     const auto index =
                       make_index(perspective, kingSq, orgSq, dstSq, attackerPc, attackedPc);
 
-                    if (index < Dimensions)
-                        active.push_back(index);
+                    active.push_back_if_lt(index, Dimensions);
                 }
             }
             else
@@ -321,8 +319,7 @@ void FullThreats::append_active_indices(Color           perspective,
                         const auto index =
                           make_index(perspective, kingSq, orgSq, dstSq, attackerPc, attackedPc);
 
-                        if (index < Dimensions)
-                            active.push_back(index);
+                        active.push_back_if_lt(index, Dimensions);
                     }
                 }
             }
@@ -382,13 +379,11 @@ void FullThreats::append_changed_indices(Color                   perspective,
 
         const auto index = make_index(perspective, kingSq, orgSq, dstSq, attackerPc, attackedPc);
 
-        if (index < Dimensions)
-        {
-            if (pfBase != nullptr)
-                prefetch<PrefetchAccess::READ, PrefetchLoc::LOW>(pfBase + pfStride * index);
+        if (pfBase != nullptr)
+            prefetch<PrefetchAccess::READ, PrefetchLoc::LOW>(reinterpret_cast<const void*>(
+              reinterpret_cast<std::uintptr_t>(pfBase) + std::uintptr_t(index) * pfStride));
 
-            changed.push_back(index);
-        }
+        changed.push_back_if_lt(index, Dimensions);
     }
 }
 

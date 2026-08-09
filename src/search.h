@@ -108,12 +108,12 @@ struct PVMoves final {
     }
 
     // Appends move and child-Pv[]
-    void update(Move move, const PVMoves* childPv) noexcept {
+    void update(Move m, const PVMoves* childPv) noexcept {
         assert(childPv == nullptr || childPv->size() < capacity());
 
         clear();
 
-        push_back(move);
+        push_back(m);
 
         if (childPv != nullptr)
         {
@@ -129,10 +129,10 @@ struct PVMoves final {
         std::string pv;
         pv.reserve(6 * size());
 
-        for (const Move move : *this)
+        for (const Move m : *this)
         {
             pv.push_back(' ');
-            pv.append(move_to_can(move));
+            pv.append(move_to_can(m));
         }
 
         return pv;
