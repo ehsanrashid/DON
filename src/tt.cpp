@@ -200,7 +200,7 @@ void TranspositionTable::advance_generation() const noexcept {
 
 // Sets the size of the transposition table, measured in megabytes (MB).
 // Transposition table consists of even number of clusters.
-void TranspositionTable::resize(usize ttSize, const Threads& threads) noexcept {
+void TranspositionTable::resize(const usize ttSize, const Threads& threads) noexcept {
     free();
 
     clusterCount = ttSize * MB / sizeof(TTCluster);
@@ -238,7 +238,7 @@ void TranspositionTable::reset(const Threads& threads) noexcept {
         threads.wait_on_thread(threadId);
 }
 
-TTCluster* TranspositionTable::cluster(Key key) const noexcept {
+TTCluster* TranspositionTable::cluster(const Key key) const noexcept {
     return &clusters[mul_hi64(key, clusterCount)];
 }
 
@@ -248,7 +248,7 @@ TTCluster* TranspositionTable::cluster(Key key) const noexcept {
 // and returns:
 //   1) copy of the prior data, if any (may be self-inconsistent due to read races)
 //   2) updater object to the entry
-ProbResult TranspositionTable::probe(Key key) const noexcept {
+ProbResult TranspositionTable::probe(const Key key) const noexcept {
 
     auto* ttc = cluster(key);
 
@@ -271,7 +271,7 @@ ProbResult TranspositionTable::probe(Key key) const noexcept {
 // Returns an approximation of the hash table occupation during a search.
 // The hash is x per mill full, as per UCI protocol.
 // Only counts entries which match the current generation. [maxAge: 0-31]
-u16 TranspositionTable::hashfull(u8 maxAge) const noexcept {
+u16 TranspositionTable::hashfull(const u8 maxAge) const noexcept {
     assert(maxAge <= GENERATION_MASK);
 
     constexpr usize requiredCount = 1000;

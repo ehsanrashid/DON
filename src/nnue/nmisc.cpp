@@ -38,7 +38,7 @@ namespace {
 
 // Converts a Value into centi-pawns and writes it in a buffer.
 // The buffer must have capacity for at least 5 chars.
-void format_cp_compact(char* buffer, Value v, const Position& pos) noexcept {
+void format_cp_compact(char* buffer, const Value v, const Position& pos) noexcept {
     // Set the sign character
     buffer[0] = (v < 0 ? '-' : v > 0 ? '+' : ' ');
     // Convert to centipawns and take absolute value
@@ -72,11 +72,11 @@ void format_cp_compact(char* buffer, Value v, const Position& pos) noexcept {
 }
 
 // Converts a value into pawns, always keeping two decimals
-void format_cp_aligned_dot(std::ostringstream& oss, i32 val, const Position& pos) noexcept {
+void format_cp_aligned_dot(std::ostringstream& oss, const i32 val, const Position& pos) noexcept {
 
-    auto v    = in_range(val);
-    char sign = (v < 0 ? '-' : v > 0 ? '+' : ' ');
-    auto cp   = 0.01 * constexpr_abs(to_cp(v, pos));
+    const auto v    = in_range(val);
+    const char sign = (v < 0 ? '-' : v > 0 ? '+' : ' ');
+    const auto cp   = 0.01 * constexpr_abs(to_cp(v, pos));
     oss << sign << std::setw(6) << std::fixed << std::setprecision(2) << cp;
 }
 
@@ -93,9 +93,10 @@ std::string trace(Position& pos, const Network& network, AccumulatorCache& accCa
         row[8 * 8 + 1] = '\0';
 
     // A lambda to output one box of the board
-    auto write_square = [&board, &pos](File file, Rank rank, Piece pc, Value value) noexcept {
-        usize x = 8 * int(file);
-        usize y = 3 * (7 - int(rank));
+    auto write_square = [&board, &pos](const File file, const Rank rank,  //
+                                       const Piece pc, const Value value) noexcept {
+        const usize x = 8 * int(file);
+        const usize y = 3 * (7 - int(rank));
         for (usize i = 1; i < 8; ++i)
             board[y][x + i] = board[y + 3][x + i] = '-';
         for (usize j = 1; j < 3; ++j)
@@ -111,18 +112,22 @@ std::string trace(Position& pos, const Network& network, AccumulatorCache& accCa
 
     auto accStack = std::make_unique<AccumulatorStack>();
 
+    accStack->reset();
+
     // Estimate the value of each piece by doing a differential evaluation from
     // the current base eval, simulating the removal of the piece from its square.
-    auto baseNetOut = network.evaluate(pos, accCache, *accStack);
-    auto baseEval   = baseNetOut.psqt + baseNetOut.positional;
-    baseEval        = pos.active_color() == WHITE ? +baseEval : -baseEval;
+    const auto  baseNetOut = network.evaluate(pos, accCache, *accStack);
+    const Value baseValue  = pos.active_color() == WHITE
+                             ? +in_range(baseNetOut.psqt + baseNetOut.positional)
+                             : -in_range(baseNetOut.psqt + baseNetOut.positional);
 
     for (File f = FILE_A; f <= FILE_H; ++f)
         for (Rank r = RANK_1; r <= RANK_8; ++r)
         {
-            Square sq = make_square(f, r);
-            Piece  pc = pos[sq];
-            Value  v  = VALUE_NONE;
+            const Square sq = make_square(f, r);
+            const Piece  pc = pos[sq];
+
+            Value v = VALUE_NONE;
 
             if (is_ok(pc) && type_of(pc) != KING)
             {
@@ -130,11 +135,12 @@ std::string trace(Position& pos, const Network& network, AccumulatorCache& accCa
 
                 accStack->reset();
 
-                auto curNetOut = network.evaluate(pos, accCache, *accStack);
-                auto curEval   = curNetOut.psqt + curNetOut.positional;
-                curEval        = pos.active_color() == WHITE ? +curEval : -curEval;
+                const auto  curNetOut = network.evaluate(pos, accCache, *accStack);
+                const Value curValue  = pos.active_color() == WHITE
+                                        ? +in_range(curNetOut.psqt + curNetOut.positional)
+                                        : -in_range(curNetOut.psqt + curNetOut.positional);
 
-                v = Value(baseEval - curEval);
+                v = baseValue - curValue;
 
                 pos.put(sq, pc);
             }

@@ -1317,13 +1317,14 @@ bool Position::legal(const Move m) const noexcept {
             const auto orgR = relative_rank(ac, orgSq);
             const auto dstR = relative_rank(ac, dstSq);
 
-            const bool ok = (orgR < RANK_7 && dstR < RANK_8  //
-                             && orgSq + pawn_spush(ac) == dstSq && empty(dstSq))
-                         || (orgR == RANK_2 && dstR == RANK_4 && orgSq + pawn_dpush(ac) == dstSq
-                             && empty(dstSq) && empty(dstSq - pawn_spush(ac)))
-                         || (orgR < RANK_7 && dstR < RANK_8
-                             && ((pieces_bb(~ac) & attacks_bb<PAWN>(orgSq, ac) & dstSq) != 0));
-            if (!ok)
+            if ((orgR >= RANK_7 || dstR >= RANK_8    // Single Push
+                 || orgSq + pawn_spush(ac) != dstSq  //
+                 || !empty(dstSq))
+                && (orgR != RANK_2 || dstR != RANK_4    // Double Push
+                    || orgSq + pawn_dpush(ac) != dstSq  //
+                    || !empty(dstSq) || !empty(dstSq - pawn_spush(ac)))
+                && (orgR >= RANK_7 || dstR >= RANK_8  // Capture
+                    || (pieces_bb(~ac) & attacks_bb<PAWN>(orgSq, ac) & dstSq) == 0))
                 return false;
         }
         else
@@ -1337,27 +1338,23 @@ bool Position::legal(const Move m) const noexcept {
         }
         break;
     case MT::PROMOTION :
-        if (type_of(movedPc) != PAWN)
-            return false;
-
-        if (!(relative_rank(ac, orgSq) == RANK_7 && relative_rank(ac, dstSq) == RANK_8
-              && ((orgSq + pawn_spush(ac) == dstSq && empty(dstSq))
-                  || ((pieces_bb(~ac) & attacks_bb<PAWN>(orgSq, ac) & dstSq) != 0))))
+        if (type_of(movedPc) != PAWN  //
+            || relative_rank(ac, orgSq) != RANK_7 || relative_rank(ac, dstSq) != RANK_8
+            || ((orgSq + pawn_spush(ac) != dstSq || !empty(dstSq))
+                && (pieces_bb(~ac) & attacks_bb<PAWN>(orgSq, ac) & dstSq) == 0))
             return false;
         break;
     case MT::EN_PASSANT :
-        if (type_of(movedPc) != PAWN)
-            return false;
-
-        if (!(relative_rank(ac, orgSq) == RANK_5 && relative_rank(ac, dstSq) == RANK_6
-              && en_passant_sq() == dstSq && rule50_count() == 0
-              && (pieces_bb(~ac, PAWN) & (dstSq - pawn_spush(ac))) != 0
-              && (empty(dstSq) && empty(dstSq + pawn_spush(ac)))  //
-              && (attacks_bb<PAWN>(orgSq, ac) & dstSq) != 0
-              && (pieces_bb(~ac)
-                  & slide_attackers_bb(  //
-                    kingSq, pieces_bb() ^ make_bb(orgSq, dstSq, dstSq - pawn_spush(ac))))
-                   == 0))
+        if (type_of(movedPc) != PAWN  //
+            || relative_rank(ac, orgSq) != RANK_5 || relative_rank(ac, dstSq) != RANK_6
+            || en_passant_sq() != dstSq || rule50_count() != 0
+            || (pieces_bb(~ac, PAWN) & (dstSq - pawn_spush(ac))) == 0  //
+            || !empty(dstSq) || !empty(dstSq + pawn_spush(ac))         //
+            || (attacks_bb<PAWN>(orgSq, ac) & dstSq) == 0
+            || (pieces_bb(~ac)
+                & slide_attackers_bb(kingSq,
+                                     pieces_bb() ^ make_bb(orgSq, dstSq, dstSq - pawn_spush(ac))))
+                 != 0)
             return false;
         break;
     default :  // CASTLING
