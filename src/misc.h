@@ -1036,11 +1036,11 @@ class FixedVector final {
     }
 
     // Append value if value < max
-    void push_back_if_lt(const T& value, const T& max) noexcept {
+    void push_back_if_lt(const T& value, const T& maxValue) noexcept {
         assert(size() < capacity());
 
         *end() = value;
-        size_ += usize(value < max);
+        size_ += usize(value < maxValue);
     }
 
     void pop_back() noexcept {
