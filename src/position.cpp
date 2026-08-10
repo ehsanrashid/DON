@@ -243,14 +243,14 @@ void Position::set(std::string_view fens, State* newSt) noexcept {
     const auto* const end = p + fens.size();
 
     // Returns '\0' when p >= end (EOF sentinel)
-    auto peek        = [&p, &end]() noexcept -> ichar { return p < end ? *p : '\0'; };
-    auto skip_spaces = [&p, &end]() noexcept {
-        while (p < end && std::isspace(uchar(*p)))
-            ++p;
+    auto peek        = [&p, end]() noexcept -> ichar { return p < end ? *p : '\0'; };
+    auto skip_spaces = [&p, end]() noexcept {
+        for (; p < end && std::isspace(uchar(*p)); ++p)
+        {}
     };
-    auto not_space = [&p, &end]() noexcept -> bool { return p < end && !std::isspace(uchar(*p)); };
-    auto get       = [&p, &end]() noexcept -> ichar { return p < end ? *p++ : '\0'; };
-    auto get_int   = [&p, &end, &skip_spaces](int& out) noexcept -> bool {
+    auto not_space = [&p, end]() noexcept -> bool { return p < end && !std::isspace(uchar(*p)); };
+    auto get       = [&p, end]() noexcept -> ichar { return p < end ? *p++ : '\0'; };
+    auto get_int   = [&p, end, &skip_spaces](int& out) noexcept -> bool {
         skip_spaces();
 
         bool neg = false;
@@ -263,11 +263,10 @@ void Position::set(std::string_view fens, State* newSt) noexcept {
         int val = 0;
 
         bool any = false;
-        while (p < end && std::isdigit(uchar(*p)))
+        for (; p < end && std::isdigit(uchar(*p)); ++p)
         {
             any = true;
-            val = val * 10 + (int) (*p - '0');
-            ++p;
+            val = 10 * val + char_to_digit(*p);
         }
 
         if (!any)

@@ -389,7 +389,7 @@ void set_console_output(ConsoleMode consoleMode = ConsoleMode::Default) noexcept
 [[nodiscard]] constexpr int char_to_digit(char ch) noexcept {
     assert('0' <= ch && ch <= '9' && "char_to_digit: non-digit character");
 
-    return '0' <= ch && ch <= '9' ? ch - '0' : -1;
+    return '0' <= ch && ch <= '9' ? ch - '0' : 0;
 }
 
 constexpr std::string_view timestamp() noexcept { return __TIMESTAMP__; }

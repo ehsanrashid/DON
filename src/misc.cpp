@@ -47,8 +47,8 @@ constexpr std::string_view Version{"dev"};
         return std::string{NullDate};
 
     // Parse month (first 3 chars), then skip space(s), then day, then space, then year
-    const char*       p   = date.data();
-    const char* const end = p + date.size();
+    const auto*       p   = date.data();
+    const auto* const end = p + date.size();
 
     // Parse month (first 3 chars)
     if (end - p < 3)
@@ -63,19 +63,17 @@ constexpr std::string_view Version{"dev"};
         return std::string{NullDate};
 
     // Skip spaces
-    while (p < end && std::isspace(uchar(*p)))
-        ++p;
+    for (; p < end && std::isspace(uchar(*p)); ++p)
+    {}
 
     // Parse day (1-2 digits)
     if (end - p < 1 || !std::isdigit(uchar(*p)))
         return std::string{NullDate};
 
     unsigned day = 0;
-    while (p < end && std::isdigit(uchar(*p)))
+    for (; p < end && std::isdigit(uchar(*p)); ++p)
     {
-        day *= 10;
-        day += char_to_digit(*p);
-        ++p;
+        day = 10 * day + char_to_digit(*p);
     }
 
     // Validate day range
@@ -83,20 +81,20 @@ constexpr std::string_view Version{"dev"};
         return std::string{NullDate};
 
     // Skip spaces/comma
-    while (p < end && (std::isspace(uchar(*p)) || *p == ','))
-        ++p;
+    for (; p < end && (std::isspace(uchar(*p)) || *p == ','); ++p)
+    {}
 
     // Parse year (4 digits)
     if (end - p < 4)
         return std::string{NullDate};
 
     unsigned year = 0;
-    for (usize i = 0; i < 4; ++i)
+    for (const auto* yEnd = p + 4; p != yEnd; ++p)
     {
-        if (!std::isdigit(uchar(p[i])))
+        if (!std::isdigit(uchar(*p)))
             return std::string{NullDate};
-        year *= 10;
-        year += char_to_digit(p[i]);
+
+        year = 10 * year + char_to_digit(*p);
     }
 
     // Validate year range (reasonable bounds)
