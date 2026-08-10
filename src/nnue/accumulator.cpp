@@ -93,16 +93,16 @@ struct AccumulatorUpdateContext final {
         vec_t      acc[Tiling::RegCount];
         psqt_vec_t psqt[Tiling::PSQTRegCount];
 
-        const auto* threatWeights = featureTransformer.threatWeights.data();
-
         const usize removedSize = removed.size();
         const usize addedSize   = added.size();
 
         // clang-format off
+        const auto* threatWeights = featureTransformer.threatWeights.data();
+
         for (IndexType j = 0; j < Dimensions / Tiling::TileHeight; ++j, threatWeights += Tiling::TileHeight)
         {
-            auto* computedTile = reinterpret_cast<const vec_t*>(&computedAcc[j * Tiling::TileHeight]);
-            auto* targetTile   = reinterpret_cast<vec_t*>(&targetAcc[j * Tiling::TileHeight]);
+            const auto* computedTile = reinterpret_cast<const vec_t*>(&computedAcc[j * Tiling::TileHeight]);
+            auto*         targetTile = reinterpret_cast<vec_t*>(&targetAcc[j * Tiling::TileHeight]);
 
             for (IndexType k = 0; k < Tiling::RegCount; ++k)
                 acc[k] = computedTile[k];
@@ -199,8 +199,8 @@ struct AccumulatorUpdateContext final {
 
         for (IndexType j = 0; j < PSQTBuckets / Tiling::PSQTTileHeight; ++j, threatPsqtWeights += Tiling::PSQTTileHeight)
         {
-            auto* computedPsqtTile = reinterpret_cast<const psqt_vec_t*>(&computedPsqtAcc[j * Tiling::PSQTTileHeight]);
-            auto* targetPsqtTile   = reinterpret_cast<psqt_vec_t*>(&targetPsqtAcc[j * Tiling::PSQTTileHeight]);
+            const auto* computedPsqtTile = reinterpret_cast<const psqt_vec_t*>(&computedPsqtAcc[j * Tiling::PSQTTileHeight]);
+            auto*         targetPsqtTile = reinterpret_cast<psqt_vec_t*>(&targetPsqtAcc[j * Tiling::PSQTTileHeight]);
 
             for (IndexType k = 0; k < Tiling::PSQTRegCount; ++k)
                 psqt[k] = computedPsqtTile[k];
@@ -367,40 +367,58 @@ void update_accumulator_incr(Color                               perspective,
     targetState.computed[perspective] = true;
 }
 
-Bitboard changed_bb(const PieceMap& oldPieceMap, const PieceMap& newPieceMap) noexcept {
-#if defined(USE_AVX512) || defined(USE_AVX2)
-    Bitboard samedBB = 0;
+Bitboard change_bb(const PieceMap& oldPieceMap, const PieceMap& newPieceMap) noexcept {
+#if defined(USE_AVX2)
+    Bitboard sameBB = 0;
 
-    for (usize s : {usize(0), SQUARE_NB / 2})
+    for (const usize s : {0, 32})
     {
-        __m256i oldV = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&oldPieceMap[s]));
-        __m256i newV = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&newPieceMap[s]));
-        __m256i cmp  = _mm256_cmpeq_epi8(oldV, newV);
-        u32     mask = _mm256_movemask_epi8(cmp);
-        samedBB |= Bitboard{mask} << s;
+        const __m256i oldV  = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&oldPieceMap[s]));
+        const __m256i newV  = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(&newPieceMap[s]));
+        const __m256i equal = _mm256_cmpeq_epi8(oldV, newV);
+        const u32     mask  = _mm256_movemask_epi8(equal);
+
+        sameBB |= static_cast<Bitboard>(mask) << s;
     }
 
-    return ~samedBB;
+    return ~sameBB;
 #elif defined(USE_NEON)
     uint8x16x4_t oldV = vld4q_u8(reinterpret_cast<const u8*>(oldPieceMap.data()));
     uint8x16x4_t newV = vld4q_u8(reinterpret_cast<const u8*>(newPieceMap.data()));
 
-    auto cmp = [&oldV, &newV](usize i) noexcept { return vceqq_u8(oldV.val[i], newV.val[i]); };
+    const auto equal = [&oldV, &newV](usize i) noexcept {
+        return vceqq_u8(oldV.val[i], newV.val[i]);
+    };
 
-    uint8x16_t cmp_01 = vsriq_n_u8(cmp(1), cmp(0), 1);
-    uint8x16_t cmp_23 = vsriq_n_u8(cmp(3), cmp(2), 1);
-    uint8x16_t merged = vsriq_n_u8(cmp_23, cmp_01, 2);
-    merged            = vsriq_n_u8(merged, merged, 4);
-    uint8x8_t samedBB = vshrn_n_u16(vreinterpretq_u16_u8(merged), 4);
+    uint8x16_t equal01 = vsriq_n_u8(equal(1), equal(0), 1);
+    uint8x16_t equal23 = vsriq_n_u8(equal(3), equal(2), 1);
+    uint8x16_t merged  = vsriq_n_u8(equal23, equal01, 2);
+    merged             = vsriq_n_u8(merged, merged, 4);
 
-    return ~vget_lane_u64(vreinterpret_u64_u8(samedBB), 0);
+    const uint8x8_t packed = vshrn_n_u16(vreinterpretq_u16_u8(merged), 4);
+    const Bitboard  sameBB = vget_lane_u64(vreinterpret_u64_u8(packed), 0);
+
+    return ~sameBB;
+#elif defined(USE_SSE2)
+    Bitboard sameBB = 0;
+
+    for (const usize s : {0, 16, 32, 48})
+    {
+        const __m128i oldV  = _mm_loadu_si128(reinterpret_cast<const __m128i*>(&oldPieceMap[s]));
+        const __m128i newV  = _mm_loadu_si128(reinterpret_cast<const __m128i*>(&newPieceMap[s]));
+        const __m128i equal = _mm_cmpeq_epi8(oldV, newV);
+
+        sameBB |= static_cast<Bitboard>(_mm_movemask_epi8(equal)) << s;
+    }
+
+    return ~sameBB;
 #else
-    Bitboard changedBB = 0;
+    Bitboard changeBB = 0;
 
     for (usize s = 0; s < SQUARE_NB; ++s)
-        changedBB |= Bitboard{oldPieceMap[s] != newPieceMap[s]} << s;
+        changeBB |= static_cast<Bitboard>(oldPieceMap[s] != newPieceMap[s]) << s;
 
-    return changedBB;
+    return changeBB;
 #endif
 }
 
@@ -420,10 +438,10 @@ void update_accumulator_refresh_cache(Color                            perspecti
     auto& pieceMap = pos.piece_map();
     auto  piecesBB = pos.pieces_bb();
 
-    Bitboard changedBB = changed_bb(entry.pieceMap, pieceMap);
+    Bitboard changeBB = change_bb(entry.pieceMap, pieceMap);
 
-    Bitboard removedBB = changedBB & entry.piecesBB;
-    Bitboard addedBB   = changedBB & piecesBB;
+    Bitboard removedBB = changeBB & entry.piecesBB;
+    Bitboard addedBB   = changeBB & piecesBB;
 
     PSQFeatureSet::append_map_changed_indices(perspective, kingSq, entry.pieceMap, pieceMap,
                                               removedBB, addedBB, removed, added);
@@ -439,13 +457,13 @@ void update_accumulator_refresh_cache(Color                            perspecti
     vec_t      acc[Tiling::RegCount];
     psqt_vec_t psqt[Tiling::PSQTRegCount];
 
-    const auto* weights = featureTransformer.weights.data();
-
     const usize removedSize = removed.size();
     const usize addedSize   = added.size();
 
     // clang-format off
-    for (IndexType j = 0; j < Dimensions / Tiling::TileHeight; ++j)
+    const auto* weights = featureTransformer.weights.data();
+
+    for (IndexType j = 0; j < Dimensions / Tiling::TileHeight; ++j, weights += Tiling::TileHeight)
     {
         auto* accTile   = reinterpret_cast<vec_t*>(&accState.accumulation[perspective][j * Tiling::TileHeight]);
         auto* entryTile = reinterpret_cast<vec_t*>(&entry.accumulation[j * Tiling::TileHeight]);
@@ -475,13 +493,11 @@ void update_accumulator_refresh_cache(Color                            perspecti
             vec_store(&entryTile[k], acc[k]);
             vec_store(&accTile[k], acc[k]);
         }
-
-        weights += Tiling::TileHeight;
     }
 
     const auto* psqtWeights = featureTransformer.psqtWeights.data();
 
-    for (IndexType j = 0; j < PSQTBuckets / Tiling::PSQTTileHeight; ++j)
+    for (IndexType j = 0; j < PSQTBuckets / Tiling::PSQTTileHeight; ++j, psqtWeights += Tiling::PSQTTileHeight)
     {
         auto* accPsqtTile   = reinterpret_cast<psqt_vec_t*>(&accState.psqtAccumulation[perspective][j * Tiling::PSQTTileHeight]);
         auto* entryPsqtTile = reinterpret_cast<psqt_vec_t*>(&entry.psqtAccumulation[j * Tiling::PSQTTileHeight]);
@@ -512,8 +528,6 @@ void update_accumulator_refresh_cache(Color                            perspecti
             vec_store_psqt(&accPsqtTile  [k], psqt[k]);
             vec_store_psqt(&entryPsqtTile[k], psqt[k]);
         }
-
-        psqtWeights += Tiling::PSQTTileHeight;
     }
     // clang-format on
 #else
