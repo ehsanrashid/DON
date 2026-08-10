@@ -24,10 +24,27 @@
 #include <type_traits>
 #include <unordered_map>
 
+#include "memory.h"
 #include "misc.h"
 #include "types.h"
 
 namespace DON {
+
+inline constexpr u16 LOW_PLY_QUIET_SIZE = 5;
+
+inline constexpr int CORRECTION_HISTORY_LIMIT = 1024;
+
+inline constexpr usize QUIET_HISTORY_SIZE = 1u << 16;  // Max upto 16-bit
+static_assert((QUIET_HISTORY_SIZE & (QUIET_HISTORY_SIZE - 1)) == 0,
+              "QUIET_HISTORY_SIZE has to be power of 2");
+
+inline constexpr usize PAWN_HISTORY_BASE_SIZE = 1u << 14;
+static_assert((PAWN_HISTORY_BASE_SIZE & (PAWN_HISTORY_BASE_SIZE - 1)) == 0,
+              "PAWN_HISTORY_BASE_SIZE has to be power of 2");
+
+inline constexpr usize CORRECTION_HISTORY_BASE_SIZE = 1u << 16;
+static_assert((CORRECTION_HISTORY_BASE_SIZE & (CORRECTION_HISTORY_BASE_SIZE - 1)) == 0,
+              "CORRECTION_HISTORY_BASE_SIZE has to be power of 2");
 
 // StatsEntry is the container of various numerical statistics.
 // Use a class instead of a naked value to directly call history update operator<<() on the entry.
@@ -66,22 +83,42 @@ class StatsEntry final {
     T value;
 };
 
+template<typename T>
+class DynamicArray final {
+   public:
+    explicit DynamicArray(usize size) noexcept :
+        size_(size) {
+        assert(size != 0);
 
-inline constexpr u16 LOW_PLY_QUIET_SIZE = 5;
+        data_ = make_unique_aligned_large_page<T[]>(size);
+    }
 
-inline constexpr int CORRECTION_HISTORY_LIMIT = 1024;
+    [[nodiscard]] usize size() const noexcept { return size_; }
 
-inline constexpr usize QUIET_HISTORY_SIZE = 1u << 16;  // Max upto 16-bit
-static_assert((QUIET_HISTORY_SIZE & (QUIET_HISTORY_SIZE - 1)) == 0,
-              "QUIET_HISTORY_SIZE has to be power of 2");
+    T*       data() noexcept { return data_.get(); }
+    const T* data() const noexcept { return data_.get(); }
 
-inline constexpr usize PAWN_HISTORY_BASE_SIZE = 1u << 14;
-static_assert((PAWN_HISTORY_BASE_SIZE & (PAWN_HISTORY_BASE_SIZE - 1)) == 0,
-              "PAWN_HISTORY_BASE_SIZE has to be power of 2");
+    T& operator[](usize idx) noexcept {
+        assert(idx < size());
+        return data()[idx];
+    }
+    const T& operator[](usize idx) const noexcept {
+        assert(idx < size());
+        return data()[idx];
+    }
 
-inline constexpr usize CORRECTION_HISTORY_BASE_SIZE = 1u << 16;
-static_assert((CORRECTION_HISTORY_BASE_SIZE & (CORRECTION_HISTORY_BASE_SIZE - 1)) == 0,
-              "CORRECTION_HISTORY_BASE_SIZE has to be power of 2");
+    template<typename U>
+    void fill(usize beg, usize end, const U& v) noexcept {
+        assert(beg <= end && end <= size());
+
+        for (usize idx = beg; idx < end; ++idx)
+            data()[idx].fill(v);
+    }
+
+   private:
+    LargePagePtr<T[]> data_;
+    usize             size_;
+};
 
 enum class HType : u8 {
     CAPTURE,       // By move's [piece][dstSq][captured piece type]

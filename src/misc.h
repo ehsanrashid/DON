@@ -62,8 +62,6 @@
     #include <xmmintrin.h>  // SSE intrinsics header for _mm_prefetch()
 #endif
 
-#include "memory.h"
-
 #define STRING_LITERAL(x) #x
 #define STRINGIFY(x) STRING_LITERAL(x)
 
@@ -206,7 +204,7 @@ inline constexpr usize BLOCK_8  = 2 * BLOCK_4;
 inline constexpr usize BLOCK_16 = 4 * BLOCK_4;
 inline constexpr usize BLOCK_32 = 8 * BLOCK_4;
 
-inline constexpr i64 INT_LIMIT = (i64{1} << 31) - 1;
+inline constexpr i64 INT_LIMIT = std::numeric_limits<i32>::max();
 
 inline constexpr double LN2   = 0.693147180559945309417232121458176568;
 inline constexpr double SQRT2 = 1.41421356237309504880168872420969808;
@@ -389,26 +387,33 @@ void set_console_output(ConsoleMode consoleMode = ConsoleMode::Default) noexcept
 [[nodiscard]] constexpr int char_to_digit(char ch) noexcept {
     assert('0' <= ch && ch <= '9' && "char_to_digit: non-digit character");
 
-    return '0' <= ch && ch <= '9' ? ch - '0' : -1;
+    return '0' <= ch && ch <= '9' ? ch - '0' : 0;
 }
 
 constexpr std::string_view timestamp() noexcept { return __TIMESTAMP__; }
 
-inline unsigned to_month(std::string_view m) noexcept {
+constexpr char to_lower(const char ch) noexcept {
+    return 'A' <= ch && ch <= 'Z' ? char(ch + ('a' - 'A')) : ch;
+}
+constexpr char to_upper(const char ch) noexcept {
+    return 'a' <= ch && ch <= 'z' ? char(ch - ('a' - 'A')) : ch;
+}
+
+constexpr unsigned to_month(std::string_view m) noexcept {
     assert(m.size() == 3);
-    return std::tolower(m[0]) == 'j' && std::tolower(m[1]) == 'a' ? 1
-         : std::tolower(m[0]) == 'f'                              ? 2
-         : std::tolower(m[0]) == 'm' && std::tolower(m[2]) == 'r' ? 3
-         : std::tolower(m[0]) == 'a' && std::tolower(m[1]) == 'p' ? 4
-         : std::tolower(m[0]) == 'm' && std::tolower(m[2]) == 'y' ? 5
-         : std::tolower(m[0]) == 'j' && std::tolower(m[2]) == 'n' ? 6
-         : std::tolower(m[0]) == 'j' && std::tolower(m[2]) == 'l' ? 7
-         : std::tolower(m[0]) == 'a' && std::tolower(m[1]) == 'u' ? 8
-         : std::tolower(m[0]) == 's'                              ? 9
-         : std::tolower(m[0]) == 'o'                              ? 10
-         : std::tolower(m[0]) == 'n'                              ? 11
-         : std::tolower(m[0]) == 'd'                              ? 12
-                                                                  : 0;
+    return to_lower(m[0]) == 'j' && to_lower(m[1]) == 'a' ? 1
+         : to_lower(m[0]) == 'f'                          ? 2
+         : to_lower(m[0]) == 'm' && to_lower(m[2]) == 'r' ? 3
+         : to_lower(m[0]) == 'a' && to_lower(m[1]) == 'p' ? 4
+         : to_lower(m[0]) == 'm' && to_lower(m[2]) == 'y' ? 5
+         : to_lower(m[0]) == 'j' && to_lower(m[2]) == 'n' ? 6
+         : to_lower(m[0]) == 'j' && to_lower(m[2]) == 'l' ? 7
+         : to_lower(m[0]) == 'a' && to_lower(m[1]) == 'u' ? 8
+         : to_lower(m[0]) == 's'                          ? 9
+         : to_lower(m[0]) == 'o'                          ? 10
+         : to_lower(m[0]) == 'n'                          ? 11
+         : to_lower(m[0]) == 'd'                          ? 12
+                                                          : 0;
 }
 
 std::string engine_info(bool uci = false) noexcept;
@@ -882,11 +887,19 @@ class MultiArray final {
     constexpr auto size() const noexcept { return data_.size(); }
     constexpr auto empty() const noexcept { return data_.empty(); }
 
-    constexpr const auto& at(size_type idx) const noexcept { return data_.at(idx); }
-    constexpr auto&       at(size_type idx) noexcept { return data_.at(idx); }
+    constexpr const auto& at(size_type idx) const { return data_.at(idx); }
+    constexpr auto&       at(size_type idx) { return data_.at(idx); }
 
-    constexpr auto& operator[](size_type idx) const noexcept { return data_[idx]; }
-    constexpr auto& operator[](size_type idx) noexcept { return data_[idx]; }
+    constexpr const auto& operator[](size_type idx) const noexcept {
+        assert(idx < size());
+
+        return data_[idx];
+    }
+    constexpr auto& operator[](size_type idx) noexcept {
+        assert(idx < size());
+
+        return data_[idx];
+    }
 
     // Recursively fill all dimensions by calling the sub fill method
     template<typename U>
@@ -957,43 +970,6 @@ class MultiArray final {
     ArrayType data_;
 };
 
-template<typename T>
-class DynamicArray final {
-   public:
-    explicit DynamicArray(usize size) noexcept :
-        size_(size) {
-        assert(size != 0);
-
-        data_ = make_unique_aligned_large_page<T[]>(size);
-    }
-
-    [[nodiscard]] usize size() const noexcept { return size_; }
-
-    T*       data() noexcept { return data_.get(); }
-    const T* data() const noexcept { return data_.get(); }
-
-    T& operator[](usize idx) noexcept {
-        assert(idx < size());
-        return data()[idx];
-    }
-    const T& operator[](usize idx) const noexcept {
-        assert(idx < size());
-        return data()[idx];
-    }
-
-    template<typename U>
-    void fill(usize beg, usize end, const U& v) noexcept {
-        assert(beg <= end && end <= size());
-
-        for (usize idx = beg; idx < end; ++idx)
-            data()[idx].fill(v);
-    }
-
-   private:
-    LargePagePtr<T[]> data_;
-    usize             size_;
-};
-
 template<typename T, usize Capacity, typename SizeType = usize>
 class FixedVector final {
     static_assert(Capacity > 0, "Capacity must be > 0");
@@ -1009,30 +985,40 @@ class FixedVector final {
     const T* data() const noexcept { return data_.data(); }
 
     T*       begin() noexcept { return data(); }
-    T*       end() noexcept { return begin() + size(); }
     const T* begin() const noexcept { return data(); }
+
+    T*       end() noexcept { return begin() + size(); }
     const T* end() const noexcept { return begin() + size(); }
+
     const T* cbegin() const noexcept { return data(); }
     const T* cend() const noexcept { return cbegin() + size(); }
 
-    bool push_back(const T& value) noexcept {
+    void push_back(const T& value) noexcept {
         assert(size() < capacity());
 
-        data()[size_++] = value;  // copy-assign into pre-initialized slot
-        return true;
+        *end() = value;  // copy-assign into pre-initialized slot
+        ++size_;
     }
-    bool push_back(T&& value) noexcept {
+    void push_back(T&& value) noexcept {
         assert(size() < capacity());
 
-        data()[size_++] = std::move(value);
-        return true;
+        *end() = std::move(value);
+        ++size_;
     }
     template<typename... Args>
-    bool emplace_back(Args&&... args) noexcept {
+    void emplace_back(Args&&... args) noexcept {
         assert(size() < capacity());
 
-        data()[size_++] = T(std::forward<Args>(args)...);
-        return true;
+        *end() = T(std::forward<Args>(args)...);
+        ++size_;
+    }
+
+    // Append value if value < max
+    void push_back_if_lt(const T& value, const T& maxValue) noexcept {
+        assert(size() < capacity());
+
+        *end() = value;
+        size_ += usize(value < maxValue);
     }
 
     void pop_back() noexcept {
@@ -1092,34 +1078,42 @@ struct FixedText final {
         assert(size() < capacity());
         if (size() >= capacity())
             return *this;
-        data()[size_++] = ch;
+        *end() = ch;
+        ++size_;
         return *this;
     }
 
     FixedText& write(std::string_view sv) noexcept {
         assert(size() + sv.size() <= capacity());
-        std::memcpy(data() + size(), sv.data(), sv.size());
+        std::memcpy(end(), sv.data(), sv.size());
         size_ += sv.size();
         return *this;
     }
 
     FixedText& write(int v) noexcept {
-        char* beg      = data();
-        char* end      = beg + capacity();
-        auto [ptr, ec] = std::to_chars(beg + size(), end, v);
-        size_          = ptr - beg;
+        auto [ptr, ec] = std::to_chars(end(), begin() + capacity(), v);
+        assert(ec == std::errc{});
+        size_ = ptr - begin();
         return *this;
     }
 
     [[nodiscard]] constexpr usize capacity() const noexcept { return data_.size(); }
 
-    char*                     data() noexcept { return data_.data(); }
+    char*       begin() noexcept { return data(); }
+    const char* begin() const noexcept { return data(); }
+
+    char*       end() noexcept { return data() + size(); }
+    const char* end() const noexcept { return data() + size(); }
+
+    char*       data() noexcept { return data_.data(); }
+    const char* data() const noexcept { return data_.data(); }
+
     [[nodiscard]] const char* c_str() const noexcept { return data_.data(); }
-    [[nodiscard]] usize       size() const noexcept { return size_; }
 
-    [[nodiscard]] bool empty() const noexcept { return size() == 0; }
+    [[nodiscard]] usize size() const noexcept { return size_; }
+    [[nodiscard]] bool  empty() const noexcept { return size() == 0; }
 
-    [[nodiscard]] std::string_view view() const noexcept { return {data_.data(), size()}; }
+    [[nodiscard]] std::string_view view() const noexcept { return {data(), size()}; }
 
     // implicit conversion if you want
     operator std::string_view() const noexcept { return view(); }
@@ -1343,7 +1337,8 @@ constexpr u32 combine_hashes(std::initializer_list<u32> hashes) noexcept {
 class StringViewStreamBuf final: public std::streambuf {
    public:
     explicit StringViewStreamBuf(std::string_view sv) noexcept {
-        // Cast away const (safe: only for reading via std::istream)
+        // std::streambuf requires char* for the get area.
+        // The buffer is read-only; no characters are modified.
         auto* p = const_cast<char*>(sv.data());
         setg(p, p, p + sv.size());  // Only GET area (reading enabled)
         // Do NOT call setp(p, p + sv.size()) - no PUT area (writing disabled)

@@ -20,7 +20,6 @@
 #include <string_view>
 
 #include "attacks.h"
-#include "memory.h"
 #include "misc.h"
 #include "position.h"
 #include "tune.h"

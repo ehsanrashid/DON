@@ -61,7 +61,10 @@ alignas(CACHE_LINE_SIZE) constexpr auto Reductions = []() constexpr noexcept {
     return reductions;
 }();
 
-constexpr int reduction(Depth depth, u16 moveCount, int deltaRatio, bool improve) noexcept {
+constexpr int reduction(const Depth depth,
+                        const u16   moveCount,
+                        const int   deltaRatio,
+                        const bool  improve) noexcept {
     int reductionScale = Reductions[depth] * Reductions[moveCount];
     return std::max(982 + reductionScale - deltaRatio
                       + int(!improve) * int(0.384765625 * double(reductionScale)),
@@ -69,14 +72,14 @@ constexpr int reduction(Depth depth, u16 moveCount, int deltaRatio, bool improve
 }
 
 // Add a small random value to draw evaluation to avoid 3-fold blindness
-constexpr Value draw_value(Key key, u64 nodes) noexcept {
+constexpr Value draw_value(const Key key, const u64 nodes) noexcept {
     return VALUE_DRAW + Value(key & 1) - Value(nodes & 1);
 }
 
 // Adjusts a mate or TB score from "plies to mate from the root"
 // to "plies to mate from the current position". Standard scores are unchanged.
 // The function is called before storing a value in the transposition table.
-constexpr Value value_to_tt(Value v, i16 ply) noexcept {
+constexpr Value value_to_tt(const Value v, const i16 ply) noexcept {
     return is_win(v) ? v + ply : is_loss(v) ? v - ply : v;
 }
 
@@ -85,7 +88,7 @@ constexpr Value value_to_tt(Value v, i16 ply) noexcept {
 // current position) to "plies to mate/be mated (TB win/loss) from the root".
 // However, to avoid potentially false mate or TB scores related to the 50 moves rule
 // and the graph history interaction, return the highest non-TB score instead.
-constexpr Value value_from_tt(Value v, i16 ply, i16 rule50Count) noexcept {
+constexpr Value value_from_tt(const Value v, const i16 ply, const i16 rule50Count) noexcept {
 
     if (!is_valid(v))
         return v;
@@ -118,6 +121,13 @@ constexpr Value value_from_tt(Value v, i16 ply, i16 rule50Count) noexcept {
     }
 
     return v;
+}
+
+constexpr Value blend_values(const Value bestValue,
+                             const Value targetValue,
+                             const i32   bestWeight,
+                             const i32   totalWeight) noexcept {
+    return (bestWeight * bestValue + (totalWeight - bestWeight) * targetValue) / totalWeight;
 }
 
 constexpr Bound fail_bound(bool failHigh) noexcept {
@@ -279,7 +289,7 @@ void Worker::start_search() noexcept {
     }
 
     if (!limit.infinite)
-        transpositionTable.increment_generation();
+        transpositionTable.advance_generation();
 
     std::string bestMove, ponderMove;
 
@@ -331,8 +341,8 @@ void Worker::start_search() noexcept {
         {
             think = true;
 
-            threads.start_search();  // start non-main threads
-            iterative_deepening();   // main thread start searching
+            threads.start_search();  // Starts non-main threads search
+            iterative_deepening();   // Start main-thread search
         }
 
         // When reach the maximum depth, can arrive here without a raise of threads.stop.
@@ -624,8 +634,8 @@ void Worker::iterative_deepening() noexcept {
                 assert(rootDelta != 0);
 
                 // Reduce search depth according to fail-highs and research count.
-                Depth penaltyDepth  = failHighCnt + 3 * (1 + researchCnt) / 4;
-                Depth adjustedDepth = std::max<Depth>(rootDepth - penaltyDepth, 1);
+                const Depth penaltyDepth  = failHighCnt + 3 * (1 + researchCnt) / 4;
+                const Depth adjustedDepth = std::max<Depth>(rootDepth - penaltyDepth, 1);
 
                 bestValue = search<NT::ROOT>(rootPos, ss, alpha, beta, adjustedDepth);
 
@@ -777,7 +787,8 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         }
 
         // Limit the depth if extensions made it too large
-        depth = std::min<Depth>(depth, DEPTH_MAX);
+        if (depth > DEPTH_MAX)
+            depth = DEPTH_MAX;
 
         assert(DEPTH_ZERO < depth && depth <= DEPTH_MAX);
     }
@@ -913,11 +924,11 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     // Hindsight adjustment of reductions based on static evaluation difference.
     // The ply after beginning an LMR search, adjust the reduced depth based on
     // how the opponent's move affected the static evaluation.
-    if (red >= 3 && !worsen)
-        depth = std::min<Depth>(depth + 1, DEPTH_MAX);
+    if (depth < DEPTH_MAX && red >= 3 && !worsen)
+        ++depth;
 
-    if (red >= 2 && ss->evalValue > 166 - (ss - 1)->evalValue)
-        depth = std::max<Depth>(depth - 1, 1);
+    if (depth > 1 && red >= 2 && ss->evalValue > 166 - (ss - 1)->evalValue)
+        --depth;
 
     auto& pawnHistory = histories.pawn(pos.pawn_key());
 
@@ -963,8 +974,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
                     pos.undo_move(ttd.move);
 
                     // Check that the ttValue after the ttMove would also trigger a cutoff
-                    if (!is_valid(ttdNext.value)
-                        || ((ttd.value >= beta) == (-ttdNext.value >= beta)))
+                    if (!is_valid(ttdNext.value) || (ttd.value >= beta) == (-ttdNext.value >= beta))
                         return ttd.value;
                 }
                 else
@@ -1230,7 +1240,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     // Step 12. Small ProbCut idea
     if (!is_loss(beta) && is_valid(ttd.value) && !is_win(ttd.value))
     {
-        Value probCutBeta = std::min(428 + beta, +VALUE_INFINITE);
+        const Value probCutBeta = std::min(428 + beta, +VALUE_INFINITE);
 
         if (ttd.value >= probCutBeta && ttd.depth >= depth - 4 && is_ok(ttd.bound & Bound::LOWER))
             return probCutBeta;
@@ -1421,7 +1431,8 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
                 extension = 1 + int(singularValue + doubleMargin <= singularAlpha)
                               + int(singularValue + tripleMargin <= singularAlpha);
 
-                depth = std::min<Depth>(depth + 1, DEPTH_MAX);
+                if (depth < DEPTH_MAX)
+                    ++depth;
             }
             // Multi-cut pruning
             // If the ttMove is assumed to fail high based on the bound of the TT entry, and
@@ -1616,7 +1627,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
                 const auto* const childPv = (ss + 1)->pv;
                 assert(childPv != nullptr);
 
-                for (Move m : *childPv)
+                for (const Move m : *childPv)
                     rm.pv.push_back(m);
 
                 // Record how often the best move has been changed in each iteration.
@@ -1689,7 +1700,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         bestValue = exclude ? alpha : ss->inCheck ? mated_in(ss->ply) : VALUE_DRAW;
     // Adjust best value for fail high cases
     else if (bestValue > beta && !is_win(bestValue) && !is_loss(beta))
-        bestValue = (depth * bestValue + beta) / (depth + 1);
+        bestValue = blend_values(bestValue, beta, depth, depth + 1);
 
     // Don't let best value inflate too high (tb)
     if constexpr (PVNode)
@@ -1879,11 +1890,10 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     if (bestValue >= beta)
     {
         if (bestValue > beta && !is_win(bestValue) && !is_loss(beta))
-            bestValue = (441 * bestValue + 583 * beta) / 1024;
+            bestValue = blend_values(bestValue, beta, 441, 1024);
 
         if (!ttd.hit)
-            ttu.update(Move::None, value_to_tt(bestValue, ss->ply), evalValue, DEPTH_NONE,
-                       Bound::LOWER, false);
+            ttu.update(Move::None, VALUE_NONE, evalValue, DEPTH_NONE, Bound::LOWER, false);
 
         return bestValue;
     }
@@ -1894,7 +1904,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
         // clang-format on
     }
 
-    Move preMove = (ss - 1)->move;
+    const Move preMove = (ss - 1)->move;
 
     const bool   preOk = preMove.is_ok();
     const Square preSq = preOk ? preMove.dst_sq() : SQ_NONE;
@@ -2013,8 +2023,8 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
         }
         else
         {
+            // Only check for stalemate under specific conditions
             const Color ac = pos.active_color();
-
             if (bestValue != VALUE_DRAW  //
                 && type_of(pos.captured_pc()) >= KNIGHT
                 // No pawn pushes available
@@ -2026,7 +2036,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     }
     // Adjust best value for fail high cases
     else if (bestValue > beta && !is_win(bestValue) && !is_loss(beta))
-        bestValue = (462 * bestValue + 562 * beta) / 1024;
+        bestValue = blend_values(bestValue, beta, 462, 1024);
 
     // Save gathered info in transposition table
     ttu.update(bestMove, value_to_tt(bestValue, ss->ply), evalValue, DEPTH_ZERO,
@@ -2134,7 +2144,7 @@ void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Sta
 
         // Decrease history for all non-best quiet moves
         int decayQuietMalus = constexpr_round(1.0180 * double(malus));
-        for (Move qm : searchedMoves[0])
+        for (const Move qm : searchedMoves[0])
         {
             update_quiet_histories(pos, pawnHistory, ss, qm, -decayQuietMalus);
             decayQuietMalus = constexpr_round(0.8994 * double(decayQuietMalus));
@@ -2143,7 +2153,7 @@ void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Sta
 
     // Decrease history for all non-best capture moves
     int decayCaptureMalus = constexpr_round(1.4541 * double(malus));
-    for (Move cm : searchedMoves[1])
+    for (const Move cm : searchedMoves[1])
     {
         update_capture_history(pos, cm, -decayCaptureMalus);
         decayCaptureMalus = constexpr_round(0.9900 * double(decayCaptureMalus));
@@ -2191,7 +2201,7 @@ int Worker::correction_value(const Position& pos, const Stack* const ss) const n
     const Color ac = pos.active_color();
 
     i64 correctionValue =
-           + i64{7670} * int(histories.    pawn_correction<WHITE>(pos.    pawn_key(WHITE))[ac]
+           + i64{7669} * int(histories.    pawn_correction<WHITE>(pos.    pawn_key(WHITE))[ac]
                            + histories.    pawn_correction<BLACK>(pos.    pawn_key(BLACK))[ac])
            + i64{5284} * int(histories.   minor_correction<WHITE>(pos.   minor_key(WHITE))[ac]
                            + histories.   minor_correction<BLACK>(pos.   minor_key(BLACK))[ac])
@@ -2250,9 +2260,7 @@ bool Worker::ponder_move_extracted() noexcept {
     assert(rm0.pv.size() == 1);
 
     const Move bestMove = rm0.pv[0];
-
-    if (bestMove == Move::None)
-        return false;
+    assert(bestMove != Move::None);
 
     State st;
     rootPos.do_move(bestMove, st, true, this);
@@ -2265,9 +2273,9 @@ bool Worker::ponder_move_extracted() noexcept {
     }
 
     // Legal moves for the opponent
-    MoveList<GenType::LEGAL> oLegalMoves(rootPos);
+    MoveList<GenType::LEGAL> legalMoves(rootPos);
 
-    if (!oLegalMoves.empty())
+    if (!legalMoves.empty())
     {
         Move ponderMove;
 
@@ -2275,7 +2283,7 @@ bool Worker::ponder_move_extracted() noexcept {
 
         ponderMove = ttd.hit ? legal_move(ttd.move, rootPos) : Move::None;
 
-        if (ponderMove == Move::None || !oLegalMoves.contains(ponderMove))
+        if (ponderMove == Move::None || !legalMoves.contains(ponderMove))
         {
             ponderMove = Move::None;
 
@@ -2305,8 +2313,8 @@ bool Worker::ponder_move_extracted() noexcept {
 
             if (ponderMove == Move::None)
             {
-                std::uniform_int_distribution<usize> distribution(0, oLegalMoves.size() - 1);
-                ponderMove = *(oLegalMoves.begin() + distribution(prng));
+                std::uniform_int_distribution<usize> distribution(0, legalMoves.size() - 1);
+                ponderMove = *(legalMoves.begin() + distribution(prng));
             }
         }
 
@@ -2359,7 +2367,7 @@ void Worker::extend_tb_pv(const usize index, Value& value) noexcept {
 
         RootMoves rms;
 
-        for (Move m : MoveList<GenType::LEGAL>(rootPos))
+        for (const Move m : MoveList<GenType::LEGAL>(rootPos))
             rms.emplace_back(m);
 
         const auto tbCfg =
@@ -2406,7 +2414,7 @@ void Worker::extend_tb_pv(const usize index, Value& value) noexcept {
 
         RootMoves rms;
 
-        for (Move m : MoveList<GenType::LEGAL>(rootPos))
+        for (const Move m : MoveList<GenType::LEGAL>(rootPos))
         {
             auto& rm = rms.emplace_back(m);
 
@@ -2414,7 +2422,7 @@ void Worker::extend_tb_pv(const usize index, Value& value) noexcept {
             rootPos.do_move(m, st);
             // Give a score of each move to break DTZ ties
             // restricting opponent mobility, but not giving the opponent a capture.
-            for (Move om : MoveList<GenType::LEGAL>(rootPos))
+            for (const Move om : MoveList<GenType::LEGAL>(rootPos))
                 rm.tbRank -= 1 + 99 * rootPos.capture(om);
 
             rootPos.undo_move(m);

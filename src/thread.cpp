@@ -19,7 +19,7 @@
 
 #include <algorithm>
 #include <chrono>
-#include <cstdint>
+#include <limits>
 #include <ratio>
 #include <string>
 #include <string_view>
@@ -336,7 +336,7 @@ struct ThreadMetric final {
 
         Value value = rm.effective_value();
 
-        assert(rm.id != UINT16_MAX && rm.id < votes.size());
+        assert(rm.id != std::numeric_limits<u16>::max() && rm.id < votes.size());
         u64 voteCount = votes[rm.id];
 
         return {
@@ -455,7 +455,7 @@ const Thread* Threads::best_thread() const noexcept {
     {
         const auto& rm = th->worker->rootMoves[0];
 
-        assert(rm.id != UINT16_MAX && rm.id < votes.size());
+        assert(rm.id != std::numeric_limits<u16>::max() && rm.id < votes.size());
 
         votes[rm.id] += calc_vote_weight(th);
     }
@@ -516,7 +516,7 @@ void Threads::start(Position&      pos,
     }
     else
     {
-        for (Move m : legalMoves)
+        for (const Move m : legalMoves)
             rootMoves.emplace_back(m);
     }
 

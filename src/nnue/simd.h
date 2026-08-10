@@ -18,11 +18,7 @@
 #ifndef NNUE_SIMD_H_INCLUDED
 #define NNUE_SIMD_H_INCLUDED
 
-#if defined(USE_AVX512ICL)
-    #include <immintrin.h>
-#elif defined(USE_AVX512)
-    #include <immintrin.h>
-#elif defined(USE_AVX2)
+#if defined(USE_AVX2)
     #include <immintrin.h>
 #elif defined(USE_SSE41)
     #include <smmintrin.h>
@@ -293,9 +289,11 @@ fused(const typename VecWrapper::type& in, const T& operand, const Ts&... operan
 }
 
 #if defined(USE_AVX512)
-inline int m512_hadd(__m512i sum, int bias) noexcept { return _mm512_reduce_add_epi32(sum) + bias; }
+inline int m512_hadd(const __m512i sum, const int bias) noexcept {
+    return _mm512_reduce_add_epi32(sum) + bias;
+}
 
-inline void m512_add_dpbusd_epi32(__m512i& acc, __m512i a, __m512i b) noexcept {
+inline void m512_add_dpbusd_epi32(__m512i& acc, const __m512i a, const __m512i b) noexcept {
     #if defined(USE_VNNI)
     acc = _mm512_dpbusd_epi32(acc, a, b);
     #else
@@ -308,41 +306,39 @@ inline void m512_add_dpbusd_epi32(__m512i& acc, __m512i a, __m512i b) noexcept {
 #endif  // USE_AVX512
 
 #if defined(USE_AVX2)
-inline int m256_hadd(__m256i sum, int bias) noexcept {
-    __m128i sum128 = _mm_add_epi32(_mm256_castsi256_si128(sum), _mm256_extracti128_si256(sum, 1));
-    sum128         = _mm_add_epi32(sum128, _mm_shuffle_epi32(sum128, _MM_PERM_BADC));
-    sum128         = _mm_add_epi32(sum128, _mm_shuffle_epi32(sum128, _MM_PERM_CDAB));
-    return _mm_cvtsi128_si32(sum128) + bias;
+inline int m256_hadd(const __m256i sum, const int bias) noexcept {
+    __m128i sum_ = _mm_add_epi32(_mm256_castsi256_si128(sum), _mm256_extracti128_si256(sum, 1));
+    sum_         = _mm_add_epi32(sum_, _mm_shuffle_epi32(sum_, _MM_PERM_BADC));
+    sum_         = _mm_add_epi32(sum_, _mm_shuffle_epi32(sum_, _MM_PERM_CDAB));
+    return _mm_cvtsi128_si32(sum_) + bias;
 }
 
-inline void m256_add_dpbusd_epi32(__m256i& acc, __m256i a, __m256i b) noexcept {
+inline void m256_add_dpbusd_epi32(__m256i& acc, const __m256i a, const __m256i b) noexcept {
     #if defined(USE_VNNI)
     acc = _mm256_dpbusd_epi32(acc, a, b);
     #else
-    __m256i product0 = _mm256_maddubs_epi16(a, b);
-    product0         = _mm256_madd_epi16(product0, _mm256_set1_epi16(1));
-    acc              = _mm256_add_epi32(acc, product0);
+    const __m256i product = _mm256_maddubs_epi16(a, b);
+    acc                   = _mm256_add_epi32(acc, _mm256_madd_epi16(product, _mm256_set1_epi16(1)));
     #endif
 }
 
 #endif  // USE_AVX2
 
 #if defined(USE_SSSE3)
-inline int m128_hadd(__m128i sum, int bias) noexcept {
-    sum = _mm_add_epi32(sum, _mm_shuffle_epi32(sum, 0x4E));  //_MM_PERM_BADC
-    sum = _mm_add_epi32(sum, _mm_shuffle_epi32(sum, 0xB1));  //_MM_PERM_CDAB
-    return _mm_cvtsi128_si32(sum) + bias;
+inline int m128_hadd(const __m128i sum, const int bias) noexcept {
+    __m128i sum_ = _mm_add_epi32(sum, _mm_shuffle_epi32(sum, 0x4E));    //_MM_PERM_BADC
+    sum_         = _mm_add_epi32(sum_, _mm_shuffle_epi32(sum_, 0xB1));  //_MM_PERM_CDAB
+    return _mm_cvtsi128_si32(sum_) + bias;
 }
 
-inline void m128_add_dpbusd_epi32(__m128i& acc, __m128i a, __m128i b) noexcept {
-    __m128i product0 = _mm_maddubs_epi16(a, b);
-    product0         = _mm_madd_epi16(product0, _mm_set1_epi16(1));
-    acc              = _mm_add_epi32(acc, product0);
+inline void m128_add_dpbusd_epi32(__m128i& acc, const __m128i a, const __m128i b) noexcept {
+    const __m128i product = _mm_maddubs_epi16(a, b);
+    acc                   = _mm_add_epi32(acc, _mm_madd_epi16(product, _mm_set1_epi16(1)));
 }
 #endif  // USE_SSSE3
 
 #if defined(USE_NEON)
-inline int neon_m128_reduce_add_epi32(int32x4_t s) noexcept {
+inline int neon_m128_reduce_add_epi32(const int32x4_t s) noexcept {
     #if USE_NEON >= 8
     return vaddvq_s32(s);
     #else
@@ -350,42 +346,39 @@ inline int neon_m128_reduce_add_epi32(int32x4_t s) noexcept {
     #endif
 }
 
-inline int neon_m128_hadd(int32x4_t sum, int bias) noexcept {
+inline int neon_m128_hadd(const int32x4_t sum, const int bias) noexcept {
     return neon_m128_reduce_add_epi32(sum) + bias;
 }
 
-    #if USE_NEON >= 8
-inline void neon_m128_add_dpbusd_epi32(int32x4_t& acc, int8x16_t a, int8x16_t b) noexcept {
-    int16x8_t product0 = vmull_s8(vget_low_s8(a), vget_low_s8(b));
-    int16x8_t product1 = vmull_high_s8(a, b);
-    int16x8_t sum      = vpaddq_s16(product0, product1);
-    acc                = vpadalq_s16(acc, sum);
-}
-    #endif
-
+inline void
+neon_m128_add_dpbusd_epi32(int32x4_t& acc, const int8x16_t a, const int8x16_t b) noexcept {
     #if defined(USE_NEON_DOTPROD)
-inline void dotprod_m128_add_dpbusd_epi32(int32x4_t& acc, int8x16_t a, int8x16_t b) noexcept {
     acc = vdotq_s32(acc, a, b);
-}
+    #elif USE_NEON >= 8
+    const int16x8_t product0 = vmull_s8(vget_low_s8(a), vget_low_s8(b));
+    const int16x8_t product1 = vmull_high_s8(a, b);
+    const int16x8_t sum      = vpaddq_s16(product0, product1);
+    acc                      = vpadalq_s16(acc, sum);
+    #else
+    const int16x8_t product0 = vmull_s8(vget_low_s8(a), vget_low_s8(b));
+    const int16x8_t product1 = vmull_s8(vget_high_s8(a), vget_high_s8(b));
+    const int16x4_t sum0     = vpadd_s16(vget_low_s16(product0), vget_high_s16(product0));
+    const int16x4_t sum1     = vpadd_s16(vget_low_s16(product1), vget_high_s16(product1));
+    const int16x8_t sum      = vcombine_s16(sum0, sum1);
+    acc                      = vpadalq_s16(acc, sum);
     #endif
+}
 
 #endif  // USE_NEON
 
 #if defined(VECTOR)
-// Compute optimal SIMD register count for feature transformer accumulation.
+// Compute optimal SIMD register count for feature transformer accumulation
 template<IndexType TransformedFeatureDimensions, IndexType PSQTBuckets>
 class Tiling final {
    private:
-    Tiling() noexcept                         = delete;
-    ~Tiling() noexcept                        = delete;
-    Tiling(const Tiling&) noexcept            = delete;
-    Tiling& operator=(const Tiling&) noexcept = delete;
-    Tiling(Tiling&&) noexcept                 = delete;
-    Tiling& operator=(Tiling&&) noexcept      = delete;
-
         // Use __m* types as template arguments, which causes GCC to emit warnings
-        // about losing some attribute information. This is irrelevant to us as we
-        // only take their size, so the following pragma are harmless.
+        // about losing some attribute information.
+        // This is irrelevant to us as only take their size, so the following pragma are harmless.
     #if defined(__GNUC__)
         #pragma GCC diagnostic push
         #pragma GCC diagnostic ignored "-Wignored-attributes"
@@ -431,6 +424,14 @@ class Tiling final {
     static_assert(TransformedFeatureDimensions % TileHeight == 0,
                   "TileHeight must divide TransformedFeatureDimensions");
     static_assert(PSQTBuckets % PSQTTileHeight == 0, "PSQTTileHeight must divide PSQTBuckets");
+
+   private:
+    Tiling() noexcept                         = delete;
+    ~Tiling() noexcept                        = delete;
+    Tiling(const Tiling&) noexcept            = delete;
+    Tiling& operator=(const Tiling&) noexcept = delete;
+    Tiling(Tiling&&) noexcept                 = delete;
+    Tiling& operator=(Tiling&&) noexcept      = delete;
 };
 #endif
 

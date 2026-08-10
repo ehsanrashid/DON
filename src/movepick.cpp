@@ -19,7 +19,12 @@
 
 #include <algorithm>
 #include <cassert>
+#include <limits>
 #include <utility>
+
+#if defined(USE_AVX512)
+    #include <immintrin.h>
+#endif
 
 #include "attacks.h"
 #include "bitboard.h"
@@ -36,12 +41,78 @@ constexpr i32 GOOD_QUIET_THRESHOLD = -14000;
 
 ALWAYS_INLINE constexpr bool always_true() noexcept { return true; }
 
+#if defined(USE_AVX512)
+// Broadcast an ExtMove's move and value across all 16 lanes
+void splat_extmove(const ExtMove& em, __m512i& moves, __m512i& values) noexcept {
+    moves  = _mm512_set1_epi32(em.raw());
+    values = _mm512_set1_epi32(em.value);
+}
+
+// Maintains up to 16 ExtMoves in descending order by value using AVX-512
+struct ExtMoveSorter final {
+   private:
+    // Moves and values are stored separately, so interleave them back into ExtMoves
+    void write_chunk(ExtMove* const ems,
+                     const isize    count,
+                     const isize    offset,
+                     const __m512i  indices) const noexcept {
+        const __m512i extMoves = _mm512_permutex2var_epi32(sortedMoves, indices, sortedValues);
+
+        const isize storeCount = count - offset;
+
+        if (storeCount > 0)
+            _mm512_mask_storeu_epi64(ems + offset, __mmask8((1u << storeCount) - 1), extMoves);
+    }
+
+   public:
+    explicit ExtMoveSorter(const ExtMove& em) noexcept {
+        splat_extmove(em, sortedMoves, sortedValues);
+
+        // Initialize unused lanes with the lowest possible value
+        sortedValues =
+          _mm512_mask_set1_epi32(sortedValues, ~__mmask16(1), std::numeric_limits<int>::min());
+    }
+
+    void insert(const ExtMove& em) noexcept {
+        __m512i moves, values;
+        splat_extmove(em, moves, values);
+
+        // Find the insertion position and create a mask for the lanes to shift right
+        assert(em.value != std::numeric_limits<int>::min());
+        const __mmask16 expand = _kadd_mask16(_mm512_cmplt_epi32_mask(sortedValues, values), -1);
+
+        sortedValues = _mm512_mask_expand_epi32(values, expand, sortedValues);
+        sortedMoves  = _mm512_mask_expand_epi32(moves, expand, sortedMoves);
+    }
+
+    void write_sorted(ExtMove* const ems, const isize count) const noexcept {
+        static_assert(sizeof(ExtMove) == 8);
+        assert(0 <= count && count <= MAX_ELEMENTS);
+
+        write_chunk(ems, count, 0,
+                    _mm512_setr_epi32(0, 16, 1, 17, 2, 18, 3, 19,  //
+                                      4, 20, 5, 21, 6, 22, 7, 23));
+        write_chunk(ems, count, 8,
+                    _mm512_setr_epi32(8, 24, 9, 25, 10, 26, 11, 27,  //
+                                      12, 28, 13, 29, 14, 30, 15, 31));
+    }
+
+    static constexpr int MAX_ELEMENTS = 16;
+
+    __m512i sortedMoves;
+    __m512i sortedValues;
+};
+#endif
+
 // Unrolled upper_bound implementation for finding the insertion point
 template<typename Iterator, typename T, typename Compare>
-Iterator upper_bound_unrolled(Iterator beg, Iterator end, const T& value, Compare comp) noexcept {
-    Iterator ins = end;  // default = end (not found)
+Iterator upper_bound_unrolled(const Iterator beg,
+                              const Iterator end,
+                              const T&       value,
+                              const Compare  comp) noexcept {
+    const usize n = end - beg;
 
-    usize n = end - beg;
+    Iterator ins = end;  // default = end (not found)
 
     usize i = n;
 
@@ -50,7 +121,7 @@ Iterator upper_bound_unrolled(Iterator beg, Iterator end, const T& value, Compar
     {
         i -= BLOCK_8;
 
-        Iterator base = beg + i;
+        const Iterator base = beg + i;
 
         ins = comp(value, base[0]) ? base + 0
             : comp(value, base[1]) ? base + 1
@@ -67,7 +138,7 @@ Iterator upper_bound_unrolled(Iterator beg, Iterator end, const T& value, Compar
     {
         i -= BLOCK_4;
 
-        Iterator base = beg + i;
+        const Iterator base = beg + i;
 
         ins = comp(value, base[0]) ? base + 0
             : comp(value, base[1]) ? base + 1
@@ -80,7 +151,7 @@ Iterator upper_bound_unrolled(Iterator beg, Iterator end, const T& value, Compar
     {
         --i;
 
-        Iterator base = beg + i;
+        const Iterator base = beg + i;
 
         if (comp(value, *base))
             ins = base;
@@ -92,9 +163,33 @@ Iterator upper_bound_unrolled(Iterator beg, Iterator end, const T& value, Compar
 // Sort elements in descending order.
 // Stable for all elements.
 template<typename Iterator>
-void insertion_sort(Iterator beg, Iterator end) noexcept {
-    // Iterate over the range starting from the second element
-    for (Iterator p = beg + 1; p < end; ++p)
+void insertion_sort(const Iterator beg, const Iterator end) noexcept {
+    if (beg == end)
+        return;
+
+    Iterator p = beg + 1;
+
+#if defined(USE_AVX512)
+    ExtMoveSorter sorter(*beg);
+
+    Iterator sortedEnd = beg;
+
+    // Sort elements with AVX-512 while the sorter has capacity
+    for (; p < end; ++p)
+    {
+        if (sortedEnd - beg + 1 >= ExtMoveSorter::MAX_ELEMENTS)
+            break;
+
+        sorter.insert(*p);
+        ++sortedEnd;
+        *p = *sortedEnd;
+    }
+
+    sorter.write_sorted(beg, sortedEnd - beg + 1);
+#endif
+
+    // Insert remaining elements into the sorted prefix
+    for (; p < end; ++p)
     {
         // Stability: Skip if already in correct position
         if (!ext_move_descending(p[0], p[-1]))
@@ -110,24 +205,56 @@ void insertion_sort(Iterator beg, Iterator end) noexcept {
     }
 }
 
-// Sort elements in descending order up to a threshold 'limit'
-// leaving elements < limit untouched at their original positions.
-// Stable for elements >= limit.
+// Partially sort elements >= limit in descending order,
+// preserving the relative order of elements below limit.
 template<typename Iterator>
-void partial_insertion_sort(Iterator beg, Iterator end, int limit = -INT_LIMIT) noexcept {
-    auto ext_move_descending_limit = [limit](const ExtMove& em1, const ExtMove& em2) noexcept {
-        // Only compare elements >= limit
+void partial_insertion_sort(const Iterator beg,
+                            const Iterator end,
+                            const int      limit = std::numeric_limits<int>::min()) noexcept {
+    if (beg == end)
+        return;
+
+    Iterator p = beg + 1;
+
+#if defined(USE_AVX512)
+    ExtMoveSorter sorter(*beg);
+
+    Iterator sortedEnd = beg;
+
+    // Sort qualifying elements with AVX-512 while the sorter has capacity
+    for (; p < end; ++p)
+    {
+        // Skip elements below the limit
+        if (p->value < limit)
+            continue;
+
+        if (sortedEnd - beg + 1 >= ExtMoveSorter::MAX_ELEMENTS)
+            break;
+
+        sorter.insert(*p);
+        ++sortedEnd;
+        *p = *sortedEnd;
+    }
+
+    sorter.write_sorted(beg, sortedEnd - beg + 1);
+#endif
+
+    const auto ext_move_descending_limit = [limit](const ExtMove& em1,
+                                                   const ExtMove& em2) noexcept {
+        // Place elements below the limit after qualifying elements
         if (em1.value < limit)
-            return false;  // treat as "already after" => never move it
+            return false;
+        // Qualifying elements always come before elements below the limit
         if (em2.value < limit)
-            return true;                       // value >= limit goes before elements < limit
-        return ext_move_descending(em1, em2);  // usual descending
+            return true;
+        // Otherwise, use the normal descending-order comparison
+        return ext_move_descending(em1, em2);
     };
 
-    // Iterate over the range starting from the second element
-    for (Iterator p = beg + 1; p < end; ++p)
+    // Insert remaining qualifying elements into the sorted prefix
+    for (; p < end; ++p)
     {
-        // Skip elements smaller than the limit
+        // Skip elements below the limit
         if (p->value < limit)
             continue;
         // Stability: Skip if already in correct position
@@ -145,7 +272,7 @@ void partial_insertion_sort(Iterator beg, Iterator end, int limit = -INT_LIMIT) 
 }
 
 template<typename Iterator>
-ALWAYS_INLINE void adaptive_stable_sort(Iterator beg, Iterator end) noexcept {
+ALWAYS_INLINE void adaptive_stable_sort(const Iterator beg, const Iterator end) noexcept {
     if (usize(end - beg) <= INSERTION_SORT_THRESHOLD)
         insertion_sort(beg, end);
     else
@@ -232,7 +359,7 @@ void MovePicker::init_stage() noexcept {
 // Assigns a numerical value to each move in a list, used for sorting.
 // Captures moves are ordered by Most Valuable Victim (MVV),
 // preferring captures moves with a good history.
-// Quiets moves are ordered by using the history tables.
+// Quiet moves are ordered by using the history tables.
 template<>
 MovePicker::iterator
 MovePicker::score<GenType::ENC_CAPTURE>(const MoveList<GenType::ENC_CAPTURE>& moveList) noexcept {

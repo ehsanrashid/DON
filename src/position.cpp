@@ -243,14 +243,14 @@ void Position::set(std::string_view fens, State* newSt) noexcept {
     const auto* const end = p + fens.size();
 
     // Returns '\0' when p >= end (EOF sentinel)
-    auto peek        = [&p, &end]() noexcept -> ichar { return p < end ? *p : '\0'; };
-    auto skip_spaces = [&p, &end]() noexcept {
-        while (p < end && std::isspace(uchar(*p)))
-            ++p;
+    auto peek        = [&p, end]() noexcept -> ichar { return p < end ? *p : '\0'; };
+    auto skip_spaces = [&p, end]() noexcept {
+        for (; p < end && std::isspace(uchar(*p)); ++p)
+        {}
     };
-    auto not_space = [&p, &end]() noexcept -> bool { return p < end && !std::isspace(uchar(*p)); };
-    auto get       = [&p, &end]() noexcept -> ichar { return p < end ? *p++ : '\0'; };
-    auto get_int   = [&p, &end, &skip_spaces](int& out) noexcept -> bool {
+    auto not_space = [&p, end]() noexcept -> bool { return p < end && !std::isspace(uchar(*p)); };
+    auto get       = [&p, end]() noexcept -> ichar { return p < end ? *p++ : '\0'; };
+    auto get_int   = [&p, end, &skip_spaces](int& out) noexcept -> bool {
         skip_spaces();
 
         bool neg = false;
@@ -263,11 +263,10 @@ void Position::set(std::string_view fens, State* newSt) noexcept {
         int val = 0;
 
         bool any = false;
-        while (p < end && std::isdigit(uchar(*p)))
+        for (; p < end && std::isdigit(uchar(*p)); ++p)
         {
             any = true;
-            val = val * 10 + (int) (*p - '0');
-            ++p;
+            val = 10 * val + char_to_digit(*p);
         }
 
         if (!any)
@@ -328,7 +327,7 @@ void Position::set(std::string_view fens, State* newSt) noexcept {
     assert(count(WHITE, PAWN) <= 8 && count(BLACK, PAWN) <= 8);
     assert(count(WHITE, KING) == 1 && count(BLACK, KING) == 1);
     assert(count(PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING) == count());
-    assert((pieces_bb(PAWN) & PROMOTION_RANKS_BB) == 0);
+    assert((PROMOTION_RANKS_BB & pieces_bb(PAWN)) == 0);
     assert(square<KING>(WHITE) != SQ_NONE && square<KING>(BLACK) != SQ_NONE);
     assert(distance(square<KING>(WHITE), square<KING>(BLACK)) > 1);
 
@@ -891,13 +890,12 @@ DirtyBoard Position::do_move(const Move          m,
 
     DirtyBoard db;
 
-    db.dirtyPiece.movedPc         = movedPc;
-    db.dirtyPiece.orgSq           = orgSq;
-    db.dirtyPiece.dstSq           = dstSq;
-    db.dirtyPiece.addedSq         = SQ_NONE;
-    db.dirtyThreats.ac            = ac;
-    db.dirtyThreats.preKingSq     = square<KING>(ac);
-    db.dirtyThreats.threateningBB = db.dirtyThreats.threatenedBB = 0;
+    db.dirtyPiece.movedPc     = movedPc;
+    db.dirtyPiece.orgSq       = orgSq;
+    db.dirtyPiece.dstSq       = dstSq;
+    db.dirtyPiece.addedSq     = SQ_NONE;
+    db.dirtyThreats.ac        = ac;
+    db.dirtyThreats.preKingSq = square<KING>(ac);
     assert(db.dirtyThreats.dtList.empty());
 
     st->key ^= Zobrist::turn() ^ Zobrist::enpassant(en_passant_sq());
@@ -1311,19 +1309,20 @@ bool Position::legal(const Move m) const noexcept {
         if (type_of(movedPc) == PAWN)
         {
             // Normal moves, so origin & destination cannot be on the 8th/1st rank
-            if ((make_bb(orgSq, dstSq) & PROMOTION_RANKS_BB) != 0)
+            if ((PROMOTION_RANKS_BB & make_bb(orgSq, dstSq)) != 0)
                 return false;
 
             const auto orgR = relative_rank(ac, orgSq);
             const auto dstR = relative_rank(ac, dstSq);
 
-            const bool ok = (orgR < RANK_7 && dstR < RANK_8  //
-                             && orgSq + pawn_spush(ac) == dstSq && empty(dstSq))
-                         || (orgR == RANK_2 && dstR == RANK_4 && orgSq + pawn_dpush(ac) == dstSq
-                             && empty(dstSq) && empty(dstSq - pawn_spush(ac)))
-                         || (orgR < RANK_7 && dstR < RANK_8
-                             && ((pieces_bb(~ac) & attacks_bb<PAWN>(orgSq, ac) & dstSq) != 0));
-            if (!ok)
+            if ((orgR >= RANK_7 || dstR >= RANK_8    // Single Push
+                 || orgSq + pawn_spush(ac) != dstSq  //
+                 || !empty(dstSq))
+                && (orgR != RANK_2 || dstR != RANK_4    // Double Push
+                    || orgSq + pawn_dpush(ac) != dstSq  //
+                    || !empty(dstSq) || !empty(dstSq - pawn_spush(ac)))
+                && (orgR >= RANK_7 || dstR >= RANK_8  // Capture
+                    || (pieces_bb(~ac) & attacks_bb<PAWN>(orgSq, ac) & dstSq) == 0))
                 return false;
         }
         else
@@ -1337,27 +1336,23 @@ bool Position::legal(const Move m) const noexcept {
         }
         break;
     case MT::PROMOTION :
-        if (type_of(movedPc) != PAWN)
-            return false;
-
-        if (!(relative_rank(ac, orgSq) == RANK_7 && relative_rank(ac, dstSq) == RANK_8
-              && ((orgSq + pawn_spush(ac) == dstSq && empty(dstSq))
-                  || ((pieces_bb(~ac) & attacks_bb<PAWN>(orgSq, ac) & dstSq) != 0))))
+        if (type_of(movedPc) != PAWN  //
+            || relative_rank(ac, orgSq) != RANK_7 || relative_rank(ac, dstSq) != RANK_8
+            || ((orgSq + pawn_spush(ac) != dstSq || !empty(dstSq))
+                && (pieces_bb(~ac) & attacks_bb<PAWN>(orgSq, ac) & dstSq) == 0))
             return false;
         break;
     case MT::EN_PASSANT :
-        if (type_of(movedPc) != PAWN)
-            return false;
-
-        if (!(relative_rank(ac, orgSq) == RANK_5 && relative_rank(ac, dstSq) == RANK_6
-              && en_passant_sq() == dstSq && rule50_count() == 0
-              && (pieces_bb(~ac, PAWN) & (dstSq - pawn_spush(ac))) != 0
-              && (empty(dstSq) && empty(dstSq + pawn_spush(ac)))  //
-              && (attacks_bb<PAWN>(orgSq, ac) & dstSq) != 0
-              && (pieces_bb(~ac)
-                  & slide_attackers_bb(  //
-                    kingSq, pieces_bb() ^ make_bb(orgSq, dstSq, dstSq - pawn_spush(ac))))
-                   == 0))
+        if (type_of(movedPc) != PAWN  //
+            || relative_rank(ac, orgSq) != RANK_5 || relative_rank(ac, dstSq) != RANK_6
+            || en_passant_sq() != dstSq || rule50_count() != 0
+            || (pieces_bb(~ac, PAWN) & (dstSq - pawn_spush(ac))) == 0  //
+            || !empty(dstSq) || !empty(dstSq + pawn_spush(ac))         //
+            || (attacks_bb<PAWN>(orgSq, ac) & dstSq) == 0
+            || (pieces_bb(~ac)
+                & slide_attackers_bb(kingSq,
+                                     pieces_bb() ^ make_bb(orgSq, dstSq, dstSq - pawn_spush(ac))))
+                 != 0)
             return false;
         break;
     default :  // CASTLING
@@ -2134,7 +2129,7 @@ bool Position::_is_ok() const noexcept {
     if (non_pawn_key() != compute_non_pawn_key())
         assert(false && "Position::_is_ok(): NonPawn Key");
 
-    if ((pieces_bb(PAWN) & PROMOTION_RANKS_BB) != 0  //
+    if ((PROMOTION_RANKS_BB & pieces_bb(PAWN)) != 0  //
         || count(WHITE, PAWN) > 8 || count(BLACK, PAWN) > 8)
         assert(false && "Position::_is_ok(): Pawns");
 

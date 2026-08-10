@@ -31,13 +31,9 @@ namespace DON {
 // As a hash table, collisions are possible and may cause chess playing issues (bizarre blunders, faulty mate reports, etc).
 // Fixing these also loses elo; however such risk decreases quickly with larger TT size.
 //
-// 'probe' is the primary method: given a board position (key),
-// lookup its entry in the table, and return TTProbe:
-//   1) copy of the entry data (if any) (maybe inconsistent due to read races)
-//   2) pointer to this entry
-//   3) pointer to this cluster
-// The copied data and the updater are separated to maintain clear boundaries between local vs global objects.
-// A copy of the data already in the entry (possibly collided). 'probe' may be racy, resulting in inconsistent data.
+// Use separate TTData, a local copy of an entry, from TTUpdater, which writes to the global table.
+// A copy of the data already in an entry (possibly collided).
+// Probes and reads are racy and non-atomic, possibly resulting in inconsistent data.
 struct TTData final {
    public:
     TTData() noexcept                         = delete;
@@ -62,6 +58,8 @@ struct TTData final {
 struct TTEntry;
 struct TTCluster;
 
+// This is used to make racy, non-atomic writes to the global TT.
+// Writes are not "guaranteed": for chess reasons, later may decide the new data is less important than the old.
 class TTUpdater final {
    public:
     TTUpdater(TTUpdater&&) noexcept = default;
@@ -99,7 +97,7 @@ class TranspositionTable final {
 
     u8 generation() const noexcept;
 
-    void increment_generation() const noexcept;
+    void advance_generation() const noexcept;
 
     void resize(usize ttSize, const Threads& threads) noexcept;
 

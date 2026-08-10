@@ -166,7 +166,7 @@ Move can_to_move(std::string can, const MoveList<GenType::LEGAL>& legalMoves) no
 
     can = lower_case(can);
 
-    for (Move m : legalMoves)
+    for (const Move m : legalMoves)
         if (can == move_to_can(m))
             return m;
 
@@ -312,7 +312,7 @@ Move san_to_move(std::string                     san,
         && (san[0] == '0' || ichar(std::tolower(uchar(san[0]))) == 'o'))
         std::replace_if(san.begin(), san.end(), [](ichar c) { return c == 'o' || c == '0'; }, 'O');
 
-    for (Move m : legalMoves)
+    for (const Move m : legalMoves)
         if (san == move_to_san(m, pos))
             return m;
 

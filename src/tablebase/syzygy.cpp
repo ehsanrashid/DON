@@ -27,6 +27,7 @@
 #include <functional>
 #include <initializer_list>
 #include <iostream>
+#include <limits>
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -139,6 +140,8 @@ Array<usize, TB_PIECES_MAX - 1, SQUARE_NB>   LeadPawnIdx;  // [leadPawnCnt][SQUA
 Array<usize, TB_PIECES_MAX - 1, FILE_NB / 2> LeadPawnSize; // [leadPawnCnt][FILE_A..FILE_D]
 
 // clang-format on
+
+constexpr int NO_DTZ_SCORE = std::numeric_limits<int>::max();
 
 // Comparison function to sort leading pawns in ascending PawnsMap[] order
 constexpr bool pawns_comp(Square s1, Square s2) noexcept { return PawnsMap[s1] < PawnsMap[s2]; }
@@ -762,11 +765,11 @@ void TBTable<T>::set(u8* data) noexcept {
 
     ++data;  // First byte stores flags
 
-    usize Sides = SIDES == 2 && key[WHITE] != key[BLACK] ? 2 : 1;
+    const usize Sides = SIDES == 2 && key[WHITE] != key[BLACK] ? 2 : 1;
 
-    File maxFile = hasPawns ? FILE_D : FILE_A;
+    const File maxFile = hasPawns ? FILE_D : FILE_A;
 
-    bool pp = hasPawns && pawnCount[BLACK] != 0;  // Pawns on both sides
+    const bool pp = hasPawns && pawnCount[BLACK] != 0;  // Pawns on both sides
 
     assert(!pp || pawnCount[WHITE] != 0);
 
@@ -804,7 +807,6 @@ void TBTable<T>::set(u8* data) noexcept {
         for (usize i = 0; i < Sides; ++i)
         {
             (pd = get(i, f))->sparseIndex = (SparseEntry*) (data);
-
             data += pd->sparseIndexSize * sizeof(SparseEntry);
         }
 
@@ -812,7 +814,6 @@ void TBTable<T>::set(u8* data) noexcept {
         for (usize i = 0; i < Sides; ++i)
         {
             (pd = get(i, f))->blockLength = (u16*) (data);
-
             data += pd->blockLengthSize * sizeof(u16);
         }
 
@@ -820,9 +821,7 @@ void TBTable<T>::set(u8* data) noexcept {
         for (usize i = 0; i < Sides; ++i)
         {
             data = (u8*) ((std::uintptr_t(data) + 0x3F) & ~0x3F);  // 64 byte alignment
-
             (pd = get(i, f))->data = data;
-
             data += pd->blockCount * pd->blockSize;
         }
 }
@@ -838,7 +837,7 @@ void TBTable<T>::set(u8* data) noexcept {
 // The actual grouping depends on the TB generator and can be inferred from the
 // sequence of pieces in piece[] array.
 template<TBType T>
-void TBTable<T>::set_groups(PairsData* pd, const Array<int, 2>& order, File f) noexcept {
+void TBTable<T>::set_groups(PairsData* pd, const Array<int, 2>& order, const File f) noexcept {
 
     usize n = 0;
 
@@ -886,30 +885,23 @@ void TBTable<T>::set_groups(PairsData* pd, const Array<int, 2>& order, File f) n
         if (k == order[0])
         {
             pd->groupIdx[0] = idx;
-
-            idx *= hasPawns  //
-                   ? LeadPawnSize[pd->groupLen[0]][f]
-                   : hasUniquePieces  //
-                       ? 31332
-                       : 462;
+            idx *= hasPawns ? LeadPawnSize[pd->groupLen[0]][f] : hasUniquePieces ? 31332 : 462;
         }
         // Remaining pawns
         else if (k == order[1])
         {
             pd->groupIdx[1] = idx;
-
             idx *= Binomial[pd->groupLen[1]][48 - pd->groupLen[0]];
         }
         // Remaining pieces
         else
         {
+            const auto groupLen = pd->groupLen[next];
+            assert(freeLen >= usize(groupLen));
+
             pd->groupIdx[next] = idx;
-
-            idx *= Binomial[pd->groupLen[next]][freeLen];
-            assert(int(freeLen) >= pd->groupLen[next]);
-
-            freeLen -= pd->groupLen[next];
-
+            idx *= Binomial[groupLen][freeLen];
+            freeLen -= groupLen;
             ++next;
         }
     }
@@ -918,12 +910,12 @@ void TBTable<T>::set_groups(PairsData* pd, const Array<int, 2>& order, File f) n
 }
 
 template<>
-u8* TBTable<WDL>::set_dtz_map(u8* data, [[maybe_unused]] File maxFile) noexcept {
+u8* TBTable<WDL>::set_dtz_map(u8* data, [[maybe_unused]] const File maxFile) noexcept {
     return data;
 }
 
 template<>
-u8* TBTable<DTZ>::set_dtz_map(u8* data, File maxFile) noexcept {
+u8* TBTable<DTZ>::set_dtz_map(u8* data, const File maxFile) noexcept {
     mapPtr = data;
 
     for (File f = FILE_A; f <= maxFile; ++f)
@@ -1009,10 +1001,10 @@ class TBTables final {
             return idealEntry.get<T>();
 
         // Calculate safe probe limit:
-        // - distance_max() tracks the longest probe chain ever inserted
-        // - Any key would be within (distance_max + 1) of its ideal bucket
+        // - max_distance() tracks the longest probe chain ever inserted
+        // - Any key would be within (max_distance + 1) of its ideal bucket
         // - Cap at PROBE_MAX to prevent infinite loops on corrupt data
-        usize ProbeMax = std::min(distance_max(), PROBE_MAX - 1) + 1;
+        usize ProbeMax = std::min(max_distance(), PROBE_MAX - 1) + 1;
         // Linear probe with Robin Hood early termination
         for (usize distance = 1; distance <= ProbeMax; ++distance)
         {
@@ -1048,7 +1040,7 @@ class TBTables final {
         wdlTables.clear();
         dtzTables.clear();
 
-        DistanceMax = 0;
+        MaxDistance = 0;
     }
 
     std::string info() const noexcept {
@@ -1058,7 +1050,7 @@ class TBTables final {
              + " (up to " + std::to_string(MaxCardinality) + "-man).";
     }
 
-    usize distance_max() const noexcept { return DistanceMax; }
+    usize max_distance() const noexcept { return MaxDistance; }
 
     void add(const std::vector<PieceType>& pieces) noexcept;
 
@@ -1085,7 +1077,8 @@ class TBTables final {
 
         for (usize distance = 1; distance <= PROBE_MAX;)
         {
-            DistanceMax = std::max(distance, DistanceMax);
+            if (MaxDistance < distance)
+                MaxDistance = distance;
 
             usize bucket = (newBucket + distance) & MASK;
 
@@ -1137,7 +1130,7 @@ class TBTables final {
     static_assert(PROBE_MAX <= SIZE, "PROBE_MAX must be <= SIZE");
 
     // Track the farthest any entry has been displaced
-    usize DistanceMax = 0;
+    usize MaxDistance = 0;
 
     Array<Entry, SIZE> entries;
 
@@ -1171,7 +1164,10 @@ void TBTables::add(const std::vector<PieceType>& pieces) noexcept {
     if (!(Exists[WDL] || Exists[DTZ]))
         return;
 
-    MaxCardinality = std::max(u8(pieces.size()), MaxCardinality);
+    const u8 cardinality = u8(pieces.size());
+
+    if (MaxCardinality < cardinality)
+        MaxCardinality = cardinality;
 
     TBTable<WDL>* wdlTable = nullptr;
     TBTable<DTZ>* dtzTable = nullptr;
@@ -1613,28 +1609,28 @@ Ret do_probe_table(
     // Encode remaining pawns and then pieces according to square, in ascending order
     bool pawnsRemaining = table->hasPawns && table->pawnCount[BLACK];
 
-    usize next = 0;
-
-    while (pd->groupLen[++next])
+    for (usize next = 1; pd->groupLen[next] != 0; ++next)
     {
-        std::stable_sort(groupSq, groupSq + pd->groupLen[next]);
+        const auto groupLen = pd->groupLen[next];
+
+        std::stable_sort(groupSq, groupSq + groupLen);
 
         u64 n = 0;
         // Map down a square if "comes later" than a square in the previous
         // groups (similar to what was done earlier for leading group pieces).
-        for (i32 i = 0; i < pd->groupLen[next]; ++i)
+        for (i32 i = 0; i < groupLen; ++i)
         {
-            auto adjust = std::count_if(squares.data(), groupSq,  //
-                                        [&](Square s) { return groupSq[i] > s; });
+            usize adjust = 0;
+            CLANG_LOOP_VEC_DISABLE
+            for (const Square* s = squares.data(); s != groupSq; ++s)
+                adjust += usize(groupSq[i] > *s);
 
-            n += Binomial[i + 1][int(groupSq[i]) - adjust - (pawnsRemaining ? 8 : 0)];
+            n += Binomial[i + 1][usize(groupSq[i]) - adjust - usize(pawnsRemaining) * 8];
         }
 
         pawnsRemaining = false;
-
         idx += n * pd->groupIdx[next];
-
-        groupSq += pd->groupLen[next];
+        groupSq += groupLen;
     }
 
     // Now that have the index, decompress the pair and get the WDL-score
@@ -1684,7 +1680,7 @@ WDLScore search(Position& pos, ProbeState* ps) noexcept {
 
     u8 moveCount = 0;
 
-    for (Move m : legalMoves)
+    for (const Move m : legalMoves)
     {
         if (!pos.capture(m) && (!CheckZeroingMoves || type_of(pos.moved_pc(m)) != PAWN))
             continue;
@@ -1794,7 +1790,7 @@ void init() noexcept {
             {
                 for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
                 {
-                    if ((attacks_bb<KING>(s1) | s1) & s2)
+                    if (((attacks_bb<KING>(s1) | s1) & s2) != 0)
                         continue;  // Illegal position
 
                     else if (off_A1H8(s1) == 0 && off_A1H8(s2) > 0)
@@ -1933,7 +1929,7 @@ void init(std::string_view paths) noexcept {
 
     print_info_string(tbTables.info());
 
-    DEBUG_LOG("distance-max: " << tbTables.distance_max());
+    DEBUG_LOG("max-distance: " << tbTables.max_distance());
 }
 
 // Probe the WDL table for a particular position.
@@ -1999,9 +1995,9 @@ int probe_dtz(Position& pos, ProbeState* ps) noexcept {
 
     // DTZ-score stores results for the other side, so need to do a 1-ply search
     // and find the winning move that minimizes DTZ-score.
-    int minDtzScore = UINT16_MAX;
+    int minDtzScore = NO_DTZ_SCORE;
 
-    for (Move m : MoveList<GenType::LEGAL>(pos))
+    for (const Move m : MoveList<GenType::LEGAL>(pos))
     {
         bool zeroing = pos.capture(m) || type_of(pos.moved_pc(m)) == PAWN;
 
@@ -2025,7 +2021,8 @@ int probe_dtz(Position& pos, ProbeState* ps) noexcept {
 
         // Skip the draws and if winning only pick positive DTZ-score
         if (sign(dtzScore) == sign(wdlScore))
-            minDtzScore = std::min(dtzScore, minDtzScore);
+            if (minDtzScore > dtzScore)
+                minDtzScore = dtzScore;
 
         pos.undo_move(m);
 
@@ -2034,7 +2031,7 @@ int probe_dtz(Position& pos, ProbeState* ps) noexcept {
     }
 
     // When there are no legal moves, the position is mate: return -1
-    return minDtzScore != UINT16_MAX ? minDtzScore : -1;
+    return minDtzScore != NO_DTZ_SCORE ? minDtzScore : -1;
 }
 
 // clang-format off

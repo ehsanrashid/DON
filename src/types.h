@@ -482,8 +482,8 @@ using Depth = i16;
 inline constexpr Depth DEPTH_MAX  = PLY_MAX - 1;
 inline constexpr Depth DEPTH_ZERO = 0;
 inline constexpr Depth DEPTH_NONE = -1;
-// Offset to convert depth to a non-negative array index.
-// It is used only for TT entry occupancy check.
+// Offset to convert depth to a non-negative depth.
+// It is used only for TT entry occupancy check, should thus be lower than DEPTH_NONE.
 inline constexpr Depth DEPTH_OFFSET = DEPTH_NONE - 1;
 static_assert(DEPTH_OFFSET == DEPTH_MAX - 0xFF, "DEPTH_OFFSET == DEPTH_MAX - 0xFF");
 
@@ -766,15 +766,14 @@ static_assert(sizeof(DirtyThreat) == 4, "DirtyThreat size must be 4 bytes");
 // By similar logic, a castling move can change at most (5 + 1 + 3 + 9) * 2 = 36 features.
 // Thus, 80 should work as an upper bound.
 // Finally, 16 entries are added to accommodate unmasked vector stores near the end of the list.
+// So, 80 + 16 = 96.
 using DirtyThreatList = FixedVector<DirtyThreat, 96, u8>;
 
 // Keep track of all threats (attacks) that change on the board by a move
 struct DirtyThreats final {
    public:
-    template<bool Add>
-    void add(Square sq, Square threatenedSq, Piece pc, Piece threatenedPc) noexcept;
+    void add(Square sq, Square threatenedSq, Piece pc, Piece threatenedPc, bool put) noexcept;
 
-    Bitboard        threateningBB = 0, threatenedBB = 0;
     DirtyThreatList dtList;
     Square          preKingSq = SQ_NONE, kingSq = SQ_NONE;
     Color           ac;

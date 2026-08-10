@@ -269,7 +269,7 @@ class AffineTransformSparseInput final {
         using invec_t  = int8x16_t;
         using outvec_t = int32x4_t;
             #define vec_set_32(a) vreinterpretq_s8_u32(vdupq_n_u32(a))
-            #define vec_add_dpbusd_32 SIMD::dotprod_m128_add_dpbusd_epi32
+            #define vec_add_dpbusd_32 SIMD::neon_m128_add_dpbusd_epi32
         #else
         using invec_t  = int8x16_t;
         using outvec_t = int32x4_t;
