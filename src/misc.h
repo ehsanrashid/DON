@@ -62,8 +62,6 @@
     #include <xmmintrin.h>  // SSE intrinsics header for _mm_prefetch()
 #endif
 
-#include "memory.h"
-
 #define STRING_LITERAL(x) #x
 #define STRINGIFY(x) STRING_LITERAL(x)
 
@@ -970,43 +968,6 @@ class MultiArray final {
 
    private:
     ArrayType data_;
-};
-
-template<typename T>
-class DynamicArray final {
-   public:
-    explicit DynamicArray(usize size) noexcept :
-        size_(size) {
-        assert(size != 0);
-
-        data_ = make_unique_aligned_large_page<T[]>(size);
-    }
-
-    [[nodiscard]] usize size() const noexcept { return size_; }
-
-    T*       data() noexcept { return data_.get(); }
-    const T* data() const noexcept { return data_.get(); }
-
-    T& operator[](usize idx) noexcept {
-        assert(idx < size());
-        return data()[idx];
-    }
-    const T& operator[](usize idx) const noexcept {
-        assert(idx < size());
-        return data()[idx];
-    }
-
-    template<typename U>
-    void fill(usize beg, usize end, const U& v) noexcept {
-        assert(beg <= end && end <= size());
-
-        for (usize idx = beg; idx < end; ++idx)
-            data()[idx].fill(v);
-    }
-
-   private:
-    LargePagePtr<T[]> data_;
-    usize             size_;
 };
 
 template<typename T, usize Capacity, typename SizeType = usize>

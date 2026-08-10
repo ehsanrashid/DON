@@ -35,17 +35,19 @@
     #include <unistd.h>
 #endif
 
+#include "misc.h"
+
 #define ASSERT_ALIGNED(ptr, alignment) \
     assert(reinterpret_cast<std::uintptr_t>(ptr) % alignment == 0)
 
 namespace DON {
 
-void* alloc_aligned_std(std::size_t allocSize, std::size_t alignment) noexcept;
+void* alloc_aligned_std(usize allocSize, usize alignment) noexcept;
 
 void free_aligned_std(void* mem) noexcept;
 
 // memory aligned by page size, min alignment: 4096 bytes
-void* alloc_aligned_large_page(std::size_t allocSize) noexcept;
+void* alloc_aligned_large_page(usize allocSize) noexcept;
 
 bool free_aligned_large_page(void* mem) noexcept;
 
@@ -88,13 +90,13 @@ void memory_array_deleter(T* mem, FreeFunc&& freeFunc) noexcept {
     if (mem == nullptr)
         return;
 
-    constexpr std::size_t ArrayOffset = std::max(sizeof(std::size_t), alignof(T));
+    constexpr usize ArrayOffset = std::max(sizeof(usize), alignof(T));
     // Move back on the pointer to where the size is allocated.
     auto* rawMem = reinterpret_cast<char*>(mem) - ArrayOffset;
 
     if constexpr (!std::is_trivially_destructible_v<T>)
     {
-        std::size_t size = *reinterpret_cast<std::size_t*>(rawMem);
+        usize size = *reinterpret_cast<usize*>(rawMem);
         // Reverse order
         std::destroy(std::make_reverse_iterator(mem + size), std::make_reverse_iterator(mem));
     }
@@ -114,18 +116,18 @@ inline std::enable_if_t<!std::is_array_v<T>, T*> memory_allocator(AllocFunc&& al
 // Allocates memory for an array of unknown bound and places it there with placement new.
 template<typename T, typename AllocFunc>
 inline std::enable_if_t<std::is_array_v<T>, std::remove_extent_t<T>*>
-memory_allocator(AllocFunc&& allocFunc, std::size_t size) noexcept {
+memory_allocator(AllocFunc&& allocFunc, usize size) noexcept {
     using ElementType = std::remove_extent_t<T>;
 
-    constexpr std::size_t ArrayOffset = std::max(sizeof(std::size_t), alignof(ElementType));
+    constexpr usize ArrayOffset = std::max(sizeof(usize), alignof(ElementType));
 
     // Save the array size in the memory location
     auto* rawMem = reinterpret_cast<char*>(allocFunc(ArrayOffset + size * sizeof(ElementType)));
     ASSERT_ALIGNED(rawMem, alignof(T));
 
-    new (rawMem) std::size_t(size);
+    new (rawMem) usize(size);
 
-    for (std::size_t i = 0; i < size; ++i)
+    for (usize i = 0; i < size; ++i)
         new (rawMem + ArrayOffset + i * sizeof(ElementType)) ElementType();
 
     // Need to return the pointer at the start of the array so that the indexing in unique_ptr<T[]> works
@@ -158,7 +160,7 @@ using AlignedStdPtr =
 template<typename T, typename... Args>
 std::enable_if_t<!std::is_array_v<T>, AlignedStdPtr<T>>
 make_unique_aligned_std(Args&&... args) noexcept {
-    auto allocFunc = [](std::size_t allocSize) { return alloc_aligned_std(allocSize, alignof(T)); };
+    auto allocFunc = [](usize allocSize) { return alloc_aligned_std(allocSize, alignof(T)); };
 
     auto* obj = memory_allocator<T>(allocFunc, std::forward<Args>(args)...);
 
@@ -168,10 +170,10 @@ make_unique_aligned_std(Args&&... args) noexcept {
 // make_unique_aligned_std() for arrays of unknown bound
 template<typename T>
 std::enable_if_t<std::is_array_v<T>, AlignedStdPtr<T>>
-make_unique_aligned_std(std::size_t size) noexcept {
+make_unique_aligned_std(usize size) noexcept {
     using ElementType = std::remove_extent_t<T>;
 
-    auto allocFunc = [](std::size_t allocSize) {
+    auto allocFunc = [](usize allocSize) {
         return alloc_aligned_std(allocSize, alignof(ElementType));
     };
 
@@ -218,8 +220,7 @@ make_unique_aligned_large_page(Args&&... args) noexcept {
 
 // make_unique_aligned_large_page() for arrays of unknown bound
 template<typename T>
-std::enable_if_t<std::is_array_v<T>, LargePagePtr<T>>
-make_unique_aligned_large_page(std::size_t size) {
+std::enable_if_t<std::is_array_v<T>, LargePagePtr<T>> make_unique_aligned_large_page(usize size) {
     using ElementType = std::remove_extent_t<T>;
 
     static_assert(alignof(ElementType) <= 4096,
@@ -233,7 +234,7 @@ make_unique_aligned_large_page(std::size_t size) {
 // Get the first aligned element of an array.
 // ptr must point to an array of size at least 'sizeof(T) * N + alignment' bytes,
 // where N is the number of elements in the array.
-template<std::size_t Alignment, typename T>
+template<usize Alignment, typename T>
 [[nodiscard]] constexpr T* align_ptr_up(T* ptr) noexcept {
     static_assert(Alignment != 0 && (Alignment & (Alignment - 1)) == 0,
                   "Alignment must be non-zero power of 2");
@@ -244,7 +245,7 @@ template<std::size_t Alignment, typename T>
     return reinterpret_cast<T*>(ptrInt);
 }
 
-template<std::size_t Alignment, typename T>
+template<usize Alignment, typename T>
 [[nodiscard]] constexpr const T* align_ptr_up(const T* ptr) noexcept {
     return reinterpret_cast<const T*>(align_ptr_up<Alignment>(const_cast<T*>(ptr)));
 }
@@ -437,7 +438,7 @@ template<typename SuccessFunc, typename FailureFunc>
 auto try_with_windows_lock_memory_privilege([[maybe_unused]] SuccessFunc&& successFunc,
                                             FailureFunc&&                  failureFunc) noexcept {
     #if defined(_WIN64)
-    std::size_t LargePageSize = GetLargePageMinimum();
+    usize LargePageSize = GetLargePageMinimum();
 
     if (LargePageSize == 0)
         return failureFunc();
@@ -495,8 +496,8 @@ inline constexpr int INVALID_FD = -1;
 
 [[nodiscard]] constexpr bool is_valid_fd(int fd) noexcept { return fd > INVALID_FD; }
 
-inline constexpr void*       INVALID_MMAP_PTR  = nullptr;
-inline constexpr std::size_t INVALID_MMAP_SIZE = 0;
+inline constexpr void* INVALID_MMAP_PTR  = nullptr;
+inline constexpr usize INVALID_MMAP_SIZE = 0;
 
 struct FdGuard final {
    public:
@@ -535,7 +536,7 @@ struct FdGuard final {
 
 struct MMapGuard final {
    public:
-    MMapGuard(void*& refPtr, std::size_t& refSize) noexcept :
+    MMapGuard(void*& refPtr, usize& refSize) noexcept :
         mappedPtr(refPtr),
         mappedSize(refSize) {}
 
@@ -553,9 +554,9 @@ struct MMapGuard final {
 
     [[nodiscard]] void* get_ptr() const noexcept { return mappedPtr; }
 
-    [[nodiscard]] std::size_t get_size() const noexcept { return mappedSize; }
+    [[nodiscard]] usize get_size() const noexcept { return mappedSize; }
 
-    void reset(void* newPtr = INVALID_MMAP_PTR, std::size_t newSize = INVALID_MMAP_SIZE) noexcept {
+    void reset(void* newPtr = INVALID_MMAP_PTR, usize newSize = INVALID_MMAP_SIZE) noexcept {
         if (mappedPtr != newPtr)
         {
             if (is_valid())
@@ -572,8 +573,8 @@ struct MMapGuard final {
     }
 
    private:
-    void*&       mappedPtr;
-    std::size_t& mappedSize;
+    void*& mappedPtr;
+    usize& mappedSize;
 };
 
 struct UniqueFd final {
