@@ -18,9 +18,6 @@
 ### Section 1. General Configuration
 ### ==========================================================================
 
-### Ensure Make uses Bash for shell commands
-SHELL := /bin/bash
-
 ### Establish the operating system name
 UNAME_S := $(shell uname -s 2>/dev/null)
 UNAME_O := $(shell uname -o 2>/dev/null)
@@ -43,7 +40,6 @@ ifneq ($(strip $(WINE_PATH)),)
     ifeq ($(strip $(RUN_PREFIX)),)
         RUN_PREFIX := $(WINE_PATH)
     endif
-    # Top-level warnings
     ifeq ($(MAKELEVEL),0)
         ifneq ($(strip $(RUN_PREFIX)),$(strip $(WINE_PATH)))
             $(warning *** Both RUN_PREFIX and WINE_PATH are set; ignoring WINE_PATH. ***)
