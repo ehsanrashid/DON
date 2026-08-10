@@ -1,4 +1,4 @@
-name: ARM Compilation
+name: Android Compilation
 on:
   workflow_call:
     inputs:
@@ -7,13 +7,12 @@ on:
         required: true
 jobs:
   Compilation:
-    name: ${{ matrix.config.name }} ${{ matrix.binaries }}
+    name: "Android build: ${{ matrix.config.name }} ${{ matrix.binaries }}"
     runs-on: ${{ matrix.config.os }}
     env:
       COMPCXX: ${{ matrix.config.compiler }}
-      EMU: ${{ matrix.config.emu }}
       COMP: ${{ matrix.config.comp }}
-      NAME: ${{ matrix.config.simple_name }}
+      EMU: ${{ matrix.config.emu }}
       BINARY: ${{ matrix.binaries }}
       EXT: ${{ matrix.config.ext }}
     strategy:
@@ -85,37 +84,16 @@ jobs:
           make -j4 profile-build ARCH=$BINARY COMP=$COMP RUN_PREFIX=$EMU
           make strip ARCH=$BINARY COMP=$COMP
           RUN_PREFIX="$EMU" ../tests/signature.sh "$benchref"
+          mv ./DON$EXT ../DON-android-$BINARY$EXT
 
-          # Ensure artifact folder exists
-          mkdir -p artifact
-
-          # Move binary into artifact folder
-          mv ./DON$EXT artifact/DON-$NAME-$BINARY$EXT || { echo "ERROR: Built binary ./DON$EXT not found"; exit 1; }
-
-          # Optional: make binary executable
-          chmod +x artifact/DON-$NAME-$BINARY$EXT
-
-          # Copy optional scripts/docs
-          [ -d ../scripts ] && cp -r ../scripts artifact/ || echo "No scripts/ folder, skipping"
-          cp -v ../Copying.txt ../CITATION.cff ../README.md ../CONTRIBUTING.md artifact/ 2>/dev/null || true
-
-      - name: Verify artifact contents
-        run: |
-          echo "Checking binary DON-$NAME-$BINARY$EXT exists..."
-          test -f artifact/DON-$NAME-$BINARY$EXT # Existence check
-          echo "Listing artifact folder contents:"
-          ls -lh artifact/ # Size check
-          du -sh artifact/ # Total size
-
-      - name: Clean build artifacts
-        run: |
-          make clean
-          # Exclude artifact folder from cleanup
-          git clean -fxe artifact/
+      - name: Remove non src files
+        run: git clean -fxd
 
       - name: Upload artifact for (pre)-release
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: ${{ env.NAME }}-${{ env.BINARY }}
-          path: src/artifact/
-          if-no-files-found: error
+          name: ${{ matrix.config.simple_name }} ${{ matrix.binaries }}
+          path: |
+            .
+            !.git
+            !.output

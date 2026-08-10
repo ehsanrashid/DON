@@ -101,7 +101,7 @@ also be made available under GPL v3.
 DON uses neural networks trained on data provided by the [Leela Chess Zero
 project][lc0-data-link], which is made available under the [Open Database License][odbl-link] (ODbL).
 
-[build-link]:           https://github.com/ehsanrashid/DON/actions/workflows/DON-setup.yml
+[build-link]:           https://github.com/ehsanrashid/DON/actions/workflows/DON.yml
 [commits-link]:         https://github.com/ehsanrashid/DON/commits/main
 [issue-link]:           https://github.com/ehsanrashid/DON/issues/new?assignees=&labels=&template=BUG-REPORT.yml
 [license-link]:         https://github.com/ehsanrashid/DON/blob/main/Copying.txt
