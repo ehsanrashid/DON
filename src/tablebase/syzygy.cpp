@@ -1001,10 +1001,10 @@ class TBTables final {
             return idealEntry.get<T>();
 
         // Calculate safe probe limit:
-        // - distance_max() tracks the longest probe chain ever inserted
-        // - Any key would be within (distance_max + 1) of its ideal bucket
+        // - max_distance() tracks the longest probe chain ever inserted
+        // - Any key would be within (max_distance + 1) of its ideal bucket
         // - Cap at PROBE_MAX to prevent infinite loops on corrupt data
-        usize ProbeMax = std::min(distance_max(), PROBE_MAX - 1) + 1;
+        usize ProbeMax = std::min(max_distance(), PROBE_MAX - 1) + 1;
         // Linear probe with Robin Hood early termination
         for (usize distance = 1; distance <= ProbeMax; ++distance)
         {
@@ -1040,7 +1040,7 @@ class TBTables final {
         wdlTables.clear();
         dtzTables.clear();
 
-        DistanceMax = 0;
+        MaxDistance = 0;
     }
 
     std::string info() const noexcept {
@@ -1050,7 +1050,7 @@ class TBTables final {
              + " (up to " + std::to_string(MaxCardinality) + "-man).";
     }
 
-    usize distance_max() const noexcept { return DistanceMax; }
+    usize max_distance() const noexcept { return MaxDistance; }
 
     void add(const std::vector<PieceType>& pieces) noexcept;
 
@@ -1077,7 +1077,8 @@ class TBTables final {
 
         for (usize distance = 1; distance <= PROBE_MAX;)
         {
-            DistanceMax = std::max(distance, DistanceMax);
+            if (MaxDistance < distance)
+                MaxDistance = distance;
 
             usize bucket = (newBucket + distance) & MASK;
 
@@ -1129,7 +1130,7 @@ class TBTables final {
     static_assert(PROBE_MAX <= SIZE, "PROBE_MAX must be <= SIZE");
 
     // Track the farthest any entry has been displaced
-    usize DistanceMax = 0;
+    usize MaxDistance = 0;
 
     Array<Entry, SIZE> entries;
 
@@ -1163,7 +1164,10 @@ void TBTables::add(const std::vector<PieceType>& pieces) noexcept {
     if (!(Exists[WDL] || Exists[DTZ]))
         return;
 
-    MaxCardinality = std::max(u8(pieces.size()), MaxCardinality);
+    const u8 cardinality = u8(pieces.size());
+
+    if (MaxCardinality < cardinality)
+        MaxCardinality = cardinality;
 
     TBTable<WDL>* wdlTable = nullptr;
     TBTable<DTZ>* dtzTable = nullptr;
@@ -1925,7 +1929,7 @@ void init(std::string_view paths) noexcept {
 
     print_info_string(tbTables.info());
 
-    DEBUG_LOG("distance-max: " << tbTables.distance_max());
+    DEBUG_LOG("max-distance: " << tbTables.max_distance());
 }
 
 // Probe the WDL table for a particular position.
@@ -2017,7 +2021,8 @@ int probe_dtz(Position& pos, ProbeState* ps) noexcept {
 
         // Skip the draws and if winning only pick positive DTZ-score
         if (sign(dtzScore) == sign(wdlScore))
-            minDtzScore = std::min(dtzScore, minDtzScore);
+            if (minDtzScore > dtzScore)
+                minDtzScore = dtzScore;
 
         pos.undo_move(m);
 
