@@ -113,7 +113,7 @@ struct AccumulatorUpdateContext final {
                 const auto* column = reinterpret_cast<const vec_i8_t*>(&threatWeights[offset]);
 
         #if defined(USE_NEON)
-                for (IndexType k = 0; k < Tiling::RegCount; k += 2)
+                for (IndexType k = 0; k + 1 < Tiling::RegCount; k += 2)
                 {
                     acc[k + 0] = vsubw_s8(acc[k + 0], vget_low_s8(column[k / 2]));
                     acc[k + 1] = vsubw_high_s8(acc[k + 1], column[k / 2]);
@@ -130,7 +130,7 @@ struct AccumulatorUpdateContext final {
                 const auto* column = reinterpret_cast<const vec_i8_t*>(&threatWeights[offset]);
 
         #if defined(USE_NEON)
-                for (IndexType k = 0; k < Tiling::RegCount; k += 2)
+                for (IndexType k = 0; k + 1 < Tiling::RegCount; k += 2)
                 {
                     acc[k + 0] = vaddw_s8(acc[k + 0], vget_low_s8(column[k / 2]));
                     acc[k + 1] = vaddw_high_s8(acc[k + 1], column[k / 2]);
@@ -386,8 +386,8 @@ void update_accumulator_refresh_cache(const Color                      perspecti
 
     PSQFeatureSet::IndexList removed, added;
 
-    auto& pieceMap = pos.piece_map();
-    auto  piecesBB = pos.pieces_bb();
+    const auto& pieceMap = pos.piece_map();
+    const auto  piecesBB = pos.pieces_bb();
 
     const Bitboard changedBB = changed_bb(entry.pieceMap, pieceMap);
 
@@ -539,7 +539,7 @@ void update_threats_accumulator_full(const Color                         perspec
             const auto* column = reinterpret_cast<const vec_i8_t*>(&threatWeights[offset]);
 
     #if defined(USE_NEON)
-            for (IndexType k = 0; k < Tiling::RegCount; k += 2)
+            for (IndexType k = 0; k + 1 < Tiling::RegCount; k += 2)
             {
                 acc[k + 0] = vaddw_s8(acc[k + 0], vget_low_s8(column[k / 2]));
                 acc[k + 1] = vaddw_high_s8(acc[k + 1], column[k / 2]);

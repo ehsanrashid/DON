@@ -271,24 +271,24 @@ void FullThreats::append_active_indices(const Color     perspective,
         {
             const Piece attackerPc = make_piece(attackerC, PAWN);
 
-            Bitboard cPawnsBB = pos.pieces_bb(attackerC, PAWN);
+            const Bitboard attackerBB = pos.pieces_bb(attackerC, PAWN);
 
             append_pawn_active_indices(
-              (attackerC == WHITE ? shift_bb<Direction::NORTH_EAST>(cPawnsBB)
-                                  : shift_bb<Direction::SOUTH_WEST>(cPawnsBB))
+              (attackerC == WHITE ? shift_bb<Direction::NORTH_EAST>(attackerBB)
+                                  : shift_bb<Direction::SOUTH_WEST>(attackerBB))
                 & occupancyBB,
               attackerC == WHITE ? Direction::NORTH_EAST : Direction::SOUTH_WEST,  //
               perspective, pos, kingSq, attackerPc, active);
 
             append_pawn_active_indices(
-              (attackerC == WHITE ? shift_bb<Direction::NORTH_WEST>(cPawnsBB)
-                                  : shift_bb<Direction::SOUTH_EAST>(cPawnsBB))
+              (attackerC == WHITE ? shift_bb<Direction::NORTH_WEST>(attackerBB)
+                                  : shift_bb<Direction::SOUTH_EAST>(attackerBB))
                 & occupancyBB,
               attackerC == WHITE ? Direction::NORTH_WEST : Direction::SOUTH_EAST,  //
               perspective, pos, kingSq, attackerPc, active);
 
             // Set of pawns which are prevented from movement by a pawn in front of them
-            const Bitboard pushersBB = cPawnsBB & pawn_push_bb(pawnsBB, ~attackerC);
+            const Bitboard pushersBB = attackerBB & pawn_push_bb(pawnsBB, ~attackerC);
             append_pawn_active_indices((attackerC == WHITE ? shift_bb<Direction::NORTH>(pushersBB)
                                                            : shift_bb<Direction::SOUTH>(pushersBB)),
                                        pawn_spush(attackerC),  //
@@ -299,10 +299,10 @@ void FullThreats::append_active_indices(const Color     perspective,
         {
             const Piece attackerPc = make_piece(attackerC, pt);
 
-            Bitboard cPiecesBB = pos.pieces_bb(attackerC, pt);
-            while (cPiecesBB != 0)
+            Bitboard attackerBB = pos.pieces_bb(attackerC, pt);
+            while (attackerBB != 0)
             {
-                const Square orgSq = pop_lsq(cPiecesBB);
+                const Square orgSq = pop_lsq(attackerBB);
 
                 Bitboard attacksBB = attacks_bb(orgSq, pt, occupancyBB) & occupancyBB;
 
