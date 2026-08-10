@@ -141,12 +141,6 @@ VPATH := nnue:nnue/features:book:tablebase
 ### ==========================================================================
 ### Section 2. High-level Configuration
 ### ==========================================================================
-# To add a new ARCH:
-#    1. Update Section 2.1 (general defaults)
-#    2. Update Section 2.2 (architecture-specific settings)
-#    3. Run 'make help' to verify your new architecture appears correctly
-#
-# Note: The order of flags matters; SIMD flags should be enabled after setting bits/arch
 #
 # Flag                --- Comp switch        --- Description
 # ----------------------------------------------------------------------------
@@ -180,7 +174,7 @@ VPATH := nnue:nnue/features:book:tablebase
 # neon = yes/no       --- -DUSE_NEON         --- Use ARM SIMD architecture
 # dotprod = yes/no    --- -DUSE_NEON_DOTPROD --- Use ARM advanced SIMD Int8 dot product instructions
 # lsx = yes/no        --- -mlsx              --- Use Loongson SIMD eXtension
-# lasx = yes/no       --- -mlasx             --- use Loongson Advanced SIMD eXtension
+# lasx = yes/no       --- -mlasx             --- Use Loongson Advanced SIMD eXtension
 # tablebases = yes/no --- -DNO_TABLEBASES    --- Support tablebase probing
 #
 # native              --- Auto-detect best architecture for host CPU using ../scripts/get_native_properties.sh
@@ -204,22 +198,17 @@ ifeq ($(ARCH),native)
 endif
 
 # Explicitly check for the list of supported architectures (as listed with make help),
-# User can override with 'make ARCH=x86-64-avx512icl ARCH_SUPPORT=yes'
-# GNU Make filter:
-#   - returns matches, not true/false
-#   - non-empty => ARCH found in supported list
-ifneq ($(filter x86-64-avx512icl x86-64-vnni512 x86-64-vnni256 x86-64-avx512 x86-64-avxvnni \
-                x86-64-bmi2 x86-64-avx2 x86-64-bitmanip-cmp x86-64-bitmanip \
-                x86-64-sse41-popcnt x86-64-modern x86-64-sse41 x86-64-ssse3-popcnt x86-64-ssse3 x86-64 general-64 \
-                x86-32-sse41-popcnt x86-32-sse41 x86-32-sse2 x86-32 general-32 \
-                ppc-64-altivec ppc-64-vsx ppc-64 ppc-32 e2k armv7-neon armv7 armv8-dotprod armv8 apple-silicon \
-                riscv64 riscv64-rva23 \
-                loongarch64-lasx loongarch64-lsx loongarch64 \
-                wasm32 wasm32-relaxed-simd,$(ARCH)),)
-   ARCH_SUPPORT = yes
-else
-   ARCH_SUPPORT = no
-endif
+# User can override with `make ARCH=x86-64-avx512icl ARCH_SUPPORT=yes`
+ARCH_SUPPORT := $(if $(filter \
+    x86-64-avx512icl x86-64-vnni512 x86-64-vnni256 x86-64-avx512 x86-64-avxvnni \
+    x86-64-bmi2 x86-64-avx2 x86-64-bitmanip-cmp x86-64-bitmanip x86-64-sse41-popcnt \
+    x86-64-modern x86-64-sse41 x86-64-ssse3-popcnt x86-64-ssse3 x86-64 general-64 \
+    x86-32-sse41-popcnt x86-32-sse41 x86-32-sse2 x86-32 general-32 \
+    ppc-64-altivec ppc-64-vsx ppc-64 ppc-32 \
+    e2k armv7-neon armv7 armv8-dotprod armv8 apple-silicon \
+    riscv64 riscv64-rva23 \
+    loongarch64-lasx loongarch64-lsx loongarch64 \
+    wasm32 wasm32-relaxed-simd,$(ARCH)),yes,no)
 
 optimize = yes
 debug = no
@@ -1266,7 +1255,8 @@ profile-build: net config-sanity objclean profileclean
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) $(profile_make)
 	@echo ""
 	@echo "Step 2/4. Running benchmark for pgo-build ..."
-	$(PGOBENCH) > PGOBENCH.out 2>&1
+	@echo "PGOBENCH = $(PGOBENCH)"
+	$(PGOBENCH) > PGOBENCH.out 2>&1 || { cat PGOBENCH.out; exit 1; }
 	tail -n 4 PGOBENCH.out
 	@echo ""
 	@echo "Step 3/4. Building optimized executable ..."

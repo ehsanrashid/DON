@@ -1,15 +1,12 @@
 name: AVX2 Compiler Matrix
-
 on:
   workflow_call:
-
 jobs:
   avx2-compiler-matrix:
     name: avx2 (${{ matrix.name }})
     runs-on: ubuntu-latest
     container:
       image: ${{ matrix.image }}
-
     strategy:
       fail-fast: false
       matrix:
@@ -35,7 +32,6 @@ jobs:
           - { name: clang-19, comp: clang, cxx: clang++-19, image: "ubuntu:rolling", is_clang: true, ver: "19" }
           - { name: clang-20, comp: clang, cxx: clang++-20, image: "ubuntu:rolling", is_clang: true, ver: "20" }
           - { name: clang-21, comp: clang, cxx: clang++-21, image: "ubuntu:rolling", is_clang: true, ver: "21" }
-
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
