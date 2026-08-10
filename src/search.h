@@ -27,6 +27,7 @@
 #include <cstring>
 #include <functional>
 #include <initializer_list>
+#include <limits>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -201,7 +202,7 @@ struct RootMove final {
     Value tbValue  = -VALUE_INFINITE;
     u16   selDepth = 0;
 
-    u16 id = UINT16_MAX;
+    u16 id = std::numeric_limits<u16>::max();
 
     Bound bound = Bound::NONE;
 

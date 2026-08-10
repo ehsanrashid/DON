@@ -206,7 +206,7 @@ inline constexpr usize BLOCK_8  = 2 * BLOCK_4;
 inline constexpr usize BLOCK_16 = 4 * BLOCK_4;
 inline constexpr usize BLOCK_32 = 8 * BLOCK_4;
 
-inline constexpr i64 INT_LIMIT = (i64{1} << 31) - 1;
+inline constexpr i64 INT_LIMIT = std::numeric_limits<i32>::max();
 
 inline constexpr double LN2   = 0.693147180559945309417232121458176568;
 inline constexpr double SQRT2 = 1.41421356237309504880168872420969808;

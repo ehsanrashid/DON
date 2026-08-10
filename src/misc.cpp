@@ -19,7 +19,6 @@
 
 #include <cmath>
 #include <ctime>
-#include <limits>
 
 #if defined(_WIN32)
     #if !defined(NOMINMAX)
@@ -875,7 +874,7 @@ std::string utf8_from_wstring(std::wstring_view wSv) noexcept {
 std::filesystem::path path_from_utf8(std::string_view path) noexcept {
 #if defined(_WIN32)
     const usize size = path.size();
-    if (size > INT_MAX)
+    if (size > std::numeric_limits<int>::max())
         return {};
     int u8Size = int(size);
     int wSize  = MultiByteToWideChar(CP_UTF8, 0, path.data(), u8Size, nullptr, 0);
