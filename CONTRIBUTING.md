@@ -70,8 +70,6 @@ git config blame.ignoreRevsFile .git-blame-ignore-revs
 
 ## Community and Communication
 
-- Join the [DON discord][discord-link] to discuss ideas, issues, and
-  development.
 - Participate in the [DON GitHub discussions][discussions-link] for
   broader conversations.
 
@@ -84,7 +82,6 @@ more details.
 Thank you for contributing to DON and helping us make it even better!
 
 [copying-link]:           https://github.com/ehsanrashid/DON/blob/main/Copying.txt
-[discord-link]:           https://discord.gg/
 [discussions-link]:       https://github.com/ehsanrashid/DON/discussions/new
 [creating-my-first-test]: https://github.com/ehsanrashid/DON/wiki/Creating-my-first-test#create-your-test
 [issue-tracker-link]:     https://github.com/ehsanrashid/DON/issues

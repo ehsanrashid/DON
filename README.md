@@ -11,15 +11,13 @@
   <br>
   [Report bug][issue-link]
   ·
-  [Blog][website-blog-link]
 
-  [![Build][build-badge]][build-link]
-  [![License][license-badge]][license-link]
+  [![Build]][build-link]
+  [![License]][license-link]
   <br>
-  [![Release][release-badge]][release-link]
-  [![Commits][commits-badge]][commits-link]
+  [![Release]][release-link]
+  [![Commits]][commits-link]
   <br>
-  [![Website][website-badge]][website-link]
 
 </div>
 
