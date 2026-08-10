@@ -19,7 +19,6 @@
 
 #include <algorithm>
 #include <chrono>
-#include <cstdint>
 #include <limits>
 #include <ratio>
 #include <string>
