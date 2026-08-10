@@ -367,7 +367,7 @@ void update_accumulator_incr(Color                               perspective,
     targetState.computed[perspective] = true;
 }
 
-Bitboard change_bb(const PieceMap& oldPieceMap, const PieceMap& newPieceMap) noexcept {
+Bitboard changed_bb(const PieceMap& oldPieceMap, const PieceMap& newPieceMap) noexcept {
 #if defined(USE_AVX2)
     Bitboard sameBB = 0;
 
@@ -383,17 +383,17 @@ Bitboard change_bb(const PieceMap& oldPieceMap, const PieceMap& newPieceMap) noe
 
     return ~sameBB;
 #elif defined(USE_NEON)
-    uint8x16x4_t oldV = vld4q_u8(reinterpret_cast<const u8*>(oldPieceMap.data()));
-    uint8x16x4_t newV = vld4q_u8(reinterpret_cast<const u8*>(newPieceMap.data()));
+    const uint8x16x4_t oldV = vld4q_u8(reinterpret_cast<const u8*>(oldPieceMap.data()));
+    const uint8x16x4_t newV = vld4q_u8(reinterpret_cast<const u8*>(newPieceMap.data()));
 
-    const auto equal = [&oldV, &newV](usize i) noexcept {
+    const auto equal = [&oldV, &newV](const usize i) noexcept {
         return vceqq_u8(oldV.val[i], newV.val[i]);
     };
 
-    uint8x16_t equal01 = vsriq_n_u8(equal(1), equal(0), 1);
-    uint8x16_t equal23 = vsriq_n_u8(equal(3), equal(2), 1);
-    uint8x16_t merged  = vsriq_n_u8(equal23, equal01, 2);
-    merged             = vsriq_n_u8(merged, merged, 4);
+    const uint8x16_t equal01 = vsriq_n_u8(equal(1), equal(0), 1);
+    const uint8x16_t equal23 = vsriq_n_u8(equal(3), equal(2), 1);
+    uint8x16_t       merged  = vsriq_n_u8(equal23, equal01, 2);
+    merged                   = vsriq_n_u8(merged, merged, 4);
 
     const uint8x8_t packed = vshrn_n_u16(vreinterpretq_u16_u8(merged), 4);
     const Bitboard  sameBB = vget_lane_u64(vreinterpret_u64_u8(packed), 0);
@@ -407,18 +407,19 @@ Bitboard change_bb(const PieceMap& oldPieceMap, const PieceMap& newPieceMap) noe
         const __m128i oldV  = _mm_loadu_si128(reinterpret_cast<const __m128i*>(&oldPieceMap[s]));
         const __m128i newV  = _mm_loadu_si128(reinterpret_cast<const __m128i*>(&newPieceMap[s]));
         const __m128i equal = _mm_cmpeq_epi8(oldV, newV);
+        const u16     mask  = _mm_movemask_epi8(equal);
 
-        sameBB |= static_cast<Bitboard>(_mm_movemask_epi8(equal)) << s;
+        sameBB |= static_cast<Bitboard>(mask) << s;
     }
 
     return ~sameBB;
 #else
-    Bitboard changeBB = 0;
+    Bitboard changedBB = 0;
 
     for (usize s = 0; s < SQUARE_NB; ++s)
-        changeBB |= static_cast<Bitboard>(oldPieceMap[s] != newPieceMap[s]) << s;
+        changedBB |= static_cast<Bitboard>(oldPieceMap[s] != newPieceMap[s]) << s;
 
-    return changeBB;
+    return changedBB;
 #endif
 }
 
@@ -438,10 +439,10 @@ void update_accumulator_refresh_cache(Color                            perspecti
     auto& pieceMap = pos.piece_map();
     auto  piecesBB = pos.pieces_bb();
 
-    Bitboard changeBB = change_bb(entry.pieceMap, pieceMap);
+    const Bitboard changedBB = changed_bb(entry.pieceMap, pieceMap);
 
-    Bitboard removedBB = changeBB & entry.piecesBB;
-    Bitboard addedBB   = changeBB & piecesBB;
+    const Bitboard removedBB = changedBB & entry.piecesBB;
+    const Bitboard addedBB   = changedBB & piecesBB;
 
     PSQFeatureSet::append_map_changed_indices(perspective, kingSq, entry.pieceMap, pieceMap,
                                               removedBB, addedBB, removed, added);
