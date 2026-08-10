@@ -38,10 +38,13 @@ ALWAYS_INLINE constexpr bool always_true() noexcept { return true; }
 
 // Unrolled upper_bound implementation for finding the insertion point
 template<typename Iterator, typename T, typename Compare>
-Iterator upper_bound_unrolled(Iterator beg, Iterator end, const T& value, Compare comp) noexcept {
-    Iterator ins = end;  // default = end (not found)
+Iterator upper_bound_unrolled(const Iterator beg,
+                              const Iterator end,
+                              const T&       value,
+                              const Compare  comp) noexcept {
+    const usize n = end - beg;
 
-    usize n = end - beg;
+    Iterator ins = end;  // default = end (not found)
 
     usize i = n;
 
@@ -50,7 +53,7 @@ Iterator upper_bound_unrolled(Iterator beg, Iterator end, const T& value, Compar
     {
         i -= BLOCK_8;
 
-        Iterator base = beg + i;
+        const Iterator base = beg + i;
 
         ins = comp(value, base[0]) ? base + 0
             : comp(value, base[1]) ? base + 1
@@ -67,7 +70,7 @@ Iterator upper_bound_unrolled(Iterator beg, Iterator end, const T& value, Compar
     {
         i -= BLOCK_4;
 
-        Iterator base = beg + i;
+        const Iterator base = beg + i;
 
         ins = comp(value, base[0]) ? base + 0
             : comp(value, base[1]) ? base + 1
@@ -80,7 +83,7 @@ Iterator upper_bound_unrolled(Iterator beg, Iterator end, const T& value, Compar
     {
         --i;
 
-        Iterator base = beg + i;
+        const Iterator base = beg + i;
 
         if (comp(value, *base))
             ins = base;
@@ -92,7 +95,7 @@ Iterator upper_bound_unrolled(Iterator beg, Iterator end, const T& value, Compar
 // Sort elements in descending order.
 // Stable for all elements.
 template<typename Iterator>
-void insertion_sort(Iterator beg, Iterator end) noexcept {
+void insertion_sort(const Iterator beg, const Iterator end) noexcept {
     // Iterate over the range starting from the second element
     for (Iterator p = beg + 1; p < end; ++p)
     {
@@ -114,7 +117,9 @@ void insertion_sort(Iterator beg, Iterator end) noexcept {
 // leaving elements < limit untouched at their original positions.
 // Stable for elements >= limit.
 template<typename Iterator>
-void partial_insertion_sort(Iterator beg, Iterator end, int limit = -INT_LIMIT) noexcept {
+void partial_insertion_sort(const Iterator beg,
+                            const Iterator end,
+                            const int      limit = std::numeric_limits<int>::min()) noexcept {
     auto ext_move_descending_limit = [limit](const ExtMove& em1, const ExtMove& em2) noexcept {
         // Only compare elements >= limit
         if (em1.value < limit)
@@ -145,7 +150,7 @@ void partial_insertion_sort(Iterator beg, Iterator end, int limit = -INT_LIMIT) 
 }
 
 template<typename Iterator>
-ALWAYS_INLINE void adaptive_stable_sort(Iterator beg, Iterator end) noexcept {
+ALWAYS_INLINE void adaptive_stable_sort(const Iterator beg, const Iterator end) noexcept {
     if (usize(end - beg) <= INSERTION_SORT_THRESHOLD)
         insertion_sort(beg, end);
     else
