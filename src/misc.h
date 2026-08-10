@@ -394,21 +394,28 @@ void set_console_output(ConsoleMode consoleMode = ConsoleMode::Default) noexcept
 
 constexpr std::string_view timestamp() noexcept { return __TIMESTAMP__; }
 
-inline unsigned to_month(std::string_view m) noexcept {
+constexpr char to_lower(const char ch) noexcept {
+    return 'A' <= ch && ch <= 'Z' ? char(ch + ('a' - 'A')) : ch;
+}
+constexpr char to_upper(const char ch) noexcept {
+    return 'a' <= ch && ch <= 'z' ? char(ch - ('a' - 'A')) : ch;
+}
+
+constexpr unsigned to_month(std::string_view m) noexcept {
     assert(m.size() == 3);
-    return std::tolower(m[0]) == 'j' && std::tolower(m[1]) == 'a' ? 1
-         : std::tolower(m[0]) == 'f'                              ? 2
-         : std::tolower(m[0]) == 'm' && std::tolower(m[2]) == 'r' ? 3
-         : std::tolower(m[0]) == 'a' && std::tolower(m[1]) == 'p' ? 4
-         : std::tolower(m[0]) == 'm' && std::tolower(m[2]) == 'y' ? 5
-         : std::tolower(m[0]) == 'j' && std::tolower(m[2]) == 'n' ? 6
-         : std::tolower(m[0]) == 'j' && std::tolower(m[2]) == 'l' ? 7
-         : std::tolower(m[0]) == 'a' && std::tolower(m[1]) == 'u' ? 8
-         : std::tolower(m[0]) == 's'                              ? 9
-         : std::tolower(m[0]) == 'o'                              ? 10
-         : std::tolower(m[0]) == 'n'                              ? 11
-         : std::tolower(m[0]) == 'd'                              ? 12
-                                                                  : 0;
+    return to_lower(m[0]) == 'j' && to_lower(m[1]) == 'a' ? 1
+         : to_lower(m[0]) == 'f'                          ? 2
+         : to_lower(m[0]) == 'm' && to_lower(m[2]) == 'r' ? 3
+         : to_lower(m[0]) == 'a' && to_lower(m[1]) == 'p' ? 4
+         : to_lower(m[0]) == 'm' && to_lower(m[2]) == 'y' ? 5
+         : to_lower(m[0]) == 'j' && to_lower(m[2]) == 'n' ? 6
+         : to_lower(m[0]) == 'j' && to_lower(m[2]) == 'l' ? 7
+         : to_lower(m[0]) == 'a' && to_lower(m[1]) == 'u' ? 8
+         : to_lower(m[0]) == 's'                          ? 9
+         : to_lower(m[0]) == 'o'                          ? 10
+         : to_lower(m[0]) == 'n'                          ? 11
+         : to_lower(m[0]) == 'd'                          ? 12
+                                                          : 0;
 }
 
 std::string engine_info(bool uci = false) noexcept;
