@@ -55,7 +55,7 @@ struct AccumulatorUpdateContext final {
 
     static constexpr auto Dimensions = FeatureTransformer::OutputDimensions;
 
-    AccumulatorUpdateContext(Color                               perspective,
+    AccumulatorUpdateContext(const Color                         perspective,
                              const FeatureTransformer&           featureTrans,
                              const AccumulatorState<FeatureSet>& computedState,
                              AccumulatorState<FeatureSet>&       targetState) noexcept :
@@ -70,11 +70,11 @@ struct AccumulatorUpdateContext final {
              std::enable_if_t<is_all_same_v<IndexType, Ts...>, bool> = true>
     void apply(const Ts... indices) noexcept {
 
-        auto to_weight_vector = [&](IndexType index) noexcept {
+        auto to_weight_vector = [&](const IndexType index) noexcept {
             return &featureTransformer.weights[index * Dimensions];
         };
 
-        auto to_psqt_weight_vector = [&](IndexType index) noexcept {
+        auto to_psqt_weight_vector = [&](const IndexType index) noexcept {
             return &featureTransformer.psqtWeights[index * PSQTBuckets];
         };
 
@@ -261,7 +261,7 @@ struct AccumulatorUpdateContext final {
 };
 
 template<typename FeatureSet>
-auto make_accumulator_update_context(Color                               perspective,
+auto make_accumulator_update_context(const Color                         perspective,
                                      const FeatureTransformer&           featureTransformer,
                                      const AccumulatorState<FeatureSet>& computedState,
                                      AccumulatorState<FeatureSet>&       targetState) noexcept {
@@ -271,7 +271,7 @@ auto make_accumulator_update_context(Color                               perspec
 
 // Computes the accumulator of the next position, on given computedState
 template<bool Forward, typename FeatureSet>
-void update_accumulator_incr(Color                               perspective,
+void update_accumulator_incr(const Color                         perspective,
                              const FeatureTransformer&           featureTransformer,
                              Square                              kingSq,
                              const AccumulatorState<FeatureSet>& computedState,
@@ -423,7 +423,7 @@ Bitboard changed_bb(const PieceMap& oldPieceMap, const PieceMap& newPieceMap) no
 #endif
 }
 
-void update_accumulator_refresh_cache(Color                            perspective,
+void update_accumulator_refresh_cache(const Color                      perspective,
                                       const FeatureTransformer&        featureTransformer,
                                       const Position&                  pos,
                                       AccumulatorState<PSQFeatureSet>& accState,
@@ -556,7 +556,7 @@ void update_accumulator_refresh_cache(Color                            perspecti
 #endif
 }
 
-void update_threats_accumulator_full(Color                               perspective,
+void update_threats_accumulator_full(const Color                         perspective,
                                      const FeatureTransformer&           featureTransformer,
                                      const Position&                     pos,
                                      AccumulatorState<ThreatFeatureSet>& accState) noexcept {
@@ -721,7 +721,7 @@ void AccumulatorStack::evaluate(const Position&           pos,
 }
 
 template<typename FeatureSet>
-void AccumulatorStack::evaluate(Color                     perspective,
+void AccumulatorStack::evaluate(const Color               perspective,
                                 const Position&           pos,
                                 const FeatureTransformer& featureTransformer,
                                 AccumulatorCache&         accCache) noexcept {
@@ -748,7 +748,7 @@ void AccumulatorStack::evaluate(Color                     perspective,
 // Find the earliest usable accumulator, this can either be a computed accumulator or the accumulator
 // state just before a change that requires full refresh.
 template<typename FeatureSet>
-usize AccumulatorStack::last_usable_accumulator_index(Color perspective) const noexcept {
+usize AccumulatorStack::last_usable_accumulator_index(const Color perspective) const noexcept {
 
     for (usize idx = size; idx-- > 0;)
     {
@@ -763,11 +763,10 @@ usize AccumulatorStack::last_usable_accumulator_index(Color perspective) const n
 }
 
 template<typename FeatureSet>
-void AccumulatorStack::update_forward_incr(Color                     perspective,
+void AccumulatorStack::update_forward_incr(const Color               perspective,
                                            const Position&           pos,
                                            const FeatureTransformer& featureTransformer,
-                                           usize                     beg) noexcept {
-
+                                           const usize               beg) noexcept {
     assert(beg < size && size <= SIZE);
     assert(accumulators<FeatureSet>()[beg].computed[perspective]);
 
@@ -782,11 +781,10 @@ void AccumulatorStack::update_forward_incr(Color                     perspective
 }
 
 template<typename FeatureSet>
-void AccumulatorStack::update_backward_incr(Color                     perspective,
+void AccumulatorStack::update_backward_incr(const Color               perspective,
                                             const Position&           pos,
                                             const FeatureTransformer& featureTransformer,
-                                            usize                     end) noexcept {
-
+                                            const usize               end) noexcept {
     assert(end < size && size <= SIZE);
     assert(state<FeatureSet>().computed[perspective]);
 
