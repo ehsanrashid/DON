@@ -1627,7 +1627,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
                 const auto* const childPv = (ss + 1)->pv;
                 assert(childPv != nullptr);
 
-                for (Move m : *childPv)
+                for (const Move m : *childPv)
                     rm.pv.push_back(m);
 
                 // Record how often the best move has been changed in each iteration.
@@ -2144,7 +2144,7 @@ void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Sta
 
         // Decrease history for all non-best quiet moves
         int decayQuietMalus = constexpr_round(1.0180 * double(malus));
-        for (Move qm : searchedMoves[0])
+        for (const Move qm : searchedMoves[0])
         {
             update_quiet_histories(pos, pawnHistory, ss, qm, -decayQuietMalus);
             decayQuietMalus = constexpr_round(0.8994 * double(decayQuietMalus));
@@ -2153,7 +2153,7 @@ void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Sta
 
     // Decrease history for all non-best capture moves
     int decayCaptureMalus = constexpr_round(1.4541 * double(malus));
-    for (Move cm : searchedMoves[1])
+    for (const Move cm : searchedMoves[1])
     {
         update_capture_history(pos, cm, -decayCaptureMalus);
         decayCaptureMalus = constexpr_round(0.9900 * double(decayCaptureMalus));
@@ -2367,7 +2367,7 @@ void Worker::extend_tb_pv(const usize index, Value& value) noexcept {
 
         RootMoves rms;
 
-        for (Move m : MoveList<GenType::LEGAL>(rootPos))
+        for (const Move m : MoveList<GenType::LEGAL>(rootPos))
             rms.emplace_back(m);
 
         const auto tbCfg =
@@ -2414,7 +2414,7 @@ void Worker::extend_tb_pv(const usize index, Value& value) noexcept {
 
         RootMoves rms;
 
-        for (Move m : MoveList<GenType::LEGAL>(rootPos))
+        for (const Move m : MoveList<GenType::LEGAL>(rootPos))
         {
             auto& rm = rms.emplace_back(m);
 
@@ -2422,7 +2422,7 @@ void Worker::extend_tb_pv(const usize index, Value& value) noexcept {
             rootPos.do_move(m, st);
             // Give a score of each move to break DTZ ties
             // restricting opponent mobility, but not giving the opponent a capture.
-            for (Move om : MoveList<GenType::LEGAL>(rootPos))
+            for (const Move om : MoveList<GenType::LEGAL>(rootPos))
                 rm.tbRank -= 1 + 99 * rootPos.capture(om);
 
             rootPos.undo_move(m);

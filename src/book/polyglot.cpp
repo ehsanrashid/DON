@@ -391,7 +391,7 @@ Move pg_to_move(u16 pgMove, MoveList<GenType::LEGAL>& legalMoves) noexcept {
 
     u16 moveRaw = move.raw() & ~Move::TYPE_MASK;
 
-    for (Move m : legalMoves)
+    for (const Move m : legalMoves)
         if ((m.raw() & ~Move::TYPE_MASK) == moveRaw)
             return m;
 

@@ -141,6 +141,8 @@ Array<usize, TB_PIECES_MAX - 1, FILE_NB / 2> LeadPawnSize; // [leadPawnCnt][FILE
 
 // clang-format on
 
+constexpr int NO_DTZ_SCORE = std::numeric_limits<int>::max();
+
 // Comparison function to sort leading pawns in ascending PawnsMap[] order
 constexpr bool pawns_comp(Square s1, Square s2) noexcept { return PawnsMap[s1] < PawnsMap[s2]; }
 
@@ -1674,7 +1676,7 @@ WDLScore search(Position& pos, ProbeState* ps) noexcept {
 
     u8 moveCount = 0;
 
-    for (Move m : legalMoves)
+    for (const Move m : legalMoves)
     {
         if (!pos.capture(m) && (!CheckZeroingMoves || type_of(pos.moved_pc(m)) != PAWN))
             continue;
@@ -1989,9 +1991,9 @@ int probe_dtz(Position& pos, ProbeState* ps) noexcept {
 
     // DTZ-score stores results for the other side, so need to do a 1-ply search
     // and find the winning move that minimizes DTZ-score.
-    int minDtzScore = std::numeric_limits<int>::max();
+    int minDtzScore = NO_DTZ_SCORE;
 
-    for (Move m : MoveList<GenType::LEGAL>(pos))
+    for (const Move m : MoveList<GenType::LEGAL>(pos))
     {
         bool zeroing = pos.capture(m) || type_of(pos.moved_pc(m)) == PAWN;
 
@@ -2024,7 +2026,7 @@ int probe_dtz(Position& pos, ProbeState* ps) noexcept {
     }
 
     // When there are no legal moves, the position is mate: return -1
-    return minDtzScore != std::numeric_limits<int>::max() ? minDtzScore : -1;
+    return minDtzScore != NO_DTZ_SCORE ? minDtzScore : -1;
 }
 
 // clang-format off

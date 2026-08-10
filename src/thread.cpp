@@ -516,7 +516,7 @@ void Threads::start(Position&      pos,
     }
     else
     {
-        for (Move m : legalMoves)
+        for (const Move m : legalMoves)
             rootMoves.emplace_back(m);
     }
 
