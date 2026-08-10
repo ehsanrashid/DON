@@ -107,56 +107,6 @@ struct AccumulatorUpdateContext final {
             for (IndexType k = 0; k < Tiling::RegCount; ++k)
                 acc[k] = computedTile[k];
 
-    #if defined(USE_AVX512ICL)
-            // AVX-512 ICL: 2-way unroll to break dependency chains
-            IndexType i;
-
-            i = 0;
-            for (; i + 2 <= removedSize; i += 2)
-            {
-                const usize offset0 = removed[i + 0] * Dimensions;
-                const usize offset1 = removed[i + 1] * Dimensions;
-                const auto* column0 = reinterpret_cast<const vec_i8_t*>(&threatWeights[offset0]);
-                const auto* column1 = reinterpret_cast<const vec_i8_t*>(&threatWeights[offset1]);
-
-                for (IndexType k = 0; k < Tiling::RegCount; ++k)
-                {
-                    acc[k] = vec_sub_16(acc[k], vec_convert_8_16(column0[k]));
-                    acc[k] = vec_sub_16(acc[k], vec_convert_8_16(column1[k]));
-                }
-            }
-            for (; i < removedSize; ++i)
-            {
-                const usize offset = removed[i] * Dimensions;
-                const auto* column = reinterpret_cast<const vec_i8_t*>(&threatWeights[offset]);
-
-                for (IndexType k = 0; k < Tiling::RegCount; ++k)
-                    acc[k] = vec_sub_16(acc[k], vec_convert_8_16(column[k]));
-            }
-
-            i = 0;
-            for (; i + 2 <= addedSize; i += 2)
-            {
-                const usize offset0 = added[i + 0] * Dimensions;
-                const usize offset1 = added[i + 1] * Dimensions;
-                const auto* column0 = reinterpret_cast<const vec_i8_t*>(&threatWeights[offset0]);
-                const auto* column1 = reinterpret_cast<const vec_i8_t*>(&threatWeights[offset1]);
-
-                for (IndexType k = 0; k < Tiling::RegCount; ++k)
-                {
-                    acc[k] = vec_add_16(acc[k], vec_convert_8_16(column0[k]));
-                    acc[k] = vec_add_16(acc[k], vec_convert_8_16(column1[k]));
-                }
-            }
-            for (; i < addedSize; ++i)
-            {
-                const usize offset = added[i] * Dimensions;
-                const auto* column = reinterpret_cast<const vec_i8_t*>(&threatWeights[offset]);
-
-                for (IndexType k = 0; k < Tiling::RegCount; ++k)
-                    acc[k] = vec_add_16(acc[k], vec_convert_8_16(column[k]));
-            }
-    #else
             for (IndexType i = 0; i < removedSize; ++i)
             {
                 const usize offset = removed[i] * Dimensions;
@@ -190,7 +140,7 @@ struct AccumulatorUpdateContext final {
                     acc[k] = vec_add_16(acc[k], vec_convert_8_16(column[k]));
         #endif
             }
-    #endif
+
             for (IndexType k = 0; k < Tiling::RegCount; ++k)
                 vec_store(&targetTile[k], acc[k]);
         }
