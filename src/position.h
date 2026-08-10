@@ -440,7 +440,7 @@ class Position final {
     Piece move(Square s1, Square s2, DirtyThreats* dts = nullptr) noexcept;
     Piece swap(Square s, Piece newPc, DirtyThreats* dts = nullptr) noexcept;
 
-    template<bool ComputeRay = true>
+    template<bool ComputeRay>
     void update_piece_threats(
       Square s, Piece pc, DirtyThreats* dts, bool put, Bitboard noRayBB = FULL_BB) const noexcept;
 
@@ -872,7 +872,7 @@ inline void Position::put(const Square s, const Piece pc, DirtyThreats* const dt
     typeBBs[ALL] |= typeBBs[type_of(pc)] |= sBB;
 
     if (dts != nullptr)
-        update_piece_threats(s, pc, dts, true);
+        update_piece_threats<true>(s, pc, dts, true);
 }
 
 inline Piece Position::remove(const Square s, DirtyThreats* const dts) noexcept {
@@ -883,7 +883,7 @@ inline Piece Position::remove(const Square s, DirtyThreats* const dts) noexcept 
     const Piece pc = piece(s);
 
     if (dts != nullptr)
-        update_piece_threats(s, pc, dts, false);
+        update_piece_threats<true>(s, pc, dts, false);
 
     pieceMap[s] = Piece::NO_PIECE;
     colorBBs[color_of(pc)] ^= sBB;
@@ -901,7 +901,7 @@ inline Piece Position::move(const Square s1, const Square s2, DirtyThreats* cons
     const Piece pc = piece(s1);
 
     if (dts != nullptr)
-        update_piece_threats(s1, pc, dts, false, s1s2BB);
+        update_piece_threats<true>(s1, pc, dts, false, s1s2BB);
 
     pieceMap[s1] = Piece::NO_PIECE;
     pieceMap[s2] = pc;
@@ -910,7 +910,7 @@ inline Piece Position::move(const Square s1, const Square s2, DirtyThreats* cons
     typeBBs[ALL] ^= s1s2BB;
 
     if (dts != nullptr)
-        update_piece_threats(s2, pc, dts, true, s1s2BB);
+        update_piece_threats<true>(s2, pc, dts, true, s1s2BB);
 
     return pc;
 }
@@ -983,7 +983,6 @@ inline void Position::update_piece_threats(const Square              s,
                                            DirtyThreats* const       dts,
                                            const bool                put,
                                            [[maybe_unused]] Bitboard noRayBB) const noexcept {
-
     const Bitboard occupancyBB = pieces_bb();
 
     const auto attacksBB = [&]() noexcept {
@@ -1009,7 +1008,7 @@ inline void Position::update_piece_threats(const Square              s,
     Bitboard slidersBB = (pieces_bb(QUEEN, BISHOP) & attacksBB[BISHOP])  //
                        | (pieces_bb(QUEEN, ROOK) & attacksBB[ROOK]);
 
-    auto process_sliders = [&](const bool addDirectAttacks) noexcept {
+    const auto process_sliders = [&](const bool addDirectAttacks) noexcept {
         while (slidersBB != 0)
         {
             const Square sliderSq = pop_lsq(slidersBB);
