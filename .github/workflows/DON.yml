@@ -13,86 +13,95 @@ jobs:
     name: Prerelease
     if: github.repository == 'ehsanrashid/DON' && (github.ref == 'refs/heads/main' || (startsWith(github.ref_name, 'DON_') && github.ref_type == 'tag'))
     runs-on: ubuntu-latest
-    needs: [Matrix, Compilation, ARMCompilation, UniversalCompilation]
+    needs: [Matrix, Compilation, ARMCompilation]
     permissions:
       contents: write # For deleting/creating a prerelease
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
+          fetch-depth: 0
 
-      - name: Delete latest pre-release and tag
-        if: github.ref_name == 'main'
+      # returns null if no pre-release exists
+      - name: Get Commit SHA of Latest Pre-release
         run: |
-          # Verify required tools (should always be present on GitHub runners)
-          command -v jq >/dev/null 2>&1 || { echo "jq not found"; exit 1; }
-          command -v gh >/dev/null 2>&1 || { echo "gh not found"; exit 1; }
-          # Get latest pre-release tag_name
-          LATEST_PRERELEASE=$(gh release list --limit 10 --json tagName,isPrerelease \
-            | jq -r '.[] | select(.isPrerelease == true) | .tagName' | head -n 1)
+          # Install required packages
+          sudo apt-get update
+          sudo apt-get install -y curl jq
 
-          if [ "$LATEST_PRERELEASE" != "null" ] && [ -n "$LATEST_PRERELEASE" ]; then
-            echo "Deleting latest pre-release: $LATEST_PRERELEASE..."
-            gh release delete "$LATEST_PRERELEASE" --cleanup-tag -y
-          else
-            echo "No pre-release found to delete."
-          fi
+          echo "COMMIT_SHA_TAG=$(jq -r 'map(select(.prerelease)) | first | .tag_name' <<< $(curl -s https://api.github.com/repos/${{ github.repository_owner }}/DON/releases))" >> $GITHUB_ENV
+
+      # delete old previous pre-release and tag
+      - run: gh release delete ${{ env.COMMIT_SHA_TAG }} --cleanup-tag
+        if: env.COMMIT_SHA_TAG != 'null'
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Get commit info
-        run: |
-          echo "COMMIT_SHA=$(git rev-parse HEAD | cut -c 1-8)" >> $GITHUB_ENV
-          echo "COMMIT_DATE=$(git show -s --date=format:'%Y%m%d' --format=%cd HEAD)" >> $GITHUB_ENV
-
-      # Make sure that an old ci that still runs on master doesn't recreate a pre-release
+      # Make sure that an old ci that still runs on main doesn't recreate a prerelease
       - name: Check Pullable Commits
-        if: github.ref_name == 'main'
+        id: check_commits
         run: |
           git fetch origin main
           CHANGES=$(git rev-list HEAD..origin/main --count)
           echo "CHANGES=$CHANGES" >> $GITHUB_ENV
 
-      - name: Get latest commit message for release body
-        if: github.ref == 'refs/heads/main' || (startsWith(github.ref_name, 'DON_') && github.ref_type == 'tag')
-        run: |
-          echo "RELEASE_BODY<<EOF" >> $GITHUB_ENV
-          git log -1 --pretty=%B >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
+      - name: Get last commit SHA
+        id: last_commit
+        run: echo "COMMIT_SHA=$(git rev-parse HEAD | cut -c 1-8)" >> $GITHUB_ENV
 
-      # Determine if this is an official release
+      - name: Get commit date
+        id: commit_date
+        run: echo "COMMIT_DATE=$(git show -s --date=format:'%Y%m%d' --format=%cd HEAD)" >> $GITHUB_ENV
+
       - name: Official Release?
+        id: official_release
+        # Check for "Official release version of DON" in the commit message
         run: |
           if git log -1 --pretty=%B | grep -q "Official release version of DON"; then
             echo "OFFICIAL_RELEASE=true" >> $GITHUB_ENV
-            echo "This is an official release."
           else
             echo "OFFICIAL_RELEASE=false" >> $GITHUB_ENV
-            echo "This is NOT an official release."
           fi
 
-      # Create pre-release
-      - name: Create Pre-release
+      # Get recent commits for release body
+      - name: Get commits in this push
+        id: recent_commits
+        run: |
+          COMMITS=$(git log \
+            --format="- [\`%h\`](https://github.com/${{ github.repository }}/commit/%H) *%s*" \
+            ${{ github.event.before }}..HEAD)
+          echo "COMMITS<<EOF" >> $GITHUB_OUTPUT
+          echo "$COMMITS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      # Create a new pre-release, the other upload_binaries.yml will upload the binaries
+      # to this pre-release.
+      - name: Create Prerelease
         if: github.ref_name == 'main' && env.CHANGES == '0' && env.OFFICIAL_RELEASE == 'false'
         uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3.0.0
         with:
           name: DON dev-${{ env.COMMIT_DATE }}-${{ env.COMMIT_SHA }}
           tag_name: DON-dev-${{ env.COMMIT_DATE }}-${{ env.COMMIT_SHA }}
-          body: ${{ env.RELEASE_BODY }}
           prerelease: true
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      # Create official release
-      - name: Create Official Release
-        if: startsWith(github.ref_name, 'DON_') && github.ref_type == 'tag'
-        uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3.0.0
-        with:
-          name: DON ${{ github.ref_name }}
-          tag_name: ${{ github.ref_name }}
-          body: ${{ env.RELEASE_BODY }}
-          prerelease: false
-          token: ${{ secrets.GITHUB_TOKEN }}
+          body: |
+            Precompiled binaries of the latest DON development version, built automatically on every commit.
+            
+            > [!NOTE]
+            > For stable, thoroughly tested builds use the [official releases](https://github.com/ehsanrashid/DON/releases).
+            > Pre-releases may contain bugs.
+            
+            *Some platforms ship a **universal binary** that automatically selects the best
+            instruction set for your CPU - no manual selection needed.*
+            
+            ---
+            
+            ## Commits
+            
+            ${{ steps.recent_commits.outputs.COMMITS }}
+            
+            [View all commits →](https://github.com/${{ github.repository }}/commits/main)
   Matrix:
+    name: Prepare matrices
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
@@ -111,20 +120,26 @@ jobs:
           echo "ARM_MATRIX=$TASKS_ARM" >> $GITHUB_OUTPUT
   # Testing Jobs
   IWYU:
+    name: IWYU
     uses: ./.github/workflows/iwyu.yml
   Sanitizers:
+    name: Sanitizers
     if: ${{ always() }}
     uses: ./.github/workflows/sanitizers.yml
   Tests:
+    name: Tests
     if: ${{ always() }}
     uses: ./.github/workflows/tests.yml
   Matetrack:
+    name: Matetrack
     if: ${{ always() }}
     uses: ./.github/workflows/matetrack.yml
   Games:
+    name: Games
     if: ${{ always() }}
     uses: ./.github/workflows/games.yml
   CompilerCheck:
+    name: Compiler check
     if: ${{ always() }}
     uses: ./.github/workflows/avx2_compilers.yml
   # Release Jobs
@@ -134,12 +149,14 @@ jobs:
     with:
       matrix: ${{ needs.Matrix.outputs.matrix }}
   ARMCompilation:
+    name: Android builds
     needs: [Matrix, Sanitizers, Tests, Matetrack, Games, CompilerCheck]
     uses: ./.github/workflows/arm_compilation.yml
     with:
       matrix: ${{ needs.Matrix.outputs.arm_matrix }}
   Binaries:
     if: github.repository == 'ehsanrashid/DON'
+    name: uploads
     needs: [Prerelease, Matrix, Compilation]
     uses: ./.github/workflows/upload_binaries.yml
     with:
@@ -150,6 +167,7 @@ jobs:
       token: ${{ secrets.GITHUB_TOKEN }}
   ARM_Binaries:
     if: github.repository == 'ehsanrashid/DON'
+    name: Android uploads
     needs: [Prerelease, Matrix, ARMCompilation]
     uses: ./.github/workflows/upload_binaries.yml
     with:
