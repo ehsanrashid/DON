@@ -67,8 +67,9 @@ struct MoveList final {
     [[nodiscard]] bool      empty() const noexcept { return begin() == end(); }
 
     [[nodiscard]] iterator       begin() noexcept { return moves.data(); }
-    [[nodiscard]] iterator       end() noexcept { return moveEnd; }
     [[nodiscard]] const_iterator begin() const noexcept { return moves.data(); }
+
+    [[nodiscard]] iterator       end() noexcept { return moveEnd; }
     [[nodiscard]] const_iterator end() const noexcept { return moveEnd; }
 
     [[nodiscard]] const_iterator find(Move m) const noexcept {

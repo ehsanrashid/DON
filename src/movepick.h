@@ -122,8 +122,9 @@ class MovePicker final {
     bool select(Predicate&& pred) noexcept;
 
     [[nodiscard]] iterator       begin() noexcept { return cur; }
-    [[nodiscard]] iterator       end() noexcept { return curEnd; }
     [[nodiscard]] const_iterator begin() const noexcept { return cur; }
+
+    [[nodiscard]] iterator       end() noexcept { return curEnd; }
     [[nodiscard]] const_iterator end() const noexcept { return curEnd; }
 
     [[nodiscard]] bool valid() const noexcept { return *cur != ttMove; }

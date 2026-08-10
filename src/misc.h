@@ -1017,9 +1017,11 @@ class FixedVector final {
     const T* data() const noexcept { return data_.data(); }
 
     T*       begin() noexcept { return data(); }
-    T*       end() noexcept { return begin() + size(); }
     const T* begin() const noexcept { return data(); }
+
+    T*       end() noexcept { return begin() + size(); }
     const T* end() const noexcept { return begin() + size(); }
+
     const T* cbegin() const noexcept { return data(); }
     const T* cend() const noexcept { return cbegin() + size(); }
 
@@ -1108,34 +1110,42 @@ struct FixedText final {
         assert(size() < capacity());
         if (size() >= capacity())
             return *this;
-        data()[size_++] = ch;
+        *end() = ch;
+        ++size_;
         return *this;
     }
 
     FixedText& write(std::string_view sv) noexcept {
         assert(size() + sv.size() <= capacity());
-        std::memcpy(data() + size(), sv.data(), sv.size());
+        std::memcpy(end(), sv.data(), sv.size());
         size_ += sv.size();
         return *this;
     }
 
     FixedText& write(int v) noexcept {
-        char* beg      = data();
-        char* end      = beg + capacity();
-        auto [ptr, ec] = std::to_chars(beg + size(), end, v);
-        size_          = ptr - beg;
+        auto [ptr, ec] = std::to_chars(end(), begin() + capacity(), v);
+        assert(ec == std::errc{});
+        size_ = ptr - begin();
         return *this;
     }
 
     [[nodiscard]] constexpr usize capacity() const noexcept { return data_.size(); }
 
-    char*                     data() noexcept { return data_.data(); }
+    char*       begin() noexcept { return data(); }
+    const char* begin() const noexcept { return data(); }
+
+    char*       end() noexcept { return data() + size(); }
+    const char* end() const noexcept { return data() + size(); }
+
+    char*       data() noexcept { return data_.data(); }
+    const char* data() const noexcept { return data_.data(); }
+
     [[nodiscard]] const char* c_str() const noexcept { return data_.data(); }
-    [[nodiscard]] usize       size() const noexcept { return size_; }
 
-    [[nodiscard]] bool empty() const noexcept { return size() == 0; }
+    [[nodiscard]] usize size() const noexcept { return size_; }
+    [[nodiscard]] bool  empty() const noexcept { return size() == 0; }
 
-    [[nodiscard]] std::string_view view() const noexcept { return {data_.data(), size()}; }
+    [[nodiscard]] std::string_view view() const noexcept { return {data(), size()}; }
 
     // implicit conversion if you want
     operator std::string_view() const noexcept { return view(); }
