@@ -350,48 +350,35 @@ inline int neon_m128_hadd(const int32x4_t sum, const int bias) noexcept {
     return neon_m128_reduce_add_epi32(sum) + bias;
 }
 
+inline void
+neon_m128_add_dpbusd_epi32(int32x4_t& acc, const int8x16_t a, const int8x16_t b) noexcept {
     #if defined(USE_NEON_DOTPROD)
-inline void
-neon_m128_add_dpbusd_epi32(int32x4_t& acc, const int8x16_t a, const int8x16_t b) noexcept {
     acc = vdotq_s32(acc, a, b);
-}
     #elif USE_NEON >= 8
-inline void
-neon_m128_add_dpbusd_epi32(int32x4_t& acc, const int8x16_t a, const int8x16_t b) noexcept {
     const int16x8_t product0 = vmull_s8(vget_low_s8(a), vget_low_s8(b));
     const int16x8_t product1 = vmull_high_s8(a, b);
     const int16x8_t sum      = vpaddq_s16(product0, product1);
     acc                      = vpadalq_s16(acc, sum);
-}
     #else
-inline void
-neon_m128_add_dpbusd_epi32(int32x4_t& acc, const int8x16_t a, const int8x16_t b) noexcept {
     const int16x8_t product0 = vmull_s8(vget_low_s8(a), vget_low_s8(b));
     const int16x8_t product1 = vmull_s8(vget_high_s8(a), vget_high_s8(b));
     const int16x4_t sum0     = vpadd_s16(vget_low_s16(product0), vget_high_s16(product0));
     const int16x4_t sum1     = vpadd_s16(vget_low_s16(product1), vget_high_s16(product1));
     const int16x8_t sum      = vcombine_s16(sum0, sum1);
     acc                      = vpadalq_s16(acc, sum);
-}
     #endif
+}
 
 #endif  // USE_NEON
 
 #if defined(VECTOR)
-// Compute optimal SIMD register count for feature transformer accumulation.
+// Compute optimal SIMD register count for feature transformer accumulation
 template<IndexType TransformedFeatureDimensions, IndexType PSQTBuckets>
 class Tiling final {
    private:
-    Tiling() noexcept                         = delete;
-    ~Tiling() noexcept                        = delete;
-    Tiling(const Tiling&) noexcept            = delete;
-    Tiling& operator=(const Tiling&) noexcept = delete;
-    Tiling(Tiling&&) noexcept                 = delete;
-    Tiling& operator=(Tiling&&) noexcept      = delete;
-
         // Use __m* types as template arguments, which causes GCC to emit warnings
-        // about losing some attribute information. This is irrelevant to us as we
-        // only take their size, so the following pragma are harmless.
+        // about losing some attribute information.
+        // This is irrelevant to us as only take their size, so the following pragma are harmless.
     #if defined(__GNUC__)
         #pragma GCC diagnostic push
         #pragma GCC diagnostic ignored "-Wignored-attributes"
@@ -437,6 +424,14 @@ class Tiling final {
     static_assert(TransformedFeatureDimensions % TileHeight == 0,
                   "TileHeight must divide TransformedFeatureDimensions");
     static_assert(PSQTBuckets % PSQTTileHeight == 0, "PSQTTileHeight must divide PSQTBuckets");
+
+   private:
+    Tiling() noexcept                         = delete;
+    ~Tiling() noexcept                        = delete;
+    Tiling(const Tiling&) noexcept            = delete;
+    Tiling& operator=(const Tiling&) noexcept = delete;
+    Tiling(Tiling&&) noexcept                 = delete;
+    Tiling& operator=(Tiling&&) noexcept      = delete;
 };
 #endif
 
