@@ -137,7 +137,7 @@ void TimeManager::init(
             timeAdjust = std::max(-0.4126 + 0.2862 * std::log10(remainTime), TIME_ADJUST_MIN);
 
         optimumScale = timeAdjust
-                     * std::min(11.29900e-3 + std::min(3.47750e-3 + 28.41880e-5 * LogScaledTime, 4.06734e-3) * std::pow(2.82122 + double(ply), 0.466422), 0.19404 * double(clock.time) / double(remainTime));
+                     * std::min(11.29900e-3 + std::min(3.47750e-3 + 28.41880e-5 * LogScaledTime, 4.06734e-3) * std::pow(2.82122 + double(ply), 0.46642), 0.19404 * double(clock.time) / double(remainTime));
         maximumScale = std::min(std::max(3.66270 + 3.72690 * LogScaledTime, 2.75068) + 78.37482e-3 * double(ply), 6.35772);
         }
         // 2) x base-time (+ z increment)
