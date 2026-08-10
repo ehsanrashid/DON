@@ -19,6 +19,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <limits>
 #include <utility>
 
 #include "attacks.h"
@@ -237,7 +238,7 @@ void MovePicker::init_stage() noexcept {
 // Assigns a numerical value to each move in a list, used for sorting.
 // Captures moves are ordered by Most Valuable Victim (MVV),
 // preferring captures moves with a good history.
-// Quiets moves are ordered by using the history tables.
+// Quiet moves are ordered by using the history tables.
 template<>
 MovePicker::iterator
 MovePicker::score<GenType::ENC_CAPTURE>(const MoveList<GenType::ENC_CAPTURE>& moveList) noexcept {
