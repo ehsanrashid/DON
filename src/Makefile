@@ -1185,10 +1185,10 @@ strip:
 	$(STRIP) $(EXE)
 
 install:
-	-$(MKDIR) "$(BINDIR)"
-	-$(CP) "$(EXE)" "$(BINDIR)/"
-	-chmod 755 "$(BINDIR)/$(EXE)"
-	-$(STRIP) "$(BINDIR)/$(EXE)"
+	$(MKDIR) "$(BINDIR)"
+	$(CP) "$(EXE)" "$(BINDIR)/"
+	chmod 755 "$(BINDIR)/$(EXE)"
+	$(STRIP) "$(BINDIR)/$(EXE)"
 
 # Clean all
 clean: objclean profileclean
