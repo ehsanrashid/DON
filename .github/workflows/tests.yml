@@ -1,6 +1,8 @@
 name: Tests
+
 on:
   workflow_call:
+
 jobs:
   Test-Targets:
     name: ${{ matrix.config.name }}
