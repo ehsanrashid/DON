@@ -11,12 +11,13 @@ on:
 
 jobs:
   Artifacts:
-    name: ${{ matrix.config.name }} ${{ matrix.binaries }}
+    name: ${{ matrix.config.name }} ${{ matrix.binary }}
     runs-on: ubuntu-latest
     env:
-      EXT: ${{ matrix.config.ext }}
       NAME: ${{ matrix.config.simple_name }}
-      BINARY: ${{ matrix.binaries }}
+      BINARY: ${{ matrix.binary }}
+      EXT: ${{ matrix.config.ext }}
+      ARCHIVE_EXT: ${{ matrix.config.archive_ext }}
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(inputs.matrix) }}
@@ -31,8 +32,8 @@ jobs:
       - name: Download artifact from compilation
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: ${{ matrix.config.simple_name }} ${{ matrix.binaries }}
-          path: ${{ matrix.config.simple_name }} ${{ matrix.binaries }}
+          name: ${{ env.NAME }} ${{ env.BINARY }}
+          path: ${{ env.NAME }} ${{ env.BINARY }}
 
       - name: Create Package
         run: |
@@ -46,7 +47,7 @@ jobs:
 
       - name: Copy files
         run: |
-          mv "${{ matrix.config.simple_name }} ${{ matrix.binaries }}" DON-workflow
+          mv "$NAME $BINARY" DON-workflow
           cd DON-workflow
           cp -r src ../DON/
           cp -r scripts ../DON/
@@ -57,13 +58,13 @@ jobs:
           cp CONTRIBUTING.md ../DON/
 
       - name: Create tar
-        if: ${{ startsWith(matrix.config.archive_ext, 'tar') }}
+        if: ${{ startsWith(env.ARCHIVE_EXT, 'tar') }}
         run: |
-          chmod +x ./DON/DON-$NAME-$BINARY$EXT
-          tar -cavf DON-$NAME-$BINARY."${{ matrix.config.archive_ext }}" DON
+          chmod +x "./DON/DON-$NAME-$BINARY$EXT"
+          tar -cavf "DON-$NAME-$BINARY.$ARCHIVE_EXT" DON
 
       - name: Create zip
-        if: ${{ matrix.config.archive_ext == 'zip' }}
+        if: ${{ env.ARCHIVE_EXT == 'zip' }}
         run: |
           zip -r DON-$NAME-$BINARY.zip DON
 
@@ -71,7 +72,7 @@ jobs:
         if: startsWith(github.ref_name, 'DON_') && github.ref_type == 'tag'
         uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3.0.0
         with:
-          files: DON-${{ matrix.config.simple_name }}-${{ matrix.binaries }}.${{ matrix.config.archive_ext }}
+          files: DON-${{ env.NAME }}-${{ env.BINARY }}.${{ env.ARCHIVE_EXT }}
           token: ${{ secrets.token }}
 
       - name: Get last commit sha
@@ -108,5 +109,5 @@ jobs:
           name: DON dev-${{ env.COMMIT_DATE }}-${{ env.COMMIT_SHA }}
           tag_name: DON-dev-${{ env.COMMIT_DATE }}-${{ env.COMMIT_SHA }}
           prerelease: true
-          files: DON-${{ matrix.config.simple_name }}-${{ matrix.binaries }}.${{ matrix.config.archive_ext }}
+          files: DON-${{ env.NAME }}-${{ env.BINARY }}.${{ env.ARCHIVE_EXT }}
           token: ${{ secrets.token }}

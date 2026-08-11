@@ -9,13 +9,13 @@ on:
 
 jobs:
   Compilation:
-    name: ${{ matrix.config.name }} ${{ matrix.binaries }}
+    name: ${{ matrix.config.name }} ${{ matrix.binary }}
     runs-on: ${{ matrix.config.os }}
     env:
       COMPCXX: ${{ matrix.config.compiler }}
       COMP: ${{ matrix.config.comp }}
       NAME: ${{ matrix.config.simple_name }}
-      BINARY: ${{ matrix.binaries }}
+      BINARY: ${{ matrix.binary }}
       EXT: ${{ matrix.config.ext }}
       SDE: ${{ matrix.config.sde }}
     strategy:
@@ -75,7 +75,7 @@ jobs:
 
       # Compile the configured release binary
 
-      - name: Compile ${{ matrix.config.binaries }} build
+      - name: Compile ${{ env.BINARY }} build
         run: |
           make clean
           make -j4 profile-build ARCH="$BINARY" COMP="$COMP" RUN_PREFIX="$SDE"
@@ -89,7 +89,7 @@ jobs:
       - name: Upload artifact for (pre)-release
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: ${{ matrix.config.simple_name }} ${{ matrix.binaries }}
+          name: ${{ env.NAME }} ${{ env.BINARY }}
           path: |
              .
              !.git

@@ -57,7 +57,8 @@
       "archive_ext": "zip"
     }
   ],
-  "binaries": [
+  "binary": [
+    "x86-64",
     "x86-64-sse41-popcnt",
     "x86-64-avx2",
     "x86-64-bmi2",
@@ -71,229 +72,229 @@
   ],
   "exclude": [
     {
-      "binaries": "x86-64-avx512",
+      "binary": "x86-64-avx512",
       "config": {
         "os": "ubuntu-22.04"
       }
     },
     {
-      "binaries": "x86-64-vnni512",
+      "binary": "x86-64-vnni512",
       "config": {
         "os": "ubuntu-22.04"
       }
     },
     {
-      "binaries": "x86-64-avx512icl",
+      "binary": "x86-64-avx512icl",
       "config": {
         "os": "ubuntu-22.04"
       }
     },
     {
-      "binaries": "apple-silicon",
+      "binary": "apple-silicon",
       "config": {
         "os": "ubuntu-22.04"
       }
     },
     {
-      "binaries": "armv8",
+      "binary": "armv8",
       "config": {
         "os": "ubuntu-22.04"
       }
     },
     {
-      "binaries": "armv8-dotprod",
+      "binary": "armv8-dotprod",
       "config": {
         "os": "ubuntu-22.04"
       }
     },
     {
-      "binaries": "x86-64-avxvnni",
+      "binary": "x86-64-avxvnni",
       "config": {
         "os": "macos-15-intel"
       }
     },
     {
-      "binaries": "x86-64-avx512",
+      "binary": "x86-64-avx512",
       "config": {
         "os": "macos-15-intel"
       }
     },
     {
-      "binaries": "x86-64-vnni512",
+      "binary": "x86-64-vnni512",
       "config": {
         "os": "macos-15-intel"
       }
     },
     {
-      "binaries": "x86-64-avx512icl",
+      "binary": "x86-64-avx512icl",
       "config": {
         "os": "macos-15-intel"
       }
     },
     {
-      "binaries": "apple-silicon",
+      "binary": "apple-silicon",
       "config": {
         "os": "macos-15-intel"
       }
     },
     {
-      "binaries": "armv8",
+      "binary": "armv8",
       "config": {
         "os": "macos-15-intel"
       }
     },
     {
-      "binaries": "armv8-dotprod",
+      "binary": "armv8-dotprod",
       "config": {
         "os": "macos-15-intel"
       }
     },
     {
-      "binaries": "x86-64",
+      "binary": "x86-64",
       "config": {
         "os": "macos-15"
       }
     },
     {
-      "binaries": "x86-64-sse41-popcnt",
+      "binary": "x86-64-sse41-popcnt",
       "config": {
         "os": "macos-15"
       }
     },
     {
-      "binaries": "x86-64-avx2",
+      "binary": "x86-64-avx2",
       "config": {
         "os": "macos-15"
       }
     },
     {
-      "binaries": "x86-64-bmi2",
+      "binary": "x86-64-bmi2",
       "config": {
         "os": "macos-15"
       }
     },
     {
-      "binaries": "x86-64-avxvnni",
+      "binary": "x86-64-avxvnni",
       "config": {
         "os": "macos-15"
       }
     },
     {
-      "binaries": "x86-64-avx512",
+      "binary": "x86-64-avx512",
       "config": {
         "os": "macos-15"
       }
     },
     {
-      "binaries": "x86-64-vnni512",
+      "binary": "x86-64-vnni512",
       "config": {
         "os": "macos-15"
       }
     },
     {
-      "binaries": "x86-64-avx512icl",
+      "binary": "x86-64-avx512icl",
       "config": {
         "os": "macos-15"
       }
     },
     {
-      "binaries": "armv8",
+      "binary": "armv8",
       "config": {
         "os": "macos-15"
       }
     },
     {
-      "binaries": "armv8-dotprod",
+      "binary": "armv8-dotprod",
       "config": {
         "os": "macos-15"
       }
     },
     {
-      "binaries": "x86-64-avx512",
+      "binary": "x86-64-avx512",
       "config": {
         "os": "windows-2022"
       }
     },
     {
-      "binaries": "x86-64-vnni512",
+      "binary": "x86-64-vnni512",
       "config": {
         "os": "windows-2022"
       }
     },
     {
-      "binaries": "x86-64-avx512icl",
+      "binary": "x86-64-avx512icl",
       "config": {
         "os": "windows-2022"
       }
     },
     {
-      "binaries": "apple-silicon",
+      "binary": "apple-silicon",
       "config": {
         "os": "windows-2022"
       }
     },
     {
-      "binaries": "armv8",
+      "binary": "armv8",
       "config": {
         "os": "windows-2022"
       }
     },
     {
-      "binaries": "armv8-dotprod",
+      "binary": "armv8-dotprod",
       "config": {
         "os": "windows-2022"
       }
     },
     {
-      "binaries": "x86-64",
+      "binary": "x86-64",
       "config": {
         "os": "windows-11-arm"
       }
     },
     {
-      "binaries": "x86-64-sse41-popcnt",
+      "binary": "x86-64-sse41-popcnt",
       "config": {
         "os": "windows-11-arm"
       }
     },
     {
-      "binaries": "x86-64-avx2",
+      "binary": "x86-64-avx2",
       "config": {
         "os": "windows-11-arm"
       }
     },
     {
-      "binaries": "x86-64-bmi2",
+      "binary": "x86-64-bmi2",
       "config": {
         "os": "windows-11-arm"
       }
     },
     {
-      "binaries": "x86-64-avxvnni",
+      "binary": "x86-64-avxvnni",
       "config": {
         "os": "windows-11-arm"
       }
     },
     {
-      "binaries": "x86-64-avx512",
+      "binary": "x86-64-avx512",
       "config": {
         "os": "windows-11-arm"
       }
     },
     {
-      "binaries": "x86-64-vnni512",
+      "binary": "x86-64-vnni512",
       "config": {
         "os": "windows-11-arm"
       }
     },
     {
-      "binaries": "x86-64-avx512icl",
+      "binary": "x86-64-avx512icl",
       "config": {
         "os": "windows-11-arm"
       }
     },
     {
-      "binaries": "apple-silicon",
+      "binary": "apple-silicon",
       "config": {
         "os": "windows-11-arm"
       }
