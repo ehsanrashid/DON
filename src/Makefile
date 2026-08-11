@@ -1256,6 +1256,10 @@ profile-build: net config-sanity objclean profileclean
 	@echo ""
 	@echo "Step 2/4. Running benchmark for pgo-build ..."
 	@echo "PGOBENCH = $(PGOBENCH)"
+	@echo "Checking SDE..."
+	@ls -la $(dir $(word 1,$(PGOBENCH))) || true
+	@file $(word 1,$(PGOBENCH)) || true
+	@ls -l $(word 1,$(PGOBENCH)) || true
 	$(PGOBENCH) > PGOBENCH.out 2>&1 || { cat PGOBENCH.out; exit 1; }
 	tail -n 4 PGOBENCH.out
 	@echo ""
