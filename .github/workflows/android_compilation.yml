@@ -53,11 +53,20 @@ jobs:
 
       - name: Extract the bench number from the commit history
         run: |
-          benchref=""
           for hash in $(git rev-list -100 HEAD); do
-            benchref=$(git show -s $hash | tac | grep -m 1 -o -x '[[:space:]]*\b[Bb]ench[ :]\+[1-9][0-9]\{5,7\}\b[[:space:]]*' | sed 's/[^0-9]//g') && break || true
+            benchref=$(git show -s "$hash" |
+              tac |
+              grep -m 1 -o -x '[[:space:]]*[Bb]ench[ :]\{1,\}[1-9][0-9]\{5,7\}[[:space:]]*' |
+              sed 's/[^0-9]//g') && break || true
           done
-          [[ -n "$benchref" ]] && echo "benchref=$benchref" >> $GITHUB_ENV && echo "From commit: $hash" && echo "Reference bench: $benchref" || echo "No bench found"
+
+          if [ -n "$benchref" ]; then
+            echo "benchref=$benchref" >> "$GITHUB_ENV"
+            echo "From commit: $hash"
+            echo "Reference bench: $benchref"
+          else
+            echo "No bench found"
+          fi
 
       - name: Download the used network from the fishtest framework
         run: make net
@@ -83,10 +92,11 @@ jobs:
             export PATH=${{ env.ANDROID_NDK_BIN }}:$PATH
             export LDFLAGS="-static -Wno-unused-command-line-argument"
           fi
+          RUN_PREFIX="$EMU"
           make clean
-          make -j4 profile-build ARCH="$BINARY" COMP="$COMP" RUN_PREFIX="$EMU"
+          make -j4 profile-build ARCH="$BINARY" COMP="$COMP" RUN_PREFIX="$RUN_PREFIX"
           make strip ARCH="$BINARY" COMP="$COMP"
-          RUN_PREFIX="$EMU" ../tests/signature.sh "$benchref"
+          RUN_PREFIX="$RUN_PREFIX" ../tests/signature.sh "$benchref"
           mv "./DON$EXT" "../DON-android-$BINARY$EXT" || { echo "ERROR: Built binary ./DON$EXT not found"; exit 1; }
 
       - name: Remove non src files

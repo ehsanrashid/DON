@@ -554,11 +554,14 @@ ifeq ($(OS_WINDOWS),yes)
     endif
 endif
 
+BITS_FLAG := $(if $(filter 32 64,$(bits)),-m$(bits),)
+
 # ----------------------------
 # Compiler configuration
 # ----------------------------
 
 # Detect if the compiler is Clang/Apple Clang
+CXX_VERSION     :=
 GCC_CLANG       := no
 GCC_APPLE_CLANG := no
 
@@ -610,10 +613,8 @@ ifeq ($(COMP),gcc)
     # Atomic library for specific architectures (not armv8)
     ifneq ($(filter armv8 armv7 riscv64,$(arch)),)
         ifeq ($(OS),Android)
-            ifneq ($(filter 32 64,$(bits)),)
-                CXXFLAGS += -m$(bits)
-                LDFLAGS  += -m$(bits)
-            endif
+            CXXFLAGS += $(BITS_FLAG)
+            LDFLAGS  += $(BITS_FLAG)
         endif
         ifneq ($(filter armv7 riscv64,$(arch)),)
             LDFLAGS += -latomic
@@ -623,10 +624,8 @@ ifeq ($(COMP),gcc)
         LDFLAGS += -latomic
     # Generic architectures
     else
-    ifneq ($(filter 32 64,$(bits)),)
-        CXXFLAGS += -m$(bits)
-        LDFLAGS  += -m$(bits)
-    endif
+        CXXFLAGS += $(BITS_FLAG)
+        LDFLAGS  += $(BITS_FLAG)
     endif
     endif
 # Clang
@@ -657,10 +656,8 @@ ifeq ($(COMP),clang)
     # Atomic library for specific architectures (not armv8)
     ifneq ($(filter armv8 armv7 riscv64,$(arch)),)
         ifeq ($(OS),Android)
-            ifneq ($(filter 32 64,$(bits)),)
-                CXXFLAGS += -m$(bits)
-                LDFLAGS  += -m$(bits)
-            endif
+            CXXFLAGS += $(BITS_FLAG)
+            LDFLAGS  += $(BITS_FLAG)
         endif
         ifneq ($(filter armv7 riscv64,$(arch)),)
             LDFLAGS += -latomic
@@ -670,10 +667,8 @@ ifeq ($(COMP),clang)
         LDFLAGS += -latomic
     # Generic architectures
     else
-    ifneq ($(filter 32 64,$(bits)),)
-        CXXFLAGS += -m$(bits)
-        LDFLAGS  += -m$(bits)
-    endif
+        CXXFLAGS += $(BITS_FLAG)
+        LDFLAGS  += $(BITS_FLAG)
     endif
     endif
     # Link std::filesystem for Linux Clang (non-Apple)
@@ -1156,85 +1151,86 @@ CP    := cp
 ### ==========================================================================
 
 help:
-	@echo "" && \
-	echo "To compile $(NAME), type: " && \
-	echo "" && \
-	echo "make -j target [ARCH=arch] [COMP=compiler] [COMPCXX=cxx]" && \
-	echo "" && \
-	echo "Supported targets:" && \
-	echo "" && \
-	echo "help                    > Display architecture details" && \
-	echo "profile-build           > standard build with profile-guided optimization" && \
-	echo "build                   > skip profile-guided optimization" && \
-	echo "net                     > Download the default nnue nets" && \
-	echo "strip                   > Strip executable" && \
-	echo "install                 > Install executable" && \
-	echo "clean                   > Clean up" && \
-	echo "" && \
-	echo "Supported archs:" && \
-	echo "" && \
-	echo "native                  > select the best architecture for the host processor (default)" && \
-	echo "x86-64-avx512icl        > x86 64-bit with minimum avx512 support of Intel Ice Lake or AMD Zen 4" && \
-	echo "x86-64-vnni512          > x86 64-bit with vnni support, operands 512-bit wide" && \
-	echo "x86-64-vnni256          > x86 64-bit with vnni support, operands limited to 256-bit wide" && \
-	echo "x86-64-avx512           > x86 64-bit with avx512 support" && \
-	echo "x86-64-avxvnni          > x86 64-bit with vnni 256bit support" && \
-	echo "x86-64-bmi2             > x86 64-bit with bmi2 support" && \
-	echo "x86-64-avx2             > x86 64-bit with avx2 support" && \
-	echo "x86-64-bitmanip-cmp     > x86 64-bit with bit manipulation support and compressed instructions" && \
-	echo "x86-64-bitmanip         > x86 64-bit with bit manipulation support" && \
-	echo "x86-64-sse41-popcnt     > x86 64-bit with sse41 and popcnt support" && \
-	echo "x86-64-modern           > deprecated, currently x86-64-sse41-popcnt" && \
-	echo "x86-64-sse41            > x86 64-bit with sse41 support" && \
-	echo "x86-64-ssse3-popcnt     > x86 64-bit with ssse3 and popcnt support" && \
-	echo "x86-64-ssse3            > x86 64-bit with ssse3 support" && \
-	echo "x86-64                  > x86 64-bit generic with sse2 support" && \
-	echo "general-64              > unspecified 64-bit" && \
-	echo "x86-32-sse41-popcnt     > x86 32-bit with sse41 and popcnt support" && \
-	echo "x86-32-sse41            > x86 32-bit with sse41 support" && \
-	echo "x86-32-sse2             > x86 32-bit with sse2 support" && \
-	echo "x86-32                  > x86 32-bit generic with mmx support" && \
-	echo "general-32              > unspecified 32-bit" && \
-	echo "ppc-64-altivec          > PPC 64-bit with altivec support" && \
-	echo "ppc-64-vsx              > PPC 64-bit with vsx support" && \
-	echo "ppc-64                  > PPC 64-bit" && \
-	echo "ppc-32                  > PPC 32-bit" && \
-	echo "e2k                     > Elbrus 2000" && \
-	echo "armv7                   > ARMv7 32-bit" && \
-	echo "armv7-neon              > ARMv7 32-bit with popcnt and neon" && \
-	echo "armv8                   > ARMv8 64-bit with popcnt and neon" && \
-	echo "armv8-dotprod           > ARMv8 64-bit with popcnt, neon and dot product support" && \
-	echo "apple-silicon           > Apple silicon ARM64" && \
-	echo "riscv64                 > RISC-V 64-bit" && \
-	echo "riscv64-rva23           > RISC-V 64-bit RVA23 profile" && \
-	echo "loongarch64             > LoongArch 64-bit" && \
-	echo "loongarch64-lsx         > LoongArch 64-bit with SIMD eXtension" && \
-	echo "loongarch64-lasx        > LoongArch 64-bit with Advanced SIMD eXtension" && \
-	echo "" && \
-	echo "Supported compilers:" && \
-	echo "" && \
-	echo "gcc                     > GNU compiler (default)" && \
-	echo "mingw                   > GNU compiler with MinGW under Windows" && \
-	echo "clang                   > LLVM Clang compiler" && \
-	echo "icx                     > Intel oneAPI DPC++/C++ Compiler" && \
-	echo "ndk                     > Google NDK to cross-compile for Android" && \
-	echo "" && \
-	echo "Simple examples. If you don't know what to do, you likely want to run one of:" && \
-	echo "" && \
-	echo "make -j profile-build ARCH=x86-64-avx2          # Typically fast compile for 64-bit systems" && \
-	echo "make -j profile-build ARCH=x86-64-sse41-popcnt  # More portable compile for 64-bit systems" && \
-	echo "make -j profile-build ARCH=x86-64               # Portable compile for 64-bit systems" && \
-	echo "" && \
-	echo "Advanced examples, for experienced users: " && \
-	echo "" && \
-	echo "make -j profile-build ARCH=x86-64-avxvnni" && \
-	echo "make -j profile-build ARCH=x86-64-avxvnni COMP=gcc COMPCXX=g++-12.0" && \
-	echo "make -j build ARCH=x86-64-ssse3 COMP=clang" && \
+	@echo ""; \
+	echo "To compile $(NAME), type: "; \
+	echo ""; \
+	echo "make -j target [ARCH=arch] [COMP=compiler] [COMPCXX=cxx]"; \
+	echo ""; \
+	echo "Supported targets:"; \
+	echo ""; \
+	echo "help                    > Display architecture details"; \
+	echo "profile-build           > standard build with profile-guided optimization"; \
+	echo "build                   > skip profile-guided optimization"; \
+	echo "net                     > Download the default nnue nets"; \
+	echo "strip                   > Strip executable"; \
+	echo "install                 > Install executable"; \
+	echo "clean                   > Clean up"; \
+	echo ""; \
+	echo "Supported archs:"; \
+	echo ""; \
+	echo "native                  > select the best architecture for the host processor (default)"; \
+	echo "x86-64-avx512icl        > x86 64-bit with minimum avx512 support of Intel Ice Lake or AMD Zen 4"; \
+	echo "x86-64-vnni512          > x86 64-bit with vnni support, operands 512-bit wide"; \
+	echo "x86-64-vnni256          > x86 64-bit with vnni support, operands limited to 256-bit wide"; \
+	echo "x86-64-avx512           > x86 64-bit with avx512 support"; \
+	echo "x86-64-avxvnni          > x86 64-bit with vnni 256bit support"; \
+	echo "x86-64-bmi2             > x86 64-bit with bmi2 support"; \
+	echo "x86-64-avx2             > x86 64-bit with avx2 support"; \
+	echo "x86-64-bitmanip-cmp     > x86 64-bit with bit manipulation support and compressed instructions"; \
+	echo "x86-64-bitmanip         > x86 64-bit with bit manipulation support"; \
+	echo "x86-64-sse41-popcnt     > x86 64-bit with sse41 and popcnt support"; \
+	echo "x86-64-modern           > deprecated, currently x86-64-sse41-popcnt"; \
+	echo "x86-64-sse41            > x86 64-bit with sse41 support"; \
+	echo "x86-64-ssse3-popcnt     > x86 64-bit with ssse3 and popcnt support"; \
+	echo "x86-64-ssse3            > x86 64-bit with ssse3 support"; \
+	echo "x86-64                  > x86 64-bit generic with sse2 support"; \
+	echo "general-64              > unspecified 64-bit"; \
+	echo "x86-32-sse41-popcnt     > x86 32-bit with sse41 and popcnt support"; \
+	echo "x86-32-sse41            > x86 32-bit with sse41 support"; \
+	echo "x86-32-sse2             > x86 32-bit with sse2 support"; \
+	echo "x86-32                  > x86 32-bit generic with mmx support"; \
+	echo "general-32              > unspecified 32-bit"; \
+	echo "ppc-64-altivec          > PPC 64-bit with altivec support"; \
+	echo "ppc-64-vsx              > PPC 64-bit with vsx support"; \
+	echo "ppc-64                  > PPC 64-bit"; \
+	echo "ppc-32                  > PPC 32-bit"; \
+	echo "e2k                     > Elbrus 2000"; \
+	echo "armv7                   > ARMv7 32-bit"; \
+	echo "armv7-neon              > ARMv7 32-bit with popcnt and neon"; \
+	echo "armv8                   > ARMv8 64-bit with popcnt and neon"; \
+	echo "armv8-dotprod           > ARMv8 64-bit with popcnt, neon and dot product support"; \
+	echo "apple-silicon           > Apple silicon ARM64"; \
+	echo "riscv64                 > RISC-V 64-bit"; \
+	echo "riscv64-rva23           > RISC-V 64-bit RVA23 profile"; \
+	echo "loongarch64             > LoongArch 64-bit"; \
+	echo "loongarch64-lsx         > LoongArch 64-bit with SIMD eXtension"; \
+	echo "loongarch64-lasx        > LoongArch 64-bit with Advanced SIMD eXtension"; \
+	echo ""; \
+	echo "Supported compilers:"; \
+	echo ""; \
+	echo "gcc                     > GNU compiler (default)"; \
+	echo "mingw                   > GNU compiler with MinGW under Windows"; \
+	echo "clang                   > LLVM Clang compiler"; \
+	echo "icx                     > Intel oneAPI DPC++/C++ Compiler"; \
+	echo "ndk                     > Google NDK to cross-compile for Android"; \
+	echo ""; \
+	echo "Simple examples. If you don't know what to do, you likely want to run one of:"; \
+	echo ""; \
+	echo "make -j profile-build ARCH=x86-64-avx2          # Typically fast compile for 64-bit systems"; \
+	echo "make -j profile-build ARCH=x86-64-sse41-popcnt  # More portable compile for 64-bit systems"; \
+	echo "make -j profile-build ARCH=x86-64               # Portable compile for 64-bit systems"; \
+	echo ""; \
+	echo "Advanced examples, for experienced users: "; \
+	echo ""; \
+	echo "make -j profile-build ARCH=x86-64-avxvnni"; \
+	echo "make -j profile-build ARCH=x86-64-avxvnni COMP=gcc COMPCXX=g++-12.0"; \
+	echo "make -j build ARCH=x86-64-ssse3 COMP=clang"; \
 	echo ""
-	@if [ "$(ARCH_SUPPORT)" = "no" ]; then \
-		echo "Specify a supported architecture with the ARCH option for more details"; \
-		echo ""; \
-	fi
+
+ifeq ($(ARCH_SUPPORT),no)
+	@echo "Specify a supported architecture with the ARCH option for more details"; \
+	echo ""
+endif
 
 .PHONY: help analyze build profile-build strip install clean \
 	objclean profileclean net config-sanity all \
@@ -1255,12 +1251,7 @@ profile-build: net config-sanity objclean profileclean
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) $(profile_make)
 	@echo ""
 	@echo "Step 2/4. Running benchmark for pgo-build ..."
-	@echo "PGOBENCH = $(PGOBENCH)"
-	@echo "Checking SDE..."
-	@ls -la $(dir $(word 1,$(PGOBENCH))) || true
-	@file $(word 1,$(PGOBENCH)) || true
-	@ls -l $(word 1,$(PGOBENCH)) || true
-	$(PGOBENCH) > PGOBENCH.out 2>&1 || { cat PGOBENCH.out; exit 1; }
+	$(PGOBENCH) > PGOBENCH.out 2>&1
 	tail -n 4 PGOBENCH.out
 	@echo ""
 	@echo "Step 3/4. Building optimized executable ..."
@@ -1330,8 +1321,8 @@ install-hooks:
 all: $(EXE) .depend
 
 config-sanity: net
-	@echo ""
-	@echo "Config:" && \
+	@echo "" && \
+	echo "Config:" && \
 	echo "debug: '$(debug)'" && \
 	echo "sanitize: '$(sanitize)'" && \
 	echo "optimize: '$(optimize)'" && \
@@ -1379,9 +1370,7 @@ config-sanity: net
 	(test "$(arch)" = "any" || test "$(arch)" = "i386" || test "$(arch)" = "x86_64" || \
 	 test "$(arch)" = "ppc" || test "$(arch)" = "ppc64" || test "$(arch)" = "e2k" || \
 	 test "$(arch)" = "armv7" || test "$(arch)" = "armv8" || test "$(arch)" = "arm64" || \
-	 test "$(arch)" = "riscv64" || \
-	 test "$(arch)" = "loongarch64" || \
-	 test "$(arch)" = "wasm32") && \
+	 test "$(arch)" = "riscv64" || test "$(arch)" = "loongarch64" || test "$(arch)" = "wasm32") && \
 	(test "$(bits)" = "32" || test "$(bits)" = "64") && \
 	(test "$(prefetch)" = "no" || test "$(prefetch)" = "yes") && \
 	(test "$(popcnt)"   = "no" || test "$(popcnt)"   = "yes") && \
