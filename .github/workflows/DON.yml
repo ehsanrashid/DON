@@ -1,4 +1,5 @@
 name: DON
+
 on:
   push:
     branches:
@@ -8,6 +9,7 @@ on:
   pull_request:
     branches:
       - main
+
 jobs:
   Prerelease:
     name: Prerelease
@@ -22,7 +24,7 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
 
-      # returns null if no pre-release exists
+      # Returns null if no pre-release exists
       - name: Get Commit SHA of Latest Pre-release
         run: |
           # Install required packages
@@ -31,13 +33,13 @@ jobs:
 
           echo "COMMIT_SHA_TAG=$(jq -r 'map(select(.prerelease)) | first | .tag_name' <<< $(curl -s https://api.github.com/repos/${{ github.repository_owner }}/DON/releases))" >> $GITHUB_ENV
 
-      # delete old previous pre-release and tag
+      # Delete old previous pre-release and tag
       - run: gh release delete ${{ env.COMMIT_SHA_TAG }} --cleanup-tag
         if: env.COMMIT_SHA_TAG != 'null'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # Make sure that an old ci that still runs on main doesn't recreate a prerelease
+      # Make sure that an old CI running on main doesn't recreate a prerelease
       - name: Check Pullable Commits
         id: check_commits
         run: |
@@ -57,10 +59,10 @@ jobs:
         id: official_release
         # Check for "Official release version of DON" in the commit message
         run: |
-          if git log -1 --pretty=%B | grep -q "Official release version of DON"; then
-            echo "OFFICIAL_RELEASE=true" >> $GITHUB_ENV
+          if git log -1 --format=%B | grep -q "Official release version of DON"; then
+            echo "OFFICIAL_RELEASE=true" >> "$GITHUB_ENV"
           else
-            echo "OFFICIAL_RELEASE=false" >> $GITHUB_ENV
+            echo "OFFICIAL_RELEASE=false" >> "$GITHUB_ENV"
           fi
 
       # Get recent commits for release body
@@ -100,6 +102,7 @@ jobs:
             ${{ steps.recent_commits.outputs.COMMITS }}
             
             [View all commits →](https://github.com/${{ github.repository }}/commits/main)
+
   Matrix:
     name: Prepare matrices
     runs-on: ubuntu-latest

@@ -1,8 +1,10 @@
 # This workflow will play games with a debug enabled DON using the PR
 
 name: Games
+
 on:
   workflow_call:
+
 jobs:
   Matetrack:
     name: Games
@@ -15,7 +17,7 @@ jobs:
           path: DON
           persist-credentials: false
 
-      - name: build debug enabled version of DON
+      - name: Build debug enabled version of DON
         working-directory: DON/src
         run: make -j build debug=yes
 
@@ -27,7 +29,7 @@ jobs:
           ref: 894616028492ae6114835195f14a899f6fa237d3
           persist-credentials: false
 
-      - name: fastchess build
+      - name: Build fastchess
         working-directory: fastchess
         run: make -j
 

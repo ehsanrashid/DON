@@ -1,8 +1,10 @@
 # This workflow will run matetrack on the PR
 
 name: Matetrack
+
 on:
   workflow_call:
+
 jobs:
   Matetrack:
     name: Matetrack
