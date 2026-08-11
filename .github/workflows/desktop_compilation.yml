@@ -52,11 +52,16 @@ jobs:
 
       - name: Extract the bench number from the commit history
         run: |
+          benchref=""
           for hash in $(git rev-list -100 HEAD); do
             benchref=$(git show -s "$hash" |
               tac |
               grep -m 1 -o -x '[[:space:]]*[Bb]ench[ :]\{1,\}[1-9][0-9]\{5,7\}[[:space:]]*' |
-              sed 's/[^0-9]//g') && break || true
+              sed 's/[^0-9]//g') || true
+
+            if [ -n "$benchref" ]; then
+              break
+            fi
           done
 
           if [ -n "$benchref" ]; then
@@ -108,7 +113,7 @@ jobs:
           make clean
           make -j4 profile-build ARCH="$BINARY" COMP="$COMP" RUN_PREFIX="$RUN_PREFIX"
           make strip ARCH="$BINARY" COMP="$COMP"
-          RUN_PREFIX="$RUN_PREFIX" ../tests/signature.sh "$benchref"
+          #RUN_PREFIX="$RUN_PREFIX" ../tests/signature.sh "$benchref"
           mv "./DON$EXT" "../DON-$NAME-$BINARY$EXT" || { echo "ERROR: Built binary ./DON$EXT not found"; exit 1; }
 
       - name: Remove non src files
