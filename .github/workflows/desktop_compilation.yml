@@ -67,30 +67,36 @@ jobs:
 
       - name: Show compiler cpu info
         run: |
-          if [[ "$COMPCXX" == clang* ]]; then
-            $COMPCXX -E - -march=native -###
-          else
-            $COMPCXX -Q -march=native --help=target
-          fi
+          case "$COMPCXX" in
+            clang*)
+              "$COMPCXX" -E - -march=native -###
+              ;;
+            *)
+              "$COMPCXX" -Q -march=native --help=target
+              ;;
+          esac
 
       # Compile the configured release binary
 
       - name: Compile ${{ env.BINARY }} build
         run: |
+          if [ -n "$SDE" ]; then
+              if command -v cygpath >/dev/null 2>&1; then
+                SDE_DIR="$(cygpath -u "$SDE_DIR")"
+              fi
+              RUN_PREFIX="$SDE_DIR/$SDE"
+          else
+              RUN_PREFIX=""
+          fi
           echo "SDE=$SDE"
           echo "SDE_DIR=$SDE_DIR"
-
-          RUN_PREFIX="${SDE:+$SDE_DIR/$SDE}"
           echo "RUN_PREFIX=$RUN_PREFIX"
-
-          if [[ -n "$SDE" ]]; then
-            echo "SDE executable:"
-            ls -l "$SDE_DIR/${SDE%% *}"
-          fi
+          echo "benchref=$benchref"
 
           make clean
           make -j4 profile-build ARCH="$BINARY" COMP="$COMP" RUN_PREFIX="$RUN_PREFIX"
           make strip ARCH="$BINARY" COMP="$COMP"
+          echo "benchref=$benchref"
           #RUN_PREFIX="$RUN_PREFIX" ../tests/signature.sh "$benchref"
           mv "./DON$EXT" "../DON-$NAME-$BINARY$EXT" || { echo "ERROR: Built binary ./DON$EXT not found"; exit 1; }
 
