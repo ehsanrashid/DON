@@ -9,7 +9,7 @@
       "shell": "bash",
       "ext": "",
       "archive_ext": "tar",
-      "sde": "/home/runner/work/DON/DON/.output/sde-temp-files/sde-external-9.33.0-2024-01-07-lin/sde -future --"
+      "sde": "sde -future --"
     },
     {
       "name": "macOS 15 Apple Clang",
@@ -42,7 +42,7 @@
       "shell": "msys2 {0}",
       "ext": ".exe",
       "archive_ext": "zip",
-      "sde": "/d/a/DON/DON/.output/sde-temp-files/sde-external-9.33.0-2024-01-07-win/sde.exe -future --"
+      "sde": "sde.exe -future --"
     },
     {
       "name": "Windows 11 Mingw-w64 Clang arm64",

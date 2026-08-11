@@ -77,10 +77,21 @@ jobs:
 
       - name: Compile ${{ env.BINARY }} build
         run: |
+          echo "SDE=$SDE"
+          echo "SDE_DIR=$SDE_DIR"
+
+          RUN_PREFIX="${SDE:+$SDE_DIR/$SDE}"
+          echo "RUN_PREFIX=$RUN_PREFIX"
+
+          if [[ -n "$SDE" ]]; then
+            echo "SDE executable:"
+            ls -l "$SDE_DIR/${SDE%% *}"
+          fi
+
           make clean
-          make -j4 profile-build ARCH="$BINARY" COMP="$COMP" RUN_PREFIX="$SDE"
+          make -j4 profile-build ARCH="$BINARY" COMP="$COMP" RUN_PREFIX="$RUN_PREFIX"
           make strip ARCH="$BINARY" COMP="$COMP"
-          RUN_PREFIX="$SDE" ../tests/signature.sh "$benchref"
+          RUN_PREFIX="$RUN_PREFIX" ../tests/signature.sh "$benchref"
           mv "./DON$EXT" "../DON-$NAME-$BINARY$EXT" || { echo "ERROR: Built binary ./DON$EXT not found"; exit 1; }
 
       - name: Remove non src files
