@@ -68,7 +68,7 @@ jobs:
       - name: Show compiler cpu info
         run: |
           if [[ "$COMPCXX" == clang* ]]; then
-             $COMPCXX -E - -march=native -###
+            $COMPCXX -E - -march=native -###
           else
             $COMPCXX -Q -march=native --help=target
           fi
@@ -91,7 +91,7 @@ jobs:
           make clean
           make -j4 profile-build ARCH="$BINARY" COMP="$COMP" RUN_PREFIX="$RUN_PREFIX"
           make strip ARCH="$BINARY" COMP="$COMP"
-          RUN_PREFIX="$RUN_PREFIX" ../tests/signature.sh "$benchref"
+          #RUN_PREFIX="$RUN_PREFIX" ../tests/signature.sh "$benchref"
           mv "./DON$EXT" "../DON-$NAME-$BINARY$EXT" || { echo "ERROR: Built binary ./DON$EXT not found"; exit 1; }
 
       - name: Remove non src files

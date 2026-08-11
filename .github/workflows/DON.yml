@@ -15,7 +15,7 @@ jobs:
     name: Prerelease
     if: github.repository == 'ehsanrashid/DON' && (github.ref == 'refs/heads/main' || (startsWith(github.ref_name, 'DON_') && github.ref_type == 'tag'))
     runs-on: ubuntu-latest
-    needs: [Matrix, Compilation, ARMCompilation]
+    needs: [Matrix, DesktopCompilation, AndroidCompilation]
     permissions:
       contents: write # For deleting/creating a prerelease
     steps:
@@ -44,22 +44,22 @@ jobs:
 
       # Make sure that an old CI running on main doesn't recreate a prerelease
       - name: Check Pullable Commits
-        id: check_commits
+        id: check-commits
         run: |
           git fetch origin main
           CHANGES=$(git rev-list HEAD..origin/main --count)
           echo "CHANGES=$CHANGES" >> $GITHUB_ENV
 
       - name: Get last commit SHA
-        id: last_commit
+        id: last-commit
         run: echo "COMMIT_SHA=$(git rev-parse HEAD | cut -c 1-8)" >> $GITHUB_ENV
 
       - name: Get commit date
-        id: commit_date
+        id: commit-date
         run: echo "COMMIT_DATE=$(git show -s --date=format:'%Y%m%d' --format=%cd HEAD)" >> $GITHUB_ENV
 
       - name: Official Release?
-        id: official_release
+        id: official-release
         # Check for "Official release version of DON" in the commit message
         run: |
           if git log -1 --format=%B | grep -q "Official release version of DON"; then
@@ -70,7 +70,7 @@ jobs:
 
       # Get recent commits for release body
       - name: Get commits in this push
-        id: recent_commits
+        id: recent-commits
         run: |
           COMMITS=$(git log \
             --format="- [\`%h\`](https://github.com/${{ github.repository }}/commit/%H) *%s*" \
@@ -102,7 +102,7 @@ jobs:
             
             ## Commits
             
-            ${{ steps.recent_commits.outputs.COMMITS }}
+            ${{ steps.recent-commits.outputs.COMMITS }}
             
             [View all commits →](https://github.com/${{ github.repository }}/commits/main)
 
@@ -149,22 +149,22 @@ jobs:
     if: ${{ always() }}
     uses: ./.github/workflows/avx2_compilers.yml
   # Release Jobs
-  Compilation:
-    name: builds
+  DesktopCompilation:
+    name: Desktop builds
     needs: [Matrix, Sanitizers, Tests, Matetrack, Games, CompilerCheck]
-    uses: ./.github/workflows/compilation.yml
+    uses: ./.github/workflows/desktop_compilation.yml
     with:
       matrix: ${{ needs.Matrix.outputs.matrix }}
-  ARMCompilation:
+  AndroidCompilation:
     name: Android builds
     needs: [Matrix, Sanitizers, Tests, Matetrack, Games, CompilerCheck]
-    uses: ./.github/workflows/arm_compilation.yml
+    uses: ./.github/workflows/android_compilation.yml
     with:
       matrix: ${{ needs.Matrix.outputs.arm_matrix }}
-  Binaries:
+  DesktopUploads:
     if: github.repository == 'ehsanrashid/DON'
-    name: uploads
-    needs: [Prerelease, Matrix, Compilation]
+    name: Desktop uploads
+    needs: [Prerelease, Matrix, DesktopCompilation]
     uses: ./.github/workflows/upload_binaries.yml
     with:
       matrix: ${{ needs.Matrix.outputs.matrix }}
@@ -172,10 +172,10 @@ jobs:
       contents: write # For deleting/creating a (pre)release
     secrets:
       token: ${{ secrets.GITHUB_TOKEN }}
-  ARM_Binaries:
+  AndroidUploads:
     if: github.repository == 'ehsanrashid/DON'
     name: Android uploads
-    needs: [Prerelease, Matrix, ARMCompilation]
+    needs: [Prerelease, Matrix, AndroidCompilation]
     uses: ./.github/workflows/upload_binaries.yml
     with:
       matrix: ${{ needs.Matrix.outputs.arm_matrix }}

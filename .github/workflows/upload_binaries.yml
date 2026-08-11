@@ -39,11 +39,11 @@ jobs:
         run: |
           mkdir DON
 
-      # - name: Download wiki
-      #   run: |
-      #     git clone https://github.com/ehsanrashid/DON/wiki.git wiki
-      #     rm -rf wiki/.git
-      #     mv wiki DON/
+      - name: Download wiki
+        run: |
+          git clone https://github.com/ehsanrashid/DON.wiki.git wiki
+          rm -rf wiki/.git
+          mv wiki DON/
 
       - name: Copy files
         run: |
@@ -57,42 +57,39 @@ jobs:
           cp README.md ../DON/
           cp CONTRIBUTING.md ../DON/
 
+      - name: Make binary executable
+        run: chmod +x "./DON/DON-$NAME-$BINARY$EXT"
+
       - name: Create tar
-        if: ${{ startsWith(env.ARCHIVE_EXT, 'tar') }}
+        if: startsWith(env.ARCHIVE_EXT, 'tar')
         run: |
-          chmod +x "./DON/DON-$NAME-$BINARY$EXT"
+          echo "Creating TAR..."
           tar -cavf "DON-$NAME-$BINARY.$ARCHIVE_EXT" DON
 
       - name: Create zip
-        if: ${{ env.ARCHIVE_EXT == 'zip' }}
+        if: env.ARCHIVE_EXT == 'zip'
         run: |
-          zip -r DON-$NAME-$BINARY.zip DON
-
-      - name: Release
-        if: startsWith(github.ref_name, 'DON_') && github.ref_type == 'tag'
-        uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3.0.0
-        with:
-          files: DON-${{ env.NAME }}-${{ env.BINARY }}.${{ env.ARCHIVE_EXT }}
-          token: ${{ secrets.token }}
-
-      - name: Get last commit sha
-        id: last_commit
-        run: echo "COMMIT_SHA=$(git rev-parse HEAD | cut -c 1-8)" >> $GITHUB_ENV
-
-      - name: Get commit date
-        id: commit_date
-        run: echo "COMMIT_DATE=$(git show -s --date=format:'%Y%m%d' --format=%cd HEAD)" >> $GITHUB_ENV
+          echo "Creating ZIP..."
+          zip -r "DON-$NAME-$BINARY.zip" DON
 
       # Make sure that an old CI running on main doesn't recreate a prerelease
       - name: Check Pullable Commits
-        id: check_commits
+        id: check-commits
         run: |
           git fetch origin main
           CHANGES=$(git rev-list HEAD..origin/main --count)
           echo "CHANGES=$CHANGES" >> $GITHUB_ENV
 
+      - name: Get last commit sha
+        id: last-commit
+        run: echo "COMMIT_SHA=$(git rev-parse HEAD | cut -c 1-8)" >> $GITHUB_ENV
+
+      - name: Get commit date
+        id: commit-date
+        run: echo "COMMIT_DATE=$(git show -s --date=format:'%Y%m%d' --format=%cd HEAD)" >> $GITHUB_ENV
+
       - name: Official Release?
-        id: official_release
+        id: official-release
         # Check for "Official release version of DON" in the commit message
         run: |
           if git log -1 --pretty=%B | grep -q "Official release version of DON"; then
@@ -109,5 +106,12 @@ jobs:
           name: DON dev-${{ env.COMMIT_DATE }}-${{ env.COMMIT_SHA }}
           tag_name: DON-dev-${{ env.COMMIT_DATE }}-${{ env.COMMIT_SHA }}
           prerelease: true
+          files: DON-${{ env.NAME }}-${{ env.BINARY }}.${{ env.ARCHIVE_EXT }}
+          token: ${{ secrets.token }}
+
+      - name: Release
+        if: startsWith(github.ref_name, 'DON_') && github.ref_type == 'tag'
+        uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3.0.0
+        with:
           files: DON-${{ env.NAME }}-${{ env.BINARY }}.${{ env.ARCHIVE_EXT }}
           token: ${{ secrets.token }}
