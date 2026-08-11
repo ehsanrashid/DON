@@ -1202,10 +1202,10 @@ objclean:
 profileclean:
 	@rm -rf profdir
 	@rm -f bench.txt *.gcda *.gcno ./book/*.gcda ./tablebase/*.gcda ./nnue/*.gcda ./nnue/features/*.gcda *.s PGOBENCH.out
-	@rm -f $(NAME).profdata *.profraw
-	@rm -f $(NAME).*args*
-	@rm -f $(NAME).*lt*
-	@rm -f $(NAME).res
+	@rm -f "$(NAME).profdata" *.profraw
+	@rm -f "$(NAME)".*args*
+	@rm -f "$(NAME)".*lt*
+	@rm -f "$(NAME).res"
 	@rm -f ./-lstdc++.res
 
 # Evaluation network (nnue)
@@ -1341,7 +1341,7 @@ clang-profile-make:
 	all
 
 clang-profile-use:
-	$(XCRUN) $(LLVM_PROFDATA) merge -output=$(NAME).profdata profdir/*.profraw
+	$(XCRUN) $(LLVM_PROFDATA) merge -output="$(NAME).profdata" profdir/*.profraw
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
 	EXTRACXXFLAGS='-fprofile-use=$(NAME).profdata' \
 	EXTRALDFLAGS='-fprofile-use=$(NAME).profdata' \
@@ -1376,7 +1376,7 @@ icx-profile-make:
 	all
 
 icx-profile-use:
-	$(XCRUN) $(LLVM_PROFDATA) merge -output=$(NAME).profdata profdir/*.profraw
+	$(XCRUN) $(LLVM_PROFDATA) merge -output="$(NAME).profdata" profdir/*.profraw
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
 	EXTRACXXFLAGS='-fprofile-instr-use=$(NAME).profdata' \
 	EXTRALDFLAGS='-fprofile-instr-use=$(NAME).profdata' \
