@@ -548,11 +548,6 @@ ifeq ($(COMP),gcc)
     GCC_CLANG       := $(if $(findstring clang,$(CXX_VERSION)),yes,no)
     GCC_APPLE_CLANG := $(if $(findstring apple clang,$(CXX_VERSION)),yes,no)
 
-    $(info CXX=$(CXX))
-    $(info CXX_VERSION=$(CXX_VERSION))
-    $(info GCC_CLANG=$(GCC_CLANG))
-    $(info GCC_APPLE_CLANG=$(GCC_APPLE_CLANG))
-
     ifeq ($(arch),wasm32)
     # Non-Darwin (Linux) specific compiler/linker flags
     else ifneq ($(KERNEL),Darwin)
@@ -616,6 +611,7 @@ else ifeq ($(COMP),clang)
     CXX_VERSION     := $(shell $(CXX) --version 2>/dev/null | head -n 1 | tr '[:upper:]' '[:lower:]')
     GCC_CLANG       := $(if $(findstring clang,$(CXX_VERSION)),yes,no)
     GCC_APPLE_CLANG := $(if $(findstring apple clang,$(CXX_VERSION)),yes,no)
+
     ifeq ($(OS_WINDOWS),yes)
         ifeq ($(bits),64)
             CXX := x86_64-w64-mingw32-clang++
@@ -1042,7 +1038,9 @@ ifeq ($(optimize),yes)
             # GCC (native)
             ifeq ($(GCC_CLANG),no)
                 LTO_FLAGS   := -flto -flto-partition=one
-                LTO_LDFLAGS := -flto=jobserver
+                ifneq ($(KERNEL),Darwin)
+                    LTO_LDFLAGS := -flto=jobserver
+                endif
             # GCC (Clang-compatible)
             else
                 LTO_FLAGS := -flto=full
