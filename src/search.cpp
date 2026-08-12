@@ -650,8 +650,8 @@ void Worker::iterative_deepening() noexcept {
                 if (!lastIterationPV.empty())
                 {
                     rootMoves.move_to_front(
-                      [&lastIterationPV = std::as_const(lastIterationPV)](const auto& rm) noexcept {
-                          return rm == lastIterationPV[0];
+                      [&lastPV = std::as_const(lastIterationPV)](const auto& rm) noexcept -> bool {
+                          return rm == lastPV[0];
                       });
 
                     rootMoves[0].pv       = lastIterationPV;
@@ -660,7 +660,7 @@ void Worker::iterative_deepening() noexcept {
                     if (mainManager != nullptr)
                         mainManager->pvShown = true;
                 }
-                // For an aborted depth 1 search label the loss score as inexact.
+                // For aborted (depth 1) search label the loss score as inexact.
                 else if (rootMoves[0].bound != Bound::LOWER)
                     rootMoves[0].bound = Bound::UPPER;
             }
