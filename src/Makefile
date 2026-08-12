@@ -21,7 +21,11 @@
 ### Establish the operating system name
 KERNEL := $(shell uname -s 2>/dev/null)
 ifeq ($(KERNEL),Linux)
-    OS := $(or $(shell uname -o 2>/dev/null),Linux)
+    ifeq ($(shell command -v getprop 2>/dev/null),)
+        OS := $(or $(shell uname -o 2>/dev/null),Linux)
+    else
+        OS := Android
+    endif
 endif
 
 ### Command prefix to run the built executable (e.g. wine, sde, qemu)
