@@ -1062,7 +1062,7 @@ endif
 ### 3.10 Use PIE executables on Android 5+, incompatible with Android 4 and earlier
 ifeq ($(OS),Android)
     CXXFLAGS += -fPIE
-    LDFLAGS  += -fPIE -pie
+    LDFLAGS  += -pie
 endif
 
 MKDIR := mkdir -p -m 755
