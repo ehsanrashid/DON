@@ -21,7 +21,7 @@
 ### Establish the operating system name
 KERNEL := $(shell uname -s 2>/dev/null)
 ifeq ($(KERNEL),Linux)
-    ifeq ($(shell command -v getprop 2>/dev/null),)
+    ifeq ($(wildcard /system/bin/getprop),)
         OS := $(or $(shell uname -o 2>/dev/null),Linux)
     else
         OS := Android
