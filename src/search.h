@@ -729,7 +729,7 @@ class Worker final {
 
     Array<i32, COLOR_NB> optimism;
 
-    PVMoves lastIterationPV;
+    PVMoves lastPV;
 
     // Histories
     History<HType::CAPTURE>   captureHistory;

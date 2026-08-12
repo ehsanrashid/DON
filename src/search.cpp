@@ -405,7 +405,10 @@ void Worker::start_search() noexcept {
 
         // Send PV info again if it has changed since last output
         if (!mainManager->pvShown || bestWorker != this)
-            mainManager->show_pv(*bestWorker, bestWorker->completedDepth);
+        {
+            const Depth compDepth = std::max(bestWorker->completedDepth, limit.depth);
+            mainManager->show_pv(*bestWorker, compDepth);
+        }
 
         bestMove   = move_to_can(rm.pv[0]);
         ponderMove = move_to_can(rm.pv.size() > 1 ? rm.pv[1] : Move::None);
@@ -425,7 +428,7 @@ void Worker::iterative_deepening() noexcept {
 
     accStack.reset();
 
-    lastIterationPV.clear();
+    lastPV.clear();
 
     for (auto& colorQuietHist : quietHistory)
         for (auto& quietHist : colorQuietHist)
@@ -479,7 +482,7 @@ void Worker::iterative_deepening() noexcept {
         if (i >= 0)
             continue;
 
-        // Use as a sentinel
+        // Set sentinel values
         // clang-format off
         (ss + i)->evalValue                = VALUE_NONE;
         (ss + i)->pieceSqHistory           = &continuationHistory[0][0][+Piece::NO_PIECE][SQUARE_ZERO];
@@ -501,8 +504,7 @@ void Worker::iterative_deepening() noexcept {
     u16 researchCnt = 0;
 
     // Iterative deepening loop
-    const Depth maxDepth =
-      limit.depth != DEPTH_ZERO ? std::min<Depth>(limit.depth, DEPTH_MAX) : DEPTH_MAX;
+    const Depth maxDepth = limit.depth != DEPTH_ZERO ? std::min(limit.depth, DEPTH_MAX) : DEPTH_MAX;
     for (rootDepth = 1; rootDepth <= maxDepth; ++rootDepth)
     {
         // Signal the start of a new iteration
@@ -535,7 +537,7 @@ void Worker::iterative_deepening() noexcept {
         // MultiPV loop. Perform a full root search for each PV line
         for (pvCur = 0; pvCur < multiPv; ++pvCur)
         {
-            const bool pvLast = pvCur + 1 == multiPv;
+            const bool pvIsLast = pvCur + 1 == multiPv;
 
             // Advance group if pvCur reached pvEnd
             if (pvCur == pvEnd)
@@ -631,10 +633,10 @@ void Worker::iterative_deepening() noexcept {
                 break;
 
             // Give some update about the PV
-            if (mainManager != nullptr && (pvLast || rootDepth > OutputLimitDepth))
+            if (mainManager != nullptr && (pvIsLast || rootDepth > OutputLimitDepth))
             {
                 mainManager->show_pv(*this, rootDepth);
-                mainManager->pvShown = pvLast;
+                mainManager->pvShown = pvIsLast;
             }
         }
 
@@ -646,14 +648,12 @@ void Worker::iterative_deepening() noexcept {
             if (rootMoves[0].curValue != -VALUE_INFINITE && is_loss(rootMoves[0].curValue))
             {
                 // Bring the last best move to the front for best thread selection
-                if (!lastIterationPV.empty())
+                if (!lastPV.empty())
                 {
-                    rootMoves.move_to_front(
-                      [&lastPV = std::as_const(lastIterationPV)](const auto& rm) noexcept -> bool {
-                          return rm == lastPV[0];
-                      });
+                    rootMoves.move_to_front([&lstPV = std::as_const(lastPV)](
+                                              const auto& rm) noexcept { return rm == lstPV[0]; });
 
-                    rootMoves[0].pv       = lastIterationPV;
+                    rootMoves[0].pv       = lastPV;
                     rootMoves[0].curValue = rootMoves[0].uciValue = rootMoves[0].preValue;
 
                     if (mainManager != nullptr)
@@ -669,10 +669,10 @@ void Worker::iterative_deepening() noexcept {
 
         completedDepth = rootDepth;
 
-        if (lastIterationPV.empty() || lastIterationPV[0] != rootMoves[0].pv[0])
+        if (lastPV.empty() || lastPV[0] != rootMoves[0].pv[0])
             lastBestMoveDepth = rootDepth;
 
-        lastIterationPV = rootMoves[0].pv;
+        lastPV = rootMoves[0].pv;
 
         // Have found "mate in x"?
         if (limit.mate != 0 && is_mate(rootMoves[0].curValue)
@@ -759,10 +759,9 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     ss->inCheck   = pos.checkers_bb() != 0;
     ss->moveCount = 0;
     ss->history   = 0;
-    ss->pvFollow  = RootNode                               //
-                || ((ss - 1)->pvFollow                     //
-                    && (prePvIdx < lastIterationPV.size()  //
-                        && (ss - 1)->move == lastIterationPV[prePvIdx]));
+    ss->pvFollow =
+      RootNode
+      || ((ss - 1)->pvFollow && (prePvIdx < lastPV.size() && (ss - 1)->move == lastPV[prePvIdx]));
 
     if constexpr (!RootNode)
     {
@@ -2644,16 +2643,18 @@ void Skill::init(const Options& options) noexcept {
 
 // When playing with strength handicap, choose the best move among a set of RootMoves
 // using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
-Move Skill::pick_move(const RootMoves& rootMoves, usize multiPv, bool pickBest) noexcept {
+Move Skill::pick_move(const RootMoves& rootMoves,
+                      const usize      multiPv,
+                      const bool       pickBest) noexcept {
     assert(1 <= multiPv && multiPv <= rootMoves.size());
     static XorShift64Star prng(now());  // PRNG sequence should be non-deterministic
 
     if (pickBest || bestMove == Move::None)
     {
         // RootMoves are already sorted by value in descending order
-        Value maxValue = rootMoves[0].curValue;
+        const Value maxValue = rootMoves[0].curValue;
 
-        Value delta = std::min<int>(maxValue - rootMoves[multiPv - 1].curValue, VALUE_PAWN);
+        const Value delta = std::min<Value>(maxValue - rootMoves[multiPv - 1].curValue, VALUE_PAWN);
 
         Value bestValue = -VALUE_INFINITE;
         // Choose best move. For each move value add two terms, both dependent on weakness.
@@ -2661,11 +2662,11 @@ Move Skill::pick_move(const RootMoves& rootMoves, usize multiPv, bool pickBest) 
         // Then choose the move with the resulting highest value.
         for (usize i = 0; i < multiPv; ++i)
         {
-            Value curValue = rootMoves[i].curValue;
-            Value diff     = maxValue - curValue;
-            Value noise    = prng.rand<u32>() % weakness();
-            Value push     = (weakness() * diff + delta * noise) / 128;
-            Value value    = curValue + push;
+            const Value curValue = rootMoves[i].curValue;
+            const Value diff     = maxValue - curValue;
+            const Value noise    = prng.rand<u32>() % weakness();
+            const Value push     = (weakness() * diff + delta * noise) / 128;
+            const Value value    = curValue + push;
 
             if (bestValue <= value)
             {
