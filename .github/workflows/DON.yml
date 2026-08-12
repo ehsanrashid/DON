@@ -75,9 +75,10 @@ jobs:
           COMMITS=$(git log \
             --format="- [\`%h\`](https://github.com/${{ github.repository }}/commit/%H) *%s*" \
             ${{ github.event.before }}..HEAD)
-          echo "COMMITS<<EOF" >> $GITHUB_OUTPUT
-          echo "$COMMITS" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+
+          echo "COMMITS<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$COMMITS" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
 
       # Create a new pre-release, the other upload_binaries.yml will upload the binaries
       # to this pre-release.
@@ -111,19 +112,19 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       desktop_matrix: ${{ steps.set-desktop-matrix.outputs.DESKTOP_MATRIX }}
-      android_matrix: ${{ steps.set-android-matrix.outputs.ANDROID_MARTIX }}
+      android_matrix: ${{ steps.set-android-matrix.outputs.ANDROID_MATRIX }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
       - id: set-desktop-matrix
         run: |
-          DESKTOP_TASKS=$(cat .github/ci/desktop_matrix.json)
-          echo "DESKTOP_MATRIX=$DESKTOP_TASKS" >> $GITHUB_OUTPUT
+          DESKTOP_TASKS=$(jq -c . .github/ci/desktop_matrix.json)
+          echo "DESKTOP_MATRIX=$DESKTOP_TASKS" >> "$GITHUB_OUTPUT"
       - id: set-android-matrix
         run: |
-          ANDROID_TASKS=$(cat .github/ci/android_matrix.json)
-          echo "ANDROID_MARTIX=$ANDROID_TASKS" >> $GITHUB_OUTPUT
+          ANDROID_TASKS=$(jq -c . .github/ci/android_matrix.json)
+          echo "ANDROID_MATRIX=$ANDROID_TASKS" >> "$GITHUB_OUTPUT"
   # Testing Jobs
   IWYU:
     name: IWYU
