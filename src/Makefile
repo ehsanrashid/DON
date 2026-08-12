@@ -548,6 +548,22 @@ ifeq ($(COMP),gcc)
     GCC_CLANG       := $(if $(findstring clang,$(CXX_VERSION)),yes,no)
     GCC_APPLE_CLANG := $(if $(findstring apple clang,$(CXX_VERSION)),yes,no)
 
+    # Architectures with special handling, use libatomic where required
+    ifneq ($(filter armv8 armv7 riscv64,$(arch)),)
+        ifeq ($(OS),Android)
+            CXXFLAGS += $(BITS_FLAG)
+            LDFLAGS  += $(BITS_FLAG)
+        endif
+        ifneq ($(filter armv7 riscv64,$(arch)),)
+            LDFLAGS += -latomic
+        endif
+    else ifeq ($(arch),loongarch64)
+        LDFLAGS += -latomic
+    # Generic architectures
+    else
+        CXXFLAGS += $(BITS_FLAG)
+        LDFLAGS  += $(BITS_FLAG)
+    endif
     ifeq ($(arch),wasm32)
     # Non-Darwin (Linux) specific compiler/linker flags
     else ifneq ($(KERNEL),Darwin)
@@ -586,23 +602,6 @@ ifeq ($(COMP),gcc)
         profile_make = gcc-profile-make
         profile_use  = gcc-profile-use
     endif
-    # Architectures with special handling
-    # Atomic library for specific architectures (not armv8)
-    ifneq ($(filter armv8 armv7 riscv64,$(arch)),)
-        ifeq ($(OS),Android)
-            CXXFLAGS += $(BITS_FLAG)
-            LDFLAGS  += $(BITS_FLAG)
-        endif
-        ifneq ($(filter armv7 riscv64,$(arch)),)
-            LDFLAGS += -latomic
-        endif
-    else ifeq ($(arch),loongarch64)
-        LDFLAGS += -latomic
-    # Generic architectures
-    else
-        CXXFLAGS += $(BITS_FLAG)
-        LDFLAGS  += $(BITS_FLAG)
-    endif
 # Clang
 else ifeq ($(COMP),clang)
     CXX := clang++
@@ -619,16 +618,7 @@ else ifeq ($(COMP),clang)
             CXX := i686-w64-mingw32-clang++
         endif
     endif
-    # Atomic library for non-Windows and non-[Darwin/FreeBSD/OpenBSD/NetBSD] (unless compiler-rt)
-    ifeq ($(OS_WINDOWS),no)
-        ifeq ($(filter $(KERNEL),Darwin FreeBSD OpenBSD NetBSD),)
-            ifneq ($(RTLIB),compiler-rt)
-                LDFLAGS += -latomic
-            endif
-        endif
-    endif
-    # Architectures with special handling
-    # Atomic library for specific architectures (not armv8)
+    # Architectures with special handling, use libatomic where required
     ifneq ($(filter armv8 armv7 riscv64,$(arch)),)
         ifeq ($(OS),Android)
             CXXFLAGS += $(BITS_FLAG)
@@ -643,6 +633,14 @@ else ifeq ($(COMP),clang)
     else
         CXXFLAGS += $(BITS_FLAG)
         LDFLAGS  += $(BITS_FLAG)
+    endif
+    # Use libatomic on non-Windows, non-BSD systems unless using compiler-rt
+    ifeq ($(OS_WINDOWS),no)
+        ifeq ($(filter $(KERNEL),Darwin FreeBSD OpenBSD NetBSD),)
+            ifneq ($(RTLIB),compiler-rt)
+                LDFLAGS += -latomic
+            endif
+        endif
     endif
     # Link std::filesystem for Linux Clang (non-Apple)
     ifeq ($(KERNEL),Linux)
