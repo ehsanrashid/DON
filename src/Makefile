@@ -716,12 +716,12 @@ endif
 
 ifeq ($(KERNEL),Darwin)
     XCRUN = xcrun
-    CXXFLAGS += -mmacosx-version-min=10.15
-    LDFLAGS  += -mmacosx-version-min=10.15
+    MACOS_FLAGS := -mmacosx-version-min=10.15
     ifneq ($(arch),any)
-        CXXFLAGS += -arch $(arch)
-        LDFLAGS  += -arch $(arch)
+        MACOS_FLAGS += -arch $(arch)
     endif
+    CXXFLAGS += $(MACOS_FLAGS)
+    LDFLAGS  += $(MACOS_FLAGS)
 endif
 
 ### Allow overriding CXX from the environment
