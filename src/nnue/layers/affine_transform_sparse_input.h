@@ -224,7 +224,7 @@ class AffineTransformSparseInput final {
     // Read network parameters
     bool read_parameters(std::istream& is) noexcept {
 
-        read_little_endian<BiasType>(is, biases);
+        read_little_endian(is, biases);
 
         for (IndexType i = 0; i < OutputDimensions * PaddedInputDimensions; ++i)
             weights[weight_index(i)] = read_little_endian<WeightType>(is);
@@ -235,7 +235,7 @@ class AffineTransformSparseInput final {
     // Write network parameters
     bool write_parameters(std::ostream& os) const noexcept {
 
-        write_little_endian<BiasType>(os, biases);
+        write_little_endian(os, biases);
 
         for (IndexType i = 0; i < OutputDimensions * PaddedInputDimensions; ++i)
             write_little_endian<WeightType>(os, weights[weight_index(i)]);

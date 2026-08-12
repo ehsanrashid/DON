@@ -36,6 +36,11 @@
     #include <tmmintrin.h>
 #elif defined(USE_SSE2)
     #include <emmintrin.h>
+#elif defined(USE_LASX)
+    #include <lasxintrin.h>
+    #include <lsxintrin.h>
+#elif defined(USE_LSX)
+    #include <lsxintrin.h>
 #elif defined(USE_NEON)
     #include <arm_neon.h>
 #endif
@@ -76,6 +81,10 @@ inline constexpr usize SIMD_WIDTH = 32;
 #elif defined(USE_SSE2)
 inline constexpr usize SIMD_WIDTH = 16;
 #elif defined(USE_NEON)
+inline constexpr usize SIMD_WIDTH = 16;
+#elif defined(USE_LASX)
+inline constexpr usize SIMD_WIDTH = 32;
+#elif defined(USE_LSX)
 inline constexpr usize SIMD_WIDTH = 16;
 #endif
 
@@ -284,15 +293,15 @@ inline void write_leb_128(std::ostream& os, const std::array<IntType, Size>& in)
     {
         IntType value = in[i];
 
-        bool last;
+        bool done;
         do
         {
-            u8 b = value & LEB128_DATA_MASK;
+            const u8 b = value & LEB128_DATA_MASK;
             value >>= LEB128_BITS;
-            last = (b & LEB128_SIGN_BIT) == 0 ? value == 0    // Positive: done when 0
+            done = (b & LEB128_SIGN_BIT) == 0 ? value == 0    // Positive: done when 0
                                               : value == -1;  // Negative: done when -1
             ++byteCount;
-        } while (!last);
+        } while (!done);
     }
 
     write_little_endian<u32>(os, byteCount);
@@ -301,15 +310,18 @@ inline void write_leb_128(std::ostream& os, const std::array<IntType, Size>& in)
 
     usize bufferIdx = 0;
 
-    auto flush = [&]() noexcept {
+    const auto flush = [&]() noexcept {
         if (bufferIdx == 0)
             return;
+
         os.write(reinterpret_cast<const char*>(buffer.data()), bufferIdx);
         bufferIdx = 0;
     };
 
-    auto write = [&](u8 b) noexcept {
-        buffer[bufferIdx++] = b;
+    const auto write = [&](const u8 b) noexcept {
+        buffer[bufferIdx] = b;
+        ++bufferIdx;
+
         if (bufferIdx == buffer.size())
             flush();
     };
@@ -318,15 +330,15 @@ inline void write_leb_128(std::ostream& os, const std::array<IntType, Size>& in)
     {
         IntType value = in[i];
         // Encode signed value as LEB128
-        bool last;
+        bool done;
         do
         {
-            u8 b = value & LEB128_DATA_MASK;
+            const u8 b = value & LEB128_DATA_MASK;
             value >>= LEB128_BITS;                            // Arithmetic right shift by 7
-            last = (b & LEB128_SIGN_BIT) == 0 ? value == 0    // Positive: done when 0
+            done = (b & LEB128_SIGN_BIT) == 0 ? value == 0    // Positive: done when 0
                                               : value == -1;  // Negative: done when -1
-            write(b | (last ? 0x00 : LEB128_MORE_BIT));       // Set continuation bit if more bytes
-        } while (!last);
+            write(b | (done ? 0x00 : LEB128_MORE_BIT));       // Set continuation bit if more bytes
+        } while (!done);
     }
 
     flush();

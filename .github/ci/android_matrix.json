@@ -9,7 +9,7 @@
       "comp": "ndk",
       "shell": "bash",
       "ext": "",
-      "archive_ext": "tar"
+      "archive_ext": "tar.gz"
     },
     {
       "name": "Android NDK arm",
@@ -20,10 +20,10 @@
       "comp": "ndk",
       "shell": "bash",
       "ext": "",
-      "archive_ext": "tar"
+      "archive_ext": "tar.gz"
     }
   ],
-  "binaries": [
+  "binary": [
     "armv7",
     "armv7-neon",
     "armv8",
@@ -31,25 +31,25 @@
   ],
   "exclude": [
     {
-      "binaries": "armv7",
+      "binary": "armv7",
       "config": {
         "compiler": "aarch64-linux-android29-clang++"
       }
     },
     {
-      "binaries": "armv7-neon",
+      "binary": "armv7-neon",
       "config": {
         "compiler": "aarch64-linux-android29-clang++"
       }
     },
     {
-      "binaries": "armv8",
+      "binary": "armv8",
       "config": {
         "compiler": "armv7a-linux-androideabi29-clang++"
       }
     },
     {
-      "binaries": "armv8-dotprod",
+      "binary": "armv8-dotprod",
       "config": {
         "compiler": "armv7a-linux-androideabi29-clang++"
       }

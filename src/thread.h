@@ -394,20 +394,10 @@ class Threads final {
 
     // --- actions ---
     void request_research() noexcept {
-        auto curState = state.load(std::memory_order_relaxed);
+        auto expectedState = State::Active;
 
-        while (true)
-        {
-            // Don't override stopped states
-            if (curState == State::Stopped)
-                break;
-
-            // Try to transition to Research
-            if (state.compare_exchange_weak(curState, State::Research, std::memory_order_release,
-                                            std::memory_order_relaxed))
-                break;
-            // current-state is updated on failure, loop continues
-        }
+        state.compare_exchange_strong(expectedState, State::Research, std::memory_order_release,
+                                      std::memory_order_relaxed);
     }
 
     void request_stop() noexcept {

@@ -11,12 +11,13 @@ on:
 
 jobs:
   Artifacts:
-    name: ${{ matrix.config.name }} ${{ matrix.binaries }}
+    name: ${{ matrix.config.name }} ${{ matrix.binary }}
     runs-on: ubuntu-latest
     env:
-      EXT: ${{ matrix.config.ext }}
       NAME: ${{ matrix.config.simple_name }}
-      BINARY: ${{ matrix.binaries }}
+      BINARY: ${{ matrix.binary }}
+      EXT: ${{ matrix.config.ext }}
+      ARCHIVE_EXT: ${{ matrix.config.archive_ext }}
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(inputs.matrix) }}
@@ -27,56 +28,69 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
-          fetch-depth: 1
 
       - name: Download artifact from compilation
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: ${{ matrix.config.simple_name }}-${{ matrix.binaries }}
-          path: ./artifact/
+          name: ${{ env.NAME }} ${{ env.BINARY }}
+          path: ${{ env.NAME }} ${{ env.BINARY }}
 
       - name: Create Package
-        run: mkdir -p DON
-
-      - name: Assemble package
         run: |
-          ART_ROOT="artifact"
+          mkdir DON
 
-          test -d "$ART_ROOT" || { echo "ERROR: Artifact root not found"; exit 1; }
+      - name: Download wiki
+        run: |
+          git clone https://github.com/ehsanrashid/DON.wiki.git wiki
+          rm -rf wiki/.git
+          mv wiki DON/
 
-          # Binary (required)
-          cp "$ART_ROOT/DON-$NAME-$BINARY$EXT" DON/ || { echo "ERROR: Binary not found"; exit 1; }
-          # Optional extras
-          cp -r "$ART_ROOT/scripts" DON/ 2>/dev/null || true
-          cp "$ART_ROOT"/{Copying.txt,CITATION.cff,README.md,CONTRIBUTING.md} DON/ 2>/dev/null || true
+      - name: Copy files
+        run: |
+          mv "$NAME $BINARY" DON-workflow
+          cd DON-workflow
+          cp -r src ../DON/
+          cp -r scripts ../DON/
+          cp DON-$NAME-$BINARY$EXT ../DON/
+          cp Copying.txt ../DON/
+          cp CITATION.cff ../DON/
+          cp README.md ../DON/
+          cp CONTRIBUTING.md ../DON/
+
+      - name: Make binary executable
+        run: chmod +x "./DON/DON-$NAME-$BINARY$EXT"
 
       - name: Create tar
-        if: ${{ !startsWith(matrix.config.os, 'windows') }}
+        if: startsWith(env.ARCHIVE_EXT, 'tar')
         run: |
-          chmod +x ./DON/DON-$NAME-$BINARY$EXT
-          tar -cvf DON-$NAME-$BINARY.tar DON
+          echo "Creating TAR..."
+          tar -cavf "DON-$NAME-$BINARY.$ARCHIVE_EXT" DON
 
       - name: Create zip
-        if: ${{ startsWith(matrix.config.os, 'windows') }}
+        if: env.ARCHIVE_EXT == 'zip'
         run: |
-          zip -r DON-$NAME-$BINARY.zip DON
+          echo "Creating ZIP..."
+          zip -r "DON-$NAME-$BINARY.zip" DON
 
-      # Get commit info
-      - name: Get commit info
-        run: |
-          echo "COMMIT_SHA=$(git rev-parse HEAD | cut -c 1-8)" >> $GITHUB_ENV
-          echo "COMMIT_DATE=$(git show -s --date=format:'%Y%m%d' --format=%cd HEAD)" >> $GITHUB_ENV
-
-      # Make sure that an old CI running on main doesn't recreate a pre-release
+      # Make sure that an old CI running on main doesn't recreate a prerelease
       - name: Check Pullable Commits
-        if: github.ref_name == 'main'
+        id: check-commits
         run: |
           git fetch origin main
           CHANGES=$(git rev-list HEAD..origin/main --count)
           echo "CHANGES=$CHANGES" >> $GITHUB_ENV
 
-      # Determine if this is an official release
+      - name: Get last commit sha
+        id: last-commit
+        run: echo "COMMIT_SHA=$(git rev-parse HEAD | cut -c 1-8)" >> $GITHUB_ENV
+
+      - name: Get commit date
+        id: commit-date
+        run: echo "COMMIT_DATE=$(git show -s --date=format:'%Y%m%d' --format=%cd HEAD)" >> $GITHUB_ENV
+
       - name: Official Release?
+        id: official-release
+        # Check for "Official release version of DON" in the commit message
         run: |
           if git log -1 --pretty=%B | grep -q "Official release version of DON"; then
             echo "OFFICIAL_RELEASE=true" >> $GITHUB_ENV
@@ -84,23 +98,20 @@ jobs:
             echo "OFFICIAL_RELEASE=false" >> $GITHUB_ENV
           fi
 
-      # Upload pre-release asset (dev build)
-      - name: Upload Pre-release Asset
+      - name: Prerelease
         if: github.ref_name == 'main' && env.CHANGES == '0' && env.OFFICIAL_RELEASE == 'false'
+        continue-on-error: true
         uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3.0.0
         with:
           name: DON dev-${{ env.COMMIT_DATE }}-${{ env.COMMIT_SHA }}
           tag_name: DON-dev-${{ env.COMMIT_DATE }}-${{ env.COMMIT_SHA }}
-          files: DON-${{ matrix.config.simple_name }}-${{ matrix.binaries }}.${{ matrix.config.archive_ext }}
           prerelease: true
+          files: DON-${{ env.NAME }}-${{ env.BINARY }}.${{ env.ARCHIVE_EXT }}
           token: ${{ secrets.token }}
-        continue-on-error: true
 
-      # Upload official release asset (tagged commit)
-      - name: Upload Official Release Asset
+      - name: Release
         if: startsWith(github.ref_name, 'DON_') && github.ref_type == 'tag'
         uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3.0.0
         with:
-          files: DON-${{ matrix.config.simple_name }}-${{ matrix.binaries }}.${{ matrix.config.archive_ext }}
+          files: DON-${{ env.NAME }}-${{ env.BINARY }}.${{ env.ARCHIVE_EXT }}
           token: ${{ secrets.token }}
-        continue-on-error: true

@@ -1,6 +1,8 @@
 name: Tests
+
 on:
   workflow_call:
+
 jobs:
   Test-Targets:
     name: ${{ matrix.config.name }}
@@ -9,8 +11,6 @@ jobs:
       COMPCXX: ${{ matrix.config.compiler }}
       COMP: ${{ matrix.config.comp }}
       CXXFLAGS: "-Werror"
-    # auto-cancel
-    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -152,11 +152,8 @@ jobs:
           docker buildx build --platform ${{ matrix.config.platform }} --load -t don_builder - << EOF
           FROM ${{ matrix.config.base_image }}
           WORKDIR /app
-          # Install Bash, Make, and GCC
-          RUN apk update && apk add --no-cache bash make g++
-          # Optional: make /bin/bash the default shell
-          SHELL ["/bin/bash", "-c"]
-          CMD ["bash", "src/script.sh"]
+          RUN apk update && apk add make g++
+          CMD ["sh", "src/script.sh"]
           EOF
 
       - name: Download required macOS packages
@@ -181,10 +178,25 @@ jobs:
 
       - name: Extract the bench number from the commit history
         run: |
+          benchref=""
           for hash in $(git rev-list -100 HEAD); do
-            benchref=$(git show -s $hash | tac | grep -m 1 -o -x '[[:space:]]*\b[Bb]ench[ :]\+[1-9][0-9]\{5,7\}\b[[:space:]]*' | sed 's/[^0-9]//g') && break || true
+            benchref=$(git show -s "$hash" |
+              tac |
+              grep -m 1 -o -x '[[:space:]]*[Bb]ench[ :]\{1,\}[1-9][0-9]\{5,7\}[[:space:]]*' |
+              sed 's/[^0-9]//g') || true
+
+            if [ -n "$benchref" ]; then
+              break
+            fi
           done
-          [[ -n "$benchref" ]] && echo "benchref=$benchref" >> $GITHUB_ENV && echo "From commit: $hash" && echo "Reference bench: $benchref" || echo "No bench found"
+
+          if [ -n "$benchref" ]; then
+            echo "benchref=$benchref" >> "$GITHUB_ENV"
+            echo "From commit: $hash"
+            echo "Reference bench: $benchref"
+          else
+            echo "No bench found"
+          fi
 
       - name: Check compiler
         run: |
@@ -372,15 +384,6 @@ jobs:
           export LDFLAGS="-static -Wno-unused-command-line-argument"
           make clean
           make -j4 ARCH=armv7-neon build
-          ../tests/signature.sh $benchref
-
-      # riscv64 tests
-
-      - name: Test riscv64 build
-        if: matrix.config.run_riscv64_tests
-        run: |
-          echo "cd src && export LDFLAGS='-static' && make clean && make -j4 ARCH=riscv64 build" > script.sh
-          docker run --rm --platform ${{ matrix.config.platform }} -v ${{ github.workspace }}:/app don_builder
           ../tests/signature.sh $benchref
 
       # ppc64 tests

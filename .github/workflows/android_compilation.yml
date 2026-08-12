@@ -1,20 +1,22 @@
-name: ARM Compilation
+name: Android Compilation
+
 on:
   workflow_call:
     inputs:
       matrix:
         type: string
         required: true
+
 jobs:
   Compilation:
-    name: ${{ matrix.config.name }} ${{ matrix.binaries }}
+    name: "Android build: ${{ matrix.config.name }} ${{ matrix.binary }}"
     runs-on: ${{ matrix.config.os }}
     env:
       COMPCXX: ${{ matrix.config.compiler }}
-      EMU: ${{ matrix.config.emu }}
       COMP: ${{ matrix.config.comp }}
+      EMU: ${{ matrix.config.emu }}
       NAME: ${{ matrix.config.simple_name }}
-      BINARY: ${{ matrix.binaries }}
+      BINARY: ${{ matrix.binary }}
       EXT: ${{ matrix.config.ext }}
     strategy:
       fail-fast: false
@@ -53,9 +55,23 @@ jobs:
         run: |
           benchref=""
           for hash in $(git rev-list -100 HEAD); do
-            benchref=$(git show -s $hash | tac | grep -m 1 -o -x '[[:space:]]*\b[Bb]ench[ :]\+[1-9][0-9]\{5,7\}\b[[:space:]]*' | sed 's/[^0-9]//g') && break || true
+            benchref=$(git show -s "$hash" |
+              tac |
+              grep -m 1 -o -x '[[:space:]]*[Bb]ench[ :]\{1,\}[1-9][0-9]\{5,7\}[[:space:]]*' |
+              sed 's/[^0-9]//g') || true
+
+            if [ -n "$benchref" ]; then
+              break
+            fi
           done
-          [[ -n "$benchref" ]] && echo "benchref=$benchref" >> $GITHUB_ENV && echo "From commit: $hash" && echo "Reference bench: $benchref" || echo "No bench found"
+
+          if [ -n "$benchref" ]; then
+            echo "benchref=$benchref" >> "$GITHUB_ENV"
+            echo "From commit: $hash"
+            echo "Reference bench: $benchref"
+          else
+            echo "No bench found"
+          fi
 
       - name: Download the used network from the fishtest framework
         run: make net
@@ -75,47 +91,27 @@ jobs:
 
       # Compile profile guided builds
 
-      - name: Compile ${{ matrix.binaries }} build
+      - name: Compile ${{ env.BINARY }} build
         run: |
           if [ "$COMP" = "ndk" ]; then
             export PATH=${{ env.ANDROID_NDK_BIN }}:$PATH
             export LDFLAGS="-static -Wno-unused-command-line-argument"
           fi
+          RUN_PREFIX="$EMU"
           make clean
-          make -j4 profile-build ARCH=$BINARY COMP=$COMP RUN_PREFIX=$EMU
-          make strip ARCH=$BINARY COMP=$COMP
-          RUN_PREFIX="$EMU" ../tests/signature.sh "$benchref"
+          make -j4 profile-build ARCH="$BINARY" COMP="$COMP" RUN_PREFIX="$RUN_PREFIX"
+          make strip ARCH="$BINARY" COMP="$COMP"
+          RUN_PREFIX="$RUN_PREFIX" ../tests/signature.sh "$benchref"
+          mv "./DON$EXT" "../DON-android-$BINARY$EXT" || { echo "ERROR: Built binary ./DON$EXT not found"; exit 1; }
 
-          # Ensure artifact folder exists
-          mkdir -p artifact
-
-          # Move binary into artifact folder
-          mv ./DON$EXT artifact/DON-$NAME-$BINARY$EXT || { echo "ERROR: Built binary ./DON$EXT not found"; exit 1; }
-
-          # Optional: make binary executable
-          chmod +x artifact/DON-$NAME-$BINARY$EXT
-
-          # Copy optional scripts/docs
-          [ -d ../scripts ] && cp -r ../scripts artifact/ || echo "No scripts/ folder, skipping"
-          cp -v ../Copying.txt ../CITATION.cff ../README.md ../CONTRIBUTING.md artifact/ 2>/dev/null || true
-
-      - name: Verify artifact contents
-        run: |
-          echo "Checking binary DON-$NAME-$BINARY$EXT exists..."
-          test -f artifact/DON-$NAME-$BINARY$EXT # Existence check
-          echo "Listing artifact folder contents:"
-          ls -lh artifact/ # Size check
-          du -sh artifact/ # Total size
-
-      - name: Clean build artifacts
-        run: |
-          make clean
-          # Exclude artifact folder from cleanup
-          git clean -fxe artifact/
+      - name: Remove non src files
+        run: git clean -fxd
 
       - name: Upload artifact for (pre)-release
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: ${{ env.NAME }}-${{ env.BINARY }}
-          path: src/artifact/
-          if-no-files-found: error
+          name: ${{ env.NAME }} ${{ env.BINARY }}
+          path: |
+            .
+            !.git
+            !.output

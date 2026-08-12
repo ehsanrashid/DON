@@ -306,16 +306,15 @@ void Position::set(std::string_view fens, State* newSt) noexcept {
         }
         else
         {
-            if (Piece pc = to_piece(token); pc != Piece::NO_PIECE)
+            if (const Piece pc = to_piece(token); pc != Piece::NO_PIECE)
             {
                 assert(file <= FILE_H);
 
-                Square sq = make_square(file, rank);
+                const Square sq = make_square(file, rank);
 
                 put(sq, pc);
 
-                if (file < FILE_H)
-                    ++file;
+                ++file;
             }
             else
                 assert(false && "Position::set(): Invalid Piece");
@@ -1185,15 +1184,17 @@ void Position::undo_move(const Move m) noexcept {
         assert(type_of(movedPc) == m.promotion_type());
         assert(movedPc == promoted_pc());
 
-        remove(dstSq);
-
         movedPc = make_piece(ac, PAWN);
+
+        remove(dstSq);
 
         put(orgSq, movedPc);
     }
-    // Move back the piece
     else
+    {
+        // Move back the piece
         move(dstSq, orgSq);
+    }
 
     if (capturedPc != Piece::NO_PIECE)
     {
@@ -1212,6 +1213,7 @@ void Position::undo_move(const Move m) noexcept {
             assert(st->preSt->enPassantSq == dstSq);
             assert(st->preSt->rule50Count == 0);
         }
+
         // Restore the captured piece
         put(capturedSq, capturedPc);
     }
