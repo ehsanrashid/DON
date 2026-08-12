@@ -1001,20 +1001,20 @@ endif
 ### needs access to the optimization flags.
 ifeq ($(optimize),yes)
     ifeq ($(debug),no)
+        # Non-macOS
         ifneq ($(KERNEL),Darwin)
             # Android NDK Clang
             ifeq ($(COMP),ndk)
                 LDFLAGS += -fuse-ld=lld
             # Non-Android Clang
             else
-                # Detect LLD first
+                # Detect LLD
                 HAS_LLD := $(if $(shell command -v ld.lld 2>/dev/null || command -v lld 2>/dev/null),yes,no)
-                # Only add -fuse-ld=lld if found LLD
                 ifeq ($(HAS_LLD),yes)
-                    # Clang always supports -fuse-ld=lld
+                    # Clang
                     ifeq ($(COMP),clang)
                         LDFLAGS += -fuse-ld=lld
-                    # GCC builds that are clang-compatible
+                    # GCC (Clang-compatible)
                     else ifeq ($(GCC_CLANG),yes)
                         LDFLAGS += -fuse-ld=lld
                     endif
@@ -1027,26 +1027,21 @@ ifeq ($(optimize),yes)
         # Clang / ICX / NDK
         ifneq ($(filter clang icx ndk,$(COMP)),)
             LTO_FLAGS := -flto=full
-            # ICX-specific flags
+            # ICX
             ifeq ($(COMP),icx)
                 CXXFLAGS += -fwhole-program-vtables
             endif
         # GCC
         else ifeq ($(COMP),gcc)
-            # macOS
-            ifeq ($(KERNEL),Darwin)
-                LTO_FLAGS := -flto=full
+            # GCC (native)
+            ifeq ($(GCC_CLANG),no)
+                LTO_FLAGS    := -flto -flto-partition=one
+                LDFLTO_EXTRA := -flto=jobserver
+            # GCC (Clang-compatible)
             else
-                # GCC (native: not pretending to be Clang)
-                ifeq ($(GCC_CLANG),no)
-                    LTO_FLAGS    := -flto -flto-partition=one
-                    LDFLTO_EXTRA := -flto=jobserver
-                # GCC (pretending to be Clang)
-                else
-                    LTO_FLAGS := -flto=full
-                endif
+                LTO_FLAGS := -flto=full
             endif
-        # To use LTO and static linking on Windows, the tool chain requires GCC version 10.1+
+        # Windows (requires GCC 10.1+ for LTO and static linking)
         else ifeq ($(COMP),mingw)
             LTO_FLAGS    := -flto -flto-partition=one
             LDFLTO_EXTRA := -flto=jobserver -save-temps
