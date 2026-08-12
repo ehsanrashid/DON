@@ -110,20 +110,20 @@ jobs:
     name: Prepare matrices
     runs-on: ubuntu-latest
     outputs:
-      matrix: ${{ steps.set-matrix.outputs.matrix }}
-      arm_matrix: ${{ steps.set-arm-matrix.outputs.arm_matrix }}
+      desktop_matrix: ${{ steps.set-desktop-matrix.outputs.DESKTOP_MATRIX }}
+      android_matrix: ${{ steps.set-android-matrix.outputs.ANDROID_MARTIX }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
-      - id: set-matrix
+      - id: set-desktop-matrix
         run: |
-          TASKS=$(echo $(cat .github/ci/matrix.json) )
-          echo "MATRIX=$TASKS" >> $GITHUB_OUTPUT
-      - id: set-arm-matrix
+          DESKTOP_TASKS=$(cat .github/ci/desktop_matrix.json)
+          echo "DESKTOP_MATRIX=$DESKTOP_TASKS" >> $GITHUB_OUTPUT
+      - id: set-android-matrix
         run: |
-          TASKS_ARM=$(echo $(cat .github/ci/arm_matrix.json) )
-          echo "ARM_MATRIX=$TASKS_ARM" >> $GITHUB_OUTPUT
+          ANDROID_TASKS=$(cat .github/ci/android_matrix.json)
+          echo "ANDROID_MARTIX=$ANDROID_TASKS" >> $GITHUB_OUTPUT
   # Testing Jobs
   IWYU:
     name: IWYU
@@ -154,20 +154,20 @@ jobs:
     needs: [Matrix, Sanitizers, Tests, Matetrack, Games, CompilerCheck]
     uses: ./.github/workflows/desktop_compilation.yml
     with:
-      matrix: ${{ needs.Matrix.outputs.matrix }}
+      matrix: ${{ needs.Matrix.outputs.desktop_matrix }}
   AndroidCompilation:
     name: Android builds
     needs: [Matrix, Sanitizers, Tests, Matetrack, Games, CompilerCheck]
     uses: ./.github/workflows/android_compilation.yml
     with:
-      matrix: ${{ needs.Matrix.outputs.arm_matrix }}
+      matrix: ${{ needs.Matrix.outputs.android_matrix }}
   DesktopUploads:
     if: github.repository == 'ehsanrashid/DON'
     name: Desktop uploads
     needs: [Prerelease, Matrix, DesktopCompilation]
     uses: ./.github/workflows/upload_binaries.yml
     with:
-      matrix: ${{ needs.Matrix.outputs.matrix }}
+      matrix: ${{ needs.Matrix.outputs.desktop_matrix }}
     permissions:
       contents: write # For deleting/creating a (pre)release
     secrets:
@@ -178,7 +178,7 @@ jobs:
     needs: [Prerelease, Matrix, AndroidCompilation]
     uses: ./.github/workflows/upload_binaries.yml
     with:
-      matrix: ${{ needs.Matrix.outputs.arm_matrix }}
+      matrix: ${{ needs.Matrix.outputs.android_matrix }}
     permissions:
       contents: write # For deleting/creating a (pre)release
     secrets:
