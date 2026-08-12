@@ -555,7 +555,7 @@ class MainSearchManager final: public ISearchManager {
 
     void show_pv(Worker& worker, Depth depth) const noexcept;
 
-    void set_ponder(bool pond) noexcept;
+    void set_ponder(bool p) noexcept;
 
     const UpdateContext& updateContext;
 
@@ -564,6 +564,7 @@ class MainSearchManager final: public ISearchManager {
     double      sumMoveChanges;
     double      timeReduction;
     u16         callsCount;
+    bool        pvShown;
     bool        ponder;
     bool        ponderhitStop;
 
