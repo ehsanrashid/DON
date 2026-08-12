@@ -158,7 +158,7 @@ class FeatureTransformer final {
 
         read_leb_128(is, biases);
 
-        read_little_endian<ThreatWeightType>(is, threatWeights);
+        read_little_endian(is, threatWeights);
 
         read_leb_128(is, weights);
 
@@ -177,9 +177,9 @@ class FeatureTransformer final {
 
         write_leb_128(os, copy->biases);
 
-        write_little_endian<ThreatWeightType>(os, copy->threatWeights);
+        write_little_endian(os, copy->threatWeights);
 
-        write_leb_128<WeightType>(os, copy->weights);
+        write_leb_128(os, copy->weights);
 
         auto combinedPsqtWeights =
           std::make_unique<Array<PSQTWeightType, InputDimensions * PSQTBuckets>>();
@@ -192,7 +192,7 @@ class FeatureTransformer final {
                   copy->psqtWeights.begin() + PSQFeatureSet::Dimensions * PSQTBuckets,
                   combinedPsqtWeights->begin() + ThreatFeatureSet::Dimensions * PSQTBuckets);
 
-        write_leb_128<PSQTWeightType>(os, *combinedPsqtWeights);
+        write_leb_128(os, *combinedPsqtWeights);
 
         return !os.fail();
     }
