@@ -541,7 +541,7 @@ GCC_APPLE_CLANG := no
 
 # GCC
 ifeq ($(COMP),gcc)
-    CXX := g++
+    CXX := $(if $(COMPCXX),$(COMPCXX),g++)
     CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-declarations
     # Detect whether the selected compiler is actually Clang
     CXX_VERSION     := $(shell $(CXX) --version 2>/dev/null | head -n 1 | tr '[:upper:]' '[:lower:]')
@@ -730,7 +730,7 @@ ifeq ($(KERNEL),Darwin)
     endif
 endif
 
-### Allow overwriting CXX from command line
+### Allow overriding CXX from the environment
 ifdef COMPCXX
     CXX = $(COMPCXX)
 endif
