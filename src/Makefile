@@ -547,6 +547,12 @@ ifeq ($(COMP),gcc)
     CXX_VERSION     := $(shell $(CXX) --version 2>/dev/null | head -n 1 | tr '[:upper:]' '[:lower:]')
     GCC_CLANG       := $(if $(findstring clang,$(CXX_VERSION)),yes,no)
     GCC_APPLE_CLANG := $(if $(findstring apple clang,$(CXX_VERSION)),yes,no)
+
+    $(info CXX=$(CXX))
+    $(info CXX_VERSION=$(CXX_VERSION))
+    $(info GCC_CLANG=$(GCC_CLANG))
+    $(info GCC_APPLE_CLANG=$(GCC_APPLE_CLANG))
+
     ifeq ($(arch),wasm32)
     # Non-Darwin (Linux) specific compiler/linker flags
     else ifneq ($(KERNEL),Darwin)
@@ -1022,8 +1028,8 @@ ifeq ($(optimize),yes)
             endif
         endif
         # Determine LTO flags
-        LTO_FLAGS :=
-        LDFLTO_EXTRA :=
+        LTO_FLAGS   :=
+        LTO_LDFLAGS :=
         # Clang / ICX / NDK
         ifneq ($(filter clang icx ndk,$(COMP)),)
             LTO_FLAGS := -flto=full
@@ -1035,20 +1041,20 @@ ifeq ($(optimize),yes)
         else ifeq ($(COMP),gcc)
             # GCC (native)
             ifeq ($(GCC_CLANG),no)
-                LTO_FLAGS    := -flto -flto-partition=one
-                LDFLTO_EXTRA := -flto=jobserver
+                LTO_FLAGS   := -flto -flto-partition=one
+                LTO_LDFLAGS := -flto=jobserver
             # GCC (Clang-compatible)
             else
                 LTO_FLAGS := -flto=full
             endif
         # Windows (requires GCC 10.1+ for LTO and static linking)
         else ifeq ($(COMP),mingw)
-            LTO_FLAGS    := -flto -flto-partition=one
-            LDFLTO_EXTRA := -flto=jobserver -save-temps
+            LTO_FLAGS   := -flto -flto-partition=one
+            LTO_LDFLAGS := -flto=jobserver -save-temps
         endif
         # Apply LTO flags
         CXXFLAGS += $(LTO_FLAGS)
-        LDFLAGS  += $(LTO_FLAGS) $(LDFLTO_EXTRA)
+        LDFLAGS  += $(LTO_FLAGS) $(LTO_LDFLAGS)
     endif
     # Inline settings
     ifneq ($(filter clang ndk,$(COMP)),)
