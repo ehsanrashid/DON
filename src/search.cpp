@@ -384,7 +384,7 @@ void Worker::start_search() noexcept {
                 for (auto&& th : threads)
                     th->worker->rootMoves.swap_to_front(skillMove);
             }
-            else if (thread_count() > 1 && multiPv == 1 && limit.mate == 0)
+            else if (thread_count() > 1 && multiPv == 1)
                 bestWorker = threads.best_thread()->worker.get();
 
             if (limit.use_time_manager())
@@ -496,10 +496,9 @@ void Worker::iterative_deepening() noexcept {
 
     Value bestValue = -VALUE_INFINITE;
 
-    u16 researchCnt = 0;
+    Depth lastBestMoveDepth = completedDepth = DEPTH_ZERO;
 
-    Depth lastBestMoveDepth = DEPTH_ZERO;
-    completedDepth          = DEPTH_ZERO;
+    u16 researchCnt = 0;
 
     // Iterative deepening loop
     const Depth maxDepth =
@@ -646,7 +645,7 @@ void Worker::iterative_deepening() noexcept {
             // Thus here roll back to the score from the previous iteration.
             if (rootMoves[0].curValue != -VALUE_INFINITE && is_loss(rootMoves[0].curValue))
             {
-                // Bring the last best move to the front for best thread selection.
+                // Bring the last best move to the front for best thread selection
                 if (!lastIterationPV.empty())
                 {
                     rootMoves.move_to_front(
@@ -660,7 +659,7 @@ void Worker::iterative_deepening() noexcept {
                     if (mainManager != nullptr)
                         mainManager->pvShown = true;
                 }
-                // For aborted (depth 1) search label the loss score as inexact.
+                // For aborted (depth 1) search label the loss score as inexact
                 else if (rootMoves[0].bound != Bound::LOWER)
                     rootMoves[0].bound = Bound::UPPER;
             }
@@ -676,18 +675,9 @@ void Worker::iterative_deepening() noexcept {
         lastIterationPV = rootMoves[0].pv;
 
         // Have found "mate in x"?
-        if (mainManager != nullptr && limit.mate != 0
-            && rootMoves[0].curValue == rootMoves[0].uciValue)
-        {
-            auto value = rootMoves[0].curValue;
-            bool mate  = (value != +VALUE_INFINITE && is_mate_win(value))   // mate-win
-                     || (value != -VALUE_INFINITE && is_mate_loss(value));  // mate-loss
-            if (mate && VALUE_MATE - constexpr_abs(value) <= 2 * limit.mate)
-            {
-                threads.request_stop();
-                break;
-            }
-        }
+        if (limit.mate != 0 && is_mate(rootMoves[0].curValue)
+            && VALUE_MATE - constexpr_abs(rootMoves[0].curValue) <= 2 * limit.mate)
+            threads.request_stop();
 
         if (mainManager != nullptr)
         {
