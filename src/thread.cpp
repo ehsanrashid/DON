@@ -335,19 +335,19 @@ struct ThreadMetric final {
         const auto& rm = th->worker->root_moves()[0];
 
         // Aborted (depth 1) searches may lead to inexact win or loss
-        const Value value    = rm.effective_value();
+        const Value curValue = rm.curValue;
         const bool  hasBound = rm.has_bound();
 
         assert(rm.id != std::numeric_limits<u16>::max() && rm.id < votes.size());
         const u64 voteCount = votes[rm.id];
 
         return {
-          voteCount,                                               //
-          std::forward<VotingFunc>(calc_vote_weight)(th),          //
-          rm.pv.size(),                                            //
-          value,                                                   //
-          value != +VALUE_INFINITE && is_win(value) && !hasBound,  //
-          value != -VALUE_INFINITE && is_loss(value) && !hasBound  //
+          voteCount,                                                     //
+          std::forward<VotingFunc>(calc_vote_weight)(th),                //
+          rm.pv.size(),                                                  //
+          curValue,                                                      //
+          curValue != +VALUE_INFINITE && is_win(curValue) && !hasBound,  //
+          curValue != -VALUE_INFINITE && is_loss(curValue) && !hasBound  //
         };
     }
 
@@ -412,7 +412,7 @@ const Thread* Threads::best_thread() const noexcept {
         {
             const auto& rm = th->worker->rootMoves[0];
 
-            if (rm.effective_value() != -VALUE_INFINITE && !rm.pv.empty())
+            if (rm.curValue != -VALUE_INFINITE && !rm.pv.empty())
                 snapThreads.push_back(th.get());
             else if (th->worker->completedDepth > bestDepth)
             {
@@ -430,24 +430,13 @@ const Thread* Threads::best_thread() const noexcept {
     const Thread* bestThread = snapThreads.front();
 
     // Find the minimum value of all threads
-    Value minValue = bestThread->worker->rootMoves[0].effective_value();
-    for (usize i = 1; i < snapThreads.size(); ++i)
-    {
-        const auto& rm = snapThreads[i]->worker->rootMoves[0];
-
-        minValue = std::min(rm.effective_value(), minValue);
-    }
+    Value minValue = VALUE_NONE;
+    for (const auto* th : snapThreads)
+        minValue = std::min(th->worker->rootMoves[0].curValue, minValue);
 
     // Vote according to value and depth, and select the best thread
     auto calc_vote_weight = [minValue](const Thread* th) noexcept -> u64 {
-        const auto& rm = th->worker->rootMoves[0];
-
-        Value value   = rm.effective_value();
-        bool  penalty = rm.curValue == -VALUE_INFINITE;
-        assert(value >= minValue);
-
-        return u64(14 + value - minValue)
-             * u64(std::max(th->worker->completedDepth - int(penalty), 1));
+        return (th->worker->rootMoves[0].curValue - minValue + 14) * (th->worker->completedDepth);
     };
 
     Array<u64, MOVE_MAX> votes{};
@@ -455,11 +444,10 @@ const Thread* Threads::best_thread() const noexcept {
     // Aggregate votes
     for (const auto* th : snapThreads)
     {
-        const auto& rm = th->worker->rootMoves[0];
+        assert(th->worker->rootMoves[0].id != std::numeric_limits<u16>::max()
+               && th->worker->rootMoves[0].id < votes.size());
 
-        assert(rm.id != std::numeric_limits<u16>::max() && rm.id < votes.size());
-
-        votes[rm.id] += calc_vote_weight(th);
+        votes[th->worker->rootMoves[0].id] += calc_vote_weight(th);
     }
 
     // Cache best thread properties

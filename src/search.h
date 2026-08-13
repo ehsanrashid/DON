@@ -180,10 +180,6 @@ struct RootMove final {
         return !(rm1 < rm2);
     }
 
-    [[nodiscard]] Value effective_value() const noexcept {
-        return curValue != -VALUE_INFINITE ? curValue : preValue;
-    }
-
     [[nodiscard]] bool has_bound() const noexcept {
         return bound == Bound::LOWER || bound == Bound::UPPER;
     }

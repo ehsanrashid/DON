@@ -379,7 +379,7 @@ void Worker::start_search() noexcept {
                 for (auto&& th : threads)
                     th->worker->rootMoves.swap_to_front(skillMove);
             }
-            else if (thread_count() > 1 && multiPv == 1)
+            else if (thread_count() > 1)
                 bestWorker = threads.best_thread()->worker.get();
 
             if (limit.use_time_manager())
@@ -575,16 +575,14 @@ void Worker::iterative_deepening() noexcept {
 
                 bestValue = search<NT::ROOT>(rootPos, ss, alpha, beta, adjustedDepth);
 
-                // Bring the best move to the front. It is critical that sorting
-                // is done with a stable algorithm because all the values but the
-                // first and eventually the new best one is set to -VALUE_INFINITE
-                // and want to keep the same order for all the moves except the
-                // new PV that goes to the front. Note that in the case of MultiPV
-                // search the already searched PV lines are preserved.
+                // Bring the best move to the front. A stable sort is critical here because
+                // all moves except the first and, eventually, the new best move have a score of -VALUE_INFINITE.
+                // Stability preserves their existing order, while moving only the new PV move to the front.
+                // In MultiPV search, already searched PV lines are therefore preserved.
                 rootMoves.sort(pvCur, pvEnd);
 
                 // If the search has been stopped, break immediately.
-                // Sorting is safe because RootMoves is still valid, although it refers to the previous iteration.
+                // RootMoves remains valid, although it refers to the previous iteration.
                 if (threads.is_stopped())
                     break;
 
@@ -621,6 +619,24 @@ void Worker::iterative_deepening() noexcept {
                 assert(-VALUE_INFINITE <= alpha && alpha < beta && beta <= +VALUE_INFINITE);
             }
 
+            // In multiPV analysis we do not let aborted searches spoil mated-in/
+            // TB loss scores from a completed search in an earlier PV line.
+            // A mated-in/TB loss from an aborted search for pvIdx > 0 can only become
+            // bestmove in the sorting below, if the current bestmove (and hence also
+            // the previously searched pvIdx - 1 line) is already a proven loss.
+            if (threads.is_stopped() && pvCur != 0 && is_loss(rootMoves[pvCur - 1].curValue)
+                && rootMoves[pvCur] < rootMoves[pvCur - 1])
+            {
+                rootMoves[pvCur].curValue = rootMoves[pvCur].uciValue =
+                  (rootMoves[pvCur].preValue != -VALUE_INFINITE
+                   && rootMoves[pvCur].preValue < rootMoves[pvCur - 1].curValue)
+                    ? rootMoves[pvCur].preValue
+                    : rootMoves[pvCur - 1].curValue;
+                rootMoves[pvCur].preValue = -VALUE_INFINITE;
+                rootMoves[pvCur].bound    = Bound::NONE;
+                rootMoves[pvCur].pv.resize(1);
+            }
+
             // Sort the PV lines searched so far
             rootMoves.sort(pvBeg, pvCur + 1);
 
@@ -640,7 +656,8 @@ void Worker::iterative_deepening() noexcept {
             // A mated-in/TB-loss score from an aborted search cannot be trusted:
             // the loss could be delayed or refuted upon exploring the remaining root-moves.
             // Thus here roll back to the score from the previous iteration.
-            if (rootMoves[0].curValue != -VALUE_INFINITE && is_loss(rootMoves[0].curValue))
+            if (pvCur == 0 && rootMoves[0].curValue != -VALUE_INFINITE
+                && is_loss(rootMoves[0].curValue))
             {
                 // Bring the last best move to the front for best thread selection
                 if (!lastPV.empty())
