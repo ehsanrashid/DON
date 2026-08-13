@@ -133,14 +133,14 @@ using vec_uint_t = __m128i;
     #define vec_store(a, b) *(a) = (b)
 
     #if defined(__i386__)
-inline __m128i _mm_cvtsi64_si128(i64 a) noexcept {
-    return _mm_loadl_epi64(reinterpret_cast<const __m128i*>(&a));
+inline __m128i _mm_cvtsi64_si128(const i64 v) noexcept {
+    return _mm_loadl_epi64(reinterpret_cast<const __m128i*>(&v));
 }
     #endif
     #if defined(USE_SSE41)
         #define vec_convert_8_16(a) _mm_cvtepi8_epi16(_mm_cvtsi64_si128(i64(a)))
     #else
-inline __m128i vec_convert_8_16(u64 a) noexcept {
+inline __m128i vec_convert_8_16(const u64 a) noexcept {
     const __m128i v8   = _mm_cvtsi64_si128(i64(a));
     const __m128i sign = _mm_cmpgt_epi8(_mm_setzero_si128(), v8);
     return _mm_unpacklo_epi8(v8, sign);
@@ -297,9 +297,9 @@ inline void m512_add_dpbusd_epi32(__m512i& acc, const __m512i a, const __m512i b
     #if defined(USE_VNNI)
     acc = _mm512_dpbusd_epi32(acc, a, b);
     #else
-    __m512i product0 = _mm512_maddubs_epi16(a, b);
-    product0         = _mm512_madd_epi16(product0, _mm512_set1_epi16(1));
-    acc              = _mm512_add_epi32(acc, product0);
+    __m512i product = _mm512_maddubs_epi16(a, b);
+    product         = _mm512_madd_epi16(product, _mm512_set1_epi16(1));
+    acc             = _mm512_add_epi32(acc, product);
     #endif
 }
 
@@ -307,18 +307,19 @@ inline void m512_add_dpbusd_epi32(__m512i& acc, const __m512i a, const __m512i b
 
 #if defined(USE_AVX2)
 inline int m256_hadd(const __m256i sum, const int bias) noexcept {
-    __m128i sum_ = _mm_add_epi32(_mm256_castsi256_si128(sum), _mm256_extracti128_si256(sum, 1));
-    sum_         = _mm_add_epi32(sum_, _mm_shuffle_epi32(sum_, _MM_PERM_BADC));
-    sum_         = _mm_add_epi32(sum_, _mm_shuffle_epi32(sum_, _MM_PERM_CDAB));
-    return _mm_cvtsi128_si32(sum_) + bias;
+    __m128i sm = _mm_add_epi32(_mm256_castsi256_si128(sum), _mm256_extracti128_si256(sum, 1));
+    sm         = _mm_add_epi32(sm, _mm_shuffle_epi32(sm, _MM_PERM_BADC));
+    sm         = _mm_add_epi32(sm, _mm_shuffle_epi32(sm, _MM_PERM_CDAB));
+    return _mm_cvtsi128_si32(sm) + bias;
 }
 
 inline void m256_add_dpbusd_epi32(__m256i& acc, const __m256i a, const __m256i b) noexcept {
     #if defined(USE_VNNI)
     acc = _mm256_dpbusd_epi32(acc, a, b);
     #else
-    const __m256i product = _mm256_maddubs_epi16(a, b);
-    acc                   = _mm256_add_epi32(acc, _mm256_madd_epi16(product, _mm256_set1_epi16(1)));
+    __m256i product = _mm256_maddubs_epi16(a, b);
+    product         = _mm256_madd_epi16(product, _mm256_set1_epi16(1));
+    acc             = _mm256_add_epi32(acc, product);
     #endif
 }
 
@@ -326,14 +327,15 @@ inline void m256_add_dpbusd_epi32(__m256i& acc, const __m256i a, const __m256i b
 
 #if defined(USE_SSSE3)
 inline int m128_hadd(const __m128i sum, const int bias) noexcept {
-    __m128i sum_ = _mm_add_epi32(sum, _mm_shuffle_epi32(sum, 0x4E));    //_MM_PERM_BADC
-    sum_         = _mm_add_epi32(sum_, _mm_shuffle_epi32(sum_, 0xB1));  //_MM_PERM_CDAB
-    return _mm_cvtsi128_si32(sum_) + bias;
+    __m128i sm = _mm_add_epi32(sum, _mm_shuffle_epi32(sum, 0x4E));  //_MM_PERM_BADC
+    sm         = _mm_add_epi32(sm, _mm_shuffle_epi32(sm, 0xB1));    //_MM_PERM_CDAB
+    return _mm_cvtsi128_si32(sm) + bias;
 }
 
 inline void m128_add_dpbusd_epi32(__m128i& acc, const __m128i a, const __m128i b) noexcept {
-    const __m128i product = _mm_maddubs_epi16(a, b);
-    acc                   = _mm_add_epi32(acc, _mm_madd_epi16(product, _mm_set1_epi16(1)));
+    __m128i product = _mm_maddubs_epi16(a, b);
+    product         = _mm_madd_epi16(product, _mm_set1_epi16(1));
+    acc             = _mm_add_epi32(acc, product);
 }
 #endif  // USE_SSSE3
 

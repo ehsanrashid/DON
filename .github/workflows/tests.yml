@@ -339,7 +339,7 @@ jobs:
         if: matrix.config.run_m1_tests
         run: |
           make clean
-          env -u COMPCXX make -j4 ARCH=apple-silicon build COMP=gcc
+          env -u COMPCXX make -j4 ARCH=apple-silicon COMP=gcc build
           ../tests/signature.sh $benchref
 
       # armv8 tests

@@ -80,7 +80,10 @@ jobs:
       # - name: Run matetrack th4 go-mate
       #   working-directory: matetrack
       #   run: |
-      #     python matecheck.py --engine /home/runner/work/DON/DON/DON/src/DON --epdFile matetrack.epd matedtrack.epd --bmMax 2 --mate 0 --threads 4 | tee matecheck4gm.out
+      #     head -n 21 matetrack.epd > gomates.epd
+      #     head -n 44 matedtrack.epd >> gomates.epd
+      #     head -n 18 mates2000.epd >> gomates.epd
+      #     python matecheck.py --engine /home/runner/work/DON/DON/DON/src/DON --epdFile gomates.epd --mate 0 --threads 4 | tee matecheck4gm.out
       #     ! grep "issues were detected" matecheck4gm.out > /dev/null
       #     total=$(grep "Total FENs:" matecheck4gm.out | awk '{print $3}')
       #     bmates=$(grep "Best mates:" matecheck4gm.out | awk '{print $3}')

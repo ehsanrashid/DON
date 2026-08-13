@@ -901,8 +901,12 @@ DirtyBoard Position::do_move(const Move          m,
 
     reset_en_passant_sq();
 
-    Key    movedKey;
-    bool   capture;
+    Key  movedKey;
+    bool capture;
+    bool enPassant = false;
+    bool promotion = false;
+
+    Square capturedSq  = dstSq;
     Square enPassantSq = SQ_NONE;
 
     // If the move is a castling, do some special work
@@ -931,8 +935,6 @@ DirtyBoard Position::do_move(const Move          m,
     // clang-format off
     else
     {
-    bool pieceMove = m.type() != MT::PROMOTION;
-
     movedKey = Zobrist::piece_square(ac, movedPt, orgSq)  //
              ^ Zobrist::piece_square(ac, movedPt, dstSq);
 
@@ -941,8 +943,6 @@ DirtyBoard Position::do_move(const Move          m,
     if (capture)
     {
         auto capturedPt = type_of(capturedPc);
-
-        Square capturedSq = dstSq;
 
         Key capturedKey = Zobrist::piece_square(~ac, capturedPt, capturedSq);
 
@@ -964,10 +964,7 @@ DirtyBoard Position::do_move(const Move          m,
                 assert(st->preSt->enPassantSq == dstSq);
                 assert(st->preSt->rule50Count == 0);
 
-                pieceMove = false;
-                // Remove the captured pawn
-                remove(capturedSq, &db.dirtyThreats);
-                move(orgSq, dstSq, &db.dirtyThreats);
+                enPassant = true;
 
                 capturedKey = Zobrist::piece_square(~ac, capturedPt, capturedSq);
             }
@@ -977,12 +974,6 @@ DirtyBoard Position::do_move(const Move          m,
         else
         {
             st->nonPawnKeys[~ac][is_major(capturedPt)] ^= capturedKey;
-        }
-
-        if (pieceMove)
-        {
-            remove(orgSq, &db.dirtyThreats);
-            swap(dstSq, movedPc, &db.dirtyThreats);
         }
 
         db.dirtyPiece.removedSq = capturedSq;
@@ -995,11 +986,6 @@ DirtyBoard Position::do_move(const Move          m,
         // Reset rule 50 draw counter
         reset_rule50_count();
     }
-    else
-    {
-        if (pieceMove)
-            move(orgSq, dstSq, &db.dirtyThreats);
-    }
 
     // If the moving piece is a pawn do some special extra work
     if (movedPt == PAWN)
@@ -1008,6 +994,8 @@ DirtyBoard Position::do_move(const Move          m,
         {
             assert(relative_rank(ac, orgSq) == RANK_7);
             assert(relative_rank(ac, dstSq) == RANK_8);
+
+            promotion = true;
 
             auto promotedPt = m.promotion_type();
             assert(KNIGHT <= promotedPt && promotedPt <= QUEEN);
@@ -1019,14 +1007,6 @@ DirtyBoard Position::do_move(const Move          m,
             db.dirtyPiece.addedSq = dstSq;
             db.dirtyPiece.addedPc = promotedPc;
 
-            remove(orgSq, &db.dirtyThreats);
-
-            if (capture)
-                swap(dstSq, promotedPc, &db.dirtyThreats);
-            else
-                put(dstSq, promotedPc, &db.dirtyThreats);
-
-            assert(count(promotedPc) != 0);
             assert(Zobrist::piece_square(ac, PAWN, dstSq) == 0);
 
             Key promoKey = Zobrist::piece_square(ac, promotedPt, dstSq);
@@ -1058,8 +1038,6 @@ DirtyBoard Position::do_move(const Move          m,
     }
     // clang-format on
 
-    db.dirtyThreats.kingSq = square<KING>(ac);
-
     // Update hash key
     st->key ^= movedKey;
 
@@ -1082,6 +1060,31 @@ DirtyBoard Position::do_move(const Move          m,
         prefetch(&worker->histories.non_pawn_correction<BLACK>(non_pawn_key(BLACK)));
     }
 
+    // Update board
+    if (m.type() != MT::CASTLING)
+    {
+        if (promotion)
+        {
+            remove(orgSq, &db.dirtyThreats);
+            if (capture)
+                swap(dstSq, promotedPc, &db.dirtyThreats);
+            else
+                put(dstSq, promotedPc, &db.dirtyThreats);
+        }
+        else if (enPassant)
+        {
+            remove(capturedSq, &db.dirtyThreats);
+            move(orgSq, dstSq, &db.dirtyThreats);
+        }
+        else if (capture)
+        {
+            remove(orgSq, &db.dirtyThreats);
+            swap(dstSq, movedPc, &db.dirtyThreats);
+        }
+        else  // Quiet move
+            move(orgSq, dstSq, &db.dirtyThreats);
+    }
+
     // Compute checkers (if move may check)
     st->checkersBB = 0;
 
@@ -1095,6 +1098,8 @@ DirtyBoard Position::do_move(const Move          m,
 
         assert(popcount(checkers_bb()) <= 2 && (checkers_bb() & square<KING>(ac)) == 0);
     }
+
+    db.dirtyThreats.kingSq = square<KING>(ac);
 
     activeColor = ~ac;
 

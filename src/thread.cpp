@@ -334,18 +334,20 @@ struct ThreadMetric final {
                                     VotingFunc&&                calc_vote_weight) noexcept {
         const auto& rm = th->worker->root_moves()[0];
 
-        Value value = rm.effective_value();
+        // Aborted (depth 1) searches may lead to inexact win or loss
+        const Value value    = rm.effective_value();
+        const bool  hasBound = rm.has_bound();
 
         assert(rm.id != std::numeric_limits<u16>::max() && rm.id < votes.size());
-        u64 voteCount = votes[rm.id];
+        const u64 voteCount = votes[rm.id];
 
         return {
-          voteCount,                                       //
-          std::forward<VotingFunc>(calc_vote_weight)(th),  //
-          rm.pv.size(),                                    //
-          value,                                           //
-          is_win(value),                                   //
-          is_loss(value)                                   //
+          voteCount,                                               //
+          std::forward<VotingFunc>(calc_vote_weight)(th),          //
+          rm.pv.size(),                                            //
+          value,                                                   //
+          value != +VALUE_INFINITE && is_win(value) && !hasBound,  //
+          value != -VALUE_INFINITE && is_loss(value) && !hasBound  //
         };
     }
 

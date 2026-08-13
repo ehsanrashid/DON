@@ -321,11 +321,11 @@ class AffineTransformSparseInput final {
         #endif
               ;
 
-        while (p + 2 < end)
+        for (; p + 2 < end; p += 3)
         {
-            const usize i0 = *p++;
-            const usize i1 = *p++;
-            const usize i2 = *p++;
+            const usize i0 = p[0];
+            const usize i1 = p[1];
+            const usize i2 = p[2];
 
             const invec_t in0 = vec_set_32(load_as<i32>(input + i0 * sizeof(u32)));
             const invec_t in1 = vec_set_32(load_as<i32>(input + i1 * sizeof(u32)));
@@ -357,9 +357,9 @@ class AffineTransformSparseInput final {
               ;
     #endif
 
-        while (p < end)
+        for (; p < end; ++p)
         {
-            const usize i = *p++;
+            const usize i = *p;
 
             const invec_t in = vec_set_32(load_as<i32>(input + i * sizeof(u32)));
 
