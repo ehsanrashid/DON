@@ -400,7 +400,7 @@ MovePicker::score<GenType::ENC_QUIET>(const MoveList<GenType::ENC_QUIET>& moveLi
     const auto&        refQuietHistory        = *quietHistory;
     const auto&        refLowPlyQuietHistory  = *lowPlyQuietHistory;
     const auto* const* ptrContinuationHistory = continuationHistory;
-    const auto&        refPawnEntry           = histories->pawn_entry(pos.pawn_key());
+    const auto&        refPawnEntry           = (*histories).pawn_entry(pos);
 
     auto itr = cur;
 

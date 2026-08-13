@@ -53,7 +53,7 @@ std::string Tune::next(std::string& names, bool pop) noexcept {
         auto token = names.substr(0, names.find(','));
 
         if (pop)
-            names.erase(0, 1 + token.size());
+            names.erase(0, token.size() + 1);
 
         name += rtrim(token);  // Remove trailing whitespace
 

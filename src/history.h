@@ -27,6 +27,7 @@
 
 #include "memory.h"
 #include "misc.h"
+#include "position.h"
 #include "types.h"
 
 namespace DON {
@@ -168,6 +169,8 @@ using ContinuationHistory = MultiArray<PieceSqHistory, PIECE_NB, SQUARE_NB>;
 // PawnHistory is addressed by the pawn structure and a move's [piece][dstSq]
 using PawnHistory = DynamicArray<AtomicStats<i16, 8192, PIECE_NB, SQUARE_NB>>;
 
+// TTMoveHistory
+using TTMoveHistory = StatsEntry<i16, 8192>;
 
 // Correction histories record differences between the static evaluation of positions and their search score.
 // It is used to improve the static evaluation used by some search heuristics.
@@ -187,8 +190,6 @@ using PieceSqCorrectionHistory = Stats<i16, CORRECTION_HISTORY_LIMIT, PIECE_NB, 
 // ContinuationCorrectionHistory is the combined history of given pair of moves,
 // usually the current move given the previous move.
 using ContinuationCorrectionHistory = MultiArray<PieceSqCorrectionHistory, PIECE_NB, SQUARE_NB>;
-
-using TTMoveHistory = StatsEntry<i16, 8192>;
 
 class Histories final {
    public:
@@ -256,9 +257,11 @@ class Histories final {
 
     auto& pawn_history() noexcept { return pawnHistory; }
 
-    auto&       pawn_entry(const Key pawnKey) noexcept { return pawnHistory[pawn_index(pawnKey)]; }
-    const auto& pawn_entry(const Key pawnKey) const noexcept {
-        return pawnHistory[pawn_index(pawnKey)];
+    auto& pawn_entry(const Position& pos) noexcept {
+        return pawnHistory[pawn_index(pos.pawn_key())];
+    }
+    const auto& pawn_entry(const Position& pos) const noexcept {
+        return pawnHistory[pawn_index(pos.pawn_key())];
     }
 
    private:

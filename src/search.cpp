@@ -570,7 +570,7 @@ void Worker::iterative_deepening() noexcept {
                 assert(rootDelta != 0);
 
                 // Reduce search depth according to fail-highs and research count.
-                const Depth penaltyDepth  = failHighCnt + 3 * (1 + researchCnt) / 4;
+                const Depth penaltyDepth  = failHighCnt + 3 * (researchCnt + 1) / 4;
                 const Depth adjustedDepth = std::max<Depth>(rootDepth - penaltyDepth, 1);
 
                 bestValue = search<NT::ROOT>(rootPos, ss, alpha, beta, adjustedDepth);
@@ -1299,7 +1299,7 @@ Value Worker::search(Position&    pos,
                 {
                     int history = (*contHistory[0])[+movedPc][dstSq]
                                 + (*contHistory[1])[+movedPc][dstSq]
-                                + histories.pawn_entry(pos.pawn_key())[+movedPc][dstSq];
+                                + histories.pawn_entry(pos)[+movedPc][dstSq];
 
                     // History based pruning
                     if (!check && history < -4136 * depth)
@@ -2067,7 +2067,7 @@ void Worker::update_pawn_history(const Position& pos,
     //assert(is_ok(pc));
     assert(is_ok(dstSq));
 
-    histories.pawn_entry(pos.pawn_key())[+pc][dstSq] << bonus;
+    histories.pawn_entry(pos)[+pc][dstSq] << bonus;
 }
 void Worker::update_pawn_history(const Position& pos, const Move m, const int bonus) noexcept {
     assert(m.is_ok());
@@ -2404,7 +2404,7 @@ void Worker::extend_tb_pv(const usize index, Value& value) noexcept {
             // Give a score of each move to break DTZ ties
             // restricting opponent mobility, but not giving the opponent a capture.
             for (const Move om : MoveList<GenType::LEGAL>(rootPos))
-                rm.tbRank -= 1 + 99 * rootPos.capture(om);
+                rm.tbRank -= 1 + 99 * int(rootPos.capture(om));
 
             rootPos.undo_move(m);
         }

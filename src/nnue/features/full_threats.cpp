@@ -158,7 +158,7 @@ constexpr IndexType feature_index(u32 lutData) noexcept { return lutData & FEATU
 // LUT for getting index within piece threats
 // [attackerPt][orgSq][dstSq]
 alignas(CACHE_LINE_SIZE) const auto LUT_INDICES = []() noexcept {
-    Array<u8, 1 + PIECE_TYPE_CNT, SQUARE_NB, SQUARE_NB> lutIndices{};
+    Array<u8, PIECE_TYPE_CNT + 1, SQUARE_NB, SQUARE_NB> lutIndices{};
 
     for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
     {
