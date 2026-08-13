@@ -599,7 +599,7 @@ constexpr NT operator~(NT nt) noexcept { return NT((u8(nt) ^ 1) & 1); }
 struct Stack final {
    public:
     PVMoves*                             pv;
-    History<HType::PIECE_SQ>*            pieceSqHistory;
+    PieceSqHistory*                      pieceSqHistory;
     CorrectionHistory<CHType::PIECE_SQ>* pieceSqCorrectionHistory;
 
     int   history;
@@ -684,6 +684,7 @@ class Worker final {
     void update_capture_history(const Position& pos, Move m, int bonus) noexcept;
     void update_quiet_history(Color ac, Move m, int bonus) noexcept;
     void update_low_ply_quiet_history(i16 ssPly, Move m, int bonus) noexcept;
+    //void update_pawn_history(const Position& pos, Move m, int bonus) noexcept;
 
     void update_quiet_histories(const Position& pos, PawnHistory& pawnHistory, Stack* ss, Move m, int bonus) noexcept;
     void update_histories(const Position& pos, PawnHistory& pawnHistory, Stack* ss, Depth depth, Move bestMove, bool extra, const Array<SearchedMoves, 2>& searchedMoves) noexcept;
@@ -691,8 +692,8 @@ class Worker final {
     void update_correction_histories(const Position& pos, const Stack* ss, int bonus) noexcept;
     int  correction_value(const Position& pos, const Stack* ss) const noexcept;
 
-    int history_value(bool capture, Move m, Piece movedPc, PieceType capturedPt, Color ac, const History<HType::PIECE_SQ>** contHistory) const noexcept;
-    int history_value(const Position& pos, Move m, Color ac, const History<HType::PIECE_SQ>** contHistory) const noexcept;
+    int history_value(bool capture, Move m, Piece movedPc, PieceType capturedPt, Color ac, const PieceSqHistory** contHistory) const noexcept;
+    int history_value(const Position& pos, Move m, Color ac, const PieceSqHistory** contHistory) const noexcept;
     // clang-format on
 
     bool ponder_move_extracted() noexcept;
@@ -732,11 +733,12 @@ class Worker final {
     PVMoves lastPV;
 
     // Histories
-    History<HType::CAPTURE>   captureHistory;
-    History<HType::QUIET>     quietHistory;
-    History<HType::LOW_QUIET> lowPlyQuietHistory;
+    CaptureHistory captureHistory;
 
-    Array<History<HType::CONTINUATION>, 2, 2> continuationHistory;  // [inCheck][capture]
+    QuietHistory       quietHistory;
+    LowPlyQuietHistory lowPlyQuietHistory;
+
+    Array<ContinuationHistory, 2, 2> continuationHistory;  // [inCheck][capture]
 
     // Correction Histories
     CorrectionHistory<CHType::CONTINUATION> continuationCorrectionHistory;

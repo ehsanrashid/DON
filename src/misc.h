@@ -275,18 +275,17 @@ constexpr usize round_up_to_pow2(usize x) noexcept {
 }
 
 template<typename T, std::enable_if_t<std::is_integral_v<T>, bool> = true>
-constexpr std::make_unsigned_t<T> constexpr_abs(T x) noexcept {
+constexpr std::make_unsigned_t<T> constexpr_abs(const T x) noexcept {
     using U = std::make_unsigned_t<T>;
     return x < 0 ? U{} - static_cast<U>(x) : static_cast<U>(x);
 }
-constexpr float       constexpr_abs(float f) noexcept { return f < 0.0f ? -f : f; }
-constexpr double      constexpr_abs(double d) noexcept { return d < 0.0 ? -d : d; }
-constexpr long double constexpr_abs(long double ld) noexcept { return ld < 0.0L ? -ld : ld; }
+constexpr float       constexpr_abs(const float f) noexcept { return f < 0.0f ? -f : f; }
+constexpr double      constexpr_abs(const double d) noexcept { return d < 0.0 ? -d : d; }
+constexpr long double constexpr_abs(const long double ld) noexcept { return ld < 0.0L ? -ld : ld; }
 
-constexpr int constexpr_ceil(double d) noexcept { return static_cast<int>(d + 0.4999); }
-constexpr int constexpr_floor(double d) noexcept { return static_cast<int>(d - 0.4999); }
-
-constexpr int constexpr_round(double d) noexcept {
+constexpr int constexpr_ceil(const double d) noexcept { return static_cast<int>(d + 0.4999); }
+constexpr int constexpr_floor(const double d) noexcept { return static_cast<int>(d - 0.4999); }
+constexpr int constexpr_round(const double d) noexcept {
     return d < 0.0 ? constexpr_floor(d) : constexpr_ceil(d);
 }
 

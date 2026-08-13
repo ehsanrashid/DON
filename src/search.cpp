@@ -139,8 +139,8 @@ Move legal_move(const Move m, const Position& pos) noexcept {
 }
 
 // Build contHistory pointers from the stack frame and validate them in debug builds.
-void build_continuation_histories(
-  const Stack* ss, const History<HType::PIECE_SQ>* contHistory[CONT_HISTORY_COUNT]) noexcept {
+void build_continuation_histories(const Stack*          ss,
+                                  const PieceSqHistory* contHistory[CONT_HISTORY_COUNT]) noexcept {
     for (usize i = 0; i < CONT_HISTORY_COUNT; ++i)
     {
         const Stack* ssi = (ss - 1) - i;
@@ -1003,7 +1003,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
 
     int absCorrectionValue = constexpr_abs(correctionValue);
 
-    const History<HType::PIECE_SQ>* contHistory[CONT_HISTORY_COUNT];
+    const PieceSqHistory* contHistory[CONT_HISTORY_COUNT];
 
     build_continuation_histories(ss, contHistory);
 
@@ -1865,7 +1865,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
 
     u16 moveCount = 0;
 
-    const History<HType::PIECE_SQ>* contHistory[1]{(ss - 1)->pieceSqHistory};
+    const PieceSqHistory* contHistory[1]{(ss - 1)->pieceSqHistory};
 
     // Initialize a MovePicker object for the current position, prepare to search the moves.
     // Because the depth is <= DEPTH_ZERO here, only captures, promotions will be generated.
@@ -2055,7 +2055,7 @@ void Worker::update_quiet_history(const Color ac, const Move m, const int bonus)
 void Worker::update_low_ply_quiet_history(const i16 ssPly, const Move m, const int bonus) noexcept {
     assert(m.is_ok());
 
-    if (ssPly < LOW_PLY_QUIET_SIZE)
+    if (ssPly < LOW_PLY_SIZE)
         lowPlyQuietHistory[ssPly][m.raw()] << bonus;
 }
 
@@ -2173,12 +2173,12 @@ int Worker::correction_value(const Position& pos, const Stack* const ss) const n
 
 // clang-format on
 
-int Worker::history_value(const bool                             capture,
-                          const Move                             m,
-                          const Piece                            movedPc,
-                          const PieceType                        capturedPt,
-                          const Color                            ac,
-                          const History<HType::PIECE_SQ>** const contHistory) const noexcept {
+int Worker::history_value(const bool                   capture,
+                          const Move                   m,
+                          const Piece                  movedPc,
+                          const PieceType              capturedPt,
+                          const Color                  ac,
+                          const PieceSqHistory** const contHistory) const noexcept {
     return int(capture ? 6.8203 * piece_value(capturedPt)                      //
                            + captureHistory[+movedPc][m.dst_sq()][capturedPt]  //
                        : 2.1992 * quietHistory[ac][m.raw()]                    //
@@ -2186,10 +2186,10 @@ int Worker::history_value(const bool                             capture,
                            + 1.0673 * (*contHistory[1])[+movedPc][m.dst_sq()]);
 }
 
-int Worker::history_value(const Position&                        pos,
-                          const Move                             m,
-                          const Color                            ac,
-                          const History<HType::PIECE_SQ>** const contHistory) const noexcept {
+int Worker::history_value(const Position&              pos,
+                          const Move                   m,
+                          const Color                  ac,
+                          const PieceSqHistory** const contHistory) const noexcept {
     Piece movedPc    = pos.moved_pc(m);
     bool  capture    = pos.capture_promo(m);
     auto  capturedPt = capture ? pos.captured_pt(m) : NO_PIECE_TYPE;

@@ -31,22 +31,6 @@
 
 namespace DON {
 
-inline constexpr u16 LOW_PLY_QUIET_SIZE = 5;
-
-inline constexpr int CORRECTION_HISTORY_LIMIT = 1024;
-
-inline constexpr usize QUIET_HISTORY_SIZE = 1u << 16;  // Max upto 16-bit
-static_assert((QUIET_HISTORY_SIZE & (QUIET_HISTORY_SIZE - 1)) == 0,
-              "QUIET_HISTORY_SIZE has to be power of 2");
-
-inline constexpr usize PAWN_HISTORY_BASE_SIZE = 1u << 14;
-static_assert((PAWN_HISTORY_BASE_SIZE & (PAWN_HISTORY_BASE_SIZE - 1)) == 0,
-              "PAWN_HISTORY_BASE_SIZE has to be power of 2");
-
-inline constexpr usize CORRECTION_HISTORY_BASE_SIZE = std::numeric_limits<u16>::max() + 1;
-static_assert((CORRECTION_HISTORY_BASE_SIZE & (CORRECTION_HISTORY_BASE_SIZE - 1)) == 0,
-              "CORRECTION_HISTORY_BASE_SIZE has to be power of 2");
-
 // StatsEntry stores a signed integral statistic whose value is bounded by [-D, D].
 //
 // It allows a statistic to be updated directly using operator<<()
@@ -58,11 +42,9 @@ static_assert((CORRECTION_HISTORY_BASE_SIZE & (CORRECTION_HISTORY_BASE_SIZE - 1)
 // Atomic controls whether the stored value is accessed atomically.
 template<typename T, int D, bool Atomic = false>
 class StatsEntry final {
-    static_assert(std::is_arithmetic_v<T>, "T must be arithmetic");
-    static_assert(std::is_signed_v<T> && std::is_integral_v<T>,
-                  "T must be a signed integral (expects [-D,+D])");
+    static_assert(std::is_signed_v<T> && std::is_integral_v<T>, "T must be a signed integral");
     static_assert(D > 0, "D must be positive");
-    static_assert(D <= std::numeric_limits<T>::max(), "D overflows T");
+    static_assert(D <= std::numeric_limits<T>::max(), "D must fit in T");
 
    public:
     operator T() const noexcept {
@@ -79,7 +61,7 @@ class StatsEntry final {
             enrty = e;
     }
 
-    // Update the statistic using bonus, clamped to the range [-D, +D].
+    // Update the statistic using bonus, clamped to the range [-D, +D]
     void operator<<(int bonus) noexcept {
         // Clamp the update to the range [-D, +D]
         int clampedBonus = std::clamp(bonus, -D, +D);
@@ -143,13 +125,50 @@ using Stats = MultiArray<StatsEntry<T, D>, Sizes...>;
 template<typename T, int D, usize... Sizes>
 using AtomicStats = MultiArray<StatsEntry<T, D, true>, Sizes...>;
 
+template<typename T>
+constexpr bool is_power_of_2(const T x) noexcept {
+    return x != 0 && (x & (x - 1)) == 0;
+}
+
+inline constexpr u16 LOW_PLY_SIZE = 5;
+
+inline constexpr usize QUIET_HISTORY_SIZE = 0x10000;
+static_assert(is_power_of_2(QUIET_HISTORY_SIZE), "QUIET_HISTORY_SIZE has to be power of 2");
+
+inline constexpr usize PAWN_HISTORY_BASE_SIZE = 0x4000;
+static_assert(is_power_of_2(PAWN_HISTORY_BASE_SIZE), "PAWN_HISTORY_BASE_SIZE has to be power of 2");
+
+inline constexpr usize CORRECTION_HISTORY_BASE_SIZE = 0x10000;
+static_assert(is_power_of_2(CORRECTION_HISTORY_BASE_SIZE),
+              "CORRECTION_HISTORY_BASE_SIZE has to be power of 2");
+
+inline constexpr int CORRECTION_HISTORY_LIMIT = 1024;
+
+
+// CaptureHistory is addressed by move's [piece][dstSq][captured piece type]
+using CaptureHistory = Stats<i16, 10692, PIECE_NB, SQUARE_NB, PIECE_TYPE_NB>;
+
+// QuietHistory records how often quiet moves succeed or fail during the current search
+// and is used for move ordering and reduction decisions.
+// is addressed by color and move's orgSq and dstSq squares.
+// see https://www.chessprogramming.org/Butterfly_Boards
+using QuietHistory = Stats<i16, 7183, COLOR_NB, QUIET_HISTORY_SIZE>;
+
+// LowPlyHistory is used to improve move ordering near the root.
+// is addressed by ply and move's orgSq and dstSq squares.
+using LowPlyQuietHistory = Stats<i16, 7183, LOW_PLY_SIZE, QUIET_HISTORY_SIZE>;
+
+// PieceSqHistory is addressed by move's [piece][dstSq]
+using PieceSqHistory = Stats<i16, 30000, PIECE_NB, SQUARE_NB>;
+
+// ContinuationHistory is the combined history of given pair of moves,
+// usually the current move given the previous move.
+using ContinuationHistory = MultiArray<PieceSqHistory, PIECE_NB, SQUARE_NB>;
+
+
 enum class HType : u8 {
-    CAPTURE,       // By move's [piece][dstSq][captured piece type]
-    QUIET,         // By color and move's orgSq and dstSq squares
-    PAWN,          // By pawn structure and a move's [piece][dstSq]
-    LOW_QUIET,     // By ply and move's orgSq and dstSq squares
-    PIECE_SQ,      // By move's [piece][dstSq]
-    CONTINUATION,  // By combination of pair of moves
+
+    PAWN,  // By pawn structure and a move's [piece][dstSq]
 };
 
 using PawnHistory = AtomicStats<i16, 8192, PIECE_NB, SQUARE_NB>;
@@ -160,37 +179,8 @@ template<HType T>
 struct HistoryDef;
 
 template<>
-struct HistoryDef<HType::CAPTURE> final {
-    using Type = Stats<i16, 10692, PIECE_NB, SQUARE_NB, PIECE_TYPE_NB>;
-};
-
-// It records how often quiet moves have been successful or not during the current search,
-// It is used for reduction and move ordering decisions.
-// see https://www.chessprogramming.org/Butterfly_Boards
-template<>
-struct HistoryDef<HType::QUIET> final {
-    using Type = Stats<i16, 7183, COLOR_NB, QUIET_HISTORY_SIZE>;
-};
-
-template<>
 struct HistoryDef<HType::PAWN> final {
     using Type = DynamicArray<PawnHistory>;
-};
-
-// It is used to improve quiet move ordering near the root.
-template<>
-struct HistoryDef<HType::LOW_QUIET> final {
-    using Type = Stats<i16, 7183, LOW_PLY_QUIET_SIZE, QUIET_HISTORY_SIZE>;
-};
-
-template<>
-struct HistoryDef<HType::PIECE_SQ> final {
-    using Type = Stats<i16, 30000, PIECE_NB, SQUARE_NB>;
-};
-
-template<>
-struct HistoryDef<HType::CONTINUATION> final {
-    using Type = MultiArray<HistoryDef<HType::PIECE_SQ>::Type, PIECE_NB, SQUARE_NB>;
 };
 
 }  // namespace Internal

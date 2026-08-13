@@ -80,20 +80,17 @@ class MovePicker final {
         PROBCUT
     };
 
-    MovePicker(const Position&                  p,
-               Move                             ttm,
-               const Histories*                 hists,
-               const History<HType::CAPTURE>*   captureHist,
-               const History<HType::QUIET>*     quietHist,
-               const History<HType::LOW_QUIET>* lowPlyQuietHist,
-               const History<HType::PIECE_SQ>** continuationHist,
-               u16                              ply,
-               int                              th = 0) noexcept;
+    MovePicker(const Position&           p,
+               Move                      ttm,
+               const Histories*          hists,
+               const CaptureHistory*     captureHist,
+               const QuietHistory*       quietHist,
+               const LowPlyQuietHistory* lowPlyQuietHist,
+               const PieceSqHistory**    continuationHist,
+               u16                       ply,
+               int                       th = 0) noexcept;
 
-    MovePicker(const Position&                p,
-               Move                           ttm,
-               const History<HType::CAPTURE>* captureHist,
-               int                            th) noexcept;
+    MovePicker(const Position& p, Move ttm, const CaptureHistory* captureHist, int th) noexcept;
 
     [[nodiscard]] size_type size() const noexcept { return end() - begin(); }
     [[nodiscard]] bool      empty() const noexcept { return begin() == end(); }
@@ -140,15 +137,15 @@ class MovePicker final {
     [[nodiscard]] pointer       data() noexcept { return moves.data(); }
     [[nodiscard]] const_pointer data() const noexcept { return moves.data(); }
 
-    const Position&                  pos;
-    Move                             ttMove;
-    const Histories*                 histories           = nullptr;
-    const History<HType::CAPTURE>*   captureHistory      = nullptr;
-    const History<HType::QUIET>*     quietHistory        = nullptr;
-    const History<HType::LOW_QUIET>* lowPlyQuietHistory  = nullptr;
-    const History<HType::PIECE_SQ>** continuationHistory = nullptr;
-    const u16                        ssPly               = LOW_PLY_QUIET_SIZE;
-    int                              threshold;
+    const Position&           pos;
+    Move                      ttMove;
+    const Histories*          histories           = nullptr;
+    const CaptureHistory*     captureHistory      = nullptr;
+    const QuietHistory*       quietHistory        = nullptr;
+    const LowPlyQuietHistory* lowPlyQuietHistory  = nullptr;
+    const PieceSqHistory**    continuationHistory = nullptr;
+    const u16                 ssPly               = LOW_PLY_SIZE;
+    int                       threshold;
 
     Stage initStage;
     Stage curStage;
