@@ -414,7 +414,12 @@ void Worker::start_search() noexcept {
 
         // Send PV info again if it has changed since last output
         if (!mainManager->pvShown || bestWorker != this)
-            mainManager->show_pv(*bestWorker, bestWorker->rootDepth);
+        {
+            const Depth rDepth = limit.depth != DEPTH_ZERO
+                                 ? std::min(bestWorker->rootDepth, limit.depth)
+                                 : bestWorker->rootDepth;
+            mainManager->show_pv(*bestWorker, rDepth);
+        }
 
         bestMove   = move_to_can(rm.pv[0]);
         ponderMove = move_to_can(rm.pv.size() > 1 ? rm.pv[1] : Move::None);
