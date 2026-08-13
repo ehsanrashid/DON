@@ -64,7 +64,7 @@ struct TTEntry final {
 
     constexpr u16   key() const noexcept { return key16; }
     constexpr bool  occupied() const noexcept { return depth8 != 0; }
-    constexpr Depth depth() const noexcept { return Depth(DEPTH_OFFSET + depth8); }
+    constexpr Depth depth() const noexcept { return depth8 + DEPTH_OFFSET; }
     constexpr Move  move() const noexcept { return move16; }
     constexpr Value value() const noexcept { return val16; }
     constexpr Value eval_value() const noexcept { return eVal16; }
@@ -135,6 +135,16 @@ void TTEntry::save(const u16   k,
         eVal16 = ev;
         depth8 = d - DEPTH_OFFSET;
         meta8  = u8(pv) << PV_SHIFT | u8(b) << BOUND_SHIFT | gen;
+    }
+    // Secondary aging. Important for elementary mate finding.
+    // (*Scaler) Secondary aging on entries relevant to singular extensions
+    // generally scales poorly and requires VVLTC verification.
+    else if (depth() >= 5 && bound() != Bound::EXACT && is_decisive(val16))
+    {
+        const auto v16 = val16;
+        // Guard against racy underflows, default to "unoccupied"
+        if (depth8 != 0 && constexpr_abs(v16) < VALUE_INFINITE && is_decisive(v16))
+            --depth8;
     }
 }
 

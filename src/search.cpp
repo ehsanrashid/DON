@@ -818,6 +818,8 @@ Value Worker::search(Position&    pos,
 
     const bool exclude = excludedMove != Move::None;
 
+    const int correctionValue = correction_value(pos, ss);
+
     // Step 4. Transposition table lookup
     auto [ttd, ttu] = transpositionTable.probe(key);
 
@@ -850,8 +852,6 @@ Value Worker::search(Position&    pos,
 
     const bool preCapture = pos.captured_pc() != Piece::NO_PIECE;
     const bool preNonPawn = preOk && type_of(pos[preSq]) != PAWN && preMove.type() != MT::PROMOTION;
-
-    const int correctionValue = correction_value(pos, ss);
 
     Value evalValue, ttEvalValue;
 
@@ -1069,9 +1069,8 @@ Value Worker::search(Position&    pos,
     if constexpr (!PVNode)
     {
     // The depth condition is important for mate finding
-    if (!exclude && !ss->pvTT && !is_win(ttEvalValue) && !is_loss(beta)
-        && (ttmNone || history_value(pos, ttd.move, ac, contHistory) >= 32768 - int(ttmCapture) * 25968)
-        && depth < futility_depth(ttEvalValue, beta))
+    if (!exclude && !ss->pvTT && !is_win(ttEvalValue) && !is_loss(beta) && depth < futility_depth(ttEvalValue, beta)
+        && (ttmNone || history_value(pos, ttd.move, ac, contHistory) >= 32768 - int(ttmCapture) * 25968))
     {
         // Compute base futility
         int baseFutility = std::min(+25 + 4 * depth, +65) + int(ttd.hit) * 20;
@@ -2436,7 +2435,7 @@ void Worker::extend_tb_pv(const usize index, Value& value) noexcept {
             // Give a score of each move to break DTZ ties
             // restricting opponent mobility, but not giving the opponent a capture.
             for (const Move om : MoveList<GenType::LEGAL>(rootPos))
-                rm.tbRank -= 1 + 99 * int(rootPos.capture(om));
+                rm.tbRank -= 1 + int(rootPos.capture(om)) * 99;
 
             rootPos.undo_move(m);
         }
@@ -2582,8 +2581,8 @@ void MainSearchManager::handle_time_management(const Worker& worker,
 
     // Compute recapture factor that reduces time if recapture conditions are met
     const double recaptureFactor = 1.0 - int( worker.rootPos.captured_sq() == worker.rootMoves[0].pv[0].dst_sq()
-                                    && (worker.rootPos.captured_sq() & worker.rootPos.pieces_bb(~worker.rootPos.active_color())) != 0
-                                    &&  worker.rootPos.see(worker.rootMoves[0].pv[0]) >= 200)
+                                          && (worker.rootPos.captured_sq() & worker.rootPos.pieces_bb(~worker.rootPos.active_color())) != 0
+                                          &&  worker.rootPos.see(worker.rootMoves[0].pv[0]) >= 200)
                                     * 4.0040e-3 * std::min<Depth>(stableDepth, 25);
 
     // Calculate total time by combining all factors with the optimum time
