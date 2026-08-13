@@ -402,7 +402,7 @@ const Thread* Threads::best_thread() const noexcept {
     // Snap threads pointers under read-lock
     std::vector<const Thread*> snapThreads;
     const Thread*              fallbackThread = threads.front().get();
-    Depth                      bestDepth      = fallbackThread->worker->completedDepth;
+    Depth                      bestDepth      = fallbackThread->worker->rootDepth;
     {
         std::shared_lock readLock(sharedMutex);
 
@@ -414,10 +414,10 @@ const Thread* Threads::best_thread() const noexcept {
 
             if (rm.curValue != -VALUE_INFINITE && !rm.pv.empty())
                 snapThreads.push_back(th.get());
-            else if (th->worker->completedDepth > bestDepth)
+            else if (th->worker->rootDepth > bestDepth)
             {
                 fallbackThread = th.get();
-                bestDepth      = fallbackThread->worker->completedDepth;
+                bestDepth      = fallbackThread->worker->rootDepth;
             }
         }
     }
@@ -436,7 +436,7 @@ const Thread* Threads::best_thread() const noexcept {
 
     // Vote according to value and depth, and select the best thread
     auto calc_vote_weight = [minValue](const Thread* th) noexcept -> u64 {
-        return (th->worker->rootMoves[0].curValue - minValue + 14) * (th->worker->completedDepth);
+        return (th->worker->rootMoves[0].curValue - minValue + 14) * th->worker->rootDepth;
     };
 
     Array<u64, MOVE_MAX> votes{};

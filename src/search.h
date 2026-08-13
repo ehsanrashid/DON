@@ -184,6 +184,8 @@ struct RootMove final {
         return bound == Bound::LOWER || bound == Bound::UPPER;
     }
 
+    void unset_bound() noexcept { bound = Bound::NONE; }
+
     u64 nodes = 0;
 
     Value curValue = -VALUE_INFINITE;
@@ -741,7 +743,7 @@ class Worker final {
     Limit                     limit;
     Tablebase::Syzygy::Config tbConfig;
 
-    Depth rootDepth, completedDepth;
+    Depth rootDepth;
     usize multiPv, pvCur, pvEnd;
     u16   selDepth;
     u16   rootDelta;

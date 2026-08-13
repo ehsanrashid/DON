@@ -400,10 +400,7 @@ void Worker::start_search() noexcept {
 
         // Send PV info again if it has changed since last output
         if (!mainManager->pvShown || bestWorker != this)
-        {
-            const Depth compDepth = std::max(bestWorker->completedDepth, limit.depth);
-            mainManager->show_pv(*bestWorker, compDepth);
-        }
+            mainManager->show_pv(*bestWorker, bestWorker->rootDepth);
 
         bestMove   = move_to_can(rm.pv[0]);
         ponderMove = move_to_can(rm.pv.size() > 1 ? rm.pv[1] : Move::None);
@@ -494,7 +491,7 @@ void Worker::iterative_deepening() noexcept {
 
     Value bestValue = -VALUE_INFINITE;
 
-    Depth lastBestMoveDepth = completedDepth = DEPTH_ZERO;
+    Depth lastBestMoveDepth = DEPTH_ZERO;
 
     u16 researchCnt = 0;
 
@@ -633,7 +630,7 @@ void Worker::iterative_deepening() noexcept {
                     ? rootMoves[pvCur].preValue
                     : rootMoves[pvCur - 1].curValue;
                 rootMoves[pvCur].preValue = -VALUE_INFINITE;
-                rootMoves[pvCur].bound    = Bound::NONE;
+                rootMoves[pvCur].unset_bound();
                 rootMoves[pvCur].pv.resize(1);
             }
 
@@ -653,11 +650,11 @@ void Worker::iterative_deepening() noexcept {
 
         if (threads.is_stopped())
         {
-            // A mated-in/TB-loss score from an aborted search cannot be trusted:
+            // An exact mated-in/TB-loss score from an aborted search cannot be trusted:
             // the loss could be delayed or refuted upon exploring the remaining root-moves.
             // Thus here roll back to the score from the previous iteration.
             if (pvCur == 0 && rootMoves[0].curValue != -VALUE_INFINITE
-                && is_loss(rootMoves[0].curValue))
+                && is_loss(rootMoves[0].curValue) && !rootMoves[0].has_bound())
             {
                 // Bring the last best move to the front for best thread selection
                 if (!lastPV.empty())
@@ -669,17 +666,15 @@ void Worker::iterative_deepening() noexcept {
                     rootMoves[0].curValue = rootMoves[0].uciValue = rootMoves[0].preValue;
 
                     if (mainManager != nullptr)
-                        mainManager->pvShown = true;
+                        mainManager->pvShown = false;
                 }
-                // For aborted (depth 1) search label the loss score as inexact
-                else if (rootMoves[0].bound != Bound::LOWER)
-                    rootMoves[0].bound = Bound::UPPER;
+                // For aborted (depth 1) search label the loss score a lower bound
+                else
+                    rootMoves[0].bound = Bound::LOWER;
             }
 
             break;
         }
-
-        completedDepth = rootDepth;
 
         if (lastPV.empty() || lastPV[0] != rootMoves[0].pv[0])
             lastBestMoveDepth = rootDepth;
@@ -1568,7 +1563,7 @@ Value Worker::search(Position&    pos,
             if (moveCount == 1 || value > alpha)
             {
                 rm.selDepth = selDepth;
-                rm.bound    = Bound::NONE;
+                rm.unset_bound();
                 rm.curValue = rm.uciValue = value;
 
                 if (value >= beta)
@@ -2285,7 +2280,7 @@ bool Worker::ponder_move_extracted() noexcept {
 
                 for (auto&& th : threads)
                 {
-                    if (th->worker.get() == this || th->worker->completedDepth <= DEPTH_ZERO)
+                    if (th->worker.get() == this)
                         continue;
                     if (const auto& rm = th->worker->rootMoves[0];
                         rm.pv[0] == bestMove && rm.pv.size() > 1)
@@ -2298,7 +2293,7 @@ bool Worker::ponder_move_extracted() noexcept {
                 if (ponderMove == Move::None)
                     for (auto&& th : threads)
                     {
-                        if (th->worker.get() == this || th->worker->completedDepth <= DEPTH_ZERO)
+                        if (th->worker.get() == this)
                             continue;
                         if (const auto& rm = *th->worker->rootMoves.find(bestMove);
                             rm.pv.size() > 1)
@@ -2548,7 +2543,7 @@ void MainSearchManager::handle_time_management(const Worker& worker,
                                                 1.0000 + int(!atFirst) * 0.7280);
 
     // Compute stable depth (difference between the current search depth and the last best depth)
-    const Depth stableDepth = worker.completedDepth - lastBestMoveDepth;
+    const Depth stableDepth = worker.rootDepth - lastBestMoveDepth;
     assert(stableDepth >= DEPTH_ZERO);
 
     // Use the stability factor to adjust the time reduction
@@ -2612,7 +2607,6 @@ void MainSearchManager::show_pv(Worker& worker, const Depth depth) const noexcep
     const auto& transpositionTable = worker.transpositionTable;
     const auto& tbConfig           = worker.tbConfig;
     const usize multiPv            = worker.multiPv;
-    const usize pvCur              = worker.pvCur;
     // Ensure non-zero to avoid a 'divide by zero'
     const TimePoint time   = std::max<TimePoint>(elapsed(), 1);
     const u64       nodes  = threads.sum(&Worker::nodes);
@@ -2624,33 +2618,32 @@ void MainSearchManager::show_pv(Worker& worker, const Depth depth) const noexcep
     {
         const auto& rm = rootMoves[i];
 
-        const bool updated = rm.curValue != -VALUE_INFINITE;
+        const bool valueInvalid = rm.curValue == -VALUE_INFINITE;
 
-        if (i != 0 && depth == 1 && !updated)
+        if (i != 0 && depth == 1 && valueInvalid)
             continue;
 
-        const Depth d = updated || depth <= 1 ? depth : depth - 1;
-        Value       v = updated ? rm.uciValue : rm.preValue;
+        const Depth d = !valueInvalid || depth <= 1 ? depth : depth - 1;
+
+        Value v = valueInvalid ? rm.preValue : rm.uciValue;
 
         if (v == -VALUE_INFINITE)
             v = VALUE_ZERO;
 
-        const bool tb = tbConfig.rootInTB && !is_mate(v);
+        const bool valueTB = tbConfig.rootInTB && !is_mate(v);
 
-        if (tb)
+        if (valueTB)
             v = rm.tbValue;
 
-        // tablebase- and previous-scores are exact
-        bool exact = tb || !updated || i != pvCur;
-
         // Potentially correct and extend the PV, and in exceptional cases value also
-        if ((exact || rm.bound == Bound::NONE) && is_decisive(v) && !is_mate(v))
+        if (!valueInvalid && (valueTB || !rm.has_bound()) && is_decisive(v) && !is_mate(v))
             worker.extend_tb_pv(i, v);
 
         FixedText score{to_score({v, rootPos})};
 
         FixedText bound;
-        if (!exact && is_ok(rm.bound))
+        // TB and previous scores are exact, even though their bound flags may say otherwise
+        if (!(valueTB || valueInvalid) && rm.has_bound())
             bound = FixedText::from_view(to_string(rm.bound));
 
         FixedText wdl;
