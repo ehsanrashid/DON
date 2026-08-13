@@ -274,14 +274,11 @@ constexpr usize round_up_to_pow2(usize x) noexcept {
     return x + 1;
 }
 
-template<typename T>
+template<typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
 constexpr std::make_unsigned_t<T> constexpr_abs(T x) noexcept {
-    static_assert(std::is_integral_v<T>);
-
     using U = std::make_unsigned_t<T>;
     return x < 0 ? U{} - static_cast<U>(x) : static_cast<U>(x);
 }
-
 constexpr float       constexpr_abs(float f) noexcept { return f < 0.0f ? -f : f; }
 constexpr double      constexpr_abs(double d) noexcept { return d < 0.0 ? -d : d; }
 constexpr long double constexpr_abs(long double x) noexcept { return x < 0.0L ? -x : x; }
