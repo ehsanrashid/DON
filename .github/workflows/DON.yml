@@ -10,6 +10,10 @@ on:
     branches:
       - main
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   Prerelease:
     name: Prerelease
@@ -24,7 +28,7 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
 
-      # Returns "null" if no pre-release exists
+      # Returns 'null' if no pre-release exists
       - name: Get Latest Pre-release Tag
         id: get-prerelease-tag
         run: |
@@ -43,7 +47,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # Make sure that an old CI running on main doesn't recreate a prerelease
+      # Make sure that an old CI run on main doesn't recreate a prerelease
       - name: Check Pullable Commits
         id: check-commits
         run: |
