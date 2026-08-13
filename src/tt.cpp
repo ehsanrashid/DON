@@ -139,7 +139,7 @@ void TTEntry::save(const u16   k,
     // Secondary aging. Important for elementary mate finding.
     // (*Scaler) Secondary aging on entries relevant to singular extensions
     // generally scales poorly and requires VVLTC verification.
-    else if (depth() >= 5 && bound() != Bound::EXACT && is_decisive(val16))
+    else if (depth() > 4 && bound() != Bound::EXACT)
     {
         const auto v16 = val16;
         // Guard against racy underflows, default to "unoccupied"
