@@ -436,7 +436,7 @@ const Thread* Threads::best_thread() const noexcept {
 
     // Vote according to value and depth, and select the best thread
     auto calc_vote_weight = [minValue](const Thread* th) noexcept -> u64 {
-        return (th->worker->rootMoves[0].curValue - minValue + 14) * th->worker->rootDepth;
+        return u64(th->worker->rootMoves[0].curValue - minValue + 14) * th->worker->rootDepth;
     };
 
     Array<u64, MOVE_MAX> votes{};

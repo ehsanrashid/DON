@@ -203,6 +203,20 @@ bool is_shuffling(const Position& pos, const Stack* const ss, const Move move) n
         && (ss - 4)->move.is_ok() && (ss - 2)->move.org_sq() == (ss - 4)->move.dst_sq();
 }
 
+// Look up the futility pruning cutoff depth. This function is important for mate finding.
+Depth futility_depth(const Value evalValue, const Value beta) noexcept {
+    // LUT values obtained from:
+    //      depth = 13 + int(0.5 + 6 / int(1 + pow(abs(eval) + abs(beta), 3) / 50'000'000'000))
+    constexpr Array<u32, 7> Lut{1657, 2555, 3294, 4122, 5314, 8194, 2 * VALUE_INFINITE};
+
+    const u32 prob  = constexpr_abs(evalValue) + constexpr_abs(beta);
+    Depth     depth = DEPTH_ZERO;
+    for (; Lut[depth] < prob; ++depth)
+    {}
+
+    return 19 - depth;
+}
+
 }  // namespace
 
 // Initialize the worker with its thread and NUMA information
@@ -1050,8 +1064,9 @@ Value Worker::search(Position&    pos,
     if constexpr (!PVNode)
     {
     // The depth condition is important for mate finding
-    if (!exclude && !ss->pvTT && depth < 19 && !is_win(ttEvalValue) && !is_loss(beta)
-        && (ttmNone || history_value(pos, ttd.move, ac, contHistory) >= 32768 - int(ttmCapture) * 25968))
+    if (!exclude && !ss->pvTT && !is_win(ttEvalValue) && !is_loss(beta)
+        && (ttmNone || history_value(pos, ttd.move, ac, contHistory) >= 32768 - int(ttmCapture) * 25968)
+        && depth < futility_depth(ttEvalValue, beta))
     {
         // Compute base futility
         int baseFutility = std::min(+25 + 4 * depth, +65) + int(ttd.hit) * 20;
@@ -1062,7 +1077,7 @@ Value Worker::search(Position&    pos,
                                 0);
 
         if (ttEvalValue - futility >= beta)
-            return (661 * beta + 363 * ttEvalValue) / 1024;
+            return blend_values(beta, ttEvalValue, 661, 1024);
     }
     }
 
@@ -2618,32 +2633,32 @@ void MainSearchManager::show_pv(Worker& worker, const Depth depth) const noexcep
     {
         const auto& rm = rootMoves[i];
 
-        const bool valueInvalid = rm.curValue == -VALUE_INFINITE;
+        const bool valueIsInvalid = rm.curValue == -VALUE_INFINITE;
 
-        if (i != 0 && depth == 1 && valueInvalid)
+        if (i != 0 && depth == 1 && valueIsInvalid)
             continue;
 
-        const Depth d = !valueInvalid || depth <= 1 ? depth : depth - 1;
+        const Depth d = !valueIsInvalid || depth <= 1 ? depth : depth - 1;
 
-        Value v = valueInvalid ? rm.preValue : rm.uciValue;
+        Value v = valueIsInvalid ? rm.preValue : rm.uciValue;
 
         if (v == -VALUE_INFINITE)
             v = VALUE_ZERO;
 
-        const bool valueTB = tbConfig.rootInTB && !is_mate(v);
+        const bool valueIsTB = tbConfig.rootInTB && !is_mate(v);
 
-        if (valueTB)
+        if (valueIsTB)
             v = rm.tbValue;
 
         // Potentially correct and extend the PV, and in exceptional cases value also
-        if (!valueInvalid && (valueTB || !rm.has_bound()) && is_decisive(v) && !is_mate(v))
+        if (!valueIsInvalid && (valueIsTB || !rm.has_bound()) && is_decisive(v) && !is_mate(v))
             worker.extend_tb_pv(i, v);
 
         FixedText score{to_score({v, rootPos})};
 
         FixedText bound;
         // TB and previous scores are exact, even though their bound flags may say otherwise
-        if (!(valueTB || valueInvalid) && rm.has_bound())
+        if (!(valueIsTB || valueIsInvalid) && rm.has_bound())
             bound = FixedText::from_view(to_string(rm.bound));
 
         FixedText wdl;
