@@ -1,4 +1,5 @@
 name: Upload Binaries
+
 on:
   workflow_call:
     inputs:
@@ -72,7 +73,7 @@ jobs:
           echo "Creating ZIP..."
           zip -r "DON-$NAME-$BINARY.zip" DON
 
-      # Make sure that an old CI running on main doesn't recreate a prerelease
+      # Make sure that an old CI run on main doesn't recreate a prerelease
       - name: Check Pullable Commits
         id: check-commits
         run: |

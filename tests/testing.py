@@ -59,7 +59,6 @@ race:DON::TTEntry::clear
 race:DON::TTUpdater::update
 race:DON::TranspositionTable::probe
 race:DON::TranspositionTable::hashfull
-race:DON::StatsEntry
 """
             )
 
@@ -144,14 +143,11 @@ def timeout_decorator(timeout: float):
             with concurrent.futures.ThreadPoolExecutor() as executor:
                 future = executor.submit(func, *args, **kwargs)
                 try:
-                    result = future.result(timeout=timeout)
+                    return future.result(timeout=timeout)
                 except concurrent.futures.TimeoutError:
-                    # try best-effort cancel (likely won't cancel if already running)
+                    # Best effort; won't stop a running function
                     future.cancel()
-                    # shutdown without waiting so we don't block here
-                    executor.shutdown(wait=False)
                     raise TimeoutException(f"Function {func.__name__} timed out after {timeout} seconds", timeout)
-            return result
 
         return wrapper
 

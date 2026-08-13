@@ -939,7 +939,7 @@ class NumaConfig final {
         // Split only if threadCount meets either threshold:
         //   - more than half of MaxNodeSize, OR
         //   - at least four times NotSmallNodeCount
-        return threadCount >= std::min(1 + MaxNodeSize / 2, 4 * NotSmallNodeCount);
+        return threadCount >= std::min(MaxNodeSize / 2 + 1, 4 * NotSmallNodeCount);
     }
 
     std::vector<NumaIndex>
@@ -964,7 +964,7 @@ class NumaConfig final {
 
                 for (NumaIndex numaId = 0; numaId < nodes_size(); ++numaId)
                 {
-                    const double nodeFill = double(1 + occupation[numaId]) / node_cpus_size(numaId);
+                    const double nodeFill = double(occupation[numaId] + 1) / node_cpus_size(numaId);
                     // NOTE: Do want to perhaps fill the first available node up to 50% first before considering other nodes?
                     //       Probably not, because it would interfere with running multiple instances.
                     //       Basically shouldn't favor any particular node.

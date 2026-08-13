@@ -476,7 +476,7 @@ struct SharedState final {
     const Options&                                     options;
     const TranspositionTable&                          transpositionTable;
     Threads&                                           threads;
-    HistoriesMap&                                      historiesMap;
+    AtomicHistoriesMap&                                atomicHistoriesMap;
 };
 
 class Worker;
@@ -598,9 +598,9 @@ constexpr NT operator~(NT nt) noexcept { return NT((u8(nt) ^ 1) & 1); }
 // Each search thread has its own array of Stack objects, indexed by the ply. (Size = 40)
 struct Stack final {
    public:
-    PVMoves*                             pv;
-    History<HType::PIECE_SQ>*            pieceSqHistory;
-    CorrectionHistory<CHType::PIECE_SQ>* pieceSqCorrectionHistory;
+    PVMoves*                  pv;
+    PieceSqHistory*           pieceSqHistory;
+    PieceSqCorrectionHistory* pieceSqCorrectionHistory;
 
     int   history;
     Value evalValue;
@@ -663,11 +663,15 @@ class Worker final {
 
     void iterative_deepening() noexcept;
 
-    // clang-format off
-
     // Main search function for NT nodes
     template<NT T>
-    Value search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, i16 red = 0, Move excludedMove = Move::None) noexcept;
+    Value search(Position& pos,
+                 Stack*    ss,
+                 Value     alpha,
+                 Value     beta,
+                 Depth     depth,
+                 i16       red          = 0,
+                 Move      excludedMove = Move::None) noexcept;
 
     // Quiescence search function, which is called by the main search
     template<bool PVNode>
@@ -682,18 +686,37 @@ class Worker final {
 
     void update_capture_history(Piece pc, Square dstSq, PieceType captured, int bonus) noexcept;
     void update_capture_history(const Position& pos, Move m, int bonus) noexcept;
+
     void update_quiet_history(Color ac, Move m, int bonus) noexcept;
+
     void update_low_ply_quiet_history(i16 ssPly, Move m, int bonus) noexcept;
 
-    void update_quiet_histories(const Position& pos, PawnHistory& pawnHistory, Stack* ss, Move m, int bonus) noexcept;
-    void update_histories(const Position& pos, PawnHistory& pawnHistory, Stack* ss, Depth depth, Move bestMove, bool extra, const Array<SearchedMoves, 2>& searchedMoves) noexcept;
+    void update_pawn_history(const Position& pos, Piece pc, Square dstSq, int bonus) noexcept;
+    void update_pawn_history(const Position& pos, Move m, int bonus) noexcept;
+
+    void update_quiet_histories(const Position& pos, Stack* ss, Move m, int bonus) noexcept;
+
+    void update_histories(const Position&                pos,
+                          Stack*                         ss,
+                          Depth                          depth,
+                          Move                           bestMove,
+                          bool                           extra,
+                          const Array<SearchedMoves, 2>& searchedMoves) noexcept;
 
     void update_correction_histories(const Position& pos, const Stack* ss, int bonus) noexcept;
-    int  correction_value(const Position& pos, const Stack* ss) const noexcept;
 
-    int history_value(bool capture, Move m, Piece movedPc, PieceType capturedPt, Color ac, const History<HType::PIECE_SQ>** contHistory) const noexcept;
-    int history_value(const Position& pos, Move m, Color ac, const History<HType::PIECE_SQ>** contHistory) const noexcept;
-    // clang-format on
+    int correction_value(const Position& pos, const Stack* ss) const noexcept;
+
+    int history_value(bool                   capture,
+                      Move                   m,
+                      Piece                  movedPc,
+                      PieceType              capturedPt,
+                      Color                  ac,
+                      const PieceSqHistory** contHistory) const noexcept;
+    int history_value(const Position&        pos,
+                      Move                   m,
+                      Color                  ac,
+                      const PieceSqHistory** contHistory) const noexcept;
 
     bool ponder_move_extracted() noexcept;
 
@@ -708,9 +731,10 @@ class Worker final {
     const Options&                                     options;
     const TranspositionTable&                          transpositionTable;
     Threads&                                           threads;
-    Histories&                                         histories;
-    NNUE::AccumulatorCache                             accCache;
-    NNUE::AccumulatorStack                             accStack;
+
+    // Used by NNUE
+    NNUE::AccumulatorCache accCache;
+    NNUE::AccumulatorStack accStack;
 
     std::atomic<u64> nodes, tbHits;
     std::atomic<u32> moveChanges;
@@ -732,15 +756,18 @@ class Worker final {
     PVMoves lastPV;
 
     // Histories
-    History<HType::CAPTURE>   captureHistory;
-    History<HType::QUIET>     quietHistory;
-    History<HType::LOW_QUIET> lowPlyQuietHistory;
-    History<HType::TT_MOVE>   ttMoveHistory;
+    CaptureHistory captureHistory;
 
-    Array<History<HType::CONTINUATION>, 2, 2> continuationHistory;  // [inCheck][capture]
+    QuietHistory       quietHistory;
+    LowPlyQuietHistory lowPlyQuietHistory;
 
-    // Correction Histories
-    CorrectionHistory<CHType::CONTINUATION> continuationCorrectionHistory;
+    Array<ContinuationHistory, 2, 2> continuationHistory;  // [inCheck][capture]
+
+    ContinuationCorrectionHistory continuationCorrectionHistory;
+
+    TTMoveHistory ttMoveHistory;
+
+    AtomicHistories& atomicHistories;
 
     friend class MainSearchManager;
     friend class Position;

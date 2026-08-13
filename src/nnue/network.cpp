@@ -222,14 +222,17 @@ usize Network::content_hash() const noexcept {
 NetworkOutput Network::evaluate(const Position&   pos,
                                 AccumulatorCache& accCache,
                                 AccumulatorStack& accStack) const noexcept {
+    constexpr usize Alignment = CACHE_LINE_SIZE;
 
-    alignas(CACHE_LINE_SIZE) Array<TransformedFeatureType, FeatureTransformer::BufferSize>
+    alignas(Alignment) Array<TransformedFeatureType, FeatureTransformer::BufferSize>
       transformedFeatures;
 
-    auto bucket = pos.bucket();
+    ASSERT_ALIGNED(transformedFeatures.data(), Alignment);
 
-    auto psqt = featureTransformer.transform(pos, accCache, accStack, bucket, transformedFeatures);
-    auto positional = networkArchitectures[bucket].propagate(transformedFeatures);
+    const auto bucket     = pos.bucket();
+    const auto psqt       = featureTransformer.transform(pos, accCache, accStack,  //
+                                                         bucket, transformedFeatures);
+    const auto positional = networkArchitectures[bucket].propagate(transformedFeatures);
 
     return {psqt / OUTPUT_SCALE, positional / OUTPUT_SCALE};
 }
@@ -237,17 +240,20 @@ NetworkOutput Network::evaluate(const Position&   pos,
 NetworkTrace Network::trace(const Position&   pos,
                             AccumulatorCache& accCache,
                             AccumulatorStack& accStack) const noexcept {
+    constexpr usize Alignment = CACHE_LINE_SIZE;
 
-    alignas(CACHE_LINE_SIZE) Array<TransformedFeatureType, FeatureTransformer::BufferSize>
+    alignas(Alignment) Array<TransformedFeatureType, FeatureTransformer::BufferSize>
       transformedFeatures;
 
-    NetworkTrace netTrace;
+    ASSERT_ALIGNED(transformedFeatures.data(), Alignment);
+
+    NetworkTrace netTrace{};
     netTrace.correctBucket = pos.bucket();
     for (IndexType bucket = 0; bucket < LayerStacks; ++bucket)
     {
-        auto psqt       = featureTransformer.transform(  //
-          pos, accCache, accStack, bucket, transformedFeatures);
-        auto positional = networkArchitectures[bucket].propagate(transformedFeatures);
+        const auto psqt       = featureTransformer.transform(pos, accCache, accStack,  //
+                                                             bucket, transformedFeatures);
+        const auto positional = networkArchitectures[bucket].propagate(transformedFeatures);
 
         netTrace.netOut[bucket] = {psqt / OUTPUT_SCALE, positional / OUTPUT_SCALE};
     }

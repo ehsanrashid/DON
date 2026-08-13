@@ -36,9 +36,7 @@
 #endif
 
 #include "misc.h"
-
-#define ASSERT_ALIGNED(ptr, alignment) \
-    assert(reinterpret_cast<std::uintptr_t>(ptr) % alignment == 0)
+#include "types.h"
 
 namespace DON {
 
@@ -119,7 +117,7 @@ inline std::enable_if_t<std::is_array_v<T>, std::remove_extent_t<T>*>
 memory_allocator(AllocFunc&& allocFunc, usize size) noexcept {
     using ElementType = std::remove_extent_t<T>;
 
-    constexpr usize ArrayOffset = std::max(sizeof(usize), alignof(ElementType));
+    constexpr usize ArrayOffset = std::max(alignof(ElementType), sizeof(usize));
 
     // Save the array size in the memory location
     auto* rawMem = reinterpret_cast<char*>(allocFunc(ArrayOffset + size * sizeof(ElementType)));
@@ -139,12 +137,12 @@ memory_allocator(AllocFunc&& allocFunc, usize size) noexcept {
 //
 
 template<typename T>
-struct AlignedStdDeleter final {
+struct AlignedStdDeleter {
     void operator()(T* mem) const noexcept { return memory_deleter<T>(mem, free_aligned_std); }
 };
 
 template<typename T>
-struct AlignedStdArrayDeleter final {
+struct AlignedStdArrayDeleter {
     void operator()(T* mem) const noexcept {
         return memory_array_deleter<T>(mem, free_aligned_std);
     }
@@ -187,14 +185,14 @@ make_unique_aligned_std(usize size) noexcept {
 //
 
 template<typename T>
-struct LargePageDeleter final {
+struct LargePageDeleter {
     void operator()(T* mem) const noexcept {
         return memory_deleter<T>(mem, free_aligned_large_page);
     }
 };
 
 template<typename T>
-struct LargePageArrayDeleter final {
+struct LargePageArrayDeleter {
     void operator()(T* mem) const noexcept {
         return memory_array_deleter<T>(mem, free_aligned_large_page);
     }

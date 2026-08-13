@@ -446,7 +446,7 @@ constexpr Bitboard pseudo_attacks_bb(Square s) noexcept {
 }
 
 alignas(CACHE_LINE_SIZE) inline constexpr auto PSEUDO_ATTACKS_BBs = []() constexpr noexcept {
-    Array<Bitboard, SQUARE_NB, 1 + PIECE_TYPE_CNT> pseudoAttacksBB{};
+    Array<Bitboard, SQUARE_NB, PIECE_TYPE_CNT + 1> pseudoAttacksBB{};
 
     for (Square s = SQ_A1; s <= SQ_H8; ++s)
     {

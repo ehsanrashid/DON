@@ -1,6 +1,8 @@
 name: Sanitizers
+
 on:
   workflow_call:
+
 jobs:
   Test-under-sanitizers:
     name: ${{ matrix.sanitizers.name }}

@@ -286,22 +286,22 @@ ALWAYS_INLINE void adaptive_stable_sort(const Iterator beg, const Iterator end) 
 // good moves first, and how important move ordering is at the current node.
 
 // MovePicker constructor for the main search and for the quiescence search
-MovePicker::MovePicker(const Position&                  p,
-                       Move                             ttm,
-                       const Histories*                 hists,
-                       const History<HType::CAPTURE>*   captureHist,
-                       const History<HType::QUIET>*     quietHist,
-                       const History<HType::LOW_QUIET>* lowPlyQuietHist,
-                       const History<HType::PIECE_SQ>** continuationHist,
-                       u16                              ply,
-                       int                              th) noexcept :
+MovePicker::MovePicker(const Position&           p,
+                       const Move                ttm,
+                       const CaptureHistory*     captureHist,
+                       const QuietHistory*       quietHist,
+                       const LowPlyQuietHistory* lowPlyQuietHist,
+                       const PieceSqHistory**    continuationHist,
+                       const AtomicHistories*    atomicHists,
+                       u16                       ply,
+                       int                       th) noexcept :
     pos(p),
     ttMove(ttm),
-    histories(hists),
     captureHistory(captureHist),
     quietHistory(quietHist),
     lowPlyQuietHistory(lowPlyQuietHist),
     continuationHistory(continuationHist),
+    atomicHistories(atomicHists),
     ssPly(ply),
     threshold(th),
     moves() {
@@ -330,10 +330,10 @@ MovePicker::MovePicker(const Position&                  p,
 
 // MovePicker constructor for ProbCut:
 // Generate captures with Static Exchange Evaluation (SEE) >= threshold.
-MovePicker::MovePicker(const Position&                p,
-                       Move                           ttm,
-                       const History<HType::CAPTURE>* captureHist,
-                       int                            th) noexcept :
+MovePicker::MovePicker(const Position&       p,
+                       const Move            ttm,
+                       const CaptureHistory* captureHist,
+                       int                   th) noexcept :
     pos(p),
     ttMove(ttm),
     captureHistory(captureHist),
@@ -400,7 +400,7 @@ MovePicker::score<GenType::ENC_QUIET>(const MoveList<GenType::ENC_QUIET>& moveLi
     const auto&        refQuietHistory        = *quietHistory;
     const auto&        refLowPlyQuietHistory  = *lowPlyQuietHistory;
     const auto* const* ptrContinuationHistory = continuationHistory;
-    const auto&        refPawnHistory         = histories->pawn(pos.pawn_key());
+    const auto&        refPawnEntry           = (*atomicHistories).pawn_entry(pos);
 
     auto itr = cur;
 
@@ -418,13 +418,15 @@ MovePicker::score<GenType::ENC_QUIET>(const MoveList<GenType::ENC_QUIET>& moveLi
         i64 value;
 
         value = 2 * refQuietHistory[ac][m.raw()];
-        value += 2 * refPawnHistory[+movedPc][dstSq];
+
+        if (ssPly < LOW_PLY_SIZE)
+            value += 8 * refLowPlyQuietHistory[ssPly][m.raw()] / (1 + ssPly);
+
         // Accumulate continuation history entries
         for (usize i = 0; i < CONT_HISTORY_COUNT; ++i)
             value += (*ptrContinuationHistory[i])[+movedPc][dstSq];
 
-        if (ssPly < LOW_PLY_QUIET_SIZE)
-            value += 8 * refLowPlyQuietHistory[ssPly][m.raw()] / (1 + ssPly);
+        value += 2 * refPawnEntry[+movedPc][dstSq];
 
         // Bonus for checks
         if (pos.check(m))

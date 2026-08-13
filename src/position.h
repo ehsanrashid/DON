@@ -96,14 +96,15 @@ struct Zobrist final {
     }
 
     static Key enpassant(Square enPassantSq) noexcept {
-        return int(enPassantSq != SQ_NONE) * Enpassant[file_of(enPassantSq)];
+        return is_ok(enPassantSq) ? Enpassant[file_of(enPassantSq)] : 0;
     }
 
     static Key turn() noexcept { return Turn; }
 
     static Key mr50(i16 rule50Count) noexcept {
-        return int(rule50Count >= R50_OFFSET)
-             * MR50[std::clamp((rule50Count - R50_OFFSET) / R50_FACTOR, 0, int(MR50.size()) - 1)];
+        return rule50Count >= R50_OFFSET
+               ? MR50[std::min<usize>((rule50Count - R50_OFFSET) / R50_FACTOR, MR50.size() - 1)]
+               : 0;
     }
 
     static constexpr usize PAWN_OFFSET = 8;
@@ -116,7 +117,7 @@ struct Zobrist final {
     Zobrist(Zobrist&&) noexcept                 = delete;
     Zobrist& operator=(Zobrist&&) noexcept      = delete;
 
-    static inline Array<Key, COLOR_NB, 1 + PIECE_TYPE_CNT, SQUARE_NB> PieceSquare;
+    static inline Array<Key, COLOR_NB, PIECE_TYPE_CNT + 1, SQUARE_NB> PieceSquare;
     static inline Array<Key, CASTLING_RIGHTS_NB>                      Castling;
     static inline Array<Key, FILE_NB>                                 Enpassant;
     static inline Key                                                 Turn;

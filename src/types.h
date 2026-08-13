@@ -78,6 +78,9 @@
     #endif
 #endif
 
+#define ASSERT_ALIGNED(ptr, alignment) \
+    assert(reinterpret_cast<std::uintptr_t>(ptr) % alignment == 0)
+
 namespace DON {
 
 using Bitboard = u64;
@@ -423,7 +426,7 @@ inline constexpr int DELTA_MAX = 2 * VALUE_INFINITE;
 
 // Returns the value of the given piece type
 constexpr Value piece_value(PieceType pt) noexcept {
-    constexpr Array<Value, 1 + PIECE_TYPE_CNT> PieceValues{
+    constexpr Array<Value, PIECE_TYPE_CNT + 1> PieceValues{
       VALUE_ZERO, VALUE_PAWN, VALUE_KNIGHT, VALUE_BISHOP, VALUE_ROOK, VALUE_QUEEN, VALUE_ZERO};
 
     return PieceValues[pt];

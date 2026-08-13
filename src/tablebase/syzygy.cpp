@@ -358,7 +358,7 @@ struct PairsData final {
         if (!visited[rSym])
             symLen[rSym] = set_symlen(rSym, visited, depth + 1);
 
-        return 1 + symLen[lSym] + symLen[rSym];
+        return symLen[lSym] + symLen[rSym] + 1;
     }
 
     u8* set_sizes(u8* pData) noexcept {

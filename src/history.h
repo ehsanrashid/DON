@@ -19,6 +19,7 @@
 #define HISTORY_H_INCLUDED
 
 #include <algorithm>
+#include <atomic>
 #include <cassert>
 #include <limits>
 #include <type_traits>
@@ -26,61 +27,60 @@
 
 #include "memory.h"
 #include "misc.h"
+#include "position.h"
 #include "types.h"
 
 namespace DON {
 
-inline constexpr u16 LOW_PLY_QUIET_SIZE = 5;
-
-inline constexpr int CORRECTION_HISTORY_LIMIT = 1024;
-
-inline constexpr usize QUIET_HISTORY_SIZE = 1u << 16;  // Max upto 16-bit
-static_assert((QUIET_HISTORY_SIZE & (QUIET_HISTORY_SIZE - 1)) == 0,
-              "QUIET_HISTORY_SIZE has to be power of 2");
-
-inline constexpr usize PAWN_HISTORY_BASE_SIZE = 1u << 14;
-static_assert((PAWN_HISTORY_BASE_SIZE & (PAWN_HISTORY_BASE_SIZE - 1)) == 0,
-              "PAWN_HISTORY_BASE_SIZE has to be power of 2");
-
-inline constexpr usize CORRECTION_HISTORY_BASE_SIZE = 1u << 16;
-static_assert((CORRECTION_HISTORY_BASE_SIZE & (CORRECTION_HISTORY_BASE_SIZE - 1)) == 0,
-              "CORRECTION_HISTORY_BASE_SIZE has to be power of 2");
-
-// StatsEntry is the container of various numerical statistics.
-// Use a class instead of a naked value to directly call history update operator<<() on the entry.
-// The first template parameter T is the base type of the StatsEntry and
-// the second template parameter D limits the range of updates in [-D, D] when update values with the << operator
-template<typename T, int D>
-class StatsEntry final {
-    static_assert(std::is_arithmetic_v<T>, "T must be arithmetic");
-    static_assert(std::is_signed_v<T> && std::is_integral_v<T>,
-                  "T must be a signed integral (expects [-D,+D])");
+// HistoryEntry stores a signed integral statistic whose value is bounded by [-D, D].
+//
+// It allows a statistic to be updated directly using operator<<()
+// while optionally supporting atomic storage.
+//
+// T specifies the underlying signed integral type.
+// D specifies the maximum magnitude of the statistic and each update;
+//   both the stored value and each update are limited to [-D, D].
+// Atomic controls whether the stored value is accessed atomically.
+template<typename T, int D, bool Atomic = false>
+class HistoryEntry final {
+    static_assert(std::is_signed_v<T> && std::is_integral_v<T>, "T must be a signed integral");
     static_assert(D > 0, "D must be positive");
-    static_assert(D <= std::numeric_limits<T>::max(), "D overflows T");
+    static_assert(D <= std::numeric_limits<T>::max(), "D must fit in T");
 
    public:
-    operator int() const noexcept { return value; }
+    operator T() const noexcept {
+        if constexpr (Atomic)
+            return enrty.load(std::memory_order_relaxed);
+        else
+            return enrty;
+    }
 
-    void operator=(const T& v) noexcept { value = v; }
+    void operator=(const T& e) noexcept {
+        if constexpr (Atomic)
+            enrty.store(e, std::memory_order_relaxed);
+        else
+            enrty = e;
+    }
 
-    // Overload operator<< to modify the value
+    // Update the statistic using bonus, clamped to the range [-D, +D]
     void operator<<(int bonus) noexcept {
-        // Make sure that bonus is in range [-D, +D]
+        // Clamp the update to the range [-D, +D]
         int clampedBonus = std::clamp(bonus, -D, +D);
         // Apply gravity-based adjustment
-        value += clampedBonus - int(value) * constexpr_abs(clampedBonus) / D;
+        T v   = *this;
+        *this = v + clampedBonus - v * T(constexpr_abs(clampedBonus)) / D;
 
-        assert(constexpr_abs(value) <= D);
+        assert(constexpr_abs(T(*this)) <= D);
     }
 
     void operator*=(double m) noexcept {
         assert(constexpr_abs(m) <= 1.0);
 
-        value = constexpr_round(m * double(value));
+        *this = constexpr_round(m * double(T(*this)));
     }
 
    private:
-    T value;
+    std::conditional_t<Atomic, std::atomic<T>, T> enrty;
 };
 
 template<typename T>
@@ -120,214 +120,161 @@ class DynamicArray final {
     usize             size_;
 };
 
-enum class HType : u8 {
-    CAPTURE,       // By move's [piece][dstSq][captured piece type]
-    QUIET,         // By color and move's orgSq and dstSq squares
-    PAWN,          // By pawn structure and a move's [piece][dstSq]
-    LOW_QUIET,     // By ply and move's orgSq and dstSq squares
-    TT_MOVE,       //
-    PIECE_SQ,      // By move's [piece][dstSq]
-    CONTINUATION,  // By combination of pair of moves
-};
+template<typename T, int D, usize... Sizes>
+using History = MultiArray<HistoryEntry<T, D>, Sizes...>;
 
-namespace Internal {
+template<typename T, int D, usize... Sizes>
+using AtomicHistory = MultiArray<HistoryEntry<T, D, true>, Sizes...>;
 
-template<int D, usize... Sizes>
-using Stats = MultiArray<StatsEntry<i16, D>, Sizes...>;
+template<typename T>
+constexpr bool is_power_of_2(const T x) noexcept {
+    return x != 0 && (x & (x - 1)) == 0;
+}
 
-}  // namespace Internal
+inline constexpr u16 LOW_PLY_SIZE = 5;
 
-using PawnHistory = typename Internal::Stats<8192, PIECE_NB, SQUARE_NB>;
+inline constexpr usize QUIET_HISTORY_SIZE = 0x10000;
+static_assert(is_power_of_2(QUIET_HISTORY_SIZE), "QUIET_HISTORY_SIZE has to be power of 2");
 
-namespace Internal {
+inline constexpr usize PAWN_HISTORY_BASE_SIZE = 0x4000;
+static_assert(is_power_of_2(PAWN_HISTORY_BASE_SIZE), "PAWN_HISTORY_BASE_SIZE has to be power of 2");
 
-template<HType T>
-struct HistoryDef;
+inline constexpr usize CORRECTION_HISTORY_BASE_SIZE = 0x10000;
+static_assert(is_power_of_2(CORRECTION_HISTORY_BASE_SIZE),
+              "CORRECTION_HISTORY_BASE_SIZE has to be power of 2");
 
-template<>
-struct HistoryDef<HType::CAPTURE> final {
-    using Type = Stats<10692, PIECE_NB, SQUARE_NB, PIECE_TYPE_NB>;
-};
+inline constexpr int CORRECTION_HISTORY_LIMIT = 1024;
 
-// It records how often quiet moves have been successful or not during the current search,
-// It is used for reduction and move ordering decisions.
+
+// CaptureHistory is addressed by move's [piece][dstSq][captured piece type]
+using CaptureHistory = History<i16, 10692, PIECE_NB, SQUARE_NB, PIECE_TYPE_NB>;
+
+// QuietHistory records how often quiet moves succeed or fail during the current search
+// and is used for move ordering and reduction decisions.
+// is addressed by the color and move's orgSq and dstSq squares.
 // see https://www.chessprogramming.org/Butterfly_Boards
-template<>
-struct HistoryDef<HType::QUIET> final {
-    using Type = Stats<7183, COLOR_NB, QUIET_HISTORY_SIZE>;
-};
+using QuietHistory = History<i16, 7183, COLOR_NB, QUIET_HISTORY_SIZE>;
 
-template<>
-struct HistoryDef<HType::PAWN> final {
-    using Type = DynamicArray<PawnHistory>;
-};
+// LowPlyHistory is used to improve move ordering near the root.
+// is addressed by the ply and move's orgSq and dstSq squares.
+using LowPlyQuietHistory = History<i16, 7183, LOW_PLY_SIZE, QUIET_HISTORY_SIZE>;
 
-// It is used to improve quiet move ordering near the root.
-template<>
-struct HistoryDef<HType::LOW_QUIET> final {
-    using Type = Stats<7183, LOW_PLY_QUIET_SIZE, QUIET_HISTORY_SIZE>;
-};
+// PieceSqHistory is addressed by the move's [piece][dstSq]
+using PieceSqHistory = History<i16, 30000, PIECE_NB, SQUARE_NB>;
 
-template<>
-struct HistoryDef<HType::TT_MOVE> final {
-    using Type = StatsEntry<i16, 8192>;
-};
+// ContinuationHistory is the combined history of given pair of moves,
+// usually the current move given the previous move.
+using ContinuationHistory = MultiArray<PieceSqHistory, PIECE_NB, SQUARE_NB>;
 
-template<>
-struct HistoryDef<HType::PIECE_SQ> final {
-    using Type = Stats<30000, PIECE_NB, SQUARE_NB>;
-};
+// PawnHistory is addressed by the pawn structure and a move's [piece][dstSq]
+using PawnHistory = DynamicArray<AtomicHistory<i16, 8192, PIECE_NB, SQUARE_NB>>;
 
-template<>
-struct HistoryDef<HType::CONTINUATION> final {
-    using Type = MultiArray<HistoryDef<HType::PIECE_SQ>::Type, PIECE_NB, SQUARE_NB>;
-};
-
-}  // namespace Internal
-
-// Alias template for convenience
-template<HType T>
-using History = typename Internal::HistoryDef<T>::Type;
+// TTMoveHistory
+using TTMoveHistory = HistoryEntry<i16, 8192>;
 
 // Correction histories record differences between the static evaluation of positions and their search score.
 // It is used to improve the static evaluation used by some search heuristics.
 // see https://www.chessprogramming.org/Static_Evaluation_Correction_History
 
-enum class CHType : u8 {
-    PAWN,          // By color and pawn structure
-    MINOR,         // By color and minor piece (Knight, Bishop) structure
-    NON_PAWN,      // By color and non-pawn piece structure
-    PIECE_SQ,      // By move's [piece][dstSq]
-    CONTINUATION,  // By combination of pair of moves
-};
+// PawnCorrectionHistory is addressed by the color and pawn structure
+using PawnCorrectionHistory =
+  DynamicArray<AtomicHistory<i16, CORRECTION_HISTORY_LIMIT, COLOR_NB, COLOR_NB>>;
+// MinorCorrectionHistory is addressed by the color and minor piece (Knight, Bishop) structure
+using MinorCorrectionHistory =
+  DynamicArray<AtomicHistory<i16, CORRECTION_HISTORY_LIMIT, COLOR_NB, COLOR_NB>>;
+// NonPawnCorrectionHistory is addressed by the color and non-pawn piece structure
+using NonPawnCorrectionHistory =
+  DynamicArray<AtomicHistory<i16, CORRECTION_HISTORY_LIMIT, COLOR_NB, COLOR_NB>>;
+// PieceSqCorrectionHistory is addressed by the move's [piece][dstSq]
+using PieceSqCorrectionHistory = History<i16, CORRECTION_HISTORY_LIMIT, PIECE_NB, SQUARE_NB>;
+// ContinuationCorrectionHistory is the combined history of given pair of moves,
+// usually the current move given the previous move.
+using ContinuationCorrectionHistory = MultiArray<PieceSqCorrectionHistory, PIECE_NB, SQUARE_NB>;
 
-namespace Internal {
-
-template<usize... Sizes>
-using CorrectionStats = Stats<CORRECTION_HISTORY_LIMIT, Sizes...>;
-
-template<CHType T>
-struct CorrectionHistoryDef;
-
-template<>
-struct CorrectionHistoryDef<CHType::PAWN> final {
-    using Type = DynamicArray<CorrectionStats<COLOR_NB, COLOR_NB>>;
-};
-
-template<>
-struct CorrectionHistoryDef<CHType::MINOR> final {
-    using Type = DynamicArray<CorrectionStats<COLOR_NB, COLOR_NB>>;
-};
-
-template<>
-struct CorrectionHistoryDef<CHType::NON_PAWN> final {
-    using Type = DynamicArray<CorrectionStats<COLOR_NB, COLOR_NB>>;
-};
-
-template<>
-struct CorrectionHistoryDef<CHType::PIECE_SQ> final {
-    using Type = CorrectionStats<PIECE_NB, SQUARE_NB>;
-};
-
-template<>
-struct CorrectionHistoryDef<CHType::CONTINUATION> final {
-    using Type = MultiArray<CorrectionHistoryDef<CHType::PIECE_SQ>::Type, PIECE_NB, SQUARE_NB>;
-};
-
-}  // namespace Internal
-
-// Alias template for convenience
-template<CHType T>
-using CorrectionHistory = typename Internal::CorrectionHistoryDef<T>::Type;
-
-
-class Histories final {
+class AtomicHistories final {
    public:
-    Histories() noexcept = delete;
-    Histories(usize count) noexcept :
-        historySize(count * PAWN_HISTORY_BASE_SIZE),
+    AtomicHistories() noexcept = delete;
+    AtomicHistories(usize count) noexcept :
         correctionHistorySize(count * CORRECTION_HISTORY_BASE_SIZE),
-        pawnHistory(history_size()),
+        pawnHistorySize(count * PAWN_HISTORY_BASE_SIZE),
         pawnCorrectionHistory(correction_history_size()),
         minorCorrectionHistory(correction_history_size()),
-        nonPawnCorrectionHistory(correction_history_size()) {
+        nonPawnCorrectionHistory(correction_history_size()),
+        pawnHistory(pawn_history_size()) {
 #if !defined(NDEBUG)
-        assert(count != 0 && (count & (count - 1)) == 0);
+        assert(is_power_of_2(count));
 #endif
     }
 
-    constexpr usize history_size() const noexcept {  //
-        return historySize;
-    }
-    constexpr usize history_mask() const noexcept {  //
-        return history_size() - 1;
-    }
-
-    constexpr usize pawn_index(Key pawnKey) const noexcept {  //
-        return pawnKey & history_mask();
-    }
-
-    constexpr usize correction_history_size() const noexcept {  //
-        return correctionHistorySize;
-    }
-    constexpr usize correction_history_mask() const noexcept {  //
+    constexpr usize correction_history_size() const noexcept { return correctionHistorySize; }
+    constexpr usize correction_history_mask() const noexcept {
         return correction_history_size() - 1;
     }
-
-    constexpr usize correction_index(Key correctionKey) const noexcept {  //
+    constexpr usize correction_index(const Key correctionKey) const noexcept {
         return correctionKey & correction_history_mask();
     }
 
-
-    auto& pawn() noexcept { return pawnHistory; }
-
-    auto&       pawn(Key pawnKey) noexcept { return pawnHistory[pawn_index(pawnKey)]; }
-    const auto& pawn(Key pawnKey) const noexcept { return pawnHistory[pawn_index(pawnKey)]; }
-
-    auto& pawn_correction() noexcept { return pawnCorrectionHistory; }
+    auto& pawn_correction_history() noexcept { return pawnCorrectionHistory; }
 
     template<Color C>
-    auto& pawn_correction(Key pawnKey) noexcept {
-        return pawnCorrectionHistory[correction_index(pawnKey)][C];
+    auto& pawn_correction_entry(const Position& pos) noexcept {
+        return pawnCorrectionHistory[correction_index(pos.pawn_key(C))][C];
     }
     template<Color C>
-    const auto& pawn_correction(Key pawnKey) const noexcept {
-        return pawnCorrectionHistory[correction_index(pawnKey)][C];
+    const auto& pawn_correction_entry(const Position& pos) const noexcept {
+        return pawnCorrectionHistory[correction_index(pos.pawn_key(C))][C];
     }
 
-    auto& minor_correction() noexcept { return minorCorrectionHistory; }
+    auto& minor_correction_history() noexcept { return minorCorrectionHistory; }
 
     template<Color C>
-    auto& minor_correction(Key minorKey) noexcept {
-        return minorCorrectionHistory[correction_index(minorKey)][C];
+    auto& minor_correction_entry(const Position& pos) noexcept {
+        return minorCorrectionHistory[correction_index(pos.minor_key(C))][C];
     }
     template<Color C>
-    const auto& minor_correction(Key minorKey) const noexcept {
-        return minorCorrectionHistory[correction_index(minorKey)][C];
+    const auto& minor_correction_entry(const Position& pos) const noexcept {
+        return minorCorrectionHistory[correction_index(pos.minor_key(C))][C];
     }
 
-    auto& non_pawn_correction() noexcept { return nonPawnCorrectionHistory; }
+    auto& non_pawn_correction_history() noexcept { return nonPawnCorrectionHistory; }
 
     template<Color C>
-    auto& non_pawn_correction(Key nonPawnKey) noexcept {
-        return nonPawnCorrectionHistory[correction_index(nonPawnKey)][C];
+    auto& non_pawn_correction_entry(const Position& pos) noexcept {
+        return nonPawnCorrectionHistory[correction_index(pos.non_pawn_key(C))][C];
     }
     template<Color C>
-    const auto& non_pawn_correction(Key nonPawnKey) const noexcept {
-        return nonPawnCorrectionHistory[correction_index(nonPawnKey)][C];
+    const auto& non_pawn_correction_entry(const Position& pos) const noexcept {
+        return nonPawnCorrectionHistory[correction_index(pos.non_pawn_key(C))][C];
+    }
+
+    // --------------------------------
+
+    constexpr usize pawn_history_size() const noexcept { return pawnHistorySize; }
+    constexpr usize pawn_history_mask() const noexcept { return pawn_history_size() - 1; }
+    constexpr usize pawn_index(const Key pawnKey) const noexcept {
+        return pawnKey & pawn_history_mask();
+    }
+
+    auto& pawn_history() noexcept { return pawnHistory; }
+
+    auto& pawn_entry(const Position& pos) noexcept {
+        return pawnHistory[pawn_index(pos.pawn_key())];
+    }
+    const auto& pawn_entry(const Position& pos) const noexcept {
+        return pawnHistory[pawn_index(pos.pawn_key())];
     }
 
    private:
-    const usize historySize;
     const usize correctionHistorySize;
+    const usize pawnHistorySize;
 
-    History<HType::PAWN>                pawnHistory;
-    CorrectionHistory<CHType::PAWN>     pawnCorrectionHistory;
-    CorrectionHistory<CHType::MINOR>    minorCorrectionHistory;
-    CorrectionHistory<CHType::NON_PAWN> nonPawnCorrectionHistory;
+    PawnCorrectionHistory    pawnCorrectionHistory;
+    MinorCorrectionHistory   minorCorrectionHistory;
+    NonPawnCorrectionHistory nonPawnCorrectionHistory;
+    PawnHistory              pawnHistory;
 };
 
-using HistoriesMap = std::unordered_map<usize, Histories>;
+using AtomicHistoriesMap = std::unordered_map<usize, AtomicHistories>;
 
 }  // namespace DON
 

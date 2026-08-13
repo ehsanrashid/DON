@@ -322,12 +322,11 @@ void Position::set(std::string_view fens, State* newSt) noexcept {
     }
 
     assert(rank == RANK_1);
+    assert(count(PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING) == count());
     assert(count(WHITE) <= 16 && count(BLACK) <= 16);
     assert(count(WHITE, PAWN) <= 8 && count(BLACK, PAWN) <= 8);
     assert(count(WHITE, KING) == 1 && count(BLACK, KING) == 1);
-    assert(count(PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING) == count());
     assert((PROMOTION_RANKS_BB & pieces_bb(PAWN)) == 0);
-    assert(square<KING>(WHITE) != SQ_NONE && square<KING>(BLACK) != SQ_NONE);
     assert(distance(square<KING>(WHITE), square<KING>(BLACK)) > 1);
 
     skip_spaces();
@@ -469,14 +468,14 @@ void Position::set(std::string_view fens, State* newSt) noexcept {
     st->rule50Count = constexpr_abs(rule50Count);
     // Convert from moveNum starting from 1 to posPly starting from 0,
     // handle also common incorrect FEN with moveNum = 0.
-    gamePly = std::max(2 * (constexpr_abs(moveNum) - 1), 0) + int(ac == BLACK);
+    gamePly = std::max(2 * int(constexpr_abs(moveNum) - 1), 0) + int(ac == BLACK);
 
     st->checkersBB = pieces_bb(~ac) & attackers_bb(square<KING>(ac));
 
     set_pinner_blocker();
     set_ext_state();
 
-    if (enPassantSq != SQ_NONE)
+    if (is_ok(enPassantSq))
     {
         // En-passant square will be considered only if
         //   - there is an enemy pawn in front of epSquare
@@ -609,7 +608,7 @@ std::string Position::fen(bool complete) const noexcept {
 
     fens.push_back(' ');
 
-    if (en_passant_sq() != SQ_NONE)
+    if (is_ok(en_passant_sq()))
         fens.append(to_square(en_passant_sq()));
     else
         fens.push_back('-');
@@ -846,7 +845,8 @@ void Position::do_castling(Color       ac,
     if (rookMoved)
         remove(Do ? rookOrgSq : rookDstSq, Do ? &db->dirtyThreats : nullptr);
     if (kingMoved)
-        move(Do ? kingOrgSq : kingDstSq, Do ? kingDstSq : kingOrgSq,
+        move(Do ? kingOrgSq : kingDstSq,  //
+             Do ? kingDstSq : kingOrgSq,  //
              Do ? &db->dirtyThreats : nullptr);
     if (rookMoved)
         put(Do ? rookDstSq : rookOrgSq, rookPc, Do ? &db->dirtyThreats : nullptr);
@@ -1051,13 +1051,13 @@ DirtyBoard Position::do_move(const Move          m,
         if (enPassantSq == SQ_NONE)
             prefetch(worker->transpositionTable.cluster(key()));
 
-        prefetch(&worker->histories.pawn(pawn_key())[+movedPc][dstSq]);
-        prefetch(&worker->histories.pawn_correction<WHITE>(pawn_key(WHITE)));
-        prefetch(&worker->histories.pawn_correction<BLACK>(pawn_key(BLACK)));
-        prefetch(&worker->histories.minor_correction<WHITE>(minor_key(WHITE)));
-        prefetch(&worker->histories.minor_correction<BLACK>(minor_key(BLACK)));
-        prefetch(&worker->histories.non_pawn_correction<WHITE>(non_pawn_key(WHITE)));
-        prefetch(&worker->histories.non_pawn_correction<BLACK>(non_pawn_key(BLACK)));
+        prefetch(&worker->atomicHistories.pawn_entry(*this)[+movedPc][dstSq]);
+        prefetch(&worker->atomicHistories.pawn_correction_entry<WHITE>(*this));
+        prefetch(&worker->atomicHistories.pawn_correction_entry<BLACK>(*this));
+        prefetch(&worker->atomicHistories.minor_correction_entry<WHITE>(*this));
+        prefetch(&worker->atomicHistories.minor_correction_entry<BLACK>(*this));
+        prefetch(&worker->atomicHistories.non_pawn_correction_entry<WHITE>(*this));
+        prefetch(&worker->atomicHistories.non_pawn_correction_entry<BLACK>(*this));
     }
 
     // Update board
@@ -1106,7 +1106,7 @@ DirtyBoard Position::do_move(const Move          m,
     set_pinner_blocker();
     set_ext_state();
 
-    if (enPassantSq != SQ_NONE)
+    if (is_ok(enPassantSq))
     {
         if (enpassant_possible(active_color(), enPassantSq))
         {
@@ -1144,12 +1144,11 @@ DirtyBoard Position::do_move(const Move          m,
 
     assert(_is_ok());
 
-    assert((db.dirtyPiece.movedPc != Piece::NO_PIECE));
-    assert((db.dirtyPiece.orgSq != SQ_NONE));
-    assert((db.dirtyPiece.dstSq != SQ_NONE) ^ !(m.type() != MT::PROMOTION));
-    assert((db.dirtyPiece.removedSq != SQ_NONE) ^ !(capture || m.type() == MT::CASTLING));
-    assert((db.dirtyPiece.addedSq != SQ_NONE)
-           ^ !(m.type() == MT::PROMOTION || m.type() == MT::CASTLING));
+    assert(is_ok(db.dirtyPiece.movedPc));
+    assert(is_ok(db.dirtyPiece.orgSq));
+    assert(is_ok(db.dirtyPiece.dstSq) ^ !(m.type() != MT::PROMOTION));
+    assert(is_ok(db.dirtyPiece.removedSq) ^ !(capture || m.type() == MT::CASTLING));
+    assert(is_ok(db.dirtyPiece.addedSq) ^ !(m.type() == MT::PROMOTION || m.type() == MT::CASTLING));
     return db;
 }
 
