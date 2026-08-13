@@ -119,7 +119,7 @@ inline std::enable_if_t<std::is_array_v<T>, std::remove_extent_t<T>*>
 memory_allocator(AllocFunc&& allocFunc, usize size) noexcept {
     using ElementType = std::remove_extent_t<T>;
 
-    constexpr usize ArrayOffset = std::max(sizeof(usize), alignof(ElementType));
+    constexpr usize ArrayOffset = std::max(alignof(ElementType), sizeof(usize));
 
     // Save the array size in the memory location
     auto* rawMem = reinterpret_cast<char*>(allocFunc(ArrayOffset + size * sizeof(ElementType)));
