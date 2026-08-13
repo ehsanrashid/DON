@@ -173,52 +173,22 @@ using PawnHistory = DynamicArray<AtomicStats<i16, 8192, PIECE_NB, SQUARE_NB>>;
 // It is used to improve the static evaluation used by some search heuristics.
 // see https://www.chessprogramming.org/Static_Evaluation_Correction_History
 
-enum class CHType : u8 {
-    PAWN,          // By color and pawn structure
-    MINOR,         // By color and minor piece (Knight, Bishop) structure
-    NON_PAWN,      // By color and non-pawn piece structure
-    PIECE_SQ,      // By move's [piece][dstSq]
-    CONTINUATION,  // By combination of pair of moves
-};
-
-namespace Internal {
-
-template<CHType T>
-struct CorrectionHistoryDef;
-
-template<>
-struct CorrectionHistoryDef<CHType::PAWN> final {
-    using Type = DynamicArray<Stats<i16, CORRECTION_HISTORY_LIMIT, COLOR_NB, COLOR_NB>>;
-};
-
-template<>
-struct CorrectionHistoryDef<CHType::MINOR> final {
-    using Type = DynamicArray<Stats<i16, CORRECTION_HISTORY_LIMIT, COLOR_NB, COLOR_NB>>;
-};
-
-template<>
-struct CorrectionHistoryDef<CHType::NON_PAWN> final {
-    using Type = DynamicArray<Stats<i16, CORRECTION_HISTORY_LIMIT, COLOR_NB, COLOR_NB>>;
-};
-
-template<>
-struct CorrectionHistoryDef<CHType::PIECE_SQ> final {
-    using Type = Stats<i16, CORRECTION_HISTORY_LIMIT, PIECE_NB, SQUARE_NB>;
-};
-
-template<>
-struct CorrectionHistoryDef<CHType::CONTINUATION> final {
-    using Type = MultiArray<CorrectionHistoryDef<CHType::PIECE_SQ>::Type, PIECE_NB, SQUARE_NB>;
-};
-
-}  // namespace Internal
-
-// Alias template for convenience
-template<CHType T>
-using CorrectionHistory = typename Internal::CorrectionHistoryDef<T>::Type;
+// PawnCorrectionHistory is addressed by the color and pawn structure
+using PawnCorrectionHistory =
+  DynamicArray<AtomicStats<i16, CORRECTION_HISTORY_LIMIT, COLOR_NB, COLOR_NB>>;
+// MinorCorrectionHistory is addressed by the color and minor piece (Knight, Bishop) structure
+using MinorCorrectionHistory =
+  DynamicArray<AtomicStats<i16, CORRECTION_HISTORY_LIMIT, COLOR_NB, COLOR_NB>>;
+// NonPawnCorrectionHistory is addressed by the color and non-pawn piece structure
+using NonPawnCorrectionHistory =
+  DynamicArray<AtomicStats<i16, CORRECTION_HISTORY_LIMIT, COLOR_NB, COLOR_NB>>;
+// PieceSqCorrectionHistory is addressed by the move's [piece][dstSq]
+using PieceSqCorrectionHistory = Stats<i16, CORRECTION_HISTORY_LIMIT, PIECE_NB, SQUARE_NB>;
+// ContinuationCorrectionHistory is the combined history of given pair of moves,
+// usually the current move given the previous move.
+using ContinuationCorrectionHistory = MultiArray<PieceSqCorrectionHistory, PIECE_NB, SQUARE_NB>;
 
 using TTMoveHistory = StatsEntry<i16, 8192>;
-
 
 class Histories final {
    public:
@@ -295,10 +265,10 @@ class Histories final {
     const usize correctionHistorySize;
     const usize pawnHistorySize;
 
-    CorrectionHistory<CHType::PAWN>     pawnCorrectionHistory;
-    CorrectionHistory<CHType::MINOR>    minorCorrectionHistory;
-    CorrectionHistory<CHType::NON_PAWN> nonPawnCorrectionHistory;
-    PawnHistory                         pawnHistory;
+    PawnCorrectionHistory    pawnCorrectionHistory;
+    MinorCorrectionHistory   minorCorrectionHistory;
+    NonPawnCorrectionHistory nonPawnCorrectionHistory;
+    PawnHistory              pawnHistory;
 };
 
 using HistoriesMap = std::unordered_map<usize, Histories>;

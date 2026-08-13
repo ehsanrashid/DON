@@ -598,9 +598,9 @@ constexpr NT operator~(NT nt) noexcept { return NT((u8(nt) ^ 1) & 1); }
 // Each search thread has its own array of Stack objects, indexed by the ply. (Size = 40)
 struct Stack final {
    public:
-    PVMoves*                             pv;
-    PieceSqHistory*                      pieceSqHistory;
-    CorrectionHistory<CHType::PIECE_SQ>* pieceSqCorrectionHistory;
+    PVMoves*                  pv;
+    PieceSqHistory*           pieceSqHistory;
+    PieceSqCorrectionHistory* pieceSqCorrectionHistory;
 
     int   history;
     Value evalValue;
@@ -762,8 +762,7 @@ class Worker final {
 
     Array<ContinuationHistory, 2, 2> continuationHistory;  // [inCheck][capture]
 
-    // Correction Histories
-    CorrectionHistory<CHType::CONTINUATION> continuationCorrectionHistory;
+    ContinuationCorrectionHistory continuationCorrectionHistory;
 
     TTMoveHistory ttMoveHistory;
 
