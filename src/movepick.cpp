@@ -400,7 +400,7 @@ MovePicker::score<GenType::ENC_QUIET>(const MoveList<GenType::ENC_QUIET>& moveLi
     const auto&        refQuietHistory        = *quietHistory;
     const auto&        refLowPlyQuietHistory  = *lowPlyQuietHistory;
     const auto* const* ptrContinuationHistory = continuationHistory;
-    const auto&        refPawnHistory         = histories->pawn(pos.pawn_key());
+    const auto&        refPawnEntry           = histories->pawn_entry(pos.pawn_key());
 
     auto itr = cur;
 
@@ -418,7 +418,6 @@ MovePicker::score<GenType::ENC_QUIET>(const MoveList<GenType::ENC_QUIET>& moveLi
         i64 value;
 
         value = 2 * refQuietHistory[ac][m.raw()];
-        value += 2 * refPawnHistory[+movedPc][dstSq];
 
         if (ssPly < LOW_PLY_SIZE)
             value += 8 * refLowPlyQuietHistory[ssPly][m.raw()] / (1 + ssPly);
@@ -426,6 +425,8 @@ MovePicker::score<GenType::ENC_QUIET>(const MoveList<GenType::ENC_QUIET>& moveLi
         // Accumulate continuation history entries
         for (usize i = 0; i < CONT_HISTORY_COUNT; ++i)
             value += (*ptrContinuationHistory[i])[+movedPc][dstSq];
+
+        value += 2 * refPawnEntry[+movedPc][dstSq];
 
         // Bonus for checks
         if (pos.check(m))

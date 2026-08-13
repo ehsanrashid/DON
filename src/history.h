@@ -150,44 +150,24 @@ using CaptureHistory = Stats<i16, 10692, PIECE_NB, SQUARE_NB, PIECE_TYPE_NB>;
 
 // QuietHistory records how often quiet moves succeed or fail during the current search
 // and is used for move ordering and reduction decisions.
-// is addressed by color and move's orgSq and dstSq squares.
+// is addressed by the color and move's orgSq and dstSq squares.
 // see https://www.chessprogramming.org/Butterfly_Boards
 using QuietHistory = Stats<i16, 7183, COLOR_NB, QUIET_HISTORY_SIZE>;
 
 // LowPlyHistory is used to improve move ordering near the root.
-// is addressed by ply and move's orgSq and dstSq squares.
+// is addressed by the ply and move's orgSq and dstSq squares.
 using LowPlyQuietHistory = Stats<i16, 7183, LOW_PLY_SIZE, QUIET_HISTORY_SIZE>;
 
-// PieceSqHistory is addressed by move's [piece][dstSq]
+// PieceSqHistory is addressed by the move's [piece][dstSq]
 using PieceSqHistory = Stats<i16, 30000, PIECE_NB, SQUARE_NB>;
 
 // ContinuationHistory is the combined history of given pair of moves,
 // usually the current move given the previous move.
 using ContinuationHistory = MultiArray<PieceSqHistory, PIECE_NB, SQUARE_NB>;
 
+// PawnHistory is addressed by the pawn structure and a move's [piece][dstSq]
+using PawnHistory = DynamicArray<AtomicStats<i16, 8192, PIECE_NB, SQUARE_NB>>;
 
-enum class HType : u8 {
-
-    PAWN,  // By pawn structure and a move's [piece][dstSq]
-};
-
-using PawnHistory = AtomicStats<i16, 8192, PIECE_NB, SQUARE_NB>;
-
-namespace Internal {
-
-template<HType T>
-struct HistoryDef;
-
-template<>
-struct HistoryDef<HType::PAWN> final {
-    using Type = DynamicArray<PawnHistory>;
-};
-
-}  // namespace Internal
-
-// Alias template for convenience
-template<HType T>
-using History = typename Internal::HistoryDef<T>::Type;
 
 // Correction histories record differences between the static evaluation of positions and their search score.
 // It is used to improve the static evaluation used by some search heuristics.
@@ -244,86 +224,81 @@ class Histories final {
    public:
     Histories() noexcept = delete;
     Histories(usize count) noexcept :
-        historySize(count * PAWN_HISTORY_BASE_SIZE),
         correctionHistorySize(count * CORRECTION_HISTORY_BASE_SIZE),
-        pawnHistory(history_size()),
+        pawnHistorySize(count * PAWN_HISTORY_BASE_SIZE),
         pawnCorrectionHistory(correction_history_size()),
         minorCorrectionHistory(correction_history_size()),
-        nonPawnCorrectionHistory(correction_history_size()) {
+        nonPawnCorrectionHistory(correction_history_size()),
+        pawnHistory(pawn_history_size()) {
 #if !defined(NDEBUG)
-        assert(count != 0 && (count & (count - 1)) == 0);
+        assert(is_power_of_2(count));
 #endif
     }
 
-    constexpr usize history_size() const noexcept {  //
-        return historySize;
-    }
-    constexpr usize history_mask() const noexcept {  //
-        return history_size() - 1;
-    }
-
-    constexpr usize pawn_index(Key pawnKey) const noexcept {  //
-        return pawnKey & history_mask();
-    }
-
-    constexpr usize correction_history_size() const noexcept {  //
-        return correctionHistorySize;
-    }
-    constexpr usize correction_history_mask() const noexcept {  //
+    constexpr usize correction_history_size() const noexcept { return correctionHistorySize; }
+    constexpr usize correction_history_mask() const noexcept {
         return correction_history_size() - 1;
     }
-
-    constexpr usize correction_index(Key correctionKey) const noexcept {  //
+    constexpr usize correction_index(const Key correctionKey) const noexcept {
         return correctionKey & correction_history_mask();
     }
-
-
-    auto& pawn() noexcept { return pawnHistory; }
-
-    auto&       pawn(Key pawnKey) noexcept { return pawnHistory[pawn_index(pawnKey)]; }
-    const auto& pawn(Key pawnKey) const noexcept { return pawnHistory[pawn_index(pawnKey)]; }
 
     auto& pawn_correction() noexcept { return pawnCorrectionHistory; }
 
     template<Color C>
-    auto& pawn_correction(Key pawnKey) noexcept {
+    auto& pawn_correction(const Key pawnKey) noexcept {
         return pawnCorrectionHistory[correction_index(pawnKey)][C];
     }
     template<Color C>
-    const auto& pawn_correction(Key pawnKey) const noexcept {
+    const auto& pawn_correction(const Key pawnKey) const noexcept {
         return pawnCorrectionHistory[correction_index(pawnKey)][C];
     }
 
     auto& minor_correction() noexcept { return minorCorrectionHistory; }
 
     template<Color C>
-    auto& minor_correction(Key minorKey) noexcept {
+    auto& minor_correction(const Key minorKey) noexcept {
         return minorCorrectionHistory[correction_index(minorKey)][C];
     }
     template<Color C>
-    const auto& minor_correction(Key minorKey) const noexcept {
+    const auto& minor_correction(const Key minorKey) const noexcept {
         return minorCorrectionHistory[correction_index(minorKey)][C];
     }
 
     auto& non_pawn_correction() noexcept { return nonPawnCorrectionHistory; }
 
     template<Color C>
-    auto& non_pawn_correction(Key nonPawnKey) noexcept {
+    auto& non_pawn_correction(const Key nonPawnKey) noexcept {
         return nonPawnCorrectionHistory[correction_index(nonPawnKey)][C];
     }
     template<Color C>
-    const auto& non_pawn_correction(Key nonPawnKey) const noexcept {
+    const auto& non_pawn_correction(const Key nonPawnKey) const noexcept {
         return nonPawnCorrectionHistory[correction_index(nonPawnKey)][C];
     }
 
-   private:
-    const usize historySize;
-    const usize correctionHistorySize;
+    // --------------------------------
 
-    History<HType::PAWN>                pawnHistory;
+    constexpr usize pawn_history_size() const noexcept { return pawnHistorySize; }
+    constexpr usize pawn_history_mask() const noexcept { return pawn_history_size() - 1; }
+    constexpr usize pawn_index(const Key pawnKey) const noexcept {
+        return pawnKey & pawn_history_mask();
+    }
+
+    auto& pawn_history() noexcept { return pawnHistory; }
+
+    auto&       pawn_entry(const Key pawnKey) noexcept { return pawnHistory[pawn_index(pawnKey)]; }
+    const auto& pawn_entry(const Key pawnKey) const noexcept {
+        return pawnHistory[pawn_index(pawnKey)];
+    }
+
+   private:
+    const usize correctionHistorySize;
+    const usize pawnHistorySize;
+
     CorrectionHistory<CHType::PAWN>     pawnCorrectionHistory;
     CorrectionHistory<CHType::MINOR>    minorCorrectionHistory;
     CorrectionHistory<CHType::NON_PAWN> nonPawnCorrectionHistory;
+    PawnHistory                         pawnHistory;
 };
 
 using HistoriesMap = std::unordered_map<usize, Histories>;

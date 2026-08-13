@@ -190,13 +190,6 @@ void update_continuation_histories(Stack* ss, Piece pc, Square dstSq, int bonus)
     }
 }
 
-void update_pawn_history(PawnHistory& pawnHistory,
-                         const Piece  movedPc,
-                         const Square dstSq,
-                         const int    bonus) noexcept {
-    pawnHistory[+movedPc][dstSq] << bonus;
-}
-
 // Adjust raw evaluation according to various correction histories value
 // and guarantee evaluation does not hit the tablebase range.
 Value adjust_eval_value(Value evalValue, int correctionValue) noexcept {
@@ -239,9 +232,10 @@ void Worker::reset() noexcept {
 
     // Each thread resets its NUMA-local range of history entries to prevent false sharing
 
-    auto historyRange = split_range(numa_id(), numa_thread_count(), histories.history_size());
+    auto pawnHistoryRange =
+      split_range(numa_id(), numa_thread_count(), histories.pawn_history_size());
 
-    histories.pawn().fill(historyRange.beg, historyRange.end, -1338);
+    histories.pawn_history().fill(pawnHistoryRange.beg, pawnHistoryRange.end, -1338);
 
     auto correctionHistoryRange =
       split_range(numa_id(), numa_thread_count(), histories.correction_history_size());
@@ -703,12 +697,16 @@ void Worker::iterative_deepening() noexcept {
     }
 }
 
-// clang-format off
 // The main alpha-beta search function with negamax framework and
 // various enhancements like aspiration windows, late move reductions, etc.
 template<NT T>
-Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, Depth depth, const i16 red, const Move excludedMove) noexcept {
-    // clang-format on
+Value Worker::search(Position&    pos,
+                     Stack* const ss,
+                     Value        alpha,
+                     Value        beta,
+                     Depth        depth,
+                     const i16    red,
+                     const Move   excludedMove) noexcept {
     constexpr bool RootNode = T == NT::ROOT;
     constexpr bool PVNode   = RootNode || T == NT::PV;
     constexpr bool CutNode  = T == NT::CUT;  // !PVNode
@@ -878,8 +876,6 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     if (depth > 1 && red >= 2 && ss->evalValue > 166 - (ss - 1)->evalValue)
         --depth;
 
-    auto& pawnHistory = histories.pawn(pos.pawn_key());
-
     State st;
 
     // Check for an early TT cutoff at non-pv nodes
@@ -895,8 +891,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
             {
                 // Bonus for a quiet ttMove
                 if (!ttmCapture)
-                    update_quiet_histories(pos, pawnHistory, ss, ttd.move,
-                                           std::min(-0 + 112 * depth, +695));
+                    update_quiet_histories(pos, ss, ttd.move, std::min(-0 + 112 * depth, +695));
 
                 // Extra penalty for early quiet moves of the previous ply
                 if (preOk && !preCapture && (ss - 1)->moveCount < 5)
@@ -1017,7 +1012,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         int bonus = 60 + std::clamp(-((ss - 1)->evalValue + (ss - 0)->evalValue), -189, +194);
 
         if (!ttd.hit && preNonPawn)
-            update_pawn_history(pawnHistory, pos[preSq], preSq, 13 * bonus);
+            update_pawn_history(pos, pos[preSq], preSq, 13 * bonus);
 
         update_quiet_history(~ac, preMove, 11 * bonus);
     }
@@ -1302,9 +1297,9 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
                 }
                 else if (!PVNode || !ss->pvFollow)
                 {
-                    int history = pawnHistory[+movedPc][dstSq]  //
-                                + (*contHistory[0])[+movedPc][dstSq]
-                                + (*contHistory[1])[+movedPc][dstSq];
+                    int history = (*contHistory[0])[+movedPc][dstSq]
+                                + (*contHistory[1])[+movedPc][dstSq]
+                                + histories.pawn_entry(pos.pawn_key())[+movedPc][dstSq];
 
                     // History based pruning
                     if (!check && history < -4136 * depth)
@@ -1661,7 +1656,7 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
     {
         bool extra = bestMove == ttd.move;
 
-        update_histories(pos, pawnHistory, ss, depth, bestMove, extra, searchedMoves);
+        update_histories(pos, ss, depth, bestMove, extra, searchedMoves);
 
         if constexpr (!PVNode)
         {
@@ -1674,31 +1669,28 @@ Value Worker::search(Position& pos, Stack* const ss, Value alpha, Value beta, De
         // Bonus for prior quiet move
         if (!preCapture)
         {
-            // clang-format off
-            int bonusScale = std::max(
-                            - 241
-                            // Increase bonus when depth is high
-                            + std::min(59 * depth, 420)
-                            // Increase bonus when bestValue is lower than current static evaluation
-                            + (!(ss    )->inCheck && bestValue <= +(ss    )->evalValue - 106) * 142
-                            // Increase bonus when bestValue is higher than previous static evaluation
-                            + (!(ss - 1)->inCheck && bestValue <= -(ss - 1)->evalValue -  68) * 159
-                            // Increase bonus when the previous moveCount is high
-                            +  86 * ((ss - 1)->moveCount / 5)
-                            // Increase bonus if the previous move has a bad history
-                            - constexpr_round(10.2041e-3 * double((ss - 1)->history)),
-                              1);
-            // clang-format on
+            int bonusScale =
+              std::max(-241
+                         // Increase bonus when depth is high
+                         + std::min(59 * depth, 420)
+                         // Increase bonus when bestValue is lower than current static evaluation
+                         + (!(ss)->inCheck && bestValue <= +(ss)->evalValue - 106) * 142
+                         // Increase bonus when bestValue is higher than previous static evaluation
+                         + (!(ss - 1)->inCheck && bestValue <= -(ss - 1)->evalValue - 68) * 159
+                         // Increase bonus when the previous moveCount is high
+                         + 86 * ((ss - 1)->moveCount / 5)
+                         // Increase bonus if the previous move has a bad history
+                         - constexpr_round(10.2041e-3 * double((ss - 1)->history)),
+                       1);
             int bonus = bonusScale * std::min(-85 + 150 * depth, +1337);
-
-            if (preNonPawn)
-                update_pawn_history(pawnHistory, pos[preSq], preSq,
-                                    constexpr_round(39.5508e-3 * double(bonus)));
 
             update_quiet_history(~ac, preMove, constexpr_round(6.5613e-3 * double(bonus)));
 
             update_continuation_histories(ss - 1, pos[preSq], preSq,
                                           constexpr_round(16.0522e-3 * double(bonus)));
+            if (preNonPawn)
+                update_pawn_history(pos, pos[preSq], preSq,
+                                    constexpr_round(39.5508e-3 * double(bonus)));
         }
         // Bonus for prior capture move
         else
@@ -2041,17 +2033,26 @@ Value Worker::evaluate(const Position& pos) noexcept {
                               optimism[pos.active_color()]);
 }
 
-// clang-format off
+void Worker::update_capture_history(const Piece     movedPc,
+                                    const Square    dstSq,
+                                    const PieceType capturedPt,
+                                    const int       bonus) noexcept {
+    assert(is_ok(dstSq));
 
-void Worker::update_capture_history(const Piece movedPc, const Square dstSq, const PieceType capturedPt, const int bonus) noexcept {
     captureHistory[+movedPc][dstSq][capturedPt] << bonus;
 }
 void Worker::update_capture_history(const Position& pos, const Move m, const int bonus) noexcept {
+    assert(m.is_ok());
+
     update_capture_history(pos.moved_pc(m), m.dst_sq(), pos.captured_pt(m), bonus);
 }
+
 void Worker::update_quiet_history(const Color ac, const Move m, const int bonus) noexcept {
+    assert(m.is_ok());
+
     quietHistory[ac][m.raw()] << bonus;
 }
+
 void Worker::update_low_ply_quiet_history(const i16 ssPly, const Move m, const int bonus) noexcept {
     assert(m.is_ok());
 
@@ -2059,26 +2060,57 @@ void Worker::update_low_ply_quiet_history(const i16 ssPly, const Move m, const i
         lowPlyQuietHistory[ssPly][m.raw()] << bonus;
 }
 
-// Updates quiet histories (move sorting heuristics)
-void Worker::update_quiet_histories(const Position& pos, PawnHistory& pawnHistory, Stack* const ss, const Move m, const int bonus) noexcept {
+void Worker::update_pawn_history(const Position& pos,
+                                 const Piece     pc,
+                                 const Square    dstSq,
+                                 const int       bonus) noexcept {
+    //assert(is_ok(pc));
+    assert(is_ok(dstSq));
+
+    histories.pawn_entry(pos.pawn_key())[+pc][dstSq] << bonus;
+}
+void Worker::update_pawn_history(const Position& pos, const Move m, const int bonus) noexcept {
     assert(m.is_ok());
 
-    update_pawn_history(pawnHistory, pos.moved_pc(m), m.dst_sq(), constexpr_round((0.4482 + int(bonus > -4) * 0.6299) * double(bonus)));
+    update_pawn_history(pos, pos.moved_pc(m), m.dst_sq(), bonus);
+}
 
-    update_quiet_history(pos.active_color(), m, constexpr_round(1.0000 * double(bonus)));
+// Updates quiet histories (move sorting heuristics)
+void Worker::update_quiet_histories(const Position& pos,
+                                    Stack* const    ss,
+                                    const Move      m,
+                                    const int       bonus) noexcept {
+    assert(m.is_ok());
+
+    const Color ac = pos.active_color();
+
+    update_quiet_history(ac, m, constexpr_round(1.0000 * double(bonus)));
 
     update_low_ply_quiet_history(ss->ply, m, constexpr_round(0.6953 * double(bonus)));
 
-    update_continuation_histories(ss, pos.moved_pc(m), m.dst_sq(), constexpr_round(0.7324 * double(bonus)));
+    update_continuation_histories(ss, pos.moved_pc(m), m.dst_sq(),
+                                  constexpr_round(0.7324 * double(bonus)));
+
+    update_pawn_history(pos, m,
+                        constexpr_round((0.4482 + int(bonus > -4) * 0.6299) * double(bonus)));
 }
 
 // Updates history at the end of search() when a bestMove is found and other searched moves are known
-void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Stack* const ss, const Depth depth, const Move bestMove, const bool extra, const Array<SearchedMoves, 2>& searchedMoves) noexcept {
+void Worker::update_histories(const Position&                pos,
+                              Stack* const                   ss,
+                              const Depth                    depth,
+                              const Move                     bestMove,
+                              const bool                     extra,
+                              const Array<SearchedMoves, 2>& searchedMoves) noexcept {
     assert(depth > DEPTH_ZERO);
     assert(ss->moveCount != 0);
 
-    int bonus = std::clamp(-81 + 133 * depth + std::min(constexpr_round(31.2500e-3 * double((ss - 1)->history) / double(depth)), 512), +4, +1888)
-              + int(extra) * 364;
+    int bonus =
+      std::clamp(
+        -81 + 133 * depth
+          + std::min(constexpr_round(31.2500e-3 * double((ss - 1)->history) / double(depth)), 512),
+        +4, +1888)
+      + int(extra) * 364;
 
     int malus = std::min(-235 + 968 * depth, +2244);
 
@@ -2088,13 +2120,13 @@ void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Sta
     }
     else
     {
-        update_quiet_histories(pos, pawnHistory, ss, bestMove, constexpr_round(0.8779 * double(bonus)));
+        update_quiet_histories(pos, ss, bestMove, constexpr_round(0.8779 * double(bonus)));
 
         // Decrease history for all non-best quiet moves
         int decayQuietMalus = constexpr_round(1.0180 * double(malus));
         for (const Move qm : searchedMoves[0])
         {
-            update_quiet_histories(pos, pawnHistory, ss, qm, -decayQuietMalus);
+            update_quiet_histories(pos, ss, qm, -decayQuietMalus);
             decayQuietMalus = constexpr_round(0.8994 * double(decayQuietMalus));
         }
     }
@@ -2109,12 +2141,16 @@ void Worker::update_histories(const Position& pos, PawnHistory& pawnHistory, Sta
 
     // Extra penalty for a quiet early move that was not a TT move in the previous ply when it gets refuted
     Stack* const ss1 = ss - 1;
-    if (ss1->move.is_ok() && pos.captured_pc() == Piece::NO_PIECE && ss1->moveCount == 1 + int(ss1->ttMove != Move::None))
+    if (ss1->move.is_ok() && pos.captured_pc() == Piece::NO_PIECE
+        && ss1->moveCount == 1 + int(ss1->ttMove != Move::None))
     {
         const Square preSq = ss1->move.dst_sq();
-        update_continuation_histories(ss1, pos[preSq], preSq, -constexpr_round(0.6963 * double(malus)));
+        update_continuation_histories(ss1, pos[preSq], preSq,
+                                      -constexpr_round(0.6963 * double(malus)));
     }
 }
+
+// clang-format off
 
 // Updates correction histories at the end of search() when a bestMove is found
 void Worker::update_correction_histories(const Position& pos, const Stack* const ss, int bonus) noexcept {

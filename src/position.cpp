@@ -1051,7 +1051,7 @@ DirtyBoard Position::do_move(const Move          m,
         if (enPassantSq == SQ_NONE)
             prefetch(worker->transpositionTable.cluster(key()));
 
-        prefetch(&worker->histories.pawn(pawn_key())[+movedPc][dstSq]);
+        prefetch(&worker->histories.pawn_entry(pawn_key())[+movedPc][dstSq]);
         prefetch(&worker->histories.pawn_correction<WHITE>(pawn_key(WHITE)));
         prefetch(&worker->histories.pawn_correction<BLACK>(pawn_key(BLACK)));
         prefetch(&worker->histories.minor_correction<WHITE>(minor_key(WHITE)));
