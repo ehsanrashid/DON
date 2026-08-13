@@ -275,20 +275,23 @@ constexpr usize round_up_to_pow2(usize x) noexcept {
 }
 
 template<typename T>
-constexpr T constexpr_abs(T x) noexcept {
+constexpr std::make_unsigned_t<T> constexpr_abs(T x) noexcept {
     static_assert(std::is_integral_v<T>);
 
-    return x < 0 ? (x == std::numeric_limits<T>::min() ? x : -x) : x;
+    using U = std::make_unsigned_t<T>;
+    return x < 0 ? U{} - static_cast<U>(x) : static_cast<U>(x);
 }
-constexpr float  constexpr_abs(float f) noexcept { return f < 0.0f ? -f : +f; }
-constexpr double constexpr_abs(double d) noexcept { return d < 0.0 ? -d : +d; }
+
+constexpr float       constexpr_abs(float f) noexcept { return f < 0.0f ? -f : f; }
+constexpr double      constexpr_abs(double d) noexcept { return d < 0.0 ? -d : d; }
+constexpr long double constexpr_abs(long double x) noexcept { return x < 0.0L ? -x : x; }
 
 constexpr int constexpr_round(double d) noexcept {
-    return d < 0.0 ? int(d - 0.4999) : int(d + 0.4999);
+    return d < 0.0 ? static_cast<int>(d - 0.4999) : static_cast<int>(d + 0.4999);
 }
 
-constexpr int constexpr_ceil(double d) noexcept { return int(d + 0.4999); }
-constexpr int constexpr_floor(double d) noexcept { return int(d - 0.4999); }
+constexpr int constexpr_ceil(double d) noexcept { return static_cast<int>(d + 0.4999); }
+constexpr int constexpr_floor(double d) noexcept { return static_cast<int>(d - 0.4999); }
 
 // Computes ln(1 + f) for f in (-1, sqrt(2)-1] via the identity
 //   ln(1+f) = 2 * atanh(s),   s = f / (2 + f)

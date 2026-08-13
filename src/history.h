@@ -80,7 +80,7 @@ class StatsEntry final {
         int clampedBonus = std::clamp(bonus, -D, +D);
         // Apply gravity-based adjustment
         T v   = *this;
-        *this = v + clampedBonus - v * constexpr_abs(clampedBonus) / D;
+        *this = v + clampedBonus - v * T(constexpr_abs(clampedBonus)) / D;
 
         assert(constexpr_abs(T(*this)) <= D);
     }

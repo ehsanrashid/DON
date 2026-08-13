@@ -469,7 +469,7 @@ void Position::set(std::string_view fens, State* newSt) noexcept {
     st->rule50Count = constexpr_abs(rule50Count);
     // Convert from moveNum starting from 1 to posPly starting from 0,
     // handle also common incorrect FEN with moveNum = 0.
-    gamePly = std::max(2 * (constexpr_abs(moveNum) - 1), 0) + int(ac == BLACK);
+    gamePly = std::max(2 * int(constexpr_abs(moveNum) - 1), 0) + int(ac == BLACK);
 
     st->checkersBB = pieces_bb(~ac) & attackers_bb(square<KING>(ac));
 
