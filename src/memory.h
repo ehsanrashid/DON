@@ -36,9 +36,7 @@
 #endif
 
 #include "misc.h"
-
-#define ASSERT_ALIGNED(ptr, alignment) \
-    assert(reinterpret_cast<std::uintptr_t>(ptr) % alignment == 0)
+#include "types.h"
 
 namespace DON {
 
@@ -139,12 +137,12 @@ memory_allocator(AllocFunc&& allocFunc, usize size) noexcept {
 //
 
 template<typename T>
-struct AlignedStdDeleter final {
+struct AlignedStdDeleter {
     void operator()(T* mem) const noexcept { return memory_deleter<T>(mem, free_aligned_std); }
 };
 
 template<typename T>
-struct AlignedStdArrayDeleter final {
+struct AlignedStdArrayDeleter {
     void operator()(T* mem) const noexcept {
         return memory_array_deleter<T>(mem, free_aligned_std);
     }
@@ -187,14 +185,14 @@ make_unique_aligned_std(usize size) noexcept {
 //
 
 template<typename T>
-struct LargePageDeleter final {
+struct LargePageDeleter {
     void operator()(T* mem) const noexcept {
         return memory_deleter<T>(mem, free_aligned_large_page);
     }
 };
 
 template<typename T>
-struct LargePageArrayDeleter final {
+struct LargePageArrayDeleter {
     void operator()(T* mem) const noexcept {
         return memory_array_deleter<T>(mem, free_aligned_large_page);
     }

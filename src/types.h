@@ -78,6 +78,9 @@
     #endif
 #endif
 
+#define ASSERT_ALIGNED(ptr, alignment) \
+    assert(reinterpret_cast<std::uintptr_t>(ptr) % alignment == 0)
+
 namespace DON {
 
 using Bitboard = u64;

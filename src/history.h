@@ -32,7 +32,7 @@
 
 namespace DON {
 
-// StatsEntry stores a signed integral statistic whose value is bounded by [-D, D].
+// HistoryEntry stores a signed integral statistic whose value is bounded by [-D, D].
 //
 // It allows a statistic to be updated directly using operator<<()
 // while optionally supporting atomic storage.
@@ -42,7 +42,7 @@ namespace DON {
 //   both the stored value and each update are limited to [-D, D].
 // Atomic controls whether the stored value is accessed atomically.
 template<typename T, int D, bool Atomic = false>
-class StatsEntry final {
+class HistoryEntry final {
     static_assert(std::is_signed_v<T> && std::is_integral_v<T>, "T must be a signed integral");
     static_assert(D > 0, "D must be positive");
     static_assert(D <= std::numeric_limits<T>::max(), "D must fit in T");
@@ -121,10 +121,10 @@ class DynamicArray final {
 };
 
 template<typename T, int D, usize... Sizes>
-using Stats = MultiArray<StatsEntry<T, D>, Sizes...>;
+using History = MultiArray<HistoryEntry<T, D>, Sizes...>;
 
 template<typename T, int D, usize... Sizes>
-using AtomicStats = MultiArray<StatsEntry<T, D, true>, Sizes...>;
+using AtomicHistory = MultiArray<HistoryEntry<T, D, true>, Sizes...>;
 
 template<typename T>
 constexpr bool is_power_of_2(const T x) noexcept {
@@ -147,30 +147,30 @@ inline constexpr int CORRECTION_HISTORY_LIMIT = 1024;
 
 
 // CaptureHistory is addressed by move's [piece][dstSq][captured piece type]
-using CaptureHistory = Stats<i16, 10692, PIECE_NB, SQUARE_NB, PIECE_TYPE_NB>;
+using CaptureHistory = History<i16, 10692, PIECE_NB, SQUARE_NB, PIECE_TYPE_NB>;
 
 // QuietHistory records how often quiet moves succeed or fail during the current search
 // and is used for move ordering and reduction decisions.
 // is addressed by the color and move's orgSq and dstSq squares.
 // see https://www.chessprogramming.org/Butterfly_Boards
-using QuietHistory = Stats<i16, 7183, COLOR_NB, QUIET_HISTORY_SIZE>;
+using QuietHistory = History<i16, 7183, COLOR_NB, QUIET_HISTORY_SIZE>;
 
 // LowPlyHistory is used to improve move ordering near the root.
 // is addressed by the ply and move's orgSq and dstSq squares.
-using LowPlyQuietHistory = Stats<i16, 7183, LOW_PLY_SIZE, QUIET_HISTORY_SIZE>;
+using LowPlyQuietHistory = History<i16, 7183, LOW_PLY_SIZE, QUIET_HISTORY_SIZE>;
 
 // PieceSqHistory is addressed by the move's [piece][dstSq]
-using PieceSqHistory = Stats<i16, 30000, PIECE_NB, SQUARE_NB>;
+using PieceSqHistory = History<i16, 30000, PIECE_NB, SQUARE_NB>;
 
 // ContinuationHistory is the combined history of given pair of moves,
 // usually the current move given the previous move.
 using ContinuationHistory = MultiArray<PieceSqHistory, PIECE_NB, SQUARE_NB>;
 
 // PawnHistory is addressed by the pawn structure and a move's [piece][dstSq]
-using PawnHistory = DynamicArray<AtomicStats<i16, 8192, PIECE_NB, SQUARE_NB>>;
+using PawnHistory = DynamicArray<AtomicHistory<i16, 8192, PIECE_NB, SQUARE_NB>>;
 
 // TTMoveHistory
-using TTMoveHistory = StatsEntry<i16, 8192>;
+using TTMoveHistory = HistoryEntry<i16, 8192>;
 
 // Correction histories record differences between the static evaluation of positions and their search score.
 // It is used to improve the static evaluation used by some search heuristics.
@@ -178,15 +178,15 @@ using TTMoveHistory = StatsEntry<i16, 8192>;
 
 // PawnCorrectionHistory is addressed by the color and pawn structure
 using PawnCorrectionHistory =
-  DynamicArray<AtomicStats<i16, CORRECTION_HISTORY_LIMIT, COLOR_NB, COLOR_NB>>;
+  DynamicArray<AtomicHistory<i16, CORRECTION_HISTORY_LIMIT, COLOR_NB, COLOR_NB>>;
 // MinorCorrectionHistory is addressed by the color and minor piece (Knight, Bishop) structure
 using MinorCorrectionHistory =
-  DynamicArray<AtomicStats<i16, CORRECTION_HISTORY_LIMIT, COLOR_NB, COLOR_NB>>;
+  DynamicArray<AtomicHistory<i16, CORRECTION_HISTORY_LIMIT, COLOR_NB, COLOR_NB>>;
 // NonPawnCorrectionHistory is addressed by the color and non-pawn piece structure
 using NonPawnCorrectionHistory =
-  DynamicArray<AtomicStats<i16, CORRECTION_HISTORY_LIMIT, COLOR_NB, COLOR_NB>>;
+  DynamicArray<AtomicHistory<i16, CORRECTION_HISTORY_LIMIT, COLOR_NB, COLOR_NB>>;
 // PieceSqCorrectionHistory is addressed by the move's [piece][dstSq]
-using PieceSqCorrectionHistory = Stats<i16, CORRECTION_HISTORY_LIMIT, PIECE_NB, SQUARE_NB>;
+using PieceSqCorrectionHistory = History<i16, CORRECTION_HISTORY_LIMIT, PIECE_NB, SQUARE_NB>;
 // ContinuationCorrectionHistory is the combined history of given pair of moves,
 // usually the current move given the previous move.
 using ContinuationCorrectionHistory = MultiArray<PieceSqCorrectionHistory, PIECE_NB, SQUARE_NB>;
@@ -214,37 +214,37 @@ class Histories final {
         return correctionKey & correction_history_mask();
     }
 
-    auto& pawn_correction() noexcept { return pawnCorrectionHistory; }
+    auto& pawn_correction_history() noexcept { return pawnCorrectionHistory; }
 
     template<Color C>
-    auto& pawn_correction(const Key pawnKey) noexcept {
-        return pawnCorrectionHistory[correction_index(pawnKey)][C];
+    auto& pawn_correction_entry(const Position& pos) noexcept {
+        return pawnCorrectionHistory[correction_index(pos.pawn_key(C))][C];
     }
     template<Color C>
-    const auto& pawn_correction(const Key pawnKey) const noexcept {
-        return pawnCorrectionHistory[correction_index(pawnKey)][C];
-    }
-
-    auto& minor_correction() noexcept { return minorCorrectionHistory; }
-
-    template<Color C>
-    auto& minor_correction(const Key minorKey) noexcept {
-        return minorCorrectionHistory[correction_index(minorKey)][C];
-    }
-    template<Color C>
-    const auto& minor_correction(const Key minorKey) const noexcept {
-        return minorCorrectionHistory[correction_index(minorKey)][C];
+    const auto& pawn_correction_entry(const Position& pos) const noexcept {
+        return pawnCorrectionHistory[correction_index(pos.pawn_key(C))][C];
     }
 
-    auto& non_pawn_correction() noexcept { return nonPawnCorrectionHistory; }
+    auto& minor_correction_history() noexcept { return minorCorrectionHistory; }
 
     template<Color C>
-    auto& non_pawn_correction(const Key nonPawnKey) noexcept {
-        return nonPawnCorrectionHistory[correction_index(nonPawnKey)][C];
+    auto& minor_correction_entry(const Position& pos) noexcept {
+        return minorCorrectionHistory[correction_index(pos.minor_key(C))][C];
     }
     template<Color C>
-    const auto& non_pawn_correction(const Key nonPawnKey) const noexcept {
-        return nonPawnCorrectionHistory[correction_index(nonPawnKey)][C];
+    const auto& minor_correction_entry(const Position& pos) const noexcept {
+        return minorCorrectionHistory[correction_index(pos.minor_key(C))][C];
+    }
+
+    auto& non_pawn_correction_history() noexcept { return nonPawnCorrectionHistory; }
+
+    template<Color C>
+    auto& non_pawn_correction_entry(const Position& pos) noexcept {
+        return nonPawnCorrectionHistory[correction_index(pos.non_pawn_key(C))][C];
+    }
+    template<Color C>
+    const auto& non_pawn_correction_entry(const Position& pos) const noexcept {
+        return nonPawnCorrectionHistory[correction_index(pos.non_pawn_key(C))][C];
     }
 
     // --------------------------------

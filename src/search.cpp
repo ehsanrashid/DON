@@ -240,10 +240,12 @@ void Worker::reset() noexcept {
     auto correctionHistoryRange =
       split_range(numa_id(), numa_thread_count(), histories.correction_history_size());
 
-    histories.pawn_correction().fill(correctionHistoryRange.beg, correctionHistoryRange.end, -5);
-    histories.minor_correction().fill(correctionHistoryRange.beg, correctionHistoryRange.end, -5);
-    histories.non_pawn_correction().fill(correctionHistoryRange.beg, correctionHistoryRange.end,
-                                         -5);
+    histories.pawn_correction_history().fill(correctionHistoryRange.beg, correctionHistoryRange.end,
+                                             -5);
+    histories.minor_correction_history().fill(correctionHistoryRange.beg,
+                                              correctionHistoryRange.end, -5);
+    histories.non_pawn_correction_history().fill(correctionHistoryRange.beg,
+                                                 correctionHistoryRange.end, -5);
 
     // Reset histories
 
@@ -2162,12 +2164,12 @@ void Worker::update_correction_histories(const Position& pos, const Stack* const
 
     bonus = std::clamp(bonus, -CORRECTION_HISTORY_LIMIT / 4, +CORRECTION_HISTORY_LIMIT / 4);
 
-    histories.    pawn_correction<WHITE>(pos.    pawn_key(WHITE))[ac] << constexpr_round(   PawnBonusScale * double(bonus));
-    histories.    pawn_correction<BLACK>(pos.    pawn_key(BLACK))[ac] << constexpr_round(   PawnBonusScale * double(bonus));
-    histories.   minor_correction<WHITE>(pos.   minor_key(WHITE))[ac] << constexpr_round(  MinorBonusScale * double(bonus));
-    histories.   minor_correction<BLACK>(pos.   minor_key(BLACK))[ac] << constexpr_round(  MinorBonusScale * double(bonus));
-    histories.non_pawn_correction<WHITE>(pos.non_pawn_key(WHITE))[ac] << constexpr_round(NonPawnBonusScale * double(bonus));
-    histories.non_pawn_correction<BLACK>(pos.non_pawn_key(BLACK))[ac] << constexpr_round(NonPawnBonusScale * double(bonus));
+    histories.    pawn_correction_entry<WHITE>(pos)[ac] << constexpr_round(   PawnBonusScale * double(bonus));
+    histories.    pawn_correction_entry<BLACK>(pos)[ac] << constexpr_round(   PawnBonusScale * double(bonus));
+    histories.   minor_correction_entry<WHITE>(pos)[ac] << constexpr_round(  MinorBonusScale * double(bonus));
+    histories.   minor_correction_entry<BLACK>(pos)[ac] << constexpr_round(  MinorBonusScale * double(bonus));
+    histories.non_pawn_correction_entry<WHITE>(pos)[ac] << constexpr_round(NonPawnBonusScale * double(bonus));
+    histories.non_pawn_correction_entry<BLACK>(pos)[ac] << constexpr_round(NonPawnBonusScale * double(bonus));
 
     const Move preMove = (ss - 1)->move;
     if (preMove.is_ok())
@@ -2185,12 +2187,12 @@ int Worker::correction_value(const Position& pos, const Stack* const ss) const n
     const Color ac = pos.active_color();
 
     i64 correctionValue =
-           + i64{7669} * int(histories.    pawn_correction<WHITE>(pos.    pawn_key(WHITE))[ac]
-                           + histories.    pawn_correction<BLACK>(pos.    pawn_key(BLACK))[ac])
-           + i64{5284} * int(histories.   minor_correction<WHITE>(pos.   minor_key(WHITE))[ac]
-                           + histories.   minor_correction<BLACK>(pos.   minor_key(BLACK))[ac])
-           +i64{12906} * int(histories.non_pawn_correction<WHITE>(pos.non_pawn_key(WHITE))[ac]
-                           + histories.non_pawn_correction<BLACK>(pos.non_pawn_key(BLACK))[ac]);
+           + i64{7669} * int(histories.    pawn_correction_entry<WHITE>(pos)[ac]
+                           + histories.    pawn_correction_entry<BLACK>(pos)[ac])
+           + i64{5284} * int(histories.   minor_correction_entry<WHITE>(pos)[ac]
+                           + histories.   minor_correction_entry<BLACK>(pos)[ac])
+           +i64{12906} * int(histories.non_pawn_correction_entry<WHITE>(pos)[ac]
+                           + histories.non_pawn_correction_entry<BLACK>(pos)[ac]);
 
     const Move preMove = (ss - 1)->move;
     if (preMove.is_ok())
