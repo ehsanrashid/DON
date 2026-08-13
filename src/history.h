@@ -47,10 +47,15 @@ inline constexpr usize CORRECTION_HISTORY_BASE_SIZE = std::numeric_limits<u16>::
 static_assert((CORRECTION_HISTORY_BASE_SIZE & (CORRECTION_HISTORY_BASE_SIZE - 1)) == 0,
               "CORRECTION_HISTORY_BASE_SIZE has to be power of 2");
 
-// StatsEntry is the container of various numerical statistics.
-// Use a class instead of a naked value to directly call history update operator<<() on the entry.
-// The first template parameter T is the base type of the StatsEntry and
-// the second template parameter D limits the range of updates in [-D, D] when update values with the << operator
+// StatsEntry stores a signed integral statistic whose value is bounded by [-D, D].
+//
+// It allows a statistic to be updated directly using operator<<()
+// while optionally supporting atomic storage.
+//
+// T specifies the underlying signed integral type.
+// D specifies the maximum magnitude of the statistic and each update;
+//   both the stored value and each update are limited to [-D, D].
+// Atomic controls whether the stored value is accessed atomically.
 template<typename T, int D, bool Atomic = false>
 class StatsEntry final {
     static_assert(std::is_arithmetic_v<T>, "T must be arithmetic");
@@ -62,21 +67,21 @@ class StatsEntry final {
    public:
     operator T() const noexcept {
         if constexpr (Atomic)
-            return value.load(std::memory_order_relaxed);
+            return enrty.load(std::memory_order_relaxed);
         else
-            return value;
+            return enrty;
     }
 
-    void operator=(const T& v) noexcept {
+    void operator=(const T& e) noexcept {
         if constexpr (Atomic)
-            value.store(v, std::memory_order_relaxed);
+            enrty.store(e, std::memory_order_relaxed);
         else
-            value = v;
+            enrty = e;
     }
 
-    // Overload operator<< to modify the value
+    // Update the statistic using bonus, clamped to the range [-D, +D].
     void operator<<(int bonus) noexcept {
-        // Make sure that bonus is in range [-D, +D]
+        // Clamp the update to the range [-D, +D]
         int clampedBonus = std::clamp(bonus, -D, +D);
         // Apply gravity-based adjustment
         T v   = *this;
@@ -92,7 +97,7 @@ class StatsEntry final {
     }
 
    private:
-    std::conditional_t<Atomic, std::atomic<T>, T> value;
+    std::conditional_t<Atomic, std::atomic<T>, T> enrty;
 };
 
 template<typename T>
