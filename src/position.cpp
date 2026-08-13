@@ -1051,13 +1051,13 @@ DirtyBoard Position::do_move(const Move          m,
         if (enPassantSq == SQ_NONE)
             prefetch(worker->transpositionTable.cluster(key()));
 
-        prefetch(&worker->histories.pawn_entry(*this)[+movedPc][dstSq]);
-        prefetch(&worker->histories.pawn_correction_entry<WHITE>(*this));
-        prefetch(&worker->histories.pawn_correction_entry<BLACK>(*this));
-        prefetch(&worker->histories.minor_correction_entry<WHITE>(*this));
-        prefetch(&worker->histories.minor_correction_entry<BLACK>(*this));
-        prefetch(&worker->histories.non_pawn_correction_entry<WHITE>(*this));
-        prefetch(&worker->histories.non_pawn_correction_entry<BLACK>(*this));
+        prefetch(&worker->atomicHistories.pawn_entry(*this)[+movedPc][dstSq]);
+        prefetch(&worker->atomicHistories.pawn_correction_entry<WHITE>(*this));
+        prefetch(&worker->atomicHistories.pawn_correction_entry<BLACK>(*this));
+        prefetch(&worker->atomicHistories.minor_correction_entry<WHITE>(*this));
+        prefetch(&worker->atomicHistories.minor_correction_entry<BLACK>(*this));
+        prefetch(&worker->atomicHistories.non_pawn_correction_entry<WHITE>(*this));
+        prefetch(&worker->atomicHistories.non_pawn_correction_entry<BLACK>(*this));
     }
 
     // Update board

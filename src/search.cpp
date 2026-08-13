@@ -223,31 +223,12 @@ Worker::Worker(usize                     threadIdx,
     options(sharedState.options),
     transpositionTable(sharedState.transpositionTable),
     threads(sharedState.threads),
-    histories(sharedState.historiesMap.at(accessToken.numa_id())),
-    accCache(network[accessToken]) {}
+    accCache(network[accessToken]),
+    atomicHistories(sharedState.atomicHistoriesMap.at(accessToken.numa_id())) {}
 
 // Reset per-thread data structures
 void Worker::reset() noexcept {
     assert(thread_count() == threads.size());
-
-    // Each thread resets its NUMA-local range of history entries to prevent false sharing
-
-    auto pawnHistoryRange =
-      split_range(numa_id(), numa_thread_count(), histories.pawn_history_size());
-
-    histories.pawn_history().fill(pawnHistoryRange.beg, pawnHistoryRange.end, -1338);
-
-    auto correctionHistoryRange =
-      split_range(numa_id(), numa_thread_count(), histories.correction_history_size());
-
-    histories.pawn_correction_history().fill(correctionHistoryRange.beg, correctionHistoryRange.end,
-                                             -5);
-    histories.minor_correction_history().fill(correctionHistoryRange.beg,
-                                              correctionHistoryRange.end, -5);
-    histories.non_pawn_correction_history().fill(correctionHistoryRange.beg,
-                                                 correctionHistoryRange.end, -5);
-
-    // Reset histories
 
     captureHistory.fill(-742);
     quietHistory.fill(-5);
@@ -263,6 +244,23 @@ void Worker::reset() noexcept {
             pieceSqCorrHist.fill(5);
 
     ttMoveHistory = 0;
+
+    // Each thread resets its NUMA-local range of history entries to prevent false sharing
+
+    auto pawnHistoryRange =
+      split_range(numa_id(), numa_thread_count(), atomicHistories.pawn_history_size());
+
+    atomicHistories.pawn_history().fill(pawnHistoryRange.beg, pawnHistoryRange.end, -1338);
+
+    auto correctionHistoryRange =
+      split_range(numa_id(), numa_thread_count(), atomicHistories.correction_history_size());
+
+    atomicHistories.pawn_correction_history().fill(correctionHistoryRange.beg,
+                                                   correctionHistoryRange.end, -5);
+    atomicHistories.minor_correction_history().fill(correctionHistoryRange.beg,
+                                                    correctionHistoryRange.end, -5);
+    atomicHistories.non_pawn_correction_history().fill(correctionHistoryRange.beg,
+                                                       correctionHistoryRange.end, -5);
 
     accCache.init(network[numa_access_token()]);
 }
@@ -1204,8 +1202,8 @@ Value Worker::search(Position&    pos,
 
     Array<SearchedMoves, 2> searchedMoves;
 
-    MovePicker mp(pos, ttd.move, &histories, &captureHistory, &quietHistory, &lowPlyQuietHistory,
-                  contHistory, ss->ply, -1);
+    MovePicker mp(pos, ttd.move, &captureHistory, &quietHistory, &lowPlyQuietHistory, contHistory,
+                  &atomicHistories, ss->ply, -1);
     // Step 13. Loop through all legal moves until no moves remain or a beta cutoff occurs.
     while ((move = mp.next_move()) != Move::None)
     {
@@ -1301,7 +1299,7 @@ Value Worker::search(Position&    pos,
                 {
                     int history = (*contHistory[0])[+movedPc][dstSq]
                                 + (*contHistory[1])[+movedPc][dstSq]
-                                + histories.pawn_entry(pos)[+movedPc][dstSq];
+                                + atomicHistories.pawn_entry(pos)[+movedPc][dstSq];
 
                     // History based pruning
                     if (!check && history < -4136 * depth)
@@ -1863,8 +1861,8 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
 
     // Initialize a MovePicker object for the current position, prepare to search the moves.
     // Because the depth is <= DEPTH_ZERO here, only captures, promotions will be generated.
-    MovePicker mp(pos, ttd.move, &histories, &captureHistory, &quietHistory, &lowPlyQuietHistory,
-                  contHistory, ss->ply);
+    MovePicker mp(pos, ttd.move, &captureHistory, &quietHistory, &lowPlyQuietHistory, contHistory,
+                  &atomicHistories, ss->ply);
     // Step 5. Loop through all legal moves until no moves remain or a beta cutoff occurs.
     while ((move = mp.next_move()) != Move::None)
     {
@@ -2069,7 +2067,7 @@ void Worker::update_pawn_history(const Position& pos,
     //assert(is_ok(pc));
     assert(is_ok(dstSq));
 
-    histories.pawn_entry(pos)[+pc][dstSq] << bonus;
+    atomicHistories.pawn_entry(pos)[+pc][dstSq] << bonus;
 }
 void Worker::update_pawn_history(const Position& pos, const Move m, const int bonus) noexcept {
     assert(m.is_ok());
@@ -2164,12 +2162,12 @@ void Worker::update_correction_histories(const Position& pos, const Stack* const
 
     bonus = std::clamp(bonus, -CORRECTION_HISTORY_LIMIT / 4, +CORRECTION_HISTORY_LIMIT / 4);
 
-    histories.    pawn_correction_entry<WHITE>(pos)[ac] << constexpr_round(   PawnBonusScale * double(bonus));
-    histories.    pawn_correction_entry<BLACK>(pos)[ac] << constexpr_round(   PawnBonusScale * double(bonus));
-    histories.   minor_correction_entry<WHITE>(pos)[ac] << constexpr_round(  MinorBonusScale * double(bonus));
-    histories.   minor_correction_entry<BLACK>(pos)[ac] << constexpr_round(  MinorBonusScale * double(bonus));
-    histories.non_pawn_correction_entry<WHITE>(pos)[ac] << constexpr_round(NonPawnBonusScale * double(bonus));
-    histories.non_pawn_correction_entry<BLACK>(pos)[ac] << constexpr_round(NonPawnBonusScale * double(bonus));
+    atomicHistories.    pawn_correction_entry<WHITE>(pos)[ac] << constexpr_round(   PawnBonusScale * double(bonus));
+    atomicHistories.    pawn_correction_entry<BLACK>(pos)[ac] << constexpr_round(   PawnBonusScale * double(bonus));
+    atomicHistories.   minor_correction_entry<WHITE>(pos)[ac] << constexpr_round(  MinorBonusScale * double(bonus));
+    atomicHistories.   minor_correction_entry<BLACK>(pos)[ac] << constexpr_round(  MinorBonusScale * double(bonus));
+    atomicHistories.non_pawn_correction_entry<WHITE>(pos)[ac] << constexpr_round(NonPawnBonusScale * double(bonus));
+    atomicHistories.non_pawn_correction_entry<BLACK>(pos)[ac] << constexpr_round(NonPawnBonusScale * double(bonus));
 
     const Move preMove = (ss - 1)->move;
     if (preMove.is_ok())
@@ -2187,12 +2185,12 @@ int Worker::correction_value(const Position& pos, const Stack* const ss) const n
     const Color ac = pos.active_color();
 
     i64 correctionValue =
-           + i64{7669} * int(histories.    pawn_correction_entry<WHITE>(pos)[ac]
-                           + histories.    pawn_correction_entry<BLACK>(pos)[ac])
-           + i64{5284} * int(histories.   minor_correction_entry<WHITE>(pos)[ac]
-                           + histories.   minor_correction_entry<BLACK>(pos)[ac])
-           +i64{12906} * int(histories.non_pawn_correction_entry<WHITE>(pos)[ac]
-                           + histories.non_pawn_correction_entry<BLACK>(pos)[ac]);
+           + i64{7669} * int(atomicHistories.    pawn_correction_entry<WHITE>(pos)[ac]
+                           + atomicHistories.    pawn_correction_entry<BLACK>(pos)[ac])
+           + i64{5284} * int(atomicHistories.   minor_correction_entry<WHITE>(pos)[ac]
+                           + atomicHistories.   minor_correction_entry<BLACK>(pos)[ac])
+           +i64{12906} * int(atomicHistories.non_pawn_correction_entry<WHITE>(pos)[ac]
+                           + atomicHistories.non_pawn_correction_entry<BLACK>(pos)[ac]);
 
     const Move preMove = (ss - 1)->move;
     if (preMove.is_ok())

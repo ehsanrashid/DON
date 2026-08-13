@@ -930,19 +930,19 @@ class MultiArray final {
         }
     }
 
-    // void print() const noexcept {
-    //     std::cout << Size << ':' << sizeof...(Sizes) << std::endl;
+    //void print() const noexcept {
+    //    std::cout << Size << ':' << sizeof...(Sizes) << std::endl;
     //
-    //     for (auto& element : data_)
-    //     {
-    //         if constexpr (sizeof...(Sizes) == 0)
-    //             std::cout << element << ' ';
-    //         else
-    //             element.print();
-    //     }
+    //    for (auto& element : data_)
+    //    {
+    //        if constexpr (sizeof...(Sizes) == 0)
+    //            std::cout << element << ' ';
+    //        else
+    //            element.print();
+    //    }
     //
-    //     std::cout << std::endl;
-    // }
+    //    std::cout << std::endl;
+    //}
 
     constexpr void swap(MultiArray<T, Size, Sizes...>& multiArr) noexcept {
         data_.swap(multiArr.data_);

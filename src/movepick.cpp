@@ -287,21 +287,21 @@ ALWAYS_INLINE void adaptive_stable_sort(const Iterator beg, const Iterator end) 
 
 // MovePicker constructor for the main search and for the quiescence search
 MovePicker::MovePicker(const Position&           p,
-                       Move                      ttm,
-                       const Histories*          hists,
+                       const Move                ttm,
                        const CaptureHistory*     captureHist,
                        const QuietHistory*       quietHist,
                        const LowPlyQuietHistory* lowPlyQuietHist,
                        const PieceSqHistory**    continuationHist,
+                       const AtomicHistories*    atomicHists,
                        u16                       ply,
                        int                       th) noexcept :
     pos(p),
     ttMove(ttm),
-    histories(hists),
     captureHistory(captureHist),
     quietHistory(quietHist),
     lowPlyQuietHistory(lowPlyQuietHist),
     continuationHistory(continuationHist),
+    atomicHistories(atomicHists),
     ssPly(ply),
     threshold(th),
     moves() {
@@ -331,7 +331,7 @@ MovePicker::MovePicker(const Position&           p,
 // MovePicker constructor for ProbCut:
 // Generate captures with Static Exchange Evaluation (SEE) >= threshold.
 MovePicker::MovePicker(const Position&       p,
-                       Move                  ttm,
+                       const Move            ttm,
                        const CaptureHistory* captureHist,
                        int                   th) noexcept :
     pos(p),
@@ -400,7 +400,7 @@ MovePicker::score<GenType::ENC_QUIET>(const MoveList<GenType::ENC_QUIET>& moveLi
     const auto&        refQuietHistory        = *quietHistory;
     const auto&        refLowPlyQuietHistory  = *lowPlyQuietHistory;
     const auto* const* ptrContinuationHistory = continuationHistory;
-    const auto&        refPawnEntry           = (*histories).pawn_entry(pos);
+    const auto&        refPawnEntry           = (*atomicHistories).pawn_entry(pos);
 
     auto itr = cur;
 

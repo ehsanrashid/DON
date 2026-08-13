@@ -191,10 +191,10 @@ using PieceSqCorrectionHistory = History<i16, CORRECTION_HISTORY_LIMIT, PIECE_NB
 // usually the current move given the previous move.
 using ContinuationCorrectionHistory = MultiArray<PieceSqCorrectionHistory, PIECE_NB, SQUARE_NB>;
 
-class Histories final {
+class AtomicHistories final {
    public:
-    Histories() noexcept = delete;
-    Histories(usize count) noexcept :
+    AtomicHistories() noexcept = delete;
+    AtomicHistories(usize count) noexcept :
         correctionHistorySize(count * CORRECTION_HISTORY_BASE_SIZE),
         pawnHistorySize(count * PAWN_HISTORY_BASE_SIZE),
         pawnCorrectionHistory(correction_history_size()),
@@ -274,9 +274,7 @@ class Histories final {
     PawnHistory              pawnHistory;
 };
 
-using HistoriesMap = std::unordered_map<usize, Histories>;
-
-int loop();
+using AtomicHistoriesMap = std::unordered_map<usize, AtomicHistories>;
 
 }  // namespace DON
 

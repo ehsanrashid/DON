@@ -82,11 +82,11 @@ class MovePicker final {
 
     MovePicker(const Position&           p,
                Move                      ttm,
-               const Histories*          hists,
                const CaptureHistory*     captureHist,
                const QuietHistory*       quietHist,
                const LowPlyQuietHistory* lowPlyQuietHist,
                const PieceSqHistory**    continuationHist,
+               const AtomicHistories*    atomicHists,
                u16                       ply,
                int                       th = 0) noexcept;
 
@@ -139,11 +139,11 @@ class MovePicker final {
 
     const Position&           pos;
     Move                      ttMove;
-    const Histories*          histories           = nullptr;
     const CaptureHistory*     captureHistory      = nullptr;
     const QuietHistory*       quietHistory        = nullptr;
     const LowPlyQuietHistory* lowPlyQuietHistory  = nullptr;
     const PieceSqHistory**    continuationHistory = nullptr;
+    const AtomicHistories*    atomicHistories     = nullptr;
     const u16                 ssPly               = LOW_PLY_SIZE;
     int                       threshold;
 

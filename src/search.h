@@ -476,7 +476,7 @@ struct SharedState final {
     const Options&                                     options;
     const TranspositionTable&                          transpositionTable;
     Threads&                                           threads;
-    HistoriesMap&                                      historiesMap;
+    AtomicHistoriesMap&                                atomicHistoriesMap;
 };
 
 class Worker;
@@ -731,9 +731,10 @@ class Worker final {
     const Options&                                     options;
     const TranspositionTable&                          transpositionTable;
     Threads&                                           threads;
-    Histories&                                         histories;
-    NNUE::AccumulatorCache                             accCache;
-    NNUE::AccumulatorStack                             accStack;
+
+    // Used by NNUE
+    NNUE::AccumulatorCache accCache;
+    NNUE::AccumulatorStack accStack;
 
     std::atomic<u64> nodes, tbHits;
     std::atomic<u32> moveChanges;
@@ -765,6 +766,8 @@ class Worker final {
     ContinuationCorrectionHistory continuationCorrectionHistory;
 
     TTMoveHistory ttMoveHistory;
+
+    AtomicHistories& atomicHistories;
 
     friend class MainSearchManager;
     friend class Position;

@@ -118,9 +118,9 @@ class Engine final {
     Options                                     options;
     Threads                                     threads;
     TranspositionTable                          transpositionTable;
-    HistoriesMap                                historiesMap;
+    AtomicHistoriesMap                          atomicHistoriesMap;
 
-    SharedState sharedState{network, options, transpositionTable, threads, historiesMap};
+    SharedState sharedState{network, options, transpositionTable, threads, atomicHistoriesMap};
 
     StateListPtr states;
     Position     pos;
