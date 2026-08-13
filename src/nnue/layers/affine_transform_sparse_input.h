@@ -305,9 +305,8 @@ class AffineTransformSparseInput final {
         for (IndexType k = 0; k < AccCount; ++k)
             acc[k] = biasVec[k];
 
-        const auto* const RESTRICT beg = nnz.data();
-        const auto* const RESTRICT end = beg + count;
-        const auto* RESTRICT       p   = beg;
+        const auto* RESTRICT       p   = nnz.data();
+        const auto* const RESTRICT end = p + count;
 
             // clang-format off
     #if defined(USE_VNNI) || defined(USE_NEON_DOTPROD)

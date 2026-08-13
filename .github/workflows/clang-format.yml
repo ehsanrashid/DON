@@ -4,6 +4,7 @@
 # Read this before editing: https://securitylab.github.com/research/github-actions-preventing-pwn-requests/
 
 name: Clang-Format
+
 on:
   pull_request_target:
     branches:

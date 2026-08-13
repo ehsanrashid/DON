@@ -735,12 +735,13 @@ class Worker final {
     History<HType::CAPTURE>   captureHistory;
     History<HType::QUIET>     quietHistory;
     History<HType::LOW_QUIET> lowPlyQuietHistory;
-    History<HType::TT_MOVE>   ttMoveHistory;
 
     Array<History<HType::CONTINUATION>, 2, 2> continuationHistory;  // [inCheck][capture]
 
     // Correction Histories
     CorrectionHistory<CHType::CONTINUATION> continuationCorrectionHistory;
+
+    TTMoveHistory ttMoveHistory;
 
     friend class MainSearchManager;
     friend class Position;

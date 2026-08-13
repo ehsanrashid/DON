@@ -97,7 +97,7 @@ SRCS := attacks.cpp benchmark.cpp bitboard.cpp engine.cpp evaluate.cpp main.cpp 
     position.cpp search.cpp thread.cpp timeman.cpp tt.cpp tune.cpp uci.cpp \
     nnue/features/full_threats.cpp nnue/features/half_ka_hm.cpp \
     nnue/accumulator.cpp nnue/network.cpp nnue/nmisc.cpp \
-    book/polyglot.cpp tablebase/syzygy.cpp
+    book/polyglot.cpp tablebase/syzygy.cpp history.cpp
 
 HEADERS := attacks.h benchmark.h bitboard.h engine.h evaluate.h history.h memory.h \
     misc.h movegen.h movepick.h notation.h numa.h option.h perft.h platform_win.h \

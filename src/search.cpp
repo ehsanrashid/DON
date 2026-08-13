@@ -255,7 +255,6 @@ void Worker::reset() noexcept {
 
     captureHistory.fill(-742);
     quietHistory.fill(-5);
-    ttMoveHistory = 0;
 
     for (bool inCheck : {false, true})
         for (bool capture : {false, true})
@@ -266,6 +265,8 @@ void Worker::reset() noexcept {
     for (auto& toPieceSqCorrHist : continuationCorrectionHistory)
         for (auto& pieceSqCorrHist : toPieceSqCorrHist)
             pieceSqCorrHist.fill(5);
+
+    ttMoveHistory = 0;
 
     accCache.init(network[numa_access_token()]);
 }

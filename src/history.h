@@ -42,7 +42,7 @@ inline constexpr usize PAWN_HISTORY_BASE_SIZE = 1u << 14;
 static_assert((PAWN_HISTORY_BASE_SIZE & (PAWN_HISTORY_BASE_SIZE - 1)) == 0,
               "PAWN_HISTORY_BASE_SIZE has to be power of 2");
 
-inline constexpr usize CORRECTION_HISTORY_BASE_SIZE = 1u << 16;
+inline constexpr usize CORRECTION_HISTORY_BASE_SIZE = std::numeric_limits<u16>::max() + 1;
 static_assert((CORRECTION_HISTORY_BASE_SIZE & (CORRECTION_HISTORY_BASE_SIZE - 1)) == 0,
               "CORRECTION_HISTORY_BASE_SIZE has to be power of 2");
 
@@ -50,7 +50,7 @@ static_assert((CORRECTION_HISTORY_BASE_SIZE & (CORRECTION_HISTORY_BASE_SIZE - 1)
 // Use a class instead of a naked value to directly call history update operator<<() on the entry.
 // The first template parameter T is the base type of the StatsEntry and
 // the second template parameter D limits the range of updates in [-D, D] when update values with the << operator
-template<typename T, int D>
+template<typename T, int D, bool Atomic = false>
 class StatsEntry final {
     static_assert(std::is_arithmetic_v<T>, "T must be arithmetic");
     static_assert(std::is_signed_v<T> && std::is_integral_v<T>,
@@ -59,28 +59,39 @@ class StatsEntry final {
     static_assert(D <= std::numeric_limits<T>::max(), "D overflows T");
 
    public:
-    operator int() const noexcept { return value; }
+    operator T() const noexcept {
+        if constexpr (Atomic)
+            return value.load(std::memory_order_relaxed);
+        else
+            return value;
+    }
 
-    void operator=(const T& v) noexcept { value = v; }
+    void operator=(const T& v) noexcept {
+        if constexpr (Atomic)
+            value.store(v, std::memory_order_relaxed);
+        else
+            value = v;
+    }
 
     // Overload operator<< to modify the value
     void operator<<(int bonus) noexcept {
         // Make sure that bonus is in range [-D, +D]
         int clampedBonus = std::clamp(bonus, -D, +D);
         // Apply gravity-based adjustment
-        value += clampedBonus - int(value) * constexpr_abs(clampedBonus) / D;
+        T v   = *this;
+        *this = v + clampedBonus - v * constexpr_abs(clampedBonus) / D;
 
-        assert(constexpr_abs(value) <= D);
+        assert(constexpr_abs(T(*this)) <= D);
     }
 
     void operator*=(double m) noexcept {
         assert(constexpr_abs(m) <= 1.0);
 
-        value = constexpr_round(m * double(value));
+        *this = constexpr_round(m * double(T(*this)));
     }
 
    private:
-    T value;
+    std::conditional_t<Atomic, std::atomic<T>, T> value;
 };
 
 template<typename T>
@@ -120,24 +131,22 @@ class DynamicArray final {
     usize             size_;
 };
 
+template<typename T, int D, usize... Sizes>
+using Stats = MultiArray<StatsEntry<T, D>, Sizes...>;
+
+template<typename T, int D, std::size_t... Sizes>
+using AtomicStats = MultiArray<StatsEntry<T, D, true>, Sizes...>;
+
 enum class HType : u8 {
     CAPTURE,       // By move's [piece][dstSq][captured piece type]
     QUIET,         // By color and move's orgSq and dstSq squares
     PAWN,          // By pawn structure and a move's [piece][dstSq]
     LOW_QUIET,     // By ply and move's orgSq and dstSq squares
-    TT_MOVE,       //
     PIECE_SQ,      // By move's [piece][dstSq]
     CONTINUATION,  // By combination of pair of moves
 };
 
-namespace Internal {
-
-template<int D, usize... Sizes>
-using Stats = MultiArray<StatsEntry<i16, D>, Sizes...>;
-
-}  // namespace Internal
-
-using PawnHistory = typename Internal::Stats<8192, PIECE_NB, SQUARE_NB>;
+using PawnHistory = AtomicStats<i16, 8192, PIECE_NB, SQUARE_NB>;
 
 namespace Internal {
 
@@ -146,7 +155,7 @@ struct HistoryDef;
 
 template<>
 struct HistoryDef<HType::CAPTURE> final {
-    using Type = Stats<10692, PIECE_NB, SQUARE_NB, PIECE_TYPE_NB>;
+    using Type = Stats<i16, 10692, PIECE_NB, SQUARE_NB, PIECE_TYPE_NB>;
 };
 
 // It records how often quiet moves have been successful or not during the current search,
@@ -154,7 +163,7 @@ struct HistoryDef<HType::CAPTURE> final {
 // see https://www.chessprogramming.org/Butterfly_Boards
 template<>
 struct HistoryDef<HType::QUIET> final {
-    using Type = Stats<7183, COLOR_NB, QUIET_HISTORY_SIZE>;
+    using Type = Stats<i16, 7183, COLOR_NB, QUIET_HISTORY_SIZE>;
 };
 
 template<>
@@ -165,17 +174,12 @@ struct HistoryDef<HType::PAWN> final {
 // It is used to improve quiet move ordering near the root.
 template<>
 struct HistoryDef<HType::LOW_QUIET> final {
-    using Type = Stats<7183, LOW_PLY_QUIET_SIZE, QUIET_HISTORY_SIZE>;
-};
-
-template<>
-struct HistoryDef<HType::TT_MOVE> final {
-    using Type = StatsEntry<i16, 8192>;
+    using Type = Stats<i16, 7183, LOW_PLY_QUIET_SIZE, QUIET_HISTORY_SIZE>;
 };
 
 template<>
 struct HistoryDef<HType::PIECE_SQ> final {
-    using Type = Stats<30000, PIECE_NB, SQUARE_NB>;
+    using Type = Stats<i16, 30000, PIECE_NB, SQUARE_NB>;
 };
 
 template<>
@@ -203,30 +207,27 @@ enum class CHType : u8 {
 
 namespace Internal {
 
-template<usize... Sizes>
-using CorrectionStats = Stats<CORRECTION_HISTORY_LIMIT, Sizes...>;
-
 template<CHType T>
 struct CorrectionHistoryDef;
 
 template<>
 struct CorrectionHistoryDef<CHType::PAWN> final {
-    using Type = DynamicArray<CorrectionStats<COLOR_NB, COLOR_NB>>;
+    using Type = DynamicArray<Stats<i16, CORRECTION_HISTORY_LIMIT, COLOR_NB, COLOR_NB>>;
 };
 
 template<>
 struct CorrectionHistoryDef<CHType::MINOR> final {
-    using Type = DynamicArray<CorrectionStats<COLOR_NB, COLOR_NB>>;
+    using Type = DynamicArray<Stats<i16, CORRECTION_HISTORY_LIMIT, COLOR_NB, COLOR_NB>>;
 };
 
 template<>
 struct CorrectionHistoryDef<CHType::NON_PAWN> final {
-    using Type = DynamicArray<CorrectionStats<COLOR_NB, COLOR_NB>>;
+    using Type = DynamicArray<Stats<i16, CORRECTION_HISTORY_LIMIT, COLOR_NB, COLOR_NB>>;
 };
 
 template<>
 struct CorrectionHistoryDef<CHType::PIECE_SQ> final {
-    using Type = CorrectionStats<PIECE_NB, SQUARE_NB>;
+    using Type = Stats<i16, CORRECTION_HISTORY_LIMIT, PIECE_NB, SQUARE_NB>;
 };
 
 template<>
@@ -239,6 +240,8 @@ struct CorrectionHistoryDef<CHType::CONTINUATION> final {
 // Alias template for convenience
 template<CHType T>
 using CorrectionHistory = typename Internal::CorrectionHistoryDef<T>::Type;
+
+using TTMoveHistory = StatsEntry<i16, 8192>;
 
 
 class Histories final {
@@ -328,6 +331,8 @@ class Histories final {
 };
 
 using HistoriesMap = std::unordered_map<usize, Histories>;
+
+void loop();
 
 }  // namespace DON
 

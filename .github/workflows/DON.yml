@@ -24,21 +24,22 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
 
-      # Returns null if no pre-release exists
-      - name: Get Commit SHA of Latest Pre-release
+      # Returns "null" if no pre-release exists
+      - name: Get Latest Pre-release Tag
+        id: get-prerelease-tag
         run: |
           # Install required packages
           sudo apt-get update
           sudo apt-get install -y curl jq
 
-          releases=$(curl -s "https://api.github.com/repos/${{ github.repository }}/releases")
-          commit_sha_tag=$(jq -r 'map(select(.prerelease)) | first | .tag_name' <<< "$releases")
+          releases=$(curl -fsSL "https://api.github.com/repos/${{ github.repository }}/releases")
+          prerelease_tag=$(jq -r 'map(select(.prerelease)) | first | .tag_name' <<< "$releases")
 
-          echo "COMMIT_SHA_TAG=$commit_sha_tag" >> "$GITHUB_ENV"
+          echo "PRERELEASE_TAG=$prerelease_tag" >> "$GITHUB_OUTPUT"
 
-      # Delete old previous pre-release and tag
-      - run: gh release delete ${{ env.COMMIT_SHA_TAG }} --cleanup-tag
-        if: env.COMMIT_SHA_TAG != 'null'
+      # Delete previous pre-release and tag
+      - run: gh release delete ${{ steps.get-prerelease-tag.outputs.PRERELEASE_TAG }} --cleanup-tag
+        if: steps.get-prerelease-tag.outputs.PRERELEASE_TAG != 'null'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
