@@ -66,15 +66,15 @@ struct TTEntry final {
     constexpr bool  occupied() const noexcept { return depth8 != 0; }
     constexpr Depth depth() const noexcept { return depth8 + DEPTH_OFFSET; }
     constexpr Move  move() const noexcept { return move16; }
-    constexpr Value value() const noexcept { return val16; }
-    constexpr Value eval_value() const noexcept { return eVal16; }
+    constexpr Value value() const noexcept { return value16; }
+    constexpr Value evalue() const noexcept { return evalue16; }
     constexpr Bound bound() const noexcept { return Bound((meta8 & BOUND_MASK) >> BOUND_SHIFT); }
     constexpr bool  pv() const noexcept { return ((meta8 & PV_MASK) /* >> PV_SHIFT*/) != 0; }
     constexpr u8    generation() const noexcept { return meta8 & GENERATION_MASK; }
 
     // Convert internal bit fields to TTData
     TTData read() const noexcept {
-        return {move(), value(), eval_value(), depth(), bound(), occupied(), pv()};
+        return {move(), value(), evalue(), depth(), bound(), occupied(), pv()};
     }
 
     u8 relative_age(u8 gen) const noexcept;
@@ -92,8 +92,8 @@ struct TTEntry final {
 
     u16   key16;
     Move  move16;
-    Value val16;
-    Value eVal16;
+    Value value16;
+    Value evalue16;
     u8    depth8;
     u8    meta8;
 };
@@ -130,18 +130,18 @@ void TTEntry::save(const u16   k,
     // Overwrite less valuable entries (cheapest checks first)
     if (key() != k || b == Bound::EXACT || depth() < 4 + d + int(pv) * 2 || relative_age(gen) != 0)
     {
-        key16  = k;
-        val16  = v;
-        eVal16 = ev;
-        depth8 = d - DEPTH_OFFSET;
-        meta8  = u8(pv) << PV_SHIFT | u8(b) << BOUND_SHIFT | gen;
+        key16    = k;
+        value16  = v;
+        evalue16 = ev;
+        depth8   = d - DEPTH_OFFSET;
+        meta8    = u8(pv) << PV_SHIFT | u8(b) << BOUND_SHIFT | gen;
     }
     // Secondary aging. Important for elementary mate finding.
     // (*Scaler) Secondary aging on entries relevant to singular extensions
     // generally scales poorly and requires VVLTC verification.
     else if (depth() > 4 && bound() != Bound::EXACT)
     {
-        const auto v16 = val16;
+        const auto v16 = value16;
         // Guard against racy underflows, default to "unoccupied"
         if (depth8 != 0 && constexpr_abs(v16) < VALUE_INFINITE && is_decisive(v16))
             --depth8;

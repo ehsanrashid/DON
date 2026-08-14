@@ -192,8 +192,8 @@ void update_continuation_histories(Stack* ss, Piece pc, Square dstSq, int bonus)
 
 // Adjust raw evaluation according to various correction histories value
 // and guarantee evaluation does not hit the tablebase range.
-Value adjust_eval_value(Value evalValue, int correctionValue) noexcept {
-    return in_range(evalValue + constexpr_round(7.6294e-6 * double(correctionValue)));
+Value adjust_eval_value(Value evalue, int correctionValue) noexcept {
+    return in_range(evalue + constexpr_round(7.6294e-6 * double(correctionValue)));
 }
 
 bool is_shuffling(const Position& pos, const Stack* const ss, const Move move) noexcept {
@@ -204,15 +204,15 @@ bool is_shuffling(const Position& pos, const Stack* const ss, const Move move) n
 }
 
 // Look up the futility pruning cutoff depth. This function is important for mate finding.
-Depth futility_depth(const Value evalValue, const Value beta) noexcept {
+Depth futility_depth(const Value evalue, const Value beta) noexcept {
     // LUT values obtained from:
     //      depth = 13 + int(0.5 + 6 / int(1 + pow(abs(eval) + abs(beta), 3) / 50'000'000'000))
     constexpr Array<u32, 7> Lut{1657, 2555, 3294, 4122, 5314, 8194, 2 * VALUE_INFINITE};
 
-    const u32 prob  = constexpr_abs(evalValue) + constexpr_abs(beta);
+    const u32 prob  = constexpr_abs(evalue) + constexpr_abs(beta);
     Depth     depth = DEPTH_ZERO;
-    for (; Lut[depth] < prob; ++depth)
-    {}
+    while (Lut[depth] < prob)
+        ++depth;
 
     return 19 - depth;
 }
@@ -495,7 +495,7 @@ void Worker::iterative_deepening() noexcept {
 
         // Set sentinel values
         // clang-format off
-        (ss + i)->evalValue                = VALUE_NONE;
+        (ss + i)->evalue                   = VALUE_NONE;
         (ss + i)->pieceSqHistory           = &continuationHistory[0][0][+Piece::NO_PIECE][SQUARE_ZERO];
         (ss + i)->pieceSqCorrectionHistory = &continuationCorrectionHistory[+Piece::NO_PIECE][SQUARE_ZERO];
         // clang-format on
@@ -853,49 +853,49 @@ Value Worker::search(Position&    pos,
     const bool preCapture = pos.captured_pc() != Piece::NO_PIECE;
     const bool preNonPawn = preOk && type_of(pos[preSq]) != PAWN && preMove.type() != MT::PROMOTION;
 
-    Value evalValue, ttEvalValue;
+    Value evalue, ttEvalue;
 
     bool improve, worsen;
 
     // Step 5. Static evaluation of the position
     if (ss->inCheck)
     {
-        evalValue = VALUE_NONE;
+        evalue = VALUE_NONE;
 
-        ss->evalValue = ttEvalValue = (ss - 2)->evalValue;
+        ss->evalue = ttEvalue = (ss - 2)->evalue;
     }
     else if (exclude)
     {
-        evalValue = ttEvalValue = ss->evalValue;
+        evalue = ttEvalue = ss->evalue;
     }
     else if (ttd.hit)
     {
         // Never assume anything about values stored in TT
-        evalValue = ttd.evalValue;
+        evalue = ttd.evalue;
 
-        if (!is_valid(evalValue))
-            evalValue = evaluate(pos);
+        if (!is_valid(evalue))
+            evalue = evaluate(pos);
 
-        ss->evalValue = ttEvalValue = adjust_eval_value(evalValue, correctionValue);
+        ss->evalue = ttEvalue = adjust_eval_value(evalue, correctionValue);
 
         // Can ttValue be used as a better position evaluation
-        if (is_valid(ttd.value) && is_ok(ttd.bound & fail_bound(ttd.value > ttEvalValue)))
-            ttEvalValue = ttd.value;
+        if (is_valid(ttd.value) && is_ok(ttd.bound & fail_bound(ttd.value > ttEvalue)))
+            ttEvalue = ttd.value;
     }
     else
     {
-        evalValue = evaluate(pos);
+        evalue = evaluate(pos);
 
-        ss->evalValue = ttEvalValue = adjust_eval_value(evalValue, correctionValue);
+        ss->evalue = ttEvalue = adjust_eval_value(evalue, correctionValue);
 
-        ttu.update(Move::None, VALUE_NONE, evalValue, DEPTH_NONE, Bound::NONE, ss->pvTT);
+        ttu.update(Move::None, VALUE_NONE, evalue, DEPTH_NONE, Bound::NONE, ss->pvTT);
     }
 
     // Set up the improve and worsen flags.
     // improve: if the static evaluation is better than it was at the our last turn (two plies ago)
     // worsen: if the static evaluation is better than it was at the opponent last turn (one ply ago).
-    improve = ss->evalValue > +(ss - 2)->evalValue;
-    worsen  = ss->evalValue > -(ss - 1)->evalValue;
+    improve = ss->evalue > +(ss - 2)->evalue;
+    worsen  = ss->evalue > -(ss - 1)->evalue;
 
     // Retroactive LMR adjustments
     // Hindsight adjustment of reductions based on static evaluation difference.
@@ -904,7 +904,7 @@ Value Worker::search(Position&    pos,
     if (depth < DEPTH_MAX && red >= 3 && !worsen)
         ++depth;
 
-    if (depth > 1 && red >= 2 && ss->evalValue > 166 - (ss - 1)->evalValue)
+    if (depth > 1 && red >= 2 && ss->evalue > 166 - (ss - 1)->evalue)
         --depth;
 
     State st;
@@ -1005,7 +1005,7 @@ Value Worker::search(Position&    pos,
                     if (bound == Bound::EXACT
                         || (bound == Bound::LOWER ? tbValue >= beta : tbValue <= alpha))
                     {
-                        ttu.update(Move::None, value_to_tt(tbValue, ss->ply), evalValue,
+                        ttu.update(Move::None, value_to_tt(tbValue, ss->ply), evalue,
                                    std::min<Depth>(depth + 6, DEPTH_MAX), bound, ss->pvTT);
 
                         return tbValue;
@@ -1040,7 +1040,7 @@ Value Worker::search(Position&    pos,
     // Use static evaluation difference to improve quiet move ordering
     if (preOk && !preCapture && !(ss - 1)->inCheck)
     {
-        int bonus = 60 + std::clamp(-((ss - 1)->evalValue + (ss - 0)->evalValue), -189, +194);
+        int bonus = 60 + std::clamp(-((ss - 1)->evalue + (ss - 0)->evalue), -189, +194);
 
         if (!ttd.hit && preNonPawn)
             update_pawn_history(pos, pos[preSq], preSq, 13 * bonus);
@@ -1052,7 +1052,7 @@ Value Worker::search(Position&    pos,
     // If eval is really low, check with qsearch then return speculative fail low.
     if constexpr (!PVNode)
     {
-    if (!exclude && ttEvalValue + 483 + 318 * depth * depth <= alpha)
+    if (!exclude && ttEvalue + 483 + 318 * depth * depth <= alpha)
     {
         const Value razorAlpha = std::max<int>(alpha - 1, -VALUE_INFINITE);
 
@@ -1069,7 +1069,7 @@ Value Worker::search(Position&    pos,
     if constexpr (!PVNode)
     {
     // The depth condition is important for mate finding
-    if (!exclude && !ss->pvTT && !is_win(ttEvalValue) && !is_loss(beta) && depth < futility_depth(ttEvalValue, beta)
+    if (!exclude && !ss->pvTT && !is_win(ttEvalue) && !is_loss(beta) && depth < futility_depth(ttEvalue, beta)
         && (ttmNone || history_value(pos, ttd.move, ac, contHistory) >= 32768 - int(ttmCapture) * 25968))
     {
         // Compute base futility
@@ -1080,8 +1080,8 @@ Value Worker::search(Position&    pos,
                               + constexpr_round(5.0394e-6 * double(absCorrectionValue)),
                                 0);
 
-        if (ttEvalValue - futility >= beta)
-            return blend_values(beta, ttEvalValue, 661, 1024);
+        if (ttEvalue - futility >= beta)
+            return blend_values(beta, ttEvalue, 661, 1024);
     }
     }
 
@@ -1089,12 +1089,12 @@ Value Worker::search(Position&    pos,
     if constexpr (CutNode)
     {
     if (!exclude && hasNonPawn /*Zugzwang guard*/ && ss->ply >= nmpPly
-        && beta >= -2000 && ss->evalValue - 365 + int(improve) * 47 + 13 * depth >= beta)
+        && beta >= -2000 && ss->evalue - 365 + int(improve) * 47 + 13 * depth >= beta)
     {
         assert(preMove != Move::Null);
 
         // Null move dynamic reduction
-        Depth R = 7 + depth / 3 + std::max((ss->evalValue - beta) / 256, 0);
+        Depth R = 7 + depth / 3 + std::max((ss->evalue - beta) / 256, 0);
 
         do_null_move(pos, st, ss);
 
@@ -1130,7 +1130,7 @@ Value Worker::search(Position&    pos,
     }
     }
 
-    improve |= ss->evalValue >= beta;
+    improve |= ss->evalue >= beta;
 
     // Step 10. Internal iterative reductions
     // Reduce search depth for PV/Cut deep enough nodes without ttMoves.
@@ -1152,7 +1152,7 @@ Value Worker::search(Position&    pos,
         if (!(is_valid(ttd.value) && ttd.value < probCutBeta))
         {
         const Depth probCutDepth     = std::max<Depth>(depth - 3 - int(improve) * 2, DEPTH_ZERO);
-        const int   probCutThreshold = probCutBeta - ss->evalValue;
+        const int   probCutThreshold = probCutBeta - ss->evalue;
 
         MovePicker mp(pos, ttd.move, &captureHistory, probCutThreshold);
         // Loop through all legal moves
@@ -1196,7 +1196,7 @@ Value Worker::search(Position&    pos,
 
                 // Save ProbCut data into transposition table
                 if (!exclude)
-                    ttu.update(move, value_to_tt(probCutValue, ss->ply), evalValue,
+                    ttu.update(move, value_to_tt(probCutValue, ss->ply), evalue,
                                std::min<Depth>(probCutDepth + 1, DEPTH_MAX), Bound::LOWER, ss->pvTT);
 
                 if (!is_win(probCutValue))
@@ -1309,8 +1309,8 @@ Value Worker::search(Position&    pos,
                     // Futility pruning: for captures
                     if (!check && lmrDepth < 8)
                     {
-                        int futility = 234 + ss->evalValue + piece_value(capturedPt)
-                                     + 247 * lmrDepth + constexpr_round(0.1309 * double(history));
+                        int futility = 234 + ss->evalue + piece_value(capturedPt) + 247 * lmrDepth
+                                     + constexpr_round(0.1309 * double(history));
                         if (futility <= alpha)
                             continue;
                     }
@@ -1346,8 +1346,8 @@ Value Worker::search(Position&    pos,
                     // (*Scaler) Generally, more frequent futility pruning scales well
                     if (!check && lmrDepth < 12 && !ss->inCheck)
                     {
-                        int futility = 164 + ss->evalValue + 119 * lmrDepth  //
-                                     + int(ss->evalValue > alpha) * 90;
+                        int futility = 164 + ss->evalue + 119 * lmrDepth  //
+                                     + int(ss->evalue > alpha) * 90;
                         if (futility <= alpha)
                         {
                             if (!is_win(futility))
@@ -1417,9 +1417,9 @@ Value Worker::search(Position&    pos,
             {
                 ttMoveHistory << -(+421 + 110 * depth);
 
-                if (!ss->inCheck && singularValue > ss->evalValue)
+                if (!ss->inCheck && singularValue > ss->evalue)
                 {
-                    int bonus = constexpr_round(0.1729 * (singularValue - ss->evalValue) * singularDepth);
+                    int bonus = constexpr_round(0.1729 * (singularValue - ss->evalue) * singularDepth);
 
                     update_correction_histories(pos, ss, bonus);
                 }
@@ -1705,9 +1705,9 @@ Value Worker::search(Position&    pos,
                          // Increase bonus when depth is high
                          + std::min(59 * depth, 420)
                          // Increase bonus when bestValue is lower than current static evaluation
-                         + (!(ss)->inCheck && bestValue <= +(ss)->evalValue - 106) * 142
+                         + (!(ss)->inCheck && bestValue <= +(ss)->evalue - 106) * 142
                          // Increase bonus when bestValue is higher than previous static evaluation
-                         + (!(ss - 1)->inCheck && bestValue <= -(ss - 1)->evalValue - 68) * 159
+                         + (!(ss - 1)->inCheck && bestValue <= -(ss - 1)->evalue - 68) * 159
                          // Increase bonus when the previous moveCount is high
                          + 86 * ((ss - 1)->moveCount / 5)
                          // Increase bonus if the previous move has a bad history
@@ -1739,7 +1739,7 @@ Value Worker::search(Position&    pos,
 
     // Save gathered information in transposition table
     if ((!RootNode || pvCur == 0) && !exclude)
-        ttu.update(bestMove, value_to_tt(bestValue, ss->ply), evalValue,
+        ttu.update(bestMove, value_to_tt(bestValue, ss->ply), evalue,
                    moveCount != 0 ? depth : std::min<Depth>(depth + 6, DEPTH_MAX),
                    bestValue >= beta                  ? Bound::LOWER
                    : PVNode && bestMove != Move::None ? Bound::EXACT
@@ -1749,10 +1749,10 @@ Value Worker::search(Position&    pos,
     // Adjust correction history if the best move is none or not a capture
     // and the error direction matches whether the above/below bounds.
     if (!ss->inCheck && (bestMove == Move::None || !pos.capture(bestMove))
-        && (bestValue > ss->evalValue) == (bestMove != Move::None))
+        && (bestValue > ss->evalue) == (bestMove != Move::None))
     {
         int bonus = constexpr_round(1.0361 * (bestMove != Move::None ? 0.0938 : 0.1406)
-                                    * (bestValue - ss->evalValue) * depth);
+                                    * (bestValue - ss->evalue) * depth);
 
         update_correction_histories(pos, ss, bonus);
     }
@@ -1821,14 +1821,14 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
 
     const int correctionValue = ss->inCheck ? 0 : correction_value(pos, ss);
 
-    Value evalValue, bestValue;
+    Value evalue, bestValue;
 
     int baseFutility;
 
     // Step 4. Static evaluation of the position
     if (ss->inCheck)
     {
-        evalValue = VALUE_NONE;
+        evalue = VALUE_NONE;
 
         bestValue = baseFutility = -VALUE_INFINITE;
     }
@@ -1838,12 +1838,12 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     if (ttd.hit)
     {
         // Never assume anything about values stored in TT
-        evalValue = ttd.evalValue;
+        evalue = ttd.evalue;
 
-        if (!is_valid(evalValue))
-            evalValue = evaluate(pos);
+        if (!is_valid(evalue))
+            evalue = evaluate(pos);
 
-        ss->evalValue = bestValue = adjust_eval_value(evalValue, correctionValue);
+        ss->evalue = bestValue = adjust_eval_value(evalue, correctionValue);
 
         // Can ttValue be used as a better position evaluation
         if (is_valid(ttd.value) && !is_decisive(ttd.value)
@@ -1852,9 +1852,9 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     }
     else
     {
-        evalValue = evaluate(pos);
+        evalue = evaluate(pos);
 
-        ss->evalValue = bestValue = adjust_eval_value(evalValue, correctionValue);
+        ss->evalue = bestValue = adjust_eval_value(evalue, correctionValue);
     }
 
     // Stand pat. Return immediately if bestValue is at least beta
@@ -1864,14 +1864,14 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
             bestValue = blend_values(bestValue, beta, 441, 1024);
 
         if (!ttd.hit)
-            ttu.update(Move::None, VALUE_NONE, evalValue, DEPTH_NONE, Bound::LOWER, false);
+            ttu.update(Move::None, VALUE_NONE, evalue, DEPTH_NONE, Bound::LOWER, false);
 
         return bestValue;
     }
 
     alpha = std::max(bestValue, alpha);
 
-    baseFutility = 306 + ss->evalValue;
+    baseFutility = 306 + ss->evalue;
         // clang-format on
     }
 
@@ -2010,7 +2010,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
         bestValue = blend_values(bestValue, beta, 462, 1024);
 
     // Save gathered info in transposition table
-    ttu.update(bestMove, value_to_tt(bestValue, ss->ply), evalValue, DEPTH_ZERO,
+    ttu.update(bestMove, value_to_tt(bestValue, ss->ply), evalue, DEPTH_ZERO,
                fail_bound(bestValue >= beta), pvTT);
 
     assert(is_ok(bestValue));

@@ -601,7 +601,7 @@ struct Stack final {
     PieceSqCorrectionHistory* pieceSqCorrectionHistory;
 
     int   history;
-    Value evalValue;
+    Value evalue;
     i16   ply;
     Move  move;
     Move  ttMove;

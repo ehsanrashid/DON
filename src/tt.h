@@ -46,7 +46,7 @@ struct TTData final {
 
     Move  move;
     Value value;
-    Value evalValue;
+    Value evalue;
     Depth depth;
     Bound bound;
     bool  hit;
