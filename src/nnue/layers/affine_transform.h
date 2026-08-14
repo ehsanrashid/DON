@@ -46,11 +46,10 @@ namespace DON::NNUE::Layers {
 #if !defined(ENABLE_SEQ_OPT)
 
 template<IndexType InputDimensions, IndexType PaddedInputDimensions, IndexType OutputDimensions>
-inline void
-transform_affine_non_ssse3(const Array<i32, OutputDimensions>&                        biases,
-                           const Array<i8, OutputDimensions * PaddedInputDimensions>& weights,
-                           const u8* RESTRICT                                         input,
-                           i32* RESTRICT output) noexcept {
+void transform_affine_non_ssse3(const Array<i32, OutputDimensions>&                        biases,
+                                const Array<i8, OutputDimensions * PaddedInputDimensions>& weights,
+                                const u8* RESTRICT                                         input,
+                                i32* RESTRICT output) noexcept {
     #if defined(USE_SSE2) || defined(USE_NEON)
         #if defined(USE_SSE2)
     // At least a multiple of 16, with SSE2
@@ -352,7 +351,7 @@ class AffineTransform final {
     #undef vec_hadd
         }
 #else
-        // Use old implementation for the other architectures
+        // Use fallback implementation for the other architectures
         transform_affine_non_ssse3<InputDimensions, PaddedInputDimensions, OutputDimensions>(
           biases, weights, input, output);
 #endif

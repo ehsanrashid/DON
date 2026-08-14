@@ -25,11 +25,19 @@
     #include <cstring>
 #endif
 
-#include "../../bitboard.h"
-#include "../../memory.h"
 #include "../../misc.h"
+#include "../../types.h"
 #include "../common.h"
-#include "../simd.h"
+#include "affine_transform.h"
+
+#if defined(USE_SSSE3) || defined(USE_LASX) || defined(USE_LSX) \
+  || (defined(USE_NEON) && USE_NEON >= 8)
+    #include "../../bitboard.h"
+    #include "../simd.h"
+    #if defined(USE_VNNI) || defined(USE_LASX) || defined(USE_NEON_DOTPROD)
+        #include "../../memory.h"
+    #endif
+#endif
 
 // Definition of layer AffineTransformSparseInput of NNUE evaluation function
 
@@ -267,7 +275,7 @@ class AffineTransformSparseInput final {
     #undef vec_set_32
     #undef vec_add_dpbusd_32
 #else
-        // Use dense implementation for the other architectures
+        // Use dense fallback implementation for the other architectures
         transform_affine_non_ssse3<InputDimensions, PaddedInputDimensions, OutputDimensions>(
           biases, weights, input, output);
 #endif
