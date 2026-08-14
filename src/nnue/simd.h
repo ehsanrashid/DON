@@ -28,6 +28,11 @@
     #include <emmintrin.h>
 #elif defined(USE_NEON)
     #include <arm_neon.h>
+#elif defined(USE_LASX)
+    #include <lasxintrin.h>
+    #include <lsxintrin.h>
+#elif defined(USE_LSX)
+    #include <lsxintrin.h>
 #else
     //#warning "No SIMD instruction set enabled — falling back to scalar code"
 #endif
@@ -229,6 +234,152 @@ inline int16x8_t vsubw_high_s8(int16x8_t a, int8x16_t b) noexcept {
 }
     #endif
 
+#elif defined(USE_LASX)
+using vec_t      = __m256i;
+using vec_i8_t   = __m128i;
+using vec128_t   = __m128i;
+using psqt_vec_t = __m256i;
+using vec_uint_t = __m256i;
+
+inline __m256i lasx_load256(const __m256i* src) noexcept {
+    return __lasx_xvld(reinterpret_cast<const void*>(src), 0);
+}
+
+inline void lasx_store256(__m256i* dst, const __m256i value) noexcept {
+    __lasx_xvst(value, reinterpret_cast<void*>(dst), 0);
+}
+
+inline __m256i lasx_packus_16(__m256i a, const __m256i b) noexcept {
+    #if defined(__clang__) && defined(__has_builtin) && __has_builtin(__builtin_lasx_xvssrani_bu_h)
+    return (__m256i) __builtin_lasx_xvssrani_bu_h((v32i8) b, (v32i8) a, 0);
+    #else
+    return __lasx_xvssrani_bu_h(b, a, 0);
+    #endif
+}
+
+inline __m256i lasx_packus_32(const __m256i a, const __m256i b) noexcept {
+    #if defined(__clang__) && defined(__has_builtin) && __has_builtin(__builtin_lasx_xvssrani_hu_w)
+    return (__m256i) __builtin_lasx_xvssrani_hu_w((v16i16) b, (v16i16) a, 0);
+    #else
+    return __lasx_xvssrani_hu_w(b, a, 0);
+    #endif
+}
+
+    #define vec_load(a) lasx_load256(a)
+    #define vec_store(a, b) lasx_store256(a, b)
+    #define vec_add_16(a, b) __lasx_xvadd_h(a, b)
+    #define vec_sub_16(a, b) __lasx_xvsub_h(a, b)
+    #define vec_mulhi_16(a, b) __lasx_xvmuh_h(a, b)
+    #define vec_zero() __lasx_xvldi(0)
+    #define vec_set_16(a) __lasx_xvreplgr2vr_h(a)
+    #define vec_max_16(a, b) __lasx_xvmax_h(a, b)
+    #define vec_min_16(a, b) __lasx_xvmin_h(a, b)
+    #define vec_slli_16(a, b) __lasx_xvslli_h(a, b)
+    // Inverse permuted at load time
+    #define vec_packus_16(a, b) lasx_packus_16(a, b)
+    #define vec_load_psqt(a) lasx_load256(a)
+    #define vec_store_psqt(a, b) lasx_store256(a, b)
+    #define vec_add_psqt_32(a, b) __lasx_xvadd_w(a, b)
+    #define vec_sub_psqt_32(a, b) __lasx_xvsub_w(a, b)
+    #define vec_zero_psqt() __lasx_xvldi(0)
+    #define vec_nnz(a) lasx_vec_nnz(a)
+    #define vec_convert_8_16(a) lasx_cvtepi8_epi16(a)
+
+    #define vec128_zero __lsx_vldi(0)
+    #define vec128_set_16(a) __lsx_vreplgr2vr_h(a)
+    #define vec128_load(a) (*(a))
+    #define vec128_storeu(a, b) *(a) = (b)
+    #define vec128_add(a, b) __lsx_vadd_h(a, b)
+
+    #define MaxRegisterCount 24
+    #define MaxChunkSize 32
+
+inline __m256i lasx_cvtepi8_epi16(const __m128i a) noexcept {
+    #if defined(__has_builtin) && __has_builtin(__builtin_lasx_cast_128)
+    return __lasx_vext2xv_h_b(__lasx_cast_128(a));
+    #elif defined(__GNUC__) && !defined(__clang__)
+    __m256i epi16;
+    __asm__("vext2xv.h.b %u0, %u1" : "=f"(epi16) : "f"(a));
+    return epi16;
+    #else
+    const i64 lo = (i64) __lsx_vpickve2gr_d(a, 0);
+    const i64 hi = (i64) __lsx_vpickve2gr_d(a, 1);
+    __m256i   v  = __lasx_xvldi(0);
+    v            = __lasx_xvinsgr2vr_d(v, lo, 0);
+    v            = __lasx_xvinsgr2vr_d(v, hi, 2);
+    return __lasx_xvsllwil_h_b(v, 0);
+    #endif
+}
+
+inline int lasx_vec_nnz(const __m256i a) noexcept {
+    const __m256i cmp = __lasx_xvslt_w(__lasx_xvldi(0), a);
+    const __m256i msk = __lasx_xvmskltz_w(cmp);
+    return ((int) __lasx_xvpickve2gr_w(msk, 0) & 0xF)
+         | (((int) __lasx_xvpickve2gr_w(msk, 4) & 0xF) << 4);
+}
+
+#elif defined(USE_LSX)
+using vec_t      = __m128i;
+using vec_i8_t   = u64;
+using vec128_t   = __m128i;
+using psqt_vec_t = __m128i;
+using vec_uint_t = __m128i;
+
+inline __m128i lsx_packus_16(const __m128i a, const __m128i b) noexcept {
+    #if defined(__clang__) && defined(__has_builtin) && __has_builtin(__builtin_lsx_vssrani_bu_h)
+    return (__m128i) __builtin_lsx_vssrani_bu_h((v16i8) b, (v16i8) a, 0);
+    #else
+    return __lsx_vssrani_bu_h(b, a, 0);
+    #endif
+}
+
+inline __m128i lsx_packus_32(const __m128i a, const __m128i b) noexcept {
+    #if defined(__clang__) && defined(__has_builtin) && __has_builtin(__builtin_lsx_vssrani_hu_w)
+    return (__m128i) __builtin_lsx_vssrani_hu_w((v8i16) b, (v8i16) a, 0);
+    #else
+    return __lsx_vssrani_hu_w(b, a, 0);
+    #endif
+}
+
+    #define vec_load(a) (*(a))
+    #define vec_store(a, b) *(a) = (b)
+    #define vec_add_16(a, b) __lsx_vadd_h(a, b)
+    #define vec_sub_16(a, b) __lsx_vsub_h(a, b)
+    #define vec_mulhi_16(a, b) __lsx_vmuh_h(a, b)
+    #define vec_zero() __lsx_vldi(0)
+    #define vec_set_16(a) __lsx_vreplgr2vr_h(a)
+    #define vec_max_16(a, b) __lsx_vmax_h(a, b)
+    #define vec_min_16(a, b) __lsx_vmin_h(a, b)
+    #define vec_slli_16(a, b) __lsx_vslli_h(a, b)
+    // Inverse permuted at load time
+    #define vec_packus_16(a, b) lsx_packus_16(a, b)
+    #define vec_load_psqt(a) (*(a))
+    #define vec_store_psqt(a, b) *(a) = (b)
+    #define vec_add_psqt_32(a, b) __lsx_vadd_w(a, b)
+    #define vec_sub_psqt_32(a, b) __lsx_vsub_w(a, b)
+    #define vec_zero_psqt() __lsx_vldi(0)
+
+inline int lsx_vec_nnz(const __m128i a) noexcept {
+    const __m128i cmp = __lsx_vslt_w(__lsx_vldi(0), a);
+    const __m128i msk = __lsx_vmskltz_w(cmp);
+    return ((int) __lsx_vpickve2gr_w(msk, 0) & 0xF);
+}
+    #define vec_nnz(a) lsx_vec_nnz(a)
+
+inline __m128i vec_convert_8_16(const u64 x) noexcept {
+    __m128i v = __lsx_vldrepl_d(reinterpret_cast<const void*>(&x), 0);
+    return __lsx_vsllwil_h_b(v, 0);
+}
+
+    #define vec128_zero __lsx_vldi(0)
+    #define vec128_set_16(a) __lsx_vreplgr2vr_h(a)
+    #define vec128_load(a) (*(a))
+    #define vec128_storeu(a, b) *(a) = (b)
+    #define vec128_add(a, b) __lsx_vadd_h(a, b)
+
+    #define MaxRegisterCount 24
+    #define MaxChunkSize 16
+
 #else
     #undef VECTOR
 
@@ -307,9 +458,11 @@ inline void m512_add_dpbusd_epi32(__m512i& acc, const __m512i a, const __m512i b
 
 #if defined(USE_AVX2)
 inline int m256_hadd(const __m256i sum, const int bias) noexcept {
-    __m128i sm = _mm_add_epi32(_mm256_castsi256_si128(sum), _mm256_extracti128_si256(sum, 1));
-    sm         = _mm_add_epi32(sm, _mm_shuffle_epi32(sm, _MM_PERM_BADC));
-    sm         = _mm_add_epi32(sm, _mm_shuffle_epi32(sm, _MM_PERM_CDAB));
+    const __m128i loSum = _mm256_castsi256_si128(sum);
+    const __m128i hiSum = _mm256_extracti128_si256(sum, 1);
+    __m128i       sm    = _mm_add_epi32(loSum, hiSum);
+    sm                  = _mm_add_epi32(sm, _mm_shuffle_epi32(sm, _MM_PERM_BADC));
+    sm                  = _mm_add_epi32(sm, _mm_shuffle_epi32(sm, _MM_PERM_CDAB));
     return _mm_cvtsi128_si32(sm) + bias;
 }
 
@@ -327,8 +480,9 @@ inline void m256_add_dpbusd_epi32(__m256i& acc, const __m256i a, const __m256i b
 
 #if defined(USE_SSSE3)
 inline int m128_hadd(const __m128i sum, const int bias) noexcept {
-    __m128i sm = _mm_add_epi32(sum, _mm_shuffle_epi32(sum, 0x4E));  //_MM_PERM_BADC
-    sm         = _mm_add_epi32(sm, _mm_shuffle_epi32(sm, 0xB1));    //_MM_PERM_CDAB
+    __m128i sm = sum;
+    sm         = _mm_add_epi32(sm, _mm_shuffle_epi32(sm, 0x4E));  //_MM_PERM_BADC
+    sm         = _mm_add_epi32(sm, _mm_shuffle_epi32(sm, 0xB1));  //_MM_PERM_CDAB
     return _mm_cvtsi128_si32(sm) + bias;
 }
 
@@ -370,8 +524,40 @@ neon_m128_add_dpbusd_epi32(int32x4_t& acc, const int8x16_t a, const int8x16_t b)
     acc                      = vpadalq_s16(acc, sum);
     #endif
 }
-
 #endif  // USE_NEON
+
+#if defined(USE_LASX)
+inline int lasx_m256_hadd(const __m256i sum, const int bias) noexcept {
+    __m256i sm = sum;
+    sm         = __lasx_xvadd_w(sm, __lasx_xvshuf4i_w(sm, 0x4E));  // [C,D,A,B] per lane
+    sm         = __lasx_xvadd_w(sm, __lasx_xvshuf4i_w(sm, 0xB1));  // [B,A,D,C] per lane
+    int loSm   = (int) __lasx_xvpickve2gr_w(sm, 0);
+    int hiSm   = (int) __lasx_xvpickve2gr_w(sm, 4);
+    return loSm + hiSm + bias;
+}
+
+inline void lasx_m256_add_dpbusd_epi32(__m256i& acc, const __m256i a, const __m256i b) noexcept {
+    __m256i product = __lasx_xvmulwev_h_bu_b(a, b);
+    product         = __lasx_xvmaddwod_h_bu_b(product, a, b);
+    acc             = __lasx_xvadd_w(acc, __lasx_xvhaddw_w_h(product, product));
+}
+#endif  // USE_LASX
+
+#if defined(USE_LSX)
+inline int lsx_m128_hadd(const __m128i sum, const int bias) noexcept {
+    __m128i sm = sum;
+    sm         = __lsx_vadd_w(sm, __lsx_vshuf4i_w(sm, 0x4E));  // [C,D,A,B]
+    sm         = __lsx_vadd_w(sm, __lsx_vshuf4i_w(sm, 0xB1));  // [B,A,D,C]
+    return __lsx_vpickve2gr_w(sm, 0) + bias;
+}
+
+inline void lsx_m128_add_dpbusd_epi32(__m128i& acc, const __m128i a, const __m128i b) noexcept {
+    // product[i] = a[2i]*b[2i] + a[2i+1]*b[2i+1]
+    __m128i product = __lsx_vmulwev_h_bu_b(a, b);
+    product         = __lsx_vmaddwod_h_bu_b(product, a, b);
+    acc             = __lsx_vadd_w(acc, __lsx_vhaddw_w_h(product, product));
+}
+#endif  // USE_LSX
 
 #if defined(VECTOR)
 // Compute optimal SIMD register count for feature transformer accumulation
@@ -386,24 +572,24 @@ class Tiling final {
         #pragma GCC diagnostic ignored "-Wignored-attributes"
     #endif
 
-    template<typename SIMDRegisterType, typename LaneType, int LaneCount, int MaxRegister>
+    template<typename SIMDRegisterType, typename LaneType, int LaneCount, int RegisterCount>
     static constexpr usize best_register_count() noexcept {
         constexpr usize RegisterSize = sizeof(SIMDRegisterType);
         constexpr usize LaneSize     = sizeof(LaneType);
 
         static_assert(RegisterSize >= LaneSize);
-        static_assert(MaxRegister <= MaxRegisterCount);
-        static_assert(MaxRegister > 0);
+        static_assert(RegisterCount <= MaxRegisterCount);
+        static_assert(RegisterCount > 0);
         static_assert(MaxRegisterCount > 0);
         static_assert(RegisterSize % LaneSize == 0);
         static_assert((LaneCount * LaneSize) % RegisterSize == 0);
 
         int ideal = (LaneCount * LaneSize) / RegisterSize;
-        if (ideal <= MaxRegister)
+        if (ideal <= RegisterCount)
             return ideal;
 
-        // Look for the largest divisor of the ideal register count that is smaller than MaxRegister
-        for (int divisor = MaxRegister; divisor > 1; --divisor)
+        // Look for the largest divisor of the ideal register count that is smaller than RegisterCount
+        for (int divisor = RegisterCount; divisor > 1; --divisor)
             if (ideal % divisor == 0)
                 return divisor;
 

@@ -56,7 +56,8 @@ class AffineTransformSparseInput final {
       ceil_to_multiple<IndexType>(OutputDimensions, SIMD_WIDTH_MAX);
 
     static constexpr IndexType ChunkSize =
-#if defined(USE_SSSE3) || (defined(USE_NEON) && USE_NEON >= 8)
+#if defined(USE_SSSE3) || defined(USE_LASX) || defined(USE_LSX) \
+  || (defined(USE_NEON) && USE_NEON >= 8)
       4
 #else
       1
@@ -75,7 +76,8 @@ class AffineTransformSparseInput final {
     }
 
     static constexpr IndexType weight_index(IndexType i) noexcept {
-#if defined(USE_SSSE3) || (defined(USE_NEON) && USE_NEON >= 8)
+#if defined(USE_SSSE3) || defined(USE_LASX) || defined(USE_LSX) \
+  || (defined(USE_NEON) && USE_NEON >= 8)
         return (i / ChunkSize) % (PaddedInputDimensions / ChunkSize) * OutputDimensions * ChunkSize
              + i / PaddedInputDimensions * ChunkSize + i % ChunkSize;
 #else
@@ -116,7 +118,8 @@ class AffineTransformSparseInput final {
     // Forward propagation
     void propagate(const InputType* RESTRICT input, OutputType* RESTRICT output) const noexcept {
 
-#if defined(USE_SSSE3) || (defined(USE_NEON) && USE_NEON >= 8)
+#if defined(USE_SSSE3) || defined(USE_LASX) || defined(USE_LSX) \
+  || (defined(USE_NEON) && USE_NEON >= 8)
     #if defined(USE_AVX512)
         using invec_t  = __m512i;
         using outvec_t = __m512i;
@@ -146,6 +149,18 @@ class AffineTransformSparseInput final {
             #define vec_set_32(a) vreinterpretq_s8_u32(vdupq_n_u32(a))
             #define vec_add_dpbusd_32 SIMD::neon_m128_add_dpbusd_epi32
         #endif
+    #elif defined(USE_LASX)
+        using invec_t  = __m256i;
+        using outvec_t = __m256i;
+        #define vec_add_32 __lasx_xvadd_w
+        #define vec_set_32 __lasx_xvreplgr2vr_w
+        #define vec_add_dpbusd_32 SIMD::lasx_m256_add_dpbusd_epi32
+    #elif defined(USE_LSX)
+        using invec_t  = __m128i;
+        using outvec_t = __m128i;
+        #define vec_add_32 __lsx_vadd_w
+        #define vec_set_32 __lsx_vreplgr2vr_w
+        #define vec_add_dpbusd_32 SIMD::lsx_m128_add_dpbusd_epi32
     #endif
 
         constexpr IndexType OutputSimdWidth = sizeof(outvec_t) / sizeof(OutputType);
@@ -156,7 +171,7 @@ class AffineTransformSparseInput final {
         // If using high-latency dot product instructions, split the accumulators
         // to create 3 separate dependency chains and merge at the end
         constexpr IndexType RegCount =
-    #if defined(USE_VNNI) || defined(USE_NEON_DOTPROD)
+    #if defined(USE_VNNI) || defined(USE_LASX) || defined(USE_NEON_DOTPROD)
           AccCount * 3
     #else
           AccCount
@@ -179,11 +194,11 @@ class AffineTransformSparseInput final {
         const auto* const RESTRICT end = p + count;
 
             // clang-format off
-    #if defined(USE_VNNI) || defined(USE_NEON_DOTPROD)
+    #if defined(USE_VNNI) || defined(USE_LASX) || defined(USE_NEON_DOTPROD)
 
         for (IndexType k = AccCount; k < RegCount; ++k)
             acc[k] =
-        #if defined(USE_VNNI)
+        #if defined(USE_VNNI) || defined(USE_LASX)
               vec_zero()
         #elif defined(USE_NEON_DOTPROD)
               vdupq_n_s32(0)
@@ -214,7 +229,7 @@ class AffineTransformSparseInput final {
 
         for (IndexType k = 0; k < AccCount; ++k)
             acc[k] =
-        #if defined(USE_VNNI)
+        #if defined(USE_VNNI) || defined(USE_LASX)
               vec_add_32(vec_add_32(acc[k + AccCount * 0],
                                     acc[k + AccCount * 1]),
                                     acc[k + AccCount * 2])
@@ -258,7 +273,8 @@ class AffineTransformSparseInput final {
 
    private:
     // NNZ-specific implementation
-#if defined(USE_SSSE3) || (defined(USE_NEON) && USE_NEON >= 8)
+#if defined(USE_SSSE3) || defined(USE_LASX) || defined(USE_LSX) \
+  || (defined(USE_NEON) && USE_NEON >= 8)
     #if defined(USE_NEON)
     using NNZOutput = std::conditional_t<(InDims <= 1024), u8, u16>;
     #else

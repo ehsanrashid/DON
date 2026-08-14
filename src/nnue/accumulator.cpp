@@ -332,6 +332,40 @@ Bitboard changed_bb(const PieceMap& oldPieceMap, const PieceMap& newPieceMap) no
     }
 
     return ~sameBB;
+
+#elif defined(USE_LASX)
+    Bitboard changedBB = 0;
+
+    for (const usize s : {0, 32})
+    {
+        const __m256i oldV     = __lasx_xvld(reinterpret_cast<const void*>(&oldPieceMap[s]), 0);
+        const __m256i newV     = __lasx_xvld(reinterpret_cast<const void*>(&newPieceMap[s]), 0);
+        const __m256i diff     = __lasx_xvxor_v(oldV, newV);
+        const __m256i simdMask = __lasx_xvmsknz_b(diff);
+        const u16     loMask   = static_cast<u16>(__lasx_xvpickve2gr_d(simdMask, 0));
+        const u16     hiMask   = static_cast<u16>(__lasx_xvpickve2gr_d(simdMask, 2));
+
+        changedBB |= (static_cast<Bitboard>(loMask) | (static_cast<Bitboard>(hiMask) << 16)) << s;
+    }
+
+    return changedBB;
+
+#elif defined(USE_LSX)
+    Bitboard changedBB = 0;
+
+    for (const usize s : {0, 16, 32, 48})
+    {
+        const __m128i oldV     = __lsx_vld(reinterpret_cast<const void*>(&oldPieceMap[s]), 0);
+        const __m128i newV     = __lsx_vld(reinterpret_cast<const void*>(&newPieceMap[s]), 0);
+        const __m128i diff     = __lsx_vxor_v(oldV, newV);
+        const __m128i simdMask = __lsx_vmsknz_b(diff);
+        const u16     mask     = static_cast<u16>(__lsx_vpickve2gr_d(simdMask, 0));
+
+        changedBB |= static_cast<Bitboard>(mask) << s;
+    }
+
+    return changedBB;
+
 #elif defined(USE_NEON)
     const uint8x16x4_t oldV = vld4q_u8(reinterpret_cast<const u8*>(oldPieceMap.data()));
     const uint8x16x4_t newV = vld4q_u8(reinterpret_cast<const u8*>(newPieceMap.data()));
@@ -349,6 +383,7 @@ Bitboard changed_bb(const PieceMap& oldPieceMap, const PieceMap& newPieceMap) no
     const Bitboard  sameBB = vget_lane_u64(vreinterpret_u64_u8(packed), 0);
 
     return ~sameBB;
+
 #elif defined(USE_SSE2)
     Bitboard sameBB = 0;
 
@@ -363,6 +398,7 @@ Bitboard changed_bb(const PieceMap& oldPieceMap, const PieceMap& newPieceMap) no
     }
 
     return ~sameBB;
+
 #else
     Bitboard changedBB = 0;
 
@@ -370,6 +406,7 @@ Bitboard changed_bb(const PieceMap& oldPieceMap, const PieceMap& newPieceMap) no
         changedBB |= static_cast<Bitboard>(oldPieceMap[s] != newPieceMap[s]) << s;
 
     return changedBB;
+
 #endif
 }
 
