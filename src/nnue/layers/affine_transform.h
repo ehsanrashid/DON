@@ -116,10 +116,6 @@ void transform_affine_non_ssse3(const Array<i32, OutputDimensions>&             
 #endif
 }
 
-#if defined(USE_SSSE3) || defined(USE_NEON_DOTPROD) || defined(USE_LASX) || defined(USE_LSX)
-    #define ENABLE_SEQ_OPT
-#endif
-
 template<IndexType InDims, IndexType OutDims>
 class AffineTransform final {
    public:
@@ -148,7 +144,7 @@ class AffineTransform final {
     }
 
     static constexpr IndexType weight_index(IndexType i) noexcept {
-#if defined(ENABLE_SEQ_OPT)
+#if defined(USE_SSSE3) || defined(USE_NEON_DOTPROD) || defined(USE_LASX) || defined(USE_LSX)
         return (i / 4) % (PaddedInputDimensions / 4) * OutputDimensions * 4
              + i / PaddedInputDimensions * 4 + i % 4;
 #else
@@ -189,7 +185,7 @@ class AffineTransform final {
     // Forward propagation
     void propagate(const InputType* RESTRICT input, OutputType* RESTRICT output) const noexcept {
 
-#if defined(ENABLE_SEQ_OPT)
+#if defined(USE_SSSE3) || defined(USE_NEON_DOTPROD) || defined(USE_LASX) || defined(USE_LSX)
         if constexpr (OutputDimensions > 1)
         {
     #if defined(USE_AVX512)
@@ -360,6 +356,8 @@ class AffineTransform final {
     alignas(CACHE_LINE_SIZE) Array<BiasType, OutputDimensions> biases;
     alignas(CACHE_LINE_SIZE) Array<WeightType, OutputDimensions * PaddedInputDimensions> weights;
 };
+
+int loop();
 
 }  // namespace DON::NNUE::Layers
 
