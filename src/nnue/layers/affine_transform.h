@@ -66,34 +66,36 @@ void transform_affine_non_ssse3(const Array<i32, OutputDimensions>&             
 
     #if defined(USE_SSE2)
 
-        __m128i     loSum = _mm_cvtsi32_si128(biases[i]);
-        __m128i     hiSum = Zeros;
-        const auto* row   = reinterpret_cast<const __m128i*>(&weights[offset]);
+        __m128i loSum = _mm_cvtsi32_si128(biases[i]);
+        __m128i hiSum = Zeros;
+
+        const auto* row = reinterpret_cast<const __m128i*>(&weights[offset]);
 
         for (IndexType j = 0; j < ChunkCount; ++j)
         {
-            __m128i row_j           = _mm_load_si128(&row[j]);
-            __m128i input_j         = _mm_load_si128(&inputVector[j]);
-            __m128i loExtendedRow   = _mm_srai_epi16(_mm_unpacklo_epi8(row_j, row_j), 8);
-            __m128i hiExtendedRow   = _mm_srai_epi16(_mm_unpackhi_epi8(row_j, row_j), 8);
-            __m128i loExtendedInput = _mm_unpacklo_epi8(input_j, Zeros);
-            __m128i hiExtendedInput = _mm_unpackhi_epi8(input_j, Zeros);
-            __m128i loProduct       = _mm_madd_epi16(loExtendedRow, loExtendedInput);
-            __m128i hiProduct       = _mm_madd_epi16(hiExtendedRow, hiExtendedInput);
-            loSum                   = _mm_add_epi32(loSum, loProduct);
-            hiSum                   = _mm_add_epi32(hiSum, hiProduct);
+            const __m128i rowVec     = _mm_load_si128(&row[j]);
+            const __m128i inputVec   = _mm_load_si128(&inputVector[j]);
+            const __m128i loExtRow   = _mm_srai_epi16(_mm_unpacklo_epi8(rowVec, rowVec), 8);
+            const __m128i hiExtRow   = _mm_srai_epi16(_mm_unpackhi_epi8(rowVec, rowVec), 8);
+            const __m128i loExtInput = _mm_unpacklo_epi8(inputVec, Zeros);
+            const __m128i hiExtInput = _mm_unpackhi_epi8(inputVec, Zeros);
+            const __m128i loProduct  = _mm_madd_epi16(loExtRow, loExtInput);
+            const __m128i hiProduct  = _mm_madd_epi16(hiExtRow, hiExtInput);
+            loSum                    = _mm_add_epi32(loSum, loProduct);
+            hiSum                    = _mm_add_epi32(hiSum, hiProduct);
         }
 
-        __m128i sum     = _mm_add_epi32(loSum, hiSum);
-        __m128i hiSum64 = _mm_shuffle_epi32(sum, _MM_SHUFFLE(1, 0, 3, 2));
-        sum             = _mm_add_epi32(sum, hiSum64);
-        __m128i loSum32 = _mm_shufflelo_epi16(sum, _MM_SHUFFLE(1, 0, 3, 2));
-        sum             = _mm_add_epi32(sum, loSum32);
-        output[i]       = _mm_cvtsi128_si32(sum);
+        __m128i sum        = _mm_add_epi32(loSum, hiSum);
+        __m128i hiShuffled = _mm_shuffle_epi32(sum, _MM_SHUFFLE(1, 0, 3, 2));
+        sum                = _mm_add_epi32(sum, hiShuffled);
+        __m128i loShuffled = _mm_shufflelo_epi16(sum, _MM_SHUFFLE(1, 0, 3, 2));
+        sum                = _mm_add_epi32(sum, loShuffled);
+        output[i]          = _mm_cvtsi128_si32(sum);
 
     #elif defined(USE_NEON)
 
-        int32x4_t   sum = {biases[i]};
+        int32x4_t sum = {biases[i]};
+
         const auto* row = reinterpret_cast<const SIMD::vec_i8x8_t*>(&weights[offset]);
 
         for (IndexType j = 0; j < ChunkCount; ++j)
