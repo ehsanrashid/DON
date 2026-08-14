@@ -240,7 +240,7 @@ class AffineTransform final {
     #endif
               ;
 
-            const vec_t* biasVec = reinterpret_cast<const vec_t*>(biases.data());
+            const auto* biasVec = reinterpret_cast<const vec_t*>(biases.data());
 
             vec_t acc[RegCount];
 
@@ -271,9 +271,9 @@ class AffineTransform final {
             for (IndexType k = 0; k < AccCount; ++k)
                 acc[k] =
         #if defined(USE_VNNI)
-                  vec_add_32(acc[k], acc[k + AccCount])
+                  vec_add_32(acc[k + AccCount * 0], acc[k + AccCount * 1])
         #elif defined(USE_NEON_DOTPROD)
-                  vaddq_s32(acc[k], acc[k + AccCount])
+                  vaddq_s32(acc[k + AccCount * 0], acc[k + AccCount * 1])
         #endif
                   ;
     #endif
@@ -288,7 +288,7 @@ class AffineTransform final {
                     vec_add_dpbusd_32(acc[k], in, col[k]);
             }
 
-            vec_t* outVec = reinterpret_cast<vec_t*>(output);
+            auto* outVec = reinterpret_cast<vec_t*>(output);
 
             for (IndexType k = 0; k < AccCount; ++k)
                 outVec[k] = acc[k];
@@ -363,8 +363,6 @@ class AffineTransform final {
     alignas(CACHE_LINE_SIZE) Array<BiasType, OutputDimensions> biases;
     alignas(CACHE_LINE_SIZE) Array<WeightType, OutputDimensions * PaddedInputDimensions> weights;
 };
-
-int loop();
 
 }  // namespace DON::NNUE::Layers
 
