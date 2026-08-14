@@ -19,11 +19,13 @@
 #define NNUE_LAYERS_AFFINE_TRANSFORM_SPARSE_INPUT_H_INCLUDED
 
 #include <iostream>
+#include <type_traits>
 
 #if defined(USE_NEON)
     #include <cstring>
 #endif
 
+#include "../../bitboard.h"
 #include "../../misc.h"
 #include "../../types.h"
 #include "../common.h"
@@ -32,12 +34,7 @@
 
 #if defined(USE_SSSE3) || defined(USE_LASX) || defined(USE_LSX) \
   || (defined(USE_NEON) && USE_NEON >= 8)
-    #include <type_traits>
-
-    #include "../../bitboard.h"
-    #if defined(USE_VNNI) || defined(USE_LASX) || defined(USE_NEON_DOTPROD)
-        #include "../../memory.h"
-    #endif
+    #include "../../memory.h"
 #endif
 
 // Definition of layer AffineTransformSparseInput of NNUE evaluation function
