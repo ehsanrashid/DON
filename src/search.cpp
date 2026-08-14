@@ -649,7 +649,7 @@ void Worker::iterative_deepening() noexcept {
                     ? rootMoves[pvCur].preValue
                     : rootMoves[pvCur - 1].curValue;
                 rootMoves[pvCur].preValue = -VALUE_INFINITE;
-                rootMoves[pvCur].unset_bound();
+                rootMoves[pvCur].reset_bound();
                 rootMoves[pvCur].pv.resize(1);
             }
 
@@ -1582,18 +1582,18 @@ Value Worker::search(Position&    pos,
             if (moveCount == 1 || value > alpha)
             {
                 rm.selDepth = selDepth;
-                rm.unset_bound();
                 rm.curValue = rm.uciValue = value;
+                rm.reset_bound();
 
                 if (value >= beta)
                 {
-                    rm.bound    = Bound::LOWER;
                     rm.uciValue = beta;
+                    rm.bound    = Bound::LOWER;
                 }
                 else if (value <= alpha)
                 {
-                    rm.bound    = Bound::UPPER;
                     rm.uciValue = alpha;
+                    rm.bound    = Bound::UPPER;
                 }
 
                 rm.pv.resize(1);  // keep root move at index 0

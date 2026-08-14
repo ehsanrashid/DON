@@ -184,7 +184,7 @@ struct RootMove final {
         return bound == Bound::LOWER || bound == Bound::UPPER;
     }
 
-    void unset_bound() noexcept { bound = Bound::NONE; }
+    void reset_bound() noexcept { bound = Bound::NONE; }
 
     u64 nodes = 0;
 

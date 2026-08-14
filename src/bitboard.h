@@ -177,7 +177,7 @@ constexpr u8 constexpr_popcount(T v) noexcept {
     }
 }
 
-constexpr u8 msb_index(Bitboard b) noexcept {
+constexpr u8 constexpr_msb_index(Bitboard b) noexcept {
     constexpr Array<u8, SQUARE_NB> MSBIndices{
       0,  47, 1,  56, 48, 27, 2,  60,  //
       57, 49, 41, 37, 28, 16, 3,  61,  //
@@ -194,7 +194,7 @@ constexpr u8 msb_index(Bitboard b) noexcept {
     return MSBIndices[(b * Debruijn64) >> 58];
 }
 
-// Fills from the MSB down to bit 0.
+// Fills all bits below the most significant set bit.
 // e.g. 0001'0010 -> 0001'1111
 constexpr Bitboard fill_prefix_bb(Bitboard b) noexcept {
     b |= b >> 1;
@@ -205,7 +205,7 @@ constexpr Bitboard fill_prefix_bb(Bitboard b) noexcept {
     b |= b >> 32;
     return b;
 }
-// Fills from the LSB up to bit 63.
+// Fills all bits above the least significant set bit.
 // e.g. 0001'0010 -> 1111'1110
 constexpr Bitboard fill_postfix_bb(Bitboard b) noexcept {
     b |= b << 1;
@@ -221,14 +221,14 @@ constexpr u8 constexpr_lsb(Bitboard b) noexcept {
     assert(b != 0);
 
     b ^= b - 1;
-    return msb_index(b);
+    return constexpr_msb_index(b);
 }
 
 constexpr u8 constexpr_msb(Bitboard b) noexcept {
     assert(b != 0);
 
     b = fill_prefix_bb(b);
-    return msb_index(b);
+    return constexpr_msb_index(b);
 }
 
 #if !defined(USE_POPCNT)
