@@ -34,8 +34,7 @@
 #include "layers/clipped_relu.h"
 #include "layers/sqr_clipped_relu.h"
 
-namespace DON {
-namespace NNUE {
+namespace DON::NNUE {
 
 // Input features used in evaluation function
 using ThreatFeatureSet = Features::FullThreats;
@@ -152,8 +151,7 @@ struct NetworkArchitecture final {
     Layers::AffineTransform<FC_1_Outputs, 1>                                           fc_2;
 };
 
-}  // namespace NNUE
-}  // namespace DON
+}  // namespace DON::NNUE
 
 template<>
 struct std::hash<DON::NNUE::NetworkArchitecture> {
