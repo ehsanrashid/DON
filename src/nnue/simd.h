@@ -52,8 +52,8 @@ using vec_i8_t   = __m256i;
 using vec128_t   = __m128i;
 using psqt_vec_t = __m256i;
 using vec_uint_t = __m512i;
-    #define vec_load(a) _mm512_load_si512(a)
-    #define vec_store(a, b) _mm512_store_si512(a, b)
+    #define vec_load(src) _mm512_load_si512(src)
+    #define vec_store(dst, value) _mm512_store_si512(dst, value)
     #define vec_convert_8_16(a) _mm512_cvtepi8_epi16(a)
     #define vec_add_16(a, b) _mm512_add_epi16(a, b)
     #define vec_sub_16(a, b) _mm512_sub_epi16(a, b)
@@ -65,8 +65,8 @@ using vec_uint_t = __m512i;
     #define vec_slli_16(a, b) _mm512_slli_epi16(a, b)
     // Inverse permuted at load time
     #define vec_packus_16(a, b) _mm512_packus_epi16(a, b)
-    #define vec_load_psqt(a) _mm256_load_si256(a)
-    #define vec_store_psqt(a, b) _mm256_store_si256(a, b)
+    #define vec_load_psqt(src) _mm256_load_si256(src)
+    #define vec_store_psqt(dst, value) _mm256_store_si256(dst, value)
     #define vec_add_psqt_32(a, b) _mm256_add_epi32(a, b)
     #define vec_sub_psqt_32(a, b) _mm256_sub_epi32(a, b)
     #define vec_zero_psqt() _mm256_setzero_si256()
@@ -77,7 +77,7 @@ using vec_uint_t = __m512i;
 
     #define vec128_zero _mm_setzero_si128()
     #define vec128_set_16(a) _mm_set1_epi16(a)
-    #define vec128_load(a) _mm_load_si128(a)
+    #define vec128_load(src) _mm_load_si128(src)
     #define vec128_storeu(a, b) _mm_storeu_si128(a, b)
     #define vec128_add(a, b) _mm_add_epi16(a, b)
 
@@ -90,8 +90,8 @@ using vec_i8_t   = __m128i;
 using vec128_t   = __m128i;
 using psqt_vec_t = __m256i;
 using vec_uint_t = __m256i;
-    #define vec_load(a) _mm256_load_si256(a)
-    #define vec_store(a, b) _mm256_store_si256(a, b)
+    #define vec_load(src) _mm256_load_si256(src)
+    #define vec_store(dst, value) _mm256_store_si256(dst, value)
     #define vec_convert_8_16(a) _mm256_cvtepi8_epi16(a)
     #define vec_add_16(a, b) _mm256_add_epi16(a, b)
     #define vec_sub_16(a, b) _mm256_sub_epi16(a, b)
@@ -103,8 +103,8 @@ using vec_uint_t = __m256i;
     #define vec_slli_16(a, b) _mm256_slli_epi16(a, b)
     // Inverse permuted at load time
     #define vec_packus_16(a, b) _mm256_packus_epi16(a, b)
-    #define vec_load_psqt(a) _mm256_load_si256(a)
-    #define vec_store_psqt(a, b) _mm256_store_si256(a, b)
+    #define vec_load_psqt(src) _mm256_load_si256(src)
+    #define vec_store_psqt(dst, value) _mm256_store_si256(dst, value)
     #define vec_add_psqt_32(a, b) _mm256_add_epi32(a, b)
     #define vec_sub_psqt_32(a, b) _mm256_sub_epi32(a, b)
     #define vec_zero_psqt() _mm256_setzero_si256()
@@ -121,7 +121,7 @@ using vec_uint_t = __m256i;
 
     #define vec128_zero _mm_setzero_si128()
     #define vec128_set_16(a) _mm_set1_epi16(a)
-    #define vec128_load(a) _mm_load_si128(a)
+    #define vec128_load(src) _mm_load_si128(src)
     #define vec128_storeu(a, b) _mm_storeu_si128(a, b)
     #define vec128_add(a, b) _mm_add_epi16(a, b)
 
@@ -161,7 +161,7 @@ inline __m128i vec_convert_8_16(const u64 a) noexcept {
     #define vec_min_16(a, b) _mm_min_epi16(a, b)
     #define vec_slli_16(a, b) _mm_slli_epi16(a, b)
     #define vec_packus_16(a, b) _mm_packus_epi16(a, b)
-    #define vec_load_psqt(a) (*(a))
+    #define vec_load_psqt(src) (*(src))
     #define vec_store_psqt(a, b) *(a) = (b)
     #define vec_add_psqt_32(a, b) _mm_add_epi32(a, b)
     #define vec_sub_psqt_32(a, b) _mm_sub_epi32(a, b)
@@ -174,7 +174,7 @@ inline __m128i vec_convert_8_16(const u64 a) noexcept {
 
     #define vec128_zero _mm_setzero_si128()
     #define vec128_set_16(a) _mm_set1_epi16(a)
-    #define vec128_load(a) _mm_load_si128(a)
+    #define vec128_load(src) _mm_load_si128(src)
     #define vec128_storeu(a, b) _mm_storeu_si128(a, b)
     #define vec128_add(a, b) _mm_add_epi16(a, b)
 
@@ -196,7 +196,7 @@ using vec_i8_t __attribute__((may_alias))    = int8x16_t;
 using psqt_vec_t __attribute__((may_alias))  = int32x4_t;
 using vec128_t __attribute__((may_alias))    = uint16x8_t;
 using vec_uint_t __attribute__((may_alias))  = uint32x4_t;
-    #define vec_load(a) (*(a))
+    #define vec_load(src) (*(src))
     #define vec_store(a, b) *(a) = (b)
     #define vec_add_16(a, b) vaddq_s16(a, b)
     #define vec_sub_16(a, b) vsubq_s16(a, b)
@@ -207,7 +207,7 @@ using vec_uint_t __attribute__((may_alias))  = uint32x4_t;
     #define vec_min_16(a, b) vminq_s16(a, b)
     #define vec_slli_16(a, b) vshlq_s16(a, vec_set_16(b))
     #define vec_packus_16(a, b) reinterpret_cast<vec_t>(vcombine_u8(vqmovun_s16(a), vqmovun_s16(b)))
-    #define vec_load_psqt(a) (*(a))
+    #define vec_load_psqt(src) (*(src))
     #define vec_store_psqt(a, b) *(a) = (b)
     #define vec_add_psqt_32(a, b) vaddq_s32(a, b)
     #define vec_sub_psqt_32(a, b) vsubq_s32(a, b)
@@ -217,7 +217,7 @@ inline constexpr u32 Mask[4]{1, 2, 4, 8};
     #define vec_nnz(a) vaddvq_u32(vandq_u32(vtstq_u32(a, a), vld1q_u32(SIMD::Mask)))
     #define vec128_zero vdupq_n_u16(0)
     #define vec128_set_16(a) vdupq_n_u16(a)
-    #define vec128_load(a) vld1q_u16(reinterpret_cast<const u16*>(a))
+    #define vec128_load(src) vld1q_u16(reinterpret_cast<const u16*>(src))
     #define vec128_storeu(a, b) vst1q_u16(reinterpret_cast<u16*>(a), b)
     #define vec128_add(a, b) vaddq_u16(a, b)
 
@@ -265,7 +265,7 @@ inline __m256i lasx_packus_32(const __m256i a, const __m256i b) noexcept {
     #endif
 }
 
-    #define vec_load(a) lasx_load256(a)
+    #define vec_load(src) lasx_load256(src)
     #define vec_store(a, b) lasx_store256(a, b)
     #define vec_add_16(a, b) __lasx_xvadd_h(a, b)
     #define vec_sub_16(a, b) __lasx_xvsub_h(a, b)
@@ -277,22 +277,19 @@ inline __m256i lasx_packus_32(const __m256i a, const __m256i b) noexcept {
     #define vec_slli_16(a, b) __lasx_xvslli_h(a, b)
     // Inverse permuted at load time
     #define vec_packus_16(a, b) lasx_packus_16(a, b)
-    #define vec_load_psqt(a) lasx_load256(a)
+    #define vec_load_psqt(src) lasx_load256(src)
     #define vec_store_psqt(a, b) lasx_store256(a, b)
     #define vec_add_psqt_32(a, b) __lasx_xvadd_w(a, b)
     #define vec_sub_psqt_32(a, b) __lasx_xvsub_w(a, b)
     #define vec_zero_psqt() __lasx_xvldi(0)
+
+inline int lasx_vec_nnz(const __m256i a) noexcept {
+    const __m256i cmp  = __lasx_xvslt_w(__lasx_xvldi(0), a);
+    const __m256i mask = __lasx_xvmskltz_w(cmp);
+    return ((int) __lasx_xvpickve2gr_w(mask, 0) & 0xF)
+         | (((int) __lasx_xvpickve2gr_w(mask, 4) & 0xF) << 4);
+}
     #define vec_nnz(a) lasx_vec_nnz(a)
-    #define vec_convert_8_16(a) lasx_cvtepi8_epi16(a)
-
-    #define vec128_zero __lsx_vldi(0)
-    #define vec128_set_16(a) __lsx_vreplgr2vr_h(a)
-    #define vec128_load(a) (*(a))
-    #define vec128_storeu(a, b) *(a) = (b)
-    #define vec128_add(a, b) __lsx_vadd_h(a, b)
-
-    #define MaxRegisterCount 24
-    #define MaxChunkSize 32
 
 inline __m256i lasx_cvtepi8_epi16(const __m128i a) noexcept {
     #if defined(__has_builtin) && __has_builtin(__builtin_lasx_cast_128)
@@ -310,13 +307,16 @@ inline __m256i lasx_cvtepi8_epi16(const __m128i a) noexcept {
     return __lasx_xvsllwil_h_b(v, 0);
     #endif
 }
+    #define vec_convert_8_16(a) lasx_cvtepi8_epi16(a)
 
-inline int lasx_vec_nnz(const __m256i a) noexcept {
-    const __m256i cmp = __lasx_xvslt_w(__lasx_xvldi(0), a);
-    const __m256i msk = __lasx_xvmskltz_w(cmp);
-    return ((int) __lasx_xvpickve2gr_w(msk, 0) & 0xF)
-         | (((int) __lasx_xvpickve2gr_w(msk, 4) & 0xF) << 4);
-}
+    #define vec128_zero __lsx_vldi(0)
+    #define vec128_set_16(a) __lsx_vreplgr2vr_h(a)
+    #define vec128_load(src) (*(src))
+    #define vec128_storeu(a, b) *(a) = (b)
+    #define vec128_add(a, b) __lsx_vadd_h(a, b)
+
+    #define MaxRegisterCount 24
+    #define MaxChunkSize 32
 
 #elif defined(USE_LSX)
 using vec_t      = __m128i;
@@ -341,8 +341,8 @@ inline __m128i lsx_packus_32(const __m128i a, const __m128i b) noexcept {
     #endif
 }
 
-    #define vec_load(a) (*(a))
-    #define vec_store(a, b) *(a) = (b)
+    #define vec_load(src) (*(src))
+    #define vec_store(dst, value) *(dst) = (value)
     #define vec_add_16(a, b) __lsx_vadd_h(a, b)
     #define vec_sub_16(a, b) __lsx_vsub_h(a, b)
     #define vec_mulhi_16(a, b) __lsx_vmuh_h(a, b)
@@ -353,18 +353,18 @@ inline __m128i lsx_packus_32(const __m128i a, const __m128i b) noexcept {
     #define vec_slli_16(a, b) __lsx_vslli_h(a, b)
     // Inverse permuted at load time
     #define vec_packus_16(a, b) lsx_packus_16(a, b)
-    #define vec_load_psqt(a) (*(a))
-    #define vec_store_psqt(a, b) *(a) = (b)
+    #define vec_load_psqt(src) (*(src))
+    #define vec_store_psqt(dst, value) *(dst) = (value)
     #define vec_add_psqt_32(a, b) __lsx_vadd_w(a, b)
     #define vec_sub_psqt_32(a, b) __lsx_vsub_w(a, b)
     #define vec_zero_psqt() __lsx_vldi(0)
 
 inline int lsx_vec_nnz(const __m128i a) noexcept {
-    const __m128i cmp = __lsx_vslt_w(__lsx_vldi(0), a);
-    const __m128i msk = __lsx_vmskltz_w(cmp);
-    return ((int) __lsx_vpickve2gr_w(msk, 0) & 0xF);
+    const __m128i cmp  = __lsx_vslt_w(__lsx_vldi(0), a);
+    const __m128i mask = __lsx_vmskltz_w(cmp);
+    return ((int) __lsx_vpickve2gr_w(mask, 0) & 0xF);
 }
-    #define vec_nnz(a) lsx_vec_nnz(a)
+    #define vec_nnz(a) SIMD::lsx_vec_nnz(a)
 
 inline __m128i vec_convert_8_16(const u64 x) noexcept {
     __m128i v = __lsx_vldrepl_d(reinterpret_cast<const void*>(&x), 0);
@@ -373,7 +373,7 @@ inline __m128i vec_convert_8_16(const u64 x) noexcept {
 
     #define vec128_zero __lsx_vldi(0)
     #define vec128_set_16(a) __lsx_vreplgr2vr_h(a)
-    #define vec128_load(a) (*(a))
+    #define vec128_load(src) (*(src))
     #define vec128_storeu(a, b) *(a) = (b)
     #define vec128_add(a, b) __lsx_vadd_h(a, b)
 
@@ -491,6 +491,7 @@ inline void m128_add_dpbusd_epi32(__m128i& acc, const __m128i a, const __m128i b
     product         = _mm_madd_epi16(product, _mm_set1_epi16(1));
     acc             = _mm_add_epi32(acc, product);
 }
+
 #endif  // USE_SSSE3
 
 #if defined(USE_NEON)
@@ -524,6 +525,7 @@ neon_m128_add_dpbusd_epi32(int32x4_t& acc, const int8x16_t a, const int8x16_t b)
     acc                      = vpadalq_s16(acc, sum);
     #endif
 }
+
 #endif  // USE_NEON
 
 #if defined(USE_LASX)
@@ -541,6 +543,7 @@ inline void lasx_m256_add_dpbusd_epi32(__m256i& acc, const __m256i a, const __m2
     product         = __lasx_xvmaddwod_h_bu_b(product, a, b);
     acc             = __lasx_xvadd_w(acc, __lasx_xvhaddw_w_h(product, product));
 }
+
 #endif  // USE_LASX
 
 #if defined(USE_LSX)
@@ -557,6 +560,7 @@ inline void lsx_m128_add_dpbusd_epi32(__m128i& acc, const __m128i a, const __m12
     product         = __lsx_vmaddwod_h_bu_b(product, a, b);
     acc             = __lsx_vadd_w(acc, __lsx_vhaddw_w_h(product, product));
 }
+
 #endif  // USE_LSX
 
 #if defined(VECTOR)
