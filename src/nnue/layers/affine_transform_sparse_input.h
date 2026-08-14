@@ -267,14 +267,14 @@ class AffineTransformSparseInput final {
 
     struct OffsetIndices final {
        public:
-        static constexpr usize SIZE       = 256;
+        static constexpr usize MASK_SIZE  = 256;
         static constexpr u8    INDEX_SIZE = 8;
 
-        Array<NNZOutput, SIZE, INDEX_SIZE> indices{};
+        Array<NNZOutput, MASK_SIZE, INDEX_SIZE> indices{};
 
         constexpr OffsetIndices() noexcept {
 
-            for (usize i = 0; i < SIZE; ++i)
+            for (usize i = 0; i < MASK_SIZE; ++i)
             {
                 u8 k = 0;
 
@@ -379,7 +379,7 @@ class AffineTransformSparseInput final {
                   vaddvq_u16(vandq_u16(nonzeroMask, vld1q_u16(nnzMasks.data())));
 
                 u64 offsets;
-                std::memcpy(&offsets, OFFSET_INDICES.indices[nnzMask], sizeof(offsets));
+                std::memcpy(&offsets, OFFSET_INDICES.indices[nnzMask].data(), sizeof(offsets));
                 const u64 indices = offsets + base;
                 std::memcpy(outNnz + count, &indices, sizeof(indices));
 
@@ -417,7 +417,7 @@ class AffineTransformSparseInput final {
                 }
 
                 const SIMD::vec128_t offsets = vec128_load(
-                  reinterpret_cast<const SIMD::vec128_t*>(&OFFSET_INDICES.indices[nnzMask]));
+                  reinterpret_cast<const SIMD::vec128_t*>(OFFSET_INDICES.indices[nnzMask].data()));
 
                 vec128_storeu(reinterpret_cast<SIMD::vec128_t*>(outNnz + count),
                               vec128_add(base, offsets));
