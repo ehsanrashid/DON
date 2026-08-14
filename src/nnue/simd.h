@@ -143,7 +143,7 @@ inline __m128i _mm_cvtsi64_si128(const i64 value) noexcept {
 }
     #endif
     #if defined(USE_SSE41)
-        #define vec_convert_8_16(a) _mm_cvtepi8_epi16(SIMD::_mm_cvtsi64_si128(i64(a)))
+        #define vec_convert_8_16(a) _mm_cvtepi8_epi16(_mm_cvtsi64_si128(i64(a)))
     #else
 inline __m128i vec_convert_8_16(const u64 a) noexcept {
     const __m128i v8   = _mm_cvtsi64_si128(i64(a));
