@@ -43,29 +43,27 @@ namespace DON::NNUE::Layers {
 
 // Fallback implementation for older/other architectures.
 // Requires the input to be padded to at least 16 values.
-#if !defined(ENABLE_SEQ_OPT)
-
 template<IndexType InputDimensions, IndexType PaddedInputDimensions, IndexType OutputDimensions>
 void transform_affine_non_ssse3(const Array<i32, OutputDimensions>&                        biases,
                                 const Array<i8, OutputDimensions * PaddedInputDimensions>& weights,
                                 const u8* RESTRICT                                         input,
                                 i32* RESTRICT output) noexcept {
-    #if defined(USE_SSE2) || defined(USE_NEON)
-        #if defined(USE_SSE2)
+#if defined(USE_SSE2) || defined(USE_NEON)
+    #if defined(USE_SSE2)
     // At least a multiple of 16, with SSE2
     constexpr IndexType ChunkCount  = ceil_to_multiple<IndexType>(InputDimensions, 16) / 16;
     const auto*         inputVector = reinterpret_cast<const __m128i*>(input);
     const __m128i       Zeros       = _mm_setzero_si128();
-        #elif defined(USE_NEON)
+    #elif defined(USE_NEON)
     constexpr IndexType ChunkCount  = ceil_to_multiple<IndexType>(InputDimensions, 16) / 16;
     const auto*         inputVector = reinterpret_cast<const int8x8_t*>(input);
-        #endif
+    #endif
 
     for (IndexType i = 0; i < OutputDimensions; ++i)
     {
         const usize offset = i * PaddedInputDimensions;
 
-        #if defined(USE_SSE2)
+    #if defined(USE_SSE2)
 
         __m128i     loSum = _mm_cvtsi32_si128(biases[i]);
         __m128i     hiSum = Zeros;
@@ -92,7 +90,7 @@ void transform_affine_non_ssse3(const Array<i32, OutputDimensions>&             
         sum             = _mm_add_epi32(sum, loSum32);
         output[i]       = _mm_cvtsi128_si32(sum);
 
-        #elif defined(USE_NEON)
+    #elif defined(USE_NEON)
 
         int32x4_t   sum = {biases[i]};
         const auto* row = reinterpret_cast<const SIMD::vec_i8x8_t*>(&weights[offset]);
@@ -105,9 +103,9 @@ void transform_affine_non_ssse3(const Array<i32, OutputDimensions>&             
         }
         output[i] = SIMD::neon_m128_reduce_add_epi32(sum);
 
-        #endif
+    #endif
     }
-    #else
+#else
     std::memcpy(output, biases.data(), OutputDimensions * sizeof(i32));
 
     // Traverse weights in transpose order to take advantage of input sparsity
@@ -119,10 +117,8 @@ void transform_affine_non_ssse3(const Array<i32, OutputDimensions>&             
             for (IndexType j = 0; j < OutputDimensions; ++j)
                 output[j] += in * w[j * PaddedInputDimensions];
         }
-    #endif
+#endif
 }
-
-#endif  // !ENABLE_SEQ_OPT
 
 template<IndexType InDims, IndexType OutDims>
 class AffineTransform final {

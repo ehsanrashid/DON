@@ -18,7 +18,6 @@
 #ifndef NNUE_LAYERS_AFFINE_TRANSFORM_SPARSE_INPUT_H_INCLUDED
 #define NNUE_LAYERS_AFFINE_TRANSFORM_SPARSE_INPUT_H_INCLUDED
 
-#include <algorithm>
 #include <iostream>
 
 #if defined(USE_NEON)
@@ -32,6 +31,8 @@
 
 #if defined(USE_SSSE3) || defined(USE_LASX) || defined(USE_LSX) \
   || (defined(USE_NEON) && USE_NEON >= 8)
+    #include <type_traits>
+
     #include "../../bitboard.h"
     #include "../simd.h"
     #if defined(USE_VNNI) || defined(USE_LASX) || defined(USE_NEON_DOTPROD)
@@ -463,8 +464,6 @@ class AffineTransformSparseInput final {
     alignas(CACHE_LINE_SIZE) Array<BiasType, OutputDimensions> biases;
     alignas(CACHE_LINE_SIZE) Array<WeightType, OutputDimensions * PaddedInputDimensions> weights;
 };
-
-int loop();
 
 }  // namespace DON::NNUE::Layers
 
