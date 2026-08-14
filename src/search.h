@@ -646,7 +646,7 @@ class Worker final {
 
     const RootMoves& root_moves() const noexcept { return rootMoves; }
 
-    u64 nodes_() const noexcept { return nodes.load(std::memory_order_relaxed); }
+    u64 nodes_count() const noexcept { return nodes.load(std::memory_order_relaxed); }
 
    private:
     bool is_main_worker() const noexcept { return thread_id() == 0; }

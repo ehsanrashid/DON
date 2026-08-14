@@ -20,6 +20,7 @@ jobs:
           - { name: gcc-13, comp: gcc, cxx: g++, image: "gcc:13" }
           - { name: gcc-14, comp: gcc, cxx: g++, image: "gcc:14" }
           - { name: gcc-15, comp: gcc, cxx: g++, image: "gcc:15" }
+          - { name: gcc-16, comp: gcc, cxx: g++, image: "gcc:16" }
 
           # Using silkeh/clang for older versions
           - { name: clang-10, comp: clang, cxx: clang++, image: "silkeh/clang:10", is_clang: true, ver: "10" }
