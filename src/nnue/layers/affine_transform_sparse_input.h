@@ -27,6 +27,7 @@
 #include "../../misc.h"
 #include "../../types.h"
 #include "../common.h"
+#include "../simd.h"  // IWYU pragma: keep
 #include "affine_transform.h"
 
 #if defined(USE_SSSE3) || defined(USE_LASX) || defined(USE_LSX) \
@@ -34,7 +35,6 @@
     #include <type_traits>
 
     #include "../../bitboard.h"
-    #include "../simd.h"
     #if defined(USE_VNNI) || defined(USE_LASX) || defined(USE_NEON_DOTPROD)
         #include "../../memory.h"
     #endif

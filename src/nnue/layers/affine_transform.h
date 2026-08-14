@@ -20,12 +20,17 @@
 #ifndef NNUE_LAYERS_AFFINE_TRANSFORM_H_INCLUDED
 #define NNUE_LAYERS_AFFINE_TRANSFORM_H_INCLUDED
 
+#include <cstring>
 #include <iostream>
 
-#include "../../memory.h"
 #include "../../misc.h"
+#include "../../types.h"
 #include "../common.h"
-#include "../simd.h"
+#include "../simd.h"  // IWYU pragma: keep
+
+#if defined(USE_SSSE3) || defined(USE_LASX) || defined(USE_LSX) || defined(USE_NEON_DOTPROD)
+    #include "../../memory.h"
+#endif
 
 //  This file contains the definition for a fully connected layer (aka affine transform).
 //
@@ -144,7 +149,7 @@ class AffineTransform final {
     }
 
     static constexpr IndexType weight_index(IndexType i) noexcept {
-#if defined(USE_SSSE3) || defined(USE_NEON_DOTPROD) || defined(USE_LASX) || defined(USE_LSX)
+#if defined(USE_SSSE3) || defined(USE_LASX) || defined(USE_LSX) || defined(USE_NEON_DOTPROD)
         return (i / 4) % (PaddedInputDimensions / 4) * OutputDimensions * 4
              + i / PaddedInputDimensions * 4 + i % 4;
 #else
@@ -185,7 +190,7 @@ class AffineTransform final {
     // Forward propagation
     void propagate(const InputType* RESTRICT input, OutputType* RESTRICT output) const noexcept {
 
-#if defined(USE_SSSE3) || defined(USE_NEON_DOTPROD) || defined(USE_LASX) || defined(USE_LSX)
+#if defined(USE_SSSE3) || defined(USE_LASX) || defined(USE_LSX) || defined(USE_NEON_DOTPROD)
         if constexpr (OutputDimensions > 1)
         {
     #if defined(USE_AVX512)
