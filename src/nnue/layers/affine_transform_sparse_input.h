@@ -35,175 +35,6 @@
 
 namespace DON::NNUE::Layers {
 
-#if defined(USE_SSSE3) || (defined(USE_NEON) && USE_NEON >= 8)
-    #if defined(USE_NEON)
-using NNZOutput = std::conditional_t<(InDims <= 1024), u8, u16>;
-    #else
-using NNZOutput = u16;
-    #endif
-
-struct Lookup final {
-   public:
-    static constexpr usize SIZE       = 256;
-    static constexpr u8    INDEX_SIZE = 8;
-
-    Array<NNZOutput, SIZE, INDEX_SIZE> indices{};
-
-    constexpr Lookup() noexcept {
-
-        for (usize i = 0; i < SIZE; ++i)
-        {
-            u8 k = 0;
-
-            Bitboard b = i;
-            while (b != 0)
-            {
-                indices[i][k] = constexpr_lsb(b);
-                ++k;
-                b &= b - 1;
-            }
-
-            for (; k < INDEX_SIZE; ++k)
-                indices[i][k] = 0;
-        }
-    }
-};
-
-alignas(CACHE_LINE_SIZE) inline constexpr Lookup LOOKUP{};
-
-// Find indices of nonzero 32-bit values in a packed byte buffer.
-// The input pointer addresses a sequence of 32-bit blocks stored in a u8 array.
-template<IndexType ChunkCount>
-void find_nnz(const u8* RESTRICT input, NNZOutput* RESTRICT outNnz, IndexType& outCount) noexcept {
-
-    #if defined(USE_AVX512ICL)
-    constexpr IndexType InSimdWidth  = 64;  // 512 bits
-    constexpr IndexType OutSimdWidth = 32;  // 512 bits / 16 bits
-    constexpr IndexType SimdChunks   = ChunkCount / OutSimdWidth;
-
-    const __m512i increment = _mm512_set1_epi16(OutSimdWidth);
-    __m512i       base      = _mm512_set_epi16(  // Same permute order as _mm512_packus_epi32()
-      31, 30, 29, 28, 15, 14, 13, 12, 27, 26, 25, 24, 11, 10, 9, 8, 23, 22, 21, 20, 7, 6, 5, 4, 19,
-      18, 17, 16, 3, 2, 1, 0);
-
-    IndexType count = 0;
-    for (IndexType i = 0; i < SimdChunks; ++i)
-    {
-        const __m512i inputV0 = _mm512_load_si512(input + i * 2 * InSimdWidth + 0 * InSimdWidth);
-        const __m512i inputV1 = _mm512_load_si512(input + i * 2 * InSimdWidth + 1 * InSimdWidth);
-
-        // Get a bitmask and gather non-zero indices
-        const __m512i   inputV01 = _mm512_packs_epi32(inputV0, inputV1);
-        const __mmask32 nnzMask  = _mm512_test_epi16_mask(inputV01, inputV01);
-        const __m512i   nnzVal   = _mm512_maskz_compress_epi16(nnzMask, base);
-
-        _mm512_storeu_si512(outNnz + count, nnzVal);
-
-        count += popcount(nnzMask);
-        base = _mm512_add_epi16(base, increment);
-    }
-    outCount = count;
-    #elif defined(USE_AVX512)
-    constexpr IndexType OutSimdWidth = 16;  // 512 bits / 32 bits
-    constexpr IndexType SimdChunks   = ChunkCount / OutSimdWidth;
-
-    const __m512i increment = _mm512_set1_epi32(OutSimdWidth);
-    __m512i       base = _mm512_set_epi32(15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0);
-
-    IndexType count = 0;
-    for (IndexType i = 0; i < SimdChunks; ++i)
-    {
-        const __m512i inputV = _mm512_load_si512(input + i * OutSimdWidth * sizeof(u32));
-
-        // Get a bitmask and gather non-zero indices
-        const __mmask16 nnzMask = _mm512_test_epi32_mask(inputV, inputV);
-        const __m512i   nnzVal  = _mm512_maskz_compress_epi32(nnzMask, base);
-
-        _mm512_mask_cvtepi32_storeu_epi16(outNnz + count, 0xFFFF, nnzVal);
-
-        count += popcount(nnzMask);
-        base = _mm512_add_epi32(base, increment);
-    }
-    outCount = count;
-    #else
-        #if defined(USE_NEON)
-    // NEON path using u8 NNZOutput
-    if constexpr (std::is_same_v<NNZOutput, u8>)
-    {
-        static_assert(ChunkCount <= 256, "ChunkCount must be <= 256");
-
-        constexpr Array<u16, 8> nnzMasks{1, 2, 4, 8, 16, 32, 64, 128};
-
-        constexpr IndexType SimdChunks = ChunkCount / 8;
-
-        const auto* inputVector = reinterpret_cast<const uint32x4_t*>(input);
-
-        const u64 increment = u64{0x0808080808080808};
-        u64       base      = u64{0};
-
-        IndexType count = 0;
-        for (IndexType i = 0; i < SimdChunks; ++i)
-        {
-            const uint32x4_t v0 = inputVector[i * 2 + 0];
-            const uint32x4_t v1 = inputVector[i * 2 + 1];
-
-            const uint16x8_t nonzeroMask =
-              vcombine_u16(vqmovn_u32(vtstq_u32(v0, v0)), vqmovn_u32(vtstq_u32(v1, v1)));
-            const uint16_t nnzMask = vaddvq_u16(vandq_u16(nonzeroMask, vld1q_u16(nnzMasks.data())));
-
-            u64 offsets;
-            std::memcpy(&offsets, LOOKUP.indices[nnzMask], sizeof(offsets));
-            const u64 indices = offsets + base;
-            std::memcpy(outNnz + count, &indices, sizeof(indices));
-
-            count += popcount(nnzMask);
-            base += increment;
-        }
-        outCount = count;
-    }
-    else
-        #endif
-    {
-        constexpr IndexType InputSimdWidth = sizeof(SIMD::vec_uint_t) / sizeof(u32);
-        // Outputs are processed 8 elements at a time, even if the SIMD width is narrower
-        constexpr IndexType SimdChunkSize  = 8;
-        constexpr IndexType SimdChunks     = ChunkCount / SimdChunkSize;
-        constexpr IndexType InputsPerChunk = SimdChunkSize / InputSimdWidth;
-
-        static_assert(InputsPerChunk > 0, "SIMD width too wide");
-
-        const auto* inputVector = reinterpret_cast<const SIMD::vec_uint_t*>(input);
-
-        const SIMD::vec128_t increment = vec128_set_16(8);
-        SIMD::vec128_t       base      = vec128_zero;
-
-        IndexType count = 0;
-        for (IndexType i = 0; i < SimdChunks; ++i)
-        {
-            // bitmask of nonzero values in this chunk
-            unsigned nnzMask = 0;
-            for (IndexType j = 0; j < InputsPerChunk; ++j)
-            {
-                const SIMD::vec_uint_t inputChunk = inputVector[i * InputsPerChunk + j];
-
-                nnzMask |= unsigned(vec_nnz(inputChunk)) << (j * InputSimdWidth);
-            }
-
-            const SIMD::vec128_t offsets =
-              vec128_load(reinterpret_cast<const SIMD::vec128_t*>(&LOOKUP.indices[nnzMask]));
-
-            vec128_storeu(reinterpret_cast<SIMD::vec128_t*>(outNnz + count),
-                          vec128_add(base, offsets));
-
-            count += popcount(nnzMask);
-            base = vec128_add(base, increment);
-        }
-        outCount = count;
-    }
-    #endif
-}
-#endif
-
 // Sparse input implementation
 template<IndexType InDims, IndexType OutDims>
 class AffineTransformSparseInput final {
@@ -426,6 +257,180 @@ class AffineTransformSparseInput final {
     }
 
    private:
+    // NNZ-specific implementation
+#if defined(USE_SSSE3) || (defined(USE_NEON) && USE_NEON >= 8)
+    #if defined(USE_NEON)
+    using NNZOutput = std::conditional_t<(InDims <= 1024), u8, u16>;
+    #else
+    using NNZOutput = u16;
+    #endif
+
+    struct OffsetIndices final {
+       public:
+        static constexpr usize SIZE       = 256;
+        static constexpr u8    INDEX_SIZE = 8;
+
+        Array<NNZOutput, SIZE, INDEX_SIZE> indices{};
+
+        constexpr OffsetIndices() noexcept {
+
+            for (usize i = 0; i < SIZE; ++i)
+            {
+                u8 k = 0;
+
+                Bitboard b = i;
+                while (b != 0)
+                {
+                    indices[i][k] = constexpr_lsb(b);
+                    ++k;
+                    b &= b - 1;
+                }
+
+                for (; k < INDEX_SIZE; ++k)
+                    indices[i][k] = 0;
+            }
+        }
+    };
+
+    alignas(CACHE_LINE_SIZE) static inline constexpr OffsetIndices OFFSET_INDICES{};
+
+    // Find indices of nonzero 32-bit values in a packed byte buffer.
+    // The input pointer addresses a sequence of 32-bit blocks stored in a u8 array.
+    template<IndexType ChunkCount>
+    static void
+    find_nnz(const u8* RESTRICT input, NNZOutput* RESTRICT outNnz, IndexType& outCount) noexcept {
+
+    #if defined(USE_AVX512ICL)
+        constexpr IndexType InSimdWidth  = 64;  // 512 bits
+        constexpr IndexType OutSimdWidth = 32;  // 512 bits / 16 bits
+        constexpr IndexType SimdChunks   = ChunkCount / OutSimdWidth;
+
+        const __m512i increment = _mm512_set1_epi16(OutSimdWidth);
+        __m512i       base      = _mm512_set_epi16(  // Same permute order as _mm512_packus_epi32()
+          31, 30, 29, 28, 15, 14, 13, 12, 27, 26, 25, 24, 11, 10, 9, 8, 23, 22, 21, 20, 7, 6, 5, 4,
+          19, 18, 17, 16, 3, 2, 1, 0);
+
+        IndexType count = 0;
+        for (IndexType i = 0; i < SimdChunks; ++i)
+        {
+            const __m512i inputV0 =
+              _mm512_load_si512(input + i * 2 * InSimdWidth + 0 * InSimdWidth);
+            const __m512i inputV1 =
+              _mm512_load_si512(input + i * 2 * InSimdWidth + 1 * InSimdWidth);
+
+            // Get a bitmask and gather non-zero indices
+            const __m512i   inputV01 = _mm512_packs_epi32(inputV0, inputV1);
+            const __mmask32 nnzMask  = _mm512_test_epi16_mask(inputV01, inputV01);
+            const __m512i   nnzVal   = _mm512_maskz_compress_epi16(nnzMask, base);
+
+            _mm512_storeu_si512(outNnz + count, nnzVal);
+
+            count += popcount(nnzMask);
+            base = _mm512_add_epi16(base, increment);
+        }
+        outCount = count;
+    #elif defined(USE_AVX512)
+        constexpr IndexType OutSimdWidth = 16;  // 512 bits / 32 bits
+        constexpr IndexType SimdChunks   = ChunkCount / OutSimdWidth;
+
+        const __m512i increment = _mm512_set1_epi32(OutSimdWidth);
+        __m512i       base = _mm512_set_epi32(15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0);
+
+        IndexType count = 0;
+        for (IndexType i = 0; i < SimdChunks; ++i)
+        {
+            const __m512i inputV = _mm512_load_si512(input + i * OutSimdWidth * sizeof(u32));
+
+            // Get a bitmask and gather non-zero indices
+            const __mmask16 nnzMask = _mm512_test_epi32_mask(inputV, inputV);
+            const __m512i   nnzVal  = _mm512_maskz_compress_epi32(nnzMask, base);
+
+            _mm512_mask_cvtepi32_storeu_epi16(outNnz + count, 0xFFFF, nnzVal);
+
+            count += popcount(nnzMask);
+            base = _mm512_add_epi32(base, increment);
+        }
+        outCount = count;
+    #else
+        #if defined(USE_NEON)
+        // NEON path using u8 NNZOutput
+        if constexpr (std::is_same_v<NNZOutput, u8>)
+        {
+            static_assert(ChunkCount <= 256, "ChunkCount must be <= 256");
+
+            constexpr Array<u16, 8> nnzMasks{1, 2, 4, 8, 16, 32, 64, 128};
+
+            constexpr IndexType SimdChunks = ChunkCount / 8;
+
+            const auto* inputVector = reinterpret_cast<const uint32x4_t*>(input);
+
+            const u64 increment = u64{0x0808080808080808};
+            u64       base      = u64{0};
+
+            IndexType count = 0;
+            for (IndexType i = 0; i < SimdChunks; ++i)
+            {
+                const uint32x4_t v0 = inputVector[i * 2 + 0];
+                const uint32x4_t v1 = inputVector[i * 2 + 1];
+
+                const uint16x8_t nonzeroMask =
+                  vcombine_u16(vqmovn_u32(vtstq_u32(v0, v0)), vqmovn_u32(vtstq_u32(v1, v1)));
+                const uint16_t nnzMask =
+                  vaddvq_u16(vandq_u16(nonzeroMask, vld1q_u16(nnzMasks.data())));
+
+                u64 offsets;
+                std::memcpy(&offsets, OFFSET_INDICES.indices[nnzMask], sizeof(offsets));
+                const u64 indices = offsets + base;
+                std::memcpy(outNnz + count, &indices, sizeof(indices));
+
+                count += popcount(nnzMask);
+                base += increment;
+            }
+            outCount = count;
+        }
+        else
+        #endif
+        {
+            constexpr IndexType InputSimdWidth = sizeof(SIMD::vec_uint_t) / sizeof(u32);
+            // Outputs are processed 8 elements at a time, even if the SIMD width is narrower
+            constexpr IndexType SimdChunkSize  = 8;
+            constexpr IndexType SimdChunks     = ChunkCount / SimdChunkSize;
+            constexpr IndexType InputsPerChunk = SimdChunkSize / InputSimdWidth;
+
+            static_assert(InputsPerChunk > 0, "SIMD width too wide");
+
+            const auto* inputVector = reinterpret_cast<const SIMD::vec_uint_t*>(input);
+
+            const SIMD::vec128_t increment = vec128_set_16(8);
+            SIMD::vec128_t       base      = vec128_zero;
+
+            IndexType count = 0;
+            for (IndexType i = 0; i < SimdChunks; ++i)
+            {
+                // bitmask of nonzero values in this chunk
+                unsigned nnzMask = 0;
+                for (IndexType j = 0; j < InputsPerChunk; ++j)
+                {
+                    const SIMD::vec_uint_t inputChunk = inputVector[i * InputsPerChunk + j];
+
+                    nnzMask |= unsigned(vec_nnz(inputChunk)) << (j * InputSimdWidth);
+                }
+
+                const SIMD::vec128_t offsets = vec128_load(
+                  reinterpret_cast<const SIMD::vec128_t*>(&OFFSET_INDICES.indices[nnzMask]));
+
+                vec128_storeu(reinterpret_cast<SIMD::vec128_t*>(outNnz + count),
+                              vec128_add(base, offsets));
+
+                count += popcount(nnzMask);
+                base = vec128_add(base, increment);
+            }
+            outCount = count;
+        }
+    #endif
+    }
+#endif
+
     using BiasType   = OutputType;
     using WeightType = i8;
 
