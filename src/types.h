@@ -633,18 +633,18 @@ class Move {
     static constexpr u8 PROMO_OFFSET  = 12;
     static constexpr u8 TYPE_OFFSET   = 14;
 
-    static constexpr u16 SQ_MASK    = (1u << 6) - 1;
-    static constexpr u16 PROMO_MASK = (1u << 2) - 1;
-    static constexpr u16 TYPE_MASK  = ((1u << 2) - 1) << TYPE_OFFSET;
+    static constexpr u16 SQ_MASK    = 0x3F;
+    static constexpr u16 PROMO_MASK = 0x3;
+    static constexpr u16 TYPE_MASK  = 0x3 << TYPE_OFFSET;
 
     Move() noexcept = default;
-    constexpr explicit Move(u16 d) noexcept :
+    constexpr explicit Move(const u16 d) noexcept :
         data(d) {}
-    constexpr Move(Square orgSq, Square dstSq, MT mt = MT::NORMAL) noexcept :
+    constexpr Move(const Square orgSq, const Square dstSq, const MT mt = MT::NORMAL) noexcept :
         data((u16(mt) << TYPE_OFFSET)         //
              | (u16(orgSq) << ORG_SQ_OFFSET)  //
              | (u16(dstSq) << DST_SQ_OFFSET)) {}
-    constexpr Move(Square orgSq, Square dstSq, PieceType promoPt) noexcept :
+    constexpr Move(const Square orgSq, const Square dstSq, const PieceType promoPt) noexcept :
         data((u16(MT::PROMOTION) << TYPE_OFFSET)        //
              | (u16(promoPt - KNIGHT) << PROMO_OFFSET)  //
              | (u16(orgSq) << ORG_SQ_OFFSET)            //
@@ -679,8 +679,8 @@ class Move {
 
     [[nodiscard]] constexpr u16 raw() const noexcept { return data; }
 
-    constexpr bool operator==(Move m) const noexcept { return data == m.data; }
-    constexpr bool operator!=(Move m) const noexcept { return !(*this == m); }
+    constexpr bool operator==(const Move m) const noexcept { return data == m.data; }
+    constexpr bool operator!=(const Move m) const noexcept { return !(*this == m); }
 
     // Validity check: ensures move is not None or Null
     [[nodiscard]] constexpr bool is_ok() const noexcept { return data != 0x000 && data != 0xFFF; }

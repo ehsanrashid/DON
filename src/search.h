@@ -180,13 +180,11 @@ struct RootMove final {
         return !(rm1 < rm2);
     }
 
-    [[nodiscard]] Value effective_value() const noexcept {
-        return curValue != -VALUE_INFINITE ? curValue : preValue;
-    }
-
     [[nodiscard]] bool has_bound() const noexcept {
         return bound == Bound::LOWER || bound == Bound::UPPER;
     }
+
+    void unset_bound() noexcept { bound = Bound::NONE; }
 
     u64 nodes = 0;
 
@@ -603,7 +601,7 @@ struct Stack final {
     PieceSqCorrectionHistory* pieceSqCorrectionHistory;
 
     int   history;
-    Value evalValue;
+    Value evalue;
     i16   ply;
     Move  move;
     Move  ttMove;
@@ -745,7 +743,7 @@ class Worker final {
     Limit                     limit;
     Tablebase::Syzygy::Config tbConfig;
 
-    Depth rootDepth, completedDepth;
+    Depth rootDepth;
     usize multiPv, pvCur, pvEnd;
     u16   selDepth;
     u16   rootDelta;
