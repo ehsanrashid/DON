@@ -20,11 +20,13 @@
 
 #include <algorithm>
 #include <iostream>
+
 #if defined(USE_NEON)
     #include <cstring>
 #endif
 
 #include "../../bitboard.h"
+#include "../../memory.h"
 #include "../../misc.h"
 #include "../common.h"
 #include "../simd.h"
@@ -211,9 +213,9 @@ class AffineTransformSparseInput final {
             const usize i1 = p[1];
             const usize i2 = p[2];
 
-            const invec_t in0 = vec_set_32(load_as<i32>(input + i0 * sizeof(u32)));
-            const invec_t in1 = vec_set_32(load_as<i32>(input + i1 * sizeof(u32)));
-            const invec_t in2 = vec_set_32(load_as<i32>(input + i2 * sizeof(u32)));
+            const invec_t in0 = vec_set_32(load_as<i32>(input + i0 * sizeof(i32)));
+            const invec_t in1 = vec_set_32(load_as<i32>(input + i1 * sizeof(i32)));
+            const invec_t in2 = vec_set_32(load_as<i32>(input + i2 * sizeof(i32)));
 
             const invec_t* col0 = reinterpret_cast<const invec_t*>(&weights[i0 * OutputDimensions * ChunkSize]);
             const invec_t* col1 = reinterpret_cast<const invec_t*>(&weights[i1 * OutputDimensions * ChunkSize]);
@@ -245,7 +247,7 @@ class AffineTransformSparseInput final {
         {
             const usize i = *p;
 
-            const invec_t in = vec_set_32(load_as<i32>(input + i * sizeof(u32)));
+            const invec_t in = vec_set_32(load_as<i32>(input + i * sizeof(i32)));
 
             const invec_t* col = reinterpret_cast<const invec_t*>(&weights[i * OutputDimensions * ChunkSize]);
 
@@ -453,6 +455,8 @@ class AffineTransformSparseInput final {
     alignas(CACHE_LINE_SIZE) Array<BiasType, OutputDimensions> biases;
     alignas(CACHE_LINE_SIZE) Array<WeightType, OutputDimensions * PaddedInputDimensions> weights;
 };
+
+int loop();
 
 }  // namespace DON::NNUE::Layers
 
