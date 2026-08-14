@@ -235,7 +235,7 @@ class AffineTransform final {
             constexpr IndexType ChunkCount = ceil_to_multiple<IndexType>(InputDimensions, 8) / 4;
             constexpr IndexType AccCount   = OutputDimensions / OutputSimdWidth;
             constexpr IndexType RegCount =
-    #if defined(USE_VNNI)  //|| defined(USE_NEON_DOTPROD)
+    #if defined(USE_VNNI) || defined(USE_NEON_DOTPROD)
               AccCount * 2
     #else
               AccCount
@@ -252,7 +252,7 @@ class AffineTransform final {
                 acc[k] = vec_set_32(0);
 
             IndexType i = 0;
-    #if defined(USE_VNNI)  //|| defined(USE_NEON_DOTPROD)
+    #if defined(USE_VNNI) || defined(USE_NEON_DOTPROD)
             for (; i + 1 < ChunkCount; i += 2)
             {
                 const vec_t in0 = vec_set_32(load_as<i32>(input + (i + 0) * sizeof(i32)));
@@ -274,8 +274,8 @@ class AffineTransform final {
                 acc[k] =
         #if defined(USE_VNNI)
                   vec_add_32(acc[k], acc[k + AccCount])
-        //#elif defined(USE_NEON_DOTPROD)
-        //        vaddq_s32(acc[k], acc[k + AccCount])
+        #elif defined(USE_NEON_DOTPROD)
+                  vaddq_s32(acc[k], acc[k + AccCount])
         #endif
                   ;
     #endif
