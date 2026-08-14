@@ -57,11 +57,11 @@ else ifeq ($(COMP),mingw)
     endif
 endif
 
-# Cross-platform command to detect executable
+# Cross-platform command to detect an executable
 ifeq ($(OS_WINDOWS),yes)
-    FIND_EXE = where "$1" 2>/dev/null
+    FIND_EXE = where "$(1)" 2>/dev/null
 else
-    FIND_EXE = command -v "$1" 2>/dev/null
+    FIND_EXE = command -v "$(1)" 2>/dev/null
 endif
 
 # -------------------------------------------
