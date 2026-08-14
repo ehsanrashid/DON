@@ -37,10 +37,6 @@
 
 namespace DON::NNUE::Layers {
 
-#if defined(USE_SSSE3) || defined(USE_NEON_DOTPROD) || defined(USE_LASX) || defined(USE_LSX)
-    #define ENABLE_SEQ_OPT
-#endif
-
 // Fallback implementation for older/other architectures.
 // Requires the input to be padded to at least 16 values.
 template<IndexType InputDimensions, IndexType PaddedInputDimensions, IndexType OutputDimensions>
@@ -119,6 +115,10 @@ void transform_affine_non_ssse3(const Array<i32, OutputDimensions>&             
         }
 #endif
 }
+
+#if defined(USE_SSSE3) || defined(USE_NEON_DOTPROD) || defined(USE_LASX) || defined(USE_LSX)
+    #define ENABLE_SEQ_OPT
+#endif
 
 template<IndexType InDims, IndexType OutDims>
 class AffineTransform final {
