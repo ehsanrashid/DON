@@ -80,18 +80,22 @@ class ClippedReLU final {
         for (IndexType i = 0; i < ChunkCount; ++i)
         {
     #if defined(USE_SSE41)
-            const __m128i words0 = _mm_srli_epi16(_mm_packus_epi32(_mm_load_si128(&in[i * 4 + 0]),
-                                                                   _mm_load_si128(&in[i * 4 + 1])), WEIGHT_SCALE_BITS);
-            const __m128i words1 = _mm_srli_epi16(_mm_packus_epi32(_mm_load_si128(&in[i * 4 + 2]),
-                                                                   _mm_load_si128(&in[i * 4 + 3])), WEIGHT_SCALE_BITS);
+            const __m128i packed0 = _mm_packus_epi32(_mm_load_si128(&in[i * 4 + 0]),
+                                                     _mm_load_si128(&in[i * 4 + 1]));
+            const __m128i packed1 = _mm_packus_epi32(_mm_load_si128(&in[i * 4 + 2]),
+                                                     _mm_load_si128(&in[i * 4 + 3]));
+            const __m128i words0  = _mm_srli_epi16(packed0, WEIGHT_SCALE_BITS);
+            const __m128i words1  = _mm_srli_epi16(packed1, WEIGHT_SCALE_BITS);
             _mm_store_si128(&out[i], _mm_packs_epi16(words0, words1));
     #else
-            const __m128i words0 = _mm_srai_epi16(_mm_packs_epi32(_mm_load_si128(&in[i * 4 + 0]),
-                                                                  _mm_load_si128(&in[i * 4 + 1])), WEIGHT_SCALE_BITS);
-            const __m128i words1 = _mm_srai_epi16(_mm_packs_epi32(_mm_load_si128(&in[i * 4 + 2]),
-                                                                  _mm_load_si128(&in[i * 4 + 3])), WEIGHT_SCALE_BITS);
-            const __m128i packedBytes = _mm_packs_epi16(words0, words1);
-            _mm_store_si128(&out[i], _mm_subs_epi8(_mm_adds_epi8(packedBytes, K0x80s), K0x80s));
+            const __m128i packed0 = _mm_packs_epi32(_mm_load_si128(&in[i * 4 + 0]),
+                                                    _mm_load_si128(&in[i * 4 + 1]));
+            const __m128i packed1 = _mm_packs_epi32(_mm_load_si128(&in[i * 4 + 2]),
+                                                    _mm_load_si128(&in[i * 4 + 3]));
+            const __m128i words0  = _mm_srai_epi16(packed0, WEIGHT_SCALE_BITS);
+            const __m128i words1  = _mm_srai_epi16(packed1, WEIGHT_SCALE_BITS);
+            const __m128i packed  = _mm_packs_epi16(words0, words1);
+            _mm_store_si128(&out[i], _mm_subs_epi8(_mm_adds_epi8(packed, K0x80s), K0x80s));
     #endif
         }
 
