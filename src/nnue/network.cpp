@@ -48,7 +48,7 @@ extern const unsigned int gNNUEEmbeddedSize WEAK_SYM = sizeof(gNNUEEmbeddedData)
 //     const unsigned char        gNNUEEmbeddedData[];  // pointer to the embedded data
 //     const unsigned char *const gNNUEEmbeddedEnd;     // marker to the embedded end
 //     const unsigned int         gNNUEEmbeddedSize;    // size of the embedded file
-INCBIN(Embedded, EvalFileDefaultName);
+INCBIN(NNUEEmbedded, EvalFileDefaultName);
 #else
 const unsigned char gNNUEEmbeddedData[1] = {0x0};
 const unsigned int  gNNUEEmbeddedSize    = 1;
