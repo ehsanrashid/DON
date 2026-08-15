@@ -2,7 +2,7 @@
 
 #include "../evaluate.h"
 
-extern const unsigned char gEmbeddedData[1] = {
+extern const unsigned char gEmbeddedData[] = {
 #embed EvalFileDefaultName
 };
 extern const unsigned int gEmbeddedSize = sizeof(gEmbeddedData);

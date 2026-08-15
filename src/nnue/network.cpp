@@ -29,17 +29,25 @@
 #include "../position.h"
 #include "../notation.h"
 #include "../types.h"
-#include "accumulator.h"  // IWYU pragma: keep
 #include "common.h"
 
+#if defined(UNIVERSAL_BINARY)
+    // When building for the universal binary, use C++26 #embed with weak symbols so that a separate,
+    // non-LTO nnue_embed.o (with strong symbols) can override them during the LTO link,
+    // (INCBIN can't deduplicate)
+    #define WEAK_SYM __attribute__((weak))
+extern const unsigned char gEmbeddedData[] WEAK_SYM = {
+    #embed EvalFileDefaultName
+};
+extern const unsigned int gEmbeddedSize WEAK_SYM = sizeof(gEmbeddedData);
+// Note that this does not work in Microsoft Visual Studio.
+#elif !defined(NO_NNUE_EMBEDDING) && !defined(_MSC_VER)
 // Macro to embed the default efficiently updatable neural network (NNUE) file
 // data in the engine binary (using incbin.h, by Dale Weiler).
 // This macro invocation will declare the following three variables
 //     const unsigned char        gEmbeddedData[];  // pointer to the embedded data
 //     const unsigned char *const gEmbeddedEnd;     // marker to the embedded end
 //     const unsigned int         gEmbeddedSize;    // size of the embedded file
-// Note that this does not work in Microsoft Visual Studio.
-#if !defined(NO_NNUE_EMBEDDING) && !defined(_MSC_VER)
 INCBIN(Embedded, EvalFileDefaultName);
 #else
 const unsigned char gEmbeddedData[1] = {0x0};
