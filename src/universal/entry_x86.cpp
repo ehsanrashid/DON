@@ -1,27 +1,27 @@
 #include <cpuid.h>
 #include <stdint.h>
 
-#define DEFINE_BUILD(x) \
+#define DEFINE_ARCH_ENTRY(x) \
     namespace DON_##x { \
-        extern int main(int argc, const char* argv[]); \
+        extern int main(int argc, const char* argv[]) noexcept; \
     } \
     extern "C" void (*__start_##x##_init[])(void); \
     extern "C" void (*__stop_##x##_init[])(void); \
-    int entry_##x(int argc, const char* argv[]) { \
+    int entry_##x(int argc, const char* argv[]) noexcept { \
         unsigned count = __stop_##x##_init - __start_##x##_init; \
         for (unsigned i = 0; i < count; ++i) \
             __start_##x##_init[i](); \
         return DON_##x::main(argc, argv); \
     }
 
-DEFINE_BUILD(x86_64)
-DEFINE_BUILD(x86_64_sse41_popcnt)
-DEFINE_BUILD(x86_64_avx2)
-DEFINE_BUILD(x86_64_bmi2)
-DEFINE_BUILD(x86_64_avxvnni)
-DEFINE_BUILD(x86_64_avx512)
-DEFINE_BUILD(x86_64_vnni512)
-DEFINE_BUILD(x86_64_avx512icl)
+DEFINE_ARCH_ENTRY(x86_64)
+DEFINE_ARCH_ENTRY(x86_64_sse41_popcnt)
+DEFINE_ARCH_ENTRY(x86_64_avx2)
+DEFINE_ARCH_ENTRY(x86_64_bmi2)
+DEFINE_ARCH_ENTRY(x86_64_avxvnni)
+DEFINE_ARCH_ENTRY(x86_64_avx512)
+DEFINE_ARCH_ENTRY(x86_64_vnni512)
+DEFINE_ARCH_ENTRY(x86_64_avx512icl)
 
 // AMD Zen/Zen+/Zen2 (family 17h) implement pdep/pext via microcode.
 static bool has_slow_bmi2() noexcept {

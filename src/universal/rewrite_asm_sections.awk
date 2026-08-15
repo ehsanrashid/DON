@@ -17,7 +17,7 @@
 # 
 #    .section    .bss$_ZN21DON_x86_64_avx2L26STARTUP_PROCESSOR_AFFINITYE,"bw",one_only,_ZN21DON_x86_64_avx2L26STARTUP_PROCESSOR_AFFINITYE,unique,570
 #  ...
-# 
+#
 # We want to consolidate everything into a single section named x86_64_avx2_init, and insert
 # symbols __start_x86_64_avx2_init/__stop_x86_64_avx2_init for entry_x86.cpp to use.
 # (On ELF these symbols are implicitly defined, so naming it this way keeps the universal

@@ -1507,41 +1507,42 @@ TRACKED_TOP := $(sort $(foreach f,$(SRCS) $(HEADERS) Makefile incbin,$(firstword
 ARCH_OBJS := $(TEMP_DIR)/$(BASELINE_ARCH)/DON.o \
              $(patsubst %,$(TEMP_DIR)/%/DON.o,$(filter-out $(BASELINE_ARCH),$(UNIVERSAL_ARCHES)))
 
-UNIVERSAL_FINAL_FLAGS := -fno-exceptions -Os \
-			 -Wno-c++26-extensions -Wno-c23-extensions # suppress #embed warnings
+UNIVERSAL_BUILD_FLAGS := -fno-exceptions -Os -Wno-c++26-extensions -Wno-c23-extensions # suppress #embed warnings
 
 ifeq ($(KERNEL),Linux)
-    UNIVERSAL_FINAL_FLAGS += -static-libstdc++ -static-libgcc -lrt -lpthread
+    UNIVERSAL_BUILD_FLAGS += -static-libstdc++ -static-libgcc -lrt -lpthread
 else  # Windows
-    UNIVERSAL_FINAL_FLAGS += -Wl,--allow-multiple-definition -static
+    UNIVERSAL_BUILD_FLAGS += -Wl,--allow-multiple-definition -static
     ifeq ($(COMP),clang)
-        UNIVERSAL_FINAL_FLAGS += -lpthread
+        UNIVERSAL_BUILD_FLAGS += -lpthread
     endif
 endif
 
-# $(call arch-namespace,x86-64-avx2) => Stockfish_x86_64_avx2
-arch-suffix     = $(subst -,_,$(1))
-arch-namespace  = Stockfish_$(call arch-suffix,$(1))
-# Itanium ABI mangled name for Stockfish_<suffix>::main(int, char**)
-arch-mangled    = _ZN$(shell printf %s '$(call arch-namespace,$(1))' | wc -c)$(call arch-namespace,$(1))4mainEiPPc
+# $(call arch-namespace,x86-64-avx2) => DON_x86_64_avx2
+arch-suffix    = $(subst -,_,$(1))
+arch-namespace = DON_$(call arch-suffix,$(1))
+# Itanium ABI mangled name for DON_<suffix>::main(int, const char**)
+arch-mangled   = _ZN$(shell printf %s '$(call arch-namespace,$(1))' | wc -c)$(call arch-namespace,$(1))4mainEiPPc
 
 # lld-link, used on Windows+clang, doesn't accept --defsym, so
-# we define main directly in main.cpp instead and delete it later.
+# Define main directly in main.cpp instead and delete it later.
 ifeq ($(OS_WINDOWS)+$(COMP),yes+clang)
     arch-defmain = -DUNIVERSAL_NEEDS_MAIN_SHIM
 else
     arch-defmain = -Wl,--defsym=main=$(call arch-mangled,$(1))
 endif
 
-arch-cxxflags = --embed-dir=$(CURDIR) -DStockfish=$(call arch-namespace,$(1)) -DUNIVERSAL_BINARY \
+arch-cxxflags = --embed-dir=$(CURDIR) -DDON=$(call arch-namespace,$(1)) -DUNIVERSAL_BINARY \
                 $(call arch-defmain,$(1)) -Wno-c++26-extensions -Wno-c23-extensions
 
 UOBJ_TGT ?= universal-object-pgo
 OBJCOPY  ?= objcopy
 
-.PHONY: build profile-build universal-clean
-build:         UOBJ_TGT := universal-object-nopgo
-build:         $(UNIVERSAL_EXE)
+.PHONY: build profile-build universalclean
+
+build: UOBJ_TGT := universal-object-nopgo
+build: $(UNIVERSAL_EXE)
+
 profile-build: UOBJ_TGT := universal-object-pgo
 profile-build: $(UNIVERSAL_EXE)
 
@@ -1589,7 +1590,7 @@ else
 endif
 
 $(UNIVERSAL_EXE): $(UNIVERSAL_ENTRY_OBJ) $(NNUE_EMBED_OBJ) $(ARCH_OBJS)
-	$(CXX) -o $@ $(UNIVERSAL_ENTRY_OBJ) $(NNUE_EMBED_OBJ) $(ARCH_OBJS) $(UNIVERSAL_FINAL_FLAGS)
+	$(CXX) -o $@ $(UNIVERSAL_ENTRY_OBJ) $(NNUE_EMBED_OBJ) $(ARCH_OBJS) $(UNIVERSAL_BUILD_FLAGS)
 	@echo "Universal binary built: $@"
 
 endif  # UNIVERSAL_BUILD

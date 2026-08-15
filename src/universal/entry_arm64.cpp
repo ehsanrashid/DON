@@ -9,21 +9,21 @@
     #endif
 #endif
 
-#define DEFINE_BUILD(x) \
+#define DEFINE_ARCH_ENTRY(x) \
     namespace DON_##x { \
-        extern int main(int argc, const char* argv[]); \
+        extern int main(int argc, const char* argv[]) noexcept; \
     } \
     extern "C" void (*__start_##x##_init[])(void); \
     extern "C" void (*__stop_##x##_init[])(void); \
-    int entry_##x(int argc, const char* argv[]) { \
+    int entry_##x(int argc, const char* argv[]) noexcept { \
         unsigned count = __stop_##x##_init - __start_##x##_init; \
         for (unsigned i = 0; i < count; ++i) \
             __start_##x##_init[i](); \
         return DON_##x::main(argc, argv); \
     }
 
-DEFINE_BUILD(armv8)
-DEFINE_BUILD(armv8_dotprod)
+DEFINE_ARCH_ENTRY(armv8)
+DEFINE_ARCH_ENTRY(armv8_dotprod)
 
 struct CpuFeatures final {
     bool dotprod;
