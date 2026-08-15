@@ -173,8 +173,8 @@ ifeq ($(ARCH),native)
 endif
 
 # Explicitly check for the list of supported architectures (as listed with make help),
-# User can override with `make ARCH=x86-64-avx512icl ARCH_SUPPORT=yes`
-ARCH_SUPPORT := $(if $(filter \
+# User can override with `make ARCH=x86-64-avx512icl ARCH_SUPPORTED=yes`
+ARCH_SUPPORTED := $(if $(filter \
     x86-64-universal x86-64-avx512icl x86-64-vnni512 x86-64-vnni256 x86-64-avx512 x86-64-avxvnni \
     x86-64-bmi2 x86-64-avx2 x86-64-bitmanip-cmp x86-64-bitmanip x86-64-sse41-popcnt \
     x86-64-modern x86-64-sse41 x86-64-ssse3-popcnt x86-64-ssse3 x86-64 general-64 \
@@ -1147,20 +1147,20 @@ help:
 	echo ""; \
 	echo "Simple examples. If you don't know what to do, you likely want to run one of:"; \
 	echo ""; \
-	echo "make -j profile-build ARCH=native               # Fast compile for local use"; \
-	echo "make -j profile-build ARCH=x86-64-avx2          # Portable compile for most x86-64 systems"; \
-	echo "make -j profile-build ARCH=x86-64-sse41-popcnt  # Portable compile for most x86-64 systems"; \
-	echo "make -j profile-build ARCH=x86-64               # Portable compile for x86-64 systems"; \
+	echo 'make -j profile-build ARCH=native               # Fast compile for local system'; \
+	echo 'make -j profile-build ARCH=x86-64-avx2          # Portable compile for most x86-64 systems'; \
+	echo 'make -j profile-build ARCH=x86-64-sse41-popcnt  # Portable compile for most x86-64 systems'; \
+	echo 'make -j profile-build ARCH=x86-64               # Portable compile for x86-64 systems'; \
 	echo ""; \
 	echo "Advanced examples, for experienced users: "; \
 	echo ""; \
-	echo "make -j profile-build ARCH=x86-64-avxvnni"; \
-	echo "make -j profile-build ARCH=x86-64-avxvnni COMP=gcc CXX=g++-12.0"; \
+	echo 'make -j profile-build ARCH=x86-64-avxvnni'; \
+	echo 'make -j profile-build ARCH=x86-64-avxvnni COMP=gcc CXX=g++-12.0'; \
 	echo 'make -j profile-build ARCH=x86-64-universal RUN_PREFIX="/path/to/sde -future --" CXX=g++-15'; \
-	echo "make -j build ARCH=x86-64-ssse3 COMP=clang"; \
+	echo 'make -j build ARCH=x86-64-ssse3 COMP=clang'; \
 	echo ""
 
-ifeq ($(ARCH_SUPPORT),no)
+ifeq ($(ARCH_SUPPORTED),no)
 	@echo "Specify a supported architecture with the ARCH option for more details"; \
 	echo ""
 endif
@@ -1356,7 +1356,7 @@ config-sanity: net
 	echo "" && \
 	(test "$(debug)"    = "no" || test "$(debug)"    = "yes") && \
 	(test "$(optimize)" = "no" || test "$(optimize)" = "yes") && \
-	(test "$(ARCH_SUPPORT)" = "yes") && \
+	(test "$(ARCH_SUPPORTED)" = "yes") && \
 	(test "$(arch)" = "any" || test "$(arch)" = "i386" || test "$(arch)" = "x86_64" || \
 	 test "$(arch)" = "ppc" || test "$(arch)" = "ppc64" || test "$(arch)" = "e2k" || \
 	 test "$(arch)" = "armv7" || test "$(arch)" = "armv8" || test "$(arch)" = "arm64" || \
