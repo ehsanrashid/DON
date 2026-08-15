@@ -99,7 +99,7 @@ SRCS := attacks.cpp benchmark.cpp bitboard.cpp engine.cpp evaluate.cpp main.cpp 
     nnue/accumulator.cpp nnue/network.cpp nnue/nmisc.cpp \
     book/polyglot.cpp tablebase/syzygy.cpp
 
-OTHER_SRCS = universal/entry_x86.cpp universal/entry_arm64.cpp universal/nnue_embed.cpp
+EXTRA_SRCS = universal/entry_x86.cpp universal/entry_arm64.cpp universal/nnue_embed.cpp
 
 HEADERS := attacks.h benchmark.h bitboard.h engine.h evaluate.h history.h memory.h \
     misc.h movegen.h movepick.h notation.h numa.h option.h perft.h platform_win.h \
@@ -1284,8 +1284,8 @@ net:
 
 format:
 	@echo CLANG_FORMAT=$(CLANG_FORMAT)
-	@if [ -n "$(CLANG_FORMAT)" ] && [ -n "$(SRCS)$(HEADERS)" ]; then \
-		$(CLANG_FORMAT) -i -style=file $(SRCS) $(HEADERS); \
+	@if [ -n "$(CLANG_FORMAT)" ] && [ -n "$(SRCS)$(EXTRA_SRCS)$(HEADERS)" ]; then \
+		$(CLANG_FORMAT) -i -style=file $(SRCS) $(EXTRA_SRCS) $(HEADERS); \
 	fi
 
 install-hooks:

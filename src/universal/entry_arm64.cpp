@@ -25,10 +25,9 @@
 DEFINE_BUILD(armv8)
 DEFINE_BUILD(armv8_dotprod)
 
-struct CpuFeatures {
+struct CpuFeatures final {
     bool dotprod;
 };
-
 
 static CpuFeatures query_cpu_features() noexcept {
 #if defined(_WIN32)
