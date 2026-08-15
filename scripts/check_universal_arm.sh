@@ -22,8 +22,10 @@ max:armv8-dotprod
 
 BINARY_SIZE=$(wc -c < "$DON_EXE")
 MAX_SIZE=$((150 * 1024 * 1024))
+
 if [ "$BINARY_SIZE" -gt "$MAX_SIZE" ]; then
-    printf 'check_universal_arm.sh: binary size %d bytes exceeds 150 MB limit\n' "$BINARY_SIZE" >&2
+    printf 'check_universal_arm.sh: binary size %d bytes exceeds %d MB limit\n' \
+            "$BINARY_SIZE" "$((MAX_SIZE / 1024 / 1024))" >&2
     exit 1
 fi
 
@@ -34,10 +36,16 @@ for pair in $PAIRS; do
     compiler_out=$(qemu-aarch64 -cpu "$cpu" -- "$DON_EXE" compiler 2>&1 || true)
     bench_out=$(qemu-aarch64 -cpu "$cpu" -- "$DON_EXE" bench 2>&1 || true)
     actual_compiler=$(printf '%s\n' "$compiler_out" | awk -F: '/Compilation architecture/ {
-        sub(/^[[:space:]]+/, "", $2); sub(/[[:space:]]+$/, "", $2); print $2; exit
+        sub(/^[[:space:]]+/, "", $2)
+        sub(/[[:space:]]+$/, "", $2)
+        print $2
+        exit
     }')
-    actual_bench=$(printf '%s\n' "$bench_out" | awk -F: '/Nodes searched/ {
-        sub(/^[[:space:]]+/, "", $2); sub(/[[:space:]]+$/, "", $2); print $2; exit
+    actual_bench=$(printf '%s\n' "$bench_out" | awk -F: '/Total nodes/ {
+        sub(/^[[:space:]]+/, "", $2)
+        sub(/[[:space:]]+$/, "", $2)
+        print $2
+        exit
     }')
     if [ "$actual_compiler" != "$expected_compiler" ] || [ "$actual_bench" != "$EXPECTED_BENCH" ]; then
         printf '===== CPU %s output (expected %s/%s, got %s/%s) =====\n' \

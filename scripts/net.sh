@@ -57,8 +57,7 @@ fetch_network() {
     fi
 
     for url in "https://tests.stockfishchess.org/api/nn/$filename" \
-               "https://github.com/official-stockfish/networks/raw/master/$filename"
-    do
+               "https://github.com/official-stockfish/networks/raw/master/$filename"; do
         echo "Downloading from $url ..."
         if $wget_or_curl "$url" >"$filename"; then
             if validate_network "$filename"; then
