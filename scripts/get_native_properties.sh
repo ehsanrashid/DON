@@ -232,13 +232,13 @@ set_arch_ppc_64() {
     if [ -r "$cpuinfo_path" ] && grep -q "altivec" "$cpuinfo_path" 2>/dev/null; then
         # Typical: "cpu : POWER8E" (extract the number after POWER)
         power=$(
-            awk -F: '/^cpu[ \t]*:/{print $2; exit}' "$cpuinfo_path" 2>/dev/null | \
-            sed -n 's/.*[Pp][Oo][Ww][Ee][Rr][^0-9]*\([0-9][0-9]*\).*/\1/p'
+            awk -F: '/^cpu[ \t]*:/{print $2; exit}' "$cpuinfo_path" 2>/dev/null \
+            | sed -n 's/.*[Pp][Oo][Ww][Ee][Rr][^0-9]*\([0-9][0-9]*\).*/\1/p'
         )
         if [ -z "$power" ]; then
             power=$(
-                awk -F: '/^cpu[ \t]*:/{print $2; exit}' "$cpuinfo_path" 2>/dev/null | \
-                sed -n 's/.*\([0-9][0-9]*\).*/\1/p'
+                awk -F: '/^cpu[ \t]*:/{print $2; exit}' "$cpuinfo_path" 2>/dev/null \
+                | sed -n 's/.*\([0-9][0-9]*\).*/\1/p'
             )
         fi
         case $power in
