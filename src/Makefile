@@ -99,7 +99,7 @@ SRCS := attacks.cpp benchmark.cpp bitboard.cpp engine.cpp evaluate.cpp main.cpp 
     nnue/accumulator.cpp nnue/network.cpp nnue/nmisc.cpp \
     book/polyglot.cpp tablebase/syzygy.cpp
 
-EXTRA_SRCS = universal/entry_x86.cpp universal/entry_arm64.cpp universal/nnue_embed.cpp
+EXTRA_SRCS = universal/entry_x86.cpp universal/entry_arm64.cpp universal/entry_riscv64.cpp universal/nnue_embed.cpp
 
 HEADERS := attacks.h benchmark.h bitboard.h engine.h evaluate.h history.h memory.h \
     misc.h movegen.h movepick.h notation.h numa.h option.h perft.h platform_win.h \
@@ -151,6 +151,7 @@ VPATH := nnue:nnue/features:book:tablebase
 # dotprod = yes/no    --- -DUSE_NEON_DOTPROD --- Use ARM advanced SIMD Int8 dot product instructions
 # lsx = yes/no        --- -mlsx              --- Use Loongson SIMD eXtension
 # lasx = yes/no       --- -mlasx             --- Use Loongson Advanced SIMD eXtension
+# relaxedsimd = y/n   --- -mrelaxed-simd     --- Use WebAssembly relaxed SIMD extension
 # tablebases = yes/no --- -DNO_TABLEBASES    --- Support tablebase probing
 #
 # native              --- Auto-detect best architecture for host CPU using ../scripts/get_native_properties.sh
@@ -179,15 +180,14 @@ ARCH_SUPPORTED := $(if $(filter \
     x86-64-universal x86-64-avx512icl x86-64-vnni512 x86-64-vnni256 x86-64-avx512 x86-64-avxvnni \
     x86-64-bmi2 x86-64-avx2 x86-64-bitmanip-cmp x86-64-bitmanip x86-64-sse41-popcnt \
     x86-64-modern x86-64-sse41 x86-64-ssse3-popcnt x86-64-ssse3 x86-64 general-64 \
-    x86-32-sse41-popcnt x86-32-sse41 x86-32-sse2 x86-32 general-32 \
+    x86-32-sse41-popcnt x86-32-sse41 x86-32-ssse3 x86-32-sse2 x86-32 general-32 \
     ppc-64-vsx ppc-64-altivec ppc-64 ppc-32 e2k \
-    armv8-universal armv8-dotprod armv8 armv7-neon armv7 apple-silicon \
+    arm64-universal armv8-dotprod armv8 armv7-neon armv7 apple-silicon \
+    riscv64-universal riscv64-rva23 riscv64 \
     loongarch64-lasx loongarch64-lsx loongarch64 \
-    riscv64-rva23 riscv64 \
     wasm32 wasm32-relaxed-simd,$(ARCH)),yes,no)
 
-UNIVERSAL_BUILD := $(if $(filter %-universal,$(ARCH)),yes,no)
-
+UNIVERSAL_BUILD := $(if $(filter x86-64-universal arm64-universal riscv64-universal,$(ARCH)),yes,no)
 
 optimize = yes
 debug = no
@@ -217,6 +217,7 @@ vsx = no
 rva23 = no
 lsx = no
 lasx = no
+relaxedsimd = no
 tablebases = yes
 STRIP = strip
 
@@ -424,6 +425,14 @@ ifeq ($(ARCH),armv8-dotprod)
     dotprod = yes
 endif
 
+ifeq ($(ARCH),arm64-universal)
+    arch = armv8
+    prefetch = yes
+    popcnt = yes
+    arm_version = 8
+    neon = yes
+endif
+
 ifeq ($(ARCH),apple-silicon)
     arch = arm64
     prefetch = yes
@@ -431,17 +440,6 @@ ifeq ($(ARCH),apple-silicon)
     arm_version = 8
     neon = yes
     dotprod = yes
-endif
-
-# WASM is largely compiled using emcc's x86 compatibility layer, with occasional
-# WASM-specific intrinsics
-ifeq ($(ARCH),wasm32)
-    arch = wasm32
-    sse = yes
-    sse2 = yes
-    ssse3 = yes
-    sse41 = yes
-    tablebases = no
 endif
 
 ifeq ($(ARCH),ppc-32)
@@ -500,6 +498,27 @@ ifneq ($(findstring -lasx,$(ARCH)),)
     lsx = yes
     lasx = yes
 endif
+endif
+
+# WASM is largely compiled using emcc's x86 compatibility layer, with occasional
+# WASM-specific intrinsics
+ifeq ($(ARCH),wasm32)
+    arch = wasm32
+    sse = yes
+    sse2 = yes
+    ssse3 = yes
+    sse41 = yes
+    tablebases = no
+endif
+
+ifeq ($(ARCH),wasm32-relaxed-simd)
+    arch = wasm32
+    sse = yes
+    sse2 = yes
+    ssse3 = yes
+    sse41 = yes
+    relaxedsimd = yes
+    tablebases = no
 endif
 
 endif
@@ -942,6 +961,10 @@ ifeq ($(dotprod),yes)
     CXXFLAGS += -DUSE_NEON_DOTPROD -march=armv8.2-a+dotprod
 endif
 
+ifeq ($(rva23),yes)
+    CXXFLAGS += -DUSE_RVV -march=rv64gcv1p0_zba_zbb_zbs_zicbop_zicond
+endif
+
 ifeq ($(lasx),yes)
     CXXFLAGS += -DUSE_LASX
     ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
@@ -953,6 +976,14 @@ ifeq ($(lsx),yes)
     CXXFLAGS += -DUSE_LSX
     ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
         CXXFLAGS += -mlsx
+    endif
+endif
+
+ifeq ($(arch),wasm32)
+    CXXFLAGS += -pthread -msimd128 -DUSE_POPCNT -DNO_NNUE_EMBEDDING -DUSE_SLOPPY_ATOMICS
+    LDFLAGS += -pthread -sINITIAL_MEMORY=64MB -sALLOW_MEMORY_GROWTH -sSTACK_SIZE=3MB
+    ifeq ($(relaxedsimd),yes)
+        CXXFLAGS += -mrelaxed-simd
     endif
 endif
 
@@ -1007,8 +1038,9 @@ endif
 ### needs access to the optimization flags.
 ifeq ($(optimize),yes)
     ifeq ($(debug),no)
+        ifeq ($(arch),wasm32)
         # Non-macOS
-        ifneq ($(KERNEL),Darwin)
+        else ifneq ($(KERNEL),Darwin)
             # Android NDK Clang
             ifeq ($(COMP),ndk)
                 LDFLAGS += -fuse-ld=lld
@@ -1115,6 +1147,7 @@ help:
 	echo "general-64              > unspecified 64-bit"; \
 	echo "x86-32-sse41-popcnt     > x86 32-bit with sse41 and popcnt support"; \
 	echo "x86-32-sse41            > x86 32-bit with sse41 support"; \
+	echo "x86-32-ssse3            > x86 32-bit with ssse3 support"; \
 	echo "x86-32-sse2             > x86 32-bit with sse2 support"; \
 	echo "x86-32                  > x86 32-bit generic with mmx support"; \
 	echo "general-32              > unspecified 32-bit"; \
@@ -1123,17 +1156,19 @@ help:
 	echo "ppc-64                  > PPC 64-bit"; \
 	echo "ppc-32                  > PPC 32-bit"; \
 	echo "e2k                     > Elbrus 2000"; \
-	echo "armv8-universal         > ARMv8 64-bit with automatic runtime selection of the best architecture"; \
+	echo "arm64-universal         > ARMv8 64-bit with automatic runtime selection of the best architecture"; \
 	echo "armv8-dotprod           > ARMv8 64-bit with popcnt, neon and dot product support"; \
 	echo "armv8                   > ARMv8 64-bit with popcnt and neon"; \
 	echo "armv7-neon              > ARMv7 32-bit with popcnt and neon"; \
 	echo "armv7                   > ARMv7 32-bit"; \
 	echo "apple-silicon           > Apple silicon ARM64"; \
+	echo "riscv64-universal       > RISC-V 64-bit with automatic runtime selection of the best architecture"; \
+	echo "riscv64-rva23           > RISC-V 64-bit RVA23 profile"; \
+	echo "riscv64                 > RISC-V 64-bit"; \
 	echo "loongarch64-lasx        > LoongArch 64-bit with Advanced SIMD eXtension"; \
 	echo "loongarch64-lsx         > LoongArch 64-bit with SIMD eXtension"; \
 	echo "loongarch64             > LoongArch 64-bit"; \
-	echo "riscv64-rva23           > RISC-V 64-bit RVA23 profile"; \
-	echo "riscv64                 > RISC-V 64-bit"; \
+
 	echo ""; \
 	echo "Supported compilers:"; \
 	echo ""; \
@@ -1194,7 +1229,32 @@ profile-build: net config-sanity objclean profileclean
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) profileclean
 endif
 
-ifneq ($(filter clang ndk,$(COMP)),)
+# Default network filename, read from evaluate.h's EvalFileDefaultName.
+macos-lipo: NNUE_NET = $(shell grep -oE 'nn-[0-9a-f]+\.nnue' $(CURDIR)/evaluate.h | head -1)
+macos-lipo:
+	@echo ""
+	@echo "Step 1/4. Building x86-64 slice (network shared from Apple-silicon slice) ..."
+	CXXFLAGS="-arch x86_64" $(MAKE) build ARCH=x86-64-universal COMP=$(COMP) MACOS_X86_SLICE=1
+	mv $(EXE) $(EXE)-x86_64
+	@echo ""
+	@echo "Step 2/4. Building Apple silicon slice ..."
+	$(MAKE) profile-build ARCH=apple-silicon COMP=$(COMP)
+	mv $(EXE) $(EXE)-arm64
+	@echo ""
+	@echo "Step 3/4. Combining slices and locating the embedded network ..."
+	lipo -create $(EXE)-x86_64 $(EXE)-arm64 -output $(EXE)
+	$(SHELL) universal/patch_x86_slice.sh $(EXE) $(EXE)-x86_64 $(NNUE_NET)
+	@echo ""
+	@echo "Step 4/4. Re-combining slices with the patched x86-64 slice ..."
+	lipo -create $(EXE)-x86_64 $(EXE)-arm64 -output $(EXE)
+	@rm -f $(EXE)-x86_64 $(EXE)-arm64
+	@echo "Universal macOS binary built: $(EXE)"
+
+# Apple uses ld64 which doesn't have --save-temps
+ifeq ($(TARGET_KERNEL),Darwin)
+    LTO_OBJ_SUFFIX := .lto.o
+    SAVE_TEMPS := -Wl,-object_path_lto,DON.lto.o
+else ifneq ($(filter clang ndk,$(COMP)),)
     LTO_OBJ_SUFFIX := .lto.o
     ifeq ($(OS_WINDOWS),yes)
         SAVE_TEMPS := -Wl,--lto-emit-asm  # ld.lld doesn't have a save temps functionality
@@ -1216,7 +1276,7 @@ MODNAME := $(subst -,_,$(notdir $(CURDIR)))
 universal-object-pgo: objclean profileclean universalclean
 	@echo ""
 	@echo "Step 1/4. Building instrumented executable ..."
-	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) $(profile_make)
+	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) ENV_LDFLAGS='$(ENV_LDFLAGS) $(NNUE_EMBED_OBJ)' $(profile_make)
 	@echo ""
 	@echo "Step 2/4. Running benchmark for pgo-build ..."
 	$(PGOBENCH) > PGOBENCH.out 2>&1
@@ -1274,7 +1334,11 @@ profileclean:
 	@rm -f ./-lstdc++.res
 
 universalclean:
+# On Windows "ln -s" to a directory makes a native directory symlink that rm
+# cannot unlink; rmdir unlinks it without following it. No-op elsewhere.
+	@find $(TEMP_DIR) -type l -exec rmdir {} + 2>/dev/null || true
 	@rm -rf $(TEMP_DIR)
+	@rm -f universal/network_dump.inc
 
 # Evaluation network (nnue)
 net:
@@ -1358,7 +1422,8 @@ config-sanity: net
 	(test "$(arch)" = "any" || test "$(arch)" = "i386" || test "$(arch)" = "x86_64" || \
 	 test "$(arch)" = "ppc" || test "$(arch)" = "ppc64" || test "$(arch)" = "e2k" || \
 	 test "$(arch)" = "armv7" || test "$(arch)" = "armv8" || test "$(arch)" = "arm64" || \
-	 test "$(arch)" = "riscv64" || test "$(arch)" = "loongarch64" || test "$(arch)" = "wasm32") && \
+	 test "$(arch)" = "riscv64" || test "$(arch)" = "loongarch64" || \
+	 test "$(arch)" = "wasm32") && \
 	(test "$(bits)" = "32" || test "$(bits)" = "64") && \
 	(test "$(prefetch)" = "no" || test "$(prefetch)" = "yes") && \
 	(test "$(popcnt)"   = "no" || test "$(popcnt)"   = "yes") && \
@@ -1400,8 +1465,8 @@ misc.o: misc.cpp $(BUILD_DATE_FILE) $(BUILD_SHA_FILE) $(BUILD_DIFFINDEX_FILE)
 # Clang PGO
 clang-profile-make:
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
-	EXTRACXXFLAGS='-fprofile-generate=profdir' \
-	EXTRALDFLAGS='-fprofile-generate=profdir' \
+	EXTRACXXFLAGS='-fprofile-generate' \
+	EXTRALDFLAGS='-fprofile-generate' \
 	all
 
 clang-profile-use:
@@ -1422,21 +1487,21 @@ gcc-profile-make:
 gcc-profile-use:
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
 	EXTRACXXFLAGS='-fprofile-use=profdir -fprofile-correction -fno-peel-loops -fno-tracer $(EXTRAPROFILEFLAGS)' \
-	EXTRALDFLAGS='-fprofile-use=profdir' \
+	EXTRALDFLAGS='-lgcov' \
 	all
 
 # ICC/ICX PGO
 icx-profile-make:
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
-	EXTRACXXFLAGS='-fprofile-instr-generate=profdir' \
-	EXTRALDFLAGS='-fprofile-instr-generate=profdir' \
+	EXTRACXXFLAGS='-fprofile-instr-generate' \
+	EXTRALDFLAGS='-fprofile-instr-generate' \
 	all
 
 icx-profile-use:
-	$(XCRUN) $(LLVM_PROFDATA) merge -output="$(NAME).profdata" profdir/*.profraw
+	$(XCRUN) $(LLVM_PROFDATA) merge -output="$(NAME).profdata" *.profraw
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
 	EXTRACXXFLAGS='-fprofile-instr-use=$(NAME).profdata' \
-	EXTRALDFLAGS='-fprofile-instr-use=$(NAME).profdata' \
+	EXTRALDFLAGS='-fprofile-use' \
 	all
 
 .depend: $(SRCS)
@@ -1461,31 +1526,16 @@ endif
 # Usage:
 #   make -j ARCH=x86-64-universal build          # non-PGO
 #   make -j ARCH=x86-64-universal profile-build  # PGO (use RUN_PREFIX for intel SDE)
-#   make -j ARCH=armv8-universal build
+#   make -j ARCH=arm64-universal build
 
 TEMP_DIR             := $(CURDIR)/temp_builds
 UNIVERSAL_EXE        := $(CURDIR)/$(EXE)
 
 ifeq ($(UNIVERSAL_BUILD),yes)
 
-# GCC 15+ or Clang 19+ required for #embed
-CXX_MAJOR    := $(shell $(CXX) -dumpversion 2>/dev/null | cut -d. -f1)
-CXX_VERSION  := $(shell $(CXX) --version 2>/dev/null | head -n 1 | tr '[:upper:]' '[:lower:]')
-CXX_IS_CLANG := $(if $(findstring clang,$(CXX_VERSION)),yes,no)
-ifeq ($(CXX_IS_CLANG),yes)
-    EMBED_MIN  := 19
-    EMBED_NAME := Clang
-else
-    EMBED_MIN  := 15
-    EMBED_NAME := GCC
-endif
-ifneq ($(shell test "$(CXX_MAJOR)" -ge "$(EMBED_MIN)" 2>/dev/null && echo yes),yes)
-    $(error Universal build needs $(EMBED_NAME) $(EMBED_MIN)+ for \#embed support; CXX=$(CXX) reports version '$(CXX_MAJOR)')
-endif
-
-UNIVERSAL_SRC_DIR := $(CURDIR)/universal
-NNUE_EMBED_OBJ    := $(TEMP_DIR)/nnue_embed.o
-NET_SENTINEL      := $(TEMP_DIR)/.net-done
+UNIVERSAL_SRC_DIR    := $(CURDIR)/universal
+NNUE_EMBED_OBJ       := $(TEMP_DIR)/nnue_embed.o
+NET_SENTINEL         := $(TEMP_DIR)/.net-done
 
 ifeq ($(arch),x86_64)
     UNIVERSAL_ARCHES    := x86-64 x86-64-sse41-popcnt x86-64-avx2 x86-64-bmi2 \
@@ -1493,7 +1543,12 @@ ifeq ($(arch),x86_64)
     UNIVERSAL_ENTRY_SRC := $(UNIVERSAL_SRC_DIR)/entry_x86.cpp
     UNIVERSAL_ENTRY_OBJ := $(TEMP_DIR)/entry_x86.o
     BASELINE_ARCH       := x86-64
-else
+else ifeq ($(arch),riscv64)
+    UNIVERSAL_ARCHES := riscv64 riscv64-rva23
+    UNIVERSAL_ENTRY_SRC  := $(UNIVERSAL_SRC_DIR)/entry_riscv64.cpp
+    UNIVERSAL_ENTRY_OBJ  := $(TEMP_DIR)/entry_riscv64.o
+    BASELINE_ARCH        := riscv64
+else ifeq ($(arch),armv8)
     UNIVERSAL_ARCHES    := armv8 armv8-dotprod
     UNIVERSAL_ENTRY_SRC := $(UNIVERSAL_SRC_DIR)/entry_arm64.cpp
     UNIVERSAL_ENTRY_OBJ := $(TEMP_DIR)/entry_arm64.o

@@ -1,18 +1,61 @@
+/*
+  DON, UCI chess playing engine Copyright (C) 2003-2026
+
+  DON is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  DON is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #include <cpuid.h>
 #include <stdint.h>
 
-#define DEFINE_ARCH_ENTRY(x) \
-    namespace DON_##x { \
-        extern int main(int argc, const char* argv[]) noexcept; \
-    } \
-    extern "C" void (*__start_##x##_init[])(void); \
-    extern "C" void (*__stop_##x##_init[])(void); \
-    int entry_##x(int argc, const char* argv[]) noexcept { \
-        unsigned count = __stop_##x##_init - __start_##x##_init; \
-        for (unsigned i = 0; i < count; ++i) \
-            __start_##x##_init[i](); \
-        return DON_##x::main(argc, argv); \
-    }
+#if defined(__APPLE__)
+    // We locate each arch's initializer pointer array at runtime via getsectiondata().
+    // Example name is "_i_sse41_popcnt", baseline build is just "_i_"
+    #include <stdio.h>
+    #include <mach-o/getsect.h>
+    #include <sys/sysctl.h>
+
+extern "C" const struct mach_header_64 _mh_execute_header;
+
+    #define DEFINE_ARCH_ENTRY(x) \
+        namespace DON_##x { \
+            extern int main(int argc, const char* argv[]) noexcept; \
+        } \
+        int entry_##x(int argc, const char* argv[]) noexcept { \
+            char        name[17]; \
+            const char* full = #x; \
+            snprintf(name, sizeof(name), "_i_%s", full[6] ? full + 7 : ""); \
+            unsigned long size = 0; \
+            auto**        fns  = reinterpret_cast<void (**)()>( \
+              getsectiondata(&_mh_execute_header, "__DATA", name, &size)); \
+            for (unsigned long i = 0; i < size / sizeof(*fns); ++i) \
+                fns[i](); \
+            return DON_##x::main(argc, argv); \
+        }
+#else
+    #define DEFINE_ARCH_ENTRY(x) \
+        namespace DON_##x { \
+            extern int main(int argc, const char* argv[]) noexcept; \
+        } \
+        extern "C" void (*__start_##x##_init[])(void); \
+        extern "C" void (*__stop_##x##_init[])(void); \
+        int entry_##x(int argc, const char* argv[]) noexcept { \
+            unsigned count = __stop_##x##_init - __start_##x##_init; \
+            for (unsigned i = 0; i < count; ++i) \
+                __start_##x##_init[i](); \
+            return DON_##x::main(argc, argv); \
+        }
+#endif
 
 DEFINE_ARCH_ENTRY(x86_64)
 DEFINE_ARCH_ENTRY(x86_64_sse41_popcnt)
@@ -23,9 +66,10 @@ DEFINE_ARCH_ENTRY(x86_64_avx512)
 DEFINE_ARCH_ENTRY(x86_64_vnni512)
 DEFINE_ARCH_ENTRY(x86_64_avx512icl)
 
-// AMD Zen/Zen+/Zen2 (family 17h) implement pdep/pext via microcode.
-static bool has_slow_bmi2() noexcept {
-    return __builtin_cpu_is("amd") && (__builtin_cpu_is("znver1") || __builtin_cpu_is("znver2"));
+// AMD Excavator (family 15h) and Zen/Zen+/Zen2 (family 17h) implement pdep/pext via microcode.
+static bool has_slow_bmi2() {
+    return __builtin_cpu_is("amd")
+        && (__builtin_cpu_is("bdver4") || __builtin_cpu_is("znver1") || __builtin_cpu_is("znver2"));
 }
 
 struct CpuFeatures final {
@@ -106,7 +150,24 @@ static int dispatch(const CpuFeatures& f, int argc, const char* argv[]) noexcept
     return entry_x86_64_avx512icl(argc, argv);
 }
 
-int main(int argc, const char* argv[]) noexcept {
+static void maybe_promote_thread_to_avx512() {
+#ifdef __APPLE__
+    // Intel Macs supporting AVX512 don't advertise it in xgetbv and only
+    // do so once at least one avx512 instruction has been executed.
+    // See https://github.com/apple/darwin-xnu/blob/0a798f6738bc1db01281fc08ae024145e84df927/osfmk/i386/fpu.c#L176
+
+    int    supported = 0;
+    size_t len       = sizeof(supported);
+    if (sysctlbyname("hw.optional.avx512f", &supported, &len, nullptr, 0) == 0 && supported)
+    {
+        asm volatile(".byte 0x62, 0xf1, 0x7d, 0x48, 0x6f, 0xc0");  // vmovdqa32 zmm0,zmm0
+    }
+#endif
+}
+
+int main(int argc, const char* argv[]) {
+    maybe_promote_thread_to_avx512();
+
     __builtin_cpu_init();
     CpuFeatures features = query_cpu_features();
     return dispatch(features, argc, argv);

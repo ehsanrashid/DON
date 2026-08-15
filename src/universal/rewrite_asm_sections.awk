@@ -1,3 +1,18 @@
+# DON, UCI chess playing engine Copyright (C) 2003-2026
+
+# DON is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# DON is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+
 # This is used if the universal binary is compiled on clang+Windows.
 # Usage (avx2 example):
 #   awk -v MODNAME=x86_64_avx2 -f rewrite_asm_sections.awk DON.exe.lto.s > renamed.s
@@ -24,15 +39,15 @@
 # entry point consistent.)
 
 BEGIN {
-    in_ctors = 0
+    inCtors = 0
 }
 
 # Match any .section line containing .ctors
 /^[[:space:]]*\.section[[:space:]].*\.ctors/ {
 
     # First .ctors section, emit start symbol
-    if (!in_ctors) {
-        in_ctors = 1
+    if (inCtors == 0) {
+        inCtors = 1
         section = MODNAME "_init"
 
         printf "\t.section\t%s,\"a\"\n", section
@@ -45,13 +60,13 @@ BEGIN {
 }
 
 # First non-.ctors .section after ctors block, emit stop symbol
-in_ctors && /^[[:space:]]*\.section/ {
+inCtors && /^[[:space:]]*\.section/ {
     section = MODNAME "_init"
 
     printf "\t.globl\t__stop_%s\n", section
     printf "__stop_%s:\n", section
 
-    in_ctors = 0
+    inCtors = 0
 }
 
 {
@@ -59,7 +74,7 @@ in_ctors && /^[[:space:]]*\.section/ {
 }
 
 END {
-    if (in_ctors) {
+    if (inCtors != 0) {
         section = MODNAME "_init"
         printf "\t.globl\t__stop_%s\n", section
         printf "__stop_%s:\n", section
