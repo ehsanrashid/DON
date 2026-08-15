@@ -184,7 +184,7 @@ struct RootMove final {
         return bound == Bound::LOWER || bound == Bound::UPPER;
     }
 
-    void unset_bound() noexcept { bound = Bound::NONE; }
+    void reset_bound() noexcept { bound = Bound::NONE; }
 
     u64 nodes = 0;
 
@@ -646,7 +646,7 @@ class Worker final {
 
     const RootMoves& root_moves() const noexcept { return rootMoves; }
 
-    u64 nodes_() const noexcept { return nodes.load(std::memory_order_relaxed); }
+    u64 nodes_count() const noexcept { return nodes.load(std::memory_order_relaxed); }
 
    private:
     bool is_main_worker() const noexcept { return thread_id() == 0; }

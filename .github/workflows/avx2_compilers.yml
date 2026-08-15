@@ -20,6 +20,7 @@ jobs:
           - { name: gcc-13, comp: gcc, cxx: g++, image: "gcc:13" }
           - { name: gcc-14, comp: gcc, cxx: g++, image: "gcc:14" }
           - { name: gcc-15, comp: gcc, cxx: g++, image: "gcc:15" }
+          - { name: gcc-16, comp: gcc, cxx: g++, image: "gcc:16" }
 
           # Using silkeh/clang for older versions
           - { name: clang-10, comp: clang, cxx: clang++, image: "silkeh/clang:10", is_clang: true, ver: "10" }
@@ -30,12 +31,13 @@ jobs:
           - { name: clang-15, comp: clang, cxx: clang++, image: "silkeh/clang:15", is_clang: true, ver: "15" }
           - { name: clang-16, comp: clang, cxx: clang++, image: "silkeh/clang:16", is_clang: true, ver: "16" }
           - { name: clang-17, comp: clang, cxx: clang++, image: "silkeh/clang:17", is_clang: true, ver: "17" }
-
+          # Using Ubuntu for newer versions
           - { name: clang-18, comp: clang, cxx: clang++-18, image: "ubuntu:rolling", is_clang: true, ver: "18" }
           - { name: clang-19, comp: clang, cxx: clang++-19, image: "ubuntu:rolling", is_clang: true, ver: "19" }
           - { name: clang-20, comp: clang, cxx: clang++-20, image: "ubuntu:rolling", is_clang: true, ver: "20" }
           - { name: clang-21, comp: clang, cxx: clang++-21, image: "ubuntu:rolling", is_clang: true, ver: "21" }
-
+          - { name: clang-22, comp: clang, cxx: clang++-22, image: "ubuntu:rolling", is_clang: true, ver: "22" }
+  
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2

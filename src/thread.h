@@ -31,7 +31,7 @@
 
 // Ensure SUPPORTS_PTHREADS is defined only if the platform supports pthreads (macOS, MinGW, or explicitly enabled)
 #undef SUPPORTS_PTHREADS
-#if defined(__APPLE__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(USE_PTHREADS)
+#if defined(USE_PTHREADS) || defined(__APPLE__) || defined(__MINGW64__) || defined(__MINGW32__)
     #define SUPPORTS_PTHREADS
 #endif
 
