@@ -541,18 +541,18 @@ BITS_FLAG := $(if $(filter 32 64,$(bits)),-m$(bits),)
 # ----------------------------
 
 # Detect if the compiler is Clang/Apple Clang
-CXX_VERSION    :=
-IS_CLANG       := no
-IS_APPLE_CLANG := no
+CXX_VERSION        :=
+CXX_IS_CLANG       := no
+CXX_IS_APPLE_CLANG := no
 
 # GCC
 ifeq ($(COMP),gcc)
     CXX := $(if $(COMPCXX),$(COMPCXX),g++)
     CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-declarations
     # Detect whether the selected compiler is actually Clang
-    CXX_VERSION    := $(shell $(CXX) --version 2>/dev/null | head -n 1 | tr '[:upper:]' '[:lower:]')
-    IS_CLANG       := $(if $(findstring clang,$(CXX_VERSION)),yes,no)
-    IS_APPLE_CLANG := $(if $(findstring apple clang,$(CXX_VERSION)),yes,no)
+    CXX_VERSION        := $(shell $(CXX) --version 2>/dev/null | head -n 1 | tr '[:upper:]' '[:lower:]')
+    CXX_IS_CLANG       := $(if $(findstring clang,$(CXX_VERSION)),yes,no)
+    CXX_IS_APPLE_CLANG := $(if $(findstring apple clang,$(CXX_VERSION)),yes,no)
 
     # Architectures with special handling, use libatomic where required
     ifneq ($(filter armv8 armv7 riscv64,$(arch)),)
@@ -581,7 +581,7 @@ ifeq ($(COMP),gcc)
             LDFLAGS += -Wl,--no-as-needed
         endif
         # Determine GCC major version for Linux Clang masquerading as GCC
-        GCC_MAJOR := $(shell [ "$(IS_CLANG)" = "yes" ] && [ "$(IS_APPLE_CLANG)" = "no" ] && $(CXX) -dumpversion 2>/dev/null | cut -f1 -d. || echo)
+        GCC_MAJOR := $(shell [ "$(CXX_IS_CLANG)" = "yes" ] && [ "$(CXX_IS_APPLE_CLANG)" = "no" ] && $(CXX) -dumpversion 2>/dev/null | cut -f1 -d. || echo)
         # Link std::filesystem explicitly if using Linux Clang < 9
         ifneq ($(GCC_MAJOR),)
             ifeq ($(shell test $(GCC_MAJOR) -lt 9 && echo yes),yes)
@@ -590,8 +590,8 @@ ifeq ($(COMP),gcc)
         endif
     endif
     # Configure compiler-specific flags and profile targets
-    ifeq ($(IS_CLANG),yes)
-        ifeq ($(IS_APPLE_CLANG),yes)
+    ifeq ($(CXX_IS_CLANG),yes)
+        ifeq ($(CXX_IS_APPLE_CLANG),yes)
             # Apple Clang
         else
             # LLVM Clang
@@ -613,9 +613,9 @@ else ifeq ($(COMP),clang)
     CXX := clang++
     CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-prototypes -Wconditional-uninitialized -flax-vector-conversions=none -fconstexpr-steps=500000000
     # Detect whether the selected compiler is actually Clang
-    CXX_VERSION    := $(shell $(CXX) --version 2>/dev/null | head -n 1 | tr '[:upper:]' '[:lower:]')
-    IS_CLANG       := $(if $(findstring clang,$(CXX_VERSION)),yes,no)
-    IS_APPLE_CLANG := $(if $(findstring apple clang,$(CXX_VERSION)),yes,no)
+    CXX_VERSION        := $(shell $(CXX) --version 2>/dev/null | head -n 1 | tr '[:upper:]' '[:lower:]')
+    CXX_IS_CLANG       := $(if $(findstring clang,$(CXX_VERSION)),yes,no)
+    CXX_IS_APPLE_CLANG := $(if $(findstring apple clang,$(CXX_VERSION)),yes,no)
 
     ifeq ($(OS_WINDOWS),yes)
         ifeq ($(bits),64)
@@ -650,7 +650,7 @@ else ifeq ($(COMP),clang)
     endif
     # Link std::filesystem for Linux Clang (non-Apple)
     ifeq ($(KERNEL),Linux)
-        ifeq ($(IS_APPLE_CLANG),no)
+        ifeq ($(CXX_IS_APPLE_CLANG),no)
             LDFLAGS += -lstdc++fs
         endif
     endif
@@ -1021,7 +1021,7 @@ ifeq ($(optimize),yes)
                     ifeq ($(COMP),clang)
                         LDFLAGS += -fuse-ld=lld
                     # GCC (Clang-compatible)
-                    else ifeq ($(IS_CLANG),yes)
+                    else ifeq ($(CXX_IS_CLANG),yes)
                         LDFLAGS += -fuse-ld=lld
                     endif
                 endif
@@ -1040,7 +1040,7 @@ ifeq ($(optimize),yes)
         # GCC
         else ifeq ($(COMP),gcc)
             # GCC (native)
-            ifeq ($(IS_CLANG),no)
+            ifeq ($(CXX_IS_CLANG),no)
                 LTO_FLAGS   := -flto -flto-partition=one
                 ifneq ($(KERNEL),Darwin)
                     LTO_LDFLAGS := -flto=jobserver
@@ -1470,15 +1470,16 @@ ifeq ($(UNIVERSAL_BUILD),yes)
 
 # GCC 15+ or Clang 19+ required for #embed
 CXX_MAJOR    := $(shell $(CXX) -dumpversion 2>/dev/null | cut -d. -f1)
-CXX_IS_CLANG := $(shell $(CXX) --version 2>/dev/null | head -1 | grep -ic clang)
-ifeq ($(CXX_IS_CLANG),0)
-    EMBED_MIN  := 15
-    EMBED_NAME := GCC
-else
+CXX_VERSION  := $(shell $(CXX) --version 2>/dev/null | head -n 1 | tr '[:upper:]' '[:lower:]')
+CXX_IS_CLANG := $(if $(findstring clang,$(CXX_VERSION)),yes,no)
+ifeq ($(CXX_IS_CLANG),yes)
     EMBED_MIN  := 19
     EMBED_NAME := Clang
+else
+    EMBED_MIN  := 15
+    EMBED_NAME := GCC
 endif
-ifneq ($(shell test "$(CXX_MAJOR)" -ge "$(EMBED_MIN)" 2>/dev/null && echo ok),ok)
+ifneq ($(shell test "$(CXX_MAJOR)" -ge "$(EMBED_MIN)" 2>/dev/null && echo yes),yes)
     $(error Universal build needs $(EMBED_NAME) $(EMBED_MIN)+ for \#embed support; CXX=$(CXX) reports version '$(CXX_MAJOR)')
 endif
 
@@ -1489,13 +1490,13 @@ NET_SENTINEL      := $(TEMP_DIR)/.net-done
 ifeq ($(arch),x86_64)
     UNIVERSAL_ARCHES    := x86-64 x86-64-sse41-popcnt x86-64-avx2 x86-64-bmi2 \
                            x86-64-avxvnni x86-64-avx512 x86-64-vnni512 x86-64-avx512icl
-    UNIVERSAL_ENTRY_OBJ := $(TEMP_DIR)/entry_x86.o
     UNIVERSAL_ENTRY_SRC := $(UNIVERSAL_SRC_DIR)/entry_x86.cpp
+    UNIVERSAL_ENTRY_OBJ := $(TEMP_DIR)/entry_x86.o
     BASELINE_ARCH       := x86-64
 else
     UNIVERSAL_ARCHES    := armv8 armv8-dotprod
-    UNIVERSAL_ENTRY_OBJ := $(TEMP_DIR)/entry_arm64.o
     UNIVERSAL_ENTRY_SRC := $(UNIVERSAL_SRC_DIR)/entry_arm64.cpp
+    UNIVERSAL_ENTRY_OBJ := $(TEMP_DIR)/entry_arm64.o
     BASELINE_ARCH       := armv8
 endif
 
