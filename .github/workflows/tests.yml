@@ -41,7 +41,7 @@ jobs:
             comp: ndk
             run_armv7_tests: true
             shell: bash
-          # Currently segfaults in the CI unrelated to a Stockfish change.
+          # Currently segfaults in CI due to changes unrelated to DON
           # - name: Linux GCC riscv64
           #   os: ubuntu-22.04
           #   compiler: g++

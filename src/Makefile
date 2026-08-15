@@ -99,6 +99,8 @@ SRCS := attacks.cpp benchmark.cpp bitboard.cpp engine.cpp evaluate.cpp main.cpp 
     nnue/accumulator.cpp nnue/network.cpp nnue/nmisc.cpp \
     book/polyglot.cpp tablebase/syzygy.cpp
 
+OTHER_SRCS = universal/entry_x86.cpp universal/entry_arm64.cpp universal/nnue_embed.cpp
+
 HEADERS := attacks.h benchmark.h bitboard.h engine.h evaluate.h history.h memory.h \
     misc.h movegen.h movepick.h notation.h numa.h option.h perft.h platform_win.h \
     position.h prng.h search.h shm.h thread.h timeman.h tt.h tune.h types.h uci.h \
@@ -173,15 +175,21 @@ endif
 # Explicitly check for the list of supported architectures (as listed with make help),
 # User can override with `make ARCH=x86-64-avx512icl ARCH_SUPPORT=yes`
 ARCH_SUPPORT := $(if $(filter \
-    x86-64-avx512icl x86-64-vnni512 x86-64-vnni256 x86-64-avx512 x86-64-avxvnni \
+    x86-64-universal x86-64-avx512icl x86-64-vnni512 x86-64-vnni256 x86-64-avx512 x86-64-avxvnni \
     x86-64-bmi2 x86-64-avx2 x86-64-bitmanip-cmp x86-64-bitmanip x86-64-sse41-popcnt \
     x86-64-modern x86-64-sse41 x86-64-ssse3-popcnt x86-64-ssse3 x86-64 general-64 \
     x86-32-sse41-popcnt x86-32-sse41 x86-32-sse2 x86-32 general-32 \
-    ppc-64-altivec ppc-64-vsx ppc-64 ppc-32 e2k \
-    armv7-neon armv7 armv8-dotprod armv8 apple-silicon \
-    riscv64 riscv64-rva23 \
+    ppc-64-vsx ppc-64-altivec ppc-64 ppc-32 e2k \
+    armv8-universal armv8-dotprod armv8 armv7-neon armv7 apple-silicon \
     loongarch64-lasx loongarch64-lsx loongarch64 \
+    riscv64-rva23 riscv64 \
     wasm32 wasm32-relaxed-simd,$(ARCH)),yes,no)
+
+ifneq ($(findstring -universal,$(ARCH)),)
+   UNIVERSAL_BUILD=yes
+else
+   UNIVERSAL_BUILD=no
+endif
 
 optimize = yes
 debug = no
@@ -216,11 +224,11 @@ STRIP = strip
 
 ### 2.2 Architecture specific
 
-ifeq ($(findstring x86,$(ARCH)),x86)
+ifneq ($(findstring x86,$(ARCH)),)
 
 # x86-32/64
 # To enable sse use: make -j build ARCH=x86-32 sse=yes
-ifeq ($(findstring x86-32,$(ARCH)),x86-32)
+ifneq ($(findstring x86-32,$(ARCH)),)
     arch = i386
     bits = 32
     sse_fp = yes
@@ -232,37 +240,37 @@ else
     sse2 = yes
 endif
 
-ifeq ($(findstring -sse,$(ARCH)),-sse)
+ifneq ($(findstring -sse,$(ARCH)),)
     sse = yes
 endif
 
-ifeq ($(findstring -popcnt,$(ARCH)),-popcnt)
+ifneq ($(findstring -popcnt,$(ARCH)),)
     popcnt = yes
 endif
 
-ifeq ($(findstring -mmx,$(ARCH)),-mmx)
+ifneq ($(findstring -mmx,$(ARCH)),)
     mmx = yes
 endif
 
-ifeq ($(findstring -sse2,$(ARCH)),-sse2)
+ifneq ($(findstring -sse2,$(ARCH)),)
     sse = yes
     sse2 = yes
 endif
 
-ifeq ($(findstring -ssse3,$(ARCH)),-ssse3)
+ifneq ($(findstring -ssse3,$(ARCH)),)
     sse = yes
     sse2 = yes
     ssse3 = yes
 endif
 
-ifeq ($(findstring -sse41,$(ARCH)),-sse41)
+ifneq ($(findstring -sse41,$(ARCH)),)
     sse = yes
     sse2 = yes
     ssse3 = yes
     sse41 = yes
 endif
 
-ifeq ($(findstring -modern,$(ARCH)),-modern)
+ifneq ($(findstring -modern,$(ARCH)),)
     $(warning *** ARCH=$(ARCH) is deprecated, defaulting to ARCH=x86-64-sse41-popcnt. Execute `make help` for a list of available architectures. ***)
     $(shell sleep 5)
     popcnt = yes
@@ -272,7 +280,7 @@ ifeq ($(findstring -modern,$(ARCH)),-modern)
     sse41 = yes
 endif
 
-ifeq ($(findstring -bitmanip,$(ARCH)),-bitmanip)
+ifneq ($(findstring -bitmanip,$(ARCH)),)
     popcnt = yes
     sse = yes
     sse2 = yes
@@ -281,11 +289,11 @@ ifeq ($(findstring -bitmanip,$(ARCH)),-bitmanip)
     bmi2 = yes
 endif
 
-ifeq ($(findstring -bitmanip-cmp,$(ARCH)),-bitmanip-cmp)
+ifneq ($(findstring -bitmanip-cmp,$(ARCH)),)
     cmp = yes
 endif
 
-ifeq ($(findstring -avx2,$(ARCH)),-avx2)
+ifneq ($(findstring -avx2,$(ARCH)),)
     popcnt = yes
     sse = yes
     sse2 = yes
@@ -294,7 +302,7 @@ ifeq ($(findstring -avx2,$(ARCH)),-avx2)
     avx2 = yes
 endif
 
-ifeq ($(findstring -bmi2,$(ARCH)),-bmi2)
+ifneq ($(findstring -bmi2,$(ARCH)),)
     popcnt = yes
     sse = yes
     sse2 = yes
@@ -304,7 +312,7 @@ ifeq ($(findstring -bmi2,$(ARCH)),-bmi2)
     bmi2 = yes
 endif
 
-ifeq ($(findstring -avxvnni,$(ARCH)),-avxvnni)
+ifneq ($(findstring -avxvnni,$(ARCH)),)
     popcnt = yes
     sse = yes
     sse2 = yes
@@ -315,7 +323,7 @@ ifeq ($(findstring -avxvnni,$(ARCH)),-avxvnni)
     avxvnni = yes
 endif
 
-ifeq ($(findstring -avx512,$(ARCH)),-avx512)
+ifneq ($(findstring -avx512,$(ARCH)),)
     popcnt = yes
     sse = yes
     sse2 = yes
@@ -326,7 +334,7 @@ ifeq ($(findstring -avx512,$(ARCH)),-avx512)
     avx512 = yes
 endif
 
-ifeq ($(findstring -vnni256,$(ARCH)),-vnni256)
+ifneq ($(findstring -vnni256,$(ARCH)),)
     popcnt = yes
     sse = yes
     sse2 = yes
@@ -337,7 +345,7 @@ ifeq ($(findstring -vnni256,$(ARCH)),-vnni256)
     vnni256 = yes
 endif
 
-ifeq ($(findstring -vnni512,$(ARCH)),-vnni512)
+ifneq ($(findstring -vnni512,$(ARCH)),)
     popcnt = yes
     sse = yes
     sse2 = yes
@@ -349,7 +357,7 @@ ifeq ($(findstring -vnni512,$(ARCH)),-vnni512)
     vnni512 = yes
 endif
 
-ifeq ($(findstring -avx512icl,$(ARCH)),-avx512icl)
+ifneq ($(findstring -avx512icl,$(ARCH)),)
     popcnt = yes
     sse = yes
     sse2 = yes
@@ -463,7 +471,7 @@ ifeq ($(ARCH),ppc-64-vsx)
     vsx = yes
 endif
 
-ifeq ($(findstring e2k,$(ARCH)),e2k)
+ifneq ($(findstring e2k,$(ARCH)),)
     arch = e2k
     bits = 64
     sse = yes
@@ -474,26 +482,26 @@ ifeq ($(findstring e2k,$(ARCH)),e2k)
     popcnt = yes
 endif
 
-ifeq ($(findstring riscv64,$(ARCH)),riscv64)
+ifneq ($(findstring riscv64,$(ARCH)),)
     arch = riscv64
 endif
 
-ifeq ($(findstring riscv64-rva23,$(ARCH)),riscv64-rva23)
+ifneq ($(findstring riscv64-rva23,$(ARCH)),)
     rva23 = yes
     popcnt = yes
     prefetch = yes
 endif
 
-ifeq ($(findstring loongarch64,$(ARCH)),loongarch64)
+ifneq ($(findstring loongarch64,$(ARCH)),)
     arch = loongarch64
     prefetch = yes
-    ifeq ($(findstring -lsx,$(ARCH)),-lsx)
-        lsx = yes
-    endif
-    ifeq ($(findstring -lasx,$(ARCH)),-lasx)
-        lsx = yes
-        lasx = yes
-    endif
+ifneq ($(findstring -lsx,$(ARCH)),)
+    lsx = yes
+endif
+ifneq ($(findstring -lasx,$(ARCH)),)
+    lsx = yes
+    lasx = yes
+endif
 endif
 
 endif
@@ -535,18 +543,18 @@ BITS_FLAG := $(if $(filter 32 64,$(bits)),-m$(bits),)
 # ----------------------------
 
 # Detect if the compiler is Clang/Apple Clang
-CXX_VERSION     :=
-GCC_CLANG       := no
-GCC_APPLE_CLANG := no
+CXX_VERSION    :=
+IS_CLANG       := no
+IS_APPLE_CLANG := no
 
 # GCC
 ifeq ($(COMP),gcc)
     CXX := $(if $(COMPCXX),$(COMPCXX),g++)
     CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-declarations
     # Detect whether the selected compiler is actually Clang
-    CXX_VERSION     := $(shell $(CXX) --version 2>/dev/null | head -n 1 | tr '[:upper:]' '[:lower:]')
-    GCC_CLANG       := $(if $(findstring clang,$(CXX_VERSION)),yes,no)
-    GCC_APPLE_CLANG := $(if $(findstring apple clang,$(CXX_VERSION)),yes,no)
+    CXX_VERSION    := $(shell $(CXX) --version 2>/dev/null | head -n 1 | tr '[:upper:]' '[:lower:]')
+    IS_CLANG       := $(if $(findstring clang,$(CXX_VERSION)),yes,no)
+    IS_APPLE_CLANG := $(if $(findstring apple clang,$(CXX_VERSION)),yes,no)
 
     # Architectures with special handling, use libatomic where required
     ifneq ($(filter armv8 armv7 riscv64,$(arch)),)
@@ -575,7 +583,7 @@ ifeq ($(COMP),gcc)
             LDFLAGS += -Wl,--no-as-needed
         endif
         # Determine GCC major version for Linux Clang masquerading as GCC
-        GCC_MAJOR := $(shell [ "$(GCC_CLANG)" = "yes" ] && [ "$(GCC_APPLE_CLANG)" = "no" ] && $(CXX) -dumpversion 2>/dev/null | cut -f1 -d. || echo)
+        GCC_MAJOR := $(shell [ "$(IS_CLANG)" = "yes" ] && [ "$(IS_APPLE_CLANG)" = "no" ] && $(CXX) -dumpversion 2>/dev/null | cut -f1 -d. || echo)
         # Link std::filesystem explicitly if using Linux Clang < 9
         ifneq ($(GCC_MAJOR),)
             ifeq ($(shell test $(GCC_MAJOR) -lt 9 && echo yes),yes)
@@ -584,8 +592,8 @@ ifeq ($(COMP),gcc)
         endif
     endif
     # Configure compiler-specific flags and profile targets
-    ifeq ($(GCC_CLANG),yes)
-        ifeq ($(GCC_APPLE_CLANG),yes)
+    ifeq ($(IS_CLANG),yes)
+        ifeq ($(IS_APPLE_CLANG),yes)
             # Apple Clang
         else
             # LLVM Clang
@@ -607,9 +615,9 @@ else ifeq ($(COMP),clang)
     CXX := clang++
     CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-prototypes -Wconditional-uninitialized -flax-vector-conversions=none -fconstexpr-steps=500000000
     # Detect whether the selected compiler is actually Clang
-    CXX_VERSION     := $(shell $(CXX) --version 2>/dev/null | head -n 1 | tr '[:upper:]' '[:lower:]')
-    GCC_CLANG       := $(if $(findstring clang,$(CXX_VERSION)),yes,no)
-    GCC_APPLE_CLANG := $(if $(findstring apple clang,$(CXX_VERSION)),yes,no)
+    CXX_VERSION    := $(shell $(CXX) --version 2>/dev/null | head -n 1 | tr '[:upper:]' '[:lower:]')
+    IS_CLANG       := $(if $(findstring clang,$(CXX_VERSION)),yes,no)
+    IS_APPLE_CLANG := $(if $(findstring apple clang,$(CXX_VERSION)),yes,no)
 
     ifeq ($(OS_WINDOWS),yes)
         ifeq ($(bits),64)
@@ -644,7 +652,7 @@ else ifeq ($(COMP),clang)
     endif
     # Link std::filesystem for Linux Clang (non-Apple)
     ifeq ($(KERNEL),Linux)
-        ifeq ($(GCC_APPLE_CLANG),no)
+        ifeq ($(IS_APPLE_CLANG),no)
             LDFLAGS += -lstdc++fs
         endif
     endif
@@ -1015,7 +1023,7 @@ ifeq ($(optimize),yes)
                     ifeq ($(COMP),clang)
                         LDFLAGS += -fuse-ld=lld
                     # GCC (Clang-compatible)
-                    else ifeq ($(GCC_CLANG),yes)
+                    else ifeq ($(IS_CLANG),yes)
                         LDFLAGS += -fuse-ld=lld
                     endif
                 endif
@@ -1034,7 +1042,7 @@ ifeq ($(optimize),yes)
         # GCC
         else ifeq ($(COMP),gcc)
             # GCC (native)
-            ifeq ($(GCC_CLANG),no)
+            ifeq ($(IS_CLANG),no)
                 LTO_FLAGS   := -flto -flto-partition=one
                 ifneq ($(KERNEL),Darwin)
                     LTO_LDFLAGS := -flto=jobserver
