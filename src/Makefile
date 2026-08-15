@@ -105,8 +105,9 @@ HEADERS := attacks.h benchmark.h bitboard.h engine.h evaluate.h history.h memory
     misc.h movegen.h movepick.h notation.h numa.h option.h perft.h platform_win.h \
     position.h prng.h search.h shm.h thread.h timeman.h tt.h tune.h types.h uci.h \
     nnue/features/full_threats.h nnue/features/half_ka_hm.h \
-    nnue/layers/affine_transform.h nnue/layers/affine_transform_sparse_input.h nnue/layers/clipped_relu.h nnue/layers/sqr_clipped_relu.h \
-    nnue/accumulator.h nnue/architecture.h nnue/common.h nnue/feature_transformer.h nnue/network.h nnue/nmisc.h nnue/simd.h \
+    nnue/layers/affine_transform.h nnue/layers/affine_transform_sparse_input.h \
+    nnue/layers/clipped_relu.h nnue/layers/sqr_clipped_relu.h nnue/accumulator.h nnue/architecture.h \
+    nnue/common.h nnue/feature_transformer.h nnue/network.h nnue/nmisc.h nnue/simd.h \
     incbin/incbin.h book/polyglot.h tablebase/syzygy.h
 
 OBJS := $(notdir $(SRCS:.cpp=.o))
@@ -185,11 +186,8 @@ ARCH_SUPPORTED := $(if $(filter \
     riscv64-rva23 riscv64 \
     wasm32 wasm32-relaxed-simd,$(ARCH)),yes,no)
 
-ifneq ($(findstring -universal,$(ARCH)),)
-   UNIVERSAL_BUILD=yes
-else
-   UNIVERSAL_BUILD=no
-endif
+UNIVERSAL_BUILD := $(if $(filter %-universal,$(ARCH)),yes,no)
+
 
 optimize = yes
 debug = no
@@ -1206,7 +1204,7 @@ ifneq ($(filter clang ndk,$(COMP)),)
     endif
 else
     LTO_OBJ_SUFFIX := .ltrans0.ltrans.o
-    SAVE_TEMPS     := -save-temps
+    SAVE_TEMPS := -save-temps
 endif
 
 ifeq ($(arch),armv8)
