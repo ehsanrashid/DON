@@ -56,7 +56,6 @@ ifeq ($(OS),Windows_NT)
 else ifeq ($(COMP),mingw)
     IS_WINDOWS := yes
     ifeq ($(RUN_PREFIX),)
-        # Use Wine for MinGW builds when no RUN_PREFIX is specified
         RUN_PREFIX := $(shell command -v wine 2>/dev/null)
     endif
 endif
@@ -862,7 +861,7 @@ endif
 
 ifeq ($(popcnt),yes)
     CXXFLAGS += -DUSE_POPCNT
-    ifeq ($(filter ppc64 ppc64-altivec ppc64-vsx armv7 armv8 arm64,$(arch)),)
+    ifeq ($(filter ppc64 ppc64-altivec ppc64-vsx armv7 armv8 arm64 riscv64,$(arch)),)
         CXXFLAGS += -msse3 -mpopcnt
     endif
 endif
