@@ -1469,6 +1469,7 @@ misc.o: misc.cpp $(BUILD_DATE_FILE) $(BUILD_SHA_FILE) $(BUILD_DIFFINDEX_FILE)
 # Clang PGO
 clang-profile-make:
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
+	ENV_LDFLAGS='$(ENV_LDFLAGS)' \
 	EXTRACXXFLAGS='-fprofile-generate' \
 	EXTRALDFLAGS='-fprofile-generate' \
 	all
@@ -1476,6 +1477,7 @@ clang-profile-make:
 clang-profile-use:
 	$(XCRUN) $(LLVM_PROFDATA) merge -output="$(NAME).profdata" *.profraw
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
+	ENV_LDFLAGS='$(ENV_LDFLAGS)' \
 	EXTRACXXFLAGS='-fprofile-use=$(NAME).profdata' \
 	EXTRALDFLAGS='-fprofile-use=$(NAME).profdata' \
 	all
@@ -1484,12 +1486,14 @@ clang-profile-use:
 gcc-profile-make:
 	@mkdir -p profdir
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
+	ENV_LDFLAGS='$(ENV_LDFLAGS)' \
 	EXTRACXXFLAGS='-fprofile-generate=profdir $(EXTRAPROFILEFLAGS)' \
 	EXTRALDFLAGS='-lgcov' \
 	all
 
 gcc-profile-use:
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
+	ENV_LDFLAGS='$(ENV_LDFLAGS)' \
 	EXTRACXXFLAGS='-fprofile-use=profdir -fprofile-correction -fno-peel-loops -fno-tracer $(EXTRAPROFILEFLAGS)' \
 	EXTRALDFLAGS='-lgcov' \
 	all
@@ -1497,6 +1501,7 @@ gcc-profile-use:
 # ICC/ICX PGO
 icx-profile-make:
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
+	ENV_LDFLAGS='$(ENV_LDFLAGS)' \
 	EXTRACXXFLAGS='-fprofile-instr-generate' \
 	EXTRALDFLAGS='-fprofile-instr-generate' \
 	all
@@ -1504,6 +1509,7 @@ icx-profile-make:
 icx-profile-use:
 	$(XCRUN) $(LLVM_PROFDATA) merge -output="$(NAME).profdata" *.profraw
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
+	ENV_LDFLAGS='$(ENV_LDFLAGS)' \
 	EXTRACXXFLAGS='-fprofile-instr-use=$(NAME).profdata' \
 	EXTRALDFLAGS='-fprofile-use' \
 	all
@@ -1542,8 +1548,7 @@ NNUE_EMBED_OBJ       := $(TEMP_DIR)/nnue_embed.o
 NET_SENTINEL         := $(TEMP_DIR)/.net-done
 
 ifeq ($(arch),x86_64)
-    UNIVERSAL_ARCHES    := x86-64 x86-64-sse41-popcnt x86-64-avx2 x86-64-bmi2 x86-64-avxvnni
-                           #x86-64-avx512 x86-64-vnni512 x86-64-avx512icl
+    UNIVERSAL_ARCHES    := x86-64 x86-64-sse41-popcnt x86-64-avx2 x86-64-bmi2 x86-64-avxvnni #x86-64-avx512 x86-64-vnni512 x86-64-avx512icl
     UNIVERSAL_ENTRY_SRC := $(UNIVERSAL_SRC_DIR)/entry_x86.cpp
     UNIVERSAL_ENTRY_OBJ := $(TEMP_DIR)/entry_x86.o
     BASELINE_ARCH       := x86-64
@@ -1576,7 +1581,8 @@ else
     ifeq ($(TARGET_KERNEL),Linux)
         UNIVERSAL_BUILD_FLAGS += -static-libstdc++ -static-libgcc
         ifeq ($(COMP),ndk)
-            UNIVERSAL_BUILD_FLAGS += -static
+            # Don't use -static on Android
+            #UNIVERSAL_BUILD_FLAGS += -static
         else
             UNIVERSAL_BUILD_FLAGS += -lrt -lpthread
         endif

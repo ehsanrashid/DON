@@ -132,6 +132,7 @@ static int dispatch(const CpuFeatures& f, int argc, const char* argv[]) noexcept
         return entry_x86_64_bmi2(argc, argv);
     }
 
+    /*
     if (!f.avx512vnni)
         return entry_x86_64_avx512(argc, argv);
 
@@ -148,6 +149,8 @@ static int dispatch(const CpuFeatures& f, int argc, const char* argv[]) noexcept
         return entry_x86_64_vnni512(argc, argv);
 
     return entry_x86_64_avx512icl(argc, argv);
+    */
+    return 0;
 }
 
 static void maybe_promote_thread_to_avx512() noexcept {
