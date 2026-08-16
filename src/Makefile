@@ -619,16 +619,16 @@ ifeq ($(COMP),gcc)
             # LLVM Clang
             CXXFLAGS += -fconstexpr-steps=500000000
         endif
-        profile_make = clang-profile-make
-        profile_use  = clang-profile-use
+        PROFILE_MAKE = clang-profile-make
+        PROFILE_USE  = clang-profile-use
     else
         # GCC
         CXXFLAGS += -Wstack-usage=128000 -fno-ipa-cp-clone -fconstexpr-ops-limit=500000000
         ifeq ($(TARGET_KERNEL),Darwin)
             EXTRAPROFILEFLAGS = -fvisibility=hidden
         endif
-        profile_make = gcc-profile-make
-        profile_use  = gcc-profile-use
+        PROFILE_MAKE = gcc-profile-make
+        PROFILE_USE  = gcc-profile-use
     endif
 # Clang
 else ifeq ($(COMP),clang)
@@ -677,8 +677,8 @@ else ifeq ($(COMP),clang)
         endif
     endif
     # Profile build for Clang
-    profile_make = clang-profile-make
-    profile_use  = clang-profile-use
+    PROFILE_MAKE = clang-profile-make
+    PROFILE_USE  = clang-profile-use
 # mingw
 else ifeq ($(COMP),mingw)
     ifeq ($(bits),64)
@@ -692,15 +692,15 @@ else ifeq ($(COMP),mingw)
     CXX := $(if $(shell command -v $(MINGW_CXX_POSIX) 2>/dev/null),$(MINGW_CXX_POSIX),$(MINGW_CXX))
     CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-declarations -fno-ipa-cp-clone -fconstexpr-ops-limit=500000000
     # Profile build for mingw (use GCC defaults)
-    profile_make = gcc-profile-make
-    profile_use  = gcc-profile-use
+    PROFILE_MAKE = gcc-profile-make
+    PROFILE_USE  = gcc-profile-use
 # icx
 else ifeq ($(COMP),icx)
     CXX := icpx
     CXXFLAGS += --intel -pedantic -Wextra -Wshadow -Wmissing-prototypes -Wconditional-uninitialized -Wabi -Wdeprecated -fconstexpr-steps=500000000
     # Profile build for icx
-    profile_make = icx-profile-make
-    profile_use  = icx-profile-use
+    PROFILE_MAKE = icx-profile-make
+    PROFILE_USE  = icx-profile-use
 # NDK: To cross-compile for Android, use NDK version r27c or later
 else ifeq ($(COMP),ndk)
     # Detect host tag (simplified common cases)
@@ -739,8 +739,8 @@ else ifeq ($(COMP),ndk)
 
     STRIP := $(TOOLCHAIN)/llvm-strip
     # Profile build for NDK/Clang
-    profile_make = clang-profile-make
-    profile_use  = clang-profile-use
+    PROFILE_MAKE = clang-profile-make
+    PROFILE_USE  = clang-profile-use
 endif
 
 ifeq ($(TARGET_KERNEL),Darwin)
@@ -1219,7 +1219,7 @@ build: net config-sanity
 profile-build: net config-sanity objclean profileclean
 	@echo ""
 	@echo "Step 1/4. Building instrumented executable ..."
-	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) $(profile_make)
+	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) $(PROFILE_MAKE)
 	@echo ""
 	@echo "Step 2/4. Running benchmark for pgo-build ..."
 	$(PGOBENCH) > PGOBENCH.out 2>&1
@@ -1227,7 +1227,7 @@ profile-build: net config-sanity objclean profileclean
 	@echo ""
 	@echo "Step 3/4. Building optimized executable ..."
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) objclean
-	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) $(profile_use)
+	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) $(PROFILE_USE)
 	@echo ""
 	@echo "Step 4/4. Deleting profile data ..."
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) profileclean
@@ -1280,7 +1280,7 @@ MODNAME := $(subst -,_,$(notdir $(CURDIR)))
 universal-object-pgo: objclean profileclean universalclean
 	@echo ""
 	@echo "Step 1/4. Building instrumented executable ..."
-	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) ENV_LDFLAGS='$(ENV_LDFLAGS) $(NNUE_EMBED_OBJ)' $(profile_make)
+	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) ENV_LDFLAGS='$(ENV_LDFLAGS) $(NNUE_EMBED_OBJ)' $(PROFILE_MAKE)
 	@echo ""
 	@echo "Step 2/4. Running benchmark for pgo-build ..."
 	$(PGOBENCH) > PGOBENCH.out 2>&1
@@ -1288,7 +1288,7 @@ universal-object-pgo: objclean profileclean universalclean
 	@echo ""
 	@echo "Step 3/4. Building optimized object files ..."
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) objclean
-	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) ENV_LDFLAGS='$(SAVE_TEMPS) $(NNUE_EMBED_OBJ)' $(profile_use)
+	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) ENV_LDFLAGS='$(SAVE_TEMPS) $(NNUE_EMBED_OBJ)' $(PROFILE_USE)
 	@echo ""
 ifeq ($(USE_LTO_EMIT_ASM),yes)
 	@echo "Step 4/4. Renaming ctors and extracting LTO-optimized relocatable object ..."
@@ -1619,7 +1619,8 @@ ifeq ($(MACOS_X86_SLICE),1)
 endif
 
 arch-cxxflags = $(EMBED_DIR) -DDON=$(call arch-namespace,$(1)) -DUNIVERSAL_BINARY $(SLICE_DEF) \
-                $(call arch-defmain,$(1)) -Wno-c++26-extensions -Wno-c23-extensions
+                -Wno-c++26-extensions -Wno-c23-extensions
+arch-ldflags  = $(call arch-defmain,$(1))
 
 UOBJ_TGT ?= universal-object-pgo
 ifeq ($(COMP),clang)
@@ -1662,6 +1663,7 @@ $(TEMP_DIR)/%/.setup: | $(TEMP_DIR)
 
 $(TEMP_DIR)/%/DON.o: $(TEMP_DIR)/%/.setup $(NNUE_EMBED_OBJ) $(NET_SENTINEL)
 	+ENV_CXXFLAGS='$(ENV_CXXFLAGS) $(call arch-cxxflags,$*)' \
+	 ENV_LDFLAGS='$(ENV_LDFLAGS) $(call arch-ldflags,$*)' \
 	    $(MAKE) -C $(TEMP_DIR)/$* $(UOBJ_TGT) \
 	        ARCH=$* CXX=$(CXX) COMP=$(COMP) \
 	        NNUE_EMBED_OBJ=$(NNUE_EMBED_OBJ)

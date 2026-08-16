@@ -27,11 +27,11 @@
 
 #define DEFINE_ARCH_ENTRY(x) \
     namespace DON_##x { \
-        extern int main(int argc, const char* argv[]) noexcept; \
+        extern int main(int argc, char* argv[]) noexcept; \
     } \
     extern "C" void (*__start_##x##_init[])(void); \
     extern "C" void (*__stop_##x##_init[])(void); \
-    int entry_##x(int argc, const char* argv[]) noexcept { \
+    int entry_##x(int argc, char* argv[]) noexcept { \
         unsigned count = __stop_##x##_init - __start_##x##_init; \
         for (unsigned i = 0; i < count; ++i) \
             __start_##x##_init[i](); \
@@ -85,14 +85,14 @@ static CpuFeatures query_cpu_features() noexcept {
 
 
 // Selects the most capable ISA variant supported by this CPU
-static int dispatch(const CpuFeatures& f, int argc, const char* argv[]) noexcept {
+static int dispatch(const CpuFeatures& f, int argc, char* argv[]) noexcept {
     if (!f.gcv || !f.zbitmanip || !f.zicond || f.vlen < 128)
         return entry_riscv64(argc, argv);
 
     return entry_riscv64_rva23(argc, argv);
 }
 
-int main(int argc, const char* argv[]) noexcept {
+int main(int argc, char* argv[]) noexcept {
     CpuFeatures f = query_cpu_features();
     return dispatch(f, argc, argv);
 }

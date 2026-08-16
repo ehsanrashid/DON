@@ -19,7 +19,7 @@
 #
 # The relevant output from --lto-emit-asm looks like:
 #  ...
-#    .section    .ctors,"dw",associative,_ZN21DON_x86_64_avx217SYSTEM_THREADS_NBE,unique,0
+#    .section    .ctors,"dw",associative,_ZN15DON_x86_64_avx217SYSTEM_THREADS_NBE,unique,0
 #    .p2align    3, 0x0
 #    .quad    __cxx_global_var_init
 #    .section    .ctors,"a",unique,0
@@ -30,7 +30,7 @@
 #    .quad    _GLOBAL__sub_I_engine.cpp
 #    .quad    _GLOBAL__sub_I_score.cpp
 # 
-#    .section    .bss$_ZN21DON_x86_64_avx2L26STARTUP_PROCESSOR_AFFINITYE,"bw",one_only,_ZN21DON_x86_64_avx2L26STARTUP_PROCESSOR_AFFINITYE,unique,570
+#    .section    .bss$_ZN15DON_x86_64_avx2L26STARTUP_PROCESSOR_AFFINITYE,"bw",one_only,_ZN15DON_x86_64_avx2L26STARTUP_PROCESSOR_AFFINITYE,unique,570
 #  ...
 #
 # We want to consolidate everything into a single section named x86_64_avx2_init, and insert
