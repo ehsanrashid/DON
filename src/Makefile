@@ -34,7 +34,6 @@ endif
 ### Command prefix to run the built executable (e.g. wine, sde, qemu)
 ### Backward compatible alias: WINE_PATH (deprecated)
 ifneq ($(strip $(WINE_PATH)),)
-    # Only assign RUN_PREFIX if empty
     ifeq ($(strip $(RUN_PREFIX)),)
         RUN_PREFIX := $(WINE_PATH)
     endif
@@ -780,13 +779,13 @@ ifeq ($(wildcard $(LLVM_PROFDATA)),)
 endif
 
 ### Use POSIX threads unless compiling with MinGW (Windows threads)
-ifneq ($(COMP),mingw)
+ifeq ($(arch),wasm32)
+else ifneq ($(COMP),mingw)
     CXXFLAGS += -DUSE_PTHREADS
     ## Link pthreads and optionally LRT on supported platforms
-    # Skip linking on Android, Haiku, and NDK (they provide pthreads differently)
     # Android has Bionic's C library with its own pthread implementation bundled
-    # Haiku has pthreads in its libroot
     ifneq ($(OS),Android)
+        # Haiku has pthreads in its libroot
         ifneq ($(KERNEL),Haiku)
             ifneq ($(COMP),ndk)
                 LDFLAGS += -lpthread
@@ -1175,7 +1174,6 @@ help:
 	echo "loongarch64-lasx        > LoongArch 64-bit with Advanced SIMD eXtension"; \
 	echo "loongarch64-lsx         > LoongArch 64-bit with SIMD eXtension"; \
 	echo "loongarch64             > LoongArch 64-bit"; \
-
 	echo ""; \
 	echo "Supported compilers:"; \
 	echo ""; \

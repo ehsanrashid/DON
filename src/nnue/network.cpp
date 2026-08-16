@@ -32,12 +32,14 @@
 #include "common.h"
 
 // Determined at runtime, see universal/nnue_embed.cpp
-#if defined(UNIVERSAL_BINARY_MACOS_X86_SLICE)
+#if defined(UNIVERSAL_BINARY)
+    #if defined(UNIVERSAL_BINARY_MACOS_X86_SLICE)
 extern const unsigned char* const gNNUEEmbeddedData;
 extern const unsigned int         gNNUEEmbeddedSize;
-#elif defined(UNIVERSAL_BINARY)
+    #else
 extern const unsigned char gNNUEEmbeddedData[];
 extern const unsigned int  gNNUEEmbeddedSize;
+    #endif
 // Note that this does not work in Microsoft Visual Studio.
 #elif !defined(NO_NNUE_EMBEDDING) && !defined(_MSC_VER)
 // Macro to embed the default efficiently updatable neural network (NNUE) file
