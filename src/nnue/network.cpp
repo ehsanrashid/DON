@@ -273,7 +273,7 @@ bool Network::load_embedded(EvalFile& evalFile) noexcept {
 
 #if defined(UNIVERSAL_BINARY_MACOS_X86_SLICE)
     if (gEmbeddedNNUEData == nullptr)  // failed embedded load
-        return;
+        return false;
 #endif
 
     MemoryStreamBuf buf(const_cast<char*>(reinterpret_cast<const char*>(gEmbeddedNNUEData)),
