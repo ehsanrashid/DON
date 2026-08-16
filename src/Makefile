@@ -537,9 +537,9 @@ ifeq ($(MAKELEVEL),0)
     export ENV_LDFLAGS     := $(LDFLAGS)
 endif
 
-CXXFLAGS    = $(ENV_CXXFLAGS) -Wall -Wcast-qual -fno-exceptions -std=c++17 $(EXTRACXXFLAGS)
+CXXFLAGS    = $(ENV_CXXFLAGS) -Wall -Wcast-qual -fno-exceptions -std=c++17 $(EXTRA_CXXFLAGS)
 DEPENDFLAGS = $(ENV_DEPENDFLAGS) -Wall -Wcast-qual -std=c++17
-LDFLAGS     = $(ENV_LDFLAGS) $(EXTRALDFLAGS)
+LDFLAGS     = $(ENV_LDFLAGS) $(EXTRA_LDFLAGS)
 
 ifeq ($(COMP),)
     COMP=gcc
@@ -625,7 +625,7 @@ ifeq ($(COMP),gcc)
         # GCC
         CXXFLAGS += -Wstack-usage=128000 -fno-ipa-cp-clone -fconstexpr-ops-limit=500000000
         ifeq ($(TARGET_KERNEL),Darwin)
-            EXTRAPROFILEFLAGS = -fvisibility=hidden
+            EXTRA_PROFILE_FLAGS = -fvisibility=hidden
         endif
         PROFILE_MAKE = gcc-profile-make
         PROFILE_USE  = gcc-profile-use
@@ -1470,16 +1470,16 @@ misc.o: misc.cpp $(BUILD_DATE_FILE) $(BUILD_SHA_FILE) $(BUILD_DIFFINDEX_FILE)
 clang-profile-make:
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
 	ENV_LDFLAGS='$(ENV_LDFLAGS)' \
-	EXTRACXXFLAGS='-fprofile-generate' \
-	EXTRALDFLAGS='-fprofile-generate' \
+	EXTRA_CXXFLAGS='-fprofile-generate' \
+	EXTRA_LDFLAGS='-fprofile-generate' \
 	all
 
 clang-profile-use:
 	$(XCRUN) $(LLVM_PROFDATA) merge -output="$(NAME).profdata" *.profraw
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
 	ENV_LDFLAGS='$(ENV_LDFLAGS)' \
-	EXTRACXXFLAGS='-fprofile-use=$(NAME).profdata' \
-	EXTRALDFLAGS='-fprofile-use=$(NAME).profdata' \
+	EXTRA_CXXFLAGS='-fprofile-use=$(NAME).profdata' \
+	EXTRA_LDFLAGS='-fprofile-use=$(NAME).profdata' \
 	all
 
 # GCC PGO
@@ -1487,31 +1487,31 @@ gcc-profile-make:
 	@mkdir -p profdir
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
 	ENV_LDFLAGS='$(ENV_LDFLAGS)' \
-	EXTRACXXFLAGS='-fprofile-generate=profdir $(EXTRAPROFILEFLAGS)' \
-	EXTRALDFLAGS='-lgcov' \
+	EXTRA_CXXFLAGS='-fprofile-generate=profdir $(EXTRA_PROFILE_FLAGS)' \
+	EXTRA_LDFLAGS='-lgcov' \
 	all
 
 gcc-profile-use:
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
 	ENV_LDFLAGS='$(ENV_LDFLAGS)' \
-	EXTRACXXFLAGS='-fprofile-use=profdir -fprofile-correction -fno-peel-loops -fno-tracer $(EXTRAPROFILEFLAGS)' \
-	EXTRALDFLAGS='-lgcov' \
+	EXTRA_CXXFLAGS='-fprofile-use=profdir -fprofile-correction -fno-peel-loops -fno-tracer $(EXTRA_PROFILE_FLAGS)' \
+	EXTRA_LDFLAGS='-lgcov' \
 	all
 
 # ICC/ICX PGO
 icx-profile-make:
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
 	ENV_LDFLAGS='$(ENV_LDFLAGS)' \
-	EXTRACXXFLAGS='-fprofile-instr-generate' \
-	EXTRALDFLAGS='-fprofile-instr-generate' \
+	EXTRA_CXXFLAGS='-fprofile-instr-generate' \
+	EXTRA_LDFLAGS='-fprofile-instr-generate' \
 	all
 
 icx-profile-use:
 	$(XCRUN) $(LLVM_PROFDATA) merge -output="$(NAME).profdata" *.profraw
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
 	ENV_LDFLAGS='$(ENV_LDFLAGS)' \
-	EXTRACXXFLAGS='-fprofile-instr-use=$(NAME).profdata' \
-	EXTRALDFLAGS='-fprofile-use' \
+	EXTRA_CXXFLAGS='-fprofile-instr-use=$(NAME).profdata' \
+	EXTRA_LDFLAGS='-fprofile-use' \
 	all
 
 .depend: $(SRCS)
@@ -1581,7 +1581,7 @@ else
     ifeq ($(TARGET_KERNEL),Linux)
         UNIVERSAL_BUILD_FLAGS += -static-libstdc++ -static-libgcc
         ifeq ($(COMP),ndk)
-            UNIVERSAL_BUILD_FLAGS += -pie
+            UNIVERSAL_BUILD_FLAGS += -flto=full -pie
         else
             UNIVERSAL_BUILD_FLAGS += -lrt -lpthread
         endif
@@ -1657,10 +1657,10 @@ $(NET_SENTINEL): | $(TEMP_DIR)
 	@touch $@
 
 $(NNUE_EMBED_OBJ): $(UNIVERSAL_SRC_DIR)/nnue_embed.cpp $(NET_SENTINEL) | $(TEMP_DIR)
-	$(CXX) -O2 -std=c++20 -Wno-c++26-extensions $(SLICE_DEF) $(MACOS_BUILD_FLAGS) $(EXTRACXXFLAGS) $(EMBED_DIR) -c $< -o $@
+	$(CXX) -O2 -std=c++20 -Wno-c++26-extensions $(SLICE_DEF) $(MACOS_BUILD_FLAGS) $(EXTRA_CXXFLAGS) $(EMBED_DIR) -c $< -o $@
 
 $(UNIVERSAL_ENTRY_OBJ): $(UNIVERSAL_ENTRY_SRC) | $(TEMP_DIR)
-	$(CXX) -O2 -std=c++20 $(MACOS_BUILD_FLAGS) $(EXTRACXXFLAGS) -c $< -o $@
+	$(CXX) -O2 -std=c++20 $(MACOS_BUILD_FLAGS) $(EXTRA_CXXFLAGS) -c $< -o $@
 
 # Symlink tracked top-level items from src/ into temp_builds/<arch>/.
 $(TEMP_DIR)/%/.setup: | $(TEMP_DIR)
@@ -1699,7 +1699,7 @@ endif
 endif
 
 $(UNIVERSAL_EXE): $(UNIVERSAL_ENTRY_OBJ) $(NNUE_EMBED_OBJ) $(ARCH_OBJS)
-	$(CXX) -o $@ $(UNIVERSAL_ENTRY_OBJ) $(NNUE_EMBED_OBJ) $(ARCH_OBJS) $(UNIVERSAL_BUILD_FLAGS) $(EXTRALDFLAGS)
+	$(CXX) -o $@ $(UNIVERSAL_ENTRY_OBJ) $(NNUE_EMBED_OBJ) $(ARCH_OBJS) $(UNIVERSAL_BUILD_FLAGS) $(EXTRA_LDFLAGS)
 	@echo "Universal binary built: $@"
 
 endif  # UNIVERSAL_BUILD

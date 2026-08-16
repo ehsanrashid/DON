@@ -42,14 +42,14 @@ jobs:
             run_armv7_tests: true
             shell: bash
           # Currently segfaults in CI due to changes unrelated to DON
-          # - name: Linux GCC riscv64
-          #   os: ubuntu-22.04
-          #   compiler: g++
-          #   comp: gcc
-          #   run_riscv64_tests: true
-          #   base_image: "riscv64/alpine:edge"
-          #   platform: linux/riscv64
-          #   shell: bash
+          - name: Linux GCC riscv64
+            os: ubuntu-22.04
+            compiler: g++
+            comp: gcc
+            run_riscv64_tests: true
+            base_image: "riscv64/alpine:edge"
+            platform: linux/riscv64
+            shell: bash
           - name: Linux GCC ppc64
             os: ubuntu-22.04
             compiler: g++
