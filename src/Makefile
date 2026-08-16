@@ -1564,8 +1564,8 @@ endif
 # Top-level tracked items in src/ (directories and files)
 TRACKED_TOP := $(sort $(foreach f,$(SRCS) $(HEADERS) Makefile incbin,$(firstword $(subst /, ,$(f)))))
 
-# Baseline build must come first in the final link (Windows --allow-multiple-definition
-# uses the first copy of inline duplicates)
+# Link the baseline architecture first so it is preferred when the linker
+# encounters duplicate definitions shared by multiple architecture slices.
 ARCH_OBJS := $(TEMP_DIR)/$(BASELINE_ARCH)/DON.o \
              $(patsubst %,$(TEMP_DIR)/%/DON.o,$(filter-out $(BASELINE_ARCH),$(UNIVERSAL_ARCHES)))
 
@@ -1573,17 +1573,20 @@ UNIVERSAL_BUILD_FLAGS := -fno-exceptions -Os -Wno-c++26-extensions -Wno-c23-exte
 
 ifeq ($(TARGET_KERNEL),Darwin)
     UNIVERSAL_BUILD_FLAGS += $(MACOS_BUILD_FLAGS)
-else ifeq ($(TARGET_KERNEL),Linux)
-    UNIVERSAL_BUILD_FLAGS += -static-libstdc++ -static-libgcc
-    ifeq ($(COMP),ndk)
+else
+    UNIVERSAL_BUILD_FLAGS += -Wl,--allow-multiple-definition
+    ifeq ($(TARGET_KERNEL),Linux)
+        UNIVERSAL_BUILD_FLAGS += -static-libstdc++ -static-libgcc
+        ifeq ($(COMP),ndk)
+            UNIVERSAL_BUILD_FLAGS += -static
+        else
+            UNIVERSAL_BUILD_FLAGS += -lrt -lpthread
+        endif
+    else  # Windows
         UNIVERSAL_BUILD_FLAGS += -static
-    else
-        UNIVERSAL_BUILD_FLAGS += -lrt -lpthread
-    endif
-else  # Windows
-    UNIVERSAL_BUILD_FLAGS += -Wl,--allow-multiple-definition -static
-    ifeq ($(COMP),clang)
-        UNIVERSAL_BUILD_FLAGS += -lpthread
+        ifeq ($(COMP),clang)
+            UNIVERSAL_BUILD_FLAGS += -lpthread
+        endif
     endif
 endif
 
