@@ -62,9 +62,9 @@ DEFINE_ARCH_ENTRY(x86_64_sse41_popcnt)
 DEFINE_ARCH_ENTRY(x86_64_avx2)
 DEFINE_ARCH_ENTRY(x86_64_bmi2)
 DEFINE_ARCH_ENTRY(x86_64_avxvnni)
-DEFINE_ARCH_ENTRY(x86_64_avx512)
-DEFINE_ARCH_ENTRY(x86_64_vnni512)
-DEFINE_ARCH_ENTRY(x86_64_avx512icl)
+//DEFINE_ARCH_ENTRY(x86_64_avx512)
+//DEFINE_ARCH_ENTRY(x86_64_vnni512)
+//DEFINE_ARCH_ENTRY(x86_64_avx512icl)
 
 // AMD Excavator (family 15h) and Zen/Zen+/Zen2 (family 17h) implement pdep/pext via microcode.
 static bool has_slow_bmi2() noexcept {

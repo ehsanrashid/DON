@@ -180,7 +180,7 @@ jobs:
       token: ${{ secrets.GITHUB_TOKEN }}
   UniversalBinaries:
     if: github.repository == 'ehsanrashid/DON'
-    name: Universal binaries
+    name: Universal uploads
     needs: [Prerelease, Matrix]
     uses: ./.github/workflows/upload_binaries.yml
     with:

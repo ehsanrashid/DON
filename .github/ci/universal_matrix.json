@@ -7,7 +7,7 @@
         "simple_name": "linux",
         "archive_ext": "tar.gz"
       },
-      "binaries": "x86-64-universal"
+      "binary": "x86-64-universal"
     },
     {
       "config": {
@@ -17,7 +17,7 @@
         "ext": ".exe",
         "archive_ext": "zip"
       },
-      "binaries": "x86-64-universal"
+      "binary": "x86-64-universal"
     },
     {
       "config": {
@@ -26,7 +26,7 @@
         "simple_name": "linux",
         "archive_ext": "tar.gz"
       },
-      "binaries": "arm64-universal"
+      "binary": "arm64-universal"
     },
     {
       "config": {
@@ -36,7 +36,7 @@
         "ext": ".exe",
         "archive_ext": "zip"
       },
-      "binaries": "arm64-universal"
+      "binary": "arm64-universal"
     },
     {
       "config": {
@@ -45,7 +45,7 @@
         "simple_name": "macos",
         "archive_ext": "tar.gz"
       },
-      "binaries": "universal"
+      "binary": "universal"
     }
   ]
 }
