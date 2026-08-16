@@ -665,21 +665,21 @@ void Worker::iterative_deepening() noexcept {
             }
         }
 
-        const bool mateForgotten =
-          lastCurValue != -VALUE_INFINITE && is_mate(lastCurValue)
-          && (constexpr_abs(rootMoves[0].curValue) < constexpr_abs(lastCurValue)
-              || rootMoves[0].has_bound());
+        const bool mateForgotten = lastCurValue != -VALUE_INFINITE && is_mate(lastCurValue)
+                                && (constexpr_abs(rootMoves[0].curValue)  //
+                                      < constexpr_abs(lastCurValue)
+                                    || rootMoves[0].has_bound());
 
         if (threads.is_stopped())
         {
-            const bool abortedLoss = pvCur == 0 && rootMoves[0].curValue != -VALUE_INFINITE
+            const bool lossAborted = pvCur == 0 && rootMoves[0].curValue != -VALUE_INFINITE
                                   && is_loss(rootMoves[0].curValue) && !rootMoves[0].has_bound();
 
             // An exact mated-in/TB-loss score from an aborted search cannot be trusted:
             // the loss could be delayed or refuted upon exploring the remaining root-moves.
             // Thus here roll back to the score from the previous iteration.
             // Do the same if a search has failed to recover a mate score that was found in a previous iteration.
-            if (abortedLoss || (mateForgotten || rootMoves[0].curValue != -VALUE_INFINITE))
+            if (lossAborted || (mateForgotten && rootMoves[0].curValue != -VALUE_INFINITE))
             {
                 if (!lastPV.empty())
                 {
@@ -695,7 +695,7 @@ void Worker::iterative_deepening() noexcept {
                         mainManager->pvShown = false;
                 }
                 // For aborted (depth 1) search label the loss score a lower bound
-                else if (abortedLoss)
+                else if (lossAborted)
                     rootMoves[0].bound = Bound::LOWER;
             }
 
