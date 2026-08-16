@@ -1479,7 +1479,7 @@ clang-profile-make:
 	all
 
 clang-profile-use:
-	$(XCRUN) $(LLVM_PROFDATA) merge -output="$(NAME).profdata" profdir/*.profraw
+	$(XCRUN) $(LLVM_PROFDATA) merge -output="$(NAME).profdata" *.profraw
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
 	EXTRACXXFLAGS='-fprofile-use=$(NAME).profdata' \
 	EXTRALDFLAGS='-fprofile-use=$(NAME).profdata' \

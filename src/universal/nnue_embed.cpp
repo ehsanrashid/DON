@@ -19,7 +19,7 @@
 
 #include "../evaluate.h"
 
-#ifdef UNIVERSAL_BINARY_MACOS_X86_SLICE
+#if defined(UNIVERSAL_BINARY_MACOS_X86_SLICE)
 
 // In a macOS universal binary the network is embedded only in the arm64 slice,
 // and the x86-64 slice mmaps it from the arm64 slice.
@@ -77,6 +77,7 @@ const unsigned int padding = 0;
 extern const unsigned char gNNUEEmbeddedData[] =
         #include "network_dump.inc"
   ;
+
 const unsigned int padding = 1;  // Trailing NULL byte
     #endif
 

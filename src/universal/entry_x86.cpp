@@ -150,8 +150,8 @@ static int dispatch(const CpuFeatures& f, int argc, const char* argv[]) noexcept
     return entry_x86_64_avx512icl(argc, argv);
 }
 
-static void maybe_promote_thread_to_avx512() {
-#ifdef __APPLE__
+static void maybe_promote_thread_to_avx512() noexcept {
+#if defined(__APPLE__)
     // Intel Macs supporting AVX512 don't advertise it in xgetbv and only
     // do so once at least one avx512 instruction has been executed.
     // See https://github.com/apple/darwin-xnu/blob/0a798f6738bc1db01281fc08ae024145e84df927/osfmk/i386/fpu.c#L176
@@ -165,7 +165,7 @@ static void maybe_promote_thread_to_avx512() {
 #endif
 }
 
-int main(int argc, const char* argv[]) {
+int main(int argc, const char* argv[]) noexcept {
     maybe_promote_thread_to_avx512();
 
     __builtin_cpu_init();
