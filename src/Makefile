@@ -1581,8 +1581,7 @@ else
     ifeq ($(TARGET_KERNEL),Linux)
         UNIVERSAL_BUILD_FLAGS += -static-libstdc++ -static-libgcc
         ifeq ($(COMP),ndk)
-            # Don't use -static on Android
-            #UNIVERSAL_BUILD_FLAGS += -static
+            UNIVERSAL_BUILD_FLAGS += -pie
         else
             UNIVERSAL_BUILD_FLAGS += -lrt -lpthread
         endif
@@ -1603,14 +1602,17 @@ arch-mangled   = _ZN$(shell printf %s '$(call arch-namespace,$(1))' | wc -c | tr
 # (Mach-O section names are restricted to <=16 chars, hence this naming scheme)
 arch-mac-section = _i_$(subst -,_,$(patsubst x86-64,,$(patsubst x86-64-%,%,$(1))))
 
+arch-main-cxxflags =
+arch-main-ldflags =
+
 ifeq ($(TARGET_KERNEL),Darwin)
-    arch-defmain = -Wl,-alias,_$(call arch-mangled,$(1)),_main
+    arch-main-ldflags = -Wl,-alias,_$(call arch-mangled,$(1)),_main
 # lld-link, used on Windows+clang, doesn't accept --defsym, so
-# Define main directly in main.cpp instead and delete it later.
+# define main directly in main.cpp instead and delete it later.
 else ifeq ($(IS_WINDOWS)+$(COMP),yes+clang)
-    arch-defmain = -DUNIVERSAL_NEEDS_MAIN_SHIM
+    arch-main-cxxflags = -DUNIVERSAL_NEEDS_MAIN_SHIM
 else
-    arch-defmain = -Wl,--defsym=main=$(call arch-mangled,$(1))
+    arch-main-ldflags = -Wl,--defsym=main=$(call arch-mangled,$(1))
 endif
 
 EMBED_DIR_SUPPORTED := $(shell echo 'int main(){}' | $(CXX) -x c++ --embed-dir=. -o /dev/null -c - 2>/dev/null && echo 1 || echo 0)
@@ -1625,9 +1627,11 @@ ifeq ($(MACOS_X86_SLICE),1)
     SLICE_DEF := -DUNIVERSAL_BINARY_MACOS_X86_SLICE
 endif
 
-arch-cxxflags = $(EMBED_DIR) -DDON=$(call arch-namespace,$(1)) -DUNIVERSAL_BINARY $(SLICE_DEF) \
+arch-cxxflags = $(EMBED_DIR) -DDON=$(call arch-namespace,$(1)) \
+                -DUNIVERSAL_BINARY $(SLICE_DEF) \
+                $(arch-main-cxxflags) \
                 -Wno-c++26-extensions -Wno-c23-extensions
-arch-ldflags  = $(call arch-defmain,$(1))
+arch-ldflags  = $(arch-main-ldflags)
 
 UOBJ_TGT ?= universal-object-pgo
 ifeq ($(COMP),clang)
