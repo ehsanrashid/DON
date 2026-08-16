@@ -3,6 +3,7 @@
 **/*.s
 src/.depend
 src/temp_builds
+src/universal/network_dump.inc
 .build_date.txt
 .build_sha.txt
 .build_diffindex.txt
@@ -11,7 +12,7 @@ src/temp_builds
 # Built binary
 src/DON*
 src/-lstdc++.res
-/src/profdir
+src/profdir/
 src/nul
 
 # Neural network for the NNUE evaluation

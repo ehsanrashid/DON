@@ -31,15 +31,13 @@
 #include "../types.h"
 #include "common.h"
 
-#if defined(UNIVERSAL_BINARY)
-    // When building for the universal binary, use C++26 #embed with weak symbols so that a separate,
-    // non-LTO nnue_embed.o (with strong symbols) can override them during the LTO link,
-    // (INCBIN can't deduplicate)
-    #define WEAK_SYM __attribute__((weak))
-extern const unsigned char gNNUEEmbeddedData[] WEAK_SYM = {
-    #embed EvalFileDefaultName
-};
-extern const unsigned int gNNUEEmbeddedSize WEAK_SYM = sizeof(gNNUEEmbeddedData);
+// Determined at runtime, see universal/nnue_embed.cpp
+#if defined(UNIVERSAL_BINARY_MACOS_X86_SLICE)
+extern const unsigned char* const gNNUEEmbeddedData;
+extern const unsigned int         gNNUEEmbeddedSize;
+#elif defined(UNIVERSAL_BINARY)
+extern const unsigned char gNNUEEmbeddedData[];
+extern const unsigned int  gNNUEEmbeddedSize;
 // Note that this does not work in Microsoft Visual Studio.
 #elif !defined(NO_NNUE_EMBEDDING) && !defined(_MSC_VER)
 // Macro to embed the default efficiently updatable neural network (NNUE) file

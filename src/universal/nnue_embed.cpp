@@ -33,12 +33,12 @@
     #include <unistd.h>
 
 // Must be kept in sync with patch_x86_slice.sh
-extern const volatile Stockfish::u64 gUniversalNNUEOffset = 0xCAFE0FF5E70FF5E7ULL;
-extern const volatile Stockfish::u64 gUniversalNNUESize   = 0xCAFE512ECAFE512EULL;
+extern const volatile DON::u64 gNNUEUniversalOffset = 0xCAFE0FF5E70FF5E7ULL;
+extern const volatile DON::u64 gNNUEUniversalSize   = 0xCAFE512ECAFE512EULL;
 
-static const unsigned char* map_embedded_nnue() {
-    char           path[PATH_MAX];
-    Stockfish::u32 len = sizeof(path);
+static const unsigned char* map_embedded_nnue() noexcept {
+    char     path[PATH_MAX];
+    DON::u32 len = sizeof(path);
     if (_NSGetExecutablePath(path, &len) != 0)
         return nullptr;
 
@@ -50,12 +50,12 @@ static const unsigned char* map_embedded_nnue() {
         return nullptr;
 
     // Align down to page size for mmap
-    const Stockfish::u64 pageSize = Stockfish::u64(sysconf(_SC_PAGESIZE));
-    const Stockfish::u64 base     = gUniversalNNUEOffset & ~(pageSize - 1);
-    const Stockfish::u64 pad      = gUniversalNNUEOffset - base;
+    const DON::u64 pageSize = DON::u64(sysconf(_SC_PAGESIZE));
+    const DON::u64 base     = gNNUEUniversalOffset & ~(pageSize - 1);
+    const DON::u64 pad      = gNNUEUniversalOffset - base;
 
     void* p =
-      mmap(nullptr, size_t(gUniversalNNUESize + pad), PROT_READ, MAP_PRIVATE, fd, off_t(base));
+      mmap(nullptr, size_t(gNNUEUniversalSize + pad), PROT_READ, MAP_PRIVATE, fd, off_t(base));
     close(fd);
     if (p == MAP_FAILED)
         return nullptr;
@@ -64,21 +64,22 @@ static const unsigned char* map_embedded_nnue() {
 }
 
 extern const unsigned char* const gNNUEEmbeddedData = map_embedded_nnue();
-extern const unsigned int         gNNUEEmbeddedSize = static_cast<unsigned int>(gUniversalNNUESize);
+extern const unsigned int         gNNUEEmbeddedSize = static_cast<unsigned int>(gNNUEUniversalSize);
 
 #else
-
-extern const unsigned char gNNUEEmbeddedData[] =
-    #ifdef __has_embed
-  {
+    #if defined(__has_embed)
+extern const unsigned char gNNUEEmbeddedData[] = {
         #embed EvalFileDefaultName
 };
+
 const unsigned int padding = 0;
     #else
+extern const unsigned char gNNUEEmbeddedData[] =
         #include "network_dump.inc"
   ;
-const unsigned int padding = 1;  // trailing NUL byte
+const unsigned int padding = 1;  // Trailing NULL byte
     #endif
+
 extern const unsigned int gNNUEEmbeddedSize = sizeof(gNNUEEmbeddedData) - padding;
 
 #endif

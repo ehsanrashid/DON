@@ -20,10 +20,15 @@
 
 ### Establish the operating system name
 KERNEL := $(shell uname -s 2>/dev/null)
-ifeq ($(COMP),ndk)
-    OS := Android
-else ifeq ($(KERNEL),Linux)
+ifeq ($(KERNEL),Linux)
     OS := $(or $(shell uname -o 2>/dev/null),Linux)
+endif
+
+### Target operating system (may differ from KERNEL when cross-compiling)
+TARGET_KERNEL := $(KERNEL)
+ifeq ($(COMP),ndk)
+    TARGET_KERNEL := Linux
+    OS := Android
 endif
 
 ### Command prefix to run the built executable (e.g. wine, sde, qemu)
@@ -591,7 +596,7 @@ ifeq ($(COMP),gcc)
     endif
     ifeq ($(arch),wasm32)
     # Non-Darwin (Linux) specific compiler/linker flags
-    else ifneq ($(KERNEL),Darwin)
+    else ifneq ($(TARGET_KERNEL),Darwin)
         CXXFLAGS += -Wno-stringop-overflow
         # Detect whether GNU ld is being used
         LINKER_VERSION := $(shell $(CXX) -Wl,--version 2>/dev/null)
@@ -621,7 +626,7 @@ ifeq ($(COMP),gcc)
     else
         # GCC
         CXXFLAGS += -Wstack-usage=128000 -fno-ipa-cp-clone -fconstexpr-ops-limit=500000000
-        ifeq ($(KERNEL),Darwin)
+        ifeq ($(TARGET_KERNEL),Darwin)
             EXTRAPROFILEFLAGS = -fvisibility=hidden
         endif
         profile_make = gcc-profile-make
@@ -661,14 +666,14 @@ else ifeq ($(COMP),clang)
     endif
     # Use libatomic on non-Windows, non-BSD systems unless using compiler-rt
     ifeq ($(OS_WINDOWS),no)
-        ifeq ($(filter $(KERNEL),Darwin FreeBSD OpenBSD NetBSD),)
+        ifeq ($(filter $(TARGET_KERNEL),Darwin FreeBSD OpenBSD NetBSD),)
             ifneq ($(RTLIB),compiler-rt)
                 LDFLAGS += -latomic
             endif
         endif
     endif
     # Link std::filesystem for Linux Clang (non-Apple)
-    ifeq ($(KERNEL),Linux)
+    ifeq ($(TARGET_KERNEL),Linux)
         ifeq ($(CXX_IS_APPLE_CLANG),no)
             LDFLAGS += -lstdc++fs
         endif
@@ -732,6 +737,7 @@ else ifeq ($(COMP),ndk)
     # Correct STL usage
     CXXFLAGS += -stdlib=libc++
     LDFLAGS  += -static-libstdc++
+    OBJCOPY  := llvm-objcopy
 
     STRIP := $(TOOLCHAIN)/llvm-strip
     # Profile build for NDK/Clang
@@ -739,14 +745,14 @@ else ifeq ($(COMP),ndk)
     profile_use  = clang-profile-use
 endif
 
-ifeq ($(KERNEL),Darwin)
-    XCRUN = xcrun
-    MACOS_FLAGS := -mmacosx-version-min=10.15
+ifeq ($(TARGET_KERNEL),Darwin)
+    MACOS_BUILD_FLAGS := -mmacosx-version-min=10.15
     ifneq ($(arch),any)
-        MACOS_FLAGS += -arch $(arch)
+        MACOS_BUILD_FLAGS += -arch $(arch)
     endif
-    CXXFLAGS += $(MACOS_FLAGS)
-    LDFLAGS  += $(MACOS_FLAGS)
+    CXXFLAGS += $(MACOS_BUILD_FLAGS)
+    LDFLAGS  += $(MACOS_BUILD_FLAGS)
+    XCRUN     = xcrun
 endif
 
 ### Allow overriding CXX from the environment
@@ -786,7 +792,7 @@ ifneq ($(COMP),mingw)
                 LDFLAGS += -lpthread
                 # Link real-time library (librt) on non-Windows, non-[Darwin/FreeBSD/OpenBSD/NetBSD] platforms
                 ifeq ($(OS_WINDOWS),no)
-                    ifeq ($(filter $(KERNEL),Darwin FreeBSD OpenBSD NetBSD),)
+                    ifeq ($(filter $(TARGET_KERNEL),Darwin FreeBSD OpenBSD NetBSD),)
                         LDFLAGS += -lrt
                     endif
                 endif
@@ -831,7 +837,7 @@ ifeq ($(optimize),yes)
         endif
     endif
 
-    ifeq ($(KERNEL),Darwin)
+    ifeq ($(TARGET_KERNEL),Darwin)
         ifneq ($(filter clang icx ndk,$(COMP)),)
             CXXFLAGS += -mdynamic-no-pic
         else ifeq ($(COMP),gcc)
@@ -866,7 +872,7 @@ endif
 ifeq ($(avx512icl),yes)
     CXXFLAGS += -DUSE_AVX512ICL
     ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
-        CXXFLAGS += -mavx512vnni -mavx512vbmi2 -mavx512vbmi -mavx512vpopcntdq -mavx512bitalg -mavx512ifma -mavx512vl -mavx512dq -mavx512bw -mavx512cd -mavx512f -mvpclmulqdq -mgfni -mvaes
+        CXXFLAGS += -mavx512vnni -mavx512f -mavx512bw -mavx512dq -mavx512vl -mavx512vbmi2 -mavx512vbmi -mavx512vpopcntdq -mavx512bitalg -mavx512ifma -mavx512cd -mvpclmulqdq -mgfni -mvaes
     endif
 endif
 
@@ -948,7 +954,7 @@ endif
 
 ifeq ($(neon),yes)
     CXXFLAGS += -DUSE_NEON=$(arm_version)
-    ifeq ($(KERNEL),Linux)
+    ifeq ($(TARGET_KERNEL),Linux)
         ifneq ($(COMP),ndk)
             ifneq ($(arch),armv8)
                 CXXFLAGS += -mfpu=neon
@@ -1040,7 +1046,7 @@ ifeq ($(optimize),yes)
     ifeq ($(debug),no)
         ifeq ($(arch),wasm32)
         # Non-macOS
-        else ifneq ($(KERNEL),Darwin)
+        else ifneq ($(TARGET_KERNEL),Darwin)
             # Android NDK Clang
             ifeq ($(COMP),ndk)
                 LDFLAGS += -fuse-ld=lld
@@ -1120,6 +1126,7 @@ help:
 	echo "help                    > Display architecture details"; \
 	echo "profile-build           > standard build with profile-guided optimization"; \
 	echo "build                   > skip profile-guided optimization"; \
+	echo "macos-lipo              > macOS x86-64 + Apple silicon universal binary"; \
 	echo "net                     > Download the default nnue nets"; \
 	echo "strip                   > Strip executable"; \
 	echo "install                 > Install executable"; \
@@ -1198,8 +1205,8 @@ ifeq ($(ARCH_SUPPORTED),no)
 	echo ""
 endif
 
-.PHONY: help analyze build profile-build strip install clean \
-	objclean profileclean net config-sanity all \
+.PHONY: help analyze build profile-build macos-lipo strip install clean net \
+	objclean profileclean config-sanity \
 	clang-profile-make clang-profile-use \
 	gcc-profile-make gcc-profile-use \
 	icx-profile-make icx-profile-use \
@@ -1565,8 +1572,15 @@ ARCH_OBJS := $(TEMP_DIR)/$(BASELINE_ARCH)/DON.o \
 
 UNIVERSAL_BUILD_FLAGS := -fno-exceptions -Os -Wno-c++26-extensions -Wno-c23-extensions # suppress #embed warnings
 
-ifeq ($(KERNEL),Linux)
-    UNIVERSAL_BUILD_FLAGS += -static-libstdc++ -static-libgcc -lrt -lpthread
+ifeq ($(TARGET_KERNEL),Darwin)
+    UNIVERSAL_BUILD_FLAGS += $(MACOS_BUILD_FLAGS)
+else ifeq ($(TARGET_KERNEL),Linux)
+    UNIVERSAL_BUILD_FLAGS += -static-libstdc++ -static-libgcc
+    ifeq ($(COMP),ndk)
+        UNIVERSAL_BUILD_FLAGS += -static
+    else
+        UNIVERSAL_BUILD_FLAGS += -lrt -lpthread
+    endif
 else  # Windows
     UNIVERSAL_BUILD_FLAGS += -Wl,--allow-multiple-definition -static
     ifeq ($(COMP),clang)
@@ -1577,22 +1591,43 @@ endif
 # $(call arch-namespace,x86-64-avx2) => DON_x86_64_avx2
 arch-suffix    = $(subst -,_,$(1))
 arch-namespace = DON_$(call arch-suffix,$(1))
-# Itanium ABI mangled name for DON_<suffix>::main(int, const char**)
-arch-mangled   = _ZN$(shell printf %s '$(call arch-namespace,$(1))' | wc -c)$(call arch-namespace,$(1))4mainEiPPc
+# Itanium ABI mangled name for DON_<suffix>::main(int, char**)
+arch-mangled   = _ZN$(shell printf %s '$(call arch-namespace,$(1))' | wc -c | tr -d ' ')$(call arch-namespace,$(1))4mainEiPPc
+# Mach-O initializer section name: strip "x86-64" or "x86-64-" and prefix with "_i_"
+# (Mach-O section names are restricted to <=16 chars, hence this naming scheme)
+arch-mac-section = _i_$(subst -,_,$(patsubst x86-64,,$(patsubst x86-64-%,%,$(1))))
 
+ifeq ($(TARGET_KERNEL),Darwin)
+    arch-defmain = -Wl,-alias,_$(call arch-mangled,$(1)),_main
 # lld-link, used on Windows+clang, doesn't accept --defsym, so
 # Define main directly in main.cpp instead and delete it later.
-ifeq ($(OS_WINDOWS)+$(COMP),yes+clang)
+else ifeq ($(OS_WINDOWS)+$(COMP),yes+clang)
     arch-defmain = -DUNIVERSAL_NEEDS_MAIN_SHIM
 else
     arch-defmain = -Wl,--defsym=main=$(call arch-mangled,$(1))
 endif
 
-arch-cxxflags = --embed-dir=$(CURDIR) -DDON=$(call arch-namespace,$(1)) -DUNIVERSAL_BINARY \
+EMBED_DIR_SUPPORTED := $(shell echo 'int main(){}' | $(CXX) -x c++ --embed-dir=. -o /dev/null -c - 2>/dev/null && echo 1 || echo 0)
+ifeq ($(EMBED_DIR_SUPPORTED),1)
+    EMBED_DIR = --embed-dir=$(CURDIR)
+endif
+
+# macos-lipo sets MACOS_X86_SLICE=1 when building the x86-64 slice so that the
+# slice reads the network out of the Apple-silicon slice instead of embedding
+# its own copy (see universal/nnue_embed.cpp and universal/patch_x86_slice.sh).
+ifeq ($(MACOS_X86_SLICE),1)
+    SLICE_DEF := -DUNIVERSAL_BINARY_MACOS_X86_SLICE
+endif
+
+arch-cxxflags = $(EMBED_DIR) -DDON=$(call arch-namespace,$(1)) -DUNIVERSAL_BINARY $(SLICE_DEF) \
                 $(call arch-defmain,$(1)) -Wno-c++26-extensions -Wno-c23-extensions
 
 UOBJ_TGT ?= universal-object-pgo
-OBJCOPY  ?= objcopy
+ifeq ($(COMP),clang)
+    OBJCOPY ?= llvm-objcopy
+else
+    OBJCOPY ?= objcopy
+endif
 
 .PHONY: build profile-build universalclean
 
@@ -1607,14 +1642,14 @@ $(TEMP_DIR):
 
 # Download nnue files once in src/ (reused by every sub-arch via --embed-dir).
 $(NET_SENTINEL): | $(TEMP_DIR)
-	@cd $(CURDIR) && $(SHELL) ../scripts/net.sh
+	@cd $(CURDIR) && $(SHELL) ../scripts/net.sh $(EMBED_DIR_SUPPORTED)
 	@touch $@
 
 $(NNUE_EMBED_OBJ): $(UNIVERSAL_SRC_DIR)/nnue_embed.cpp $(NET_SENTINEL) | $(TEMP_DIR)
-	$(CXX) -O2 -Wno-c++26-extensions --embed-dir=$(CURDIR) -c $< -o $@
+	$(CXX) -O2 -std=c++20 -Wno-c++26-extensions $(SLICE_DEF) $(MACOS_BUILD_FLAGS) $(EXTRACXXFLAGS) $(EMBED_DIR) -c $< -o $@
 
 $(UNIVERSAL_ENTRY_OBJ): $(UNIVERSAL_ENTRY_SRC) | $(TEMP_DIR)
-	$(CXX) -O2 -c $< -o $@
+	$(CXX) -O2 -std=c++20 $(MACOS_BUILD_FLAGS) $(EXTRACXXFLAGS) -c $< -o $@
 
 # Symlink tracked top-level items from src/ into temp_builds/<arch>/.
 $(TEMP_DIR)/%/.setup: | $(TEMP_DIR)
@@ -1629,8 +1664,13 @@ $(TEMP_DIR)/%/.setup: | $(TEMP_DIR)
 $(TEMP_DIR)/%/DON.o: $(TEMP_DIR)/%/.setup $(NNUE_EMBED_OBJ) $(NET_SENTINEL)
 	+ENV_CXXFLAGS='$(ENV_CXXFLAGS) $(call arch-cxxflags,$*)' \
 	    $(MAKE) -C $(TEMP_DIR)/$* $(UOBJ_TGT) \
-	        ARCH=$* CXX=$(CXX) \
+	        ARCH=$* CXX=$(CXX) COMP=$(COMP) \
 	        NNUE_EMBED_OBJ=$(NNUE_EMBED_OBJ)
+ifeq ($(TARGET_KERNEL),Darwin)
+# Rename the initializer section
+	ld -r -rename_section __DATA __mod_init_func __DATA $(call arch-mac-section,$*) $@ -o $@.tmp
+	mv $@.tmp $@
+else
 # Drop COMDAT groups; clang LTO leaves them around internalized LOCAL
 # template instantiations which causes problems at the final link
 	$(OBJCOPY) -R .group $@
@@ -1644,9 +1684,10 @@ else
 # Make the array inert
 	$(OBJCOPY) --set-section-flags $(call arch-suffix,$*)_init=alloc,data $@
 endif
+endif
 
 $(UNIVERSAL_EXE): $(UNIVERSAL_ENTRY_OBJ) $(NNUE_EMBED_OBJ) $(ARCH_OBJS)
-	$(CXX) -o $@ $(UNIVERSAL_ENTRY_OBJ) $(NNUE_EMBED_OBJ) $(ARCH_OBJS) $(UNIVERSAL_BUILD_FLAGS)
+	$(CXX) -o $@ $(UNIVERSAL_ENTRY_OBJ) $(NNUE_EMBED_OBJ) $(ARCH_OBJS) $(UNIVERSAL_BUILD_FLAGS) $(EXTRALDFLAGS)
 	@echo "Universal binary built: $@"
 
 endif  # UNIVERSAL_BUILD

@@ -99,8 +99,8 @@ inline constexpr usize CACHE_LINE_SIZE = 64;
 
 inline constexpr std::string_view            PIECE_UNI{".PNBRQK..pnbrqk."};
 inline constexpr Array<std::string_view, 16> PIECE_UTF8{
-  ".", u8"♙", u8"♘", u8"♗", u8"♖", u8"♕", u8"♔", ".",
-  ".", u8"♟", u8"♞", u8"♝", u8"♜", u8"♛", u8"♚", "."  //
+  ".", "♙", "♘", "♗", "♖", "♕", "♔", ".",  //
+  ".", "♟", "♞", "♝", "♜", "♛", "♚", "."   //
 };
 
 inline constexpr std::string_view START_FEN{
@@ -240,7 +240,7 @@ constexpr Square& operator-=(Square& s, Direction d) noexcept { return s = s - d
 [[nodiscard]] constexpr Square reverse_sq(Square s) noexcept { return Square(u8(SQ_H8) - u8(s)); }
 
 [[nodiscard]] constexpr bool is_light(Square s) noexcept {
-    return ((/*file_of*/ s ^ rank_of(s)) & 0x1) != 0;
+    return ((u8(s) ^ rank_of(s)) & 0x1) != 0;
 }
 [[nodiscard]] constexpr bool color_opposite(Square s1, Square s2) noexcept {
     return is_light(s1) != is_light(s2);
@@ -307,11 +307,11 @@ using PieceMap = Array<Piece, SQUARE_NB>;
 [[nodiscard]] constexpr Rank fold_to_edge(Rank r) noexcept { return std::min<Rank>(r, RANK_8 - r); }
 
 [[nodiscard]] constexpr Square relative_sq(Color c, Square s) noexcept {
-    return Square(s ^ (c * SQ_A8));
+    return Square(s ^ (c * u8(SQ_A8)));
 }
 
 [[nodiscard]] constexpr Rank relative_rank(Color c, Rank r) noexcept {
-    return Rank(r ^ (c * RANK_8));
+    return Rank(r ^ (c * u8(RANK_8)));
 }
 
 [[nodiscard]] constexpr Rank relative_rank(Color c, Square s) noexcept {
