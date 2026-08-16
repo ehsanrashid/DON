@@ -1302,7 +1302,7 @@ else
 endif
 
 universal-object-nopgo: objclean universalclean
-	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) ENV_LDFLAGS='$(SAVE_TEMPS) $(NNUE_EMBED_OBJ)' all
+	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) NNUE_EMBED_OBJ=$(NNUE_EMBED_OBJ) ENV_LDFLAGS='$(ENV_LDFLAGS) $(SAVE_TEMPS)' all
 ifeq ($(USE_LTO_EMIT_ASM),yes)
 	awk -v MODNAME=$(MODNAME) -f ../../universal/rewrite_asm_sections.awk *.lto.s > renamed.s
 	$(CXX) -c renamed.s -o DON.o $(ASM_FLAGS)
@@ -1460,7 +1460,7 @@ config-sanity: net
 	 test "$(COMP)" = "aarch64-linux-android21-clang")
 
 $(EXE): $(OBJS)
-	+$(CXX) -o $@ $(OBJS) $(LDFLAGS)
+	+$(CXX) -o $@ $(OBJS) $(NNUE_EMBED_OBJ) $(LDFLAGS)
 
 %.o: %.cpp
 	$(strip $(CXX) $(CPPFLAGS) $(CXXFLAGS)) -c -o $@ $<
@@ -1591,7 +1591,7 @@ endif
 arch-suffix    = $(subst -,_,$(1))
 arch-namespace = DON_$(call arch-suffix,$(1))
 # Itanium ABI mangled name for DON_<suffix>::main(int, char**)
-arch-mangled   = _ZN$(shell printf %s '$(call arch-namespace,$(1))' | wc -c | tr -d ' ')$(call arch-namespace,$(1))4mainEiPPc
+arch-mangled   = _ZN$(shell printf %s '$(call arch-namespace,$(1))' | wc -c | tr -d ' ')$(call arch-namespace,$(1))4mainEiPPKc
 # Mach-O initializer section name: strip "x86-64" or "x86-64-" and prefix with "_i_"
 # (Mach-O section names are restricted to <=16 chars, hence this naming scheme)
 arch-mac-section = _i_$(subst -,_,$(patsubst x86-64,,$(patsubst x86-64-%,%,$(1))))

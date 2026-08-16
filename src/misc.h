@@ -1574,7 +1574,7 @@ void print() noexcept;
 
 struct CommandLine final {
    public:
-    CommandLine(int argc, char* argv[]) noexcept;
+    CommandLine(int argc, const char* argv[]) noexcept;
 
     static std::filesystem::path binary_directory(std::filesystem::path path) noexcept;
     static std::filesystem::path working_directory() noexcept;
@@ -1582,7 +1582,7 @@ struct CommandLine final {
     StringViews arguments;
 
    private:
-    void set_arguments(int argc, char* argv[]) noexcept;
+    void set_arguments(int argc, const char* argv[]) noexcept;
 
 #if defined(_WIN32)
     Strings argStorage;

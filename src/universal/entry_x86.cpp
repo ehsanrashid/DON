@@ -29,9 +29,9 @@ extern "C" const struct mach_header_64 _mh_execute_header;
 
     #define DEFINE_ARCH_ENTRY(x) \
         namespace DON_##x { \
-            extern int main(int argc, char* argv[]) noexcept; \
+            extern int main(int argc, const char* argv[]) noexcept; \
         } \
-        int entry_##x(int argc, char* argv[]) noexcept { \
+        int entry_##x(int argc, const char* argv[]) noexcept { \
             char        name[17]; \
             const char* full = #x; \
             snprintf(name, sizeof(name), "_i_%s", full[6] ? full + 7 : ""); \
@@ -45,11 +45,11 @@ extern "C" const struct mach_header_64 _mh_execute_header;
 #else
     #define DEFINE_ARCH_ENTRY(x) \
         namespace DON_##x { \
-            extern int main(int argc, char* argv[]) noexcept; \
+            extern int main(int argc, const char* argv[]) noexcept; \
         } \
         extern "C" void (*__start_##x##_init[])(void); \
         extern "C" void (*__stop_##x##_init[])(void); \
-        int entry_##x(int argc, char* argv[]) noexcept { \
+        int entry_##x(int argc, const char* argv[]) noexcept { \
             unsigned count = __stop_##x##_init - __start_##x##_init; \
             for (unsigned i = 0; i < count; ++i) \
                 __start_##x##_init[i](); \
@@ -115,7 +115,7 @@ static CpuFeatures query_cpu_features() noexcept {
 }
 
 // Selects the most capable ISA variant supported by this CPU and OS
-static int dispatch(const CpuFeatures& f, int argc, char* argv[]) noexcept {
+static int dispatch(const CpuFeatures& f, int argc, const char* argv[]) noexcept {
     if (!f.sse41 || !f.popcnt)
         return entry_x86_64(argc, argv);
 
@@ -165,7 +165,7 @@ static void maybe_promote_thread_to_avx512() noexcept {
 #endif
 }
 
-int main(int argc, char* argv[]) noexcept {
+int main(int argc, const char* argv[]) noexcept {
     maybe_promote_thread_to_avx512();
 
     __builtin_cpu_init();

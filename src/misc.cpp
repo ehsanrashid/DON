@@ -794,7 +794,7 @@ void print() noexcept {
 }  // namespace Debug
 #endif
 
-CommandLine::CommandLine(int argc, char* argv[]) noexcept {
+CommandLine::CommandLine(int argc, const char* argv[]) noexcept {
 #if defined(_WIN32)
     int     wargc = 0;
     LPWSTR* wargv = CommandLineToArgvW(GetCommandLineW(), &wargc);
@@ -822,7 +822,7 @@ CommandLine::CommandLine(int argc, char* argv[]) noexcept {
 #endif
 }
 
-void CommandLine::set_arguments(int argc, char* argv[]) noexcept {
+void CommandLine::set_arguments(int argc, const char* argv[]) noexcept {
     usize argCount = argc;
 
     arguments.reserve(argCount);
