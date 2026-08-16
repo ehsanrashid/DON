@@ -705,14 +705,12 @@ void Worker::iterative_deepening() noexcept {
         if (lastPV.empty() || lastPV[0] != rootMoves[0].pv[0])
             lastBestMoveDepth = rootDepth;
 
-        // Do not replace (shorter) mate scores from a previous iteration.
+        // Do not replace (shorter) mate scores from a previous iteration
         if (!mateForgotten)
         {
             lastPV       = rootMoves[0].pv;
             lastCurValue = rootMoves[0].curValue;
         }
-
-        lastPV = rootMoves[0].pv;
 
         // Have found "mate in x"?
         if (limit.mate != 0 && is_mate(rootMoves[0].curValue)
