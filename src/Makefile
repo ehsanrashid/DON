@@ -48,14 +48,14 @@ ifneq ($(strip $(WINE_PATH)),)
 endif
 
 ### Target Windows OS
-OS_WINDOWS := no
+IS_WINDOWS := no
 ifeq ($(OS),Windows_NT)
     # Android NDK is never treated as Windows
     ifneq ($(COMP),ndk)
-        OS_WINDOWS := yes
+        IS_WINDOWS := yes
     endif
 else ifeq ($(COMP),mingw)
-    OS_WINDOWS := yes
+    IS_WINDOWS := yes
     ifeq ($(RUN_PREFIX),)
         # Use Wine for MinGW builds when no RUN_PREFIX is specified
         RUN_PREFIX := $(shell command -v wine 2>/dev/null)
@@ -63,7 +63,7 @@ else ifeq ($(COMP),mingw)
 endif
 
 # Cross-platform command to detect an executable
-ifeq ($(OS_WINDOWS),yes)
+ifeq ($(IS_WINDOWS),yes)
     FIND_EXE = where "$(1)" 2>/dev/null
 else
     FIND_EXE = command -v "$(1)" 2>/dev/null
@@ -83,7 +83,7 @@ CLANG_FORMAT := $(shell \
 
 ### Executable name
 NAME := DON
-ifeq ($(OS_WINDOWS),yes)
+ifeq ($(IS_WINDOWS),yes)
     EXE := $(NAME).exe
 else
     EXE := $(NAME)
@@ -552,7 +552,7 @@ endif
 # This avoids runtime dependency issues (missing DLLs) and produces a
 # self-contained executable suitable for redistribution and CI environments.
 # Disable this with `STATIC=no`.
-ifeq ($(OS_WINDOWS),yes)
+ifeq ($(IS_WINDOWS),yes)
     ifneq ($(STATIC),no)
         LDFLAGS += -static
     endif
@@ -641,7 +641,7 @@ else ifeq ($(COMP),clang)
     CXX_IS_CLANG       := $(if $(findstring clang,$(CXX_VERSION)),yes,no)
     CXX_IS_APPLE_CLANG := $(if $(findstring apple clang,$(CXX_VERSION)),yes,no)
 
-    ifeq ($(OS_WINDOWS),yes)
+    ifeq ($(IS_WINDOWS),yes)
         ifeq ($(bits),64)
             CXX := x86_64-w64-mingw32-clang++
         else
@@ -665,7 +665,7 @@ else ifeq ($(COMP),clang)
         LDFLAGS  += $(BITS_FLAG)
     endif
     # Use libatomic on non-Windows, non-BSD systems unless using compiler-rt
-    ifeq ($(OS_WINDOWS),no)
+    ifeq ($(IS_WINDOWS),no)
         ifeq ($(filter $(TARGET_KERNEL),Darwin FreeBSD OpenBSD NetBSD),)
             ifneq ($(RTLIB),compiler-rt)
                 LDFLAGS += -latomic
@@ -706,9 +706,9 @@ else ifeq ($(COMP),icx)
 # NDK: To cross-compile for Android, use NDK version r27c or later
 else ifeq ($(COMP),ndk)
     # Detect host tag (simplified common cases)
-    ifeq ($(OS_WINDOWS),yes)
+    ifeq ($(IS_WINDOWS),yes)
         HOST_TAG := windows-x86_64
-    else ifeq ($(KERNEL),Darwin)
+    else ifeq ($(TARGET_KERNEL),Darwin)
         HOST_TAG := darwin-x86_64
     else
         HOST_TAG := linux-x86_64
@@ -791,7 +791,7 @@ ifneq ($(COMP),mingw)
             ifneq ($(COMP),ndk)
                 LDFLAGS += -lpthread
                 # Link real-time library (librt) on non-Windows, non-[Darwin/FreeBSD/OpenBSD/NetBSD] platforms
-                ifeq ($(OS_WINDOWS),no)
+                ifeq ($(IS_WINDOWS),no)
                     ifeq ($(filter $(TARGET_KERNEL),Darwin FreeBSD OpenBSD NetBSD),)
                         LDFLAGS += -lrt
                     endif
@@ -1080,7 +1080,7 @@ ifeq ($(optimize),yes)
             # GCC (native)
             ifeq ($(CXX_IS_CLANG),no)
                 LTO_FLAGS   := -flto -flto-partition=one
-                ifneq ($(KERNEL),Darwin)
+                ifneq ($(TARGET_KERNEL),Darwin)
                     LTO_LDFLAGS := -flto=jobserver
                 endif
             # GCC (Clang-compatible)
@@ -1263,7 +1263,7 @@ ifeq ($(TARGET_KERNEL),Darwin)
     SAVE_TEMPS := -Wl,-object_path_lto,DON.lto.o
 else ifneq ($(filter clang ndk,$(COMP)),)
     LTO_OBJ_SUFFIX := .lto.o
-    ifeq ($(OS_WINDOWS),yes)
+    ifeq ($(IS_WINDOWS),yes)
         SAVE_TEMPS := -Wl,--lto-emit-asm  # ld.lld doesn't have a save temps functionality
         USE_LTO_EMIT_ASM := yes
     else
@@ -1382,13 +1382,17 @@ all: $(EXE) .depend
 config-sanity: net
 	@echo "" && \
 	echo "Config:" && \
+	echo "KERNEL: '$(KERNEL)'" && \
+	echo "TARGET_KERNEL: '$(TARGET_KERNEL)'" && \
+	echo "OS: '$(OS)'" && \
+	echo "IS_WINDOWS: '$(IS_WINDOWS)'" && \
+	echo "COMP: '$(COMP)'" && \
+	echo "RUN_PREFIX: '$(RUN_PREFIX)'" && \
 	echo "debug: '$(debug)'" && \
 	echo "sanitize: '$(sanitize)'" && \
 	echo "optimize: '$(optimize)'" && \
 	echo "arch: '$(arch)'" && \
 	echo "bits: '$(bits)'" && \
-	echo "kernel: '$(KERNEL)'" && \
-	echo "os: '$(OS)'" && \
 	echo "prefetch: '$(prefetch)'" && \
 	echo "popcnt: '$(popcnt)'" && \
 	echo "sse: '$(sse)'" && \
@@ -1412,8 +1416,6 @@ config-sanity: net
 	echo "lsx: '$(lsx)'" && \
 	echo "lasx: '$(lasx)'" && \
 	echo "tablebases: '$(tablebases)'" && \
-	echo "OS_WINDOWS: '$(OS_WINDOWS)'" && \
-	echo "COMP: '$(COMP)'" && \
 	echo "" && \
 	echo "Flags:" && \
 	echo "CXX: $(CXX)" && \
@@ -1454,7 +1456,7 @@ config-sanity: net
 	(test "$(lasx)"     = "no" || test "$(lasx)"     = "yes") && \
 	(test "$(lsx)"      = "no" || test "$(lsx)"      = "yes") && \
 	(test "$(tablebases)" = "yes" || test "$(tablebases)" = "no") && \
-	(test "$(OS_WINDOWS)" = "no" || test "$(OS_WINDOWS)" = "yes") && \
+	(test "$(IS_WINDOWS)" = "no" || test "$(IS_WINDOWS)" = "yes") && \
 	(test "$(COMP)" = "gcc" || test "$(COMP)" = "clang" || test "$(COMP)" = "mingw" || \
 	 test "$(COMP)" = "icx" || test "$(COMP)" = "ndk" || \
 	 test "$(COMP)" = "armv7a-linux-androideabi16-clang" || \
@@ -1601,7 +1603,7 @@ ifeq ($(TARGET_KERNEL),Darwin)
     arch-defmain = -Wl,-alias,_$(call arch-mangled,$(1)),_main
 # lld-link, used on Windows+clang, doesn't accept --defsym, so
 # Define main directly in main.cpp instead and delete it later.
-else ifeq ($(OS_WINDOWS)+$(COMP),yes+clang)
+else ifeq ($(IS_WINDOWS)+$(COMP),yes+clang)
     arch-defmain = -DUNIVERSAL_NEEDS_MAIN_SHIM
 else
     arch-defmain = -Wl,--defsym=main=$(call arch-mangled,$(1))
