@@ -63,24 +63,24 @@ static const unsigned char* map_embedded_nnue() noexcept {
     return reinterpret_cast<const unsigned char*>(p) + pad;
 }
 
-extern const unsigned char* const gNNUEEmbeddedData = map_embedded_nnue();
-extern const unsigned int         gNNUEEmbeddedSize = static_cast<unsigned int>(gNNUEUniversalSize);
+extern const unsigned char* const gEmbeddedNNUEData = map_embedded_nnue();
+extern const unsigned int         gEmbeddedNNUESize = static_cast<unsigned int>(gNNUEUniversalSize);
 
 #else
     #if defined(__has_embed)
-extern const unsigned char gNNUEEmbeddedData[] = {
+extern const unsigned char gEmbeddedNNUEData[] = {
         #embed EvalFileDefaultName
 };
 
 const unsigned int padding = 0;
     #else
-extern const unsigned char gNNUEEmbeddedData[] =
+extern const unsigned char gEmbeddedNNUEData[] =
         #include "network_dump.inc"
   ;
 
 const unsigned int padding = 1;  // Trailing NULL byte
     #endif
 
-extern const unsigned int gNNUEEmbeddedSize = sizeof(gNNUEEmbeddedData) - padding;
+extern const unsigned int gEmbeddedNNUESize = sizeof(gEmbeddedNNUEData) - padding;
 
 #endif

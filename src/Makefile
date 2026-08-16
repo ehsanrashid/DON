@@ -1459,7 +1459,7 @@ config-sanity: net
 	 test "$(COMP)" = "armv7a-linux-androideabi16-clang" || \
 	 test "$(COMP)" = "aarch64-linux-android21-clang")
 
-$(EXE): $(OBJS)
+$(EXE): $(OBJS) $(NNUE_EMBED_OBJ)
 	+$(CXX) -o $@ $(OBJS) $(NNUE_EMBED_OBJ) $(LDFLAGS)
 
 %.o: %.cpp

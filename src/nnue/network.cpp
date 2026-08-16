@@ -34,24 +34,24 @@
 // Determined at runtime, see universal/nnue_embed.cpp
 #if defined(UNIVERSAL_BINARY)
     #if defined(UNIVERSAL_BINARY_MACOS_X86_SLICE)
-extern const unsigned char* const gNNUEEmbeddedData;
-extern const unsigned int         gNNUEEmbeddedSize;
+extern const unsigned char* const gEmbeddedNNUEData;
+extern const unsigned int         gEmbeddedNNUESize;
     #else
-extern const unsigned char gNNUEEmbeddedData[];
-extern const unsigned int  gNNUEEmbeddedSize;
+extern const unsigned char gEmbeddedNNUEData[];
+extern const unsigned int  gEmbeddedNNUESize;
     #endif
 // Note that this does not work in Microsoft Visual Studio.
 #elif !defined(NO_NNUE_EMBEDDING) && !defined(_MSC_VER)
 // Macro to embed the default efficiently updatable neural network (NNUE) file
 // data in the engine binary (using incbin.h, by Dale Weiler).
 // This macro invocation will declare the following three variables
-//     const unsigned char        gNNUEEmbeddedData[];  // pointer to the embedded data
-//     const unsigned char *const gNNUEEmbeddedEnd;     // marker to the embedded end
-//     const unsigned int         gNNUEEmbeddedSize;    // size of the embedded file
-INCBIN(NNUEEmbedded, EvalFileDefaultName);
+//     const unsigned char        gEmbeddedNNUEData[];  // pointer to the embedded data
+//     const unsigned char *const gEmbeddedNNUEEnd;     // marker to the embedded end
+//     const unsigned int         gEmbeddedNNUESize;    // size of the embedded file
+INCBIN(EmbeddedNNUE, EvalFileDefaultName);
 #else
-const unsigned char gNNUEEmbeddedData[1] = {0x0};
-const unsigned int  gNNUEEmbeddedSize    = 1;
+const unsigned char gEmbeddedNNUEData[1] = {0x0};
+const unsigned int  gEmbeddedNNUESize    = 1;
 #endif
 
 namespace DON::NNUE {
@@ -272,12 +272,12 @@ NetworkTrace Network::trace(const Position&   pos,
 bool Network::load_embedded(EvalFile& evalFile) noexcept {
 
 #if defined(UNIVERSAL_BINARY_MACOS_X86_SLICE)
-    if (gNNUEEmbeddedData == nullptr)  // failed embedded load
+    if (gEmbeddedNNUEData == nullptr)  // failed embedded load
         return;
 #endif
 
-    MemoryStreamBuf buf(const_cast<char*>(reinterpret_cast<const char*>(gNNUEEmbeddedData)),
-                        usize(gNNUEEmbeddedSize));
+    MemoryStreamBuf buf(const_cast<char*>(reinterpret_cast<const char*>(gEmbeddedNNUEData)),
+                        usize(gEmbeddedNNUESize));
 
     std::istream is{&buf};
 
