@@ -168,7 +168,7 @@ jobs:
     with:
       matrix: ${{ needs.Matrix.outputs.universal_matrix }}
   ARM_Binaries:
-    if: github.repository == 'official-stockfish/Stockfish'
+    if: github.repository == 'ehsanrashid/DON'
     name: Android uploads
     needs: [Prerelease, Matrix]
     uses: ./.github/workflows/upload_binaries.yml
@@ -179,7 +179,7 @@ jobs:
     secrets:
       token: ${{ secrets.GITHUB_TOKEN }}
   Universal_Binaries:
-    if: github.repository == 'official-stockfish/Stockfish'
+    if: github.repository == 'ehsanrashid/DON'
     name: Universal binaries
     needs: [Prerelease, Matrix]
     uses: ./.github/workflows/upload_binaries.yml
