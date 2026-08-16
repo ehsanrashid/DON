@@ -29,9 +29,9 @@
 #include <utility>
 #include <vector>
 
-// Ensure SUPPORTS_PTHREADS is defined only if the platform supports pthreads (macOS, MinGW, or explicitly enabled)
-#undef SUPPORTS_PTHREADS
-#if defined(USE_PTHREADS) || defined(__APPLE__) || defined(__MINGW64__) || defined(__MINGW32__)
+// MSVC-compatible toolchains use std::thread because they do not provide pthreads by default.
+// On all other platforms, pthreads is required and used.
+#if !defined(_MSC_VER)
     #define SUPPORTS_PTHREADS
 #endif
 

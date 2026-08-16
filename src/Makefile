@@ -778,9 +778,7 @@ ifeq ($(wildcard $(LLVM_PROFDATA)),)
 endif
 
 ### Use POSIX threads unless compiling with MinGW (Windows threads)
-ifeq ($(arch),wasm32)
-else ifneq ($(COMP),mingw)
-    CXXFLAGS += -DUSE_PTHREADS
+ifneq ($(arch),wasm32)
     ## Link pthreads and optionally LRT on supported platforms
     # Android has Bionic's C library with its own pthread implementation bundled
     ifneq ($(OS),Android)
@@ -1280,7 +1278,7 @@ MODNAME := $(subst -,_,$(notdir $(CURDIR)))
 universal-object-pgo: objclean profileclean universalclean
 	@echo ""
 	@echo "Step 1/4. Building instrumented executable ..."
-	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) ENV_LDFLAGS='$(ENV_LDFLAGS) $(NNUE_EMBED_OBJ)' $(PROFILE_MAKE)
+	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) NNUE_EMBED_OBJ=$(NNUE_EMBED_OBJ) ENV_LDFLAGS='$(ENV_LDFLAGS)' $(PROFILE_MAKE)
 	@echo ""
 	@echo "Step 2/4. Running benchmark for pgo-build ..."
 	$(PGOBENCH) > PGOBENCH.out 2>&1
@@ -1288,7 +1286,7 @@ universal-object-pgo: objclean profileclean universalclean
 	@echo ""
 	@echo "Step 3/4. Building optimized object files ..."
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) objclean
-	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) ENV_LDFLAGS='$(SAVE_TEMPS) $(NNUE_EMBED_OBJ)' $(PROFILE_USE)
+	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) NNUE_EMBED_OBJ=$(NNUE_EMBED_OBJ) ENV_LDFLAGS='$(ENV_LDFLAGS) $(SAVE_TEMPS)' $(PROFILE_USE)
 	@echo ""
 ifeq ($(USE_LTO_EMIT_ASM),yes)
 	@echo "Step 4/4. Renaming ctors and extracting LTO-optimized relocatable object ..."
