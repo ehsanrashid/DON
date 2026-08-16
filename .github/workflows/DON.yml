@@ -125,11 +125,11 @@ jobs:
       - id: set-arm-matrix
         run: |
           ARM_MATRIX=$(jq -c '.' .github/ci/arm_matrix.json)
-          echo "ARM_MATRIX=$ARM_MATRIX" >> $GITHUB_OUTPUT
+          echo "ARM_MATRIX=$ARM_MATRIX" >> "$GITHUB_OUTPUT"
       - id: set-universal-matrix
         run: |
           UNIVERSAL_MATRIX=$(jq -c '.' .github/ci/universal_matrix.json)
-          echo "UNIVERSAL_MATRIX=$UNIVERSAL_MATRIX" >> $GITHUB_OUTPUT
+          echo "UNIVERSAL_MATRIX=$UNIVERSAL_MATRIX" >> "$GITHUB_OUTPUT"
   # Testing Jobs
   IWYU:
     name: IWYU
@@ -162,12 +162,12 @@ jobs:
     with:
       matrix: ${{ needs.Matrix.outputs.arm_matrix }}
   UniversalCompilation:
-    name: "Universal builds"
+    name: Universal builds
     needs: [Matrix, Sanitizers, Tests, Matetrack, Games, CompilerCheck]
     uses: ./.github/workflows/universal_compilation.yml
-    with:
-      matrix: ${{ needs.Matrix.outputs.universal_matrix }}
-  ARM_Binaries:
+    # with:
+    #   matrix: ${{ needs.Matrix.outputs.universal_matrix }}
+  ARMBinaries:
     if: github.repository == 'ehsanrashid/DON'
     name: Android uploads
     needs: [Prerelease, Matrix]
@@ -178,7 +178,7 @@ jobs:
       contents: write # For deleting/creating a (pre)release
     secrets:
       token: ${{ secrets.GITHUB_TOKEN }}
-  Universal_Binaries:
+  UniversalBinaries:
     if: github.repository == 'ehsanrashid/DON'
     name: Universal binaries
     needs: [Prerelease, Matrix]
