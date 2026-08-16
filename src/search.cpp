@@ -415,9 +415,7 @@ void Worker::start_search() noexcept {
         // Send PV info again if it has changed since last output
         if (!mainManager->pvShown || bestWorker != this)
         {
-            const Depth rDepth = limit.depth != DEPTH_ZERO
-                                 ? std::min(bestWorker->rootDepth, limit.depth)
-                                 : bestWorker->rootDepth;
+            const Depth rDepth = limit.depth != DEPTH_ZERO ? limit.depth : bestWorker->rootDepth;
             mainManager->show_pv(*bestWorker, rDepth);
         }
 

@@ -48,8 +48,6 @@ inline constexpr u32       L3 = 32;
 inline constexpr IndexType PSQTBuckets = 8;
 inline constexpr IndexType LayerStacks = 8;
 
-static_assert(LayerStacks == PSQTBuckets);
-
 // If vector instructions are enabled, update and refresh the accumulator
 // tile by tile such that each tile fits in the CPU's vector registers.
 static_assert(PSQTBuckets % 8 == 0,
