@@ -8,7 +8,6 @@
       "emu": "qemu-aarch64",
       "comp": "ndk",
       "shell": "bash",
-      "ext": "",
       "archive_ext": "tar.gz"
     },
     {
@@ -19,39 +18,24 @@
       "emu": "qemu-arm",
       "comp": "ndk",
       "shell": "bash",
-      "ext": "",
       "archive_ext": "tar.gz"
     }
   ],
-  "binary": [
-    "armv7",
-    "armv7-neon",
-    "armv8",
-    "armv8-dotprod"
+  "binaries": [
+    "arm64-universal",
+    "armv7-neon"
   ],
   "exclude": [
     {
-      "binary": "armv7",
-      "config": {
-        "compiler": "aarch64-linux-android29-clang++"
-      }
-    },
-    {
-      "binary": "armv7-neon",
-      "config": {
-        "compiler": "aarch64-linux-android29-clang++"
-      }
-    },
-    {
-      "binary": "armv8",
+      "binaries": "arm64-universal",
       "config": {
         "compiler": "armv7a-linux-androideabi29-clang++"
       }
     },
     {
-      "binary": "armv8-dotprod",
+      "binaries": "armv7-neon",
       "config": {
-        "compiler": "armv7a-linux-androideabi29-clang++"
+        "compiler": "aarch64-linux-android29-clang++"
       }
     }
   ]
