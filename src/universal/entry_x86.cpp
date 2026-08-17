@@ -127,9 +127,10 @@ static int dispatch(const CpuFeatures& f, int argc, const char* argv[]) noexcept
 
     if (!f.avx512f || !f.avx512vl || !f.avx512bw)
     {
-        if (f.avxvnni)
-            return entry_x86_64_avxvnni(argc, argv);
-        return entry_x86_64_bmi2(argc, argv);
+        if (!f.avxvnni)
+            return entry_x86_64_bmi2(argc, argv);
+
+        return entry_x86_64_avxvnni(argc, argv);
     }
 
     /*

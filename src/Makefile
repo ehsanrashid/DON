@@ -1478,7 +1478,7 @@ clang-profile-use:
 	$(XCRUN) $(LLVM_PROFDATA) merge -output="$(NAME).profdata" *.profraw
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
 	EXTRA_CXXFLAGS='-fprofile-use=$(NAME).profdata' \
-	EXTRA_LDFLAGS='-fprofile-use=$(NAME).profdata' \
+	EXTRA_LDFLAGS='-fprofile-use' \
 	all
 
 # GCC PGO
