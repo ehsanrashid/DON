@@ -22,17 +22,12 @@
     }
   ],
   "binary": [
-    "arm64-universal",
     "armv7",
-    "armv7-neon"
+    "armv7-neon",
+    "armv8",
+    "armv8-dotprod"
   ],
   "exclude": [
-    {
-      "binary": "arm64-universal",
-      "config": {
-        "compiler": "armv7a-linux-androideabi29-clang++"
-      }
-    },
     {
       "binary": "armv7",
       "config": {
@@ -43,6 +38,18 @@
       "binary": "armv7-neon",
       "config": {
         "compiler": "aarch64-linux-android29-clang++"
+      }
+    },
+    {
+      "binary": "armv8",
+      "config": {
+        "compiler": "armv7a-linux-androideabi29-clang++"
+      }
+    },
+    {
+      "binary": "armv8-dotprod",
+      "config": {
+        "compiler": "armv7a-linux-androideabi29-clang++"
       }
     }
   ]

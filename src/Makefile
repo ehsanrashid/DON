@@ -1083,11 +1083,9 @@ ifeq ($(optimize),yes)
 endif
 
 ### 3.10 Use PIC and PIE on Android 5+, incompatible with Android 4 and earlier
-# -fPIC = Position-Independent Code
-# -fPIE = Position-Independent Executable
 ifeq ($(OS),Android)
     CXXFLAGS += -fPIE
-    LDFLAGS  += -fPIE -pie
+    LDFLAGS  += -pie
 endif
 
 MKDIR := mkdir -p -m 755
