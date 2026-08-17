@@ -40,13 +40,21 @@ trap 'rm -rf "$tmp"' EXIT
 
 idx=0
 for pair in $PAIRS; do
+    [[ "$pair" == \#* ]] && continue
     idx=$((idx + 1))
     cpu=${pair%%:*}
     (
-        comp=$($QEMU -cpu "$cpu" "$DON_EXE" compiler 2>&1 | awk -F: '/Compilation architecture/ {
-            sub(/^[[:space:]]+/, "", $2); sub(/[[:space:]]+$/, "", $2); print $2; exit }')
-        bench=$($QEMU -cpu "$cpu" "$DON_EXE" bench 2>&1 | awk -F: '/Nodes searched/ {
-            gsub(/[^0-9]/, "", $2); print $2; exit }')
+    comp=$($QEMU -cpu "$cpu" "$DON_EXE" compiler 2>&1 | awk -F: '/Compilation architecture/ {
+        sub(/^[[:space:]]+/, "", $2)
+        sub(/[[:space:]]+$/, "", $2)
+        print $2
+        exit
+    }')
+    bench=$($QEMU -cpu "$cpu" "$DON_EXE" bench 2>&1 | awk -F: '/Total nodes/ {
+        gsub(/[^0-9]/, "", $2)
+        print $2
+        exit
+    }')
         printf '%s|%s|%s\n' "$cpu" "$comp" "$bench" > "$tmp/$idx"
     ) &
 done

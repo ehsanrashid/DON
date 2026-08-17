@@ -23,7 +23,7 @@ if [ "$BINARY_SIZE" -gt "$MAX_SIZE" ]; then
     exit 1
 fi
 
-native_bench=$(arch -arm64 "$DON_EXE" bench 2>&1 | extract "Nodes searched" || true)
+native_bench=$(arch -arm64 "$DON_EXE" bench 2>&1 | extract "Total nodes" || true)
 if [ -z "$native_bench" ]; then
     echo "check_universal_macos.sh: arm64 run produced no bench" >&2
     FAIL=1
@@ -31,7 +31,7 @@ else
     printf 'native (arm64) bench %s\n' "$native_bench" >&2
 fi
 
-x86_bench=$(arch -x86_64 "$DON_EXE" bench 2>&1 | extract "Nodes searched" || true)
+x86_bench=$(arch -x86_64 "$DON_EXE" bench 2>&1 | extract "Total nodes" || true)
 if [ -z "$x86_bench" ]; then
     echo "check_universal_macos.sh: x86_64 (Rosetta) run produced no bench (crashed?)" >&2
     FAIL=1

@@ -1408,6 +1408,7 @@ config-sanity: net
 	echo "neon: '$(neon)'" && \
 	echo "dotprod: '$(dotprod)'" && \
 	echo "arm_version: '$(arm_version)'" && \
+	echo "rva23: '$(rva23)'" && \
 	echo "lsx: '$(lsx)'" && \
 	echo "lasx: '$(lasx)'" && \
 	echo "tablebases: '$(tablebases)'" && \
@@ -1581,7 +1582,7 @@ else
     ifeq ($(TARGET_KERNEL),Linux)
         UNIVERSAL_BUILD_FLAGS += -static-libstdc++ -static-libgcc
         ifeq ($(COMP),ndk)
-            UNIVERSAL_BUILD_FLAGS += -flto=full -pie
+            UNIVERSAL_BUILD_FLAGS += -static
         else
             UNIVERSAL_BUILD_FLAGS += -lrt -lpthread
         endif
