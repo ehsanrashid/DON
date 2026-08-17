@@ -538,7 +538,7 @@ ifeq ($(MAKELEVEL),0)
 endif
 
 CXXFLAGS    = $(ENV_CXXFLAGS) -Wall -Wcast-qual -fno-exceptions -std=c++17 $(EXTRA_CXXFLAGS)
-DEPENDFLAGS = $(ENV_DEPENDFLAGS) -Wall -Wcast-qual -std=c++17
+DEPENDFLAGS = $(ENV_DEPENDFLAGS) -std=c++17
 LDFLAGS     = $(ENV_LDFLAGS) $(EXTRA_LDFLAGS)
 
 ifeq ($(COMP),)
@@ -1470,7 +1470,6 @@ misc.o: misc.cpp $(BUILD_DATE_FILE) $(BUILD_SHA_FILE) $(BUILD_DIFFINDEX_FILE)
 # Clang PGO
 clang-profile-make:
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
-	ENV_LDFLAGS='$(ENV_LDFLAGS)' \
 	EXTRA_CXXFLAGS='-fprofile-generate' \
 	EXTRA_LDFLAGS='-fprofile-generate' \
 	all
@@ -1478,7 +1477,6 @@ clang-profile-make:
 clang-profile-use:
 	$(XCRUN) $(LLVM_PROFDATA) merge -output="$(NAME).profdata" *.profraw
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
-	ENV_LDFLAGS='$(ENV_LDFLAGS)' \
 	EXTRA_CXXFLAGS='-fprofile-use=$(NAME).profdata' \
 	EXTRA_LDFLAGS='-fprofile-use=$(NAME).profdata' \
 	all
@@ -1487,14 +1485,12 @@ clang-profile-use:
 gcc-profile-make:
 	@mkdir -p profdir
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
-	ENV_LDFLAGS='$(ENV_LDFLAGS)' \
 	EXTRA_CXXFLAGS='-fprofile-generate=profdir $(EXTRA_PROFILE_FLAGS)' \
 	EXTRA_LDFLAGS='-lgcov' \
 	all
 
 gcc-profile-use:
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
-	ENV_LDFLAGS='$(ENV_LDFLAGS)' \
 	EXTRA_CXXFLAGS='-fprofile-use=profdir -fprofile-correction -fno-peel-loops -fno-tracer $(EXTRA_PROFILE_FLAGS)' \
 	EXTRA_LDFLAGS='-lgcov' \
 	all
@@ -1502,7 +1498,6 @@ gcc-profile-use:
 # ICC/ICX PGO
 icx-profile-make:
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
-	ENV_LDFLAGS='$(ENV_LDFLAGS)' \
 	EXTRA_CXXFLAGS='-fprofile-instr-generate' \
 	EXTRA_LDFLAGS='-fprofile-instr-generate' \
 	all
@@ -1510,7 +1505,6 @@ icx-profile-make:
 icx-profile-use:
 	$(XCRUN) $(LLVM_PROFDATA) merge -output="$(NAME).profdata" *.profraw
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
-	ENV_LDFLAGS='$(ENV_LDFLAGS)' \
 	EXTRA_CXXFLAGS='-fprofile-instr-use=$(NAME).profdata' \
 	EXTRA_LDFLAGS='-fprofile-use' \
 	all
