@@ -485,7 +485,7 @@ ifneq ($(findstring riscv64,$(ARCH)),)
     arch = riscv64
 endif
 
-ifneq ($(findstring riscv64-rva23,$(ARCH)),)
+ifeq ($(ARCH),riscv64-rva23)
     rva23 = yes
     popcnt = yes
     prefetch = yes
@@ -1548,10 +1548,10 @@ ifeq ($(arch),x86_64)
     UNIVERSAL_ENTRY_OBJ := $(TEMP_DIR)/entry_x86.o
     BASELINE_ARCH       := x86-64
 else ifeq ($(arch),riscv64)
-    UNIVERSAL_ARCHES := riscv64 riscv64-rva23
-    UNIVERSAL_ENTRY_SRC  := $(UNIVERSAL_SRC_DIR)/entry_riscv64.cpp
-    UNIVERSAL_ENTRY_OBJ  := $(TEMP_DIR)/entry_riscv64.o
-    BASELINE_ARCH        := riscv64
+    UNIVERSAL_ARCHES    := riscv64 riscv64-rva23
+    UNIVERSAL_ENTRY_SRC := $(UNIVERSAL_SRC_DIR)/entry_riscv64.cpp
+    UNIVERSAL_ENTRY_OBJ := $(TEMP_DIR)/entry_riscv64.o
+    BASELINE_ARCH       := riscv64
 else ifeq ($(arch),armv8)
     UNIVERSAL_ARCHES    := armv8 armv8-dotprod
     UNIVERSAL_ENTRY_SRC := $(UNIVERSAL_SRC_DIR)/entry_arm64.cpp
@@ -1574,7 +1574,7 @@ ifeq ($(TARGET_KERNEL),Darwin)
 else ifeq ($(TARGET_KERNEL),Linux)
     UNIVERSAL_BUILD_FLAGS += -static-libstdc++ -static-libgcc
     ifeq ($(COMP),ndk)
-        UNIVERSAL_BUILD_FLAGS += -static
+        # Android
     else
         UNIVERSAL_BUILD_FLAGS += -Wl,--allow-multiple-definition -lrt -lpthread
     endif
@@ -1585,26 +1585,24 @@ else  # Windows
     endif
 endif
 
-# $(call arch-namespace,x86-64-avx2) => DON_x86_64_avx2
-arch-suffix    = $(subst -,_,$(1))
-arch-namespace = DON_$(call arch-suffix,$(1))
+# $(call ARCH-NAMESPACE,x86-64-avx2) => DON_x86_64_avx2
+ARCH-SUFFIX    = $(subst -,_,$(1))
+ARCH-NAMESPACE = DON_$(call ARCH-SUFFIX,$(1))
 # Itanium ABI mangled name for DON_<suffix>::main(int, char**)
-arch-mangled   = _ZN$(shell printf %s '$(call arch-namespace,$(1))' | wc -c | tr -d ' ')$(call arch-namespace,$(1))4mainEiPPKc
-# Mach-O initializer section name: strip "x86-64" or "x86-64-" and prefix with "_i_"
-# (Mach-O section names are restricted to <=16 chars, hence this naming scheme)
-arch-mac-section = _i_$(subst -,_,$(patsubst x86-64,,$(patsubst x86-64-%,%,$(1))))
-
-arch-main-cxxflags =
-arch-main-ldflags =
+ARCH-MANGLED   = _ZN$(shell printf %s '$(call ARCH-NAMESPACE,$(1))' | wc -c | tr -d ' ')$(call ARCH-NAMESPACE,$(1))4mainEiPPKc
+# Mach-O initializer section name: strip the "x86-64" or "x86-64-" prefix,
+# replace remaining '-' with '_', and prefix with "_i_".
+# Mach-O section names are limited to 16 characters, hence this naming scheme.
+ARCH-MACOS-SECTION = _i_$(subst -,_,$(patsubst x86-64,,$(patsubst x86-64-%,%,$(1))))
 
 ifeq ($(TARGET_KERNEL),Darwin)
-    arch-main-ldflags = -Wl,-alias,_$(call arch-mangled,$(1)),_main
+    ARCH-MAIN-LDFLAGS = -Wl,-alias,_$(call ARCH-MANGLED,$(1)),_main
 # lld-link, used on Windows+clang, doesn't accept --defsym, so
 # define main directly in main.cpp instead and delete it later.
 else ifeq ($(IS_WINDOWS)+$(COMP),yes+clang)
-    arch-main-cxxflags = -DUNIVERSAL_NEEDS_MAIN_SHIM
+    ARCH-MAIN-CXXFLAGS = -DUNIVERSAL_NEEDS_MAIN_SHIM
 else
-    arch-main-ldflags = -Wl,--defsym=main=$(call arch-mangled,$(1))
+    ARCH-MAIN-LDFLAGS = -Wl,--defsym=main=$(call ARCH-MANGLED,$(1))
 endif
 
 EMBED_DIR_SUPPORTED := $(shell echo 'int main(){}' | $(CXX) -x c++ --embed-dir=. -o /dev/null -c - 2>/dev/null && echo 1 || echo 0)
@@ -1619,11 +1617,11 @@ ifeq ($(MACOS_X86_SLICE),1)
     SLICE_DEF := -DUNIVERSAL_BINARY_MACOS_X86_SLICE
 endif
 
-arch-cxxflags = $(EMBED_DIR) -DDON=$(call arch-namespace,$(1)) \
+ARCH-CXXFLAGS = $(EMBED_DIR) -DDON=$(call ARCH-NAMESPACE,$(1)) \
                 -DUNIVERSAL_BINARY $(SLICE_DEF) \
-                $(arch-main-cxxflags) \
+                $(ARCH-MAIN-CXXFLAGS) \
                 -Wno-c++26-extensions -Wno-c23-extensions
-arch-ldflags  = $(arch-main-ldflags)
+ARCH-LDFLAGS  = $(ARCH-MAIN-LDFLAGS)
 
 UOBJ_TGT ?= universal-object-pgo
 ifeq ($(COMP),clang)
@@ -1665,14 +1663,14 @@ $(TEMP_DIR)/%/.setup: | $(TEMP_DIR)
 .SECONDARY: $(patsubst %,$(TEMP_DIR)/%/.setup,$(UNIVERSAL_ARCHES))
 
 $(TEMP_DIR)/%/DON.o: $(TEMP_DIR)/%/.setup $(NNUE_EMBED_OBJ) $(NET_SENTINEL)
-	+ENV_CXXFLAGS='$(ENV_CXXFLAGS) $(call arch-cxxflags,$*)' \
-	 ENV_LDFLAGS='$(ENV_LDFLAGS) $(call arch-ldflags,$*)' \
+	+ENV_CXXFLAGS='$(ENV_CXXFLAGS) $(call ARCH-CXXFLAGS,$*)' \
+	 ENV_LDFLAGS='$(ENV_LDFLAGS) $(call ARCH-LDFLAGS,$*)' \
 	    $(MAKE) -C $(TEMP_DIR)/$* $(UOBJ_TGT) \
 	        ARCH=$* CXX=$(CXX) COMP=$(COMP) \
 	        NNUE_EMBED_OBJ=$(NNUE_EMBED_OBJ)
 ifeq ($(TARGET_KERNEL),Darwin)
 # Rename the initializer section
-	ld -r -rename_section __DATA __mod_init_func __DATA $(call arch-mac-section,$*) $@ -o $@.tmp
+	ld -r -rename_section __DATA __mod_init_func __DATA $(call ARCH-MACOS-SECTION,$*) $@ -o $@.tmp
 	mv $@.tmp $@
 else
 # Drop COMDAT groups; clang LTO leaves them around internalized LOCAL
@@ -1683,10 +1681,10 @@ ifeq ($(USE_LTO_EMIT_ASM),yes)
 	$(OBJCOPY) -N main $@
 else
 # Rename .init_array (Linux) or .ctors (Windows) so we can manually invoke them
-	$(OBJCOPY) --rename-section .init_array=$(call arch-suffix,$*)_init $@
-	$(OBJCOPY) --rename-section .ctors=$(call arch-suffix,$*)_init $@
+	$(OBJCOPY) --rename-section .init_array=$(call ARCH-SUFFIX,$*)_init $@
+	$(OBJCOPY) --rename-section .ctors=$(call ARCH-SUFFIX,$*)_init $@
 # Make the array inert
-	$(OBJCOPY) --set-section-flags $(call arch-suffix,$*)_init=alloc,data $@
+	$(OBJCOPY) --set-section-flags $(call ARCH-SUFFIX,$*)_init=alloc,data $@
 endif
 endif
 
