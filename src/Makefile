@@ -428,14 +428,6 @@ ifeq ($(ARCH),armv8-dotprod)
     dotprod = yes
 endif
 
-ifeq ($(ARCH),arm64-universal)
-    arch = armv8
-    prefetch = yes
-    popcnt = yes
-    arm_version = 8
-    neon = yes
-endif
-
 ifeq ($(ARCH),apple-silicon)
     arch = arm64
     prefetch = yes
@@ -470,9 +462,8 @@ ifeq ($(ARCH),ppc-64-vsx)
     vsx = yes
 endif
 
-ifneq ($(findstring e2k,$(ARCH)),)
+ifeq ($(ARCH),e2k)
     arch = e2k
-    bits = 64
     sse = yes
     mmx = yes
     sse2 = yes
@@ -576,18 +567,15 @@ ifeq ($(COMP),gcc)
     CXX_IS_CLANG       := $(if $(findstring clang,$(CXX_VERSION)),yes,no)
     CXX_IS_APPLE_CLANG := $(if $(findstring apple clang,$(CXX_VERSION)),yes,no)
 
-    # Architectures with special handling, use libatomic where required
-    ifneq ($(filter armv8 armv7 riscv64,$(arch)),)
+    # Android ARM architectures require explicit bitness flags
+    ifneq ($(filter armv8 armv7,$(arch)),)
         ifeq ($(OS),Android)
             CXXFLAGS += $(BITS_FLAG)
             LDFLAGS  += $(BITS_FLAG)
         endif
-        ifneq ($(filter armv7,$(arch)),)
-            LDFLAGS += -latomic
-        endif
-    else ifeq ($(arch),loongarch64)
-        LDFLAGS += -latomic
-    # Generic architectures
+    # RISC-V64 and LoongArch64 determine bitness from the target
+    else ifneq ($(filter riscv64 loongarch64,$(arch)),)
+    # Generic architectures use the configured bitness
     else
         CXXFLAGS += $(BITS_FLAG)
         LDFLAGS  += $(BITS_FLAG)
@@ -640,24 +628,18 @@ else ifeq ($(COMP),clang)
     CXX_IS_APPLE_CLANG := $(if $(findstring apple clang,$(CXX_VERSION)),yes,no)
 
     ifeq ($(IS_WINDOWS),yes)
-        ifeq ($(bits),64)
-            CXX := x86_64-w64-mingw32-clang++
-        else
-            CXX := i686-w64-mingw32-clang++
-        endif
+        MINGW_ARCH := $(if $(filter 64,$(bits)),x86_64,i686)
+        CXX := $(MINGW_ARCH)-w64-mingw32-clang++
     endif
-    # Architectures with special handling, use libatomic where required
-    ifneq ($(filter armv8 armv7 riscv64,$(arch)),)
+    # Android ARM architectures require explicit bitness flags
+    ifneq ($(filter armv8 armv7,$(arch)),)
         ifeq ($(OS),Android)
             CXXFLAGS += $(BITS_FLAG)
             LDFLAGS  += $(BITS_FLAG)
         endif
-        ifneq ($(filter armv7,$(arch)),)
-            LDFLAGS += -latomic
-        endif
-    else ifeq ($(arch),loongarch64)
-        LDFLAGS += -latomic
-    # Generic architectures
+    # RISC-V64 and LoongArch64 determine bitness from the target
+    else ifneq ($(filter riscv64 loongarch64,$(arch)),)
+    # Generic architectures use the configured bitness
     else
         CXXFLAGS += $(BITS_FLAG)
         LDFLAGS  += $(BITS_FLAG)
@@ -681,13 +663,9 @@ else ifeq ($(COMP),clang)
     PROFILE_USE  = clang-profile-use
 # mingw
 else ifeq ($(COMP),mingw)
-    ifeq ($(bits),64)
-        MINGW_CXX       := x86_64-w64-mingw32-c++
-        MINGW_CXX_POSIX := x86_64-w64-mingw32-c++-posix
-    else
-        MINGW_CXX       := i686-w64-mingw32-c++
-        MINGW_CXX_POSIX := i686-w64-mingw32-c++-posix
-    endif
+    MINGW_ARCH := $(if $(filter 64,$(bits)),x86_64,i686)
+    MINGW_CXX       := $(MINGW_ARCH)-w64-mingw32-c++
+    MINGW_CXX_POSIX := $(MINGW_ARCH)-w64-mingw32-c++-posix
     # Prefer POSIX variant if available
     CXX := $(if $(shell command -v $(MINGW_CXX_POSIX) 2>/dev/null),$(MINGW_CXX_POSIX),$(MINGW_CXX))
     CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-declarations -fno-ipa-cp-clone -fconstexpr-ops-limit=500000000
