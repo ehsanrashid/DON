@@ -1278,7 +1278,7 @@ MODNAME := $(subst -,_,$(notdir $(CURDIR)))
 universal-object-pgo: objclean profileclean universalclean
 	@echo ""
 	@echo "Step 1/4. Building instrumented executable ..."
-	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) NNUE_EMBED_OBJ=$(NNUE_EMBED_OBJ) ENV_LDFLAGS='$(ENV_LDFLAGS)' $(PROFILE_MAKE)
+	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) NNUE_EMBED_OBJ=$(NNUE_EMBED_OBJ) $(PROFILE_MAKE)
 	@echo ""
 	@echo "Step 2/4. Running benchmark for pgo-build ..."
 	$(PGOBENCH) > PGOBENCH.out 2>&1
