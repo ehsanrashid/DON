@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Usage: check_universal_macos.sh DON_EXE [EXPECTED_BENCH]
+# Usage: check_universal_macos.sh DON_EXE
 
 set -eu
 
@@ -8,11 +8,12 @@ DON_EXE=$1
 
 extract() {
     awk -F: -v lbl="$1" '$0 ~ lbl {
-        sub(/^[[:space:]]+/, "", $2); sub(/[[:space:]]+$/, "", $2); print $2; exit
+        sub(/^[[:space:]]+/, "", $2)
+        sub(/[[:space:]]+$/, "", $2)
+        print $2
+        exit
     }'
 }
-
-FAIL=0
 
 BINARY_SIZE=$(wc -c < "$DON_EXE")
 MAX_SIZE=$((150 * 1024 * 1024))
@@ -22,6 +23,8 @@ if [ "$BINARY_SIZE" -gt "$MAX_SIZE" ]; then
             "$BINARY_SIZE" "$((MAX_SIZE / 1024 / 1024))" >&2
     exit 1
 fi
+
+FAIL=0
 
 native_bench=$(arch -arm64 "$DON_EXE" bench 2>&1 | extract "Total nodes" || true)
 if [ -z "$native_bench" ]; then

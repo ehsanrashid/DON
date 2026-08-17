@@ -1577,20 +1577,17 @@ UNIVERSAL_BUILD_FLAGS := -fno-exceptions -Os -Wno-c++26-extensions -Wno-c23-exte
 
 ifeq ($(TARGET_KERNEL),Darwin)
     UNIVERSAL_BUILD_FLAGS += $(MACOS_BUILD_FLAGS)
-else
-    UNIVERSAL_BUILD_FLAGS += -Wl,--allow-multiple-definition
-    ifeq ($(TARGET_KERNEL),Linux)
-        UNIVERSAL_BUILD_FLAGS += -static-libstdc++ -static-libgcc
-        ifeq ($(COMP),ndk)
-            UNIVERSAL_BUILD_FLAGS += -static
-        else
-            UNIVERSAL_BUILD_FLAGS += -lrt -lpthread
-        endif
-    else  # Windows
+else ifeq ($(TARGET_KERNEL),Linux)
+    UNIVERSAL_BUILD_FLAGS += -static-libstdc++ -static-libgcc
+    ifeq ($(COMP),ndk)
         UNIVERSAL_BUILD_FLAGS += -static
-        ifeq ($(COMP),clang)
-            UNIVERSAL_BUILD_FLAGS += -lpthread
-        endif
+    else
+        UNIVERSAL_BUILD_FLAGS += -Wl,--allow-multiple-definition -lrt -lpthread
+    endif
+else  # Windows
+    UNIVERSAL_BUILD_FLAGS += -Wl,--allow-multiple-definition -static
+    ifeq ($(COMP),clang)
+        UNIVERSAL_BUILD_FLAGS += -lpthread
     endif
 endif
 
