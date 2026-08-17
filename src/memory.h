@@ -253,6 +253,12 @@ template<typename T, typename ByteT>
     static_assert(std::is_trivially_copyable_v<T>, "Type must be trivially copyable");
     static_assert(sizeof(ByteT) == 1);
 
+    if (reinterpret_cast<uintptr_t>(buffer) % alignof(T) != 0)
+    {
+        assert(false);
+        UNREACHABLE();
+    }
+
     T value;
     std::memcpy(&value, buffer, sizeof(value));
 

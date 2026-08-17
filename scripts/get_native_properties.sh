@@ -56,21 +56,21 @@ get_flags() {
 # Populate $flags from the RISC-V isa string; split the single-letter
 # base (e.g., rv64imafdcv), and  keep multi-letter extensions.
 get_riscv_flags() {
-	if [ -r "$cpuinfo_path" ]; then
-		isa=$(awk -F: '/^isa[ \t]*:/{print $2; exit}' "$cpuinfo_path" 2>/dev/null)
-	else
-		isa=''
-	fi
-	isa=$(printf '%s\n' "$isa" | tr '[:upper:]' '[:lower:]')
-	flags=$(printf '%s\n' "$isa" | awk '{
-		gsub(/^[ \t]*rv(32|64)/, "");
-		n = split($0, ext, "_");
-		out = "";
-		for (i = 1; i <= length(ext[1]); i++) out = out " " substr(ext[1], i, 1);
-		for (i = 2; i <= n; i++) out = out " " ext[i];
-		print out;
-	}')
-	flags=$(normalize_ws "$flags")
+    if [ -r "$cpuinfo_path" ]; then
+        isa=$(awk -F: '/^isa[ \t]*:/{print $2; exit}' "$cpuinfo_path" 2>/dev/null)
+    else
+        isa=''
+    fi
+    isa=$(printf '%s\n' "$isa" | tr '[:upper:]' '[:lower:]')
+    flags=$(printf '%s\n' "$isa" | awk '{
+        gsub(/^[ \t]*rv(32|64)/, "");
+        n = split($0, ext, "_");
+        out = "";
+        for (i = 1; i <= length(ext[1]); i++) out = out " " substr(ext[1], i, 1);
+        for (i = 2; i <= n; i++) out = out " " ext[i];
+        print out;
+    }')
+    flags=$(normalize_ws "$flags")
 }
 
 # Populate $flags from sysctl on Darwin x86_64.
@@ -179,8 +179,8 @@ has_slow_bmi2() (
 )
 
 match_not_slow_bmi2_and_flags() {
-	has_slow_bmi2 && return 1
-	match_flags "$@"
+    has_slow_bmi2 && return 1
+    match_flags "$@"
 }
 
 match_true() { return 0; }
@@ -224,13 +224,13 @@ EOF
 }
 
 set_arch_riscv64() {
-	get_riscv_flags
-	true_arch=$(
-		select_arch_from_table <<'EOF'
+    get_riscv_flags
+    true_arch=$(
+        select_arch_from_table <<'EOF'
 riscv64-rva23|match_flags|v zba zbb zbs zicond
 riscv64|match_true|
 EOF
-	)
+    )
 }
 
 set_arch_x86_64() {

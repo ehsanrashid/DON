@@ -582,7 +582,7 @@ ifeq ($(COMP),gcc)
             CXXFLAGS += $(BITS_FLAG)
             LDFLAGS  += $(BITS_FLAG)
         endif
-        ifneq ($(filter armv7 riscv64,$(arch)),)
+        ifneq ($(filter armv7,$(arch)),)
             LDFLAGS += -latomic
         endif
     else ifeq ($(arch),loongarch64)
@@ -652,7 +652,7 @@ else ifeq ($(COMP),clang)
             CXXFLAGS += $(BITS_FLAG)
             LDFLAGS  += $(BITS_FLAG)
         endif
-        ifneq ($(filter armv7 riscv64,$(arch)),)
+        ifneq ($(filter armv7,$(arch)),)
             LDFLAGS += -latomic
         endif
     else ifeq ($(arch),loongarch64)
@@ -1576,7 +1576,7 @@ ifeq ($(TARGET_KERNEL),Darwin)
 else ifeq ($(TARGET_KERNEL),Linux)
     UNIVERSAL_BUILD_FLAGS += -static-libstdc++ -static-libgcc
     ifeq ($(COMP),ndk)
-        # Android
+        UNIVERSAL_BUILD_FLAGS += -static
     else
         UNIVERSAL_BUILD_FLAGS += -Wl,--allow-multiple-definition -lrt -lpthread
     endif

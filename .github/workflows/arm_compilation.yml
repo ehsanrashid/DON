@@ -95,7 +95,7 @@ jobs:
         run: |
           if [ "$COMP" = "ndk" ]; then
             export PATH=${{ env.ANDROID_NDK_BIN }}:$PATH
-            export LDFLAGS="-Wno-unused-command-line-argument"
+            export LDFLAGS="-static -Wno-unused-command-line-argument"
           fi
           RUN_PREFIX="$EMU"
           make clean
