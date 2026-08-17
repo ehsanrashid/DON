@@ -24,6 +24,8 @@ shopt -s nullglob
 #FILES=("$DIRECTORY"/*.in)
 
 FILES=""
+NEWLINE='
+'
 
 # Put start.in first if it exists
 if [ -f "$DIRECTORY/start.in" ]; then
@@ -33,13 +35,10 @@ fi
 # Append all other .in files except start.in
 for f in "$DIRECTORY"/*.in; do
     [ "${f##*/}" = "start.in" ] && continue
-
     # Avoid the literal "*.in" when no files exist
     [ -f "$f" ] || continue
-
     if [ -n "$FILES" ]; then
-        FILES="$FILES
-$f"
+        FILES="$FILES$NEWLINE$f"
     else
         FILES="$f"
     fi
@@ -49,6 +48,8 @@ if [ -z "$FILES" ]; then
     echo "No .in files found in $DIRECTORY"
     exit 1
 fi
+
+printf 'FILES=\n%s\n\n' "$FILES"
 
 run_direct() {
     local FEN="$1" DEPTH="$2"
@@ -95,7 +96,7 @@ echo
 
 TESTS_FAILED=0
 
-for f in "${FILES[@]}"; do
+for f in $FILES; do
     echo "==> Test file: $f"
     # Parse file: first non-empty, non-comment line is FEN; line with "depth N" supplies depth.
     FEN=""

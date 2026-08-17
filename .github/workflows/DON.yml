@@ -165,7 +165,7 @@ jobs:
     name: Universal builds
     needs: [Matrix, Sanitizers, Tests, Matetrack, Games, CompilerCheck]
     uses: ./.github/workflows/universal_compilation.yml
-  AndroidBinaries:
+  AndroidUploads:
     if: github.repository == 'ehsanrashid/DON'
     name: Android uploads
     needs: [Prerelease, Matrix]
@@ -176,7 +176,7 @@ jobs:
       contents: write # For deleting/creating a (pre)release
     secrets:
       token: ${{ secrets.GITHUB_TOKEN }}
-  UniversalBinaries:
+  UniversalUploads:
     if: github.repository == 'ehsanrashid/DON'
     name: Universal uploads
     needs: [Prerelease, Matrix]
