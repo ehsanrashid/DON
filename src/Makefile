@@ -750,20 +750,18 @@ ifeq ($(sse_fp),yes)
     CXXFLAGS += -mfpmath=sse -msse2
 endif
 
-# Locate llvm-profdata compatible with CXX for PGO (profile-guided optimization) builds.
-# make -j profile-build CXX=clang++-20 COMP=clang
-# fallback to a generic one if missing.
-# for clang or gcc
+## Locate llvm-profdata compatible with CXX for PGO (profile-guided optimization) builds
+# For Clang/GCC, look alongside CXX
 LLVM_PROFDATA := $(dir $(realpath $(shell command -v $(CXX) 2>/dev/null)))llvm-profdata
-# for icx
+# For Intel icx, look in the compiler's bundled LLVM directory
 ifeq ($(wildcard $(LLVM_PROFDATA)),)
     LLVM_PROFDATA := $(dir $(realpath $(shell command -v $(CXX) 2>/dev/null)))/compiler/llvm-profdata
 endif
+# Fall back to llvm-profdata available in PATH
 ifeq ($(wildcard $(LLVM_PROFDATA)),)
     LLVM_PROFDATA := llvm-profdata
 endif
 
-### Use POSIX threads unless compiling with MinGW (Windows threads)
 ifneq ($(arch),wasm32)
     ## Link pthreads and optionally LRT on supported platforms
     # Android has Bionic's C library with its own pthread implementation bundled
@@ -1088,8 +1086,8 @@ endif
 # -fPIC = Position-Independent Code
 # -fPIE = Position-Independent Executable
 ifeq ($(OS),Android)
-    CXXFLAGS += -fPIC -fPIE
-    LDFLAGS  += -pie
+    CXXFLAGS += -fPIE
+    LDFLAGS  += -fPIE -pie
 endif
 
 MKDIR := mkdir -p -m 755
