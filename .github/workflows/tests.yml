@@ -357,7 +357,7 @@ jobs:
         run: |
           if [ $COMP == ndk ]; then
             export PATH=${{ env.ANDROID_NDK_BIN }}:$PATH
-            export LDFLAGS="-static -Wno-unused-command-line-argument"
+            export LDFLAGS="-Wno-unused-command-line-argument"
           fi
           make clean
           make -j4 ARCH=armv8 build
@@ -368,7 +368,7 @@ jobs:
         run: |
           if [ $COMP == ndk ]; then
             export PATH=${{ env.ANDROID_NDK_BIN }}:$PATH
-            export LDFLAGS="-static -Wno-unused-command-line-argument"
+            export LDFLAGS="-Wno-unused-command-line-argument"
           fi
           make clean
           make -j4 ARCH=armv8-dotprod build
@@ -380,7 +380,7 @@ jobs:
         if: matrix.config.run_armv7_tests
         run: |
           export PATH=${{ env.ANDROID_NDK_BIN }}:$PATH
-          export LDFLAGS="-static -Wno-unused-command-line-argument"
+          export LDFLAGS="-Wno-unused-command-line-argument"
           make clean
           make -j4 ARCH=armv7 build
           ../tests/signature.sh $benchref
@@ -389,24 +389,24 @@ jobs:
         if: matrix.config.run_armv7_tests
         run: |
           export PATH=${{ env.ANDROID_NDK_BIN }}:$PATH
-          export LDFLAGS="-static -Wno-unused-command-line-argument"
+          export LDFLAGS="-Wno-unused-command-line-argument"
           make clean
           make -j4 ARCH=armv7-neon build
           ../tests/signature.sh $benchref
 
       # ppc64 tests
 
-      - name: Test pc-64-vsx build
+      - name: Test ppc-64-vsx build
         if: matrix.config.run_ppc64_tests
         run: |
-          echo "cd src && export LDFLAGS='-static' && make clean && make -j4 ARCH=pc-64-vsx build" > script.sh
+          echo "cd src && export LDFLAGS='-static' && make clean && make -j4 ARCH=ppc-64-vsx build" > script.sh
           docker run --rm --platform ${{ matrix.config.platform }} -v ${{ github.workspace }}:/app don_builder
           ../tests/signature.sh $benchref
 
-      - name: Test pc-64-altivec build
+      - name: Test ppc-64-altivec build
         if: matrix.config.run_ppc64_tests
         run: |
-          echo "cd src && export LDFLAGS='-static' && make clean && make -j4 ARCH=pc-64-altivec build" > script.sh
+          echo "cd src && export LDFLAGS='-static' && make clean && make -j4 ARCH=ppc-64-altivec build" > script.sh
           docker run --rm --platform ${{ matrix.config.platform }} -v ${{ github.workspace }}:/app don_builder
           ../tests/signature.sh $benchref
 
