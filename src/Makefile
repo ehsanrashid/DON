@@ -539,7 +539,7 @@ endif
 
 CXXFLAGS    = $(ENV_CXXFLAGS) -Wall -Wcast-qual -fno-exceptions -std=c++17 $(EXTRA_CXXFLAGS)
 DEPENDFLAGS = $(ENV_DEPENDFLAGS) -std=c++17
-LDFLAGS     = $(ENV_LDFLAGS) $(EXTRA_LDFLAGS)
+LDFLAGS     = $(ENV_LDFLAGS) $(EXTRA_LDFLAGS) $(NNUE_EMBED_OBJ)
 
 ifeq ($(COMP),)
     COMP=gcc
@@ -1458,8 +1458,8 @@ config-sanity: net
 	 test "$(COMP)" = "armv7a-linux-androideabi16-clang" || \
 	 test "$(COMP)" = "aarch64-linux-android21-clang")
 
-$(EXE): $(OBJS) $(NNUE_EMBED_OBJ)
-	+$(CXX) -o $@ $(OBJS) $(NNUE_EMBED_OBJ) $(LDFLAGS)
+$(EXE): $(OBJS)
+	+$(CXX) -o $@ $(OBJS) $(LDFLAGS)
 
 %.o: %.cpp
 	$(strip $(CXX) $(CPPFLAGS) $(CXXFLAGS)) -c -o $@ $<
