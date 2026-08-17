@@ -1098,9 +1098,11 @@ ifeq ($(optimize),yes)
     endif
 endif
 
-### 3.10 Use PIE executables on Android 5+, incompatible with Android 4 and earlier
+### 3.10 Use PIC and PIE on Android 5+, incompatible with Android 4 and earlier
+# -fPIC = Position-Independent Code
+# -fPIE = Position-Independent Executable
 ifeq ($(OS),Android)
-    CXXFLAGS += -fPIE
+    CXXFLAGS += -fPIC -fPIE
     LDFLAGS  += -pie
 endif
 
