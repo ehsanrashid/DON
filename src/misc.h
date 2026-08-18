@@ -256,9 +256,10 @@ constexpr auto sign_sqr(T x) noexcept {
     return sign(x) * sqr(x);
 }
 
-template<typename IntType>
-constexpr IntType ceil_div(IntType n, IntType d) noexcept {
-    return (n + d - 1) / d;
+template<typename T1, typename T2>
+constexpr std::common_type_t<T1, T2> ceil_div(T1 n, T2 d) noexcept {
+    using R = std::common_type_t<T1, T2>;
+    return (R(n) + R(d) - 1) / R(d);
 }
 
 constexpr usize round_up_to_pow2(usize x) noexcept {
