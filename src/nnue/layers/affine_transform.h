@@ -195,12 +195,12 @@ class AffineTransform final {
 #if defined(USE_SSSE3) || defined(USE_LASX) || defined(USE_LSX) || defined(USE_NEON_DOTPROD)
         if constexpr (OutputDimensions > 1)
         {
-    // #if defined(USE_AVX512)
-    //         using vec_t = __m512i;
-    //     #define vec_set_32 _mm512_set1_epi32
-    //     #define vec_add_dpbusd_32 SIMD::m512_add_dpbusd_epi32
-    //     #define vec_add_32 _mm512_add_epi32
-    #if defined(USE_AVX2)
+    #if defined(USE_AVX512)
+            using vec_t = __m512i;
+        #define vec_set_32 _mm512_set1_epi32
+        #define vec_add_dpbusd_32 SIMD::m512_add_dpbusd_epi32
+        #define vec_add_32 _mm512_add_epi32
+    #elif defined(USE_AVX2)
             using vec_t = __m256i;
         #define vec_set_32 _mm256_set1_epi32
         #define vec_add_dpbusd_32 SIMD::m256_add_dpbusd_epi32
