@@ -52,7 +52,7 @@ jobs:
           cd DON-workflow
           cp -r src ../DON/
           cp -r scripts ../DON/
-          cp DON-$SIMPLE_NAME-$BINARY$EXT ../DON/
+          cp "DON-$SIMPLE_NAME-$BINARY$EXT" ../DON/
           cp Copying.txt ../DON/
           cp CITATION.cff ../DON/
           cp README.md ../DON/
