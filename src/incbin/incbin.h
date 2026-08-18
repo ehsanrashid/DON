@@ -354,7 +354,7 @@
     #define INCBIN_COMMON(TYPE, NAME, FILENAME, TERMINATOR) \
         __asm__( \
           INCBIN_SECTION INCBIN_GLOBAL_LABELS(NAME, DATA) INCBIN_ALIGN_HOST INCBIN_MANGLE \
-                         INCBIN_STRINGIZE(INCBIN_PREFIX) #NAME INCBIN_STYLE_STRING( \
+            INCBIN_STRINGIZE(INCBIN_PREFIX) #NAME INCBIN_STYLE_STRING( \
               DATA) ":\n" INCBIN_MACRO " \"" FILENAME "\"\n" TERMINATOR INCBIN_GLOBAL_LABELS(NAME, \
                                                                                              END) \
               INCBIN_ALIGN_BYTE INCBIN_MANGLE \
@@ -362,8 +362,8 @@
                   END) ":\n" INCBIN_BYTE "1\n" INCBIN_GLOBAL_LABELS(NAME, SIZE) \
                   INCBIN_ALIGN_HOST INCBIN_MANGLE INCBIN_STRINGIZE( \
                     INCBIN_PREFIX) #NAME INCBIN_STYLE_STRING(SIZE) ":\n" INCBIN_INT INCBIN_MANGLE \
-                    INCBIN_STRINGIZE(INCBIN_PREFIX) #NAME INCBIN_STYLE_STRING( \
-                      END) " - " INCBIN_MANGLE \
+                      INCBIN_STRINGIZE(INCBIN_PREFIX) #NAME INCBIN_STYLE_STRING( \
+                        END) " - " INCBIN_MANGLE \
                       INCBIN_STRINGIZE(INCBIN_PREFIX) #NAME INCBIN_STYLE_STRING( \
                         DATA) "\n" INCBIN_ALIGN_HOST ".text\n"); \
         INCBIN_EXTERN(TYPE, NAME)

@@ -238,7 +238,7 @@ Worker::Worker(usize                     threadIdx,
     transpositionTable(sharedState.transpositionTable),
     threads(sharedState.threads),
     accCache(network[accessToken]),
-    atomicHistories(sharedState.atomicHistoriesMap.at(accessToken.numa_id())) {}
+    atomicHistories(sharedState.atomicHistoriesMap.at(accessToken.numa_id())) { }
 
 // Reset per-thread data structures
 void Worker::reset() noexcept {
@@ -2498,7 +2498,7 @@ void Worker::extend_tb_pv(const usize index, Value& value) noexcept {
 }
 
 MainSearchManager::MainSearchManager(const UpdateContext& updateCtx) noexcept :
-    updateContext(updateCtx) {}
+    updateContext(updateCtx) { }
 
 // Initializes the time manager and resets previous search info
 void MainSearchManager::reset() noexcept {

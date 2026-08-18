@@ -99,7 +99,7 @@ void Tune::Entry<int>::read_option() noexcept {
 
 // Instead of a variable here have a PostUpdate function: just call it
 template<>
-void Tune::Entry<Tune::PostUpdate>::init_option() noexcept {}
+void Tune::Entry<Tune::PostUpdate>::init_option() noexcept { }
 template<>
 void Tune::Entry<Tune::PostUpdate>::read_option() noexcept {
     value();

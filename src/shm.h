@@ -241,7 +241,7 @@ class BackendSharedMemory final {
     };
 
     BackendSharedMemory() noexcept :
-        status(Status::NotInitialized) {}
+        status(Status::NotInitialized) { }
 
     BackendSharedMemory(std::string_view shmName, const T& value) noexcept :
         name_(shmName),
@@ -815,7 +815,7 @@ struct TempRoot final {
 
    private:
     explicit TempRoot(std::string path) noexcept :
-        path_(std::move(path)) {}
+        path_(std::move(path)) { }
 
     // /tmp/DON-[uid], with appropriate permissions
     std::string path_;
@@ -855,7 +855,7 @@ struct InitLock final {
 
    private:
     explicit InitLock(UniqueFd fd) noexcept :
-        lockFd(std::move(fd)) {}
+        lockFd(std::move(fd)) { }
 
     void unlock() noexcept {
         if (lockFd.is_valid())
@@ -1082,7 +1082,7 @@ make_server_thread(UniqueFd fd, UniqueFd shutdownReceiver, UniqueFd serverFd) no
                   ;
 
                 while (::sendmsg(clientFd.get(), &msg, flags) < 0 && errno == EINTR)
-                {}
+                { }
             }
         }
     });
@@ -1099,7 +1099,7 @@ class SharedMemory final: public BaseSharedMemory {
         sharedDir(std::string{tempRoot.path()} + "/" + make_sentinel_base(name())),
         initLockPath(sharedDir + "/init_lock"),
         socketPath(sharedDir + "/" + std::to_string(::getpid()) + ".sock"),
-        serverThread(std::nullopt) {}
+        serverThread(std::nullopt) { }
 
     ~SharedMemory() noexcept override { unregister_close(); }
 
@@ -1345,7 +1345,7 @@ class BackendSharedMemory final {
     BackendSharedMemory() noexcept = default;
 
     BackendSharedMemory(std::string_view shmName, const T& value) noexcept :
-        shm(SharedMemory<T>::create(shmName, value)) {}
+        shm(SharedMemory<T>::create(shmName, value)) { }
 
     BackendSharedMemory(const BackendSharedMemory&) noexcept            = delete;
     BackendSharedMemory& operator=(const BackendSharedMemory&) noexcept = delete;
@@ -1388,7 +1388,7 @@ class BackendSharedMemory final {
     BackendSharedMemory() = default;
 
     BackendSharedMemory([[maybe_unused]] std::string_view shmName,
-                        [[maybe_unused]] const T&         value) noexcept {}
+                        [[maybe_unused]] const T&         value) noexcept { }
 
     BackendSharedMemory(const BackendSharedMemory&) noexcept            = delete;
     BackendSharedMemory& operator=(const BackendSharedMemory&) noexcept = delete;
@@ -1417,13 +1417,13 @@ struct FallbackBackendSharedMemory final {
 
     FallbackBackendSharedMemory([[maybe_unused]] std::string_view shmName, const T& value) noexcept
         :
-        fallbackObj(make_unique_aligned_large_page<T>(value)) {}
+        fallbackObj(make_unique_aligned_large_page<T>(value)) { }
 
     FallbackBackendSharedMemory(const FallbackBackendSharedMemory&) noexcept            = delete;
     FallbackBackendSharedMemory& operator=(const FallbackBackendSharedMemory&) noexcept = delete;
 
     FallbackBackendSharedMemory(FallbackBackendSharedMemory&& fallbackBackendShm) noexcept :
-        fallbackObj(std::move(fallbackBackendShm.fallbackObj)) {}
+        fallbackObj(std::move(fallbackBackendShm.fallbackObj)) { }
     FallbackBackendSharedMemory&
     operator=(FallbackBackendSharedMemory&& fallbackBackendShm) noexcept {
         fallbackObj = std::move(fallbackBackendShm.fallbackObj);
@@ -1528,7 +1528,7 @@ struct SystemWideSharedMemory final {
     SystemWideSharedMemory& operator=(const SystemWideSharedMemory&) noexcept = delete;
 
     SystemWideSharedMemory(SystemWideSharedMemory&& systemWideShm) noexcept :
-        backendShm(std::move(systemWideShm.backendShm)) {}
+        backendShm(std::move(systemWideShm.backendShm)) { }
     SystemWideSharedMemory& operator=(SystemWideSharedMemory&& systemWideShm) noexcept {
         backendShm = std::move(systemWideShm.backendShm);
         return *this;

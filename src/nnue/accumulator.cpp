@@ -63,7 +63,7 @@ struct AccumulatorUpdateContext final {
         computedAcc(computedState.accumulation[perspective]),
         computedPsqtAcc(computedState.psqtAccumulation[perspective]),
         targetAcc(targetState.accumulation[perspective]),
-        targetPsqtAcc(targetState.psqtAccumulation[perspective]) {}
+        targetPsqtAcc(targetState.psqtAccumulation[perspective]) { }
 
     template<UpdateOperation... ops,
              typename... Ts,

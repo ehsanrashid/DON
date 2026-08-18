@@ -407,7 +407,7 @@ class Position final {
        public:
         constexpr SEE(const Position& p, Move m) noexcept :
             pos(p),
-            move(m) {}
+            move(m) { }
 
         [[nodiscard]] bool operator>=(int threshold) const noexcept;
         [[nodiscard]] bool operator>(int threshold) const noexcept;

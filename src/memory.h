@@ -278,7 +278,7 @@ inline constexpr void* INVALID_MMAP_PTR = nullptr;
 struct HandleGuard final {
    public:
     explicit HandleGuard(HANDLE& refHandle) noexcept :
-        handle(refHandle) {}
+        handle(refHandle) { }
 
     HandleGuard() noexcept = delete;
 
@@ -313,7 +313,7 @@ struct HandleGuard final {
 struct MMapGuard final {
    public:
     explicit MMapGuard(void*& refPtr) noexcept :
-        mappedPtr(refPtr) {}
+        mappedPtr(refPtr) { }
 
     MMapGuard() noexcept = delete;
 
@@ -506,7 +506,7 @@ inline constexpr usize INVALID_MMAP_SIZE = 0;
 struct FdGuard final {
    public:
     explicit FdGuard(int& refFd) noexcept :
-        fd(refFd) {}
+        fd(refFd) { }
 
     FdGuard() noexcept = delete;
 
@@ -542,7 +542,7 @@ struct MMapGuard final {
    public:
     MMapGuard(void*& refPtr, usize& refSize) noexcept :
         mappedPtr(refPtr),
-        mappedSize(refSize) {}
+        mappedSize(refSize) { }
 
     MMapGuard() noexcept = delete;
 
@@ -584,7 +584,7 @@ struct MMapGuard final {
 struct UniqueFd final {
    public:
     explicit UniqueFd(int iFd) noexcept :
-        fd{iFd} {}
+        fd{iFd} { }
 
     UniqueFd() noexcept = default;
 
@@ -592,7 +592,7 @@ struct UniqueFd final {
     UniqueFd& operator=(const UniqueFd&) = delete;
 
     UniqueFd(UniqueFd&& uniqueFd) noexcept :
-        fd{uniqueFd.release()} {}
+        fd{uniqueFd.release()} { }
 
     UniqueFd& operator=(UniqueFd&& uniqueFd) noexcept {
         if (this == &uniqueFd)
