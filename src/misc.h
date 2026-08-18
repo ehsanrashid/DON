@@ -256,7 +256,10 @@ constexpr auto sign_sqr(T x) noexcept {
     return sign(x) * sqr(x);
 }
 
-constexpr usize ceil_div(usize n, usize d) noexcept { return (n + d - 1) / d; }
+template<typename IntType>
+constexpr IntType ceil_div(IntType n, IntType d) noexcept {
+    return (n + d - 1) / d;
+}
 
 constexpr usize round_up_to_pow2(usize x) noexcept {
     if (x == 0)

@@ -279,10 +279,17 @@ jobs:
           ../tests/signature.sh $benchref
 
       - name: Test x86-64-avx512 build
-        if: matrix.config.run_64bit_tests && startsWith(matrix.config.os, 'ubuntu')
+        if: matrix.config.run_64bit_tests && !startsWith(matrix.config.os, 'macos')
         run: |
           make clean
           make -j4 ARCH=x86-64-avx512 build
+          ../tests/signature.sh $benchref
+
+      - name: Test x86-64-avx512icl build
+        if: matrix.config.run_64bit_tests && !startsWith(matrix.config.os, 'macos')
+        run: |
+          make clean
+          make -j4 ARCH=x86-64-avx512icl build
           ../tests/signature.sh $benchref
 
       - name: Test x86-64-bmi2 build
