@@ -71,15 +71,14 @@ endif
 # Detect clang-format (prefer newest version)
 # -------------------------------------------
 CLANG_FORMAT := $(shell \
+    $(call FIND_EXE,clang-format-24) || \
+    $(call FIND_EXE,clang-format-23) || \
     $(call FIND_EXE,clang-format-22) || \
     $(call FIND_EXE,clang-format-21) || \
     $(call FIND_EXE,clang-format-20) || \
     $(call FIND_EXE,clang-format-19) || \
     $(call FIND_EXE,clang-format-18) || \
     echo clang-format)
-
-# Optional: log which one was chosen
-#$(info Using CLANG_FORMAT = $(CLANG_FORMAT))
 
 ### Executable name
 NAME := DON
