@@ -45,7 +45,7 @@ struct EvalFile final {
     EvalFile(std::optional<std::filesystem::path> curPath = std::nullopt,
              std::string_view                     netDesc = {}) noexcept :
         currentPath(std::move(curPath)),
-        netDescription(netDesc) { }
+        netDescription(netDesc) {}
 
     // Default net name, will use the EvalFileDefaultName macros defined in evaluate.h
     static constexpr std::string_view DefaultName = EvalFileDefaultName;

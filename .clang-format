@@ -52,6 +52,6 @@ SpaceBeforeCaseColon: true
 SpaceBeforeCpp11BracedList: false
 SpaceBeforeInheritanceColon: false
 SpaceBeforeRangeBasedForLoopColon: true
-SpaceInEmptyBlock: false
+SpaceInEmptyBraces: Never
 SpacesInAngles: Never
 SpacesBeforeTrailingComments: 2

@@ -246,7 +246,7 @@ void Position::set(std::string_view fens, State* newSt) noexcept {
     auto peek        = [&p, end]() noexcept -> ichar { return p < end ? *p : '\0'; };
     auto skip_spaces = [&p, end]() noexcept {
         for (; p < end && std::isspace(uchar(*p)); ++p)
-        { }
+        {}
     };
     auto not_space = [&p, end]() noexcept -> bool { return p < end && !std::isspace(uchar(*p)); };
     auto get       = [&p, end]() noexcept -> ichar { return p < end ? *p++ : '\0'; };

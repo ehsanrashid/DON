@@ -70,7 +70,7 @@ class Option final {
     explicit Option(char ch, OnChange&& f = nullptr) noexcept = delete;
     explicit Option(std::string_view v, OnChange&& f = nullptr) noexcept;
     explicit Option(const char* v, OnChange&& f = nullptr) noexcept :
-        Option(std::string_view(v), std::forward<OnChange>(f)) { }
+        Option(std::string_view(v), std::forward<OnChange>(f)) {}
     Option(int v, int minV, int maxV, OnChange&& f = nullptr) noexcept;
     Option(std::string_view v, std::string_view var, OnChange&& f = nullptr) noexcept;
 

@@ -223,11 +223,11 @@ class RootMoves final {
 
     RootMoves() noexcept { reserve(32); }
     explicit RootMoves(const container_type& rms) noexcept :
-        rootMoves_(rms) { }
+        rootMoves_(rms) {}
     explicit RootMoves(container_type&& rms) noexcept :
-        rootMoves_(std::move(rms)) { }
+        rootMoves_(std::move(rms)) {}
     RootMoves(std::initializer_list<value_type> initList) :
-        rootMoves_(initList) { }
+        rootMoves_(initList) {}
 
     [[nodiscard]] size_type capacity() const noexcept { return rootMoves_.capacity(); }
 
@@ -578,7 +578,7 @@ class MainSearchManager final: public ISearchManager {
 // NullSearchManager is a no-op implementation of ISearchManager
 class NullSearchManager final: public ISearchManager {
    public:
-    void check_time(Worker&) noexcept override { }
+    void check_time(Worker&) noexcept override {}
 };
 
 // NT indicates the type of node in the search tree
