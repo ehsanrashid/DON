@@ -158,15 +158,6 @@ match_sse3() {
     match_any_flags sse3 pni
 }
 
-match_ssse3() {
-    match_any_flags ssse3
-}
-
-match_ssse3_popcnt() {
-    has_flag popcnt || return 1
-    match_ssse3
-}
-
 # AMD Excavator/Zen1/2 exclusion logic (used for bmi2 tier).
 # https://web.archive.org/web/20250821132355/https://en.wikichip.org/wiki/amd/cpuid
 # All of Bulldozer through Excavator are matched here, but pre-Excavator doesn't support bmi2 anyway
@@ -244,8 +235,9 @@ x86-64-avxvnni|match_flags|avxvnni
 x86-64-bmi2|match_not_slow_bmi2_and_flags|bmi2
 x86-64-avx2|match_flags|avx2
 x86-64-sse41-popcnt|match_flags|sse41 popcnt
-x86-64-ssse3-popcnt|match_ssse3_popcnt|
-x86-64-ssse3|match_ssse3|
+x86-64-sse41|match_flags|sse41
+x86-64-ssse3-popcnt|match_flags|ssse3 popcnt
+x86-64-ssse3|match_flags|ssse3
 x86-64|match_true|
 EOF
     )
@@ -256,7 +248,7 @@ set_arch_x86_32() {
     select_arch_from_table <<'EOF'
 x86-32-sse41-popcnt|match_flags|sse41 popcnt
 x86-32-sse41|match_flags|sse41
-x86-32-ssse3|match_ssse3|
+x86-32-ssse3|match_flags|ssse3
 x86-32-sse2|match_flags|sse2
 x86-32|match_true|
 EOF
