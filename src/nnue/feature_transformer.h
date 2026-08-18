@@ -66,7 +66,7 @@ constexpr void permute(std::array<T, DataSize>&            data,
 
         Array<u8, ChunkSize> buffer;
 
-        for (usize j = 0; j < order.size(); ++j)
+        for (usize j = 0; j < OrderSize; ++j)
         {
             auto* valueChunk  = &values[order[j] * BlockSize];
             auto* bufferChunk = &buffer[j * BlockSize];

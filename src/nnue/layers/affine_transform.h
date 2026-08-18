@@ -198,13 +198,13 @@ class AffineTransform final {
     #if defined(USE_AVX512)
             using vec_t = __m512i;
         #define vec_set_32 _mm512_set1_epi32
-        #define vec_add_32 _mm512_add_epi32
         #define vec_add_dpbusd_32 SIMD::m512_add_dpbusd_epi32
+        #define vec_add_32 _mm512_add_epi32
     #elif defined(USE_AVX2)
             using vec_t = __m256i;
         #define vec_set_32 _mm256_set1_epi32
-        #define vec_add_32 _mm256_add_epi32
         #define vec_add_dpbusd_32 SIMD::m256_add_dpbusd_epi32
+        #define vec_add_32 _mm256_add_epi32
     #elif defined(USE_SSSE3)
             using vec_t = __m128i;
         #define vec_set_32 _mm_set1_epi32
@@ -217,13 +217,13 @@ class AffineTransform final {
     #elif defined(USE_LASX)
             using vec_t = __m256i;
         #define vec_set_32 __lasx_xvreplgr2vr_w
-        #define vec_add_32 __lasx_xvadd_w
         #define vec_add_dpbusd_32 SIMD::lasx_m256_add_dpbusd_epi32
+        #define vec_add_32 __lasx_xvadd_w
     #elif defined(USE_LSX)
             using vec_t = __m128i;
         #define vec_set_32 __lsx_vreplgr2vr_w
-        #define vec_add_32 __lsx_vadd_w
         #define vec_add_dpbusd_32 SIMD::lsx_m128_add_dpbusd_epi32
+        #define vec_add_32 __lsx_vadd_w
     #endif
 
             constexpr IndexType OutputSimdWidth = sizeof(vec_t) / sizeof(OutputType);
@@ -295,6 +295,7 @@ class AffineTransform final {
 
     #undef vec_set_32
     #undef vec_add_dpbusd_32
+    #undef vec_add_32
         }
         else if constexpr (OutputDimensions == 1)
         {
