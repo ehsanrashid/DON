@@ -143,7 +143,7 @@ jobs:
             echo "y" | $SDKMANAGER "ndk;$NDKV"
             ANDROID_NDK_ROOT=$ANDROID_SDK_ROOT/ndk/$NDKV
             ANDROID_NDK_BIN=$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin
-            echo "ANDROID_NDK_BIN=$ANDROID_NDK_BIN" >> $GITHUB_ENV
+            echo "ANDROID_NDK_BIN=$ANDROID_NDK_BIN" >> "$GITHUB_ENV"
           fi
 
       - name: Set up QEMU
@@ -418,6 +418,13 @@ jobs:
           ../tests/signature.sh $benchref
 
       # riscv64 tests
+
+      - name: Test riscv64-rva23 build
+        if: matrix.config.run_riscv64_tests
+        run: |
+          echo "cd src && export LDFLAGS='-static' && make clean && make -j4 ARCH=riscv64-rva23 build" > script.sh
+          docker run --rm --platform ${{ matrix.config.platform }} -v ${{ github.workspace }}:/app don_builder
+          ../tests/signature.sh $benchref
 
       - name: Test riscv64 build
         if: matrix.config.run_riscv64_tests
