@@ -282,9 +282,15 @@ jobs:
       - name: Test x86-64-avx512 build
         if: matrix.config.run_64bit_tests
         run: |
+          if [ -f /proc/cpuinfo ]; then
+            cat /proc/cpuinfo
+          elif [ "$(uname -s)" = "Darwin" ]; then
+            sysctl -a | grep -E 'machdep.cpu|hw.optional'
+          else
+            g++ -Q -march=native --help=target | grep -E 'avx512(f|bw|dq|vl)'
+          fi
           make clean
           make -j4 ARCH=x86-64-avx512 build
-          ./DON bench
           # ../tests/signature.sh $benchref
 
       - name: Test x86-64-bmi2 build

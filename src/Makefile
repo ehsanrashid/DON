@@ -966,8 +966,8 @@ ifeq ($(lsx),yes)
 endif
 
 ifeq ($(arch),wasm32)
-    CXXFLAGS += -pthread -msimd128 -DUSE_POPCNT -DNO_NNUE_EMBEDDING -DUSE_SLOPPY_ATOMICS
-    LDFLAGS += -pthread -sINITIAL_MEMORY=64MB -sALLOW_MEMORY_GROWTH -sSTACK_SIZE=3MB
+    CXXFLAGS += -DUSE_POPCNT -DNO_NNUE_EMBEDDING -DUSE_SLOPPY_ATOMICS -pthread -msimd128
+    LDFLAGS  += -sSTACK_SIZE=3MB -sINITIAL_MEMORY=64MB -sALLOW_MEMORY_GROWTH -pthread
     ifeq ($(relaxedsimd),yes)
         CXXFLAGS += -mrelaxed-simd
     endif
