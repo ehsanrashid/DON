@@ -62,9 +62,9 @@ DEFINE_ARCH_ENTRY(x86_64_sse41_popcnt)
 DEFINE_ARCH_ENTRY(x86_64_avx2)
 DEFINE_ARCH_ENTRY(x86_64_bmi2)
 DEFINE_ARCH_ENTRY(x86_64_avxvnni)
-DEFINE_ARCH_ENTRY(x86_64_avx512)
-DEFINE_ARCH_ENTRY(x86_64_vnni512)
-DEFINE_ARCH_ENTRY(x86_64_avx512icl)
+//DEFINE_ARCH_ENTRY(x86_64_avx512)
+//DEFINE_ARCH_ENTRY(x86_64_vnni512)
+//DEFINE_ARCH_ENTRY(x86_64_avx512icl)
 
 // AMD Excavator (family 15h) and Zen/Zen+/Zen2 (family 17h) implement pdep/pext via microcode.
 static bool has_slow_bmi2() noexcept {
@@ -127,11 +127,13 @@ static int dispatch(const CpuFeatures& f, int argc, const char* argv[]) noexcept
 
     if (!f.avx512f || !f.avx512vl || !f.avx512bw)
     {
-        if (f.avxvnni)
-            return entry_x86_64_avxvnni(argc, argv);
-        return entry_x86_64_bmi2(argc, argv);
+        if (!f.avxvnni)
+            return entry_x86_64_bmi2(argc, argv);
+
+        return entry_x86_64_avxvnni(argc, argv);
     }
 
+    /*
     if (!f.avx512vnni)
         return entry_x86_64_avx512(argc, argv);
 
@@ -148,6 +150,8 @@ static int dispatch(const CpuFeatures& f, int argc, const char* argv[]) noexcept
         return entry_x86_64_vnni512(argc, argv);
 
     return entry_x86_64_avx512icl(argc, argv);
+    */
+    return 0;
 }
 
 static void maybe_promote_thread_to_avx512() noexcept {

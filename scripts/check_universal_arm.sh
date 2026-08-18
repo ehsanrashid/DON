@@ -31,6 +31,9 @@ fi
 
 FAIL=0
 for pair in $PAIRS; do
+    case "$pair" in
+        \#*) continue ;;
+    esac
     cpu=${pair%%:*}
     expected_compiler=${pair##*:}
     compiler_out=$(qemu-aarch64 -cpu "$cpu" -- "$DON_EXE" compiler 2>&1 || true)

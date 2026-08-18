@@ -470,9 +470,8 @@ ifeq ($(ARCH),ppc-64-vsx)
     vsx = yes
 endif
 
-ifneq ($(findstring e2k,$(ARCH)),)
+ifeq ($(ARCH),e2k)
     arch = e2k
-    bits = 64
     sse = yes
     mmx = yes
     sse2 = yes
@@ -485,7 +484,7 @@ ifneq ($(findstring riscv64,$(ARCH)),)
     arch = riscv64
 endif
 
-ifneq ($(findstring riscv64-rva23,$(ARCH)),)
+ifeq ($(ARCH),riscv64-rva23)
     rva23 = yes
     popcnt = yes
     prefetch = yes
@@ -537,9 +536,9 @@ ifeq ($(MAKELEVEL),0)
     export ENV_LDFLAGS     := $(LDFLAGS)
 endif
 
-CXXFLAGS    = $(ENV_CXXFLAGS) -Wall -Wcast-qual -fno-exceptions -std=c++17 $(EXTRACXXFLAGS)
-DEPENDFLAGS = $(ENV_DEPENDFLAGS) -Wall -Wcast-qual -std=c++17
-LDFLAGS     = $(ENV_LDFLAGS) $(EXTRALDFLAGS)
+CXXFLAGS    = $(ENV_CXXFLAGS) -Wall -Wcast-qual -fno-exceptions -std=c++17 $(EXTRA_CXXFLAGS)
+DEPENDFLAGS = $(ENV_DEPENDFLAGS) -std=c++17
+LDFLAGS     = $(ENV_LDFLAGS) $(EXTRA_LDFLAGS)
 
 ifeq ($(COMP),)
     COMP=gcc
@@ -576,18 +575,15 @@ ifeq ($(COMP),gcc)
     CXX_IS_CLANG       := $(if $(findstring clang,$(CXX_VERSION)),yes,no)
     CXX_IS_APPLE_CLANG := $(if $(findstring apple clang,$(CXX_VERSION)),yes,no)
 
-    # Architectures with special handling, use libatomic where required
-    ifneq ($(filter armv8 armv7 riscv64,$(arch)),)
+    # Android ARM architectures require explicit bitness flags
+    ifneq ($(filter armv8 armv7,$(arch)),)
         ifeq ($(OS),Android)
             CXXFLAGS += $(BITS_FLAG)
             LDFLAGS  += $(BITS_FLAG)
         endif
-        ifneq ($(filter armv7 riscv64,$(arch)),)
-            LDFLAGS += -latomic
-        endif
-    else ifeq ($(arch),loongarch64)
-        LDFLAGS += -latomic
-    # Generic architectures
+    # RISC-V64 and LoongArch64 determine bitness from the target
+    else ifneq ($(filter riscv64 loongarch64,$(arch)),)
+    # Generic architectures use the configured bitness
     else
         CXXFLAGS += $(BITS_FLAG)
         LDFLAGS  += $(BITS_FLAG)
@@ -625,7 +621,7 @@ ifeq ($(COMP),gcc)
         # GCC
         CXXFLAGS += -Wstack-usage=128000 -fno-ipa-cp-clone -fconstexpr-ops-limit=500000000
         ifeq ($(TARGET_KERNEL),Darwin)
-            EXTRAPROFILEFLAGS = -fvisibility=hidden
+            EXTRA_PROFILE_FLAGS = -fvisibility=hidden
         endif
         PROFILE_MAKE = gcc-profile-make
         PROFILE_USE  = gcc-profile-use
@@ -640,24 +636,18 @@ else ifeq ($(COMP),clang)
     CXX_IS_APPLE_CLANG := $(if $(findstring apple clang,$(CXX_VERSION)),yes,no)
 
     ifeq ($(IS_WINDOWS),yes)
-        ifeq ($(bits),64)
-            CXX := x86_64-w64-mingw32-clang++
-        else
-            CXX := i686-w64-mingw32-clang++
-        endif
+        MINGW_ARCH := $(if $(filter 64,$(bits)),x86_64,i686)
+        CXX := $(MINGW_ARCH)-w64-mingw32-clang++
     endif
-    # Architectures with special handling, use libatomic where required
-    ifneq ($(filter armv8 armv7 riscv64,$(arch)),)
+    # Android ARM architectures require explicit bitness flags
+    ifneq ($(filter armv8 armv7,$(arch)),)
         ifeq ($(OS),Android)
             CXXFLAGS += $(BITS_FLAG)
             LDFLAGS  += $(BITS_FLAG)
         endif
-        ifneq ($(filter armv7 riscv64,$(arch)),)
-            LDFLAGS += -latomic
-        endif
-    else ifeq ($(arch),loongarch64)
-        LDFLAGS += -latomic
-    # Generic architectures
+    # RISC-V64 and LoongArch64 determine bitness from the target
+    else ifneq ($(filter riscv64 loongarch64,$(arch)),)
+    # Generic architectures use the configured bitness
     else
         CXXFLAGS += $(BITS_FLAG)
         LDFLAGS  += $(BITS_FLAG)
@@ -681,13 +671,9 @@ else ifeq ($(COMP),clang)
     PROFILE_USE  = clang-profile-use
 # mingw
 else ifeq ($(COMP),mingw)
-    ifeq ($(bits),64)
-        MINGW_CXX       := x86_64-w64-mingw32-c++
-        MINGW_CXX_POSIX := x86_64-w64-mingw32-c++-posix
-    else
-        MINGW_CXX       := i686-w64-mingw32-c++
-        MINGW_CXX_POSIX := i686-w64-mingw32-c++-posix
-    endif
+    MINGW_ARCH := $(if $(filter 64,$(bits)),x86_64,i686)
+    MINGW_CXX       := $(MINGW_ARCH)-w64-mingw32-c++
+    MINGW_CXX_POSIX := $(MINGW_ARCH)-w64-mingw32-c++-posix
     # Prefer POSIX variant if available
     CXX := $(if $(shell command -v $(MINGW_CXX_POSIX) 2>/dev/null),$(MINGW_CXX_POSIX),$(MINGW_CXX))
     CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-declarations -fno-ipa-cp-clone -fconstexpr-ops-limit=500000000
@@ -764,23 +750,19 @@ ifeq ($(sse_fp),yes)
     CXXFLAGS += -mfpmath=sse -msse2
 endif
 
-# Locate llvm-profdata compatible with CXX for PGO (profile-guided optimization) builds.
-# make -j profile-build CXX=clang++-20 COMP=clang
-# fallback to a generic one if missing.
-# for clang or gcc
+## Locate llvm-profdata compatible with CXX for PGO (profile-guided optimization) builds
+# For Clang/GCC, look alongside CXX
 LLVM_PROFDATA := $(dir $(realpath $(shell command -v $(CXX) 2>/dev/null)))llvm-profdata
-# for icx
+# For Intel icx, look in the compiler's bundled LLVM directory
 ifeq ($(wildcard $(LLVM_PROFDATA)),)
     LLVM_PROFDATA := $(dir $(realpath $(shell command -v $(CXX) 2>/dev/null)))/compiler/llvm-profdata
 endif
+# Fall back to llvm-profdata available in PATH
 ifeq ($(wildcard $(LLVM_PROFDATA)),)
     LLVM_PROFDATA := llvm-profdata
 endif
 
-### Use POSIX threads unless compiling with MinGW (Windows threads)
-ifeq ($(arch),wasm32)
-else ifneq ($(COMP),mingw)
-    CXXFLAGS += -DUSE_PTHREADS
+ifneq ($(arch),wasm32)
     ## Link pthreads and optionally LRT on supported platforms
     # Android has Bionic's C library with its own pthread implementation bundled
     ifneq ($(OS),Android)
@@ -1100,7 +1082,7 @@ ifeq ($(optimize),yes)
     endif
 endif
 
-### 3.10 Use PIE executables on Android 5+, incompatible with Android 4 and earlier
+### 3.10 Use PIC and PIE on Android 5+, incompatible with Android 4 and earlier
 ifeq ($(OS),Android)
     CXXFLAGS += -fPIE
     LDFLAGS  += -pie
@@ -1288,7 +1270,7 @@ universal-object-pgo: objclean profileclean universalclean
 	@echo ""
 	@echo "Step 3/4. Building optimized object files ..."
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) objclean
-	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) ENV_LDFLAGS='$(SAVE_TEMPS) $(NNUE_EMBED_OBJ)' $(PROFILE_USE)
+	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) ENV_LDFLAGS='$(ENV_LDFLAGS) $(SAVE_TEMPS) $(NNUE_EMBED_OBJ)' $(PROFILE_USE)
 	@echo ""
 ifeq ($(USE_LTO_EMIT_ASM),yes)
 	@echo "Step 4/4. Renaming ctors and extracting LTO-optimized relocatable object ..."
@@ -1302,7 +1284,7 @@ else
 endif
 
 universal-object-nopgo: objclean universalclean
-	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) NNUE_EMBED_OBJ=$(NNUE_EMBED_OBJ) ENV_LDFLAGS='$(ENV_LDFLAGS) $(SAVE_TEMPS)' all
+	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) ENV_LDFLAGS='$(ENV_LDFLAGS) $(SAVE_TEMPS) $(NNUE_EMBED_OBJ)' all
 ifeq ($(USE_LTO_EMIT_ASM),yes)
 	awk -v MODNAME=$(MODNAME) -f ../../universal/rewrite_asm_sections.awk *.lto.s > renamed.s
 	$(CXX) -c renamed.s -o DON.o $(ASM_FLAGS)
@@ -1410,6 +1392,7 @@ config-sanity: net
 	echo "neon: '$(neon)'" && \
 	echo "dotprod: '$(dotprod)'" && \
 	echo "arm_version: '$(arm_version)'" && \
+	echo "rva23: '$(rva23)'" && \
 	echo "lsx: '$(lsx)'" && \
 	echo "lasx: '$(lasx)'" && \
 	echo "tablebases: '$(tablebases)'" && \
@@ -1459,8 +1442,8 @@ config-sanity: net
 	 test "$(COMP)" = "armv7a-linux-androideabi16-clang" || \
 	 test "$(COMP)" = "aarch64-linux-android21-clang")
 
-$(EXE): $(OBJS) $(NNUE_EMBED_OBJ)
-	+$(CXX) -o $@ $(OBJS) $(NNUE_EMBED_OBJ) $(LDFLAGS)
+$(EXE): $(OBJS)
+	+$(CXX) -o $@ $(OBJS) $(LDFLAGS)
 
 %.o: %.cpp
 	$(strip $(CXX) $(CPPFLAGS) $(CXXFLAGS)) -c -o $@ $<
@@ -1471,43 +1454,43 @@ misc.o: misc.cpp $(BUILD_DATE_FILE) $(BUILD_SHA_FILE) $(BUILD_DIFFINDEX_FILE)
 # Clang PGO
 clang-profile-make:
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
-	EXTRACXXFLAGS='-fprofile-generate' \
-	EXTRALDFLAGS='-fprofile-generate' \
+	EXTRA_CXXFLAGS='-fprofile-generate' \
+	EXTRA_LDFLAGS='-fprofile-generate' \
 	all
 
 clang-profile-use:
 	$(XCRUN) $(LLVM_PROFDATA) merge -output="$(NAME).profdata" *.profraw
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
-	EXTRACXXFLAGS='-fprofile-use=$(NAME).profdata' \
-	EXTRALDFLAGS='-fprofile-use=$(NAME).profdata' \
+	EXTRA_CXXFLAGS='-fprofile-use=$(NAME).profdata' \
+	EXTRA_LDFLAGS='-fprofile-use=$(NAME).profdata' \
 	all
 
 # GCC PGO
 gcc-profile-make:
 	@mkdir -p profdir
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
-	EXTRACXXFLAGS='-fprofile-generate=profdir $(EXTRAPROFILEFLAGS)' \
-	EXTRALDFLAGS='-lgcov' \
+	EXTRA_CXXFLAGS='-fprofile-generate=profdir $(EXTRA_PROFILE_FLAGS)' \
+	EXTRA_LDFLAGS='-lgcov' \
 	all
 
 gcc-profile-use:
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
-	EXTRACXXFLAGS='-fprofile-use=profdir -fprofile-correction -fno-peel-loops -fno-tracer $(EXTRAPROFILEFLAGS)' \
-	EXTRALDFLAGS='-lgcov' \
+	EXTRA_CXXFLAGS='-fprofile-use=profdir -fprofile-correction -fno-peel-loops -fno-tracer $(EXTRA_PROFILE_FLAGS)' \
+	EXTRA_LDFLAGS='-lgcov' \
 	all
 
 # ICC/ICX PGO
 icx-profile-make:
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
-	EXTRACXXFLAGS='-fprofile-instr-generate' \
-	EXTRALDFLAGS='-fprofile-instr-generate' \
+	EXTRA_CXXFLAGS='-fprofile-instr-generate' \
+	EXTRA_LDFLAGS='-fprofile-instr-generate' \
 	all
 
 icx-profile-use:
 	$(XCRUN) $(LLVM_PROFDATA) merge -output="$(NAME).profdata" *.profraw
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
-	EXTRACXXFLAGS='-fprofile-instr-use=$(NAME).profdata' \
-	EXTRALDFLAGS='-fprofile-use' \
+	EXTRA_CXXFLAGS='-fprofile-instr-use=$(NAME).profdata' \
+	EXTRA_LDFLAGS='-fprofile-use' \
 	all
 
 .depend: $(SRCS)
@@ -1544,16 +1527,15 @@ NNUE_EMBED_OBJ       := $(TEMP_DIR)/nnue_embed.o
 NET_SENTINEL         := $(TEMP_DIR)/.net-done
 
 ifeq ($(arch),x86_64)
-    UNIVERSAL_ARCHES    := x86-64 x86-64-sse41-popcnt x86-64-avx2 x86-64-bmi2 \
-                           x86-64-avxvnni x86-64-avx512 x86-64-vnni512 x86-64-avx512icl
+    UNIVERSAL_ARCHES    := x86-64 x86-64-sse41-popcnt x86-64-avx2 x86-64-bmi2 x86-64-avxvnni #x86-64-avx512 x86-64-vnni512 x86-64-avx512icl
     UNIVERSAL_ENTRY_SRC := $(UNIVERSAL_SRC_DIR)/entry_x86.cpp
     UNIVERSAL_ENTRY_OBJ := $(TEMP_DIR)/entry_x86.o
     BASELINE_ARCH       := x86-64
 else ifeq ($(arch),riscv64)
-    UNIVERSAL_ARCHES := riscv64 riscv64-rva23
-    UNIVERSAL_ENTRY_SRC  := $(UNIVERSAL_SRC_DIR)/entry_riscv64.cpp
-    UNIVERSAL_ENTRY_OBJ  := $(TEMP_DIR)/entry_riscv64.o
-    BASELINE_ARCH        := riscv64
+    UNIVERSAL_ARCHES    := riscv64 riscv64-rva23
+    UNIVERSAL_ENTRY_SRC := $(UNIVERSAL_SRC_DIR)/entry_riscv64.cpp
+    UNIVERSAL_ENTRY_OBJ := $(TEMP_DIR)/entry_riscv64.o
+    BASELINE_ARCH       := riscv64
 else ifeq ($(arch),armv8)
     UNIVERSAL_ARCHES    := armv8 armv8-dotprod
     UNIVERSAL_ENTRY_SRC := $(UNIVERSAL_SRC_DIR)/entry_arm64.cpp
@@ -1564,8 +1546,8 @@ endif
 # Top-level tracked items in src/ (directories and files)
 TRACKED_TOP := $(sort $(foreach f,$(SRCS) $(HEADERS) Makefile incbin,$(firstword $(subst /, ,$(f)))))
 
-# Baseline build must come first in the final link (Windows --allow-multiple-definition
-# uses the first copy of inline duplicates)
+# Link the baseline architecture first so it is preferred when the linker
+# encounters duplicate definitions shared by multiple architecture slices.
 ARCH_OBJS := $(TEMP_DIR)/$(BASELINE_ARCH)/DON.o \
              $(patsubst %,$(TEMP_DIR)/%/DON.o,$(filter-out $(BASELINE_ARCH),$(UNIVERSAL_ARCHES)))
 
@@ -1578,7 +1560,7 @@ else ifeq ($(TARGET_KERNEL),Linux)
     ifeq ($(COMP),ndk)
         UNIVERSAL_BUILD_FLAGS += -static
     else
-        UNIVERSAL_BUILD_FLAGS += -lrt -lpthread
+        UNIVERSAL_BUILD_FLAGS += -Wl,--allow-multiple-definition -lrt -lpthread
     endif
 else  # Windows
     UNIVERSAL_BUILD_FLAGS += -Wl,--allow-multiple-definition -static
@@ -1587,23 +1569,24 @@ else  # Windows
     endif
 endif
 
-# $(call arch-namespace,x86-64-avx2) => DON_x86_64_avx2
-arch-suffix    = $(subst -,_,$(1))
-arch-namespace = DON_$(call arch-suffix,$(1))
+# $(call ARCH-NAMESPACE,x86-64-avx2) => DON_x86_64_avx2
+ARCH-SUFFIX    = $(subst -,_,$(1))
+ARCH-NAMESPACE = DON_$(call ARCH-SUFFIX,$(1))
 # Itanium ABI mangled name for DON_<suffix>::main(int, char**)
-arch-mangled   = _ZN$(shell printf %s '$(call arch-namespace,$(1))' | wc -c | tr -d ' ')$(call arch-namespace,$(1))4mainEiPPKc
-# Mach-O initializer section name: strip "x86-64" or "x86-64-" and prefix with "_i_"
-# (Mach-O section names are restricted to <=16 chars, hence this naming scheme)
-arch-mac-section = _i_$(subst -,_,$(patsubst x86-64,,$(patsubst x86-64-%,%,$(1))))
+ARCH-MANGLED   = _ZN$(shell printf %s '$(call ARCH-NAMESPACE,$(1))' | wc -c | tr -d ' ')$(call ARCH-NAMESPACE,$(1))4mainEiPPKc
+# Mach-O initializer section name: strip the "x86-64" or "x86-64-" prefix,
+# replace remaining '-' with '_', and prefix with "_i_".
+# Mach-O section names are limited to 16 characters, hence this naming scheme.
+ARCH-MACOS-SECTION = _i_$(subst -,_,$(patsubst x86-64,,$(patsubst x86-64-%,%,$(1))))
 
 ifeq ($(TARGET_KERNEL),Darwin)
-    arch-defmain = -Wl,-alias,_$(call arch-mangled,$(1)),_main
+    ARCH-MAIN-LDFLAGS = -Wl,-alias,_$(call ARCH-MANGLED,$(1)),_main
 # lld-link, used on Windows+clang, doesn't accept --defsym, so
-# Define main directly in main.cpp instead and delete it later.
+# define main directly in main.cpp instead and delete it later.
 else ifeq ($(IS_WINDOWS)+$(COMP),yes+clang)
-    arch-defmain = -DUNIVERSAL_NEEDS_MAIN_SHIM
+    ARCH-MAIN-CXXFLAGS = -DUNIVERSAL_NEEDS_MAIN_SHIM
 else
-    arch-defmain = -Wl,--defsym=main=$(call arch-mangled,$(1))
+    ARCH-MAIN-LDFLAGS = -Wl,--defsym=main=$(call ARCH-MANGLED,$(1))
 endif
 
 EMBED_DIR_SUPPORTED := $(shell echo 'int main(){}' | $(CXX) -x c++ --embed-dir=. -o /dev/null -c - 2>/dev/null && echo 1 || echo 0)
@@ -1618,9 +1601,11 @@ ifeq ($(MACOS_X86_SLICE),1)
     SLICE_DEF := -DUNIVERSAL_BINARY_MACOS_X86_SLICE
 endif
 
-arch-cxxflags = $(EMBED_DIR) -DDON=$(call arch-namespace,$(1)) -DUNIVERSAL_BINARY $(SLICE_DEF) \
+ARCH-CXXFLAGS = $(EMBED_DIR) -DDON=$(call ARCH-NAMESPACE,$(1)) \
+                -DUNIVERSAL_BINARY $(SLICE_DEF) \
+                $(ARCH-MAIN-CXXFLAGS) \
                 -Wno-c++26-extensions -Wno-c23-extensions
-arch-ldflags  = $(call arch-defmain,$(1))
+ARCH-LDFLAGS  = $(ARCH-MAIN-LDFLAGS)
 
 UOBJ_TGT ?= universal-object-pgo
 ifeq ($(COMP),clang)
@@ -1646,10 +1631,10 @@ $(NET_SENTINEL): | $(TEMP_DIR)
 	@touch $@
 
 $(NNUE_EMBED_OBJ): $(UNIVERSAL_SRC_DIR)/nnue_embed.cpp $(NET_SENTINEL) | $(TEMP_DIR)
-	$(CXX) -O2 -std=c++20 -Wno-c++26-extensions $(SLICE_DEF) $(MACOS_BUILD_FLAGS) $(EXTRACXXFLAGS) $(EMBED_DIR) -c $< -o $@
+	$(CXX) -O2 -std=c++20 -Wno-c++26-extensions $(SLICE_DEF) $(MACOS_BUILD_FLAGS) $(EXTRA_CXXFLAGS) $(EMBED_DIR) -c $< -o $@
 
 $(UNIVERSAL_ENTRY_OBJ): $(UNIVERSAL_ENTRY_SRC) | $(TEMP_DIR)
-	$(CXX) -O2 -std=c++20 $(MACOS_BUILD_FLAGS) $(EXTRACXXFLAGS) -c $< -o $@
+	$(CXX) -O2 -std=c++20 $(MACOS_BUILD_FLAGS) $(EXTRA_CXXFLAGS) -c $< -o $@
 
 # Symlink tracked top-level items from src/ into temp_builds/<arch>/.
 $(TEMP_DIR)/%/.setup: | $(TEMP_DIR)
@@ -1662,14 +1647,14 @@ $(TEMP_DIR)/%/.setup: | $(TEMP_DIR)
 .SECONDARY: $(patsubst %,$(TEMP_DIR)/%/.setup,$(UNIVERSAL_ARCHES))
 
 $(TEMP_DIR)/%/DON.o: $(TEMP_DIR)/%/.setup $(NNUE_EMBED_OBJ) $(NET_SENTINEL)
-	+ENV_CXXFLAGS='$(ENV_CXXFLAGS) $(call arch-cxxflags,$*)' \
-	 ENV_LDFLAGS='$(ENV_LDFLAGS) $(call arch-ldflags,$*)' \
+	+ENV_CXXFLAGS='$(ENV_CXXFLAGS) $(call ARCH-CXXFLAGS,$*)' \
+	 ENV_LDFLAGS='$(ENV_LDFLAGS) $(call ARCH-LDFLAGS,$*)' \
 	    $(MAKE) -C $(TEMP_DIR)/$* $(UOBJ_TGT) \
 	        ARCH=$* CXX=$(CXX) COMP=$(COMP) \
 	        NNUE_EMBED_OBJ=$(NNUE_EMBED_OBJ)
 ifeq ($(TARGET_KERNEL),Darwin)
 # Rename the initializer section
-	ld -r -rename_section __DATA __mod_init_func __DATA $(call arch-mac-section,$*) $@ -o $@.tmp
+	ld -r -rename_section __DATA __mod_init_func __DATA $(call ARCH-MACOS-SECTION,$*) $@ -o $@.tmp
 	mv $@.tmp $@
 else
 # Drop COMDAT groups; clang LTO leaves them around internalized LOCAL
@@ -1680,15 +1665,15 @@ ifeq ($(USE_LTO_EMIT_ASM),yes)
 	$(OBJCOPY) -N main $@
 else
 # Rename .init_array (Linux) or .ctors (Windows) so we can manually invoke them
-	$(OBJCOPY) --rename-section .init_array=$(call arch-suffix,$*)_init $@
-	$(OBJCOPY) --rename-section .ctors=$(call arch-suffix,$*)_init $@
+	$(OBJCOPY) --rename-section .init_array=$(call ARCH-SUFFIX,$*)_init $@
+	$(OBJCOPY) --rename-section .ctors=$(call ARCH-SUFFIX,$*)_init $@
 # Make the array inert
-	$(OBJCOPY) --set-section-flags $(call arch-suffix,$*)_init=alloc,data $@
+	$(OBJCOPY) --set-section-flags $(call ARCH-SUFFIX,$*)_init=alloc,data $@
 endif
 endif
 
 $(UNIVERSAL_EXE): $(UNIVERSAL_ENTRY_OBJ) $(NNUE_EMBED_OBJ) $(ARCH_OBJS)
-	$(CXX) -o $@ $(UNIVERSAL_ENTRY_OBJ) $(NNUE_EMBED_OBJ) $(ARCH_OBJS) $(UNIVERSAL_BUILD_FLAGS) $(EXTRALDFLAGS)
+	$(CXX) -o $@ $(UNIVERSAL_ENTRY_OBJ) $(NNUE_EMBED_OBJ) $(ARCH_OBJS) $(UNIVERSAL_BUILD_FLAGS) $(EXTRA_LDFLAGS)
 	@echo "Universal binary built: $@"
 
 endif  # UNIVERSAL_BUILD

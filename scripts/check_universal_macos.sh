@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Usage: check_universal_macos.sh DON_EXE [EXPECTED_BENCH]
+# Usage: check_universal_macos.sh DON_EXE
 
 set -eu
 
@@ -8,11 +8,12 @@ DON_EXE=$1
 
 extract() {
     awk -F: -v lbl="$1" '$0 ~ lbl {
-        sub(/^[[:space:]]+/, "", $2); sub(/[[:space:]]+$/, "", $2); print $2; exit
+        sub(/^[[:space:]]+/, "", $2)
+        sub(/[[:space:]]+$/, "", $2)
+        print $2
+        exit
     }'
 }
-
-FAIL=0
 
 BINARY_SIZE=$(wc -c < "$DON_EXE")
 MAX_SIZE=$((150 * 1024 * 1024))
@@ -23,7 +24,9 @@ if [ "$BINARY_SIZE" -gt "$MAX_SIZE" ]; then
     exit 1
 fi
 
-native_bench=$(arch -arm64 "$DON_EXE" bench 2>&1 | extract "Nodes searched" || true)
+FAIL=0
+
+native_bench=$(arch -arm64 "$DON_EXE" bench 2>&1 | extract "Total nodes" || true)
 if [ -z "$native_bench" ]; then
     echo "check_universal_macos.sh: arm64 run produced no bench" >&2
     FAIL=1
@@ -31,7 +34,7 @@ else
     printf 'native (arm64) bench %s\n' "$native_bench" >&2
 fi
 
-x86_bench=$(arch -x86_64 "$DON_EXE" bench 2>&1 | extract "Nodes searched" || true)
+x86_bench=$(arch -x86_64 "$DON_EXE" bench 2>&1 | extract "Total nodes" || true)
 if [ -z "$x86_bench" ]; then
     echo "check_universal_macos.sh: x86_64 (Rosetta) run produced no bench (crashed?)" >&2
     FAIL=1

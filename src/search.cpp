@@ -506,8 +506,8 @@ void Worker::iterative_deepening() noexcept {
 
     ss->pv = &pv;
 
-    Value bestValue = -VALUE_INFINITE;
-
+    Value bestValue         = -VALUE_INFINITE;
+    Value lastCurValue      = -VALUE_INFINITE;
     Depth lastBestMoveDepth = DEPTH_ZERO;
 
     u16 researchCnt = 0;
@@ -665,28 +665,37 @@ void Worker::iterative_deepening() noexcept {
             }
         }
 
+        const bool mateForgotten = lastCurValue != -VALUE_INFINITE && is_mate(lastCurValue)
+                                && (constexpr_abs(rootMoves[0].curValue)  //
+                                      < constexpr_abs(lastCurValue)
+                                    || rootMoves[0].has_bound());
+
         if (threads.is_stopped())
         {
+            const bool lossAborted = pvCur == 0 && rootMoves[0].curValue != -VALUE_INFINITE
+                                  && is_loss(rootMoves[0].curValue) && !rootMoves[0].has_bound();
+
             // An exact mated-in/TB-loss score from an aborted search cannot be trusted:
             // the loss could be delayed or refuted upon exploring the remaining root-moves.
             // Thus here roll back to the score from the previous iteration.
-            if (pvCur == 0 && rootMoves[0].curValue != -VALUE_INFINITE
-                && is_loss(rootMoves[0].curValue) && !rootMoves[0].has_bound())
+            // Do the same if a search has failed to recover a mate score that was found in a previous iteration.
+            if (lossAborted || (mateForgotten && rootMoves[0].curValue != -VALUE_INFINITE))
             {
-                // Bring the last best move to the front for best thread selection
                 if (!lastPV.empty())
                 {
+                    // Bring the last best move to the front for best thread selection
                     rootMoves.move_to_front([&lstPV = std::as_const(lastPV)](
                                               const auto& rm) noexcept { return rm == lstPV[0]; });
 
                     rootMoves[0].pv       = lastPV;
-                    rootMoves[0].curValue = rootMoves[0].uciValue = rootMoves[0].preValue;
+                    rootMoves[0].curValue = rootMoves[0].uciValue = lastCurValue;
+                    rootMoves[0].reset_bound();
 
                     if (mainManager != nullptr)
                         mainManager->pvShown = false;
                 }
                 // For aborted (depth 1) search label the loss score a lower bound
-                else
+                else if (lossAborted)
                     rootMoves[0].bound = Bound::LOWER;
             }
 
@@ -696,7 +705,12 @@ void Worker::iterative_deepening() noexcept {
         if (lastPV.empty() || lastPV[0] != rootMoves[0].pv[0])
             lastBestMoveDepth = rootDepth;
 
-        lastPV = rootMoves[0].pv;
+        // Do not replace (shorter) mate scores from a previous iteration
+        if (!mateForgotten)
+        {
+            lastPV       = rootMoves[0].pv;
+            lastCurValue = rootMoves[0].curValue;
+        }
 
         // Have found "mate in x"?
         if (limit.mate != 0 && is_mate(rootMoves[0].curValue)

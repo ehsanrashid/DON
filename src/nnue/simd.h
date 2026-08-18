@@ -137,16 +137,26 @@ using vec_uint_t = __m128i;
     #define vec_load(src) (*(src))
     #define vec_store(dst, value) *(dst) = (value)
 
-    #if defined(__i386__)
-inline __m128i _mm_cvtsi64_si128(const i64 value) noexcept {
+    #if defined(__i386__)  // 32-bit x86?
+inline __m128i i386_cvtsi64_si128(const i64 value) noexcept {
     return _mm_loadl_epi64(reinterpret_cast<const __m128i*>(&value));
 }
     #endif
-    #if defined(USE_SSE41)
-        #define vec_convert_8_16(a) _mm_cvtepi8_epi16(_mm_cvtsi64_si128(i64(a)))
+    #if defined(USE_SSE41)  // SSE4.1 enabled?
+        #if defined(__i386__)
+            #define vec_convert_8_16(a) _mm_cvtepi8_epi16(SIMD::i386_cvtsi64_si128(i64(a)))
+        #else
+            #define vec_convert_8_16(a) _mm_cvtepi8_epi16(_mm_cvtsi64_si128(i64(a)))
+        #endif
     #else
 inline __m128i vec_convert_8_16(const u64 a) noexcept {
-    const __m128i v8   = _mm_cvtsi64_si128(i64(a));
+    const __m128i v8 =
+        #if defined(__i386__)
+      i386_cvtsi64_si128(i64(a))
+        #else
+      _mm_cvtsi64_si128(i64(a));
+        #endif
+      ;
     const __m128i sign = _mm_cmpgt_epi8(_mm_setzero_si128(), v8);
     return _mm_unpacklo_epi8(v8, sign);
 }
@@ -568,9 +578,8 @@ inline void lsx_m128_add_dpbusd_epi32(__m128i& acc, const __m128i a, const __m12
 template<IndexType TransformedFeatureDimensions, IndexType PSQTBuckets>
 class Tiling final {
    private:
-        // Use __m* types as template arguments, which causes GCC to emit warnings
-        // about losing some attribute information.
-        // This is irrelevant to us as only take their size, so the following pragma are harmless.
+    // Use __m* types as template arguments, which causes GCC to emit warnings about losing some attribute information.
+    // This is irrelevant to us as only take their size, so the following pragma are harmless.
     #if defined(__GNUC__)
         #pragma GCC diagnostic push
         #pragma GCC diagnostic ignored "-Wignored-attributes"

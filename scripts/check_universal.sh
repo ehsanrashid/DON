@@ -31,10 +31,10 @@ snb:x86-64-sse41-popcnt
 ivb:x86-64-sse41-popcnt
 hsw:x86-64-bmi2
 skl:x86-64-bmi2
-skx:x86-64-avx512
-clx:x86-64-vnni512
-icl:x86-64-avx512icl
 adl:x86-64-avxvnni
+#skx:x86-64-avx512
+#clx:x86-64-vnni512
+#icl:x86-64-avx512icl
 "
 
 BINARY_SIZE=$(wc -c < "$DON_EXE")
@@ -46,32 +46,54 @@ if [ "$BINARY_SIZE" -gt "$MAX_SIZE" ]; then
     exit 1
 fi
 
-FAIL=0
+WORK=$(mktemp -d)
+trap 'rm -rf "$WORK"' EXIT
+
 i=0
 for pair in $PAIRS; do
+    case "$pair" in
+        \#*) continue ;;
+    esac
     i=$((i + 1))
     cpu=${pair%%:*}
     expected_compiler=${pair##*:}
-    compiler_out=$("$SDE_EXE" "-$cpu" -- "$DON_EXE" compiler 2>&1 || true)
-    bench_out=$("$SDE_EXE" "-$cpu" -- "$DON_EXE" bench 2>&1 || true)
-    actual_compiler=$(printf '%s\n' "$compiler_out" | awk -F: '/Compilation architecture/ {
-        sub(/^[[:space:]]+/, "", $2)
-        sub(/[[:space:]]+$/, "", $2)
-        print $2
-        exit
-    }')
-    actual_bench=$(printf '%s\n' "$bench_out" | awk -F: '/Total nodes/ {
-        sub(/^[[:space:]]+/, "", $2)
-        sub(/[[:space:]]+$/, "", $2)
-        print $2
-        exit
-    }')
-    if [ "$actual_compiler" != "$expected_compiler" ] || [ "$actual_bench" != "$EXPECTED_BENCH" ]; then
-        printf '===== CPU %s output (expected %s/%s, got %s/%s) =====\n' \
-            "$cpu" "$expected_compiler" "$EXPECTED_BENCH" "${actual_compiler:--}" "$actual_bench" >&2
+    (
+        compiler_out=$("$SDE_EXE" "-$cpu" -- "$DON_EXE" compiler 2>&1 || true)
+        bench_out=$("$SDE_EXE" "-$cpu" -- "$DON_EXE" bench 2>&1 >/dev/null || true)
+        actual_compiler=$(printf '%s\n' "$compiler_out" | awk -F: '/Compilation architecture/ {
+            sub(/^[[:space:]]+/, "", $2)
+            sub(/[[:space:]]+$/, "", $2)
+            print $2
+            exit
+        }')
+        actual_bench=$(printf '%s\n' "$bench_out" | awk -F: '/Total nodes/ {
+            sub(/^[[:space:]]+/, "", $2)
+            sub(/[[:space:]]+$/, "", $2)
+            print $2
+            exit
+        }')
+        if [ "$actual_compiler" != "$expected_compiler" ] || [ "$actual_bench" != "$EXPECTED_BENCH" ]; then
+            printf '===== CPU %s output (expected %s/%s, got %s/%s) =====\n' \
+                "$cpu" "$expected_compiler" "$EXPECTED_BENCH" "${actual_compiler:--}" "$actual_bench" > "$WORK/$i.fail"
+        else
+            printf 'CPU %s ok\n' "$cpu" > "$WORK/$i.log"
+        fi
+    ) &
+done
+wait
+
+FAIL=0
+i=0
+for pair in $PAIRS; do
+    case "$pair" in
+        \#*) continue ;;
+    esac
+    i=$((i + 1))
+    if [ -f "$WORK/$i.fail" ]; then
+        cat "$WORK/$i.fail" >&2
         FAIL=1
     else
-        printf 'CPU %s ok\n' "$cpu" >&2
+        cat "$WORK/$i.log" >&2
     fi
 done
 

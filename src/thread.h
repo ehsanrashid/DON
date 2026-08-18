@@ -29,15 +29,15 @@
 #include <utility>
 #include <vector>
 
-// Ensure SUPPORTS_PTHREADS is defined only if the platform supports pthreads (macOS, MinGW, or explicitly enabled)
-#undef SUPPORTS_PTHREADS
-#if defined(USE_PTHREADS) || defined(__APPLE__) || defined(__MINGW64__) || defined(__MINGW32__)
-    #define SUPPORTS_PTHREADS
+// MSVC-compatible toolchains use std::thread because they do not provide pthreads by default.
+// On all other platforms, pthreads is required and used.
+#if !defined(_MSC_VER)
+    #define USE_PTHREAD
 #endif
 
-#if defined(SUPPORTS_PTHREADS)
+#if defined(USE_PTHREAD)
     #include <pthread.h>
-#else  // Default case: use STL classes
+#else  // Default case: use the C++ standard library
     #include <thread>
 #endif
 
@@ -51,7 +51,7 @@ namespace DON {
 
 using JobFunc = std::function<void()>;
 
-#if defined(SUPPORTS_PTHREADS)
+#if defined(USE_PTHREAD)
 
 // On OSX threads other than the main-thread are created with a reduced stack
 // size of 512KB by default, this is too low for deep searches,

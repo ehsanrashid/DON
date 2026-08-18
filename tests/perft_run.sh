@@ -23,23 +23,33 @@ shopt -s nullglob
 
 #FILES=("$DIRECTORY"/*.in)
 
-FILES=()
+FILES=""
+NEWLINE='
+'
 
 # Put start.in first if it exists
-if [[ -f "$DIRECTORY/start.in" ]]; then
-    FILES+=("$DIRECTORY/start.in")
+if [ -f "$DIRECTORY/start.in" ]; then
+    FILES="$DIRECTORY/start.in"
 fi
 
 # Append all other .in files except start.in
 for f in "$DIRECTORY"/*.in; do
-    [[ ${f##*/} == "start.in" ]] && continue
-    FILES+=("$f")
+    [ "${f##*/}" = "start.in" ] && continue
+    # Avoid the literal "*.in" when no files exist
+    [ -f "$f" ] || continue
+    if [ -n "$FILES" ]; then
+        FILES="$FILES$NEWLINE$f"
+    else
+        FILES="$f"
+    fi
 done
 
-if [[ ${#FILES[@]} -eq 0 ]]; then
+if [ -z "$FILES" ]; then
     echo "No .in files found in $DIRECTORY"
     exit 1
 fi
+
+printf 'FILES=\n%s\n\n' "$FILES"
 
 run_direct() {
     local FEN="$1" DEPTH="$2"
@@ -86,7 +96,7 @@ echo
 
 TESTS_FAILED=0
 
-for f in "${FILES[@]}"; do
+for f in $FILES; do
     echo "==> Test file: $f"
     # Parse file: first non-empty, non-comment line is FEN; line with "depth N" supplies depth.
     FEN=""
@@ -95,27 +105,30 @@ for f in "${FILES[@]}"; do
         # Trim leading/trailing whitespace
         line="${line#"${line%%[![:space:]]*}"}"
         line="${line%"${line##*[![:space:]]}"}"
-        [[ -z "$line" ]] && continue
-        [[ "${line:0:1}" = "#" ]] && continue
-        if [[ -z "$FEN" ]]; then
+        [ -z "$line" ] && continue
+        case "$line" in
+            \#*) continue ;;
+        esac
+        if [ -z "$FEN" ]; then
             FEN="$line"
             continue
         fi
-        if [[ "$line" =~ depth[[:space:]]+([0-9]+) ]]; then
-            DEPTH="${BASH_REMATCH[1]}"
+        depth=$(printf '%s\n' "$line" |
+            sed -n 's/.*depth[[:space:]]\+\([0-9][0-9]*\).*/\1/p')
+        if [ -n "$depth" ]; then
+            DEPTH="$depth"
         fi
     done < "$f"
-    
-    if [[ -z "$FEN" || -z "$DEPTH" ]]; then
+    if [ -z "$FEN" ] || [ -z "$DEPTH" ]; then
         echo "  >> Invalid test file format (need FEN line and 'depth N')"
         TESTS_FAILED=1
         continue
     fi
-    
+
     echo "  FEN: $FEN"
     echo "  depth: $DEPTH"
     echo
-    
+
     #  echo "  Trying direct CLI invocation..."
     #  set +e
     #  out="$(run_direct "$FEN" "$DEPTH" 2>&1)"
@@ -127,7 +140,7 @@ for f in "${FILES[@]}"; do
     #    echo
     #    continue
     #  fi
-    
+
     echo "  Trying UCI-style stdin invocation..."
     set +e
     out="$(run_uci "$FEN" "$DEPTH" 2>&1)"
@@ -139,13 +152,12 @@ for f in "${FILES[@]}"; do
         echo
         continue
     fi
-    
     echo "  Engine did not respond to any attempted perft invocation for this test."
     echo "  You may need to adapt tests/perft_run.sh to match your engine's perft interface."
     TESTS_FAILED=1
 done
 
-if [[ $TESTS_FAILED -ne 0 ]]; then
+if [ "$TESTS_FAILED" != 0 ]; then
     echo "One or more perft tests failed or were unsupported by the engine interface."
     exit 1
 fi

@@ -337,15 +337,13 @@ class AffineTransformSparseInput final {
         IndexType count = 0;
         for (IndexType i = 0; i < SimdChunks; ++i)
         {
-            const __m512i inputV0 =
-              _mm512_load_si512(input + i * 2 * InSimdWidth + 0 * InSimdWidth);
-            const __m512i inputV1 =
-              _mm512_load_si512(input + i * 2 * InSimdWidth + 1 * InSimdWidth);
+            const __m512i iv0 = _mm512_load_si512(input + i * 2 * InSimdWidth + 0 * InSimdWidth);
+            const __m512i iv1 = _mm512_load_si512(input + i * 2 * InSimdWidth + 1 * InSimdWidth);
 
             // Get a bitmask and gather non-zero indices
-            const __m512i   inputV01 = _mm512_packs_epi32(inputV0, inputV1);
-            const __mmask32 nnzMask  = _mm512_test_epi16_mask(inputV01, inputV01);
-            const __m512i   nnzVal   = _mm512_maskz_compress_epi16(nnzMask, base);
+            const __m512i   iv01    = _mm512_packs_epi32(iv0, iv1);
+            const __mmask32 nnzMask = _mm512_test_epi16_mask(iv01, iv01);
+            const __m512i   nnzVal  = _mm512_maskz_compress_epi16(nnzMask, base);
 
             _mm512_storeu_si512(outNnz + count, nnzVal);
 
@@ -363,10 +361,10 @@ class AffineTransformSparseInput final {
         IndexType count = 0;
         for (IndexType i = 0; i < SimdChunks; ++i)
         {
-            const __m512i inputV = _mm512_load_si512(input + i * OutSimdWidth * sizeof(u32));
+            const __m512i iv = _mm512_load_si512(input + i * OutSimdWidth * sizeof(u32));
 
             // Get a bitmask and gather non-zero indices
-            const __mmask16 nnzMask = _mm512_test_epi32_mask(inputV, inputV);
+            const __mmask16 nnzMask = _mm512_test_epi32_mask(iv, iv);
             const __m512i   nnzVal  = _mm512_maskz_compress_epi32(nnzMask, base);
 
             _mm512_mask_cvtepi32_storeu_epi16(outNnz + count, 0xFFFF, nnzVal);
@@ -394,11 +392,11 @@ class AffineTransformSparseInput final {
             IndexType count = 0;
             for (IndexType i = 0; i < SimdChunks; ++i)
             {
-                const uint32x4_t v0 = inputVector[i * 2 + 0];
-                const uint32x4_t v1 = inputVector[i * 2 + 1];
+                const uint32x4_t iv0 = inputVector[i * 2 + 0];
+                const uint32x4_t iv1 = inputVector[i * 2 + 1];
 
                 const uint16x8_t nonzeroMask =
-                  vcombine_u16(vqmovn_u32(vtstq_u32(v0, v0)), vqmovn_u32(vtstq_u32(v1, v1)));
+                  vcombine_u16(vqmovn_u32(vtstq_u32(iv0, iv0)), vqmovn_u32(vtstq_u32(iv1, iv1)));
                 const uint16_t nnzMask =
                   vaddvq_u16(vandq_u16(nonzeroMask, vld1q_u16(nnzMasks.data())));
 
@@ -435,9 +433,9 @@ class AffineTransformSparseInput final {
                 unsigned nnzMask = 0;
                 for (IndexType j = 0; j < InputsPerChunk; ++j)
                 {
-                    const SIMD::vec_uint_t inputChunk = inputVector[i * InputsPerChunk + j];
+                    const SIMD::vec_uint_t iv = inputVector[i * InputsPerChunk + j];
 
-                    nnzMask |= unsigned(vec_nnz(inputChunk)) << (j * InputSimdWidth);
+                    nnzMask |= unsigned(vec_nnz(iv)) << (j * InputSimdWidth);
                 }
 
                 const SIMD::vec128_t offsets = vec128_load(
