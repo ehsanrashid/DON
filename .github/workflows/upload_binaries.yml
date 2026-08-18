@@ -48,30 +48,30 @@ jobs:
 
       - name: Copy files
         run: |
-          mv "$NAME $BINARY" DON-workflow
+          mv "$SIMPLE_NAME $BINARY" DON-workflow
           cd DON-workflow
           cp -r src ../DON/
           cp -r scripts ../DON/
-          cp DON-$NAME-$BINARY$EXT ../DON/
+          cp DON-$SIMPLE_NAME-$BINARY$EXT ../DON/
           cp Copying.txt ../DON/
           cp CITATION.cff ../DON/
           cp README.md ../DON/
           cp CONTRIBUTING.md ../DON/
 
       - name: Make binary executable
-        run: chmod +x "./DON/DON-$NAME-$BINARY$EXT"
+        run: chmod +x "./DON/DON-$SIMPLE_NAME-$BINARY$EXT"
 
       - name: Create tar
         if: startsWith(env.ARCHIVE_EXT, 'tar')
         run: |
           echo "Creating TAR..."
-          tar -cavf "DON-$NAME-$BINARY.$ARCHIVE_EXT" DON
+          tar -cavf "DON-$SIMPLE_NAME-$BINARY.$ARCHIVE_EXT" DON
 
       - name: Create zip
         if: env.ARCHIVE_EXT == 'zip'
         run: |
           echo "Creating ZIP..."
-          zip -r "DON-$NAME-$BINARY.zip" DON
+          zip -r "DON-$SIMPLE_NAME-$BINARY.zip" DON
 
       # Make sure that an old CI run on main doesn't recreate a prerelease
       - name: Check Pullable Commits
