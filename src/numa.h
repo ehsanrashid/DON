@@ -405,11 +405,11 @@ inline const auto LIKELY_USE_CPUS_1 = PROCESSOR_AFFINITY.likely_use_cpus(1);
 // Type machinery used to emulate Cache->GroupCount
 
 template<typename T, typename = void>
-struct HasGroupCount: std::bool_constant<false> {};
+struct HasGroupCount: std::bool_constant<false> { };
 
 template<typename T>
 struct HasGroupCount<T, std::void_t<decltype(std::declval<T>().Cache.GroupCount)>>
-    : std::bool_constant<true> {};
+    : std::bool_constant<true> { };
 
 template<typename T, typename Pred>
 CpuIndexSet read_cache_members(const T* processorInfo, Pred&& is_cpu_allowed) noexcept {
@@ -520,10 +520,10 @@ inline const auto PROCESSOR_AFFINITY = get_process_affinity();
 class NumaReplicatedAccessToken final {
    public:
     NumaReplicatedAccessToken() noexcept :
-        NumaReplicatedAccessToken(0) {}
+        NumaReplicatedAccessToken(0) { }
 
     explicit NumaReplicatedAccessToken(NumaIndex numaIdx) noexcept :
-        numaId(numaIdx) {}
+        numaId(numaIdx) { }
 
     NumaIndex numa_id() const noexcept { return numaId; }
 
@@ -538,9 +538,9 @@ struct L3Domain final {
 };
 
 // Use system-reported NUMA nodes
-struct SystemNumaPolicy {};
+struct SystemNumaPolicy { };
 // Use system-reported L3 domains
-struct L3DomainsPolicy {};
+struct L3DomainsPolicy { };
 // Group system-reported L3 domains into bundles up to bundleSize
 struct BundledL3Policy {
    public:
@@ -1496,7 +1496,7 @@ class NumaReplicated final: public BaseNumaReplicated {
 
     NumaReplicated(NumaReplicated&& numaRep) noexcept :
         BaseNumaReplicated(std::move(numaRep)),
-        instances(std::exchange(numaRep.instances, {})) {}
+        instances(std::exchange(numaRep.instances, {})) { }
     NumaReplicated& operator=(NumaReplicated&& numaRep) noexcept {
         if (this == &numaRep)
             return *this;
@@ -1581,7 +1581,7 @@ class LazyNumaReplicated final: public BaseNumaReplicated {
 
     LazyNumaReplicated(LazyNumaReplicated&& lazyNumaRep) noexcept :
         BaseNumaReplicated(std::move(lazyNumaRep)),
-        instances(std::exchange(lazyNumaRep.instances, {})) {}
+        instances(std::exchange(lazyNumaRep.instances, {})) { }
     LazyNumaReplicated& operator=(LazyNumaReplicated&& lazyNumaRep) noexcept {
         if (this == &lazyNumaRep)
             return *this;
@@ -1692,7 +1692,7 @@ class SystemWideLazyNumaReplicated final: public BaseNumaReplicated {
 
     SystemWideLazyNumaReplicated(SystemWideLazyNumaReplicated&& sysNumaRep) noexcept :
         BaseNumaReplicated(std::move(sysNumaRep)),
-        instances(std::exchange(sysNumaRep.instances, {})) {}
+        instances(std::exchange(sysNumaRep.instances, {})) { }
     SystemWideLazyNumaReplicated& operator=(SystemWideLazyNumaReplicated&& sysNumaRep) noexcept {
         if (this == &sysNumaRep)
             return *this;
@@ -1823,7 +1823,7 @@ class SystemWideLazyNumaReplicated final: public BaseNumaReplicated {
 class NumaReplicationContext final {
    public:
     explicit NumaReplicationContext(NumaConfig&& numaCfg) noexcept :
-        numaConfig(std::move(numaCfg)) {}
+        numaConfig(std::move(numaCfg)) { }
 
     NumaReplicationContext(const NumaReplicationContext&) noexcept            = delete;
     NumaReplicationContext& operator=(const NumaReplicationContext&) noexcept = delete;

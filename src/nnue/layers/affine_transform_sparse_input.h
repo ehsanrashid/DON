@@ -131,15 +131,15 @@ class AffineTransformSparseInput final {
     #if defined(USE_AVX512)
         using invec_t  = __m512i;
         using outvec_t = __m512i;
-        #define vec_add_32 _mm512_add_epi32
         #define vec_set_32 _mm512_set1_epi32
         #define vec_add_dpbusd_32 SIMD::m512_add_dpbusd_epi32
+        #define vec_add_32 _mm512_add_epi32
     #elif defined(USE_AVX2)
         using invec_t  = __m256i;
         using outvec_t = __m256i;
-        #define vec_add_32 _mm256_add_epi32
         #define vec_set_32 _mm256_set1_epi32
         #define vec_add_dpbusd_32 SIMD::m256_add_dpbusd_epi32
+        #define vec_add_32 _mm256_add_epi32
     #elif defined(USE_SSSE3)
         using invec_t  = __m128i;
         using outvec_t = __m128i;
@@ -160,15 +160,15 @@ class AffineTransformSparseInput final {
     #elif defined(USE_LASX)
         using invec_t  = __m256i;
         using outvec_t = __m256i;
-        #define vec_add_32 __lasx_xvadd_w
         #define vec_set_32 __lasx_xvreplgr2vr_w
         #define vec_add_dpbusd_32 SIMD::lasx_m256_add_dpbusd_epi32
+        #define vec_add_32 __lasx_xvadd_w
     #elif defined(USE_LSX)
         using invec_t  = __m128i;
         using outvec_t = __m128i;
-        #define vec_add_32 __lsx_vadd_w
         #define vec_set_32 __lsx_vreplgr2vr_w
         #define vec_add_dpbusd_32 SIMD::lsx_m128_add_dpbusd_epi32
+        #define vec_add_32 __lsx_vadd_w
     #endif
 
         constexpr IndexType OutputSimdWidth = sizeof(outvec_t) / sizeof(OutputType);
@@ -198,6 +198,9 @@ class AffineTransformSparseInput final {
         for (IndexType k = 0; k < AccCount; ++k)
             acc[k] = biasVec[k];
 
+        // convince GCC to not do weird pointer arithmetic in the following loops
+        const i8* cpWeights = weights.data();
+
         const auto* RESTRICT       p   = nnz.data();
         const auto* const RESTRICT end = p + count;
 
@@ -223,9 +226,9 @@ class AffineTransformSparseInput final {
             const invec_t in1 = vec_set_32(load_as<i32>(input + i1 * sizeof(i32)));
             const invec_t in2 = vec_set_32(load_as<i32>(input + i2 * sizeof(i32)));
 
-            const invec_t* col0 = reinterpret_cast<const invec_t*>(&weights[i0 * OutputDimensions * ChunkSize]);
-            const invec_t* col1 = reinterpret_cast<const invec_t*>(&weights[i1 * OutputDimensions * ChunkSize]);
-            const invec_t* col2 = reinterpret_cast<const invec_t*>(&weights[i2 * OutputDimensions * ChunkSize]);
+            const invec_t* col0 = reinterpret_cast<const invec_t*>(&cpWeights[i0 * OutputDimensions * ChunkSize]);
+            const invec_t* col1 = reinterpret_cast<const invec_t*>(&cpWeights[i1 * OutputDimensions * ChunkSize]);
+            const invec_t* col2 = reinterpret_cast<const invec_t*>(&cpWeights[i2 * OutputDimensions * ChunkSize]);
 
             for (IndexType k = 0; k < AccCount; ++k)
             {
@@ -255,7 +258,7 @@ class AffineTransformSparseInput final {
 
             const invec_t in = vec_set_32(load_as<i32>(input + i * sizeof(i32)));
 
-            const invec_t* col = reinterpret_cast<const invec_t*>(&weights[i * OutputDimensions * ChunkSize]);
+            const invec_t* col = reinterpret_cast<const invec_t*>(&cpWeights[i * OutputDimensions * ChunkSize]);
 
             for (IndexType k = 0; k < AccCount; ++k)
                 vec_add_dpbusd_32(acc[k], in, col[k]);
@@ -267,11 +270,9 @@ class AffineTransformSparseInput final {
         for (IndexType k = 0; k < AccCount; ++k)
             outVec[k] = acc[k];
 
-    #if defined(vec_add_32)
-        #undef vec_add_32
-    #endif
     #undef vec_set_32
     #undef vec_add_dpbusd_32
+    #undef vec_add_32
 #else
         // Use dense fallback implementation for the other architectures
         transform_affine_non_ssse3<InputDimensions, PaddedInputDimensions, OutputDimensions>(

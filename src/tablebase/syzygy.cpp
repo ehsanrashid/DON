@@ -58,8 +58,8 @@ namespace DON::Tablebase::Syzygy {
 
 #if defined(NO_TABLEBASES)
 
-void init() noexcept {}
-void init(std::string_view) noexcept {}
+void init() noexcept { }
+void init(std::string_view) noexcept { }
 
 WDLScore probe_wdl(Position&, ProbeState* ps) noexcept {
     *ps = PS_FAIL;
@@ -321,7 +321,7 @@ class TBFile final {
     }
 
     TBFile(std::string_view base, std::string_view ext) noexcept :
-        TBFile{std::filesystem::path(base).concat(ext).string()} {}
+        TBFile{std::filesystem::path(base).concat(ext).string()} { }
 
     std::string_view file_name() const noexcept { return filename; }
 
@@ -963,7 +963,7 @@ class TBTables final {
         Entry() noexcept = default;
         Entry(Key k, BaseTBTable* wdlTable, BaseTBTable* dtzTable) noexcept :
             key(k),
-            tables{wdlTable, dtzTable} {}
+            tables{wdlTable, dtzTable} { }
 
         usize bucket() const noexcept { return key & MASK; }
 

@@ -246,7 +246,7 @@ void Position::set(std::string_view fens, State* newSt) noexcept {
     auto peek        = [&p, end]() noexcept -> ichar { return p < end ? *p : '\0'; };
     auto skip_spaces = [&p, end]() noexcept {
         for (; p < end && std::isspace(uchar(*p)); ++p)
-        {}
+        { }
     };
     auto not_space = [&p, end]() noexcept -> bool { return p < end && !std::isspace(uchar(*p)); };
     auto get       = [&p, end]() noexcept -> ichar { return p < end ? *p++ : '\0'; };
@@ -921,8 +921,8 @@ DirtyBoard Position::do_move(const Move          m,
         do_castling<true>(ac, orgSq, dstSq, rookOrgSq, rookDstSq, &db);
         assert(rookOrgSq == m.dst_sq());
 
-        movedKey = Zobrist::piece_square(ac, movedPt, orgSq)  //
-                 ^ Zobrist::piece_square(ac, movedPt, dstSq);
+        movedKey    = Zobrist::piece_square(ac, movedPt, orgSq)  //
+                    ^ Zobrist::piece_square(ac, movedPt, dstSq);
         Key rookKey = Zobrist::piece_square(ac, ROOK, rookOrgSq)  //
                     ^ Zobrist::piece_square(ac, ROOK, rookDstSq);
 

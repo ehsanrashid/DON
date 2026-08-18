@@ -43,6 +43,11 @@ jobs:
       - name: Check include-what-you-use
         run: include-what-you-use --version
 
+      - name: Check build configuration
+        run: |
+          make -pn COMP=clang CXX=include-what-you-use 2>/dev/null |
+            grep '^ARCH[[:space:]]*[:?+]*=' || true
+
       - name: Check includes
         run: >
           make analyze

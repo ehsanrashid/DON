@@ -63,7 +63,7 @@ constexpr std::string_view Version{"dev"};
 
     // Skip spaces
     for (; p < end && std::isspace(uchar(*p)); ++p)
-    {}
+    { }
 
     // Parse day (1-2 digits)
     if (end - p < 1 || !std::isdigit(uchar(*p)))
@@ -81,7 +81,7 @@ constexpr std::string_view Version{"dev"};
 
     // Skip spaces/comma
     for (; p < end && (std::isspace(uchar(*p)) || *p == ','); ++p)
-    {}
+    { }
 
     // Parse year (4 digits)
     if (end - p < 4)
@@ -404,7 +404,7 @@ std::string compiler_info() noexcept {
 #if defined(USE_BMI2)
     compiler.append(" BMI2");
     #if defined(USE_CMP)
-    compiler.append("-CMP");
+    compiler.append(" CMP");
     #endif
 #endif
 #if defined(USE_AVX2)
@@ -597,7 +597,7 @@ void min_of(i64 value, usize slot) noexcept {
              && !mn.compare_exchange_weak(minValue, value,            //
                                           std::memory_order_relaxed,  //
                                           std::memory_order_relaxed);)
-        {}
+        { }
     }
 }
 
@@ -615,7 +615,7 @@ void max_of(i64 value, usize slot) noexcept {
              && !mx.compare_exchange_weak(maxValue, value,            //
                                           std::memory_order_relaxed,  //
                                           std::memory_order_relaxed);)
-        {}
+        { }
     }
 }
 
@@ -633,7 +633,7 @@ void extreme_of(i64 value, usize slot) noexcept {
              && !mn.compare_exchange_weak(minValue, value,            //
                                           std::memory_order_relaxed,  //
                                           std::memory_order_relaxed);)
-        {}
+        { }
     }
     {
         auto& mx = info[2];
@@ -642,7 +642,7 @@ void extreme_of(i64 value, usize slot) noexcept {
              && !mx.compare_exchange_weak(maxValue, value,            //
                                           std::memory_order_relaxed,  //
                                           std::memory_order_relaxed);)
-        {}
+        { }
     }
 }
 

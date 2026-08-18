@@ -37,10 +37,10 @@ using RangeFun = Range (*)(int);
 struct RangeSetter final {
    public:
     explicit RangeSetter(RangeFun f) noexcept :
-        rangeFun(f) {}
+        rangeFun(f) { }
     RangeSetter(int min, int max) noexcept :
         rangeFun(nullptr),
-        range(min, max) {}
+        range(min, max) { }
 
     Range operator()(int v) const noexcept { return rangeFun != nullptr ? rangeFun(v) : range; }
 
@@ -116,7 +116,7 @@ class Tune final {
         Entry(const std::string& n, T& v, const RangeSetter& r) noexcept :
             name(n),
             value(v),
-            range(r) {}
+            range(r) { }
 
         // Because 'value' is a reference
         Entry(const Entry&) noexcept            = delete;
