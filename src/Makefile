@@ -145,9 +145,9 @@ VPATH := nnue:nnue/features:book:tablebase
 # cmp = yes/no        --- -DUSE_CMP          --- Internal flag for compressed-optimized variants
 # avxvnni = yes/no    --- -mavxvnni          --- Use Intel Vector Neural Network Instructions AVX
 # avx512 = yes/no     --- -mavx512bw         --- Use Intel Advanced Vector Extensions 512
-# vnni256 = yes/no    --- -mavx256vnni       --- Use Intel Vector Neural Network Instructions 512 with 256bit operands
+# vnni256 = yes/no    --- -mavx512vnni[256]  --- Use Intel Vector Neural Network Instructions 512 with 256bit operands
 # vnni512 = yes/no    --- -mavx512vnni       --- Use Intel Vector Neural Network Instructions 512
-# avx512icl = yes/no  --- ... multiple ...   --- Use All AVX-512 features available on both Intel Ice Lake and AMD Zen 4
+# avx512icl = yes/no  --- -mavx512cd ...     --- Use All AVX-512 features available on both Intel Ice Lake and AMD Zen 4
 # altivec = yes/no    --- -maltivec          --- Use PowerPC Altivec SIMD extension
 # vsx = yes/no        --- -mvsx              --- Use POWER VSX SIMD extension
 # neon = yes/no       --- -DUSE_NEON         --- Use ARM SIMD architecture
@@ -850,23 +850,23 @@ endif
 
 ### 3.6 SIMD architectures
 ifeq ($(avx512icl),yes)
-    CXXFLAGS += -DUSE_AVX512ICL
+    CXXFLAGS += -DUSE_AVX512 -DUSE_VNNI -DUSE_AVX512ICL
     ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
-        CXXFLAGS += -mavx512vnni -mavx512f -mavx512bw -mavx512dq -mavx512vl -mavx512vbmi2 -mavx512vbmi -mavx512vpopcntdq -mavx512bitalg -mavx512ifma -mavx512cd -mvpclmulqdq -mgfni -mvaes
+        CXXFLAGS += -mavx512f -mavx512bw -mavx512dq -mavx512vl -mavx512vnni -mavx512cd -mavx512ifma -mavx512vbmi -mavx512vbmi2 -mavx512vpopcntdq -mavx512bitalg -mvpclmulqdq -mgfni -mvaes
     endif
 endif
 
 ifeq ($(vnni512),yes)
     CXXFLAGS += -DUSE_VNNI
     ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
-        CXXFLAGS += -mavx512vnni -mavx512f -mavx512bw -mavx512dq -mavx512vl -mprefer-vector-width=512
+        CXXFLAGS += -mavx512f -mavx512bw -mavx512dq -mavx512vl -mavx512vnni -mprefer-vector-width=512
     endif
 endif
 
 ifeq ($(vnni256),yes)
     CXXFLAGS += -DUSE_VNNI
     ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
-        CXXFLAGS += -mavx512vnni -mavx512f -mavx512bw -mavx512dq -mavx512vl -mprefer-vector-width=256
+        CXXFLAGS += -mavx512f -mavx512bw -mavx512dq -mavx512vl -mavx512vnni -mprefer-vector-width=256
     endif
 endif
 
@@ -878,7 +878,7 @@ ifeq ($(avx512),yes)
 endif
 
 ifeq ($(avxvnni),yes)
-    CXXFLAGS += -DUSE_AVXVNNI -DUSE_VNNI
+    CXXFLAGS += -DUSE_VNNI -DUSE_AVXVNNI
     ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
         CXXFLAGS += -mavxvnni
     endif

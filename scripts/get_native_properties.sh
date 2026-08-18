@@ -237,8 +237,8 @@ set_arch_x86_64() {
     true_arch=$(
     select_arch_from_table <<'EOF'
 # Strongest -> weakest (first match wins)
-x86-64-avx512icl|match_flags|avx512vnni avx512f avx512bw avx512dq avx512vl avx512cd avx512ifma avx512vbmi avx512vbmi2 avx512vpopcntdq avx512bitalg vpclmulqdq gfni vaes
-x86-64-vnni512|match_flags|avx512vnni avx512f avx512bw avx512dq avx512vl
+x86-64-avx512icl|match_flags|avx512f avx512bw avx512dq avx512vl avx512vnni avx512cd avx512ifma avx512vbmi avx512vbmi2 avx512vpopcntdq avx512bitalg vpclmulqdq gfni vaes
+x86-64-vnni512|match_flags|avx512f avx512bw avx512dq avx512vl avx512vnni
 x86-64-avx512|match_flags|avx512f avx512bw
 x86-64-avxvnni|match_flags|avxvnni
 x86-64-bmi2|match_not_slow_bmi2_and_flags|bmi2

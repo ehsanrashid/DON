@@ -201,6 +201,9 @@ class AffineTransformSparseInput final {
         // convince GCC to not do weird pointer arithmetic in the following loops
         const i8* cpWeights = weights.data();
 
+        const auto* RESTRICT       p   = nnz.data();
+        const auto* const RESTRICT end = p + count;
+
             // clang-format off
     #if defined(USE_VNNI) || defined(USE_LASX) || defined(USE_NEON_DOTPROD)
 
@@ -212,9 +215,6 @@ class AffineTransformSparseInput final {
               vdupq_n_s32(0)
         #endif
               ;
-
-        const auto* RESTRICT       p   = nnz.data();
-        const auto* const RESTRICT end = p + count;
 
         for (; p + 2 < end; p += 3)
         {
