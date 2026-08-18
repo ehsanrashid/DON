@@ -128,13 +128,13 @@ class AffineTransformSparseInput final {
 
 #if defined(USE_SSSE3) || defined(USE_LASX) || defined(USE_LSX) \
   || (defined(USE_NEON) && USE_NEON >= 8)
-    #if defined(USE_AVX512)
-        using invec_t  = __m512i;
-        using outvec_t = __m512i;
-        #define vec_set_32 _mm512_set1_epi32
-        #define vec_add_dpbusd_32 SIMD::m512_add_dpbusd_epi32
-        #define vec_add_32 _mm512_add_epi32
-    #elif defined(USE_AVX2)
+    // #if defined(USE_AVX512)
+    //     using invec_t  = __m512i;
+    //     using outvec_t = __m512i;
+    //     #define vec_set_32 _mm512_set1_epi32
+    //     #define vec_add_dpbusd_32 SIMD::m512_add_dpbusd_epi32
+    //     #define vec_add_32 _mm512_add_epi32
+    #if defined(USE_AVX2)
         using invec_t  = __m256i;
         using outvec_t = __m256i;
         #define vec_set_32 _mm256_set1_epi32
@@ -352,28 +352,28 @@ class AffineTransformSparseInput final {
             base = _mm512_add_epi16(base, increment);
         }
         outCount = count;
-    #elif defined(USE_AVX512)
-        constexpr IndexType OutSimdWidth = 16;  // 512 bits / 32 bits
-        constexpr IndexType SimdChunks   = ChunkCount / OutSimdWidth;
+    // #elif defined(USE_AVX512)
+    //     constexpr IndexType OutSimdWidth = 16;  // 512 bits / 32 bits
+    //     constexpr IndexType SimdChunks   = ChunkCount / OutSimdWidth;
 
-        const __m512i increment = _mm512_set1_epi32(OutSimdWidth);
-        __m512i       base = _mm512_set_epi32(15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0);
+    //     const __m512i increment = _mm512_set1_epi32(OutSimdWidth);
+    //     __m512i       base = _mm512_set_epi32(15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0);
 
-        IndexType count = 0;
-        for (IndexType i = 0; i < SimdChunks; ++i)
-        {
-            const __m512i iv = _mm512_load_si512(input + i * OutSimdWidth * sizeof(u32));
+    //     IndexType count = 0;
+    //     for (IndexType i = 0; i < SimdChunks; ++i)
+    //     {
+    //         const __m512i iv = _mm512_load_si512(input + i * OutSimdWidth * sizeof(u32));
 
-            // Get a bitmask and gather non-zero indices
-            const __mmask16 nnzMask = _mm512_test_epi32_mask(iv, iv);
-            const __m512i   nnzVal  = _mm512_maskz_compress_epi32(nnzMask, base);
+    //         // Get a bitmask and gather non-zero indices
+    //         const __mmask16 nnzMask = _mm512_test_epi32_mask(iv, iv);
+    //         const __m512i   nnzVal  = _mm512_maskz_compress_epi32(nnzMask, base);
 
-            _mm512_mask_cvtepi32_storeu_epi16(outNnz + count, 0xFFFF, nnzVal);
+    //         _mm512_mask_cvtepi32_storeu_epi16(outNnz + count, 0xFFFF, nnzVal);
 
-            count += popcount(nnzMask);
-            base = _mm512_add_epi32(base, increment);
-        }
-        outCount = count;
+    //         count += popcount(nnzMask);
+    //         base = _mm512_add_epi32(base, increment);
+    //     }
+    //     outCount = count;
     #else
         #if defined(USE_NEON)
         // NEON path using u8 NNZOutput

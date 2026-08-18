@@ -108,13 +108,13 @@ class FeatureTransformer final {
     // integers loaded from the data results in the pre-permutation order
     static constexpr auto PackusEpi16Order = []() -> Array<usize, 8> {
         return
-#if defined(USE_AVX512)
-          // _mm512_packus_epi16 after permutation:
-          // |   0   |   2   |   4   |   6   | // Vector 0
-          // |   1   |   3   |   5   |   7   | // Vector 1
-          // | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | // Packed Result
-          {0, 2, 4, 6, 1, 3, 5, 7};
-#elif defined(USE_AVX2) || defined(USE_LASX)
+// #if defined(USE_AVX512)
+//           // _mm512_packus_epi16 after permutation:
+//           // |   0   |   2   |   4   |   6   | // Vector 0
+//           // |   1   |   3   |   5   |   7   | // Vector 1
+//           // | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | // Packed Result
+//           {0, 2, 4, 6, 1, 3, 5, 7};
+#if defined(USE_AVX2) || defined(USE_LASX)
           // _mm256_packus_epi16 after permutation:
           // |   0   |   2   |  |   4   |   6   | // Vector 0, 2
           // |   1   |   3   |  |   5   |   7   | // Vector 1, 3
