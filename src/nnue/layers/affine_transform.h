@@ -190,7 +190,7 @@ class AffineTransform final {
     }
 
     // Forward propagation
-    void propagate(const InputType* input, OutputType* output) const noexcept {
+    void propagate(const InputType* RESTRICT input, OutputType* RESTRICT output) const noexcept {
 
 #if defined(USE_SSSE3) || defined(USE_LASX) || defined(USE_LSX) || defined(USE_NEON_DOTPROD)
         if constexpr (OutputDimensions > 1)

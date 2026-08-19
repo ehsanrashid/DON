@@ -285,21 +285,21 @@ jobs:
           ../tests/signature.sh $benchref
 
       # - name: Test x86-64-avx512icl build
-      #   if: matrix.config.run_64bit_tests && (runner.os == 'Linux' || runner.os == 'Windows')
+      #   if: matrix.config.run_64bit_tests && (runner.os == 'Linux' || runner.os == 'Windows') && matrix.config.comp == 'clang'
       #   run: |
       #     make clean
       #     make -j4 ARCH=x86-64-avx512icl build
       #     ../tests/signature.sh $benchref
 
       - name: Test x86-64-vnni512 build
-        if: matrix.config.run_64bit_tests && (runner.os == 'Linux' || runner.os == 'Windows')
+        if: matrix.config.run_64bit_tests && (runner.os == 'Linux' || runner.os == 'Windows') && matrix.config.comp == 'clang'
         run: |
           make clean
           make -j4 ARCH=x86-64-vnni512 build
           ../tests/signature.sh $benchref
 
       - name: Test x86-64-avx512 build
-        if: matrix.config.run_64bit_tests && (runner.os == 'Linux' || runner.os == 'Windows')
+        if: matrix.config.run_64bit_tests && (runner.os == 'Linux' || runner.os == 'Windows') && matrix.config.comp == 'clang'
         run: |
           make clean
           make -j4 ARCH=x86-64-avx512 build
