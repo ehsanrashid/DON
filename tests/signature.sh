@@ -19,7 +19,7 @@ trap 'error ${LINENO}' ERR
 
 # Obtain signature
 EXE=${EXE:-./DON}
-eval "$RUN_PREFIX ./DON bench" > "$STDOUT_FILE" 2> "$STDERR_FILE" || error ${LINENO}
+eval "$RUN_PREFIX $EXE bench" > "$STDOUT_FILE" 2> "$STDERR_FILE" || error ${LINENO}
 SIGNATURE=$(grep "Total nodes     : " "$STDERR_FILE" | awk '{print $4}')
 
 rm -f "$STDOUT_FILE" "$STDERR_FILE"
