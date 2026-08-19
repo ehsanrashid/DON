@@ -528,7 +528,7 @@ endif
 ### Section 3. Low-level Configuration
 ### ==========================================================================
 
-### 3.1 Selecting compiler (default = gcc)
+# Preserve user flags only for the top-level make invocation
 ifeq ($(MAKELEVEL),0)
     export ENV_CXXFLAGS    := $(CXXFLAGS)
     export ENV_DEPENDFLAGS := $(DEPENDFLAGS)
@@ -539,6 +539,7 @@ CXXFLAGS    = $(ENV_CXXFLAGS) -Wall -Wcast-qual -fno-exceptions -std=c++17 $(EXT
 DEPENDFLAGS = $(ENV_DEPENDFLAGS) -std=c++17
 LDFLAGS     = $(ENV_LDFLAGS) $(EXTRA_LDFLAGS)
 
+### 3.1 Selecting compiler (default = gcc)
 ifeq ($(COMP),)
     COMP=gcc
 endif
