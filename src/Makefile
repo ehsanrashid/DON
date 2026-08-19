@@ -860,7 +860,7 @@ endif
 ifeq ($(vnni512),yes)
     CXXFLAGS += -DUSE_VNNI
     ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
-        CXXFLAGS += -mavx512f -mavx512bw -mavx512dq -mavx512vl -mavx512vnni -mprefer-vector-width=512
+        CXXFLAGS += -mavx512f -mavx512bw -mavx512dq -mavx512vl -mavx512vnni
     endif
 endif
 

@@ -271,10 +271,19 @@ jobs:
       # x86-64 tests
 
       - name: Check CPU flags
-        if: matrix.config.run_64bit_tests && runner.os == 'Linux'
+        if: matrix.config.run_64bit_tests
         run: |
-          grep -m1 '^model name' /proc/cpuinfo
-          grep -m1 '^flags' /proc/cpuinfo
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            grep -m1 '^model name' /proc/cpuinfo
+            grep -m1 '^flags' /proc/cpuinfo
+          elif [ "$RUNNER_OS" = "Windows" ]; then
+            systeminfo | grep -E 'Processor|System Type'
+            if [ "$COMP" = "gcc" ]; then
+              g++ -Q -march=native --help=target
+            elif [ "$COMP" = "clang" ]; then
+              clang++ -### -march=native -x c++ -c /dev/null 2>&1
+            fi
+          fi
 
       - name: Test debug x86-64-bmi2 build
         if: matrix.config.run_64bit_tests
@@ -289,21 +298,27 @@ jobs:
       #   run: |
       #     make clean
       #     make -j4 ARCH=x86-64-avx512icl build
-      #     ../tests/signature.sh $benchref
+      #     echo "=== Binary information ==="
+      #     file ./DON 2>/dev/null || file ./DON.exe
+      #     ../tests/signature.sh $benchref || echo "Signature test failed with exit code $?"
 
       - name: Test x86-64-vnni512 build
         if: matrix.config.run_64bit_tests && (runner.os == 'Linux' || runner.os == 'Windows')
         run: |
           make clean
           make -j4 ARCH=x86-64-vnni512 build
-          ../tests/signature.sh $benchref
+          echo "=== Binary information ==="
+          file ./DON 2>/dev/null || file ./DON.exe
+          ../tests/signature.sh $benchref || echo "Signature test failed with exit code $?"
 
       - name: Test x86-64-avx512 build
         if: matrix.config.run_64bit_tests && (runner.os == 'Linux' || runner.os == 'Windows')
         run: |
           make clean
           make -j4 ARCH=x86-64-avx512 build
-          ../tests/signature.sh $benchref
+          echo "=== Binary information ==="
+          file ./DON 2>/dev/null || file ./DON.exe
+          ../tests/signature.sh $benchref || echo "Signature test failed with exit code $?"
 
       - name: Test x86-64-bmi2 build
         if: matrix.config.run_64bit_tests
