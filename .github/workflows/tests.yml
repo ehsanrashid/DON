@@ -90,6 +90,7 @@ jobs:
             run_64bit_tests: true
             msys_sys: mingw64
             msys_env: x86_64-gcc
+            gdb_pkg: mingw-w64-x86_64-gdb
             shell: msys2 {0}
           - name: Windows 2022 Mingw-w64 GCC i686
             os: windows-2022
@@ -106,6 +107,7 @@ jobs:
             run_64bit_tests: true
             msys_sys: clang64
             msys_env: clang-x86_64-clang
+            gdb_pkg: mingw-w64-clang-x86_64-gdb
             shell: msys2 {0}
           - name: Windows 11 Mingw-w64 Clang arm64
             os: windows-11-arm
@@ -178,7 +180,7 @@ jobs:
         uses: msys2/setup-msys2@e9898307ac31d1a803454791be09ab9973336e1c # v2.31.1
         with:
           msystem: ${{ matrix.config.msys_sys }}
-          install: mingw-w64-${{ matrix.config.msys_env }} make git expect mingw-w64-${{ matrix.config.msys_env }}-gdb
+          install: mingw-w64-${{ matrix.config.msys_env }} make git expect ${{ matrix.config.gdb_pkg }}
 
       - name: Download the used network from the fishtest framework
         run: make net
@@ -295,48 +297,6 @@ jobs:
           make clean
           make -j4 ARCH=x86-64-bmi2 optimize=no debug=yes build
           ../tests/signature.sh $benchref
-
-      # - name: Test x86-64-avx512icl build
-      #   if: matrix.config.run_64bit_tests && (runner.os == 'Linux' || runner.os == 'Windows')
-      #   run: |
-      #     make clean
-      #     make -j4 ARCH=x86-64-avx512icl build
-      #     echo "=== Binary information ==="
-      #     file ./DON 2>/dev/null || file ./DON.exe
-      #     ../tests/signature.sh $benchref || echo "Signature test failed with exit code $?"
-
-      # - name: Test x86-64-vnni512 build
-      #   if: matrix.config.run_64bit_tests && (runner.os == 'Linux' || runner.os == 'Windows')
-      #   run: |
-      #     make clean
-      #     make -j4 ARCH=x86-64-vnni512 build
-      #     echo "=== Binary information ==="
-      #     file ./DON 2>/dev/null || file ./DON.exe
-      #     #../tests/signature.sh $benchref || echo "Signature test failed with exit code $?"
-      #     echo "=== Running signature ==="
-      #     if ../tests/signature.sh "$benchref"; then
-      #       echo "Signature test passed"
-      #     else
-      #       echo "Signature test failed with exit code $?"
-      #       echo "=== GDB diagnostic ==="
-      #       if command -v gdb >/dev/null 2>&1; then
-      #         if [ "$RUNNER_OS" = "Windows" ]; then
-      #           gdb --batch \
-      #             -ex "run" \
-      #             -ex "x/i \$pc" \
-      #             -ex "info registers" \
-      #             --args ./DON.exe bench
-      #         else
-      #           gdb --batch \
-      #             -ex "run" \
-      #             -ex "x/i \$pc" \
-      #             -ex "info registers" \
-      #             --args ./DON bench
-      #         fi
-      #       else
-      #         echo "gdb not installed"
-      #       fi
-      #     fi
 
       - name: Test x86-64-avx512 build
         if: matrix.config.run_64bit_tests && (runner.os == 'Linux' || runner.os == 'Windows')
