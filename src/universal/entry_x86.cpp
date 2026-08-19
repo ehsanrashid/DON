@@ -62,8 +62,8 @@ DEFINE_ARCH_ENTRY(x86_64_sse41_popcnt)
 DEFINE_ARCH_ENTRY(x86_64_avx2)
 DEFINE_ARCH_ENTRY(x86_64_bmi2)
 DEFINE_ARCH_ENTRY(x86_64_avxvnni)
-//DEFINE_ARCH_ENTRY(x86_64_avx512)
-//DEFINE_ARCH_ENTRY(x86_64_vnni512)
+DEFINE_ARCH_ENTRY(x86_64_avx512)
+DEFINE_ARCH_ENTRY(x86_64_vnni512)
 //DEFINE_ARCH_ENTRY(x86_64_avx512icl)
 
 // AMD Excavator (family 15h) and Zen/Zen+/Zen2 (family 17h) implement pdep/pext via microcode.
@@ -76,7 +76,7 @@ struct CpuFeatures final {
     bool sse41;            // SSE4.1
     bool popcnt;           // POPCNT
     bool avx2;             // AVX2
-    bool bmi2;             // BMI2 (may be slow on AMD Zen/Zen+/Zen2)
+    bool bmi2;             // BMI2 (may be slow on AMD Excavator and Zen/Zen+/Zen2)
     bool avx512f;          // AVX-512 Foundation
     bool avx512vl;         // AVX-512 Vector Length extensions
     bool avx512bw;         // AVX-512 Byte and Word instructions
@@ -133,7 +133,6 @@ static int dispatch(const CpuFeatures& f, int argc, const char* argv[]) noexcept
         return entry_x86_64_avxvnni(argc, argv);
     }
 
-    /*
     if (!f.avx512vnni)
         return entry_x86_64_avx512(argc, argv);
 
@@ -149,8 +148,7 @@ static int dispatch(const CpuFeatures& f, int argc, const char* argv[]) noexcept
     )
         return entry_x86_64_vnni512(argc, argv);
 
-    return entry_x86_64_avx512icl(argc, argv);
-    */
+    //return entry_x86_64_avx512icl(argc, argv);
     return 0;
 }
 

@@ -76,8 +76,6 @@ CLANG_FORMAT := $(shell \
     $(call FIND_EXE,clang-format-22) || \
     $(call FIND_EXE,clang-format-21) || \
     $(call FIND_EXE,clang-format-20) || \
-    $(call FIND_EXE,clang-format-19) || \
-    $(call FIND_EXE,clang-format-18) || \
     echo clang-format)
 
 ### Executable name
@@ -1528,7 +1526,7 @@ NNUE_EMBED_OBJ       := $(TEMP_DIR)/nnue_embed.o
 NET_SENTINEL         := $(TEMP_DIR)/.net-done
 
 ifeq ($(arch),x86_64)
-    UNIVERSAL_ARCHES    := x86-64 x86-64-sse41-popcnt x86-64-avx2 x86-64-bmi2 x86-64-avxvnni #x86-64-avx512 x86-64-vnni512 x86-64-avx512icl
+    UNIVERSAL_ARCHES    := x86-64 x86-64-sse41-popcnt x86-64-avx2 x86-64-bmi2 x86-64-avxvnni x86-64-avx512 x86-64-vnni512 #x86-64-avx512icl
     UNIVERSAL_ENTRY_SRC := $(UNIVERSAL_SRC_DIR)/entry_x86.cpp
     UNIVERSAL_ENTRY_OBJ := $(TEMP_DIR)/entry_x86.o
     BASELINE_ARCH       := x86-64
