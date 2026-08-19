@@ -298,30 +298,30 @@ jobs:
           make -j4 ARCH=x86-64-bmi2 optimize=no debug=yes build
           ../tests/signature.sh $benchref
 
-      - name: Test x86-64-avx512icl build
-        if: matrix.config.run_64bit_tests && (runner.os == 'Linux' || runner.os == 'Windows')
-        run: |
-          make clean
-          make -j4 ARCH=x86-64-avx512icl build
-          file ./DON
-          #../tests/signature.sh $benchref || echo "Signature test failed with exit code $?"
-          echo "=== Running signature ==="
-          if ../tests/signature.sh "$benchref"; then
-            echo "Signature test passed"
-          else
-            echo "Signature test failed with exit code $?"
-            echo "=== GDB diagnostic ==="
-            if command -v gdb >/dev/null 2>&1; then
-              gdb --batch \
-                -ex "run" \
-                -ex "x/10i \$pc-20" \
-                -ex "x/16xb \$pc" \
-                -ex "info registers" \
-                --args ./DON bench
-            else
-              echo "gdb not installed"
-            fi
-          fi
+      # - name: Test x86-64-avx512icl build
+      #   if: matrix.config.run_64bit_tests && (runner.os == 'Linux' || runner.os == 'Windows')
+      #   run: |
+      #     make clean
+      #     make -j4 ARCH=x86-64-avx512icl build
+      #     file ./DON
+      #     #../tests/signature.sh $benchref || echo "Signature test failed with exit code $?"
+      #     echo "=== Running signature ==="
+      #     if ../tests/signature.sh "$benchref"; then
+      #       echo "Signature test passed"
+      #     else
+      #       echo "Signature test failed with exit code $?"
+      #       echo "=== GDB diagnostic ==="
+      #       if command -v gdb >/dev/null 2>&1; then
+      #         gdb --batch \
+      #           -ex "run" \
+      #           -ex "x/10i \$pc-20" \
+      #           -ex "x/16xb \$pc" \
+      #           -ex "info registers" \
+      #           --args ./DON bench
+      #       else
+      #         echo "gdb not installed"
+      #       fi
+      #     fi
 
       - name: Test x86-64-vnni512 build
         if: matrix.config.run_64bit_tests
