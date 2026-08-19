@@ -278,7 +278,7 @@ jobs:
             grep -m1 '^flags' /proc/cpuinfo
           elif [ "$RUNNER_OS" = "Windows" ]; then
             systeminfo | grep -E 'Processor|System Type'
-            if [ "$COMP" = "gcc" ]; then
+            if [ "$COMP" = "mingw" ]; then
               g++ -Q -march=native --help=target
             elif [ "$COMP" = "clang" ]; then
               clang++ -### -march=native -x c++ -c /dev/null 2>&1
@@ -309,7 +309,33 @@ jobs:
           make -j4 ARCH=x86-64-vnni512 build
           echo "=== Binary information ==="
           file ./DON 2>/dev/null || file ./DON.exe
-          ../tests/signature.sh $benchref || echo "Signature test failed with exit code $?"
+          #../tests/signature.sh $benchref || echo "Signature test failed with exit code $?"
+          echo "=== Running signature ==="
+          if ../tests/signature.sh "$benchref"; then
+            echo "Signature test passed"
+          else
+            status=$?
+            echo "Signature test failed with exit code $status"
+
+            echo "=== GDB diagnostic ==="
+            if command -v gdb >/dev/null 2>&1; then
+              if [ "$RUNNER_OS" = "Windows" ]; then
+                gdb --batch \
+                  -ex "run" \
+                  -ex "x/i \$pc" \
+                  -ex "info registers" \
+                  --args ./DON.exe bench
+              else
+                gdb --batch \
+                  -ex "run" \
+                  -ex "x/i \$pc" \
+                  -ex "info registers" \
+                  --args ./DON bench
+              fi
+            else
+              echo "gdb not installed"
+            fi
+          fi
 
       - name: Test x86-64-avx512 build
         if: matrix.config.run_64bit_tests && (runner.os == 'Linux' || runner.os == 'Windows')
