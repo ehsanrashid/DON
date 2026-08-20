@@ -1,4 +1,4 @@
-name: WASM Compilation
+name: Build WASM
 
 on:
   workflow_call:

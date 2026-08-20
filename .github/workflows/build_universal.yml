@@ -1,4 +1,4 @@
-name: Universal Build
+name: Build Universal
 
 on:
   workflow_call:
