@@ -22,7 +22,7 @@
 #include <limits>
 #include <utility>
 
-#if defined(USE_AVX512)
+#if defined(USE_AVX512ICL)
     #include <immintrin.h>
 #endif
 
@@ -41,7 +41,7 @@ constexpr i32 GOOD_QUIET_THRESHOLD = -14000;
 
 ALWAYS_INLINE constexpr bool always_true() noexcept { return true; }
 
-#if defined(USE_AVX512)
+#if defined(USE_AVX512ICL)
 // Broadcast an ExtMove's move and value across all 16 lanes
 void splat_extmove(const ExtMove& em, __m512i& moves, __m512i& values) noexcept {
     moves  = _mm512_set1_epi32(em.raw());
@@ -169,7 +169,7 @@ void insertion_sort(const Iterator beg, const Iterator end) noexcept {
 
     Iterator p = beg + 1;
 
-#if defined(USE_AVX512)
+#if defined(USE_AVX512ICL)
     ExtMoveSorter sorter(*beg);
 
     Iterator sortedEnd = beg;
@@ -216,7 +216,7 @@ void partial_insertion_sort(const Iterator beg,
 
     Iterator p = beg + 1;
 
-#if defined(USE_AVX512)
+#if defined(USE_AVX512ICL)
     ExtMoveSorter sorter(*beg);
 
     Iterator sortedEnd = beg;

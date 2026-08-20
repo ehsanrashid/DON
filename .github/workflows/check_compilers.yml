@@ -1,10 +1,10 @@
-name: AVX2 Compiler Matrix
+name: Check Compilers AVX2
 
 on:
   workflow_call:
 
 jobs:
-  avx2-compiler-matrix:
+  compiler-matrix-avx2:
     name: avx2 (${{ matrix.name }})
     runs-on: ubuntu-latest
     container:

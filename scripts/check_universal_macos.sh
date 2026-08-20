@@ -49,12 +49,12 @@ if [ "$native_bench" != "$x86_bench" ]; then
     FAIL=1
 fi
 
-# Check that under Rosetta, SSE41 is detected
+# Check that under Rosetta, SSE4.1 is detected
 x86_compiler=$(arch -x86_64 "$DON_EXE" compiler 2>&1 || true)
-if printf '%s\n' "$x86_compiler" | grep -q 'SSE41'; then
-    printf 'x86_64 (Rosetta) compiler reports SSE41 ok\n' >&2
+if printf '%s\n' "$x86_compiler" | grep -q 'SSE4.1'; then
+    echo "x86_64 (Rosetta) compiler reports SSE4.1 ok" >&2
 else
-    echo "check_universal_macos.sh: x86_64 compiler output missing SSE41" >&2
+    echo "check_universal_macos.sh: x86_64 compiler output missing SSE4.1" >&2
     printf '%s\n' "$x86_compiler" >&2
     FAIL=1
 fi

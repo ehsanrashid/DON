@@ -47,7 +47,7 @@ union Zobrist final {
                                 + (FILE_NB) + 1;
 
     explicit constexpr Zobrist(const Array<Key, SIZE>& keys) noexcept :
-        Keys{keys} { }
+        Keys{keys} {}
 
     [[nodiscard]] Key key(const Position& pos) const noexcept {
         Key key = 0;

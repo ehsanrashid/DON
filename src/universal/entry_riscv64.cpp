@@ -83,8 +83,7 @@ static CpuFeatures query_cpu_features() noexcept {
     return CpuFeatures{.gcv = gcv, .zbitmanip = zbitmanip, .zicond = zicond, .vlen = vlen};
 }
 
-
-// Selects the most capable ISA variant supported by this CPU
+// Selects the most capable ISA variant supported by current CPU
 static int dispatch(const CpuFeatures& f, int argc, const char* argv[]) noexcept {
     if (!f.gcv || !f.zbitmanip || !f.zicond || f.vlen < 128)
         return entry_riscv64(argc, argv);

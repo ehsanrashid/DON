@@ -256,7 +256,11 @@ constexpr auto sign_sqr(T x) noexcept {
     return sign(x) * sqr(x);
 }
 
-constexpr usize ceil_div(usize n, usize d) noexcept { return (n + d - 1) / d; }
+template<typename T1, typename T2>
+constexpr std::common_type_t<T1, T2> ceil_div(T1 n, T2 d) noexcept {
+    using R = std::common_type_t<T1, T2>;
+    return (R(n) + R(d) - 1) / R(d);
+}
 
 constexpr usize round_up_to_pow2(usize x) noexcept {
     if (x == 0)
@@ -496,7 +500,7 @@ inline void prefetch(const void* addr) noexcept {
 }
 #else
 template<PrefetchAccess Access = PrefetchAccess::READ, PrefetchLoc Loc = PrefetchLoc::HIGH>
-inline void prefetch(const void*) noexcept { }
+inline void prefetch(const void*) noexcept {}
 #endif
 
 using TimePoint = std::chrono::milliseconds::rep;  // A value in milliseconds
@@ -704,11 +708,11 @@ class [[nodiscard]] SyncOstream final {
    public:
     explicit SyncOstream(std::ostream& os) noexcept :
         ptrOs(&os),
-        lock(OstreamMutexRegistry::get(ptrOs)) { }
+        lock(OstreamMutexRegistry::get(ptrOs)) {}
     // Move-constructible so factories can return by value
     SyncOstream(SyncOstream&& syncOs) noexcept :
         ptrOs(syncOs.ptrOs),
-        lock(std::move(syncOs.lock)) { }
+        lock(std::move(syncOs.lock)) {}
 
     SyncOstream(const SyncOstream&) noexcept            = delete;
     SyncOstream& operator=(const SyncOstream&) noexcept = delete;
@@ -775,7 +779,7 @@ class TableView final {
    public:
     constexpr TableView(T* data, usize size) noexcept :
         data_(data),
-        size_(size) { }
+        size_(size) {}
 
     constexpr T*       data() noexcept { return data_; }
     constexpr const T* data() const noexcept { return data_; }
@@ -1369,7 +1373,7 @@ class TieStreamBuf final: public std::streambuf {
     TieStreamBuf() noexcept = delete;
     TieStreamBuf(std::streambuf* pB, std::streambuf* mB) noexcept :
         pBuf(pB),
-        mBuf(mB) { }
+        mBuf(mB) {}
 
     int_type overflow(int_type ch) override {
         if (pBuf == nullptr)
@@ -1482,7 +1486,7 @@ class Logger final {
         isBuf(is.rdbuf()),
         osBuf(os.rdbuf()),
         iTie(is.rdbuf(), ofs.rdbuf()),
-        oTie(os.rdbuf(), ofs.rdbuf()) { }
+        oTie(os.rdbuf(), ofs.rdbuf()) {}
 
     ~Logger() noexcept { close(); }
 

@@ -639,16 +639,16 @@ class Move {
 
     Move() noexcept = default;
     constexpr explicit Move(const u16 d) noexcept :
-        data(d) { }
+        data(d) {}
     constexpr Move(const Square orgSq, const Square dstSq, const MT mt = MT::NORMAL) noexcept :
         data((u16(mt) << TYPE_OFFSET)         //
              | (u16(orgSq) << ORG_SQ_OFFSET)  //
-             | (u16(dstSq) << DST_SQ_OFFSET)) { }
+             | (u16(dstSq) << DST_SQ_OFFSET)) {}
     constexpr Move(const Square orgSq, const Square dstSq, const PieceType promoPt) noexcept :
         data((u16(MT::PROMOTION) << TYPE_OFFSET)        //
              | (u16(promoPt - KNIGHT) << PROMO_OFFSET)  //
              | (u16(orgSq) << ORG_SQ_OFFSET)            //
-             | (u16(dstSq) << DST_SQ_OFFSET)) { }
+             | (u16(dstSq) << DST_SQ_OFFSET)) {}
 
     // Accessors: extract parts of the move
     [[nodiscard]] constexpr Square org_sq() const noexcept {
@@ -734,12 +734,12 @@ struct DirtyThreat final {
 
     DirtyThreat() noexcept = default;
     constexpr explicit DirtyThreat(u32 d) noexcept :
-        data(d) { }
+        data(d) {}
     constexpr DirtyThreat(
       Square sq, Square threatenedSq, Piece pc, Piece threatenedPc, bool add) noexcept :
         data((u32(add) << ADD_OFFSET) | (u32(threatenedPc) << THREATENED_PC_OFFSET)
              | (u32(pc) << PC_OFFSET) | (u32(threatenedSq) << THREATENED_SQ_OFFSET)
-             | (u32(sq) << SQ_OFFSET)) { }
+             | (u32(sq) << SQ_OFFSET)) {}
 
     constexpr Square sq() const noexcept {  //
         return Square((data >> SQ_OFFSET) & SQ_MASK);

@@ -595,10 +595,10 @@ void UCI::benchmark(std::istream& is) noexcept {
     options().set("UCI_Chess960", bool_to_string(false));
 
     u64 infoNodes = 0;
-    engine.set_on_update_short([](const auto&) { });
+    engine.set_on_update_short([](const auto&) {});
     engine.set_on_update_full([&](const auto& info) { infoNodes = info.nodes; });
-    engine.set_on_update_iter([](const auto&) { });
-    engine.set_on_update_move([](const auto&) { });
+    engine.set_on_update_iter([](const auto&) {});
+    engine.set_on_update_move([](const auto&) {});
 
     InfoStrStop = true;
 

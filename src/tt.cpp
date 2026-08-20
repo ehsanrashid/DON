@@ -178,7 +178,7 @@ TTUpdater::TTUpdater(TTEntry* const te, TTCluster* const tc, const u16 k, const 
     tte(te),
     ttc(tc),
     key(k),
-    generation(gen) { }
+    generation(gen) {}
 
 void TTUpdater::update(const Move  m,
                        const Value v,

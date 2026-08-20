@@ -65,7 +65,7 @@ constexpr std::string_view Option::to_string(Type t) noexcept {
 
 Option::Option(OnChange&& f) noexcept :
     type(Type::BUTTON),
-    onChange(std::move(f)) { }
+    onChange(std::move(f)) {}
 
 Option::Option(bool v, OnChange&& f) noexcept :
     type(Type::CHECK),

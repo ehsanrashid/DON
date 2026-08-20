@@ -27,7 +27,7 @@ namespace DON {
 class SplitMix64 final {
    public:
     explicit constexpr SplitMix64(u64 seed = 1) noexcept :
-        s(seed != 0 ? seed : 1) { }
+        s(seed != 0 ? seed : 1) {}
 
     constexpr u64 next() noexcept {
         s += u64{0x9E3779B97F4A7C15};

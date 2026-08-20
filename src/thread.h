@@ -174,10 +174,10 @@ class ThreadToNumaNodeBinder final {
    public:
     ThreadToNumaNodeBinder(NumaIndex numaIdx, const NumaConfig* ptrNumaCfg) noexcept :
         numaId(numaIdx),
-        ptrNumaConfig(ptrNumaCfg) { }
+        ptrNumaConfig(ptrNumaCfg) {}
 
     explicit ThreadToNumaNodeBinder(NumaIndex numaIdx) noexcept :
-        ThreadToNumaNodeBinder(numaIdx, nullptr) { }
+        ThreadToNumaNodeBinder(numaIdx, nullptr) {}
 
     NumaReplicatedAccessToken operator()() const noexcept {
         return ptrNumaConfig != nullptr ? ptrNumaConfig->bind_current_thread_to_numa_node(numaId)

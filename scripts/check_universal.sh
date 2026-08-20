@@ -32,8 +32,8 @@ ivb:x86-64-sse41-popcnt
 hsw:x86-64-bmi2
 skl:x86-64-bmi2
 adl:x86-64-avxvnni
-#skx:x86-64-avx512
-#clx:x86-64-vnni512
+skx:x86-64-avx512
+clx:x86-64-vnni512
 #icl:x86-64-avx512icl
 "
 

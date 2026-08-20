@@ -71,13 +71,12 @@ endif
 # Detect clang-format (prefer newest version)
 # -------------------------------------------
 CLANG_FORMAT := $(shell \
+    $(call FIND_EXE,clang-format-24) || \
+    $(call FIND_EXE,clang-format-23) || \
+    $(call FIND_EXE,clang-format-22) || \
+    $(call FIND_EXE,clang-format-21) || \
     $(call FIND_EXE,clang-format-20) || \
-    $(call FIND_EXE,clang-format-19) || \
-    $(call FIND_EXE,clang-format-18) || \
     echo clang-format)
-
-# Optional: log which one was chosen
-#$(info Using CLANG_FORMAT = $(CLANG_FORMAT))
 
 ### Executable name
 NAME := DON
@@ -102,7 +101,10 @@ SRCS := attacks.cpp benchmark.cpp bitboard.cpp engine.cpp evaluate.cpp main.cpp 
     nnue/accumulator.cpp nnue/network.cpp nnue/nmisc.cpp \
     book/polyglot.cpp tablebase/syzygy.cpp
 
-EXTRA_SRCS = universal/entry_x86.cpp universal/entry_arm64.cpp universal/entry_riscv64.cpp universal/nnue_embed.cpp
+UNIVERSAL_SRCS = universal/entry_x86_64.cpp \
+                 universal/entry_riscv64.cpp \
+                 universal/entry_arm64.cpp \
+                 universal/nnue_embed.cpp
 
 HEADERS := attacks.h benchmark.h bitboard.h engine.h evaluate.h history.h memory.h \
     misc.h movegen.h movepick.h notation.h numa.h option.h perft.h platform_win.h \
@@ -124,40 +126,40 @@ VPATH := nnue:nnue/features:book:tablebase
 # Flag                --- Comp switch        --- Description
 # ----------------------------------------------------------------------------
 #
-# debug = yes/no      --- -DNDEBUG           --- Enable/Disable debug mode
+# debug = yes/no       --- -DNDEBUG           --- Enable/Disable debug mode
 # sanitize = none/<sanitizer> ... (-fsanitize )
-#                     --- ( undefined )      --- enable undefined behavior checks
-#                     --- ( thread    )      --- enable threading error checks
-#                     --- ( address   )      --- enable memory access checks
-#                     --- ...etc...          --- see compiler documentation for supported sanitizers
-# optimize = yes/no   --- (-O3/-fast etc.)   --- Enable/Disable optimizations
-# arch = (name)       --- (-arch)            --- Target architecture
-# bits = 64/32        --- -DIS_64BIT         --- 64-/32-bit operating system
-# prefetch = yes/no   --- -DUSE_PREFETCH     --- Use prefetch asm-instruction
-# popcnt = yes/no     --- -DUSE_POPCNT       --- Use popcnt asm-instruction
-# sse = yes/no        --- -msse              --- Use Intel Streaming SIMD Extensions
-# mmx = yes/no        --- -mmmx              --- Use Intel MMX instructions
-# sse2 = yes/no       --- -msse2             --- Use Intel Streaming SIMD Extensions 2
-# ssse3 = yes/no      --- -mssse3            --- Use Intel Supplemental Streaming SIMD Extensions 3
-# sse41 = yes/no      --- -msse4.1           --- Use Intel Streaming SIMD Extensions 4.1
-# avx2 = yes/no       --- -mavx2             --- Use Intel Advanced Vector Extensions 2
-# bmi2 = yes/no       --- -DUSE_BMI2         --- Use pext & pdep x86_64 asm-instruction
-# cmp = yes/no        --- -DUSE_CMP          --- Internal flag for compressed-optimized variants
-# avxvnni = yes/no    --- -mavxvnni          --- Use Intel Vector Neural Network Instructions AVX
-# avx512 = yes/no     --- -mavx512bw         --- Use Intel Advanced Vector Extensions 512
-# vnni256 = yes/no    --- -mavx512vnni[256]  --- Use Intel Vector Neural Network Instructions 512 with 256bit operands
-# vnni512 = yes/no    --- -mavx512vnni       --- Use Intel Vector Neural Network Instructions 512
-# avx512icl = yes/no  --- -mavx512cd ...     --- Use All AVX-512 features available on both Intel Ice Lake and AMD Zen 4
-# altivec = yes/no    --- -maltivec          --- Use PowerPC Altivec SIMD extension
-# vsx = yes/no        --- -mvsx              --- Use POWER VSX SIMD extension
-# neon = yes/no       --- -DUSE_NEON         --- Use ARM SIMD architecture
-# dotprod = yes/no    --- -DUSE_NEON_DOTPROD --- Use ARM advanced SIMD Int8 dot product instructions
-# lsx = yes/no        --- -mlsx              --- Use Loongson SIMD eXtension
-# lasx = yes/no       --- -mlasx             --- Use Loongson Advanced SIMD eXtension
-# relaxedsimd = y/n   --- -mrelaxed-simd     --- Use WebAssembly relaxed SIMD extension
-# tablebases = yes/no --- -DNO_TABLEBASES    --- Support tablebase probing
+#                      --- ( undefined )      --- enable undefined behavior checks
+#                      --- ( thread    )      --- enable threading error checks
+#                      --- ( address   )      --- enable memory access checks
+#                      --- ...etc...          --- see compiler documentation for supported sanitizers
+# optimize = yes/no    --- (-O3/-fast etc.)   --- Enable/Disable optimizations
+# arch = (name)        --- (-arch)            --- Target architecture
+# bits = 64/32         --- -DIS_64BIT         --- 64-/32-bit operating system
+# prefetch = yes/no    --- -DUSE_PREFETCH     --- Use prefetch asm-instruction
+# popcnt = yes/no      --- -DUSE_POPCNT       --- Use popcnt asm-instruction
+# sse = yes/no         --- -msse              --- Use Intel Streaming SIMD Extensions
+# mmx = yes/no         --- -mmmx              --- Use Intel MMX instructions
+# sse2 = yes/no        --- -msse2             --- Use Intel Streaming SIMD Extensions 2
+# ssse3 = yes/no       --- -mssse3            --- Use Intel Supplemental Streaming SIMD Extensions 3
+# sse41 = yes/no       --- -msse4.1           --- Use Intel Streaming SIMD Extensions 4.1
+# avx2 = yes/no        --- -mavx2             --- Use Intel Advanced Vector Extensions 2
+# bmi2 = yes/no        --- -DUSE_BMI2         --- Use PEXT & PDEP x86_64 asm-instruction
+# cmp = yes/no         --- -DUSE_CMP          --- Internal flag for compressed-optimized variants
+# avxvnni = yes/no     --- -mavxvnni          --- Use Intel Vector Neural Network Instructions AVX
+# avx512 = yes/no      --- -mavx512bw         --- Use Intel Advanced Vector Extensions 512
+# vnni256 = yes/no     --- -mavx512vnni[256]  --- Use Intel Vector Neural Network Instructions 512 with 256-bit operands
+# vnni512 = yes/no     --- -mavx512vnni       --- Use Intel Vector Neural Network Instructions 512 with 512-bit operands
+# avx512icl = yes/no   --- -mavx512cd ...     --- Use AVX-512 features common to Intel Ice Lake and AMD Zen 4
+# altivec = yes/no     --- -maltivec          --- Use PowerPC AltiVec SIMD extension
+# vsx = yes/no         --- -mvsx              --- Use POWER VSX SIMD extension
+# neon = yes/no        --- -DUSE_NEON         --- Use ARM NEON SIMD instructions
+# dotprod = yes/no     --- -DUSE_NEON_DOTPROD --- Use ARM NEON advanced SIMD Int8 dot-product instructions
+# lsx = yes/no         --- -mlsx              --- Use LoongArch SIMD eXtension
+# lasx = yes/no        --- -mlasx             --- Use LoongArch Advanced SIMD eXtension
+# relaxedsimd = yes/no --- -mrelaxed-simd     --- Use WebAssembly relaxed SIMD extension
+# tablebases = yes/no  --- -DNO_TABLEBASES    --- Support tablebase probing
 #
-# native              --- Auto-detect best architecture for host CPU using ../scripts/get_native_properties.sh
+# native               --- Auto-detect best architecture for host CPU using ../scripts/get_native_properties.sh
 #
 # Note that Makefile is space sensitive, so when adding new architectures
 # or modifying existing flags, you have to make sure there are no extra spaces
@@ -181,16 +183,16 @@ endif
 # User can override with `make ARCH=x86-64-avx512icl ARCH_SUPPORTED=yes`
 ARCH_SUPPORTED := $(if $(filter \
     x86-64-universal x86-64-avx512icl x86-64-vnni512 x86-64-vnni256 x86-64-avx512 x86-64-avxvnni \
-    x86-64-bmi2 x86-64-avx2 x86-64-bitmanip-cmp x86-64-bitmanip x86-64-sse41-popcnt \
+    x86-64-bmi2 x86-64-avx2 x86-64-sse41-bmi2-cmp x86-64-sse41-bmi2 x86-64-sse41-popcnt \
     x86-64-modern x86-64-sse41 x86-64-ssse3-popcnt x86-64-ssse3 x86-64 general-64 \
     x86-32-sse41-popcnt x86-32-sse41 x86-32-ssse3 x86-32-sse2 x86-32 general-32 \
     ppc-64-vsx ppc-64-altivec ppc-64 ppc-32 e2k \
-    arm64-universal armv8-dotprod armv8 armv7-neon armv7 apple-silicon \
     riscv64-universal riscv64-rva23 riscv64 \
     loongarch64-lasx loongarch64-lsx loongarch64 \
+    arm.64-universal armv8-dotprod armv8 armv7-neon armv7 apple-silicon \
     wasm32 wasm32-relaxed-simd,$(ARCH)),yes,no)
 
-UNIVERSAL_BUILD := $(if $(filter x86-64-universal arm64-universal riscv64-universal,$(ARCH)),yes,no)
+UNIVERSAL_BUILD := $(if $(filter x86-64-universal riscv64-universal arm64-universal,$(ARCH)),yes,no)
 
 optimize = yes
 debug = no
@@ -282,7 +284,7 @@ ifneq ($(findstring -modern,$(ARCH)),)
     sse41 = yes
 endif
 
-ifneq ($(findstring -bitmanip,$(ARCH)),)
+ifneq ($(findstring -sse41-bmi2,$(ARCH)),)
     popcnt = yes
     sse = yes
     sse2 = yes
@@ -291,7 +293,7 @@ ifneq ($(findstring -bitmanip,$(ARCH)),)
     bmi2 = yes
 endif
 
-ifneq ($(findstring -bitmanip-cmp,$(ARCH)),)
+ifneq ($(findstring -sse41-bmi2-cmp,$(ARCH)),)
     cmp = yes
 endif
 
@@ -529,17 +531,20 @@ endif
 ### Section 3. Low-level Configuration
 ### ==========================================================================
 
-### 3.1 Selecting compiler (default = gcc)
+# Preserve user flags only for the top-level make invocation
 ifeq ($(MAKELEVEL),0)
     export ENV_CXXFLAGS    := $(CXXFLAGS)
     export ENV_DEPENDFLAGS := $(DEPENDFLAGS)
     export ENV_LDFLAGS     := $(LDFLAGS)
+    export ENV_LDLIBS      := $(LDLIBS)
 endif
 
 CXXFLAGS    = $(ENV_CXXFLAGS) -Wall -Wcast-qual -fno-exceptions -std=c++17 $(EXTRA_CXXFLAGS)
-DEPENDFLAGS = $(ENV_DEPENDFLAGS) -std=c++17
+DEPENDFLAGS = $(ENV_DEPENDFLAGS) -std=c++17 $(EXTRA_DEPENDFLAGS)
 LDFLAGS     = $(ENV_LDFLAGS) $(EXTRA_LDFLAGS)
+LDLIBS      = $(ENV_LDLIBS) $(EXTRA_LDLIBS)
 
+### 3.1 Selecting compiler (default = gcc)
 ifeq ($(COMP),)
     COMP=gcc
 endif
@@ -603,7 +608,7 @@ ifeq ($(COMP),gcc)
         # Link std::filesystem explicitly if using Linux Clang < 9
         ifneq ($(GCC_MAJOR),)
             ifeq ($(shell test $(GCC_MAJOR) -lt 9 && echo yes),yes)
-                LDFLAGS += -lstdc++fs
+                LDLIBS += -lstdc++fs
             endif
         endif
     endif
@@ -656,14 +661,14 @@ else ifeq ($(COMP),clang)
     ifeq ($(IS_WINDOWS),no)
         ifeq ($(filter $(TARGET_KERNEL),Darwin FreeBSD OpenBSD NetBSD),)
             ifneq ($(RTLIB),compiler-rt)
-                LDFLAGS += -latomic
+                LDLIBS += -latomic
             endif
         endif
     endif
     # Link std::filesystem for Linux Clang (non-Apple)
     ifeq ($(TARGET_KERNEL),Linux)
         ifeq ($(CXX_IS_APPLE_CLANG),no)
-            LDFLAGS += -lstdc++fs
+            LDLIBS += -lstdc++fs
         endif
     endif
     # Profile build for Clang
@@ -744,12 +749,6 @@ ifdef COMPCXX
     CXX = $(COMPCXX)
 endif
 
-# Force SSE floating-point math to avoid x87 extended-precision differences
-# Ensures consistent floating-point results across x86 CPUs
-ifeq ($(sse_fp),yes)
-    CXXFLAGS += -mfpmath=sse -msse2
-endif
-
 ## Locate llvm-profdata compatible with CXX for PGO (profile-guided optimization) builds
 # For Clang/GCC, look alongside CXX
 LLVM_PROFDATA := $(dir $(realpath $(shell command -v $(CXX) 2>/dev/null)))llvm-profdata
@@ -769,11 +768,11 @@ ifneq ($(arch),wasm32)
         # Haiku has pthreads in its libroot
         ifneq ($(KERNEL),Haiku)
             ifneq ($(COMP),ndk)
-                LDFLAGS += -lpthread
+                LDLIBS += -lpthread
                 # Link real-time library (librt) on non-Windows, non-[Darwin/FreeBSD/OpenBSD/NetBSD] platforms
                 ifeq ($(IS_WINDOWS),no)
                     ifeq ($(filter $(TARGET_KERNEL),Darwin FreeBSD OpenBSD NetBSD),)
-                        LDFLAGS += -lrt
+                        LDLIBS += -lrt
                     endif
                 endif
             endif
@@ -833,6 +832,15 @@ ifeq ($(bits),64)
     CXXFLAGS += -DIS_64BIT
 endif
 
+# Force SSE floating-point math to avoid x87 extended-precision differences.
+# Ensures consistent floating-point results across x86 targets.
+ifeq ($(sse_fp),yes)
+    CXXFLAGS += -mfpmath=sse
+    ifeq ($(sse2),no)
+        CXXFLAGS += -msse2
+    endif
+endif
+
 ### 3.5 prefetch and popcount
 ifeq ($(prefetch),yes)
     CXXFLAGS += -DUSE_PREFETCH
@@ -850,7 +858,7 @@ endif
 
 ### 3.6 SIMD architectures
 ifeq ($(avx512icl),yes)
-    CXXFLAGS += -DUSE_AVX512 -DUSE_VNNI -DUSE_AVX512ICL
+    CXXFLAGS += -DUSE_VNNI -DUSE_AVX512 -DUSE_AVX512ICL
     ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
         CXXFLAGS += -mavx512f -mavx512bw -mavx512dq -mavx512vl -mavx512vnni -mavx512cd -mavx512ifma -mavx512vbmi -mavx512vbmi2 -mavx512vpopcntdq -mavx512bitalg -mvpclmulqdq -mgfni -mvaes
     endif
@@ -859,7 +867,7 @@ endif
 ifeq ($(vnni512),yes)
     CXXFLAGS += -DUSE_VNNI
     ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
-        CXXFLAGS += -mavx512f -mavx512bw -mavx512dq -mavx512vl -mavx512vnni -mprefer-vector-width=512
+        CXXFLAGS += -mavx512f -mavx512bw -mavx512dq -mavx512vl -mavx512vnni
     endif
 endif
 
@@ -1116,44 +1124,44 @@ help:
 	echo ""; \
 	echo "native                  > select the best architecture for the host processor (default)"; \
 	echo "x86-64-universal        > x86 64-bit with automatic runtime selection of the best architecture"; \
-	echo "x86-64-avx512icl        > x86 64-bit with minimum avx512 support of Intel Ice Lake or AMD Zen 4"; \
-	echo "x86-64-vnni512          > x86 64-bit with vnni support, operands 512-bit wide"; \
-	echo "x86-64-vnni256          > x86 64-bit with vnni support, operands limited to 256-bit wide"; \
-	echo "x86-64-avx512           > x86 64-bit with avx512 support"; \
-	echo "x86-64-avxvnni          > x86 64-bit with vnni 256bit support"; \
-	echo "x86-64-bmi2             > x86 64-bit with bmi2 support"; \
-	echo "x86-64-avx2             > x86 64-bit with avx2 support"; \
-	echo "x86-64-bitmanip-cmp     > x86 64-bit with bit manipulation support and compressed instructions"; \
-	echo "x86-64-bitmanip         > x86 64-bit with bit manipulation support"; \
-	echo "x86-64-sse41-popcnt     > x86 64-bit with sse41 and popcnt support"; \
+	echo "x86-64-avx512icl        > x86 64-bit with minimum AVX512 support of Intel Ice Lake or AMD Zen 4"; \
+	echo "x86-64-vnni512          > x86 64-bit with VNNI support, operands 512-bit wide"; \
+	echo "x86-64-vnni256          > x86 64-bit with VNNI support, operands limited to 256-bit wide"; \
+	echo "x86-64-avx512           > x86 64-bit with AVX512 support"; \
+	echo "x86-64-avxvnni          > x86 64-bit with VNNI 256bit support"; \
+	echo "x86-64-bmi2             > x86 64-bit with BMI2 support"; \
+	echo "x86-64-avx2             > x86 64-bit with AVX2 support"; \
+	echo "x86-64-sse41-bmi2-cmp   > x86 64-bit with SSE4.1 and BMI2 compressed support"; \
+	echo "x86-64-sse41-bmi2       > x86 64-bit with SSE4.1 and BMI2 support"; \
+	echo "x86-64-sse41-popcnt     > x86 64-bit with SSE4.1 and POPCNT support"; \
 	echo "x86-64-modern           > deprecated, currently x86-64-sse41-popcnt"; \
-	echo "x86-64-sse41            > x86 64-bit with sse41 support"; \
-	echo "x86-64-ssse3-popcnt     > x86 64-bit with ssse3 and popcnt support"; \
-	echo "x86-64-ssse3            > x86 64-bit with ssse3 support"; \
-	echo "x86-64                  > x86 64-bit generic with sse2 support"; \
+	echo "x86-64-sse41            > x86 64-bit with SSE4.1 support"; \
+	echo "x86-64-ssse3-popcnt     > x86 64-bit with SSSE3 and POPCNT support"; \
+	echo "x86-64-ssse3            > x86 64-bit with SSSE3 support"; \
+	echo "x86-64                  > x86 64-bit generic with SSE2 support"; \
 	echo "general-64              > unspecified 64-bit"; \
-	echo "x86-32-sse41-popcnt     > x86 32-bit with sse41 and popcnt support"; \
-	echo "x86-32-sse41            > x86 32-bit with sse41 support"; \
-	echo "x86-32-ssse3            > x86 32-bit with ssse3 support"; \
-	echo "x86-32-sse2             > x86 32-bit with sse2 support"; \
-	echo "x86-32                  > x86 32-bit generic with mmx support"; \
+	echo "x86-32-sse41-popcnt     > x86 32-bit with SSE4.1 and POPCNT support"; \
+	echo "x86-32-sse41            > x86 32-bit with SSE4.1 support"; \
+	echo "x86-32-ssse3            > x86 32-bit with SSSE3 support"; \
+	echo "x86-32-sse2             > x86 32-bit with SSE2 support"; \
+	echo "x86-32                  > x86 32-bit generic with MMX support"; \
 	echo "general-32              > unspecified 32-bit"; \
-	echo "ppc-64-altivec          > PPC 64-bit with altivec support"; \
-	echo "ppc-64-vsx              > PPC 64-bit with vsx support"; \
+	echo "ppc-64-altivec          > PPC 64-bit with AltiVec support"; \
+	echo "ppc-64-vsx              > PPC 64-bit with VSX support"; \
 	echo "ppc-64                  > PPC 64-bit"; \
 	echo "ppc-32                  > PPC 32-bit"; \
 	echo "e2k                     > Elbrus 2000"; \
 	echo "arm64-universal         > ARMv8 64-bit with automatic runtime selection of the best architecture"; \
-	echo "armv8-dotprod           > ARMv8 64-bit with popcnt, neon and dot product support"; \
-	echo "armv8                   > ARMv8 64-bit with popcnt and neon"; \
-	echo "armv7-neon              > ARMv7 32-bit with popcnt and neon"; \
+	echo "armv8-dotprod           > ARMv8 64-bit with NEON, dot-product and POPCNT support"; \
+	echo "armv8                   > ARMv8 64-bit with NEON and POPCNT support"; \
+	echo "armv7-neon              > ARMv7 32-bit with NEON and POPCNT support"; \
 	echo "armv7                   > ARMv7 32-bit"; \
 	echo "apple-silicon           > Apple silicon ARM64"; \
 	echo "riscv64-universal       > RISC-V 64-bit with automatic runtime selection of the best architecture"; \
 	echo "riscv64-rva23           > RISC-V 64-bit RVA23 profile"; \
 	echo "riscv64                 > RISC-V 64-bit"; \
-	echo "loongarch64-lasx        > LoongArch 64-bit with Advanced SIMD eXtension"; \
-	echo "loongarch64-lsx         > LoongArch 64-bit with SIMD eXtension"; \
+	echo "loongarch64-lasx        > LoongArch 64-bit with LASX (Advanced SIMD) support"; \
+	echo "loongarch64-lsx         > LoongArch 64-bit with LSX (SIMD) support"; \
 	echo "loongarch64             > LoongArch 64-bit"; \
 	echo ""; \
 	echo "Supported compilers:"; \
@@ -1161,8 +1169,8 @@ help:
 	echo "gcc                     > GNU compiler (default)"; \
 	echo "mingw                   > GNU compiler with MinGW under Windows"; \
 	echo "clang                   > LLVM Clang compiler"; \
-	echo "icx                     > Intel oneAPI DPC++/C++ Compiler"; \
-	echo "ndk                     > Google NDK to cross-compile for Android"; \
+	echo "icx                     > Intel oneAPI DPC++/C++ compiler"; \
+	echo "ndk                     > Android NDK for cross-compiling"; \
 	echo ""; \
 	echo "Simple examples. If you don't know what to do, you likely want to run one of:"; \
 	echo ""; \
@@ -1262,7 +1270,7 @@ MODNAME := $(subst -,_,$(notdir $(CURDIR)))
 universal-object-pgo: objclean profileclean universalclean
 	@echo ""
 	@echo "Step 1/4. Building instrumented executable ..."
-	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) ENV_LDFLAGS='$(ENV_LDFLAGS) $(NNUE_EMBED_OBJ)' $(PROFILE_MAKE)
+	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) ENV_LDFLAGS='$(ENV_LDFLAGS)' NNUE_EMBED_OBJ='$(NNUE_EMBED_OBJ)' $(PROFILE_MAKE)
 	@echo ""
 	@echo "Step 2/4. Running benchmark for pgo-build ..."
 	$(PGOBENCH) > PGOBENCH.out 2>&1
@@ -1270,7 +1278,7 @@ universal-object-pgo: objclean profileclean universalclean
 	@echo ""
 	@echo "Step 3/4. Building optimized object files ..."
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) objclean
-	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) ENV_LDFLAGS='$(ENV_LDFLAGS) $(NNUE_EMBED_OBJ) $(SAVE_TEMPS)' $(PROFILE_USE)
+	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) ENV_LDFLAGS='$(ENV_LDFLAGS) $(SAVE_TEMPS)' NNUE_EMBED_OBJ='$(NNUE_EMBED_OBJ)' $(PROFILE_USE)
 	@echo ""
 ifeq ($(USE_LTO_EMIT_ASM),yes)
 	@echo "Step 4/4. Renaming ctors and extracting LTO-optimized relocatable object ..."
@@ -1284,7 +1292,7 @@ else
 endif
 
 universal-object-nopgo: objclean universalclean
-	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) ENV_LDFLAGS='$(ENV_LDFLAGS) $(NNUE_EMBED_OBJ) $(SAVE_TEMPS)' all
+	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) ENV_LDFLAGS='$(ENV_LDFLAGS) $(SAVE_TEMPS)' NNUE_EMBED_OBJ='$(NNUE_EMBED_OBJ)' all
 ifeq ($(USE_LTO_EMIT_ASM),yes)
 	awk -v MODNAME=$(MODNAME) -f ../../universal/rewrite_asm_sections.awk *.lto.s > renamed.s
 	$(CXX) -c renamed.s -o DON.o $(ASM_FLAGS)
@@ -1332,8 +1340,8 @@ net:
 
 format:
 	@echo CLANG_FORMAT=$(CLANG_FORMAT)
-	@if [ -n "$(CLANG_FORMAT)" ] && [ -n "$(SRCS)$(EXTRA_SRCS)$(HEADERS)" ]; then \
-		$(CLANG_FORMAT) -i -style=file $(SRCS) $(EXTRA_SRCS) $(HEADERS); \
+	@if [ -n "$(CLANG_FORMAT)" ]; then \
+		$(CLANG_FORMAT) -i -style=file $(SRCS) $(UNIVERSAL_SRCS) $(HEADERS); \
 	fi
 
 install-hooks:
@@ -1367,6 +1375,7 @@ config-sanity: net
 	echo "IS_WINDOWS: '$(IS_WINDOWS)'" && \
 	echo "COMP: '$(COMP)'" && \
 	echo "RUN_PREFIX: '$(RUN_PREFIX)'" && \
+	echo "" && \
 	echo "debug: '$(debug)'" && \
 	echo "sanitize: '$(sanitize)'" && \
 	echo "optimize: '$(optimize)'" && \
@@ -1402,6 +1411,7 @@ config-sanity: net
 	echo "CXXFLAGS: $(CXXFLAGS)" && \
 	echo "DEPENDFLAGS: $(DEPENDFLAGS)" && \
 	echo "LDFLAGS: $(LDFLAGS)" && \
+	echo "LDLIBS: $(LDLIBS)" && \
 	echo "" && \
 	echo "Testing config sanity. If this fails, try 'make help' ..." && \
 	echo "" && \
@@ -1438,12 +1448,10 @@ config-sanity: net
 	(test "$(tablebases)" = "yes" || test "$(tablebases)" = "no") && \
 	(test "$(IS_WINDOWS)" = "no" || test "$(IS_WINDOWS)" = "yes") && \
 	(test "$(COMP)" = "gcc" || test "$(COMP)" = "clang" || test "$(COMP)" = "mingw" || \
-	 test "$(COMP)" = "icx" || test "$(COMP)" = "ndk" || \
-	 test "$(COMP)" = "armv7a-linux-androideabi16-clang" || \
-	 test "$(COMP)" = "aarch64-linux-android21-clang")
+	 test "$(COMP)" = "icx" || test "$(COMP)" = "ndk")
 
-$(EXE): $(OBJS)
-	+$(CXX) -o $@ $(OBJS) $(LDFLAGS)
+$(EXE): $(OBJS) $(NNUE_EMBED_OBJ)
+	+$(CXX) -o $@ $(OBJS) $(NNUE_EMBED_OBJ) $(strip $(LDFLAGS) $(LDLIBS))
 
 %.o: %.cpp
 	$(strip $(CXX) $(CPPFLAGS) $(CXXFLAGS)) -c -o $@ $<
@@ -1470,13 +1478,13 @@ gcc-profile-make:
 	@mkdir -p profdir
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
 	EXTRA_CXXFLAGS='-fprofile-generate=profdir $(EXTRA_PROFILE_FLAGS)' \
-	EXTRA_LDFLAGS='-lgcov' \
+	EXTRA_LDLIBS='-lgcov' \
 	all
 
 gcc-profile-use:
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
 	EXTRA_CXXFLAGS='-fprofile-use=profdir -fprofile-correction -fno-peel-loops -fno-tracer $(EXTRA_PROFILE_FLAGS)' \
-	EXTRA_LDFLAGS='-lgcov' \
+	EXTRA_LDLIBS='-lgcov' \
 	all
 
 # ICC/ICX PGO
@@ -1527,9 +1535,9 @@ NNUE_EMBED_OBJ       := $(TEMP_DIR)/nnue_embed.o
 NET_SENTINEL         := $(TEMP_DIR)/.net-done
 
 ifeq ($(arch),x86_64)
-    UNIVERSAL_ARCHES    := x86-64 x86-64-sse41-popcnt x86-64-avx2 x86-64-bmi2 x86-64-avxvnni #x86-64-avx512 x86-64-vnni512 x86-64-avx512icl
-    UNIVERSAL_ENTRY_SRC := $(UNIVERSAL_SRC_DIR)/entry_x86.cpp
-    UNIVERSAL_ENTRY_OBJ := $(TEMP_DIR)/entry_x86.o
+    UNIVERSAL_ARCHES    := x86-64 x86-64-sse41-popcnt x86-64-avx2 x86-64-bmi2 x86-64-avxvnni x86-64-avx512 x86-64-vnni512 #x86-64-avx512icl
+    UNIVERSAL_ENTRY_SRC := $(UNIVERSAL_SRC_DIR)/entry_x86_64.cpp
+    UNIVERSAL_ENTRY_OBJ := $(TEMP_DIR)/entry_x86_64.o
     BASELINE_ARCH       := x86-64
 else ifeq ($(arch),riscv64)
     UNIVERSAL_ARCHES    := riscv64 riscv64-rva23
@@ -1569,24 +1577,24 @@ else  # Windows
     endif
 endif
 
-# $(call ARCH-NAMESPACE,x86-64-avx2) => DON_x86_64_avx2
-ARCH-SUFFIX    = $(subst -,_,$(1))
-ARCH-NAMESPACE = DON_$(call ARCH-SUFFIX,$(1))
+# $(call ARCH_NAMESPACE,x86-64-avx2) => DON_x86_64_avx2
+ARCH_SUFFIX    = $(subst -,_,$(1))
+ARCH_NAMESPACE = DON_$(call ARCH_SUFFIX,$(1))
 # Itanium ABI mangled name for DON_<suffix>::main(int, char**)
-ARCH-MANGLED   = _ZN$(shell printf %s '$(call ARCH-NAMESPACE,$(1))' | wc -c | tr -d ' ')$(call ARCH-NAMESPACE,$(1))4mainEiPPKc
+ARCH_MANGLED   = _ZN$(shell printf %s '$(call ARCH_NAMESPACE,$(1))' | wc -c | tr -d ' ')$(call ARCH_NAMESPACE,$(1))4mainEiPPKc
 # Mach-O initializer section name: strip the "x86-64" or "x86-64-" prefix,
 # replace remaining '-' with '_', and prefix with "_i_".
 # Mach-O section names are limited to 16 characters, hence this naming scheme.
-ARCH-MACOS-SECTION = _i_$(subst -,_,$(patsubst x86-64,,$(patsubst x86-64-%,%,$(1))))
+ARCH_MACOS_SECTION = _i_$(subst -,_,$(patsubst x86-64,,$(patsubst x86-64-%,%,$(1))))
 
 ifeq ($(TARGET_KERNEL),Darwin)
-    ARCH-MAIN-LDFLAGS = -Wl,-alias,_$(call ARCH-MANGLED,$(1)),_main
+    ARCH_MAIN_LDFLAGS = -Wl,-alias,_$(call ARCH_MANGLED,$(1)),_main
 # lld-link, used on Windows+clang, doesn't accept --defsym, so
 # define main directly in main.cpp instead and delete it later.
 else ifeq ($(IS_WINDOWS)+$(COMP),yes+clang)
-    ARCH-MAIN-CXXFLAGS = -DUNIVERSAL_NEEDS_MAIN_SHIM
+    ARCH_MAIN_CXXFLAGS = -DUNIVERSAL_NEEDS_MAIN_SHIM
 else
-    ARCH-MAIN-LDFLAGS = -Wl,--defsym=main=$(call ARCH-MANGLED,$(1))
+    ARCH_MAIN_LDFLAGS = -Wl,--defsym=main=$(call ARCH_MANGLED,$(1))
 endif
 
 EMBED_DIR_SUPPORTED := $(shell echo 'int main(){}' | $(CXX) -x c++ --embed-dir=. -o /dev/null -c - 2>/dev/null && echo 1 || echo 0)
@@ -1601,11 +1609,11 @@ ifeq ($(MACOS_X86_SLICE),1)
     SLICE_DEF := -DUNIVERSAL_BINARY_MACOS_X86_SLICE
 endif
 
-ARCH-CXXFLAGS = $(EMBED_DIR) -DDON=$(call ARCH-NAMESPACE,$(1)) \
+ARCH_CXXFLAGS = $(EMBED_DIR) -DDON=$(call ARCH_NAMESPACE,$(1)) \
                 -DUNIVERSAL_BINARY $(SLICE_DEF) \
-                $(ARCH-MAIN-CXXFLAGS) \
+                $(ARCH_MAIN_CXXFLAGS) \
                 -Wno-c++26-extensions -Wno-c23-extensions
-ARCH-LDFLAGS  = $(ARCH-MAIN-LDFLAGS)
+ARCH_LDFLAGS  = $(ARCH_MAIN_LDFLAGS)
 
 UOBJ_TGT ?= universal-object-pgo
 ifeq ($(COMP),clang)
@@ -1647,14 +1655,15 @@ $(TEMP_DIR)/%/.setup: | $(TEMP_DIR)
 .SECONDARY: $(patsubst %,$(TEMP_DIR)/%/.setup,$(UNIVERSAL_ARCHES))
 
 $(TEMP_DIR)/%/DON.o: $(TEMP_DIR)/%/.setup $(NNUE_EMBED_OBJ) $(NET_SENTINEL)
-	+ENV_CXXFLAGS='$(ENV_CXXFLAGS) $(call ARCH-CXXFLAGS,$*)' \
-	 ENV_LDFLAGS='$(ENV_LDFLAGS) $(call ARCH-LDFLAGS,$*)' \
+	+ENV_CXXFLAGS='$(ENV_CXXFLAGS) $(call ARCH_CXXFLAGS,$*)' \
+	 ENV_LDFLAGS='$(ENV_LDFLAGS) $(call ARCH_LDFLAGS,$*)' \
+	 ENV_LDLIBS='$(ENV_LDLIBS)' \
 	    $(MAKE) -C $(TEMP_DIR)/$* $(UOBJ_TGT) \
 	        ARCH=$* CXX=$(CXX) COMP=$(COMP) \
 	        NNUE_EMBED_OBJ=$(NNUE_EMBED_OBJ)
 ifeq ($(TARGET_KERNEL),Darwin)
 # Rename the initializer section
-	ld -r -rename_section __DATA __mod_init_func __DATA $(call ARCH-MACOS-SECTION,$*) $@ -o $@.tmp
+	ld -r -rename_section __DATA __mod_init_func __DATA $(call ARCH_MACOS_SECTION,$*) $@ -o $@.tmp
 	mv $@.tmp $@
 else
 # Drop COMDAT groups; clang LTO leaves them around internalized LOCAL
@@ -1665,10 +1674,10 @@ ifeq ($(USE_LTO_EMIT_ASM),yes)
 	$(OBJCOPY) -N main $@
 else
 # Rename .init_array (Linux) or .ctors (Windows) so we can manually invoke them
-	$(OBJCOPY) --rename-section .init_array=$(call ARCH-SUFFIX,$*)_init $@
-	$(OBJCOPY) --rename-section .ctors=$(call ARCH-SUFFIX,$*)_init $@
+	$(OBJCOPY) --rename-section .init_array=$(call ARCH_SUFFIX,$*)_init $@
+	$(OBJCOPY) --rename-section .ctors=$(call ARCH_SUFFIX,$*)_init $@
 # Make the array inert
-	$(OBJCOPY) --set-section-flags $(call ARCH-SUFFIX,$*)_init=alloc,data $@
+	$(OBJCOPY) --set-section-flags $(call ARCH_SUFFIX,$*)_init=alloc,data $@
 endif
 endif
 

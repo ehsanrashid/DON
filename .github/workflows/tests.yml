@@ -75,7 +75,6 @@ jobs:
             os: macos-15
             compiler: clang++
             comp: clang
-            run_64bit_tests: false
             run_m1_tests: true
             shell: bash
           - name: macOS 15 GCC 11
@@ -278,20 +277,6 @@ jobs:
           make clean
           make -j4 ARCH=x86-64-bmi2 optimize=no debug=yes build
           ../tests/signature.sh $benchref
-
-      - name: Test x86-64-avx512 build
-        if: matrix.config.run_64bit_tests && !startsWith(matrix.config.os, 'macos')
-        run: |
-          if [ -f /proc/cpuinfo ]; then
-            cat /proc/cpuinfo
-          elif [ "$(uname -s)" = "Darwin" ]; then
-            sysctl -a | grep -E 'machdep.cpu|hw.optional'
-          else
-            g++ -Q -march=native --help=target | grep -E 'avx512(f|bw|dq|vl)'
-          fi
-          make clean
-          make -j4 ARCH=x86-64-avx512 build
-          # ../tests/signature.sh $benchref
 
       - name: Test x86-64-bmi2 build
         if: matrix.config.run_64bit_tests

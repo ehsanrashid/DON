@@ -63,7 +63,7 @@ constexpr std::string_view Version{"dev"};
 
     // Skip spaces
     for (; p < end && std::isspace(uchar(*p)); ++p)
-    { }
+    {}
 
     // Parse day (1-2 digits)
     if (end - p < 1 || !std::isdigit(uchar(*p)))
@@ -81,7 +81,7 @@ constexpr std::string_view Version{"dev"};
 
     // Skip spaces/comma
     for (; p < end && (std::isspace(uchar(*p)) || *p == ','); ++p)
-    { }
+    {}
 
     // Parse year (4 digits)
     if (end - p < 4)
@@ -393,25 +393,29 @@ std::string compiler_info() noexcept {
     compiler.append("32-bit");
 #endif
 #if defined(USE_AVX512ICL)
-    compiler.append(" AVX512ICL");
+    compiler.append(" AVX-512-ICL");
 #endif
 #if defined(USE_VNNI)
+    #if defined(USE_AVXVNNI)
+    compiler.append(" AVX-VNNI");
+    #else
     compiler.append(" VNNI");
+    #endif
 #endif
 #if defined(USE_AVX512)
-    compiler.append(" AVX512");
+    compiler.append(" AVX-512");
 #endif
 #if defined(USE_BMI2)
     compiler.append(" BMI2");
     #if defined(USE_CMP)
-    compiler.append(" CMP");
+    compiler.append("-CMP");
     #endif
 #endif
 #if defined(USE_AVX2)
     compiler.append(" AVX2");
 #endif
 #if defined(USE_SSE41)
-    compiler.append(" SSE41");
+    compiler.append(" SSE4.1");
 #endif
 #if defined(USE_SSSE3)
     compiler.append(" SSSE3");
@@ -421,7 +425,7 @@ std::string compiler_info() noexcept {
 #endif
 #if defined(USE_NEON)
     #if defined(USE_NEON_DOTPROD)
-    compiler.append(" NEON_DOTPROD");
+    compiler.append(" NEON-DOTPROD");
     #else
     compiler.append(" NEON");
     #endif
@@ -597,7 +601,7 @@ void min_of(i64 value, usize slot) noexcept {
              && !mn.compare_exchange_weak(minValue, value,            //
                                           std::memory_order_relaxed,  //
                                           std::memory_order_relaxed);)
-        { }
+        {}
     }
 }
 
@@ -615,7 +619,7 @@ void max_of(i64 value, usize slot) noexcept {
              && !mx.compare_exchange_weak(maxValue, value,            //
                                           std::memory_order_relaxed,  //
                                           std::memory_order_relaxed);)
-        { }
+        {}
     }
 }
 
@@ -633,7 +637,7 @@ void extreme_of(i64 value, usize slot) noexcept {
              && !mn.compare_exchange_weak(minValue, value,            //
                                           std::memory_order_relaxed,  //
                                           std::memory_order_relaxed);)
-        { }
+        {}
     }
     {
         auto& mx = info[2];
@@ -642,7 +646,7 @@ void extreme_of(i64 value, usize slot) noexcept {
              && !mx.compare_exchange_weak(maxValue, value,            //
                                           std::memory_order_relaxed,  //
                                           std::memory_order_relaxed);)
-        { }
+        {}
     }
 }
 
