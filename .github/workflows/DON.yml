@@ -135,15 +135,18 @@ jobs:
     uses: ./.github/workflows/iwyu.yml
   Sanitizers:
     name: Sanitizers
-    if: ${{ always() }}
+    #if: ${{ always() }}
+    needs: [IWYU]
     uses: ./.github/workflows/sanitizers.yml
   Tests:
     name: Tests
-    if: ${{ always() }}
+    #if: ${{ always() }}
+    needs: [IWYU]
     uses: ./.github/workflows/tests.yml
   Matetrack:
     name: Matetrack
-    if: ${{ always() }}
+    #if: ${{ always() }}
+    needs: [IWYU]
     uses: ./.github/workflows/matetrack.yml
   Games:
     name: Games
@@ -156,13 +159,13 @@ jobs:
   # Release Jobs
   BuildAndroid:
     name: Build Android
-    needs: [Matrix, Sanitizers, Tests, Matetrack, Games, CheckCompilers]
+    needs: [IWYU, Matrix, Sanitizers, Tests, Matetrack, Games, CheckCompilers]
     uses: ./.github/workflows/build_android.yml
     with:
       matrix: ${{ needs.Matrix.outputs.android_matrix }}
   BuildUniversal:
     name: Build Universal
-    needs: [Matrix, Sanitizers, Tests, Matetrack, Games, CheckCompilers]
+    needs: [IWYU, Matrix, Sanitizers, Tests, Matetrack, Games, CheckCompilers]
     uses: ./.github/workflows/build_universal.yml
   UploadAndroid:
     if: github.repository == 'ehsanrashid/DON'
