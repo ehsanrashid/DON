@@ -424,25 +424,23 @@ Strings bench(std::istream& is, std::string_view currentFen) noexcept {
             std::cerr << "Unable to open fen filename " << fenFile << std::endl;
             return {};
         }
-        else
-        {
-            constexpr usize AverageFenLen = 64;
 
-            usize fenFileSize = std::filesystem::file_size(fenFile);
+        constexpr usize AverageFenLen = 64;
 
-            usize estimatedFens = fenFileSize / AverageFenLen;
+        usize fenFileSize = std::filesystem::file_size(fenFile);
 
-            fens.reserve(estimatedFens);
+        usize estimatedFens = fenFileSize / AverageFenLen;
 
-            std::string fen;
-            fen.reserve(AverageFenLen);  // avoids repeated reallocations for typical FEN length
+        fens.reserve(estimatedFens);
 
-            while (std::getline(ifs, fen))
-                if (!is_whitespace(fen))
-                    fens.emplace_back(fen);
+        std::string fen;
+        fen.reserve(AverageFenLen);  // avoids repeated reallocations for typical FEN length
 
-            ifs.close();
-        }
+        while (std::getline(ifs, fen))
+            if (!is_whitespace(fen))
+                fens.emplace_back(fen);
+
+        ifs.close();
     }
 
     Strings commands;
