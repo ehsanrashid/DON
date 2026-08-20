@@ -22,6 +22,9 @@
 #if defined(_WIN32)
     #include <malloc.h>  // MSVC Header for _mm_malloc(), _mm_free()
 #else
+    #if defined(__linux__) && !defined(__ANDROID__)
+        #include <sys/mman.h>
+    #endif
     #if defined(__has_include) && __has_include(<features.h>)
         #include <features.h>  // __GLIBC__ feature-test macros
     #endif

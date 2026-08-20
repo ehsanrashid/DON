@@ -52,6 +52,9 @@
 
 #if defined(_WIN32)
     #include "platform_win.h"
+#else
+    #include <sys/mman.h>
+    #include <unistd.h>
 #endif
 
 #undef HAS_X86_PREFETCH
