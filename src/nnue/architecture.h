@@ -20,12 +20,12 @@
 #ifndef NNUE_ARCHITECTURE_H_INCLUDED
 #define NNUE_ARCHITECTURE_H_INCLUDED
 
-#include <array>
 #include <cstring>
 #include <functional>
 #include <iosfwd>
 
 #include "../misc.h"
+#include "../types.h"
 #include "nmisc.h"
 #include "common.h"
 #include "features/full_threats.h"

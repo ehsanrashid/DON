@@ -51,6 +51,31 @@ inline constexpr IndexType LayerStacks = 8;
 static_assert(PSQTBuckets % 8 == 0,
               "Per feature PSQT values cannot be processed at granularity lower than 8 at a time.");
 
+// Constant used in evaluation value calculation
+inline constexpr int OUTPUT_SCALE      = 16;
+inline constexpr int WEIGHT_SCALE_BITS = 6;
+
+inline constexpr usize SIMD_WIDTH_MAX = 32;
+
+// SIMD width (in bytes)
+#if defined(USE_AVX2)
+inline constexpr usize SIMD_WIDTH = 32;
+#elif defined(USE_SSE2)
+inline constexpr usize SIMD_WIDTH = 16;
+#elif defined(USE_NEON)
+inline constexpr usize SIMD_WIDTH = 16;
+#elif defined(USE_LASX)
+inline constexpr usize SIMD_WIDTH = 32;
+#elif defined(USE_LSX)
+inline constexpr usize SIMD_WIDTH = 16;
+#endif
+
+// Round n up to be a multiple of base
+template<typename IntType>
+constexpr IntType ceil_to_multiple(IntType n, IntType base) noexcept {
+    return ceil_div(n, base) * base;
+}
+
 // EvalFile stores the currently selected evaluation network and its metadata.
 // The network path may be explicitly selected through a UCI option or fall back to the default network,
 // while the description is extracted from the loaded network file.
