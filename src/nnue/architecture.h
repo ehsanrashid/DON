@@ -27,7 +27,6 @@
 #include "../misc.h"
 #include "../types.h"
 #include "nmisc.h"
-#include "common.h"
 #include "features/full_threats.h"
 #include "features/half_ka_hm.h"
 #include "layers/affine_transform.h"
