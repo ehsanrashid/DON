@@ -29,16 +29,13 @@
 #include <utility>
 #include <vector>
 
-// MSVC-compatible toolchains use std::thread because they do not provide pthreads by default.
-// On all other platforms, pthreads is required and used.
-#if !defined(_MSC_VER)
-    #define USE_PTHREAD
-#endif
-
-#if defined(USE_PTHREAD)
-    #include <pthread.h>
-#else  // Default case: use the C++ standard library
+// MSVC-compatible toolchains use std::thread because pthreads is not provided by default.
+// All other platforms use pthreads.
+#if defined(_MSC_VER)
     #include <thread>
+#else
+    #include <pthread.h>
+    #define USE_PTHREAD
 #endif
 
 #include "memory.h"
