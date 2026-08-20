@@ -38,7 +38,7 @@
 #endif
 
 #include "../types.h"
-#include "common.h"
+#include "nmisc.h"
 
 namespace DON::NNUE::SIMD {
 
@@ -635,6 +635,8 @@ class Tiling final {
     Tiling& operator=(Tiling&&) noexcept      = delete;
 };
 #endif
+
+int loop_simd();
 
 }  // namespace DON::NNUE::SIMD
 

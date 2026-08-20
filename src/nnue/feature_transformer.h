@@ -33,8 +33,9 @@
 #include "../types.h"
 #include "accumulator.h"
 #include "architecture.h"
-#include "common.h"
+#include "serialization.h"
 #include "simd.h"
+#include "nmisc.h"
 
 namespace DON::NNUE {
 

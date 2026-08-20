@@ -17,8 +17,8 @@
 
 // Constants used in NNUE evaluation function
 
-#ifndef NNUE_COMMON_H_INCLUDED
-#define NNUE_COMMON_H_INCLUDED
+#ifndef NNUE_SERIALIZATION_H_INCLUDED
+#define NNUE_SERIALIZATION_H_INCLUDED
 
 #include <algorithm>
 #include <array>
@@ -48,9 +48,6 @@
 #include "../misc.h"
 
 namespace DON::NNUE {
-
-// Version of the evaluation file
-inline constexpr u32 FILE_VERSION = 0x7AF32F20u;
 
 // LEB128 constants
 inline constexpr u8    LEB128_DATA_MASK = 0x7F;           // 7 data bits
@@ -310,6 +307,8 @@ inline void write_leb_128(std::ostream& os, const std::array<IntType, Size>& in)
     flush();
 }
 
+int loop_ser();
+
 }  // namespace DON::NNUE
 
-#endif  // #ifndef NNUE_COMMON_H_INCLUDED
+#endif  // #ifndef NNUE_SERIALIZATION_H_INCLUDED

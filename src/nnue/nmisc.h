@@ -43,6 +43,9 @@ inline constexpr IndexType L1 = 1024;
 inline constexpr u32       L2 = 31;
 inline constexpr u32       L3 = 32;
 
+// Version of the evaluation file
+inline constexpr u32 FILE_VERSION = 0x7AF32F20u;
+
 inline constexpr IndexType PSQTBuckets = 8;
 inline constexpr IndexType LayerStacks = 8;
 

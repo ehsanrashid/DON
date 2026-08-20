@@ -25,7 +25,8 @@
 
 #include "../../misc.h"
 #include "../../types.h"
-#include "../common.h"
+#include "../nmisc.h"
+#include "../serialization.h"
 #include "../simd.h"  // IWYU pragma: keep
 
 #if defined(USE_SSSE3) || defined(USE_LASX) || defined(USE_LSX) || defined(USE_NEON_DOTPROD)

@@ -29,7 +29,8 @@
 #include "../position.h"
 #include "../notation.h"
 #include "../types.h"
-#include "common.h"
+#include "serialization.h"
+#include "nmisc.h"
 
 // Determined at runtime, see universal/nnue_embed.cpp
 #if defined(UNIVERSAL_BINARY)
