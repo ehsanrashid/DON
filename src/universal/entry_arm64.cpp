@@ -48,18 +48,14 @@ struct CpuFeatures final {
 
 static CpuFeatures query_cpu_features() noexcept {
 #if defined(_WIN32)
-    return {
-      .dotprod = (bool) IsProcessorFeaturePresent(PF_ARM_V82_DP_INSTRUCTIONS_AVAILABLE),
-    };
+    return {.dotprod = (bool) IsProcessorFeaturePresent(PF_ARM_V82_DP_INSTRUCTIONS_AVAILABLE)};
 #else
     unsigned long hwcap = getauxval(AT_HWCAP);
-    return {
-      .dotprod = (bool) (hwcap & HWCAP_ASIMDDP),
-    };
+    return {.dotprod = (bool) (hwcap & HWCAP_ASIMDDP)};
 #endif
 }
 
-// Selects the most capable ISA variant supported by this CPU and OS
+// Selects the most capable ISA variant supported by current CPU
 static int dispatch(const CpuFeatures& f, int argc, const char* argv[]) noexcept {
     if (!f.dotprod)
         return entry_armv8(argc, argv);

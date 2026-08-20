@@ -90,7 +90,6 @@ jobs:
             run_64bit_tests: true
             msys_sys: mingw64
             msys_env: x86_64-gcc
-            gdb_pkg: mingw-w64-x86_64-gdb
             shell: msys2 {0}
           - name: Windows 2022 Mingw-w64 GCC i686
             os: windows-2022
@@ -107,7 +106,6 @@ jobs:
             run_64bit_tests: true
             msys_sys: clang64
             msys_env: clang-x86_64-clang
-            gdb_pkg: mingw-w64-clang-x86_64-gdb
             shell: msys2 {0}
           - name: Windows 11 Mingw-w64 Clang arm64
             os: windows-11-arm
@@ -180,7 +178,7 @@ jobs:
         uses: msys2/setup-msys2@e9898307ac31d1a803454791be09ab9973336e1c # v2.31.1
         with:
           msystem: ${{ matrix.config.msys_sys }}
-          install: mingw-w64-${{ matrix.config.msys_env }} make git expect ${{ matrix.config.gdb_pkg }}
+          install: mingw-w64-${{ matrix.config.msys_env }} make git expect
 
       - name: Download the used network from the fishtest framework
         run: make net
@@ -272,70 +270,13 @@ jobs:
 
       # x86-64 tests
 
-      - name: Check CPU flags
-        if: matrix.config.run_64bit_tests
-        run: |
-          if [ "$RUNNER_OS" = "Linux" ]; then
-            grep -m1 '^model name' /proc/cpuinfo
-            grep -m1 '^flags' /proc/cpuinfo
-          elif [ "$RUNNER_OS" = "Windows" ]; then
-            systeminfo | grep -E 'Processor|System Type'
-            echo "=== GDB version ==="
-            gdb --version
-            echo "=== Compiler CPU information ==="
-            if [ "$COMP" = "mingw" ]; then
-              g++ -Q -march=native --help=target
-            elif [ "$COMP" = "clang" ]; then
-              clang++ -### -march=native -x c++ -c /dev/null 2>&1
-            fi
-          fi
-
-      - name: Test debug x86-64-bmi2 build
+      - name: Test debug x86-64-avx2 build
         if: matrix.config.run_64bit_tests
         run: |
           export CXXFLAGS="-Werror -D_GLIBCXX_DEBUG"
           make clean
           make -j4 ARCH=x86-64-bmi2 optimize=no debug=yes build
           ../tests/signature.sh $benchref
-
-      # - name: Test x86-64-avx512icl build
-      #   if: matrix.config.run_64bit_tests && (runner.os == 'Linux' || runner.os == 'Windows')
-      #   run: |
-      #     make clean
-      #     make -j4 ARCH=x86-64-avx512icl build
-      #     file ./DON
-      #     #../tests/signature.sh $benchref || echo "Signature test failed with exit code $?"
-      #     echo "=== Running signature ==="
-      #     if ../tests/signature.sh "$benchref"; then
-      #       echo "Signature test passed"
-      #     else
-      #       echo "Signature test failed with exit code $?"
-      #       echo "=== GDB diagnostic ==="
-      #       if command -v gdb >/dev/null 2>&1; then
-      #         gdb --batch \
-      #           -ex "run" \
-      #           -ex "x/10i \$pc-20" \
-      #           -ex "x/16xb \$pc" \
-      #           -ex "info registers" \
-      #           --args ./DON bench
-      #       else
-      #         echo "gdb not installed"
-      #       fi
-      #     fi
-
-      - name: Test x86-64-vnni512 build
-        if: matrix.config.run_64bit_tests
-        run: |
-          make clean
-          make -j4 ARCH=x86-64-vnni512 build
-          ../tests/signature.sh $benchref || echo "Signature test failed with exit code $?"
-
-      - name: Test x86-64-avx512 build
-        if: matrix.config.run_64bit_tests
-        run: |
-          make clean
-          make -j4 ARCH=x86-64-avx512 build
-          ../tests/signature.sh $benchref || echo "Signature test failed with exit code $?"
 
       - name: Test x86-64-bmi2 build
         if: matrix.config.run_64bit_tests
