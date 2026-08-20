@@ -21,6 +21,7 @@
 #include <cassert>
 #include <cstdio>
 #include <memory>
+#include <sstream>
 
 #include "misc.h"
 #include "position.h"
@@ -240,8 +241,9 @@ std::string trace(Position& pos, const NNUE::Network& network) noexcept {
     std::string output;
     output.reserve(3 * KB);
 
-    output.assign(nnue_trace(pos, network, *accCache));
-    output.push_back('\n');
+    output  //
+      .assign(nnue_trace(pos, network, *accCache))
+      .append("\n");
 
     auto [psqt, positional] = network.evaluate(pos, *accCache, *accStack);
 

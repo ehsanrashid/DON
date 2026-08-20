@@ -205,7 +205,8 @@ std::string engine_info(bool uci) noexcept {
     std::string engine;
     engine.reserve(64);
 
-    engine.assign(uci ? "id name " : "")
+    engine  //
+      .assign(uci ? "id name " : "")
       .append(version_info())
       .append(uci ? "\nid author " : " by ")
       .append(Author);
