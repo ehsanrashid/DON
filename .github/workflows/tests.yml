@@ -270,7 +270,7 @@ jobs:
 
       # x86-64 tests
 
-      - name: Test debug x86-64-avx2 build
+      - name: Test debug x86-64-bmi2 build
         if: matrix.config.run_64bit_tests
         run: |
           export CXXFLAGS="-Werror -D_GLIBCXX_DEBUG"

@@ -101,7 +101,10 @@ SRCS := attacks.cpp benchmark.cpp bitboard.cpp engine.cpp evaluate.cpp main.cpp 
     nnue/accumulator.cpp nnue/network.cpp nnue/nmisc.cpp \
     book/polyglot.cpp tablebase/syzygy.cpp
 
-EXTRA_SRCS = universal/entry_x86.cpp universal/entry_arm64.cpp universal/entry_riscv64.cpp universal/nnue_embed.cpp
+UNIVERSAL_SRCS = universal/entry_x86_64.cpp \
+                 universal/entry_riscv64.cpp \
+                 universal/entry_arm64.cpp \
+                 universal/nnue_embed.cpp
 
 HEADERS := attacks.h benchmark.h bitboard.h engine.h evaluate.h history.h memory.h \
     misc.h movegen.h movepick.h notation.h numa.h option.h perft.h platform_win.h \
@@ -180,16 +183,16 @@ endif
 # User can override with `make ARCH=x86-64-avx512icl ARCH_SUPPORTED=yes`
 ARCH_SUPPORTED := $(if $(filter \
     x86-64-universal x86-64-avx512icl x86-64-vnni512 x86-64-vnni256 x86-64-avx512 x86-64-avxvnni \
-    x86-64-bmi2 x86-64-avx2 x86-64-bitmanip-cmp x86-64-bitmanip x86-64-sse41-popcnt \
+    x86-64-bmi2 x86-64-avx2 x86-64-sse41-bmi2-cmp x86-64-sse41-bmi2 x86-64-sse41-popcnt \
     x86-64-modern x86-64-sse41 x86-64-ssse3-popcnt x86-64-ssse3 x86-64 general-64 \
     x86-32-sse41-popcnt x86-32-sse41 x86-32-ssse3 x86-32-sse2 x86-32 general-32 \
     ppc-64-vsx ppc-64-altivec ppc-64 ppc-32 e2k \
-    arm64-universal armv8-dotprod armv8 armv7-neon armv7 apple-silicon \
     riscv64-universal riscv64-rva23 riscv64 \
-    loongarch64-lasx loongarch64-lsx loongarch64 \
+    loo.ngarch64-lasx loongarch64-lsx loongarch64 \
+    arm.64-universal armv8-dotprod armv8 armv7-neon armv7 apple-silicon \
     wasm32 wasm32-relaxed-simd,$(ARCH)),yes,no)
 
-UNIVERSAL_BUILD := $(if $(filter x86-64-universal arm64-universal riscv64-universal,$(ARCH)),yes,no)
+UNIVERSAL_BUILD := $(if $(filter x86-64-universal riscv64-universal arm64-universal,$(ARCH)),yes,no)
 
 optimize = yes
 debug = no
@@ -281,7 +284,7 @@ ifneq ($(findstring -modern,$(ARCH)),)
     sse41 = yes
 endif
 
-ifneq ($(findstring -bitmanip,$(ARCH)),)
+ifneq ($(findstring -sse41-bmi2,$(ARCH)),)
     popcnt = yes
     sse = yes
     sse2 = yes
@@ -290,7 +293,7 @@ ifneq ($(findstring -bitmanip,$(ARCH)),)
     bmi2 = yes
 endif
 
-ifneq ($(findstring -bitmanip-cmp,$(ARCH)),)
+ifneq ($(findstring -sse41-bmi2-cmp,$(ARCH)),)
     cmp = yes
 endif
 
@@ -1116,44 +1119,44 @@ help:
 	echo ""; \
 	echo "native                  > select the best architecture for the host processor (default)"; \
 	echo "x86-64-universal        > x86 64-bit with automatic runtime selection of the best architecture"; \
-	echo "x86-64-avx512icl        > x86 64-bit with minimum avx512 support of Intel Ice Lake or AMD Zen 4"; \
-	echo "x86-64-vnni512          > x86 64-bit with vnni support, operands 512-bit wide"; \
-	echo "x86-64-vnni256          > x86 64-bit with vnni support, operands limited to 256-bit wide"; \
-	echo "x86-64-avx512           > x86 64-bit with avx512 support"; \
-	echo "x86-64-avxvnni          > x86 64-bit with vnni 256bit support"; \
-	echo "x86-64-bmi2             > x86 64-bit with bmi2 support"; \
-	echo "x86-64-avx2             > x86 64-bit with avx2 support"; \
-	echo "x86-64-bitmanip-cmp     > x86 64-bit with bit manipulation support and compressed instructions"; \
-	echo "x86-64-bitmanip         > x86 64-bit with bit manipulation support"; \
-	echo "x86-64-sse41-popcnt     > x86 64-bit with sse41 and popcnt support"; \
+	echo "x86-64-avx512icl        > x86 64-bit with minimum AVX512 support of Intel Ice Lake or AMD Zen 4"; \
+	echo "x86-64-vnni512          > x86 64-bit with VNNI support, operands 512-bit wide"; \
+	echo "x86-64-vnni256          > x86 64-bit with VNNI support, operands limited to 256-bit wide"; \
+	echo "x86-64-avx512           > x86 64-bit with AVX512 support"; \
+	echo "x86-64-avxvnni          > x86 64-bit with VNNI 256bit support"; \
+	echo "x86-64-bmi2             > x86 64-bit with BMI2 support"; \
+	echo "x86-64-avx2             > x86 64-bit with AVX2 support"; \
+	echo "x86-64-sse41-bmi2-cmp   > x86 64-bit with SSE4.1 and BMI2 compressed support"; \
+	echo "x86-64-sse41-bmi2       > x86 64-bit with SSE4.1 and BMI2 support"; \
+	echo "x86-64-sse41-popcnt     > x86 64-bit with SSE4.1 and POPCNT support"; \
 	echo "x86-64-modern           > deprecated, currently x86-64-sse41-popcnt"; \
-	echo "x86-64-sse41            > x86 64-bit with sse41 support"; \
-	echo "x86-64-ssse3-popcnt     > x86 64-bit with ssse3 and popcnt support"; \
-	echo "x86-64-ssse3            > x86 64-bit with ssse3 support"; \
-	echo "x86-64                  > x86 64-bit generic with sse2 support"; \
+	echo "x86-64-sse41            > x86 64-bit with SSE4.1 support"; \
+	echo "x86-64-ssse3-popcnt     > x86 64-bit with SSSE3 and POPCNT support"; \
+	echo "x86-64-ssse3            > x86 64-bit with SSSE3 support"; \
+	echo "x86-64                  > x86 64-bit generic with SSE2 support"; \
 	echo "general-64              > unspecified 64-bit"; \
-	echo "x86-32-sse41-popcnt     > x86 32-bit with sse41 and popcnt support"; \
-	echo "x86-32-sse41            > x86 32-bit with sse41 support"; \
-	echo "x86-32-ssse3            > x86 32-bit with ssse3 support"; \
-	echo "x86-32-sse2             > x86 32-bit with sse2 support"; \
-	echo "x86-32                  > x86 32-bit generic with mmx support"; \
+	echo "x86-32-sse41-popcnt     > x86 32-bit with SSE4.1 and POPCNT support"; \
+	echo "x86-32-sse41            > x86 32-bit with SSE4.1 support"; \
+	echo "x86-32-ssse3            > x86 32-bit with SSSE3 support"; \
+	echo "x86-32-sse2             > x86 32-bit with SSE2 support"; \
+	echo "x86-32                  > x86 32-bit generic with MMX support"; \
 	echo "general-32              > unspecified 32-bit"; \
-	echo "ppc-64-altivec          > PPC 64-bit with altivec support"; \
-	echo "ppc-64-vsx              > PPC 64-bit with vsx support"; \
+	echo "ppc-64-altivec          > PPC 64-bit with AltiVec support"; \
+	echo "ppc-64-vsx              > PPC 64-bit with VSX support"; \
 	echo "ppc-64                  > PPC 64-bit"; \
 	echo "ppc-32                  > PPC 32-bit"; \
 	echo "e2k                     > Elbrus 2000"; \
 	echo "arm64-universal         > ARMv8 64-bit with automatic runtime selection of the best architecture"; \
-	echo "armv8-dotprod           > ARMv8 64-bit with popcnt, neon and dot product support"; \
-	echo "armv8                   > ARMv8 64-bit with popcnt and neon"; \
-	echo "armv7-neon              > ARMv7 32-bit with popcnt and neon"; \
+	echo "armv8-dotprod           > ARMv8 64-bit with NEON, dot-product and POPCNT support"; \
+	echo "armv8                   > ARMv8 64-bit with NEON and POPCNT support"; \
+	echo "armv7-neon              > ARMv7 32-bit with NEON and POPCNT support"; \
 	echo "armv7                   > ARMv7 32-bit"; \
 	echo "apple-silicon           > Apple silicon ARM64"; \
 	echo "riscv64-universal       > RISC-V 64-bit with automatic runtime selection of the best architecture"; \
 	echo "riscv64-rva23           > RISC-V 64-bit RVA23 profile"; \
 	echo "riscv64                 > RISC-V 64-bit"; \
-	echo "loongarch64-lasx        > LoongArch 64-bit with Advanced SIMD eXtension"; \
-	echo "loongarch64-lsx         > LoongArch 64-bit with SIMD eXtension"; \
+	echo "loongarch64-lasx        > LoongArch 64-bit with LASX (Advanced SIMD) support"; \
+	echo "loongarch64-lsx         > LoongArch 64-bit with LSX (SIMD) support"; \
 	echo "loongarch64             > LoongArch 64-bit"; \
 	echo ""; \
 	echo "Supported compilers:"; \
@@ -1161,8 +1164,8 @@ help:
 	echo "gcc                     > GNU compiler (default)"; \
 	echo "mingw                   > GNU compiler with MinGW under Windows"; \
 	echo "clang                   > LLVM Clang compiler"; \
-	echo "icx                     > Intel oneAPI DPC++/C++ Compiler"; \
-	echo "ndk                     > Google NDK to cross-compile for Android"; \
+	echo "icx                     > Intel oneAPI DPC++/C++ compiler"; \
+	echo "ndk                     > Android NDK for cross-compiling"; \
 	echo ""; \
 	echo "Simple examples. If you don't know what to do, you likely want to run one of:"; \
 	echo ""; \
@@ -1332,8 +1335,8 @@ net:
 
 format:
 	@echo CLANG_FORMAT=$(CLANG_FORMAT)
-	@if [ -n "$(CLANG_FORMAT)" ] && [ -n "$(SRCS)$(EXTRA_SRCS)$(HEADERS)" ]; then \
-		$(CLANG_FORMAT) -i -style=file $(SRCS) $(EXTRA_SRCS) $(HEADERS); \
+	@if [ -n "$(CLANG_FORMAT)" ]; then \
+		$(CLANG_FORMAT) -i -style=file $(SRCS) $(UNIVERSAL_SRCS) $(HEADERS); \
 	fi
 
 install-hooks:
@@ -1438,9 +1441,7 @@ config-sanity: net
 	(test "$(tablebases)" = "yes" || test "$(tablebases)" = "no") && \
 	(test "$(IS_WINDOWS)" = "no" || test "$(IS_WINDOWS)" = "yes") && \
 	(test "$(COMP)" = "gcc" || test "$(COMP)" = "clang" || test "$(COMP)" = "mingw" || \
-	 test "$(COMP)" = "icx" || test "$(COMP)" = "ndk" || \
-	 test "$(COMP)" = "armv7a-linux-androideabi16-clang" || \
-	 test "$(COMP)" = "aarch64-linux-android21-clang")
+	 test "$(COMP)" = "icx" || test "$(COMP)" = "ndk")
 
 $(EXE): $(OBJS)
 	+$(CXX) -o $@ $(OBJS) $(LDFLAGS)
@@ -1528,8 +1529,8 @@ NET_SENTINEL         := $(TEMP_DIR)/.net-done
 
 ifeq ($(arch),x86_64)
     UNIVERSAL_ARCHES    := x86-64 x86-64-sse41-popcnt x86-64-avx2 x86-64-bmi2 x86-64-avxvnni x86-64-avx512 x86-64-vnni512 #x86-64-avx512icl
-    UNIVERSAL_ENTRY_SRC := $(UNIVERSAL_SRC_DIR)/entry_x86.cpp
-    UNIVERSAL_ENTRY_OBJ := $(TEMP_DIR)/entry_x86.o
+    UNIVERSAL_ENTRY_SRC := $(UNIVERSAL_SRC_DIR)/entry_x86_64.cpp
+    UNIVERSAL_ENTRY_OBJ := $(TEMP_DIR)/entry_x86_64.o
     BASELINE_ARCH       := x86-64
 else ifeq ($(arch),riscv64)
     UNIVERSAL_ARCHES    := riscv64 riscv64-rva23

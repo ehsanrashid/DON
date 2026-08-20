@@ -34,7 +34,7 @@
 #  ...
 #
 # We want to consolidate everything into a single section named x86_64_avx2_init, and insert
-# symbols __start_x86_64_avx2_init/__stop_x86_64_avx2_init for entry_x86.cpp to use.
+# symbols __start_x86_64_avx2_init/__stop_x86_64_avx2_init for entry_x86_64.cpp to use.
 # (On ELF these symbols are implicitly defined, so naming it this way keeps the universal
 # entry point consistent.)
 
