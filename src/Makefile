@@ -1270,7 +1270,7 @@ MODNAME := $(subst -,_,$(notdir $(CURDIR)))
 universal-object-pgo: objclean profileclean universalclean
 	@echo ""
 	@echo "Step 1/4. Building instrumented executable ..."
-	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) ENV_LDFLAGS='$(ENV_LDFLAGS) $(NNUE_EMBED_OBJ)' $(PROFILE_MAKE)
+	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) ENV_LDFLAGS='$(ENV_LDFLAGS)' NNUE_EMBED_OBJ='$(NNUE_EMBED_OBJ)' $(PROFILE_MAKE)
 	@echo ""
 	@echo "Step 2/4. Running benchmark for pgo-build ..."
 	$(PGOBENCH) > PGOBENCH.out 2>&1
@@ -1278,7 +1278,7 @@ universal-object-pgo: objclean profileclean universalclean
 	@echo ""
 	@echo "Step 3/4. Building optimized object files ..."
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) objclean
-	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) ENV_LDFLAGS='$(ENV_LDFLAGS) $(NNUE_EMBED_OBJ) $(SAVE_TEMPS)' $(PROFILE_USE)
+	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) ENV_LDFLAGS='$(ENV_LDFLAGS) $(SAVE_TEMPS)' NNUE_EMBED_OBJ='$(NNUE_EMBED_OBJ)' $(PROFILE_USE)
 	@echo ""
 ifeq ($(USE_LTO_EMIT_ASM),yes)
 	@echo "Step 4/4. Renaming ctors and extracting LTO-optimized relocatable object ..."
@@ -1292,7 +1292,7 @@ else
 endif
 
 universal-object-nopgo: objclean universalclean
-	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) ENV_LDFLAGS='$(ENV_LDFLAGS) $(NNUE_EMBED_OBJ) $(SAVE_TEMPS)' all
+	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) ENV_LDFLAGS='$(ENV_LDFLAGS) $(SAVE_TEMPS)' NNUE_EMBED_OBJ='$(NNUE_EMBED_OBJ)' all
 ifeq ($(USE_LTO_EMIT_ASM),yes)
 	awk -v MODNAME=$(MODNAME) -f ../../universal/rewrite_asm_sections.awk *.lto.s > renamed.s
 	$(CXX) -c renamed.s -o DON.o $(ASM_FLAGS)
@@ -1451,7 +1451,7 @@ config-sanity: net
 	 test "$(COMP)" = "icx" || test "$(COMP)" = "ndk")
 
 $(EXE): $(OBJS)
-	+$(strip $(CXX) $(LDFLAGS)) -o $@ $(OBJS) $(LDLIBS)
+	+$(strip $(CXX) $(LDFLAGS)) -o $@ $(OBJS) $(NNUE_EMBED_OBJ) $(LDLIBS)
 
 %.o: %.cpp
 	$(strip $(CXX) $(CPPFLAGS) $(CXXFLAGS)) -c -o $@ $<
