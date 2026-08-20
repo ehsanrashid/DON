@@ -536,11 +536,13 @@ ifeq ($(MAKELEVEL),0)
     export ENV_CXXFLAGS    := $(CXXFLAGS)
     export ENV_DEPENDFLAGS := $(DEPENDFLAGS)
     export ENV_LDFLAGS     := $(LDFLAGS)
+    export ENV_LDLIBS      := $(LDLIBS)
 endif
 
 CXXFLAGS    = $(ENV_CXXFLAGS) -Wall -Wcast-qual -fno-exceptions -std=c++17 $(EXTRA_CXXFLAGS)
-DEPENDFLAGS = $(ENV_DEPENDFLAGS) -std=c++17
+DEPENDFLAGS = $(ENV_DEPENDFLAGS) -std=c++17 $(EXTRA_DEPENDFLAGS)
 LDFLAGS     = $(ENV_LDFLAGS) $(EXTRA_LDFLAGS)
+LDLIBS      = $(ENV_LDLIBS) $(EXTRA_LDLIBS)
 
 ### 3.1 Selecting compiler (default = gcc)
 ifeq ($(COMP),)
@@ -606,7 +608,7 @@ ifeq ($(COMP),gcc)
         # Link std::filesystem explicitly if using Linux Clang < 9
         ifneq ($(GCC_MAJOR),)
             ifeq ($(shell test $(GCC_MAJOR) -lt 9 && echo yes),yes)
-                LDFLAGS += -lstdc++fs
+                LDLIBS += -lstdc++fs
             endif
         endif
     endif
@@ -659,14 +661,14 @@ else ifeq ($(COMP),clang)
     ifeq ($(IS_WINDOWS),no)
         ifeq ($(filter $(TARGET_KERNEL),Darwin FreeBSD OpenBSD NetBSD),)
             ifneq ($(RTLIB),compiler-rt)
-                LDFLAGS += -latomic
+                LDLIBS += -latomic
             endif
         endif
     endif
     # Link std::filesystem for Linux Clang (non-Apple)
     ifeq ($(TARGET_KERNEL),Linux)
         ifeq ($(CXX_IS_APPLE_CLANG),no)
-            LDFLAGS += -lstdc++fs
+            LDLIBS += -lstdc++fs
         endif
     endif
     # Profile build for Clang
@@ -766,11 +768,11 @@ ifneq ($(arch),wasm32)
         # Haiku has pthreads in its libroot
         ifneq ($(KERNEL),Haiku)
             ifneq ($(COMP),ndk)
-                LDFLAGS += -lpthread
+                LDLIBS += -lpthread
                 # Link real-time library (librt) on non-Windows, non-[Darwin/FreeBSD/OpenBSD/NetBSD] platforms
                 ifeq ($(IS_WINDOWS),no)
                     ifeq ($(filter $(TARGET_KERNEL),Darwin FreeBSD OpenBSD NetBSD),)
-                        LDFLAGS += -lrt
+                        LDLIBS += -lrt
                     endif
                 endif
             endif
@@ -833,10 +835,10 @@ endif
 # Force SSE floating-point math to avoid x87 extended-precision differences.
 # Ensures consistent floating-point results across x86 targets.
 ifeq ($(sse_fp),yes)
+    CXXFLAGS += -mfpmath=sse
     ifeq ($(sse2),no)
         CXXFLAGS += -msse2
     endif
-    CXXFLAGS += -mfpmath=sse
 endif
 
 ### 3.5 prefetch and popcount
@@ -1409,6 +1411,7 @@ config-sanity: net
 	echo "CXXFLAGS: $(CXXFLAGS)" && \
 	echo "DEPENDFLAGS: $(DEPENDFLAGS)" && \
 	echo "LDFLAGS: $(LDFLAGS)" && \
+	echo "LDLIBS: $(LDLIBS)" && \
 	echo "" && \
 	echo "Testing config sanity. If this fails, try 'make help' ..." && \
 	echo "" && \
@@ -1448,7 +1451,7 @@ config-sanity: net
 	 test "$(COMP)" = "icx" || test "$(COMP)" = "ndk")
 
 $(EXE): $(OBJS)
-	+$(CXX) -o $@ $(OBJS) $(LDFLAGS)
+	+$(strip $(CXX) $(LDFLAGS)) -o $@ $(OBJS) $(LDLIBS)
 
 %.o: %.cpp
 	$(strip $(CXX) $(CPPFLAGS) $(CXXFLAGS)) -c -o $@ $<
@@ -1574,24 +1577,24 @@ else  # Windows
     endif
 endif
 
-# $(call ARCH-NAMESPACE,x86-64-avx2) => DON_x86_64_avx2
-ARCH-SUFFIX    = $(subst -,_,$(1))
-ARCH-NAMESPACE = DON_$(call ARCH-SUFFIX,$(1))
+# $(call ARCH_NAMESPACE,x86-64-avx2) => DON_x86_64_avx2
+ARCH_SUFFIX    = $(subst -,_,$(1))
+ARCH_NAMESPACE = DON_$(call ARCH_SUFFIX,$(1))
 # Itanium ABI mangled name for DON_<suffix>::main(int, char**)
-ARCH-MANGLED   = _ZN$(shell printf %s '$(call ARCH-NAMESPACE,$(1))' | wc -c | tr -d ' ')$(call ARCH-NAMESPACE,$(1))4mainEiPPKc
+ARCH_MANGLED   = _ZN$(shell printf %s '$(call ARCH_NAMESPACE,$(1))' | wc -c | tr -d ' ')$(call ARCH_NAMESPACE,$(1))4mainEiPPKc
 # Mach-O initializer section name: strip the "x86-64" or "x86-64-" prefix,
 # replace remaining '-' with '_', and prefix with "_i_".
 # Mach-O section names are limited to 16 characters, hence this naming scheme.
-ARCH-MACOS-SECTION = _i_$(subst -,_,$(patsubst x86-64,,$(patsubst x86-64-%,%,$(1))))
+ARCH_MACOS_SECTION = _i_$(subst -,_,$(patsubst x86-64,,$(patsubst x86-64-%,%,$(1))))
 
 ifeq ($(TARGET_KERNEL),Darwin)
-    ARCH-MAIN-LDFLAGS = -Wl,-alias,_$(call ARCH-MANGLED,$(1)),_main
+    ARCH_MAIN_LDFLAGS = -Wl,-alias,_$(call ARCH_MANGLED,$(1)),_main
 # lld-link, used on Windows+clang, doesn't accept --defsym, so
 # define main directly in main.cpp instead and delete it later.
 else ifeq ($(IS_WINDOWS)+$(COMP),yes+clang)
-    ARCH-MAIN-CXXFLAGS = -DUNIVERSAL_NEEDS_MAIN_SHIM
+    ARCH_MAIN_CXXFLAGS = -DUNIVERSAL_NEEDS_MAIN_SHIM
 else
-    ARCH-MAIN-LDFLAGS = -Wl,--defsym=main=$(call ARCH-MANGLED,$(1))
+    ARCH_MAIN_LDFLAGS = -Wl,--defsym=main=$(call ARCH_MANGLED,$(1))
 endif
 
 EMBED_DIR_SUPPORTED := $(shell echo 'int main(){}' | $(CXX) -x c++ --embed-dir=. -o /dev/null -c - 2>/dev/null && echo 1 || echo 0)
@@ -1606,11 +1609,11 @@ ifeq ($(MACOS_X86_SLICE),1)
     SLICE_DEF := -DUNIVERSAL_BINARY_MACOS_X86_SLICE
 endif
 
-ARCH-CXXFLAGS = $(EMBED_DIR) -DDON=$(call ARCH-NAMESPACE,$(1)) \
+ARCH_CXXFLAGS = $(EMBED_DIR) -DDON=$(call ARCH_NAMESPACE,$(1)) \
                 -DUNIVERSAL_BINARY $(SLICE_DEF) \
-                $(ARCH-MAIN-CXXFLAGS) \
+                $(ARCH_MAIN_CXXFLAGS) \
                 -Wno-c++26-extensions -Wno-c23-extensions
-ARCH-LDFLAGS  = $(ARCH-MAIN-LDFLAGS)
+ARCH_LDFLAGS  = $(ARCH_MAIN_LDFLAGS)
 
 UOBJ_TGT ?= universal-object-pgo
 ifeq ($(COMP),clang)
@@ -1652,14 +1655,15 @@ $(TEMP_DIR)/%/.setup: | $(TEMP_DIR)
 .SECONDARY: $(patsubst %,$(TEMP_DIR)/%/.setup,$(UNIVERSAL_ARCHES))
 
 $(TEMP_DIR)/%/DON.o: $(TEMP_DIR)/%/.setup $(NNUE_EMBED_OBJ) $(NET_SENTINEL)
-	+ENV_CXXFLAGS='$(ENV_CXXFLAGS) $(call ARCH-CXXFLAGS,$*)' \
-	 ENV_LDFLAGS='$(ENV_LDFLAGS) $(call ARCH-LDFLAGS,$*)' \
+	+ENV_CXXFLAGS='$(ENV_CXXFLAGS) $(call ARCH_CXXFLAGS,$*)' \
+	 ENV_LDFLAGS='$(ENV_LDFLAGS) $(call ARCH_LDFLAGS,$*)' \
+	 ENV_LDLIBS='$(ENV_LDLIBS)' \
 	    $(MAKE) -C $(TEMP_DIR)/$* $(UOBJ_TGT) \
 	        ARCH=$* CXX=$(CXX) COMP=$(COMP) \
 	        NNUE_EMBED_OBJ=$(NNUE_EMBED_OBJ)
 ifeq ($(TARGET_KERNEL),Darwin)
 # Rename the initializer section
-	ld -r -rename_section __DATA __mod_init_func __DATA $(call ARCH-MACOS-SECTION,$*) $@ -o $@.tmp
+	ld -r -rename_section __DATA __mod_init_func __DATA $(call ARCH_MACOS_SECTION,$*) $@ -o $@.tmp
 	mv $@.tmp $@
 else
 # Drop COMDAT groups; clang LTO leaves them around internalized LOCAL
@@ -1670,10 +1674,10 @@ ifeq ($(USE_LTO_EMIT_ASM),yes)
 	$(OBJCOPY) -N main $@
 else
 # Rename .init_array (Linux) or .ctors (Windows) so we can manually invoke them
-	$(OBJCOPY) --rename-section .init_array=$(call ARCH-SUFFIX,$*)_init $@
-	$(OBJCOPY) --rename-section .ctors=$(call ARCH-SUFFIX,$*)_init $@
+	$(OBJCOPY) --rename-section .init_array=$(call ARCH_SUFFIX,$*)_init $@
+	$(OBJCOPY) --rename-section .ctors=$(call ARCH_SUFFIX,$*)_init $@
 # Make the array inert
-	$(OBJCOPY) --set-section-flags $(call ARCH-SUFFIX,$*)_init=alloc,data $@
+	$(OBJCOPY) --set-section-flags $(call ARCH_SUFFIX,$*)_init=alloc,data $@
 endif
 endif
 
