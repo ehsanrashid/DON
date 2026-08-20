@@ -188,7 +188,7 @@ ARCH_SUPPORTED := $(if $(filter \
     x86-32-sse41-popcnt x86-32-sse41 x86-32-ssse3 x86-32-sse2 x86-32 general-32 \
     ppc-64-vsx ppc-64-altivec ppc-64 ppc-32 e2k \
     riscv64-universal riscv64-rva23 riscv64 \
-    loo.ngarch64-lasx loongarch64-lsx loongarch64 \
+    loongarch64-lasx loongarch64-lsx loongarch64 \
     arm.64-universal armv8-dotprod armv8 armv7-neon armv7 apple-silicon \
     wasm32 wasm32-relaxed-simd,$(ARCH)),yes,no)
 
@@ -1370,6 +1370,7 @@ config-sanity: net
 	echo "IS_WINDOWS: '$(IS_WINDOWS)'" && \
 	echo "COMP: '$(COMP)'" && \
 	echo "RUN_PREFIX: '$(RUN_PREFIX)'" && \
+	echo "" && \
 	echo "debug: '$(debug)'" && \
 	echo "sanitize: '$(sanitize)'" && \
 	echo "optimize: '$(optimize)'" && \
