@@ -199,7 +199,7 @@ class AffineTransformSparseInput final {
             acc[k] = biasVec[k];
 
         // convince GCC to not do weird pointer arithmetic in the following loops
-        const i8* cpWeights = weights.data();
+        const i8* w = weights.data();
 
         const auto* RESTRICT       p   = nnz.data();
         const auto* const RESTRICT end = p + count;
@@ -226,9 +226,9 @@ class AffineTransformSparseInput final {
             const invec_t in1 = vec_set_32(load_as<i32>(input + i1 * sizeof(i32)));
             const invec_t in2 = vec_set_32(load_as<i32>(input + i2 * sizeof(i32)));
 
-            const invec_t* col0 = reinterpret_cast<const invec_t*>(&cpWeights[i0 * OutputDimensions * ChunkSize]);
-            const invec_t* col1 = reinterpret_cast<const invec_t*>(&cpWeights[i1 * OutputDimensions * ChunkSize]);
-            const invec_t* col2 = reinterpret_cast<const invec_t*>(&cpWeights[i2 * OutputDimensions * ChunkSize]);
+            const invec_t* col0 = reinterpret_cast<const invec_t*>(&w[i0 * OutputDimensions * ChunkSize]);
+            const invec_t* col1 = reinterpret_cast<const invec_t*>(&w[i1 * OutputDimensions * ChunkSize]);
+            const invec_t* col2 = reinterpret_cast<const invec_t*>(&w[i2 * OutputDimensions * ChunkSize]);
 
             for (IndexType k = 0; k < AccCount; ++k)
             {
@@ -258,7 +258,7 @@ class AffineTransformSparseInput final {
 
             const invec_t in = vec_set_32(load_as<i32>(input + i * sizeof(i32)));
 
-            const invec_t* col = reinterpret_cast<const invec_t*>(&cpWeights[i * OutputDimensions * ChunkSize]);
+            const invec_t* col = reinterpret_cast<const invec_t*>(&w[i * OutputDimensions * ChunkSize]);
 
             for (IndexType k = 0; k < AccCount; ++k)
                 vec_add_dpbusd_32(acc[k], in, col[k]);

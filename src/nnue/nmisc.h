@@ -67,7 +67,7 @@ struct NetworkTrace final {
     usize                             correctBucket;
 };
 
-std::string trace(Position& pos, const Network& network, AccumulatorCache& accCache) noexcept;
+int loop_mics();
 
 }  // namespace NNUE
 }  // namespace DON
