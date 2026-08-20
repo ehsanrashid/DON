@@ -28,23 +28,6 @@
 #include <string_view>
 #include <type_traits>
 
-#if defined(USE_AVX2)
-    #include <immintrin.h>
-#elif defined(USE_SSE41)
-    #include <smmintrin.h>
-#elif defined(USE_SSSE3)
-    #include <tmmintrin.h>
-#elif defined(USE_SSE2)
-    #include <emmintrin.h>
-#elif defined(USE_LASX)
-    #include <lasxintrin.h>
-    #include <lsxintrin.h>
-#elif defined(USE_LSX)
-    #include <lsxintrin.h>
-#elif defined(USE_NEON)
-    #include <arm_neon.h>
-#endif
-
 #include "../misc.h"
 
 namespace DON::NNUE {

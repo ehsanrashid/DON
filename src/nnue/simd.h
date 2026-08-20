@@ -37,7 +37,8 @@
     //#warning "No SIMD instruction set enabled — falling back to scalar code"
 #endif
 
-#include "../types.h"
+#include <type_traits>
+#include "../types.h"  // IWYU pragma: keep
 #include "nmisc.h"
 
 namespace DON::NNUE::SIMD {
