@@ -1478,13 +1478,13 @@ gcc-profile-make:
 	@mkdir -p profdir
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
 	EXTRA_CXXFLAGS='-fprofile-generate=profdir $(EXTRA_PROFILE_FLAGS)' \
-	EXTRA_LDFLAGS='-lgcov' \
+	EXTRA_LDLIBS='-lgcov' \
 	all
 
 gcc-profile-use:
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
 	EXTRA_CXXFLAGS='-fprofile-use=profdir -fprofile-correction -fno-peel-loops -fno-tracer $(EXTRA_PROFILE_FLAGS)' \
-	EXTRA_LDFLAGS='-lgcov' \
+	EXTRA_LDLIBS='-lgcov' \
 	all
 
 # ICC/ICX PGO
