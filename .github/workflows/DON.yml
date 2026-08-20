@@ -95,20 +95,20 @@ jobs:
           prerelease: true
           body: |
             Precompiled binaries of the latest DON development version, built automatically on every commit.
-            
+
             > [!NOTE]
             > For stable, thoroughly tested builds use the [official releases](https://github.com/ehsanrashid/DON/releases).
             > Pre-releases may contain bugs.
-            
+
             *Some platforms ship a **universal binary** that automatically selects the best
             instruction set for your CPU - no manual selection needed.*
-            
+
             ---
-            
+
             ## Commits
-            
+
             ${{ steps.recent-commits.outputs.COMMITS }}
-            
+
             [View all commits →](https://github.com/${{ github.repository }}/commits/main)
 
   Matrix:

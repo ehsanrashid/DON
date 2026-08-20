@@ -1,4 +1,4 @@
-name: Upload Binaries
+name: Upload Binary
 
 on:
   workflow_call:
