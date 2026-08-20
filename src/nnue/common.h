@@ -49,9 +49,6 @@
 
 namespace DON::NNUE {
 
-// Type of input feature after conversion
-using TransformedFeatureType = u8;
-
 // Version of the evaluation file
 inline constexpr u32 FILE_VERSION = 0x7AF32F20u;
 

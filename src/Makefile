@@ -100,7 +100,7 @@ SRCS := \
     position.cpp search.cpp thread.cpp timeman.cpp tt.cpp tune.cpp uci.cpp \
     nnue/features/full_threats.cpp nnue/features/half_ka_hm.cpp \
     nnue/accumulator.cpp nnue/network.cpp nnue/nmisc.cpp \
-    book/polyglot.cpp tablebase/syzygy.cpp
+    book/polyglot.cpp tablebase/syzygy.cpp nnue/architecture.cpp
 
 UNIVERSAL_SRCS := \
     universal/entry_x86_64.cpp \

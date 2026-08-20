@@ -35,6 +35,14 @@ using PSQTWeightType   = i32;
 using ThreatWeightType = i8;
 using IndexType        = usize;
 
+// Type of input feature after conversion
+using TransformedFeatureType = u8;
+
+// Number of input feature dimensions after conversion
+inline constexpr IndexType L1 = 1024;
+inline constexpr u32       L2 = 31;
+inline constexpr u32       L3 = 32;
+
 inline constexpr IndexType PSQTBuckets = 8;
 inline constexpr IndexType LayerStacks = 8;
 

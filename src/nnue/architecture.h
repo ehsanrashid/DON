@@ -26,6 +26,7 @@
 #include <iosfwd>
 
 #include "../misc.h"
+#include "nmisc.h"
 #include "common.h"
 #include "features/full_threats.h"
 #include "features/half_ka_hm.h"
@@ -39,11 +40,6 @@ namespace DON::NNUE {
 // Input features used in evaluation function
 using ThreatFeatureSet = Features::FullThreats;
 using PSQFeatureSet    = Features::HalfKA_hm;
-
-// Number of input feature dimensions after conversion
-inline constexpr IndexType L1 = 1024;
-inline constexpr u32       L2 = 31;
-inline constexpr u32       L3 = 32;
 
 struct NetworkArchitecture final {
    public:
@@ -140,6 +136,8 @@ struct NetworkArchitecture final {
     Layers::ClippedReLU<FC_1_Outputs>                                                  ac_1;
     Layers::AffineTransform<FC_1_Outputs, 1>                                           fc_2;
 };
+
+int loop_arch();
 
 }  // namespace DON::NNUE
 
