@@ -254,7 +254,7 @@ inline u8 popcount(Bitboard b) noexcept {
     std::memcpy(b16.data(), &b, sizeof(b16));
 
     return POP_CNTS[b16[0]] + POP_CNTS[b16[1]] + POP_CNTS[b16[2]] + POP_CNTS[b16[3]];
-#elif defined(__GNUC__)  // (GCC, Clang, ICX)
+#elif defined(__GNUC__)  // GCC, Clang, ICX
     return u8(__builtin_popcountll(b));
 #elif defined(_MSC_VER)
     return u8(_mm_popcnt_u64(b));
@@ -268,7 +268,7 @@ inline u8 popcount(Bitboard b) noexcept {
 inline Square lsq(Bitboard b) noexcept {
     assert(b != 0);
 
-#if defined(__GNUC__)  // (GCC, Clang, ICX)
+#if defined(__GNUC__)  // GCC, Clang, ICX
     return Square(__builtin_ctzll(b));
 #elif defined(_MSC_VER)
     unsigned long idx;
@@ -295,7 +295,7 @@ inline Square lsq(Bitboard b) noexcept {
 inline Square msq(Bitboard b) noexcept {
     assert(b != 0);
 
-#if defined(__GNUC__)  // (GCC, Clang, ICX)
+#if defined(__GNUC__)  // GCC, Clang, ICX
     return Square(__builtin_clzll(b) ^ 63);
 #elif defined(_MSC_VER)
     unsigned long idx;

@@ -1,4 +1,4 @@
-name: Universal Compilation
+name: Universal Build
 
 on:
   workflow_call:

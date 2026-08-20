@@ -126,40 +126,40 @@ VPATH := nnue:nnue/features:book:tablebase
 # Flag                --- Comp switch        --- Description
 # ----------------------------------------------------------------------------
 #
-# debug = yes/no      --- -DNDEBUG           --- Enable/Disable debug mode
+# debug = yes/no       --- -DNDEBUG           --- Enable/Disable debug mode
 # sanitize = none/<sanitizer> ... (-fsanitize )
-#                     --- ( undefined )      --- enable undefined behavior checks
-#                     --- ( thread    )      --- enable threading error checks
-#                     --- ( address   )      --- enable memory access checks
-#                     --- ...etc...          --- see compiler documentation for supported sanitizers
-# optimize = yes/no   --- (-O3/-fast etc.)   --- Enable/Disable optimizations
-# arch = (name)       --- (-arch)            --- Target architecture
-# bits = 64/32        --- -DIS_64BIT         --- 64-/32-bit operating system
-# prefetch = yes/no   --- -DUSE_PREFETCH     --- Use prefetch asm-instruction
-# popcnt = yes/no     --- -DUSE_POPCNT       --- Use popcnt asm-instruction
-# sse = yes/no        --- -msse              --- Use Intel Streaming SIMD Extensions
-# mmx = yes/no        --- -mmmx              --- Use Intel MMX instructions
-# sse2 = yes/no       --- -msse2             --- Use Intel Streaming SIMD Extensions 2
-# ssse3 = yes/no      --- -mssse3            --- Use Intel Supplemental Streaming SIMD Extensions 3
-# sse41 = yes/no      --- -msse4.1           --- Use Intel Streaming SIMD Extensions 4.1
-# avx2 = yes/no       --- -mavx2             --- Use Intel Advanced Vector Extensions 2
-# bmi2 = yes/no       --- -DUSE_BMI2         --- Use pext & pdep x86_64 asm-instruction
-# cmp = yes/no        --- -DUSE_CMP          --- Internal flag for compressed-optimized variants
-# avxvnni = yes/no    --- -mavxvnni          --- Use Intel Vector Neural Network Instructions AVX
-# avx512 = yes/no     --- -mavx512bw         --- Use Intel Advanced Vector Extensions 512
-# vnni256 = yes/no    --- -mavx512vnni[256]  --- Use Intel Vector Neural Network Instructions 512 with 256bit operands
-# vnni512 = yes/no    --- -mavx512vnni       --- Use Intel Vector Neural Network Instructions 512
-# avx512icl = yes/no  --- -mavx512cd ...     --- Use All AVX-512 features available on both Intel Ice Lake and AMD Zen 4
-# altivec = yes/no    --- -maltivec          --- Use PowerPC Altivec SIMD extension
-# vsx = yes/no        --- -mvsx              --- Use POWER VSX SIMD extension
-# neon = yes/no       --- -DUSE_NEON         --- Use ARM SIMD architecture
-# dotprod = yes/no    --- -DUSE_NEON_DOTPROD --- Use ARM advanced SIMD Int8 dot product instructions
-# lsx = yes/no        --- -mlsx              --- Use Loongson SIMD eXtension
-# lasx = yes/no       --- -mlasx             --- Use Loongson Advanced SIMD eXtension
-# relaxedsimd = y/n   --- -mrelaxed-simd     --- Use WebAssembly relaxed SIMD extension
-# tablebases = yes/no --- -DNO_TABLEBASES    --- Support tablebase probing
+#                      --- ( undefined )      --- enable undefined behavior checks
+#                      --- ( thread    )      --- enable threading error checks
+#                      --- ( address   )      --- enable memory access checks
+#                      --- ...etc...          --- see compiler documentation for supported sanitizers
+# optimize = yes/no    --- (-O3/-fast etc.)   --- Enable/Disable optimizations
+# arch = (name)        --- (-arch)            --- Target architecture
+# bits = 64/32         --- -DIS_64BIT         --- 64-/32-bit operating system
+# prefetch = yes/no    --- -DUSE_PREFETCH     --- Use prefetch asm-instruction
+# popcnt = yes/no      --- -DUSE_POPCNT       --- Use popcnt asm-instruction
+# sse = yes/no         --- -msse              --- Use Intel Streaming SIMD Extensions
+# mmx = yes/no         --- -mmmx              --- Use Intel MMX instructions
+# sse2 = yes/no        --- -msse2             --- Use Intel Streaming SIMD Extensions 2
+# ssse3 = yes/no       --- -mssse3            --- Use Intel Supplemental Streaming SIMD Extensions 3
+# sse41 = yes/no       --- -msse4.1           --- Use Intel Streaming SIMD Extensions 4.1
+# avx2 = yes/no        --- -mavx2             --- Use Intel Advanced Vector Extensions 2
+# bmi2 = yes/no        --- -DUSE_BMI2         --- Use PEXT & PDEP x86_64 asm-instruction
+# cmp = yes/no         --- -DUSE_CMP          --- Internal flag for compressed-optimized variants
+# avxvnni = yes/no     --- -mavxvnni          --- Use Intel Vector Neural Network Instructions AVX
+# avx512 = yes/no      --- -mavx512bw         --- Use Intel Advanced Vector Extensions 512
+# vnni256 = yes/no     --- -mavx512vnni[256]  --- Use Intel Vector Neural Network Instructions 512 with 256-bit operands
+# vnni512 = yes/no     --- -mavx512vnni       --- Use Intel Vector Neural Network Instructions 512 with 512-bit operands
+# avx512icl = yes/no   --- -mavx512cd ...     --- Use AVX-512 features common to Intel Ice Lake and AMD Zen 4
+# altivec = yes/no     --- -maltivec          --- Use PowerPC AltiVec SIMD extension
+# vsx = yes/no         --- -mvsx              --- Use POWER VSX SIMD extension
+# neon = yes/no        --- -DUSE_NEON         --- Use ARM NEON SIMD instructions
+# dotprod = yes/no     --- -DUSE_NEON_DOTPROD --- Use ARM NEON advanced SIMD Int8 dot-product instructions
+# lsx = yes/no         --- -mlsx              --- Use LoongArch SIMD eXtension
+# lasx = yes/no        --- -mlasx             --- Use LoongArch Advanced SIMD eXtension
+# relaxedsimd = yes/no --- -mrelaxed-simd     --- Use WebAssembly relaxed SIMD extension
+# tablebases = yes/no  --- -DNO_TABLEBASES    --- Support tablebase probing
 #
-# native              --- Auto-detect best architecture for host CPU using ../scripts/get_native_properties.sh
+# native               --- Auto-detect best architecture for host CPU using ../scripts/get_native_properties.sh
 #
 # Note that Makefile is space sensitive, so when adding new architectures
 # or modifying existing flags, you have to make sure there are no extra spaces
