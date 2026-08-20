@@ -26,16 +26,22 @@
 
 #include "../evaluate.h"
 #include "../misc.h"
-#include "architecture.h"
 
-namespace DON {
+namespace DON::NNUE {
 
-class Position;
+using BiasType         = i16;
+using WeightType       = i16;
+using PSQTWeightType   = i32;
+using ThreatWeightType = i8;
+using IndexType        = usize;
 
-namespace NNUE {
+inline constexpr IndexType PSQTBuckets = 8;
+inline constexpr IndexType LayerStacks = 8;
 
-class Network;
-struct AccumulatorCache;
+// If vector instructions are enabled, update and refresh the accumulator
+// tile by tile such that each tile fits in the CPU's vector registers.
+static_assert(PSQTBuckets % 8 == 0,
+              "Per feature PSQT values cannot be processed at granularity lower than 8 at a time.");
 
 // EvalFile stores the currently selected evaluation network and its metadata.
 // The network path may be explicitly selected through a UCI option or fall back to the default network,
@@ -69,7 +75,6 @@ struct NetworkTrace final {
 
 int loop_mics();
 
-}  // namespace NNUE
-}  // namespace DON
+}  // namespace DON::NNUE
 
 #endif  // #ifndef NNUE_NMISC_H_INCLUDED

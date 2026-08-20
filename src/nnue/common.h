@@ -49,12 +49,6 @@
 
 namespace DON::NNUE {
 
-using BiasType         = i16;
-using WeightType       = i16;
-using PSQTWeightType   = i32;
-using ThreatWeightType = i8;
-using IndexType        = usize;
-
 // Type of input feature after conversion
 using TransformedFeatureType = u8;
 
