@@ -256,6 +256,11 @@ constexpr auto sign_sqr(T x) noexcept {
     return sign(x) * sqr(x);
 }
 
+template<typename T>
+constexpr bool is_power_of_2(const T x) noexcept {
+    return x != 0 && (x & (x - 1)) == 0;
+}
+
 template<typename T1, typename T2>
 constexpr std::common_type_t<T1, T2> ceil_div(T1 n, T2 d) noexcept {
     using R = std::common_type_t<T1, T2>;
@@ -1840,7 +1845,220 @@ inline std::string error_to_string(DWORD errorId) noexcept {
 
     return message;
 }
+
+inline constexpr HANDLE INVALID_HANDLE = nullptr;
+
+[[nodiscard]] constexpr bool is_valid_handle(HANDLE handle) noexcept {
+    return handle != INVALID_HANDLE && handle != INVALID_HANDLE_VALUE;
+}
+
+inline constexpr void* INVALID_MMAP_PTR = nullptr;
+
+struct HandleGuard final {
+   public:
+    explicit HandleGuard(HANDLE& refHandle) noexcept :
+        handle(refHandle) {}
+
+    HandleGuard() noexcept = delete;
+
+    HandleGuard(const HandleGuard&) noexcept            = delete;
+    HandleGuard& operator=(const HandleGuard&) noexcept = delete;
+
+    HandleGuard(HandleGuard&&) noexcept            = delete;
+    HandleGuard& operator=(HandleGuard&&) noexcept = delete;
+
+    ~HandleGuard() noexcept { reset(); }
+
+    [[nodiscard]] bool is_valid() const noexcept { return is_valid_handle(handle); }
+
+    [[nodiscard]] HANDLE get() const noexcept { return handle; }
+
+    void reset(HANDLE newHandle = INVALID_HANDLE) noexcept {
+        if (handle != newHandle)
+        {
+            if (is_valid())
+                CloseHandle(handle);
+
+            handle = newHandle;
+        }
+    }
+
+    void dismiss() noexcept { handle = INVALID_HANDLE; }
+
+   private:
+    HANDLE& handle;
+};
+
+struct MMapGuard final {
+   public:
+    explicit MMapGuard(void*& refPtr) noexcept :
+        mappedPtr(refPtr) {}
+
+    MMapGuard() noexcept = delete;
+
+    MMapGuard(const MMapGuard&) noexcept            = delete;
+    MMapGuard& operator=(const MMapGuard&) noexcept = delete;
+
+    MMapGuard(MMapGuard&&) noexcept            = delete;
+    MMapGuard& operator=(MMapGuard&&) noexcept = delete;
+
+    ~MMapGuard() noexcept { reset(); }
+
+    [[nodiscard]] bool is_valid() const noexcept { return mappedPtr != INVALID_MMAP_PTR; }
+
+    [[nodiscard]] void* get() const noexcept { return mappedPtr; }
+
+    void reset(void* newPtr = INVALID_MMAP_PTR) noexcept {
+        if (mappedPtr != newPtr)
+        {
+            if (is_valid())
+                UnmapViewOfFile(mappedPtr);
+
+            mappedPtr = newPtr;
+        }
+    }
+
+    void dismiss() noexcept { mappedPtr = INVALID_MMAP_PTR; }
+
+   private:
+    void*& mappedPtr;
+};
+
+#else
+
+inline constexpr int INVALID_FD = -1;
+
+[[nodiscard]] constexpr bool is_valid_fd(int fd) noexcept { return fd > INVALID_FD; }
+
+inline constexpr void* INVALID_MMAP_PTR  = nullptr;
+inline constexpr usize INVALID_MMAP_SIZE = 0;
+
+struct FdGuard final {
+   public:
+    explicit FdGuard(int& refFd) noexcept :
+        fd(refFd) {}
+
+    FdGuard() noexcept = delete;
+
+    FdGuard(const FdGuard&) noexcept            = delete;
+    FdGuard& operator=(const FdGuard&) noexcept = delete;
+
+    FdGuard(FdGuard&&) noexcept            = delete;
+    FdGuard& operator=(FdGuard&&) noexcept = delete;
+
+    ~FdGuard() noexcept { reset(); }
+
+    [[nodiscard]] bool is_valid() const noexcept { return is_valid_fd(fd); }
+
+    [[nodiscard]] int get() const noexcept { return fd; }
+
+    void reset(int newFd = INVALID_FD) noexcept {
+        if (fd != newFd)
+        {
+            if (is_valid())
+                ::close(fd);
+
+            fd = newFd;
+        }
+    }
+
+    void dismiss() noexcept { fd = INVALID_FD; }
+
+   private:
+    int& fd;
+};
+
+struct MMapGuard final {
+   public:
+    MMapGuard(void*& refPtr, usize& refSize) noexcept :
+        mappedPtr(refPtr),
+        mappedSize(refSize) {}
+
+    MMapGuard() noexcept = delete;
+
+    MMapGuard(const MMapGuard&) noexcept            = delete;
+    MMapGuard& operator=(const MMapGuard&) noexcept = delete;
+
+    MMapGuard(MMapGuard&&) noexcept            = delete;
+    MMapGuard& operator=(MMapGuard&&) noexcept = delete;
+
+    ~MMapGuard() noexcept { reset(); }
+
+    [[nodiscard]] bool is_valid() const noexcept { return mappedPtr != INVALID_MMAP_PTR; }
+
+    [[nodiscard]] void* get_ptr() const noexcept { return mappedPtr; }
+
+    [[nodiscard]] usize get_size() const noexcept { return mappedSize; }
+
+    void reset(void* newPtr = INVALID_MMAP_PTR, usize newSize = INVALID_MMAP_SIZE) noexcept {
+        if (mappedPtr != newPtr)
+        {
+            if (is_valid())
+                ::munmap(mappedPtr, mappedSize);
+
+            mappedPtr  = newPtr;
+            mappedSize = newSize;
+        }
+    }
+
+    void dismiss() noexcept {
+        mappedPtr  = INVALID_MMAP_PTR;
+        mappedSize = INVALID_MMAP_SIZE;
+    }
+
+   private:
+    void*& mappedPtr;
+    usize& mappedSize;
+};
+
+struct UniqueFd final {
+   public:
+    explicit UniqueFd(int iFd) noexcept :
+        fd{iFd} {}
+
+    UniqueFd() noexcept = default;
+
+    UniqueFd(const UniqueFd&)            = delete;
+    UniqueFd& operator=(const UniqueFd&) = delete;
+
+    UniqueFd(UniqueFd&& uniqueFd) noexcept :
+        fd{uniqueFd.release()} {}
+
+    UniqueFd& operator=(UniqueFd&& uniqueFd) noexcept {
+        if (this == &uniqueFd)
+            return *this;
+
+        reset(uniqueFd.release());
+
+        return *this;
+    }
+
+    ~UniqueFd() { reset(); }
+
+    [[nodiscard]] int get() const noexcept { return fd; }
+
+    [[nodiscard]] bool is_valid() const noexcept { return is_valid_fd(fd); }
+
+    [[nodiscard]] explicit operator bool() const noexcept { return is_valid(); }
+
+    [[nodiscard]] int release() noexcept { return std::exchange(fd, INVALID_FD); }
+
+    void reset(int newFd = INVALID_FD) noexcept {
+        if (fd != newFd)
+        {
+            if (is_valid())
+                ::close(fd);
+
+            fd = newFd;
+        }
+    }
+
+   private:
+    int fd = INVALID_FD;
+};
+
 #endif
+
 
 }  // namespace DON
 
