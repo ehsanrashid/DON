@@ -747,12 +747,6 @@ ifdef COMPCXX
     CXX = $(COMPCXX)
 endif
 
-# Force SSE floating-point math to avoid x87 extended-precision differences
-# Ensures consistent floating-point results across x86 CPUs
-ifeq ($(sse_fp),yes)
-    CXXFLAGS += -mfpmath=sse -msse2
-endif
-
 ## Locate llvm-profdata compatible with CXX for PGO (profile-guided optimization) builds
 # For Clang/GCC, look alongside CXX
 LLVM_PROFDATA := $(dir $(realpath $(shell command -v $(CXX) 2>/dev/null)))llvm-profdata
@@ -834,6 +828,15 @@ endif
 ### 3.4 Bits
 ifeq ($(bits),64)
     CXXFLAGS += -DIS_64BIT
+endif
+
+# Force SSE floating-point math to avoid x87 extended-precision differences.
+# Ensures consistent floating-point results across x86 targets.
+ifeq ($(sse_fp),yes)
+    ifeq ($(sse2),no)
+        CXXFLAGS += -msse2
+    endif
+    CXXFLAGS += -mfpmath=sse
 endif
 
 ### 3.5 prefetch and popcount
