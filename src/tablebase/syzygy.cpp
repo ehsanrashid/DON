@@ -45,7 +45,6 @@
 
 #include "../attacks.h"
 #include "../bitboard.h"
-#include "../memory.h"
 #include "../misc.h"
 #include "../movegen.h"
 #include "../notation.h"
