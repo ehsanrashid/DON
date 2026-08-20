@@ -98,9 +98,8 @@ SRCS := \
     attacks.cpp benchmark.cpp bitboard.cpp engine.cpp evaluate.cpp main.cpp \
     memory.cpp misc.cpp movegen.cpp movepick.cpp notation.cpp option.cpp perft.cpp \
     position.cpp search.cpp thread.cpp timeman.cpp tt.cpp tune.cpp uci.cpp \
-    nnue/features/full_threats.cpp nnue/features/half_ka_hm.cpp \
-    nnue/accumulator.cpp nnue/network.cpp nnue/nmisc.cpp \
-    book/polyglot.cpp tablebase/syzygy.cpp nnue/architecture.cpp nnue/serialization.cpp nnue/simd.cpp
+    nnue/features/full_threats.cpp nnue/features/half_ka_hm.cpp nnue/accumulator.cpp nnue/network.cpp \
+    book/polyglot.cpp tablebase/syzygy.cpp
 
 UNIVERSAL_SRCS := \
     universal/entry_x86_64.cpp \
@@ -114,8 +113,8 @@ HEADERS := \
     position.h prng.h search.h shm.h thread.h timeman.h tt.h tune.h types.h uci.h \
     nnue/features/full_threats.h nnue/features/half_ka_hm.h \
     nnue/layers/affine_transform.h nnue/layers/affine_transform_sparse_input.h \
-    nnue/layers/clipped_relu.h nnue/layers/sqr_clipped_relu.h nnue/accumulator.h \
-    nnue/architecture.h nnue/serialization.h nnue/feature_transformer.h nnue/network.h nnue/nmisc.h nnue/simd.h \
+    nnue/layers/clipped_relu.h nnue/layers/sqr_clipped_relu.h nnue/accumulator.h nnue/architecture.h \
+    nnue/serialization.h nnue/feature_transformer.h nnue/network.h nnue/ntypes.h nnue/simd.h \
     incbin/incbin.h book/polyglot.h tablebase/syzygy.h
 
 OBJS := $(notdir $(SRCS:.cpp=.o))

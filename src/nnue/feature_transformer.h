@@ -22,8 +22,8 @@
 #include <array>
 #include <cassert>
 #include <cstring>
-#include <iosfwd>
 #include <functional>
+#include <iosfwd>
 #include <type_traits>
 #include <utility>
 
@@ -33,9 +33,9 @@
 #include "../types.h"
 #include "accumulator.h"
 #include "architecture.h"
+#include "ntypes.h"
 #include "serialization.h"
 #include "simd.h"
-#include "nmisc.h"
 
 namespace DON::NNUE {
 

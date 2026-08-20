@@ -26,13 +26,13 @@
 
 #include "../misc.h"
 #include "../types.h"
-#include "nmisc.h"
 #include "features/full_threats.h"
 #include "features/half_ka_hm.h"
 #include "layers/affine_transform.h"
 #include "layers/affine_transform_sparse_input.h"
 #include "layers/clipped_relu.h"
 #include "layers/sqr_clipped_relu.h"
+#include "ntypes.h"
 
 namespace DON::NNUE {
 
@@ -135,8 +135,6 @@ struct NetworkArchitecture final {
     Layers::ClippedReLU<FC_1_Outputs>                                                  ac_1;
     Layers::AffineTransform<FC_1_Outputs, 1>                                           fc_2;
 };
-
-int loop_arch();
 
 }  // namespace DON::NNUE
 

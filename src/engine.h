@@ -34,7 +34,7 @@
 #include "thread.h"
 #include "tt.h"
 #include "types.h"
-#include "nnue/nmisc.h"
+#include "nnue/ntypes.h"
 #include "nnue/network.h"
 
 namespace DON {

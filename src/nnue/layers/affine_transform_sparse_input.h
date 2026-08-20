@@ -28,7 +28,7 @@
 #include "../../bitboard.h"
 #include "../../misc.h"
 #include "../../types.h"
-#include "../nmisc.h"
+#include "../ntypes.h"
 #include "../serialization.h"
 #include "../simd.h"  // IWYU pragma: keep
 #include "affine_transform.h"

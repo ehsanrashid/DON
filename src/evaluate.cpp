@@ -28,11 +28,11 @@
 #include <string_view>
 
 #include "misc.h"
-#include "position.h"
 #include "notation.h"
+#include "position.h"
 #include "nnue/accumulator.h"
 #include "nnue/network.h"
-#include "nnue/nmisc.h"
+#include "nnue/ntypes.h"
 
 namespace DON::Evaluate {
 

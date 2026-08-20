@@ -28,7 +28,7 @@
 #include "../misc.h"
 #include "../types.h"
 #include "architecture.h"
-#include "nmisc.h"
+#include "ntypes.h"
 
 namespace DON {
 

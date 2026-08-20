@@ -18,8 +18,8 @@
 #ifndef UCI_H_INCLUDED
 #define UCI_H_INCLUDED
 
-#include <iosfwd>
 #include <filesystem>
+#include <iosfwd>
 #include <string_view>
 
 #include "engine.h"

@@ -15,13 +15,13 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef NNUE_NMISC_H_INCLUDED
-#define NNUE_NMISC_H_INCLUDED
+#ifndef NNUE_NTYPES_H_INCLUDED
+#define NNUE_NTYPES_H_INCLUDED
 
 #include <filesystem>
+#include <optional>
 #include <string>
 #include <string_view>
-#include <optional>
 #include <utility>
 
 #include "../evaluate.h"
@@ -73,12 +73,6 @@ inline constexpr usize SIMD_WIDTH = 32;
 inline constexpr usize SIMD_WIDTH = 16;
 #endif
 
-// Round n up to be a multiple of base
-template<typename IntType>
-constexpr IntType ceil_to_multiple(IntType n, IntType base) noexcept {
-    return ceil_div(n, base) * base;
-}
-
 // EvalFile stores the currently selected evaluation network and its metadata.
 // The network path may be explicitly selected through a UCI option or fall back to the default network,
 // while the description is extracted from the loaded network file.
@@ -109,8 +103,6 @@ struct NetworkTrace final {
     usize                             correctBucket;
 };
 
-int loop_mics();
-
 }  // namespace DON::NNUE
 
-#endif  // #ifndef NNUE_NMISC_H_INCLUDED
+#endif  // #ifndef NNUE_NTYPES_H_INCLUDED

@@ -262,6 +262,12 @@ constexpr std::common_type_t<T1, T2> ceil_div(T1 n, T2 d) noexcept {
     return (R(n) + R(d) - 1) / R(d);
 }
 
+// Round n up to be a multiple of base
+template<typename T>
+constexpr T ceil_to_multiple(T n, T base) noexcept {
+    return ceil_div(n, base) * base;
+}
+
 constexpr usize round_up_to_pow2(usize x) noexcept {
     if (x == 0)
         return 1;

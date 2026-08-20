@@ -290,8 +290,6 @@ inline void write_leb_128(std::ostream& os, const std::array<IntType, Size>& in)
     flush();
 }
 
-int loop_ser();
-
 }  // namespace DON::NNUE
 
 #endif  // #ifndef NNUE_SERIALIZATION_H_INCLUDED

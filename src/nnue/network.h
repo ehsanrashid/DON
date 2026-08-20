@@ -18,9 +18,9 @@
 #ifndef NNUE_NETWORK_H_INCLUDED
 #define NNUE_NETWORK_H_INCLUDED
 
-#include <iosfwd>
 #include <filesystem>
 #include <functional>
+#include <iosfwd>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -28,7 +28,7 @@
 #include "../misc.h"
 #include "architecture.h"
 #include "feature_transformer.h"
-#include "nmisc.h"
+#include "ntypes.h"
 
 namespace DON {
 

@@ -24,7 +24,7 @@
 #include <iosfwd>
 
 #include "../../misc.h"
-#include "../nmisc.h"
+#include "../ntypes.h"
 #include "../simd.h"  // IWYU pragma: keep
 
 namespace DON::NNUE::Layers {

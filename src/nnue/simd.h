@@ -38,9 +38,10 @@
 #endif
 
 #include <type_traits>
+
 #include "../misc.h"
 #include "../types.h"  // IWYU pragma: keep
-#include "nmisc.h"
+#include "ntypes.h"
 
 namespace DON::NNUE::SIMD {
 

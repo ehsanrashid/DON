@@ -24,7 +24,7 @@
 #include <iosfwd>
 
 #include "../../misc.h"
-#include "../nmisc.h"
+#include "../ntypes.h"
 
 namespace DON::NNUE::Layers {
 
