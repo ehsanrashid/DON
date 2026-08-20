@@ -393,13 +393,17 @@ std::string compiler_info() noexcept {
     compiler.append("32-bit");
 #endif
 #if defined(USE_AVX512ICL)
-    compiler.append(" AVX512ICL");
+    compiler.append(" AVX-512-ICL");
 #endif
 #if defined(USE_VNNI)
+    #if defined(USE_AVXVNNI)
+    compiler.append(" AVX-VNNI");
+    #else
     compiler.append(" VNNI");
+    #endif
 #endif
 #if defined(USE_AVX512)
-    compiler.append(" AVX512");
+    compiler.append(" AVX-512");
 #endif
 #if defined(USE_BMI2)
     compiler.append(" BMI2");
@@ -411,7 +415,7 @@ std::string compiler_info() noexcept {
     compiler.append(" AVX2");
 #endif
 #if defined(USE_SSE41)
-    compiler.append(" SSE41");
+    compiler.append(" SSE4.1");
 #endif
 #if defined(USE_SSSE3)
     compiler.append(" SSSE3");
@@ -421,7 +425,7 @@ std::string compiler_info() noexcept {
 #endif
 #if defined(USE_NEON)
     #if defined(USE_NEON_DOTPROD)
-    compiler.append(" NEON_DOTPROD");
+    compiler.append(" NEON-DOTPROD");
     #else
     compiler.append(" NEON");
     #endif

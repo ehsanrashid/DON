@@ -858,7 +858,7 @@ endif
 
 ### 3.6 SIMD architectures
 ifeq ($(avx512icl),yes)
-    CXXFLAGS += -DUSE_AVX512 -DUSE_VNNI -DUSE_AVX512ICL
+    CXXFLAGS += -DUSE_VNNI -DUSE_AVX512 -DUSE_AVX512ICL
     ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
         CXXFLAGS += -mavx512f -mavx512bw -mavx512dq -mavx512vl -mavx512vnni -mavx512cd -mavx512ifma -mavx512vbmi -mavx512vbmi2 -mavx512vpopcntdq -mavx512bitalg -mvpclmulqdq -mgfni -mvaes
     endif
@@ -1450,8 +1450,8 @@ config-sanity: net
 	(test "$(COMP)" = "gcc" || test "$(COMP)" = "clang" || test "$(COMP)" = "mingw" || \
 	 test "$(COMP)" = "icx" || test "$(COMP)" = "ndk")
 
-$(EXE): $(OBJS)
-	+$(strip $(CXX) $(LDFLAGS)) -o $@ $(OBJS) $(NNUE_EMBED_OBJ) $(LDLIBS)
+$(EXE): $(OBJS) $(NNUE_EMBED_OBJ)
+	+$(CXX) -o $@ $(OBJS) $(NNUE_EMBED_OBJ) $(strip $(LDFLAGS) $(LDLIBS))
 
 %.o: %.cpp
 	$(strip $(CXX) $(CPPFLAGS) $(CXXFLAGS)) -c -o $@ $<
