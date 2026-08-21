@@ -122,27 +122,27 @@
 #if !defined(NDEBUG)
     #define DEBUG_LOG(msg) std::cerr << msg << '\n'
 #else
-    #define DEBUG_LOG(msg)
+    #define DEBUG_LOG(msg) ((void) 0)
 #endif
 
 namespace DON {
 
-using u64   = std::uint64_t;
-using u32   = std::uint32_t;
-using u16   = std::uint16_t;
-using u8    = std::uint8_t;
-using uchar = unsigned char;
+using u64 = std::uint64_t;
+using u32 = std::uint32_t;
+using u16 = std::uint16_t;
+using u8  = std::uint8_t;
 
-using i64   = std::int64_t;
-using i32   = std::int32_t;
-using i16   = std::int16_t;
-using i8    = std::int8_t;
-using ichar = char;
+using i64 = std::int64_t;
+using i32 = std::int32_t;
+using i16 = std::int16_t;
+using i8  = std::int8_t;
 
 using usize = std::size_t;
 using isize = std::ptrdiff_t;
 
-#if defined(IS_64BIT) && defined(__GNUC__)
+using uchar = unsigned char;
+
+#if defined(__GNUC__) && defined(IS_64BIT) && !defined(__wasm__)
 __extension__ using u128 = unsigned __int128;
 __extension__ using i128 = signed __int128;
 #endif
@@ -444,7 +444,7 @@ std::string version_info() noexcept;
 std::string compiler_info() noexcept;
 
 constexpr u64 mul_hi64(u64 u1, u64 u2) noexcept {
-#if defined(IS_64BIT) && defined(__GNUC__) && !defined(__wasm__)
+#if defined(__GNUC__) && defined(IS_64BIT) && !defined(__wasm__)
     return (u128(u1) * u128(u2)) >> 64;
 #else
     u64 u1L = u32(u1), u1H = u1 >> 32;
@@ -1611,18 +1611,18 @@ struct CommandLine final {
 
 inline std::string lower_case(std::string str) noexcept {
     std::transform(str.begin(), str.end(), str.begin(),
-                   [](uchar ch) noexcept -> ichar { return std::tolower(ch); });
+                   [](uchar ch) noexcept -> char { return std::tolower(ch); });
     return str;
 }
 
 inline std::string upper_case(std::string str) noexcept {
     std::transform(str.begin(), str.end(), str.begin(),
-                   [](uchar ch) noexcept -> ichar { return std::toupper(ch); });
+                   [](uchar ch) noexcept -> char { return std::toupper(ch); });
     return str;
 }
 
 inline std::string toggle_case(std::string str) noexcept {
-    std::transform(str.begin(), str.end(), str.begin(), [](uchar ch) noexcept -> ichar {
+    std::transform(str.begin(), str.end(), str.begin(), [](uchar ch) noexcept -> char {
         return std::islower(ch) ? std::toupper(ch) : std::isupper(ch) ? std::tolower(ch) : ch;
     });
     return str;

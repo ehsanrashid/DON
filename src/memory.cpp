@@ -107,9 +107,11 @@ void* alloc_windows_aligned_large_page(usize allocSize) noexcept {
           void* mem = VirtualAlloc(nullptr, roundedAllocSize,
                                    MEM_LARGE_PAGES | MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
           if (mem == nullptr)
+          {
               DEBUG_LOG("Failed to allocate large page memory for "
                         << roundedAllocSize / MB
                         << "MB, error = " << error_to_string(GetLastError()));
+          }
           return mem;
       },
       []() { return (void*) nullptr; });
@@ -140,8 +142,10 @@ void* alloc_aligned_large_page(usize allocSize) noexcept {
 
         mem = VirtualAlloc(nullptr, roundedAllocSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
         if (mem == nullptr)
+        {
             DEBUG_LOG("Failed to allocate memory for " << roundedAllocSize / MB << "MB, error = "
                                                        << error_to_string(GetLastError()));
+        }
     }
 #else
     // Choose a heuristic alignment for huge pages / fallback

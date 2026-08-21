@@ -243,13 +243,13 @@ void Position::set(std::string_view fens, State* newSt) noexcept {
     const auto* const end = p + fens.size();
 
     // Returns '\0' when p >= end (EOF sentinel)
-    auto peek        = [&p, end]() noexcept -> ichar { return p < end ? *p : '\0'; };
+    auto peek        = [&p, end]() noexcept -> char { return p < end ? *p : '\0'; };
     auto skip_spaces = [&p, end]() noexcept {
         for (; p < end && std::isspace(uchar(*p)); ++p)
         {}
     };
     auto not_space = [&p, end]() noexcept -> bool { return p < end && !std::isspace(uchar(*p)); };
-    auto get       = [&p, end]() noexcept -> ichar { return p < end ? *p++ : '\0'; };
+    auto get       = [&p, end]() noexcept -> char { return p < end ? *p++ : '\0'; };
     auto get_int   = [&p, end, &skip_spaces](int& out) noexcept -> bool {
         skip_spaces();
 
@@ -276,7 +276,7 @@ void Position::set(std::string_view fens, State* newSt) noexcept {
         return true;
     };
 
-    ichar token;
+    char token;
 
     File file = FILE_A;
     Rank rank = RANK_8;
@@ -334,7 +334,7 @@ void Position::set(std::string_view fens, State* newSt) noexcept {
     // 2. Active color
     token = get();
 
-    switch (ichar(std::tolower(uchar(token))))
+    switch (char(std::tolower(uchar(token))))
     {
     case 'w' :
         activeColor = WHITE;
@@ -370,7 +370,7 @@ void Position::set(std::string_view fens, State* newSt) noexcept {
         }
 
         Color c = std::isupper(uchar(token)) ? WHITE : BLACK;
-        token   = ichar(std::tolower(uchar(token)));
+        token   = char(std::tolower(uchar(token)));
 
         if (relative_rank(c, square<KING>(c)) != RANK_1)
         {
@@ -441,11 +441,11 @@ void Position::set(std::string_view fens, State* newSt) noexcept {
         }
         else
         {
-            ichar epFile = get();
+            char epFile = get();
 
             if (p < end)
             {
-                ichar epRank = get();
+                char epRank = get();
 
                 if ('a' <= epFile && epFile <= 'h' && epRank == (ac == WHITE ? '6' : '3'))
                     enPassantSq = make_square(to_file(epFile), to_rank(epRank));
