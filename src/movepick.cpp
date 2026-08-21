@@ -87,7 +87,7 @@ struct ExtMoveSorter final {
 
     void write_sorted(ExtMove* const ems, const isize count) const noexcept {
         static_assert(sizeof(ExtMove) == 8);
-        assert(0 <= count && count <= MAX_ELEMENTS);
+        assert(0 <= count && count <= ELEMENT_MAX);
 
         write_chunk(ems, count, 0,
                     _mm512_setr_epi32(0, 16, 1, 17, 2, 18, 3, 19,  //
@@ -97,7 +97,7 @@ struct ExtMoveSorter final {
                                       12, 28, 13, 29, 14, 30, 15, 31));
     }
 
-    static constexpr int MAX_ELEMENTS = 16;
+    static constexpr int ELEMENT_MAX = 16;
 
     __m512i sortedMoves;
     __m512i sortedValues;
@@ -177,7 +177,7 @@ void insertion_sort(const Iterator beg, const Iterator end) noexcept {
     // Sort elements with AVX-512 while the sorter has capacity
     for (; p < end; ++p)
     {
-        if (sortedEnd - beg + 1 >= ExtMoveSorter::MAX_ELEMENTS)
+        if (sortedEnd - beg + 1 >= ExtMoveSorter::ELEMENT_MAX)
             break;
 
         sorter.insert(*p);
@@ -228,7 +228,7 @@ void partial_insertion_sort(const Iterator beg,
         if (p->value < limit)
             continue;
 
-        if (sortedEnd - beg + 1 >= ExtMoveSorter::MAX_ELEMENTS)
+        if (sortedEnd - beg + 1 >= ExtMoveSorter::ELEMENT_MAX)
             break;
 
         sorter.insert(*p);

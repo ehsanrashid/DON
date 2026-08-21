@@ -540,10 +540,10 @@ ifeq ($(MAKELEVEL),0)
     export ENV_LDLIBS      := $(LDLIBS)
 endif
 
-CXXFLAGS    = $(ENV_CXXFLAGS) -Wall -Wcast-qual -fno-exceptions -std=c++17 $(EXTRA_CXXFLAGS)
-DEPENDFLAGS = $(ENV_DEPENDFLAGS) -std=c++17 $(EXTRA_DEPENDFLAGS)
-LDFLAGS     = $(ENV_LDFLAGS) $(EXTRA_LDFLAGS)
-LDLIBS      = $(ENV_LDLIBS) $(EXTRA_LDLIBS)
+CXXFLAGS    = $(strip $(ENV_CXXFLAGS) -Wall -Wcast-qual -fno-exceptions -std=c++17 $(EXTRA_CXXFLAGS))
+DEPENDFLAGS = $(strip $(ENV_DEPENDFLAGS) -std=c++17 $(EXTRA_DEPENDFLAGS))
+LDFLAGS     = $(strip $(ENV_LDFLAGS) $(EXTRA_LDFLAGS))
+LDLIBS      = $(strip $(ENV_LDLIBS) $(EXTRA_LDLIBS))
 
 ### 3.1 Selecting compiler (default = gcc)
 ifeq ($(COMP),)
@@ -1408,11 +1408,11 @@ config-sanity: net
 	echo "tablebases: '$(tablebases)'" && \
 	echo "" && \
 	echo "Flags:" && \
-	echo "CXX: $(CXX)" && \
-	echo "CXXFLAGS: $(CXXFLAGS)" && \
-	echo "DEPENDFLAGS: $(DEPENDFLAGS)" && \
-	echo "LDFLAGS: $(LDFLAGS)" && \
-	echo "LDLIBS: $(LDLIBS)" && \
+	echo "CXX: '$(CXX)'" && \
+	echo "CXXFLAGS: '$(CXXFLAGS)'" && \
+	echo "DEPENDFLAGS: '$(DEPENDFLAGS)'" && \
+	echo "LDFLAGS: '$(LDFLAGS)'" && \
+	echo "LDLIBS: '$(LDLIBS)'" && \
 	echo "" && \
 	echo "Testing config sanity. If this fails, try 'make help' ..." && \
 	echo "" && \

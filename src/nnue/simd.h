@@ -48,19 +48,15 @@ namespace DON::NNUE {
 inline constexpr usize SIMD_WIDTH_MAX = 32;
 
 // SIMD width (in bytes)
-#if defined(USE_AVX2)
-inline constexpr usize SIMD_WIDTH = 32;
-#elif defined(USE_SSE2)
-inline constexpr usize SIMD_WIDTH = 16;
-#elif defined(USE_NEON)
-inline constexpr usize SIMD_WIDTH = 16;
-#elif defined(USE_LSX)
-    #if defined(USE_LASX)
-inline constexpr usize SIMD_WIDTH = 32;
-    #else
-inline constexpr usize SIMD_WIDTH = 16;
-    #endif
+inline constexpr usize SIMD_WIDTH =
+#if defined(USE_AVX2) || defined(USE_LASX)
+  32
+#elif defined(USE_SSE2) || defined(USE_NEON) || defined(USE_LSX)
+  16
+#else
+  0
 #endif
+  ;
 
 namespace SIMD {
 
