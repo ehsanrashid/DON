@@ -43,7 +43,24 @@
 #include "../types.h"  // IWYU pragma: keep
 #include "ntypes.h"
 
-namespace DON::NNUE::SIMD {
+namespace DON::NNUE {
+
+inline constexpr usize SIMD_WIDTH_MAX = 32;
+
+// SIMD width (in bytes)
+#if defined(USE_AVX2)
+inline constexpr usize SIMD_WIDTH = 32;
+#elif defined(USE_SSE2)
+inline constexpr usize SIMD_WIDTH = 16;
+#elif defined(USE_NEON)
+inline constexpr usize SIMD_WIDTH = 16;
+#elif defined(USE_LASX)
+inline constexpr usize SIMD_WIDTH = 32;
+#elif defined(USE_LSX)
+inline constexpr usize SIMD_WIDTH = 16;
+#endif
+
+namespace SIMD {
 
 // If vector instructions are enabled, update and refresh the accumulator tile by tile
 // such that each tile fits in the CPU's vector registers.
@@ -639,8 +656,7 @@ class Tiling final {
 };
 #endif
 
-int loop_simd();
+}  // namespace SIMD
+}  // namespace DON::NNUE
 
-}  // namespace DON::NNUE::SIMD
-
-#endif  // #ifndef NNUE_SIMD_H_INCLUDED
+#endif  // NNUE_SIMD_H_INCLUDED

@@ -564,4 +564,4 @@ inline void Threads::ensure_network_replicated() const noexcept {
 
 }  // namespace DON
 
-#endif  // #ifndef THREAD_H_INCLUDED
+#endif  // THREAD_H_INCLUDED

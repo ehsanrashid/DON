@@ -58,21 +58,6 @@ static_assert(PSQTBuckets % 8 == 0,
 inline constexpr int OUTPUT_SCALE      = 16;
 inline constexpr int WEIGHT_SCALE_BITS = 6;
 
-inline constexpr usize SIMD_WIDTH_MAX = 32;
-
-// SIMD width (in bytes)
-#if defined(USE_AVX2)
-inline constexpr usize SIMD_WIDTH = 32;
-#elif defined(USE_SSE2)
-inline constexpr usize SIMD_WIDTH = 16;
-#elif defined(USE_NEON)
-inline constexpr usize SIMD_WIDTH = 16;
-#elif defined(USE_LASX)
-inline constexpr usize SIMD_WIDTH = 32;
-#elif defined(USE_LSX)
-inline constexpr usize SIMD_WIDTH = 16;
-#endif
-
 // EvalFile stores the currently selected evaluation network and its metadata.
 // The network path may be explicitly selected through a UCI option or fall back to the default network,
 // while the description is extracted from the loaded network file.
@@ -105,4 +90,4 @@ struct NetworkTrace final {
 
 }  // namespace DON::NNUE
 
-#endif  // #ifndef NNUE_NTYPES_H_INCLUDED
+#endif  // NNUE_NTYPES_H_INCLUDED

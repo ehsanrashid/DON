@@ -51,4 +51,4 @@ std::string trace(Position& pos, const NNUE::Network& network) noexcept;
 }  // namespace Evaluate
 }  // namespace DON
 
-#endif  // #ifndef EVALUATE_H_INCLUDED
+#endif  // EVALUATE_H_INCLUDED

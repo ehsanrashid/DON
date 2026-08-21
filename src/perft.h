@@ -34,4 +34,4 @@ u64 perft(
 }  // namespace Perft
 }  // namespace DON
 
-#endif  // #ifndef PERFT_H_INCLUDED
+#endif  // PERFT_H_INCLUDED

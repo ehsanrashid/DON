@@ -296,7 +296,7 @@ class FeatureTransformer final {
             vec_t One  = vec_set_16(255);
 
             constexpr int shift =
-    #if defined(USE_SSE2) || defined(USE_LASX) || defined(USE_LSX)
+    #if defined(USE_SSE2) || defined(USE_LSX)
               7
     #else
               6
@@ -362,4 +362,4 @@ struct std::hash<DON::NNUE::FeatureTransformer> {
     }
 };
 
-#endif  // #ifndef NNUE_FEATURE_TRANSFORMER_H_INCLUDED
+#endif  // NNUE_FEATURE_TRANSFORMER_H_INCLUDED

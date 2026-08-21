@@ -110,4 +110,4 @@ class XorShift64Star final {
 
 }  // namespace DON
 
-#endif  // #ifndef PRNG_H_INCLUDED
+#endif  // PRNG_H_INCLUDED

@@ -1146,4 +1146,4 @@ inline i16 rule50_threshold(i16 r50 = -4) noexcept {
 
 }  // namespace DON
 
-#endif  // #ifndef POSITION_H_INCLUDED
+#endif  // POSITION_H_INCLUDED

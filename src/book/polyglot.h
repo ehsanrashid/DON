@@ -88,4 +88,4 @@ class PolyGlot final {
 }  // namespace Book
 }  // namespace DON
 
-#endif  // #ifndef BOOK_POLYGLOT_H_INCLUDED
+#endif  // BOOK_POLYGLOT_H_INCLUDED

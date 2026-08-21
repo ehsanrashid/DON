@@ -774,4 +774,4 @@ class Worker final {
 
 }  // namespace DON
 
-#endif  // #ifndef SEARCH_H_INCLUDED
+#endif  // SEARCH_H_INCLUDED

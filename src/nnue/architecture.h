@@ -145,4 +145,4 @@ struct std::hash<DON::NNUE::NetworkArchitecture> {
     }
 };
 
-#endif  // #ifndef NNUE_ARCHITECTURE_H_INCLUDED
+#endif  // NNUE_ARCHITECTURE_H_INCLUDED

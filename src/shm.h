@@ -1580,4 +1580,4 @@ struct SystemWideSharedMemory final {
 
 }  // namespace DON
 
-#endif  // #ifndef SHM_H_INCLUDED
+#endif  // SHM_H_INCLUDED

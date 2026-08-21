@@ -417,4 +417,4 @@ auto try_with_windows_lock_memory_privilege([[maybe_unused]] SuccessFunc&& succe
 
 }  // namespace DON
 
-#endif  // #ifndef MEMORY_H_INCLUDED
+#endif  // MEMORY_H_INCLUDED

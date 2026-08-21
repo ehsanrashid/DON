@@ -102,4 +102,4 @@ struct std::hash<DON::NNUE::Network> {
     }
 };
 
-#endif  // #ifndef NNUE_NETWORK_H_INCLUDED
+#endif  // NNUE_NETWORK_H_INCLUDED

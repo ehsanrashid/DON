@@ -33,9 +33,9 @@
 #include "../simd.h"  // IWYU pragma: keep
 #include "affine_transform.h"
 
-#if defined(USE_SSSE3) || defined(USE_LASX) || defined(USE_LSX) \
-  || (defined(USE_NEON) && USE_NEON >= 8)
+#if defined(USE_SSSE3) || defined(USE_LSX) || (defined(USE_NEON) && USE_NEON >= 8)
     #include "../../memory.h"
+    #define USE_SPARSE_SIMD_OPTIMIZATION
 #endif
 
 // Definition of layer AffineTransformSparseInput of NNUE evaluation function
@@ -65,8 +65,7 @@ class AffineTransformSparseInput final {
       ceil_to_multiple<IndexType>(OutputDimensions, SIMD_WIDTH_MAX);
 
     static constexpr IndexType ChunkSize =
-#if defined(USE_SSSE3) || defined(USE_LASX) || defined(USE_LSX) \
-  || (defined(USE_NEON) && USE_NEON >= 8)
+#if defined(USE_SPARSE_SIMD_OPTIMIZATION)
       4
 #else
       1
@@ -85,8 +84,7 @@ class AffineTransformSparseInput final {
     }
 
     static constexpr IndexType weight_index(IndexType i) noexcept {
-#if defined(USE_SSSE3) || defined(USE_LASX) || defined(USE_LSX) \
-  || (defined(USE_NEON) && USE_NEON >= 8)
+#if defined(USE_SPARSE_SIMD_OPTIMIZATION)
         return (i / ChunkSize) % (PaddedInputDimensions / ChunkSize) * OutputDimensions * ChunkSize
              + i / PaddedInputDimensions * ChunkSize + i % ChunkSize;
 #else
@@ -127,8 +125,7 @@ class AffineTransformSparseInput final {
     // Forward propagation
     void propagate(const InputType* RESTRICT input, OutputType* RESTRICT output) const noexcept {
 
-#if defined(USE_SSSE3) || defined(USE_LASX) || defined(USE_LSX) \
-  || (defined(USE_NEON) && USE_NEON >= 8)
+#if defined(USE_SPARSE_SIMD_OPTIMIZATION)
     #if defined(USE_AVX512)
         using invec_t  = __m512i;
         using outvec_t = __m512i;
@@ -283,8 +280,7 @@ class AffineTransformSparseInput final {
 
    private:
     // NNZ-specific implementation
-#if defined(USE_SSSE3) || defined(USE_LASX) || defined(USE_LSX) \
-  || (defined(USE_NEON) && USE_NEON >= 8)
+#if defined(USE_SPARSE_SIMD_OPTIMIZATION)
     #if defined(USE_NEON)
     using NNZOutput = std::conditional_t<(InDims <= 1024), u8, u16>;
     #else
@@ -464,4 +460,4 @@ class AffineTransformSparseInput final {
 
 }  // namespace DON::NNUE::Layers
 
-#endif  // #ifndef NNUE_LAYERS_AFFINE_TRANSFORM_SPARSE_INPUT_H_INCLUDED
+#endif  // NNUE_LAYERS_AFFINE_TRANSFORM_SPARSE_INPUT_H_INCLUDED

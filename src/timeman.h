@@ -70,4 +70,4 @@ class TimeManager final {
 
 }  // namespace DON
 
-#endif  // #ifndef TIMEMAN_H_INCLUDED
+#endif  // TIMEMAN_H_INCLUDED

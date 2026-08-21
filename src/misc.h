@@ -57,12 +57,10 @@
     #include <unistd.h>
 #endif
 
-#undef HAS_X86_PREFETCH
 #if defined(USE_PREFETCH) \
-  && (defined(_M_X64) || defined(__x86_64__) || defined(__i386__) || defined(_M_IX86))
-    //|| defined(_MSC_VER) || defined(__INTEL_COMPILER)
-    #define HAS_X86_PREFETCH
+  && ((defined(__x86_64__) || defined(_M_X64)) || (defined(__i386__) || defined(_M_IX86)))
     #include <xmmintrin.h>  // SSE intrinsics header for _mm_prefetch()
+    #define HAS_X86_PREFETCH
 #endif
 
 #define STRING_LITERAL(x) #x
@@ -2065,4 +2063,4 @@ struct UniqueFd final {
 
 }  // namespace DON
 
-#endif  // #ifndef MISC_H_INCLUDED
+#endif  // MISC_H_INCLUDED

@@ -72,4 +72,4 @@ class HalfKA_hm final {
 
 }  // namespace DON::NNUE::Features
 
-#endif  // #ifndef NNUE_FEATURES_HALF_KA_HM_H_INCLUDED
+#endif  // NNUE_FEATURES_HALF_KA_HM_H_INCLUDED

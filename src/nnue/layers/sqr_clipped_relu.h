@@ -25,6 +25,7 @@
 
 #include "../../misc.h"
 #include "../ntypes.h"
+#include "../simd.h"  // IWYU pragma: keep
 
 namespace DON::NNUE::Layers {
 
@@ -152,4 +153,4 @@ class SqrClippedReLU final {
 
 }  // namespace DON::NNUE::Layers
 
-#endif  // #ifndef NNUE_LAYERS_SQR_CLIPPED_RELU_H_INCLUDED
+#endif  // NNUE_LAYERS_SQR_CLIPPED_RELU_H_INCLUDED

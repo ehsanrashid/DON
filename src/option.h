@@ -152,4 +152,4 @@ class Options final {
 
 }  // namespace DON
 
-#endif  // #ifndef OPTION_H_INCLUDED
+#endif  // OPTION_H_INCLUDED

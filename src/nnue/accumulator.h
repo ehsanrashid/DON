@@ -158,4 +158,4 @@ struct AccumulatorStack final {
 }  // namespace NNUE
 }  // namespace DON
 
-#endif  // #ifndef NNUE_ACCUMULATOR_H_INCLUDED
+#endif  // NNUE_ACCUMULATOR_H_INCLUDED

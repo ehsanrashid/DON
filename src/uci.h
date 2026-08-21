@@ -64,4 +64,4 @@ class UCI final {
 
 }  // namespace DON
 
-#endif  // #ifndef UCI_H_INCLUDED
+#endif  // UCI_H_INCLUDED

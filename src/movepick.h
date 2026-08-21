@@ -164,4 +164,4 @@ class MovePicker final {
 
 }  // namespace DON
 
-#endif  // #ifndef MOVEPICK_H_INCLUDED
+#endif  // MOVEPICK_H_INCLUDED

@@ -273,4 +273,4 @@ using AtomicHistoriesMap = std::unordered_map<usize, AtomicHistories>;
 
 }  // namespace DON
 
-#endif  // #ifndef HISTORY_H_INCLUDED
+#endif  // HISTORY_H_INCLUDED

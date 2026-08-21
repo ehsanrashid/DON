@@ -171,4 +171,4 @@ class ClippedReLU final {
 
 }  // namespace DON::NNUE::Layers
 
-#endif  // #ifndef NNUE_LAYERS_CLIPPED_RELU_H_INCLUDED
+#endif  // NNUE_LAYERS_CLIPPED_RELU_H_INCLUDED
