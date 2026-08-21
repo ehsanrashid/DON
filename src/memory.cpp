@@ -26,7 +26,7 @@
         #include <sys/mman.h>
     #endif
     #if defined(__has_include) && __has_include(<features.h>)
-        #include <features.h>  // __GLIBC__ feature-test macros
+        #include <features.h>  // glibc feature-test macros
     #endif
 #endif
 
@@ -39,6 +39,7 @@
   || defined(__e2k__)       /* Elbrus 2000 */ \
   || (defined(__GLIBCXX__) && !defined(_GLIBCXX_HAVE_ALIGNED_ALLOC) \
       && !defined(_WIN32)) /* libstdc++ without aligned_alloc */
+    #include <stdlib.h>
     #define USE_POSIX_ALIGNED_ALLOC
 #endif
 
@@ -88,7 +89,7 @@ void free_aligned_std(void* mem) noexcept {
     _mm_free(mem);
     #endif
 #else
-    ::free(mem);
+    std::free(mem);
 #endif
 }
 
