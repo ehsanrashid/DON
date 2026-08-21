@@ -57,10 +57,17 @@
     #include <unistd.h>
 #endif
 
-#if defined(USE_PREFETCH) \
-  && ((defined(__x86_64__) || defined(_M_X64)) || (defined(__i386__) || defined(_M_IX86)))
+#if defined(__i386__) || defined(_M_IX86)
+    #define X86
+    #define X86_32
+#elif defined(__x86_64__) || defined(_M_X64)
+    #define X86
+    #define X86_64
+#endif
+
+#if defined(X86) && defined(USE_PREFETCH)
     #include <xmmintrin.h>  // SSE header for _mm_prefetch() intrinsics
-    #define HAS_X86_PREFETCH
+    #define USE_X86_PREFETCH
 #endif
 
 #define STRING_LITERAL(x) #x
@@ -478,7 +485,7 @@ enum class PrefetchLoc : u8 {
 // On GCC/Clang, __builtin_prefetch supports Access as a separate hint.
 template<PrefetchAccess Access = PrefetchAccess::READ, PrefetchLoc Loc = PrefetchLoc::HIGH>
 inline void prefetch(const void* addr) noexcept {
-    #if defined(HAS_X86_PREFETCH)
+    #if defined(USE_X86_PREFETCH)
     constexpr auto Hint = []() constexpr noexcept {
         if constexpr (Access == PrefetchAccess::WRITE)
             return
