@@ -57,7 +57,7 @@ void* alloc_aligned_std(usize allocSize, usize alignment) noexcept {
     if (allocSize == 0)
         return nullptr;
 
-#if defined(_ISOC11_SOURCE) || (!defined(USE_POSIX_ALIGNED_ALLOC) && !defined(_WIN32))
+#if defined(_ISOC11_SOURCE) || !(defined(USE_POSIX_ALIGNED_ALLOC) || defined(_WIN32))
     // std::aligned_alloc requires size to be a multiple of alignment
     allocSize = round_up_to_pow2_multiple(allocSize, alignment);
 #endif

@@ -148,6 +148,10 @@ constexpr std::string_view Version{"dev"};
     return std::string{buffer.data(), buffer.size()};
 }
 
+std::string compiler_version(unsigned major, unsigned minor, unsigned patch) noexcept {
+    return std::to_string(major) + "." + std::to_string(minor) + "." + std::to_string(patch);
+}
+
 }  // namespace
 
 void set_console_input(ConsoleMode consoleMode) noexcept {
@@ -300,10 +304,6 @@ std::string version_info() noexcept {
 
 // Returns a string trying to describe the compiler used
 std::string compiler_info() noexcept {
-
-#define VERSION_STRING(major, minor, patch) \
-    STRINGIFY(major) "." STRINGIFY(minor) "." STRINGIFY(patch)
-
     // Predefined macros hell:
     //
     // __GNUC__                Compiler is GCC, Clang or ICX
@@ -324,35 +324,24 @@ std::string compiler_info() noexcept {
 #elif defined(__clang__)
     compiler  //
       .append("clang++ ")
-      .append(VERSION_STRING(__clang_major__, __clang_minor__, __clang_patchlevel__));
+      .append(compiler_version(__clang_major__, __clang_minor__, __clang_patchlevel__));
 #elif defined(__GNUC__)
     compiler  //
       .append("g++ (GNUC) ")
-      .append(VERSION_STRING(__GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__));
+      .append(compiler_version(__GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__));
 #elif defined(_MSC_VER)
     compiler  //
       .append("MSVC ")
-      .append(std::to_string(_MSC_VER / 100))  // major
-      .append(1, '.')
-      .append(std::to_string(_MSC_VER % 100))  // minor
-      .append(1, '.')
-      .append(std::to_string(_MSC_FULL_VER % 100000))  // patch
+      .append(compiler_version(_MSC_VER / 100, _MSC_VER % 100, _MSC_FULL_VER % 100000))
     #if defined(_MSC_BUILD)
       .append(1, '.')
-      .append(std::to_string(_MSC_BUILD))  // build
+      .append(std::to_string(_MSC_BUILD))
     #endif
       ;
 #elif defined(__e2k__) && defined(__LCC__)
     compiler  //
       .append("MCST LCC ")
-      .append(std::to_string(__LCC__ / 100))  // major
-      .append(1, '.')
-      .append(std::to_string(__LCC__ % 100))  // minor
-    #if defined(__LCC_MINOR__)
-      .append(1, '.')
-      .append(std::to_string(__LCC_MINOR__))  // patch
-    #endif
-      ;
+      .append(compiler_version(__LCC__ / 100, __LCC__ % 100, __LCC_MINOR__));
 #else
     compiler.append("(unknown compiler)");
 #endif
@@ -451,8 +440,6 @@ std::string compiler_info() noexcept {
 #else
     compiler.append("(unknown macro)");
 #endif
-
-#undef VERSION_STRING
 
     return compiler;
 }
