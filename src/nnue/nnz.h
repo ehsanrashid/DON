@@ -24,9 +24,12 @@
     #include <cstring>
 #endif
 
-#include "../bitboard.h"
+#if defined(USE_AVX512)
+    #include "../bitboard.h"
+#endif
+
 #include "../types.h"
-#include "simd.h"
+#include "simd.h"  // IWYU pragma: keep
 
 namespace DON::NNUE {
 
@@ -99,14 +102,14 @@ struct NNZ final {
     #endif
         }
 
-        ~Cursor() { nnz.count = count; }
+        ~Cursor() noexcept { nnz.count = count; }
 
         NNZ&     nnz;
         __m512i  indices;
         unsigned count;
     };
 
-    Cursor make_cursor(Color perspective) { return {*this, perspective, count}; }
+    Cursor make_cursor(Color perspective) noexcept { return {*this, perspective, count}; }
 
     // indices of non-zero chunks
     u16      bitset[Dimensions / 4];
@@ -160,7 +163,7 @@ struct NNZ final {
         u8* out;
     };
 
-    Cursor make_cursor(Color perspective) { return {*this, perspective}; }
+    Cursor make_cursor(Color perspective) noexcept { return {*this, perspective}; }
 
     // Each 8-bit chunk
     u8 bitset[ceil_div(Dimensions, 32)];

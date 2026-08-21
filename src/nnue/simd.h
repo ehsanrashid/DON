@@ -51,7 +51,7 @@ inline constexpr usize SIMD_WIDTH_MAX = 32;
 inline constexpr usize SIMD_WIDTH =
 #if defined(USE_AVX2) || defined(USE_LASX)
   32
-#elif defined(USE_SSE2) || defined(USE_NEON) || defined(USE_LSX)
+#elif defined(USE_SSE2) || defined(USE_LSX) || defined(USE_NEON)
   16
 #else
   0

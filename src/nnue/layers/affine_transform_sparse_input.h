@@ -125,7 +125,7 @@ class AffineTransformSparseInput final {
 
 #if defined(__GNUC__) && !defined(__clang__) && defined(USE_NEON_DOTPROD)
     #if __GNUC__ >= 15
-        #define FIX_GCC15_MISOPTIMIZATION
+        #define FIX_GCC15_NEON_DOTPROD_MISOPTIMIZATION
     #endif
 #endif
 
@@ -200,12 +200,13 @@ class AffineTransformSparseInput final {
 
         // Convince GCC to not do weird pointer arithmetic in the following loops
         const i8* w = weights.data();
-
+            // clang-format off
     #if defined(USE_AVX512)
-        const auto* RESTRICT       p   = nnz.bitset;
-        const auto* const RESTRICT end = p + nnz.count;
         for (IndexType k = AccCount; k < RegCount; ++k)
             acc[k] = vec_zero();
+
+        const auto* RESTRICT       p   = nnz.bitset;
+        const auto* const RESTRICT end = p + nnz.count;
 
         #if defined(USE_VNNI)
         for (; p + 2 < end; p += 3)
@@ -218,12 +219,9 @@ class AffineTransformSparseInput final {
             const invec_t in1 = vec_set_32(load_as<i32>(input + i1 * sizeof(i32)));
             const invec_t in2 = vec_set_32(load_as<i32>(input + i2 * sizeof(i32)));
 
-            const auto* col0 =
-              reinterpret_cast<const invec_t*>(&w[i0 * OutputDimensions * ChunkSize]);
-            const auto* col1 =
-              reinterpret_cast<const invec_t*>(&w[i1 * OutputDimensions * ChunkSize]);
-            const auto* col2 =
-              reinterpret_cast<const invec_t*>(&w[i2 * OutputDimensions * ChunkSize]);
+            const auto* col0 = reinterpret_cast<const invec_t*>(&w[i0 * OutputDimensions * ChunkSize]);
+            const auto* col1 = reinterpret_cast<const invec_t*>(&w[i1 * OutputDimensions * ChunkSize]);
+            const auto* col2 = reinterpret_cast<const invec_t*>(&w[i2 * OutputDimensions * ChunkSize]);
 
             for (IndexType k = 0; k < AccCount; ++k)
             {
@@ -234,8 +232,9 @@ class AffineTransformSparseInput final {
         }
 
         for (IndexType k = 0; k < AccCount; ++k)
-            acc[k] = vec_add_32(vec_add_32(acc[k + AccCount * 0], acc[k + AccCount * 1]),
-                                acc[k + AccCount * 2]);
+            acc[k] = vec_add_32(vec_add_32(acc[k + AccCount * 0],
+                                           acc[k + AccCount * 1]),
+                                           acc[k + AccCount * 2]);
         #endif
 
         for (; p < end; ++p)
@@ -244,8 +243,7 @@ class AffineTransformSparseInput final {
 
             const invec_t in = vec_set_32(load_as<i32>(input + i * sizeof(i32)));
 
-            const auto* col =
-              reinterpret_cast<const invec_t*>(&w[i * OutputDimensions * ChunkSize]);
+            const auto* col = reinterpret_cast<const invec_t*>(&w[i * OutputDimensions * ChunkSize]);
 
             for (IndexType k = 0; k < AccCount; ++k)
                 vec_add_dpbusd_32(acc[k], in, col[k]);
@@ -263,20 +261,19 @@ class AffineTransformSparseInput final {
 
         // GCC 15 pessimizes the following code on ARM64 by eliding the intermediate
         // computation of key pointers (inBase, wBase, col, inPtr), leading
-        // to a lot of redundant indexing arithmetic in the while (bits) loop. The
-        // optimization barriers force these pointers to be calculated and used.
-        #if defined(FIX_GCC15_MISOPTIMIZATION)
+        // to a lot of redundant indexing arithmetic in the while (bits) loop.
+        // The optimization barriers force these pointers to be calculated and used.
+        #if defined(FIX_GCC15_NEON_DOTPROD_MISOPTIMIZATION)
             asm("" : "+r"(inBase), "+r"(wBase));  // opt barrier
         #endif
 
             while (bits != 0)
             {
-                u8          i     = pop_lsq(bits);
+                const u8    i     = pop_lsq(bits);
                 const auto* inPtr = inBase + i * sizeof(i32);
-                const auto* col =
-                  reinterpret_cast<const invec_t*>(&wBase[i * OutputDimensions * ChunkSize]);
+                const auto* col   = reinterpret_cast<const invec_t*>(&wBase[i * OutputDimensions * ChunkSize]);
 
-        #if defined(FIX_GCC15_MISOPTIMIZATION)
+        #if defined(FIX_GCC15_NEON_DOTPROD_MISOPTIMIZATION)
                 asm("" : "+r"(col), "+r"(inPtr));
         #endif
 
@@ -286,6 +283,7 @@ class AffineTransformSparseInput final {
             }
         }
     #endif
+        // clang-format on
 
         auto* outVec = reinterpret_cast<outvec_t*>(output);
 
@@ -302,7 +300,7 @@ class AffineTransformSparseInput final {
 #endif
     }
 
-#undef FIX_GCC15_MISOPTIMIZATION
+#undef FIX_GCC15_NEON_DOTPROD_MISOPTIMIZATION
 
    private:
     using BiasType   = OutputType;
