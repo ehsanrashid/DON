@@ -33,8 +33,8 @@
     #include <unistd.h>
 
 // Must be kept in sync with patch_x86_slice.sh
-extern const volatile DON::u64 gNNUEUniversalOffset = DON::u64{0xCAFE0FF5E70FF5E7};
-extern const volatile DON::u64 gNNUEUniversalSize   = DON::u64{0xCAFE512ECAFE512E};
+extern const volatile DON::u64 gUniversalNNUEOffset = DON::u64{0xCAFE0FF5E70FF5E7};
+extern const volatile DON::u64 gUniversalNNUESize   = DON::u64{0xCAFE512ECAFE512E};
 
 static const unsigned char* map_embedded_nnue() noexcept {
     char     path[PATH_MAX];
@@ -51,11 +51,11 @@ static const unsigned char* map_embedded_nnue() noexcept {
 
     // Align down to page size for mmap
     const DON::u64 pageSize = DON::u64(sysconf(_SC_PAGESIZE));
-    const DON::u64 base     = gNNUEUniversalOffset & ~(pageSize - 1);
-    const DON::u64 pad      = gNNUEUniversalOffset - base;
+    const DON::u64 base     = gUniversalNNUEOffset & ~(pageSize - 1);
+    const DON::u64 pad      = gUniversalNNUEOffset - base;
 
     void* p =
-      ::mmap(nullptr, size_t(gNNUEUniversalSize + pad), PROT_READ, MAP_PRIVATE, fd, off_t(base));
+      ::mmap(nullptr, size_t(gUniversalNNUESize + pad), PROT_READ, MAP_PRIVATE, fd, off_t(base));
     ::close(fd);
     if (p == MAP_FAILED)
         return nullptr;
@@ -64,7 +64,7 @@ static const unsigned char* map_embedded_nnue() noexcept {
 }
 
 extern const unsigned char* const gEmbeddedNNUEData = map_embedded_nnue();
-extern const unsigned int         gEmbeddedNNUESize = static_cast<unsigned int>(gNNUEUniversalSize);
+extern const unsigned int         gEmbeddedNNUESize = static_cast<unsigned int>(gUniversalNNUESize);
 
 #else
     #if defined(__has_embed)

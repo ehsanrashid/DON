@@ -59,7 +59,7 @@
 
 #if defined(USE_PREFETCH) \
   && ((defined(__x86_64__) || defined(_M_X64)) || (defined(__i386__) || defined(_M_IX86)))
-    #include <xmmintrin.h>  // SSE intrinsics header for _mm_prefetch()
+    #include <xmmintrin.h>  // SSE header for _mm_prefetch() intrinsics
     #define HAS_X86_PREFETCH
 #endif
 
