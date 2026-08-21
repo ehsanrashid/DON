@@ -191,7 +191,7 @@ ARCH_SUPPORTED := $(if $(filter \
     ppc-64-vsx ppc-64-altivec ppc-64 ppc-32 e2k \
     riscv64-universal riscv64-rva23 riscv64 \
     loongarch64-lasx loongarch64-lsx loongarch64 \
-    arm.64-universal armv8-dotprod armv8 armv7-neon armv7 apple-silicon \
+    arm64-universal armv8-dotprod armv8 armv7-neon armv7 apple-silicon \
     wasm32 wasm32-relaxed-simd,$(ARCH)),yes,no)
 
 UNIVERSAL_BUILD := $(if $(filter x86-64-universal riscv64-universal arm64-universal,$(ARCH)),yes,no)
@@ -399,6 +399,62 @@ ifeq ($(ARCH),general-64)
     arch = any
 endif
 
+ifeq ($(ARCH),ppc-32)
+    arch = ppc
+    bits = 32
+endif
+
+ifeq ($(ARCH),ppc-64)
+    arch = ppc64
+    popcnt = yes
+    prefetch = yes
+endif
+
+ifeq ($(ARCH),ppc-64-altivec)
+    arch = ppc64
+    popcnt = yes
+    prefetch = yes
+    altivec = yes
+endif
+
+ifeq ($(ARCH),ppc-64-vsx)
+    arch = ppc64
+    popcnt = yes
+    prefetch = yes
+    vsx = yes
+endif
+
+ifeq ($(ARCH),e2k)
+    arch = e2k
+    sse = yes
+    mmx = yes
+    sse2 = yes
+    ssse3 = yes
+    sse41 = yes
+    popcnt = yes
+endif
+
+ifneq ($(findstring riscv64,$(ARCH)),)
+    arch = riscv64
+    ifeq ($(ARCH),riscv64-rva23)
+        rva23 = yes
+        popcnt = yes
+        prefetch = yes
+    endif
+endif
+
+ifneq ($(findstring loongarch64,$(ARCH)),)
+    arch = loongarch64
+    prefetch = yes
+    ifneq ($(findstring -lsx,$(ARCH)),)
+        lsx = yes
+    endif
+    ifneq ($(findstring -lasx,$(ARCH)),)
+        lsx = yes
+        lasx = yes
+    endif
+endif
+
 ifeq ($(ARCH),armv7)
     arch = armv7
     bits = 32
@@ -447,63 +503,6 @@ ifeq ($(ARCH),apple-silicon)
     arm_version = 8
     neon = yes
     dotprod = yes
-endif
-
-ifeq ($(ARCH),ppc-32)
-    arch = ppc
-    bits = 32
-endif
-
-ifeq ($(ARCH),ppc-64)
-    arch = ppc64
-    popcnt = yes
-    prefetch = yes
-endif
-
-ifeq ($(ARCH),ppc-64-altivec)
-    arch = ppc64
-    popcnt = yes
-    prefetch = yes
-    altivec = yes
-endif
-
-ifeq ($(ARCH),ppc-64-vsx)
-    arch = ppc64
-    popcnt = yes
-    prefetch = yes
-    vsx = yes
-endif
-
-ifeq ($(ARCH),e2k)
-    arch = e2k
-    sse = yes
-    mmx = yes
-    sse2 = yes
-    ssse3 = yes
-    sse41 = yes
-    popcnt = yes
-endif
-
-ifneq ($(findstring riscv64,$(ARCH)),)
-    arch = riscv64
-endif
-
-ifeq ($(ARCH),riscv64-rva23)
-    rva23 = yes
-    popcnt = yes
-    prefetch = yes
-endif
-
-ifneq ($(findstring loongarch64,$(ARCH)),)
-    arch = loongarch64
-    prefetch = yes
-    ifneq ($(findstring -lsx,$(ARCH)),)
-        lsx = yes
-    endif
-    ifneq ($(findstring -lasx,$(ARCH)),)
-        lsx = yes
-        lasx = yes
-    endif
 endif
 
 # WASM is largely compiled using emcc's x86 compatibility layer, with occasional
@@ -1148,23 +1147,23 @@ help:
 	echo "x86-32-sse2             > x86 32-bit with SSE2 support"; \
 	echo "x86-32                  > x86 32-bit generic with MMX support"; \
 	echo "general-32              > unspecified 32-bit"; \
-	echo "ppc-64-altivec          > PPC 64-bit with AltiVec support"; \
 	echo "ppc-64-vsx              > PPC 64-bit with VSX support"; \
+	echo "ppc-64-altivec          > PPC 64-bit with AltiVec support"; \
 	echo "ppc-64                  > PPC 64-bit"; \
 	echo "ppc-32                  > PPC 32-bit"; \
 	echo "e2k                     > Elbrus 2000"; \
+	echo "riscv64-universal       > RISC-V 64-bit with automatic runtime selection of the best architecture"; \
+	echo "riscv64-rva23           > RISC-V 64-bit RVA23 profile"; \
+	echo "riscv64                 > RISC-V 64-bit"; \
+	echo "loongarch64-lasx        > LoongArch 64-bit with LASX (Advanced SIMD eXtension) support"; \
+	echo "loongarch64-lsx         > LoongArch 64-bit with LSX (SIMD eXtension) support"; \
+	echo "loongarch64             > LoongArch 64-bit"; \
 	echo "arm64-universal         > ARMv8 64-bit with automatic runtime selection of the best architecture"; \
 	echo "armv8-dotprod           > ARMv8 64-bit with NEON, dot-product and POPCNT support"; \
 	echo "armv8                   > ARMv8 64-bit with NEON and POPCNT support"; \
 	echo "armv7-neon              > ARMv7 32-bit with NEON and POPCNT support"; \
 	echo "armv7                   > ARMv7 32-bit"; \
 	echo "apple-silicon           > Apple silicon ARM64"; \
-	echo "riscv64-universal       > RISC-V 64-bit with automatic runtime selection of the best architecture"; \
-	echo "riscv64-rva23           > RISC-V 64-bit RVA23 profile"; \
-	echo "riscv64                 > RISC-V 64-bit"; \
-	echo "loongarch64-lasx        > LoongArch 64-bit with LASX (Advanced SIMD) support"; \
-	echo "loongarch64-lsx         > LoongArch 64-bit with LSX (SIMD) support"; \
-	echo "loongarch64             > LoongArch 64-bit"; \
 	echo ""; \
 	echo "Supported compilers:"; \
 	echo ""; \
@@ -1422,31 +1421,31 @@ config-sanity: net
 	(test "$(ARCH_SUPPORTED)" = "yes") && \
 	(test "$(arch)" = "any" || test "$(arch)" = "i386" || test "$(arch)" = "x86_64" || \
 	 test "$(arch)" = "ppc" || test "$(arch)" = "ppc64" || test "$(arch)" = "e2k" || \
-	 test "$(arch)" = "armv7" || test "$(arch)" = "armv8" || test "$(arch)" = "arm64" || \
 	 test "$(arch)" = "riscv64" || test "$(arch)" = "loongarch64" || \
+	 test "$(arch)" = "armv7" || test "$(arch)" = "armv8" || test "$(arch)" = "arm64" || \
 	 test "$(arch)" = "wasm32") && \
-	(test "$(bits)" = "32" || test "$(bits)" = "64") && \
-	(test "$(prefetch)" = "no" || test "$(prefetch)" = "yes") && \
-	(test "$(popcnt)"   = "no" || test "$(popcnt)"   = "yes") && \
-	(test "$(sse)"      = "no" || test "$(sse)"      = "yes") && \
-	(test "$(mmx)"      = "no" || test "$(mmx)"      = "yes") && \
-	(test "$(sse2)"     = "no" || test "$(sse2)"     = "yes") && \
-	(test "$(ssse3)"    = "no" || test "$(ssse3)"    = "yes") && \
-	(test "$(sse41)"    = "no" || test "$(sse41)"    = "yes") && \
-	(test "$(avx2)"     = "no" || test "$(avx2)"     = "yes") && \
-	(test "$(bmi2)"     = "no" || test "$(bmi2)"     = "yes") && \
-	(test "$(cmp)"      = "no" || test "$(cmp)"      = "yes") && \
-	(test "$(avxvnni)"  = "no" || test "$(avxvnni)"  = "yes") && \
-	(test "$(avx512)"   = "no" || test "$(avx512)"   = "yes") && \
-	(test "$(vnni256)"  = "no" || test "$(vnni256)"  = "yes") && \
-	(test "$(vnni512)"  = "no" || test "$(vnni512)"  = "yes") && \
+	(test "$(bits)"      = "32" || test "$(bits)"      = "64") && \
+	(test "$(prefetch)"  = "no" || test "$(prefetch)"  = "yes") && \
+	(test "$(popcnt)"    = "no" || test "$(popcnt)"    = "yes") && \
+	(test "$(sse)"       = "no" || test "$(sse)"       = "yes") && \
+	(test "$(mmx)"       = "no" || test "$(mmx)"       = "yes") && \
+	(test "$(sse2)"      = "no" || test "$(sse2)"      = "yes") && \
+	(test "$(ssse3)"     = "no" || test "$(ssse3)"     = "yes") && \
+	(test "$(sse41)"     = "no" || test "$(sse41)"     = "yes") && \
+	(test "$(avx2)"      = "no" || test "$(avx2)"      = "yes") && \
+	(test "$(bmi2)"      = "no" || (test "$(bmi2)"     = "yes"  && \
+	(test "$(cmp)"       = "no" || test "$(cmp)"       = "yes"))) && \
+	(test "$(avxvnni)"   = "no" || test "$(avxvnni)"   = "yes") && \
+	(test "$(avx512)"    = "no" || test "$(avx512)"    = "yes") && \
+	(test "$(vnni256)"   = "no" || test "$(vnni256)"   = "yes") && \
+	(test "$(vnni512)"   = "no" || test "$(vnni512)"   = "yes") && \
 	(test "$(avx512icl)" = "no" || test "$(avx512icl)" = "yes") && \
-	(test "$(vsx)"      = "no" || test "$(vsx)"      = "yes") && \
-	(test "$(altivec)"  = "no" || test "$(altivec)"  = "yes") && \
-	(test "$(dotprod)"  = "no" || test "$(dotprod)"  = "yes") && \
-	(test "$(neon)"     = "no" || test "$(neon)"     = "yes") && \
-	(test "$(lasx)"     = "no" || test "$(lasx)"     = "yes") && \
-	(test "$(lsx)"      = "no" || test "$(lsx)"      = "yes") && \
+	(test "$(altivec)"   = "no" || test "$(altivec)"   = "yes") && \
+	(test "$(vsx)"       = "no" || test "$(vsx)"       = "yes") && \
+	(test "$(lsx)"       = "no" || test "$(lsx)"       = "yes") && \
+	(test "$(lasx)"      = "no" || test "$(lasx)"      = "yes") && \
+	(test "$(neon)"      = "no" || test "$(neon)"      = "yes") && \
+	(test "$(dotprod)"   = "no" || test "$(dotprod)"   = "yes") && \
 	(test "$(tablebases)" = "yes" || test "$(tablebases)" = "no") && \
 	(test "$(IS_WINDOWS)" = "no" || test "$(IS_WINDOWS)" = "yes") && \
 	(test "$(COMP)" = "gcc" || test "$(COMP)" = "clang" || test "$(COMP)" = "mingw" || \
