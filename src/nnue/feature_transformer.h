@@ -237,9 +237,9 @@ class FeatureTransformer final {
 
             constexpr IndexType OutputChunkCount = HalfDimensions / (2 * OutputChunkSize);
 
-            vec_t*       out = reinterpret_cast<vec_t*>(&output[offset]);
-            const vec_t* in0 = reinterpret_cast<const vec_t*>(&(accumulation[perspectives[p]][0]));
-            const vec_t* in1 = reinterpret_cast<const vec_t*>(&(accumulation[perspectives[p]][HalfDimensions / 2]));
+            const auto* in0 = reinterpret_cast<const vec_t*>(&(accumulation[perspectives[p]][0]));
+            const auto* in1 = reinterpret_cast<const vec_t*>(&(accumulation[perspectives[p]][HalfDimensions / 2]));
+            auto*       out = reinterpret_cast<vec_t*>(&output[offset]);
 
             // Per the NNUE architecture, here we want to multiply pairs of
             // clipped elements and divide the product by 128. To do this,

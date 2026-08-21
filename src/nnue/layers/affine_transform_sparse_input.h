@@ -189,7 +189,7 @@ class AffineTransformSparseInput final {
         // Find indices of nonzero 32-bit blocks
         find_nnz<ChunkCount>(input, nnz.data(), count);
 
-        const outvec_t* biasVec = reinterpret_cast<const outvec_t*>(biases.data());
+        const auto* biasVec = reinterpret_cast<const outvec_t*>(biases.data());
 
         outvec_t acc[RegCount];
 
@@ -224,9 +224,9 @@ class AffineTransformSparseInput final {
             const invec_t in1 = vec_set_32(load_as<i32>(input + i1 * sizeof(i32)));
             const invec_t in2 = vec_set_32(load_as<i32>(input + i2 * sizeof(i32)));
 
-            const invec_t* col0 = reinterpret_cast<const invec_t*>(&w[i0 * OutputDimensions * ChunkSize]);
-            const invec_t* col1 = reinterpret_cast<const invec_t*>(&w[i1 * OutputDimensions * ChunkSize]);
-            const invec_t* col2 = reinterpret_cast<const invec_t*>(&w[i2 * OutputDimensions * ChunkSize]);
+            const auto* col0 = reinterpret_cast<const invec_t*>(&w[i0 * OutputDimensions * ChunkSize]);
+            const auto* col1 = reinterpret_cast<const invec_t*>(&w[i1 * OutputDimensions * ChunkSize]);
+            const auto* col2 = reinterpret_cast<const invec_t*>(&w[i2 * OutputDimensions * ChunkSize]);
 
             for (IndexType k = 0; k < AccCount; ++k)
             {
@@ -256,14 +256,14 @@ class AffineTransformSparseInput final {
 
             const invec_t in = vec_set_32(load_as<i32>(input + i * sizeof(i32)));
 
-            const invec_t* col = reinterpret_cast<const invec_t*>(&w[i * OutputDimensions * ChunkSize]);
+            const auto* col = reinterpret_cast<const invec_t*>(&w[i * OutputDimensions * ChunkSize]);
 
             for (IndexType k = 0; k < AccCount; ++k)
                 vec_add_dpbusd_32(acc[k], in, col[k]);
         }
         // clang-format on
 
-        outvec_t* outVec = reinterpret_cast<outvec_t*>(output);
+        auto* outVec = reinterpret_cast<outvec_t*>(output);
 
         for (IndexType k = 0; k < AccCount; ++k)
             outVec[k] = acc[k];

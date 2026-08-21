@@ -41,7 +41,7 @@ class SqrClippedReLU final {
     static constexpr IndexType InputDimensions  = InDims;
     static constexpr IndexType OutputDimensions = InputDimensions;
     static constexpr IndexType PaddedOutputDimensions =
-      ceil_to_multiple<IndexType>(OutputDimensions, 32);
+      ceil_to_multiple<IndexType>(OutputDimensions, SIMD_WIDTH_MAX);
 
     using OutputBuffer = Array<OutputType, PaddedOutputDimensions>;
 

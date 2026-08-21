@@ -52,14 +52,15 @@ void transform_affine_non_ssse3(const Array<i32, OutputDimensions>&             
                                 const u8* RESTRICT                                         input,
                                 i32* RESTRICT output) noexcept {
 #if defined(USE_SSE2) || defined(USE_NEON)
+    constexpr IndexType ChunkCount =
+      ceil_to_multiple<IndexType>(InputDimensions, SIMD_WIDTH) / SIMD_WIDTH;
     #if defined(USE_SSE2)
-    // At least a multiple of 16, with SSE2
-    constexpr IndexType ChunkCount  = ceil_to_multiple<IndexType>(InputDimensions, 16) / 16;
-    const auto*         inputVector = reinterpret_cast<const __m128i*>(input);
-    const __m128i       Zeros       = _mm_setzero_si128();
+    constexpr int Shuffle_1_0_3_2 = _MM_SHUFFLE(1, 0, 3, 2);
+    const __m128i Zeros           = _mm_setzero_si128();
+
+    const auto* inputVec = reinterpret_cast<const __m128i*>(input);
     #elif defined(USE_NEON)
-    constexpr IndexType ChunkCount  = ceil_to_multiple<IndexType>(InputDimensions, 16) / 16;
-    const auto*         inputVector = reinterpret_cast<const int8x8_t*>(input);
+    const auto* inputVec = reinterpret_cast<const int8x8_t*>(input);
     #endif
 
     for (IndexType i = 0; i < OutputDimensions; ++i)
@@ -67,43 +68,43 @@ void transform_affine_non_ssse3(const Array<i32, OutputDimensions>&             
         const usize offset = i * PaddedInputDimensions;
 
     #if defined(USE_SSE2)
-
         __m128i loSum = _mm_cvtsi32_si128(biases[i]);
         __m128i hiSum = Zeros;
 
-        const auto* row = reinterpret_cast<const __m128i*>(&weights[offset]);
+        const auto* rowVec = reinterpret_cast<const __m128i*>(&weights[offset]);
 
         for (IndexType j = 0; j < ChunkCount; ++j)
         {
-            const __m128i rowVec     = _mm_load_si128(&row[j]);
-            const __m128i inputVec   = _mm_load_si128(&inputVector[j]);
-            const __m128i loExtRow   = _mm_srai_epi16(_mm_unpacklo_epi8(rowVec, rowVec), 8);
-            const __m128i hiExtRow   = _mm_srai_epi16(_mm_unpackhi_epi8(rowVec, rowVec), 8);
-            const __m128i loExtInput = _mm_unpacklo_epi8(inputVec, Zeros);
-            const __m128i hiExtInput = _mm_unpackhi_epi8(inputVec, Zeros);
-            const __m128i loProduct  = _mm_madd_epi16(loExtRow, loExtInput);
-            const __m128i hiProduct  = _mm_madd_epi16(hiExtRow, hiExtInput);
-            loSum                    = _mm_add_epi32(loSum, loProduct);
-            hiSum                    = _mm_add_epi32(hiSum, hiProduct);
+            const __m128i row       = _mm_load_si128(&rowVec[j]);
+            const __m128i in        = _mm_load_si128(&inputVec[j]);
+            const __m128i loExtRow  = _mm_srai_epi16(_mm_unpacklo_epi8(row, row), 8);
+            const __m128i hiExtRow  = _mm_srai_epi16(_mm_unpackhi_epi8(row, row), 8);
+            const __m128i loExtIn   = _mm_unpacklo_epi8(in, Zeros);
+            const __m128i hiExtIn   = _mm_unpackhi_epi8(in, Zeros);
+            const __m128i loProduct = _mm_madd_epi16(loExtRow, loExtIn);
+            const __m128i hiProduct = _mm_madd_epi16(hiExtRow, hiExtIn);
+            loSum                   = _mm_add_epi32(loSum, loProduct);
+            hiSum                   = _mm_add_epi32(hiSum, hiProduct);
         }
 
         __m128i sum        = _mm_add_epi32(loSum, hiSum);
-        __m128i hiShuffled = _mm_shuffle_epi32(sum, _MM_SHUFFLE(1, 0, 3, 2));
+        __m128i hiShuffled = _mm_shuffle_epi32(sum, Shuffle_1_0_3_2);
         sum                = _mm_add_epi32(sum, hiShuffled);
-        __m128i loShuffled = _mm_shufflelo_epi16(sum, _MM_SHUFFLE(1, 0, 3, 2));
+        __m128i loShuffled = _mm_shufflelo_epi16(sum, Shuffle_1_0_3_2);
         sum                = _mm_add_epi32(sum, loShuffled);
         output[i]          = _mm_cvtsi128_si32(sum);
 
     #elif defined(USE_NEON)
-
         int32x4_t sum = {biases[i]};
 
-        const auto* row = reinterpret_cast<const SIMD::vec_i8x8_t*>(&weights[offset]);
+        const auto* rowVec = reinterpret_cast<const SIMD::vec_i8x8_t*>(&weights[offset]);
 
         for (IndexType j = 0; j < ChunkCount; ++j)
         {
-            int16x8_t product = vmull_s8(inputVector[j * 2 + 0], row[j * 2 + 0]);
-            product           = vmlal_s8(product, inputVector[j * 2 + 1], row[j * 2 + 1]);
+            const IndexType k = j * 2;
+
+            int16x8_t product = vmull_s8(inputVec[k + 0], rowVec[k + 0]);
+            product           = vmlal_s8(product, inputVec[k + 1], rowVec[k + 1]);
             sum               = vpadalq_s16(sum, product);
         }
         output[i] = SIMD::neon_m128_reduce_add_epi32(sum);
@@ -140,6 +141,13 @@ class AffineTransform final {
       ceil_to_multiple<IndexType>(InputDimensions, SIMD_WIDTH_MAX);
     static constexpr IndexType PaddedOutputDimensions =
       ceil_to_multiple<IndexType>(OutputDimensions, SIMD_WIDTH_MAX);
+    static constexpr IndexType ChunkSize =
+#if defined(USE_SIMD_OPTIMIZATION)
+      4
+#else
+      1
+#endif
+      ;
 
     using OutputBuffer = Array<OutputType, PaddedOutputDimensions>;
 
@@ -154,8 +162,8 @@ class AffineTransform final {
 
     static constexpr IndexType weight_index(IndexType i) noexcept {
 #if defined(USE_SIMD_OPTIMIZATION)
-        return (i / 4) % (PaddedInputDimensions / 4) * OutputDimensions * 4
-             + i / PaddedInputDimensions * 4 + i % 4;
+        return (i / ChunkSize) % (PaddedInputDimensions / ChunkSize) * OutputDimensions * ChunkSize
+             + i / PaddedInputDimensions * ChunkSize + i % ChunkSize;
 #else
         return i;
 #endif
@@ -258,9 +266,9 @@ class AffineTransform final {
                 const vec_t in0 = vec_set_32(load_as<i32>(input + (i + 0) * sizeof(i32)));
                 const vec_t in1 = vec_set_32(load_as<i32>(input + (i + 1) * sizeof(i32)));
 
-                const vec_t* col0 =
+                const auto* col0 =
                   reinterpret_cast<const vec_t*>(&weights[(i + 0) * OutputDimensions * 4]);
-                const vec_t* col1 =
+                const auto* col1 =
                   reinterpret_cast<const vec_t*>(&weights[(i + 1) * OutputDimensions * 4]);
 
                 for (IndexType k = 0; k < AccCount; ++k)
@@ -283,7 +291,7 @@ class AffineTransform final {
             {
                 const vec_t in = vec_set_32(load_as<i32>(input + i * sizeof(i32)));
 
-                const vec_t* col =
+                const auto* col =
                   reinterpret_cast<const vec_t*>(&weights[i * OutputDimensions * 4]);
 
                 for (IndexType k = 0; k < AccCount; ++k)
@@ -329,7 +337,7 @@ class AffineTransform final {
         #define vec_hadd SIMD::lsx_m128_hadd
     #endif
 
-            const vec_t* inputVector = reinterpret_cast<const vec_t*>(input);
+            const auto* inputVec = reinterpret_cast<const vec_t*>(input);
 
             constexpr IndexType InputSimdWidth = sizeof(vec_t) / sizeof(InputType);
 
@@ -337,12 +345,12 @@ class AffineTransform final {
 
             constexpr IndexType ChunkCount = PaddedInputDimensions / InputSimdWidth;
 
-            vec_t        sum0 = vec_setzero();
-            const vec_t* row0 = reinterpret_cast<const vec_t*>(&weights[0]);
+            vec_t       sum0 = vec_setzero();
+            const auto* row0 = reinterpret_cast<const vec_t*>(&weights[0]);
 
             for (IndexType i = 0; i < ChunkCount; ++i)
             {
-                const vec_t in = inputVector[i];
+                const vec_t in = inputVec[i];
                 vec_add_dpbusd_32(sum0, in, row0[i]);
             }
 
