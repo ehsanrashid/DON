@@ -80,7 +80,6 @@
 #elif defined(_MSC_VER)
     #define ALWAYS_INLINE __forceinline
 #else
-    // fallback: keep 'inline'
     #define ALWAYS_INLINE inline
 #endif
 
@@ -96,20 +95,19 @@
 #elif defined(_MSC_VER)
     #define ASSUME(cond) __assume(cond)
 #else
-    // fallback: do nothing
-    #define ASSUME(cond) ((void) 0)
+    #define ASSUME(cond)
 #endif
+// clang-format on
 
 #if defined(__clang__)
-    #define UNREACHABLE() do { __builtin_unreachable(); } while (false)
+    #define UNREACHABLE() __builtin_unreachable()
 #elif defined(__GNUC__)
-    #define UNREACHABLE() do { __builtin_unreachable(); } while (false)
+    #define UNREACHABLE() __builtin_unreachable()
 #elif defined(_MSC_VER)
     #define UNREACHABLE() __assume(false)
 #else
-    #define UNREACHABLE() do { } while (false)
+    #define UNREACHABLE()
 #endif
-// clang-format on
 
 #if defined(__clang__)
     #define RESTRICT __restrict__
@@ -118,14 +116,13 @@
 #elif defined(_MSC_VER)
     #define RESTRICT __restrict
 #else
-    // fallback: no restrict
     #define RESTRICT
 #endif
 
 #if !defined(NDEBUG)
-    #define DEBUG_LOG(msg) std::cerr << msg << std::endl
+    #define DEBUG_LOG(msg) std::cerr << msg << '\n'
 #else
-    #define DEBUG_LOG(msg) ((void) 0)
+    #define DEBUG_LOG(msg)
 #endif
 
 namespace DON {
@@ -954,7 +951,7 @@ class MultiArray final {
     }
 
     //void print() const noexcept {
-    //    std::cout << Size << ':' << sizeof...(Sizes) << std::endl;
+    //    std::cout << Size << ':' << sizeof...(Sizes) << '\n';
     //
     //    for (auto& element : data_)
     //    {
