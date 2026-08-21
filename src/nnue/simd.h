@@ -241,8 +241,9 @@ using vec_uint_t __attribute__((may_alias))  = uint32x4_t;
     #define vec_sub_psqt_32(a, b) vsubq_s32(a, b)
     #define vec_zero_psqt() psqt_vec_t{0}
 
-inline constexpr u32 Mask[4]{1, 2, 4, 8};
-    #define vec_nnz(a) vaddvq_u32(vandq_u32(vtstq_u32(a, a), vld1q_u32(SIMD::Mask)))
+inline constexpr u32 Mask4[4]{1, 2, 4, 8};
+    #define vec_nnz(a) \
+        vaddvq_u32(vandq_u32(vtstq_u32((uint32x4_t) a, (uint32x4_t) a), vld1q_u32(SIMD::Mask4)))
     #define vec128_zero vdupq_n_u16(0)
     #define vec128_set_16(a) vdupq_n_u16(a)
     #define vec128_load(src) vld1q_u16(reinterpret_cast<const u16*>(src))

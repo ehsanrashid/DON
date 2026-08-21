@@ -28,6 +28,7 @@
 #include "../../bitboard.h"
 #include "../../misc.h"
 #include "../../types.h"
+#include "../nnz.h"
 #include "../ntypes.h"
 #include "../serialization.h"
 #include "../simd.h"  // IWYU pragma: keep
@@ -122,8 +123,16 @@ class AffineTransformSparseInput final {
         return !os.fail();
     }
 
+#if defined(__GNUC__) && !defined(__clang__) && defined(USE_NEON_DOTPROD)
+    #if __GNUC__ >= 15
+        #define FIX_GCC15_MISOPTIMIZATION
+    #endif
+#endif
+
     // Forward propagation
-    void propagate(const InputType* RESTRICT input, OutputType* RESTRICT output) const noexcept {
+    void propagate(const InputType* RESTRICT           input,
+                   OutputType* RESTRICT                output,
+                   [[maybe_unused]] const NNZ<InDims>& nnz) const noexcept {
 
 #if defined(USE_SPARSE_SIMD_OPTIMIZATION)
     #if defined(USE_AVX512)
@@ -171,23 +180,16 @@ class AffineTransformSparseInput final {
 
         constexpr IndexType OutputSimdWidth = sizeof(outvec_t) / sizeof(OutputType);
 
-        constexpr IndexType ChunkCount =
-          ceil_to_multiple<IndexType>(InputDimensions, 8) / ChunkSize;
         constexpr IndexType AccCount = OutputDimensions / OutputSimdWidth;
         // If using high-latency dot product instructions, split the accumulators
         // to create 3 separate dependency chains and merge at the end
         constexpr IndexType RegCount =
-    #if defined(USE_VNNI) || defined(USE_LASX) || defined(USE_NEON_DOTPROD)
+    #if defined(USE_VNNI) && defined(USE_AVX512)
           AccCount * 3
     #else
           AccCount
     #endif
           ;
-
-        Array<NNZOutput, ChunkCount> nnz;
-        IndexType                    count;
-        // Find indices of nonzero 32-bit blocks
-        find_nnz<ChunkCount>(input, nnz.data(), count);
 
         const auto* biasVec = reinterpret_cast<const outvec_t*>(biases.data());
 
@@ -196,24 +198,16 @@ class AffineTransformSparseInput final {
         for (IndexType k = 0; k < AccCount; ++k)
             acc[k] = biasVec[k];
 
-        // convince GCC to not do weird pointer arithmetic in the following loops
+        // Convince GCC to not do weird pointer arithmetic in the following loops
         const i8* w = weights.data();
 
-        const auto* RESTRICT       p   = nnz.data();
-        const auto* const RESTRICT end = p + count;
-
-            // clang-format off
-    #if defined(USE_VNNI) || defined(USE_LASX) || defined(USE_NEON_DOTPROD)
-
+    #if defined(USE_AVX512)
+        const auto* RESTRICT       p   = nnz.bitset;
+        const auto* const RESTRICT end = p + nnz.count;
         for (IndexType k = AccCount; k < RegCount; ++k)
-            acc[k] =
-        #if defined(USE_VNNI) || defined(USE_LASX)
-              vec_zero()
-        #elif defined(USE_NEON_DOTPROD)
-              vdupq_n_s32(0)
-        #endif
-              ;
+            acc[k] = vec_zero();
 
+        #if defined(USE_VNNI)
         for (; p + 2 < end; p += 3)
         {
             const usize i0 = p[0];
@@ -224,9 +218,12 @@ class AffineTransformSparseInput final {
             const invec_t in1 = vec_set_32(load_as<i32>(input + i1 * sizeof(i32)));
             const invec_t in2 = vec_set_32(load_as<i32>(input + i2 * sizeof(i32)));
 
-            const auto* col0 = reinterpret_cast<const invec_t*>(&w[i0 * OutputDimensions * ChunkSize]);
-            const auto* col1 = reinterpret_cast<const invec_t*>(&w[i1 * OutputDimensions * ChunkSize]);
-            const auto* col2 = reinterpret_cast<const invec_t*>(&w[i2 * OutputDimensions * ChunkSize]);
+            const auto* col0 =
+              reinterpret_cast<const invec_t*>(&w[i0 * OutputDimensions * ChunkSize]);
+            const auto* col1 =
+              reinterpret_cast<const invec_t*>(&w[i1 * OutputDimensions * ChunkSize]);
+            const auto* col2 =
+              reinterpret_cast<const invec_t*>(&w[i2 * OutputDimensions * ChunkSize]);
 
             for (IndexType k = 0; k < AccCount; ++k)
             {
@@ -237,18 +234,9 @@ class AffineTransformSparseInput final {
         }
 
         for (IndexType k = 0; k < AccCount; ++k)
-            acc[k] =
-        #if defined(USE_VNNI) || defined(USE_LASX)
-              vec_add_32(vec_add_32(acc[k + AccCount * 0],
-                                    acc[k + AccCount * 1]),
-                                    acc[k + AccCount * 2])
-        #elif defined(USE_NEON_DOTPROD)
-              vaddq_s32(vaddq_s32(acc[k + AccCount * 0],
-                                  acc[k + AccCount * 1]),
-                                  acc[k + AccCount * 2])
+            acc[k] = vec_add_32(vec_add_32(acc[k + AccCount * 0], acc[k + AccCount * 1]),
+                                acc[k + AccCount * 2]);
         #endif
-              ;
-    #endif
 
         for (; p < end; ++p)
         {
@@ -256,12 +244,48 @@ class AffineTransformSparseInput final {
 
             const invec_t in = vec_set_32(load_as<i32>(input + i * sizeof(i32)));
 
-            const auto* col = reinterpret_cast<const invec_t*>(&w[i * OutputDimensions * ChunkSize]);
+            const auto* col =
+              reinterpret_cast<const invec_t*>(&w[i * OutputDimensions * ChunkSize]);
 
             for (IndexType k = 0; k < AccCount; ++k)
                 vec_add_dpbusd_32(acc[k], in, col[k]);
         }
-        // clang-format on
+    #else
+        static_assert(InputDimensions % 256 == 0);
+
+        for (IndexType k = 0; k < InputDimensions / 256; ++k)
+        {
+            uint64_t  bits = load_as<uint64_t>(nnz.bitset + k * 8);
+            ptrdiff_t base = k * 64;
+
+            auto* inBase = input + base * sizeof(i32);
+            auto* wBase  = &w[base * OutputDimensions * ChunkSize];
+
+        // GCC 15 pessimizes the following code on ARM64 by eliding the intermediate
+        // computation of key pointers (inBase, wBase, col, inPtr), leading
+        // to a lot of redundant indexing arithmetic in the while (bits) loop. The
+        // optimization barriers force these pointers to be calculated and used.
+        #if defined(FIX_GCC15_MISOPTIMIZATION)
+            asm("" : "+r"(inBase), "+r"(wBase));  // opt barrier
+        #endif
+
+            while (bits != 0)
+            {
+                u8          i     = pop_lsq(bits);
+                const auto* inPtr = inBase + i * sizeof(i32);
+                const auto* col =
+                  reinterpret_cast<const invec_t*>(&wBase[i * OutputDimensions * ChunkSize]);
+
+        #if defined(FIX_GCC15_MISOPTIMIZATION)
+                asm("" : "+r"(col), "+r"(inPtr));
+        #endif
+
+                const invec_t in = vec_set_32(load_as<i32>(inPtr));
+                for (IndexType l = 0; l < AccCount; ++l)
+                    vec_add_dpbusd_32(acc[l], in, col[l]);
+            }
+        }
+    #endif
 
         auto* outVec = reinterpret_cast<outvec_t*>(output);
 
@@ -278,179 +302,9 @@ class AffineTransformSparseInput final {
 #endif
     }
 
+#undef FIX_GCC15_MISOPTIMIZATION
+
    private:
-    // NNZ-specific implementation
-#if defined(USE_SPARSE_SIMD_OPTIMIZATION)
-    #if defined(USE_NEON)
-    using NNZOutput = std::conditional_t<(InDims <= 1024), u8, u16>;
-    #else
-    using NNZOutput = u16;
-    #endif
-
-    struct OffsetIndices final {
-       public:
-        static constexpr usize MASK_SIZE  = 256;
-        static constexpr u8    INDEX_SIZE = 8;
-
-        Array<NNZOutput, MASK_SIZE, INDEX_SIZE> indices{};
-
-        constexpr OffsetIndices() noexcept {
-
-            for (usize i = 0; i < MASK_SIZE; ++i)
-            {
-                u8 k = 0;
-
-                Bitboard b = i;
-                while (b != 0)
-                {
-                    indices[i][k] = constexpr_lsb(b);
-                    ++k;
-                    b &= b - 1;
-                }
-
-                for (; k < INDEX_SIZE; ++k)
-                    indices[i][k] = 0;
-            }
-        }
-    };
-
-    alignas(CACHE_LINE_SIZE) static inline constexpr OffsetIndices OFFSET_INDICES{};
-
-    // Find indices of nonzero 32-bit values in a packed byte buffer.
-    // The input pointer addresses a sequence of 32-bit blocks stored in a u8 array.
-    template<IndexType ChunkCount>
-    static void
-    find_nnz(const u8* RESTRICT input, NNZOutput* RESTRICT outNnz, IndexType& outCount) noexcept {
-
-    #if defined(USE_AVX512ICL)
-        constexpr IndexType InSimdWidth  = 64;  // 512 bits
-        constexpr IndexType OutSimdWidth = 32;  // 512 bits / 16 bits
-        constexpr IndexType SimdChunks   = ChunkCount / OutSimdWidth;
-
-        const __m512i increment = _mm512_set1_epi16(OutSimdWidth);
-        __m512i       base      = _mm512_set_epi16(  // Same permute order as _mm512_packus_epi32()
-          31, 30, 29, 28, 15, 14, 13, 12, 27, 26, 25, 24, 11, 10, 9, 8, 23, 22, 21, 20, 7, 6, 5, 4,
-          19, 18, 17, 16, 3, 2, 1, 0);
-
-        IndexType count = 0;
-        for (IndexType i = 0; i < SimdChunks; ++i)
-        {
-            const __m512i iv0 = _mm512_load_si512(input + i * 2 * InSimdWidth + 0 * InSimdWidth);
-            const __m512i iv1 = _mm512_load_si512(input + i * 2 * InSimdWidth + 1 * InSimdWidth);
-
-            // Get a bitmask and gather non-zero indices
-            const __m512i   iv01    = _mm512_packs_epi32(iv0, iv1);
-            const __mmask32 nnzMask = _mm512_test_epi16_mask(iv01, iv01);
-            const __m512i   nnzVal  = _mm512_maskz_compress_epi16(nnzMask, base);
-
-            _mm512_storeu_si512(outNnz + count, nnzVal);
-
-            count += popcount(nnzMask);
-            base = _mm512_add_epi16(base, increment);
-        }
-        outCount = count;
-    #elif defined(USE_AVX512)
-        constexpr IndexType OutSimdWidth = 16;  // 512 bits / 32 bits
-        constexpr IndexType SimdChunks   = ChunkCount / OutSimdWidth;
-
-        const __m512i increment = _mm512_set1_epi32(OutSimdWidth);
-        __m512i       base = _mm512_set_epi32(15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0);
-
-        IndexType count = 0;
-        for (IndexType i = 0; i < SimdChunks; ++i)
-        {
-            const __m512i iv = _mm512_load_si512(input + i * OutSimdWidth * sizeof(u32));
-
-            // Get a bitmask and gather non-zero indices
-            const __mmask16 nnzMask = _mm512_test_epi32_mask(iv, iv);
-            const __m512i   nnzVal  = _mm512_maskz_compress_epi32(nnzMask, base);
-
-            _mm512_mask_cvtepi32_storeu_epi16(outNnz + count, 0xFFFF, nnzVal);
-
-            count += popcount(nnzMask);
-            base = _mm512_add_epi32(base, increment);
-        }
-        outCount = count;
-    #else
-        #if defined(USE_NEON)
-        // NEON path using u8 NNZOutput
-        if constexpr (std::is_same_v<NNZOutput, u8>)
-        {
-            static_assert(ChunkCount <= 256, "ChunkCount must be <= 256");
-
-            constexpr Array<u16, 8> nnzMasks{1, 2, 4, 8, 16, 32, 64, 128};
-
-            constexpr IndexType SimdChunks = ChunkCount / 8;
-
-            const auto* inputVector = reinterpret_cast<const uint32x4_t*>(input);
-
-            const u64 increment = u64{0x0808080808080808};
-            u64       base      = u64{0};
-
-            IndexType count = 0;
-            for (IndexType i = 0; i < SimdChunks; ++i)
-            {
-                const uint32x4_t iv0 = inputVector[i * 2 + 0];
-                const uint32x4_t iv1 = inputVector[i * 2 + 1];
-
-                const uint16x8_t nonzeroMask =
-                  vcombine_u16(vqmovn_u32(vtstq_u32(iv0, iv0)), vqmovn_u32(vtstq_u32(iv1, iv1)));
-                const uint16_t nnzMask =
-                  vaddvq_u16(vandq_u16(nonzeroMask, vld1q_u16(nnzMasks.data())));
-
-                u64 offsets;
-                std::memcpy(&offsets, OFFSET_INDICES.indices[nnzMask].data(), sizeof(offsets));
-                const u64 indices = offsets + base;
-                std::memcpy(outNnz + count, &indices, sizeof(indices));
-
-                count += popcount(nnzMask);
-                base += increment;
-            }
-            outCount = count;
-        }
-        else
-        #endif
-        {
-            constexpr IndexType InputSimdWidth = sizeof(SIMD::vec_uint_t) / sizeof(u32);
-            // Outputs are processed 8 elements at a time, even if the SIMD width is narrower
-            constexpr IndexType SimdChunkSize  = 8;
-            constexpr IndexType SimdChunks     = ChunkCount / SimdChunkSize;
-            constexpr IndexType InputsPerChunk = SimdChunkSize / InputSimdWidth;
-
-            static_assert(InputsPerChunk > 0, "SIMD width too wide");
-
-            const auto* inputVector = reinterpret_cast<const SIMD::vec_uint_t*>(input);
-
-            const SIMD::vec128_t increment = vec128_set_16(8);
-            SIMD::vec128_t       base      = vec128_zero;
-
-            IndexType count = 0;
-            for (IndexType i = 0; i < SimdChunks; ++i)
-            {
-                // bitmask of nonzero values in this chunk
-                unsigned nnzMask = 0;
-                for (IndexType j = 0; j < InputsPerChunk; ++j)
-                {
-                    const SIMD::vec_uint_t iv = inputVector[i * InputsPerChunk + j];
-
-                    nnzMask |= unsigned(vec_nnz(iv)) << (j * InputSimdWidth);
-                }
-
-                const SIMD::vec128_t offsets = vec128_load(
-                  reinterpret_cast<const SIMD::vec128_t*>(OFFSET_INDICES.indices[nnzMask].data()));
-
-                vec128_storeu(reinterpret_cast<SIMD::vec128_t*>(outNnz + count),
-                              vec128_add(base, offsets));
-
-                count += popcount(nnzMask);
-                base = vec128_add(base, increment);
-            }
-            outCount = count;
-        }
-    #endif
-    }
-#endif
-
     using BiasType   = OutputType;
     using WeightType = i8;
 

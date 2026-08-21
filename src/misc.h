@@ -73,9 +73,7 @@
 #define STRING_LITERAL(x) #x
 #define STRINGIFY(x) STRING_LITERAL(x)
 
-#if defined(__clang__)
-    #define ALWAYS_INLINE inline __attribute__((always_inline))
-#elif defined(__GNUC__)
+#if defined(__clang__) || defined(__GNUC__)
     #define ALWAYS_INLINE inline __attribute__((always_inline))
 #elif defined(_MSC_VER)
     #define ALWAYS_INLINE __forceinline
@@ -99,9 +97,7 @@
 #endif
 // clang-format on
 
-#if defined(__clang__)
-    #define UNREACHABLE() __builtin_unreachable()
-#elif defined(__GNUC__)
+#if defined(__clang__) || defined(__GNUC__)
     #define UNREACHABLE() __builtin_unreachable()
 #elif defined(_MSC_VER)
     #define UNREACHABLE() __assume(false)
@@ -109,9 +105,7 @@
     #define UNREACHABLE()
 #endif
 
-#if defined(__clang__)
-    #define RESTRICT __restrict__
-#elif defined(__GNUC__)
+#if defined(__clang__) || defined(__GNUC__)
     #define RESTRICT __restrict__
 #elif defined(_MSC_VER)
     #define RESTRICT __restrict

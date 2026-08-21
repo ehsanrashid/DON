@@ -32,6 +32,7 @@
 #include "layers/affine_transform_sparse_input.h"
 #include "layers/clipped_relu.h"
 #include "layers/sqr_clipped_relu.h"
+#include "nnz.h"
 #include "ntypes.h"
 
 namespace DON::NNUE {
@@ -91,8 +92,9 @@ struct NetworkArchitecture final {
     }
 
     // Forward propagation
-    i32 propagate(const Array<TransformedFeatureType, TransformedFeatureDimensions>&
-                    transformedFeatures) const noexcept {
+    i32 propagate(
+      const Array<TransformedFeatureType, TransformedFeatureDimensions>& transformedFeatures,
+      const NNZ<L1>&                                                     nnz) const noexcept {
 
         struct alignas(CACHE_LINE_SIZE) Buffer final {
             alignas(CACHE_LINE_SIZE) typename decltype(fc_0)::OutputBuffer fc_0_out;
@@ -109,7 +111,7 @@ struct NetworkArchitecture final {
 
         Buffer buffer;
 
-        fc_0.propagate(transformedFeatures.data(), buffer.fc_0_out.data());
+        fc_0.propagate(transformedFeatures.data(), buffer.fc_0_out.data(), nnz);
         ac_sqr_0.propagate(buffer.fc_0_out.data(), buffer.ac_sqr_0_out.data());
         ac_0.propagate(buffer.fc_0_out.data(), buffer.ac_0_out.data());
         std::memcpy(&buffer.ac_sqr_0_out[FC_0_Outputs], buffer.ac_0_out.data(),

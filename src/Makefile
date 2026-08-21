@@ -114,7 +114,7 @@ HEADERS := \
     nnue/features/full_threats.h nnue/features/half_ka_hm.h \
     nnue/layers/affine_transform.h nnue/layers/affine_transform_sparse_input.h \
     nnue/layers/clipped_relu.h nnue/layers/sqr_clipped_relu.h nnue/accumulator.h nnue/architecture.h \
-    nnue/serialization.h nnue/feature_transformer.h nnue/network.h nnue/ntypes.h nnue/simd.h \
+    nnue/serialization.h nnue/feature_transformer.h nnue/network.h nnue/nnz.h nnue/ntypes.h nnue/simd.h \
     incbin/incbin.h book/polyglot.h tablebase/syzygy.h
 
 OBJS := $(notdir $(SRCS:.cpp=.o))

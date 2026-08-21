@@ -33,6 +33,7 @@
 #include "../types.h"
 #include "accumulator.h"
 #include "architecture.h"
+#include "nnz.h"
 #include "ntypes.h"
 #include "serialization.h"
 #include "simd.h"
@@ -203,6 +204,7 @@ class FeatureTransformer final {
                   AccumulatorCache&              accCache,
                   AccumulatorStack&              accStack,
                   usize                          bucket,
+                  NNZ<OutputDimensions>&         nnz,
                   Array<OutputType, BufferSize>& output) const noexcept {
         using namespace SIMD;
 
@@ -230,6 +232,8 @@ class FeatureTransformer final {
         for (Color p : {WHITE, BLACK})
         {
             IndexType offset = p * (HalfDimensions / 2);
+
+            [[maybe_unused]] auto cursor = nnz.make_cursor(p);
             // clang-format off
 #if defined(VECTOR)
             constexpr IndexType OutputChunkSize = MaxChunkSize;
@@ -306,22 +310,30 @@ class FeatureTransformer final {
             const vec_t* tin0 = reinterpret_cast<const vec_t*>(&(threatAccumulation[perspectives[p]][0]));
             const vec_t* tin1 = reinterpret_cast<const vec_t*>(&(threatAccumulation[perspectives[p]][HalfDimensions / 2]));
 
-            for (IndexType j = 0; j < OutputChunkCount; ++j)
+            for (IndexType j = 0; j + 1 < OutputChunkCount; j += 2)
             {
-                vec_t acc00 = vec_add_16(in0[j * 2 + 0], tin0[j * 2 + 0]);
-                vec_t acc01 = vec_add_16(in0[j * 2 + 1], tin0[j * 2 + 1]);
-                vec_t acc10 = vec_add_16(in1[j * 2 + 0], tin1[j * 2 + 0]);
-                vec_t acc11 = vec_add_16(in1[j * 2 + 1], tin1[j * 2 + 1]);
+                vec_t packed[2];
+                for (IndexType k = 0; k < 2; ++k)
+                {
+                    const IndexType i = (j + k) * 2;
 
-                vec_t sum00 = vec_slli_16(vec_max_16(vec_min_16(acc00, One), Zero), shift);
-                vec_t sum01 = vec_slli_16(vec_max_16(vec_min_16(acc01, One), Zero), shift);
-                vec_t sum10 = vec_min_16(acc10, One);
-                vec_t sum11 = vec_min_16(acc11, One);
+                    vec_t acc0a = vec_add_16(in0[i + 0], tin0[i + 0]);
+                    vec_t acc0b = vec_add_16(in0[i + 1], tin0[i + 1]);
+                    vec_t acc1a = vec_add_16(in1[i + 0], tin1[i + 0]);
+                    vec_t acc1b = vec_add_16(in1[i + 1], tin1[i + 1]);
 
-                vec_t p0 = vec_mulhi_16(sum00, sum10);
-                vec_t p1 = vec_mulhi_16(sum01, sum11);
+                    vec_t sum0a = vec_slli_16(vec_max_16(vec_min_16(acc0a, One), Zero), shift);
+                    vec_t sum0b = vec_slli_16(vec_max_16(vec_min_16(acc0b, One), Zero), shift);
+                    vec_t sum1a = vec_min_16(acc1a, One);
+                    vec_t sum1b = vec_min_16(acc1b, One);
 
-                out[j] = vec_packus_16(p0, p1);
+                    vec_t pa = vec_mulhi_16(sum0a, sum1a);
+                    vec_t pb = vec_mulhi_16(sum0b, sum1b);
+
+                    packed[k] = out[j + k] = vec_packus_16(pa, pb);
+                }
+
+                cursor.record(packed[0], packed[1]);
             }
 #else
             for (IndexType j = 0; j < HalfDimensions / 2; ++j)

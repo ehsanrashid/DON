@@ -317,11 +317,7 @@ std::string compiler_info() noexcept {
     compiler.reserve(256);
 
     compiler.assign("\nCompiled by                : ");
-#if defined(__INTEL_LLVM_COMPILER)
-    compiler  //
-      .append("ICX ")
-      .append(STRINGIFY(__INTEL_LLVM_COMPILER));
-#elif defined(__clang__)
+#if defined(__clang__)
     compiler  //
       .append("clang++ ")
       .append(compiler_version(__clang_major__, __clang_minor__, __clang_patchlevel__));
@@ -334,10 +330,13 @@ std::string compiler_info() noexcept {
       .append("MSVC ")
       .append(compiler_version(_MSC_VER / 100, _MSC_VER % 100, _MSC_FULL_VER % 100000))
     #if defined(_MSC_BUILD)
-      .append(1, '.')
-      .append(std::to_string(_MSC_BUILD))
+      .append("." + std::to_string(_MSC_BUILD))
     #endif
       ;
+#elif defined(__INTEL_LLVM_COMPILER)
+    compiler  //
+      .append("ICX ")
+      .append(STRINGIFY(__INTEL_LLVM_COMPILER));
 #elif defined(__e2k__) && defined(__LCC__)
     compiler  //
       .append("MCST LCC ")
