@@ -497,13 +497,13 @@ endif
 ifneq ($(findstring loongarch64,$(ARCH)),)
     arch = loongarch64
     prefetch = yes
-ifneq ($(findstring -lsx,$(ARCH)),)
-    lsx = yes
-endif
-ifneq ($(findstring -lasx,$(ARCH)),)
-    lsx = yes
-    lasx = yes
-endif
+    ifneq ($(findstring -lsx,$(ARCH)),)
+        lsx = yes
+    endif
+    ifneq ($(findstring -lasx,$(ARCH)),)
+        lsx = yes
+        lasx = yes
+    endif
 endif
 
 # WASM is largely compiled using emcc's x86 compatibility layer, with occasional
@@ -853,7 +853,7 @@ endif
 
 ifeq ($(popcnt),yes)
     CXXFLAGS += -DUSE_POPCNT
-    ifeq ($(filter ppc64 ppc64-altivec ppc64-vsx armv7 armv8 arm64 riscv64,$(arch)),)
+    ifeq ($(filter armv7 armv8 arm64 ppc64 riscv64,$(arch)),)
         CXXFLAGS += -msse3 -mpopcnt
     endif
 endif
@@ -936,10 +936,10 @@ ifeq ($(altivec),yes)
 endif
 
 ifeq ($(vsx),yes)
-    CXXFLAGS += -mvsx
     ifeq ($(COMP),gcc)
         CXXFLAGS += -DNO_WARN_X86_INTRINSICS -DUSE_SSE2
     endif
+    CXXFLAGS += -mvsx
 endif
 
 ifeq ($(neon),yes)

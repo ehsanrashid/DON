@@ -54,10 +54,12 @@ inline constexpr usize SIMD_WIDTH = 32;
 inline constexpr usize SIMD_WIDTH = 16;
 #elif defined(USE_NEON)
 inline constexpr usize SIMD_WIDTH = 16;
-#elif defined(USE_LASX)
-inline constexpr usize SIMD_WIDTH = 32;
 #elif defined(USE_LSX)
+    #if defined(USE_LASX)
+inline constexpr usize SIMD_WIDTH = 32;
+    #else
 inline constexpr usize SIMD_WIDTH = 16;
+    #endif
 #endif
 
 namespace SIMD {

@@ -1378,11 +1378,11 @@ int map_score(TBTable<DTZ>* table, File f, int value, WDLScore wdlScore) noexcep
     return value + 1;
 }
 
-    // Temporary workaround for Clang compiler >= 15 vectorization bug
-    #if defined(__clang__) && defined(__clang_major__) && __clang_major__ >= 15
-        #define CLANG_LOOP_VEC_DISABLE _Pragma("clang loop vectorize(disable)")
+    // Workaround for Clang >= 15 loop vectorization bug
+    #if defined(__clang__) && defined(__clang_major__) && (__clang_major__ >= 15)
+        #define DISABLE_CLANG_LOOP_VECTORIZE _Pragma("clang loop vectorize(disable)")
     #else
-        #define CLANG_LOOP_VEC_DISABLE
+        #define DISABLE_CLANG_LOOP_VECTORIZE
     #endif
 
 // Compute a unique index out of a position and use it to probe the TB file.
@@ -1493,7 +1493,7 @@ Ret do_probe_table(
     // the triangle A1-D1-D4.
     if (file_of(squares[0]) > FILE_D)
     {
-        CLANG_LOOP_VEC_DISABLE
+        DISABLE_CLANG_LOOP_VECTORIZE
         for (usize i = 0; i < size; ++i)
             squares[i] = flip_file(squares[i]);
     }
@@ -1517,14 +1517,14 @@ Ret do_probe_table(
     // piece is below RANK_5.
     if (rank_of(squares[0]) > RANK_4)
     {
-        CLANG_LOOP_VEC_DISABLE
+        DISABLE_CLANG_LOOP_VECTORIZE
         for (usize i = 0; i < size; ++i)
             squares[i] = flip_rank(squares[i]);
     }
 
     // Look for the first piece of the leading group not on the A1-D4 diagonal
     // and ensure it is mapped below the diagonal.
-    CLANG_LOOP_VEC_DISABLE
+    DISABLE_CLANG_LOOP_VECTORIZE
     for (i32 i = 0; i < pd->groupLen[0]; ++i)
     {
         if (off_A1H8(squares[i]) == 0)
@@ -1532,7 +1532,7 @@ Ret do_probe_table(
 
         if (off_A1H8(squares[i]) > 0)  // A1-H8 diagonal flip: SQ_A3 -> SQ_C1
         {
-            CLANG_LOOP_VEC_DISABLE
+            DISABLE_CLANG_LOOP_VECTORIZE
             for (usize j = i; j < size; ++j)
                 squares[j] = Square(((squares[j] >> 3) | (squares[j] << 3)) & 0x3F);
         }
@@ -1620,7 +1620,7 @@ Ret do_probe_table(
         for (i32 i = 0; i < groupLen; ++i)
         {
             usize adjust = 0;
-            CLANG_LOOP_VEC_DISABLE
+            DISABLE_CLANG_LOOP_VECTORIZE
             for (const Square* s = squares.data(); s != groupSq; ++s)
                 adjust += usize(groupSq[i] > *s);
 
@@ -1636,7 +1636,7 @@ Ret do_probe_table(
     return map_score(table, tbFile, decompress_pairs(pd, idx), wdlScore);
 }
 
-    #undef CLANG_LOOP_VEC_DISABLE
+    #undef DISABLE_CLANG_LOOP_VECTORIZE
 
 template<TBType T, typename Ret = typename TBTable<T>::Ret>
 Ret probe_table(const Position& pos, ProbeState* ps, WDLScore wdlScore = WDL_DRAW) noexcept {
