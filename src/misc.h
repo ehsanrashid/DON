@@ -320,14 +320,14 @@ constexpr int constexpr_round(const double d) noexcept {
     return d < 0.0 ? constexpr_floor(d) : constexpr_ceil(d);
 }
 
-// Computes ln(1 + f) for f in (-1, sqrt(2)-1] via the identity
-//   ln(1+f) = 2 * atanh(s),   s = f / (2 + f)
+// Computes ln(1 + d) for f in (-1, sqrt(2)-1] via the identity
+//   ln(1+d) = 2 * atanh(s),   s = d / (d + 2.0)
 //
 // After the sqrt(2) range reduction below, |s| <= (sqrt(2)-1)/(sqrt(2)+1)
 // = 3 - 2*sqrt(2) ≈ 0.1716, so the series needs only ~10 terms for full
 // double precision (truncation error < 2e-17).
-constexpr double constexpr_log1p_log(double f) noexcept {
-    double s  = f / (2.0 + f);
+constexpr double constexpr_log1p_log(const double d) noexcept {
+    double s  = d / (d + 2.0);
     double s2 = s * s;
     // clang-format off
     double p = 1.0
@@ -408,13 +408,13 @@ enum class ConsoleMode : u8 {
 void set_console_input(ConsoleMode consoleMode = ConsoleMode::Default) noexcept;
 void set_console_output(ConsoleMode consoleMode = ConsoleMode::Default) noexcept;
 
-[[nodiscard]] constexpr char digit_to_char(int digit) noexcept {
+[[nodiscard]] constexpr char digit_to_char(const int digit) noexcept {
     assert(0 <= digit && digit <= 9 && "digit_to_char: non-digit integer");
 
     return 0 <= digit && digit <= 9 ? digit + '0' : '\0';
 }
 
-[[nodiscard]] constexpr int char_to_digit(char ch) noexcept {
+[[nodiscard]] constexpr int char_to_digit(const char ch) noexcept {
     assert('0' <= ch && ch <= '9' && "char_to_digit: non-digit character");
 
     return '0' <= ch && ch <= '9' ? ch - '0' : 0;
@@ -429,7 +429,7 @@ constexpr char to_upper(const char ch) noexcept {
     return 'a' <= ch && ch <= 'z' ? char(ch - ('a' - 'A')) : ch;
 }
 
-constexpr unsigned to_month(std::string_view m) noexcept {
+constexpr unsigned to_month(const std::string_view m) noexcept {
     assert(m.size() == 3);
     return to_lower(m[0]) == 'j' && to_lower(m[1]) == 'a' ? 1
          : to_lower(m[0]) == 'f'                          ? 2

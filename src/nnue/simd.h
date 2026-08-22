@@ -316,8 +316,8 @@ inline __m256i lasx_packus_32(const __m256i a, const __m256i b) noexcept {
 inline int lasx_vec_nnz(const __m256i a) noexcept {
     const __m256i cmp  = __lasx_xvslt_w(__lasx_xvldi(0), a);
     const __m256i mask = __lasx_xvmskltz_w(cmp);
-    return ((int) __lasx_xvpickve2gr_w(mask, 0) & 0xF)
-         | (((int) __lasx_xvpickve2gr_w(mask, 4) & 0xF) << 4);
+    return (__lasx_xvpickve2gr_w(mask, 0) << 0)  //
+         | (__lasx_xvpickve2gr_w(mask, 4) << 4);
 }
     #define vec_nnz(a) SIMD::lasx_vec_nnz(a)
 
@@ -392,7 +392,7 @@ inline __m128i lsx_packus_32(const __m128i a, const __m128i b) noexcept {
 inline int lsx_vec_nnz(const __m128i a) noexcept {
     const __m128i cmp  = __lsx_vslt_w(__lsx_vldi(0), a);
     const __m128i mask = __lsx_vmskltz_w(cmp);
-    return ((int) __lsx_vpickve2gr_w(mask, 0) & 0xF);
+    return __lsx_vpickve2gr_w(mask, 0);
 }
     #define vec_nnz(a) SIMD::lsx_vec_nnz(a)
 

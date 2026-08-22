@@ -36,7 +36,7 @@ constexpr std::string_view Author{"Ehsan Rashid"};
 constexpr std::string_view Version{"dev"};
 
 // Format date to YYYYMMDD
-[[maybe_unused]] std::string format_date(std::string_view date) noexcept {
+[[maybe_unused]] std::string format_date(const std::string_view date) noexcept {
     constexpr std::string_view NullDate{"00000000"};
 
     // Tokenize: expect "Mon DD YYYY" where DD may have a trailing comma.
@@ -117,7 +117,7 @@ constexpr std::string_view Version{"dev"};
 }
 
 // Format time HH:MM:SS -> HHMMSS
-[[maybe_unused]] std::string format_time(std::string_view time) noexcept {
+[[maybe_unused]] std::string format_time(const std::string_view time) noexcept {
 
     constexpr std::string_view NullTime{"000000"};
 
@@ -148,13 +148,14 @@ constexpr std::string_view Version{"dev"};
     return std::string{buffer.data(), buffer.size()};
 }
 
-std::string compiler_version(unsigned major, unsigned minor, unsigned patch) noexcept {
+std::string
+compiler_version(const unsigned major, const unsigned minor, const unsigned patch) noexcept {
     return std::to_string(major) + "." + std::to_string(minor) + "." + std::to_string(patch);
 }
 
 }  // namespace
 
-void set_console_input(ConsoleMode consoleMode) noexcept {
+void set_console_input(const ConsoleMode consoleMode) noexcept {
     switch (consoleMode)
     {
     case ConsoleMode::UTF7 :
@@ -179,7 +180,7 @@ void set_console_input(ConsoleMode consoleMode) noexcept {
 #endif
     }
 }
-void set_console_output(ConsoleMode consoleMode) noexcept {
+void set_console_output(const ConsoleMode consoleMode) noexcept {
     switch (consoleMode)
     {
     case ConsoleMode::UTF7 :
@@ -205,7 +206,7 @@ void set_console_output(ConsoleMode consoleMode) noexcept {
     }
 }
 
-std::string engine_info(bool uci) noexcept {
+std::string engine_info(const bool uci) noexcept {
     std::string engine;
     engine.reserve(64);
 
@@ -219,12 +220,12 @@ std::string engine_info(bool uci) noexcept {
 }
 
 void show_logo() noexcept {
-    auto border = [](std::string_view sv) {
+    auto border = [](const std::string_view sv) {
         std::cout << ConsoleColor::BG_BLACK                                    //
                   << ConsoleColor::BRIGHT_YELLOW << ConsoleColor::BLINK << sv  //
                   << ConsoleColor::RESET << '\n';
     };
-    auto mid1 = [](std::string_view sv, const char* color1) {
+    auto mid1 = [](const std::string_view sv, const char* color1) {
         std::cout                                                         //
           << ConsoleColor::BG_BLACK                                       //
           << ConsoleColor::BRIGHT_YELLOW << ConsoleColor::BLINK << "  ║"  //
@@ -235,7 +236,7 @@ void show_logo() noexcept {
           << ConsoleColor::BRIGHT_YELLOW << ConsoleColor::BLINK << "║  "  //
           << ConsoleColor::RESET << '\n';
     };
-    auto mid2 = [](std::string_view sv, const char* color1, const char* color2) {
+    auto mid2 = [](const std::string_view sv, const char* color1, const char* color2) {
         std::cout                                                         //
           << ConsoleColor::BG_BLACK                                       //
           << ConsoleColor::BRIGHT_YELLOW << ConsoleColor::BLINK << "  ║"  //

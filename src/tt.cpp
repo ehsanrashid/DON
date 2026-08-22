@@ -144,10 +144,9 @@ void TTEntry::save(const u16   k,
     // generally scales poorly and requires VVLTC verification.
     else if (depth() > 4 && bound() != Bound::EXACT)
     {
-        const auto v16 = value16;
-        if (constexpr_abs(v16) < VALUE_INFINITE && is_decisive(v16))
-            // Guard against racy underflows, default to "unoccupied"
-            depth8 = std::max(depth8 - 1, 0);
+        const auto val = value();
+        if (constexpr_abs(val) < VALUE_INFINITE && is_decisive(val))
+            penalize(1);
     }
 }
 

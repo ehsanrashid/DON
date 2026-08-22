@@ -105,7 +105,7 @@ struct alignas(32) DualMagic final {
 #elif defined(USE_HYPERBOLA_QUINT)
 
 inline Bitboard reverse_bb(Bitboard bb) noexcept {
-    #if __has_builtin(__builtin_bitreverse64)
+    #if defined(__has_builtin) && __has_builtin(__builtin_bitreverse64)
     return __builtin_bitreverse64(bb);
     #else
         #if defined(__aarch64__)

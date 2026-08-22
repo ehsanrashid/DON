@@ -15,8 +15,8 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef NNUE_NON_SSSE3_AFFINE_TRANSFORM_H_INCLUDED
-#define NNUE_NON_SSSE3_AFFINE_TRANSFORM_H_INCLUDED
+#ifndef NNUE_LAYERS_FALLBACK_AFFINE_TRANSFORM_H_INCLUDED
+#define NNUE_LAYERS_FALLBACK_AFFINE_TRANSFORM_H_INCLUDED
 
 #include <cstring>
 
@@ -111,4 +111,4 @@ void fallback_affine_transform(const Array<i32, OutputDimensions>&              
 
 }  // namespace DON::NNUE::Layers
 
-#endif  // NNUE_NON_SSSE3_AFFINE_TRANSFORM_H_INCLUDED
+#endif  // NNUE_LAYERS_FALLBACK_AFFINE_TRANSFORM_H_INCLUDED

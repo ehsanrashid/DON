@@ -715,7 +715,10 @@ void Worker::iterative_deepening() noexcept {
         // Have found "mate in x"?
         if (limit.mate != 0 && is_mate(rootMoves[0].curValue)
             && VALUE_MATE - constexpr_abs(rootMoves[0].curValue) <= 2 * limit.mate)
+        {
             threads.request_stop();
+            break;
+        }
 
         if (mainManager != nullptr)
         {
