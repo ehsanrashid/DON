@@ -118,7 +118,7 @@ struct NNZ final {
 #else
     struct Cursor final {
        public:
-        Cursor(NNZ& nnz, Color perspective) { out = nnz.bitset + perspective * Dimensions / 64; }
+        Cursor(NNZ& nnz, Color perspective) { nnzOut = nnz.bitset + perspective * Dimensions / 64; }
 
     #if defined(USE_SSSE3) || defined(USE_LSX) || (defined(USE_NEON) && USE_NEON >= 8)
         void record(SIMD::vec_t neurons1, SIMD::vec_t neurons2) noexcept {
@@ -137,32 +137,32 @@ struct NNZ final {
               vtrn1q_u16(vreinterpretq_u16_u32(t1), vreinterpretq_u16_u32(t2));
             const uint16x8_t bits = vandq_u16(packed, vld1q_u16(Mask8));
 
-            *out++ = vaddvq_u16(bits);
+            *nnzOut++ = vaddvq_u16(bits);
         #else
             auto m1 = vec_nnz(neurons1);
             auto m2 = vec_nnz(neurons2);
 
             if (sizeof(neurons1) == 16)
             {
-                *out++ = m1 + (m2 << 4);
+                *nnzOut++ = m1 + (m2 << 4);
             }
             else
             {
                 usize bytes = sizeof(neurons1) / 32;
-                std::memcpy(out, &m1, bytes);
-                out += bytes;
-                std::memcpy(out, &m2, bytes);
-                out += bytes;
+                std::memcpy(nnzOut, &m1, bytes);
+                nnzOut += bytes;
+                std::memcpy(nnzOut, &m2, bytes);
+                nnzOut += bytes;
             }
         #endif
         }
 
-       private:
-        u8* out;
-
     #elif defined(VECTOR)
         void record(SIMD::vec_t, SIMD::vec_t) noexcept {}
     #endif
+
+       private:
+        u8* nnzOut;
     };
 
     Cursor make_cursor(Color perspective) noexcept { return {*this, perspective}; }
