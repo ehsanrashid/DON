@@ -902,6 +902,7 @@ DirtyBoard Position::do_move(const Move          m,
     reset_en_passant_sq();
 
     Key  movedKey;
+    bool castling;
     bool capture;
     bool enPassant = false;
     bool promotion = false;
@@ -929,6 +930,7 @@ DirtyBoard Position::do_move(const Move          m,
         st->key ^= rookKey;
         st->nonPawnKeys[ac][1] ^= rookKey;
 
+        castling   = true;
         capturedPc = Piece::NO_PIECE;
         capture    = false;
     }
@@ -938,7 +940,8 @@ DirtyBoard Position::do_move(const Move          m,
     movedKey = Zobrist::piece_square(ac, movedPt, orgSq)  //
              ^ Zobrist::piece_square(ac, movedPt, dstSq);
 
-    capture = capturedPc != Piece::NO_PIECE;
+    castling = false;
+    capture  = capturedPc != Piece::NO_PIECE;
 
     if (capture)
     {
@@ -1061,7 +1064,7 @@ DirtyBoard Position::do_move(const Move          m,
     }
 
     // Update board
-    if (m.type() != MT::CASTLING)
+    if (!castling)
     {
         if (promotion)
         {
@@ -1090,11 +1093,11 @@ DirtyBoard Position::do_move(const Move          m,
 
     if (mayCheck)
     {
-        st->checkersBB = m.type() != MT::CASTLING
-                         ? pieces_bb(ac)
+        st->checkersBB = castling
+                         ? pieces_bb(ac, ROOK) & attacks_bb<ROOK>(square<KING>(~ac), pieces_bb())
+                         : pieces_bb(ac)
                              & ((state()->preSt->checksBB[movedPt] & dstSq)
-                                | slide_attackers_bb(square<KING>(~ac)))
-                         : pieces_bb(ac, ROOK) & attacks_bb<ROOK>(square<KING>(~ac), pieces_bb());
+                                | slide_attackers_bb(square<KING>(~ac)));
 
         assert(popcount(checkers_bb()) <= 2 && (checkers_bb() & square<KING>(ac)) == 0);
     }
@@ -1146,9 +1149,9 @@ DirtyBoard Position::do_move(const Move          m,
 
     assert(is_ok(db.dirtyPiece.movedPc));
     assert(is_ok(db.dirtyPiece.orgSq));
-    assert(is_ok(db.dirtyPiece.dstSq) ^ !(m.type() != MT::PROMOTION));
-    assert(is_ok(db.dirtyPiece.removedSq) ^ !(capture || m.type() == MT::CASTLING));
-    assert(is_ok(db.dirtyPiece.addedSq) ^ !(m.type() == MT::PROMOTION || m.type() == MT::CASTLING));
+    assert(is_ok(db.dirtyPiece.dstSq) ^ !(!promotion));
+    assert(is_ok(db.dirtyPiece.removedSq) ^ !(capture || castling));
+    assert(is_ok(db.dirtyPiece.addedSq) ^ !(promotion || castling));
     return db;
 }
 
