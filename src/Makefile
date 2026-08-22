@@ -1022,7 +1022,7 @@ $(shell \
 )
 endef
 
-ifneq ($(filter-out help strip install clean objclean profileclean net format config-sanity install-hooks,$(MAKECMDGOALS)),)
+ifneq ($(filter-out help strip install net clean objclean profileclean config-sanity format install-hooks,$(MAKECMDGOALS)),)
 _ := $(call cache_file_contents,$(BUILD_DATE_FILE),$(BUILD_DATE))
 _ := $(call cache_file_contents,$(BUILD_SHA_FILE),$(GIT_SHA))
 _ := $(call cache_file_contents,$(BUILD_DIFFINDEX_FILE),$(BUILD_DIFFINDEX))
@@ -1203,8 +1203,8 @@ ifeq ($(ARCH_SUPPORTED),no)
 	echo ""
 endif
 
-.PHONY: help analyze build profile-build macos-lipo strip install clean net \
-	objclean profileclean config-sanity \
+.PHONY: help analyze build profile-build macos-lipo strip install net \
+	clean objclean profileclean config-sanity \
 	clang-profile-make clang-profile-use \
 	gcc-profile-make gcc-profile-use \
 	icx-profile-make icx-profile-use \
@@ -1320,6 +1320,10 @@ install:
 	chmod 755 "$(BINDIR)/$(EXE)"
 	$(STRIP) "$(BINDIR)/$(EXE)"
 
+# Evaluation network (nnue)
+net:
+	@$(SHELL) ../scripts/net.sh
+
 # Clean all
 clean: objclean profileclean
 	@rm -f .depend *~ core
@@ -1344,10 +1348,6 @@ universalclean:
 	@find $(TEMP_DIR) -type l -exec rmdir {} + 2>/dev/null || true
 	@rm -rf $(TEMP_DIR)
 	@rm -f universal/network_dump.inc
-
-# Evaluation network (nnue)
-net:
-	@$(SHELL) ../scripts/net.sh
 
 format:
 	@echo CLANG_FORMAT=$(CLANG_FORMAT)
@@ -1521,7 +1521,7 @@ icx-profile-use:
 ifeq ($(UNIVERSAL_BUILD),no)
 # Include .depend only if no special goal is requested
 ifneq ($(MAKECMDGOALS),)
-ifneq ($(filter-out help strip install clean objclean profileclean net format config-sanity install-hooks,$(MAKECMDGOALS)),)
+ifneq ($(filter-out help strip install net clean objclean profileclean config-sanity format install-hooks,$(MAKECMDGOALS)),)
     -include .depend
 endif
 endif

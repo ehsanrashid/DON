@@ -20,7 +20,7 @@
 #include <cstdlib>  // malloc(), free(), std::aligned_alloc()
 
 #if defined(_WIN32)
-    #include <malloc.h>  // _mm_malloc(), _mm_free()
+    #include <malloc.h>  // <mm_malloc.h>: _mm_malloc(), _mm_free()
 #else
     #if defined(__linux__) && !defined(__ANDROID__)
         #include <sys/mman.h>
@@ -37,8 +37,9 @@
   || defined(__NetBSD__)    /* NetBSD */ \
   || defined(__DragonFly__) /* DragonFly BSD */ \
   || defined(__e2k__)       /* Elbrus 2000 */ \
+  || defined(_AIX)          /* IBM AIX */ \
   || (defined(__GLIBCXX__) && !defined(_GLIBCXX_HAVE_ALIGNED_ALLOC) \
-      && !defined(_WIN32)) /* libstdc++ without aligned_alloc */
+      && !defined(_WIN32)) /* libstdc++ without aligned_alloc() */
     #include <stdlib.h>
     #define USE_POSIX_ALIGNED_ALLOC
 #endif

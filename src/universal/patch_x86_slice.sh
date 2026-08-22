@@ -26,10 +26,10 @@ FAT="$1"
 X86="$2"
 NET="$3"
 
-# Must match volatile initializers in nnue_embed.cpp; byte order
-# is reversed to match how it appears in the binary xxd
-OFFSET_MAGIC=e7f50fe7f50ffeca
-SIZE_MAGIC=2e51feca2e51feca
+# Must match volatile initializers in nnue_embed.cpp;
+# byte order is reversed to match how it appears in the binary xxd
+OFFSET_MAGIC=E7F50FE7F50FFECA
+SIZE_MAGIC=2E51FECA2E51FECA
 
 die() {
     echo "patch_x86_slice: $*" >&2
@@ -41,6 +41,8 @@ die() {
 find_bytes() {
     file=$1; needle=$2; skip=${3:-0}; window=${4:-0}
     [ "$window" -gt 0 ] && win="-l $window" || win=""
+    # Convert to lower-case
+    needle=$(printf '%s' "$needle" | tr '[:upper:]' '[:lower:]')
     # Disassemble as hex, strip \n and search for the pattern
     pos=$(xxd -s "$skip" $win -p "$file" | tr -d '\n' \
         | awk -v n="$needle" '{ p = index($0, n); if (p) { print p; exit } }')
