@@ -22,10 +22,10 @@
     }
   ],
   "binary": [
-    "armv7-neon",
-    "armv7",
     "armv8-dotprod",
-    "armv8"
+    "armv8",
+    "armv7-neon",
+    "armv7"
   ],
   "exclude": [
     {

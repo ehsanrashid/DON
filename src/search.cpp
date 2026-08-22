@@ -925,9 +925,8 @@ Value Worker::search(Position&    pos,
     // Check for an early TT cutoff at non-pv nodes
     if constexpr (!PVNode)
     {
-        if (!exclude && is_valid(ttd.value)                   //
-            && ttd.depth > depth - (ttd.value <= beta)        //
-            && (CutNode == (ttd.value >= beta) || depth > 4)  //
+        if (!exclude && is_valid(ttd.value) && (CutNode == (ttd.value >= beta) || depth > 4)
+            && ttd.depth > depth - (ttd.value <= beta)
             && is_ok(ttd.bound & fail_bound(ttd.value >= beta)))
         {
             // If ttMove fails high, update move sorting heuristics on TT hit
@@ -970,7 +969,7 @@ Value Worker::search(Position&    pos,
             }
         }
         // No cutoff, but why? Does the stored inexact value mismatch our aspiration window?
-        // If a window-bound mismatch is the only reason cutoff failed, penalize the now-useless tte
+        // Penalize the entry since its bound is now no longer useful for this window-bound
         else if (!exclude && depth > 5 && is_valid(ttd.value)
                  && ttd.depth > depth - (ttd.value <= beta) && ttd.bound != Bound::EXACT
                  && is_ok(ttd.bound & fail_bound(ttd.value < beta)))
