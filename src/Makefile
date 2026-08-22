@@ -561,7 +561,7 @@ ifeq ($(IS_WINDOWS),yes)
     endif
 endif
 
-BITS_FLAG := $(if $(filter 32 64,$(bits)),-m$(bits),)
+BITS_FLAG := $(if $(filter 32 64,$(bits)),-m$(bits))
 
 # ----------------------------
 # Compiler configuration
@@ -750,15 +750,17 @@ endif
 
 ### Allow overriding CXX from the environment
 ifdef COMPCXX
-    CXX = $(COMPCXX)
+    CXX := $(COMPCXX)
 endif
 
 ## Locate llvm-profdata compatible with CXX for PGO (profile-guided optimization) builds
+
+CXX_PATH := $(realpath $(shell command -v $(CXX) 2>/dev/null))
 # For Clang/GCC, look alongside CXX
-LLVM_PROFDATA := $(dir $(realpath $(shell command -v $(CXX) 2>/dev/null)))llvm-profdata
-# For Intel icx, look in the compiler's bundled LLVM directory
+LLVM_PROFDATA := $(dir $(CXX_PATH))llvm-profdata
+# For Intel ICX, look in the compiler's bundled LLVM directory
 ifeq ($(wildcard $(LLVM_PROFDATA)),)
-    LLVM_PROFDATA := $(dir $(realpath $(shell command -v $(CXX) 2>/dev/null)))/compiler/llvm-profdata
+    LLVM_PROFDATA := $(dir $(CXX_PATH))compiler/llvm-profdata
 endif
 # Fall back to llvm-profdata available in PATH
 ifeq ($(wildcard $(LLVM_PROFDATA)),)
@@ -795,7 +797,7 @@ endif
 
 ### 3.2.2 Debugging with undefined behavior sanitizers
 ifneq ($(sanitize),none)
-    # Convert comma-separated sanitize list to -fsanitize= flags
+    # Enable the requested sanitizers
     SAN_FLAGS := $(addprefix -fsanitize=,$(sanitize))
     # Enable sanitizers with debug info and frame pointers
     CXXFLAGS += $(SAN_FLAGS) -g3 -fno-omit-frame-pointer
@@ -1005,12 +1007,12 @@ endif
 BUILD_DATE_FILE      := .build_date.txt
 BUILD_SHA_FILE       := .build_sha.txt
 BUILD_DIFFINDEX_FILE := .build_diffindex.txt
-GIT_DATE             := $(shell git show -s --date=format:%Y%m%d --format=%cd HEAD 2>/dev/null || true)
-GIT_SHA              := $(shell git rev-parse HEAD 2>/dev/null | cut -c 1-8 || true)
-GIT_DIFFINDEX        := $(shell git update-index --refresh >/dev/null 2>&1; git -c core.filemode=false -c core.autocrlf=false diff-index --quiet HEAD -- 2>/dev/null; [ $$? -eq 1 ] && echo 1 || true)
-COMPILER_DATE        := $(shell date +%Y%m%d 2>/dev/null)
 
-BUILD_DATE           := $(if $(GIT_DATE),$(GIT_DATE),$(COMPILER_DATE))
+GIT_DATE      := $(shell git show -s --date=format:%Y%m%d --format=%cd HEAD 2>/dev/null || true)
+GIT_SHA       := $(shell git rev-parse HEAD 2>/dev/null | cut -c 1-8 || true)
+GIT_DIFFINDEX := $(shell git update-index --refresh >/dev/null 2>&1; git -c core.filemode=false -c core.autocrlf=false diff-index --quiet HEAD -- 2>/dev/null; [ $$? -eq 1 ] && echo 1 || true)
+COMPILER_DATE := $(shell date +%Y%m%d 2>/dev/null)
+BUILD_DATE    := $(or $(GIT_DATE),$(COMPILER_DATE))
 
 define cache_file_contents
 $(shell \
@@ -1020,11 +1022,16 @@ $(shell \
 )
 endef
 
-ifneq ($(filter-out help strip install clean net objclean profileclean format config-sanity,$(MAKECMDGOALS)),)
+ifneq ($(filter-out help strip install clean objclean profileclean net format config-sanity install-hooks,$(MAKECMDGOALS)),)
 _ := $(call cache_file_contents,$(BUILD_DATE_FILE),$(BUILD_DATE))
 _ := $(call cache_file_contents,$(BUILD_SHA_FILE),$(GIT_SHA))
 _ := $(call cache_file_contents,$(BUILD_DIFFINDEX_FILE),$(BUILD_DIFFINDEX))
 endif
+
+# Compiler flags for embedding Git build information
+GIT_FLAGS := $(if $(GIT_DATE),-DGIT_DATE=$(GIT_DATE)) \
+             $(if $(GIT_SHA),-DGIT_SHA=$(GIT_SHA)) \
+             $(if $(GIT_DIFFINDEX),-DGIT_DIFFINDEX=$(GIT_DIFFINDEX))
 
 ### 3.8.2 Try to include architecture
 ifneq ($(ARCH),)
@@ -1461,7 +1468,7 @@ $(EXE): $(OBJS) $(NNUE_EMBED_OBJ)
 	$(strip $(CXX) $(CPPFLAGS) $(CXXFLAGS)) -c -o $@ $<
 
 misc.o: misc.cpp $(BUILD_DATE_FILE) $(BUILD_SHA_FILE) $(BUILD_DIFFINDEX_FILE)
-	$(strip $(CXX) $(CPPFLAGS) $(CXXFLAGS) $(if $(GIT_DATE),-DGIT_DATE=$(GIT_DATE)) $(if $(GIT_SHA),-DGIT_SHA=$(GIT_SHA))) $(if $(GIT_DIFFINDEX),-DGIT_DIFFINDEX=$(GIT_DIFFINDEX)) -c -o $@ $<
+	$(strip $(CXX) $(CPPFLAGS) $(CXXFLAGS) $(GIT_FLAGS)) -c -o $@ $<
 
 # Clang PGO
 clang-profile-make:
@@ -1514,7 +1521,7 @@ icx-profile-use:
 ifeq ($(UNIVERSAL_BUILD),no)
 # Include .depend only if no special goal is requested
 ifneq ($(MAKECMDGOALS),)
-ifeq ($(filter help strip install clean objclean profileclean net format config-sanity install-hooks,$(MAKECMDGOALS)),)
+ifneq ($(filter-out help strip install clean objclean profileclean net format config-sanity install-hooks,$(MAKECMDGOALS)),)
     -include .depend
 endif
 endif
