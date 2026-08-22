@@ -546,10 +546,10 @@ struct TBTable final: BaseTBTable {
 
     u8* map_ptr() noexcept { return mapPtr; }
 
-    PairsData* get(int ac, File f) noexcept { return &items[ac & MASK][hasPawns ? f : FILE_A]; }
+    PairsData* get(int ac, File f) noexcept { return &items[ac & Mask][hasPawns ? f : FILE_A]; }
 
-    static constexpr usize SIDES = T == WDL ? 2 : 1;
-    static constexpr usize MASK  = SIDES - 1;
+    static constexpr usize Sides = T == WDL ? 2 : 1;
+    static constexpr usize Mask  = Sides - 1;
 
     u8                  pieceCount;
     bool                hasPawns;
@@ -557,7 +557,7 @@ struct TBTable final: BaseTBTable {
     Array<u8, COLOR_NB> pawnCount;  // [Lead color / other color]
 
    private:
-    Array<PairsData, SIDES, FILE_NB / 2> items;  // [color][FILE_A..FILE_D]
+    Array<PairsData, Sides, FILE_NB / 2> items;  // [color][FILE_A..FILE_D]
     #if defined(_WIN32)
     HANDLE      hMapFile = INVALID_HANDLE;
     HandleGuard hMapFileGuard{hMapFile};
@@ -764,7 +764,7 @@ void TBTable<T>::set(u8* data) noexcept {
 
     ++data;  // First byte stores flags
 
-    const usize Sides = SIDES == 2 && key[WHITE] != key[BLACK] ? 2 : 1;
+    const usize sides = Sides == 2 && key[WHITE] != key[BLACK] ? 2 : 1;
 
     const File maxFile = hasPawns ? FILE_D : FILE_A;
 
@@ -774,7 +774,7 @@ void TBTable<T>::set(u8* data) noexcept {
 
     for (File f = FILE_A; f <= maxFile; ++f)
     {
-        for (usize i = 0; i < Sides; ++i)
+        for (usize i = 0; i < sides; ++i)
             *get(i, f) = PairsData();
 
         const Array<int, 2, 2> order{{
@@ -785,17 +785,17 @@ void TBTable<T>::set(u8* data) noexcept {
         data += 1 + pp;
 
         for (u8 k = 0; k < pieceCount; ++k, ++data)
-            for (usize i = 0; i < Sides; ++i)
+            for (usize i = 0; i < sides; ++i)
                 get(i, f)->pieces[k] = Piece(i != 0 ? (*data >> 4) : (*data & 0xF));
 
-        for (usize i = 0; i < Sides; ++i)
+        for (usize i = 0; i < sides; ++i)
             set_groups(get(i, f), order[i], f);
     }
 
     data += std::uintptr_t(data) & 1;  // Word alignment
 
     for (File f = FILE_A; f <= maxFile; ++f)
-        for (usize i = 0; i < Sides; ++i)
+        for (usize i = 0; i < sides; ++i)
             data = get(i, f)->set_sizes(data);
 
     data = set_dtz_map(data, maxFile);
@@ -803,21 +803,21 @@ void TBTable<T>::set(u8* data) noexcept {
     PairsData* pd;
 
     for (File f = FILE_A; f <= maxFile; ++f)
-        for (usize i = 0; i < Sides; ++i)
+        for (usize i = 0; i < sides; ++i)
         {
             (pd = get(i, f))->sparseIndex = (SparseEntry*) (data);
             data += pd->sparseIndexSize * sizeof(SparseEntry);
         }
 
     for (File f = FILE_A; f <= maxFile; ++f)
-        for (usize i = 0; i < Sides; ++i)
+        for (usize i = 0; i < sides; ++i)
         {
             (pd = get(i, f))->blockLength = (u16*) (data);
             data += pd->blockLengthSize * sizeof(u16);
         }
 
     for (File f = FILE_A; f <= maxFile; ++f)
-        for (usize i = 0; i < Sides; ++i)
+        for (usize i = 0; i < sides; ++i)
         {
             data = (u8*) ((std::uintptr_t(data) + 0x3F) & ~0x3F);  // 64 byte alignment
             (pd = get(i, f))->data = data;
@@ -964,7 +964,7 @@ class TBTables final {
             key(k),
             tables{wdlTable, dtzTable} {}
 
-        usize bucket() const noexcept { return key & MASK; }
+        usize bucket() const noexcept { return key & Mask; }
 
         bool empty() const noexcept { return tables[WDL] == nullptr && tables[DTZ] == nullptr; }
 
@@ -991,7 +991,7 @@ class TBTables final {
     template<TBType T>
     [[nodiscard]] TBTable<T>* get(Key key) const noexcept {
 
-        usize keyBucket = key & MASK;
+        usize keyBucket = key & Mask;
 
         const Entry& idealEntry = entries[keyBucket];
 
@@ -1002,12 +1002,12 @@ class TBTables final {
         // Calculate safe probe limit:
         // - max_distance() tracks the longest probe chain ever inserted
         // - Any key would be within (max_distance + 1) of its ideal bucket
-        // - Cap at PROBE_MAX to prevent infinite loops on corrupt data
-        usize ProbeMax = std::min(max_distance(), PROBE_MAX - 1) + 1;
+        // - Cap at ProbeMax to prevent infinite loops on corrupt data
+        usize maxProbe = std::min(max_distance(), ProbeMax - 1) + 1;
         // Linear probe with Robin Hood early termination
-        for (usize distance = 1; distance <= ProbeMax; ++distance)
+        for (usize distance = 1; distance <= maxProbe; ++distance)
         {
-            usize bucket = (keyBucket + distance) & MASK;
+            usize bucket = (keyBucket + distance) & Mask;
 
             const Entry& entry = entries[bucket];
 
@@ -1039,7 +1039,7 @@ class TBTables final {
         wdlTables.clear();
         dtzTables.clear();
 
-        MaxDistance = 0;
+        maxDistance = 0;
     }
 
     std::string info() const noexcept {
@@ -1049,13 +1049,13 @@ class TBTables final {
              + " (up to " + std::to_string(MaxCardinality) + "-man).";
     }
 
-    usize max_distance() const noexcept { return MaxDistance; }
+    usize max_distance() const noexcept { return maxDistance; }
 
     void add(const std::vector<PieceType>& pieces) noexcept;
 
    private:
     static usize probe_distance(const Entry& entry, usize actualBucket) noexcept {
-        return (actualBucket - entry.bucket() /*idealBucket*/) & MASK;
+        return (actualBucket - entry.bucket() /*idealBucket*/) & Mask;
     }
 
 
@@ -1074,12 +1074,12 @@ class TBTables final {
             return true;
         }
 
-        for (usize distance = 1; distance <= PROBE_MAX;)
+        for (usize distance = 1; distance <= ProbeMax;)
         {
-            if (MaxDistance < distance)
-                MaxDistance = distance;
+            if (maxDistance < distance)
+                maxDistance = distance;
 
-            usize bucket = (newBucket + distance) & MASK;
+            usize bucket = (newBucket + distance) & Mask;
 
             Entry& entry = entries[bucket];
 
@@ -1117,21 +1117,21 @@ class TBTables final {
     }
 
     // Total number of buckets in the table (must be power of 2 for bit-masking)
-    static constexpr usize SIZE = 0x1000;  // 4096 entries, 12-bit index
+    static constexpr usize Size = 0x1000;  // 4096 entries, 12-bit index
     // Mask for wrapping bucket indices efficiently: index % SIZE
-    static constexpr usize MASK = SIZE - 1;
+    static constexpr usize Mask = Size - 1;
     // Maximum number of probe allowed during insertion/search
     // - 32 = safe, good worst-case bound
     // - 24 = optimal balance between speed and collision handling
     // - 16 = faster but more strict (less tolerance for long probe chains)
-    static constexpr usize PROBE_MAX = 32;
-    // Ensure PROBE_MAX does not exceed table size (compile-time safety)
-    static_assert(PROBE_MAX <= SIZE, "PROBE_MAX must be <= SIZE");
+    static constexpr usize ProbeMax = 32;
+    // Ensure ProbeMax does not exceed table size (compile-time safety)
+    static_assert(ProbeMax <= Size, "ProbeMax must be <= SIZE");
 
     // Track the farthest any entry has been displaced
-    usize MaxDistance = 0;
+    usize maxDistance = 0;
 
-    Array<Entry, SIZE> entries;
+    Array<Entry, Size> entries;
 
     std::deque<TBTable<WDL>> wdlTables;
     std::deque<TBTable<DTZ>> dtzTables;

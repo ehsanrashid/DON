@@ -634,7 +634,7 @@ void update_threats_accumulator_full(const Color                         perspec
 }  // namespace
 
 template<typename T>
-const Array<AccumulatorState<T>, AccumulatorStack::SIZE>&
+const Array<AccumulatorState<T>, AccumulatorStack::Size>&
 AccumulatorStack::accumulators() const noexcept {
     static_assert(std::is_same_v<T, PSQFeatureSet> || std::is_same_v<T, ThreatFeatureSet>,
                   "Invalid Feature Set Type");
@@ -647,7 +647,7 @@ AccumulatorStack::accumulators() const noexcept {
 }
 
 template<typename T>
-Array<AccumulatorState<T>, AccumulatorStack::SIZE>& AccumulatorStack::mut_accumulators() noexcept {
+Array<AccumulatorState<T>, AccumulatorStack::Size>& AccumulatorStack::mut_accumulators() noexcept {
     static_assert(std::is_same_v<T, PSQFeatureSet> || std::is_same_v<T, ThreatFeatureSet>,
                   "Invalid Feature Set Type");
 
@@ -683,7 +683,7 @@ void AccumulatorStack::reset() noexcept {
 }
 
 void AccumulatorStack::push(DirtyBoard&& db) noexcept {
-    assert(size < SIZE);
+    assert(size < Size);
 
     psqAccumulators[size].reset(std::move(db.dirtyPiece));
     threatAccumulators[size].reset(std::move(db.dirtyThreats));
@@ -754,7 +754,7 @@ void AccumulatorStack::update_forward_incr(const Color               perspective
                                            const Position&           pos,
                                            const FeatureTransformer& featureTransformer,
                                            const usize               beg) noexcept {
-    assert(beg < size && size <= SIZE);
+    assert(beg < size && size <= Size);
     assert(accumulators<FeatureSet>()[beg].computed[perspective]);
 
     const Square kingSq = pos.square<KING>(perspective);
@@ -772,7 +772,7 @@ void AccumulatorStack::update_backward_incr(const Color               perspectiv
                                             const Position&           pos,
                                             const FeatureTransformer& featureTransformer,
                                             const usize               end) noexcept {
-    assert(end < size && size <= SIZE);
+    assert(end < size && size <= Size);
     assert(state<FeatureSet>().computed[perspective]);
 
     const Square kingSq = pos.square<KING>(perspective);
