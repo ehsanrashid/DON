@@ -28,6 +28,7 @@
     #include "../bitboard.h"
 #endif
 
+#include "../misc.h"
 #include "../types.h"
 #include "simd.h"  // IWYU pragma: keep
 
