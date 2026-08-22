@@ -816,7 +816,11 @@ inline bool Position::bishop_opposite() const noexcept {
 }
 
 inline bool Position::dtz_is_dtm() const noexcept {
-    return count(PAWN) == 0 && (count() == 3 || (count() == 4 && pieces_bb(QUEEN, ROOK) == 0));
+    if (pieces_bb(PAWN) != 0)
+        return false;
+
+    const auto pieceCount = count();
+    return pieceCount == 3 || (pieceCount == 4 && pieces_bb(QUEEN, ROOK) == 0);
 }
 
 inline usize Position::bucket() const noexcept { return (count() - 1) / 4; }

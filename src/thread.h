@@ -169,11 +169,11 @@ using NativeThread = std::thread;
 // such that the recipient does not need to know whether the binding happened or not.
 class ThreadToNumaNodeBinder final {
    public:
-    ThreadToNumaNodeBinder(NumaIndex numaIdx, const NumaConfig* numaCfgPtr) noexcept :
+    ThreadToNumaNodeBinder(const NumaIndex numaIdx, const NumaConfig* numaCfgPtr) noexcept :
         numaId(numaIdx),
         numaConfigPtr(numaCfgPtr) {}
 
-    explicit ThreadToNumaNodeBinder(NumaIndex numaIdx) noexcept :
+    explicit ThreadToNumaNodeBinder(const NumaIndex numaIdx) noexcept :
         ThreadToNumaNodeBinder(numaIdx, nullptr) {}
 
     NumaReplicatedAccessToken operator()() const noexcept {
@@ -257,7 +257,7 @@ class Thread final {
 // Schedule a job to be executed by this thread.
 // This function blocks only until the thread is ready to accept a new job.
 // The actual job execution happens asynchronously in idle_func().
-inline void Thread::run_custom_job(JobFunc jobFn) noexcept {
+inline void Thread::run_custom_job(const JobFunc jobFn) noexcept {
 
     std::unique_lock condLock(mutex);
 
@@ -271,7 +271,6 @@ inline void Thread::run_custom_job(JobFunc jobFn) noexcept {
     {
         // Move the job into the shared slot for idle_func() to pick up
         jobFunc = std::move(jobFn);
-        jobFn   = nullptr;  // optional, defensive
 
         // Mark the thread as busy so that other run_custom_job calls
         // will wait until this job is complete.
@@ -339,7 +338,7 @@ class Threads final {
         return threads.empty();
     }
 
-    void reserve(usize threadCount) noexcept {
+    void reserve(const usize threadCount) noexcept {
         std::lock_guard writeLock(sharedMutex);
 
         threads.reserve(threadCount);

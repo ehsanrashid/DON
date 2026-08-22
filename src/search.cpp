@@ -995,11 +995,10 @@ Value Worker::search(Position&    pos,
     {
         if (!exclude && tbConfig.cardinality != 0 && !pos.has_castling_rights())
         {
-            u8 pieceCount = pos.count();
+            const auto pieceCount = pos.count();
 
             if (pieceCount < tbConfig.cardinality
-                || (pieceCount == tbConfig.cardinality  //
-                    && depth >= tbConfig.probeDepth))
+                || (pieceCount == tbConfig.cardinality && depth >= tbConfig.probeDepth))
             {
                 Tablebase::Syzygy::ProbeState wdlPs;
 
@@ -1319,7 +1318,9 @@ Value Worker::search(Position&    pos,
             if (hasNonPawn && !is_loss(bestValue))
             {
                 // Skip quiet moves if moveCount exceeds moveCount threshold
-                mp.update_quiets_skip(moveCount >= ((3 + depth * depth) / (1 + int(!improve) * 1)));
+                mp.update_quiets_skip([&moveCount, &depth, &improve] {
+                    return moveCount >= ((3 + depth * depth) / (1 + int(!improve) * 1));
+                });
 
                 // Reduced depth of the next LMR search
                 Depth lmrDepth = newDepth - r / 1024;
@@ -1757,7 +1758,7 @@ Value Worker::search(Position&    pos,
 
     // If no good move is found and the previous position was pvHit, then the previous
     // opponent move is probably good and the new position is added to the search tree.
-    ss->pvTT |= bestValue <= alpha && (ss - 1)->pvTT;
+    ss->pvTT = ss->pvTT || (bestValue <= alpha && (ss - 1)->pvTT);
 
     // Save gathered information in transposition table
     if ((!RootNode || pvCur == 0) && !exclude)

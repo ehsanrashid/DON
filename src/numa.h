@@ -623,8 +623,9 @@ class NumaConfig final {
    public:
     // This function gets a NumaConfig based on the system's provided information.
     // The available policies are documented above.
-    static NumaConfig from_system([[maybe_unused]] const AutoNumaPolicy& numaPolicy,
-                                  [[maybe_unused]] bool respectProcessAffinity = true) noexcept {
+    static NumaConfig
+    from_system([[maybe_unused]] const AutoNumaPolicy& numaPolicy,
+                [[maybe_unused]] const bool            respectProcessAffinity = true) noexcept {
         NumaConfig numaCfg = empty();
 
 #if defined(_WIN64) || (defined(__linux__) && !defined(__ANDROID__))
@@ -751,7 +752,7 @@ class NumaConfig final {
     // For example:
     // "0-7:8-15:16-23:24-31"
     // "0-15,128-143:16-31,144-159:32-47,160-175:48-63,176-191"
-    static std::optional<NumaConfig> from_string(std::string_view str) noexcept {
+    static std::optional<NumaConfig> from_string(const std::string_view str) noexcept {
         NumaConfig numaCfg = empty();
 
         NumaIndex numaId = 0;
@@ -787,7 +788,7 @@ class NumaConfig final {
         return numaCfg;
     }
 
-    NumaConfig(CpuIndex maxCpuIdx, bool customAff) noexcept :
+    NumaConfig(const CpuIndex maxCpuIdx, const bool customAff) noexcept :
         maxCpuId(maxCpuIdx),
         customAffinity(customAff) {
         init_node_cpus(SYSTEM_THREAD_MAX);
@@ -806,19 +807,19 @@ class NumaConfig final {
 
     NumaIndex nodes_size() const noexcept { return nodes.size(); }
 
-    bool node_cpus_empty(NumaIndex numaId) const noexcept {
+    bool node_cpus_empty(const NumaIndex numaId) const noexcept {
         assert(numaId < nodes_size());
 
         return nodes[numaId].empty();
     }
 
-    CpuIndex node_cpus_size(NumaIndex numaId) const noexcept {
+    CpuIndex node_cpus_size(const NumaIndex numaId) const noexcept {
         assert(numaId < nodes_size());
 
         return nodes[numaId].size();
     }
 
-    CpuIndex node_cpus(NumaIndex numaId) const noexcept {
+    CpuIndex node_cpus(const NumaIndex numaId) const noexcept {
         assert(numaId < nodes_size());
 
         return *nodes[numaId].begin();
@@ -826,11 +827,11 @@ class NumaConfig final {
 
     CpuIndex cpus_size() const noexcept { return nodeByCpu.size(); }
 
-    bool is_cpu_assigned(CpuIndex cpuId) const noexcept {
+    bool is_cpu_assigned(const CpuIndex cpuId) const noexcept {
         return nodeByCpu.find(cpuId) != nodeByCpu.end();
     }
 
-    NumaIndex node_by_cpu(CpuIndex cpuId) const noexcept {
+    NumaIndex node_by_cpu(const CpuIndex cpuId) const noexcept {
         return is_cpu_assigned(cpuId) ? nodeByCpu.at(cpuId) : 0;
     }
 

@@ -100,7 +100,10 @@ class MovePicker final {
     [[nodiscard]] Stage cur_stage() const noexcept;
     [[nodiscard]] int   threshold_value() const noexcept;
 
-    void update_quiets_skip(bool condition) noexcept;
+    template<typename Predicate>
+    void update_quiets_skip(Predicate&& pred) noexcept {
+        quietsSkip = quietsSkip || pred();
+    }
 
    private:
     MovePicker() noexcept                             = delete;
