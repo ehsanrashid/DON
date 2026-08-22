@@ -72,10 +72,7 @@ struct TTEntry final {
     constexpr bool  pv() const noexcept { return ((meta8 & PV_MASK) /* >> PV_SHIFT*/) != 0; }
     constexpr u8    generation() const noexcept { return meta8 & GENERATION_MASK; }
 
-    // Convert internal bit fields to TTData
-    TTData read() const noexcept {
-        return {move(), value(), evalue(), depth(), bound(), occupied(), pv()};
-    }
+    TTData read() const noexcept;
 
     u8 relative_age(u8 gen) const noexcept;
 
@@ -85,7 +82,7 @@ struct TTEntry final {
 
     void penalize(u8 penalty) noexcept;
 
-    void clear() noexcept;
+    void reset() noexcept;
 
    private:
     TTEntry(const TTEntry&) noexcept       = delete;
@@ -101,6 +98,11 @@ struct TTEntry final {
 };
 
 static_assert(sizeof(TTEntry) == 10, "TTEntry size must be 10 bytes");
+
+// Convert internal bit fields to TTData
+TTData TTEntry::read() const noexcept {
+    return {move(), value(), evalue(), depth(), bound(), occupied(), pv()};
+}
 
 u8 TTEntry::relative_age(const u8 gen) const noexcept {
     // Returns this entry's age. Count generations like clocks count hours,
@@ -157,7 +159,7 @@ void TTEntry::penalize(const u8 penalty) noexcept {
 }
 
 // Reset all entry fields to zero
-void TTEntry::clear() noexcept { std::memset(this, 0, sizeof(*this)); }
+void TTEntry::reset() noexcept { std::memset(this, 0, sizeof(*this)); }
 
 
 TTData TTData::empty() noexcept {
@@ -196,7 +198,7 @@ void TTWriter::write(const Move  m,
                      const Bound b,
                      const bool  pv) noexcept {
     for (auto* fte = ttc->entries.data(); tte != fte && (tte - 1)->key() == key; --tte)
-        tte->clear();
+        tte->reset();
 
     tte->save(key, m, v, ev, d, b, pv, generation);
 }
