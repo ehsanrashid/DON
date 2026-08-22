@@ -621,16 +621,16 @@ ifeq ($(COMP),gcc)
             # LLVM Clang
             CXXFLAGS += -fconstexpr-steps=500000000
         endif
-        PROFILE_MAKE = clang-profile-make
-        PROFILE_USE  = clang-profile-use
+        PROFILE_MAKE := clang-profile-make
+        PROFILE_USE  := clang-profile-use
     else
         # GCC
         CXXFLAGS += -Wstack-usage=128000 -fno-ipa-cp-clone -fconstexpr-ops-limit=500000000
         ifeq ($(TARGET_KERNEL),Darwin)
             EXTRA_PROFILE_FLAGS = -fvisibility=hidden
         endif
-        PROFILE_MAKE = gcc-profile-make
-        PROFILE_USE  = gcc-profile-use
+        PROFILE_MAKE := gcc-profile-make
+        PROFILE_USE  := gcc-profile-use
     endif
 # Clang
 else ifeq ($(COMP),clang)
@@ -660,7 +660,7 @@ else ifeq ($(COMP),clang)
     endif
     # Use libatomic on non-Windows, non-BSD systems unless using compiler-rt
     ifeq ($(IS_WINDOWS),no)
-        ifeq ($(filter $(TARGET_KERNEL),Darwin FreeBSD OpenBSD NetBSD),)
+        ifeq ($(filter Darwin FreeBSD OpenBSD NetBSD,$(TARGET_KERNEL)),)
             ifneq ($(RTLIB),compiler-rt)
                 LDLIBS += -latomic
             endif
@@ -673,8 +673,8 @@ else ifeq ($(COMP),clang)
         endif
     endif
     # Profile build for Clang
-    PROFILE_MAKE = clang-profile-make
-    PROFILE_USE  = clang-profile-use
+    PROFILE_MAKE := clang-profile-make
+    PROFILE_USE  := clang-profile-use
 # mingw
 else ifeq ($(COMP),mingw)
     MINGW_ARCH := $(if $(filter 64,$(bits)),x86_64,i686)
@@ -684,18 +684,18 @@ else ifeq ($(COMP),mingw)
     CXX := $(if $(shell command -v $(MINGW_CXX_POSIX) 2>/dev/null),$(MINGW_CXX_POSIX),$(MINGW_CXX))
     CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-declarations -fno-ipa-cp-clone -fconstexpr-ops-limit=500000000
     # Profile build for mingw (use GCC defaults)
-    PROFILE_MAKE = gcc-profile-make
-    PROFILE_USE  = gcc-profile-use
-# icx
+    PROFILE_MAKE := gcc-profile-make
+    PROFILE_USE  := gcc-profile-use
+# Intel ICX
 else ifeq ($(COMP),icx)
     CXX := icpx
     CXXFLAGS += --intel -pedantic -Wextra -Wshadow -Wmissing-prototypes -Wconditional-uninitialized -Wabi -Wdeprecated -fconstexpr-steps=500000000
-    # Profile build for icx
-    PROFILE_MAKE = icx-profile-make
-    PROFILE_USE  = icx-profile-use
+    # Profile build for ICX
+    PROFILE_MAKE := icx-profile-make
+    PROFILE_USE  := icx-profile-use
 # NDK: To cross-compile for Android, use NDK version r27c or later
 else ifeq ($(COMP),ndk)
-    # Detect host tag (simplified common cases)
+    # Detect NDK host tag (common host platforms)
     ifeq ($(IS_WINDOWS),yes)
         HOST_TAG := windows-x86_64
     else ifeq ($(TARGET_KERNEL),Darwin)
@@ -705,34 +705,37 @@ else ifeq ($(COMP),ndk)
     endif
 
     NDK ?= $(ANDROID_NDK_ROOT)
+    ifeq ($(strip $(NDK)),)
+        $(error Android NDK not found: set NDK or ANDROID_NDK_ROOT)
+    endif
+
     TOOLCHAIN := $(NDK)/toolchains/llvm/prebuilt/$(HOST_TAG)/bin
     ANDROID_API ?= 29
 
     ifeq ($(arch),armv8)
         TARGET := aarch64-linux-android
-        CXX := $(TOOLCHAIN)/$(TARGET)$(ANDROID_API)-clang++
     else ifeq ($(arch),x86_64)
         TARGET := x86_64-linux-android
-        CXX := $(TOOLCHAIN)/$(TARGET)$(ANDROID_API)-clang++
     else ifeq ($(arch),armv7)
         TARGET := armv7a-linux-androideabi
-        CXX := $(TOOLCHAIN)/$(TARGET)$(ANDROID_API)-clang++
         CXXFLAGS += -mthumb -march=armv7-a -mfloat-abi=softfp -mfpu=neon
     else ifeq ($(arch),x86)
         TARGET := i686-linux-android
-        CXX := $(TOOLCHAIN)/$(TARGET)$(ANDROID_API)-clang++
     else
         $(error Unsupported NDK arch: $(arch))
     endif
+
+    CXX := $(TOOLCHAIN)/$(TARGET)$(ANDROID_API)-clang++
+
     # Correct STL usage
     CXXFLAGS += -stdlib=libc++
     LDFLAGS  += -static-libstdc++
-    OBJCOPY  := llvm-objcopy
 
-    STRIP := $(TOOLCHAIN)/llvm-strip
+    OBJCOPY := $(TOOLCHAIN)/llvm-objcopy
+    STRIP   := $(TOOLCHAIN)/llvm-strip
     # Profile build for NDK/Clang
-    PROFILE_MAKE = clang-profile-make
-    PROFILE_USE  = clang-profile-use
+    PROFILE_MAKE := clang-profile-make
+    PROFILE_USE  := clang-profile-use
 endif
 
 ifeq ($(TARGET_KERNEL),Darwin)
@@ -762,17 +765,17 @@ ifeq ($(wildcard $(LLVM_PROFDATA)),)
     LLVM_PROFDATA := llvm-profdata
 endif
 
-ifneq ($(arch),wasm32)
-    ## Link pthreads and optionally LRT on supported platforms
-    # Android has Bionic's C library with its own pthread implementation bundled
-    ifneq ($(OS),Android)
-        # Haiku has pthreads in its libroot
-        ifneq ($(KERNEL),Haiku)
-            ifneq ($(COMP),ndk)
+## Link pthreads and optionally LRT on supported platforms
+# Android has Bionic's C library with its own pthread implementation bundled
+ifneq ($(OS),Android)
+    # Haiku has pthreads in its libroot
+    ifneq ($(KERNEL),Haiku)
+        ifneq ($(COMP),ndk)
+            ifneq ($(arch),wasm32)
                 LDLIBS += -lpthread
                 # Link real-time library (librt) on non-Windows, non-[Darwin/FreeBSD/OpenBSD/NetBSD] platforms
                 ifeq ($(IS_WINDOWS),no)
-                    ifeq ($(filter $(TARGET_KERNEL),Darwin FreeBSD OpenBSD NetBSD),)
+                    ifeq ($(filter Darwin FreeBSD OpenBSD NetBSD,$(TARGET_KERNEL)),)
                         LDLIBS += -lrt
                     endif
                 endif
