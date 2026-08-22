@@ -384,12 +384,11 @@ std::string compiler_info() noexcept {
 #if defined(USE_AVX512ICL)
     compiler.append(" AVX-512-ICL");
 #endif
-#if defined(USE_VNNI)
-    #if defined(USE_AVXVNNI)
+#if defined(USE_AVXVNNI)
     compiler.append(" AVX-VNNI");
-    #else
+#endif
+#if defined(USE_VNNI)
     compiler.append(" VNNI");
-    #endif
 #endif
 #if defined(USE_AVX512)
     compiler.append(" AVX-512");
@@ -412,18 +411,17 @@ std::string compiler_info() noexcept {
 #if defined(USE_SSE2)
     compiler.append(" SSE2");
 #endif
-#if defined(USE_NEON)
-    #if defined(USE_NEON_DOTPROD)
-    compiler.append(" NEON-DOTPROD");
-    #else
-    compiler.append(" NEON");
-    #endif
-#endif
 #if defined(USE_LASX)
     compiler.append(" LASX");
 #endif
 #if defined(USE_LSX)
     compiler.append(" LSX");
+#endif
+#if defined(USE_NEON_DOTPROD)
+    compiler.append(" NEON-DOTPROD");
+#endif
+#if defined(USE_NEON)
+    compiler.append(" NEON");
 #endif
 #if defined(USE_POPCNT)
     compiler.append(" POPCNT");

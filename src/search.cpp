@@ -694,7 +694,7 @@ void Worker::iterative_deepening() noexcept {
                     if (mainManager != nullptr)
                         mainManager->pvShown = false;
                 }
-                // For aborted (depth 1) search label the loss score a lower bound
+                // For aborted (depth 1) search, label the loss score as lower bound
                 else if (lossAborted)
                     rootMoves[0].bound = Bound::LOWER;
             }
@@ -831,7 +831,7 @@ Value Worker::search(Position&    pos,
 
     const bool exclude = excludedMove != Move::None;
 
-    const int correctionValue = correction_value(pos, ss);
+    const auto correctionValue = correction_value(pos, ss);
 
     // Step 4. Transposition table lookup
     auto [ttd, ttu] = transpositionTable.probe(key);
@@ -1333,7 +1333,7 @@ Value Worker::search(Position&    pos,
                     {
                         int threshold =
                           std::max(177 * depth + constexpr_round(33.2031e-3 * double(history)), 0);
-                        if ((mp.stage() != MovePicker::Stage::ENC_GOOD_CAPTURE
+                        if ((mp.cur_stage() != MovePicker::Stage::ENC_GOOD_CAPTURE
                              || mp.threshold_value() > threshold)
                             && pos.see(move) < -threshold)
                             continue;
@@ -1832,7 +1832,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
             return ttd.value;
     }
 
-    const int correctionValue = ss->inCheck ? 0 : correction_value(pos, ss);
+    const auto correctionValue = ss->inCheck ? 0 : correction_value(pos, ss);
 
     Value evalue, bestValue;
 

@@ -286,15 +286,15 @@ ALWAYS_INLINE void adaptive_stable_sort(const Iterator beg, const Iterator end) 
 // good moves first, and how important move ordering is at the current node.
 
 // MovePicker constructor for the main search and for the quiescence search
-MovePicker::MovePicker(const Position&           p,
-                       const Move                ttm,
-                       const CaptureHistory*     captureHist,
-                       const QuietHistory*       quietHist,
-                       const LowPlyQuietHistory* lowPlyQuietHist,
-                       const PieceSqHistory**    continuationHist,
-                       const AtomicHistories*    atomicHists,
-                       u16                       ply,
-                       int                       th) noexcept :
+MovePicker::MovePicker(const Position&                 p,
+                       const Move                      ttm,
+                       const CaptureHistory* const     captureHist,
+                       const QuietHistory* const       quietHist,
+                       const LowPlyQuietHistory* const lowPlyQuietHist,
+                       const PieceSqHistory** const    continuationHist,
+                       const AtomicHistories* const    atomicHists,
+                       const u16                       ply,
+                       const int                       th) noexcept :
     pos(p),
     ttMove(ttm),
     captureHistory(captureHist),
@@ -330,10 +330,10 @@ MovePicker::MovePicker(const Position&           p,
 
 // MovePicker constructor for ProbCut:
 // Generate captures with Static Exchange Evaluation (SEE) >= threshold.
-MovePicker::MovePicker(const Position&       p,
-                       const Move            ttm,
-                       const CaptureHistory* captureHist,
-                       int                   th) noexcept :
+MovePicker::MovePicker(const Position&             p,
+                       const Move                  ttm,
+                       const CaptureHistory* const captureHist,
+                       const int                   th) noexcept :
     pos(p),
     ttMove(ttm),
     captureHistory(captureHist),
@@ -347,7 +347,7 @@ MovePicker::MovePicker(const Position&       p,
 }
 
 template<GenType GT>
-void MovePicker::init_stage() noexcept {
+void MovePicker::init() noexcept {
     MoveList<GT> moveList(pos);
 
     cur    = moves.data();
@@ -399,7 +399,7 @@ MovePicker::score<GenType::ENC_QUIET>(const MoveList<GenType::ENC_QUIET>& moveLi
 
     const auto&        quietHistoryRef        = *quietHistory;
     const auto&        lowPlyQuietHistoryRef  = *lowPlyQuietHistory;
-    const auto* const* continuationHistoryPtr = continuationHistory;
+    const auto** const continuationHistoryPtr = continuationHistory;
     const auto&        pawnEntryRef           = (*atomicHistories).pawn_entry(pos);
 
     auto itr = cur;
@@ -541,14 +541,14 @@ STAGE_SWITCH:
 
         if (curStage == Stage::EVA_CAPTURE)
         {
-            init_stage<GenType::EVA_CAPTURE>();
+            init<GenType::EVA_CAPTURE>();
         }
         else
         {
             if (curStage == Stage::ENC_GOOD_CAPTURE)
                 badCaptureEnd = moves.data();
 
-            init_stage<GenType::ENC_CAPTURE>();
+            init<GenType::ENC_CAPTURE>();
         }
 
         // Init done, now dispatch
@@ -649,7 +649,7 @@ STAGE_SWITCH:
     return Move::None;  // Silence warning
 }
 
-MovePicker::Stage MovePicker::stage() const noexcept { return curStage; }
+MovePicker::Stage MovePicker::cur_stage() const noexcept { return curStage; }
 
 int MovePicker::threshold_value() const noexcept { return threshold; }
 

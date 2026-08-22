@@ -46,13 +46,14 @@
 namespace DON::NNUE {
 
 inline constexpr usize SIMD_WIDTH_MAX = 32;
+inline constexpr usize SIMD_WIDTH_MIN = 16;
 
 // SIMD width (in bytes)
 inline constexpr usize SIMD_WIDTH =
 #if defined(USE_AVX2) || defined(USE_LASX)
-  32
+  SIMD_WIDTH_MAX
 #elif defined(USE_SSE2) || defined(USE_LSX) || defined(USE_NEON)
-  16
+  SIMD_WIDTH_MIN
 #else
   0
 #endif
@@ -254,11 +255,11 @@ inline constexpr u32 Mask4[4]{1, 2, 4, 8};
     #define MaxChunkSize 16
 
     #if defined(__arm__) && !defined(__aarch64__)
-// NEON intrinsics unavailable on 32-bit ARM
-inline int16x8_t vaddw_high_s8(int16x8_t a, int8x16_t b) noexcept {
+// Compatibility wrappers for missing NEON _high widening intrinsics on 32-bit ARM
+inline int16x8_t vaddw_high_s8(const int16x8_t a, const int8x16_t b) noexcept {
     return vaddw_s8(a, vget_high_s8(b));
 }
-inline int16x8_t vsubw_high_s8(int16x8_t a, int8x16_t b) noexcept {
+inline int16x8_t vsubw_high_s8(const int16x8_t a, const int8x16_t b) noexcept {
     return vsubw_s8(a, vget_high_s8(b));
 }
     #endif

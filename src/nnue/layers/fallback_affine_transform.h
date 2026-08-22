@@ -34,11 +34,12 @@ void fallback_affine_transform(const Array<i32, OutputDimensions>&              
                                const u8* RESTRICT                                         input,
                                i32* RESTRICT output) noexcept {
 #if defined(USE_SSE2) || defined(USE_NEON)
+    // At least a multiple of 16
     constexpr IndexType ChunkCount =
-      ceil_to_multiple<IndexType>(InputDimensions, SIMD_WIDTH) / SIMD_WIDTH;
+      ceil_to_multiple<IndexType>(InputDimensions, SIMD_WIDTH_MIN) / SIMD_WIDTH_MIN;
     #if defined(USE_SSE2)
-    constexpr int Shuffle_1_0_3_2 = _MM_SHUFFLE(1, 0, 3, 2);
-    const __m128i Zeros           = _mm_setzero_si128();
+    constexpr int Shuffle1032 = _MM_SHUFFLE(1, 0, 3, 2);
+    const __m128i Zeros       = _mm_setzero_si128();
 
     const auto* inputVec = reinterpret_cast<const __m128i*>(input);
     #elif defined(USE_NEON)
@@ -70,9 +71,9 @@ void fallback_affine_transform(const Array<i32, OutputDimensions>&              
         }
 
         __m128i sum        = _mm_add_epi32(loSum, hiSum);
-        __m128i hiShuffled = _mm_shuffle_epi32(sum, Shuffle_1_0_3_2);
+        __m128i hiShuffled = _mm_shuffle_epi32(sum, Shuffle1032);
         sum                = _mm_add_epi32(sum, hiShuffled);
-        __m128i loShuffled = _mm_shufflelo_epi16(sum, Shuffle_1_0_3_2);
+        __m128i loShuffled = _mm_shufflelo_epi16(sum, Shuffle1032);
         sum                = _mm_add_epi32(sum, loShuffled);
         output[i]          = _mm_cvtsi128_si32(sum);
 
