@@ -224,7 +224,7 @@ inline const bool IsLittleEndian = []() noexcept {
 }();
 #endif
 
-constexpr u64 bit(u8 b) noexcept { return (u64{1} << b); }
+constexpr u64 bit(const u8 b) noexcept { return (u64{1} << b); }
 
 template<typename To, typename From>
 constexpr bool is_strictly_assignable_v =
@@ -235,14 +235,14 @@ template<
   typename T,
   std::enable_if_t<std::is_arithmetic_v<T> || (std::is_enum_v<T> && std::is_convertible_v<T, int>),
                    int> = 0>
-constexpr int sign(T x) noexcept {
+constexpr int sign(const T x) noexcept {
     // NaN -> 0; unsigned types never return -1
     return (T(0) < x) - (x < T(0));  // Returns 1 for positive, -1 for negative, and 0 for zero
 }
 
 // Return the square of a number, using a wider type to avoid overflow
 template<typename T>
-constexpr auto sqr(T x) noexcept {
+constexpr auto sqr(const T x) noexcept {
     static_assert(std::is_arithmetic_v<T>, "Argument must be arithmetic");
     using Wider = std::conditional_t<std::is_integral_v<T>, long long, T>;
     return Wider(x) * Wider(x);
@@ -250,7 +250,7 @@ constexpr auto sqr(T x) noexcept {
 
 // Return the square of a number multiplied by its sign, using a wider type to avoid overflow
 template<typename T>
-constexpr auto sign_sqr(T x) noexcept {
+constexpr auto sign_sqr(const T x) noexcept {
     static_assert(std::is_arithmetic_v<T>, "Argument must be arithmetic");
     return sign(x) * sqr(x);
 }
@@ -261,14 +261,14 @@ constexpr bool is_power_of_2(const T x) noexcept {
 }
 
 template<typename T1, typename T2>
-constexpr std::common_type_t<T1, T2> ceil_div(T1 n, T2 d) noexcept {
+constexpr std::common_type_t<T1, T2> ceil_div(const T1 n, const T2 d) noexcept {
     using R = std::common_type_t<T1, T2>;
     return (R(n) + R(d) - 1) / R(d);
 }
 
 // Round n up to be a multiple of base
 template<typename T>
-constexpr T ceil_to_multiple(T n, T base) noexcept {
+constexpr T ceil_to_multiple(const T n, const T base) noexcept {
     return ceil_div(n, base) * base;
 }
 

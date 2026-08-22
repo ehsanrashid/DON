@@ -109,8 +109,8 @@ u8 TTEntry::relative_age(const u8 gen) const noexcept {
 
 i16 TTEntry::worth(const u8 gen) const noexcept { return depth8 - 8 * relative_age(gen); }
 
-// Populates the TTEntry with a new node's data, possibly
-// overwriting an old position. The update is non-atomic and can be racy.
+// Populates the TTEntry with a new node's data, possibly overwriting an old position.
+// The update is non-atomic and can be racy.
 void TTEntry::save(const u16   k,
                    const Move  m,
                    const Value v,
@@ -252,35 +252,33 @@ TTCluster* TranspositionTable::cluster(const Key key) const noexcept {
     return &clusters[mul_hi64(key, clusterCount)];
 }
 
-// Looks up the current position (key) in the transposition table.
-// It returns pointer to the TTEntry if the position is found.
-// `probe` is the primary method: given a board position, lookup its entry in the table,
-// and returns:
-//   1) copy of the prior data, if any (may be self-inconsistent due to read races)
-//   2) updater object to the entry
+// `probe` is the primary method: looks up the current position (key) in the transposition table.
+// It returns:
+//   1) copy of the prior data, if found (which may be collision and may be self-inconsistent due to read races)
+//   2) updater object for the corresponding entry
 ProbResult TranspositionTable::probe(const Key key) const noexcept {
 
-    auto* ttc = cluster(key);
+    auto* const ttc = cluster(key);
 
-    auto key16 = u16(key);
+    const auto key16 = u16(key);
 
-    for (auto& entry : ttc->entries)
+    for (const auto& entry : ttc->entries)
         if (entry.key() == key16)
-            return {entry.read(), TTUpdater{&entry, ttc, key16, generation8}};
+            return {entry.read(), TTUpdater{const_cast<TTEntry*>(&entry), ttc, key16, generation8}};
 
     // Find an entry to be replaced according to the replacement strategy
-    auto* rte = ttc->entries.data();
+    const auto* rte = ttc->entries.data();
 
     for (usize i = 1; i < ttc->entries.size(); ++i)
         if (rte->worth(generation8) > ttc->entries[i].worth(generation8))
             rte = &ttc->entries[i];
 
-    return {TTData::empty(), TTUpdater{rte, ttc, key16, generation8}};
+    return {TTData::empty(), TTUpdater{const_cast<TTEntry*>(rte), ttc, key16, generation8}};
 }
 
 // Returns an approximation of the hash table occupation during a search.
 // The hash is x per mill full, as per UCI protocol.
-// Only counts entries which match the current generation. [maxAge: 0-31]
+// Only counts entries which match the current generation. [maxAge: 0-GENERATION_MASK]
 u16 TranspositionTable::hashfull(const u8 maxAge) const noexcept {
     assert(maxAge <= GENERATION_MASK);
 

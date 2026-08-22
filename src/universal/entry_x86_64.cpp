@@ -19,7 +19,7 @@
 #include <stdint.h>
 
 #if defined(__APPLE__)
-    // We locate each arch's initializer pointer array at runtime via getsectiondata().
+    // Locate each arch's initializer pointer array at runtime via getsectiondata().
     // Example name is "_i_sse41_popcnt", baseline build is just "_i_"
     #include <stdio.h>
     #include <mach-o/getsect.h>

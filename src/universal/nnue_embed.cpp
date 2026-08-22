@@ -32,6 +32,8 @@
     #include <sys/mman.h>
     #include <unistd.h>
 
+    #include "../misc.h"
+
 // Must be kept in sync with patch_x86_slice.sh
 extern const volatile DON::u64 gUniversalNNUEOffset = DON::u64{0xCAFE0FF5E70FF5E7};
 extern const volatile DON::u64 gUniversalNNUESize   = DON::u64{0xCAFE512ECAFE512E};

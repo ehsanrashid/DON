@@ -21,7 +21,7 @@
     #include <windows.h>
 #else
     #include <sys/auxv.h>
-    #ifndef HWCAP_ASIMDDP
+    #if !defined(HWCAP_ASIMDDP)
         #define HWCAP_ASIMDDP (1 << 20)
     #endif
 #endif
