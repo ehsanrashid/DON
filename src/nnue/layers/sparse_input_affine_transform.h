@@ -32,7 +32,7 @@
 #include "../ntypes.h"
 #include "../serialization.h"
 #include "../simd.h"  // IWYU pragma: keep
-#include "non_ssse3_transform.h"
+#include "fallback_affine_transform.h"
 
 #if defined(USE_SSSE3) || defined(USE_LSX) || (defined(USE_NEON) && USE_NEON >= 8)
     #include "../../memory.h"
@@ -295,7 +295,7 @@ class SparseInputAffineTransform final {
     #undef vec_add_32
 #else
         // Use dense fallback implementation for the other architectures
-        transform_affine_non_ssse3<InputDimensions, PaddedInputDimensions, OutputDimensions>(
+        fallback_affine_transform<InputDimensions, PaddedInputDimensions, OutputDimensions>(
           biases, weights, input, output);
 #endif
     }

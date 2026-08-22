@@ -15,11 +15,12 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef NNUE_NON_SSSE3_TRANSFORM_H_INCLUDED
-#define NNUE_NON_SSSE3_TRANSFORM_H_INCLUDED
+#ifndef NNUE_NON_SSSE3_AFFINE_TRANSFORM_H_INCLUDED
+#define NNUE_NON_SSSE3_AFFINE_TRANSFORM_H_INCLUDED
 
 #include <cstring>
 
+#include "../../misc.h"
 #include "../ntypes.h"
 #include "../simd.h"  // IWYU pragma: keep
 
@@ -28,10 +29,10 @@ namespace DON::NNUE::Layers {
 // Fallback implementation for older/other architectures.
 // Requires the input to be padded to at least 16 values.
 template<IndexType InputDimensions, IndexType PaddedInputDimensions, IndexType OutputDimensions>
-void transform_affine_non_ssse3(const Array<i32, OutputDimensions>&                        biases,
-                                const Array<i8, OutputDimensions * PaddedInputDimensions>& weights,
-                                const u8* RESTRICT                                         input,
-                                i32* RESTRICT output) noexcept {
+void fallback_affine_transform(const Array<i32, OutputDimensions>&                        biases,
+                               const Array<i8, OutputDimensions * PaddedInputDimensions>& weights,
+                               const u8* RESTRICT                                         input,
+                               i32* RESTRICT output) noexcept {
 #if defined(USE_SSE2) || defined(USE_NEON)
     constexpr IndexType ChunkCount =
       ceil_to_multiple<IndexType>(InputDimensions, SIMD_WIDTH) / SIMD_WIDTH;
@@ -109,4 +110,4 @@ void transform_affine_non_ssse3(const Array<i32, OutputDimensions>&             
 
 }  // namespace DON::NNUE::Layers
 
-#endif  // NNUE_NON_SSSE3_TRANSFORM_H_INCLUDED
+#endif  // NNUE_NON_SSSE3_AFFINE_TRANSFORM_H_INCLUDED
