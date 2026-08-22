@@ -175,6 +175,7 @@ match_not_slow_bmi2_and_flags() {
 }
 
 match_true() { return 0; }
+match_false() { return 1; }
 
 # Generic selector: reads lines like "arch|predicate|arg1 arg2 ..."
 # First match wins; blank lines and lines starting with '#' are ignored.

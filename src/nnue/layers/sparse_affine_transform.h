@@ -257,8 +257,8 @@ class SparseAffineTransform final {
 
         for (IndexType k = 0; k < InputDimensions / 256; ++k)
         {
-            u64  bits = load_as<u64>(nnz.bitset + k * 8);
-            ptrdiff_t base = k * 64;
+            u64   bits = load_as<u64>(nnz.bitset + k * 8);
+            usize base = k * 64;
 
             auto* inBase = input + base * sizeof(i32);
             auto* wBase  = &w[base * OutputDimensions * ChunkSize];

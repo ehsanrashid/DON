@@ -591,7 +591,7 @@ void Threads::start(Position&      pos,
     main_thread()->start_search();
 }
 
-void Threads::run_on_thread(usize threadId, JobFunc job) const noexcept {
+void Threads::run_on_thread(const usize threadId, const JobFunc job) const noexcept {
     Thread* thread = nullptr;
     {
         std::shared_lock readLock(sharedMutex);
@@ -604,7 +604,7 @@ void Threads::run_on_thread(usize threadId, JobFunc job) const noexcept {
     thread->run_custom_job(std::move(job));
 }
 
-void Threads::wait_on_thread(usize threadId) const noexcept {
+void Threads::wait_on_thread(const usize threadId) const noexcept {
     Thread* thread = nullptr;
     {
         std::shared_lock readLock(sharedMutex);
@@ -624,12 +624,12 @@ std::vector<usize> Threads::bound_thread_counts() const noexcept {
 
         if (!threadBoundNumaNodes.empty())
         {
-            NumaIndex maxNumaId =
+            const NumaIndex maxNumaId =
               *std::max_element(threadBoundNumaNodes.begin(), threadBoundNumaNodes.end());
 
             threadCounts.resize(maxNumaId + 1, 0);
 
-            for (NumaIndex numaId : threadBoundNumaNodes)
+            for (const NumaIndex numaId : threadBoundNumaNodes)
                 ++threadCounts[numaId];
         }
     }

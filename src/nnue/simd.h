@@ -46,13 +46,14 @@
 namespace DON::NNUE {
 
 inline constexpr usize SIMD_WIDTH_MAX = 32;
+inline constexpr usize SIMD_WIDTH_MIN = 16;
 
 // SIMD width (in bytes)
 inline constexpr usize SIMD_WIDTH =
 #if defined(USE_AVX2) || defined(USE_LASX)
-  32
+  SIMD_WIDTH_MAX
 #elif defined(USE_SSE2) || defined(USE_LSX) || defined(USE_NEON)
-  16
+  SIMD_WIDTH_MIN
 #else
   0
 #endif
@@ -254,11 +255,11 @@ inline constexpr u32 Mask4[4]{1, 2, 4, 8};
     #define MaxChunkSize 16
 
     #if defined(__arm__) && !defined(__aarch64__)
-// NEON intrinsics unavailable on 32-bit ARM
-inline int16x8_t vaddw_high_s8(int16x8_t a, int8x16_t b) noexcept {
+// Compatibility wrappers for missing NEON _high widening intrinsics on 32-bit ARM
+inline int16x8_t vaddw_high_s8(const int16x8_t a, const int8x16_t b) noexcept {
     return vaddw_s8(a, vget_high_s8(b));
 }
-inline int16x8_t vsubw_high_s8(int16x8_t a, int8x16_t b) noexcept {
+inline int16x8_t vsubw_high_s8(const int16x8_t a, const int8x16_t b) noexcept {
     return vsubw_s8(a, vget_high_s8(b));
 }
     #endif
@@ -315,8 +316,8 @@ inline __m256i lasx_packus_32(const __m256i a, const __m256i b) noexcept {
 inline int lasx_vec_nnz(const __m256i a) noexcept {
     const __m256i cmp  = __lasx_xvslt_w(__lasx_xvldi(0), a);
     const __m256i mask = __lasx_xvmskltz_w(cmp);
-    return ((int) __lasx_xvpickve2gr_w(mask, 0) & 0xF)
-         | (((int) __lasx_xvpickve2gr_w(mask, 4) & 0xF) << 4);
+    return (__lasx_xvpickve2gr_w(mask, 0) << 0)  //
+         | (__lasx_xvpickve2gr_w(mask, 4) << 4);
 }
     #define vec_nnz(a) SIMD::lasx_vec_nnz(a)
 
@@ -391,7 +392,7 @@ inline __m128i lsx_packus_32(const __m128i a, const __m128i b) noexcept {
 inline int lsx_vec_nnz(const __m128i a) noexcept {
     const __m128i cmp  = __lsx_vslt_w(__lsx_vldi(0), a);
     const __m128i mask = __lsx_vmskltz_w(cmp);
-    return ((int) __lsx_vpickve2gr_w(mask, 0) & 0xF);
+    return __lsx_vpickve2gr_w(mask, 0);
 }
     #define vec_nnz(a) SIMD::lsx_vec_nnz(a)
 
@@ -451,7 +452,7 @@ typename VecWrapper::type fused(const typename VecWrapper::type& in) noexcept {
 }
 
 template<typename VecWrapper,
-         UpdateOperation updateOp,
+         UpdateOperation UpdateOp,
          UpdateOperation... ops,
          typename T,
          typename... Ts,
@@ -459,11 +460,11 @@ template<typename VecWrapper,
          std::enable_if_t<sizeof...(ops) == sizeof...(Ts), bool>                    = true>
 typename VecWrapper::type
 fused(const typename VecWrapper::type& in, const T& operand, const Ts&... operands) noexcept {
-    static_assert(updateOp == UpdateOperation::Add || updateOp == UpdateOperation::Sub,
-                  "Unsupported updateOp.");
-    if constexpr (updateOp == UpdateOperation::Add)
+    static_assert(UpdateOp == UpdateOperation::Add || UpdateOp == UpdateOperation::Sub,
+                  "Unsupported UpdateOp.");
+    if constexpr (UpdateOp == UpdateOperation::Add)
         return fused<VecWrapper, ops...>(VecWrapper::add(in, operand), operands...);
-    if constexpr (updateOp == UpdateOperation::Sub)
+    if constexpr (UpdateOp == UpdateOperation::Sub)
         return fused<VecWrapper, ops...>(VecWrapper::sub(in, operand), operands...);
     return typename VecWrapper::type();
 }

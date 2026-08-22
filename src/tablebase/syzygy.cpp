@@ -93,7 +93,7 @@ enum TBType : u8 {
     DTZ
 };
 
-constexpr usize TBTYPE_NB = 2;
+constexpr usize TB_TYPE_NB = 2;
 
 // Each table has a set of flags: all of them refer to DTZ-tables, the last one to WDL-tables
 enum TBFlag : u8 {
@@ -108,12 +108,12 @@ enum TBFlag : u8 {
 // Max DTZ supported (2 times), large enough to deal with the syzygy TB limit
 constexpr i32 DTZ_MAX = 0x40000;
 
-constexpr Array<std::string_view, TBTYPE_NB> EXTS{
+constexpr Array<std::string_view, TB_TYPE_NB> EXTS{
   ".rtbw",  // Win-Draw-Loss    (WDL)
   ".rtbz"   // Distance-to-Zero (DTZ)
 };
 
-constexpr Array<u8, TBTYPE_NB, 4> TB_MAGICS{{
+constexpr Array<u8, TB_TYPE_NB, 4> TB_MAGICS{{
   {0x71, 0xE8, 0x23, 0x5D},  // Win-Draw-Loss    (WDL) = 0x5D23E871
   {0xD7, 0x66, 0x0C, 0xA5}   // Distance-to-Zero (DTZ) = 0xA50C66D7
 }};
@@ -870,7 +870,7 @@ void TBTable<T>::set_groups(PairsData* pd, const Array<int, 2>& order, const Fil
     // pawns/pieces -> remaining pawns -> remaining pieces. In particular the
     // first group is at order[0] position and the remaining pawns, when present,
     // are at order[1] position.
-    bool pp = hasPawns && pawnCount[BLACK] != 0;  // Pawns on both sides
+    const bool pp = hasPawns && pawnCount[BLACK] != 0;  // Pawns on both sides
 
     usize next = pp ? 2 : 1;
 
@@ -973,8 +973,8 @@ class TBTables final {
             return static_cast<TBTable<T>*>(tables[T]);
         }
 
-        Key                            key;
-        Array<BaseTBTable*, TBTYPE_NB> tables;
+        Key                             key;
+        Array<BaseTBTable*, TB_TYPE_NB> tables;
     };
 
     static_assert(std::is_trivially_destructible_v<Entry>, "Entry must be trivially destructible");
@@ -1156,7 +1156,7 @@ void TBTables::add(const std::vector<PieceType>& pieces) noexcept {
 
     code.insert(pos, 1, 'v');  // KRK -> KRvK
 
-    Array<bool, TBTYPE_NB> Exists{
+    Array<bool, TB_TYPE_NB> Exists{
       TBFile(code, EXTS[WDL]).exists(), TBFile(code, EXTS[DTZ]).exists()  //
     };
 

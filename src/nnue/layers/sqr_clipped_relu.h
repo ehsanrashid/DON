@@ -72,9 +72,7 @@ class SqrClippedReLU final {
     void propagate(const InputType* RESTRICT input, OutputType* RESTRICT output) const noexcept {
         // clang-format off
 #if defined(USE_SSE2)
-        static_assert(WEIGHT_SCALE_BITS == 6);
-
-        constexpr IndexType SimdWidth  = 16;
+        constexpr IndexType SimdWidth  = SIMD_WIDTH_MIN;
         constexpr IndexType ChunkCount = InputDimensions / SimdWidth;
 
         const auto* in  = reinterpret_cast<const __m128i*>(input);
@@ -82,10 +80,12 @@ class SqrClippedReLU final {
 
         for (IndexType i = 0; i < ChunkCount; ++i)
         {
-            __m128i words0 = _mm_packs_epi32(_mm_load_si128(&in[i * 4 + 0]),
-                                             _mm_load_si128(&in[i * 4 + 1]));
-            __m128i words1 = _mm_packs_epi32(_mm_load_si128(&in[i * 4 + 2]),
-                                             _mm_load_si128(&in[i * 4 + 3]));
+            const IndexType j = i * 4;
+
+            __m128i words0 = _mm_packs_epi32(_mm_load_si128(&in[j + 0]),
+                                             _mm_load_si128(&in[j + 1]));
+            __m128i words1 = _mm_packs_epi32(_mm_load_si128(&in[j + 2]),
+                                             _mm_load_si128(&in[j + 3]));
 
             // Shift by WEIGHT_SCALE_BITS * 2 = 12 and divide by 128
             // which is an additional shift-right of 7, meaning 19 in total.
@@ -107,14 +107,18 @@ class SqrClippedReLU final {
 
         for (IndexType i = 0; i < ChunkCount; ++i)
         {
-            const __m256i words0 = __lasx_xvssrani_h_w(in[i * 4 + 1],
-                                                       in[i * 4 + 0], 0);
-            const __m256i words1 = __lasx_xvssrani_h_w(in[i * 4 + 3],
-                                                       in[i * 4 + 2], 0);
+            const IndexType j = i * 4;
+
+            const __m256i words0 = __lasx_xvssrani_h_w(in[j + 1],
+                                                       in[j + 0], 0);
+            const __m256i words1 = __lasx_xvssrani_h_w(in[j + 3],
+                                                       in[j + 2], 0);
             const __m256i sqr0   = __lasx_xvmuh_h(words0, words0);
             const __m256i sqr1   = __lasx_xvmuh_h(words1, words1);
+
             const __m256i packed = __lasx_xvssrlni_b_h(sqr1, sqr0, 3);
             const __m256i permed = __lasx_xvpermi_d(packed, 0xD8);
+
             __lasx_xvst(__lasx_xvshuf4i_w(permed, 0xD8), out + i, 0);
         }
 
@@ -129,13 +133,40 @@ class SqrClippedReLU final {
 
         for (IndexType i = 0; i < ChunkCount; ++i)
         {
-            const __m128i words0 = __lsx_vssrani_h_w(in[i * 4 + 1],
-                                                     in[i * 4 + 0], 0);
-            const __m128i words1 = __lsx_vssrani_h_w(in[i * 4 + 3],
-                                                     in[i * 4 + 2], 0);
+            const IndexType j = i * 4;
+
+            const __m128i words0 = __lsx_vssrani_h_w(in[j + 1],
+                                                     in[j + 0], 0);
+            const __m128i words1 = __lsx_vssrani_h_w(in[j + 3],
+                                                     in[j + 2], 0);
             const __m128i sqr0   = __lsx_vmuh_h(words0, words0);
             const __m128i sqr1   = __lsx_vmuh_h(words1, words1);
+
             out[i]               = __lsx_vssrlni_b_h(sqr1, sqr0, 3);
+        }
+
+        constexpr IndexType Start = SimdWidth * ChunkCount;
+
+#elif defined(USE_NEON)
+        constexpr IndexType SimdWidth  = SIMD_WIDTH;
+        constexpr IndexType ChunkCount = InputDimensions / SimdWidth;
+
+        const auto* in  = reinterpret_cast<const int32x4_t*>(input);
+        auto*       out = reinterpret_cast<int8x16_t*>(output);
+
+        for (IndexType i = 0; i < ChunkCount; ++i)
+        {
+            const IndexType j = i * 4;
+
+            const int16x8_t words0 = vcombine_s16(vqmovn_s32(in[j + 0]),
+                                                  vqmovn_s32(in[j + 1]));
+            const int16x8_t words1 = vcombine_s16(vqmovn_s32(in[j + 2]),
+                                                  vqmovn_s32(in[j + 3]));
+
+            const int16x8_t sqr0 = vshrq_n_s16(vqdmulhq_s16(words0, words0), 4);
+            const int16x8_t sqr1 = vshrq_n_s16(vqdmulhq_s16(words1, words1), 4);
+
+            out[i] = vcombine_s8(vqmovn_s16(sqr0), vqmovn_s16(sqr1));
         }
 
         constexpr IndexType Start = SimdWidth * ChunkCount;

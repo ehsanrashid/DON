@@ -946,21 +946,6 @@ ifeq ($(vsx),yes)
     CXXFLAGS += -mvsx
 endif
 
-ifeq ($(neon),yes)
-    CXXFLAGS += -DUSE_NEON=$(arm_version)
-    ifeq ($(TARGET_KERNEL),Linux)
-        ifneq ($(COMP),ndk)
-            ifneq ($(arch),armv8)
-                CXXFLAGS += -mfpu=neon
-            endif
-        endif
-    endif
-endif
-
-ifeq ($(dotprod),yes)
-    CXXFLAGS += -DUSE_NEON_DOTPROD -march=armv8.2-a+dotprod
-endif
-
 ifeq ($(rva23),yes)
     CXXFLAGS += -DUSE_RVV -march=rv64gcv1p0_zba_zbb_zbs_zicbop_zicond
 endif
@@ -977,6 +962,21 @@ ifeq ($(lsx),yes)
     ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
         CXXFLAGS += -mlsx
     endif
+endif
+
+ifeq ($(neon),yes)
+    CXXFLAGS += -DUSE_NEON=$(arm_version)
+    ifeq ($(TARGET_KERNEL),Linux)
+        ifneq ($(COMP),ndk)
+            ifneq ($(arch),armv8)
+                CXXFLAGS += -mfpu=neon
+            endif
+        endif
+    endif
+endif
+
+ifeq ($(dotprod),yes)
+    CXXFLAGS += -DUSE_NEON_DOTPROD -march=armv8.2-a+dotprod
 endif
 
 ifeq ($(arch),wasm32)
@@ -1022,7 +1022,7 @@ $(shell \
 )
 endef
 
-ifneq ($(filter-out help strip install net clean objclean profileclean config-sanity format install-hooks,$(MAKECMDGOALS)),)
+ifneq ($(filter-out help net strip install clean objclean profileclean config-sanity format install-hooks,$(MAKECMDGOALS)),)
 _ := $(call cache_file_contents,$(BUILD_DATE_FILE),$(BUILD_DATE))
 _ := $(call cache_file_contents,$(BUILD_SHA_FILE),$(GIT_SHA))
 _ := $(call cache_file_contents,$(BUILD_DIFFINDEX_FILE),$(BUILD_DIFFINDEX))
@@ -1126,7 +1126,7 @@ help:
 	echo "profile-build           > standard build with profile-guided optimization"; \
 	echo "build                   > skip profile-guided optimization"; \
 	echo "macos-lipo              > macOS x86-64 + Apple silicon universal binary"; \
-	echo "net                     > Download the default nnue nets"; \
+	echo "net                     > Download the default nnue net"; \
 	echo "strip                   > Strip executable"; \
 	echo "install                 > Install executable"; \
 	echo "clean                   > Clean up"; \
@@ -1203,7 +1203,7 @@ ifeq ($(ARCH_SUPPORTED),no)
 	echo ""
 endif
 
-.PHONY: help analyze build profile-build macos-lipo strip install net \
+.PHONY: help analyze build profile-build macos-lipo net strip install \
 	clean objclean profileclean config-sanity \
 	clang-profile-make clang-profile-use \
 	gcc-profile-make gcc-profile-use \
@@ -1311,6 +1311,10 @@ else
 	cp "$(basename $(EXE))$(LTO_OBJ_SUFFIX)" DON.o
 endif
 
+# Evaluation network (nnue)
+net:
+	@$(SHELL) ../scripts/net.sh
+
 strip:
 	$(STRIP) $(EXE)
 
@@ -1319,10 +1323,6 @@ install:
 	$(CP) "$(EXE)" "$(BINDIR)/"
 	chmod 755 "$(BINDIR)/$(EXE)"
 	$(STRIP) "$(BINDIR)/$(EXE)"
-
-# Evaluation network (nnue)
-net:
-	@$(SHELL) ../scripts/net.sh
 
 # Clean all
 clean: objclean profileclean
@@ -1521,7 +1521,7 @@ icx-profile-use:
 ifeq ($(UNIVERSAL_BUILD),no)
 # Include .depend only if no special goal is requested
 ifneq ($(MAKECMDGOALS),)
-ifneq ($(filter-out help strip install net clean objclean profileclean config-sanity format install-hooks,$(MAKECMDGOALS)),)
+ifneq ($(filter-out help net strip install clean objclean profileclean config-sanity format install-hooks,$(MAKECMDGOALS)),)
     -include .depend
 endif
 endif
@@ -1650,10 +1650,10 @@ $(NET_SENTINEL): | $(TEMP_DIR)
 	@touch $@
 
 $(NNUE_EMBED_OBJ): $(UNIVERSAL_SRC_DIR)/nnue_embed.cpp $(NET_SENTINEL) | $(TEMP_DIR)
-	$(CXX) -O2 -std=c++20 -Wno-c++26-extensions $(SLICE_DEF) $(MACOS_BUILD_FLAGS) $(EXTRA_CXXFLAGS) $(EMBED_DIR) -c $< -o $@
+	$(CXX) -O2 -std=c++20 -Wno-c++26-extensions $(SLICE_DEF) $(strip $(MACOS_BUILD_FLAGS) $(EXTRA_CXXFLAGS)) $(EMBED_DIR) -c $< -o $@
 
 $(UNIVERSAL_ENTRY_OBJ): $(UNIVERSAL_ENTRY_SRC) | $(TEMP_DIR)
-	$(CXX) -O2 -std=c++20 $(MACOS_BUILD_FLAGS) $(EXTRA_CXXFLAGS) -c $< -o $@
+	$(CXX) -O2 -std=c++20 $(strip $(MACOS_BUILD_FLAGS) $(EXTRA_CXXFLAGS)) -c $< -o $@
 
 # Symlink tracked top-level items from src/ into temp_builds/<arch>/.
 $(TEMP_DIR)/%/.setup: | $(TEMP_DIR)
@@ -1693,7 +1693,7 @@ endif
 endif
 
 $(UNIVERSAL_EXE): $(UNIVERSAL_ENTRY_OBJ) $(NNUE_EMBED_OBJ) $(ARCH_OBJS)
-	$(CXX) -o $@ $(UNIVERSAL_ENTRY_OBJ) $(NNUE_EMBED_OBJ) $(ARCH_OBJS) $(UNIVERSAL_BUILD_FLAGS) $(EXTRA_LDFLAGS)
+	$(CXX) -o $@ $(UNIVERSAL_ENTRY_OBJ) $(NNUE_EMBED_OBJ) $(ARCH_OBJS) $(strip $(UNIVERSAL_BUILD_FLAGS) $(EXTRA_LDFLAGS))
 	@echo "Universal binary built: $@"
 
 endif  # UNIVERSAL_BUILD

@@ -342,8 +342,8 @@ Bitboard changed_bb(const PieceMap& oldPieceMap, const PieceMap& newPieceMap) no
         const __m256i newV     = __lasx_xvld(reinterpret_cast<const void*>(&newPieceMap[s]), 0);
         const __m256i diff     = __lasx_xvxor_v(oldV, newV);
         const __m256i simdMask = __lasx_xvmsknz_b(diff);
-        const u16     loMask   = static_cast<u16>(__lasx_xvpickve2gr_d(simdMask, 0));
-        const u16     hiMask   = static_cast<u16>(__lasx_xvpickve2gr_d(simdMask, 2));
+        const auto    loMask   = __lasx_xvpickve2gr_d(simdMask, 0);
+        const auto    hiMask   = __lasx_xvpickve2gr_d(simdMask, 2);
 
         changedBB |= (static_cast<Bitboard>(loMask) | (static_cast<Bitboard>(hiMask) << 16)) << s;
     }
@@ -359,7 +359,7 @@ Bitboard changed_bb(const PieceMap& oldPieceMap, const PieceMap& newPieceMap) no
         const __m128i newV     = __lsx_vld(reinterpret_cast<const void*>(&newPieceMap[s]), 0);
         const __m128i diff     = __lsx_vxor_v(oldV, newV);
         const __m128i simdMask = __lsx_vmsknz_b(diff);
-        const u16     mask     = static_cast<u16>(__lsx_vpickve2gr_d(simdMask, 0));
+        const auto    mask     = __lsx_vpickve2gr_d(simdMask, 0);
 
         changedBB |= static_cast<Bitboard>(mask) << s;
     }

@@ -97,10 +97,13 @@ class MovePicker final {
 
     [[nodiscard]] Move next_move() noexcept;
 
-    [[nodiscard]] Stage stage() const noexcept;
+    [[nodiscard]] Stage cur_stage() const noexcept;
     [[nodiscard]] int   threshold_value() const noexcept;
 
-    void update_quiets_skip(bool condition) noexcept;
+    template<typename Predicate>
+    void update_quiets_skip(Predicate&& pred) noexcept {
+        quietsSkip = quietsSkip || pred();
+    }
 
    private:
     MovePicker() noexcept                             = delete;
@@ -110,7 +113,7 @@ class MovePicker final {
     MovePicker& operator=(MovePicker&&) noexcept      = delete;
 
     template<GenType GT>
-    void init_stage() noexcept;
+    void init() noexcept;
 
     template<GenType GT>
     iterator score(const MoveList<GT>& moveList) noexcept;
@@ -137,15 +140,15 @@ class MovePicker final {
     [[nodiscard]] pointer       data() noexcept { return moves.data(); }
     [[nodiscard]] const_pointer data() const noexcept { return moves.data(); }
 
-    const Position&           pos;
-    Move                      ttMove;
-    const CaptureHistory*     captureHistory      = nullptr;
-    const QuietHistory*       quietHistory        = nullptr;
-    const LowPlyQuietHistory* lowPlyQuietHistory  = nullptr;
-    const PieceSqHistory**    continuationHistory = nullptr;
-    const AtomicHistories*    atomicHistories     = nullptr;
-    const u16                 ssPly               = LOW_PLY_SIZE;
-    int                       threshold;
+    const Position&                 pos;
+    Move                            ttMove;
+    const CaptureHistory* const     captureHistory      = nullptr;
+    const QuietHistory* const       quietHistory        = nullptr;
+    const LowPlyQuietHistory* const lowPlyQuietHistory  = nullptr;
+    const PieceSqHistory** const    continuationHistory = nullptr;
+    const AtomicHistories* const    atomicHistories     = nullptr;
+    const u16                       ssPly               = LOW_PLY_SIZE;
+    int                             threshold;
 
     Stage initStage;
     Stage curStage;

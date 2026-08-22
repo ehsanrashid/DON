@@ -31,7 +31,7 @@ namespace DON {
 // As a hash table, collisions are possible and may cause chess playing issues (bizarre blunders, faulty mate reports, etc).
 // Fixing these also loses elo; however such risk decreases quickly with larger TT size.
 //
-// Use separate TTData, a local copy of an entry, from TTUpdater, which writes to the global table.
+// Use separate TTData, a local copy of an entry, from TTWriter, which writes to the global table.
 // A copy of the data already in an entry (possibly collided).
 // Probes and reads are racy and non-atomic, possibly resulting in inconsistent data.
 struct TTData final {
@@ -58,21 +58,24 @@ struct TTData final {
 struct TTEntry;
 struct TTCluster;
 
-// This is used to make racy, non-atomic writes to the global TT.
-// Writes are not "guaranteed": for chess reasons, later may decide the new data is less important than the old.
-class TTUpdater final {
+// Used to make racy, non-atomic writes to the global TT.
+// Writes are not guaranteed: for chess reasons, a later write may decide
+// that the new data is less important than the existing data.
+class TTWriter final {
    public:
-    TTUpdater(TTUpdater&&) noexcept = default;
+    TTWriter(TTWriter&&) noexcept = default;
 
-    TTUpdater(TTEntry* te, TTCluster* tc, u16 k, u8 gen) noexcept;
+    TTWriter(TTEntry* te, TTCluster* tc, u16 k, u8 gen) noexcept;
 
-    void update(Move m, Value v, Value ev, Depth d, Bound b, bool pv) noexcept;
+    void write(Move m, Value v, Value ev, Depth d, Bound b, bool pv) noexcept;
+
+    void penalize(u8 penalty) noexcept;
 
    private:
-    TTUpdater() noexcept                            = delete;
-    TTUpdater& operator=(const TTUpdater&) noexcept = delete;
-    TTUpdater(const TTUpdater&) noexcept            = delete;
-    TTUpdater& operator=(TTUpdater&&) noexcept      = delete;
+    TTWriter() noexcept                           = delete;
+    TTWriter& operator=(const TTWriter&) noexcept = delete;
+    TTWriter(const TTWriter&) noexcept            = delete;
+    TTWriter& operator=(TTWriter&&) noexcept      = delete;
 
     TTEntry*         tte;
     TTCluster* const ttc;
@@ -82,8 +85,8 @@ class TTUpdater final {
 
 struct ProbResult final {
    public:
-    TTData    data;
-    TTUpdater updater;
+    TTData   data;
+    TTWriter writter;
 };
 
 class Threads;
