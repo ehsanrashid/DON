@@ -452,7 +452,7 @@ typename VecWrapper::type fused(const typename VecWrapper::type& in) noexcept {
 }
 
 template<typename VecWrapper,
-         UpdateOperation updateOp,
+         UpdateOperation UpdateOp,
          UpdateOperation... ops,
          typename T,
          typename... Ts,
@@ -460,11 +460,11 @@ template<typename VecWrapper,
          std::enable_if_t<sizeof...(ops) == sizeof...(Ts), bool>                    = true>
 typename VecWrapper::type
 fused(const typename VecWrapper::type& in, const T& operand, const Ts&... operands) noexcept {
-    static_assert(updateOp == UpdateOperation::Add || updateOp == UpdateOperation::Sub,
-                  "Unsupported updateOp.");
-    if constexpr (updateOp == UpdateOperation::Add)
+    static_assert(UpdateOp == UpdateOperation::Add || UpdateOp == UpdateOperation::Sub,
+                  "Unsupported UpdateOp.");
+    if constexpr (UpdateOp == UpdateOperation::Add)
         return fused<VecWrapper, ops...>(VecWrapper::add(in, operand), operands...);
-    if constexpr (updateOp == UpdateOperation::Sub)
+    if constexpr (UpdateOp == UpdateOperation::Sub)
         return fused<VecWrapper, ops...>(VecWrapper::sub(in, operand), operands...);
     return typename VecWrapper::type();
 }

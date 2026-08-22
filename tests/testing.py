@@ -55,8 +55,8 @@ class TSAN:
                 """
 race:DON::TTEntry::read
 race:DON::TTEntry::save
+race:DON::TTEntry::penalize
 race:DON::TTEntry::clear
-race:DON::TTUpdater::update
 race:DON::TranspositionTable::probe
 race:DON::TranspositionTable::hashfull
 """

@@ -834,7 +834,7 @@ Value Worker::search(Position&    pos,
     const auto correctionValue = correction_value(pos, ss);
 
     // Step 4. Transposition table lookup
-    auto [ttd, ttu] = transpositionTable.probe(key);
+    auto [ttd, ttw] = transpositionTable.probe(key);
 
     ttd.value = ttd.hit ? value_from_tt(ttd.value, ss->ply, pos.rule50_count()) : VALUE_NONE;
 
@@ -901,7 +901,7 @@ Value Worker::search(Position&    pos,
 
         ss->evalue = ttEvalue = adjust_eval_value(evalue, correctionValue);
 
-        ttu.update(Move::None, VALUE_NONE, evalue, DEPTH_NONE, Bound::NONE, ss->pvTT);
+        ttw.write(Move::None, VALUE_NONE, evalue, DEPTH_NONE, Bound::NONE, ss->pvTT);
     }
 
     // Set up the improve and worsen flags.
@@ -952,22 +952,29 @@ Value Worker::search(Position&    pos,
                 {
                     pos.do_move(ttd.move, st);
 
-                    auto [ttdNext, ttuNext] = transpositionTable.probe(pos.key());
+                    auto [next_ttd, next_ttw] = transpositionTable.probe(pos.key());
 
-                    ttdNext.value = ttdNext.hit
-                                    ? value_from_tt(ttdNext.value, ss->ply, pos.rule50_count())
-                                    : VALUE_NONE;
+                    next_ttd.value = next_ttd.hit
+                                     ? value_from_tt(next_ttd.value, ss->ply, pos.rule50_count())
+                                     : VALUE_NONE;
 
                     pos.undo_move(ttd.move);
 
                     // Check that the ttValue after the ttMove would also trigger a cutoff
-                    if (!is_valid(ttdNext.value) || (ttd.value >= beta) == (-ttdNext.value >= beta))
+                    if (!is_valid(next_ttd.value)
+                        || (ttd.value >= beta) == (-next_ttd.value >= beta))
                         return ttd.value;
                 }
                 else
                     return ttd.value;
             }
         }
+        // No cutoff, but why? Does the stored inexact value mismatch our aspiration window?
+        // If a window-bound mismatch is the only reason cutoff failed, penalize the now-useless tte
+        else if (!exclude && depth > 5 && is_valid(ttd.value)
+                 && ttd.depth > depth - (ttd.value <= beta) && ttd.bound != Bound::EXACT
+                 && is_ok(ttd.bound & fail_bound(ttd.value < beta)))
+            ttw.penalize(1);
     }
 
     const Color ac = pos.active_color();
@@ -1018,8 +1025,8 @@ Value Worker::search(Position&    pos,
                     if (bound == Bound::EXACT
                         || (bound == Bound::LOWER ? tbValue >= beta : tbValue <= alpha))
                     {
-                        ttu.update(Move::None, value_to_tt(tbValue, ss->ply), evalue,
-                                   std::min<Depth>(depth + 6, DEPTH_MAX), bound, ss->pvTT);
+                        ttw.write(Move::None, value_to_tt(tbValue, ss->ply), evalue,
+                                  std::min<Depth>(depth + 6, DEPTH_MAX), bound, ss->pvTT);
 
                         return tbValue;
                     }
@@ -1209,8 +1216,8 @@ Value Worker::search(Position&    pos,
 
                 // Save ProbCut data into transposition table
                 if (!exclude)
-                    ttu.update(move, value_to_tt(probCutValue, ss->ply), evalue,
-                               std::min<Depth>(probCutDepth + 1, DEPTH_MAX), Bound::LOWER, ss->pvTT);
+                    ttw.write(move, value_to_tt(probCutValue, ss->ply), evalue,
+                              std::min<Depth>(probCutDepth + 1, DEPTH_MAX), Bound::LOWER, ss->pvTT);
 
                 if (!is_win(probCutValue))
                     // Adjust probCutValue to align with the current beta window
@@ -1752,12 +1759,12 @@ Value Worker::search(Position&    pos,
 
     // Save gathered information in transposition table
     if ((!RootNode || pvCur == 0) && !exclude)
-        ttu.update(bestMove, value_to_tt(bestValue, ss->ply), evalue,
-                   moveCount != 0 ? depth : std::min<Depth>(depth + 6, DEPTH_MAX),
-                   bestValue >= beta                  ? Bound::LOWER
-                   : PVNode && bestMove != Move::None ? Bound::EXACT
-                                                      : Bound::UPPER,
-                   ss->pvTT);
+        ttw.write(bestMove, value_to_tt(bestValue, ss->ply), evalue,
+                  moveCount != 0 ? depth : std::min<Depth>(depth + 6, DEPTH_MAX),
+                  bestValue >= beta                  ? Bound::LOWER
+                  : PVNode && bestMove != Move::None ? Bound::EXACT
+                                                     : Bound::UPPER,
+                  ss->pvTT);
 
     // Adjust correction history if the best move is none or not a capture
     // and the error direction matches whether the above/below bounds.
@@ -1816,7 +1823,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     assert(0 <= ss->ply && ss->ply < PLY_MAX);
 
     // Step 3. Transposition table lookup
-    auto [ttd, ttu] = transpositionTable.probe(key);
+    auto [ttd, ttw] = transpositionTable.probe(key);
 
     ttd.value = ttd.hit ? value_from_tt(ttd.value, ss->ply, pos.rule50_count()) : VALUE_NONE;
     ttd.move  = ttd.hit ? legal_move(ttd.move, pos) : Move::None;
@@ -1877,7 +1884,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
             bestValue = blend_values(bestValue, beta, 441, 1024);
 
         if (!ttd.hit)
-            ttu.update(Move::None, VALUE_NONE, evalue, DEPTH_NONE, Bound::LOWER, false);
+            ttw.write(Move::None, VALUE_NONE, evalue, DEPTH_NONE, Bound::LOWER, false);
 
         return bestValue;
     }
@@ -2023,8 +2030,8 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
         bestValue = blend_values(bestValue, beta, 462, 1024);
 
     // Save gathered info in transposition table
-    ttu.update(bestMove, value_to_tt(bestValue, ss->ply), evalue, DEPTH_ZERO,
-               fail_bound(bestValue >= beta), pvTT);
+    ttw.write(bestMove, value_to_tt(bestValue, ss->ply), evalue, DEPTH_ZERO,
+              fail_bound(bestValue >= beta), pvTT);
 
     assert(is_ok(bestValue));
 
@@ -2302,7 +2309,7 @@ bool Worker::ponder_move_extracted() noexcept {
         {
             Move ponderMove;
 
-            auto [ttd, ttu] = transpositionTable.probe(rootPos.key());
+            auto [ttd, ttw] = transpositionTable.probe(rootPos.key());
 
             ponderMove = ttd.hit ? legal_move(ttd.move, rootPos) : Move::None;
 

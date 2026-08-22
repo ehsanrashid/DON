@@ -946,21 +946,6 @@ ifeq ($(vsx),yes)
     CXXFLAGS += -mvsx
 endif
 
-ifeq ($(neon),yes)
-    CXXFLAGS += -DUSE_NEON=$(arm_version)
-    ifeq ($(TARGET_KERNEL),Linux)
-        ifneq ($(COMP),ndk)
-            ifneq ($(arch),armv8)
-                CXXFLAGS += -mfpu=neon
-            endif
-        endif
-    endif
-endif
-
-ifeq ($(dotprod),yes)
-    CXXFLAGS += -DUSE_NEON_DOTPROD -march=armv8.2-a+dotprod
-endif
-
 ifeq ($(rva23),yes)
     CXXFLAGS += -DUSE_RVV -march=rv64gcv1p0_zba_zbb_zbs_zicbop_zicond
 endif
@@ -977,6 +962,21 @@ ifeq ($(lsx),yes)
     ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
         CXXFLAGS += -mlsx
     endif
+endif
+
+ifeq ($(neon),yes)
+    CXXFLAGS += -DUSE_NEON=$(arm_version)
+    ifeq ($(TARGET_KERNEL),Linux)
+        ifneq ($(COMP),ndk)
+            ifneq ($(arch),armv8)
+                CXXFLAGS += -mfpu=neon
+            endif
+        endif
+    endif
+endif
+
+ifeq ($(dotprod),yes)
+    CXXFLAGS += -DUSE_NEON_DOTPROD -march=armv8.2-a+dotprod
 endif
 
 ifeq ($(arch),wasm32)
