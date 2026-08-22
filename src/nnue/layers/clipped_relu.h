@@ -29,7 +29,11 @@
 
 namespace DON::NNUE::Layers {
 
-// Clipped ReLU
+// This class defines a Clipped ReLU activation layer.
+//
+// The activation clips each input value to the range [0, 127].
+// It introduces non-linearity while keeping the output within the
+// range supported by subsequent quantized operations.
 template<IndexType InDims>
 class ClippedReLU final {
    public:

@@ -878,14 +878,13 @@ DirtyBoard Position::do_move(const Move          m,
     const Square orgSq      = m.org_sq();
     Square       dstSq      = m.dst_sq();
     Piece        movedPc    = piece(orgSq);
+    auto         movedPt    = type_of(movedPc);
     Piece        capturedPc = piece(m.type() != MT::EN_PASSANT ? dstSq : dstSq - pawn_spush(ac));
     Piece        promotedPc = Piece::NO_PIECE;
     assert(color_of(movedPc) == ac);
     assert(capturedPc == Piece::NO_PIECE
            || (color_of(capturedPc) == (m.type() != MT::CASTLING ? ~ac : ac)
                && type_of(capturedPc) != KING));
-
-    auto movedPt = type_of(movedPc);
 
     DirtyBoard db;
 
@@ -1003,8 +1002,9 @@ DirtyBoard Position::do_move(const Move          m,
             auto promotedPt = m.promotion_type();
             assert(KNIGHT <= promotedPt && promotedPt <= QUEEN);
 
-            movedPt    = promotedPt;
             promotedPc = make_piece(ac, promotedPt);
+            //movedPc    = promotedPc;
+            movedPt    = promotedPt;
 
             db.dirtyPiece.dstSq   = SQ_NONE;
             db.dirtyPiece.addedSq = dstSq;

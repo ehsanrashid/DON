@@ -31,19 +31,22 @@
 
 #if defined(USE_SSSE3) || defined(USE_LSX) || defined(USE_NEON_DOTPROD)
     #include "../../memory.h"
-    #define USE_SIMD_OPTIMIZATION
+    #define USE_AFFINE_SIMD
 #endif
-
-//  This file contains the definition for a fully connected layer (aka affine transform).
-//
-//    - expected use-case is for when PaddedInputDimensions == 32 and InputDimensions <= 32.
-//      - that's why AVX512 is hard to implement
-//    - expected use-case is small layers
-//    - inputs are processed in chunks of 4, weights are respectively transposed
-//    - accumulation happens directly to int32s
 
 namespace DON::NNUE::Layers {
 
+// This class defines a fully connected layer (aka affine transform).
+//
+// Expected use cases:
+//   - PaddedInputDimensions == 32 and InputDimensions <= 32.
+//   - Small layers.
+//   - Inputs are processed in chunks of 4.
+//   - The corresponding weights are transposed.
+//   - Accumulation is performed directly into int32 values.
+//
+// AVX-512 support is more difficult to implement because this implementation
+// is specifically optimized around these dimensions.
 template<IndexType InDims, IndexType OutDims>
 class AffineTransform final {
    public:
@@ -60,7 +63,7 @@ class AffineTransform final {
     static constexpr IndexType PaddedOutputDimensions =
       ceil_to_multiple<IndexType>(OutputDimensions, SIMD_WIDTH_MAX);
     static constexpr IndexType ChunkSize =
-#if defined(USE_SIMD_OPTIMIZATION)
+#if defined(USE_AFFINE_SIMD)
       4
 #else
       1
@@ -79,7 +82,7 @@ class AffineTransform final {
     }
 
     static constexpr IndexType weight_index(IndexType i) noexcept {
-#if defined(USE_SIMD_OPTIMIZATION)
+#if defined(USE_AFFINE_SIMD)
         return (i / ChunkSize) % (PaddedInputDimensions / ChunkSize) * OutputDimensions * ChunkSize
              + i / PaddedInputDimensions * ChunkSize + i % ChunkSize;
 #else
@@ -120,7 +123,7 @@ class AffineTransform final {
     // Forward propagation
     void propagate(const InputType* RESTRICT input, OutputType* RESTRICT output) const noexcept {
 
-#if defined(USE_SIMD_OPTIMIZATION)
+#if defined(USE_AFFINE_SIMD)
         if constexpr (OutputDimensions > 1)
         {
     #if defined(USE_AVX512)

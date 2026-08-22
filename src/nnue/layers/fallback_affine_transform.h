@@ -26,7 +26,7 @@
 
 namespace DON::NNUE::Layers {
 
-// Fallback implementation for older/other architectures.
+// Generic fallback implementation for architectures without a specialized SIMD path.
 // Requires the input to be padded to at least 16 values.
 template<IndexType InputDimensions, IndexType PaddedInputDimensions, IndexType OutputDimensions>
 void fallback_affine_transform(const Array<i32, OutputDimensions>&                        biases,

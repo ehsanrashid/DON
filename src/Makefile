@@ -112,7 +112,7 @@ HEADERS := \
     misc.h movegen.h movepick.h notation.h numa.h option.h perft.h platform_win.h \
     position.h prng.h search.h shm.h thread.h timeman.h tt.h tune.h types.h uci.h \
     nnue/features/full_threats.h nnue/features/half_ka_hm.h \
-    nnue/layers/fallback_affine_transform.h nnue/layers/affine_transform.h nnue/layers/sparse_input_affine_transform.h \
+    nnue/layers/fallback_affine_transform.h nnue/layers/affine_transform.h nnue/layers/sparse_affine_transform.h \
     nnue/layers/clipped_relu.h nnue/layers/sqr_clipped_relu.h nnue/accumulator.h nnue/architecture.h \
     nnue/feature_transformer.h nnue/network.h nnue/nnz.h nnue/ntypes.h nnue/serialization.h nnue/simd.h \
     incbin/incbin.h book/polyglot.h tablebase/syzygy.h

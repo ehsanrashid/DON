@@ -15,8 +15,8 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef NNUE_LAYERS_SPARSE_INPUT_AFFINE_TRANSFORM_H_INCLUDED
-#define NNUE_LAYERS_SPARSE_INPUT_AFFINE_TRANSFORM_H_INCLUDED
+#ifndef NNUE_LAYERS_SPARSE_AFFINE_TRANSFORM_H_INCLUDED
+#define NNUE_LAYERS_SPARSE_AFFINE_TRANSFORM_H_INCLUDED
 
 #include <iostream>
 #include <type_traits>
@@ -36,18 +36,22 @@
 
 #if defined(USE_SSSE3) || defined(USE_LSX) || (defined(USE_NEON) && USE_NEON >= 8)
     #include "../../memory.h"
-    #define USE_SPARSE_SIMD_OPTIMIZATION
+    #define USE_SPARSE_AFFINE_SIMD
 #endif
-
-// Definition of layer SparseInputAffineTransform of NNUE evaluation function
-
-// Contains the definition for a fully connected layer (aka affine transform) with block sparse input.
 
 namespace DON::NNUE::Layers {
 
-// Sparse input implementation
+// This class defines a fully connected layer (aka affine transform) with block-sparse input.
+//
+// Expected use cases:
+//   - Large input dimensions with relatively few active features.
+//   - Block-sparse input, where only active blocks are processed.
+//   - The first layer of the NNUE evaluation function.
+//
+// Only active input blocks are processed, avoiding unnecessary computation
+// for inactive blocks.
 template<IndexType InDims, IndexType OutDims>
-class SparseInputAffineTransform final {
+class SparseAffineTransform final {
    public:
     // Input/output type
     using InputType  = u8;
@@ -66,7 +70,7 @@ class SparseInputAffineTransform final {
       ceil_to_multiple<IndexType>(OutputDimensions, SIMD_WIDTH_MAX);
 
     static constexpr IndexType ChunkSize =
-#if defined(USE_SPARSE_SIMD_OPTIMIZATION)
+#if defined(USE_SPARSE_AFFINE_SIMD)
       4
 #else
       1
@@ -85,7 +89,7 @@ class SparseInputAffineTransform final {
     }
 
     static constexpr IndexType weight_index(IndexType i) noexcept {
-#if defined(USE_SPARSE_SIMD_OPTIMIZATION)
+#if defined(USE_SPARSE_AFFINE_SIMD)
         return (i / ChunkSize) % (PaddedInputDimensions / ChunkSize) * OutputDimensions * ChunkSize
              + i / PaddedInputDimensions * ChunkSize + i % ChunkSize;
 #else
@@ -134,7 +138,7 @@ class SparseInputAffineTransform final {
                    OutputType* RESTRICT                output,
                    [[maybe_unused]] const NNZ<InDims>& nnz) const noexcept {
 
-#if defined(USE_SPARSE_SIMD_OPTIMIZATION)
+#if defined(USE_SPARSE_AFFINE_SIMD)
     #if defined(USE_AVX512)
         using invec_t  = __m512i;
         using outvec_t = __m512i;
@@ -312,4 +316,4 @@ class SparseInputAffineTransform final {
 
 }  // namespace DON::NNUE::Layers
 
-#endif  // NNUE_LAYERS_SPARSE_INPUT_AFFINE_TRANSFORM_H_INCLUDED
+#endif  // NNUE_LAYERS_SPARSE_AFFINE_TRANSFORM_H_INCLUDED

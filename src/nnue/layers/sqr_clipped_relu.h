@@ -29,7 +29,11 @@
 
 namespace DON::NNUE::Layers {
 
-// Square Clipped ReLU
+// This class defines a squared Clipped ReLU activation layer.
+//
+// Inputs are squared and scaled using a right shift to avoid division,
+// then clipped to [0, 127] and stored as u8.
+// The scaling must be accounted for during training.
 template<IndexType InDims>
 class SqrClippedReLU final {
    public:
@@ -143,9 +147,9 @@ class SqrClippedReLU final {
 
         for (IndexType i = Start; i < InputDimensions; ++i)
         {
+            // The extra 7-bit right-shift approximates division by 127 while avoiding the more expensive integer division.
+            // The resulting scale must be accounted for by the trainer.
             output[i] = static_cast<OutputType>(
-              // Really should be /127 but need to make it fast so right-shift
-              // by an extra 7 bits instead. Needs to be accounted for in the trainer.
               std::min((i64(input[i]) * input[i]) >> (7 + 2 * WEIGHT_SCALE_BITS), i64{127}));
         }
     }
