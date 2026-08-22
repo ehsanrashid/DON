@@ -675,20 +675,20 @@ class OstreamMutexRegistry final {
     }
 
     // Return a mutex associated with the given ostream pointer.
-    // If ptrOs is nullptr, returns a null-mutex to safely ignore locking.
+    // If osPtr is nullptr, returns a null-mutex to safely ignore locking.
     // This ensures no accidental insertion of null keys into the map.
-    static std::mutex& get(std::ostream* ptrOs) noexcept {
+    static std::mutex& get(std::ostream* osPtr) noexcept {
         ensure_initialized();
 
         // Fallback for null pointers
-        if (ptrOs == nullptr)
+        if (osPtr == nullptr)
             return nullMutex;
 
         // Lock the registry while accessing the map
         std::lock_guard writeLock(mutex);
 
         // Return mutex, create if missing
-        return osMutexes[ptrOs];
+        return osMutexes[osPtr];
     }
 
    private:
@@ -734,11 +734,11 @@ class OstreamMutexRegistry final {
 class [[nodiscard]] SyncOstream final {
    public:
     explicit SyncOstream(std::ostream& os) noexcept :
-        ptrOs(&os),
-        lock(OstreamMutexRegistry::get(ptrOs)) {}
+        osPtr(&os),
+        lock(OstreamMutexRegistry::get(osPtr)) {}
     // Move-constructible so factories can return by value
     SyncOstream(SyncOstream&& syncOs) noexcept :
-        ptrOs(syncOs.ptrOs),
+        osPtr(syncOs.osPtr),
         lock(std::move(syncOs.lock)) {}
 
     SyncOstream(const SyncOstream&) noexcept            = delete;
@@ -748,51 +748,51 @@ class [[nodiscard]] SyncOstream final {
 
     template<typename T>
     SyncOstream& operator<<(T&& x) & {
-        assert(ptrOs != nullptr && "Use of moved-from SyncOstream");
+        assert(osPtr != nullptr && "Use of moved-from SyncOstream");
 
-        *ptrOs << std::forward<T>(x);
+        *osPtr << std::forward<T>(x);
         return *this;
     }
     template<typename T>
     SyncOstream&& operator<<(T&& x) && {
-        assert(ptrOs != nullptr && "Use of moved-from SyncOstream");
+        assert(osPtr != nullptr && "Use of moved-from SyncOstream");
 
-        *ptrOs << std::forward<T>(x);
+        *osPtr << std::forward<T>(x);
         return std::move(*this);
     }
 
     using IosManipulator = std::ios& (*) (std::ios&);
 
     SyncOstream& operator<<(IosManipulator manip) & {
-        assert(ptrOs != nullptr && "Use of moved-from SyncOstream");
+        assert(osPtr != nullptr && "Use of moved-from SyncOstream");
 
-        manip(*ptrOs);
+        manip(*osPtr);
         return *this;
     }
     SyncOstream&& operator<<(IosManipulator manip) && {
-        assert(ptrOs != nullptr && "Use of moved-from SyncOstream");
+        assert(osPtr != nullptr && "Use of moved-from SyncOstream");
 
-        manip(*ptrOs);
+        manip(*osPtr);
         return std::move(*this);
     }
 
     using OstreamManipulator = std::ostream& (*) (std::ostream&);
 
     SyncOstream& operator<<(OstreamManipulator manip) & {
-        assert(ptrOs != nullptr && "Use of moved-from SyncOstream");
+        assert(osPtr != nullptr && "Use of moved-from SyncOstream");
 
-        manip(*ptrOs);
+        manip(*osPtr);
         return *this;
     }
     SyncOstream&& operator<<(OstreamManipulator manip) && {
-        assert(ptrOs != nullptr && "Use of moved-from SyncOstream");
+        assert(osPtr != nullptr && "Use of moved-from SyncOstream");
 
-        manip(*ptrOs);
+        manip(*osPtr);
         return std::move(*this);
     }
 
    private:
-    std::ostream* const          ptrOs;
+    std::ostream* const          osPtr;
     std::unique_lock<std::mutex> lock;
 };
 
@@ -1872,8 +1872,8 @@ inline constexpr void* INVALID_MMAP_PTR = nullptr;
 
 struct HandleGuard final {
    public:
-    explicit HandleGuard(HANDLE& refHandle) noexcept :
-        handle(refHandle) {}
+    explicit HandleGuard(HANDLE& handleRef) noexcept :
+        handle(handleRef) {}
 
     HandleGuard() noexcept = delete;
 
@@ -1907,8 +1907,8 @@ struct HandleGuard final {
 
 struct MMapGuard final {
    public:
-    explicit MMapGuard(void*& refPtr) noexcept :
-        mappedPtr(refPtr) {}
+    explicit MMapGuard(void*& ptrRef) noexcept :
+        mappedPtr(ptrRef) {}
 
     MMapGuard() noexcept = delete;
 
@@ -1986,9 +1986,9 @@ struct FdGuard final {
 
 struct MMapGuard final {
    public:
-    MMapGuard(void*& refPtr, usize& refSize) noexcept :
-        mappedPtr(refPtr),
-        mappedSize(refSize) {}
+    MMapGuard(void*& ptrRef, usize& sizeRef) noexcept :
+        mappedPtr(ptrRef),
+        mappedSize(sizeRef) {}
 
     MMapGuard() noexcept = delete;
 

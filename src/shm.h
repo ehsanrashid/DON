@@ -395,7 +395,7 @@ class BackendSharedMemory final {
         }
 
         // Object lives first to ensure alignment
-        T* object = reinterpret_cast<T*>(mappedGuard.get());
+        auto* object = reinterpret_cast<T*>(mappedGuard.get());
 
         auto* sharedState =
           reinterpret_cast<volatile DWORD*>(reinterpret_cast<char*>(mappedGuard.get()) + sizeof(T));
@@ -904,17 +904,17 @@ inline UniqueFd create_unix_socket() noexcept {
 inline Strings get_peer_sockets(const std::string& sharedDir) noexcept {
     Strings peerSockets;
 
-    DIR* ptrDir = ::opendir(sharedDir.c_str());
-    if (ptrDir != nullptr)
+    DIR* dirPtr = ::opendir(sharedDir.c_str());
+    if (dirPtr != nullptr)
     {
-        struct dirent* ptrDirEntry;
-        while ((ptrDirEntry = ::readdir(ptrDir)) != nullptr)
+        const struct dirent* dirEntryPtr;
+        while ((dirEntryPtr = ::readdir(dirPtr)) != nullptr)
         {
-            std::string dName{ptrDirEntry->d_name};
+            std::string dName{dirEntryPtr->d_name};
             if (dName.size() >= 5 && dName.compare(dName.size() - 5, 5, ".sock") == 0)
                 peerSockets.push_back(sharedDir + "/" + dName);
         }
-        ::closedir(ptrDir);
+        ::closedir(dirPtr);
     }
 
     return peerSockets;

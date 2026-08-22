@@ -237,9 +237,11 @@ class FeatureTransformer final {
             // clang-format off
 #if defined(VECTOR)
             constexpr IndexType OutputChunkSize = MaxChunkSize;
-            static_assert((HalfDimensions / 2) % OutputChunkSize == 0);
-
+            static_assert(HalfDimensions % (2 * OutputChunkSize) == 0);
             constexpr IndexType OutputChunkCount = HalfDimensions / (2 * OutputChunkSize);
+
+            const vec_t Zero = vec_zero();
+            const vec_t One  = vec_set_16(255);
 
             const auto* in0 = reinterpret_cast<const vec_t*>(&(accumulation[perspectives[p]][0]));
             const auto* in1 = reinterpret_cast<const vec_t*>(&(accumulation[perspectives[p]][HalfDimensions / 2]));
@@ -296,8 +298,6 @@ class FeatureTransformer final {
             // return value after the multiplication, adding an extra shift
             // to the left by 1, so we compensate by shifting less before
             // the multiplication.
-            vec_t Zero = vec_zero();
-            vec_t One  = vec_set_16(255);
 
             constexpr int shift =
     #if defined(USE_SSE2) || defined(USE_LSX)
@@ -307,8 +307,8 @@ class FeatureTransformer final {
     #endif
               ;
 
-            const vec_t* tin0 = reinterpret_cast<const vec_t*>(&(threatAccumulation[perspectives[p]][0]));
-            const vec_t* tin1 = reinterpret_cast<const vec_t*>(&(threatAccumulation[perspectives[p]][HalfDimensions / 2]));
+            const auto* tin0 = reinterpret_cast<const vec_t*>(&(threatAccumulation[perspectives[p]][0]));
+            const auto* tin1 = reinterpret_cast<const vec_t*>(&(threatAccumulation[perspectives[p]][HalfDimensions / 2]));
 
             for (IndexType j = 0; j + 1 < OutputChunkCount; j += 2)
             {
@@ -317,20 +317,20 @@ class FeatureTransformer final {
                 {
                     const IndexType i = (j + k) * 2;
 
-                    vec_t acc0a = vec_add_16(in0[i + 0], tin0[i + 0]);
-                    vec_t acc0b = vec_add_16(in0[i + 1], tin0[i + 1]);
-                    vec_t acc1a = vec_add_16(in1[i + 0], tin1[i + 0]);
-                    vec_t acc1b = vec_add_16(in1[i + 1], tin1[i + 1]);
+                    const vec_t acc00 = vec_add_16(in0[i + 0], tin0[i + 0]);
+                    const vec_t acc01 = vec_add_16(in0[i + 1], tin0[i + 1]);
+                    const vec_t acc10 = vec_add_16(in1[i + 0], tin1[i + 0]);
+                    const vec_t acc11 = vec_add_16(in1[i + 1], tin1[i + 1]);
 
-                    vec_t sum0a = vec_slli_16(vec_max_16(vec_min_16(acc0a, One), Zero), shift);
-                    vec_t sum0b = vec_slli_16(vec_max_16(vec_min_16(acc0b, One), Zero), shift);
-                    vec_t sum1a = vec_min_16(acc1a, One);
-                    vec_t sum1b = vec_min_16(acc1b, One);
+                    const vec_t sum00 = vec_slli_16(vec_max_16(vec_min_16(acc00, One), Zero), shift);
+                    const vec_t sum01 = vec_slli_16(vec_max_16(vec_min_16(acc01, One), Zero), shift);
+                    const vec_t sum10 = vec_min_16(acc10, One);
+                    const vec_t sum11 = vec_min_16(acc11, One);
 
-                    vec_t pa = vec_mulhi_16(sum0a, sum1a);
-                    vec_t pb = vec_mulhi_16(sum0b, sum1b);
+                    const vec_t p0 = vec_mulhi_16(sum00, sum10);
+                    const vec_t p1 = vec_mulhi_16(sum01, sum11);
 
-                    packed[k] = out[j + k] = vec_packus_16(pa, pb);
+                    out[j + k] = packed[k] = vec_packus_16(p0, p1);
                 }
 
                 cursor.record(packed[0], packed[1]);
@@ -347,7 +347,7 @@ class FeatureTransformer final {
                 sum0 = std::clamp<BiasType>(sum0, 0, 255);
                 sum1 = std::clamp<BiasType>(sum1, 0, 255);
 
-                output[offset + j] = OutputType(unsigned(sum0 * sum1) / 512);
+                output[offset + j] = static_cast<OutputType>(unsigned(sum0 * sum1) / 512);
             }
 #endif
             // clang-format on

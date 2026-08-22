@@ -219,9 +219,9 @@ template<usize Alignment, typename T>
                   "Alignment must be non-zero power of 2");
     static_assert(Alignment >= alignof(T), "Alignment must be >= alignof(T)");
 
-    auto ptrInt = reinterpret_cast<std::uintptr_t>(ptr);
-    ptrInt      = round_up_to_multiple(ptrInt, Alignment);
-    return reinterpret_cast<T*>(ptrInt);
+    auto intPtr = reinterpret_cast<std::uintptr_t>(ptr);
+    intPtr      = round_up_to_multiple(intPtr, Alignment);
+    return reinterpret_cast<T*>(intPtr);
 }
 
 template<usize Alignment, typename T>

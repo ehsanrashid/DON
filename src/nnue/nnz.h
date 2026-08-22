@@ -39,13 +39,12 @@ struct NNZ final {
 #if defined(USE_AVX512)
     struct Cursor final {
        public:
-        Cursor(NNZ& nnz_, Color perspective, unsigned count_) noexcept :
-            nnz(nnz_),
-            count(count_) {
-            indices = _mm512_load_si512(&Indices[perspective]);
-        }
+        Cursor(NNZ& nnzRef, Color perspective) noexcept :
+            nnz(nnzRef),
+            indices(_mm512_load_si512(&Indices[perspective])) {}
 
         void record(SIMD::vec_t neurons1, SIMD::vec_t neurons2) noexcept {
+            unsigned count = nnz.count;
     #if defined(USE_AVX512ICL)
             const __m512i increment = _mm512_set1_epi16(32);
 
@@ -73,45 +72,44 @@ struct NNZ final {
                 indices = _mm512_add_epi32(indices, increment);
             }
     #endif
+            nnz.count = count;
         }
 
-        ~Cursor() noexcept { nnz.count = count; }
+       private:
+    #if defined(USE_AVX512ICL)
+        alignas(CACHE_LINE_SIZE) static constexpr auto Indices = []() constexpr noexcept {
+            Array<u16, COLOR_NB, 32> indices{};
 
-        NNZ&     nnz;
-        __m512i  indices;
-        unsigned count;
+            for (Color p : {WHITE, BLACK})
+            {
+                indices[p] = {0, 1, 2,  3,  16, 17, 18, 19, 4,  5,  6,  7,  20, 21, 22, 23,
+                              8, 9, 10, 11, 24, 25, 26, 27, 12, 13, 14, 15, 28, 29, 30, 31};
+                for (auto& m : indices[p])
+                    m += p * Dimensions / 8;
+            }
+
+            return indices;
+        }();
+    #else
+        alignas(CACHE_LINE_SIZE) static constexpr auto Indices = []() constexpr noexcept {
+            Array<u32, COLOR_NB, 16> indices{};
+
+            for (Color p : {WHITE, BLACK})
+            {
+                indices[p] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
+                for (auto& m : indices[p])
+                    m += p * Dimensions / 8;
+            }
+
+            return indices;
+        }();
+    #endif
+
+        NNZ&    nnz;
+        __m512i indices;
     };
 
-    Cursor make_cursor(Color perspective) noexcept { return {*this, perspective, count}; }
-
-    #if defined(USE_AVX512ICL)
-    alignas(CACHE_LINE_SIZE) static constexpr auto Indices = []() constexpr noexcept {
-        Array<u16, COLOR_NB, 32> indices{};
-
-        for (Color p : {WHITE, BLACK})
-        {
-            indices[p] = {0, 1, 2,  3,  16, 17, 18, 19, 4,  5,  6,  7,  20, 21, 22, 23,
-                          8, 9, 10, 11, 24, 25, 26, 27, 12, 13, 14, 15, 28, 29, 30, 31};
-            for (auto& m : indices[p])
-                m += p * Dimensions / 8;
-        }
-
-        return indices;
-    }();
-    #else
-    alignas(CACHE_LINE_SIZE) static constexpr auto Indices = []() constexpr noexcept {
-        Array<u32, COLOR_NB, 16> indices{};
-
-        for (Color p : {WHITE, BLACK})
-        {
-            indices[p] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
-            for (auto& m : indices[p])
-                m += p * Dimensions / 8;
-        }
-
-        return indices;
-    }();
-    #endif
+    Cursor make_cursor(Color perspective) noexcept { return {*this, perspective}; }
 
     // indices of non-zero chunks
     u16      bitset[Dimensions / 4];
@@ -159,11 +157,12 @@ struct NNZ final {
         #endif
         }
 
+       private:
+        u8* out;
+
     #elif defined(VECTOR)
         void record(SIMD::vec_t, SIMD::vec_t) noexcept {}
     #endif
-
-        u8* out;
     };
 
     Cursor make_cursor(Color perspective) noexcept { return {*this, perspective}; }

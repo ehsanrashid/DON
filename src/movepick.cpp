@@ -364,7 +364,7 @@ template<>
 MovePicker::iterator
 MovePicker::score<GenType::ENC_CAPTURE>(const MoveList<GenType::ENC_CAPTURE>& moveList) noexcept {
 
-    const auto& refCaptureHistory = *captureHistory;
+    const auto& captureHistoryRef = *captureHistory;
 
     auto itr = cur;
 
@@ -380,7 +380,7 @@ MovePicker::score<GenType::ENC_CAPTURE>(const MoveList<GenType::ENC_CAPTURE>& mo
         const auto   capturedPt = pos.captured_pt(m);
 
         m.value = 7 * piece_value(capturedPt)  //
-                + refCaptureHistory[+movedPc][dstSq][capturedPt];
+                + captureHistoryRef[+movedPc][dstSq][capturedPt];
 
         ++itr;
     }
@@ -397,10 +397,10 @@ MovePicker::score<GenType::ENC_QUIET>(const MoveList<GenType::ENC_QUIET>& moveLi
     const Bitboard pinnersBB  = pos.pinners_bb();
     const Bitboard threatsBB  = pos.threats_bb();
 
-    const auto&        refQuietHistory        = *quietHistory;
-    const auto&        refLowPlyQuietHistory  = *lowPlyQuietHistory;
-    const auto* const* ptrContinuationHistory = continuationHistory;
-    const auto&        refPawnEntry           = (*atomicHistories).pawn_entry(pos);
+    const auto&        quietHistoryRef        = *quietHistory;
+    const auto&        lowPlyQuietHistoryRef  = *lowPlyQuietHistory;
+    const auto* const* continuationHistoryPtr = continuationHistory;
+    const auto&        pawnEntryRef           = (*atomicHistories).pawn_entry(pos);
 
     auto itr = cur;
 
@@ -417,16 +417,16 @@ MovePicker::score<GenType::ENC_QUIET>(const MoveList<GenType::ENC_QUIET>& moveLi
 
         i64 value;
 
-        value = 2 * refQuietHistory[ac][m.raw()];
+        value = 2 * quietHistoryRef[ac][m.raw()];
 
         if (ssPly < LOW_PLY_SIZE)
-            value += 8 * refLowPlyQuietHistory[ssPly][m.raw()] / (1 + ssPly);
+            value += 8 * lowPlyQuietHistoryRef[ssPly][m.raw()] / (1 + ssPly);
 
         // Accumulate continuation history entries
         for (usize i = 0; i < CONT_HISTORY_COUNT; ++i)
-            value += (*ptrContinuationHistory[i])[+movedPc][dstSq];
+            value += (*continuationHistoryPtr[i])[+movedPc][dstSq];
 
-        value += 2 * refPawnEntry[+movedPc][dstSq];
+        value += 2 * pawnEntryRef[+movedPc][dstSq];
 
         // Bonus for checks
         if (pos.check(m))
@@ -486,8 +486,8 @@ MovePicker::score<GenType::EVA_QUIET>(const MoveList<GenType::EVA_QUIET>& moveLi
 
     const Color ac = pos.active_color();
 
-    const auto&        refQuietHistory        = *quietHistory;
-    const auto* const* ptrContinuationHistory = continuationHistory;
+    const auto&        quietHistoryRef        = *quietHistory;
+    const auto* const* continuationHistoryPtr = continuationHistory;
 
     auto itr = cur;
 
@@ -502,8 +502,8 @@ MovePicker::score<GenType::EVA_QUIET>(const MoveList<GenType::EVA_QUIET>& moveLi
         const Square dstSq   = m.dst_sq();
         const Piece  movedPc = pos.moved_pc(m);
 
-        m.value = refQuietHistory[ac][m.raw()]  //
-                + (*ptrContinuationHistory[0])[+movedPc][dstSq];
+        m.value = quietHistoryRef[ac][m.raw()]  //
+                + (*continuationHistoryPtr[0])[+movedPc][dstSq];
 
         ++itr;
     }
