@@ -15,8 +15,8 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef NNUE_LAYERS_AFFINE_TRANSFORM_SPARSE_INPUT_H_INCLUDED
-#define NNUE_LAYERS_AFFINE_TRANSFORM_SPARSE_INPUT_H_INCLUDED
+#ifndef NNUE_LAYERS_SPARSE_INPUT_AFFINE_TRANSFORM_H_INCLUDED
+#define NNUE_LAYERS_SPARSE_INPUT_AFFINE_TRANSFORM_H_INCLUDED
 
 #include <iostream>
 #include <type_traits>
@@ -32,14 +32,14 @@
 #include "../ntypes.h"
 #include "../serialization.h"
 #include "../simd.h"  // IWYU pragma: keep
-#include "affine_transform.h"
+#include "non_ssse3_transform.h"
 
 #if defined(USE_SSSE3) || defined(USE_LSX) || (defined(USE_NEON) && USE_NEON >= 8)
     #include "../../memory.h"
     #define USE_SPARSE_SIMD_OPTIMIZATION
 #endif
 
-// Definition of layer AffineTransformSparseInput of NNUE evaluation function
+// Definition of layer SparseInputAffineTransform of NNUE evaluation function
 
 // Contains the definition for a fully connected layer (aka affine transform) with block sparse input.
 
@@ -47,7 +47,7 @@ namespace DON::NNUE::Layers {
 
 // Sparse input implementation
 template<IndexType InDims, IndexType OutDims>
-class AffineTransformSparseInput final {
+class SparseInputAffineTransform final {
    public:
     // Input/output type
     using InputType  = u8;
@@ -312,4 +312,4 @@ class AffineTransformSparseInput final {
 
 }  // namespace DON::NNUE::Layers
 
-#endif  // NNUE_LAYERS_AFFINE_TRANSFORM_SPARSE_INPUT_H_INCLUDED
+#endif  // NNUE_LAYERS_SPARSE_INPUT_AFFINE_TRANSFORM_H_INCLUDED

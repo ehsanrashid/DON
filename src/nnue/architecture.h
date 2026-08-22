@@ -29,7 +29,7 @@
 #include "features/full_threats.h"
 #include "features/half_ka_hm.h"
 #include "layers/affine_transform.h"
-#include "layers/affine_transform_sparse_input.h"
+#include "layers/sparse_input_affine_transform.h"
 #include "layers/clipped_relu.h"
 #include "layers/sqr_clipped_relu.h"
 #include "nnz.h"
@@ -130,7 +130,7 @@ struct NetworkArchitecture final {
     }
 
    private:
-    Layers::AffineTransformSparseInput<TransformedFeatureDimensions, FC_0_Outputs + 1> fc_0;
+    Layers::SparseInputAffineTransform<TransformedFeatureDimensions, FC_0_Outputs + 1> fc_0;
     Layers::SqrClippedReLU<FC_0_Outputs + 1>                                           ac_sqr_0;
     Layers::ClippedReLU<FC_0_Outputs + 1>                                              ac_0;
     Layers::AffineTransform<FC_0_Outputs * 2, FC_1_Outputs>                            fc_1;

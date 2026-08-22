@@ -15,8 +15,8 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef NNZ_HELPER_H_INCLUDED
-#define NNZ_HELPER_H_INCLUDED
+#ifndef NNUE_NNZ_H_INCLUDED
+#define NNUE_NNZ_H_INCLUDED
 
 #include <utility>
 
@@ -172,4 +172,4 @@ struct NNZ final {
 
 }  // namespace DON::NNUE
 
-#endif
+#endif  // NNUE_NNZ_H_INCLUDED
