@@ -48,22 +48,6 @@ bool free_aligned_large_page(void* mem) noexcept;
 
 bool has_large_page() noexcept;
 
-// Round up to multiples of alignment
-template<typename T>
-[[nodiscard]] constexpr T round_up_to_pow2_multiple(T size, T alignment) noexcept {
-    static_assert(std::is_unsigned_v<T>, "round_up_to_pow2_multiple requires an unsigned type");
-    // Alignment must be non-zero power of 2
-    assert(alignment != 0 && (alignment & (alignment - 1)) == 0);
-
-    // Handle edge case: alignment = 0
-    if (alignment == 0)
-        return size;
-
-    T mask = alignment - 1;
-    // Avoid overflow: if size + mask overflows, it wraps around
-    return (size + mask) & ~mask;
-}
-
 // Frees memory which was placed there with placement new.
 // Works for both single objects and arrays of unknown bound.
 template<typename T, typename FreeFunc>
@@ -236,7 +220,7 @@ template<usize Alignment, typename T>
     static_assert(Alignment >= alignof(T), "Alignment must be >= alignof(T)");
 
     auto ptrInt = reinterpret_cast<std::uintptr_t>(ptr);
-    ptrInt      = round_up_to_pow2_multiple(ptrInt, Alignment);
+    ptrInt      = round_up_to_multiple(ptrInt, Alignment);
     return reinterpret_cast<T*>(ptrInt);
 }
 

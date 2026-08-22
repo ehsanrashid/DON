@@ -60,7 +60,7 @@ void* alloc_aligned_std(usize allocSize, usize alignment) noexcept {
 
 #if defined(_ISOC11_SOURCE) || !(defined(USE_POSIX_ALIGNED_ALLOC) || defined(_WIN32))
     // std::aligned_alloc requires size to be a multiple of alignment
-    allocSize = round_up_to_pow2_multiple(allocSize, alignment);
+    allocSize = round_up_to_multiple(allocSize, alignment);
 #endif
 
 #if defined(_ISOC11_SOURCE)
@@ -103,7 +103,7 @@ void* alloc_windows_aligned_large_page(usize allocSize) noexcept {
     return try_with_windows_lock_memory_privilege(
       [&](usize LargePageSize) noexcept {
           // Round up size to full large page
-          usize roundedAllocSize = round_up_to_pow2_multiple(allocSize, LargePageSize);
+          usize roundedAllocSize = round_up_to_multiple(allocSize, LargePageSize);
           // Allocate large page memory
           void* mem = VirtualAlloc(nullptr, roundedAllocSize,
                                    MEM_LARGE_PAGES | MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
@@ -139,7 +139,7 @@ void* alloc_aligned_large_page(usize allocSize) noexcept {
     #endif
           ;
 
-        usize roundedAllocSize = round_up_to_pow2_multiple(allocSize, Alignment);
+        usize roundedAllocSize = round_up_to_multiple(allocSize, Alignment);
 
         mem = VirtualAlloc(nullptr, roundedAllocSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
         if (mem == nullptr)
@@ -158,7 +158,7 @@ void* alloc_aligned_large_page(usize allocSize) noexcept {
     #endif
       ;
 
-    usize roundedAllocSize = round_up_to_pow2_multiple(allocSize, Alignment);
+    usize roundedAllocSize = round_up_to_multiple(allocSize, Alignment);
 
     mem = alloc_aligned_std(roundedAllocSize, Alignment);
     #if defined(MADV_HUGEPAGE)
@@ -192,7 +192,9 @@ bool free_aligned_large_page(void* mem) noexcept {
 bool has_large_page() noexcept {
 
 #if defined(_WIN32)
-    void* mem = alloc_windows_aligned_large_page(2 * MB);  // 2MB page-size assumed
+    constexpr usize pageSize = 2 * MB;  // Assume 2MB page-size
+
+    void* mem = alloc_windows_aligned_large_page(pageSize);
     if (mem == nullptr)
         return false;
     [[maybe_unused]] bool success = free_aligned_large_page(mem);

@@ -272,6 +272,7 @@ constexpr T ceil_to_multiple(const T n, const T base) noexcept {
     return ceil_div(n, base) * base;
 }
 
+// Round up to the next power of 2
 constexpr usize round_up_to_pow2(usize x) noexcept {
     if (x == 0)
         return 1;
@@ -286,6 +287,22 @@ constexpr usize round_up_to_pow2(usize x) noexcept {
     x |= x >> 32;  // for 64-bit size_t
 #endif
     return x + 1;
+}
+
+// Round up to a multiple of alignment
+template<typename T>
+[[nodiscard]] constexpr T round_up_to_multiple(const T size, const T alignment) noexcept {
+    static_assert(std::is_unsigned_v<T>, "round_up_to_multiple() requires an unsigned type");
+    // Alignment must be non-zero power of 2
+    assert(is_power_of_2(alignment));
+
+    // Safely handle edge case: zero alignment when assertions are disabled
+    if (alignment == 0)
+        return size;
+
+    const T mask = alignment - 1;
+    // Round up to the next multiple of alignment
+    return (size + mask) & ~mask;
 }
 
 template<typename T, std::enable_if_t<std::is_integral_v<T>, bool> = true>

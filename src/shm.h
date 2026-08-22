@@ -328,7 +328,7 @@ class BackendSharedMemory final {
         hMapFile = try_with_windows_lock_memory_privilege(
           [&](usize LargePageSize) noexcept {
               // Round up size to full large page
-              usize roundedTotalSize = round_up_to_pow2_multiple(TotalSize, LargePageSize);
+              usize roundedTotalSize = round_up_to_multiple(TotalSize, LargePageSize);
 
     #if defined(_WIN64)
               DWORD hiTotalSize = roundedTotalSize >> 32;
