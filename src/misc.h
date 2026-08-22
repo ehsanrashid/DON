@@ -52,27 +52,32 @@
 
 #if defined(_WIN32)
     #include "platform_win.h"
+#else
+    #include <sys/mman.h>
+    #include <unistd.h>
 #endif
 
-#undef HAS_X86_PREFETCH
-#if defined(USE_PREFETCH) \
-  && (defined(_M_X64) || defined(__x86_64__) || defined(__i386__) || defined(_M_IX86))
-    //|| defined(_MSC_VER) || defined(__INTEL_COMPILER)
-    #define HAS_X86_PREFETCH
-    #include <xmmintrin.h>  // SSE intrinsics header for _mm_prefetch()
+#if defined(__i386__) || defined(_M_IX86)
+    #define X86
+    #define X86_32
+#elif defined(__x86_64__) || defined(_M_X64)
+    #define X86
+    #define X86_64
+#endif
+
+#if defined(X86) && defined(USE_PREFETCH)
+    #include <xmmintrin.h>  // SSE header for _mm_prefetch() intrinsics
+    #define USE_X86_PREFETCH
 #endif
 
 #define STRING_LITERAL(x) #x
 #define STRINGIFY(x) STRING_LITERAL(x)
 
-#if defined(__clang__)
-    #define ALWAYS_INLINE inline __attribute__((always_inline))
-#elif defined(__GNUC__)
+#if defined(__clang__) || defined(__GNUC__)
     #define ALWAYS_INLINE inline __attribute__((always_inline))
 #elif defined(_MSC_VER)
     #define ALWAYS_INLINE __forceinline
 #else
-    // fallback: keep 'inline'
     #define ALWAYS_INLINE inline
 #endif
 
@@ -88,56 +93,50 @@
 #elif defined(_MSC_VER)
     #define ASSUME(cond) __assume(cond)
 #else
-    // fallback: do nothing
-    #define ASSUME(cond) ((void) 0)
-#endif
-
-#if defined(__clang__)
-    #define UNREACHABLE() do { __builtin_unreachable(); } while (false)
-#elif defined(__GNUC__)
-    #define UNREACHABLE() do { __builtin_unreachable(); } while (false)
-#elif defined(_MSC_VER)
-    #define UNREACHABLE() __assume(false)
-#else
-    #define UNREACHABLE() do { } while (false)
+    #define ASSUME(cond)
 #endif
 // clang-format on
 
-#if defined(__clang__)
-    #define RESTRICT __restrict__
-#elif defined(__GNUC__)
+#if defined(__clang__) || defined(__GNUC__)
+    #define UNREACHABLE() __builtin_unreachable()
+#elif defined(_MSC_VER)
+    #define UNREACHABLE() __assume(false)
+#else
+    #define UNREACHABLE()
+#endif
+
+#if defined(__clang__) || defined(__GNUC__)
     #define RESTRICT __restrict__
 #elif defined(_MSC_VER)
     #define RESTRICT __restrict
 #else
-    // fallback: no restrict
     #define RESTRICT
 #endif
 
 #if !defined(NDEBUG)
-    #define DEBUG_LOG(msg) std::cerr << msg << std::endl
+    #define DEBUG_LOG(msg) std::cerr << msg << '\n'
 #else
     #define DEBUG_LOG(msg) ((void) 0)
 #endif
 
 namespace DON {
 
-using u64   = std::uint64_t;
-using u32   = std::uint32_t;
-using u16   = std::uint16_t;
-using u8    = std::uint8_t;
-using uchar = unsigned char;
+using u64 = std::uint64_t;
+using u32 = std::uint32_t;
+using u16 = std::uint16_t;
+using u8  = std::uint8_t;
 
-using i64   = std::int64_t;
-using i32   = std::int32_t;
-using i16   = std::int16_t;
-using i8    = std::int8_t;
-using ichar = char;
+using i64 = std::int64_t;
+using i32 = std::int32_t;
+using i16 = std::int16_t;
+using i8  = std::int8_t;
 
 using usize = std::size_t;
 using isize = std::ptrdiff_t;
 
-#if defined(IS_64BIT) && defined(__GNUC__)
+using uchar = unsigned char;
+
+#if defined(__GNUC__) && defined(IS_64BIT) && !defined(__wasm__)
 __extension__ using u128 = unsigned __int128;
 __extension__ using i128 = signed __int128;
 #endif
@@ -225,7 +224,7 @@ inline const bool IsLittleEndian = []() noexcept {
 }();
 #endif
 
-constexpr u64 bit(u8 b) noexcept { return (u64{1} << b); }
+constexpr u64 bit(const u8 b) noexcept { return (u64{1} << b); }
 
 template<typename To, typename From>
 constexpr bool is_strictly_assignable_v =
@@ -236,14 +235,14 @@ template<
   typename T,
   std::enable_if_t<std::is_arithmetic_v<T> || (std::is_enum_v<T> && std::is_convertible_v<T, int>),
                    int> = 0>
-constexpr int sign(T x) noexcept {
+constexpr int sign(const T x) noexcept {
     // NaN -> 0; unsigned types never return -1
     return (T(0) < x) - (x < T(0));  // Returns 1 for positive, -1 for negative, and 0 for zero
 }
 
 // Return the square of a number, using a wider type to avoid overflow
 template<typename T>
-constexpr auto sqr(T x) noexcept {
+constexpr auto sqr(const T x) noexcept {
     static_assert(std::is_arithmetic_v<T>, "Argument must be arithmetic");
     using Wider = std::conditional_t<std::is_integral_v<T>, long long, T>;
     return Wider(x) * Wider(x);
@@ -251,17 +250,29 @@ constexpr auto sqr(T x) noexcept {
 
 // Return the square of a number multiplied by its sign, using a wider type to avoid overflow
 template<typename T>
-constexpr auto sign_sqr(T x) noexcept {
+constexpr auto sign_sqr(const T x) noexcept {
     static_assert(std::is_arithmetic_v<T>, "Argument must be arithmetic");
     return sign(x) * sqr(x);
 }
 
+template<typename T>
+constexpr bool is_power_of_2(const T x) noexcept {
+    return x != 0 && (x & (x - 1)) == 0;
+}
+
 template<typename T1, typename T2>
-constexpr std::common_type_t<T1, T2> ceil_div(T1 n, T2 d) noexcept {
+constexpr std::common_type_t<T1, T2> ceil_div(const T1 n, const T2 d) noexcept {
     using R = std::common_type_t<T1, T2>;
     return (R(n) + R(d) - 1) / R(d);
 }
 
+// Round n up to be a multiple of base
+template<typename T>
+constexpr T ceil_to_multiple(const T n, const T base) noexcept {
+    return ceil_div(n, base) * base;
+}
+
+// Round up to the next power of 2
 constexpr usize round_up_to_pow2(usize x) noexcept {
     if (x == 0)
         return 1;
@@ -276,6 +287,22 @@ constexpr usize round_up_to_pow2(usize x) noexcept {
     x |= x >> 32;  // for 64-bit size_t
 #endif
     return x + 1;
+}
+
+// Round up to a multiple of alignment
+template<typename T>
+[[nodiscard]] constexpr T round_up_to_multiple(const T size, const T alignment) noexcept {
+    static_assert(std::is_unsigned_v<T>, "round_up_to_multiple() requires an unsigned type");
+    // Alignment must be non-zero power of 2
+    assert(is_power_of_2(alignment));
+
+    // Safely handle edge case: zero alignment when assertions are disabled
+    if (alignment == 0)
+        return size;
+
+    const T mask = alignment - 1;
+    // Round up to the next multiple of alignment
+    return (size + mask) & ~mask;
 }
 
 template<typename T, std::enable_if_t<std::is_integral_v<T>, bool> = true>
@@ -428,7 +455,7 @@ std::string version_info() noexcept;
 std::string compiler_info() noexcept;
 
 constexpr u64 mul_hi64(u64 u1, u64 u2) noexcept {
-#if defined(IS_64BIT) && defined(__GNUC__) && !defined(__wasm__)
+#if defined(__GNUC__) && defined(IS_64BIT) && !defined(__wasm__)
     return (u128(u1) * u128(u2)) >> 64;
 #else
     u64 u1L = u32(u1), u1H = u1 >> 32;
@@ -466,7 +493,7 @@ enum class PrefetchLoc : u8 {
 // On GCC/Clang, __builtin_prefetch supports Access as a separate hint.
 template<PrefetchAccess Access = PrefetchAccess::READ, PrefetchLoc Loc = PrefetchLoc::HIGH>
 inline void prefetch(const void* addr) noexcept {
-    #if defined(HAS_X86_PREFETCH)
+    #if defined(USE_X86_PREFETCH)
     constexpr auto Hint = []() constexpr noexcept {
         if constexpr (Access == PrefetchAccess::WRITE)
             return
@@ -648,20 +675,20 @@ class OstreamMutexRegistry final {
     }
 
     // Return a mutex associated with the given ostream pointer.
-    // If ptrOs is nullptr, returns a null-mutex to safely ignore locking.
+    // If osPtr is nullptr, returns a null-mutex to safely ignore locking.
     // This ensures no accidental insertion of null keys into the map.
-    static std::mutex& get(std::ostream* ptrOs) noexcept {
+    static std::mutex& get(std::ostream* osPtr) noexcept {
         ensure_initialized();
 
         // Fallback for null pointers
-        if (ptrOs == nullptr)
+        if (osPtr == nullptr)
             return nullMutex;
 
         // Lock the registry while accessing the map
         std::lock_guard writeLock(mutex);
 
         // Return mutex, create if missing
-        return osMutexes[ptrOs];
+        return osMutexes[osPtr];
     }
 
    private:
@@ -707,11 +734,11 @@ class OstreamMutexRegistry final {
 class [[nodiscard]] SyncOstream final {
    public:
     explicit SyncOstream(std::ostream& os) noexcept :
-        ptrOs(&os),
-        lock(OstreamMutexRegistry::get(ptrOs)) {}
+        osPtr(&os),
+        lock(OstreamMutexRegistry::get(osPtr)) {}
     // Move-constructible so factories can return by value
     SyncOstream(SyncOstream&& syncOs) noexcept :
-        ptrOs(syncOs.ptrOs),
+        osPtr(syncOs.osPtr),
         lock(std::move(syncOs.lock)) {}
 
     SyncOstream(const SyncOstream&) noexcept            = delete;
@@ -721,51 +748,51 @@ class [[nodiscard]] SyncOstream final {
 
     template<typename T>
     SyncOstream& operator<<(T&& x) & {
-        assert(ptrOs != nullptr && "Use of moved-from SyncOstream");
+        assert(osPtr != nullptr && "Use of moved-from SyncOstream");
 
-        *ptrOs << std::forward<T>(x);
+        *osPtr << std::forward<T>(x);
         return *this;
     }
     template<typename T>
     SyncOstream&& operator<<(T&& x) && {
-        assert(ptrOs != nullptr && "Use of moved-from SyncOstream");
+        assert(osPtr != nullptr && "Use of moved-from SyncOstream");
 
-        *ptrOs << std::forward<T>(x);
+        *osPtr << std::forward<T>(x);
         return std::move(*this);
     }
 
     using IosManipulator = std::ios& (*) (std::ios&);
 
     SyncOstream& operator<<(IosManipulator manip) & {
-        assert(ptrOs != nullptr && "Use of moved-from SyncOstream");
+        assert(osPtr != nullptr && "Use of moved-from SyncOstream");
 
-        manip(*ptrOs);
+        manip(*osPtr);
         return *this;
     }
     SyncOstream&& operator<<(IosManipulator manip) && {
-        assert(ptrOs != nullptr && "Use of moved-from SyncOstream");
+        assert(osPtr != nullptr && "Use of moved-from SyncOstream");
 
-        manip(*ptrOs);
+        manip(*osPtr);
         return std::move(*this);
     }
 
     using OstreamManipulator = std::ostream& (*) (std::ostream&);
 
     SyncOstream& operator<<(OstreamManipulator manip) & {
-        assert(ptrOs != nullptr && "Use of moved-from SyncOstream");
+        assert(osPtr != nullptr && "Use of moved-from SyncOstream");
 
-        manip(*ptrOs);
+        manip(*osPtr);
         return *this;
     }
     SyncOstream&& operator<<(OstreamManipulator manip) && {
-        assert(ptrOs != nullptr && "Use of moved-from SyncOstream");
+        assert(osPtr != nullptr && "Use of moved-from SyncOstream");
 
-        manip(*ptrOs);
+        manip(*osPtr);
         return std::move(*this);
     }
 
    private:
-    std::ostream* const          ptrOs;
+    std::ostream* const          osPtr;
     std::unique_lock<std::mutex> lock;
 };
 
@@ -935,7 +962,7 @@ class MultiArray final {
     }
 
     //void print() const noexcept {
-    //    std::cout << Size << ':' << sizeof...(Sizes) << std::endl;
+    //    std::cout << Size << ':' << sizeof...(Sizes) << '\n';
     //
     //    for (auto& element : data_)
     //    {
@@ -1595,18 +1622,18 @@ struct CommandLine final {
 
 inline std::string lower_case(std::string str) noexcept {
     std::transform(str.begin(), str.end(), str.begin(),
-                   [](uchar ch) noexcept -> ichar { return std::tolower(ch); });
+                   [](uchar ch) noexcept -> char { return std::tolower(ch); });
     return str;
 }
 
 inline std::string upper_case(std::string str) noexcept {
     std::transform(str.begin(), str.end(), str.begin(),
-                   [](uchar ch) noexcept -> ichar { return std::toupper(ch); });
+                   [](uchar ch) noexcept -> char { return std::toupper(ch); });
     return str;
 }
 
 inline std::string toggle_case(std::string str) noexcept {
-    std::transform(str.begin(), str.end(), str.begin(), [](uchar ch) noexcept -> ichar {
+    std::transform(str.begin(), str.end(), str.begin(), [](uchar ch) noexcept -> char {
         return std::islower(ch) ? std::toupper(ch) : std::isupper(ch) ? std::tolower(ch) : ch;
     });
     return str;
@@ -1834,8 +1861,221 @@ inline std::string error_to_string(DWORD errorId) noexcept {
 
     return message;
 }
+
+inline constexpr HANDLE INVALID_HANDLE = nullptr;
+
+[[nodiscard]] constexpr bool is_valid_handle(HANDLE handle) noexcept {
+    return handle != INVALID_HANDLE && handle != INVALID_HANDLE_VALUE;
+}
+
+inline constexpr void* INVALID_MMAP_PTR = nullptr;
+
+struct HandleGuard final {
+   public:
+    explicit HandleGuard(HANDLE& handleRef) noexcept :
+        handle(handleRef) {}
+
+    HandleGuard() noexcept = delete;
+
+    HandleGuard(const HandleGuard&) noexcept            = delete;
+    HandleGuard& operator=(const HandleGuard&) noexcept = delete;
+
+    HandleGuard(HandleGuard&&) noexcept            = delete;
+    HandleGuard& operator=(HandleGuard&&) noexcept = delete;
+
+    ~HandleGuard() noexcept { reset(); }
+
+    [[nodiscard]] bool is_valid() const noexcept { return is_valid_handle(handle); }
+
+    [[nodiscard]] HANDLE get() const noexcept { return handle; }
+
+    void reset(HANDLE newHandle = INVALID_HANDLE) noexcept {
+        if (handle != newHandle)
+        {
+            if (is_valid())
+                CloseHandle(handle);
+
+            handle = newHandle;
+        }
+    }
+
+    void dismiss() noexcept { handle = INVALID_HANDLE; }
+
+   private:
+    HANDLE& handle;
+};
+
+struct MMapGuard final {
+   public:
+    explicit MMapGuard(void*& ptrRef) noexcept :
+        mappedPtr(ptrRef) {}
+
+    MMapGuard() noexcept = delete;
+
+    MMapGuard(const MMapGuard&) noexcept            = delete;
+    MMapGuard& operator=(const MMapGuard&) noexcept = delete;
+
+    MMapGuard(MMapGuard&&) noexcept            = delete;
+    MMapGuard& operator=(MMapGuard&&) noexcept = delete;
+
+    ~MMapGuard() noexcept { reset(); }
+
+    [[nodiscard]] bool is_valid() const noexcept { return mappedPtr != INVALID_MMAP_PTR; }
+
+    [[nodiscard]] void* get() const noexcept { return mappedPtr; }
+
+    void reset(void* newPtr = INVALID_MMAP_PTR) noexcept {
+        if (mappedPtr != newPtr)
+        {
+            if (is_valid())
+                UnmapViewOfFile(mappedPtr);
+
+            mappedPtr = newPtr;
+        }
+    }
+
+    void dismiss() noexcept { mappedPtr = INVALID_MMAP_PTR; }
+
+   private:
+    void*& mappedPtr;
+};
+
+#else
+
+inline constexpr int INVALID_FD = -1;
+
+[[nodiscard]] constexpr bool is_valid_fd(int fd) noexcept { return fd > INVALID_FD; }
+
+inline constexpr void* INVALID_MMAP_PTR  = nullptr;
+inline constexpr usize INVALID_MMAP_SIZE = 0;
+
+struct FdGuard final {
+   public:
+    explicit FdGuard(int& refFd) noexcept :
+        fd(refFd) {}
+
+    FdGuard() noexcept = delete;
+
+    FdGuard(const FdGuard&) noexcept            = delete;
+    FdGuard& operator=(const FdGuard&) noexcept = delete;
+
+    FdGuard(FdGuard&&) noexcept            = delete;
+    FdGuard& operator=(FdGuard&&) noexcept = delete;
+
+    ~FdGuard() noexcept { reset(); }
+
+    [[nodiscard]] bool is_valid() const noexcept { return is_valid_fd(fd); }
+
+    [[nodiscard]] int get() const noexcept { return fd; }
+
+    void reset(int newFd = INVALID_FD) noexcept {
+        if (fd != newFd)
+        {
+            if (is_valid())
+                ::close(fd);
+
+            fd = newFd;
+        }
+    }
+
+    void dismiss() noexcept { fd = INVALID_FD; }
+
+   private:
+    int& fd;
+};
+
+struct MMapGuard final {
+   public:
+    MMapGuard(void*& ptrRef, usize& sizeRef) noexcept :
+        mappedPtr(ptrRef),
+        mappedSize(sizeRef) {}
+
+    MMapGuard() noexcept = delete;
+
+    MMapGuard(const MMapGuard&) noexcept            = delete;
+    MMapGuard& operator=(const MMapGuard&) noexcept = delete;
+
+    MMapGuard(MMapGuard&&) noexcept            = delete;
+    MMapGuard& operator=(MMapGuard&&) noexcept = delete;
+
+    ~MMapGuard() noexcept { reset(); }
+
+    [[nodiscard]] bool is_valid() const noexcept { return mappedPtr != INVALID_MMAP_PTR; }
+
+    [[nodiscard]] void* get_ptr() const noexcept { return mappedPtr; }
+
+    [[nodiscard]] usize get_size() const noexcept { return mappedSize; }
+
+    void reset(void* newPtr = INVALID_MMAP_PTR, usize newSize = INVALID_MMAP_SIZE) noexcept {
+        if (mappedPtr != newPtr)
+        {
+            if (is_valid())
+                ::munmap(mappedPtr, mappedSize);
+
+            mappedPtr  = newPtr;
+            mappedSize = newSize;
+        }
+    }
+
+    void dismiss() noexcept {
+        mappedPtr  = INVALID_MMAP_PTR;
+        mappedSize = INVALID_MMAP_SIZE;
+    }
+
+   private:
+    void*& mappedPtr;
+    usize& mappedSize;
+};
+
+struct UniqueFd final {
+   public:
+    explicit UniqueFd(int iFd) noexcept :
+        fd{iFd} {}
+
+    UniqueFd() noexcept = default;
+
+    UniqueFd(const UniqueFd&)            = delete;
+    UniqueFd& operator=(const UniqueFd&) = delete;
+
+    UniqueFd(UniqueFd&& uniqueFd) noexcept :
+        fd{uniqueFd.release()} {}
+
+    UniqueFd& operator=(UniqueFd&& uniqueFd) noexcept {
+        if (this == &uniqueFd)
+            return *this;
+
+        reset(uniqueFd.release());
+
+        return *this;
+    }
+
+    ~UniqueFd() { reset(); }
+
+    [[nodiscard]] int get() const noexcept { return fd; }
+
+    [[nodiscard]] bool is_valid() const noexcept { return is_valid_fd(fd); }
+
+    [[nodiscard]] explicit operator bool() const noexcept { return is_valid(); }
+
+    [[nodiscard]] int release() noexcept { return std::exchange(fd, INVALID_FD); }
+
+    void reset(int newFd = INVALID_FD) noexcept {
+        if (fd != newFd)
+        {
+            if (is_valid())
+                ::close(fd);
+
+            fd = newFd;
+        }
+    }
+
+   private:
+    int fd = INVALID_FD;
+};
+
 #endif
+
 
 }  // namespace DON
 
-#endif  // #ifndef MISC_H_INCLUDED
+#endif  // MISC_H_INCLUDED

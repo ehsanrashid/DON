@@ -98,7 +98,7 @@ class Option final {
     OnChange    onChange;
 
     u16            idx;
-    const Options* ptrOptions = nullptr;
+    const Options* optionsPtr = nullptr;
 
     friend class Options;
 };
@@ -152,4 +152,4 @@ class Options final {
 
 }  // namespace DON
 
-#endif  // #ifndef OPTION_H_INCLUDED
+#endif  // OPTION_H_INCLUDED

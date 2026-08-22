@@ -28,7 +28,7 @@
 namespace DON {
 
 bool     Tune::IsLastUpdate = false;
-Options* Tune::PtrOptions   = nullptr;
+Options* Tune::OptionsPtr   = nullptr;
 
 namespace {
 
@@ -62,7 +62,7 @@ std::string Tune::next(std::string& names, bool pop) noexcept {
     return name;
 }
 
-void Tune::make_option(Options*           ptrOptions,
+void Tune::make_option(Options*           optionsPtr,
                        std::string_view   name,
                        int                value,
                        const RangeSetter& range) noexcept {
@@ -73,8 +73,8 @@ void Tune::make_option(Options*           ptrOptions,
     if (TuneResults.find(name) != TuneResults.end())
         value = TuneResults[name];
 
-    ptrOptions->add(name, Option(value, range(value).first, range(value).second, on_tune));
-    LastOption = &((*ptrOptions)[name]);
+    optionsPtr->add(name, Option(value, range(value).first, range(value).second, on_tune));
+    LastOption = &((*optionsPtr)[name]);
 
     // Print formatted parameters, ready to be copy-pasted in Fishtest
     std::cout << name << ','                                               //
@@ -87,14 +87,14 @@ void Tune::make_option(Options*           ptrOptions,
 
 template<>
 void Tune::Entry<int>::init_option() noexcept {
-    make_option(PtrOptions, name, value, range);
+    make_option(OptionsPtr, name, value, range);
 }
 
 template<>
 void Tune::Entry<int>::read_option() noexcept {
     value = 0;  // default
-    if (PtrOptions->contains(name))
-        value = int((*PtrOptions)[name]);
+    if (OptionsPtr->contains(name))
+        value = int((*OptionsPtr)[name]);
 }
 
 // Instead of a variable here have a PostUpdate function: just call it

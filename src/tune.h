@@ -137,7 +137,7 @@ class Tune final {
     // entries, each one of a possible different type.
     static std::string next(std::string& names, bool pop = true) noexcept;
 
-    static void make_option(Options*           ptrOptions,
+    static void make_option(Options*           optionsPtr,
                             std::string_view   name,
                             int                value,
                             const RangeSetter& range) noexcept;
@@ -175,7 +175,7 @@ class Tune final {
 
     // Deferred, due to UCI::engine_options() access
     static void init(Options& options) noexcept {
-        PtrOptions = &options;
+        OptionsPtr = &options;
 
         for (auto& entry : instance().entries)
             entry->init_option();
@@ -189,7 +189,7 @@ class Tune final {
     }
 
     static bool     IsLastUpdate;
-    static Options* PtrOptions;
+    static Options* OptionsPtr;
 };
 
 template<typename... Args>
@@ -210,4 +210,4 @@ constexpr void check_tune_args(Args&&...) noexcept {
 
 }  // namespace DON
 
-#endif  // #ifndef TUNE_H_INCLUDED
+#endif  // TUNE_H_INCLUDED

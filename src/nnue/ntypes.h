@@ -15,27 +15,48 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef NNUE_NMISC_H_INCLUDED
-#define NNUE_NMISC_H_INCLUDED
+#ifndef NNUE_NTYPES_H_INCLUDED
+#define NNUE_NTYPES_H_INCLUDED
 
 #include <filesystem>
+#include <optional>
 #include <string>
 #include <string_view>
-#include <optional>
 #include <utility>
 
 #include "../evaluate.h"
 #include "../misc.h"
-#include "architecture.h"
 
-namespace DON {
+namespace DON::NNUE {
 
-class Position;
+using BiasType         = i16;
+using WeightType       = i16;
+using PSQTWeightType   = i32;
+using ThreatWeightType = i8;
+using IndexType        = usize;
 
-namespace NNUE {
+// Type of input feature after conversion
+using TransformedFeatureType = u8;
 
-class Network;
-struct AccumulatorCache;
+// Number of input feature dimensions after conversion
+inline constexpr IndexType L1 = 1024;
+inline constexpr u32       L2 = 31;
+inline constexpr u32       L3 = 32;
+
+// Version of the evaluation file
+inline constexpr u32 FILE_VERSION = 0x7AF32F20u;
+
+inline constexpr IndexType PSQTBuckets = 8;
+inline constexpr IndexType LayerStacks = 8;
+
+// If vector instructions are enabled, update and refresh the accumulator
+// tile by tile such that each tile fits in the CPU's vector registers.
+static_assert(PSQTBuckets % 8 == 0,
+              "Per feature PSQT values cannot be processed at granularity lower than 8 at a time.");
+
+// Constant used in evaluation value calculation
+inline constexpr int OUTPUT_SCALE      = 16;
+inline constexpr int WEIGHT_SCALE_BITS = 6;
 
 // EvalFile stores the currently selected evaluation network and its metadata.
 // The network path may be explicitly selected through a UCI option or fall back to the default network,
@@ -67,9 +88,6 @@ struct NetworkTrace final {
     usize                             correctBucket;
 };
 
-std::string trace(Position& pos, const Network& network, AccumulatorCache& accCache) noexcept;
+}  // namespace DON::NNUE
 
-}  // namespace NNUE
-}  // namespace DON
-
-#endif  // #ifndef NNUE_NMISC_H_INCLUDED
+#endif  // NNUE_NTYPES_H_INCLUDED

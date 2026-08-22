@@ -126,11 +126,6 @@ using History = MultiArray<HistoryEntry<T, D>, Sizes...>;
 template<typename T, int D, usize... Sizes>
 using AtomicHistory = MultiArray<HistoryEntry<T, D, true>, Sizes...>;
 
-template<typename T>
-constexpr bool is_power_of_2(const T x) noexcept {
-    return x != 0 && (x & (x - 1)) == 0;
-}
-
 inline constexpr u16 LOW_PLY_SIZE = 5;
 
 inline constexpr usize QUIET_HISTORY_SIZE = 0x10000;
@@ -278,4 +273,4 @@ using AtomicHistoriesMap = std::unordered_map<usize, AtomicHistories>;
 
 }  // namespace DON
 
-#endif  // #ifndef HISTORY_H_INCLUDED
+#endif  // HISTORY_H_INCLUDED

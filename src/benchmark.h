@@ -42,4 +42,4 @@ Setup benchmark(std::istream& is) noexcept;
 
 }  // namespace DON::Benchmark
 
-#endif  // #ifndef BENCHMARK_H_INCLUDED
+#endif  // BENCHMARK_H_INCLUDED

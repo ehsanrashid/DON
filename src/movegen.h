@@ -94,4 +94,4 @@ struct MoveList final {
 
 }  // namespace DON
 
-#endif  // #ifndef MOVEGEN_H_INCLUDED
+#endif  // MOVEGEN_H_INCLUDED

@@ -34,7 +34,7 @@
 #include "thread.h"
 #include "tt.h"
 #include "types.h"
-#include "nnue/nmisc.h"
+#include "nnue/ntypes.h"
 #include "nnue/network.h"
 
 namespace DON {
@@ -130,4 +130,4 @@ class Engine final {
 
 }  // namespace DON
 
-#endif  // #ifndef ENGINE_H_INCLUDED
+#endif  // ENGINE_H_INCLUDED

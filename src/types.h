@@ -812,4 +812,4 @@ struct std::hash<DON::Move> {
     DON::usize operator()(DON::Move m) const noexcept { return DON::make_hash(m.raw()); }
 };
 
-#endif  // #ifndef TYPES_H_INCLUDED
+#endif  // TYPES_H_INCLUDED

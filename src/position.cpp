@@ -243,13 +243,13 @@ void Position::set(std::string_view fens, State* newSt) noexcept {
     const auto* const end = p + fens.size();
 
     // Returns '\0' when p >= end (EOF sentinel)
-    auto peek        = [&p, end]() noexcept -> ichar { return p < end ? *p : '\0'; };
+    auto peek        = [&p, end]() noexcept -> char { return p < end ? *p : '\0'; };
     auto skip_spaces = [&p, end]() noexcept {
         for (; p < end && std::isspace(uchar(*p)); ++p)
         {}
     };
     auto not_space = [&p, end]() noexcept -> bool { return p < end && !std::isspace(uchar(*p)); };
-    auto get       = [&p, end]() noexcept -> ichar { return p < end ? *p++ : '\0'; };
+    auto get       = [&p, end]() noexcept -> char { return p < end ? *p++ : '\0'; };
     auto get_int   = [&p, end, &skip_spaces](int& out) noexcept -> bool {
         skip_spaces();
 
@@ -276,7 +276,7 @@ void Position::set(std::string_view fens, State* newSt) noexcept {
         return true;
     };
 
-    ichar token;
+    char token;
 
     File file = FILE_A;
     Rank rank = RANK_8;
@@ -334,7 +334,7 @@ void Position::set(std::string_view fens, State* newSt) noexcept {
     // 2. Active color
     token = get();
 
-    switch (ichar(std::tolower(uchar(token))))
+    switch (char(std::tolower(uchar(token))))
     {
     case 'w' :
         activeColor = WHITE;
@@ -370,7 +370,7 @@ void Position::set(std::string_view fens, State* newSt) noexcept {
         }
 
         Color c = std::isupper(uchar(token)) ? WHITE : BLACK;
-        token   = ichar(std::tolower(uchar(token)));
+        token   = char(std::tolower(uchar(token)));
 
         if (relative_rank(c, square<KING>(c)) != RANK_1)
         {
@@ -441,11 +441,11 @@ void Position::set(std::string_view fens, State* newSt) noexcept {
         }
         else
         {
-            ichar epFile = get();
+            char epFile = get();
 
             if (p < end)
             {
-                ichar epRank = get();
+                char epRank = get();
 
                 if ('a' <= epFile && epFile <= 'h' && epRank == (ac == WHITE ? '6' : '3'))
                     enPassantSq = make_square(to_file(epFile), to_rank(epRank));
@@ -627,7 +627,7 @@ std::string Position::fen(bool complete) const noexcept {
 void Position::set_castling_rights(Color c, Square rookOrgSq) noexcept {
     assert(relative_rank(c, rookOrgSq) == RANK_1);
     assert((pieces_bb(c, ROOK) & rookOrgSq) != 0);
-    assert(castlingRightsMasks[CASTLING_RIGHTS_INDICES[rookOrgSq]] == CastlingRights::NO_CASTLING);
+    assert(castlingRightsMasks[CastlingRightsIndices[rookOrgSq]] == CastlingRights::NO_CASTLING);
 
     Square kingOrgSq = square<KING>(c);
     assert(relative_rank(c, kingOrgSq) == RANK_1);
@@ -639,8 +639,8 @@ void Position::set_castling_rights(Color c, Square rookOrgSq) noexcept {
     CastlingRights cr = make_cr(c, cs);
 
     st->castlingRights |= cr;
-    castlingRightsMasks[CASTLING_RIGHTS_INDICES[kingOrgSq]] |= cr;
-    castlingRightsMasks[CASTLING_RIGHTS_INDICES[rookOrgSq]] = cr;
+    castlingRightsMasks[CastlingRightsIndices[kingOrgSq]] |= cr;
+    castlingRightsMasks[CastlingRightsIndices[rookOrgSq]] = cr;
 
     Square kingDstSq = king_castle_sq(kingOrgSq, rookOrgSq);
     Square rookDstSq = rook_castle_sq(kingOrgSq, rookOrgSq);
@@ -878,14 +878,13 @@ DirtyBoard Position::do_move(const Move          m,
     const Square orgSq      = m.org_sq();
     Square       dstSq      = m.dst_sq();
     Piece        movedPc    = piece(orgSq);
+    auto         movedPt    = type_of(movedPc);
     Piece        capturedPc = piece(m.type() != MT::EN_PASSANT ? dstSq : dstSq - pawn_spush(ac));
     Piece        promotedPc = Piece::NO_PIECE;
     assert(color_of(movedPc) == ac);
     assert(capturedPc == Piece::NO_PIECE
            || (color_of(capturedPc) == (m.type() != MT::CASTLING ? ~ac : ac)
                && type_of(capturedPc) != KING));
-
-    auto movedPt = type_of(movedPc);
 
     DirtyBoard db;
 
@@ -902,6 +901,7 @@ DirtyBoard Position::do_move(const Move          m,
     reset_en_passant_sq();
 
     Key  movedKey;
+    bool castling;
     bool capture;
     bool enPassant = false;
     bool promotion = false;
@@ -929,6 +929,7 @@ DirtyBoard Position::do_move(const Move          m,
         st->key ^= rookKey;
         st->nonPawnKeys[ac][1] ^= rookKey;
 
+        castling   = true;
         capturedPc = Piece::NO_PIECE;
         capture    = false;
     }
@@ -938,7 +939,8 @@ DirtyBoard Position::do_move(const Move          m,
     movedKey = Zobrist::piece_square(ac, movedPt, orgSq)  //
              ^ Zobrist::piece_square(ac, movedPt, dstSq);
 
-    capture = capturedPc != Piece::NO_PIECE;
+    castling = false;
+    capture  = capturedPc != Piece::NO_PIECE;
 
     if (capture)
     {
@@ -1000,8 +1002,9 @@ DirtyBoard Position::do_move(const Move          m,
             auto promotedPt = m.promotion_type();
             assert(KNIGHT <= promotedPt && promotedPt <= QUEEN);
 
-            movedPt    = promotedPt;
             promotedPc = make_piece(ac, promotedPt);
+            //movedPc    = promotedPc;
+            movedPt    = promotedPt;
 
             db.dirtyPiece.dstSq   = SQ_NONE;
             db.dirtyPiece.addedSq = dstSq;
@@ -1061,7 +1064,7 @@ DirtyBoard Position::do_move(const Move          m,
     }
 
     // Update board
-    if (m.type() != MT::CASTLING)
+    if (!castling)
     {
         if (promotion)
         {
@@ -1090,11 +1093,11 @@ DirtyBoard Position::do_move(const Move          m,
 
     if (mayCheck)
     {
-        st->checkersBB = m.type() != MT::CASTLING
-                         ? pieces_bb(ac)
+        st->checkersBB = castling
+                         ? pieces_bb(ac, ROOK) & attacks_bb<ROOK>(square<KING>(~ac), pieces_bb())
+                         : pieces_bb(ac)
                              & ((state()->preSt->checksBB[movedPt] & dstSq)
-                                | slide_attackers_bb(square<KING>(~ac)))
-                         : pieces_bb(ac, ROOK) & attacks_bb<ROOK>(square<KING>(~ac), pieces_bb());
+                                | slide_attackers_bb(square<KING>(~ac)));
 
         assert(popcount(checkers_bb()) <= 2 && (checkers_bb() & square<KING>(ac)) == 0);
     }
@@ -1146,9 +1149,9 @@ DirtyBoard Position::do_move(const Move          m,
 
     assert(is_ok(db.dirtyPiece.movedPc));
     assert(is_ok(db.dirtyPiece.orgSq));
-    assert(is_ok(db.dirtyPiece.dstSq) ^ !(m.type() != MT::PROMOTION));
-    assert(is_ok(db.dirtyPiece.removedSq) ^ !(capture || m.type() == MT::CASTLING));
-    assert(is_ok(db.dirtyPiece.addedSq) ^ !(m.type() == MT::PROMOTION || m.type() == MT::CASTLING));
+    assert(is_ok(db.dirtyPiece.dstSq) ^ !(!promotion));
+    assert(is_ok(db.dirtyPiece.removedSq) ^ !(capture || castling));
+    assert(is_ok(db.dirtyPiece.addedSq) ^ !(promotion || castling));
     return db;
 }
 

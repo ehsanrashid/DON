@@ -28,9 +28,9 @@
 #include "../bitboard.h"
 #include "../misc.h"
 #include "../movegen.h"
+#include "../notation.h"
 #include "../option.h"
 #include "../position.h"
-#include "../notation.h"
 #include "../prng.h"
 #include "../search.h"
 #include "../types.h"
@@ -42,11 +42,11 @@ namespace {
 union Zobrist final {
    public:
     // SIZE = 2 * 6 * 64 + 2 * 2 + 8 + 1 = 768 + 4 + 8 + 1 = 781
-    static constexpr usize SIZE = (COLOR_NB * PIECE_TYPE_CNT * SQUARE_NB)  //
+    static constexpr usize Size = (COLOR_NB * PIECE_TYPE_CNT * SQUARE_NB)  //
                                 + (COLOR_NB * CASTLING_SIDE_NB)            //
                                 + (FILE_NB) + 1;
 
-    explicit constexpr Zobrist(const Array<Key, SIZE>& keys) noexcept :
+    explicit constexpr Zobrist(const Array<Key, Size>& keys) noexcept :
         Keys{keys} {}
 
     [[nodiscard]] Key key(const Position& pos) const noexcept {
@@ -79,7 +79,7 @@ union Zobrist final {
     Zobrist(Zobrist&&) noexcept                 = delete;
     Zobrist& operator=(Zobrist&&) noexcept      = delete;
 
-    Array<Key, SIZE> Keys;
+    Array<Key, Size> Keys;
 
     struct {
         Array<Key, COLOR_NB, PIECE_TYPE_CNT, SQUARE_NB> PieceSquare;

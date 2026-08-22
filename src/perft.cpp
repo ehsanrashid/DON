@@ -28,8 +28,8 @@
 #include "memory.h"
 #include "misc.h"
 #include "movegen.h"
-#include "position.h"
 #include "notation.h"
+#include "position.h"
 #include "thread.h"
 
 namespace DON::Perft {

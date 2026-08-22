@@ -35,15 +35,10 @@
 #include <variant>
 
 #if defined(_WIN32)
-    #if !defined(PATH_MAX)
-        #define PATH_MAX (2 * 1024)  // 2K bytes, safe for almost all paths
-    #endif
-    #if !defined(NAME_MAX)
-        #define NAME_MAX 255
-    #endif
+    #include "platform_win.h"
 
     // Standard portable pattern for spin-wait / CPU pause hint
-    #if defined(_M_X64) || defined(_M_IX86) || defined(__x86_64__) || defined(__i386__)
+    #if defined(X86)
         #include <emmintrin.h>  // x86/x64: SSE2 use _mm_pause()
         #define PAUSE() _mm_pause()
     #else
@@ -51,7 +46,12 @@
         #include <thread>
         #define PAUSE() std::this_thread::yield()
     #endif
-    #include "platform_win.h"
+    #if !defined(PATH_MAX)
+        #define PATH_MAX (2 * 1024)  // 2K bytes, safe for almost all paths
+    #endif
+    #if !defined(NAME_MAX)
+        #define NAME_MAX 255
+    #endif
 #elif defined(__ANDROID__)
     // Android-specific configuration (currently none)
 #elif (defined(__linux__) && !defined(__ANDROID__)) /* Linux (non-Android) */ \
@@ -61,9 +61,8 @@
   || defined(__OpenBSD__)                           /* OpenBSD */ \
   || defined(__NetBSD__)                            /* NetBSD */ \
   || defined(__DragonFly__)                         /* DragonFly BSD */ \
+  || defined(__e2k__)                               /* Elbrus 2000 */ \
   || defined(_AIX)                                  /* IBM AIX */
-    #define USE_UNIX_SHM
-
     #include <dirent.h>
     #include <fcntl.h>
     #include <limits.h>
@@ -115,6 +114,8 @@
         #error "Unsupported Unix platform"
     #endif
 
+    #define USE_UNIX_SHM
+
     #if !defined(ACCESSPERMS)
         #define ACCESSPERMS (S_IRWXU | S_IRWXG | S_IRWXO)
     #endif
@@ -125,13 +126,7 @@
 
 namespace DON {
 
-inline constexpr usize SHM_NAME_MAX = NAME_MAX > 0 ? NAME_MAX - 1 : 255 - 1;
-
-// argv[0] CANNOT be used because need to identify the executable.
-// argv[0] contains the command used to invoke it, which does not involve the full path.
-// Just using a path is not fully resilient either, as the executable could have changed
-// if it wasn't locked by the OS. If the path is longer than 4095 bytes the hash will be computed
-// from an unspecified amount of bytes of the path; in particular it can a hash of an empty string.
+inline constexpr usize SHM_NAME_MAX = NAME_MAX - 1;
 
 enum class SharedMemoryAllocationStatus : u8 {
     NoAllocation,
@@ -152,6 +147,11 @@ enum class SharedMemoryAllocationStatus : u8 {
     return "Allocation status unknown.";
 }
 
+// argv[0] CANNOT be used because need to identify the executable.
+// argv[0] contains the command used to invoke it, which does not involve the full path.
+// Just using a path is not fully resilient either, as the executable could have changed
+// if it wasn't locked by the OS. If the path is longer than 4095 bytes the hash will be computed
+// from an unspecified amount of bytes of the path; in particular it can a hash of an empty string.
 inline std::string executable_path() noexcept {
     Array<char, PATH_MAX> executablePath{};
     usize                 executableSize = 0;
@@ -328,7 +328,7 @@ class BackendSharedMemory final {
         hMapFile = try_with_windows_lock_memory_privilege(
           [&](usize LargePageSize) noexcept {
               // Round up size to full large page
-              usize roundedTotalSize = round_up_to_pow2_multiple(TotalSize, LargePageSize);
+              usize roundedTotalSize = round_up_to_multiple(TotalSize, LargePageSize);
 
     #if defined(_WIN64)
               DWORD hiTotalSize = roundedTotalSize >> 32;
@@ -395,7 +395,7 @@ class BackendSharedMemory final {
         }
 
         // Object lives first to ensure alignment
-        T* object = reinterpret_cast<T*>(mappedGuard.get());
+        auto* object = reinterpret_cast<T*>(mappedGuard.get());
 
         auto* sharedState =
           reinterpret_cast<volatile DWORD*>(reinterpret_cast<char*>(mappedGuard.get()) + sizeof(T));
@@ -904,17 +904,17 @@ inline UniqueFd create_unix_socket() noexcept {
 inline Strings get_peer_sockets(const std::string& sharedDir) noexcept {
     Strings peerSockets;
 
-    DIR* ptrDir = ::opendir(sharedDir.c_str());
-    if (ptrDir != nullptr)
+    DIR* dirPtr = ::opendir(sharedDir.c_str());
+    if (dirPtr != nullptr)
     {
-        struct dirent* ptrDirEntry;
-        while ((ptrDirEntry = ::readdir(ptrDir)) != nullptr)
+        const struct dirent* dirEntryPtr;
+        while ((dirEntryPtr = ::readdir(dirPtr)) != nullptr)
         {
-            std::string dName{ptrDirEntry->d_name};
+            std::string dName{dirEntryPtr->d_name};
             if (dName.size() >= 5 && dName.compare(dName.size() - 5, 5, ".sock") == 0)
                 peerSockets.push_back(sharedDir + "/" + dName);
         }
-        ::closedir(ptrDir);
+        ::closedir(dirPtr);
     }
 
     return peerSockets;
@@ -1580,4 +1580,4 @@ struct SystemWideSharedMemory final {
 
 }  // namespace DON
 
-#endif  // #ifndef SHM_H_INCLUDED
+#endif  // SHM_H_INCLUDED

@@ -26,10 +26,12 @@
 
 #include "../evaluate.h"
 #include "../misc.h"
-#include "../position.h"
 #include "../notation.h"
+#include "../position.h"
 #include "../types.h"
-#include "common.h"
+#include "nnz.h"
+#include "ntypes.h"
+#include "serialization.h"
 
 // Determined at runtime, see universal/nnue_embed.cpp
 #if defined(UNIVERSAL_BINARY)
@@ -237,10 +239,12 @@ NetworkOutput Network::evaluate(const Position&   pos,
 
     ASSERT_ALIGNED(transformedFeatures.data(), Alignment);
 
+    NNZ<L1> nnz;
+
     const auto bucket     = pos.bucket();
     const auto psqt       = featureTransformer.transform(pos, accCache, accStack,  //
-                                                         bucket, transformedFeatures);
-    const auto positional = networkArchitectures[bucket].propagate(transformedFeatures);
+                                                         bucket, nnz, transformedFeatures);
+    const auto positional = networkArchitectures[bucket].propagate(transformedFeatures, nnz);
 
     return {psqt / OUTPUT_SCALE, positional / OUTPUT_SCALE};
 }
@@ -255,13 +259,15 @@ NetworkTrace Network::trace(const Position&   pos,
 
     ASSERT_ALIGNED(transformedFeatures.data(), Alignment);
 
+    NNZ<L1> nnz;
+
     NetworkTrace netTrace{};
     netTrace.correctBucket = pos.bucket();
     for (IndexType bucket = 0; bucket < LayerStacks; ++bucket)
     {
         const auto psqt       = featureTransformer.transform(pos, accCache, accStack,  //
-                                                             bucket, transformedFeatures);
-        const auto positional = networkArchitectures[bucket].propagate(transformedFeatures);
+                                                             bucket, nnz, transformedFeatures);
+        const auto positional = networkArchitectures[bucket].propagate(transformedFeatures, nnz);
 
         netTrace.netOut[bucket] = {psqt / OUTPUT_SCALE, positional / OUTPUT_SCALE};
     }

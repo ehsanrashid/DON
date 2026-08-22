@@ -25,15 +25,8 @@
 #include <utility>
 
 #if defined(USE_BMI2)
-    #include <immintrin.h>  // Header for _pext_u64() & _pdep_u64() intrinsic
-    // * _pext_u64(src, mask) - Parallel Bits Extract
-    // Extracts the bits from the 64-bit 'src' corresponding to the 1-bits in 'mask',
-    // and packs them contiguously into the lower bits.
-    // * _pdep_u64(src, mask) - Parallel Bits Deposit
-    // Deposits the lower bits of 'src' into the positions of the 1-bits in 'mask',
-    // leaving all other bits as zero.
+    #include <immintrin.h>  // BMI2 [_pext_u64() & _pdep_u64()] intrinsics
 #endif
-
 #if defined(USE_AVX2)
     #include <immintrin.h>
     #define USE_DUAL_HYPERBOLA_QUINT
@@ -693,4 +686,4 @@ constexpr Bitboard pass_ray_bb(Square s1, Square s2) noexcept {
 
 }  // namespace DON
 
-#endif  // #ifndef ATTACKS_H_INCLUDED
+#endif  // ATTACKS_H_INCLUDED

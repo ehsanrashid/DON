@@ -119,4 +119,4 @@ Config rank_root_moves(Position& pos, RootMoves& rootMoves, const Options& optio
 }  // namespace Tablebase::Syzygy
 }  // namespace DON
 
-#endif  // #ifndef TABLEBASE_SYZYGY_H_INCLUDED
+#endif  // TABLEBASE_SYZYGY_H_INCLUDED

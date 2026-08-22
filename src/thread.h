@@ -29,16 +29,13 @@
 #include <utility>
 #include <vector>
 
-// MSVC-compatible toolchains use std::thread because they do not provide pthreads by default.
-// On all other platforms, pthreads is required and used.
-#if !defined(_MSC_VER)
-    #define USE_PTHREAD
-#endif
-
-#if defined(USE_PTHREAD)
-    #include <pthread.h>
-#else  // Default case: use the C++ standard library
+// MSVC-compatible toolchains use std::thread because pthreads is not provided by default.
+// All other platforms use pthreads.
+#if defined(_MSC_VER)
     #include <thread>
+#else
+    #include <pthread.h>
+    #define USE_PTHREAD
 #endif
 
 #include "memory.h"
@@ -64,7 +61,7 @@ class NativeThread final {
     template<typename Function, typename... Args>
     explicit NativeThread(Function&& func, Args&&... args) noexcept {
         // Use RAII to manage JobFunc memory
-        auto ptrJobFunc = std::make_unique<JobFunc>(
+        auto jobFuncPtr = std::make_unique<JobFunc>(
           std::bind(std::forward<Function>(func), std::forward<Args>(args)...));
 
         auto start_routine = [](void* ptr) noexcept -> void* {
@@ -92,11 +89,11 @@ class NativeThread final {
         }
 
         // Pass the raw pointer to pthread_create
-        // pthread_create takes ownership of ptrJobFunc only on success
-        if (pthread_create(&thread, &threadAttr, start_routine, ptrJobFunc.get()) != 0)
+        // pthread_create takes ownership of jobFuncPtr only on success
+        if (pthread_create(&thread, &threadAttr, start_routine, jobFuncPtr.get()) != 0)
         {
             //DEBUG_LOG("pthread_create() failed to create thread.");
-            // Thread creation failed, ptrJobFunc will be deleted automatically
+            // Thread creation failed, jobFuncPtr will be deleted automatically
             joined = true;
         }
         else
@@ -104,7 +101,7 @@ class NativeThread final {
             // Mark thread as now joinable, not joined yet
             joined = false;
             // Thread now owns it
-            ptrJobFunc.release();
+            jobFuncPtr.release();
         }
 
         // Destroy thread attr
@@ -172,21 +169,21 @@ using NativeThread = std::thread;
 // such that the recipient does not need to know whether the binding happened or not.
 class ThreadToNumaNodeBinder final {
    public:
-    ThreadToNumaNodeBinder(NumaIndex numaIdx, const NumaConfig* ptrNumaCfg) noexcept :
+    ThreadToNumaNodeBinder(NumaIndex numaIdx, const NumaConfig* numaCfgPtr) noexcept :
         numaId(numaIdx),
-        ptrNumaConfig(ptrNumaCfg) {}
+        numaConfigPtr(numaCfgPtr) {}
 
     explicit ThreadToNumaNodeBinder(NumaIndex numaIdx) noexcept :
         ThreadToNumaNodeBinder(numaIdx, nullptr) {}
 
     NumaReplicatedAccessToken operator()() const noexcept {
-        return ptrNumaConfig != nullptr ? ptrNumaConfig->bind_current_thread_to_numa_node(numaId)
+        return numaConfigPtr != nullptr ? numaConfigPtr->bind_current_thread_to_numa_node(numaId)
                                         : NumaReplicatedAccessToken(numaId);
     }
 
    private:
     const NumaIndex         numaId;
-    const NumaConfig* const ptrNumaConfig;
+    const NumaConfig* const numaConfigPtr;
 };
 
 using WorkerPtr = LargePagePtr<Worker>;
@@ -567,4 +564,4 @@ inline void Threads::ensure_network_replicated() const noexcept {
 
 }  // namespace DON
 
-#endif  // #ifndef THREAD_H_INCLUDED
+#endif  // THREAD_H_INCLUDED

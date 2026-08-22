@@ -1,17 +1,17 @@
 #!/bin/sh
 
 # DON, UCI chess playing engine Copyright (C) 2003-2026
-
+#
 # DON is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-
+#
 # DON is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU General Public License for more details.
-
+#
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
@@ -26,10 +26,10 @@ FAT="$1"
 X86="$2"
 NET="$3"
 
-# Must match volatile initializers in nnue_embed.cpp; byte order
-# is reversed to match how it appears in the binary xxd
-OFFSET_MAGIC=e7f50fe7f50ffeca
-SIZE_MAGIC=2e51feca2e51feca
+# Must match volatile initializers in nnue_embed.cpp;
+# byte order is reversed to match how it appears in the binary xxd
+OFFSET_MAGIC=E7F50FE7F50FFECA
+SIZE_MAGIC=2E51FECA2E51FECA
 
 die() {
     echo "patch_x86_slice: $*" >&2
@@ -41,6 +41,8 @@ die() {
 find_bytes() {
     file=$1; needle=$2; skip=${3:-0}; window=${4:-0}
     [ "$window" -gt 0 ] && win="-l $window" || win=""
+    # Convert to lower-case
+    needle=$(printf '%s' "$needle" | tr '[:upper:]' '[:lower:]')
     # Disassemble as hex, strip \n and search for the pattern
     pos=$(xxd -s "$skip" $win -p "$file" | tr -d '\n' \
         | awk -v n="$needle" '{ p = index($0, n); if (p) { print p; exit } }')

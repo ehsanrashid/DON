@@ -37,10 +37,28 @@
     //#warning "No SIMD instruction set enabled — falling back to scalar code"
 #endif
 
-#include "../types.h"
-#include "common.h"
+#include <type_traits>
 
-namespace DON::NNUE::SIMD {
+#include "../misc.h"
+#include "../types.h"  // IWYU pragma: keep
+#include "ntypes.h"
+
+namespace DON::NNUE {
+
+inline constexpr usize SIMD_WIDTH_MAX = 32;
+
+// SIMD width (in bytes)
+inline constexpr usize SIMD_WIDTH =
+#if defined(USE_AVX2) || defined(USE_LASX)
+  32
+#elif defined(USE_SSE2) || defined(USE_LSX) || defined(USE_NEON)
+  16
+#else
+  0
+#endif
+  ;
+
+namespace SIMD {
 
 // If vector instructions are enabled, update and refresh the accumulator tile by tile
 // such that each tile fits in the CPU's vector registers.
@@ -137,13 +155,13 @@ using vec_uint_t = __m128i;
     #define vec_load(src) (*(src))
     #define vec_store(dst, value) *(dst) = (value)
 
-    #if defined(__i386__)  // 32-bit x86?
+    #if defined(X86_32)  // 32-bit x86?
 inline __m128i i386_cvtsi64_si128(const i64 value) noexcept {
     return _mm_loadl_epi64(reinterpret_cast<const __m128i*>(&value));
 }
     #endif
     #if defined(USE_SSE41)  // SSE4.1 enabled?
-        #if defined(__i386__)
+        #if defined(X86_32)
             #define vec_convert_8_16(a) _mm_cvtepi8_epi16(SIMD::i386_cvtsi64_si128(i64(a)))
         #else
             #define vec_convert_8_16(a) _mm_cvtepi8_epi16(_mm_cvtsi64_si128(i64(a)))
@@ -151,7 +169,7 @@ inline __m128i i386_cvtsi64_si128(const i64 value) noexcept {
     #else
 inline __m128i vec_convert_8_16(const u64 a) noexcept {
     const __m128i v8 =
-        #if defined(__i386__)
+        #if defined(X86_32)
       i386_cvtsi64_si128(i64(a))
         #else
       _mm_cvtsi64_si128(i64(a));
@@ -223,8 +241,9 @@ using vec_uint_t __attribute__((may_alias))  = uint32x4_t;
     #define vec_sub_psqt_32(a, b) vsubq_s32(a, b)
     #define vec_zero_psqt() psqt_vec_t{0}
 
-inline constexpr u32 Mask[4]{1, 2, 4, 8};
-    #define vec_nnz(a) vaddvq_u32(vandq_u32(vtstq_u32(a, a), vld1q_u32(SIMD::Mask)))
+inline constexpr u32 Mask4[4]{1, 2, 4, 8};
+    #define vec_nnz(a) \
+        vaddvq_u32(vandq_u32(vtstq_u32((uint32x4_t) a, (uint32x4_t) a), vld1q_u32(SIMD::Mask4)))
     #define vec128_zero vdupq_n_u16(0)
     #define vec128_set_16(a) vdupq_n_u16(a)
     #define vec128_load(src) vld1q_u16(reinterpret_cast<const u16*>(src))
@@ -636,6 +655,7 @@ class Tiling final {
 };
 #endif
 
-}  // namespace DON::NNUE::SIMD
+}  // namespace SIMD
+}  // namespace DON::NNUE
 
-#endif  // #ifndef NNUE_SIMD_H_INCLUDED
+#endif  // NNUE_SIMD_H_INCLUDED

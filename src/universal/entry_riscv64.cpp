@@ -17,13 +17,15 @@
 
 #include <stdint.h>
 
-#if defind(__linux__)
-    #include <sys/auxv.h>
-    #include <sys/syscall.h>
-    #include <unistd.h>
-#else
-    #error This file is only supported on Linux
+#if !defined(__linux__)
+    #error "Supported only on Linux"
 #endif
+
+#include <sys/auxv.h>
+#include <sys/syscall.h>
+#include <unistd.h>
+
+#include "../misc.h"
 
 #define DEFINE_ARCH_ENTRY(x) \
     namespace DON_##x { \
@@ -62,13 +64,13 @@ static CpuFeatures query_cpu_features() noexcept {
     }
 
     constexpr long     NR_riscv_hwprobe = 258;
-    constexpr int64_t  KEY_IMA_EXT_0    = 4;
-    constexpr uint64_t EXT_ZB           = 1 << 3 | 1 << 4 | 1 << 5;
-    constexpr uint64_t EXT_ZICOND       = uint64_t(1) << 35;
+    constexpr DON::i64 KEY_IMA_EXT_0    = 4;
+    constexpr DON::u64 EXT_ZB           = 1 << 3 | 1 << 4 | 1 << 5;
+    constexpr DON::u64 EXT_ZICOND       = DON::u64{1} << 35;
 
     struct {
-        int64_t  key;
-        uint64_t value;
+        DON::i64 key;
+        DON::u64 value;
     } pair = {KEY_IMA_EXT_0, 0};
 
     long rc        = syscall(NR_riscv_hwprobe, &pair, 1UL, 0UL, nullptr, 0U);

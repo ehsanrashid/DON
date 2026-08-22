@@ -23,7 +23,7 @@
 #include "../../misc.h"
 #include "../../position.h"
 #include "../../types.h"
-#include "../common.h"
+#include "../ntypes.h"
 
 namespace DON::NNUE::Features {
 
@@ -67,4 +67,4 @@ class FullThreats final {
 
 }  // namespace DON::NNUE::Features
 
-#endif  // #ifndef NNUE_FEATURES_FULL_THREATS_H_INCLUDED
+#endif  // NNUE_FEATURES_FULL_THREATS_H_INCLUDED

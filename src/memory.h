@@ -30,9 +30,6 @@
 
 #if defined(_WIN32)
     #include "platform_win.h"
-#else
-    #include <sys/mman.h>
-    #include <unistd.h>
 #endif
 
 #include "misc.h"
@@ -50,22 +47,6 @@ void* alloc_aligned_large_page(usize allocSize) noexcept;
 bool free_aligned_large_page(void* mem) noexcept;
 
 bool has_large_page() noexcept;
-
-// Round up to multiples of alignment
-template<typename T>
-[[nodiscard]] constexpr T round_up_to_pow2_multiple(T size, T alignment) noexcept {
-    static_assert(std::is_unsigned_v<T>, "round_up_to_pow2_multiple requires an unsigned type");
-    // Alignment must be non-zero power of 2
-    assert(alignment != 0 && (alignment & (alignment - 1)) == 0);
-
-    // Handle edge case: alignment = 0
-    if (alignment == 0)
-        return size;
-
-    T mask = alignment - 1;
-    // Avoid overflow: if size + mask overflows, it wraps around
-    return (size + mask) & ~mask;
-}
 
 // Frees memory which was placed there with placement new.
 // Works for both single objects and arrays of unknown bound.
@@ -238,9 +219,9 @@ template<usize Alignment, typename T>
                   "Alignment must be non-zero power of 2");
     static_assert(Alignment >= alignof(T), "Alignment must be >= alignof(T)");
 
-    auto ptrInt = reinterpret_cast<std::uintptr_t>(ptr);
-    ptrInt      = round_up_to_pow2_multiple(ptrInt, Alignment);
-    return reinterpret_cast<T*>(ptrInt);
+    auto intPtr = reinterpret_cast<std::uintptr_t>(ptr);
+    intPtr      = round_up_to_multiple(intPtr, Alignment);
+    return reinterpret_cast<T*>(intPtr);
 }
 
 template<usize Alignment, typename T>
@@ -266,84 +247,6 @@ template<typename T, typename ByteT>
 }
 
 #if defined(_WIN32)
-
-inline constexpr HANDLE INVALID_HANDLE = nullptr;
-
-[[nodiscard]] constexpr bool is_valid_handle(HANDLE handle) noexcept {
-    return handle != INVALID_HANDLE && handle != INVALID_HANDLE_VALUE;
-}
-
-inline constexpr void* INVALID_MMAP_PTR = nullptr;
-
-struct HandleGuard final {
-   public:
-    explicit HandleGuard(HANDLE& refHandle) noexcept :
-        handle(refHandle) {}
-
-    HandleGuard() noexcept = delete;
-
-    HandleGuard(const HandleGuard&) noexcept            = delete;
-    HandleGuard& operator=(const HandleGuard&) noexcept = delete;
-
-    HandleGuard(HandleGuard&&) noexcept            = delete;
-    HandleGuard& operator=(HandleGuard&&) noexcept = delete;
-
-    ~HandleGuard() noexcept { reset(); }
-
-    [[nodiscard]] bool is_valid() const noexcept { return is_valid_handle(handle); }
-
-    [[nodiscard]] HANDLE get() const noexcept { return handle; }
-
-    void reset(HANDLE newHandle = INVALID_HANDLE) noexcept {
-        if (handle != newHandle)
-        {
-            if (is_valid())
-                CloseHandle(handle);
-
-            handle = newHandle;
-        }
-    }
-
-    void dismiss() noexcept { handle = INVALID_HANDLE; }
-
-   private:
-    HANDLE& handle;
-};
-
-struct MMapGuard final {
-   public:
-    explicit MMapGuard(void*& refPtr) noexcept :
-        mappedPtr(refPtr) {}
-
-    MMapGuard() noexcept = delete;
-
-    MMapGuard(const MMapGuard&) noexcept            = delete;
-    MMapGuard& operator=(const MMapGuard&) noexcept = delete;
-
-    MMapGuard(MMapGuard&&) noexcept            = delete;
-    MMapGuard& operator=(MMapGuard&&) noexcept = delete;
-
-    ~MMapGuard() noexcept { reset(); }
-
-    [[nodiscard]] bool is_valid() const noexcept { return mappedPtr != INVALID_MMAP_PTR; }
-
-    [[nodiscard]] void* get() const noexcept { return mappedPtr; }
-
-    void reset(void* newPtr = INVALID_MMAP_PTR) noexcept {
-        if (mappedPtr != newPtr)
-        {
-            if (is_valid())
-                UnmapViewOfFile(mappedPtr);
-
-            mappedPtr = newPtr;
-        }
-    }
-
-    void dismiss() noexcept { mappedPtr = INVALID_MMAP_PTR; }
-
-   private:
-    void*& mappedPtr;
-};
 
     #if defined(_WIN64)
 struct Advapi final {
@@ -442,12 +345,12 @@ template<typename SuccessFunc, typename FailureFunc>
 auto try_with_windows_lock_memory_privilege([[maybe_unused]] SuccessFunc&& successFunc,
                                             FailureFunc&&                  failureFunc) noexcept {
     #if defined(_WIN64)
-    usize LargePageSize = GetLargePageMinimum();
+    SIZE_T LargePageSize = GetLargePageMinimum();
 
     if (LargePageSize == 0)
         return failureFunc();
 
-    assert((LargePageSize & (LargePageSize - 1)) == 0);
+    assert(is_power_of_2(LargePageSize));
 
     Advapi advapi;
 
@@ -494,141 +397,8 @@ auto try_with_windows_lock_memory_privilege([[maybe_unused]] SuccessFunc&& succe
     #endif
 }
 
-#else
-
-inline constexpr int INVALID_FD = -1;
-
-[[nodiscard]] constexpr bool is_valid_fd(int fd) noexcept { return fd > INVALID_FD; }
-
-inline constexpr void* INVALID_MMAP_PTR  = nullptr;
-inline constexpr usize INVALID_MMAP_SIZE = 0;
-
-struct FdGuard final {
-   public:
-    explicit FdGuard(int& refFd) noexcept :
-        fd(refFd) {}
-
-    FdGuard() noexcept = delete;
-
-    FdGuard(const FdGuard&) noexcept            = delete;
-    FdGuard& operator=(const FdGuard&) noexcept = delete;
-
-    FdGuard(FdGuard&&) noexcept            = delete;
-    FdGuard& operator=(FdGuard&&) noexcept = delete;
-
-    ~FdGuard() noexcept { reset(); }
-
-    [[nodiscard]] bool is_valid() const noexcept { return is_valid_fd(fd); }
-
-    [[nodiscard]] int get() const noexcept { return fd; }
-
-    void reset(int newFd = INVALID_FD) noexcept {
-        if (fd != newFd)
-        {
-            if (is_valid())
-                ::close(fd);
-
-            fd = newFd;
-        }
-    }
-
-    void dismiss() noexcept { fd = INVALID_FD; }
-
-   private:
-    int& fd;
-};
-
-struct MMapGuard final {
-   public:
-    MMapGuard(void*& refPtr, usize& refSize) noexcept :
-        mappedPtr(refPtr),
-        mappedSize(refSize) {}
-
-    MMapGuard() noexcept = delete;
-
-    MMapGuard(const MMapGuard&) noexcept            = delete;
-    MMapGuard& operator=(const MMapGuard&) noexcept = delete;
-
-    MMapGuard(MMapGuard&&) noexcept            = delete;
-    MMapGuard& operator=(MMapGuard&&) noexcept = delete;
-
-    ~MMapGuard() noexcept { reset(); }
-
-    [[nodiscard]] bool is_valid() const noexcept { return mappedPtr != INVALID_MMAP_PTR; }
-
-    [[nodiscard]] void* get_ptr() const noexcept { return mappedPtr; }
-
-    [[nodiscard]] usize get_size() const noexcept { return mappedSize; }
-
-    void reset(void* newPtr = INVALID_MMAP_PTR, usize newSize = INVALID_MMAP_SIZE) noexcept {
-        if (mappedPtr != newPtr)
-        {
-            if (is_valid())
-                ::munmap(mappedPtr, mappedSize);
-
-            mappedPtr  = newPtr;
-            mappedSize = newSize;
-        }
-    }
-
-    void dismiss() noexcept {
-        mappedPtr  = INVALID_MMAP_PTR;
-        mappedSize = INVALID_MMAP_SIZE;
-    }
-
-   private:
-    void*& mappedPtr;
-    usize& mappedSize;
-};
-
-struct UniqueFd final {
-   public:
-    explicit UniqueFd(int iFd) noexcept :
-        fd{iFd} {}
-
-    UniqueFd() noexcept = default;
-
-    UniqueFd(const UniqueFd&)            = delete;
-    UniqueFd& operator=(const UniqueFd&) = delete;
-
-    UniqueFd(UniqueFd&& uniqueFd) noexcept :
-        fd{uniqueFd.release()} {}
-
-    UniqueFd& operator=(UniqueFd&& uniqueFd) noexcept {
-        if (this == &uniqueFd)
-            return *this;
-
-        reset(uniqueFd.release());
-
-        return *this;
-    }
-
-    ~UniqueFd() { reset(); }
-
-    [[nodiscard]] int get() const noexcept { return fd; }
-
-    [[nodiscard]] bool is_valid() const noexcept { return is_valid_fd(fd); }
-
-    [[nodiscard]] explicit operator bool() const noexcept { return is_valid(); }
-
-    [[nodiscard]] int release() noexcept { return std::exchange(fd, INVALID_FD); }
-
-    void reset(int newFd = INVALID_FD) noexcept {
-        if (fd != newFd)
-        {
-            if (is_valid())
-                ::close(fd);
-
-            fd = newFd;
-        }
-    }
-
-   private:
-    int fd = INVALID_FD;
-};
-
 #endif
 
 }  // namespace DON
 
-#endif  // #ifndef MEMORY_H_INCLUDED
+#endif  // MEMORY_H_INCLUDED

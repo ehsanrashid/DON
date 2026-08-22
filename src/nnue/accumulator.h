@@ -28,7 +28,7 @@
 #include "../misc.h"
 #include "../types.h"
 #include "architecture.h"
-#include "common.h"
+#include "ntypes.h"
 
 namespace DON {
 
@@ -104,10 +104,10 @@ struct AccumulatorState final: public Accumulator {
 
 struct AccumulatorStack final {
    public:
-    static constexpr usize SIZE = PLY_MAX + 1;
+    static constexpr usize Size = PLY_MAX + 1;
 
     template<typename T>
-    [[nodiscard]] const Array<AccumulatorState<T>, SIZE>& accumulators() const noexcept;
+    [[nodiscard]] const Array<AccumulatorState<T>, Size>& accumulators() const noexcept;
 
     template<typename T>
     [[nodiscard]] const AccumulatorState<T>& state() const noexcept;
@@ -123,7 +123,7 @@ struct AccumulatorStack final {
 
    private:
     template<typename T>
-    [[nodiscard]] Array<AccumulatorState<T>, SIZE>& mut_accumulators() noexcept;
+    [[nodiscard]] Array<AccumulatorState<T>, Size>& mut_accumulators() noexcept;
 
     template<typename T>
     [[nodiscard]] AccumulatorState<T>& mut_state() noexcept;
@@ -150,12 +150,12 @@ struct AccumulatorStack final {
                               const FeatureTransformer& featureTransformer,
                               usize                     end) noexcept;
 
-    Array<AccumulatorState<PSQFeatureSet>, SIZE>    psqAccumulators;
-    Array<AccumulatorState<ThreatFeatureSet>, SIZE> threatAccumulators;
+    Array<AccumulatorState<PSQFeatureSet>, Size>    psqAccumulators;
+    Array<AccumulatorState<ThreatFeatureSet>, Size> threatAccumulators;
     usize                                           size = 1;
 };
 
 }  // namespace NNUE
 }  // namespace DON
 
-#endif  // #ifndef NNUE_ACCUMULATOR_H_INCLUDED
+#endif  // NNUE_ACCUMULATOR_H_INCLUDED

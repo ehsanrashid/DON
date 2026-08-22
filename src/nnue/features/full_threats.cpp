@@ -29,7 +29,7 @@
 #include "../../misc.h"
 #include "../../position.h"
 #include "../../types.h"
-#include "../common.h"
+#include "../ntypes.h"
 
 namespace DON::NNUE::Features {
 

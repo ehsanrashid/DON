@@ -96,4 +96,4 @@ mix_to_move(std::string mix, Position& pos, const MoveList<GenType::LEGAL>& lega
 
 }  // namespace DON
 
-#endif  // #ifndef NOTATION_H_INCLUDED
+#endif  // NOTATION_H_INCLUDED

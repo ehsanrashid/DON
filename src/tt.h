@@ -127,4 +127,4 @@ class TranspositionTable final {
 
 }  // namespace DON
 
-#endif  // #ifndef TT_H_INCLUDED
+#endif  // TT_H_INCLUDED

@@ -1919,4 +1919,4 @@ inline const NumaConfig& BaseNumaReplicated::numa_config() const noexcept {
 
 }  // namespace DON
 
-#endif  // #ifndef NUMA_H_INCLUDED
+#endif  // NUMA_H_INCLUDED

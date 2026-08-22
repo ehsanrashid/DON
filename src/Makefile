@@ -94,25 +94,27 @@ BINDIR := $(PREFIX)/bin
 PGOBENCH := $(RUN_PREFIX) ./$(EXE) bench
 
 ### Source and object files
-SRCS := attacks.cpp benchmark.cpp bitboard.cpp engine.cpp evaluate.cpp main.cpp memory.cpp \
-    misc.cpp movegen.cpp movepick.cpp notation.cpp option.cpp perft.cpp \
+SRCS := \
+    attacks.cpp benchmark.cpp bitboard.cpp engine.cpp evaluate.cpp main.cpp \
+    memory.cpp misc.cpp movegen.cpp movepick.cpp notation.cpp option.cpp perft.cpp \
     position.cpp search.cpp thread.cpp timeman.cpp tt.cpp tune.cpp uci.cpp \
-    nnue/features/full_threats.cpp nnue/features/half_ka_hm.cpp \
-    nnue/accumulator.cpp nnue/network.cpp nnue/nmisc.cpp \
+    nnue/features/full_threats.cpp nnue/features/half_ka_hm.cpp nnue/accumulator.cpp nnue/network.cpp \
     book/polyglot.cpp tablebase/syzygy.cpp
 
-UNIVERSAL_SRCS = universal/entry_x86_64.cpp \
-                 universal/entry_riscv64.cpp \
-                 universal/entry_arm64.cpp \
-                 universal/nnue_embed.cpp
+UNIVERSAL_SRCS := \
+    universal/entry_x86_64.cpp \
+    universal/entry_riscv64.cpp \
+    universal/entry_arm64.cpp \
+    universal/nnue_embed.cpp
 
-HEADERS := attacks.h benchmark.h bitboard.h engine.h evaluate.h history.h memory.h \
+HEADERS := \
+    attacks.h benchmark.h bitboard.h engine.h evaluate.h history.h memory.h \
     misc.h movegen.h movepick.h notation.h numa.h option.h perft.h platform_win.h \
     position.h prng.h search.h shm.h thread.h timeman.h tt.h tune.h types.h uci.h \
     nnue/features/full_threats.h nnue/features/half_ka_hm.h \
-    nnue/layers/affine_transform.h nnue/layers/affine_transform_sparse_input.h \
+    nnue/layers/fallback_affine_transform.h nnue/layers/affine_transform.h nnue/layers/sparse_affine_transform.h \
     nnue/layers/clipped_relu.h nnue/layers/sqr_clipped_relu.h nnue/accumulator.h nnue/architecture.h \
-    nnue/common.h nnue/feature_transformer.h nnue/network.h nnue/nmisc.h nnue/simd.h \
+    nnue/feature_transformer.h nnue/network.h nnue/nnz.h nnue/ntypes.h nnue/serialization.h nnue/simd.h \
     incbin/incbin.h book/polyglot.h tablebase/syzygy.h
 
 OBJS := $(notdir $(SRCS:.cpp=.o))
@@ -189,7 +191,7 @@ ARCH_SUPPORTED := $(if $(filter \
     ppc-64-vsx ppc-64-altivec ppc-64 ppc-32 e2k \
     riscv64-universal riscv64-rva23 riscv64 \
     loongarch64-lasx loongarch64-lsx loongarch64 \
-    arm.64-universal armv8-dotprod armv8 armv7-neon armv7 apple-silicon \
+    arm64-universal armv8-dotprod armv8 armv7-neon armv7 apple-silicon \
     wasm32 wasm32-relaxed-simd,$(ARCH)),yes,no)
 
 UNIVERSAL_BUILD := $(if $(filter x86-64-universal riscv64-universal arm64-universal,$(ARCH)),yes,no)
@@ -397,6 +399,62 @@ ifeq ($(ARCH),general-64)
     arch = any
 endif
 
+ifeq ($(ARCH),ppc-32)
+    arch = ppc
+    bits = 32
+endif
+
+ifeq ($(ARCH),ppc-64)
+    arch = ppc64
+    popcnt = yes
+    prefetch = yes
+endif
+
+ifeq ($(ARCH),ppc-64-altivec)
+    arch = ppc64
+    popcnt = yes
+    prefetch = yes
+    altivec = yes
+endif
+
+ifeq ($(ARCH),ppc-64-vsx)
+    arch = ppc64
+    popcnt = yes
+    prefetch = yes
+    vsx = yes
+endif
+
+ifeq ($(ARCH),e2k)
+    arch = e2k
+    sse = yes
+    mmx = yes
+    sse2 = yes
+    ssse3 = yes
+    sse41 = yes
+    popcnt = yes
+endif
+
+ifneq ($(findstring riscv64,$(ARCH)),)
+    arch = riscv64
+    ifeq ($(ARCH),riscv64-rva23)
+        rva23 = yes
+        popcnt = yes
+        prefetch = yes
+    endif
+endif
+
+ifneq ($(findstring loongarch64,$(ARCH)),)
+    arch = loongarch64
+    prefetch = yes
+    ifneq ($(findstring -lsx,$(ARCH)),)
+        lsx = yes
+    endif
+    ifneq ($(findstring -lasx,$(ARCH)),)
+        lsx = yes
+        lasx = yes
+    endif
+endif
+
 ifeq ($(ARCH),armv7)
     arch = armv7
     bits = 32
@@ -447,63 +505,6 @@ ifeq ($(ARCH),apple-silicon)
     dotprod = yes
 endif
 
-ifeq ($(ARCH),ppc-32)
-    arch = ppc
-    bits = 32
-endif
-
-ifeq ($(ARCH),ppc-64)
-    arch = ppc64
-    popcnt = yes
-    prefetch = yes
-endif
-
-ifeq ($(ARCH),ppc-64-altivec)
-    arch = ppc64
-    popcnt = yes
-    prefetch = yes
-    altivec = yes
-endif
-
-ifeq ($(ARCH),ppc-64-vsx)
-    arch = ppc64
-    popcnt = yes
-    prefetch = yes
-    vsx = yes
-endif
-
-ifeq ($(ARCH),e2k)
-    arch = e2k
-    sse = yes
-    mmx = yes
-    sse2 = yes
-    ssse3 = yes
-    sse41 = yes
-    popcnt = yes
-endif
-
-ifneq ($(findstring riscv64,$(ARCH)),)
-    arch = riscv64
-endif
-
-ifeq ($(ARCH),riscv64-rva23)
-    rva23 = yes
-    popcnt = yes
-    prefetch = yes
-endif
-
-ifneq ($(findstring loongarch64,$(ARCH)),)
-    arch = loongarch64
-    prefetch = yes
-ifneq ($(findstring -lsx,$(ARCH)),)
-    lsx = yes
-endif
-ifneq ($(findstring -lasx,$(ARCH)),)
-    lsx = yes
-    lasx = yes
-endif
-endif
-
 # WASM is largely compiled using emcc's x86 compatibility layer, with occasional
 # WASM-specific intrinsics
 ifeq ($(ARCH),wasm32)
@@ -539,10 +540,10 @@ ifeq ($(MAKELEVEL),0)
     export ENV_LDLIBS      := $(LDLIBS)
 endif
 
-CXXFLAGS    = $(ENV_CXXFLAGS) -Wall -Wcast-qual -fno-exceptions -std=c++17 $(EXTRA_CXXFLAGS)
-DEPENDFLAGS = $(ENV_DEPENDFLAGS) -std=c++17 $(EXTRA_DEPENDFLAGS)
-LDFLAGS     = $(ENV_LDFLAGS) $(EXTRA_LDFLAGS)
-LDLIBS      = $(ENV_LDLIBS) $(EXTRA_LDLIBS)
+CXXFLAGS    = $(strip $(ENV_CXXFLAGS) -Wall -Wcast-qual -fno-exceptions -std=c++17 $(EXTRA_CXXFLAGS))
+DEPENDFLAGS = $(strip $(ENV_DEPENDFLAGS) -std=c++17 $(EXTRA_DEPENDFLAGS))
+LDFLAGS     = $(strip $(ENV_LDFLAGS) $(EXTRA_LDFLAGS))
+LDLIBS      = $(strip $(ENV_LDLIBS) $(EXTRA_LDLIBS))
 
 ### 3.1 Selecting compiler (default = gcc)
 ifeq ($(COMP),)
@@ -560,7 +561,7 @@ ifeq ($(IS_WINDOWS),yes)
     endif
 endif
 
-BITS_FLAG := $(if $(filter 32 64,$(bits)),-m$(bits),)
+BITS_FLAG := $(if $(filter 32 64,$(bits)),-m$(bits))
 
 # ----------------------------
 # Compiler configuration
@@ -620,16 +621,16 @@ ifeq ($(COMP),gcc)
             # LLVM Clang
             CXXFLAGS += -fconstexpr-steps=500000000
         endif
-        PROFILE_MAKE = clang-profile-make
-        PROFILE_USE  = clang-profile-use
+        PROFILE_MAKE := clang-profile-make
+        PROFILE_USE  := clang-profile-use
     else
         # GCC
         CXXFLAGS += -Wstack-usage=128000 -fno-ipa-cp-clone -fconstexpr-ops-limit=500000000
         ifeq ($(TARGET_KERNEL),Darwin)
             EXTRA_PROFILE_FLAGS = -fvisibility=hidden
         endif
-        PROFILE_MAKE = gcc-profile-make
-        PROFILE_USE  = gcc-profile-use
+        PROFILE_MAKE := gcc-profile-make
+        PROFILE_USE  := gcc-profile-use
     endif
 # Clang
 else ifeq ($(COMP),clang)
@@ -659,7 +660,7 @@ else ifeq ($(COMP),clang)
     endif
     # Use libatomic on non-Windows, non-BSD systems unless using compiler-rt
     ifeq ($(IS_WINDOWS),no)
-        ifeq ($(filter $(TARGET_KERNEL),Darwin FreeBSD OpenBSD NetBSD),)
+        ifeq ($(filter Darwin FreeBSD OpenBSD NetBSD,$(TARGET_KERNEL)),)
             ifneq ($(RTLIB),compiler-rt)
                 LDLIBS += -latomic
             endif
@@ -672,8 +673,8 @@ else ifeq ($(COMP),clang)
         endif
     endif
     # Profile build for Clang
-    PROFILE_MAKE = clang-profile-make
-    PROFILE_USE  = clang-profile-use
+    PROFILE_MAKE := clang-profile-make
+    PROFILE_USE  := clang-profile-use
 # mingw
 else ifeq ($(COMP),mingw)
     MINGW_ARCH := $(if $(filter 64,$(bits)),x86_64,i686)
@@ -683,18 +684,18 @@ else ifeq ($(COMP),mingw)
     CXX := $(if $(shell command -v $(MINGW_CXX_POSIX) 2>/dev/null),$(MINGW_CXX_POSIX),$(MINGW_CXX))
     CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-declarations -fno-ipa-cp-clone -fconstexpr-ops-limit=500000000
     # Profile build for mingw (use GCC defaults)
-    PROFILE_MAKE = gcc-profile-make
-    PROFILE_USE  = gcc-profile-use
-# icx
+    PROFILE_MAKE := gcc-profile-make
+    PROFILE_USE  := gcc-profile-use
+# Intel ICX
 else ifeq ($(COMP),icx)
     CXX := icpx
     CXXFLAGS += --intel -pedantic -Wextra -Wshadow -Wmissing-prototypes -Wconditional-uninitialized -Wabi -Wdeprecated -fconstexpr-steps=500000000
-    # Profile build for icx
-    PROFILE_MAKE = icx-profile-make
-    PROFILE_USE  = icx-profile-use
+    # Profile build for ICX
+    PROFILE_MAKE := icx-profile-make
+    PROFILE_USE  := icx-profile-use
 # NDK: To cross-compile for Android, use NDK version r27c or later
 else ifeq ($(COMP),ndk)
-    # Detect host tag (simplified common cases)
+    # Detect NDK host tag (common host platforms)
     ifeq ($(IS_WINDOWS),yes)
         HOST_TAG := windows-x86_64
     else ifeq ($(TARGET_KERNEL),Darwin)
@@ -704,34 +705,37 @@ else ifeq ($(COMP),ndk)
     endif
 
     NDK ?= $(ANDROID_NDK_ROOT)
+    ifeq ($(strip $(NDK)),)
+        $(error Android NDK not found: set NDK or ANDROID_NDK_ROOT)
+    endif
+
     TOOLCHAIN := $(NDK)/toolchains/llvm/prebuilt/$(HOST_TAG)/bin
     ANDROID_API ?= 29
 
     ifeq ($(arch),armv8)
         TARGET := aarch64-linux-android
-        CXX := $(TOOLCHAIN)/$(TARGET)$(ANDROID_API)-clang++
     else ifeq ($(arch),x86_64)
         TARGET := x86_64-linux-android
-        CXX := $(TOOLCHAIN)/$(TARGET)$(ANDROID_API)-clang++
     else ifeq ($(arch),armv7)
         TARGET := armv7a-linux-androideabi
-        CXX := $(TOOLCHAIN)/$(TARGET)$(ANDROID_API)-clang++
         CXXFLAGS += -mthumb -march=armv7-a -mfloat-abi=softfp -mfpu=neon
     else ifeq ($(arch),x86)
         TARGET := i686-linux-android
-        CXX := $(TOOLCHAIN)/$(TARGET)$(ANDROID_API)-clang++
     else
         $(error Unsupported NDK arch: $(arch))
     endif
+
+    CXX := $(TOOLCHAIN)/$(TARGET)$(ANDROID_API)-clang++
+
     # Correct STL usage
     CXXFLAGS += -stdlib=libc++
     LDFLAGS  += -static-libstdc++
-    OBJCOPY  := llvm-objcopy
 
-    STRIP := $(TOOLCHAIN)/llvm-strip
+    OBJCOPY := $(TOOLCHAIN)/llvm-objcopy
+    STRIP   := $(TOOLCHAIN)/llvm-strip
     # Profile build for NDK/Clang
-    PROFILE_MAKE = clang-profile-make
-    PROFILE_USE  = clang-profile-use
+    PROFILE_MAKE := clang-profile-make
+    PROFILE_USE  := clang-profile-use
 endif
 
 ifeq ($(TARGET_KERNEL),Darwin)
@@ -746,32 +750,34 @@ endif
 
 ### Allow overriding CXX from the environment
 ifdef COMPCXX
-    CXX = $(COMPCXX)
+    CXX := $(COMPCXX)
 endif
 
 ## Locate llvm-profdata compatible with CXX for PGO (profile-guided optimization) builds
+
+CXX_PATH := $(realpath $(shell command -v $(CXX) 2>/dev/null))
 # For Clang/GCC, look alongside CXX
-LLVM_PROFDATA := $(dir $(realpath $(shell command -v $(CXX) 2>/dev/null)))llvm-profdata
-# For Intel icx, look in the compiler's bundled LLVM directory
+LLVM_PROFDATA := $(dir $(CXX_PATH))llvm-profdata
+# For Intel ICX, look in the compiler's bundled LLVM directory
 ifeq ($(wildcard $(LLVM_PROFDATA)),)
-    LLVM_PROFDATA := $(dir $(realpath $(shell command -v $(CXX) 2>/dev/null)))/compiler/llvm-profdata
+    LLVM_PROFDATA := $(dir $(CXX_PATH))compiler/llvm-profdata
 endif
 # Fall back to llvm-profdata available in PATH
 ifeq ($(wildcard $(LLVM_PROFDATA)),)
     LLVM_PROFDATA := llvm-profdata
 endif
 
-ifneq ($(arch),wasm32)
-    ## Link pthreads and optionally LRT on supported platforms
-    # Android has Bionic's C library with its own pthread implementation bundled
-    ifneq ($(OS),Android)
-        # Haiku has pthreads in its libroot
-        ifneq ($(KERNEL),Haiku)
-            ifneq ($(COMP),ndk)
+## Link pthreads and optionally LRT on supported platforms
+# Android has Bionic's C library with its own pthread implementation bundled
+ifneq ($(OS),Android)
+    # Haiku has pthreads in its libroot
+    ifneq ($(KERNEL),Haiku)
+        ifneq ($(COMP),ndk)
+            ifneq ($(arch),wasm32)
                 LDLIBS += -lpthread
                 # Link real-time library (librt) on non-Windows, non-[Darwin/FreeBSD/OpenBSD/NetBSD] platforms
                 ifeq ($(IS_WINDOWS),no)
-                    ifeq ($(filter $(TARGET_KERNEL),Darwin FreeBSD OpenBSD NetBSD),)
+                    ifeq ($(filter Darwin FreeBSD OpenBSD NetBSD,$(TARGET_KERNEL)),)
                         LDLIBS += -lrt
                     endif
                 endif
@@ -791,7 +797,7 @@ endif
 
 ### 3.2.2 Debugging with undefined behavior sanitizers
 ifneq ($(sanitize),none)
-    # Convert comma-separated sanitize list to -fsanitize= flags
+    # Enable the requested sanitizers
     SAN_FLAGS := $(addprefix -fsanitize=,$(sanitize))
     # Enable sanitizers with debug info and frame pointers
     CXXFLAGS += $(SAN_FLAGS) -g3 -fno-omit-frame-pointer
@@ -851,7 +857,7 @@ endif
 
 ifeq ($(popcnt),yes)
     CXXFLAGS += -DUSE_POPCNT
-    ifeq ($(filter ppc64 ppc64-altivec ppc64-vsx armv7 armv8 arm64 riscv64,$(arch)),)
+    ifeq ($(filter armv7 armv8 arm64 ppc64 riscv64,$(arch)),)
         CXXFLAGS += -msse3 -mpopcnt
     endif
 endif
@@ -934,10 +940,10 @@ ifeq ($(altivec),yes)
 endif
 
 ifeq ($(vsx),yes)
-    CXXFLAGS += -mvsx
     ifeq ($(COMP),gcc)
         CXXFLAGS += -DNO_WARN_X86_INTRINSICS -DUSE_SSE2
     endif
+    CXXFLAGS += -mvsx
 endif
 
 ifeq ($(neon),yes)
@@ -1001,12 +1007,12 @@ endif
 BUILD_DATE_FILE      := .build_date.txt
 BUILD_SHA_FILE       := .build_sha.txt
 BUILD_DIFFINDEX_FILE := .build_diffindex.txt
-GIT_DATE             := $(shell git show -s --date=format:%Y%m%d --format=%cd HEAD 2>/dev/null || true)
-GIT_SHA              := $(shell git rev-parse HEAD 2>/dev/null | cut -c 1-8 || true)
-GIT_DIFFINDEX        := $(shell git update-index --refresh >/dev/null 2>&1; git -c core.filemode=false -c core.autocrlf=false diff-index --quiet HEAD -- 2>/dev/null; [ $$? -eq 1 ] && echo 1 || true)
-COMPILER_DATE        := $(shell date +%Y%m%d 2>/dev/null)
 
-BUILD_DATE           := $(if $(GIT_DATE),$(GIT_DATE),$(COMPILER_DATE))
+GIT_DATE      := $(shell git show -s --date=format:%Y%m%d --format=%cd HEAD 2>/dev/null || true)
+GIT_SHA       := $(shell git rev-parse HEAD 2>/dev/null | cut -c 1-8 || true)
+GIT_DIFFINDEX := $(shell git update-index --refresh >/dev/null 2>&1; git -c core.filemode=false -c core.autocrlf=false diff-index --quiet HEAD -- 2>/dev/null; [ $$? -eq 1 ] && echo 1 || true)
+COMPILER_DATE := $(shell date +%Y%m%d 2>/dev/null)
+BUILD_DATE    := $(or $(GIT_DATE),$(COMPILER_DATE))
 
 define cache_file_contents
 $(shell \
@@ -1016,11 +1022,16 @@ $(shell \
 )
 endef
 
-ifneq ($(filter-out help strip install clean net objclean profileclean format config-sanity,$(MAKECMDGOALS)),)
+ifneq ($(filter-out help strip install net clean objclean profileclean config-sanity format install-hooks,$(MAKECMDGOALS)),)
 _ := $(call cache_file_contents,$(BUILD_DATE_FILE),$(BUILD_DATE))
 _ := $(call cache_file_contents,$(BUILD_SHA_FILE),$(GIT_SHA))
 _ := $(call cache_file_contents,$(BUILD_DIFFINDEX_FILE),$(BUILD_DIFFINDEX))
 endif
+
+# Compiler flags for embedding Git build information
+GIT_FLAGS := $(if $(GIT_DATE),-DGIT_DATE=$(GIT_DATE)) \
+             $(if $(GIT_SHA),-DGIT_SHA=$(GIT_SHA)) \
+             $(if $(GIT_DIFFINDEX),-DGIT_DIFFINDEX=$(GIT_DIFFINDEX))
 
 ### 3.8.2 Try to include architecture
 ifneq ($(ARCH),)
@@ -1146,23 +1157,23 @@ help:
 	echo "x86-32-sse2             > x86 32-bit with SSE2 support"; \
 	echo "x86-32                  > x86 32-bit generic with MMX support"; \
 	echo "general-32              > unspecified 32-bit"; \
-	echo "ppc-64-altivec          > PPC 64-bit with AltiVec support"; \
 	echo "ppc-64-vsx              > PPC 64-bit with VSX support"; \
+	echo "ppc-64-altivec          > PPC 64-bit with AltiVec support"; \
 	echo "ppc-64                  > PPC 64-bit"; \
 	echo "ppc-32                  > PPC 32-bit"; \
 	echo "e2k                     > Elbrus 2000"; \
+	echo "riscv64-universal       > RISC-V 64-bit with automatic runtime selection of the best architecture"; \
+	echo "riscv64-rva23           > RISC-V 64-bit RVA23 profile"; \
+	echo "riscv64                 > RISC-V 64-bit"; \
+	echo "loongarch64-lasx        > LoongArch 64-bit with LASX (Advanced SIMD eXtension) support"; \
+	echo "loongarch64-lsx         > LoongArch 64-bit with LSX (SIMD eXtension) support"; \
+	echo "loongarch64             > LoongArch 64-bit"; \
 	echo "arm64-universal         > ARMv8 64-bit with automatic runtime selection of the best architecture"; \
 	echo "armv8-dotprod           > ARMv8 64-bit with NEON, dot-product and POPCNT support"; \
 	echo "armv8                   > ARMv8 64-bit with NEON and POPCNT support"; \
 	echo "armv7-neon              > ARMv7 32-bit with NEON and POPCNT support"; \
 	echo "armv7                   > ARMv7 32-bit"; \
 	echo "apple-silicon           > Apple silicon ARM64"; \
-	echo "riscv64-universal       > RISC-V 64-bit with automatic runtime selection of the best architecture"; \
-	echo "riscv64-rva23           > RISC-V 64-bit RVA23 profile"; \
-	echo "riscv64                 > RISC-V 64-bit"; \
-	echo "loongarch64-lasx        > LoongArch 64-bit with LASX (Advanced SIMD) support"; \
-	echo "loongarch64-lsx         > LoongArch 64-bit with LSX (SIMD) support"; \
-	echo "loongarch64             > LoongArch 64-bit"; \
 	echo ""; \
 	echo "Supported compilers:"; \
 	echo ""; \
@@ -1192,8 +1203,8 @@ ifeq ($(ARCH_SUPPORTED),no)
 	echo ""
 endif
 
-.PHONY: help analyze build profile-build macos-lipo strip install clean net \
-	objclean profileclean config-sanity \
+.PHONY: help analyze build profile-build macos-lipo strip install net \
+	clean objclean profileclean config-sanity \
 	clang-profile-make clang-profile-use \
 	gcc-profile-make gcc-profile-use \
 	icx-profile-make icx-profile-use \
@@ -1309,6 +1320,10 @@ install:
 	chmod 755 "$(BINDIR)/$(EXE)"
 	$(STRIP) "$(BINDIR)/$(EXE)"
 
+# Evaluation network (nnue)
+net:
+	@$(SHELL) ../scripts/net.sh
+
 # Clean all
 clean: objclean profileclean
 	@rm -f .depend *~ core
@@ -1333,10 +1348,6 @@ universalclean:
 	@find $(TEMP_DIR) -type l -exec rmdir {} + 2>/dev/null || true
 	@rm -rf $(TEMP_DIR)
 	@rm -f universal/network_dump.inc
-
-# Evaluation network (nnue)
-net:
-	@$(SHELL) ../scripts/net.sh
 
 format:
 	@echo CLANG_FORMAT=$(CLANG_FORMAT)
@@ -1407,11 +1418,11 @@ config-sanity: net
 	echo "tablebases: '$(tablebases)'" && \
 	echo "" && \
 	echo "Flags:" && \
-	echo "CXX: $(CXX)" && \
-	echo "CXXFLAGS: $(CXXFLAGS)" && \
-	echo "DEPENDFLAGS: $(DEPENDFLAGS)" && \
-	echo "LDFLAGS: $(LDFLAGS)" && \
-	echo "LDLIBS: $(LDLIBS)" && \
+	echo "CXX: '$(CXX)'" && \
+	echo "CXXFLAGS: '$(CXXFLAGS)'" && \
+	echo "DEPENDFLAGS: '$(DEPENDFLAGS)'" && \
+	echo "LDFLAGS: '$(LDFLAGS)'" && \
+	echo "LDLIBS: '$(LDLIBS)'" && \
 	echo "" && \
 	echo "Testing config sanity. If this fails, try 'make help' ..." && \
 	echo "" && \
@@ -1420,31 +1431,31 @@ config-sanity: net
 	(test "$(ARCH_SUPPORTED)" = "yes") && \
 	(test "$(arch)" = "any" || test "$(arch)" = "i386" || test "$(arch)" = "x86_64" || \
 	 test "$(arch)" = "ppc" || test "$(arch)" = "ppc64" || test "$(arch)" = "e2k" || \
-	 test "$(arch)" = "armv7" || test "$(arch)" = "armv8" || test "$(arch)" = "arm64" || \
 	 test "$(arch)" = "riscv64" || test "$(arch)" = "loongarch64" || \
+	 test "$(arch)" = "armv7" || test "$(arch)" = "armv8" || test "$(arch)" = "arm64" || \
 	 test "$(arch)" = "wasm32") && \
-	(test "$(bits)" = "32" || test "$(bits)" = "64") && \
-	(test "$(prefetch)" = "no" || test "$(prefetch)" = "yes") && \
-	(test "$(popcnt)"   = "no" || test "$(popcnt)"   = "yes") && \
-	(test "$(sse)"      = "no" || test "$(sse)"      = "yes") && \
-	(test "$(mmx)"      = "no" || test "$(mmx)"      = "yes") && \
-	(test "$(sse2)"     = "no" || test "$(sse2)"     = "yes") && \
-	(test "$(ssse3)"    = "no" || test "$(ssse3)"    = "yes") && \
-	(test "$(sse41)"    = "no" || test "$(sse41)"    = "yes") && \
-	(test "$(avx2)"     = "no" || test "$(avx2)"     = "yes") && \
-	(test "$(bmi2)"     = "no" || test "$(bmi2)"     = "yes") && \
-	(test "$(cmp)"      = "no" || test "$(cmp)"      = "yes") && \
-	(test "$(avxvnni)"  = "no" || test "$(avxvnni)"  = "yes") && \
-	(test "$(avx512)"   = "no" || test "$(avx512)"   = "yes") && \
-	(test "$(vnni256)"  = "no" || test "$(vnni256)"  = "yes") && \
-	(test "$(vnni512)"  = "no" || test "$(vnni512)"  = "yes") && \
+	(test "$(bits)"      = "32" || test "$(bits)"      = "64") && \
+	(test "$(prefetch)"  = "no" || test "$(prefetch)"  = "yes") && \
+	(test "$(popcnt)"    = "no" || test "$(popcnt)"    = "yes") && \
+	(test "$(sse)"       = "no" || test "$(sse)"       = "yes") && \
+	(test "$(mmx)"       = "no" || test "$(mmx)"       = "yes") && \
+	(test "$(sse2)"      = "no" || test "$(sse2)"      = "yes") && \
+	(test "$(ssse3)"     = "no" || test "$(ssse3)"     = "yes") && \
+	(test "$(sse41)"     = "no" || test "$(sse41)"     = "yes") && \
+	(test "$(avx2)"      = "no" || test "$(avx2)"      = "yes") && \
+	(test "$(bmi2)"      = "no" || (test "$(bmi2)"     = "yes"  && \
+	(test "$(cmp)"       = "no" || test "$(cmp)"       = "yes"))) && \
+	(test "$(avxvnni)"   = "no" || test "$(avxvnni)"   = "yes") && \
+	(test "$(avx512)"    = "no" || test "$(avx512)"    = "yes") && \
+	(test "$(vnni256)"   = "no" || test "$(vnni256)"   = "yes") && \
+	(test "$(vnni512)"   = "no" || test "$(vnni512)"   = "yes") && \
 	(test "$(avx512icl)" = "no" || test "$(avx512icl)" = "yes") && \
-	(test "$(vsx)"      = "no" || test "$(vsx)"      = "yes") && \
-	(test "$(altivec)"  = "no" || test "$(altivec)"  = "yes") && \
-	(test "$(dotprod)"  = "no" || test "$(dotprod)"  = "yes") && \
-	(test "$(neon)"     = "no" || test "$(neon)"     = "yes") && \
-	(test "$(lasx)"     = "no" || test "$(lasx)"     = "yes") && \
-	(test "$(lsx)"      = "no" || test "$(lsx)"      = "yes") && \
+	(test "$(altivec)"   = "no" || test "$(altivec)"   = "yes") && \
+	(test "$(vsx)"       = "no" || test "$(vsx)"       = "yes") && \
+	(test "$(lsx)"       = "no" || test "$(lsx)"       = "yes") && \
+	(test "$(lasx)"      = "no" || test "$(lasx)"      = "yes") && \
+	(test "$(neon)"      = "no" || test "$(neon)"      = "yes") && \
+	(test "$(dotprod)"   = "no" || test "$(dotprod)"   = "yes") && \
 	(test "$(tablebases)" = "yes" || test "$(tablebases)" = "no") && \
 	(test "$(IS_WINDOWS)" = "no" || test "$(IS_WINDOWS)" = "yes") && \
 	(test "$(COMP)" = "gcc" || test "$(COMP)" = "clang" || test "$(COMP)" = "mingw" || \
@@ -1457,7 +1468,7 @@ $(EXE): $(OBJS) $(NNUE_EMBED_OBJ)
 	$(strip $(CXX) $(CPPFLAGS) $(CXXFLAGS)) -c -o $@ $<
 
 misc.o: misc.cpp $(BUILD_DATE_FILE) $(BUILD_SHA_FILE) $(BUILD_DIFFINDEX_FILE)
-	$(strip $(CXX) $(CPPFLAGS) $(CXXFLAGS) $(if $(GIT_DATE),-DGIT_DATE=$(GIT_DATE)) $(if $(GIT_SHA),-DGIT_SHA=$(GIT_SHA))) $(if $(GIT_DIFFINDEX),-DGIT_DIFFINDEX=$(GIT_DIFFINDEX)) -c -o $@ $<
+	$(strip $(CXX) $(CPPFLAGS) $(CXXFLAGS) $(GIT_FLAGS)) -c -o $@ $<
 
 # Clang PGO
 clang-profile-make:
@@ -1510,7 +1521,7 @@ icx-profile-use:
 ifeq ($(UNIVERSAL_BUILD),no)
 # Include .depend only if no special goal is requested
 ifneq ($(MAKECMDGOALS),)
-ifeq ($(filter help strip install clean objclean profileclean net format config-sanity install-hooks,$(MAKECMDGOALS)),)
+ifneq ($(filter-out help strip install net clean objclean profileclean config-sanity format install-hooks,$(MAKECMDGOALS)),)
     -include .depend
 endif
 endif

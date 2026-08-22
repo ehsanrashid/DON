@@ -22,7 +22,7 @@ jobs:
 
       - name: Build DON
         working-directory: DON/src
-        run: make -j8 profile-build ARCH=x86-64-bmi2
+        run: make -j8 ARCH=x86-64-bmi2 profile-build
 
       - name: Checkout matetrack repo
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -80,10 +80,7 @@ jobs:
       # - name: Run matetrack th4 go-mate
       #   working-directory: matetrack
       #   run: |
-      #     head -n 21 matetrack.epd > gomates.epd
-      #     head -n 44 matedtrack.epd >> gomates.epd
-      #     head -n 18 mates2000.epd >> gomates.epd
-      #     python matecheck.py --engine /home/runner/work/DON/DON/DON/src/DON --epdFile gomates.epd --mate 0 --threads 4 | tee matecheck4gm.out
+      #     python matecheck.py --engine /home/runner/work/DON/DON/DON/src/DON --epdFile matetrack.epd matedtrack.epd --bmMax 2 --mate 0 --threads 4 | tee matecheck4gm.out
       #     ! grep "issues were detected" matecheck4gm.out > /dev/null
       #     total=$(grep "Total FENs:" matecheck4gm.out | awk '{print $3}')
       #     bmates=$(grep "Best mates:" matecheck4gm.out | awk '{print $3}')

@@ -22,8 +22,8 @@
 #include <array>
 #include <cassert>
 #include <cstring>
-#include <iosfwd>
 #include <functional>
+#include <iosfwd>
 #include <type_traits>
 #include <utility>
 
@@ -33,7 +33,9 @@
 #include "../types.h"
 #include "accumulator.h"
 #include "architecture.h"
-#include "common.h"
+#include "nnz.h"
+#include "ntypes.h"
+#include "serialization.h"
 #include "simd.h"
 
 namespace DON::NNUE {
@@ -202,6 +204,7 @@ class FeatureTransformer final {
                   AccumulatorCache&              accCache,
                   AccumulatorStack&              accStack,
                   usize                          bucket,
+                  NNZ<OutputDimensions>&         nnz,
                   Array<OutputType, BufferSize>& output) const noexcept {
         using namespace SIMD;
 
@@ -229,16 +232,20 @@ class FeatureTransformer final {
         for (Color p : {WHITE, BLACK})
         {
             IndexType offset = p * (HalfDimensions / 2);
+
+            [[maybe_unused]] auto cursor = nnz.make_cursor(p);
             // clang-format off
 #if defined(VECTOR)
             constexpr IndexType OutputChunkSize = MaxChunkSize;
-            static_assert((HalfDimensions / 2) % OutputChunkSize == 0);
-
+            static_assert(HalfDimensions % (2 * OutputChunkSize) == 0);
             constexpr IndexType OutputChunkCount = HalfDimensions / (2 * OutputChunkSize);
 
-            vec_t*       out = reinterpret_cast<vec_t*>(&output[offset]);
-            const vec_t* in0 = reinterpret_cast<const vec_t*>(&(accumulation[perspectives[p]][0]));
-            const vec_t* in1 = reinterpret_cast<const vec_t*>(&(accumulation[perspectives[p]][HalfDimensions / 2]));
+            const vec_t Zero = vec_zero();
+            const vec_t One  = vec_set_16(255);
+
+            const auto* in0 = reinterpret_cast<const vec_t*>(&(accumulation[perspectives[p]][0]));
+            const auto* in1 = reinterpret_cast<const vec_t*>(&(accumulation[perspectives[p]][HalfDimensions / 2]));
+            auto*       out = reinterpret_cast<vec_t*>(&output[offset]);
 
             // Per the NNUE architecture, here we want to multiply pairs of
             // clipped elements and divide the product by 128. To do this,
@@ -291,36 +298,42 @@ class FeatureTransformer final {
             // return value after the multiplication, adding an extra shift
             // to the left by 1, so we compensate by shifting less before
             // the multiplication.
-            vec_t Zero = vec_zero();
-            vec_t One  = vec_set_16(255);
 
             constexpr int shift =
-    #if defined(USE_SSE2) || defined(USE_LASX) || defined(USE_LSX)
+    #if defined(USE_SSE2) || defined(USE_LSX)
               7
     #else
               6
     #endif
               ;
 
-            const vec_t* tin0 = reinterpret_cast<const vec_t*>(&(threatAccumulation[perspectives[p]][0]));
-            const vec_t* tin1 = reinterpret_cast<const vec_t*>(&(threatAccumulation[perspectives[p]][HalfDimensions / 2]));
+            const auto* tin0 = reinterpret_cast<const vec_t*>(&(threatAccumulation[perspectives[p]][0]));
+            const auto* tin1 = reinterpret_cast<const vec_t*>(&(threatAccumulation[perspectives[p]][HalfDimensions / 2]));
 
-            for (IndexType j = 0; j < OutputChunkCount; ++j)
+            for (IndexType j = 0; j + 1 < OutputChunkCount; j += 2)
             {
-                vec_t acc00 = vec_add_16(in0[j * 2 + 0], tin0[j * 2 + 0]);
-                vec_t acc01 = vec_add_16(in0[j * 2 + 1], tin0[j * 2 + 1]);
-                vec_t acc10 = vec_add_16(in1[j * 2 + 0], tin1[j * 2 + 0]);
-                vec_t acc11 = vec_add_16(in1[j * 2 + 1], tin1[j * 2 + 1]);
+                vec_t packed[2];
+                for (IndexType k = 0; k < 2; ++k)
+                {
+                    const IndexType i = (j + k) * 2;
 
-                vec_t sum00 = vec_slli_16(vec_max_16(vec_min_16(acc00, One), Zero), shift);
-                vec_t sum01 = vec_slli_16(vec_max_16(vec_min_16(acc01, One), Zero), shift);
-                vec_t sum10 = vec_min_16(acc10, One);
-                vec_t sum11 = vec_min_16(acc11, One);
+                    const vec_t acc00 = vec_add_16(in0[i + 0], tin0[i + 0]);
+                    const vec_t acc01 = vec_add_16(in0[i + 1], tin0[i + 1]);
+                    const vec_t acc10 = vec_add_16(in1[i + 0], tin1[i + 0]);
+                    const vec_t acc11 = vec_add_16(in1[i + 1], tin1[i + 1]);
 
-                vec_t p0 = vec_mulhi_16(sum00, sum10);
-                vec_t p1 = vec_mulhi_16(sum01, sum11);
+                    const vec_t sum00 = vec_slli_16(vec_max_16(vec_min_16(acc00, One), Zero), shift);
+                    const vec_t sum01 = vec_slli_16(vec_max_16(vec_min_16(acc01, One), Zero), shift);
+                    const vec_t sum10 = vec_min_16(acc10, One);
+                    const vec_t sum11 = vec_min_16(acc11, One);
 
-                out[j] = vec_packus_16(p0, p1);
+                    const vec_t p0 = vec_mulhi_16(sum00, sum10);
+                    const vec_t p1 = vec_mulhi_16(sum01, sum11);
+
+                    out[j + k] = packed[k] = vec_packus_16(p0, p1);
+                }
+
+                cursor.record(packed[0], packed[1]);
             }
 #else
             for (IndexType j = 0; j < HalfDimensions / 2; ++j)
@@ -334,7 +347,7 @@ class FeatureTransformer final {
                 sum0 = std::clamp<BiasType>(sum0, 0, 255);
                 sum1 = std::clamp<BiasType>(sum1, 0, 255);
 
-                output[offset + j] = OutputType(unsigned(sum0 * sum1) / 512);
+                output[offset + j] = static_cast<OutputType>(unsigned(sum0 * sum1) / 512);
             }
 #endif
             // clang-format on
@@ -361,4 +374,4 @@ struct std::hash<DON::NNUE::FeatureTransformer> {
     }
 };
 
-#endif  // #ifndef NNUE_FEATURE_TRANSFORMER_H_INCLUDED
+#endif  // NNUE_FEATURE_TRANSFORMER_H_INCLUDED

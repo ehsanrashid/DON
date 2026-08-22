@@ -17,8 +17,8 @@
 
 // Constants used in NNUE evaluation function
 
-#ifndef NNUE_COMMON_H_INCLUDED
-#define NNUE_COMMON_H_INCLUDED
+#ifndef NNUE_SERIALIZATION_H_INCLUDED
+#define NNUE_SERIALIZATION_H_INCLUDED
 
 #include <algorithm>
 #include <array>
@@ -28,42 +28,9 @@
 #include <string_view>
 #include <type_traits>
 
-#if defined(USE_AVX2)
-    #include <immintrin.h>
-#elif defined(USE_SSE41)
-    #include <smmintrin.h>
-#elif defined(USE_SSSE3)
-    #include <tmmintrin.h>
-#elif defined(USE_SSE2)
-    #include <emmintrin.h>
-#elif defined(USE_LASX)
-    #include <lasxintrin.h>
-    #include <lsxintrin.h>
-#elif defined(USE_LSX)
-    #include <lsxintrin.h>
-#elif defined(USE_NEON)
-    #include <arm_neon.h>
-#endif
-
 #include "../misc.h"
 
 namespace DON::NNUE {
-
-using BiasType         = i16;
-using WeightType       = i16;
-using PSQTWeightType   = i32;
-using ThreatWeightType = i8;
-using IndexType        = usize;
-
-// Type of input feature after conversion
-using TransformedFeatureType = u8;
-
-// Version of the evaluation file
-inline constexpr u32 FILE_VERSION = 0x7AF32F20u;
-
-// Constant used in evaluation value calculation
-inline constexpr int OUTPUT_SCALE      = 16;
-inline constexpr int WEIGHT_SCALE_BITS = 6;
 
 // LEB128 constants
 inline constexpr u8    LEB128_DATA_MASK = 0x7F;           // 7 data bits
@@ -72,27 +39,6 @@ inline constexpr u8    LEB128_SIGN_BIT  = 0x40;           // Sign bit of 7-bit g
 inline constexpr usize LEB128_BITS      = BYTE_BITS - 1;  // 7 bits per group
 
 inline constexpr std::string_view LEB128_MAGIC_STRING{"COMPRESSED_LEB128"};
-
-inline constexpr usize SIMD_WIDTH_MAX = 32;
-
-// SIMD width (in bytes)
-#if defined(USE_AVX2)
-inline constexpr usize SIMD_WIDTH = 32;
-#elif defined(USE_SSE2)
-inline constexpr usize SIMD_WIDTH = 16;
-#elif defined(USE_NEON)
-inline constexpr usize SIMD_WIDTH = 16;
-#elif defined(USE_LASX)
-inline constexpr usize SIMD_WIDTH = 32;
-#elif defined(USE_LSX)
-inline constexpr usize SIMD_WIDTH = 16;
-#endif
-
-// Round n up to be a multiple of base
-template<typename IntType>
-constexpr IntType ceil_to_multiple(IntType n, IntType base) noexcept {
-    return ceil_div(n, base) * base;
-}
 
 // Utility to read an integer (signed or unsigned, any size)
 // from a istream in little-endian order. Swap the byte order after the read
@@ -346,4 +292,4 @@ inline void write_leb_128(std::ostream& os, const std::array<IntType, Size>& in)
 
 }  // namespace DON::NNUE
 
-#endif  // #ifndef NNUE_COMMON_H_INCLUDED
+#endif  // NNUE_SERIALIZATION_H_INCLUDED

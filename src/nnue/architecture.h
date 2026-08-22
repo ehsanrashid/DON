@@ -20,38 +20,26 @@
 #ifndef NNUE_ARCHITECTURE_H_INCLUDED
 #define NNUE_ARCHITECTURE_H_INCLUDED
 
-#include <array>
 #include <cstring>
 #include <functional>
 #include <iosfwd>
 
 #include "../misc.h"
-#include "common.h"
+#include "../types.h"
 #include "features/full_threats.h"
 #include "features/half_ka_hm.h"
 #include "layers/affine_transform.h"
-#include "layers/affine_transform_sparse_input.h"
+#include "layers/sparse_affine_transform.h"
 #include "layers/clipped_relu.h"
 #include "layers/sqr_clipped_relu.h"
+#include "nnz.h"
+#include "ntypes.h"
 
 namespace DON::NNUE {
 
 // Input features used in evaluation function
 using ThreatFeatureSet = Features::FullThreats;
 using PSQFeatureSet    = Features::HalfKA_hm;
-
-// Number of input feature dimensions after conversion
-inline constexpr IndexType L1 = 1024;
-inline constexpr u32       L2 = 31;
-inline constexpr u32       L3 = 32;
-
-inline constexpr IndexType PSQTBuckets = 8;
-inline constexpr IndexType LayerStacks = 8;
-
-// If vector instructions are enabled, update and refresh the accumulator
-// tile by tile such that each tile fits in the CPU's vector registers.
-static_assert(PSQTBuckets % 8 == 0,
-              "Per feature PSQT values cannot be processed at granularity lower than 8 at a time.");
 
 struct NetworkArchitecture final {
    public:
@@ -104,8 +92,9 @@ struct NetworkArchitecture final {
     }
 
     // Forward propagation
-    i32 propagate(const Array<TransformedFeatureType, TransformedFeatureDimensions>&
-                    transformedFeatures) const noexcept {
+    i32 propagate(
+      const Array<TransformedFeatureType, TransformedFeatureDimensions>& transformedFeatures,
+      const NNZ<L1>&                                                     nnz) const noexcept {
 
         struct alignas(CACHE_LINE_SIZE) Buffer final {
             alignas(CACHE_LINE_SIZE) typename decltype(fc_0)::OutputBuffer fc_0_out;
@@ -122,7 +111,7 @@ struct NetworkArchitecture final {
 
         Buffer buffer;
 
-        fc_0.propagate(transformedFeatures.data(), buffer.fc_0_out.data());
+        fc_0.propagate(transformedFeatures.data(), buffer.fc_0_out.data(), nnz);
         ac_sqr_0.propagate(buffer.fc_0_out.data(), buffer.ac_sqr_0_out.data());
         ac_0.propagate(buffer.fc_0_out.data(), buffer.ac_0_out.data());
         std::memcpy(&buffer.ac_sqr_0_out[FC_0_Outputs], buffer.ac_0_out.data(),
@@ -141,12 +130,12 @@ struct NetworkArchitecture final {
     }
 
    private:
-    Layers::AffineTransformSparseInput<TransformedFeatureDimensions, FC_0_Outputs + 1> fc_0;
-    Layers::SqrClippedReLU<FC_0_Outputs + 1>                                           ac_sqr_0;
-    Layers::ClippedReLU<FC_0_Outputs + 1>                                              ac_0;
-    Layers::AffineTransform<FC_0_Outputs * 2, FC_1_Outputs>                            fc_1;
-    Layers::ClippedReLU<FC_1_Outputs>                                                  ac_1;
-    Layers::AffineTransform<FC_1_Outputs, 1>                                           fc_2;
+    Layers::SparseAffineTransform<TransformedFeatureDimensions, FC_0_Outputs + 1> fc_0;
+    Layers::SqrClippedReLU<FC_0_Outputs + 1>                                      ac_sqr_0;
+    Layers::ClippedReLU<FC_0_Outputs + 1>                                         ac_0;
+    Layers::AffineTransform<FC_0_Outputs * 2, FC_1_Outputs>                       fc_1;
+    Layers::ClippedReLU<FC_1_Outputs>                                             ac_1;
+    Layers::AffineTransform<FC_1_Outputs, 1>                                      fc_2;
 };
 
 }  // namespace DON::NNUE
@@ -158,4 +147,4 @@ struct std::hash<DON::NNUE::NetworkArchitecture> {
     }
 };
 
-#endif  // #ifndef NNUE_ARCHITECTURE_H_INCLUDED
+#endif  // NNUE_ARCHITECTURE_H_INCLUDED

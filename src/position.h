@@ -456,7 +456,7 @@ class Position final {
     void reset_en_passant_sq() noexcept;
     void reset_rule50_count() noexcept;
 
-    static constexpr auto CASTLING_RIGHTS_INDICES = []() constexpr noexcept {
+    static constexpr auto CastlingRightsIndices = []() constexpr noexcept {
         Array<u8, SQUARE_NB> castlingRightsIndices{};
 
         for (Square s = SQ_A1; s <= SQ_H8; ++s)
@@ -549,7 +549,7 @@ inline i32 Position::move_num() const noexcept {
 }
 
 inline CastlingRights Position::castling_rights_mask(const Square s) const noexcept {
-    auto sIdx = CASTLING_RIGHTS_INDICES[s];
+    auto sIdx = CastlingRightsIndices[s];
 
     return sIdx < castlingRightsMasks.size() ? castlingRightsMasks[sIdx]
                                              : CastlingRights::NO_CASTLING;
@@ -1146,4 +1146,4 @@ inline i16 rule50_threshold(i16 r50 = -4) noexcept {
 
 }  // namespace DON
 
-#endif  // #ifndef POSITION_H_INCLUDED
+#endif  // POSITION_H_INCLUDED

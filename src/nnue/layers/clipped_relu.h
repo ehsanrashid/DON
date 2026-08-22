@@ -24,12 +24,16 @@
 #include <iosfwd>
 
 #include "../../misc.h"
-#include "../common.h"
+#include "../ntypes.h"
 #include "../simd.h"  // IWYU pragma: keep
 
 namespace DON::NNUE::Layers {
 
-// Clipped ReLU
+// This class defines a Clipped ReLU activation layer.
+//
+// The activation clips each input value to the range [0, 127].
+// It introduces non-linearity while keeping the output within the
+// range supported by subsequent quantized operations.
 template<IndexType InDims>
 class ClippedReLU final {
    public:
@@ -41,7 +45,7 @@ class ClippedReLU final {
     static constexpr IndexType InputDimensions  = InDims;
     static constexpr IndexType OutputDimensions = InputDimensions;
     static constexpr IndexType PaddedOutputDimensions =
-      ceil_to_multiple<IndexType>(OutputDimensions, 32);
+      ceil_to_multiple<IndexType>(OutputDimensions, SIMD_WIDTH_MAX);
 
     using OutputBuffer = Array<OutputType, PaddedOutputDimensions>;
 
@@ -171,4 +175,4 @@ class ClippedReLU final {
 
 }  // namespace DON::NNUE::Layers
 
-#endif  // #ifndef NNUE_LAYERS_CLIPPED_RELU_H_INCLUDED
+#endif  // NNUE_LAYERS_CLIPPED_RELU_H_INCLUDED

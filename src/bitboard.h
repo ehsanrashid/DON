@@ -27,9 +27,9 @@
     #include <immintrin.h>
 #endif
 #if defined(_MSC_VER)
-    #include <intrin.h>  // Microsoft header for _BitScanForward64() & _BitScanForward()
+    #include <intrin.h>  // _BitScanForward64() & _BitScanForward() intrinsics
     #if defined(USE_POPCNT)
-        #include <nmmintrin.h>  // Microsoft header for _mm_popcnt_u64()
+        #include <nmmintrin.h>  // SSE4.2 header for _mm_popcnt_u64() intrinsics
     #endif
 #endif
 #if !defined(USE_POPCNT)
@@ -346,4 +346,4 @@ std::string_view pretty(Bitboard b) noexcept;
 
 }  // namespace DON
 
-#endif  // #ifndef BITBOARD_H_INCLUDED
+#endif  // BITBOARD_H_INCLUDED
