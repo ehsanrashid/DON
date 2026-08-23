@@ -576,7 +576,7 @@ CXX_IS_APPLE_CLANG := no
 
 # GCC
 ifeq ($(COMP),gcc)
-    CXX := g++
+    CXX := $(or $(COMPCXX),g++)
     CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-declarations
     # Detect whether the selected compiler is actually Clang
     CXX_VERSION        := $(shell $(CXX) --version 2>/dev/null | head -n 1 | tr '[:upper:]' '[:lower:]')
