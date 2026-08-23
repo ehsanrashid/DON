@@ -126,33 +126,36 @@ struct NNZ final {
             using namespace SIMD;
 
         #if defined(USE_SSSE3) || defined(USE_LSX)
-            auto m1 = vec_nnz(neurons1);
-            auto m2 = vec_nnz(neurons2);
+            constexpr usize VecBytes = sizeof(SIMD::vec_t);
 
-            if (sizeof(neurons1) == 16)
+            const auto n1 = vec_nnz(neurons1);
+            const auto n2 = vec_nnz(neurons2);
+
+            if constexpr (VecBytes == 16)
             {
-                *nnzOut++ = m1 + (m2 << 4);
+                *nnzOut++ = n1 + (n2 << 4);
             }
             else
             {
-                usize bytes = sizeof(neurons1) / 32;
-                std::memcpy(nnzOut, &m1, bytes);
+                constexpr usize bytes = VecBytes / 32;
+
+                std::memcpy(nnzOut, &n1, bytes);
                 nnzOut += bytes;
-                std::memcpy(nnzOut, &m2, bytes);
+                std::memcpy(nnzOut, &n2, bytes);
                 nnzOut += bytes;
             }
         #elif defined(USE_NEON) && USE_NEON >= 8
-            alignas(16) static constexpr u16 Mask8[8]{1, 16, 2, 32, 4, 64, 8, 128};
+            alignas(16) constexpr Array<u16, 8> Mask8{1, 16, 2, 32, 4, 64, 8, 128};
 
-            uint32x4_t n1 = vreinterpretq_u32_s16(neurons1);
-            uint32x4_t n2 = vreinterpretq_u32_s16(neurons2);
+            const uint32x4_t n1 = vreinterpretq_u32_s16(neurons1);
+            const uint32x4_t n2 = vreinterpretq_u32_s16(neurons2);
 
             const uint32x4_t t1 = vtstq_u32(n1, n1);
             const uint32x4_t t2 = vtstq_u32(n2, n2);
 
             const uint16x8_t packed =
               vtrn1q_u16(vreinterpretq_u16_u32(t1), vreinterpretq_u16_u32(t2));
-            const uint16x8_t bits = vandq_u16(packed, vld1q_u16(Mask8));
+            const uint16x8_t bits = vandq_u16(packed, vld1q_u16(Mask8.data()));
 
             *nnzOut++ = vaddvq_u16(bits);
         #endif
