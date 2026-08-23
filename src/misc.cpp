@@ -292,11 +292,10 @@ std::string version_info() noexcept {
 #if defined(GIT_SHA)
         version.append(STRINGIFY(GIT_SHA));
 #else
-        version.append(format_time(__TIME__)).append("-nogit");
+        version.append("nogit").append(format_time(__TIME__));
 #endif
 #if defined(GIT_DIFFINDEX)
-        version.append("-m");
-        version.append(STRINGIFY(GIT_DIFFINDEX));
+        version.append("-").append(STRINGIFY(GIT_DIFFINDEX));
 #endif
     }
 

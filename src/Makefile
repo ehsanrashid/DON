@@ -156,6 +156,7 @@ VPATH := nnue:nnue/features:book:tablebase
 # vsx = yes/no         --- -mvsx              --- Use POWER VSX SIMD extension
 # lsx = yes/no         --- -mlsx              --- Use LoongArch SIMD eXtension
 # lasx = yes/no        --- -mlasx             --- Use LoongArch Advanced SIMD eXtension
+# rva23 = yes/no       --- -march=rv64...     --- Use RISC-V 64-bit RVA23 profile
 # neon = yes/no        --- -DUSE_NEON         --- Use ARM NEON SIMD instructions
 # dotprod = yes/no     --- -DUSE_NEON_DOTPROD --- Use ARM NEON Advanced SIMD Int8 dot-product instructions
 # relaxedsimd = yes/no --- -mrelaxed-simd     --- Use WebAssembly relaxed SIMD extension
@@ -189,8 +190,8 @@ ARCH_SUPPORTED := $(if $(filter \
     x86-64-modern x86-64-sse41 x86-64-ssse3-popcnt x86-64-ssse3 x86-64 general-64 \
     x86-32-sse41-popcnt x86-32-sse41 x86-32-ssse3 x86-32-sse2 x86-32 general-32 \
     ppc-64-vsx ppc-64-altivec ppc-64 ppc-32 e2k \
-    riscv64-universal riscv64-rva23 riscv64 \
     loongarch64-lasx loongarch64-lsx loongarch64 \
+    riscv64-universal riscv64-rva23 riscv64 \
     arm64-universal armv8-dotprod armv8 armv7-neon armv7 apple-silicon \
     wasm32 wasm32-relaxed-simd,$(ARCH)),yes,no)
 
@@ -218,9 +219,9 @@ vnni512 = no
 avx512icl = no
 altivec = no
 vsx = no
-rva23 = no
 lsx = no
 lasx = no
+rva23 = no
 arm_version = 0
 neon = no
 dotprod = no
@@ -434,15 +435,6 @@ ifeq ($(ARCH),e2k)
     popcnt = yes
 endif
 
-ifneq ($(findstring riscv64,$(ARCH)),)
-    arch = riscv64
-    ifeq ($(ARCH),riscv64-rva23)
-        rva23 = yes
-        popcnt = yes
-        prefetch = yes
-    endif
-endif
-
 ifneq ($(findstring loongarch64,$(ARCH)),)
     arch = loongarch64
     prefetch = yes
@@ -452,6 +444,15 @@ ifneq ($(findstring loongarch64,$(ARCH)),)
     ifneq ($(findstring -lasx,$(ARCH)),)
         lsx = yes
         lasx = yes
+    endif
+endif
+
+ifneq ($(findstring riscv64,$(ARCH)),)
+    arch = riscv64
+    ifeq ($(ARCH),riscv64-rva23)
+        rva23 = yes
+        popcnt = yes
+        prefetch = yes
     endif
 endif
 
@@ -589,8 +590,8 @@ ifeq ($(COMP),gcc)
             CXXFLAGS += $(BITS_FLAG)
             LDFLAGS  += $(BITS_FLAG)
         endif
-    # RISC-V64 and LoongArch64 determine bitness from the target
-    else ifneq ($(filter riscv64 loongarch64,$(arch)),)
+    # LoongArch64 & RISC-V64 determine bitness from the target
+    else ifneq ($(filter loongarch64 riscv64,$(arch)),)
     # Generic architectures use the configured bitness
     else
         CXXFLAGS += $(BITS_FLAG)
@@ -681,8 +682,8 @@ else ifeq ($(COMP),clang)
             CXXFLAGS += $(BITS_FLAG)
             LDFLAGS  += $(BITS_FLAG)
         endif
-    # RISC-V64 and LoongArch64 determine bitness from the target
-    else ifneq ($(filter riscv64 loongarch64,$(arch)),)
+    # LoongArch64 & RISC-V64 determine bitness from the target
+    else ifneq ($(filter loongarch64 riscv64,$(arch)),)
     # Generic architectures use the configured bitness
     else
         CXXFLAGS += $(BITS_FLAG)
@@ -964,10 +965,6 @@ ifeq ($(altivec),yes)
     endif
 endif
 
-ifeq ($(rva23),yes)
-    CXXFLAGS += -DUSE_RVV -march=rv64gcv1p0_zba_zbb_zbs_zicbop_zicond
-endif
-
 ifeq ($(lasx),yes)
     CXXFLAGS += -DUSE_LASX
     ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
@@ -980,6 +977,10 @@ ifeq ($(lsx),yes)
     ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
         CXXFLAGS += -mlsx
     endif
+endif
+
+ifeq ($(rva23),yes)
+    CXXFLAGS += -DUSE_RVV -march=rv64gcv1p0_zba_zbb_zbs_zicbop_zicond
 endif
 
 ifeq ($(neon),yes)
@@ -1028,7 +1029,7 @@ BUILD_DIFFINDEX_FILE := .build_diffindex.txt
 
 GIT_DATE      := $(shell git show -s --date=format:%Y%m%d --format=%cd HEAD 2>/dev/null || true)
 GIT_SHA       := $(shell git rev-parse HEAD 2>/dev/null | cut -c 1-8 || true)
-GIT_DIFFINDEX := $(shell git update-index --refresh >/dev/null 2>&1; git -c core.filemode=false -c core.autocrlf=false diff-index --quiet HEAD -- 2>/dev/null; [ $$? -eq 1 ] && echo 1 || true)
+GIT_DIFFINDEX := $(shell git update-index --refresh >/dev/null 2>&1; git -c core.filemode=false -c core.autocrlf=false diff HEAD --no-ext-diff | git hash-object --stdin | cut -c 1-6)
 COMPILER_DATE := $(shell date +%Y%m%d 2>/dev/null)
 BUILD_DATE    := $(or $(GIT_DATE),$(COMPILER_DATE))
 
@@ -1043,7 +1044,7 @@ endef
 ifneq ($(filter-out help net strip install clean objclean profileclean config-sanity format install-hooks,$(MAKECMDGOALS)),)
 _ := $(call CACHE_FILE_CONTENTS,$(BUILD_DATE_FILE),$(BUILD_DATE))
 _ := $(call CACHE_FILE_CONTENTS,$(BUILD_SHA_FILE),$(GIT_SHA))
-_ := $(call CACHE_FILE_CONTENTS,$(BUILD_DIFFINDEX_FILE),$(BUILD_DIFFINDEX))
+_ := $(call CACHE_FILE_CONTENTS,$(BUILD_DIFFINDEX_FILE),$(GIT_DIFFINDEX))
 endif
 
 # Compiler flags for embedding Git build information
@@ -1168,12 +1169,12 @@ help:
 	echo "ppc-64                  > PPC 64-bit"; \
 	echo "ppc-32                  > PPC 32-bit"; \
 	echo "e2k                     > Elbrus 2000"; \
-	echo "riscv64-universal       > RISC-V 64-bit with automatic runtime selection of the best architecture"; \
-	echo "riscv64-rva23           > RISC-V 64-bit RVA23 profile"; \
-	echo "riscv64                 > RISC-V 64-bit"; \
 	echo "loongarch64-lasx        > LoongArch 64-bit with LASX (Advanced SIMD eXtension) support"; \
 	echo "loongarch64-lsx         > LoongArch 64-bit with LSX (SIMD eXtension) support"; \
 	echo "loongarch64             > LoongArch 64-bit"; \
+	echo "riscv64-universal       > RISC-V 64-bit with automatic runtime selection of the best architecture"; \
+	echo "riscv64-rva23           > RISC-V 64-bit RVA23 profile"; \
+	echo "riscv64                 > RISC-V 64-bit"; \
 	echo "arm64-universal         > ARMv8 64-bit with automatic runtime selection of the best architecture"; \
 	echo "armv8-dotprod           > ARMv8 64-bit with NEON, DOT-PRODUCT and POPCNT support"; \
 	echo "armv8                   > ARMv8 64-bit with NEON and POPCNT support"; \
@@ -1421,9 +1422,9 @@ config-sanity: net
 	echo "avx512icl: '$(avx512icl)'" && \
 	echo "altivec: '$(altivec)'" && \
 	echo "vsx: '$(vsx)'" && \
-	echo "rva23: '$(rva23)'" && \
 	echo "lsx: '$(lsx)'" && \
 	echo "lasx: '$(lasx)'" && \
+	echo "rva23: '$(rva23)'" && \
 	echo "arm_version: '$(arm_version)'" && \
 	echo "neon: '$(neon)'" && \
 	echo "dotprod: '$(dotprod)'" && \
@@ -1444,7 +1445,7 @@ config-sanity: net
 	(test "$(ARCH_SUPPORTED)" = "yes") && \
 	(test "$(arch)" = "any" || test "$(arch)" = "i386" || test "$(arch)" = "x86_64" || \
 	 test "$(arch)" = "ppc" || test "$(arch)" = "ppc64" || test "$(arch)" = "e2k" || \
-	 test "$(arch)" = "riscv64" || test "$(arch)" = "loongarch64" || \
+	 test "$(arch)" = "loongarch64" || test "$(arch)" = "riscv64" || \
 	 test "$(arch)" = "armv7" || test "$(arch)" = "armv8" || test "$(arch)" = "arm64" || \
 	 test "$(arch)" = "wasm32") && \
 	(test "$(bits)"      = "32" || test "$(bits)"      = "64") && \
@@ -1467,9 +1468,10 @@ config-sanity: net
 	(test "$(vsx)"       = "no" || test "$(vsx)"       = "yes") && \
 	(test "$(lsx)"       = "no" || test "$(lsx)"       = "yes") && \
 	(test "$(lasx)"      = "no" || test "$(lasx)"      = "yes") && \
+	(test "$(rva23)"     = "no" || test "$(rva23)"     = "yes") && \
 	(test "$(neon)"      = "no" || test "$(neon)"      = "yes") && \
 	(test "$(dotprod)"   = "no" || test "$(dotprod)"   = "yes") && \
-	(test "$(tablebases)" = "yes" || test "$(tablebases)" = "no") && \
+	(test "$(tablebases)" = "no" || test "$(tablebases)" = "yes") && \
 	(test "$(IS_WINDOWS)" = "no" || test "$(IS_WINDOWS)" = "yes") && \
 	(test "$(COMP)" = "gcc" || test "$(COMP)" = "clang" || test "$(COMP)" = "mingw" || \
 	 test "$(COMP)" = "icx" || test "$(COMP)" = "ndk")
