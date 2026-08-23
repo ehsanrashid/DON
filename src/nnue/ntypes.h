@@ -62,9 +62,6 @@ inline constexpr u16 FT_MAX            = 255;
 inline constexpr u16 HIDDEN_ONE        = 128;
 inline constexpr u16 HIDDEN_MAX        = 127;
 
-inline constexpr i64 Multiplier  = 600 * OUTPUT_SCALE;
-inline constexpr i64 Denominator = (i64{1} << WEIGHT_SCALE_BITS) * HIDDEN_ONE * 2;
-
 // EvalFile stores the currently selected evaluation network and its metadata.
 // The network path may be explicitly selected through a UCI option or fall back to the default network,
 // while the description is extracted from the loaded network file.

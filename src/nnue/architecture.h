@@ -128,6 +128,9 @@ struct NetworkArchitecture final {
         // fwdOut is such that 1.0 is equal to (1 << WEIGHT_SCALE_BITS) * HIDDEN_ONE *2
         // in quantized form, but want 1.0 to be equal to 600 * OUTPUT_SCALE
         // to make overflow impossible cast to i64.
+        constexpr i64 Multiplier  = 600 * OUTPUT_SCALE;
+        constexpr i64 Denominator = (i64{1} << WEIGHT_SCALE_BITS) * HIDDEN_ONE * 2;
+
         return static_cast<i32>((static_cast<i64>(fwdOut) * Multiplier) / Denominator);
     }
 
