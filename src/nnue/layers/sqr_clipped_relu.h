@@ -100,7 +100,8 @@ class SqrClippedReLU final {
 
         constexpr IndexType Start = SimdWidth * ChunkCount;
 
-#elif defined(USE_LASX)
+#elif defined(USE_LSX)
+    #if defined(USE_LASX)
         constexpr IndexType SimdWidth  = SIMD_WIDTH;
         constexpr IndexType ChunkCount = InputDimensions / SimdWidth;
 
@@ -124,7 +125,7 @@ class SqrClippedReLU final {
 
         constexpr IndexType Start = SimdWidth * ChunkCount;
 
-#elif defined(USE_LSX)
+    #else
         constexpr IndexType SimdWidth  = SIMD_WIDTH;
         constexpr IndexType ChunkCount = InputDimensions / SimdWidth;
 
@@ -145,6 +146,7 @@ class SqrClippedReLU final {
 
         constexpr IndexType Start = SimdWidth * ChunkCount;
 
+    #endif
 #elif defined(USE_NEON)
         constexpr IndexType SimdWidth  = SIMD_WIDTH;
         constexpr IndexType ChunkCount = InputDimensions / SimdWidth;

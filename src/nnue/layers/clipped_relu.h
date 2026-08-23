@@ -106,27 +106,8 @@ class ClippedReLU final {
 
         constexpr IndexType Start = SimdWidth * ChunkCount;
 
-#elif defined(USE_NEON)
-        constexpr IndexType SimdWidth  = SIMD_WIDTH / 2;
-        constexpr IndexType ChunkCount = InputDimensions / SimdWidth;
-
-        const SIMD::vec_i8x8_t Zero = {0};
-
-        const auto* in  = reinterpret_cast<const SIMD::vec_i32x4_t*>(input);
-        auto*       out = reinterpret_cast<SIMD::vec_i8x8_t*>(output);
-
-        for (IndexType i = 0; i < ChunkCount; ++i)
-        {
-            const IndexType j = i * 2;
-
-            const int16x8_t shifted = vcombine_s16(vqshrn_n_s32(in[j + 0], WeightScaleBits), vqshrn_n_s32(in[j + 1], WeightScaleBits));
-
-            out[i]                  = vmax_s8(vqmovn_s16(shifted), Zero);
-        }
-
-        constexpr IndexType Start = SimdWidth * ChunkCount;
-
-#elif defined(USE_LASX)
+#elif defined(USE_LSX)
+    #if defined(USE_LASX)
         constexpr IndexType SimdWidth  = SIMD_WIDTH;
         constexpr IndexType ChunkCount = InputDimensions / SimdWidth;
 
@@ -149,7 +130,7 @@ class ClippedReLU final {
 
         constexpr IndexType Start = SimdWidth * ChunkCount;
 
-#elif defined(USE_LSX)
+    #else
         constexpr IndexType SimdWidth  = SIMD_WIDTH;
         constexpr IndexType ChunkCount = InputDimensions / SimdWidth;
 
@@ -166,6 +147,27 @@ class ClippedReLU final {
             const __m128i words1  = __lsx_vsrli_h(packed1, WeightScaleBits);
 
             out[i]                = __lsx_vssrani_b_h(words1, words0, 0);
+        }
+
+        constexpr IndexType Start = SimdWidth * ChunkCount;
+
+    #endif
+#elif defined(USE_NEON)
+        constexpr IndexType SimdWidth  = SIMD_WIDTH / 2;
+        constexpr IndexType ChunkCount = InputDimensions / SimdWidth;
+
+        const SIMD::vec_i8x8_t Zero = {0};
+
+        const auto* in  = reinterpret_cast<const SIMD::vec_i32x4_t*>(input);
+        auto*       out = reinterpret_cast<SIMD::vec_i8x8_t*>(output);
+
+        for (IndexType i = 0; i < ChunkCount; ++i)
+        {
+            const IndexType j = i * 2;
+
+            const int16x8_t shifted = vcombine_s16(vqshrn_n_s32(in[j + 0], WeightScaleBits), vqshrn_n_s32(in[j + 1], WeightScaleBits));
+
+            out[i]                  = vmax_s8(vqmovn_s16(shifted), Zero);
         }
 
         constexpr IndexType Start = SimdWidth * ChunkCount;

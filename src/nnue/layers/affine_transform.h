@@ -126,35 +126,39 @@ class AffineTransform final {
 #if defined(USE_AFFINE_SIMD)
         if constexpr (OutputDimensions > 1)
         {
-    #if defined(USE_AVX512)
+    #if defined(USE_SSSE3)
+        #if defined(USE_AVX512)
             using vec_t = __m512i;
-        #define vec_set_32 _mm512_set1_epi32
-        #define vec_add_dpbusd_32 SIMD::m512_add_dpbusd_epi32
-        #define vec_add_32 _mm512_add_epi32
-    #elif defined(USE_AVX2)
+            #define vec_set_32 _mm512_set1_epi32
+            #define vec_add_dpbusd_32 SIMD::m512_add_dpbusd_epi32
+            #define vec_add_32 _mm512_add_epi32
+        #elif defined(USE_AVX2)
             using vec_t = __m256i;
-        #define vec_set_32 _mm256_set1_epi32
-        #define vec_add_dpbusd_32 SIMD::m256_add_dpbusd_epi32
-        #define vec_add_32 _mm256_add_epi32
-    #elif defined(USE_SSSE3)
+            #define vec_set_32 _mm256_set1_epi32
+            #define vec_add_dpbusd_32 SIMD::m256_add_dpbusd_epi32
+            #define vec_add_32 _mm256_add_epi32
+        #else
             using vec_t = __m128i;
-        #define vec_set_32 _mm_set1_epi32
-        #define vec_add_dpbusd_32 SIMD::m128_add_dpbusd_epi32
+            #define vec_set_32 _mm_set1_epi32
+            #define vec_add_dpbusd_32 SIMD::m128_add_dpbusd_epi32
+        #endif
+    #elif defined(USE_LSX)
+        #if defined(USE_LASX)
+            using vec_t = __m256i;
+            #define vec_set_32 __lasx_xvreplgr2vr_w
+            #define vec_add_dpbusd_32 SIMD::lasx_m256_add_dpbusd_epi32
+            #define vec_add_32 __lasx_xvadd_w
+        #else
+            using vec_t = __m128i;
+            #define vec_set_32 __lsx_vreplgr2vr_w
+            #define vec_add_dpbusd_32 SIMD::lsx_m128_add_dpbusd_epi32
+            #define vec_add_32 __lsx_vadd_w
+        #endif
     #elif defined(USE_NEON_DOTPROD)
             using vec_t = int32x4_t;
         #define vec_set_32 vdupq_n_s32
         #define vec_add_dpbusd_32(acc, a, b) \
             SIMD::neon_m128_add_dpbusd_epi32(acc, vreinterpretq_s8_s32(a), vreinterpretq_s8_s32(b))
-    #elif defined(USE_LASX)
-            using vec_t = __m256i;
-        #define vec_set_32 __lasx_xvreplgr2vr_w
-        #define vec_add_dpbusd_32 SIMD::lasx_m256_add_dpbusd_epi32
-        #define vec_add_32 __lasx_xvadd_w
-    #elif defined(USE_LSX)
-            using vec_t = __m128i;
-        #define vec_set_32 __lsx_vreplgr2vr_w
-        #define vec_add_dpbusd_32 SIMD::lsx_m128_add_dpbusd_epi32
-        #define vec_add_32 __lsx_vadd_w
     #endif
 
             constexpr IndexType OutputSimdWidth = sizeof(vec_t) / sizeof(OutputType);
@@ -230,32 +234,36 @@ class AffineTransform final {
         }
         else if constexpr (OutputDimensions == 1)
         {
-    #if defined(USE_AVX2)
+    #if defined(USE_SSSE3)
+        #if defined(USE_AVX2)
             using vec_t = __m256i;
-        #define vec_setzero() _mm256_setzero_si256()
-        #define vec_add_dpbusd_32 SIMD::m256_add_dpbusd_epi32
-        #define vec_hadd SIMD::m256_hadd
-    #elif defined(USE_SSSE3)
+            #define vec_setzero() _mm256_setzero_si256()
+            #define vec_add_dpbusd_32 SIMD::m256_add_dpbusd_epi32
+            #define vec_hadd SIMD::m256_hadd
+        #else
             using vec_t = __m128i;
-        #define vec_setzero() _mm_setzero_si128()
-        #define vec_add_dpbusd_32 SIMD::m128_add_dpbusd_epi32
-        #define vec_hadd SIMD::m128_hadd
+            #define vec_setzero() _mm_setzero_si128()
+            #define vec_add_dpbusd_32 SIMD::m128_add_dpbusd_epi32
+            #define vec_hadd SIMD::m128_hadd
+        #endif
+    #elif defined(USE_LSX)
+        #if defined(USE_LASX)
+            using vec_t = __m256i;
+            #define vec_setzero() __lasx_xvldi(0)
+            #define vec_add_dpbusd_32 SIMD::lasx_m256_add_dpbusd_epi32
+            #define vec_hadd SIMD::lasx_m256_hadd
+        #else
+            using vec_t = __m128i;
+            #define vec_setzero() __lsx_vldi(0)
+            #define vec_add_dpbusd_32 SIMD::lsx_m128_add_dpbusd_epi32
+            #define vec_hadd SIMD::lsx_m128_hadd
+        #endif
     #elif defined(USE_NEON_DOTPROD)
             using vec_t = int32x4_t;
         #define vec_setzero() vdupq_n_s32(0)
         #define vec_add_dpbusd_32(acc, a, b) \
             SIMD::neon_m128_add_dpbusd_epi32(acc, vreinterpretq_s8_s32(a), vreinterpretq_s8_s32(b))
         #define vec_hadd SIMD::neon_m128_hadd
-    #elif defined(USE_LASX)
-            using vec_t = __m256i;
-        #define vec_setzero() __lasx_xvldi(0)
-        #define vec_add_dpbusd_32 SIMD::lasx_m256_add_dpbusd_epi32
-        #define vec_hadd SIMD::lasx_m256_hadd
-    #elif defined(USE_LSX)
-            using vec_t = __m128i;
-        #define vec_setzero() __lsx_vldi(0)
-        #define vec_add_dpbusd_32 SIMD::lsx_m128_add_dpbusd_epi32
-        #define vec_hadd SIMD::lsx_m128_hadd
     #endif
 
             const auto* inputVec = reinterpret_cast<const vec_t*>(input);
@@ -281,6 +289,7 @@ class AffineTransform final {
     #undef vec_add_dpbusd_32
     #undef vec_hadd
         }
+
 #else
         // Use fallback implementation for the other architectures
         fallback_affine_transform<InputDimensions, PaddedInputDimensions, OutputDimensions>(

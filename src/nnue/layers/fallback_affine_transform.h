@@ -42,8 +42,10 @@ void fallback_affine_transform(const Array<i32, OutputDimensions>&              
     const __m128i Zeros       = _mm_setzero_si128();
 
     const auto* inputVec = reinterpret_cast<const __m128i*>(input);
+
     #elif defined(USE_NEON)
     const auto* inputVec = reinterpret_cast<const int8x8_t*>(input);
+
     #endif
 
     for (IndexType i = 0; i < OutputDimensions; ++i)
@@ -106,6 +108,7 @@ void fallback_affine_transform(const Array<i32, OutputDimensions>&              
             for (IndexType j = 0; j < OutputDimensions; ++j)
                 output[j] += in * w[j * PaddedInputDimensions];
         }
+
 #endif
 }
 
