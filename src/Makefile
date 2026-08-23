@@ -642,10 +642,8 @@ ifeq ($(COMP),gcc)
 else ifeq ($(COMP),clang)
     CXX := clang++
     CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-prototypes -Wconditional-uninitialized -flax-vector-conversions=none -fconstexpr-steps=500000000
-    # Detect whether the selected compiler is actually Clang
-    CXX_VERSION        := $(shell $(CXX) --version 2>/dev/null | head -n 1 | tr '[:upper:]' '[:lower:]')
-    CXX_IS_CLANG       := $(if $(findstring clang,$(CXX_VERSION)),yes,no)
-    CXX_IS_APPLE_CLANG := $(if $(findstring apple clang,$(CXX_VERSION)),yes,no)
+
+    CXX_IS_CLANG       := yes
 
     ifeq ($(IS_WINDOWS),yes)
         MINGW_ARCH := $(if $(filter 64,$(bits)),x86_64,i686)
@@ -672,8 +670,10 @@ else ifeq ($(COMP),clang)
             endif
         endif
     endif
+    ifeq ($(TARGET_KERNEL),Darwin)
+        CXX_IS_APPLE_CLANG := yes
     # Link std::filesystem for Linux Clang
-    ifeq ($(TARGET_KERNEL),Linux)
+    else ifeq ($(TARGET_KERNEL),Linux)
         LDLIBS += -lstdc++fs
     endif
 
@@ -722,11 +722,11 @@ else ifeq ($(COMP),ndk)
 
     ifeq ($(arch),armv8)
         TARGET := aarch64-linux-android
-    else ifeq ($(arch),x86_64)
-        TARGET := x86_64-linux-android
     else ifeq ($(arch),armv7)
         TARGET := armv7a-linux-androideabi
         CXXFLAGS += -mthumb -march=armv7-a -mfloat-abi=softfp -mfpu=neon
+    else ifeq ($(arch),x86_64)
+        TARGET := x86_64-linux-android
     else ifeq ($(arch),x86)
         TARGET := i686-linux-android
     else
@@ -734,6 +734,8 @@ else ifeq ($(COMP),ndk)
     endif
 
     CXX := $(TOOLCHAIN)/$(TARGET)$(ANDROID_API)-clang++
+
+    CXX_IS_CLANG       := yes
 
     # Use LLVM's libc++ and link it statically
     CXXFLAGS += -stdlib=libc++
