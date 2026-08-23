@@ -226,7 +226,6 @@ neon = no
 dotprod = no
 relaxedsimd = no
 tablebases = yes
-STRIP = strip
 
 ### 2.2 Architecture specific
 
@@ -567,6 +566,8 @@ BITS_FLAG := $(if $(filter 32 64,$(bits)),-m$(bits))
 # ----------------------------
 # Compiler configuration
 # ----------------------------
+
+STRIP = strip
 
 # Detect if the compiler is Clang/Apple Clang
 CXX_VERSION        :=
@@ -1054,7 +1055,7 @@ ifeq ($(optimize),yes)
                     # Clang
                     ifeq ($(COMP),clang)
                         LDFLAGS += -fuse-ld=lld
-                    # GCC (Clang-compatible)
+                    # GCC (configuration using Clang)
                     else ifeq ($(CXX_IS_CLANG),yes)
                         LDFLAGS += -fuse-ld=lld
                     endif
@@ -1073,13 +1074,13 @@ ifeq ($(optimize),yes)
             endif
         # GCC
         else ifeq ($(COMP),gcc)
+            # GCC (configuration using Clang)
+            ifeq ($(CXX_IS_CLANG),yes)
+                LTO_FLAGS := -flto=full
             # GCC (native)
-            ifeq ($(CXX_IS_CLANG),no)
+            else
                 LTO_FLAGS   := -flto -flto-partition=one
                 LTO_LDFLAGS := -flto=auto
-            # GCC (Clang-compatible)
-            else
-                LTO_FLAGS := -flto=full
             endif
         # Windows (requires GCC 10.1+ for LTO and static linking)
         else ifeq ($(COMP),mingw)
@@ -1227,7 +1228,7 @@ profile-build: net config-sanity objclean profileclean
 endif
 
 # Default network filename, read from evaluate.h's EvalFileDefaultName.
-macos-lipo: NNUE_NET = $(shell grep -oE 'nn-[0-9a-f]+\.nnue' $(CURDIR)/evaluate.h | head -1)
+macos-lipo: NNUE_NET := $(shell grep -oE 'nn-[0-9a-f]+\.nnue' $(CURDIR)/evaluate.h | head -1)
 macos-lipo:
 	@echo ""
 	@echo "Step 1/4. Building x86-64 slice (network shared from Apple-silicon slice) ..."
@@ -1247,19 +1248,22 @@ macos-lipo:
 	@rm -f $(EXE)-x86_64 $(EXE)-arm64
 	@echo "Universal macOS binary built: $(EXE)"
 
-# Apple uses ld64 which doesn't have --save-temps
+# LTO temporary object handling
 ifeq ($(TARGET_KERNEL),Darwin)
+    # Apple ld64 does not support --save-temps
     LTO_OBJ_SUFFIX := .lto.o
     SAVE_TEMPS := -Wl,-object_path_lto,DON.lto.o
 else ifneq ($(filter clang ndk,$(COMP)),)
     LTO_OBJ_SUFFIX := .lto.o
     ifeq ($(IS_WINDOWS),yes)
-        SAVE_TEMPS := -Wl,--lto-emit-asm  # ld.lld doesn't have a save temps functionality
+        # ld.lld does not support --save-temps; emit LTO assembly instead
+        SAVE_TEMPS := -Wl,--lto-emit-asm
         USE_LTO_EMIT_ASM := yes
     else
         SAVE_TEMPS := -Wl,--save-temps
     endif
 else
+    # GCC produces .ltrans0.ltrans.o with -save-temps
     LTO_OBJ_SUFFIX := .ltrans0.ltrans.o
     SAVE_TEMPS := -save-temps
 endif
@@ -1403,12 +1407,13 @@ config-sanity: net
 	echo "avx512icl: '$(avx512icl)'" && \
 	echo "altivec: '$(altivec)'" && \
 	echo "vsx: '$(vsx)'" && \
-	echo "neon: '$(neon)'" && \
-	echo "dotprod: '$(dotprod)'" && \
-	echo "arm_version: '$(arm_version)'" && \
 	echo "rva23: '$(rva23)'" && \
 	echo "lsx: '$(lsx)'" && \
 	echo "lasx: '$(lasx)'" && \
+	echo "arm_version: '$(arm_version)'" && \
+	echo "neon: '$(neon)'" && \
+	echo "dotprod: '$(dotprod)'" && \
+	echo "relaxedsimd": $(relaxedsimd) && \
 	echo "tablebases: '$(tablebases)'" && \
 	echo "" && \
 	echo "Flags:" && \
