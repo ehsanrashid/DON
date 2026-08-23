@@ -602,8 +602,8 @@ ifeq ($(COMP),gcc)
         CXXFLAGS += -Wno-stringop-overflow
         # Detect whether GNU ld is being used
         LINKER_VERSION := $(shell $(CXX) -Wl,--version 2>/dev/null)
-        IS_GNU_LD      := $(if $(findstring GNU ld,$(LINKER_VERSION)),yes,no)
-        ifeq ($(IS_GNU_LD),yes)
+        GNU_LD         := $(findstring GNU ld,$(LINKER_VERSION))
+        ifneq ($(GNU_LD),)
             LDFLAGS += -Wl,--no-as-needed
         endif
         # Determine GCC major version for Linux Clang masquerading as GCC
@@ -623,6 +623,8 @@ ifeq ($(COMP),gcc)
             # LLVM Clang
             CXXFLAGS += -fconstexpr-steps=500000000
         endif
+
+        # Profile-guided optimization for Clang
         PROFILE_MAKE := clang-profile-make
         PROFILE_USE  := clang-profile-use
     else
@@ -631,6 +633,8 @@ ifeq ($(COMP),gcc)
         ifeq ($(TARGET_KERNEL),Darwin)
             EXTRA_PROFILE_FLAGS = -fvisibility=hidden
         endif
+
+        # Profile-guided optimization for GCC
         PROFILE_MAKE := gcc-profile-make
         PROFILE_USE  := gcc-profile-use
     endif
@@ -674,28 +678,32 @@ else ifeq ($(COMP),clang)
             LDLIBS += -lstdc++fs
         endif
     endif
-    # Profile build for Clang
+
+    # Profile-guided optimization for Clang
     PROFILE_MAKE := clang-profile-make
     PROFILE_USE  := clang-profile-use
-# mingw
+# MinGW
 else ifeq ($(COMP),mingw)
     MINGW_ARCH := $(if $(filter 64,$(bits)),x86_64,i686)
     MINGW_CXX       := $(MINGW_ARCH)-w64-mingw32-c++
     MINGW_CXX_POSIX := $(MINGW_ARCH)-w64-mingw32-c++-posix
-    # Prefer POSIX variant if available
+
+    # Prefer POSIX threading variant if available
     CXX := $(if $(shell command -v $(MINGW_CXX_POSIX) 2>/dev/null),$(MINGW_CXX_POSIX),$(MINGW_CXX))
     CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-declarations -fno-ipa-cp-clone -fconstexpr-ops-limit=500000000
-    # Profile build for mingw (use GCC defaults)
+
+    # Profile-guided optimization for MinGW using GCC
     PROFILE_MAKE := gcc-profile-make
     PROFILE_USE  := gcc-profile-use
 # Intel ICX
 else ifeq ($(COMP),icx)
     CXX := icpx
     CXXFLAGS += --intel -pedantic -Wextra -Wshadow -Wmissing-prototypes -Wconditional-uninitialized -Wabi -Wdeprecated -fconstexpr-steps=500000000
-    # Profile build for ICX
+
+    # Profile-guided optimization for ICX
     PROFILE_MAKE := icx-profile-make
     PROFILE_USE  := icx-profile-use
-# NDK: To cross-compile for Android, use NDK version r27c or later
+# Android NDK Clang: cross-compile for Android using NDK r27c or later
 else ifeq ($(COMP),ndk)
     # Detect NDK host tag (common host platforms)
     ifeq ($(IS_WINDOWS),yes)
@@ -729,13 +737,14 @@ else ifeq ($(COMP),ndk)
 
     CXX := $(TOOLCHAIN)/$(TARGET)$(ANDROID_API)-clang++
 
-    # Correct STL usage
+    # Use LLVM's libc++ and link it statically
     CXXFLAGS += -stdlib=libc++
     LDFLAGS  += -static-libstdc++
 
     OBJCOPY := $(TOOLCHAIN)/llvm-objcopy
     STRIP   := $(TOOLCHAIN)/llvm-strip
-    # Profile build for NDK/Clang
+
+    # Profile-guided optimization for NDK/Clang
     PROFILE_MAKE := clang-profile-make
     PROFILE_USE  := clang-profile-use
 endif
@@ -1046,10 +1055,13 @@ endif
 ### needs access to the optimization flags.
 ifeq ($(optimize),yes)
     ifeq ($(debug),no)
+        ## Use LLD when available on non-WASM, non-macOS builds
+
+        # Non-WASM
         ifneq ($(arch),wasm32)
             # Non-macOS
             ifneq ($(TARGET_KERNEL),Darwin)
-                # Detect LLD
+                # Detect whether LLD is available
                 LLD_BIN := $(shell command -v ld.lld 2>/dev/null || command -v lld 2>/dev/null)
                 ifneq ($(LLD_BIN),)
                     # Clang
@@ -1062,10 +1074,10 @@ ifeq ($(optimize),yes)
                 endif
             endif
         endif
-        # Determine LTO flags
-        LTO_FLAGS   :=
-        LTO_LDFLAGS :=
-        # Clang / ICX / NDK
+
+        ## Determine LTO flags
+
+        # Clang / ICX / NDK Clang
         ifneq ($(filter clang icx ndk,$(COMP)),)
             LTO_FLAGS := -flto=full
             # ICX
@@ -1087,11 +1099,14 @@ ifeq ($(optimize),yes)
             LTO_FLAGS   := -flto -flto-partition=one
             LTO_LDFLAGS := -flto=auto -save-temps
         endif
-        # Apply LTO flags
+
+        ## Apply LTO flags
         CXXFLAGS += $(LTO_FLAGS)
         LDFLAGS  += $(LTO_FLAGS) $(LTO_LDFLAGS)
+
     endif
-    # Inline settings
+
+    ## Inline settings
     ifneq ($(filter clang ndk,$(COMP)),)
         CXXFLAGS += -Xclang -mllvm -Xclang -inline-threshold=500
     endif
