@@ -82,10 +82,8 @@ class SqrClippedReLU final {
         {
             const IndexType j = i * 4;
 
-            __m128i words0 = _mm_packs_epi32(_mm_load_si128(&in[j + 0]),
-                                             _mm_load_si128(&in[j + 1]));
-            __m128i words1 = _mm_packs_epi32(_mm_load_si128(&in[j + 2]),
-                                             _mm_load_si128(&in[j + 3]));
+            __m128i words0 = _mm_packs_epi32(_mm_load_si128(&in[j + 0]), _mm_load_si128(&in[j + 1]));
+            __m128i words1 = _mm_packs_epi32(_mm_load_si128(&in[j + 2]), _mm_load_si128(&in[j + 3]));
 
             // Shift by WEIGHT_SCALE_BITS * 2 = 12 and divide by 128
             // which is an additional shift-right of 7, meaning 19 in total.
@@ -109,10 +107,8 @@ class SqrClippedReLU final {
         {
             const IndexType j = i * 4;
 
-            const __m256i words0 = __lasx_xvssrani_h_w(in[j + 1],
-                                                       in[j + 0], 0);
-            const __m256i words1 = __lasx_xvssrani_h_w(in[j + 3],
-                                                       in[j + 2], 0);
+            const __m256i words0 = __lasx_xvssrani_h_w(in[j + 1], in[j + 0], 0);
+            const __m256i words1 = __lasx_xvssrani_h_w(in[j + 3], in[j + 2], 0);
             const __m256i sqr0   = __lasx_xvmuh_h(words0, words0);
             const __m256i sqr1   = __lasx_xvmuh_h(words1, words1);
 
@@ -135,10 +131,8 @@ class SqrClippedReLU final {
         {
             const IndexType j = i * 4;
 
-            const __m128i words0 = __lsx_vssrani_h_w(in[j + 1],
-                                                     in[j + 0], 0);
-            const __m128i words1 = __lsx_vssrani_h_w(in[j + 3],
-                                                     in[j + 2], 0);
+            const __m128i words0 = __lsx_vssrani_h_w(in[j + 1], in[j + 0], 0);
+            const __m128i words1 = __lsx_vssrani_h_w(in[j + 3], in[j + 2], 0);
             const __m128i sqr0   = __lsx_vmuh_h(words0, words0);
             const __m128i sqr1   = __lsx_vmuh_h(words1, words1);
 
@@ -158,10 +152,8 @@ class SqrClippedReLU final {
         {
             const IndexType j = i * 4;
 
-            const int16x8_t words0 = vcombine_s16(vqmovn_s32(in[j + 0]),
-                                                  vqmovn_s32(in[j + 1]));
-            const int16x8_t words1 = vcombine_s16(vqmovn_s32(in[j + 2]),
-                                                  vqmovn_s32(in[j + 3]));
+            const int16x8_t words0 = vcombine_s16(vqmovn_s32(in[j + 0]), vqmovn_s32(in[j + 1]));
+            const int16x8_t words1 = vcombine_s16(vqmovn_s32(in[j + 2]), vqmovn_s32(in[j + 3]));
 
             const int16x8_t sqr0 = vshrq_n_s16(vqdmulhq_s16(words0, words0), 4);
             const int16x8_t sqr1 = vshrq_n_s16(vqdmulhq_s16(words1, words1), 4);

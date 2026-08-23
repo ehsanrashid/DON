@@ -85,22 +85,21 @@ class ClippedReLU final {
         for (IndexType i = 0; i < ChunkCount; ++i)
         {
             const IndexType j = i * 4;
+
     #if defined(USE_SSE41)
-            const __m128i packed0 = _mm_packus_epi32(_mm_load_si128(&in[j + 0]),
-                                                     _mm_load_si128(&in[j + 1]));
-            const __m128i packed1 = _mm_packus_epi32(_mm_load_si128(&in[j + 2]),
-                                                     _mm_load_si128(&in[j + 3]));
+            const __m128i packed0 = _mm_packus_epi32(_mm_load_si128(&in[j + 0]), _mm_load_si128(&in[j + 1]));
+            const __m128i packed1 = _mm_packus_epi32(_mm_load_si128(&in[j + 2]), _mm_load_si128(&in[j + 3]));
             const __m128i words0  = _mm_srli_epi16(packed0, WEIGHT_SCALE_BITS);
             const __m128i words1  = _mm_srli_epi16(packed1, WEIGHT_SCALE_BITS);
+
             _mm_store_si128(&out[i], _mm_packs_epi16(words0, words1));
     #else
-            const __m128i packed0 = _mm_packs_epi32(_mm_load_si128(&in[j + 0]),
-                                                    _mm_load_si128(&in[j + 1]));
-            const __m128i packed1 = _mm_packs_epi32(_mm_load_si128(&in[j + 2]),
-                                                    _mm_load_si128(&in[j + 3]));
+            const __m128i packed0 = _mm_packs_epi32(_mm_load_si128(&in[j + 0]), _mm_load_si128(&in[j + 1]));
+            const __m128i packed1 = _mm_packs_epi32(_mm_load_si128(&in[j + 2]), _mm_load_si128(&in[j + 3]));
             const __m128i words0  = _mm_srai_epi16(packed0, WEIGHT_SCALE_BITS);
             const __m128i words1  = _mm_srai_epi16(packed1, WEIGHT_SCALE_BITS);
             const __m128i packed  = _mm_packs_epi16(words0, words1);
+
             _mm_store_si128(&out[i], _mm_subs_epi8(_mm_adds_epi8(packed, K0x80s), K0x80s));
     #endif
         }
@@ -120,8 +119,8 @@ class ClippedReLU final {
         {
             const IndexType j = i * 2;
 
-            const int16x8_t shifted = vcombine_s16(vqshrn_n_s32(in[j + 0], WEIGHT_SCALE_BITS),
-                                                   vqshrn_n_s32(in[j + 1], WEIGHT_SCALE_BITS));
+            const int16x8_t shifted = vcombine_s16(vqshrn_n_s32(in[j + 0], WEIGHT_SCALE_BITS), vqshrn_n_s32(in[j + 1], WEIGHT_SCALE_BITS));
+
             out[i]                  = vmax_s8(vqmovn_s16(shifted), Zero);
         }
 
@@ -138,14 +137,13 @@ class ClippedReLU final {
         {
             const IndexType j = i * 4;
 
-            const __m256i packed0 = SIMD::lasx_packus_32(in[j + 0],
-                                                         in[j + 1]);
-            const __m256i packed1 = SIMD::lasx_packus_32(in[j + 2],
-                                                         in[j + 3]);
+            const __m256i packed0 = SIMD::lasx_packus_32(in[j + 0], in[j + 1]);
+            const __m256i packed1 = SIMD::lasx_packus_32(in[j + 2], in[j + 3]);
             const __m256i words0  = __lasx_xvsrli_h(packed0, WEIGHT_SCALE_BITS);
             const __m256i words1  = __lasx_xvsrli_h(packed1, WEIGHT_SCALE_BITS);
             const __m256i packed  = __lasx_xvssrani_b_h(words1, words0, 0);
             const __m256i swaped  = __lasx_xvpermi_d(packed, 0xD8);
+
             __lasx_xvst(__lasx_xvshuf4i_w(swaped, 0xD8), out + i, 0);
         }
 
@@ -162,12 +160,11 @@ class ClippedReLU final {
         {
             const IndexType j = i * 4;
 
-            const __m128i packed0 = SIMD::lsx_packus_32(in[j + 0],
-                                                        in[j + 1]);
-            const __m128i packed1 = SIMD::lsx_packus_32(in[j + 2],
-                                                        in[j + 3]);
+            const __m128i packed0 = SIMD::lsx_packus_32(in[j + 0], in[j + 1]);
+            const __m128i packed1 = SIMD::lsx_packus_32(in[j + 2], in[j + 3]);
             const __m128i words0  = __lsx_vsrli_h(packed0, WEIGHT_SCALE_BITS);
             const __m128i words1  = __lsx_vsrli_h(packed1, WEIGHT_SCALE_BITS);
+
             out[i]                = __lsx_vssrani_b_h(words1, words0, 0);
         }
 

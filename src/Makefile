@@ -154,10 +154,10 @@ VPATH := nnue:nnue/features:book:tablebase
 # avx512icl = yes/no   --- -mavx512cd ...     --- Use AVX-512 features common to Intel Ice Lake and AMD Zen 4
 # altivec = yes/no     --- -maltivec          --- Use PowerPC AltiVec SIMD extension
 # vsx = yes/no         --- -mvsx              --- Use POWER VSX SIMD extension
-# neon = yes/no        --- -DUSE_NEON         --- Use ARM NEON SIMD instructions
-# dotprod = yes/no     --- -DUSE_NEON_DOTPROD --- Use ARM NEON advanced SIMD Int8 dot-product instructions
 # lsx = yes/no         --- -mlsx              --- Use LoongArch SIMD eXtension
 # lasx = yes/no        --- -mlasx             --- Use LoongArch Advanced SIMD eXtension
+# neon = yes/no        --- -DUSE_NEON         --- Use ARM NEON SIMD instructions
+# dotprod = yes/no     --- -DUSE_NEON_DOTPROD --- Use ARM NEON advanced SIMD Int8 dot-product instructions
 # relaxedsimd = yes/no --- -mrelaxed-simd     --- Use WebAssembly relaxed SIMD extension
 # tablebases = yes/no  --- -DNO_TABLEBASES    --- Support tablebase probing
 #
@@ -646,6 +646,7 @@ else ifeq ($(COMP),mingw)
 
     # Prefer POSIX threading variant if available
     CXX := $(if $(shell command -v $(MINGW_CXX_POSIX) 2>/dev/null),$(MINGW_CXX_POSIX),$(MINGW_CXX))
+
     CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-declarations -fno-ipa-cp-clone -fconstexpr-ops-limit=500000000
 
     # Profile-guided optimization for MinGW using GCC
@@ -880,7 +881,7 @@ endif
 
 ### 3.6 SIMD architectures
 ifeq ($(avx512icl),yes)
-    CXXFLAGS += -DUSE_VNNI -DUSE_AVX512 -DUSE_AVX512ICL
+    CXXFLAGS += -DUSE_AVX512 -DUSE_VNNI -DUSE_AVX512ICL
     ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
         CXXFLAGS += -mavx512f -mavx512bw -mavx512dq -mavx512vl -mavx512vnni -mavx512cd -mavx512ifma -mavx512vbmi -mavx512vbmi2 -mavx512vpopcntdq -mavx512bitalg -mvpclmulqdq -mgfni -mvaes
     endif
@@ -948,18 +949,18 @@ ifeq ($(mmx),yes)
     endif
 endif
 
-ifeq ($(altivec),yes)
-    CXXFLAGS += -maltivec
-    ifeq ($(COMP),gcc)
-        CXXFLAGS += -mabi=altivec
-    endif
-endif
-
 ifeq ($(vsx),yes)
     ifeq ($(COMP),gcc)
         CXXFLAGS += -DNO_WARN_X86_INTRINSICS -DUSE_SSE2
     endif
     CXXFLAGS += -mvsx
+endif
+
+ifeq ($(altivec),yes)
+    CXXFLAGS += -maltivec
+    ifeq ($(COMP),gcc)
+        CXXFLAGS += -mabi=altivec
+    endif
 endif
 
 ifeq ($(rva23),yes)
@@ -1185,7 +1186,7 @@ help:
 	echo "mingw                   > GNU compiler with MinGW under Windows"; \
 	echo "clang                   > LLVM Clang compiler"; \
 	echo "icx                     > Intel oneAPI DPC++/C++ compiler"; \
-	echo "ndk                     > Android NDK for cross-compiling"; \
+	echo "ndk                     > Android NDK for cross-compilation"; \
 	echo ""; \
 	echo "Simple examples. If you don't know what to do, you likely want to run one of:"; \
 	echo ""; \
@@ -1207,8 +1208,9 @@ ifeq ($(ARCH_SUPPORTED),no)
 	echo ""
 endif
 
+
 .PHONY: help analyze build profile-build macos-lipo net strip install \
-	clean objclean profileclean config-sanity \
+	clean objclean profileclean config-sanity FORCE \
 	clang-profile-make clang-profile-use \
 	gcc-profile-make gcc-profile-use \
 	icx-profile-make icx-profile-use \
