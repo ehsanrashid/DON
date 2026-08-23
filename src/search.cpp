@@ -1318,8 +1318,8 @@ Value Worker::search(Position&    pos,
             if (hasNonPawn && !is_loss(bestValue))
             {
                 // Skip quiet moves if moveCount exceeds moveCount threshold
-                mp.update_quiets_skip([&moveCount, &depth, &improve] {
-                    return moveCount >= ((3 + depth * depth) / (1 + int(!improve) * 1));
+                mp.update_quiets_skip([moveCount, depth, improve]() noexcept -> bool {
+                    return moveCount >= ((3 + depth * depth) / (1 + int(!improve)));
                 });
 
                 // Reduced depth of the next LMR search

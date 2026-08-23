@@ -1079,9 +1079,7 @@ ifeq ($(optimize),yes)
             # GCC (native)
             ifeq ($(CXX_IS_CLANG),no)
                 LTO_FLAGS   := -flto -flto-partition=one
-                ifneq ($(TARGET_KERNEL),Darwin)
-                    LTO_LDFLAGS := -flto=jobserver
-                endif
+                LTO_LDFLAGS := -flto=jobserver
             # GCC (Clang-compatible)
             else
                 LTO_FLAGS := -flto=full
