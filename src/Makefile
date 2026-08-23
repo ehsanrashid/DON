@@ -570,18 +570,18 @@ BITS_FLAG := $(if $(filter 32 64,$(bits)),-m$(bits))
 STRIP = strip
 
 # Detect if the compiler is Clang/Apple Clang
-CXX_VERSION        :=
 CXX_IS_CLANG       := no
 CXX_IS_APPLE_CLANG := no
 
 # GCC
 ifeq ($(COMP),gcc)
     CXX := $(or $(COMPCXX),g++)
-    CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-declarations
     # Detect whether the selected compiler is actually Clang
     CXX_VERSION        := $(shell $(CXX) --version 2>/dev/null | head -n 1 | tr '[:upper:]' '[:lower:]')
     CXX_IS_CLANG       := $(if $(findstring clang,$(CXX_VERSION)),yes,no)
     CXX_IS_APPLE_CLANG := $(if $(findstring apple clang,$(CXX_VERSION)),yes,no)
+
+    CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-declarations
 
     # Android ARM architectures require explicit bitness flags
     ifneq ($(filter armv8 armv7,$(arch)),)
@@ -638,12 +638,37 @@ ifeq ($(COMP),gcc)
         PROFILE_MAKE := gcc-profile-make
         PROFILE_USE  := gcc-profile-use
     endif
+# MinGW
+else ifeq ($(COMP),mingw)
+    MINGW_ARCH      := $(if $(filter 64,$(bits)),x86_64,i686)
+    MINGW_CXX       := $(MINGW_ARCH)-w64-mingw32-c++
+    MINGW_CXX_POSIX := $(MINGW_ARCH)-w64-mingw32-c++-posix
+
+    # Prefer POSIX threading variant if available
+    CXX := $(if $(shell command -v $(MINGW_CXX_POSIX) 2>/dev/null),$(MINGW_CXX_POSIX),$(MINGW_CXX))
+    CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-declarations -fno-ipa-cp-clone -fconstexpr-ops-limit=500000000
+
+    # Profile-guided optimization for MinGW using GCC
+    PROFILE_MAKE := gcc-profile-make
+    PROFILE_USE  := gcc-profile-use
+# Intel ICX
+else ifeq ($(COMP),icx)
+    CXX := icpx
+
+    CXX_IS_CLANG       := yes
+
+    CXXFLAGS += --intel -pedantic -Wextra -Wshadow -Wmissing-prototypes -Wconditional-uninitialized -Wabi -Wdeprecated -fconstexpr-steps=500000000
+
+    # Profile-guided optimization for ICX
+    PROFILE_MAKE := icx-profile-make
+    PROFILE_USE  := icx-profile-use
 # Clang
 else ifeq ($(COMP),clang)
     CXX := clang++
-    CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-prototypes -Wconditional-uninitialized -flax-vector-conversions=none -fconstexpr-steps=500000000
 
     CXX_IS_CLANG       := yes
+
+    CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-prototypes -Wconditional-uninitialized -flax-vector-conversions=none -fconstexpr-steps=500000000
 
     ifeq ($(IS_WINDOWS),yes)
         MINGW_ARCH := $(if $(filter 64,$(bits)),x86_64,i686)
@@ -680,27 +705,6 @@ else ifeq ($(COMP),clang)
     # Profile-guided optimization for Clang
     PROFILE_MAKE := clang-profile-make
     PROFILE_USE  := clang-profile-use
-# MinGW
-else ifeq ($(COMP),mingw)
-    MINGW_ARCH := $(if $(filter 64,$(bits)),x86_64,i686)
-    MINGW_CXX       := $(MINGW_ARCH)-w64-mingw32-c++
-    MINGW_CXX_POSIX := $(MINGW_ARCH)-w64-mingw32-c++-posix
-
-    # Prefer POSIX threading variant if available
-    CXX := $(if $(shell command -v $(MINGW_CXX_POSIX) 2>/dev/null),$(MINGW_CXX_POSIX),$(MINGW_CXX))
-    CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-declarations -fno-ipa-cp-clone -fconstexpr-ops-limit=500000000
-
-    # Profile-guided optimization for MinGW using GCC
-    PROFILE_MAKE := gcc-profile-make
-    PROFILE_USE  := gcc-profile-use
-# Intel ICX
-else ifeq ($(COMP),icx)
-    CXX := icpx
-    CXXFLAGS += --intel -pedantic -Wextra -Wshadow -Wmissing-prototypes -Wconditional-uninitialized -Wabi -Wdeprecated -fconstexpr-steps=500000000
-
-    # Profile-guided optimization for ICX
-    PROFILE_MAKE := icx-profile-make
-    PROFILE_USE  := icx-profile-use
 # Android NDK Clang: cross-compile for Android using NDK r27c or later
 else ifeq ($(COMP),ndk)
     # Detect NDK host tag (common host platforms)
@@ -1061,14 +1065,10 @@ ifeq ($(optimize),yes)
         ifneq ($(arch),wasm32)
             # Non-macOS
             ifneq ($(TARGET_KERNEL),Darwin)
-                # Detect whether LLD is available
-                LLD_BIN := $(shell command -v ld.lld 2>/dev/null || command -v lld 2>/dev/null)
-                ifneq ($(LLD_BIN),)
-                    # Clang
-                    ifeq ($(COMP),clang)
-                        LDFLAGS += -fuse-ld=lld
-                    # GCC (configuration using Clang)
-                    else ifeq ($(CXX_IS_CLANG),yes)
+                ifeq ($(CXX_IS_CLANG),yes)
+                    # Detect whether LLD is available
+                    LLD_BIN := $(shell command -v ld.lld 2>/dev/null || command -v lld 2>/dev/null)
+                    ifneq ($(LLD_BIN),)
                         LDFLAGS += -fuse-ld=lld
                     endif
                 endif
@@ -1077,27 +1077,23 @@ ifeq ($(optimize),yes)
 
         ## Determine LTO flags
 
-        # Clang / ICX / NDK Clang
-        ifneq ($(filter clang icx ndk,$(COMP)),)
-            LTO_FLAGS := -flto=full
-            # ICX
-            ifeq ($(COMP),icx)
-                CXXFLAGS += -fwhole-program-vtables
-            endif
-        # GCC
-        else ifeq ($(COMP),gcc)
-            # GCC (configuration using Clang)
+        # MinGW (requires GCC 10.1+ for LTO and static linking)
+        ifeq ($(COMP),mingw)
+            LTO_FLAGS   := -flto -flto-partition=one
+            LTO_LDFLAGS := -flto=auto -save-temps
+        # GCC / Clang / ICX / NDK Clang
+        else ifneq ($(filter gcc clang icx ndk,$(COMP)),)
+            # Clang-compatible compiler
             ifeq ($(CXX_IS_CLANG),yes)
                 LTO_FLAGS := -flto=full
-            # GCC (native)
+            # Native GCC
             else
                 LTO_FLAGS   := -flto -flto-partition=one
                 LTO_LDFLAGS := -flto=auto
             endif
-        # Windows (requires GCC 10.1+ for LTO and static linking)
-        else ifeq ($(COMP),mingw)
-            LTO_FLAGS   := -flto -flto-partition=one
-            LTO_LDFLAGS := -flto=auto -save-temps
+            ifeq ($(COMP),icx)
+                CXXFLAGS += -fwhole-program-vtables
+            endif
         endif
 
         ## Apply LTO flags
