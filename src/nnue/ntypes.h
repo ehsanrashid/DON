@@ -56,7 +56,7 @@ static_assert(PSQTBuckets % 8 == 0,
 
 // Constant used in evaluation value calculation
 inline constexpr i32 OUTPUT_SCALE      = 16;
-inline constexpr u16 WEIGHT_SCALE_BITS = 6;
+inline constexpr u8  WEIGHT_SCALE_BITS = 6;
 inline constexpr u16 FT_ONE            = 256;
 inline constexpr u16 FT_MAX            = 255;
 inline constexpr u16 HIDDEN_ONE        = 128;

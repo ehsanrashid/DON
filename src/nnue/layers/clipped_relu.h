@@ -34,7 +34,7 @@ namespace DON::NNUE::Layers {
 // The activation clips each input value to the range [0, 127].
 // It introduces non-linearity while keeping the output within the
 // range supported by subsequent quantized operations.
-template<IndexType InDims, u16 WeightScaleBits = WEIGHT_SCALE_BITS>
+template<IndexType InDims, u8 WeightScaleBits = WEIGHT_SCALE_BITS>
 class ClippedReLU final {
    public:
     // Input/output type
