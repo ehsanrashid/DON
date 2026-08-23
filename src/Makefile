@@ -1079,7 +1079,7 @@ ifeq ($(optimize),yes)
             # GCC (native)
             ifeq ($(CXX_IS_CLANG),no)
                 LTO_FLAGS   := -flto -flto-partition=one
-                LTO_LDFLAGS := -flto=jobserver
+                LTO_LDFLAGS := -flto=auto
             # GCC (Clang-compatible)
             else
                 LTO_FLAGS := -flto=full
@@ -1087,7 +1087,7 @@ ifeq ($(optimize),yes)
         # Windows (requires GCC 10.1+ for LTO and static linking)
         else ifeq ($(COMP),mingw)
             LTO_FLAGS   := -flto -flto-partition=one
-            LTO_LDFLAGS := -flto=jobserver -save-temps
+            LTO_LDFLAGS := -flto=auto -save-temps
         endif
         # Apply LTO flags
         CXXFLAGS += $(LTO_FLAGS)
