@@ -672,11 +672,9 @@ else ifeq ($(COMP),clang)
             endif
         endif
     endif
-    # Link std::filesystem for Linux Clang (non-Apple)
+    # Link std::filesystem for Linux Clang
     ifeq ($(TARGET_KERNEL),Linux)
-        ifeq ($(CXX_IS_APPLE_CLANG),no)
-            LDLIBS += -lstdc++fs
-        endif
+        LDLIBS += -lstdc++fs
     endif
 
     # Profile-guided optimization for Clang
