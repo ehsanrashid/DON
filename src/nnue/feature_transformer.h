@@ -228,10 +228,12 @@ class FeatureTransformer final {
             static_assert(HalfDimensions % (2 * OutputChunkSize) == 0);
             constexpr IndexType OutputChunkCount = HalfDimensions / (2 * OutputChunkSize);
 
-    #if !defined(USE_NEON)
+    #if defined(USE_NEON)
+            constexpr u32 Shift = 1;
+    #else
             const vec_t   Zero  = vec_zero();
             const vec_t   FTMax = vec_set_16(FT_MAX);
-            constexpr int Shift = 7;
+            constexpr u32 Shift = 7;
     #endif
 
             const auto* in0 = reinterpret_cast<const vec_t*>(&(accumulation[perspectives[p]][0]));
@@ -285,27 +287,27 @@ class FeatureTransformer final {
             const auto* tin0 = reinterpret_cast<const vec_t*>(&(threatAccumulation[perspectives[p]][0]));
             const auto* tin1 = reinterpret_cast<const vec_t*>(&(threatAccumulation[perspectives[p]][HalfDimensions / 2]));
 
-            for (IndexType j = 0; j + 1 < OutputChunkCount; j += 2)
+            for (IndexType i = 0; i + 1 < OutputChunkCount; i += 2)
             {
                 vec_t packed[2];
-                for (IndexType k = 0; k < 2; ++k)
+                for (IndexType j = 0; j < 2; ++j)
                 {
-                    const IndexType i = (j + k) * 2;
+                    const IndexType k = (i + j) * 2;
 
-                    const vec_t acc00 = vec_add_16(in0[i + 0], tin0[i + 0]);
-                    const vec_t acc01 = vec_add_16(in0[i + 1], tin0[i + 1]);
-                    const vec_t acc10 = vec_add_16(in1[i + 0], tin1[i + 0]);
-                    const vec_t acc11 = vec_add_16(in1[i + 1], tin1[i + 1]);
+                    const vec_t acc00 = vec_add_16(in0[k + 0], tin0[k + 0]);
+                    const vec_t acc01 = vec_add_16(in0[k + 1], tin0[k + 1]);
+                    const vec_t acc10 = vec_add_16(in1[k + 0], tin1[k + 0]);
+                    const vec_t acc11 = vec_add_16(in1[k + 1], tin1[k + 1]);
 
     #if defined(USE_NEON)
                     // The NEON path relies on unsigned saturation for crelu
-                    const uint16x8_t mul0 = vmull_u8(vqmovun_s16(acc00), vqmovun_s16(acc00));
+                    const uint16x8_t mul0 = vmull_u8(vqmovun_s16(acc00), vqmovun_s16(acc10));
                     const uint16x8_t mul1 = vmull_u8(vqmovun_s16(acc01), vqmovun_s16(acc11));
 
                     const uint8x16x2_t uzp = vuzpq_u8(vreinterpretq_u8_u16(mul0), vreinterpretq_u8_u16(mul1));
-                    const uint8x16_t pab   = vshrq_n_u8(uzp.val[1], 1);
+                    const uint8x16_t pab   = vshrq_n_u8(uzp.val[1], Shift);
 
-                    out[j + k] = packed[k] = reinterpret_cast<vec_t>(pab);
+                    out[i + j] = packed[j] = reinterpret_cast<vec_t>(pab);
 
     #else
                     const vec_t sum00 = vec_slli_16(vec_max_16(vec_min_16(acc00, FTMax), Zero), Shift);
@@ -316,7 +318,7 @@ class FeatureTransformer final {
                     const vec_t p0 = vec_mulhi_16(sum00, sum10);
                     const vec_t p1 = vec_mulhi_16(sum01, sum11);
 
-                    out[j + k] = packed[k] = vec_packus_16(p0, p1);
+                    out[i + j] = packed[j] = vec_packus_16(p0, p1);
     #endif
                 }
 

@@ -34,7 +34,7 @@ namespace DON::NNUE::Layers {
 // Inputs are squared and scaled using a right shift to avoid division,
 // then clipped to [0, 127] and stored as u8.
 // The scaling must be accounted for during training.
-template<IndexType InDims, u8 WeightScaleBits = WEIGHT_SCALE_BITS>
+template<IndexType InDims, u16 WeightScaleBits = WEIGHT_SCALE_BITS>
 class SqrClippedReLU final {
    public:
     // Input/output type
@@ -74,7 +74,7 @@ class SqrClippedReLU final {
                       "SqrClippedReLU requires WeightScaleBits between 5 and 8");
         // After squaring, need shift right by 7 + 2 * WeightScaleBits.
         // MulHi already removes the lower 16 bits, so only the remaining bits need to be shifted out.
-        [[maybe_unused]] constexpr u8 SimdShift = 7 + 2 * WeightScaleBits - 16;
+        [[maybe_unused]] constexpr u16 SimdShift = 7 + 2 * WeightScaleBits - 16;
 
         // clang-format off
 #if defined(USE_SSE2)
