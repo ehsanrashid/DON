@@ -44,7 +44,7 @@ inline constexpr u32       L2 = 31;
 inline constexpr u32       L3 = 32;
 
 // Version of the evaluation file
-inline constexpr u32 FILE_VERSION = 0x7AF32F20u;
+inline constexpr u32 FILE_VERSION = 0x6A448AFAu;
 
 inline constexpr IndexType PSQTBuckets = 8;
 inline constexpr IndexType LayerStacks = 8;
@@ -55,8 +55,12 @@ static_assert(PSQTBuckets % 8 == 0,
               "Per feature PSQT values cannot be processed at granularity lower than 8 at a time.");
 
 // Constant used in evaluation value calculation
-inline constexpr int OUTPUT_SCALE      = 16;
-inline constexpr int WEIGHT_SCALE_BITS = 6;
+inline constexpr i32 OUTPUT_SCALE      = 16;
+inline constexpr u8  WEIGHT_SCALE_BITS = 6;
+inline constexpr u16 FT_ONE            = 256;
+inline constexpr u16 FT_MAX            = 255;
+inline constexpr u16 HIDDEN_ONE        = 128;
+inline constexpr u16 HIDDEN_MAX        = 127;
 
 // EvalFile stores the currently selected evaluation network and its metadata.
 // The network path may be explicitly selected through a UCI option or fall back to the default network,

@@ -93,7 +93,6 @@ class FeatureTransformer final {
     // Number of input/output dimensions
     static constexpr IndexType InputDimensions =
       PSQFeatureSet::Dimensions + ThreatFeatureSet::Dimensions;
-
     static constexpr IndexType OutputDimensions = HalfDimensions;
 
     // Size of forward propagation buffer
@@ -161,10 +160,10 @@ class FeatureTransformer final {
         read_leb_128(is, biases);
 
         read_little_endian(is, threatWeights);
+        read_leb_128(is, threatPsqtWeights);
 
         read_leb_128(is, weights);
-
-        read_leb_128(is, threatPsqtWeights, psqtWeights);
+        read_leb_128(is, psqtWeights);
 
         permute_weights<true>();
 
@@ -180,21 +179,10 @@ class FeatureTransformer final {
         write_leb_128(os, copy->biases);
 
         write_little_endian(os, copy->threatWeights);
+        write_leb_128(os, copy->threatPsqtWeights);
 
         write_leb_128(os, copy->weights);
-
-        auto combinedPsqtWeights =
-          std::make_unique<Array<PSQTWeightType, InputDimensions * PSQTBuckets>>();
-
-        std::copy(copy->threatPsqtWeights.begin(),
-                  copy->threatPsqtWeights.begin() + ThreatFeatureSet::Dimensions * PSQTBuckets,
-                  combinedPsqtWeights->begin());
-
-        std::copy(copy->psqtWeights.begin(),
-                  copy->psqtWeights.begin() + PSQFeatureSet::Dimensions * PSQTBuckets,
-                  combinedPsqtWeights->begin() + ThreatFeatureSet::Dimensions * PSQTBuckets);
-
-        write_leb_128(os, *combinedPsqtWeights);
+        write_leb_128(os, copy->psqtWeights);
 
         return !os.fail();
     }
@@ -240,72 +228,59 @@ class FeatureTransformer final {
             static_assert(HalfDimensions % (2 * OutputChunkSize) == 0);
             constexpr IndexType OutputChunkCount = HalfDimensions / (2 * OutputChunkSize);
 
-            const vec_t Zero = vec_zero();
-            const vec_t One  = vec_set_16(255);
+    #if !defined(USE_NEON)
+            const vec_t   Zero  = vec_zero();
+            const vec_t   FTMax = vec_set_16(FT_MAX);
+            constexpr int Shift = 7;
+    #endif
 
             const auto* in0 = reinterpret_cast<const vec_t*>(&(accumulation[perspectives[p]][0]));
             const auto* in1 = reinterpret_cast<const vec_t*>(&(accumulation[perspectives[p]][HalfDimensions / 2]));
             auto*       out = reinterpret_cast<vec_t*>(&output[offset]);
 
-            // Per the NNUE architecture, here we want to multiply pairs of
+            // Per the NNUE architecture, here want to multiply pairs of
             // clipped elements and divide the product by 128. To do this,
-            // we can naively perform min/max operation to clip each of the
+            // can naively perform min/max operation to clip each of the
             // four int16 vectors, mullo pairs together, then pack them into
             // one int8 vector. However, there exists a faster way.
 
             // The idea here is to use the implicit clipping from packus to
-            // save us two vec_max_16 instructions. This clipping works due
-            // to the fact that any int16 integer below zero will be zeroed
-            // on packus.
+            // save two vec_max_16 instructions. This clipping works due to the
+            // fact that any int16 integer below zero will be zeroed on packus.
 
             // Consider the case where the second element is negative.
-            // If we do standard clipping, that element will be zero, which
-            // means our pairwise product is zero. If we perform packus and
-            // remove the lower-side clip for the second element, then our
-            // product before packus will be negative, and is zeroed on pack.
+            // If do standard clipping, that element will be zero, which
+            // means pairwise product is zero. If perform packus and remove
+            // the lower-side clip for the second element, then product
+            // before packus will be negative, and is zeroed on pack.
             // The two operation produce equivalent results, but the second
             // one (using packus) saves one max operation per pair.
 
-            // But here we run into a problem: mullo does not preserve the
-            // sign of the multiplication. We can get around this by doing mulhi,
+            // But here run into a problem: mullo does not preserve the
+            // sign of the multiplication. Can get around this by doing mulhi,
             // which keeps the sign. But that requires an additional tweak.
 
             // mulhi cuts off the last 16 bits of the resulting product,
             // which is the same as performing a rightward shift of 16 bits.
-            // We can use this to our advantage. Recall that we want to
-            // divide the final product by 128, which is equivalent to a
-            // 7-bit right shift. Intuitively, if we shift the clipped
-            // value left by 9, and perform mulhi, which shifts the product
-            // right by 16 bits, then we will net a right shift of 7 bits.
-            // However, this won't work as intended. Since we clip the
-            // values to have a maximum value of 127, shifting it by 9 bits
-            // might occupy the signed bit, resulting in some positive
-            // values being interpreted as negative after the shift.
+            // Recall that want to divide the final product by 128,
+            // which is equivalent to a 7-bit right shift.
+            // Intuitively, if shift the clipped value left by 9,
+            // and perform mulhi, which shifts the product right by 16 bits,
+            // then will net a right shift of 7 bits.
+            // However, this won't work as intended. Since clip the values to
+            // have a maximum value of 127, shifting it by 9 bits might occupy
+            // the signed bit, resulting in some positive values being
+            // interpreted as negative after the shift.
 
             // There is a way, however, to get around this limitation. When
             // loading the network, scale accumulator weights and biases by
             // 2. To get the same pairwise multiplication result as before,
-            // we need to divide the product by 128 * 2 * 2 = 512, which
-            // amounts to a right shift of 9 bits. So now we only have to
-            // shift left by 7 bits, perform mulhi (shifts right by 16 bits)
-            // and net a 9 bit right shift. Since we scaled everything by
-            // two, the values are clipped at 127 * 2 = 254, which occupies
-            // 8 bits. Shifting it by 7 bits left will no longer occupy the
-            // signed bit, so we are safe.
-
-            // Note that on NEON processors, we shift left by 6 instead
-            // because the instruction "vqdmulhq_s16" also doubles the
-            // return value after the multiplication, adding an extra shift
-            // to the left by 1, so we compensate by shifting less before
-            // the multiplication.
-
-            constexpr int shift =
-    #if defined(USE_SSE2) || defined(USE_LSX)
-              7
-    #else
-              6
-    #endif
-              ;
+            // need to divide the product by 128 * 2 * 2 = 512, which amounts
+            // to a right shift of 9 bits. So now only have to shift left by
+            // 7 bits, perform mulhi (shifts right by 16 bits) and net a 
+            // 9 bit right shift. Since we scaled everything by two,
+            // the values are clipped at 127 * 2 = 254, which occupies 8 bits.
+            // Shifting it by 7 bits left will no longer occupy the signed bit, so are safe.
 
             const auto* tin0 = reinterpret_cast<const vec_t*>(&(threatAccumulation[perspectives[p]][0]));
             const auto* tin1 = reinterpret_cast<const vec_t*>(&(threatAccumulation[perspectives[p]][HalfDimensions / 2]));
@@ -322,15 +297,27 @@ class FeatureTransformer final {
                     const vec_t acc10 = vec_add_16(in1[i + 0], tin1[i + 0]);
                     const vec_t acc11 = vec_add_16(in1[i + 1], tin1[i + 1]);
 
-                    const vec_t sum00 = vec_slli_16(vec_max_16(vec_min_16(acc00, One), Zero), shift);
-                    const vec_t sum01 = vec_slli_16(vec_max_16(vec_min_16(acc01, One), Zero), shift);
-                    const vec_t sum10 = vec_min_16(acc10, One);
-                    const vec_t sum11 = vec_min_16(acc11, One);
+    #if defined(USE_NEON)
+                    // The NEON path relies on unsigned saturation for crelu
+                    const uint16x8_t mul0 = vmull_u8(vqmovun_s16(acc00), vqmovun_s16(acc00));
+                    const uint16x8_t mul1 = vmull_u8(vqmovun_s16(acc01), vqmovun_s16(acc11));
+
+                    const uint8x16x2_t uzp = vuzpq_u8(vreinterpretq_u8_u16(mul0), vreinterpretq_u8_u16(mul1));
+                    const uint8x16_t pab   = vshrq_n_u8(uzp.val[1], 1);
+
+                    out[j + k] = packed[k] = reinterpret_cast<vec_t>(pab);
+
+    #else
+                    const vec_t sum00 = vec_slli_16(vec_max_16(vec_min_16(acc00, FTMax), Zero), Shift);
+                    const vec_t sum01 = vec_slli_16(vec_max_16(vec_min_16(acc01, FTMax), Zero), Shift);
+                    const vec_t sum10 = vec_min_16(acc10, FTMax);
+                    const vec_t sum11 = vec_min_16(acc11, FTMax);
 
                     const vec_t p0 = vec_mulhi_16(sum00, sum10);
                     const vec_t p1 = vec_mulhi_16(sum01, sum11);
 
                     out[j + k] = packed[k] = vec_packus_16(p0, p1);
+    #endif
                 }
 
                 cursor.record(packed[0], packed[1]);
@@ -344,8 +331,8 @@ class FeatureTransformer final {
                 sum0 += threatAccumulation[perspectives[p]][j + 0];
                 sum1 += threatAccumulation[perspectives[p]][j + HalfDimensions / 2];
 
-                sum0 = std::clamp<BiasType>(sum0, 0, 255);
-                sum1 = std::clamp<BiasType>(sum1, 0, 255);
+                sum0 = std::clamp<BiasType>(sum0, 0, FT_MAX);
+                sum1 = std::clamp<BiasType>(sum1, 0, FT_MAX);
 
                 output[offset + j] = static_cast<OutputType>(unsigned(sum0 * sum1) / 512);
             }

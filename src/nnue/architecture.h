@@ -120,21 +120,26 @@ struct NetworkArchitecture final {
         ac_1.propagate(buffer.fc_1_out.data(), buffer.ac_1_out.data());
         fc_2.propagate(buffer.ac_1_out.data(), buffer.fc_2_out.data());
 
-        // buffer.fc_0_out[FC_0_OUTPUTS] is such that 1.0 is equal to 127 * (1 << WEIGHT_SCALE_BITS)
+        // Max value for fwdOut is (L1 + L3) * HIDDEN_MAX * WeightMax
+        // for int8 activations and weights this is (L1 + L3) * 16129 making
+        // fwdOut safe from overflow until (L1 + L3) > 133,144
+        // first layer and last layer use WEIGHT_SCALE_BITS + 1.
+        i64 fwdOut = buffer.fc_0_out[FC_0_Outputs] + buffer.fc_2_out[0];
+        // fwdOut is such that 1.0 is equal to (1 << WEIGHT_SCALE_BITS) * HIDDEN_ONE *2
         // in quantized form, but want 1.0 to be equal to 600 * OUTPUT_SCALE
-        i32 fwdOut =
-          (buffer.fc_0_out[FC_0_Outputs]) * (600 * OUTPUT_SCALE) / (127 * (1 << WEIGHT_SCALE_BITS));
-        i32 outputValue = buffer.fc_2_out[0] + fwdOut;
+        // to make overflow impossible cast to i64.
+        constexpr i64 multiplier  = 600 * OUTPUT_SCALE;
+        constexpr i64 denominator = (i64{1} << WEIGHT_SCALE_BITS) * HIDDEN_ONE * 2;
 
-        return outputValue;
+        return static_cast<i32>((fwdOut * multiplier) / denominator);
     }
 
    private:
     Layers::SparseAffineTransform<TransformedFeatureDimensions, FC_0_Outputs + 1> fc_0;
-    Layers::SqrClippedReLU<FC_0_Outputs + 1>                                      ac_sqr_0;
-    Layers::ClippedReLU<FC_0_Outputs + 1>                                         ac_0;
+    Layers::SqrClippedReLU<FC_0_Outputs + 1, WEIGHT_SCALE_BITS + 1>               ac_sqr_0;
+    Layers::ClippedReLU<FC_0_Outputs + 1, WEIGHT_SCALE_BITS + 1>                  ac_0;
     Layers::AffineTransform<FC_0_Outputs * 2, FC_1_Outputs>                       fc_1;
-    Layers::ClippedReLU<FC_1_Outputs>                                             ac_1;
+    Layers::ClippedReLU<FC_1_Outputs, WEIGHT_SCALE_BITS>                          ac_1;
     Layers::AffineTransform<FC_1_Outputs, 1>                                      fc_2;
 };
 

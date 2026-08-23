@@ -157,7 +157,7 @@ VPATH := nnue:nnue/features:book:tablebase
 # lsx = yes/no         --- -mlsx              --- Use LoongArch SIMD eXtension
 # lasx = yes/no        --- -mlasx             --- Use LoongArch Advanced SIMD eXtension
 # neon = yes/no        --- -DUSE_NEON         --- Use ARM NEON SIMD instructions
-# dotprod = yes/no     --- -DUSE_NEON_DOTPROD --- Use ARM NEON advanced SIMD Int8 dot-product instructions
+# dotprod = yes/no     --- -DUSE_NEON_DOTPROD --- Use ARM NEON Advanced SIMD Int8 dot-product instructions
 # relaxedsimd = yes/no --- -mrelaxed-simd     --- Use WebAssembly relaxed SIMD extension
 # tablebases = yes/no  --- -DNO_TABLEBASES    --- Support tablebase probing
 #
@@ -754,7 +754,8 @@ else ifeq ($(COMP),ndk)
     PROFILE_USE  := clang-profile-use
 endif
 
-### Allow overriding CXX via environment COMPCXX
+### Allow overriding CXX via COMPCXX (comman-line or environment)
+# Command-line CXX takes precedence
 ifdef COMPCXX
     CXX := $(COMPCXX)
 endif

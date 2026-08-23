@@ -34,7 +34,7 @@ namespace DON::NNUE::Layers {
 // Inputs are squared and scaled using a right shift to avoid division,
 // then clipped to [0, 127] and stored as u8.
 // The scaling must be accounted for during training.
-template<IndexType InDims>
+template<IndexType InDims, u8 WeightScaleBits = WEIGHT_SCALE_BITS>
 class SqrClippedReLU final {
    public:
     // Input/output type
@@ -70,6 +70,12 @@ class SqrClippedReLU final {
 
     // Forward propagation
     void propagate(const InputType* RESTRICT input, OutputType* RESTRICT output) const noexcept {
+        static_assert(5 <= WeightScaleBits && WeightScaleBits <= 8,
+                      "SqrClippedReLU requires WeightScaleBits between 5 and 8");
+        // After squaring, need shift right by 7 + 2 * WeightScaleBits.
+        // MulHi already removes the lower 16 bits, so only the remaining bits need to be shifted out.
+        [[maybe_unused]] constexpr u8 SimdShift = 7 + 2 * WeightScaleBits - 16;
+
         // clang-format off
 #if defined(USE_SSE2)
         constexpr IndexType SimdWidth  = SIMD_WIDTH_MIN;
@@ -85,11 +91,8 @@ class SqrClippedReLU final {
             __m128i words0 = _mm_packs_epi32(_mm_load_si128(&in[j + 0]), _mm_load_si128(&in[j + 1]));
             __m128i words1 = _mm_packs_epi32(_mm_load_si128(&in[j + 2]), _mm_load_si128(&in[j + 3]));
 
-            // Shift by WEIGHT_SCALE_BITS * 2 = 12 and divide by 128
-            // which is an additional shift-right of 7, meaning 19 in total.
-            // MulHi strips the lower 16 bits so need to shift out 3 more to match.
-            words0 = _mm_srli_epi16(_mm_mulhi_epi16(words0, words0), 3);
-            words1 = _mm_srli_epi16(_mm_mulhi_epi16(words1, words1), 3);
+            words0 = _mm_srli_epi16(_mm_mulhi_epi16(words0, words0), SimdShift);
+            words1 = _mm_srli_epi16(_mm_mulhi_epi16(words1, words1), SimdShift);
 
             _mm_store_si128(&out[i], _mm_packs_epi16(words0, words1));
         }
@@ -112,7 +115,7 @@ class SqrClippedReLU final {
             const __m256i sqr0   = __lasx_xvmuh_h(words0, words0);
             const __m256i sqr1   = __lasx_xvmuh_h(words1, words1);
 
-            const __m256i packed = __lasx_xvssrlni_b_h(sqr1, sqr0, 3);
+            const __m256i packed = __lasx_xvssrlni_b_h(sqr1, sqr0, SimdShift);
             const __m256i permed = __lasx_xvpermi_d(packed, 0xD8);
 
             __lasx_xvst(__lasx_xvshuf4i_w(permed, 0xD8), out + i, 0);
@@ -136,7 +139,7 @@ class SqrClippedReLU final {
             const __m128i sqr0   = __lsx_vmuh_h(words0, words0);
             const __m128i sqr1   = __lsx_vmuh_h(words1, words1);
 
-            out[i]               = __lsx_vssrlni_b_h(sqr1, sqr0, 3);
+            out[i]               = __lsx_vssrlni_b_h(sqr1, sqr0, SimdShift);
         }
 
         constexpr IndexType Start = SimdWidth * ChunkCount;
@@ -155,8 +158,10 @@ class SqrClippedReLU final {
             const int16x8_t words0 = vcombine_s16(vqmovn_s32(in[j + 0]), vqmovn_s32(in[j + 1]));
             const int16x8_t words1 = vcombine_s16(vqmovn_s32(in[j + 2]), vqmovn_s32(in[j + 3]));
 
-            const int16x8_t sqr0 = vshrq_n_s16(vqdmulhq_s16(words0, words0), 4);
-            const int16x8_t sqr1 = vshrq_n_s16(vqdmulhq_s16(words1, words1), 4);
+            // NEON needs to shift by one more since the used simd instruction does
+            // `Saturating Doubling Multiply High` (doubling before shift by 16).
+            const int16x8_t sqr0 = vshrq_n_s16(vqdmulhq_s16(words0, words0), SimdShift + 1);
+            const int16x8_t sqr1 = vshrq_n_s16(vqdmulhq_s16(words1, words1), SimdShift + 1);
 
             out[i] = vcombine_s8(vqmovn_s16(sqr0), vqmovn_s16(sqr1));
         }
