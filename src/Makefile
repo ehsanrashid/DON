@@ -19,7 +19,7 @@
 ### ==========================================================================
 
 ### Establish the operating system name
-KERNEL := $(shell uname -s 2>/dev/null)
+KERNEL := $(shell uname -s)
 ifeq ($(KERNEL),Linux)
     OS := $(or $(shell uname -o 2>/dev/null),Linux)
 endif
@@ -216,14 +216,14 @@ avx512 = no
 vnni256 = no
 vnni512 = no
 avx512icl = no
-arm_version = 0
-neon = no
-dotprod = no
 altivec = no
 vsx = no
 rva23 = no
 lsx = no
 lasx = no
+arm_version = 0
+neon = no
+dotprod = no
 relaxedsimd = no
 tablebases = yes
 STRIP = strip
@@ -233,6 +233,7 @@ STRIP = strip
 ifneq ($(findstring x86,$(ARCH)),)
 
 # x86-32/64
+
 # To enable sse use: make -j build ARCH=x86-32 sse=yes
 ifneq ($(findstring x86-32,$(ARCH)),)
     arch = i386
@@ -547,7 +548,7 @@ LDLIBS      = $(strip $(ENV_LDLIBS) $(EXTRA_LDLIBS))
 
 ### 3.1 Selecting compiler (default = gcc)
 ifeq ($(COMP),)
-    COMP=gcc
+    COMP := gcc
 endif
 
 # On Windows, use static linking by default.
@@ -574,7 +575,7 @@ CXX_IS_APPLE_CLANG := no
 
 # GCC
 ifeq ($(COMP),gcc)
-    CXX := $(if $(COMPCXX),$(COMPCXX),g++)
+    CXX := g++
     CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-declarations
     # Detect whether the selected compiler is actually Clang
     CXX_VERSION        := $(shell $(CXX) --version 2>/dev/null | head -n 1 | tr '[:upper:]' '[:lower:]')
@@ -738,6 +739,11 @@ else ifeq ($(COMP),ndk)
     PROFILE_USE  := clang-profile-use
 endif
 
+### Allow overriding CXX via environment COMPCXX
+ifdef COMPCXX
+    CXX := $(COMPCXX)
+endif
+
 ifeq ($(TARGET_KERNEL),Darwin)
     MACOS_BUILD_FLAGS := -mmacosx-version-min=10.15
     ifneq ($(arch),any)
@@ -748,15 +754,11 @@ ifeq ($(TARGET_KERNEL),Darwin)
     XCRUN     = xcrun
 endif
 
-### Allow overriding CXX from the environment
-ifdef COMPCXX
-    CXX := $(COMPCXX)
-endif
-
 ## Locate llvm-profdata compatible with CXX for PGO (profile-guided optimization) builds
-
+# make -j profile-build CXX=clang++-20 COMP=clang
+# Resolve the compiler path
 CXX_PATH := $(realpath $(shell command -v $(CXX) 2>/dev/null))
-# For Clang/GCC, look alongside CXX
+# Look for llvm-profdata alongside the compiler path
 LLVM_PROFDATA := $(dir $(CXX_PATH))llvm-profdata
 # For Intel ICX, look in the compiler's bundled LLVM directory
 ifeq ($(wildcard $(LLVM_PROFDATA)),)
@@ -1014,7 +1016,7 @@ GIT_DIFFINDEX := $(shell git update-index --refresh >/dev/null 2>&1; git -c core
 COMPILER_DATE := $(shell date +%Y%m%d 2>/dev/null)
 BUILD_DATE    := $(or $(GIT_DATE),$(COMPILER_DATE))
 
-define cache_file_contents
+define CACHE_FILE_CONTENTS
 $(shell \
 	if [ ! -f "$(1)" ] || [ "$$(cat "$(1)" 2>/dev/null)" != "$(2)" ]; then \
 		printf '%s\n' "$(2)" > "$(1)"; \
@@ -1023,9 +1025,9 @@ $(shell \
 endef
 
 ifneq ($(filter-out help net strip install clean objclean profileclean config-sanity format install-hooks,$(MAKECMDGOALS)),)
-_ := $(call cache_file_contents,$(BUILD_DATE_FILE),$(BUILD_DATE))
-_ := $(call cache_file_contents,$(BUILD_SHA_FILE),$(GIT_SHA))
-_ := $(call cache_file_contents,$(BUILD_DIFFINDEX_FILE),$(BUILD_DIFFINDEX))
+_ := $(call CACHE_FILE_CONTENTS,$(BUILD_DATE_FILE),$(BUILD_DATE))
+_ := $(call CACHE_FILE_CONTENTS,$(BUILD_SHA_FILE),$(GIT_SHA))
+_ := $(call CACHE_FILE_CONTENTS,$(BUILD_DIFFINDEX_FILE),$(BUILD_DIFFINDEX))
 endif
 
 # Compiler flags for embedding Git build information
@@ -1043,17 +1045,12 @@ endif
 ### needs access to the optimization flags.
 ifeq ($(optimize),yes)
     ifeq ($(debug),no)
-        ifeq ($(arch),wasm32)
-        # Non-macOS
-        else ifneq ($(TARGET_KERNEL),Darwin)
-            # Android NDK Clang
-            ifeq ($(COMP),ndk)
-                LDFLAGS += -fuse-ld=lld
-            # Non-Android Clang
-            else
+        ifneq ($(arch),wasm32)
+            # Non-macOS
+            ifneq ($(TARGET_KERNEL),Darwin)
                 # Detect LLD
-                HAS_LLD := $(if $(shell command -v ld.lld 2>/dev/null || command -v lld 2>/dev/null),yes,no)
-                ifeq ($(HAS_LLD),yes)
+                LLD_BIN := $(shell command -v ld.lld 2>/dev/null || command -v lld 2>/dev/null)
+                ifneq ($(LLD_BIN),)
                     # Clang
                     ifeq ($(COMP),clang)
                         LDFLAGS += -fuse-ld=lld
@@ -1102,11 +1099,8 @@ endif
 ### 3.10 Use PIC and PIE on Android 5+, incompatible with Android 4 and earlier
 ifeq ($(OS),Android)
     CXXFLAGS += -fPIE
-    LDFLAGS  += -pie
+    LDFLAGS  += -fPIE -pie
 endif
-
-MKDIR := mkdir -p -m 755
-CP    := cp
 
 ### ==========================================================================
 ### Section 4. Public Targets
@@ -1167,7 +1161,7 @@ help:
 	echo "loongarch64-lsx         > LoongArch 64-bit with LSX (SIMD eXtension) support"; \
 	echo "loongarch64             > LoongArch 64-bit"; \
 	echo "arm64-universal         > ARMv8 64-bit with automatic runtime selection of the best architecture"; \
-	echo "armv8-dotprod           > ARMv8 64-bit with NEON, dot-product and POPCNT support"; \
+	echo "armv8-dotprod           > ARMv8 64-bit with NEON, DOT-PRODUCT and POPCNT support"; \
 	echo "armv8                   > ARMv8 64-bit with NEON and POPCNT support"; \
 	echo "armv7-neon              > ARMv7 32-bit with NEON and POPCNT support"; \
 	echo "armv7                   > ARMv7 32-bit"; \
@@ -1317,8 +1311,8 @@ strip:
 	$(STRIP) $(EXE)
 
 install:
-	$(MKDIR) "$(BINDIR)"
-	$(CP) "$(EXE)" "$(BINDIR)/"
+	mkdir -p -m 755 "$(BINDIR)"
+	cp "$(EXE)" "$(BINDIR)/"
 	chmod 755 "$(BINDIR)/$(EXE)"
 	$(STRIP) "$(BINDIR)/$(EXE)"
 
@@ -1328,7 +1322,7 @@ clean: objclean profileclean
 
 # Clean binaries and objects
 objclean:
-	@rm -f $(EXE) $(OBJS) *.o ./book/*.o ./tablebase/*.o ./nnue/*.o ./nnue/features/*.o $(BUILD_DATE_FILE) $(BUILD_SHA_FILE) $(BUILD_DIFFINDEX_FILE)
+	@rm -f $(EXE) ./*.o ./nnue/*.o ./nnue/features/*.o ./book/*.o ./tablebase/*.o $(BUILD_DATE_FILE) $(BUILD_SHA_FILE) $(BUILD_DIFFINDEX_FILE)
 
 # Clean auxiliary profiling files
 profileclean:
@@ -1349,9 +1343,11 @@ universalclean:
 
 format:
 	@echo CLANG_FORMAT=$(CLANG_FORMAT)
-	@if [ -n "$(CLANG_FORMAT)" ]; then \
-		$(CLANG_FORMAT) -i -style=file $(SRCS) $(UNIVERSAL_SRCS) $(HEADERS); \
+	@if [ -z "$(CLANG_FORMAT)" ]; then \
+	    echo "CLANG_FORMAT is not set"; \
+	    exit 1; \
 	fi
+	$(CLANG_FORMAT) -i -style=file $(SRCS) $(UNIVERSAL_SRCS) $(HEADERS)
 
 install-hooks:
 	@root=$$(git rev-parse --show-toplevel 2> /dev/null); \
