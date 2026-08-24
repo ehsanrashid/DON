@@ -132,10 +132,10 @@ void HalfKA_hm::append_map_changed_indices(const Color     perspective,
     const __m512i removedIndices = _mm512_xor_si512(removedSquares, _mm512_permutexvar_epi16(removedPieces, psiOffset));
     const __m512i addedIndices   = _mm512_xor_si512(addedSquares, _mm512_permutexvar_epi16(addedPieces, psiOffset));
 
-    _mm512_storeu_si512(removedWrite     , _mm512_cvtepu16_epi32(_mm512_castsi512_si256(removedIndices)));
+    _mm512_storeu_si512(removedWrite +  0, _mm512_cvtepu16_epi32(_mm512_castsi512_si256(removedIndices)));
     _mm512_storeu_si512(removedWrite + 16, _mm512_cvtepu16_epi32(_mm512_extracti64x4_epi64(removedIndices, 1)));
 
-    _mm512_storeu_si512(addedWrite     , _mm512_cvtepu16_epi32(_mm512_castsi512_si256(addedIndices)));
+    _mm512_storeu_si512(addedWrite +  0, _mm512_cvtepu16_epi32(_mm512_castsi512_si256(addedIndices)));
     _mm512_storeu_si512(addedWrite + 16, _mm512_cvtepu16_epi32(_mm512_extracti64x4_epi64(addedIndices, 1)));
     // clang-format on
 #else

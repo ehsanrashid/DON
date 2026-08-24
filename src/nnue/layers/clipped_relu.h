@@ -34,7 +34,7 @@ namespace DON::NNUE::Layers {
 // The activation clips each input value to the range [0, 127].
 // It introduces non-linearity while keeping the output within the
 // range supported by subsequent quantized operations.
-template<IndexType InDims>
+template<IndexType InDims, u8 WeightScaleBits = WEIGHT_SCALE_BITS>
 class ClippedReLU final {
    public:
     // Input/output type
@@ -72,10 +72,11 @@ class ClippedReLU final {
     void propagate(const InputType* RESTRICT input, OutputType* RESTRICT output) const noexcept {
         // clang-format off
 #if defined(USE_SSE2)
-        constexpr IndexType SimdWidth  = 16;
+        constexpr IndexType SimdWidth  = SIMD_WIDTH_MIN;
         constexpr IndexType ChunkCount = InputDimensions / SimdWidth;
 
-    #if !defined(USE_SSE41)
+    #if defined(USE_SSE41)
+    #else
         const __m128i K0x80s = _mm_set1_epi8(-128);
     #endif
 
@@ -84,27 +85,74 @@ class ClippedReLU final {
 
         for (IndexType i = 0; i < ChunkCount; ++i)
         {
+            const IndexType j = i * 4;
+
     #if defined(USE_SSE41)
-            const __m128i packed0 = _mm_packus_epi32(_mm_load_si128(&in[i * 4 + 0]),
-                                                     _mm_load_si128(&in[i * 4 + 1]));
-            const __m128i packed1 = _mm_packus_epi32(_mm_load_si128(&in[i * 4 + 2]),
-                                                     _mm_load_si128(&in[i * 4 + 3]));
-            const __m128i words0  = _mm_srli_epi16(packed0, WEIGHT_SCALE_BITS);
-            const __m128i words1  = _mm_srli_epi16(packed1, WEIGHT_SCALE_BITS);
+            const __m128i packed0 = _mm_packus_epi32(_mm_load_si128(&in[j + 0]), _mm_load_si128(&in[j + 1]));
+            const __m128i packed1 = _mm_packus_epi32(_mm_load_si128(&in[j + 2]), _mm_load_si128(&in[j + 3]));
+            const __m128i words0  = _mm_srli_epi16(packed0, WeightScaleBits);
+            const __m128i words1  = _mm_srli_epi16(packed1, WeightScaleBits);
+
             _mm_store_si128(&out[i], _mm_packs_epi16(words0, words1));
     #else
-            const __m128i packed0 = _mm_packs_epi32(_mm_load_si128(&in[i * 4 + 0]),
-                                                    _mm_load_si128(&in[i * 4 + 1]));
-            const __m128i packed1 = _mm_packs_epi32(_mm_load_si128(&in[i * 4 + 2]),
-                                                    _mm_load_si128(&in[i * 4 + 3]));
-            const __m128i words0  = _mm_srai_epi16(packed0, WEIGHT_SCALE_BITS);
-            const __m128i words1  = _mm_srai_epi16(packed1, WEIGHT_SCALE_BITS);
+            const __m128i packed0 = _mm_packs_epi32(_mm_load_si128(&in[j + 0]), _mm_load_si128(&in[j + 1]));
+            const __m128i packed1 = _mm_packs_epi32(_mm_load_si128(&in[j + 2]), _mm_load_si128(&in[j + 3]));
+            const __m128i words0  = _mm_srai_epi16(packed0, WeightScaleBits);
+            const __m128i words1  = _mm_srai_epi16(packed1, WeightScaleBits);
             const __m128i packed  = _mm_packs_epi16(words0, words1);
+
             _mm_store_si128(&out[i], _mm_subs_epi8(_mm_adds_epi8(packed, K0x80s), K0x80s));
     #endif
         }
 
         constexpr IndexType Start = SimdWidth * ChunkCount;
+
+#elif defined(USE_LSX)
+    #if defined(USE_LASX)
+        constexpr IndexType SimdWidth  = SIMD_WIDTH;
+        constexpr IndexType ChunkCount = InputDimensions / SimdWidth;
+
+        const auto* in  = reinterpret_cast<const __m256i*>(input);
+        auto*       out = reinterpret_cast<__m256i*>(output);
+
+        for (IndexType i = 0; i < ChunkCount; ++i)
+        {
+            const IndexType j = i * 4;
+
+            const __m256i packed0 = SIMD::lasx_packus_32(in[j + 0], in[j + 1]);
+            const __m256i packed1 = SIMD::lasx_packus_32(in[j + 2], in[j + 3]);
+            const __m256i words0  = __lasx_xvsrli_h(packed0, WeightScaleBits);
+            const __m256i words1  = __lasx_xvsrli_h(packed1, WeightScaleBits);
+            const __m256i packed  = __lasx_xvssrani_b_h(words1, words0, 0);
+            const __m256i swaped  = __lasx_xvpermi_d(packed, 0xD8);
+
+            __lasx_xvst(__lasx_xvshuf4i_w(swaped, 0xD8), out + i, 0);
+        }
+
+        constexpr IndexType Start = SimdWidth * ChunkCount;
+
+    #elif defined(USE_LSX)
+        constexpr IndexType SimdWidth  = SIMD_WIDTH;
+        constexpr IndexType ChunkCount = InputDimensions / SimdWidth;
+
+        const auto* in  = reinterpret_cast<const __m128i*>(input);
+        auto*       out = reinterpret_cast<__m128i*>(output);
+
+        for (IndexType i = 0; i < ChunkCount; ++i)
+        {
+            const IndexType j = i * 4;
+
+            const __m128i packed0 = SIMD::lsx_packus_32(in[j + 0], in[j + 1]);
+            const __m128i packed1 = SIMD::lsx_packus_32(in[j + 2], in[j + 3]);
+            const __m128i words0  = __lsx_vsrli_h(packed0, WeightScaleBits);
+            const __m128i words1  = __lsx_vsrli_h(packed1, WeightScaleBits);
+
+            out[i]                = __lsx_vssrani_b_h(words1, words0, 0);
+        }
+
+        constexpr IndexType Start = SimdWidth * ChunkCount;
+
+    #endif
 
 #elif defined(USE_NEON)
         constexpr IndexType SimdWidth  = SIMD_WIDTH / 2;
@@ -117,59 +165,23 @@ class ClippedReLU final {
 
         for (IndexType i = 0; i < ChunkCount; ++i)
         {
-            const int16x8_t shifted = vcombine_s16(
-                                        vqshrn_n_s32(in[i * 2 + 0], WEIGHT_SCALE_BITS),
-                                        vqshrn_n_s32(in[i * 2 + 1], WEIGHT_SCALE_BITS));
+            const IndexType j = i * 2;
+
+            const int16x8_t shifted = vcombine_s16(vqshrn_n_s32(in[j + 0], WeightScaleBits), vqshrn_n_s32(in[j + 1], WeightScaleBits));
+
             out[i]                  = vmax_s8(vqmovn_s16(shifted), Zero);
-        }
-
-        constexpr IndexType Start = SimdWidth * ChunkCount;
-
-#elif defined(USE_LASX)
-        constexpr IndexType SimdWidth  = SIMD_WIDTH;
-        constexpr IndexType ChunkCount = InputDimensions / SimdWidth;
-
-        const auto* in  = reinterpret_cast<const __m256i*>(input);
-        auto*       out = reinterpret_cast<__m256i*>(output);
-
-        for (IndexType i = 0; i < ChunkCount; ++i)
-        {
-            const __m256i packed0 = SIMD::lasx_packus_32(in[i * 4 + 0], in[i * 4 + 1]);
-            const __m256i packed1 = SIMD::lasx_packus_32(in[i * 4 + 2], in[i * 4 + 3]);
-            const __m256i words0  = __lasx_xvsrli_h(packed0, WEIGHT_SCALE_BITS);
-            const __m256i words1  = __lasx_xvsrli_h(packed1, WEIGHT_SCALE_BITS);
-            const __m256i packed  = __lasx_xvssrani_b_h(words1, words0, 0);
-            const __m256i swaped  = __lasx_xvpermi_d(packed, 0xD8);
-            __lasx_xvst(__lasx_xvshuf4i_w(swaped, 0xD8), out + i, 0);
-        }
-
-        constexpr IndexType Start = SimdWidth * ChunkCount;
-
-#elif defined(USE_LSX)
-        constexpr IndexType SimdWidth  = SIMD_WIDTH;
-        constexpr IndexType ChunkCount = InputDimensions / SimdWidth;
-
-        const auto* in  = reinterpret_cast<const __m128i*>(input);
-        auto*       out = reinterpret_cast<__m128i*>(output);
-
-        for (IndexType i = 0; i < ChunkCount; ++i)
-        {
-            const __m128i packed0 = SIMD::lsx_packus_32(in[i * 4 + 0], in[i * 4 + 1]);
-            const __m128i packed1 = SIMD::lsx_packus_32(in[i * 4 + 2], in[i * 4 + 3]);
-            const __m128i words0  = __lsx_vsrli_h(packed0, WEIGHT_SCALE_BITS);
-            const __m128i words1  = __lsx_vsrli_h(packed1, WEIGHT_SCALE_BITS);
-            out[i]                = __lsx_vssrani_b_h(words1, words0, 0);
         }
 
         constexpr IndexType Start = SimdWidth * ChunkCount;
 
 #else
         constexpr IndexType Start = 0;
+
 #endif
         // clang-format on
 
         for (IndexType i = Start; i < InputDimensions; ++i)
-            output[i] = static_cast<OutputType>(std::clamp(input[i] >> WEIGHT_SCALE_BITS, 0, 127));
+            output[i] = static_cast<OutputType>(std::clamp(input[i] >> WeightScaleBits, 0, 127));
     }
 };
 

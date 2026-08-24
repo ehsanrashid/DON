@@ -49,14 +49,6 @@ jobs:
             base_image: "ppc64le/alpine:latest"
             platform: linux/ppc64le
             shell: bash
-          - name: Linux GCC riscv64
-            os: ubuntu-22.04
-            compiler: g++
-            comp: gcc
-            run_riscv64_tests: true
-            base_image: "riscv64/alpine:edge"
-            platform: linux/riscv64
-            shell: bash
           - name: Linux GCC loongarch64
             os: ubuntu-22.04
             compiler: g++
@@ -64,6 +56,14 @@ jobs:
             run_loongarch64_tests: true
             base_image: "loongarch64/alpine:3.21"
             platform: linux/loong64
+            shell: bash
+          - name: Linux GCC riscv64
+            os: ubuntu-22.04
+            compiler: g++
+            comp: gcc
+            run_riscv64_tests: true
+            base_image: "riscv64/alpine:edge"
+            platform: linux/riscv64
             shell: bash
           - name: macOS 15 Apple Clang
             os: macos-15-intel
@@ -247,6 +247,13 @@ jobs:
           make -j4 ARCH=x86-32-sse41 build
           ../tests/signature.sh $benchref
 
+      - name: Test x86-32-ssse3 build
+        if: matrix.config.run_32bit_tests
+        run: |
+          make clean
+          make -j4 ARCH=x86-32-ssse3 build
+          ../tests/signature.sh $benchref
+
       - name: Test x86-32-sse2 build
         if: matrix.config.run_32bit_tests
         run: |
@@ -349,6 +356,70 @@ jobs:
           env -u COMPCXX make -j4 ARCH=apple-silicon COMP=gcc build
           ../tests/signature.sh $benchref
 
+      # ppc64 tests
+
+      - name: Test ppc-64-vsx build
+        if: matrix.config.run_ppc64_tests
+        run: |
+          echo "cd src && export LDFLAGS='-static' && make clean && make -j4 ARCH=ppc-64-vsx build" > script.sh
+          docker run --rm --platform ${{ matrix.config.platform }} -v ${{ github.workspace }}:/app don_builder
+          ../tests/signature.sh $benchref
+
+      - name: Test ppc-64-altivec build
+        if: matrix.config.run_ppc64_tests
+        run: |
+          echo "cd src && export LDFLAGS='-static' && make clean && make -j4 ARCH=ppc-64-altivec build" > script.sh
+          docker run --rm --platform ${{ matrix.config.platform }} -v ${{ github.workspace }}:/app don_builder
+          ../tests/signature.sh $benchref
+
+      - name: Test ppc64 build
+        if: matrix.config.run_ppc64_tests
+        run: |
+          echo "cd src && export LDFLAGS='-static' && make clean && make -j4 ARCH=ppc-64 build" > script.sh
+          docker run --rm --platform ${{ matrix.config.platform }} -v ${{ github.workspace }}:/app don_builder
+          ../tests/signature.sh $benchref
+
+      # loongarch64 tests
+
+      - name: Test loongarch64-lasx build
+        if: matrix.config.run_loongarch64_tests
+        run: |
+          echo "cd src && export LDFLAGS='-static' && make clean && make -j4 ARCH=loongarch64-lasx build" > script.sh
+          docker run --rm --platform ${{ matrix.config.platform }} -v ${{ github.workspace }}:/app don_builder
+          ../tests/signature.sh $benchref
+
+      - name: Test loongarch64-lsx build
+        if: matrix.config.run_loongarch64_tests
+        run: |
+          echo "cd src && export LDFLAGS='-static' && make clean && make -j4 ARCH=loongarch64-lsx build" > script.sh
+          docker run --rm --platform ${{ matrix.config.platform }} -v ${{ github.workspace }}:/app don_builder
+          ../tests/signature.sh $benchref
+
+      - name: Test loongarch64 build
+        if: matrix.config.run_loongarch64_tests
+        run: |
+          echo "cd src && export LDFLAGS='-static' && make clean && make -j4 ARCH=loongarch64 build" > script.sh
+          docker run --rm --platform ${{ matrix.config.platform }} -v ${{ github.workspace }}:/app don_builder
+          ../tests/signature.sh $benchref
+
+      # riscv64 tests
+
+      # - name: Test riscv64-rva23 build
+      #   if: matrix.config.run_riscv64_tests
+      #   run: |
+      #     echo "cat /proc/cpuinfo" > script.sh
+      #     echo "cd src && export LDFLAGS='-static' && make clean && make -j4 ARCH=riscv64-rva23 build" >> script.sh
+      #     echo "./DON bench" >> script.sh
+      #     docker run --rm --platform ${{ matrix.config.platform }} -v ${{ github.workspace }}:/app don_builder
+      #     ../tests/signature.sh $benchref
+
+      - name: Test riscv64 build
+        if: matrix.config.run_riscv64_tests
+        run: |
+          echo "cd src && export LDFLAGS='-static' && make clean && make -j4 ARCH=riscv64 build" > script.sh
+          docker run --rm --platform ${{ matrix.config.platform }} -v ${{ github.workspace }}:/app don_builder
+          ../tests/signature.sh $benchref
+
       # armv8 tests
 
       - name: Test armv8-dotprod build
@@ -391,70 +462,6 @@ jobs:
           export LDFLAGS="-static -Wno-unused-command-line-argument"
           make clean
           make -j4 ARCH=armv7 build
-          ../tests/signature.sh $benchref
-
-      # ppc64 tests
-
-      - name: Test ppc-64-vsx build
-        if: matrix.config.run_ppc64_tests
-        run: |
-          echo "cd src && export LDFLAGS='-static' && make clean && make -j4 ARCH=ppc-64-vsx build" > script.sh
-          docker run --rm --platform ${{ matrix.config.platform }} -v ${{ github.workspace }}:/app don_builder
-          ../tests/signature.sh $benchref
-
-      - name: Test ppc-64-altivec build
-        if: matrix.config.run_ppc64_tests
-        run: |
-          echo "cd src && export LDFLAGS='-static' && make clean && make -j4 ARCH=ppc-64-altivec build" > script.sh
-          docker run --rm --platform ${{ matrix.config.platform }} -v ${{ github.workspace }}:/app don_builder
-          ../tests/signature.sh $benchref
-
-      - name: Test ppc64 build
-        if: matrix.config.run_ppc64_tests
-        run: |
-          echo "cd src && export LDFLAGS='-static' && make clean && make -j4 ARCH=ppc-64 build" > script.sh
-          docker run --rm --platform ${{ matrix.config.platform }} -v ${{ github.workspace }}:/app don_builder
-          ../tests/signature.sh $benchref
-
-      # riscv64 tests
-
-      # - name: Test riscv64-rva23 build
-      #   if: matrix.config.run_riscv64_tests
-      #   run: |
-      #     echo "cat /proc/cpuinfo" > script.sh
-      #     echo "cd src && export LDFLAGS='-static' && make clean && make -j4 ARCH=riscv64-rva23 build" >> script.sh
-      #     echo "./DON bench" >> script.sh
-      #     docker run --rm --platform ${{ matrix.config.platform }} -v ${{ github.workspace }}:/app don_builder
-      #     ../tests/signature.sh $benchref
-
-      - name: Test riscv64 build
-        if: matrix.config.run_riscv64_tests
-        run: |
-          echo "cd src && export LDFLAGS='-static' && make clean && make -j4 ARCH=riscv64 build" > script.sh
-          docker run --rm --platform ${{ matrix.config.platform }} -v ${{ github.workspace }}:/app don_builder
-          ../tests/signature.sh $benchref
-
-      # loongarch64 tests
-
-      - name: Test loongarch64-lasx build
-        if: matrix.config.run_loongarch64_tests
-        run: |
-          echo "cd src && export LDFLAGS='-static' && make clean && make -j4 ARCH=loongarch64-lasx build" > script.sh
-          docker run --rm --platform ${{ matrix.config.platform }} -v ${{ github.workspace }}:/app don_builder
-          ../tests/signature.sh $benchref
-
-      - name: Test loongarch64-lsx build
-        if: matrix.config.run_loongarch64_tests
-        run: |
-          echo "cd src && export LDFLAGS='-static' && make clean && make -j4 ARCH=loongarch64-lsx build" > script.sh
-          docker run --rm --platform ${{ matrix.config.platform }} -v ${{ github.workspace }}:/app don_builder
-          ../tests/signature.sh $benchref
-
-      - name: Test loongarch64 build
-        if: matrix.config.run_loongarch64_tests
-        run: |
-          echo "cd src && export LDFLAGS='-static' && make clean && make -j4 ARCH=loongarch64 build" > script.sh
-          docker run --rm --platform ${{ matrix.config.platform }} -v ${{ github.workspace }}:/app don_builder
           ../tests/signature.sh $benchref
 
       # Other tests

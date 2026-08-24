@@ -30,10 +30,10 @@
 #if defined(USE_AVX2)
     #include <immintrin.h>
     #define USE_DUAL_HYPERBOLA_QUINT
+#elif defined(__loongarch__) && __loongarch_grlen == 64
+    #define USE_HYPERBOLA_QUINT
 #elif defined(__aarch64__)
     #include <arm_acle.h>
-    #define USE_HYPERBOLA_QUINT
-#elif defined(__loongarch__) && (__loongarch_grlen == 64)
     #define USE_HYPERBOLA_QUINT
 #endif
 
@@ -64,7 +64,7 @@ struct alignas(32) DualMagic final {
     // occupancy (the edge squares never affect the attack set).
     std::pair<Bitboard, Bitboard> attacks_bb_pair(Bitboard occupancyBB) const noexcept {
         // Byteswap within 128-bit elements
-        const auto bswap = [](__m256i v) noexcept {
+        const auto bswap = [](const __m256i v) noexcept {
             return _mm256_shuffle_epi8(v, _mm256_set_epi8(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
                                                           13, 14, 15, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
                                                           10, 11, 12, 13, 14, 15));
@@ -105,25 +105,29 @@ struct alignas(32) DualMagic final {
 #elif defined(USE_HYPERBOLA_QUINT)
 
 inline Bitboard reverse_bb(Bitboard bb) noexcept {
-    #if __has_builtin(__builtin_bitreverse64)
-    return __builtin_bitreverse64(bb);
-    #else
-        #if defined(__aarch64__)
-            #if defined(__GNUC__) && !defined(__clang__) \
-              && (__GNUC__ < 12 || (__GNUC__ == 12 && __GNUC_MINOR__ < 2))
-    // no rbit in arm_acle.h
-    Bitboard rb;
-    asm("rbit %0, %1" : "=r"(rb) : "r"(bb));
-    return rb;
-            #else
-    return __rbitll(bb);
-            #endif
-        #else  // loongarch
-    Bitboard rb;
-    asm("bitrev.d %0, %1" : "=r"(rb) : "r"(bb));
-    return rb;
+    Bitboard rbb;
+
+    #if defined(__has_builtin) && __has_builtin(__builtin_bitreverse64)
+    rbb = __builtin_bitreverse64(bb);
+
+    #elif defined(__loongarch__) && __loongarch_grlen == 64
+    asm("bitrev.d %0, %1" : "=r"(rbb) : "r"(bb));
+
+    #elif defined(__aarch64__)
+        // GCC before 12.2 does not provide __rbitll() in arm_acle.h
+        #if defined(__GNUC__) && !defined(__clang__) \
+          && (__GNUC__ < 12 || (__GNUC__ == 12 && __GNUC_MINOR__ < 2))
+    asm("rbit %0, %1" : "=r"(rbb) : "r"(bb));
+
+        #else
+    rbb = __rbitll(bb);
+
         #endif
+    #else
+        #error "reverse_bb(): unsupported architecture/compiler"
     #endif
+
+    return rbb;
 }
 
 // Hyperbola quintessence implementation for ARM

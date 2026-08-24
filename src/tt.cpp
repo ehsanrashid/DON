@@ -26,7 +26,6 @@
 #include <system_error>
 
 #include "memory.h"
-#include "misc.h"
 #include "thread.h"
 
 namespace DON {
@@ -72,10 +71,7 @@ struct TTEntry final {
     constexpr bool  pv() const noexcept { return ((meta8 & PV_MASK) /* >> PV_SHIFT*/) != 0; }
     constexpr u8    generation() const noexcept { return meta8 & GENERATION_MASK; }
 
-    // Convert internal bit fields to TTData
-    TTData read() const noexcept {
-        return {move(), value(), evalue(), depth(), bound(), occupied(), pv()};
-    }
+    TTData read() const noexcept;
 
     u8 relative_age(u8 gen) const noexcept;
 
@@ -83,7 +79,9 @@ struct TTEntry final {
 
     void save(u16 k, Move m, Value v, Value ev, Depth d, Bound b, bool pv, u8 gen) noexcept;
 
-    void clear() noexcept;
+    void penalize(u8 penalty) noexcept;
+
+    void reset() noexcept;
 
    private:
     TTEntry(const TTEntry&) noexcept       = delete;
@@ -99,6 +97,11 @@ struct TTEntry final {
 };
 
 static_assert(sizeof(TTEntry) == 10, "TTEntry size must be 10 bytes");
+
+// Convert internal bit fields to TTData
+TTData TTEntry::read() const noexcept {
+    return {move(), value(), evalue(), depth(), bound(), occupied(), pv()};
+}
 
 u8 TTEntry::relative_age(const u8 gen) const noexcept {
     // Returns this entry's age. Count generations like clocks count hours,
@@ -141,14 +144,20 @@ void TTEntry::save(const u16   k,
     // generally scales poorly and requires VVLTC verification.
     else if (depth() > 4 && bound() != Bound::EXACT)
     {
-        const auto v16 = value16;
-        // Guard against racy underflows, default to "unoccupied"
-        if (depth8 != 0 && constexpr_abs(v16) < VALUE_INFINITE && is_decisive(v16))
-            --depth8;
+        const auto val = value();
+        if (constexpr_abs(val) < VALUE_INFINITE && is_decisive(val))
+            penalize(1);
     }
 }
 
-void TTEntry::clear() noexcept { std::memset(this, 0, sizeof(*this)); }
+// Decrement the stored depth by the penalty, clamping at zero
+void TTEntry::penalize(const u8 penalty) noexcept {
+    // Guard against racy underflows, default to "unoccupied"
+    depth8 = std::max(depth8 - penalty, 0);
+}
+
+// Reset all entry fields to zero
+void TTEntry::reset() noexcept { std::memset(this, 0, sizeof(*this)); }
 
 
 TTData TTData::empty() noexcept {
@@ -174,24 +183,26 @@ struct TTCluster final {
 
 static_assert(sizeof(TTCluster) == 32, "TTCluster size must be 32 bytes");
 
-TTUpdater::TTUpdater(TTEntry* const te, TTCluster* const tc, const u16 k, const u8 gen) noexcept :
+TTWriter::TTWriter(TTEntry* const te, TTCluster* const tc, const u16 k, const u8 gen) noexcept :
     tte(te),
     ttc(tc),
     key(k),
     generation(gen) {}
 
-void TTUpdater::update(const Move  m,
-                       const Value v,
-                       const Value ev,
-                       const Depth d,
-                       const Bound b,
-                       const bool  pv) noexcept {
-
+void TTWriter::write(const Move  m,
+                     const Value v,
+                     const Value ev,
+                     const Depth d,
+                     const Bound b,
+                     const bool  pv) noexcept {
     for (auto* fte = ttc->entries.data(); tte != fte && (tte - 1)->key() == key; --tte)
-        tte->clear();
+        tte->reset();
 
     tte->save(key, m, v, ev, d, b, pv, generation);
 }
+
+void TTWriter::penalize(const u8 penalty) noexcept { tte->penalize(penalty); }
+
 
 TranspositionTable::~TranspositionTable() noexcept { free(); }
 
@@ -253,9 +264,10 @@ TTCluster* TranspositionTable::cluster(const Key key) const noexcept {
 }
 
 // `probe` is the primary method: looks up the current position (key) in the transposition table.
-// It returns:
-//   1) copy of the prior data, if found (which may be collision and may be self-inconsistent due to read races)
-//   2) updater object for the corresponding entry
+// On a hit, it returns:
+//   1) copy of the existing data (which may be a collision or self-inconsistent due to read races)
+//   2) writer for the corresponding entry
+// On a miss, it returns empty data and writer for the least valuable entry selected for replacement.
 ProbResult TranspositionTable::probe(const Key key) const noexcept {
 
     auto* const ttc = cluster(key);
@@ -264,7 +276,7 @@ ProbResult TranspositionTable::probe(const Key key) const noexcept {
 
     for (const auto& entry : ttc->entries)
         if (entry.key() == key16)
-            return {entry.read(), TTUpdater{const_cast<TTEntry*>(&entry), ttc, key16, generation8}};
+            return {entry.read(), TTWriter{const_cast<TTEntry*>(&entry), ttc, key16, generation8}};
 
     // Find an entry to be replaced according to the replacement strategy
     const auto* rte = ttc->entries.data();
@@ -273,7 +285,7 @@ ProbResult TranspositionTable::probe(const Key key) const noexcept {
         if (rte->worth(generation8) > ttc->entries[i].worth(generation8))
             rte = &ttc->entries[i];
 
-    return {TTData::empty(), TTUpdater{const_cast<TTEntry*>(rte), ttc, key16, generation8}};
+    return {TTData::empty(), TTWriter{const_cast<TTEntry*>(rte), ttc, key16, generation8}};
 }
 
 // Returns an approximation of the hash table occupation during a search.
@@ -282,18 +294,18 @@ ProbResult TranspositionTable::probe(const Key key) const noexcept {
 u16 TranspositionTable::hashfull(const u8 maxAge) const noexcept {
     assert(maxAge <= GENERATION_MASK);
 
-    constexpr usize requiredCount = 1000;
+    constexpr usize RequiredCount = 1000;
 
-    const usize actualCount = std::min(requiredCount, clusterCount);
+    const usize ActualCount = std::min(RequiredCount, clusterCount);
 
     u32 count = 0;
 
-    for (usize idx = 0; idx < actualCount; ++idx)
+    for (usize idx = 0; idx < ActualCount; ++idx)
         for (const auto& entry : clusters[idx].entries)
             count += entry.occupied() && entry.relative_age(generation8) <= maxAge;
 
     // Normalize per entries per cluster
-    return ceil_div(count * requiredCount, actualCount) / clusters->entries.size();
+    return ceil_div(count * RequiredCount, ActualCount) / clusters->entries.size();
 }
 
 bool TranspositionTable::load(const std::filesystem::path& hashFile,

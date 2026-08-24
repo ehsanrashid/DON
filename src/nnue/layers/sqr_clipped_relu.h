@@ -34,7 +34,7 @@ namespace DON::NNUE::Layers {
 // Inputs are squared and scaled using a right shift to avoid division,
 // then clipped to [0, 127] and stored as u8.
 // The scaling must be accounted for during training.
-template<IndexType InDims>
+template<IndexType InDims, u8 WeightScaleBits = WEIGHT_SCALE_BITS>
 class SqrClippedReLU final {
    public:
     // Input/output type
@@ -70,11 +70,16 @@ class SqrClippedReLU final {
 
     // Forward propagation
     void propagate(const InputType* RESTRICT input, OutputType* RESTRICT output) const noexcept {
+        static_assert(5 <= WeightScaleBits && WeightScaleBits <= 8,
+                      "SqrClippedReLU requires WeightScaleBits between 5 and 8");
+        // After squaring, need shift right by 7 + 2 * WeightScaleBits.
+        // MulHi already removes the lower 16 bits, so only the remaining bits need to be shifted out.
+        constexpr u8                  BaseShift = 7 + 2 * WeightScaleBits;
+        [[maybe_unused]] constexpr u8 SimdShift = BaseShift - 16;
+
         // clang-format off
 #if defined(USE_SSE2)
-        static_assert(WEIGHT_SCALE_BITS == 6);
-
-        constexpr IndexType SimdWidth  = 16;
+        constexpr IndexType SimdWidth  = SIMD_WIDTH_MIN;
         constexpr IndexType ChunkCount = InputDimensions / SimdWidth;
 
         const auto* in  = reinterpret_cast<const __m128i*>(input);
@@ -82,23 +87,21 @@ class SqrClippedReLU final {
 
         for (IndexType i = 0; i < ChunkCount; ++i)
         {
-            __m128i words0 = _mm_packs_epi32(_mm_load_si128(&in[i * 4 + 0]),
-                                             _mm_load_si128(&in[i * 4 + 1]));
-            __m128i words1 = _mm_packs_epi32(_mm_load_si128(&in[i * 4 + 2]),
-                                             _mm_load_si128(&in[i * 4 + 3]));
+            const IndexType j = i * 4;
 
-            // Shift by WEIGHT_SCALE_BITS * 2 = 12 and divide by 128
-            // which is an additional shift-right of 7, meaning 19 in total.
-            // MulHi strips the lower 16 bits so need to shift out 3 more to match.
-            words0 = _mm_srli_epi16(_mm_mulhi_epi16(words0, words0), 3);
-            words1 = _mm_srli_epi16(_mm_mulhi_epi16(words1, words1), 3);
+            __m128i words0 = _mm_packs_epi32(_mm_load_si128(&in[j + 0]), _mm_load_si128(&in[j + 1]));
+            __m128i words1 = _mm_packs_epi32(_mm_load_si128(&in[j + 2]), _mm_load_si128(&in[j + 3]));
+
+            words0 = _mm_srli_epi16(_mm_mulhi_epi16(words0, words0), SimdShift);
+            words1 = _mm_srli_epi16(_mm_mulhi_epi16(words1, words1), SimdShift);
 
             _mm_store_si128(&out[i], _mm_packs_epi16(words0, words1));
         }
 
         constexpr IndexType Start = SimdWidth * ChunkCount;
 
-#elif defined(USE_LASX)
+#elif defined(USE_LSX)
+    #if defined(USE_LASX)
         constexpr IndexType SimdWidth  = SIMD_WIDTH;
         constexpr IndexType ChunkCount = InputDimensions / SimdWidth;
 
@@ -107,20 +110,22 @@ class SqrClippedReLU final {
 
         for (IndexType i = 0; i < ChunkCount; ++i)
         {
-            const __m256i words0 = __lasx_xvssrani_h_w(in[i * 4 + 1],
-                                                       in[i * 4 + 0], 0);
-            const __m256i words1 = __lasx_xvssrani_h_w(in[i * 4 + 3],
-                                                       in[i * 4 + 2], 0);
+            const IndexType j = i * 4;
+
+            const __m256i words0 = __lasx_xvssrani_h_w(in[j + 1], in[j + 0], 0);
+            const __m256i words1 = __lasx_xvssrani_h_w(in[j + 3], in[j + 2], 0);
             const __m256i sqr0   = __lasx_xvmuh_h(words0, words0);
             const __m256i sqr1   = __lasx_xvmuh_h(words1, words1);
-            const __m256i packed = __lasx_xvssrlni_b_h(sqr1, sqr0, 3);
+
+            const __m256i packed = __lasx_xvssrlni_b_h(sqr1, sqr0, SimdShift);
             const __m256i permed = __lasx_xvpermi_d(packed, 0xD8);
+
             __lasx_xvst(__lasx_xvshuf4i_w(permed, 0xD8), out + i, 0);
         }
 
         constexpr IndexType Start = SimdWidth * ChunkCount;
 
-#elif defined(USE_LSX)
+    #elif defined(USE_LSX)
         constexpr IndexType SimdWidth  = SIMD_WIDTH;
         constexpr IndexType ChunkCount = InputDimensions / SimdWidth;
 
@@ -129,19 +134,47 @@ class SqrClippedReLU final {
 
         for (IndexType i = 0; i < ChunkCount; ++i)
         {
-            const __m128i words0 = __lsx_vssrani_h_w(in[i * 4 + 1],
-                                                     in[i * 4 + 0], 0);
-            const __m128i words1 = __lsx_vssrani_h_w(in[i * 4 + 3],
-                                                     in[i * 4 + 2], 0);
+            const IndexType j = i * 4;
+
+            const __m128i words0 = __lsx_vssrani_h_w(in[j + 1], in[j + 0], 0);
+            const __m128i words1 = __lsx_vssrani_h_w(in[j + 3], in[j + 2], 0);
             const __m128i sqr0   = __lsx_vmuh_h(words0, words0);
             const __m128i sqr1   = __lsx_vmuh_h(words1, words1);
-            out[i]               = __lsx_vssrlni_b_h(sqr1, sqr0, 3);
+
+            out[i]               = __lsx_vssrlni_b_h(sqr1, sqr0, SimdShift);
+        }
+
+        constexpr IndexType Start = SimdWidth * ChunkCount;
+
+    #endif
+
+#elif defined(USE_NEON)
+        constexpr IndexType SimdWidth  = SIMD_WIDTH;
+        constexpr IndexType ChunkCount = InputDimensions / SimdWidth;
+
+        const auto* in  = reinterpret_cast<const int32x4_t*>(input);
+        auto*       out = reinterpret_cast<int8x16_t*>(output);
+
+        for (IndexType i = 0; i < ChunkCount; ++i)
+        {
+            const IndexType j = i * 4;
+
+            const int16x8_t words0 = vcombine_s16(vqmovn_s32(in[j + 0]), vqmovn_s32(in[j + 1]));
+            const int16x8_t words1 = vcombine_s16(vqmovn_s32(in[j + 2]), vqmovn_s32(in[j + 3]));
+
+            // NEON needs to shift by one more since the used simd instruction does
+            // `Saturating Doubling Multiply High` (doubling before shift by 16).
+            const int16x8_t sqr0 = vshrq_n_s16(vqdmulhq_s16(words0, words0), SimdShift + 1);
+            const int16x8_t sqr1 = vshrq_n_s16(vqdmulhq_s16(words1, words1), SimdShift + 1);
+
+            out[i] = vcombine_s8(vqmovn_s16(sqr0), vqmovn_s16(sqr1));
         }
 
         constexpr IndexType Start = SimdWidth * ChunkCount;
 
 #else
         constexpr IndexType Start = 0;
+
 #endif
         // clang-format on
 
@@ -149,8 +182,8 @@ class SqrClippedReLU final {
         {
             // The extra 7-bit right-shift approximates division by 127 while avoiding the more expensive integer division.
             // The resulting scale must be accounted for by the trainer.
-            output[i] = static_cast<OutputType>(
-              std::min((i64(input[i]) * input[i]) >> (7 + 2 * WEIGHT_SCALE_BITS), i64{127}));
+            output[i] =
+              static_cast<OutputType>(std::min((i64(input[i]) * input[i]) >> BaseShift, i64{127}));
         }
     }
 };

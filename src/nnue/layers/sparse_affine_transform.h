@@ -127,10 +127,8 @@ class SparseAffineTransform final {
         return !os.fail();
     }
 
-#if defined(__GNUC__) && !defined(__clang__) && defined(USE_NEON_DOTPROD)
-    #if __GNUC__ >= 15
-        #define FIX_GCC15_NEON_DOTPROD_MISOPTIMIZATION
-    #endif
+#if defined(__GNUC__) && __GNUC__ >= 15 && !defined(__clang__) && defined(USE_NEON_DOTPROD)
+    #define FIX_GCC15_NEON_DOTPROD_MISOPTIMIZATION
 #endif
 
     // Forward propagation
@@ -139,47 +137,51 @@ class SparseAffineTransform final {
                    [[maybe_unused]] const NNZ<InDims>& nnz) const noexcept {
 
 #if defined(USE_SPARSE_AFFINE_SIMD)
-    #if defined(USE_AVX512)
+    #if defined(USE_SSSE3)
+        #if defined(USE_AVX512)
         using invec_t  = __m512i;
         using outvec_t = __m512i;
-        #define vec_set_32 _mm512_set1_epi32
-        #define vec_add_dpbusd_32 SIMD::m512_add_dpbusd_epi32
-        #define vec_add_32 _mm512_add_epi32
-    #elif defined(USE_AVX2)
+            #define vec_set_32 _mm512_set1_epi32
+            #define vec_add_dpbusd_32 SIMD::m512_add_dpbusd_epi32
+            #define vec_add_32 _mm512_add_epi32
+        #elif defined(USE_AVX2)
         using invec_t  = __m256i;
         using outvec_t = __m256i;
-        #define vec_set_32 _mm256_set1_epi32
-        #define vec_add_dpbusd_32 SIMD::m256_add_dpbusd_epi32
-        #define vec_add_32 _mm256_add_epi32
-    #elif defined(USE_SSSE3)
+            #define vec_set_32 _mm256_set1_epi32
+            #define vec_add_dpbusd_32 SIMD::m256_add_dpbusd_epi32
+            #define vec_add_32 _mm256_add_epi32
+        #elif defined(USE_SSSE3)
         using invec_t  = __m128i;
         using outvec_t = __m128i;
-        #define vec_set_32 _mm_set1_epi32
-        #define vec_add_dpbusd_32 SIMD::m128_add_dpbusd_epi32
-    #elif defined(USE_NEON)
+            #define vec_set_32 _mm_set1_epi32
+            #define vec_add_dpbusd_32 SIMD::m128_add_dpbusd_epi32
+        #endif
+    #elif defined(USE_LSX)
+        #if defined(USE_LASX)
+        using invec_t  = __m256i;
+        using outvec_t = __m256i;
+            #define vec_set_32 __lasx_xvreplgr2vr_w
+            #define vec_add_dpbusd_32 SIMD::lasx_m256_add_dpbusd_epi32
+            #define vec_add_32 __lasx_xvadd_w
+        #elif defined(USE_LSX)
+        using invec_t  = __m128i;
+        using outvec_t = __m128i;
+            #define vec_set_32 __lsx_vreplgr2vr_w
+            #define vec_add_dpbusd_32 SIMD::lsx_m128_add_dpbusd_epi32
+            #define vec_add_32 __lsx_vadd_w
+        #endif
+    #elif defined(USE_NEON) && USE_NEON >= 8
         #if defined(USE_NEON_DOTPROD)
         using invec_t  = int8x16_t;
         using outvec_t = int32x4_t;
             #define vec_set_32(a) vreinterpretq_s8_u32(vdupq_n_u32(a))
             #define vec_add_dpbusd_32 SIMD::neon_m128_add_dpbusd_epi32
-        #else
+        #elif defined(USE_NEON) && USE_NEON >= 8
         using invec_t  = int8x16_t;
         using outvec_t = int32x4_t;
             #define vec_set_32(a) vreinterpretq_s8_u32(vdupq_n_u32(a))
             #define vec_add_dpbusd_32 SIMD::neon_m128_add_dpbusd_epi32
         #endif
-    #elif defined(USE_LASX)
-        using invec_t  = __m256i;
-        using outvec_t = __m256i;
-        #define vec_set_32 __lasx_xvreplgr2vr_w
-        #define vec_add_dpbusd_32 SIMD::lasx_m256_add_dpbusd_epi32
-        #define vec_add_32 __lasx_xvadd_w
-    #elif defined(USE_LSX)
-        using invec_t  = __m128i;
-        using outvec_t = __m128i;
-        #define vec_set_32 __lsx_vreplgr2vr_w
-        #define vec_add_dpbusd_32 SIMD::lsx_m128_add_dpbusd_epi32
-        #define vec_add_32 __lsx_vadd_w
     #endif
 
         constexpr IndexType OutputSimdWidth = sizeof(outvec_t) / sizeof(OutputType);
@@ -252,13 +254,14 @@ class SparseAffineTransform final {
             for (IndexType k = 0; k < AccCount; ++k)
                 vec_add_dpbusd_32(acc[k], in, col[k]);
         }
+
     #else
         static_assert(InputDimensions % 256 == 0);
 
         for (IndexType k = 0; k < InputDimensions / 256; ++k)
         {
-            u64  bits = load_as<u64>(nnz.bitset + k * 8);
-            ptrdiff_t base = k * 64;
+            u64   bits = load_as<u64>(nnz.bitset + k * 8);
+            usize base = k * 64;
 
             auto* inBase = input + base * sizeof(i32);
             auto* wBase  = &w[base * OutputDimensions * ChunkSize];
@@ -286,6 +289,7 @@ class SparseAffineTransform final {
                     vec_add_dpbusd_32(acc[l], in, col[l]);
             }
         }
+
     #endif
         // clang-format on
 

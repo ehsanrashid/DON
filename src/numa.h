@@ -623,8 +623,9 @@ class NumaConfig final {
    public:
     // This function gets a NumaConfig based on the system's provided information.
     // The available policies are documented above.
-    static NumaConfig from_system([[maybe_unused]] const AutoNumaPolicy& numaPolicy,
-                                  [[maybe_unused]] bool respectProcessAffinity = true) noexcept {
+    static NumaConfig
+    from_system([[maybe_unused]] const AutoNumaPolicy& numaPolicy,
+                [[maybe_unused]] const bool            respectProcessAffinity = true) noexcept {
         NumaConfig numaCfg = empty();
 
 #if defined(_WIN64) || (defined(__linux__) && !defined(__ANDROID__))
@@ -751,7 +752,7 @@ class NumaConfig final {
     // For example:
     // "0-7:8-15:16-23:24-31"
     // "0-15,128-143:16-31,144-159:32-47,160-175:48-63,176-191"
-    static std::optional<NumaConfig> from_string(std::string_view str) noexcept {
+    static std::optional<NumaConfig> from_string(const std::string_view str) noexcept {
         NumaConfig numaCfg = empty();
 
         NumaIndex numaId = 0;
@@ -787,7 +788,7 @@ class NumaConfig final {
         return numaCfg;
     }
 
-    NumaConfig(CpuIndex maxCpuIdx, bool customAff) noexcept :
+    NumaConfig(const CpuIndex maxCpuIdx, const bool customAff) noexcept :
         maxCpuId(maxCpuIdx),
         customAffinity(customAff) {
         init_node_cpus(SYSTEM_THREAD_MAX);
@@ -806,19 +807,19 @@ class NumaConfig final {
 
     NumaIndex nodes_size() const noexcept { return nodes.size(); }
 
-    bool node_cpus_empty(NumaIndex numaId) const noexcept {
+    bool node_cpus_empty(const NumaIndex numaId) const noexcept {
         assert(numaId < nodes_size());
 
         return nodes[numaId].empty();
     }
 
-    CpuIndex node_cpus_size(NumaIndex numaId) const noexcept {
+    CpuIndex node_cpus_size(const NumaIndex numaId) const noexcept {
         assert(numaId < nodes_size());
 
         return nodes[numaId].size();
     }
 
-    CpuIndex node_cpus(NumaIndex numaId) const noexcept {
+    CpuIndex node_cpus(const NumaIndex numaId) const noexcept {
         assert(numaId < nodes_size());
 
         return *nodes[numaId].begin();
@@ -826,11 +827,11 @@ class NumaConfig final {
 
     CpuIndex cpus_size() const noexcept { return nodeByCpu.size(); }
 
-    bool is_cpu_assigned(CpuIndex cpuId) const noexcept {
+    bool is_cpu_assigned(const CpuIndex cpuId) const noexcept {
         return nodeByCpu.find(cpuId) != nodeByCpu.end();
     }
 
-    NumaIndex node_by_cpu(CpuIndex cpuId) const noexcept {
+    NumaIndex node_by_cpu(const CpuIndex cpuId) const noexcept {
         return is_cpu_assigned(cpuId) ? nodeByCpu.at(cpuId) : 0;
     }
 
@@ -1120,8 +1121,8 @@ class NumaConfig final {
     // On Windows utilize GetNumaProcessorNodeEx, which has its quirks,
     // see comment for Windows implementation of get_process_affinity.
     template<typename Pred>
-    static NumaConfig from_system_numa([[maybe_unused]] bool   respectProcessAffinity,
-                                       [[maybe_unused]] Pred&& is_cpu_allowed) noexcept {
+    static NumaConfig from_system_numa([[maybe_unused]] const bool respectProcessAffinity,
+                                       [[maybe_unused]] Pred&&     is_cpu_allowed) noexcept {
         NumaConfig numaCfg = empty();
 
 #if defined(_WIN64)
@@ -1213,8 +1214,8 @@ class NumaConfig final {
 
     template<typename Pred>
     static std::optional<NumaConfig>
-    try_l3_domain(bool                    respectProcessAffinity,
-                  usize                   bundleSize,
+    try_l3_domain(const bool              respectProcessAffinity,
+                  const usize             bundleSize,
                   [[maybe_unused]] Pred&& is_cpu_allowed) noexcept {
         // Get the normal system configuration so that know to which NUMA node each L3 domain belongs
         NumaConfig sysCfg = NumaConfig::from_system(SystemNumaPolicy{}, respectProcessAffinity);
@@ -1300,7 +1301,8 @@ class NumaConfig final {
         return std::nullopt;
     }
 
-    static NumaConfig from_l3_domain(std::vector<L3Domain> l3Domains, usize bundleSize) noexcept {
+    static NumaConfig from_l3_domain(const std::vector<L3Domain> l3Domains,
+                                     const usize                 bundleSize) noexcept {
         assert(!l3Domains.empty());
 
         std::unordered_map<NumaIndex, std::vector<L3Domain>> numaL3Domains;
@@ -1349,9 +1351,9 @@ class NumaConfig final {
         return numaCfg;
     }
 
-    void resize_numa_node(NumaIndex newNumaId,
-                          float     maxLoadFactor    = 0.75f,
-                          usize     expectedCpuCount = SYSTEM_THREAD_MAX / 4) noexcept {
+    void resize_numa_node(const NumaIndex newNumaId,
+                          const float     maxLoadFactor    = 0.75f,
+                          const usize     expectedCpuCount = SYSTEM_THREAD_MAX / 4) noexcept {
         const NumaIndex oldNumaId = nodes_size();
 
         if (oldNumaId <= newNumaId)
@@ -1367,20 +1369,20 @@ class NumaConfig final {
         }
     }
 
-    void add_numa_node_cpu(NumaIndex numaId, CpuIndex cpuId) noexcept {
+    void add_numa_node_cpu(const NumaIndex numaId, const CpuIndex cpuId) noexcept {
         // insert/update mapping
         nodeByCpu[cpuId] = numaId;
         // track max CPU ID
         maxCpuId = std::max(cpuId, maxCpuId);
     }
-    void add_numa_node(NumaIndex numaId, CpuIndex cpuId) noexcept {
+    void add_numa_node(const NumaIndex numaId, const CpuIndex cpuId) noexcept {
         nodes[numaId].insert(cpuId);
         add_numa_node_cpu(numaId, cpuId);
     }
 
     // Returns true if successful, false if failed.
     // i.e. when the cpu is already present strong guarantee, the structure remains unmodified.
-    bool add_cpu_to_node(NumaIndex numaId, CpuIndex cpuId) noexcept {
+    bool add_cpu_to_node(const NumaIndex numaId, const CpuIndex cpuId) noexcept {
 
         if (is_cpu_assigned(cpuId))
             return false;
@@ -1394,7 +1396,9 @@ class NumaConfig final {
 
     // Returns true if successful, false if failed.
     // i.e. when any of the cpus is already present strong guarantee, the structure remains unmodified.
-    bool add_cpu_range_to_node(NumaIndex numaId, CpuIndex begCpuId, CpuIndex endCpuId) noexcept {
+    bool add_cpu_range_to_node(const NumaIndex numaId,
+                               const CpuIndex  begCpuId,
+                               const CpuIndex  endCpuId) noexcept {
 
         for (auto cpuId = begCpuId; cpuId <= endCpuId; ++cpuId)
             if (is_cpu_assigned(cpuId))
@@ -1433,11 +1437,11 @@ class NumaConfig final {
         maxCpuId = 0;
 
         for (NumaIndex numaId = 0; numaId < nodes_size(); ++numaId)
-            for (CpuIndex cpuId : nodes[numaId])
+            for (const CpuIndex cpuId : nodes[numaId])
                 add_numa_node_cpu(numaId, cpuId);
     }
 
-    void init_node_cpus(usize expectedCpuCount, float maxLoadFactor = 0.75f) noexcept {
+    void init_node_cpus(const usize expectedCpuCount, const float maxLoadFactor = 0.75f) noexcept {
 
         nodeByCpu.max_load_factor(max_load_factor(maxLoadFactor));
         nodeByCpu.reserve(reserve_count(expectedCpuCount));

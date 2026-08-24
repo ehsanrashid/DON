@@ -871,7 +871,7 @@ DirtyBoard Position::do_move(const Move          m,
     ++gamePly;
     ++st->rule50Count;
     ++st->nullPly;
-    st->hasRule50High |= rule50_count() >= rule50_threshold();
+    st->hasRule50High = st->hasRule50High || rule50_count() >= rule50_threshold();
 
     const Color ac = active_color();
 
@@ -1410,8 +1410,8 @@ bool Position::check(const Move m) const noexcept {
     // the unusual case of a discovered check through the captured pawn.
     case MT::EN_PASSANT :
         return (pieces_bb(ac)
-                & slide_attackers_bb(  //
-                  kingSq, pieces_bb() ^ make_bb(orgSq, dstSq, dstSq - pawn_spush(ac))))
+                & slide_attackers_bb(kingSq,
+                                     pieces_bb() ^ make_bb(orgSq, dstSq, dstSq - pawn_spush(ac))))
             != 0;
     case MT::CASTLING :
         // Castling is encoded as "king captures rook"
