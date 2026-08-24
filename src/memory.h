@@ -48,7 +48,7 @@ void* alloc_aligned_std(usize allocSize, usize alignment) noexcept;
 void free_aligned_std(void* mem) noexcept;
 
 // memory aligned by page size, min alignment: 4096 bytes
-void* alloc_aligned_large_page_hint(usize allocSize, bool hugePageHint = false) noexcept;
+void* alloc_aligned_large_page_with_hint(usize allocSize, bool hugePageHint = false) noexcept;
 void* alloc_aligned_large_page(usize allocSize) noexcept;
 
 bool free_aligned_large_page(void* mem) noexcept;

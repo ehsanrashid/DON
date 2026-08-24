@@ -642,10 +642,10 @@ std::vector<usize> Threads::bound_thread_counts() const noexcept {
 }
 
 NumaIndex Threads::numa_nodes() const noexcept {
-    std::unordered_set<usize> seen;
+    std::unordered_set<usize> seenNumaIds;
     for (const NumaIndex numaId : threadBoundNumaNodes)
-        seen.insert(numaId);
-    return std::max(seen.size(), NumaIndex{1});
+        seenNumaIds.insert(numaId);
+    return std::max(seenNumaIds.size(), NumaIndex{1});
 }
 
 }  // namespace DON

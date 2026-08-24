@@ -235,7 +235,7 @@ void TranspositionTable::resize(const usize ttSize, const Threads& threads) noex
     // memory oversubscription
     const bool hugePageHint = ttBytes >= 8 * threads.numa_nodes() * HUGE_PAGE_SIZE;
 
-    clusters = static_cast<TTCluster*>(alloc_aligned_large_page_hint(ttBytes, hugePageHint));
+    clusters = static_cast<TTCluster*>(alloc_aligned_large_page_with_hint(ttBytes, hugePageHint));
 
     if (clusters == nullptr)
     {
@@ -254,14 +254,14 @@ void TranspositionTable::reset(const Threads& threads) noexcept {
 
     auto threadBoundNumaNodes = threads.thread_bound_numa_nodes();
 
-    std::vector<size_t> orderedNodes(threadCount);
-    std::iota(orderedNodes.begin(), orderedNodes.end(), 0);
+    std::vector<size_t> orderedThreads(threadCount);
+    std::iota(orderedThreads.begin(), orderedThreads.end(), 0);
 
     // To promote good NUMA distribution (esp. with huge pages), we permute threads so that
     // all threads in a NUMA node clear a contiguous region of the TT.
     if (threadBoundNumaNodes.size() == threadCount)
     {
-        std::stable_sort(orderedNodes.begin(), orderedNodes.end(),
+        std::stable_sort(orderedThreads.begin(), orderedThreads.end(),
                          [&threadBoundNumaNodes](const usize t1, const usize t2) noexcept -> bool {
                              return threadBoundNumaNodes.at(t1) < threadBoundNumaNodes.at(t2);
                          });
@@ -269,7 +269,7 @@ void TranspositionTable::reset(const Threads& threads) noexcept {
 
     for (usize threadId = 0; threadId < threadCount; ++threadId)
     {
-        threads.run_on_thread(orderedNodes[threadId], [this, threadId, threadCount]() {
+        threads.run_on_thread(orderedThreads[threadId], [this, threadId, threadCount]() {
             // Each thread will zero its part of the hash table
             const auto [beg, end] = split_range(threadId, threadCount, clusterCount);
 
@@ -278,7 +278,7 @@ void TranspositionTable::reset(const Threads& threads) noexcept {
     }
 
     for (usize threadId = 0; threadId < threadCount; ++threadId)
-        threads.wait_on_thread(threadId);
+        threads.wait_on_thread(orderedThreads[threadId]);
 }
 
 TTCluster* TranspositionTable::cluster(const Key key) const noexcept {

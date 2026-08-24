@@ -141,6 +141,9 @@ __extension__ using u128 = unsigned __int128;
 __extension__ using i128 = signed __int128;
 #endif
 
+using NumaIndex = usize;
+using CpuIndex  = usize;
+
 using Strings     = std::vector<std::string>;
 using StringViews = std::vector<std::string_view>;
 

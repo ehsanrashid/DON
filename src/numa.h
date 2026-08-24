@@ -55,9 +55,6 @@
 
 namespace DON {
 
-using NumaIndex = usize;
-using CpuIndex  = usize;
-
 using CpuIndexVec = std::vector<CpuIndex>;
 using CpuIndexSet = std::unordered_set<CpuIndex>;
 
