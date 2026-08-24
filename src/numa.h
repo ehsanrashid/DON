@@ -475,7 +475,7 @@ inline CpuIndexSet get_process_affinity() noexcept {
     // In this case just choose a reasonable upper bound.
     constexpr CpuIndex MaxCpuCount = 64 * KB;
 
-    cpu_set_t* cpuMask = CPU_ALLOC(MaxCpuCount);
+    cpu_set_t* const cpuMask = CPU_ALLOC(MaxCpuCount);
 
     if (cpuMask == nullptr)
     {
@@ -484,11 +484,11 @@ inline CpuIndexSet get_process_affinity() noexcept {
         return cpus;
     }
 
-    usize MaskSize = CPU_ALLOC_SIZE(MaxCpuCount);
+    const usize maskSize = CPU_ALLOC_SIZE(MaxCpuCount);
 
-    CPU_ZERO_S(MaskSize, cpuMask);
+    CPU_ZERO_S(maskSize, cpuMask);
 
-    if (sched_getaffinity(0, MaskSize, cpuMask) != 0)
+    if (sched_getaffinity(0, maskSize, cpuMask) != 0)
     {
         CPU_FREE(cpuMask);
 
@@ -500,7 +500,7 @@ inline CpuIndexSet get_process_affinity() noexcept {
     cpus.reserve(MaxCpuCount);
 
     for (CpuIndex cpuId = 0; cpuId < MaxCpuCount; ++cpuId)
-        if (CPU_ISSET_S(cpuId, MaskSize, cpuMask))
+        if (CPU_ISSET_S(cpuId, maskSize, cpuMask))
             cpus.insert(cpuId);
 
     CPU_FREE(cpuMask);
@@ -1071,19 +1071,19 @@ class NumaConfig final {
             SwitchToThread();
         }
 #elif (defined(__linux__) && !defined(__ANDROID__))
-        cpu_set_t* cpuMask = CPU_ALLOC(maxCpuId + 1);
+        cpu_set_t* const cpuMask = CPU_ALLOC(maxCpuId + 1);
 
         if (cpuMask == nullptr)
             std::exit(EXIT_FAILURE);
 
-        const usize MaskSize = CPU_ALLOC_SIZE(maxCpuId + 1);
+        const usize maskSize = CPU_ALLOC_SIZE(maxCpuId + 1);
 
-        CPU_ZERO_S(MaskSize, cpuMask);
+        CPU_ZERO_S(maskSize, cpuMask);
 
         for (CpuIndex cpuId : nodes[numaId])
-            CPU_SET_S(cpuId, MaskSize, cpuMask);
+            CPU_SET_S(cpuId, maskSize, cpuMask);
 
-        if (::sched_setaffinity(0, MaskSize, cpuMask) != 0)
+        if (::sched_setaffinity(0, maskSize, cpuMask) != 0)
         {
             DEBUG_LOG("::sched_setaffinity() failed");
 
