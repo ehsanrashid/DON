@@ -144,6 +144,7 @@ struct NNZ final {
                 std::memcpy(nnzOut, &n2, bytes);
                 nnzOut += bytes;
             }
+
         #elif defined(USE_NEON) && USE_NEON >= 8
             alignas(16) constexpr Array<u16, 8> Mask8{1, 16, 2, 32, 4, 64, 8, 128};
 

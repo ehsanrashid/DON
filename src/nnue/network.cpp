@@ -38,7 +38,7 @@
     #if defined(UNIVERSAL_BINARY_MACOS_X86_SLICE)
 extern const unsigned char* const gEmbeddedNNUEData;
 extern const unsigned int         gEmbeddedNNUESize;
-    #else
+    #elif defined(UNIVERSAL_BINARY)
 extern const unsigned char gEmbeddedNNUEData[];
 extern const unsigned int  gEmbeddedNNUESize;
     #endif

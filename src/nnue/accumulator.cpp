@@ -318,7 +318,8 @@ void update_accumulator_incr(const Color                         perspective,
 }
 
 Bitboard changed_bb(const PieceMap& oldPieceMap, const PieceMap& newPieceMap) noexcept {
-#if defined(USE_AVX2)
+#if defined(USE_SSE2)
+    #if defined(USE_AVX2)
     Bitboard sameBB = 0;
 
     for (const usize s : {0, 32})
@@ -333,7 +334,25 @@ Bitboard changed_bb(const PieceMap& oldPieceMap, const PieceMap& newPieceMap) no
 
     return ~sameBB;
 
-#elif defined(USE_LASX)
+    #elif defined(USE_SSE2)
+    Bitboard sameBB = 0;
+
+    for (const usize s : {0, 16, 32, 48})
+    {
+        const __m128i oldV  = _mm_loadu_si128(reinterpret_cast<const __m128i*>(&oldPieceMap[s]));
+        const __m128i newV  = _mm_loadu_si128(reinterpret_cast<const __m128i*>(&newPieceMap[s]));
+        const __m128i equal = _mm_cmpeq_epi8(oldV, newV);
+        const u16     mask  = _mm_movemask_epi8(equal);
+
+        sameBB |= static_cast<Bitboard>(mask) << s;
+    }
+
+    return ~sameBB;
+
+    #endif
+
+#elif defined(USE_LSX)
+    #if defined(USE_LASX)
     Bitboard changedBB = 0;
 
     for (const usize s : {0, 32})
@@ -350,7 +369,7 @@ Bitboard changed_bb(const PieceMap& oldPieceMap, const PieceMap& newPieceMap) no
 
     return changedBB;
 
-#elif defined(USE_LSX)
+    #elif defined(USE_LSX)
     Bitboard changedBB = 0;
 
     for (const usize s : {0, 16, 32, 48})
@@ -365,6 +384,8 @@ Bitboard changed_bb(const PieceMap& oldPieceMap, const PieceMap& newPieceMap) no
     }
 
     return changedBB;
+
+    #endif
 
 #elif defined(USE_NEON)
     const uint8x16x4_t oldV = vld4q_u8(reinterpret_cast<const u8*>(oldPieceMap.data()));
@@ -381,21 +402,6 @@ Bitboard changed_bb(const PieceMap& oldPieceMap, const PieceMap& newPieceMap) no
 
     const uint8x8_t packed = vshrn_n_u16(vreinterpretq_u16_u8(merged), 4);
     const Bitboard  sameBB = vget_lane_u64(vreinterpret_u64_u8(packed), 0);
-
-    return ~sameBB;
-
-#elif defined(USE_SSE2)
-    Bitboard sameBB = 0;
-
-    for (const usize s : {0, 16, 32, 48})
-    {
-        const __m128i oldV  = _mm_loadu_si128(reinterpret_cast<const __m128i*>(&oldPieceMap[s]));
-        const __m128i newV  = _mm_loadu_si128(reinterpret_cast<const __m128i*>(&newPieceMap[s]));
-        const __m128i equal = _mm_cmpeq_epi8(oldV, newV);
-        const u16     mask  = _mm_movemask_epi8(equal);
-
-        sameBB |= static_cast<Bitboard>(mask) << s;
-    }
 
     return ~sameBB;
 

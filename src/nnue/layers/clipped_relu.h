@@ -75,7 +75,8 @@ class ClippedReLU final {
         constexpr IndexType SimdWidth  = SIMD_WIDTH_MIN;
         constexpr IndexType ChunkCount = InputDimensions / SimdWidth;
 
-    #if !defined(USE_SSE41)
+    #if defined(USE_SSE41)
+    #else
         const __m128i K0x80s = _mm_set1_epi8(-128);
     #endif
 
@@ -130,7 +131,7 @@ class ClippedReLU final {
 
         constexpr IndexType Start = SimdWidth * ChunkCount;
 
-    #else
+    #elif defined(USE_LSX)
         constexpr IndexType SimdWidth  = SIMD_WIDTH;
         constexpr IndexType ChunkCount = InputDimensions / SimdWidth;
 
@@ -152,6 +153,7 @@ class ClippedReLU final {
         constexpr IndexType Start = SimdWidth * ChunkCount;
 
     #endif
+
 #elif defined(USE_NEON)
         constexpr IndexType SimdWidth  = SIMD_WIDTH / 2;
         constexpr IndexType ChunkCount = InputDimensions / SimdWidth;
@@ -174,6 +176,7 @@ class ClippedReLU final {
 
 #else
         constexpr IndexType Start = 0;
+
 #endif
         // clang-format on
 
