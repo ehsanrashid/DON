@@ -18,6 +18,9 @@
 #ifndef NATIVE_THREAD_H_INCLUDED
 #define NATIVE_THREAD_H_INCLUDED
 
+#include <functional>
+#include <utility>
+
 // MSVC-compatible toolchains use std::thread because pthreads is not provided by default.
 // All other platforms use pthreads.
 #if defined(_MSC_VER)
@@ -26,6 +29,8 @@
     #include <pthread.h>
     #define USE_PTHREAD
 #endif
+
+#include "misc.h"
 
 namespace DON {
 

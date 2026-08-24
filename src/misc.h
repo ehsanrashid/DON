@@ -1172,10 +1172,10 @@ class AllocationSizes final {
         cleanupFunc(std::move(cleanupFn)) {}
 
     void add(void* const mem, const usize size) noexcept {
-        std::lock_guard writeLock(sharedMutex);
-
         if (mem == nullptr)
             return;
+        std::lock_guard writeLock(sharedMutex);
+
         sizesMap[mem] = size;
     }
 
@@ -1194,8 +1194,17 @@ class AllocationSizes final {
         return false;
     }
 
-    [[nodiscard]] usize size() const noexcept { return sizesMap.size(); }
-    [[nodiscard]] bool  empty() const noexcept { return sizesMap.empty(); }
+    [[nodiscard]] usize size() const noexcept {
+        std::shared_lock readLock(sharedMutex);
+
+        return sizesMap.size();
+    }
+
+    [[nodiscard]] bool empty() const noexcept {
+        std::shared_lock readLock(sharedMutex);
+
+        return sizesMap.empty();
+    }
 
     [[nodiscard]] std::optional<usize> find(void* const mem) const noexcept {
         std::shared_lock readLock(sharedMutex);
@@ -1207,8 +1216,9 @@ class AllocationSizes final {
     }
 
    private:
-    mutable std::shared_mutex        sharedMutex;
-    CleanupFunc                      cleanupFunc;
+    mutable std::shared_mutex sharedMutex;
+
+    const CleanupFunc                cleanupFunc;
     std::unordered_map<void*, usize> sizesMap;
 };
 

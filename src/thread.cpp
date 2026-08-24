@@ -19,6 +19,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <functional>
 #include <limits>
 #include <ratio>
 #include <string>
@@ -642,9 +643,13 @@ std::vector<usize> Threads::bound_thread_counts() const noexcept {
 }
 
 NumaIndex Threads::numa_nodes() const noexcept {
-    std::unordered_set<usize> seenNumaIds;
-    for (const NumaIndex numaId : threadBoundNumaNodes)
-        seenNumaIds.insert(numaId);
+    std::unordered_set<NumaIndex> seenNumaIds;
+    {
+        std::shared_lock readLock(sharedMutex);
+
+        for (const NumaIndex numaId : threadBoundNumaNodes)
+            seenNumaIds.insert(numaId);
+    }
     return std::max(seenNumaIds.size(), NumaIndex{1});
 }
 
