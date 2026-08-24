@@ -32,7 +32,7 @@
 
 #if defined(_WIN32)
     #include "platform_win.h"
-#elif defined(__linux__) && defined(X86_64) && defined(MAP_HUGE_SHIFT)
+#elif defined(__linux__) && !defined(__ANDROID__) && defined(X86_64) && defined(MAP_HUGE_SHIFT)
     #define USE_LINUX_HUGE_PAGES
 #endif
 
@@ -40,11 +40,15 @@
 
 namespace DON {
 
+inline constexpr u8    HUGE_PAGE_SHIFT = 30;
+inline constexpr usize HUGE_PAGE_SIZE  = usize{1} << HUGE_PAGE_SHIFT;
+
 void* alloc_aligned_std(usize allocSize, usize alignment) noexcept;
 
 void free_aligned_std(void* mem) noexcept;
 
 // memory aligned by page size, min alignment: 4096 bytes
+void* alloc_aligned_large_page_hint(usize allocSize, bool hugePageHint = false) noexcept;
 void* alloc_aligned_large_page(usize allocSize) noexcept;
 
 bool free_aligned_large_page(void* mem) noexcept;

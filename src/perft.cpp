@@ -241,7 +241,7 @@ void PerftTable::reset(const Threads& threads) noexcept {
     {
         threads.run_on_thread(threadId, [this, threadId, threadCount]() {
             // Each thread will zero its part of the hash table
-            auto [beg, end] = split_range(threadId, threadCount, clusterCount);
+            const auto [beg, end] = split_range(threadId, threadCount, clusterCount);
 
             std::memset(&clusters[beg], 0, (end - beg) * sizeof(PTCluster));
         });

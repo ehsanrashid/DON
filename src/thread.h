@@ -377,7 +377,9 @@ class Threads final {
 
     void wait_on_thread(usize threadId) const noexcept;
 
-    std::vector<usize> bound_thread_counts() const noexcept;
+    std::vector<NumaIndex> thread_bound_numa_nodes() const noexcept;
+    std::vector<usize>     bound_thread_counts() const noexcept;
+    NumaIndex              numa_nodes() const noexcept;
 
     // --- queries ---
     bool is_researching() const noexcept {

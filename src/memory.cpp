@@ -18,15 +18,19 @@
 #include "memory.h"
 
 #include <cstdlib>  // malloc(), free(), std::aligned_alloc()
+#include <ostream>
 
 #if defined(_WIN32)
     #include <malloc.h>  // <mm_malloc.h>: _mm_malloc(), _mm_free()
 #else
+    #if defined(__has_include) && __has_include(<features.h>)
+        #include <features.h>  // glibc feature-test macros
+    #endif
     #if defined(__linux__) && !defined(__ANDROID__)
         #include <sys/mman.h>
     #endif
-    #if defined(__has_include) && __has_include(<features.h>)
-        #include <features.h>  // glibc feature-test macros
+    #if defined(USE_LINUX_HUGE_PAGES)
+        #include <errno.h>
     #endif
 #endif
 
@@ -52,7 +56,7 @@ namespace DON {
 // does not guarantee the availability of aligned_alloc().
 // Memory allocated with alloc_aligned_std() must be freed with free_aligned_std().
 
-void* alloc_aligned_std(usize allocSize, usize alignment) noexcept {
+void* alloc_aligned_std(usize allocSize, const usize alignment) noexcept {
 
     // Treat zero-size requests as null for simplicity and to avoid UB in some allocators.
     if (allocSize == 0)
@@ -79,7 +83,7 @@ void* alloc_aligned_std(usize allocSize, usize alignment) noexcept {
 #endif
 }
 
-void free_aligned_std(void* mem) noexcept {
+void free_aligned_std(void* const mem) noexcept {
 
 #if defined(USE_POSIX_ALIGNED_ALLOC)
     ::free(mem);
@@ -98,12 +102,12 @@ namespace {
 
 #if defined(_WIN32)
 // Allocate suitably aligned memory using Windows large pages, if possible
-void* alloc_windows_aligned_large_page(usize allocSize) noexcept {
+void* alloc_windows_aligned_large_page(const usize allocSize) noexcept {
 
     return try_with_windows_lock_memory_privilege(
       [&](const usize largePageSize) noexcept {
           // Round allocation size up to a multiple of the large-page size
-          usize roundedAllocSize = round_up_to_multiple(allocSize, largePageSize);
+          const usize roundedAllocSize = round_up_to_multiple(allocSize, largePageSize);
           // Allocate memory using Windows large pages
           void* mem = VirtualAlloc(nullptr, roundedAllocSize,
                                    MEM_LARGE_PAGES | MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
@@ -119,15 +123,38 @@ void* alloc_windows_aligned_large_page(usize allocSize) noexcept {
 }
 #else
 
-AllocationSizeMap LinuxHugePageSizes;
+    #if defined(USE_LINUX_HUGE_PAGES)
+AllocationSizes LinuxHugePageSizes([](void* const mem, const usize size) noexcept {
+    if (::munmap(mem, size) != 0)
+    {
+        DEBUG_LOG("::munmap() failed: error = " << std::strerror(errno));
+        return false;
+    }
+
+    return true;
+});
+
+void* alloc_linux_aligned_large_page(const usize allocSize) noexcept {
+    const usize roundedAllocSize = round_up_to_multiple(allocSize, HUGE_PAGE_SIZE);
+
+    void* mem = ::mmap(
+      nullptr, roundedAllocSize, PROT_READ | PROT_WRITE,
+      MAP_PRIVATE | MAP_ANONYMOUS | MAP_HUGETLB | (HUGE_PAGE_SHIFT << MAP_HUGE_SHIFT), -1, 0);
+    if (mem == MAP_FAILED)
+        return nullptr;
+
+    LinuxHugePageSizes.add(mem, roundedAllocSize);
+    return mem;
+}
+    #endif
 
 #endif
 
 }  // namespace
 
-// Allocate aligned memory with large-page support
-void* alloc_aligned_large_page(usize allocSize) noexcept {
-
+// Allocate aligned memory with large-page support with hint
+void* alloc_aligned_large_page_hint(const usize                 allocSize,
+                                    [[maybe_unused]] const bool hugePageHint) noexcept {
     void* mem;
 #if defined(_WIN32)
     // Try allocating with Windows large pages
@@ -152,6 +179,18 @@ void* alloc_aligned_large_page(usize allocSize) noexcept {
         }
     }
 #else
+    #if defined(USE_LINUX_HUGE_PAGES)
+    if (hugePageHint && allocSize >= HUGE_PAGE_SIZE)
+    {
+        mem = alloc_linux_aligned_large_page(allocSize);
+        if (mem == nullptr)
+        {
+            DEBUG_LOG("Failed to allocate memory");
+        }
+        else
+            return mem;
+    }
+    #endif
     // Choose a heuristic alignment for huge pages / fallback
     constexpr usize Alignment =
     #if defined(__linux__)
@@ -164,15 +203,25 @@ void* alloc_aligned_large_page(usize allocSize) noexcept {
     usize roundedAllocSize = round_up_to_multiple(allocSize, Alignment);
 
     mem = alloc_aligned_std(roundedAllocSize, Alignment);
+    if (mem == nullptr)
+    {
+        DEBUG_LOG("Failed to allocate memory");
+        return mem;
+    }
     // Prefer huge pages where supported
     #if defined(MADV_HUGEPAGE)
-    if (mem != nullptr && ::madvise(mem, roundedAllocSize, MADV_HUGEPAGE) != 0)
+    if (::madvise(mem, roundedAllocSize, MADV_HUGEPAGE) != 0)
     {
         //DEBUG_LOG("::madvise() failed: error = " << strerror(errno));
     }
     #endif
 #endif
     return mem;
+}
+
+// Allocate aligned memory with large-page support
+void* alloc_aligned_large_page(const usize allocSize) noexcept {
+    return alloc_aligned_large_page_hint(allocSize, false);
 }
 
 // Free aligned large page
@@ -188,15 +237,7 @@ bool free_aligned_large_page(void* mem) noexcept {
     }
 #else
     #if defined(USE_LINUX_HUGE_PAGES)
-    if (LinuxHugePageSizes.remove(mem, [&](const usize size) noexcept {
-            if (::munmap(mem, size) != 0)
-            {
-                DEBUG_LOG("::munmap() failed: error = " << std::strerror(errno));
-                return false;
-            }
-
-            return true;
-        }))
+    if (LinuxHugePageSizes.remove(mem))
         return true;
     #endif
     free_aligned_std(mem);

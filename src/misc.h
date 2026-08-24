@@ -301,6 +301,10 @@ template<typename T>
         return size;
 
     const T mask = alignment - 1;
+
+    if (size > std::numeric_limits<T>::max() - mask)
+        return std::numeric_limits<T>::max();
+
     // Round up to the next multiple of alignment
     return (size + mask) & ~mask;
 }
@@ -1157,33 +1161,27 @@ struct FixedText final {
 
 static_assert(sizeof(FixedText) == 32, "FixedText size must be 32 bytes");
 
-class AllocationSizeMap final {
+// Tracks allocation sizes and performs cleanup when an allocation is removed
+template<typename CleanupFunc>
+class AllocationSizes final {
    public:
-    void add(void* mem, usize size) noexcept {
+    explicit AllocationSizes(CleanupFunc cleanupFn) noexcept :
+        cleanupFunc(std::move(cleanupFn)) {}
+
+    void add(void* const mem, const usize size) noexcept {
         std::lock_guard writeLock(sharedMutex);
 
+        if (mem == nullptr)
+            return;
         sizesMap[mem] = size;
     }
 
-    bool remove(void* mem) noexcept {
+    bool remove(void* const mem) noexcept {
         std::lock_guard writeLock(sharedMutex);
 
         if (auto itr = sizesMap.find(mem); itr != sizesMap.end())
         {
-            sizesMap.erase(itr);
-            return true;
-        }
-
-        return false;
-    }
-
-    template<typename Func>
-    bool remove(void* mem, Func&& func) noexcept {
-        std::lock_guard writeLock(sharedMutex);
-
-        if (auto itr = sizesMap.find(mem); itr != sizesMap.end())
-        {
-            if (!std::forward<Func>(func)(itr->second))
+            if (!cleanupFunc(mem, itr->second))
                 return false;
 
             sizesMap.erase(itr);
@@ -1193,7 +1191,7 @@ class AllocationSizeMap final {
         return false;
     }
 
-    std::optional<usize> find(void* mem) noexcept {
+    std::optional<usize> find(void* const mem) const noexcept {
         std::shared_lock readLock(sharedMutex);
 
         if (auto itr = sizesMap.find(mem); itr != sizesMap.end())
@@ -1203,7 +1201,8 @@ class AllocationSizeMap final {
     }
 
    private:
-    std::shared_mutex                sharedMutex;
+    mutable std::shared_mutex        sharedMutex;
+    CleanupFunc                      cleanupFunc;
     std::unordered_map<void*, usize> sizesMap;
 };
 

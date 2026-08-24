@@ -24,6 +24,8 @@
 #include <fstream>
 #include <iostream>
 #include <system_error>
+#include <numeric>
+#include <vector>
 
 #include "memory.h"
 #include "thread.h"
@@ -225,10 +227,15 @@ void TranspositionTable::resize(const usize ttSize, const Threads& threads) noex
     free();
 
     clusterCount = ttSize * MB / sizeof(TTCluster);
-
     //DEBUG_LOG("Clustering transposition table to " << clusterCount << " clusters.");
 
-    clusters = static_cast<TTCluster*>(alloc_aligned_large_page(clusterCount * sizeof(TTCluster)));
+    const usize ttBytes = clusterCount * sizeof(TTCluster);
+
+    // Request 1GB pages if we'd get at least eight per NUMA node, to avoid
+    // memory oversubscription
+    const bool hugePageHint = ttBytes >= 8 * threads.numa_nodes() * HUGE_PAGE_SIZE;
+
+    clusters = static_cast<TTCluster*>(alloc_aligned_large_page_hint(ttBytes, hugePageHint));
 
     if (clusters == nullptr)
     {
@@ -245,11 +252,26 @@ void TranspositionTable::reset(const Threads& threads) noexcept {
 
     const usize threadCount = threads.size();
 
+    auto threadBoundNumaNodes = threads.thread_bound_numa_nodes();
+
+    std::vector<size_t> orderedNodes(threadCount);
+    std::iota(orderedNodes.begin(), orderedNodes.end(), 0);
+
+    // To promote good NUMA distribution (esp. with huge pages), we permute threads so that
+    // all threads in a NUMA node clear a contiguous region of the TT.
+    if (threadBoundNumaNodes.size() == threadCount)
+    {
+        std::stable_sort(orderedNodes.begin(), orderedNodes.end(),
+                         [&threadBoundNumaNodes](const usize t1, const usize t2) noexcept -> bool {
+                             return threadBoundNumaNodes.at(t1) < threadBoundNumaNodes.at(t2);
+                         });
+    }
+
     for (usize threadId = 0; threadId < threadCount; ++threadId)
     {
-        threads.run_on_thread(threadId, [this, threadId, threadCount]() {
+        threads.run_on_thread(orderedNodes[threadId], [this, threadId, threadCount]() {
             // Each thread will zero its part of the hash table
-            auto [beg, end] = split_range(threadId, threadCount, clusterCount);
+            const auto [beg, end] = split_range(threadId, threadCount, clusterCount);
 
             std::memset(&clusters[beg], 0, (end - beg) * sizeof(TTCluster));
         });
