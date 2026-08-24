@@ -18,18 +18,24 @@
 #include "memory.h"
 
 #include <cstdlib>  // malloc(), free(), std::aligned_alloc()
-#include <ostream>
+#include <iostream>
 
 #if defined(_WIN32)
     #include "platform_win.h"
     #include <malloc.h>  // <mm_malloc.h>: _mm_malloc(), _mm_free()
 #else
-    #include <cstring>
-    // IWYU pragma: no_include <bits/mman-map-flags-generic.h>
-    #include <errno.h>
     #if defined(__has_include) && __has_include(<features.h>)
         #include <features.h>  // glibc feature-test macros
     #endif
+    // IWYU pragma: no_include <bits/mman-map-flags-generic.h>
+    #include <errno.h>
+    #if defined(__linux__) && !defined(__ANDROID__)
+        #include <sys/mman.h>
+        #if defined(X86_64) && defined(MAP_HUGE_SHIFT)
+            #define USE_X86_64_HUGE_PAGES
+        #endif
+    #endif
+    #include <cstring>
 #endif
 
 #if defined(__APPLE__)      /* macOS / iOS */ \
@@ -120,7 +126,7 @@ void* alloc_windows_aligned_large_page(const usize allocSize) noexcept {
 }
 #else
 
-    #if defined(USE_LINUX_HUGE_PAGES)
+    #if defined(USE_X86_64_HUGE_PAGES)
 AllocationSizes HugePageSizes([](void* const mem, const usize size) noexcept {
     if (::munmap(mem, size) != 0)
     {
@@ -176,7 +182,7 @@ void* alloc_aligned_large_page_with_hint(const usize                 allocSize,
         }
     }
 #else
-    #if defined(USE_LINUX_HUGE_PAGES)
+    #if defined(USE_X86_64_HUGE_PAGES)
     if (hugePageHint && allocSize >= HUGE_PAGE_SIZE)
     {
         mem = alloc_linux_aligned_large_page(allocSize);
@@ -236,7 +242,7 @@ bool free_aligned_large_page(void* const mem) noexcept {
         return false;
     }
 #else
-    #if defined(USE_LINUX_HUGE_PAGES)
+    #if defined(USE_X86_64_HUGE_PAGES)
     if (HugePageSizes.remove(mem))
         return true;
     #endif

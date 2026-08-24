@@ -30,13 +30,6 @@
 
 #include "misc.h"
 
-#if defined(__linux__) && !defined(__ANDROID__) && !defined(_WIN32)
-    #include <sys/mman.h>
-    #if defined(X86_64) && defined(MAP_HUGE_SHIFT)
-        #define USE_LINUX_HUGE_PAGES
-    #endif
-#endif
-
 #include "types.h"
 
 namespace DON {
