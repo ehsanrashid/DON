@@ -540,8 +540,8 @@ inline int lasx_m256_hadd(const __m256i sum, const int bias) noexcept {
     __m256i sm = sum;
     sm         = __lasx_xvadd_w(sm, __lasx_xvshuf4i_w(sm, 0x4E));  // [C,D,A,B] per lane
     sm         = __lasx_xvadd_w(sm, __lasx_xvshuf4i_w(sm, 0xB1));  // [B,A,D,C] per lane
-    int loSm   = (int) __lasx_xvpickve2gr_w(sm, 0);
-    int hiSm   = (int) __lasx_xvpickve2gr_w(sm, 4);
+    auto loSm  = __lasx_xvpickve2gr_w(sm, 0);
+    auto hiSm  = __lasx_xvpickve2gr_w(sm, 4);
     return loSm + hiSm + bias;
 }
 

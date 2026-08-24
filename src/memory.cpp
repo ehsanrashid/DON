@@ -32,7 +32,7 @@
     #if defined(__linux__) && !defined(__ANDROID__)
         #include <sys/mman.h>
         #if defined(X86_64) && defined(MAP_HUGE_SHIFT)
-            #define USE_X86_64_HUGE_PAGES
+            #define USE_POSIX_X86_64_HUGE_PAGES
         #endif
     #endif
     #include <cstring>
@@ -126,7 +126,7 @@ void* alloc_windows_aligned_large_page(const usize allocSize) noexcept {
 }
 #else
 
-    #if defined(USE_X86_64_HUGE_PAGES)
+    #if defined(USE_POSIX_X86_64_HUGE_PAGES)
 AllocationSizes HugePageSizes([](void* const mem, const usize size) noexcept {
     if (::munmap(mem, size) != 0)
     {
@@ -182,7 +182,7 @@ void* alloc_aligned_large_page_with_hint(const usize                 allocSize,
         }
     }
 #else
-    #if defined(USE_X86_64_HUGE_PAGES)
+    #if defined(USE_POSIX_X86_64_HUGE_PAGES)
     if (hugePageHint && allocSize >= HUGE_PAGE_SIZE)
     {
         mem = alloc_linux_aligned_large_page(allocSize);
@@ -242,7 +242,7 @@ bool free_aligned_large_page(void* const mem) noexcept {
         return false;
     }
 #else
-    #if defined(USE_X86_64_HUGE_PAGES)
+    #if defined(USE_POSIX_X86_64_HUGE_PAGES)
     if (HugePageSizes.remove(mem))
         return true;
     #endif

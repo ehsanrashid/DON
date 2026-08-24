@@ -600,7 +600,7 @@ class SharedMemoryRegistry final {
 
         OrderedList snapOrderedList;
         {
-            std::lock_guard cleanLock(sharedMutex);
+            std::lock_guard writeLock(sharedMutex);
 
             // Move all registered shared memories into local list to allow safe iteration
             // and prevent iterator invalidation if close() triggers un-registration.
