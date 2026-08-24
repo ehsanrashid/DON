@@ -28,11 +28,14 @@
 #include <type_traits>
 #include <utility>
 
+#include "misc.h"
+
 #if defined(_WIN32)
     #include "platform_win.h"
+#elif defined(__linux__) && defined(X86_64) && defined(MAP_HUGE_SHIFT)
+    #define USE_LINUX_HUGE_PAGES
 #endif
 
-#include "misc.h"
 #include "types.h"
 
 namespace DON {

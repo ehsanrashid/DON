@@ -23,7 +23,7 @@ namespace DON {
 
 // Returns an ASCII representation of a bitboard suitable
 // to be printed to standard output. Useful for debugging.
-std::string pretty_str(Bitboard b) noexcept {
+std::string pretty_str(const Bitboard b) noexcept {
     constexpr std::string_view Sep{"\n  +---+---+---+---+---+---+---+---+\n"};
 
     std::string bb;
@@ -54,7 +54,7 @@ std::string pretty_str(Bitboard b) noexcept {
     return bb;
 }
 
-std::string_view pretty(Bitboard b) noexcept {
+std::string_view pretty(const Bitboard b) noexcept {
     constexpr usize ReserveCount  = 1024;
     constexpr float MaxLoadFactor = 0.75f;
 

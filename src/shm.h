@@ -355,7 +355,7 @@ class BackendSharedMemory final {
 
         if (!hMapFileGuard.is_valid())
         {
-            //DEBUG_LOG("CreateFileMapping() failed, name = " << name() << ", error = " << error_to_string(GetLastError()));
+            //DEBUG_LOG("CreateFileMapping() failed: name = " << name() << ", error = " << error_to_string(GetLastError()));
             status = Status::FileMapping;
             return;
         }
@@ -364,7 +364,7 @@ class BackendSharedMemory final {
 
         if (!mappedGuard.is_valid())
         {
-            //DEBUG_LOG("MapViewOfFile() failed, name = " << name() << ", error = " << error_to_string(GetLastError()));
+            //DEBUG_LOG("MapViewOfFile() failed: name = " << name() << ", error = " << error_to_string(GetLastError()));
             status = Status::MapView;
             cleanup();
             return;
@@ -380,7 +380,7 @@ class BackendSharedMemory final {
 
         if (!hMutexGuard.is_valid())
         {
-            //DEBUG_LOG("CreateMutex() failed, name = " << mutexName << ", error = " << error_to_string(GetLastError()));
+            //DEBUG_LOG("CreateMutex() failed: name = " << mutexName << ", error = " << error_to_string(GetLastError()));
             status = Status::MutexCreate;
             cleanup();
             return;
@@ -388,7 +388,7 @@ class BackendSharedMemory final {
         // Wait for ownership
         if (WaitForSingleObject(hMutexGuard.get(), INFINITE) != WAIT_OBJECT_0)
         {
-            //DEBUG_LOG("WaitForSingleObject() failed, name = " << mutexName << ", error = " << error_to_string(GetLastError()));
+            //DEBUG_LOG("WaitForSingleObject() failed: name = " << mutexName << ", error = " << error_to_string(GetLastError()));
             status = Status::MutexWait;
             cleanup();
             return;
@@ -420,7 +420,7 @@ class BackendSharedMemory final {
 
         if (!ReleaseMutex(hMutexGuard.get()))
         {
-            //DEBUG_LOG("ReleaseMutex() failed, name = " << mutexName << ", error = " << error_to_string(GetLastError()));
+            //DEBUG_LOG("ReleaseMutex() failed: name = " << mutexName << ", error = " << error_to_string(GetLastError()));
             status = Status::MutexRelease;
             cleanup();
             return;
@@ -1497,7 +1497,7 @@ struct SystemWideSharedMemory final {
         {
             // snprintf failed - use fallback format
             // This should never happen, but handle it anyway
-            //DEBUG_LOG("snprintf() failed, using fallback hash name");
+            //DEBUG_LOG("snprintf() failed: using fallback hash name");
 
             // Fallback: use hex representation directly
             std::ostringstream oss{};

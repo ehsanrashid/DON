@@ -231,10 +231,10 @@ std::string trace(Position& pos, const NNUE::Network& network) noexcept {
     auto accCache = std::make_unique<NNUE::AccumulatorCache>(network);
     auto accStack = std::make_unique<NNUE::AccumulatorStack>();
 
-    auto fmt = [](double value) noexcept -> std::string {
+    auto fmt = [](const double d) noexcept -> std::string {
         Array<char, 8> buffer{};
 
-        int   writtenSize = std::snprintf(buffer.data(), buffer.size(), "%+01.2f", value);
+        int   writtenSize = std::snprintf(buffer.data(), buffer.size(), "%+01.2f", d);
         usize copiedSize  = writtenSize > 0  //
                             ? std::min<usize>(writtenSize, buffer.size() - 1)
                             : 0;

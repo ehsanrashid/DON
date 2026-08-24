@@ -93,7 +93,7 @@ class NativeThread final {
         if (pthread_create(&thread, &threadAttr, start_routine, jobFuncPtr.get()) != 0)
         {
             //DEBUG_LOG("pthread_create() failed to create thread.");
-            // Thread creation failed, jobFuncPtr will be deleted automatically
+            // Thread creation failed: jobFuncPtr will be deleted automatically
             joined = true;
         }
         else

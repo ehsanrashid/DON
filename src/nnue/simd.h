@@ -29,11 +29,9 @@
         #include <emmintrin.h>
     #endif
 #elif defined(USE_LSX)
+    #include <lsxintrin.h>
     #if defined(USE_LASX)
         #include <lasxintrin.h>
-        #include <lsxintrin.h>
-    #else
-        #include <lsxintrin.h>
     #endif
 #elif defined(USE_NEON)
     #include <arm_neon.h>

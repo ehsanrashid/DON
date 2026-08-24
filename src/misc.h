@@ -1157,13 +1157,63 @@ struct FixedText final {
 
 static_assert(sizeof(FixedText) == 32, "FixedText size must be 32 bytes");
 
+class AllocationSizeMap final {
+   public:
+    void add(void* mem, usize size) noexcept {
+        std::lock_guard writeLock(sharedMutex);
+
+        sizesMap[mem] = size;
+    }
+
+    bool remove(void* mem) noexcept {
+        std::lock_guard writeLock(sharedMutex);
+
+        if (auto itr = sizesMap.find(mem); itr != sizesMap.end())
+        {
+            sizesMap.erase(itr);
+            return true;
+        }
+
+        return false;
+    }
+
+    template<typename Func>
+    bool remove(void* mem, Func&& func) noexcept {
+        std::lock_guard writeLock(sharedMutex);
+
+        if (auto itr = sizesMap.find(mem); itr != sizesMap.end())
+        {
+            if (!std::forward<Func>(func)(itr->second))
+                return false;
+
+            sizesMap.erase(itr);
+            return true;
+        }
+
+        return false;
+    }
+
+    std::optional<usize> find(void* mem) noexcept {
+        std::shared_lock readLock(sharedMutex);
+
+        if (auto itr = sizesMap.find(mem); itr != sizesMap.end())
+            return itr->second;
+
+        return std::nullopt;
+    }
+
+   private:
+    std::shared_mutex                sharedMutex;
+    std::unordered_map<void*, usize> sizesMap;
+};
+
 // ConcurrentCache: groups (mutex + storage + pre-reserve)
 template<typename Key, typename Value>
 class ConcurrentCache final {
    public:
     explicit ConcurrentCache(usize reserveCount = 1024, float maxLoadFactor = 0.75f) noexcept {
-        storage.max_load_factor(max_load_factor(maxLoadFactor));
-        storage.reserve(reserve_count(reserveCount));
+        storageMap.max_load_factor(max_load_factor(maxLoadFactor));
+        storageMap.reserve(reserve_count(reserveCount));
     }
 
     template<typename... Args>
@@ -1172,9 +1222,7 @@ class ConcurrentCache final {
         {
             std::shared_lock readLock(sharedMutex);
 
-            auto itr = storage.find(key);
-
-            if (itr != storage.end())
+            if (auto itr = storageMap.find(key); itr != storageMap.end())
                 return get_value(itr->second);
         }
 
@@ -1182,7 +1230,7 @@ class ConcurrentCache final {
         std::lock_guard writeLock(sharedMutex);
 
         // Double-check after acquiring exclusive lock
-        auto [itr, inserted] = storage.try_emplace(key);
+        auto [itr, inserted] = storageMap.try_emplace(key);
 
         if (inserted)
             // Inserted: construct the value
@@ -1222,7 +1270,7 @@ class ConcurrentCache final {
     }
 
     std::shared_mutex                     sharedMutex;
-    std::unordered_map<Key, StorageValue> storage;
+    std::unordered_map<Key, StorageValue> storageMap;
 };
 
 // Hash function based on public domain MurmurHash64A by Austin Appleby.

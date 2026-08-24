@@ -145,7 +145,7 @@ constexpr bool more_than_one(Bitboard b) noexcept { return (b & (b - 1)) != 0; }
 constexpr bool exactly_one(Bitboard b) noexcept { return b != 0 && !more_than_one(b); }
 
 template<typename T>
-constexpr u8 constexpr_popcount(T v) noexcept {
+constexpr u8 constexpr_popcount(const T v) noexcept {
     static_assert(std::is_integral_v<T>, "constexpr_popcount is undefined for non-integral types");
     static_assert(std::is_unsigned_v<T>, "constexpr_popcount requires an unsigned integral type");
 
@@ -164,20 +164,22 @@ constexpr u8 constexpr_popcount(T v) noexcept {
     }
     else
     {
+        auto b = static_cast<std::make_unsigned_t<T>>(v);
+
         u8 count = 0;
 
-        while (v != 0)
+        while (b != 0)
         {
-            if ((v & 1) != 0)
+            if ((b & 1) != 0)
                 ++count;
-            v >>= 1;
+            b >>= 1;
         }
 
         return count;
     }
 }
 
-constexpr u8 constexpr_msb_index(Bitboard b) noexcept {
+constexpr u8 constexpr_msb_index(const Bitboard b) noexcept {
     constexpr Array<u8, SQUARE_NB> MSBIndices{
       0,  47, 1,  56, 48, 27, 2,  60,  //
       57, 49, 41, 37, 28, 16, 3,  61,  //
@@ -217,18 +219,16 @@ constexpr Bitboard fill_postfix_bb(Bitboard b) noexcept {
     return b;
 }
 
-constexpr u8 constexpr_lsb(Bitboard b) noexcept {
+constexpr u8 constexpr_lsb(const Bitboard b) noexcept {
     assert(b != 0);
 
-    b ^= b - 1;
-    return constexpr_msb_index(b);
+    return constexpr_msb_index(b ^ (b - 1));
 }
 
-constexpr u8 constexpr_msb(Bitboard b) noexcept {
+constexpr u8 constexpr_msb(const Bitboard b) noexcept {
     assert(b != 0);
 
-    b = fill_prefix_bb(b);
-    return constexpr_msb_index(b);
+    return constexpr_msb_index(fill_prefix_bb(b));
 }
 
 #if !defined(USE_POPCNT)
@@ -245,7 +245,7 @@ alignas(CACHE_LINE_SIZE) inline const auto POP_CNTS = []() {
 #endif
 
 // Counts the number of non-zero bits in the bitboard
-inline u8 popcount(Bitboard b) noexcept {
+inline u8 popcount(const Bitboard b) noexcept {
 
 #if !defined(USE_POPCNT)
     Array<u16, 4> b16;
@@ -265,7 +265,7 @@ inline u8 popcount(Bitboard b) noexcept {
 }
 
 // Returns the least significant bit in the non-zero bitboard
-inline Square lsq(Bitboard b) noexcept {
+inline Square lsq(const Bitboard b) noexcept {
     assert(b != 0);
 
 #if defined(__GNUC__)  // GCC, Clang, ICX
@@ -292,7 +292,7 @@ inline Square lsq(Bitboard b) noexcept {
 }
 
 // Returns the most significant bit in the non-zero bitboard
-inline Square msq(Bitboard b) noexcept {
+inline Square msq(const Bitboard b) noexcept {
     assert(b != 0);
 
 #if defined(__GNUC__)  // GCC, Clang, ICX
