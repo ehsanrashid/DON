@@ -224,12 +224,14 @@ void TranspositionTable::advance_generation() const noexcept {
 // Sets the size of the transposition table, measured in megabytes (MB).
 // Transposition table consists of even number of clusters.
 void TranspositionTable::resize(const usize ttSize, const Threads& threads) noexcept {
+    constexpr usize ClusterSize = sizeof(TTCluster);
+
     free();
 
-    clusterCount = ttSize * MB / sizeof(TTCluster);
+    clusterCount = ttSize * MB / ClusterSize;
     //DEBUG_LOG("Clustering transposition table to " << clusterCount << " clusters.");
 
-    const usize ttBytes = clusterCount * sizeof(TTCluster);
+    const usize ttBytes = clusterCount * ClusterSize;
 
     // Request 1GB pages if we'd get at least eight per NUMA node, to avoid
     // memory oversubscription
