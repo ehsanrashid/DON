@@ -105,29 +105,29 @@ struct alignas(32) DualMagic final {
 #elif defined(USE_HYPERBOLA_QUINT)
 
 inline Bitboard reverse_bb(Bitboard bb) noexcept {
-    Bitboard rb;
+    Bitboard rbb;
 
     #if defined(__has_builtin) && __has_builtin(__builtin_bitreverse64)
-    rb = __builtin_bitreverse64(bb);
+    rbb = __builtin_bitreverse64(bb);
 
     #elif defined(__loongarch__) && __loongarch_grlen == 64
-    asm("bitrev.d %0, %1" : "=r"(rb) : "r"(bb));
+    asm("bitrev.d %0, %1" : "=r"(rbb) : "r"(bb));
 
     #elif defined(__aarch64__)
         // GCC before 12.2 does not provide __rbitll() in arm_acle.h
         #if defined(__GNUC__) && !defined(__clang__) \
           && (__GNUC__ < 12 || (__GNUC__ == 12 && __GNUC_MINOR__ < 2))
-    asm("rbit %0, %1" : "=r"(rb) : "r"(bb));
+    asm("rbit %0, %1" : "=r"(rbb) : "r"(bb));
 
         #else
-    rb = __rbitll(bb);
+    rbb = __rbitll(bb);
 
         #endif
     #else
         #error "reverse_bb(): unsupported architecture/compiler"
     #endif
 
-    return rb;
+    return rbb;
 }
 
 // Hyperbola quintessence implementation for ARM

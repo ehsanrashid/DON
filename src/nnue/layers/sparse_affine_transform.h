@@ -127,10 +127,8 @@ class SparseAffineTransform final {
         return !os.fail();
     }
 
-#if defined(__GNUC__) && !defined(__clang__) && defined(USE_NEON_DOTPROD)
-    #if __GNUC__ >= 15
-        #define FIX_GCC15_NEON_DOTPROD_MISOPTIMIZATION
-    #endif
+#if defined(__GNUC__) && __GNUC__ >= 15 && !defined(__clang__) && defined(USE_NEON_DOTPROD)
+    #define FIX_GCC15_NEON_DOTPROD_MISOPTIMIZATION
 #endif
 
     // Forward propagation

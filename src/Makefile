@@ -70,13 +70,15 @@ endif
 # -------------------------------------------
 # Detect clang-format (prefer newest version)
 # -------------------------------------------
+ifndef CLANG_FORMAT
 CLANG_FORMAT := $(shell \
     $(call FIND_EXE,clang-format-24) || \
     $(call FIND_EXE,clang-format-23) || \
     $(call FIND_EXE,clang-format-22) || \
     $(call FIND_EXE,clang-format-21) || \
     $(call FIND_EXE,clang-format-20) || \
-    echo clang-format)
+    $(call FIND_EXE,clang-format))
+endif
 
 ### Executable name
 NAME := DON
@@ -1033,18 +1035,17 @@ GIT_DIFFINDEX := $(shell git update-index --refresh >/dev/null 2>&1; git -c core
 COMPILER_DATE := $(shell date +%Y%m%d 2>/dev/null)
 BUILD_DATE    := $(or $(GIT_DATE),$(COMPILER_DATE))
 
-define CACHE_FILE_CONTENTS
+define CACHE_FILE_IF_CHANGED
 $(shell \
-	if [ ! -f "$(1)" ] || [ "$$(cat "$(1)" 2>/dev/null)" != "$(2)" ]; then \
+	if [ ! -f "$(1)" ] || [ "$$(cat "$(1)")" != "$(2)" ]; then \
 		printf '%s\n' "$(2)" > "$(1)"; \
-	fi
-)
+	fi)
 endef
 
 ifneq ($(filter-out help net strip install clean objclean profileclean config-sanity format install-hooks,$(MAKECMDGOALS)),)
-_ := $(call CACHE_FILE_CONTENTS,$(BUILD_DATE_FILE),$(BUILD_DATE))
-_ := $(call CACHE_FILE_CONTENTS,$(BUILD_SHA_FILE),$(GIT_SHA))
-_ := $(call CACHE_FILE_CONTENTS,$(BUILD_DIFFINDEX_FILE),$(GIT_DIFFINDEX))
+_ := $(call CACHE_FILE_IF_CHANGED,$(BUILD_DATE_FILE),$(BUILD_DATE))
+_ := $(call CACHE_FILE_IF_CHANGED,$(BUILD_SHA_FILE),$(GIT_SHA))
+_ := $(call CACHE_FILE_IF_CHANGED,$(BUILD_DIFFINDEX_FILE),$(GIT_DIFFINDEX))
 endif
 
 # Compiler flags for embedding Git build information
@@ -1188,7 +1189,7 @@ help:
 	echo "mingw                   > GNU compiler with MinGW under Windows"; \
 	echo "clang                   > LLVM Clang compiler"; \
 	echo "icx                     > Intel oneAPI DPC++/C++ compiler"; \
-	echo "ndk                     > Android NDK for cross-compilation"; \
+	echo "ndk                     > Android NDK for cross-compiling to Android"; \
 	echo ""; \
 	echo "Simple examples. If you don't know what to do, you likely want to run one of:"; \
 	echo ""; \
