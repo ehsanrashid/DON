@@ -500,7 +500,8 @@ inline void m512_add_dpbusd_epi32(__m512i& acc, const __m512i a, const __m512i b
         #endif
 }
 
-    #elif defined(USE_AVX2)
+    #endif
+    #if defined(USE_AVX2)
 inline int m256_hadd(const __m256i sum, const int bias) noexcept {
     const __m128i loSum = _mm256_castsi256_si128(sum);
     const __m128i hiSum = _mm256_extracti128_si256(sum, 1);
@@ -519,8 +520,8 @@ inline void m256_add_dpbusd_epi32(__m256i& acc, const __m256i a, const __m256i b
     acc             = _mm256_add_epi32(acc, product);
         #endif
 }
-
-    #elif defined(USE_SSSE3)
+    #endif
+    #if defined(USE_SSSE3)
 inline int m128_hadd(const __m128i sum, const int bias) noexcept {
     __m128i sm = sum;
     sm         = _mm_add_epi32(sm, _mm_shuffle_epi32(sm, 0x4E));  //_MM_PERM_BADC
@@ -553,8 +554,8 @@ inline void lasx_m256_add_dpbusd_epi32(__m256i& acc, const __m256i a, const __m2
     product         = __lasx_xvmaddwod_h_bu_b(product, a, b);
     acc             = __lasx_xvadd_w(acc, __lasx_xvhaddw_w_h(product, product));
 }
-
-    #elif defined(USE_LSX)
+    #endif
+    #if defined(USE_LSX)
 inline int lsx_m128_hadd(const __m128i sum, const int bias) noexcept {
     __m128i sm = sum;
     sm         = __lsx_vadd_w(sm, __lsx_vshuf4i_w(sm, 0x4E));  // [C,D,A,B]
@@ -576,7 +577,7 @@ inline void lsx_m128_add_dpbusd_epi32(__m128i& acc, const __m128i a, const __m12
 inline int neon_m128_reduce_add_epi32(const int32x4_t s) noexcept {
     #if USE_NEON >= 8
     return vaddvq_s32(s);
-    #else
+    #elif defined(USE_NEON)
     return s[0] + s[1] + s[2] + s[3];
     #endif
 }
@@ -594,7 +595,7 @@ neon_m128_add_dpbusd_epi32(int32x4_t& acc, const int8x16_t a, const int8x16_t b)
     const int16x8_t product1 = vmull_high_s8(a, b);
     const int16x8_t sum      = vpaddq_s16(product0, product1);
     acc                      = vpadalq_s16(acc, sum);
-    #else
+    #elif defined(USE_NEON)
     const int16x8_t product0 = vmull_s8(vget_low_s8(a), vget_low_s8(b));
     const int16x8_t product1 = vmull_s8(vget_high_s8(a), vget_high_s8(b));
     const int16x4_t sum0     = vpadd_s16(vget_low_s16(product0), vget_high_s16(product0));
