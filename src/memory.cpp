@@ -21,14 +21,14 @@
 #include <ostream>
 
 #if defined(_WIN32)
+    #include "platform_win.h"
     #include <malloc.h>  // <mm_malloc.h>: _mm_malloc(), _mm_free()
 #else
+    #include <cstring>
     // IWYU pragma: no_include <bits/mman-map-flags-generic.h>
+    #include <errno.h>
     #if defined(__has_include) && __has_include(<features.h>)
         #include <features.h>  // glibc feature-test macros
-    #endif
-    #if defined(USE_LINUX_HUGE_PAGES)
-        #include <errno.h>
     #endif
 #endif
 
@@ -111,9 +111,8 @@ void* alloc_windows_aligned_large_page(const usize allocSize) noexcept {
                                    MEM_LARGE_PAGES | MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
           if (mem == nullptr)
           {
-              DEBUG_LOG("Failed to allocate large page memory for "
-                        << roundedAllocSize / MB
-                        << "MB, error = " << error_to_string(GetLastError()));
+              std::cerr << "Failed to allocate large page memory for " << roundedAllocSize / MB
+                        << "MB, error = " << error_to_string(GetLastError()) << std::endl;
           }
           return mem;
       },
@@ -125,7 +124,7 @@ void* alloc_windows_aligned_large_page(const usize allocSize) noexcept {
 AllocationSizes HugePageSizes([](void* const mem, const usize size) noexcept {
     if (::munmap(mem, size) != 0)
     {
-        DEBUG_LOG("::munmap() failed: error = " << std::strerror(errno));
+        std::cerr << "::munmap() failed: error = " << std::strerror(errno) << std::endl;
         return false;
     }
 
@@ -172,8 +171,8 @@ void* alloc_aligned_large_page_with_hint(const usize                 allocSize,
         mem = VirtualAlloc(nullptr, roundedAllocSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
         if (mem == nullptr)
         {
-            DEBUG_LOG("Failed to allocate memory for " << roundedAllocSize / MB << "MB, error = "
-                                                       << error_to_string(GetLastError()));
+            std::cerr << "Failed to allocate memory for " << roundedAllocSize / MB
+                      << "MB, error = " << error_to_string(GetLastError()) << std::endl;
         }
     }
 #else
@@ -183,8 +182,8 @@ void* alloc_aligned_large_page_with_hint(const usize                 allocSize,
         mem = alloc_linux_aligned_large_page(allocSize);
         if (mem == nullptr)
         {
-            DEBUG_LOG("Failed to allocate memory for " << allocSize / MB
-                                                       << "MB, error = " << std::strerror(errno));
+            std::cerr << "Failed to allocate memory for " << allocSize / MB
+                      << "MB, error = " << std::strerror(errno) << std::endl;
         }
         else
             return mem;
@@ -204,15 +203,15 @@ void* alloc_aligned_large_page_with_hint(const usize                 allocSize,
     mem = alloc_aligned_std(roundedAllocSize, Alignment);
     if (mem == nullptr)
     {
-        DEBUG_LOG("Failed to allocate memory for " << roundedAllocSize / MB
-                                                   << "MB, error = " << std::strerror(errno));
+        std::cerr << "Failed to allocate memory for " << roundedAllocSize / MB
+                  << "MB, error = " << std::strerror(errno) << std::endl;
         return nullptr;
     }
     // Prefer huge pages where supported
     #if defined(MADV_HUGEPAGE)
     if (::madvise(mem, roundedAllocSize, MADV_HUGEPAGE) != 0)
     {
-        //DEBUG_LOG("::madvise() failed: error = " << std::strerror(errno));
+        //std::cerr << "::madvise() failed: error = " << std::strerror(errno) << std::endl;
     }
     #endif
 #endif
@@ -232,7 +231,8 @@ bool free_aligned_large_page(void* const mem) noexcept {
 #if defined(_WIN32)
     if (!VirtualFree(mem, 0, MEM_RELEASE))
     {
-        DEBUG_LOG("Failed to free memory, error = " << error_to_string(GetLastError()));
+        std::cerr << "Failed to free memory, error = " << error_to_string(GetLastError())
+                  << std::endl;
         return false;
     }
 #else

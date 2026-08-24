@@ -2003,6 +2003,155 @@ struct MMapGuard final {
     void*& mappedPtr;
 };
 
+    #if defined(_WIN64)
+struct Advapi final {
+   public:
+    // clang-format off
+    // https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-openprocesstoken
+    using OpenProcessToken_ = BOOL(WINAPI*)(
+      HANDLE  ProcessHandle,    // [in]  Handle to process
+      DWORD   DesiredAccess,    // [in]  Access rights for token
+      PHANDLE TokenHandle       // [out] Pointer to token handle
+    );
+    // https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-lookupprivilegevaluea
+    using LookupPrivilegeValue_ = BOOL(WINAPI*)(
+      LPCSTR lpSystemName,      // [in]  System name (NULL for local)
+      LPCSTR lpName,            // [in]  Privilege name (e.g., SE_DEBUG_NAME)
+      PLUID  lpLuid             // [out] Receives LUID of privilege
+    );
+    // https://learn.microsoft.com/en-us/windows/win32/api/securitybaseapi/nf-securitybaseapi-adjusttokenprivileges
+    using AdjustTokenPrivileges_ = BOOL(WINAPI*)(
+      HANDLE            TokenHandle,          // [in]       Access token handle
+      BOOL              DisableAllPrivileges, // [in]       Disable all privileges flag
+      PTOKEN_PRIVILEGES NewState,             // [in, opt]  New privilege state
+      DWORD             BufferLength,         // [in]       Size of PreviousState buffer
+      PTOKEN_PRIVILEGES PreviousState,        // [out, opt] Previous privilege state
+      PDWORD            ReturnLength          // [out, opt] Required buffer size
+    );
+    // clang-format on
+
+    static constexpr LPCSTR MODULE_NAME = TEXT("advapi32.dll");
+
+    ~Advapi() noexcept { free(); }
+
+    // The needed Windows API for processor groups could be missed from old Windows versions,
+    // so instead of calling them directly (forcing the linker to resolve the calls at compile time),
+    // try to load them at runtime.
+    bool load() noexcept {
+
+        hModule = GetModuleHandle(MODULE_NAME);
+
+        if (hModule == nullptr)
+        {
+            hModule = LoadLibraryEx(MODULE_NAME, nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
+
+            if (hModule == nullptr)
+                hModule = LoadLibrary(MODULE_NAME);  // optional last resort
+
+            if (hModule == nullptr)
+                return false;
+
+            loaded = true;
+        }
+
+        openProcessToken =
+          OpenProcessToken_((void (*)()) GetProcAddress(hModule, "OpenProcessToken"));
+
+        lookupPrivilegeValue =
+          LookupPrivilegeValue_((void (*)()) GetProcAddress(hModule, "LookupPrivilegeValueA"));
+
+        adjustTokenPrivileges =
+          AdjustTokenPrivileges_((void (*)()) GetProcAddress(hModule, "AdjustTokenPrivileges"));
+
+        if (openProcessToken == nullptr || lookupPrivilegeValue == nullptr
+            || adjustTokenPrivileges == nullptr)
+        {
+            free();
+
+            return false;
+        }
+
+        return true;
+    }
+
+    void free() noexcept {
+        if (loaded)
+        {
+            assert(hModule != nullptr);
+
+            FreeLibrary(hModule);
+
+            hModule = nullptr;
+            loaded  = false;
+        }
+    }
+
+    OpenProcessToken_      openProcessToken      = nullptr;
+    LookupPrivilegeValue_  lookupPrivilegeValue  = nullptr;
+    AdjustTokenPrivileges_ adjustTokenPrivileges = nullptr;
+
+   private:
+    HMODULE hModule = nullptr;
+    bool    loaded  = false;
+};
+    #endif
+
+template<typename SuccessFunc, typename FailureFunc>
+auto try_with_windows_lock_memory_privilege([[maybe_unused]] SuccessFunc&& successFunc,
+                                            FailureFunc&&                  failureFunc) noexcept {
+    #if defined(_WIN64)
+    const SIZE_T largePageSize = GetLargePageMinimum();
+
+    if (largePageSize == 0)
+        return failureFunc();
+
+    assert(is_power_of_2(largePageSize));
+
+    Advapi advapi;
+
+    if (!advapi.load())
+        return failureFunc();
+
+    HANDLE hProcess = INVALID_HANDLE;
+
+    HandleGuard hProcessGuard{hProcess};
+
+    // Need SeLockMemoryPrivilege, so try to enable it for the process
+    if (!advapi.openProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY,
+                                 &hProcess))
+        return failureFunc();
+
+    TOKEN_PRIVILEGES newTp{};
+    newTp.PrivilegeCount           = 1;
+    newTp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
+
+    // Get the luid
+    if (!advapi.lookupPrivilegeValue(nullptr, SE_LOCK_MEMORY_NAME, &newTp.Privileges[0].Luid))
+        return failureFunc();
+
+    TOKEN_PRIVILEGES oldTp{};
+    DWORD            oldTpLen = 0;
+
+    // Try to enable SeLockMemoryPrivilege. Note that even if AdjustTokenPrivileges() succeeds,
+    // Still need to query GetLastError() to ensure that the privileges were actually obtained.
+    SetLastError(ERROR_SUCCESS);
+
+    if (!advapi.adjustTokenPrivileges(hProcess, FALSE, &newTp, sizeof(oldTp), &oldTp, &oldTpLen)
+        || GetLastError() != ERROR_SUCCESS)
+        return failureFunc();
+
+    // Call the provided function with the privilege enabled
+    auto&& ret = successFunc(largePageSize);
+
+    // Privilege no longer needed, restore the privileges
+    advapi.adjustTokenPrivileges(hProcess, FALSE, &oldTp, 0, nullptr, nullptr);
+
+    return std::forward<decltype(ret)>(ret);
+    #else
+    return failureFunc();
+    #endif
+}
+
 #else
 
 inline constexpr int INVALID_FD = -1;
@@ -2137,7 +2286,6 @@ struct UniqueFd final {
 };
 
 #endif
-
 
 }  // namespace DON
 

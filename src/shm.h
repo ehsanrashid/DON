@@ -326,9 +326,9 @@ class BackendSharedMemory final {
 
         // Try allocating with large page first
         hMapFile = try_with_windows_lock_memory_privilege(
-          [&](usize LargePageSize) noexcept {
+          [&](const usize largePageSize) noexcept {
               // Round up size to full large page
-              usize roundedTotalSize = round_up_to_multiple(TotalSize, LargePageSize);
+              const usize roundedTotalSize = round_up_to_multiple(TotalSize, largePageSize);
 
     #if defined(_WIN64)
               DWORD hiTotalSize = roundedTotalSize >> 32;
