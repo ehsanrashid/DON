@@ -27,7 +27,6 @@
 #include "evaluate.h"
 #include "movegen.h"
 #include "notation.h"
-#include "numa.h"
 #include "perft.h"
 #include "shm.h"
 #include "book/polyglot.h"

@@ -23,11 +23,9 @@
 #if defined(_WIN32)
     #include <malloc.h>  // <mm_malloc.h>: _mm_malloc(), _mm_free()
 #else
+    // IWYU pragma: no_include <bits/mman-map-flags-generic.h>
     #if defined(__has_include) && __has_include(<features.h>)
         #include <features.h>  // glibc feature-test macros
-    #endif
-    #if defined(__linux__) && !defined(__ANDROID__)
-        #include <sys/mman.h>
     #endif
     #if defined(USE_LINUX_HUGE_PAGES)
         #include <errno.h>
@@ -124,7 +122,7 @@ void* alloc_windows_aligned_large_page(const usize allocSize) noexcept {
 #else
 
     #if defined(USE_LINUX_HUGE_PAGES)
-AllocationSizes LinuxHugePageSizes([](void* const mem, const usize size) noexcept {
+AllocationSizes HugePageSizes([](void* const mem, const usize size) noexcept {
     if (::munmap(mem, size) != 0)
     {
         DEBUG_LOG("::munmap() failed: error = " << std::strerror(errno));
@@ -143,7 +141,7 @@ void* alloc_linux_aligned_large_page(const usize allocSize) noexcept {
     if (mem == MAP_FAILED)
         return nullptr;
 
-    LinuxHugePageSizes.add(mem, roundedAllocSize);
+    HugePageSizes.add(mem, roundedAllocSize);
     return mem;
 }
     #endif
@@ -239,7 +237,7 @@ bool free_aligned_large_page(void* const mem) noexcept {
     }
 #else
     #if defined(USE_LINUX_HUGE_PAGES)
-    if (LinuxHugePageSizes.remove(mem))
+    if (HugePageSizes.remove(mem))
         return true;
     #endif
     free_aligned_std(mem);

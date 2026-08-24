@@ -32,8 +32,13 @@
 
 #if defined(_WIN32)
     #include "platform_win.h"
-#elif defined(__linux__) && !defined(__ANDROID__) && defined(X86_64) && defined(MAP_HUGE_SHIFT)
-    #define USE_LINUX_HUGE_PAGES
+#else
+    #if defined(__linux__) && !defined(__ANDROID__)
+        #include <sys/mman.h>
+        #if defined(X86_64) && defined(MAP_HUGE_SHIFT)
+            #define USE_LINUX_HUGE_PAGES
+        #endif
+    #endif
 #endif
 
 #include "types.h"
