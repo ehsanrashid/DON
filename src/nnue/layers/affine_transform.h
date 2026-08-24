@@ -137,7 +137,7 @@ class AffineTransform final {
             #define vec_set_32 _mm256_set1_epi32
             #define vec_add_dpbusd_32 SIMD::m256_add_dpbusd_epi32
             #define vec_add_32 _mm256_add_epi32
-        #elif defined(USE_SSSE3)
+        #else
             using vec_t = __m128i;
             #define vec_set_32 _mm_set1_epi32
             #define vec_add_dpbusd_32 SIMD::m128_add_dpbusd_epi32
@@ -148,7 +148,7 @@ class AffineTransform final {
             #define vec_set_32 __lasx_xvreplgr2vr_w
             #define vec_add_dpbusd_32 SIMD::lasx_m256_add_dpbusd_epi32
             #define vec_add_32 __lasx_xvadd_w
-        #elif defined(USE_LSX)
+        #else
             using vec_t = __m128i;
             #define vec_set_32 __lsx_vreplgr2vr_w
             #define vec_add_dpbusd_32 SIMD::lsx_m128_add_dpbusd_epi32
@@ -241,7 +241,7 @@ class AffineTransform final {
             #define vec_setzero() _mm256_setzero_si256()
             #define vec_add_dpbusd_32 SIMD::m256_add_dpbusd_epi32
             #define vec_hadd SIMD::m256_hadd
-        #elif defined(USE_SSSE3)
+        #else
             using vec_t = __m128i;
             #define vec_setzero() _mm_setzero_si128()
             #define vec_add_dpbusd_32 SIMD::m128_add_dpbusd_epi32
@@ -253,7 +253,7 @@ class AffineTransform final {
             #define vec_setzero() __lasx_xvldi(0)
             #define vec_add_dpbusd_32 SIMD::lasx_m256_add_dpbusd_epi32
             #define vec_hadd SIMD::lasx_m256_hadd
-        #elif defined(USE_LSX)
+        #else
             using vec_t = __m128i;
             #define vec_setzero() __lsx_vldi(0)
             #define vec_add_dpbusd_32 SIMD::lsx_m128_add_dpbusd_epi32

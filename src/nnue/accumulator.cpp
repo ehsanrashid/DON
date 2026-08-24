@@ -334,7 +334,7 @@ Bitboard changed_bb(const PieceMap& oldPieceMap, const PieceMap& newPieceMap) no
 
     return ~sameBB;
 
-    #elif defined(USE_SSE2)
+    #else
     Bitboard sameBB = 0;
 
     for (const usize s : {0, 16, 32, 48})
@@ -369,7 +369,7 @@ Bitboard changed_bb(const PieceMap& oldPieceMap, const PieceMap& newPieceMap) no
 
     return changedBB;
 
-    #elif defined(USE_LSX)
+    #else
     Bitboard changedBB = 0;
 
     for (const usize s : {0, 16, 32, 48})

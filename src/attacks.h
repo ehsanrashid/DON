@@ -62,7 +62,7 @@ struct alignas(32) DualMagic final {
     // reside in different bytes). Rank attacks cannot. Thus, for rank attacks
     // only, we use a compact lookup table indexed by the 6 inner bits of the rank's
     // occupancy (the edge squares never affect the attack set).
-    std::pair<Bitboard, Bitboard> attacks_bb_pair(Bitboard occupancyBB) const noexcept {
+    std::pair<Bitboard, Bitboard> attacks_bb_pair(const Bitboard occupancyBB) const noexcept {
         // Byteswap within 128-bit elements
         const auto bswap = [](const __m256i v) noexcept {
             return _mm256_shuffle_epi8(v, _mm256_set_epi8(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
@@ -104,7 +104,7 @@ struct alignas(32) DualMagic final {
 
 #elif defined(USE_HYPERBOLA_QUINT)
 
-inline Bitboard reverse_bb(Bitboard bb) noexcept {
+inline Bitboard reverse_bb(const Bitboard bb) noexcept {
     Bitboard rbb;
 
     #if defined(__has_builtin) && __has_builtin(__builtin_bitreverse64)
@@ -135,14 +135,15 @@ inline Bitboard reverse_bb(Bitboard bb) noexcept {
 // See https://www.chessprogramming.org/Hyperbola_Quintessence
 struct Magic final {
    public:
-    Bitboard hyperbola(Square s, Bitboard occupancyBB, Bitboard maskBB) const noexcept {
+    Bitboard
+    hyperbola(const Square s, const Bitboard occupancyBB, const Bitboard maskBB) const noexcept {
         Bitboard occBB = occupancyBB & maskBB;
         Bitboard fwdBB = occBB - square_bb(s);
         Bitboard revBB = reverse_bb(occBB) - square_bb(reverse_sq(s));
         return (fwdBB ^ reverse_bb(revBB)) & maskBB;
     }
 
-    Bitboard attacks_bb(Square s, Bitboard occupancyBB) const noexcept {
+    Bitboard attacks_bb(const Square s, const Bitboard occupancyBB) const noexcept {
         return hyperbola(s, occupancyBB, mask1BB) | hyperbola(s, occupancyBB, mask2BB);
     }
 
@@ -169,7 +170,7 @@ struct Magic final {
     Magic& operator=(Magic&&) noexcept      = delete;
 
     #if defined(USE_BMI2)
-    void attacks_bb(Bitboard occupancyBB, Bitboard referenceBB) noexcept {
+    void attacks_bb(const Bitboard occupancyBB, const Bitboard referenceBB) noexcept {
         #if defined(USE_CMP)
         attacksBBs[index(occupancyBB)] = _pext_u64(referenceBB, pseudoAttacksBB);
         #else
@@ -178,7 +179,8 @@ struct Magic final {
     }
     #endif
 
-    Bitboard attacks_bb([[maybe_unused]] Square s, Bitboard occupancyBB) const noexcept {
+    Bitboard attacks_bb([[maybe_unused]] const Square s,
+                        const Bitboard                occupancyBB) const noexcept {
     #if defined(USE_BMI2)
         #if defined(USE_CMP)
         return _pdep_u64(attacksBBs[index(occupancyBB)], pseudoAttacksBB);
@@ -191,7 +193,7 @@ struct Magic final {
     }
 
     // Compute the attack's index using the 'magic bitboards' approach
-    u16 index(Bitboard occupancyBB) const noexcept {
+    u16 index(const Bitboard occupancyBB) const noexcept {
     #if defined(USE_BMI2)
         return _pext_u64(occupancyBB, maskBB);
     #else

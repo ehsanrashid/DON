@@ -25,14 +25,14 @@
         #include <smmintrin.h>
     #elif defined(USE_SSSE3)
         #include <tmmintrin.h>
-    #elif defined(USE_SSE2)
+    #else
         #include <emmintrin.h>
     #endif
 #elif defined(USE_LSX)
     #if defined(USE_LASX)
         #include <lasxintrin.h>
         #include <lsxintrin.h>
-    #elif defined(USE_LSX)
+    #else
         #include <lsxintrin.h>
     #endif
 #elif defined(USE_NEON)
@@ -136,7 +136,7 @@ using vec_uint_t = __m256i;
         #if defined(USE_SSSE3)
             #if defined(USE_VNNI) && !defined(USE_AVXVNNI)
                 #define vec_nnz(a) _mm256_cmpgt_epi32_mask(a, _mm256_setzero_si256())
-            #elif defined(USE_SSSE3)
+            #else
                 #define vec_nnz(a) \
                     _mm256_movemask_ps( \
                       _mm256_castsi256_ps(_mm256_cmpgt_epi32(a, _mm256_setzero_si256())))
@@ -152,7 +152,7 @@ using vec_uint_t = __m256i;
         #define MaxRegisterCount 12
         #define MaxChunkSize 32
 
-    #elif defined(USE_SSE2)
+    #else
 using vec_t      = __m128i;
 using vec_i8_t   = u64;  // for the correct size -- will be loaded into a xmm reg
 using vec128_t   = __m128i;
@@ -308,7 +308,7 @@ inline __m256i lasx_cvtepi8_epi16(const __m128i a) noexcept {
         #define MaxRegisterCount 24
         #define MaxChunkSize 32
 
-    #elif defined(USE_LSX)
+    #else
 using vec_t      = __m128i;
 using vec_i8_t   = u64;
 using vec128_t   = __m128i;
@@ -574,7 +574,7 @@ inline void lsx_m128_add_dpbusd_epi32(__m128i& acc, const __m128i a, const __m12
 inline int neon_m128_reduce_add_epi32(const int32x4_t s) noexcept {
     #if defined(USE_NEON) && USE_NEON >= 8
     return vaddvq_s32(s);
-    #elif defined(USE_NEON)
+    #else
     return s[0] + s[1] + s[2] + s[3];
     #endif
 }
