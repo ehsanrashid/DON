@@ -499,7 +499,6 @@ inline void m512_add_dpbusd_epi32(__m512i& acc, const __m512i a, const __m512i b
     acc             = _mm512_add_epi32(acc, product);
         #endif
 }
-
     #endif
     #if defined(USE_AVX2)
 inline int m256_hadd(const __m256i sum, const int bias) noexcept {
@@ -534,7 +533,6 @@ inline void m128_add_dpbusd_epi32(__m128i& acc, const __m128i a, const __m128i b
     product         = _mm_madd_epi16(product, _mm_set1_epi16(1));
     acc             = _mm_add_epi32(acc, product);
 }
-
     #endif
 #endif  // USE_SSSE3
 
@@ -569,13 +567,12 @@ inline void lsx_m128_add_dpbusd_epi32(__m128i& acc, const __m128i a, const __m12
     product         = __lsx_vmaddwod_h_bu_b(product, a, b);
     acc             = __lsx_vadd_w(acc, __lsx_vhaddw_w_h(product, product));
 }
-
     #endif
 #endif  // USE_LSX
 
 #if defined(USE_NEON)
 inline int neon_m128_reduce_add_epi32(const int32x4_t s) noexcept {
-    #if USE_NEON >= 8
+    #if defined(USE_NEON) && USE_NEON >= 8
     return vaddvq_s32(s);
     #elif defined(USE_NEON)
     return s[0] + s[1] + s[2] + s[3];
@@ -586,25 +583,32 @@ inline int neon_m128_hadd(const int32x4_t sum, const int bias) noexcept {
     return neon_m128_reduce_add_epi32(sum) + bias;
 }
 
-inline void
-neon_m128_add_dpbusd_epi32(int32x4_t& acc, const int8x16_t a, const int8x16_t b) noexcept {
     #if defined(USE_NEON_DOTPROD)
+inline void
+dotprod_m128_add_dpbusd_epi32(int32x4_t& acc, const int8x16_t a, const int8x16_t b) noexcept {
     acc = vdotq_s32(acc, a, b);
-    #elif USE_NEON >= 8
+}
+    #endif
+    #if defined(USE_NEON) && USE_NEON >= 8
+inline void
+neon8_m128_add_dpbusd_epi32(int32x4_t& acc, const int8x16_t a, const int8x16_t b) noexcept {
     const int16x8_t product0 = vmull_s8(vget_low_s8(a), vget_low_s8(b));
     const int16x8_t product1 = vmull_high_s8(a, b);
     const int16x8_t sum      = vpaddq_s16(product0, product1);
     acc                      = vpadalq_s16(acc, sum);
-    #elif defined(USE_NEON)
+}
+    #endif
+    #if defined(USE_NEON)
+inline void
+neon_m128_add_dpbusd_epi32(int32x4_t& acc, const int8x16_t a, const int8x16_t b) noexcept {
     const int16x8_t product0 = vmull_s8(vget_low_s8(a), vget_low_s8(b));
     const int16x8_t product1 = vmull_s8(vget_high_s8(a), vget_high_s8(b));
     const int16x4_t sum0     = vpadd_s16(vget_low_s16(product0), vget_high_s16(product0));
     const int16x4_t sum1     = vpadd_s16(vget_low_s16(product1), vget_high_s16(product1));
     const int16x8_t sum      = vcombine_s16(sum0, sum1);
     acc                      = vpadalq_s16(acc, sum);
-    #endif
 }
-
+    #endif
 #endif  // USE_NEON
 
 #if defined(VECTOR)

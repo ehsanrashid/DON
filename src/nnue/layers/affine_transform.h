@@ -158,7 +158,8 @@ class AffineTransform final {
             using vec_t = int32x4_t;
         #define vec_set_32 vdupq_n_s32
         #define vec_add_dpbusd_32(acc, a, b) \
-            SIMD::neon_m128_add_dpbusd_epi32(acc, vreinterpretq_s8_s32(a), vreinterpretq_s8_s32(b))
+            SIMD::dotprod_m128_add_dpbusd_epi32(acc, vreinterpretq_s8_s32(a), \
+                                                vreinterpretq_s8_s32(b))
     #endif
 
             constexpr IndexType OutputSimdWidth = sizeof(vec_t) / sizeof(OutputType);
@@ -262,7 +263,8 @@ class AffineTransform final {
             using vec_t = int32x4_t;
         #define vec_setzero() vdupq_n_s32(0)
         #define vec_add_dpbusd_32(acc, a, b) \
-            SIMD::neon_m128_add_dpbusd_epi32(acc, vreinterpretq_s8_s32(a), vreinterpretq_s8_s32(b))
+            SIMD::dotprod_m128_add_dpbusd_epi32(acc, vreinterpretq_s8_s32(a), \
+                                                vreinterpretq_s8_s32(b))
         #define vec_hadd SIMD::neon_m128_hadd
     #endif
 
