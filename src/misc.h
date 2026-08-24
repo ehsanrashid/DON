@@ -1179,7 +1179,7 @@ class AllocationSizes final {
         sizesMap[mem] = size;
     }
 
-    bool remove(void* const mem) noexcept {
+    [[nodiscard]] bool remove(void* const mem) noexcept {
         std::lock_guard writeLock(sharedMutex);
 
         if (auto itr = sizesMap.find(mem); itr != sizesMap.end())
@@ -1194,7 +1194,10 @@ class AllocationSizes final {
         return false;
     }
 
-    std::optional<usize> find(void* const mem) const noexcept {
+    [[nodiscard]] usize size() const noexcept { return sizesMap.size(); }
+    [[nodiscard]] bool  empty() const noexcept { return sizesMap.empty(); }
+
+    [[nodiscard]] std::optional<usize> find(void* const mem) const noexcept {
         std::shared_lock readLock(sharedMutex);
 
         if (auto itr = sizesMap.find(mem); itr != sizesMap.end())
