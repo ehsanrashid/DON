@@ -46,6 +46,9 @@ ifneq ($(strip $(WINE_PATH)),)
     endif
 endif
 
+# Command to detect an executable in shell's PATH
+FIND_EXE = $(shell command -v "$(1)" 2>/dev/null)
+
 ### Target Windows OS
 IS_WINDOWS := no
 ifeq ($(OS),Windows_NT)
@@ -56,27 +59,21 @@ ifeq ($(OS),Windows_NT)
 else ifeq ($(COMP),mingw)
     IS_WINDOWS := yes
     ifeq ($(RUN_PREFIX),)
-        RUN_PREFIX := $(shell command -v wine 2>/dev/null)
+        RUN_PREFIX := $(call FIND_EXE,wine)
     endif
 endif
 
-# Cross-platform command to detect an executable
-ifeq ($(IS_WINDOWS),yes)
-    FIND_EXE = where "$(1)" 2>/dev/null
-else
-    FIND_EXE = command -v "$(1)" 2>/dev/null
-endif
-
-# -------------------------------------------
-# Detect clang-format (prefer newest version)
-# -------------------------------------------
+# ---------------------------------------------------------
+# Detect clang-format:
+# Use environment override; otherwise prefer newest version
+# ---------------------------------------------------------
 ifndef CLANG_FORMAT
-CLANG_FORMAT := $(shell \
-    $(call FIND_EXE,clang-format-24) || \
-    $(call FIND_EXE,clang-format-23) || \
-    $(call FIND_EXE,clang-format-22) || \
-    $(call FIND_EXE,clang-format-21) || \
-    $(call FIND_EXE,clang-format-20) || \
+CLANG_FORMAT := $(or \
+    $(call FIND_EXE,clang-format-24), \
+    $(call FIND_EXE,clang-format-23), \
+    $(call FIND_EXE,clang-format-22), \
+    $(call FIND_EXE,clang-format-21), \
+    $(call FIND_EXE,clang-format-20), \
     $(call FIND_EXE,clang-format))
 endif
 
@@ -648,7 +645,7 @@ else ifeq ($(COMP),mingw)
     MINGW_CXX_POSIX := $(MINGW_ARCH)-w64-mingw32-c++-posix
 
     # Prefer POSIX threading variant if available
-    CXX := $(if $(shell command -v $(MINGW_CXX_POSIX) 2>/dev/null),$(MINGW_CXX_POSIX),$(MINGW_CXX))
+    CXX := $(if $(call FIND_EXE,$(MINGW_CXX_POSIX)),$(MINGW_CXX_POSIX),$(MINGW_CXX))
 
     CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-declarations -fno-ipa-cp-clone -fconstexpr-ops-limit=500000000
 
@@ -776,7 +773,7 @@ endif
 ## Locate llvm-profdata compatible with CXX for PGO (profile-guided optimization) builds
 # make -j profile-build CXX=clang++-20 COMP=clang
 # Resolve the compiler path
-CXX_PATH := $(realpath $(shell command -v $(CXX) 2>/dev/null))
+CXX_PATH := $(realpath $(call FIND_EXE,$(CXX)))
 # Look for llvm-profdata alongside the compiler path
 LLVM_PROFDATA := $(dir $(CXX_PATH))llvm-profdata
 # For Intel ICX, look in the compiler's bundled LLVM directory
@@ -1037,15 +1034,15 @@ BUILD_DATE    := $(or $(GIT_DATE),$(COMPILER_DATE))
 
 define CACHE_FILE_IF_CHANGED
 $(shell \
-	if [ ! -f "$(1)" ] || [ "$$(cat "$(1)")" != "$(2)" ]; then \
-		printf '%s\n' "$(2)" > "$(1)"; \
-	fi)
+    if [ ! -f "$(1)" ] || [ "$$(cat "$(1)")" != "$(2)" ]; then \
+        printf '%s\n' "$(2)" > "$(1)"; \
+    fi)
 endef
 
 ifneq ($(filter-out help net strip install clean objclean profileclean config-sanity format install-hooks,$(MAKECMDGOALS)),)
-_ := $(call CACHE_FILE_IF_CHANGED,$(BUILD_DATE_FILE),$(BUILD_DATE))
-_ := $(call CACHE_FILE_IF_CHANGED,$(BUILD_SHA_FILE),$(GIT_SHA))
-_ := $(call CACHE_FILE_IF_CHANGED,$(BUILD_DIFFINDEX_FILE),$(GIT_DIFFINDEX))
+    _ := $(call CACHE_FILE_IF_CHANGED,$(BUILD_DATE_FILE),$(BUILD_DATE))
+    _ := $(call CACHE_FILE_IF_CHANGED,$(BUILD_SHA_FILE),$(GIT_SHA))
+    _ := $(call CACHE_FILE_IF_CHANGED,$(BUILD_DIFFINDEX_FILE),$(GIT_DIFFINDEX))
 endif
 
 # Compiler flags for embedding Git build information
@@ -1070,8 +1067,8 @@ ifeq ($(optimize),yes)
             # Non-macOS
             ifneq ($(TARGET_KERNEL),Darwin)
                 ifeq ($(CXX_IS_CLANG),yes)
-                    # Detect whether LLD is available
-                    LLD_BIN := $(shell command -v ld.lld 2>/dev/null || command -v lld 2>/dev/null)
+                    # Detect whether LLD (LLVM Linker) is available
+                    LLD_BIN := $(or $(call FIND_EXE,ld.lld),$(call FIND_EXE,lld))
                     ifneq ($(LLD_BIN),)
                         LDFLAGS += -fuse-ld=lld
                     endif
@@ -1362,12 +1359,12 @@ universalclean:
 	@rm -f universal/network_dump.inc
 
 format:
-	@echo CLANG_FORMAT=$(CLANG_FORMAT)
+	@echo CLANG_FORMAT="$(CLANG_FORMAT)"
 	@if [ -z "$(CLANG_FORMAT)" ]; then \
 	    echo "CLANG_FORMAT is not set"; \
 	    exit 1; \
 	fi
-	$(CLANG_FORMAT) -i -style=file $(SRCS) $(UNIVERSAL_SRCS) $(HEADERS)
+	"$(CLANG_FORMAT)" -i -style=file $(SRCS) $(UNIVERSAL_SRCS) $(HEADERS)
 
 install-hooks:
 	@root=$$(git rev-parse --show-toplevel 2> /dev/null); \
