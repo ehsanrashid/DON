@@ -120,9 +120,9 @@ constexpr Array<u8, TB_TYPE_NB, 4> TB_MAGICS{{
 
 // clang-format off
 
-constexpr Array<int         , WDL_SCORE_NB> WDL_MAP  {        1,              3,          0,              2,        0 };
-constexpr Array<i32, WDL_SCORE_NB> WDL_RANK {-DTZ_MAX , -DTZ_MAX + 101,          0, +DTZ_MAX - 101, +DTZ_MAX };
-constexpr Array<Value       , WDL_SCORE_NB> WDL_VALUE{-VALUE_TB, VALUE_DRAW - 2, VALUE_DRAW, VALUE_DRAW + 2, +VALUE_TB};
+constexpr Array<int  , WDL_SCORE_NB> WDL_MAP  {        1,              3,          0,              2,        0 };
+constexpr Array<i32  , WDL_SCORE_NB> WDL_RANK {-DTZ_MAX , -DTZ_MAX + 101,          0, +DTZ_MAX - 101, +DTZ_MAX };
+constexpr Array<Value, WDL_SCORE_NB> WDL_VALUE{-VALUE_TB, VALUE_DRAW - 2, VALUE_DRAW, VALUE_DRAW + 2, +VALUE_TB};
 
 constexpr usize wdl_index(WDLScore wdlScore) noexcept { return usize(wdlScore - WDL_LOSS); }
 

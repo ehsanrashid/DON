@@ -638,7 +638,7 @@ void Worker::iterative_deepening() noexcept {
             // A mated-in/TB loss from an aborted search for pvIdx > 0 can only become
             // bestmove in the sorting below, if the current bestmove (and hence also
             // the previously searched pvIdx - 1 line) is already a proven loss.
-            if (threads.is_stopped() && pvCur != 0 && is_loss(rootMoves[pvCur - 1].curValue)
+            if (pvCur != 0 && threads.is_stopped() && is_loss(rootMoves[pvCur - 1].curValue)
                 && rootMoves[pvCur].curValue > rootMoves[pvCur - 1].curValue)
             {
                 rootMoves[pvCur].curValue = rootMoves[pvCur].uciValue =
@@ -647,7 +647,7 @@ void Worker::iterative_deepening() noexcept {
                     : rootMoves[pvCur - 1].curValue;
                 rootMoves[pvCur].preValue = -VALUE_INFINITE;
                 rootMoves[pvCur].reset_bound();
-                rootMoves[pvCur].pv.resize(1);
+                rootMoves[pvCur].truncate_pv();
             }
 
             // Sort the PV lines searched so far
@@ -664,10 +664,10 @@ void Worker::iterative_deepening() noexcept {
             }
         }
 
-        const bool mateForgotten = lastCurValue != -VALUE_INFINITE && is_mate(lastCurValue)
-                                && (constexpr_abs(rootMoves[0].curValue)  //
-                                      < constexpr_abs(lastCurValue)
-                                    || rootMoves[0].has_bound());
+        const bool mateForgotten =
+          lastCurValue != -VALUE_INFINITE && is_mate(lastCurValue)
+          && (constexpr_abs(rootMoves[0].curValue) < constexpr_abs(lastCurValue)
+              || rootMoves[0].has_bound());
 
         if (threads.is_stopped())
         {
@@ -1618,7 +1618,7 @@ Value Worker::search(Position&    pos,
                     rm.bound    = Bound::UPPER;
                 }
 
-                rm.pv.resize(1);  // keep root move at index 0
+                rm.truncate_pv();
 
                 const auto* const childPv = (ss + 1)->pv;
                 assert(childPv != nullptr);
@@ -2659,32 +2659,32 @@ void MainSearchManager::show_pv(Worker& worker, const Depth depth) const noexcep
     {
         const auto& rm = rootMoves[i];
 
-        const bool valueIsInvalid = rm.curValue == -VALUE_INFINITE;
+        const bool isValueInvalid = rm.curValue == -VALUE_INFINITE;
 
-        if (i != 0 && depth == 1 && valueIsInvalid)
+        if (i != 0 && depth == 1 && isValueInvalid)
             continue;
 
-        const Depth d = !valueIsInvalid || depth <= 1 ? depth : depth - 1;
+        const Depth d = !isValueInvalid || depth <= 1 ? depth : depth - 1;
 
-        Value v = valueIsInvalid ? rm.preValue : rm.uciValue;
+        Value v = isValueInvalid ? rm.preValue : rm.uciValue;
 
         if (v == -VALUE_INFINITE)
             v = VALUE_ZERO;
 
-        const bool valueIsTB = tbConfig.rootInTB && !is_mate(v);
+        const bool isValueTB = tbConfig.rootInTB && !is_mate(v);
 
-        if (valueIsTB)
+        if (isValueTB)
             v = rm.tbValue;
 
         // Potentially correct and extend the PV, and in exceptional cases value also
-        if (!valueIsInvalid && (valueIsTB || !rm.has_bound()) && is_decisive(v) && !is_mate(v))
+        if ((isValueTB || !rm.has_bound()) && is_decisive(v) && !is_mate(v))
             worker.extend_tb_pv(i, v);
 
         FixedText score{to_score({v, rootPos})};
 
         FixedText bound;
         // TB and previous scores are exact, even though their bound flags may say otherwise
-        if (!(valueIsTB || valueIsInvalid) && rm.has_bound())
+        if (!(isValueTB || isValueInvalid) && rm.has_bound())
             bound = FixedText::from_view(to_string(rm.bound));
 
         FixedText wdl;
