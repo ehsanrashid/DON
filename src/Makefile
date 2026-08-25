@@ -780,12 +780,12 @@ ifeq ($(optimize),yes)
     endif
 
     ifeq ($(TARGET_KERNEL),Darwin)
-        ifneq ($(filter clang icx ndk,$(COMP)),)
-            CXXFLAGS += -mdynamic-no-pic
-        else ifeq ($(COMP),gcc)
+        ifeq ($(COMP),gcc)
             ifneq ($(arch),arm64)
                 CXXFLAGS += -mdynamic-no-pic
             endif
+        else ifneq ($(filter clang icx ndk,$(COMP)),)
+            CXXFLAGS += -mdynamic-no-pic
         endif
     endif
 endif
@@ -1025,7 +1025,7 @@ ifeq ($(optimize),yes)
         # MinGW (requires GCC 10.1+ for LTO and static linking)
         ifeq ($(COMP),mingw)
             LTO_FLAGS   := -flto -flto-partition=one
-            LTO_LDFLAGS := -flto=auto -save-temps
+            LTO_LDFLAGS := -save-temps
         # GCC / Clang / ICX / NDK Clang
         else ifneq ($(filter gcc clang icx ndk,$(COMP)),)
             # Clang-compatible compiler
@@ -1034,7 +1034,6 @@ ifeq ($(optimize),yes)
             # Native GCC
             else
                 LTO_FLAGS   := -flto -flto-partition=one
-                LTO_LDFLAGS := -flto=auto
             endif
             ifeq ($(COMP),icx)
                 CXXFLAGS += -fwhole-program-vtables
@@ -1292,7 +1291,7 @@ profileclean:
 	@rm -f "$(NAME).profdata" *.profraw
 	@rm -f "$(NAME)".*args*
 	@rm -f "$(NAME)".*lt*
-	@rm -f "$(NAME).res"
+	@rm -f "$(NAME)".res
 	@rm -f ./-lstdc++.res
 
 universalclean:
