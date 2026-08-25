@@ -292,7 +292,7 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
 
-      # macos-15 is Apple Silicon; Rosetta 2 is needed to exercise the x86-64 slice
+      # macOS 15 is Apple Silicon; Rosetta 2 is needed to exercise the x86-64 slice
       - name: Install Rosetta 2
         run: softwareupdate --install-rosetta --agree-to-license
 

@@ -89,11 +89,11 @@ jobs:
       #       exit 1
       #     fi
 
-      # - name: Run matetrack th1 multiPV
-      #   working-directory: matetrack
-      #   run: |
-      #     python matecheck.py --engine /home/runner/work/DON/DON/DON/src/DON --epdFile matetrack.epd matedtrack.epd --bmMax 10 --nodes 5000 --multiPV 20 --checkMultiPVs | tee matecheck1mpv.out
-      #     ! grep "issues were detected" matecheck1mpv.out > /dev/null
+      - name: Run matetrack th1 multiPV
+        working-directory: matetrack
+        run: |
+          python matecheck.py --engine /home/runner/work/DON/DON/DON/src/DON --epdFile matetrack.epd matedtrack.epd --bmMax 10 --nodes 5000 --multiPV 20 --checkMultiPVs | tee matecheck1mpv.out
+          ! grep "issues were detected" matecheck1mpv.out > /dev/null
 
       # - name: Run matetrack th4 multiPV
       #   working-directory: matetrack

@@ -4,7 +4,7 @@ on:
   workflow_call:
 
 jobs:
-  compiler-matrix-avx2:
+  compiler-avx2-matrix:
     name: avx2 (${{ matrix.name }})
     runs-on: ubuntu-latest
     container:
