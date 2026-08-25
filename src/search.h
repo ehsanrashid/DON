@@ -189,7 +189,7 @@ struct RootMove final {
 
     [[nodiscard]] usize pv_size() const noexcept { return pv.size(); }
     // Keep only the root move at index 0
-    void truncate_pv(const usize size) noexcept { pv.resize(size); }
+    void resize_pv(const usize newSize) noexcept { pv.resize(newSize); }
 
     u64 nodes = 0;
 

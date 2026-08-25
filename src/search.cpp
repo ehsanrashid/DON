@@ -647,7 +647,7 @@ void Worker::iterative_deepening() noexcept {
                     : rootMoves[pvCur - 1].curValue;
                 rootMoves[pvCur].preValue = -VALUE_INFINITE;
                 rootMoves[pvCur].reset_bound();
-                rootMoves[pvCur].truncate_pv(
+                rootMoves[pvCur].resize_pv(
                   std::min(rootMoves[pvCur].pv_size(), rootMoves[pvCur - 1].pv_size()));
             }
 
@@ -1619,7 +1619,7 @@ Value Worker::search(Position&    pos,
                     rm.bound    = Bound::UPPER;
                 }
 
-                rm.truncate_pv(1);
+                rm.resize_pv(1);
 
                 const auto* const childPv = (ss + 1)->pv;
                 assert(childPv != nullptr);
