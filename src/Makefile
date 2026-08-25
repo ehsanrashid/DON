@@ -229,18 +229,16 @@ tablebases = yes
 
 ### 2.2 Architecture specific
 
-ifneq ($(findstring x86,$(ARCH)),)
-
 # x86-32/64
+ifneq ($(findstring x86,$(ARCH)),)
 
 # To enable sse use: make -j build ARCH=x86-32 sse=yes
 ifneq ($(findstring x86-32,$(ARCH)),)
     arch = i386
     bits = 32
     sse_fp = yes
-    sse = no
     mmx = yes
-else
+else ifneq ($(findstring x86-64,$(ARCH)),)
     arch = x86_64
     sse = yes
     sse2 = yes
@@ -293,10 +291,9 @@ ifneq ($(findstring -sse41-bmi2,$(ARCH)),)
     ssse3 = yes
     sse41 = yes
     bmi2 = yes
-endif
-
-ifneq ($(findstring -sse41-bmi2-cmp,$(ARCH)),)
-    cmp = yes
+    ifneq ($(findstring -cmp,$(ARCH)),)
+        cmp = yes
+    endif
 endif
 
 ifneq ($(findstring -avx2,$(ARCH)),)
@@ -385,18 +382,17 @@ ifeq ($(bits),32)
     bmi2 = no
 endif
 
+# all other architectures
 else
 
-# all other architectures
-
-ifeq ($(ARCH),general-32)
+ifneq ($(findstring general,$(ARCH)),)
     arch = any
-    bits = 32
-    sse_fp = yes
-endif
-
-ifeq ($(ARCH),general-64)
-    arch = any
+    ifneq ($(findstring -32,$(ARCH)),)
+        bits = 32
+        sse_fp = yes
+    endif
+    ifneq ($(findstring -64,$(ARCH)),)
+    endif
 endif
 
 ifeq ($(ARCH),ppc-32)
@@ -404,27 +400,18 @@ ifeq ($(ARCH),ppc-32)
     bits = 32
 endif
 
-ifeq ($(ARCH),ppc-64)
+ifneq ($(findstring ppc-64,$(ARCH)),)
     arch = ppc64
-    popcnt = yes
     prefetch = yes
+    popcnt = yes
+    ifneq ($(findstring -altivec,$(ARCH)),)
+        altivec = yes
+    else ifneq ($(findstring -vsx,$(ARCH)),)
+        vsx = yes
+    endif
 endif
 
-ifeq ($(ARCH),ppc-64-altivec)
-    arch = ppc64
-    popcnt = yes
-    prefetch = yes
-    altivec = yes
-endif
-
-ifeq ($(ARCH),ppc-64-vsx)
-    arch = ppc64
-    popcnt = yes
-    prefetch = yes
-    vsx = yes
-endif
-
-ifeq ($(ARCH),e2k)
+ifneq ($(findstring e2k,$(ARCH)),)
     arch = e2k
     sse = yes
     mmx = yes
@@ -448,30 +435,36 @@ endif
 
 ifneq ($(findstring riscv64,$(ARCH)),)
     arch = riscv64
-    ifeq ($(ARCH),riscv64-rva23)
-        rva23 = yes
-        popcnt = yes
+    ifneq ($(findstring -rva23,$(ARCH)),)
         prefetch = yes
+        popcnt = yes
+        rva23 = yes
     endif
 endif
 
-ifeq ($(ARCH),armv7)
+ifneq ($(findstring arm7,$(ARCH)),)
     arch = armv7
     bits = 32
     prefetch = yes
     arm_version = 7
+    ifneq ($(findstring -neon,$(ARCH)),)
+        popcnt = yes
+        neon = yes
+    endif
 endif
 
-ifeq ($(ARCH),armv7-neon)
-    arch = armv7
-    bits = 32
+ifneq ($(findstring armv8,$(ARCH)),)
+    arch = armv8
     prefetch = yes
     popcnt = yes
-    arm_version = 7
+    arm_version = 8
     neon = yes
+    ifneq ($(findstring -dotprod,$(ARCH)),)
+        dotprod = yes
+    endif
 endif
 
-ifeq ($(ARCH),armv8)
+ifneq ($(findstring arm64-universal,$(ARCH)),)
     arch = armv8
     prefetch = yes
     popcnt = yes
@@ -479,16 +472,7 @@ ifeq ($(ARCH),armv8)
     neon = yes
 endif
 
-ifeq ($(ARCH),armv8-dotprod)
-    arch = armv8
-    prefetch = yes
-    popcnt = yes
-    arm_version = 8
-    neon = yes
-    dotprod = yes
-endif
-
-ifeq ($(ARCH),apple-silicon)
+ifneq ($(findstring apple-silicon,$(ARCH)),)
     arch = arm64
     prefetch = yes
     popcnt = yes
@@ -499,22 +483,15 @@ endif
 
 # WASM is largely compiled using emcc's x86 compatibility layer, with occasional
 # WASM-specific intrinsics
-ifeq ($(ARCH),wasm32)
+ifneq ($(findstring wasm32,$(ARCH)),)
     arch = wasm32
     sse = yes
     sse2 = yes
     ssse3 = yes
     sse41 = yes
-    tablebases = no
-endif
-
-ifeq ($(ARCH),wasm32-relaxed-simd)
-    arch = wasm32
-    sse = yes
-    sse2 = yes
-    ssse3 = yes
-    sse41 = yes
-    relaxedsimd = yes
+    ifneq ($(findstring -relaxed-simd,$(ARCH)),)
+        relaxedsimd = yes
+    endif
     tablebases = no
 endif
 
@@ -727,7 +704,7 @@ else ifeq ($(COMP),ndk)
     else ifeq ($(arch),x86)
         TARGET := i686-linux-android
     else
-        $(error Unsupported NDK arch: $(arch))
+        # $(error Unsupported NDK arch: $(arch))
     endif
 
     CXX := $(TOOLCHAIN)/$(TARGET)$(ANDROID_API)-clang++
