@@ -329,7 +329,7 @@ void Worker::start_search() noexcept {
 
             RootMoves oRootMoves;
 
-            for (auto m : MoveList<GenType::LEGAL>(rootPos))
+            for (const Move m : MoveList<GenType::LEGAL>(rootPos))
                 oRootMoves.emplace_back(m);
 
             Move bookPonderMove = pgBook.probe(rootPos, oRootMoves, options);

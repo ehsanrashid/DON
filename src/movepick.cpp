@@ -368,21 +368,18 @@ MovePicker::score<GenType::ENC_CAPTURE>(const MoveList<GenType::ENC_CAPTURE>& mo
 
     auto itr = cur;
 
-    for (const Move move : moveList)
+    for (const Move m : moveList)
     {
-        auto& m = *itr;
-        m       = move;
-
         assert(pos.capture_promo(m));
 
         const Square dstSq      = m.dst_sq();
         const Piece  movedPc    = pos.moved_pc(m);
         const auto   capturedPt = pos.captured_pt(m);
 
-        m.value = 7 * piece_value(capturedPt)  //
-                + captureHistoryRef[+movedPc][dstSq][capturedPt];
-
-        ++itr;
+        auto& em = *itr++;
+        em       = m;
+        em.value = 7 * piece_value(capturedPt)  //
+                 + captureHistoryRef[+movedPc][dstSq][capturedPt];
     }
 
     return itr;
@@ -404,11 +401,8 @@ MovePicker::score<GenType::ENC_QUIET>(const MoveList<GenType::ENC_QUIET>& moveLi
 
     auto itr = cur;
 
-    for (const Move move : moveList)
+    for (const Move m : moveList)
     {
-        auto& m = *itr;
-        m       = move;
-
         assert(!pos.capture_promo(m));
 
         const Square orgSq = m.org_sq(), dstSq = m.dst_sq();
@@ -448,9 +442,9 @@ MovePicker::score<GenType::ENC_QUIET>(const MoveList<GenType::ENC_QUIET>& moveLi
         value -=
           int((pinnersBB & orgSq) != 0 && !aligned(pos.square<KING>(~ac), orgSq, dstSq)) * 0x400;
 
-        m.value = std::clamp(value, -INT_LIMIT, +INT_LIMIT);
-
-        ++itr;
+        auto& em = *itr++;
+        em       = m;
+        em.value = std::clamp(value, -INT_LIMIT, +INT_LIMIT);
     }
 
     return itr;
@@ -462,19 +456,16 @@ MovePicker::score<GenType::EVA_CAPTURE>(const MoveList<GenType::EVA_CAPTURE>& mo
 
     auto itr = cur;
 
-    for (const Move move : moveList)
+    for (const Move m : moveList)
     {
-        auto& m = *itr;
-        m       = move;
-
         assert(pos.capture_promo(m));
         assert(m.type() != MT::CASTLING);
 
         const auto capturedPt = pos.captured_pt(m);
 
-        m.value = piece_value(capturedPt);
-
-        ++itr;
+        auto& em = *itr++;
+        em       = m;
+        em.value = piece_value(capturedPt);
     }
 
     return itr;
@@ -491,21 +482,18 @@ MovePicker::score<GenType::EVA_QUIET>(const MoveList<GenType::EVA_QUIET>& moveLi
 
     auto itr = cur;
 
-    for (const Move move : moveList)
+    for (const Move m : moveList)
     {
-        auto& m = *itr;
-        m       = move;
-
         assert(!pos.capture_promo(m));
         assert(m.type() != MT::CASTLING);
 
         const Square dstSq   = m.dst_sq();
         const Piece  movedPc = pos.moved_pc(m);
 
-        m.value = quietHistoryRef[ac][m.raw()]  //
-                + (*continuationHistoryPtr[0])[+movedPc][dstSq];
-
-        ++itr;
+        auto& em = *itr++;
+        em       = m;
+        em.value = quietHistoryRef[ac][m.raw()]  //
+                 + (*continuationHistoryPtr[0])[+movedPc][dstSq];
     }
 
     return itr;
