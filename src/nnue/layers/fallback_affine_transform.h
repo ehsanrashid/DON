@@ -92,6 +92,7 @@ void fallback_affine_transform(const Array<i32, OutputDimensions>&              
             product           = vmlal_s8(product, inputVec[k + 1], rowVec[k + 1]);
             sum               = vpadalq_s16(sum, product);
         }
+
         output[i] = SIMD::neon_m128_reduce_add_epi32(sum);
 
     #endif

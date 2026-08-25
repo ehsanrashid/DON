@@ -92,7 +92,7 @@ union Zobrist final {
 // Random numbers from PolyGlot, used to compute book hash keys
 // startpos-key == u64{0x463B96181691FC9C}
 // clang-format off
-constexpr Zobrist PGZob{{
+constexpr Zobrist PG_ZOBRIST{{
   // WHITE_PAWN
   u64{0x5355F900C2A82DC7}, u64{0x07FB9F855A997142}, u64{0x5093417AA8A7ED5E}, u64{0x7BCBC38DA25A7F3C},
   u64{0x19FC8A768CF4B6D4}, u64{0x637A7780DECFC0D9}, u64{0x8249A47AEE0E41F7}, u64{0x79AD695501E7D1E8},
@@ -307,7 +307,7 @@ constexpr Zobrist PGZob{{
 }};
 // clang-format on
 
-u16 swap_uint16(u16 n) noexcept {
+u16 swap_uint16(const u16 n) noexcept {
 #if defined(__clang__)
     return __builtin_bswap16(n);
 #elif defined(__GNUC__)
@@ -321,7 +321,7 @@ u16 swap_uint16(u16 n) noexcept {
 #endif
 }
 
-u32 swap_uint32(u32 n) noexcept {
+u32 swap_uint32(const u32 n) noexcept {
 #if defined(__clang__)
     return __builtin_bswap32(n);
 #elif defined(__GNUC__)
@@ -337,7 +337,7 @@ u32 swap_uint32(u32 n) noexcept {
 #endif
 }
 
-u64 swap_uint64(u64 n) noexcept {
+u64 swap_uint64(const u64 n) noexcept {
 #if defined(__clang__)
     return __builtin_bswap64(n);
 #elif defined(__GNUC__)
@@ -357,7 +357,7 @@ u64 swap_uint64(u64 n) noexcept {
 #endif
 }
 
-void swap_entry(PolyGlot::Entry* e) noexcept {
+void swap_entry(PolyGlot::Entry* const e) noexcept {
     if (e == nullptr)
         return;
     e->key    = swap_uint64(e->key);
@@ -382,7 +382,7 @@ void swap_entry(PolyGlot::Entry* e) noexcept {
 // bit  6-11: origin square (from 0 to 63)
 // bit 12-13: promotion piece type (from KNIGHT = 0 to QUEEN = 3)
 // bit 14-15: special move flag
-Move pg_to_move(u16 pgMove, MoveList<GenType::LEGAL>& legalMoves) noexcept {
+Move pg_to_move(const u16 pgMove, MoveList<GenType::LEGAL>& legalMoves) noexcept {
 
     Move move(pgMove);
 
@@ -398,7 +398,7 @@ Move pg_to_move(u16 pgMove, MoveList<GenType::LEGAL>& legalMoves) noexcept {
     return Move::None;
 }
 
-bool is_draw(Position& pos, Move m) noexcept {
+bool is_draw(Position& pos, const Move m) noexcept {
     if (m == Move::None)
         return true;
 
@@ -523,7 +523,7 @@ std::string PolyGlot::info() const noexcept {
     return "Book: " + filename + " with " + std::to_string(entries.size()) + " entries";
 }
 
-usize PolyGlot::key_index(Key key) const noexcept {
+usize PolyGlot::key_index(const Key key) const noexcept {
     constexpr usize Radius = 4;
 
     usize begIndex = 0;
@@ -565,7 +565,7 @@ usize PolyGlot::key_index(Key key) const noexcept {
     return entries.size();
 }
 
-PolyGlot::Entries PolyGlot::key_candidates(Key key) const noexcept {
+PolyGlot::Entries PolyGlot::key_candidates(const Key key) const noexcept {
     usize index = key_index(key);
 
     Entries candidates;
@@ -591,9 +591,9 @@ Move PolyGlot::probe(Position& pos, const RootMoves& rootMoves, const Options& o
     if (!(options["Book"] && !empty() && pos.move_num() <= options["BookProbeDepth"]))
         return Move::None;
 
-    Key key = PGZob.key(pos);
+    const Key key = PG_ZOBRIST.key(pos);
 
-    Entries candidates = key_candidates(key);
+    const Entries candidates = key_candidates(key);
 
     if (candidates.empty())
         return Move::None;

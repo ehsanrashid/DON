@@ -19,11 +19,13 @@
 
 #include <algorithm>
 #include <chrono>
+#include <functional>
 #include <limits>
 #include <ratio>
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <unordered_set>
 
 #include "history.h"
 #include "movegen.h"
@@ -617,6 +619,10 @@ void Threads::wait_on_thread(const usize threadId) const noexcept {
     thread->wait_finish();
 }
 
+std::vector<NumaIndex> Threads::thread_bound_numa_nodes() const noexcept {
+    return threadBoundNumaNodes;
+}
+
 std::vector<usize> Threads::bound_thread_counts() const noexcept {
     std::vector<usize> threadCounts;
     {
@@ -634,6 +640,17 @@ std::vector<usize> Threads::bound_thread_counts() const noexcept {
         }
     }
     return threadCounts;
+}
+
+NumaIndex Threads::numa_nodes() const noexcept {
+    std::unordered_set<NumaIndex> seenNumaIds;
+    {
+        std::shared_lock readLock(sharedMutex);
+
+        for (const NumaIndex numaId : threadBoundNumaNodes)
+            seenNumaIds.insert(numaId);
+    }
+    return std::max(seenNumaIds.size(), NumaIndex{1});
 }
 
 }  // namespace DON

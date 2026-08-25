@@ -45,7 +45,7 @@ struct NNZ final {
             indices(_mm512_load_si512(&Indices[perspective])) {}
 
         void record(SIMD::vec_t neurons1, SIMD::vec_t neurons2) noexcept {
-            unsigned count = nnz.count;
+            unsigned nnzCount = nnz.count;
     #if defined(USE_AVX512ICL)
             const __m512i increment = _mm512_set1_epi16(32);
 
@@ -55,9 +55,9 @@ struct NNZ final {
 
             // Avoid _mm512_mask_compressstoreu_epi16() as it's 256 uOps on Zen4
             const __m512i nnzVal = _mm512_maskz_compress_epi16(nnzMask, indices);
-            _mm512_storeu_si512(nnz.bitset + count, nnzVal);
+            _mm512_storeu_si512(nnz.bitset + nnzCount, nnzVal);
 
-            count += popcount(nnzMask);
+            nnzCount += popcount(nnzMask);
             indices = _mm512_add_epi16(indices, increment);
     #else
             const __m512i increment = _mm512_set1_epi32(16);
@@ -67,13 +67,13 @@ struct NNZ final {
                 // Get a bitmask and gather non-zero indices
                 const __mmask16 nnzMask = _mm512_test_epi32_mask(neurons, neurons);
                 const __m512i   nnzVal  = _mm512_maskz_compress_epi32(nnzMask, indices);
-                _mm512_mask_cvtepi32_storeu_epi16(nnz.bitset + count, 0xFFFF, nnzVal);
+                _mm512_mask_cvtepi32_storeu_epi16(nnz.bitset + nnzCount, 0xFFFF, nnzVal);
 
-                count += popcount(nnzMask);
+                nnzCount += popcount(nnzMask);
                 indices = _mm512_add_epi32(indices, increment);
             }
     #endif
-            nnz.count = count;
+            nnz.count = nnzCount;
         }
 
        private:

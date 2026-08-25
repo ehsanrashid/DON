@@ -24,6 +24,8 @@
 #include <fstream>
 #include <iostream>
 #include <system_error>
+#include <numeric>
+#include <vector>
 
 #include "memory.h"
 #include "thread.h"
@@ -222,13 +224,20 @@ void TranspositionTable::advance_generation() const noexcept {
 // Sets the size of the transposition table, measured in megabytes (MB).
 // Transposition table consists of even number of clusters.
 void TranspositionTable::resize(const usize ttSize, const Threads& threads) noexcept {
+    constexpr usize ClusterSize = sizeof(TTCluster);
+
     free();
 
-    clusterCount = ttSize * MB / sizeof(TTCluster);
-
+    clusterCount = ttSize * MB / ClusterSize;
     //DEBUG_LOG("Clustering transposition table to " << clusterCount << " clusters.");
 
-    clusters = static_cast<TTCluster*>(alloc_aligned_large_page(clusterCount * sizeof(TTCluster)));
+    const usize ttBytes = clusterCount * ClusterSize;
+
+    // Request 1GB pages if we'd get at least eight per NUMA node, to avoid
+    // memory oversubscription
+    const bool hugePageHint = ttBytes >= 8 * threads.numa_nodes() * HUGE_PAGE_SIZE;
+
+    clusters = static_cast<TTCluster*>(alloc_aligned_large_page_with_hint(ttBytes, hugePageHint));
 
     if (clusters == nullptr)
     {
@@ -245,18 +254,33 @@ void TranspositionTable::reset(const Threads& threads) noexcept {
 
     const usize threadCount = threads.size();
 
+    auto threadBoundNumaNodes = threads.thread_bound_numa_nodes();
+
+    std::vector<size_t> orderedThreads(threadCount);
+    std::iota(orderedThreads.begin(), orderedThreads.end(), 0);
+
+    // To promote good NUMA distribution (esp. with huge pages), we permute threads so that
+    // all threads in a NUMA node clear a contiguous region of the TT.
+    if (threadBoundNumaNodes.size() == threadCount)
+    {
+        std::stable_sort(orderedThreads.begin(), orderedThreads.end(),
+                         [&threadBoundNumaNodes](const usize t1, const usize t2) noexcept -> bool {
+                             return threadBoundNumaNodes.at(t1) < threadBoundNumaNodes.at(t2);
+                         });
+    }
+
     for (usize threadId = 0; threadId < threadCount; ++threadId)
     {
-        threads.run_on_thread(threadId, [this, threadId, threadCount]() {
+        threads.run_on_thread(orderedThreads[threadId], [this, threadId, threadCount]() {
             // Each thread will zero its part of the hash table
-            auto [beg, end] = split_range(threadId, threadCount, clusterCount);
+            const auto [beg, end] = split_range(threadId, threadCount, clusterCount);
 
             std::memset(&clusters[beg], 0, (end - beg) * sizeof(TTCluster));
         });
     }
 
     for (usize threadId = 0; threadId < threadCount; ++threadId)
-        threads.wait_on_thread(threadId);
+        threads.wait_on_thread(orderedThreads[threadId]);
 }
 
 TTCluster* TranspositionTable::cluster(const Key key) const noexcept {

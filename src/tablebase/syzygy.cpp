@@ -640,7 +640,7 @@ u8* TBTable<T>::map(std::string_view filename) noexcept {
 
     if (!hFileGuard.is_valid())
     {
-        //DEBUG_LOG("CreateFile() failed, name = " << filename << ", error = " << error_to_string(GetLastError()));
+        //DEBUG_LOG("CreateFile() failed: name = " << filename << ", error = " << error_to_string(GetLastError()));
         return nullptr;
     }
 
@@ -649,7 +649,7 @@ u8* TBTable<T>::map(std::string_view filename) noexcept {
 
     if (loSize == INVALID_FILE_SIZE && GetLastError() != NO_ERROR)
     {
-        DEBUG_LOG("GetFileSize() failed, name = " << filename << ", error = "
+        DEBUG_LOG("GetFileSize() failed: name = " << filename << ", error = "
                                                   << error_to_string(GetLastError()));
         return nullptr;
     }
@@ -665,7 +665,7 @@ u8* TBTable<T>::map(std::string_view filename) noexcept {
 
     if (!hMapFileGuard.is_valid())
     {
-        DEBUG_LOG("CreateFileMapping() failed, name = " << filename << ", error = "
+        DEBUG_LOG("CreateFileMapping() failed: name = " << filename << ", error = "
                                                         << error_to_string(GetLastError()));
         return nullptr;
     }
@@ -674,7 +674,7 @@ u8* TBTable<T>::map(std::string_view filename) noexcept {
 
     if (!mappedGuard.is_valid())
     {
-        DEBUG_LOG("MapViewOfFile() failed, name = " << filename << ", error = "
+        DEBUG_LOG("MapViewOfFile() failed: name = " << filename << ", error = "
                                                     << error_to_string(GetLastError()));
 
         hMapFileGuard.reset();
@@ -688,7 +688,7 @@ u8* TBTable<T>::map(std::string_view filename) noexcept {
 
     if (!fdGuard.is_valid())
     {
-        //DEBUG_LOG("::open() failed, name = " << filename << ", error = " << std::strerror(errno));
+        //DEBUG_LOG("::open() failed: name = " << filename << ", error = " << std::strerror(errno));
         return nullptr;
     }
 
@@ -696,7 +696,7 @@ u8* TBTable<T>::map(std::string_view filename) noexcept {
 
     if (::fstat(fdGuard.get(), &fileStat) == -1)
     {
-        DEBUG_LOG("::fstat() failed, name = " << filename << ", error = " << std::strerror(errno));
+        DEBUG_LOG("::fstat() failed: name = " << filename << ", error = " << std::strerror(errno));
         return nullptr;
     }
 
@@ -713,7 +713,7 @@ u8* TBTable<T>::map(std::string_view filename) noexcept {
 
     if (!mappedGuard.is_valid())
     {
-        DEBUG_LOG("::mmap() failed, name = " << filename << ", size = " << mappedSize << ": "
+        DEBUG_LOG("::mmap() failed: name = " << filename << ", size = " << mappedSize << ": "
                                              << std::strerror(errno));
         return nullptr;
     }
@@ -722,7 +722,7 @@ u8* TBTable<T>::map(std::string_view filename) noexcept {
     if (mappedGuard.get_ptr() != nullptr && mappedGuard.get_size() != 0
         && ::madvise(mappedGuard.get_ptr(), mappedGuard.get_size(), MADV_RANDOM) != 0)
     {
-        //DEBUG_LOG("::madvise() failed, name = " << filename << " mappedSize = " << mappedGuard.get_size() << ", error = " << std::strerror(errno));
+        //DEBUG_LOG("::madvise() failed: name = " << filename << " mappedSize = " << mappedGuard.get_size() << ", error = " << std::strerror(errno));
     }
         #endif
     #endif

@@ -27,7 +27,6 @@
 #include "evaluate.h"
 #include "movegen.h"
 #include "notation.h"
-#include "numa.h"
 #include "perft.h"
 #include "shm.h"
 #include "book/polyglot.h"
@@ -117,7 +116,7 @@ const Options& Engine::get_options() const noexcept { return options; }
 
 std::string Engine::fen() const noexcept { return pos.fen(); }
 
-void Engine::setup(std::string_view fen, const Strings& moves) noexcept {
+void Engine::setup(const std::string_view fen, const Strings& moves) noexcept {
     // Drop the old states and create a new one
     states = std::make_unique<StateList>(1);
     pos.set(fen, &states->back());
@@ -143,7 +142,7 @@ void Engine::setup(std::string_view fen, const Strings& moves) noexcept {
     }
 }
 
-u64 Engine::perft(Depth depth, bool detail) noexcept {
+u64 Engine::perft(const Depth depth, const bool detail) noexcept {
 
     State    st;
     Position p;
@@ -197,7 +196,7 @@ void Engine::resize_threads_tt() noexcept {
     threads.ensure_network_replicated();
 }
 
-void Engine::resize_tt(usize ttSize) noexcept {
+void Engine::resize_tt(const usize ttSize) noexcept {
     wait_finish();
 
     transpositionTable.resize(ttSize, threads);
@@ -235,9 +234,9 @@ void Engine::flip() noexcept { pos.flip(); }
 
 void Engine::mirror() noexcept { pos.mirror(); }
 
-u16 Engine::hashfull(u8 maxAge) const noexcept { return transpositionTable.hashfull(maxAge); }
+u16 Engine::hashfull(const u8 maxAge) const noexcept { return transpositionTable.hashfull(maxAge); }
 
-bool Engine::set_numa_config(std::string_view cfg) noexcept {
+bool Engine::set_numa_config(const std::string_view cfg) noexcept {
     if (cfg == "none")
         numaContext.set_numa_config(NumaConfig{});
     else if (cfg == "auto" || cfg == "system")

@@ -107,8 +107,8 @@ UNIVERSAL_SRCS := \
     universal/nnue_embed.cpp
 
 HEADERS := \
-    attacks.h benchmark.h bitboard.h engine.h evaluate.h history.h memory.h \
-    misc.h movegen.h movepick.h notation.h numa.h option.h perft.h platform_win.h \
+    attacks.h benchmark.h bitboard.h engine.h evaluate.h history.h memory.h misc.h \
+    movegen.h movepick.h native_thread.h notation.h numa.h option.h perft.h platform_win.h \
     position.h prng.h search.h shm.h thread.h timeman.h tt.h tune.h types.h uci.h \
     nnue/features/full_threats.h nnue/features/half_ka_hm.h \
     nnue/layers/fallback_affine_transform.h nnue/layers/affine_transform.h nnue/layers/sparse_affine_transform.h \

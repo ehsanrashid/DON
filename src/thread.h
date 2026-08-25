@@ -22,145 +22,20 @@
 #include <cassert>
 #include <condition_variable>
 #include <deque>
-#include <functional>
 #include <memory>
 #include <mutex>
 #include <shared_mutex>
 #include <utility>
 #include <vector>
 
-// MSVC-compatible toolchains use std::thread because pthreads is not provided by default.
-// All other platforms use pthreads.
-#if defined(_MSC_VER)
-    #include <thread>
-#else
-    #include <pthread.h>
-    #define USE_PTHREAD
-#endif
-
 #include "memory.h"
 #include "misc.h"
+#include "native_thread.h"
 #include "numa.h"
 #include "position.h"
 #include "search.h"
 
 namespace DON {
-
-using JobFunc = std::function<void()>;
-
-#if defined(USE_PTHREAD)
-
-// On OSX threads other than the main-thread are created with a reduced stack
-// size of 512KB by default, this is too low for deep searches,
-// which require somewhat more than 1MB stack, so adjust it to 8MB.
-class NativeThread final {
-   public:
-    // Default thread is not joinable
-    NativeThread() noexcept = default;
-
-    template<typename Function, typename... Args>
-    explicit NativeThread(Function&& func, Args&&... args) noexcept {
-        // Use RAII to manage JobFunc memory
-        auto jobFuncPtr = std::make_unique<JobFunc>(
-          std::bind(std::forward<Function>(func), std::forward<Args>(args)...));
-
-        auto start_routine = [](void* ptr) noexcept -> void* {
-            // Take ownership of JobFunc and delete when done
-            std::unique_ptr<JobFunc> ptrFn(static_cast<JobFunc*>(ptr));
-
-            // Call the function
-            (*ptrFn)();
-
-            // std::unique_ptr deletes the object when lambda exits
-            return nullptr;
-        };
-
-        pthread_attr_t threadAttr;
-
-        if (pthread_attr_init(&threadAttr) != 0)
-        {
-            //DEBUG_LOG("pthread_attr_init() failed to init thread attributes.");
-            return;
-        }
-
-        if (pthread_attr_setstacksize(&threadAttr, TH_STACK_SIZE) != 0)
-        {
-            //DEBUG_LOG("pthread_attr_setstacksize() failed to set thread stack size.");
-        }
-
-        // Pass the raw pointer to pthread_create
-        // pthread_create takes ownership of jobFuncPtr only on success
-        if (pthread_create(&thread, &threadAttr, start_routine, jobFuncPtr.get()) != 0)
-        {
-            //DEBUG_LOG("pthread_create() failed to create thread.");
-            // Thread creation failed, jobFuncPtr will be deleted automatically
-            joined = true;
-        }
-        else
-        {
-            // Mark thread as now joinable, not joined yet
-            joined = false;
-            // Thread now owns it
-            jobFuncPtr.release();
-        }
-
-        // Destroy thread attr
-        if (pthread_attr_destroy(&threadAttr) != 0)
-        {
-            //DEBUG_LOG("pthread_attr_destroy() failed to destroy thread attributes.");
-        }
-    }
-
-    // Non-copyable
-    NativeThread(const NativeThread&) noexcept            = delete;
-    NativeThread& operator=(const NativeThread&) noexcept = delete;
-
-    // Movable
-    NativeThread(NativeThread&& nativeThread) noexcept :
-        thread(nativeThread.thread),
-        joined(nativeThread.joined) {
-        nativeThread.joined = true;
-    }
-    NativeThread& operator=(NativeThread&& nativeThread) noexcept {
-        if (this == &nativeThread)
-            return *this;
-
-        join();
-
-        thread = nativeThread.thread;
-        joined = nativeThread.joined;
-
-        nativeThread.joined = true;
-
-        return *this;
-    }
-
-    // RAII: join on destruction if thread is joinable
-    ~NativeThread() noexcept { join(); }
-
-    bool joinable() const noexcept { return !joined; }
-
-    void join() noexcept {
-        if (joinable())
-        {
-            pthread_join(thread, nullptr);
-
-            joined = true;
-        }
-    }
-
-   private:
-    static constexpr usize TH_STACK_SIZE = 8 * MB;
-
-    pthread_t thread{};
-    bool      joined = true;
-};
-
-#else
-
-using NativeThread = std::thread;
-
-#endif
 
 // Sometimes don't want to actually bind the threads, but the recipient still needs
 // to think it runs on *some* NUMA node, such that it can access structures that rely
@@ -377,7 +252,9 @@ class Threads final {
 
     void wait_on_thread(usize threadId) const noexcept;
 
-    std::vector<usize> bound_thread_counts() const noexcept;
+    std::vector<NumaIndex> thread_bound_numa_nodes() const noexcept;
+    std::vector<usize>     bound_thread_counts() const noexcept;
+    NumaIndex              numa_nodes() const noexcept;
 
     // --- queries ---
     bool is_researching() const noexcept {

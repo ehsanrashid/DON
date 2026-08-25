@@ -150,7 +150,7 @@ class SparseAffineTransform final {
             #define vec_set_32 _mm256_set1_epi32
             #define vec_add_dpbusd_32 SIMD::m256_add_dpbusd_epi32
             #define vec_add_32 _mm256_add_epi32
-        #elif defined(USE_SSSE3)
+        #else
         using invec_t  = __m128i;
         using outvec_t = __m128i;
             #define vec_set_32 _mm_set1_epi32
@@ -163,7 +163,7 @@ class SparseAffineTransform final {
             #define vec_set_32 __lasx_xvreplgr2vr_w
             #define vec_add_dpbusd_32 SIMD::lasx_m256_add_dpbusd_epi32
             #define vec_add_32 __lasx_xvadd_w
-        #elif defined(USE_LSX)
+        #else
         using invec_t  = __m128i;
         using outvec_t = __m128i;
             #define vec_set_32 __lsx_vreplgr2vr_w
@@ -175,12 +175,12 @@ class SparseAffineTransform final {
         using invec_t  = int8x16_t;
         using outvec_t = int32x4_t;
             #define vec_set_32(a) vreinterpretq_s8_u32(vdupq_n_u32(a))
-            #define vec_add_dpbusd_32 SIMD::neon_m128_add_dpbusd_epi32
-        #elif defined(USE_NEON) && USE_NEON >= 8
+            #define vec_add_dpbusd_32 SIMD::dotprod_m128_add_dpbusd_epi32
+        #else
         using invec_t  = int8x16_t;
         using outvec_t = int32x4_t;
             #define vec_set_32(a) vreinterpretq_s8_u32(vdupq_n_u32(a))
-            #define vec_add_dpbusd_32 SIMD::neon_m128_add_dpbusd_epi32
+            #define vec_add_dpbusd_32 SIMD::neon8_m128_add_dpbusd_epi32
         #endif
     #endif
 

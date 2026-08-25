@@ -358,12 +358,10 @@ std::string compiler_info() noexcept {
     compiler.append("Android");
 #elif defined(__linux__)
     compiler.append("Linux");
-#elif defined(_WIN32)
-    #if defined(_WIN64)
+#elif defined(_WIN64)
     compiler.append("Microsoft Windows 64-bit");
-    #else
+#elif defined(_WIN32)
     compiler.append("Microsoft Windows 32-bit");
-    #endif
 #else
     compiler.append("(unknown system)");
 #endif

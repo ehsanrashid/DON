@@ -63,7 +63,7 @@ class HistoryEntry final {
     }
 
     // Update the statistic using bonus, clamped to the range [-D, +D]
-    void operator<<(int bonus) noexcept {
+    void operator<<(const int bonus) noexcept {
         // Clamp the update to the range [-D, +D]
         int clampedBonus = std::clamp(bonus, -D, +D);
         // Apply gravity-based adjustment
@@ -73,7 +73,7 @@ class HistoryEntry final {
         assert(constexpr_abs(T(*this)) <= D);
     }
 
-    void operator*=(double m) noexcept {
+    void operator*=(const double m) noexcept {
         assert(constexpr_abs(m) <= 1.0);
 
         *this = constexpr_round(m * double(T(*this)));
@@ -86,7 +86,7 @@ class HistoryEntry final {
 template<typename T>
 class DynamicArray final {
    public:
-    explicit DynamicArray(usize size) noexcept :
+    explicit DynamicArray(const usize size) noexcept :
         size_(size) {
         assert(size != 0);
 
@@ -98,17 +98,17 @@ class DynamicArray final {
     T*       data() noexcept { return data_.get(); }
     const T* data() const noexcept { return data_.get(); }
 
-    T& operator[](usize idx) noexcept {
+    T& operator[](const usize idx) noexcept {
         assert(idx < size());
         return data()[idx];
     }
-    const T& operator[](usize idx) const noexcept {
+    const T& operator[](const usize idx) const noexcept {
         assert(idx < size());
         return data()[idx];
     }
 
     template<typename U>
-    void fill(usize beg, usize end, const U& v) noexcept {
+    void fill(const usize beg, const usize end, const U& v) noexcept {
         assert(beg <= end && end <= size());
 
         for (usize idx = beg; idx < end; ++idx)

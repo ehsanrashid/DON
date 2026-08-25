@@ -141,6 +141,9 @@ __extension__ using u128 = unsigned __int128;
 __extension__ using i128 = signed __int128;
 #endif
 
+using NumaIndex = usize;
+using CpuIndex  = usize;
+
 using Strings     = std::vector<std::string>;
 using StringViews = std::vector<std::string_view>;
 
@@ -301,6 +304,10 @@ template<typename T>
         return size;
 
     const T mask = alignment - 1;
+
+    if (size > std::numeric_limits<T>::max() - mask)
+        return std::numeric_limits<T>::max();
+
     // Round up to the next multiple of alignment
     return (size + mask) & ~mask;
 }
@@ -1157,13 +1164,71 @@ struct FixedText final {
 
 static_assert(sizeof(FixedText) == 32, "FixedText size must be 32 bytes");
 
+// Tracks allocation sizes and performs cleanup when an allocation is removed
+template<typename CleanupFunc>
+class AllocationSizes final {
+   public:
+    explicit AllocationSizes(CleanupFunc cleanupFn) noexcept :
+        cleanupFunc(std::move(cleanupFn)) {}
+
+    void add(void* const mem, const usize size) noexcept {
+        if (mem == nullptr)
+            return;
+        std::lock_guard writeLock(sharedMutex);
+
+        sizesMap[mem] = size;
+    }
+
+    [[nodiscard]] bool remove(void* const mem) noexcept {
+        std::lock_guard writeLock(sharedMutex);
+
+        if (auto itr = sizesMap.find(mem); itr != sizesMap.end())
+        {
+            if (!cleanupFunc(mem, itr->second))
+                return false;
+
+            sizesMap.erase(itr);
+            return true;
+        }
+
+        return false;
+    }
+
+    [[nodiscard]] usize size() const noexcept {
+        std::shared_lock readLock(sharedMutex);
+
+        return sizesMap.size();
+    }
+
+    [[nodiscard]] bool empty() const noexcept {
+        std::shared_lock readLock(sharedMutex);
+
+        return sizesMap.empty();
+    }
+
+    [[nodiscard]] std::optional<usize> find(void* const mem) const noexcept {
+        std::shared_lock readLock(sharedMutex);
+
+        if (auto itr = sizesMap.find(mem); itr != sizesMap.end())
+            return itr->second;
+
+        return std::nullopt;
+    }
+
+   private:
+    mutable std::shared_mutex sharedMutex;
+
+    const CleanupFunc                cleanupFunc;
+    std::unordered_map<void*, usize> sizesMap;
+};
+
 // ConcurrentCache: groups (mutex + storage + pre-reserve)
 template<typename Key, typename Value>
 class ConcurrentCache final {
    public:
     explicit ConcurrentCache(usize reserveCount = 1024, float maxLoadFactor = 0.75f) noexcept {
-        storage.max_load_factor(max_load_factor(maxLoadFactor));
-        storage.reserve(reserve_count(reserveCount));
+        storageMap.max_load_factor(max_load_factor(maxLoadFactor));
+        storageMap.reserve(reserve_count(reserveCount));
     }
 
     template<typename... Args>
@@ -1172,9 +1237,7 @@ class ConcurrentCache final {
         {
             std::shared_lock readLock(sharedMutex);
 
-            auto itr = storage.find(key);
-
-            if (itr != storage.end())
+            if (auto itr = storageMap.find(key); itr != storageMap.end())
                 return get_value(itr->second);
         }
 
@@ -1182,7 +1245,7 @@ class ConcurrentCache final {
         std::lock_guard writeLock(sharedMutex);
 
         // Double-check after acquiring exclusive lock
-        auto [itr, inserted] = storage.try_emplace(key);
+        auto [itr, inserted] = storageMap.try_emplace(key);
 
         if (inserted)
             // Inserted: construct the value
@@ -1222,7 +1285,7 @@ class ConcurrentCache final {
     }
 
     std::shared_mutex                     sharedMutex;
-    std::unordered_map<Key, StorageValue> storage;
+    std::unordered_map<Key, StorageValue> storageMap;
 };
 
 // Hash function based on public domain MurmurHash64A by Austin Appleby.
@@ -1940,6 +2003,155 @@ struct MMapGuard final {
     void*& mappedPtr;
 };
 
+    #if defined(_WIN64)
+struct Advapi final {
+   public:
+    // clang-format off
+    // https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-openprocesstoken
+    using OpenProcessToken_ = BOOL(WINAPI*)(
+      HANDLE  ProcessHandle,    // [in]  Handle to process
+      DWORD   DesiredAccess,    // [in]  Access rights for token
+      PHANDLE TokenHandle       // [out] Pointer to token handle
+    );
+    // https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-lookupprivilegevaluea
+    using LookupPrivilegeValue_ = BOOL(WINAPI*)(
+      LPCSTR lpSystemName,      // [in]  System name (NULL for local)
+      LPCSTR lpName,            // [in]  Privilege name (e.g., SE_DEBUG_NAME)
+      PLUID  lpLuid             // [out] Receives LUID of privilege
+    );
+    // https://learn.microsoft.com/en-us/windows/win32/api/securitybaseapi/nf-securitybaseapi-adjusttokenprivileges
+    using AdjustTokenPrivileges_ = BOOL(WINAPI*)(
+      HANDLE            TokenHandle,          // [in]       Access token handle
+      BOOL              DisableAllPrivileges, // [in]       Disable all privileges flag
+      PTOKEN_PRIVILEGES NewState,             // [in, opt]  New privilege state
+      DWORD             BufferLength,         // [in]       Size of PreviousState buffer
+      PTOKEN_PRIVILEGES PreviousState,        // [out, opt] Previous privilege state
+      PDWORD            ReturnLength          // [out, opt] Required buffer size
+    );
+    // clang-format on
+
+    static constexpr LPCSTR MODULE_NAME = TEXT("advapi32.dll");
+
+    ~Advapi() noexcept { free(); }
+
+    // The needed Windows API for processor groups could be missed from old Windows versions,
+    // so instead of calling them directly (forcing the linker to resolve the calls at compile time),
+    // try to load them at runtime.
+    bool load() noexcept {
+
+        hModule = GetModuleHandle(MODULE_NAME);
+
+        if (hModule == nullptr)
+        {
+            hModule = LoadLibraryEx(MODULE_NAME, nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
+
+            if (hModule == nullptr)
+                hModule = LoadLibrary(MODULE_NAME);  // optional last resort
+
+            if (hModule == nullptr)
+                return false;
+
+            loaded = true;
+        }
+
+        openProcessToken =
+          OpenProcessToken_((void (*)()) GetProcAddress(hModule, "OpenProcessToken"));
+
+        lookupPrivilegeValue =
+          LookupPrivilegeValue_((void (*)()) GetProcAddress(hModule, "LookupPrivilegeValueA"));
+
+        adjustTokenPrivileges =
+          AdjustTokenPrivileges_((void (*)()) GetProcAddress(hModule, "AdjustTokenPrivileges"));
+
+        if (openProcessToken == nullptr || lookupPrivilegeValue == nullptr
+            || adjustTokenPrivileges == nullptr)
+        {
+            free();
+
+            return false;
+        }
+
+        return true;
+    }
+
+    void free() noexcept {
+        if (loaded)
+        {
+            assert(hModule != nullptr);
+
+            FreeLibrary(hModule);
+
+            hModule = nullptr;
+            loaded  = false;
+        }
+    }
+
+    OpenProcessToken_      openProcessToken      = nullptr;
+    LookupPrivilegeValue_  lookupPrivilegeValue  = nullptr;
+    AdjustTokenPrivileges_ adjustTokenPrivileges = nullptr;
+
+   private:
+    HMODULE hModule = nullptr;
+    bool    loaded  = false;
+};
+    #endif
+
+template<typename SuccessFunc, typename FailureFunc>
+auto try_with_windows_lock_memory_privilege([[maybe_unused]] SuccessFunc&& successFunc,
+                                            FailureFunc&&                  failureFunc) noexcept {
+    #if defined(_WIN64)
+    const SIZE_T largePageSize = GetLargePageMinimum();
+
+    if (largePageSize == 0)
+        return failureFunc();
+
+    assert(is_power_of_2(largePageSize));
+
+    Advapi advapi;
+
+    if (!advapi.load())
+        return failureFunc();
+
+    HANDLE hProcess = INVALID_HANDLE;
+
+    HandleGuard hProcessGuard{hProcess};
+
+    // Need SeLockMemoryPrivilege, so try to enable it for the process
+    if (!advapi.openProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY,
+                                 &hProcess))
+        return failureFunc();
+
+    TOKEN_PRIVILEGES newTp{};
+    newTp.PrivilegeCount           = 1;
+    newTp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
+
+    // Get the luid
+    if (!advapi.lookupPrivilegeValue(nullptr, SE_LOCK_MEMORY_NAME, &newTp.Privileges[0].Luid))
+        return failureFunc();
+
+    TOKEN_PRIVILEGES oldTp{};
+    DWORD            oldTpLen = 0;
+
+    // Try to enable SeLockMemoryPrivilege. Note that even if AdjustTokenPrivileges() succeeds,
+    // Still need to query GetLastError() to ensure that the privileges were actually obtained.
+    SetLastError(ERROR_SUCCESS);
+
+    if (!advapi.adjustTokenPrivileges(hProcess, FALSE, &newTp, sizeof(oldTp), &oldTp, &oldTpLen)
+        || GetLastError() != ERROR_SUCCESS)
+        return failureFunc();
+
+    // Call the provided function with the privilege enabled
+    auto&& ret = successFunc(largePageSize);
+
+    // Privilege no longer needed, restore the privileges
+    advapi.adjustTokenPrivileges(hProcess, FALSE, &oldTp, 0, nullptr, nullptr);
+
+    return std::forward<decltype(ret)>(ret);
+    #else
+    return failureFunc();
+    #endif
+}
+
 #else
 
 inline constexpr int INVALID_FD = -1;
@@ -2074,7 +2286,6 @@ struct UniqueFd final {
 };
 
 #endif
-
 
 }  // namespace DON
 
