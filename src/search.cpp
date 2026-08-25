@@ -595,7 +595,7 @@ void Worker::iterative_deepening() noexcept {
                 // In MultiPV search, already searched PV lines are therefore preserved.
                 rootMoves.sort(pvCur, pvEnd);
 
-                // If the search has been stopped, break immediately.
+                // If search has been stopped, break immediately.
                 // RootMoves remains valid, although it refers to the previous iteration.
                 if (threads.is_stopped())
                     break;
