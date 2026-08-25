@@ -244,110 +244,6 @@ else ifneq ($(findstring x86-32,$(ARCH)),)
     mmx = yes
 endif
 
-ifneq ($(findstring -sse2,$(ARCH)),)
-    sse = yes
-    sse2 = yes
-endif
-
-ifneq ($(findstring -ssse3,$(ARCH)),)
-    sse = yes
-    sse2 = yes
-    ssse3 = yes
-endif
-
-ifneq ($(findstring -sse41,$(ARCH)),)
-    sse = yes
-    sse2 = yes
-    ssse3 = yes
-    sse41 = yes
-endif
-
-ifneq ($(findstring -modern,$(ARCH)),)
-    $(warning *** ARCH=$(ARCH) is deprecated, defaulting to ARCH=x86-64-sse41-popcnt. Execute `make help` for a list of available architectures. ***)
-    $(shell sleep 5)
-    popcnt = yes
-    sse = yes
-    sse2 = yes
-    ssse3 = yes
-    sse41 = yes
-endif
-
-ifneq ($(findstring -sse41-bmi2,$(ARCH)),)
-    popcnt = yes
-    sse = yes
-    sse2 = yes
-    ssse3 = yes
-    sse41 = yes
-    bmi2 = yes
-    ifneq ($(findstring -cmp,$(ARCH)),)
-        cmp = yes
-    endif
-endif
-
-ifneq ($(findstring -avx2,$(ARCH)),)
-    popcnt = yes
-    sse = yes
-    sse2 = yes
-    ssse3 = yes
-    sse41 = yes
-    avx2 = yes
-endif
-
-ifneq ($(findstring -bmi2,$(ARCH)),)
-    popcnt = yes
-    sse = yes
-    sse2 = yes
-    ssse3 = yes
-    sse41 = yes
-    avx2 = yes
-    bmi2 = yes
-endif
-
-ifneq ($(findstring -avxvnni,$(ARCH)),)
-    popcnt = yes
-    sse = yes
-    sse2 = yes
-    ssse3 = yes
-    sse41 = yes
-    avx2 = yes
-    bmi2 = yes
-    avxvnni = yes
-endif
-
-ifneq ($(findstring -avx512,$(ARCH)),)
-    popcnt = yes
-    sse = yes
-    sse2 = yes
-    ssse3 = yes
-    sse41 = yes
-    avx2 = yes
-    bmi2 = yes
-    avx512 = yes
-endif
-
-ifneq ($(findstring -vnni256,$(ARCH)),)
-    popcnt = yes
-    sse = yes
-    sse2 = yes
-    ssse3 = yes
-    sse41 = yes
-    avx2 = yes
-    bmi2 = yes
-    vnni256 = yes
-endif
-
-ifneq ($(findstring -vnni512,$(ARCH)),)
-    popcnt = yes
-    sse = yes
-    sse2 = yes
-    ssse3 = yes
-    sse41 = yes
-    avx2 = yes
-    bmi2 = yes
-    avx512 = yes
-    vnni512 = yes
-endif
-
 ifneq ($(findstring -avx512icl,$(ARCH)),)
     popcnt = yes
     sse = yes
@@ -359,6 +255,100 @@ ifneq ($(findstring -avx512icl,$(ARCH)),)
     avx512 = yes
     vnni512 = yes
     avx512icl = yes
+
+else ifneq ($(findstring -vnni512,$(ARCH)),)
+    popcnt = yes
+    sse = yes
+    sse2 = yes
+    ssse3 = yes
+    sse41 = yes
+    avx2 = yes
+    bmi2 = yes
+    avx512 = yes
+    vnni512 = yes
+
+else ifneq ($(findstring -vnni256,$(ARCH)),)
+    popcnt = yes
+    sse = yes
+    sse2 = yes
+    ssse3 = yes
+    sse41 = yes
+    avx2 = yes
+    bmi2 = yes
+    vnni256 = yes
+
+else ifneq ($(findstring -avx512,$(ARCH)),)
+    popcnt = yes
+    sse = yes
+    sse2 = yes
+    ssse3 = yes
+    sse41 = yes
+    avx2 = yes
+    bmi2 = yes
+    avx512 = yes
+
+else ifneq ($(findstring -avxvnni,$(ARCH)),)
+    popcnt = yes
+    sse = yes
+    sse2 = yes
+    ssse3 = yes
+    sse41 = yes
+    avx2 = yes
+    bmi2 = yes
+    avxvnni = yes
+
+else ifneq ($(findstring -bmi2,$(ARCH)),)
+    popcnt = yes
+    sse = yes
+    sse2 = yes
+    ssse3 = yes
+    sse41 = yes
+    avx2 = yes
+    bmi2 = yes
+
+else ifneq ($(findstring -avx2,$(ARCH)),)
+    popcnt = yes
+    sse = yes
+    sse2 = yes
+    ssse3 = yes
+    sse41 = yes
+    avx2 = yes
+
+else ifneq ($(findstring -sse41-bmi2,$(ARCH)),)
+    popcnt = yes
+    sse = yes
+    sse2 = yes
+    ssse3 = yes
+    sse41 = yes
+    bmi2 = yes
+    ifneq ($(findstring -cmp,$(ARCH)),)
+        cmp = yes
+    endif
+
+else ifneq ($(findstring -sse41,$(ARCH)),)
+    sse = yes
+    sse2 = yes
+    ssse3 = yes
+    sse41 = yes
+
+else ifneq ($(findstring -modern,$(ARCH)),)
+    $(warning *** ARCH=$(ARCH) is deprecated, defaulting to ARCH=x86-64-sse41-popcnt. Execute `make help` for a list of available architectures. ***)
+    $(shell sleep 5)
+    popcnt = yes
+    sse = yes
+    sse2 = yes
+    ssse3 = yes
+    sse41 = yes
+
+else ifneq ($(findstring -ssse3,$(ARCH)),)
+    sse = yes
+    sse2 = yes
+    ssse3 = yes
+
+else ifneq ($(findstring -sse2,$(ARCH)),)
+    sse = yes
+    sse2 = yes
+
 endif
 
 ifeq ($(sse),yes)
