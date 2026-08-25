@@ -185,7 +185,7 @@ struct RootMove final {
 
     void reset_bound() noexcept { bound = Bound::NONE; }
     // Keep only the root move at index 0
-    void truncate_pv() noexcept { pv.resize(1); }
+    void truncate_pv(const usize size) noexcept { pv.resize(size); }
 
     u64 nodes = 0;
 

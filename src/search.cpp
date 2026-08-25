@@ -633,11 +633,11 @@ void Worker::iterative_deepening() noexcept {
                 assert(-VALUE_INFINITE <= alpha && alpha < beta && beta <= +VALUE_INFINITE);
             }
 
-            // In multiPV analysis do not let aborted searches spoil mated-in/TB loss
-            // socres from a completed search in an earlier PV line.
-            // A mated-in/TB loss from an aborted search for pvCur != 0 can only become
-            // bestmove in the sorting below, if the current bestmove (and hence also
-            // the previously searched pvCur - 1 line) is already a proven loss.
+            // In multiPV analysis do not let aborted searches spoil
+            // mated-in/TB loss from a completed search in an earlier PV line.
+            // mated-in/TB loss from an aborted search for pvCur != 0
+            // can only become bestmove in the sorting below, if the current bestmove
+            // (and hence also the previously searched pvCur-1 line) is already a proven loss.
             if (pvCur != 0 && threads.is_stopped() && is_loss(rootMoves[pvCur - 1].curValue)
                 && rootMoves[pvCur] < rootMoves[pvCur - 1])
             {
@@ -647,7 +647,7 @@ void Worker::iterative_deepening() noexcept {
                     : rootMoves[pvCur - 1].curValue;
                 rootMoves[pvCur].preValue = -VALUE_INFINITE;
                 rootMoves[pvCur].reset_bound();
-                rootMoves[pvCur].truncate_pv();
+                rootMoves[pvCur].truncate_pv(rootMoves[pvCur - 1].pv.size());
             }
 
             // Sort the PV lines searched so far
@@ -1618,7 +1618,7 @@ Value Worker::search(Position&    pos,
                     rm.bound    = Bound::UPPER;
                 }
 
-                rm.truncate_pv();
+                rm.truncate_pv(1);
 
                 const auto* const childPv = (ss + 1)->pv;
                 assert(childPv != nullptr);
