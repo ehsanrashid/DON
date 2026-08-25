@@ -1265,18 +1265,18 @@ class NumaConfig final {
             if (seenCpus.find(nextCpuId) != seenCpus.end())
                 continue;
 
-            std::string path{std::string{"/sys/devices/system/cpu/cpu"}  //
-                             + std::to_string(nextCpuId)                 //
-                             + std::string{"/cache/index3/shared_cpu_list"}};
+            const std::string path{std::string{"/sys/devices/system/cpu/cpu"}  //
+                                   + std::to_string(nextCpuId)                 //
+                                   + std::string{"/cache/index3/shared_cpu_list"}};
 
-            auto cpuIdsStr = read_file_to_string(path);
+            const auto cpuIdsStr = read_file_to_string(path);
 
             if (!cpuIdsStr || cpuIdsStr->empty())
                 continue;
 
             L3Domain l3Domain{};
 
-            for (CpuIndex cpuId : shortened_string_to_indices(*cpuIdsStr))
+            for (const CpuIndex cpuId : shortened_string_to_indices(*cpuIdsStr))
             {
                 if (is_cpu_allowed(cpuId))
                 {
@@ -1302,12 +1302,12 @@ class NumaConfig final {
                                      const usize                 bundleSize) noexcept {
         assert(!l3Domains.empty());
 
+        NumaConfig numaCfg = empty();
+
         std::unordered_map<NumaIndex, std::vector<L3Domain>> numaL3Domains;
 
         for (auto& l3Domain : l3Domains)
             numaL3Domains[l3Domain.sysNumaId].push_back(std::move(l3Domain));
-
-        NumaConfig numaCfg = empty();
 
         NumaIndex numaId = 0;
 
