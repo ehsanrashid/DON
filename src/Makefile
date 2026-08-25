@@ -1030,13 +1030,10 @@ GIT := git -c core.filemode=false -c core.autocrlf=false
 
 GIT_DATE      := $(shell git show -s --date=format:%Y%m%d --format=%cd HEAD 2>/dev/null || true)
 GIT_SHA       := $(shell git rev-parse HEAD 2>/dev/null | cut -c 1-8 || true)
-GIT_DIFFINDEX := $(shell \
-                    $(GIT) update-index --refresh >/dev/null 2>&1; \
+GIT_DIFFINDEX := $(shell $(GIT) update-index --refresh >/dev/null 2>&1; \
                     if ! $(GIT) diff-index --quiet HEAD -- 2>/dev/null; then \
-                        $(GIT) diff HEAD --no-ext-diff | \
-                        git hash-object --stdin | cut -c 1-6; \
+                        $(GIT) diff HEAD --no-ext-diff | git hash-object --stdin | cut -c 1-6; \
                     fi)
-
 COMPILER_DATE := $(shell date +%Y%m%d 2>/dev/null)
 BUILD_DATE    := $(or $(GIT_DATE),$(COMPILER_DATE))
 
