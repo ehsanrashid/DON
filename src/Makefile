@@ -229,30 +229,18 @@ tablebases = yes
 
 ### 2.2 Architecture specific
 
-# x86-32/64
+# x86-64/32
 ifneq ($(findstring x86,$(ARCH)),)
 
-# To enable sse use: make -j build ARCH=x86-32 sse=yes
-ifneq ($(findstring x86-32,$(ARCH)),)
-    arch = i386
-    bits = 32
-    sse_fp = yes
-    mmx = yes
-else ifneq ($(findstring x86-64,$(ARCH)),)
+ifneq ($(findstring x86-64,$(ARCH)),)
     arch = x86_64
     sse = yes
     sse2 = yes
-endif
-
-ifneq ($(findstring -sse,$(ARCH)),)
-    sse = yes
-endif
-
-ifneq ($(findstring -popcnt,$(ARCH)),)
-    popcnt = yes
-endif
-
-ifneq ($(findstring -mmx,$(ARCH)),)
+# To enable 'sse' use: make -j build ARCH=x86-32 sse=yes
+else ifneq ($(findstring x86-32,$(ARCH)),)
+    arch = i386
+    bits = 32
+    sse_fp = yes
     mmx = yes
 endif
 
@@ -377,6 +365,10 @@ ifeq ($(sse),yes)
     prefetch = yes
 endif
 
+ifneq ($(findstring -popcnt,$(ARCH)),)
+    popcnt = yes
+endif
+
 # 64-bit bmi2 is not available on x86-32
 ifeq ($(bits),32)
     bmi2 = no
@@ -387,20 +379,13 @@ else
 
 ifneq ($(findstring general,$(ARCH)),)
     arch = any
-    ifneq ($(findstring -32,$(ARCH)),)
+    ifneq ($(findstring -64,$(ARCH)),)
+    else ifneq ($(findstring -32,$(ARCH)),)
         bits = 32
         sse_fp = yes
     endif
-    ifneq ($(findstring -64,$(ARCH)),)
-    endif
-endif
 
-ifeq ($(ARCH),ppc-32)
-    arch = ppc
-    bits = 32
-endif
-
-ifneq ($(findstring ppc-64,$(ARCH)),)
+else ifneq ($(findstring ppc-64,$(ARCH)),)
     arch = ppc64
     prefetch = yes
     popcnt = yes
@@ -409,9 +394,12 @@ ifneq ($(findstring ppc-64,$(ARCH)),)
     else ifneq ($(findstring -altivec,$(ARCH)),)
         altivec = yes
     endif
-endif
 
-ifneq ($(findstring e2k,$(ARCH)),)
+else ifneq ($(findstring ppc-32,$(ARCH)),)
+    arch = ppc
+    bits = 32
+
+else ifneq ($(findstring e2k,$(ARCH)),)
     arch = e2k
     sse = yes
     mmx = yes
@@ -419,41 +407,26 @@ ifneq ($(findstring e2k,$(ARCH)),)
     ssse3 = yes
     sse41 = yes
     popcnt = yes
-endif
 
-ifneq ($(findstring loongarch64,$(ARCH)),)
+else ifneq ($(findstring loongarch64,$(ARCH)),)
     arch = loongarch64
     prefetch = yes
-    ifneq ($(findstring -lsx,$(ARCH)),)
-        lsx = yes
-    endif
     ifneq ($(findstring -lasx,$(ARCH)),)
         lsx = yes
         lasx = yes
+    else ifneq ($(findstring -lsx,$(ARCH)),)
+        lsx = yes
     endif
-endif
 
-ifneq ($(findstring riscv64,$(ARCH)),)
+else ifneq ($(findstring riscv64,$(ARCH)),)
     arch = riscv64
     ifneq ($(findstring -rva23,$(ARCH)),)
         prefetch = yes
         popcnt = yes
         rva23 = yes
     endif
-endif
 
-ifneq ($(findstring armv7,$(ARCH)),)
-    arch = armv7
-    bits = 32
-    prefetch = yes
-    arm_version = 7
-    ifneq ($(findstring -neon,$(ARCH)),)
-        popcnt = yes
-        neon = yes
-    endif
-endif
-
-ifneq ($(findstring armv8,$(ARCH)),)
+else ifneq ($(findstring armv8,$(ARCH)),)
     arch = armv8
     prefetch = yes
     popcnt = yes
@@ -462,28 +435,35 @@ ifneq ($(findstring armv8,$(ARCH)),)
     ifneq ($(findstring -dotprod,$(ARCH)),)
         dotprod = yes
     endif
-endif
 
-ifneq ($(findstring arm64-universal,$(ARCH)),)
+else ifneq ($(findstring armv7,$(ARCH)),)
+    arch = armv7
+    bits = 32
+    prefetch = yes
+    arm_version = 7
+    ifneq ($(findstring -neon,$(ARCH)),)
+        popcnt = yes
+        neon = yes
+    endif
+
+else ifneq ($(findstring arm64-universal,$(ARCH)),)
     arch = armv8
     prefetch = yes
     popcnt = yes
     arm_version = 8
     neon = yes
-endif
 
-ifneq ($(findstring apple-silicon,$(ARCH)),)
+else ifneq ($(findstring apple-silicon,$(ARCH)),)
     arch = arm64
     prefetch = yes
     popcnt = yes
     arm_version = 8
     neon = yes
     dotprod = yes
-endif
 
 # WASM is largely compiled using emcc's x86 compatibility layer, with occasional
 # WASM-specific intrinsics
-ifneq ($(findstring wasm32,$(ARCH)),)
+else ifneq ($(findstring wasm32,$(ARCH)),)
     arch = wasm32
     sse = yes
     sse2 = yes
@@ -704,7 +684,7 @@ else ifeq ($(COMP),ndk)
     else ifeq ($(arch),x86)
         TARGET := i686-linux-android
     else
-        # $(error Unsupported NDK arch: $(arch))
+        $(error Unsupported NDK arch: $(arch))
     endif
 
     CXX := $(TOOLCHAIN)/$(TARGET)$(ANDROID_API)-clang++
