@@ -126,6 +126,8 @@
 
 namespace DON {
 
+int loop();
+
 inline constexpr usize SHM_NAME_MAX = NAME_MAX - 1;
 
 enum class SharedMemoryAllocationStatus : u8 {

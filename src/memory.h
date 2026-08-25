@@ -29,7 +29,6 @@
 #include <utility>
 
 #include "misc.h"
-
 #include "types.h"
 
 namespace DON {
