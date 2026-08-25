@@ -72,7 +72,6 @@
     #include <sys/socket.h>
     #include <sys/stat.h>
     #include <sys/time.h>
-    #include <sys/types.h>
     #include <sys/uio.h>
     #include <sys/un.h>
     #include <unistd.h>
@@ -121,12 +120,10 @@
     #endif
 #endif
 
-#include "memory.h"
+#include "memory.h"  // LargePagePtr<>, make_unique_aligned_large_page()
 #include "misc.h"
 
 namespace DON {
-
-int loop();
 
 inline constexpr usize SHM_NAME_MAX = NAME_MAX - 1;
 

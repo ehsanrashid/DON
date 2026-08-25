@@ -60,11 +60,11 @@ namespace DON::Tablebase::Syzygy {
 void init() noexcept {}
 void init(std::string_view) noexcept {}
 
-WDLScore probe_wdl(Position&, ProbeState* ps) noexcept {
+WDLScore probe_wdl(Position&, ProbeState* const ps) noexcept {
     *ps = PS_FAIL;
     return WDL_DRAW;
 }
-int probe_dtz(Position&, ProbeState* ps) noexcept {
+int probe_dtz(Position&, ProbeState* const ps) noexcept {
     *ps = PS_FAIL;
     return 0;
 }
@@ -1939,7 +1939,7 @@ void init(std::string_view paths) noexcept {
 //  0 : draw
 //  1 : win, but draw under 50-move rule
 //  2 : win
-WDLScore probe_wdl(Position& pos, ProbeState* ps) noexcept {
+WDLScore probe_wdl(Position& pos, ProbeState* const ps) noexcept {
 
     *ps = PS_OK;
 
@@ -1969,7 +1969,7 @@ WDLScore probe_wdl(Position& pos, ProbeState* ps) noexcept {
 // If n = 100 immediately after a capture or pawn move,
 // then the position is also certainly a win, and during the whole phase until the next
 // capture or pawn move, the inequality to be preserved is DTZ-score + 50-move-counter <= 100.
-int probe_dtz(Position& pos, ProbeState* ps) noexcept {
+int probe_dtz(Position& pos, ProbeState* const ps) noexcept {
 
     *ps = PS_OK;
 

@@ -156,13 +156,13 @@ jobs:
   # Release Jobs
   BuildAndroid:
     name: Build Android
-    needs: [IWYU, Matrix, Sanitizers, Tests, Matetrack, Games, CheckCompilers]
+    needs: [Matrix, Sanitizers, Tests, Matetrack, Games, CheckCompilers]
     uses: ./.github/workflows/build_android.yml
     with:
       matrix: ${{ needs.Matrix.outputs.android_matrix }}
   BuildUniversal:
     name: Build Universal
-    needs: [IWYU, Matrix, Sanitizers, Tests, Matetrack, Games, CheckCompilers]
+    needs: [Matrix, Sanitizers, Tests, Matetrack, Games, CheckCompilers]
     uses: ./.github/workflows/build_universal.yml
   UploadAndroid:
     if: github.repository == 'ehsanrashid/DON'
