@@ -646,7 +646,6 @@ void Worker::iterative_deepening() noexcept {
                     ? std::min(rootMoves[pvCur].preValue, rootMoves[pvCur - 1].curValue)
                     : rootMoves[pvCur - 1].curValue;
                 rootMoves[pvCur].preValue = -VALUE_INFINITE;
-                rootMoves[pvCur].avgValue = -VALUE_INFINITE;
                 rootMoves[pvCur].reset_bound();
                 rootMoves[pvCur].truncate_pv();
             }
