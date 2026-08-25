@@ -96,14 +96,16 @@ struct PVMoves final {
 
     void clear() noexcept { size_ = 0; }
 
-    void push_back(Move move) noexcept {
+    void push_back(const Move move) noexcept {
         assert(size() < capacity());
+
         *end() = move;
         ++size_;
     }
 
-    void resize(usize newSize) noexcept {
+    void resize(const usize newSize) noexcept {
         assert(newSize <= size());
+
         size_ = newSize;
     }
 
@@ -184,6 +186,8 @@ struct RootMove final {
     }
 
     void reset_bound() noexcept { bound = Bound::NONE; }
+
+    [[nodiscard]] usize pv_size() const noexcept { return pv.size(); }
     // Keep only the root move at index 0
     void truncate_pv(const usize size) noexcept { pv.resize(size); }
 

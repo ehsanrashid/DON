@@ -647,7 +647,8 @@ void Worker::iterative_deepening() noexcept {
                     : rootMoves[pvCur - 1].curValue;
                 rootMoves[pvCur].preValue = -VALUE_INFINITE;
                 rootMoves[pvCur].reset_bound();
-                rootMoves[pvCur].truncate_pv(rootMoves[pvCur - 1].pv.size());
+                rootMoves[pvCur].truncate_pv(
+                  std::min(rootMoves[pvCur].pv_size(), rootMoves[pvCur - 1].pv_size()));
             }
 
             // Sort the PV lines searched so far
