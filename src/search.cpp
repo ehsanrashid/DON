@@ -639,12 +639,11 @@ void Worker::iterative_deepening() noexcept {
             // bestmove in the sorting below, if the current bestmove (and hence also
             // the previously searched pvIdx - 1 line) is already a proven loss.
             if (threads.is_stopped() && pvCur != 0 && is_loss(rootMoves[pvCur - 1].curValue)
-                && rootMoves[pvCur] < rootMoves[pvCur - 1])
+                && rootMoves[pvCur].curValue > rootMoves[pvCur - 1].curValue)
             {
                 rootMoves[pvCur].curValue = rootMoves[pvCur].uciValue =
-                  (rootMoves[pvCur].preValue != -VALUE_INFINITE
-                   && rootMoves[pvCur].preValue < rootMoves[pvCur - 1].curValue)
-                    ? rootMoves[pvCur].preValue
+                  rootMoves[pvCur].preValue != -VALUE_INFINITE
+                    ? std::min(rootMoves[pvCur].preValue, rootMoves[pvCur - 1].curValue)
                     : rootMoves[pvCur - 1].curValue;
                 rootMoves[pvCur].preValue = -VALUE_INFINITE;
                 rootMoves[pvCur].reset_bound();

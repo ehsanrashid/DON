@@ -389,11 +389,12 @@ struct BetterThread final {
             return false;  // Draw beats loss
 
         // Case 3b: Both normal -> compare by voting metrics
-        if (best.voteCount != cand.voteCount)
-            return best.voteCount < cand.voteCount;  // Primary: vote count
-        if (best.voteWeight != cand.voteWeight)
-            return best.voteWeight < cand.voteWeight;  // Tie-break 1: depth-weighted value
-        return best.pvSize < cand.pvSize;              // Tie-break 2: PV size
+        return  // Primary: vote count
+          best.voteCount != cand.voteCount ? best.voteCount < cand.voteCount
+          // Tie-break 1: depth-weighted value
+          : best.voteWeight != cand.voteWeight ? best.voteWeight < cand.voteWeight
+                                               // Tie-break 2: PV size
+                                               : best.pvSize < cand.pvSize;
     }
 };
 
