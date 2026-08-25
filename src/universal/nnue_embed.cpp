@@ -24,9 +24,8 @@
 // In a macOS universal binary the network is embedded only in the arm64 slice,
 // and the x86-64 slice mmaps it from the arm64 slice.
 
-    #include <climits>
-    #include <cstdint>
     #include <fcntl.h>
+    #include <limits.h>
     #include <mach-o/dyld.h>
     #include <stdlib.h>
     #include <sys/mman.h>
@@ -52,7 +51,7 @@ static const unsigned char* map_embedded_nnue() noexcept {
         return nullptr;
 
     // Align down to page size for mmap
-    const DON::u64 pageSize = DON::u64(sysconf(_SC_PAGESIZE));
+    const DON::u64 pageSize = DON::u64(::sysconf(_SC_PAGESIZE));
     const DON::u64 base     = gUniversalNNUEOffset & ~(pageSize - 1);
     const DON::u64 pad      = gUniversalNNUEOffset - base;
 
@@ -82,7 +81,6 @@ extern const unsigned char gEmbeddedNNUEData[] =
 
 const unsigned int padding = 1;  // Trailing NULL byte
     #endif
-
 extern const unsigned int gEmbeddedNNUESize = sizeof(gEmbeddedNNUEData) - padding;
 
 #endif

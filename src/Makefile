@@ -488,14 +488,6 @@ ifeq ($(ARCH),armv8-dotprod)
     dotprod = yes
 endif
 
-ifeq ($(ARCH),arm64-universal)
-    arch = armv8
-    prefetch = yes
-    popcnt = yes
-    arm_version = 8
-    neon = yes
-endif
-
 ifeq ($(ARCH),apple-silicon)
     arch = arm64
     prefetch = yes
