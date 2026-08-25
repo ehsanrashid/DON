@@ -404,10 +404,10 @@ ifneq ($(findstring ppc-64,$(ARCH)),)
     arch = ppc64
     prefetch = yes
     popcnt = yes
-    ifneq ($(findstring -altivec,$(ARCH)),)
-        altivec = yes
-    else ifneq ($(findstring -vsx,$(ARCH)),)
+    ifneq ($(findstring -vsx,$(ARCH)),)
         vsx = yes
+    else ifneq ($(findstring -altivec,$(ARCH)),)
+        altivec = yes
     endif
 endif
 
@@ -442,7 +442,7 @@ ifneq ($(findstring riscv64,$(ARCH)),)
     endif
 endif
 
-ifneq ($(findstring arm7,$(ARCH)),)
+ifneq ($(findstring armv7,$(ARCH)),)
     arch = armv7
     bits = 32
     prefetch = yes
