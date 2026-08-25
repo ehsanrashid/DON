@@ -633,19 +633,20 @@ void Worker::iterative_deepening() noexcept {
                 assert(-VALUE_INFINITE <= alpha && alpha < beta && beta <= +VALUE_INFINITE);
             }
 
-            // In multiPV analysis we do not let aborted searches spoil mated-in/
-            // TB loss scores from a completed search in an earlier PV line.
-            // A mated-in/TB loss from an aborted search for pvIdx > 0 can only become
+            // In multiPV analysis do not let aborted searches spoil mated-in/TB loss
+            // socres from a completed search in an earlier PV line.
+            // A mated-in/TB loss from an aborted search for pvCur != 0 can only become
             // bestmove in the sorting below, if the current bestmove (and hence also
-            // the previously searched pvIdx - 1 line) is already a proven loss.
+            // the previously searched pvCur - 1 line) is already a proven loss.
             if (pvCur != 0 && threads.is_stopped() && is_loss(rootMoves[pvCur - 1].curValue)
-                && rootMoves[pvCur].curValue > rootMoves[pvCur - 1].curValue)
+                && rootMoves[pvCur] < rootMoves[pvCur - 1])
             {
                 rootMoves[pvCur].curValue = rootMoves[pvCur].uciValue =
                   rootMoves[pvCur].preValue != -VALUE_INFINITE
                     ? std::min(rootMoves[pvCur].preValue, rootMoves[pvCur - 1].curValue)
                     : rootMoves[pvCur - 1].curValue;
                 rootMoves[pvCur].preValue = -VALUE_INFINITE;
+                rootMoves[pvCur].avgValue = -VALUE_INFINITE;
                 rootMoves[pvCur].reset_bound();
                 rootMoves[pvCur].truncate_pv();
             }
@@ -2639,7 +2640,7 @@ void MainSearchManager::handle_time_management(const Worker& worker,
 
 // Displays the principal variation (PV) along with associated information
 void MainSearchManager::show_pv(Worker& worker, const Depth depth) const noexcept {
-    //assert(depth > DEPTH_ZERO);
+    assert(depth > DEPTH_ZERO);
 
     const auto& rootPos            = worker.rootPos;
     const auto& rootMoves          = worker.rootMoves;
