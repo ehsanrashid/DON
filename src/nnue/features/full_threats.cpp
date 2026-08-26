@@ -342,8 +342,8 @@ void FullThreats::append_changed_indices(const Color             perspective,
         const auto index = make_index(perspective, kingSq, orgSq, dstSq, attackerPc, attackedPc);
 
         if (pfBase != nullptr)
-            prefetch<PrefetchAccess::READ, PrefetchLoc::LOW>(reinterpret_cast<const void*>(
-              reinterpret_cast<std::uintptr_t>(pfBase) + std::uintptr_t(index) * pfStride));
+            prefetch<PrefetchAccess::READ, PrefetchLoc::LOW>(
+              reinterpret_cast<const void*>(reinterpret_cast<uptr>(pfBase) + index * pfStride));
 
         changed.push_back_if_lt(index, Dimensions);
     }

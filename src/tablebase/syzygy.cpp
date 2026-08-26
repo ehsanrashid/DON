@@ -181,7 +181,7 @@ T number(const void* addr) noexcept {
     T v;
 
     // Use memcpy for unaligned access, otherwise direct read
-    if (reinterpret_cast<std::uintptr_t>(addr) % alignof(T) == 0)
+    if (reinterpret_cast<uptr>(addr) % alignof(T) == 0)
         v = *reinterpret_cast<const T*>(addr);
     else  // Unaligned pointer (very rare)
         std::memcpy(&v, addr, sizeof(T));
@@ -791,7 +791,7 @@ void TBTable<T>::set(u8* data) noexcept {
             set_groups(get(i, f), order[i], f);
     }
 
-    data += std::uintptr_t(data) & 1;  // Word alignment
+    data += uptr(data) & 1;  // Word alignment
 
     for (File f = FILE_A; f <= maxFile; ++f)
         for (usize i = 0; i < sides; ++i)
@@ -818,7 +818,7 @@ void TBTable<T>::set(u8* data) noexcept {
     for (File f = FILE_A; f <= maxFile; ++f)
         for (usize i = 0; i < sides; ++i)
         {
-            data = (u8*) ((std::uintptr_t(data) + 0x3F) & ~0x3F);  // 64 byte alignment
+            data                   = align_ptr_up<64>(data);  // 64 byte alignment
             (pd = get(i, f))->data = data;
             data += pd->blockCount * pd->blockSize;
         }
@@ -926,7 +926,7 @@ u8* TBTable<DTZ>::set_dtz_map(u8* data, const File maxFile) noexcept {
         {
             if (flags & WIDE)
             {
-                data += std::uintptr_t(data) & 1;  // Word alignment, may have a mixed table
+                data += uptr(data) & 1;  // Word alignment, may have a mixed table
 
                 for (usize i = 0; i < 4; ++i)
                 {
@@ -948,7 +948,7 @@ u8* TBTable<DTZ>::set_dtz_map(u8* data, const File maxFile) noexcept {
         }
     }
 
-    return data += std::uintptr_t(data) & 1;  // Word alignment
+    return data += uptr(data) & 1;  // Word alignment
 }
 
 // TBTables creates and keeps ownership of the TBTable objects, one for each TB file found.

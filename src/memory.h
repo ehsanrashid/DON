@@ -219,14 +219,9 @@ template<usize Alignment, typename T>
                   "Alignment must be non-zero power of 2");
     static_assert(Alignment >= alignof(T), "Alignment must be >= alignof(T)");
 
-    auto intPtr = reinterpret_cast<std::uintptr_t>(ptr);
+    auto intPtr = reinterpret_cast<uptr>(ptr);
     intPtr      = round_up_to_multiple(intPtr, Alignment);
     return reinterpret_cast<T*>(intPtr);
-}
-
-template<usize Alignment, typename T>
-[[nodiscard]] constexpr const T* align_ptr_up(const T* ptr) noexcept {
-    return reinterpret_cast<const T*>(align_ptr_up<Alignment>(const_cast<T*>(ptr)));
 }
 
 template<typename T, typename ByteT>
@@ -234,11 +229,11 @@ template<typename T, typename ByteT>
     static_assert(std::is_trivially_copyable_v<T>, "Type must be trivially copyable");
     static_assert(sizeof(ByteT) == 1);
 
-    if (reinterpret_cast<uintptr_t>(buffer) % alignof(T) != 0)
-    {
-        assert(false);
-        UNREACHABLE();
-    }
+    // if (reinterpret_cast<uptr>(buffer) % alignof(T) != 0)
+    // {
+    //     assert(false);
+    //     UNREACHABLE();
+    // }
 
     T value;
     std::memcpy(&value, buffer, sizeof(value));

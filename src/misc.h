@@ -134,6 +134,9 @@ using i8  = std::int8_t;
 using usize = std::size_t;
 using isize = std::ptrdiff_t;
 
+using uptr = std::uintptr_t;
+using iptr = std::intptr_t;
+
 using uchar = unsigned char;
 
 #if defined(__GNUC__) && defined(IS_64BIT) && !defined(__wasm__)
