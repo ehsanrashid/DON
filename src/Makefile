@@ -983,7 +983,7 @@ $(shell \
     fi)
 endef
 
-ifneq ($(filter-out help net strip install clean objclean profileclean config-sanity format install-hooks,$(MAKECMDGOALS)),)
+ifneq ($(filter-out help net strip install clean obj-clean profile-clean config-sanity format install-hooks,$(MAKECMDGOALS)),)
     _ := $(call CACHE_FILE_IF_CHANGED,$(BUILD_DATE_FILE),$(BUILD_DATE))
     _ := $(call CACHE_FILE_IF_CHANGED,$(BUILD_SHA_FILE),$(GIT_SHA))
     _ := $(call CACHE_FILE_IF_CHANGED,$(BUILD_DIFFINDEX_FILE),$(GIT_DIFFINDEX))
@@ -996,7 +996,7 @@ GIT_FLAGS := $(if $(GIT_DATE),-DGIT_DATE=$(GIT_DATE)) \
 
 ### 3.8.2 Try to include architecture
 ifneq ($(ARCH),)
-    ARCH_FLAG += -DARCH=$(ARCH)
+    ARCH_FLAG := -DARCH=$(ARCH)
 endif
 
 ### 3.9 Link Time Optimization
@@ -1063,13 +1063,13 @@ endif
 ### ==========================================================================
 
 help:
-	@echo ""; \
+	@echo; \
 	echo "To compile $(NAME), type: "; \
-	echo ""; \
+	echo; \
 	echo "make -j target [ARCH=arch] [COMP=compiler] [COMPCXX=cxx]"; \
-	echo ""; \
+	echo; \
 	echo "Supported targets:"; \
-	echo ""; \
+	echo; \
 	echo "help                    > Display architecture details"; \
 	echo "profile-build           > standard build with profile-guided optimization"; \
 	echo "build                   > skip profile-guided optimization"; \
@@ -1078,9 +1078,9 @@ help:
 	echo "strip                   > Strip executable"; \
 	echo "install                 > Install executable"; \
 	echo "clean                   > Clean up"; \
-	echo ""; \
+	echo; \
 	echo "Supported archs:"; \
-	echo ""; \
+	echo; \
 	echo "native                  > select the best architecture for the host processor (default)"; \
 	echo "x86-64-universal        > x86 64-bit with automatic runtime selection of the best architecture"; \
 	echo "x86-64-avx512icl        > x86 64-bit with minimum AVX512 support of Intel Ice Lake or AMD Zen 4"; \
@@ -1122,84 +1122,84 @@ help:
 	echo "armv7-neon              > ARMv7 32-bit with NEON and POPCNT support"; \
 	echo "armv7                   > ARMv7 32-bit"; \
 	echo "apple-silicon           > Apple silicon ARM64"; \
-	echo ""; \
+	echo; \
 	echo "Supported compilers:"; \
-	echo ""; \
+	echo; \
 	echo "gcc                     > GNU compiler (default)"; \
 	echo "mingw                   > GNU compiler with MinGW under Windows"; \
 	echo "clang                   > LLVM Clang compiler"; \
 	echo "icx                     > Intel oneAPI DPC++/C++ compiler"; \
 	echo "ndk                     > Android NDK for cross-compiling to Android"; \
-	echo ""; \
+	echo; \
 	echo "Simple examples. If you don't know what to do, you likely want to run one of:"; \
-	echo ""; \
+	echo; \
 	echo 'make -j profile-build ARCH=native               # Fast compile for local system'; \
 	echo 'make -j profile-build ARCH=x86-64-avx2          # Portable compile for most x86-64 systems'; \
 	echo 'make -j profile-build ARCH=x86-64-sse41-popcnt  # Portable compile for most x86-64 systems'; \
 	echo 'make -j profile-build ARCH=x86-64               # Portable compile for x86-64 systems'; \
-	echo ""; \
+	echo; \
 	echo "Advanced examples, for experienced users: "; \
-	echo ""; \
+	echo; \
 	echo 'make -j profile-build ARCH=x86-64-avxvnni'; \
 	echo 'make -j profile-build ARCH=x86-64-avxvnni COMP=gcc CXX=g++-12.0'; \
 	echo 'make -j profile-build ARCH=x86-64-universal RUN_PREFIX="/path/to/sde -future --" CXX=g++-15'; \
 	echo 'make -j build ARCH=x86-64-ssse3 COMP=clang'; \
-	echo ""
+	echo 
 
 ifeq ($(ARCH_SUPPORTED),no)
 	@echo "Specify a supported architecture with the ARCH option for more details"; \
-	echo ""
+	echo 
 endif
 
 
 .PHONY: help analyze build profile-build macos-lipo net strip install \
-	clean objclean profileclean config-sanity FORCE \
+	clean obj-clean profile-clean config-sanity FORCE \
 	clang-profile-make clang-profile-use \
 	gcc-profile-make gcc-profile-use \
 	icx-profile-make icx-profile-use \
 	format install-hooks
 
-analyze: net config-sanity objclean
+analyze: net config-sanity obj-clean
 	$(MAKE) -k ARCH=$(ARCH) COMP=$(COMP) $(OBJS)
 
 ifeq ($(UNIVERSAL_BUILD),no)
 build: net config-sanity
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) all
 
-profile-build: net config-sanity objclean profileclean
-	@echo ""
-	@echo "Step 1/4. Building instrumented executable ..."
+profile-build: net config-sanity obj-clean profile-clean
+	@echo; \
+	echo "Step 1/4. Building instrumented executable ..."
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) $(PROFILE_MAKE)
-	@echo ""
-	@echo "Step 2/4. Running benchmark for pgo-build ..."
+	@echo; \
+	echo "Step 2/4. Running benchmark for pgo-build ..."
 	$(PGOBENCH) > PGOBENCH.out 2>&1
 	tail -n 4 PGOBENCH.out
-	@echo ""
-	@echo "Step 3/4. Building optimized executable ..."
-	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) objclean
+	@echo; \
+	echo "Step 3/4. Building optimized executable ..."
+	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) obj-clean
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) $(PROFILE_USE)
-	@echo ""
-	@echo "Step 4/4. Deleting profile data ..."
-	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) profileclean
+	@echo; \
+	echo "Step 4/4. Deleting profile data ..."
+	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) profile-clean
 endif
 
 # Default network filename, read from evaluate.h's EvalFileDefaultName.
 macos-lipo: NNUE_NET := $(shell grep -oE 'nn-[0-9a-f]+\.nnue' $(CURDIR)/evaluate.h | head -1)
 macos-lipo:
-	@echo ""
-	@echo "Step 1/4. Building x86-64 slice (network shared from Apple-silicon slice) ..."
+	@echo; \
+	echo "Step 1/4. Building x86-64 slice (network shared from Apple-silicon slice) ..."
 	CXXFLAGS="-arch x86_64" $(MAKE) build ARCH=x86-64-universal COMP=$(COMP) MACOS_X86_SLICE=1
 	mv $(EXE) $(EXE)-x86_64
-	@echo ""
-	@echo "Step 2/4. Building Apple silicon slice ..."
+	@echo; \
+	echo "Step 2/4. Building Apple silicon slice ..."
 	$(MAKE) profile-build ARCH=apple-silicon COMP=$(COMP)
 	mv $(EXE) $(EXE)-arm64
-	@echo ""
-	@echo "Step 3/4. Combining slices and locating the embedded network ..."
+	@echo; \
+	echo "Step 3/4. Combining slices and locating the embedded network ..."
 	lipo -create $(EXE)-x86_64 $(EXE)-arm64 -output $(EXE)
 	$(SHELL) universal/patch_x86_slice.sh $(EXE) $(EXE)-x86_64 $(NNUE_NET)
-	@echo ""
-	@echo "Step 4/4. Re-combining slices with the patched x86-64 slice ..."
+	@echo; \
+	echo "Step 4/4. Re-combining slices with the patched x86-64 slice ..."
 	lipo -create $(EXE)-x86_64 $(EXE)-arm64 -output $(EXE)
 	@rm -f $(EXE)-x86_64 $(EXE)-arm64
 	@echo "Universal macOS binary built: $(EXE)"
@@ -1230,31 +1230,32 @@ endif
 
 MODNAME := $(subst -,_,$(notdir $(CURDIR)))
 
-universal-object-pgo: objclean profileclean universalclean
-	@echo ""
-	@echo "Step 1/4. Building instrumented executable ..."
+universal-object-pgo: obj-clean profile-clean universal-clean
+	@echo; \
+	echo "Step 1/4. Building instrumented executable ..."
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) ENV_LDFLAGS='$(ENV_LDFLAGS)' NNUE_EMBED_OBJ='$(NNUE_EMBED_OBJ)' $(PROFILE_MAKE)
-	@echo ""
-	@echo "Step 2/4. Running benchmark for pgo-build ..."
+	@echo; \
+	echo "Step 2/4. Running benchmark for pgo-build ..."
 	$(PGOBENCH) > PGOBENCH.out 2>&1
 	tail -n 4 PGOBENCH.out
-	@echo ""
-	@echo "Step 3/4. Building optimized object files ..."
-	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) objclean
+	@echo; \
+	echo "Step 3/4. Building optimized object files ..."
+	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) obj-clean
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) ENV_LDFLAGS='$(ENV_LDFLAGS) $(SAVE_TEMPS)' NNUE_EMBED_OBJ='$(NNUE_EMBED_OBJ)' $(PROFILE_USE)
-	@echo ""
 ifeq ($(USE_LTO_EMIT_ASM),yes)
-	@echo "Step 4/4. Renaming ctors and extracting LTO-optimized relocatable object ..."
+	@echo; \
+	echo "Step 4/4. Renaming ctors and extracting LTO-optimized relocatable object ..."
 	awk -v MODNAME=$(MODNAME) -f ../../universal/rewrite_asm_sections.awk *.lto.s > renamed.s
 # -mcpu=neoverse-v2 (or another CPU supporting dotprod) is required for clang
 # to not complain when assembling
 	$(CXX) -c renamed.s -o DON.o $(ASM_FLAGS)
 else
-	@echo "Step 4/4. Extracting LTO-optimized relocatable object ..."
+	@echo; \
+	echo "Step 4/4. Extracting LTO-optimized relocatable object ..."
 	cp "$(basename $(EXE))$(LTO_OBJ_SUFFIX)" DON.o
 endif
 
-universal-object-nopgo: objclean universalclean
+universal-object-nopgo: obj-clean universal-clean
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) ENV_LDFLAGS='$(ENV_LDFLAGS) $(SAVE_TEMPS)' NNUE_EMBED_OBJ='$(NNUE_EMBED_OBJ)' all
 ifeq ($(USE_LTO_EMIT_ASM),yes)
 	awk -v MODNAME=$(MODNAME) -f ../../universal/rewrite_asm_sections.awk *.lto.s > renamed.s
@@ -1277,15 +1278,15 @@ install:
 	$(STRIP) "$(BINDIR)/$(EXE)"
 
 # Clean all
-clean: objclean profileclean
+clean: obj-clean profile-clean
 	@rm -f .depend *~ core
 
 # Clean binaries and objects
-objclean:
+obj-clean:
 	@rm -f $(EXE) ./*.o ./nnue/*.o ./nnue/features/*.o ./book/*.o ./tablebase/*.o $(BUILD_DATE_FILE) $(BUILD_SHA_FILE) $(BUILD_DIFFINDEX_FILE)
 
 # Clean auxiliary profiling files
-profileclean:
+profile-clean:
 	@rm -rf profdir
 	@rm -f bench.txt *.gcda *.gcno ./book/*.gcda ./tablebase/*.gcda ./nnue/*.gcda ./nnue/features/*.gcda *.s PGOBENCH.out
 	@rm -f "$(NAME).profdata" *.profraw
@@ -1294,7 +1295,7 @@ profileclean:
 	@rm -f "$(NAME)".res
 	@rm -f ./-lstdc++.res
 
-universalclean:
+universal-clean:
 # On Windows "ln -s" to a directory makes a native directory symlink that rm
 # cannot unlink; rmdir unlinks it without following it. No-op elsewhere.
 	@find $(TEMP_DIR) -type l -exec rmdir {} + 2>/dev/null || true
@@ -1332,7 +1333,7 @@ install-hooks:
 all: $(EXE) .depend
 
 config-sanity: net
-	@echo "" && \
+	@echo && \
 	echo "Config:" && \
 	echo "KERNEL: '$(KERNEL)'" && \
 	echo "TARGET_KERNEL: '$(TARGET_KERNEL)'" && \
@@ -1340,7 +1341,7 @@ config-sanity: net
 	echo "IS_WINDOWS: '$(IS_WINDOWS)'" && \
 	echo "COMP: '$(COMP)'" && \
 	echo "RUN_PREFIX: '$(RUN_PREFIX)'" && \
-	echo "" && \
+	echo && \
 	echo "debug: '$(debug)'" && \
 	echo "sanitize: '$(sanitize)'" && \
 	echo "optimize: '$(optimize)'" && \
@@ -1371,7 +1372,7 @@ config-sanity: net
 	echo "dotprod: '$(dotprod)'" && \
 	echo "relaxedsimd": $(relaxedsimd) && \
 	echo "tablebases: '$(tablebases)'" && \
-	echo "" && \
+	echo && \
 	echo "Flags:" && \
 	echo "CXX: '$(CXX)'" && \
 	echo "CXXFLAGS: '$(CXXFLAGS)'" && \
@@ -1380,9 +1381,9 @@ config-sanity: net
 	echo "DEPENDFLAGS: '$(DEPENDFLAGS)'" && \
 	echo "LDFLAGS: '$(LDFLAGS)'" && \
 	echo "LDLIBS: '$(LDLIBS)'" && \
-	echo "" && \
+	echo && \
 	echo "Testing config sanity. If this fails, try 'make help' ..." && \
-	echo "" && \
+	echo && \
 	(test "$(debug)"    = "no" || test "$(debug)"    = "yes") && \
 	(test "$(optimize)" = "no" || test "$(optimize)" = "yes") && \
 	(test "$(ARCH_SUPPORTED)" = "yes") && \
@@ -1479,7 +1480,7 @@ icx-profile-use:
 ifeq ($(UNIVERSAL_BUILD),no)
 # Include .depend only if no special goal is requested
 ifneq ($(MAKECMDGOALS),)
-ifneq ($(filter-out help net strip install clean objclean profileclean config-sanity format install-hooks,$(MAKECMDGOALS)),)
+ifneq ($(filter-out help net strip install clean obj-clean profile-clean config-sanity format install-hooks,$(MAKECMDGOALS)),)
     -include .depend
 endif
 endif
@@ -1591,7 +1592,7 @@ else
     OBJCOPY ?= objcopy
 endif
 
-.PHONY: build profile-build universalclean
+.PHONY: build profile-build universal-clean
 
 build: UOBJ_TGT := universal-object-nopgo
 build: $(UNIVERSAL_EXE)
