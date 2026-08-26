@@ -1228,7 +1228,7 @@ ifeq ($(arch),armv8)
     ASM_FLAGS := -mcpu=neoverse-v2
 endif
 
-MODNAME := $(subst -,_,$(notdir "$(CURDIR)"))
+MODNAME := $(subst -,_,$(notdir $(CURDIR)))
 
 universal-object-pgo: obj-clean profile-clean universal-clean
 	@echo; \
@@ -1283,16 +1283,16 @@ clean: obj-clean profile-clean
 
 # Clean binaries and objects
 obj-clean:
-	@rm -f $(EXE) ./*.o ./nnue/*.o ./nnue/features/*.o ./book/*.o ./tablebase/*.o $(BUILD_DATE_FILE) $(BUILD_SHA_FILE) $(BUILD_DIFFINDEX_FILE)
+	@rm -f "$(EXE)" ./*.o ./nnue/*.o ./nnue/features/*.o ./book/*.o ./tablebase/*.o "$(BUILD_DATE_FILE)" "$(BUILD_SHA_FILE)" "$(BUILD_DIFFINDEX_FILE)"
 
 # Clean auxiliary profiling files
 profile-clean:
 	@rm -rf profdir
 	@rm -f bench.txt *.gcda *.gcno ./book/*.gcda ./tablebase/*.gcda ./nnue/*.gcda ./nnue/features/*.gcda *.s PGOBENCH.out
-	@rm -f "$(NAME)".profdata *.profraw
+	@rm -f "$(NAME).profdata" *.profraw
 	@rm -f "$(NAME)".*args*
 	@rm -f "$(NAME)".*lt*
-	@rm -f "$(NAME)".res
+	@rm -f "$(NAME).res"
 	@rm -f ./-lstdc++.res
 
 universal-clean:
@@ -1421,13 +1421,13 @@ config-sanity: net
 	 test "$(COMP)" = "icx" || test "$(COMP)" = "ndk")
 
 $(EXE): $(OBJS) $(NNUE_EMBED_OBJ)
-	+$(CXX) -o $@ $(OBJS) $(NNUE_EMBED_OBJ) $(strip $(LDFLAGS) $(LDLIBS))
+	+$(CXX) -o "$@" $(OBJS) $(NNUE_EMBED_OBJ) $(strip $(LDFLAGS) $(LDLIBS))
 
 %.o: %.cpp
-	$(strip $(CXX) $(CPPFLAGS) $(CXXFLAGS)) -c -o $@ $<
+	$(strip $(CXX) $(CPPFLAGS) $(CXXFLAGS)) -c -o "$@" "$<"
 
 misc.o: misc.cpp $(BUILD_DATE_FILE) $(BUILD_SHA_FILE) $(BUILD_DIFFINDEX_FILE)
-	$(strip $(CXX) $(CPPFLAGS) $(CXXFLAGS) $(ARCH_FLAG) $(GIT_FLAGS)) -c -o $@ $<
+	$(strip $(CXX) $(CPPFLAGS) $(CXXFLAGS) $(ARCH_FLAG) $(GIT_FLAGS)) -c -o "$@" "$<"
 
 # Clang PGO
 clang-profile-make:

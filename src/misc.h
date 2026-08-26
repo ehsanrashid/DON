@@ -941,15 +941,15 @@ class MultiArray final {
     constexpr auto size() const noexcept { return data_.size(); }
     constexpr auto empty() const noexcept { return data_.empty(); }
 
-    constexpr const auto& at(size_type idx) const { return data_.at(idx); }
-    constexpr auto&       at(size_type idx) { return data_.at(idx); }
+    constexpr const auto& at(const size_type idx) const { return data_.at(idx); }
+    constexpr auto&       at(const size_type idx) { return data_.at(idx); }
 
-    constexpr const auto& operator[](size_type idx) const noexcept {
+    constexpr const auto& operator[](const size_type idx) const noexcept {
         assert(idx < size());
 
         return data_[idx];
     }
-    constexpr auto& operator[](size_type idx) noexcept {
+    constexpr auto& operator[](const size_type idx) noexcept {
         assert(idx < size());
 
         return data_[idx];
@@ -970,7 +970,7 @@ class MultiArray final {
     }
 
     template<typename U>
-    void fill_n(usize beg, usize count, const U& v) noexcept {
+    void fill_n(const usize beg, const usize count, const U& v) noexcept {
         static_assert(is_strictly_assignable_v<T, U>, "Cannot assign fill value to element type");
 
         usize end = std::min(beg + count, size());

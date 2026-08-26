@@ -129,7 +129,7 @@ constexpr Value blend_values(const Value bestValue,
     return (bestWeight * bestValue + (totalWeight - bestWeight) * targetValue) / totalWeight;
 }
 
-constexpr Bound fail_bound(bool failHigh) noexcept {
+constexpr Bound fail_bound(const bool failHigh) noexcept {
     return failHigh ? Bound::LOWER : Bound::UPPER;
 }
 
@@ -138,7 +138,7 @@ Move legal_move(const Move m, const Position& pos) noexcept {
 }
 
 // Build contHistory pointers from the stack frame and validate them in debug builds.
-void build_continuation_histories(const Stack*          ss,
+void build_continuation_histories(const Stack* const    ss,
                                   const PieceSqHistory* contHistory[CONT_HISTORY_COUNT]) noexcept {
     for (usize i = 0; i < CONT_HISTORY_COUNT; ++i)
     {
@@ -152,7 +152,10 @@ void build_continuation_histories(const Stack*          ss,
 
 // Updates the continuation histories for the move pairs formed
 // by the current move and the moves played in previous plies.
-void update_continuation_histories(Stack* ss, Piece pc, Square dstSq, int bonus) noexcept {
+void update_continuation_histories(const Stack* const ss,
+                                   const Piece        pc,
+                                   const Square       dstSq,
+                                   const int          bonus) noexcept {
     assert(dstSq != SQ_NONE);
 
     constexpr Array<double, CONT_HISTORY_COUNT> ContHistoryWeights{
@@ -172,7 +175,7 @@ void update_continuation_histories(Stack* ss, Piece pc, Square dstSq, int bonus)
 
     for (usize i = 0; i < ContHistoryCount; ++i)
     {
-        Stack* ssi = (ss - 1) - i;
+        const Stack* ssi = (ss - 1) - i;
 
         if (!ssi->move.is_ok())
             break;
@@ -191,7 +194,7 @@ void update_continuation_histories(Stack* ss, Piece pc, Square dstSq, int bonus)
 
 // Adjust raw evaluation according to various correction histories value
 // and guarantee evaluation does not hit the tablebase range.
-Value adjust_eval_value(Value evalue, int correctionValue) noexcept {
+Value adjust_eval_value(const Value evalue, const int correctionValue) noexcept {
     return in_range(evalue + constexpr_round(7.6294e-6 * correctionValue));
 }
 
