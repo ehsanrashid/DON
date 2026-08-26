@@ -50,18 +50,22 @@ static const unsigned char* map_embedded_nnue() noexcept {
     if (fd < 0)
         return nullptr;
 
+    const long systemPageSize = ::sysconf(_SC_PAGESIZE);
+    if (systemPageSize == -1)
+        return nullptr;
+
     // Align down to page size for mmap
-    const DON::u64 pageSize = static_cast<DON::u64>(::sysconf(_SC_PAGESIZE));
+    const DON::u64 pageSize = static_cast<DON::u64>(systemPageSize);
     const DON::u64 base     = gUniversalNNUEOffset & ~(pageSize - 1);
     const DON::u64 pad      = gUniversalNNUEOffset - base;
 
-    void* p =
-      ::mmap(nullptr, size_t(gUniversalNNUESize + pad), PROT_READ, MAP_PRIVATE, fd, off_t(base));
+    void* mappedMemory = ::mmap(nullptr, static_cast<size_t>(gUniversalNNUESize + pad), PROT_READ,
+                                MAP_PRIVATE, fd, static_cast<off_t>(base));
     ::close(fd);
-    if (p == MAP_FAILED)
+    if (mappedMemory == MAP_FAILED)
         return nullptr;
 
-    return reinterpret_cast<const unsigned char*>(p) + pad;
+    return reinterpret_cast<const unsigned char*>(mappedMemory) + pad;
 }
 
 extern const unsigned char* const gEmbeddedNNUEData = map_embedded_nnue();

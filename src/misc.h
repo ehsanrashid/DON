@@ -1181,27 +1181,33 @@ struct FixedText final {
 
 static_assert(sizeof(FixedText) == 32, "FixedText size must be 32 bytes");
 
-// Tracks allocation sizes and performs cleanup when an allocation is removed
-template<typename CleanupFunc>
+// Tracks allocation sizes and performs allocation and freeing.
+template<typename AllocateFunc, typename FreeFunc>
 class AllocationSizes final {
    public:
-    explicit AllocationSizes(CleanupFunc cleanupFn) noexcept :
-        cleanupFunc(std::move(cleanupFn)) {}
+    explicit AllocationSizes(AllocateFunc allocateFn, FreeFunc freeFn) noexcept :
+        allocateFunc(std::move(allocateFn)),
+        freeFunc(std::move(freeFn)) {}
 
-    void add(void* const mem, const usize size) noexcept {
-        if (mem == nullptr)
-            return;
-        std::lock_guard writeLock(sharedMutex);
+    [[nodiscard]] void* allocate(const usize allocSize) noexcept {
+        void* mem = allocateFunc(allocSize);
 
-        sizesMap[mem] = size;
+        if (mem != nullptr)
+        {
+            std::lock_guard writeLock(sharedMutex);
+
+            sizesMap[mem] = allocSize;
+        }
+
+        return mem;
     }
 
-    [[nodiscard]] bool remove(void* const mem) noexcept {
+    [[nodiscard]] bool free(void* const mem) noexcept {
         std::lock_guard writeLock(sharedMutex);
 
         if (auto itr = sizesMap.find(mem); itr != sizesMap.end())
         {
-            if (!cleanupFunc(mem, itr->second))
+            if (!freeFunc(mem, itr->second))
                 return false;
 
             sizesMap.erase(itr);
@@ -1235,7 +1241,8 @@ class AllocationSizes final {
    private:
     mutable std::shared_mutex sharedMutex;
 
-    const CleanupFunc                cleanupFunc;
+    const AllocateFunc               allocateFunc;
+    const FreeFunc                   freeFunc;
     std::unordered_map<void*, usize> sizesMap;
 };
 
