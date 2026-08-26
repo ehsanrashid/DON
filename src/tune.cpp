@@ -18,7 +18,7 @@
 #include "tune.h"
 
 #include <algorithm>
-#include <functional>  // for std::hash<>
+#include <functional>  // std::hash<>
 #include <iostream>
 #include <optional>
 #include <unordered_map>

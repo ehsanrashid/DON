@@ -21,7 +21,7 @@
 #include <algorithm>
 #include <array>
 #include <cassert>
-#include <functional>  // for std::hash<>
+#include <functional>  // std::hash<>
 #include <string>
 #include <string_view>
 #include <type_traits>

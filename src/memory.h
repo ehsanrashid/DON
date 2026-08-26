@@ -19,8 +19,7 @@
 #define MEMORY_H_INCLUDED
 
 #include <algorithm>
-#include <cassert>
-#include <cstdint>
+//#include <cassert>
 #include <cstring>
 #include <iterator>
 #include <memory>
