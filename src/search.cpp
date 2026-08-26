@@ -436,8 +436,6 @@ void Worker::iterative_deepening() noexcept {
 
     accStack.reset();
 
-    lastPV.clear();
-
     for (auto& colorQuietHist : quietHistory)
         for (auto& quietHist : colorQuietHist)
             quietHist *= 0.7119;
@@ -505,8 +503,10 @@ void Worker::iterative_deepening() noexcept {
 
     ss->pv = &pv;
 
-    Value bestValue         = -VALUE_INFINITE;
-    Value lastCurValue      = -VALUE_INFINITE;
+    Value bestValue          = -VALUE_INFINITE;
+    Value lastIterationValue = -VALUE_INFINITE;
+
+    Move  lastBestMove      = Move::None;
     Depth lastBestMoveDepth = DEPTH_ZERO;
 
     u16 researchCnt = 0;
@@ -533,6 +533,7 @@ void Worker::iterative_deepening() noexcept {
                 // Save the last iteration's scores before the first PV line is searched and
                 // all the move scores except the (new) PV are set to -VALUE_INFINITE.
                 rootMoves[i].preValue = rootMoves[i].value;
+                rootMoves[i].prePV    = rootMoves[i].pv;
                 ++i;
             } while (i < rootMovesSize && rootMoves[i].tbRank == tbRank);
         }
@@ -554,6 +555,8 @@ void Worker::iterative_deepening() noexcept {
                 pvEnd = tbRankGroups[tbRankGroupIdx + 1];  // safe because of sentinel
                 ++tbRankGroupIdx;
             }
+
+            lastIterationIdxPV = rootMoves[pvIdx].prePV;
 
             auto avgValue    = rootMoves[pvIdx].avgValue;
             auto avgSqrValue = rootMoves[pvIdx].avgSqrValue;
@@ -634,20 +637,40 @@ void Worker::iterative_deepening() noexcept {
 
             // In multiPV analysis do not let aborted searches spoil
             // mated-in/TB loss from a completed search in an earlier PV line.
-            // mated-in/TB loss from an aborted search for pvIdx != 0
-            // can only become bestmove in the sorting below, if the current bestmove
-            // (and hence also the previously searched pvIdx-1 line) is already a proven loss.
-            if (pvIdx != 0 && threads.is_stopped() && is_loss(rootMoves[pvIdx - 1].value)
-                && rootMoves[pvIdx] < rootMoves[pvIdx - 1])
+            // Hence guard against an aborted pvIdx line overtaking pvIdx - 1
+            // when pvIdx - 1 is a proven loss.
+            // Moreover, do not trust an exact loss value from an aborted search.
+            if (pvIdx != 0 && threads.is_stopped())
             {
-                rootMoves[pvIdx].value = rootMoves[pvIdx].uciValue =
-                  rootMoves[pvIdx].preValue != -VALUE_INFINITE
-                    ? std::min(rootMoves[pvIdx].preValue, rootMoves[pvIdx - 1].value)
-                    : rootMoves[pvIdx - 1].value;
-                rootMoves[pvIdx].preValue = -VALUE_INFINITE;
-                rootMoves[pvIdx].reset_bound();
-                rootMoves[pvIdx].shrink_to(
-                  std::min(rootMoves[pvIdx].size(), rootMoves[pvIdx - 1].size()));
+                auto& rmIdx   = rootMoves[pvIdx];
+                auto& rmIdx_1 = rootMoves[pvIdx - 1];
+
+                if ((is_loss(rmIdx_1.value) && rmIdx < rmIdx_1) || rmIdx.is_exact_loss())
+                {
+                    // If the previous score is worse than pvIdx - 1, can safely use it.
+                    // If it is equal, make sure it cannot overtake pvIdx - 1.
+                    if (rmIdx.preValue != -VALUE_INFINITE && rmIdx.preValue <= rmIdx_1.value)
+                    {
+                        rmIdx.value = rmIdx.uciValue = rmIdx.preValue;
+                        rmIdx.preValue               = -VALUE_INFINITE;
+                        rmIdx.pv                     = rmIdx.prePV;
+                        rmIdx.reset_bound();
+                    }
+                    // Otherwise, if can, cap the score to the best possible, and mark
+                    // the score as a bound (also a valid excuse for the incomplete PV)
+                    else
+                    {
+                        if (is_loss(rmIdx_1.value))
+                        {
+                            rmIdx.value = rmIdx.uciValue = rmIdx_1.value;
+                            rmIdx.preValue               = -VALUE_INFINITE;
+                            rmIdx.shrink_to(std::min(rmIdx.size(), rmIdx_1.size()));
+                            rmIdx.bound = Bound::UPPER;
+                        }
+                        else
+                            rmIdx.bound = Bound::LOWER;
+                    }
+                }
             }
 
             // Sort the PV lines searched so far
@@ -664,30 +687,32 @@ void Worker::iterative_deepening() noexcept {
             }
         }
 
-        const bool mateForgotten = lastCurValue != -VALUE_INFINITE && is_mate(lastCurValue)
-                                && (constexpr_abs(rootMoves[0].value) < constexpr_abs(lastCurValue)
-                                    || rootMoves[0].is_bound());
+        auto& rm0 = rootMoves[0];
+
+        const bool mateForgotten =
+          lastIterationValue != -VALUE_INFINITE && is_mate(lastIterationValue)
+          && (constexpr_abs(rm0.value) < constexpr_abs(lastIterationValue) || rm0.is_bound());
 
         if (threads.is_stopped())
         {
-            const bool lossAborted = pvIdx == 0 && rootMoves[0].value != -VALUE_INFINITE
-                                  && is_loss(rootMoves[0].value) && !rootMoves[0].is_bound();
+            const bool lossAborted = pvIdx == 0 && rm0.is_exact_loss();
 
             // An exact mated-in/TB-loss score from an aborted search cannot be trusted:
             // the loss could be delayed or refuted upon exploring the remaining root-moves.
             // Thus here roll back to the score from the previous iteration.
             // Do the same if a search has failed to recover a mate score that was found in a previous iteration.
-            if (lossAborted || (mateForgotten && rootMoves[0].value != -VALUE_INFINITE))
+            if (lossAborted || (mateForgotten && rm0.value != -VALUE_INFINITE))
             {
-                if (!lastPV.empty())
+                if (lastBestMove != Move::None)
                 {
                     // Bring the last best move to the front for best thread selection
-                    rootMoves.move_to_front([&lstPV = std::as_const(lastPV)](
-                                              const auto& rm) noexcept { return rm == lstPV[0]; });
-
-                    rootMoves[0].pv    = lastPV;
-                    rootMoves[0].value = rootMoves[0].uciValue = lastCurValue;
-                    rootMoves[0].reset_bound();
+                    rootMoves.move_to_front(
+                      [&lastBestMove = std::as_const(lastBestMove)](const auto& rm) noexcept {
+                          return rm == lastBestMove;
+                      });
+                    rm0.value = rm0.uciValue = rm0.preValue;
+                    rm0.pv                   = rm0.prePV;
+                    rm0.reset_bound();
 
                     if (mainManager != nullptr)
                         mainManager->pvShown = false;
@@ -700,14 +725,14 @@ void Worker::iterative_deepening() noexcept {
             break;
         }
 
-        if (lastPV.empty() || lastPV[0] != rootMoves[0].pv[0])
+        if (lastBestMove != rootMoves[0].pv[0])
             lastBestMoveDepth = rootDepth;
 
         // Do not replace (shorter) mate scores from a previous iteration
         if (!mateForgotten)
         {
-            lastPV       = rootMoves[0].pv;
-            lastCurValue = rootMoves[0].value;
+            lastBestMove       = rootMoves[0].pv[0];
+            lastIterationValue = rootMoves[0].value;
         }
 
         // Have found "mate in x"?
@@ -796,15 +821,16 @@ Value Worker::search(Position&    pos,
         selDepth = std::max<u16>(ss->ply + 1, selDepth);
     }
 
-    const usize prePvIdx = std::max<int>((ss - 1)->ply, 0);
+    const usize pvPreIdx = std::max<int>((ss - 1)->ply, 0);
 
     // Step 1. Initialize node
     ss->inCheck   = pos.checkers_bb() != 0;
     ss->moveCount = 0;
     ss->history   = 0;
-    ss->pvFollow =
-      RootNode
-      || ((ss - 1)->pvFollow && (prePvIdx < lastPV.size() && (ss - 1)->move == lastPV[prePvIdx]));
+    ss->pvFollow  = RootNode
+                 || ((ss - 1)->pvFollow
+                     && (pvPreIdx < lastIterationIdxPV.size()
+                         && (ss - 1)->move == lastIterationIdxPV[pvPreIdx]));
 
     if constexpr (!RootNode)
     {
@@ -2379,19 +2405,19 @@ void Worker::extend_tb_pv(const usize index, Value& value) noexcept {
 
     bool aborted = false;
 
-    auto& rootMove = rootMoves[index];
+    auto& rmIdx = rootMoves[index];
 
     std::list<State> states;
 
     // Step 0. Do the rootMove, no correction allowed, as needed for MultiPV in TB
     State& rootSt = states.emplace_back();
-    rootPos.do_move(rootMove.pv[0], rootSt);
+    rootPos.do_move(rmIdx.pv[0], rootSt);
 
     usize ply = 1;
     // Step 1. Walk the PV to the last position in TB with correct decisive score
-    while (ply < rootMove.size())
+    while (ply < rmIdx.size())
     {
-        const Move pvMove = rootMove.pv[ply];
+        const Move pvMove = rmIdx.pv[ply];
 
         RootMoves rms;
 
@@ -2426,7 +2452,7 @@ void Worker::extend_tb_pv(const usize index, Value& value) noexcept {
     }
 
     // Keep only the correct part of the PV
-    rootMove.shrink_to(ply);
+    rmIdx.shrink_to(ply);
 
     // Step 2. Now extend the PV to mate, as if the user explores syzygy-tables.info using
     // top ranked moves (minimal DTZ), which gives optimal mates only for simple endgames e.g. KRvK
@@ -2473,7 +2499,7 @@ void Worker::extend_tb_pv(const usize index, Value& value) noexcept {
             break;
 
         const Move pvMove = rms[0].pv[0];
-        rootMove.pv.push_back(pvMove);
+        rmIdx.pv.push_back(pvMove);
         State& st = states.emplace_back();
         rootPos.do_move(pvMove, st);
     }
@@ -2492,8 +2518,8 @@ void Worker::extend_tb_pv(const usize index, Value& value) noexcept {
         value = VALUE_DRAW;
 
     // Undo the PV moves
-    for (usize i = rootMove.pv.size(); i-- > 0;)
-        rootPos.undo_move(rootMove.pv[i]);
+    for (usize i = rmIdx.size(); i-- > 0;)
+        rootPos.undo_move(rmIdx.pv[i]);
 
     if (aborted)
         print_info_string(
@@ -2670,8 +2696,9 @@ void MainSearchManager::show_pv(Worker& worker, const Depth depth) const noexcep
         if (isValueTB)
             v = rm.tbValue;
 
-        // Potentially correct and extend the PV, and in exceptional cases value also
-        if ((isValueTB || !rm.is_bound()) && is_decisive(v) && !is_mate(v))
+        // Potentially correct and extend the PV, and in exceptional cases value also.
+        // Previous PVs have already been extended. Bound flags indicate an unreliable PV.
+        if (!isValueInvalid && (isValueTB || !rm.is_bound()) && is_decisive(v) && !is_mate(v))
             worker.extend_tb_pv(i, v);
 
         FixedText score{to_score({v, rootPos})};
@@ -2685,7 +2712,7 @@ void MainSearchManager::show_pv(Worker& worker, const Depth depth) const noexcep
         if (ShowWDL)
             wdl = to_wdl(v, rootPos);
 
-        std::string pv{rm.pv.build_pv()};
+        std::string pv{isValueInvalid ? rm.prePV.build_pv() : rm.pv.build_pv()};
 
         updateContext.onUpdateFull(
           {{d, score}, rm.selDepth, i + 1, bound, wdl, time, nodes, tbHits, hashfull, pv});

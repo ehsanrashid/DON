@@ -203,7 +203,7 @@ struct RootMove final {
 
     Bound bound = Bound::NONE;
 
-    PVMoves pv;
+    PVMoves pv, prePV;
 };
 
 constexpr bool root_move_descending(const RootMove& rm1, const RootMove& rm2) noexcept {
@@ -752,7 +752,7 @@ class Worker final {
 
     Array<i32, COLOR_NB> optimism;
 
-    PVMoves lastPV;
+    PVMoves lastIterationIdxPV;
 
     // Histories
     CaptureHistory captureHistory;

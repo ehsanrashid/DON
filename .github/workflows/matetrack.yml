@@ -89,17 +89,17 @@ jobs:
             exit 1
           fi
 
-      # - name: Run matetrack th4 go-mate
-      #   working-directory: matetrack
-      #   run: |
-      #     python matecheck.py --engine /home/runner/work/DON/DON/DON/src/DON --epdFile matetrack.epd matedtrack.epd --bmMax 2 --mate 0 --threads 4 | tee matecheck4gm.out
-      #     ! grep "issues were detected" matecheck4gm.out >/dev/null
-      #     total=$(grep "Total FENs:" matecheck4gm.out | awk '{print $3}')
-      #     bmates=$(grep "Best mates:" matecheck4gm.out | awk '{print $3}')
-      #     if [ $bmates -ne $total ]; then
-      #       echo "At least one go-mate search did not yield expected mate, see matecheck4gm.out" >&2
-      #       exit 1
-      #     fi
+      - name: Run matetrack th4 go-mate
+        working-directory: matetrack
+        run: |
+          python matecheck.py --engine /home/runner/work/DON/DON/DON/src/DON --epdFile matetrack.epd matedtrack.epd --bmMax 2 --mate 0 --threads 4 | tee matecheck4gm.out
+          ! grep "issues were detected" matecheck4gm.out >/dev/null
+          total=$(grep "Total FENs:" matecheck4gm.out | awk '{print $3}')
+          bmates=$(grep "Best mates:" matecheck4gm.out | awk '{print $3}')
+          if [ $bmates -ne $total ]; then
+            echo "At least one go-mate search did not yield expected mate, see matecheck4gm.out" >&2
+            exit 1
+          fi
 
       - name: Run matetrack th1 multiPV
         working-directory: matetrack
@@ -107,11 +107,11 @@ jobs:
           python matecheck.py --engine /home/runner/work/DON/DON/DON/src/DON --epdFile matetrack.epd matedtrack.epd --bmMax 10 --nodes 5000 --multiPV 20 --checkMultiPVs | tee matecheck1mpv.out
           ! grep "issues were detected" matecheck1mpv.out >/dev/null
 
-      # - name: Run matetrack th4 multiPV
-      #   working-directory: matetrack
-      #   run: |
-      #     python matecheck.py --engine /home/runner/work/DON/DON/DON/src/DON --epdFile matetrack.epd matedtrack.epd --bmMax 10 --nodes 5000 --multiPV 20 --checkMultiPVs --threads 4 | tee matecheck4mpv.out
-      #     ! grep "issues were detected" matecheck4mpv.out >/dev/null
+      - name: Run matetrack th4 multiPV
+        working-directory: matetrack
+        run: |
+          python matecheck.py --engine /home/runner/work/DON/DON/DON/src/DON --epdFile matetrack.epd matedtrack.epd --bmMax 10 --nodes 5000 --multiPV 20 --checkMultiPVs --threads 4 | tee matecheck4mpv.out
+          ! grep "issues were detected" matecheck4mpv.out >/dev/null
 
       - name: Run matetrack th1 with --syzygy50MoveRule false
         working-directory: matetrack

@@ -1089,23 +1089,23 @@ class FixedVector final {
         return data()[size() - 1];
     }
 
-    T& operator[](SizeType idx) noexcept {
+    T& operator[](const SizeType idx) noexcept {
         assert(idx < size());
 
         return data()[idx];
     }
-    const T& operator[](SizeType idx) const noexcept {
+    const T& operator[](const SizeType idx) const noexcept {
         assert(idx < size());
 
         return data()[idx];
     }
 
-    void resize(SizeType newSize) noexcept {
+    void resize(const SizeType newSize) noexcept {
         // Note: doesn't construct/destroy elements
         size_ = std::min(newSize, capacity());
     }
 
-    T* make_space(SizeType space) noexcept {
+    T* make_space(const SizeType space) noexcept {
         SizeType oldSize = size();
 
         resize(oldSize + space);
@@ -1123,9 +1123,9 @@ class FixedVector final {
 struct FixedText final {
    public:
     // from_view factory
-    static FixedText from_view(std::string_view sv) noexcept { return FixedText{}.write(sv); }
+    static FixedText from_view(const std::string_view sv) noexcept { return FixedText{}.write(sv); }
 
-    FixedText& write(char ch) noexcept {
+    FixedText& write(const char ch) noexcept {
         assert(size() < capacity());
         if (size() >= capacity())
             return *this;
