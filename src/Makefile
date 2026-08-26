@@ -1375,10 +1375,11 @@ config-sanity: net
 	echo "Flags:" && \
 	echo "CXX: '$(CXX)'" && \
 	echo "CXXFLAGS: '$(CXXFLAGS)'" && \
+	echo "ARCH_FLAG: '$(ARCH_FLAG)'" && \
+	echo "GIT_FLAGS: '$(GIT_FLAGS)'" && \
 	echo "DEPENDFLAGS: '$(DEPENDFLAGS)'" && \
 	echo "LDFLAGS: '$(LDFLAGS)'" && \
 	echo "LDLIBS: '$(LDLIBS)'" && \
-	echo "ARCH_FLAG: '$(ARCH_FLAG)'" && \
 	echo "" && \
 	echo "Testing config sanity. If this fails, try 'make help' ..." && \
 	echo "" && \
@@ -1425,7 +1426,7 @@ $(EXE): $(OBJS) $(NNUE_EMBED_OBJ)
 	$(strip $(CXX) $(CPPFLAGS) $(CXXFLAGS)) -c -o $@ $<
 
 misc.o: misc.cpp $(BUILD_DATE_FILE) $(BUILD_SHA_FILE) $(BUILD_DIFFINDEX_FILE)
-	$(strip $(CXX) $(CPPFLAGS) $(CXXFLAGS) $(GIT_FLAGS) $(ARCH_FLAG)) -c -o $@ $<
+	$(strip $(CXX) $(CPPFLAGS) $(CXXFLAGS) $(ARCH_FLAG) $(GIT_FLAGS)) -c -o $@ $<
 
 # Clang PGO
 clang-profile-make:
