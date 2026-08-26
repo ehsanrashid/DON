@@ -261,60 +261,6 @@ constexpr auto sign_sqr(const T x) noexcept {
     return sign(x) * sqr(x);
 }
 
-template<typename T>
-constexpr bool is_power_of_2(const T x) noexcept {
-    return x != 0 && (x & (x - 1)) == 0;
-}
-
-template<typename T1, typename T2>
-constexpr std::common_type_t<T1, T2> ceil_div(const T1 n, const T2 d) noexcept {
-    using R = std::common_type_t<T1, T2>;
-    return (R(n) + R(d) - 1) / R(d);
-}
-
-// Round n up to be a multiple of base
-template<typename T>
-constexpr T ceil_to_multiple(const T n, const T base) noexcept {
-    return ceil_div(n, base) * base;
-}
-
-// Round up to the next power of 2
-constexpr usize round_up_to_pow2(usize x) noexcept {
-    if (x == 0)
-        return 1;
-
-    --x;
-    x |= x >> 1;
-    x |= x >> 2;
-    x |= x >> 4;
-    x |= x >> 8;
-    x |= x >> 16;
-#if SIZE_MAX > 0xFFFFFFFF
-    x |= x >> 32;  // for 64-bit size_t
-#endif
-    return x + 1;
-}
-
-// Round up to a multiple of alignment
-template<typename T>
-[[nodiscard]] constexpr T round_up_to_multiple(const T size, const T alignment) noexcept {
-    static_assert(std::is_unsigned_v<T>, "round_up_to_multiple() requires an unsigned type");
-    // Alignment must be non-zero power of 2
-    assert(is_power_of_2(alignment));
-
-    // Safely handle edge case: zero alignment when assertions are disabled
-    if (alignment == 0)
-        return size;
-
-    const T mask = alignment - 1;
-
-    if (size > std::numeric_limits<T>::max() - mask)
-        return std::numeric_limits<T>::max();
-
-    // Round up to the next multiple of alignment
-    return (size + mask) & ~mask;
-}
-
 template<typename T, std::enable_if_t<std::is_integral_v<T>, bool> = true>
 constexpr std::make_unsigned_t<T> constexpr_abs(const T x) noexcept {
     using U = std::make_unsigned_t<T>;
@@ -392,6 +338,74 @@ constexpr double constexpr_log(double x) noexcept {
 
     // f = x - 1  in  (-0.293, 0.414)
     return constexpr_log1p_log(x - 1.0) + double(exponent) * LN2;
+}
+
+template<typename T>
+constexpr bool is_power_of_2(const T x) noexcept {
+    return x != 0 && (x & (x - 1)) == 0;
+}
+
+template<typename T1, typename T2>
+constexpr std::common_type_t<T1, T2> ceil_div(const T1 n, const T2 d) noexcept {
+    using R = std::common_type_t<T1, T2>;
+    return (R(n) + R(d) - 1) / R(d);
+}
+
+// Round n up to be a multiple of base
+template<typename T>
+constexpr T ceil_to_multiple(const T n, const T base) noexcept {
+    return ceil_div(n, base) * base;
+}
+
+// Round up to the next power of 2
+constexpr usize round_up_to_pow2(usize x) noexcept {
+    if (x == 0)
+        return 1;
+
+    --x;
+    x |= x >> 1;
+    x |= x >> 2;
+    x |= x >> 4;
+    x |= x >> 8;
+    x |= x >> 16;
+#if SIZE_MAX > 0xFFFFFFFF
+    x |= x >> 32;  // for 64-bit size_t
+#endif
+    return x + 1;
+}
+
+// Round up to a multiple of alignment
+template<typename T>
+[[nodiscard]] constexpr T round_up_to_multiple(const T size, const T alignment) noexcept {
+    static_assert(std::is_unsigned_v<T>, "round_up_to_multiple() requires an unsigned type");
+    // Alignment must be non-zero power of 2
+    assert(is_power_of_2(alignment));
+
+    // Safely handle edge case: zero alignment when assertions are disabled
+    if (alignment == 0)
+        return size;
+
+    const T mask = alignment - 1;
+
+    if (size > std::numeric_limits<T>::max() - mask)
+        return std::numeric_limits<T>::max();
+
+    // Round up to the next multiple of alignment
+    return (size + mask) & ~mask;
+}
+
+// Get the first aligned element of an array.
+// ptr must point to an array of size at least 'sizeof(T) * N + alignment' bytes,
+// where N is the number of elements in the array.
+template<usize Alignment, typename T>
+[[nodiscard]] constexpr T* align_ptr_up(T* ptr) noexcept {
+    static_assert(Alignment != 0 && (Alignment & (Alignment - 1)) == 0,
+                  "Alignment must be non-zero power of 2");
+    static_assert(Alignment >= alignof(T), "Alignment must be >= alignof(T)");
+
+    const auto ptrValue =
+      round_up_to_multiple(reinterpret_cast<uptr>(ptr), static_cast<uptr>(Alignment));
+    return reinterpret_cast<T*>(ptrValue);
 }
 
 constexpr float max_load_factor(float maxLoadFactor = 0.75f) noexcept {

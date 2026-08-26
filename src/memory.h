@@ -209,20 +209,6 @@ std::enable_if_t<std::is_array_v<T>, LargePagePtr<T>> make_unique_aligned_large_
     return LargePagePtr<T>(mem);
 }
 
-// Get the first aligned element of an array.
-// ptr must point to an array of size at least 'sizeof(T) * N + alignment' bytes,
-// where N is the number of elements in the array.
-template<usize Alignment, typename T>
-[[nodiscard]] constexpr T* align_ptr_up(T* ptr) noexcept {
-    static_assert(Alignment != 0 && (Alignment & (Alignment - 1)) == 0,
-                  "Alignment must be non-zero power of 2");
-    static_assert(Alignment >= alignof(T), "Alignment must be >= alignof(T)");
-
-    auto intPtr = reinterpret_cast<uptr>(ptr);
-    intPtr      = round_up_to_multiple(intPtr, Alignment);
-    return reinterpret_cast<T*>(intPtr);
-}
-
 template<typename T, typename ByteT>
 [[nodiscard]] T load_as(const ByteT* buffer) noexcept {
     static_assert(std::is_trivially_copyable_v<T>, "Type must be trivially copyable");
