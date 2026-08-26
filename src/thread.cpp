@@ -346,7 +346,7 @@ struct ThreadMetric final {
         return {
           voteCount,                                              //
           std::forward<VotingFunc>(calc_vote_weight)(th),         //
-          rm.pv.size(),                                           //
+          rm.size(),                                              //
           value,                                                  //
           value != +VALUE_INFINITE && is_win(value) && !isBound,  //
           value != -VALUE_INFINITE && is_loss(value) && !isBound  //
@@ -415,7 +415,7 @@ const Thread* Threads::best_thread() const noexcept {
         {
             const auto& rm = th->worker->rootMoves[0];
 
-            if (rm.value != -VALUE_INFINITE && !rm.pv.empty())
+            if (rm.value != -VALUE_INFINITE && !rm.empty())
                 snapThreads.push_back(th.get());
             else if (th->worker->rootDepth > bestDepth)
             {
@@ -462,7 +462,7 @@ const Thread* Threads::best_thread() const noexcept {
         const auto* candThread = snapThreads[i];
 
         // Get candidate thread properties
-        auto candMetric = ThreadMetric::from_thread(candThread, votes, calc_vote_weight);
+        const auto candMetric = ThreadMetric::from_thread(candThread, votes, calc_vote_weight);
 
         if (BetterThread betterThread; betterThread(bestMetric, candMetric))
         {

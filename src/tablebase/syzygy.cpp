@@ -2048,13 +2048,13 @@ bool rank_root_moves_wdl(Position& pos, RootMoves& rootMoves, const bool useRule
     for (auto& rm : rootMoves)
     {
         State st;
-        pos.do_move(rm.pv[0], st);
+        pos.do_move(rm[0], st);
 
         ProbeState ps = PS_OK;
 
         WDLScore wdlScore = pos.is_draw(1) ? WDL_DRAW : -probe_wdl(pos, &ps);
 
-        pos.undo_move(rm.pv[0]);
+        pos.undo_move(rm[0]);
 
         if (ps == PS_FAIL)
             return false;
@@ -2086,7 +2086,7 @@ bool rank_root_moves_dtz(Position& pos, RootMoves& rootMoves, const bool useRule
     for (auto& rm : rootMoves)
     {
         State st;
-        pos.do_move(rm.pv[0], st);
+        pos.do_move(rm[0], st);
 
         ProbeState ps = PS_OK;
 
@@ -2116,7 +2116,7 @@ bool rank_root_moves_dtz(Position& pos, RootMoves& rootMoves, const bool useRule
         if (dtzScore == 2 && pos.checkers_bb() != 0 && MoveList<GenType::LEGAL, true>(pos).empty())
             dtzScore = 1;
 
-        pos.undo_move(rm.pv[0]);
+        pos.undo_move(rm[0]);
 
         if (ps == PS_FAIL)
             return false;

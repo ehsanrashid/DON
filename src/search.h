@@ -122,16 +122,16 @@ struct PVMoves final {
 
     // Optimized PV to string conversion
     std::string build_pv() const noexcept {
-        std::string pv;
-        pv.reserve(6 * size());
+        std::string pvStr;
+        pvStr.reserve(6 * size());
 
         for (const Move m : *this)
         {
-            pv.push_back(' ');
-            pv.append(move_to_can(m));
+            pvStr.push_back(' ');
+            pvStr.append(move_to_can(m));
         }
 
-        return pv;
+        return pvStr;
     }
 
    private:
@@ -146,7 +146,7 @@ struct PVMoves final {
 struct RootMove final {
    public:
     RootMove() noexcept = default;
-    explicit RootMove(Move m) noexcept { pv.push_back(m); }
+    explicit RootMove(Move m) noexcept { push_back(m); }
 
     friend bool operator==(const RootMove& rm, Move m) noexcept {
         return !rm.pv.empty() && rm.pv.front() == m;
@@ -184,8 +184,14 @@ struct RootMove final {
     void reset_bound() noexcept { bound = Bound::NONE; }
 
     [[nodiscard]] usize size() const noexcept { return pv.size(); }
+    [[nodiscard]] bool  empty() const noexcept { return size() == 0; }
+
+    void push_back(const Move move) noexcept { pv.push_back(move); }
     // Keep only the root move at index 0
     void shrink_to(const usize newSize) noexcept { pv.shrink_to(newSize); }
+
+    Move&       operator[](const usize idx) noexcept { return pv[idx]; }
+    const Move& operator[](const usize idx) const noexcept { return pv[idx]; }
 
     u64 nodes = 0;
 
@@ -752,7 +758,7 @@ class Worker final {
 
     Array<i32, COLOR_NB> optimism;
 
-    PVMoves itrIdxPV;
+    PVMoves idxPrePV;
 
     // Histories
     CaptureHistory captureHistory;
