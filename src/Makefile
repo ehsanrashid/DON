@@ -1184,7 +1184,7 @@ profile-build: net config-sanity obj-clean profile-clean
 endif
 
 # Default network filename, read from evaluate.h's EvalFileDefaultName.
-macos-lipo: NNUE_NET := $(shell grep -oE 'nn-[0-9a-f]+\.nnue' $(CURDIR)/evaluate.h | head -1)
+macos-lipo: NNUE_NET := $(shell grep -oE 'nn-[0-9a-f]+\.nnue' "$(CURDIR)"/evaluate.h | head -1)
 macos-lipo:
 	@echo; \
 	echo "Step 1/4. Building x86-64 slice (network shared from Apple-silicon slice) ..."
@@ -1228,7 +1228,7 @@ ifeq ($(arch),armv8)
     ASM_FLAGS := -mcpu=neoverse-v2
 endif
 
-MODNAME := $(subst -,_,$(notdir $(CURDIR)))
+MODNAME := $(subst -,_,$(notdir "$(CURDIR)"))
 
 universal-object-pgo: obj-clean profile-clean universal-clean
 	@echo; \
@@ -1569,7 +1569,7 @@ endif
 
 EMBED_DIR_SUPPORTED := $(shell echo 'int main(){}' | $(CXX) -x c++ --embed-dir=. -o /dev/null -c - 2>/dev/null && echo 1 || echo 0)
 ifeq ($(EMBED_DIR_SUPPORTED),1)
-    EMBED_DIR = --embed-dir=$(CURDIR)
+    EMBED_DIR = --embed-dir="$(CURDIR)"
 endif
 
 # macos-lipo sets MACOS_X86_SLICE=1 when building the x86-64 slice so that the

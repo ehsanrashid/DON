@@ -337,19 +337,19 @@ struct ThreadMetric final {
         const auto& rm = th->worker->root_moves()[0];
 
         // Aborted (depth 1) searches may lead to inexact win or loss
-        const Value curValue = rm.curValue;
-        const bool  hasBound = rm.has_bound();
+        const Value value   = rm.value;
+        const bool  isBound = rm.is_bound();
 
         assert(rm.id != std::numeric_limits<u16>::max() && rm.id < votes.size());
         const u64 voteCount = votes[rm.id];
 
         return {
-          voteCount,                                                     //
-          std::forward<VotingFunc>(calc_vote_weight)(th),                //
-          rm.pv.size(),                                                  //
-          curValue,                                                      //
-          curValue != +VALUE_INFINITE && is_win(curValue) && !hasBound,  //
-          curValue != -VALUE_INFINITE && is_loss(curValue) && !hasBound  //
+          voteCount,                                              //
+          std::forward<VotingFunc>(calc_vote_weight)(th),         //
+          rm.pv.size(),                                           //
+          value,                                                  //
+          value != +VALUE_INFINITE && is_win(value) && !isBound,  //
+          value != -VALUE_INFINITE && is_loss(value) && !isBound  //
         };
     }
 
@@ -415,7 +415,7 @@ const Thread* Threads::best_thread() const noexcept {
         {
             const auto& rm = th->worker->rootMoves[0];
 
-            if (rm.curValue != -VALUE_INFINITE && !rm.pv.empty())
+            if (rm.value != -VALUE_INFINITE && !rm.pv.empty())
                 snapThreads.push_back(th.get());
             else if (th->worker->rootDepth > bestDepth)
             {
@@ -435,11 +435,11 @@ const Thread* Threads::best_thread() const noexcept {
     // Find the minimum value of all threads
     Value minValue = VALUE_NONE;
     for (const auto* th : snapThreads)
-        minValue = std::min(th->worker->rootMoves[0].curValue, minValue);
+        minValue = std::min(th->worker->rootMoves[0].value, minValue);
 
     // Vote according to value and depth, and select the best thread
     auto calc_vote_weight = [minValue](const Thread* th) noexcept -> u64 {
-        return static_cast<u64>(th->worker->rootMoves[0].curValue - minValue + 14)
+        return static_cast<u64>(th->worker->rootMoves[0].value - minValue + 14)
              * th->worker->rootDepth;
     };
 

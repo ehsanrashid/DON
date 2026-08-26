@@ -1050,28 +1050,25 @@ class FixedVector final {
     void push_back(const T& value) noexcept {
         assert(size() < capacity());
 
-        *end() = value;  // copy-assign into pre-initialized slot
-        ++size_;
+        data_[size_++] = value;
     }
     void push_back(T&& value) noexcept {
         assert(size() < capacity());
 
-        *end() = std::move(value);
-        ++size_;
+        data_[size_++] = std::move(value);
     }
     template<typename... Args>
     void emplace_back(Args&&... args) noexcept {
         assert(size() < capacity());
 
-        *end() = T(std::forward<Args>(args)...);
-        ++size_;
+        data_[size_++] = T(std::forward<Args>(args)...);
     }
 
     // Append value if value < max
     void push_back_if_lt(const T& value, const T& maxValue) noexcept {
         assert(size() < capacity());
 
-        *end() = value;
+        data_[size()] = value;
         size_ += usize(value < maxValue);
     }
 
@@ -1132,19 +1129,20 @@ struct FixedText final {
         assert(size() < capacity());
         if (size() >= capacity())
             return *this;
-        *end() = ch;
-        ++size_;
+
+        data_[size_++] = ch;
         return *this;
     }
 
-    FixedText& write(std::string_view sv) noexcept {
+    FixedText& write(const std::string_view sv) noexcept {
         assert(size() + sv.size() <= capacity());
+
         std::memcpy(end(), sv.data(), sv.size());
         size_ += sv.size();
         return *this;
     }
 
-    FixedText& write(int v) noexcept {
+    FixedText& write(const int v) noexcept {
         auto [ptr, ec] = std::to_chars(end(), begin() + capacity(), v);
         assert(ec == std::errc{});
         size_ = ptr - begin();

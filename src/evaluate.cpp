@@ -166,12 +166,12 @@ nnue_trace(Position& pos, const NNUE::Network& network, NNUE::AccumulatorCache& 
 
                 accStack->reset();
 
-                const auto  curNetOut = network.evaluate(pos, accCache, *accStack);
-                const Value curValue  = pos.active_color() == WHITE
-                                        ? +in_range(curNetOut.psqt + curNetOut.positional)
-                                        : -in_range(curNetOut.psqt + curNetOut.positional);
+                const auto  newNetOut = network.evaluate(pos, accCache, *accStack);
+                const Value newValue  = pos.active_color() == WHITE
+                                        ? +in_range(newNetOut.psqt + newNetOut.positional)
+                                        : -in_range(newNetOut.psqt + newNetOut.positional);
 
-                v = baseValue - curValue;
+                v = baseValue - newValue;
 
                 pos.put(sq, pc);
             }
