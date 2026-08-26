@@ -403,9 +403,9 @@ template<usize Alignment, typename T>
                   "Alignment must be non-zero power of 2");
     static_assert(Alignment >= alignof(T), "Alignment must be >= alignof(T)");
 
-    const auto ptrValue =
+    const auto ptrUInt =
       round_up_to_multiple(reinterpret_cast<uptr>(ptr), static_cast<uptr>(Alignment));
-    return reinterpret_cast<T*>(ptrValue);
+    return reinterpret_cast<T*>(ptrUInt);
 }
 
 constexpr float max_load_factor(float maxLoadFactor = 0.75f) noexcept {
