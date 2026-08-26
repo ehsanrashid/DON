@@ -996,7 +996,7 @@ GIT_FLAGS := $(if $(GIT_DATE),-DGIT_DATE=$(GIT_DATE)) \
 
 ### 3.8.2 Try to include architecture
 ifneq ($(ARCH),)
-    CXXFLAGS += -DARCH=$(ARCH)
+    ARCH_FLAG += -DARCH=$(ARCH)
 endif
 
 ### 3.9 Link Time Optimization
@@ -1424,7 +1424,7 @@ $(EXE): $(OBJS) $(NNUE_EMBED_OBJ)
 	$(strip $(CXX) $(CPPFLAGS) $(CXXFLAGS)) -c -o $@ $<
 
 misc.o: misc.cpp $(BUILD_DATE_FILE) $(BUILD_SHA_FILE) $(BUILD_DIFFINDEX_FILE)
-	$(strip $(CXX) $(CPPFLAGS) $(CXXFLAGS) $(GIT_FLAGS)) -c -o $@ $<
+	$(strip $(CXX) $(CPPFLAGS) $(CXXFLAGS) $(GIT_FLAGS) $(ARCH_FLAG)) -c -o $@ $<
 
 # Clang PGO
 clang-profile-make:
