@@ -6,7 +6,7 @@ on:
   workflow_call:
 
 jobs:
-  Matetrack:
+  Games:
     name: Games
     runs-on: ubuntu-22.04
     steps:

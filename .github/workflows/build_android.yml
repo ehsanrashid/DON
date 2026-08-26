@@ -8,7 +8,7 @@ on:
         required: true
 
 jobs:
-  Build:
+  BuildAndroid:
     name: "Android build: ${{ matrix.config.name }} ${{ matrix.binary }}"
     runs-on: ${{ matrix.config.os }}
     env:

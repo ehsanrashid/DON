@@ -4,8 +4,8 @@ on:
   workflow_call:
 
 jobs:
-  compiler-avx2-matrix:
-    name: avx2 (${{ matrix.name }})
+  CheckCompileAVX2:
+    name: AVX2 (${{ matrix.name }})
     runs-on: ubuntu-latest
     container:
       image: ${{ matrix.image }}
