@@ -85,6 +85,8 @@ enum class Endian : u8 {
     LITTLE
 };
 
+constexpr auto operator+(Endian e) noexcept { return static_cast<u8>(e); }
+
 // Used as template parameter
 enum TBType : u8 {
     WDL,
@@ -185,7 +187,7 @@ T number(const void* addr) noexcept {
     else  // Unaligned pointer (very rare)
         std::memcpy(&v, addr, sizeof(T));
 
-    if (u8(E) != IsLittleEndian)
+    if (+E != IsLittleEndian)
         swap_endian(v);
 
     return v;
@@ -790,7 +792,7 @@ void TBTable<T>::set(u8* data) noexcept {
             set_groups(get(i, f), order[i], f);
     }
 
-    data += uptr(data) & 1;  // Word alignment
+    data += reinterpret_cast<uptr>(data) & 1;  // Word alignment
 
     for (File f = FILE_A; f <= maxFile; ++f)
         for (usize i = 0; i < sides; ++i)
@@ -925,7 +927,7 @@ u8* TBTable<DTZ>::set_dtz_map(u8* data, const File maxFile) noexcept {
         {
             if (flags & WIDE)
             {
-                data += uptr(data) & 1;  // Word alignment, may have a mixed table
+                data += reinterpret_cast<uptr>(data) & 1;  // Word alignment, may have a mixed table
 
                 for (usize i = 0; i < 4; ++i)
                 {
@@ -947,7 +949,7 @@ u8* TBTable<DTZ>::set_dtz_map(u8* data, const File maxFile) noexcept {
         }
     }
 
-    return data += uptr(data) & 1;  // Word alignment
+    return data += reinterpret_cast<uptr>(data) & 1;  // Word alignment
 }
 
 // TBTables creates and keeps ownership of the TBTable objects, one for each TB file found.
@@ -1161,7 +1163,7 @@ void TBTables::add(const std::vector<PieceType>& pieces) noexcept {
     if (!(Exists[WDL] || Exists[DTZ]))
         return;
 
-    const u8 cardinality = u8(pieces.size());
+    const u8 cardinality = static_cast<u8>(pieces.size());
 
     if (MaxCardinality < cardinality)
         MaxCardinality = cardinality;
@@ -1229,7 +1231,7 @@ int decompress_pairs(const PairsData* pd, u64 idx) noexcept {
     //       I(k) = k * d->span + d->span / 2       (1)
 
     // First step is to get the 'k' of the I(k) nearest to our idx, using definition (1)
-    auto k = u32(idx / pd->span);
+    u32 k = static_cast<u32>(idx / pd->span);
 
     // Then read the corresponding SparseIndex[] entry
     auto block  = number<u32, Endian::LITTLE>(pd->sparseIndex[k].block.data());
@@ -1263,7 +1265,7 @@ int decompress_pairs(const PairsData* pd, u64 idx) noexcept {
     }
 
     // Finally, find the start address of block of canonical Huffman symbols
-    auto* ptr = (u32*) (pd->data + (u64(block) * pd->blockSize));
+    auto* ptr = reinterpret_cast<u32*>(pd->data + static_cast<u64>(block) * pd->blockSize);
 
     // Read the first 64 bits in our block, this is a (truncated) sequence of
     // unknown number of symbols of unknown length but the first one
@@ -1306,7 +1308,7 @@ int decompress_pairs(const PairsData* pd, u64 idx) noexcept {
         if (buf64Size <= 32)
         {
             buf64Size += 32;
-            buf64 |= u64(number<u32, Endian::BIG>(ptr++)) << (64 - buf64Size);
+            buf64 |= static_cast<u64>(number<u32, Endian::BIG>(ptr++)) << (64 - buf64Size);
         }
     }
 

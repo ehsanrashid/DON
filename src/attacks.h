@@ -200,10 +200,10 @@ struct Magic final {
         #if defined(IS_64BIT)
         return ((occupancyBB & maskBB) * magicBB) >> shift;
         #else
-        u32 loO = u32(occupancyBB >> 00) & u32(maskBB >> 00);
-        u32 hiO = u32(occupancyBB >> 32) & u32(maskBB >> 32);
-        u32 loM = u32(magicBB >> 00);
-        u32 hiM = u32(magicBB >> 32);
+        u32 loO = static_cast<u32>(occupancyBB >> 00) & static_cast<u32>(maskBB >> 00);
+        u32 hiO = static_cast<u32>(occupancyBB >> 32) & static_cast<u32>(maskBB >> 32);
+        u32 loM = static_cast<u32>(magicBB >> 00);
+        u32 hiM = static_cast<u32>(magicBB >> 32);
         return ((loO * loM) ^ (hiO * hiM)) >> shift;
         #endif
     #endif
@@ -232,14 +232,14 @@ template<>
 constexpr u8 distance<File>(const Square s1, const Square s2) noexcept {
     assert(is_ok(s1) && is_ok(s2));
 
-    return constexpr_abs(int(file_of(s1)) - int(file_of(s2)));
+    return constexpr_abs(static_cast<int>(file_of(s1)) - static_cast<int>(file_of(s2)));
 }
 
 template<>
 constexpr u8 distance<Rank>(const Square s1, const Square s2) noexcept {
     assert(is_ok(s1) && is_ok(s2));
 
-    return constexpr_abs(int(rank_of(s1)) - int(rank_of(s2)));
+    return constexpr_abs(static_cast<int>(rank_of(s1)) - static_cast<int>(rank_of(s2)));
 }
 
 alignas(CACHE_LINE_SIZE) inline constexpr auto DISTANCES = []() constexpr noexcept {
@@ -513,7 +513,8 @@ alignas(CACHE_LINE_SIZE) inline constexpr auto RANK_ATTACKS = []() constexpr noe
 
     for (Square f = SQ_A1; f <= SQ_H1; ++f)
         for (u16 occ6 = 0; occ6 < 64; ++occ6)
-            rankAttacks[f][occ6] = u8(sliding_attacks_bb<ROOK>(f, Bitboard{occ6} << 1));
+            rankAttacks[f][occ6] =
+              static_cast<u8>(sliding_attacks_bb<ROOK>(f, Bitboard{occ6} << 1));
 
     return rankAttacks;
 }();

@@ -56,7 +56,7 @@ alignas(CACHE_LINE_SIZE) constexpr auto Reductions = []() constexpr noexcept {
 
     reductions[0] = 0;
     for (usize i = 1; i < reductions.size(); ++i)
-        reductions[i] = u16(22.4375 * constexpr_log(i));
+        reductions[i] = static_cast<u16>(22.4375 * constexpr_log(i));
 
     return reductions;
 }();
@@ -2583,7 +2583,7 @@ void MainSearchManager::handle_time_management(const Worker& worker,
     assert(stableDepth >= DEPTH_ZERO);
 
     // Use the stability factor to adjust the time reduction
-    timeReduction = std::clamp(interpolate(double(stableDepth), 4.96, 18.79, 0.6390, 1.7120), 0.6290, 1.5440);
+    timeReduction = std::clamp(interpolate<double, double>(stableDepth, 4.96, 18.79, 0.6390, 1.7120), 0.6290, 1.5440);
 
     // Compute ease factor that factors in previous time reduction
     const double easeFactor = 0.4378 * (1.4680 + preTimeReduction) / timeReduction;
@@ -2594,7 +2594,7 @@ void MainSearchManager::handle_time_management(const Worker& worker,
     // Compute node effort factor that reduces time if root move has consumed a large fraction of total nodes
     const u64 nodesEffort = 100000 * worker.rootMoves[0].nodes / std::max<u64>(worker.nodes_count(), 1);
 
-    const double nodesEffortFactor = std::clamp(interpolate(i64(nodesEffort), i64(75800), i64(104510), 0.9690, 0.7140), 0.6930, 0.8380);
+    const double nodesEffortFactor = std::clamp(interpolate<i64, double>(nodesEffort, 75800, 104510, 0.9690, 0.7140), 0.6930, 0.8380);
 
     // Compute recapture factor that reduces time if recapture conditions are met
     const double recaptureFactor = 1.0 - int( worker.rootPos.captured_sq() == worker.rootMoves[0].pv[0].dst_sq()
@@ -2708,7 +2708,7 @@ void Skill::init(const Options& options) noexcept {
     {
         constexpr Array<double, 4> P{37.2473, -40.8525, 22.2943, -0.311438};
 
-        double e = double(options["UCI_ELO"] - ELO_MIN) / (ELO_MAX - ELO_MIN);
+        double e = static_cast<double>(options["UCI_ELO"] - ELO_MIN) / (ELO_MAX - ELO_MIN);
 
         double l = ((P[0] * e + P[1]) * e + P[2]) * e + P[3];
 

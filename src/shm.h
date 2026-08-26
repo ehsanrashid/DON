@@ -161,7 +161,7 @@ inline std::string executable_path() noexcept {
     executableSize                 = std::min<usize>(size, executablePath.size() - 1);
     executablePath[executableSize] = '\0';
 #elif defined(__APPLE__)
-    u32 size = u32(executablePath.size());
+    u32 size = static_cast<u32>(executablePath.size());
 
     if (_NSGetExecutablePath(executablePath.data(), &size) == 0)
     {

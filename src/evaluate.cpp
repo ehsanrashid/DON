@@ -52,16 +52,15 @@ Value evaluate(const Position&         pos,
 
     double complexity = constexpr_abs(psqt - positional);
     // Blend eval and optimism with complexity
-    nnue     = constexpr_round(double(nnue) * (1.0 - 54.8366e-6 * complexity));
-    optimism = constexpr_round(double(optimism) * (1.0 + 21.0084e-4 * complexity));
+    nnue     = constexpr_round((1.0 - 54.8366e-6 * complexity) * nnue);
+    optimism = constexpr_round((1.0 + 21.0084e-4 * complexity) * optimism);
 
-    i32 v = nnue
-          + constexpr_round(
-              12.8417e-6
-              * (double(nnue + optimism) * double(pos.material()) + 32496.3930 * double(optimism)));
+    i32 v =
+      nnue
+      + constexpr_round(12.8417e-6 * ((nnue + optimism) * pos.material() + 32496.3930 * optimism));
 
     // Damp evaluation linearly based on the 50-move rule
-    v = constexpr_round(v * std::max(1.0 - 5.1021e-3 * double(pos.rule50_count()), 0.0));
+    v = constexpr_round(v * std::max(1.0 - 5.1021e-3 * pos.rule50_count(), 0.0));
 
     // Guarantee evaluation does not hit the table-base range
     return in_range(v);
@@ -127,8 +126,8 @@ nnue_trace(Position& pos, const NNUE::Network& network, NNUE::AccumulatorCache& 
     // A lambda to output one box of the board
     const auto write_square = [&board, &pos](const File file, const Rank rank,  //
                                              const Piece pc, const Value value) noexcept {
-        const usize x = 8 * int(file);
-        const usize y = 3 * (7 - int(rank));
+        const usize x = 8 * file;
+        const usize y = 3 * (7 - rank);
         for (usize i = 1; i < 8; ++i)
             board[y][x + i] = board[y + 3][x + i] = '-';
         for (usize j = 1; j < 3; ++j)

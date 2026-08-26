@@ -142,7 +142,7 @@ alignas(CACHE_LINE_SIZE) constexpr auto LUT_DATAS = []() constexpr noexcept {
                                          * PIECE_THREATS[+attackerPc].threatCount;
 
                     lutDatas[+attackerPc][+attackedPc] =
-                      (u32(semiExcluded) << SEMI_EXCLUDED_OFFSET) | featureIndex;
+                      (static_cast<u32>(semiExcluded) << SEMI_EXCLUDED_OFFSET) | featureIndex;
                 }
         }
 
@@ -212,8 +212,8 @@ ALWAYS_INLINE IndexType make_index(const Color  perspective,
     // Compute perspective-relative squares
     u8 relOrientation = relative_sq(perspective, orientation(kingSq));
 
-    u8 org = u8(orgSq) ^ relOrientation;
-    u8 dst = u8(dstSq) ^ relOrientation;
+    u8 org = static_cast<u8>(orgSq) ^ relOrientation;
+    u8 dst = static_cast<u8>(dstSq) ^ relOrientation;
 
     // Compute perspective-relative pieces
     u8 relAttackerPc = +relative_piece(perspective, attackerPc);
@@ -227,7 +227,7 @@ ALWAYS_INLINE IndexType make_index(const Color  perspective,
 
     // Compute index components
     return feature_index(lutData)                                     //
-         + lut_index(Piece(relAttackerPc), Square(org), Square(dst))  //
+         + lut_index(Piece{relAttackerPc}, Square{org}, Square{dst})  //
          + SQUARE_OFFSETS[relAttackerPc][org];
 }
 

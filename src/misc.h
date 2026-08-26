@@ -337,7 +337,7 @@ constexpr double constexpr_log(double x) noexcept {
     }
 
     // f = x - 1  in  (-0.293, 0.414)
-    return constexpr_log1p_log(x - 1.0) + double(exponent) * LN2;
+    return constexpr_log1p_log(x - 1.0) + exponent * LN2;
 }
 
 template<typename T>
@@ -447,10 +447,10 @@ void set_console_output(ConsoleMode consoleMode = ConsoleMode::Default) noexcept
 constexpr std::string_view timestamp() noexcept { return __TIMESTAMP__; }
 
 constexpr char to_lower(const char ch) noexcept {
-    return 'A' <= ch && ch <= 'Z' ? char(ch + ('a' - 'A')) : ch;
+    return 'A' <= ch && ch <= 'Z' ? static_cast<char>(ch + ('a' - 'A')) : ch;
 }
 constexpr char to_upper(const char ch) noexcept {
-    return 'a' <= ch && ch <= 'z' ? char(ch - ('a' - 'A')) : ch;
+    return 'a' <= ch && ch <= 'z' ? static_cast<char>(ch - ('a' - 'A')) : ch;
 }
 
 constexpr unsigned to_month(const std::string_view m) noexcept {
@@ -478,14 +478,14 @@ std::string version_info() noexcept;
 
 std::string compiler_info() noexcept;
 
-constexpr u64 mul_hi64(u64 u1, u64 u2) noexcept {
+constexpr u64 mul_hi64(const u64 u1, const u64 u2) noexcept {
 #if defined(__GNUC__) && defined(IS_64BIT) && !defined(__wasm__)
-    return (u128(u1) * u128(u2)) >> 64;
+    return (static_cast<u128>(u1) * static_cast<u128>(u2)) >> 64;
 #else
-    u64 u1L = u32(u1), u1H = u1 >> 32;
-    u64 u2L = u32(u2), u2H = u2 >> 32;
+    u64 u1L = static_cast<u32>(u1), u1H = u1 >> 32;
+    u64 u2L = static_cast<u32>(u2), u2H = u2 >> 32;
     u64 mid = u1H * u2L + ((u1L * u2L) >> 32);
-    return u1H * u2H + ((u1L * u2H + u32(mid)) >> 32) + (mid >> 32);
+    return u1H * u2H + ((u1L * u2H + static_cast<u32>(mid)) >> 32) + (mid >> 32);
 #endif
 }
 
@@ -1393,7 +1393,7 @@ inline u64 hash_bytes(const char* RESTRICT data, usize size, u64 seed = 0) noexc
         // Read remaining bytes in little-endian order
         for (; p < end; ++p)
         {
-            k |= u64(*p) << shift;
+            k |= static_cast<u64>(*p) << shift;
 
             shift += BYTE_BITS;
         }

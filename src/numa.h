@@ -918,26 +918,26 @@ class NumaConfig final {
             return false;
 
         // Compute maximum node size
-        usize MaxNodeSize =
+        const usize maxNodeSize =
           std::max_element(nodes.begin(), nodes.end(),  //
                            [](const CpuIndexSet& node1, const CpuIndexSet& node2) noexcept -> bool {
                                return node1.size() < node2.size();
                            })
             ->size();
 
-        // Count nodes considered 'not-small' (size > 60% of MaxNodeSize)
-        usize NotSmallNodeCount =
-          std::count_if(nodes.begin(), nodes.end(),  //
-                        [MaxNodeSize](const CpuIndexSet& node) noexcept -> bool {
-                            constexpr double SmallNodeThreshold = 0.6;
-                            // node considered 'not-small' if it exceeds threshold
-                            return double(node.size()) / MaxNodeSize > SmallNodeThreshold;
-                        });
+        // Count nodes considered 'not-small' (size > 60% of maxNodeSize)
+        const usize notSmallNodeCount = std::count_if(
+          nodes.begin(), nodes.end(),  //
+          [maxNodeSize](const CpuIndexSet& node) noexcept -> bool {
+              constexpr double SmallNodeThreshold = 0.6;
+              // node considered 'not-small' if it exceeds threshold
+              return static_cast<double>(node.size()) / maxNodeSize > SmallNodeThreshold;
+          });
 
         // Split only if threadCount meets either threshold:
-        //   - more than half of MaxNodeSize, OR
-        //   - at least four times NotSmallNodeCount
-        return threadCount >= std::min(MaxNodeSize / 2 + 1, 4 * NotSmallNodeCount);
+        //   - more than half of maxNodeSize, OR
+        //   - at least four times notSmallNodeCount
+        return threadCount >= std::min(maxNodeSize / 2 + 1, 4 * notSmallNodeCount);
     }
 
     std::vector<NumaIndex>
@@ -962,7 +962,8 @@ class NumaConfig final {
 
                 for (NumaIndex numaId = 0; numaId < nodes_size(); ++numaId)
                 {
-                    const double nodeFill = double(occupation[numaId] + 1) / node_cpus_size(numaId);
+                    const double nodeFill =
+                      static_cast<double>(occupation[numaId] + 1) / node_cpus_size(numaId);
                     // NOTE: Do want to perhaps fill the first available node up to 50% first before considering other nodes?
                     //       Probably not, because it would interfere with running multiple instances.
                     //       Basically shouldn't favor any particular node.

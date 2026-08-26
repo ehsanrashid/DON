@@ -76,7 +76,7 @@ class HistoryEntry final {
     void operator*=(const double m) noexcept {
         assert(constexpr_abs(m) <= 1.0);
 
-        *this = constexpr_round(m * double(T(*this)));
+        *this = constexpr_round(m * T(*this));
     }
 
    private:

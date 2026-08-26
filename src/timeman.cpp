@@ -112,12 +112,12 @@ void TimeManager::init(
 
     // If less than one second, gradually reduce mtg
     if (mtg > 2 && ScaledTime < 1000 && clock.inc <= OverheadTime)
-        mtg = std::max<u8>(constexpr_ceil(0.05051 * double(ScaledTime)), 2);
+        mtg = std::max<u8>(constexpr_ceil(0.05051 * ScaledTime), 2);
 
     // Make sure remainTime > 0 since use it as a divisor
     TimePoint remainTime = std::max<TimePoint>(clock.time + (mtg - 1) * clock.inc - (mtg + 2) * OverheadTime, 1);
 
-    remainTime = std::max<TimePoint>(constexpr_ceil(double(remainTime) * double(options["TimePercent"]) / 100.0), 1);
+    remainTime = std::max<TimePoint>(constexpr_ceil(remainTime * options["TimePercent"] / 100.0), 1);
 
     // optimumScale is a percentage of available time to use for the current move.
     // maximumScale is a multiplier applied to optimumTime.
@@ -126,7 +126,7 @@ void TimeManager::init(
     if (limit.movesToGo == 0)
     {
         // Calculate time constants based on current remaining time
-        double LogScaledTime = std::log10(double(ScaledTime) / 1000.0);  // NOLINT(bugprone-narrowing-conversions)
+        double LogScaledTime = std::log10(ScaledTime / 1000.0);  // NOLINT(bugprone-narrowing-conversions)
 
         // 1) x base-time (sudden death)
         // Sudden death time control
@@ -137,8 +137,8 @@ void TimeManager::init(
             timeAdjust = std::max(-0.4126 + 0.2862 * std::log10(remainTime), TIME_ADJUST_MIN);
 
         optimumScale = timeAdjust
-                     * std::min(11.29900e-3 + std::min(3.47750e-3 + 28.41880e-5 * LogScaledTime, 4.06734e-3) * std::pow(2.82122 + double(ply), 0.46642), 0.19404 * double(clock.time) / double(remainTime));
-        maximumScale = std::min(std::max(3.66270 + 3.72690 * LogScaledTime, 2.75068) + 78.37482e-3 * double(ply), 6.35772);
+                     * std::min(11.29900e-3 + std::min(3.47750e-3 + 28.41880e-5 * LogScaledTime, 4.06734e-3) * std::pow(2.82122 + ply, 0.46642), 0.19404 * clock.time / remainTime);
+        maximumScale = std::min(std::max(3.66270 + 3.72690 * LogScaledTime, 2.75068) + 78.37482e-3 * ply, 6.35772);
         }
         // 2) x base-time (+ z increment)
         // If there is a healthy increment, remaining time can exceed the actual available
@@ -150,23 +150,23 @@ void TimeManager::init(
             timeAdjust = std::max(-0.4141 + 0.3272 * std::log10(remainTime), TIME_ADJUST_MIN);
 
         optimumScale = timeAdjust
-                     * std::min(12.11200e-3 + std::min(2.98690e-3 + 33.55400e-5 * LogScaledTime, 4.90500e-3) * std::pow(3.22713 + double(ply), 0.46866), 0.19404 * double(clock.time) / double(remainTime));
-        maximumScale = std::min(std::max(3.37440 + 3.06080 * LogScaledTime, 3.14410) + 80.95855e-3 * double(ply), 6.87300);
+                     * std::min(12.11200e-3 + std::min(2.98690e-3 + 33.55400e-5 * LogScaledTime, 4.90500e-3) * std::pow(3.22713 + ply, 0.46866), 0.19404 * clock.time / remainTime);
+        maximumScale = std::min(std::max(3.37440 + 3.06080 * LogScaledTime, 3.14410) + 80.95855e-3 * ply, 6.87300);
         }
     }
     // 3) x moves in y time (+ z increment)
     else
     {
-        optimumScale = std::min((0.8800 + 85.91065e-4 * double(ply)) / double(mtg), 0.8800 * double(clock.time) / double(remainTime));
-        maximumScale = std::min(1.3000 + 0.1100 * double(mtg), 8.4500 + 0.0500 * double(mtg) + 0.0100 * double(ply));
+        optimumScale = std::min((0.8800 + 85.91065e-4 * ply) / mtg, 0.8800 * clock.time / remainTime);
+        maximumScale = std::min(1.3000 + 0.1100 * mtg, 8.4500 + 0.0500 * mtg + 0.0100 * ply);
     }
 
     // Limit the maximum possible time for this move
-    optimumTime = std::max<TimePoint>(constexpr_ceil(optimumScale * double(remainTime)), std::max<TimePoint>(options["MinMoveTime"], 1));
+    optimumTime = std::max<TimePoint>(constexpr_ceil(optimumScale * remainTime), std::max<TimePoint>(options["MinMoveTime"], 1));
     maximumTime = std::max<TimePoint>(
                     mtg < 2
                     ? clock.time
-                    : std::min<TimePoint>(constexpr_ceil(maximumScale * double(optimumTime)), constexpr_ceil(0.80970 * double(clock.time)) - OverheadTime) - options["BufferTime"],
+                    : std::min<TimePoint>(constexpr_ceil(maximumScale * optimumTime), constexpr_ceil(0.80970 * clock.time) - OverheadTime) - options["BufferTime"],
                     optimumTime);
     // clang-format on
 
@@ -174,7 +174,7 @@ void TimeManager::init(
         std::this_thread::sleep_for(std::chrono::milliseconds(optimumTime / 2));
 
     if (options["Ponder"])
-        optimumTime = constexpr_ceil(1.2500 * double(optimumTime));
+        optimumTime = constexpr_ceil(1.2500 * optimumTime);
 }
 
 // When in 'Nodes as Time' mode

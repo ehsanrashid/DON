@@ -51,7 +51,7 @@ static const unsigned char* map_embedded_nnue() noexcept {
         return nullptr;
 
     // Align down to page size for mmap
-    const DON::u64 pageSize = DON::u64(::sysconf(_SC_PAGESIZE));
+    const DON::u64 pageSize = static_cast<DON::u64>(::sysconf(_SC_PAGESIZE));
     const DON::u64 base     = gUniversalNNUEOffset & ~(pageSize - 1);
     const DON::u64 pad      = gUniversalNNUEOffset - base;
 

@@ -245,12 +245,14 @@ void Position::set(std::string_view fens, State* newSt) noexcept {
     // Returns '\0' when p >= end (EOF sentinel)
     auto peek        = [&p, end]() noexcept -> char { return p < end ? *p : '\0'; };
     auto skip_spaces = [&p, end]() noexcept {
-        for (; p < end && std::isspace(uchar(*p)); ++p)
+        for (; p < end && std::isspace(static_cast<uchar>(*p)); ++p)
         {}
     };
-    auto not_space = [&p, end]() noexcept -> bool { return p < end && !std::isspace(uchar(*p)); };
-    auto get       = [&p, end]() noexcept -> char { return p < end ? *p++ : '\0'; };
-    auto get_int   = [&p, end, &skip_spaces](int& out) noexcept -> bool {
+    auto not_space = [&p, end]() noexcept -> bool {
+        return p < end && !std::isspace(static_cast<uchar>(*p));
+    };
+    auto get     = [&p, end]() noexcept -> char { return p < end ? *p++ : '\0'; };
+    auto get_int = [&p, end, &skip_spaces](int& out) noexcept -> bool {
         skip_spaces();
 
         bool neg = false;
@@ -263,7 +265,7 @@ void Position::set(std::string_view fens, State* newSt) noexcept {
         int val = 0;
 
         bool any = false;
-        for (; p < end && std::isdigit(uchar(*p)); ++p)
+        for (; p < end && std::isdigit(static_cast<uchar>(*p)); ++p)
         {
             any = true;
             val = 10 * val + char_to_digit(*p);
@@ -292,7 +294,7 @@ void Position::set(std::string_view fens, State* newSt) noexcept {
             file = FILE_A;
             --rank;
         }
-        else if (std::isdigit(uchar(token)))
+        else if (std::isdigit(static_cast<uchar>(token)))
         {
             if ('1' <= token && token <= '8')
             {
@@ -334,7 +336,7 @@ void Position::set(std::string_view fens, State* newSt) noexcept {
     // 2. Active color
     token = get();
 
-    switch (char(std::tolower(uchar(token))))
+    switch (static_cast<char>(std::tolower(static_cast<uchar>(token))))
     {
     case 'w' :
         activeColor = WHITE;
@@ -369,8 +371,8 @@ void Position::set(std::string_view fens, State* newSt) noexcept {
             continue;
         }
 
-        Color c = std::isupper(uchar(token)) ? WHITE : BLACK;
-        token   = char(std::tolower(uchar(token)));
+        Color c = std::isupper(static_cast<uchar>(token)) ? WHITE : BLACK;
+        token   = static_cast<char>(std::tolower(static_cast<uchar>(token)));
 
         if (relative_rank(c, square<KING>(c)) != RANK_1)
         {

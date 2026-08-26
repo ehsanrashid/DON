@@ -62,15 +62,15 @@ constexpr std::string_view Version{"dev"};
         return std::string{NullDate};
 
     // Skip spaces
-    for (; p < end && std::isspace(uchar(*p)); ++p)
+    for (; p < end && std::isspace(static_cast<uchar>(*p)); ++p)
     {}
 
     // Parse day (1-2 digits)
-    if (end - p < 1 || !std::isdigit(uchar(*p)))
+    if (end - p < 1 || !std::isdigit(static_cast<uchar>(*p)))
         return std::string{NullDate};
 
     unsigned day = 0;
-    for (; p < end && std::isdigit(uchar(*p)); ++p)
+    for (; p < end && std::isdigit(static_cast<uchar>(*p)); ++p)
     {
         day = 10 * day + char_to_digit(*p);
     }
@@ -80,7 +80,7 @@ constexpr std::string_view Version{"dev"};
         return std::string{NullDate};
 
     // Skip spaces/comma
-    for (; p < end && (std::isspace(uchar(*p)) || *p == ','); ++p)
+    for (; p < end && (std::isspace(static_cast<uchar>(*p)) || *p == ','); ++p)
     {}
 
     // Parse year (4 digits)
@@ -90,7 +90,7 @@ constexpr std::string_view Version{"dev"};
     unsigned year = 0;
     for (const auto* yEnd = p + 4; p != yEnd; ++p)
     {
-        if (!std::isdigit(uchar(*p)))
+        if (!std::isdigit(static_cast<uchar>(*p)))
             return std::string{NullDate};
 
         year = 10 * year + char_to_digit(*p);
@@ -128,9 +128,10 @@ constexpr std::string_view Version{"dev"};
     const auto* p = time.data();
 
     // Validate structure
-    if (!std::isdigit(uchar(p[0])) || !std::isdigit(uchar(p[1])) || p[2] != ':'
-        || !std::isdigit(uchar(p[3])) || !std::isdigit(uchar(p[4])) || p[5] != ':'
-        || !std::isdigit(uchar(p[6])) || !std::isdigit(uchar(p[7])))
+    if (!std::isdigit(static_cast<uchar>(p[0])) || !std::isdigit(static_cast<uchar>(p[1]))
+        || p[2] != ':' || !std::isdigit(static_cast<uchar>(p[3]))
+        || !std::isdigit(static_cast<uchar>(p[4])) || p[5] != ':'
+        || !std::isdigit(static_cast<uchar>(p[6])) || !std::isdigit(static_cast<uchar>(p[7])))
         return std::string{NullTime};
 
     unsigned hour = 10 * char_to_digit(p[0]) + char_to_digit(p[1]);
@@ -671,11 +672,11 @@ void correl_of(i64 value1, i64 value2, usize slot) noexcept {
 void print() noexcept {
 
     i64  n;
-    auto avg = [&n](i64 x) noexcept { return double(x) / n; };
+    auto avg = [&n = std::as_const(n)](const i64 x) noexcept { return static_cast<double>(x) / n; };
 
     for (usize i = 0; i < hit.size(); ++i)
     {
-        auto& info = hit[i];
+        const auto& info = hit[i];
 
         if ((n = info[0].load(std::memory_order_relaxed)) == 0)
             continue;
@@ -689,7 +690,7 @@ void print() noexcept {
 
     for (usize i = 0; i < min.size(); ++i)
     {
-        auto& info = min[i];
+        const auto& info = min[i];
 
         if ((n = info[0].load(std::memory_order_relaxed)) == 0)
             continue;
@@ -702,7 +703,7 @@ void print() noexcept {
 
     for (usize i = 0; i < max.size(); ++i)
     {
-        auto& info = max[i];
+        const auto& info = max[i];
 
         if ((n = info[0].load(std::memory_order_relaxed)) == 0)
             continue;
@@ -715,7 +716,7 @@ void print() noexcept {
 
     for (usize i = 0; i < extreme.size(); ++i)
     {
-        auto& info = extreme[i];
+        const auto& info = extreme[i];
 
         if ((n = info[0].load(std::memory_order_relaxed)) == 0)
             continue;
@@ -730,7 +731,7 @@ void print() noexcept {
 
     for (usize i = 0; i < mean.size(); ++i)
     {
-        auto& info = mean[i];
+        const auto& info = mean[i];
 
         if ((n = info[0].load(std::memory_order_relaxed)) == 0)
             continue;
@@ -744,7 +745,7 @@ void print() noexcept {
 
     for (usize i = 0; i < stdev.size(); ++i)
     {
-        auto& info = stdev[i];
+        const auto& info = stdev[i];
 
         if ((n = info[0].load(std::memory_order_relaxed)) == 0)
             continue;
@@ -760,7 +761,7 @@ void print() noexcept {
 
     for (usize i = 0; i < correl.size(); ++i)
     {
-        auto& info = correl[i];
+        const auto& info = correl[i];
 
         if ((n = info[0].load(std::memory_order_relaxed)) == 0)
             continue;
@@ -778,6 +779,7 @@ void print() noexcept {
                   << " Coefficient=" << r << std::endl;
     }
 }
+
 }  // namespace Debug
 #endif
 

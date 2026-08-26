@@ -419,7 +419,8 @@ struct Limit final {
     }
 
     constexpr u16 calls_count() const noexcept {
-        return nodes != 0 ? std::min(constexpr_ceil(double(nodes) / KB) + 1, 512) : 512;
+        return nodes != 0 ? std::min(constexpr_ceil(static_cast<double>(nodes) / KB) + 1, 512)
+                          : 512;
     }
 
     TimePoint startTime = 0;
@@ -593,7 +594,7 @@ enum class NT : u8 {
     ROOT = 6,
 };
 
-constexpr NT operator~(NT nt) noexcept { return NT((u8(nt) ^ 1) & 1); }
+constexpr NT operator~(NT nt) noexcept { return NT((static_cast<u8>(nt) ^ 1) & 1); }
 
 // Stack keeps track of the information need to remember from nodes
 // shallower and deeper in the tree during the search.
