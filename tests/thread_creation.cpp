@@ -15,7 +15,8 @@ g++ -std=c++17 -O2 -I./src \
     $(ls src/*.cpp | grep -v 'src/main.cpp') \
     src/nnue/*.cpp \
     src/nnue/features/*.cpp \
-    src/syzygy/*.cpp \
+    src/book/*.cpp \
+    src/tablebase/*.cpp \
     -o build/thread_creation \
     -lpthread
 g++ -std=c++17 -O2 -I./src \
@@ -23,7 +24,8 @@ g++ -std=c++17 -O2 -I./src \
     $(for f in src/*.cpp; do [[ "$f" != "src/main.cpp" ]] && echo "$f"; done) \
     src/nnue/*.cpp \
     src/nnue/features/*.cpp \
-    src/syzygy/*.cpp \
+    src/book/*.cpp \
+    src/tablebase/*.cpp \
     -o build/thread_creation \
     -lpthread
 g++ -std=c++17 -O2 -I./src `
@@ -31,7 +33,8 @@ g++ -std=c++17 -O2 -I./src `
     $(Get-ChildItem src/*.cpp | Where-Object { $_.Name -ne "main.cpp" } | ForEach-Object { $_.FullName }) `
     src/nnue/*.cpp `
     src/nnue/features/*.cpp `
-    src/syzygy/*.cpp `
+    src/book/*.cpp `
+    src/tablebase/*.cpp `
     -o build/thread_creation `
     -lpthread
 
@@ -44,7 +47,8 @@ g++ -std=c++17 -O2 -I./src `
 #include <thread>
 #include <vector>
 
-#include "thread.h"
+#include "misc.h"
+#include "native_thread.h"
 
 using namespace DON;
 

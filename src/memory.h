@@ -19,8 +19,7 @@
 #define MEMORY_H_INCLUDED
 
 #include <algorithm>
-#include <cassert>
-#include <cstdint>
+//#include <cassert>
 #include <cstring>
 #include <iterator>
 #include <memory>
@@ -29,7 +28,6 @@
 #include <utility>
 
 #include "misc.h"
-
 #include "types.h"
 
 namespace DON {
@@ -211,35 +209,16 @@ std::enable_if_t<std::is_array_v<T>, LargePagePtr<T>> make_unique_aligned_large_
     return LargePagePtr<T>(mem);
 }
 
-// Get the first aligned element of an array.
-// ptr must point to an array of size at least 'sizeof(T) * N + alignment' bytes,
-// where N is the number of elements in the array.
-template<usize Alignment, typename T>
-[[nodiscard]] constexpr T* align_ptr_up(T* ptr) noexcept {
-    static_assert(Alignment != 0 && (Alignment & (Alignment - 1)) == 0,
-                  "Alignment must be non-zero power of 2");
-    static_assert(Alignment >= alignof(T), "Alignment must be >= alignof(T)");
-
-    auto intPtr = reinterpret_cast<std::uintptr_t>(ptr);
-    intPtr      = round_up_to_multiple(intPtr, Alignment);
-    return reinterpret_cast<T*>(intPtr);
-}
-
-template<usize Alignment, typename T>
-[[nodiscard]] constexpr const T* align_ptr_up(const T* ptr) noexcept {
-    return reinterpret_cast<const T*>(align_ptr_up<Alignment>(const_cast<T*>(ptr)));
-}
-
 template<typename T, typename ByteT>
 [[nodiscard]] T load_as(const ByteT* buffer) noexcept {
     static_assert(std::is_trivially_copyable_v<T>, "Type must be trivially copyable");
     static_assert(sizeof(ByteT) == 1);
 
-    if (reinterpret_cast<uintptr_t>(buffer) % alignof(T) != 0)
-    {
-        assert(false);
-        UNREACHABLE();
-    }
+    // if (reinterpret_cast<uptr>(buffer) % alignof(T) != 0)
+    // {
+    //     assert(false);
+    //     UNREACHABLE();
+    // }
 
     T value;
     std::memcpy(&value, buffer, sizeof(value));

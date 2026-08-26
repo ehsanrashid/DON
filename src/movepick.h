@@ -101,7 +101,7 @@ class MovePicker final {
     [[nodiscard]] int   threshold_value() const noexcept;
 
     template<typename Predicate>
-    void update_quiets_skip(Predicate&& pred) noexcept {
+    void update_quiets_skip(const Predicate& pred) noexcept {
         quietsSkip = quietsSkip || pred();
     }
 
@@ -119,7 +119,7 @@ class MovePicker final {
     iterator score(const MoveList<GT>& moveList) noexcept;
 
     template<typename Predicate>
-    bool select(Predicate&& pred) noexcept;
+    bool select(const Predicate& pred) noexcept;
 
     [[nodiscard]] iterator       begin() noexcept { return cur; }
     [[nodiscard]] const_iterator begin() const noexcept { return cur; }

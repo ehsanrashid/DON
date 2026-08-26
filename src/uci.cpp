@@ -185,7 +185,9 @@ Limit parse_limit(std::istream& is) noexcept {
         else if (!token.empty() && token[0] == 's')  // "searchmoves"
         {
             auto pos = is.tellg();
-            while (is >> token && !(!token.empty() && char(std::tolower(uchar(token[0]))) == 'i'))
+            while (is >> token
+                   && !(!token.empty()
+                        && static_cast<char>(std::tolower(static_cast<uchar>(token[0]))) == 'i'))
             {
                 limit.searchMoves.push_back(token);
                 pos = is.tellg();
@@ -196,7 +198,9 @@ Limit parse_limit(std::istream& is) noexcept {
         else if (!token.empty() && token[0] == 'i')  // "ignoremoves"
         {
             auto pos = is.tellg();
-            while (is >> token && !(!token.empty() && char(std::tolower(uchar(token[0]))) == 's'))
+            while (is >> token
+                   && !(!token.empty()
+                        && static_cast<char>(std::tolower(static_cast<uchar>(token[0]))) == 's'))
             {
                 limit.ignoreMoves.push_back(token);
                 pos = is.tellg();
@@ -401,13 +405,15 @@ void UCI::position(std::istream& is) noexcept {
     token = lower_case(token);
 
     std::string fen;
-    if (token.empty() || char(std::tolower(uchar(token[0]))) == 's')  // "startpos"
+    if (token.empty()
+        || static_cast<char>(std::tolower(static_cast<uchar>(token[0]))) == 's')  // "startpos"
     {
         token.clear();
         fen.assign(START_FEN);
         is >> token;  // Consume the "moves" token, if any
     }
-    else if (!token.empty() && char(std::tolower(uchar(token[0]))) == 'f')  // "fen"
+    else if (!token.empty()
+             && static_cast<char>(std::tolower(static_cast<uchar>(token[0]))) == 'f')  // "fen"
     {
         token.clear();
         fen.reserve(64);
@@ -417,7 +423,8 @@ void UCI::position(std::istream& is) noexcept {
         while (is >> token && i < 6)
         {
             // Stop if reach "moves" token after the first two fields
-            if (i > 1 && !token.empty() && char(std::tolower(uchar(token[0]))) == 'm')
+            if (i > 1 && !token.empty()
+                && static_cast<char>(std::tolower(static_cast<uchar>(token[0]))) == 'm')
                 break;
 
             fen.append(token).push_back(' ');
@@ -437,7 +444,7 @@ void UCI::position(std::istream& is) noexcept {
         return;
     }
 
-    assert(token.empty() || char(std::tolower(uchar(token[0]))) == 'm');
+    assert(token.empty() || static_cast<char>(std::tolower(static_cast<uchar>(token[0]))) == 'm');
 
     Strings moves;
     while (is >> token)
@@ -682,7 +689,7 @@ void UCI::benchmark(std::istream& is) noexcept {
         }
     };
 
-    auto avg = [&hashfullCount](u32 x) noexcept { return double(x) / hashfullCount; };
+    auto avg = [&hashfullCount](u32 x) noexcept { return static_cast<double>(x) / hashfullCount; };
 
     elapsedTime += now() - startTime;
     engine.reset();  // May take a while
@@ -755,7 +762,7 @@ void UCI::benchmark(std::istream& is) noexcept {
               << "\nHash max, sum, avg [mille] : Count=" << hashfullCount
               << "\n    Single search          : " << maxHashfull[0] << ", " << sumHashfull[0] << ", " << avg(sumHashfull[0])
               << "\n    Single game            : " << maxHashfull[1] << ", " << sumHashfull[1] << ", " << avg(sumHashfull[1])
-              << "\nTotal time [s]             : " << double(elapsedTime) / 1000.0
+              << "\nTotal time [s]             : " << static_cast<double>(elapsedTime) / 1000.0
               << "\nTotal nodes                : " << nodes
               << "\nnodes/second               : " << 1000 * nodes / elapsedTime << std::endl;
     // clang-format on

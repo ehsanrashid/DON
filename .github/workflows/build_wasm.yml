@@ -4,8 +4,8 @@ on:
   workflow_call:
 
 jobs:
-  wasm:
-    name: wasm (${{ matrix.arch }})
+  BuildWasm:
+    name: WASM (${{ matrix.arch }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false

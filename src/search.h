@@ -96,14 +96,16 @@ struct PVMoves final {
 
     void clear() noexcept { size_ = 0; }
 
-    void push_back(Move move) noexcept {
+    void push_back(const Move move) noexcept {
         assert(size() < capacity());
+
         *end() = move;
         ++size_;
     }
 
-    void resize(usize newSize) noexcept {
+    void resize(const usize newSize) noexcept {
         assert(newSize <= size());
+
         size_ = newSize;
     }
 
@@ -169,8 +171,7 @@ struct RootMove final {
     // Sort in descending order
     friend bool operator<(const RootMove& rm1, const RootMove& rm2) noexcept {
         return rm1.curValue != rm2.curValue ? rm1.curValue > rm2.curValue
-             : rm1.preValue != rm2.preValue ? rm1.preValue > rm2.preValue
-                                            : rm1.avgValue > rm2.avgValue;
+                                            : rm1.preValue > rm2.preValue;
     }
     friend bool operator>(const RootMove& rm1, const RootMove& rm2) noexcept { return (rm2 < rm1); }
     friend bool operator<=(const RootMove& rm1, const RootMove& rm2) noexcept {
@@ -186,14 +187,17 @@ struct RootMove final {
 
     void reset_bound() noexcept { bound = Bound::NONE; }
 
+    [[nodiscard]] usize pv_size() const noexcept { return pv.size(); }
+    // Keep only the root move at index 0
+    void resize_pv(const usize newSize) noexcept { pv.resize(newSize); }
+
     u64 nodes = 0;
 
-    Value curValue = -VALUE_INFINITE;
-    Value preValue = -VALUE_INFINITE;
-    Value uciValue = -VALUE_INFINITE;
-
+    Value    curValue    = -VALUE_INFINITE;
+    Value    preValue    = -VALUE_INFINITE;
     Value    avgValue    = -VALUE_INFINITE;
     SqrValue avgSqrValue = sign_sqr(-VALUE_INFINITE);
+    Value    uciValue    = -VALUE_INFINITE;
 
     i32   tbRank   = 0;
     Value tbValue  = -VALUE_INFINITE;
@@ -415,7 +419,8 @@ struct Limit final {
     }
 
     constexpr u16 calls_count() const noexcept {
-        return nodes != 0 ? std::min(constexpr_ceil(double(nodes) / KB) + 1, 512) : 512;
+        return nodes != 0 ? std::min(constexpr_ceil(static_cast<double>(nodes) / KB) + 1, 512)
+                          : 512;
     }
 
     TimePoint startTime = 0;
@@ -589,7 +594,7 @@ enum class NT : u8 {
     ROOT = 6,
 };
 
-constexpr NT operator~(NT nt) noexcept { return NT((u8(nt) ^ 1) & 1); }
+constexpr NT operator~(NT nt) noexcept { return NT((static_cast<u8>(nt) ^ 1) & 1); }
 
 // Stack keeps track of the information need to remember from nodes
 // shallower and deeper in the tree during the search.

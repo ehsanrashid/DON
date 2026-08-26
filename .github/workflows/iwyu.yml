@@ -4,7 +4,7 @@ on:
   workflow_call:
 
 jobs:
-  Analyzers:
+  IWYU:
     name: Check includes
     runs-on: ubuntu-22.04
     defaults:
@@ -44,9 +44,11 @@ jobs:
         run: include-what-you-use --version
 
       - name: Check build configuration
-        run: |
-          make -pn COMP=clang CXX=include-what-you-use 2>/dev/null |
-            grep '^ARCH[[:space:]]*[:?+]*=' || true
+        run: >
+          make -pn
+          COMP=clang
+          CXX=include-what-you-use 2>/dev/null |
+          grep '^ARCH[[:space:]]*[:?+]*=' || true
 
       - name: Check includes
         run: >

@@ -389,11 +389,12 @@ struct BetterThread final {
             return false;  // Draw beats loss
 
         // Case 3b: Both normal -> compare by voting metrics
-        if (best.voteCount != cand.voteCount)
-            return best.voteCount < cand.voteCount;  // Primary: vote count
-        if (best.voteWeight != cand.voteWeight)
-            return best.voteWeight < cand.voteWeight;  // Tie-break 1: depth-weighted value
-        return best.pvSize < cand.pvSize;              // Tie-break 2: PV size
+        return  // Primary: vote count
+          best.voteCount != cand.voteCount ? best.voteCount < cand.voteCount
+          // Tie-break 1: depth-weighted value
+          : best.voteWeight != cand.voteWeight ? best.voteWeight < cand.voteWeight
+                                               // Tie-break 2: PV size
+                                               : best.pvSize < cand.pvSize;
     }
 };
 
@@ -438,7 +439,8 @@ const Thread* Threads::best_thread() const noexcept {
 
     // Vote according to value and depth, and select the best thread
     auto calc_vote_weight = [minValue](const Thread* th) noexcept -> u64 {
-        return u64(th->worker->rootMoves[0].curValue - minValue + 14) * th->worker->rootDepth;
+        return static_cast<u64>(th->worker->rootMoves[0].curValue - minValue + 14)
+             * th->worker->rootDepth;
     };
 
     Array<u64, MOVE_MAX> votes{};
@@ -531,7 +533,7 @@ void Threads::start(Position&      pos,
 
     // Assign stable IDs after rootMoves is finalized
     for (usize i = 0; i < rootMoves.size(); ++i)
-        rootMoves[i].id = u16(i);
+        rootMoves[i].id = static_cast<u16>(i);
 
     auto& clock = limit.clocks[pos.active_color()];
 
@@ -543,9 +545,8 @@ void Threads::start(Position&      pos,
         return limit.use_time_manager()
             && (options["NodesTime"] != 0
                 || std::chrono::duration<double, std::milli>(endTime - startTime).count()
-                     > (0.0500
-                        + 0.0500 * std::clamp(double(clock.inc - clock.time) / 100.0, 0.0, 1.0))
-                         * double(clock.time));
+                     > (0.0500 + 0.0500 * std::clamp((clock.inc - clock.time) / 100.0, 0.0, 1.0))
+                         * clock.time);
     };
 
     auto tbConfig =

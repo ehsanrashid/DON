@@ -24,17 +24,17 @@
     #include "platform_win.h"
     #include <malloc.h>  // <mm_malloc.h>: _mm_malloc(), _mm_free()
 #else
+    // IWYU pragma: no_include <bits/mman-map-flags-generic.h>
     #if defined(__has_include) && __has_include(<features.h>)
         #include <features.h>  // glibc feature-test macros
     #endif
-    // IWYU pragma: no_include <bits/mman-map-flags-generic.h>
-    #include <errno.h>
     #if defined(__linux__) && !defined(__ANDROID__)
         #include <sys/mman.h>
         #if defined(X86_64) && defined(MAP_HUGE_SHIFT)
             #define USE_POSIX_X86_64_HUGE_PAGES
         #endif
     #endif
+    #include <cerrno>
     #include <cstring>
 #endif
 

@@ -5,6 +5,12 @@ case "$(set -o 2>/dev/null)" in
 esac
 set -eu
 
+case "$(uname -s)" in
+    MSYS*|MINGW*|CYGWIN*)
+        export PATH="/c/Program Files/LLVM/bin:$PATH"
+        ;;
+esac
+
 echo "Running clang-format…"
 
 # Always go to repo root (safe)

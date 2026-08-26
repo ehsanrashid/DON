@@ -381,12 +381,12 @@ case "$uname_s" in
 
     MINGW*ARM64*)
         # Windows ARM64 (MSYS2/MinGW)
-        # Can't reliably detect ARM CPU features here
+        # ARM CPU feature detection is not reliable here
         true_arch='armv8-dotprod'
     ;;
 
     CYGWIN*|MINGW*|MSYS*)
-        # Windows x86_64 (MSYS2/Cygwin/MinGW)
+        # Windows x86_64 environments (Cygwin, MinGW, MSYS2)
         get_flags
         set_arch_x86_64
     ;;

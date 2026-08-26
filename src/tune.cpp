@@ -18,7 +18,7 @@
 #include "tune.h"
 
 #include <algorithm>
-#include <functional>
+#include <functional>  // std::hash<>
 #include <iostream>
 #include <optional>
 #include <unordered_map>
@@ -45,7 +45,7 @@ std::optional<std::string> on_tune(const Option& option) noexcept {
 
 }  // namespace
 
-std::string Tune::next(std::string& names, bool pop) noexcept {
+std::string Tune::next(std::string& names, const bool pop) noexcept {
     std::string name;
 
     do
@@ -62,10 +62,10 @@ std::string Tune::next(std::string& names, bool pop) noexcept {
     return name;
 }
 
-void Tune::make_option(Options*           optionsPtr,
-                       std::string_view   name,
-                       int                value,
-                       const RangeSetter& range) noexcept {
+void Tune::make_option(Options*               optionsPtr,
+                       const std::string_view name,
+                       int                    value,
+                       const RangeSetter&     range) noexcept {
     // Do not generate option when there is nothing to tune (i.e. min = max)
     if (range(value).first == range(value).second)
         return;

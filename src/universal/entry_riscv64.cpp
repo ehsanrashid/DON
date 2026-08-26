@@ -15,8 +15,6 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <stdint.h>
-
 #if !defined(__linux__)
     #error "Supported only on Linux"
 #endif

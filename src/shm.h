@@ -72,7 +72,6 @@
     #include <sys/socket.h>
     #include <sys/stat.h>
     #include <sys/time.h>
-    #include <sys/types.h>
     #include <sys/uio.h>
     #include <sys/un.h>
     #include <unistd.h>
@@ -121,7 +120,7 @@
     #endif
 #endif
 
-#include "memory.h"
+#include "memory.h"  // LargePagePtr<>, make_unique_aligned_large_page()
 #include "misc.h"
 
 namespace DON {
@@ -162,7 +161,7 @@ inline std::string executable_path() noexcept {
     executableSize                 = std::min<usize>(size, executablePath.size() - 1);
     executablePath[executableSize] = '\0';
 #elif defined(__APPLE__)
-    u32 size = u32(executablePath.size());
+    u32 size = static_cast<u32>(executablePath.size());
 
     if (_NSGetExecutablePath(executablePath.data(), &size) == 0)
     {

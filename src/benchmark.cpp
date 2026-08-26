@@ -518,7 +518,7 @@ Setup benchmark(std::istream& is) noexcept {
         // msec    = 50000 / (15 + ply)
         // with this fit 10th move gets 2000ms
         // adjust for desired 10th move time
-        return 50000.0 / double(15 + ply);
+        return 50000.0 / (15 + ply);
     };
 
     double moveTimeSum = 0.0;
@@ -526,7 +526,7 @@ Setup benchmark(std::istream& is) noexcept {
         for (usize i = 0; i < game.size(); ++i)
             moveTimeSum += calc_move_time(i + 1);
 
-    double timeScaleFactor = 1000.0 * double(moveTimeDesired) / double(moveTimeSum);
+    double timeScaleFactor = 1000.0 * moveTimeDesired / moveTimeSum;
 
     for (const auto& game : Games)
     {
@@ -538,7 +538,7 @@ Setup benchmark(std::istream& is) noexcept {
         {
             setup.commands.emplace_back("position fen " + fen);
 
-            usize moveTime = int(calc_move_time(ply) * timeScaleFactor);
+            usize moveTime = static_cast<usize>(calc_move_time(ply) * timeScaleFactor);
 
             setup.commands.emplace_back("go movetime " + std::to_string(moveTime));
 

@@ -1,4 +1,4 @@
-name: "CodeQL"
+name: CodeQL
 
 on:
   push:
@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  analyze:
+  Analyze:
     name: Analyze
     runs-on: ubuntu-latest
     permissions:

@@ -139,7 +139,7 @@ void TTEntry::save(const u16   k,
         value16  = v;
         evalue16 = ev;
         depth8   = d - DEPTH_OFFSET;
-        meta8    = u8(pv) << PV_SHIFT | u8(b) << BOUND_SHIFT | gen;
+        meta8    = static_cast<u8>(pv) << PV_SHIFT | static_cast<u8>(b) << BOUND_SHIFT | gen;
     }
     // Secondary aging. Important for elementary mate finding.
     // (*Scaler) Secondary aging on entries relevant to singular extensions
@@ -296,7 +296,7 @@ ProbResult TranspositionTable::probe(const Key key) const noexcept {
 
     auto* const ttc = cluster(key);
 
-    const auto key16 = u16(key);
+    const u16 key16 = static_cast<u16>(key);
 
     for (const auto& entry : ttc->entries)
         if (entry.key() == key16)

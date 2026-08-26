@@ -229,138 +229,19 @@ tablebases = yes
 
 ### 2.2 Architecture specific
 
+# x86-64/32
 ifneq ($(findstring x86,$(ARCH)),)
 
-# x86-32/64
-
-# To enable sse use: make -j build ARCH=x86-32 sse=yes
-ifneq ($(findstring x86-32,$(ARCH)),)
-    arch = i386
-    bits = 32
-    sse_fp = yes
-    sse = no
-    mmx = yes
-else
+ifneq ($(findstring x86-64,$(ARCH)),)
     arch = x86_64
     sse = yes
     sse2 = yes
-endif
-
-ifneq ($(findstring -sse,$(ARCH)),)
-    sse = yes
-endif
-
-ifneq ($(findstring -popcnt,$(ARCH)),)
-    popcnt = yes
-endif
-
-ifneq ($(findstring -mmx,$(ARCH)),)
+# To enable 'sse' use: make -j build ARCH=x86-32 sse=yes
+else ifneq ($(findstring x86-32,$(ARCH)),)
+    arch = i386
+    bits = 32
+    sse_fp = yes
     mmx = yes
-endif
-
-ifneq ($(findstring -sse2,$(ARCH)),)
-    sse = yes
-    sse2 = yes
-endif
-
-ifneq ($(findstring -ssse3,$(ARCH)),)
-    sse = yes
-    sse2 = yes
-    ssse3 = yes
-endif
-
-ifneq ($(findstring -sse41,$(ARCH)),)
-    sse = yes
-    sse2 = yes
-    ssse3 = yes
-    sse41 = yes
-endif
-
-ifneq ($(findstring -modern,$(ARCH)),)
-    $(warning *** ARCH=$(ARCH) is deprecated, defaulting to ARCH=x86-64-sse41-popcnt. Execute `make help` for a list of available architectures. ***)
-    $(shell sleep 5)
-    popcnt = yes
-    sse = yes
-    sse2 = yes
-    ssse3 = yes
-    sse41 = yes
-endif
-
-ifneq ($(findstring -sse41-bmi2,$(ARCH)),)
-    popcnt = yes
-    sse = yes
-    sse2 = yes
-    ssse3 = yes
-    sse41 = yes
-    bmi2 = yes
-endif
-
-ifneq ($(findstring -sse41-bmi2-cmp,$(ARCH)),)
-    cmp = yes
-endif
-
-ifneq ($(findstring -avx2,$(ARCH)),)
-    popcnt = yes
-    sse = yes
-    sse2 = yes
-    ssse3 = yes
-    sse41 = yes
-    avx2 = yes
-endif
-
-ifneq ($(findstring -bmi2,$(ARCH)),)
-    popcnt = yes
-    sse = yes
-    sse2 = yes
-    ssse3 = yes
-    sse41 = yes
-    avx2 = yes
-    bmi2 = yes
-endif
-
-ifneq ($(findstring -avxvnni,$(ARCH)),)
-    popcnt = yes
-    sse = yes
-    sse2 = yes
-    ssse3 = yes
-    sse41 = yes
-    avx2 = yes
-    bmi2 = yes
-    avxvnni = yes
-endif
-
-ifneq ($(findstring -avx512,$(ARCH)),)
-    popcnt = yes
-    sse = yes
-    sse2 = yes
-    ssse3 = yes
-    sse41 = yes
-    avx2 = yes
-    bmi2 = yes
-    avx512 = yes
-endif
-
-ifneq ($(findstring -vnni256,$(ARCH)),)
-    popcnt = yes
-    sse = yes
-    sse2 = yes
-    ssse3 = yes
-    sse41 = yes
-    avx2 = yes
-    bmi2 = yes
-    vnni256 = yes
-endif
-
-ifneq ($(findstring -vnni512,$(ARCH)),)
-    popcnt = yes
-    sse = yes
-    sse2 = yes
-    ssse3 = yes
-    sse41 = yes
-    avx2 = yes
-    bmi2 = yes
-    avx512 = yes
-    vnni512 = yes
 endif
 
 ifneq ($(findstring -avx512icl,$(ARCH)),)
@@ -374,10 +255,108 @@ ifneq ($(findstring -avx512icl,$(ARCH)),)
     avx512 = yes
     vnni512 = yes
     avx512icl = yes
+
+else ifneq ($(findstring -vnni512,$(ARCH)),)
+    popcnt = yes
+    sse = yes
+    sse2 = yes
+    ssse3 = yes
+    sse41 = yes
+    avx2 = yes
+    bmi2 = yes
+    avx512 = yes
+    vnni512 = yes
+
+else ifneq ($(findstring -vnni256,$(ARCH)),)
+    popcnt = yes
+    sse = yes
+    sse2 = yes
+    ssse3 = yes
+    sse41 = yes
+    avx2 = yes
+    bmi2 = yes
+    vnni256 = yes
+
+else ifneq ($(findstring -avx512,$(ARCH)),)
+    popcnt = yes
+    sse = yes
+    sse2 = yes
+    ssse3 = yes
+    sse41 = yes
+    avx2 = yes
+    bmi2 = yes
+    avx512 = yes
+
+else ifneq ($(findstring -avxvnni,$(ARCH)),)
+    popcnt = yes
+    sse = yes
+    sse2 = yes
+    ssse3 = yes
+    sse41 = yes
+    avx2 = yes
+    bmi2 = yes
+    avxvnni = yes
+
+else ifneq ($(findstring -bmi2,$(ARCH)),)
+    popcnt = yes
+    sse = yes
+    sse2 = yes
+    ssse3 = yes
+    sse41 = yes
+    avx2 = yes
+    bmi2 = yes
+
+else ifneq ($(findstring -avx2,$(ARCH)),)
+    popcnt = yes
+    sse = yes
+    sse2 = yes
+    ssse3 = yes
+    sse41 = yes
+    avx2 = yes
+
+else ifneq ($(findstring -sse41-bmi2,$(ARCH)),)
+    popcnt = yes
+    sse = yes
+    sse2 = yes
+    ssse3 = yes
+    sse41 = yes
+    bmi2 = yes
+    ifneq ($(findstring -cmp,$(ARCH)),)
+        cmp = yes
+    endif
+
+else ifneq ($(findstring -sse41,$(ARCH)),)
+    sse = yes
+    sse2 = yes
+    ssse3 = yes
+    sse41 = yes
+
+else ifneq ($(findstring -modern,$(ARCH)),)
+    $(warning *** ARCH=$(ARCH) is deprecated, defaulting to ARCH=x86-64-sse41-popcnt. Execute `make help` for a list of available architectures. ***)
+    $(shell sleep 5)
+    popcnt = yes
+    sse = yes
+    sse2 = yes
+    ssse3 = yes
+    sse41 = yes
+
+else ifneq ($(findstring -ssse3,$(ARCH)),)
+    sse = yes
+    sse2 = yes
+    ssse3 = yes
+
+else ifneq ($(findstring -sse2,$(ARCH)),)
+    sse = yes
+    sse2 = yes
+
 endif
 
 ifeq ($(sse),yes)
     prefetch = yes
+endif
+
+ifneq ($(findstring -popcnt,$(ARCH)),)
+    popcnt = yes
 endif
 
 # 64-bit bmi2 is not available on x86-32
@@ -385,46 +364,32 @@ ifeq ($(bits),32)
     bmi2 = no
 endif
 
+# all other architectures
 else
 
-# all other architectures
-
-ifeq ($(ARCH),general-32)
+ifneq ($(findstring general,$(ARCH)),)
     arch = any
-    bits = 32
-    sse_fp = yes
-endif
+    ifneq ($(findstring -64,$(ARCH)),)
+    else ifneq ($(findstring -32,$(ARCH)),)
+        bits = 32
+        sse_fp = yes
+    endif
 
-ifeq ($(ARCH),general-64)
-    arch = any
-endif
+else ifneq ($(findstring ppc-64,$(ARCH)),)
+    arch = ppc64
+    prefetch = yes
+    popcnt = yes
+    ifneq ($(findstring -vsx,$(ARCH)),)
+        vsx = yes
+    else ifneq ($(findstring -altivec,$(ARCH)),)
+        altivec = yes
+    endif
 
-ifeq ($(ARCH),ppc-32)
+else ifneq ($(findstring ppc-32,$(ARCH)),)
     arch = ppc
     bits = 32
-endif
 
-ifeq ($(ARCH),ppc-64)
-    arch = ppc64
-    popcnt = yes
-    prefetch = yes
-endif
-
-ifeq ($(ARCH),ppc-64-altivec)
-    arch = ppc64
-    popcnt = yes
-    prefetch = yes
-    altivec = yes
-endif
-
-ifeq ($(ARCH),ppc-64-vsx)
-    arch = ppc64
-    popcnt = yes
-    prefetch = yes
-    vsx = yes
-endif
-
-ifeq ($(ARCH),e2k)
+else ifneq ($(findstring e2k,$(ARCH)),)
     arch = e2k
     sse = yes
     mmx = yes
@@ -432,97 +397,71 @@ ifeq ($(ARCH),e2k)
     ssse3 = yes
     sse41 = yes
     popcnt = yes
-endif
 
-ifneq ($(findstring loongarch64,$(ARCH)),)
+else ifneq ($(findstring loongarch64,$(ARCH)),)
     arch = loongarch64
     prefetch = yes
-    ifneq ($(findstring -lsx,$(ARCH)),)
-        lsx = yes
-    endif
     ifneq ($(findstring -lasx,$(ARCH)),)
         lsx = yes
         lasx = yes
+    else ifneq ($(findstring -lsx,$(ARCH)),)
+        lsx = yes
     endif
-endif
 
-ifneq ($(findstring riscv64,$(ARCH)),)
+else ifneq ($(findstring riscv64,$(ARCH)),)
     arch = riscv64
-    ifeq ($(ARCH),riscv64-rva23)
-        rva23 = yes
-        popcnt = yes
+    ifneq ($(findstring -rva23,$(ARCH)),)
         prefetch = yes
+        popcnt = yes
+        rva23 = yes
     endif
-endif
 
-ifeq ($(ARCH),armv7)
+else ifneq ($(findstring armv8,$(ARCH)),)
+    arch = armv8
+    prefetch = yes
+    popcnt = yes
+    arm_version = 8
+    neon = yes
+    ifneq ($(findstring -dotprod,$(ARCH)),)
+        dotprod = yes
+    endif
+
+else ifneq ($(findstring armv7,$(ARCH)),)
     arch = armv7
     bits = 32
     prefetch = yes
     arm_version = 7
-endif
+    ifneq ($(findstring -neon,$(ARCH)),)
+        popcnt = yes
+        neon = yes
+    endif
 
-ifeq ($(ARCH),armv7-neon)
-    arch = armv7
-    bits = 32
-    prefetch = yes
-    popcnt = yes
-    arm_version = 7
-    neon = yes
-endif
-
-ifeq ($(ARCH),armv8)
+else ifneq ($(findstring arm64-universal,$(ARCH)),)
     arch = armv8
     prefetch = yes
     popcnt = yes
     arm_version = 8
     neon = yes
-endif
 
-ifeq ($(ARCH),armv8-dotprod)
-    arch = armv8
-    prefetch = yes
-    popcnt = yes
-    arm_version = 8
-    neon = yes
-    dotprod = yes
-endif
-
-ifeq ($(ARCH),arm64-universal)
-    arch = armv8
-    prefetch = yes
-    popcnt = yes
-    arm_version = 8
-    neon = yes
-endif
-
-ifeq ($(ARCH),apple-silicon)
+else ifneq ($(findstring apple-silicon,$(ARCH)),)
     arch = arm64
     prefetch = yes
     popcnt = yes
     arm_version = 8
     neon = yes
     dotprod = yes
-endif
 
 # WASM is largely compiled using emcc's x86 compatibility layer, with occasional
 # WASM-specific intrinsics
-ifeq ($(ARCH),wasm32)
+else ifneq ($(findstring wasm32,$(ARCH)),)
     arch = wasm32
     sse = yes
     sse2 = yes
     ssse3 = yes
     sse41 = yes
-    tablebases = no
-endif
-
-ifeq ($(ARCH),wasm32-relaxed-simd)
-    arch = wasm32
-    sse = yes
-    sse2 = yes
-    ssse3 = yes
-    sse41 = yes
-    relaxedsimd = yes
+    ifneq ($(findstring -relaxed-simd,$(ARCH)),)
+        relaxedsimd = yes
+    endif
     tablebases = no
 endif
 
@@ -841,12 +780,12 @@ ifeq ($(optimize),yes)
     endif
 
     ifeq ($(TARGET_KERNEL),Darwin)
-        ifneq ($(filter clang icx ndk,$(COMP)),)
-            CXXFLAGS += -mdynamic-no-pic
-        else ifeq ($(COMP),gcc)
+        ifeq ($(COMP),gcc)
             ifneq ($(arch),arm64)
                 CXXFLAGS += -mdynamic-no-pic
             endif
+        else ifneq ($(filter clang icx ndk,$(COMP)),)
+            CXXFLAGS += -mdynamic-no-pic
         endif
     endif
 endif
@@ -1026,9 +965,14 @@ BUILD_DATE_FILE      := .build_date.txt
 BUILD_SHA_FILE       := .build_sha.txt
 BUILD_DIFFINDEX_FILE := .build_diffindex.txt
 
+GIT := git -c core.filemode=false -c core.autocrlf=false
+
 GIT_DATE      := $(shell git show -s --date=format:%Y%m%d --format=%cd HEAD 2>/dev/null || true)
-GIT_SHA       := $(shell git rev-parse HEAD 2>/dev/null | cut -c 1-8 || true)
-GIT_DIFFINDEX := $(shell git update-index --refresh >/dev/null 2>&1; git -c core.filemode=false -c core.autocrlf=false diff HEAD --no-ext-diff | git hash-object --stdin | cut -c 1-6)
+GIT_SHA       := $(shell git rev-parse HEAD 2>/dev/null | cut -c 1-8 | tr '[:lower:]' '[:upper:]' || true)
+GIT_DIFFINDEX := $(shell $(GIT) update-index --refresh >/dev/null 2>&1; \
+                    if ! $(GIT) diff-index --quiet HEAD -- 2>/dev/null; then \
+                        $(GIT) diff HEAD --no-ext-diff | git hash-object --stdin | cut -c 1-6 | tr '[:lower:]' '[:upper:]'; \
+                    fi)
 COMPILER_DATE := $(shell date +%Y%m%d 2>/dev/null)
 BUILD_DATE    := $(or $(GIT_DATE),$(COMPILER_DATE))
 
@@ -1039,7 +983,7 @@ $(shell \
     fi)
 endef
 
-ifneq ($(filter-out help net strip install clean objclean profileclean config-sanity format install-hooks,$(MAKECMDGOALS)),)
+ifneq ($(filter-out help net strip install clean obj-clean profile-clean config-sanity format install-hooks,$(MAKECMDGOALS)),)
     _ := $(call CACHE_FILE_IF_CHANGED,$(BUILD_DATE_FILE),$(BUILD_DATE))
     _ := $(call CACHE_FILE_IF_CHANGED,$(BUILD_SHA_FILE),$(GIT_SHA))
     _ := $(call CACHE_FILE_IF_CHANGED,$(BUILD_DIFFINDEX_FILE),$(GIT_DIFFINDEX))
@@ -1052,7 +996,7 @@ GIT_FLAGS := $(if $(GIT_DATE),-DGIT_DATE=$(GIT_DATE)) \
 
 ### 3.8.2 Try to include architecture
 ifneq ($(ARCH),)
-    CXXFLAGS += -DARCH=$(ARCH)
+    ARCH_FLAG := -DARCH=$(ARCH)
 endif
 
 ### 3.9 Link Time Optimization
@@ -1081,7 +1025,7 @@ ifeq ($(optimize),yes)
         # MinGW (requires GCC 10.1+ for LTO and static linking)
         ifeq ($(COMP),mingw)
             LTO_FLAGS   := -flto -flto-partition=one
-            LTO_LDFLAGS := -flto=auto -save-temps
+            LTO_LDFLAGS := -save-temps
         # GCC / Clang / ICX / NDK Clang
         else ifneq ($(filter gcc clang icx ndk,$(COMP)),)
             # Clang-compatible compiler
@@ -1090,7 +1034,6 @@ ifeq ($(optimize),yes)
             # Native GCC
             else
                 LTO_FLAGS   := -flto -flto-partition=one
-                LTO_LDFLAGS := -flto=auto
             endif
             ifeq ($(COMP),icx)
                 CXXFLAGS += -fwhole-program-vtables
@@ -1120,13 +1063,13 @@ endif
 ### ==========================================================================
 
 help:
-	@echo ""; \
+	@echo; \
 	echo "To compile $(NAME), type: "; \
-	echo ""; \
+	echo; \
 	echo "make -j target [ARCH=arch] [COMP=compiler] [COMPCXX=cxx]"; \
-	echo ""; \
+	echo; \
 	echo "Supported targets:"; \
-	echo ""; \
+	echo; \
 	echo "help                    > Display architecture details"; \
 	echo "profile-build           > standard build with profile-guided optimization"; \
 	echo "build                   > skip profile-guided optimization"; \
@@ -1135,9 +1078,9 @@ help:
 	echo "strip                   > Strip executable"; \
 	echo "install                 > Install executable"; \
 	echo "clean                   > Clean up"; \
-	echo ""; \
+	echo; \
 	echo "Supported archs:"; \
-	echo ""; \
+	echo; \
 	echo "native                  > select the best architecture for the host processor (default)"; \
 	echo "x86-64-universal        > x86 64-bit with automatic runtime selection of the best architecture"; \
 	echo "x86-64-avx512icl        > x86 64-bit with minimum AVX512 support of Intel Ice Lake or AMD Zen 4"; \
@@ -1179,84 +1122,84 @@ help:
 	echo "armv7-neon              > ARMv7 32-bit with NEON and POPCNT support"; \
 	echo "armv7                   > ARMv7 32-bit"; \
 	echo "apple-silicon           > Apple silicon ARM64"; \
-	echo ""; \
+	echo; \
 	echo "Supported compilers:"; \
-	echo ""; \
+	echo; \
 	echo "gcc                     > GNU compiler (default)"; \
 	echo "mingw                   > GNU compiler with MinGW under Windows"; \
 	echo "clang                   > LLVM Clang compiler"; \
 	echo "icx                     > Intel oneAPI DPC++/C++ compiler"; \
 	echo "ndk                     > Android NDK for cross-compiling to Android"; \
-	echo ""; \
+	echo; \
 	echo "Simple examples. If you don't know what to do, you likely want to run one of:"; \
-	echo ""; \
+	echo; \
 	echo 'make -j profile-build ARCH=native               # Fast compile for local system'; \
 	echo 'make -j profile-build ARCH=x86-64-avx2          # Portable compile for most x86-64 systems'; \
 	echo 'make -j profile-build ARCH=x86-64-sse41-popcnt  # Portable compile for most x86-64 systems'; \
 	echo 'make -j profile-build ARCH=x86-64               # Portable compile for x86-64 systems'; \
-	echo ""; \
+	echo; \
 	echo "Advanced examples, for experienced users: "; \
-	echo ""; \
+	echo; \
 	echo 'make -j profile-build ARCH=x86-64-avxvnni'; \
 	echo 'make -j profile-build ARCH=x86-64-avxvnni COMP=gcc CXX=g++-12.0'; \
 	echo 'make -j profile-build ARCH=x86-64-universal RUN_PREFIX="/path/to/sde -future --" CXX=g++-15'; \
 	echo 'make -j build ARCH=x86-64-ssse3 COMP=clang'; \
-	echo ""
+	echo 
 
 ifeq ($(ARCH_SUPPORTED),no)
 	@echo "Specify a supported architecture with the ARCH option for more details"; \
-	echo ""
+	echo 
 endif
 
 
 .PHONY: help analyze build profile-build macos-lipo net strip install \
-	clean objclean profileclean config-sanity FORCE \
+	clean obj-clean profile-clean config-sanity FORCE \
 	clang-profile-make clang-profile-use \
 	gcc-profile-make gcc-profile-use \
 	icx-profile-make icx-profile-use \
 	format install-hooks
 
-analyze: net config-sanity objclean
+analyze: net config-sanity obj-clean
 	$(MAKE) -k ARCH=$(ARCH) COMP=$(COMP) $(OBJS)
 
 ifeq ($(UNIVERSAL_BUILD),no)
 build: net config-sanity
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) all
 
-profile-build: net config-sanity objclean profileclean
-	@echo ""
-	@echo "Step 1/4. Building instrumented executable ..."
+profile-build: net config-sanity obj-clean profile-clean
+	@echo; \
+	echo "Step 1/4. Building instrumented executable ..."
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) $(PROFILE_MAKE)
-	@echo ""
-	@echo "Step 2/4. Running benchmark for pgo-build ..."
+	@echo; \
+	echo "Step 2/4. Running benchmark for pgo-build ..."
 	$(PGOBENCH) > PGOBENCH.out 2>&1
 	tail -n 4 PGOBENCH.out
-	@echo ""
-	@echo "Step 3/4. Building optimized executable ..."
-	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) objclean
+	@echo; \
+	echo "Step 3/4. Building optimized executable ..."
+	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) obj-clean
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) $(PROFILE_USE)
-	@echo ""
-	@echo "Step 4/4. Deleting profile data ..."
-	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) profileclean
+	@echo; \
+	echo "Step 4/4. Deleting profile data ..."
+	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) profile-clean
 endif
 
 # Default network filename, read from evaluate.h's EvalFileDefaultName.
 macos-lipo: NNUE_NET := $(shell grep -oE 'nn-[0-9a-f]+\.nnue' $(CURDIR)/evaluate.h | head -1)
 macos-lipo:
-	@echo ""
-	@echo "Step 1/4. Building x86-64 slice (network shared from Apple-silicon slice) ..."
+	@echo; \
+	echo "Step 1/4. Building x86-64 slice (network shared from Apple-silicon slice) ..."
 	CXXFLAGS="-arch x86_64" $(MAKE) build ARCH=x86-64-universal COMP=$(COMP) MACOS_X86_SLICE=1
 	mv $(EXE) $(EXE)-x86_64
-	@echo ""
-	@echo "Step 2/4. Building Apple silicon slice ..."
+	@echo; \
+	echo "Step 2/4. Building Apple silicon slice ..."
 	$(MAKE) profile-build ARCH=apple-silicon COMP=$(COMP)
 	mv $(EXE) $(EXE)-arm64
-	@echo ""
-	@echo "Step 3/4. Combining slices and locating the embedded network ..."
+	@echo; \
+	echo "Step 3/4. Combining slices and locating the embedded network ..."
 	lipo -create $(EXE)-x86_64 $(EXE)-arm64 -output $(EXE)
 	$(SHELL) universal/patch_x86_slice.sh $(EXE) $(EXE)-x86_64 $(NNUE_NET)
-	@echo ""
-	@echo "Step 4/4. Re-combining slices with the patched x86-64 slice ..."
+	@echo; \
+	echo "Step 4/4. Re-combining slices with the patched x86-64 slice ..."
 	lipo -create $(EXE)-x86_64 $(EXE)-arm64 -output $(EXE)
 	@rm -f $(EXE)-x86_64 $(EXE)-arm64
 	@echo "Universal macOS binary built: $(EXE)"
@@ -1287,31 +1230,32 @@ endif
 
 MODNAME := $(subst -,_,$(notdir $(CURDIR)))
 
-universal-object-pgo: objclean profileclean universalclean
-	@echo ""
-	@echo "Step 1/4. Building instrumented executable ..."
+universal-object-pgo: obj-clean profile-clean universal-clean
+	@echo; \
+	echo "Step 1/4. Building instrumented executable ..."
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) ENV_LDFLAGS='$(ENV_LDFLAGS)' NNUE_EMBED_OBJ='$(NNUE_EMBED_OBJ)' $(PROFILE_MAKE)
-	@echo ""
-	@echo "Step 2/4. Running benchmark for pgo-build ..."
+	@echo; \
+	echo "Step 2/4. Running benchmark for pgo-build ..."
 	$(PGOBENCH) > PGOBENCH.out 2>&1
 	tail -n 4 PGOBENCH.out
-	@echo ""
-	@echo "Step 3/4. Building optimized object files ..."
-	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) objclean
+	@echo; \
+	echo "Step 3/4. Building optimized object files ..."
+	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) obj-clean
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) ENV_LDFLAGS='$(ENV_LDFLAGS) $(SAVE_TEMPS)' NNUE_EMBED_OBJ='$(NNUE_EMBED_OBJ)' $(PROFILE_USE)
-	@echo ""
 ifeq ($(USE_LTO_EMIT_ASM),yes)
-	@echo "Step 4/4. Renaming ctors and extracting LTO-optimized relocatable object ..."
+	@echo; \
+	echo "Step 4/4. Renaming ctors and extracting LTO-optimized relocatable object ..."
 	awk -v MODNAME=$(MODNAME) -f ../../universal/rewrite_asm_sections.awk *.lto.s > renamed.s
 # -mcpu=neoverse-v2 (or another CPU supporting dotprod) is required for clang
 # to not complain when assembling
 	$(CXX) -c renamed.s -o DON.o $(ASM_FLAGS)
 else
-	@echo "Step 4/4. Extracting LTO-optimized relocatable object ..."
+	@echo; \
+	echo "Step 4/4. Extracting LTO-optimized relocatable object ..."
 	cp "$(basename $(EXE))$(LTO_OBJ_SUFFIX)" DON.o
 endif
 
-universal-object-nopgo: objclean universalclean
+universal-object-nopgo: obj-clean universal-clean
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) ENV_LDFLAGS='$(ENV_LDFLAGS) $(SAVE_TEMPS)' NNUE_EMBED_OBJ='$(NNUE_EMBED_OBJ)' all
 ifeq ($(USE_LTO_EMIT_ASM),yes)
 	awk -v MODNAME=$(MODNAME) -f ../../universal/rewrite_asm_sections.awk *.lto.s > renamed.s
@@ -1334,28 +1278,28 @@ install:
 	$(STRIP) "$(BINDIR)/$(EXE)"
 
 # Clean all
-clean: objclean profileclean
+clean: obj-clean profile-clean
 	@rm -f .depend *~ core
 
 # Clean binaries and objects
-objclean:
+obj-clean:
 	@rm -f $(EXE) ./*.o ./nnue/*.o ./nnue/features/*.o ./book/*.o ./tablebase/*.o $(BUILD_DATE_FILE) $(BUILD_SHA_FILE) $(BUILD_DIFFINDEX_FILE)
 
 # Clean auxiliary profiling files
-profileclean:
+profile-clean:
 	@rm -rf profdir
 	@rm -f bench.txt *.gcda *.gcno ./book/*.gcda ./tablebase/*.gcda ./nnue/*.gcda ./nnue/features/*.gcda *.s PGOBENCH.out
-	@rm -f "$(NAME).profdata" *.profraw
+	@rm -f "$(NAME)".profdata *.profraw
 	@rm -f "$(NAME)".*args*
 	@rm -f "$(NAME)".*lt*
-	@rm -f "$(NAME).res"
+	@rm -f "$(NAME)".res
 	@rm -f ./-lstdc++.res
 
-universalclean:
+universal-clean:
 # On Windows "ln -s" to a directory makes a native directory symlink that rm
 # cannot unlink; rmdir unlinks it without following it. No-op elsewhere.
-	@find $(TEMP_DIR) -type l -exec rmdir {} + 2>/dev/null || true
-	@rm -rf $(TEMP_DIR)
+	@find "$(TEMP_DIR)" -type l -exec rmdir {} + 2>/dev/null || true
+	@rm -rf "$(TEMP_DIR)"
 	@rm -f universal/network_dump.inc
 
 format:
@@ -1389,7 +1333,7 @@ install-hooks:
 all: $(EXE) .depend
 
 config-sanity: net
-	@echo "" && \
+	@echo && \
 	echo "Config:" && \
 	echo "KERNEL: '$(KERNEL)'" && \
 	echo "TARGET_KERNEL: '$(TARGET_KERNEL)'" && \
@@ -1397,7 +1341,7 @@ config-sanity: net
 	echo "IS_WINDOWS: '$(IS_WINDOWS)'" && \
 	echo "COMP: '$(COMP)'" && \
 	echo "RUN_PREFIX: '$(RUN_PREFIX)'" && \
-	echo "" && \
+	echo && \
 	echo "debug: '$(debug)'" && \
 	echo "sanitize: '$(sanitize)'" && \
 	echo "optimize: '$(optimize)'" && \
@@ -1428,16 +1372,18 @@ config-sanity: net
 	echo "dotprod: '$(dotprod)'" && \
 	echo "relaxedsimd": $(relaxedsimd) && \
 	echo "tablebases: '$(tablebases)'" && \
-	echo "" && \
+	echo && \
 	echo "Flags:" && \
 	echo "CXX: '$(CXX)'" && \
 	echo "CXXFLAGS: '$(CXXFLAGS)'" && \
+	echo "ARCH_FLAG: '$(ARCH_FLAG)'" && \
+	echo "GIT_FLAGS: '$(GIT_FLAGS)'" && \
 	echo "DEPENDFLAGS: '$(DEPENDFLAGS)'" && \
 	echo "LDFLAGS: '$(LDFLAGS)'" && \
 	echo "LDLIBS: '$(LDLIBS)'" && \
-	echo "" && \
+	echo && \
 	echo "Testing config sanity. If this fails, try 'make help' ..." && \
-	echo "" && \
+	echo && \
 	(test "$(debug)"    = "no" || test "$(debug)"    = "yes") && \
 	(test "$(optimize)" = "no" || test "$(optimize)" = "yes") && \
 	(test "$(ARCH_SUPPORTED)" = "yes") && \
@@ -1481,7 +1427,7 @@ $(EXE): $(OBJS) $(NNUE_EMBED_OBJ)
 	$(strip $(CXX) $(CPPFLAGS) $(CXXFLAGS)) -c -o $@ $<
 
 misc.o: misc.cpp $(BUILD_DATE_FILE) $(BUILD_SHA_FILE) $(BUILD_DIFFINDEX_FILE)
-	$(strip $(CXX) $(CPPFLAGS) $(CXXFLAGS) $(GIT_FLAGS)) -c -o $@ $<
+	$(strip $(CXX) $(CPPFLAGS) $(CXXFLAGS) $(ARCH_FLAG) $(GIT_FLAGS)) -c -o $@ $<
 
 # Clang PGO
 clang-profile-make:
@@ -1534,7 +1480,7 @@ icx-profile-use:
 ifeq ($(UNIVERSAL_BUILD),no)
 # Include .depend only if no special goal is requested
 ifneq ($(MAKECMDGOALS),)
-ifneq ($(filter-out help net strip install clean objclean profileclean config-sanity format install-hooks,$(MAKECMDGOALS)),)
+ifneq ($(filter-out help net strip install clean obj-clean profile-clean config-sanity format install-hooks,$(MAKECMDGOALS)),)
     -include .depend
 endif
 endif
@@ -1646,7 +1592,7 @@ else
     OBJCOPY ?= objcopy
 endif
 
-.PHONY: build profile-build universalclean
+.PHONY: build profile-build universal-clean
 
 build: UOBJ_TGT := universal-object-nopgo
 build: $(UNIVERSAL_EXE)
@@ -1655,12 +1601,12 @@ profile-build: UOBJ_TGT := universal-object-pgo
 profile-build: $(UNIVERSAL_EXE)
 
 $(TEMP_DIR):
-	@mkdir -p $@
+	@mkdir -p "$@"
 
 # Download nnue files once in src/ (reused by every sub-arch via --embed-dir).
 $(NET_SENTINEL): | $(TEMP_DIR)
-	@cd $(CURDIR) && $(SHELL) ../scripts/net.sh $(EMBED_DIR_SUPPORTED)
-	@touch $@
+	@cd "$(CURDIR)" && $(SHELL) ../scripts/net.sh $(EMBED_DIR_SUPPORTED)
+	@touch "$@"
 
 $(NNUE_EMBED_OBJ): $(UNIVERSAL_SRC_DIR)/nnue_embed.cpp $(NET_SENTINEL) | $(TEMP_DIR)
 	$(CXX) -O2 -std=c++20 -Wno-c++26-extensions $(SLICE_DEF) $(strip $(MACOS_BUILD_FLAGS) $(EXTRA_CXXFLAGS)) $(EMBED_DIR) -c $< -o $@
@@ -1670,10 +1616,10 @@ $(UNIVERSAL_ENTRY_OBJ): $(UNIVERSAL_ENTRY_SRC) | $(TEMP_DIR)
 
 # Symlink tracked top-level items from src/ into temp_builds/<arch>/.
 $(TEMP_DIR)/%/.setup: | $(TEMP_DIR)
-	@rm -rf $(TEMP_DIR)/$*
-	@mkdir -p $(TEMP_DIR)/$*
-	@$(foreach f,$(TRACKED_TOP),ln -s $(CURDIR)/$(f) $(TEMP_DIR)/$*/$(f);)
-	@touch $@
+	@rm -rf "$(TEMP_DIR)/$*"
+	@mkdir -p "$(TEMP_DIR)/$*"
+	@$(foreach f,$(TRACKED_TOP),ln -s "$(CURDIR)/$(f)" "$(TEMP_DIR)/$*/$(f)";)
+	@touch "$@"
 
 # Per-arch DON.o
 .SECONDARY: $(patsubst %,$(TEMP_DIR)/%/.setup,$(UNIVERSAL_ARCHES))

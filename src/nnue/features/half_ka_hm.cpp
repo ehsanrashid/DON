@@ -85,7 +85,7 @@ static_assert(orientation(SQ_H8) == SQ_A1);
 ALWAYS_INLINE constexpr IndexType
 make_index(Color perspective, Square kingSq, Square s, Piece pc) noexcept {
     u8 relOrientation = relative_sq(perspective, orientation(kingSq));
-    return (u8(s) ^ relOrientation)                //
+    return (static_cast<u8>(s) ^ relOrientation)   //
          + PIECE_SQUARE_INDICES[perspective][+pc]  //
          + KING_BUCKETS[relative_sq(perspective, kingSq)];
 }
@@ -113,11 +113,11 @@ void HalfKA_hm::append_map_changed_indices(const Color     perspective,
     // (s ^ orient) + psi[pc] + bucket == s ^ (psi[pc] + bucket + orient),
     // allowing the orientation to be folded into the per-piece lookup offset.
     const u16 flip   = 56 * perspective;
-    const u16 orient = u16(orientation(kingSq)) ^ flip;
+    const u16 orient = static_cast<u16>(orientation(kingSq)) ^ flip;
 
     // clang-format off
-    const __m512i psi       = _mm512_castsi256_si512(_mm256_loadu_si256((const __m256i*) PIECE_SQUARE_INDICES[perspective].data()));
-    const __m512i psiOffset = _mm512_add_epi16(psi, _mm512_set1_epi16(u16(KING_BUCKETS[u8(kingSq) ^ flip] + orient)));
+    const __m512i psi       = _mm512_castsi256_si512(_mm256_loadu_si256(reinterpret_cast<const __m256i*>(PIECE_SQUARE_INDICES[perspective].data())));
+    const __m512i psiOffset = _mm512_add_epi16(psi, _mm512_set1_epi16(static_cast<u16>(KING_BUCKETS[static_cast<u8>(kingSq) ^ flip] + orient)));
 
     __m512i removedSquares = _mm512_maskz_compress_epi8(removedBB, ALL_SQUARES);
     __m512i removedPieces  = _mm512_maskz_compress_epi8(removedBB, oldPieceVec);

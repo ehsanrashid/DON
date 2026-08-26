@@ -20,11 +20,9 @@
 #include <algorithm>
 #include <array>
 #include <cassert>
-#include <cstdint>
 #include <cstring>
 #include <deque>
 #include <filesystem>
-#include <functional>
 #include <initializer_list>
 #include <iostream>
 #include <limits>
@@ -58,13 +56,13 @@ namespace DON::Tablebase::Syzygy {
 #if defined(NO_TABLEBASES)
 
 void init() noexcept {}
-void init(std::string_view) noexcept {}
+void init(const std::string_view) noexcept {}
 
-WDLScore probe_wdl(Position&, ProbeState* ps) noexcept {
+WDLScore probe_wdl(Position&, ProbeState* const ps) noexcept {
     *ps = PS_FAIL;
     return WDL_DRAW;
 }
-int probe_dtz(Position&, ProbeState* ps) noexcept {
+int probe_dtz(Position&, ProbeState* const ps) noexcept {
     *ps = PS_FAIL;
     return 0;
 }
@@ -86,6 +84,8 @@ enum class Endian : u8 {
     BIG,
     LITTLE
 };
+
+constexpr auto operator+(Endian e) noexcept { return static_cast<u8>(e); }
 
 // Used as template parameter
 enum TBType : u8 {
@@ -120,9 +120,9 @@ constexpr Array<u8, TB_TYPE_NB, 4> TB_MAGICS{{
 
 // clang-format off
 
-constexpr Array<int         , WDL_SCORE_NB> WDL_MAP  {        1,              3,          0,              2,        0 };
-constexpr Array<i32, WDL_SCORE_NB> WDL_RANK {-DTZ_MAX , -DTZ_MAX + 101,          0, +DTZ_MAX - 101, +DTZ_MAX };
-constexpr Array<Value       , WDL_SCORE_NB> WDL_VALUE{-VALUE_TB, VALUE_DRAW - 2, VALUE_DRAW, VALUE_DRAW + 2, +VALUE_TB};
+constexpr Array<int  , WDL_SCORE_NB> WDL_MAP  {        1,              3,          0,              2,        0 };
+constexpr Array<i32  , WDL_SCORE_NB> WDL_RANK {-DTZ_MAX , -DTZ_MAX + 101,          0, +DTZ_MAX - 101, +DTZ_MAX };
+constexpr Array<Value, WDL_SCORE_NB> WDL_VALUE{-VALUE_TB, VALUE_DRAW - 2, VALUE_DRAW, VALUE_DRAW + 2, +VALUE_TB};
 
 constexpr usize wdl_index(WDLScore wdlScore) noexcept { return usize(wdlScore - WDL_LOSS); }
 
@@ -182,12 +182,12 @@ T number(const void* addr) noexcept {
     T v;
 
     // Use memcpy for unaligned access, otherwise direct read
-    if (reinterpret_cast<std::uintptr_t>(addr) % alignof(T) == 0)
+    if (reinterpret_cast<uptr>(addr) % alignof(T) == 0)
         v = *reinterpret_cast<const T*>(addr);
     else  // Unaligned pointer (very rare)
         std::memcpy(&v, addr, sizeof(T));
 
-    if (u8(E) != IsLittleEndian)
+    if (+E != IsLittleEndian)
         swap_endian(v);
 
     return v;
@@ -594,7 +594,7 @@ TBTable<T>::~TBTable() noexcept {
 // Called at every probe, memory map, and init only at first access.
 // Function is thread safe and can be called concurrently.
 template<TBType T>
-void* TBTable<T>::init(const Position& pos, Key materialKey) noexcept {
+void* TBTable<T>::init(const Position& pos, const Key materialKey) noexcept {
     // Fast path: if already initialized, return immediately
     if (callOnce.initialized())
         return mappedPtr;
@@ -630,7 +630,7 @@ void* TBTable<T>::init(const Position& pos, Key materialKey) noexcept {
 // Files are memory mapped for best performance.
 // Files are mapped at first access: at init time only existence of the file is checked.
 template<TBType T>
-u8* TBTable<T>::map(std::string_view filename) noexcept {
+u8* TBTable<T>::map(const std::string_view filename) noexcept {
     #if defined(_WIN32)
     // Note FILE_FLAG_RANDOM_ACCESS is only a hint to Windows and as such may get ignored
     HANDLE hFile = CreateFile(filename.data(), GENERIC_READ, FILE_SHARE_READ, nullptr,
@@ -792,7 +792,7 @@ void TBTable<T>::set(u8* data) noexcept {
             set_groups(get(i, f), order[i], f);
     }
 
-    data += std::uintptr_t(data) & 1;  // Word alignment
+    data += reinterpret_cast<uptr>(data) & 1;  // Word alignment
 
     for (File f = FILE_A; f <= maxFile; ++f)
         for (usize i = 0; i < sides; ++i)
@@ -819,7 +819,7 @@ void TBTable<T>::set(u8* data) noexcept {
     for (File f = FILE_A; f <= maxFile; ++f)
         for (usize i = 0; i < sides; ++i)
         {
-            data = (u8*) ((std::uintptr_t(data) + 0x3F) & ~0x3F);  // 64 byte alignment
+            data                   = align_ptr_up<64>(data);  // 64 byte alignment
             (pd = get(i, f))->data = data;
             data += pd->blockCount * pd->blockSize;
         }
@@ -927,7 +927,7 @@ u8* TBTable<DTZ>::set_dtz_map(u8* data, const File maxFile) noexcept {
         {
             if (flags & WIDE)
             {
-                data += std::uintptr_t(data) & 1;  // Word alignment, may have a mixed table
+                data += reinterpret_cast<uptr>(data) & 1;  // Word alignment, may have a mixed table
 
                 for (usize i = 0; i < 4; ++i)
                 {
@@ -949,7 +949,7 @@ u8* TBTable<DTZ>::set_dtz_map(u8* data, const File maxFile) noexcept {
         }
     }
 
-    return data += std::uintptr_t(data) & 1;  // Word alignment
+    return data += reinterpret_cast<uptr>(data) & 1;  // Word alignment
 }
 
 // TBTables creates and keeps ownership of the TBTable objects, one for each TB file found.
@@ -1163,7 +1163,7 @@ void TBTables::add(const std::vector<PieceType>& pieces) noexcept {
     if (!(Exists[WDL] || Exists[DTZ]))
         return;
 
-    const u8 cardinality = u8(pieces.size());
+    const u8 cardinality = static_cast<u8>(pieces.size());
 
     if (MaxCardinality < cardinality)
         MaxCardinality = cardinality;
@@ -1231,7 +1231,7 @@ int decompress_pairs(const PairsData* pd, u64 idx) noexcept {
     //       I(k) = k * d->span + d->span / 2       (1)
 
     // First step is to get the 'k' of the I(k) nearest to our idx, using definition (1)
-    auto k = u32(idx / pd->span);
+    u32 k = static_cast<u32>(idx / pd->span);
 
     // Then read the corresponding SparseIndex[] entry
     auto block  = number<u32, Endian::LITTLE>(pd->sparseIndex[k].block.data());
@@ -1265,7 +1265,7 @@ int decompress_pairs(const PairsData* pd, u64 idx) noexcept {
     }
 
     // Finally, find the start address of block of canonical Huffman symbols
-    auto* ptr = (u32*) (pd->data + (u64(block) * pd->blockSize));
+    auto* ptr = reinterpret_cast<u32*>(pd->data + static_cast<u64>(block) * pd->blockSize);
 
     // Read the first 64 bits in our block, this is a (truncated) sequence of
     // unknown number of symbols of unknown length but the first one
@@ -1308,7 +1308,7 @@ int decompress_pairs(const PairsData* pd, u64 idx) noexcept {
         if (buf64Size <= 32)
         {
             buf64Size += 32;
-            buf64 |= u64(number<u32, Endian::BIG>(ptr++)) << (64 - buf64Size);
+            buf64 |= static_cast<u64>(number<u32, Endian::BIG>(ptr++)) << (64 - buf64Size);
         }
     }
 
@@ -1349,11 +1349,11 @@ bool check_ac(TBTable<DTZ>* table, int ac, File f) noexcept {
 // DTZ scores are sorted by frequency of occurrence and then assigned
 // the values 0, 1, 2, ... in order of decreasing frequency.
 // This is done for each of the four WDLScore values.
-WDLScore map_score(TBTable<WDL>*, File, int value, WDLScore) noexcept {
+WDLScore map_score(TBTable<WDL>*, const File, const WDLScore, int value) noexcept {
     return WDLScore(value - 2);
 }
 
-int map_score(TBTable<DTZ>* table, File f, int value, WDLScore wdlScore) noexcept {
+int map_score(TBTable<DTZ>* table, const File f, const WDLScore wdlScore, int value) noexcept {
 
     auto* pd    = table->get(0, f);
     auto  flags = pd->flags;
@@ -1392,9 +1392,11 @@ int map_score(TBTable<DTZ>* table, File f, int value, WDLScore wdlScore) noexcep
 //      idx = Binomial[1][s1] + Binomial[2][s2] + ... + Binomial[k][sk]
 //
 template<typename T, typename Ret = typename T::Ret>
-Ret do_probe_table(
-  T* table, const Position& pos, Key materialKey, WDLScore wdlScore, ProbeState* ps) noexcept {
-
+Ret do_probe_table(T*                table,
+                   const Position&   pos,
+                   const Key         materialKey,
+                   const WDLScore    wdlScore,
+                   ProbeState* const ps) noexcept {
     // A given TB entry like KRK has associated two material keys: KRvk and Kvkr.
     // If both sides have the same pieces keys are equal. In this case TB-tables
     // only stores the 'white to move' case, so if the position to lookup has black
@@ -1633,15 +1635,17 @@ Ret do_probe_table(
     }
 
     // Now that have the index, decompress the pair and get the WDL-score
-    return map_score(table, tbFile, decompress_pairs(pd, idx), wdlScore);
+    return map_score(table, tbFile, wdlScore, decompress_pairs(pd, idx));
 }
 
     #undef DISABLE_CLANG_LOOP_VECTORIZE
 
 template<TBType T, typename Ret = typename TBTable<T>::Ret>
-Ret probe_table(const Position& pos, ProbeState* ps, WDLScore wdlScore = WDL_DRAW) noexcept {
+Ret probe_table(const Position&   pos,
+                ProbeState* const ps,
+                const WDLScore    wdlScore = WDL_DRAW) noexcept {
 
-    Key materialKey = pos.material_key();
+    const Key materialKey = pos.material_key();
 
     if (materialKey == 0)  // KvK, pos.count() == 2
         return Ret(WDL_DRAW);
@@ -1671,7 +1675,7 @@ Ret probe_table(const Position& pos, ProbeState* ps, WDLScore wdlScore = WDL_DRA
 // where the best move is an ep-move (even if losing). So in all these cases set
 // the state to PS_BEST_MOVE_ZEROING.
 template<bool CheckZeroingMoves>
-WDLScore search(Position& pos, ProbeState* ps) noexcept {
+WDLScore search(Position& pos, ProbeState* const ps) noexcept {
 
     WDLScore wdlScore, bestWdlScore = WDL_LOSS;
 
@@ -1874,7 +1878,7 @@ void init() noexcept {
 // Called after every change to "SyzygyPath" UCI option
 // to (re)create the various tables.
 // It is not thread safe, nor it needs to be.
-void init(std::string_view paths) noexcept {
+void init(const std::string_view paths) noexcept {
 
     MaxCardinality = 0;
 
@@ -1939,7 +1943,7 @@ void init(std::string_view paths) noexcept {
 //  0 : draw
 //  1 : win, but draw under 50-move rule
 //  2 : win
-WDLScore probe_wdl(Position& pos, ProbeState* ps) noexcept {
+WDLScore probe_wdl(Position& pos, ProbeState* const ps) noexcept {
 
     *ps = PS_OK;
 
@@ -1969,7 +1973,7 @@ WDLScore probe_wdl(Position& pos, ProbeState* ps) noexcept {
 // If n = 100 immediately after a capture or pawn move,
 // then the position is also certainly a win, and during the whole phase until the next
 // capture or pawn move, the inequality to be preserved is DTZ-score + 50-move-counter <= 100.
-int probe_dtz(Position& pos, ProbeState* ps) noexcept {
+int probe_dtz(Position& pos, ProbeState* const ps) noexcept {
 
     *ps = PS_OK;
 
@@ -2039,7 +2043,7 @@ int probe_dtz(Position& pos, ProbeState* ps) noexcept {
 // This is a fallback for the case that some or all DTZ-tables are missing.
 //
 // A return value false indicates that not all probes were successful.
-bool rank_root_moves_wdl(Position& pos, RootMoves& rootMoves, bool useRule50) noexcept {
+bool rank_root_moves_wdl(Position& pos, RootMoves& rootMoves, const bool useRule50) noexcept {
     // Probe and rank each move
     for (auto& rm : rootMoves)
     {
@@ -2069,7 +2073,7 @@ bool rank_root_moves_wdl(Position& pos, RootMoves& rootMoves, bool useRule50) no
 // Use the DTZ-tables to rank root moves.
 //
 // A return value false indicates that not all probes were successful.
-bool rank_root_moves_dtz(Position& pos, RootMoves& rootMoves, bool useRule50, bool rankDTZ, TimeFunc time_to_abort) noexcept {
+bool rank_root_moves_dtz(Position& pos, RootMoves& rootMoves, const bool useRule50, const bool rankDTZ, const TimeFunc time_to_abort) noexcept {
     // Obtain 50-move counter for the root position
     i16 rule50Count = pos.rule50_count();
 
@@ -2147,7 +2151,7 @@ bool rank_root_moves_dtz(Position& pos, RootMoves& rootMoves, bool useRule50, bo
     return true;
 }
 
-Config rank_root_moves(Position& pos, RootMoves& rootMoves, const Options& options, bool rankDTZ, TimeFunc time_to_abort) noexcept {
+Config rank_root_moves(Position& pos, RootMoves& rootMoves, const Options& options, bool rankDTZ, const TimeFunc time_to_abort) noexcept {
     Config config;
 
     if (rootMoves.empty())

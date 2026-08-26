@@ -160,11 +160,11 @@ constexpr u8 constexpr_popcount(const T v) noexcept {
         b     = b - ((b >> 1) & K1);
         b     = (b & K2) + ((b >> 2) & K2);
         b     = (b + (b >> 4)) & K4;
-        return (b * Kf) >> 56;
+        return static_cast<u8>((b * Kf) >> 56);
     }
     else
     {
-        auto b = static_cast<std::make_unsigned_t<T>>(v);
+        auto b = v;
 
         u8 count = 0;
 
@@ -255,9 +255,9 @@ inline u8 popcount(const Bitboard b) noexcept {
 
     return POP_CNTS[b16[0]] + POP_CNTS[b16[1]] + POP_CNTS[b16[2]] + POP_CNTS[b16[3]];
 #elif defined(__GNUC__)  // GCC, Clang, ICX
-    return u8(__builtin_popcountll(b));
+    return static_cast<u8>(__builtin_popcountll(b));
 #elif defined(_MSC_VER)
-    return u8(_mm_popcnt_u64(b));
+    return static_cast<u8>(_mm_popcnt_u64(b));
 #else  // Compiler is neither GCC nor MSVC compatible
     // Using a fallback implementation
     return constexpr_popcount(b);
@@ -276,13 +276,13 @@ inline Square lsq(const Bitboard b) noexcept {
     _BitScanForward64(&idx, b);
     return Square(idx);
     #else                // (WIN32)
-    if (auto bb = u32(b); bb != 0)
+    if (u32 bb = static_cast<u32>(b); bb != 0)
     {
         _BitScanForward(&idx, bb);
         return Square(idx);
     }
 
-    _BitScanForward(&idx, u32(b >> 32));
+    _BitScanForward(&idx, static_cast<u32>(b >> 32));
     return Square(idx + 32);
     #endif
 #else  // Compiler is neither GCC nor MSVC compatible
@@ -303,13 +303,13 @@ inline Square msq(const Bitboard b) noexcept {
     _BitScanReverse64(&idx, b);
     return Square(idx);
     #else                // (WIN32)
-    if (auto bb = u32(b >> 32); bb != 0)
+    if (u32 bb = static_cast<u32>(b >> 32); bb != 0)
     {
         _BitScanReverse(&idx, bb);
         return Square(idx + 32);
     }
 
-    _BitScanReverse(&idx, u32(b));
+    _BitScanReverse(&idx, static_cast<u32>(b));
     return Square(idx);
     #endif
 #else  // Compiler is neither GCC nor MSVC compatible
