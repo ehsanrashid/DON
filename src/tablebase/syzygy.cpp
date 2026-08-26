@@ -58,7 +58,7 @@ namespace DON::Tablebase::Syzygy {
 #if defined(NO_TABLEBASES)
 
 void init() noexcept {}
-void init(std::string_view) noexcept {}
+void init(const std::string_view) noexcept {}
 
 WDLScore probe_wdl(Position&, ProbeState* const ps) noexcept {
     *ps = PS_FAIL;
@@ -594,7 +594,7 @@ TBTable<T>::~TBTable() noexcept {
 // Called at every probe, memory map, and init only at first access.
 // Function is thread safe and can be called concurrently.
 template<TBType T>
-void* TBTable<T>::init(const Position& pos, Key materialKey) noexcept {
+void* TBTable<T>::init(const Position& pos, const Key materialKey) noexcept {
     // Fast path: if already initialized, return immediately
     if (callOnce.initialized())
         return mappedPtr;
@@ -630,7 +630,7 @@ void* TBTable<T>::init(const Position& pos, Key materialKey) noexcept {
 // Files are memory mapped for best performance.
 // Files are mapped at first access: at init time only existence of the file is checked.
 template<TBType T>
-u8* TBTable<T>::map(std::string_view filename) noexcept {
+u8* TBTable<T>::map(const std::string_view filename) noexcept {
     #if defined(_WIN32)
     // Note FILE_FLAG_RANDOM_ACCESS is only a hint to Windows and as such may get ignored
     HANDLE hFile = CreateFile(filename.data(), GENERIC_READ, FILE_SHARE_READ, nullptr,
@@ -1349,11 +1349,11 @@ bool check_ac(TBTable<DTZ>* table, int ac, File f) noexcept {
 // DTZ scores are sorted by frequency of occurrence and then assigned
 // the values 0, 1, 2, ... in order of decreasing frequency.
 // This is done for each of the four WDLScore values.
-WDLScore map_score(TBTable<WDL>*, File, int value, WDLScore) noexcept {
+WDLScore map_score(TBTable<WDL>*, const File, const WDLScore, int value) noexcept {
     return WDLScore(value - 2);
 }
 
-int map_score(TBTable<DTZ>* table, File f, int value, WDLScore wdlScore) noexcept {
+int map_score(TBTable<DTZ>* table, const File f, const WDLScore wdlScore, int value) noexcept {
 
     auto* pd    = table->get(0, f);
     auto  flags = pd->flags;
@@ -1392,9 +1392,11 @@ int map_score(TBTable<DTZ>* table, File f, int value, WDLScore wdlScore) noexcep
 //      idx = Binomial[1][s1] + Binomial[2][s2] + ... + Binomial[k][sk]
 //
 template<typename T, typename Ret = typename T::Ret>
-Ret do_probe_table(
-  T* table, const Position& pos, Key materialKey, WDLScore wdlScore, ProbeState* ps) noexcept {
-
+Ret do_probe_table(T*                table,
+                   const Position&   pos,
+                   const Key         materialKey,
+                   const WDLScore    wdlScore,
+                   ProbeState* const ps) noexcept {
     // A given TB entry like KRK has associated two material keys: KRvk and Kvkr.
     // If both sides have the same pieces keys are equal. In this case TB-tables
     // only stores the 'white to move' case, so if the position to lookup has black
@@ -1633,15 +1635,17 @@ Ret do_probe_table(
     }
 
     // Now that have the index, decompress the pair and get the WDL-score
-    return map_score(table, tbFile, decompress_pairs(pd, idx), wdlScore);
+    return map_score(table, tbFile, wdlScore, decompress_pairs(pd, idx));
 }
 
     #undef DISABLE_CLANG_LOOP_VECTORIZE
 
 template<TBType T, typename Ret = typename TBTable<T>::Ret>
-Ret probe_table(const Position& pos, ProbeState* ps, WDLScore wdlScore = WDL_DRAW) noexcept {
+Ret probe_table(const Position&   pos,
+                ProbeState* const ps,
+                const WDLScore    wdlScore = WDL_DRAW) noexcept {
 
-    Key materialKey = pos.material_key();
+    const Key materialKey = pos.material_key();
 
     if (materialKey == 0)  // KvK, pos.count() == 2
         return Ret(WDL_DRAW);
@@ -1671,7 +1675,7 @@ Ret probe_table(const Position& pos, ProbeState* ps, WDLScore wdlScore = WDL_DRA
 // where the best move is an ep-move (even if losing). So in all these cases set
 // the state to PS_BEST_MOVE_ZEROING.
 template<bool CheckZeroingMoves>
-WDLScore search(Position& pos, ProbeState* ps) noexcept {
+WDLScore search(Position& pos, ProbeState* const ps) noexcept {
 
     WDLScore wdlScore, bestWdlScore = WDL_LOSS;
 
@@ -1874,7 +1878,7 @@ void init() noexcept {
 // Called after every change to "SyzygyPath" UCI option
 // to (re)create the various tables.
 // It is not thread safe, nor it needs to be.
-void init(std::string_view paths) noexcept {
+void init(const std::string_view paths) noexcept {
 
     MaxCardinality = 0;
 
@@ -2039,7 +2043,7 @@ int probe_dtz(Position& pos, ProbeState* const ps) noexcept {
 // This is a fallback for the case that some or all DTZ-tables are missing.
 //
 // A return value false indicates that not all probes were successful.
-bool rank_root_moves_wdl(Position& pos, RootMoves& rootMoves, bool useRule50) noexcept {
+bool rank_root_moves_wdl(Position& pos, RootMoves& rootMoves, const bool useRule50) noexcept {
     // Probe and rank each move
     for (auto& rm : rootMoves)
     {
@@ -2069,7 +2073,7 @@ bool rank_root_moves_wdl(Position& pos, RootMoves& rootMoves, bool useRule50) no
 // Use the DTZ-tables to rank root moves.
 //
 // A return value false indicates that not all probes were successful.
-bool rank_root_moves_dtz(Position& pos, RootMoves& rootMoves, bool useRule50, bool rankDTZ, TimeFunc time_to_abort) noexcept {
+bool rank_root_moves_dtz(Position& pos, RootMoves& rootMoves, const bool useRule50, const bool rankDTZ, const TimeFunc time_to_abort) noexcept {
     // Obtain 50-move counter for the root position
     i16 rule50Count = pos.rule50_count();
 
@@ -2147,7 +2151,7 @@ bool rank_root_moves_dtz(Position& pos, RootMoves& rootMoves, bool useRule50, bo
     return true;
 }
 
-Config rank_root_moves(Position& pos, RootMoves& rootMoves, const Options& options, bool rankDTZ, TimeFunc time_to_abort) noexcept {
+Config rank_root_moves(Position& pos, RootMoves& rootMoves, const Options& options, bool rankDTZ, const TimeFunc time_to_abort) noexcept {
     Config config;
 
     if (rootMoves.empty())

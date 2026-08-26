@@ -500,7 +500,7 @@ MovePicker::score<GenType::EVA_QUIET>(const MoveList<GenType::EVA_QUIET>& moveLi
 }
 
 template<typename Predicate>
-bool MovePicker::select(Predicate&& pred) noexcept {
+bool MovePicker::select(const Predicate& pred) noexcept {
 
     while (!empty())
     {

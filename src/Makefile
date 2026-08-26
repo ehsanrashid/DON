@@ -1289,7 +1289,7 @@ obj-clean:
 profile-clean:
 	@rm -rf profdir
 	@rm -f bench.txt *.gcda *.gcno ./book/*.gcda ./tablebase/*.gcda ./nnue/*.gcda ./nnue/features/*.gcda *.s PGOBENCH.out
-	@rm -f "$(NAME).profdata" *.profraw
+	@rm -f "$(NAME)".profdata *.profraw
 	@rm -f "$(NAME)".*args*
 	@rm -f "$(NAME)".*lt*
 	@rm -f "$(NAME)".res
@@ -1298,8 +1298,8 @@ profile-clean:
 universal-clean:
 # On Windows "ln -s" to a directory makes a native directory symlink that rm
 # cannot unlink; rmdir unlinks it without following it. No-op elsewhere.
-	@find $(TEMP_DIR) -type l -exec rmdir {} + 2>/dev/null || true
-	@rm -rf $(TEMP_DIR)
+	@find "$(TEMP_DIR)" -type l -exec rmdir {} + 2>/dev/null || true
+	@rm -rf "$(TEMP_DIR)"
 	@rm -f universal/network_dump.inc
 
 format:
@@ -1601,12 +1601,12 @@ profile-build: UOBJ_TGT := universal-object-pgo
 profile-build: $(UNIVERSAL_EXE)
 
 $(TEMP_DIR):
-	@mkdir -p $@
+	@mkdir -p "$@"
 
 # Download nnue files once in src/ (reused by every sub-arch via --embed-dir).
 $(NET_SENTINEL): | $(TEMP_DIR)
-	@cd $(CURDIR) && $(SHELL) ../scripts/net.sh $(EMBED_DIR_SUPPORTED)
-	@touch $@
+	@cd "$(CURDIR)" && $(SHELL) ../scripts/net.sh $(EMBED_DIR_SUPPORTED)
+	@touch "$@"
 
 $(NNUE_EMBED_OBJ): $(UNIVERSAL_SRC_DIR)/nnue_embed.cpp $(NET_SENTINEL) | $(TEMP_DIR)
 	$(CXX) -O2 -std=c++20 -Wno-c++26-extensions $(SLICE_DEF) $(strip $(MACOS_BUILD_FLAGS) $(EXTRA_CXXFLAGS)) $(EMBED_DIR) -c $< -o $@
@@ -1616,10 +1616,10 @@ $(UNIVERSAL_ENTRY_OBJ): $(UNIVERSAL_ENTRY_SRC) | $(TEMP_DIR)
 
 # Symlink tracked top-level items from src/ into temp_builds/<arch>/.
 $(TEMP_DIR)/%/.setup: | $(TEMP_DIR)
-	@rm -rf $(TEMP_DIR)/$*
-	@mkdir -p $(TEMP_DIR)/$*
-	@$(foreach f,$(TRACKED_TOP),ln -s $(CURDIR)/$(f) $(TEMP_DIR)/$*/$(f);)
-	@touch $@
+	@rm -rf "$(TEMP_DIR)/$*"
+	@mkdir -p "$(TEMP_DIR)/$*"
+	@$(foreach f,$(TRACKED_TOP),ln -s "$(CURDIR)/$(f)" "$(TEMP_DIR)/$*/$(f)";)
+	@touch "$@"
 
 # Per-arch DON.o
 .SECONDARY: $(patsubst %,$(TEMP_DIR)/%/.setup,$(UNIVERSAL_ARCHES))
