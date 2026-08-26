@@ -21,7 +21,6 @@
 #include <algorithm>
 #include <array>
 #include <cassert>
-#include <functional>
 #include <string>
 #include <string_view>
 #include <type_traits>
@@ -88,8 +87,6 @@ static_assert(sizeof(Bitboard) == 8, "Bitboard size must be 8 bytes");
 
 using Key = u64;
 static_assert(sizeof(Key) == 8, "Key size must be 8 bytes");
-
-using TimeFunc = std::function<bool()>;
 
 inline constexpr u16 MOVE_MAX = 256;
 inline constexpr u16 PLY_MAX  = 254;

@@ -18,6 +18,7 @@
 #ifndef TABLEBASE_SYZYGY_H_INCLUDED
 #define TABLEBASE_SYZYGY_H_INCLUDED
 
+#include <functional>
 #include <string_view>
 
 #include "../misc.h"
@@ -30,6 +31,8 @@ class Position;
 class RootMoves;
 
 namespace Tablebase::Syzygy {
+
+using TimeFunc = std::function<bool()>;
 
 // Max number of supported piece
 inline constexpr usize TB_PIECES_MAX = 7;
