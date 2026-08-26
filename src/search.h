@@ -719,7 +719,7 @@ class Worker final {
 
     bool ponder_move_extracted() noexcept;
 
-    void extend_tb_pv(usize index, Value& value) noexcept;
+    void extend_tb_pv(usize idx, Value& value) noexcept;
 
     const usize threadId, threadCount, numaId, numaThreadCount;
 
@@ -752,7 +752,7 @@ class Worker final {
 
     Array<i32, COLOR_NB> optimism;
 
-    PVMoves lastIterationIdxPV;
+    PVMoves itrIdxPV;
 
     // Histories
     CaptureHistory captureHistory;

@@ -503,11 +503,11 @@ void Worker::iterative_deepening() noexcept {
 
     ss->pv = &pv;
 
-    Value bestValue          = -VALUE_INFINITE;
-    Value lastIterationValue = -VALUE_INFINITE;
+    Value bestValue = -VALUE_INFINITE;
 
-    Move  lastBestMove      = Move::None;
     Depth lastBestMoveDepth = DEPTH_ZERO;
+    Move  lastBestMove      = Move::None;
+    Value lastBestValue     = -VALUE_INFINITE;
 
     u16 researchCnt = 0;
 
@@ -546,7 +546,7 @@ void Worker::iterative_deepening() noexcept {
         // MultiPV loop. Perform a full root search for each PV line
         for (pvIdx = 0; pvIdx < multiPv; ++pvIdx)
         {
-            const bool pvIsLast = pvIdx + 1 == multiPv;
+            const bool pvIdxLast = pvIdx + 1 == multiPv;
 
             // Advance group if pvIdx reached pvEnd
             if (pvIdx == pvEnd)
@@ -556,10 +556,12 @@ void Worker::iterative_deepening() noexcept {
                 ++tbRankGroupIdx;
             }
 
-            lastIterationIdxPV = rootMoves[pvIdx].prePV;
+            const auto& rmIdx = rootMoves[pvIdx];
 
-            auto avgValue    = rootMoves[pvIdx].avgValue;
-            auto avgSqrValue = rootMoves[pvIdx].avgSqrValue;
+            itrIdxPV = rmIdx.prePV;
+
+            const auto avgValue    = rmIdx.avgValue;
+            const auto avgSqrValue = rmIdx.avgSqrValue;
 
             // Reset aspiration window starting size
             int delta = 5 + std::min<usize>(thread_count() - 1, 8)
@@ -642,19 +644,19 @@ void Worker::iterative_deepening() noexcept {
             // Moreover, do not trust an exact loss value from an aborted search.
             if (pvIdx != 0 && threads.is_stopped())
             {
-                auto& rmIdx   = rootMoves[pvIdx];
+                auto& rmIdx_0 = rootMoves[pvIdx - 0];
                 auto& rmIdx_1 = rootMoves[pvIdx - 1];
 
-                if ((is_loss(rmIdx_1.value) && rmIdx < rmIdx_1) || rmIdx.is_exact_loss())
+                if ((is_loss(rmIdx_1.value) && rmIdx_0 < rmIdx_1) || rmIdx_0.is_exact_loss())
                 {
                     // If the previous score is worse than pvIdx - 1, can safely use it.
                     // If it is equal, make sure it cannot overtake pvIdx - 1.
-                    if (rmIdx.preValue != -VALUE_INFINITE && rmIdx.preValue <= rmIdx_1.value)
+                    if (rmIdx_0.preValue != -VALUE_INFINITE && rmIdx_0.preValue <= rmIdx_1.value)
                     {
-                        rmIdx.value = rmIdx.uciValue = rmIdx.preValue;
-                        rmIdx.preValue               = -VALUE_INFINITE;
-                        rmIdx.pv                     = rmIdx.prePV;
-                        rmIdx.reset_bound();
+                        rmIdx_0.value = rmIdx_0.uciValue = rmIdx_0.preValue;
+                        rmIdx_0.preValue                 = -VALUE_INFINITE;
+                        rmIdx_0.pv                       = rmIdx_0.prePV;
+                        rmIdx_0.reset_bound();
                     }
                     // Otherwise, if can, cap the score to the best possible, and mark
                     // the score as a bound (also a valid excuse for the incomplete PV)
@@ -662,13 +664,13 @@ void Worker::iterative_deepening() noexcept {
                     {
                         if (is_loss(rmIdx_1.value))
                         {
-                            rmIdx.value = rmIdx.uciValue = rmIdx_1.value;
-                            rmIdx.preValue               = -VALUE_INFINITE;
-                            rmIdx.shrink_to(std::min(rmIdx.size(), rmIdx_1.size()));
-                            rmIdx.bound = Bound::UPPER;
+                            rmIdx_0.value = rmIdx_0.uciValue = rmIdx_1.value;
+                            rmIdx_0.preValue                 = -VALUE_INFINITE;
+                            rmIdx_0.shrink_to(std::min(rmIdx_0.size(), rmIdx_1.size()));
+                            rmIdx_0.bound = Bound::UPPER;
                         }
                         else
-                            rmIdx.bound = Bound::LOWER;
+                            rmIdx_0.bound = Bound::LOWER;
                     }
                 }
             }
@@ -680,18 +682,18 @@ void Worker::iterative_deepening() noexcept {
                 break;
 
             // Give some update about the PV
-            if (mainManager != nullptr && (pvIsLast || rootDepth > OutputLimitDepth))
+            if (mainManager != nullptr && (pvIdxLast || rootDepth > OutputLimitDepth))
             {
                 mainManager->show_pv(*this, rootDepth);
-                mainManager->pvShown = pvIsLast;
+                mainManager->pvShown = pvIdxLast;
             }
         }
 
         auto& rm0 = rootMoves[0];
 
         const bool mateForgotten =
-          lastIterationValue != -VALUE_INFINITE && is_mate(lastIterationValue)
-          && (constexpr_abs(rm0.value) < constexpr_abs(lastIterationValue) || rm0.is_bound());
+          lastBestValue != -VALUE_INFINITE && is_mate(lastBestValue)
+          && (constexpr_abs(rm0.value) < constexpr_abs(lastBestValue) || rm0.is_bound());
 
         if (threads.is_stopped())
         {
@@ -731,8 +733,8 @@ void Worker::iterative_deepening() noexcept {
         // Do not replace (shorter) mate scores from a previous iteration
         if (!mateForgotten)
         {
-            lastBestMove       = rootMoves[0].pv[0];
-            lastIterationValue = rootMoves[0].value;
+            lastBestMove  = rootMoves[0].pv[0];
+            lastBestValue = rootMoves[0].value;
         }
 
         // Have found "mate in x"?
@@ -829,8 +831,7 @@ Value Worker::search(Position&    pos,
     ss->history   = 0;
     ss->pvFollow  = RootNode
                  || ((ss - 1)->pvFollow
-                     && (pvPreIdx < lastIterationIdxPV.size()
-                         && (ss - 1)->move == lastIterationIdxPV[pvPreIdx]));
+                     && (pvPreIdx < itrIdxPV.size() && (ss - 1)->move == itrIdxPV[pvPreIdx]));
 
     if constexpr (!RootNode)
     {
@@ -2383,8 +2384,8 @@ bool Worker::ponder_move_extracted() noexcept {
 // Used to correct and extend PVs for moves that have a TB (but not a mate) score.
 // Keeps the search based PV for as long as it is verified to maintain the game outcome, truncates afterward.
 // Finally, extends to mate the PV, providing a possible continuation (but not a proven mating line).
-void Worker::extend_tb_pv(const usize index, Value& value) noexcept {
-    assert(index < rootMoves.size());
+void Worker::extend_tb_pv(const usize idx, Value& value) noexcept {
+    assert(idx < rootMoves.size());
 
     if (!options["SyzygyPVExtend"])
         return;
@@ -2405,7 +2406,7 @@ void Worker::extend_tb_pv(const usize index, Value& value) noexcept {
 
     bool aborted = false;
 
-    auto& rmIdx = rootMoves[index];
+    auto& rmIdx = rootMoves[idx];
 
     std::list<State> states;
 
