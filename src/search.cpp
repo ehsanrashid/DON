@@ -43,15 +43,15 @@ namespace DON {
 
 namespace {
 
-constexpr Depth OutputLimitDepth = 30;
+constexpr Depth OUTPUT_LIMIT_DEPTH = 30;
 
-constexpr Array<int, 16> LMRDivisor{
+constexpr Array<int, 16> LMR_DIVISORS{
   3637, 2787, 2761, 2939, 3171, 3347, 3147, 2762,  //
   2772, 3106, 3107, 3060, 3112, 2991, 3090, 3542   //
 };
 
 // Reductions lookup table using [depth or moveCount]
-alignas(CACHE_LINE_SIZE) constexpr auto Reductions = []() constexpr noexcept {
+alignas(CACHE_LINE_SIZE) constexpr auto REDUCTIONS = []() constexpr noexcept {
     Array<u16, MOVE_MAX> reductions{};
 
     reductions[0] = 0;
@@ -65,7 +65,7 @@ constexpr int reduction(const Depth depth,
                         const u16   moveCount,
                         const int   deltaRatio,
                         const bool  improve) noexcept {
-    int reductionScale = Reductions[depth] * Reductions[moveCount];
+    int reductionScale = REDUCTIONS[depth] * REDUCTIONS[moveCount];
     return std::max(
       982 + reductionScale - deltaRatio + int(!improve) * int(0.384765625 * reductionScale), 0);
 }
@@ -129,7 +129,7 @@ constexpr Value blend_values(const Value bestValue,
     return (bestWeight * bestValue + (totalWeight - bestWeight) * targetValue) / totalWeight;
 }
 
-constexpr Bound fail_bound(bool failHigh) noexcept {
+constexpr Bound fail_bound(const bool failHigh) noexcept {
     return failHigh ? Bound::LOWER : Bound::UPPER;
 }
 
@@ -138,7 +138,7 @@ Move legal_move(const Move m, const Position& pos) noexcept {
 }
 
 // Build contHistory pointers from the stack frame and validate them in debug builds.
-void build_continuation_histories(const Stack*          ss,
+void build_continuation_histories(const Stack* const    ss,
                                   const PieceSqHistory* contHistory[CONT_HISTORY_COUNT]) noexcept {
     for (usize i = 0; i < CONT_HISTORY_COUNT; ++i)
     {
@@ -152,7 +152,10 @@ void build_continuation_histories(const Stack*          ss,
 
 // Updates the continuation histories for the move pairs formed
 // by the current move and the moves played in previous plies.
-void update_continuation_histories(Stack* ss, Piece pc, Square dstSq, int bonus) noexcept {
+void update_continuation_histories(const Stack* const ss,
+                                   const Piece        pc,
+                                   const Square       dstSq,
+                                   const int          bonus) noexcept {
     assert(dstSq != SQ_NONE);
 
     constexpr Array<double, CONT_HISTORY_COUNT> ContHistoryWeights{
@@ -172,7 +175,7 @@ void update_continuation_histories(Stack* ss, Piece pc, Square dstSq, int bonus)
 
     for (usize i = 0; i < ContHistoryCount; ++i)
     {
-        Stack* ssi = (ss - 1) - i;
+        const Stack* ssi = (ss - 1) - i;
 
         if (!ssi->move.is_ok())
             break;
@@ -191,7 +194,7 @@ void update_continuation_histories(Stack* ss, Piece pc, Square dstSq, int bonus)
 
 // Adjust raw evaluation according to various correction histories value
 // and guarantee evaluation does not hit the tablebase range.
-Value adjust_eval_value(Value evalue, int correctionValue) noexcept {
+Value adjust_eval_value(const Value evalue, const int correctionValue) noexcept {
     return in_range(evalue + constexpr_round(7.6294e-6 * correctionValue));
 }
 
@@ -326,12 +329,11 @@ void Worker::start_search() noexcept {
             State st;
             rootPos.do_move(bookBestMove, st, true, this);
 
-            RootMoves oRootMoves;
-
+            RootMoves orms;
             for (const Move m : MoveList<GenType::LEGAL>(rootPos))
-                oRootMoves.emplace_back(m);
+                orms.emplace_back(m);
 
-            Move bookPonderMove = pgBook.probe(rootPos, oRootMoves, options);
+            Move bookPonderMove = pgBook.probe(rootPos, orms, options);
 
             rootPos.undo_move(bookBestMove);
 
@@ -342,7 +344,7 @@ void Worker::start_search() noexcept {
                 rms.swap_to_front(bookBestMove);
 
                 if (bookPonderMove != Move::None)
-                    rms[0].pv.push_back(bookPonderMove);
+                    rms[0].push_back(bookPonderMove);
             }
         }
         else
@@ -393,22 +395,27 @@ void Worker::start_search() noexcept {
                     th->worker->rootMoves.swap_to_front(skillMove);
             }
             else if (thread_count() > 1)
-                bestWorker = threads.best_thread()->worker.get();
+            {
+                if (limit.mate != 0)
+                    bestWorker = threads.best_thread<true>()->worker.get();
+                else
+                    bestWorker = threads.best_thread<false>()->worker.get();
+            }
 
             if (limit.use_time_manager())
             {
-                mainManager->preBestCurValue  = bestWorker->rootMoves[0].curValue;
+                mainManager->preBestValue     = bestWorker->rootMoves[0].value;
                 mainManager->preBestAvgValue  = bestWorker->rootMoves[0].avgValue;
                 mainManager->preTimeReduction = mainManager->timeReduction;
                 mainManager->atFirst          = false;
             }
         }
 
-        assert(!bestWorker->rootMoves.empty() && !bestWorker->rootMoves[0].pv.empty());
+        assert(!bestWorker->rootMoves.empty() && !bestWorker->rootMoves[0].empty());
 
-        const auto& rm = bestWorker->rootMoves[0];
+        const auto& rm0 = bestWorker->rootMoves[0];
 
-        if (rm.pv.size() == 1 && bestWorker->ponder_move_extracted())
+        if (rm0.size() == 1 && bestWorker->ponder_move_extracted())
             mainManager->pvShown = false;
 
         // Send PV info again if it has changed since last output
@@ -418,8 +425,8 @@ void Worker::start_search() noexcept {
             mainManager->show_pv(*bestWorker, rDepth);
         }
 
-        bestMove   = move_to_can(rm.pv[0]);
-        ponderMove = move_to_can(rm.pv.size() > 1 ? rm.pv[1] : Move::None);
+        bestMove   = move_to_can(rm0[0]);
+        ponderMove = move_to_can(rm0.size() > 1 ? rm0[1] : Move::None);
     }
 
     mainManager->updateContext.onUpdateMove({bestMove, ponderMove});
@@ -435,8 +442,6 @@ void Worker::iterative_deepening() noexcept {
     nmpPly = 0;
 
     accStack.reset();
-
-    lastPV.clear();
 
     for (auto& colorQuietHist : quietHistory)
         for (auto& quietHist : colorQuietHist)
@@ -483,7 +488,7 @@ void Worker::iterative_deepening() noexcept {
 
     Stack* ss = &stacks[StackOffset];
 
-    for (i16 i = 0 - StackOffset; i < int(stacks.size()) - StackOffset; ++i)
+    for (i16 i = 0 - StackOffset; i < static_cast<i16>(stacks.size()) - StackOffset; ++i)
     {
         (ss + i)->ply = i;
 
@@ -505,9 +510,11 @@ void Worker::iterative_deepening() noexcept {
 
     ss->pv = &pv;
 
-    Value bestValue         = -VALUE_INFINITE;
-    Value lastCurValue      = -VALUE_INFINITE;
+    Value bestValue = -VALUE_INFINITE;
+
     Depth lastBestMoveDepth = DEPTH_ZERO;
+    Move  lastBestMove      = Move::None;
+    Value lastBestValue     = -VALUE_INFINITE;
 
     u16 researchCnt = 0;
 
@@ -532,7 +539,8 @@ void Worker::iterative_deepening() noexcept {
             {
                 // Save the last iteration's scores before the first PV line is searched and
                 // all the move scores except the (new) PV are set to -VALUE_INFINITE.
-                rootMoves[i].preValue = rootMoves[i].curValue;
+                rootMoves[i].preValue = rootMoves[i].value;
+                rootMoves[i].prePV    = rootMoves[i].pv;
                 ++i;
             } while (i < rootMovesSize && rootMoves[i].tbRank == tbRank);
         }
@@ -543,20 +551,27 @@ void Worker::iterative_deepening() noexcept {
         usize tbRankGroupIdx = 0;
         usize pvBeg = pvEnd = 0;
         // MultiPV loop. Perform a full root search for each PV line
-        for (pvCur = 0; pvCur < multiPv; ++pvCur)
+        for (pvIdx = 0; pvIdx < multiPv; ++pvIdx)
         {
-            const bool pvIsLast = pvCur + 1 == multiPv;
+            const bool pvIdxLast = pvIdx + 1 == multiPv;
 
-            // Advance group if pvCur reached pvEnd
-            if (pvCur == pvEnd)
+            // Advance group if pvIdx reached pvEnd
+            if (pvIdx == pvEnd)
             {
                 pvBeg = tbRankGroups[tbRankGroupIdx];
                 pvEnd = tbRankGroups[tbRankGroupIdx + 1];  // safe because of sentinel
                 ++tbRankGroupIdx;
             }
 
-            auto avgValue    = rootMoves[pvCur].avgValue;
-            auto avgSqrValue = rootMoves[pvCur].avgSqrValue;
+            // Reset UCI info selDepth for each depth and each PV line
+            selDepth = 1;
+
+            const auto& rmIdx = rootMoves[pvIdx];
+
+            idxPrePV = rmIdx.prePV;
+
+            const auto avgValue    = rmIdx.avgValue;
+            const auto avgSqrValue = rmIdx.avgSqrValue;
 
             // Reset aspiration window starting size
             int delta = 5 + std::min<usize>(thread_count() - 1, 8)
@@ -564,9 +579,6 @@ void Worker::iterative_deepening() noexcept {
 
             Value alpha = std::max<int>(avgValue - delta, -VALUE_INFINITE);
             Value beta  = std::min<int>(avgValue + delta, +VALUE_INFINITE);
-
-            // Reset UCI info selDepth for each depth and each PV line
-            selDepth = 1;
 
             // Adjust optimism based on root move's avgValue
             optimism[ac]  = 114 * avgValue / (85 + constexpr_abs(avgValue));
@@ -592,7 +604,7 @@ void Worker::iterative_deepening() noexcept {
                 // all moves except the first and, eventually, the new best move have a score of -VALUE_INFINITE.
                 // Stability preserves their existing order, while moving only the new PV move to the front.
                 // In MultiPV search, already searched PV lines are therefore preserved.
-                rootMoves.sort(pvCur, pvEnd);
+                rootMoves.sort(pvIdx, pvEnd);
 
                 // If search has been stopped, break immediately.
                 // RootMoves remains valid, although it refers to the previous iteration.
@@ -600,7 +612,7 @@ void Worker::iterative_deepening() noexcept {
                     break;
 
                 // When failing high/low give some update before a re-search
-                if (mainManager != nullptr && multiPv == 1 && rootDepth > OutputLimitDepth
+                if (mainManager != nullptr && multiPv == 1 && rootDepth > OUTPUT_LIMIT_DEPTH
                     && (alpha >= bestValue || bestValue >= beta))
                     mainManager->show_pv(*this, rootDepth);
 
@@ -634,86 +646,110 @@ void Worker::iterative_deepening() noexcept {
 
             // In multiPV analysis do not let aborted searches spoil
             // mated-in/TB loss from a completed search in an earlier PV line.
-            // mated-in/TB loss from an aborted search for pvCur != 0
-            // can only become bestmove in the sorting below, if the current bestmove
-            // (and hence also the previously searched pvCur-1 line) is already a proven loss.
-            if (pvCur != 0 && threads.is_stopped() && is_loss(rootMoves[pvCur - 1].curValue)
-                && rootMoves[pvCur] < rootMoves[pvCur - 1])
+            // Hence guard against an aborted pvIdx line overtaking pvIdx - 1
+            // when pvIdx - 1 is a proven loss.
+            // Moreover, do not trust an exact loss value from an aborted search.
+            if (pvIdx != 0 && threads.is_stopped())
             {
-                rootMoves[pvCur].curValue = rootMoves[pvCur].uciValue =
-                  rootMoves[pvCur].preValue != -VALUE_INFINITE
-                    ? std::min(rootMoves[pvCur].preValue, rootMoves[pvCur - 1].curValue)
-                    : rootMoves[pvCur - 1].curValue;
-                rootMoves[pvCur].preValue = -VALUE_INFINITE;
-                rootMoves[pvCur].reset_bound();
-                rootMoves[pvCur].resize_pv(
-                  std::min(rootMoves[pvCur].pv_size(), rootMoves[pvCur - 1].pv_size()));
+                auto& rmIdx_0 = rootMoves[pvIdx - 0];
+                auto& rmIdx_1 = rootMoves[pvIdx - 1];
+
+                if (rmIdx_0.is_exact_loss() || (is_loss(rmIdx_1.value) && rmIdx_0 < rmIdx_1))
+                {
+                    // If the previous score is worse than pvIdx - 1, can safely use it.
+                    // If it is equal, make sure it cannot overtake pvIdx - 1.
+                    if (rmIdx_0.preValue != -VALUE_INFINITE && rmIdx_0.preValue <= rmIdx_1.value)
+                    {
+                        rmIdx_0.value = rmIdx_0.uciValue = rmIdx_0.preValue;
+                        rmIdx_0.preValue                 = -VALUE_INFINITE;
+                        rmIdx_0.pv                       = rmIdx_0.prePV;
+                        rmIdx_0.reset_bound();
+                    }
+                    // Otherwise, if can, cap the score to the best possible, and mark
+                    // the score as a bound (also a valid excuse for the incomplete PV)
+                    else
+                    {
+                        if (is_loss(rmIdx_1.value))
+                        {
+                            rmIdx_0.value = rmIdx_0.uciValue = rmIdx_1.value;
+                            rmIdx_0.preValue                 = -VALUE_INFINITE;
+                            rmIdx_0.shrink_to(std::min(rmIdx_0.size(), rmIdx_1.size()));
+                            rmIdx_0.bound = Bound::UPPER;
+                        }
+                        else
+                            rmIdx_0.bound = Bound::LOWER;
+                    }
+                }
             }
 
             // Sort the PV lines searched so far
-            rootMoves.sort(pvBeg, pvCur + 1);
+            rootMoves.sort(pvBeg, pvIdx + 1);
 
             if (threads.is_stopped())
                 break;
 
             // Give some update about the PV
-            if (mainManager != nullptr && (pvIsLast || rootDepth > OutputLimitDepth))
+            if (mainManager != nullptr && (pvIdxLast || rootDepth > OUTPUT_LIMIT_DEPTH))
             {
                 mainManager->show_pv(*this, rootDepth);
-                mainManager->pvShown = pvIsLast;
+                mainManager->pvShown = pvIdxLast;
             }
+
+            if (threads.is_stopped())
+                break;
         }
 
+        auto& rm0 = rootMoves[0];
+
         const bool mateForgotten =
-          lastCurValue != -VALUE_INFINITE && is_mate(lastCurValue)
-          && (constexpr_abs(rootMoves[0].curValue) < constexpr_abs(lastCurValue)
-              || rootMoves[0].has_bound());
+          lastBestValue != -VALUE_INFINITE && is_mate(lastBestValue)
+          && (constexpr_abs(rm0.value) < constexpr_abs(lastBestValue) || rm0.is_bound());
 
         if (threads.is_stopped())
         {
-            const bool lossAborted = pvCur == 0 && rootMoves[0].curValue != -VALUE_INFINITE
-                                  && is_loss(rootMoves[0].curValue) && !rootMoves[0].has_bound();
+            const bool lossAborted = pvIdx == 0 && rm0.is_exact_loss();
 
             // An exact mated-in/TB-loss score from an aborted search cannot be trusted:
             // the loss could be delayed or refuted upon exploring the remaining root-moves.
             // Thus here roll back to the score from the previous iteration.
             // Do the same if a search has failed to recover a mate score that was found in a previous iteration.
-            if (lossAborted || (mateForgotten && rootMoves[0].curValue != -VALUE_INFINITE))
+            if (lossAborted || (mateForgotten && rm0.value != -VALUE_INFINITE))
             {
-                if (!lastPV.empty())
+                if (lastBestMove != Move::None)
                 {
                     // Bring the last best move to the front for best thread selection
-                    rootMoves.move_to_front([&lstPV = std::as_const(lastPV)](
-                                              const auto& rm) noexcept { return rm == lstPV[0]; });
-
-                    rootMoves[0].pv       = lastPV;
-                    rootMoves[0].curValue = rootMoves[0].uciValue = lastCurValue;
-                    rootMoves[0].reset_bound();
+                    rootMoves.move_to_front(
+                      [&lastBestMove = std::as_const(lastBestMove)](const auto& rm) noexcept {
+                          return rm == lastBestMove;
+                      });
+                    rm0.value = rm0.uciValue = rm0.preValue;
+                    rm0.pv                   = rm0.prePV;
+                    rm0.reset_bound();
 
                     if (mainManager != nullptr)
                         mainManager->pvShown = false;
                 }
                 // For aborted (depth 1) search, label the loss score as lower bound
                 else if (lossAborted)
-                    rootMoves[0].bound = Bound::LOWER;
+                    rm0.bound = Bound::LOWER;
             }
 
             break;
         }
 
-        if (lastPV.empty() || lastPV[0] != rootMoves[0].pv[0])
+        if (lastBestMove != rm0[0])
             lastBestMoveDepth = rootDepth;
 
         // Do not replace (shorter) mate scores from a previous iteration
         if (!mateForgotten)
         {
-            lastPV       = rootMoves[0].pv;
-            lastCurValue = rootMoves[0].curValue;
+            lastBestMove  = rm0[0];
+            lastBestValue = rm0.value;
         }
 
         // Have found "mate in x"?
-        if (limit.mate != 0 && is_mate(rootMoves[0].curValue)
-            && VALUE_MATE - constexpr_abs(rootMoves[0].curValue) <= 2 * limit.mate)
+        if (limit.mate != 0 && is_mate(rm0.value)
+            && VALUE_MATE - constexpr_abs(rm0.value) <= 2 * limit.mate)
         {
             threads.request_stop();
             break;
@@ -797,15 +833,15 @@ Value Worker::search(Position&    pos,
         selDepth = std::max<u16>(ss->ply + 1, selDepth);
     }
 
-    const usize prePvIdx = std::max<int>((ss - 1)->ply, 0);
+    const usize pvPreIdx = std::max<int>((ss - 1)->ply, 0);
 
     // Step 1. Initialize node
     ss->inCheck   = pos.checkers_bb() != 0;
     ss->moveCount = 0;
     ss->history   = 0;
-    ss->pvFollow =
-      RootNode
-      || ((ss - 1)->pvFollow && (prePvIdx < lastPV.size() && (ss - 1)->move == lastPV[prePvIdx]));
+    ss->pvFollow  = RootNode
+                 || ((ss - 1)->pvFollow
+                     && (pvPreIdx < idxPrePV.size() && (ss - 1)->move == idxPrePV[pvPreIdx]));
 
     if constexpr (!RootNode)
     {
@@ -843,7 +879,7 @@ Value Worker::search(Position&    pos,
     bool ttmNone;
     if constexpr (RootNode)
     {
-        ttd.move = rootMoves[pvCur].pv[0];
+        ttd.move = rootMoves[pvIdx][0];
         ttmNone  = false;
     }
     else
@@ -1190,7 +1226,7 @@ Value Worker::search(Position&    pos,
             // In MultiPV mode also skip PV moves that have been already searched and those of lower "TB rank".
             if constexpr (RootNode)
             {
-                if (!rootMoves.contains(pvCur, pvEnd, move))
+                if (!rootMoves.contains(pvIdx, pvEnd, move))
                     continue;
             }
 
@@ -1268,7 +1304,7 @@ Value Worker::search(Position&    pos,
         // In MultiPV mode also skip PV moves that have been already searched and those of lower "TB rank".
         if constexpr (RootNode)
         {
-            if (!rootMoves.contains(pvCur, pvEnd, move))
+            if (!rootMoves.contains(pvIdx, pvEnd, move))
                 continue;
         }
 
@@ -1276,10 +1312,10 @@ Value Worker::search(Position&    pos,
 
         if constexpr (RootNode)
         {
-            if (is_main_worker() && rootDepth > OutputLimitDepth && !options["MinimalInfo"])
+            if (is_main_worker() && rootDepth > OUTPUT_LIMIT_DEPTH && !options["MinimalInfo"])
             {
                 std::string currMove{move_to_can(move)};
-                usize       currMoveNumber{pvCur + moveCount};
+                usize       currMoveNumber{pvIdx + moveCount};
 
                 main_manager()->updateContext.onUpdateIter({rootDepth, currMove, currMoveNumber});
             }
@@ -1362,7 +1398,8 @@ Value Worker::search(Position&    pos,
 
                     // (*Scaler) Generally, lower divisor scales well
                     assert(depth > DEPTH_ZERO);
-                    lmrDepth += history / LMRDivisor[std::min<usize>(depth, LMRDivisor.size()) - 1];
+                    lmrDepth +=
+                      history / LMR_DIVISORS[std::min<usize>(depth, LMR_DIVISORS.size()) - 1];
 
                     // Futility pruning: for quiets
                     // (*Scaler) Generally, more frequent futility pruning scales well
@@ -1592,7 +1629,7 @@ Value Worker::search(Position&    pos,
         if constexpr (RootNode)
         {
             auto& rm = *rootMoves.find(move);
-            assert(rm.pv[0] == move);
+            assert(rm[0] == move);
 
             rm.nodes += nodes_count() - nodesCount;
             // clang-format off
@@ -1604,7 +1641,7 @@ Value Worker::search(Position&    pos,
             if (moveCount == 1 || value > alpha)
             {
                 rm.selDepth = selDepth;
-                rm.curValue = rm.uciValue = value;
+                rm.value = rm.uciValue = value;
                 rm.reset_bound();
 
                 if (value >= beta)
@@ -1618,25 +1655,25 @@ Value Worker::search(Position&    pos,
                     rm.bound    = Bound::UPPER;
                 }
 
-                rm.resize_pv(1);
+                rm.shrink_to(1);
 
                 const auto* const childPv = (ss + 1)->pv;
                 assert(childPv != nullptr);
 
                 for (const Move m : *childPv)
-                    rm.pv.push_back(m);
+                    rm.push_back(m);
 
                 // Record how often the best move has been changed in each iteration.
                 // This information is used for time management.
                 // In MultiPV mode, must take care to only do this for the first PV line.
-                if (moveCount > 1 && pvCur == 0)
+                if (moveCount > 1 && pvIdx == 0)
                     moveChanges.fetch_add(1, std::memory_order_relaxed);
             }
             else
                 // All other moves but the PV, are set to the lowest value, this
                 // is not a problem when sorting because the sort is stable and the
                 // move position in the list is preserved - just the PV is pushed up.
-                rm.curValue = -VALUE_INFINITE;
+                rm.value = -VALUE_INFINITE;
         }
 
         // In case have an alternative move equal in eval to the current bestMove,
@@ -1759,7 +1796,7 @@ Value Worker::search(Position&    pos,
     ss->pvTT = ss->pvTT || (bestValue <= alpha && (ss - 1)->pvTT);
 
     // Save gathered information in transposition table
-    if ((!RootNode || pvCur == 0) && !exclude)
+    if ((!RootNode || pvIdx == 0) && !exclude)
         ttw.write(bestMove, value_to_tt(bestValue, ss->ply), evalue,
                   moveCount != 0 ? depth : std::min<Depth>(depth + 6, DEPTH_MAX),
                   bestValue >= beta                  ? Bound::LOWER
@@ -2289,9 +2326,9 @@ bool Worker::ponder_move_extracted() noexcept {
     static std::mt19937 prng(std::random_device{}());
 
     auto& rm0 = rootMoves[0];
-    assert(rm0.pv.size() == 1);
+    assert(rm0.size() == 1);
 
-    const Move bestMove = rm0.pv[0];
+    const Move bestMove = rm0[0];
     assert(bestMove != Move::None);
 
     State st;
@@ -2319,9 +2356,9 @@ bool Worker::ponder_move_extracted() noexcept {
                     if (th->worker.get() == this)
                         continue;
                     if (const auto& rm = th->worker->rootMoves[0];
-                        rm.pv[0] == bestMove && rm.pv.size() > 1)
+                        rm[0] == bestMove && rm.size() > 1)
                     {
-                        ponderMove = rm.pv[1];
+                        ponderMove = rm[1];
                         break;
                     }
                 }
@@ -2331,10 +2368,9 @@ bool Worker::ponder_move_extracted() noexcept {
                     {
                         if (th->worker.get() == this)
                             continue;
-                        if (const auto& rm = *th->worker->rootMoves.find(bestMove);
-                            rm.pv.size() > 1)
+                        if (const auto& rm = *th->worker->rootMoves.find(bestMove); rm.size() > 1)
                         {
-                            ponderMove = rm.pv[1];
+                            ponderMove = rm[1];
                             break;
                         }
                     }
@@ -2346,20 +2382,20 @@ bool Worker::ponder_move_extracted() noexcept {
                 }
             }
 
-            rm0.pv.push_back(ponderMove);
+            rm0.push_back(ponderMove);
         }
     }
 
     rootPos.undo_move(bestMove);
 
-    return rm0.pv.size() > 1;
+    return rm0.size() > 1;
 }
 
 // Used to correct and extend PVs for moves that have a TB (but not a mate) score.
 // Keeps the search based PV for as long as it is verified to maintain the game outcome, truncates afterward.
 // Finally, extends to mate the PV, providing a possible continuation (but not a proven mating line).
-void Worker::extend_tb_pv(const usize index, Value& value) noexcept {
-    assert(index < rootMoves.size());
+void Worker::extend_tb_pv(const usize idx, Value& value) noexcept {
+    assert(idx < rootMoves.size());
 
     if (!options["SyzygyPVExtend"])
         return;
@@ -2380,19 +2416,19 @@ void Worker::extend_tb_pv(const usize index, Value& value) noexcept {
 
     bool aborted = false;
 
-    auto& rootMove = rootMoves[index];
+    auto& rmIdx = rootMoves[idx];
 
     std::list<State> states;
 
     // Step 0. Do the rootMove, no correction allowed, as needed for MultiPV in TB
     State& rootSt = states.emplace_back();
-    rootPos.do_move(rootMove.pv[0], rootSt);
+    rootPos.do_move(rmIdx[0], rootSt);
 
-    i16 ply = 1;
+    usize ply = 1;
     // Step 1. Walk the PV to the last position in TB with correct decisive score
-    while (usize(ply) < rootMove.pv.size())
+    while (ply < rmIdx.size())
     {
-        const Move pvMove = rootMove.pv[ply];
+        const Move pvMove = rmIdx[ply];
 
         RootMoves rms;
 
@@ -2410,7 +2446,7 @@ void Worker::extend_tb_pv(const usize index, Value& value) noexcept {
         ++ply;
 
         // Don't allow for repetitions or drawing moves along the PV in TB regime
-        if (tbCfg.rootInTB && rootPos.is_draw(ply, UseRule50))
+        if (tbCfg.rootInTB && rootPos.is_draw(static_cast<i16>(ply), UseRule50))
         {
             --ply;
             rootPos.undo_move(pvMove);
@@ -2426,8 +2462,8 @@ void Worker::extend_tb_pv(const usize index, Value& value) noexcept {
         }
     }
 
-    // Resize the PV to the correct part
-    rootMove.pv.resize(ply);
+    // Keep only the correct part of the PV
+    rmIdx.shrink_to(ply);
 
     // Step 2. Now extend the PV to mate, as if the user explores syzygy-tables.info using
     // top ranked moves (minimal DTZ), which gives optimal mates only for simple endgames e.g. KRvK
@@ -2473,8 +2509,8 @@ void Worker::extend_tb_pv(const usize index, Value& value) noexcept {
         if (!tbCfg.rootInTB || tbCfg.cardinality != 0)
             break;
 
-        const Move pvMove = rms[0].pv[0];
-        rootMove.pv.push_back(pvMove);
+        const Move pvMove = rms[0][0];
+        rmIdx.push_back(pvMove);
         State& st = states.emplace_back();
         rootPos.do_move(pvMove, st);
     }
@@ -2493,8 +2529,8 @@ void Worker::extend_tb_pv(const usize index, Value& value) noexcept {
         value = VALUE_DRAW;
 
     // Undo the PV moves
-    for (usize i = rootMove.pv.size(); i-- > 0;)
-        rootPos.undo_move(rootMove.pv[i]);
+    for (usize i = rmIdx.size(); i-- > 0;)
+        rootPos.undo_move(rmIdx[i]);
 
     if (aborted)
         print_info_string(
@@ -2508,7 +2544,7 @@ MainSearchManager::MainSearchManager(const UpdateContext& updateCtx) noexcept :
 void MainSearchManager::reset() noexcept {
 
     timeManager.reset();
-    preBestCurValue  = VALUE_ZERO;
+    preBestValue     = VALUE_ZERO;
     preBestAvgValue  = VALUE_ZERO;
     preTimeReduction = 0.85;
     atFirst          = true;
@@ -2574,7 +2610,7 @@ void MainSearchManager::handle_time_management(const Worker& worker,
     // Compute evaluation inconsistency based on differences from previous best scores
     const double inconsistencyFactor = std::clamp(0.1148
                                                 + 0.0230 * (preBestAvgValue - bestValue)
-                                                + 0.0011 * (preBestCurValue - bestValue),
+                                                + 0.0011 * (preBestValue - bestValue),
                                                 1.0000 - int(!atFirst) * 0.4240,
                                                 1.0000 + int(!atFirst) * 0.7280);
 
@@ -2597,9 +2633,9 @@ void MainSearchManager::handle_time_management(const Worker& worker,
     const double nodesEffortFactor = std::clamp(interpolate<i64, double>(nodesEffort, 75800, 104510, 0.9690, 0.7140), 0.6930, 0.8380);
 
     // Compute recapture factor that reduces time if recapture conditions are met
-    const double recaptureFactor = 1.0 - int( worker.rootPos.captured_sq() == worker.rootMoves[0].pv[0].dst_sq()
+    const double recaptureFactor = 1.0 - int( worker.rootPos.captured_sq() == worker.rootMoves[0][0].dst_sq()
                                           && (worker.rootPos.captured_sq() & worker.rootPos.pieces_bb(~worker.rootPos.active_color())) != 0
-                                          &&  worker.rootPos.see(worker.rootMoves[0].pv[0]) >= 200)
+                                          &&  worker.rootPos.see(worker.rootMoves[0][0]) >= 200)
                                     * 4.0040e-3 * std::min<Depth>(stableDepth, 25);
 
     // Calculate total time by combining all factors with the optimum time
@@ -2629,7 +2665,7 @@ void MainSearchManager::handle_time_management(const Worker& worker,
     if (!worker.threads.is_researching() && !ponder && elapsedTime > 0.5000 * totalTime)
         worker.threads.request_research();
 
-    preBestCurValue = bestValue;
+    preBestValue = bestValue;
 }
 
 // Displays the principal variation (PV) along with associated information
@@ -2654,7 +2690,7 @@ void MainSearchManager::show_pv(Worker& worker, const Depth depth) const noexcep
     {
         const auto& rm = rootMoves[i];
 
-        const bool isValueInvalid = rm.curValue == -VALUE_INFINITE;
+        const bool isValueInvalid = rm.value == -VALUE_INFINITE;
 
         if (i != 0 && depth == 1 && isValueInvalid)
             continue;
@@ -2671,22 +2707,23 @@ void MainSearchManager::show_pv(Worker& worker, const Depth depth) const noexcep
         if (isValueTB)
             v = rm.tbValue;
 
-        // Potentially correct and extend the PV, and in exceptional cases value also
-        if ((isValueTB || !rm.has_bound()) && is_decisive(v) && !is_mate(v))
+        // Potentially correct and extend the PV, and in exceptional cases value also.
+        // Previous PVs have already been extended. Bound flags indicate an unreliable PV.
+        if (!isValueInvalid && (isValueTB || !rm.is_bound()) && is_decisive(v) && !is_mate(v))
             worker.extend_tb_pv(i, v);
 
         FixedText score{to_score({v, rootPos})};
 
         FixedText bound;
         // TB and previous scores are exact, even though their bound flags may say otherwise
-        if (!(isValueTB || isValueInvalid) && rm.has_bound())
+        if (!(isValueTB || isValueInvalid) && rm.is_bound())
             bound = FixedText::from_view(to_string(rm.bound));
 
         FixedText wdl;
         if (ShowWDL)
             wdl = to_wdl(v, rootPos);
 
-        std::string pv{rm.pv.build_pv()};
+        std::string pv{isValueInvalid ? rm.prePV.build_pv() : rm.pv.build_pv()};
 
         updateContext.onUpdateFull(
           {{d, score}, rm.selDepth, i + 1, bound, wdl, time, nodes, tbHits, hashfull, pv});
@@ -2735,9 +2772,9 @@ Move Skill::pick_move(const RootMoves& rootMoves,
     if (pickBest || bestMove == Move::None)
     {
         // RootMoves are already sorted by value in descending order
-        const Value maxValue = rootMoves[0].curValue;
+        const Value maxValue = rootMoves[0].value;
 
-        const Value delta = std::min<Value>(maxValue - rootMoves[multiPv - 1].curValue, VALUE_PAWN);
+        const Value delta = std::min<Value>(maxValue - rootMoves[multiPv - 1].value, VALUE_PAWN);
 
         Value bestValue = -VALUE_INFINITE;
         // Choose best move. For each move value add two terms, both dependent on weakness.
@@ -2745,16 +2782,16 @@ Move Skill::pick_move(const RootMoves& rootMoves,
         // Then choose the move with the resulting highest value.
         for (usize i = 0; i < multiPv; ++i)
         {
-            const Value curValue = rootMoves[i].curValue;
-            const Value diff     = maxValue - curValue;
+            const Value value    = rootMoves[i].value;
+            const Value diff     = maxValue - value;
             const Value noise    = prng.rand<u32>() % weakness();
             const Value push     = (weakness() * diff + delta * noise) / 128;
-            const Value value    = curValue + push;
+            const Value newValue = value + push;
 
-            if (bestValue <= value)
+            if (bestValue <= newValue)
             {
-                bestValue = value;
-                bestMove  = rootMoves[i].pv[0];
+                bestValue = newValue;
+                bestMove  = rootMoves[i][0];
             }
         }
     }

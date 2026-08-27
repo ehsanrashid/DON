@@ -103,6 +103,7 @@ class Syzygy:
                 tarballPath = os.path.join(tmpDirName, f"{file}.tar.gz")
 
                 response = requests.get(url, stream=True)
+                response.raise_for_status()
                 with open(tarballPath, "wb") as f:
                     for chunk in response.iter_content(chunk_size=8192):
                         f.write(chunk)

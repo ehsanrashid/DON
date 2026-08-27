@@ -237,6 +237,7 @@ class Threads final {
 
     MainSearchManager* main_manager() const noexcept;
 
+    template<bool Mate>
     const Thread* best_thread() const noexcept;
 
     void

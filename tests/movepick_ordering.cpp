@@ -43,8 +43,6 @@ g++ -std=c++17 -O2 -I./src `
 */
 
 #include <algorithm>
-#include <cassert>
-#include <cstdlib>
 #include <chrono>
 #include <iostream>
 #include <random>

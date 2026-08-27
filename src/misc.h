@@ -310,6 +310,8 @@ constexpr double constexpr_log1p_log(const double d) noexcept {
 // Note: the while loops are O(|exponent|) iterations, which is fine for
 // compile-time table generation. For runtime use, prefer std::log.
 constexpr double constexpr_log(double x) noexcept {
+    // Returns an approximation of ln(x) for x > 0.
+    // For x <= 0, returns -1e300 as a constexpr-safe sentinel.
     if (x <= 0.0)
         return -1e300;  // Undefined; not NaN/−inf so it stays constexpr-safe
 
@@ -941,15 +943,15 @@ class MultiArray final {
     constexpr auto size() const noexcept { return data_.size(); }
     constexpr auto empty() const noexcept { return data_.empty(); }
 
-    constexpr const auto& at(size_type idx) const { return data_.at(idx); }
-    constexpr auto&       at(size_type idx) { return data_.at(idx); }
+    constexpr const auto& at(const size_type idx) const { return data_.at(idx); }
+    constexpr auto&       at(const size_type idx) { return data_.at(idx); }
 
-    constexpr const auto& operator[](size_type idx) const noexcept {
+    constexpr const auto& operator[](const size_type idx) const noexcept {
         assert(idx < size());
 
         return data_[idx];
     }
-    constexpr auto& operator[](size_type idx) noexcept {
+    constexpr auto& operator[](const size_type idx) noexcept {
         assert(idx < size());
 
         return data_[idx];
@@ -970,7 +972,7 @@ class MultiArray final {
     }
 
     template<typename U>
-    void fill_n(usize beg, usize count, const U& v) noexcept {
+    void fill_n(const usize beg, const usize count, const U& v) noexcept {
         static_assert(is_strictly_assignable_v<T, U>, "Cannot assign fill value to element type");
 
         usize end = std::min(beg + count, size());
@@ -1050,28 +1052,25 @@ class FixedVector final {
     void push_back(const T& value) noexcept {
         assert(size() < capacity());
 
-        *end() = value;  // copy-assign into pre-initialized slot
-        ++size_;
+        data_[size_++] = value;
     }
     void push_back(T&& value) noexcept {
         assert(size() < capacity());
 
-        *end() = std::move(value);
-        ++size_;
+        data_[size_++] = std::move(value);
     }
     template<typename... Args>
     void emplace_back(Args&&... args) noexcept {
         assert(size() < capacity());
 
-        *end() = T(std::forward<Args>(args)...);
-        ++size_;
+        data_[size_++] = T(std::forward<Args>(args)...);
     }
 
     // Append value if value < max
     void push_back_if_lt(const T& value, const T& maxValue) noexcept {
         assert(size() < capacity());
 
-        *end() = value;
+        data_[size()] = value;
         size_ += usize(value < maxValue);
     }
 
@@ -1092,23 +1091,23 @@ class FixedVector final {
         return data()[size() - 1];
     }
 
-    T& operator[](SizeType idx) noexcept {
+    T& operator[](const SizeType idx) noexcept {
         assert(idx < size());
 
         return data()[idx];
     }
-    const T& operator[](SizeType idx) const noexcept {
+    const T& operator[](const SizeType idx) const noexcept {
         assert(idx < size());
 
         return data()[idx];
     }
 
-    void resize(SizeType newSize) noexcept {
+    void resize(const SizeType newSize) noexcept {
         // Note: doesn't construct/destroy elements
         size_ = std::min(newSize, capacity());
     }
 
-    T* make_space(SizeType space) noexcept {
+    T* make_space(const SizeType space) noexcept {
         SizeType oldSize = size();
 
         resize(oldSize + space);
@@ -1126,25 +1125,26 @@ class FixedVector final {
 struct FixedText final {
    public:
     // from_view factory
-    static FixedText from_view(std::string_view sv) noexcept { return FixedText{}.write(sv); }
+    static FixedText from_view(const std::string_view sv) noexcept { return FixedText{}.write(sv); }
 
-    FixedText& write(char ch) noexcept {
+    FixedText& write(const char ch) noexcept {
         assert(size() < capacity());
         if (size() >= capacity())
             return *this;
-        *end() = ch;
-        ++size_;
+
+        data_[size_++] = ch;
         return *this;
     }
 
-    FixedText& write(std::string_view sv) noexcept {
+    FixedText& write(const std::string_view sv) noexcept {
         assert(size() + sv.size() <= capacity());
+
         std::memcpy(end(), sv.data(), sv.size());
         size_ += sv.size();
         return *this;
     }
 
-    FixedText& write(int v) noexcept {
+    FixedText& write(const int v) noexcept {
         auto [ptr, ec] = std::to_chars(end(), begin() + capacity(), v);
         assert(ec == std::errc{});
         size_ = ptr - begin();
@@ -1181,27 +1181,33 @@ struct FixedText final {
 
 static_assert(sizeof(FixedText) == 32, "FixedText size must be 32 bytes");
 
-// Tracks allocation sizes and performs cleanup when an allocation is removed
-template<typename CleanupFunc>
+// Tracks allocation sizes and performs allocation and freeing.
+template<typename AllocFunc, typename FreeFunc>
 class AllocationSizes final {
    public:
-    explicit AllocationSizes(CleanupFunc cleanupFn) noexcept :
-        cleanupFunc(std::move(cleanupFn)) {}
+    explicit AllocationSizes(AllocFunc allocFn, FreeFunc freeFn) noexcept :
+        allocFunc(std::move(allocFn)),
+        freeFunc(std::move(freeFn)) {}
 
-    void add(void* const mem, const usize size) noexcept {
-        if (mem == nullptr)
-            return;
-        std::lock_guard writeLock(sharedMutex);
+    [[nodiscard]] void* alloc(const usize allocSize) noexcept {
+        void* mem = allocFunc(allocSize);
 
-        sizesMap[mem] = size;
+        if (mem != nullptr)
+        {
+            std::lock_guard writeLock(sharedMutex);
+
+            sizesMap[mem] = allocSize;
+        }
+
+        return mem;
     }
 
-    [[nodiscard]] bool remove(void* const mem) noexcept {
+    [[nodiscard]] bool free(void* const mem) noexcept {
         std::lock_guard writeLock(sharedMutex);
 
         if (auto itr = sizesMap.find(mem); itr != sizesMap.end())
         {
-            if (!cleanupFunc(mem, itr->second))
+            if (!freeFunc(mem, itr->second))
                 return false;
 
             sizesMap.erase(itr);
@@ -1235,7 +1241,8 @@ class AllocationSizes final {
    private:
     mutable std::shared_mutex sharedMutex;
 
-    const CleanupFunc                cleanupFunc;
+    const AllocFunc                  allocFunc;
+    const FreeFunc                   freeFunc;
     std::unordered_map<void*, usize> sizesMap;
 };
 

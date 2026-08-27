@@ -1184,7 +1184,7 @@ profile-build: net config-sanity obj-clean profile-clean
 endif
 
 # Default network filename, read from evaluate.h's EvalFileDefaultName.
-macos-lipo: NNUE_NET := $(shell grep -oE 'nn-[0-9a-f]+\.nnue' $(CURDIR)/evaluate.h | head -1)
+macos-lipo: NNUE_NET := $(shell grep -oE 'nn-[0-9a-f]+\.nnue' "$(CURDIR)/evaluate.h" | head -1)
 macos-lipo:
 	@echo; \
 	echo "Step 1/4. Building x86-64 slice (network shared from Apple-silicon slice) ..."
@@ -1283,16 +1283,16 @@ clean: obj-clean profile-clean
 
 # Clean binaries and objects
 obj-clean:
-	@rm -f $(EXE) ./*.o ./nnue/*.o ./nnue/features/*.o ./book/*.o ./tablebase/*.o $(BUILD_DATE_FILE) $(BUILD_SHA_FILE) $(BUILD_DIFFINDEX_FILE)
+	@rm -f "$(EXE)" ./*.o ./nnue/*.o ./nnue/features/*.o ./book/*.o ./tablebase/*.o "$(BUILD_DATE_FILE)" "$(BUILD_SHA_FILE)" "$(BUILD_DIFFINDEX_FILE)"
 
 # Clean auxiliary profiling files
 profile-clean:
 	@rm -rf profdir
 	@rm -f bench.txt *.gcda *.gcno ./book/*.gcda ./tablebase/*.gcda ./nnue/*.gcda ./nnue/features/*.gcda *.s PGOBENCH.out
-	@rm -f "$(NAME)".profdata *.profraw
+	@rm -f "$(NAME).profdata" *.profraw
 	@rm -f "$(NAME)".*args*
 	@rm -f "$(NAME)".*lt*
-	@rm -f "$(NAME)".res
+	@rm -f "$(NAME).res"
 	@rm -f ./-lstdc++.res
 
 universal-clean:
@@ -1421,13 +1421,13 @@ config-sanity: net
 	 test "$(COMP)" = "icx" || test "$(COMP)" = "ndk")
 
 $(EXE): $(OBJS) $(NNUE_EMBED_OBJ)
-	+$(CXX) -o $@ $(OBJS) $(NNUE_EMBED_OBJ) $(strip $(LDFLAGS) $(LDLIBS))
+	+$(CXX) -o "$@" $(OBJS) $(NNUE_EMBED_OBJ) $(strip $(LDFLAGS) $(LDLIBS))
 
 %.o: %.cpp
-	$(strip $(CXX) $(CPPFLAGS) $(CXXFLAGS)) -c -o $@ $<
+	$(strip $(CXX) $(CPPFLAGS) $(CXXFLAGS)) -c "$<" -o "$@"
 
 misc.o: misc.cpp $(BUILD_DATE_FILE) $(BUILD_SHA_FILE) $(BUILD_DIFFINDEX_FILE)
-	$(strip $(CXX) $(CPPFLAGS) $(CXXFLAGS) $(ARCH_FLAG) $(GIT_FLAGS)) -c -o $@ $<
+	$(strip $(CXX) $(CPPFLAGS) $(CXXFLAGS) $(ARCH_FLAG) $(GIT_FLAGS)) -c "$<" -o "$@"
 
 # Clang PGO
 clang-profile-make:
@@ -1569,7 +1569,7 @@ endif
 
 EMBED_DIR_SUPPORTED := $(shell echo 'int main(){}' | $(CXX) -x c++ --embed-dir=. -o /dev/null -c - 2>/dev/null && echo 1 || echo 0)
 ifeq ($(EMBED_DIR_SUPPORTED),1)
-    EMBED_DIR = --embed-dir=$(CURDIR)
+    EMBED_DIR = --embed-dir="$(CURDIR)"
 endif
 
 # macos-lipo sets MACOS_X86_SLICE=1 when building the x86-64 slice so that the
@@ -1609,10 +1609,10 @@ $(NET_SENTINEL): | $(TEMP_DIR)
 	@touch "$@"
 
 $(NNUE_EMBED_OBJ): $(UNIVERSAL_SRC_DIR)/nnue_embed.cpp $(NET_SENTINEL) | $(TEMP_DIR)
-	$(CXX) -O2 -std=c++20 -Wno-c++26-extensions $(SLICE_DEF) $(strip $(MACOS_BUILD_FLAGS) $(EXTRA_CXXFLAGS)) $(EMBED_DIR) -c $< -o $@
+	$(CXX) -O2 -std=c++20 -Wno-c++26-extensions $(SLICE_DEF) $(strip $(MACOS_BUILD_FLAGS) $(EXTRA_CXXFLAGS)) $(EMBED_DIR) -c "$<" -o "$@"
 
 $(UNIVERSAL_ENTRY_OBJ): $(UNIVERSAL_ENTRY_SRC) | $(TEMP_DIR)
-	$(CXX) -O2 -std=c++20 $(strip $(MACOS_BUILD_FLAGS) $(EXTRA_CXXFLAGS)) -c $< -o $@
+	$(CXX) -O2 -std=c++20 $(strip $(MACOS_BUILD_FLAGS) $(EXTRA_CXXFLAGS)) -c "$<" -o "$@"
 
 # Symlink tracked top-level items from src/ into temp_builds/<arch>/.
 $(TEMP_DIR)/%/.setup: | $(TEMP_DIR)
@@ -1628,31 +1628,31 @@ $(TEMP_DIR)/%/DON.o: $(TEMP_DIR)/%/.setup $(NNUE_EMBED_OBJ) $(NET_SENTINEL)
 	+ENV_CXXFLAGS='$(ENV_CXXFLAGS) $(call ARCH_CXXFLAGS,$*)' \
 	 ENV_LDFLAGS='$(ENV_LDFLAGS) $(call ARCH_LDFLAGS,$*)' \
 	 ENV_LDLIBS='$(ENV_LDLIBS)' \
-	    $(MAKE) -C $(TEMP_DIR)/$* $(UOBJ_TGT) \
+	    $(MAKE) -C "$(TEMP_DIR)/$*" $(UOBJ_TGT) \
 	        ARCH=$* CXX=$(CXX) COMP=$(COMP) \
 	        NNUE_EMBED_OBJ=$(NNUE_EMBED_OBJ)
 ifeq ($(TARGET_KERNEL),Darwin)
 # Rename the initializer section
-	ld -r -rename_section __DATA __mod_init_func __DATA $(call ARCH_MACOS_SECTION,$*) $@ -o $@.tmp
-	mv $@.tmp $@
+	ld -r -rename_section __DATA __mod_init_func __DATA $(call ARCH_MACOS_SECTION,$*) "$@" -o "$@.tmp"
+	mv "$@.tmp" "$@"
 else
 # Drop COMDAT groups; clang LTO leaves them around internalized LOCAL
 # template instantiations which causes problems at the final link
-	$(OBJCOPY) -R .group $@
+	$(OBJCOPY) -R .group "$@"
 ifeq ($(USE_LTO_EMIT_ASM),yes)
 # Delete per-arch main shim
-	$(OBJCOPY) -N main $@
+	$(OBJCOPY) -N main "$@"
 else
 # Rename .init_array (Linux) or .ctors (Windows) so we can manually invoke them
-	$(OBJCOPY) --rename-section .init_array=$(call ARCH_SUFFIX,$*)_init $@
-	$(OBJCOPY) --rename-section .ctors=$(call ARCH_SUFFIX,$*)_init $@
+	$(OBJCOPY) --rename-section .init_array=$(call ARCH_SUFFIX,$*)_init "$@"
+	$(OBJCOPY) --rename-section .ctors=$(call ARCH_SUFFIX,$*)_init "$@"
 # Make the array inert
-	$(OBJCOPY) --set-section-flags $(call ARCH_SUFFIX,$*)_init=alloc,data $@
+	$(OBJCOPY) --set-section-flags $(call ARCH_SUFFIX,$*)_init=alloc,data "$@"
 endif
 endif
 
 $(UNIVERSAL_EXE): $(UNIVERSAL_ENTRY_OBJ) $(NNUE_EMBED_OBJ) $(ARCH_OBJS)
-	$(CXX) -o $@ $(UNIVERSAL_ENTRY_OBJ) $(NNUE_EMBED_OBJ) $(ARCH_OBJS) $(strip $(UNIVERSAL_BUILD_FLAGS) $(EXTRA_LDFLAGS))
-	@echo "Universal binary built: $@"
+	$(CXX) -o "$@" $(UNIVERSAL_ENTRY_OBJ) $(NNUE_EMBED_OBJ) $(ARCH_OBJS) $(strip $(UNIVERSAL_BUILD_FLAGS) $(EXTRA_LDFLAGS))
+	@echo "Universal binary built: '$@'"
 
 endif  # UNIVERSAL_BUILD

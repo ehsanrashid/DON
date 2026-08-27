@@ -63,11 +63,6 @@ inline Book::PolyGlot pgBook;
 
 struct PVMoves final {
    public:
-    PVMoves() noexcept {
-        moves_[0] = Move::None;  // Initialize first element to Move::None
-        clear();
-    }
-
     Move*       begin() noexcept { return data(); }
     const Move* begin() const noexcept { return data(); }
 
@@ -89,7 +84,7 @@ struct PVMoves final {
     usize size() const noexcept { return size_; }
     bool  empty() const noexcept { return size() == 0; }
 
-    [[nodiscard]] constexpr usize capacity() noexcept { return moves_.size(); }
+    [[nodiscard]] constexpr usize capacity() const noexcept { return moves_.size(); }
 
     [[nodiscard]] Move*       data() noexcept { return moves_.data(); }
     [[nodiscard]] const Move* data() const noexcept { return moves_.data(); }
@@ -99,11 +94,10 @@ struct PVMoves final {
     void push_back(const Move move) noexcept {
         assert(size() < capacity());
 
-        *end() = move;
-        ++size_;
+        moves_[size_++] = move;
     }
 
-    void resize(const usize newSize) noexcept {
+    void shrink_to(const usize newSize) noexcept {
         assert(newSize <= size());
 
         size_ = newSize;
@@ -126,23 +120,23 @@ struct PVMoves final {
         }
     }
 
-    // Optimized PV to string conversion (bulk copy)
+    // Optimized PV to string conversion
     std::string build_pv() const noexcept {
-        std::string pv;
-        pv.reserve(6 * size());
+        std::string pvStr;
+        pvStr.reserve(6 * size());
 
         for (const Move m : *this)
         {
-            pv.push_back(' ');
-            pv.append(move_to_can(m));
+            pvStr.push_back(' ');
+            pvStr.append(move_to_can(m));
         }
 
-        return pv;
+        return pvStr;
     }
 
    private:
     Array<Move, PLY_MAX + 1> moves_;
-    usize                    size_;
+    usize                    size_ = 0;
 };
 
 // RootMove is used for moves at the root of the tree.
@@ -152,7 +146,7 @@ struct PVMoves final {
 struct RootMove final {
    public:
     RootMove() noexcept = default;
-    explicit RootMove(Move m) noexcept { pv.push_back(m); }
+    explicit RootMove(Move m) noexcept { push_back(m); }
 
     friend bool operator==(const RootMove& rm, Move m) noexcept {
         return !rm.pv.empty() && rm.pv.front() == m;
@@ -170,8 +164,7 @@ struct RootMove final {
 
     // Sort in descending order
     friend bool operator<(const RootMove& rm1, const RootMove& rm2) noexcept {
-        return rm1.curValue != rm2.curValue ? rm1.curValue > rm2.curValue
-                                            : rm1.preValue > rm2.preValue;
+        return rm1.value != rm2.value ? rm1.value > rm2.value : rm1.preValue > rm2.preValue;
     }
     friend bool operator>(const RootMove& rm1, const RootMove& rm2) noexcept { return (rm2 < rm1); }
     friend bool operator<=(const RootMove& rm1, const RootMove& rm2) noexcept {
@@ -181,19 +174,28 @@ struct RootMove final {
         return !(rm1 < rm2);
     }
 
-    [[nodiscard]] bool has_bound() const noexcept {
+    [[nodiscard]] bool is_bound() const noexcept {
         return bound == Bound::LOWER || bound == Bound::UPPER;
+    }
+    [[nodiscard]] bool is_exact_loss() const noexcept {
+        return value != -VALUE_INFINITE && is_loss(value) && !is_bound();
     }
 
     void reset_bound() noexcept { bound = Bound::NONE; }
 
-    [[nodiscard]] usize pv_size() const noexcept { return pv.size(); }
+    [[nodiscard]] usize size() const noexcept { return pv.size(); }
+    [[nodiscard]] bool  empty() const noexcept { return size() == 0; }
+
+    void push_back(const Move move) noexcept { pv.push_back(move); }
     // Keep only the root move at index 0
-    void resize_pv(const usize newSize) noexcept { pv.resize(newSize); }
+    void shrink_to(const usize newSize) noexcept { pv.shrink_to(newSize); }
+
+    Move&       operator[](const usize idx) noexcept { return pv[idx]; }
+    const Move& operator[](const usize idx) const noexcept { return pv[idx]; }
 
     u64 nodes = 0;
 
-    Value    curValue    = -VALUE_INFINITE;
+    Value    value       = -VALUE_INFINITE;
     Value    preValue    = -VALUE_INFINITE;
     Value    avgValue    = -VALUE_INFINITE;
     SqrValue avgSqrValue = sign_sqr(-VALUE_INFINITE);
@@ -207,7 +209,7 @@ struct RootMove final {
 
     Bound bound = Bound::NONE;
 
-    PVMoves pv;
+    PVMoves pv, prePV;
 };
 
 constexpr bool root_move_descending(const RootMove& rm1, const RootMove& rm2) noexcept {
@@ -571,7 +573,7 @@ class MainSearchManager final: public ISearchManager {
     bool        ponder;
     bool        ponderhitStop;
 
-    Value  preBestCurValue;
+    Value  preBestValue;
     Value  preBestAvgValue;
     double preTimeReduction;
     bool   atFirst;
@@ -723,7 +725,7 @@ class Worker final {
 
     bool ponder_move_extracted() noexcept;
 
-    void extend_tb_pv(usize index, Value& value) noexcept;
+    void extend_tb_pv(usize idx, Value& value) noexcept;
 
     const usize threadId, threadCount, numaId, numaThreadCount;
 
@@ -749,14 +751,14 @@ class Worker final {
     Tablebase::Syzygy::Config tbConfig;
 
     Depth rootDepth;
-    usize multiPv, pvCur, pvEnd;
+    usize multiPv, pvIdx, pvEnd;
     u16   selDepth;
     u16   rootDelta;
     i16   nmpPly;
 
     Array<i32, COLOR_NB> optimism;
 
-    PVMoves lastPV;
+    PVMoves idxPrePV;
 
     // Histories
     CaptureHistory captureHistory;

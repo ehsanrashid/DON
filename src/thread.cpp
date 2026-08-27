@@ -326,85 +326,122 @@ void Threads::set(const NumaConfig&                       numaConfig,
 }
 
 namespace {
-// Properties of thread used for best-thread selection
+
+// Metrics used to compare threads when selecting the best-thread
 struct ThreadMetric final {
    public:
-    // Factory function: build metrics for a thread {value, win/loss, votes, vote weight, PV size}
+    // Factory function: Builds the comparison metrics for a thread:
+    // evaluation, win/loss status, vote count, vote weight, and PV size
     template<typename VotingFunc>
     static ThreadMetric from_thread(const Thread*               th,
-                                    const Array<u64, MOVE_MAX>& votes,
+                                    const Array<u64, MOVE_MAX>& voteCounts,
                                     VotingFunc&&                calc_vote_weight) noexcept {
         const auto& rm = th->worker->root_moves()[0];
 
-        // Aborted (depth 1) searches may lead to inexact win or loss
-        const Value curValue = rm.curValue;
-        const bool  hasBound = rm.has_bound();
+        // Aborted (depth 1) may leave the reported win/loss value inexact
+        const Value value   = rm.value;
+        const bool  isBound = rm.is_bound();
 
-        assert(rm.id != std::numeric_limits<u16>::max() && rm.id < votes.size());
-        const u64 voteCount = votes[rm.id];
+        assert(rm.id != std::numeric_limits<u16>::max() && rm.id < voteCounts.size());
+        const u64 voteCount = voteCounts[rm.id];
 
         return {
-          voteCount,                                                     //
-          std::forward<VotingFunc>(calc_vote_weight)(th),                //
-          rm.pv.size(),                                                  //
-          curValue,                                                      //
-          curValue != +VALUE_INFINITE && is_win(curValue) && !hasBound,  //
-          curValue != -VALUE_INFINITE && is_loss(curValue) && !hasBound  //
+          value,                                                   //
+          value != +VALUE_INFINITE && is_win(value) && !isBound,   //
+          value != -VALUE_INFINITE && is_loss(value) && !isBound,  //
+          voteCount,                                               //
+          std::forward<VotingFunc>(calc_vote_weight)(th),          //
+          rm.size()                                                //
         };
     }
 
-    u64   voteCount;   // Number of votes for this thread's move
+    Value value;       // Position evaluation
+    bool  win;         // Exact winning (mates or TB win)
+    bool  loss;        // Exact losing (mated or TB loss)
+    u64   voteCount;   // Number of votes for this move
     u64   voteWeight;  // Weighted voting value (depth-adjusted)
     usize pvSize;      // Principal variation size
-    Value value;       // Position evaluation
-    bool  win;         // Proven win (mate or TB win)
-    bool  loss;        // Proven loss (mated or TB loss)
 };
 
-// Predicate: returns true if candidate-thread is better than best-thread
-struct BetterThread final {
+// Returns true when the candidate thread should replace the current best thread
+struct MateBetterThread final {
    public:
-    // Returns true if next thread is better than current best
-    bool operator()(const ThreadMetric& best, const ThreadMetric& cand) const noexcept {
-        // Case 1: Winning positions
-        // Both winning -> prefer shorter mates (higher eval)
-        if (best.win)
-            return cand.win && best.value < cand.value;
-        // Case 2: Losing positions
-        // Best is losing -> prefer escape to non-loss, or longer mated (delay defeat)
-        if (best.loss)
-            return !cand.loss || best.value < cand.value;
+    // Compare the candidate thread and the current best thread
+    bool operator()(const ThreadMetric& bestThread, const ThreadMetric& candThread) const noexcept {
+        // Case 1: Winning or losing mate positions
+        // Both are mate results -> prefer the shorter mate (higher absolute evaluation)
+        if (bestThread.win || bestThread.loss)
+            return (candThread.win || candThread.loss)
+                && constexpr_abs(bestThread.value) < constexpr_abs(candThread.value);
 
-        // Case 3: Normal/Draw positions
-        return tie_break(best, cand);
+        // Case 2: Normal/Drawn positions
+        return tie_break(bestThread, candThread);
     }
 
    private:
-    // Tie-break for normal/draw positions
-    static bool tie_break(const ThreadMetric& best, const ThreadMetric& cand) noexcept {
-        // Case 3a: Best is normal (draw) -> win dominates, ignore loss
-        if (cand.win)
-            return true;  // Win beats draw
-        if (cand.loss)
-            return false;  // Draw beats loss
+    // Compares normal or drawn positions using win/loss status and voting metrics
+    static bool tie_break(const ThreadMetric& bestThread, const ThreadMetric& candThread) noexcept {
+        // Case 3a: The current best is normal/drawn -> prefer any mate result
+        if (candThread.win || candThread.loss)
+            return true;
 
-        // Case 3b: Both normal -> compare by voting metrics
+        // Case 3b: Both are normal/drawn -> compare voting metrics
         return  // Primary: vote count
-          best.voteCount != cand.voteCount ? best.voteCount < cand.voteCount
-          // Tie-break 1: depth-weighted value
-          : best.voteWeight != cand.voteWeight ? best.voteWeight < cand.voteWeight
-                                               // Tie-break 2: PV size
-                                               : best.pvSize < cand.pvSize;
+          bestThread.voteCount != candThread.voteCount ? bestThread.voteCount < candThread.voteCount
+          // Tie-break 1: Prefer the higher depth-weighted vote
+          : bestThread.voteWeight != candThread.voteWeight
+            ? bestThread.voteWeight < candThread.voteWeight
+            // Tie-break 2: Finally, prefer the longer PV
+            : bestThread.pvSize < candThread.pvSize;
+    }
+};
+
+// Returns true when the candidate thread should replace the current best thread
+struct NormalBetterThread final {
+   public:
+    // Compare the candidate thread and the current best thread
+    bool operator()(const ThreadMetric& bestThread, const ThreadMetric& candThread) const noexcept {
+        // Case 1: Winning mate positions
+        // Both are winning -> prefer the shorter mate (higher evaluation)
+        if (bestThread.win)
+            return candThread.win && bestThread.value < candThread.value;
+        // Case 2: Losing mate positions
+        // Prefer a non-loss; otherwise, prefer the longer mate (higher evaluation)
+        if (bestThread.loss)
+            return !candThread.loss || bestThread.value < candThread.value;
+
+        // Case 3: Normal/Drawn positions
+        return tie_break(bestThread, candThread);
+    }
+
+   private:
+    // Compares normal or drawn positions using win/loss status and voting metrics
+    static bool tie_break(const ThreadMetric& bestThread, const ThreadMetric& candThread) noexcept {
+        // Case 3a: The current best is normal/drawn -> prefer a win
+        if (candThread.win)
+            return true;  // win beats normal/drawn result
+        if (candThread.loss)
+            return false;  // normal/drawn result beats loss
+
+        // Case 3b: Both are normal/drawn -> compare voting metrics
+        return  // Primary: vote count
+          bestThread.voteCount != candThread.voteCount ? bestThread.voteCount < candThread.voteCount
+          // Tie-break 1: Prefer the higher depth-weighted vote
+          : bestThread.voteWeight != candThread.voteWeight
+            ? bestThread.voteWeight < candThread.voteWeight
+            // Tie-break 2: Finally, prefer the longer PV
+            : bestThread.pvSize < candThread.pvSize;
     }
 };
 
 }  // namespace
 
+template<bool Mate>
 const Thread* Threads::best_thread() const noexcept {
     assert(threads.size() > 1);
     // Snap threads pointers under read-lock
     std::vector<const Thread*> snapThreads;
-    const Thread*              fallbackThread = threads.front().get();
+    const auto*                fallbackThread = threads.front().get();
     Depth                      bestDepth      = fallbackThread->worker->rootDepth;
     {
         std::shared_lock readLock(sharedMutex);
@@ -415,7 +452,7 @@ const Thread* Threads::best_thread() const noexcept {
         {
             const auto& rm = th->worker->rootMoves[0];
 
-            if (rm.curValue != -VALUE_INFINITE && !rm.pv.empty())
+            if (rm.value != -VALUE_INFINITE)
                 snapThreads.push_back(th.get());
             else if (th->worker->rootDepth > bestDepth)
             {
@@ -429,54 +466,76 @@ const Thread* Threads::best_thread() const noexcept {
     if (snapThreads.empty())
         return fallbackThread;
 
-    // Initialize with first valid thread
-    const Thread* bestThread = snapThreads.front();
-
     // Find the minimum value of all threads
     Value minValue = VALUE_NONE;
     for (const auto* th : snapThreads)
-        minValue = std::min(th->worker->rootMoves[0].curValue, minValue);
+        minValue = std::min(th->worker->rootMoves[0].value, minValue);
 
-    // Vote according to value and depth, and select the best thread
-    auto calc_vote_weight = [minValue](const Thread* th) noexcept -> u64 {
-        return static_cast<u64>(th->worker->rootMoves[0].curValue - minValue + 14)
+    // Vote according to value and depth
+    const auto calc_vote_weight = [minValue](const Thread* th) noexcept -> u64 {
+        return static_cast<u64>(th->worker->rootMoves[0].value - minValue + 14)
              * th->worker->rootDepth;
     };
 
-    Array<u64, MOVE_MAX> votes{};
+    Array<u64, MOVE_MAX> voteCounts{};
 
     // Aggregate votes
     for (const auto* th : snapThreads)
     {
         assert(th->worker->rootMoves[0].id != std::numeric_limits<u16>::max()
-               && th->worker->rootMoves[0].id < votes.size());
+               && th->worker->rootMoves[0].id < voteCounts.size());
 
-        votes[th->worker->rootMoves[0].id] += calc_vote_weight(th);
+        voteCounts[th->worker->rootMoves[0].id] += calc_vote_weight(th);
     }
 
-    // Cache best thread properties
-    auto bestMetric = ThreadMetric::from_thread(bestThread, votes, calc_vote_weight);
-    // Find best-thread
+    // Select the best thread
+
+    // Initialize with first valid thread
+    const auto* bestThread = snapThreads.front();
+
+    // Compute and cache the best thread comparison metrics
+    auto bestMetric = ThreadMetric::from_thread(bestThread, voteCounts, calc_vote_weight);
+
     for (usize i = 1; i < snapThreads.size(); ++i)
     {
         const auto* candThread = snapThreads[i];
 
-        // Get candidate thread properties
-        auto candMetric = ThreadMetric::from_thread(candThread, votes, calc_vote_weight);
+        // Compute the candidate thread comparison metrics
+        const auto candMetric = ThreadMetric::from_thread(candThread, voteCounts, calc_vote_weight);
 
-        if (BetterThread betterThread; betterThread(bestMetric, candMetric))
+        if constexpr (Mate)
         {
-            bestMetric = candMetric;
-            bestThread = candThread;
+            if (MateBetterThread mateBetterThread; mateBetterThread(bestMetric, candMetric))
+            {
+                bestMetric = candMetric;
+                bestThread = candThread;
 
-            // Early exit: mate in 1 found (can't improve further)
-            if (bestMetric.win && bestMetric.value >= VALUE_MATE_WIN_IN_1)
-                break;
+                // Early exit: mate in one found (can't be improved further)
+                if ((bestMetric.win || bestMetric.loss)
+                    && constexpr_abs(bestMetric.value) >= VALUE_MATE_WIN_IN_1)
+                    break;
+            }
+        }
+        else
+        {
+            if (NormalBetterThread normalBetterThread; normalBetterThread(bestMetric, candMetric))
+            {
+                bestMetric = candMetric;
+                bestThread = candThread;
+
+                // Early exit: winning mate in one found (can't be improved further)
+                if (bestMetric.win && bestMetric.value >= VALUE_MATE_WIN_IN_1)
+                    break;
+            }
         }
     }
 
     return bestThread;
 }
+
+// Explicit template instantiations:
+template const Thread* Threads::best_thread<false>() const noexcept;
+template const Thread* Threads::best_thread<true>() const noexcept;
 
 // Wakes up main thread waiting in idle_func() and returns immediately.
 // Main thread will wake up other threads and start the search.

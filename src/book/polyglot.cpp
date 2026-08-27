@@ -23,6 +23,7 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <limits>
 #include <system_error>
 
 #include "../bitboard.h"
@@ -638,7 +639,7 @@ Move PolyGlot::probe(Position& pos, const RootMoves& rootMoves, const Options& o
 
     if (options["BookPickBest"])
     {
-        i32 bestWeight = -0xFFFF;
+        i32 bestWeight = std::numeric_limits<i32>::min();
 
         for (const auto& candidate : candidates)
             if (bestWeight < candidate.weight)
