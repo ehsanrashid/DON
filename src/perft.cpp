@@ -276,7 +276,7 @@ void PerftTable::reset(const Threads& threads) noexcept {
 }
 
 PTCluster* PerftTable::cluster(Key key) const noexcept {
-    return &clusters[mul_hi64(key, clusterCount)];
+    return &clusters[static_cast<usize>(mul_hi64(key, clusterCount))];
 }
 
 ProbResult PerftTable::probe(Key key, Depth depth) const noexcept {

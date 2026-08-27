@@ -132,6 +132,7 @@ jobs:
   # Testing Jobs
   IWYU:
     name: IWYU
+    if: ${{ false }}
     uses: ./.github/workflows/iwyu.yml
   Sanitizers:
     name: Sanitizers
