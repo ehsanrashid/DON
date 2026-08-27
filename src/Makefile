@@ -531,7 +531,7 @@ ifeq ($(COMP),gcc)
             CXXFLAGS += $(BITS_FLAG)
             LDFLAGS  += $(BITS_FLAG)
         endif
-    # LoongArch64, RISC-V64, and WebAssembly determine bitness from the target
+    # These targets determine bitness from the target architecture
     else ifneq ($(filter loongarch64 riscv64 wasm32,$(arch)),)
 
     # Generic architectures use the configured bitness
@@ -624,7 +624,7 @@ else ifeq ($(COMP),clang)
             CXXFLAGS += $(BITS_FLAG)
             LDFLAGS  += $(BITS_FLAG)
         endif
-    # LoongArch64, RISC-V64, and WebAssembly determine bitness from the target
+    # These targets determine bitness from the target architecture
     else ifneq ($(filter loongarch64 riscv64 wasm32,$(arch)),)
 
     # Generic architectures use the configured bitness
@@ -896,7 +896,7 @@ ifeq ($(mmx),yes)
 endif
 
 ifeq ($(vsx),yes)
-    ifeq ($(COMP),gcc)
+    ifneq ($(filter gcc,$(COMP)),)
         CXXFLAGS += -DNO_WARN_X86_INTRINSICS -DUSE_SSE2
     endif
     CXXFLAGS += -mvsx
@@ -904,7 +904,7 @@ endif
 
 ifeq ($(altivec),yes)
     CXXFLAGS += -maltivec
-    ifeq ($(COMP),gcc)
+    ifneq ($(filter gcc,$(COMP)),)
         CXXFLAGS += -mabi=altivec
     endif
 endif
@@ -924,7 +924,9 @@ ifeq ($(lsx),yes)
 endif
 
 ifeq ($(rva23),yes)
-    CXXFLAGS += -DUSE_RVV -march=rv64gcv1p0_zba_zbb_zbs_zicbop_zicond
+    ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
+        CXXFLAGS += -DUSE_RVV -march=rv64gcv1p0_zba_zbb_zbs_zicbop_zicond
+    endif
 endif
 
 ifeq ($(neon),yes)
