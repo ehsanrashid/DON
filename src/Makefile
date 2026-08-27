@@ -457,6 +457,7 @@ else ifneq ($(findstring apple-silicon,$(ARCH)),)
 # WASM-specific intrinsics
 else ifneq ($(findstring wasm32,$(ARCH)),)
     arch = wasm32
+    bits = 32
     sse = yes
     sse2 = yes
     ssse3 = yes
