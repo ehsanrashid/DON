@@ -44,6 +44,7 @@ g++ -std=c++17 -O2 -I./src `
 #include <chrono>
 #include <iostream>
 #include <memory>
+#include <system_error>
 #include <thread>
 #include <vector>
 

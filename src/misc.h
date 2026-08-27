@@ -310,6 +310,8 @@ constexpr double constexpr_log1p_log(const double d) noexcept {
 // Note: the while loops are O(|exponent|) iterations, which is fine for
 // compile-time table generation. For runtime use, prefer std::log.
 constexpr double constexpr_log(double x) noexcept {
+    // Returns an approximation of ln(x) for x > 0.
+    // For x <= 0, returns -1e300 as a constexpr-safe sentinel.
     if (x <= 0.0)
         return -1e300;  // Undefined; not NaN/−inf so it stays constexpr-safe
 
