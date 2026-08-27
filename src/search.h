@@ -701,6 +701,7 @@ class Worker final {
 
     void update_quiet_histories(const Position& pos, Stack* ss, Move m, int bonus) noexcept;
 
+    template<bool PVNode>
     void update_histories(const Position&                pos,
                           Stack*                         ss,
                           Depth                          depth,

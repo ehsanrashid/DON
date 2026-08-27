@@ -1746,7 +1746,7 @@ Value Worker::search(Position&    pos,
     {
         bool extra = bestMove == ttd.move;
 
-        update_histories(pos, ss, depth, bestMove, extra, searchedMoves);
+        update_histories<PVNode>(pos, ss, depth, bestMove, extra, searchedMoves);
 
         if constexpr (!PVNode)
         {
@@ -2183,6 +2183,7 @@ void Worker::update_quiet_histories(const Position& pos,
 }
 
 // Updates history at the end of search() when a bestMove is found and other searched moves are known
+template<bool PVNode>
 void Worker::update_histories(const Position&                pos,
                               Stack* const                   ss,
                               const Depth                    depth,
@@ -2192,13 +2193,17 @@ void Worker::update_histories(const Position&                pos,
     assert(depth > DEPTH_ZERO);
     assert(ss->moveCount != 0);
 
-    int bonus =
-      std::clamp(-81 + 133 * depth
-                   + std::min(constexpr_round(31.2500e-3 * (ss - 1)->history / depth), 512),
-                 +4, +1888)
-      + int(extra) * 364;
+    int bonus = std::clamp(-81 + 133 * depth
+                             + std::min(constexpr_round((ss - 1)->history / depth / 32.0), 512),
+                           +4, +1888)
+              + int(extra) * 364;
 
     int malus = std::min(-235 + 968 * depth, +2244);
+
+    if constexpr (!PVNode)
+    {
+        bonus += bonus * i64(searchedMoves[0].size() + searchedMoves[1].size()) / MOVE_MAX;
+    }
 
     if (pos.capture_promo(bestMove))
     {
