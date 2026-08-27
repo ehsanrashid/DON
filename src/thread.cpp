@@ -327,40 +327,35 @@ void Threads::set(const NumaConfig&                       numaConfig,
 
 namespace {
 
-// Metrics used to compare threads when selecting the best-thread
+// Metrics used to compare threads when selecting the best thread.
 struct ThreadMetric final {
    public:
-    // Factory function: Builds the comparison metrics for a thread:
-    // evaluation, win/loss status, vote count, vote weight, and PV size
-    template<typename VotingFunc>
+    // Build the comparison metrics for a thread.
     static ThreadMetric from_thread(const Thread*               th,
-                                    const Array<u64, MOVE_MAX>& voteCounts,
-                                    VotingFunc&&                calc_vote_weight) noexcept {
+                                    const Array<u64, MOVE_MAX>& moveVotes) noexcept {
         const auto& rm = th->worker->root_moves()[0];
 
-        // Aborted (depth 1) may leave the reported win/loss value inexact
+        // An aborted depth-1 search may leave the reported win/loss value inexact.
         const Value value   = rm.value;
         const bool  isBound = rm.is_bound();
 
-        assert(rm.id != std::numeric_limits<u16>::max() && rm.id < voteCounts.size());
-        const u64 voteCount = voteCounts[rm.id];
+        assert(rm.id != std::numeric_limits<u16>::max() && rm.id < moveVotes.size());
+        const u64 voteWeight = moveVotes[rm.id];
 
         return {
           value,                                                   //
           value != +VALUE_INFINITE && is_win(value) && !isBound,   //
           value != -VALUE_INFINITE && is_loss(value) && !isBound,  //
-          voteCount,                                               //
-          std::forward<VotingFunc>(calc_vote_weight)(th),          //
+          voteWeight,                                              //
           rm.size()                                                //
         };
     }
 
-    Value value;       // Position evaluation
-    bool  win;         // Exact winning (mates or TB win)
-    bool  loss;        // Exact losing (mated or TB loss)
-    u64   voteCount;   // Number of votes for this move
-    u64   voteWeight;  // Weighted voting value (depth-adjusted)
-    usize pvSize;      // Principal variation size
+    Value value;       // Position evaluation.
+    bool  win;         // Exact win (mate or tablebase win).
+    bool  loss;        // Exact loss (mated or tablebase loss).
+    u64   voteWeight;  // Accumulated vote weight for the move.
+    usize pvSize;      // Principal variation size.
 };
 
 // Returns true when the candidate thread should replace the current best thread
@@ -387,11 +382,9 @@ struct MateBetterThread final {
 
         // Case 3b: Both are normal/drawn -> compare voting metrics
         return  // Primary: vote count
-          bestThread.voteCount != candThread.voteCount ? bestThread.voteCount < candThread.voteCount
-          // Tie-break 1: Prefer the higher depth-weighted vote
-          : bestThread.voteWeight != candThread.voteWeight
+          bestThread.voteWeight != candThread.voteWeight
             ? bestThread.voteWeight < candThread.voteWeight
-            // Tie-break 2: Finally, prefer the longer PV
+            // Tie-break: Finally, prefer the longer PV
             : bestThread.pvSize < candThread.pvSize;
     }
 };
@@ -425,11 +418,9 @@ struct NormalBetterThread final {
 
         // Case 3b: Both are normal/drawn -> compare voting metrics
         return  // Primary: vote count
-          bestThread.voteCount != candThread.voteCount ? bestThread.voteCount < candThread.voteCount
-          // Tie-break 1: Prefer the higher depth-weighted vote
-          : bestThread.voteWeight != candThread.voteWeight
+          bestThread.voteWeight != candThread.voteWeight
             ? bestThread.voteWeight < candThread.voteWeight
-            // Tie-break 2: Finally, prefer the longer PV
+            // Tie-break: Finally, prefer the longer PV
             : bestThread.pvSize < candThread.pvSize;
     }
 };
@@ -466,26 +457,19 @@ const Thread* Threads::best_thread() const noexcept {
     if (snapThreads.empty())
         return fallbackThread;
 
-    // Find the minimum value of all threads
-    Value minValue = VALUE_NONE;
+    Value minValue = +VALUE_INFINITE;
     for (const auto* th : snapThreads)
         minValue = std::min(th->worker->rootMoves[0].value, minValue);
 
-    // Vote according to value and depth
-    const auto calc_vote_weight = [minValue](const Thread* th) noexcept -> u64 {
-        return static_cast<u64>(th->worker->rootMoves[0].value - minValue + 14)
-             * th->worker->rootDepth;
-    };
-
-    Array<u64, MOVE_MAX> voteCounts{};
+    Array<u64, MOVE_MAX> moveVotes{};
 
     // Aggregate votes
     for (const auto* th : snapThreads)
     {
         assert(th->worker->rootMoves[0].id != std::numeric_limits<u16>::max()
-               && th->worker->rootMoves[0].id < voteCounts.size());
+               && th->worker->rootMoves[0].id < moveVotes.size());
 
-        voteCounts[th->worker->rootMoves[0].id] += calc_vote_weight(th);
+        moveVotes[th->worker->rootMoves[0].id] += th->worker->rootMoves[0].value - minValue + 14;
     }
 
     // Select the best thread
@@ -494,14 +478,14 @@ const Thread* Threads::best_thread() const noexcept {
     const auto* bestThread = snapThreads.front();
 
     // Compute and cache the best thread comparison metrics
-    auto bestMetric = ThreadMetric::from_thread(bestThread, voteCounts, calc_vote_weight);
+    auto bestMetric = ThreadMetric::from_thread(bestThread, moveVotes);
 
     for (usize i = 1; i < snapThreads.size(); ++i)
     {
         const auto* candThread = snapThreads[i];
 
         // Compute the candidate thread comparison metrics
-        const auto candMetric = ThreadMetric::from_thread(candThread, voteCounts, calc_vote_weight);
+        const auto candMetric = ThreadMetric::from_thread(candThread, moveVotes);
 
         if constexpr (Mate)
         {

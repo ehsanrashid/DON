@@ -682,7 +682,7 @@ u8* TBTable<T>::map(const std::string_view filename) noexcept {
         return nullptr;
     }
     #else
-    int fd = ::open(filename.data(), O_RDONLY);
+    int fd = ::open(filename.data(), O_RDONLY | O_CLOEXEC);
 
     FdGuard fdGuard{fd};
 
