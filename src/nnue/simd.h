@@ -35,9 +35,8 @@
     #endif
 #elif defined(USE_NEON)
     #include <arm_neon.h>
-#elif defined(__wasm__)
 #else
-    //#warning "No SIMD instruction set enabled — falling back to scalar code"
+    #warning "No SIMD instruction set enabled — falling back to scalar code"
 #endif
 
 #include <type_traits>

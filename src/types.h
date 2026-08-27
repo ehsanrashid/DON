@@ -158,8 +158,8 @@ constexpr Array<PieceType, PIECE_TYPE_CNT - 2> NON_PAWN_PIECE_TYPES{
 #define ENABLE_INCR_OPERATORS_ON(T) \
     static_assert(std::is_enum_v<T>, "ENABLE_INCR_OPERATORS_ON requires an enum"); \
     static_assert(std::is_convertible_v<T, int>, "ENABLE_INCR_OPERATORS_ON requires an *unscoped* enum (plain enum)"); \
-    constexpr T& operator++(T& v) noexcept { return v = T(static_cast<int>(v) + 1); } \
-    constexpr T& operator--(T& v) noexcept { return v = T(static_cast<int>(v) - 1); } \
+    constexpr T& operator++(T& v) noexcept { return v = static_cast<T>(static_cast<int>(v) + 1); } \
+    constexpr T& operator--(T& v) noexcept { return v = static_cast<T>(static_cast<int>(v) - 1); } \
     constexpr T  operator++(T& v, int) noexcept { T u = v; ++v; return u; } \
     constexpr T  operator--(T& v, int) noexcept { T u = v; --v; return u; }
 // clang-format on

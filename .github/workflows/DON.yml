@@ -140,7 +140,7 @@ jobs:
     uses: ./.github/workflows/sanitizers.yml
   Tests:
     name: Tests
-    if: ${{ false }}
+    if: ${{ always() }}
     uses: ./.github/workflows/tests.yml
   Matetrack:
     name: Matetrack
@@ -154,10 +154,10 @@ jobs:
     name: Check Compilers
     if: ${{ false }}
     uses: ./.github/workflows/check_compilers.yml
-  BuildWASM:
-    name: Build WASM
-    if: ${{ always() }}
-    uses: ./.github/workflows/build_wasm.yml
+  # BuildWASM:
+  #   name: Build WASM
+  #   if: ${{ always() }}
+  #   uses: ./.github/workflows/build_wasm.yml
   # Release Jobs
   BuildAndroid:
     name: Build Android

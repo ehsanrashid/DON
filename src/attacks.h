@@ -232,14 +232,14 @@ template<>
 constexpr u8 distance<File>(const Square s1, const Square s2) noexcept {
     assert(is_ok(s1) && is_ok(s2));
 
-    return constexpr_abs(static_cast<int>(file_of(s1)) - static_cast<int>(file_of(s2)));
+    return constexpr_abs(static_cast<u8>(file_of(s1)) - static_cast<u8>(file_of(s2)));
 }
 
 template<>
 constexpr u8 distance<Rank>(const Square s1, const Square s2) noexcept {
     assert(is_ok(s1) && is_ok(s2));
 
-    return constexpr_abs(static_cast<int>(rank_of(s1)) - static_cast<int>(rank_of(s2)));
+    return constexpr_abs(static_cast<u8>(rank_of(s1)) - static_cast<u8>(rank_of(s2)));
 }
 
 alignas(CACHE_LINE_SIZE) inline constexpr auto DISTANCES = []() constexpr noexcept {
@@ -532,7 +532,7 @@ alignas(CACHE_LINE_SIZE) inline constexpr auto DUAL_MAGICS = []() constexpr noex
         dm.rBB               = 2 * square_bb(s);
         dm.rrBB              = 2 * square_bb(reverse_sq(s));
         dm.rankAttacksLookup = RANK_ATTACKS[file_of(s)].data();
-        dm.shift             = 8 * int(rank_of(s));
+        dm.shift             = 8 * static_cast<u8>(rank_of(s));
     }
 
     return dualMagics;
