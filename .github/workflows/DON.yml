@@ -153,6 +153,10 @@ jobs:
     name: Check Compilers
     if: ${{ always() }}
     uses: ./.github/workflows/check_compilers.yml
+  BuildWASM:
+    name: Build WASM
+    if: ${{ always() }}
+    uses: ./.github/workflows/build_wasm.yml
   # Release Jobs
   BuildAndroid:
     name: Build Android

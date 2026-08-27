@@ -165,7 +165,9 @@ inline __m128i i386_cvtsi64_si128(const i64 value) noexcept {
 }
         #endif
         #if defined(USE_SSE41)  // SSE4.1 enabled?
-            #if defined(X86_32)
+            #if defined(__wasm__)
+                #define vec_convert_8_16(a) wasm_i16x8_load8x8(reinterpret_cast<const void*>(&a))
+            #elif defined(X86_32)
                 #define vec_convert_8_16(a) \
                     _mm_cvtepi8_epi16(SIMD::i386_cvtsi64_si128(static_cast<i64>(a)))
             #else
@@ -534,9 +536,13 @@ inline int m128_hadd(const __m128i sum, const int bias) noexcept {
 }
 
 inline void m128_add_dpbusd_epi32(__m128i& acc, const __m128i a, const __m128i b) noexcept {
+        #if defined(__wasm_relaxed_simd__)
+    acc = wasm_i32x4_relaxed_dot_i8x16_i7x16_add(b, a, acc);
+        #else
     __m128i product = _mm_maddubs_epi16(a, b);
     product         = _mm_madd_epi16(product, _mm_set1_epi16(1));
     acc             = _mm_add_epi32(acc, product);
+        #endif
 }
     #endif
 #endif  // USE_SSSE3

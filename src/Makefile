@@ -704,13 +704,14 @@ ifdef COMPCXX
 endif
 
 ifeq ($(TARGET_KERNEL),Darwin)
-    MACOS_BUILD_FLAGS := -mmacosx-version-min=10.15
-    ifneq ($(arch),any)
+    ifneq ($(filter-out any,$(arch)),)
         MACOS_BUILD_FLAGS += -arch $(arch)
     endif
+    MACOS_BUILD_FLAGS += -mmacosx-version-min=10.15
+
+    XCRUN    := xcrun
     CXXFLAGS += $(MACOS_BUILD_FLAGS)
     LDFLAGS  += $(MACOS_BUILD_FLAGS)
-    XCRUN     = xcrun
 endif
 
 ## Locate llvm-profdata compatible with CXX for PGO (profile-guided optimization) builds
