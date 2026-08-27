@@ -73,12 +73,6 @@ class HistoryEntry final {
         assert(constexpr_abs(T(*this)) <= D);
     }
 
-    void operator*=(const double m) noexcept {
-        assert(constexpr_abs(m) <= 1.0);
-
-        *this = constexpr_round(m * T(*this));
-    }
-
    private:
     static constexpr bool UseAtomic =
 #if defined(__wasm__)

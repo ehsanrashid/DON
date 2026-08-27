@@ -55,6 +55,7 @@ namespace NNUE {
 class Network;
 }
 
+// Maximum number of moves stored during search
 inline constexpr usize SEARCHED_MOVE_CAPACITY = 32;
 
 using SearchedMoves = FixedVector<Move, SEARCHED_MOVE_CAPACITY, u16>;

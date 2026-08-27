@@ -423,8 +423,6 @@ inline constexpr Value VALUE_BISHOP = 825;
 inline constexpr Value VALUE_ROOK   = 1276;
 inline constexpr Value VALUE_QUEEN  = 2538;
 
-inline constexpr Value VALUE_EVAL_PAWN = 534;
-
 inline constexpr int DELTA_MAX = 2 * VALUE_INFINITE;
 
 // Returns the value of the given piece type
