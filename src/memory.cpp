@@ -190,7 +190,7 @@ void* alloc_aligned_large_page_with_hint(const usize                 allocSize,
     {
         const usize roundedAllocSize = round_up_to_multiple(allocSize, HUGE_PAGE_SIZE);
         // Allocate memory
-        mem = HugePageSizes.allocate(roundedAllocSize);
+        mem = HugePageSizes.alloc(roundedAllocSize);
         if (mem != nullptr)
             return mem;
 

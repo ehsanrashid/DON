@@ -1180,15 +1180,15 @@ struct FixedText final {
 static_assert(sizeof(FixedText) == 32, "FixedText size must be 32 bytes");
 
 // Tracks allocation sizes and performs allocation and freeing.
-template<typename AllocateFunc, typename FreeFunc>
+template<typename AllocFunc, typename FreeFunc>
 class AllocationSizes final {
    public:
-    explicit AllocationSizes(AllocateFunc allocateFn, FreeFunc freeFn) noexcept :
-        allocateFunc(std::move(allocateFn)),
+    explicit AllocationSizes(AllocFunc allocFn, FreeFunc freeFn) noexcept :
+        allocFunc(std::move(allocFn)),
         freeFunc(std::move(freeFn)) {}
 
-    [[nodiscard]] void* allocate(const usize allocSize) noexcept {
-        void* mem = allocateFunc(allocSize);
+    [[nodiscard]] void* alloc(const usize allocSize) noexcept {
+        void* mem = allocFunc(allocSize);
 
         if (mem != nullptr)
         {
@@ -1239,7 +1239,7 @@ class AllocationSizes final {
    private:
     mutable std::shared_mutex sharedMutex;
 
-    const AllocateFunc               allocateFunc;
+    const AllocFunc                  allocFunc;
     const FreeFunc                   freeFunc;
     std::unordered_map<void*, usize> sizesMap;
 };

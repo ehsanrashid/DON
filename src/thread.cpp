@@ -400,6 +400,7 @@ struct BetterThread final {
 
 }  // namespace
 
+template<bool Mate>
 const Thread* Threads::best_thread() const noexcept {
     assert(threads.size() > 1);
     // Snap threads pointers under read-lock
@@ -438,7 +439,7 @@ const Thread* Threads::best_thread() const noexcept {
         minValue = std::min(th->worker->rootMoves[0].value, minValue);
 
     // Vote according to value and depth, and select the best thread
-    auto calc_vote_weight = [minValue](const Thread* th) noexcept -> u64 {
+    const auto calc_vote_weight = [minValue](const Thread* th) noexcept -> u64 {
         return static_cast<u64>(th->worker->rootMoves[0].value - minValue + 14)
              * th->worker->rootDepth;
     };
@@ -454,29 +455,86 @@ const Thread* Threads::best_thread() const noexcept {
         votes[th->worker->rootMoves[0].id] += calc_vote_weight(th);
     }
 
-    // Cache best thread properties
-    auto bestMetric = ThreadMetric::from_thread(bestThread, votes, calc_vote_weight);
     // Find best-thread
-    for (usize i = 1; i < snapThreads.size(); ++i)
+    if constexpr (Mate)
     {
-        const auto* candThread = snapThreads[i];
-
-        // Get candidate thread properties
-        const auto candMetric = ThreadMetric::from_thread(candThread, votes, calc_vote_weight);
-
-        if (BetterThread betterThread; betterThread(bestMetric, candMetric))
+        for (usize i = 0; i < snapThreads.size(); ++i)
         {
-            bestMetric = candMetric;
-            bestThread = candThread;
+            const auto* candThread = snapThreads[i];
 
-            // Early exit: mate in 1 found (can't improve further)
-            if (bestMetric.win && bestMetric.value >= VALUE_MATE_WIN_IN_1)
-                break;
+            const auto& bestThreadMove = bestThread->worker->rootMoves[0];
+            const auto& candThreadMove = candThread->worker->rootMoves[0];
+
+            const auto bestThreadMoveValue = bestThreadMove.value;
+            const auto candThreadMoveValue = candThreadMove.value;
+
+            // Aborted (depth 1) searches may lead to inexact win (or loss) scores.
+            const bool bestThreadDecisive = bestThreadMoveValue != -VALUE_INFINITE
+                                         && is_decisive(bestThreadMoveValue)
+                                         && !bestThreadMove.is_bound();
+            const bool candThreadDecisive = candThreadMoveValue != -VALUE_INFINITE
+                                         && is_decisive(candThreadMoveValue)
+                                         && !candThreadMove.is_bound();
+
+            const auto bestThreadMoveVoteCount = votes[bestThreadMove.id];
+            const auto candThreadMoveVoteCount = votes[candThreadMove.id];
+
+            const auto bestThreadMoveVoteWeight = calc_vote_weight(bestThread);
+            const auto candThreadMoveVoteWeight = calc_vote_weight(candThread);
+
+            if (bestThreadDecisive)
+            {
+                // Make sure we pick the shortest mate / TB conversion.
+                if (candThreadDecisive
+                    && constexpr_abs(bestThreadMoveValue) < constexpr_abs(candThreadMoveValue))
+                {
+                    assert((is_win(bestThreadMoveValue) && is_win(candThreadMoveValue))
+                           || (is_loss(bestThreadMoveValue) && is_loss(candThreadMoveValue)));
+
+                    bestThread = candThread;
+                }
+            }
+            else if (candThreadDecisive
+                     || (!is_loss(candThreadMoveValue)
+                         && (bestThreadMoveVoteCount < candThreadMoveVoteCount
+                             || (bestThreadMoveVoteCount == candThreadMoveVoteCount
+                                 && (bestThreadMoveVoteWeight < candThreadMoveVoteWeight
+                                     || (bestThreadMoveVoteWeight == candThreadMoveVoteWeight
+                                         && bestThreadMove.size() < candThreadMove.size()))))))
+                bestThread = candThread;
+        }
+    }
+    else
+    {
+        // Cache best thread properties
+        ThreadMetric bestMetric = ThreadMetric::from_thread(bestThread, votes, calc_vote_weight);
+
+        for (usize i = 1; i < snapThreads.size(); ++i)
+        {
+            const auto* candThread = snapThreads[i];
+
+            // Get candidate thread properties
+            const ThreadMetric candMetric =
+              ThreadMetric::from_thread(candThread, votes, calc_vote_weight);
+
+            if (BetterThread betterThread; betterThread(bestMetric, candMetric))
+            {
+                bestMetric = candMetric;
+                bestThread = candThread;
+
+                // Early exit: mate in 1 found (can't improve further)
+                if (bestMetric.win && bestMetric.value >= VALUE_MATE_WIN_IN_1)
+                    break;
+            }
         }
     }
 
     return bestThread;
 }
+
+// Explicit template instantiations:
+template const Thread* Threads::best_thread<false>() const noexcept;
+template const Thread* Threads::best_thread<true>() const noexcept;
 
 // Wakes up main thread waiting in idle_func() and returns immediately.
 // Main thread will wake up other threads and start the search.

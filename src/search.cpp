@@ -395,7 +395,12 @@ void Worker::start_search() noexcept {
                     th->worker->rootMoves.swap_to_front(skillMove);
             }
             else if (thread_count() > 1)
-                bestWorker = threads.best_thread()->worker.get();
+            {
+                if (limit.mate != 0)
+                    bestWorker = threads.best_thread<true>()->worker.get();
+                else
+                    bestWorker = threads.best_thread<false>()->worker.get();
+            }
 
             if (limit.use_time_manager())
             {
