@@ -441,7 +441,7 @@ const Thread* Threads::best_thread() const noexcept {
     assert(threads.size() > 1);
     // Snap threads pointers under read-lock
     std::vector<const Thread*> snapThreads;
-    const Thread*              fallbackThread = threads.front().get();
+    const auto*                fallbackThread = threads.front().get();
     Depth                      bestDepth      = fallbackThread->worker->rootDepth;
     {
         std::shared_lock readLock(sharedMutex);
@@ -452,7 +452,7 @@ const Thread* Threads::best_thread() const noexcept {
         {
             const auto& rm = th->worker->rootMoves[0];
 
-            if (rm.value != -VALUE_INFINITE && !rm.empty())
+            if (rm.value != -VALUE_INFINITE)
                 snapThreads.push_back(th.get());
             else if (th->worker->rootDepth > bestDepth)
             {
@@ -465,9 +465,6 @@ const Thread* Threads::best_thread() const noexcept {
     // Fallback: use completed-depth if no valid threads
     if (snapThreads.empty())
         return fallbackThread;
-
-    // Initialize with first valid thread
-    const Thread* bestThread = snapThreads.front();
 
     // Find the minimum value of all threads
     Value minValue = VALUE_NONE;
@@ -491,16 +488,19 @@ const Thread* Threads::best_thread() const noexcept {
         voteCounts[th->worker->rootMoves[0].id] += calc_vote_weight(th);
     }
 
-    // Find best thread
+    // Select the best thread
 
-    // Cache best thread properties
+    // Initialize with first valid thread
+    const auto* bestThread = snapThreads.front();
+
+    // Compute and cache the best thread comparison metrics
     auto bestMetric = ThreadMetric::from_thread(bestThread, voteCounts, calc_vote_weight);
 
     for (usize i = 1; i < snapThreads.size(); ++i)
     {
         const auto* candThread = snapThreads[i];
 
-        // Get candidate thread properties
+        // Compute the candidate thread comparison metrics
         const auto candMetric = ThreadMetric::from_thread(candThread, voteCounts, calc_vote_weight);
 
         if constexpr (Mate)
@@ -510,8 +510,9 @@ const Thread* Threads::best_thread() const noexcept {
                 bestMetric = candMetric;
                 bestThread = candThread;
 
-                // Early exit: mate in 1 found (can't improve further)
-                if (bestMetric.win && bestMetric.value >= VALUE_MATE_WIN_IN_1)
+                // Early exit: mate in one found (can't be improved further)
+                if ((bestMetric.win || bestMetric.loss)
+                    && constexpr_abs(bestMetric.value) >= VALUE_MATE_WIN_IN_1)
                     break;
             }
         }
@@ -522,7 +523,7 @@ const Thread* Threads::best_thread() const noexcept {
                 bestMetric = candMetric;
                 bestThread = candThread;
 
-                // Early exit: mate in 1 found (can't improve further)
+                // Early exit: winning mate in one found (can't be improved further)
                 if (bestMetric.win && bestMetric.value >= VALUE_MATE_WIN_IN_1)
                     break;
             }
