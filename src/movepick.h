@@ -92,9 +92,6 @@ class MovePicker final {
 
     MovePicker(const Position& p, Move ttm, const CaptureHistory* captureHist, int th) noexcept;
 
-    [[nodiscard]] size_type size() const noexcept { return end() - begin(); }
-    [[nodiscard]] bool      empty() const noexcept { return begin() == end(); }
-
     [[nodiscard]] Move next_move() noexcept;
 
     [[nodiscard]] Stage cur_stage() const noexcept;
@@ -121,24 +118,9 @@ class MovePicker final {
     template<typename Predicate>
     bool select(const Predicate& pred) noexcept;
 
-    [[nodiscard]] iterator       begin() noexcept { return cur; }
-    [[nodiscard]] const_iterator begin() const noexcept { return cur; }
-
-    [[nodiscard]] iterator       end() noexcept { return curEnd; }
-    [[nodiscard]] const_iterator end() const noexcept { return curEnd; }
-
-    [[nodiscard]] bool valid() const noexcept { return *cur != ttMove; }
-
     [[nodiscard]] bool good_capture_or_swap() noexcept;
 
     [[nodiscard]] bool above_threshold_capture() const noexcept;
-
-    void next() noexcept { ++cur; }
-
-    [[nodiscard]] Move move() noexcept { return *cur++; }
-
-    [[nodiscard]] pointer       data() noexcept { return moves.data(); }
-    [[nodiscard]] const_pointer data() const noexcept { return moves.data(); }
 
     const Position&                 pos;
     Move                            ttMove;

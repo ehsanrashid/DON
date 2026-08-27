@@ -860,7 +860,7 @@ std::string utf8_from_wstring(std::wstring_view wSv) noexcept {
 #endif
 }
 
-std::filesystem::path path_from_utf8(std::string_view path) noexcept {
+std::filesystem::path path_from_utf8(const std::string_view path) noexcept {
 #if defined(_WIN32)
     const usize size = path.size();
     if (size > std::numeric_limits<int>::max())

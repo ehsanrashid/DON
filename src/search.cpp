@@ -972,7 +972,7 @@ Value Worker::search(Position&    pos,
             {
                 // Bonus for a quiet ttMove
                 if (!ttmCapture)
-                    update_quiet_histories(pos, ss, ttd.move, std::min(-0 + 112 * depth, +695));
+                    update_quiet_histories(pos, ss, ttd.move, std::min(112 * depth, +695));
 
                 // Extra penalty for early quiet moves of the previous ply
                 if (preOk && !preCapture && (ss - 1)->moveCount < 5)
@@ -1344,7 +1344,7 @@ Value Worker::search(Position&    pos,
         int r = reduction(depth, moveCount, deltaRatio, improve);
 
         // (*Scaler) Increase reduction for pvHit nodes, Larger values scales well
-        r += int(ss->pvTT) * 929;
+        r += int(ss->pvTT) * 1006;
 
         // Step 14. Pruning at shallow depths
         // Depth conditions are important for mate finding.
@@ -1368,7 +1368,7 @@ Value Worker::search(Position&    pos,
                     if (!check && lmrDepth < 8)
                     {
                         int futility = 234 + ss->evalue + piece_value(capturedPt) + 247 * lmrDepth
-                                     + constexpr_round(0.1309 * history);
+                                     + constexpr_round(history * 131.0 / 1024.0);
                         if (futility <= alpha)
                             continue;
                     }
@@ -1376,8 +1376,7 @@ Value Worker::search(Position&    pos,
                     // SEE based pruning for captures and checks
                     if (safe_pruning(movedPc))
                     {
-                        int threshold =
-                          std::max(177 * depth + constexpr_round(33.2031e-3 * history), 0);
+                        int threshold = 175 * depth + constexpr_round(history * 34.0 / 1024.0);
                         if ((mp.cur_stage() != MovePicker::Stage::ENC_GOOD_CAPTURE
                              || mp.threshold_value() > threshold)
                             && pos.see(move) < -threshold)

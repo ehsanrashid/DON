@@ -502,12 +502,10 @@ MovePicker::score<GenType::EVA_QUIET>(const MoveList<GenType::EVA_QUIET>& moveLi
 template<typename Predicate>
 bool MovePicker::select(const Predicate& pred) noexcept {
 
-    while (!empty())
-    {
-        if (valid() && pred())
+    for (; cur != curEnd; ++cur)
+        if (*cur != ttMove && pred())
             return true;
-        next();
-    }
+
     return false;
 }
 
@@ -544,7 +542,7 @@ STAGE_SWITCH:
 
     case Stage::ENC_GOOD_CAPTURE :
         if (select([this]() noexcept -> bool { return good_capture_or_swap(); }))
-            return move();
+            return *cur++;
 
         if (!quietsSkip)
         {
@@ -559,18 +557,15 @@ STAGE_SWITCH:
         [[fallthrough]];
 
     case Stage::ENC_GOOD_QUIET :
-        while (!quietsSkip && !empty())
-        {
-            if (valid())
+        for (; !quietsSkip && cur != curEnd; ++cur)
+            if (*cur != ttMove)
             {
                 // Good quiet threshold
                 if (cur->value < GOOD_QUIET_THRESHOLD)
                     // Remaining quiets are bad
                     break;
-                return move();
+                return *cur++;
             }
-            next();
-        }
 
         // Mark the beginning of bad quiets
         badQuietBeg = cur;
@@ -584,7 +579,7 @@ STAGE_SWITCH:
 
     case Stage::ENC_BAD_CAPTURE :
         if (select(always_true))
-            return move();
+            return *cur++;
 
         if (!quietsSkip)
         {
@@ -600,13 +595,13 @@ STAGE_SWITCH:
 
     case Stage::ENC_BAD_QUIET :
         if (!quietsSkip && select(always_true))
-            return move();
+            return *cur++;
 
         return Move::None;
 
     case Stage::EVA_CAPTURE :
         if (select(always_true))
-            return move();
+            return *cur++;
 
         {
             MoveList<GenType::EVA_QUIET> moveList(pos);
@@ -622,13 +617,13 @@ STAGE_SWITCH:
     case Stage::EVA_QUIET :
     case Stage::QS_CAPTURE :
         if (select(always_true))
-            return move();
+            return *cur++;
 
         return Move::None;
 
     case Stage::PROBCUT :
         if (select([this]() noexcept -> bool { return above_threshold_capture(); }))
-            return move();
+            return *cur++;
 
         return Move::None;
     }
