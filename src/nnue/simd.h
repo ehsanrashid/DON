@@ -298,6 +298,8 @@ inline __m256i lasx_cvtepi8_epi16(const __m128i a) noexcept {
         #endif
 }
         #define vec_convert_8_16(a) SIMD::lasx_cvtepi8_epi16(a)
+        #define vec_mulhi_8 __lasx_xvmuh_bu
+        #define vec_srli_8 __lasx_xvsrli_b
 
         #define vec128_zero __lsx_vldi(0)
         #define vec128_set_16(a) __lsx_vreplgr2vr_h(a)
@@ -362,6 +364,9 @@ inline __m128i vec_convert_8_16(const u64 x) noexcept {
     __m128i v = __lsx_vldrepl_d(reinterpret_cast<const void*>(&x), 0);
     return __lsx_vsllwil_h_b(v, 0);
 }
+
+        #define vec_mulhi_8 __lsx_vmuh_bu
+        #define vec_srli_8 __lsx_vsrli_b
 
         #define vec128_zero __lsx_vldi(0)
         #define vec128_set_16(a) __lsx_vreplgr2vr_h(a)

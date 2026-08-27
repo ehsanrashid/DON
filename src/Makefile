@@ -81,6 +81,8 @@ endif
 NAME := DON
 ifeq ($(IS_WINDOWS),yes)
     EXE := $(NAME).exe
+else ifneq ($(findstring wasm,$(ARCH)),)
+    EXE := $(NAME).js
 else
     EXE := $(NAME)
 endif
@@ -528,8 +530,9 @@ ifeq ($(COMP),gcc)
             CXXFLAGS += $(BITS_FLAG)
             LDFLAGS  += $(BITS_FLAG)
         endif
-    # LoongArch64 & RISC-V64 determine bitness from the target
-    else ifneq ($(filter loongarch64 riscv64,$(arch)),)
+    # LoongArch64, RISC-V64, and WebAssembly determine bitness from the target
+    else ifneq ($(filter loongarch64 riscv64 wasm32,$(arch)),)
+
     # Generic architectures use the configured bitness
     else
         CXXFLAGS += $(BITS_FLAG)
@@ -620,8 +623,9 @@ else ifeq ($(COMP),clang)
             CXXFLAGS += $(BITS_FLAG)
             LDFLAGS  += $(BITS_FLAG)
         endif
-    # LoongArch64 & RISC-V64 determine bitness from the target
-    else ifneq ($(filter loongarch64 riscv64,$(arch)),)
+    # LoongArch64, RISC-V64, and WebAssembly determine bitness from the target
+    else ifneq ($(filter loongarch64 riscv64 wasm32,$(arch)),)
+
     # Generic architectures use the configured bitness
     else
         CXXFLAGS += $(BITS_FLAG)

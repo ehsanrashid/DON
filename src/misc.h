@@ -139,7 +139,7 @@ using iptr = std::intptr_t;
 
 using uchar = unsigned char;
 
-#if defined(__GNUC__) && defined(IS_64BIT) && !defined(__wasm__)
+#if defined(__SIZEOF_INT128__)
 __extension__ using u128 = unsigned __int128;
 __extension__ using i128 = signed __int128;
 #endif
@@ -481,7 +481,7 @@ std::string version_info() noexcept;
 std::string compiler_info() noexcept;
 
 constexpr u64 mul_hi64(const u64 u1, const u64 u2) noexcept {
-#if defined(__GNUC__) && defined(IS_64BIT) && !defined(__wasm__)
+#if defined(__SIZEOF_INT128__)
     return (static_cast<u128>(u1) * static_cast<u128>(u2)) >> 64;
 #else
     u64 u1L = static_cast<u32>(u1), u1H = u1 >> 32;

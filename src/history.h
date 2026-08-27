@@ -49,17 +49,17 @@ class HistoryEntry final {
 
    public:
     operator T() const noexcept {
-        if constexpr (Atomic)
-            return enrty.load(std::memory_order_relaxed);
+        if constexpr (UseAtomic)
+            return entry.load(std::memory_order_relaxed);
         else
-            return enrty;
+            return entry;
     }
 
     void operator=(const T& e) noexcept {
-        if constexpr (Atomic)
-            enrty.store(e, std::memory_order_relaxed);
+        if constexpr (UseAtomic)
+            entry.store(e, std::memory_order_relaxed);
         else
-            enrty = e;
+            entry = e;
     }
 
     // Update the statistic using bonus, clamped to the range [-D, +D]
@@ -80,7 +80,14 @@ class HistoryEntry final {
     }
 
    private:
-    std::conditional_t<Atomic, std::atomic<T>, T> enrty;
+    static constexpr bool UseAtomic =
+#if defined(__wasm__)
+      false;  // Don't use atomics on WASM as they are always seq_cst
+#else
+      Atomic;
+#endif
+
+    std::conditional_t<UseAtomic, std::atomic<T>, T> entry;
 };
 
 template<typename T>

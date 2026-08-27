@@ -121,7 +121,8 @@ struct NNZ final {
        public:
         Cursor(NNZ& nnz, Color perspective) { nnzOut = nnz.bitset + perspective * Dimensions / 64; }
 
-    #if defined(USE_SSSE3) || defined(USE_LSX) || (defined(USE_NEON) && USE_NEON >= 8)
+    #if defined(USE_SSSE3) || defined(USE_LSX) || (defined(USE_NEON) && USE_NEON >= 8) \
+      || defined(__wasm__)
         void record(SIMD::vec_t neurons1, SIMD::vec_t neurons2) noexcept {
             using namespace SIMD;
 
@@ -159,6 +160,12 @@ struct NNZ final {
             const uint16x8_t bits = vandq_u16(packed, vld1q_u16(Mask8.data()));
 
             *nnzOut++ = vaddvq_u16(bits);
+
+        #elif defined(__wasm__)
+            __m128i packed = _mm_packus_epi32(neurons1, neurons2);
+            packed         = _mm_packs_epi16(packed, packed);
+            *nnzOut++      = ~_mm_movemask_epi8(_mm_cmpeq_epi8(packed, _mm_setzero_si128()));
+
         #endif
         }
 
