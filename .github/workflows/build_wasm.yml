@@ -58,7 +58,7 @@ jobs:
         run: |
           source $GITHUB_WORKSPACE/emsdk/emsdk_env.sh
           em++ --version
-          net=$(grep -oE 'nn-[0-9a-f]+\.nnue' "evaluate.h" | head -1)
+          net=$(grep -oE 'nn-[0-9a-f]+\.nnue' evaluate.h | head -1)
           make clean
           COMPCXX=em++ make -j build ARCH=${{ matrix.arch }} EXTRALDFLAGS="--preload-file $net"
 
