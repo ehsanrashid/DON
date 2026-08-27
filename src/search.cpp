@@ -1111,7 +1111,7 @@ Value Worker::search(Position&    pos,
         int baseFutility = interpolate(std::min<int>(depth, 10), 1, 10, 40, 80) - int(!ttd.hit) * 20;
         // Compute futility
         int futility = std::max(depth * baseFutility
-                              - int((int(improve) * 2934.0 + int(worsen) * 343.0) * baseFutility / 1024.0)
+                              - constexpr_ceil((int(improve) * 2934.0 + int(worsen) * 343.0) * baseFutility / 1024.0)
                               + constexpr_round(absCorrectionValue / 182069.0),
                                 0);
 
