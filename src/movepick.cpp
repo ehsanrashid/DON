@@ -20,7 +20,6 @@
 #include <algorithm>
 #include <cassert>
 #include <limits>
-#include <utility>
 
 #if defined(USE_AVX512ICL)
     #include <immintrin.h>
@@ -164,7 +163,7 @@ Iterator upper_bound_unrolled(const Iterator beg,
 // Stable for all elements.
 template<typename Iterator>
 void insertion_sort(const Iterator beg, const Iterator end) noexcept {
-    if (beg == end)
+    if (end - beg < 2)
         return;
 
     Iterator p = beg + 1;
@@ -175,7 +174,7 @@ void insertion_sort(const Iterator beg, const Iterator end) noexcept {
     Iterator sortedEnd = beg;
 
     // Sort elements with AVX-512 while the sorter has capacity
-    for (; p < end; ++p)
+    for (; p != end; ++p)
     {
         if (sortedEnd - beg + 1 >= ExtMoveSorter::ELEMENT_MAX)
             break;
@@ -189,19 +188,19 @@ void insertion_sort(const Iterator beg, const Iterator end) noexcept {
 #endif
 
     // Insert remaining elements into the sorted prefix
-    for (; p < end; ++p)
+    for (; p != end; ++p)
     {
         // Stability: Skip if already in correct position
         if (!ext_move_descending(p[0], p[-1]))
             continue;
-        // Move the current element out to avoid multiple copies during shifting
-        auto value = std::move(*p);
-        // Find insertion position in the sorted subarray [beg, p) upper_bound ensures stability
+        // Copy the current element before shifting the sorted range
+        auto value = *p;
+        // Find insertion position in the sorted subarray [beg, p). upper_bound preserves stability
         Iterator q = upper_bound_unrolled(beg, p, value, ext_move_descending);
-        // Shift elements in sorted subarray (q, p] one step to the right to make room at *q
-        std::move_backward(q, p, p + 1);
-        // Place value into its correct position
-        *q = std::move(value);
+        // Shift elements in sorted subarray [q, p) one step to the right to make room at *q
+        std::copy_backward(q, p, p + 1);
+        // Place the element into its correct position
+        *q = value;
     }
 }
 
@@ -211,7 +210,7 @@ template<typename Iterator>
 void partial_insertion_sort(const Iterator beg,
                             const Iterator end,
                             const int      limit = std::numeric_limits<int>::min()) noexcept {
-    if (beg == end)
+    if (end - beg < 2)
         return;
 
     Iterator p = beg + 1;
@@ -222,7 +221,7 @@ void partial_insertion_sort(const Iterator beg,
     Iterator sortedEnd = beg;
 
     // Sort qualifying elements with AVX-512 while the sorter has capacity
-    for (; p < end; ++p)
+    for (; p != end; ++p)
     {
         // Skip elements below the limit
         if (p->value < limit)
@@ -252,7 +251,7 @@ void partial_insertion_sort(const Iterator beg,
     };
 
     // Insert remaining qualifying elements into the sorted prefix
-    for (; p < end; ++p)
+    for (; p != end; ++p)
     {
         // Skip elements below the limit
         if (p->value < limit)
@@ -260,14 +259,14 @@ void partial_insertion_sort(const Iterator beg,
         // Stability: Skip if already in correct position
         if (!ext_move_descending(p[0], p[-1]))
             continue;
-        // Move the current element out to avoid multiple copies during shifting
-        auto value = std::move(*p);
-        // Find insertion position in the sorted subarray [beg, p) upper_bound ensures stability
+        // Copy the current element before shifting the sorted range
+        auto value = *p;
+        // Find insertion position in the sorted subarray [beg, p). upper_bound preserves stability
         Iterator q = upper_bound_unrolled(beg, p, value, ext_move_descending_limit);
-        // Shift elements in sorted subarray (q, p] one step to the right to make room at *q
-        std::move_backward(q, p, p + 1);
+        // Shift elements in sorted subarray [q, p) one step to the right to make room at *q
+        std::copy_backward(q, p, p + 1);
         // Place value into its correct position
-        *q = std::move(value);
+        *q = value;
     }
 }
 
