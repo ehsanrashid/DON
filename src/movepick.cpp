@@ -645,7 +645,7 @@ ALWAYS_INLINE bool MovePicker::good_capture_or_swap() noexcept {
 }
 
 ALWAYS_INLINE bool MovePicker::above_threshold_capture() const noexcept {
-    return pos.see(Move(*cur)) >= threshold;
+    return pos.see(*cur) >= threshold;
 }
 
 }  // namespace DON
