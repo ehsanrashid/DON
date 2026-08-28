@@ -449,7 +449,9 @@ void UCI::position(std::istream& is) noexcept {
     while (is >> token)
         moves.push_back(token);
 
-    engine.setup(fen, moves);
+    auto err = engine.setup(fen, moves);
+    if (err)
+        terminate_on_critical_error(err->what());
 }
 
 void UCI::go(std::istream& is) noexcept {

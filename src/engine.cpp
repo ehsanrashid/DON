@@ -116,30 +116,33 @@ const Options& Engine::get_options() const noexcept { return options; }
 
 std::string Engine::fen() const noexcept { return pos.fen(); }
 
-void Engine::setup(const std::string_view fen, const Strings& moves) noexcept {
+std::optional<Error> Engine::setup(const std::string_view fen, const Strings& moves) noexcept {
     // Drop the old states and create a new one
     states = std::make_unique<StateList>(1);
-    pos.set(fen, &states->back());
 
-    [[maybe_unused]] i16 ply = 1;
+    auto err = pos.set(fen, &states->back());
+    if (err)
+        return err;
 
+    i16 ply = 1;
     for (const auto& move : moves)
     {
         const Move m = mix_to_move(move, pos, MoveList<GenType::LEGAL>(pos));
 
         if (m == Move::None)
-        {
-            DEBUG_LOG("Invalid move in the moves list at " << ply << ": " << move);
-            break;
-        }
+            return Error{"Invalid move at ply " + std::to_string(ply) + ": " + move};
 
-        assert(pos.rule50_count() <= 100);
+        if (pos.rule50_count() > RULE50_COUNT_MAX)
+            return Error{"Invalid position: 50-move rule count exceeds the allowed range: "
+                         + std::to_string(pos.rule50_count())};
 
         states->emplace_back();
         pos.do_move(m, states->back());
 
         ++ply;
     }
+
+    return std::nullopt;
 }
 
 u64 Engine::perft(const Depth depth, const bool detail) noexcept {

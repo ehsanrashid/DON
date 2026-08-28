@@ -22,6 +22,7 @@
 #include <array>
 #include <cassert>
 #include <functional>  // std::hash<>
+#include <limits>
 #include <string>
 #include <string_view>
 #include <type_traits>
@@ -90,6 +91,8 @@ static_assert(sizeof(Key) == 8, "Key size must be 8 bytes");
 
 inline constexpr u16 MOVE_MAX = 256;
 inline constexpr u16 PLY_MAX  = 254;
+
+inline constexpr u16 RULE50_COUNT_MAX = std::numeric_limits<i16>::max();
 
 // Size of cache line (in bytes)
 inline constexpr usize CACHE_LINE_SIZE = 64;
@@ -416,7 +419,7 @@ using SqrValue = i32;
 inline constexpr Value VALUE_ZERO = 0;
 inline constexpr Value VALUE_DRAW = VALUE_ZERO;
 
-inline constexpr Value VALUE_NONE     = (1 << 15) - 1;
+inline constexpr Value VALUE_NONE     = std::numeric_limits<i16>::max();
 inline constexpr Value VALUE_INFINITE = VALUE_NONE - 1;
 
 inline constexpr Value VALUE_MATE                 = VALUE_INFINITE - 1;

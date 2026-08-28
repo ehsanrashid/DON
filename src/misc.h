@@ -41,6 +41,7 @@
 #include <new>
 #include <optional>
 #include <shared_mutex>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <system_error>
@@ -149,6 +150,11 @@ using CpuIndex  = usize;
 
 using Strings     = std::vector<std::string>;
 using StringViews = std::vector<std::string_view>;
+
+// Base exception type for application-specific errors
+struct Error: public std::runtime_error {
+    using std::runtime_error::runtime_error;
+};
 
 namespace ConsoleColor {
 

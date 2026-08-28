@@ -20,6 +20,7 @@
 
 #include <filesystem>
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -50,7 +51,8 @@ class Engine final {
     std::string fen() const noexcept;
 
     // Set a new position, moves are in UCI or SAN format
-    void setup(std::string_view fen = START_FEN, const Strings& moves = {}) noexcept;
+    std::optional<Error> setup(std::string_view fen   = START_FEN,
+                               const Strings&   moves = {}) noexcept;
 
     u64 perft(Depth depth, bool detail = false) noexcept;
     // Non-blocking call to start searching
