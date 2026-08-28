@@ -1389,7 +1389,8 @@ Value Worker::search(Position&    pos,
                         if (futility <= alpha)
                         {
                             if (!is_win(futility))
-                                bestValue = std::max(Value(futility), bestValue);
+                                bestValue = static_cast<Value>(std::max(  //
+                                  futility, static_cast<int>(bestValue)));
                             continue;
                         }
                     }
@@ -1964,7 +1965,8 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
 
                 if (futility <= alpha)
                 {
-                    bestValue = std::max(Value(futility), bestValue);
+                    bestValue = static_cast<Value>(std::max(  //
+                      futility, static_cast<int>(bestValue)));
                     continue;
                 }
 
@@ -1972,7 +1974,9 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
                 int threshold = baseFutility - alpha;
                 if (pos.see(move) < -threshold)
                 {
-                    bestValue = std::max(std::min(Value(baseFutility), alpha), bestValue);
+                    bestValue = static_cast<Value>(std::max(  //
+                      std::min(baseFutility, static_cast<int>(alpha)),
+                      static_cast<int>(bestValue)));
                     continue;
                 }
             }
