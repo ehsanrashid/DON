@@ -1104,14 +1104,14 @@ Value Worker::search(Position&    pos,
     if constexpr (!PVNode)
     {
     // The depth condition is important for mate finding
-    if (!exclude && !ss->pvTT && depth < 17 && !is_win(ttEvalue) && !is_loss(beta)
+    if (!ss->pvTT && !exclude && depth < 17 && !is_win(ttEvalue) && !is_loss(beta)
         && (ttmNone || history_value(pos, ttd.move, ac, contHistory) >= 32768 - int(ttmCapture) * 25968))
     {
         // Compute base futility
-        int baseFutility = interpolate(std::min<int>(depth, 10), 1, 10, 40, 80) - int(!ttd.hit) * 20;
+        int baseFutility = interpolate(std::min(int(depth), 10), 1, 10, 40, 80) - int(!ttd.hit) * 20;
         // Compute futility
-        int futility = std::max(depth * baseFutility
-                              - constexpr_ceil((int(improve) * 2934.0 + int(worsen) * 343.0) * baseFutility / 1024.0)
+        int futility = std::max(baseFutility * depth
+                              - constexpr_ceil(baseFutility * (int(improve) * 2934.0 + int(worsen) * 343.0) / 1024.0)
                               + constexpr_round(absCorrectionValue / 182069.0),
                                 0);
 
@@ -1389,7 +1389,7 @@ Value Worker::search(Position&    pos,
                         if (futility <= alpha)
                         {
                             if (!is_win(futility))
-                                bestValue = std::max<int>(futility, bestValue);
+                                bestValue = std::max(Value(futility), bestValue);
                             continue;
                         }
                     }
@@ -1961,7 +1961,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
 
                 if (futility <= alpha)
                 {
-                    bestValue = std::max<int>(futility, bestValue);
+                    bestValue = std::max(Value(futility), bestValue);
                     continue;
                 }
 
@@ -1969,7 +1969,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
                 int threshold = baseFutility - alpha;
                 if (pos.see(move) < -threshold)
                 {
-                    bestValue = std::max<int>(std::min<int>(alpha, baseFutility), bestValue);
+                    bestValue = std::max(std::min(Value(baseFutility), alpha), bestValue);
                     continue;
                 }
             }
