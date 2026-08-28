@@ -137,7 +137,7 @@ struct PTEntry final {
     PTEntry() noexcept                          = default;
     PTEntry& operator=(const PTEntry&) noexcept = default;
 
-    constexpr u64 nodes() const noexcept { return nodes64; }
+    u64 nodes() const noexcept { return nodes64; }
 
     void save(u32 k, Depth d, u64 n) noexcept {
 
@@ -154,9 +154,9 @@ struct PTEntry final {
     PTEntry(PTEntry&&) noexcept            = delete;
     PTEntry& operator=(PTEntry&&) noexcept = delete;
 
-    u32   key32;
-    Depth depth16;
-    u64   nodes64;
+    RelaxedAtomic<u32>   key32;
+    RelaxedAtomic<Depth> depth16;
+    RelaxedAtomic<u64>   nodes64;
 
     friend class PerftTable;
 };
@@ -267,7 +267,7 @@ void PerftTable::reset(const Threads& threads) noexcept {
             // Each thread will zero its part of the hash table
             const auto [beg, end] = split_range(threadId, threadCount, clusterCount);
 
-            std::memset(&clusters[beg], 0, (end - beg) * sizeof(PTCluster));
+            std::memset(static_cast<void*>(&clusters[beg]), 0, (end - beg) * sizeof(PTCluster));
         });
     }
 

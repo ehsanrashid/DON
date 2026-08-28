@@ -1032,6 +1032,110 @@ class MultiArray final {
     ArrayType data_;
 };
 
+// Wrapper around std::atomic<T> that uses relaxed atomic or plain accesses, depending on the configuration.
+// Intended for platforms such as WebAssembly, where the overhead of atomic instructions can be significant
+// and only non-tearing accesses are required for the updates, while ensuring we use relaxed accesses otherwise.
+template<typename T>
+class RelaxedAtomic final {
+   public:
+    RelaxedAtomic() = default;
+
+    RelaxedAtomic(T val) noexcept :
+        value(val) {}
+
+    RelaxedAtomic(const RelaxedAtomic& relaxedAtomic) noexcept :
+        value(static_cast<T>(relaxedAtomic)) {}
+
+    T operator=(T val) noexcept {
+        store(val);
+        return val;
+    }
+
+    RelaxedAtomic& operator=(const RelaxedAtomic& a) noexcept {
+        store(static_cast<T>(a));
+        return *this;
+    }
+
+    operator T() const noexcept { return load(); }
+
+    RelaxedAtomic& operator+=(T val) noexcept {
+        add(val);
+        return *this;
+    }
+
+    RelaxedAtomic& operator-=(T val) noexcept {
+        sub(val);
+        return *this;
+    }
+
+    RelaxedAtomic& operator++() noexcept {
+        add(1);
+        return *this;
+    }
+
+    RelaxedAtomic& operator--() noexcept {
+        sub(1);
+        return *this;
+    }
+
+    T operator++(int) noexcept { return add(1); }
+
+    T operator--(int) noexcept { return sub(1); }
+
+    T load() const noexcept {
+        if constexpr (UseAtomic)
+            return value.load(std::memory_order_relaxed);
+        else
+            return value;
+    }
+
+    void store(T val) noexcept {
+        if constexpr (UseAtomic)
+            value.store(val, std::memory_order_relaxed);
+        else
+            value = val;
+    }
+
+    bool compare_exchange_weak(T& expected, T desired) noexcept {
+        if constexpr (UseAtomic)
+            return value.compare_exchange_weak(expected, desired, std::memory_order_relaxed,
+                                               std::memory_order_relaxed);
+        else
+        {
+            if (value == expected)
+            {
+                value = desired;
+                return true;
+            }
+
+            expected = value;
+            return false;
+        }
+    }
+
+   private:
+    static constexpr bool UseAtomic =
+#if defined(USE_SLOPPY_ATOMICS)
+      !std::atomic<T>::is_always_lock_free || sizeof(T) > sizeof(usize);
+#else
+      true;
+#endif
+
+    T add(T val) noexcept {
+        const T old = load();
+        store(old + val);
+        return old;
+    }
+
+    T sub(T val) noexcept {
+        const T old = load();
+        store(old - val);
+        return old;
+    }
+
+    std::conditional_t<UseAtomic, std::atomic<T>, T> value;
+};
+
 template<typename T, usize Capacity, typename SizeType = usize>
 class FixedVector final {
     static_assert(Capacity > 0, "Capacity must be > 0");
@@ -1178,14 +1282,14 @@ struct FixedText final {
     // implicit conversion if you want
     operator std::string_view() const noexcept { return view(); }
 
-    friend std::ostream& operator<<(std::ostream& os, const FixedText& fixedText) noexcept;
-
    private:
     Array<char, 31> data_{};
     u8              size_ = 0;
 };
 
 static_assert(sizeof(FixedText) == 32, "FixedText size must be 32 bytes");
+
+std::ostream& operator<<(std::ostream& os, const FixedText& fixedText) noexcept;
 
 // Tracks allocation sizes and performs allocation and freeing.
 template<typename AllocFunc, typename FreeFunc>

@@ -325,19 +325,18 @@ std::optional<Error> Position::set(std::string_view fens, State* newSt) noexcept
 
     if (rank != RANK_1)
         return Error{"Invalid FEN: board encoding ended before the last rank."};
-    if (count(WHITE) > 16)
-        return Error{"Invalid FEN: white has more than 16 pieces."};
-    if (count(BLACK) > 16)
-        return Error{"Invalid FEN: black has more than 16 pieces."};
-    if (count(BLACK, PAWN) > 8)
-        return Error{"Invalid FEN: black has more than 8 pawns."};
-    if (count(WHITE, KING) != 1 || count(BLACK, KING) != 1)
-        return Error{"Invalid FEN: incorrect number of kings."};
     if ((PROMOTION_RANKS_BB & pieces_bb(PAWN)) != 0)
         return Error{"Invalid FEN: pawns on the first or eighth rank."};
-    if (distance(square<KING>(WHITE), square<KING>(BLACK)) <= 1)
-        return Error{"Invalid FEN: kings are adjacent."};
     for (Color c : {WHITE, BLACK})
+    {
+        std::string side{c == WHITE ? "white" : "black"};
+
+        if (count(c) > 16)
+            return Error{"Invalid FEN: " + side + " has more than 16 pieces."};
+        if (count(c, PAWN) > 8)
+            return Error{"Invalid FEN: " + side + " has more than 8 pawns."};
+        if (count(c, KING) != 1)
+            return Error{"Invalid FEN: " + side + " has incorrect number of kings."};
         if (count(c, PAWN)                                                           //
               + std::max(count(c, KNIGHT) - 2, 0)                                    //
               + std::max(popcount(pieces_bb(c, BISHOP) & color_bb<WHITE>()) - 1, 0)  //
@@ -345,8 +344,10 @@ std::optional<Error> Position::set(std::string_view fens, State* newSt) noexcept
               + std::max(count(c, ROOK) - 2, 0)                                      //
               + std::max(count(c, QUEEN) - 1, 0)                                     //
             > 8)
-            return Error{"Invalid FEN: " + std::string{c == WHITE ? "white" : "black"}
-                         + " has too many promoted pieces."};
+            return Error{"Invalid FEN: " + side + " has too many promoted pieces."};
+    }
+    if (distance(square<KING>(WHITE), square<KING>(BLACK)) <= 1)
+        return Error{"Invalid FEN: kings are adjacent."};
 
     assert(count(PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING) == count());
 
@@ -1096,8 +1097,6 @@ DirtyBoard Position::do_move(const Move          m,
     }
 
     // Compute checkers (if move may check)
-    st->checkersBB = 0;
-
     if (mayCheck)
     {
         st->checkersBB = castling
@@ -1108,6 +1107,8 @@ DirtyBoard Position::do_move(const Move          m,
 
         assert(popcount(checkers_bb()) <= 2 && (checkers_bb() & square<KING>(ac)) == 0);
     }
+    else
+        st->checkersBB = 0;
 
     db.dirtyThreats.kingSq = square<KING>(ac);
 

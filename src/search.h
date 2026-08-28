@@ -20,7 +20,6 @@
 
 #include <algorithm>
 #include <array>  // IWYU pragma: keep
-#include <atomic>
 #include <cassert>
 #include <condition_variable>
 #include <cstring>
@@ -654,8 +653,6 @@ class Worker final {
 
     const RootMoves& root_moves() const noexcept { return rootMoves; }
 
-    u64 nodes_count() const noexcept { return nodes.load(std::memory_order_relaxed); }
-
    private:
     bool is_main_worker() const noexcept { return thread_id() == 0; }
 
@@ -743,8 +740,8 @@ class Worker final {
     NNUE::AccumulatorCache accCache;
     NNUE::AccumulatorStack accStack;
 
-    std::atomic<u64> nodes, tbHits;
-    std::atomic<u32> moveChanges;
+    RelaxedAtomic<u64> nodes, tbHits;
+    RelaxedAtomic<u32> moveChanges;
 
     Position                  rootPos;
     State                     rootState;

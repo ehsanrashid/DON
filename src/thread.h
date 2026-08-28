@@ -317,20 +317,20 @@ class Threads final {
     }
 
     template<typename T>
-    void set(std::atomic<T> Worker::* member, T value) noexcept {
+    void set(RelaxedAtomic<T> Worker::* member, T value) noexcept {
         std::shared_lock readLock(sharedMutex);
 
         for (auto&& th : threads)
-            (th->worker.get()->*member).store(value, std::memory_order_relaxed);
+            th->worker.get()->*member = value;
     }
 
     template<typename T>
-    u64 sum(std::atomic<T> Worker::* member, u64 initialSum = 0) const noexcept {
+    u64 sum(RelaxedAtomic<T> Worker::* member, u64 initialSum = 0) const noexcept {
         std::shared_lock readLock(sharedMutex);
 
         u64 sum = initialSum;
         for (auto&& th : threads)
-            sum += (th->worker.get()->*member).load(std::memory_order_relaxed);
+            sum += th->worker.get()->*member;
 
         return sum;
     }

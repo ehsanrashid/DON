@@ -620,9 +620,9 @@ void Threads::start(Position&      pos,
         th->run_custom_job([th, &pos, &rootMoves, &limit, &tbConfig]() noexcept {
             auto* worker = th->worker.get();
 
-            worker->nodes.store(0, std::memory_order_relaxed);
-            worker->tbHits.store(0, std::memory_order_relaxed);
-            worker->moveChanges.store(0, std::memory_order_relaxed);
+            worker->nodes       = 0;
+            worker->tbHits      = 0;
+            worker->moveChanges = 0;
 
             worker->rootPos.set(pos, &worker->rootState);
             worker->rootMoves = rootMoves;
