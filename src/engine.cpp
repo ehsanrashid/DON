@@ -132,8 +132,8 @@ std::optional<Error> Engine::setup(const std::string_view fen, const Strings& mo
         if (m == Move::None)
             return Error{"Invalid move at ply " + std::to_string(ply) + ": " + move};
 
-        if (pos.rule50_count() > 100)
-            return Error{"Invalid position: 50-move rule count exceeds 100: "
+        if (pos.rule50_count() > RULE50_COUNT_MAX)
+            return Error{"Invalid position: 50-move rule count exceeds the allowed range: "
                          + std::to_string(pos.rule50_count())};
 
         states->emplace_back();

@@ -337,6 +337,16 @@ std::optional<Error> Position::set(std::string_view fens, State* newSt) noexcept
         return Error{"Invalid FEN: pawns on the first or eighth rank."};
     if (distance(square<KING>(WHITE), square<KING>(BLACK)) <= 1)
         return Error{"Invalid FEN: kings are adjacent."};
+    for (Color c : {WHITE, BLACK})
+        if (count(c, PAWN)                                                           //
+              + std::max(count(c, KNIGHT) - 2, 0)                                    //
+              + std::max(popcount(pieces_bb(c, BISHOP) & color_bb<WHITE>()) - 1, 0)  //
+              + std::max(popcount(pieces_bb(c, BISHOP) & color_bb<BLACK>()) - 1, 0)  //
+              + std::max(count(c, ROOK) - 2, 0)                                      //
+              + std::max(count(c, QUEEN) - 1, 0)                                     //
+            > 8)
+            return Error{"Invalid FEN: " + std::string{c == WHITE ? "white" : "black"}
+                         + " has too many promoted pieces."};
 
     assert(count(PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING) == count());
 
@@ -428,9 +438,7 @@ std::optional<Error> Position::set(std::string_view fens, State* newSt) noexcept
     if (p < end)
     {
         if (peek() == '-')
-        {
             ++p;
-        }
         else
         {
             char epFile = get();
@@ -442,10 +450,10 @@ std::optional<Error> Position::set(std::string_view fens, State* newSt) noexcept
                 if ('a' <= epFile && epFile <= 'h' && epRank == (ac == WHITE ? '6' : '3'))
                     enPassantSq = make_square(to_file(epFile), to_rank(epRank));
                 else
-                    return Error{"Invalid FEN: invalid en passant square."};
+                    return Error{"Invalid FEN: invalid en-passant square."};
             }
             else
-                return Error{"Invalid FEN: invalid en passant ending." + std::string(1, epFile)};
+                return Error{"Invalid FEN: invalid en-passant " + std::string(1, epFile) + "."};
         }
     }
 
