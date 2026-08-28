@@ -1389,7 +1389,7 @@ Value Worker::search(Position&    pos,
                         if (futility <= alpha)
                         {
                             if (!is_win(futility))
-                                bestValue = std::max<int>(bestValue, futility);
+                                bestValue = std::max<int>(futility, bestValue);
                             continue;
                         }
                     }
@@ -1961,15 +1961,15 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
 
                 if (futility <= alpha)
                 {
-                    bestValue = std::max<int>(bestValue, futility);
+                    bestValue = std::max<int>(futility, bestValue);
                     continue;
                 }
 
                 // SEE based pruning
-                int threshold = std::max(baseFutility - alpha, -1);
+                int threshold = baseFutility - alpha;
                 if (pos.see(move) < -threshold)
                 {
-                    bestValue = std::max<int>(bestValue, std::min<int>(alpha, baseFutility));
+                    bestValue = std::max<int>(std::min<int>(alpha, baseFutility), bestValue);
                     continue;
                 }
             }

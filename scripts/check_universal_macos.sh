@@ -26,12 +26,12 @@ fi
 
 FAIL=0
 
-native_bench=$(arch -arm64 "$DON_EXE" bench 2>&1 | extract "Total nodes" || true)
-if [ -z "$native_bench" ]; then
+arm64_bench=$(arch -arm64 "$DON_EXE" bench 2>&1 | extract "Total nodes" || true)
+if [ -z "$arm64_bench" ]; then
     echo "check_universal_macos.sh: arm64 run produced no bench" >&2
     FAIL=1
 else
-    printf 'native (arm64) bench %s\n' "$native_bench" >&2
+    printf 'native (arm64) bench %s\n' "$arm64_bench" >&2
 fi
 
 x86_bench=$(arch -x86_64 "$DON_EXE" bench 2>&1 | extract "Total nodes" || true)
@@ -43,9 +43,9 @@ else
 fi
 
 # Should match
-if [ "$native_bench" != "$x86_bench" ]; then
+if [ "$arm64_bench" != "$x86_bench" ]; then
     printf 'check_universal_macos.sh: slice bench mismatch: arm64=%s x86_64=%s\n' \
-        "$native_bench" "$x86_bench" >&2
+        "$arm64_bench" "$x86_bench" >&2
     FAIL=1
 fi
 

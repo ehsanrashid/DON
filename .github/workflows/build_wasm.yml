@@ -63,4 +63,4 @@ jobs:
           COMPCXX=em++ make -j build ARCH=${{ matrix.arch }} EXTRALDFLAGS="--preload-file $net"
 
       - name: Verify bench under node
-        run: EXE=./DON.js RUN_PREFIX=node ../tests/signature.sh $benchref
+        run: EXE=./DON.js RUN_PREFIX=node ../tests/signature.sh "$benchref"

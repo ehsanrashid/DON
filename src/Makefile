@@ -1286,7 +1286,7 @@ install:
 	$(STRIP) "$(BINDIR)/$(EXE)"
 
 # Clean all
-clean: obj-clean profile-clean
+clean: obj-clean profile-clean universal-clean
 	@rm -f .depend *~ core
 
 # Clean binaries and objects
@@ -1587,10 +1587,8 @@ ifeq ($(MACOS_X86_SLICE),1)
     SLICE_DEF := -DUNIVERSAL_BINARY_MACOS_X86_SLICE
 endif
 
-ARCH_CXXFLAGS = $(EMBED_DIR) -DDON=$(call ARCH_NAMESPACE,$(1)) \
-                -DUNIVERSAL_BINARY $(SLICE_DEF) \
-                $(ARCH_MAIN_CXXFLAGS) \
-                -Wno-c++26-extensions -Wno-c23-extensions
+ARCH_CXXFLAGS = $(EMBED_DIR) -DDON=$(call ARCH_NAMESPACE,$(1)) -DUNIVERSAL_BINARY $(SLICE_DEF) \
+                $(ARCH_MAIN_CXXFLAGS) -Wno-c++26-extensions -Wno-c23-extensions
 ARCH_LDFLAGS  = $(ARCH_MAIN_LDFLAGS)
 
 UOBJ_TGT ?= universal-object-pgo

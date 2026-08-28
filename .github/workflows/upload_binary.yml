@@ -6,6 +6,12 @@ on:
       matrix:
         type: string
         required: true
+      release_tag:
+        type: string
+        required: false
+      release_prerelease:
+        type: boolean
+        required: false
     secrets:
       token:
         required: true

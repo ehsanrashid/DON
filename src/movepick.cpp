@@ -636,7 +636,7 @@ MovePicker::Stage MovePicker::cur_stage() const noexcept { return curStage; }
 int MovePicker::threshold_value() const noexcept { return threshold; }
 
 ALWAYS_INLINE bool MovePicker::good_capture_or_swap() noexcept {
-    threshold = constexpr_round(55.5555e-3 * cur->value);
+    threshold = constexpr_round(cur->value / 18.0);
     if (pos.see(*cur) >= -threshold)
         return true;
     // Store bad captures

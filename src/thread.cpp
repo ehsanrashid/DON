@@ -469,7 +469,7 @@ const Thread* Threads::best_thread() const noexcept {
         assert(th->worker->rootMoves[0].id != std::numeric_limits<u16>::max()
                && th->worker->rootMoves[0].id < moveVotes.size());
 
-        moveVotes[th->worker->rootMoves[0].id] += th->worker->rootMoves[0].value - minValue + 14;
+        moveVotes[th->worker->rootMoves[0].id] += 14 + th->worker->rootMoves[0].value - minValue;
     }
 
     // Select the best thread

@@ -153,6 +153,10 @@ jobs:
     name: Check Compilers
     if: ${{ always() }}
     uses: ./.github/workflows/check_compilers.yml
+  # BuildMSVC:
+  #   name: MSVC
+  #   if: ${{ always() }}
+  #   uses: ./.github/workflows/build_msvc.yml
   # BuildWASM:
   #   name: Build WASM
   #   if: ${{ always() }}
