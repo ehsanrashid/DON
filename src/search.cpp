@@ -1740,7 +1740,7 @@ Value Worker::search(Position&    pos,
                          // Increase bonus when bestValue is higher than previous static evaluation
                          + 151 * int(!(ss - 1)->inCheck && bestValue <= -(ss - 1)->evalue - 78)
                          // Increase bonus when the previous moveCount is high
-                         + 186 * std::min((ss - 1)->moveCount / 8, +4)
+                         + 191 * int((ss - 1)->moveCount > 8)
                          // Increase bonus if the previous move has a bad history
                          - constexpr_round((ss - 1)->history / 98.0),
                        0);
