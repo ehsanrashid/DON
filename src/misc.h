@@ -1059,54 +1059,28 @@ class RelaxedAtomic final {
     operator T() const noexcept { return load(); }
 
     RelaxedAtomic& operator+=(T val) noexcept {
-        if constexpr (UseAtomic)
-            value.fetch_add(val, std::memory_order_relaxed);
-        else
-            value += val;
-
+        add(val);
         return *this;
     }
 
     RelaxedAtomic& operator-=(T val) noexcept {
-        if constexpr (UseAtomic)
-            value.fetch_sub(val, std::memory_order_relaxed);
-        else
-            value -= val;
-
+        sub(val);
         return *this;
     }
 
     RelaxedAtomic& operator++() noexcept {
-        if constexpr (UseAtomic)
-            value.fetch_add(1, std::memory_order_relaxed);
-        else
-            ++value;
-
+        add(1);
         return *this;
     }
 
     RelaxedAtomic& operator--() noexcept {
-        if constexpr (UseAtomic)
-            value.fetch_sub(1, std::memory_order_relaxed);
-        else
-            --value;
-
+        sub(1);
         return *this;
     }
 
-    T operator++(int) noexcept {
-        if constexpr (UseAtomic)
-            return value.fetch_add(1, std::memory_order_relaxed);
-        else
-            return value++;
-    }
+    T operator++(int) noexcept { return add(1); }
 
-    T operator--(int) noexcept {
-        if constexpr (UseAtomic)
-            return value.fetch_sub(1, std::memory_order_relaxed);
-        else
-            return value--;
-    }
+    T operator--(int) noexcept { return sub(1); }
 
     T load() const noexcept {
         if constexpr (UseAtomic)
@@ -1146,6 +1120,18 @@ class RelaxedAtomic final {
 #else
       true;
 #endif
+
+    T add(T val) noexcept {
+        const T old = load();
+        store(old + val);
+        return old;
+    }
+
+    T sub(T val) noexcept {
+        const T old = load();
+        store(old - val);
+        return old;
+    }
 
     std::conditional_t<UseAtomic, std::atomic<T>, T> value;
 };
