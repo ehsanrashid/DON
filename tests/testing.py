@@ -6,12 +6,12 @@ import time
 import sys
 import traceback
 import fnmatch
-from functools import wraps
 from contextlib import redirect_stdout
 import io
 import tarfile
 import pathlib
-import concurrent.futures
+import queue
+import threading
 import tempfile
 import shutil
 import requests
@@ -111,7 +111,9 @@ class Syzygy:
                 with tarfile.open(tarballPath, "r:gz") as tar:
                     tar.extractall(tmpDirName)
 
-                shutil.move(os.path.join(tmpDirName, file), os.path.join(PATH, "syzygy"))
+                shutil.move(
+                    os.path.join(tmpDirName, file), os.path.join(PATH, "syzygy")
+                )
 
 
 class OrderedClassMembers(type):
@@ -127,32 +129,16 @@ class OrderedClassMembers(type):
 
 
 class TimeoutException(Exception):
-    def __init__(self, message: str, timeout: int):
+    def __init__(self, message: str, timeout: float):
+        super().__init__(message)
         self.message = message
         self.timeout = timeout
 
+
 class UnexpectedOutputException(Exception):
     def __init__(self, actual: str, expected: str):
-        self.actual   = actual
+        self.actual = actual
         self.expected = expected
-
-
-def timeout_decorator(timeout: float):
-    def decorator(func):
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                future = executor.submit(func, *args, **kwargs)
-                try:
-                    return future.result(timeout=timeout)
-                except concurrent.futures.TimeoutError:
-                    # Best effort; won't stop a running function
-                    future.cancel()
-                    raise TimeoutException(f"Function {func.__name__} timed out after {timeout} seconds", timeout)
-
-        return wrapper
-
-    return decorator
 
 
 class MiniTestFramework:
@@ -234,10 +220,14 @@ class MiniTestFramework:
             self.testsPassed += 1
         except Exception as e:
             if isinstance(e, TimeoutException):
-                self.print_failure(f" {testMethod} (hit execution limit of {e.timeout} seconds)")
+                self.print_failure(
+                    f" {testMethod} (hit execution limit of {e.timeout} seconds)"
+                )
 
             if isinstance(e, UnexpectedOutputException):
-                self.print_failure(f" {testMethod} encountered unexpected output: \"{e.actual}\" when output matching \"{e.expected}\" was expected")
+                self.print_failure(
+                    f' {testMethod} encountered unexpected output: "{e.actual}" when output matching "{e.expected}" was expected'
+                )
 
             if isinstance(e, AssertionError):
                 self.__handle_assertion_error(t0, testMethod)
@@ -256,7 +246,10 @@ class MiniTestFramework:
         duration = time.time() - startTime
         self.print_failure(f" {testMethod} ({1000 * duration:.2f}ms)")
         tracebackOutput = "".join(traceback.format_tb(sys.exc_info()[2]))
-        coloredTraceback = "\n".join(f"  {CYAN_COLOR}{line}{RESET_COLOR}" for line in tracebackOutput.splitlines())
+        coloredTraceback = "\n".join(
+            f"  {CYAN_COLOR}{line}{RESET_COLOR}"
+            for line in tracebackOutput.splitlines()
+        )
         print(coloredTraceback)
 
     def __print_buffer_output(self, buffer: io.StringIO):
@@ -269,8 +262,12 @@ class MiniTestFramework:
 
     def __print_summary(self, duration: float):
         print(f"\n{WHITE_BOLD}Test Summary{RESET_COLOR}\n")
-        print(f"    Test Suites: {GREEN_COLOR}{self.testSuitesPassed} passed{RESET_COLOR}, {RED_COLOR}{self.testSuitesFailed} failed{RESET_COLOR}, {self.testSuitesPassed + self.testSuitesFailed} total")
-        print(f"    Tests:       {GREEN_COLOR}{self.testsPassed} passed{RESET_COLOR}, {RED_COLOR}{self.testsFailed} failed{RESET_COLOR}, {self.testsPassed + self.testsFailed} total")
+        print(
+            f"    Test Suites: {GREEN_COLOR}{self.testSuitesPassed} passed{RESET_COLOR}, {RED_COLOR}{self.testSuitesFailed} failed{RESET_COLOR}, {self.testSuitesPassed + self.testSuitesFailed} total"
+        )
+        print(
+            f"    Tests:       {GREEN_COLOR}{self.testsPassed} passed{RESET_COLOR}, {RED_COLOR}{self.testsFailed} failed{RESET_COLOR}, {self.testsPassed + self.testsFailed} total"
+        )
         print(f"    Time:        {duration}s\n")
 
     def print_failure(self, add: str):
@@ -294,6 +291,8 @@ class DON:
         self.cli = cli
         self.prefix = prefix
         self.output = []
+        self.output_queue = queue.Queue()
+        self.reader_thread = None
 
         self.start()
 
@@ -325,6 +324,21 @@ class DON:
             universal_newlines=True,
             bufsize=1,
         )
+        self.reader_thread = threading.Thread(
+            target=self._read_process_output, daemon=True
+        )
+        self.reader_thread.start()
+
+    def _read_process_output(self):
+        try:
+            for line in self.process.stdout:
+                line = line.strip()
+                self.output.append(line)
+                self.output_queue.put(line)
+        except (OSError, ValueError):
+            pass
+        finally:
+            self.output_queue.put(None)
 
     def setoption(self, name: str, value: str = None):
         if value is None:
@@ -341,31 +355,26 @@ class DON:
         self.process.stdin.write(command + "\n")
         self.process.stdin.flush()
 
-    @timeout_decorator(TIMEOUT_MAX)
     def equals(self, expectedOutput: str):
         for line in self.readline():
             if line == expectedOutput:
                 return
 
-    @timeout_decorator(TIMEOUT_MAX)
     def expect(self, expectedOutput: str):
         for line in self.readline():
             if fnmatch.fnmatch(line, expectedOutput):
                 return
 
-    @timeout_decorator(TIMEOUT_MAX)
     def contains(self, expectedOutput: str):
         for line in self.readline():
             if expectedOutput in line:
                 return
 
-    @timeout_decorator(TIMEOUT_MAX)
     def starts_with(self, expectedOutput: str):
         for line in self.readline():
             if line.startswith(expectedOutput):
                 return
 
-    @timeout_decorator(TIMEOUT_MAX)
     def check_output(self, callback):
         if not callback:
             raise ValueError("Callback function is required")
@@ -374,7 +383,6 @@ class DON:
             if callback(line):
                 return
 
-    @timeout_decorator(TIMEOUT_MAX)    
     def expect_matching_line(self, linePattern: str, expectedOutput: str):
         for line in self.readline():
             if fnmatch.fnmatch(line, linePattern):
@@ -383,14 +391,33 @@ class DON:
                 else:
                     raise UnexpectedOutputException(line, expectedOutput)
 
-    def readline(self):
+    def readline(self, timeout: float = TIMEOUT_MAX):
         if not self.process:
             raise RuntimeError("Engine process is not started")
 
+        deadline = time.monotonic() + timeout
+
         while True:
             self._check_process_alive()
-            line = self.process.stdout.readline().strip()
-            self.output.append(line)
+
+            remaining_time = deadline - time.monotonic()
+            if remaining_time <= 0:
+                raise TimeoutException(
+                    f"No matching output received after {timeout} seconds",
+                    timeout,
+                )
+
+            try:
+                line = self.output_queue.get(timeout=remaining_time)
+            except queue.Empty:
+                raise TimeoutException(
+                    f"No matching output received after {timeout} seconds",
+                    timeout,
+                )
+
+            if line is None:
+                self._check_process_alive()
+                raise RuntimeError("Engine process has terminated")
 
             yield line
 
