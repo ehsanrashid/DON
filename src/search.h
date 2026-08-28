@@ -20,7 +20,6 @@
 
 #include <algorithm>
 #include <array>  // IWYU pragma: keep
-#include <atomic>
 #include <cassert>
 #include <condition_variable>
 #include <cstring>
