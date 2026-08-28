@@ -45,7 +45,6 @@
 #include "../bitboard.h"
 #include "../misc.h"
 #include "../movegen.h"
-#include "../notation.h"
 #include "../option.h"
 #include "../position.h"
 #include "../search.h"

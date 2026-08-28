@@ -26,7 +26,6 @@
 
 #include "../evaluate.h"
 #include "../misc.h"
-#include "../notation.h"
 #include "../position.h"
 #include "../types.h"
 #include "nnz.h"

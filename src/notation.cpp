@@ -21,7 +21,6 @@
 #include <cassert>
 #include <cctype>
 #include <cmath>
-#include <iostream>
 
 #include "attacks.h"
 #include "bitboard.h"
@@ -64,8 +63,8 @@ WinRateParams win_rate_params(const Position& pos) noexcept {
     constexpr Array<double, 4> B{ 83.86794042, -136.06112997,   69.98820887,  47.62901433};
     // clang-format on
 
-    // The fitted model only uses data for material counts in [17, 78], and is anchored at count 58 (17.2414e-3).
-    double m = 17.2414e-3 * std::clamp(pos.std_material(), 17, 78);
+    // The fitted model only uses data for material counts in [17, 78], and is anchored at count 58
+    double m = std::clamp(pos.std_material(), 17, 78) / 58.0;
     // Return a = p_a(material) and b = p_b(material).
     double a = ((A[0] * m + A[1]) * m + A[2]) * m + A[3];
     double b = ((B[0] * m + B[1]) * m + B[2]) * m + B[3];
@@ -79,7 +78,7 @@ int win_rate_model(Value v, const Position& pos) noexcept {
 
     auto [a, b] = win_rate_params(pos);
     // Return the win rate in per mille units, rounded to the nearest integer
-    return constexpr_round(1000.0 / (1.0 + std::exp((a - v) / b)));
+    return constexpr_ceil(1000.0 / (1.0 + std::exp((a - v) / b)));
 }
 
 template<typename... Ts>
@@ -102,7 +101,7 @@ int to_cp(Value v, const Position& pos) noexcept {
 
     auto [a, b] = win_rate_params(pos);
 
-    return constexpr_round(100 * int(v) / a);
+    return constexpr_round(100.0 * int(v) / a);
 }
 
 FixedText to_wdl(Value v, const Position& pos) noexcept {
