@@ -60,18 +60,17 @@ constexpr u8 PV_MASK         = u8{1 << PV_SHIFT};
 // Equally, the store order in save() matches this order.
 struct TTEntry final {
    public:
-    TTEntry() noexcept                          = default;
-    TTEntry& operator=(const TTEntry&) noexcept = default;
-
-    constexpr u16   key() const noexcept { return key16; }
-    constexpr bool  occupied() const noexcept { return depth8 != 0; }
-    constexpr Depth depth() const noexcept { return depth8 + DEPTH_OFFSET; }
-    constexpr Move  move() const noexcept { return move16; }
-    constexpr Value value() const noexcept { return value16; }
-    constexpr Value evalue() const noexcept { return evalue16; }
-    constexpr Bound bound() const noexcept { return Bound((meta8 & BOUND_MASK) >> BOUND_SHIFT); }
-    constexpr bool  pv() const noexcept { return ((meta8 & PV_MASK) /* >> PV_SHIFT*/) != 0; }
-    constexpr u8    generation() const noexcept { return meta8 & GENERATION_MASK; }
+    [[nodiscard]] u16   key() const noexcept { return key16; }
+    [[nodiscard]] bool  occupied() const noexcept { return depth8 != 0; }
+    [[nodiscard]] Depth depth() const noexcept { return depth8 + DEPTH_OFFSET; }
+    [[nodiscard]] Move  move() const noexcept { return move16; }
+    [[nodiscard]] Value value() const noexcept { return value16; }
+    [[nodiscard]] Value evalue() const noexcept { return evalue16; }
+    [[nodiscard]] Bound bound() const noexcept {
+        return Bound((meta8 & BOUND_MASK) >> BOUND_SHIFT);
+    }
+    [[nodiscard]] bool pv() const noexcept { return ((meta8 & PV_MASK) /* >> PV_SHIFT*/) != 0; }
+    [[nodiscard]] u8   generation() const noexcept { return meta8 & GENERATION_MASK; }
 
     TTData read() const noexcept;
 
@@ -86,16 +85,18 @@ struct TTEntry final {
     void reset() noexcept;
 
    private:
-    TTEntry(const TTEntry&) noexcept       = delete;
-    TTEntry(TTEntry&&) noexcept            = delete;
-    TTEntry& operator=(TTEntry&&) noexcept = delete;
+    TTEntry() noexcept                          = delete;
+    TTEntry(const TTEntry&) noexcept            = delete;
+    TTEntry& operator=(const TTEntry&) noexcept = delete;
+    TTEntry(TTEntry&&) noexcept                 = delete;
+    TTEntry& operator=(TTEntry&&) noexcept      = delete;
 
-    u16   key16;
-    Move  move16;
-    Value value16;
-    Value evalue16;
-    u8    depth8;
-    u8    meta8;
+    RelaxedAtomic<u16>   key16;
+    RelaxedAtomic<Move>  move16;
+    RelaxedAtomic<Value> value16;
+    RelaxedAtomic<Value> evalue16;
+    RelaxedAtomic<u8>    depth8;
+    RelaxedAtomic<u8>    meta8;
 };
 
 static_assert(sizeof(TTEntry) == 10, "TTEntry size must be 10 bytes");
@@ -159,7 +160,7 @@ void TTEntry::penalize(const u8 penalty) noexcept {
 }
 
 // Reset all entry fields to zero
-void TTEntry::reset() noexcept { std::memset(this, 0, sizeof(*this)); }
+void TTEntry::reset() noexcept { std::memset(static_cast<void*>(this), 0, sizeof(*this)); }
 
 
 TTData TTData::empty() noexcept {
@@ -171,16 +172,15 @@ TTData TTData::empty() noexcept {
 // as the cache-line is prefetched when possible.
 struct TTCluster final {
    public:
-    TTCluster() noexcept                            = default;
-    TTCluster& operator=(const TTCluster&) noexcept = default;
-
     Array<TTEntry, 3> entries;
     Array<char, 2>    padding;  // Pad to 32 bytes
 
    private:
-    TTCluster(const TTCluster&) noexcept       = delete;
-    TTCluster(TTCluster&&) noexcept            = delete;
-    TTCluster& operator=(TTCluster&&) noexcept = delete;
+    TTCluster() noexcept                            = delete;
+    TTCluster(const TTCluster&) noexcept            = delete;
+    TTCluster& operator=(const TTCluster&) noexcept = delete;
+    TTCluster(TTCluster&&) noexcept                 = delete;
+    TTCluster& operator=(TTCluster&&) noexcept      = delete;
 };
 
 static_assert(sizeof(TTCluster) == 32, "TTCluster size must be 32 bytes");
@@ -275,7 +275,7 @@ void TranspositionTable::reset(const Threads& threads) noexcept {
             // Each thread will zero its part of the hash table
             const auto [beg, end] = split_range(threadId, threadCount, clusterCount);
 
-            std::memset(&clusters[beg], 0, (end - beg) * sizeof(TTCluster));
+            std::memset(static_cast<void*>(&clusters[beg]), 0, (end - beg) * sizeof(TTCluster));
         });
     }
 

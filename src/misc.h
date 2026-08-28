@@ -1032,6 +1032,124 @@ class MultiArray final {
     ArrayType data_;
 };
 
+// Wrapper around std::atomic<T> that uses relaxed atomic or plain accesses, depending on the configuration.
+// Intended for platforms such as WebAssembly, where the overhead of atomic instructions can be significant
+// and only non-tearing accesses are required for the updates, while ensuring we use relaxed accesses otherwise.
+template<typename T>
+class RelaxedAtomic final {
+   public:
+    RelaxedAtomic() = default;
+
+    RelaxedAtomic(T val) noexcept :
+        value(val) {}
+
+    RelaxedAtomic(const RelaxedAtomic& relaxedAtomic) noexcept :
+        value(static_cast<T>(relaxedAtomic)) {}
+
+    T operator=(T val) noexcept {
+        store(val);
+        return val;
+    }
+
+    RelaxedAtomic& operator=(const RelaxedAtomic& a) noexcept {
+        store(static_cast<T>(a));
+        return *this;
+    }
+
+    operator T() const noexcept { return load(); }
+
+    RelaxedAtomic& operator+=(T val) noexcept {
+        if constexpr (UseAtomic)
+            value.fetch_add(val, std::memory_order_relaxed);
+        else
+            value += val;
+
+        return *this;
+    }
+
+    RelaxedAtomic& operator-=(T val) noexcept {
+        if constexpr (UseAtomic)
+            value.fetch_sub(val, std::memory_order_relaxed);
+        else
+            value -= val;
+
+        return *this;
+    }
+
+    RelaxedAtomic& operator++() noexcept {
+        if constexpr (UseAtomic)
+            value.fetch_add(1, std::memory_order_relaxed);
+        else
+            ++value;
+
+        return *this;
+    }
+
+    RelaxedAtomic& operator--() noexcept {
+        if constexpr (UseAtomic)
+            value.fetch_sub(1, std::memory_order_relaxed);
+        else
+            --value;
+
+        return *this;
+    }
+
+    T operator++(int) noexcept {
+        if constexpr (UseAtomic)
+            return value.fetch_add(1, std::memory_order_relaxed);
+        else
+            return value++;
+    }
+
+    T operator--(int) noexcept {
+        if constexpr (UseAtomic)
+            return value.fetch_sub(1, std::memory_order_relaxed);
+        else
+            return value--;
+    }
+
+    T load() const noexcept {
+        if constexpr (UseAtomic)
+            return value.load(std::memory_order_relaxed);
+        else
+            return value;
+    }
+
+    void store(T val) noexcept {
+        if constexpr (UseAtomic)
+            value.store(val, std::memory_order_relaxed);
+        else
+            value = val;
+    }
+
+    bool compare_exchange_weak(T& expected, T desired) noexcept {
+        if constexpr (UseAtomic)
+            return value.compare_exchange_weak(expected, desired, std::memory_order_relaxed,
+                                               std::memory_order_relaxed);
+        else
+        {
+            if (value == expected)
+            {
+                value = desired;
+                return true;
+            }
+
+            expected = value;
+            return false;
+        }
+    }
+
+   private:
+    static constexpr bool UseAtomic =
+#if defined(USE_SLOPPY_ATOMICS)
+      !std::atomic<T>::is_always_lock_free || sizeof(T) > sizeof(usize);
+#else
+      true;
+#endif
+
+    std::conditional_t<UseAtomic, std::atomic<T>, T> value;
+};
+
 template<typename T, usize Capacity, typename SizeType = usize>
 class FixedVector final {
     static_assert(Capacity > 0, "Capacity must be > 0");

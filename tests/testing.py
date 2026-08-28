@@ -47,29 +47,6 @@ class Valgrind:
         ]
 
 
-class TSAN:
-    @staticmethod
-    def set_tsan_option():
-        with open(f"tsan.supp", "w") as f:
-            f.write(
-                """
-race:DON::TTEntry::read
-race:DON::TTEntry::save
-race:DON::TTEntry::penalize
-race:DON::TTEntry::reset
-race:DON::TranspositionTable::probe
-race:DON::TranspositionTable::hashfull
-"""
-            )
-
-        os.environ["TSAN_OPTIONS"] = "suppressions=./tsan.supp"
-
-    @staticmethod
-    def unset_tsan_option():
-        os.environ.pop("TSAN_OPTIONS", None)
-        os.remove(f"tsan.supp")
-
-
 class EPD:
     @staticmethod
     def create_bench_epd():

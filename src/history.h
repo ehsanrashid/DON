@@ -48,19 +48,9 @@ class HistoryEntry final {
     static_assert(D <= std::numeric_limits<T>::max(), "D must fit in T");
 
    public:
-    operator T() const noexcept {
-        if constexpr (UseAtomic)
-            return entry.load(std::memory_order_relaxed);
-        else
-            return entry;
-    }
+    operator T() const noexcept { return entry; }
 
-    void operator=(const T& e) noexcept {
-        if constexpr (UseAtomic)
-            entry.store(e, std::memory_order_relaxed);
-        else
-            entry = e;
-    }
+    void operator=(const T& e) noexcept { entry = e; }
 
     // Update the statistic using bonus, clamped to the range [-D, +D]
     void operator<<(const int bonus) noexcept {
@@ -74,14 +64,7 @@ class HistoryEntry final {
     }
 
    private:
-    static constexpr bool UseAtomic =
-#if defined(__wasm__)
-      false;  // Don't use atomics on WASM as they are always seq_cst
-#else
-      Atomic;
-#endif
-
-    std::conditional_t<UseAtomic, std::atomic<T>, T> entry;
+    std::conditional_t<Atomic, RelaxedAtomic<T>, T> entry;
 };
 
 template<typename T>

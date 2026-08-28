@@ -788,7 +788,7 @@ Value Worker::search(Position&    pos,
         // Check if have an upcoming move that draws by repetition
         if (alpha < VALUE_DRAW && pos.is_upcoming_repetition(ss->ply))
         {
-            alpha = draw_value(nodes_count());
+            alpha = draw_value(nodes);
 
             if (alpha >= beta)
                 return alpha;
@@ -827,7 +827,7 @@ Value Worker::search(Position&    pos,
     {
         // Step 2. Check for stopped search or maximum ply reached or immediate draw
         if (threads.is_stopped() || ss->ply >= PLY_MAX || pos.is_draw(ss->ply))
-            return ss->ply >= PLY_MAX && !ss->inCheck ? evaluate(pos) : draw_value(nodes_count());
+            return ss->ply >= PLY_MAX && !ss->inCheck ? evaluate(pos) : draw_value(nodes);
 
         // Step 3. Mate distance pruning.
         // Even if mate at the next move score would be at best mates_in(ss->ply + 1),
@@ -1024,7 +1024,7 @@ Value Worker::search(Position&    pos,
 
                 if (wdlPs != Tablebase::Syzygy::PS_FAIL)
                 {
-                    tbHits.fetch_add(1, std::memory_order_relaxed);
+                    ++tbHits;
 
                     int drawValue = int(tbConfig.useRule50);
 
@@ -1481,10 +1481,10 @@ Value Worker::search(Position&    pos,
         // Add extension to new depth
         newDepth += extension;
 
-        [[maybe_unused]] u64 nodesCount = 0;
+        [[maybe_unused]] u64 preNodes = 0;
         if constexpr (RootNode)
         {
-            nodesCount = nodes_count();
+            preNodes = nodes;
         }
 
         // Step 16. Make the move
@@ -1610,7 +1610,7 @@ Value Worker::search(Position&    pos,
             auto& rm = *rootMoves.find(move);
             assert(rm[0] == move);
 
-            rm.nodes += nodes_count() - nodesCount;
+            rm.nodes += nodes - preNodes;
             // clang-format off
             rm.avgValue    = rm.avgValue    !=          -VALUE_INFINITE  ? (         value  + rm.avgValue   ) / 2 :          value;
             rm.avgSqrValue = rm.avgSqrValue != sign_sqr(-VALUE_INFINITE) ? (sign_sqr(value) + rm.avgSqrValue) / 2 : sign_sqr(value);
@@ -1646,7 +1646,7 @@ Value Worker::search(Position&    pos,
                 // This information is used for time management.
                 // In MultiPV mode, must take care to only do this for the first PV line.
                 if (moveCount > 1 && pvIdx == 0)
-                    moveChanges.fetch_add(1, std::memory_order_relaxed);
+                    ++moveChanges;
             }
             else
                 // All other moves but the PV, are set to the lowest value, this
@@ -1657,7 +1657,7 @@ Value Worker::search(Position&    pos,
 
         // In case have an alternative move equal in eval to the current bestMove,
         // promote it to bestMove by pretending it just exceeds alpha (but not beta).
-        bool inc = value == bestValue && 2 + ss->ply >= rootDepth && (nodes_count() & 0xE) == 0
+        bool inc = value == bestValue && 2 + ss->ply >= rootDepth && (nodes & 0xE) == 0
                 && !is_win(constexpr_abs(value) + 1);
 
         Value incValue = value + int(inc);
@@ -1818,7 +1818,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     // Check if have an upcoming move that draws by repetition
     if (alpha < VALUE_DRAW && pos.is_upcoming_repetition(ss->ply))
     {
-        alpha = draw_value(nodes_count());
+        alpha = draw_value(nodes);
 
         if (alpha >= beta)
             return alpha;
@@ -2074,7 +2074,7 @@ void Worker::do_move(
 
     assert(moveKey == pos.key());
 
-    nodes.fetch_add(1, std::memory_order_relaxed);
+    ++nodes;
 
     auto movedPc                 = db.dirtyPiece.movedPc;
     ss->move                     = m;
@@ -2598,7 +2598,7 @@ void MainSearchManager::handle_time_management(const Worker& worker,
     sumMoveChanges += worker.threads.sum(&Worker::moveChanges);
 
     // Reset move changes
-    worker.threads.set(&Worker::moveChanges, 0U);
+    worker.threads.set(&Worker::moveChanges, u32{0});
 
     // clang-format off
 
@@ -2623,7 +2623,7 @@ void MainSearchManager::handle_time_management(const Worker& worker,
     const double instabilityFactor = 1.096 + 2.29 * sumMoveChanges / std::max<usize>(worker.thread_count(), 1);
 
     // Compute node effort factor that reduces time if root move has consumed a large fraction of total nodes
-    const u64 nodesEffort = 100000 * worker.rootMoves[0].nodes / std::max<u64>(worker.nodes_count(), 1);
+    const u64 nodesEffort = 100000 * worker.rootMoves[0].nodes / std::max<u64>(worker.nodes, 1);
 
     const double nodesEffortFactor = std::clamp(interpolate<i64, double>(nodesEffort, 79219, 101822, 0.924, 0.710), 0.710, 0.924);
 

@@ -8,7 +8,6 @@ import os
 
 from testing import (
     EPD,
-    TSAN,
     DON as Engine,
     MiniTestFramework,
     OrderedClassMembers,
@@ -554,7 +553,6 @@ def parse_args():
 if __name__ == "__main__":
     args = parse_args()
 
-    TSAN.set_tsan_option()
     EPD.create_bench_epd()
     Syzygy.download_syzygy()
 
@@ -564,7 +562,6 @@ if __name__ == "__main__":
     framework.run([TestCLI, TestInteractive, TestSyzygy, TestEnPassant])
 
     EPD.delete_bench_epd()
-    TSAN.unset_tsan_option()
 
     if framework.has_failed():
         sys.exit(1)
