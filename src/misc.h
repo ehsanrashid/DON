@@ -1907,7 +1907,9 @@ inline std::string u64_to_string(u64 v) noexcept {
     return std::string{buffer.data(), copiedSize};
 }
 
-std::string           utf8_from_wstring(std::wstring_view s) noexcept;
+[[noreturn]] void terminate_on_critical_error(std::string_view message) noexcept;
+
+std::string           utf8_from_wstring(std::wstring_view wsv) noexcept;
 std::filesystem::path path_from_utf8(std::string_view path) noexcept;
 
 std::optional<usize> str_to_size_t(std::string_view sv) noexcept;
