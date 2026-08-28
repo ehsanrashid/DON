@@ -313,7 +313,7 @@ std::optional<Error> Position::set(std::string_view fens, State* newSt) noexcept
 
             const Piece pc = to_piece(token);
             if (pc == Piece::NO_PIECE)
-                return Error{std::string{"Invalid FEN: invalid piece: "} + token};
+                return Error{"Invalid FEN: invalid piece: " + std::string(1, token) + "."};
 
             const Square sq = make_square(file, rank);
 
@@ -480,10 +480,18 @@ std::optional<Error> Position::set(std::string_view fens, State* newSt) noexcept
 
         reset_rule50_count();
     }
-    assert(rule50_count() <= 100);
+
+    if (rule50_count() > RULE50_COUNT_MAX)
+        return Error{"Invalid FEN: 50-move rule count exceeds the allowed range."};
+
     gamePly = std::max(ply(), rule50_count());
+    //if (gamePly > 100000)
+    //    return Error{"Invalid FEN: game ply out of range."};
 
     set_state();
+
+    if ((acc_attacks_bb() & square<KING>(~active_color())) != 0)
+        return Error{"Invalid FEN: king can be captured."};
 
     assert(_is_ok());
     return std::nullopt;

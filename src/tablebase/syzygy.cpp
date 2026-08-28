@@ -26,6 +26,7 @@
 #include <initializer_list>
 #include <iostream>
 #include <limits>
+#include <optional>
 #include <string>
 #include <type_traits>
 #include <utility>
