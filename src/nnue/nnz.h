@@ -125,7 +125,12 @@ struct NNZ final {
         void record(SIMD::vec_t neurons1, SIMD::vec_t neurons2) noexcept {
             using namespace SIMD;
 
-        #if defined(USE_SSSE3) || defined(USE_LSX)
+        #if defined(__wasm__)
+            __m128i packed = _mm_packus_epi32(neurons1, neurons2);
+            packed         = _mm_packs_epi16(packed, packed);
+            *nnzOut++      = ~_mm_movemask_epi8(_mm_cmpeq_epi8(packed, _mm_setzero_si128()));
+
+        #elif defined(USE_SSSE3) || defined(USE_LSX)
             constexpr usize VecBytes = sizeof(SIMD::vec_t);
 
             const auto n1 = vec_nnz(neurons1);
@@ -159,6 +164,7 @@ struct NNZ final {
             const uint16x8_t bits = vandq_u16(packed, vld1q_u16(Mask8.data()));
 
             *nnzOut++ = vaddvq_u16(bits);
+
         #endif
         }
 

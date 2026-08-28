@@ -158,8 +158,8 @@ constexpr Array<PieceType, PIECE_TYPE_CNT - 2> NON_PAWN_PIECE_TYPES{
 #define ENABLE_INCR_OPERATORS_ON(T) \
     static_assert(std::is_enum_v<T>, "ENABLE_INCR_OPERATORS_ON requires an enum"); \
     static_assert(std::is_convertible_v<T, int>, "ENABLE_INCR_OPERATORS_ON requires an *unscoped* enum (plain enum)"); \
-    constexpr T& operator++(T& v) noexcept { return v = T(static_cast<int>(v) + 1); } \
-    constexpr T& operator--(T& v) noexcept { return v = T(static_cast<int>(v) - 1); } \
+    constexpr T& operator++(T& v) noexcept { return v = static_cast<T>(static_cast<int>(v) + 1); } \
+    constexpr T& operator--(T& v) noexcept { return v = static_cast<T>(static_cast<int>(v) - 1); } \
     constexpr T  operator++(T& v, int) noexcept { T u = v; ++v; return u; } \
     constexpr T  operator--(T& v, int) noexcept { T u = v; --v; return u; }
 // clang-format on
@@ -201,11 +201,17 @@ constexpr File  operator+(File f, int i) noexcept { return File(static_cast<u8>(
 constexpr File  operator-(File f, int i) noexcept { return File(static_cast<u8>(f) - i); }
 constexpr File& operator+=(File& f, int i) noexcept { return f = f + i; }
 constexpr File& operator-=(File& f, int i) noexcept { return f = f - i; }
+constexpr i8    operator-(File f1, File f2) noexcept {
+    return static_cast<u8>(f1) - static_cast<u8>(f2);
+}
 // Additional operators for Rank
 constexpr Rank  operator+(Rank r, int i) noexcept { return Rank(static_cast<u8>(r) + i); }
 constexpr Rank  operator-(Rank r, int i) noexcept { return Rank(static_cast<u8>(r) - i); }
 constexpr Rank& operator+=(Rank& r, int i) noexcept { return r = r + i; }
 constexpr Rank& operator-=(Rank& r, int i) noexcept { return r = r - i; }
+constexpr i8    operator-(Rank r1, Rank r2) noexcept {
+    return static_cast<u8>(r1) - static_cast<u8>(r2);
+}
 // Additional operators for Square to add a Direction
 constexpr Square  operator+(Square s, int i) noexcept { return Square(static_cast<u8>(s) + i); }
 constexpr Square  operator-(Square s, int i) noexcept { return Square(static_cast<u8>(s) - i); }
@@ -280,7 +286,7 @@ inline constexpr usize PIECE_NB = 16;
 
 constexpr u8 operator+(Piece pc) noexcept { return static_cast<u8>(pc); }
 
-constexpr Piece operator^(Piece pc1, Piece pc2) noexcept { return Piece(+pc1 ^ +pc2); }
+constexpr Piece operator^(Piece pc1, Piece pc2) noexcept { return static_cast<Piece>(+pc1 ^ +pc2); }
 
 [[nodiscard]] constexpr bool is_ok(Piece pc) noexcept {
     return (Piece::W_PAWN <= pc && pc <= Piece::W_KING)
@@ -290,31 +296,37 @@ constexpr Piece operator^(Piece pc1, Piece pc2) noexcept { return Piece(+pc1 ^ +
 [[nodiscard]] constexpr Piece make_piece(Color c, PieceType pt) noexcept {
     assert(is_ok(c) && is_ok(pt));
 
-    return Piece((static_cast<u8>(c) << 3) | static_cast<u8>(pt));
+    return static_cast<Piece>((static_cast<u8>(c) << 3) | static_cast<u8>(pt));
 }
 
-constexpr PieceType type_of(Piece pc) noexcept { return PieceType((+pc >> 0) & 0x7); }
+constexpr PieceType type_of(Piece pc) noexcept { return static_cast<PieceType>((+pc >> 0) & 0x7); }
 
-constexpr Color color_of(Piece pc) noexcept { return Color((+pc >> 3) & 0x1); }
+constexpr Color color_of(Piece pc) noexcept { return static_cast<Color>((+pc >> 3) & 0x1); }
 
 // Swap color of piece B_KNIGHT <-> W_KNIGHT
-[[nodiscard]] constexpr Piece flip_color(Piece pc) noexcept { return Piece(+pc ^ PIECE_TYPE_NB); }
+[[nodiscard]] constexpr Piece flip_color(Piece pc) noexcept {
+    return static_cast<Piece>(+pc ^ PIECE_TYPE_NB);
+}
 
 [[nodiscard]] constexpr Piece relative_piece(Color c, Piece pc) noexcept {
-    return Piece(+pc ^ (c * PIECE_TYPE_NB));
+    return static_cast<Piece>(+pc ^ (c * PIECE_TYPE_NB));
 }
 
 using PieceMap = Array<Piece, SQUARE_NB>;
 
-[[nodiscard]] constexpr File fold_to_edge(File f) noexcept { return std::min<File>(f, FILE_H - f); }
-[[nodiscard]] constexpr Rank fold_to_edge(Rank r) noexcept { return std::min<Rank>(r, RANK_8 - r); }
+[[nodiscard]] constexpr File fold_to_edge(File f) noexcept {
+    return std::min(f, FILE_H - static_cast<int>(f));
+}
+[[nodiscard]] constexpr Rank fold_to_edge(Rank r) noexcept {
+    return std::min(r, RANK_8 - static_cast<int>(r));
+}
 
 [[nodiscard]] constexpr Square relative_sq(Color c, Square s) noexcept {
-    return Square(s ^ (c * static_cast<u8>(SQ_A8)));
+    return static_cast<Square>(static_cast<u8>(s) ^ (c * static_cast<u8>(SQ_A8)));
 }
 
 [[nodiscard]] constexpr Rank relative_rank(Color c, Rank r) noexcept {
-    return Rank(r ^ (c * static_cast<u8>(RANK_8)));
+    return static_cast<Rank>(r ^ (c * static_cast<u8>(RANK_8)));
 }
 
 [[nodiscard]] constexpr Rank relative_rank(Color c, Square s) noexcept {
@@ -362,9 +374,9 @@ template<bool Upper = false>
 
 [[nodiscard]] constexpr char to_char(Rank r) noexcept { return '1' + r; }
 
-[[nodiscard]] constexpr File to_file(char f) noexcept { return File(f - 'a'); }
+[[nodiscard]] constexpr File to_file(char f) noexcept { return static_cast<File>(f - 'a'); }
 
-[[nodiscard]] constexpr Rank to_rank(char r) noexcept { return Rank(r - '1'); }
+[[nodiscard]] constexpr Rank to_rank(char r) noexcept { return static_cast<Rank>(r - '1'); }
 
 // Flip file 'A'-'H' or 'a'-'h'; otherwise unchanged
 [[nodiscard]] constexpr char flip_file(char f) noexcept {
@@ -422,8 +434,6 @@ inline constexpr Value VALUE_KNIGHT = 781;
 inline constexpr Value VALUE_BISHOP = 825;
 inline constexpr Value VALUE_ROOK   = 1276;
 inline constexpr Value VALUE_QUEEN  = 2538;
-
-inline constexpr Value VALUE_EVAL_PAWN = 534;
 
 inline constexpr int DELTA_MAX = 2 * VALUE_INFINITE;
 

@@ -139,7 +139,7 @@ using iptr = std::intptr_t;
 
 using uchar = unsigned char;
 
-#if defined(__GNUC__) && defined(IS_64BIT) && !defined(__wasm__)
+#if defined(__SIZEOF_INT128__)
 __extension__ using u128 = unsigned __int128;
 __extension__ using i128 = signed __int128;
 #endif
@@ -481,7 +481,7 @@ std::string version_info() noexcept;
 std::string compiler_info() noexcept;
 
 constexpr u64 mul_hi64(const u64 u1, const u64 u2) noexcept {
-#if defined(__GNUC__) && defined(IS_64BIT) && !defined(__wasm__)
+#if defined(__SIZEOF_INT128__) && !defined(__wasm__)
     return (static_cast<u128>(u1) * static_cast<u128>(u2)) >> 64;
 #else
     u64 u1L = static_cast<u32>(u1), u1H = u1 >> 32;
@@ -1907,7 +1907,13 @@ inline std::string u64_to_string(u64 v) noexcept {
     return std::string{buffer.data(), copiedSize};
 }
 
-std::string           utf8_from_wstring(std::wstring_view s) noexcept;
+inline bool InfoStrStop = false;
+
+void print_info_string(std::string_view infos) noexcept;
+
+[[noreturn]] void terminate_on_critical_error(std::string_view message) noexcept;
+
+std::string           utf8_from_wstring(std::wstring_view wsv) noexcept;
 std::filesystem::path path_from_utf8(std::string_view path) noexcept;
 
 std::optional<usize> str_to_size_t(std::string_view sv) noexcept;

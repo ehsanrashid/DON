@@ -262,7 +262,7 @@ jobs:
       - name: Verify bench and compiler
         working-directory: src
         run: |
-          ../tests/signature.sh $benchref
+          ../tests/signature.sh "$benchref"
           ./DON compiler 2>&1 | grep -q DOTPROD || { echo "compiler output missing DOTPROD" >&2; exit 1; }
 
       - name: Rename binary

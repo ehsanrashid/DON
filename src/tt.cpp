@@ -284,7 +284,7 @@ void TranspositionTable::reset(const Threads& threads) noexcept {
 }
 
 TTCluster* TranspositionTable::cluster(const Key key) const noexcept {
-    return &clusters[mul_hi64(key, clusterCount)];
+    return &clusters[static_cast<usize>(mul_hi64(key, clusterCount))];
 }
 
 // `probe` is the primary method: looks up the current position (key) in the transposition table.

@@ -31,7 +31,6 @@
 #include "benchmark.h"
 #include "memory.h"
 #include "misc.h"
-#include "notation.h"
 #include "option.h"
 #include "search.h"
 

@@ -18,6 +18,7 @@
 #include "misc.h"
 
 #include <cmath>
+#include <cstdlib>
 #include <ctime>
 
 #if defined(_WIN32)
@@ -841,26 +842,42 @@ std::filesystem::path CommandLine::working_directory() noexcept {
     return std::filesystem::current_path();
 }
 
-std::string utf8_from_wstring(std::wstring_view wSv) noexcept {
+void print_info_string(const std::string_view infos) noexcept {
+
+    if (InfoStrStop)
+        return;
+
+    for (auto info : split(infos, "\n", true))
+        if (!is_whitespace(info))
+            std::cout << "info string " << info << '\n';
+}
+
+void terminate_on_critical_error(const std::string_view message) noexcept {
+    print_info_string("CRITICAL ERROR: " + std::string{message});
+
+    std::exit(EXIT_FAILURE);
+}
+
+std::string utf8_from_wstring(const std::wstring_view wsv) noexcept {
 #if defined(_WIN32)
-    if (wSv.empty())
+    if (wsv.empty())
         return {};
 
     const int size =
-      WideCharToMultiByte(CP_UTF8, 0, wSv.data(), int(wSv.size()), nullptr, 0, nullptr, nullptr);
+      WideCharToMultiByte(CP_UTF8, 0, wsv.data(), int(wsv.size()), nullptr, 0, nullptr, nullptr);
     if (size <= 0)
         return {};
 
     std::string str(usize(size), '\0');
-    WideCharToMultiByte(CP_UTF8, 0, wSv.data(), int(wSv.size()), str.data(), size, nullptr,
+    WideCharToMultiByte(CP_UTF8, 0, wsv.data(), int(wsv.size()), str.data(), size, nullptr,
                         nullptr);
     return str;
 #else
-    return std::string{wSv.begin(), wSv.end()};
+    return std::string{wsv.begin(), wsv.end()};
 #endif
 }
 
-std::filesystem::path path_from_utf8(std::string_view path) noexcept {
+std::filesystem::path path_from_utf8(const std::string_view path) noexcept {
 #if defined(_WIN32)
     const usize size = path.size();
     if (size > std::numeric_limits<int>::max())
@@ -876,7 +893,7 @@ std::filesystem::path path_from_utf8(std::string_view path) noexcept {
 #endif
 }
 
-std::optional<usize> str_to_size_t(std::string_view sv) noexcept {
+std::optional<usize> str_to_size_t(const std::string_view sv) noexcept {
     if (sv.empty() || sv[0] == '-')
         return std::nullopt;
     // Use from_chars (no allocation, fast)

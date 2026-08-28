@@ -81,6 +81,8 @@ endif
 NAME := DON
 ifeq ($(IS_WINDOWS),yes)
     EXE := $(NAME).exe
+else ifneq ($(findstring wasm,$(ARCH)),)
+    EXE := $(NAME).js
 else
     EXE := $(NAME)
 endif
@@ -455,6 +457,7 @@ else ifneq ($(findstring apple-silicon,$(ARCH)),)
 # WASM-specific intrinsics
 else ifneq ($(findstring wasm32,$(ARCH)),)
     arch = wasm32
+    bits = 64
     sse = yes
     sse2 = yes
     ssse3 = yes
@@ -528,8 +531,9 @@ ifeq ($(COMP),gcc)
             CXXFLAGS += $(BITS_FLAG)
             LDFLAGS  += $(BITS_FLAG)
         endif
-    # LoongArch64 & RISC-V64 determine bitness from the target
-    else ifneq ($(filter loongarch64 riscv64,$(arch)),)
+    # These targets determine bitness from the target architecture
+    else ifneq ($(filter loongarch64 riscv64 wasm32,$(arch)),)
+
     # Generic architectures use the configured bitness
     else
         CXXFLAGS += $(BITS_FLAG)
@@ -620,8 +624,9 @@ else ifeq ($(COMP),clang)
             CXXFLAGS += $(BITS_FLAG)
             LDFLAGS  += $(BITS_FLAG)
         endif
-    # LoongArch64 & RISC-V64 determine bitness from the target
-    else ifneq ($(filter loongarch64 riscv64,$(arch)),)
+    # These targets determine bitness from the target architecture
+    else ifneq ($(filter loongarch64 riscv64 wasm32,$(arch)),)
+
     # Generic architectures use the configured bitness
     else
         CXXFLAGS += $(BITS_FLAG)
@@ -700,13 +705,14 @@ ifdef COMPCXX
 endif
 
 ifeq ($(TARGET_KERNEL),Darwin)
-    MACOS_BUILD_FLAGS := -mmacosx-version-min=10.15
-    ifneq ($(arch),any)
+    ifneq ($(filter-out any,$(arch)),)
         MACOS_BUILD_FLAGS += -arch $(arch)
     endif
+    MACOS_BUILD_FLAGS += -mmacosx-version-min=10.15
+
+    XCRUN    := xcrun
     CXXFLAGS += $(MACOS_BUILD_FLAGS)
     LDFLAGS  += $(MACOS_BUILD_FLAGS)
-    XCRUN     = xcrun
 endif
 
 ## Locate llvm-profdata compatible with CXX for PGO (profile-guided optimization) builds
@@ -890,7 +896,7 @@ ifeq ($(mmx),yes)
 endif
 
 ifeq ($(vsx),yes)
-    ifeq ($(COMP),gcc)
+    ifneq ($(filter gcc,$(COMP)),)
         CXXFLAGS += -DNO_WARN_X86_INTRINSICS -DUSE_SSE2
     endif
     CXXFLAGS += -mvsx
@@ -898,7 +904,7 @@ endif
 
 ifeq ($(altivec),yes)
     CXXFLAGS += -maltivec
-    ifeq ($(COMP),gcc)
+    ifneq ($(filter gcc,$(COMP)),)
         CXXFLAGS += -mabi=altivec
     endif
 endif
@@ -918,7 +924,9 @@ ifeq ($(lsx),yes)
 endif
 
 ifeq ($(rva23),yes)
-    CXXFLAGS += -DUSE_RVV -march=rv64gcv1p0_zba_zbb_zbs_zicbop_zicond
+    ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
+        CXXFLAGS += -DUSE_RVV -march=rv64gcv1p0_zba_zbb_zbs_zicbop_zicond
+    endif
 endif
 
 ifeq ($(neon),yes)
@@ -1278,7 +1286,7 @@ install:
 	$(STRIP) "$(BINDIR)/$(EXE)"
 
 # Clean all
-clean: obj-clean profile-clean
+clean: obj-clean profile-clean universal-clean
 	@rm -f .depend *~ core
 
 # Clean binaries and objects
@@ -1579,10 +1587,8 @@ ifeq ($(MACOS_X86_SLICE),1)
     SLICE_DEF := -DUNIVERSAL_BINARY_MACOS_X86_SLICE
 endif
 
-ARCH_CXXFLAGS = $(EMBED_DIR) -DDON=$(call ARCH_NAMESPACE,$(1)) \
-                -DUNIVERSAL_BINARY $(SLICE_DEF) \
-                $(ARCH_MAIN_CXXFLAGS) \
-                -Wno-c++26-extensions -Wno-c23-extensions
+ARCH_CXXFLAGS = $(EMBED_DIR) -DDON=$(call ARCH_NAMESPACE,$(1)) -DUNIVERSAL_BINARY $(SLICE_DEF) \
+                $(ARCH_MAIN_CXXFLAGS) -Wno-c++26-extensions -Wno-c23-extensions
 ARCH_LDFLAGS  = $(ARCH_MAIN_LDFLAGS)
 
 UOBJ_TGT ?= universal-object-pgo

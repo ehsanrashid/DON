@@ -55,6 +55,7 @@ namespace NNUE {
 class Network;
 }
 
+// Maximum number of moves stored during search
 inline constexpr usize SEARCHED_MOVE_CAPACITY = 32;
 
 using SearchedMoves = FixedVector<Move, SEARCHED_MOVE_CAPACITY, u16>;
@@ -701,11 +702,12 @@ class Worker final {
 
     void update_quiet_histories(const Position& pos, Stack* ss, Move m, int bonus) noexcept;
 
+    template<bool PVNode>
     void update_histories(const Position&                pos,
                           Stack*                         ss,
                           Depth                          depth,
                           Move                           bestMove,
-                          bool                           extra,
+                          bool                           bmTT,
                           const Array<SearchedMoves, 2>& searchedMoves) noexcept;
 
     void update_correction_histories(const Position& pos, const Stack* ss, int bonus) noexcept;

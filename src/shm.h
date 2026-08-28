@@ -156,7 +156,8 @@ inline std::string executable_path() noexcept {
     usize                 executableSize = 0;
 
 #if defined(_WIN32)
-    DWORD size = GetModuleFileName(nullptr, executablePath.data(), DWORD(executablePath.size()));
+    DWORD size =
+      GetModuleFileName(nullptr, executablePath.data(), static_cast<DWORD>(executablePath.size()));
 
     executableSize                 = std::min<usize>(size, executablePath.size() - 1);
     executablePath[executableSize] = '\0';
@@ -215,6 +216,7 @@ inline std::string executable_path() noexcept {
         executableSize                 = std::min<usize>(size, executablePath.size() - 1);
         executablePath[executableSize] = '\0';
     }
+#elif defined(__wasm__)
 #else
     #error "Unsupported platform"
 #endif

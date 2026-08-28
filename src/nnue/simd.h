@@ -36,7 +36,7 @@
 #elif defined(USE_NEON)
     #include <arm_neon.h>
 #else
-    //#warning "No SIMD instruction set enabled — falling back to scalar code"
+    //#pragma message("No SIMD instruction set enabled — falling back to scalar code")
 #endif
 
 #include <type_traits>
@@ -165,7 +165,9 @@ inline __m128i i386_cvtsi64_si128(const i64 value) noexcept {
 }
         #endif
         #if defined(USE_SSE41)  // SSE4.1 enabled?
-            #if defined(X86_32)
+            #if defined(__wasm__)
+                #define vec_convert_8_16(a) wasm_i16x8_load8x8(reinterpret_cast<const void*>(&a))
+            #elif defined(X86_32)
                 #define vec_convert_8_16(a) \
                     _mm_cvtepi8_epi16(SIMD::i386_cvtsi64_si128(static_cast<i64>(a)))
             #else
@@ -298,6 +300,8 @@ inline __m256i lasx_cvtepi8_epi16(const __m128i a) noexcept {
         #endif
 }
         #define vec_convert_8_16(a) SIMD::lasx_cvtepi8_epi16(a)
+        #define vec_mulhi_8 __lasx_xvmuh_bu
+        #define vec_srli_8 __lasx_xvsrli_b
 
         #define vec128_zero __lsx_vldi(0)
         #define vec128_set_16(a) __lsx_vreplgr2vr_h(a)
@@ -362,6 +366,9 @@ inline __m128i vec_convert_8_16(const u64 x) noexcept {
     __m128i v = __lsx_vldrepl_d(reinterpret_cast<const void*>(&x), 0);
     return __lsx_vsllwil_h_b(v, 0);
 }
+
+        #define vec_mulhi_8 __lsx_vmuh_bu
+        #define vec_srli_8 __lsx_vsrli_b
 
         #define vec128_zero __lsx_vldi(0)
         #define vec128_set_16(a) __lsx_vreplgr2vr_h(a)
@@ -529,9 +536,13 @@ inline int m128_hadd(const __m128i sum, const int bias) noexcept {
 }
 
 inline void m128_add_dpbusd_epi32(__m128i& acc, const __m128i a, const __m128i b) noexcept {
+        #if defined(__wasm_relaxed_simd__)
+    acc = wasm_i32x4_relaxed_dot_i8x16_i7x16_add(b, a, acc);
+        #else
     __m128i product = _mm_maddubs_epi16(a, b);
     product         = _mm_madd_epi16(product, _mm_set1_epi16(1));
     acc             = _mm_add_epi32(acc, product);
+        #endif
 }
     #endif
 #endif  // USE_SSSE3

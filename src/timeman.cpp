@@ -138,7 +138,7 @@ void TimeManager::init(
 
         optimumScale = timeAdjust
                      * std::min(11.29900e-3 + std::min(3.47750e-3 + 28.41880e-5 * LogScaledTime, 4.06734e-3) * std::pow(2.82122 + ply, 0.46642), 0.19404 * clock.time / remainTime);
-        maximumScale = std::min(std::max(3.66270 + 3.72690 * LogScaledTime, 2.75068) + 78.37482e-3 * ply, 6.35772);
+        maximumScale = std::min(std::max(3.66270 + 3.72690 * LogScaledTime, 2.75068) + ply / 12.7592, 6.35772);
         }
         // 2) x base-time (+ z increment)
         // If there is a healthy increment, remaining time can exceed the actual available
@@ -151,14 +151,14 @@ void TimeManager::init(
 
         optimumScale = timeAdjust
                      * std::min(12.11200e-3 + std::min(2.98690e-3 + 33.55400e-5 * LogScaledTime, 4.90500e-3) * std::pow(3.22713 + ply, 0.46866), 0.19404 * clock.time / remainTime);
-        maximumScale = std::min(std::max(3.37440 + 3.06080 * LogScaledTime, 3.14410) + 80.95855e-3 * ply, 6.87300);
+        maximumScale = std::min(std::max(3.37440 + 3.06080 * LogScaledTime, 3.14410) + ply / 12.3520, 6.87300);
         }
     }
     // 3) x moves in y time (+ z increment)
     else
     {
-        optimumScale = std::min((0.8800 + 85.91065e-4 * ply) / mtg, 0.8800 * clock.time / remainTime);
-        maximumScale = std::min(1.3000 + 0.1100 * mtg, 8.4500 + 0.0500 * mtg + 0.0100 * ply);
+        optimumScale = std::min((0.8800 + ply / 116.4) / mtg, 0.8800 * clock.time / remainTime);
+        maximumScale = std::min(1.3000 + mtg / 9.0909, 8.4500 + mtg / 20.0 + ply / 100.0);
     }
 
     // Limit the maximum possible time for this move

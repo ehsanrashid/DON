@@ -48,19 +48,18 @@ Value evaluate(const Position&         pos,
 
     auto [psqt, positional] = network.evaluate(pos, accCache, accStack);
 
-    i32 nnue = (125 * psqt + 131 * positional) / 128;
+    i32 nnue = constexpr_round((125.0 * psqt + 131.0 * positional) / 128.0);
 
     double complexity = constexpr_abs(psqt - positional);
     // Blend eval and optimism with complexity
-    nnue     = constexpr_round((1.0 - 54.8366e-6 * complexity) * nnue);
-    optimism = constexpr_round((1.0 + 21.0084e-4 * complexity) * optimism);
+    nnue     = constexpr_round(nnue * (1.0 - complexity / 18236.0));
+    optimism = constexpr_round(optimism * (1.0 + complexity / 476.0));
 
-    i32 v =
-      nnue
-      + constexpr_round(12.8417e-6 * ((nnue + optimism) * pos.material() + 32496.3930 * optimism));
+    i32 v = constexpr_round(
+      (nnue * 77871.0 + optimism * 7191.0 + (nnue + optimism) * pos.material()) / 77871.0);
 
     // Damp evaluation linearly based on the 50-move rule
-    v = constexpr_round(v * std::max(1.0 - 5.1021e-3 * pos.rule50_count(), 0.0));
+    v = constexpr_round(v * std::max(1.0 - pos.rule50_count() / 195.0, 0.0));
 
     // Guarantee evaluation does not hit the table-base range
     return in_range(v);

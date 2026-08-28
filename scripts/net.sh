@@ -21,7 +21,7 @@ if [ -z "$sha256sum" ]; then
 fi
 
 get_nnue_filename() {
-    grep "$1" evaluate.h | grep "#define" | sed "s/.*\(nn-[a-z0-9]\{12\}.nnue\).*/\1/"
+    grep "$1" "evaluate.h" | grep "#define" | sed "s/.*\(nn-[a-z0-9]\{12\}.nnue\).*/\1/"
 }
 
 validate_network() {
@@ -84,7 +84,7 @@ fetch_network EvalFileDefaultName || exit 1
 
 if [ "$1" = "0" ]; then
     DUMP_FILE=universal/network_dump.inc
-    echo -n '"' > $DUMP_FILE
-    hexdump -v -e '"\\" "x" 1/1 "%02X"' "$(get_nnue_filename EvalFileDefaultName)" >> $DUMP_FILE
-    echo -n '"' >> $DUMP_FILE
+    echo -n '"' > "$DUMP_FILE"
+    hexdump -v -e '"\\" "x" 1/1 "%02X"' "$(get_nnue_filename EvalFileDefaultName)" >> "$DUMP_FILE"
+    echo -n '"' >> "$DUMP_FILE"
 fi
