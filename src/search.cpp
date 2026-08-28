@@ -2256,7 +2256,7 @@ int Worker::correction_value(const Position& pos, const Stack* const ss) const n
     const Color ac = pos.active_color();
 
     i64 correctionValue =
-           + i64{6668} * (atomicHistories.    pawn_correction_entry<WHITE>(pos)[ac]
+           + i64{6667} * (atomicHistories.    pawn_correction_entry<WHITE>(pos)[ac]
                         + atomicHistories.    pawn_correction_entry<BLACK>(pos)[ac])
            + i64{4640} * (atomicHistories.   minor_correction_entry<WHITE>(pos)[ac]
                         + atomicHistories.   minor_correction_entry<BLACK>(pos)[ac])
