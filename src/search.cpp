@@ -1736,9 +1736,9 @@ Value Worker::search(Position&    pos,
                          // Increase bonus when depth is high
                          + std::min(59 * depth, +430)
                          // Increase bonus when bestValue is lower than current static evaluation
-                         + 143 * int(!(ss)->inCheck && bestValue <= +(ss)->evalue - 103)
+                         + 143 * int(!(ss)->inCheck && bestValue <= -103 + (ss)->evalue)
                          // Increase bonus when bestValue is higher than previous static evaluation
-                         + 151 * int(!(ss - 1)->inCheck && bestValue <= -(ss - 1)->evalue - 78)
+                         + 151 * int(!(ss - 1)->inCheck && bestValue <= -78 - (ss - 1)->evalue)
                          // Increase bonus when the previous moveCount is high
                          + 191 * int((ss - 1)->moveCount > 8)
                          // Increase bonus if the previous move has a bad history
@@ -2256,7 +2256,7 @@ int Worker::correction_value(const Position& pos, const Stack* const ss) const n
     const Color ac = pos.active_color();
 
     i64 correctionValue =
-           + i64{6672} * (atomicHistories.    pawn_correction_entry<WHITE>(pos)[ac]
+           + i64{6670} * (atomicHistories.    pawn_correction_entry<WHITE>(pos)[ac]
                         + atomicHistories.    pawn_correction_entry<BLACK>(pos)[ac])
            + i64{4640} * (atomicHistories.   minor_correction_entry<WHITE>(pos)[ac]
                         + atomicHistories.   minor_correction_entry<BLACK>(pos)[ac])
