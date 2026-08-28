@@ -385,8 +385,6 @@ class Position final {
 
     operator std::string() const noexcept;
 
-    friend std::ostream& operator<<(std::ostream& os, const Position& pos) noexcept;
-
     void dump(std::ostream& os = std::cout) const noexcept;
 
     static inline bool Chess960 = false;
@@ -479,6 +477,8 @@ class Position final {
 };
 
 //static_assert(sizeof(Position) == 248, "Position size must be 248 bytes");
+
+std::ostream& operator<<(std::ostream& os, const Position& pos) noexcept;
 
 inline const auto& Position::piece_map() const noexcept { return pieceMap; }
 

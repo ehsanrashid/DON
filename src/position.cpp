@@ -1097,8 +1097,6 @@ DirtyBoard Position::do_move(const Move          m,
     }
 
     // Compute checkers (if move may check)
-    st->checkersBB = 0;
-
     if (mayCheck)
     {
         st->checkersBB = castling
@@ -1109,6 +1107,8 @@ DirtyBoard Position::do_move(const Move          m,
 
         assert(popcount(checkers_bb()) <= 2 && (checkers_bb() & square<KING>(ac)) == 0);
     }
+    else
+        st->checkersBB = 0;
 
     db.dirtyThreats.kingSq = square<KING>(ac);
 

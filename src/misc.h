@@ -1296,14 +1296,14 @@ struct FixedText final {
     // implicit conversion if you want
     operator std::string_view() const noexcept { return view(); }
 
-    friend std::ostream& operator<<(std::ostream& os, const FixedText& fixedText) noexcept;
-
    private:
     Array<char, 31> data_{};
     u8              size_ = 0;
 };
 
 static_assert(sizeof(FixedText) == 32, "FixedText size must be 32 bytes");
+
+std::ostream& operator<<(std::ostream& os, const FixedText& fixedText) noexcept;
 
 // Tracks allocation sizes and performs allocation and freeing.
 template<typename AllocFunc, typename FreeFunc>

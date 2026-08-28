@@ -141,14 +141,14 @@ class Options final {
 
     const Option& operator[](std::string_view name) const noexcept;
 
-    friend std::ostream& operator<<(std::ostream& os, const Options& options) noexcept;
-
    private:
     UnorderedMap options;
     InfoCallback infoCallback;
 
     friend class Option;
 };
+
+std::ostream& operator<<(std::ostream& os, const Options& options) noexcept;
 
 }  // namespace DON
 
