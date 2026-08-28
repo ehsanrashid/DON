@@ -43,7 +43,7 @@ namespace DON {
 
 namespace {
 
-constexpr Depth OUTPUT_LIMIT_DEPTH = 30;
+constexpr Depth OUTPUT_DEPTH_LIMIT = 30;
 
 constexpr Array<int, 16> LMR_DIVISORS{
   3307, 2930, 2874, 2818, 3215, 3225, 3224, 2782,  //
@@ -592,7 +592,7 @@ void Worker::iterative_deepening() noexcept {
                     break;
 
                 // When failing high/low give some update before a re-search
-                if (mainManager != nullptr && multiPv == 1 && rootDepth > OUTPUT_LIMIT_DEPTH
+                if (mainManager != nullptr && multiPv == 1 && rootDepth > OUTPUT_DEPTH_LIMIT
                     && (alpha >= bestValue || bestValue >= beta))
                     mainManager->show_pv(*this, rootDepth);
 
@@ -669,7 +669,7 @@ void Worker::iterative_deepening() noexcept {
                 break;
 
             // Give some update about the PV
-            if (mainManager != nullptr && (pvIdxLast || rootDepth > OUTPUT_LIMIT_DEPTH))
+            if (mainManager != nullptr && (pvIdxLast || rootDepth > OUTPUT_DEPTH_LIMIT))
             {
                 mainManager->show_pv(*this, rootDepth);
                 mainManager->pvShown = pvIdxLast;
@@ -1291,7 +1291,7 @@ Value Worker::search(Position&    pos,
 
         if constexpr (RootNode)
         {
-            if (is_main_worker() && rootDepth > OUTPUT_LIMIT_DEPTH && !options["MinimalInfo"])
+            if (is_main_worker() && rootDepth > OUTPUT_DEPTH_LIMIT && !options["MinimalInfo"])
             {
                 std::string currMove{move_to_can(move)};
                 usize       currMoveNumber{pvIdx + moveCount};
@@ -1709,59 +1709,62 @@ Value Worker::search(Position&    pos,
     // If in a singular extension search then return a fail low score.
     if (moveCount == 0)
         bestValue = exclude ? alpha : ss->inCheck ? mated_in(ss->ply) : VALUE_DRAW;
-    // Adjust best value for fail high cases
-    else if (bestValue > beta && !is_win(bestValue) && !is_loss(beta))
-        bestValue = blend_values(bestValue, beta, depth, depth + 1);
-
-    // If there is a move that produces search value greater than alpha update the history of searched moves
-    if (bestMove != Move::None)
+    else
     {
-        bool bmTT = bestMove == ttd.move;
+        // Adjust best value for fail high cases
+        if (bestValue > beta && !is_win(bestValue) && !is_loss(beta))
+            bestValue = blend_values(bestValue, beta, depth, depth + 1);
 
-        update_histories<PVNode>(pos, ss, depth, bestMove, bmTT, searchedMoves);
-
-        if constexpr (!PVNode)
+        // If there is a move that produces search value greater than alpha update the history of searched moves
+        if (bestMove != Move::None)
         {
-            ttMoveHistory << (-779 + int(bmTT) * 1571);
+            bool bmTT = bestMove == ttd.move;
+
+            update_histories<PVNode>(pos, ss, depth, bestMove, bmTT, searchedMoves);
+
+            if constexpr (!PVNode)
+            {
+                ttMoveHistory << (-779 + int(bmTT) * 1571);
+            }
         }
-    }
-    // If prior move is valid, that caused the fail low
-    else if (preOk)
-    {
-        // Bonus for prior quiet move
-        if (!preCapture)
+        // If prior move is valid, that caused the fail low
+        else if (preOk)
         {
-            int bonusScale =
-              std::max(-245
-                         // Increase bonus when depth is high
-                         + std::min(59 * depth, +430)
-                         // Increase bonus when bestValue is lower than current static evaluation
-                         + 143 * int(!(ss)->inCheck && bestValue <= -103 + (ss)->evalue)
-                         // Increase bonus when bestValue is higher than previous static evaluation
-                         + 151 * int(!(ss - 1)->inCheck && bestValue <= -78 - (ss - 1)->evalue)
-                         // Increase bonus when the previous moveCount is high
-                         + 191 * int((ss - 1)->moveCount > 8)
-                         // Increase bonus if the previous move has a bad history
-                         - constexpr_round((ss - 1)->history / 98.0),
-                       0);
+            // Bonus for prior quiet move
+            if (!preCapture)
+            {
+                int bonusScale = std::max(
+                  -245
+                    // Increase bonus when depth is high
+                    + std::min(59 * depth, +430)
+                    // Increase bonus when bestValue is lower than current static evaluation
+                    + 143 * int(!(ss)->inCheck && bestValue <= -103 + (ss)->evalue)
+                    // Increase bonus when bestValue is higher than previous static evaluation
+                    + 151 * int(!(ss - 1)->inCheck && bestValue <= -78 - (ss - 1)->evalue)
+                    // Increase bonus when the previous moveCount is high
+                    + 191 * int((ss - 1)->moveCount > 8)
+                    // Increase bonus if the previous move has a bad history
+                    - constexpr_round((ss - 1)->history / 98.0),
+                  0);
 
-            int bonus = bonusScale * std::min(-82 + 141 * depth, +1472);
+                int bonus = bonusScale * std::min(-82 + 141 * depth, +1472);
 
-            update_quiet_history(~ac, preMove, constexpr_round(bonus * 234.0 / 32768.0));
+                update_quiet_history(~ac, preMove, constexpr_round(bonus * 234.0 / 32768.0));
 
-            update_continuation_histories(ss - 1, pos[preSq], preSq,
-                                          constexpr_round(bonus * 472.0 / 32768.0));
-            if (preNonPawn)
-                update_pawn_history(pos, pos[preSq], preSq,
-                                    constexpr_round(bonus * 1288.0 / 32768.0));
-        }
-        // Bonus for prior capture move
-        else
-        {
-            auto capturedPt = type_of(pos.captured_pc());
-            assert(capturedPt != NO_PIECE_TYPE);
+                update_continuation_histories(ss - 1, pos[preSq], preSq,
+                                              constexpr_round(bonus * 472.0 / 32768.0));
+                if (preNonPawn)
+                    update_pawn_history(pos, pos[preSq], preSq,
+                                        constexpr_round(bonus * 1288.0 / 32768.0));
+            }
+            // Bonus for prior capture move
+            else
+            {
+                auto capturedPt = type_of(pos.captured_pc());
+                assert(capturedPt != NO_PIECE_TYPE);
 
-            update_capture_history(pos[preSq], preSq, capturedPt, 901);
+                update_capture_history(pos[preSq], preSq, capturedPt, 901);
+            }
         }
     }
 
@@ -2040,8 +2043,9 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
                 bestValue = VALUE_DRAW;
         }
     }
+
     // Adjust best value for fail high cases
-    else if (bestValue > beta && !is_win(bestValue) && !is_loss(beta))
+    if (bestValue > beta && !is_win(bestValue) && !is_loss(beta))
         bestValue = blend_values(bestValue, beta, 481, 1024);
 
     // Save gathered info in transposition table
@@ -2256,7 +2260,7 @@ int Worker::correction_value(const Position& pos, const Stack* const ss) const n
     const Color ac = pos.active_color();
 
     i64 correctionValue =
-           + i64{6667} * (atomicHistories.    pawn_correction_entry<WHITE>(pos)[ac]
+           + i64{6672} * (atomicHistories.    pawn_correction_entry<WHITE>(pos)[ac]
                         + atomicHistories.    pawn_correction_entry<BLACK>(pos)[ac])
            + i64{4640} * (atomicHistories.   minor_correction_entry<WHITE>(pos)[ac]
                         + atomicHistories.   minor_correction_entry<BLACK>(pos)[ac])

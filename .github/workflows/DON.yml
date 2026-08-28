@@ -154,7 +154,7 @@ jobs:
     if: ${{ always() }}
     uses: ./.github/workflows/check_compilers.yml
   # BuildMSVC:
-  #   name: MSVC
+  #   name: Build MSVC
   #   if: ${{ always() }}
   #   uses: ./.github/workflows/build_msvc.yml
   # BuildWASM:
