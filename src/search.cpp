@@ -67,7 +67,7 @@ constexpr int reduction(const Depth depth,
                         const bool  improve) noexcept {
     int reductionScale = REDUCTIONS[depth] * REDUCTIONS[moveCount];
     return std::max(1027 + reductionScale - deltaRatio
-                      + int(!improve) * constexpr_ceil(194.0 * reductionScale / 512.0),
+                      + int(!improve) * constexpr_ceil(reductionScale * 194.0 / 512.0),
                     0);
 }
 
@@ -1305,15 +1305,15 @@ Value Worker::search(Position&    pos,
             (ss + 1)->pv = nullptr;
         }
 
-        bool ttm = move == ttd.move;
+        const bool mTT = move == ttd.move;
 
-        Square dstSq = move.dst_sq();
+        const Square dstSq = move.dst_sq();
 
-        Piece movedPc = pos.moved_pc(move);
+        const Piece movedPc = pos.moved_pc(move);
 
-        bool check      = pos.check(move);
-        bool capture    = pos.capture_promo(move);
-        auto capturedPt = capture ? pos.captured_pt(move) : NO_PIECE_TYPE;
+        const bool check      = pos.check(move);
+        const bool capture    = pos.capture_promo(move);
+        const auto capturedPt = capture ? pos.captured_pt(move) : NO_PIECE_TYPE;
 
         // Calculate new depth for this move
         Depth newDepth = depth - 1;
@@ -1420,7 +1420,7 @@ Value Worker::search(Position&    pos,
         if constexpr (!RootNode)
         {
             // clang-format off
-        if (!exclude && ttm && depth > 5 + int(ss->pvTT) && is_valid(ttd.value) && !is_decisive(ttd.value)
+        if (!exclude && mTT && depth > 5 + int(ss->pvTT) && is_valid(ttd.value) && !is_decisive(ttd.value)
              && ttd.depth >= depth - 3 && is_ok(ttd.bound & Bound::LOWER) && !is_shuffling(pos, ss, move))
         {
             Value singularAlpha = std::max(ttd.value - 1 - constexpr_round((60.0 + int(!PVNode && ss->pvTT) * 70.0) * depth / 59.0), -VALUE_INFINITE);
@@ -1519,7 +1519,7 @@ Value Worker::search(Position&    pos,
               (236 + int(AllNode) * 1143 + 1024 * (x >> 1)  //
                - 512 * (x >> 2) - 256 * (x >> 3) - 128 * (x >> 4) - 64 * (x >> 5) - 32 * (x >> 6));
         // Decrease reduction for first picked move (ttMove)
-        else if (ttm)
+        else if (mTT)
             r = std::max(r - 2016 + int(CutNode) * 150, -10);
 
         // Decrease/Increase reduction for moves with a good/bad history
@@ -1583,7 +1583,7 @@ Value Worker::search(Position&    pos,
                 (ss + 1)->pv = &pv;
 
                 // Extends ttMove if about to dive into qsearch
-                if (newDepth <= DEPTH_ZERO && ttm
+                if (newDepth <= DEPTH_ZERO && mTT
                     && (ttd.depth > 1
                         || (ttd.depth > 0 && is_valid(ttd.value) && is_decisive(ttd.value))))
                     newDepth = 1;
@@ -1716,13 +1716,13 @@ Value Worker::search(Position&    pos,
     // If there is a move that produces search value greater than alpha update the history of searched moves
     if (bestMove != Move::None)
     {
-        bool extra = bestMove == ttd.move;
+        bool bmTT = bestMove == ttd.move;
 
-        update_histories<PVNode>(pos, ss, depth, bestMove, extra, searchedMoves);
+        update_histories<PVNode>(pos, ss, depth, bestMove, bmTT, searchedMoves);
 
         if constexpr (!PVNode)
         {
-            ttMoveHistory << (-779 + int(extra) * 1571);
+            ttMoveHistory << (-779 + int(bmTT) * 1571);
         }
     }
     // If prior move is valid, that caused the fail low
@@ -1734,13 +1734,13 @@ Value Worker::search(Position&    pos,
             int bonusScale =
               std::max(-245
                          // Increase bonus when depth is high
-                         + std::min(59 * depth, 430)
+                         + std::min(59 * depth, +430)
                          // Increase bonus when bestValue is lower than current static evaluation
-                         + 143 * (!(ss)->inCheck && bestValue <= +(ss)->evalue - 103)
+                         + 143 * int(!(ss)->inCheck && bestValue <= +(ss)->evalue - 103)
                          // Increase bonus when bestValue is higher than previous static evaluation
-                         + 151 * (!(ss - 1)->inCheck && bestValue <= -(ss - 1)->evalue - 78)
+                         + 151 * int(!(ss - 1)->inCheck && bestValue <= -(ss - 1)->evalue - 78)
                          // Increase bonus when the previous moveCount is high
-                         + 86 * std::min((ss - 1)->moveCount / 5, 4)
+                         + 186 * std::min((ss - 1)->moveCount / 8, +4)
                          // Increase bonus if the previous move has a bad history
                          - constexpr_round((ss - 1)->history / 98.0),
                        0);
@@ -2167,13 +2167,14 @@ void Worker::update_histories(const Position&                pos,
                               Stack* const                   ss,
                               const Depth                    depth,
                               const Move                     bestMove,
-                              const bool                     extra,
+                              const bool                     bmTT,
                               const Array<SearchedMoves, 2>& searchedMoves) noexcept {
     assert(depth > DEPTH_ZERO);
     assert(ss->moveCount != 0);
 
-    int bonus = std::min(-79 + 134 * depth, +1572) + constexpr_round((ss - 1)->history / 30.0)
-              + int(extra) * 382;
+    int bonus = std::max(std::min(-79 + 134 * depth, +1572)
+                           + constexpr_round((ss - 1)->history / 30.0) + int(bmTT) * 382,
+                         0);
 
     int malus = std::min(-205 + 1005 * depth, +2218);
 

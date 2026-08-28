@@ -59,10 +59,10 @@ jobs:
           cp -r src ../DON/
           cp -r scripts ../DON/
           cp "DON-$SIMPLE_NAME-$BINARY$EXT" ../DON/
-          cp Copying.txt ../DON/
           cp CITATION.cff ../DON/
-          cp README.md ../DON/
+          cp Copying.txt ../DON/
           cp CONTRIBUTING.md ../DON/
+          cp README.md ../DON/
 
       - name: Make binary executable
         run: chmod +x "./DON/DON-$SIMPLE_NAME-$BINARY$EXT"

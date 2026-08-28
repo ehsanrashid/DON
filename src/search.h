@@ -707,7 +707,7 @@ class Worker final {
                           Stack*                         ss,
                           Depth                          depth,
                           Move                           bestMove,
-                          bool                           extra,
+                          bool                           bmTT,
                           const Array<SearchedMoves, 2>& searchedMoves) noexcept;
 
     void update_correction_histories(const Position& pos, const Stack* ss, int bonus) noexcept;
