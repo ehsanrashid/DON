@@ -194,7 +194,7 @@ void Position::clear() noexcept {
 // Initializes the position object with the given FEN string.
 // This function is not very robust - make sure that input FENs are correct,
 // this is assumed to be the responsibility of the GUI.
-void Position::set(std::string_view fens, State* newSt) noexcept {
+std::optional<Error> Position::set(std::string_view fens, State* newSt) noexcept {
 
     // A FEN string defines a particular position using only the ASCII character set.
     //
@@ -289,65 +289,70 @@ void Position::set(std::string_view fens, State* newSt) noexcept {
 
         if (token == '/')
         {
-            assert(rank > RANK_1);
+            //if (file <= FILE_H)
+            //    return Error{"Invalid FEN: rank ended before reaching the end."};
+            if (rank == RANK_1)
+                return Error{"Invalid FEN: too many ranks."};
 
             file = FILE_A;
             --rank;
         }
         else if (std::isdigit(static_cast<uchar>(token)))
         {
-            if ('1' <= token && token <= '8')
-            {
-                int f = char_to_digit(token);
-                assert(1 <= f && f <= 8 - file && "Position::set(): Invalid File");
-
-                file += f;  // Advance the given number of file
-            }
-            else
-                assert(false && "Position::set(): Invalid Digit");
+            int f = char_to_digit(token);
+            if (1 > f && f + file > 8)
+                return Error{"Invalid FEN: too many squares skipped in rank: "
+                             + std::string(1, to_char(rank)) + "."};
+            // Advance by the given number of files
+            file += f;
         }
         else
         {
-            if (const Piece pc = to_piece(token); pc != Piece::NO_PIECE)
-            {
-                assert(file <= FILE_H);
+            if (file > FILE_H)
+                return Error{"Invalid FEN: too many files in rank."};
 
-                const Square sq = make_square(file, rank);
+            const Piece pc = to_piece(token);
+            if (pc == Piece::NO_PIECE)
+                return Error{std::string{"Invalid FEN: invalid piece: "} + token};
 
-                put(sq, pc);
+            const Square sq = make_square(file, rank);
 
-                ++file;
-            }
-            else
-                assert(false && "Position::set(): Invalid Piece");
+            put(sq, pc);
+
+            ++file;
         }
     }
 
-    assert(rank == RANK_1);
+    if (rank != RANK_1)
+        return Error{"Invalid FEN: board encoding ended before the last rank."};
+    if (count(WHITE) > 16)
+        return Error{"Invalid FEN: white has more than 16 pieces."};
+    if (count(BLACK) > 16)
+        return Error{"Invalid FEN: black has more than 16 pieces."};
+    if (count(BLACK, PAWN) > 8)
+        return Error{"Invalid FEN: black has more than 8 pawns."};
+    if (count(WHITE, KING) != 1 || count(BLACK, KING) != 1)
+        return Error{"Invalid FEN: incorrect number of kings."};
+    if ((PROMOTION_RANKS_BB & pieces_bb(PAWN)) != 0)
+        return Error{"Invalid FEN: pawns on the first or eighth rank."};
+    if (distance(square<KING>(WHITE), square<KING>(BLACK)) <= 1)
+        return Error{"Invalid FEN: kings are adjacent."};
+
     assert(count(PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING) == count());
-    assert(count(WHITE) <= 16 && count(BLACK) <= 16);
-    assert(count(WHITE, PAWN) <= 8 && count(BLACK, PAWN) <= 8);
-    assert(count(WHITE, KING) == 1 && count(BLACK, KING) == 1);
-    assert((PROMOTION_RANKS_BB & pieces_bb(PAWN)) == 0);
-    assert(distance(square<KING>(WHITE), square<KING>(BLACK)) > 1);
 
     skip_spaces();
 
     // 2. Active color
     token = get();
 
-    switch (static_cast<char>(std::tolower(static_cast<uchar>(token))))
-    {
-    case 'w' :
+    const char side = std::tolower(static_cast<uchar>(token));
+
+    if (side == 'w')
         activeColor = WHITE;
-        break;
-    case 'b' :
+    else if (side == 'b')
         activeColor = BLACK;
-        break;
-    default :
-        assert(false && "Position::set(): Invalid Active Color");
-        break;
-    }
+    else
+        return Error{"Invalid FEN: invalid side to move." + std::string(1, token)};
 
     skip_spaces();
 
@@ -356,7 +361,7 @@ void Position::set(std::string_view fens, State* newSt) noexcept {
     // the game instead of KQkq and also X-FEN standard that, in case of Chess960,
     // if an inner rook is associated with the castling right, the castling tag is
     // replaced by the file letter of the involved rook, as for the Shredder-FEN.
-    [[maybe_unused]] usize castlingRightsCount = 0;
+    usize castlingRightsCount = 0;
     while (not_space())
     {
         token = get();
@@ -364,29 +369,21 @@ void Position::set(std::string_view fens, State* newSt) noexcept {
         if (token == '-')
             continue;
 
-        ++castlingRightsCount;
-        if (castlingRightsCount > 4)
-        {
-            assert(false && "Position::set(): Number of Castling Rights");
-            continue;
-        }
+        if (++castlingRightsCount > 4)
+            return Error{"Invalid FEN: more than 4 castling rights specified."};
 
         Color c = std::isupper(static_cast<uchar>(token)) ? WHITE : BLACK;
         token   = static_cast<char>(std::tolower(static_cast<uchar>(token)));
 
         if (relative_rank(c, square<KING>(c)) != RANK_1)
-        {
-            assert(false && "Position::set(): Missing King on RANK_1");
-            continue;
-        }
+            return Error{"Invalid FEN: " + std::string{c == WHITE ? "white" : "black"}
+                         + " king is not on the first rank."};
 
         Bitboard rooksBB = pieces_bb(c, ROOK);
 
         if ((rooksBB & relative_rank(c, RANK_1)) == 0)
-        {
-            assert(false && "Position::set(): Missing Rook on RANK_1");
-            continue;
-        }
+            return Error{"Invalid FEN: " + std::string{c == WHITE ? "white" : "black"}
+                         + " rook is missing on the first rank."};
 
         Square rookOrgSq;
 
@@ -394,8 +391,7 @@ void Position::set(std::string_view fens, State* newSt) noexcept {
         {
             rookOrgSq = relative_sq(c, SQ_H1);
 
-            while (file_of(rookOrgSq) >= FILE_C   //
-                   && (rooksBB & rookOrgSq) == 0  //
+            while (file_of(rookOrgSq) >= FILE_C && (rooksBB & rookOrgSq) == 0
                    && rookOrgSq != square<KING>(c))
                 --rookOrgSq;
         }
@@ -403,8 +399,7 @@ void Position::set(std::string_view fens, State* newSt) noexcept {
         {
             rookOrgSq = relative_sq(c, SQ_A1);
 
-            while (file_of(rookOrgSq) <= FILE_F   //
-                   && (rooksBB & rookOrgSq) == 0  //
+            while (file_of(rookOrgSq) <= FILE_F && (rooksBB & rookOrgSq) == 0
                    && rookOrgSq != square<KING>(c))
                 ++rookOrgSq;
         }
@@ -413,16 +408,11 @@ void Position::set(std::string_view fens, State* newSt) noexcept {
             rookOrgSq = make_square(to_file(token), relative_rank(c, RANK_1));
         }
         else
-        {
-            assert(false && "Position::set(): Invalid Castling Rights");
-            continue;
-        }
+            return Error{"Invalid FEN: expected castling rights, found '" + std::string(1, token)
+                         + "'."};
 
         if ((rooksBB & rookOrgSq) == 0)
-        {
-            assert(false && "Position::set(): Missing Castling Rook");
-            continue;
-        }
+            return Error{"Invalid FEN: missing castling rook."};
 
         set_castling_rights(c, rookOrgSq);
     }
@@ -452,12 +442,10 @@ void Position::set(std::string_view fens, State* newSt) noexcept {
                 if ('a' <= epFile && epFile <= 'h' && epRank == (ac == WHITE ? '6' : '3'))
                     enPassantSq = make_square(to_file(epFile), to_rank(epRank));
                 else
-                    assert(false && "Position::set(): Invalid En-passant square");
+                    return Error{"Invalid FEN: invalid en passant square."};
             }
             else
-            {
-                assert(false && "Position::set(): Invalid En-passant token");
-            }
+                return Error{"Invalid FEN: invalid en passant ending." + std::string(1, epFile)};
         }
     }
 
@@ -498,11 +486,12 @@ void Position::set(std::string_view fens, State* newSt) noexcept {
     set_state();
 
     assert(_is_ok());
+    return std::nullopt;
 }
 
 // Overload to initialize the position object with the given endgame code string like "KBPKN".
 // It's mainly a helper to get the material key out of an endgame code.
-void Position::set(std::string_view code, Color c, State* newSt) noexcept {
+std::optional<Error> Position::set(std::string_view code, Color c, State* newSt) noexcept {
     assert(!code.empty() && code[0] == 'K' && code.find('K', 1) != std::string_view::npos);
     assert(is_ok(c));
     assert(newSt != nullptr);
@@ -530,7 +519,7 @@ void Position::set(std::string_view code, Color c, State* newSt) noexcept {
       .append(c == WHITE ? " w " : " b ")
       .append("- - 0 1");
 
-    set(fens, newSt);
+    return set(fens, newSt);
 }
 
 // Copy position and points to newSt and then copy state into st

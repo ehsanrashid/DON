@@ -25,6 +25,7 @@
 #include <initializer_list>
 #include <iostream>
 #include <numeric>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <type_traits>
@@ -209,8 +210,8 @@ class Position final {
     void clear() noexcept;
 
     // FEN string input/output
-    void                      set(std::string_view fens, State* newSt) noexcept;
-    void                      set(std::string_view code, Color c, State* newSt) noexcept;
+    std::optional<Error>      set(std::string_view fens, State* newSt) noexcept;
+    std::optional<Error>      set(std::string_view code, Color c, State* newSt) noexcept;
     void                      set(const Position& pos, State* newSt) noexcept;
     [[nodiscard]] std::string fen(bool complete = true) const noexcept;
 

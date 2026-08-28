@@ -477,7 +477,10 @@ TableData make_table_data(std::string_view code) noexcept {
     State    st;
     Position pos;
 
-    pos.set(code, WHITE, &st);
+    std::optional<Error> err;
+
+    err = pos.set(code, WHITE, &st);
+    (void) err;
 
     tableData.key[WHITE] = pos.material_key();
 
@@ -503,7 +506,8 @@ TableData make_table_data(std::string_view code) noexcept {
     tableData.pawnCount[WHITE] = pawnCnt[c ? WHITE : BLACK];
     tableData.pawnCount[BLACK] = pawnCnt[c ? BLACK : WHITE];
 
-    pos.set(code, BLACK, &st);
+    err = pos.set(code, BLACK, &st);
+    (void) err;
 
     tableData.key[BLACK] = pos.material_key();
 
