@@ -135,11 +135,11 @@ jobs:
     uses: ./.github/workflows/iwyu.yml
   Sanitizers:
     name: Sanitizers
-    if: ${{ false }}
+    if: ${{ always() }}
     uses: ./.github/workflows/sanitizers.yml
   Tests:
     name: Tests
-    if: ${{ false }}
+    if: ${{ always() }}
     uses: ./.github/workflows/tests.yml
   Matetrack:
     name: Matetrack
@@ -147,11 +147,11 @@ jobs:
     uses: ./.github/workflows/matetrack.yml
   Games:
     name: Games
-    if: ${{ false }}
+    if: ${{ always() }}
     uses: ./.github/workflows/games.yml
   CheckCompilers:
     name: Check Compilers
-    if: ${{ false }}
+    if: ${{ always() }}
     uses: ./.github/workflows/check_compilers.yml
   # BuildMSVC:
   #   name: Build MSVC
