@@ -1907,6 +1907,10 @@ inline std::string u64_to_string(u64 v) noexcept {
     return std::string{buffer.data(), copiedSize};
 }
 
+inline bool InfoStrStop = false;
+
+void print_info_string(std::string_view infos) noexcept;
+
 [[noreturn]] void terminate_on_critical_error(std::string_view message) noexcept;
 
 std::string           utf8_from_wstring(std::wstring_view wsv) noexcept;

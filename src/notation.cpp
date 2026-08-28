@@ -51,16 +51,6 @@ Score::Score(Value v, const Position& pos) noexcept {
     }
 }
 
-void print_info_string(std::string_view infoSv) noexcept {
-
-    if (InfoStrStop)
-        return;
-
-    for (auto sv : split(infoSv, "\n", true))
-        if (!is_whitespace(sv))
-            std::cout << "info string " << sv << '\n';
-}
-
 namespace {
 
 struct WinRateParams final {

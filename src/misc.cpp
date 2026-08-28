@@ -18,6 +18,7 @@
 #include "misc.h"
 
 #include <cmath>
+#include <cstdlib>
 #include <ctime>
 
 #if defined(_WIN32)
@@ -841,8 +842,18 @@ std::filesystem::path CommandLine::working_directory() noexcept {
     return std::filesystem::current_path();
 }
 
+void print_info_string(const std::string_view infos) noexcept {
+
+    if (InfoStrStop)
+        return;
+
+    for (auto info : split(infos, "\n", true))
+        if (!is_whitespace(info))
+            std::cout << "info string " << info << '\n';
+}
+
 void terminate_on_critical_error(const std::string_view message) noexcept {
-    std::cout << "info string CRITICAL ERROR: " << message << std::endl;
+    print_info_string("CRITICAL ERROR: " + std::string{message});
 
     std::exit(EXIT_FAILURE);
 }
