@@ -232,14 +232,14 @@ template<>
 constexpr u8 distance<File>(const Square s1, const Square s2) noexcept {
     assert(is_ok(s1) && is_ok(s2));
 
-    return constexpr_abs(static_cast<u8>(file_of(s1)) - static_cast<u8>(file_of(s2)));
+    return constexpr_abs(file_of(s1) - file_of(s2));
 }
 
 template<>
 constexpr u8 distance<Rank>(const Square s1, const Square s2) noexcept {
     assert(is_ok(s1) && is_ok(s2));
 
-    return constexpr_abs(static_cast<u8>(rank_of(s1)) - static_cast<u8>(rank_of(s2)));
+    return constexpr_abs(rank_of(s1) - rank_of(s2));
 }
 
 alignas(CACHE_LINE_SIZE) inline constexpr auto DISTANCES = []() constexpr noexcept {
