@@ -2116,7 +2116,7 @@ Key Position::compute_non_pawn_key() const noexcept {
 // This is meant to be helpful when debugging.
 bool Position::_is_ok() const noexcept {
 
-    constexpr bool Fast = true;  // Quick (default) or full check?
+    constexpr bool QuickCheck = false;  // Quick or full check?
 
     if (!is_ok(active_color())                                 //
         || count(WHITE, KING) != 1 || count(BLACK, KING) != 1  //
@@ -2133,7 +2133,7 @@ bool Position::_is_ok() const noexcept {
     if (raw_key() != compute_key())
         assert(false && "Position::_is_ok(): Raw Key");
 
-    if (Fast)
+    if (QuickCheck)
         return true;
 
     if (minor_key() != compute_minor_key())

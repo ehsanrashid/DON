@@ -21,13 +21,12 @@
 #define NNUE_ACCUMULATOR_H_INCLUDED
 
 #include <array>
-#include <cassert>
 #include <cstddef>
 #include <cstring>
+#include <utility>
 
 #include "../misc.h"
 #include "../types.h"
-#include "architecture.h"
 #include "ntypes.h"
 
 namespace DON {

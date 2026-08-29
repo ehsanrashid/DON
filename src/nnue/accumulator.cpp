@@ -18,13 +18,15 @@
 #include "accumulator.h"
 
 #include <algorithm>
+#include <cassert>
 #include <type_traits>
 #include <utility>
 
 #include "../misc.h"
 #include "../position.h"
 #include "../types.h"
-#include "feature_transformer.h"  // IWYU pragma: keep
+#include "architecture.h"
+#include "feature_transformer.h"
 #include "simd.h"
 
 namespace DON::NNUE {
