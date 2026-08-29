@@ -363,10 +363,11 @@ inline int lsx_vec_nnz(const __m128i a) noexcept {
 }
         #define vec_nnz(a) SIMD::lsx_vec_nnz(a)
 
-inline __m128i vec_convert_8_16(const u64 x) noexcept {
+inline __m128i lsx_vec_convert_8_16(const u64 x) noexcept {
     __m128i v = __lsx_vldrepl_d(reinterpret_cast<const void*>(&x), 0);
     return __lsx_vsllwil_h_b(v, 0);
 }
+        #define vec_convert_8_16(a) SIMD::lsx_vec_convert_8_16(a)
 
         #define vec_mulhi_8 __lsx_vmuh_bu
         #define vec_srli_8 __lsx_vsrli_b
