@@ -2162,11 +2162,11 @@ bool Position::_is_ok() const noexcept {
     for (Color c : {WHITE, BLACK})
         for (PieceType pt : PIECE_TYPES)
         {
-            Piece pc = make_piece(c, pt);
+            const Piece pc = make_piece(c, pt);
             if (auto cnt = count(c, pt);
                 cnt != popcount(pieces_bb(c, pt))
                 || cnt != std::count(piece_map().begin(), piece_map().end(), pc))
-                assert(false && "Position::_is_ok(): Piece List Count");
+                assert(false && "Position::_is_ok(): Piece Map");
         }
 
     for (Color c : {WHITE, BLACK})
@@ -2185,7 +2185,7 @@ bool Position::_is_ok() const noexcept {
             if (!has_castling_rights(c, cs))
                 continue;
 
-            CastlingRights cr = make_cr(c, cs);
+            const CastlingRights cr = make_cr(c, cs);
 
             if (castling_rook_sq(c, cs) == SQ_NONE
                 || (pieces_bb(c, ROOK) & castling_rook_sq(c, cs)) == 0

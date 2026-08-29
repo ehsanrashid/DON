@@ -767,7 +767,7 @@ inline Key Position::material_key() const noexcept {
 
     for (Color c : {WHITE, BLACK})
         for (PieceType pt : EX_KING_PIECE_TYPES)
-            if (auto cnt = count(c, pt); cnt != 0)
+            if (const auto cnt = count(c, pt); cnt != 0)
                 materialKey ^= Zobrist::piece_square(c, pt, Square(Zobrist::PAWN_OFFSET + cnt - 1));
 
     return materialKey;

@@ -19,7 +19,6 @@
 
 #include <algorithm>
 #include <cassert>
-#include <type_traits>
 #include <utility>
 
 #include "../misc.h"
@@ -39,7 +38,7 @@ template<bool Forward>
 void update_incremental(Color                     perspective,
                         Square                    ksq,
                         const FeatureTransformer& featureTransformer,
-                        const Accumulator&        computed,
+                        const Accumulator&        source,
                         Accumulator&              target) noexcept;
 
 void update_refresh_cache(Color                     perspective,
@@ -150,7 +149,7 @@ namespace {
 
 void apply_combined(Color                              perspective,
                     const FeatureTransformer&          featureTransformer,
-                    const Accumulator&                 computed,
+                    const Accumulator&                 source,
                     Accumulator&                       target,
                     const PSQFeatureSet::IndexList&    psqAdded,
                     const PSQFeatureSet::IndexList&    psqRemoved,
@@ -158,11 +157,11 @@ void apply_combined(Color                              perspective,
                     const ThreatFeatureSet::IndexList& thrRemoved) noexcept {
     constexpr IndexType Dimensions = FeatureTransformer::OutputDimensions;
 
-    const auto& computedAcc = computed.accumulation[perspective];
-    auto&       targetAcc   = target.accumulation[perspective];
+    const auto& sourceAcc = source.accumulation[perspective];
+    auto&       targetAcc = target.accumulation[perspective];
 
-    const auto& computedPsqtAcc = computed.psqtAccumulation[perspective];
-    auto&       targetPsqtAcc   = target.psqtAccumulation[perspective];
+    const auto& sourcePsqtAcc = source.psqtAccumulation[perspective];
+    auto&       targetPsqtAcc = target.psqtAccumulation[perspective];
 
 #ifdef VECTOR
     using Tiling = Tiling<Dimensions, Dimensions, PSQTBuckets>;
@@ -172,42 +171,40 @@ void apply_combined(Color                              perspective,
 
     const auto* weights       = featureTransformer.weights.data();
     const auto* threatWeights = featureTransformer.threatWeights.data();
-
+    // clang-format off
     for (IndexType j = 0; j < Dimensions / Tiling::TileHeight; ++j)
     {
-        const usize tileOff  = j * Tiling::TileHeight;
-        auto*       fromTile = reinterpret_cast<const vec_t*>(&computedAcc[tileOff]);
-        auto*       toTile   = reinterpret_cast<vec_t*>(&targetAcc[tileOff]);
+        const usize tileOff = j * Tiling::TileHeight;
+
+        const auto* souceTile  = reinterpret_cast<const vec_t*>(&sourceAcc[tileOff]);
+        auto*       targetTile = reinterpret_cast<vec_t*>(&targetAcc[tileOff]);
 
         for (IndexType k = 0; k < Tiling::RegCount; ++k)
-            acc[k] = fromTile[k];
+            acc[k] = souceTile[k];
 
         for (IndexType i = 0; i < psqRemoved.size(); ++i)
         {
-            auto* row =
-              reinterpret_cast<const vec_t*>(&weights[psqRemoved[i] * Dimensions + tileOff]);
+            const auto* row = reinterpret_cast<const vec_t*>(&weights[psqRemoved[i] * Dimensions + tileOff]);
             for (IndexType k = 0; k < Tiling::RegCount; ++k)
                 acc[k] = vec_sub_16(acc[k], row[k]);
         }
 
         for (IndexType i = 0; i < psqAdded.size(); ++i)
         {
-            auto* row =
-              reinterpret_cast<const vec_t*>(&weights[psqAdded[i] * Dimensions + tileOff]);
+            const auto* row = reinterpret_cast<const vec_t*>(&weights[psqAdded[i] * Dimensions + tileOff]);
             for (IndexType k = 0; k < Tiling::RegCount; ++k)
                 acc[k] = vec_add_16(acc[k], row[k]);
         }
 
         for (IndexType i = 0; i < thrRemoved.size(); ++i)
         {
-            auto* column = reinterpret_cast<const vec_i8_t*>(
-              &threatWeights[thrRemoved[i] * Dimensions + tileOff]);
+            const auto* column = reinterpret_cast<const vec_i8_t*>(&threatWeights[thrRemoved[i] * Dimensions + tileOff]);
 
     #ifdef USE_NEON
-            for (IndexType k = 0; k < Tiling::RegCount; k += 2)
+            for (IndexType k = 0; k + 1 < Tiling::RegCount; k += 2)
             {
-                acc[k]     = vsubw_s8(acc[k], vget_low_s8(column[k / 2]));
-                acc[k + 1] = vsubw_high_s8(acc[k + 1], column[k / 2]);
+                acc[k + 0] = vsubw_s8(     acc[k + 0], vget_low_s8(column[k / 2]));
+                acc[k + 1] = vsubw_high_s8(acc[k + 1],             column[k / 2]);
             }
     #else
             for (IndexType k = 0; k < Tiling::RegCount; ++k)
@@ -217,14 +214,13 @@ void apply_combined(Color                              perspective,
 
         for (IndexType i = 0; i < thrAdded.size(); ++i)
         {
-            auto* column =
-              reinterpret_cast<const vec_i8_t*>(&threatWeights[thrAdded[i] * Dimensions + tileOff]);
+            const auto* column = reinterpret_cast<const vec_i8_t*>(&threatWeights[thrAdded[i] * Dimensions + tileOff]);
 
     #ifdef USE_NEON
-            for (IndexType k = 0; k < Tiling::RegCount; k += 2)
+            for (IndexType k = 0; k + 1 < Tiling::RegCount; k += 2)
             {
-                acc[k]     = vaddw_s8(acc[k], vget_low_s8(column[k / 2]));
-                acc[k + 1] = vaddw_high_s8(acc[k + 1], column[k / 2]);
+                acc[k + 0] = vaddw_s8     (acc[k + 0], vget_low_s8(column[k / 2]));
+                acc[k + 1] = vaddw_high_s8(acc[k + 1],             column[k / 2]);
             }
     #else
             for (IndexType k = 0; k < Tiling::RegCount; ++k)
@@ -232,8 +228,8 @@ void apply_combined(Color                              perspective,
     #endif
         }
 
-        for (IndexType k = 0; k < Tiling::RegCount; k++)
-            vec_store(&toTile[k], acc[k]);
+        for (IndexType k = 0; k < Tiling::RegCount; ++k)
+            vec_store(&targetTile[k], acc[k]);
     }
 
     const auto* psqtWeights       = featureTransformer.psqtWeights.data();
@@ -242,52 +238,49 @@ void apply_combined(Color                              perspective,
     for (IndexType j = 0; j < PSQTBuckets / Tiling::PSQTTileHeight; ++j)
     {
         const usize psqtTileOff = j * Tiling::PSQTTileHeight;
-        auto* fromTilePsqt = reinterpret_cast<const psqt_vec_t*>(&computedPsqtAcc[psqtTileOff]);
-        auto* toTilePsqt   = reinterpret_cast<psqt_vec_t*>(&targetPsqtAcc[psqtTileOff]);
+
+        const auto* sourceTilePsqt = reinterpret_cast<const psqt_vec_t*>(&sourcePsqtAcc[psqtTileOff]);
+        auto*       targetTilePsqt = reinterpret_cast<psqt_vec_t*>(&targetPsqtAcc[psqtTileOff]);
 
         for (IndexType k = 0; k < Tiling::PSQTRegCount; ++k)
-            psqt[k] = fromTilePsqt[k];
+            psqt[k] = sourceTilePsqt[k];
 
         for (IndexType i = 0; i < psqRemoved.size(); ++i)
         {
-            auto* columnPsqt = reinterpret_cast<const psqt_vec_t*>(
-              &psqtWeights[psqRemoved[i] * PSQTBuckets + psqtTileOff]);
+            const auto* columnPsqt = reinterpret_cast<const psqt_vec_t*>(&psqtWeights[psqRemoved[i] * PSQTBuckets + psqtTileOff]);
             for (usize k = 0; k < Tiling::PSQTRegCount; ++k)
                 psqt[k] = vec_sub_psqt_32(psqt[k], columnPsqt[k]);
         }
 
         for (IndexType i = 0; i < psqAdded.size(); ++i)
         {
-            auto* columnPsqt = reinterpret_cast<const psqt_vec_t*>(
-              &psqtWeights[psqAdded[i] * PSQTBuckets + psqtTileOff]);
+            const auto* columnPsqt = reinterpret_cast<const psqt_vec_t*>(&psqtWeights[psqAdded[i] * PSQTBuckets + psqtTileOff]);
             for (usize k = 0; k < Tiling::PSQTRegCount; ++k)
                 psqt[k] = vec_add_psqt_32(psqt[k], columnPsqt[k]);
         }
 
         for (IndexType i = 0; i < thrRemoved.size(); ++i)
         {
-            auto* columnPsqt = reinterpret_cast<const psqt_vec_t*>(
-              &threatPsqtWeights[thrRemoved[i] * PSQTBuckets + psqtTileOff]);
+            const auto* columnPsqt = reinterpret_cast<const psqt_vec_t*>(&threatPsqtWeights[thrRemoved[i] * PSQTBuckets + psqtTileOff]);
             for (usize k = 0; k < Tiling::PSQTRegCount; ++k)
                 psqt[k] = vec_sub_psqt_32(psqt[k], columnPsqt[k]);
         }
 
         for (IndexType i = 0; i < thrAdded.size(); ++i)
         {
-            auto* columnPsqt = reinterpret_cast<const psqt_vec_t*>(
-              &threatPsqtWeights[thrAdded[i] * PSQTBuckets + psqtTileOff]);
+            const auto* columnPsqt = reinterpret_cast<const psqt_vec_t*>(&threatPsqtWeights[thrAdded[i] * PSQTBuckets + psqtTileOff]);
             for (usize k = 0; k < Tiling::PSQTRegCount; ++k)
                 psqt[k] = vec_add_psqt_32(psqt[k], columnPsqt[k]);
         }
 
         for (IndexType k = 0; k < Tiling::PSQTRegCount; ++k)
-            vec_store_psqt(&toTilePsqt[k], psqt[k]);
+            vec_store_psqt(&targetTilePsqt[k], psqt[k]);
     }
-
+    // clang-format on
 #else
 
-    targetAcc     = computedAcc;
-    targetPsqtAcc = computedPsqtAcc;
+    targetAcc     = sourceAcc;
+    targetPsqtAcc = sourcePsqtAcc;
 
     for (const auto index : psqRemoved)
     {
@@ -328,10 +321,10 @@ template<bool Forward>
 void update_incremental(const Color               perspective,
                         const Square              ksq,
                         const FeatureTransformer& featureTransformer,
-                        const Accumulator&        computed,
+                        const Accumulator&        source,
                         Accumulator&              target) noexcept {
 
-    assert(computed.computed[perspective]);
+    assert(source.computed[perspective]);
     assert(!target.computed[perspective]);
 
     // The size must be enough to contain the largest possible update.
@@ -341,7 +334,7 @@ void update_incremental(const Color               perspective,
     PSQFeatureSet::IndexList    psqRemoved, psqAdded;
     ThreatFeatureSet::IndexList thrRemoved, thrAdded;
 
-    const auto& dirtyBoard = Forward ? target.dirtyBoard : computed.dirtyBoard;
+    const auto& dirtyBoard = Forward ? target.dirtyBoard : source.dirtyBoard;
 
     const auto& dirtyPiece   = dirtyBoard.dirtyPiece;
     const auto& dirtyThreats = dirtyBoard.dirtyThreats;
@@ -351,19 +344,19 @@ void update_incremental(const Color               perspective,
 
     if constexpr (Forward)
     {
+        PSQFeatureSet::append_changed_indices(perspective, ksq, dirtyPiece, psqRemoved, psqAdded);
         ThreatFeatureSet::append_changed_indices(perspective, ksq, dirtyThreats, thrRemoved,
                                                  thrAdded, pfBase, pfStride);
-        PSQFeatureSet::append_changed_indices(perspective, ksq, dirtyPiece, psqRemoved, psqAdded);
     }
     else
     {
+        PSQFeatureSet::append_changed_indices(perspective, ksq, dirtyPiece, psqAdded, psqRemoved);
         ThreatFeatureSet::append_changed_indices(perspective, ksq, dirtyThreats, thrAdded,
                                                  thrRemoved, pfBase, pfStride);
-        PSQFeatureSet::append_changed_indices(perspective, ksq, dirtyPiece, psqAdded, psqRemoved);
     }
 
-    apply_combined(perspective, featureTransformer, computed, target, psqAdded, psqRemoved,
-                   thrAdded, thrRemoved);
+    apply_combined(perspective, featureTransformer, source, target, psqAdded, psqRemoved, thrAdded,
+                   thrRemoved);
 
     target.computed[perspective] = true;
 }
@@ -509,10 +502,11 @@ void update_refresh_cache(const Color               perspective,
 
     const auto* weights       = featureTransformer.weights.data();
     const auto* threatWeights = featureTransformer.threatWeights.data();
-
+    // clang-format off
     for (IndexType j = 0; j < Dimensions / Tiling::TileHeight; ++j)
     {
-        const usize tileOff = j * Tiling::TileHeight;
+        const IndexType tileOff = j * Tiling::TileHeight;
+
         auto* accTile   = reinterpret_cast<vec_t*>(&accumulator.accumulation[perspective][tileOff]);
         auto* entryTile = reinterpret_cast<vec_t*>(&entry.accumulation[tileOff]);
 
@@ -521,32 +515,29 @@ void update_refresh_cache(const Color               perspective,
 
         for (IndexType i = 0; i < removed.size(); ++i)
         {
-            auto* column =
-              reinterpret_cast<const vec_t*>(&weights[removed[i] * Dimensions + tileOff]);
+            const auto* column = reinterpret_cast<const vec_t*>(&weights[removed[i] * Dimensions + tileOff]);
             for (IndexType k = 0; k < Tiling::RegCount; ++k)
                 acc[k] = vec_sub_16(acc[k], column[k]);
         }
         for (IndexType i = 0; i < added.size(); ++i)
         {
-            auto* column =
-              reinterpret_cast<const vec_t*>(&weights[added[i] * Dimensions + tileOff]);
+            const auto* column = reinterpret_cast<const vec_t*>(&weights[added[i] * Dimensions + tileOff]);
             for (IndexType k = 0; k < Tiling::RegCount; ++k)
                 acc[k] = vec_add_16(acc[k], column[k]);
         }
 
-        for (IndexType k = 0; k < Tiling::RegCount; k++)
+        for (IndexType k = 0; k < Tiling::RegCount; ++k)
             vec_store(&entryTile[k], acc[k]);
 
         for (IndexType i = 0; i < active.size(); ++i)
         {
-            auto* column =
-              reinterpret_cast<const vec_i8_t*>(&threatWeights[active[i] * Dimensions + tileOff]);
+            const auto* column = reinterpret_cast<const vec_i8_t*>(&threatWeights[active[i] * Dimensions + tileOff]);
 
     #ifdef USE_NEON
-            for (IndexType k = 0; k < Tiling::RegCount; k += 2)
+            for (IndexType k = 0; k + 1 < Tiling::RegCount; k += 2)
             {
-                acc[k]     = vaddw_s8(acc[k], vget_low_s8(column[k / 2]));
-                acc[k + 1] = vaddw_high_s8(acc[k + 1], column[k / 2]);
+                acc[k + 0] = vaddw_s8(     acc[k + 0], vget_low_s8(column[k / 2]));
+                acc[k + 1] = vaddw_high_s8(acc[k + 1],             column[k / 2]);
             }
     #else
             for (IndexType k = 0; k < Tiling::RegCount; ++k)
@@ -554,7 +545,7 @@ void update_refresh_cache(const Color               perspective,
     #endif
         }
 
-        for (IndexType k = 0; k < Tiling::RegCount; k++)
+        for (IndexType k = 0; k < Tiling::RegCount; ++k)
             vec_store(&accTile[k], acc[k]);
     }
 
@@ -565,8 +556,7 @@ void update_refresh_cache(const Color               perspective,
     {
         const IndexType psqtTileOff = j * Tiling::PSQTTileHeight;
 
-        auto* accTilePsqt =
-          reinterpret_cast<psqt_vec_t*>(&accumulator.psqtAccumulation[perspective][psqtTileOff]);
+        auto* accTilePsqt   = reinterpret_cast<psqt_vec_t*>(&accumulator.psqtAccumulation[perspective][psqtTileOff]);
         auto* entryTilePsqt = reinterpret_cast<psqt_vec_t*>(&entry.psqtAccumulation[psqtTileOff]);
 
         for (usize k = 0; k < Tiling::PSQTRegCount; ++k)
@@ -574,15 +564,13 @@ void update_refresh_cache(const Color               perspective,
 
         for (IndexType i = 0; i < removed.size(); ++i)
         {
-            auto* columnPsqt = reinterpret_cast<const psqt_vec_t*>(
-              &psqtWeights[removed[i] * PSQTBuckets + psqtTileOff]);
+            const auto* columnPsqt = reinterpret_cast<const psqt_vec_t*>(&psqtWeights[removed[i] * PSQTBuckets + psqtTileOff]);
             for (usize k = 0; k < Tiling::PSQTRegCount; ++k)
                 psqt[k] = vec_sub_psqt_32(psqt[k], columnPsqt[k]);
         }
         for (IndexType i = 0; i < added.size(); ++i)
         {
-            auto* columnPsqt = reinterpret_cast<const psqt_vec_t*>(
-              &psqtWeights[added[i] * PSQTBuckets + psqtTileOff]);
+            const auto* columnPsqt = reinterpret_cast<const psqt_vec_t*>(&psqtWeights[added[i] * PSQTBuckets + psqtTileOff]);
             for (usize k = 0; k < Tiling::PSQTRegCount; ++k)
                 psqt[k] = vec_add_psqt_32(psqt[k], columnPsqt[k]);
         }
@@ -592,8 +580,7 @@ void update_refresh_cache(const Color               perspective,
 
         for (IndexType i = 0; i < active.size(); ++i)
         {
-            auto* columnPsqt = reinterpret_cast<const psqt_vec_t*>(
-              &threatPsqtWeights[active[i] * PSQTBuckets + psqtTileOff]);
+            const auto* columnPsqt = reinterpret_cast<const psqt_vec_t*>(&threatPsqtWeights[active[i] * PSQTBuckets + psqtTileOff]);
             for (usize k = 0; k < Tiling::PSQTRegCount; ++k)
                 psqt[k] = vec_add_psqt_32(psqt[k], columnPsqt[k]);
         }
@@ -601,7 +588,7 @@ void update_refresh_cache(const Color               perspective,
         for (usize k = 0; k < Tiling::PSQTRegCount; ++k)
             vec_store_psqt(&accTilePsqt[k], psqt[k]);
     }
-
+    // clang-format on
 #else
 
     for (const auto index : removed)
