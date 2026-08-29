@@ -66,7 +66,7 @@ namespace SIMD {
 // If vector instructions are enabled, update and refresh the accumulator tile by tile
 // such that each tile fits in the CPU's vector registers.
 #define VECTOR
-
+// clang-format off
 #if defined(USE_SSE2)
     #if defined(USE_AVX512)
 using vec_t      = __m512i;
@@ -74,6 +74,7 @@ using vec_i8_t   = __m256i;
 using vec128_t   = __m128i;
 using psqt_vec_t = __m256i;
 using vec_uint_t = __m512i;
+
         #define vec_load(src) _mm512_load_si512(src)
         #define vec_store(dst, value) _mm512_store_si512(dst, value)
         #define vec_convert_8_16(a) _mm512_cvtepi8_epi16(a)
@@ -100,7 +101,7 @@ using vec_uint_t = __m512i;
         #define vec128_zero _mm_setzero_si128()
         #define vec128_set_16(a) _mm_set1_epi16(a)
         #define vec128_load(src) _mm_load_si128(src)
-        #define vec128_storeu(dst, value) _mm_storeu_si128(dst, value)
+        #define vec128_store(dst, value) _mm_storeu_si128(dst, value)
         #define vec128_add(a, b) _mm_add_epi16(a, b)
 
         #define MaxRegisterCount 16
@@ -112,6 +113,7 @@ using vec_i8_t   = __m128i;
 using vec128_t   = __m128i;
 using psqt_vec_t = __m256i;
 using vec_uint_t = __m256i;
+
         #define vec_load(src) _mm256_load_si256(src)
         #define vec_store(dst, value) _mm256_store_si256(dst, value)
         #define vec_convert_8_16(a) _mm256_cvtepi8_epi16(a)
@@ -135,16 +137,14 @@ using vec_uint_t = __m256i;
             #if defined(USE_VNNI) && !defined(USE_AVXVNNI)
                 #define vec_nnz(a) _mm256_cmpgt_epi32_mask(a, _mm256_setzero_si256())
             #else
-                #define vec_nnz(a) \
-                    _mm256_movemask_ps( \
-                      _mm256_castsi256_ps(_mm256_cmpgt_epi32(a, _mm256_setzero_si256())))
+                #define vec_nnz(a) _mm256_movemask_ps(_mm256_castsi256_ps(_mm256_cmpgt_epi32(a, _mm256_setzero_si256())))
             #endif
         #endif
 
         #define vec128_zero _mm_setzero_si128()
         #define vec128_set_16(a) _mm_set1_epi16(a)
         #define vec128_load(src) _mm_load_si128(src)
-        #define vec128_storeu(dst, value) _mm_storeu_si128(dst, value)
+        #define vec128_store(dst, value) _mm_storeu_si128(dst, value)
         #define vec128_add(a, b) _mm_add_epi16(a, b)
 
         #define MaxRegisterCount 12
@@ -156,6 +156,7 @@ using vec_i8_t   = u64;  // for the correct size -- will be loaded into a xmm re
 using vec128_t   = __m128i;
 using psqt_vec_t = __m128i;
 using vec_uint_t = __m128i;
+
         #define vec_load(src) (*(src))
         #define vec_store(dst, value) *(dst) = (value)
 
@@ -163,30 +164,21 @@ using vec_uint_t = __m128i;
 inline __m128i i386_cvtsi64_si128(const i64 value) noexcept {
     return _mm_loadl_epi64(reinterpret_cast<const __m128i*>(&value));
 }
+            #define _mm_cvtsi64_si128(a) SIMD::i386_cvtsi64_si128(a)
         #endif
         #if defined(USE_SSE41)  // SSE4.1 enabled?
             #if defined(__wasm__)
                 #define vec_convert_8_16(a) wasm_i16x8_load8x8(reinterpret_cast<const void*>(&a))
-            #elif defined(X86_32)
-                #define vec_convert_8_16(a) \
-                    _mm_cvtepi8_epi16(SIMD::i386_cvtsi64_si128(static_cast<i64>(a)))
             #else
-                #define vec_convert_8_16(a) \
-                    _mm_cvtepi8_epi16(_mm_cvtsi64_si128(static_cast<i64>(a)))
+                #define vec_convert_8_16(a) _mm_cvtepi8_epi16(_mm_cvtsi64_si128(static_cast<i64>(a)))
             #endif
         #else
-inline __m128i ssse3_vec_convert_8_16(const u64 a) noexcept {
-    const __m128i v8 =
-            #if defined(X86_32)
-      i386_cvtsi64_si128(static_cast<i64>(a))
-            #else
-      _mm_cvtsi64_si128(static_cast<i64>(a));
-            #endif
-      ;
+inline __m128i ssse3_cvtepi8_epi16(const u64 a) noexcept {
+    const __m128i v8   = _mm_cvtsi64_si128(static_cast<i64>(a));
     const __m128i sign = _mm_cmpgt_epi8(_mm_setzero_si128(), v8);
     return _mm_unpacklo_epi8(v8, sign);
 }
-            #define vec_convert_8_16(a) SIMD::ssse3_vec_convert_8_16(a)
+            #define vec_convert_8_16(a) SIMD::ssse3_cvtepi8_epi16(a)
         #endif
 
         #define vec_add_16(a, b) _mm_add_epi16(a, b)
@@ -205,14 +197,13 @@ inline __m128i ssse3_vec_convert_8_16(const u64 a) noexcept {
         #define vec_zero_psqt() _mm_setzero_si128()
 
         #if defined(USE_SSSE3)
-            #define vec_nnz(a) \
-                _mm_movemask_ps(_mm_castsi128_ps(_mm_cmpgt_epi32(a, _mm_setzero_si128())))
+            #define vec_nnz(a) _mm_movemask_ps(_mm_castsi128_ps(_mm_cmpgt_epi32(a, _mm_setzero_si128())))
         #endif
 
         #define vec128_zero _mm_setzero_si128()
         #define vec128_set_16(a) _mm_set1_epi16(a)
         #define vec128_load(src) _mm_load_si128(src)
-        #define vec128_storeu(dst, value) _mm_storeu_si128(dst, value)
+        #define vec128_store(dst, value) _mm_storeu_si128(dst, value)
         #define vec128_add(a, b) _mm_add_epi16(a, b)
 
         #if defined(IS_64BIT)
@@ -235,54 +226,12 @@ using vec_uint_t = __m256i;
 inline __m256i lasx_load256(const __m256i* src) noexcept {
     return __lasx_xvld(reinterpret_cast<const void*>(src), 0);
 }
+        #define vec_load(src) SIMD::lasx_load256(src)
 
 inline void lasx_store256(__m256i* dst, const __m256i value) noexcept {
     __lasx_xvst(value, reinterpret_cast<void*>(dst), 0);
 }
-
-inline __m256i lasx_packus_16(const __m256i a, const __m256i b) noexcept {
-        #if defined(__clang__) && defined(__has_builtin) \
-          && __has_builtin(__builtin_lasx_xvssrani_bu_h)
-    return (__m256i) __builtin_lasx_xvssrani_bu_h((v32i8) b, (v32i8) a, 0);
-        #else
-    return __lasx_xvssrani_bu_h(b, a, 0);
-        #endif
-}
-
-inline __m256i lasx_packus_32(const __m256i a, const __m256i b) noexcept {
-        #if defined(__clang__) && defined(__has_builtin) \
-          && __has_builtin(__builtin_lasx_xvssrani_hu_w)
-    return (__m256i) __builtin_lasx_xvssrani_hu_w((v16i16) b, (v16i16) a, 0);
-        #else
-    return __lasx_xvssrani_hu_w(b, a, 0);
-        #endif
-}
-
-        #define vec_load(src) SIMD::lasx_load256(src)
         #define vec_store(dst, value) SIMD::lasx_store256(dst, value)
-        #define vec_add_16(a, b) __lasx_xvadd_h(a, b)
-        #define vec_sub_16(a, b) __lasx_xvsub_h(a, b)
-        #define vec_mulhi_16(a, b) __lasx_xvmuh_h(a, b)
-        #define vec_zero() __lasx_xvldi(0)
-        #define vec_set_16(a) __lasx_xvreplgr2vr_h(a)
-        #define vec_max_16(a, b) __lasx_xvmax_h(a, b)
-        #define vec_min_16(a, b) __lasx_xvmin_h(a, b)
-        #define vec_slli_16(a, b) __lasx_xvslli_h(a, b)
-        // Inverse permuted at load time
-        #define vec_packus_16(a, b) SIMD::lasx_packus_16(a, b)
-        #define vec_load_psqt(src) SIMD::lasx_load256(src)
-        #define vec_store_psqt(dst, value) SIMD::lasx_store256(dst, value)
-        #define vec_add_psqt_32(a, b) __lasx_xvadd_w(a, b)
-        #define vec_sub_psqt_32(a, b) __lasx_xvsub_w(a, b)
-        #define vec_zero_psqt() __lasx_xvldi(0)
-
-inline int lasx_vec_nnz(const __m256i a) noexcept {
-    const __m256i cmp  = __lasx_xvslt_w(__lasx_xvldi(0), a);
-    const __m256i mask = __lasx_xvmskltz_w(cmp);
-    return (__lasx_xvpickve2gr_w(mask, 0) << 0)  //
-         | (__lasx_xvpickve2gr_w(mask, 4) << 4);
-}
-        #define vec_nnz(a) SIMD::lasx_vec_nnz(a)
 
 inline __m256i lasx_cvtepi8_epi16(const __m128i a) noexcept {
         #if defined(__has_builtin) && __has_builtin(__builtin_lasx_cast_128)
@@ -301,14 +250,56 @@ inline __m256i lasx_cvtepi8_epi16(const __m128i a) noexcept {
         #endif
 }
         #define vec_convert_8_16(a) SIMD::lasx_cvtepi8_epi16(a)
-        #define vec_mulhi_8 __lasx_xvmuh_bu
-        #define vec_srli_8 __lasx_xvsrli_b
+
+        #define vec_add_16(a, b) __lasx_xvadd_h(a, b)
+        #define vec_sub_16(a, b) __lasx_xvsub_h(a, b)
+        #define vec_mulhi_16(a, b) __lasx_xvmuh_h(a, b)
+        #define vec_zero() __lasx_xvldi(0)
+        #define vec_set_16(a) __lasx_xvreplgr2vr_h(a)
+        #define vec_max_16(a, b) __lasx_xvmax_h(a, b)
+        #define vec_min_16(a, b) __lasx_xvmin_h(a, b)
+        #define vec_slli_16(a, b) __lasx_xvslli_h(a, b)
+        // Inverse permuted at load time
+inline __m256i lasx_packus_16(const __m256i a, const __m256i b) noexcept {
+        #if defined(__clang__) && defined(__has_builtin) && __has_builtin(__builtin_lasx_xvssrani_bu_h)
+    return (__m256i) __builtin_lasx_xvssrani_bu_h((v32i8) b, (v32i8) a, 0);
+        #else
+    return __lasx_xvssrani_bu_h(b, a, 0);
+        #endif
+}
+        #define vec_packus_16(a, b) SIMD::lasx_packus_16(a, b)
+
+inline __m256i lasx_packus_32(const __m256i a, const __m256i b) noexcept {
+        #if defined(__clang__) && defined(__has_builtin) && __has_builtin(__builtin_lasx_xvssrani_hu_w)
+    return (__m256i) __builtin_lasx_xvssrani_hu_w((v16i16) b, (v16i16) a, 0);
+        #else
+    return __lasx_xvssrani_hu_w(b, a, 0);
+        #endif
+}
+        #define vec_packus_32(a, b) SIMD::lasx_packus_32(a, b)
+
+        #define vec_load_psqt(src) SIMD::lasx_load256(src)
+        #define vec_store_psqt(dst, value) SIMD::lasx_store256(dst, value)
+        #define vec_add_psqt_32(a, b) __lasx_xvadd_w(a, b)
+        #define vec_sub_psqt_32(a, b) __lasx_xvsub_w(a, b)
+        #define vec_zero_psqt() __lasx_xvldi(0)
+
+inline int lasx_vec_nnz(const __m256i a) noexcept {
+    const __m256i cmp  = __lasx_xvslt_w(__lasx_xvldi(0), a);
+    const __m256i mask = __lasx_xvmskltz_w(cmp);
+    return (__lasx_xvpickve2gr_w(mask, 0) << 0)
+         | (__lasx_xvpickve2gr_w(mask, 4) << 4);
+}
+        #define vec_nnz(a) SIMD::lasx_vec_nnz(a)
 
         #define vec128_zero __lsx_vldi(0)
         #define vec128_set_16(a) __lsx_vreplgr2vr_h(a)
         #define vec128_load(src) (*(src))
-        #define vec128_storeu(dst, value) *(dst) = (value)
+        #define vec128_store(dst, value) *(dst) = (value)
         #define vec128_add(a, b) __lsx_vadd_h(a, b)
+
+        #define vec_mulhi_8 __lasx_xvmuh_bu
+        #define vec_srli_8 __lasx_xvsrli_b
 
         #define MaxRegisterCount 24
         #define MaxChunkSize 32
@@ -320,26 +311,15 @@ using vec128_t   = __m128i;
 using psqt_vec_t = __m128i;
 using vec_uint_t = __m128i;
 
-inline __m128i lsx_packus_16(const __m128i a, const __m128i b) noexcept {
-        #if defined(__clang__) && defined(__has_builtin) \
-          && __has_builtin(__builtin_lsx_vssrani_bu_h)
-    return (__m128i) __builtin_lsx_vssrani_bu_h((v16i8) b, (v16i8) a, 0);
-        #else
-    return __lsx_vssrani_bu_h(b, a, 0);
-        #endif
-}
-
-inline __m128i lsx_packus_32(const __m128i a, const __m128i b) noexcept {
-        #if defined(__clang__) && defined(__has_builtin) \
-          && __has_builtin(__builtin_lsx_vssrani_hu_w)
-    return (__m128i) __builtin_lsx_vssrani_hu_w((v8i16) b, (v8i16) a, 0);
-        #else
-    return __lsx_vssrani_hu_w(b, a, 0);
-        #endif
-}
-
         #define vec_load(src) (*(src))
         #define vec_store(dst, value) *(dst) = (value)
+
+inline __m128i lsx_cvtepi8_epi16(const u64 x) noexcept {
+    __m128i v = __lsx_vldrepl_d(reinterpret_cast<const void*>(&x), 0);
+    return __lsx_vsllwil_h_b(v, 0);
+}
+        #define vec_convert_8_16(a) SIMD::lsx_cvtepi8_epi16(a)
+
         #define vec_add_16(a, b) __lsx_vadd_h(a, b)
         #define vec_sub_16(a, b) __lsx_vsub_h(a, b)
         #define vec_mulhi_16(a, b) __lsx_vmuh_h(a, b)
@@ -349,7 +329,24 @@ inline __m128i lsx_packus_32(const __m128i a, const __m128i b) noexcept {
         #define vec_min_16(a, b) __lsx_vmin_h(a, b)
         #define vec_slli_16(a, b) __lsx_vslli_h(a, b)
         // Inverse permuted at load time
-        #define vec_packus_16(a, b) lsx_packus_16(a, b)
+inline __m128i lsx_packus_16(const __m128i a, const __m128i b) noexcept {
+        #if defined(__clang__) && defined(__has_builtin) && __has_builtin(__builtin_lsx_vssrani_bu_h)
+    return (__m128i) __builtin_lsx_vssrani_bu_h((v16i8) b, (v16i8) a, 0);
+        #else
+    return __lsx_vssrani_bu_h(b, a, 0);
+        #endif
+}
+        #define vec_packus_16(a, b) SIMD::lsx_packus_16(a, b)
+
+inline __m128i lsx_packus_32(const __m128i a, const __m128i b) noexcept {
+        #if defined(__clang__) && defined(__has_builtin) && __has_builtin(__builtin_lsx_vssrani_hu_w)
+    return (__m128i) __builtin_lsx_vssrani_hu_w((v8i16) b, (v8i16) a, 0);
+        #else
+    return __lsx_vssrani_hu_w(b, a, 0);
+        #endif
+}
+        #define vec_packus_32(a, b) SIMD::lsx_packus_32(a, b)
+
         #define vec_load_psqt(src) (*(src))
         #define vec_store_psqt(dst, value) *(dst) = (value)
         #define vec_add_psqt_32(a, b) __lsx_vadd_w(a, b)
@@ -363,20 +360,14 @@ inline int lsx_vec_nnz(const __m128i a) noexcept {
 }
         #define vec_nnz(a) SIMD::lsx_vec_nnz(a)
 
-inline __m128i lsx_vec_convert_8_16(const u64 x) noexcept {
-    __m128i v = __lsx_vldrepl_d(reinterpret_cast<const void*>(&x), 0);
-    return __lsx_vsllwil_h_b(v, 0);
-}
-        #define vec_convert_8_16(a) SIMD::lsx_vec_convert_8_16(a)
-
-        #define vec_mulhi_8 __lsx_vmuh_bu
-        #define vec_srli_8 __lsx_vsrli_b
-
         #define vec128_zero __lsx_vldi(0)
         #define vec128_set_16(a) __lsx_vreplgr2vr_h(a)
         #define vec128_load(src) (*(src))
-        #define vec128_storeu(dst, value) *(dst) = (value)
+        #define vec128_store(dst, value) *(dst) = (value)
         #define vec128_add(a, b) __lsx_vadd_h(a, b)
+
+        #define vec_mulhi_8 __lsx_vmuh_bu
+        #define vec_srli_8 __lsx_vsrli_b
 
         #define MaxRegisterCount 24
         #define MaxChunkSize 16
@@ -394,6 +385,7 @@ using vec_i8_t __attribute__((may_alias))    = int8x16_t;
 using psqt_vec_t __attribute__((may_alias))  = int32x4_t;
 using vec128_t __attribute__((may_alias))    = uint16x8_t;
 using vec_uint_t __attribute__((may_alias))  = uint32x4_t;
+
     #define vec_load(src) (*(src))
     #define vec_store(dst, value) *(dst) = (value)
     #define vec_add_16(a, b) vaddq_s16(a, b)
@@ -412,13 +404,11 @@ using vec_uint_t __attribute__((may_alias))  = uint32x4_t;
     #define vec_zero_psqt() psqt_vec_t{0}
 
 inline constexpr Array<u32, 4> Mask4{1, 2, 4, 8};
-    #define vec_nnz(a) \
-        vaddvq_u32(vandq_u32(vtstq_u32(vreinterpretq_u32_s16(a), vreinterpretq_u32_s16(a)), \
-                             vld1q_u32(SIMD::Mask4.data())))
+    #define vec_nnz(a) vaddvq_u32(vandq_u32(vtstq_u32(vreinterpretq_u32_s16(a), vreinterpretq_u32_s16(a)), vld1q_u32(SIMD::Mask4.data())))
     #define vec128_zero vdupq_n_u16(0)
     #define vec128_set_16(a) vdupq_n_u16(a)
     #define vec128_load(src) vld1q_u16(reinterpret_cast<const u16*>(src))
-    #define vec128_storeu(dst, value) vst1q_u16(reinterpret_cast<u16*>(dst), value)
+    #define vec128_store(dst, value) vst1q_u16(reinterpret_cast<u16*>(dst), value)
     #define vec128_add(a, b) vaddq_u16(a, b)
 
     #define MaxRegisterCount 16
@@ -440,6 +430,7 @@ inline int16x8_t arm32_vsubw_high_s8(const int16x8_t a, const int8x16_t b) noexc
     #undef VECTOR
 
 #endif
+// clang-format on
 
 struct Vec16Wrapper final {
 #if defined(VECTOR)

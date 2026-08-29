@@ -194,7 +194,6 @@ class FeatureTransformer final {
                   usize                          bucket,
                   NNZ<OutputDimensions>&         nnz,
                   Array<OutputType, BufferSize>& output) const noexcept {
-        using namespace SIMD;
 
         accStack.evaluate(pos, *this, accCache);
 
@@ -224,14 +223,15 @@ class FeatureTransformer final {
     #if defined(USE_LSX) || defined(USE_NEON) || defined(__wasm__)
             constexpr u32 Shift = 1;
     #else
-            const vec_t   Zero  = vec_zero();
-            const vec_t   FTMax = vec_set_16(FT_MAX);
+            const SIMD::vec_t Zero  = vec_zero();
+            const SIMD::vec_t FTMax = vec_set_16(FT_MAX);
+
             constexpr u32 Shift = 7;
     #endif
 
-            const auto* in0 = reinterpret_cast<const vec_t*>(&(accumulation[perspectives[p]][0]));
-            const auto* in1 = reinterpret_cast<const vec_t*>(&(accumulation[perspectives[p]][HalfDimensions / 2]));
-            auto*       out = reinterpret_cast<vec_t*>(&output[offset]);
+            const auto* in0 = reinterpret_cast<const SIMD::vec_t*>(&(accumulation[perspectives[p]][0]));
+            const auto* in1 = reinterpret_cast<const SIMD::vec_t*>(&(accumulation[perspectives[p]][HalfDimensions / 2]));
+            auto*       out = reinterpret_cast<SIMD::vec_t*>(&output[offset]);
 
             // Per the NNUE architecture, here want to multiply pairs of
             // clipped elements and divide the product by 128. To do this,
@@ -279,23 +279,23 @@ class FeatureTransformer final {
 
             for (IndexType i = 0; i + 1 < OutputChunkCount; i += 2)
             {
-                vec_t packed[2];
+                SIMD::vec_t packed[2];
                 for (IndexType j = 0; j < 2; ++j)
                 {
                     const IndexType k = (i + j) * 2;
 
-                    const vec_t acc00 = in0[k + 0];
-                    const vec_t acc01 = in0[k + 1];
-                    const vec_t acc10 = in1[k + 0];
-                    const vec_t acc11 = in1[k + 1];
+                    const SIMD::vec_t acc00 = in0[k + 0];
+                    const SIMD::vec_t acc01 = in0[k + 1];
+                    const SIMD::vec_t acc10 = in1[k + 0];
+                    const SIMD::vec_t acc11 = in1[k + 1];
 
-                    vec_t pack;
+                    SIMD::vec_t pack;
 
     #if defined(USE_LSX)
-                    const vec_t p0 = vec_packus_16(acc00, acc01);
-                    const vec_t p1 = vec_packus_16(acc10, acc11);
+                    const SIMD::vec_t p0 = vec_packus_16(acc00, acc01);
+                    const SIMD::vec_t p1 = vec_packus_16(acc10, acc11);
 
-                    const vec_t hi = vec_mulhi_8(p0, p1);
+                    const SIMD::vec_t hi = vec_mulhi_8(p0, p1);
 
                     pack = vec_srli_8(hi, Shift);
 
@@ -311,27 +311,27 @@ class FeatureTransformer final {
     #elif defined(__wasm__)
                     // _mm_mulhi_epi16 is lowered to 32-bit multiplies, so we take
                     // a similar approach as the NEON path.
-                    const vec_t mul0 = vec_packus_16(acc00, acc01);
-                    const vec_t mul1 = vec_packus_16(acc10, acc11);
+                    const SIMD::vec_t mul0 = vec_packus_16(acc00, acc01);
+                    const SIMD::vec_t mul1 = vec_packus_16(acc10, acc11);
 
-                    const vec_t lo = wasm_u16x8_extmul_low_u8x16(mul0, mul1);
-                    const vec_t hi = wasm_u16x8_extmul_high_u8x16(mul0, mul1);
+                    const SIMD::vec_t lo = wasm_u16x8_extmul_low_u8x16(mul0, mul1);
+                    const SIMD::vec_t hi = wasm_u16x8_extmul_high_u8x16(mul0, mul1);
 
                     // equivalent to vuzp2_u8
-                    const vec_t merged = wasm_i8x16_shuffle(lo, hi,
+                    const SIMD::vec_t merged = wasm_i8x16_shuffle(lo, hi,
                                                              1,  3,  5,  7,  9, 11, 13, 15,
                                                             17, 19, 21, 23, 25, 27, 29, 31);
 
                     pack = wasm_u8x16_shr(merged, Shift);
 
     #else
-                    const vec_t sum00 = vec_slli_16(vec_max_16(vec_min_16(acc00, FTMax), Zero), Shift);
-                    const vec_t sum01 = vec_slli_16(vec_max_16(vec_min_16(acc01, FTMax), Zero), Shift);
-                    const vec_t sum10 = vec_min_16(acc10, FTMax);
-                    const vec_t sum11 = vec_min_16(acc11, FTMax);
+                    const SIMD::vec_t sum00 = vec_slli_16(vec_max_16(vec_min_16(acc00, FTMax), Zero), Shift);
+                    const SIMD::vec_t sum01 = vec_slli_16(vec_max_16(vec_min_16(acc01, FTMax), Zero), Shift);
+                    const SIMD::vec_t sum10 = vec_min_16(acc10, FTMax);
+                    const SIMD::vec_t sum11 = vec_min_16(acc11, FTMax);
 
-                    const vec_t p0 = vec_mulhi_16(sum00, sum10);
-                    const vec_t p1 = vec_mulhi_16(sum01, sum11);
+                    const SIMD::vec_t p0 = vec_mulhi_16(sum00, sum10);
+                    const SIMD::vec_t p1 = vec_mulhi_16(sum01, sum11);
 
                     pack = vec_packus_16(p0, p1);
     #endif
