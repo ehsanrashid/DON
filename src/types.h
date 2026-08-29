@@ -788,16 +788,16 @@ struct DirtyThreats final {
              const Piece  pc,
              const Piece  threatenedPc,
              const bool   put) noexcept {
-        dirtyThreats.emplace_back(sq, threatenedSq, pc, threatenedPc, put);
+        dirtyThreats_.emplace_back(sq, threatenedSq, pc, threatenedPc, put);
     }
 
-    [[nodiscard]] const DirtyThreat* begin() const noexcept { return dirtyThreats.begin(); }
-    [[nodiscard]] const DirtyThreat* end() const noexcept { return dirtyThreats.end(); }
+    [[nodiscard]] const DirtyThreat* begin() const noexcept { return dirtyThreats_.begin(); }
+    [[nodiscard]] const DirtyThreat* end() const noexcept { return dirtyThreats_.end(); }
 
-    [[nodiscard]] bool empty() const noexcept { return dirtyThreats.empty(); }
+    [[nodiscard]] bool empty() const noexcept { return dirtyThreats_.empty(); }
 
     [[nodiscard]] DirtyThreat* make_space(const usize space) noexcept {
-        return dirtyThreats.make_space(space);
+        return dirtyThreats_.make_space(space);
     }
 
    private:
@@ -810,7 +810,7 @@ struct DirtyThreats final {
     // So, 80 + 16 = 96.
     using DirtyThreatVector = FixedVector<DirtyThreat, 96, u8>;
 
-    DirtyThreatVector dirtyThreats;
+    DirtyThreatVector dirtyThreats_;
 };
 
 // Keep track of all changes on the board by a move

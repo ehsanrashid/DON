@@ -947,8 +947,6 @@ void write_multiple_dirties(const PieceMap&     pieceMap,
     const auto maskCount = popcount(maskBB);
     assert(maskCount <= 16);
 
-    auto* dtSpace = dts->dirtyThreat.make_space(maskCount);
-
     const __m512i dirtyThreatVal = _mm512_set1_epi32(dirtyThreat.raw());
 
     // Extract the list of squares and up convert to 32 bits.
@@ -967,8 +965,9 @@ void write_multiple_dirties(const PieceMap&     pieceMap,
     const __m512i dirties =
       _mm512_ternarylogic_epi32(dirtyThreatVal, threatSquares, threatPieces, 254);
 
+    auto*           dtsSpace  = dts->make_space(maskCount);
     const __mmask16 storeMask = (u16{1} << maskCount) - 1;
-    _mm512_mask_storeu_epi32(dtSpace, storeMask, dirties);
+    _mm512_mask_storeu_epi32(dtsSpace, storeMask, dirties);
 }
 #endif
 

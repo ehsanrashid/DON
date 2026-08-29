@@ -21,11 +21,14 @@
 #define NNUE_FEATURES_FULL_THREATS_H_INCLUDED
 
 #include "../../misc.h"
-#include "../../position.h"
 #include "../../types.h"
 #include "../ntypes.h"
 
-namespace DON::NNUE::Features {
+namespace DON {
+
+class Position;
+
+namespace NNUE::Features {
 
 // Feature FullThreats: Threats posed by pieces to opponent's pieces
 class FullThreats final {
@@ -63,6 +66,7 @@ class FullThreats final {
     FullThreats& operator=(FullThreats&&) noexcept      = delete;
 };
 
-}  // namespace DON::NNUE::Features
+}  // namespace NNUE::Features
+}  // namespace DON
 
 #endif  // NNUE_FEATURES_FULL_THREATS_H_INCLUDED
