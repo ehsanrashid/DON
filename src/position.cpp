@@ -899,7 +899,7 @@ DirtyBoard Position::do_move(const Move          m,
     db.dirtyPiece.orgSq   = orgSq;
     db.dirtyPiece.dstSq   = dstSq;
     db.dirtyPiece.addedSq = SQ_NONE;
-    assert(db.dirtyThreats.dtList.empty());
+    assert(db.dirtyThreats.empty());
 
     st->key ^= Zobrist::turn() ^ Zobrist::enpassant(en_passant_sq());
 

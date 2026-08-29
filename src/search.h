@@ -55,9 +55,9 @@ class Network;
 }
 
 // Maximum number of moves stored during search
-inline constexpr usize SEARCHED_MOVE_CAPACITY = 32;
+inline constexpr usize MOVES_CAPACITY = 32;
 
-using SearchedMoves = FixedVector<Move, SEARCHED_MOVE_CAPACITY, u16>;
+using MoveVector = FixedVector<Move, MOVES_CAPACITY, u16>;
 
 inline Book::PolyGlot pgBook;
 
@@ -699,12 +699,12 @@ class Worker final {
     void update_quiet_histories(const Position& pos, Stack* ss, Move m, int bonus) noexcept;
 
     template<bool PVNode>
-    void update_histories(const Position&                pos,
-                          Stack*                         ss,
-                          Depth                          depth,
-                          Move                           bestMove,
-                          bool                           bmTT,
-                          const Array<SearchedMoves, 2>& searchedMoves) noexcept;
+    void update_histories(const Position&             pos,
+                          Stack*                      ss,
+                          Depth                       depth,
+                          Move                        bestMove,
+                          bool                        bmTT,
+                          const Array<MoveVector, 2>& moveVectors) noexcept;
 
     void update_correction_histories(const Position& pos, const Stack* ss, int bonus) noexcept;
 

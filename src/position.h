@@ -934,14 +934,6 @@ inline Piece Position::swap(const Square s, const Piece newPc, DirtyThreats* con
     return oldPc;
 }
 
-inline void DirtyThreats::add(const Square sq,
-                              const Square threatenedSq,
-                              const Piece  pc,
-                              const Piece  threatenedPc,
-                              const bool   put) noexcept {
-    dtList.emplace_back(sq, threatenedSq, pc, threatenedPc, put);
-}
-
 #if defined(USE_AVX512ICL)
 // Given a DirtyThreat template and bit offsets to insert the piece type and square,
 // write the threats present at the given bitboard.
@@ -955,7 +947,7 @@ void write_multiple_dirties(const PieceMap&     pieceMap,
     const auto maskCount = popcount(maskBB);
     assert(maskCount <= 16);
 
-    auto* dtSpace = dts->dtList.make_space(maskCount);
+    auto* dtSpace = dts->dirtyThreat.make_space(maskCount);
 
     const __m512i dirtyThreatVal = _mm512_set1_epi32(dirtyThreat.raw());
 

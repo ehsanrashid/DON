@@ -101,8 +101,8 @@ void HalfKA_hm::append_map_changed_indices(const Color     perspective,
                                            const PieceMap& newPieceMap,
                                            Bitboard        removedBB,
                                            Bitboard        addedBB,
-                                           IndexList&      removed,
-                                           IndexList&      added) noexcept {
+                                           IndexVector&    removed,
+                                           IndexVector&    added) noexcept {
 #if defined(USE_AVX512ICL)
     const __m512i oldPieceVec = _mm512_loadu_si512(oldPieceMap.data());
     const __m512i newPieceVec = _mm512_loadu_si512(newPieceMap.data());
@@ -131,11 +131,11 @@ void HalfKA_hm::append_map_changed_indices(const Color     perspective,
     const __m512i removedIndices = _mm512_xor_si512(removedSquares, _mm512_permutexvar_epi16(removedPieces, psiOffset));
     const __m512i addedIndices   = _mm512_xor_si512(addedSquares, _mm512_permutexvar_epi16(addedPieces, psiOffset));
 
-    auto* ptrRemovedWrite = removed.make_space(popcount(removedBB));
-    auto* ptrAddedWrite   = added.make_space(popcount(addedBB));
+    auto* removedSpace = removed.make_space(popcount(removedBB));
+    auto* addedSpace   = added.make_space(popcount(addedBB));
 
-    _mm512_storeu_si512(ptrRemovedWrite, removedIndices);
-    _mm512_storeu_si512(ptrAddedWrite, addedIndices);
+    _mm512_storeu_si512(removedSpace, removedIndices);
+    _mm512_storeu_si512(addedSpace, addedIndices);
     // clang-format on
 #else
     while (removedBB != 0)
@@ -158,8 +158,8 @@ void HalfKA_hm::append_map_changed_indices(const Color     perspective,
 void HalfKA_hm::append_changed_indices(const Color      perspective,
                                        const Square     kingSq,
                                        const DirtyType& dp,
-                                       IndexList&       removed,
-                                       IndexList&       added) noexcept {
+                                       IndexVector&     removed,
+                                       IndexVector&     added) noexcept {
     removed.push_back(make_index(perspective, kingSq, dp.orgSq, dp.movedPc));
 
     if (dp.dstSq != SQ_NONE)

@@ -145,14 +145,14 @@ void AccumulatorStack::update_incremental_backward(const Color               per
 
 namespace {
 
-void apply_combined(Color                              perspective,
-                    const FeatureTransformer&          featureTransformer,
-                    const Accumulator&                 source,
-                    Accumulator&                       target,
-                    const PSQFeatureSet::IndexList&    psqAdded,
-                    const PSQFeatureSet::IndexList&    psqRemoved,
-                    const ThreatFeatureSet::IndexList& thrAdded,
-                    const ThreatFeatureSet::IndexList& thrRemoved) noexcept {
+void apply_combined(Color                                perspective,
+                    const FeatureTransformer&            featureTransformer,
+                    const Accumulator&                   source,
+                    Accumulator&                         target,
+                    const PSQFeatureSet::IndexVector&    psqAdded,
+                    const PSQFeatureSet::IndexVector&    psqRemoved,
+                    const ThreatFeatureSet::IndexVector& thrAdded,
+                    const ThreatFeatureSet::IndexVector& thrRemoved) noexcept {
     constexpr IndexType Dimensions = FeatureTransformer::OutputDimensions;
 
     const auto& sourceAcc = source.accumulation[perspective];
@@ -331,8 +331,8 @@ void update_incremental(const Color               perspective,
     // That might depend on the feature set and generally relies on the
     // feature set's update cost calculation to be correct and never allow
     // updates with more added/removed features than MaxActiveDimensions.
-    PSQFeatureSet::IndexList    psqRemoved, psqAdded;
-    ThreatFeatureSet::IndexList thrRemoved, thrAdded;
+    PSQFeatureSet::IndexVector    psqRemoved, psqAdded;
+    ThreatFeatureSet::IndexVector thrRemoved, thrAdded;
 
     const auto& dirtyBoard = Forward ? target.dirtyBoard : source.dirtyBoard;
 
@@ -467,7 +467,7 @@ void update_refresh_cache(const Color               perspective,
 
     auto& entry = accCache[kingSq][perspective];
 
-    PSQFeatureSet::IndexList removed, added;
+    PSQFeatureSet::IndexVector removed, added;
 
     const auto& pieceMap = pos.piece_map();
     const auto  piecesBB = pos.pieces_bb();
@@ -483,7 +483,7 @@ void update_refresh_cache(const Color               perspective,
     entry.pieceMap = pieceMap;
     entry.piecesBB = piecesBB;
 
-    ThreatFeatureSet::IndexList active;
+    ThreatFeatureSet::IndexVector active;
     ThreatFeatureSet::append_active_indices(perspective, pos, active);
 
     accumulator.computed[perspective] = true;

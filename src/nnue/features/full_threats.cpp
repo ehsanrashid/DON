@@ -233,13 +233,13 @@ ALWAYS_INLINE IndexType make_index(const Color  perspective,
          + SQUARE_OFFSETS[relAttackerPc][org];
 }
 
-ALWAYS_INLINE void append_pawn_active_indices(Bitboard                attacksBB,
-                                              const Direction         attackDir,
-                                              const Color             perspective,
-                                              const Position&         pos,
-                                              const Square            kingSq,
-                                              const Piece             attackerPc,
-                                              FullThreats::IndexList& active) noexcept {
+ALWAYS_INLINE void append_pawn_active_indices(Bitboard                  attacksBB,
+                                              const Direction           attackDir,
+                                              const Color               perspective,
+                                              const Position&           pos,
+                                              const Square              kingSq,
+                                              const Piece               attackerPc,
+                                              FullThreats::IndexVector& active) noexcept {
     while (attacksBB != 0)
     {
         const Square dstSq      = pop_lsq(attacksBB);
@@ -259,7 +259,7 @@ ALWAYS_INLINE void append_pawn_active_indices(Bitboard                attacksBB,
 // Append list of indices for active features in ascending order
 void FullThreats::append_active_indices(const Color     perspective,
                                         const Position& pos,
-                                        IndexList&      active) noexcept {
+                                        IndexVector&    active) noexcept {
     const Square kingSq = pos.square<KING>(perspective);
 
     const Bitboard occupancyBB = pos.pieces_bb();
@@ -326,11 +326,11 @@ void FullThreats::append_active_indices(const Color     perspective,
 void FullThreats::append_changed_indices(const Color             perspective,
                                          const Square            kingSq,
                                          const DirtyType&        dts,
-                                         IndexList&              removed,
-                                         IndexList&              added,
+                                         IndexVector&            removed,
+                                         IndexVector&            added,
                                          const ThreatWeightType* pfBase,
                                          const usize             pfStride) noexcept {
-    for (const auto& dt : dts.dtList)
+    for (const auto& dt : dts)
     {
         const auto orgSq      = dt.sq();
         const auto dstSq      = dt.threatened_sq();

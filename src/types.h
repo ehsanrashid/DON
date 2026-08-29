@@ -780,21 +780,37 @@ struct DirtyThreat final {
 
 static_assert(sizeof(DirtyThreat) == 4, "DirtyThreat size must be 4 bytes");
 
-// A piece can be involved in at most 8 outgoing attacks and 16 incoming attacks.
-// Moving a piece also can reveal at most 8 discovered attacks.
-// This implies that a non-castling move can change at most (8 + 16) * 3 + 8 = 80 features.
-// By similar logic, a castling move can change at most (5 + 1 + 3 + 9) * 2 = 36 features.
-// Thus, 80 should work as an upper bound.
-// Finally, 16 entries are added to accommodate unmasked vector stores near the end of the list.
-// So, 80 + 16 = 96.
-using DirtyThreatList = FixedVector<DirtyThreat, 96, u8>;
-
 // Keep track of all threats (attacks) that change on the board by a move
 struct DirtyThreats final {
    public:
-    void add(Square sq, Square threatenedSq, Piece pc, Piece threatenedPc, bool put) noexcept;
+    void add(const Square sq,
+             const Square threatenedSq,
+             const Piece  pc,
+             const Piece  threatenedPc,
+             const bool   put) noexcept {
+        dirtyThreats.emplace_back(sq, threatenedSq, pc, threatenedPc, put);
+    }
 
-    DirtyThreatList dtList;
+    [[nodiscard]] const DirtyThreat* begin() const noexcept { return dirtyThreats.begin(); }
+    [[nodiscard]] const DirtyThreat* end() const noexcept { return dirtyThreats.end(); }
+
+    [[nodiscard]] bool empty() const noexcept { return dirtyThreats.empty(); }
+
+    [[nodiscard]] DirtyThreat* make_space(const usize space) noexcept {
+        return dirtyThreats.make_space(space);
+    }
+
+   private:
+    // A piece can be involved in at most 8 outgoing attacks and 16 incoming attacks.
+    // Moving a piece also can reveal at most 8 discovered attacks.
+    // This implies that a non-castling move can change at most (8 + 16) * 3 + 8 = 80 features.
+    // By similar logic, a castling move can change at most (5 + 1 + 3 + 9) * 2 = 36 features.
+    // Thus, 80 should work as an upper bound.
+    // Finally, 16 entries are added to accommodate unmasked vector stores near the end of the list.
+    // So, 80 + 16 = 96.
+    using DirtyThreatVector = FixedVector<DirtyThreat, 96, u8>;
+
+    DirtyThreatVector dirtyThreats;
 };
 
 // Keep track of all changes on the board by a move

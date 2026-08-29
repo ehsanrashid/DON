@@ -39,18 +39,18 @@ class FullThreats final {
     // Maximum number of simultaneously active features
     static constexpr IndexType MaxActiveDimensions = 128;
 
-    using DirtyType = DirtyThreats;
-    using IndexList = FixedVector<IndexType, MaxActiveDimensions>;
+    using DirtyType   = DirtyThreats;
+    using IndexVector = FixedVector<IndexType, MaxActiveDimensions>;
 
     static void append_active_indices(Color           perspective,  //
                                       const Position& pos,
-                                      IndexList&      active) noexcept;
+                                      IndexVector&    active) noexcept;
 
     static void append_changed_indices(Color                   perspective,
                                        Square                  kingSq,
                                        const DirtyType&        dts,
-                                       IndexList&              removed,
-                                       IndexList&              added,
+                                       IndexVector&            removed,
+                                       IndexVector&            added,
                                        const ThreatWeightType* pfBase   = nullptr,
                                        usize                   pfStride = 0) noexcept;
 
