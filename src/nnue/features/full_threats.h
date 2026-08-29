@@ -54,8 +54,6 @@ class FullThreats final {
                                        const ThreatWeightType* pfBase   = nullptr,
                                        usize                   pfStride = 0) noexcept;
 
-    static bool refresh_required(Color perspective, const DirtyType& dts) noexcept;
-
    private:
     FullThreats() noexcept                              = delete;
     ~FullThreats() noexcept                             = delete;

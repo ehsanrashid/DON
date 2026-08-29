@@ -895,12 +895,10 @@ DirtyBoard Position::do_move(const Move          m,
 
     DirtyBoard db;
 
-    db.dirtyPiece.movedPc     = movedPc;
-    db.dirtyPiece.orgSq       = orgSq;
-    db.dirtyPiece.dstSq       = dstSq;
-    db.dirtyPiece.addedSq     = SQ_NONE;
-    db.dirtyThreats.ac        = ac;
-    db.dirtyThreats.preKingSq = square<KING>(ac);
+    db.dirtyPiece.movedPc = movedPc;
+    db.dirtyPiece.orgSq   = orgSq;
+    db.dirtyPiece.dstSq   = dstSq;
+    db.dirtyPiece.addedSq = SQ_NONE;
     assert(db.dirtyThreats.dtList.empty());
 
     st->key ^= Zobrist::turn() ^ Zobrist::enpassant(en_passant_sq());
@@ -1108,8 +1106,6 @@ DirtyBoard Position::do_move(const Move          m,
     }
     else
         st->checkersBB = 0;
-
-    db.dirtyThreats.kingSq = square<KING>(ac);
 
     activeColor = ~ac;
 

@@ -248,7 +248,7 @@ constexpr Square& operator-=(Square& s, Direction d) noexcept { return s = s - d
 }
 
 [[nodiscard]] constexpr bool is_light(Square s) noexcept {
-    return ((static_cast<u8>(s) ^ rank_of(s)) & 0x1) != 0;
+    return ((static_cast<u8>(s) ^ static_cast<u8>(rank_of(s))) & 1) != 0;
 }
 [[nodiscard]] constexpr bool color_opposite(Square s1, Square s2) noexcept {
     return is_light(s1) != is_light(s2);
@@ -795,8 +795,6 @@ struct DirtyThreats final {
     void add(Square sq, Square threatenedSq, Piece pc, Piece threatenedPc, bool put) noexcept;
 
     DirtyThreatList dtList;
-    Square          preKingSq = SQ_NONE, kingSq = SQ_NONE;
-    Color           ac;
 };
 
 // Keep track of all changes on the board by a move

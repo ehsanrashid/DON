@@ -141,14 +141,14 @@ void HalfKA_hm::append_map_changed_indices(const Color     perspective,
 #else
     while (removedBB != 0)
     {
-        Square s = pop_lsq(removedBB);
+        const Square s = pop_lsq(removedBB);
 
         removed.push_back(make_index(perspective, kingSq, s, oldPieceMap[s]));
     }
 
     while (addedBB != 0)
     {
-        Square s = pop_lsq(addedBB);
+        const Square s = pop_lsq(addedBB);
 
         added.push_back(make_index(perspective, kingSq, s, newPieceMap[s]));
     }

@@ -120,7 +120,7 @@ struct NetworkArchitecture final {
         ac_1.propagate(buffer.fc_1_out.data(), buffer.ac_1_out.data());
         fc_2.propagate(buffer.ac_1_out.data(), buffer.fc_2_out.data());
 
-        // Max value for fwdOut is (L1 + L3) * HIDDEN_MAX * WeightMax
+        // Max value for fwdOut is (L1 + L3) * 127 * WeightMax
         // for int8 activations and weights this is (L1 + L3) * 16129 making
         // fwdOut safe from overflow until (L1 + L3) > 133,144
         // first layer and last layer use WEIGHT_SCALE_BITS + 1.

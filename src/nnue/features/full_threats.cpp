@@ -348,9 +348,4 @@ void FullThreats::append_changed_indices(const Color             perspective,
     }
 }
 
-// Determine if a full refresh is required based on the dirty threats
-bool FullThreats::refresh_required(const Color perspective, const DirtyType& dts) noexcept {
-    return dts.ac == perspective && orientation(dts.kingSq) != orientation(dts.preKingSq);
-}
-
 }  // namespace DON::NNUE::Features
