@@ -103,6 +103,8 @@ usize AccumulatorStack::find_last_usable_index(const Color perspective) const no
         if (stateAccumulators[idx].computed[perspective])
             return idx;
 
+        // Threat feature set refreshes require a king move across the center, i.e.,
+        // a subset of halfka refreshes
         if (PSQFeatureSet::refresh_required(perspective,
                                             stateAccumulators[idx].dirtyBoard.dirtyPiece))
             return idx;
