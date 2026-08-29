@@ -2647,8 +2647,13 @@ void MainSearchManager::handle_time_management(const Worker& worker,
 
     const TimePoint elapsedTime = elapsed(worker.threads);
 
-    // Stop the search if have exceeded the total time
-    if (elapsedTime > totalTime)
+    // Stop the search if have exceeded the total time, or
+    // if know that there are no better moves in the analysed line(s)
+    if (elapsedTime > totalTime  //
+        // found mates-in-1 or found mates-in-2
+        || worker.rootMoves[worker.multiPv - 1].value >= mates_in(3)
+        // found a mated-in-1
+        || worker.rootMoves[0].value == mated_in(2))
     {
         // If allowed to ponder do not stop the search now but
         // keep pondering until the GUI sends "ponderhit" or "stop".

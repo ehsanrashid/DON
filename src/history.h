@@ -84,11 +84,11 @@ class DynamicArray final {
 
     T& operator[](const usize idx) noexcept {
         assert(idx < size());
-        return data()[idx];
+        return data_[idx];
     }
     const T& operator[](const usize idx) const noexcept {
         assert(idx < size());
-        return data()[idx];
+        return data_[idx];
     }
 
     template<typename U>
@@ -96,7 +96,7 @@ class DynamicArray final {
         assert(beg <= end && end <= size());
 
         for (usize idx = beg; idx < end; ++idx)
-            data()[idx].fill(v);
+            data_[idx].fill(v);
     }
 
    private:

@@ -622,11 +622,11 @@ neon_m128_add_dpbusd_epi32(int32x4_t& acc, const int8x16_t a, const int8x16_t b)
     #endif
 #endif  // USE_NEON
 
-#if defined(VECTOR)
 // Compute optimal SIMD register count for feature transformer accumulation
-template<IndexType TransformedFeatureDimensions, IndexType PSQTBuckets>
+template<IndexType TransformedFeatureWidth, IndexType HalfDimensions, IndexType PSQTBuckets>
 class Tiling final {
    private:
+#if defined(VECTOR)
     // Use __m* types as template arguments, which causes GCC to emit warnings about losing some attribute information.
     // This is irrelevant to us as only take their size, so the following pragma are harmless.
     #if defined(__GNUC__)
@@ -634,9 +634,9 @@ class Tiling final {
         #pragma GCC diagnostic ignored "-Wignored-attributes"
     #endif
 
-    template<typename SIMDRegisterType, typename LaneType, int LaneCount, int RegisterCount>
+    template<typename RegisterType, typename LaneType, usize LaneCount, usize RegisterCount>
     static constexpr usize best_register_count() noexcept {
-        constexpr usize RegisterSize = sizeof(SIMDRegisterType);
+        constexpr usize RegisterSize = sizeof(RegisterType);
         constexpr usize LaneSize     = sizeof(LaneType);
 
         static_assert(RegisterSize >= LaneSize);
@@ -646,12 +646,12 @@ class Tiling final {
         static_assert(RegisterSize % LaneSize == 0);
         static_assert((LaneCount * LaneSize) % RegisterSize == 0);
 
-        int ideal = (LaneCount * LaneSize) / RegisterSize;
+        usize ideal = (LaneCount * LaneSize) / RegisterSize;
         if (ideal <= RegisterCount)
             return ideal;
 
         // Look for the largest divisor of the ideal register count that is smaller than RegisterCount
-        for (int divisor = RegisterCount; divisor > 1; --divisor)
+        for (usize divisor = RegisterCount; divisor > 1; --divisor)
             if (ideal % divisor == 0)
                 return divisor;
 
@@ -663,17 +663,17 @@ class Tiling final {
     #endif
 
    public:
-    static constexpr int RegCount =
-      best_register_count<vec_t, WeightType, TransformedFeatureDimensions, MaxRegisterCount>();
-    static constexpr int PSQTRegCount =
+    static constexpr usize RegCount =
+      best_register_count<vec_t, WeightType, TransformedFeatureWidth, MaxRegisterCount>();
+    static constexpr usize PSQTRegCount =
       best_register_count<psqt_vec_t, PSQTWeightType, PSQTBuckets, MaxRegisterCount>();
 
     static constexpr IndexType TileHeight     = RegCount * sizeof(vec_t) / 2;
     static constexpr IndexType PSQTTileHeight = PSQTRegCount * sizeof(psqt_vec_t) / 4;
 
-    static_assert(TransformedFeatureDimensions % TileHeight == 0,
-                  "TileHeight must divide TransformedFeatureDimensions");
+    static_assert(HalfDimensions % TileHeight == 0, "TileHeight must divide HalfDimensions");
     static_assert(PSQTBuckets % PSQTTileHeight == 0, "PSQTTileHeight must divide PSQTBuckets");
+#endif
 
    private:
     Tiling() noexcept                         = delete;
@@ -683,7 +683,6 @@ class Tiling final {
     Tiling(Tiling&&) noexcept                 = delete;
     Tiling& operator=(Tiling&&) noexcept      = delete;
 };
-#endif
 
 }  // namespace SIMD
 }  // namespace DON::NNUE

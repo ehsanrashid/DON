@@ -850,13 +850,13 @@ class TableView final {
     constexpr T* begin() const noexcept { return data(); }
     constexpr T* end() const noexcept { return begin() + size(); }
 
-    constexpr T& operator[](usize idx) noexcept {
+    constexpr T& operator[](const usize idx) noexcept {
         assert(idx < size());
-        return data()[idx];
+        return data_[idx];
     }
-    constexpr T& operator[](usize idx) const noexcept {
+    constexpr T& operator[](const usize idx) const noexcept {
         assert(idx < size());
-        return data()[idx];
+        return data_[idx];
     }
 
    private:
@@ -1045,15 +1045,17 @@ class RelaxedAtomic final {
 
     RelaxedAtomic(const RelaxedAtomic& relaxedAtomic) noexcept :
         value(static_cast<T>(relaxedAtomic)) {}
+    RelaxedAtomic& operator=(const RelaxedAtomic& relaxedAtomic) noexcept {
+        if (this == &relaxedAtomic)
+            return *this;
+
+        store(static_cast<T>(relaxedAtomic));
+        return *this;
+    }
 
     T operator=(T val) noexcept {
         store(val);
         return val;
-    }
-
-    RelaxedAtomic& operator=(const RelaxedAtomic& a) noexcept {
-        store(static_cast<T>(a));
-        return *this;
     }
 
     operator T() const noexcept { return load(); }
@@ -1122,15 +1124,17 @@ class RelaxedAtomic final {
 #endif
 
     T add(T val) noexcept {
-        const T old = load();
-        store(old + val);
-        return old;
+        const T oldV = load();
+        const T newV = oldV + val;
+        store(newV);
+        return oldV;
     }
 
     T sub(T val) noexcept {
-        const T old = load();
-        store(old - val);
-        return old;
+        const T oldV = load();
+        const T newV = oldV - val;
+        store(newV);
+        return oldV;
     }
 
     std::conditional_t<UseAtomic, std::atomic<T>, T> value;
@@ -1180,7 +1184,7 @@ class FixedVector final {
     void push_back_if_lt(const T& value, const T& maxValue) noexcept {
         assert(size() < capacity());
 
-        data_[size()] = value;
+        data_[size_] = value;
         size_ += usize(value < maxValue);
     }
 
@@ -1193,23 +1197,23 @@ class FixedVector final {
     T& back() noexcept {
         assert(size() > 0);
 
-        return data()[size() - 1];
+        return data_[size_ - 1];
     }
     const T& back() const noexcept {
         assert(size() > 0);
 
-        return data()[size() - 1];
+        return data_[size_ - 1];
     }
 
     T& operator[](const SizeType idx) noexcept {
         assert(idx < size());
 
-        return data()[idx];
+        return data_[idx];
     }
     const T& operator[](const SizeType idx) const noexcept {
         assert(idx < size());
 
-        return data()[idx];
+        return data_[idx];
     }
 
     void resize(const SizeType newSize) noexcept {

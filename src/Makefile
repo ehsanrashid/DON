@@ -1050,7 +1050,7 @@ ifeq ($(optimize),yes)
 
         ## Apply LTO flags
         CXXFLAGS += $(LTO_FLAGS)
-        LDFLAGS  += $(LTO_FLAGS) $(LTO_LDFLAGS)
+        LDFLAGS  += $(strip $(LTO_FLAGS) $(LTO_LDFLAGS))
 
     endif
 

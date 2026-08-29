@@ -853,8 +853,7 @@ void Position::do_castling(Color       ac,
     if (rookMoved)
         remove(Do ? rookOrgSq : rookDstSq, Do ? &db->dirtyThreats : nullptr);
     if (kingMoved)
-        move(Do ? kingOrgSq : kingDstSq,  //
-             Do ? kingDstSq : kingOrgSq,  //
+        move(Do ? kingOrgSq : kingDstSq, Do ? kingDstSq : kingOrgSq,
              Do ? &db->dirtyThreats : nullptr);
     if (rookMoved)
         put(Do ? rookDstSq : rookOrgSq, rookPc, Do ? &db->dirtyThreats : nullptr);
@@ -1134,11 +1133,11 @@ DirtyBoard Position::do_move(const Move          m,
     // negative in the 3-fold case, or zero when the position was not repeated.
     st->repetition = 0;
 
-    if (const auto end = std::min(rule50_count(), null_ply()); end >= 4)
+    if (const u16 end = std::min(rule50_count(), null_ply()); end >= 4)
     {
         const State* preSt = st->preSt->preSt;
 
-        for (i16 i = 4; i <= end; i += 2)
+        for (u16 i = 4; i <= end; i += 2)
         {
             preSt = preSt->preSt->preSt;
 
@@ -1881,7 +1880,7 @@ bool Position::has_repeated() const noexcept {
 // Tests if the current position has a move which draws by repetition.
 // Accurately matches the outcome of is_draw() over all legal moves.
 bool Position::is_upcoming_repetition(i16 ply) const noexcept {
-    auto end = std::min(rule50_count(), null_ply());
+    const u16 end = std::min(rule50_count(), null_ply());
     // Enough reversible moves played
     if (end < 3)
         return false;
@@ -1890,7 +1889,7 @@ bool Position::is_upcoming_repetition(i16 ply) const noexcept {
     const State* preSt   = st->preSt;
     Key          iterKey = baseKey ^ preSt->key ^ Zobrist::turn();
 
-    for (i16 i = 3; i <= end; i += 2)
+    for (u16 i = 3; i <= end; i += 2)
     {
         iterKey ^= preSt->preSt->key ^ preSt->preSt->preSt->key ^ Zobrist::turn();
 
@@ -1921,7 +1920,7 @@ bool Position::is_upcoming_repetition(i16 ply) const noexcept {
 
         assert(legal(m) && MoveList<GenType::LEGAL>(*this).contains(m));
 #endif
-        if (i < ply
+        if (static_cast<i16>(i) < ply
             // For nodes before or at the root, check that the move is
             // a repetition rather than a move to the current position.
             || preSt->repetition != 0)

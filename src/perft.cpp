@@ -134,9 +134,6 @@ void PerftData::operator+=(const PerftData& perftData) noexcept {
 
 struct PTEntry final {
    public:
-    PTEntry() noexcept                          = default;
-    PTEntry& operator=(const PTEntry&) noexcept = default;
-
     u64 nodes() const noexcept { return nodes64; }
 
     void save(u32 k, Depth d, u64 n) noexcept {
@@ -150,9 +147,11 @@ struct PTEntry final {
     }
 
    private:
-    PTEntry(const PTEntry&) noexcept       = delete;
-    PTEntry(PTEntry&&) noexcept            = delete;
-    PTEntry& operator=(PTEntry&&) noexcept = delete;
+    PTEntry() noexcept                          = delete;
+    PTEntry(const PTEntry&) noexcept            = delete;
+    PTEntry& operator=(const PTEntry&) noexcept = delete;
+    PTEntry(PTEntry&&) noexcept                 = delete;
+    PTEntry& operator=(PTEntry&&) noexcept      = delete;
 
     RelaxedAtomic<u32>   key32;
     RelaxedAtomic<Depth> depth16;
@@ -165,15 +164,14 @@ static_assert(sizeof(PTEntry) == 16, "PTEntry size must be 16 bytes");
 
 struct PTCluster final {
    public:
-    PTCluster() noexcept                            = default;
-    PTCluster& operator=(const PTCluster&) noexcept = default;
-
     Array<PTEntry, 4> entries;
 
    private:
-    PTCluster(const PTCluster&) noexcept       = delete;
-    PTCluster(PTCluster&&) noexcept            = delete;
-    PTCluster& operator=(PTCluster&&) noexcept = delete;
+    PTCluster() noexcept                            = delete;
+    PTCluster(const PTCluster&) noexcept            = delete;
+    PTCluster& operator=(const PTCluster&) noexcept = delete;
+    PTCluster(PTCluster&&) noexcept                 = delete;
+    PTCluster& operator=(PTCluster&&) noexcept      = delete;
 };
 
 static_assert(sizeof(PTCluster) == 64, "PTCluster size must be 64 bytes");
@@ -281,22 +279,23 @@ PTCluster* PerftTable::cluster(Key key) const noexcept {
 
 ProbResult PerftTable::probe(Key key, Depth depth) const noexcept {
 
-    auto* ptc = cluster(key);
+    const auto* const ptc = cluster(key);
 
     const u32 key32 = static_cast<u32>(key);
 
-    for (auto& entry : ptc->entries)
+    for (const auto& entry : ptc->entries)
         if (entry.key32 == key32 && entry.depth16 == depth)
-            return {true, &entry};
+            return {true, const_cast<PTEntry*>(&entry)};
 
-    auto* fte = ptc->entries.data();
-    auto* rte = fte;
+    const auto* fte = ptc->entries.data();
+    const auto* rte = fte;
 
     for (usize i = 1; i < ptc->entries.size(); ++i)
         if (rte->depth16 > ptc->entries[i].depth16)
             rte = &ptc->entries[i];
 
-    return {false, rte->depth16 <= depth ? rte : fte + ptc->entries.size() - 1};
+    return {false,
+            const_cast<PTEntry*>(rte->depth16 <= depth ? rte : fte + ptc->entries.size() - 1)};
 }
 
 PerftTable perftTable;

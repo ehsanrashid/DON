@@ -198,24 +198,17 @@ class FeatureTransformer final {
 
         accStack.evaluate(pos, *this, accCache);
 
-        const auto& psqAccState    = accStack.state<PSQFeatureSet>();
-        const auto& threatAccState = accStack.state<ThreatFeatureSet>();
-
-        const auto& psqtAccumulation       = psqAccState.psqtAccumulation;
-        const auto& threatPsqtAccumulation = threatAccState.psqtAccumulation;
-
         Array<Color, COLOR_NB> perspectives{pos.active_color(), ~pos.active_color()};
 
-        auto psqt = psqtAccumulation[perspectives[WHITE]][bucket]
-                  - psqtAccumulation[perspectives[BLACK]][bucket];
+        const auto& accumulator = accStack.accumulator();
 
-        psqt += threatPsqtAccumulation[perspectives[WHITE]][bucket]
-              - threatPsqtAccumulation[perspectives[BLACK]][bucket];
+        const auto& psqtAccumulation = accumulator.psqtAccumulation;
 
-        psqt /= 2;
+        const auto psqt = (psqtAccumulation[perspectives[WHITE]][bucket]
+                           - psqtAccumulation[perspectives[BLACK]][bucket])
+                        / 2;
 
-        const auto& accumulation       = psqAccState.accumulation;
-        const auto& threatAccumulation = threatAccState.accumulation;
+        const auto& accumulation = accumulator.accumulation;
 
         for (Color p : {WHITE, BLACK})
         {
@@ -284,9 +277,6 @@ class FeatureTransformer final {
             // the values are clipped at 127 * 2 = 254, which occupies 8 bits.
             // Shifting it by 7 bits left will no longer occupy the signed bit, so are safe.
 
-            const auto* tin0 = reinterpret_cast<const vec_t*>(&(threatAccumulation[perspectives[p]][0]));
-            const auto* tin1 = reinterpret_cast<const vec_t*>(&(threatAccumulation[perspectives[p]][HalfDimensions / 2]));
-
             for (IndexType i = 0; i + 1 < OutputChunkCount; i += 2)
             {
                 vec_t packed[2];
@@ -294,10 +284,10 @@ class FeatureTransformer final {
                 {
                     const IndexType k = (i + j) * 2;
 
-                    const vec_t acc00 = vec_add_16(in0[k + 0], tin0[k + 0]);
-                    const vec_t acc01 = vec_add_16(in0[k + 1], tin0[k + 1]);
-                    const vec_t acc10 = vec_add_16(in1[k + 0], tin1[k + 0]);
-                    const vec_t acc11 = vec_add_16(in1[k + 1], tin1[k + 1]);
+                    const vec_t acc00 = in0[k + 0];
+                    const vec_t acc01 = in0[k + 1];
+                    const vec_t acc10 = in1[k + 0];
+                    const vec_t acc11 = in1[k + 1];
 
                     vec_t pack;
 
@@ -356,9 +346,6 @@ class FeatureTransformer final {
             {
                 BiasType sum0 = accumulation[perspectives[p]][j + 0];
                 BiasType sum1 = accumulation[perspectives[p]][j + HalfDimensions / 2];
-
-                sum0 += threatAccumulation[perspectives[p]][j + 0];
-                sum1 += threatAccumulation[perspectives[p]][j + HalfDimensions / 2];
 
                 sum0 = std::clamp<BiasType>(sum0, 0, FT_MAX);
                 sum1 = std::clamp<BiasType>(sum1, 0, FT_MAX);
