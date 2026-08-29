@@ -604,11 +604,11 @@ void update_refresh_cache(const Color               perspective,
 
     for (const auto index : removed)
     {
-        for (IndexType i = 0; j < Dimensions; ++i)
+        for (IndexType i = 0; i < Dimensions; ++i)
             entry.accumulation[i] -= featureTransformer.weights[index * Dimensions + i];
 
         for (IndexType i = 0; i < PSQTBuckets; ++i)
-            entry.psqtAccumulation[k] -= featureTransformer.psqtWeights[index * PSQTBuckets + i];
+            entry.psqtAccumulation[i] -= featureTransformer.psqtWeights[index * PSQTBuckets + i];
     }
     for (const auto index : added)
     {
@@ -626,13 +626,13 @@ void update_refresh_cache(const Color               perspective,
 
     for (const auto index : active)
     {
-        for (IndexType j = 0; j < Dimensions; ++j)
-            accumulator.accumulation[perspective][j] +=
+        for (IndexType i = 0; i < Dimensions; ++i)
+            accumulator.accumulation[perspective][i] +=
               featureTransformer.threatWeights[index * Dimensions + i];
 
         for (IndexType i = 0; i < PSQTBuckets; ++i)
             accumulator.psqtAccumulation[perspective][i] +=
-              featureTransformer.threatPsqtWeights[index * PSQTBuckets + k];
+              featureTransformer.threatPsqtWeights[index * PSQTBuckets + i];
     }
 
 #endif
