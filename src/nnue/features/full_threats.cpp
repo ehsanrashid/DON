@@ -193,7 +193,9 @@ constexpr u8 lut_index(Piece pc, Square s1, Square s2) noexcept {
 
 // Mirror square to have king always on e..h files
 // (file_of(s) >> 2) is 0 for 0...3, 1 for 4...7
-constexpr Square orientation(Square s) noexcept { return Square(((file_of(s) >> 2) ^ 0) * FILE_H); }
+constexpr Square orientation(Square s) noexcept {
+    return static_cast<Square>(((file_of(s) >> 2) ^ 0) * FILE_H);
+}
 
 static_assert(orientation(SQ_A1) == SQ_A1);
 static_assert(orientation(SQ_D1) == SQ_A1);

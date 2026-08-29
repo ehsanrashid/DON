@@ -42,7 +42,7 @@ class HalfKA_hm final {
     static constexpr IndexType MaxActiveDimensions = 32;
 
     using DirtyType = DirtyPiece;
-    using IndexList = FixedVector<IndexType, MaxActiveDimensions>;
+    using IndexList = FixedVector<u16, MaxActiveDimensions>;
 
     static void append_map_changed_indices(Color           perspective,
                                            Square          kingSq,

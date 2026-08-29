@@ -115,20 +115,21 @@ struct NNZ final {
     u16      bitset[Dimensions / 4];
     unsigned count = 0;
 
-#elif defined(USE_SSSE3) || defined(USE_LSX) || (defined(USE_NEON) && USE_NEON >= 8)
+#else
     struct Cursor final {
        public:
         Cursor(NNZ& nnz, Color perspective) noexcept {
             nnzOut = nnz.bitset + perspective * Dimensions / 64;
         }
 
+    #if defined(USE_SSSE3) || defined(USE_LSX) || (defined(USE_NEON) && USE_NEON >= 8)
         void record(SIMD::vec_t neurons1, SIMD::vec_t neurons2) noexcept {
-    #if defined(__wasm__)
+        #if defined(__wasm__)
             __m128i packed = _mm_packus_epi32(neurons1, neurons2);
             packed         = _mm_packs_epi16(packed, packed);
             *nnzOut++      = ~_mm_movemask_epi8(_mm_cmpeq_epi8(packed, _mm_setzero_si128()));
 
-    #elif defined(USE_SSSE3) || defined(USE_LSX)
+        #elif defined(USE_SSSE3) || defined(USE_LSX)
             constexpr usize VecBytes = sizeof(SIMD::vec_t);
 
             const auto n1 = vec_nnz(neurons1);
@@ -148,7 +149,7 @@ struct NNZ final {
                 nnzOut += bytes;
             }
 
-    #elif defined(USE_NEON) && USE_NEON >= 8
+        #elif defined(USE_NEON) && USE_NEON >= 8
             alignas(16) constexpr Array<u16, 8> Mask8{1, 16, 2, 32, 4, 64, 8, 128};
 
             const uint32x4_t n1 = vreinterpretq_u32_s16(neurons1);
@@ -163,8 +164,12 @@ struct NNZ final {
 
             *nnzOut++ = vaddvq_u16(bits);
 
-    #endif
+        #endif
         }
+
+    #elif defined(VECTOR)
+        void record(SIMD::vec_t, SIMD::vec_t) noexcept {}
+    #endif
 
        private:
         u8* nnzOut;
@@ -174,16 +179,6 @@ struct NNZ final {
 
     // Each 8-bit chunk
     u8 bitset[ceil_div(Dimensions, 32)];
-
-#elif defined(VECTOR)
-    struct Cursor final {
-       public:
-        Cursor(NNZ&, Color) noexcept {}
-
-        void record(SIMD::vec_t, SIMD::vec_t) noexcept {}
-    };
-
-    Cursor make_cursor(Color perspective) noexcept { return {*this, perspective}; }
 
 #endif
 };

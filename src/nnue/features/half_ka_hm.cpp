@@ -72,7 +72,9 @@ alignas(CACHE_LINE_SIZE) constexpr Array<IndexType, SQUARE_NB> KING_BUCKETS{
 
 // Mirror square to have king always on e..h files
 // (file_of(s) >> 2) is 0 for 0...3, 1 for 4...7
-constexpr Square orientation(Square s) noexcept { return Square(((file_of(s) >> 2) ^ 1) * FILE_H); }
+constexpr Square orientation(Square s) noexcept {
+    return static_cast<Square>(((file_of(s) >> 2) ^ 1) * FILE_H);
+}
 
 static_assert(orientation(SQ_A1) == SQ_H1);
 static_assert(orientation(SQ_D1) == SQ_H1);
@@ -83,8 +85,8 @@ static_assert(orientation(SQ_H8) == SQ_A1);
 
 // Index of a feature for king position and piece on square
 ALWAYS_INLINE constexpr IndexType
-make_index(Color perspective, Square kingSq, Square s, Piece pc) noexcept {
-    u8 relOrientation = relative_sq(perspective, orientation(kingSq));
+make_index(const Color perspective, const Square kingSq, const Square s, const Piece pc) noexcept {
+    const u8 relOrientation = relative_sq(perspective, orientation(kingSq));
     return (static_cast<u8>(s) ^ relOrientation)   //
          + PIECE_SQUARE_INDICES[perspective][+pc]  //
          + KING_BUCKETS[relative_sq(perspective, kingSq)];
@@ -102,9 +104,6 @@ void HalfKA_hm::append_map_changed_indices(const Color     perspective,
                                            IndexList&      removed,
                                            IndexList&      added) noexcept {
 #if defined(USE_AVX512ICL)
-    auto* removedWrite = removed.make_space(popcount(removedBB));
-    auto* addedWrite   = added.make_space(popcount(addedBB));
-
     const __m512i oldPieceVec = _mm512_loadu_si512(oldPieceMap.data());
     const __m512i newPieceVec = _mm512_loadu_si512(newPieceMap.data());
 
@@ -132,11 +131,11 @@ void HalfKA_hm::append_map_changed_indices(const Color     perspective,
     const __m512i removedIndices = _mm512_xor_si512(removedSquares, _mm512_permutexvar_epi16(removedPieces, psiOffset));
     const __m512i addedIndices   = _mm512_xor_si512(addedSquares, _mm512_permutexvar_epi16(addedPieces, psiOffset));
 
-    _mm512_storeu_si512(removedWrite +  0, _mm512_cvtepu16_epi32(_mm512_castsi512_si256(removedIndices)));
-    _mm512_storeu_si512(removedWrite + 16, _mm512_cvtepu16_epi32(_mm512_extracti64x4_epi64(removedIndices, 1)));
+    auto* ptrRemovedWrite = removed.make_space(popcount(removedBB));
+    auto* ptrAddedWrite   = added.make_space(popcount(addedBB));
 
-    _mm512_storeu_si512(addedWrite +  0, _mm512_cvtepu16_epi32(_mm512_castsi512_si256(addedIndices)));
-    _mm512_storeu_si512(addedWrite + 16, _mm512_cvtepu16_epi32(_mm512_extracti64x4_epi64(addedIndices, 1)));
+    _mm512_storeu_si512(ptrRemovedWrite, removedIndices);
+    _mm512_storeu_si512(ptrAddedWrite, addedIndices);
     // clang-format on
 #else
     while (removedBB != 0)
