@@ -86,7 +86,7 @@ class MovePicker final {
                const QuietHistory*       quietHist,
                const LowPlyQuietHistory* lowPlyQuietHist,
                const PieceSqHistory**    continuationHist,
-               const AtomicHistories*    atomicHists,
+               const SharedHistories*    sharedHists,
                u16                       ply,
                int                       th = 0) noexcept;
 
@@ -128,7 +128,7 @@ class MovePicker final {
     const QuietHistory* const       quietHistory        = nullptr;
     const LowPlyQuietHistory* const lowPlyQuietHistory  = nullptr;
     const PieceSqHistory** const    continuationHistory = nullptr;
-    const AtomicHistories* const    atomicHistories     = nullptr;
+    const SharedHistories* const    sharedHistories     = nullptr;
     const u16                       ssPly               = LOW_PLY_SIZE;
     int                             threshold;
 

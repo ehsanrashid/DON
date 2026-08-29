@@ -46,26 +46,21 @@ void update_refresh_cache(Color                     perspective,
                           AccumulatorCache&         accCache) noexcept;
 }  // namespace
 
-const Accumulator& AccumulatorStack::accumulator() const noexcept {
-    return stateAccumulators[size - 1];
-}
-Accumulator& AccumulatorStack::accumulator() noexcept { return stateAccumulators[size - 1]; }
-
 void AccumulatorStack::reset() noexcept {
-    stateAccumulators[0].set({});
-    size = 1;
+    accumulators[0].set({});
+    size_ = 1;
 }
 
 void AccumulatorStack::push(DirtyBoard&& db) noexcept {
-    assert(size < Size);
+    assert(size() < Size);
 
-    stateAccumulators[size++].set(std::move(db));
+    accumulators[size_++].set(std::move(db));
 }
 
 void AccumulatorStack::pop() noexcept {
-    assert(size > 1);
+    assert(size() > 1);
 
-    --size;
+    --size_;
 }
 
 void AccumulatorStack::evaluate(const Position&           pos,
@@ -83,13 +78,13 @@ void AccumulatorStack::evaluate(const Color               perspective,
 
     const auto lastUsableIdx = find_last_usable_index(perspective);
 
-    if (stateAccumulators[lastUsableIdx].computed[perspective])
+    if (accumulators[lastUsableIdx].computed[perspective])
     {
         update_incremental_forward(perspective, pos, featureTransformer, lastUsableIdx);
     }
     else
     {
-        update_refresh_cache(perspective, pos, featureTransformer, accumulator(), accCache);
+        update_refresh_cache(perspective, pos, featureTransformer, top(), accCache);
         update_incremental_backward(perspective, pos, featureTransformer, lastUsableIdx);
     }
 }
@@ -98,15 +93,14 @@ void AccumulatorStack::evaluate(const Color               perspective,
 // state just before a change that requires full refresh.
 usize AccumulatorStack::find_last_usable_index(const Color perspective) const noexcept {
 
-    for (usize idx = size; idx-- > 0;)
+    for (usize idx = size(); idx-- > 0;)
     {
-        if (stateAccumulators[idx].computed[perspective])
+        if (accumulators[idx].computed[perspective])
             return idx;
 
         // Threat feature set refreshes require a king move across the center, i.e.,
         // a subset of halfka refreshes
-        if (PSQFeatureSet::refresh_required(perspective,
-                                            stateAccumulators[idx].dirtyBoard.dirtyPiece))
+        if (PSQFeatureSet::refresh_required(perspective, accumulators[idx].dirtyBoard.dirtyPiece))
             return idx;
     }
 
@@ -117,32 +111,32 @@ void AccumulatorStack::update_incremental_forward(const Color               pers
                                                   const Position&           pos,
                                                   const FeatureTransformer& featureTransformer,
                                                   const usize               beg) noexcept {
-    assert(beg < size && size <= Size);
-    assert(stateAccumulators[beg].computed[perspective]);
+    assert(beg < size() && size() <= Size);
+    assert(accumulators[beg].computed[perspective]);
 
     const Square kingSq = pos.square<KING>(perspective);
 
-    for (usize idx = beg; ++idx < size;)
-        update_incremental<true>(perspective, kingSq, featureTransformer,
-                                 stateAccumulators[idx - 1], stateAccumulators[idx]);
+    for (usize idx = beg; ++idx < size();)
+        update_incremental<true>(perspective, kingSq, featureTransformer, accumulators[idx - 1],
+                                 accumulators[idx]);
 
-    assert(accumulator().computed[perspective]);
+    assert(top().computed[perspective]);
 }
 
 void AccumulatorStack::update_incremental_backward(const Color               perspective,
                                                    const Position&           pos,
                                                    const FeatureTransformer& featureTransformer,
                                                    const usize               end) noexcept {
-    assert(end < size && size <= Size);
-    assert(accumulator().computed[perspective]);
+    assert(end < size() && size() <= Size);
+    assert(top().computed[perspective]);
 
     const Square kingSq = pos.square<KING>(perspective);
 
-    for (usize idx = std::max(size, usize{1}) - 1; idx-- > end;)
-        update_incremental<false>(perspective, kingSq, featureTransformer,
-                                  stateAccumulators[idx + 1], stateAccumulators[idx]);
+    for (usize idx = std::max(size(), usize{1}) - 1; idx-- > end;)
+        update_incremental<false>(perspective, kingSq, featureTransformer, accumulators[idx + 1],
+                                  accumulators[idx]);
 
-    assert(stateAccumulators[end].computed[perspective]);
+    assert(accumulators[end].computed[perspective]);
 }
 
 namespace {
@@ -312,7 +306,7 @@ void apply_combined(Color                                perspective,
     {
         for (IndexType i = 0; i < Dimensions; ++i)
             targetAcc[i] += featureTransformer.threatWeights[index * Dimensions + i];
-        for (usize i = 0; i < PSQTBuckets; ++i)
+        for (IndexType i = 0; i < PSQTBuckets; ++i)
             targetPsqtAcc[i] += featureTransformer.threatPsqtWeights[index * PSQTBuckets + i];
     }
 

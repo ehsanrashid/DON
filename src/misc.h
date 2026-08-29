@@ -1565,9 +1565,9 @@ constexpr u32 combine_hashes(std::initializer_list<u32> hashes) noexcept {
 }
 
 // Custom streambuf that wraps string_view
-class StringViewStreamBuf final: public std::streambuf {
+class StringViewStreambuf final: public std::streambuf {
    public:
-    explicit StringViewStreamBuf(std::string_view sv) noexcept {
+    explicit StringViewStreambuf(std::string_view sv) noexcept {
         // std::streambuf requires char* for the get area.
         // The buffer is read-only; no characters are modified.
         auto* p = const_cast<char*>(sv.data());
@@ -1577,29 +1577,29 @@ class StringViewStreamBuf final: public std::streambuf {
 };
 
 // Custom streambuf that wraps memory stream
-class MemoryStreamBuf final: public std::streambuf {
+class MemoryStreambuf final: public std::streambuf {
    public:
-    MemoryStreamBuf(char* p, usize size) noexcept {
+    MemoryStreambuf(char* p, usize size) noexcept {
         setg(p, p, p + size);  // Only GET area (reading enabled)
         // Do NOT call setp(p, p + size) - no PUT area (writing disabled)
     }
 };
 
 // Fancy logging facility.
-// The trick here is to replace cin.rdbuf() and cout.rdbuf() with 2 TieStreamBuf objects
+// The trick here is to replace cin.rdbuf() and cout.rdbuf() with 2 TieStreambuf objects
 // that tie std::cin and std::cout to a file stream.
 // Can toggle the logging of std::cout and std::cin at runtime whilst preserving
 // usual I/O functionality, all without changing a single line of code!
 // Idea from http://groups.google.com/group/comp.lang.c++/msg/1d941c0f26ea0d81
 // MSVC requires split streambuf for std::cin and std::cout.
-class TieStreamBuf final: public std::streambuf {
+class TieStreambuf final: public std::streambuf {
    public:
     using traits_type = std::streambuf::traits_type;
     using int_type    = traits_type::int_type;
     using char_type   = traits_type::char_type;
 
-    TieStreamBuf() noexcept = delete;
-    TieStreamBuf(std::streambuf* pB, std::streambuf* mB) noexcept :
+    TieStreambuf() noexcept = delete;
+    TieStreambuf(std::streambuf* pB, std::streambuf* mB) noexcept :
         pBuf(pB),
         mBuf(mB) {}
 
@@ -1615,7 +1615,7 @@ class TieStreamBuf final: public std::streambuf {
         if (traits_type::eq_int_type(putCh, traits_type::eof()))
             return putCh;
 
-        return mirror_put_with_prefix(putCh, "<< ", preOutCh);
+        return mirror_put_with_prefix(putCh, "<< ", oPreCh);
     }
 
     int_type underflow() override {
@@ -1634,7 +1634,7 @@ class TieStreamBuf final: public std::streambuf {
         if (traits_type::eq_int_type(ch, traits_type::eof()))
             return ch;
 
-        return mirror_put_with_prefix(ch, ">> ", preInCh);
+        return mirror_put_with_prefix(ch, ">> ", iPreCh);
     }
 
     int sync() override {
@@ -1653,19 +1653,19 @@ class TieStreamBuf final: public std::streambuf {
         if (mBuf != nullptr && written > 0)
         {
             // Prefix injection only once if needed
-            if (preOutCh == '\n')
+            if (oPreCh == '\n')
                 mBuf->sputn("<< ", 3);
 
             mBuf->sputn(s, written);
 
-            preOutCh = s[written - 1];  // track last char
+            oPreCh = s[written - 1];  // track last char
         }
 
         return written;
     }
 
-    [[nodiscard]] std::streambuf* pbuf() const { return pBuf; }
-    [[nodiscard]] std::streambuf* mbuf() const { return mBuf; }
+    [[nodiscard]] std::streambuf* pbuf() const noexcept { return pBuf; }
+    [[nodiscard]] std::streambuf* mbuf() const noexcept { return mBuf; }
 
    private:
     int_type
@@ -1674,7 +1674,7 @@ class TieStreamBuf final: public std::streambuf {
             return traits_type::not_eof(ch);
 
         if (preCh == '\n')
-            mBuf->sputn(prefix.data(), std::streamsize(prefix.size()));
+            mBuf->sputn(prefix.data(), static_cast<std::streamsize>(prefix.size()));
 
         char_type c = traits_type::to_char_type(ch);
         preCh       = c;
@@ -1686,8 +1686,8 @@ class TieStreamBuf final: public std::streambuf {
 
     std::streambuf *pBuf, *mBuf;
 
-    char_type preOutCh = '\n';
-    char_type preInCh  = '\n';
+    char_type oPreCh = '\n';
+    char_type iPreCh = '\n';
 };
 
 class Logger final {
@@ -1713,8 +1713,8 @@ class Logger final {
         os(osRef),
         isBuf(is.rdbuf()),
         osBuf(os.rdbuf()),
-        iTie(is.rdbuf(), ofs.rdbuf()),
-        oTie(os.rdbuf(), ofs.rdbuf()) {}
+        itsBuf(is.rdbuf(), ofs.rdbuf()),
+        otsBuf(os.rdbuf(), ofs.rdbuf()) {}
 
     ~Logger() noexcept { close(); }
 
@@ -1758,8 +1758,8 @@ class Logger final {
 
         write_timestamp("->");
 
-        is.rdbuf(&iTie);
-        os.rdbuf(&oTie);
+        is.rdbuf(&itsBuf);
+        os.rdbuf(&otsBuf);
 
         return true;
     }
@@ -1784,7 +1784,7 @@ class Logger final {
     std::istream&   is;
     std::ostream&   os;
     std::streambuf *isBuf = nullptr, *osBuf = nullptr;
-    TieStreamBuf    iTie, oTie;
+    TieStreambuf    itsBuf, otsBuf;
     std::string     filename;
 };
 

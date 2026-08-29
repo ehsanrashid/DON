@@ -53,15 +53,15 @@ jobs:
         run: |
           git fetch origin main
           CHANGES=$(git rev-list HEAD..origin/main --count)
-          echo "CHANGES=$CHANGES" >> $GITHUB_ENV
+          echo "CHANGES=$CHANGES" >> "$GITHUB_ENV"
 
       - name: Get last commit SHA
         id: last-commit
-        run: echo "COMMIT_SHA=$(git rev-parse HEAD | cut -c 1-8)" >> $GITHUB_ENV
+        run: echo "COMMIT_SHA=$(git rev-parse HEAD | cut -c 1-8)" >> "$GITHUB_ENV"
 
       - name: Get commit date
         id: commit-date
-        run: echo "COMMIT_DATE=$(git show -s --date=format:'%Y%m%d' --format=%cd HEAD)" >> $GITHUB_ENV
+        run: echo "COMMIT_DATE=$(git show -s --date=format:'%Y%m%d' --format=%cd HEAD)" >> "$GITHUB_ENV"
 
       - name: Official Release?
         id: official-release

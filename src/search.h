@@ -193,21 +193,18 @@ struct RootMove final {
     Move&       operator[](const usize idx) noexcept { return pv[idx]; }
     const Move& operator[](const usize idx) const noexcept { return pv[idx]; }
 
-    u64 nodes = 0;
-
+    u64      nodes       = 0;
     Value    value       = -VALUE_INFINITE;
     Value    preValue    = -VALUE_INFINITE;
     Value    avgValue    = -VALUE_INFINITE;
     SqrValue avgSqrValue = sign_sqr(-VALUE_INFINITE);
     Value    uciValue    = -VALUE_INFINITE;
-
-    i32   tbRank   = 0;
-    Value tbValue  = -VALUE_INFINITE;
-    u16   selDepth = 0;
-
-    u16 id = std::numeric_limits<u16>::max();
-
-    Bound bound = Bound::NONE;
+    Bound    bound       = Bound::NONE;
+    i32      tbRank      = 0;
+    Value    tbValue     = -VALUE_INFINITE;
+    u16      id          = std::numeric_limits<u16>::max();
+    u16      selDepth    = 0;
+    bool     isExact     = false;
 
     PVMoves pv, prePV;
 };
@@ -460,7 +457,7 @@ struct Skill final {
         return Value(2.0 * (3.0 * LEVEL_MAX - level));
     }
 
-    Move pick_move(const RootMoves& rootMoves, usize multiPv, bool pickBest = true) noexcept;
+    Move pick_move(const RootMoves& rootMoves, usize multiPV, bool pickBest = true) noexcept;
 
     static constexpr double LEVEL_MIN = 00.0;
     static constexpr double LEVEL_MAX = 20.0;
@@ -481,7 +478,7 @@ struct SharedState final {
     const Options&                                     options;
     const TranspositionTable&                          transpositionTable;
     Threads&                                           threads;
-    AtomicHistoriesMap&                                atomicHistoriesMap;
+    SharedHistoriesMap&                                sharedHistoriesMap;
 };
 
 class Worker;
@@ -506,7 +503,7 @@ struct ShortInfo {
 struct FullInfo final: public ShortInfo {
    public:
     u16              selDepth;
-    usize            multiPv;
+    usize            multiPV;
     FixedText        bound;
     FixedText        wdl;
     TimePoint        time;
@@ -734,6 +731,7 @@ class Worker final {
     const Options&                                     options;
     const TranspositionTable&                          transpositionTable;
     Threads&                                           threads;
+    SharedHistories&                                   sharedHistories;
 
     // Used by NNUE
     NNUE::AccumulatorCache accCache;
@@ -749,7 +747,7 @@ class Worker final {
     Tablebase::Syzygy::Config tbConfig;
 
     Depth rootDepth;
-    usize multiPv, pvIdx, pvEnd;
+    usize multiPV, pvIdx, pvEnd;
     u16   selDepth;
     u16   rootDelta;
     i16   nmpPly;
@@ -764,13 +762,9 @@ class Worker final {
     QuietHistory       quietHistory;
     LowPlyQuietHistory lowPlyQuietHistory;
 
-    Array<ContinuationHistory, 2, 2> continuationHistory;  // [inCheck][capture]
-
     ContinuationCorrectionHistory continuationCorrectionHistory;
 
     TTMoveHistory ttMoveHistory;
-
-    AtomicHistories& atomicHistories;
 
     friend class MainSearchManager;
     friend class Position;

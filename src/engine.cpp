@@ -85,7 +85,7 @@ Engine::Engine(const std::filesystem::path& path) noexcept :
     options.add("TimePercent",       Option(80, 10, 1000));  // Percentage of remaining time to use
     options.add("NodesTime",         Option(0, 0, 10000));
     options.add("SleepOnStart",      Option(false));
-    options.add("HistoryLoadFactor", Option(75, 10, 100, OnCng([this](const Option& o) { atomicHistoriesMap.max_load_factor(max_load_factor(o / 100.0f)); return std::nullopt; })));
+    options.add("HistoryLoadFactor", Option(75, 10, 100, OnCng([this](const Option& o) { sharedHistoriesMap.max_load_factor(max_load_factor(o / 100.0f)); return std::nullopt; })));
     options.add("DrawMoveCount",     Option(Position::DrawMoveCount, 5, 50, OnCng([](const Option& o) { Position::DrawMoveCount = int(o); return std::nullopt; })));
     options.add("Book",              Option(false));
     options.add("BookFile",          Option("", OnCng([](const Option& o) { auto bookFile = path_from_utf8(o); if (bookFile.empty()) return ""; return pgBook.load(bookFile) ? "Load succeeded" : "Load failed"; })));
@@ -104,7 +104,7 @@ Engine::Engine(const std::filesystem::path& path) noexcept :
 
     resize_threads_tt();
 
-    atomicHistoriesMap.max_load_factor(max_load_factor(options["HistoryLoadFactor"] / 100.0f));
+    sharedHistoriesMap.max_load_factor(max_load_factor(options["HistoryLoadFactor"] / 100.0f));
 
     setup();
 }

@@ -244,7 +244,7 @@ void UCI::process_input(std::istream& is) noexcept {
 
 void UCI::execute(std::string_view command) noexcept {
 
-    StringViewStreamBuf svBuf{command};
+    StringViewStreambuf svBuf{command};
 
     std::istream is{&svBuf};
 
@@ -362,7 +362,7 @@ void on_update_full(const FullInfo& fInfo) noexcept {
     std::cout << "info"                                      //
               << " depth " << fInfo.depth                    //
               << " seldepth " << fInfo.selDepth              //
-              << " multipv " << fInfo.multiPv                //
+              << " multipv " << fInfo.multiPV                //
               << " score " << fInfo.score                    //
               << fInfo.bound                                 //
               << fInfo.wdl                                   //

@@ -42,13 +42,13 @@ jobs:
         run: |
           if [ "$COMP" = "ndk" ]; then
             NDKV="27.2.12479018"
-            ANDROID_ROOT=/usr/local/lib/android
-            ANDROID_SDK_ROOT=$ANDROID_ROOT/sdk
-            SDKMANAGER=$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager
-            echo "y" | $SDKMANAGER "ndk;$NDKV"
-            ANDROID_NDK_ROOT=$ANDROID_SDK_ROOT/ndk/$NDKV
-            ANDROID_NDK_BIN=$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin
-            echo "ANDROID_NDK_BIN=$ANDROID_NDK_BIN" >> $GITHUB_ENV
+            ANDROID_ROOT="/usr/local/lib/android"
+            ANDROID_SDK_ROOT="$ANDROID_ROOT/sdk"
+            SDKMANAGER="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+            echo "y" | "$SDKMANAGER" "ndk;$NDKV"
+            ANDROID_NDK_ROOT="$ANDROID_SDK_ROOT/ndk/$NDKV"
+            ANDROID_NDK_BIN="$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin"
+            echo "ANDROID_NDK_BIN=$ANDROID_NDK_BIN" >> "$GITHUB_ENV"
           fi
 
       - name: Extract the bench number from the commit history

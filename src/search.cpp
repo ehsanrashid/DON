@@ -221,8 +221,8 @@ Worker::Worker(usize                     threadIdx,
     options(sharedState.options),
     transpositionTable(sharedState.transpositionTable),
     threads(sharedState.threads),
-    accCache(network[accessToken]),
-    atomicHistories(sharedState.atomicHistoriesMap.at(accessToken.numa_id())) {}
+    sharedHistories(sharedState.sharedHistoriesMap.at(accessToken.numa_id())),
+    accCache(network[accessToken]) {}
 
 // Reset per-thread data structures
 void Worker::reset() noexcept {
@@ -233,7 +233,7 @@ void Worker::reset() noexcept {
 
     for (bool inCheck : {false, true})
         for (bool capture : {false, true})
-            for (auto& toPieceSqHist : continuationHistory[inCheck][capture])
+            for (auto& toPieceSqHist : sharedHistories.continuation_history()[inCheck][capture])
                 for (auto& pieceSqHist : toPieceSqHist)
                     pieceSqHist.fill(-552);
 
@@ -246,18 +246,18 @@ void Worker::reset() noexcept {
     // Each thread resets its NUMA-local range of history entries to prevent false sharing
 
     auto pawnHistoryRange =
-      split_range(numa_id(), numa_thread_count(), atomicHistories.pawn_history_size());
+      split_range(numa_id(), numa_thread_count(), sharedHistories.pawn_history_size());
 
-    atomicHistories.pawn_history().fill(pawnHistoryRange.beg, pawnHistoryRange.end, -1262);
+    sharedHistories.pawn_history().fill(pawnHistoryRange.beg, pawnHistoryRange.end, -1262);
 
     auto correctionHistoryRange =
-      split_range(numa_id(), numa_thread_count(), atomicHistories.correction_history_size());
+      split_range(numa_id(), numa_thread_count(), sharedHistories.correction_history_size());
 
-    atomicHistories.pawn_correction_history().fill(correctionHistoryRange.beg,
+    sharedHistories.pawn_correction_history().fill(correctionHistoryRange.beg,
                                                    correctionHistoryRange.end, -6);
-    atomicHistories.minor_correction_history().fill(correctionHistoryRange.beg,
+    sharedHistories.minor_correction_history().fill(correctionHistoryRange.beg,
                                                     correctionHistoryRange.end, -6);
-    atomicHistories.non_pawn_correction_history().fill(correctionHistoryRange.beg,
+    sharedHistories.non_pawn_correction_history().fill(correctionHistoryRange.beg,
                                                        correctionHistoryRange.end, -6);
 
     accCache.init(network[numa_access_token()]);
@@ -371,7 +371,7 @@ void Worker::start_search() noexcept {
             // If the skill is enabled, swap the best PV line with the sub-optimal one
             if (mainManager->skill.enabled())
             {
-                const Move skillMove = mainManager->skill.pick_move(rootMoves, multiPv, false);
+                const Move skillMove = mainManager->skill.pick_move(rootMoves, multiPV, false);
 
                 for (auto&& th : threads)
                     th->worker->rootMoves.swap_to_front(skillMove);
@@ -419,7 +419,7 @@ void Worker::start_search() noexcept {
 // or the maximum search depth is reached.
 void Worker::iterative_deepening() noexcept {
 
-    multiPv = 1;
+    multiPV = 1;
 
     nmpPly = 0;
 
@@ -440,15 +440,15 @@ void Worker::iterative_deepening() noexcept {
 
     if (mainManager != nullptr)
     {
-        multiPv = options["MultiPV"];
+        multiPV = options["MultiPV"];
 
         mainManager->skill.init(options);
         // When playing with strength handicap enable MultiPV search that
         // will use behind-the-scenes to retrieve a set of sub-optimal moves.
         if (mainManager->skill.enabled())
-            multiPv = std::max<usize>(4, multiPv);
+            multiPV = std::max<usize>(4, multiPV);
 
-        multiPv = std::min<usize>(rootMovesSize, multiPv);
+        multiPV = std::min<usize>(rootMovesSize, multiPV);
 
         mainManager->timeManager.init(rootPos.active_color(), rootPos.ply(), rootPos.move_num(),
                                       options, limit);
@@ -480,7 +480,7 @@ void Worker::iterative_deepening() noexcept {
         // Set sentinel values
         // clang-format off
         (ss + i)->evalue                   = VALUE_NONE;
-        (ss + i)->pieceSqHistory           = &continuationHistory[0][0][+Piece::NO_PIECE][SQUARE_ZERO];
+        (ss + i)->pieceSqHistory           = &sharedHistories.continuation_history()[0][0][+Piece::NO_PIECE][SQUARE_ZERO];
         (ss + i)->pieceSqCorrectionHistory = &continuationCorrectionHistory[+Piece::NO_PIECE][SQUARE_ZERO];
         // clang-format on
     }
@@ -494,9 +494,9 @@ void Worker::iterative_deepening() noexcept {
 
     Value bestValue = -VALUE_INFINITE;
 
-    Depth lastBestMoveDepth = DEPTH_ZERO;
-    Move  lastBestMove      = Move::None;
-    Value lastBestValue     = -VALUE_INFINITE;
+    Depth   lastBestMoveDepth = DEPTH_ZERO;
+    Value   lastBestMoveValue = -VALUE_INFINITE;
+    PVMoves lastBestMovePV;
 
     u16 researchCnt = 0;
 
@@ -523,6 +523,7 @@ void Worker::iterative_deepening() noexcept {
                 // all the move scores except the (new) PV are set to -VALUE_INFINITE.
                 rootMoves[i].preValue = rootMoves[i].value;
                 rootMoves[i].prePV    = rootMoves[i].pv;
+                rootMoves[i].isExact  = i < multiPV;
                 ++i;
             } while (i < rootMovesSize && rootMoves[i].tbRank == tbRank);
         }
@@ -533,9 +534,9 @@ void Worker::iterative_deepening() noexcept {
         usize tbRankGroupIdx = 0;
         usize pvBeg = pvEnd = 0;
         // MultiPV loop. Perform a full root search for each PV line
-        for (pvIdx = 0; pvIdx < multiPv; ++pvIdx)
+        for (pvIdx = 0; pvIdx < multiPV; ++pvIdx)
         {
-            const bool pvIdxLast = pvIdx + 1 == multiPv;
+            const bool pvIdxLast = pvIdx + 1 == multiPV;
 
             // Advance group if pvIdx reached pvEnd
             if (pvIdx == pvEnd)
@@ -592,7 +593,7 @@ void Worker::iterative_deepening() noexcept {
                     break;
 
                 // When failing high/low give some update before a re-search
-                if (mainManager != nullptr && multiPv == 1 && rootDepth > OUTPUT_DEPTH_LIMIT
+                if (mainManager != nullptr && multiPV == 1 && rootDepth > OUTPUT_DEPTH_LIMIT
                     && (alpha >= bestValue || bestValue >= beta))
                     mainManager->show_pv(*this, rootDepth);
 
@@ -624,13 +625,14 @@ void Worker::iterative_deepening() noexcept {
                 assert(-VALUE_INFINITE <= alpha && alpha < beta && beta <= +VALUE_INFINITE);
             }
 
-            // In multiPV analysis do not let aborted searches spoil
-            // mated-in/TB loss from a completed search in an earlier PV line.
-            // Hence guard against an aborted pvIdx line overtaking pvIdx - 1
-            // when pvIdx - 1 is a proven loss.
-            // Moreover, do not trust an exact loss value from an aborted search.
             if (pvIdx != 0 && threads.is_stopped())
             {
+                // In multiPV analysis do not let aborted searches spoil
+                // mated-in/TB loss from a completed search in an earlier PV line.
+                // Hence guard against an aborted pvIdx line overtaking pvIdx - 1
+                // when pvIdx - 1 is a proven loss.
+                // Moreover, do not trust an exact loss value from an aborted search.
+
                 auto& rmIdx_0 = rootMoves[pvIdx - 0];
                 auto& rmIdx_1 = rootMoves[pvIdx - 1];
 
@@ -638,7 +640,8 @@ void Worker::iterative_deepening() noexcept {
                 {
                     // If the previous score is worse than pvIdx - 1, can safely use it.
                     // If it is equal, make sure it cannot overtake pvIdx - 1.
-                    if (rmIdx_0.preValue != -VALUE_INFINITE && rmIdx_0.preValue <= rmIdx_1.value)
+                    if (rmIdx_0.preValue != -VALUE_INFINITE && rmIdx_0.isExact
+                        && rmIdx_0.preValue <= rmIdx_1.value)
                     {
                         rmIdx_0.value = rmIdx_0.uciValue = rmIdx_0.preValue;
                         rmIdx_0.preValue                 = -VALUE_INFINITE;
@@ -660,6 +663,11 @@ void Worker::iterative_deepening() noexcept {
                             rmIdx_0.bound = Bound::LOWER;
                     }
                 }
+
+                // Finally, we mark all loss scores from partially searched moves as a bound.
+                for (usize i = pvIdx + 1; i < multiPV; ++i)
+                    if (rootMoves[i].is_exact_loss())
+                        rootMoves[i].bound = Bound::LOWER;
             }
 
             // Sort the PV lines searched so far
@@ -682,8 +690,8 @@ void Worker::iterative_deepening() noexcept {
         auto& rm0 = rootMoves[0];
 
         const bool mateForgotten =
-          lastBestValue != -VALUE_INFINITE && is_mate(lastBestValue)
-          && (constexpr_abs(rm0.value) < constexpr_abs(lastBestValue) || rm0.is_bound());
+          lastBestMoveValue != -VALUE_INFINITE && is_mate(lastBestMoveValue)
+          && (rm0.is_bound() || constexpr_abs(rm0.value) < constexpr_abs(lastBestMoveValue));
 
         if (threads.is_stopped())
         {
@@ -695,15 +703,15 @@ void Worker::iterative_deepening() noexcept {
             // Do the same if a search has failed to recover a mate score that was found in a previous iteration.
             if (lossAborted || (mateForgotten && rm0.value != -VALUE_INFINITE))
             {
-                if (lastBestMove != Move::None)
+                if (!lastBestMovePV.empty())
                 {
                     // Bring the last best move to the front for best thread selection
                     rootMoves.move_to_front(
-                      [&lastBestMove = std::as_const(lastBestMove)](const auto& rm) noexcept {
-                          return rm == lastBestMove;
+                      [&lastBestMovePV = std::as_const(lastBestMovePV)](const auto& rm) noexcept {
+                          return rm == lastBestMovePV[0];
                       });
-                    rm0.value = rm0.uciValue = rm0.preValue;
-                    rm0.pv                   = rm0.prePV;
+                    rm0.value = rm0.uciValue = lastBestMoveValue;
+                    rm0.pv                   = lastBestMovePV;
                     rm0.reset_bound();
 
                     if (mainManager != nullptr)
@@ -717,14 +725,14 @@ void Worker::iterative_deepening() noexcept {
             break;
         }
 
-        if (lastBestMove != rm0[0])
+        if (lastBestMovePV.empty() || lastBestMovePV[0] != rootMoves[0].pv[0])
             lastBestMoveDepth = rootDepth;
 
         // Do not replace (shorter) mate scores from a previous iteration
         if (!mateForgotten)
         {
-            lastBestMove  = rm0[0];
-            lastBestValue = rm0.value;
+            lastBestMoveValue = rm0.value;
+            lastBestMovePV    = rm0.pv;
         }
 
         // Have found "mate in x"?
@@ -739,7 +747,7 @@ void Worker::iterative_deepening() noexcept {
         {
             // If the skill is enabled and time is up, pick a sub-optimal best move
             if (mainManager->skill.enabled() && mainManager->skill.time_to_pick(rootDepth))
-                mainManager->skill.pick_move(rootMoves, multiPv);
+                mainManager->skill.pick_move(rootMoves, multiPV);
 
             // Do have time for the next iteration? Can stop searching now?
             if (limit.use_time_manager() && !threads.is_stopped())
@@ -1269,7 +1277,7 @@ Value Worker::search(Position&    pos,
     Array<MoveVector, 2> moveVectors;
 
     MovePicker mp(pos, ttd.move, &captureHistory, &quietHistory, &lowPlyQuietHistory, contHistory,
-                  &atomicHistories, ss->ply, -1);
+                  &sharedHistories, ss->ply, -1);
     // Step 13. Loop through all legal moves until no moves remain or a beta cutoff occurs.
     while ((move = mp.next_move()) != Move::None)
     {
@@ -1366,7 +1374,7 @@ Value Worker::search(Position&    pos,
                 {
                     int history = (*contHistory[0])[+movedPc][dstSq]
                                 + (*contHistory[1])[+movedPc][dstSq]
-                                + atomicHistories.pawn_entry(pos)[+movedPc][dstSq];
+                                + sharedHistories.pawn_entry(pos)[+movedPc][dstSq];
 
                     // History based pruning
                     if (!check && history < -4313 * depth)
@@ -1935,7 +1943,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
     // Initialize a MovePicker object for the current position, prepare to search the moves.
     // Because the depth is <= DEPTH_ZERO here, only captures, promotions will be generated.
     MovePicker mp(pos, ttd.move, &captureHistory, &quietHistory, &lowPlyQuietHistory, contHistory,
-                  &atomicHistories, ss->ply);
+                  &sharedHistories, ss->ply);
     // Step 5. Loop through all legal moves until no moves remain or a beta cutoff occurs.
     while ((move = mp.next_move()) != Move::None)
     {
@@ -2075,12 +2083,12 @@ void Worker::do_move(
     assert(moveKey == pos.key());
 
     ++nodes;
-
+    // clang-format off
     auto movedPc                 = db.dirtyPiece.movedPc;
     ss->move                     = m;
-    ss->pieceSqHistory           = &continuationHistory[ss->inCheck][capture][+movedPc][m.dst_sq()];
+    ss->pieceSqHistory           = &sharedHistories.continuation_history()[ss->inCheck][capture][+movedPc][m.dst_sq()];
     ss->pieceSqCorrectionHistory = &continuationCorrectionHistory[+movedPc][m.dst_sq()];
-
+    // clang-format on
     accStack.push(std::move(db));
 }
 
@@ -2094,10 +2102,11 @@ void Worker::do_null_move(Position& pos, State& st, Stack* const ss) noexcept {
     assert(ss != nullptr);
 
     pos.do_null_move(st);
-
+    // clang-format off
     ss->move                     = Move::Null;
-    ss->pieceSqHistory           = &continuationHistory[0][0][+Piece::NO_PIECE][SQUARE_ZERO];
+    ss->pieceSqHistory           = &sharedHistories.continuation_history()[0][0][+Piece::NO_PIECE][SQUARE_ZERO];
     ss->pieceSqCorrectionHistory = &continuationCorrectionHistory[+Piece::NO_PIECE][SQUARE_ZERO];
+    // clang-format on
 }
 
 void Worker::undo_null_move(Position& pos) const noexcept { pos.undo_null_move(); }
@@ -2141,7 +2150,7 @@ void Worker::update_pawn_history(const Position& pos,
     //assert(is_ok(pc));
     assert(is_ok(dstSq));
 
-    atomicHistories.pawn_entry(pos)[+pc][dstSq] << bonus;
+    sharedHistories.pawn_entry(pos)[+pc][dstSq] << bonus;
 }
 void Worker::update_pawn_history(const Position& pos, const Move m, const int bonus) noexcept {
     assert(m.is_ok());
@@ -2241,12 +2250,12 @@ void Worker::update_correction_histories(const Position& pos, const Stack* const
 
     bonus = std::clamp(bonus, -CORRECTION_HISTORY_LIMIT / 4, +CORRECTION_HISTORY_LIMIT / 4);
 
-    atomicHistories.    pawn_correction_entry<WHITE>(pos)[ac] << constexpr_round(bonus *    PawnBonusScale / BonusDivisor);
-    atomicHistories.    pawn_correction_entry<BLACK>(pos)[ac] << constexpr_round(bonus *    PawnBonusScale / BonusDivisor);
-    atomicHistories.   minor_correction_entry<WHITE>(pos)[ac] << constexpr_round(bonus *   MinorBonusScale / BonusDivisor);
-    atomicHistories.   minor_correction_entry<BLACK>(pos)[ac] << constexpr_round(bonus *   MinorBonusScale / BonusDivisor);
-    atomicHistories.non_pawn_correction_entry<WHITE>(pos)[ac] << constexpr_round(bonus * NonPawnBonusScale / BonusDivisor);
-    atomicHistories.non_pawn_correction_entry<BLACK>(pos)[ac] << constexpr_round(bonus * NonPawnBonusScale / BonusDivisor);
+    sharedHistories.    pawn_correction_entry<WHITE>(pos)[ac] << constexpr_round(bonus *    PawnBonusScale / BonusDivisor);
+    sharedHistories.    pawn_correction_entry<BLACK>(pos)[ac] << constexpr_round(bonus *    PawnBonusScale / BonusDivisor);
+    sharedHistories.   minor_correction_entry<WHITE>(pos)[ac] << constexpr_round(bonus *   MinorBonusScale / BonusDivisor);
+    sharedHistories.   minor_correction_entry<BLACK>(pos)[ac] << constexpr_round(bonus *   MinorBonusScale / BonusDivisor);
+    sharedHistories.non_pawn_correction_entry<WHITE>(pos)[ac] << constexpr_round(bonus * NonPawnBonusScale / BonusDivisor);
+    sharedHistories.non_pawn_correction_entry<BLACK>(pos)[ac] << constexpr_round(bonus * NonPawnBonusScale / BonusDivisor);
 
     const Move preMove = (ss - 1)->move;
     if (preMove.is_ok())
@@ -2264,12 +2273,12 @@ int Worker::correction_value(const Position& pos, const Stack* const ss) const n
     const Color ac = pos.active_color();
 
     i64 correctionValue =
-           + i64{6670} * (atomicHistories.    pawn_correction_entry<WHITE>(pos)[ac]
-                        + atomicHistories.    pawn_correction_entry<BLACK>(pos)[ac])
-           + i64{4640} * (atomicHistories.   minor_correction_entry<WHITE>(pos)[ac]
-                        + atomicHistories.   minor_correction_entry<BLACK>(pos)[ac])
-           +i64{11840} * (atomicHistories.non_pawn_correction_entry<WHITE>(pos)[ac]
-                        + atomicHistories.non_pawn_correction_entry<BLACK>(pos)[ac]);
+           + i64{6670} * (sharedHistories.    pawn_correction_entry<WHITE>(pos)[ac]
+                        + sharedHistories.    pawn_correction_entry<BLACK>(pos)[ac])
+           + i64{4640} * (sharedHistories.   minor_correction_entry<WHITE>(pos)[ac]
+                        + sharedHistories.   minor_correction_entry<BLACK>(pos)[ac])
+           +i64{11840} * (sharedHistories.non_pawn_correction_entry<WHITE>(pos)[ac]
+                        + sharedHistories.non_pawn_correction_entry<BLACK>(pos)[ac]);
 
     const Move preMove = (ss - 1)->move;
     if (preMove.is_ok())
@@ -2651,7 +2660,7 @@ void MainSearchManager::handle_time_management(const Worker& worker,
     // if know that there are no better moves in the analysed line(s)
     if (elapsedTime > totalTime  //
         // found mates-in-1 or found mates-in-2
-        || worker.rootMoves[worker.multiPv - 1].value >= mates_in(3)
+        || worker.rootMoves[worker.multiPV - 1].value >= mates_in(3)
         // found a mated-in-1
         || worker.rootMoves[0].value == mated_in(2))
     {
@@ -2679,7 +2688,7 @@ void MainSearchManager::show_pv(Worker& worker, const Depth depth) const noexcep
     const auto& threads            = worker.threads;
     const auto& transpositionTable = worker.transpositionTable;
     const auto& tbConfig           = worker.tbConfig;
-    const usize multiPv            = worker.multiPv;
+    const usize multiPV            = worker.multiPV;
     // Ensure non-zero to avoid a 'divide by zero'
     const TimePoint time   = std::max<TimePoint>(elapsed(), 1);
     const u64       nodes  = threads.sum(&Worker::nodes);
@@ -2687,7 +2696,7 @@ void MainSearchManager::show_pv(Worker& worker, const Depth depth) const noexcep
     const u16       hashfull = transpositionTable.hashfull();
     const bool      ShowWDL  = options["UCI_ShowWDL"];
 
-    for (usize i = 0; i < multiPv; ++i)
+    for (usize i = 0; i < multiPV; ++i)
     {
         const auto& rm = rootMoves[i];
 
@@ -2765,9 +2774,9 @@ void Skill::init(const Options& options) noexcept {
 // When playing with strength handicap, choose the best move among a set of RootMoves
 // using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
 Move Skill::pick_move(const RootMoves& rootMoves,
-                      const usize      multiPv,
+                      const usize      multiPV,
                       const bool       pickBest) noexcept {
-    assert(1 <= multiPv && multiPv <= rootMoves.size());
+    assert(1 <= multiPV && multiPV <= rootMoves.size());
     static XorShift64Star prng(now());  // PRNG sequence should be non-deterministic
 
     if (pickBest || bestMove == Move::None)
@@ -2775,13 +2784,13 @@ Move Skill::pick_move(const RootMoves& rootMoves,
         // RootMoves are already sorted by value in descending order
         const Value maxValue = rootMoves[0].value;
 
-        const Value delta = std::min<Value>(maxValue - rootMoves[multiPv - 1].value, VALUE_PAWN);
+        const Value delta = std::min<Value>(maxValue - rootMoves[multiPV - 1].value, VALUE_PAWN);
 
         Value bestValue = -VALUE_INFINITE;
         // Choose best move. For each move value add two terms, both dependent on weakness.
         // One is deterministic and bigger for weaker levels, and one is random.
         // Then choose the move with the resulting highest value.
-        for (usize i = 0; i < multiPv; ++i)
+        for (usize i = 0; i < multiPV; ++i)
         {
             const Value value    = rootMoves[i].value;
             const Value diff     = maxValue - value;

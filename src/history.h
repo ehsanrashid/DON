@@ -139,7 +139,7 @@ using QuietHistory = History<i16, 7183, COLOR_NB, QUIET_HISTORY_SIZE>;
 using LowPlyQuietHistory = History<i16, 7183, LOW_PLY_SIZE, QUIET_HISTORY_SIZE>;
 
 // PieceSqHistory is addressed by the move's [piece][dstSq]
-using PieceSqHistory = History<i16, 30000, PIECE_NB, SQUARE_NB>;
+using PieceSqHistory = AtomicHistory<i16, 30000, PIECE_NB, SQUARE_NB>;
 
 // ContinuationHistory is the combined history of given pair of moves,
 // usually the current move given the previous move.
@@ -170,18 +170,18 @@ using PieceSqCorrectionHistory = History<i16, CORRECTION_HISTORY_LIMIT, PIECE_NB
 // usually the current move given the previous move.
 using ContinuationCorrectionHistory = MultiArray<PieceSqCorrectionHistory, PIECE_NB, SQUARE_NB>;
 
-class AtomicHistories final {
+class SharedHistories final {
    public:
-    AtomicHistories() noexcept = delete;
-    AtomicHistories(usize count) noexcept :
-        correctionHistorySize(count * CORRECTION_HISTORY_BASE_SIZE),
-        pawnHistorySize(count * PAWN_HISTORY_BASE_SIZE),
+    SharedHistories() noexcept = delete;
+    SharedHistories(const usize threadCount) noexcept :
+        correctionHistorySize(threadCount * CORRECTION_HISTORY_BASE_SIZE),
+        pawnHistorySize(threadCount * PAWN_HISTORY_BASE_SIZE),
         pawnCorrectionHistory(correction_history_size()),
         minorCorrectionHistory(correction_history_size()),
         nonPawnCorrectionHistory(correction_history_size()),
         pawnHistory(pawn_history_size()) {
 #if !defined(NDEBUG)
-        assert(is_power_of_2(count));
+        assert(is_power_of_2(threadCount));
 #endif
     }
 
@@ -243,6 +243,10 @@ class AtomicHistories final {
         return pawnHistory[pawn_index(pos.pawn_key())];
     }
 
+    // --------------------------------
+
+    auto& continuation_history() noexcept { return continuationHistory; }
+
    private:
     const usize correctionHistorySize;
     const usize pawnHistorySize;
@@ -251,9 +255,11 @@ class AtomicHistories final {
     MinorCorrectionHistory   minorCorrectionHistory;
     NonPawnCorrectionHistory nonPawnCorrectionHistory;
     PawnHistory              pawnHistory;
+
+    Array<ContinuationHistory, 2, 2> continuationHistory;  // [inCheck][capture]
 };
 
-using AtomicHistoriesMap = std::unordered_map<usize, AtomicHistories>;
+using SharedHistoriesMap = std::unordered_map<usize, SharedHistories>;
 
 }  // namespace DON
 
