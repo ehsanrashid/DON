@@ -21,11 +21,14 @@
 #define NNUE_FEATURES_FULL_THREATS_H_INCLUDED
 
 #include "../../misc.h"
-#include "../../position.h"
 #include "../../types.h"
 #include "../ntypes.h"
 
-namespace DON::NNUE::Features {
+namespace DON {
+
+class Position;
+
+namespace NNUE::Features {
 
 // Feature FullThreats: Threats posed by pieces to opponent's pieces
 class FullThreats final {
@@ -39,22 +42,20 @@ class FullThreats final {
     // Maximum number of simultaneously active features
     static constexpr IndexType MaxActiveDimensions = 128;
 
-    using DirtyType = DirtyThreats;
-    using IndexList = FixedVector<IndexType, MaxActiveDimensions>;
+    using DirtyType   = DirtyThreats;
+    using IndexVector = FixedVector<IndexType, MaxActiveDimensions>;
 
     static void append_active_indices(Color           perspective,  //
                                       const Position& pos,
-                                      IndexList&      active) noexcept;
+                                      IndexVector&    active) noexcept;
 
     static void append_changed_indices(Color                   perspective,
                                        Square                  kingSq,
                                        const DirtyType&        dts,
-                                       IndexList&              removed,
-                                       IndexList&              added,
+                                       IndexVector&            removed,
+                                       IndexVector&            added,
                                        const ThreatWeightType* pfBase   = nullptr,
                                        usize                   pfStride = 0) noexcept;
-
-    static bool refresh_required(Color perspective, const DirtyType& dts) noexcept;
 
    private:
     FullThreats() noexcept                              = delete;
@@ -65,6 +66,7 @@ class FullThreats final {
     FullThreats& operator=(FullThreats&&) noexcept      = delete;
 };
 
-}  // namespace DON::NNUE::Features
+}  // namespace NNUE::Features
+}  // namespace DON
 
 #endif  // NNUE_FEATURES_FULL_THREATS_H_INCLUDED

@@ -21,13 +21,12 @@
 #define NNUE_ACCUMULATOR_H_INCLUDED
 
 #include <array>
-#include <cassert>
 #include <cstddef>
 #include <cstring>
+#include <utility>
 
 #include "../misc.h"
 #include "../types.h"
-#include "architecture.h"
 #include "ntypes.h"
 
 namespace DON {
@@ -38,8 +37,8 @@ namespace NNUE {
 
 class FeatureTransformer;
 
-// Accumulator holds the result of affine transformation of input features
-struct alignas(CACHE_LINE_SIZE) Accumulator {
+// Stores the accumulated affine-transformation results for HalfKA_hm and FullThreats.
+struct alignas(CACHE_LINE_SIZE) BaseAccumulator {
    public:
     Array<BiasType, COLOR_NB, L1>                accumulation;
     Array<PSQTWeightType, COLOR_NB, PSQTBuckets> psqtAccumulation;
@@ -60,9 +59,9 @@ struct AccumulatorCache final {
         // so put the biases in the accumulation, without any weights on top
         void init(const Array<BiasType, L1>& biases) noexcept {
             // Initialize accumulation with given biases
-            accumulation = biases;
-            auto offset  = offsetof(Entry, psqtAccumulation);
-            assert(offset <= sizeof(*this) && "offset exceeds object size");
+            accumulation          = biases;
+            constexpr auto offset = offsetof(Entry, psqtAccumulation);
+            static_assert(offset <= sizeof(Entry), "offset exceeds object size");
             std::memset(reinterpret_cast<uchar*>(this) + offset, 0, sizeof(*this) - offset);
         }
 
@@ -84,33 +83,27 @@ struct AccumulatorCache final {
                 entry.init(network.featureTransformer.biases);
     }
 
-    const Array<Entry, COLOR_NB>& operator[](Square s) const noexcept { return entries[s]; }
-    Array<Entry, COLOR_NB>&       operator[](Square s) noexcept { return entries[s]; }
+    const Array<Entry, COLOR_NB>& operator[](const Square s) const noexcept { return entries[s]; }
+    Array<Entry, COLOR_NB>&       operator[](const Square s) noexcept { return entries[s]; }
 
    private:
     Array<Entry, SQUARE_NB, COLOR_NB> entries;
 };
 
-template<typename FeatureSet>
-struct AccumulatorState final: public Accumulator {
+struct Accumulator final: public BaseAccumulator {
    public:
-    void reset(typename FeatureSet::DirtyType&& dt) noexcept {
-        dirty = std::move(dt);
+    void set(DirtyBoard&& db) noexcept {
+        dirtyBoard = std::move(db);
         computed.fill(false);
     }
 
-    typename FeatureSet::DirtyType dirty;
+    DirtyBoard dirtyBoard;
 };
 
 struct AccumulatorStack final {
    public:
-    static constexpr usize Size = PLY_MAX + 1;
-
-    template<typename T>
-    [[nodiscard]] const Array<AccumulatorState<T>, Size>& accumulators() const noexcept;
-
-    template<typename T>
-    [[nodiscard]] const AccumulatorState<T>& state() const noexcept;
+    [[nodiscard]] const Accumulator& accumulator() const noexcept;
+    [[nodiscard]] Accumulator&       accumulator() noexcept;
 
     void reset() noexcept;
     void push(DirtyBoard&& db) noexcept;
@@ -118,41 +111,30 @@ struct AccumulatorStack final {
 
     void evaluate(const Position&           pos,
                   const FeatureTransformer& featureTransformer,
-                  // Silence spurious warning on GCC 10
-                  [[maybe_unused]] AccumulatorCache& accCache) noexcept;
+                  AccumulatorCache&         accCache) noexcept;
 
    private:
-    template<typename T>
-    [[nodiscard]] Array<AccumulatorState<T>, Size>& mut_accumulators() noexcept;
-
-    template<typename T>
-    [[nodiscard]] AccumulatorState<T>& mut_state() noexcept;
-
-    template<typename FeatureSet>
     void evaluate(Color                     perspective,
                   const Position&           pos,
                   const FeatureTransformer& featureTransformer,
-                  // Silence spurious warning on GCC 10
-                  [[maybe_unused]] AccumulatorCache& accCache) noexcept;
+                  AccumulatorCache&         accCache) noexcept;
 
-    template<typename FeatureSet>
-    [[nodiscard]] usize last_usable_accumulator_index(Color perspective) const noexcept;
+    [[nodiscard]] usize find_last_usable_index(Color perspective) const noexcept;
 
-    template<typename FeatureSet>
-    void update_forward_incr(Color                     perspective,
-                             const Position&           pos,
-                             const FeatureTransformer& featureTransformer,
-                             usize                     beg) noexcept;
+    void update_incremental_forward(Color                     perspective,
+                                    const Position&           pos,
+                                    const FeatureTransformer& featureTransformer,
+                                    usize                     beg) noexcept;
 
-    template<typename FeatureSet>
-    void update_backward_incr(Color                     perspective,
-                              const Position&           pos,
-                              const FeatureTransformer& featureTransformer,
-                              usize                     end) noexcept;
+    void update_incremental_backward(Color                     perspective,
+                                     const Position&           pos,
+                                     const FeatureTransformer& featureTransformer,
+                                     usize                     end) noexcept;
 
-    Array<AccumulatorState<PSQFeatureSet>, Size>    psqAccumulators;
-    Array<AccumulatorState<ThreatFeatureSet>, Size> threatAccumulators;
-    usize                                           size = 1;
+    static constexpr usize Size = PLY_MAX + 1;
+
+    Array<Accumulator, Size> stateAccumulators;
+    usize                    size = 1;
 };
 
 }  // namespace NNUE

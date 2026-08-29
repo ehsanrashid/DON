@@ -57,10 +57,8 @@ static_assert(PSQTBuckets % 8 == 0,
 // Constant used in evaluation value calculation
 inline constexpr i32 OUTPUT_SCALE      = 16;
 inline constexpr u8  WEIGHT_SCALE_BITS = 6;
-inline constexpr u16 FT_ONE            = 256;
 inline constexpr u16 FT_MAX            = 255;
 inline constexpr u16 HIDDEN_ONE        = 128;
-inline constexpr u16 HIDDEN_MAX        = 127;
 
 // EvalFile stores the currently selected evaluation network and its metadata.
 // The network path may be explicitly selected through a UCI option or fall back to the default network,

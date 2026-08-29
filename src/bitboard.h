@@ -21,7 +21,6 @@
 #include <cassert>
 #include <string>
 #include <string_view>
-#include <type_traits>
 
 #if defined(USE_AVX512)
     #include <immintrin.h>
@@ -156,7 +155,7 @@ constexpr u8 constexpr_popcount(const T v) noexcept {
         constexpr u64 K4 = u64{0x0F0F0F0F0F0F0F0F};
         constexpr u64 Kf = u64{0x0101010101010101};
 
-        u64 b = static_cast<std::make_unsigned_t<T>>(v);
+        u64 b = static_cast<u64>(v);
         b     = b - ((b >> 1) & K1);
         b     = (b & K2) + ((b >> 2) & K2);
         b     = (b + (b >> 4)) & K4;
@@ -164,21 +163,20 @@ constexpr u8 constexpr_popcount(const T v) noexcept {
     }
     else
     {
-        auto b = v;
-
         u8 count = 0;
 
-        while (b != 0)
+        for (u64 b = v; b != 0; b >>= 1)
         {
             if ((b & 1) != 0)
                 ++count;
-            b >>= 1;
         }
 
         return count;
     }
 }
 
+// Returns the index of the most significant set bit.
+// The input must have all bits below the most significant bit set.
 constexpr u8 constexpr_msb_index(const Bitboard b) noexcept {
     constexpr Array<u8, SQUARE_NB> MSBIndices{
       0,  47, 1,  56, 48, 27, 2,  60,  //
@@ -322,7 +320,7 @@ inline Square msq(const Bitboard b) noexcept {
 inline Square pop_lsq(Bitboard& b) noexcept {
     assert(b != 0);
 
-    Square s = lsq(b);
+    const Square s = lsq(b);
 
     b &= b - 1;
 
@@ -333,7 +331,7 @@ inline Square pop_lsq(Bitboard& b) noexcept {
 inline Square pop_msq(Bitboard& b) noexcept {
     assert(b != 0);
 
-    Square s = msq(b);
+    const Square s = msq(b);
 
     b ^= s;
 

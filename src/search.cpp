@@ -1266,7 +1266,7 @@ Value Worker::search(Position&    pos,
 
     u16 moveCount = 0;
 
-    Array<SearchedMoves, 2> searchedMoves;
+    Array<MoveVector, 2> moveVectors;
 
     MovePicker mp(pos, ttd.move, &captureHistory, &quietHistory, &lowPlyQuietHistory, contHistory,
                   &atomicHistories, ss->ply, -1);
@@ -1697,8 +1697,8 @@ Value Worker::search(Position&    pos,
         }
 
         // Store bad searched move for history updates
-        if (move != bestMove && moveCount <= SEARCHED_MOVE_CAPACITY)
-            searchedMoves[capture].push_back(move);
+        if (move != bestMove && moveCount <= MOVES_CAPACITY)
+            moveVectors[capture].push_back(move);
     }
 
     assert(moveCount != 0 || !ss->inCheck || exclude
@@ -1721,7 +1721,7 @@ Value Worker::search(Position&    pos,
         {
             bool bmTT = bestMove == ttd.move;
 
-            update_histories<PVNode>(pos, ss, depth, bestMove, bmTT, searchedMoves);
+            update_histories<PVNode>(pos, ss, depth, bestMove, bmTT, moveVectors);
 
             if constexpr (!PVNode)
             {
@@ -2171,12 +2171,12 @@ void Worker::update_quiet_histories(const Position& pos,
 
 // Updates history at the end of search() when a bestMove is found and other searched moves are known
 template<bool PVNode>
-void Worker::update_histories(const Position&                pos,
-                              Stack* const                   ss,
-                              const Depth                    depth,
-                              const Move                     bestMove,
-                              const bool                     bmTT,
-                              const Array<SearchedMoves, 2>& searchedMoves) noexcept {
+void Worker::update_histories(const Position&             pos,
+                              Stack* const                ss,
+                              const Depth                 depth,
+                              const Move                  bestMove,
+                              const bool                  bmTT,
+                              const Array<MoveVector, 2>& moveVectors) noexcept {
     assert(depth > DEPTH_ZERO);
     assert(ss->moveCount != 0);
 
@@ -2188,8 +2188,8 @@ void Worker::update_histories(const Position&                pos,
 
     if constexpr (!PVNode)
     {
-        bonus = constexpr_round(
-          bonus * (1.0 + (searchedMoves[0].size() + searchedMoves[1].size()) / 256.0));
+        bonus =
+          constexpr_round(bonus * (1.0 + (moveVectors[0].size() + moveVectors[1].size()) / 256.0));
     }
 
     if (pos.capture_promo(bestMove))
@@ -2202,7 +2202,7 @@ void Worker::update_histories(const Position&                pos,
 
         // Decrease history for all non-best quiet moves
         int decayQuietMalus = constexpr_round(malus * 1061.0 / 1024.0);
-        for (const Move qm : searchedMoves[0])
+        for (const Move qm : moveVectors[0])
         {
             update_quiet_histories(pos, ss, qm, -decayQuietMalus);
             decayQuietMalus = constexpr_round(decayQuietMalus * 956.0 / 1024.0);
@@ -2211,7 +2211,7 @@ void Worker::update_histories(const Position&                pos,
 
     // Decrease history for all non-best capture moves
     int decayCaptureMalus = constexpr_round(malus * 1518.0 / 1024.0);
-    for (const Move cm : searchedMoves[1])
+    for (const Move cm : moveVectors[1])
     {
         update_capture_history(pos, cm, -decayCaptureMalus);
         decayCaptureMalus = constexpr_round(decayCaptureMalus * 1014.0 / 1024.0);
@@ -2647,8 +2647,13 @@ void MainSearchManager::handle_time_management(const Worker& worker,
 
     const TimePoint elapsedTime = elapsed(worker.threads);
 
-    // Stop the search if have exceeded the total time
-    if (elapsedTime > totalTime)
+    // Stop the search if have exceeded the total time, or
+    // if know that there are no better moves in the analysed line(s)
+    if (elapsedTime > totalTime  //
+        // found mates-in-1 or found mates-in-2
+        || worker.rootMoves[worker.multiPv - 1].value >= mates_in(3)
+        // found a mated-in-1
+        || worker.rootMoves[0].value == mated_in(2))
     {
         // If allowed to ponder do not stop the search now but
         // keep pondering until the GUI sends "ponderhit" or "stop".

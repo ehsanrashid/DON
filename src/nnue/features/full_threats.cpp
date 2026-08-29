@@ -193,7 +193,9 @@ constexpr u8 lut_index(Piece pc, Square s1, Square s2) noexcept {
 
 // Mirror square to have king always on e..h files
 // (file_of(s) >> 2) is 0 for 0...3, 1 for 4...7
-constexpr Square orientation(Square s) noexcept { return Square(((file_of(s) >> 2) ^ 0) * FILE_H); }
+constexpr Square orientation(Square s) noexcept {
+    return static_cast<Square>(((file_of(s) >> 2) ^ 0) * FILE_H);
+}
 
 static_assert(orientation(SQ_A1) == SQ_A1);
 static_assert(orientation(SQ_D1) == SQ_A1);
@@ -231,13 +233,13 @@ ALWAYS_INLINE IndexType make_index(const Color  perspective,
          + SQUARE_OFFSETS[relAttackerPc][org];
 }
 
-ALWAYS_INLINE void append_pawn_active_indices(Bitboard                attacksBB,
-                                              const Direction         attackDir,
-                                              const Color             perspective,
-                                              const Position&         pos,
-                                              const Square            kingSq,
-                                              const Piece             attackerPc,
-                                              FullThreats::IndexList& active) noexcept {
+ALWAYS_INLINE void append_pawn_active_indices(Bitboard                  attacksBB,
+                                              const Direction           attackDir,
+                                              const Color               perspective,
+                                              const Position&           pos,
+                                              const Square              kingSq,
+                                              const Piece               attackerPc,
+                                              FullThreats::IndexVector& active) noexcept {
     while (attacksBB != 0)
     {
         const Square dstSq      = pop_lsq(attacksBB);
@@ -257,7 +259,7 @@ ALWAYS_INLINE void append_pawn_active_indices(Bitboard                attacksBB,
 // Append list of indices for active features in ascending order
 void FullThreats::append_active_indices(const Color     perspective,
                                         const Position& pos,
-                                        IndexList&      active) noexcept {
+                                        IndexVector&    active) noexcept {
     const Square kingSq = pos.square<KING>(perspective);
 
     const Bitboard occupancyBB = pos.pieces_bb();
@@ -324,11 +326,11 @@ void FullThreats::append_active_indices(const Color     perspective,
 void FullThreats::append_changed_indices(const Color             perspective,
                                          const Square            kingSq,
                                          const DirtyType&        dts,
-                                         IndexList&              removed,
-                                         IndexList&              added,
+                                         IndexVector&            removed,
+                                         IndexVector&            added,
                                          const ThreatWeightType* pfBase,
                                          const usize             pfStride) noexcept {
-    for (const auto& dt : dts.dtList)
+    for (const auto& dt : dts)
     {
         const auto orgSq      = dt.sq();
         const auto dstSq      = dt.threatened_sq();
@@ -346,11 +348,6 @@ void FullThreats::append_changed_indices(const Color             perspective,
 
         changed.push_back_if_lt(index, Dimensions);
     }
-}
-
-// Determine if a full refresh is required based on the dirty threats
-bool FullThreats::refresh_required(const Color perspective, const DirtyType& dts) noexcept {
-    return dts.ac == perspective && orientation(dts.kingSq) != orientation(dts.preKingSq);
 }
 
 }  // namespace DON::NNUE::Features

@@ -18,13 +18,12 @@
 #ifndef NNUE_NNZ_H_INCLUDED
 #define NNUE_NNZ_H_INCLUDED
 
-#include <initializer_list>
-
 #if defined(USE_SSSE3) || defined(USE_LSX)
     #include <cstring>
 #endif
-
 #if defined(USE_AVX512)
+    #include <initializer_list>
+
     #include "../bitboard.h"
 #endif
 
@@ -119,12 +118,12 @@ struct NNZ final {
 #else
     struct Cursor final {
        public:
-        Cursor(NNZ& nnz, Color perspective) { nnzOut = nnz.bitset + perspective * Dimensions / 64; }
+        Cursor(NNZ& nnz, Color perspective) noexcept {
+            nnzOut = nnz.bitset + perspective * Dimensions / 64;
+        }
 
     #if defined(USE_SSSE3) || defined(USE_LSX) || (defined(USE_NEON) && USE_NEON >= 8)
         void record(SIMD::vec_t neurons1, SIMD::vec_t neurons2) noexcept {
-            using namespace SIMD;
-
         #if defined(__wasm__)
             __m128i packed = _mm_packus_epi32(neurons1, neurons2);
             packed         = _mm_packs_epi16(packed, packed);
@@ -180,6 +179,7 @@ struct NNZ final {
 
     // Each 8-bit chunk
     u8 bitset[ceil_div(Dimensions, 32)];
+
 #endif
 };
 

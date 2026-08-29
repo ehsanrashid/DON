@@ -194,35 +194,26 @@ class FeatureTransformer final {
                   usize                          bucket,
                   NNZ<OutputDimensions>&         nnz,
                   Array<OutputType, BufferSize>& output) const noexcept {
-        using namespace SIMD;
 
         accStack.evaluate(pos, *this, accCache);
 
-        const auto& psqAccState    = accStack.state<PSQFeatureSet>();
-        const auto& threatAccState = accStack.state<ThreatFeatureSet>();
-
-        const auto& psqtAccumulation       = psqAccState.psqtAccumulation;
-        const auto& threatPsqtAccumulation = threatAccState.psqtAccumulation;
-
         Array<Color, COLOR_NB> perspectives{pos.active_color(), ~pos.active_color()};
 
-        auto psqt = psqtAccumulation[perspectives[WHITE]][bucket]
-                  - psqtAccumulation[perspectives[BLACK]][bucket];
+        const auto& accumulator = accStack.accumulator();
 
-        psqt += threatPsqtAccumulation[perspectives[WHITE]][bucket]
-              - threatPsqtAccumulation[perspectives[BLACK]][bucket];
+        const auto& psqtAccumulation = accumulator.psqtAccumulation;
 
-        psqt /= 2;
+        const auto psqt = (psqtAccumulation[perspectives[WHITE]][bucket]
+                           - psqtAccumulation[perspectives[BLACK]][bucket])
+                        / 2;
 
-        const auto& accumulation       = psqAccState.accumulation;
-        const auto& threatAccumulation = threatAccState.accumulation;
+        const auto& accumulation = accumulator.accumulation;
 
         for (Color p : {WHITE, BLACK})
         {
             IndexType offset = p * (HalfDimensions / 2);
 
             [[maybe_unused]] auto cursor = nnz.make_cursor(p);
-            // clang-format off
 #if defined(VECTOR)
             constexpr IndexType OutputChunkSize = MaxChunkSize;
             static_assert(HalfDimensions % (2 * OutputChunkSize) == 0);
@@ -231,14 +222,16 @@ class FeatureTransformer final {
     #if defined(USE_LSX) || defined(USE_NEON) || defined(__wasm__)
             constexpr u32 Shift = 1;
     #else
-            const vec_t   Zero  = vec_zero();
-            const vec_t   FTMax = vec_set_16(FT_MAX);
+            const SIMD::vec_t Zero  = vec_zero();
+            const SIMD::vec_t FTMax = vec_set_16(FT_MAX);
+
             constexpr u32 Shift = 7;
     #endif
-
-            const auto* in0 = reinterpret_cast<const vec_t*>(&(accumulation[perspectives[p]][0]));
-            const auto* in1 = reinterpret_cast<const vec_t*>(&(accumulation[perspectives[p]][HalfDimensions / 2]));
-            auto*       out = reinterpret_cast<vec_t*>(&output[offset]);
+            // clang-format off
+            const auto* in0 = reinterpret_cast<const SIMD::vec_t*>(&(accumulation[perspectives[p]][0]));
+            const auto* in1 = reinterpret_cast<const SIMD::vec_t*>(&(accumulation[perspectives[p]][HalfDimensions / 2]));
+            auto*       out = reinterpret_cast<SIMD::vec_t*>(&output[offset]);
+            // clang-format on
 
             // Per the NNUE architecture, here want to multiply pairs of
             // clipped elements and divide the product by 128. To do this,
@@ -274,38 +267,35 @@ class FeatureTransformer final {
             // the signed bit, resulting in some positive values being
             // interpreted as negative after the shift.
 
-            // There is a way, however, to get around this limitation. When
-            // loading the network, scale accumulator weights and biases by
-            // 2. To get the same pairwise multiplication result as before,
+            // There is a way, however, to get around this limitation. When loading
+            // the network, scale accumulator weights and biases by 2.
+            // To get the same pairwise multiplication result as before,
             // need to divide the product by 128 * 2 * 2 = 512, which amounts
-            // to a right shift of 9 bits. So now only have to shift left by
-            // 7 bits, perform mulhi (shifts right by 16 bits) and net a 
-            // 9 bit right shift. Since we scaled everything by two,
-            // the values are clipped at 127 * 2 = 254, which occupies 8 bits.
-            // Shifting it by 7 bits left will no longer occupy the signed bit, so are safe.
-
-            const auto* tin0 = reinterpret_cast<const vec_t*>(&(threatAccumulation[perspectives[p]][0]));
-            const auto* tin1 = reinterpret_cast<const vec_t*>(&(threatAccumulation[perspectives[p]][HalfDimensions / 2]));
+            // to a right shift of 9 bits. So now only have to shift left by 7 bits,
+            // perform mulhi (shifts right by 16 bits) and net a 9 bit right shift.
+            // Since we scaled everything by two, the values are clipped at 127 * 2 = 254,
+            // which occupies 8 bits. Shifting it by 7 bits left will no longer occupy the signed bit.
 
             for (IndexType i = 0; i + 1 < OutputChunkCount; i += 2)
             {
-                vec_t packed[2];
+                SIMD::vec_t packed[2];
                 for (IndexType j = 0; j < 2; ++j)
                 {
                     const IndexType k = (i + j) * 2;
 
-                    const vec_t acc00 = vec_add_16(in0[k + 0], tin0[k + 0]);
-                    const vec_t acc01 = vec_add_16(in0[k + 1], tin0[k + 1]);
-                    const vec_t acc10 = vec_add_16(in1[k + 0], tin1[k + 0]);
-                    const vec_t acc11 = vec_add_16(in1[k + 1], tin1[k + 1]);
+                    const SIMD::vec_t acc00 = in0[k + 0];
+                    const SIMD::vec_t acc01 = in0[k + 1];
+                    const SIMD::vec_t acc10 = in1[k + 0];
+                    const SIMD::vec_t acc11 = in1[k + 1];
 
-                    vec_t pack;
+                    SIMD::vec_t pack;
 
+                        // clang-format off
     #if defined(USE_LSX)
-                    const vec_t p0 = vec_packus_16(acc00, acc01);
-                    const vec_t p1 = vec_packus_16(acc10, acc11);
+                    const SIMD::vec_t p0 = vec_packus_16(acc00, acc01);
+                    const SIMD::vec_t p1 = vec_packus_16(acc10, acc11);
 
-                    const vec_t hi = vec_mulhi_8(p0, p1);
+                    const SIMD::vec_t hi = vec_mulhi_8(p0, p1);
 
                     pack = vec_srli_8(hi, Shift);
 
@@ -316,36 +306,36 @@ class FeatureTransformer final {
                     const uint8x16x2_t uzp = vuzpq_u8(vreinterpretq_u8_u16(mul0), vreinterpretq_u8_u16(mul1));
                     const uint8x16_t pab   = vshrq_n_u8(uzp.val[1], Shift);
 
-                    pack = reinterpret_cast<vec_t>(pab);
+                    pack = reinterpret_cast<SIMD::vec_t>(pab);
 
     #elif defined(__wasm__)
                     // _mm_mulhi_epi16 is lowered to 32-bit multiplies, so we take
                     // a similar approach as the NEON path.
-                    const vec_t mul0 = vec_packus_16(acc00, acc01);
-                    const vec_t mul1 = vec_packus_16(acc10, acc11);
+                    const SIMD::vec_t mul0 = vec_packus_16(acc00, acc01);
+                    const SIMD::vec_t mul1 = vec_packus_16(acc10, acc11);
 
-                    const vec_t lo = wasm_u16x8_extmul_low_u8x16(mul0, mul1);
-                    const vec_t hi = wasm_u16x8_extmul_high_u8x16(mul0, mul1);
+                    const SIMD::vec_t lo = wasm_u16x8_extmul_low_u8x16(mul0, mul1);
+                    const SIMD::vec_t hi = wasm_u16x8_extmul_high_u8x16(mul0, mul1);
 
                     // equivalent to vuzp2_u8
-                    const vec_t merged = wasm_i8x16_shuffle(lo, hi,
+                    const SIMD::vec_t merged = wasm_i8x16_shuffle(lo, hi,
                                                              1,  3,  5,  7,  9, 11, 13, 15,
                                                             17, 19, 21, 23, 25, 27, 29, 31);
 
                     pack = wasm_u8x16_shr(merged, Shift);
 
     #else
-                    const vec_t sum00 = vec_slli_16(vec_max_16(vec_min_16(acc00, FTMax), Zero), Shift);
-                    const vec_t sum01 = vec_slli_16(vec_max_16(vec_min_16(acc01, FTMax), Zero), Shift);
-                    const vec_t sum10 = vec_min_16(acc10, FTMax);
-                    const vec_t sum11 = vec_min_16(acc11, FTMax);
+                    const SIMD::vec_t sum00 = vec_slli_16(vec_max_16(vec_min_16(acc00, FTMax), Zero), Shift);
+                    const SIMD::vec_t sum01 = vec_slli_16(vec_max_16(vec_min_16(acc01, FTMax), Zero), Shift);
+                    const SIMD::vec_t sum10 = vec_min_16(acc10, FTMax);
+                    const SIMD::vec_t sum11 = vec_min_16(acc11, FTMax);
 
-                    const vec_t p0 = vec_mulhi_16(sum00, sum10);
-                    const vec_t p1 = vec_mulhi_16(sum01, sum11);
+                    const SIMD::vec_t p0 = vec_mulhi_16(sum00, sum10);
+                    const SIMD::vec_t p1 = vec_mulhi_16(sum01, sum11);
 
                     pack = vec_packus_16(p0, p1);
     #endif
-
+                    // clang-format on
                     out[i + j] = packed[j] = pack;
                 }
 
@@ -357,16 +347,12 @@ class FeatureTransformer final {
                 BiasType sum0 = accumulation[perspectives[p]][j + 0];
                 BiasType sum1 = accumulation[perspectives[p]][j + HalfDimensions / 2];
 
-                sum0 += threatAccumulation[perspectives[p]][j + 0];
-                sum1 += threatAccumulation[perspectives[p]][j + HalfDimensions / 2];
-
                 sum0 = std::clamp<BiasType>(sum0, 0, FT_MAX);
                 sum1 = std::clamp<BiasType>(sum1, 0, FT_MAX);
 
                 output[offset + j] = static_cast<OutputType>(unsigned(sum0 * sum1) / 512);
             }
 #endif
-            // clang-format on
         }
 
         return psqt;

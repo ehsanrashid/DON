@@ -853,8 +853,7 @@ void Position::do_castling(Color       ac,
     if (rookMoved)
         remove(Do ? rookOrgSq : rookDstSq, Do ? &db->dirtyThreats : nullptr);
     if (kingMoved)
-        move(Do ? kingOrgSq : kingDstSq,  //
-             Do ? kingDstSq : kingOrgSq,  //
+        move(Do ? kingOrgSq : kingDstSq, Do ? kingDstSq : kingOrgSq,
              Do ? &db->dirtyThreats : nullptr);
     if (rookMoved)
         put(Do ? rookDstSq : rookOrgSq, rookPc, Do ? &db->dirtyThreats : nullptr);
@@ -896,13 +895,11 @@ DirtyBoard Position::do_move(const Move          m,
 
     DirtyBoard db;
 
-    db.dirtyPiece.movedPc     = movedPc;
-    db.dirtyPiece.orgSq       = orgSq;
-    db.dirtyPiece.dstSq       = dstSq;
-    db.dirtyPiece.addedSq     = SQ_NONE;
-    db.dirtyThreats.ac        = ac;
-    db.dirtyThreats.preKingSq = square<KING>(ac);
-    assert(db.dirtyThreats.dtList.empty());
+    db.dirtyPiece.movedPc = movedPc;
+    db.dirtyPiece.orgSq   = orgSq;
+    db.dirtyPiece.dstSq   = dstSq;
+    db.dirtyPiece.addedSq = SQ_NONE;
+    assert(db.dirtyThreats.empty());
 
     st->key ^= Zobrist::turn() ^ Zobrist::enpassant(en_passant_sq());
 
@@ -1110,8 +1107,6 @@ DirtyBoard Position::do_move(const Move          m,
     else
         st->checkersBB = 0;
 
-    db.dirtyThreats.kingSq = square<KING>(ac);
-
     activeColor = ~ac;
 
     set_pinner_blocker();
@@ -1134,11 +1129,11 @@ DirtyBoard Position::do_move(const Move          m,
     // negative in the 3-fold case, or zero when the position was not repeated.
     st->repetition = 0;
 
-    if (const auto end = std::min(rule50_count(), null_ply()); end >= 4)
+    if (const u16 end = std::min(rule50_count(), null_ply()); end >= 4)
     {
         const State* preSt = st->preSt->preSt;
 
-        for (i16 i = 4; i <= end; i += 2)
+        for (u16 i = 4; i <= end; i += 2)
         {
             preSt = preSt->preSt->preSt;
 
@@ -1881,7 +1876,7 @@ bool Position::has_repeated() const noexcept {
 // Tests if the current position has a move which draws by repetition.
 // Accurately matches the outcome of is_draw() over all legal moves.
 bool Position::is_upcoming_repetition(i16 ply) const noexcept {
-    auto end = std::min(rule50_count(), null_ply());
+    const u16 end = std::min(rule50_count(), null_ply());
     // Enough reversible moves played
     if (end < 3)
         return false;
@@ -1890,7 +1885,7 @@ bool Position::is_upcoming_repetition(i16 ply) const noexcept {
     const State* preSt   = st->preSt;
     Key          iterKey = baseKey ^ preSt->key ^ Zobrist::turn();
 
-    for (i16 i = 3; i <= end; i += 2)
+    for (u16 i = 3; i <= end; i += 2)
     {
         iterKey ^= preSt->preSt->key ^ preSt->preSt->preSt->key ^ Zobrist::turn();
 
@@ -1921,7 +1916,7 @@ bool Position::is_upcoming_repetition(i16 ply) const noexcept {
 
         assert(legal(m) && MoveList<GenType::LEGAL>(*this).contains(m));
 #endif
-        if (i < ply
+        if (static_cast<i16>(i) < ply
             // For nodes before or at the root, check that the move is
             // a repetition rather than a move to the current position.
             || preSt->repetition != 0)
@@ -2117,7 +2112,7 @@ Key Position::compute_non_pawn_key() const noexcept {
 // This is meant to be helpful when debugging.
 bool Position::_is_ok() const noexcept {
 
-    constexpr bool Fast = true;  // Quick (default) or full check?
+    constexpr bool QuickCheck = false;  // Quick or full check?
 
     if (!is_ok(active_color())                                 //
         || count(WHITE, KING) != 1 || count(BLACK, KING) != 1  //
@@ -2134,7 +2129,7 @@ bool Position::_is_ok() const noexcept {
     if (raw_key() != compute_key())
         assert(false && "Position::_is_ok(): Raw Key");
 
-    if (Fast)
+    if (QuickCheck)
         return true;
 
     if (minor_key() != compute_minor_key())
@@ -2163,11 +2158,11 @@ bool Position::_is_ok() const noexcept {
     for (Color c : {WHITE, BLACK})
         for (PieceType pt : PIECE_TYPES)
         {
-            Piece pc = make_piece(c, pt);
+            const Piece pc = make_piece(c, pt);
             if (auto cnt = count(c, pt);
                 cnt != popcount(pieces_bb(c, pt))
                 || cnt != std::count(piece_map().begin(), piece_map().end(), pc))
-                assert(false && "Position::_is_ok(): Piece List Count");
+                assert(false && "Position::_is_ok(): Piece Map");
         }
 
     for (Color c : {WHITE, BLACK})
@@ -2186,7 +2181,7 @@ bool Position::_is_ok() const noexcept {
             if (!has_castling_rights(c, cs))
                 continue;
 
-            CastlingRights cr = make_cr(c, cs);
+            const CastlingRights cr = make_cr(c, cs);
 
             if (castling_rook_sq(c, cs) == SQ_NONE
                 || (pieces_bb(c, ROOK) & castling_rook_sq(c, cs)) == 0

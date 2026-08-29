@@ -41,8 +41,8 @@ class HalfKA_hm final {
     // Maximum number of simultaneously active features
     static constexpr IndexType MaxActiveDimensions = 32;
 
-    using DirtyType = DirtyPiece;
-    using IndexList = FixedVector<IndexType, MaxActiveDimensions>;
+    using DirtyType   = DirtyPiece;
+    using IndexVector = FixedVector<u16, MaxActiveDimensions>;
 
     static void append_map_changed_indices(Color           perspective,
                                            Square          kingSq,
@@ -50,14 +50,14 @@ class HalfKA_hm final {
                                            const PieceMap& newPieceMap,
                                            Bitboard        removedBB,
                                            Bitboard        addedBB,
-                                           IndexList&      removed,
-                                           IndexList&      added) noexcept;
+                                           IndexVector&    removed,
+                                           IndexVector&    added) noexcept;
 
     static void append_changed_indices(Color            perspective,
                                        Square           kingSq,
                                        const DirtyType& dp,
-                                       IndexList&       removed,
-                                       IndexList&       added) noexcept;
+                                       IndexVector&     removed,
+                                       IndexVector&     added) noexcept;
 
     static bool refresh_required(Color perspective, const DirtyType& dp) noexcept;
 

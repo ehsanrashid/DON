@@ -767,7 +767,7 @@ inline Key Position::material_key() const noexcept {
 
     for (Color c : {WHITE, BLACK})
         for (PieceType pt : EX_KING_PIECE_TYPES)
-            if (auto cnt = count(c, pt); cnt != 0)
+            if (const auto cnt = count(c, pt); cnt != 0)
                 materialKey ^= Zobrist::piece_square(c, pt, Square(Zobrist::PAWN_OFFSET + cnt - 1));
 
     return materialKey;
@@ -934,14 +934,6 @@ inline Piece Position::swap(const Square s, const Piece newPc, DirtyThreats* con
     return oldPc;
 }
 
-inline void DirtyThreats::add(const Square sq,
-                              const Square threatenedSq,
-                              const Piece  pc,
-                              const Piece  threatenedPc,
-                              const bool   put) noexcept {
-    dtList.emplace_back(sq, threatenedSq, pc, threatenedPc, put);
-}
-
 #if defined(USE_AVX512ICL)
 // Given a DirtyThreat template and bit offsets to insert the piece type and square,
 // write the threats present at the given bitboard.
@@ -954,8 +946,6 @@ void write_multiple_dirties(const PieceMap&     pieceMap,
 
     const auto maskCount = popcount(maskBB);
     assert(maskCount <= 16);
-
-    auto* dtSpace = dts->dtList.make_space(maskCount);
 
     const __m512i dirtyThreatVal = _mm512_set1_epi32(dirtyThreat.raw());
 
@@ -975,8 +965,9 @@ void write_multiple_dirties(const PieceMap&     pieceMap,
     const __m512i dirties =
       _mm512_ternarylogic_epi32(dirtyThreatVal, threatSquares, threatPieces, 254);
 
+    auto*           dtsSpace  = dts->make_space(maskCount);
     const __mmask16 storeMask = (u16{1} << maskCount) - 1;
-    _mm512_mask_storeu_epi32(dtSpace, storeMask, dirties);
+    _mm512_mask_storeu_epi32(dtsSpace, storeMask, dirties);
 }
 #endif
 

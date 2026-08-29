@@ -18,303 +18,343 @@
 #include "accumulator.h"
 
 #include <algorithm>
-#include <type_traits>
+#include <cassert>
 #include <utility>
 
 #include "../misc.h"
 #include "../position.h"
 #include "../types.h"
-#include "feature_transformer.h"  // IWYU pragma: keep
+#include "architecture.h"
+#include "feature_transformer.h"
 #include "simd.h"
 
 namespace DON::NNUE {
 
-using namespace SIMD;
+namespace {
+
+template<bool Forward>
+void update_incremental(Color                     perspective,
+                        Square                    kingSq,
+                        const FeatureTransformer& featureTransformer,
+                        const Accumulator&        source,
+                        Accumulator&              target) noexcept;
+
+void update_refresh_cache(Color                     perspective,
+                          const Position&           pos,
+                          const FeatureTransformer& featureTransformer,
+                          Accumulator&              accumulator,
+                          AccumulatorCache&         accCache) noexcept;
+}  // namespace
+
+const Accumulator& AccumulatorStack::accumulator() const noexcept {
+    return stateAccumulators[size - 1];
+}
+Accumulator& AccumulatorStack::accumulator() noexcept { return stateAccumulators[size - 1]; }
+
+void AccumulatorStack::reset() noexcept {
+    stateAccumulators[0].set({});
+    size = 1;
+}
+
+void AccumulatorStack::push(DirtyBoard&& db) noexcept {
+    assert(size < Size);
+
+    stateAccumulators[size++].set(std::move(db));
+}
+
+void AccumulatorStack::pop() noexcept {
+    assert(size > 1);
+
+    --size;
+}
+
+void AccumulatorStack::evaluate(const Position&           pos,
+                                const FeatureTransformer& featureTransformer,
+                                AccumulatorCache&         accCache) noexcept {
+
+    evaluate(WHITE, pos, featureTransformer, accCache);
+    evaluate(BLACK, pos, featureTransformer, accCache);
+}
+
+void AccumulatorStack::evaluate(const Color               perspective,
+                                const Position&           pos,
+                                const FeatureTransformer& featureTransformer,
+                                AccumulatorCache&         accCache) noexcept {
+
+    const auto lastUsableIdx = find_last_usable_index(perspective);
+
+    if (stateAccumulators[lastUsableIdx].computed[perspective])
+    {
+        update_incremental_forward(perspective, pos, featureTransformer, lastUsableIdx);
+    }
+    else
+    {
+        update_refresh_cache(perspective, pos, featureTransformer, accumulator(), accCache);
+        update_incremental_backward(perspective, pos, featureTransformer, lastUsableIdx);
+    }
+}
+
+// Find the earliest usable accumulator, this can either be a computed accumulator or the accumulator
+// state just before a change that requires full refresh.
+usize AccumulatorStack::find_last_usable_index(const Color perspective) const noexcept {
+
+    for (usize idx = size; idx-- > 0;)
+    {
+        if (stateAccumulators[idx].computed[perspective])
+            return idx;
+
+        // Threat feature set refreshes require a king move across the center, i.e.,
+        // a subset of halfka refreshes
+        if (PSQFeatureSet::refresh_required(perspective,
+                                            stateAccumulators[idx].dirtyBoard.dirtyPiece))
+            return idx;
+    }
+
+    return 0;
+}
+
+void AccumulatorStack::update_incremental_forward(const Color               perspective,
+                                                  const Position&           pos,
+                                                  const FeatureTransformer& featureTransformer,
+                                                  const usize               beg) noexcept {
+    assert(beg < size && size <= Size);
+    assert(stateAccumulators[beg].computed[perspective]);
+
+    const Square kingSq = pos.square<KING>(perspective);
+
+    for (usize idx = beg; ++idx < size;)
+        update_incremental<true>(perspective, kingSq, featureTransformer,
+                                 stateAccumulators[idx - 1], stateAccumulators[idx]);
+
+    assert(accumulator().computed[perspective]);
+}
+
+void AccumulatorStack::update_incremental_backward(const Color               perspective,
+                                                   const Position&           pos,
+                                                   const FeatureTransformer& featureTransformer,
+                                                   const usize               end) noexcept {
+    assert(end < size && size <= Size);
+    assert(accumulator().computed[perspective]);
+
+    const Square kingSq = pos.square<KING>(perspective);
+
+    for (usize idx = std::max(size, usize{1}) - 1; idx-- > end;)
+        update_incremental<false>(perspective, kingSq, featureTransformer,
+                                  stateAccumulators[idx + 1], stateAccumulators[idx]);
+
+    assert(stateAccumulators[end].computed[perspective]);
+}
 
 namespace {
 
-template<typename VectorWrapper,
-         IndexType Width,
-         UpdateOperation... ops,
-         typename ElementType,
-         typename... Ts,
-         std::enable_if_t<is_all_same_v<ElementType, Ts...>, bool> = true>
-void fused_row_reduce(const ElementType* in, ElementType* out, const Ts* const... rows) noexcept {
-    constexpr IndexType Size = Width * sizeof(ElementType) / sizeof(typename VectorWrapper::type);
+void apply_combined(Color                                perspective,
+                    const FeatureTransformer&            featureTransformer,
+                    const Accumulator&                   source,
+                    Accumulator&                         target,
+                    const PSQFeatureSet::IndexVector&    psqAdded,
+                    const PSQFeatureSet::IndexVector&    psqRemoved,
+                    const ThreatFeatureSet::IndexVector& thrAdded,
+                    const ThreatFeatureSet::IndexVector& thrRemoved) noexcept {
+    constexpr IndexType Dimensions = FeatureTransformer::OutputDimensions;
 
-    auto* vecIn  = reinterpret_cast<const typename VectorWrapper::type*>(in);
-    auto* vecOut = reinterpret_cast<typename VectorWrapper::type*>(out);
+    const auto& sourceAcc = source.accumulation[perspective];
+    auto&       targetAcc = target.accumulation[perspective];
 
-    for (IndexType i = 0; i < Size; ++i)
-        vecOut[i] = fused<VectorWrapper, ops...>(
-          vecIn[i], reinterpret_cast<const typename VectorWrapper::type*>(rows)[i]...);
-}
-
-template<typename FeatureSet>
-struct AccumulatorUpdateContext final {
-
-    static constexpr auto Dimensions = FeatureTransformer::OutputDimensions;
-
-    AccumulatorUpdateContext(const Color                         perspective,
-                             const FeatureTransformer&           featureTrans,
-                             const AccumulatorState<FeatureSet>& computedState,
-                             AccumulatorState<FeatureSet>&       targetState) noexcept :
-        featureTransformer{featureTrans},
-        computedAcc(computedState.accumulation[perspective]),
-        computedPsqtAcc(computedState.psqtAccumulation[perspective]),
-        targetAcc(targetState.accumulation[perspective]),
-        targetPsqtAcc(targetState.psqtAccumulation[perspective]) {}
-
-    template<UpdateOperation... ops,
-             typename... Ts,
-             std::enable_if_t<is_all_same_v<IndexType, Ts...>, bool> = true>
-    void apply(const Ts... indices) noexcept {
-
-        auto to_weight_vector = [&](const IndexType index) noexcept {
-            return &featureTransformer.weights[index * Dimensions];
-        };
-
-        auto to_psqt_weight_vector = [&](const IndexType index) noexcept {
-            return &featureTransformer.psqtWeights[index * PSQTBuckets];
-        };
-
-        fused_row_reduce<Vec16Wrapper, Dimensions, ops...>(  //
-          computedAcc.data(), targetAcc.data(), to_weight_vector(indices)...);
-        fused_row_reduce<Vec32Wrapper, PSQTBuckets, ops...>(  //
-          computedPsqtAcc.data(), targetPsqtAcc.data(), to_psqt_weight_vector(indices)...);
-    }
-
-    void apply(const typename FeatureSet::IndexList& removed,
-               const typename FeatureSet::IndexList& added) noexcept {
+    const auto& sourcePsqtAcc = source.psqtAccumulation[perspective];
+    auto&       targetPsqtAcc = target.psqtAccumulation[perspective];
 
 #if defined(VECTOR)
-        using Tiling = Tiling<Dimensions, PSQTBuckets>;
+    using Tiling [[maybe_unused]] = SIMD::Tiling<Dimensions, Dimensions, PSQTBuckets>;
 
-        vec_t      acc[Tiling::RegCount];
-        psqt_vec_t psqt[Tiling::PSQTRegCount];
+    SIMD::vec_t      acc[Tiling::RegCount];
+    SIMD::psqt_vec_t psqt[Tiling::PSQTRegCount];
 
-        const usize removedSize = removed.size();
-        const usize addedSize   = added.size();
+    const auto* weights       = featureTransformer.weights.data();
+    const auto* threatWeights = featureTransformer.threatWeights.data();
+    // clang-format off
+    for (IndexType j = 0; j < Dimensions / Tiling::TileHeight; ++j)
+    {
+        const IndexType tileOffset = j * Tiling::TileHeight;
 
-        // clang-format off
-        const auto* threatWeights = featureTransformer.threatWeights.data();
+        const auto* sourceTile = reinterpret_cast<const SIMD::vec_t*>(&sourceAcc[tileOffset]);
 
-        for (IndexType j = 0; j < Dimensions / Tiling::TileHeight; ++j, threatWeights += Tiling::TileHeight)
+        for (usize k = 0; k < Tiling::RegCount; ++k)
+            acc[k] = sourceTile[k];
+
+        for (IndexType i = 0; i < psqRemoved.size(); ++i)
         {
-            const auto* computedTile = reinterpret_cast<const vec_t*>(&computedAcc[j * Tiling::TileHeight]);
-            auto*         targetTile = reinterpret_cast<vec_t*>(&targetAcc[j * Tiling::TileHeight]);
-
-            for (IndexType k = 0; k < Tiling::RegCount; ++k)
-                acc[k] = computedTile[k];
-
-            for (IndexType i = 0; i < removedSize; ++i)
-            {
-                const usize offset = removed[i] * Dimensions;
-                const auto* column = reinterpret_cast<const vec_i8_t*>(&threatWeights[offset]);
-
-        #if defined(USE_NEON)
-                for (IndexType k = 0; k + 1 < Tiling::RegCount; k += 2)
-                {
-                    acc[k + 0] = vsubw_s8(acc[k + 0], vget_low_s8(column[k / 2]));
-                    acc[k + 1] = vsubw_high_s8(acc[k + 1], column[k / 2]);
-                }
-        #else
-                for (IndexType k = 0; k < Tiling::RegCount; ++k)
-                    acc[k] = vec_sub_16(acc[k], vec_convert_8_16(column[k]));
-        #endif
-            }
-
-            for (IndexType i = 0; i < addedSize; ++i)
-            {
-                const usize offset = added[i] * Dimensions;
-                const auto* column = reinterpret_cast<const vec_i8_t*>(&threatWeights[offset]);
-
-        #if defined(USE_NEON)
-                for (IndexType k = 0; k + 1 < Tiling::RegCount; k += 2)
-                {
-                    acc[k + 0] = vaddw_s8(acc[k + 0], vget_low_s8(column[k / 2]));
-                    acc[k + 1] = vaddw_high_s8(acc[k + 1], column[k / 2]);
-                }
-        #else
-                for (IndexType k = 0; k < Tiling::RegCount; ++k)
-                    acc[k] = vec_add_16(acc[k], vec_convert_8_16(column[k]));
-        #endif
-            }
-
-            for (IndexType k = 0; k < Tiling::RegCount; ++k)
-                vec_store(&targetTile[k], acc[k]);
+            const auto* row = reinterpret_cast<const SIMD::vec_t*>(&weights[psqRemoved[i] * Dimensions + tileOffset]);
+            for (usize k = 0; k < Tiling::RegCount; ++k)
+                acc[k] = vec_sub_16(acc[k], row[k]);
         }
 
-        const auto* threatPsqtWeights = featureTransformer.threatPsqtWeights.data();
-
-        for (IndexType j = 0; j < PSQTBuckets / Tiling::PSQTTileHeight; ++j, threatPsqtWeights += Tiling::PSQTTileHeight)
+        for (IndexType i = 0; i < psqAdded.size(); ++i)
         {
-            const auto* computedPsqtTile = reinterpret_cast<const psqt_vec_t*>(&computedPsqtAcc[j * Tiling::PSQTTileHeight]);
-            auto*         targetPsqtTile = reinterpret_cast<psqt_vec_t*>(&targetPsqtAcc[j * Tiling::PSQTTileHeight]);
+            const auto* row = reinterpret_cast<const SIMD::vec_t*>(&weights[psqAdded[i] * Dimensions + tileOffset]);
+            for (usize k = 0; k < Tiling::RegCount; ++k)
+                acc[k] = vec_add_16(acc[k], row[k]);
+        }
 
-            for (IndexType k = 0; k < Tiling::PSQTRegCount; ++k)
-                psqt[k] = computedPsqtTile[k];
+        for (IndexType i = 0; i < thrRemoved.size(); ++i)
+        {
+            const auto* column = reinterpret_cast<const SIMD::vec_i8_t*>(&threatWeights[thrRemoved[i] * Dimensions + tileOffset]);
 
-            for (IndexType i = 0; i < removedSize; ++i)
+    #if defined(USE_NEON)
+            for (usize k = 0; k + 1 < Tiling::RegCount; k += 2)
             {
-                const usize offset     = removed[i] * PSQTBuckets;
-                const auto* columnPsqt = reinterpret_cast<const psqt_vec_t*>(&threatPsqtWeights[offset]);
-
-                for (IndexType k = 0; k < Tiling::PSQTRegCount; ++k)
-                    psqt[k] = vec_sub_psqt_32(psqt[k], columnPsqt[k]);
+                acc[k + 0] = vsubw_s8(     acc[k + 0], vget_low_s8(column[k / 2]));
+                acc[k + 1] = vsubw_high_s8(acc[k + 1],             column[k / 2]);
             }
+    #else
+            for (usize k = 0; k < Tiling::RegCount; ++k)
+                acc[k] = vec_sub_16(acc[k], vec_convert_8_16(column[k]));
+    #endif
+        }
 
-            for (IndexType i = 0; i < addedSize; ++i)
+        for (IndexType i = 0; i < thrAdded.size(); ++i)
+        {
+            const auto* column = reinterpret_cast<const SIMD::vec_i8_t*>(&threatWeights[thrAdded[i] * Dimensions + tileOffset]);
+
+    #if defined(USE_NEON)
+            for (usize k = 0; k + 1 < Tiling::RegCount; k += 2)
             {
-                const usize offset     = added[i] * PSQTBuckets;
-                const auto* columnPsqt = reinterpret_cast<const psqt_vec_t*>(&threatPsqtWeights[offset]);
-
-                for (IndexType k = 0; k < Tiling::PSQTRegCount; ++k)
-                    psqt[k] = vec_add_psqt_32(psqt[k], columnPsqt[k]);
+                acc[k + 0] = vaddw_s8     (acc[k + 0], vget_low_s8(column[k / 2]));
+                acc[k + 1] = vaddw_high_s8(acc[k + 1],             column[k / 2]);
             }
-
-            for (IndexType k = 0; k < Tiling::PSQTRegCount; ++k)
-                vec_store_psqt(&targetPsqtTile[k], psqt[k]);
-        }
-        // clang-format on
-#else
-
-        targetAcc     = computedAcc;
-        targetPsqtAcc = computedPsqtAcc;
-
-        for (const auto index : removed)
-        {
-            for (IndexType i = 0; i < Dimensions; ++i)
-                targetAcc[i] -= featureTransformer.threatWeights[index * Dimensions + i];
-
-            for (IndexType i = 0; i < PSQTBuckets; ++i)
-                targetPsqtAcc[i] -= featureTransformer.threatPsqtWeights[index * PSQTBuckets + i];
+    #else
+            for (usize k = 0; k < Tiling::RegCount; ++k)
+                acc[k] = vec_add_16(acc[k], vec_convert_8_16(column[k]));
+    #endif
         }
 
-        for (const auto index : added)
-        {
-            for (IndexType i = 0; i < Dimensions; ++i)
-                targetAcc[i] += featureTransformer.threatWeights[index * Dimensions + i];
+        auto* targetTile = reinterpret_cast<SIMD::vec_t*>(&targetAcc[tileOffset]);
 
-            for (IndexType i = 0; i < PSQTBuckets; ++i)
-                targetPsqtAcc[i] += featureTransformer.threatPsqtWeights[index * PSQTBuckets + i];
-        }
-
-#endif
+        for (usize k = 0; k < Tiling::RegCount; ++k)
+            vec_store(&targetTile[k], acc[k]);
     }
 
-    const FeatureTransformer&                 featureTransformer;
-    const Array<BiasType, Dimensions>&        computedAcc;
-    const Array<PSQTWeightType, PSQTBuckets>& computedPsqtAcc;
-    Array<BiasType, Dimensions>&              targetAcc;
-    Array<PSQTWeightType, PSQTBuckets>&       targetPsqtAcc;
-};
+    const auto* psqtWeights       = featureTransformer.psqtWeights.data();
+    const auto* threatPsqtWeights = featureTransformer.threatPsqtWeights.data();
 
-template<typename FeatureSet>
-auto make_accumulator_update_context(const Color                         perspective,
-                                     const FeatureTransformer&           featureTransformer,
-                                     const AccumulatorState<FeatureSet>& computedState,
-                                     AccumulatorState<FeatureSet>&       targetState) noexcept {
-    return AccumulatorUpdateContext<FeatureSet>{perspective, featureTransformer, computedState,
-                                                targetState};
+    for (IndexType j = 0; j < PSQTBuckets / Tiling::PSQTTileHeight; ++j)
+    {
+        const IndexType psqtTileOffset = j * Tiling::PSQTTileHeight;
+
+        const auto* sourcePsqtTile = reinterpret_cast<const SIMD::psqt_vec_t*>(&sourcePsqtAcc[psqtTileOffset]);
+
+        for (usize k = 0; k < Tiling::PSQTRegCount; ++k)
+            psqt[k] = sourcePsqtTile[k];
+
+        for (IndexType i = 0; i < psqRemoved.size(); ++i)
+        {
+            const auto* columnPsqt = reinterpret_cast<const SIMD::psqt_vec_t*>(&psqtWeights[psqRemoved[i] * PSQTBuckets + psqtTileOffset]);
+            for (usize k = 0; k < Tiling::PSQTRegCount; ++k)
+                psqt[k] = vec_sub_psqt_32(psqt[k], columnPsqt[k]);
+        }
+
+        for (IndexType i = 0; i < psqAdded.size(); ++i)
+        {
+            const auto* columnPsqt = reinterpret_cast<const SIMD::psqt_vec_t*>(&psqtWeights[psqAdded[i] * PSQTBuckets + psqtTileOffset]);
+            for (usize k = 0; k < Tiling::PSQTRegCount; ++k)
+                psqt[k] = vec_add_psqt_32(psqt[k], columnPsqt[k]);
+        }
+
+        for (IndexType i = 0; i < thrRemoved.size(); ++i)
+        {
+            const auto* columnPsqt = reinterpret_cast<const SIMD::psqt_vec_t*>(&threatPsqtWeights[thrRemoved[i] * PSQTBuckets + psqtTileOffset]);
+            for (usize k = 0; k < Tiling::PSQTRegCount; ++k)
+                psqt[k] = vec_sub_psqt_32(psqt[k], columnPsqt[k]);
+        }
+
+        for (IndexType i = 0; i < thrAdded.size(); ++i)
+        {
+            const auto* columnPsqt = reinterpret_cast<const SIMD::psqt_vec_t*>(&threatPsqtWeights[thrAdded[i] * PSQTBuckets + psqtTileOffset]);
+            for (usize k = 0; k < Tiling::PSQTRegCount; ++k)
+                psqt[k] = vec_add_psqt_32(psqt[k], columnPsqt[k]);
+        }
+
+        auto* targetPsqtTile = reinterpret_cast<SIMD::psqt_vec_t*>(&targetPsqtAcc[psqtTileOffset]);
+
+        for (usize k = 0; k < Tiling::PSQTRegCount; ++k)
+            vec_store_psqt(&targetPsqtTile[k], psqt[k]);
+    }
+    // clang-format on
+#else
+
+    targetAcc     = sourceAcc;
+    targetPsqtAcc = sourcePsqtAcc;
+
+    for (const auto index : psqRemoved)
+    {
+        for (IndexType i = 0; i < Dimensions; ++i)
+            targetAcc[i] -= featureTransformer.weights[index * Dimensions + i];
+        for (IndexType i = 0; i < PSQTBuckets; ++i)
+            targetPsqtAcc[i] -= featureTransformer.psqtWeights[index * PSQTBuckets + i];
+    }
+
+    for (const auto index : psqAdded)
+    {
+        for (IndexType i = 0; i < Dimensions; ++i)
+            targetAcc[i] += featureTransformer.weights[index * Dimensions + i];
+        for (IndexType i = 0; i < PSQTBuckets; ++i)
+            targetPsqtAcc[i] += featureTransformer.psqtWeights[index * PSQTBuckets + i];
+    }
+
+    for (const auto index : thrRemoved)
+    {
+        for (IndexType i = 0; i < Dimensions; ++i)
+            targetAcc[i] -= featureTransformer.threatWeights[index * Dimensions + i];
+        for (IndexType i = 0; i < PSQTBuckets; ++i)
+            targetPsqtAcc[i] -= featureTransformer.threatPsqtWeights[index * PSQTBuckets + i];
+    }
+
+    for (const auto index : thrAdded)
+    {
+        for (IndexType i = 0; i < Dimensions; ++i)
+            targetAcc[i] += featureTransformer.threatWeights[index * Dimensions + i];
+        for (usize i = 0; i < PSQTBuckets; ++i)
+            targetPsqtAcc[i] += featureTransformer.threatPsqtWeights[index * PSQTBuckets + i];
+    }
+
+#endif
 }
 
-// Computes the accumulator of the next position, on given computedState
-template<bool Forward, typename FeatureSet>
-void update_accumulator_incr(const Color                         perspective,
-                             const FeatureTransformer&           featureTransformer,
-                             Square                              kingSq,
-                             const AccumulatorState<FeatureSet>& computedState,
-                             AccumulatorState<FeatureSet>&       targetState) noexcept {
+template<bool Forward>
+void update_incremental(const Color               perspective,
+                        const Square              kingSq,
+                        const FeatureTransformer& featureTransformer,
+                        const Accumulator&        source,
+                        Accumulator&              target) noexcept {
 
-    assert(computedState.computed[perspective]);
-    assert(!targetState.computed[perspective]);
+    assert(source.computed[perspective]);
+    assert(!target.computed[perspective]);
 
     // The size must be enough to contain the largest possible update.
     // That might depend on the feature set and generally relies on the
     // feature set's update cost calculation to be correct and never allow
     // updates with more added/removed features than MaxActiveDimensions.
-    // In this case, the maximum size of both feature addition and removal is 2,
-    // since incrementally updating one move at a time.
-    typename FeatureSet::IndexList removed{}, added{};
+    PSQFeatureSet::IndexVector    psqRemoved, psqAdded;
+    ThreatFeatureSet::IndexVector thrRemoved, thrAdded;
 
-    if constexpr (std::is_same_v<FeatureSet, ThreatFeatureSet>)
-    {
-        const auto* pfBase   = featureTransformer.threatWeights.data();
-        const usize pfStride = FeatureTransformer::OutputDimensions;
+    const auto& dirtyBoard = Forward ? target.dirtyBoard : source.dirtyBoard;
 
-        if constexpr (Forward)
-            FeatureSet::append_changed_indices(perspective, kingSq, targetState.dirty, removed,
-                                               added, pfBase, pfStride);
-        else
-            FeatureSet::append_changed_indices(perspective, kingSq, computedState.dirty, added,
-                                               removed, pfBase, pfStride);
-    }
-    else
-    {
-        if constexpr (Forward)
-            FeatureSet::append_changed_indices(perspective, kingSq, targetState.dirty, removed,
-                                               added);
-        else
-            FeatureSet::append_changed_indices(perspective, kingSq, computedState.dirty, added,
-                                               removed);
-    }
+    const auto& dirtyPiece   = dirtyBoard.dirtyPiece;
+    const auto& dirtyThreats = dirtyBoard.dirtyThreats;
 
-    auto updateContext =
-      make_accumulator_update_context(perspective, featureTransformer, computedState, targetState);
+    const auto* pfBase   = featureTransformer.threatWeights.data();
+    const auto  pfStride = FeatureTransformer::OutputDimensions;
 
-    if constexpr (std::is_same_v<FeatureSet, ThreatFeatureSet>)
-    {
-        updateContext.apply(removed, added);
-    }
-    else
-    {
-        [[maybe_unused]] const usize removedSize = removed.size();
-        [[maybe_unused]] const usize addedSize   = added.size();
+    PSQFeatureSet::append_changed_indices(perspective, kingSq, dirtyPiece,
+                                          Forward ? psqRemoved : psqAdded,
+                                          Forward ? psqAdded : psqRemoved);
+    ThreatFeatureSet::append_changed_indices(perspective, kingSq, dirtyThreats,
+                                             Forward ? thrRemoved : thrAdded,
+                                             Forward ? thrAdded : thrRemoved, pfBase, pfStride);
 
-        assert(removedSize == 1 || removedSize == 2);
-        assert(addedSize == 1 || addedSize == 2);
-        assert((Forward && addedSize <= removedSize) || (!Forward && removedSize <= addedSize));
+    apply_combined(perspective, featureTransformer, source, target, psqAdded, psqRemoved, thrAdded,
+                   thrRemoved);
 
-        // Workaround compiler warning for uninitialized variables,
-        // replicated on profile builds on windows with gcc 14.2.0.
-        // Also helps with optimizations on some compilers.
-        ASSUME(removedSize == 1 || removedSize == 2);
-        ASSUME(addedSize == 1 || addedSize == 2);
-
-        if (!(removedSize == 1 || removedSize == 2) || !(addedSize == 1 || addedSize == 2))
-            UNREACHABLE();
-
-        if ((Forward && removedSize == 1) || (!Forward && addedSize == 1))
-        {
-            assert(addedSize == 1 && removedSize == 1);
-            updateContext.template apply<UpdateOperation::Add, UpdateOperation::Sub>(  //
-              added[0], removed[0]);
-        }
-        else if (Forward && addedSize == 1)
-        {
-            assert(removedSize == 2);
-            updateContext
-              .template apply<UpdateOperation::Add, UpdateOperation::Sub, UpdateOperation::Sub>(
-                added[0], removed[0], removed[1]);
-        }
-        else if (!Forward && removedSize == 1)
-        {
-            assert(addedSize == 2);
-            updateContext
-              .template apply<UpdateOperation::Add, UpdateOperation::Add, UpdateOperation::Sub>(
-                added[0], added[1], removed[0]);
-        }
-        else
-        {
-            assert(addedSize == 2 && removedSize == 2);
-            updateContext.template apply<UpdateOperation::Add, UpdateOperation::Add,
-                                         UpdateOperation::Sub, UpdateOperation::Sub>(
-              added[0], added[1], removed[0], removed[1]);
-        }
-    }
-
-    targetState.computed[perspective] = true;
+    target.computed[perspective] = true;
 }
 
 Bitboard changed_bb(const PieceMap& oldPieceMap, const PieceMap& newPieceMap) noexcept {
@@ -416,26 +456,28 @@ Bitboard changed_bb(const PieceMap& oldPieceMap, const PieceMap& newPieceMap) no
 #endif
 }
 
-void update_accumulator_refresh_cache(const Color                      perspective,
-                                      const FeatureTransformer&        featureTransformer,
-                                      const Position&                  pos,
-                                      AccumulatorState<PSQFeatureSet>& accState,
-                                      AccumulatorCache&                accCache) noexcept {
+// HalfKA data comes from the Finny table entry, while the threats are built
+// from the active threat features
+void update_refresh_cache(const Color               perspective,
+                          const Position&           pos,
+                          const FeatureTransformer& featureTransformer,
+                          Accumulator&              accumulator,
+                          AccumulatorCache&         accCache) noexcept {
     constexpr auto Dimensions = FeatureTransformer::OutputDimensions;
 
     const Square kingSq = pos.square<KING>(perspective);
 
     auto& entry = accCache[kingSq][perspective];
 
-    PSQFeatureSet::IndexList removed, added;
+    PSQFeatureSet::IndexVector removed, added;
 
     const auto& pieceMap = pos.piece_map();
     const auto  piecesBB = pos.pieces_bb();
 
     const Bitboard changedBB = changed_bb(entry.pieceMap, pieceMap);
 
-    const Bitboard removedBB = changedBB & entry.piecesBB;
-    const Bitboard addedBB   = changedBB & piecesBB;
+    Bitboard removedBB = changedBB & entry.piecesBB;
+    Bitboard addedBB   = changedBB & piecesBB;
 
     PSQFeatureSet::append_map_changed_indices(perspective, kingSq, entry.pieceMap, pieceMap,
                                               removedBB, addedBB, removed, added);
@@ -443,352 +485,146 @@ void update_accumulator_refresh_cache(const Color                      perspecti
     entry.pieceMap = pieceMap;
     entry.piecesBB = piecesBB;
 
-    accState.computed[perspective] = true;
+    ThreatFeatureSet::IndexVector active;
+    ThreatFeatureSet::append_active_indices(perspective, pos, active);
+
+    accumulator.computed[perspective] = true;
 
 #if defined(VECTOR)
-    using Tiling = Tiling<Dimensions, PSQTBuckets>;
+    using Tiling [[maybe_unused]] = SIMD::Tiling<Dimensions, Dimensions, PSQTBuckets>;
 
-    vec_t      acc[Tiling::RegCount];
-    psqt_vec_t psqt[Tiling::PSQTRegCount];
+    SIMD::vec_t      acc[Tiling::RegCount];
+    SIMD::psqt_vec_t psqt[Tiling::PSQTRegCount];
 
-    const usize removedSize = removed.size();
-    const usize addedSize   = added.size();
-
+    const auto* weights       = featureTransformer.weights.data();
+    const auto* threatWeights = featureTransformer.threatWeights.data();
     // clang-format off
-    const auto* weights = featureTransformer.weights.data();
-
-    for (IndexType j = 0; j < Dimensions / Tiling::TileHeight; ++j, weights += Tiling::TileHeight)
+    for (IndexType j = 0; j < Dimensions / Tiling::TileHeight; ++j)
     {
-        auto* accTile   = reinterpret_cast<vec_t*>(&accState.accumulation[perspective][j * Tiling::TileHeight]);
-        auto* entryTile = reinterpret_cast<vec_t*>(&entry.accumulation[j * Tiling::TileHeight]);
+        const IndexType tileOffset = j * Tiling::TileHeight;
 
-        for (IndexType k = 0; k < Tiling::RegCount; ++k)
+        auto* entryTile = reinterpret_cast<SIMD::vec_t*>(&entry.accumulation[tileOffset]);
+
+        for (usize k = 0; k < Tiling::RegCount; ++k)
             acc[k] = entryTile[k];
 
-        for (usize i = 0; i < removedSize; ++i)
+        for (IndexType i = 0; i < removed.size(); ++i)
         {
-            const usize offset = removed[i] * Dimensions;
-            const auto* column = reinterpret_cast<const vec_t*>(&weights[offset]);
-
-            for (IndexType k = 0; k < Tiling::RegCount; ++k)
+            const auto* column = reinterpret_cast<const SIMD::vec_t*>(&weights[removed[i] * Dimensions + tileOffset]);
+            for (usize k = 0; k < Tiling::RegCount; ++k)
                 acc[k] = vec_sub_16(acc[k], column[k]);
         }
-        for (usize i = 0; i < addedSize; ++i)
+        for (IndexType i = 0; i < added.size(); ++i)
         {
-            const usize offset = added[i] * Dimensions;
-            const auto* column = reinterpret_cast<const vec_t*>(&weights[offset]);
-
-            for (IndexType k = 0; k < Tiling::RegCount; ++k)
+            const auto* column = reinterpret_cast<const SIMD::vec_t*>(&weights[added[i] * Dimensions + tileOffset]);
+            for (usize k = 0; k < Tiling::RegCount; ++k)
                 acc[k] = vec_add_16(acc[k], column[k]);
         }
 
-        for (IndexType k = 0; k < Tiling::RegCount; ++k)
-        {
+        for (usize k = 0; k < Tiling::RegCount; ++k)
             vec_store(&entryTile[k], acc[k]);
-            vec_store(&accTile[k], acc[k]);
+
+        for (IndexType i = 0; i < active.size(); ++i)
+        {
+            const auto* column = reinterpret_cast<const SIMD::vec_i8_t*>(&threatWeights[active[i] * Dimensions + tileOffset]);
+
+    #if defined(USE_NEON)
+            for (usize k = 0; k + 1 < Tiling::RegCount; k += 2)
+            {
+                acc[k + 0] = vaddw_s8(     acc[k + 0], vget_low_s8(column[k / 2]));
+                acc[k + 1] = vaddw_high_s8(acc[k + 1],             column[k / 2]);
+            }
+    #else
+            for (usize k = 0; k < Tiling::RegCount; ++k)
+                acc[k] = vec_add_16(acc[k], vec_convert_8_16(column[k]));
+    #endif
         }
+
+        auto* accTile = reinterpret_cast<SIMD::vec_t*>(&accumulator.accumulation[perspective][tileOffset]);
+
+        for (usize k = 0; k < Tiling::RegCount; ++k)
+            vec_store(&accTile[k], acc[k]);
     }
 
-    const auto* psqtWeights = featureTransformer.psqtWeights.data();
+    const auto* psqtWeights       = featureTransformer.psqtWeights.data();
+    const auto* threatPsqtWeights = featureTransformer.threatPsqtWeights.data();
 
-    for (IndexType j = 0; j < PSQTBuckets / Tiling::PSQTTileHeight; ++j, psqtWeights += Tiling::PSQTTileHeight)
+    for (IndexType j = 0; j < PSQTBuckets / Tiling::PSQTTileHeight; ++j)
     {
-        auto* accPsqtTile   = reinterpret_cast<psqt_vec_t*>(&accState.psqtAccumulation[perspective][j * Tiling::PSQTTileHeight]);
-        auto* entryPsqtTile = reinterpret_cast<psqt_vec_t*>(&entry.psqtAccumulation[j * Tiling::PSQTTileHeight]);
+        const IndexType psqtTileOffset = j * Tiling::PSQTTileHeight;
 
-        for (IndexType k = 0; k < Tiling::PSQTRegCount; ++k)
+        auto* entryPsqtTile = reinterpret_cast<SIMD::psqt_vec_t*>(&entry.psqtAccumulation[psqtTileOffset]);
+
+        for (usize k = 0; k < Tiling::PSQTRegCount; ++k)
             psqt[k] = entryPsqtTile[k];
 
-        for (usize i = 0; i < removedSize; ++i)
+        for (IndexType i = 0; i < removed.size(); ++i)
         {
-            const usize offset = removed[i] * PSQTBuckets;
-            const auto* column = reinterpret_cast<const psqt_vec_t*>(&psqtWeights[offset]);
-
-            for (IndexType k = 0; k < Tiling::PSQTRegCount; ++k)
-                psqt[k] = vec_sub_psqt_32(psqt[k], column[k]);
+            const auto* columnPsqt = reinterpret_cast<const SIMD::psqt_vec_t*>(&psqtWeights[removed[i] * PSQTBuckets + psqtTileOffset]);
+            for (usize k = 0; k < Tiling::PSQTRegCount; ++k)
+                psqt[k] = vec_sub_psqt_32(psqt[k], columnPsqt[k]);
+        }
+        for (IndexType i = 0; i < added.size(); ++i)
+        {
+            const auto* columnPsqt = reinterpret_cast<const SIMD::psqt_vec_t*>(&psqtWeights[added[i] * PSQTBuckets + psqtTileOffset]);
+            for (usize k = 0; k < Tiling::PSQTRegCount; ++k)
+                psqt[k] = vec_add_psqt_32(psqt[k], columnPsqt[k]);
         }
 
-        for (usize i = 0; i < addedSize; ++i)
-        {
-            const usize offset = added[i] * PSQTBuckets;
-            const auto* column = reinterpret_cast<const psqt_vec_t*>(&psqtWeights[offset]);
-
-            for (IndexType k = 0; k < Tiling::PSQTRegCount; ++k)
-                psqt[k] = vec_add_psqt_32(psqt[k], column[k]);
-        }
-
-        for (IndexType k = 0; k < Tiling::PSQTRegCount; ++k)
-        {
-            vec_store_psqt(&accPsqtTile  [k], psqt[k]);
+        for (usize k = 0; k < Tiling::PSQTRegCount; ++k)
             vec_store_psqt(&entryPsqtTile[k], psqt[k]);
+
+        for (IndexType i = 0; i < active.size(); ++i)
+        {
+            const auto* columnPsqt = reinterpret_cast<const SIMD::psqt_vec_t*>(&threatPsqtWeights[active[i] * PSQTBuckets + psqtTileOffset]);
+            for (usize k = 0; k < Tiling::PSQTRegCount; ++k)
+                psqt[k] = vec_add_psqt_32(psqt[k], columnPsqt[k]);
         }
+
+        auto* accPsqtTile = reinterpret_cast<SIMD::psqt_vec_t*>(&accumulator.psqtAccumulation[perspective][psqtTileOffset]);
+
+        for (usize k = 0; k < Tiling::PSQTRegCount; ++k)
+            vec_store_psqt(&accPsqtTile[k], psqt[k]);
     }
     // clang-format on
 #else
 
-    for (auto index : removed)
+    for (const auto index : removed)
     {
         for (IndexType i = 0; i < Dimensions; ++i)
             entry.accumulation[i] -= featureTransformer.weights[index * Dimensions + i];
+
         for (IndexType i = 0; i < PSQTBuckets; ++i)
             entry.psqtAccumulation[i] -= featureTransformer.psqtWeights[index * PSQTBuckets + i];
     }
-
-    for (auto index : added)
+    for (const auto index : added)
     {
         for (IndexType i = 0; i < Dimensions; ++i)
             entry.accumulation[i] += featureTransformer.weights[index * Dimensions + i];
+
         for (IndexType i = 0; i < PSQTBuckets; ++i)
             entry.psqtAccumulation[i] += featureTransformer.psqtWeights[index * PSQTBuckets + i];
     }
 
     // The accumulator of the refresh entry has been updated.
     // Now copy its content to the actual accumulator were refreshing.
-    accState.accumulation[perspective]     = entry.accumulation;
-    accState.psqtAccumulation[perspective] = entry.psqtAccumulation;
-#endif
-}
-
-void update_threats_accumulator_full(const Color                         perspective,
-                                     const FeatureTransformer&           featureTransformer,
-                                     const Position&                     pos,
-                                     AccumulatorState<ThreatFeatureSet>& accState) noexcept {
-    constexpr auto Dimensions = FeatureTransformer::OutputDimensions;
-
-    ThreatFeatureSet::IndexList active;
-    ThreatFeatureSet::append_active_indices(perspective, pos, active);
-
-    accState.computed[perspective] = true;
-
-#if defined(VECTOR)
-    using Tiling = Tiling<Dimensions, PSQTBuckets>;
-
-    vec_t      acc[Tiling::RegCount];
-    psqt_vec_t psqt[Tiling::PSQTRegCount];
-
-    const auto* threatWeights = featureTransformer.threatWeights.data();
-
-    // clang-format off
-    for (IndexType j = 0; j < Dimensions / Tiling::TileHeight; ++j, threatWeights += Tiling::TileHeight)
-    {
-        auto* accTile = reinterpret_cast<vec_t*>(&accState.accumulation[perspective][j * Tiling::TileHeight]);
-
-        for (IndexType k = 0; k < Tiling::RegCount; ++k)
-            acc[k] = vec_zero();
-
-        for (IndexType i = 0; i < active.size(); ++i)
-        {
-            const usize offset = active[i] * Dimensions;
-            const auto* column = reinterpret_cast<const vec_i8_t*>(&threatWeights[offset]);
-
-    #if defined(USE_NEON)
-            for (IndexType k = 0; k + 1 < Tiling::RegCount; k += 2)
-            {
-                acc[k + 0] = vaddw_s8(acc[k + 0], vget_low_s8(column[k / 2]));
-                acc[k + 1] = vaddw_high_s8(acc[k + 1], column[k / 2]);
-            }
-    #else
-            for (IndexType k = 0; k < Tiling::RegCount; ++k)
-                acc[k] = vec_add_16(acc[k], vec_convert_8_16(column[k]));
-    #endif
-        }
-
-        for (IndexType k = 0; k < Tiling::RegCount; ++k)
-            vec_store(&accTile[k], acc[k]);
-    }
-
-    const auto* threatPsqtWeights = featureTransformer.threatPsqtWeights.data();
-
-    for (IndexType j = 0; j < PSQTBuckets / Tiling::PSQTTileHeight; ++j, threatPsqtWeights += Tiling::PSQTTileHeight)
-    {
-        auto* accPsqtTile = reinterpret_cast<psqt_vec_t*>(&accState.psqtAccumulation[perspective][j * Tiling::PSQTTileHeight]);
-
-        for (IndexType k = 0; k < Tiling::PSQTRegCount; ++k)
-            psqt[k] = vec_zero_psqt();
-
-        for (IndexType i = 0; i < active.size(); ++i)
-        {
-            const usize offset = active[i] * PSQTBuckets;
-            const auto* column = reinterpret_cast<const psqt_vec_t*>(&threatPsqtWeights[offset]);
-
-            for (IndexType k = 0; k < Tiling::PSQTRegCount; ++k)
-                psqt[k] = vec_add_psqt_32(psqt[k], column[k]);
-        }
-
-        for (IndexType k = 0; k < Tiling::PSQTRegCount; ++k)
-            vec_store_psqt(&accPsqtTile[k], psqt[k]);
-    }
-    // clang-format on
-#else
-
-    accState.accumulation[perspective].fill(0);
-    accState.psqtAccumulation[perspective].fill(0);
+    accumulator.accumulation[perspective]     = entry.accumulation;
+    accumulator.psqtAccumulation[perspective] = entry.psqtAccumulation;
 
     for (const auto index : active)
     {
         for (IndexType i = 0; i < Dimensions; ++i)
-            accState.accumulation[perspective][i] +=
+            accumulator.accumulation[perspective][i] +=
               featureTransformer.threatWeights[index * Dimensions + i];
 
         for (IndexType i = 0; i < PSQTBuckets; ++i)
-            accState.psqtAccumulation[perspective][i] +=
+            accumulator.psqtAccumulation[perspective][i] +=
               featureTransformer.threatPsqtWeights[index * PSQTBuckets + i];
     }
+
 #endif
 }
 
 }  // namespace
-
-template<typename T>
-const Array<AccumulatorState<T>, AccumulatorStack::Size>&
-AccumulatorStack::accumulators() const noexcept {
-    static_assert(std::is_same_v<T, PSQFeatureSet> || std::is_same_v<T, ThreatFeatureSet>,
-                  "Invalid Feature Set Type");
-
-    if constexpr (std::is_same_v<T, PSQFeatureSet>)
-        return psqAccumulators;
-
-    if constexpr (std::is_same_v<T, ThreatFeatureSet>)
-        return threatAccumulators;
-}
-
-template<typename T>
-Array<AccumulatorState<T>, AccumulatorStack::Size>& AccumulatorStack::mut_accumulators() noexcept {
-    static_assert(std::is_same_v<T, PSQFeatureSet> || std::is_same_v<T, ThreatFeatureSet>,
-                  "Invalid Feature Set Type");
-
-    if constexpr (std::is_same_v<T, PSQFeatureSet>)
-        return psqAccumulators;
-
-    if constexpr (std::is_same_v<T, ThreatFeatureSet>)
-        return threatAccumulators;
-}
-
-template<typename T>
-const AccumulatorState<T>& AccumulatorStack::state() const noexcept {
-    return accumulators<T>()[size - 1];
-}
-
-// Explicit template instantiations:
-template const AccumulatorState<PSQFeatureSet>&    AccumulatorStack::state() const noexcept;
-template const AccumulatorState<ThreatFeatureSet>& AccumulatorStack::state() const noexcept;
-
-template<typename T>
-AccumulatorState<T>& AccumulatorStack::mut_state() noexcept {
-    return mut_accumulators<T>()[size - 1];
-}
-
-// Explicit template instantiations:
-template AccumulatorState<PSQFeatureSet>&    AccumulatorStack::mut_state() noexcept;
-template AccumulatorState<ThreatFeatureSet>& AccumulatorStack::mut_state() noexcept;
-
-void AccumulatorStack::reset() noexcept {
-    psqAccumulators[0].reset({});
-    threatAccumulators[0].reset({});
-    size = 1;
-}
-
-void AccumulatorStack::push(DirtyBoard&& db) noexcept {
-    assert(size < Size);
-
-    psqAccumulators[size].reset(std::move(db.dirtyPiece));
-    threatAccumulators[size].reset(std::move(db.dirtyThreats));
-    ++size;
-}
-
-void AccumulatorStack::pop() noexcept {
-    assert(size > 1);
-
-    --size;
-}
-
-void AccumulatorStack::evaluate(const Position&           pos,
-                                const FeatureTransformer& featureTransformer,
-                                AccumulatorCache&         accCache) noexcept {
-
-    evaluate<PSQFeatureSet>(WHITE, pos, featureTransformer, accCache);
-    evaluate<PSQFeatureSet>(BLACK, pos, featureTransformer, accCache);
-
-    evaluate<ThreatFeatureSet>(WHITE, pos, featureTransformer, accCache);
-    evaluate<ThreatFeatureSet>(BLACK, pos, featureTransformer, accCache);
-}
-
-template<typename FeatureSet>
-void AccumulatorStack::evaluate(const Color               perspective,
-                                const Position&           pos,
-                                const FeatureTransformer& featureTransformer,
-                                AccumulatorCache&         accCache) noexcept {
-
-    auto lastAccIdx = last_usable_accumulator_index<FeatureSet>(perspective);
-
-    if (accumulators<FeatureSet>()[lastAccIdx].computed[perspective])
-    {
-        update_forward_incr<FeatureSet>(perspective, pos, featureTransformer, lastAccIdx);
-    }
-    else
-    {
-        if constexpr (std::is_same_v<FeatureSet, PSQFeatureSet>)
-            update_accumulator_refresh_cache(perspective, featureTransformer, pos,
-                                             mut_state<PSQFeatureSet>(), accCache);
-        else
-            update_threats_accumulator_full(perspective, featureTransformer, pos,
-                                            mut_state<ThreatFeatureSet>());
-
-        update_backward_incr<FeatureSet>(perspective, pos, featureTransformer, lastAccIdx);
-    }
-}
-
-// Find the earliest usable accumulator, this can either be a computed accumulator or the accumulator
-// state just before a change that requires full refresh.
-template<typename FeatureSet>
-usize AccumulatorStack::last_usable_accumulator_index(const Color perspective) const noexcept {
-
-    for (usize idx = size; idx-- > 0;)
-    {
-        if (accumulators<FeatureSet>()[idx].computed[perspective])
-            return idx;
-
-        if (FeatureSet::refresh_required(perspective, accumulators<FeatureSet>()[idx].dirty))
-            return idx;
-    }
-
-    return 0;
-}
-
-template<typename FeatureSet>
-void AccumulatorStack::update_forward_incr(const Color               perspective,
-                                           const Position&           pos,
-                                           const FeatureTransformer& featureTransformer,
-                                           const usize               beg) noexcept {
-    assert(beg < size && size <= Size);
-    assert(accumulators<FeatureSet>()[beg].computed[perspective]);
-
-    const Square kingSq = pos.square<KING>(perspective);
-
-    for (usize idx = beg; ++idx < size;)
-        update_accumulator_incr<true>(perspective, featureTransformer, kingSq,
-                                      accumulators<FeatureSet>()[idx - 1],
-                                      mut_accumulators<FeatureSet>()[idx]);
-
-    assert(state<FeatureSet>().computed[perspective]);
-}
-
-template<typename FeatureSet>
-void AccumulatorStack::update_backward_incr(const Color               perspective,
-                                            const Position&           pos,
-                                            const FeatureTransformer& featureTransformer,
-                                            const usize               end) noexcept {
-    assert(end < size && size <= Size);
-    assert(state<FeatureSet>().computed[perspective]);
-
-    const Square kingSq = pos.square<KING>(perspective);
-
-    for (usize idx = std::max(size, usize{1}) - 1; idx-- > end;)
-        update_accumulator_incr<false>(perspective, featureTransformer, kingSq,
-                                       accumulators<FeatureSet>()[idx + 1],
-                                       mut_accumulators<FeatureSet>()[idx]);
-
-    assert(accumulators<FeatureSet>()[end].computed[perspective]);
-}
 
 }  // namespace DON::NNUE
