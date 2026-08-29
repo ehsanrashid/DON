@@ -175,7 +175,7 @@ inline __m128i i386_cvtsi64_si128(const i64 value) noexcept {
                     _mm_cvtepi8_epi16(_mm_cvtsi64_si128(static_cast<i64>(a)))
             #endif
         #else
-inline __m128i vec_convert_8_16(const u64 a) noexcept {
+inline __m128i ssse3_vec_convert_8_16(const u64 a) noexcept {
     const __m128i v8 =
             #if defined(X86_32)
       i386_cvtsi64_si128(static_cast<i64>(a))
@@ -186,6 +186,7 @@ inline __m128i vec_convert_8_16(const u64 a) noexcept {
     const __m128i sign = _mm_cmpgt_epi8(_mm_setzero_si128(), v8);
     return _mm_unpacklo_epi8(v8, sign);
 }
+            #define vec_convert_8_16(a) SIMD::ssse3_vec_convert_8_16(a)
         #endif
 
         #define vec_add_16(a, b) _mm_add_epi16(a, b)
@@ -424,12 +425,14 @@ inline constexpr Array<u32, 4> Mask4{1, 2, 4, 8};
 
     #if defined(__arm__) && !defined(__aarch64__)
 // Compatibility wrappers for missing NEON _high widening intrinsics on 32-bit ARM
-inline int16x8_t vaddw_high_s8(const int16x8_t a, const int8x16_t b) noexcept {
+inline int16x8_t arm32_vaddw_high_s8(const int16x8_t a, const int8x16_t b) noexcept {
     return vaddw_s8(a, vget_high_s8(b));
 }
-inline int16x8_t vsubw_high_s8(const int16x8_t a, const int8x16_t b) noexcept {
+inline int16x8_t arm32_vsubw_high_s8(const int16x8_t a, const int8x16_t b) noexcept {
     return vsubw_s8(a, vget_high_s8(b));
 }
+        #define vaddw_high_s8(a, b) SIMD::arm32_vaddw_high_s8(a, b)
+        #define vsubw_high_s8(a, b) SIMD::arm32_vsubw_high_s8(a, b)
     #endif
 
 #else

@@ -123,8 +123,6 @@ struct NNZ final {
 
     #if defined(USE_SSSE3) || defined(USE_LSX) || (defined(USE_NEON) && USE_NEON >= 8)
         void record(SIMD::vec_t neurons1, SIMD::vec_t neurons2) noexcept {
-            using namespace SIMD;
-
         #if defined(__wasm__)
             __m128i packed = _mm_packus_epi32(neurons1, neurons2);
             packed         = _mm_packs_epi16(packed, packed);
