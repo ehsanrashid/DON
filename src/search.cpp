@@ -419,10 +419,6 @@ void Worker::start_search() noexcept {
 // or the maximum search depth is reached.
 void Worker::iterative_deepening() noexcept {
 
-    multiPV = 1;
-
-    nmpPly = 0;
-
     accStack.reset();
 
     for (auto& colorQuietHist : quietHistory)
@@ -438,17 +434,15 @@ void Worker::iterative_deepening() noexcept {
     usize rootMovesSize = rootMoves.size();
     assert(rootMovesSize != 0 && rootMovesSize <= MOVE_MAX);
 
+    multiPV = options["MultiPV"];
+
     if (mainManager != nullptr)
     {
-        multiPV = options["MultiPV"];
-
         mainManager->skill.init(options);
         // When playing with strength handicap enable MultiPV search that
         // will use behind-the-scenes to retrieve a set of sub-optimal moves.
         if (mainManager->skill.enabled())
-            multiPV = std::max<usize>(4, multiPV);
-
-        multiPV = std::min<usize>(rootMovesSize, multiPV);
+            multiPV = std::max(multiPV, usize{4});
 
         mainManager->timeManager.init(rootPos.active_color(), rootPos.ply(), rootPos.move_num(),
                                       options, limit);
@@ -460,6 +454,10 @@ void Worker::iterative_deepening() noexcept {
         mainManager->set_ponder(limit.ponder);
         mainManager->ponderhitStop = false;
     }
+
+    multiPV = std::min(rootMovesSize, multiPV);
+
+    nmpPly = 0;
 
     // Allocate stack with extra size to allow access from (ss - 9) to (ss + 1):
     // (ss - 9) is needed for update_continuation_histories(ss - 1) which accesses (ss - 8),
