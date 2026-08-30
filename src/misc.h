@@ -1562,21 +1562,22 @@ constexpr u32 combine_hashes(std::initializer_list<u32> hashes) noexcept {
 // Custom streambuf that wraps string_view
 class StringViewStreambuf final: public std::streambuf {
    public:
-    explicit StringViewStreambuf(std::string_view sv) noexcept {
+    explicit StringViewStreambuf(const std::string_view sv) noexcept {
         // std::streambuf requires char* for the get area.
         // The buffer is read-only; no characters are modified.
-        auto* p = const_cast<char*>(sv.data());
-        setg(p, p, p + sv.size());  // Only GET area (reading enabled)
-        // Do NOT call setp(p, p + sv.size()) - no PUT area (writing disabled)
+        auto* const p    = const_cast<char*>(sv.data());
+        const usize size = sv.size();
+        setg(p, p, p + size);  // Only GET area (reading enabled)
+        // Do NOT call setp(p, p + size) - no PUT area (writing disabled)
     }
 };
 
 // Custom streambuf that wraps memory stream
 class MemoryStreambuf final: public std::streambuf {
    public:
-    MemoryStreambuf(char* p, usize size) noexcept {
-        setg(p, p, p + size);  // Only GET area (reading enabled)
-        // Do NOT call setp(p, p + size) - no PUT area (writing disabled)
+    MemoryStreambuf(char* const p, const usize size) noexcept {
+        setg(p, p, p + size);  // Set GET area (reading enabled)
+        setp(p, p + size);     // Set PUT area (writing enabled)
     }
 };
 
@@ -1594,11 +1595,11 @@ class TieStreambuf final: public std::streambuf {
     using char_type   = traits_type::char_type;
 
     TieStreambuf() noexcept = delete;
-    TieStreambuf(std::streambuf* pB, std::streambuf* mB) noexcept :
+    TieStreambuf(std::streambuf* const pB, std::streambuf* const mB) noexcept :
         pBuf(pB),
         mBuf(mB) {}
 
-    int_type overflow(int_type ch) override {
+    int_type overflow(const int_type ch) override {
         if (pBuf == nullptr)
             return traits_type::eof();
 
@@ -1639,7 +1640,7 @@ class TieStreambuf final: public std::streambuf {
         return (r1 == 0 && r2 == 0) ? 0 : -1;
     }
 
-    std::streamsize xsputn(const char_type* s, std::streamsize count) override {
+    std::streamsize xsputn(const char_type* const s, const std::streamsize count) override {
         if (pBuf == nullptr)
             return 0;
 
@@ -1663,8 +1664,9 @@ class TieStreambuf final: public std::streambuf {
     [[nodiscard]] std::streambuf* mbuf() const noexcept { return mBuf; }
 
    private:
-    int_type
-    mirror_put_with_prefix(int_type ch, std::string_view prefix, char_type& preCh) noexcept {
+    int_type mirror_put_with_prefix(const int_type         ch,
+                                    const std::string_view prefix,
+                                    char_type&             preCh) noexcept {
         if (mBuf == nullptr)
             return traits_type::not_eof(ch);
 

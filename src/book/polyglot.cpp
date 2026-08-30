@@ -637,7 +637,7 @@ Move PolyGlot::probe(Position& pos, const RootMoves& rootMoves, const Options& o
 
     Move move, bestMove = Move::None;
 
-    if (options["BookPickBest"])
+    if (options["BookBestPick"])
     {
         i32 bestWeight = std::numeric_limits<i32>::min();
 

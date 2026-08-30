@@ -67,6 +67,8 @@ class Engine final {
 
     void reset() noexcept;
 
+    void set_history_max_load_factor() noexcept;
+
     void resize_threads_tt() noexcept;
 
     void resize_tt(usize ttSize) noexcept;
