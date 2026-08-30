@@ -1519,17 +1519,14 @@ Value Worker::search(Position&    pos,
         r += int(ttmCapture) * 1039;
 
         // Increase reduction if next ply has many fail-highs
-        int x = ss->cutoffCount - 1;
-        if (x > 0)
-            r +=
-              (236 + int(AllNode) * 1143 + 1024 * (x >> 1)  //
-               - 512 * (x >> 2) - 256 * (x >> 3) - 128 * (x >> 4) - 64 * (x >> 5) - 32 * (x >> 6));
+        if (ss->cutoffCount > 1)
+            r += 236 + int(AllNode) * 1143 + int(ss->cutoffCount > 2) * 1079;
         // Decrease reduction for first picked move (ttMove)
         else if (mTT)
-            r = std::max(r - 2016 + int(CutNode) * 150, -10);
+            r = std::max(r - 2016, 0);
 
         // Decrease/Increase reduction for moves with a good/bad history
-        r -= constexpr_round(445.0 * ss->history / 4096.0);
+        r -= constexpr_round(ss->history * 445.0 / 4096.0);
 
         // Scale up reduction for AllNode
         if constexpr (AllNode)
@@ -2591,7 +2588,8 @@ TimePoint MainSearchManager::elapsed() const noexcept { return timeManager.elaps
 // This function is called to check whether the search should be stopped
 // based on predefined thresholds like total time or total nodes.
 TimePoint MainSearchManager::elapsed(const Threads& threads) const noexcept {
-    return timeManager.elapsed([&threads]() { return threads.sum(&Worker::nodes); });
+    return timeManager.elapsed(
+      [&threads = std::as_const(threads)]() { return threads.sum(&Worker::nodes); });
 }
 
 void MainSearchManager::handle_time_management(const Worker& worker,

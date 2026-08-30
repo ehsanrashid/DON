@@ -194,7 +194,7 @@ void Position::clear() noexcept {
 // Initializes the position object with the given FEN string.
 // This function is not very robust - make sure that input FENs are correct,
 // this is assumed to be the responsibility of the GUI.
-std::optional<Error> Position::set(std::string_view fens, State* newSt) noexcept {
+std::optional<Error> Position::set(const std::string_view fens, State* const newSt) noexcept {
 
     // A FEN string defines a particular position using only the ASCII character set.
     //
@@ -508,7 +508,8 @@ std::optional<Error> Position::set(std::string_view fens, State* newSt) noexcept
 
 // Overload to initialize the position object with the given endgame code string like "KBPKN".
 // It's mainly a helper to get the material key out of an endgame code.
-std::optional<Error> Position::set(std::string_view code, Color c, State* newSt) noexcept {
+std::optional<Error>
+Position::set(const std::string_view code, const Color c, State* const newSt) noexcept {
     assert(!code.empty() && code[0] == 'K' && code.find('K', 1) != std::string_view::npos);
     assert(is_ok(c));
     assert(newSt != nullptr);
@@ -540,7 +541,7 @@ std::optional<Error> Position::set(std::string_view code, Color c, State* newSt)
 }
 
 // Copy position and points to newSt and then copy state into st
-void Position::set(const Position& pos, State* newSt) noexcept {
+void Position::set(const Position& pos, State* const newSt) noexcept {
     assert(newSt != nullptr);
 
     *this = pos;
@@ -551,7 +552,7 @@ void Position::set(const Position& pos, State* newSt) noexcept {
 // Returns a FEN representation of the position.
 // In case of Chess960 the Shredder-FEN notation is used.
 // This is mainly a debugging function.
-std::string Position::fen(bool complete) const noexcept {
+std::string Position::fen(const bool complete) const noexcept {
     std::string fens;
     fens.reserve(64);
 
@@ -632,29 +633,29 @@ std::string Position::fen(bool complete) const noexcept {
 }
 
 // Sets castling rights given the corresponding color and the rook starting square.
-void Position::set_castling_rights(Color c, Square rookOrgSq) noexcept {
+void Position::set_castling_rights(const Color c, const Square rookOrgSq) noexcept {
     assert(relative_rank(c, rookOrgSq) == RANK_1);
     assert((pieces_bb(c, ROOK) & rookOrgSq) != 0);
     assert(castlingRightsMasks[CastlingRightsIndices[rookOrgSq]] == CastlingRights::NO_CASTLING);
 
-    Square kingOrgSq = square<KING>(c);
+    const Square kingOrgSq = square<KING>(c);
     assert(relative_rank(c, kingOrgSq) == RANK_1);
     assert((pieces_bb(c, KING) & kingOrgSq) != 0);
 
-    CastlingSide cs = make_cs(kingOrgSq, rookOrgSq);
+    const CastlingSide cs = make_cs(kingOrgSq, rookOrgSq);
     assert(castling_rook_sq(c, cs) == SQ_NONE);
 
-    CastlingRights cr = make_cr(c, cs);
+    const CastlingRights cr = make_cr(c, cs);
 
     st->castlingRights |= cr;
     castlingRightsMasks[CastlingRightsIndices[kingOrgSq]] |= cr;
     castlingRightsMasks[CastlingRightsIndices[rookOrgSq]] = cr;
 
-    Square kingDstSq = king_castle_sq(kingOrgSq, rookOrgSq);
-    Square rookDstSq = rook_castle_sq(kingOrgSq, rookOrgSq);
+    const Square kingDstSq = king_castle_sq(kingOrgSq, rookOrgSq);
+    const Square rookDstSq = rook_castle_sq(kingOrgSq, rookOrgSq);
 
-    Bitboard kingPathBB = between_bb(kingOrgSq, kingDstSq);
-    Bitboard rookPathBB = between_bb(rookOrgSq, rookDstSq);
+    const Bitboard kingPathBB = between_bb(kingOrgSq, kingDstSq);
+    const Bitboard rookPathBB = between_bb(rookOrgSq, rookDstSq);
 
     castlings.fullPathBB[c][+cs] = (kingPathBB | rookPathBB) & ~make_bb(kingOrgSq, rookOrgSq);
     castlings.kingPathBB[c][+cs] = kingPathBB;
@@ -676,7 +677,7 @@ void Position::set_state() noexcept {
             Bitboard bb = pieces_bb(c, pt);
             while (bb != 0)
             {
-                Key key = Zobrist::piece_square(c, pt, pop_lsq(bb));
+                const Key key = Zobrist::piece_square(c, pt, pop_lsq(bb));
                 assert(key != 0);
 
                 st->key ^= key;
@@ -742,9 +743,9 @@ void Position::set_ext_state() noexcept {
 
 // Check en-passant possible
 template<bool MoveDone>
-bool Position::enpassant_possible(Color     ac,
-                                  Square    enPassantSq,
-                                  Bitboard* epPawnsBBp) const noexcept {
+bool Position::enpassant_possible(const Color     ac,
+                                  const Square    enPassantSq,
+                                  Bitboard* const epPawnsBBp) const noexcept {
     assert(is_ok(enPassantSq));
 
     const bool collect = epPawnsBBp != nullptr;
@@ -821,12 +822,12 @@ bool Position::enpassant_possible(Color     ac,
 // Helper used to do/undo a castling move.
 // This is a bit tricky in Chess960 where org/dst squares can overlap.
 template<bool Do>
-void Position::do_castling(Color       ac,
-                           Square      kingOrgSq,
-                           Square&     kingDstSq,
-                           Square&     rookOrgSq,
-                           Square&     rookDstSq,
-                           DirtyBoard* db) noexcept {
+void Position::do_castling(const Color       ac,
+                           Square            kingOrgSq,
+                           Square&           kingDstSq,
+                           Square&           rookOrgSq,
+                           Square&           rookDstSq,
+                           DirtyBoard* const db) noexcept {
     assert(!Do || db != nullptr);
 
     rookOrgSq = kingDstSq;  // Castling is encoded as "king captures rook"
@@ -1248,11 +1249,12 @@ void Position::do_null_move(State& newSt) noexcept {
 
     st = &newSt;
 
+    st->nullPly = 0;
+
     st->key ^= Zobrist::turn() ^ Zobrist::enpassant(en_passant_sq());
 
     reset_en_passant_sq();
 
-    st->nullPly    = 0;
     st->capturedSq = SQ_NONE;
 
     activeColor = ~active_color();
@@ -1550,7 +1552,7 @@ Key Position::move_key(const Move m) const noexcept {
 // Tests if the SEE (Static Exchange Evaluation)
 // value of the move is greater or equal to the given threshold.
 // An algorithm similar to alpha-beta pruning with a null window.
-bool Position::see_ge(const Move m, int threshold) const noexcept {
+bool Position::see_ge(const Move m, const int threshold) const noexcept {
     assert(legal(m));
 
     // Not deal with castling, can't win any material, nor can lose any.
