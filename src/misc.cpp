@@ -771,7 +771,7 @@ CommandLine::CommandLine(int argc, const char* argv[]) noexcept {
 
     if (wargv != nullptr)
     {
-        argStorage.reserve(usize(wargc));
+        argStorage.reserve(static_cast<usize>(wargc));
 
         for (int i = 0; i < wargc; ++i)
             argStorage.emplace_back(utf8_from_wstring(wargv[i]));
@@ -848,7 +848,7 @@ std::string utf8_from_wstring(const std::wstring_view wsv) noexcept {
     if (size <= 0)
         return {};
 
-    std::string str(usize(size), '\0');
+    std::string str(static_cast<usize>(size), '\0');
     WideCharToMultiByte(CP_UTF8, 0, wsv.data(), int(wsv.size()), str.data(), size, nullptr,
                         nullptr);
     return str;
@@ -865,7 +865,7 @@ std::filesystem::path path_from_utf8(const std::string_view path) noexcept {
     int u8Size = int(size);
     int wSize  = MultiByteToWideChar(CP_UTF8, 0, path.data(), u8Size, nullptr, 0);
 
-    std::wstring wStr(usize(wSize), L'\0');
+    std::wstring wStr(static_cast<usize>(wSize), L'\0');
     MultiByteToWideChar(CP_UTF8, 0, path.data(), u8Size, wStr.data(), wSize);
     return {wStr};
 #else
@@ -889,7 +889,7 @@ std::optional<usize> str_to_size_t(const std::string_view sv) noexcept {
     if (value > std::numeric_limits<usize>::max())
         return std::nullopt;
 
-    return usize(value);
+    return static_cast<usize>(value);
 }
 
 std::optional<std::string> read_file_to_string(const std::filesystem::path& filePath) noexcept {
@@ -904,7 +904,7 @@ std::optional<std::string> read_file_to_string(const std::filesystem::path& file
         return std::nullopt;
 
     std::string str;
-    str.reserve(usize(size));
+    str.reserve(static_cast<usize>(size));
 
     ifs.seekg(0, std::ios::beg);
 

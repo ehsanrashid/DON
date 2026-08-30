@@ -420,7 +420,7 @@ constexpr float max_load_factor(float maxLoadFactor = 0.75f) noexcept {
     return std::clamp(constexpr_abs(maxLoadFactor), 0.1f, 1.0f);
 }
 constexpr usize reserve_count(usize reserveCount = 1024) noexcept {
-    return std::max(reserveCount, usize(8));
+    return std::max<usize>(reserveCount, 8);
 }
 
 template<typename T1, typename T2>
@@ -587,7 +587,7 @@ constexpr IndexRange split_range(usize id, usize parts, usize size) noexcept {
 
     // Distribute remainder among the first 'extra' threads
     usize beg = id * base + std::min(id, extra);
-    usize end = beg + base + usize(id < extra);
+    usize end = beg + base + int(id < extra);
 
     assert(beg <= end && end <= size);
     return {beg, end};
@@ -1180,7 +1180,7 @@ class FixedVector final {
         assert(size() < capacity());
 
         data_[size_] = value;
-        size_ += usize(value < maxValue);
+        size_ += int(value < maxValue);
     }
 
     void pop_back() noexcept {

@@ -124,7 +124,7 @@ constexpr Array<int  , WDL_SCORE_NB> WDL_MAP  {        1,              3,       
 constexpr Array<i32  , WDL_SCORE_NB> WDL_RANK {-DTZ_MAX , -DTZ_MAX + 101,          0, +DTZ_MAX - 101, +DTZ_MAX };
 constexpr Array<Value, WDL_SCORE_NB> WDL_VALUE{-VALUE_TB, VALUE_DRAW - 2, VALUE_DRAW, VALUE_DRAW + 2, +VALUE_TB};
 
-constexpr usize wdl_index(WDLScore wdlScore) noexcept { return usize(wdlScore - WDL_LOSS); }
+constexpr usize wdl_index(WDLScore wdlScore) noexcept { return static_cast<usize>(wdlScore - WDL_LOSS); }
 
 constexpr int off_A1H8(Square s) noexcept { return int(rank_of(s)) - int(file_of(s)); }
 //constexpr int off_A8H1(Square s) noexcept { return int(rank_of(s)) + int(file_of(s)); }
@@ -900,7 +900,7 @@ void TBTable<T>::set_groups(PairsData* pd, const Array<int, 2>& order, const Fil
         else
         {
             const auto groupLen = pd->groupLen[next];
-            assert(freeLen >= usize(groupLen));
+            assert(freeLen >= static_cast<usize>(groupLen));
 
             pd->groupIdx[next] = idx;
             idx *= Binomial[groupLen][freeLen];
@@ -1628,9 +1628,9 @@ Ret do_probe_table(T*                table,
             usize adjust = 0;
             DISABLE_CLANG_LOOP_VECTORIZE
             for (const Square* s = squares.data(); s != groupSq; ++s)
-                adjust += usize(groupSq[i] > *s);
+                adjust += static_cast<usize>(groupSq[i] > *s);
 
-            n += Binomial[i + 1][usize(groupSq[i]) - adjust - usize(pawnsRemaining) * 8];
+            n += Binomial[i + 1][static_cast<u8>(groupSq[i]) - adjust - int(pawnsRemaining) * 8];
         }
 
         pawnsRemaining = false;
