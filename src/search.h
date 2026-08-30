@@ -478,7 +478,7 @@ struct SharedState final {
     const Options&                                     options;
     const TranspositionTable&                          transpositionTable;
     Threads&                                           threads;
-    SharedHistoriesMap&                                sharedHistoriesMap;
+    AtomicHistoriesMap&                                atomicHistoriesMap;
 };
 
 class Worker;
@@ -731,7 +731,7 @@ class Worker final {
     const Options&                                     options;
     const TranspositionTable&                          transpositionTable;
     Threads&                                           threads;
-    SharedHistories&                                   sharedHistories;
+    AtomicHistories&                                   atomicHistories;
 
     // Used by NNUE
     NNUE::AccumulatorCache accCache;

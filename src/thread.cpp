@@ -251,11 +251,11 @@ void Threads::set(const NumaConfig&                       numaConfig,
     }
 
     // Prepare shared histories map
-    auto& sharedHistoriesMap = sharedState.sharedHistoriesMap;
+    auto& atomicHistoriesMap = sharedState.atomicHistoriesMap;
 
     // Just clear and reserve as needed
-    sharedHistoriesMap.clear();
-    sharedHistoriesMap.reserve(numaThreadCounts.size());
+    atomicHistoriesMap.clear();
+    atomicHistoriesMap.reserve(numaThreadCounts.size());
 
     // Populate shared histories map (optionally NUMA-bound)
     for (const auto& _ : numaThreadCounts)
@@ -266,7 +266,7 @@ void Threads::set(const NumaConfig&                       numaConfig,
         auto create_histories = [&]() noexcept {
             const usize roundedCount = round_up_to_pow2(count);
 
-            sharedHistoriesMap.try_emplace(numaId, roundedCount);
+            atomicHistoriesMap.try_emplace(numaId, roundedCount);
         };
 
         if (threadBindable)

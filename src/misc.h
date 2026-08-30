@@ -1040,8 +1040,8 @@ class RelaxedAtomic final {
    public:
     RelaxedAtomic() = default;
 
-    RelaxedAtomic(T val) noexcept :
-        value(val) {}
+    RelaxedAtomic(T v) noexcept :
+        value(v) {}
 
     RelaxedAtomic(const RelaxedAtomic& relaxedAtomic) noexcept :
         value(static_cast<T>(relaxedAtomic)) {}
@@ -1053,20 +1053,19 @@ class RelaxedAtomic final {
         return *this;
     }
 
-    T operator=(T val) noexcept {
-        store(val);
-        return val;
+    T operator=(T v) noexcept {
+        store(v);
+        return v;
     }
 
     operator T() const noexcept { return load(); }
 
-    RelaxedAtomic& operator+=(T val) noexcept {
-        add(val);
+    RelaxedAtomic& operator+=(T v) noexcept {
+        add(v);
         return *this;
     }
-
-    RelaxedAtomic& operator-=(T val) noexcept {
-        sub(val);
+    RelaxedAtomic& operator-=(T v) noexcept {
+        sub(v);
         return *this;
     }
 
@@ -1074,14 +1073,12 @@ class RelaxedAtomic final {
         add(1);
         return *this;
     }
-
     RelaxedAtomic& operator--() noexcept {
         sub(1);
         return *this;
     }
 
     T operator++(int) noexcept { return add(1); }
-
     T operator--(int) noexcept { return sub(1); }
 
     T load() const noexcept {
@@ -1090,12 +1087,11 @@ class RelaxedAtomic final {
         else
             return value;
     }
-
-    void store(T val) noexcept {
+    void store(T v) noexcept {
         if constexpr (UseAtomic)
-            value.store(val, std::memory_order_relaxed);
+            value.store(v, std::memory_order_relaxed);
         else
-            value = val;
+            value = v;
     }
 
     bool compare_exchange_weak(T& expected, T desired) noexcept {
@@ -1123,16 +1119,15 @@ class RelaxedAtomic final {
       true;
 #endif
 
-    T add(T val) noexcept {
+    T add(T v) noexcept {
         const T oldV = load();
-        const T newV = oldV + val;
+        const T newV = oldV + v;
         store(newV);
         return oldV;
     }
-
-    T sub(T val) noexcept {
+    T sub(T v) noexcept {
         const T oldV = load();
-        const T newV = oldV - val;
+        const T newV = oldV - v;
         store(newV);
         return oldV;
     }

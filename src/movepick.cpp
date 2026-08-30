@@ -291,7 +291,7 @@ MovePicker::MovePicker(const Position&                 p,
                        const QuietHistory* const       quietHist,
                        const LowPlyQuietHistory* const lowPlyQuietHist,
                        const PieceSqHistory** const    continuationHist,
-                       const SharedHistories* const    sharedHists,
+                       const AtomicHistories* const    atomicHists,
                        const u16                       ply,
                        const int                       th) noexcept :
     pos(p),
@@ -300,7 +300,7 @@ MovePicker::MovePicker(const Position&                 p,
     quietHistory(quietHist),
     lowPlyQuietHistory(lowPlyQuietHist),
     continuationHistory(continuationHist),
-    sharedHistories(sharedHists),
+    atomicHistories(atomicHists),
     ssPly(ply),
     threshold(th),
     moves() {
@@ -396,7 +396,7 @@ MovePicker::score<GenType::ENC_QUIET>(const MoveList<GenType::ENC_QUIET>& moveLi
     const auto&        quietHistoryRef        = *quietHistory;
     const auto&        lowPlyQuietHistoryRef  = *lowPlyQuietHistory;
     const auto** const continuationHistoryPtr = continuationHistory;
-    const auto&        pawnEntryRef           = (*sharedHistories).pawn_entry(pos);
+    const auto&        pawnEntryRef           = (*atomicHistories).pawn_entry(pos);
 
     auto itr = cur;
 

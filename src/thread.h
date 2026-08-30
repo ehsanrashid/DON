@@ -129,6 +129,8 @@ class Thread final {
     bool dead = false, busy = true;
 };
 
+using ThreadPtr = std::unique_ptr<Thread>;
+
 // Schedule a job to be executed by this thread.
 // This function blocks only until the thread is ready to accept a new job.
 // The actual job execution happens asynchronously in idle_func().
@@ -178,16 +180,14 @@ inline void Thread::wait_finish() noexcept {
     condVar.wait(condLock, [this] { return !busy || dead; });
 }
 
+class Options;
+
 // A list to keep track of the position states along the setup moves
 // (from the start position to the position just before the search starts).
 // Needed by 'draw by repetition' detection.
 // Use std::deque because pointers and references to existing elements remain valid when appending.
 using StateList    = std::deque<State>;
 using StateListPtr = std::unique_ptr<StateList>;
-
-using ThreadPtr = std::unique_ptr<Thread>;
-
-class Options;
 
 // Threads handles all the threads-related stuff like
 // launching, initializing, starting and parking a thread.
