@@ -23,8 +23,8 @@
 #include <cstring>
 #include <iomanip>
 #include <iostream>
-#include <string>
 #include <numeric>
+#include <string>
 #include <vector>
 
 #include "bitboard.h"

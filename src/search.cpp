@@ -432,7 +432,7 @@ void Worker::iterative_deepening() noexcept {
     Color ac = rootPos.active_color();
 
     usize rootMovesSize = rootMoves.size();
-    assert(rootMovesSize != 0 && rootMovesSize <= MOVE_MAX);
+    assert(0 < rootMovesSize && rootMovesSize <= MOVE_MAX);
 
     multiPV = options["MultiPV"];
 

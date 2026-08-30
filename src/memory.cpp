@@ -21,8 +21,9 @@
 #include <iostream>
 
 #if defined(_WIN32)
-    #include "platform_win.h"
     #include <malloc.h>  // <mm_malloc.h>: _mm_malloc(), _mm_free()
+
+    #include "platform_win.h"
 #else
     // IWYU pragma: no_include <bits/mman-map-flags-generic.h>
     #if defined(__has_include) && __has_include(<features.h>)
