@@ -371,7 +371,7 @@ void Worker::start_search() noexcept {
             // If the skill is enabled, swap the best PV line with the sub-optimal one
             if (mainManager->skill.enabled())
             {
-                const Move skillMove = mainManager->skill.pick_move(rootMoves, multiPV, false);
+                const Move skillMove = mainManager->skill.pick_move(rootMoves, multiPV);
 
                 for (auto&& th : threads)
                     th->worker->rootMoves.swap_to_front(skillMove);
@@ -1397,8 +1397,7 @@ Value Worker::search(Position&    pos,
                         if (futility <= alpha)
                         {
                             if (!is_win(futility))
-                                bestValue = static_cast<Value>(std::max(  //
-                                  futility, static_cast<int>(bestValue)));
+                                bestValue = static_cast<Value>(std::max<int>(futility, bestValue));
                             continue;
                         }
                     }
@@ -1973,8 +1972,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
 
                 if (futility <= alpha)
                 {
-                    bestValue = static_cast<Value>(std::max(  //
-                      futility, static_cast<int>(bestValue)));
+                    bestValue = static_cast<Value>(std::max<int>(futility, bestValue));
                     continue;
                 }
 
@@ -1982,9 +1980,8 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
                 int threshold = baseFutility - alpha;
                 if (pos.see(move) < -threshold)
                 {
-                    bestValue = static_cast<Value>(std::max(  //
-                      std::min(baseFutility, static_cast<int>(alpha)),
-                      static_cast<int>(bestValue)));
+                    bestValue = static_cast<Value>(
+                      std::max<int>(std::min<int>(baseFutility, alpha), bestValue));
                     continue;
                 }
             }
@@ -2775,16 +2772,22 @@ void Skill::init(const Options& options) noexcept {
 // using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
 Move Skill::pick_move(const RootMoves& rootMoves,
                       const usize      multiPV,
-                      const bool       pickBest) noexcept {
-    assert(1 <= multiPV && multiPV <= rootMoves.size());
+                      const bool       forcePick) noexcept {
+    assert(0 < multiPV && multiPV <= rootMoves.size());
     static XorShift64Star prng(now());  // PRNG sequence should be non-deterministic
 
-    if (pickBest || bestMove == Move::None)
+    if (forcePick || bestMove == Move::None)
     {
-        // RootMoves are already sorted by value in descending order
-        const Value maxValue = rootMoves[0].value;
+        // With tablebases at the root, rootMoves are ordered by tbRank rather than by value,
+        // so compute the value range explicitly to keep 'delta' non-negative.
+        const auto [minItr, maxItr] = std::minmax_element(
+          rootMoves.begin(), rootMoves.begin() + multiPV,
+          [](const auto& rm1, const auto& rm2) noexcept -> bool { return rm1.value < rm2.value; });
 
-        const Value delta = std::min<Value>(maxValue - rootMoves[multiPV - 1].value, VALUE_PAWN);
+        const Value minValue = minItr->value;
+        const Value maxValue = maxItr->value;
+
+        const Value delta = static_cast<Value>(std::min<int>(maxValue - minValue, VALUE_PAWN));
 
         Value bestValue = -VALUE_INFINITE;
         // Choose best move. For each move value add two terms, both dependent on weakness.

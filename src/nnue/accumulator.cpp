@@ -132,7 +132,7 @@ void AccumulatorStack::update_incremental_backward(const Color               per
 
     const Square kingSq = pos.square<KING>(perspective);
 
-    for (usize idx = std::max(size(), usize{1}) - 1; idx-- > end;)
+    for (usize idx = std::max<usize>(size(), 1) - 1; idx-- > end;)
         update_incremental<false>(perspective, kingSq, featureTransformer, accumulators[idx + 1],
                                   accumulators[idx]);
 

@@ -400,9 +400,9 @@ struct PairsData final {
         // so that lowestSym[i] >= lowestSym[i+1] (when read as LittleEndian).
         // Starting from this compute a base64[] table indexed by symbol length
         // and containing 64 bit values so that base64[i] >= base64[i+1].
-        auto base64Size = base64.size();
+        usize base64Size = base64.size();
 
-        for (usize i = std::max(base64Size, usize{1}) - 1; i-- > 0;)
+        for (usize i = std::max<usize>(base64Size, 1) - 1; i-- > 0;)
         {
             const auto& nextBase64 = base64[i + 1];
 

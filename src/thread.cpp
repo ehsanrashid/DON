@@ -465,9 +465,13 @@ const Thread* Threads::best_thread() const noexcept {
     if (snapThreads.empty())
         return fallbackThread;
 
-    Value minValue = +VALUE_INFINITE;
-    for (const auto* th : snapThreads)
-        minValue = std::min(th->worker->rootMoves[0].value, minValue);
+    const auto minItr =
+      std::min_element(snapThreads.begin(), snapThreads.end(),
+                       [](const auto* const th1, const auto* const th2) noexcept -> bool {
+                           return th1->worker->rootMoves[0].value < th2->worker->rootMoves[0].value;
+                       });
+
+    const Value minValue = (*minItr)->worker->rootMoves[0].value;
 
     const auto vote_weight = [minValue](const Thread* const th) noexcept -> u64 {
         return static_cast<u64>(14 + th->worker->rootMoves[0].value - minValue);

@@ -457,7 +457,7 @@ struct Skill final {
         return Value(2.0 * (3.0 * LEVEL_MAX - level));
     }
 
-    Move pick_move(const RootMoves& rootMoves, usize multiPV, bool pickBest = true) noexcept;
+    Move pick_move(const RootMoves& rootMoves, usize multiPV, bool forcePick = false) noexcept;
 
     static constexpr double LEVEL_MIN = 00.0;
     static constexpr double LEVEL_MAX = 20.0;
