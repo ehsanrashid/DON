@@ -1526,7 +1526,7 @@ Value Worker::search(Position&    pos,
                - 512 * (x >> 2) - 256 * (x >> 3) - 128 * (x >> 4) - 64 * (x >> 5) - 32 * (x >> 6));
         // Decrease reduction for first picked move (ttMove)
         else if (mTT)
-            r = std::max(r - 2016 + int(CutNode) * 150, -10);
+            r = std::max(r - 2016, 0);
 
         // Decrease/Increase reduction for moves with a good/bad history
         r -= constexpr_round(445.0 * ss->history / 4096.0);
@@ -2591,7 +2591,8 @@ TimePoint MainSearchManager::elapsed() const noexcept { return timeManager.elaps
 // This function is called to check whether the search should be stopped
 // based on predefined thresholds like total time or total nodes.
 TimePoint MainSearchManager::elapsed(const Threads& threads) const noexcept {
-    return timeManager.elapsed([&threads]() { return threads.sum(&Worker::nodes); });
+    return timeManager.elapsed(
+      [&threads = std::as_const(threads)]() { return threads.sum(&Worker::nodes); });
 }
 
 void MainSearchManager::handle_time_management(const Worker& worker,

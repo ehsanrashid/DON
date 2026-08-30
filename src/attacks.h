@@ -43,7 +43,6 @@
 
 namespace DON {
 
-// Attacks
 namespace Attacks {
 
 void init() noexcept;

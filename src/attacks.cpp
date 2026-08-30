@@ -21,9 +21,7 @@
     #include "prng.h"
 #endif
 
-namespace DON {
-
-namespace Attacks {
+namespace DON::Attacks {
 
 namespace {
 
@@ -242,6 +240,4 @@ void init() noexcept {
     }
 }
 
-}  // namespace Attacks
-
-}  // namespace DON
+}  // namespace DON::Attacks

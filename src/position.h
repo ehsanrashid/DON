@@ -103,9 +103,9 @@ struct Zobrist final {
     static Key turn() noexcept { return Turn; }
 
     static Key mr50(i16 rule50Count) noexcept {
-        return rule50Count >= R50_OFFSET
-               ? MR50[std::min<usize>((rule50Count - R50_OFFSET) / R50_FACTOR, MR50.size() - 1)]
-               : 0;
+        return rule50Count < R50_OFFSET
+               ? 0
+               : MR50[std::min<usize>((rule50Count - R50_OFFSET) / R50_FACTOR, MR50.size() - 1)];
     }
 
     static constexpr usize PAWN_OFFSET = 8;
@@ -855,9 +855,7 @@ inline Piece Position::captured_pc(const Move m) const noexcept {
     assert(legal(m));
     assert(m.type() != MT::CASTLING);
 
-    return m.type() == MT::EN_PASSANT  //
-           ? make_piece(~active_color(), PAWN)
-           : piece(m.dst_sq());
+    return piece(m.type() != MT::EN_PASSANT ? m.dst_sq() : m.dst_sq() - pawn_spush(active_color()));
 }
 
 inline auto Position::captured_pt(const Move m) const noexcept { return type_of(captured_pc(m)); }

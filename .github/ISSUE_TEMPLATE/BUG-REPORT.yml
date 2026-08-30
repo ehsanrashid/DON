@@ -1,6 +1,12 @@
 name: Report issue
 description: Create a report to help us fix issues with the engine
 body:
+- type: markdown
+  attributes:
+    value: |
+      > [!IMPORTANT]
+      > Please do not open bug reports regarding the engine's choice of moves, such as the engine failing to find a particular "best" move. If you have any questions or wish to discuss engine analysis, please use our community channels, such as Discord.
+
 - type: textarea
   attributes:
     label: Describe the issue
@@ -27,10 +33,9 @@ body:
       go mate 1
       info string Available Processors: 0-31
       info string Threads: 1
-      info string NNUE evaluation using nn-5227780996d3.nnue (105MiB, (82672, 1024, 31, 32, 1))
-      info string NNUE evaluation using nn-37f18f62d772.nnue (6MiB, (22528, 128, 15, 32, 1))
+      info string NNUE evaluation using nn-71d6d32cb962.nnue (106MiB, (83248, 1024, 31, 32, 1))
       info string Network replica 0: Shared memory.
-      info depth 1 seldepth 3 multipv 1 score mate 1 time 1 nodes 31 nps 31000 tbhits 0 hashfull 0 pv d8h4
+      info depth 1 seldepth 2 multipv 1 score mate 1 time 1 nodes 30 nps 30000 tbhits 0 hashfull 0 pv d8h4
       bestmove d8h4 ponder (none)
       ```
   validations:
@@ -64,6 +69,6 @@ body:
     description: |
       This can be found by running the engine.
       You can also use the commit ID.
-    placeholder: DON
+    placeholder: DON 1.0 / de27517
   validations:
     required: true
