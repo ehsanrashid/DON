@@ -52,11 +52,13 @@ constexpr Array<int, 16> LMR_DIVISORS{
 
 // Reductions lookup table using [depth or moveCount]
 alignas(CACHE_LINE_SIZE) constexpr auto REDUCTIONS = []() constexpr noexcept {
+    constexpr double ReductionScale = 2834.0 / 128.0;
+
     Array<u16, MOVE_MAX> reductions{};
 
     reductions[0] = 0;
     for (usize i = 1; i < reductions.size(); ++i)
-        reductions[i] = static_cast<u16>(22.140625 * constexpr_log(i));
+        reductions[i] = static_cast<u16>(ReductionScale * constexpr_log(i));
 
     return reductions;
 }();
