@@ -199,7 +199,7 @@ class FeatureTransformer final {
 
         Array<Color, COLOR_NB> perspectives{pos.active_color(), ~pos.active_color()};
 
-        const auto& accumulator = accStack.accumulator();
+        const auto& accumulator = accStack.top();
 
         const auto& psqtAccumulation = accumulator.psqtAccumulation;
 

@@ -42,8 +42,22 @@ struct alignas(CACHE_LINE_SIZE) BaseAccumulator {
    public:
     Array<BiasType, COLOR_NB, L1>                accumulation;
     Array<PSQTWeightType, COLOR_NB, PSQTBuckets> psqtAccumulation;
-    Array<bool, COLOR_NB>                        computed;
+    Array<bool, COLOR_NB>                        computed{};
 };
+
+static_assert(sizeof(BaseAccumulator) % CACHE_LINE_SIZE == 0);
+
+struct Accumulator final: public BaseAccumulator {
+   public:
+    void set(DirtyBoard&& db) noexcept {
+        dirtyBoard = std::move(db);
+        computed.fill(false);
+    }
+
+    DirtyBoard dirtyBoard;
+};
+
+static_assert(alignof(Accumulator) == CACHE_LINE_SIZE);
 
 // AccumulatorCache provides per-thread accumulator cache,
 // where each cache contains multiple entries for each of the possible king squares.
@@ -90,24 +104,17 @@ struct AccumulatorCache final {
     Array<Entry, SQUARE_NB, COLOR_NB> entries;
 };
 
-struct Accumulator final: public BaseAccumulator {
-   public:
-    void set(DirtyBoard&& db) noexcept {
-        dirtyBoard = std::move(db);
-        computed.fill(false);
-    }
-
-    DirtyBoard dirtyBoard;
-};
-
 struct AccumulatorStack final {
    public:
-    [[nodiscard]] const Accumulator& accumulator() const noexcept;
-    [[nodiscard]] Accumulator&       accumulator() noexcept;
-
     void reset() noexcept;
     void push(DirtyBoard&& db) noexcept;
     void pop() noexcept;
+
+    [[nodiscard]] usize size() const noexcept { return size_; }
+
+    [[nodiscard]] auto&       top() noexcept { return accumulators[size() - 1]; }
+    [[nodiscard]] const auto& top() const noexcept { return accumulators[size() - 1]; }
+
 
     void evaluate(const Position&           pos,
                   const FeatureTransformer& featureTransformer,
@@ -133,8 +140,8 @@ struct AccumulatorStack final {
 
     static constexpr usize Size = PLY_MAX + 1;
 
-    Array<Accumulator, Size> stateAccumulators;
-    usize                    size = 1;
+    Array<Accumulator, Size> accumulators;
+    usize                    size_ = 1;
 };
 
 }  // namespace NNUE

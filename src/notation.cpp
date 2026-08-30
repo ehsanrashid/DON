@@ -142,7 +142,7 @@ std::string move_to_can(const Move m) noexcept {
     can  //
       .assign(to_square(orgSq))
       .append(to_square(dstSq))
-      .append(usize(m.type() == MT::PROMOTION),
+      .append(static_cast<usize>(m.type() == MT::PROMOTION),
               static_cast<char>(std::tolower(static_cast<uchar>(to_char(m.promotion_type())))));
 
     return can;
@@ -268,12 +268,12 @@ std::string move_to_san(const Move m, Position& pos) noexcept {
         }
 
         if (pos.capture(m))
-            san.append(usize(movedPt == PAWN), to_char(file_of(orgSq))).push_back('x');
+            san.append(static_cast<usize>(movedPt == PAWN), to_char(file_of(orgSq))).push_back('x');
 
         san  //
           .append(to_square(dstSq))
-          .append(usize(m.type() == MT::PROMOTION), '=')
-          .append(usize(m.type() == MT::PROMOTION),
+          .append(static_cast<usize>(m.type() == MT::PROMOTION), '=')
+          .append(static_cast<usize>(m.type() == MT::PROMOTION),
                   static_cast<char>(std::toupper(static_cast<uchar>(to_char(m.promotion_type())))));
     }
 

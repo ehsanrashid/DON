@@ -23,8 +23,8 @@
 #include <cstring>
 #include <fstream>
 #include <iostream>
-#include <system_error>
 #include <numeric>
+#include <system_error>
 #include <vector>
 
 #include "memory.h"
@@ -233,8 +233,7 @@ void TranspositionTable::resize(const usize ttSize, const Threads& threads) noex
 
     const usize ttBytes = clusterCount * ClusterSize;
 
-    // Request 1GB pages if we'd get at least eight per NUMA node, to avoid
-    // memory oversubscription
+    // Request 1GB pages if get at least eight per NUMA node, to avoid memory oversubscription
     const bool hugePageHint = ttBytes >= 8 * threads.numa_nodes() * HUGE_PAGE_SIZE;
 
     clusters = static_cast<TTCluster*>(alloc_aligned_large_page_with_hint(ttBytes, hugePageHint));

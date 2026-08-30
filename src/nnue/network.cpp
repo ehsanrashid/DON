@@ -281,10 +281,10 @@ bool Network::load_embedded(EvalFile& evalFile) noexcept {
         return false;
 #endif
 
-    MemoryStreamBuf buf(const_cast<char*>(reinterpret_cast<const char*>(gEmbeddedNNUEData)),
-                        usize(gEmbeddedNNUESize));
+    MemoryStreambuf memBuf(const_cast<char*>(reinterpret_cast<const char*>(gEmbeddedNNUEData)),
+                           static_cast<usize>(gEmbeddedNNUESize));
 
-    std::istream is{&buf};
+    std::istream is{&memBuf};
 
     auto netDescription = load(is);
 

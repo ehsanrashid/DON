@@ -85,12 +85,12 @@ Engine::Engine(const std::filesystem::path& path) noexcept :
     options.add("TimePercent",       Option(80, 10, 1000));  // Percentage of remaining time to use
     options.add("NodesTime",         Option(0, 0, 10000));
     options.add("SleepOnStart",      Option(false));
-    options.add("HistoryLoadFactor", Option(75, 10, 100, OnCng([this](const Option& o) { atomicHistoriesMap.max_load_factor(max_load_factor(o / 100.0f)); return std::nullopt; })));
+    options.add("HistoryLoadFactor", Option(75, 10, 100, OnCng([this](const Option&) { set_history_max_load_factor(); return std::nullopt; })));
     options.add("DrawMoveCount",     Option(Position::DrawMoveCount, 5, 50, OnCng([](const Option& o) { Position::DrawMoveCount = int(o); return std::nullopt; })));
     options.add("Book",              Option(false));
     options.add("BookFile",          Option("", OnCng([](const Option& o) { auto bookFile = path_from_utf8(o); if (bookFile.empty()) return ""; return pgBook.load(bookFile) ? "Load succeeded" : "Load failed"; })));
     options.add("BookProbeDepth",    Option(100, 1, 256));
-    options.add("BookPickBest",      Option(true));
+    options.add("BookBestPick",      Option(true));
     options.add("SyzygyPath",        Option("", OnCng([](const Option& o) { Tablebase::Syzygy::init(o); return std::nullopt; })));
     options.add("SyzygyProbeLimit",  Option(Tablebase::Syzygy::TB_PIECES_MAX, 0, Tablebase::Syzygy::TB_PIECES_MAX));
     options.add("SyzygyProbeDepth",  Option(1, 1, 100));
@@ -102,9 +102,9 @@ Engine::Engine(const std::filesystem::path& path) noexcept :
     options.add("Stop Logger",       Option(OnCng([](const Option&) { Logger::stop(); return std::nullopt; })));
     // clang-format on
 
-    resize_threads_tt();
+    set_history_max_load_factor();
 
-    atomicHistoriesMap.max_load_factor(max_load_factor(options["HistoryLoadFactor"] / 100.0f));
+    resize_threads_tt();
 
     setup();
 }
@@ -186,6 +186,10 @@ void Engine::reset() noexcept {
 
     threads.reset();
     transpositionTable.reset(threads);
+}
+
+void Engine::set_history_max_load_factor() noexcept {
+    atomicHistoriesMap.max_load_factor(max_load_factor(options["HistoryLoadFactor"] / 100.0f));
 }
 
 void Engine::resize_threads_tt() noexcept {
@@ -321,7 +325,7 @@ std::string Engine::thread_allocation() const noexcept {
     std::string threadAllocation{"Threads: "};
     threadAllocation.append(std::to_string(threads.size()));
 
-    if (std::string threadBinding = thread_binding(); !threadBinding.empty())
+    if (const std::string threadBinding = thread_binding(); !threadBinding.empty())
         threadAllocation  //
           .append(" with NUMA node thread binding: ")
           .append(threadBinding);

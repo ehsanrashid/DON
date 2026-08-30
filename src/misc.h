@@ -420,7 +420,7 @@ constexpr float max_load_factor(float maxLoadFactor = 0.75f) noexcept {
     return std::clamp(constexpr_abs(maxLoadFactor), 0.1f, 1.0f);
 }
 constexpr usize reserve_count(usize reserveCount = 1024) noexcept {
-    return std::max(reserveCount, usize(8));
+    return std::max<usize>(reserveCount, 8);
 }
 
 template<typename T1, typename T2>
@@ -587,7 +587,7 @@ constexpr IndexRange split_range(usize id, usize parts, usize size) noexcept {
 
     // Distribute remainder among the first 'extra' threads
     usize beg = id * base + std::min(id, extra);
-    usize end = beg + base + usize(id < extra);
+    usize end = beg + base + int(id < extra);
 
     assert(beg <= end && end <= size);
     return {beg, end};
@@ -1040,8 +1040,8 @@ class RelaxedAtomic final {
    public:
     RelaxedAtomic() = default;
 
-    RelaxedAtomic(T val) noexcept :
-        value(val) {}
+    RelaxedAtomic(T v) noexcept :
+        value(v) {}
 
     RelaxedAtomic(const RelaxedAtomic& relaxedAtomic) noexcept :
         value(static_cast<T>(relaxedAtomic)) {}
@@ -1053,20 +1053,19 @@ class RelaxedAtomic final {
         return *this;
     }
 
-    T operator=(T val) noexcept {
-        store(val);
-        return val;
+    T operator=(T v) noexcept {
+        store(v);
+        return v;
     }
 
     operator T() const noexcept { return load(); }
 
-    RelaxedAtomic& operator+=(T val) noexcept {
-        add(val);
+    RelaxedAtomic& operator+=(T v) noexcept {
+        add(v);
         return *this;
     }
-
-    RelaxedAtomic& operator-=(T val) noexcept {
-        sub(val);
+    RelaxedAtomic& operator-=(T v) noexcept {
+        sub(v);
         return *this;
     }
 
@@ -1074,14 +1073,12 @@ class RelaxedAtomic final {
         add(1);
         return *this;
     }
-
     RelaxedAtomic& operator--() noexcept {
         sub(1);
         return *this;
     }
 
     T operator++(int) noexcept { return add(1); }
-
     T operator--(int) noexcept { return sub(1); }
 
     T load() const noexcept {
@@ -1090,12 +1087,11 @@ class RelaxedAtomic final {
         else
             return value;
     }
-
-    void store(T val) noexcept {
+    void store(T v) noexcept {
         if constexpr (UseAtomic)
-            value.store(val, std::memory_order_relaxed);
+            value.store(v, std::memory_order_relaxed);
         else
-            value = val;
+            value = v;
     }
 
     bool compare_exchange_weak(T& expected, T desired) noexcept {
@@ -1123,16 +1119,15 @@ class RelaxedAtomic final {
       true;
 #endif
 
-    T add(T val) noexcept {
+    T add(T v) noexcept {
         const T oldV = load();
-        const T newV = oldV + val;
+        const T newV = oldV + v;
         store(newV);
         return oldV;
     }
-
-    T sub(T val) noexcept {
+    T sub(T v) noexcept {
         const T oldV = load();
-        const T newV = oldV - val;
+        const T newV = oldV - v;
         store(newV);
         return oldV;
     }
@@ -1185,7 +1180,7 @@ class FixedVector final {
         assert(size() < capacity());
 
         data_[size_] = value;
-        size_ += usize(value < maxValue);
+        size_ += int(value < maxValue);
     }
 
     void pop_back() noexcept {
@@ -1565,45 +1560,46 @@ constexpr u32 combine_hashes(std::initializer_list<u32> hashes) noexcept {
 }
 
 // Custom streambuf that wraps string_view
-class StringViewStreamBuf final: public std::streambuf {
+class StringViewStreambuf final: public std::streambuf {
    public:
-    explicit StringViewStreamBuf(std::string_view sv) noexcept {
+    explicit StringViewStreambuf(const std::string_view sv) noexcept {
         // std::streambuf requires char* for the get area.
         // The buffer is read-only; no characters are modified.
-        auto* p = const_cast<char*>(sv.data());
-        setg(p, p, p + sv.size());  // Only GET area (reading enabled)
-        // Do NOT call setp(p, p + sv.size()) - no PUT area (writing disabled)
-    }
-};
-
-// Custom streambuf that wraps memory stream
-class MemoryStreamBuf final: public std::streambuf {
-   public:
-    MemoryStreamBuf(char* p, usize size) noexcept {
+        auto* const p    = const_cast<char*>(sv.data());
+        const usize size = sv.size();
         setg(p, p, p + size);  // Only GET area (reading enabled)
         // Do NOT call setp(p, p + size) - no PUT area (writing disabled)
     }
 };
 
+// Custom streambuf that wraps memory stream
+class MemoryStreambuf final: public std::streambuf {
+   public:
+    MemoryStreambuf(char* const p, const usize size) noexcept {
+        setg(p, p, p + size);  // Set GET area (reading enabled)
+        setp(p, p + size);     // Set PUT area (writing enabled)
+    }
+};
+
 // Fancy logging facility.
-// The trick here is to replace cin.rdbuf() and cout.rdbuf() with 2 TieStreamBuf objects
+// The trick here is to replace cin.rdbuf() and cout.rdbuf() with 2 TieStreambuf objects
 // that tie std::cin and std::cout to a file stream.
 // Can toggle the logging of std::cout and std::cin at runtime whilst preserving
 // usual I/O functionality, all without changing a single line of code!
 // Idea from http://groups.google.com/group/comp.lang.c++/msg/1d941c0f26ea0d81
 // MSVC requires split streambuf for std::cin and std::cout.
-class TieStreamBuf final: public std::streambuf {
+class TieStreambuf final: public std::streambuf {
    public:
     using traits_type = std::streambuf::traits_type;
     using int_type    = traits_type::int_type;
     using char_type   = traits_type::char_type;
 
-    TieStreamBuf() noexcept = delete;
-    TieStreamBuf(std::streambuf* pB, std::streambuf* mB) noexcept :
+    TieStreambuf() noexcept = delete;
+    TieStreambuf(std::streambuf* const pB, std::streambuf* const mB) noexcept :
         pBuf(pB),
         mBuf(mB) {}
 
-    int_type overflow(int_type ch) override {
+    int_type overflow(const int_type ch) override {
         if (pBuf == nullptr)
             return traits_type::eof();
 
@@ -1615,7 +1611,7 @@ class TieStreamBuf final: public std::streambuf {
         if (traits_type::eq_int_type(putCh, traits_type::eof()))
             return putCh;
 
-        return mirror_put_with_prefix(putCh, "<< ", preOutCh);
+        return mirror_put_with_prefix(putCh, "<< ", oPreCh);
     }
 
     int_type underflow() override {
@@ -1634,7 +1630,7 @@ class TieStreamBuf final: public std::streambuf {
         if (traits_type::eq_int_type(ch, traits_type::eof()))
             return ch;
 
-        return mirror_put_with_prefix(ch, ">> ", preInCh);
+        return mirror_put_with_prefix(ch, ">> ", iPreCh);
     }
 
     int sync() override {
@@ -1644,7 +1640,7 @@ class TieStreamBuf final: public std::streambuf {
         return (r1 == 0 && r2 == 0) ? 0 : -1;
     }
 
-    std::streamsize xsputn(const char_type* s, std::streamsize count) override {
+    std::streamsize xsputn(const char_type* const s, const std::streamsize count) override {
         if (pBuf == nullptr)
             return 0;
 
@@ -1653,28 +1649,29 @@ class TieStreamBuf final: public std::streambuf {
         if (mBuf != nullptr && written > 0)
         {
             // Prefix injection only once if needed
-            if (preOutCh == '\n')
+            if (oPreCh == '\n')
                 mBuf->sputn("<< ", 3);
 
             mBuf->sputn(s, written);
 
-            preOutCh = s[written - 1];  // track last char
+            oPreCh = s[written - 1];  // track last char
         }
 
         return written;
     }
 
-    [[nodiscard]] std::streambuf* pbuf() const { return pBuf; }
-    [[nodiscard]] std::streambuf* mbuf() const { return mBuf; }
+    [[nodiscard]] std::streambuf* pbuf() const noexcept { return pBuf; }
+    [[nodiscard]] std::streambuf* mbuf() const noexcept { return mBuf; }
 
    private:
-    int_type
-    mirror_put_with_prefix(int_type ch, std::string_view prefix, char_type& preCh) noexcept {
+    int_type mirror_put_with_prefix(const int_type         ch,
+                                    const std::string_view prefix,
+                                    char_type&             preCh) noexcept {
         if (mBuf == nullptr)
             return traits_type::not_eof(ch);
 
         if (preCh == '\n')
-            mBuf->sputn(prefix.data(), std::streamsize(prefix.size()));
+            mBuf->sputn(prefix.data(), static_cast<std::streamsize>(prefix.size()));
 
         char_type c = traits_type::to_char_type(ch);
         preCh       = c;
@@ -1686,8 +1683,8 @@ class TieStreamBuf final: public std::streambuf {
 
     std::streambuf *pBuf, *mBuf;
 
-    char_type preOutCh = '\n';
-    char_type preInCh  = '\n';
+    char_type oPreCh = '\n';
+    char_type iPreCh = '\n';
 };
 
 class Logger final {
@@ -1713,8 +1710,8 @@ class Logger final {
         os(osRef),
         isBuf(is.rdbuf()),
         osBuf(os.rdbuf()),
-        iTie(is.rdbuf(), ofs.rdbuf()),
-        oTie(os.rdbuf(), ofs.rdbuf()) {}
+        itsBuf(is.rdbuf(), ofs.rdbuf()),
+        otsBuf(os.rdbuf(), ofs.rdbuf()) {}
 
     ~Logger() noexcept { close(); }
 
@@ -1758,8 +1755,8 @@ class Logger final {
 
         write_timestamp("->");
 
-        is.rdbuf(&iTie);
-        os.rdbuf(&oTie);
+        is.rdbuf(&itsBuf);
+        os.rdbuf(&otsBuf);
 
         return true;
     }
@@ -1784,7 +1781,7 @@ class Logger final {
     std::istream&   is;
     std::ostream&   os;
     std::streambuf *isBuf = nullptr, *osBuf = nullptr;
-    TieStreamBuf    iTie, oTie;
+    TieStreambuf    itsBuf, otsBuf;
     std::string     filename;
 };
 

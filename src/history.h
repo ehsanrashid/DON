@@ -48,9 +48,9 @@ class HistoryEntry final {
     static_assert(D <= std::numeric_limits<T>::max(), "D must fit in T");
 
    public:
-    operator T() const noexcept { return entry; }
+    operator T() const noexcept { return value; }
 
-    void operator=(const T& e) noexcept { entry = e; }
+    void operator=(const T& v) noexcept { value = v; }
 
     // Update the statistic using bonus, clamped to the range [-D, +D]
     void operator<<(const int bonus) noexcept {
@@ -64,7 +64,7 @@ class HistoryEntry final {
     }
 
    private:
-    std::conditional_t<Atomic, RelaxedAtomic<T>, T> entry;
+    std::conditional_t<Atomic, RelaxedAtomic<T>, T> value;
 };
 
 template<typename T>
@@ -110,17 +110,20 @@ using History = MultiArray<HistoryEntry<T, D>, Sizes...>;
 template<typename T, int D, usize... Sizes>
 using AtomicHistory = MultiArray<HistoryEntry<T, D, true>, Sizes...>;
 
-inline constexpr u16 LOW_PLY_SIZE = 5;
+inline constexpr usize UINT_16_SIZE = std::numeric_limits<u16>::max() + 1;
+static_assert(is_power_of_2(UINT_16_SIZE), "UINT_16_SIZE has to be power of 2");
 
-inline constexpr usize QUIET_HISTORY_SIZE = 0x10000;
+inline constexpr usize QUIET_HISTORY_SIZE = UINT_16_SIZE;
 static_assert(is_power_of_2(QUIET_HISTORY_SIZE), "QUIET_HISTORY_SIZE has to be power of 2");
 
 inline constexpr usize PAWN_HISTORY_BASE_SIZE = 0x4000;
 static_assert(is_power_of_2(PAWN_HISTORY_BASE_SIZE), "PAWN_HISTORY_BASE_SIZE has to be power of 2");
 
-inline constexpr usize CORRECTION_HISTORY_BASE_SIZE = 0x10000;
+inline constexpr usize CORRECTION_HISTORY_BASE_SIZE = UINT_16_SIZE;
 static_assert(is_power_of_2(CORRECTION_HISTORY_BASE_SIZE),
               "CORRECTION_HISTORY_BASE_SIZE has to be power of 2");
+
+inline constexpr u16 LOW_PLY_SIZE = 5;
 
 inline constexpr int CORRECTION_HISTORY_LIMIT = 1024;
 
@@ -139,7 +142,7 @@ using QuietHistory = History<i16, 7183, COLOR_NB, QUIET_HISTORY_SIZE>;
 using LowPlyQuietHistory = History<i16, 7183, LOW_PLY_SIZE, QUIET_HISTORY_SIZE>;
 
 // PieceSqHistory is addressed by the move's [piece][dstSq]
-using PieceSqHistory = History<i16, 30000, PIECE_NB, SQUARE_NB>;
+using PieceSqHistory = AtomicHistory<i16, 30000, PIECE_NB, SQUARE_NB>;
 
 // ContinuationHistory is the combined history of given pair of moves,
 // usually the current move given the previous move.
@@ -173,15 +176,15 @@ using ContinuationCorrectionHistory = MultiArray<PieceSqCorrectionHistory, PIECE
 class AtomicHistories final {
    public:
     AtomicHistories() noexcept = delete;
-    AtomicHistories(usize count) noexcept :
-        correctionHistorySize(count * CORRECTION_HISTORY_BASE_SIZE),
-        pawnHistorySize(count * PAWN_HISTORY_BASE_SIZE),
+    AtomicHistories(const usize threadCount) noexcept :
+        correctionHistorySize(threadCount * CORRECTION_HISTORY_BASE_SIZE),
+        pawnHistorySize(threadCount * PAWN_HISTORY_BASE_SIZE),
         pawnCorrectionHistory(correction_history_size()),
         minorCorrectionHistory(correction_history_size()),
         nonPawnCorrectionHistory(correction_history_size()),
         pawnHistory(pawn_history_size()) {
 #if !defined(NDEBUG)
-        assert(is_power_of_2(count));
+        assert(is_power_of_2(threadCount));
 #endif
     }
 
@@ -243,6 +246,10 @@ class AtomicHistories final {
         return pawnHistory[pawn_index(pos.pawn_key())];
     }
 
+    // --------------------------------
+
+    auto& continuation_history() noexcept { return continuationHistory; }
+
    private:
     const usize correctionHistorySize;
     const usize pawnHistorySize;
@@ -251,6 +258,8 @@ class AtomicHistories final {
     MinorCorrectionHistory   minorCorrectionHistory;
     NonPawnCorrectionHistory nonPawnCorrectionHistory;
     PawnHistory              pawnHistory;
+
+    Array<ContinuationHistory, 2, 2> continuationHistory;  // [inCheck][capture]
 };
 
 using AtomicHistoriesMap = std::unordered_map<usize, AtomicHistories>;
