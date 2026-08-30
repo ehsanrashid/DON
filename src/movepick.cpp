@@ -21,7 +21,7 @@
 #include <cassert>
 #include <limits>
 
-#if defined(USE_AVX512ICL)
+#if defined(USE_AVX512)
     #include <immintrin.h>
 #endif
 
@@ -40,7 +40,7 @@ constexpr i32 GOOD_QUIET_THRESHOLD = -14000;
 
 ALWAYS_INLINE constexpr bool always_true() noexcept { return true; }
 
-#if defined(USE_AVX512ICL)
+#if defined(USE_AVX512)
 // Broadcast an ExtMove's move and value across all 16 lanes
 void splat_extmove(const ExtMove& em, __m512i& moves, __m512i& values) noexcept {
     moves  = _mm512_set1_epi32(em.raw());
@@ -49,21 +49,9 @@ void splat_extmove(const ExtMove& em, __m512i& moves, __m512i& values) noexcept 
 
 // Maintains up to 16 ExtMoves in descending order by value using AVX-512
 struct ExtMoveSorter final {
-   private:
-    // Moves and values are stored separately, so interleave them back into ExtMoves
-    void write_chunk(ExtMove* const ems,
-                     const isize    count,
-                     const isize    offset,
-                     const __m512i  indices) const noexcept {
-        const __m512i extMoves = _mm512_permutex2var_epi32(sortedMoves, indices, sortedValues);
-
-        const isize storeCount = count - offset;
-
-        if (storeCount > 0)
-            _mm512_mask_storeu_epi64(ems + offset, __mmask8((1u << storeCount) - 1), extMoves);
-    }
-
    public:
+    static_assert(sizeof(ExtMove) == 8);
+
     explicit ExtMoveSorter(const ExtMove& em) noexcept {
         splat_extmove(em, sortedMoves, sortedValues);
 
@@ -85,8 +73,7 @@ struct ExtMoveSorter final {
     }
 
     void write_sorted(ExtMove* const ems, const isize count) const noexcept {
-        static_assert(sizeof(ExtMove) == 8);
-        assert(0 <= count && count <= ELEMENT_MAX);
+        assert(0 <= count && count <= ElementMax);
 
         write_chunk(ems, count, 0,
                     _mm512_setr_epi32(0, 16, 1, 17, 2, 18, 3, 19,  //
@@ -96,7 +83,21 @@ struct ExtMoveSorter final {
                                       12, 28, 13, 29, 14, 30, 15, 31));
     }
 
-    static constexpr int ELEMENT_MAX = 16;
+    static constexpr int ElementMax = 16;
+
+   private:
+    // Moves and values are stored separately, so interleave them back into ExtMoves
+    void write_chunk(ExtMove* const ems,
+                     const isize    count,
+                     const isize    offset,
+                     const __m512i  indices) const noexcept {
+        const __m512i extMoves = _mm512_permutex2var_epi32(sortedMoves, indices, sortedValues);
+
+        const isize storeCount = count - offset;
+
+        if (storeCount > 0)
+            _mm512_mask_storeu_epi64(ems + offset, __mmask8((1u << storeCount) - 1), extMoves);
+    }
 
     __m512i sortedMoves;
     __m512i sortedValues;
@@ -168,23 +169,13 @@ void insertion_sort(const Iterator beg, const Iterator end) noexcept {
 
     Iterator p = beg + 1;
 
-#if defined(USE_AVX512ICL)
+#if defined(USE_AVX512)
     ExtMoveSorter sorter(*beg);
 
-    Iterator sortedEnd = beg;
-
-    // Sort elements with AVX-512 while the sorter has capacity
-    for (; p != end; ++p)
-    {
-        if (sortedEnd - beg + 1 >= ExtMoveSorter::ELEMENT_MAX)
-            break;
-
+    for (; p != end && p - beg < ExtMoveSorter::ElementMax; ++p)
         sorter.insert(*p);
-        ++sortedEnd;
-        *p = *sortedEnd;
-    }
 
-    sorter.write_sorted(beg, sortedEnd - beg + 1);
+    sorter.write_sorted(beg, p - beg);
 #endif
 
     // Insert remaining elements into the sorted prefix
@@ -194,7 +185,7 @@ void insertion_sort(const Iterator beg, const Iterator end) noexcept {
         if (!ext_move_descending(p[0], p[-1]))
             continue;
         // Copy the current element before shifting the sorted range
-        auto value = *p;
+        const auto value = *p;
         // Find insertion position in the sorted subarray [beg, p). upper_bound preserves stability
         Iterator q = upper_bound_unrolled(beg, p, value, ext_move_descending);
         // Shift elements in sorted subarray [q, p) one step to the right to make room at *q
@@ -215,24 +206,23 @@ void partial_insertion_sort(const Iterator beg,
 
     Iterator p = beg + 1;
 
-#if defined(USE_AVX512ICL)
+#if defined(USE_AVX512)
     ExtMoveSorter sorter(*beg);
 
     Iterator sortedEnd = beg;
-
-    // Sort qualifying elements with AVX-512 while the sorter has capacity
-    for (; p != end; ++p)
+    // Sort qualifying elements with AVX-512 while the sorter has capacity.
+    for (; p != end && sortedEnd - beg + 1 < ExtMoveSorter::ElementMax; ++p)
     {
-        // Skip elements below the limit
         if (p->value < limit)
             continue;
 
-        if (sortedEnd - beg + 1 >= ExtMoveSorter::ELEMENT_MAX)
-            break;
+        const auto value = *p;
 
-        sorter.insert(*p);
         ++sortedEnd;
-        *p = *sortedEnd;
+        std::copy_backward(sortedEnd, p, p + 1);
+        *sortedEnd = value;
+
+        sorter.insert(value);
     }
 
     sorter.write_sorted(beg, sortedEnd - beg + 1);
@@ -260,7 +250,7 @@ void partial_insertion_sort(const Iterator beg,
         if (!ext_move_descending(p[0], p[-1]))
             continue;
         // Copy the current element before shifting the sorted range
-        auto value = *p;
+        const auto value = *p;
         // Find insertion position in the sorted subarray [beg, p). upper_bound preserves stability
         Iterator q = upper_bound_unrolled(beg, p, value, ext_move_descending_limit);
         // Shift elements in sorted subarray [q, p) one step to the right to make room at *q

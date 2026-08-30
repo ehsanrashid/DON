@@ -1069,9 +1069,6 @@ inline void Position::update_piece_threats(const Square              s,
                        | (pieces_bb(BLACK, PAWN) & attacksBB[WHITE]);
     }
 
-    if (type_of(pc) == PAWN || type_of(pc) == KNIGHT || type_of(pc) == ROOK)
-        incomingThreatsBB |= pawnThreatsBB;
-
     switch (type_of(pc))
     {
     case PAWN :
@@ -1085,6 +1082,9 @@ inline void Position::update_piece_threats(const Square              s,
         threatenedBB &= exOccupancyBB;
         break;
     }
+
+    if (type_of(pc) == PAWN || type_of(pc) == KNIGHT || type_of(pc) == ROOK)
+        incomingThreatsBB |= pawnThreatsBB;
 
 #if defined(USE_AVX512ICL)
     DirtyThreat dirtyThreat1{s, SQUARE_ZERO, pc, Piece::NO_PIECE, put};
