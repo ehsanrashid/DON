@@ -231,13 +231,17 @@ constexpr i8    operator-(const Rank r1, const Rank r2) noexcept {
 }
 // Additional operators for Square to add a Direction
 constexpr Square operator+(const Square s, const int i) noexcept {
-    return Square(static_cast<u8>(s) + i);
+    return static_cast<Square>(static_cast<u8>(s) + i);
 }
 constexpr Square operator-(const Square s, const int i) noexcept {
-    return Square(static_cast<u8>(s) - i);
+    return static_cast<Square>(static_cast<u8>(s) - i);
 }
-constexpr Square  operator+(const Square s, const Direction d) noexcept { return s + int(d); }
-constexpr Square  operator-(const Square s, const Direction d) noexcept { return s - int(d); }
+constexpr Square operator+(const Square s, const Direction d) noexcept {
+    return static_cast<Square>(static_cast<u8>(s) + static_cast<u8>(d));
+}
+constexpr Square operator-(const Square s, const Direction d) noexcept {
+    return static_cast<Square>(static_cast<u8>(s) - static_cast<u8>(d));
+}
 constexpr Square& operator+=(Square& s, const Direction d) noexcept { return s = s + d; }
 constexpr Square& operator-=(Square& s, const Direction d) noexcept { return s = s - d; }
 
@@ -681,41 +685,42 @@ class Move {
     static constexpr u8 PROMO_OFFSET  = 12;
     static constexpr u8 TYPE_OFFSET   = 14;
 
-    static constexpr u16 SQ_MASK    = 0x3F;
-    static constexpr u16 PROMO_MASK = 0x3;
-    static constexpr u16 TYPE_MASK  = 0x3 << TYPE_OFFSET;
+    static constexpr u16 SQ_MASK    = u16{63};
+    static constexpr u16 PROMO_MASK = u16{3};
+    static constexpr u16 TYPE_MASK  = u16{3} << TYPE_OFFSET;
 
     Move() noexcept = default;
     constexpr explicit Move(const u16 d) noexcept :
         data(d) {}
     constexpr Move(const Square orgSq, const Square dstSq, const MT mt = MT::NORMAL) noexcept :
-        data((static_cast<u16>(mt) << TYPE_OFFSET) | (static_cast<u16>(orgSq) << ORG_SQ_OFFSET)
-             | (static_cast<u16>(dstSq) << DST_SQ_OFFSET)) {}
+        data((static_cast<u16>(mt) << TYPE_OFFSET)
+             | ((static_cast<u16>(orgSq) & SQ_MASK) << ORG_SQ_OFFSET)
+             | ((static_cast<u16>(dstSq) & SQ_MASK) << DST_SQ_OFFSET)) {}
     constexpr Move(const Square orgSq, const Square dstSq, const PieceType promoPt) noexcept :
         data((static_cast<u16>(MT::PROMOTION) << TYPE_OFFSET)
-             | (static_cast<u16>(promoPt - KNIGHT) << PROMO_OFFSET)
-             | (static_cast<u16>(orgSq) << ORG_SQ_OFFSET)
-             | (static_cast<u16>(dstSq) << DST_SQ_OFFSET)) {}
+             | ((static_cast<u16>(promoPt - KNIGHT) & PROMO_MASK) << PROMO_OFFSET)
+             | ((static_cast<u16>(orgSq) & SQ_MASK) << ORG_SQ_OFFSET)
+             | ((static_cast<u16>(dstSq) & SQ_MASK) << DST_SQ_OFFSET)) {}
 
     // Accessors: extract parts of the move
     [[nodiscard]] constexpr Square org_sq() const noexcept {
         assert(is_ok());
 
-        return Square((data >> ORG_SQ_OFFSET) & SQ_MASK);
+        return static_cast<Square>((data >> ORG_SQ_OFFSET) & SQ_MASK);
     }
 
     [[nodiscard]] constexpr Square dst_sq() const noexcept {
         assert(is_ok());
 
-        return Square((data >> DST_SQ_OFFSET) & SQ_MASK);
+        return static_cast<Square>((data >> DST_SQ_OFFSET) & SQ_MASK);
     }
 
     [[nodiscard]] constexpr MT type() const noexcept {
-        return MT((data & TYPE_MASK) >> TYPE_OFFSET);
+        return static_cast<MT>((data & TYPE_MASK) >> TYPE_OFFSET);
     }
 
     [[nodiscard]] constexpr PieceType promotion_type() const noexcept {
-        return PieceType(KNIGHT + ((data >> PROMO_OFFSET) & PROMO_MASK));
+        return static_cast<PieceType>(((data >> PROMO_OFFSET) & PROMO_MASK) + KNIGHT);
     }
 
     [[nodiscard]] constexpr Value promotion_value() const noexcept {
