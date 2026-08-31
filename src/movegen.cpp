@@ -31,21 +31,6 @@ namespace DON {
 
 namespace {
 
-#if defined(USE_AVX512ICL)
-// Reverse the first 1..8 packed 16-bit moves.
-alignas(16) inline constexpr u8 REVERSE_SHUFFLE[9][16]{
-  {0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80},
-  {0, 1, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80},
-  {2, 3, 0, 1, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80},
-  {4, 5, 2, 3, 0, 1, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80},
-  {6, 7, 4, 5, 2, 3, 0, 1, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80},
-  {8, 9, 6, 7, 4, 5, 2, 3, 0, 1, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80},
-  {10, 11, 8, 9, 6, 7, 4, 5, 2, 3, 0, 1, 0x80, 0x80, 0x80, 0x80},
-  {12, 13, 10, 11, 8, 9, 6, 7, 4, 5, 2, 3, 0, 1, 0x80, 0x80},
-  {14, 15, 12, 13, 10, 11, 8, 9, 6, 7, 4, 5, 2, 3, 0, 1}  //
-};
-#endif
-
 // Splat pawn moves
 template<Color AC, Direction D>
 Move* splat_pawn_moves(Bitboard dstBB, Move* RESTRICT moves) noexcept {
@@ -56,10 +41,23 @@ Move* splat_pawn_moves(Bitboard dstBB, Move* RESTRICT moves) noexcept {
                   "D is invalid");
 
 #if defined(USE_AVX512ICL)
+    // clang-format off
+    // Reverse the first 1..8 packed 16-bit moves.
+    alignas(16) constexpr Array<u8, 9, 16> REVERSE_SHUFFLE_BYTES{{
+      {0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80},
+      {0, 1, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80},
+      {2, 3, 0, 1, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80},
+      {4, 5, 2, 3, 0, 1, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80},
+      {6, 7, 4, 5, 2, 3, 0, 1, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80},
+      {8, 9, 6, 7, 4, 5, 2, 3, 0, 1, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80},
+      {10, 11, 8, 9, 6, 7, 4, 5, 2, 3, 0, 1, 0x80, 0x80, 0x80, 0x80},
+      {12, 13, 10, 11, 8, 9, 6, 7, 4, 5, 2, 3, 0, 1, 0x80, 0x80},
+      {14, 15, 12, 13, 10, 11, 8, 9, 6, 7, 4, 5, 2, 3, 0, 1}  //
+    }};
+
     const u8 count = popcount(dstBB);
     assert(count <= 8);  // <= 8 pawns per side
 
-    // clang-format off
     const __m128i dstSquares = _mm_cvtepi8_epi16(_mm512_castsi512_si128(_mm512_maskz_compress_epi8(static_cast<__mmask64>(dstBB), ALL_SQUARES)));
     const __m128i orgSquares = _mm_sub_epi16(dstSquares, _mm_set1_epi16(+D));
 
@@ -68,7 +66,7 @@ Move* splat_pawn_moves(Bitboard dstBB, Move* RESTRICT moves) noexcept {
 
     if constexpr (AC == BLACK)
     {
-        const __m128i shuffle = _mm_load_si128(reinterpret_cast<const __m128i*>(REVERSE_SHUFFLE[count]));
+        const __m128i shuffle = _mm_load_si128(reinterpret_cast<const __m128i*>(REVERSE_SHUFFLE_BYTES[count].data()));
         packedMoves = _mm_shuffle_epi8(packedMoves, shuffle);
     }
     // clang-format on
@@ -134,10 +132,15 @@ template<Color AC>
 Move* splat_moves(Square orgSq, Bitboard dstBB, Move* RESTRICT moves) noexcept {
 
 #if defined(USE_AVX512ICL)
+    // clang-format off
+    alignas(CACHE_LINE_SIZE) constexpr Array<u16, 32> REVERSE_INDICES{
+      31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16,
+      15, 14, 13, 12, 11, 10, 9,  8,  7,  6,  5,  4,  3,  2,  1,  0  //
+    };
+
     const u8 count = popcount(dstBB);
     assert(count <= 32);  // Q can attack up to 27 squares
 
-    // clang-format off
     const __m512i orgVec     = _mm512_set1_epi16(Move(orgSq, SQUARE_ZERO).raw());
     const __m512i dstSquares = _mm512_cvtepi8_epi16(_mm512_castsi512_si256(_mm512_maskz_compress_epi8(dstBB, ALL_SQUARES)));
 
@@ -147,18 +150,12 @@ Move* splat_moves(Square orgSq, Bitboard dstBB, Move* RESTRICT moves) noexcept {
     {
         // Reverse the first 'count' 16-bit moves.
         //
-        // Base indices:
-        //   31, 30, ..., 1, 0
-        //
-        // Subtract (32 - count), giving:
-        //   count-1, count-2, ..., 0, ...
-        //
+        // REVERSE_INDICES - (32 - count)
+        // gives: count-1, count-2, ..., 0 for the first 'count' lanes.
         // Only the first 'count' lanes are stored.
-        const __m512i reverseIndices = _mm512_set_epi16( 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15,
-                                                        16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31);
-
-        const __m512i offset = _mm512_set1_epi16(32 - count);
-        const __m512i indices = _mm512_sub_epi16(reverseIndices, offset);
+        const __m512i reverseIndices = _mm512_load_si512(REVERSE_INDICES.data());
+        const __m512i offset         = _mm512_set1_epi16(32 - count);
+        const __m512i indices        = _mm512_sub_epi16(reverseIndices, offset);
 
         packedMoves = _mm512_permutexvar_epi16(indices, packedMoves);
     }
