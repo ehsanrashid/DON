@@ -305,7 +305,7 @@ class SparseAffineTransform final {
 #elif defined(USE_RVV)
         static_assert(InputDimensions % 256 == 0);
 
-        const i8* w = weights;
+        const i8* w = weights.data();
 
     #define RVV_SPARSE_PROPAGATE(LMUL) \
         do \
@@ -317,13 +317,13 @@ class SparseAffineTransform final {
                 vint32m##LMUL##_t acc = __riscv_vle32_v_i32m##LMUL(biases + ob, vl); \
                 for (IndexType k = 0; k < InputDimensions / 256; ++k) \
                 { \
-                    u64   bits         = load_as<u64>(nnzInfo.bitset + k * 8); \
+                    u64   bits         = load_as<u64>(nnz.bitset + k * 8); \
                     isize base         = k * 64; \
                     auto* base_addr    = input + base * sizeof(i32); \
                     auto* weights_base = &w[base * OutputDimensions * ChunkSize]; \
                     while (bits) \
                     { \
-                        isize             i = pop_lsb(bits); \
+                        const isize       i = pop_lsq(bits); \
                         vuint8m##LMUL##_t a = __riscv_vreinterpret_v_u32m##LMUL##_u8m##LMUL( \
                           __riscv_vmv_v_x_u32m##LMUL(load_as<u32>(base_addr + i * sizeof(i32)), \
                                                      vl)); \
