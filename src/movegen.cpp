@@ -56,15 +56,9 @@ Move* splat_pawn_moves(Bitboard dstBB, Move* RESTRICT moves) noexcept {
 #else
     while (dstBB != 0)
     {
-        Square dstSq;
-        if constexpr (AC == WHITE)
-            dstSq = pop_lsq(dstBB);
-        else
-            dstSq = pop_msq(dstBB);
+        const Square dstSq = AC == WHITE ? pop_lsq(dstBB) : pop_msq(dstBB);
 
-        const Square orgSq = dstSq - D;
-
-        *moves++ = Move{orgSq, dstSq};
+        *moves++ = Move{dstSq - D, dstSq};
     }
 #endif
 
@@ -87,11 +81,7 @@ Move* splat_promotion_moves(Bitboard       dstBB,
 
     while (dstBB != 0)
     {
-        Square dstSq;
-        if constexpr (AC == WHITE)
-            dstSq = pop_lsq(dstBB);
-        else
-            dstSq = pop_msq(dstBB);
+        const Square dstSq = AC == WHITE ? pop_lsq(dstBB) : pop_msq(dstBB);
 
         [[maybe_unused]] const Square orgSq = dstSq - D;
 
@@ -136,11 +126,7 @@ Move* splat_moves(Square orgSq, Bitboard dstBB, Move* RESTRICT moves) noexcept {
 #else
     while (dstBB != 0)
     {
-        Square dstSq;
-        if constexpr (AC == WHITE)
-            dstSq = pop_lsq(dstBB);
-        else
-            dstSq = pop_msq(dstBB);
+        const Square dstSq = AC == WHITE ? pop_lsq(dstBB) : pop_msq(dstBB);
 
         *moves++ = Move{orgSq, dstSq};
     }
@@ -238,11 +224,7 @@ Move* generate_pawns_moves(const Position& pos,
 
             while (epPawnsBB != 0)
             {
-                Square orgSq;
-                if constexpr (AC == WHITE)
-                    orgSq = pop_lsq(epPawnsBB);
-                else
-                    orgSq = pop_msq(epPawnsBB);
+                const Square orgSq = AC == WHITE ? pop_lsq(epPawnsBB) : pop_msq(epPawnsBB);
 
                 *moves++ = Move{orgSq, pos.en_passant_sq(), MT::EN_PASSANT};
             }
@@ -284,15 +266,9 @@ Move* generate_piece_moves(const Position& pos,
 
     while (bb != 0)
     {
-        Square orgSq;
-        if constexpr (AC == WHITE)
-            orgSq = pop_lsq(bb);
-        else
-            orgSq = pop_msq(bb);
-
+        const Square   orgSq  = AC == WHITE ? pop_lsq(bb) : pop_msq(bb);
         const Bitboard maskBB = (blockersBB & orgSq) == 0 ? FULL_BB : line_bb(kingSq, orgSq);
-
-        const Bitboard dstBB = attacks_bb<PT>(orgSq, occupancyBB) & maskBB & targetBB;
+        const Bitboard dstBB  = attacks_bb<PT>(orgSq, occupancyBB) & maskBB & targetBB;
 
         moves = splat_moves<AC>(orgSq, dstBB, moves);
     }
@@ -314,11 +290,7 @@ Move* generate_king_moves(const Position& pos,
 
     while (dstBB != 0)
     {
-        Square dstSq;
-        if constexpr (AC == WHITE)
-            dstSq = pop_lsq(dstBB);
-        else
-            dstSq = pop_msq(dstBB);
+        const Square dstSq = AC == WHITE ? pop_lsq(dstBB) : pop_msq(dstBB);
 
         *moves++ = Move{kingSq, dstSq};
 
