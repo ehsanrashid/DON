@@ -150,12 +150,12 @@ std::string move_to_can(const Move m) noexcept {
 
 // Converts a string representing a move in coordinate notation
 // (g1f3, a7a8q) to the corresponding legal move, if any.
-Move can_to_move(std::string can, const MoveList<GenType::LEGAL>& legalMoves) noexcept {
+Move can_to_move(std::string can, const MoveList<GenType::LEGAL>& legalMoveList) noexcept {
     assert(4 <= can.size() && can.size() <= 5);
 
     can = lower_case(can);
 
-    for (const Move m : legalMoves)
+    for (const Move m : legalMoveList)
         if (can == move_to_can(m))
             return m;
 
@@ -280,11 +280,11 @@ std::string move_to_san(const Move m, Position& pos) noexcept {
     State st;
     pos.do_move(m, st);
 
-    const bool legalMovesEmpty = MoveList<GenType::LEGAL, true>(pos).empty();
+    const bool legalMoveListEmpty = MoveList<GenType::LEGAL, true>(pos).empty();
 
     if (pos.checkers_bb() != 0)
-        san.push_back(legalMovesEmpty ? '#' : '+');
-    else if (legalMovesEmpty)
+        san.push_back(legalMoveListEmpty ? '#' : '+');
+    else if (legalMoveListEmpty)
         san.push_back('=');
 
     pos.undo_move(m);
@@ -294,14 +294,14 @@ std::string move_to_san(const Move m, Position& pos) noexcept {
 
 Move san_to_move(std::string                     san,
                  Position&                       pos,
-                 const MoveList<GenType::LEGAL>& legalMoves) noexcept {
+                 const MoveList<GenType::LEGAL>& legalMoveList) noexcept {
     assert(2 <= san.size() && san.size() <= 9);
 
     if (san.size() >= 2 && san[1] == '-'
         && (san[0] == '0' || static_cast<char>(std::tolower(static_cast<uchar>(san[0]))) == 'o'))
         std::replace_if(san.begin(), san.end(), [](char c) { return c == 'o' || c == '0'; }, 'O');
 
-    for (const Move m : legalMoves)
+    for (const Move m : legalMoveList)
         if (san == move_to_san(m, pos))
             return m;
 
@@ -314,27 +314,27 @@ Move san_to_move(std::string_view san, Position& pos) noexcept {
 
 Move mix_to_move(std::string                     mix,
                  Position&                       pos,
-                 const MoveList<GenType::LEGAL>& legalMoves) noexcept {
+                 const MoveList<GenType::LEGAL>& legalMoveList) noexcept {
     assert(2 <= mix.size() && mix.size() <= 9);
 
     Move m = Move::None;
 
-    if (!legalMoves.empty() && mix.size() >= 2)
+    if (!legalMoveList.empty() && mix.size() >= 2)
     {
         if (mix.size() <= 3
             || (mix[1] == '-'
                 && (mix[0] == '0'
                     || static_cast<char>(std::tolower(static_cast<uchar>(mix[0]))) == 'o')))
         {
-            m = san_to_move(mix, pos, legalMoves);
+            m = san_to_move(mix, pos, legalMoveList);
             return m;
         }
 
         if (mix.size() <= 5)
-            m = can_to_move(mix, legalMoves);
+            m = can_to_move(mix, legalMoveList);
 
         if (m == Move::None && mix.size() <= 9)
-            m = san_to_move(mix, pos, legalMoves);
+            m = san_to_move(mix, pos, legalMoveList);
     }
 
     return m;

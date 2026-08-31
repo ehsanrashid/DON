@@ -3,7 +3,7 @@
 # Verify that the riscv64 universal binary selects correct build
 # and benches correctly under qemu-riscv64 with various vlens
 #
-# Usage: check_universal_riscv.sh DON_EXE EXPECTED_BENCH
+# Usage: check_universal_riscv64.sh DON_EXE EXPECTED_BENCH
 
 set -eu
 
@@ -30,7 +30,7 @@ BINARY_SIZE=$(wc -c < "$DON_EXE")
 MAX_SIZE=$((150 * 1024 * 1024))
 
 if [ "$BINARY_SIZE" -gt "$MAX_SIZE" ]; then
-    printf 'check_universal_riscv.sh: binary size %d bytes exceeds %d MB limit\n' \
+    printf 'check_universal_riscv64.sh: binary size %d bytes exceeds %d MB limit\n' \
             "$BINARY_SIZE" "$((MAX_SIZE / 1024 / 1024))" >&2
     exit 1
 fi
@@ -81,8 +81,8 @@ for pair in $PAIRS; do
 done
 
 if [ "$FAIL" != 0 ]; then
-    echo "check_universal_riscv.sh: failed"
+    echo "check_universal_riscv64.sh: failed"
     exit 1
 fi
 
-echo "check_universal_riscv.sh: Good! Universal binary has correct hardware detection."
+echo "check_universal_riscv64.sh: Good! Universal binary has correct hardware detection."

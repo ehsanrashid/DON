@@ -78,17 +78,17 @@ class Score final {
 [[nodiscard]] std::string move_to_can(Move m) noexcept;
 
 [[nodiscard]] Move can_to_move(std::string                     can,
-                               const MoveList<GenType::LEGAL>& legalMoves) noexcept;
+                               const MoveList<GenType::LEGAL>& legalMoveList) noexcept;
 [[nodiscard]] Move can_to_move(std::string_view can, const Position& pos) noexcept;
 
 [[nodiscard]] std::string move_to_san(Move m, Position& pos) noexcept;
 
 [[nodiscard]] Move
-san_to_move(std::string san, Position& pos, const MoveList<GenType::LEGAL>& legalMoves) noexcept;
+san_to_move(std::string san, Position& pos, const MoveList<GenType::LEGAL>& legalMoveList) noexcept;
 [[nodiscard]] Move san_to_move(std::string_view san, Position& pos) noexcept;
 
 [[nodiscard]] Move
-mix_to_move(std::string mix, Position& pos, const MoveList<GenType::LEGAL>& legalMoves) noexcept;
+mix_to_move(std::string mix, Position& pos, const MoveList<GenType::LEGAL>& legalMoveList) noexcept;
 
 }  // namespace DON
 

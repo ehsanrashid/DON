@@ -3,7 +3,7 @@
 # Verify that the arm64 universal binary selects the correct per-arch build
 # under qemu-aarch64 emulation for a range of target CPUs.
 #
-# Usage: check_universal_arm.sh DON_EXE EXPECTED_BENCH
+# Usage: check_universal_arm64.sh DON_EXE EXPECTED_BENCH
 
 set -eu
 
@@ -24,7 +24,7 @@ BINARY_SIZE=$(wc -c < "$DON_EXE")
 MAX_SIZE=$((150 * 1024 * 1024))
 
 if [ "$BINARY_SIZE" -gt "$MAX_SIZE" ]; then
-    printf 'check_universal_arm.sh: binary size %d bytes exceeds %d MB limit\n' \
+    printf 'check_universal_arm64.sh: binary size %d bytes exceeds %d MB limit\n' \
             "$BINARY_SIZE" "$((MAX_SIZE / 1024 / 1024))" >&2
     exit 1
 fi
@@ -62,8 +62,8 @@ for pair in $PAIRS; do
 done
 
 if [ "$FAIL" != 0 ]; then
-    echo "check_universal_arm.sh: failed"
+    echo "check_universal_arm64.sh: failed"
     exit 1
 fi
 
-echo "check_universal_arm.sh: Good! Universal binary has correct hardware detection."
+echo "check_universal_arm64.sh: Good! Universal binary has correct hardware detection."

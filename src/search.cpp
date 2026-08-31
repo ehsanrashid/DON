@@ -2335,9 +2335,9 @@ bool Worker::ponder_move_extracted() noexcept {
     if (!rootPos.is_draw(1))
     {
         // Legal moves for the opponent
-        MoveList<GenType::LEGAL> legalMoves(rootPos);
+        MoveList<GenType::LEGAL> legalMoveList(rootPos);
 
-        if (!legalMoves.empty())
+        if (!legalMoveList.empty())
         {
             Move ponderMove;
 
@@ -2345,7 +2345,7 @@ bool Worker::ponder_move_extracted() noexcept {
 
             ponderMove = ttd.hit ? legal_move(ttd.move, rootPos) : Move::None;
 
-            if (ponderMove == Move::None || !legalMoves.contains(ponderMove))
+            if (ponderMove == Move::None || !legalMoveList.contains(ponderMove))
             {
                 ponderMove = Move::None;
 
@@ -2375,8 +2375,8 @@ bool Worker::ponder_move_extracted() noexcept {
 
                 if (ponderMove == Move::None)
                 {
-                    std::uniform_int_distribution<usize> distribution(0, legalMoves.size() - 1);
-                    ponderMove = *(legalMoves.begin() + distribution(prng));
+                    std::uniform_int_distribution<usize> distribution(0, legalMoveList.size() - 1);
+                    ponderMove = *(legalMoveList.begin() + distribution(prng));
                 }
             }
 

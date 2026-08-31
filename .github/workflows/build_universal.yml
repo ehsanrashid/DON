@@ -59,7 +59,7 @@ jobs:
           fi
 
       - name: Check arch selection under SDE
-        run: ./scripts/check_universal.sh ./DON-linux-x86-64-universal "$SDE_DIR/sde" "$benchref"
+        run: ./scripts/check_universal_x86_64.sh ./DON-linux-x86-64-universal "$SDE_DIR/sde" "$benchref"
 
       - name: Remove non-src files
         run: git clean -fxd -- src
@@ -131,7 +131,7 @@ jobs:
           fi
   
       - name: Check arch selection under SDE
-        run: ./scripts/check_universal.sh ./DON-windows-x86-64-universal.exe "$SDE_DIR/sde" "$benchref"
+        run: ./scripts/check_universal_x86_64.sh ./DON-windows-x86-64-universal.exe "$SDE_DIR/sde" "$benchref"
 
       - name: Remove non-src files
         run: git clean -fxd -- src
@@ -199,7 +199,7 @@ jobs:
           fi
 
       - name: Check arch selection under qemu
-        run: ./scripts/check_universal_arm.sh ./DON-linux-arm64-universal "$benchref"
+        run: ./scripts/check_universal_arm64.sh ./DON-linux-arm64-universal "$benchref"
 
       - name: Remove non-src files
         run: git clean -fxd -- src
@@ -394,7 +394,7 @@ jobs:
   #     - name: Check arch selection under qemu
   #       run: |
   #         QEMU=qemu-riscv64 QEMU_LD_PREFIX=/usr/riscv64-linux-gnu \
-  #         ./scripts/check_universal_riscv.sh ./DON-linux-riscv64-universal "$benchref"
+  #         ./scripts/check_universal_riscv64.sh ./DON-linux-riscv64-universal "$benchref"
 
   #     - name: Remove non-src files
   #       run: git clean -fxd -- src

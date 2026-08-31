@@ -1683,11 +1683,11 @@ WDLScore search(Position& pos, ProbeState* const ps) noexcept {
 
     WDLScore wdlScore, bestWdlScore = WDL_LOSS;
 
-    MoveList<GenType::LEGAL> legalMoves(pos);
+    MoveList<GenType::LEGAL> legalMoveList(pos);
 
     u8 moveCount = 0;
 
-    for (const Move m : legalMoves)
+    for (const Move m : legalMoveList)
     {
         if (!pos.capture(m) && (!CheckZeroingMoves || type_of(pos.moved_pc(m)) != PAWN))
             continue;
@@ -1724,7 +1724,7 @@ WDLScore search(Position& pos, ProbeState* const ps) noexcept {
     // Also in case of only capture moves,
     // for instance here 4K3/4q3/6p1/2k5/6p1/8/8/8 w - - 0 7,
     // have to return with PS_BEST_MOVE_ZEROING set.
-    bool legalMovesExhausted = moveCount != 0 && moveCount == legalMoves.size();
+    bool legalMovesExhausted = moveCount != 0 && moveCount == legalMoveList.size();
 
     if (legalMovesExhausted)
     {
