@@ -19,7 +19,7 @@
 #define MEMORY_H_INCLUDED
 
 #include <algorithm>
-//#include <cassert>
+#include <cassert>
 #include <cstring>
 #include <iterator>
 #include <memory>
@@ -214,11 +214,11 @@ template<typename T, typename ByteT>
     static_assert(std::is_trivially_copyable_v<T>, "Type must be trivially copyable");
     static_assert(sizeof(ByteT) == 1);
 
-    // if (reinterpret_cast<uptr>(buffer) % alignof(T) != 0)
-    // {
-    //     assert(false);
-    //     UNREACHABLE();
-    // }
+    if (reinterpret_cast<uptr>(buffer) % alignof(T) != 0)
+    {
+        assert(false);
+        UNREACHABLE();
+    }
 
     T value;
     std::memcpy(&value, buffer, sizeof(value));
