@@ -404,14 +404,13 @@ jobs:
 
       # riscv64 tests
 
-      # - name: Test riscv64-rva23 build
-      #   if: matrix.config.run_riscv64_tests
-      #   run: |
-      #     echo "cat /proc/cpuinfo" > script.sh
-      #     echo "cd src && export LDFLAGS='-static' && make clean && make -j4 ARCH=riscv64-rva23 build" >> script.sh
-      #     echo "./DON bench" >> script.sh
-      #     docker run --rm --platform ${{ matrix.config.platform }} -v ${{ github.workspace }}:/app don_builder
-      #     ../tests/signature.sh $benchref
+      - name: Test riscv64-rva23 build
+        if: matrix.config.run_riscv64_tests
+        run: |
+          echo "cd src && export LDFLAGS='-static' && make clean && make -j4 ARCH=riscv64-rva23 build" >> script.sh
+          echo "./DON bench" >> script.sh
+          docker run --rm --platform ${{ matrix.config.platform }} -v ${{ github.workspace }}:/app don_builder
+          ../tests/signature.sh $benchref
 
       - name: Test riscv64 build
         if: matrix.config.run_riscv64_tests
