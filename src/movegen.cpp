@@ -57,8 +57,9 @@ Move* splat_pawn_moves(Bitboard dstBB, Move* RESTRICT moves) noexcept {
     while (dstBB != 0)
     {
         const Square dstSq = AC == WHITE ? pop_lsq(dstBB) : pop_msq(dstBB);
+        const Square orgSq = dstSq - D;
 
-        *moves++ = Move{dstSq - D, dstSq};
+        *moves++ = Move{orgSq, dstSq};
     }
     //#endif
 

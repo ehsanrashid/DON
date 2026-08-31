@@ -693,14 +693,19 @@ class Move {
     constexpr explicit Move(const u16 d) noexcept :
         data(d) {}
     constexpr Move(const Square orgSq, const Square dstSq, const MT mt = MT::NORMAL) noexcept :
-        data((static_cast<u16>(mt) << TYPE_OFFSET)
-             | ((static_cast<u16>(orgSq) & SQ_MASK) << ORG_SQ_OFFSET)
-             | ((static_cast<u16>(dstSq) & SQ_MASK) << DST_SQ_OFFSET)) {}
+        data((static_cast<u16>(mt) << TYPE_OFFSET)  //
+             | (static_cast<u16>(orgSq) << ORG_SQ_OFFSET)
+             | (static_cast<u16>(dstSq) << DST_SQ_OFFSET)) {
+        assert(DON::is_ok(orgSq) && DON::is_ok(dstSq));
+    }
+
     constexpr Move(const Square orgSq, const Square dstSq, const PieceType promoPt) noexcept :
         data((static_cast<u16>(MT::PROMOTION) << TYPE_OFFSET)
-             | ((static_cast<u16>(promoPt - KNIGHT) & PROMO_MASK) << PROMO_OFFSET)
-             | ((static_cast<u16>(orgSq) & SQ_MASK) << ORG_SQ_OFFSET)
-             | ((static_cast<u16>(dstSq) & SQ_MASK) << DST_SQ_OFFSET)) {}
+             | (static_cast<u16>(promoPt - KNIGHT) << PROMO_OFFSET)
+             | (static_cast<u16>(orgSq) << ORG_SQ_OFFSET)
+             | (static_cast<u16>(dstSq) << DST_SQ_OFFSET)) {
+        assert(DON::is_ok(orgSq) && DON::is_ok(dstSq));
+    }
 
     // Accessors: extract parts of the move
     [[nodiscard]] constexpr Square org_sq() const noexcept {
