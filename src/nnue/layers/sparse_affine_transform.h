@@ -26,6 +26,7 @@
 #endif
 
 #include "../../bitboard.h"
+#include "../../memory.h"
 #include "../../misc.h"
 #include "../../types.h"
 #include "../nnz.h"
@@ -35,7 +36,6 @@
 #include "fallback_affine_transform.h"
 
 #if defined(USE_SSSE3) || defined(USE_LSX) || (defined(USE_NEON) && USE_NEON >= 8)
-    #include "../../memory.h"
     #define USE_SPARSE_AFFINE_SIMD
 #endif
 
