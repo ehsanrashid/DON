@@ -3,7 +3,7 @@
 # Verify that the universal binary selects the correct per-arch build under
 # Intel SDE emulation for a range of target CPUs
 #
-# Usage: check_universal.sh DON_EXE SDE_EXE EXPECTED_BENCH
+# Usage: check_universal_x86_64.sh DON_EXE SDE_EXE EXPECTED_BENCH
 
 set -eu
 
@@ -34,14 +34,14 @@ skl:x86-64-bmi2
 adl:x86-64-avxvnni
 skx:x86-64-avx512
 clx:x86-64-vnni512
-#icl:x86-64-avx512icl
+icl:x86-64-avx512icl
 "
 
 BINARY_SIZE=$(wc -c < "$DON_EXE")
 MAX_SIZE=$((150 * 1024 * 1024))
 
 if [ "$BINARY_SIZE" -gt "$MAX_SIZE" ]; then
-    printf 'check_universal.sh: binary size %d bytes exceeds %d MB limit\n' \
+    printf 'check_universal_x86_64.sh: binary size %d bytes exceeds %d MB limit\n' \
             "$BINARY_SIZE" "$((MAX_SIZE / 1024 / 1024))" >&2
     exit 1
 fi
@@ -98,8 +98,8 @@ for pair in $PAIRS; do
 done
 
 if [ "$FAIL" != 0 ]; then
-    echo "check_universal.sh: failed"
+    echo "check_universal_x86_64.sh: failed"
     exit 1
 fi
 
-echo "check_universal.sh: Good! Universal binary has correct hardware detection."
+echo "check_universal_x86_64.sh: Good! Universal binary has correct hardware detection."

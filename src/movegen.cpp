@@ -43,20 +43,15 @@ Move* splat_pawn_moves(Bitboard dstBB, Move* RESTRICT moves) noexcept {
 #if defined(USE_AVX512ICL)
     assert(popcount(dstBB) <= 8);  // <= 8 pawns per side
 
-    __m512i AllSquares;
-
-    if constexpr (AC == WHITE)
-        AllSquares = ALL_SQUARES;
-    else
-        AllSquares = REV_ALL_SQUARES;
+    const __m512i AllSquares = AC == WHITE ? ALL_SQUARES : REV_ALL_SQUARES;
 
     // clang-format off
-    const __m128i dstSquares = _mm_cvtepi8_epi16(_mm512_castsi512_si128(_mm512_maskz_compress_epi8(dstBB, AllSquares)));
-    const __m128i orgSquares = _mm_sub_epi16(dstSquares, _mm_set1_epi16(+D));
-    const __m128i movesList  = _mm_or_si128(_mm_slli_epi16(orgSquares, Move::DST_SQ_OFFSET),
-                                            _mm_slli_epi16(dstSquares, Move::ORG_SQ_OFFSET));
+    const __m128i dstSquares  = _mm_cvtepi8_epi16(_mm512_castsi512_si128(_mm512_maskz_compress_epi8(dstBB, AllSquares)));
+    const __m128i orgSquares  = _mm_sub_epi16(dstSquares, _mm_set1_epi16(+D));
+    const __m128i packedMoves = _mm_or_si128(_mm_slli_epi16(orgSquares, Move::DST_SQ_OFFSET),
+                                             _mm_slli_epi16(dstSquares, Move::ORG_SQ_OFFSET));
     // clang-format on
-    _mm_storeu_si128(reinterpret_cast<__m128i*>(moves), movesList);
+    _mm_storeu_si128(reinterpret_cast<__m128i*>(moves), packedMoves);
     moves += popcount(dstBB);
 #else
     while (dstBB != 0)
@@ -129,19 +124,14 @@ Move* splat_moves(Square orgSq, Bitboard dstBB, Move* RESTRICT moves) noexcept {
 #if defined(USE_AVX512ICL)
     assert(popcount(dstBB) <= 32);  // Q can attack up to 27 squares
 
-    __m512i AllSquares;
-
-    if constexpr (AC == WHITE)
-        AllSquares = ALL_SQUARES;
-    else
-        AllSquares = REV_ALL_SQUARES;
+    const __m512i AllSquares = AC == WHITE ? ALL_SQUARES : REV_ALL_SQUARES;
 
     // clang-format off
-    const __m512i orgVec     = _mm512_set1_epi16(Move(orgSq, SQUARE_ZERO).raw());
-    const __m512i dstSquares = _mm512_cvtepi8_epi16(_mm512_castsi512_si256(_mm512_maskz_compress_epi8(dstBB, AllSquares)));
-    const __m512i movesList  = _mm512_or_si512(orgVec, _mm512_slli_epi16(dstSquares, Move::DST_SQ_OFFSET));
+    const __m512i orgVec      = _mm512_set1_epi16(Move(orgSq, SQUARE_ZERO).raw());
+    const __m512i dstSquares  = _mm512_cvtepi8_epi16(_mm512_castsi512_si256(_mm512_maskz_compress_epi8(dstBB, AllSquares)));
+    const __m512i packedMoves = _mm512_or_si512(orgVec, _mm512_slli_epi16(dstSquares, Move::DST_SQ_OFFSET));
     // clang-format on
-    _mm512_storeu_si512(moves, movesList);
+    _mm512_storeu_si512(moves, packedMoves);
     moves += popcount(dstBB);
 #else
     while (dstBB != 0)
