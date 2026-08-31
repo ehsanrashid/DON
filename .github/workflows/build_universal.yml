@@ -318,7 +318,7 @@ jobs:
              !.output
 
   # BuildUniversalLinuxRISCV64:
-  #   name: Linux riscv64
+  #   name: Linux RISC-V64
   #   runs-on: ubuntu-22.04
   #   defaults:
   #     run:
@@ -359,8 +359,8 @@ jobs:
   #       run: |
   #         make -j4 -C src ARCH=riscv64-universal build \
   #           COMP=clang COMPCXX=clang++ \
-  #           EXTRACXXFLAGS="--target=riscv64-linux-gnu" \
-  #           EXTRALDFLAGS="--target=riscv64-linux-gnu -fuse-ld=lld" \
+  #           EXTRA_CXXFLAGS="--target=riscv64-linux-gnu" \
+  #           EXTRA_LDFLAGS="--target=riscv64-linux-gnu -fuse-ld=lld" \
   #           OBJCOPY=llvm-objcopy
 
   #     - name: Strip binary

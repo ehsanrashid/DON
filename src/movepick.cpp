@@ -230,13 +230,13 @@ void partial_insertion_sort(const Iterator beg,
 
     const auto ext_move_descending_limit = [limit](const ExtMove& em1,
                                                    const ExtMove& em2) noexcept {
-        // Place elements below the limit after qualifying elements
+        // Elements below the limit never precede qualifying elements
         if (em1.value < limit)
             return false;
         // Qualifying elements always come before elements below the limit
         if (em2.value < limit)
             return true;
-        // Otherwise, use the normal descending-order comparison
+        // Sort qualifying elements in descending order
         return ext_move_descending(em1, em2);
     };
 

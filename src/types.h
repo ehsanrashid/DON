@@ -313,10 +313,10 @@ constexpr bool slider_can_threaten(const Piece pc, const Piece sliderPc) noexcep
 using PieceMap = Array<Piece, SQUARE_NB>;
 
 [[nodiscard]] constexpr File fold_to_edge(const File f) noexcept {
-    return std::min(f, FILE_H - int(f));
+    return std::min(f, FILE_H - u8(f));
 }
 [[nodiscard]] constexpr Rank fold_to_edge(const Rank r) noexcept {
-    return std::min(r, RANK_8 - int(r));
+    return std::min(r, RANK_8 - u8(r));
 }
 
 [[nodiscard]] constexpr Square relative_sq(const Color c, const Square s) noexcept {
@@ -324,7 +324,7 @@ using PieceMap = Array<Piece, SQUARE_NB>;
 }
 
 [[nodiscard]] constexpr Rank relative_rank(const Color c, const Rank r) noexcept {
-    return Rank(r ^ (c * RANK_8));
+    return Rank(u8(r) ^ (c * u8(RANK_8)));
 }
 
 [[nodiscard]] constexpr Rank relative_rank(const Color c, const Square s) noexcept {
@@ -645,30 +645,30 @@ class Move {
         CASTLING
     };
 
-    static constexpr u8 DST_SQ_OFFSET = 0;
-    static constexpr u8 ORG_SQ_OFFSET = 6;
-    static constexpr u8 PROMO_OFFSET  = 12;
-    static constexpr u8 TYPE_OFFSET   = 14;
+    static constexpr u8 DST_SQ_SHIFT = 0;
+    static constexpr u8 ORG_SQ_SHIFT = 6;
+    static constexpr u8 PROMO_SHIFT  = 12;
+    static constexpr u8 TYPE_SHIFT   = 14;
 
-    static constexpr u16 SQ_MASK    = u16{63};
-    static constexpr u16 PROMO_MASK = u16{3};
-    static constexpr u16 TYPE_MASK  = u16{3} << TYPE_OFFSET;
+    static constexpr u16 SQ_MASK    = (1u << 6) - 1;
+    static constexpr u16 PROMO_MASK = (1u << 2) - 1;
+    static constexpr u16 TYPE_MASK  = ((1u << 2) - 1) << TYPE_SHIFT;
 
     Move() noexcept = default;
     constexpr explicit Move(const u16 d) noexcept :
         data(d) {}
     constexpr Move(const Square orgSq, const Square dstSq, const MT mt = MT::NORMAL) noexcept :
-        data((u16(mt) << TYPE_OFFSET)         //
-             | (u16(orgSq) << ORG_SQ_OFFSET)  //
-             | (u16(dstSq) << DST_SQ_OFFSET)) {
+        data((u16(mt) << TYPE_SHIFT)         //
+             | (u16(orgSq) << ORG_SQ_SHIFT)  //
+             | (u16(dstSq) << DST_SQ_SHIFT)) {
         assert(DON::is_ok(orgSq) && DON::is_ok(dstSq));
     }
 
     constexpr Move(const Square orgSq, const Square dstSq, const PieceType promoPt) noexcept :
-        data((u16(MT::PROMOTION) << TYPE_OFFSET)        //
-             | (u16(promoPt - KNIGHT) << PROMO_OFFSET)  //
-             | (u16(orgSq) << ORG_SQ_OFFSET)            //
-             | (u16(dstSq) << DST_SQ_OFFSET)) {
+        data((u16(MT::PROMOTION) << TYPE_SHIFT)        //
+             | (u16(promoPt - KNIGHT) << PROMO_SHIFT)  //
+             | (u16(orgSq) << ORG_SQ_SHIFT)            //
+             | (u16(dstSq) << DST_SQ_SHIFT)) {
         assert(DON::is_ok(orgSq) && DON::is_ok(dstSq));
     }
 
@@ -676,21 +676,21 @@ class Move {
     [[nodiscard]] constexpr Square org_sq() const noexcept {
         assert(is_ok());
 
-        return Square((data >> ORG_SQ_OFFSET) & SQ_MASK);
+        return Square((data >> ORG_SQ_SHIFT) & SQ_MASK);
     }
 
     [[nodiscard]] constexpr Square dst_sq() const noexcept {
         assert(is_ok());
 
-        return Square((data >> DST_SQ_OFFSET) & SQ_MASK);
+        return Square((data >> DST_SQ_SHIFT) & SQ_MASK);
     }
 
     [[nodiscard]] constexpr MT type() const noexcept {
-        return MT((data & TYPE_MASK) >> TYPE_OFFSET);
+        return MT((data & TYPE_MASK) >> TYPE_SHIFT);
     }
 
     [[nodiscard]] constexpr PieceType promotion_type() const noexcept {
-        return PieceType(((data >> PROMO_OFFSET) & PROMO_MASK) + KNIGHT);
+        return PieceType(((data >> PROMO_SHIFT) & PROMO_MASK) + KNIGHT);
     }
 
     [[nodiscard]] constexpr Value promotion_value() const noexcept {
@@ -744,11 +744,11 @@ struct DirtyPiece final {
 // Keep track of what threats (attacks) change on the board by a move
 struct DirtyThreat final {
    public:
-    static constexpr u8 SQ_OFFSET            = 0;
-    static constexpr u8 THREATENED_SQ_OFFSET = 8;
-    static constexpr u8 PC_OFFSET            = 16;
-    static constexpr u8 THREATENED_PC_OFFSET = 20;
-    static constexpr u8 ADD_OFFSET           = 31;
+    static constexpr u8 SQ_SHIFT            = 0;
+    static constexpr u8 THREATENED_SQ_SHIFT = 8;
+    static constexpr u8 PC_SHIFT            = 16;
+    static constexpr u8 THREATENED_PC_SHIFT = 20;
+    static constexpr u8 ADD_SHIFT           = 31;
 
     static constexpr u16 SQ_MASK  = (1u << 8) - 1;
     static constexpr u16 PC_MASK  = (1u << 4) - 1;
@@ -762,25 +762,25 @@ struct DirtyThreat final {
                           const Piece  pc,
                           const Piece  threatenedPc,
                           const bool   add) noexcept :
-        data((u32(add) << ADD_OFFSET)                       //
-             | (u32(threatenedPc) << THREATENED_PC_OFFSET)  //
-             | (u32(pc) << PC_OFFSET)                       //
-             | (u32(threatenedSq) << THREATENED_SQ_OFFSET)  //
-             | (u32(sq) << SQ_OFFSET)) {}
+        data((u32(add) << ADD_SHIFT)                       //
+             | (u32(threatenedPc) << THREATENED_PC_SHIFT)  //
+             | (u32(pc) << PC_SHIFT)                       //
+             | (u32(threatenedSq) << THREATENED_SQ_SHIFT)  //
+             | (u32(sq) << SQ_SHIFT)) {}
 
     constexpr Square sq() const noexcept {  //
-        return Square((data >> SQ_OFFSET) & SQ_MASK);
+        return Square((data >> SQ_SHIFT) & SQ_MASK);
     }
     constexpr Square threatened_sq() const noexcept {
-        return Square((data >> THREATENED_SQ_OFFSET) & SQ_MASK);
+        return Square((data >> THREATENED_SQ_SHIFT) & SQ_MASK);
     }
     constexpr Piece pc() const noexcept {  //
-        return Piece((data >> PC_OFFSET) & PC_MASK);
+        return Piece((data >> PC_SHIFT) & PC_MASK);
     }
     constexpr Piece threatened_pc() const noexcept {
-        return Piece((data >> THREATENED_PC_OFFSET) & PC_MASK);
+        return Piece((data >> THREATENED_PC_SHIFT) & PC_MASK);
     }
-    constexpr bool add() const noexcept { return ((data >> ADD_OFFSET) & ADD_MASK) != 0; }
+    constexpr bool add() const noexcept { return ((data >> ADD_SHIFT) & ADD_MASK) != 0; }
 
     constexpr u32 raw() const noexcept { return data; }
 

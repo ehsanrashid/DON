@@ -171,14 +171,13 @@ struct NNZ final {
         void record(SIMD::vec_t, SIMD::vec_t) noexcept {}
     #endif
 
-       private:
         u8* nnzOut;
     };
 
     Cursor make_cursor(Color perspective) noexcept { return {*this, perspective}; }
 
     // Each 8-bit chunk
-    u8 bitset[ceil_div(Dimensions, 32)];
+    alignas(8) u8 bitset[ceil_div(Dimensions, 32)];
 
 #endif
 };

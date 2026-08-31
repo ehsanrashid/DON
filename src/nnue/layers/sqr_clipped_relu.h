@@ -172,6 +172,22 @@ class SqrClippedReLU final {
 
         constexpr IndexType Start = SimdWidth * ChunkCount;
 
+#elif defined(USE_RVV)
+        for (IndexType i = 0; i < InputDimensions;)
+        {
+            const usize vl = __riscv_vsetvl_e32m4(InputDimensions - i);
+            vint32m4_t  in = __riscv_vle32_v_i32m4(&input[i], vl);
+
+            vint16m2_t words   = __riscv_vnclip_wx_i16m2(in, 0, __RISCV_VXRM_RDN, vl);
+            vint16m2_t sqr     = __riscv_vmulh_vv_i16m2(words, words, vl);
+            vint8m1_t narrowed = __riscv_vnclip_wx_i8m1(sqr, SimdShift, __RISCV_VXRM_RDN, vl);
+
+            __riscv_vse8_v_u8m1(&output[i], __riscv_vreinterpret_v_i8m1_u8m1(narrowed), vl);
+            i += vl;
+        }
+
+        constexpr IndexType Start = InputDimensions;
+
 #else
         constexpr IndexType Start = 0;
 

@@ -157,10 +157,10 @@ jobs:
   #   name: Build MSVC
   #   if: ${{ always() }}
   #   uses: ./.github/workflows/build_msvc.yml
-  # BuildWASM:
-  #   name: Build WASM
-  #   if: ${{ always() }}
-  #   uses: ./.github/workflows/build_wasm.yml
+  BuildWASM:
+    name: Build WASM
+    if: ${{ always() }}
+    uses: ./.github/workflows/build_wasm.yml
   # Release Jobs
   BuildAndroid:
     name: Build Android
