@@ -163,8 +163,8 @@ constexpr Array<PieceType, PIECE_TYPE_CNT - 2> NON_PAWN_PIECE_TYPES{
 #define ENABLE_INCR_OPERATORS_ON(T) \
     static_assert(std::is_enum_v<T>, "ENABLE_INCR_OPERATORS_ON requires an enum"); \
     static_assert(std::is_convertible_v<T, int>, "ENABLE_INCR_OPERATORS_ON requires an *unscoped* enum (plain enum)"); \
-    constexpr T& operator++(T& v) noexcept { return v = static_cast<T>(static_cast<int>(v) + 1); } \
-    constexpr T& operator--(T& v) noexcept { return v = static_cast<T>(static_cast<int>(v) - 1); } \
+    constexpr T& operator++(T& v) noexcept { return v = T(int(v) + 1); } \
+    constexpr T& operator--(T& v) noexcept { return v = T(int(v) - 1); } \
     constexpr T  operator++(T& v, const int) noexcept { T u = v; ++v; return u; } \
     constexpr T  operator--(T& v, const int) noexcept { T u = v; --v; return u; }
 // clang-format on
@@ -193,7 +193,7 @@ enum class Direction : i8 {
     NORTH_2 = NORTH + NORTH,
 };
 
-constexpr auto operator+(const Direction d) noexcept { return static_cast<i8>(d); }
+constexpr auto operator+(const Direction d) noexcept { return i8(d); }
 
 constexpr Direction operator+(const Direction d1, const Direction d2) noexcept {
     return Direction(+d1 + +d2);
@@ -206,42 +206,22 @@ constexpr Direction operator*(const Direction d, const int i) noexcept { return 
 constexpr Direction operator*(const int i, const Direction d) noexcept { return d * i; }
 
 // Additional operators for File
-constexpr File operator+(const File f, const int i) noexcept {
-    return File(static_cast<u8>(f) + i);
-}
-constexpr File operator-(const File f, const int i) noexcept {
-    return File(static_cast<u8>(f) - i);
-}
+constexpr File  operator+(const File f, const int i) noexcept { return File(u8(f) + i); }
+constexpr File  operator-(const File f, const int i) noexcept { return File(u8(f) - i); }
 constexpr File& operator+=(File& f, const int i) noexcept { return f = f + i; }
 constexpr File& operator-=(File& f, const int i) noexcept { return f = f - i; }
-constexpr i8    operator-(const File f1, const File f2) noexcept {
-    return static_cast<u8>(f1) - static_cast<u8>(f2);
-}
+constexpr i8    operator-(const File f1, const File f2) noexcept { return u8(f1) - u8(f2); }
 // Additional operators for Rank
-constexpr Rank operator+(const Rank r, const int i) noexcept {
-    return Rank(static_cast<u8>(r) + i);
-}
-constexpr Rank operator-(const Rank r, const int i) noexcept {
-    return Rank(static_cast<u8>(r) - i);
-}
+constexpr Rank  operator+(const Rank r, const int i) noexcept { return Rank(u8(r) + i); }
+constexpr Rank  operator-(const Rank r, const int i) noexcept { return Rank(u8(r) - i); }
 constexpr Rank& operator+=(Rank& r, const int i) noexcept { return r = r + i; }
 constexpr Rank& operator-=(Rank& r, const int i) noexcept { return r = r - i; }
-constexpr i8    operator-(const Rank r1, const Rank r2) noexcept {
-    return static_cast<u8>(r1) - static_cast<u8>(r2);
-}
+constexpr i8    operator-(const Rank r1, const Rank r2) noexcept { return u8(r1) - u8(r2); }
 // Additional operators for Square to add a Direction
-constexpr Square operator+(const Square s, const int i) noexcept {
-    return static_cast<Square>(static_cast<u8>(s) + i);
-}
-constexpr Square operator-(const Square s, const int i) noexcept {
-    return static_cast<Square>(static_cast<u8>(s) - i);
-}
-constexpr Square operator+(const Square s, const Direction d) noexcept {
-    return static_cast<Square>(static_cast<u8>(s) + static_cast<u8>(d));
-}
-constexpr Square operator-(const Square s, const Direction d) noexcept {
-    return static_cast<Square>(static_cast<u8>(s) - static_cast<u8>(d));
-}
+constexpr Square  operator+(const Square s, const int i) noexcept { return Square(u8(s) + i); }
+constexpr Square  operator-(const Square s, const int i) noexcept { return Square(u8(s) - i); }
+constexpr Square  operator+(const Square s, const Direction d) noexcept { return Square(s + +d); }
+constexpr Square  operator-(const Square s, const Direction d) noexcept { return Square(s - +d); }
 constexpr Square& operator+=(Square& s, const Direction d) noexcept { return s = s + d; }
 constexpr Square& operator-=(Square& s, const Direction d) noexcept { return s = s - d; }
 
@@ -252,38 +232,27 @@ constexpr Square& operator-=(Square& s, const Direction d) noexcept { return s =
 [[nodiscard]] constexpr Square make_square(const File f, const Rank r) noexcept {
     assert(is_ok(f) && is_ok(r));
 
-    return Square((static_cast<u8>(r) << 3) | static_cast<u8>(f));
+    return Square((u8(r) << 3) | u8(f));
 }
 
 [[nodiscard]] constexpr bool is_ok(const Square s) noexcept { return (s <= SQ_H8); }
 
-[[nodiscard]] constexpr File file_of(const Square s) noexcept {
-    return File((static_cast<u8>(s) >> 0) & 0x7);
-}
+[[nodiscard]] constexpr File file_of(const Square s) noexcept { return File((u8(s) >> 0) & 7); }
+[[nodiscard]] constexpr Rank rank_of(const Square s) noexcept { return Rank((u8(s) >> 3) & 7); }
 
-[[nodiscard]] constexpr Rank rank_of(const Square s) noexcept {
-    return Rank((static_cast<u8>(s) >> 3) & 0x7);
-}
-
-[[nodiscard]] constexpr Square reverse_sq(const Square s) noexcept {
-    return Square(static_cast<u8>(SQ_H8) - static_cast<u8>(s));
-}
+[[nodiscard]] constexpr Square reverse_sq(const Square s) noexcept { return Square(SQ_H8 - s); }
 
 [[nodiscard]] constexpr bool is_light(const Square s) noexcept {
-    return ((static_cast<u8>(s) ^ static_cast<u8>(rank_of(s))) & 1) != 0;
+    return ((u8(s) ^ u8(rank_of(s))) & 1) != 0;
 }
 [[nodiscard]] constexpr bool color_opposite(const Square s1, const Square s2) noexcept {
     return is_light(s1) != is_light(s2);
 }
 
 // Swap A1 <-> H1, B1 <-> G1, ...
-[[nodiscard]] constexpr Square flip_file(const Square s) noexcept {
-    return Square(static_cast<u8>(s) ^ static_cast<u8>(SQ_H1));
-}
+[[nodiscard]] constexpr Square flip_file(const Square s) noexcept { return Square(s ^ SQ_H1); }
 // Swap A1 <-> H8, B1 <-> G8, ...
-[[nodiscard]] constexpr Square flip_rank(const Square s) noexcept {
-    return Square(static_cast<u8>(s) ^ static_cast<u8>(SQ_A8));
-}
+[[nodiscard]] constexpr Square flip_rank(const Square s) noexcept { return Square(s ^ SQ_A8); }
 
 enum Color : u8 {
     WHITE,
@@ -309,11 +278,9 @@ static_assert(sizeof(Piece) == 1, "Piece size must be 1 byte");
 
 inline constexpr usize PIECE_NB = 16;
 
-constexpr u8 operator+(const Piece pc) noexcept { return static_cast<u8>(pc); }
+constexpr u8 operator+(const Piece pc) noexcept { return u8(pc); }
 
-constexpr Piece operator^(const Piece pc1, const Piece pc2) noexcept {
-    return static_cast<Piece>(+pc1 ^ +pc2);
-}
+constexpr Piece operator^(const Piece pc1, const Piece pc2) noexcept { return Piece(+pc1 ^ +pc2); }
 
 [[nodiscard]] constexpr bool is_ok(const Piece pc) noexcept {
     return (Piece::W_PAWN <= pc && pc <= Piece::W_KING)
@@ -323,22 +290,20 @@ constexpr Piece operator^(const Piece pc1, const Piece pc2) noexcept {
 [[nodiscard]] constexpr Piece make_piece(const Color c, const PieceType pt) noexcept {
     assert(is_ok(c) && is_ok(pt));
 
-    return static_cast<Piece>((static_cast<u8>(c) << 3) | static_cast<u8>(pt));
+    return Piece((u8(c) << 3) | u8(pt));
 }
 
-constexpr PieceType type_of(const Piece pc) noexcept {
-    return static_cast<PieceType>((+pc >> 0) & 0x7);
-}
+constexpr PieceType type_of(const Piece pc) noexcept { return PieceType((+pc >> 0) & 7); }
 
-constexpr Color color_of(const Piece pc) noexcept { return static_cast<Color>((+pc >> 3) & 0x1); }
+constexpr Color color_of(const Piece pc) noexcept { return Color((+pc >> 3) & 1); }
 
 // Swap color of piece B_KNIGHT <-> W_KNIGHT
 [[nodiscard]] constexpr Piece flip_color(const Piece pc) noexcept {
-    return static_cast<Piece>(+pc ^ PIECE_TYPE_NB);
+    return Piece(+pc ^ PIECE_TYPE_NB);
 }
 
 [[nodiscard]] constexpr Piece relative_piece(const Color c, const Piece pc) noexcept {
-    return static_cast<Piece>(+pc ^ (c * PIECE_TYPE_NB));
+    return Piece(+pc ^ (c * PIECE_TYPE_NB));
 }
 
 constexpr bool slider_can_threaten(const Piece pc, const Piece sliderPc) noexcept {
@@ -348,18 +313,18 @@ constexpr bool slider_can_threaten(const Piece pc, const Piece sliderPc) noexcep
 using PieceMap = Array<Piece, SQUARE_NB>;
 
 [[nodiscard]] constexpr File fold_to_edge(const File f) noexcept {
-    return std::min(f, FILE_H - static_cast<int>(f));
+    return std::min(f, FILE_H - int(f));
 }
 [[nodiscard]] constexpr Rank fold_to_edge(const Rank r) noexcept {
-    return std::min(r, RANK_8 - static_cast<int>(r));
+    return std::min(r, RANK_8 - int(r));
 }
 
 [[nodiscard]] constexpr Square relative_sq(const Color c, const Square s) noexcept {
-    return static_cast<Square>(static_cast<u8>(s) ^ (c * static_cast<u8>(SQ_A8)));
+    return Square(u8(s) ^ (c * u8(SQ_A8)));
 }
 
 [[nodiscard]] constexpr Rank relative_rank(const Color c, const Rank r) noexcept {
-    return static_cast<Rank>(r ^ (c * static_cast<u8>(RANK_8)));
+    return Rank(r ^ (c * RANK_8));
 }
 
 [[nodiscard]] constexpr Rank relative_rank(const Color c, const Square s) noexcept {
@@ -409,9 +374,9 @@ template<bool Upper = false>
 
 [[nodiscard]] constexpr char to_char(const Rank r) noexcept { return '1' + r; }
 
-[[nodiscard]] constexpr File to_file(const char f) noexcept { return static_cast<File>(f - 'a'); }
+[[nodiscard]] constexpr File to_file(const char f) noexcept { return File(f - 'a'); }
 
-[[nodiscard]] constexpr Rank to_rank(const char r) noexcept { return static_cast<Rank>(r - '1'); }
+[[nodiscard]] constexpr Rank to_rank(const char r) noexcept { return Rank(r - '1'); }
 
 // Flip file 'A'-'H' or 'a'-'h'; otherwise unchanged
 [[nodiscard]] constexpr char flip_file(const char f) noexcept {
@@ -693,17 +658,17 @@ class Move {
     constexpr explicit Move(const u16 d) noexcept :
         data(d) {}
     constexpr Move(const Square orgSq, const Square dstSq, const MT mt = MT::NORMAL) noexcept :
-        data((static_cast<u16>(mt) << TYPE_OFFSET)  //
-             | (static_cast<u16>(orgSq) << ORG_SQ_OFFSET)
-             | (static_cast<u16>(dstSq) << DST_SQ_OFFSET)) {
+        data((u16(mt) << TYPE_OFFSET)         //
+             | (u16(orgSq) << ORG_SQ_OFFSET)  //
+             | (u16(dstSq) << DST_SQ_OFFSET)) {
         assert(DON::is_ok(orgSq) && DON::is_ok(dstSq));
     }
 
     constexpr Move(const Square orgSq, const Square dstSq, const PieceType promoPt) noexcept :
-        data((static_cast<u16>(MT::PROMOTION) << TYPE_OFFSET)
-             | (static_cast<u16>(promoPt - KNIGHT) << PROMO_OFFSET)
-             | (static_cast<u16>(orgSq) << ORG_SQ_OFFSET)
-             | (static_cast<u16>(dstSq) << DST_SQ_OFFSET)) {
+        data((u16(MT::PROMOTION) << TYPE_OFFSET)        //
+             | (u16(promoPt - KNIGHT) << PROMO_OFFSET)  //
+             | (u16(orgSq) << ORG_SQ_OFFSET)            //
+             | (u16(dstSq) << DST_SQ_OFFSET)) {
         assert(DON::is_ok(orgSq) && DON::is_ok(dstSq));
     }
 
@@ -711,21 +676,21 @@ class Move {
     [[nodiscard]] constexpr Square org_sq() const noexcept {
         assert(is_ok());
 
-        return static_cast<Square>((data >> ORG_SQ_OFFSET) & SQ_MASK);
+        return Square((data >> ORG_SQ_OFFSET) & SQ_MASK);
     }
 
     [[nodiscard]] constexpr Square dst_sq() const noexcept {
         assert(is_ok());
 
-        return static_cast<Square>((data >> DST_SQ_OFFSET) & SQ_MASK);
+        return Square((data >> DST_SQ_OFFSET) & SQ_MASK);
     }
 
     [[nodiscard]] constexpr MT type() const noexcept {
-        return static_cast<MT>((data & TYPE_MASK) >> TYPE_OFFSET);
+        return MT((data & TYPE_MASK) >> TYPE_OFFSET);
     }
 
     [[nodiscard]] constexpr PieceType promotion_type() const noexcept {
-        return static_cast<PieceType>(((data >> PROMO_OFFSET) & PROMO_MASK) + KNIGHT);
+        return PieceType(((data >> PROMO_OFFSET) & PROMO_MASK) + KNIGHT);
     }
 
     [[nodiscard]] constexpr Value promotion_value() const noexcept {
@@ -797,11 +762,11 @@ struct DirtyThreat final {
                           const Piece  pc,
                           const Piece  threatenedPc,
                           const bool   add) noexcept :
-        data((static_cast<u32>(add) << ADD_OFFSET)
-             | (static_cast<u32>(threatenedPc) << THREATENED_PC_OFFSET)
-             | (static_cast<u32>(pc) << PC_OFFSET)
-             | (static_cast<u32>(threatenedSq) << THREATENED_SQ_OFFSET)
-             | (static_cast<u32>(sq) << SQ_OFFSET)) {}
+        data((u32(add) << ADD_OFFSET)                       //
+             | (u32(threatenedPc) << THREATENED_PC_OFFSET)  //
+             | (u32(pc) << PC_OFFSET)                       //
+             | (u32(threatenedSq) << THREATENED_SQ_OFFSET)  //
+             | (u32(sq) << SQ_OFFSET)) {}
 
     constexpr Square sq() const noexcept {  //
         return Square((data >> SQ_OFFSET) & SQ_MASK);
