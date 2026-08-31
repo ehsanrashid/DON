@@ -314,7 +314,7 @@ class SparseAffineTransform final {
             for (IndexType ob = 0; ob < OutputDimensions; ob += blk) \
             { \
                 const usize       vl  = __riscv_vsetvl_e32m##LMUL(OutputDimensions - ob); \
-                vint32m##LMUL##_t acc = __riscv_vle32_v_i32m##LMUL(biases + ob, vl); \
+                vint32m##LMUL##_t acc = __riscv_vle32_v_i32m##LMUL(biases.data() + ob, vl); \
                 for (IndexType k = 0; k < InputDimensions / 256; ++k) \
                 { \
                     u64   bits         = load_as<u64>(nnz.bitset + k * 8); \
