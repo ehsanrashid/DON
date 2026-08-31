@@ -659,50 +659,51 @@ void update_refresh_cache(const Color               perspective,
     const auto* psqtWeights       = &featureTransformer.psqtWeights[0];
     const auto* threatPsqtWeights = &featureTransformer.threatPsqtWeights[0];
 
-    for (IndexType i = 0; i < Dimensions;)
+    for (usize tileOffset = 0; tileOffset < Dimensions;)
     {
-        const usize vl = __riscv_vsetvl_e16m8(Dimensions - i);
+        const usize vl = __riscv_vsetvl_e16m8(Dimensions - tileOffset);
 
-        vint16m8_t accum = __riscv_vle16_v_i16m8(&entry.accumulation[i], vl);
-        for (int i : removed)
+        vint16m8_t accum = __riscv_vle16_v_i16m8(&entry.accumulation[tileOffset], vl);
+        for (const auto i : removed)
             accum = __riscv_vsub_vv_i16m8(
-              accum, __riscv_vle16_v_i16m8(&weights[i * Dimensions + i], vl), vl);
+              accum, __riscv_vle16_v_i16m8(&weights[i * Dimensions + tileOffset], vl), vl);
         for (const auto i : added)
             accum = __riscv_vadd_vv_i16m8(
-              accum, __riscv_vle16_v_i16m8(&weights[i * Dimensions + i], vl), vl);
+              accum, __riscv_vle16_v_i16m8(&weights[i * Dimensions + tileOffset], vl), vl);
 
-        __riscv_vse16_v_i16m8(&entry.accumulation[i], accum, vl);
+        __riscv_vse16_v_i16m8(&entry.accumulation[tileOffset], accum, vl);
 
         for (const auto i : active)
             accum = __riscv_vwadd_wv_i16m8(
-              accum, __riscv_vle8_v_i8m4(&threatWeights[i * Dimensions + i], vl), vl);
+              accum, __riscv_vle8_v_i8m4(&threatWeights[i * Dimensions + tileOffset], vl), vl);
 
-        __riscv_vse16_v_i16m8(&accumulator.accumulation[perspective][i], accum, vl);
+        __riscv_vse16_v_i16m8(&accumulator.accumulation[perspective][tileOffset], accum, vl);
 
-        i += vl;
+        tileOffset += vl;
     }
 
-    for (IndexType i = 0; i < PSQTBuckets;)
+    for (usize tileOffset = 0; tileOffset < PSQTBuckets;)
     {
-        const usize vl = __riscv_vsetvl_e32m1(PSQTBuckets - i);
+        const usize vl = __riscv_vsetvl_e32m1(PSQTBuckets - tileOffset);
 
-        vint32m1_t accum = __riscv_vle32_v_i32m1(&entry.psqtAccumulation[i], vl);
+        vint32m1_t accum = __riscv_vle32_v_i32m1(&entry.psqtAccumulation[tileOffset], vl);
         for (const auto i : removed)
             accum = __riscv_vsub_vv_i32m1(
-              accum, __riscv_vle32_v_i32m1(&psqtWeights[i * PSQTBuckets + i], vl), vl);
+              accum, __riscv_vle32_v_i32m1(&psqtWeights[i * PSQTBuckets + tileOffset], vl), vl);
         for (const auto i : added)
             accum = __riscv_vadd_vv_i32m1(
-              accum, __riscv_vle32_v_i32m1(&psqtWeights[i * PSQTBuckets + i], vl), vl);
+              accum, __riscv_vle32_v_i32m1(&psqtWeights[i * PSQTBuckets + tileOffset], vl), vl);
 
-        __riscv_vse32_v_i32m1(&entry.psqtAccumulation[i], accum, vl);
+        __riscv_vse32_v_i32m1(&entry.psqtAccumulation[tileOffset], accum, vl);
 
         for (const auto i : active)
             accum = __riscv_vadd_vv_i32m1(
-              accum, __riscv_vle32_v_i32m1(&threatPsqtWeights[i * PSQTBuckets + i], vl), vl);
+              accum, __riscv_vle32_v_i32m1(&threatPsqtWeights[i * PSQTBuckets + tileOffset], vl),
+              vl);
 
-        __riscv_vse32_v_i32m1(&accumulator.psqtAccumulation[perspective][i], accum, vl);
+        __riscv_vse32_v_i32m1(&accumulator.psqtAccumulation[perspective][tileOffset], accum, vl);
 
-        i += vl;
+        tileOffset += vl;
     }
 
 #else
