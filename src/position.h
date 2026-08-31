@@ -1088,14 +1088,14 @@ inline void Position::update_piece_threats(const Square              s,
 
 #if defined(USE_AVX512ICL)
     DirtyThreat dirtyThreat1{s, SQUARE_ZERO, pc, Piece::NO_PIECE, put};
-    write_multiple_dirties<DirtyThreat::THREATENED_SQ_OFFSET, DirtyThreat::THREATENED_PC_OFFSET>(
+    write_multiple_dirties<DirtyThreat::THREATENED_SQ_SHIFT, DirtyThreat::THREATENED_PC_SHIFT>(
       piece_map(), threatenedBB, dirtyThreat1, dts);
 
     const Bitboard attackersBB = directSlidersBB | incomingThreatsBB;
 
     DirtyThreat dirtyThreat2{SQUARE_ZERO, s, Piece::NO_PIECE, pc, put};
-    write_multiple_dirties<DirtyThreat::SQ_OFFSET, DirtyThreat::PC_OFFSET>(piece_map(), attackersBB,
-                                                                           dirtyThreat2, dts);
+    write_multiple_dirties<DirtyThreat::SQ_SHIFT, DirtyThreat::PC_SHIFT>(piece_map(), attackersBB,
+                                                                         dirtyThreat2, dts);
 #else
     while (threatenedBB != 0)
     {

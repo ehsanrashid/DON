@@ -387,7 +387,7 @@ Move pg_to_move(const u16 pgMove, MoveList<GenType::LEGAL>& legalMoveList) noexc
 
     Move move(pgMove);
 
-    if (u16 pt = (move.raw() >> Move::PROMO_OFFSET) & 0x7; pt != 0)
+    if (u16 pt = (move.raw() >> Move::PROMO_SHIFT) & 0x7; pt != 0)
         move = Move{move.org_sq(), move.dst_sq(), PieceType(pt + 1)};
 
     u16 moveRaw = move.raw() & ~Move::TYPE_MASK;

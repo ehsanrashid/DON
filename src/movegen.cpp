@@ -31,6 +31,21 @@ namespace DON {
 
 namespace {
 
+#if defined(USE_AVX512ICL)
+// Reverse the first 1..8 packed 16-bit moves.
+alignas(16) inline constexpr u8 ReverseMoveShuffle[9][16]{
+  {0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80},
+  {0, 1, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80},
+  {2, 3, 0, 1, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80},
+  {4, 5, 2, 3, 0, 1, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80},
+  {6, 7, 4, 5, 2, 3, 0, 1, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80},
+  {8, 9, 6, 7, 4, 5, 2, 3, 0, 1, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80},
+  {10, 11, 8, 9, 6, 7, 4, 5, 2, 3, 0, 1, 0x80, 0x80, 0x80, 0x80},
+  {12, 13, 10, 11, 8, 9, 6, 7, 4, 5, 2, 3, 0, 1, 0x80, 0x80},
+  {14, 15, 12, 13, 10, 11, 8, 9, 6, 7, 4, 5, 2, 3, 0, 1}  //
+};
+#endif
+
 // Splat pawn moves
 template<Color AC, Direction D>
 Move* splat_pawn_moves(Bitboard dstBB, Move* RESTRICT moves) noexcept {
@@ -40,20 +55,28 @@ Move* splat_pawn_moves(Bitboard dstBB, Move* RESTRICT moves) noexcept {
                     || D == Direction::NORTH_WEST || D == Direction::SOUTH_WEST,
                   "D is invalid");
 
-    //#if defined(USE_AVX512ICL)
-    //    assert(popcount(dstBB) <= 8);  // <= 8 pawns per side
-    //
-    //    const __m512i AllSquares = AC == WHITE ? ALL_SQUARES : REV_ALL_SQUARES;
-    //
-    //    // clang-format off
-    //    const __m128i dstSquares  = _mm_cvtepi8_epi16(_mm512_castsi512_si128(_mm512_maskz_compress_epi8(dstBB, AllSquares)));
-    //    const __m128i orgSquares  = _mm_sub_epi16(dstSquares, _mm_set1_epi16(+D));
-    //    const __m128i packedMoves = _mm_or_si128(_mm_slli_epi16(orgSquares, Move::DST_SQ_OFFSET),
-    //                                             _mm_slli_epi16(dstSquares, Move::ORG_SQ_OFFSET));
-    //    // clang-format on
-    //    _mm_storeu_si128(reinterpret_cast<__m128i*>(moves), packedMoves);
-    //    moves += popcount(dstBB);
-    //#else
+#if defined(USE_AVX512ICL)
+    const u8 count = popcount(dstBB);
+    assert(count <= 8);  // <= 8 pawns per side
+
+    const __m512i AllSquares = AC == WHITE ? ALL_SQUARES : REV_ALL_SQUARES;
+
+    // clang-format off
+    const __m128i dstSquares = _mm_cvtepi8_epi16(_mm512_castsi512_si128(_mm512_maskz_compress_epi8(static_cast<__mmask64>(dstBB), ALL_SQUARES)));
+    const __m128i orgSquares = _mm_sub_epi16(dstSquares, _mm_set1_epi16(+D));
+
+    __m128i      packedMoves = _mm_or_si128(_mm_slli_epi16(orgSquares, Move::ORG_SQ_SHIFT),
+                                            _mm_slli_epi16(dstSquares, Move::DST_SQ_SHIFT));
+
+    if constexpr (AC == BLACK)
+    {
+        const __m128i shuffle = _mm_load_si128(reinterpret_cast<const __m128i*>(ReverseMoveShuffle[count]));
+        packedMoves = _mm_shuffle_epi8(packedMoves, shuffle);
+    }
+    // clang-format on
+    _mm_storeu_si128(reinterpret_cast<__m128i*>(moves), packedMoves);
+    moves += count;
+#else
     while (dstBB != 0)
     {
         const Square dstSq = AC == WHITE ? pop_lsq(dstBB) : pop_msq(dstBB);
@@ -61,7 +84,7 @@ Move* splat_pawn_moves(Bitboard dstBB, Move* RESTRICT moves) noexcept {
 
         *moves++ = Move{orgSq, dstSq};
     }
-    //#endif
+#endif
 
     return moves;
 }
@@ -112,26 +135,47 @@ Move* splat_promotion_moves(Bitboard       dstBB,
 template<Color AC>
 Move* splat_moves(Square orgSq, Bitboard dstBB, Move* RESTRICT moves) noexcept {
 
-    //#if defined(USE_AVX512ICL)
-    //    assert(popcount(dstBB) <= 32);  // Q can attack up to 27 squares
-    //
-    //    const __m512i AllSquares = AC == WHITE ? ALL_SQUARES : REV_ALL_SQUARES;
-    //
-    //    // clang-format off
-    //    const __m512i orgVec      = _mm512_set1_epi16(Move(orgSq, SQUARE_ZERO).raw());
-    //    const __m512i dstSquares  = _mm512_cvtepi8_epi16(_mm512_castsi512_si256(_mm512_maskz_compress_epi8(dstBB, AllSquares)));
-    //    const __m512i packedMoves = _mm512_or_si512(orgVec, _mm512_slli_epi16(dstSquares, Move::DST_SQ_OFFSET));
-    //    // clang-format on
-    //    _mm512_storeu_si512(moves, packedMoves);
-    //    moves += popcount(dstBB);
-    //#else
+#if defined(USE_AVX512ICL)
+    const u8 count = popcount(dstBB);
+    assert(count <= 32);  // Q can attack up to 27 squares
+
+    // clang-format off
+   const __m512i orgVec      = _mm512_set1_epi16(Move(orgSq, SQUARE_ZERO).raw());
+   const __m512i dstSquares  = _mm512_cvtepi8_epi16(_mm512_castsi512_si256(_mm512_maskz_compress_epi8(dstBB, ALL_SQUARES)));
+   
+   __m512i packedMoves       = _mm512_or_si512(orgVec, _mm512_slli_epi16(dstSquares, Move::DST_SQ_SHIFT));
+
+    if constexpr (AC == BLACK)
+    {
+        // Reverse the first 'count' 16-bit moves.
+        //
+        // Base indices:
+        //   31, 30, ..., 1, 0
+        //
+        // Subtract (32 - count), giving:
+        //   count-1, count-2, ..., 0, ...
+        //
+        // Only the first 'count' lanes are stored.
+        const __m512i reverseIndices = _mm512_setr_epi16(31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16,
+                                                         15, 14, 13, 12, 11, 10,  9,  8,  7,  6,  5,  4,  3,  2,  1, 0);
+
+        const __m512i offset = _mm512_set1_epi16(32 - count);
+
+        const __m512i indices = _mm512_sub_epi16(reverseIndices, offset);
+
+        packedMoves = _mm512_permutexvar_epi16(indices, packedMoves);
+    }
+    // clang-format on
+    _mm512_storeu_si512(moves, packedMoves);
+    moves += count;
+#else
     while (dstBB != 0)
     {
         const Square dstSq = AC == WHITE ? pop_lsq(dstBB) : pop_msq(dstBB);
 
         *moves++ = Move{orgSq, dstSq};
     }
-    //#endif
+#endif
 
     return moves;
 }
