@@ -343,14 +343,13 @@ class FeatureTransformer final {
             }
 
 #elif defined(USE_RVV)
-
-            for (usize j = 0; j < HalfDimensions / 2;)
+            for (IndexType i = 0; i < HalfDimensions / 2;)
             {
-                const usize vl = __riscv_vsetvl_e16m8(HalfDimensions / 2 - j);
+                const usize vl = __riscv_vsetvl_e16m8(HalfDimensions / 2 - i);
 
-                vint16m8_t acc0 = __riscv_vle16_v_i16m8(&accumulation[perspectives[p]][j], vl);
+                vint16m8_t acc0 = __riscv_vle16_v_i16m8(&accumulation[perspectives[p]][i], vl);
                 vint16m8_t acc1 =
-                  __riscv_vle16_v_i16m8(&accumulation[perspectives[p]][j + HalfDimensions / 2], vl);
+                  __riscv_vle16_v_i16m8(&accumulation[perspectives[p]][i + HalfDimensions / 2], vl);
 
                 acc0 = __riscv_vmax_vx_i16m8(acc0, 0, vl);
                 acc1 = __riscv_vmax_vx_i16m8(acc1, 0, vl);
@@ -363,7 +362,7 @@ class FeatureTransformer final {
                 vuint8m4_t hi     = __riscv_vmulhu_vv_u8m4(pa, pb, vl);
                 vuint8m4_t result = __riscv_vsrl_vx_u8m4(hi, 1, vl);
 
-                __riscv_vse8_v_u8m4(&output[offset + j], result, vl);
+                __riscv_vse8_v_u8m4(&output[offset + i], result, vl);
 
                 // Record NNZ
                 usize    vl32 = vl / 4;
@@ -371,19 +370,19 @@ class FeatureTransformer final {
                   __riscv_vmsne_vx_u32m4_b8(__riscv_vreinterpret_v_u8m4_u32m4(result), 0, vl32);
                 __riscv_vsm_v_b8(cursor.nnzOut, nnzMask, vl32);
                 cursor.nnzOut += vl32 / 8;
-                j += vl;
+                i += vl;
             }
 
 #else
-            for (IndexType j = 0; j < HalfDimensions / 2; ++j)
+            for (IndexType i = 0; i < HalfDimensions / 2; ++i)
             {
-                BiasType sum0 = accumulation[perspectives[p]][j + 0];
-                BiasType sum1 = accumulation[perspectives[p]][j + HalfDimensions / 2];
+                BiasType sum0 = accumulation[perspectives[p]][i + 0];
+                BiasType sum1 = accumulation[perspectives[p]][i + HalfDimensions / 2];
 
                 sum0 = std::clamp<BiasType>(sum0, 0, FT_MAX);
                 sum1 = std::clamp<BiasType>(sum1, 0, FT_MAX);
 
-                output[offset + j] = static_cast<OutputType>(unsigned(sum0 * sum1) / 512);
+                output[offset + i] = static_cast<OutputType>(unsigned(sum0 * sum1) / 512);
             }
 #endif
         }
