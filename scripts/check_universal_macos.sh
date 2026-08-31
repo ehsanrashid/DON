@@ -64,4 +64,4 @@ if [ "$FAIL" != 0 ]; then
     exit 1
 fi
 
-echo "check_universal_macos.sh: Good! Universal macOS binary works."
+echo "check_universal_macos.sh: Good! macOS universal binary has correct hardware detection."

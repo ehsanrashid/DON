@@ -34,7 +34,8 @@
 #include "../simd.h"  // IWYU pragma: keep
 #include "fallback_affine_transform.h"
 
-#if defined(USE_SSSE3) || defined(USE_LSX) || (defined(USE_NEON) && USE_NEON >= 8)
+#if defined(USE_SSSE3) || defined(USE_LSX) || defined(USE_RVV) \
+  || (defined(USE_NEON) && USE_NEON >= 8)
     #include "../../memory.h"
     #define USE_SPARSE_AFFINE_SIMD
 #endif
@@ -126,10 +127,6 @@ class SparseAffineTransform final {
 
         return !os.fail();
     }
-
-#if defined(__GNUC__) && __GNUC__ >= 15 && !defined(__clang__) && defined(USE_NEON_DOTPROD)
-    #define FIX_GCC15_NEON_DOTPROD_MISOPTIMIZATION
-#endif
 
     // Forward propagation
     void propagate(const InputType* RESTRICT           input,
@@ -266,6 +263,9 @@ class SparseAffineTransform final {
             auto* inBase = input + base * sizeof(i32);
             auto* wBase  = &w[base * OutputDimensions * ChunkSize];
 
+        #if defined(__GNUC__) && __GNUC__ >= 15 && !defined(__clang__) && defined(USE_NEON_DOTPROD)
+            #define FIX_GCC15_NEON_DOTPROD_MISOPTIMIZATION
+        #endif
         // GCC 15 pessimizes the following code on ARM64 by eliding the intermediate
         // computation of key pointers (inBase, wBase, col, inPtr), leading
         // to a lot of redundant indexing arithmetic in the while (bits) loop.
@@ -288,6 +288,7 @@ class SparseAffineTransform final {
                 for (IndexType l = 0; l < AccCount; ++l)
                     vec_add_dpbusd_32(acc[l], in, col[l]);
             }
+        #undef FIX_GCC15_NEON_DOTPROD_MISOPTIMIZATION
         }
 
     #endif
@@ -301,14 +302,59 @@ class SparseAffineTransform final {
     #undef vec_set_32
     #undef vec_add_dpbusd_32
     #undef vec_add_32
+
+#elif defined(USE_RVV)
+        static_assert(InputDimensions % 256 == 0);
+
+        const i8* w = weights;
+
+    #define RVV_SPARSE_PROPAGATE(LMUL) \
+        do \
+        { \
+            const usize blk = __riscv_vsetvlmax_e32m##LMUL(); \
+            for (IndexType ob = 0; ob < OutputDimensions; ob += blk) \
+            { \
+                const usize       vl  = __riscv_vsetvl_e32m##LMUL(OutputDimensions - ob); \
+                vint32m##LMUL##_t acc = __riscv_vle32_v_i32m##LMUL(biases + ob, vl); \
+                for (IndexType k = 0; k < InputDimensions / 256; ++k) \
+                { \
+                    u64   bits         = load_as<u64>(nnzInfo.bitset + k * 8); \
+                    isize base         = k * 64; \
+                    auto* base_addr    = input + base * sizeof(i32); \
+                    auto* weights_base = &w[base * OutputDimensions * ChunkSize]; \
+                    while (bits) \
+                    { \
+                        isize             i = pop_lsb(bits); \
+                        vuint8m##LMUL##_t a = __riscv_vreinterpret_v_u32m##LMUL##_u8m##LMUL( \
+                          __riscv_vmv_v_x_u32m##LMUL(load_as<u32>(base_addr + i * sizeof(i32)), \
+                                                     vl)); \
+                        vint8m##LMUL##_t b = __riscv_vle8_v_i8m##LMUL( \
+                          &weights_base[i * OutputDimensions * ChunkSize + ob * ChunkSize], \
+                          vl * ChunkSize); \
+                        acc = \
+                          __riscv_vadd_vv_i32m##LMUL(acc, SIMD::rvv_dpbusd_m##LMUL(a, b, vl), vl); \
+                    } \
+                } \
+                __riscv_vse32_v_i32m##LMUL(output + ob, acc, vl); \
+            } \
+        } while (0)
+
+        // Select LMUL
+        if (__riscv_vsetvlmax_e32m1() >= OutputDimensions)
+            RVV_SPARSE_PROPAGATE(1);
+        else if (__riscv_vsetvlmax_e32m2() >= OutputDimensions)
+            RVV_SPARSE_PROPAGATE(2);
+        else
+            RVV_SPARSE_PROPAGATE(4);
+
+    #undef RVV_SPARSE_PROPAGATE
+
 #else
         // Use dense fallback implementation for the other architectures
         fallback_affine_transform<InputDimensions, PaddedInputDimensions, OutputDimensions>(
           biases, weights, input, output);
 #endif
     }
-
-#undef FIX_GCC15_NEON_DOTPROD_MISOPTIMIZATION
 
    private:
     using BiasType   = OutputType;

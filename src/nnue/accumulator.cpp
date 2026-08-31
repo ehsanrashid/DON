@@ -273,6 +273,60 @@ void apply_combined(Color                                perspective,
             vec_store_psqt(&targetPsqtTile[k], psqt[k]);
     }
     // clang-format on
+
+#elif defined(USE_RVV)
+    const auto* psqWeights        = &featureTransformer.weights[0];
+    const auto* threatWeights     = &featureTransformer.threatWeights[0];
+    const auto* psqtWeights       = &featureTransformer.psqtWeights[0];
+    const auto* threatPsqtWeights = &featureTransformer.threatPsqtWeights[0];
+
+    for (usize tileOffset = 0; tileOffset < Dimensions;)
+    {
+        const usize vl = __riscv_vsetvl_e16m8(Dimensions - tileOffset);
+
+        vint16m8_t accum = __riscv_vle16_v_i16m8(&fromAcc[tileOffset], vl);
+        for (int i : psqRemoved)
+            accum = __riscv_vsub_vv_i16m8(
+              accum, __riscv_vle16_v_i16m8(&psqWeights[i * Dimensions + tileOffset], vl), vl);
+        for (int i : psqAdded)
+            accum = __riscv_vadd_vv_i16m8(
+              accum, __riscv_vle16_v_i16m8(&psqWeights[i * Dimensions + tileOffset], vl), vl);
+        for (int i : thrRemoved)
+            accum = __riscv_vwsub_wv_i16m8(
+              accum, __riscv_vle8_v_i8m4(&threatWeights[i * Dimensions + tileOffset], vl), vl);
+        for (int i : thrAdded)
+            accum = __riscv_vwadd_wv_i16m8(
+              accum, __riscv_vle8_v_i8m4(&threatWeights[i * Dimensions + tileOffset], vl), vl);
+        __riscv_vse16_v_i16m8(&toAcc[tileOffset], accum, vl);
+
+        tileOffset += vl;
+    }
+
+    for (usize tileOffset = 0; tileOffset < PSQTBuckets;)
+    {
+        const usize vl = __riscv_vsetvl_e32m1(PSQTBuckets - tileOffset);
+
+        vint32m1_t accum = __riscv_vle32_v_i32m1(&fromPsqtAcc[tileOffset], vl);
+        for (int i : psqRemoved)
+            accum = __riscv_vsub_vv_i32m1(
+              accum, __riscv_vle32_v_i32m1(&psqtWeights[i * PSQTBuckets + tileOffset], vl), vl);
+        for (int i : psqAdded)
+            accum = __riscv_vadd_vv_i32m1(
+              accum, __riscv_vle32_v_i32m1(&psqtWeights[i * PSQTBuckets + tileOffset], vl), vl);
+        for (int i : thrRemoved)
+            accum = __riscv_vsub_vv_i32m1(
+              accum, __riscv_vle32_v_i32m1(&threatPsqtWeights[i * PSQTBuckets + tileOffset], vl),
+              vl);
+        for (int i : thrAdded)
+            accum = __riscv_vadd_vv_i32m1(
+              accum, __riscv_vle32_v_i32m1(&threatPsqtWeights[i * PSQTBuckets + tileOffset], vl),
+              vl);
+
+        __riscv_vse32_v_i32m1(&toPsqtAcc[tileOffset], accum, vl);
+
+        tileOffset += vl;
+    }
+
 #else
 
     targetAcc     = sourceAcc;

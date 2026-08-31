@@ -690,8 +690,8 @@ else ifeq ($(COMP),ndk)
     CXXFLAGS += -stdlib=libc++
     LDFLAGS  += -static-libstdc++
 
-    OBJCOPY := $(TOOLCHAIN)/llvm-objcopy
-    STRIP   := $(TOOLCHAIN)/llvm-strip
+    OBJCOPY := llvm-objcopy
+    STRIP   := llvm-strip
 
     # Profile-guided optimization for NDK/Clang
     PROFILE_MAKE := clang-profile-make

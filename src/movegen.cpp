@@ -33,7 +33,7 @@ namespace {
 
 #if defined(USE_AVX512ICL)
 // Reverse the first 1..8 packed 16-bit moves.
-alignas(16) inline constexpr u8 ReverseMoveShuffle[9][16]{
+alignas(16) inline constexpr u8 REVERSE_SHUFFLE[9][16]{
   {0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80},
   {0, 1, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80},
   {2, 3, 0, 1, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80},
@@ -68,7 +68,7 @@ Move* splat_pawn_moves(Bitboard dstBB, Move* RESTRICT moves) noexcept {
 
     if constexpr (AC == BLACK)
     {
-        const __m128i shuffle = _mm_load_si128(reinterpret_cast<const __m128i*>(ReverseMoveShuffle[count]));
+        const __m128i shuffle = _mm_load_si128(reinterpret_cast<const __m128i*>(REVERSE_SHUFFLE[count]));
         packedMoves = _mm_shuffle_epi8(packedMoves, shuffle);
     }
     // clang-format on

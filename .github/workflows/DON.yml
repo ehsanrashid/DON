@@ -139,7 +139,7 @@ jobs:
     uses: ./.github/workflows/sanitizers.yml
   Tests:
     name: Tests
-    if: ${{ false }}
+    if: ${{ always() }}
     uses: ./.github/workflows/tests.yml
   Matetrack:
     name: Matetrack
@@ -151,20 +151,20 @@ jobs:
     uses: ./.github/workflows/games.yml
   CheckCompilers:
     name: Check Compilers
-    if: ${{ false }}
+    if: ${{ always() }}
     uses: ./.github/workflows/check_compilers.yml
   # BuildMSVC:
   #   name: Build MSVC
   #   if: ${{ always() }}
   #   uses: ./.github/workflows/build_msvc.yml
-  # BuildWASM:
-  #   name: Build WASM
-  #   if: ${{ always() }}
-  #   uses: ./.github/workflows/build_wasm.yml
+  BuildWASM:
+    name: Build WASM
+    if: ${{ always() }}
+    uses: ./.github/workflows/build_wasm.yml
   # Release Jobs
   BuildAndroid:
     name: Build Android
-    needs: [Matrix, Sanitizers, Tests, Matetrack, Games, CheckCompilers]
+    needs: [Matrix] #, Sanitizers, Tests, Matetrack, Games, CheckCompilers]
     uses: ./.github/workflows/build_android.yml
     with:
       matrix: ${{ needs.Matrix.outputs.android_matrix }}

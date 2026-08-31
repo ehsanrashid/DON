@@ -21,7 +21,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Install emsdk
+      - name: Install and activate emsdk
         working-directory: .
         run: |
           git clone --depth 1 https://github.com/emscripten-core/emsdk.git
@@ -54,13 +54,14 @@ jobs:
       - name: Download the used network from the fishtest framework
         run: make net
 
-      - name: Build ${{ matrix.arch }} build
+      - name: Build ${{ matrix.arch }} with Emscripten
         run: |
           source $GITHUB_WORKSPACE/emsdk/emsdk_env.sh
           em++ --version
           net=$(grep -oE 'nn-[0-9a-f]+\.nnue' "evaluate.h" | head -1)
+          test -n "$net"
           make clean
-          COMPCXX=em++ make -j build ARCH=${{ matrix.arch }} EXTRALDFLAGS="--preload-file $net"
+          COMPCXX=em++ make -j build ARCH="${{ matrix.arch }}" EXTRA_LDFLAGS="--preload-file $net"
 
       - name: Verify bench under node
         run: EXE=./DON.js RUN_PREFIX=node ../tests/signature.sh "$benchref"

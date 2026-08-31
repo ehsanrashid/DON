@@ -102,4 +102,4 @@ if [ "$FAIL" != 0 ]; then
     exit 1
 fi
 
-echo "check_universal_x86_64.sh: Good! Universal binary has correct hardware detection."
+echo "check_universal_x86_64.sh: Good! x86-64 universal binary has correct hardware detection."
