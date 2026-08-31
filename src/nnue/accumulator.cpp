@@ -285,16 +285,16 @@ void apply_combined(Color                                perspective,
         const usize vl = __riscv_vsetvl_e16m8(Dimensions - tileOffset);
 
         vint16m8_t accum = __riscv_vle16_v_i16m8(&sourceAcc[tileOffset], vl);
-        for (int i : psqRemoved)
+        for (const auto i : psqRemoved)
             accum = __riscv_vsub_vv_i16m8(
               accum, __riscv_vle16_v_i16m8(&psqWeights[i * Dimensions + tileOffset], vl), vl);
-        for (int i : psqAdded)
+        for (const auto i : psqAdded)
             accum = __riscv_vadd_vv_i16m8(
               accum, __riscv_vle16_v_i16m8(&psqWeights[i * Dimensions + tileOffset], vl), vl);
-        for (int i : thrRemoved)
+        for (const auto i : thrRemoved)
             accum = __riscv_vwsub_wv_i16m8(
               accum, __riscv_vle8_v_i8m4(&threatWeights[i * Dimensions + tileOffset], vl), vl);
-        for (int i : thrAdded)
+        for (const auto i : thrAdded)
             accum = __riscv_vwadd_wv_i16m8(
               accum, __riscv_vle8_v_i8m4(&threatWeights[i * Dimensions + tileOffset], vl), vl);
         __riscv_vse16_v_i16m8(&targetAcc[tileOffset], accum, vl);
@@ -307,17 +307,17 @@ void apply_combined(Color                                perspective,
         const usize vl = __riscv_vsetvl_e32m1(PSQTBuckets - tileOffset);
 
         vint32m1_t accum = __riscv_vle32_v_i32m1(&sourcePsqtAcc[tileOffset], vl);
-        for (int i : psqRemoved)
+        for (const auto i : psqRemoved)
             accum = __riscv_vsub_vv_i32m1(
               accum, __riscv_vle32_v_i32m1(&psqtWeights[i * PSQTBuckets + tileOffset], vl), vl);
-        for (int i : psqAdded)
+        for (const auto i : psqAdded)
             accum = __riscv_vadd_vv_i32m1(
               accum, __riscv_vle32_v_i32m1(&psqtWeights[i * PSQTBuckets + tileOffset], vl), vl);
-        for (int i : thrRemoved)
+        for (const auto i : thrRemoved)
             accum = __riscv_vsub_vv_i32m1(
               accum, __riscv_vle32_v_i32m1(&threatPsqtWeights[i * PSQTBuckets + tileOffset], vl),
               vl);
-        for (int i : thrAdded)
+        for (const auto i : thrAdded)
             accum = __riscv_vadd_vv_i32m1(
               accum, __riscv_vle32_v_i32m1(&threatPsqtWeights[i * PSQTBuckets + tileOffset], vl),
               vl);
