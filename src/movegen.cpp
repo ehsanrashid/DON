@@ -40,27 +40,27 @@ Move* splat_pawn_moves(Bitboard dstBB, Move* RESTRICT moves) noexcept {
                     || D == Direction::NORTH_WEST || D == Direction::SOUTH_WEST,
                   "D is invalid");
 
-#if defined(USE_AVX512ICL)
-    assert(popcount(dstBB) <= 8);  // <= 8 pawns per side
-
-    const __m512i AllSquares = AC == WHITE ? ALL_SQUARES : REV_ALL_SQUARES;
-
-    // clang-format off
-    const __m128i dstSquares  = _mm_cvtepi8_epi16(_mm512_castsi512_si128(_mm512_maskz_compress_epi8(dstBB, AllSquares)));
-    const __m128i orgSquares  = _mm_sub_epi16(dstSquares, _mm_set1_epi16(+D));
-    const __m128i packedMoves = _mm_or_si128(_mm_slli_epi16(orgSquares, Move::DST_SQ_OFFSET),
-                                             _mm_slli_epi16(dstSquares, Move::ORG_SQ_OFFSET));
-    // clang-format on
-    _mm_storeu_si128(reinterpret_cast<__m128i*>(moves), packedMoves);
-    moves += popcount(dstBB);
-#else
+    //#if defined(USE_AVX512ICL)
+    //    assert(popcount(dstBB) <= 8);  // <= 8 pawns per side
+    //
+    //    const __m512i AllSquares = AC == WHITE ? ALL_SQUARES : REV_ALL_SQUARES;
+    //
+    //    // clang-format off
+    //    const __m128i dstSquares  = _mm_cvtepi8_epi16(_mm512_castsi512_si128(_mm512_maskz_compress_epi8(dstBB, AllSquares)));
+    //    const __m128i orgSquares  = _mm_sub_epi16(dstSquares, _mm_set1_epi16(+D));
+    //    const __m128i packedMoves = _mm_or_si128(_mm_slli_epi16(orgSquares, Move::DST_SQ_OFFSET),
+    //                                             _mm_slli_epi16(dstSquares, Move::ORG_SQ_OFFSET));
+    //    // clang-format on
+    //    _mm_storeu_si128(reinterpret_cast<__m128i*>(moves), packedMoves);
+    //    moves += popcount(dstBB);
+    //#else
     while (dstBB != 0)
     {
         const Square dstSq = AC == WHITE ? pop_lsq(dstBB) : pop_msq(dstBB);
 
         *moves++ = Move{dstSq - D, dstSq};
     }
-#endif
+    //#endif
 
     return moves;
 }
@@ -111,26 +111,26 @@ Move* splat_promotion_moves(Bitboard       dstBB,
 template<Color AC>
 Move* splat_moves(Square orgSq, Bitboard dstBB, Move* RESTRICT moves) noexcept {
 
-#if defined(USE_AVX512ICL)
-    assert(popcount(dstBB) <= 32);  // Q can attack up to 27 squares
-
-    const __m512i AllSquares = AC == WHITE ? ALL_SQUARES : REV_ALL_SQUARES;
-
-    // clang-format off
-    const __m512i orgVec      = _mm512_set1_epi16(Move(orgSq, SQUARE_ZERO).raw());
-    const __m512i dstSquares  = _mm512_cvtepi8_epi16(_mm512_castsi512_si256(_mm512_maskz_compress_epi8(dstBB, AllSquares)));
-    const __m512i packedMoves = _mm512_or_si512(orgVec, _mm512_slli_epi16(dstSquares, Move::DST_SQ_OFFSET));
-    // clang-format on
-    _mm512_storeu_si512(moves, packedMoves);
-    moves += popcount(dstBB);
-#else
+    //#if defined(USE_AVX512ICL)
+    //    assert(popcount(dstBB) <= 32);  // Q can attack up to 27 squares
+    //
+    //    const __m512i AllSquares = AC == WHITE ? ALL_SQUARES : REV_ALL_SQUARES;
+    //
+    //    // clang-format off
+    //    const __m512i orgVec      = _mm512_set1_epi16(Move(orgSq, SQUARE_ZERO).raw());
+    //    const __m512i dstSquares  = _mm512_cvtepi8_epi16(_mm512_castsi512_si256(_mm512_maskz_compress_epi8(dstBB, AllSquares)));
+    //    const __m512i packedMoves = _mm512_or_si512(orgVec, _mm512_slli_epi16(dstSquares, Move::DST_SQ_OFFSET));
+    //    // clang-format on
+    //    _mm512_storeu_si512(moves, packedMoves);
+    //    moves += popcount(dstBB);
+    //#else
     while (dstBB != 0)
     {
         const Square dstSq = AC == WHITE ? pop_lsq(dstBB) : pop_msq(dstBB);
 
         *moves++ = Move{orgSq, dstSq};
     }
-#endif
+    //#endif
 
     return moves;
 }
