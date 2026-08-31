@@ -67,6 +67,8 @@ struct NetworkArchitecture final {
         combine_hash(h, ac_sqr_0.content_hash());
         combine_hash(h, ac_0.content_hash());
         combine_hash(h, fc_1.content_hash());
+        // TODO:: hash_combine()
+        // hash_combine(h, ac_sqr_1.get_content_hash());
         combine_hash(h, ac_1.content_hash());
         combine_hash(h, fc_2.content_hash());
         combine_hash(h, hash());
@@ -98,36 +100,42 @@ struct NetworkArchitecture final {
 
         struct alignas(CACHE_LINE_SIZE) Buffer final {
             alignas(CACHE_LINE_SIZE) typename decltype(fc_0)::OutputBuffer fc_0_out;
-            alignas(CACHE_LINE_SIZE)
-              Array<typename decltype(ac_sqr_0)::OutputType,
-                    ceil_to_multiple<IndexType>(FC_0_Outputs * 2, 32)> ac_sqr_0_out;
+            alignas(CACHE_LINE_SIZE) Array<
+              typename decltype(ac_sqr_0)::OutputType,
+              ceil_to_multiple<IndexType>(FC_0_Outputs * 2 + FC_1_Outputs * 2, 32)> concat_buffer;
             alignas(CACHE_LINE_SIZE) typename decltype(ac_0)::OutputBuffer ac_0_out;
             alignas(CACHE_LINE_SIZE) typename decltype(fc_1)::OutputBuffer fc_1_out;
             alignas(CACHE_LINE_SIZE) typename decltype(ac_1)::OutputBuffer ac_1_out;
             alignas(CACHE_LINE_SIZE) typename decltype(fc_2)::OutputBuffer fc_2_out;
 
-            Buffer() noexcept { std::memset(ac_sqr_0_out.data(), 0, sizeof(ac_sqr_0_out)); }
+            Buffer() noexcept { std::memset(concat_buffer.data(), 0, sizeof(concat_buffer)); }
         };
 
         Buffer buffer;
 
         fc_0.propagate(transformedFeatures.data(), buffer.fc_0_out.data(), nnz);
-        ac_sqr_0.propagate(buffer.fc_0_out.data(), buffer.ac_sqr_0_out.data());
+        ac_sqr_0.propagate(buffer.fc_0_out.data(), buffer.concat_buffer.data());
         ac_0.propagate(buffer.fc_0_out.data(), buffer.ac_0_out.data());
-        std::memcpy(&buffer.ac_sqr_0_out[FC_0_Outputs], buffer.ac_0_out.data(),
+        std::memcpy(&buffer.concat_buffer[FC_0_Outputs], buffer.ac_0_out.data(),
                     FC_0_Outputs * sizeof(typename decltype(ac_0)::OutputType));
-        fc_1.propagate(buffer.ac_sqr_0_out.data(), buffer.fc_1_out.data());
-        ac_1.propagate(buffer.fc_1_out.data(), buffer.ac_1_out.data());
-        fc_2.propagate(buffer.ac_1_out.data(), buffer.fc_2_out.data());
 
-        // Max value for fwdOut is (L1 + L3) * 127 * WeightMax
-        // for int8 activations and weights this is (L1 + L3) * 16129 making
-        // fwdOut safe from overflow until (L1 + L3) > 133,144
-        // first layer and last layer use WEIGHT_SCALE_BITS + 1.
-        i32 fwdOut = buffer.fc_0_out[FC_0_Outputs] + buffer.fc_2_out[0];
-        // fwdOut is such that 1.0 is equal to (1 << WEIGHT_SCALE_BITS) * HIDDEN_ONE *2
+        fc_1.propagate(buffer.concat_buffer.data(), buffer.fc_1_out.data());
+        ac_sqr_1.propagate(buffer.fc_1_out.data(), buffer.concat_buffer.data() + FC_0_Outputs * 2);
+        ac_1.propagate(buffer.fc_1_out.data(), buffer.ac_1_out.data());
+        std::memcpy(buffer.concat_buffer.data() + FC_0_Outputs * 2 + FC_1_Outputs,
+                    buffer.ac_1_out.data(),
+                    FC_1_Outputs * sizeof(typename decltype(ac_1)::OutputType));
+
+        fc_2.propagate(buffer.concat_buffer.data(), buffer.fc_2_out.data());
+
+        static_assert(FC_0_Outputs >= 2);
+        i32 fwdOut = buffer.fc_2_out[0];
+        i32 skip_0 = buffer.fc_0_out[FC_0_Outputs - 2] - buffer.fc_0_out[FC_0_Outputs - 1];
+        fwdOut += skip_0;
+
+        // fwdOut is such that 1.0 is equal to (1 << WEIGHT_SCALE_BITS) * HIDDEN_ONE * 2
         // in quantized form, but want 1.0 to be equal to 600 * OUTPUT_SCALE
-        // to make overflow impossible cast to i64.
+        // to make overflow impossible cast to int64_t.
         constexpr i64 Multiplier  = 600 * OUTPUT_SCALE;
         constexpr i64 Denominator = (i64{1} << WEIGHT_SCALE_BITS) * HIDDEN_ONE * 2;
 
@@ -135,12 +143,13 @@ struct NetworkArchitecture final {
     }
 
    private:
-    Layers::SparseAffineTransform<TransformedFeatureDimensions, FC_0_Outputs + 1> fc_0;
-    Layers::SqrClippedReLU<FC_0_Outputs + 1, WEIGHT_SCALE_BITS + 1>               ac_sqr_0;
-    Layers::ClippedReLU<FC_0_Outputs + 1, WEIGHT_SCALE_BITS + 1>                  ac_0;
-    Layers::AffineTransform<FC_0_Outputs * 2, FC_1_Outputs>                       fc_1;
-    Layers::ClippedReLU<FC_1_Outputs, WEIGHT_SCALE_BITS>                          ac_1;
-    Layers::AffineTransform<FC_1_Outputs, 1>                                      fc_2;
+    Layers::SparseAffineTransform<TransformedFeatureDimensions, FC_0_Outputs> fc_0;
+    Layers::SqrClippedReLU<FC_0_Outputs, WEIGHT_SCALE_BITS + 1>               ac_sqr_0;
+    Layers::ClippedReLU<FC_0_Outputs, WEIGHT_SCALE_BITS + 1>                  ac_0;
+    Layers::AffineTransform<FC_0_Outputs * 2, FC_1_Outputs>                   fc_1;
+    Layers::SqrClippedReLU<FC_1_Outputs, WEIGHT_SCALE_BITS>                   ac_sqr_1;
+    Layers::ClippedReLU<FC_1_Outputs, WEIGHT_SCALE_BITS>                      ac_1;
+    Layers::AffineTransform<FC_0_Outputs * 2 + FC_1_Outputs * 2, 1>           fc_2;
 };
 
 }  // namespace DON::NNUE

@@ -994,9 +994,7 @@ inline void Position::update_piece_threats(const Square              s,
         return _;
     }();
 
-    const Bitboard kingsBB = pieces_bb(KING);
-
-    const Bitboard exOccupancyBB = occupancyBB ^ kingsBB;
+    const Bitboard exOccupancyBB = occupancyBB ^ pieces_bb(KING);
 
     Bitboard slidersBB = (pieces_bb(QUEEN, BISHOP) & attacksBB[BISHOP])  //
                        | (pieces_bb(QUEEN, ROOK) & attacksBB[ROOK]);
@@ -1013,18 +1011,20 @@ inline void Position::update_piece_threats(const Square              s,
             const Bitboard passRayBB    = pass_ray_bb(sliderSq, s);
             const Bitboard discoveredBB = passRayBB & attacksBB[QUEEN] & exOccupancyBB;
 
+            assert(!more_than_one(discoveredBB));
+
             if (discoveredBB != 0 && (passRayBB & noRayBB) != noRayBB)
             {
-                assert(!more_than_one(discoveredBB));
                 const Square threatenedSq = lsq(discoveredBB);
                 const Piece  threatenedPc = piece(threatenedSq);
 
                 assert(is_ok(threatenedPc));
 
-                dts->add(sliderSq, threatenedSq, sliderPc, threatenedPc, !put);
+                if (slider_can_threaten(threatenedPc, sliderPc))
+                    dts->add(sliderSq, threatenedSq, sliderPc, threatenedPc, !put);
             }
 
-            if (addDirectAttacks)
+            if (addDirectAttacks && slider_can_threaten(pc, sliderPc))
                 dts->add(sliderSq, s, sliderPc, pc, put);
         }
     };
@@ -1044,35 +1044,54 @@ inline void Position::update_piece_threats(const Square              s,
                                : attacksBB[type_of(pc)])
                           & exOccupancyBB;
 
-    Bitboard nonSlidersBB = (pieces_bb(KNIGHT) & attacksBB[KNIGHT]);
+    Bitboard directSlidersBB = type_of(pc) == QUEEN ? slidersBB & pieces_bb(QUEEN) : slidersBB;
+
+    Bitboard incomingThreatsBB = pieces_bb(KNIGHT) & attacksBB[KNIGHT];
 
     // Compute both incoming and outgoing pawn threats.
     // Incoming pawn pushers are only added if 'pc' is a pawn.
+    Bitboard pawnThreatsBB = 0;
     if (type_of(pc) == PAWN)
     {
-        const Bitboard sBB = square_bb(s);
+        const Array<Bitboard, 2> pawnPushAttacksBB{
+          pawn_push_attacks_bb<WHITE>(square_bb(s)),
+          pawn_push_attacks_bb<BLACK>(square_bb(s))  //
+        };
 
-        const Bitboard wpPushAttacksBB = pawn_push_attacks_bb<WHITE>(sBB);
-        const Bitboard bpPushAttacksBB = pawn_push_attacks_bb<BLACK>(sBB);
+        threatenedBB |= pieces_bb(PAWN) & pawnPushAttacksBB[color_of(pc)];
 
-        threatenedBB |=
-          pieces_bb(PAWN) & (color_of(pc) == WHITE ? wpPushAttacksBB : bpPushAttacksBB);
-
-        nonSlidersBB |= (pieces_bb(WHITE, PAWN) & bpPushAttacksBB)  //
-                      | (pieces_bb(BLACK, PAWN) & wpPushAttacksBB);
+        pawnThreatsBB |= (pieces_bb(WHITE, PAWN) & pawnPushAttacksBB[BLACK])
+                       | (pieces_bb(BLACK, PAWN) & pawnPushAttacksBB[WHITE]);
     }
     else
     {
-        nonSlidersBB |= (pieces_bb(WHITE, PAWN) & attacksBB[BLACK])  //
-                      | (pieces_bb(BLACK, PAWN) & attacksBB[WHITE]);
+        pawnThreatsBB |= (pieces_bb(WHITE, PAWN) & attacksBB[BLACK])  //
+                       | (pieces_bb(BLACK, PAWN) & attacksBB[WHITE]);
     }
+
+    switch (type_of(pc))
+    {
+    case PAWN :
+        threatenedBB &= pieces_bb(PAWN, KNIGHT, ROOK);
+        break;
+    case BISHOP :
+    case ROOK :
+        threatenedBB &= pieces_bb(PAWN, KNIGHT, BISHOP, ROOK);
+        break;
+    default :
+        threatenedBB &= exOccupancyBB;
+        break;
+    }
+
+    if (type_of(pc) == PAWN || type_of(pc) == KNIGHT || type_of(pc) == ROOK)
+        incomingThreatsBB |= pawnThreatsBB;
 
 #if defined(USE_AVX512ICL)
     DirtyThreat dirtyThreat1{s, SQUARE_ZERO, pc, Piece::NO_PIECE, put};
     write_multiple_dirties<DirtyThreat::THREATENED_SQ_OFFSET, DirtyThreat::THREATENED_PC_OFFSET>(
       piece_map(), threatenedBB, dirtyThreat1, dts);
 
-    const Bitboard attackersBB = slidersBB | nonSlidersBB;
+    const Bitboard attackersBB = directSlidersBB | incomingThreatsBB;
 
     DirtyThreat dirtyThreat2{SQUARE_ZERO, s, Piece::NO_PIECE, pc, put};
     write_multiple_dirties<DirtyThreat::SQ_OFFSET, DirtyThreat::PC_OFFSET>(piece_map(), attackersBB,
@@ -1100,20 +1119,19 @@ inline void Position::update_piece_threats(const Square              s,
     }
     else
     {
-        nonSlidersBB |= slidersBB;
+        incomingThreatsBB |= directSlidersBB;
     }
 
-#if defined(USE_AVX512ICL)
-#else
-    while (nonSlidersBB != 0)
+#if !defined(USE_AVX512ICL)
+    while (incomingThreatsBB != 0)
     {
-        const Square nonSliderSq = pop_lsq(nonSlidersBB);
-        const Piece  nonSliderPc = piece(nonSliderSq);
+        const Square srcSq = pop_lsq(incomingThreatsBB);
+        const Piece  srcPc = piece(srcSq);
 
-        assert(nonSliderSq != s);
-        assert(is_ok(nonSliderPc));
+        assert(srcSq != s);
+        assert(is_ok(srcPc));
 
-        dts->add(nonSliderSq, s, nonSliderPc, pc, put);
+        dts->add(srcSq, s, srcPc, pc, put);
     }
 #endif
 }

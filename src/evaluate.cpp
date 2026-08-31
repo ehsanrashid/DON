@@ -27,7 +27,6 @@
 #include <sstream>
 #include <string_view>
 
-#include "misc.h"
 #include "notation.h"
 #include "position.h"
 #include "nnue/accumulator.h"
@@ -46,9 +45,9 @@ Value evaluate(const Position&         pos,
                i32                     optimism) noexcept {
     assert(pos.checkers_bb() == 0);
 
-    auto [psqt, positional] = network.evaluate(pos, accCache, accStack);
+    const auto [psqt, positional] = network.evaluate(pos, accCache, accStack);
 
-    i32 nnue = constexpr_round((125.0 * psqt + 131.0 * positional) / 128.0);
+    i32 nnue = psqt + positional;
 
     double complexity = constexpr_abs(psqt - positional);
     // Blend eval and optimism with complexity

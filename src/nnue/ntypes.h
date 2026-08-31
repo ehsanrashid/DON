@@ -40,7 +40,7 @@ using TransformedFeatureType = u8;
 
 // Number of input feature dimensions after conversion
 inline constexpr IndexType L1 = 1024;
-inline constexpr u32       L2 = 31;
+inline constexpr u32       L2 = 32;
 inline constexpr u32       L3 = 32;
 
 // Version of the evaluation file
