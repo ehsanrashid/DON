@@ -344,7 +344,7 @@ class FeatureTransformer final {
 
 #elif defined(USE_RVV)
 
-            for (usize j = 0; j < HalfDimensions / 2)
+            for (usize j = 0; j < HalfDimensions / 2;)
             {
                 const usize vl = __riscv_vsetvl_e16m8(HalfDimensions / 2 - j);
 

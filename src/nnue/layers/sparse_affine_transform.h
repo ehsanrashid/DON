@@ -34,8 +34,7 @@
 #include "../simd.h"  // IWYU pragma: keep
 #include "fallback_affine_transform.h"
 
-#if defined(USE_SSSE3) || defined(USE_LSX) || defined(USE_RVV) \
-  || (defined(USE_NEON) && USE_NEON >= 8)
+#if defined(USE_SSSE3) || defined(USE_LSX) || (defined(USE_NEON) && USE_NEON >= 8)
     #include "../../memory.h"
     #define USE_SPARSE_AFFINE_SIMD
 #endif
@@ -71,7 +70,7 @@ class SparseAffineTransform final {
       ceil_to_multiple<IndexType>(OutputDimensions, SIMD_WIDTH_MAX);
 
     static constexpr IndexType ChunkSize =
-#if defined(USE_SPARSE_AFFINE_SIMD)
+#if defined(USE_SPARSE_AFFINE_SIMD) || defined(USE_RVV)
       4
 #else
       1

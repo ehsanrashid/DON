@@ -689,6 +689,7 @@ else ifeq ($(COMP),ndk)
     # Use LLVM's libc++ and link it statically
     CXXFLAGS += -stdlib=libc++
     LDFLAGS  += -static-libstdc++
+    LDFLAGS  += $(CXXFLAGS)
 
     OBJCOPY := llvm-objcopy
     STRIP   := llvm-strip

@@ -313,10 +313,10 @@ constexpr bool slider_can_threaten(const Piece pc, const Piece sliderPc) noexcep
 using PieceMap = Array<Piece, SQUARE_NB>;
 
 [[nodiscard]] constexpr File fold_to_edge(const File f) noexcept {
-    return std::min(f, FILE_H - int(f));
+    return std::min(f, FILE_H - u8(f));
 }
 [[nodiscard]] constexpr Rank fold_to_edge(const Rank r) noexcept {
-    return std::min(r, RANK_8 - int(r));
+    return std::min(r, RANK_8 - u8(r));
 }
 
 [[nodiscard]] constexpr Square relative_sq(const Color c, const Square s) noexcept {
@@ -324,7 +324,7 @@ using PieceMap = Array<Piece, SQUARE_NB>;
 }
 
 [[nodiscard]] constexpr Rank relative_rank(const Color c, const Rank r) noexcept {
-    return Rank(r ^ (c * RANK_8));
+    return Rank(u8(r) ^ (c * u8(RANK_8)));
 }
 
 [[nodiscard]] constexpr Rank relative_rank(const Color c, const Square s) noexcept {
