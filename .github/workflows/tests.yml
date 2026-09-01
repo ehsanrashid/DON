@@ -205,7 +205,7 @@ jobs:
             echo "No bench found"
           fi
 
-      - name: Check compiler
+      - name: Check compiler version
         run: |
           if [ -z "${{ matrix.config.base_image }}" ]; then
             if [ "$COMP" = "ndk" ]; then
@@ -217,10 +217,10 @@ jobs:
             docker run --rm --platform "${{ matrix.config.platform }}" -v "${{ github.workspace }}:/app" don_builder
           fi
 
-      - name: Verify Make help
+      - name: Check Make help
         run: make help
 
-      - name: Check git
+      - name: Check Git version
         run: git --version
 
       # x86-32 tests

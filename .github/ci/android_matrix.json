@@ -1,7 +1,7 @@
 {
   "config": [
     {
-      "name": "Android NDK aarch64",
+      "name": "Android NDK ARM64",
       "os": "ubuntu-22.04",
       "simple_name": "android",
       "compiler": "aarch64-linux-android29-clang++",
@@ -11,7 +11,7 @@
       "archive_ext": "tar.gz"
     },
     {
-      "name": "Android NDK arm",
+      "name": "Android NDK ARMv7",
       "os": "ubuntu-22.04",
       "simple_name": "android",
       "compiler": "armv7a-linux-androideabi29-clang++",
@@ -22,8 +22,7 @@
     }
   ],
   "binary": [
-    "armv8-dotprod",
-    "armv8",
+    "arm64-universal",
     "armv7-neon",
     "armv7"
   ],
@@ -41,13 +40,7 @@
       }
     },
     {
-      "binary": "armv8-dotprod",
-      "config": {
-        "compiler": "armv7a-linux-androideabi29-clang++"
-      }
-    },
-    {
-      "binary": "armv8",
+      "binary": "arm64-universal",
       "config": {
         "compiler": "armv7a-linux-androideabi29-clang++"
       }
