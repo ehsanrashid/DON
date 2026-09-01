@@ -433,7 +433,7 @@ MovePicker::score<GenType::ENC_QUIET>(const MoveList<GenType::ENC_QUIET>& moveLi
 
         auto& em = *itr++;
         em       = m;
-        em.value = std::clamp(value, -INT_LIMIT, +INT_LIMIT);
+        em.value = static_cast<i32>(std::clamp(value, -INT_LIMIT, +INT_LIMIT));
     }
 
     return itr;

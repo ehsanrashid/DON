@@ -342,7 +342,7 @@ inline WindowsAffinity get_process_affinity() noexcept {
                         std::memset(&groupAffinity, 0, sizeof(groupAffinity));
 
                         groupAffinity.Group = groupId;
-                        groupAffinity.Mask  = bit(i);
+                        groupAffinity.Mask  = bit(u8(i));
 
                         if (SetThreadGroupAffinity(GetCurrentThread(), &groupAffinity, nullptr)
                             == FALSE)
@@ -1015,7 +1015,7 @@ class NumaConfig final {
                 const WORD groupId       = static_cast<WORD>(cpuId / WIN_PROCESSOR_GROUP_SIZE);
                 const BYTE inProcGroupId = static_cast<BYTE>(cpuId % WIN_PROCESSOR_GROUP_SIZE);
 
-                groupAffinities[groupId].Mask |= bit(inProcGroupId);
+                groupAffinities[groupId].Mask |= bit(u8(inProcGroupId));
             }
 
             if (setThreadSelectedCpuSetMasks(GetCurrentThread(), groupAffinities.get(),
@@ -1049,7 +1049,8 @@ class NumaConfig final {
             std::memset(&groupAffinity, 0, sizeof(groupAffinity));
 
             // Use an ordered set so guaranteed to get the smallest cpu number here
-            const WORD forcedGroupId = *nodes[numaId].begin() / WIN_PROCESSOR_GROUP_SIZE;
+            const WORD forcedGroupId =
+              static_cast<WORD>(*nodes[numaId].begin() / WIN_PROCESSOR_GROUP_SIZE);
 
             groupAffinity.Group = forcedGroupId;
 
@@ -1061,7 +1062,7 @@ class NumaConfig final {
                 // If everything was set up correctly this will never be an issue,
                 // but have to account for bad NUMA node specification.
                 if (groupId == forcedGroupId)
-                    groupAffinity.Mask |= bit(inProcGroupId);
+                    groupAffinity.Mask |= bit(u8(inProcGroupId));
             }
 
             if (SetThreadGroupAffinity(GetCurrentThread(), &groupAffinity, nullptr) == FALSE)
