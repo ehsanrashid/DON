@@ -444,7 +444,7 @@ void Worker::iterative_deepening() noexcept {
         // When playing with strength handicap enable MultiPV search that
         // will use behind-the-scenes to retrieve a set of sub-optimal moves.
         if (mainManager->skill.enabled())
-            multiPV = std::max(multiPV, usize{4});
+            multiPV = std::max(usize{4}, multiPV);
 
         mainManager->timeManager.init(rootPos.active_color(), rootPos.ply(), rootPos.move_num(),
                                       options, limit);

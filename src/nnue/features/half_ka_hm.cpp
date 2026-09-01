@@ -28,7 +28,6 @@
 #include "../../bitboard.h"
 #include "../../misc.h"
 #include "../../types.h"
-#include "../ntypes.h"
 
 namespace DON::NNUE::Features {
 
