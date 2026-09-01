@@ -1268,8 +1268,8 @@ int decompress_pairs(const PairsData* pd, u64 idx) noexcept {
     auto buf64 = number<u64, Endian::BIG>(ptr);
     ptr += 2;
 
-    int buf64Size = 64;
-    Sym sym;
+    usize buf64Size = 64;
+    Sym   sym;
 
     while (true)
     {
@@ -1279,7 +1279,7 @@ int decompress_pairs(const PairsData* pd, u64 idx) noexcept {
         // For any symbol s64 of length 'l' right-padded to 64 bits that
         // d->base64[l-1] >= s64 >= d->base64[l]
         // so can find the symbol length iterating through base64[].
-        while (buf64 < pd->base64[len])
+        while (len < pd->base64.size() && buf64 < pd->base64[len])
             ++len;
 
         // All the symbols of a given length are consecutive integers (numerical sequence property),
