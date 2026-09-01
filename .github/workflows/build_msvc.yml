@@ -5,7 +5,7 @@ on:
 
 jobs:
   BuildMSVC:
-    name: MSVC ${{ matrix.name }}
+    name: MSVC (${{ matrix.arch }})
     runs-on: windows-latest
 
     strategy:
@@ -13,8 +13,8 @@ jobs:
       matrix:
         include:
           # Runners cannot execute AVX-512, so avx512icl is build-only.
-          - { name: avx2, flags: "/arch:AVX2", bench: true }
-          - { name: avx512icl, flags: "/arch:AVX512 /DUSE_AVX512 /DUSE_VNNI /DUSE_AVX512ICL /DUSE_BMI2", bench: false }
+          - { arch: avx2, flags: "/arch:AVX2", bench: true }
+          - { arch: avx512icl, flags: "/arch:AVX512 /DUSE_AVX512 /DUSE_VNNI /DUSE_AVX512ICL /DUSE_BMI2", bench: false }
 
     defaults:
       run:
@@ -58,7 +58,7 @@ jobs:
       - name: Set up MSVC
         uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
 
-      - name: Build ${{ matrix.name }} binary
+      - name: Build ${{ matrix.arch }} with MSVC
         shell: cmd
         run: >-
           cl /nologo /std:c++17 /MT /EHsc /O2 /MP /W3 /WX /permissive-

@@ -43,7 +43,7 @@ Move* splat_pawn_moves(Bitboard dstBB, Move* RESTRICT moves) noexcept {
 #if defined(USE_AVX512ICL)
     // clang-format off
     // Reverse the first 1..8 packed 16-bit moves.
-    alignas(16) constexpr Array<u8, 9, 16> REVERSE_SHUFFLE_BYTES{{
+    alignas(16) constexpr Array<u8, 9, 16> ReverseShuffleBytes{{
       {0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80},
       {0, 1, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80},
       {2, 3, 0, 1, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80},
@@ -66,7 +66,7 @@ Move* splat_pawn_moves(Bitboard dstBB, Move* RESTRICT moves) noexcept {
 
     if constexpr (AC == BLACK)
     {
-        const __m128i shuffle = _mm_load_si128(reinterpret_cast<const __m128i*>(REVERSE_SHUFFLE_BYTES[count].data()));
+        const __m128i shuffle = _mm_load_si128(reinterpret_cast<const __m128i*>(ReverseShuffleBytes[count].data()));
         packedMoves = _mm_shuffle_epi8(packedMoves, shuffle);
     }
     // clang-format on
@@ -133,7 +133,7 @@ Move* splat_moves(Square orgSq, Bitboard dstBB, Move* RESTRICT moves) noexcept {
 
 #if defined(USE_AVX512ICL)
     // clang-format off
-    alignas(CACHE_LINE_SIZE) constexpr Array<u16, 32> REVERSE_INDICES{
+    alignas(CACHE_LINE_SIZE) constexpr Array<u16, 32> ReverseIndices{
       31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16,
       15, 14, 13, 12, 11, 10, 9,  8,  7,  6,  5,  4,  3,  2,  1,  0  //
     };
@@ -150,10 +150,10 @@ Move* splat_moves(Square orgSq, Bitboard dstBB, Move* RESTRICT moves) noexcept {
     {
         // Reverse the first 'count' 16-bit moves.
         //
-        // REVERSE_INDICES - (32 - count)
+        // ReverseIndices - (32 - count)
         // gives: count-1, count-2, ..., 0 for the first 'count' lanes.
         // Only the first 'count' lanes are stored.
-        const __m512i reverseIndices = _mm512_load_si512(REVERSE_INDICES.data());
+        const __m512i reverseIndices = _mm512_load_si512(ReverseIndices.data());
         const __m512i offset         = _mm512_set1_epi16(32 - count);
         const __m512i indices        = _mm512_sub_epi16(reverseIndices, offset);
 
