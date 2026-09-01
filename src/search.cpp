@@ -1113,10 +1113,10 @@ Value Worker::search(Position&    pos,
     {
     // The depth condition is important for mate finding
     if (!ss->pvTT && !exclude && depth < 17 && !is_win(ttEvalue) && !is_loss(beta)
-        && (ttmNone || history_value(pos, ttd.move, ac, contHistory) >= 32768 - int(ttmCapture) * 25968))
+        && (ttmNone || history_value(pos, ttd.move, ac, contHistory) >= 32768 - int(ttmCapture) * 28672))
     {
         // Compute base futility
-        int baseFutility = interpolate(std::min(int(depth), 10), 1, 10, 40, 80) - int(!ttd.hit) * 20;
+        int baseFutility = std::min(40 + 4 * depth, 80) - int(!ttd.hit) * 20;
         // Compute futility
         int futility = std::max(baseFutility * depth
                               - constexpr_ceil(baseFutility * (int(improve) * 2934.0 + int(worsen) * 343.0) / 1024.0)

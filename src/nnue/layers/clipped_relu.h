@@ -161,8 +161,7 @@ class ClippedReLU final {
             vint32m4_t  in = __riscv_vle32_v_i32m4(&input[i], vl);
             in             = __riscv_vmax_vx_i32m4(in, 0, vl);
 
-            vint16m2_t words =
-              __riscv_vnclip_wx_i16m2(in, WeightScaleBits, __RISCV_VXRM_RDN, vl);
+            vint16m2_t words   = __riscv_vnclip_wx_i16m2(in, WeightScaleBits, __RISCV_VXRM_RDN, vl);
             vint8m1_t narrowed = __riscv_vnclip_wx_i8m1(words, 0, __RISCV_VXRM_RDN, vl);
 
             __riscv_vse8_v_u8m1(&output[i], __riscv_vreinterpret_v_i8m1_u8m1(narrowed), vl);

@@ -835,14 +835,22 @@ inline Value Position::material() const noexcept { return 534 * count(PAWN) + no
 inline bool Position::capture(const Move m) const noexcept {
     assert(legal(m));
 
-    return (m.type() != MT::CASTLING && !empty(m.dst_sq())) || m.type() == MT::EN_PASSANT;
+    const auto mt = m.type();
+
+    return ((mt == MT::NORMAL || mt == MT::PROMOTION) && !empty(m.dst_sq()))
+        || mt == MT::EN_PASSANT;
 }
 
 inline bool Position::capture_promo(const Move m) const noexcept {
-    return capture(m)
-        || (m.type() == MT::PROMOTION
-            && (m.promotion_type() == QUEEN
-                || (m.promotion_type() == KNIGHT && (checks_bb(KNIGHT) & m.dst_sq()) != 0)));
+
+    if (capture(m))
+        return true;
+
+    if (m.type() != MT::PROMOTION)
+        return false;
+
+    const auto promotedPt = m.promotion_type();
+    return promotedPt == QUEEN || (promotedPt == KNIGHT && (checks_bb(KNIGHT) & m.dst_sq()) != 0);
 }
 
 inline Piece Position::moved_pc(const Move m) const noexcept {

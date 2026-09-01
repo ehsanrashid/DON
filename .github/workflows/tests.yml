@@ -15,14 +15,14 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - name: Ubuntu 22.04 GCC
+          - name: Ubuntu 22.04 GCC x86
             os: ubuntu-22.04
             compiler: g++
             comp: gcc
             run_32bit_tests: true
             run_64bit_tests: true
             shell: bash
-          - name: Ubuntu 22.04 Clang
+          - name: Ubuntu 22.04 Clang x86
             os: ubuntu-22.04
             compiler: clang++
             comp: clang
@@ -41,7 +41,7 @@ jobs:
             comp: ndk
             run_armv7_tests: true
             shell: bash
-          - name: Linux GCC PPC64LE
+          - name: Ubuntu 22.04 GCC PPC64LE
             os: ubuntu-22.04
             compiler: g++
             comp: gcc
@@ -49,7 +49,7 @@ jobs:
             base_image: "ppc64le/alpine:latest"
             platform: linux/ppc64le
             shell: bash
-          - name: Linux GCC LoongArch64
+          - name: Ubuntu 22.04 GCC LoongArch64
             os: ubuntu-22.04
             compiler: g++
             comp: gcc
@@ -57,7 +57,7 @@ jobs:
             base_image: "loongarch64/alpine:3.21"
             platform: linux/loong64
             shell: bash
-          - name: Linux GCC RISC-V 64
+          - name: Ubuntu 22.04 GCC RISC-V64
             os: ubuntu-22.04
             compiler: g++
             comp: gcc
@@ -65,19 +65,19 @@ jobs:
             base_image: "riscv64/alpine:edge"
             platform: linux/riscv64
             shell: bash
-          - name: macOS 15 GCC 11 (Intel)
+          - name: macOS 15 Intel GCC 11
             os: macos-15-intel
             compiler: g++-11
             comp: gcc
             run_64bit_tests: true
             shell: bash
-          - name: macOS 15 Apple Clang (Intel)
+          - name: macOS 15 Intel Apple Clang
             os: macos-15-intel
             compiler: clang++
             comp: clang
             run_64bit_tests: true
             shell: bash
-          - name: macOS 15 Apple Clang (Apple Silicon)
+          - name: macOS 15 Apple Silicon Clang
             os: macos-15
             compiler: clang++
             comp: clang
@@ -91,7 +91,7 @@ jobs:
             msys_sys: mingw64
             msys_env: x86_64-gcc
             shell: msys2 {0}
-          - name: Windows 2022 MinGW-w64 GCC x86
+          - name: Windows 2022 MinGW-w64 GCC x86-32
             os: windows-2022
             compiler: g++
             comp: mingw
@@ -107,7 +107,7 @@ jobs:
             msys_sys: clang64
             msys_env: clang-x86_64-clang
             shell: msys2 {0}
-          - name: Windows 11 MinGW-w64 Clang ARM64
+          - name: Windows 11 ARM64 MinGW-w64 Clang
             os: windows-11-arm
             compiler: clang++
             comp: clang
@@ -167,7 +167,7 @@ jobs:
         if: runner.os == 'macOS'
         run: brew install coreutils
 
-      - name: Install GCC on macOS
+      - name: Install GCC 11 on macOS
         if: runner.os == 'macOS' && matrix.config.comp == 'gcc'
         run: |
           brew install gcc@11 || true
@@ -205,70 +205,69 @@ jobs:
             echo "No bench found"
           fi
 
-      - name: Check compiler
+      - name: Check compiler version
         run: |
           if [ -z "${{ matrix.config.base_image }}" ]; then
-            if [ $COMP == ndk ]; then
-              export PATH=${{ env.ANDROID_NDK_BIN }}:$PATH
+            if [ "$COMP" = "ndk" ]; then
+              export PATH="${{ env.ANDROID_NDK_BIN }}:$PATH"
             fi
-            $COMPCXX -v
+            "$COMPCXX" -v
           else
-            echo "$COMPCXX -v" > script.sh
-            docker run --rm --platform ${{ matrix.config.platform }} -v ${{ github.workspace }}:/app don_builder
+            echo "\"$COMPCXX\" -v" > script.sh
+            docker run --rm --platform "${{ matrix.config.platform }}" -v "${{ github.workspace }}:/app" don_builder
           fi
 
-      - name: Test help target
+      - name: Check Make help
         run: make help
 
-      - name: Check git
+      - name: Check Git version
         run: git --version
 
       # x86-32 tests
 
-      - name: Test debug x86-32-sse41-popcnt build
+      - name: Build and test x86-32 SSE4.1 with POPCNT Debug
         if: matrix.config.run_32bit_tests
         run: |
-          export CXXFLAGS="-Werror -D_GLIBCXX_DEBUG"
           make clean
-          make -j4 ARCH=x86-32-sse41-popcnt optimize=no debug=yes build
+          make -j4 ARCH=x86-32-sse41-popcnt optimize=no debug=yes ENV_CXXFLAGS="-Werror -D_GLIBCXX_DEBUG" build
           ../tests/signature.sh $benchref
 
-      - name: Test x86-32-sse41-popcnt build
+      - name: Build and test x86-32 SSE4.1 with POPCNT
         if: matrix.config.run_32bit_tests
         run: |
           make clean
           make -j4 ARCH=x86-32-sse41-popcnt build
           ../tests/signature.sh $benchref
 
-      - name: Test x86-32-sse41 build
+      - name: Build and test x86-32 SSE4.1
         if: matrix.config.run_32bit_tests
         run: |
           make clean
           make -j4 ARCH=x86-32-sse41 build
           ../tests/signature.sh $benchref
 
-      - name: Test x86-32-ssse3 build
+      - name: Build and test x86-32 SSSE3
         if: matrix.config.run_32bit_tests
         run: |
           make clean
           make -j4 ARCH=x86-32-ssse3 build
           ../tests/signature.sh $benchref
 
-      - name: Test x86-32-sse2 build
+      - name: Build and test x86-32 SSE2
         if: matrix.config.run_32bit_tests
         run: |
           make clean
           make -j4 ARCH=x86-32-sse2 build
           ../tests/signature.sh $benchref
 
-      - name: Test x86-32 build
+      - name: Build and test x86-32
         if: matrix.config.run_32bit_tests
         run: |
           make clean
           make -j4 ARCH=x86-32 build
           ../tests/signature.sh $benchref
 
-      - name: Test general-32 build
+      - name: Build and test General 32-bit
         if: matrix.config.run_32bit_tests
         run: |
           make clean
@@ -277,79 +276,85 @@ jobs:
 
       # x86-64 tests
 
-      - name: Test debug x86-64-bmi2 build
+      - name: Build and test x86-64 BMI2 Debug
         if: matrix.config.run_64bit_tests
         run: |
-          export CXXFLAGS="-Werror -D_GLIBCXX_DEBUG"
           make clean
-          make -j4 ARCH=x86-64-bmi2 optimize=no debug=yes build
+          make -j4 ARCH=x86-64-bmi2 optimize=no debug=yes ENV_CXXFLAGS="-Werror -D_GLIBCXX_DEBUG" build
           ../tests/signature.sh $benchref
 
-      - name: Test x86-64-bmi2 build
+      - name: Build and test x86-64 BMI2
         if: matrix.config.run_64bit_tests
         run: |
           make clean
           make -j4 ARCH=x86-64-bmi2 build
           ../tests/signature.sh $benchref
 
-      - name: Test x86-64-avx2 build
+      - name: Build and test x86-64 AVX2
         if: matrix.config.run_64bit_tests
         run: |
           make clean
           make -j4 ARCH=x86-64-avx2 build
           ../tests/signature.sh $benchref
 
-      # Test a deprecated arch
-      - name: Test x86-64-modern build
-        if: matrix.config.run_64bit_tests
-        run: |
-          make clean
-          make -j4 ARCH=x86-64-modern build
-          ../tests/signature.sh $benchref
-
-      - name: Test x86-64-sse41-popcnt build
+      - name: Build and test x86-64 SSE4.1 with POPCNT
         if: matrix.config.run_64bit_tests
         run: |
           make clean
           make -j4 ARCH=x86-64-sse41-popcnt build
           ../tests/signature.sh $benchref
 
-      - name: Test x86-64-ssse3-popcnt build
+      # Test a deprecated arch
+      - name: Build and test x86-64 Modern
+        if: matrix.config.run_64bit_tests
+        run: |
+          make clean
+          make -j4 ARCH=x86-64-modern build
+          ../tests/signature.sh $benchref
+
+      - name: Build and test x86-64 SSE4.1
+        if: matrix.config.run_64bit_tests
+        run: |
+          make clean
+          make -j4 ARCH=x86-64-sse41 build
+          ../tests/signature.sh $benchref
+
+      - name: Build and test x86-64 SSSE3 with POPCNT
         if: matrix.config.run_64bit_tests
         run: |
           make clean
           make -j4 ARCH=x86-64-ssse3-popcnt build
           ../tests/signature.sh $benchref
 
-      - name: Test x86-64-ssse3 build
+      - name: Build and test x86-64 SSSE3
         if: matrix.config.run_64bit_tests
         run: |
           make clean
           make -j4 ARCH=x86-64-ssse3 build
           ../tests/signature.sh $benchref
 
-      - name: Test x86-64 build
+      - name: Build and test x86-64
         if: matrix.config.run_64bit_tests
         run: |
           make clean
           make -j4 ARCH=x86-64 build
           ../tests/signature.sh $benchref
 
-      - name: Test general-64 build
+      - name: Build and test General 64-bit
         if: matrix.config.run_64bit_tests
         run: |
           make clean
           make -j4 ARCH=general-64 build
           ../tests/signature.sh $benchref
 
-      - name: Test apple-silicon build
+      - name: Build and test Apple Silicon
         if: matrix.config.run_arm64_tests
         run: |
           make clean
           make -j4 ARCH=apple-silicon build
           ../tests/signature.sh $benchref
 
-      - name: Test apple-silicon build with system g++ (macOS g++ == clang++)
+      - name: Build and test Apple Silicon with system g++ (macOS g++ == clang++)
         if: matrix.config.run_arm64_tests
         run: |
           make clean
@@ -358,21 +363,21 @@ jobs:
 
       # ppc64 tests
 
-      - name: Test ppc-64-vsx build
+      - name: Build and test PPC64 VSX
         if: matrix.config.run_ppc64_tests
         run: |
           echo "cd src && export LDFLAGS='-static' && make clean && make -j4 ARCH=ppc-64-vsx build" > script.sh
           docker run --rm --platform ${{ matrix.config.platform }} -v ${{ github.workspace }}:/app don_builder
           ../tests/signature.sh $benchref
 
-      - name: Test ppc-64-altivec build
+      - name: Build and test PPC64 AltiVec
         if: matrix.config.run_ppc64_tests
         run: |
           echo "cd src && export LDFLAGS='-static' && make clean && make -j4 ARCH=ppc-64-altivec build" > script.sh
           docker run --rm --platform ${{ matrix.config.platform }} -v ${{ github.workspace }}:/app don_builder
           ../tests/signature.sh $benchref
 
-      - name: Test ppc64 build
+      - name: Build and test PPC64
         if: matrix.config.run_ppc64_tests
         run: |
           echo "cd src && export LDFLAGS='-static' && make clean && make -j4 ARCH=ppc-64 build" > script.sh
@@ -381,21 +386,21 @@ jobs:
 
       # loongarch64 tests
 
-      - name: Test loongarch64-lasx build
+      - name: Build and test LoongArch64 LASX
         if: matrix.config.run_loongarch64_tests
         run: |
           echo "cd src && export LDFLAGS='-static' && make clean && make -j4 ARCH=loongarch64-lasx build" > script.sh
           docker run --rm --platform ${{ matrix.config.platform }} -v ${{ github.workspace }}:/app don_builder
           ../tests/signature.sh $benchref
 
-      - name: Test loongarch64-lsx build
+      - name: Build and test LoongArch64 LSX
         if: matrix.config.run_loongarch64_tests
         run: |
           echo "cd src && export LDFLAGS='-static' && make clean && make -j4 ARCH=loongarch64-lsx build" > script.sh
           docker run --rm --platform ${{ matrix.config.platform }} -v ${{ github.workspace }}:/app don_builder
           ../tests/signature.sh $benchref
 
-      - name: Test loongarch64 build
+      - name: Build and test LoongArch64
         if: matrix.config.run_loongarch64_tests
         run: |
           echo "cd src && export LDFLAGS='-static' && make clean && make -j4 ARCH=loongarch64 build" > script.sh
@@ -404,7 +409,7 @@ jobs:
 
       # riscv64 tests
 
-      # - name: Test riscv64-rva23 build
+      # - name: Build and test RISC-V64 RVA23
       #   if: matrix.config.run_riscv64_tests
       #   run: |
       #     echo "cd src && export LDFLAGS='-static' && make clean && make -j4 ARCH=riscv64-rva23 build" >> script.sh
@@ -412,7 +417,7 @@ jobs:
       #     docker run --rm --platform ${{ matrix.config.platform }} -v ${{ github.workspace }}:/app don_builder
       #     ../tests/signature.sh $benchref
 
-      - name: Test riscv64 build
+      - name: Build and test RISC-V64
         if: matrix.config.run_riscv64_tests
         run: |
           echo "cd src && export LDFLAGS='-static' && make clean && make -j4 ARCH=riscv64 build" > script.sh
@@ -421,10 +426,10 @@ jobs:
 
       # armv8 tests
 
-      - name: Test armv8-dotprod build
+      - name: Build and test ARMv8 NEON DOTPROD
         if: matrix.config.run_armv8_tests
         run: |
-          if [ $COMP == ndk ]; then
+          if [ "$COMP" = "ndk" ]; then
             export PATH=${{ env.ANDROID_NDK_BIN }}:$PATH
             export LDFLAGS="-static -Wno-unused-command-line-argument"
           fi
@@ -432,10 +437,10 @@ jobs:
           make -j4 ARCH=armv8-dotprod build
           ../tests/signature.sh $benchref
 
-      - name: Test armv8 build
+      - name: Build and test ARMv8 NEON
         if: matrix.config.run_armv8_tests
         run: |
-          if [ $COMP == ndk ]; then
+          if [ "$COMP" = "ndk" ]; then
             export PATH=${{ env.ANDROID_NDK_BIN }}:$PATH
             export LDFLAGS="-static -Wno-unused-command-line-argument"
           fi
@@ -445,7 +450,7 @@ jobs:
 
       # armv7 tests
 
-      - name: Test armv7-neon build
+      - name: Build and test ARMv7 NEON
         if: matrix.config.run_armv7_tests
         run: |
           export PATH=${{ env.ANDROID_NDK_BIN }}:$PATH
@@ -454,7 +459,7 @@ jobs:
           make -j4 ARCH=armv7-neon build
           ../tests/signature.sh $benchref
 
-      - name: Test armv7 build
+      - name: Build and test ARMv7
         if: matrix.config.run_armv7_tests
         run: |
           export PATH=${{ env.ANDROID_NDK_BIN }}:$PATH
@@ -465,7 +470,7 @@ jobs:
 
       # Other tests
 
-      - name: Check perft and search reproducibility
+      - name: Verify perft and search reproducibility
         if: matrix.config.run_64bit_tests
         run: |
           make clean

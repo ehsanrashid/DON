@@ -770,6 +770,7 @@ endif
 ### 3.3 Optimization
 ifeq ($(optimize),yes)
     CXXFLAGS += -O3 -funroll-loops
+    LDFLAGS  += -O3
 
     ifeq ($(COMP),gcc)
         ifeq ($(OS),Android)

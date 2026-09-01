@@ -273,13 +273,12 @@ void apply_combined(Color                                perspective,
             vec_store_psqt(&targetPsqtTile[k], psqt[k]);
     }
     // clang-format on
-
 #elif defined(USE_RVV)
     const auto* psqWeights        = &featureTransformer.weights[0];
     const auto* threatWeights     = &featureTransformer.threatWeights[0];
     const auto* psqtWeights       = &featureTransformer.psqtWeights[0];
     const auto* threatPsqtWeights = &featureTransformer.threatPsqtWeights[0];
-
+    // clang-format off
     for (usize tileOffset = 0; tileOffset < Dimensions;)
     {
         const usize vl = __riscv_vsetvl_e16m8(Dimensions - tileOffset);
@@ -297,8 +296,8 @@ void apply_combined(Color                                perspective,
         for (const auto i : thrAdded)
             accum = __riscv_vwadd_wv_i16m8(
               accum, __riscv_vle8_v_i8m4(&threatWeights[i * Dimensions + tileOffset], vl), vl);
-        __riscv_vse16_v_i16m8(&targetAcc[tileOffset], accum, vl);
 
+        __riscv_vse16_v_i16m8(&targetAcc[tileOffset], accum, vl);
         tileOffset += vl;
     }
 
@@ -315,18 +314,15 @@ void apply_combined(Color                                perspective,
               accum, __riscv_vle32_v_i32m1(&psqtWeights[i * PSQTBuckets + tileOffset], vl), vl);
         for (const auto i : thrRemoved)
             accum = __riscv_vsub_vv_i32m1(
-              accum, __riscv_vle32_v_i32m1(&threatPsqtWeights[i * PSQTBuckets + tileOffset], vl),
-              vl);
+              accum, __riscv_vle32_v_i32m1(&threatPsqtWeights[i * PSQTBuckets + tileOffset], vl), vl);
         for (const auto i : thrAdded)
             accum = __riscv_vadd_vv_i32m1(
-              accum, __riscv_vle32_v_i32m1(&threatPsqtWeights[i * PSQTBuckets + tileOffset], vl),
-              vl);
+              accum, __riscv_vle32_v_i32m1(&threatPsqtWeights[i * PSQTBuckets + tileOffset], vl), vl);
 
         __riscv_vse32_v_i32m1(&targetPsqtAcc[tileOffset], accum, vl);
-
         tileOffset += vl;
     }
-
+    // clang-format on
 #else
 
     targetAcc     = sourceAcc;
@@ -495,21 +491,21 @@ Bitboard changed_bb(const PieceMap& oldPieceMap, const PieceMap& newPieceMap) no
 
 #elif defined(USE_RVV)
 
-    #define IMPL(mx, bx) \
-        return __riscv_vmv_x_s_u64m1_u64(__riscv_vreinterpret_v_u8m1_u64m1( \
+    #define RVV_MASK(mx, bx) \
+        __riscv_vmv_x_s_u64m1_u64(__riscv_vreinterpret_v_u8m1_u64m1( \
           __riscv_vreinterpret_v_b##bx##_u8m1(__riscv_vmsne_vv_i8m##mx##_b##bx( \
             __riscv_vle8_v_i8m##mx(reinterpret_cast<const i8*>(oldPieceMap.data()), 64), \
             __riscv_vle8_v_i8m##mx(reinterpret_cast<const i8*>(newPieceMap.data()), 64), 64))))
 
-    usize vl = __riscv_vsetvlmax_e8m1();
-    if (vl >= 64)
-        IMPL(1, 8);
-    else if (vl == 32)
-        IMPL(2, 4);
+    const usize maxVl = __riscv_vsetvlmax_e8m1();
+    if (maxVl >= 64)
+        return RVV_MASK(1, 8);
+    else if (maxVl == 32)
+        return RVV_MASK(2, 4);
     else
-        IMPL(4, 2);
+        return RVV_MASK(4, 2);
 
-    #undef IMPL
+    #undef RVV_MASK
 
 #else
     Bitboard changedBB = 0;
@@ -658,7 +654,7 @@ void update_refresh_cache(const Color               perspective,
     const auto* threatWeights     = &featureTransformer.threatWeights[0];
     const auto* psqtWeights       = &featureTransformer.psqtWeights[0];
     const auto* threatPsqtWeights = &featureTransformer.threatPsqtWeights[0];
-
+    // clang-format off
     for (usize tileOffset = 0; tileOffset < Dimensions;)
     {
         const usize vl = __riscv_vsetvl_e16m8(Dimensions - tileOffset);
@@ -698,14 +694,13 @@ void update_refresh_cache(const Color               perspective,
 
         for (const auto i : active)
             accum = __riscv_vadd_vv_i32m1(
-              accum, __riscv_vle32_v_i32m1(&threatPsqtWeights[i * PSQTBuckets + tileOffset], vl),
-              vl);
+              accum, __riscv_vle32_v_i32m1(&threatPsqtWeights[i * PSQTBuckets + tileOffset], vl), vl);
 
         __riscv_vse32_v_i32m1(&accumulator.psqtAccumulation[perspective][tileOffset], accum, vl);
 
         tileOffset += vl;
     }
-
+    // clang-format on
 #else
 
     for (const auto index : removed)

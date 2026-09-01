@@ -20,7 +20,6 @@
 #ifndef NNUE_ARCHITECTURE_H_INCLUDED
 #define NNUE_ARCHITECTURE_H_INCLUDED
 
-#include <cstring>
 #include <functional>
 #include <iosfwd>
 
@@ -103,28 +102,20 @@ struct NetworkArchitecture final {
             alignas(CACHE_LINE_SIZE) Array<
               typename decltype(ac_sqr_0)::OutputType,
               ceil_to_multiple<IndexType>(FC_0_Outputs * 2 + FC_1_Outputs * 2, 32)> concat_buffer;
-            alignas(CACHE_LINE_SIZE) typename decltype(ac_0)::OutputBuffer ac_0_out;
             alignas(CACHE_LINE_SIZE) typename decltype(fc_1)::OutputBuffer fc_1_out;
-            alignas(CACHE_LINE_SIZE) typename decltype(ac_1)::OutputBuffer ac_1_out;
             alignas(CACHE_LINE_SIZE) typename decltype(fc_2)::OutputBuffer fc_2_out;
-
-            Buffer() noexcept { std::memset(concat_buffer.data(), 0, sizeof(concat_buffer)); }
         };
 
         Buffer buffer;
 
         fc_0.propagate(transformedFeatures.data(), buffer.fc_0_out.data(), nnz);
         ac_sqr_0.propagate(buffer.fc_0_out.data(), buffer.concat_buffer.data());
-        ac_0.propagate(buffer.fc_0_out.data(), buffer.ac_0_out.data());
-        std::memcpy(&buffer.concat_buffer[FC_0_Outputs], buffer.ac_0_out.data(),
-                    FC_0_Outputs * sizeof(typename decltype(ac_0)::OutputType));
+        ac_0.propagate(buffer.fc_0_out.data(), buffer.concat_buffer.data() + FC_0_Outputs);
 
         fc_1.propagate(buffer.concat_buffer.data(), buffer.fc_1_out.data());
         ac_sqr_1.propagate(buffer.fc_1_out.data(), buffer.concat_buffer.data() + FC_0_Outputs * 2);
-        ac_1.propagate(buffer.fc_1_out.data(), buffer.ac_1_out.data());
-        std::memcpy(buffer.concat_buffer.data() + FC_0_Outputs * 2 + FC_1_Outputs,
-                    buffer.ac_1_out.data(),
-                    FC_1_Outputs * sizeof(typename decltype(ac_1)::OutputType));
+        ac_1.propagate(buffer.fc_1_out.data(),
+                       buffer.concat_buffer.data() + FC_0_Outputs * 2 + FC_1_Outputs);
 
         fc_2.propagate(buffer.concat_buffer.data(), buffer.fc_2_out.data());
 
