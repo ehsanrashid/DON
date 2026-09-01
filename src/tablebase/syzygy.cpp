@@ -85,7 +85,7 @@ enum class Endian : u8 {
     LITTLE
 };
 
-constexpr auto operator+(Endian e) noexcept { return static_cast<u8>(e); }
+[[maybe_unused]] constexpr auto operator+(Endian e) noexcept { return static_cast<u8>(e); }
 
 // Used as template parameter
 enum TBType : u8 {

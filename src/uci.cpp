@@ -147,14 +147,14 @@ Limit parse_limit(std::istream& is) noexcept {
             i16 movesToGo;
             is >> movesToGo;
 
-            limit.movesToGo = std::clamp<u8>(constexpr_abs(movesToGo), 1, 255);
+            limit.movesToGo = std::clamp<u8>(constexpr_abs(u8(movesToGo)), 1, 255);
         }
         else if (token == "mate")
         {
             i16 mate;
             is >> mate;
 
-            limit.mate = std::clamp<u8>(constexpr_abs(mate), 1, 255);
+            limit.mate = std::clamp<u8>(constexpr_abs(u8(mate)), 1, 255);
         }
         else if (token == "depth")
         {

@@ -64,18 +64,18 @@ Engine::Engine(const std::filesystem::path& path) noexcept :
     using OnCng = Option::OnChange;
 
     options.add("NumaPolicy",        Option("auto", OnCng([this](const Option& o) { return set_numa_config(o) ? numa_config_info() + '\n' + thread_allocation() : "NumaPolicy: invalid value '" + std::string(o) + "', keeping previous config."; })));
-    options.add("Threads",           Option(1, 1, THREAD_MAX, OnCng([this](const Option&) { resize_threads_tt(); return thread_allocation(); })));
-    options.add("Hash",              Option(16, 1, HASH_MAX, OnCng([this](const Option& o) { resize_tt(o); return "Hash: " + std::to_string(int(o)); })));
+    options.add("Threads",           Option(1, 1, int(THREAD_MAX), OnCng([this](const Option&) { resize_threads_tt(); return thread_allocation(); })));
+    options.add("Hash",              Option(16, 1, int(HASH_MAX), OnCng([this](const Option& o) { resize_tt(o); return "Hash: " + std::to_string(int(o)); })));
     options.add("Clear Hash",        Option(OnCng([this](const Option&) { reset(); return std::nullopt; })));
     options.add("HashRetain",        Option(false));
     options.add("HashFile",          Option(""));
     options.add("Save Hash",         Option(OnCng([this](const Option&) { return save_hash(path_from_utf8(options["HashFile"])) ? "Save succeeded" : "Save failed"; })));
     options.add("Load Hash",         Option(OnCng([this](const Option&) { return load_hash(path_from_utf8(options["HashFile"])) ? "Load succeeded" : "Load failed"; })));
     options.add("Ponder",            Option(false));
-    options.add("MultiPV",           Option(1, 1, MOVE_MAX));
+    options.add("MultiPV",           Option(1, 1, int(MOVE_MAX)));
     options.add("UCI_Chess960",      Option(Position::Chess960, OnCng([](const Option& o) { Position::Chess960 = bool(o); return std::nullopt; })));
     options.add("UCI_LimitStrength", Option(false));
-    options.add("UCI_ELO",           Option(Skill::ELO_MAX, Skill::ELO_MIN, Skill::ELO_MAX));
+    options.add("UCI_ELO",           Option(int(Skill::ELO_MAX), int(Skill::ELO_MIN), int(Skill::ELO_MAX)));
     options.add("UCI_ShowWDL",       Option(false));
     options.add("SkillLevel",        Option(int(Skill::LEVEL_MAX), int(Skill::LEVEL_MIN), int(Skill::LEVEL_MAX)));
     options.add("OverheadTime",      Option(25,  0, 5000));  // Estimated overhead per move

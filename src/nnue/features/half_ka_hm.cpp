@@ -58,7 +58,7 @@ alignas(CACHE_LINE_SIZE) constexpr Array<u16, COLOR_NB, PIECE_NB> PIECE_SQUARE_I
 }};
 
 #define B(v) (v * HalfKA_hm::PS_NB)
-alignas(CACHE_LINE_SIZE) constexpr Array<IndexType, SQUARE_NB> KING_BUCKETS{
+alignas(CACHE_LINE_SIZE) constexpr Array<u16, SQUARE_NB> KING_BUCKETS{
   B(28), B(29), B(30), B(31), B(31), B(30), B(29), B(28),  //
   B(24), B(25), B(26), B(27), B(27), B(26), B(25), B(24),  //
   B(20), B(21), B(22), B(23), B(23), B(22), B(21), B(20),  //
@@ -84,7 +84,7 @@ static_assert(orientation(SQ_A8) == SQ_H1);
 static_assert(orientation(SQ_H8) == SQ_A1);
 
 // Index of a feature for king position and piece on square
-ALWAYS_INLINE constexpr IndexType
+ALWAYS_INLINE constexpr u16
 make_index(const Color perspective, const Square kingSq, const Square s, const Piece pc) noexcept {
     const u8 relOrientation = relative_sq(perspective, orientation(kingSq));
     return (static_cast<u8>(s) ^ relOrientation)   //

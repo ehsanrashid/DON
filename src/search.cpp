@@ -1616,8 +1616,8 @@ Value Worker::search(Position&    pos,
 
             rm.nodes += nodes - preNodes;
             // clang-format off
-            rm.avgValue    = rm.avgValue    !=          -VALUE_INFINITE  ? (         value  + rm.avgValue   ) / 2 :                   value;
-            rm.avgSqrValue = rm.avgSqrValue != sign_sqr(-VALUE_INFINITE) ? (sign_sqr(value) + rm.avgSqrValue) / 2 : SqrValue(sign_sqr(value));
+            rm.avgValue    = Value   (rm.avgValue    !=          -VALUE_INFINITE  ? (         value  + rm.avgValue   ) / 2 :          value);
+            rm.avgSqrValue = SqrValue(rm.avgSqrValue != sign_sqr(-VALUE_INFINITE) ? (sign_sqr(value) + rm.avgSqrValue) / 2 : sign_sqr(value));
             // clang-format on
 
             // PV move or new best move?
