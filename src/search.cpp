@@ -2667,7 +2667,8 @@ void MainSearchManager::handle_time_management(const Worker& worker,
             worker.threads.request_stop();
     }
 
-    if (!worker.threads.is_researching() && !ponder && elapsedTime > 0.50 * totalTime)
+    if (!worker.threads.is_researching() && !ponder
+        && elapsedTime > constexpr_ceil(0.50 * totalTime))
         worker.threads.request_research();
 
     preBestValue = bestValue;

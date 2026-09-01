@@ -304,7 +304,7 @@ class FeatureTransformer final {
                     const uint16x8_t mul1 = vmull_u8(vqmovun_s16(acc01), vqmovun_s16(acc11));
 
                     const uint8x16x2_t uzp = vuzpq_u8(vreinterpretq_u8_u16(mul0), vreinterpretq_u8_u16(mul1));
-                    const uint8x16_t pab   = vshrq_n_u8(uzp.val[1], Shift);
+                    const uint8x16_t   pab = vshrq_n_u8(uzp.val[1], Shift);
 
                     pack = reinterpret_cast<SIMD::vec_t>(pab);
 

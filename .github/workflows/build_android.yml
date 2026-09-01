@@ -51,6 +51,22 @@ jobs:
             echo "ANDROID_NDK_BIN=$ANDROID_NDK_BIN" >> "$GITHUB_ENV"
           fi
 
+      - name: Download the used network from the fishtest framework
+        run: make net
+
+      - name: Check compiler
+        run: |
+          if [ "$COMP" = "ndk" ]; then
+            export PATH="${{ env.ANDROID_NDK_BIN }}:$PATH"
+          fi
+          "$COMPCXX" -v
+
+      - name: Test help target
+        run: make help
+
+      - name: Check git
+        run: git --version
+
       - name: Extract the bench number from the commit history
         run: |
           benchref=""
@@ -73,25 +89,9 @@ jobs:
             echo "No bench found"
           fi
 
-      - name: Download the used network from the fishtest framework
-        run: make net
+      # Build profile-guided binaries
 
-      - name: Check compiler
-        run: |
-          if [ "$COMP" = "ndk" ]; then
-            export PATH="${{ env.ANDROID_NDK_BIN }}:$PATH"
-          fi
-          "$COMPCXX" -v
-
-      - name: Test help target
-        run: make help
-
-      - name: Check git
-        run: git --version
-
-      # Compile profile guided builds
-
-      - name: Compile ${{ env.BINARY }} build
+      - name: Build ${{ env.BINARY }} with NDK
         run: |
           if [ "$COMP" = "ndk" ]; then
             export PATH=${{ env.ANDROID_NDK_BIN }}:$PATH
@@ -103,7 +103,7 @@ jobs:
           RUN_PREFIX="$EMU" ../tests/signature.sh "$benchref"
           mv "./DON$EXT" "../DON-android-$BINARY$EXT" || { echo "ERROR: Built binary ./DON$EXT not found"; exit 1; }
 
-      - name: Remove non src files
+      - name: Clean untracked and ignored src files
         run: git clean -fxd
 
       - name: Upload artifact for (pre)-release

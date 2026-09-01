@@ -58,10 +58,10 @@ jobs:
             echo "No bench found"
           fi
 
-      - name: Check arch selection under SDE
+      - name: Verify architecture selection under SDE
         run: ./scripts/check_universal_x86_64.sh ./DON-linux-x86-64-universal "$SDE_DIR/sde" "$benchref"
 
-      - name: Remove non-src files
+      - name: Clean untracked and ignored src files
         run: git clean -fxd -- src
 
       - name: Upload artifact for (pre)-release
@@ -130,10 +130,10 @@ jobs:
             echo "No bench found"
           fi
   
-      - name: Check arch selection under SDE
+      - name: Verify architecture selection under SDE
         run: ./scripts/check_universal_x86_64.sh ./DON-windows-x86-64-universal.exe "$SDE_DIR/sde" "$benchref"
 
-      - name: Remove non-src files
+      - name: Clean untracked and ignored src files
         run: git clean -fxd -- src
 
       - name: Upload artifact for (pre)-release
@@ -167,7 +167,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y qemu-user
 
-      - name: Build universal binary
+      - name: Build Linux ARM64 universal binary with GCC
         run: make -j4 -C src ARCH=arm64-universal profile-build
 
       - name: Strip binary
@@ -198,10 +198,10 @@ jobs:
             echo "No bench found"
           fi
 
-      - name: Check arch selection under qemu
+      - name: Verify architecture selection under QEMU
         run: ./scripts/check_universal_arm64.sh ./DON-linux-arm64-universal "$benchref"
 
-      - name: Remove non-src files
+      - name: Clean untracked and ignored src files
         run: git clean -fxd -- src
 
       - name: Upload artifact for (pre)-release
@@ -231,7 +231,7 @@ jobs:
           msystem: clangarm64
           install: mingw-w64-clang-aarch64-clang make git zip
 
-      - name: Build universal binary
+      - name: Build Windows ARM64 universal binary with Clang
         run: make -j4 -C src ARCH=arm64-universal profile-build COMP=clang COMPCXX=clang++
 
       - name: Strip binary
@@ -268,7 +268,7 @@ jobs:
       - name: Rename binary
         run: mv src/DON.exe DON-windows-arm64-universal.exe
 
-      - name: Remove non-src files
+      - name: Clean untracked and ignored src files
         run: git clean -fxd -- src
 
       - name: Upload artifact for (pre)-release
@@ -296,7 +296,7 @@ jobs:
       - name: Install Rosetta 2
         run: softwareupdate --install-rosetta --agree-to-license
 
-      - name: Build universal binary
+      - name: Build macOS universal binary with Clang
         run: make -j4 -C src macos-lipo COMP=clang
 
       - name: Rename binary
@@ -305,7 +305,7 @@ jobs:
       - name: Verify binary runs natively and under Rosetta
         run: ./scripts/check_universal_macos.sh ./DON-macos-universal
 
-      - name: Remove non-src files
+      - name: Clean untracked and ignored src files
         run: git clean -fxd -- src
 
       - name: Upload artifact for (pre)-release
@@ -355,7 +355,7 @@ jobs:
   #         /tmp/qemu/usr/bin/qemu-riscv64 --version
   #         echo "/tmp/qemu/usr/bin" >> "$GITHUB_PATH"
 
-  #     - name: Build universal binary
+  #     - name: Build Linux RISC-V64 universal binary with Clang
   #       run: |
   #         make -j4 -C src ARCH=riscv64-universal build \
   #           COMP=clang COMPCXX=clang++ \
@@ -391,12 +391,12 @@ jobs:
   #           echo "No bench found"
   #         fi
 
-  #     - name: Check arch selection under qemu
+  #     - name: Verify architecture selection under QEMU
   #       run: |
   #         QEMU=qemu-riscv64 QEMU_LD_PREFIX=/usr/riscv64-linux-gnu \
   #         ./scripts/check_universal_riscv64.sh ./DON-linux-riscv64-universal "$benchref"
 
-  #     - name: Remove non-src files
+  #     - name: Clean untracked and ignored src files
   #       run: git clean -fxd -- src
 
   #     - name: Upload artifact for (pre)-release
