@@ -131,7 +131,7 @@ class SparseAffineTransform final {
     void propagate(const InputType* RESTRICT           input,
                    OutputType* RESTRICT                output,
                    [[maybe_unused]] const NNZ<InDims>& nnz) const noexcept {
-#define USE_SPARSE_AFFINE_SIMD
+
 #if defined(USE_SPARSE_AFFINE_SIMD)
     #if defined(USE_SSSE3)
         #if defined(USE_AVX512)
