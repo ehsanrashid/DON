@@ -524,7 +524,7 @@ Setup benchmark(std::istream& is) noexcept {
     double moveTimeSum = 0.0;
     for (const auto& game : Games)
         for (usize i = 0; i < game.size(); ++i)
-            moveTimeSum += calc_move_time(i + 1);
+            moveTimeSum += calc_move_time(u16(i + 1));
 
     double timeScaleFactor = 1000.0 * moveTimeDesired / moveTimeSum;
 

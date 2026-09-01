@@ -58,7 +58,7 @@ alignas(CACHE_LINE_SIZE) constexpr auto REDUCTIONS = []() constexpr noexcept {
 
     reductions[0] = 0;
     for (usize i = 1; i < reductions.size(); ++i)
-        reductions[i] = static_cast<u16>(ReductionScale * constexpr_log(i));
+        reductions[i] = u16(ReductionScale * constexpr_log(double(i)));
 
     return reductions;
 }();
@@ -557,7 +557,7 @@ void Worker::iterative_deepening() noexcept {
             const auto avgSqrValue = rmIdx.avgSqrValue;
 
             // Reset aspiration window starting size
-            int   delta = 5 + thread_id() % 8 + constexpr_abs(avgSqrValue) / 10588.0;
+            int delta = 5 + thread_id() % 8 + constexpr_round(constexpr_abs(avgSqrValue) / 10588.0);
             Value alpha = std::max<int>(avgValue - delta, -VALUE_INFINITE);
             Value beta  = std::min<int>(avgValue + delta, +VALUE_INFINITE);
 
@@ -2286,7 +2286,7 @@ int Worker::correction_value(const Position& pos, const Stack* const ss) const n
     else
         correctionValue += i64{64549};
 
-    return std::clamp(correctionValue, -INT_LIMIT, +INT_LIMIT);
+    return static_cast<i32>(std::clamp(correctionValue, -INT_LIMIT, +INT_LIMIT));
 }
 
 // clang-format on

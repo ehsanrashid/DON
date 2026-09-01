@@ -529,10 +529,10 @@ Position::set(const std::string_view code, const Color c, State* const newSt) no
     fens  //
       .assign("8/")
       .append(sides[WHITE])
-      .append(1, digit_to_char(8 - sides[WHITE].size()))
+      .append(1, digit_to_char(int(8 - sides[WHITE].size())))
       .append("/8/8/8/8/")
       .append(sides[BLACK])
-      .append(1, digit_to_char(8 - sides[BLACK].size()))
+      .append(1, digit_to_char(int(8 - sides[BLACK].size())))
       .append("/8")
       .append(c == WHITE ? " w " : " b ")
       .append("- - 0 1");
