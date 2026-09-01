@@ -67,7 +67,7 @@ struct MoveList final {
     [[nodiscard]] const_iterator end() const noexcept { return moveEnd; }
 
     [[nodiscard]] size_type size() const noexcept { return end() - begin(); }
-    [[nodiscard]] bool      empty() const noexcept { return begin() == end(); }
+    [[nodiscard]] bool      empty() const noexcept { return size() == 0; }
 
     [[nodiscard]] const_iterator find(const Move m) const noexcept {
         return std::find(begin(), end(), m);

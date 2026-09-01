@@ -16,8 +16,8 @@ jobs:
       COMP: ${{ matrix.config.comp }}
       EMU: ${{ matrix.config.emu }}
       SIMPLE_NAME: ${{ matrix.config.simple_name }}
-      BINARY: ${{ matrix.binary }}
       EXT: ${{ matrix.config.ext }}
+      BINARY: ${{ matrix.binary }}
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(inputs.matrix) }}

@@ -5,16 +5,16 @@ on:
 
 jobs:
   BuildMSVC:
-    name: MSVC ${{ matrix.name }}
+    name: MSVC (${{ matrix.name }})
     runs-on: windows-latest
 
     strategy:
       fail-fast: false
       matrix:
         include:
-          # Runners cannot execute AVX-512, so avx512icl is build-only.
-          - { name: avx2, flags: "/arch:AVX2", bench: true }
-          - { name: avx512icl, flags: "/arch:AVX512 /DUSE_AVX512 /DUSE_VNNI /DUSE_AVX512ICL /DUSE_BMI2", bench: false }
+          # Runners cannot execute AVX-512, so "AVX-512 ICL" is build-only
+          - { name: "AVX2",        arch: "avx2",      flags: "/arch:AVX2",                                                      bench: true }
+          - { name: "AVX-512 ICL", arch: "avx512icl", flags: "/arch:AVX512 /DUSE_AVX512 /DUSE_VNNI /DUSE_AVX512ICL /DUSE_BMI2", bench: false }
 
     defaults:
       run:
@@ -33,6 +33,7 @@ jobs:
         run: make net
 
       - name: Extract the bench number from the commit history
+        if: matrix.bench
         run: |
           benchref=""
           for hash in $(git rev-list -100 HEAD); do
@@ -57,7 +58,7 @@ jobs:
       - name: Set up MSVC
         uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
 
-      - name: Build ${{ matrix.name }} binary
+      - name: Build ${{ matrix.arch }} with MSVC
         shell: cmd
         run: >-
           cl /nologo /std:c++17 /MT /EHsc /O2 /MP /W3 /WX /permissive-

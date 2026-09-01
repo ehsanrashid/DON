@@ -150,7 +150,7 @@ inline std::pair<BOOL, std::vector<USHORT>> get_process_group_affinity() noexcep
     constexpr usize GroupArrayMinAlignment = 4;
     static_assert(GroupArrayMinAlignment >= MinAlignment);
 
-    constexpr usize ExtraGroupCount = ceil_div(GroupArrayMinAlignment, MinAlignment);
+    constexpr usize AlignmentPadding = ceil_div(GroupArrayMinAlignment, MinAlignment);
 
     constexpr usize MaxAttempt = 4;
 
@@ -161,7 +161,7 @@ inline std::pair<BOOL, std::vector<USHORT>> get_process_group_affinity() noexcep
     // In such case consider this a hard error, can't work with unstable affinities anyway.
     for (usize attempt = 0; attempt < MaxAttempt; ++attempt)
     {
-        auto groupArray = std::make_unique<USHORT[]>(requiredGroupCount + ExtraGroupCount);
+        auto groupArray = std::make_unique<USHORT[]>(requiredGroupCount + AlignmentPadding);
 
         USHORT* alignedGroupArray = align_ptr_up<GroupArrayMinAlignment>(groupArray.get());
 
@@ -238,7 +238,7 @@ inline WindowsAffinity get_process_affinity() noexcept {
 
                     if (groupMask != 0)
                         for (DWORD number = 0; number < WIN_PROCESSOR_GROUP_SIZE; ++number)
-                            if ((groupMask & bit(number)) != 0)
+                            if ((groupMask & bit(u8(number))) != 0)
                             {
                                 const CpuIndex cpuId = groupId * WIN_PROCESSOR_GROUP_SIZE + number;
 
@@ -296,7 +296,7 @@ inline WindowsAffinity get_process_affinity() noexcept {
                 const KAFFINITY groupMask = procMask;
 
                 for (DWORD number = 0; number < WIN_PROCESSOR_GROUP_SIZE; ++number)
-                    if ((groupMask & bit(number)) != 0)
+                    if ((groupMask & bit(u8(number))) != 0)
                     {
                         const CpuIndex cpuId = groupId * WIN_PROCESSOR_GROUP_SIZE + number;
 
@@ -342,7 +342,7 @@ inline WindowsAffinity get_process_affinity() noexcept {
                         std::memset(&groupAffinity, 0, sizeof(groupAffinity));
 
                         groupAffinity.Group = groupId;
-                        groupAffinity.Mask  = bit(i);
+                        groupAffinity.Mask  = bit(u8(i));
 
                         if (SetThreadGroupAffinity(GetCurrentThread(), &groupAffinity, nullptr)
                             == FALSE)
@@ -373,7 +373,7 @@ inline WindowsAffinity get_process_affinity() noexcept {
 
                     if (combinedProcMask != 0)
                         for (DWORD number = 0; number < WIN_PROCESSOR_GROUP_SIZE; ++number)
-                            if ((combinedProcMask & bit(number)) != 0)
+                            if ((combinedProcMask & bit(u8(number))) != 0)
                             {
                                 const CpuIndex cpuId = groupId * WIN_PROCESSOR_GROUP_SIZE + number;
 
@@ -415,7 +415,7 @@ CpuIndexSet read_cache_members(const T* processorInfo, Pred&& is_cpu_allowed) no
     const auto add_group_cpus = [&](WORD groupId, KAFFINITY groupMask) noexcept {
         for (DWORD number = 0; number < WIN_PROCESSOR_GROUP_SIZE; ++number)
         {
-            if ((groupMask & bit(number)) != 0)
+            if ((groupMask & bit(u8(number))) != 0)
             {
                 const CpuIndex cpuId = groupId * WIN_PROCESSOR_GROUP_SIZE + number;
 
@@ -701,11 +701,11 @@ class NumaConfig final {
                 if (cpus.empty())
                     continue;
 
-                WORD lstGroupId = *cpus.begin() / WIN_PROCESSOR_GROUP_SIZE;
+                WORD lstGroupId = static_cast<WORD>(*cpus.begin() / WIN_PROCESSOR_GROUP_SIZE);
 
                 for (CpuIndex cpuId : cpus)
                 {
-                    const WORD groupId = cpuId / WIN_PROCESSOR_GROUP_SIZE;
+                    const WORD groupId = static_cast<WORD>(cpuId / WIN_PROCESSOR_GROUP_SIZE);
 
                     if (lstGroupId != groupId)
                     {
@@ -1001,8 +1001,8 @@ class NumaConfig final {
         if (setThreadSelectedCpuSetMasks != nullptr)
         {
             // Only available on Windows 11 and Windows Server 2022 onwards
-            const WORD procGroupCount = ((maxCpuId + 1) + WIN_PROCESSOR_GROUP_SIZE - 1)  //
-                                      / WIN_PROCESSOR_GROUP_SIZE;
+            const WORD procGroupCount =
+              static_cast<WORD>(ceil_div(maxCpuId + 1, WIN_PROCESSOR_GROUP_SIZE));
 
             auto groupAffinities = std::make_unique<GROUP_AFFINITY[]>(procGroupCount);
             std::memset(groupAffinities.get(), 0, procGroupCount * sizeof(*groupAffinities.get()));
@@ -1012,10 +1012,10 @@ class NumaConfig final {
 
             for (CpuIndex cpuId : nodes[numaId])
             {
-                const WORD groupId       = cpuId / WIN_PROCESSOR_GROUP_SIZE;
-                const BYTE inProcGroupId = cpuId % WIN_PROCESSOR_GROUP_SIZE;
+                const WORD groupId       = static_cast<WORD>(cpuId / WIN_PROCESSOR_GROUP_SIZE);
+                const BYTE inProcGroupId = static_cast<BYTE>(cpuId % WIN_PROCESSOR_GROUP_SIZE);
 
-                groupAffinities[groupId].Mask |= bit(inProcGroupId);
+                groupAffinities[groupId].Mask |= bit(u8(inProcGroupId));
             }
 
             if (setThreadSelectedCpuSetMasks(GetCurrentThread(), groupAffinities.get(),
@@ -1049,19 +1049,20 @@ class NumaConfig final {
             std::memset(&groupAffinity, 0, sizeof(groupAffinity));
 
             // Use an ordered set so guaranteed to get the smallest cpu number here
-            const WORD forcedGroupId = *nodes[numaId].begin() / WIN_PROCESSOR_GROUP_SIZE;
+            const WORD forcedGroupId =
+              static_cast<WORD>(*nodes[numaId].begin() / WIN_PROCESSOR_GROUP_SIZE);
 
             groupAffinity.Group = forcedGroupId;
 
             for (CpuIndex cpuId : nodes[numaId])
             {
-                const WORD groupId       = cpuId / WIN_PROCESSOR_GROUP_SIZE;
-                const WORD inProcGroupId = cpuId % WIN_PROCESSOR_GROUP_SIZE;
+                const WORD groupId       = static_cast<WORD>(cpuId / WIN_PROCESSOR_GROUP_SIZE);
+                const WORD inProcGroupId = static_cast<WORD>(cpuId % WIN_PROCESSOR_GROUP_SIZE);
                 // Skip processors that are not in the same processor group.
                 // If everything was set up correctly this will never be an issue,
                 // but have to account for bad NUMA node specification.
                 if (groupId == forcedGroupId)
-                    groupAffinity.Mask |= bit(inProcGroupId);
+                    groupAffinity.Mask |= bit(u8(inProcGroupId));
             }
 
             if (SetThreadGroupAffinity(GetCurrentThread(), &groupAffinity, nullptr) == FALSE)

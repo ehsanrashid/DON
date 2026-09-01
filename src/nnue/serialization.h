@@ -250,7 +250,7 @@ inline void write_leb_128(std::ostream& os, const std::array<IntType, Size>& in)
         } while (!done);
     }
 
-    write_little_endian<u32>(os, byteCount);
+    write_little_endian(os, static_cast<u32>(byteCount));
 
     Array<u8, 4096> buffer;
 

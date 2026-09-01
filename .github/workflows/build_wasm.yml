@@ -5,12 +5,15 @@ on:
 
 jobs:
   BuildWasm:
-    name: WASM (${{ matrix.arch }})
+    name: WASM (${{ matrix.name }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        arch: [wasm32, wasm32-relaxed-simd]
+         include:
+            - { name: "WASM32",              arch: "wasm32" }
+            - { name: "WASM32 Relaxed SIMD", arch: "wasm32-relaxed-simd" }
+
     defaults:
       run:
         working-directory: src
@@ -61,7 +64,7 @@ jobs:
           net=$(grep -oE 'nn-[0-9a-f]+\.nnue' "evaluate.h" | head -1)
           test -n "$net"
           make clean
-          COMPCXX=em++ make -j build ARCH="${{ matrix.arch }}" EXTRA_LDFLAGS="--preload-file $net"
+          COMPCXX=em++ make -j build ARCH="${{ matrix.arch }}" EXTRA_LDFLAGS="-O3 -DNDEBUG --preload-file \"$net\""
 
       - name: Verify bench under node
         run: EXE=./DON.js RUN_PREFIX=node ../tests/signature.sh "$benchref"

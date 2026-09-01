@@ -85,7 +85,7 @@ enum class Endian : u8 {
     LITTLE
 };
 
-constexpr auto operator+(Endian e) noexcept { return static_cast<u8>(e); }
+[[maybe_unused]] constexpr auto operator+(Endian e) noexcept { return static_cast<u8>(e); }
 
 // Used as template parameter
 enum TBType : u8 {
@@ -187,7 +187,7 @@ T number(const void* addr) noexcept {
     else  // Unaligned pointer (very rare)
         std::memcpy(&v, addr, sizeof(T));
 
-    if (+E != IsLittleEndian)
+    if (static_cast<bool>(E) != IsLittleEndian)
         swap_endian(v);
 
     return v;
@@ -550,10 +550,10 @@ struct TBTable final: BaseTBTable {
 
     u8* map_ptr() noexcept { return mapPtr; }
 
-    PairsData* get(int ac, File f) noexcept { return &items[ac & Mask][hasPawns ? f : FILE_A]; }
+    PairsData* get(u8 ac, File f) noexcept { return &items[ac & Mask][hasPawns ? f : FILE_A]; }
 
-    static constexpr usize Sides = T == WDL ? 2 : 1;
-    static constexpr usize Mask  = Sides - 1;
+    static constexpr u8 Sides = T == WDL ? 2 : 1;
+    static constexpr u8 Mask  = Sides - 1;
 
     u8                  pieceCount;
     bool                hasPawns;
@@ -768,7 +768,7 @@ void TBTable<T>::set(u8* data) noexcept {
 
     ++data;  // First byte stores flags
 
-    const usize sides = Sides == 2 && key[WHITE] != key[BLACK] ? 2 : 1;
+    const u8 sides = Sides == 2 && key[WHITE] != key[BLACK] ? 2 : 1;
 
     const File maxFile = hasPawns ? FILE_D : FILE_A;
 
@@ -778,7 +778,7 @@ void TBTable<T>::set(u8* data) noexcept {
 
     for (File f = FILE_A; f <= maxFile; ++f)
     {
-        for (usize i = 0; i < sides; ++i)
+        for (u8 i = 0; i < sides; ++i)
             *get(i, f) = PairsData();
 
         const Array<int, 2, 2> order{{
@@ -789,17 +789,17 @@ void TBTable<T>::set(u8* data) noexcept {
         data += 1 + pp;
 
         for (u8 k = 0; k < pieceCount; ++k, ++data)
-            for (usize i = 0; i < sides; ++i)
+            for (u8 i = 0; i < sides; ++i)
                 get(i, f)->pieces[k] = Piece(i != 0 ? (*data >> 4) : (*data & 0xF));
 
-        for (usize i = 0; i < sides; ++i)
+        for (u8 i = 0; i < sides; ++i)
             set_groups(get(i, f), order[i], f);
     }
 
     data += reinterpret_cast<uptr>(data) & 1;  // Word alignment
 
     for (File f = FILE_A; f <= maxFile; ++f)
-        for (usize i = 0; i < sides; ++i)
+        for (u8 i = 0; i < sides; ++i)
             data = get(i, f)->set_sizes(data);
 
     data = set_dtz_map(data, maxFile);
@@ -807,21 +807,21 @@ void TBTable<T>::set(u8* data) noexcept {
     PairsData* pd;
 
     for (File f = FILE_A; f <= maxFile; ++f)
-        for (usize i = 0; i < sides; ++i)
+        for (u8 i = 0; i < sides; ++i)
         {
             (pd = get(i, f))->sparseIndex = (SparseEntry*) (data);
             data += pd->sparseIndexSize * sizeof(SparseEntry);
         }
 
     for (File f = FILE_A; f <= maxFile; ++f)
-        for (usize i = 0; i < sides; ++i)
+        for (u8 i = 0; i < sides; ++i)
         {
             (pd = get(i, f))->blockLength = (u16*) (data);
             data += pd->blockLengthSize * sizeof(u16);
         }
 
     for (File f = FILE_A; f <= maxFile; ++f)
-        for (usize i = 0; i < sides; ++i)
+        for (u8 i = 0; i < sides; ++i)
         {
             data                   = align_ptr_up<64>(data);  // 64 byte alignment
             (pd = get(i, f))->data = data;
@@ -936,7 +936,7 @@ u8* TBTable<DTZ>::set_dtz_map(u8* data, const File maxFile) noexcept {
                 for (usize i = 0; i < 4; ++i)
                 {
                     // Sequence like 3,x,x,x,1,x,0,2,x,x
-                    pd->mapIdx[i] = 1 + (u16*) (data) - (u16*) (mapPtr);
+                    pd->mapIdx[i] = u16(1 + (u16*) (data) - (u16*) (mapPtr));
 
                     data += 2 + 2 * number<u16, Endian::LITTLE>(data);
                 }
@@ -945,7 +945,7 @@ u8* TBTable<DTZ>::set_dtz_map(u8* data, const File maxFile) noexcept {
             {
                 for (usize i = 0; i < 4; ++i)
                 {
-                    pd->mapIdx[i] = 1 + data - mapPtr;
+                    pd->mapIdx[i] = u16(1 + data - mapPtr);
 
                     data += 1 + *data;
                 }
@@ -1246,27 +1246,18 @@ int decompress_pairs(const PairsData* pd, u64 idx) noexcept {
     //       idx = k * d->span + idx % d->span      (2)
     //
     // So from (1) and (2) can compute idx - I(K):
-    int diff = idx % pd->span - pd->span / 2;
+    int diff = int(idx % pd->span - pd->span / 2);
 
     // Sum the above to offset to find the offset corresponding to our idx
     offset += diff;
 
     // Move to the previous/next block, until reach the correct block that contains idx,
     // that is when 0 <= offset <= d->blockLength[block]
-    while (offset < 0)
-    {
-        if (block == 0)
-            break;
-        --block;
-        offset += pd->blockLength[block] + 1;
-    }
-    while (offset > pd->blockLength[block])
-    {
-        if (block >= pd->blockCount - 1)
-            break;
-        offset -= pd->blockLength[block] + 1;
-        ++block;
-    }
+    while (block > 0 && offset < 0)
+        offset += pd->blockLength[--block] + 1;
+
+    while (block < pd->blockCount - 1 && offset > pd->blockLength[block])
+        offset -= pd->blockLength[block++] + 1;
 
     // Finally, find the start address of block of canonical Huffman symbols
     auto* ptr = reinterpret_cast<u32*>(pd->data + static_cast<u64>(block) * pd->blockSize);
@@ -1277,8 +1268,8 @@ int decompress_pairs(const PairsData* pd, u64 idx) noexcept {
     auto buf64 = number<u64, Endian::BIG>(ptr);
     ptr += 2;
 
-    int buf64Size = 64;
-    Sym sym;
+    usize buf64Size = 64;
+    Sym   sym;
 
     while (true)
     {
@@ -1288,7 +1279,7 @@ int decompress_pairs(const PairsData* pd, u64 idx) noexcept {
         // For any symbol s64 of length 'l' right-padded to 64 bits that
         // d->base64[l-1] >= s64 >= d->base64[l]
         // so can find the symbol length iterating through base64[].
-        while (buf64 < pd->base64[len])
+        while (len < pd->base64.size() && buf64 < pd->base64[len])
             ++len;
 
         // All the symbols of a given length are consecutive integers (numerical sequence property),
@@ -1788,12 +1779,12 @@ void init() noexcept {
     // KKMap[] encodes all the 462 possible legal positions of 2 kings where the first is in the a1-d1-d4 triangle.
     // If the first king is on the a1-d4 diagonal, the other one shall not be above the a1-h8 diagonal.
     code = 0;
-    std::vector<std::pair<int, Square>> bothOnDiagonal;
-    for (usize map = 0; map < KKMap.size(); ++map)
+    std::vector<std::pair<usize, Square>> bothOnDiagonal;
+    for (usize idx = 0; idx < KKMap.size(); ++idx)
     {
         for (Square s1 = SQ_A1; s1 <= SQ_D4; ++s1)
         {
-            if (A1D1D4Map[s1] == map && (map != 0 || s1 == SQ_B1))  // SQ_B1 is mapped to 0
+            if (A1D1D4Map[s1] == idx && (idx != 0 || s1 == SQ_B1))  // SQ_B1 is mapped to 0
             {
                 for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
                 {
@@ -1804,36 +1795,29 @@ void init() noexcept {
                         continue;  // First on diagonal, second above
 
                     else if (off_A1H8(s1) == 0 && off_A1H8(s2) == 0)
-                        bothOnDiagonal.emplace_back(map, s2);
+                        bothOnDiagonal.emplace_back(idx, s2);
 
                     else
-                        KKMap[map][s2] = code++;
+                        KKMap[idx][s2] = code++;
                 }
             }
         }
     }
 
     // Legal positions with both kings on a diagonal are encoded as last ones
-    for (auto& [map, s] : bothOnDiagonal)
+    for (auto& [idx, s] : bothOnDiagonal)
     {
-        KKMap[map][s] = code++;
+        KKMap[idx][s] = code++;
     }
 
     // Binomial[] stores the Binomial Coefficients using Pascal rule.
     // There are Binomial[k][n] ways to choose k elements from a set of n elements.
     for (usize k = 0; k < Binomial.size(); ++k)
     {
-        usize n = 0;
-        for (; n < k; ++n)
-        {
-            Binomial[k][n] = 0;
-        }
-        for (; n < Binomial[k].size(); ++n)
-        {
-            Binomial[k][n] = k == 0 || k == n  //
-                             ? 1
-                             : Binomial[k - 1][n - 1] + Binomial[k][n - 1];
-        }
+        std::fill(Binomial[k].begin(), Binomial[k].begin() + k, 0);
+
+        for (usize n = k; n < Binomial[k].size(); ++n)
+            Binomial[k][n] = k == 0 || k == n ? 1 : Binomial[k - 1][n - 1] + Binomial[k][n - 1];
     }
 
     // PawnsMap[s] encodes squares a2-h7 to (0..47).

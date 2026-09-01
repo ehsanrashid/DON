@@ -361,11 +361,11 @@ case "$uname_s" in
             riscv64)
                 set_arch_riscv64
             ;;
-            e2k*)
-                true_arch='e2k'
-            ;;
             ppc|ppc32|powerpc)
                 true_arch='ppc-32'
+            ;;
+            e2k*)
+                true_arch='e2k'
             ;;
             *)
                 # Don't hard-fail: fall back to general-* so ARCH=native still builds

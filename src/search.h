@@ -197,7 +197,7 @@ struct RootMove final {
     Value    value       = -VALUE_INFINITE;
     Value    preValue    = -VALUE_INFINITE;
     Value    avgValue    = -VALUE_INFINITE;
-    SqrValue avgSqrValue = sign_sqr(-VALUE_INFINITE);
+    SqrValue avgSqrValue = SqrValue(sign_sqr(-VALUE_INFINITE));
     Value    uciValue    = -VALUE_INFINITE;
     Bound    bound       = Bound::NONE;
     i32      tbRank      = 0;
@@ -418,8 +418,7 @@ struct Limit final {
     }
 
     constexpr u16 calls_count() const noexcept {
-        return nodes != 0 ? std::min(constexpr_ceil(static_cast<double>(nodes) / KB) + 1, 512)
-                          : 512;
+        return nodes != 0 ? std::min(constexpr_ceil(nodes / 1024.0), 512) : 512;
     }
 
     TimePoint startTime = 0;

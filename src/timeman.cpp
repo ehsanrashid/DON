@@ -162,7 +162,7 @@ void TimeManager::init(
     }
 
     // Limit the maximum possible time for this move
-    optimumTime = std::max<TimePoint>(constexpr_ceil(optimumScale * remainTime), std::max<TimePoint>(options["MinMoveTime"], 1));
+    optimumTime = std::max<TimePoint>(std::max<TimePoint>(constexpr_ceil(optimumScale * remainTime), options["MinMoveTime"]), 1);
     maximumTime = std::max<TimePoint>(
                     mtg < 2
                     ? clock.time

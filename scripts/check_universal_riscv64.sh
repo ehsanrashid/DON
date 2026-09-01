@@ -46,41 +46,45 @@ for pair in $PAIRS; do
     idx=$((idx + 1))
     cpu=${pair%%:*}
     (
-        comp=$($QEMU -cpu "$cpu" "$DON_EXE" compiler 2>&1 | awk -F: '/Compilation architecture/ {
+        actual_compiler=$($QEMU -cpu "$cpu" "$DON_EXE" compiler 2>&1 | awk -F: '/Compilation architecture/ {
             sub(/^[[:space:]]+/, "", $2)
             sub(/[[:space:]]+$/, "", $2)
             print $2
             exit
         }')
-        bench=$($QEMU -cpu "$cpu" "$DON_EXE" bench 2>&1 | awk -F: '/Total nodes/ {
+        actual_bench=$($QEMU -cpu "$cpu" "$DON_EXE" bench 2>&1 | awk -F: '/Total nodes/ {
             gsub(/[^0-9]/, "", $2)
             print $2
             exit
         }')
-        printf '%s|%s|%s\n' "$cpu" "$comp" "$bench" > "$tmp/$idx"
+        if [ "$actual_compiler" != "$expected_compiler" ] || [ "$actual_bench" != "$EXPECTED_BENCH" ]; then
+            printf 'CPU %s FAIL: expected %s/%s, got %s/%s\n' \
+                "$cpu" "$expected_compiler" "$EXPECTED_BENCH" \
+                "${actual_compiler:--}" "${actual_bench:--}" > "$tmp/$idx.fail"
+        else
+            printf 'CPU %s ok (%s, bench %s)\n' \
+                "$cpu" "$actual_compiler" "$actual_bench" > "$tmp/$idx.log"
+        fi
     ) &
 done
 wait
 
-FAIL=0
+fail=0
 idx=0
 for pair in $PAIRS; do
     case "$pair" in
         \#*) continue ;;
     esac
     idx=$((idx + 1))
-    expected=${pair##*:}
-    IFS='|' read -r cpu comp bench < "$tmp/$idx"
-    if [ "$comp" = "$expected" ] && [ "$bench" = "$EXPECTED_BENCH" ]; then
-        printf 'CPU %-26s ok (%s, bench %s)\n' "$cpu" "$comp" "$bench" >&2
+    if [ -f "$tmp/$idx.fail" ]; then
+        cat "$tmp/$idx.fail" >&2
+        fail=1
     else
-        printf 'CPU %-26s FAIL: expected %s/%s, got %s/%s\n' \
-            "$cpu" "$expected" "$EXPECTED_BENCH" "${comp:--}" "${bench:--}" >&2
-        FAIL=1
+        cat "$tmp/$idx.log" >&2
     fi
 done
 
-if [ "$FAIL" != 0 ]; then
+if [ "$fail" != 0 ]; then
     echo "check_universal_riscv64.sh: failed"
     exit 1
 fi

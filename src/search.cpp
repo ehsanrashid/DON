@@ -58,7 +58,7 @@ alignas(CACHE_LINE_SIZE) constexpr auto REDUCTIONS = []() constexpr noexcept {
 
     reductions[0] = 0;
     for (usize i = 1; i < reductions.size(); ++i)
-        reductions[i] = static_cast<u16>(ReductionScale * constexpr_log(i));
+        reductions[i] = u16(ReductionScale * constexpr_log(double(i)));
 
     return reductions;
 }();
@@ -444,7 +444,7 @@ void Worker::iterative_deepening() noexcept {
         // When playing with strength handicap enable MultiPV search that
         // will use behind-the-scenes to retrieve a set of sub-optimal moves.
         if (mainManager->skill.enabled())
-            multiPV = std::max(multiPV, usize{4});
+            multiPV = std::max(usize{4}, multiPV);
 
         mainManager->timeManager.init(rootPos.active_color(), rootPos.ply(), rootPos.move_num(),
                                       options, limit);
@@ -557,9 +557,9 @@ void Worker::iterative_deepening() noexcept {
             const auto avgSqrValue = rmIdx.avgSqrValue;
 
             // Reset aspiration window starting size
-            int   delta = 5 + thread_id() % 8 + constexpr_abs(avgSqrValue) / 10588.0;
-            Value alpha = std::max<int>(avgValue - delta, -VALUE_INFINITE);
-            Value beta  = std::min<int>(avgValue + delta, +VALUE_INFINITE);
+            int delta = 5 + thread_id() % 8 + constexpr_ceil(constexpr_abs(avgSqrValue) / 10588.0);
+            Value alpha = std::max(avgValue - delta, -VALUE_INFINITE);
+            Value beta  = std::min(avgValue + delta, +VALUE_INFINITE);
 
             // Adjust optimism based on root move's avgValue
             optimism[ac]  = constexpr_round(137.0 * avgValue / (81.0 + constexpr_abs(avgValue)));
@@ -603,7 +603,7 @@ void Worker::iterative_deepening() noexcept {
                     assert(alpha > -VALUE_INFINITE);
 
                     beta  = alpha;
-                    alpha = std::max<int>(bestValue - delta, -VALUE_INFINITE);
+                    alpha = std::max(bestValue - delta, -VALUE_INFINITE);
 
                     failHighCnt = 0;
 
@@ -612,15 +612,15 @@ void Worker::iterative_deepening() noexcept {
                 }
                 else if (bestValue >= beta)
                 {
-                    alpha = std::max<int>(beta - delta, alpha);
-                    beta  = std::min<int>(bestValue + delta, +VALUE_INFINITE);
+                    alpha = std::max(beta - delta, +alpha);
+                    beta  = std::min(bestValue + delta, +VALUE_INFINITE);
 
                     ++failHighCnt;
                 }
                 else
                     break;
 
-                delta = std::min<int>(constexpr_ceil(delta * 172.0 / 128.0), DELTA_MAX);
+                delta = std::min(constexpr_ceil(delta * 172.0 / 128.0), DELTA_MAX);
 
                 assert(-VALUE_INFINITE <= alpha && alpha < beta && beta <= +VALUE_INFINITE);
             }
@@ -843,8 +843,8 @@ Value Worker::search(Position&    pos,
         // then there is no need to search further because will never beat the current alpha.
         // Same logic but with a reversed signs apply also in the opposite condition of being mated
         // instead of giving mate. In this case, return a fail-high score.
-        alpha = std::max<int>(mated_in(ss->ply + 0), alpha);
-        beta  = std::min<int>(mates_in(ss->ply + 1), beta);
+        alpha = std::max(mated_in(ss->ply + 0), alpha);
+        beta  = std::min(mates_in(ss->ply + 1), beta);
 
         if (alpha >= beta)
             return alpha;
@@ -1616,8 +1616,8 @@ Value Worker::search(Position&    pos,
 
             rm.nodes += nodes - preNodes;
             // clang-format off
-            rm.avgValue    = rm.avgValue    !=          -VALUE_INFINITE  ? (         value  + rm.avgValue   ) / 2 :          value;
-            rm.avgSqrValue = rm.avgSqrValue != sign_sqr(-VALUE_INFINITE) ? (sign_sqr(value) + rm.avgSqrValue) / 2 : sign_sqr(value);
+            rm.avgValue    = Value   (rm.avgValue    !=          -VALUE_INFINITE  ? (         value  + rm.avgValue   ) / 2 :          value);
+            rm.avgSqrValue = SqrValue(rm.avgSqrValue != sign_sqr(-VALUE_INFINITE) ? (sign_sqr(value) + rm.avgSqrValue) / 2 : sign_sqr(value));
             // clang-format on
 
             // PV move or new best move?
@@ -1776,7 +1776,7 @@ Value Worker::search(Position&    pos,
     // Don't let best value inflate too high (tb)
     if constexpr (PVNode)
     {
-        bestValue = std::min<int>(maxValue, bestValue);
+        bestValue = std::min(maxValue, bestValue);
     }
 
     // If no good move is found and the previous position was pvHit, then the previous
@@ -2286,7 +2286,7 @@ int Worker::correction_value(const Position& pos, const Stack* const ss) const n
     else
         correctionValue += i64{64549};
 
-    return std::clamp(correctionValue, -INT_LIMIT, +INT_LIMIT);
+    return static_cast<i32>(std::clamp(correctionValue, -INT_LIMIT, +INT_LIMIT));
 }
 
 // clang-format on
@@ -2785,7 +2785,7 @@ Move Skill::pick_move(const RootMoves& rootMoves,
         const Value minValue = minItr->value;
         const Value maxValue = maxItr->value;
 
-        const Value delta = static_cast<Value>(std::min<int>(maxValue - minValue, VALUE_PAWN));
+        const Value delta = std::min(maxValue - minValue, +VALUE_PAWN);
 
         Value bestValue = -VALUE_INFINITE;
         // Choose best move. For each move value add two terms, both dependent on weakness.

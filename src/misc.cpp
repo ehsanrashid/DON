@@ -417,6 +417,9 @@ std::string compiler_info() noexcept {
 #if defined(USE_LSX)
     compiler.append(" LSX");
 #endif
+#if defined(USE_RVV)
+    compiler.append(" RVV");
+#endif
 #if defined(USE_NEON_DOTPROD)
     compiler.append(" NEON-DOTPROD");
 #endif
@@ -425,6 +428,9 @@ std::string compiler_info() noexcept {
 #endif
 #if defined(USE_POPCNT)
     compiler.append(" POPCNT");
+#endif
+#if defined(NO_TABLEBASES)
+    compiler.append(" NO-TABLEBASES");
 #endif
 
 #if !defined(NDEBUG)
