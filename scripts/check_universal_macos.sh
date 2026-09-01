@@ -24,12 +24,12 @@ if [ "$BINARY_SIZE" -gt "$MAX_SIZE" ]; then
     exit 1
 fi
 
-FAIL=0
+fail=0
 
 arm64_bench=$(arch -arm64 "$DON_EXE" bench 2>&1 | extract "Total nodes" || true)
 if [ -z "$arm64_bench" ]; then
     echo "check_universal_macos.sh: arm64 run produced no bench" >&2
-    FAIL=1
+    fail=1
 else
     printf 'native (arm64) bench %s\n' "$arm64_bench" >&2
 fi
@@ -37,7 +37,7 @@ fi
 x86_bench=$(arch -x86_64 "$DON_EXE" bench 2>&1 | extract "Total nodes" || true)
 if [ -z "$x86_bench" ]; then
     echo "check_universal_macos.sh: x86_64 (Rosetta) run produced no bench (crashed?)" >&2
-    FAIL=1
+    fail=1
 else
     printf 'x86_64 (Rosetta) bench %s\n' "$x86_bench" >&2
 fi
@@ -46,7 +46,7 @@ fi
 if [ "$arm64_bench" != "$x86_bench" ]; then
     printf 'check_universal_macos.sh: slice bench mismatch: arm64=%s x86_64=%s\n' \
         "$arm64_bench" "$x86_bench" >&2
-    FAIL=1
+    fail=1
 fi
 
 # Check that under Rosetta, SSE4.1 is detected
@@ -56,10 +56,10 @@ if printf '%s\n' "$x86_compiler" | grep -q 'SSE4.1'; then
 else
     echo "check_universal_macos.sh: x86_64 compiler output missing SSE4.1" >&2
     printf '%s\n' "$x86_compiler" >&2
-    FAIL=1
+    fail=1
 fi
 
-if [ "$FAIL" != 0 ]; then
+if [ "$fail" != 0 ]; then
     echo "check_universal_macos.sh: failed"
     exit 1
 fi

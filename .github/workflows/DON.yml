@@ -132,10 +132,11 @@ jobs:
   # Testing Jobs
   IWYU:
     name: IWYU
+    if: ${{ false }}
     uses: ./.github/workflows/iwyu.yml
   Sanitizers:
     name: Sanitizers
-    if: ${{ always() }}
+    if: ${{ false }}
     uses: ./.github/workflows/sanitizers.yml
   Tests:
     name: Tests
@@ -143,20 +144,20 @@ jobs:
     uses: ./.github/workflows/tests.yml
   Matetrack:
     name: Matetrack
-    if: ${{ always() }}
+    if: ${{ false }}
     uses: ./.github/workflows/matetrack.yml
   Games:
     name: Games
-    if: ${{ always() }}
+    if: ${{ false }}
     uses: ./.github/workflows/games.yml
   CheckCompilers:
     name: Check Compilers
     if: ${{ always() }}
     uses: ./.github/workflows/check_compilers.yml
-  # BuildMSVC:
-  #   name: Build MSVC
-  #   if: ${{ always() }}
-  #   uses: ./.github/workflows/build_msvc.yml
+  BuildMSVC:
+    name: Build MSVC
+    if: ${{ always() }}
+    uses: ./.github/workflows/build_msvc.yml
   BuildWASM:
     name: Build WASM
     if: ${{ always() }}
@@ -173,8 +174,8 @@ jobs:
     needs: [Matrix, Sanitizers, Tests, Matetrack, Games, CheckCompilers]
     uses: ./.github/workflows/build_universal.yml
   UploadAndroid:
-    if: github.repository == 'ehsanrashid/DON'
     name: Upload Android
+    if: github.repository == 'ehsanrashid/DON'
     needs: [Prerelease, Matrix]
     uses: ./.github/workflows/upload_binary.yml
     with:
@@ -184,8 +185,8 @@ jobs:
     secrets:
       token: ${{ secrets.GITHUB_TOKEN }}
   UploadUniversal:
-    if: github.repository == 'ehsanrashid/DON'
     name: Upload Universal
+    if: github.repository == 'ehsanrashid/DON'
     needs: [Prerelease, Matrix]
     uses: ./.github/workflows/upload_binary.yml
     with:

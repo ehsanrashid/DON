@@ -46,26 +46,26 @@ if [ "$BINARY_SIZE" -gt "$MAX_SIZE" ]; then
     exit 1
 fi
 
-WORK=$(mktemp -d)
-trap 'rm -rf "$WORK"' EXIT
+tmp=$(mktemp -d)
+trap 'rm -rf "$tmp"' EXIT
 
-i=0
+idx=0
 for pair in $PAIRS; do
     case "$pair" in
         \#*) continue ;;
     esac
-    i=$((i + 1))
+    idx=$((idx + 1))
     cpu=${pair%%:*}
     expected_compiler=${pair##*:}
     (
         compiler_out=$("$SDE_EXE" "-$cpu" -- "$DON_EXE" compiler 2>&1 || true)
-        bench_out=$("$SDE_EXE" "-$cpu" -- "$DON_EXE" bench 2>&1 >/dev/null || true)
         actual_compiler=$(printf '%s\n' "$compiler_out" | awk -F: '/Compilation architecture/ {
             sub(/^[[:space:]]+/, "", $2)
             sub(/[[:space:]]+$/, "", $2)
             print $2
             exit
         }')
+        bench_out=$("$SDE_EXE" "-$cpu" -- "$DON_EXE" bench 2>&1 >/dev/null || true)
         actual_bench=$(printf '%s\n' "$bench_out" | awk -F: '/Total nodes/ {
             sub(/^[[:space:]]+/, "", $2)
             sub(/[[:space:]]+$/, "", $2)
@@ -73,31 +73,33 @@ for pair in $PAIRS; do
             exit
         }')
         if [ "$actual_compiler" != "$expected_compiler" ] || [ "$actual_bench" != "$EXPECTED_BENCH" ]; then
-            printf '===== CPU %s output (expected %s/%s, got %s/%s) =====\n' \
-                "$cpu" "$expected_compiler" "$EXPECTED_BENCH" "${actual_compiler:--}" "$actual_bench" > "$WORK/$i.fail"
+            printf 'CPU %s FAIL: expected %s/%s, got %s/%s\n' \
+                "$cpu" "$expected_compiler" "$EXPECTED_BENCH" \
+                "${actual_compiler:--}" "${actual_bench:--}" > "$tmp/$idx.fail"
         else
-            printf 'CPU %s ok\n' "$cpu" > "$WORK/$i.log"
+            printf 'CPU %s ok (%s, bench %s)\n' \
+                "$cpu" "$actual_compiler" "$actual_bench" > "$tmp/$idx.log"
         fi
     ) &
 done
 wait
 
-FAIL=0
-i=0
+fail=0
+idx=0
 for pair in $PAIRS; do
     case "$pair" in
         \#*) continue ;;
     esac
-    i=$((i + 1))
-    if [ -f "$WORK/$i.fail" ]; then
-        cat "$WORK/$i.fail" >&2
-        FAIL=1
+    idx=$((idx + 1))
+    if [ -f "$tmp/$idx.fail" ]; then
+        cat "$tmp/$idx.fail" >&2
+        fail=1
     else
-        cat "$WORK/$i.log" >&2
+        cat "$tmp/$idx.log" >&2
     fi
 done
 
-if [ "$FAIL" != 0 ]; then
+if [ "$fail" != 0 ]; then
     echo "check_universal_x86_64.sh: failed"
     exit 1
 fi

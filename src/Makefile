@@ -190,8 +190,8 @@ ARCH_SUPPORTED := $(if $(filter \
     x86-64-bmi2 x86-64-avx2 x86-64-sse41-bmi2-cmp x86-64-sse41-bmi2 x86-64-sse41-popcnt \
     x86-64-modern x86-64-sse41 x86-64-ssse3-popcnt x86-64-ssse3 x86-64 general-64 \
     x86-32-sse41-popcnt x86-32-sse41 x86-32-ssse3 x86-32-sse2 x86-32 general-32 \
-    ppc-64-vsx ppc-64-altivec ppc-64 ppc-32 e2k \
     loongarch64-lasx loongarch64-lsx loongarch64 \
+    ppc-64-vsx ppc-64-altivec ppc-64 ppc-32 e2k \
     riscv64-universal riscv64-rva23 riscv64 \
     arm64-universal armv8-dotprod armv8 armv7-neon armv7 apple-silicon \
     wasm32 wasm32-relaxed-simd,$(ARCH)),yes,no)
@@ -377,6 +377,16 @@ ifneq ($(findstring general,$(ARCH)),)
         sse_fp = yes
     endif
 
+else ifneq ($(findstring loongarch64,$(ARCH)),)
+    arch = loongarch64
+    prefetch = yes
+    ifneq ($(findstring -lasx,$(ARCH)),)
+        lsx = yes
+        lasx = yes
+    else ifneq ($(findstring -lsx,$(ARCH)),)
+        lsx = yes
+    endif
+
 else ifneq ($(findstring ppc-64,$(ARCH)),)
     arch = ppc64
     prefetch = yes
@@ -399,16 +409,6 @@ else ifneq ($(findstring e2k,$(ARCH)),)
     ssse3 = yes
     sse41 = yes
     popcnt = yes
-
-else ifneq ($(findstring loongarch64,$(ARCH)),)
-    arch = loongarch64
-    prefetch = yes
-    ifneq ($(findstring -lasx,$(ARCH)),)
-        lsx = yes
-        lasx = yes
-    else ifneq ($(findstring -lsx,$(ARCH)),)
-        lsx = yes
-    endif
 
 else ifneq ($(findstring riscv64,$(ARCH)),)
     arch = riscv64
@@ -1079,13 +1079,14 @@ help:
 	echo "Supported targets:"; \
 	echo; \
 	echo "help                    > Display architecture details"; \
-	echo "profile-build           > standard build with profile-guided optimization"; \
-	echo "build                   > skip profile-guided optimization"; \
-	echo "macos-lipo              > macOS x86-64 + Apple silicon universal binary"; \
+	echo "profile-build           > Standard build with profile-guided optimization"; \
+	echo "build                   > Skip profile-guided optimization"; \
+	echo "macos-lipo              > Build macOS x86-64 + Apple silicon universal binary"; \
 	echo "net                     > Download the default nnue net"; \
 	echo "strip                   > Strip executable"; \
 	echo "install                 > Install executable"; \
-	echo "clean                   > Clean up"; \
+	echo "clean                   > Clean build artifacts"; \
+	echo "universal-clean         > Clean universal build artifacts"; \
 	echo; \
 	echo "Supported archs:"; \
 	echo; \
@@ -1113,14 +1114,14 @@ help:
 	echo "x86-32-sse2             > x86 32-bit with SSE2 support"; \
 	echo "x86-32                  > x86 32-bit generic with MMX support"; \
 	echo "general-32              > unspecified 32-bit"; \
+	echo "loongarch64-lasx        > LoongArch 64-bit with LASX (Advanced SIMD eXtension) support"; \
+	echo "loongarch64-lsx         > LoongArch 64-bit with LSX (SIMD eXtension) support"; \
+	echo "loongarch64             > LoongArch 64-bit"; \
 	echo "ppc-64-vsx              > PPC 64-bit with VSX support"; \
 	echo "ppc-64-altivec          > PPC 64-bit with AltiVec support"; \
 	echo "ppc-64                  > PPC 64-bit"; \
 	echo "ppc-32                  > PPC 32-bit"; \
 	echo "e2k                     > Elbrus 2000"; \
-	echo "loongarch64-lasx        > LoongArch 64-bit with LASX (Advanced SIMD eXtension) support"; \
-	echo "loongarch64-lsx         > LoongArch 64-bit with LSX (SIMD eXtension) support"; \
-	echo "loongarch64             > LoongArch 64-bit"; \
 	echo "riscv64-universal       > RISC-V 64-bit with automatic runtime selection of the best architecture"; \
 	echo "riscv64-rva23           > RISC-V 64-bit RVA23 profile"; \
 	echo "riscv64                 > RISC-V 64-bit"; \
@@ -1142,9 +1143,9 @@ help:
 	echo "Simple examples. If you don't know what to do, you likely want to run one of:"; \
 	echo; \
 	echo 'make -j profile-build ARCH=native               # Fast compile for local system'; \
-	echo 'make -j profile-build ARCH=x86-64-avx2          # Portable compile for most x86-64 systems'; \
-	echo 'make -j profile-build ARCH=x86-64-sse41-popcnt  # Portable compile for most x86-64 systems'; \
-	echo 'make -j profile-build ARCH=x86-64               # Portable compile for x86-64 systems'; \
+	echo 'make -j profile-build ARCH=x86-64-avx2          # Fast portable compile for AVX2-capable x86-64 systems'; \
+	echo 'make -j profile-build ARCH=x86-64-sse41-popcnt  # Portable compile for SSE4.1 + POPCNT x86-64 systems'; \
+	echo 'make -j profile-build ARCH=x86-64               # Portable compile for baseline x86-64 systems'; \
 	echo; \
 	echo "Advanced examples, for experienced users: "; \
 	echo; \
@@ -1396,8 +1397,8 @@ config-sanity: net
 	(test "$(optimize)" = "no" || test "$(optimize)" = "yes") && \
 	(test "$(ARCH_SUPPORTED)" = "yes") && \
 	(test "$(arch)" = "any" || test "$(arch)" = "i386" || test "$(arch)" = "x86_64" || \
-	 test "$(arch)" = "ppc" || test "$(arch)" = "ppc64" || test "$(arch)" = "e2k" || \
 	 test "$(arch)" = "loongarch64" || test "$(arch)" = "riscv64" || \
+	 test "$(arch)" = "ppc" || test "$(arch)" = "ppc64" || test "$(arch)" = "e2k" || \
 	 test "$(arch)" = "armv7" || test "$(arch)" = "armv8" || test "$(arch)" = "arm64" || \
 	 test "$(arch)" = "wasm32") && \
 	(test "$(bits)"      = "32" || test "$(bits)"      = "64") && \

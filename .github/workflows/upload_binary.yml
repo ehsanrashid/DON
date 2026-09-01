@@ -22,9 +22,9 @@ jobs:
     runs-on: ubuntu-latest
     env:
       SIMPLE_NAME: ${{ matrix.config.simple_name }}
-      BINARY: ${{ matrix.binary }}
       EXT: ${{ matrix.config.ext }}
       ARCHIVE_EXT: ${{ matrix.config.archive_ext }}
+      BINARY: ${{ matrix.binary }}
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(inputs.matrix) }}

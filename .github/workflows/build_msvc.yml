@@ -33,6 +33,7 @@ jobs:
         run: make net
 
       - name: Extract the bench number from the commit history
+        if: matrix.bench
         run: |
           benchref=""
           for hash in $(git rev-list -100 HEAD); do
