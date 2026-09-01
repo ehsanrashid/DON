@@ -79,7 +79,7 @@ bool _read_header(std::istream& is, u32& hash, std::string& netDescription) noex
 bool _write_header(std::ostream& os, u32 hash, std::string_view netDescription) noexcept {
     write_little_endian<u32>(os, FILE_VERSION);
     write_little_endian<u32>(os, hash);
-    write_little_endian<u32>(os, netDescription.size());
+    write_little_endian<u32>(os, u32(netDescription.size()));
     os.write(netDescription.data(), netDescription.size());
 
     return !os.fail();

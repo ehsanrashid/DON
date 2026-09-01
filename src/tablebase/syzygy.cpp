@@ -936,7 +936,7 @@ u8* TBTable<DTZ>::set_dtz_map(u8* data, const File maxFile) noexcept {
                 for (usize i = 0; i < 4; ++i)
                 {
                     // Sequence like 3,x,x,x,1,x,0,2,x,x
-                    pd->mapIdx[i] = 1 + (u16*) (data) - (u16*) (mapPtr);
+                    pd->mapIdx[i] = u16(1 + (u16*) (data) - (u16*) (mapPtr));
 
                     data += 2 + 2 * number<u16, Endian::LITTLE>(data);
                 }
@@ -945,7 +945,7 @@ u8* TBTable<DTZ>::set_dtz_map(u8* data, const File maxFile) noexcept {
             {
                 for (usize i = 0; i < 4; ++i)
                 {
-                    pd->mapIdx[i] = 1 + data - mapPtr;
+                    pd->mapIdx[i] = u16(1 + data - mapPtr);
 
                     data += 1 + *data;
                 }
@@ -1246,27 +1246,18 @@ int decompress_pairs(const PairsData* pd, u64 idx) noexcept {
     //       idx = k * d->span + idx % d->span      (2)
     //
     // So from (1) and (2) can compute idx - I(K):
-    int diff = idx % pd->span - pd->span / 2;
+    int diff = int(idx % pd->span - pd->span / 2);
 
     // Sum the above to offset to find the offset corresponding to our idx
     offset += diff;
 
     // Move to the previous/next block, until reach the correct block that contains idx,
     // that is when 0 <= offset <= d->blockLength[block]
-    while (offset < 0)
-    {
-        if (block == 0)
-            break;
-        --block;
-        offset += pd->blockLength[block] + 1;
-    }
-    while (offset > pd->blockLength[block])
-    {
-        if (block >= pd->blockCount - 1)
-            break;
-        offset -= pd->blockLength[block] + 1;
-        ++block;
-    }
+    while (block > 0 && offset < 0)
+        offset += pd->blockLength[--block] + 1;
+
+    while (block < pd->blockCount - 1 && offset > pd->blockLength[block])
+        offset -= pd->blockLength[block++] + 1;
 
     // Finally, find the start address of block of canonical Huffman symbols
     auto* ptr = reinterpret_cast<u32*>(pd->data + static_cast<u64>(block) * pd->blockSize);
@@ -1788,12 +1779,12 @@ void init() noexcept {
     // KKMap[] encodes all the 462 possible legal positions of 2 kings where the first is in the a1-d1-d4 triangle.
     // If the first king is on the a1-d4 diagonal, the other one shall not be above the a1-h8 diagonal.
     code = 0;
-    std::vector<std::pair<int, Square>> bothOnDiagonal;
-    for (usize map = 0; map < KKMap.size(); ++map)
+    std::vector<std::pair<usize, Square>> bothOnDiagonal;
+    for (usize idx = 0; idx < KKMap.size(); ++idx)
     {
         for (Square s1 = SQ_A1; s1 <= SQ_D4; ++s1)
         {
-            if (A1D1D4Map[s1] == map && (map != 0 || s1 == SQ_B1))  // SQ_B1 is mapped to 0
+            if (A1D1D4Map[s1] == idx && (idx != 0 || s1 == SQ_B1))  // SQ_B1 is mapped to 0
             {
                 for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
                 {
@@ -1804,36 +1795,29 @@ void init() noexcept {
                         continue;  // First on diagonal, second above
 
                     else if (off_A1H8(s1) == 0 && off_A1H8(s2) == 0)
-                        bothOnDiagonal.emplace_back(map, s2);
+                        bothOnDiagonal.emplace_back(idx, s2);
 
                     else
-                        KKMap[map][s2] = code++;
+                        KKMap[idx][s2] = code++;
                 }
             }
         }
     }
 
     // Legal positions with both kings on a diagonal are encoded as last ones
-    for (auto& [map, s] : bothOnDiagonal)
+    for (auto& [idx, s] : bothOnDiagonal)
     {
-        KKMap[map][s] = code++;
+        KKMap[idx][s] = code++;
     }
 
     // Binomial[] stores the Binomial Coefficients using Pascal rule.
     // There are Binomial[k][n] ways to choose k elements from a set of n elements.
     for (usize k = 0; k < Binomial.size(); ++k)
     {
-        usize n = 0;
-        for (; n < k; ++n)
-        {
-            Binomial[k][n] = 0;
-        }
-        for (; n < Binomial[k].size(); ++n)
-        {
-            Binomial[k][n] = k == 0 || k == n  //
-                             ? 1
-                             : Binomial[k - 1][n - 1] + Binomial[k][n - 1];
-        }
+        std::fill(Binomial[k].begin(), Binomial[k].begin() + k, 0);
+
+        for (usize n = k; n < Binomial[k].size(); ++n)
+            Binomial[k][n] = k == 0 || k == n ? 1 : Binomial[k - 1][n - 1] + Binomial[k][n - 1];
     }
 
     // PawnsMap[s] encodes squares a2-h7 to (0..47).
