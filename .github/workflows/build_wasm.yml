@@ -10,7 +10,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        arch: [wasm32, wasm32-relaxed-simd]
+         include:
+            - { arch: "WASM32" }
+            - { arch: "WASM32 Relaxed SIMD" }
+
     defaults:
       run:
         working-directory: src
