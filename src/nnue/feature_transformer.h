@@ -187,6 +187,8 @@ class FeatureTransformer final {
         return !os.fail();
     }
 
+    // clang-format off
+
     // Convert input features
     i32 transform(const Position&                pos,
                   AccumulatorCache&              accCache,
@@ -203,9 +205,8 @@ class FeatureTransformer final {
 
         const auto& psqtAccumulation = accumulator.psqtAccumulation;
 
-        const auto psqt = (psqtAccumulation[perspectives[WHITE]][bucket]
-                           - psqtAccumulation[perspectives[BLACK]][bucket])
-                        / 2;
+        const auto psqt = (  psqtAccumulation[perspectives[WHITE]][bucket]
+                           - psqtAccumulation[perspectives[BLACK]][bucket]) / 2;
 
         const auto& accumulation = accumulator.accumulation;
 
@@ -214,6 +215,7 @@ class FeatureTransformer final {
             IndexType offset = p * (HalfDimensions / 2);
 
             [[maybe_unused]] auto cursor = nnz.make_cursor(p);
+
 #if defined(VECTOR)
             constexpr IndexType OutputChunkSize = MaxChunkSize;
             static_assert(HalfDimensions % (2 * OutputChunkSize) == 0);
@@ -227,11 +229,10 @@ class FeatureTransformer final {
 
             constexpr u32 Shift = 7;
     #endif
-            // clang-format off
+
             const auto* in0 = reinterpret_cast<const SIMD::vec_t*>(&(accumulation[perspectives[p]][0]));
             const auto* in1 = reinterpret_cast<const SIMD::vec_t*>(&(accumulation[perspectives[p]][HalfDimensions / 2]));
             auto*       out = reinterpret_cast<SIMD::vec_t*>(&output[offset]);
-            // clang-format on
 
             // Per the NNUE architecture, here want to multiply pairs of
             // clipped elements and divide the product by 128. To do this,
@@ -290,7 +291,6 @@ class FeatureTransformer final {
 
                     SIMD::vec_t pack;
 
-                        // clang-format off
     #if defined(USE_LSX)
                     const SIMD::vec_t p0 = vec_packus_16(acc00, acc01);
                     const SIMD::vec_t p1 = vec_packus_16(acc10, acc11);
@@ -318,9 +318,8 @@ class FeatureTransformer final {
                     const SIMD::vec_t hi = wasm_u16x8_extmul_high_u8x16(mul0, mul1);
 
                     // equivalent to vuzp2_u8
-                    const SIMD::vec_t merged = wasm_i8x16_shuffle(lo, hi,
-                                                             1,  3,  5,  7,  9, 11, 13, 15,
-                                                            17, 19, 21, 23, 25, 27, 29, 31);
+                    const SIMD::vec_t merged = wasm_i8x16_shuffle(lo, hi, 1, 3, 5, 7, 9, 11, 13, 15,
+                                                                  17, 19, 21, 23, 25, 27, 29, 31);
 
                     pack = wasm_u8x16_shr(merged, Shift);
 
@@ -335,7 +334,6 @@ class FeatureTransformer final {
 
                     pack = vec_packus_16(p0, p1);
     #endif
-                    // clang-format on
                     out[i + j] = packed[j] = pack;
                 }
 
@@ -348,16 +346,13 @@ class FeatureTransformer final {
                 const usize vl = __riscv_vsetvl_e16m8(HalfDimensions / 2 - i);
 
                 vint16m8_t acc0 = __riscv_vle16_v_i16m8(&accumulation[perspectives[p]][i], vl);
-                vint16m8_t acc1 =
-                  __riscv_vle16_v_i16m8(&accumulation[perspectives[p]][i + HalfDimensions / 2], vl);
+                vint16m8_t acc1 = __riscv_vle16_v_i16m8(&accumulation[perspectives[p]][i + HalfDimensions / 2], vl);
 
                 acc0 = __riscv_vmax_vx_i16m8(acc0, 0, vl);
                 acc1 = __riscv_vmax_vx_i16m8(acc1, 0, vl);
 
-                vuint8m4_t pa = __riscv_vnclipu_wx_u8m4(__riscv_vreinterpret_v_i16m8_u16m8(acc0), 0,
-                                                        __RISCV_VXRM_RDN, vl);
-                vuint8m4_t pb = __riscv_vnclipu_wx_u8m4(__riscv_vreinterpret_v_i16m8_u16m8(acc1), 0,
-                                                        __RISCV_VXRM_RDN, vl);
+                vuint8m4_t pa = __riscv_vnclipu_wx_u8m4(__riscv_vreinterpret_v_i16m8_u16m8(acc0), 0, __RISCV_VXRM_RDN, vl);
+                vuint8m4_t pb = __riscv_vnclipu_wx_u8m4(__riscv_vreinterpret_v_i16m8_u16m8(acc1), 0, __RISCV_VXRM_RDN, vl);
 
                 vuint8m4_t hi     = __riscv_vmulhu_vv_u8m4(pa, pb, vl);
                 vuint8m4_t result = __riscv_vsrl_vx_u8m4(hi, 1, vl);
@@ -366,8 +361,7 @@ class FeatureTransformer final {
 
                 // Record NNZ
                 usize    vl32 = vl / 4;
-                vbool8_t nnzMask =
-                  __riscv_vmsne_vx_u32m4_b8(__riscv_vreinterpret_v_u8m4_u32m4(result), 0, vl32);
+                vbool8_t nnzMask = __riscv_vmsne_vx_u32m4_b8(__riscv_vreinterpret_v_u8m4_u32m4(result), 0, vl32);
                 __riscv_vsm_v_b8(cursor.nnzOut, nnzMask, vl32);
                 cursor.nnzOut += vl32 / 8;
                 i += vl;
@@ -390,7 +384,6 @@ class FeatureTransformer final {
         return psqt;
     }
 
-    // clang-format off
     alignas(CACHE_LINE_SIZE) Array<BiasType        , HalfDimensions>                                biases;
     alignas(CACHE_LINE_SIZE) Array<WeightType      , HalfDimensions * PSQFeatureSet::Dimensions>    weights;
     alignas(CACHE_LINE_SIZE) Array<ThreatWeightType, HalfDimensions * ThreatFeatureSet::Dimensions> threatWeights;
