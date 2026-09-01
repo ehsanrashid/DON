@@ -45,6 +45,7 @@ for pair in $PAIRS; do
     esac
     idx=$((idx + 1))
     cpu=${pair%%:*}
+    expected_compiler=${pair##*:}
     (
         actual_compiler=$($QEMU -cpu "$cpu" "$DON_EXE" compiler 2>&1 | awk -F: '/Compilation architecture/ {
             sub(/^[[:space:]]+/, "", $2)
