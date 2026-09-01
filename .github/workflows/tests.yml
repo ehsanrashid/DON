@@ -15,14 +15,14 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - name: Ubuntu 22.04 GCC
+          - name: Ubuntu 22.04 GCC x86
             os: ubuntu-22.04
             compiler: g++
             comp: gcc
             run_32bit_tests: true
             run_64bit_tests: true
             shell: bash
-          - name: Ubuntu 22.04 Clang
+          - name: Ubuntu 22.04 Clang x86
             os: ubuntu-22.04
             compiler: clang++
             comp: clang
@@ -41,7 +41,7 @@ jobs:
             comp: ndk
             run_armv7_tests: true
             shell: bash
-          - name: Linux GCC PPC64LE
+          - name: Ubuntu 22.04 GCC PPC64LE
             os: ubuntu-22.04
             compiler: g++
             comp: gcc
@@ -49,7 +49,7 @@ jobs:
             base_image: "ppc64le/alpine:latest"
             platform: linux/ppc64le
             shell: bash
-          - name: Linux GCC LoongArch64
+          - name: Ubuntu 22.04 GCC LoongArch64
             os: ubuntu-22.04
             compiler: g++
             comp: gcc
@@ -57,7 +57,7 @@ jobs:
             base_image: "loongarch64/alpine:3.21"
             platform: linux/loong64
             shell: bash
-          - name: Linux GCC RISC-V64
+          - name: Ubuntu 22.04 GCC RISC-V64
             os: ubuntu-22.04
             compiler: g++
             comp: gcc
@@ -65,19 +65,19 @@ jobs:
             base_image: "riscv64/alpine:edge"
             platform: linux/riscv64
             shell: bash
-          - name: macOS 15 GCC 11 (Intel)
+          - name: macOS 15 Intel GCC 11
             os: macos-15-intel
             compiler: g++-11
             comp: gcc
             run_64bit_tests: true
             shell: bash
-          - name: macOS 15 Apple Clang (Intel)
+          - name: macOS 15 Intel Apple Clang
             os: macos-15-intel
             compiler: clang++
             comp: clang
             run_64bit_tests: true
             shell: bash
-          - name: macOS 15 Apple Clang (Apple Silicon)
+          - name: macOS 15 Apple Silicon Clang
             os: macos-15
             compiler: clang++
             comp: clang
@@ -91,7 +91,7 @@ jobs:
             msys_sys: mingw64
             msys_env: x86_64-gcc
             shell: msys2 {0}
-          - name: Windows 2022 MinGW-w64 GCC x86
+          - name: Windows 2022 MinGW-w64 GCC x86-32
             os: windows-2022
             compiler: g++
             comp: mingw
@@ -107,7 +107,7 @@ jobs:
             msys_sys: clang64
             msys_env: clang-x86_64-clang
             shell: msys2 {0}
-          - name: Windows 11 MinGW-w64 Clang ARM64
+          - name: Windows 11 ARM64 MinGW-w64 Clang
             os: windows-11-arm
             compiler: clang++
             comp: clang
@@ -167,7 +167,7 @@ jobs:
         if: runner.os == 'macOS'
         run: brew install coreutils
 
-      - name: Install GCC on macOS
+      - name: Install GCC 11 on macOS
         if: runner.os == 'macOS' && matrix.config.comp == 'gcc'
         run: |
           brew install gcc@11 || true
@@ -208,13 +208,13 @@ jobs:
       - name: Check compiler
         run: |
           if [ -z "${{ matrix.config.base_image }}" ]; then
-            if [ $COMP == ndk ]; then
-              export PATH=${{ env.ANDROID_NDK_BIN }}:$PATH
+            if [ "$COMP" = "ndk" ]; then
+              export PATH="${{ env.ANDROID_NDK_BIN }}:$PATH"
             fi
-            $COMPCXX -v
+            "$COMPCXX" -v
           else
-            echo "$COMPCXX -v" > script.sh
-            docker run --rm --platform ${{ matrix.config.platform }} -v ${{ github.workspace }}:/app don_builder
+            echo "\"$COMPCXX\" -v" > script.sh
+            docker run --rm --platform "${{ matrix.config.platform }}" -v "${{ github.workspace }}:/app" don_builder
           fi
 
       - name: Verify Make help
@@ -225,12 +225,11 @@ jobs:
 
       # x86-32 tests
 
-      - name: Build and test x86-32 SSE4.1 with POPCNT debug
+      - name: Build and test x86-32 SSE4.1 with POPCNT Debug
         if: matrix.config.run_32bit_tests
         run: |
-          export CXXFLAGS="-Werror -D_GLIBCXX_DEBUG"
           make clean
-          make -j4 ARCH=x86-32-sse41-popcnt optimize=no debug=yes build
+          make -j4 ARCH=x86-32-sse41-popcnt optimize=no debug=yes ENV_CXXFLAGS="-Werror -D_GLIBCXX_DEBUG" build
           ../tests/signature.sh $benchref
 
       - name: Build and test x86-32 SSE4.1 with POPCNT
@@ -277,12 +276,11 @@ jobs:
 
       # x86-64 tests
 
-      - name: Build and test x86-64 BMI2 debug
+      - name: Build and test x86-64 BMI2 Debug
         if: matrix.config.run_64bit_tests
         run: |
-          export CXXFLAGS="-Werror -D_GLIBCXX_DEBUG"
           make clean
-          make -j4 ARCH=x86-64-bmi2 optimize=no debug=yes build
+          make -j4 ARCH=x86-64-bmi2 optimize=no debug=yes ENV_CXXFLAGS="-Werror -D_GLIBCXX_DEBUG" build
           ../tests/signature.sh $benchref
 
       - name: Build and test x86-64 BMI2
