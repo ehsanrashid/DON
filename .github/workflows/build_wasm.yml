@@ -5,14 +5,14 @@ on:
 
 jobs:
   BuildWasm:
-    name: WASM (${{ matrix.arch }})
+    name: WASM (${{ matrix.name }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
          include:
-            - { arch: "WASM32" }
-            - { arch: "WASM32 Relaxed SIMD" }
+            - { name: "WASM32",              arch: "wasm32" }
+            - { name: "WASM32 Relaxed SIMD", arch: "wasm32-relaxed-simd" }
 
     defaults:
       run:
