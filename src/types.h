@@ -806,7 +806,7 @@ struct DirtyThreats final {
 
     [[nodiscard]] bool empty() const noexcept { return dirtyThreats_.empty(); }
 
-    [[nodiscard]] DirtyThreat* make_space(const usize space) noexcept {
+    [[nodiscard]] DirtyThreat* make_space(const u8 space) noexcept {
         return dirtyThreats_.make_space(space);
     }
 
