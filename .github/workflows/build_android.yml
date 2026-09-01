@@ -91,7 +91,7 @@ jobs:
 
       # Build profile-guided binaries
 
-      - name: Build ${{ env.BINARY }} with NDK
+      - name: Build '${{ env.BINARY }}' with NDK
         run: |
           if [ "$COMP" = "ndk" ]; then
             export PATH=${{ env.ANDROID_NDK_BIN }}:$PATH

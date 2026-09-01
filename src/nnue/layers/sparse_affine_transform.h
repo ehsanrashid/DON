@@ -89,7 +89,7 @@ class SparseAffineTransform final {
     }
 
     static constexpr IndexType weight_index(IndexType i) noexcept {
-#if defined(USE_SPARSE_AFFINE_SIMD)
+#if defined(USE_SPARSE_AFFINE_SIMD) || defined(USE_RVV)
         return (i / ChunkSize) % (PaddedInputDimensions / ChunkSize) * OutputDimensions * ChunkSize
              + i / PaddedInputDimensions * ChunkSize + i % ChunkSize;
 #else
@@ -131,7 +131,7 @@ class SparseAffineTransform final {
     void propagate(const InputType* RESTRICT           input,
                    OutputType* RESTRICT                output,
                    [[maybe_unused]] const NNZ<InDims>& nnz) const noexcept {
-
+#define USE_SPARSE_AFFINE_SIMD
 #if defined(USE_SPARSE_AFFINE_SIMD)
     #if defined(USE_SSSE3)
         #if defined(USE_AVX512)
@@ -186,7 +186,7 @@ class SparseAffineTransform final {
         // If using high-latency dot product instructions, split the accumulators
         // to create 3 separate dependency chains and merge at the end
         constexpr IndexType RegCount =
-    #if defined(USE_VNNI) && defined(USE_AVX512)
+    #if (defined(USE_VNNI) && defined(USE_AVX512)) || defined(USE_NEON_DOTPROD)
           AccCount * 3
     #else
           AccCount
@@ -202,14 +202,21 @@ class SparseAffineTransform final {
 
         // Convince GCC to not do weird pointer arithmetic in the following loops
         const i8* w = weights.data();
-            // clang-format off
-    #if defined(USE_AVX512)
-        for (IndexType k = AccCount; k < RegCount; ++k)
-            acc[k] = vec_zero();
 
+    #if defined(USE_AVX512) || defined(USE_NEON_DOTPROD)
+        for (IndexType k = AccCount; k < RegCount; ++k)
+            acc[k] =
+        #if defined(USE_AVX512)
+              vec_zero()
+        #elif defined(USE_NEON_DOTPROD)
+              vdupq_n_s32(0)
+        #endif
+              ;
+    #endif
+
+    #if defined(USE_AVX512)
         const auto* RESTRICT       p   = nnz.bitset;
         const auto* const RESTRICT end = p + nnz.count;
-
         #if defined(USE_VNNI)
         for (; p + 2 < end; p += 3)
         {
@@ -221,9 +228,12 @@ class SparseAffineTransform final {
             const invec_t in1 = vec_set_32(load_as<i32>(input + i1 * sizeof(i32)));
             const invec_t in2 = vec_set_32(load_as<i32>(input + i2 * sizeof(i32)));
 
-            const auto* col0 = reinterpret_cast<const invec_t*>(&w[i0 * OutputDimensions * ChunkSize]);
-            const auto* col1 = reinterpret_cast<const invec_t*>(&w[i1 * OutputDimensions * ChunkSize]);
-            const auto* col2 = reinterpret_cast<const invec_t*>(&w[i2 * OutputDimensions * ChunkSize]);
+            const auto* col0 =
+              reinterpret_cast<const invec_t*>(&w[i0 * OutputDimensions * ChunkSize]);
+            const auto* col1 =
+              reinterpret_cast<const invec_t*>(&w[i1 * OutputDimensions * ChunkSize]);
+            const auto* col2 =
+              reinterpret_cast<const invec_t*>(&w[i2 * OutputDimensions * ChunkSize]);
 
             for (IndexType k = 0; k < AccCount; ++k)
             {
@@ -234,9 +244,9 @@ class SparseAffineTransform final {
         }
 
         for (IndexType k = 0; k < AccCount; ++k)
-            acc[k] = vec_add_32(vec_add_32(acc[k + AccCount * 0],
+            acc[k] = vec_add_32(vec_add_32(acc[k + AccCount * 0],  //
                                            acc[k + AccCount * 1]),
-                                           acc[k + AccCount * 2]);
+                                acc[k + AccCount * 2]);
         #endif
 
         for (; p < end; ++p)
@@ -245,7 +255,8 @@ class SparseAffineTransform final {
 
             const invec_t in = vec_set_32(load_as<i32>(input + i * sizeof(i32)));
 
-            const auto* col = reinterpret_cast<const invec_t*>(&w[i * OutputDimensions * ChunkSize]);
+            const auto* col =
+              reinterpret_cast<const invec_t*>(&w[i * OutputDimensions * ChunkSize]);
 
             for (IndexType k = 0; k < AccCount; ++k)
                 vec_add_dpbusd_32(acc[k], in, col[k]);
@@ -257,7 +268,7 @@ class SparseAffineTransform final {
         for (IndexType k = 0; k < InputDimensions / 256; ++k)
         {
             u64   bits = load_as<u64>(nnz.bitset + k * 8);
-            usize base = k * 64;
+            usize base = 64 * k;
 
             auto* inBase = input + base * sizeof(i32);
             auto* wBase  = &w[base * OutputDimensions * ChunkSize];
@@ -273,25 +284,92 @@ class SparseAffineTransform final {
             asm("" : "+r"(inBase), "+r"(wBase));  // opt barrier
         #endif
 
+        #if defined(USE_NEON_DOTPROD)
             while (bits != 0)
             {
-                const u8    i     = pop_lsq(bits);
-                const auto* inPtr = inBase + i * sizeof(i32);
-                const auto* col   = reinterpret_cast<const invec_t*>(&wBase[i * OutputDimensions * ChunkSize]);
+                const isize i0 = pop_lsq(bits);
+                if (bits == 0)
+                {
+                    const invec_t in0 = vec_set_32(load_as<i32>(inBase + i0 * sizeof(i32)));
 
-        #if defined(FIX_GCC15_NEON_DOTPROD_MISOPTIMIZATION)
+                    const auto col0 =
+                      reinterpret_cast<const invec_t*>(&wBase[i0 * OutputDimensions * ChunkSize]);
+
+                    for (IndexType l = 0; l < AccCount; ++l)
+                        vec_add_dpbusd_32(acc[l], in0, col0[l]);
+                    break;
+                }
+
+                const isize i1 = pop_lsq(bits);
+                if (bits == 0)
+                {
+                    const invec_t in0 = vec_set_32(load_as<i32>(inBase + i0 * sizeof(i32)));
+                    const invec_t in1 = vec_set_32(load_as<i32>(inBase + i1 * sizeof(i32)));
+
+                    const auto col0 =
+                      reinterpret_cast<const invec_t*>(&wBase[i0 * OutputDimensions * ChunkSize]);
+                    const auto col1 =
+                      reinterpret_cast<const invec_t*>(&wBase[i1 * OutputDimensions * ChunkSize]);
+
+                    for (IndexType l = 0; l < AccCount; ++l)
+                    {
+                        vec_add_dpbusd_32(acc[l], in0, col0[l]);
+                        vec_add_dpbusd_32(acc[l + AccCount], in1, col1[l]);
+                    }
+                    break;
+                }
+
+                const isize i2 = pop_lsq(bits);
+
+                const invec_t in0 = vec_set_32(load_as<i32>(inBase + i0 * sizeof(i32)));
+                const invec_t in1 = vec_set_32(load_as<i32>(inBase + i1 * sizeof(i32)));
+                const invec_t in2 = vec_set_32(load_as<i32>(inBase + i2 * sizeof(i32)));
+
+                const auto col0 =
+                  reinterpret_cast<const invec_t*>(&wBase[i0 * OutputDimensions * ChunkSize]);
+                const auto col1 =
+                  reinterpret_cast<const invec_t*>(&wBase[i1 * OutputDimensions * ChunkSize]);
+                const auto col2 =
+                  reinterpret_cast<const invec_t*>(&wBase[i2 * OutputDimensions * ChunkSize]);
+
+                for (IndexType l = 0; l < AccCount; ++l)
+                {
+                    vec_add_dpbusd_32(acc[l + AccCount * 0], in0, col0[l]);
+                    vec_add_dpbusd_32(acc[l + AccCount * 1], in1, col1[l]);
+                    vec_add_dpbusd_32(acc[l + AccCount * 2], in2, col2[l]);
+                }
+            }
+
+        #else
+            while (bits != 0)
+            {
+                const u8 i = pop_lsq(bits);
+
+                const auto* inPtr = inBase + i * sizeof(i32);
+
+                const auto* col =
+                  reinterpret_cast<const invec_t*>(&wBase[i * OutputDimensions * ChunkSize]);
+
+            #if defined(FIX_GCC15_NEON_DOTPROD_MISOPTIMIZATION)
                 asm("" : "+r"(col), "+r"(inPtr));
-        #endif
+            #endif
 
                 const invec_t in = vec_set_32(load_as<i32>(inPtr));
                 for (IndexType l = 0; l < AccCount; ++l)
                     vec_add_dpbusd_32(acc[l], in, col[l]);
             }
+        #endif
+
         #undef FIX_GCC15_NEON_DOTPROD_MISOPTIMIZATION
         }
 
+        #if defined(USE_NEON_DOTPROD)
+        for (IndexType l = 0; l < AccCount; ++l)
+            acc[l] = vaddq_s32(vaddq_s32(acc[l + AccCount * 0],  //
+                                         acc[l + AccCount * 1]),
+                               acc[l + AccCount * 2]);
+        #endif
     #endif
-        // clang-format on
 
         auto* outVec = reinterpret_cast<outvec_t*>(output);
 
@@ -317,18 +395,17 @@ class SparseAffineTransform final {
                 vint32m##LMUL##_t acc = __riscv_vle32_v_i32m##LMUL(biases.data() + ob, vl); \
                 for (IndexType k = 0; k < InputDimensions / 256; ++k) \
                 { \
-                    u64   bits         = load_as<u64>(nnz.bitset + k * 8); \
-                    isize base         = k * 64; \
-                    auto* base_addr    = input + base * sizeof(i32); \
-                    auto* weights_base = &w[base * OutputDimensions * ChunkSize]; \
+                    u64   bits   = load_as<u64>(nnz.bitset + k * 8); \
+                    isize base   = 64 * k; \
+                    auto* inBase = input + base * sizeof(i32); \
+                    auto* wBase  = &w[base * OutputDimensions * ChunkSize]; \
                     while (bits) \
                     { \
                         const isize       i = pop_lsq(bits); \
                         vuint8m##LMUL##_t a = __riscv_vreinterpret_v_u32m##LMUL##_u8m##LMUL( \
-                          __riscv_vmv_v_x_u32m##LMUL(load_as<u32>(base_addr + i * sizeof(i32)), \
-                                                     vl)); \
+                          __riscv_vmv_v_x_u32m##LMUL(load_as<u32>(inBase + i * sizeof(i32)), vl)); \
                         vint8m##LMUL##_t b = __riscv_vle8_v_i8m##LMUL( \
-                          &weights_base[i * OutputDimensions * ChunkSize + ob * ChunkSize], \
+                          &wBase[i * OutputDimensions * ChunkSize + ob * ChunkSize], \
                           vl * ChunkSize); \
                         acc = \
                           __riscv_vadd_vv_i32m##LMUL(acc, SIMD::rvv_dpbusd_m##LMUL(a, b, vl), vl); \

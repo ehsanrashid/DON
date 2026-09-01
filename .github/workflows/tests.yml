@@ -57,7 +57,7 @@ jobs:
             base_image: "loongarch64/alpine:3.21"
             platform: linux/loong64
             shell: bash
-          - name: Linux GCC RISC-V 64
+          - name: Linux GCC RISC-V64
             os: ubuntu-22.04
             compiler: g++
             comp: gcc
