@@ -1249,14 +1249,14 @@ struct FixedText final {
         assert(size() + sv.size() <= capacity());
 
         std::memcpy(end(), sv.data(), sv.size());
-        size_ += sv.size();
+        size_ += static_cast<u8>(sv.size());
         return *this;
     }
 
     FixedText& write(const int v) noexcept {
         auto [ptr, ec] = std::to_chars(end(), begin() + capacity(), v);
         assert(ec == std::errc{});
-        size_ = ptr - begin();
+        size_ = static_cast<u8>(ptr - begin());
         return *this;
     }
 

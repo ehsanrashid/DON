@@ -550,10 +550,10 @@ struct TBTable final: BaseTBTable {
 
     u8* map_ptr() noexcept { return mapPtr; }
 
-    PairsData* get(int ac, File f) noexcept { return &items[ac & Mask][hasPawns ? f : FILE_A]; }
+    PairsData* get(u8 ac, File f) noexcept { return &items[ac & Mask][hasPawns ? f : FILE_A]; }
 
-    static constexpr usize Sides = T == WDL ? 2 : 1;
-    static constexpr usize Mask  = Sides - 1;
+    static constexpr u8 Sides = T == WDL ? 2 : 1;
+    static constexpr u8 Mask  = Sides - 1;
 
     u8                  pieceCount;
     bool                hasPawns;
@@ -768,7 +768,7 @@ void TBTable<T>::set(u8* data) noexcept {
 
     ++data;  // First byte stores flags
 
-    const usize sides = Sides == 2 && key[WHITE] != key[BLACK] ? 2 : 1;
+    const u8 sides = Sides == 2 && key[WHITE] != key[BLACK] ? 2 : 1;
 
     const File maxFile = hasPawns ? FILE_D : FILE_A;
 
@@ -778,7 +778,7 @@ void TBTable<T>::set(u8* data) noexcept {
 
     for (File f = FILE_A; f <= maxFile; ++f)
     {
-        for (usize i = 0; i < sides; ++i)
+        for (u8 i = 0; i < sides; ++i)
             *get(i, f) = PairsData();
 
         const Array<int, 2, 2> order{{
@@ -789,17 +789,17 @@ void TBTable<T>::set(u8* data) noexcept {
         data += 1 + pp;
 
         for (u8 k = 0; k < pieceCount; ++k, ++data)
-            for (usize i = 0; i < sides; ++i)
+            for (u8 i = 0; i < sides; ++i)
                 get(i, f)->pieces[k] = Piece(i != 0 ? (*data >> 4) : (*data & 0xF));
 
-        for (usize i = 0; i < sides; ++i)
+        for (u8 i = 0; i < sides; ++i)
             set_groups(get(i, f), order[i], f);
     }
 
     data += reinterpret_cast<uptr>(data) & 1;  // Word alignment
 
     for (File f = FILE_A; f <= maxFile; ++f)
-        for (usize i = 0; i < sides; ++i)
+        for (u8 i = 0; i < sides; ++i)
             data = get(i, f)->set_sizes(data);
 
     data = set_dtz_map(data, maxFile);
@@ -807,21 +807,21 @@ void TBTable<T>::set(u8* data) noexcept {
     PairsData* pd;
 
     for (File f = FILE_A; f <= maxFile; ++f)
-        for (usize i = 0; i < sides; ++i)
+        for (u8 i = 0; i < sides; ++i)
         {
             (pd = get(i, f))->sparseIndex = (SparseEntry*) (data);
             data += pd->sparseIndexSize * sizeof(SparseEntry);
         }
 
     for (File f = FILE_A; f <= maxFile; ++f)
-        for (usize i = 0; i < sides; ++i)
+        for (u8 i = 0; i < sides; ++i)
         {
             (pd = get(i, f))->blockLength = (u16*) (data);
             data += pd->blockLengthSize * sizeof(u16);
         }
 
     for (File f = FILE_A; f <= maxFile; ++f)
-        for (usize i = 0; i < sides; ++i)
+        for (u8 i = 0; i < sides; ++i)
         {
             data                   = align_ptr_up<64>(data);  // 64 byte alignment
             (pd = get(i, f))->data = data;

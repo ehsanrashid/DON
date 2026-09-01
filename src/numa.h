@@ -238,7 +238,7 @@ inline WindowsAffinity get_process_affinity() noexcept {
 
                     if (groupMask != 0)
                         for (DWORD number = 0; number < WIN_PROCESSOR_GROUP_SIZE; ++number)
-                            if ((groupMask & bit(number)) != 0)
+                            if ((groupMask & bit(u8(number))) != 0)
                             {
                                 const CpuIndex cpuId = groupId * WIN_PROCESSOR_GROUP_SIZE + number;
 
@@ -296,7 +296,7 @@ inline WindowsAffinity get_process_affinity() noexcept {
                 const KAFFINITY groupMask = procMask;
 
                 for (DWORD number = 0; number < WIN_PROCESSOR_GROUP_SIZE; ++number)
-                    if ((groupMask & bit(number)) != 0)
+                    if ((groupMask & bit(u8(number))) != 0)
                     {
                         const CpuIndex cpuId = groupId * WIN_PROCESSOR_GROUP_SIZE + number;
 
@@ -373,7 +373,7 @@ inline WindowsAffinity get_process_affinity() noexcept {
 
                     if (combinedProcMask != 0)
                         for (DWORD number = 0; number < WIN_PROCESSOR_GROUP_SIZE; ++number)
-                            if ((combinedProcMask & bit(number)) != 0)
+                            if ((combinedProcMask & bit(u8(number))) != 0)
                             {
                                 const CpuIndex cpuId = groupId * WIN_PROCESSOR_GROUP_SIZE + number;
 
@@ -415,7 +415,7 @@ CpuIndexSet read_cache_members(const T* processorInfo, Pred&& is_cpu_allowed) no
     const auto add_group_cpus = [&](WORD groupId, KAFFINITY groupMask) noexcept {
         for (DWORD number = 0; number < WIN_PROCESSOR_GROUP_SIZE; ++number)
         {
-            if ((groupMask & bit(number)) != 0)
+            if ((groupMask & bit(u8(number))) != 0)
             {
                 const CpuIndex cpuId = groupId * WIN_PROCESSOR_GROUP_SIZE + number;
 
@@ -701,11 +701,11 @@ class NumaConfig final {
                 if (cpus.empty())
                     continue;
 
-                WORD lstGroupId = *cpus.begin() / WIN_PROCESSOR_GROUP_SIZE;
+                WORD lstGroupId = static_cast<WORD>(*cpus.begin() / WIN_PROCESSOR_GROUP_SIZE);
 
                 for (CpuIndex cpuId : cpus)
                 {
-                    const WORD groupId = cpuId / WIN_PROCESSOR_GROUP_SIZE;
+                    const WORD groupId = static_cast<WORD>(cpuId / WIN_PROCESSOR_GROUP_SIZE);
 
                     if (lstGroupId != groupId)
                     {
