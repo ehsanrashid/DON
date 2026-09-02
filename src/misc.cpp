@@ -63,25 +63,23 @@ constexpr std::string_view Version{"dev"};
         return std::string{NullDate};
 
     // Skip spaces
-    for (; p != end && std::isspace(uchar(*p)); ++p)
+    for (; p != end && is_space(*p); ++p)
     {}
 
     // Parse day (1-2 digits)
-    if (end - p < 1 || !std::isdigit(uchar(*p)))
+    if (end - p < 1 || !is_cdigit(*p))
         return std::string{NullDate};
 
     unsigned day = 0;
-    for (; p != end && std::isdigit(uchar(*p)); ++p)
-    {
+    for (; p != end && is_cdigit(*p); ++p)
         day = 10 * day + char_to_digit(*p);
-    }
 
     // Validate day range
     if (day < 1 || day > 31)
         return std::string{NullDate};
 
     // Skip spaces/comma
-    for (; p != end && (std::isspace(uchar(*p)) || *p == ','); ++p)
+    for (; p != end && (is_space(*p) || *p == ','); ++p)
     {}
 
     // Parse year (4 digits)
@@ -91,7 +89,7 @@ constexpr std::string_view Version{"dev"};
     unsigned year = 0;
     for (const auto* yEnd = p + 4; p != yEnd; ++p)
     {
-        if (!std::isdigit(uchar(*p)))
+        if (!is_cdigit(*p))
             return std::string{NullDate};
 
         year = 10 * year + char_to_digit(*p);
@@ -129,9 +127,9 @@ constexpr std::string_view Version{"dev"};
     const auto* p = time.data();
 
     // Validate structure
-    if (!std::isdigit(uchar(p[0])) || !std::isdigit(uchar(p[1])) || p[2] != ':'
-        || !std::isdigit(uchar(p[3])) || !std::isdigit(uchar(p[4])) || p[5] != ':'
-        || !std::isdigit(uchar(p[6])) || !std::isdigit(uchar(p[7])))
+    if (!is_cdigit(p[0]) || !is_cdigit(p[1]) || p[2] != ':'     //
+        || !is_cdigit(p[3]) || !is_cdigit(p[4]) || p[5] != ':'  //
+        || !is_cdigit(p[6]) || !is_cdigit(p[7]))
         return std::string{NullTime};
 
     unsigned hour = 10 * char_to_digit(p[0]) + char_to_digit(p[1]);
@@ -885,7 +883,7 @@ std::optional<usize> str_to_size(const std::string_view sv) noexcept {
     const char* p   = sv.data();
     const char* end = p + sv.size();
     // Skip spaces
-    for (; p != end && std::isspace(uchar(*p)); ++p)
+    for (; p != end && is_space(*p); ++p)
     {}
 
     unsigned long long value = 0;

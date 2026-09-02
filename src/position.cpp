@@ -245,10 +245,10 @@ std::optional<Error> Position::set(const std::string_view fens, State* const new
     // Returns '\0' when p >= end (EOF sentinel)
     auto peek        = [&p, end]() noexcept -> char { return p < end ? *p : '\0'; };
     auto skip_spaces = [&p, end]() noexcept {
-        for (; p < end && std::isspace(uchar(*p)); ++p)
+        for (; p < end && is_space(*p); ++p)
         {}
     };
-    auto not_space = [&p, end]() noexcept -> bool { return p < end && !std::isspace(uchar(*p)); };
+    auto not_space = [&p, end]() noexcept -> bool { return p < end && !is_space(*p); };
     auto get       = [&p, end]() noexcept -> char { return p < end ? *p++ : '\0'; };
     auto get_int   = [&p, end, &skip_spaces](int& out) noexcept -> bool {
         skip_spaces();
@@ -354,7 +354,7 @@ std::optional<Error> Position::set(const std::string_view fens, State* const new
     // 2. Active color
     token = get();
 
-    const char side = std::tolower(uchar(token));
+    const char side = lower_case(token);
 
     if (side == 'w')
         activeColor = WHITE;
@@ -385,7 +385,7 @@ std::optional<Error> Position::set(const std::string_view fens, State* const new
             return Error{"Invalid FEN: more than 4 castling rights specified."};
 
         Color c = std::isupper(uchar(token)) ? WHITE : BLACK;
-        token   = char(std::tolower(uchar(token)));
+        token   = lower_case(token);
 
         if (relative_rank(c, square<KING>(c)) != RANK_1)
             return Error{"Invalid FEN: " + std::string{c == WHITE ? "white" : "black"}

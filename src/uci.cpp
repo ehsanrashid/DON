@@ -103,10 +103,12 @@ Limit parse_limit(std::istream& is) noexcept {
     // The search starts as early as possible
     limit.startTime = now();
 
+    bool        tokenReady = false;
     std::string token;
-    while (is >> token)
+    while (tokenReady || is >> token)
     {
-        token = lower_case(token);
+        tokenReady = false;
+        token      = lower_case(token);
 
         if (token == "wtime")
         {
@@ -183,42 +185,38 @@ Limit parse_limit(std::istream& is) noexcept {
             break;
         }
         // "searchmoves" needs to be the last command on the line
-        else if (!token.empty() && token[0] == 's')  // "searchmoves"
+        else if (token[0] == 's')
         {
-            auto pos = is.tellg();
-
             while (is >> token)
             {
-                if (!token.empty() && char(std::tolower(uchar(token[0]))) == 'i')
+                if (lower_case(token[0]) == 'i')
                 {
-                    is.seekg(pos);
+                    tokenReady = true;
                     break;
                 }
 
                 limit.searchMoves.push_back(token);
-                pos = is.tellg();
             }
 
-            is.clear();
+            if (is.eof())
+                is.clear();
         }
         // "ignoremoves" needs to be the last command on the line
-        else if (!token.empty() && token[0] == 'i')  // "ignoremoves"
+        else if (token[0] == 'i')
         {
-            auto pos = is.tellg();
-
             while (is >> token)
             {
-                if (!token.empty() && char(std::tolower(uchar(token[0]))) == 's')
+                if (lower_case(token[0]) == 's')
                 {
-                    is.seekg(pos);
+                    tokenReady = true;
                     break;
                 }
 
                 limit.ignoreMoves.push_back(token);
-                pos = is.tellg();
             }
 
-            is.clear();
+            if (is.eof())
+                is.clear();
         }
 
         if (!is)
@@ -424,13 +422,13 @@ void UCI::position(std::istream& is) noexcept {
 
     std::string fen;
 
-    if (token.empty() || char(std::tolower(uchar(token[0]))) == 's')  // "startpos"
+    if (token.empty() || lower_case(token[0]) == 's')  // "startpos"
     {
         token.clear();
         fen.append(START_FEN);
         is >> token;  // Consume the "moves" token, if any
     }
-    else if (!token.empty() && char(std::tolower(uchar(token[0]))) == 'f')  // "fen"
+    else if (lower_case(token[0]) == 'f')  // "fen"
     {
         token.clear();
         fen.reserve(64);
@@ -440,7 +438,7 @@ void UCI::position(std::istream& is) noexcept {
         while (is >> token && i < 6)
         {
             // Stop if reach "moves" token after the first two fields
-            if (i > 1 && !token.empty() && char(std::tolower(uchar(token[0]))) == 'm')
+            if (i > 1 && lower_case(token[0]) == 'm')
                 break;
 
             fen.append(token).push_back(' ');
@@ -455,12 +453,9 @@ void UCI::position(std::istream& is) noexcept {
         }
     }
     else
-    {
-        assert(false && "Invalid position command");
-        return;
-    }
+        terminate_on_critical_error("Invalid position token: " + token);
 
-    assert(token.empty() || char(std::tolower(uchar(token[0]))) == 'm');
+    assert(token.empty() || lower_case(token[0]) == 'm');
 
     Strings moves;
     while (is >> token)

@@ -141,9 +141,9 @@ std::string move_to_can(const Move m) noexcept {
 
     can  //
       .append(to_square(orgSq))
-      .append(to_square(dstSq))
-      .append(usize(m.type() == MT::PROMOTION),
-              char(std::tolower(uchar(to_char(m.promotion_type())))));
+      .append(to_square(dstSq));
+    if (m.type() == MT::PROMOTION)
+        can.push_back(lower_case(to_char(m.promotion_type())));
 
     return can;
 }
@@ -280,7 +280,7 @@ std::string move_to_san(const Move m, Position& pos) noexcept {
         if (m.type() == MT::PROMOTION)
         {
             san.push_back('=');
-            san.push_back(char(std::toupper(uchar(to_char(m.promotion_type())))));
+            san.push_back(upper_case(to_char(m.promotion_type())));
         }
     }
 
@@ -304,8 +304,7 @@ Move san_to_move(std::string                     san,
                  const MoveList<GenType::LEGAL>& legalMoveList) noexcept {
     assert(2 <= san.size() && san.size() <= 9);
 
-    if (san.size() >= 2 && san[1] == '-'
-        && (san[0] == '0' || char(std::tolower(uchar(san[0]))) == 'o'))
+    if (san.size() >= 2 && san[1] == '-' && (san[0] == '0' || lower_case(san[0]) == 'o'))
         std::replace_if(san.begin(), san.end(), [](char c) { return c == 'o' || c == '0'; }, 'O');
 
     for (const Move m : legalMoveList)
@@ -328,8 +327,7 @@ Move mix_to_move(std::string                     mix,
 
     if (!legalMoveList.empty() && mix.size() >= 2)
     {
-        if (mix.size() <= 3
-            || (mix[1] == '-' && (mix[0] == '0' || char(std::tolower(uchar(mix[0]))) == 'o')))
+        if (mix.size() <= 3 || (mix[1] == '-' && (mix[0] == '0' || lower_case(mix[0]) == 'o')))
         {
             m = san_to_move(mix, pos, legalMoveList);
             return m;
