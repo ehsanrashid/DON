@@ -132,7 +132,7 @@ jobs:
   # Testing Jobs
   IWYU:
     name: IWYU
-    if: ${{ false }}
+    if: ${{ always() }}
     uses: ./.github/workflows/iwyu.yml
   Sanitizers:
     name: Sanitizers
@@ -140,7 +140,7 @@ jobs:
     uses: ./.github/workflows/sanitizers.yml
   Tests:
     name: Tests
-    if: ${{ false }}
+    if: ${{ always() }}
     uses: ./.github/workflows/tests.yml
   Matetrack:
     name: Matetrack
@@ -148,11 +148,11 @@ jobs:
     uses: ./.github/workflows/matetrack.yml
   Games:
     name: Games
-    if: ${{ false }}
+    if: ${{ always() }}
     uses: ./.github/workflows/games.yml
   CheckCompilers:
     name: Check Compilers
-    if: ${{ false }}
+    if: ${{ always() }}
     uses: ./.github/workflows/check_compilers.yml
   BuildMSVC:
     name: Build MSVC
@@ -165,13 +165,13 @@ jobs:
   # Release Jobs
   BuildAndroid:
     name: Build Android
-    needs: [Matrix] #, Sanitizers, Tests, Matetrack, Games, CheckCompilers]
+    needs: [Matrix, Sanitizers, Tests, Matetrack, Games, CheckCompilers]
     uses: ./.github/workflows/build_android.yml
     with:
       matrix: ${{ needs.Matrix.outputs.android_matrix }}
   BuildUniversal:
     name: Build Universal
-    needs: [Matrix] #, Sanitizers, Tests, Matetrack, Games, CheckCompilers]
+    needs: [Matrix, Sanitizers, Tests, Matetrack, Games, CheckCompilers]
     uses: ./.github/workflows/build_universal.yml
   UploadAndroid:
     name: Upload Android

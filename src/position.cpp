@@ -263,7 +263,7 @@ std::optional<Error> Position::set(const std::string_view fens, State* const new
         int val = 0;
 
         bool any = false;
-        for (; p < end && std::isdigit(uchar(*p)); ++p)
+        for (; p < end && is_cdigit(*p); ++p)
         {
             any = true;
             val = 10 * val + char_to_digit(*p);
@@ -295,7 +295,7 @@ std::optional<Error> Position::set(const std::string_view fens, State* const new
             file = FILE_A;
             --rank;
         }
-        else if (std::isdigit(uchar(token)))
+        else if (is_cdigit(token))
         {
             int f = char_to_digit(token);
             if (1 > f && f + file > 8)
@@ -384,14 +384,14 @@ std::optional<Error> Position::set(const std::string_view fens, State* const new
         if (++castlingRightsCount > 4)
             return Error{"Invalid FEN: more than 4 castling rights specified."};
 
-        Color c = std::isupper(uchar(token)) ? WHITE : BLACK;
-        token   = lower_case(token);
+        const Color c = is_upper(token) ? WHITE : BLACK;
+        token         = lower_case(token);
 
         if (relative_rank(c, square<KING>(c)) != RANK_1)
             return Error{"Invalid FEN: " + std::string{c == WHITE ? "white" : "black"}
                          + " king is not on the first rank."};
 
-        Bitboard rooksBB = pieces_bb(c, ROOK);
+        const Bitboard rooksBB = pieces_bb(c, ROOK);
 
         if ((rooksBB & relative_rank(c, RANK_1)) == 0)
             return Error{"Invalid FEN: " + std::string{c == WHITE ? "white" : "black"}
@@ -431,7 +431,7 @@ std::optional<Error> Position::set(const std::string_view fens, State* const new
 
     skip_spaces();
 
-    Color ac = active_color();
+    const Color ac = active_color();
 
     // 4. En-passant square.
     // Ignore if square is invalid or not on side to move relative rank 6.
@@ -443,11 +443,11 @@ std::optional<Error> Position::set(const std::string_view fens, State* const new
             ++p;
         else
         {
-            char epFile = get();
+            const char epFile = get();
 
             if (p < end)
             {
-                char epRank = get();
+                const char epRank = get();
 
                 if ('a' <= epFile && epFile <= 'h' && epRank == (ac == WHITE ? '6' : '3'))
                     enPassantSq = make_square(to_file(epFile), to_rank(epRank));
