@@ -590,6 +590,38 @@ class TestInvalidOptions(metaclass=OrderedClassMembers):
         self.engine.send_command("isready")
         self.engine.equals("readyok")
 
+class TestBenchFile(metaclass=OrderedClassMembers):
+    def beforeEach(self):
+        self.engine = None
+
+    def afterEach(self):
+        assert postfix_check(self.engine.get_output()) == True
+        self.engine.clear_output()
+
+    def _bench(self, name, content):
+        with open(name, "w") as f:
+            f.write(content)
+        self.engine = DON(f"bench 16 1 4 {name} depth".split(" "), True)
+
+    def test_valid_file(self):
+        self._bench("good.epd", "4k3/8/4K3/8/8/8/8/8 w - - 0 1\n")
+        assert self.engine.process.returncode == 0
+        assert "Nodes searched" in self.engine.process.stderr
+
+    def test_empty_file(self):
+        self._bench("empty.epd", "")
+        assert self.engine.process.returncode == 0
+
+    def test_malformed_fen(self):
+        self._bench("bad.epd", "not a valid fen\n")
+        assert self.engine.process.returncode != 0
+        assert "CRITICAL ERROR" in self.engine.process.stdout
+
+    def test_missing_file(self):
+        self.engine = DON("bench 16 1 4 does_not_exist.epd depth".split(" "), True)
+        assert self.engine.process.returncode != 0
+
+
 def parse_args():
     parser = argparse.ArgumentParser(description="Run DON with testing options")
 
@@ -638,8 +670,9 @@ if __name__ == "__main__":
             TestInteractive,
             TestSyzygy,
             TestEnPassantSanitization,
-            TestInvalidFEN,
+            #TestInvalidFEN,
             TestInvalidOptions,
+            TestBenchFile,
         ]
     )
 

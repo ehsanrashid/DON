@@ -29,6 +29,7 @@ src/nul
 __pycache__/
 tests/syzygy
 tests/tmp_bench.epd
+*.epd
 
 # IDE files
 .vs/*
