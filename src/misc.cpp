@@ -63,7 +63,7 @@ constexpr std::string_view Version{"dev"};
         return std::string{NullDate};
 
     // Skip spaces
-    for (; p < end && std::isspace(static_cast<uchar>(*p)); ++p)
+    for (; p != end && std::isspace(static_cast<uchar>(*p)); ++p)
     {}
 
     // Parse day (1-2 digits)
@@ -71,7 +71,7 @@ constexpr std::string_view Version{"dev"};
         return std::string{NullDate};
 
     unsigned day = 0;
-    for (; p < end && std::isdigit(static_cast<uchar>(*p)); ++p)
+    for (; p != end && std::isdigit(static_cast<uchar>(*p)); ++p)
     {
         day = 10 * day + char_to_digit(*p);
     }
@@ -81,7 +81,7 @@ constexpr std::string_view Version{"dev"};
         return std::string{NullDate};
 
     // Skip spaces/comma
-    for (; p < end && (std::isspace(static_cast<uchar>(*p)) || *p == ','); ++p)
+    for (; p != end && (std::isspace(static_cast<uchar>(*p)) || *p == ','); ++p)
     {}
 
     // Parse year (4 digits)
@@ -879,20 +879,20 @@ std::filesystem::path path_from_utf8(const std::string_view path) noexcept {
 #endif
 }
 
-std::optional<usize> str_to_size_t(const std::string_view sv) noexcept {
+std::optional<usize> str_to_size(const std::string_view sv) noexcept {
     if (sv.empty() || sv[0] == '-')
         return std::nullopt;
     // Use from_chars (no allocation, fast)
-    const char* begin = sv.data();
-    const char* end   = begin + sv.size();
+    const char* p   = sv.data();
+    const char* end = p + sv.size();
+    // Skip spaces
+    for (; p != end && std::isspace(static_cast<uchar>(*p)); ++p)
+    {}
 
     unsigned long long value = 0;
-
-    auto [ptr, ec] = std::from_chars(begin, end, value);
-    if (ec != std::errc() || ptr != end)
-        return std::nullopt;
-
-    if (value > std::numeric_limits<usize>::max())
+    // Parse decimal value (base 10) from string_view
+    auto [ptr, ec] = std::from_chars(p, end, value, 10);
+    if (ec != std::errc{} || ptr != end || value > std::numeric_limits<usize>::max())
         return std::nullopt;
 
     return static_cast<usize>(value);

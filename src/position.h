@@ -367,8 +367,8 @@ class Position final {
     void  put(Square s, Piece pc, DirtyThreats* dts = nullptr) noexcept;
     Piece remove(Square s, DirtyThreats* dts = nullptr) noexcept;
 
-    void flip() noexcept;
-    void mirror() noexcept;
+    std::optional<Error> flip() noexcept;
+    std::optional<Error> mirror() noexcept;
 
     // Position consistency check, for debugging
 #if !defined(NDEBUG)

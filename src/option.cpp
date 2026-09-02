@@ -113,32 +113,18 @@ Option::operator std::string_view() const noexcept {
 void Option::operator=(std::string value) noexcept {
     assert(is_ok(type));
 
-    if (type != Type::BUTTON && type != Type::STRING)
-        if (value.empty())
-            return;
+    if ((type != Type::BUTTON && type != Type::STRING && value.empty())
+        || (type == Type::CHECK && !valid_bool_string(value))
+        || (type == Type::SPIN && !value_in_range(value, minValue, maxValue)))
+        return;
 
-    switch (type)
+    if (type == Type::STRING && (is_whitespace(value) || lower_case(value) == EMPTY_STRING))
+        value.clear();
+    else if (type == Type::COMBO)
     {
-    case Type::CHECK :
         value = lower_case(value);
-
-        if (!valid_bool_string(value))
-            return;
-        break;
-    case Type::STRING :
-        if (is_whitespace(value) || lower_case(value) == EMPTY_STRING)
-            value.clear();
-        break;
-    case Type::SPIN :
-        value = clamp_string(value, minValue, maxValue);
-        break;
-    case Type::COMBO :
-        value = lower_case(value);
-
         if (std::find(comboValues.begin(), comboValues.end(), value) == comboValues.end())
             return;
-        break;
-    default :;
     }
 
     if (type != Type::BUTTON)

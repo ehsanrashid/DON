@@ -1939,7 +1939,7 @@ bool Position::is_upcoming_repetition(i16 ply) const noexcept {
 
 // Flips the current position with the white and black sides reversed.
 // This is only useful for debugging e.g. for finding evaluation symmetry bugs.
-void Position::flip() noexcept {
+std::optional<Error> Position::flip() noexcept {
     std::istringstream iss{fen()};
 
     std::string fens, token;
@@ -1983,12 +1983,10 @@ void Position::flip() noexcept {
     std::getline(iss, token);  // Half and full moves
     fens.append(token);
 
-    set(fens, st);
-
-    assert(_is_ok());
+    return set(fens, st);
 }
 
-void Position::mirror() noexcept {
+std::optional<Error> Position::mirror() noexcept {
     std::istringstream iss{fen()};
 
     std::string fens, token;
@@ -2038,9 +2036,7 @@ void Position::mirror() noexcept {
     std::getline(iss, token);  // Half and full moves
     fens.append(token);
 
-    set(fens, st);
-
-    assert(_is_ok());
+    return set(fens, st);
 }
 
 #if !defined(NDEBUG)

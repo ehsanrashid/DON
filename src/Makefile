@@ -31,6 +31,14 @@ ifeq ($(COMP),ndk)
     OS := Android
 endif
 
+ifeq ($(OS),Windows_NT)
+    UNIVERSAL_OS_NAME := Windows
+else ifeq ($(TARGET_KERNEL),Darwin)
+    UNIVERSAL_OS_NAME := macOS
+else
+    UNIVERSAL_OS_NAME := Linux
+endif
+
 ### Command prefix to run the built executable (e.g. wine, sde, qemu)
 ### Backward compatible alias: WINE_PATH (deprecated)
 ifneq ($(strip $(WINE_PATH)),)
@@ -1212,7 +1220,7 @@ macos-lipo:
 	echo "Step 4/4. Re-combining slices with the patched x86-64 slice ..."
 	lipo -create "$(EXE)-x86_64" "$(EXE)-arm64" -output "$(EXE)"
 	@rm -f "$(EXE)-x86_64" "$(EXE)-arm64"
-	@echo "Universal $(UNIVERSAL_OS_NAME) binary built: '$(EXE)'"
+	@echo "$(UNIVERSAL_OS_NAME) universal binary built: '$(EXE)'"
 
 # LTO temporary object handling
 ifeq ($(TARGET_KERNEL),Darwin)
@@ -1510,14 +1518,6 @@ UNIVERSAL_EXE        := $(CURDIR)/$(EXE)
 
 ifeq ($(UNIVERSAL_BUILD),yes)
 
-ifeq ($(OS),Windows_NT)
-    UNIVERSAL_OS_NAME := Windows
-else ifeq ($(TARGET_KERNEL),Darwin)
-    UNIVERSAL_OS_NAME := macOS
-else
-    UNIVERSAL_OS_NAME := Linux
-endif
-
 UNIVERSAL_SRC_DIR    := $(CURDIR)/universal
 NNUE_EMBED_OBJ       := $(TEMP_DIR)/nnue_embed.o
 NET_SENTINEL         := $(TEMP_DIR)/.net-done
@@ -1671,6 +1671,6 @@ endif
 
 $(UNIVERSAL_EXE): $(UNIVERSAL_ENTRY_OBJ) $(NNUE_EMBED_OBJ) $(ARCH_OBJS)
 	$(CXX) -o "$@" $(UNIVERSAL_ENTRY_OBJ) $(NNUE_EMBED_OBJ) $(ARCH_OBJS) $(strip $(UNIVERSAL_BUILD_FLAGS) $(EXTRA_LDFLAGS))
-	@echo "Universal $(UNIVERSAL_OS_NAME) binary built: '$@'"
+	@echo "$(UNIVERSAL_OS_NAME) universal binary built: '$@'"
 
 endif  # UNIVERSAL_BUILD

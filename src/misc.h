@@ -1920,23 +1920,20 @@ inline std::string remove_whitespace(std::string str) noexcept {
     return neg ? -intValue : +intValue;
 }
 
-inline std::string clamp_string(std::string_view sv, int minValue, int maxValue) noexcept {
+inline bool value_in_range(std::string_view sv, int minValue, int maxValue) noexcept {
+    const char* p   = sv.data();
+    const char* end = p + sv.size();
+    // Skip spaces
+    for (; p != end && std::isspace(static_cast<uchar>(*p)); ++p)
+    {}
+
     int intValue = 0;
-
-    auto [ptr, ec] = std::from_chars(sv.data(), sv.data() + sv.size(), intValue);
-
-    switch (ec)
-    {
-    case std::errc::invalid_argument :
-        intValue = minValue;
-        break;
-    case std::errc::result_out_of_range :
-        intValue = maxValue;
-        break;
-    default :;
-    }
-
-    return std::to_string(std::clamp(intValue, minValue, maxValue));
+    // Parse decimal value (base 10) from string_view
+    auto [ptr, ec] = std::from_chars(p, end, intValue, 10);
+    if (ec != std::errc{} || ptr != end)
+        return false;
+    // Check value is in range
+    return minValue <= intValue && intValue <= maxValue;
 }
 
 inline StringViews
@@ -2027,7 +2024,7 @@ void print_info_string(std::string_view infos) noexcept;
 std::string           utf8_from_wstring(std::wstring_view wsv) noexcept;
 std::filesystem::path path_from_utf8(std::string_view path) noexcept;
 
-std::optional<usize> str_to_size_t(std::string_view sv) noexcept;
+std::optional<usize> str_to_size(std::string_view sv) noexcept;
 
 // Reads the file as bytes.
 // Returns std::nullopt if the file does not exist.
