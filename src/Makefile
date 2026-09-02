@@ -53,7 +53,7 @@ FIND_EXE = $(shell command -v "$(1)" 2>/dev/null)
 IS_WINDOWS := no
 ifeq ($(OS),Windows_NT)
     # Android NDK is never treated as Windows
-    ifneq ($(COMP),ndk)
+    ifneq ($(filter-out ndk,$(COMP)),)
         IS_WINDOWS := yes
     endif
 else ifeq ($(COMP),mingw)
@@ -992,7 +992,7 @@ $(shell \
     fi)
 endef
 
-ifneq ($(filter-out help net strip install clean obj-clean profile-clean config-sanity format install-hooks,$(MAKECMDGOALS)),)
+ifneq ($(filter-out help net strip install clean obj-clean profile-clean universal-clean config-sanity format install-hooks,$(MAKECMDGOALS)),)
     _ := $(call CACHE_FILE_IF_CHANGED,$(BUILD_DATE_FILE),$(BUILD_DATE))
     _ := $(call CACHE_FILE_IF_CHANGED,$(BUILD_SHA_FILE),$(GIT_SHA))
     _ := $(call CACHE_FILE_IF_CHANGED,$(BUILD_DIFFINDEX_FILE),$(GIT_DIFFINDEX))
@@ -1163,7 +1163,7 @@ endif
 
 
 .PHONY: help analyze build profile-build macos-lipo net strip install \
-	clean obj-clean profile-clean config-sanity FORCE \
+	clean obj-clean profile-clean universal-clean config-sanity FORCE \
 	clang-profile-make clang-profile-use \
 	gcc-profile-make gcc-profile-use \
 	icx-profile-make icx-profile-use \
@@ -1483,14 +1483,14 @@ icx-profile-use:
 
 .depend: $(SRCS)
 	@echo Generating dependencies...
-	@$(CXX) $(DEPENDFLAGS) -MM -MP $(SRCS) > $@.tmp || { rm -f $@.tmp; exit 1; }
-	@sed -E 's@(.*/)?DON/src/nnue/@nnue/@g; s@(.*/)?DON/src/book/@book/@g; s@(.*/)?DON/src/tablebase/@tablebase/@g; s@(.*/)?DON/src/@../@g' $@.tmp > $@
-	@rm -f $@.tmp
+	@$(CXX) $(DEPENDFLAGS) -MM -MP $(SRCS) > "$@.tmp" || { rm -f "$@.tmp"; exit 1; }
+	@sed -E 's@(.*/)?DON/src/nnue/@nnue/@g; s@(.*/)?DON/src/book/@book/@g; s@(.*/)?DON/src/tablebase/@tablebase/@g; s@(.*/)?DON/src/@../@g' "$@.tmp" > "$@"
+	@rm -f "$@.tmp"
 
 ifeq ($(UNIVERSAL_BUILD),no)
 # Include .depend only if no special goal is requested
 ifneq ($(MAKECMDGOALS),)
-ifneq ($(filter-out help net strip install clean obj-clean profile-clean config-sanity format install-hooks,$(MAKECMDGOALS)),)
+ifneq ($(filter-out help net strip install clean obj-clean profile-clean universal-clean config-sanity format install-hooks,$(MAKECMDGOALS)),)
     -include .depend
 endif
 endif
@@ -1512,7 +1512,7 @@ ifeq ($(UNIVERSAL_BUILD),yes)
 
 ifeq ($(OS),Windows_NT)
     UNIVERSAL_OS_NAME := Windows
-else ifeq (TARGET_KERNEL,Darwin)
+else ifeq ($(TARGET_KERNEL),Darwin)
     UNIVERSAL_OS_NAME := macOS
 else
     UNIVERSAL_OS_NAME := Linux
@@ -1588,6 +1588,8 @@ endif
 EMBED_DIR_SUPPORTED := $(shell echo 'int main(){}' | $(CXX) -x c++ --embed-dir=. -o /dev/null -c - 2>/dev/null && echo 1 || echo 0)
 ifeq ($(EMBED_DIR_SUPPORTED),1)
     EMBED_DIR = --embed-dir="$(CURDIR)"
+else
+    $(info --embed-dir is not supported by $(CXX), using alternative embedding method)
 endif
 
 # macos-lipo sets MACOS_X86_64_SLICE=1 when building the x86-64 slice so that the
