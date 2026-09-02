@@ -367,11 +367,14 @@ std::optional<Error> Position::set(const std::string_view fens, State* const new
 
     skip_spaces();
 
-    // 3. Castling availability. Compatible with 3 standards: Normal FEN standard,
-    // Shredder-FEN that uses the letters of the columns on which the rooks began
-    // the game instead of KQkq and also X-FEN standard that, in case of Chess960,
-    // if an inner rook is associated with the castling right, the castling tag is
-    // replaced by the file letter of the involved rook, as for the Shredder-FEN.
+    // 3. Castling availability. Compatible with 3 standards:
+    //   - Normal-FEN (standard): KQkq
+    //   - Shredder-FEN: uses the files on which the rooks began the game instead of KQkq.
+    //   - X-FEN: in Chess960, replaces the castling tag with the file letter of the
+    //     involved rook when an inner rook is associated with the castling right.
+    //
+    // NOTE: Due to the prevalence of incorrect or missing castling rights, validation
+    // is intentionally less strict. Invalid castling rights are nevertheless sanitized.
     usize castlingRightsCount = 0;
     while (not_space())
     {
@@ -490,12 +493,14 @@ std::optional<Error> Position::set(const std::string_view fens, State* const new
         reset_rule50_count();
     }
 
+    // Normally, values >= 100 would be pointless, but support ignoring the 50-move rule for TB purposes.
+    // Limit at RULE50_COUNT_MAX as it's used multiplicatively with position evaluation during search.
     if (rule50_count() > RULE50_COUNT_MAX)
         return Error{"Invalid FEN: 50-move rule count exceeds the allowed range."};
 
     gamePly = std::max(ply(), rule50_count());
-    //if (gamePly > 100000)
-    //    return Error{"Invalid FEN: game ply out of range."};
+    if (gamePly > RULE50_COUNT_MAX)
+        return Error{"Invalid FEN: game ply exceeds the allowed range."};
 
     set_state();
 
