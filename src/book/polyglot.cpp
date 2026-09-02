@@ -589,7 +589,7 @@ Move PolyGlot::probe(Position& pos, const RootMoves& rootMoves, const Options& o
     assert(!rootMoves.empty());
     static XorShift64Star prng(now());
 
-    if (!(options["Book"] && !empty() && pos.move_num() <= options["BookProbeDepth"]))
+    if (empty() || !options["Book"] || pos.move_num() > options["BookProbeDepth"])
         return Move::None;
 
     const Key key = PG_ZOBRIST.key(pos);

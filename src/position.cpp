@@ -187,7 +187,7 @@ void Position::clear() noexcept {
     std::memset(castlings.rookSq.data(), SQ_NONE, sizeof(castlings.rookSq));
 
     st          = nullptr;
-    gamePly     = 0;
+    ply_        = 0;
     activeColor = NONE;
 }
 
@@ -467,10 +467,20 @@ std::optional<Error> Position::set(const std::string_view fens, State* const new
     get_int(rule50Count);
     get_int(moveNum);
 
-    st->rule50Count = constexpr_abs(rule50Count);
+    rule50Count = constexpr_abs(rule50Count);
+    moveNum     = constexpr_abs(moveNum);
+    // Normally, values >= 100 would be pointless, but support ignoring the 50-move rule for TB purposes.
+    // Limit at RULE50_COUNT_MAX as it's used multiplicatively with position evaluation during search.
+    if (rule50Count > RULE50_COUNT_MAX)
+        return Error{"Invalid FEN: 50-move rule count exceeds the allowed range."};
+
+    if (moveNum > RULE50_COUNT_MAX)
+        return Error{"Invalid FEN: game ply exceeds the allowed range."};
+
+    st->rule50Count = u16(rule50Count);
     // Convert from moveNum starting from 1 to posPly starting from 0,
     // handle also common incorrect FEN with moveNum = 0.
-    gamePly = std::max(2 * int(constexpr_abs(moveNum) - 1), 0) + int(ac == BLACK);
+    ply_ = u16(2 * std::max(moveNum - 1, 0) + (ac == BLACK));
 
     st->checkersBB = pieces_bb(~ac) & attackers_bb(square<KING>(ac));
 
@@ -493,14 +503,7 @@ std::optional<Error> Position::set(const std::string_view fens, State* const new
         reset_rule50_count();
     }
 
-    // Normally, values >= 100 would be pointless, but support ignoring the 50-move rule for TB purposes.
-    // Limit at RULE50_COUNT_MAX as it's used multiplicatively with position evaluation during search.
-    if (rule50_count() > RULE50_COUNT_MAX)
-        return Error{"Invalid FEN: 50-move rule count exceeds the allowed range."};
-
-    gamePly = std::max(ply(), rule50_count());
-    if (gamePly > RULE50_COUNT_MAX)
-        return Error{"Invalid FEN: game ply exceeds the allowed range."};
+    ply_ = std::max(rule50_count(), ply());
 
     set_state();
 
@@ -700,7 +703,8 @@ void Position::set_state() noexcept {
 
     st->key ^= Zobrist::enpassant(en_passant_sq());
 
-    st->key ^= int(active_color() == BLACK) * Zobrist::turn();
+    if (active_color() == BLACK)
+        st->key ^= Zobrist::turn();
 }
 
 void Position::set_pinner_blocker() noexcept {
@@ -881,7 +885,7 @@ DirtyBoard Position::do_move(const Move          m,
 
     // Increment game-ply, rule50 counter, null-ply and rule50 high flag.
     // rule50 will be reset to zero later on in case of a capture or a pawn move.
-    ++gamePly;
+    ++ply_;
     ++st->rule50Count;
     ++st->nullPly;
     st->hasRule50High = st->hasRule50High || rule50_count() >= rule50_threshold();
@@ -1236,7 +1240,7 @@ void Position::undo_move(const Move m) noexcept {
     }
     // clang-format on
 
-    --gamePly;
+    --ply_;
     // Finally point state pointer back to the previous state
     st = const_cast<State*>(st->preSt);
 
@@ -2058,7 +2062,8 @@ Key Position::compute_key() const noexcept {
 
     key ^= Zobrist::enpassant(en_passant_sq());
 
-    key ^= int(active_color() == BLACK) * Zobrist::turn();
+    if (active_color() == BLACK)
+        key ^= Zobrist::turn();
 
     return key;
 }
