@@ -840,7 +840,7 @@ void print_info_string(const std::string_view infos) noexcept {
 
 void terminate_on_critical_error(const std::string_view message) noexcept {
     print_info_string("CRITICAL ERROR: " + std::string{message});
-
+    std::cout << std::endl;
     std::exit(EXIT_FAILURE);
 }
 

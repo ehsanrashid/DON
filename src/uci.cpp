@@ -209,7 +209,7 @@ Limit parse_limit(std::istream& is) noexcept {
             is.seekg(pos);
         }
 
-        if (is.fail())
+        if (!is)
             terminate_on_critical_error("Invalid argument for '" + token + "'");
     }
 
