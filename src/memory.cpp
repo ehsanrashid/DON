@@ -221,7 +221,7 @@ void* alloc_aligned_large_page_with_hint(const usize                 allocSize,
     #if defined(MADV_HUGEPAGE)
     if (::madvise(mem, roundedAllocSize, MADV_HUGEPAGE) != 0)
     {
-        //std::cerr << "::madvise() failed: error = " << std::strerror(errno) << std::endl;
+        std::cerr << "::madvise() failed: error = " << std::strerror(errno) << std::endl;
     }
     #endif
 #endif
