@@ -118,7 +118,9 @@ void Option::operator=(std::string value) noexcept {
         || (type == Type::SPIN && !value_in_range(value, minValue, maxValue)))
         return;
 
-    if (type == Type::STRING && (is_whitespace(value) || lower_case(value) == EMPTY_STRING))
+    if (type == Type::CHECK)
+        value = lower_case(value);
+    else if (type == Type::STRING && (is_whitespace(value) || lower_case(value) == EMPTY_STRING))
         value.clear();
     else if (type == Type::COMBO)
     {

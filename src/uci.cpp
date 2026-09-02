@@ -172,6 +172,7 @@ Limit parse_limit(std::istream& is) noexcept {
             limit.infinite = true;
         else if (token == "ponder")
             limit.ponder = true;
+        // "perft" needs to be the last command on the line
         else if (token == "perft")
         {
             limit.perft = true;
@@ -179,6 +180,7 @@ Limit parse_limit(std::istream& is) noexcept {
             is >> std::boolalpha >> limit.detail;
 
             limit.depth = std::clamp<Depth>(constexpr_abs(limit.depth), 1, DEPTH_MAX);
+            break;
         }
         // "searchmoves" needs to be the last command on the line
         else if (!token.empty() && token[0] == 's')  // "searchmoves"

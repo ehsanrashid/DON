@@ -1893,31 +1893,27 @@ inline std::string remove_whitespace(std::string str) noexcept {
     return b ? "true" : "false";
 }
 // Efficient check: works for std::string or std::string_view
-[[nodiscard]] constexpr bool valid_bool_string(std::string_view value) noexcept {
-    return value == "true" || value == "false";
+[[nodiscard]] inline bool valid_bool_string(const std::string_view value) noexcept {
+    // Convert to lowercase for case-insensitive comparison
+    const std::string lowerValue = lower_case(std::string{value});
+    return lowerValue == "true" || lowerValue == "false";
 }
 
-[[nodiscard]] constexpr bool sv_to_bool(std::string_view sv) { return (trim(sv) == "true"); }
+[[nodiscard]] constexpr bool sv_to_bool(const std::string_view sv) { return (trim(sv) == "true"); }
 
 [[nodiscard]] constexpr int sv_to_int(std::string_view sv) noexcept {
-    int  intValue = 0;
+    const char* p   = sv.data();
+    const char* end = p + sv.size();
+
     bool neg      = false;
+    int  intValue = 0;
 
-    usize i = 0;
-
-    while (i < sv.size() && sv[i] == '-')
-    {
+    for (; p != end && *p == '-'; ++p)
         neg = true;
-        ++i;
-    }
+    for (; p != end; ++p)
+        intValue = 10 * intValue + char_to_digit(*p);
 
-    while (i < sv.size())
-    {
-        intValue = 10 * intValue + char_to_digit(sv[i]);
-        ++i;
-    }
-
-    return neg ? -intValue : +intValue;
+    return neg ? -intValue : intValue;
 }
 
 inline bool value_in_range(std::string_view sv, int minValue, int maxValue) noexcept {
