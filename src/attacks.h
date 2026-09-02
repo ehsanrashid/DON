@@ -53,6 +53,8 @@ void init() noexcept;
 
 struct alignas(32) DualMagic final {
    public:
+    DualMagic() noexcept = default;
+
     // Always compute [bishop, rook] attacks at once, then rely on
     // compiler's DCE and CSE to eliminate unneeded re-computations or extractions.
     //
@@ -101,7 +103,7 @@ struct alignas(32) DualMagic final {
     DualMagic& operator=(DualMagic&&) noexcept      = delete;
 
     // Byteswap within 128-bit elements
-    FORCEINLINE static __m256i bswap128(const __m256i v) noexcept {
+    ALWAYS_INLINE static __m256i bswap128(const __m256i v) noexcept {
         const __m256i mask = _mm256_load_si256(reinterpret_cast<const __m256i*>(BSwapMask.data()));
 
         return _mm256_shuffle_epi8(v, mask);
@@ -146,6 +148,8 @@ inline Bitboard reverse_bb(const Bitboard bb) noexcept {
 // See https://www.chessprogramming.org/Hyperbola_Quintessence
 struct Magic final {
    public:
+    Magic() noexcept = default;
+
     Bitboard
     hyperbola(const Square s, const Bitboard occupancyBB, const Bitboard maskBB) const noexcept {
         Bitboard occBB = occupancyBB & maskBB;
