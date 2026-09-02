@@ -35,7 +35,7 @@ struct ExtMove final: public Move {
     using Move::operator=;
 
     constexpr bool operator<(const ExtMove& em) const noexcept { return value < em.value; }
-    constexpr bool operator>(const ExtMove& em) const noexcept { return value > em.value; }
+    constexpr bool operator>(const ExtMove& em) const noexcept { return (em < *this); }
     constexpr bool operator<=(const ExtMove& em) const noexcept { return !(em < *this); }
     constexpr bool operator>=(const ExtMove& em) const noexcept { return !(*this < em); }
 

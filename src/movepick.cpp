@@ -164,7 +164,7 @@ Iterator upper_bound_unrolled(const Iterator beg,
 // Stable for all elements.
 template<typename Iterator>
 void insertion_sort(const Iterator beg, const Iterator end) noexcept {
-    if (end - beg <= 1)
+    if (end - beg < 2)
         return;
 
     Iterator p = beg + 1;
@@ -201,7 +201,7 @@ template<typename Iterator>
 void partial_insertion_sort(const Iterator beg,
                             const Iterator end,
                             const int      limit = std::numeric_limits<int>::min()) noexcept {
-    if (end - beg <= 1)
+    if (end - beg < 2)
         return;
 
     Iterator p = beg + 1;
