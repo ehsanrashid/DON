@@ -519,14 +519,14 @@ class TestEnPassantSanitization(metaclass=OrderedClassMembers):
 
 class TestInvalidFEN(metaclass=OrderedClassMembers):
     def beforeEach(self):
-        self.engine = DON()
+        self.engine = None
 
     def afterEach(self):
         assert postfix_check(self.engine.get_output()) == True
         self.engine.clear_output()
 
     def _expect_critical(self, fen):
-        self.engine.send_command(f"position fen {fen}")
+        self.engine = DON(f"position fen {fen}".split(" "), True)
         assert self.engine.process.returncode != 0
         assert "CRITICAL ERROR" in self.engine.process.stdout
 
@@ -670,7 +670,7 @@ if __name__ == "__main__":
             TestInteractive,
             TestSyzygy,
             TestEnPassantSanitization,
-            #TestInvalidFEN,
+            TestInvalidFEN,
             TestInvalidOptions,
             TestBenchFile,
         ]
