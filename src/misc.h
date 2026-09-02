@@ -455,10 +455,10 @@ void set_console_output(ConsoleMode consoleMode = ConsoleMode::Default) noexcept
 constexpr std::string_view timestamp() noexcept { return __TIMESTAMP__; }
 
 constexpr char to_lower(const char ch) noexcept {
-    return 'A' <= ch && ch <= 'Z' ? static_cast<char>(ch + ('a' - 'A')) : ch;
+    return 'A' <= ch && ch <= 'Z' ? char(ch + ('a' - 'A')) : ch;
 }
 constexpr char to_upper(const char ch) noexcept {
-    return 'a' <= ch && ch <= 'z' ? static_cast<char>(ch - ('a' - 'A')) : ch;
+    return 'a' <= ch && ch <= 'z' ? char(ch - ('a' - 'A')) : ch;
 }
 
 constexpr unsigned to_month(const std::string_view m) noexcept {
@@ -1923,7 +1923,7 @@ inline bool value_in_range(std::string_view sv, int minValue, int maxValue) noex
     const char* p   = sv.data();
     const char* end = p + sv.size();
     // Skip spaces
-    for (; p != end && std::isspace(static_cast<uchar>(*p)); ++p)
+    for (; p != end && std::isspace(uchar(*p)); ++p)
     {}
 
     int intValue = 0;

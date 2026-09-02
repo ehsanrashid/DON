@@ -63,15 +63,15 @@ constexpr std::string_view Version{"dev"};
         return std::string{NullDate};
 
     // Skip spaces
-    for (; p != end && std::isspace(static_cast<uchar>(*p)); ++p)
+    for (; p != end && std::isspace(uchar(*p)); ++p)
     {}
 
     // Parse day (1-2 digits)
-    if (end - p < 1 || !std::isdigit(static_cast<uchar>(*p)))
+    if (end - p < 1 || !std::isdigit(uchar(*p)))
         return std::string{NullDate};
 
     unsigned day = 0;
-    for (; p != end && std::isdigit(static_cast<uchar>(*p)); ++p)
+    for (; p != end && std::isdigit(uchar(*p)); ++p)
     {
         day = 10 * day + char_to_digit(*p);
     }
@@ -81,7 +81,7 @@ constexpr std::string_view Version{"dev"};
         return std::string{NullDate};
 
     // Skip spaces/comma
-    for (; p != end && (std::isspace(static_cast<uchar>(*p)) || *p == ','); ++p)
+    for (; p != end && (std::isspace(uchar(*p)) || *p == ','); ++p)
     {}
 
     // Parse year (4 digits)
@@ -91,7 +91,7 @@ constexpr std::string_view Version{"dev"};
     unsigned year = 0;
     for (const auto* yEnd = p + 4; p != yEnd; ++p)
     {
-        if (!std::isdigit(static_cast<uchar>(*p)))
+        if (!std::isdigit(uchar(*p)))
             return std::string{NullDate};
 
         year = 10 * year + char_to_digit(*p);
@@ -129,10 +129,9 @@ constexpr std::string_view Version{"dev"};
     const auto* p = time.data();
 
     // Validate structure
-    if (!std::isdigit(static_cast<uchar>(p[0])) || !std::isdigit(static_cast<uchar>(p[1]))
-        || p[2] != ':' || !std::isdigit(static_cast<uchar>(p[3]))
-        || !std::isdigit(static_cast<uchar>(p[4])) || p[5] != ':'
-        || !std::isdigit(static_cast<uchar>(p[6])) || !std::isdigit(static_cast<uchar>(p[7])))
+    if (!std::isdigit(uchar(p[0])) || !std::isdigit(uchar(p[1])) || p[2] != ':'
+        || !std::isdigit(uchar(p[3])) || !std::isdigit(uchar(p[4])) || p[5] != ':'
+        || !std::isdigit(uchar(p[6])) || !std::isdigit(uchar(p[7])))
         return std::string{NullTime};
 
     unsigned hour = 10 * char_to_digit(p[0]) + char_to_digit(p[1]);
@@ -886,7 +885,7 @@ std::optional<usize> str_to_size(const std::string_view sv) noexcept {
     const char* p   = sv.data();
     const char* end = p + sv.size();
     // Skip spaces
-    for (; p != end && std::isspace(static_cast<uchar>(*p)); ++p)
+    for (; p != end && std::isspace(uchar(*p)); ++p)
     {}
 
     unsigned long long value = 0;

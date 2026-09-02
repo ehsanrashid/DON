@@ -245,14 +245,12 @@ std::optional<Error> Position::set(const std::string_view fens, State* const new
     // Returns '\0' when p >= end (EOF sentinel)
     auto peek        = [&p, end]() noexcept -> char { return p < end ? *p : '\0'; };
     auto skip_spaces = [&p, end]() noexcept {
-        for (; p < end && std::isspace(static_cast<uchar>(*p)); ++p)
+        for (; p < end && std::isspace(uchar(*p)); ++p)
         {}
     };
-    auto not_space = [&p, end]() noexcept -> bool {
-        return p < end && !std::isspace(static_cast<uchar>(*p));
-    };
-    auto get     = [&p, end]() noexcept -> char { return p < end ? *p++ : '\0'; };
-    auto get_int = [&p, end, &skip_spaces](int& out) noexcept -> bool {
+    auto not_space = [&p, end]() noexcept -> bool { return p < end && !std::isspace(uchar(*p)); };
+    auto get       = [&p, end]() noexcept -> char { return p < end ? *p++ : '\0'; };
+    auto get_int   = [&p, end, &skip_spaces](int& out) noexcept -> bool {
         skip_spaces();
 
         bool neg = false;
@@ -265,7 +263,7 @@ std::optional<Error> Position::set(const std::string_view fens, State* const new
         int val = 0;
 
         bool any = false;
-        for (; p < end && std::isdigit(static_cast<uchar>(*p)); ++p)
+        for (; p < end && std::isdigit(uchar(*p)); ++p)
         {
             any = true;
             val = 10 * val + char_to_digit(*p);
@@ -297,7 +295,7 @@ std::optional<Error> Position::set(const std::string_view fens, State* const new
             file = FILE_A;
             --rank;
         }
-        else if (std::isdigit(static_cast<uchar>(token)))
+        else if (std::isdigit(uchar(token)))
         {
             int f = char_to_digit(token);
             if (1 > f && f + file > 8)
@@ -356,7 +354,7 @@ std::optional<Error> Position::set(const std::string_view fens, State* const new
     // 2. Active color
     token = get();
 
-    const char side = std::tolower(static_cast<uchar>(token));
+    const char side = std::tolower(uchar(token));
 
     if (side == 'w')
         activeColor = WHITE;
@@ -386,8 +384,8 @@ std::optional<Error> Position::set(const std::string_view fens, State* const new
         if (++castlingRightsCount > 4)
             return Error{"Invalid FEN: more than 4 castling rights specified."};
 
-        Color c = std::isupper(static_cast<uchar>(token)) ? WHITE : BLACK;
-        token   = static_cast<char>(std::tolower(static_cast<uchar>(token)));
+        Color c = std::isupper(uchar(token)) ? WHITE : BLACK;
+        token   = char(std::tolower(uchar(token)));
 
         if (relative_rank(c, square<KING>(c)) != RANK_1)
             return Error{"Invalid FEN: " + std::string{c == WHITE ? "white" : "black"}

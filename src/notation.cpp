@@ -142,8 +142,8 @@ std::string move_to_can(const Move m) noexcept {
     can  //
       .assign(to_square(orgSq))
       .append(to_square(dstSq))
-      .append(static_cast<usize>(m.type() == MT::PROMOTION),
-              static_cast<char>(std::tolower(static_cast<uchar>(to_char(m.promotion_type())))));
+      .append(usize(m.type() == MT::PROMOTION),
+              char(std::tolower(uchar(to_char(m.promotion_type())))));
 
     return can;
 }
@@ -268,13 +268,13 @@ std::string move_to_san(const Move m, Position& pos) noexcept {
         }
 
         if (pos.capture(m))
-            san.append(static_cast<usize>(movedPt == PAWN), to_char(file_of(orgSq))).push_back('x');
+            san.append(usize(movedPt == PAWN), to_char(file_of(orgSq))).push_back('x');
 
         san  //
           .append(to_square(dstSq))
-          .append(static_cast<usize>(m.type() == MT::PROMOTION), '=')
-          .append(static_cast<usize>(m.type() == MT::PROMOTION),
-                  static_cast<char>(std::toupper(static_cast<uchar>(to_char(m.promotion_type())))));
+          .append(usize(m.type() == MT::PROMOTION), '=')
+          .append(usize(m.type() == MT::PROMOTION),
+                  char(std::toupper(uchar(to_char(m.promotion_type())))));
     }
 
     State st;
@@ -298,7 +298,7 @@ Move san_to_move(std::string                     san,
     assert(2 <= san.size() && san.size() <= 9);
 
     if (san.size() >= 2 && san[1] == '-'
-        && (san[0] == '0' || static_cast<char>(std::tolower(static_cast<uchar>(san[0]))) == 'o'))
+        && (san[0] == '0' || char(std::tolower(uchar(san[0]))) == 'o'))
         std::replace_if(san.begin(), san.end(), [](char c) { return c == 'o' || c == '0'; }, 'O');
 
     for (const Move m : legalMoveList)
@@ -322,9 +322,7 @@ Move mix_to_move(std::string                     mix,
     if (!legalMoveList.empty() && mix.size() >= 2)
     {
         if (mix.size() <= 3
-            || (mix[1] == '-'
-                && (mix[0] == '0'
-                    || static_cast<char>(std::tolower(static_cast<uchar>(mix[0]))) == 'o')))
+            || (mix[1] == '-' && (mix[0] == '0' || char(std::tolower(uchar(mix[0]))) == 'o')))
         {
             m = san_to_move(mix, pos, legalMoveList);
             return m;
