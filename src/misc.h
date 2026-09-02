@@ -22,7 +22,6 @@
 #include <array>
 #include <atomic>
 #include <cassert>
-#include <cctype>
 #include <charconv>
 #include <chrono>
 #include <cinttypes>

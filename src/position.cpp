@@ -17,7 +17,6 @@
 
 #include "position.h"
 
-#include <cctype>
 #include <iomanip>
 #include <sstream>
 #include <utility>
@@ -242,19 +241,19 @@ std::optional<Error> Position::set(const std::string_view fens, State* const new
     const auto*       p   = fens.data();
     const auto* const end = p + fens.size();
 
-    // Returns '\0' when p >= end (EOF sentinel)
-    auto peek        = [&p, end]() noexcept -> char { return p < end ? *p : '\0'; };
+    // Returns '\0' when p == end (EOF sentinel)
+    auto peek        = [&p, end]() noexcept -> char { return p != end ? *p : '\0'; };
     auto skip_spaces = [&p, end]() noexcept {
-        for (; p < end && is_space(*p); ++p)
+        for (; p != end && is_space(*p); ++p)
         {}
     };
-    auto not_space = [&p, end]() noexcept -> bool { return p < end && !is_space(*p); };
-    auto get       = [&p, end]() noexcept -> char { return p < end ? *p++ : '\0'; };
+    auto not_space = [&p, end]() noexcept -> bool { return p != end && !is_space(*p); };
+    auto get       = [&p, end]() noexcept -> char { return p != end ? *p++ : '\0'; };
     auto get_int   = [&p, end, &skip_spaces](int& out) noexcept -> bool {
         skip_spaces();
 
         bool neg = false;
-        if (p < end && (*p == '+' || *p == '-'))
+        if (p != end && (*p == '+' || *p == '-'))
         {
             neg = (*p == '-');
             ++p;
@@ -263,7 +262,7 @@ std::optional<Error> Position::set(const std::string_view fens, State* const new
         int val = 0;
 
         bool any = false;
-        for (; p < end && is_cdigit(*p); ++p)
+        for (; p != end && is_cdigit(*p); ++p)
         {
             any = true;
             val = 10 * val + char_to_digit(*p);
@@ -437,7 +436,7 @@ std::optional<Error> Position::set(const std::string_view fens, State* const new
     // Ignore if square is invalid or not on side to move relative rank 6.
     Square enPassantSq = SQ_NONE;
 
-    if (p < end)
+    if (p != end)
     {
         if (peek() == '-')
             ++p;
@@ -445,7 +444,7 @@ std::optional<Error> Position::set(const std::string_view fens, State* const new
         {
             const char epFile = get();
 
-            if (p < end)
+            if (p != end)
             {
                 const char epRank = get();
 

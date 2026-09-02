@@ -19,7 +19,6 @@
 
 #include <algorithm>
 #include <cassert>
-#include <cctype>
 #include <cmath>
 
 #include "attacks.h"

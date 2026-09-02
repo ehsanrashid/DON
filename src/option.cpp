@@ -19,7 +19,6 @@
 
 #include <algorithm>
 #include <cassert>
-#include <cctype>
 #include <cstdlib>
 #include <iostream>
 #include <numeric>
