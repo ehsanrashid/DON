@@ -73,8 +73,9 @@ jobs:
 
       - name: Build avx2 binary
         working-directory: src
+        env:
+          EXTRA_CXXFLAGS: "-Werror"
         run: |
-          export CXXFLAGS="-Werror"
           if [ "${{ matrix.ver }}" -ge 20 ]; then
             apt install -y lld
           fi
