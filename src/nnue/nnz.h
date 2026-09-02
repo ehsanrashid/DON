@@ -78,28 +78,27 @@ struct NNZ final {
        private:
     #if defined(USE_AVX512ICL)
         alignas(CACHE_LINE_SIZE) static constexpr auto Indices = []() constexpr noexcept {
-            Array<u16, COLOR_NB, 32> indices{};
+            Array<u16, COLOR_NB, 32> indices{
+              {{0, 1, 2,  3,  16, 17, 18, 19, 4,  5,  6,  7,  20, 21, 22, 23,
+                8, 9, 10, 11, 24, 25, 26, 27, 12, 13, 14, 15, 28, 29, 30, 31},
+               {0, 1, 2,  3,  16, 17, 18, 19, 4,  5,  6,  7,  20, 21, 22, 23,
+                8, 9, 10, 11, 24, 25, 26, 27, 12, 13, 14, 15, 28, 29, 30, 31}}};
 
             for (Color p : {WHITE, BLACK})
-            {
-                indices[p] = {0, 1, 2,  3,  16, 17, 18, 19, 4,  5,  6,  7,  20, 21, 22, 23,
-                              8, 9, 10, 11, 24, 25, 26, 27, 12, 13, 14, 15, 28, 29, 30, 31};
                 for (auto& m : indices[p])
-                    m += p * Dimensions / 8;
-            }
+                    m += u16(p * Dimensions / 8);
 
             return indices;
         }();
     #else
         alignas(CACHE_LINE_SIZE) static constexpr auto Indices = []() constexpr noexcept {
-            Array<u32, COLOR_NB, 16> indices{};
+            Array<u32, COLOR_NB, 16> indices{
+              {{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15},
+               {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}}};
 
             for (Color p : {WHITE, BLACK})
-            {
-                indices[p] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
                 for (auto& m : indices[p])
-                    m += p * Dimensions / 8;
-            }
+                    m += u32(p * Dimensions / 8);
 
             return indices;
         }();

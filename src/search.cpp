@@ -164,14 +164,14 @@ void update_continuation_histories(const Stack* const ss,
     constexpr Array<double, CONT_HISTORY_COUNT> ContHistoryWeights{
       1040.0, 780.0, 300.0, 537.0, 129.0, 423.0, 112.0, 121.0  //
     };
-    constexpr Array<int, CONT_HISTORY_COUNT + 1> Multipliers{
+    constexpr Array<i32, CONT_HISTORY_COUNT + 1> Multipliers{
       96, 113, 101, 105, 127, 121, 126, 128, 130  //
     };
 
     // In check only update 2-ply continuation history
     const usize ContHistoryCount = ss->inCheck ? 2 : CONT_HISTORY_COUNT;
 
-    int positiveCount = 0;
+    u8 positiveCount = 0;
 
     for (usize i = 0; i < ContHistoryCount; ++i)
     {
@@ -186,7 +186,7 @@ void update_continuation_histories(const Stack* const ss,
 
         historyEntry << constexpr_round(bonus * ContHistoryWeights[i] * Multipliers[positiveCount]
                                         / 131072.0)
-                          + int(i < 1) * 71;
+                          + int(i == 0) * 71;
     }
 }
 
@@ -196,6 +196,7 @@ Value adjust_eval_value(const Value evalue, const int correctionValue) noexcept 
     return in_range(evalue + constexpr_round(correctionValue / 131072.0));
 }
 
+// Detect shuffling moves in order to limit search explosions
 bool is_shuffling(const Position& pos, const Stack* const ss, const Move move) noexcept {
     return !(pos.capture_promo(move) || pos.rule50_count() < 10 || pos.null_ply() < 6
              || ss->ply < 20)
@@ -2513,16 +2514,15 @@ void Worker::extend_tb_pv(const usize idx, Value& value) noexcept {
         rootPos.do_move(pvMove, st);
     }
 
-    // Finding a draw in this function is an exceptional case,
-    // that cannot happen when rule50 is false or during engine game play,
-    // since have a winning score, and play correctly with TB support.
-    // However, it can be that a position is draw due to the 50 move rule
-    // if it has been reached on the board with a non-optimal 50 move counter
-    // (e.g. 8/8/6k1/3B4/3K4/4N3/8/8 w - - 54 106) which TB with dtz counter rounding
-    // cannot always correctly rank.
+    // Finding a draw here is an exceptional case. It cannot happen when rule50 is false or
+    // during engine game play, since the engine has a winning score and plays correctly with TB support.
+    // However, a position can be drawn by the 50-move rule if it was reached with
+    // a non-optimal 50-move counter (e.g. 8/8/6k1/3B4/3K4/4N3/8/8 w - - 54 106),
+    // which TB with DTZ counter rounding cannot always rank correctly.
+    //
     // Adjust the score to match the found PV. Note that a TB loss score can be displayed
-    // if the engine did not find a drawing move yet, but eventually search will figure it out.
-    // (e.g. 1kq5/q2r4/5K2/8/8/8/8/7Q w - - 96 1)
+    // if the engine has not found a drawing move yet, but the search will eventually find it
+    // (e.g. 1kq5/q2r4/5K2/8/8/8/8/7Q w - - 96 1).
     if (rootPos.is_draw(0))
         value = VALUE_DRAW;
 
@@ -2715,7 +2715,7 @@ void MainSearchManager::show_pv(Worker& worker, const Depth depth) const noexcep
 
         // Potentially correct and extend the PV, and in exceptional cases value also.
         // Previous PVs have already been extended. Bound flags indicate an unreliable PV.
-        if (!isValueInvalid && (isValueTB || !rm.is_bound()) && is_decisive(v) && !is_mate(v))
+        if (!isValueInvalid && is_decisive(v) && !is_mate(v) && (isValueTB || !rm.is_bound()))
             worker.extend_tb_pv(i, v);
 
         FixedText score{to_score({v, rootPos})};

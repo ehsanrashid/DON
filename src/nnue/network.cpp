@@ -34,7 +34,7 @@
 
 // Determined at runtime, see universal/nnue_embed.cpp
 #if defined(UNIVERSAL_BINARY)
-    #if defined(UNIVERSAL_BINARY_MACOS_X86_SLICE)
+    #if defined(UNIVERSAL_BINARY_MACOS_X86_64_SLICE)
 extern const unsigned char* const gEmbeddedNNUEData;
 extern const unsigned int         gEmbeddedNNUESize;
     #else
@@ -276,7 +276,7 @@ NetworkTrace Network::trace(const Position&   pos,
 
 bool Network::load_embedded(EvalFile& evalFile) noexcept {
 
-#if defined(UNIVERSAL_BINARY_MACOS_X86_SLICE)
+#if defined(UNIVERSAL_BINARY_MACOS_X86_64_SLICE)
     if (gEmbeddedNNUEData == nullptr)  // failed embedded load
         return false;
 #endif

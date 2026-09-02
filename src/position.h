@@ -367,8 +367,8 @@ class Position final {
     void  put(Square s, Piece pc, DirtyThreats* dts = nullptr) noexcept;
     Piece remove(Square s, DirtyThreats* dts = nullptr) noexcept;
 
-    void flip() noexcept;
-    void mirror() noexcept;
+    std::optional<Error> flip() noexcept;
+    std::optional<Error> mirror() noexcept;
 
     // Position consistency check, for debugging
 #if !defined(NDEBUG)
@@ -472,7 +472,7 @@ class Position final {
     Array<CastlingRights, COLOR_NB * FILE_NB> castlingRightsMasks;
     Castlings                                 castlings;
     State*                                    st;
-    u16                                       gamePly;
+    u16                                       ply_;
     Color                                     activeColor;
 };
 
@@ -541,9 +541,9 @@ inline Square Position::en_passant_sq() const noexcept { return st->enPassantSq;
 
 inline Square Position::captured_sq() const noexcept { return st->capturedSq; }
 
-inline u16 Position::ply() const noexcept { return gamePly; }
-
 inline Color Position::active_color() const noexcept { return activeColor; }
+
+inline u16 Position::ply() const noexcept { return ply_; }
 
 inline i32 Position::move_num() const noexcept {
     return 1 + (ply() - (active_color() == BLACK)) / 2;

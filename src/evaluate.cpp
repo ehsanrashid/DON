@@ -243,7 +243,7 @@ std::string trace(Position& pos, const NNUE::Network& network) noexcept {
     output.reserve(3 * KB);
 
     output  //
-      .assign(nnue_trace(pos, network, *accCache))
+      .append(nnue_trace(pos, network, *accCache))
       .append("\n");
 
     auto [psqt, positional] = network.evaluate(pos, *accCache, *accStack);

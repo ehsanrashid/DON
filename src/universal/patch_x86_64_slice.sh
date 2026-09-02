@@ -18,7 +18,7 @@
 # This finds the gUniversalNNUEOffset/gUniversalNNUESize symbols in the x86 slice
 # and patches them to be an offset+size into the full executable.
 #
-# Usage: patch_x86_slice.sh <fat_binary> <x86_64_thin_slice> <nnue_file>
+# Usage: patch_x86_64_slice.sh <fat_binary> <x86_64_thin_slice> <nnue_file>
 
 set -eu
 
@@ -32,7 +32,7 @@ OFFSET_MAGIC=E7F50FE7F50FFECA
 SIZE_MAGIC=2E51FECA2E51FECA
 
 die() {
-    echo "patch_x86_slice: $*" >&2
+    echo "patch_x86_64_slice: $*" >&2
     exit 1
 }
 
@@ -74,4 +74,4 @@ size_pos=$(find_bytes "$X86" "$SIZE_MAGIC")  || die "size sentinel not found"
 write_u64_le "$X86" "$off_pos"  "$net_off"
 write_u64_le "$X86" "$size_pos" "$net_size"
 
-echo "patch_x86_slice.sh: network at offset $net_off + size $net_size "
+echo "patch_x86_64_slice.sh: network at offset $net_off + size $net_size "

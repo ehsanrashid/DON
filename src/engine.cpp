@@ -120,8 +120,7 @@ std::optional<Error> Engine::setup(const std::string_view fen, const Strings& mo
     // Drop the old states and create a new one
     states = std::make_unique<StateList>(1);
 
-    auto err = pos.set(fen, &states->back());
-    if (err)
+    if (auto err = pos.set(fen, &states->back()))
         return err;
 
     i16 ply = 1;
@@ -237,9 +236,9 @@ void Engine::eval() noexcept {
     std::cout << '\n' << Evaluate::trace(pos, *network) << std::endl;
 }
 
-void Engine::flip() noexcept { pos.flip(); }
+std::optional<Error> Engine::flip() noexcept { return pos.flip(); }
 
-void Engine::mirror() noexcept { pos.mirror(); }
+std::optional<Error> Engine::mirror() noexcept { return pos.mirror(); }
 
 u16 Engine::hashfull(const u8 maxAge) const noexcept { return transpositionTable.hashfull(maxAge); }
 
@@ -255,10 +254,8 @@ bool Engine::set_numa_config(const std::string_view cfg) noexcept {
     {
         auto numaCfg = NumaConfig::from_string(cfg);
         if (!numaCfg)
-        {
-            DEBUG_LOG("Failed to parse NUMA configuration string: " << cfg);
             return false;
-        }
+
         numaContext.set_numa_config(std::move(*numaCfg));
     }
 

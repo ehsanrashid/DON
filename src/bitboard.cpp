@@ -29,7 +29,7 @@ std::string pretty_str(const Bitboard b) noexcept {
     std::string bb;
     bb.reserve(646);
 
-    bb.assign(Sep);
+    bb.append(Sep);
 
     for (Rank r = RANK_8;; --r)
     {

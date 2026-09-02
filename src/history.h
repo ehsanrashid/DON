@@ -46,6 +46,7 @@ class HistoryEntry final {
     static_assert(std::is_signed_v<T> && std::is_integral_v<T>, "T must be a signed integral");
     static_assert(D > 0, "D must be positive");
     static_assert(D <= std::numeric_limits<T>::max(), "D must fit in T");
+    static_assert(D * D <= std::numeric_limits<int>::max(), "D can lead to overflows");
 
    public:
     operator T() const noexcept { return value; }

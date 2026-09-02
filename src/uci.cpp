@@ -19,7 +19,6 @@
 
 #include <algorithm>
 #include <cassert>
-#include <cctype>
 #include <functional>
 #include <iostream>
 #include <optional>
@@ -103,10 +102,12 @@ Limit parse_limit(std::istream& is) noexcept {
     // The search starts as early as possible
     limit.startTime = now();
 
+    bool        tokenReady = false;
     std::string token;
-    while (is >> token)
+    while (tokenReady || is >> token)
     {
-        token = lower_case(token);
+        tokenReady = false;
+        token      = lower_case(token);
 
         if (token == "wtime")
         {
@@ -172,6 +173,7 @@ Limit parse_limit(std::istream& is) noexcept {
             limit.infinite = true;
         else if (token == "ponder")
             limit.ponder = true;
+        // "perft" needs to be the last command on the line
         else if (token == "perft")
         {
             limit.perft = true;
@@ -179,33 +181,45 @@ Limit parse_limit(std::istream& is) noexcept {
             is >> std::boolalpha >> limit.detail;
 
             limit.depth = std::clamp<Depth>(constexpr_abs(limit.depth), 1, DEPTH_MAX);
+            break;
         }
         // "searchmoves" needs to be the last command on the line
-        else if (!token.empty() && token[0] == 's')  // "searchmoves"
+        else if (token[0] == 's')
         {
-            auto pos = is.tellg();
-            while (is >> token
-                   && !(!token.empty()
-                        && static_cast<char>(std::tolower(static_cast<uchar>(token[0]))) == 'i'))
+            while (is >> token)
             {
+                if (lower_case(token[0]) == 'i')
+                {
+                    tokenReady = true;
+                    break;
+                }
+
                 limit.searchMoves.push_back(token);
-                pos = is.tellg();
             }
-            is.seekg(pos);
+
+            if (is.eof())
+                is.clear();
         }
         // "ignoremoves" needs to be the last command on the line
-        else if (!token.empty() && token[0] == 'i')  // "ignoremoves"
+        else if (token[0] == 'i')
         {
-            auto pos = is.tellg();
-            while (is >> token
-                   && !(!token.empty()
-                        && static_cast<char>(std::tolower(static_cast<uchar>(token[0]))) == 's'))
+            while (is >> token)
             {
+                if (lower_case(token[0]) == 's')
+                {
+                    tokenReady = true;
+                    break;
+                }
+
                 limit.ignoreMoves.push_back(token);
-                pos = is.tellg();
             }
-            is.seekg(pos);
+
+            if (is.eof())
+                is.clear();
         }
+
+        if (!is)
+            terminate_on_critical_error("Invalid argument for '" + token + "'");
     }
 
     return limit;
@@ -315,10 +329,12 @@ void UCI::execute(std::string_view command) noexcept {
         engine.eval();
         break;
     case Command::FLIP :
-        engine.flip();
+        if (auto err = engine.flip())
+            terminate_on_critical_error(err->what());
         break;
     case Command::MIRROR :
-        engine.mirror();
+        if (auto err = engine.mirror())
+            terminate_on_critical_error(err->what());
         break;
     case Command::COMPILER :
         std::cout << compiler_info() << std::endl;
@@ -404,15 +420,14 @@ void UCI::position(std::istream& is) noexcept {
     token = lower_case(token);
 
     std::string fen;
-    if (token.empty()
-        || static_cast<char>(std::tolower(static_cast<uchar>(token[0]))) == 's')  // "startpos"
+
+    if (token.empty() || lower_case(token[0]) == 's')  // "startpos"
     {
         token.clear();
-        fen.assign(START_FEN);
+        fen.append(START_FEN);
         is >> token;  // Consume the "moves" token, if any
     }
-    else if (!token.empty()
-             && static_cast<char>(std::tolower(static_cast<uchar>(token[0]))) == 'f')  // "fen"
+    else if (lower_case(token[0]) == 'f')  // "fen"
     {
         token.clear();
         fen.reserve(64);
@@ -422,8 +437,7 @@ void UCI::position(std::istream& is) noexcept {
         while (is >> token && i < 6)
         {
             // Stop if reach "moves" token after the first two fields
-            if (i > 1 && !token.empty()
-                && static_cast<char>(std::tolower(static_cast<uchar>(token[0]))) == 'm')
+            if (i > 1 && lower_case(token[0]) == 'm')
                 break;
 
             fen.append(token).push_back(' ');
@@ -438,19 +452,15 @@ void UCI::position(std::istream& is) noexcept {
         }
     }
     else
-    {
-        assert(false && "Invalid position command");
-        return;
-    }
+        terminate_on_critical_error("Invalid position token: " + token);
 
-    assert(token.empty() || static_cast<char>(std::tolower(static_cast<uchar>(token[0]))) == 'm');
+    assert(token.empty() || lower_case(token[0]) == 'm');
 
     Strings moves;
     while (is >> token)
         moves.push_back(token);
 
-    auto err = engine.setup(fen, moves);
-    if (err)
+    if (auto err = engine.setup(fen, moves))
         terminate_on_critical_error(err->what());
 }
 

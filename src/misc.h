@@ -22,7 +22,6 @@
 #include <array>
 #include <atomic>
 #include <cassert>
-#include <cctype>
 #include <charconv>
 #include <chrono>
 #include <cinttypes>
@@ -440,42 +439,49 @@ enum class ConsoleMode : u8 {
 void set_console_input(ConsoleMode consoleMode = ConsoleMode::Default) noexcept;
 void set_console_output(ConsoleMode consoleMode = ConsoleMode::Default) noexcept;
 
-[[nodiscard]] constexpr char digit_to_char(const int digit) noexcept {
-    assert(0 <= digit && digit <= 9 && "digit_to_char: non-digit integer");
-
-    return 0 <= digit && digit <= 9 ? digit + '0' : '\0';
-}
-
-[[nodiscard]] constexpr int char_to_digit(const char ch) noexcept {
-    assert('0' <= ch && ch <= '9' && "char_to_digit: non-digit character");
-
-    return '0' <= ch && ch <= '9' ? ch - '0' : 0;
-}
-
 constexpr std::string_view timestamp() noexcept { return __TIMESTAMP__; }
 
-constexpr char to_lower(const char ch) noexcept {
-    return 'A' <= ch && ch <= 'Z' ? static_cast<char>(ch + ('a' - 'A')) : ch;
+[[nodiscard]] constexpr bool is_idigit(const int dg) noexcept { return 0 <= dg && dg <= 9; }
+[[nodiscard]] constexpr bool is_cdigit(const char ch) noexcept { return '0' <= ch && ch <= '9'; }
+[[nodiscard]] constexpr bool is_space(const char ch) noexcept {
+    return ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r' || ch == '\f' || ch == '\v';
 }
-constexpr char to_upper(const char ch) noexcept {
-    return 'a' <= ch && ch <= 'z' ? static_cast<char>(ch - ('a' - 'A')) : ch;
+[[nodiscard]] constexpr bool is_lower(const char ch) noexcept { return 'a' <= ch && ch <= 'z'; }
+[[nodiscard]] constexpr bool is_upper(const char ch) noexcept { return 'A' <= ch && ch <= 'Z'; }
+
+[[nodiscard]] constexpr char lower_case(const char ch) noexcept {
+    return is_upper(ch) ? char(ch + ('a' - 'A')) : ch;
+}
+[[nodiscard]] constexpr char upper_case(const char ch) noexcept {
+    return is_lower(ch) ? char(ch - ('a' - 'A')) : ch;
+}
+
+[[nodiscard]] constexpr char digit_to_char(const int dg) noexcept {
+    assert(is_idigit(dg) && "digit_to_char: non-digit integer");
+
+    return is_idigit(dg) ? dg + '0' : '\0';
+}
+[[nodiscard]] constexpr int char_to_digit(const char ch) noexcept {
+    assert(is_cdigit(ch) && "char_to_digit: non-digit character");
+
+    return is_cdigit(ch) ? ch - '0' : 0;
 }
 
 constexpr unsigned to_month(const std::string_view m) noexcept {
     assert(m.size() == 3);
-    return to_lower(m[0]) == 'j' && to_lower(m[1]) == 'a' ? 1
-         : to_lower(m[0]) == 'f'                          ? 2
-         : to_lower(m[0]) == 'm' && to_lower(m[2]) == 'r' ? 3
-         : to_lower(m[0]) == 'a' && to_lower(m[1]) == 'p' ? 4
-         : to_lower(m[0]) == 'm' && to_lower(m[2]) == 'y' ? 5
-         : to_lower(m[0]) == 'j' && to_lower(m[2]) == 'n' ? 6
-         : to_lower(m[0]) == 'j' && to_lower(m[2]) == 'l' ? 7
-         : to_lower(m[0]) == 'a' && to_lower(m[1]) == 'u' ? 8
-         : to_lower(m[0]) == 's'                          ? 9
-         : to_lower(m[0]) == 'o'                          ? 10
-         : to_lower(m[0]) == 'n'                          ? 11
-         : to_lower(m[0]) == 'd'                          ? 12
-                                                          : 0;
+    return lower_case(m[0]) == 'j' && lower_case(m[1]) == 'a' ? 1
+         : lower_case(m[0]) == 'f'                            ? 2
+         : lower_case(m[0]) == 'm' && lower_case(m[2]) == 'r' ? 3
+         : lower_case(m[0]) == 'a' && lower_case(m[1]) == 'p' ? 4
+         : lower_case(m[0]) == 'm' && lower_case(m[2]) == 'y' ? 5
+         : lower_case(m[0]) == 'j' && lower_case(m[2]) == 'n' ? 6
+         : lower_case(m[0]) == 'j' && lower_case(m[2]) == 'l' ? 7
+         : lower_case(m[0]) == 'a' && lower_case(m[1]) == 'u' ? 8
+         : lower_case(m[0]) == 's'                            ? 9
+         : lower_case(m[0]) == 'o'                            ? 10
+         : lower_case(m[0]) == 'n'                            ? 11
+         : lower_case(m[0]) == 'd'                            ? 12
+                                                              : 0;
 }
 
 std::string engine_info(bool uci = false) noexcept;
@@ -1820,27 +1826,27 @@ struct CommandLine final {
 
 inline std::string lower_case(std::string str) noexcept {
     std::transform(str.begin(), str.end(), str.begin(),
-                   [](uchar ch) noexcept -> char { return std::tolower(ch); });
+                   [](char ch) noexcept -> char { return lower_case(ch); });
     return str;
 }
 
 inline std::string upper_case(std::string str) noexcept {
     std::transform(str.begin(), str.end(), str.begin(),
-                   [](uchar ch) noexcept -> char { return std::toupper(ch); });
+                   [](char ch) noexcept -> char { return upper_case(ch); });
     return str;
 }
 
 inline std::string toggle_case(std::string str) noexcept {
-    std::transform(str.begin(), str.end(), str.begin(), [](uchar ch) noexcept -> char {
-        return std::islower(ch) ? std::toupper(ch) : std::isupper(ch) ? std::tolower(ch) : ch;
+    std::transform(str.begin(), str.end(), str.begin(), [](char ch) noexcept -> char {
+        return is_lower(ch) ? upper_case(ch) : is_upper(ch) ? lower_case(ch) : ch;
     });
     return str;
 }
 
 inline std::string remove_whitespace(std::string str) noexcept {
-    str.erase(std::remove_if(str.begin(), str.end(),
-                             [](uchar ch) noexcept -> bool { return std::isspace(ch); }),
-              str.end());
+    str.erase(
+      std::remove_if(str.begin(), str.end(), [](char ch) noexcept -> bool { return is_space(ch); }),
+      str.end());
     return str;
 }
 
@@ -1892,51 +1898,47 @@ inline std::string remove_whitespace(std::string str) noexcept {
 [[nodiscard]] constexpr std::string_view bool_to_string(bool b) noexcept {
     return b ? "true" : "false";
 }
-// Efficient check: works for std::string or std::string_view
-[[nodiscard]] constexpr bool valid_bool_string(std::string_view value) noexcept {
-    return value == "true" || value == "false";
-}
 
-[[nodiscard]] constexpr bool sv_to_bool(std::string_view sv) { return (trim(sv) == "true"); }
+[[nodiscard]] constexpr bool sv_to_bool(const std::string_view sv) {
+    return (trim(sv) == bool_to_string(true));
+}
 
 [[nodiscard]] constexpr int sv_to_int(std::string_view sv) noexcept {
-    int  intValue = 0;
+    const char* p   = sv.data();
+    const char* end = p + sv.size();
+
     bool neg      = false;
+    int  intValue = 0;
 
-    usize i = 0;
-
-    while (i < sv.size() && sv[i] == '-')
-    {
+    for (; p != end && *p == '-'; ++p)
         neg = true;
-        ++i;
-    }
+    for (; p != end; ++p)
+        intValue = 10 * intValue + char_to_digit(*p);
 
-    while (i < sv.size())
-    {
-        intValue = 10 * intValue + char_to_digit(sv[i]);
-        ++i;
-    }
-
-    return neg ? -intValue : +intValue;
+    return neg ? -intValue : intValue;
 }
 
-inline std::string clamp_string(std::string_view sv, int minValue, int maxValue) noexcept {
+// Validate boolean string (case-insensitive)
+inline bool value_is_bool_string(std::string value) noexcept {
+    // Convert to lowercase for case-insensitive comparison
+    value = lower_case(value);
+    return value == bool_to_string(true) || value == bool_to_string(false);
+}
+
+inline bool value_in_range(std::string_view sv, int minValue, int maxValue) noexcept {
+    const char* p   = sv.data();
+    const char* end = p + sv.size();
+    // Skip spaces
+    for (; p != end && is_space(*p); ++p)
+    {}
+
     int intValue = 0;
-
-    auto [ptr, ec] = std::from_chars(sv.data(), sv.data() + sv.size(), intValue);
-
-    switch (ec)
-    {
-    case std::errc::invalid_argument :
-        intValue = minValue;
-        break;
-    case std::errc::result_out_of_range :
-        intValue = maxValue;
-        break;
-    default :;
-    }
-
-    return std::to_string(std::clamp(intValue, minValue, maxValue));
+    // Parse decimal value (base 10) from string_view
+    auto [ptr, ec] = std::from_chars(p, end, intValue, 10);
+    if (ec != std::errc{} || ptr != end)
+        return false;
+    // Check value is in range
+    return minValue <= intValue && intValue <= maxValue;
 }
 
 inline StringViews
@@ -2027,7 +2029,7 @@ void print_info_string(std::string_view infos) noexcept;
 std::string           utf8_from_wstring(std::wstring_view wsv) noexcept;
 std::filesystem::path path_from_utf8(std::string_view path) noexcept;
 
-std::optional<usize> str_to_size_t(std::string_view sv) noexcept;
+std::optional<usize> str_to_size(std::string_view sv) noexcept;
 
 // Reads the file as bytes.
 // Returns std::nullopt if the file does not exist.

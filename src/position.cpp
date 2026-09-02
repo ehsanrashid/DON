@@ -17,7 +17,6 @@
 
 #include "position.h"
 
-#include <cctype>
 #include <iomanip>
 #include <sstream>
 #include <utility>
@@ -187,7 +186,7 @@ void Position::clear() noexcept {
     std::memset(castlings.rookSq.data(), SQ_NONE, sizeof(castlings.rookSq));
 
     st          = nullptr;
-    gamePly     = 0;
+    ply_        = 0;
     activeColor = NONE;
 }
 
@@ -242,21 +241,19 @@ std::optional<Error> Position::set(const std::string_view fens, State* const new
     const auto*       p   = fens.data();
     const auto* const end = p + fens.size();
 
-    // Returns '\0' when p >= end (EOF sentinel)
-    auto peek        = [&p, end]() noexcept -> char { return p < end ? *p : '\0'; };
+    // Returns '\0' when p == end (EOF sentinel)
+    auto peek        = [&p, end]() noexcept -> char { return p != end ? *p : '\0'; };
     auto skip_spaces = [&p, end]() noexcept {
-        for (; p < end && std::isspace(static_cast<uchar>(*p)); ++p)
+        for (; p != end && is_space(*p); ++p)
         {}
     };
-    auto not_space = [&p, end]() noexcept -> bool {
-        return p < end && !std::isspace(static_cast<uchar>(*p));
-    };
-    auto get     = [&p, end]() noexcept -> char { return p < end ? *p++ : '\0'; };
-    auto get_int = [&p, end, &skip_spaces](int& out) noexcept -> bool {
+    auto not_space = [&p, end]() noexcept -> bool { return p != end && !is_space(*p); };
+    auto get       = [&p, end]() noexcept -> char { return p != end ? *p++ : '\0'; };
+    auto get_int   = [&p, end, &skip_spaces](int& out) noexcept -> bool {
         skip_spaces();
 
         bool neg = false;
-        if (p < end && (*p == '+' || *p == '-'))
+        if (p != end && (*p == '+' || *p == '-'))
         {
             neg = (*p == '-');
             ++p;
@@ -265,7 +262,7 @@ std::optional<Error> Position::set(const std::string_view fens, State* const new
         int val = 0;
 
         bool any = false;
-        for (; p < end && std::isdigit(static_cast<uchar>(*p)); ++p)
+        for (; p != end && is_cdigit(*p); ++p)
         {
             any = true;
             val = 10 * val + char_to_digit(*p);
@@ -289,18 +286,18 @@ std::optional<Error> Position::set(const std::string_view fens, State* const new
 
         if (token == '/')
         {
-            //if (file <= FILE_H)
-            //    return Error{"Invalid FEN: rank ended before reaching the end."};
+            if (file <= FILE_H)
+                return Error{"Invalid FEN: rank ended before reaching the end."};
             if (rank == RANK_1)
                 return Error{"Invalid FEN: too many ranks."};
 
             file = FILE_A;
             --rank;
         }
-        else if (std::isdigit(static_cast<uchar>(token)))
+        else if (is_cdigit(token))
         {
             int f = char_to_digit(token);
-            if (1 > f && f + file > 8)
+            if (1 > f || f + file > 8)
                 return Error{"Invalid FEN: too many squares skipped in rank: "
                              + std::string(1, to_char(rank)) + "."};
             // Advance by the given number of files
@@ -356,22 +353,25 @@ std::optional<Error> Position::set(const std::string_view fens, State* const new
     // 2. Active color
     token = get();
 
-    const char side = std::tolower(static_cast<uchar>(token));
+    const char side = lower_case(token);
 
     if (side == 'w')
         activeColor = WHITE;
     else if (side == 'b')
         activeColor = BLACK;
     else
-        return Error{"Invalid FEN: invalid side to move." + std::string(1, token)};
+        return Error{"Invalid FEN: invalid side to move: " + std::string(1, token) + "."};
 
     skip_spaces();
 
-    // 3. Castling availability. Compatible with 3 standards: Normal FEN standard,
-    // Shredder-FEN that uses the letters of the columns on which the rooks began
-    // the game instead of KQkq and also X-FEN standard that, in case of Chess960,
-    // if an inner rook is associated with the castling right, the castling tag is
-    // replaced by the file letter of the involved rook, as for the Shredder-FEN.
+    // 3. Castling availability. Compatible with 3 standards:
+    //   - Normal-FEN (standard): KQkq
+    //   - Shredder-FEN: uses the files on which the rooks began the game instead of KQkq.
+    //   - X-FEN: in Chess960, replaces the castling tag with the file letter of the
+    //     involved rook when an inner rook is associated with the castling right.
+    //
+    // NOTE: Due to the prevalence of incorrect or missing castling rights, validation
+    // is intentionally less strict. Invalid castling rights are nevertheless sanitized.
     usize castlingRightsCount = 0;
     while (not_space())
     {
@@ -383,14 +383,14 @@ std::optional<Error> Position::set(const std::string_view fens, State* const new
         if (++castlingRightsCount > 4)
             return Error{"Invalid FEN: more than 4 castling rights specified."};
 
-        Color c = std::isupper(static_cast<uchar>(token)) ? WHITE : BLACK;
-        token   = static_cast<char>(std::tolower(static_cast<uchar>(token)));
+        const Color c = is_upper(token) ? WHITE : BLACK;
+        token         = lower_case(token);
 
         if (relative_rank(c, square<KING>(c)) != RANK_1)
             return Error{"Invalid FEN: " + std::string{c == WHITE ? "white" : "black"}
                          + " king is not on the first rank."};
 
-        Bitboard rooksBB = pieces_bb(c, ROOK);
+        const Bitboard rooksBB = pieces_bb(c, ROOK);
 
         if ((rooksBB & relative_rank(c, RANK_1)) == 0)
             return Error{"Invalid FEN: " + std::string{c == WHITE ? "white" : "black"}
@@ -430,23 +430,23 @@ std::optional<Error> Position::set(const std::string_view fens, State* const new
 
     skip_spaces();
 
-    Color ac = active_color();
+    const Color ac = active_color();
 
     // 4. En-passant square.
     // Ignore if square is invalid or not on side to move relative rank 6.
     Square enPassantSq = SQ_NONE;
 
-    if (p < end)
+    if (p != end)
     {
         if (peek() == '-')
             ++p;
         else
         {
-            char epFile = get();
+            const char epFile = get();
 
-            if (p < end)
+            if (p != end)
             {
-                char epRank = get();
+                const char epRank = get();
 
                 if ('a' <= epFile && epFile <= 'h' && epRank == (ac == WHITE ? '6' : '3'))
                     enPassantSq = make_square(to_file(epFile), to_rank(epRank));
@@ -464,10 +464,20 @@ std::optional<Error> Position::set(const std::string_view fens, State* const new
     get_int(rule50Count);
     get_int(moveNum);
 
-    st->rule50Count = constexpr_abs(rule50Count);
+    rule50Count = constexpr_abs(rule50Count);
+    moveNum     = constexpr_abs(moveNum);
+    // Normally, values >= 100 would be pointless, but support ignoring the 50-move rule for TB purposes.
+    // Limit at RULE50_COUNT_MAX as it's used multiplicatively with position evaluation during search.
+    if (rule50Count > RULE50_COUNT_MAX)
+        return Error{"Invalid FEN: 50-move rule count exceeds the allowed range."};
+
+    if (moveNum > RULE50_COUNT_MAX)
+        return Error{"Invalid FEN: game ply exceeds the allowed range."};
+
+    st->rule50Count = u16(rule50Count);
     // Convert from moveNum starting from 1 to posPly starting from 0,
     // handle also common incorrect FEN with moveNum = 0.
-    gamePly = std::max(2 * int(constexpr_abs(moveNum) - 1), 0) + int(ac == BLACK);
+    ply_ = u16(2 * std::max(moveNum - 1, 0) + (ac == BLACK));
 
     st->checkersBB = pieces_bb(~ac) & attackers_bb(square<KING>(ac));
 
@@ -490,12 +500,7 @@ std::optional<Error> Position::set(const std::string_view fens, State* const new
         reset_rule50_count();
     }
 
-    if (rule50_count() > RULE50_COUNT_MAX)
-        return Error{"Invalid FEN: 50-move rule count exceeds the allowed range."};
-
-    gamePly = std::max(ply(), rule50_count());
-    //if (gamePly > 100000)
-    //    return Error{"Invalid FEN: game ply out of range."};
+    ply_ = std::max(rule50_count(), ply());
 
     set_state();
 
@@ -527,7 +532,7 @@ Position::set(const std::string_view code, const Color c, State* const newSt) no
     fens.reserve(64);
 
     fens  //
-      .assign("8/")
+      .append("8/")
       .append(sides[WHITE])
       .append(1, digit_to_char(int(8 - sides[WHITE].size())))
       .append("/8/8/8/8/")
@@ -695,7 +700,8 @@ void Position::set_state() noexcept {
 
     st->key ^= Zobrist::enpassant(en_passant_sq());
 
-    st->key ^= int(active_color() == BLACK) * Zobrist::turn();
+    if (active_color() == BLACK)
+        st->key ^= Zobrist::turn();
 }
 
 void Position::set_pinner_blocker() noexcept {
@@ -876,7 +882,7 @@ DirtyBoard Position::do_move(const Move          m,
 
     // Increment game-ply, rule50 counter, null-ply and rule50 high flag.
     // rule50 will be reset to zero later on in case of a capture or a pawn move.
-    ++gamePly;
+    ++ply_;
     ++st->rule50Count;
     ++st->nullPly;
     st->hasRule50High = st->hasRule50High || rule50_count() >= rule50_threshold();
@@ -1231,7 +1237,7 @@ void Position::undo_move(const Move m) noexcept {
     }
     // clang-format on
 
-    --gamePly;
+    --ply_;
     // Finally point state pointer back to the previous state
     st = const_cast<State*>(st->preSt);
 
@@ -1930,7 +1936,7 @@ bool Position::is_upcoming_repetition(i16 ply) const noexcept {
 
 // Flips the current position with the white and black sides reversed.
 // This is only useful for debugging e.g. for finding evaluation symmetry bugs.
-void Position::flip() noexcept {
+std::optional<Error> Position::flip() noexcept {
     std::istringstream iss{fen()};
 
     std::string fens, token;
@@ -1974,12 +1980,10 @@ void Position::flip() noexcept {
     std::getline(iss, token);  // Half and full moves
     fens.append(token);
 
-    set(fens, st);
-
-    assert(_is_ok());
+    return set(fens, st);
 }
 
-void Position::mirror() noexcept {
+std::optional<Error> Position::mirror() noexcept {
     std::istringstream iss{fen()};
 
     std::string fens, token;
@@ -2029,9 +2033,7 @@ void Position::mirror() noexcept {
     std::getline(iss, token);  // Half and full moves
     fens.append(token);
 
-    set(fens, st);
-
-    assert(_is_ok());
+    return set(fens, st);
 }
 
 #if !defined(NDEBUG)
@@ -2053,7 +2055,8 @@ Key Position::compute_key() const noexcept {
 
     key ^= Zobrist::enpassant(en_passant_sq());
 
-    key ^= int(active_color() == BLACK) * Zobrist::turn();
+    if (active_color() == BLACK)
+        key ^= Zobrist::turn();
 
     return key;
 }
@@ -2207,7 +2210,7 @@ Position::operator std::string() const noexcept {
     std::string pos;
     pos.reserve(768);
 
-    pos.assign(Sep);
+    pos.append(Sep);
 
     for (Rank r = RANK_8;; --r)
     {

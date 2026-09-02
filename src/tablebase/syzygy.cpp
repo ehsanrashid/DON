@@ -618,7 +618,7 @@ void* TBTable<T>::init(const Position& pos, const Key materialKey) noexcept {
         base.reserve(pieces[WHITE].size() + 1 + pieces[BLACK].size());
 
         base  //
-          .assign(pieces[Color(!c)])
+          .append(pieces[Color(!c)])
           .append(1, 'v')
           .append(pieces[Color(c)]);
 
@@ -644,7 +644,8 @@ u8* TBTable<T>::map(const std::string_view filename) noexcept {
 
     if (!hFileGuard.is_valid())
     {
-        //DEBUG_LOG("CreateFile() failed: name = " << filename << ", error = " << error_to_string(GetLastError()));
+        DEBUG_LOG("CreateFile() failed: name = " << filename << ", error = "
+                                                 << error_to_string(GetLastError()));
         return nullptr;
     }
 
@@ -692,7 +693,7 @@ u8* TBTable<T>::map(const std::string_view filename) noexcept {
 
     if (!fdGuard.is_valid())
     {
-        //DEBUG_LOG("::open() failed: name = " << filename << ", error = " << std::strerror(errno));
+        DEBUG_LOG("::open() failed: name = " << filename << ", error = " << std::strerror(errno));
         return nullptr;
     }
 
@@ -726,7 +727,9 @@ u8* TBTable<T>::map(const std::string_view filename) noexcept {
     if (mappedGuard.get_ptr() != nullptr && mappedGuard.get_size() != 0
         && ::madvise(mappedGuard.get_ptr(), mappedGuard.get_size(), MADV_RANDOM) != 0)
     {
-        //DEBUG_LOG("::madvise() failed: name = " << filename << " mappedSize = " << mappedGuard.get_size() << ", error = " << std::strerror(errno));
+        DEBUG_LOG("::madvise() failed: name = " << filename
+                                                << " mappedSize = " << mappedGuard.get_size()
+                                                << ", error = " << std::strerror(errno));
     }
         #endif
     #endif
@@ -738,9 +741,7 @@ u8* TBTable<T>::map(const std::string_view filename) noexcept {
     if (std::memcmp(data, TBMagic.data(), TBMagic.size()) != 0)
     {
         DEBUG_LOG("Corrupt tablebase table, name = " << filename);
-
         unmap();
-
         return nullptr;
     }
 

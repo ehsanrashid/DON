@@ -19,7 +19,6 @@
 
 #include <algorithm>
 #include <cassert>
-#include <cctype>
 #include <cstdlib>
 #include <iostream>
 #include <numeric>
@@ -34,13 +33,13 @@ bool CaseInsensitiveEqual::operator()(std::string_view sv1, std::string_view sv2
     return sv1.size() == sv2.size()
         && std::equal(
              sv1.begin(), sv1.end(), sv2.begin(), sv2.end(),
-             [](uchar ch1, uchar ch2) noexcept { return std::tolower(ch1) == std::tolower(ch2); });
+             [](char ch1, char ch2) noexcept { return lower_case(ch1) == lower_case(ch2); });
 }
 
 bool CaseInsensitiveLess::operator()(std::string_view sv1, std::string_view sv2) const noexcept {
     return std::lexicographical_compare(
       sv1.begin(), sv1.end(), sv2.begin(), sv2.end(),
-      [](uchar ch1, uchar ch2) noexcept { return std::tolower(ch1) < std::tolower(ch2); });
+      [](char ch1, char ch2) noexcept { return lower_case(ch1) < lower_case(ch2); });
 }
 
 
@@ -113,32 +112,20 @@ Option::operator std::string_view() const noexcept {
 void Option::operator=(std::string value) noexcept {
     assert(is_ok(type));
 
-    if (type != Type::BUTTON && type != Type::STRING)
-        if (value.empty())
-            return;
+    if ((type != Type::BUTTON && type != Type::STRING && value.empty())
+        || (type == Type::CHECK && !value_is_bool_string(value))
+        || (type == Type::SPIN && !value_in_range(value, minValue, maxValue)))
+        return;
 
-    switch (type)
+    if (type == Type::CHECK)
+        value = lower_case(value);
+    else if (type == Type::STRING && (is_whitespace(value) || lower_case(value) == EMPTY_STRING))
+        value.clear();
+    else if (type == Type::COMBO)
     {
-    case Type::CHECK :
         value = lower_case(value);
-
-        if (!valid_bool_string(value))
-            return;
-        break;
-    case Type::STRING :
-        if (is_whitespace(value) || lower_case(value) == EMPTY_STRING)
-            value.clear();
-        break;
-    case Type::SPIN :
-        value = clamp_string(value, minValue, maxValue);
-        break;
-    case Type::COMBO :
-        value = lower_case(value);
-
         if (std::find(comboValues.begin(), comboValues.end(), value) == comboValues.end())
             return;
-        break;
-    default :;
     }
 
     if (type != Type::BUTTON)

@@ -17,6 +17,7 @@
 
 #include "misc.h"
 
+#include <cerrno>
 #include <cmath>
 #include <cstdlib>
 #include <ctime>
@@ -63,25 +64,23 @@ constexpr std::string_view Version{"dev"};
         return std::string{NullDate};
 
     // Skip spaces
-    for (; p < end && std::isspace(static_cast<uchar>(*p)); ++p)
+    for (; p != end && is_space(*p); ++p)
     {}
 
     // Parse day (1-2 digits)
-    if (end - p < 1 || !std::isdigit(static_cast<uchar>(*p)))
+    if (end - p < 1 || !is_cdigit(*p))
         return std::string{NullDate};
 
     unsigned day = 0;
-    for (; p < end && std::isdigit(static_cast<uchar>(*p)); ++p)
-    {
+    for (; p != end && is_cdigit(*p); ++p)
         day = 10 * day + char_to_digit(*p);
-    }
 
     // Validate day range
     if (day < 1 || day > 31)
         return std::string{NullDate};
 
     // Skip spaces/comma
-    for (; p < end && (std::isspace(static_cast<uchar>(*p)) || *p == ','); ++p)
+    for (; p != end && (is_space(*p) || *p == ','); ++p)
     {}
 
     // Parse year (4 digits)
@@ -91,7 +90,7 @@ constexpr std::string_view Version{"dev"};
     unsigned year = 0;
     for (const auto* yEnd = p + 4; p != yEnd; ++p)
     {
-        if (!std::isdigit(static_cast<uchar>(*p)))
+        if (!is_cdigit(*p))
             return std::string{NullDate};
 
         year = 10 * year + char_to_digit(*p);
@@ -129,10 +128,9 @@ constexpr std::string_view Version{"dev"};
     const auto* p = time.data();
 
     // Validate structure
-    if (!std::isdigit(static_cast<uchar>(p[0])) || !std::isdigit(static_cast<uchar>(p[1]))
-        || p[2] != ':' || !std::isdigit(static_cast<uchar>(p[3]))
-        || !std::isdigit(static_cast<uchar>(p[4])) || p[5] != ':'
-        || !std::isdigit(static_cast<uchar>(p[6])) || !std::isdigit(static_cast<uchar>(p[7])))
+    if (!is_cdigit(p[0]) || !is_cdigit(p[1]) || p[2] != ':'     //
+        || !is_cdigit(p[3]) || !is_cdigit(p[4]) || p[5] != ':'  //
+        || !is_cdigit(p[6]) || !is_cdigit(p[7]))
         return std::string{NullTime};
 
     unsigned hour = 10 * char_to_digit(p[0]) + char_to_digit(p[1]);
@@ -213,7 +211,7 @@ std::string engine_info(const bool uci) noexcept {
     engine.reserve(64);
 
     engine  //
-      .assign(uci ? "id name " : "")
+      .append(uci ? "id name " : "")
       .append(version_info())
       .append(uci ? "\nid author " : " by ")
       .append(Author);
@@ -280,7 +278,7 @@ std::string version_info() noexcept {
     std::string version;
     version.reserve(32);
 
-    version.assign(Name).append(" ").append(Version);
+    version.append(Name).append(" ").append(Version);
 
     if constexpr (Version == "dev")
     {
@@ -318,7 +316,7 @@ std::string compiler_info() noexcept {
     std::string compiler;
     compiler.reserve(256);
 
-    compiler.assign("\nCompiled by                : ");
+    compiler.append("\nCompiled by                : ");
 #if defined(__clang__)
     compiler  //
       .append("clang++ ")
@@ -840,7 +838,7 @@ void print_info_string(const std::string_view infos) noexcept {
 
 void terminate_on_critical_error(const std::string_view message) noexcept {
     print_info_string("CRITICAL ERROR: " + std::string{message});
-
+    std::cout << std::endl;
     std::exit(EXIT_FAILURE);
 }
 
@@ -879,20 +877,16 @@ std::filesystem::path path_from_utf8(const std::string_view path) noexcept {
 #endif
 }
 
-std::optional<usize> str_to_size_t(const std::string_view sv) noexcept {
+std::optional<usize> str_to_size(const std::string_view sv) noexcept {
     if (sv.empty() || sv[0] == '-')
         return std::nullopt;
-    // Use from_chars (no allocation, fast)
-    const char* begin = sv.data();
-    const char* end   = begin + sv.size();
 
-    unsigned long long value = 0;
-
-    auto [ptr, ec] = std::from_chars(begin, end, value);
-    if (ec != std::errc() || ptr != end)
-        return std::nullopt;
-
-    if (value > std::numeric_limits<usize>::max())
+    errno        = 0;
+    char* endptr = nullptr;
+    // Parse decimal value (base 10) from string_view
+    const unsigned long long value = std::strtoull(sv.data(), &endptr, 10);
+    if (errno == ERANGE || (*endptr != '\0' && !is_space(*endptr))
+        || value > std::numeric_limits<usize>::max())
         return std::nullopt;
 
     return static_cast<usize>(value);
@@ -914,8 +908,7 @@ std::optional<std::string> read_file_to_string(const std::filesystem::path& file
 
     ifs.seekg(0, std::ios::beg);
 
-    //str.assign(std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>());
-
+    //str.append(std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>());
     if (!ifs.read(str.data(), size))
         return std::nullopt;
 

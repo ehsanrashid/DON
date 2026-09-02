@@ -428,7 +428,7 @@ class TestSyzygy(metaclass=OrderedClassMembers):
         self.engine.check_output(callback)
         self.engine.expect("bestmove *")
 
-class TestEnPassant(metaclass=OrderedClassMembers):
+class TestEnPassantSanitization(metaclass=OrderedClassMembers):
     def beforeAll(self):
         self.engine = DON()
 
@@ -517,6 +517,111 @@ class TestEnPassant(metaclass=OrderedClassMembers):
         self.engine.check_output(check_output)
         self.engine.expect("bestmove d8d7*")
 
+class TestInvalidFEN(metaclass=OrderedClassMembers):
+    def beforeEach(self):
+        self.engine = None
+
+    def afterEach(self):
+        assert postfix_check(self.engine.get_output()) == True
+        self.engine.clear_output()
+
+    def _expect_critical(self, fen):
+        self.engine = DON(f"position fen {fen}".split(" "), True)
+        assert self.engine.process.returncode != 0
+        assert "CRITICAL ERROR" in self.engine.process.stdout
+
+    def test_no_kings(self):
+        self._expect_critical("8/8/8/8/8/8/8/8 w - - 0 1")
+
+    def test_invalid_piece(self):
+        self._expect_critical("rnbqkbnr/pppXpppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
+
+    def test_invalid_side_to_move(self):
+        self._expect_critical("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR x KQkq - 0 1")
+
+    def test_pawns_on_back_rank(self):
+        self._expect_critical("pppppppp/8/8/8/8/8/8/4K2k w - - 0 1")
+
+    def test_invalid_skip_count(self):
+        self._expect_critical("9/8/8/8/8/8/8/8 w - - 0 1")
+
+class TestInvalidOptions(metaclass=OrderedClassMembers):
+    def beforeAll(self):
+        self.engine = DON()
+
+    def afterAll(self):
+        self.engine.quit()
+        assert self.engine.close() == 0
+
+    def afterEach(self):
+        assert postfix_check(self.engine.get_output()) == True
+        self.engine.clear_output()
+
+    # Ignore bogus spin values
+    def test_spin_non_numeric(self):
+        self.engine.send_command("setoption name Threads value abc")
+        self.engine.send_command("isready")
+        self.engine.equals("readyok")
+
+    def test_spin_out_of_range(self):
+        self.engine.send_command("setoption name Threads value 999999999999")
+        self.engine.send_command("isready")
+        self.engine.equals("readyok")
+
+    def test_spin_negative(self):
+        self.engine.send_command("setoption name Threads value -5")
+        self.engine.send_command("isready")
+        self.engine.equals("readyok")
+
+    # Warn on bogus NUMA configs
+    def test_numa_garbage(self):
+        self.engine.send_command("setoption name NumaPolicy value zzz")
+        self.engine.expect("*NumaPolicy: invalid value 'zzz', keeping previous config.*")
+        self.engine.send_command("isready")
+        self.engine.equals("readyok")
+
+    def test_numa_malformed_range(self):
+        self.engine.send_command("setoption name NumaPolicy value 0-")
+        self.engine.expect("*NumaPolicy: invalid value '0-', keeping previous config.*")
+
+    def test_numa_overflow(self):
+        self.engine.send_command("setoption name NumaPolicy value 99999999999999999999999")
+        self.engine.expect("*NumaPolicy: invalid value*keeping previous config.*")
+        self.engine.send_command("isready")
+        self.engine.equals("readyok")
+
+class TestBenchFile(metaclass=OrderedClassMembers):
+    def beforeEach(self):
+        self.engine = None
+
+    def afterEach(self):
+        assert postfix_check(self.engine.get_output()) == True
+        self.engine.clear_output()
+
+    def _bench(self, name, content):
+        with open(name, "w") as f:
+            f.write(content)
+        self.engine = DON(f"bench 16 1 4 {name} depth".split(" "), True)
+
+    def test_valid_file(self):
+        self._bench("good.epd", "4k3/8/4K3/8/8/8/8/8 w - - 0 1\n")
+        assert self.engine.process.returncode == 0
+        assert "Total nodes" in self.engine.process.stderr
+
+    def test_empty_file(self):
+        self._bench("empty.epd", "")
+        assert self.engine.process.returncode == 0
+
+    def test_malformed_fen(self):
+        self._bench("bad.epd", "not a valid fen\n")
+        assert self.engine.process.returncode != 0
+        assert "CRITICAL ERROR" in self.engine.process.stdout
+
+    def test_missing_file(self):
+        self.engine = DON("bench 16 1 4 does_not_exist.epd depth".split(" "), True)
+        assert self.engine.process.returncode == 0
+
+
 def parse_args():
     parser = argparse.ArgumentParser(description="Run DON with testing options")
 
@@ -559,7 +664,17 @@ if __name__ == "__main__":
     framework = MiniTestFramework()
 
     # Each test suite will be run inside a temporary directory
-    framework.run([TestCLI, TestInteractive, TestSyzygy, TestEnPassant])
+    framework.run(
+        [
+            TestCLI,
+            TestInteractive,
+            TestSyzygy,
+            TestEnPassantSanitization,
+            TestInvalidFEN,
+            TestInvalidOptions,
+            TestBenchFile,
+        ]
+    )
 
     EPD.delete_bench_epd()
 

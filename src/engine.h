@@ -76,8 +76,9 @@ class Engine final {
     void show() const noexcept;
     void dump(const std::filesystem::path& dumpFile = {}) const noexcept;
     void eval() noexcept;
-    void flip() noexcept;
-    void mirror() noexcept;
+
+    std::optional<Error> flip() noexcept;
+    std::optional<Error> mirror() noexcept;
 
     u16 hashfull(u8 maxAge = 0) const noexcept;
 

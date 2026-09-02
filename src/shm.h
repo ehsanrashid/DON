@@ -1492,7 +1492,7 @@ struct SystemWideSharedMemory final {
             // If snprintf truncated, use up to (buf.size() - 1) characters
             usize copySize = std::min<usize>(writtenSize, buffer.size() - 1);
             // Shrink to actual content
-            hashName.assign(buffer.data(), copySize);
+            hashName.append(buffer.data(), copySize);
         }
         else
         {
@@ -1506,7 +1506,7 @@ struct SystemWideSharedMemory final {
                 << std::setw(16) << valueHash << '$'       //
                 << std::setw(16) << executableHash << '$'  //
                 << std::setw(16) << discriminator;
-            hashName.assign(oss.str());
+            hashName.append(oss.str());
         }
 
         shmName.append(hashName);

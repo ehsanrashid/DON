@@ -304,14 +304,13 @@ void FullThreats::append_active_indices(const Color     perspective,
         {
             const Piece attackerPc = make_piece(attackerC, pt);
 
+            const Bitboard targetsBB =
+              pt == KNIGHT || pt == QUEEN ? knightqueenTargetsBB : sliderTargetsBB;
+
             Bitboard cattackerBB = pos.pieces_bb(attackerC, pt);
             while (cattackerBB != 0)
             {
                 const Square orgSq = pop_lsq(cattackerBB);
-
-                const Bitboard targetsBB = pt == KNIGHT || pt == QUEEN  //
-                                           ? knightqueenTargetsBB
-                                           : sliderTargetsBB;
 
                 Bitboard attacksBB = attacks_bb(orgSq, pt, occupancyBB) & targetsBB;
                 while (attacksBB != 0)

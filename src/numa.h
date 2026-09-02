@@ -98,7 +98,6 @@ using SetThreadSelectedCpuSetMasks_ = BOOL(WINAPI*)(
 struct WindowsAffinity final {
    public:
     std::optional<CpuIndexSet> combined_cpus() const noexcept {
-
         // Both empty -> return std::nullopt
         if (cpus[0].empty() && cpus[1].empty())
             return std::nullopt;
@@ -563,7 +562,7 @@ inline CpuIndexVec shortened_string_to_indices(std::string_view str) noexcept {
         switch (parts.size())
         {
         case 1 : {
-            const auto cpuId = str_to_size_t(parts[0]);
+            const auto cpuId = str_to_size(parts[0]);
             if (cpuId)
                 indices.emplace_back(*cpuId);
         }
@@ -575,8 +574,8 @@ inline CpuIndexVec shortened_string_to_indices(std::string_view str) noexcept {
             if (indices.size() >= MaxIndices)
                 break;
 
-            const auto begCpuId = str_to_size_t(parts[0]);
-            const auto endCpuId = str_to_size_t(parts[1]);
+            const auto begCpuId = str_to_size(parts[0]);
+            const auto endCpuId = str_to_size(parts[1]);
 
             if (begCpuId && endCpuId       //
                 && *begCpuId <= *endCpuId  //
@@ -762,16 +761,13 @@ class NumaConfig final {
                 continue;
 
             for (CpuIndex cpuId : cpuIds)
-            {
-                bool success = numaCfg.add_cpu_to_node(numaId, cpuId);
-                if (!success)
+                if (!numaCfg.add_cpu_to_node(numaId, cpuId))
                 {
                     std::cerr << "NumaConfig parse error in segment '" << cpuIdsStr  //
                               << "': CPU " << cpuId << " rejected for NUMA node " << numaId
                               << std::endl;
                     return std::nullopt;
                 }
-            }
 
             ++numaId;
         }
@@ -1765,7 +1761,7 @@ class SystemWideLazyNumaReplicated final: public BaseNumaReplicated {
         discriminator.reserve(sysCfgStr.size() + 1 + 8);
 
         discriminator  //
-          .assign(sysCfgStr)
+          .append(sysCfgStr)
           .append(1, '$')
           .append(std::to_string(sysNumaId));
 

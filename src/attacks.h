@@ -53,6 +53,8 @@ void init() noexcept;
 
 struct alignas(32) DualMagic final {
    public:
+    DualMagic() noexcept = default;
+
     // Always compute [bishop, rook] attacks at once, then rely on
     // compiler's DCE and CSE to eliminate unneeded re-computations or extractions.
     //
@@ -62,13 +64,6 @@ struct alignas(32) DualMagic final {
     // only, we use a compact lookup table indexed by the 6 inner bits of the rank's
     // occupancy (the edge squares never affect the attack set).
     std::pair<Bitboard, Bitboard> attacks_bb_pair(const Bitboard occupancyBB) const noexcept {
-        // Byteswap within 128-bit elements
-        const auto bswap = [](const __m256i v) noexcept {
-            return _mm256_shuffle_epi8(v, _mm256_set_epi8(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
-                                                          13, 14, 15, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
-                                                          10, 11, 12, 13, 14, 15));
-        };
-
         // Each lane contains a mask and we follow the same HQ algorithm as
         // given above in the ARM64 code path
         const __m256i mask = _mm256_load_si256(reinterpret_cast<const __m256i*>(this));
@@ -77,14 +72,14 @@ struct alignas(32) DualMagic final {
 
         __m256i o      = _mm256_and_si256(mask, _mm256_set1_epi64x(occupancyBB));
         __m256i fwd    = _mm256_sub_epi64(o, rs);
-        __m256i rev    = bswap(_mm256_sub_epi64(bswap(o), rrs));
+        __m256i rev    = bswap128(_mm256_sub_epi64(bswap128(o), rrs));
         __m256i attack = _mm256_and_si256(_mm256_xor_si256(fwd, rev), mask);
 
         // Lane 0: rook attacks (file only); lane 1: bishop attacks
         __m128i rookBishop =
           _mm_or_si128(_mm256_extracti128_si256(attack, 1), _mm256_castsi256_si128(attack));
 
-        Bitboard rowOccupancy = rankAttacksLookup[(occupancyBB >> (shift + 1)) & 0x3F];
+        Bitboard rowOccupancy = rankAttacksLookup[(occupancyBB >> (shift + 1)) & Move::SQ_MASK];
         Bitboard rankAttacks  = rowOccupancy << shift;
 
         // [bishop, rook]
@@ -99,6 +94,25 @@ struct alignas(32) DualMagic final {
     const u8* RESTRICT rankAttacksLookup;
     // 8 * rank_of(sq)
     int shift;
+
+    DualMagic(DualMagic&&) noexcept = default;
+
+   private:
+    DualMagic(const DualMagic&) noexcept            = delete;
+    DualMagic& operator=(const DualMagic&) noexcept = delete;
+    DualMagic& operator=(DualMagic&&) noexcept      = delete;
+
+    // Byteswap within 128-bit elements
+    ALWAYS_INLINE static __m256i bswap128(const __m256i v) noexcept {
+        const __m256i mask = _mm256_load_si256(reinterpret_cast<const __m256i*>(BSwapMask.data()));
+
+        return _mm256_shuffle_epi8(v, mask);
+    }
+
+    alignas(32) static constexpr Array<i8, 32> BSwapMask{
+      15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0,
+      15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0  //
+    };
 };
 
 #elif defined(USE_HYPERBOLA_QUINT)
@@ -134,6 +148,8 @@ inline Bitboard reverse_bb(const Bitboard bb) noexcept {
 // See https://www.chessprogramming.org/Hyperbola_Quintessence
 struct Magic final {
    public:
+    Magic() noexcept = default;
+
     Bitboard
     hyperbola(const Square s, const Bitboard occupancyBB, const Bitboard maskBB) const noexcept {
         Bitboard occBB = occupancyBB & maskBB;
@@ -149,6 +165,13 @@ struct Magic final {
     // For rooks: file/rank attacks
     // For bishops: diagonal/anti-diagonal attacks
     Bitboard mask1BB, mask2BB;
+
+    Magic(Magic&&) noexcept = default;
+
+   private:
+    Magic(const Magic&) noexcept            = delete;
+    Magic& operator=(const Magic&) noexcept = delete;
+    Magic& operator=(Magic&&) noexcept      = delete;
 };
 
 #else
@@ -162,11 +185,7 @@ using MagicMask = Bitboard;
 // Magic holds all magic bitboards relevant data for a single square
 struct Magic final {
    public:
-    Magic() noexcept                        = default;
-    Magic(const Magic&) noexcept            = delete;
-    Magic& operator=(const Magic&) noexcept = delete;
-    Magic(Magic&&) noexcept                 = delete;
-    Magic& operator=(Magic&&) noexcept      = delete;
+    Magic() noexcept = default;
 
     #if defined(USE_BMI2)
     void attacks_bb(const Bitboard occupancyBB, const Bitboard referenceBB) noexcept {
@@ -216,6 +235,11 @@ struct Magic final {
     Bitboard magicBB;
     u8       shift;
     #endif
+   private:
+    Magic(const Magic&) noexcept            = delete;
+    Magic& operator=(const Magic&) noexcept = delete;
+    Magic(Magic&&) noexcept                 = delete;
+    Magic& operator=(Magic&&) noexcept      = delete;
 };
 
 #endif
@@ -408,18 +432,13 @@ constexpr Bitboard sliding_attacks_bb(const Square s, const Bitboard occupancyBB
 
     for (Direction d : Directions[PT - BISHOP])
     {
-        Square curSq = s;
-
         Bitboard destBB = 0;
-        while ((destBB = destination_bb(curSq, d)) != 0)
+        for (Square sq = s; (destBB = destination_bb(sq, d)) != 0; sq += d)
         {
             attacksBB |= destBB;
-
             // Stop if occupied - sliding blocked
             if ((occupancyBB & destBB) != 0)
                 break;
-
-            curSq += d;
         }
     }
 
@@ -510,10 +529,9 @@ constexpr Bitboard attacks_bb(const Square s, const Piece pc) noexcept {
 alignas(CACHE_LINE_SIZE) inline constexpr auto RANK_ATTACKS = []() constexpr noexcept {
     Array<u8, FILE_NB, SQUARE_NB> rankAttacks{};
 
-    for (Square f = SQ_A1; f <= SQ_H1; ++f)
+    for (File f = FILE_A; f <= FILE_H; ++f)
         for (u16 occ6 = 0; occ6 < 64; ++occ6)
-            rankAttacks[f][occ6] =
-              static_cast<u8>(sliding_attacks_bb<ROOK>(f, Bitboard{occ6} << 1));
+            rankAttacks[f][occ6] = u8(sliding_attacks_bb<ROOK>(Square(f), Bitboard{occ6} << 1));
 
     return rankAttacks;
 }();
@@ -531,7 +549,7 @@ alignas(CACHE_LINE_SIZE) inline constexpr auto DUAL_MAGICS = []() constexpr noex
         dm.rBB               = 2 * square_bb(s);
         dm.rrBB              = 2 * square_bb(reverse_sq(s));
         dm.rankAttacksLookup = RANK_ATTACKS[file_of(s)].data();
-        dm.shift             = 8 * static_cast<u8>(rank_of(s));
+        dm.shift             = 8 * u8(rank_of(s));
     }
 
     return dualMagics;

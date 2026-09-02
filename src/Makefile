@@ -31,6 +31,14 @@ ifeq ($(COMP),ndk)
     OS := Android
 endif
 
+ifeq ($(OS),Windows_NT)
+    UNIVERSAL_OS_NAME := Windows
+else ifeq ($(TARGET_KERNEL),Darwin)
+    UNIVERSAL_OS_NAME := macOS
+else
+    UNIVERSAL_OS_NAME := Linux
+endif
+
 ### Command prefix to run the built executable (e.g. wine, sde, qemu)
 ### Backward compatible alias: WINE_PATH (deprecated)
 ifneq ($(strip $(WINE_PATH)),)
@@ -53,7 +61,7 @@ FIND_EXE = $(shell command -v "$(1)" 2>/dev/null)
 IS_WINDOWS := no
 ifeq ($(OS),Windows_NT)
     # Android NDK is never treated as Windows
-    ifneq ($(COMP),ndk)
+    ifneq ($(filter-out ndk,$(COMP)),)
         IS_WINDOWS := yes
     endif
 else ifeq ($(COMP),mingw)
@@ -992,7 +1000,7 @@ $(shell \
     fi)
 endef
 
-ifneq ($(filter-out help net strip install clean obj-clean profile-clean config-sanity format install-hooks,$(MAKECMDGOALS)),)
+ifneq ($(filter-out help net strip install clean obj-clean profile-clean universal-clean config-sanity format install-hooks,$(MAKECMDGOALS)),)
     _ := $(call CACHE_FILE_IF_CHANGED,$(BUILD_DATE_FILE),$(BUILD_DATE))
     _ := $(call CACHE_FILE_IF_CHANGED,$(BUILD_SHA_FILE),$(GIT_SHA))
     _ := $(call CACHE_FILE_IF_CHANGED,$(BUILD_DIFFINDEX_FILE),$(GIT_DIFFINDEX))
@@ -1163,7 +1171,7 @@ endif
 
 
 .PHONY: help analyze build profile-build macos-lipo net strip install \
-	clean obj-clean profile-clean config-sanity FORCE \
+	clean obj-clean profile-clean universal-clean config-sanity FORCE \
 	clang-profile-make clang-profile-use \
 	gcc-profile-make gcc-profile-use \
 	icx-profile-make icx-profile-use \
@@ -1198,21 +1206,21 @@ macos-lipo: NNUE_NET := $(shell grep -oE 'nn-[0-9a-f]+\.nnue' "$(CURDIR)/evaluat
 macos-lipo:
 	@echo; \
 	echo "Step 1/4. Building x86-64 slice (network shared from Apple-silicon slice) ..."
-	CXXFLAGS="-arch x86_64" $(MAKE) build ARCH=x86-64-universal COMP=$(COMP) MACOS_X86_SLICE=1
-	mv $(EXE) $(EXE)-x86_64
+	CXXFLAGS="-arch x86_64" $(MAKE) build ARCH=x86-64-universal COMP=$(COMP) MACOS_X86_64_SLICE=1
+	mv "$(EXE)" "$(EXE)-x86_64"
 	@echo; \
 	echo "Step 2/4. Building Apple silicon slice ..."
 	$(MAKE) profile-build ARCH=apple-silicon COMP=$(COMP)
-	mv $(EXE) $(EXE)-arm64
+	mv "$(EXE)" "$(EXE)-arm64"
 	@echo; \
 	echo "Step 3/4. Combining slices and locating the embedded network ..."
-	lipo -create $(EXE)-x86_64 $(EXE)-arm64 -output $(EXE)
-	$(SHELL) universal/patch_x86_slice.sh $(EXE) $(EXE)-x86_64 $(NNUE_NET)
+	lipo -create "$(EXE)-x86_64" "$(EXE)-arm64" -output "$(EXE)"
+	$(SHELL) universal/patch_x86_64_slice.sh "$(EXE)" "$(EXE)-x86_64" "$(NNUE_NET)"
 	@echo; \
 	echo "Step 4/4. Re-combining slices with the patched x86-64 slice ..."
-	lipo -create $(EXE)-x86_64 $(EXE)-arm64 -output $(EXE)
-	@rm -f $(EXE)-x86_64 $(EXE)-arm64
-	@echo "Universal macOS binary built: $(EXE)"
+	lipo -create "$(EXE)-x86_64" "$(EXE)-arm64" -output "$(EXE)"
+	@rm -f "$(EXE)-x86_64" "$(EXE)-arm64"
+	@echo "$(UNIVERSAL_OS_NAME) universal binary built: '$(EXE)'"
 
 # LTO temporary object handling
 ifeq ($(TARGET_KERNEL),Darwin)
@@ -1483,14 +1491,14 @@ icx-profile-use:
 
 .depend: $(SRCS)
 	@echo Generating dependencies...
-	@$(CXX) $(DEPENDFLAGS) -MM -MP $(SRCS) > $@.tmp || { rm -f $@.tmp; exit 1; }
-	@sed -E 's@(.*/)?DON/src/nnue/@nnue/@g; s@(.*/)?DON/src/book/@book/@g; s@(.*/)?DON/src/tablebase/@tablebase/@g; s@(.*/)?DON/src/@../@g' $@.tmp > $@
-	@rm -f $@.tmp
+	@$(CXX) $(DEPENDFLAGS) -MM -MP $(SRCS) > "$@.tmp" || { rm -f "$@.tmp"; exit 1; }
+	@sed -E 's@(.*/)?DON/src/nnue/@nnue/@g; s@(.*/)?DON/src/book/@book/@g; s@(.*/)?DON/src/tablebase/@tablebase/@g; s@(.*/)?DON/src/@../@g' "$@.tmp" > "$@"
+	@rm -f "$@.tmp"
 
 ifeq ($(UNIVERSAL_BUILD),no)
 # Include .depend only if no special goal is requested
 ifneq ($(MAKECMDGOALS),)
-ifneq ($(filter-out help net strip install clean obj-clean profile-clean config-sanity format install-hooks,$(MAKECMDGOALS)),)
+ifneq ($(filter-out help net strip install clean obj-clean profile-clean universal-clean config-sanity format install-hooks,$(MAKECMDGOALS)),)
     -include .depend
 endif
 endif
@@ -1580,13 +1588,15 @@ endif
 EMBED_DIR_SUPPORTED := $(shell echo 'int main(){}' | $(CXX) -x c++ --embed-dir=. -o /dev/null -c - 2>/dev/null && echo 1 || echo 0)
 ifeq ($(EMBED_DIR_SUPPORTED),1)
     EMBED_DIR = --embed-dir="$(CURDIR)"
+else
+    $(info --embed-dir is not supported by $(CXX), using alternative embedding method)
 endif
 
-# macos-lipo sets MACOS_X86_SLICE=1 when building the x86-64 slice so that the
+# macos-lipo sets MACOS_X86_64_SLICE=1 when building the x86-64 slice so that the
 # slice reads the network out of the Apple-silicon slice instead of embedding
-# its own copy (see universal/nnue_embed.cpp and universal/patch_x86_slice.sh).
-ifeq ($(MACOS_X86_SLICE),1)
-    SLICE_DEF := -DUNIVERSAL_BINARY_MACOS_X86_SLICE
+# its own copy (see universal/nnue_embed.cpp and universal/patch_x86_64_slice.sh).
+ifeq ($(MACOS_X86_64_SLICE),1)
+    SLICE_DEF := -DUNIVERSAL_BINARY_MACOS_X86_64_SLICE
 endif
 
 ARCH_CXXFLAGS = $(EMBED_DIR) -DDON=$(call ARCH_NAMESPACE,$(1)) -DUNIVERSAL_BINARY $(SLICE_DEF) \
@@ -1661,6 +1671,6 @@ endif
 
 $(UNIVERSAL_EXE): $(UNIVERSAL_ENTRY_OBJ) $(NNUE_EMBED_OBJ) $(ARCH_OBJS)
 	$(CXX) -o "$@" $(UNIVERSAL_ENTRY_OBJ) $(NNUE_EMBED_OBJ) $(ARCH_OBJS) $(strip $(UNIVERSAL_BUILD_FLAGS) $(EXTRA_LDFLAGS))
-	@echo "Universal binary built: '$@'"
+	@echo "$(UNIVERSAL_OS_NAME) universal binary built: '$@'"
 
 endif  # UNIVERSAL_BUILD
