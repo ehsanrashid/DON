@@ -98,7 +98,6 @@ using SetThreadSelectedCpuSetMasks_ = BOOL(WINAPI*)(
 struct WindowsAffinity final {
    public:
     std::optional<CpuIndexSet> combined_cpus() const noexcept {
-
         // Both empty -> return std::nullopt
         if (cpus[0].empty() && cpus[1].empty())
             return std::nullopt;
@@ -762,16 +761,13 @@ class NumaConfig final {
                 continue;
 
             for (CpuIndex cpuId : cpuIds)
-            {
-                bool success = numaCfg.add_cpu_to_node(numaId, cpuId);
-                if (!success)
+                if (!numaCfg.add_cpu_to_node(numaId, cpuId))
                 {
                     std::cerr << "NumaConfig parse error in segment '" << cpuIdsStr  //
                               << "': CPU " << cpuId << " rejected for NUMA node " << numaId
                               << std::endl;
                     return std::nullopt;
                 }
-            }
 
             ++numaId;
         }

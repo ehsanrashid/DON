@@ -879,17 +879,12 @@ std::filesystem::path path_from_utf8(const std::string_view path) noexcept {
 std::optional<usize> str_to_size(const std::string_view sv) noexcept {
     if (sv.empty() || sv[0] == '-')
         return std::nullopt;
-    // Use from_chars (no allocation, fast)
-    const char* p   = sv.data();
-    const char* end = p + sv.size();
-    // Skip spaces
-    for (; p != end && is_space(*p); ++p)
-    {}
 
-    unsigned long long value = 0;
-    // Parse decimal value (base 10) from string_view
-    auto [ptr, ec] = std::from_chars(p, end, value, 10);
-    if (ec != std::errc{} || ptr != end || value > std::numeric_limits<usize>::max())
+    errno                           = 0;
+    char*                    endptr = nullptr;
+    const unsigned long long value  = std::strtoull(sv.data(), &endptr, 10);
+    if (errno == ERANGE || (*endptr != '\0' && !is_space(*endptr))
+        || value > std::numeric_limits<usize>::max())
         return std::nullopt;
 
     return static_cast<usize>(value);

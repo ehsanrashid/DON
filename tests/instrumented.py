@@ -580,9 +580,9 @@ class TestInvalidOptions(metaclass=OrderedClassMembers):
         self.engine.send_command("isready")
         self.engine.equals("readyok")
 
-    # def test_numa_malformed_range(self):
-    #     self.engine.send_command("setoption name NumaPolicy value 0-")
-    #     self.engine.expect("*NumaPolicy: invalid value '0-', keeping previous config.*")
+    def test_numa_malformed_range(self):
+        self.engine.send_command("setoption name NumaPolicy value 0-")
+        self.engine.expect("*NumaPolicy: invalid value '0-', keeping previous config.*")
 
     def test_numa_overflow(self):
         self.engine.send_command("setoption name NumaPolicy value 99999999999999999999999")
