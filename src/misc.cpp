@@ -212,7 +212,7 @@ std::string engine_info(const bool uci) noexcept {
     engine.reserve(64);
 
     engine  //
-      .assign(uci ? "id name " : "")
+      .append(uci ? "id name " : "")
       .append(version_info())
       .append(uci ? "\nid author " : " by ")
       .append(Author);
@@ -279,7 +279,7 @@ std::string version_info() noexcept {
     std::string version;
     version.reserve(32);
 
-    version.assign(Name).append(" ").append(Version);
+    version.append(Name).append(" ").append(Version);
 
     if constexpr (Version == "dev")
     {
@@ -317,7 +317,7 @@ std::string compiler_info() noexcept {
     std::string compiler;
     compiler.reserve(256);
 
-    compiler.assign("\nCompiled by                : ");
+    compiler.append("\nCompiled by                : ");
 #if defined(__clang__)
     compiler  //
       .append("clang++ ")
@@ -913,8 +913,7 @@ std::optional<std::string> read_file_to_string(const std::filesystem::path& file
 
     ifs.seekg(0, std::ios::beg);
 
-    //str.assign(std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>());
-
+    //str.append(std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>());
     if (!ifs.read(str.data(), size))
         return std::nullopt;
 

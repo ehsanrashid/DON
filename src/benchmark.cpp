@@ -484,7 +484,7 @@ Setup benchmark(std::istream& is) noexcept {
     if (is >> setup.threads)
         setup
           .originalInvocation  //
-          .assign(std::to_string(setup.threads));
+          .append(std::to_string(setup.threads));
     else
         setup.threads = SYSTEM_THREAD_MAX;
 
@@ -506,7 +506,7 @@ Setup benchmark(std::istream& is) noexcept {
 
     setup
       .currentInvocation  //
-      .assign(std::to_string(setup.threads))
+      .append(std::to_string(setup.threads))
       .append(1, ' ')
       .append(std::to_string(setup.ttSize))
       .append(1, ' ')

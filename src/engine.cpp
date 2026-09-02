@@ -120,8 +120,7 @@ std::optional<Error> Engine::setup(const std::string_view fen, const Strings& mo
     // Drop the old states and create a new one
     states = std::make_unique<StateList>(1);
 
-    auto err = pos.set(fen, &states->back());
-    if (err)
+    if (auto err = pos.set(fen, &states->back()))
         return err;
 
     i16 ply = 1;

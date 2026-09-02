@@ -140,7 +140,7 @@ std::string move_to_can(const Move m) noexcept {
     can.reserve(5);
 
     can  //
-      .assign(to_square(orgSq))
+      .append(to_square(orgSq))
       .append(to_square(dstSq))
       .append(usize(m.type() == MT::PROMOTION),
               char(std::tolower(uchar(to_char(m.promotion_type())))));
@@ -239,14 +239,14 @@ std::string move_to_san(const Move m, Position& pos) noexcept {
     if (m.type() == MT::CASTLING)
     {
         assert(movedPt == KING && rank_of(orgSq) == rank_of(dstSq));
-        san.assign(to_string(make_cs(orgSq, dstSq)));
+        san.append(to_string(make_cs(orgSq, dstSq)));
     }
     else
     {
         // Note:: Piece letter (skip pawn as not needed because starting file is explicit)
         if (movedPt != PAWN)
         {
-            san.assign(1, to_char(movedPt));
+            san.push_back(to_char(movedPt));
 
             if (movedPt != KING)
             {
@@ -268,13 +268,20 @@ std::string move_to_san(const Move m, Position& pos) noexcept {
         }
 
         if (pos.capture(m))
-            san.append(usize(movedPt == PAWN), to_char(file_of(orgSq))).push_back('x');
+        {
+            if (movedPt == PAWN)
+                san.push_back(to_char(file_of(orgSq)));
 
-        san  //
-          .append(to_square(dstSq))
-          .append(usize(m.type() == MT::PROMOTION), '=')
-          .append(usize(m.type() == MT::PROMOTION),
-                  char(std::toupper(uchar(to_char(m.promotion_type())))));
+            san.push_back('x');
+        }
+
+        san.append(to_square(dstSq));
+
+        if (m.type() == MT::PROMOTION)
+        {
+            san.push_back('=');
+            san.push_back(char(std::toupper(uchar(to_char(m.promotion_type())))));
+        }
     }
 
     State st;

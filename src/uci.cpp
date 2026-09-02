@@ -332,10 +332,12 @@ void UCI::execute(std::string_view command) noexcept {
         engine.eval();
         break;
     case Command::FLIP :
-        engine.flip();
+        if (auto err = engine.flip())
+            terminate_on_critical_error(err->what());
         break;
     case Command::MIRROR :
-        engine.mirror();
+        if (auto err = engine.mirror())
+            terminate_on_critical_error(err->what());
         break;
     case Command::COMPILER :
         std::cout << compiler_info() << std::endl;
@@ -421,10 +423,11 @@ void UCI::position(std::istream& is) noexcept {
     token = lower_case(token);
 
     std::string fen;
+
     if (token.empty() || char(std::tolower(uchar(token[0]))) == 's')  // "startpos"
     {
         token.clear();
-        fen.assign(START_FEN);
+        fen.append(START_FEN);
         is >> token;  // Consume the "moves" token, if any
     }
     else if (!token.empty() && char(std::tolower(uchar(token[0]))) == 'f')  // "fen"
@@ -463,8 +466,7 @@ void UCI::position(std::istream& is) noexcept {
     while (is >> token)
         moves.push_back(token);
 
-    auto err = engine.setup(fen, moves);
-    if (err)
+    if (auto err = engine.setup(fen, moves))
         terminate_on_critical_error(err->what());
 }
 

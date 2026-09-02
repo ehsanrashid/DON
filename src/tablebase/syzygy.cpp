@@ -618,7 +618,7 @@ void* TBTable<T>::init(const Position& pos, const Key materialKey) noexcept {
         base.reserve(pieces[WHITE].size() + 1 + pieces[BLACK].size());
 
         base  //
-          .assign(pieces[Color(!c)])
+          .append(pieces[Color(!c)])
           .append(1, 'v')
           .append(pieces[Color(c)]);
 

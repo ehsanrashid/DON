@@ -361,7 +361,7 @@ std::optional<Error> Position::set(const std::string_view fens, State* const new
     else if (side == 'b')
         activeColor = BLACK;
     else
-        return Error{"Invalid FEN: invalid side to move." + std::string(1, token)};
+        return Error{"Invalid FEN: invalid side to move: " + std::string(1, token) + "."};
 
     skip_spaces();
 
@@ -533,7 +533,7 @@ Position::set(const std::string_view code, const Color c, State* const newSt) no
     fens.reserve(64);
 
     fens  //
-      .assign("8/")
+      .append("8/")
       .append(sides[WHITE])
       .append(1, digit_to_char(int(8 - sides[WHITE].size())))
       .append("/8/8/8/8/")
@@ -2211,7 +2211,7 @@ Position::operator std::string() const noexcept {
     std::string pos;
     pos.reserve(768);
 
-    pos.assign(Sep);
+    pos.append(Sep);
 
     for (Rank r = RANK_8;; --r)
     {

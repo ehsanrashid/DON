@@ -1765,7 +1765,7 @@ class SystemWideLazyNumaReplicated final: public BaseNumaReplicated {
         discriminator.reserve(sysCfgStr.size() + 1 + 8);
 
         discriminator  //
-          .assign(sysCfgStr)
+          .append(sysCfgStr)
           .append(1, '$')
           .append(std::to_string(sysNumaId));
 

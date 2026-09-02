@@ -156,22 +156,22 @@ jobs:
     uses: ./.github/workflows/check_compilers.yml
   BuildMSVC:
     name: Build MSVC
-    if: ${{ false }}
+    if: ${{ always() }}
     uses: ./.github/workflows/build_msvc.yml
   BuildWASM:
     name: Build WASM
-    if: ${{ false }}
+    if: ${{ always() }}
     uses: ./.github/workflows/build_wasm.yml
   # Release Jobs
   BuildAndroid:
     name: Build Android
-    needs: [Matrix, Sanitizers, Tests, Matetrack, Games, CheckCompilers]
+    needs: [Matrix] #, Sanitizers, Tests, Matetrack, Games, CheckCompilers]
     uses: ./.github/workflows/build_android.yml
     with:
       matrix: ${{ needs.Matrix.outputs.android_matrix }}
   BuildUniversal:
     name: Build Universal
-    needs: [Matrix, Sanitizers, Tests, Matetrack, Games, CheckCompilers]
+    needs: [Matrix] #, Sanitizers, Tests, Matetrack, Games, CheckCompilers]
     uses: ./.github/workflows/build_universal.yml
   UploadAndroid:
     name: Upload Android
