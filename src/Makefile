@@ -1198,21 +1198,21 @@ macos-lipo: NNUE_NET := $(shell grep -oE 'nn-[0-9a-f]+\.nnue' "$(CURDIR)/evaluat
 macos-lipo:
 	@echo; \
 	echo "Step 1/4. Building x86-64 slice (network shared from Apple-silicon slice) ..."
-	CXXFLAGS="-arch x86_64" $(MAKE) build ARCH=x86-64-universal COMP=$(COMP) MACOS_X86_SLICE=1
-	mv $(EXE) $(EXE)-x86_64
+	CXXFLAGS="-arch x86_64" $(MAKE) build ARCH=x86-64-universal COMP=$(COMP) MACOS_X86_64_SLICE=1
+	mv "$(EXE)" "$(EXE)-x86_64"
 	@echo; \
 	echo "Step 2/4. Building Apple silicon slice ..."
 	$(MAKE) profile-build ARCH=apple-silicon COMP=$(COMP)
-	mv $(EXE) $(EXE)-arm64
+	mv "$(EXE)" "$(EXE)-arm64"
 	@echo; \
 	echo "Step 3/4. Combining slices and locating the embedded network ..."
-	lipo -create $(EXE)-x86_64 $(EXE)-arm64 -output $(EXE)
-	$(SHELL) universal/patch_x86_slice.sh $(EXE) $(EXE)-x86_64 $(NNUE_NET)
+	lipo -create "$(EXE)-x86_64" "$(EXE)-arm64" -output "$(EXE)"
+	$(SHELL) universal/patch_x86_64_slice.sh "$(EXE)" "$(EXE)-x86_64" "$(NNUE_NET)"
 	@echo; \
 	echo "Step 4/4. Re-combining slices with the patched x86-64 slice ..."
-	lipo -create $(EXE)-x86_64 $(EXE)-arm64 -output $(EXE)
-	@rm -f $(EXE)-x86_64 $(EXE)-arm64
-	@echo "Universal macOS binary built: $(EXE)"
+	lipo -create "$(EXE)-x86_64" "$(EXE)-arm64" -output "$(EXE)"
+	@rm -f "$(EXE)-x86_64" "$(EXE)-arm64"
+	@echo "Universal $(UNIVERSAL_OS_NAME) binary built: '$(EXE)'"
 
 # LTO temporary object handling
 ifeq ($(TARGET_KERNEL),Darwin)
@@ -1510,6 +1510,14 @@ UNIVERSAL_EXE        := $(CURDIR)/$(EXE)
 
 ifeq ($(UNIVERSAL_BUILD),yes)
 
+ifeq ($(OS),Windows_NT)
+    UNIVERSAL_OS_NAME := Windows
+else ifeq (TARGET_KERNEL,Darwin)
+    UNIVERSAL_OS_NAME := macOS
+else
+    UNIVERSAL_OS_NAME := Linux
+endif
+
 UNIVERSAL_SRC_DIR    := $(CURDIR)/universal
 NNUE_EMBED_OBJ       := $(TEMP_DIR)/nnue_embed.o
 NET_SENTINEL         := $(TEMP_DIR)/.net-done
@@ -1582,11 +1590,11 @@ ifeq ($(EMBED_DIR_SUPPORTED),1)
     EMBED_DIR = --embed-dir="$(CURDIR)"
 endif
 
-# macos-lipo sets MACOS_X86_SLICE=1 when building the x86-64 slice so that the
+# macos-lipo sets MACOS_X86_64_SLICE=1 when building the x86-64 slice so that the
 # slice reads the network out of the Apple-silicon slice instead of embedding
-# its own copy (see universal/nnue_embed.cpp and universal/patch_x86_slice.sh).
-ifeq ($(MACOS_X86_SLICE),1)
-    SLICE_DEF := -DUNIVERSAL_BINARY_MACOS_X86_SLICE
+# its own copy (see universal/nnue_embed.cpp and universal/patch_x86_64_slice.sh).
+ifeq ($(MACOS_X86_64_SLICE),1)
+    SLICE_DEF := -DUNIVERSAL_BINARY_MACOS_X86_64_SLICE
 endif
 
 ARCH_CXXFLAGS = $(EMBED_DIR) -DDON=$(call ARCH_NAMESPACE,$(1)) -DUNIVERSAL_BINARY $(SLICE_DEF) \
@@ -1661,6 +1669,6 @@ endif
 
 $(UNIVERSAL_EXE): $(UNIVERSAL_ENTRY_OBJ) $(NNUE_EMBED_OBJ) $(ARCH_OBJS)
 	$(CXX) -o "$@" $(UNIVERSAL_ENTRY_OBJ) $(NNUE_EMBED_OBJ) $(ARCH_OBJS) $(strip $(UNIVERSAL_BUILD_FLAGS) $(EXTRA_LDFLAGS))
-	@echo "Universal binary built: '$@'"
+	@echo "Universal $(UNIVERSAL_OS_NAME) binary built: '$@'"
 
 endif  # UNIVERSAL_BUILD

@@ -19,7 +19,7 @@
 
 #include "../evaluate.h"
 
-#if defined(UNIVERSAL_BINARY_MACOS_X86_SLICE)
+#if defined(UNIVERSAL_BINARY_MACOS_X86_64_SLICE)
 
 // In a macOS universal binary the network is embedded only in the arm64 slice,
 // and the x86-64 slice mmaps it from the arm64 slice.
@@ -33,7 +33,7 @@
 
     #include "../misc.h"
 
-// Must be kept in sync with patch_x86_slice.sh
+// Must be kept in sync with patch_x86_64_slice.sh
 extern const volatile DON::u64 gUniversalNNUEOffset = DON::u64{0xCAFE0FF5E70FF5E7};
 extern const volatile DON::u64 gUniversalNNUESize   = DON::u64{0xCAFE512ECAFE512E};
 
