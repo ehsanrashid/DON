@@ -112,8 +112,8 @@ SRCS := \
 
 UNIVERSAL_SRCS := \
     universal/entry_x86_64.cpp \
-    universal/entry_riscv64.cpp \
     universal/entry_arm64.cpp \
+    universal/entry_riscv64.cpp \
     universal/nnue_embed.cpp
 
 HEADERS := \
@@ -200,11 +200,11 @@ ARCH_SUPPORTED := $(if $(filter \
     x86-32-sse41-popcnt x86-32-sse41 x86-32-ssse3 x86-32-sse2 x86-32 general-32 \
     loongarch64-lasx loongarch64-lsx loongarch64 \
     ppc-64-vsx ppc-64-altivec ppc-64 ppc-32 e2k \
-    riscv64-universal riscv64-rva23 riscv64 \
     arm64-universal armv8-dotprod armv8 armv7-neon armv7 apple-silicon \
+    riscv64-universal riscv64-rva23 riscv64 \
     wasm32 wasm32-relaxed-simd,$(ARCH)),yes,no)
 
-UNIVERSAL_BUILD := $(if $(filter x86-64-universal riscv64-universal arm64-universal,$(ARCH)),yes,no)
+UNIVERSAL_BUILD := $(if $(filter x86-64-universal arm64-universal riscv64-universal,$(ARCH)),yes,no)
 
 optimize = yes
 debug = no
@@ -418,14 +418,6 @@ else ifneq ($(findstring e2k,$(ARCH)),)
     sse41 = yes
     popcnt = yes
 
-else ifneq ($(findstring riscv64,$(ARCH)),)
-    arch = riscv64
-    ifneq ($(findstring -rva23,$(ARCH)),)
-        prefetch = yes
-        popcnt = yes
-        rva23 = yes
-    endif
-
 else ifneq ($(findstring armv8,$(ARCH)),)
     arch = armv8
     prefetch = yes
@@ -460,6 +452,14 @@ else ifneq ($(findstring apple-silicon,$(ARCH)),)
     arm_version = 8
     neon = yes
     dotprod = yes
+
+else ifneq ($(findstring riscv64,$(ARCH)),)
+    arch = riscv64
+    ifneq ($(findstring -rva23,$(ARCH)),)
+        prefetch = yes
+        popcnt = yes
+        rva23 = yes
+    endif
 
 # WASM is largely compiled using emcc's x86 compatibility layer, with occasional
 # WASM-specific intrinsics
@@ -932,12 +932,6 @@ ifeq ($(lsx),yes)
     endif
 endif
 
-ifeq ($(rva23),yes)
-    ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
-        CXXFLAGS += -DUSE_RVV -march=rv64gcv1p0_zba_zbb_zbs_zicbop_zicond
-    endif
-endif
-
 ifeq ($(neon),yes)
     CXXFLAGS += -DUSE_NEON=$(arm_version)
     ifeq ($(TARGET_KERNEL),Linux)
@@ -951,6 +945,12 @@ endif
 
 ifeq ($(dotprod),yes)
     CXXFLAGS += -DUSE_NEON_DOTPROD -march=armv8.2-a+dotprod
+endif
+
+ifeq ($(rva23),yes)
+    ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
+        CXXFLAGS += -DUSE_RVV -march=rv64gcv1p0_zba_zbb_zbs_zicbop_zicond
+    endif
 endif
 
 ifeq ($(arch),wasm32)
@@ -1131,15 +1131,15 @@ help:
 	echo "ppc-64                  > PPC 64-bit"; \
 	echo "ppc-32                  > PPC 32-bit"; \
 	echo "e2k                     > Elbrus 2000"; \
-	echo "riscv64-universal       > RISC-V 64-bit with automatic runtime selection of the best architecture"; \
-	echo "riscv64-rva23           > RISC-V 64-bit RVA23 profile"; \
-	echo "riscv64                 > RISC-V 64-bit"; \
 	echo "arm64-universal         > ARMv8 64-bit with automatic runtime selection of the best architecture"; \
 	echo "armv8-dotprod           > ARMv8 64-bit with NEON, DOT-PRODUCT and POPCNT support"; \
 	echo "armv8                   > ARMv8 64-bit with NEON and POPCNT support"; \
 	echo "armv7-neon              > ARMv7 32-bit with NEON and POPCNT support"; \
 	echo "armv7                   > ARMv7 32-bit"; \
 	echo "apple-silicon           > Apple silicon ARM64"; \
+	echo "riscv64-universal       > RISC-V 64-bit with automatic runtime selection of the best architecture"; \
+	echo "riscv64-rva23           > RISC-V 64-bit RVA23 profile"; \
+	echo "riscv64                 > RISC-V 64-bit"; \
 	echo; \
 	echo "Supported compilers:"; \
 	echo; \
@@ -1527,16 +1527,16 @@ ifeq ($(arch),x86_64)
     UNIVERSAL_ENTRY_SRC := $(UNIVERSAL_SRC_DIR)/entry_x86_64.cpp
     UNIVERSAL_ENTRY_OBJ := $(TEMP_DIR)/entry_x86_64.o
     BASELINE_ARCH       := x86-64
-else ifeq ($(arch),riscv64)
-    UNIVERSAL_ARCHES    := riscv64 riscv64-rva23
-    UNIVERSAL_ENTRY_SRC := $(UNIVERSAL_SRC_DIR)/entry_riscv64.cpp
-    UNIVERSAL_ENTRY_OBJ := $(TEMP_DIR)/entry_riscv64.o
-    BASELINE_ARCH       := riscv64
 else ifeq ($(arch),armv8)
     UNIVERSAL_ARCHES    := armv8 armv8-dotprod
     UNIVERSAL_ENTRY_SRC := $(UNIVERSAL_SRC_DIR)/entry_arm64.cpp
     UNIVERSAL_ENTRY_OBJ := $(TEMP_DIR)/entry_arm64.o
     BASELINE_ARCH       := armv8
+else ifeq ($(arch),riscv64)
+    UNIVERSAL_ARCHES    := riscv64 riscv64-rva23
+    UNIVERSAL_ENTRY_SRC := $(UNIVERSAL_SRC_DIR)/entry_riscv64.cpp
+    UNIVERSAL_ENTRY_OBJ := $(TEMP_DIR)/entry_riscv64.o
+    BASELINE_ARCH       := riscv64
 endif
 
 # Top-level tracked items in src/ (directories and files)

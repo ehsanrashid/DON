@@ -137,8 +137,6 @@ using isize = std::ptrdiff_t;
 using uptr = std::uintptr_t;
 using iptr = std::intptr_t;
 
-using uchar = unsigned char;
-
 #if defined(__SIZEOF_INT128__)
 __extension__ using u128 = unsigned __int128;
 __extension__ using i128 = signed __int128;
