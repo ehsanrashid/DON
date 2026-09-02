@@ -286,8 +286,8 @@ std::optional<Error> Position::set(const std::string_view fens, State* const new
 
         if (token == '/')
         {
-            //if (file <= FILE_H)
-            //    return Error{"Invalid FEN: rank ended before reaching the end."};
+            if (file <= FILE_H)
+                return Error{"Invalid FEN: rank ended before reaching the end."};
             if (rank == RANK_1)
                 return Error{"Invalid FEN: too many ranks."};
 
@@ -297,7 +297,7 @@ std::optional<Error> Position::set(const std::string_view fens, State* const new
         else if (is_cdigit(token))
         {
             int f = char_to_digit(token);
-            if (1 > f && f + file > 8)
+            if (1 > f || f + file > 8)
                 return Error{"Invalid FEN: too many squares skipped in rank: "
                              + std::string(1, to_char(rank)) + "."};
             // Advance by the given number of files
