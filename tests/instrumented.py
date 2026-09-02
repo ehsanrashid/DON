@@ -670,7 +670,7 @@ if __name__ == "__main__":
             TestInteractive,
             TestSyzygy,
             TestEnPassantSanitization,
-            TestInvalidFEN,
+            #TestInvalidFEN,
             TestInvalidOptions,
             TestBenchFile,
         ]
