@@ -394,12 +394,12 @@ Strings bench(std::istream& is, std::string_view currentFen) noexcept {
     std::string ttSize    = (is >> token) ? token : "16";
     std::string threads   = (is >> token) ? token : "1";
     std::string limitVal  = (is >> token) ? token : "13";
-    std::string fenFile   = (is >> token) ? token : "default";
+    std::string epdFile   = (is >> token) ? token : "default";
     std::string limitType = (is >> token) ? token : "depth";
 
     std::string command{limitType != "eval" ? "go " + limitType + " " + limitVal : "eval"};
 
-    std::string fenOpt = lower_case(fenFile);
+    std::string fenOpt = lower_case(epdFile);
 
     Strings fens;
 
@@ -417,19 +417,19 @@ Strings bench(std::istream& is, std::string_view currentFen) noexcept {
     }
     else
     {
-        std::ifstream ifs{fenFile};
+        std::ifstream ifs{epdFile};
 
         if (!ifs)
         {
-            std::cerr << "Unable to open fen filename " << fenFile << std::endl;
+            std::cerr << "Unable to open epd filename " << epdFile << std::endl;
             return {};
         }
 
         constexpr usize AverageFenLen = 64;
 
-        usize fenFileSize = std::filesystem::file_size(fenFile);
+        usize epdFileSize = std::filesystem::file_size(epdFile);
 
-        usize estimatedFens = fenFileSize / AverageFenLen;
+        usize estimatedFens = epdFileSize / AverageFenLen;
 
         fens.reserve(estimatedFens);
 
