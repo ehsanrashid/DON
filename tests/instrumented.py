@@ -428,7 +428,7 @@ class TestSyzygy(metaclass=OrderedClassMembers):
         self.engine.check_output(callback)
         self.engine.expect("bestmove *")
 
-class TestEnPassant(metaclass=OrderedClassMembers):
+class TestEnPassantSanitization(metaclass=OrderedClassMembers):
     def beforeAll(self):
         self.engine = DON()
 
@@ -544,7 +544,6 @@ class TestInvalidFEN(metaclass=OrderedClassMembers):
 
     def test_invalid_skip_count(self):
         self._expect_critical("9/8/8/8/8/8/8/8 w - - 0 1")
-
 
 class TestInvalidOptions(metaclass=OrderedClassMembers):
     def beforeAll(self):

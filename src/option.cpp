@@ -114,7 +114,7 @@ void Option::operator=(std::string value) noexcept {
     assert(is_ok(type));
 
     if ((type != Type::BUTTON && type != Type::STRING && value.empty())
-        || (type == Type::CHECK && !valid_bool_string(value))
+        || (type == Type::CHECK && !value_is_bool_string(value))
         || (type == Type::SPIN && !value_in_range(value, minValue, maxValue)))
         return;
 

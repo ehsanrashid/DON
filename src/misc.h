@@ -1892,14 +1892,10 @@ inline std::string remove_whitespace(std::string str) noexcept {
 [[nodiscard]] constexpr std::string_view bool_to_string(bool b) noexcept {
     return b ? "true" : "false";
 }
-// Efficient check: works for std::string or std::string_view
-[[nodiscard]] inline bool valid_bool_string(const std::string_view value) noexcept {
-    // Convert to lowercase for case-insensitive comparison
-    const std::string lowerValue = lower_case(std::string{value});
-    return lowerValue == "true" || lowerValue == "false";
-}
 
-[[nodiscard]] constexpr bool sv_to_bool(const std::string_view sv) { return (trim(sv) == "true"); }
+[[nodiscard]] constexpr bool sv_to_bool(const std::string_view sv) {
+    return (trim(sv) == bool_to_string(true));
+}
 
 [[nodiscard]] constexpr int sv_to_int(std::string_view sv) noexcept {
     const char* p   = sv.data();
@@ -1914,6 +1910,13 @@ inline std::string remove_whitespace(std::string str) noexcept {
         intValue = 10 * intValue + char_to_digit(*p);
 
     return neg ? -intValue : intValue;
+}
+
+// Validate boolean string (case-insensitive)
+inline bool value_is_bool_string(std::string value) noexcept {
+    // Convert to lowercase for case-insensitive comparison
+    value = lower_case(value);
+    return value == bool_to_string(true) || value == bool_to_string(false);
 }
 
 inline bool value_in_range(std::string_view sv, int minValue, int maxValue) noexcept {
