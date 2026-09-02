@@ -877,14 +877,14 @@ std::filesystem::path path_from_utf8(const std::string_view path) noexcept {
 #endif
 }
 
-std::optional<usize> str_to_size(const std::string_view sv) noexcept {
-    if (sv.empty() || sv[0] == '-')
+std::optional<usize> str_to_size(const std::string& s) noexcept {
+    if (s.empty() || s[0] == '-')
         return std::nullopt;
 
     errno        = 0;
     char* endptr = nullptr;
     // Parse decimal value (base 10) from string_view
-    const unsigned long long value = std::strtoull(sv.data(), &endptr, 10);
+    const unsigned long long value = std::strtoull(s.c_str(), &endptr, 10);
     if (errno == ERANGE || (*endptr != '\0' && !is_space(*endptr))
         || value > std::numeric_limits<usize>::max())
         return std::nullopt;
