@@ -78,7 +78,30 @@ class SqrClippedReLU final {
         [[maybe_unused]] constexpr u8 SimdShift = BaseShift - 16;
 
         // clang-format off
-#if defined(USE_SSE2)
+#if defined(USE_AVX512)
+        static_assert(InputDimensions % 32 == 0);
+
+        constexpr IndexType SimdWidth  = SIMD_WIDTH;
+        constexpr IndexType ChunkCount = InputDimensions / SimdWidth;
+
+        const auto* in  = reinterpret_cast<const __m512i*>(input);
+        auto*       out = reinterpret_cast<__m256i*>(output);
+
+        for (IndexType i = 0; i < ChunkCount; ++i)
+        {
+            const IndexType j = i * 2;
+
+            const __m256i words0 = _mm512_cvtsepi32_epi16(_mm512_load_si512(&in[j + 0]));
+            const __m256i words1 = _mm512_cvtsepi32_epi16(_mm512_load_si512(&in[j + 1]));
+            const __m512i words  = _mm512_inserti64x4(_mm512_castsi256_si512(words0), words1, 1);
+            const __m512i packed = _mm512_srli_epi16(_mm512_mulhi_epi16(words, words), SimdShift);
+
+            _mm256_store_si256(&out[i], _mm512_cvtsepi16_epi8(packed));
+        }
+
+        constexpr IndexType Start = SimdWidth * ChunkCount;
+
+#elif defined(USE_SSE2)
         constexpr IndexType SimdWidth  = SIMD_WIDTH_MIN;
         constexpr IndexType ChunkCount = InputDimensions / SimdWidth;
 
@@ -89,13 +112,12 @@ class SqrClippedReLU final {
         {
             const IndexType j = i * 4;
 
-            __m128i words0 = _mm_packs_epi32(_mm_load_si128(&in[j + 0]), _mm_load_si128(&in[j + 1]));
-            __m128i words1 = _mm_packs_epi32(_mm_load_si128(&in[j + 2]), _mm_load_si128(&in[j + 3]));
+            const __m128i words0  = _mm_packs_epi32(_mm_load_si128(&in[j + 0]), _mm_load_si128(&in[j + 1]));
+            const __m128i words1  = _mm_packs_epi32(_mm_load_si128(&in[j + 2]), _mm_load_si128(&in[j + 3]));
+            const __m128i packed0 = _mm_srli_epi16(_mm_mulhi_epi16(words0, words0), SimdShift);
+            const __m128i packed1 = _mm_srli_epi16(_mm_mulhi_epi16(words1, words1), SimdShift);
 
-            words0 = _mm_srli_epi16(_mm_mulhi_epi16(words0, words0), SimdShift);
-            words1 = _mm_srli_epi16(_mm_mulhi_epi16(words1, words1), SimdShift);
-
-            _mm_store_si128(&out[i], _mm_packs_epi16(words0, words1));
+            _mm_store_si128(&out[i], _mm_packs_epi16(packed0, packed1));
         }
 
         constexpr IndexType Start = SimdWidth * ChunkCount;
