@@ -1431,7 +1431,7 @@ inline u64 hash_bytes(const char* RESTRICT data, usize size, u64 seed = 0) noexc
     constexpr u64 MurmurM = u64{0xC6A4A7935BD1E995};
     constexpr u8  MurmurR = 47;
 
-    // Mix 64-bit block (MurmurHash64A core mixing step)
+    // Mix 64-bit word using the MurmurHash64A mixing step
     constexpr auto mix = [](u64 k) noexcept {
         k *= MurmurM;
         k ^= k >> MurmurR;

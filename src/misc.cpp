@@ -830,7 +830,7 @@ void print_info_string(const std::string_view infos) noexcept {
     if (InfoStrStop)
         return;
 
-    for (auto info : split(infos, "\n", true))
+    for (const auto info : split(infos, "\n", true))
         if (!is_whitespace(info))
             std::cout << "info string " << info << '\n';
 }
@@ -902,16 +902,15 @@ std::optional<std::string> read_file_to_string(const std::filesystem::path& file
         return std::nullopt;
 
     const auto size = ifs.tellg();
-
     if (size < 0)
         return std::nullopt;
-
-    std::string str;
-    str.resize(static_cast<usize>(size));
 
     ifs.seekg(0, std::ios::beg);
     if (!ifs)
         return std::nullopt;
+
+    std::string str;
+    str.resize(static_cast<usize>(size));
 
     //str.append(std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>());
     if (!ifs.read(str.data(), static_cast<std::streamsize>(size)))

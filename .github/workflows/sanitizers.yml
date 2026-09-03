@@ -10,7 +10,7 @@ jobs:
     env:
       COMPCXX: ${{ matrix.config.compiler }}
       COMP: ${{ matrix.config.comp }}
-      CXXFLAGS: "-Werror"
+      EXTRA_CXXFLAGS: "-Werror"
     strategy:
       fail-fast: false
       matrix:
