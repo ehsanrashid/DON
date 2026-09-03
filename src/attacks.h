@@ -79,7 +79,7 @@ struct alignas(32) DualMagic final {
         __m128i rookBishop =
           _mm_or_si128(_mm256_extracti128_si256(attack, 1), _mm256_castsi256_si128(attack));
 
-        Bitboard rowOccupancy = rankAttacksLookup[(occupancyBB >> (shift + 1)) & Move::SQ_MASK];
+        Bitboard rowOccupancy = rankAttacksLookup[(occupancyBB >> (shift + 1)) & Move::SqMask];
         Bitboard rankAttacks  = rowOccupancy << shift;
 
         // [bishop, rook]

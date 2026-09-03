@@ -103,12 +103,12 @@ struct Zobrist final {
     static Key turn() noexcept { return Turn; }
 
     static Key mr50(i16 rule50Count) noexcept {
-        return rule50Count < R50_OFFSET
+        return rule50Count < R50Offset
                ? 0
-               : MR50[std::min<usize>((rule50Count - R50_OFFSET) / R50_FACTOR, MR50.size() - 1)];
+               : MR50[std::min<usize>((rule50Count - R50Offset) / R50Factor, MR50.size() - 1)];
     }
 
-    static constexpr usize PAWN_OFFSET = 8;
+    static constexpr usize PawnOffset = 8;
 
    private:
     Zobrist() noexcept                          = delete;
@@ -123,10 +123,10 @@ struct Zobrist final {
     static inline Array<Key, FILE_NB>                                 Enpassant;
     static inline Key                                                 Turn;
 
-    static constexpr u8 R50_OFFSET = 14;
-    static constexpr u8 R50_FACTOR = 8;
+    static constexpr u8 R50Offset = 14;
+    static constexpr u8 R50Factor = 8;
 
-    static inline Array<Key, (PLY_MAX + 1 - R50_OFFSET) / R50_FACTOR + 2> MR50;
+    static inline Array<Key, (PLY_MAX + 1 - R50Offset) / R50Factor + 2> MR50;
 };
 
 // State struct stores information needed to restore Position object
@@ -768,7 +768,7 @@ inline Key Position::material_key() const noexcept {
     for (Color c : {WHITE, BLACK})
         for (PieceType pt : EX_KING_PIECE_TYPES)
             if (const auto cnt = count(c, pt); cnt != 0)
-                materialKey ^= Zobrist::piece_square(c, pt, Square(Zobrist::PAWN_OFFSET + cnt - 1));
+                materialKey ^= Zobrist::piece_square(c, pt, Square(Zobrist::PawnOffset + cnt - 1));
 
     return materialKey;
 }
@@ -1096,14 +1096,14 @@ inline void Position::update_piece_threats(const Square              s,
 
 #if defined(USE_AVX512ICL)
     DirtyThreat dirtyThreat1{s, SQUARE_ZERO, pc, Piece::NO_PIECE, put};
-    write_multiple_dirties<DirtyThreat::THREATENED_SQ_SHIFT, DirtyThreat::THREATENED_PC_SHIFT>(
+    write_multiple_dirties<DirtyThreat::ThreatenedSqShift, DirtyThreat::ThreatenedPcShift>(
       piece_map(), threatenedBB, dirtyThreat1, dts);
 
     const Bitboard attackersBB = directSlidersBB | incomingThreatsBB;
 
     DirtyThreat dirtyThreat2{SQUARE_ZERO, s, Piece::NO_PIECE, pc, put};
-    write_multiple_dirties<DirtyThreat::SQ_SHIFT, DirtyThreat::PC_SHIFT>(piece_map(), attackersBB,
-                                                                         dirtyThreat2, dts);
+    write_multiple_dirties<DirtyThreat::SqShift, DirtyThreat::PcShift>(piece_map(), attackersBB,
+                                                                       dirtyThreat2, dts);
 #else
     while (threatenedBB != 0)
     {

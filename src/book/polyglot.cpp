@@ -387,13 +387,13 @@ Move pg_to_move(const u16 pgMove, MoveList<GenType::LEGAL>& legalMoveList) noexc
 
     Move move(pgMove);
 
-    if (u16 pt = (move.raw() >> Move::PROMO_SHIFT) & 0x7; pt != 0)
-        move = Move{move.org_sq(), move.dst_sq(), PieceType(pt + 1)};
+    if (u16 pt = (move.raw() >> Move::PromoShift) & 7; pt != 0)
+        move = Move{move.org_sq(), move.dst_sq(), static_cast<PieceType>(pt + 1)};
 
-    u16 moveRaw = move.raw() & ~Move::TYPE_MASK;
+    u16 moveRaw = move.raw() & ~Move::TypeMask;
 
     for (const Move m : legalMoveList)
-        if ((m.raw() & ~Move::TYPE_MASK) == moveRaw)
+        if ((m.raw() & ~Move::TypeMask) == moveRaw)
             return m;
 
     return Move::None;

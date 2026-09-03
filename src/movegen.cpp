@@ -61,8 +61,8 @@ Move* splat_pawn_moves(Bitboard dstBB, Move* RESTRICT moves) noexcept {
     const __m128i dstSquares = _mm_cvtepi8_epi16(_mm512_castsi512_si128(_mm512_maskz_compress_epi8(static_cast<__mmask64>(dstBB), ALL_SQUARES)));
     const __m128i orgSquares = _mm_sub_epi16(dstSquares, _mm_set1_epi16(+D));
 
-    __m128i      packedMoves = _mm_or_si128(_mm_slli_epi16(orgSquares, Move::ORG_SQ_SHIFT),
-                                            _mm_slli_epi16(dstSquares, Move::DST_SQ_SHIFT));
+    __m128i      packedMoves = _mm_or_si128(_mm_slli_epi16(orgSquares, Move::OrgSqShift),
+                                            _mm_slli_epi16(dstSquares, Move::DstSqShift));
 
     if constexpr (AC == BLACK)
     {
@@ -144,7 +144,7 @@ Move* splat_moves(Square orgSq, Bitboard dstBB, Move* RESTRICT moves) noexcept {
     const __m512i orgVec     = _mm512_set1_epi16(Move(orgSq, SQUARE_ZERO).raw());
     const __m512i dstSquares = _mm512_cvtepi8_epi16(_mm512_castsi512_si256(_mm512_maskz_compress_epi8(dstBB, ALL_SQUARES)));
 
-    __m512i      packedMoves = _mm512_or_si512(orgVec, _mm512_slli_epi16(dstSquares, Move::DST_SQ_SHIFT));
+    __m512i      packedMoves = _mm512_or_si512(orgVec, _mm512_slli_epi16(dstSquares, Move::DstSqShift));
 
     if constexpr (AC == BLACK)
     {

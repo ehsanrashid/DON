@@ -43,25 +43,6 @@ bool CaseInsensitiveLess::operator()(std::string_view sv1, std::string_view sv2)
 }
 
 
-constexpr bool Option::is_ok(Type t) noexcept { return Type::BUTTON <= t && t <= Type::COMBO; }
-
-constexpr std::string_view Option::to_string(Type t) noexcept {
-    switch (t)
-    {
-    case Type::BUTTON :
-        return "button";
-    case Type::CHECK :
-        return "check";
-    case Type::STRING :
-        return "string";
-    case Type::SPIN :
-        return "spin";
-    case Type::COMBO :
-        return "combo";
-    }
-    return "none";
-}
-
 Option::Option(OnChange&& f) noexcept :
     type(Type::BUTTON),
     onChange(std::move(f)) {}

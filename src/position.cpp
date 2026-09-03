@@ -148,8 +148,8 @@ void Zobrist::init() noexcept {
         for (PieceType pt : PIECE_TYPES)
             std::generate(PieceSquare[c][pt].begin(), PieceSquare[c][pt].end(), prng_rand);
 
-        std::memset(&PieceSquare[c][PAWN][SQ_A1], 0, PAWN_OFFSET * sizeof(Key));
-        std::memset(&PieceSquare[c][PAWN][SQ_A8], 0, PAWN_OFFSET * sizeof(Key));
+        std::memset(&PieceSquare[c][PAWN][SQ_A1], 0, PawnOffset * sizeof(Key));
+        std::memset(&PieceSquare[c][PAWN][SQ_A8], 0, PawnOffset * sizeof(Key));
     }
 
     std::generate(Castling.begin(), Castling.end(), prng_rand);
