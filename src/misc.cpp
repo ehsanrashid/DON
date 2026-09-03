@@ -877,7 +877,7 @@ std::filesystem::path path_from_utf8(const std::string_view path) noexcept {
 #endif
 }
 
-std::optional<usize> str_to_size(const std::string& s) noexcept {
+std::optional<usize> str_to_usize(const std::string& s) noexcept {
     if (s.empty() || s[0] == '-')
         return std::nullopt;
 

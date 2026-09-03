@@ -1948,34 +1948,31 @@ split(std::string_view sv, std::string_view delimiter, bool trimPart = false) no
 
     std::string_view part;
 
-    usize beg = 0;
+    usize offset = 0;
 
     while (true)
     {
-        usize end = sv.find(delimiter, beg);
+        usize end = sv.find(delimiter, offset);
 
         if (end == std::string_view::npos)
             break;
 
-        part = sv.substr(beg, end - beg);
+        part = sv.substr(offset, end - offset);
 
         if (trimPart)
             part = trim(part);
 
-        if (!is_whitespace(part))
-            parts.emplace_back(part);
-
-        beg = end + delimiter.size();
+        parts.emplace_back(part);
+        offset = end + delimiter.size();
     }
 
     // Last part
-    part = sv.substr(beg);
+    part = sv.substr(offset);
 
     if (trimPart)
         part = trim(part);
 
-    if (!is_whitespace(part))
-        parts.emplace_back(part);
+    parts.emplace_back(part);
 
     return parts;
 }
@@ -2027,7 +2024,7 @@ void print_info_string(std::string_view infos) noexcept;
 std::string           utf8_from_wstring(std::wstring_view wsv) noexcept;
 std::filesystem::path path_from_utf8(std::string_view path) noexcept;
 
-std::optional<usize> str_to_size(const std::string& s) noexcept;
+std::optional<usize> str_to_usize(const std::string& s) noexcept;
 
 // Reads the file as bytes.
 // Returns std::nullopt if the file does not exist.
