@@ -32,9 +32,9 @@ namespace DON {
 
 namespace {
 
-constexpr std::string_view Name{"DON"};
-constexpr std::string_view Author{"Ehsan Rashid"};
-constexpr std::string_view Version{"dev"};
+constexpr std::string_view NAME{"DON"};
+constexpr std::string_view AUTHOR{"Ehsan Rashid"};
+constexpr std::string_view VERSION{"dev"};
 
 // Format date to YYYYMMDD
 [[maybe_unused]] std::string format_date(const std::string_view date) noexcept {
@@ -213,7 +213,7 @@ std::string engine_info(const bool uci) noexcept {
       .append(uci ? "id name " : "")
       .append(version_info())
       .append(uci ? "\nid author " : " by ")
-      .append(Author);
+      .append(AUTHOR);
 
     return engine;
 }
@@ -277,9 +277,9 @@ std::string version_info() noexcept {
     std::string version;
     version.reserve(32);
 
-    version.append(Name).append(" ").append(Version);
+    version.append(NAME).append(" ").append(VERSION);
 
-    if constexpr (Version == "dev")
+    if constexpr (VERSION == "dev")
     {
         version.push_back('-');
 #if defined(GIT_DATE)

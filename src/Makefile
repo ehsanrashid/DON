@@ -482,14 +482,16 @@ endif
 ### Section 3. Low-level Configuration
 ### ==========================================================================
 
-# Preserve user flags only for the top-level make invocation
+# Preserve top-level user flags across recursive make invocations
 ifeq ($(MAKELEVEL),0)
+    export ENV_CPPFLAGS    := $(CPPFLAGS)
     export ENV_CXXFLAGS    := $(CXXFLAGS)
     export ENV_DEPENDFLAGS := $(DEPENDFLAGS)
     export ENV_LDFLAGS     := $(LDFLAGS)
     export ENV_LDLIBS      := $(LDLIBS)
 endif
 
+CPPFLAGS    = $(strip $(ENV_CPPFLAGS) $(EXTRA_CPPFLAGS))
 CXXFLAGS    = $(strip $(ENV_CXXFLAGS) -Wall -Wcast-qual -fno-exceptions -std=c++17 $(EXTRA_CXXFLAGS))
 DEPENDFLAGS = $(strip $(ENV_DEPENDFLAGS) -std=c++17 $(EXTRA_DEPENDFLAGS))
 LDFLAGS     = $(strip $(ENV_LDFLAGS) $(EXTRA_LDFLAGS))
@@ -1089,11 +1091,13 @@ help:
 	echo "profile-build           > Standard build with profile-guided optimization"; \
 	echo "build                   > Skip profile-guided optimization"; \
 	echo "macos-lipo              > Build macOS x86-64 + Apple silicon universal binary"; \
-	echo "net                     > Download the default nnue net"; \
+	echo "net                     > Download the default NNUE net"; \
 	echo "strip                   > Strip executable"; \
 	echo "install                 > Install executable"; \
-	echo "clean                   > Clean build artifacts"; \
-	echo "universal-clean         > Clean universal build artifacts"; \
+	echo "clean                   > Remove all build artifacts and temporary files"; \
+	echo "obj-clean               > Remove binaries, object files, and build metadata"; \
+	echo "profile-clean           > Remove profiling data and temporary profiling files"; \
+	echo "universal-clean         > Remove universal build temporary files and generated files"; \
 	echo; \
 	echo "Supported archs:"; \
 	echo; \
@@ -1160,7 +1164,7 @@ help:
 	echo 'make -j profile-build ARCH=x86-64-avxvnni COMP=gcc CXX=g++-12.0'; \
 	echo 'make -j profile-build ARCH=x86-64-universal RUN_PREFIX="/path/to/sde -future --" CXX=g++-15'; \
 	echo 'make -j build ARCH=x86-64-ssse3 COMP=clang'; \
-	echo 
+	echo
 
 ifeq ($(ARCH_SUPPORTED),no)
 	@echo "Specify a supported architecture with the ARCH option for more details"; \
@@ -1293,15 +1297,15 @@ install:
 	chmod 755 "$(BINDIR)/$(EXE)"
 	$(STRIP) "$(BINDIR)/$(EXE)"
 
-# Clean all
+# Remove all build artifacts and temporary files
 clean: obj-clean profile-clean universal-clean
 	@rm -f .depend *~ core
 
-# Clean binaries and objects
+# Remove binaries, object files, and build metadata
 obj-clean:
 	@rm -f "$(EXE)" ./*.o ./nnue/*.o ./nnue/features/*.o ./book/*.o ./tablebase/*.o "$(BUILD_DATE_FILE)" "$(BUILD_SHA_FILE)" "$(BUILD_DIFFINDEX_FILE)"
 
-# Clean auxiliary profiling files
+# Remove profiling data and temporary profiling files
 profile-clean:
 	@rm -rf profdir
 	@rm -f bench.txt *.gcda *.gcno ./book/*.gcda ./tablebase/*.gcda ./nnue/*.gcda ./nnue/features/*.gcda *.s PGOBENCH.out
@@ -1311,9 +1315,10 @@ profile-clean:
 	@rm -f "$(NAME).res"
 	@rm -f ./-lstdc++.res
 
+# Remove universal build temporary files and generated files
+# On Windows "ln -s" to a directory makes a native directory symlink that
+# rm cannot unlink; rmdir unlinks it without following it. No-op elsewhere.
 universal-clean:
-# On Windows "ln -s" to a directory makes a native directory symlink that rm
-# cannot unlink; rmdir unlinks it without following it. No-op elsewhere.
 	@find "$(TEMP_DIR)" -type l -exec rmdir {} + 2>/dev/null || true
 	@rm -rf "$(TEMP_DIR)"
 	@rm -f universal/network_dump.inc
@@ -1386,11 +1391,12 @@ config-sanity: net
 	echo "arm_version: '$(arm_version)'" && \
 	echo "neon: '$(neon)'" && \
 	echo "dotprod: '$(dotprod)'" && \
-	echo "relaxedsimd": $(relaxedsimd) && \
+	echo "relaxedsimd: '$(relaxedsimd)'" && \
 	echo "tablebases: '$(tablebases)'" && \
 	echo && \
 	echo "Flags:" && \
 	echo "CXX: '$(CXX)'" && \
+	echo "CPPFLAGS: '$(CPPFLAGS)'" && \
 	echo "CXXFLAGS: '$(CXXFLAGS)'" && \
 	echo "ARCH_FLAG: '$(ARCH_FLAG)'" && \
 	echo "GIT_FLAGS: '$(GIT_FLAGS)'" && \

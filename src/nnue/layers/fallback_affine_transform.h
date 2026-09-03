@@ -99,7 +99,6 @@ void fallback_affine_transform(const Array<i32, OutputDimensions>&              
         output[i] = SIMD::neon_m128_reduce_add_epi32(sum);
 
     #elif defined(USE_RVV)
-
         const i8*  row  = &weights[offset];
         vint32m1_t vsum = __riscv_vmv_v_x_i32m1(0, __riscv_vsetvlmax_e32m1());
 
@@ -118,6 +117,7 @@ void fallback_affine_transform(const Array<i32, OutputDimensions>&              
         output[i] = biases[i] + __riscv_vmv_x_s_i32m1_i32(vsum);
     #endif
     }
+
 #else
     std::memcpy(output, biases.data(), OutputDimensions * sizeof(i32));
 

@@ -29,7 +29,7 @@ namespace DON::Benchmark {
 namespace {
 
 // clang-format off
-const Strings Positions{
+const Strings POSITIONS{
   "setoption name UCI_Chess960 value false",
   "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
   "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 10",
@@ -99,7 +99,7 @@ const Strings Positions{
 };
 
 // Human-randomly picked 5 games with <60 moves only moves for one side
-const std::vector<Strings> Games{
+const std::vector<Strings> GAMES{
 {
     "rnbq1k1r/ppp1bppp/4pn2/8/2B5/2NP1N2/PPP2PPP/R1BQR1K1 b - - 2 8",
     "rnbq1k1r/pp2bppp/4pn2/2p5/2B2B2/2NP1N2/PPP2PPP/R2QR1K1 b - - 1 9",
@@ -405,9 +405,9 @@ Strings bench(std::istream& is, std::string_view currentFen) noexcept {
 
     if (fenOpt == "default")
     {
-        fens.reserve(Positions.size());
+        fens.reserve(POSITIONS.size());
 
-        for (const auto& fen : Positions)
+        for (const auto& fen : POSITIONS)
             if (!is_whitespace(fen))
                 fens.emplace_back(fen);
     }
@@ -522,13 +522,13 @@ Setup benchmark(std::istream& is) noexcept {
     };
 
     double moveTimeSum = 0.0;
-    for (const auto& game : Games)
+    for (const auto& game : GAMES)
         for (usize i = 0; i < game.size(); ++i)
             moveTimeSum += calc_move_time(u16(i + 1));
 
     double timeScaleFactor = 1000.0 * moveTimeDesired / moveTimeSum;
 
-    for (const auto& game : Games)
+    for (const auto& game : GAMES)
     {
         setup.commands.emplace_back("ucinewgame");
 

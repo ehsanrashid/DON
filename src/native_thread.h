@@ -71,7 +71,7 @@ class NativeThread final {
             return;
         }
 
-        if (pthread_attr_setstacksize(&threadAttr, TH_STACK_SIZE) != 0)
+        if (pthread_attr_setstacksize(&threadAttr, ThreadStackSize) != 0)
         {
             //DEBUG_LOG("pthread_attr_setstacksize() failed to set thread stack size.");
         }
@@ -138,7 +138,7 @@ class NativeThread final {
     }
 
    private:
-    static constexpr usize TH_STACK_SIZE = 8 * MB;
+    static constexpr usize ThreadStackSize = 8 * MB;
 
     pthread_t thread{};
     bool      joined = true;

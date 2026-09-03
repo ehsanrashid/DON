@@ -197,7 +197,7 @@ struct RootMove final {
     Value    value       = -VALUE_INFINITE;
     Value    preValue    = -VALUE_INFINITE;
     Value    avgValue    = -VALUE_INFINITE;
-    SqrValue avgSqrValue = SqrValue(sign_sqr(-VALUE_INFINITE));
+    SqrValue avgSqrValue = -SQR_VALUE_INFINITE;
     Value    uciValue    = -VALUE_INFINITE;
     Bound    bound       = Bound::NONE;
     i32      tbRank      = 0;
@@ -446,26 +446,26 @@ struct Skill final {
 
     void init(const Options& options) noexcept;
 
-    [[nodiscard]] constexpr bool enabled() const noexcept { return level < LEVEL_MAX; }
+    [[nodiscard]] constexpr bool enabled() const noexcept { return level < LevelMax; }
 
-    [[nodiscard]] constexpr bool time_to_pick(Depth depth) const noexcept {
-        return depth == 1 + int(level);
+    [[nodiscard]] constexpr bool time_to_pick(const Depth depth) const noexcept {
+        return depth == 1 + static_cast<Depth>(level);
     }
 
     [[nodiscard]] constexpr Value weakness() const noexcept {
-        return Value(2.0 * (3.0 * LEVEL_MAX - level));
+        return static_cast<Value>(2.0 * (3.0 * LevelMax - level));
     }
 
     Move pick_move(const RootMoves& rootMoves, usize multiPV, bool forcePick = false) noexcept;
 
-    static constexpr double LEVEL_MIN = 00.0;
-    static constexpr double LEVEL_MAX = 20.0;
+    static constexpr double LevelMin = 0.0;
+    static constexpr double LevelMax = 20.0;
 
-    static constexpr u16 ELO_MIN = 1320;
-    static constexpr u16 ELO_MAX = 3190;
+    static constexpr u16 ELOMin = 1320;
+    static constexpr u16 ELOMax = 3190;
 
    private:
-    double level    = LEVEL_MAX;
+    double level    = LevelMax;
     Move   bestMove = Move::None;
 };
 

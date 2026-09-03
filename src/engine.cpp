@@ -75,9 +75,9 @@ Engine::Engine(const std::filesystem::path& path) noexcept :
     options.add("MultiPV",           Option(1, 1, int(MOVE_MAX)));
     options.add("UCI_Chess960",      Option(Position::Chess960, OnCng([](const Option& o) { Position::Chess960 = bool(o); return std::nullopt; })));
     options.add("UCI_LimitStrength", Option(false));
-    options.add("UCI_ELO",           Option(int(Skill::ELO_MAX), int(Skill::ELO_MIN), int(Skill::ELO_MAX)));
+    options.add("UCI_ELO",           Option(int(Skill::ELOMax), int(Skill::ELOMin), int(Skill::ELOMax)));
     options.add("UCI_ShowWDL",       Option(false));
-    options.add("SkillLevel",        Option(int(Skill::LEVEL_MAX), int(Skill::LEVEL_MIN), int(Skill::LEVEL_MAX)));
+    options.add("SkillLevel",        Option(int(Skill::LevelMax), int(Skill::LevelMin), int(Skill::LevelMax)));
     options.add("OverheadTime",      Option(25,  0, 5000));  // Estimated overhead per move
     options.add("MinMoveTime",       Option(20,  0, 5000));  // Minimum time allowed per move
     options.add("MaxForcedMoveTime", Option(500, 0, 5000));  // Maximum time allowed for a forced move
