@@ -280,43 +280,6 @@ jobs:
              !.git
              !.output
 
-  BuildUniversalMacOS:
-    name: macOS
-    runs-on: macos-15
-    defaults:
-      run:
-        shell: bash
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          persist-credentials: false
-          fetch-depth: 0
-
-      # macOS 15 is Apple Silicon; Rosetta 2 is needed to exercise the x86-64 slice
-      - name: Install Rosetta 2
-        run: softwareupdate --install-rosetta --agree-to-license
-
-      - name: Build macOS universal binary with Clang
-        run: make -j4 -C src macos-lipo COMP=clang
-
-      - name: Rename macOS universal binary
-        run: mv src/DON DON-macos-universal
-
-      - name: Verify macOS universal binary runs natively and under Rosetta
-        run: ./scripts/check_universal_macos.sh ./DON-macos-universal
-
-      - name: Clean untracked and ignored src files
-        run: git clean -fxd -- src
-
-      - name: Upload artifact for (pre)-release
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: macos universal
-          path: |
-             .
-             !.git
-             !.output
-
   BuildUniversalLinuxRISCV64:
     name: Linux RISC-V64
     runs-on: ubuntu-22.04
@@ -403,6 +366,43 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: linux riscv64-universal
+          path: |
+             .
+             !.git
+             !.output
+
+  BuildUniversalMacOS:
+    name: macOS
+    runs-on: macos-15
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      # macOS 15 is Apple Silicon; Rosetta 2 is needed to exercise the x86-64 slice
+      - name: Install Rosetta 2
+        run: softwareupdate --install-rosetta --agree-to-license
+
+      - name: Build macOS universal binary with Clang
+        run: make -j4 -C src macos-lipo COMP=clang
+
+      - name: Rename macOS universal binary
+        run: mv src/DON DON-macos-universal
+
+      - name: Verify macOS universal binary runs natively and under Rosetta
+        run: ./scripts/check_universal_macos.sh ./DON-macos-universal
+
+      - name: Clean untracked and ignored src files
+        run: git clean -fxd -- src
+
+      - name: Upload artifact for (pre)-release
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: macos universal
           path: |
              .
              !.git

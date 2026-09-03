@@ -1455,8 +1455,8 @@ clang-profile-make:
 clang-profile-use:
 	$(XCRUN) $(LLVM_PROFDATA) merge -output="$(NAME).profdata" *.profraw
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
-	EXTRA_CXXFLAGS='-fprofile-use=$(NAME).profdata $(EXTRA_CXXFLAGS)' \
-	EXTRA_LDFLAGS='-fprofile-use=$(NAME).profdata $(EXTRA_LDFLAGS)' \
+	EXTRA_CXXFLAGS='-fprofile-use="$(NAME).profdata" $(EXTRA_CXXFLAGS)' \
+	EXTRA_LDFLAGS='-fprofile-use="$(NAME).profdata" $(EXTRA_LDFLAGS)' \
 	all
 
 # GCC PGO
@@ -1483,7 +1483,7 @@ icx-profile-make:
 icx-profile-use:
 	$(XCRUN) $(LLVM_PROFDATA) merge -output="$(NAME).profdata" *.profraw
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
-	EXTRA_CXXFLAGS='-fprofile-instr-use=$(NAME).profdata $(EXTRA_CXXFLAGS)' \
+	EXTRA_CXXFLAGS='-fprofile-instr-use="$(NAME).profdata" $(EXTRA_CXXFLAGS)' \
 	EXTRA_LDFLAGS='-fprofile-use $(EXTRA_LDFLAGS)' \
 	all
 
