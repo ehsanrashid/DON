@@ -482,14 +482,16 @@ endif
 ### Section 3. Low-level Configuration
 ### ==========================================================================
 
-# Preserve user flags only for the top-level make invocation
+# Preserve top-level user flags across recursive make invocations
 ifeq ($(MAKELEVEL),0)
+    export ENV_CPPFLAGS    := $(CPPFLAGS)
     export ENV_CXXFLAGS    := $(CXXFLAGS)
     export ENV_DEPENDFLAGS := $(DEPENDFLAGS)
     export ENV_LDFLAGS     := $(LDFLAGS)
     export ENV_LDLIBS      := $(LDLIBS)
 endif
 
+CPPFLAGS    = $(strip $(ENV_CPPFLAGS) $(EXTRA_CPPFLAGS))
 CXXFLAGS    = $(strip $(ENV_CXXFLAGS) -Wall -Wcast-qual -fno-exceptions -std=c++17 $(EXTRA_CXXFLAGS))
 DEPENDFLAGS = $(strip $(ENV_DEPENDFLAGS) -std=c++17 $(EXTRA_DEPENDFLAGS))
 LDFLAGS     = $(strip $(ENV_LDFLAGS) $(EXTRA_LDFLAGS))
@@ -1394,6 +1396,7 @@ config-sanity: net
 	echo && \
 	echo "Flags:" && \
 	echo "CXX: '$(CXX)'" && \
+	echo "CPPFLAGS: '$(CPPFLAGS)'" && \
 	echo "CXXFLAGS: '$(CXXFLAGS)'" && \
 	echo "ARCH_FLAG: '$(ARCH_FLAG)'" && \
 	echo "GIT_FLAGS: '$(GIT_FLAGS)'" && \
