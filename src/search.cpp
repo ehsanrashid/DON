@@ -76,9 +76,8 @@ constexpr int reduction(const Depth depth,
                         const int   deltaRatio,
                         const bool  improve) noexcept {
     int reductionScale = REDUCTIONS[depth] * REDUCTIONS[moveCount];
-    return std::max(1027 + reductionScale - deltaRatio
-                      + int(!improve) * constexpr_ceil(reductionScale * 194.0 / 512.0),
-                    0);
+    return 1027 + reductionScale - deltaRatio
+         + int(!improve) * constexpr_ceil(reductionScale * 194.0 / 512.0);
 }
 
 // Add a small random value to draw evaluation to avoid 3-fold blindness
@@ -1117,12 +1116,13 @@ Value Worker::search(Position&    pos,
     }
     }
 
-    // Step 8. Reverse Futility Pruning: child node
+    // Step 8. Reverse Futility Pruning: at child node
     if constexpr (!PVNode)
     {
     // The depth condition is important for mate finding
-    if (!ss->pvTT && !exclude && depth < 17 && !is_win(ttEvalue) && !is_loss(beta)
-        && (ttmNone || (ttmCapture && history_value(pos, ttd.move, ac, contHistory) >= 4096)))
+    if (!ss->pvTT && !exclude && depth < 17 && !is_win(ttEvalue) && !is_loss(beta))
+    {
+    if (ttmNone || (ttmCapture && constexpr_abs(int(captureHistory[+pos.moved_pc(ttd.move)][ttd.move.dst_sq()][pos.captured_pt(ttd.move)])) >= 4096))
     {
         // Compute base futility
         int baseFutility = std::min(40 + 4 * depth, 80) - int(!ttd.hit) * 20;
@@ -1134,6 +1134,7 @@ Value Worker::search(Position&    pos,
 
         if (ttEvalue - futility >= beta)
             return blend_values(beta, ttEvalue, 716, 1024);
+    }
     }
     }
 
@@ -1335,7 +1336,7 @@ Value Worker::search(Position&    pos,
         // Calculate new depth for this move
         Depth newDepth = depth - 1;
 
-        int deltaRatio = 617 * (beta - alpha) / rootDelta;
+        int deltaRatio = constexpr_ceil(617.0 * (beta - alpha) / rootDelta);
 
         int r = reduction(depth, moveCount, deltaRatio, improve);
 
@@ -1534,7 +1535,7 @@ Value Worker::search(Position&    pos,
             r += 236 + int(AllNode) * 1143 + int(ss->cutoffCount > 2) * 1079;
         // Decrease reduction for first picked move (ttMove)
         else if (mTT)
-            r = std::max(r - 2016, 0);
+            r -= 2016;
 
         // Decrease/Increase reduction for moves with a good/bad history
         r -= constexpr_round(ss->history * 445.0 / 4096.0);

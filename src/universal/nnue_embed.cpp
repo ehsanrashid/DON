@@ -73,12 +73,14 @@ extern const unsigned int         gEmbeddedNNUESize = static_cast<unsigned int>(
 
 #else
     #if defined(__has_embed)
+// C++23 #embed: embeds the binary data directly
 extern const unsigned char gEmbeddedNNUEData[] = {
         #embed EvalFileDefaultName
 };
 
 const unsigned int padding = 0;
     #else
+// Fallback for compilers without #embed support
 extern const unsigned char gEmbeddedNNUEData[] =
         #include "network_dump.inc"
   ;

@@ -810,15 +810,14 @@ std::filesystem::path CommandLine::binary_directory(std::filesystem::path path) 
     // Unlike _get_wpgmptr, this does not depend on whether the CRT used a narrow or wide entry point.
     // Windows paths cannot exceed 32767 characters, so a fixed buffer is always sufficient.
     // Falls back to path if the API fails.
-    constexpr DWORD BuffSize = 32768;
-    WCHAR           filename[BuffSize]{};
+    Array<WCHAR, 0x8000> filename{};
 
-    DWORD length = GetModuleFileNameW(nullptr, filename, BuffSize);
-    if (length != 0 && length < BuffSize)
-        path = std::filesystem::path(filename, filename + length);
+    const DWORD length = GetModuleFileNameW(nullptr, filename.data(), filename.size());
+    if (length != 0 && length < filename.size())
+        path = std::filesystem::path(filename.data(), filename.data() + length);
 #endif
 
-    auto binaryDirectory{path.parent_path()};
+    const auto binaryDirectory{path.parent_path()};
     return binaryDirectory.empty() ? std::filesystem::path(".") : binaryDirectory;
 }
 std::filesystem::path CommandLine::working_directory() noexcept {
