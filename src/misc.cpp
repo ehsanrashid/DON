@@ -901,18 +901,20 @@ std::optional<std::string> read_file_to_string(const std::filesystem::path& file
     if (!ifs)
         return std::nullopt;
 
-    auto size = ifs.tellg();
+    const auto size = ifs.tellg();
 
     if (size < 0)
         return std::nullopt;
 
     std::string str;
-    str.reserve(static_cast<usize>(size));
+    str.resize(static_cast<usize>(size));
 
     ifs.seekg(0, std::ios::beg);
+    if (!ifs)
+        return std::nullopt;
 
     //str.append(std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>());
-    if (!ifs.read(str.data(), size))
+    if (!ifs.read(str.data(), static_cast<std::streamsize>(size)))
         return std::nullopt;
 
     return str;
