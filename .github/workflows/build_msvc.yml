@@ -12,9 +12,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Runners cannot execute AVX-512, so "AVX-512 ICL" is build-only
+          # Runners cannot execute AVX-512, so "AVX-512-ICL" is build-only
+          - { name: "AVX-512-ICL", arch: "avx512icl", flags: "/arch:AVX512 /DUSE_AVX512 /DUSE_VNNI /DUSE_AVX512ICL /DUSE_BMI2", bench: false }
           - { name: "AVX2",        arch: "avx2",      flags: "/arch:AVX2",                                                      bench: true }
-          - { name: "AVX-512 ICL", arch: "avx512icl", flags: "/arch:AVX512 /DUSE_AVX512 /DUSE_VNNI /DUSE_AVX512ICL /DUSE_BMI2", bench: false }
 
     defaults:
       run:

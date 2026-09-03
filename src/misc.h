@@ -137,8 +137,6 @@ using isize = std::ptrdiff_t;
 using uptr = std::uintptr_t;
 using iptr = std::intptr_t;
 
-using uchar = unsigned char;
-
 #if defined(__SIZEOF_INT128__)
 __extension__ using u128 = unsigned __int128;
 __extension__ using i128 = signed __int128;
@@ -1433,7 +1431,7 @@ inline u64 hash_bytes(const char* RESTRICT data, usize size, u64 seed = 0) noexc
     constexpr u64 MurmurM = u64{0xC6A4A7935BD1E995};
     constexpr u8  MurmurR = 47;
 
-    // Mix 64-bit block (MurmurHash64A core mixing step)
+    // Mix 64-bit word using the MurmurHash64A mixing step
     constexpr auto mix = [](u64 k) noexcept {
         k *= MurmurM;
         k ^= k >> MurmurR;
@@ -1950,34 +1948,31 @@ split(std::string_view sv, std::string_view delimiter, bool trimPart = false) no
 
     std::string_view part;
 
-    usize beg = 0;
+    usize offset = 0;
 
     while (true)
     {
-        usize end = sv.find(delimiter, beg);
+        usize end = sv.find(delimiter, offset);
 
         if (end == std::string_view::npos)
             break;
 
-        part = sv.substr(beg, end - beg);
+        part = sv.substr(offset, end - offset);
 
         if (trimPart)
             part = trim(part);
 
-        if (!is_whitespace(part))
-            parts.emplace_back(part);
-
-        beg = end + delimiter.size();
+        parts.emplace_back(part);
+        offset = end + delimiter.size();
     }
 
     // Last part
-    part = sv.substr(beg);
+    part = sv.substr(offset);
 
     if (trimPart)
         part = trim(part);
 
-    if (!is_whitespace(part))
-        parts.emplace_back(part);
+    parts.emplace_back(part);
 
     return parts;
 }
@@ -2029,7 +2024,7 @@ void print_info_string(std::string_view infos) noexcept;
 std::string           utf8_from_wstring(std::wstring_view wsv) noexcept;
 std::filesystem::path path_from_utf8(std::string_view path) noexcept;
 
-std::optional<usize> str_to_size(std::string_view sv) noexcept;
+std::optional<usize> str_to_usize(std::string_view sv) noexcept;
 
 // Reads the file as bytes.
 // Returns std::nullopt if the file does not exist.

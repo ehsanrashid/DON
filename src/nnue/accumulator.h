@@ -76,7 +76,7 @@ struct AccumulatorCache final {
             accumulation          = biases;
             constexpr auto offset = offsetof(Entry, psqtAccumulation);
             static_assert(offset <= sizeof(Entry), "offset exceeds object size");
-            std::memset(reinterpret_cast<uchar*>(this) + offset, 0, sizeof(*this) - offset);
+            std::memset(reinterpret_cast<u8*>(this) + offset, 0, sizeof(*this) - offset);
         }
 
         Array<BiasType, L1>                accumulation;

@@ -18,7 +18,7 @@ on:
 
 jobs:
   UploadBinary:
-    name: ${{ matrix.config.name }} ${{ matrix.binary }}
+    name: ${{ matrix.config.name }} (${{ matrix.binary }})
     runs-on: ubuntu-latest
     env:
       SIMPLE_NAME: ${{ matrix.config.simple_name }}

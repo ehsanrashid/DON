@@ -33,10 +33,10 @@
     #if defined(USE_LASX)
         #include <lasxintrin.h>
     #endif
-#elif defined(USE_RVV)
-    #include <riscv_vector.h>
 #elif defined(USE_NEON)
     #include <arm_neon.h>
+#elif defined(USE_RVV)
+    #include <riscv_vector.h>
 #else
     //#pragma message("No SIMD instruction set enabled — falling back to scalar code")
 #endif

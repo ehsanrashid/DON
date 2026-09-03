@@ -17,7 +17,6 @@
 
 #include "misc.h"
 
-#include <cerrno>
 #include <cmath>
 #include <cstdlib>
 #include <ctime>
@@ -415,14 +414,14 @@ std::string compiler_info() noexcept {
 #if defined(USE_LSX)
     compiler.append(" LSX");
 #endif
-#if defined(USE_RVV)
-    compiler.append(" RVV");
-#endif
 #if defined(USE_NEON_DOTPROD)
     compiler.append(" NEON-DOTPROD");
 #endif
 #if defined(USE_NEON)
     compiler.append(" NEON");
+#endif
+#if defined(USE_RVV)
+    compiler.append(" RVV");
 #endif
 #if defined(USE_POPCNT)
     compiler.append(" POPCNT");
@@ -831,7 +830,7 @@ void print_info_string(const std::string_view infos) noexcept {
     if (InfoStrStop)
         return;
 
-    for (auto info : split(infos, "\n", true))
+    for (const auto info : split(infos, "\n", true))
         if (!is_whitespace(info))
             std::cout << "info string " << info << '\n';
 }
@@ -877,16 +876,20 @@ std::filesystem::path path_from_utf8(const std::string_view path) noexcept {
 #endif
 }
 
-std::optional<usize> str_to_size(const std::string_view sv) noexcept {
+std::optional<usize> str_to_usize(const std::string_view sv) noexcept {
     if (sv.empty() || sv[0] == '-')
         return std::nullopt;
+    // Use from_chars (no allocation, fast)
+    const char* p   = sv.data();
+    const char* end = p + sv.size();
+    // Skip spaces
+    for (; p != end && is_space(*p); ++p)
+    {}
 
-    errno        = 0;
-    char* endptr = nullptr;
+    unsigned long long value = 0;
     // Parse decimal value (base 10) from string_view
-    const unsigned long long value = std::strtoull(sv.data(), &endptr, 10);
-    if (errno == ERANGE || (*endptr != '\0' && !is_space(*endptr))
-        || value > std::numeric_limits<usize>::max())
+    auto [ptr, ec] = std::from_chars(p, end, value, 10);
+    if (ec != std::errc{} || ptr != end || value > std::numeric_limits<usize>::max())
         return std::nullopt;
 
     return static_cast<usize>(value);
@@ -898,18 +901,19 @@ std::optional<std::string> read_file_to_string(const std::filesystem::path& file
     if (!ifs)
         return std::nullopt;
 
-    auto size = ifs.tellg();
-
+    const auto size = ifs.tellg();
     if (size < 0)
         return std::nullopt;
 
-    std::string str;
-    str.reserve(static_cast<usize>(size));
-
     ifs.seekg(0, std::ios::beg);
+    if (!ifs)
+        return std::nullopt;
+
+    std::string str;
+    str.resize(static_cast<usize>(size));
 
     //str.append(std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>());
-    if (!ifs.read(str.data(), size))
+    if (!ifs.read(str.data(), static_cast<std::streamsize>(size)))
         return std::nullopt;
 
     return str;

@@ -11,8 +11,8 @@ jobs:
       fail-fast: false
       matrix:
          include:
-            - { name: "WASM32",              arch: "wasm32" }
             - { name: "WASM32 Relaxed SIMD", arch: "wasm32-relaxed-simd" }
+            - { name: "WASM32",              arch: "wasm32" }
 
     defaults:
       run:
