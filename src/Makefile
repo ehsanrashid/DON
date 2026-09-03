@@ -1490,7 +1490,21 @@ icx-profile-use:
 .depend: $(SRCS)
 	@echo Generating dependencies...
 	@$(CXX) $(DEPENDFLAGS) -MM -MP $(SRCS) > "$@.tmp" || { rm -f "$@.tmp"; exit 1; }
-	@sed -E 's@(.*/)?DON/src/nnue/@nnue/@g; s@(.*/)?DON/src/book/@book/@g; s@(.*/)?DON/src/tablebase/@tablebase/@g; s@(.*/)?DON/src/@../@g' "$@.tmp" > "$@"
+	@sed -E \
+		-e 's@(.*/)?DON/src/nnue/features/\.\./\.\./@@g' \
+		-e 's@nnue/features/\.\./\.\./@@g' \
+		-e 's@nnue/features/\.\./@nnue/@g' \
+		-e 's@(.*/)?DON/src/nnue/layers/\.\./\.\./@@g' \
+		-e 's@nnue/layers/\.\./\.\./@@g' \
+		-e 's@nnue/layers/\.\./@nnue/@g' \
+		-e 's@(.*/)?DON/src/nnue/@nnue/@g' \
+		-e 's@nnue/\.\./@@g' \
+		-e 's@(.*/)?DON/src/book/@book/@g' \
+		-e 's@book/\.\./@@g' \
+		-e 's@(.*/)?DON/src/tablebase/@tablebase/@g' \
+		-e 's@tablebase/\.\./@@g' \
+		-e 's@(.*/)?DON/src/@@g' \
+		"$@.tmp" > "$@"
 	@rm -f "$@.tmp"
 
 ifeq ($(UNIVERSAL_BUILD),no)
