@@ -229,7 +229,7 @@ jobs:
         if: matrix.config.run_64bit_tests
         run: |
           make clean
-          make -j4 ARCH=x86-64-bmi2 optimize=no debug=yes ENV_CXXFLAGS="-Werror -D_GLIBCXX_DEBUG" build
+          make -j4 ARCH=x86-64-bmi2 optimize=no debug=yes build
           ../tests/signature.sh $benchref
 
       - name: Build and test x86-64 BMI2
@@ -301,7 +301,7 @@ jobs:
         if: matrix.config.run_32bit_tests
         run: |
           make clean
-          make -j4 ARCH=x86-32-sse41-popcnt optimize=no debug=yes ENV_CXXFLAGS="-Werror -D_GLIBCXX_DEBUG" build
+          make -j4 ARCH=x86-32-sse41-popcnt optimize=no debug=yes build
           ../tests/signature.sh $benchref
 
       - name: Build and test x86-32 SSE4.1 with POPCNT

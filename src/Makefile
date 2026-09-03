@@ -761,9 +761,8 @@ endif
 ifeq ($(debug),no)
     CXXFLAGS += -DNDEBUG
 else
-    CXXFLAGS += -g
     # Enable libstdc++ debug checks (harmless on libc++)
-    CXXFLAGS += -D_GLIBCXX_ASSERTIONS -D_GLIBCXX_DEBUG
+    CXXFLAGS += -g -D_GLIBCXX_ASSERTIONS -D_GLIBCXX_DEBUG
 endif
 
 ### 3.2.2 Debugging with undefined behavior sanitizers
