@@ -1448,43 +1448,43 @@ misc.o: misc.cpp $(BUILD_DATE_FILE) $(BUILD_SHA_FILE) $(BUILD_DIFFINDEX_FILE)
 # Clang PGO
 clang-profile-make:
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
-	EXTRA_CXXFLAGS='-fprofile-generate' \
-	EXTRA_LDFLAGS='-fprofile-generate' \
+	EXTRA_CXXFLAGS='-fprofile-generate $(EXTRA_CXXFLAGS)' \
+	EXTRA_LDFLAGS='-fprofile-generate $(EXTRA_LDFLAGS)' \
 	all
 
 clang-profile-use:
 	$(XCRUN) $(LLVM_PROFDATA) merge -output="$(NAME).profdata" *.profraw
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
-	EXTRA_CXXFLAGS='-fprofile-use=$(NAME).profdata' \
-	EXTRA_LDFLAGS='-fprofile-use=$(NAME).profdata' \
+	EXTRA_CXXFLAGS='-fprofile-use=$(NAME).profdata $(EXTRA_CXXFLAGS)' \
+	EXTRA_LDFLAGS='-fprofile-use=$(NAME).profdata $(EXTRA_LDFLAGS)' \
 	all
 
 # GCC PGO
 gcc-profile-make:
 	@mkdir -p profdir
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
-	EXTRA_CXXFLAGS='-fprofile-generate=profdir $(EXTRA_PROFILE_FLAGS)' \
-	EXTRA_LDLIBS='-lgcov' \
+	EXTRA_CXXFLAGS='-fprofile-generate=profdir $(EXTRA_PROFILE_FLAGS) $(EXTRA_CXXFLAGS)' \
+	EXTRA_LDLIBS='-lgcov $(EXTRA_LDLIBS)' \
 	all
 
 gcc-profile-use:
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
-	EXTRA_CXXFLAGS='-fprofile-use=profdir -fprofile-correction -fno-peel-loops -fno-tracer $(EXTRA_PROFILE_FLAGS)' \
-	EXTRA_LDLIBS='-lgcov' \
+	EXTRA_CXXFLAGS='-fprofile-use=profdir -fprofile-correction -fno-peel-loops -fno-tracer $(EXTRA_PROFILE_FLAGS) $(EXTRA_CXXFLAGS)' \
+	EXTRA_LDLIBS='-lgcov $(EXTRA_LDLIBS)' \
 	all
 
 # ICC/ICX PGO
 icx-profile-make:
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
-	EXTRA_CXXFLAGS='-fprofile-instr-generate' \
-	EXTRA_LDFLAGS='-fprofile-instr-generate' \
+	EXTRA_CXXFLAGS='-fprofile-instr-generate $(EXTRA_CXXFLAGS)' \
+	EXTRA_LDFLAGS='-fprofile-instr-generate $(EXTRA_LDFLAGS)' \
 	all
 
 icx-profile-use:
 	$(XCRUN) $(LLVM_PROFDATA) merge -output="$(NAME).profdata" *.profraw
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
-	EXTRA_CXXFLAGS='-fprofile-instr-use=$(NAME).profdata' \
-	EXTRA_LDFLAGS='-fprofile-use' \
+	EXTRA_CXXFLAGS='-fprofile-instr-use=$(NAME).profdata $(EXTRA_CXXFLAGS)' \
+	EXTRA_LDFLAGS='-fprofile-use $(EXTRA_LDFLAGS)' \
 	all
 
 .depend: $(SRCS)

@@ -93,9 +93,9 @@ jobs:
 
       - name: Build '${{ env.BINARY }}' with NDK
         run: |
+          export PATH="${{ env.ANDROID_NDK_BIN }}:$PATH"
           EXTRA_LDFLAGS=""
           if [ "$COMP" = "ndk" ]; then
-            export PATH="${{ env.ANDROID_NDK_BIN }}:$PATH"
             EXTRA_LDFLAGS="-static"
           fi
           make clean
