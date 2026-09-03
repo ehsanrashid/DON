@@ -411,8 +411,7 @@ static_assert(to_square(SQ_A1) == "a1" && to_square(SQ_H8) == "h8",
 // This is done to differentiate between a search value and any other integer value.
 // The values used in search are always supposed to be in the range (-VALUE_NONE, +VALUE_NONE]
 // and should not exceed this range.
-using Value    = i16;
-using SqrValue = i32;
+using Value = i16;
 
 inline constexpr Value VALUE_ZERO = 0;
 inline constexpr Value VALUE_DRAW = VALUE_ZERO;
@@ -435,6 +434,10 @@ inline constexpr Value VALUE_KNIGHT = 781;
 inline constexpr Value VALUE_BISHOP = 825;
 inline constexpr Value VALUE_ROOK   = 1276;
 inline constexpr Value VALUE_QUEEN  = 2538;
+
+using SqrValue = i32;
+
+inline constexpr SqrValue SQR_VALUE_INFINITE = VALUE_INFINITE * VALUE_INFINITE;
 
 inline constexpr int DELTA_MAX = 2 * VALUE_INFINITE;
 

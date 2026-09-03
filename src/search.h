@@ -197,7 +197,7 @@ struct RootMove final {
     Value    value       = -VALUE_INFINITE;
     Value    preValue    = -VALUE_INFINITE;
     Value    avgValue    = -VALUE_INFINITE;
-    SqrValue avgSqrValue = SqrValue(sign_sqr(-VALUE_INFINITE));
+    SqrValue avgSqrValue = -SQR_VALUE_INFINITE;
     Value    uciValue    = -VALUE_INFINITE;
     Bound    bound       = Bound::NONE;
     i32      tbRank      = 0;

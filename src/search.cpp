@@ -45,6 +45,14 @@ namespace {
 
 constexpr Depth OUTPUT_DEPTH_LIMIT = 30;
 
+// Dynamic EMA parameters: weight the new value between 37.5% and 75%,
+// increasing with new nodes relative to the accumulated history (Chi = 1.5).
+constexpr u64 WEIGHT_SCALE    = 32;
+constexpr u64 CHI_NUMERATOR   = 3;
+constexpr u64 CHI_DENOMINATOR = 2;   // Chi = 1.5
+constexpr u64 WEIGHT_MIN      = 12;  // 37.5% of WEIGHT_SCALE
+constexpr u64 WEIGHT_MAX      = 24;  // 75.0% of WEIGHT_SCALE
+
 constexpr Array<int, 16> LMR_DIVISORS{
   3307, 2930, 2874, 2818, 3215, 3225, 3224, 2782,  //
   2858, 2919, 3088, 3275, 3180, 2868, 3006, 3599   //
@@ -1615,11 +1623,34 @@ Value Worker::search(Position&    pos,
             auto& rm = *rootMoves.find(move);
             assert(rm[0] == move);
 
-            rm.nodes += nodes - preNodes;
-            // clang-format off
-            rm.avgValue    = Value   (rm.avgValue    !=          -VALUE_INFINITE  ? (         value  + rm.avgValue   ) / 2 :          value);
-            rm.avgSqrValue = SqrValue(rm.avgSqrValue != sign_sqr(-VALUE_INFINITE) ? (sign_sqr(value) + rm.avgSqrValue) / 2 : sign_sqr(value));
-            // clang-format on
+            const SqrValue sqrValue = SqrValue(value) * constexpr_abs(value);
+
+            const u64 newNodes = nodes - preNodes;
+
+            rm.nodes += newNodes;
+
+            const u64 preEMA = std::max(rm.nodes - newNodes, u64{1});
+
+            const u64 weight = std::clamp((WEIGHT_SCALE * newNodes * CHI_DENOMINATOR)
+                                            / (newNodes * CHI_DENOMINATOR + preEMA * CHI_NUMERATOR),
+                                          WEIGHT_MIN, WEIGHT_MAX);
+
+            const u64 sqrWeight = std::min(weight, u64{16});
+
+            if (rm.avgValue == -VALUE_INFINITE)
+                rm.avgValue = value;
+            else
+                rm.avgValue = Value(  //
+                  (i64(value) * i64(weight) + i64(rm.avgValue) * i64(WEIGHT_SCALE - weight))
+                  / i64(WEIGHT_SCALE));
+
+            if (rm.avgSqrValue == -SQR_VALUE_INFINITE)
+                rm.avgSqrValue = sqrValue;
+            else
+                rm.avgSqrValue = SqrValue(  //
+                  (i64(sqrValue) * i64(sqrWeight)
+                   + i64(rm.avgSqrValue) * i64(WEIGHT_SCALE - sqrWeight))
+                  / i64(WEIGHT_SCALE));
 
             // PV move or new best move?
             if (moveCount == 1 || value > alpha)
