@@ -17,7 +17,6 @@
 
 #include "misc.h"
 
-#include <cerrno>
 #include <cmath>
 #include <cstdlib>
 #include <ctime>
@@ -877,16 +876,20 @@ std::filesystem::path path_from_utf8(const std::string_view path) noexcept {
 #endif
 }
 
-std::optional<usize> str_to_usize(const std::string& s) noexcept {
-    if (s.empty() || s[0] == '-')
+std::optional<usize> str_to_usize(const std::string_view sv) noexcept {
+    if (sv.empty() || sv[0] == '-')
         return std::nullopt;
+    // Use from_chars (no allocation, fast)
+    const char* p   = sv.data();
+    const char* end = p + sv.size();
+    // Skip spaces
+    for (; p != end && is_space(*p); ++p)
+    {}
 
-    errno        = 0;
-    char* endptr = nullptr;
+    unsigned long long value = 0;
     // Parse decimal value (base 10) from string_view
-    const unsigned long long value = std::strtoull(s.c_str(), &endptr, 10);
-    if (errno == ERANGE || (*endptr != '\0' && !is_space(*endptr))
-        || value > std::numeric_limits<usize>::max())
+    auto [ptr, ec] = std::from_chars(p, end, value, 10);
+    if (ec != std::errc{} || ptr != end || value > std::numeric_limits<usize>::max())
         return std::nullopt;
 
     return static_cast<usize>(value);

@@ -2024,7 +2024,7 @@ void print_info_string(std::string_view infos) noexcept;
 std::string           utf8_from_wstring(std::wstring_view wsv) noexcept;
 std::filesystem::path path_from_utf8(std::string_view path) noexcept;
 
-std::optional<usize> str_to_usize(const std::string& s) noexcept;
+std::optional<usize> str_to_usize(std::string_view sv) noexcept;
 
 // Reads the file as bytes.
 // Returns std::nullopt if the file does not exist.
