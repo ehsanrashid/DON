@@ -269,12 +269,10 @@ class SparseAffineTransform final {
     #else
         static_assert(InputDimensions % 256 == 0);
 
-        for (IndexType i = 0; i < InputDimensions / 256; ++i)
+        for (IndexType j = 0; j < InputDimensions / 256; ++j)
         {
-            Bitboard bits = load_as<Bitboard>(nnz.bitset + i * 8);
-
-            usize base = 64 * i;
-
+            Bitboard    bits   = load_as<Bitboard>(nnz.bitset + j * 8);
+            const usize base   = 64 * j;
             const auto* inBase = input + base * sizeof(i32);
             const auto* wBase  = &w[base * OutputDimensions * ChunkSize];
 
@@ -375,7 +373,7 @@ class SparseAffineTransform final {
         #else
             while (bits != 0)
             {
-                const u8 i = pop_lsq(bits);
+                const usize i = pop_lsq(bits);
 
                 const auto* inPtr = inBase + i * sizeof(i32);
 
@@ -433,10 +431,10 @@ class SparseAffineTransform final {
                 vint32m##LMUL##_t acc = __riscv_vle32_v_i32m##LMUL(biases.data() + ob, vl); \
                 for (IndexType k = 0; k < InputDimensions / 256; ++k) \
                 { \
-                    u64   bits   = load_as<u64>(nnz.bitset + k * 8); \
-                    usize base   = 64 * k; \
-                    auto* inBase = input + base * sizeof(i32); \
-                    auto* wBase  = &w[base * OutputDimensions * ChunkSize]; \
+                    Bitboard    bits   = load_as<Bitboard>(nnz.bitset + k * 8); \
+                    const usize base   = 64 * k; \
+                    auto*       inBase = input + base * sizeof(i32); \
+                    auto*       wBase  = &w[base * OutputDimensions * ChunkSize]; \
                     while (bits != 0) \
                     { \
                         const usize       i = pop_lsq(bits); \
