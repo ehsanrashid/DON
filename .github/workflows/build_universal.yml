@@ -4,8 +4,8 @@ on:
   workflow_call:
 
 jobs:
-  BuildUniversalLinux:
-    name: Linux
+  BuildUniversalLinuxX86_64:
+    name: Linux x86-64 Universal
     runs-on: ubuntu-22.04
     defaults:
       run:
@@ -73,8 +73,8 @@ jobs:
              !.git
              !.output
 
-  BuildUniversalWindows:
-    name: Windows
+  BuildUniversalWindowsX86_64:
+    name: Windows x86-64 Universal
     runs-on: windows-2022
     defaults:
       run:
@@ -146,7 +146,7 @@ jobs:
              !.output
 
   BuildUniversalLinuxARM64:
-    name: Linux ARM64
+    name: Linux ARM64 Universal
     runs-on: ubuntu-22.04-arm
     defaults:
       run:
@@ -214,7 +214,7 @@ jobs:
              !.output
 
   BuildUniversalWindowsARM64:
-    name: Windows ARM64
+    name: Windows ARM64 Universal
     runs-on: windows-11-arm
     defaults:
       run:
@@ -281,7 +281,7 @@ jobs:
              !.output
 
   BuildUniversalLinuxRISCV64:
-    name: Linux RISC-V64
+    name: Linux RISC-V64 Universal
     runs-on: ubuntu-22.04
     defaults:
       run:
@@ -372,7 +372,7 @@ jobs:
              !.output
 
   BuildUniversalMacOS:
-    name: macOS
+    name: macOS Universal
     runs-on: macos-15
     defaults:
       run:

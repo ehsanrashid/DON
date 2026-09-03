@@ -115,6 +115,6 @@ project][lc0-data-link], which is made available under the [Open Database Licens
 [wiki-compile-link]:    https://github.com/ehsanrashid/DON/wiki/Compiling-from-source
 [wiki-uci-link]:        https://github.com/ehsanrashid/DON/wiki/UCI-&-Commands
 [wiki-usage-link]:      https://github.com/ehsanrashid/DON/wiki/Download-and-usage
-[worker-link]:          https://github.com/ehsanrashid/DON/fishtest/wiki/Running-the-worker
+[worker-link]:          https://github.com/ehsanrashid/DON/wiki/Running-the-worker
 [lc0-data-link]:        https://storage.lczero.org/files/training_data
 [odbl-link]:            https://opendatacommons.org/licenses/odbl/odbl-10.txt
