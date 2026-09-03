@@ -290,9 +290,11 @@ class SparseAffineTransform final {
         #if defined(USE_AVXVNNI)
             while (bits != 0)
             {
-                const usize   i0  = pop_lsq(bits);
+                const usize i0 = pop_lsq(bits);
+
                 const invec_t in0 = vec_set_32(load_as<i32>(inBase + i0 * sizeof(i32)));
-                const auto*   col0 =
+
+                const auto* col0 =
                   reinterpret_cast<const invec_t*>(&wBase[i0 * OutputDimensions * ChunkSize]);
 
                 if (bits == 0)
@@ -302,9 +304,11 @@ class SparseAffineTransform final {
                     break;
                 }
 
-                const usize   i1  = pop_lsq(bits);
+                const usize i1 = pop_lsq(bits);
+
                 const invec_t in1 = vec_set_32(load_as<i32>(inBase + i1 * sizeof(i32)));
-                const auto*   col1 =
+
+                const auto* col1 =
                   reinterpret_cast<const invec_t*>(&wBase[i1 * OutputDimensions * ChunkSize]);
 
                 for (IndexType k = 0; k < AccCount; ++k)
