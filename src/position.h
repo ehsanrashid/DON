@@ -61,7 +61,7 @@ namespace DON {
 //      Returns the Zobrist key for a piece on a specific square.
 //  - castling(CastlingRights) - Returns the Zobrist key for a given castling right.
 //  - enpassant(Square) - Returns the Zobrist key for an en passant square.
-//  - turn(Color) - Returns the Zobrist key for the side to move.
+//  - turn() - Returns the Zobrist key for the side to move.
 //  - mr50(int) - Returns the Zobrist key for the 50-move rule counter.
 //
 // Notes:
@@ -74,7 +74,7 @@ namespace DON {
 // Example usage:
 //   Zobrist::init();
 //   Key key = Zobrist::piece_square(Piece::WHITE_KNIGHT, Square::G1);
-//   key ^= Zobrist::turn(BLACK);
+//   key ^= Zobrist::turn();
 struct Zobrist final {
    public:
     static void init() noexcept;
@@ -100,7 +100,7 @@ struct Zobrist final {
         return is_ok(enPassantSq) ? Enpassant[file_of(enPassantSq)] : 0;
     }
 
-    static Key turn(Color c) noexcept { return c == WHITE ? 0 : Turn; }
+    static Key turn() noexcept { return Turn; }
 
     static Key mr50(i16 rule50Count) noexcept {
         return rule50Count < R50Offset
@@ -126,7 +126,7 @@ struct Zobrist final {
     static constexpr u8 R50Offset = 14;
     static constexpr u8 R50Factor = 8;
 
-    static inline Array<Key, (PLY_MAX + 1 - R50Offset) / R50Factor + 2> MR50;
+    static inline Array<Key, 64> MR50;
 };
 
 // State struct stores information needed to restore Position object

@@ -178,7 +178,7 @@ nnue_trace(Position& pos, const NNUE::Network& network, NNUE::AccumulatorCache& 
         }
 
 
-    oss << " NNUE derived piece values:\n";
+    oss << "NNUE derived piece values:\n";
 
     for (const auto& row : board)
         oss << row << '\n';
@@ -188,8 +188,8 @@ nnue_trace(Position& pos, const NNUE::Network& network, NNUE::AccumulatorCache& 
 
     auto netTrace = network.trace(pos, accCache, *accStack);
 
-    oss << " NNUE network contributions (Normalized, ";
-    oss << (pos.active_color() == WHITE ? "White" : "Black") << " to move):\n";
+    oss << "NNUE network contributions (Normalized, ";
+    oss << to_string(pos.active_color()) << " to move):\n";
     oss << Sep;
     oss << "|   Bucket   |  Material  | Positional |   Total    |\n";
     oss << "|            |   (PSQT)   |  (Layers)  |            |\n";

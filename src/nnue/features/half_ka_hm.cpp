@@ -106,8 +106,9 @@ void HalfKA_hm::append_map_changed_indices(const Color     perspective,
     const __m512i oldPieceVec = _mm512_loadu_si512(oldPieceMap.data());
     const __m512i newPieceVec = _mm512_loadu_si512(newPieceMap.data());
 
-    // PieceSquareIndex and KingBuckets are multiples of 64, while s and orient
-    // use only the low six bits. Therefore no carry crosses bit 6, and
+    // PIECE_SQUARE_INDICES and KING_BUCKETS are multiples of 64,
+    // while s and orient use only the low six bits.
+    // Therefore no carry crosses bit 6, and
     // (s ^ orient) + psi[pc] + bucket == s ^ (psi[pc] + bucket + orient),
     // allowing the orientation to be folded into the per-piece lookup offset.
     const u16 flip   = 56 * perspective;

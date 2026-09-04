@@ -44,7 +44,6 @@
 #include <type_traits>
 
 #include "../misc.h"
-#include "../types.h"  // IWYU pragma: keep
 #include "ntypes.h"
 
 #if defined(USE_AVX2) && !defined(USE_VNNI) && !defined(USE_AVX512)
@@ -379,60 +378,6 @@ inline int16x8_t arm32_vsubw_high_s8(const int16x8_t a, const int8x16_t b) noexc
 #endif
 // clang-format on
 
-struct Vec16Wrapper final {
-#if defined(VECTOR)
-    using type = vec_t;
-    static type add(const type& lhs, const type& rhs) noexcept { return vec_add_16(lhs, rhs); }
-    static type sub(const type& lhs, const type& rhs) noexcept { return vec_sub_16(lhs, rhs); }
-#else
-    using type = BiasType;
-    static type add(const type& lhs, const type& rhs) noexcept { return lhs + rhs; }
-    static type sub(const type& lhs, const type& rhs) noexcept { return lhs - rhs; }
-#endif
-};
-
-struct Vec32Wrapper final {
-#if defined(VECTOR)
-    using type = psqt_vec_t;
-    static type add(const type& lhs, const type& rhs) noexcept { return vec_add_psqt_32(lhs, rhs); }
-    static type sub(const type& lhs, const type& rhs) noexcept { return vec_sub_psqt_32(lhs, rhs); }
-#else
-    using type = PSQTWeightType;
-    static type add(const type& lhs, const type& rhs) { return lhs + rhs; }
-    static type sub(const type& lhs, const type& rhs) { return lhs - rhs; }
-#endif
-};
-
-enum class UpdateOperation : u8 {
-    Add,
-    Sub
-};
-
-template<typename VecWrapper,
-         UpdateOperation... ops,
-         std::enable_if_t<sizeof...(ops) == 0, bool> = true>
-typename VecWrapper::type fused(const typename VecWrapper::type& in) noexcept {
-    return in;
-}
-
-template<typename VecWrapper,
-         UpdateOperation UpdateOp,
-         UpdateOperation... ops,
-         typename T,
-         typename... Ts,
-         std::enable_if_t<is_all_same_v<typename VecWrapper::type, T, Ts...>, bool> = true,
-         std::enable_if_t<sizeof...(ops) == sizeof...(Ts), bool>                    = true>
-typename VecWrapper::type
-fused(const typename VecWrapper::type& in, const T& operand, const Ts&... operands) noexcept {
-    static_assert(UpdateOp == UpdateOperation::Add || UpdateOp == UpdateOperation::Sub,
-                  "Unsupported UpdateOp.");
-    if constexpr (UpdateOp == UpdateOperation::Add)
-        return fused<VecWrapper, ops...>(VecWrapper::add(in, operand), operands...);
-    if constexpr (UpdateOp == UpdateOperation::Sub)
-        return fused<VecWrapper, ops...>(VecWrapper::sub(in, operand), operands...);
-    return typename VecWrapper::type();
-}
-
 #if defined(USE_SSSE3)
     #if defined(USE_AVX512)
 inline int m512_hadd(const __m512i sum, const int bias) noexcept {
@@ -593,7 +538,7 @@ RVV_DPBUSD(m4, m8, m2)
 #endif  // USE_RVV
 
 // Compute optimal SIMD register count for feature transformer accumulation
-template<IndexType TransformedFeatureWidth, IndexType HalfDimensions, IndexType PSQT_BUCKETS>
+template<IndexType TransformedFeatureWidth, IndexType HalfDimensions, IndexType PSQTBuckets>
 class Tiling final {
    private:
 #if defined(VECTOR)
@@ -636,13 +581,13 @@ class Tiling final {
     static constexpr usize RegCount =
       best_register_count<vec_t, WeightType, TransformedFeatureWidth, MaxRegisterCount>();
     static constexpr usize PSQTRegCount =
-      best_register_count<psqt_vec_t, PSQTWeightType, PSQT_BUCKETS, MaxRegisterCount>();
+      best_register_count<psqt_vec_t, PSQTWeightType, PSQTBuckets, MaxRegisterCount>();
 
     static constexpr IndexType TileHeight     = RegCount * sizeof(vec_t) / 2;
     static constexpr IndexType PSQTTileHeight = PSQTRegCount * sizeof(psqt_vec_t) / 4;
 
     static_assert(HalfDimensions % TileHeight == 0, "TileHeight must divide HalfDimensions");
-    static_assert(PSQT_BUCKETS % PSQTTileHeight == 0, "PSQTTileHeight must divide PSQT_BUCKETS");
+    static_assert(PSQTBuckets % PSQTTileHeight == 0, "PSQTTileHeight must divide PSQTBuckets");
 #endif
 
    private:

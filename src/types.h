@@ -268,6 +268,19 @@ inline constexpr usize COLOR_NB = 2;
 // Toggle color
 [[nodiscard]] constexpr Color operator~(const Color c) noexcept { return Color(c ^ BLACK); }
 
+[[nodiscard]] constexpr std::string_view to_string(const Color c) noexcept {
+    switch (c)
+    {
+    case WHITE :
+        return "White";
+    case BLACK :
+        return "Black";
+    case NONE :
+        return "None";
+    }
+    return "Unknown";
+}
+
 // clang-format off
 enum class Piece : u8 {
     NO_PIECE,
@@ -314,10 +327,10 @@ constexpr bool slider_can_threaten(const Piece pc, const Piece sliderPc) noexcep
 using PieceMap = Array<Piece, SQUARE_NB>;
 
 [[nodiscard]] constexpr File fold_to_edge(const File f) noexcept {
-    return std::min(f, FILE_H - u8(f));
+    return std::min(f, FILE_H - int(f));
 }
 [[nodiscard]] constexpr Rank fold_to_edge(const Rank r) noexcept {
-    return std::min(r, RANK_8 - u8(r));
+    return std::min(r, RANK_8 - int(r));
 }
 
 [[nodiscard]] constexpr Square relative_sq(const Color c, const Square s) noexcept {
@@ -837,14 +850,6 @@ struct DirtyBoard final {
 constexpr u64 make_hash(const u64 seed) noexcept {
     return u64{0x14057B7EF767814F} + u64{0x5851F42D4C957F2D} * seed;
 }
-
-template<typename T, typename... Ts>
-struct is_all_same final {
-    static constexpr bool value = (std::is_same_v<T, Ts> && ...);
-};
-
-template<typename... Ts>
-constexpr auto is_all_same_v = is_all_same<Ts...>::value;
 
 }  // namespace DON
 

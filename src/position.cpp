@@ -82,15 +82,14 @@ class CuckooTable final {
         assert(!newCuckoo.empty());
 
         usize index = H<0>(newCuckoo.key);
-
         while (true)
         {
             std::swap(newCuckoo, cuckoos[index]);
-
-            if (newCuckoo.empty())  // Arrived at empty slot?
+            // Arrived at empty slot?
+            if (newCuckoo.empty())
                 break;
-
-            index ^= H<0>(newCuckoo.key) ^ H<1>(newCuckoo.key);  // Push victim to alternative slot
+            // Push victim to alternative slot
+            index ^= H<0>(newCuckoo.key) ^ H<1>(newCuckoo.key);
         }
 
         ++count;
@@ -108,14 +107,22 @@ class CuckooTable final {
 
         for (Color c : {WHITE, BLACK})
             for (PieceType pt : PIECE_TYPES)
-                if (pt != PAWN)
-                    for (Square s1 = SQ_A1; s1 < SQ_H8; ++s1)
-                        for (Square s2 = s1 + 1; s2 <= SQ_H8; ++s2)
-                            if ((attacks_bb(s1, pt, 0) & s2) != 0)
-                                insert({Zobrist::turn(BLACK)  //
-                                          ^ Zobrist::piece_square(c, pt, s1)
-                                          ^ Zobrist::piece_square(c, pt, s2),
-                                        Move{s1, s2}});
+            {
+                if (pt == PAWN)
+                    continue;
+                for (Square s1 = SQ_A1; s1 < SQ_H8; ++s1)
+                    for (Square s2 = s1 + 1; s2 <= SQ_H8; ++s2)
+                    {
+                        if ((pseudo_attacks_bb(s1, pt) & s2) != 0)
+                        {
+                            const Key  key = Zobrist::turn()  //
+                                           ^ Zobrist::piece_square(c, pt, s1)
+                                           ^ Zobrist::piece_square(c, pt, s2);
+                            const Move move{s1, s2};
+                            insert({key, move});
+                        }
+                    }
+            }
 
         assert(count == 3668);
     }
@@ -139,9 +146,9 @@ CuckooTable<0x2000> Cuckoos;
 }  // namespace
 
 void Zobrist::init() noexcept {
-    XorShift64Star prng(u64{0x105524});
+    XorShift64Star prng(0x105524);
 
-    auto prng_rand = [&] { return prng.template rand<Key>(); };
+    const auto prng_rand = [&prng]() noexcept { return prng.template rand<Key>(); };
 
     for (Color c : {WHITE, BLACK})
     {
@@ -326,7 +333,7 @@ std::optional<Error> Position::set(const std::string_view fens, State* const new
         return Error{"Invalid FEN: pawns on the first or eighth rank."};
     for (Color c : {WHITE, BLACK})
     {
-        std::string side{c == WHITE ? "white" : "black"};
+        std::string side{to_string(c)};
 
         if (count(c) > 16)
             return Error{"Invalid FEN: " + side + " has more than 16 pieces."};
@@ -387,13 +394,13 @@ std::optional<Error> Position::set(const std::string_view fens, State* const new
         token         = lower_case(token);
 
         if (relative_rank(c, square<KING>(c)) != RANK_1)
-            return Error{"Invalid FEN: " + std::string{c == WHITE ? "white" : "black"}
+            return Error{"Invalid FEN: " + std::string{to_string(c)}
                          + " king is not on the first rank."};
 
         const Bitboard rooksBB = pieces_bb(c, ROOK);
 
         if ((rooksBB & relative_rank(c, RANK_1)) == 0)
-            return Error{"Invalid FEN: " + std::string{c == WHITE ? "white" : "black"}
+            return Error{"Invalid FEN: " + std::string{to_string(c)}
                          + " rook is missing on the first rank."};
 
         Square rookOrgSq;
@@ -700,7 +707,8 @@ void Position::set_state() noexcept {
 
     st->key ^= Zobrist::enpassant(en_passant_sq());
 
-    st->key ^= Zobrist::turn(active_color());
+    if (active_color() == BLACK)
+        st->key ^= Zobrist::turn();
 }
 
 void Position::set_pinner_blocker() noexcept {
@@ -907,7 +915,7 @@ DirtyBoard Position::do_move(const Move          m,
     db.dirtyPiece.addedSq = SQ_NONE;
     assert(db.dirtyThreats.empty());
 
-    st->key ^= Zobrist::turn(BLACK) ^ Zobrist::enpassant(en_passant_sq());
+    st->key ^= Zobrist::turn() ^ Zobrist::enpassant(en_passant_sq());
 
     reset_en_passant_sq();
 
@@ -1256,7 +1264,7 @@ void Position::do_null_move(State& newSt) noexcept {
 
     st->nullPly = 0;
 
-    st->key ^= Zobrist::turn(BLACK) ^ Zobrist::enpassant(en_passant_sq());
+    st->key ^= Zobrist::turn() ^ Zobrist::enpassant(en_passant_sq());
 
     reset_en_passant_sq();
 
@@ -1501,7 +1509,7 @@ bool Position::fork(const Move m) const noexcept {
 // Needed for speculative prefetch.
 // It does recognize special moves like castling, en-passant and promotions.
 Key Position::move_key(const Move m) const noexcept {
-    Key moveKey = st->key ^ Zobrist::turn(BLACK) ^ Zobrist::enpassant(en_passant_sq());
+    Key moveKey = st->key ^ Zobrist::turn() ^ Zobrist::enpassant(en_passant_sq());
 
     //if (m == Move::Null)
     //    return moveKey;
@@ -1890,11 +1898,11 @@ bool Position::is_upcoming_repetition(i16 ply) const noexcept {
 
     const Key    baseKey = st->key;
     const State* preSt   = st->preSt;
-    Key          iterKey = baseKey ^ preSt->key ^ Zobrist::turn(BLACK);
+    Key          iterKey = baseKey ^ preSt->key ^ Zobrist::turn();
 
     for (u16 i = 3; i <= end; i += 2)
     {
-        iterKey ^= preSt->preSt->key ^ preSt->preSt->preSt->key ^ Zobrist::turn(BLACK);
+        iterKey ^= preSt->preSt->key ^ preSt->preSt->preSt->key ^ Zobrist::turn();
 
         preSt = preSt->preSt->preSt;
 
@@ -2054,7 +2062,8 @@ Key Position::compute_key() const noexcept {
 
     key ^= Zobrist::enpassant(en_passant_sq());
 
-    key ^= Zobrist::turn(active_color());
+    if (active_color() == BLACK)
+        key ^= Zobrist::turn();
 
     return key;
 }
