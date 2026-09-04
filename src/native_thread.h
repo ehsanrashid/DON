@@ -19,7 +19,6 @@
 #define NATIVE_THREAD_H_INCLUDED
 
 #include <functional>
-#include <utility>
 
 // MSVC-compatible toolchains use std::thread because pthreads is not provided by default.
 // All other platforms use pthreads.
@@ -29,6 +28,7 @@
 
 #if defined(USE_PTHREAD)
     #include <pthread.h>
+    #include <utility>
 
     #include "misc.h"
 #else
@@ -55,8 +55,8 @@ class NativeThread final {
         auto jobFuncPtr = std::make_unique<JobFunc>(
           std::bind(std::forward<Function>(func), std::forward<Args>(args)...));
 
-        auto start_routine = [](void* ptr) noexcept -> void* {
-            // Take ownership of JobFunc and delete when done
+        const auto start_routine = [](void* ptr) noexcept -> void* {
+            // Take ownership of JobFunc and delete it when the thread exits
             std::unique_ptr<JobFunc> ptrFn(static_cast<JobFunc*>(ptr));
 
             // Call the function
@@ -74,32 +74,37 @@ class NativeThread final {
             return;
         }
 
+        const auto destroy_thread_attr = [&threadAttr]() noexcept {
+            if (::pthread_attr_destroy(&threadAttr) != 0)
+            {
+                //DEBUG_LOG("::pthread_attr_destroy() failed to destroy thread attributes.");
+            }
+        };
+
         if (::pthread_attr_setstacksize(&threadAttr, ThreadStackSize) != 0)
         {
             //DEBUG_LOG("::pthread_attr_setstacksize() failed to set thread stack size.");
+            destroy_thread_attr();
+            return;
         }
 
-        // Pass the raw pointer to pthread_create
-        // pthread_create takes ownership of jobFuncPtr only on success
+        // Pass the raw pointer to pthread_create.
+        // jobFuncPtr retains ownership until thread creation succeeds.
         if (::pthread_create(&thread, &threadAttr, start_routine, jobFuncPtr.get()) != 0)
         {
             //DEBUG_LOG("::pthread_create() failed to create thread.");
-            // Thread creation failed: jobFuncPtr will be deleted automatically
+            // jobFuncPtr deletes JobFunc automatically on failed creation
             joined = true;
         }
         else
         {
             // Mark thread as now joinable, not joined yet
             joined = false;
-            // Thread now owns it
+            // Transfer ownership to the new thread on successful creation
             jobFuncPtr.release();
         }
 
-        // Destroy thread attr
-        if (::pthread_attr_destroy(&threadAttr) != 0)
-        {
-            //DEBUG_LOG("::pthread_attr_destroy() failed to destroy thread attributes.");
-        }
+        destroy_thread_attr();
     }
 
     // Non-copyable
