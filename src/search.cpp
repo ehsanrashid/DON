@@ -870,22 +870,11 @@ Value Worker::search(Position&    pos,
     auto [ttd, ttw] = transpositionTable.probe(key);
 
     ttd.value = ttd.hit ? value_from_tt(ttd.value, ss->ply, pos.rule50_count()) : VALUE_NONE;
-
-    bool ttmNone;
-    if constexpr (RootNode)
-    {
-        ttd.move = rootMoves[pvIdx][0];
-        ttmNone  = false;
-    }
-    else
-    {
-        ttd.move = ttd.hit ? legal_move(ttd.move, pos) : Move::None;
-        ttmNone  = ttd.move == Move::None;
-        assert(ttmNone || pos.legal(ttd.move));
-    }
+    ttd.move  = RootNode ? rootMoves[pvIdx][0] : ttd.hit ? legal_move(ttd.move, pos) : Move::None;
 
     ss->ttMove = ttd.move;
 
+    const bool ttmNone    = ttd.move == Move::None;
     const bool ttmCapture = !ttmNone && pos.capture_promo(ttd.move);
 
     if (!exclude)
@@ -1121,7 +1110,7 @@ Value Worker::search(Position&    pos,
     {
     // The depth condition is important for mate finding
     if (!ss->pvTT && !exclude && depth < 17 && !is_win(ttEvalue) && !is_loss(beta)
-        && (ttmNone || (ttmCapture && constexpr_abs(int(captureHistory[+pos.moved_pc(ttd.move)][ttd.move.dst_sq()][pos.captured_pt(ttd.move)])) >= 4096)))
+        && (ttmNone || ttmCapture))
     {
         // Compute base futility
         int baseFutility = std::min(40 + 4 * depth, 80) - int(!ttd.hit) * 20;
@@ -1405,7 +1394,7 @@ Value Worker::search(Position&    pos,
                         if (futility <= alpha)
                         {
                             if (!is_win(futility))
-                                bestValue = static_cast<Value>(std::max<int>(futility, bestValue));
+                                bestValue = Value(std::max<int>(futility, bestValue));
                             continue;
                         }
                     }
@@ -1989,8 +1978,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
             bool capture = pos.capture_promo(move);
 
             // Futility pruning and moveCount pruning
-            if (!check && !(preOk && dstSq == preSq) && move.type() != MT::PROMOTION
-                && !is_loss(baseFutility))
+            if (!check && dstSq != preSq && move.type() != MT::PROMOTION && !is_loss(baseFutility))
             {
                 if (moveCount > 2)
                     continue;
@@ -2000,7 +1988,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
 
                 if (futility <= alpha)
                 {
-                    bestValue = static_cast<Value>(std::max<int>(futility, bestValue));
+                    bestValue = Value(std::max<int>(futility, bestValue));
                     continue;
                 }
 
@@ -2008,8 +1996,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
                 int threshold = baseFutility - alpha;
                 if (pos.see(move) < -threshold)
                 {
-                    bestValue = static_cast<Value>(
-                      std::max<int>(std::min<int>(baseFutility, alpha), bestValue));
+                    bestValue = Value(std::max<int>(std::min<int>(baseFutility, alpha), bestValue));
                     continue;
                 }
             }
@@ -2298,7 +2285,7 @@ int Worker::correction_value(const Position& pos, const Stack* const ss) const n
     const Color ac = pos.active_color();
 
     i64 correctionValue =
-           + i64{6666} * (atomicHistories.    pawn_correction_entry<WHITE>(pos)[ac]
+           + i64{6670} * (atomicHistories.    pawn_correction_entry<WHITE>(pos)[ac]
                         + atomicHistories.    pawn_correction_entry<BLACK>(pos)[ac])
            + i64{4640} * (atomicHistories.   minor_correction_entry<WHITE>(pos)[ac]
                         + atomicHistories.   minor_correction_entry<BLACK>(pos)[ac])
