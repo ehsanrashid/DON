@@ -84,18 +84,17 @@ class AffineTransform final {
 
     static constexpr IndexType weight_index(IndexType i) noexcept {
 #if defined(USE_AFFINE_SIMD)
-        IndexType inputIndex = i % PaddedInputDimensions;
+        IndexType idx = i % PaddedInputDimensions;
     #if defined(USE_AVX2_PAIR_ACTIVATIONS)
         // AVX2 packs operate independently on 128-bit lanes. Keep their interleaved output
         // order and rearrange the following layer's weights instead of issuing VPERMD.
-        const IndexType block = inputIndex / 32;
-        const IndexType chunk = (inputIndex % 32) / ChunkSize;
+        const IndexType block = idx / 32;
+        const IndexType chunk = (idx % 32) / ChunkSize;
 
-        inputIndex =
-          block * 32 + ((chunk % 2) * ChunkSize + chunk / 2) * ChunkSize + inputIndex % ChunkSize;
+        idx = block * 32 + ((chunk % 2) * ChunkSize + chunk / 2) * ChunkSize + idx % ChunkSize;
     #endif
-        return inputIndex / ChunkSize * OutputDimensions * ChunkSize
-             + i / PaddedInputDimensions * ChunkSize + inputIndex % ChunkSize;
+        return idx / ChunkSize * OutputDimensions * ChunkSize
+             + i / PaddedInputDimensions * ChunkSize + idx % ChunkSize;
 #else
         return i;
 #endif
