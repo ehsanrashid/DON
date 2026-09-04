@@ -195,7 +195,7 @@ nnue_trace(Position& pos, const NNUE::Network& network, NNUE::AccumulatorCache& 
     oss << "|            |   (PSQT)   |  (Layers)  |            |\n";
     oss << Sep;
 
-    for (usize bucket = 0; bucket < NNUE::LayerStacks; ++bucket)
+    for (usize bucket = 0; bucket < NNUE::LAYER_STACKS; ++bucket)
     {
         oss << "|  " << bucket << "         |  ";
         format_cp_aligned_dot(oss, netTrace.netOut[bucket].psqt, pos);

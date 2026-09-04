@@ -206,7 +206,7 @@ void Network::verify(std::filesystem::path evalFilePath, const EvalFile& evalFil
     }
 
     constexpr usize TotalSize =
-      sizeof(featureTransformer) + LayerStacks * sizeof(NetworkArchitecture);
+      sizeof(featureTransformer) + LAYER_STACKS * sizeof(NetworkArchitecture);
 
     std::string msg{"NNUE evaluation using " + evalFilePath.string() + " ("
                     + std::to_string(TotalSize / MB) + "MiB, ("
@@ -262,7 +262,7 @@ NetworkTrace Network::trace(const Position&   pos,
 
     NetworkTrace netTrace{};
     netTrace.correctBucket = pos.bucket();
-    for (IndexType bucket = 0; bucket < LayerStacks; ++bucket)
+    for (IndexType bucket = 0; bucket < LAYER_STACKS; ++bucket)
     {
         const auto psqt       = featureTransformer.transform(pos, accCache, accStack,  //
                                                              bucket, nnz, transformedFeatures);

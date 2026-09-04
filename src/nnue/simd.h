@@ -593,7 +593,7 @@ RVV_DPBUSD(m4, m8, m2)
 #endif  // USE_RVV
 
 // Compute optimal SIMD register count for feature transformer accumulation
-template<IndexType TransformedFeatureWidth, IndexType HalfDimensions, IndexType PSQTBuckets>
+template<IndexType TransformedFeatureWidth, IndexType HalfDimensions, IndexType PSQT_BUCKETS>
 class Tiling final {
    private:
 #if defined(VECTOR)
@@ -636,13 +636,13 @@ class Tiling final {
     static constexpr usize RegCount =
       best_register_count<vec_t, WeightType, TransformedFeatureWidth, MaxRegisterCount>();
     static constexpr usize PSQTRegCount =
-      best_register_count<psqt_vec_t, PSQTWeightType, PSQTBuckets, MaxRegisterCount>();
+      best_register_count<psqt_vec_t, PSQTWeightType, PSQT_BUCKETS, MaxRegisterCount>();
 
     static constexpr IndexType TileHeight     = RegCount * sizeof(vec_t) / 2;
     static constexpr IndexType PSQTTileHeight = PSQTRegCount * sizeof(psqt_vec_t) / 4;
 
     static_assert(HalfDimensions % TileHeight == 0, "TileHeight must divide HalfDimensions");
-    static_assert(PSQTBuckets % PSQTTileHeight == 0, "PSQTTileHeight must divide PSQTBuckets");
+    static_assert(PSQT_BUCKETS % PSQTTileHeight == 0, "PSQTTileHeight must divide PSQT_BUCKETS");
 #endif
 
    private:

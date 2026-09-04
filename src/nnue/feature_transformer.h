@@ -383,8 +383,8 @@ class FeatureTransformer final {
     alignas(CACHE_LINE_SIZE) Array<BiasType        , HalfDimensions>                                biases;
     alignas(CACHE_LINE_SIZE) Array<WeightType      , HalfDimensions * PSQFeatureSet::Dimensions>    weights;
     alignas(CACHE_LINE_SIZE) Array<ThreatWeightType, HalfDimensions * ThreatFeatureSet::Dimensions> threatWeights;
-    alignas(CACHE_LINE_SIZE) Array<PSQTWeightType  , PSQTBuckets * PSQFeatureSet::Dimensions>       psqtWeights;
-    alignas(CACHE_LINE_SIZE) Array<PSQTWeightType  , PSQTBuckets * ThreatFeatureSet::Dimensions>    threatPsqtWeights;
+    alignas(CACHE_LINE_SIZE) Array<PSQTWeightType  , PSQT_BUCKETS * PSQFeatureSet::Dimensions>      psqtWeights;
+    alignas(CACHE_LINE_SIZE) Array<PSQTWeightType  , PSQT_BUCKETS * ThreatFeatureSet::Dimensions>   threatPsqtWeights;
     // clang-format on
 };
 

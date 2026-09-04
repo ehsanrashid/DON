@@ -46,12 +46,12 @@ inline constexpr u32       L3 = 32;
 // Version of the evaluation file
 inline constexpr u32 FILE_VERSION = 0x6A448AFAu;
 
-inline constexpr IndexType PSQTBuckets = 8;
-inline constexpr IndexType LayerStacks = 8;
+inline constexpr IndexType PSQT_BUCKETS = 8;
+inline constexpr IndexType LAYER_STACKS = 8;
 
 // If vector instructions are enabled, update and refresh the accumulator
 // tile by tile such that each tile fits in the CPU's vector registers.
-static_assert(PSQTBuckets % 8 == 0,
+static_assert(PSQT_BUCKETS % 8 == 0,
               "Per feature PSQT values cannot be processed at granularity lower than 8 at a time.");
 
 // Constant used in evaluation value calculation
@@ -86,8 +86,8 @@ struct NetworkOutput final {
 
 struct NetworkTrace final {
    public:
-    Array<NetworkOutput, LayerStacks> netOut;
-    usize                             correctBucket;
+    Array<NetworkOutput, LAYER_STACKS> netOut;
+    usize                              correctBucket;
 };
 
 }  // namespace DON::NNUE
