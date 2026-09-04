@@ -45,7 +45,7 @@ class ClippedReLU final {
     static constexpr IndexType InputDimensions  = InDims;
     static constexpr IndexType OutputDimensions = InputDimensions;
     static constexpr IndexType PaddedOutputDimensions =
-      ceil_to_multiple<IndexType>(OutputDimensions, SIMD_WIDTH_MAX);
+      ceil_to_multiple<IndexType>(OutputDimensions, SIMD::WIDTH_MAX);
 
     using OutputBuffer = Array<OutputType, PaddedOutputDimensions>;
 
@@ -72,7 +72,7 @@ class ClippedReLU final {
     void propagate(const InputType* RESTRICT input, OutputType* RESTRICT output) const noexcept {
         // clang-format off
 #if defined(USE_SSE2)
-        constexpr IndexType SimdWidth  = SIMD_WIDTH_MIN;
+        constexpr IndexType SimdWidth  = SIMD::WIDTH_MIN;
         constexpr IndexType ChunkCount = InputDimensions / SimdWidth;
 
     #if defined(USE_SSE41)
@@ -109,7 +109,7 @@ class ClippedReLU final {
 
 #elif defined(USE_LSX)
     #if defined(USE_LASX)
-        constexpr IndexType SimdWidth  = SIMD_WIDTH;
+        constexpr IndexType SimdWidth  = SIMD::WIDTH;
         constexpr IndexType ChunkCount = InputDimensions / SimdWidth;
 
         const auto* in  = reinterpret_cast<const __m256i*>(input);
@@ -132,7 +132,7 @@ class ClippedReLU final {
         constexpr IndexType Start = SimdWidth * ChunkCount;
 
     #else
-        constexpr IndexType SimdWidth  = SIMD_WIDTH;
+        constexpr IndexType SimdWidth  = SIMD::WIDTH;
         constexpr IndexType ChunkCount = InputDimensions / SimdWidth;
 
         const auto* in  = reinterpret_cast<const __m128i*>(input);
@@ -155,10 +155,10 @@ class ClippedReLU final {
     #endif
 
 #elif defined(USE_NEON)
-        constexpr IndexType SimdWidth  = SIMD_WIDTH / 2;
+        constexpr IndexType SimdWidth  = SIMD::WIDTH / 2;
         constexpr IndexType ChunkCount = InputDimensions / SimdWidth;
 
-        const SIMD::vec_i8x8_t Zero = {0};
+        const SIMD::vec_i8x8_t zero = {0};
 
         const auto* in  = reinterpret_cast<const SIMD::vec_i32x4_t*>(input);
         auto*       out = reinterpret_cast<SIMD::vec_i8x8_t*>(output);
@@ -169,7 +169,7 @@ class ClippedReLU final {
 
             const int16x8_t shifted = vcombine_s16(vqshrn_n_s32(in[j + 0], WeightScaleBits), vqshrn_n_s32(in[j + 1], WeightScaleBits));
 
-            out[i]                  = vmax_s8(vqmovn_s16(shifted), Zero);
+            out[i]                  = vmax_s8(vqmovn_s16(shifted), zero);
         }
 
         constexpr IndexType Start = SimdWidth * ChunkCount;

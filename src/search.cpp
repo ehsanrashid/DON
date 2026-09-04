@@ -1120,9 +1120,8 @@ Value Worker::search(Position&    pos,
     if constexpr (!PVNode)
     {
     // The depth condition is important for mate finding
-    if (!ss->pvTT && !exclude && depth < 17 && !is_win(ttEvalue) && !is_loss(beta))
-    {
-    if (ttmNone || (ttmCapture && constexpr_abs(int(captureHistory[+pos.moved_pc(ttd.move)][ttd.move.dst_sq()][pos.captured_pt(ttd.move)])) >= 4096))
+    if (!ss->pvTT && !exclude && depth < 17 && !is_win(ttEvalue) && !is_loss(beta)
+        && (ttmNone || (ttmCapture && constexpr_abs(int(captureHistory[+pos.moved_pc(ttd.move)][ttd.move.dst_sq()][pos.captured_pt(ttd.move)])) >= 4096)))
     {
         // Compute base futility
         int baseFutility = std::min(40 + 4 * depth, 80) - int(!ttd.hit) * 20;
@@ -1134,7 +1133,6 @@ Value Worker::search(Position&    pos,
 
         if (ttEvalue - futility >= beta)
             return blend_values(beta, ttEvalue, 716, 1024);
-    }
     }
     }
 

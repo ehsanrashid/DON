@@ -221,13 +221,9 @@ class FeatureTransformer final {
             static_assert(HalfDimensions % (2 * OutputChunkSize) == 0);
             constexpr IndexType OutputChunkCount = HalfDimensions / (2 * OutputChunkSize);
 
-    #if defined(USE_LSX) || defined(USE_NEON) || defined(__wasm__)
-            constexpr u32 Shift = 1;
-    #else
-            const SIMD::vec_t Zero  = vec_zero();
-            const SIMD::vec_t FTMax = vec_set_16(FT_MAX);
-
-            constexpr u32 Shift = 7;
+    #if !(defined(USE_LSX) || defined(USE_NEON) || defined(__wasm__))
+            const SIMD::vec_t zero  = vec_zero();
+            const SIMD::vec_t ftMax = vec_set_16(FT_MAX);
     #endif
 
             const auto* in0 = reinterpret_cast<const SIMD::vec_t*>(&(accumulation[perspectives[p]][0]));
@@ -297,14 +293,14 @@ class FeatureTransformer final {
 
                     const SIMD::vec_t hi = vec_mulhi_8(p0, p1);
 
-                    pack = vec_srli_8(hi, Shift);
+                    pack = vec_srli_8(hi, 1);
 
     #elif defined(USE_NEON)
                     const uint16x8_t mul0 = vmull_u8(vqmovun_s16(acc00), vqmovun_s16(acc10));
                     const uint16x8_t mul1 = vmull_u8(vqmovun_s16(acc01), vqmovun_s16(acc11));
 
                     const uint8x16x2_t uzp = vuzpq_u8(vreinterpretq_u8_u16(mul0), vreinterpretq_u8_u16(mul1));
-                    const uint8x16_t   pab = vshrq_n_u8(uzp.val[1], Shift);
+                    const uint8x16_t   pab = vshrq_n_u8(uzp.val[1], 1);
 
                     pack = reinterpret_cast<SIMD::vec_t>(pab);
 
@@ -321,13 +317,13 @@ class FeatureTransformer final {
                     const SIMD::vec_t merged = wasm_i8x16_shuffle(lo, hi, 1, 3, 5, 7, 9, 11, 13, 15,
                                                                   17, 19, 21, 23, 25, 27, 29, 31);
 
-                    pack = wasm_u8x16_shr(merged, Shift);
+                    pack = wasm_u8x16_shr(merged, 1);
 
     #else
-                    const SIMD::vec_t sum00 = vec_slli_16(vec_max_16(vec_min_16(acc00, FTMax), Zero), Shift);
-                    const SIMD::vec_t sum01 = vec_slli_16(vec_max_16(vec_min_16(acc01, FTMax), Zero), Shift);
-                    const SIMD::vec_t sum10 = vec_min_16(acc10, FTMax);
-                    const SIMD::vec_t sum11 = vec_min_16(acc11, FTMax);
+                    const SIMD::vec_t sum00 = vec_slli_16(vec_max_16(vec_min_16(acc00, ftMax), zero), 7);
+                    const SIMD::vec_t sum01 = vec_slli_16(vec_max_16(vec_min_16(acc01, ftMax), zero), 7);
+                    const SIMD::vec_t sum10 = vec_min_16(acc10, ftMax);
+                    const SIMD::vec_t sum11 = vec_min_16(acc11, ftMax);
 
                     const SIMD::vec_t p0 = vec_mulhi_16(sum00, sum10);
                     const SIMD::vec_t p1 = vec_mulhi_16(sum01, sum11);

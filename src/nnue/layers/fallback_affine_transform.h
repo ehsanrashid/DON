@@ -37,7 +37,7 @@ void fallback_affine_transform(const Array<i32, OutputDimensions>&              
     #if defined(USE_SSE2) || defined(USE_NEON)
     // At least a multiple of 16
     constexpr IndexType ChunkCount =
-      ceil_to_multiple<IndexType>(InputDimensions, SIMD_WIDTH_MIN) / SIMD_WIDTH_MIN;
+      ceil_to_multiple<IndexType>(InputDimensions, SIMD::WIDTH_MIN) / SIMD::WIDTH_MIN;
 
         #if defined(USE_SSE2)
     constexpr int Shuffle1032 = _MM_SHUFFLE(1, 0, 3, 2);
