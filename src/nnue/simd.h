@@ -47,11 +47,11 @@
 #include "../types.h"  // IWYU pragma: keep
 #include "ntypes.h"
 
-namespace DON::NNUE::SIMD {
-
 #if defined(USE_AVX2) && !defined(USE_VNNI) && !defined(USE_AVX512)
     #define USE_AVX2_PAIR_ACTIVATIONS
 #endif
+
+namespace DON::NNUE::SIMD {
 
 inline constexpr usize WIDTH_MAX = 32;
 inline constexpr usize WIDTH_MIN = 16;

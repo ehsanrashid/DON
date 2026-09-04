@@ -347,17 +347,17 @@ class FeatureTransformer final {
                 acc0 = __riscv_vmax_vx_i16m8(acc0, 0, vl);
                 acc1 = __riscv_vmax_vx_i16m8(acc1, 0, vl);
 
-                vuint8m4_t pa = __riscv_vnclipu_wx_u8m4(__riscv_vreinterpret_v_i16m8_u16m8(acc0), 0, __RISCV_VXRM_RDN, vl);
-                vuint8m4_t pb = __riscv_vnclipu_wx_u8m4(__riscv_vreinterpret_v_i16m8_u16m8(acc1), 0, __RISCV_VXRM_RDN, vl);
+                const vuint8m4_t p0 = __riscv_vnclipu_wx_u8m4(__riscv_vreinterpret_v_i16m8_u16m8(acc0), 0, __RISCV_VXRM_RDN, vl);
+                const vuint8m4_t p1 = __riscv_vnclipu_wx_u8m4(__riscv_vreinterpret_v_i16m8_u16m8(acc1), 0, __RISCV_VXRM_RDN, vl);
 
-                vuint8m4_t hi     = __riscv_vmulhu_vv_u8m4(pa, pb, vl);
-                vuint8m4_t result = __riscv_vsrl_vx_u8m4(hi, 1, vl);
+                const vuint8m4_t hi     = __riscv_vmulhu_vv_u8m4(p0, p1, vl);
+                const vuint8m4_t scaled = __riscv_vsrl_vx_u8m4(hi, 1, vl);
 
-                __riscv_vse8_v_u8m4(&output[offset + i], result, vl);
+                __riscv_vse8_v_u8m4(&output[offset + i], scaled, vl);
 
                 // Record NNZ
                 usize    vl32 = vl / 4;
-                vbool8_t nnzMask = __riscv_vmsne_vx_u32m4_b8(__riscv_vreinterpret_v_u8m4_u32m4(result), 0, vl32);
+                vbool8_t nnzMask = __riscv_vmsne_vx_u32m4_b8(__riscv_vreinterpret_v_u8m4_u32m4(scaled), 0, vl32);
                 __riscv_vsm_v_b8(cursor.nnzOut, nnzMask, vl32);
                 cursor.nnzOut += vl32 / 8;
                 i += vl;
