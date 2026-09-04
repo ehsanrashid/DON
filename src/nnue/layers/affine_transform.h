@@ -89,11 +89,13 @@ class AffineTransform final {
         // AVX2 packs operate independently on 128-bit lanes. Keep their interleaved output
         // order and rearrange the following layer's weights instead of issuing VPERMD.
         const IndexType block = inputIndex / 32;
-        const IndexType chunk = (inputIndex % 32) / 4;
-        inputIndex            = block * 32 + ((chunk % 2) * 4 + chunk / 2) * 4 + inputIndex % 4;
+        const IndexType chunk = (inputIndex % 32) / ChunkSize;
+
+        inputIndex =
+          block * 32 + ((chunk % 2) * ChunkSize + chunk / 2) * ChunkSize + inputIndex % ChunkSize;
     #endif
-        return inputIndex / 4 * OutputDimensions * 4 + i / PaddedInputDimensions * 4
-             + inputIndex % 4;
+        return inputIndex / ChunkSize * OutputDimensions * ChunkSize
+             + i / PaddedInputDimensions * ChunkSize + inputIndex % ChunkSize;
 #else
         return i;
 #endif
