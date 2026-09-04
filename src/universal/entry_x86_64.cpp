@@ -66,7 +66,7 @@ DEFINE_ARCH_ENTRY(x86_64_avx512)
 DEFINE_ARCH_ENTRY(x86_64_vnni512)
 DEFINE_ARCH_ENTRY(x86_64_avx512icl)
 
-// AMD Excavator (family 15h) and Zen/Zen+/Zen2 (family 17h) implement pdep/pext via microcode.
+// AMD Excavator (family 15h) and Zen/Zen+/Zen2 (family 17h) implement pext/pdep via microcode.
 static bool has_slow_bmi2() noexcept {
     return __builtin_cpu_is("amd")
         && (__builtin_cpu_is("bdver4") || __builtin_cpu_is("znver1") || __builtin_cpu_is("znver2"));

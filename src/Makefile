@@ -210,11 +210,11 @@ optimize = yes
 debug = no
 sanitize = none
 bits = 64
-sse_fp = no
 prefetch = no
 popcnt = no
-sse = no
 mmx = no
+sse_fp = no
+sse = no
 sse2 = no
 ssse3 = no
 sse41 = no
@@ -250,8 +250,8 @@ ifneq ($(findstring x86-64,$(ARCH)),)
 else ifneq ($(findstring x86-32,$(ARCH)),)
     arch = i386
     bits = 32
-    sse_fp = yes
     mmx = yes
+    sse_fp = yes
 endif
 
 ifneq ($(findstring -avx512icl,$(ARCH)),)
@@ -411,8 +411,8 @@ else ifneq ($(findstring ppc-32,$(ARCH)),)
 
 else ifneq ($(findstring e2k,$(ARCH)),)
     arch = e2k
-    sse = yes
     mmx = yes
+    sse = yes
     sse2 = yes
     ssse3 = yes
     sse41 = yes
@@ -497,29 +497,18 @@ DEPENDFLAGS = $(strip $(ENV_DEPENDFLAGS) -std=c++17 $(EXTRA_DEPENDFLAGS))
 LDFLAGS     = $(strip $(ENV_LDFLAGS) $(EXTRA_LDFLAGS))
 LDLIBS      = $(strip $(ENV_LDLIBS) $(EXTRA_LDLIBS))
 
+BITS_FLAG := $(if $(filter 32 64,$(bits)),-m$(bits))
+
+STRIP = strip
+
 ### 3.1 Selecting compiler (default = gcc)
 ifeq ($(COMP),)
     COMP := gcc
 endif
 
-# On Windows, use static linking by default.
-#
-# This avoids runtime dependency issues (missing DLLs) and produces a
-# self-contained executable suitable for redistribution and CI environments.
-# Disable this with `STATIC=no`.
-ifeq ($(IS_WINDOWS),yes)
-    ifneq ($(STATIC),no)
-        LDFLAGS += -static
-    endif
-endif
-
-BITS_FLAG := $(if $(filter 32 64,$(bits)),-m$(bits))
-
 # ----------------------------
 # Compiler configuration
 # ----------------------------
-
-STRIP = strip
 
 # Detect if the compiler is Clang/Apple Clang
 CXX_IS_CLANG       := no
@@ -714,6 +703,17 @@ ifdef COMPCXX
     CXX := $(COMPCXX)
 endif
 
+# On Windows, use static linking by default.
+#
+# This avoids runtime dependency issues (missing DLLs) and produces a
+# self-contained executable suitable for redistribution and CI environments.
+# Disable this with `STATIC=no`.
+ifeq ($(IS_WINDOWS),yes)
+    ifneq ($(STATIC),no)
+        LDFLAGS += -static
+    endif
+endif
+
 ifeq ($(TARGET_KERNEL),Darwin)
     ifneq ($(filter-out any,$(arch)),)
         MACOS_BUILD_FLAGS += -arch $(arch)
@@ -811,6 +811,14 @@ ifeq ($(bits),64)
     CXXFLAGS += -DIS_64BIT
 endif
 
+### 3.5.1 prefetch
+ifeq ($(prefetch),yes)
+    CXXFLAGS += -DUSE_PREFETCH
+    ifeq ($(sse),yes)
+        CXXFLAGS += -msse
+    endif
+endif
+
 # Force SSE floating-point math to avoid x87 extended-precision differences.
 # Ensures consistent floating-point results across x86 targets.
 ifeq ($(sse_fp),yes)
@@ -820,14 +828,7 @@ ifeq ($(sse_fp),yes)
     endif
 endif
 
-### 3.5 prefetch and popcount
-ifeq ($(prefetch),yes)
-    CXXFLAGS += -DUSE_PREFETCH
-    ifeq ($(sse),yes)
-        CXXFLAGS += -msse
-    endif
-endif
-
+### 3.5.2 popcount
 ifeq ($(popcnt),yes)
     CXXFLAGS += -DUSE_POPCNT
     ifeq ($(filter armv7 armv8 arm64 ppc64 riscv64,$(arch)),)

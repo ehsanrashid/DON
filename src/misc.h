@@ -1180,6 +1180,14 @@ class FixedVector final {
     }
 
     // Append value if value < max
+    void push_back_if(const T& value, const bool cond) noexcept {
+        assert(size() < capacity());
+
+        data_[size_] = value;
+        size_ += int(cond);
+    }
+
+    // Append value if value < max
     void push_back_if_lt(const T& value, const T& maxValue) noexcept {
         assert(size() < capacity());
 
@@ -1808,6 +1816,10 @@ void print() noexcept;
 struct CommandLine final {
    public:
     CommandLine(int argc, const char* argv[]) noexcept;
+    CommandLine(const CommandLine&)            = delete;
+    CommandLine& operator=(const CommandLine&) = delete;
+    CommandLine(CommandLine&&)                 = default;
+    CommandLine& operator=(CommandLine&&)      = default;
 
     static std::filesystem::path binary_directory(std::filesystem::path path) noexcept;
     static std::filesystem::path working_directory() noexcept;

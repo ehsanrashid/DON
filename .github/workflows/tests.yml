@@ -414,9 +414,9 @@ jobs:
       - name: Build and test ARMv8 NEON DOTPROD
         if: matrix.config.run_armv8_tests
         run: |
-          export PATH="${{ env.ANDROID_NDK_BIN }}:$PATH"
           EXTRA_LDFLAGS=""
           if [ "$COMP" = "ndk" ]; then
+            export PATH="${{ env.ANDROID_NDK_BIN }}:$PATH"
             EXTRA_LDFLAGS="-static"
           fi
           make clean
@@ -426,9 +426,9 @@ jobs:
       - name: Build and test ARMv8 NEON
         if: matrix.config.run_armv8_tests
         run: |
-          export PATH="${{ env.ANDROID_NDK_BIN }}:$PATH"
           EXTRA_LDFLAGS=""
           if [ "$COMP" = "ndk" ]; then
+            export PATH="${{ env.ANDROID_NDK_BIN }}:$PATH"
             EXTRA_LDFLAGS="-static"
           fi
           make clean

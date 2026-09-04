@@ -41,11 +41,11 @@
 // -DUSE_PREFETCH | Add runtime support for use of prefetch asm-instruction.
 //                | Need to remove this to run on some very old machines.
 //
-// -DUSE_POPCNT   | Add runtime support for use of popcnt asm-instruction. Works
-//                | only in 64-bit mode and requires hardware with popcnt support.
+// -DUSE_POPCNT   | Add runtime support for use of popcnt asm-instruction.
+//                | Works only in 64-bit mode and requires hardware with popcnt support.
 //
-// -DUSE_BMI2     | Add runtime support for use of pext asm-instruction. Works
-//                | only in 64-bit mode and requires hardware with pext support.
+// -DUSE_BMI2     | Add runtime support for use of pext/pdep asm-instructions.
+//                | Works only in 64-bit mode and requires hardware with pext/pdep support.
 
 // Predefined macros hell:
 //

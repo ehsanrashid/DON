@@ -47,23 +47,25 @@
 #include "../types.h"  // IWYU pragma: keep
 #include "ntypes.h"
 
-namespace DON::NNUE {
+#if defined(USE_AVX2) && !defined(USE_VNNI) && !defined(USE_AVX512)
+    #define USE_AVX2_PAIR_ACTIVATIONS
+#endif
 
-inline constexpr usize SIMD_WIDTH_MAX = 32;
-inline constexpr usize SIMD_WIDTH_MIN = 16;
+namespace DON::NNUE::SIMD {
+
+inline constexpr usize WIDTH_MAX = 32;
+inline constexpr usize WIDTH_MIN = 16;
 
 // SIMD width (in bytes)
-inline constexpr usize SIMD_WIDTH =
+inline constexpr usize WIDTH =
 #if defined(USE_AVX2) || defined(USE_LASX)
-  SIMD_WIDTH_MAX
+  WIDTH_MAX
 #elif defined(USE_SSE2) || defined(USE_LSX) || defined(USE_NEON)
-  SIMD_WIDTH_MIN
+  WIDTH_MIN
 #else
   0
 #endif
   ;
-
-namespace SIMD {
 
 // If vector instructions are enabled, update and refresh the accumulator tile by tile
 // such that each tile fits in the CPU's vector registers.
@@ -591,7 +593,7 @@ RVV_DPBUSD(m4, m8, m2)
 #endif  // USE_RVV
 
 // Compute optimal SIMD register count for feature transformer accumulation
-template<IndexType TransformedFeatureWidth, IndexType HalfDimensions, IndexType PSQTBuckets>
+template<IndexType TransformedFeatureWidth, IndexType HalfDimensions, IndexType PSQT_BUCKETS>
 class Tiling final {
    private:
 #if defined(VECTOR)
@@ -634,13 +636,13 @@ class Tiling final {
     static constexpr usize RegCount =
       best_register_count<vec_t, WeightType, TransformedFeatureWidth, MaxRegisterCount>();
     static constexpr usize PSQTRegCount =
-      best_register_count<psqt_vec_t, PSQTWeightType, PSQTBuckets, MaxRegisterCount>();
+      best_register_count<psqt_vec_t, PSQTWeightType, PSQT_BUCKETS, MaxRegisterCount>();
 
     static constexpr IndexType TileHeight     = RegCount * sizeof(vec_t) / 2;
     static constexpr IndexType PSQTTileHeight = PSQTRegCount * sizeof(psqt_vec_t) / 4;
 
     static_assert(HalfDimensions % TileHeight == 0, "TileHeight must divide HalfDimensions");
-    static_assert(PSQTBuckets % PSQTTileHeight == 0, "PSQTTileHeight must divide PSQTBuckets");
+    static_assert(PSQT_BUCKETS % PSQTTileHeight == 0, "PSQTTileHeight must divide PSQT_BUCKETS");
 #endif
 
    private:
@@ -652,7 +654,6 @@ class Tiling final {
     Tiling& operator=(Tiling&&) noexcept      = delete;
 };
 
-}  // namespace SIMD
-}  // namespace DON::NNUE
+}  // namespace DON::NNUE::SIMD
 
 #endif  // NNUE_SIMD_H_INCLUDED

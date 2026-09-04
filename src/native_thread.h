@@ -23,14 +23,17 @@
 
 // MSVC-compatible toolchains use std::thread because pthreads is not provided by default.
 // All other platforms use pthreads.
-#if defined(_MSC_VER)
-    #include <thread>
-#else
-    #include <pthread.h>
+#if !defined(_MSC_VER)
     #define USE_PTHREAD
 #endif
 
-#include "misc.h"
+#if defined(USE_PTHREAD)
+    #include <pthread.h>
+
+    #include "misc.h"
+#else
+    #include <thread>
+#endif
 
 namespace DON {
 
@@ -65,22 +68,22 @@ class NativeThread final {
 
         pthread_attr_t threadAttr;
 
-        if (pthread_attr_init(&threadAttr) != 0)
+        if (::pthread_attr_init(&threadAttr) != 0)
         {
-            //DEBUG_LOG("pthread_attr_init() failed to init thread attributes.");
+            //DEBUG_LOG("::pthread_attr_init() failed to init thread attributes.");
             return;
         }
 
-        if (pthread_attr_setstacksize(&threadAttr, ThreadStackSize) != 0)
+        if (::pthread_attr_setstacksize(&threadAttr, ThreadStackSize) != 0)
         {
-            //DEBUG_LOG("pthread_attr_setstacksize() failed to set thread stack size.");
+            //DEBUG_LOG("::pthread_attr_setstacksize() failed to set thread stack size.");
         }
 
         // Pass the raw pointer to pthread_create
         // pthread_create takes ownership of jobFuncPtr only on success
-        if (pthread_create(&thread, &threadAttr, start_routine, jobFuncPtr.get()) != 0)
+        if (::pthread_create(&thread, &threadAttr, start_routine, jobFuncPtr.get()) != 0)
         {
-            //DEBUG_LOG("pthread_create() failed to create thread.");
+            //DEBUG_LOG("::pthread_create() failed to create thread.");
             // Thread creation failed: jobFuncPtr will be deleted automatically
             joined = true;
         }
@@ -93,9 +96,9 @@ class NativeThread final {
         }
 
         // Destroy thread attr
-        if (pthread_attr_destroy(&threadAttr) != 0)
+        if (::pthread_attr_destroy(&threadAttr) != 0)
         {
-            //DEBUG_LOG("pthread_attr_destroy() failed to destroy thread attributes.");
+            //DEBUG_LOG("::pthread_attr_destroy() failed to destroy thread attributes.");
         }
     }
 
@@ -131,7 +134,7 @@ class NativeThread final {
     void join() noexcept {
         if (joinable())
         {
-            pthread_join(thread, nullptr);
+            ::pthread_join(thread, nullptr);
 
             joined = true;
         }

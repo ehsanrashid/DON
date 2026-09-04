@@ -40,9 +40,9 @@ class FeatureTransformer;
 // Stores the accumulated affine-transformation results for HalfKA_hm and FullThreats.
 struct alignas(CACHE_LINE_SIZE) BaseAccumulator {
    public:
-    Array<BiasType, COLOR_NB, L1>                accumulation;
-    Array<PSQTWeightType, COLOR_NB, PSQTBuckets> psqtAccumulation;
-    Array<bool, COLOR_NB>                        computed{};
+    Array<BiasType, COLOR_NB, L1>                 accumulation;
+    Array<PSQTWeightType, COLOR_NB, PSQT_BUCKETS> psqtAccumulation;
+    Array<bool, COLOR_NB>                         computed{};
 };
 
 static_assert(sizeof(BaseAccumulator) % CACHE_LINE_SIZE == 0);
@@ -79,10 +79,10 @@ struct AccumulatorCache final {
             std::memset(reinterpret_cast<u8*>(this) + offset, 0, sizeof(*this) - offset);
         }
 
-        Array<BiasType, L1>                accumulation;
-        Array<PSQTWeightType, PSQTBuckets> psqtAccumulation;
-        PieceMap                           pieceMap;
-        Bitboard                           piecesBB;
+        Array<BiasType, L1>                 accumulation;
+        Array<PSQTWeightType, PSQT_BUCKETS> psqtAccumulation;
+        PieceMap                            pieceMap;
+        Bitboard                            piecesBB;
     };
 
     template<typename Network>

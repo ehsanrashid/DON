@@ -85,7 +85,7 @@ class Network final {
     FeatureTransformer featureTransformer;
 
     // Evaluation function
-    Array<NetworkArchitecture, LayerStacks> networkArchitectures;
+    Array<NetworkArchitecture, LAYER_STACKS> networkArchitectures;
 
     bool initialized = false;
 

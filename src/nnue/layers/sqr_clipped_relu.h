@@ -45,7 +45,7 @@ class SqrClippedReLU final {
     static constexpr IndexType InputDimensions  = InDims;
     static constexpr IndexType OutputDimensions = InputDimensions;
     static constexpr IndexType PaddedOutputDimensions =
-      ceil_to_multiple<IndexType>(OutputDimensions, SIMD_WIDTH_MAX);
+      ceil_to_multiple<IndexType>(OutputDimensions, SIMD::WIDTH_MAX);
 
     using OutputBuffer = Array<OutputType, PaddedOutputDimensions>;
 
@@ -68,6 +68,50 @@ class SqrClippedReLU final {
     // Write network parameters
     bool write_parameters(std::ostream&) const noexcept { return true; }
 
+#if defined(USE_AVX2_PAIR_ACTIVATIONS)
+    // Produce the squared and linear clipped activations together, sharing the input loads and
+    // the initial signed 32-to-16-bit saturating packs.
+    void propagate_pair(const InputType* RESTRICT input,
+                        OutputType* RESTRICT      squared,
+                        OutputType* RESTRICT      clipped) const noexcept {
+        static_assert(5 <= WeightScaleBits && WeightScaleBits <= 8,
+                      "SqrClippedReLU only support WeightScaleBits between 5 and 8");
+        static_assert(InputDimensions % 32 == 0);
+
+        constexpr u8 BaseShift = 7 + 2 * WeightScaleBits;
+        constexpr u8 SimdShift = BaseShift - 16;
+
+        constexpr IndexType ChunkCount = InputDimensions / 32;
+
+        const auto* in      = reinterpret_cast<const __m256i*>(input);
+        auto*       sqrOut  = reinterpret_cast<__m256i*>(squared);
+        auto*       clipOut = reinterpret_cast<__m256i*>(clipped);
+
+        const __m256i zero = _mm256_setzero_si256();
+        // clang-format off
+        for (IndexType i = 0; i < ChunkCount; ++i)
+        {
+            const IndexType j = i * 4;
+
+            const __m256i words0 = _mm256_packs_epi32(_mm256_load_si256(&in[j + 0]),
+                                                      _mm256_load_si256(&in[j + 1]));
+            const __m256i words1 = _mm256_packs_epi32(_mm256_load_si256(&in[j + 2]),
+                                                      _mm256_load_si256(&in[j + 3]));
+
+            const __m256i sqr0      = _mm256_srli_epi16(_mm256_mulhi_epi16(words0, words0), SimdShift);
+            const __m256i sqr1      = _mm256_srli_epi16(_mm256_mulhi_epi16(words1, words1), SimdShift);
+            const __m256i sqrPacked = _mm256_packs_epi16(sqr0, sqr1);
+            _mm256_store_si256(&sqrOut[i], sqrPacked);
+
+            const __m256i clip0      = _mm256_srli_epi16(_mm256_max_epi16(words0, zero), WeightScaleBits);
+            const __m256i clip1      = _mm256_srli_epi16(_mm256_max_epi16(words1, zero), WeightScaleBits);
+            const __m256i clipPacked = _mm256_packs_epi16(clip0, clip1);
+            _mm256_store_si256(&clipOut[i], clipPacked);
+        }
+        // clang-format on
+    }
+
+#else
     // Forward propagation
     void propagate(const InputType* RESTRICT input, OutputType* RESTRICT output) const noexcept {
         static_assert(5 <= WeightScaleBits && WeightScaleBits <= 8,
@@ -77,37 +121,60 @@ class SqrClippedReLU final {
         constexpr u8                  BaseShift = 7 + 2 * WeightScaleBits;
         [[maybe_unused]] constexpr u8 SimdShift = BaseShift - 16;
 
+    #if defined(USE_SSE2)
+        #if defined(USE_AVX512)
+        static_assert(InputDimensions % 32 == 0);
+
+        constexpr IndexType SimdWidth  = SIMD::WIDTH;
+        constexpr IndexType ChunkCount = InputDimensions / SimdWidth;
+
+        const auto* in  = reinterpret_cast<const __m512i*>(input);
+        auto*       out = reinterpret_cast<__m256i*>(output);
         // clang-format off
-#if defined(USE_SSE2)
-        constexpr IndexType SimdWidth  = SIMD_WIDTH_MIN;
+        for (IndexType i = 0; i < ChunkCount; ++i)
+        {
+            const IndexType j = i * 2;
+
+            const __m256i words0 = _mm512_cvtsepi32_epi16(_mm512_load_si512(&in[j + 0]));
+            const __m256i words1 = _mm512_cvtsepi32_epi16(_mm512_load_si512(&in[j + 1]));
+            const __m512i words  = _mm512_inserti64x4(_mm512_castsi256_si512(words0), words1, 1);
+            const __m512i packed = _mm512_srli_epi16(_mm512_mulhi_epi16(words, words), SimdShift);
+
+            _mm256_store_si256(&out[i], _mm512_cvtsepi16_epi8(packed));
+        }
+        // clang-format on
+        constexpr IndexType Start = SimdWidth * ChunkCount;
+
+        #else
+        constexpr IndexType SimdWidth  = SIMD::WIDTH_MIN;
         constexpr IndexType ChunkCount = InputDimensions / SimdWidth;
 
         const auto* in  = reinterpret_cast<const __m128i*>(input);
         auto*       out = reinterpret_cast<__m128i*>(output);
-
+        // clang-format off
         for (IndexType i = 0; i < ChunkCount; ++i)
         {
             const IndexType j = i * 4;
 
-            __m128i words0 = _mm_packs_epi32(_mm_load_si128(&in[j + 0]), _mm_load_si128(&in[j + 1]));
-            __m128i words1 = _mm_packs_epi32(_mm_load_si128(&in[j + 2]), _mm_load_si128(&in[j + 3]));
+            const __m128i words0  = _mm_packs_epi32(_mm_load_si128(&in[j + 0]), _mm_load_si128(&in[j + 1]));
+            const __m128i words1  = _mm_packs_epi32(_mm_load_si128(&in[j + 2]), _mm_load_si128(&in[j + 3]));
+            const __m128i packed0 = _mm_srli_epi16(_mm_mulhi_epi16(words0, words0), SimdShift);
+            const __m128i packed1 = _mm_srli_epi16(_mm_mulhi_epi16(words1, words1), SimdShift);
 
-            words0 = _mm_srli_epi16(_mm_mulhi_epi16(words0, words0), SimdShift);
-            words1 = _mm_srli_epi16(_mm_mulhi_epi16(words1, words1), SimdShift);
-
-            _mm_store_si128(&out[i], _mm_packs_epi16(words0, words1));
+            _mm_store_si128(&out[i], _mm_packs_epi16(packed0, packed1));
         }
-
+        // clang-format on
         constexpr IndexType Start = SimdWidth * ChunkCount;
+        #endif
 
-#elif defined(USE_LSX)
-    #if defined(USE_LASX)
-        constexpr IndexType SimdWidth  = SIMD_WIDTH;
+    #elif defined(USE_LSX)
+        #if defined(USE_LASX)
+        constexpr IndexType SimdWidth  = SIMD::WIDTH;
         constexpr IndexType ChunkCount = InputDimensions / SimdWidth;
 
         const auto* in  = reinterpret_cast<const __m256i*>(input);
         auto*       out = reinterpret_cast<__m256i*>(output);
-
+        // clang-format off
         for (IndexType i = 0; i < ChunkCount; ++i)
         {
             const IndexType j = i * 4;
@@ -122,16 +189,16 @@ class SqrClippedReLU final {
 
             __lasx_xvst(__lasx_xvshuf4i_w(permed, 0xD8), out + i, 0);
         }
-
+        // clang-format on
         constexpr IndexType Start = SimdWidth * ChunkCount;
 
-    #else
-        constexpr IndexType SimdWidth  = SIMD_WIDTH;
+        #else
+        constexpr IndexType SimdWidth  = SIMD::WIDTH;
         constexpr IndexType ChunkCount = InputDimensions / SimdWidth;
 
         const auto* in  = reinterpret_cast<const __m128i*>(input);
         auto*       out = reinterpret_cast<__m128i*>(output);
-
+        // clang-format off
         for (IndexType i = 0; i < ChunkCount; ++i)
         {
             const IndexType j = i * 4;
@@ -143,18 +210,18 @@ class SqrClippedReLU final {
 
             out[i]               = __lsx_vssrlni_b_h(sqr1, sqr0, SimdShift);
         }
-
+        // clang-format on
         constexpr IndexType Start = SimdWidth * ChunkCount;
 
-    #endif
+        #endif
 
-#elif defined(USE_NEON)
-        constexpr IndexType SimdWidth  = SIMD_WIDTH;
+    #elif defined(USE_NEON)
+        constexpr IndexType SimdWidth  = SIMD::WIDTH;
         constexpr IndexType ChunkCount = InputDimensions / SimdWidth;
 
         const auto* in  = reinterpret_cast<const int32x4_t*>(input);
         auto*       out = reinterpret_cast<int8x16_t*>(output);
-
+        // clang-format off
         for (IndexType i = 0; i < ChunkCount; ++i)
         {
             const IndexType j = i * 4;
@@ -169,10 +236,11 @@ class SqrClippedReLU final {
 
             out[i] = vcombine_s8(vqmovn_s16(sqr0), vqmovn_s16(sqr1));
         }
-
+        // clang-format on
         constexpr IndexType Start = SimdWidth * ChunkCount;
 
-#elif defined(USE_RVV)
+    #elif defined(USE_RVV)
+        // clang-format off
         for (IndexType i = 0; i < InputDimensions;)
         {
             const usize vl = __riscv_vsetvl_e32m4(InputDimensions - i);
@@ -185,14 +253,13 @@ class SqrClippedReLU final {
             __riscv_vse8_v_u8m1(&output[i], __riscv_vreinterpret_v_i8m1_u8m1(narrowed), vl);
             i += vl;
         }
-
+        // clang-format on
         constexpr IndexType Start = InputDimensions;
 
-#else
+    #else
         constexpr IndexType Start = 0;
 
-#endif
-        // clang-format on
+    #endif
 
         for (IndexType i = Start; i < InputDimensions; ++i)
         {
@@ -202,6 +269,8 @@ class SqrClippedReLU final {
               std::min((static_cast<i64>(input[i]) * input[i]) >> BaseShift, i64{127}));
         }
     }
+
+#endif
 };
 
 }  // namespace DON::NNUE::Layers

@@ -65,9 +65,9 @@ class SparseAffineTransform final {
                   "Only implemented for OutputDimensions divisible by 16.");
 
     static constexpr IndexType PaddedInputDimensions =
-      ceil_to_multiple<IndexType>(InputDimensions, SIMD_WIDTH_MAX);
+      ceil_to_multiple<IndexType>(InputDimensions, SIMD::WIDTH_MAX);
     static constexpr IndexType PaddedOutputDimensions =
-      ceil_to_multiple<IndexType>(OutputDimensions, SIMD_WIDTH_MAX);
+      ceil_to_multiple<IndexType>(OutputDimensions, SIMD::WIDTH_MAX);
 
     static constexpr IndexType ChunkSize =
 #if defined(USE_SPARSE_AFFINE_SIMD) || defined(USE_RVV)
@@ -90,8 +90,9 @@ class SparseAffineTransform final {
 
     static constexpr IndexType weight_index(IndexType i) noexcept {
 #if defined(USE_SPARSE_AFFINE_SIMD) || defined(USE_RVV)
-        return (i / ChunkSize) % (PaddedInputDimensions / ChunkSize) * OutputDimensions * ChunkSize
-             + i / PaddedInputDimensions * ChunkSize + i % ChunkSize;
+        IndexType idx = i % PaddedInputDimensions;
+        return idx / ChunkSize * OutputDimensions * ChunkSize
+             + i / PaddedInputDimensions * ChunkSize + idx % ChunkSize;
 #else
         return i;
 #endif
