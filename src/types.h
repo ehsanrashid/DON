@@ -268,6 +268,19 @@ inline constexpr usize COLOR_NB = 2;
 // Toggle color
 [[nodiscard]] constexpr Color operator~(const Color c) noexcept { return Color(c ^ BLACK); }
 
+[[nodiscard]] constexpr std::string_view to_string(const Color c) noexcept {
+    switch (c)
+    {
+    case WHITE :
+        return "White";
+    case BLACK :
+        return "Black";
+    case NONE :
+        return "None";
+    }
+    return "Unknown";
+}
+
 // clang-format off
 enum class Piece : u8 {
     NO_PIECE,

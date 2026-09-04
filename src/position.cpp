@@ -333,7 +333,7 @@ std::optional<Error> Position::set(const std::string_view fens, State* const new
         return Error{"Invalid FEN: pawns on the first or eighth rank."};
     for (Color c : {WHITE, BLACK})
     {
-        std::string side{c == WHITE ? "white" : "black"};
+        std::string side{to_string(c)};
 
         if (count(c) > 16)
             return Error{"Invalid FEN: " + side + " has more than 16 pieces."};
@@ -394,13 +394,13 @@ std::optional<Error> Position::set(const std::string_view fens, State* const new
         token         = lower_case(token);
 
         if (relative_rank(c, square<KING>(c)) != RANK_1)
-            return Error{"Invalid FEN: " + std::string{c == WHITE ? "white" : "black"}
+            return Error{"Invalid FEN: " + std::string{to_string(c)}
                          + " king is not on the first rank."};
 
         const Bitboard rooksBB = pieces_bb(c, ROOK);
 
         if ((rooksBB & relative_rank(c, RANK_1)) == 0)
-            return Error{"Invalid FEN: " + std::string{c == WHITE ? "white" : "black"}
+            return Error{"Invalid FEN: " + std::string{to_string(c)}
                          + " rook is missing on the first rank."};
 
         Square rookOrgSq;
