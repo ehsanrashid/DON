@@ -812,9 +812,9 @@ std::filesystem::path CommandLine::binary_directory(std::filesystem::path path) 
     // Falls back to path if the API fails.
     Array<WCHAR, 0x8000> filename{};
 
-    const DWORD length = GetModuleFileNameW(nullptr, filename.data(), filename.size());
+    const DWORD length = GetModuleFileNameW(nullptr, filename.data(), DWORD(filename.size()));
     if (length != 0 && length < filename.size())
-        path = std::filesystem::path(filename.data(), filename.data() + length);
+        path = std::filesystem::path{filename.data(), filename.data() + length};
 #endif
 
     const auto binaryDirectory{path.parent_path()};
