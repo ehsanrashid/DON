@@ -1327,7 +1327,7 @@ Value Worker::search(Position&    pos,
                 // Reduced depth of the next LMR search
                 Depth lmrDepth = newDepth - constexpr_round(r / 1024.0);
 
-                if (capture || check)
+                if (capture)
                 {
                     int history = captureHistory[+movedPc][dstSq][capturedPt];
 
@@ -1345,7 +1345,7 @@ Value Worker::search(Position&    pos,
                     //  • The move does not sacrifice our last non-pawn material.
                     if (alpha >= VALUE_DRAW || nonPawnValue != piece_value(type_of(movedPc)))
                     {
-                        // SEE based pruning for captures and checks
+                        // SEE based pruning for captures
                         int threshold = 177 * depth + constexpr_round(history * 34.0 / 1024.0);
                         if ((mp.cur_stage() != MovePicker::Stage::ENC_GOOD_CAPTURE
                              || mp.threshold_value() > threshold)
@@ -1360,7 +1360,7 @@ Value Worker::search(Position&    pos,
                                 + atomicHistories.pawn_entry(pos)[+movedPc][dstSq];
 
                     // History based pruning
-                    if (history < -4136 * depth)
+                    if (!check && history < -4136 * depth)
                         continue;
 
                     history += constexpr_round(69.0 * quietHistory[ac][move.raw()] / 32.0);
@@ -1373,7 +1373,7 @@ Value Worker::search(Position&    pos,
 
                     // Futility pruning: for quiets
                     // (*Scaler) Generally, more frequent futility pruning scales well
-                    if (lmrDepth < 12 && !ss->inCheck)
+                    if (!check && lmrDepth < 12 && !ss->inCheck)
                     {
                         int futility = 39 + ss->evalue + 119 * lmrDepth   //
                                      + int(bestMove == Move::None) * 127  //
@@ -1386,12 +1386,15 @@ Value Worker::search(Position&    pos,
                         }
                     }
 
-                    lmrDepth = std::max(lmrDepth, DEPTH_ZERO);
-
-                    // SEE based pruning for quiets
-                    int threshold = 23 * lmrDepth * lmrDepth;
-                    if (pos.see(move) < -threshold)
-                        continue;
+                    // Avoid pruning sacrifices of our last piece for stalemate
+                    if (alpha >= VALUE_DRAW || nonPawnValue != piece_value(type_of(movedPc)))
+                    {
+                        // SEE based pruning for quiets
+                        int threshold = std::max(
+                          23 * lmrDepth * constexpr_abs(lmrDepth) + int(check) * 128 * depth, 0);
+                        if (pos.see(move) < -threshold)
+                            continue;
+                    }
                 }
             }
         }
