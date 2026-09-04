@@ -159,16 +159,12 @@ void HalfKA_hm::append_changed_indices(const Color      perspective,
                                        const DirtyType& dp,
                                        IndexVector&     removed,
                                        IndexVector&     added) noexcept {
-    removed.push_back(make_index(perspective, kingSq, dp.orgSq, dp.movedPc));
-
-    if (dp.dstSq != SQ_NONE)
-        added.push_back(make_index(perspective, kingSq, dp.dstSq, dp.movedPc));
-
-    if (dp.removedSq != SQ_NONE)
-        removed.push_back(make_index(perspective, kingSq, dp.removedSq, dp.removedPc));
-
-    if (dp.addedSq != SQ_NONE)
-        added.push_back(make_index(perspective, kingSq, dp.addedSq, dp.addedPc));
+    // clang-format off
+    removed.push_back   (make_index(perspective, kingSq, dp.orgSq, dp.movedPc));
+    added.  push_back_if(make_index(perspective, kingSq, dp.dstSq, dp.movedPc)      , is_ok(dp.dstSq));
+    removed.push_back_if(make_index(perspective, kingSq, dp.removedSq, dp.removedPc), is_ok(dp.removedSq));
+    added.  push_back_if(make_index(perspective, kingSq, dp.addedSq, dp.addedPc)    , is_ok(dp.addedSq));
+    // clang-format on
 }
 
 // Determine if a full refresh is required based on the dirty piece

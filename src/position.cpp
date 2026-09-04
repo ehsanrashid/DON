@@ -112,7 +112,7 @@ class CuckooTable final {
                     for (Square s1 = SQ_A1; s1 < SQ_H8; ++s1)
                         for (Square s2 = s1 + 1; s2 <= SQ_H8; ++s2)
                             if ((attacks_bb(s1, pt, 0) & s2) != 0)
-                                insert({Zobrist::turn()  //
+                                insert({Zobrist::turn(BLACK)  //
                                           ^ Zobrist::piece_square(c, pt, s1)
                                           ^ Zobrist::piece_square(c, pt, s2),
                                         Move{s1, s2}});
@@ -700,8 +700,7 @@ void Position::set_state() noexcept {
 
     st->key ^= Zobrist::enpassant(en_passant_sq());
 
-    if (active_color() == BLACK)
-        st->key ^= Zobrist::turn();
+    st->key ^= Zobrist::turn(active_color());
 }
 
 void Position::set_pinner_blocker() noexcept {
@@ -908,7 +907,7 @@ DirtyBoard Position::do_move(const Move          m,
     db.dirtyPiece.addedSq = SQ_NONE;
     assert(db.dirtyThreats.empty());
 
-    st->key ^= Zobrist::turn() ^ Zobrist::enpassant(en_passant_sq());
+    st->key ^= Zobrist::turn(BLACK) ^ Zobrist::enpassant(en_passant_sq());
 
     reset_en_passant_sq();
 
@@ -1257,7 +1256,7 @@ void Position::do_null_move(State& newSt) noexcept {
 
     st->nullPly = 0;
 
-    st->key ^= Zobrist::turn() ^ Zobrist::enpassant(en_passant_sq());
+    st->key ^= Zobrist::turn(BLACK) ^ Zobrist::enpassant(en_passant_sq());
 
     reset_en_passant_sq();
 
@@ -1502,7 +1501,7 @@ bool Position::fork(const Move m) const noexcept {
 // Needed for speculative prefetch.
 // It does recognize special moves like castling, en-passant and promotions.
 Key Position::move_key(const Move m) const noexcept {
-    Key moveKey = st->key ^ Zobrist::turn() ^ Zobrist::enpassant(en_passant_sq());
+    Key moveKey = st->key ^ Zobrist::turn(BLACK) ^ Zobrist::enpassant(en_passant_sq());
 
     //if (m == Move::Null)
     //    return moveKey;
@@ -1891,11 +1890,11 @@ bool Position::is_upcoming_repetition(i16 ply) const noexcept {
 
     const Key    baseKey = st->key;
     const State* preSt   = st->preSt;
-    Key          iterKey = baseKey ^ preSt->key ^ Zobrist::turn();
+    Key          iterKey = baseKey ^ preSt->key ^ Zobrist::turn(BLACK);
 
     for (u16 i = 3; i <= end; i += 2)
     {
-        iterKey ^= preSt->preSt->key ^ preSt->preSt->preSt->key ^ Zobrist::turn();
+        iterKey ^= preSt->preSt->key ^ preSt->preSt->preSt->key ^ Zobrist::turn(BLACK);
 
         preSt = preSt->preSt->preSt;
 
@@ -2055,8 +2054,7 @@ Key Position::compute_key() const noexcept {
 
     key ^= Zobrist::enpassant(en_passant_sq());
 
-    if (active_color() == BLACK)
-        key ^= Zobrist::turn();
+    key ^= Zobrist::turn(active_color());
 
     return key;
 }
