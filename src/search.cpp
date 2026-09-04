@@ -77,7 +77,7 @@ constexpr int reduction(const Depth depth,
                         const bool  improve) noexcept {
     int reductionScale = REDUCTIONS[depth] * REDUCTIONS[moveCount];
     return 1027 + reductionScale - deltaRatio
-         + int(!improve) * constexpr_ceil(reductionScale * 194.0 / 512.0);
+         + (improve ? 0 : constexpr_ceil(reductionScale * 194.0 / 512.0));
 }
 
 // Add a small random value to draw evaluation to avoid 3-fold blindness
@@ -1532,8 +1532,8 @@ Value Worker::search(Position&    pos,
         if (ss->cutoffCount > 1)
             r += 236 + int(AllNode) * 1143 + int(ss->cutoffCount > 2) * 1079;
         // Decrease reduction for first picked move (ttMove)
-        else if (mTT)
-            r -= 2016;
+        else
+            r -= int(mTT) * 2016;
 
         // Decrease/Increase reduction for moves with a good/bad history
         r -= constexpr_round(ss->history * 445.0 / 4096.0);
@@ -1583,7 +1583,7 @@ Value Worker::search(Position&    pos,
 
             // Reduce search depth if expected reduction is high
             value = -search<~T>(pos, ss + 1, -alpha - 1, -alpha,
-                                newDepth - int(r > 5039) - int(r > 5223 && (newDepth > 2)));
+                                newDepth - int(r > 5039) - int(newDepth > 2 && r > 5223));
         }
 
         // For PV nodes only, do a full PV search on the first move or after a fail high,

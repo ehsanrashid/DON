@@ -121,7 +121,8 @@ class SqrClippedReLU final {
         constexpr u8                  BaseShift = 7 + 2 * WeightScaleBits;
         [[maybe_unused]] constexpr u8 SimdShift = BaseShift - 16;
 
-    #if defined(USE_AVX512)
+    #if defined(USE_SSE2)
+        #if defined(USE_AVX512)
         static_assert(InputDimensions % 32 == 0);
 
         constexpr IndexType SimdWidth  = SIMD::WIDTH;
@@ -144,7 +145,7 @@ class SqrClippedReLU final {
         // clang-format on
         constexpr IndexType Start = SimdWidth * ChunkCount;
 
-    #elif defined(USE_SSE2)
+        #else
         constexpr IndexType SimdWidth  = SIMD::WIDTH_MIN;
         constexpr IndexType ChunkCount = InputDimensions / SimdWidth;
 
@@ -164,6 +165,7 @@ class SqrClippedReLU final {
         }
         // clang-format on
         constexpr IndexType Start = SimdWidth * ChunkCount;
+        #endif
 
     #elif defined(USE_LSX)
         #if defined(USE_LASX)
