@@ -841,6 +841,8 @@ struct DirtyThreats final {
     ThreatVector threats_;
 };
 
+using Threat = DirtyThreats::Threat;
+
 struct Dirties final {
    public:
     DirtyPiece   dirtyPiece;

@@ -941,14 +941,12 @@ inline Piece Position::swap(const Square s, const Piece newPc, DirtyThreats* con
 }
 
 #if defined(USE_AVX512ICL)
-using DirtyThreat = DirtyThreats::Threat;
-
 // Given threat and bit offsets to insert the piece type and square,
 // write the threats present at the given bitboard.
 template<int SqShift, int PcShift>
 void write_multiple_dirties(const PieceMap&     pieceMap,
                             const Bitboard      maskBB,
-                            const DirtyThreat   dT,
+                            const Threat        dT,
                             DirtyThreats* const dTs) noexcept {
     const __m512i pieceVec = _mm512_loadu_si512(pieceMap.data());
 
@@ -1096,15 +1094,15 @@ inline void Position::update_piece_threats(const Square              s,
         incomingThreatsBB |= pawnThreatsBB;
 
 #if defined(USE_AVX512ICL)
-    DirtyThreat dT1{s, SQUARE_ZERO, pc, Piece::NO_PIECE, put};
-    write_multiple_dirties<DirtyThreat::ThreatenedSqShift, DirtyThreat::ThreatenedPcShift>(
-      pieceMap, threatenedBB, dT1, dTs);
+    Threat dT1{s, SQUARE_ZERO, pc, Piece::NO_PIECE, put};
+    write_multiple_dirties<Threat::ThreatenedSqShift,  //
+                           Threat::ThreatenedPcShift>(pieceMap, threatenedBB, dT1, dTs);
 
     const Bitboard attackersBB = directSlidersBB | incomingThreatsBB;
 
-    DirtyThreat dT2{SQUARE_ZERO, s, Piece::NO_PIECE, pc, put};
-    write_multiple_dirties<DirtyThreat::SqShift, DirtyThreat::PcShift>(pieceMap, attackersBB, dT2,
-                                                                       dTs);
+    Threat dT2{SQUARE_ZERO, s, Piece::NO_PIECE, pc, put};
+    write_multiple_dirties<Threat::SqShift,  //
+                           Threat::PcShift>(pieceMap, attackersBB, dT2, dTs);
 #else
     while (threatenedBB != 0)
     {

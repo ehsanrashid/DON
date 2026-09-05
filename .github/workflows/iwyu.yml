@@ -55,8 +55,9 @@ jobs:
           make analyze \
             COMP=clang \
             CXX=include-what-you-use \
-            CXXFLAGS="-I${{ github.workspace }}/DON/src \
-                      -stdlib=libc++ \
-                      -Xiwyu --comment_style=long \
-                      -Xiwyu --mapping='${{ github.workspace }}/DON/.github/ci/libcxx17.imp' \
-                      -Xiwyu --error"
+            CXXFLAGS="\
+              -I${{ github.workspace }}/DON/src \
+              -stdlib=libc++ \
+              -Xiwyu --comment_style=long \
+              -Xiwyu --mapping='${{ github.workspace }}/DON/.github/ci/libcxx.imp' \
+              -Xiwyu --error"

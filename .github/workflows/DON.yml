@@ -136,15 +136,15 @@ jobs:
     uses: ./.github/workflows/iwyu.yml
   Sanitizers:
     name: Sanitizers
-    if: ${{ false }}
+    if: ${{ always() }}
     uses: ./.github/workflows/sanitizers.yml
   Tests:
     name: Tests
-    if: ${{ false }}
+    if: ${{ always() }}
     uses: ./.github/workflows/tests.yml
   Matetrack:
     name: Matetrack
-    if: ${{ false }}
+    if: ${{ always() }}
     uses: ./.github/workflows/matetrack.yml
   Games:
     name: Games
@@ -156,11 +156,11 @@ jobs:
     uses: ./.github/workflows/check_compilers.yml
   BuildMSVC:
     name: Build MSVC
-    if: ${{ false }}
+    if: ${{ always() }}
     uses: ./.github/workflows/build_msvc.yml
   BuildWASM:
     name: Build WASM
-    if: ${{ false }}
+    if: ${{ always() }}
     uses: ./.github/workflows/build_wasm.yml
   # Release Jobs
   BuildAndroid:
