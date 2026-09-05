@@ -43,14 +43,14 @@ class PP3Wide final {
     // Maximum number of simultaneously active features
     static constexpr IndexType MaxActiveDimensions = 256;
     using IndexList                                = FixedVector<u16, 256>;
-    using DiffType                                 = DirtyPawnPairs;
+    using DirtyType                                = DirtyPawnPairs;
 
     static void
     append_active_indices(Color perspective, const Position& pos, IndexList& active) noexcept;
 
     static void append_changed_indices(Color                   perspective,
                                        Square                  ksq,
-                                       const DiffType&         diff,
+                                       const DirtyType&        dPps,
                                        IndexList&              removed,
                                        IndexList&              added,
                                        const ThreatWeightType* pfBase   = nullptr,

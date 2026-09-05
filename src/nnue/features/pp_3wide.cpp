@@ -22,6 +22,7 @@
 
 #include "../../attacks.h"
 #include "../../bitboard.h"
+#include "../../misc.h"
 #include "../../position.h"
 #include "../../types.h"
 #include "../ntypes.h"
@@ -31,21 +32,11 @@ namespace DON::NNUE::Features {
 
 namespace {
 
-constexpr IndexType make_pawn_id(const Color c, const Square s) noexcept {
+ALWAYS_INLINE constexpr IndexType make_pawn_id(const Color c, const Square s) noexcept {
     assert(SQ_A2 <= s && s <= SQ_H7);
 
     return 48 * int(c) + s - SQ_A2;
 }
-
-#if defined(USE_AVX512ICL)
-__m256i pp_idx_epi16(const __m256i a, const __m256i b) noexcept {
-    const __m256i hi   = _mm256_max_epu16(a, b);
-    const __m256i lo   = _mm256_min_epu16(a, b);
-    const __m256i prod = _mm256_mullo_epi16(hi, _mm256_sub_epi16(hi, _mm256_set1_epi16(1)));
-    return _mm256_add_epi16(_mm256_add_epi16(_mm256_srli_epi16(prod, 1), lo),
-                            _mm256_set1_epi16(i16(PP3Wide::IndexBase)));
-}
-#endif
 
 ALWAYS_INLINE constexpr IndexType make_index(Color  perspective,
                                              Color  color,
@@ -71,6 +62,16 @@ ALWAYS_INLINE constexpr IndexType make_index(Color  perspective,
 
     return PP3Wide::IndexBase + idH * (idH - 1) / 2 + idL;
 }
+
+#if defined(USE_AVX512ICL)
+ALWAYS_INLINE __m256i pp_idx_epi16(const __m256i a, const __m256i b) noexcept {
+    const __m256i hi   = _mm256_max_epu16(a, b);
+    const __m256i lo   = _mm256_min_epu16(a, b);
+    const __m256i prod = _mm256_mullo_epi16(hi, _mm256_sub_epi16(hi, _mm256_set1_epi16(1)));
+    return _mm256_add_epi16(_mm256_add_epi16(_mm256_srli_epi16(prod, 1), lo),
+                            _mm256_set1_epi16(i16(PP3Wide::IndexBase)));
+}
+#endif
 
 }  // namespace
 
@@ -106,16 +107,15 @@ void PP3Wide::append_active_indices(const Color     perspective,
 
 void PP3Wide::append_changed_indices(const Color                                    perspective,
                                      const Square                                   kingSq,
-                                     const DiffType&                                diff,
+                                     const DirtyType&                               dPps,
                                      IndexList&                                     removed,
                                      IndexList&                                     added,
                                      [[maybe_unused]] const ThreatWeightType* const pfBase,
                                      [[maybe_unused]] const IndexType pfStride) noexcept {
-
-    const Bitboard wBefore = diff.before[WHITE];
-    const Bitboard bBefore = diff.before[BLACK];
-    const Bitboard wAfter  = diff.after[WHITE];
-    const Bitboard bAfter  = diff.after[BLACK];
+    const Bitboard wBefore = dPps.before[WHITE];
+    const Bitboard bBefore = dPps.before[BLACK];
+    const Bitboard wAfter  = dPps.after[WHITE];
+    const Bitboard bAfter  = dPps.after[BLACK];
 
     if (wBefore == wAfter && bBefore == bAfter)
         return;

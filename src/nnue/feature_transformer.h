@@ -412,13 +412,13 @@ class FeatureTransformer final {
     // The first pawn-pair feature is at index ThreatFeatureSet::Dimensions.
     static_assert(PairFeatureSet::IndexBase == ThreatFeatureSet::Dimensions);
 
-    alignas(CACHE_LINE_SIZE) Array<BiasType, HalfDimensions> biases;
-
-    alignas(CACHE_LINE_SIZE) Array<WeightType      , (PSQFeatureSet::Dimensions) * HalfDimensions> weights;
-    alignas(CACHE_LINE_SIZE) Array<PSQTWeightType  , (PSQFeatureSet::Dimensions) * PSQT_BUCKETS>   psqtWeights;
-
     alignas(CACHE_LINE_SIZE) Array<ThreatWeightType, (ThreatFeatureSet::Dimensions + PairFeatureSet::Dimensions) * HalfDimensions> threatAndPpWeights;
     alignas(CACHE_LINE_SIZE) Array<PSQTWeightType  , (ThreatFeatureSet::Dimensions + PairFeatureSet::Dimensions) * PSQT_BUCKETS>   threatAndPpPsqtWeights;
+
+    alignas(CACHE_LINE_SIZE) Array<WeightType    , (PSQFeatureSet::Dimensions) * HalfDimensions> weights;
+    alignas(CACHE_LINE_SIZE) Array<PSQTWeightType, (PSQFeatureSet::Dimensions) * PSQT_BUCKETS>   psqtWeights;
+
+    alignas(CACHE_LINE_SIZE) Array<BiasType, HalfDimensions> biases;
     // clang-format on
 };
 

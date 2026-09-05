@@ -555,6 +555,7 @@ void update_refresh_cache(const Color               perspective,
 
     ThreatFeatureSet::IndexVector active;
     ThreatFeatureSet::append_active_indices(perspective, pos, active);
+    PairFeatureSet::append_active_indices(perspective, pos, active);
 
     accumulator.computed[perspective] = true;
 
