@@ -18,6 +18,8 @@
 #ifndef BITBOARD_H_INCLUDED
 #define BITBOARD_H_INCLUDED
 
+#include <algorithm>
+#include <array>
 #include <cassert>
 #include <string>
 #include <string_view>
@@ -133,6 +135,72 @@ constexpr Bitboard operator^(Bitboard b, Rank r) noexcept { return b ^ rank_bb(r
 
 constexpr bool more_than_one(Bitboard b) noexcept { return (b & (b - 1)) != 0; }
 constexpr bool exactly_one(Bitboard b) noexcept { return b != 0 && !more_than_one(b); }
+
+// Return the distance between s1 and s2, defined as the number of steps for a king in s1 to reach s2.
+template<typename T = Square>
+constexpr u8 distance(const Square, const Square) noexcept {
+    static_assert(sizeof(T) == 0, "Unsupported distance type");
+    return 0;
+}
+
+template<>
+constexpr u8 distance<File>(const Square s1, const Square s2) noexcept {
+    assert(is_ok(s1) && is_ok(s2));
+
+    return constexpr_abs(file_of(s1) - file_of(s2));
+}
+
+template<>
+constexpr u8 distance<Rank>(const Square s1, const Square s2) noexcept {
+    assert(is_ok(s1) && is_ok(s2));
+
+    return constexpr_abs(rank_of(s1) - rank_of(s2));
+}
+
+alignas(CACHE_LINE_SIZE) inline constexpr auto DISTANCES = []() constexpr noexcept {
+    Array<u8, SQUARE_NB, SQUARE_NB> distances{};
+
+    for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
+        for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
+            distances[s1][s2] = std::max(distance<File>(s1, s2), distance<Rank>(s1, s2));
+
+    return distances;
+}();
+
+template<>
+constexpr u8 distance<Square>(const Square s1, const Square s2) noexcept {
+    assert(is_ok(s1) && is_ok(s2));
+
+    return DISTANCES[s1][s2];
+}
+
+// Shifts a bitboard as specified by the direction
+template<Direction D>
+constexpr Bitboard shift_bb(const Bitboard b) noexcept {
+    if constexpr (D == Direction::NORTH)
+        return b << +Direction::NORTH;
+    if constexpr (D == Direction::SOUTH)
+        return b >> +Direction::NORTH;
+    if constexpr (D == Direction::NORTH_2)
+        return b << +Direction::NORTH_2;
+    if constexpr (D == Direction::SOUTH_2)
+        return b >> +Direction::NORTH_2;
+    if constexpr (D == Direction::EAST)
+        return (b & ~FILE_H_BB) << +Direction::EAST;
+    if constexpr (D == Direction::WEST)
+        return (b & ~FILE_A_BB) >> +Direction::EAST;
+    if constexpr (D == Direction::NORTH_WEST)
+        return (b & ~FILE_A_BB) << +Direction::NORTH_WEST;
+    if constexpr (D == Direction::SOUTH_EAST)
+        return (b & ~FILE_H_BB) >> +Direction::NORTH_WEST;
+    if constexpr (D == Direction::NORTH_EAST)
+        return (b & ~FILE_H_BB) << +Direction::NORTH_EAST;
+    if constexpr (D == Direction::SOUTH_WEST)
+        return (b & ~FILE_A_BB) >> +Direction::NORTH_EAST;
+    assert(false);
+    UNREACHABLE();
+    return 0;
+}
 
 template<typename T>
 constexpr u8 constexpr_popcount(const T v) noexcept {

@@ -835,13 +835,16 @@ bool Position::enpassant_possible(const Color     ac,
 // Helper used to do/undo a castling move.
 // This is a bit tricky in Chess960 where org/dst squares can overlap.
 template<bool Do>
-void Position::do_castling(const Color       ac,
-                           Square            kingOrgSq,
-                           Square&           kingDstSq,
-                           Square&           rookOrgSq,
-                           Square&           rookDstSq,
-                           DirtyBoard* const db) noexcept {
-    assert(!Do || db != nullptr);
+void Position::do_castling(const Color    ac,
+                           Square         kingOrgSq,
+                           Square&        kingDstSq,
+                           Square&        rookOrgSq,
+                           Square&        rookDstSq,
+                           Dirties* const dirties) noexcept {
+    assert(!Do || dirties != nullptr);
+
+    auto* dP  = Do ? &dirties->dirtyPiece : nullptr;
+    auto* dTs = Do ? &dirties->dirtyThreats : nullptr;
 
     rookOrgSq = kingDstSq;  // Castling is encoded as "king captures rook"
     kingDstSq = king_castle_sq(kingOrgSq, rookOrgSq);
@@ -856,30 +859,29 @@ void Position::do_castling(const Color       ac,
 
     if constexpr (Do)
     {
-        db->dirtyPiece.dstSq     = kingDstSq;
-        db->dirtyPiece.removedSq = rookOrgSq;
-        db->dirtyPiece.addedSq   = rookDstSq;
-        db->dirtyPiece.removedPc = db->dirtyPiece.addedPc = rookPc;
+        dP->dstSq     = kingDstSq;
+        dP->removedSq = rookOrgSq;
+        dP->addedSq   = rookDstSq;
+        dP->removedPc = dP->addedPc = rookPc;
 
         st->hasCastleds[ac] = true;
     }
     // Remove rook first since squares could overlap in Chess960
     if (rookMoved)
-        remove(Do ? rookOrgSq : rookDstSq, Do ? &db->dirtyThreats : nullptr);
+        remove(Do ? rookOrgSq : rookDstSq, dTs);
     if (kingMoved)
-        move(Do ? kingOrgSq : kingDstSq, Do ? kingDstSq : kingOrgSq,
-             Do ? &db->dirtyThreats : nullptr);
+        move(Do ? kingOrgSq : kingDstSq, Do ? kingDstSq : kingOrgSq, dTs);
     if (rookMoved)
-        put(Do ? rookDstSq : rookOrgSq, rookPc, Do ? &db->dirtyThreats : nullptr);
+        put(Do ? rookDstSq : rookOrgSq, rookPc, dTs);
 }
 
 // Makes a move, and saves all necessary information to new state.
 // Also prefetch tt and histories for the new position.
 // The move is assumed to be legal.
-DirtyBoard Position::do_move(const Move          m,
-                             State&              newSt,
-                             const bool          mayCheck,
-                             const Worker* const worker) noexcept {
+Dirties Position::do_move(const Move          m,
+                          State&              newSt,
+                          const bool          mayCheck,
+                          const Worker* const worker) noexcept {
     assert(legal(m));
     assert(&newSt != st);
 
@@ -907,13 +909,16 @@ DirtyBoard Position::do_move(const Move          m,
            || (color_of(capturedPc) == (m.type() != MT::CASTLING ? ~ac : ac)
                && type_of(capturedPc) != KING));
 
-    DirtyBoard db;
+    Dirties dirties;
+    auto*   dP  = &dirties.dirtyPiece;
+    auto*   dTs = &dirties.dirtyThreats;
 
-    db.dirtyPiece.movedPc = movedPc;
-    db.dirtyPiece.orgSq   = orgSq;
-    db.dirtyPiece.dstSq   = dstSq;
-    db.dirtyPiece.addedSq = SQ_NONE;
-    assert(db.dirtyThreats.empty());
+    dP->movedPc = movedPc;
+    dP->orgSq   = orgSq;
+    dP->dstSq   = dstSq;
+    dP->addedSq = SQ_NONE;
+
+    assert(dTs->empty());
 
     st->key ^= Zobrist::turn() ^ Zobrist::enpassant(en_passant_sq());
 
@@ -937,7 +942,7 @@ DirtyBoard Position::do_move(const Move          m,
         assert(!has_castled(ac));
 
         Square rookOrgSq, rookDstSq;
-        do_castling<true>(ac, orgSq, dstSq, rookOrgSq, rookDstSq, &db);
+        do_castling<true>(ac, orgSq, dstSq, rookOrgSq, rookDstSq, &dirties);
         assert(rookOrgSq == m.dst_sq());
 
         movedKey    = Zobrist::piece_square(ac, movedPt, orgSq)  //
@@ -997,8 +1002,8 @@ DirtyBoard Position::do_move(const Move          m,
             st->nonPawnKeys[~ac][is_major(capturedPt)] ^= capturedKey;
         }
 
-        db.dirtyPiece.removedSq = capturedSq;
-        db.dirtyPiece.removedPc = capturedPc;
+        dP->removedSq = capturedSq;
+        dP->removedPc = capturedPc;
 
         st->capturedSq = dstSq;
 
@@ -1025,9 +1030,9 @@ DirtyBoard Position::do_move(const Move          m,
             //movedPc    = promotedPc;
             movedPt    = promotedPt;
 
-            db.dirtyPiece.dstSq   = SQ_NONE;
-            db.dirtyPiece.addedSq = dstSq;
-            db.dirtyPiece.addedPc = promotedPc;
+            dP->dstSq   = SQ_NONE;
+            dP->addedSq = dstSq;
+            dP->addedPc = promotedPc;
 
             assert(Zobrist::piece_square(ac, PAWN, dstSq) == 0);
 
@@ -1087,24 +1092,24 @@ DirtyBoard Position::do_move(const Move          m,
     {
         if (promotion)
         {
-            remove(orgSq, &db.dirtyThreats);
+            remove(orgSq, dTs);
             if (capture)
-                swap(dstSq, promotedPc, &db.dirtyThreats);
+                swap(dstSq, promotedPc, dTs);
             else
-                put(dstSq, promotedPc, &db.dirtyThreats);
+                put(dstSq, promotedPc, dTs);
         }
         else if (enPassant)
         {
-            remove(capturedSq, &db.dirtyThreats);
-            move(orgSq, dstSq, &db.dirtyThreats);
+            remove(capturedSq, dTs);
+            move(orgSq, dstSq, dTs);
         }
         else if (capture)
         {
-            remove(orgSq, &db.dirtyThreats);
-            swap(dstSq, movedPc, &db.dirtyThreats);
+            remove(orgSq, dTs);
+            swap(dstSq, movedPc, dTs);
         }
         else  // Quiet move
-            move(orgSq, dstSq, &db.dirtyThreats);
+            move(orgSq, dstSq, dTs);
     }
 
     // Compute checkers (if move may check)
@@ -1164,12 +1169,12 @@ DirtyBoard Position::do_move(const Move          m,
 
     assert(_is_ok());
 
-    assert(is_ok(db.dirtyPiece.movedPc));
-    assert(is_ok(db.dirtyPiece.orgSq));
-    assert(is_ok(db.dirtyPiece.dstSq) ^ !(!promotion));
-    assert(is_ok(db.dirtyPiece.removedSq) ^ !(capture || castling));
-    assert(is_ok(db.dirtyPiece.addedSq) ^ !(promotion || castling));
-    return db;
+    assert(is_ok(dP->movedPc));
+    assert(is_ok(dP->orgSq));
+    assert(is_ok(dP->dstSq) ^ !(!promotion));
+    assert(is_ok(dP->removedSq) ^ !(capture || castling));
+    assert(is_ok(dP->addedSq) ^ !(promotion || castling));
+    return dirties;
 }
 
 // Unmakes a move, restoring the position to its exact state before the move was made.

@@ -28,6 +28,8 @@
 #include "../misc.h"
 #include "../position.h"
 #include "../types.h"
+#include "architecture.h"
+#include "feature_transformer.h"
 #include "nnz.h"
 #include "ntypes.h"
 #include "serialization.h"

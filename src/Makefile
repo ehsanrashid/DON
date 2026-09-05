@@ -1528,9 +1528,9 @@ endif
 ### ==========================================================================
 #
 # Usage:
-#   make -j ARCH=x86-64-universal build          # non-PGO
-#   make -j ARCH=x86-64-universal profile-build  # PGO (use RUN_PREFIX for intel SDE)
-#   make -j ARCH=arm64-universal build
+#   make -j build ARCH=x86-64-universal          # non-PGO
+#   make -j profile-build ARCH=x86-64-universal  # PGO (use RUN_PREFIX for intel SDE)
+#   make -j build ARCH=arm64-universal
 
 TEMP_DIR             := $(CURDIR)/temp_builds
 UNIVERSAL_EXE        := $(CURDIR)/$(EXE)

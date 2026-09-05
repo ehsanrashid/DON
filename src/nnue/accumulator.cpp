@@ -26,6 +26,7 @@
 #include "../types.h"
 #include "architecture.h"
 #include "feature_transformer.h"
+#include "ntypes.h"
 #include "simd.h"
 
 namespace DON::NNUE {
@@ -51,10 +52,10 @@ void AccumulatorStack::reset() noexcept {
     size_ = 1;
 }
 
-void AccumulatorStack::push(DirtyBoard&& db) noexcept {
+void AccumulatorStack::push(Dirties&& dirties) noexcept {
     assert(size() < Size);
 
-    accumulators[size_++].set(std::move(db));
+    accumulators[size_++].set(std::move(dirties));
 }
 
 void AccumulatorStack::pop() noexcept {
@@ -100,7 +101,7 @@ usize AccumulatorStack::find_last_usable_index(const Color perspective) const no
 
         // Threat feature set refreshes require a king move across the center, i.e.,
         // a subset of halfka refreshes
-        if (PSQFeatureSet::refresh_required(perspective, accumulators[idx].dirtyBoard.dirtyPiece))
+        if (PSQFeatureSet::refresh_required(perspective, accumulators[idx].dirties.dirtyPiece))
             return idx;
     }
 
@@ -380,18 +381,18 @@ void update_incremental(const Color               perspective,
     PSQFeatureSet::IndexVector    psqRemoved, psqAdded;
     ThreatFeatureSet::IndexVector thrRemoved, thrAdded;
 
-    const auto& dirtyBoard = Forward ? target.dirtyBoard : source.dirtyBoard;
+    const auto& dirties = Forward ? target.dirties : source.dirties;
 
-    const auto& dirtyPiece   = dirtyBoard.dirtyPiece;
-    const auto& dirtyThreats = dirtyBoard.dirtyThreats;
+    const auto& dP  = dirties.dirtyPiece;
+    const auto& dTs = dirties.dirtyThreats;
 
     const auto* pfBase   = featureTransformer.threatWeights.data();
     const auto  pfStride = FeatureTransformer::OutputDimensions;
 
-    PSQFeatureSet::append_changed_indices(perspective, kingSq, dirtyPiece,
+    PSQFeatureSet::append_changed_indices(perspective, kingSq, dP,  //
                                           Forward ? psqRemoved : psqAdded,
                                           Forward ? psqAdded : psqRemoved);
-    ThreatFeatureSet::append_changed_indices(perspective, kingSq, dirtyThreats,
+    ThreatFeatureSet::append_changed_indices(perspective, kingSq, dTs,
                                              Forward ? thrRemoved : thrAdded,
                                              Forward ? thrAdded : thrRemoved, pfBase, pfStride);
 

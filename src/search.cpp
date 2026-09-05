@@ -1107,7 +1107,7 @@ Value Worker::search(Position&    pos,
         // Compute futility
         int futility = std::max(baseFutility * depth
                               - constexpr_ceil(baseFutility * (int(improve) * 2789.0 + int(worsen) * 335.0) / 1024.0)
-                              + constexpr_round(absCorrectionValue / 198435.0),
+                              + constexpr_ceil(absCorrectionValue / 198435.0),
                                 0);
 
         if (ttEvalue - futility >= beta)
@@ -1167,7 +1167,8 @@ Value Worker::search(Position&    pos,
     // (*Scaler) Making IIR more aggressive scales poorly.
     if constexpr (!AllNode)
     {
-    depth -= (depth > 5) && ttmNone && !ss->pvFollow;
+        if (depth > 5 && ttmNone && !ss->pvFollow)
+            --depth;
     }
 
     // Step 11. ProbCut
@@ -1428,7 +1429,7 @@ Value Worker::search(Position&    pos,
 
             if (singularValue <= singularAlpha)
             {
-                int corrMargin = constexpr_round(absCorrectionValue / 198368.0);
+                int corrMargin = constexpr_ceil(absCorrectionValue / 198368.0);
 
                 int doubleMargin = -2 + int(PVNode) * 204 - int(!ttmCapture) * 152 - corrMargin - int(ss->ply > rootDepth) * 38 - constexpr_round(ttMoveHistory * 1175.0 / 114178.0);
                 int tripleMargin = 70 + int(PVNode) * 279 - int(!ttmCapture) * 188 - corrMargin - int(ss->ply > rootDepth) * 43 + int(ss->pvTT) * 81;
@@ -1489,7 +1490,7 @@ Value Worker::search(Position&    pos,
         // Base reduction offset to compensate for other tweaks
         r += 697;
         r -= 65 * moveCount;
-        r -= constexpr_round(absCorrectionValue / 26310.0);
+        r -= constexpr_ceil(absCorrectionValue / 26310.0);
 
         // (*Scaler) Decrease reduction if position is or has been on the PV
         r -= int(ss->pvTT)
@@ -2079,18 +2080,18 @@ void Worker::do_move(
 
     bool capture = pos.capture_promo(m);
 
-    DirtyBoard db = pos.do_move(m, st, mayCheck, this);
+    auto dirties = pos.do_move(m, st, mayCheck, this);
 
     assert(moveKey == pos.key());
 
     ++nodes;
     // clang-format off
-    auto movedPc                 = db.dirtyPiece.movedPc;
+    auto& dP                     = dirties.dirtyPiece;
     ss->move                     = m;
-    ss->pieceSqHistory           = &atomicHistories.continuation_history()[ss->inCheck][capture][+movedPc][m.dst_sq()];
-    ss->pieceSqCorrectionHistory = &continuationCorrectionHistory[+movedPc][m.dst_sq()];
+    ss->pieceSqHistory           = &atomicHistories.continuation_history()[ss->inCheck][capture][+dP.movedPc][m.dst_sq()];
+    ss->pieceSqCorrectionHistory = &continuationCorrectionHistory[+dP.movedPc][m.dst_sq()];
     // clang-format on
-    accStack.push(std::move(db));
+    accStack.push(std::move(dirties));
 }
 
 void Worker::undo_move(Position& pos, const Move m) noexcept {
@@ -2210,17 +2211,18 @@ void Worker::update_histories(const Position&             pos,
         update_quiet_histories(pos, ss, bestMove, constexpr_round(bonus * 899.0 / 1024.0));
 
         // Decrease history for all non-best quiet moves
-        int decayQuietMalus = constexpr_round(malus * 1018.0 / 1024.0);
+        int quietMalus = constexpr_round(malus * 1042.0 / 1024.0);
         for (const Move qm : moveVectors[0])
         {
-            update_quiet_histories(pos, ss, qm, -decayQuietMalus);
-            decayQuietMalus = constexpr_round(decayQuietMalus * 921.0 / 1024.0);
+            update_quiet_histories(pos, ss, qm, -quietMalus);
+            quietMalus = constexpr_round(quietMalus * 921.0 / 1024.0);
         }
     }
 
     // Decrease history for all non-best capture moves
+    int captureMalus = constexpr_round(malus * 1489.0 / 1024.0);
     for (const Move cm : moveVectors[1])
-        update_capture_history(pos, cm, -constexpr_round(malus * 1489.0 / 1024.0));
+        update_capture_history(pos, cm, -captureMalus);
 
     // Extra penalty for a quiet early move that was not a TT move in the previous ply when it gets refuted
     Stack* const ss1 = ss - 1;
@@ -2267,7 +2269,7 @@ int Worker::correction_value(const Position& pos, const Stack* const ss) const n
     const Color ac = pos.active_color();
 
     i64 correctionValue =
-           + i64{7670} * (atomicHistories.    pawn_correction_entry<WHITE>(pos)[ac]
+           + i64{7669} * (atomicHistories.    pawn_correction_entry<WHITE>(pos)[ac]
                         + atomicHistories.    pawn_correction_entry<BLACK>(pos)[ac])
            + i64{5284} * (atomicHistories.   minor_correction_entry<WHITE>(pos)[ac]
                         + atomicHistories.   minor_correction_entry<BLACK>(pos)[ac])

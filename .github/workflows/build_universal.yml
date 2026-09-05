@@ -28,7 +28,7 @@ jobs:
           sdeVersion: 9.58.0
 
       - name: Build Linux x86-64 universal binary with GCC and SDE
-        run: make -j4 -C src ARCH=x86-64-universal profile-build RUN_PREFIX="$SDE_DIR/sde -future --"
+        run: make -j4 -C src profile-build ARCH=x86-64-universal RUN_PREFIX="$SDE_DIR/sde -future --"
 
       - name: Strip Linux x86-64 universal binary
         run: strip src/DON
@@ -100,7 +100,7 @@ jobs:
       - name: Build Windows x86-64 universal binary with MinGW-w64 GCC and SDE
         run: |
           SDE_PATH=$(cygpath "$SDE_DIR")
-          make -j4 -C src ARCH=x86-64-universal profile-build RUN_PREFIX="$SDE_PATH/sde.exe -future --"
+          make -j4 -C src profile-build ARCH=x86-64-universal RUN_PREFIX="$SDE_PATH/sde.exe -future --"
 
       - name: Strip Windows x86-64 universal binary
         run: strip src/DON.exe
@@ -168,7 +168,7 @@ jobs:
           sudo apt-get install -y qemu-user
 
       - name: Build Linux ARM64 universal binary with GCC
-        run: make -j4 -C src ARCH=arm64-universal profile-build
+        run: make -j4 -C src profile-build ARCH=arm64-universal
 
       - name: Strip Linux ARM64 universal binary
         run: strip src/DON
@@ -232,7 +232,7 @@ jobs:
           install: mingw-w64-clang-aarch64-clang make git zip
 
       - name: Build Windows ARM64 universal binary with Clang
-        run: make -j4 -C src ARCH=arm64-universal profile-build COMP=clang COMPCXX=clang++
+        run: make -j4 -C src profile-build ARCH=arm64-universal COMP=clang COMPCXX=clang++
 
       - name: Strip Windows ARM64 universal binary
         run: strip src/DON.exe
@@ -320,7 +320,7 @@ jobs:
 
       - name: Build Linux RISC-V64 universal binary with Clang
         run: |
-          make -j4 -C src ARCH=riscv64-universal build \
+          make -j4 -C src build ARCH=riscv64-universal \
             COMP=clang COMPCXX=clang++ \
             EXTRA_CXXFLAGS="--target=riscv64-linux-gnu" \
             EXTRA_LDFLAGS="--target=riscv64-linux-gnu -fuse-ld=lld" \

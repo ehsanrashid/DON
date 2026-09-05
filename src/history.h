@@ -19,7 +19,6 @@
 #define HISTORY_H_INCLUDED
 
 #include <algorithm>
-#include <atomic>
 #include <cassert>
 #include <limits>
 #include <type_traits>
@@ -40,8 +39,8 @@ namespace DON {
 // T specifies the underlying signed integral type.
 // D specifies the maximum magnitude of the statistic and each update;
 //   both the stored value and each update are limited to [-D, D].
-// Atomic controls whether the stored value is accessed atomically.
-template<typename T, int D, bool Atomic = false>
+// UseAtomic specifies whether the stored value is accessed atomically.
+template<typename T, int D, bool UseAtomic = false>
 class HistoryEntry final {
     static_assert(std::is_signed_v<T> && std::is_integral_v<T>, "T must be a signed integral");
     static_assert(D > 0, "D must be positive");
@@ -55,7 +54,6 @@ class HistoryEntry final {
 
     // Update the statistic using bonus, clamped to the range [-D, +D]
     void operator<<(const int bonus) noexcept {
-        // Clamp the update to the range [-D, +D]
         int clampedBonus = std::clamp(bonus, -D, +D);
         // Apply gravity-based adjustment
         T v   = *this;
@@ -65,7 +63,7 @@ class HistoryEntry final {
     }
 
    private:
-    std::conditional_t<Atomic, RelaxedAtomic<T>, T> value;
+    std::conditional_t<UseAtomic, RelaxedAtomic<T>, T> value;
 };
 
 template<typename T>

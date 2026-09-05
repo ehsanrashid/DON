@@ -67,14 +67,12 @@ int probe_dtz(Position&, ProbeState* const ps) noexcept {
     return 0;
 }
 
-// clang-format off
-
 bool rank_root_moves_wdl(Position&, RootMoves&, bool) noexcept { return false; }
 bool rank_root_moves_dtz(Position&, RootMoves&, bool, bool, TimeFunc) noexcept { return false; }
 
-Config rank_root_moves(Position&, RootMoves&, const Options&, bool, TimeFunc) noexcept { return Config{}; }
-
-// clang-format on
+Config rank_root_moves(Position&, RootMoves&, const Options&, bool, TimeFunc) noexcept {
+    return Config{};
+}
 
 #else
 
@@ -2026,8 +2024,6 @@ int probe_dtz(Position& pos, ProbeState* const ps) noexcept {
     return minDtzScore != NO_DTZ_SCORE ? minDtzScore : -1;
 }
 
-// clang-format off
-
 // Use the WDL-tables to rank root moves.
 // This is a fallback for the case that some or all DTZ-tables are missing.
 //
@@ -2062,7 +2058,11 @@ bool rank_root_moves_wdl(Position& pos, RootMoves& rootMoves, const bool useRule
 // Use the DTZ-tables to rank root moves.
 //
 // A return value false indicates that not all probes were successful.
-bool rank_root_moves_dtz(Position& pos, RootMoves& rootMoves, const bool useRule50, const bool rankDTZ, const TimeFunc time_to_abort) noexcept {
+bool rank_root_moves_dtz(Position&      pos,
+                         RootMoves&     rootMoves,
+                         const bool     useRule50,
+                         const bool     rankDTZ,
+                         const TimeFunc time_to_abort) noexcept {
     // Obtain 50-move counter for the root position
     i16 rule50Count = pos.rule50_count();
 
@@ -2120,10 +2120,10 @@ bool rank_root_moves_dtz(Position& pos, RootMoves& rootMoves, const bool useRule
         int r = dtzScore > 0 ? (+1 * dtzScore + rule50Count < 100 && !hasRepeated
                                   ? +DTZ_MAX - (rankDTZ ? +dtzScore : 0)
                                   : +DTZ_MAX / 2 - (+dtzScore + rule50Count))
-              : dtzScore < 0 ? (-2 * dtzScore + rule50Count < 100
-                                  ? -DTZ_MAX + (rankDTZ ? -dtzScore : 0)
-                                  : -DTZ_MAX / 2 + (-dtzScore + rule50Count))
-                             : 0;
+              : dtzScore < 0
+                ? (-2 * dtzScore + rule50Count < 100 ? -DTZ_MAX + (rankDTZ ? -dtzScore : 0)
+                                                     : -DTZ_MAX / 2 + (-dtzScore + rule50Count))
+                : 0;
 
         rm.tbRank = r;
 
@@ -2140,7 +2140,11 @@ bool rank_root_moves_dtz(Position& pos, RootMoves& rootMoves, const bool useRule
     return true;
 }
 
-Config rank_root_moves(Position& pos, RootMoves& rootMoves, const Options& options, bool rankDTZ, const TimeFunc time_to_abort) noexcept {
+Config rank_root_moves(Position&      pos,
+                       RootMoves&     rootMoves,
+                       const Options& options,
+                       bool           rankDTZ,
+                       const TimeFunc time_to_abort) noexcept {
     Config config;
 
     if (rootMoves.empty())
@@ -2166,7 +2170,8 @@ Config rank_root_moves(Position& pos, RootMoves& rootMoves, const Options& optio
         rankDTZ = rankDTZ || pos.dtz_is_dtm();
 
         // Rank moves using DTZ-tables, Exit early if the time_to_abort() returns true
-        config.rootInTB = rank_root_moves_dtz(pos, rootMoves, config.useRule50, rankDTZ, time_to_abort);
+        config.rootInTB =
+          rank_root_moves_dtz(pos, rootMoves, config.useRule50, rankDTZ, time_to_abort);
 
         if (!config.rootInTB)
         {
@@ -2194,8 +2199,6 @@ Config rank_root_moves(Position& pos, RootMoves& rootMoves, const Options& optio
 
     return config;
 }
-
-// clang-format on
 
 #endif  // NO_TABLEBASES
 

@@ -22,7 +22,7 @@ jobs:
 
       - name: Build DON
         working-directory: DON/src
-        run: make -j8 ARCH=x86-64-avx2 profile-build
+        run: make -j8 profile-build ARCH=x86-64-avx2
 
       - name: Checkout matetrack repo
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -128,6 +128,12 @@ jobs:
           grep 5men cursed.epd > cursed5.epd
           python matecheck.py --engine /home/runner/work/DON/DON/DON/src/DON --epdFile cursed5.epd --syzygyPath 3-4-5-wdl/:3-4-5-dtz/ --syzygy50MoveRule false --nodes 100000 | tee matecheckcursed1.out
           ! grep "issues were detected" matecheckcursed1.out >/dev/null
+          mates=$(grep "Found mates:" matecheckcursed1.out | awk '{print $3}')
+          tbwins=$(grep "Found TB wins:" matecheckcursed1.out | awk '{print $4}')
+          if [ $((mates + tbwins)) -ne 32 ]; then
+            echo "Sum of mates and TB wins is not 32 in matecheckcursed1.out" >&2
+            exit 1
+          fi
 
       - name: Run matetrack th4 with --syzygy50MoveRule false
         working-directory: matetrack
@@ -135,19 +141,9 @@ jobs:
           grep 5men cursed.epd > cursed5.epd
           python matecheck.py --engine /home/runner/work/DON/DON/DON/src/DON --epdFile cursed5.epd --syzygyPath 3-4-5-wdl/:3-4-5-dtz/ --syzygy50MoveRule false --nodes 100000 --threads 4 | tee matecheckcursed4.out
           ! grep "issues were detected" matecheckcursed4.out >/dev/null
-
-      - name: Verify mate and TB win count for matecheckcursed[14].out
-        working-directory: matetrack
-        run: |
-          mates=$(grep "Found mates:" matecheckcursed1.out | awk '{print $3}')
-          tbwins=$(grep "Found TB wins:" matecheckcursed1.out | awk '{print $4}')
-          if [ $(($mates + $tbwins)) -ne 32 ]; then
-            echo "Sum of mates and TB wins is not 32 in matecheckcursed1.out" >&2
-            exit 1
-          fi
           mates=$(grep "Found mates:" matecheckcursed4.out | awk '{print $3}')
           tbwins=$(grep "Found TB wins:" matecheckcursed4.out | awk '{print $4}')
-          if [ $(($mates + $tbwins)) -ne 32 ]; then
+          if [ $((mates + tbwins)) -ne 32 ]; then
             echo "Sum of mates and TB wins is not 32 in matecheckcursed4.out" >&2
             exit 1
           fi

@@ -219,10 +219,14 @@ constexpr Rank& operator+=(Rank& r, const int i) noexcept { return r = r + i; }
 constexpr Rank& operator-=(Rank& r, const int i) noexcept { return r = r - i; }
 constexpr i8    operator-(const Rank r1, const Rank r2) noexcept { return u8(r1) - u8(r2); }
 // Additional operators for Square to add a Direction
-constexpr Square  operator+(const Square s, const int i) noexcept { return Square(u8(s) + i); }
-constexpr Square  operator-(const Square s, const int i) noexcept { return Square(u8(s) - i); }
-constexpr Square  operator+(const Square s, const Direction d) noexcept { return Square(s + +d); }
-constexpr Square  operator-(const Square s, const Direction d) noexcept { return Square(s - +d); }
+constexpr Square operator+(const Square s, const int i) noexcept { return Square(u8(s) + i); }
+constexpr Square operator-(const Square s, const int i) noexcept { return Square(u8(s) - i); }
+constexpr Square operator+(const Square s, const Direction d) noexcept {
+    return Square(s + int(d));
+}
+constexpr Square operator-(const Square s, const Direction d) noexcept {
+    return Square(s - int(d));
+}
 constexpr Square& operator+=(Square& s, const Direction d) noexcept { return s = s + d; }
 constexpr Square& operator-=(Square& s, const Direction d) noexcept { return s = s - d; }
 
@@ -251,9 +255,13 @@ constexpr Square& operator-=(Square& s, const Direction d) noexcept { return s =
 }
 
 // Swap A1 <-> H1, B1 <-> G1, ...
-[[nodiscard]] constexpr Square flip_file(const Square s) noexcept { return Square(s ^ SQ_H1); }
+[[nodiscard]] constexpr Square flip_file(const Square s) noexcept {
+    return Square(u8(s) ^ u8(SQ_H1));
+}
 // Swap A1 <-> H8, B1 <-> G8, ...
-[[nodiscard]] constexpr Square flip_rank(const Square s) noexcept { return Square(s ^ SQ_A8); }
+[[nodiscard]] constexpr Square flip_rank(const Square s) noexcept {
+    return Square(u8(s) ^ u8(SQ_A8));
+}
 
 enum Color : u8 {
     WHITE,
@@ -756,74 +764,69 @@ struct DirtyPiece final {
     Piece  removedPc = Piece::NO_PIECE, addedPc = Piece::NO_PIECE;
 };
 
-// Keep track of what threats (attacks) change on the board by a move
-struct DirtyThreat final {
-   public:
-    static constexpr u8 SqShift           = 0;
-    static constexpr u8 ThreatenedSqShift = 8;
-    static constexpr u8 PcShift           = 16;
-    static constexpr u8 ThreatenedPcShift = 20;
-    static constexpr u8 AddShift          = 31;
-
-    static constexpr u16 SqMask  = (1u << 8) - 1;
-    static constexpr u16 PcMask  = (1u << 4) - 1;
-    static constexpr u16 AddMask = (1u << 1) - 1;
-
-    DirtyThreat() noexcept = default;
-    constexpr explicit DirtyThreat(const u32 d) noexcept :
-        data(d) {}
-    constexpr DirtyThreat(const Square sq,
-                          const Square threatenedSq,
-                          const Piece  pc,
-                          const Piece  threatenedPc,
-                          const bool   add) noexcept :
-        data((u32(add) << AddShift)                      //
-             | (u32(threatenedPc) << ThreatenedPcShift)  //
-             | (u32(pc) << PcShift)                      //
-             | (u32(threatenedSq) << ThreatenedSqShift)  //
-             | (u32(sq) << SqShift)) {}
-
-    constexpr Square sq() const noexcept {  //
-        return Square((data >> SqShift) & SqMask);
-    }
-    constexpr Square threatened_sq() const noexcept {
-        return Square((data >> ThreatenedSqShift) & SqMask);
-    }
-    constexpr Piece pc() const noexcept {  //
-        return Piece((data >> PcShift) & PcMask);
-    }
-    constexpr Piece threatened_pc() const noexcept {
-        return Piece((data >> ThreatenedPcShift) & PcMask);
-    }
-    constexpr bool add() const noexcept { return ((data >> AddShift) & AddMask) != 0; }
-
-    constexpr u32 raw() const noexcept { return data; }
-
-   private:
-    u32 data;
-};
-
-static_assert(sizeof(DirtyThreat) == 4, "DirtyThreat size must be 4 bytes");
-
-// Keep track of all threats (attacks) that change on the board by a move
+// Keep track of what threats change on the board
 struct DirtyThreats final {
    public:
+    struct Threat final {
+       public:
+        static constexpr u8 SqShift           = 0;
+        static constexpr u8 ThreatenedSqShift = 8;
+        static constexpr u8 PcShift           = 16;
+        static constexpr u8 ThreatenedPcShift = 20;
+        static constexpr u8 AddShift          = 31;
+
+        static constexpr u16 SqMask  = (1u << 8) - 1;
+        static constexpr u16 PcMask  = (1u << 4) - 1;
+        static constexpr u16 AddMask = (1u << 1) - 1;
+
+        Threat() noexcept = default;
+        constexpr explicit Threat(const u32 d) noexcept :
+            data(d) {}
+        constexpr Threat(const Square sq,
+                         const Square threatenedSq,
+                         const Piece  pc,
+                         const Piece  threatenedPc,
+                         const bool   add) noexcept :
+            data((u32(add) << AddShift)                      //
+                 | (u32(threatenedPc) << ThreatenedPcShift)  //
+                 | (u32(pc) << PcShift)                      //
+                 | (u32(threatenedSq) << ThreatenedSqShift)  //
+                 | (u32(sq) << SqShift)) {}
+
+        constexpr Square sq() const noexcept {  //
+            return Square((data >> SqShift) & SqMask);
+        }
+        constexpr Square threatened_sq() const noexcept {
+            return Square((data >> ThreatenedSqShift) & SqMask);
+        }
+        constexpr Piece pc() const noexcept {  //
+            return Piece((data >> PcShift) & PcMask);
+        }
+        constexpr Piece threatened_pc() const noexcept {
+            return Piece((data >> ThreatenedPcShift) & PcMask);
+        }
+        constexpr bool add() const noexcept { return ((data >> AddShift) & AddMask) != 0; }
+
+        constexpr u32 raw() const noexcept { return data; }
+
+       private:
+        u32 data;
+    };
+
     void add(const Square sq,
              const Square threatenedSq,
              const Piece  pc,
              const Piece  threatenedPc,
              const bool   put) noexcept {
-        dirtyThreats_.emplace_back(sq, threatenedSq, pc, threatenedPc, put);
+        threats_.emplace_back(sq, threatenedSq, pc, threatenedPc, put);
     }
 
-    [[nodiscard]] const DirtyThreat* begin() const noexcept { return dirtyThreats_.begin(); }
-    [[nodiscard]] const DirtyThreat* end() const noexcept { return dirtyThreats_.end(); }
+    [[nodiscard]] const Threat* begin() const noexcept { return threats_.begin(); }
+    [[nodiscard]] const Threat* end() const noexcept { return threats_.end(); }
 
-    [[nodiscard]] bool empty() const noexcept { return dirtyThreats_.empty(); }
+    [[nodiscard]] bool empty() const noexcept { return threats_.empty(); }
 
-    [[nodiscard]] DirtyThreat* make_space(const u8 space) noexcept {
-        return dirtyThreats_.make_space(space);
-    }
+    [[nodiscard]] Threat* make_space(const u8 space) noexcept { return threats_.make_space(space); }
 
    private:
     // A piece can be involved in at most 8 outgoing attacks and 16 incoming attacks.
@@ -833,13 +836,14 @@ struct DirtyThreats final {
     // Thus, 80 should work as an upper bound.
     // Finally, 16 entries are added to accommodate unmasked vector stores near the end of the list.
     // So, 80 + 16 = 96.
-    using DirtyThreatVector = FixedVector<DirtyThreat, 96, u8>;
+    using ThreatVector = FixedVector<Threat, 96, u8>;
 
-    DirtyThreatVector dirtyThreats_;
+    ThreatVector threats_;
 };
 
-// Keep track of all changes on the board by a move
-struct DirtyBoard final {
+using Threat = DirtyThreats::Threat;
+
+struct Dirties final {
    public:
     DirtyPiece   dirtyPiece;
     DirtyThreats dirtyThreats;
