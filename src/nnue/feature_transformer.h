@@ -84,23 +84,23 @@ constexpr void permute(std::array<T, DataSize>&            data,
 class FeatureTransformer final {
 
     // Number of output dimensions for one side
-    static constexpr IndexType HalfDimensions = L1;
+    static constexpr u16 HalfDimensions = L1;
 
    public:
     // Output type
     using OutputType = TransformedFeatureType;
 
     // Number of input/output dimensions
-    static constexpr IndexType InputDimensions =
-      PSQFeatureSet::Dimensions + ThreatFeatureSet::Dimensions;
-    static constexpr IndexType OutputDimensions = HalfDimensions;
+    static constexpr u32 InputDimensions =
+      PSQFeatureSet::Dimensions + ThreatFeatureSet::Dimensions + PairFeatureSet::Dimensions;
+    static constexpr u32 OutputDimensions = HalfDimensions;
 
     // Size of forward propagation buffer
-    static constexpr usize BufferSize = OutputDimensions * sizeof(OutputType);
+    static constexpr u16 BufferSize = OutputDimensions * sizeof(OutputType);
 
     // Hash value embedded in the evaluation file
     static constexpr u32 hash() noexcept {
-        return combine_hashes({ThreatFeatureSet::Hash, PSQFeatureSet::Hash})
+        return combine_hashes({ThreatFeatureSet::Hash, PairFeatureSet::Hash, PSQFeatureSet::Hash})
              ^ (2 * OutputDimensions);
     }
 
@@ -135,8 +135,8 @@ class FeatureTransformer final {
         combine_hash(h, hash_raw_data(weights));
         combine_hash(h, hash_raw_data(psqtWeights));
 
-        combine_hash(h, hash_raw_data(threatWeights));
-        combine_hash(h, hash_raw_data(threatPsqtWeights));
+        combine_hash(h, hash_raw_data(threatAndPpWeights));
+        combine_hash(h, hash_raw_data(threatAndPpPsqtWeights));
 
         combine_hash(h, hash());
 
@@ -151,7 +151,25 @@ class FeatureTransformer final {
 
         permute<16>(weights, Order);
 
-        permute<8>(threatWeights, Order);
+        permute<8>(threatAndPpWeights, Order);
+    }
+
+    auto threatWeights() noexcept { return threatAndPpWeights.data(); }
+    auto threatWeights() const noexcept { return threatAndPpWeights.data(); }
+    auto ppWeights() noexcept {
+        return threatWeights() + ThreatFeatureSet::Dimensions * HalfDimensions;
+    }
+    auto ppWeights() const noexcept {
+        return threatWeights() + ThreatFeatureSet::Dimensions * HalfDimensions;
+    }
+
+    auto threatPsqtWeights() noexcept { return threatAndPpPsqtWeights.data(); }
+    auto threatPsqtWeights() const noexcept { return threatAndPpPsqtWeights.data(); }
+    auto ppPsqtWeights() noexcept {
+        return threatPsqtWeights() + ThreatFeatureSet::Dimensions * PSQT_BUCKETS;
+    }
+    auto ppPsqtWeights() const noexcept {
+        return threatPsqtWeights() + ThreatFeatureSet::Dimensions * PSQT_BUCKETS;
     }
 
     // Read network parameters
@@ -159,8 +177,12 @@ class FeatureTransformer final {
 
         read_leb_128(is, biases);
 
-        read_little_endian(is, threatWeights);
-        read_leb_128(is, threatPsqtWeights);
+        read_little_endian<ThreatWeightType>(is, threatWeights(),
+                                             ThreatFeatureSet::Dimensions * HalfDimensions);
+        read_leb_128(is, threatPsqtWeights(), ThreatFeatureSet::Dimensions * PSQT_BUCKETS);
+        read_little_endian<ThreatWeightType>(is, ppWeights(),
+                                             PairFeatureSet::Dimensions * HalfDimensions);
+        read_leb_128(is, ppPsqtWeights(), PairFeatureSet::Dimensions * PSQT_BUCKETS);
 
         read_leb_128(is, weights);
         read_leb_128(is, psqtWeights);
@@ -178,8 +200,14 @@ class FeatureTransformer final {
 
         write_leb_128(os, copy->biases);
 
-        write_little_endian(os, copy->threatWeights);
-        write_leb_128(os, copy->threatPsqtWeights);
+        write_little_endian<ThreatWeightType>(os, copy->threatWeights(),
+                                              ThreatFeatureSet::Dimensions * HalfDimensions);
+        write_leb_128<PSQTWeightType>(os, copy->threatPsqtWeights(),
+                                      ThreatFeatureSet::Dimensions * PSQT_BUCKETS);
+        write_little_endian<ThreatWeightType>(os, copy->ppWeights(),
+                                              PairFeatureSet::Dimensions * HalfDimensions);
+        write_leb_128<PSQTWeightType>(os, copy->ppPsqtWeights(),
+                                      PairFeatureSet::Dimensions * PSQT_BUCKETS);
 
         write_leb_128(os, copy->weights);
         write_leb_128(os, copy->psqtWeights);
@@ -380,11 +408,13 @@ class FeatureTransformer final {
         return psqt;
     }
 
-    alignas(CACHE_LINE_SIZE) Array<BiasType        , HalfDimensions>                                biases;
-    alignas(CACHE_LINE_SIZE) Array<WeightType      , HalfDimensions * PSQFeatureSet::Dimensions>    weights;
-    alignas(CACHE_LINE_SIZE) Array<ThreatWeightType, HalfDimensions * ThreatFeatureSet::Dimensions> threatWeights;
-    alignas(CACHE_LINE_SIZE) Array<PSQTWeightType  , PSQT_BUCKETS * PSQFeatureSet::Dimensions>      psqtWeights;
-    alignas(CACHE_LINE_SIZE) Array<PSQTWeightType  , PSQT_BUCKETS * ThreatFeatureSet::Dimensions>   threatPsqtWeights;
+    alignas(CACHE_LINE_SIZE) Array<ThreatWeightType, (ThreatFeatureSet::Dimensions + PairFeatureSet::Dimensions) * HalfDimensions> threatAndPpWeights;
+    alignas(CACHE_LINE_SIZE) Array<PSQTWeightType  , (ThreatFeatureSet::Dimensions + PairFeatureSet::Dimensions) * PSQT_BUCKETS>   threatAndPpPsqtWeights;
+
+    alignas(CACHE_LINE_SIZE) Array<WeightType    , (PSQFeatureSet::Dimensions) * HalfDimensions> weights;
+    alignas(CACHE_LINE_SIZE) Array<PSQTWeightType, (PSQFeatureSet::Dimensions) * PSQT_BUCKETS>   psqtWeights;
+
+    alignas(CACHE_LINE_SIZE) Array<BiasType, HalfDimensions> biases;
     // clang-format on
 };
 

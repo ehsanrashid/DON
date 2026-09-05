@@ -15,14 +15,13 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-// Definition of input features FullThreats of NNUE evaluation function
-
-#ifndef NNUE_FEATURES_FULL_THREATS_H_INCLUDED
-#define NNUE_FEATURES_FULL_THREATS_H_INCLUDED
+#ifndef NNUE_FEATURES_PP_3WIDE_INCLUDED
+#define NNUE_FEATURES_PP_3WIDE_INCLUDED
 
 #include "../../misc.h"
 #include "../../types.h"
 #include "../ntypes.h"
+#include "full_threats.h"
 
 namespace DON {
 
@@ -30,55 +29,47 @@ class Position;
 
 namespace NNUE::Features {
 
-// Feature FullThreats: Threats posed by pieces to opponent's pieces
-class FullThreats final {
+class PP3Wide final {
    public:
-    // Hash value embedded in the evaluation file
-    static constexpr u32 Hash = 0x2E6B9D04u;
+    static constexpr u32 Hash = 0x86F2B1DDu;
 
-    // Number of feature dimensions
-    static constexpr u16 Dimensions = 59808;
+    static constexpr u16 PawnIds    = 48 * COLOR_NB;
+    static constexpr u16 Dimensions = PawnIds * (PawnIds - 1) / 2;
+
+    // Pawn pair feature indices are concatenated to threats so this must equal ThreatFeatureSet::Dimensions;
+    // see nnue/feature_transformer.h
+    static constexpr u16 IndexBase = FullThreats::Dimensions;
+    // Threats and pawn-pair features are concatenated into one array to allow for a single index to address either.
+    // The first pawn-pair feature is at index FullThreats::Dimensions.
+    static_assert(IndexBase == FullThreats::Dimensions);
 
     // Maximum number of simultaneously active features
     static constexpr u16 MaxActiveDimensions = 256;
     using IndexVector                        = FixedVector<u16, MaxActiveDimensions, u16>;
-    using DirtyType                          = DirtyThreats;
-
-    // Mirror square to have king always on e..h files
-    // (file_of(s) >> 2) is 0 for 0...3, 1 for 4...7
-    static constexpr Square orientation(const Square s) noexcept {
-        return Square(((file_of(s) >> 2) ^ 0) * FILE_H);
-    }
+    using DirtyType                          = DirtyPawnPairs;
 
     static void append_active_indices(Color           perspective,  //
                                       const Position& pos,
                                       IndexVector&    active) noexcept;
 
     static void append_changed_indices(Color                   perspective,
-                                       Square                  kingSq,
-                                       const DirtyType&        dTs,
+                                       Square                  ksq,
+                                       const DirtyType&        dPps,
                                        IndexVector&            removed,
                                        IndexVector&            added,
                                        const ThreatWeightType* pfBase   = nullptr,
                                        usize                   pfStride = 0) noexcept;
 
    private:
-    FullThreats() noexcept                              = delete;
-    ~FullThreats() noexcept                             = delete;
-    FullThreats(const FullThreats&) noexcept            = delete;
-    FullThreats& operator=(const FullThreats&) noexcept = delete;
-    FullThreats(FullThreats&&) noexcept                 = delete;
-    FullThreats& operator=(FullThreats&&) noexcept      = delete;
+    PP3Wide() noexcept                          = delete;
+    ~PP3Wide() noexcept                         = delete;
+    PP3Wide(const PP3Wide&) noexcept            = delete;
+    PP3Wide& operator=(const PP3Wide&) noexcept = delete;
+    PP3Wide(PP3Wide&&) noexcept                 = delete;
+    PP3Wide& operator=(PP3Wide&&) noexcept      = delete;
 };
-
-static_assert(FullThreats::orientation(SQ_A1) == SQ_A1);
-static_assert(FullThreats::orientation(SQ_D1) == SQ_A1);
-static_assert(FullThreats::orientation(SQ_E1) == SQ_H1);
-static_assert(FullThreats::orientation(SQ_H1) == SQ_H1);
-static_assert(FullThreats::orientation(SQ_A8) == SQ_A1);
-static_assert(FullThreats::orientation(SQ_H8) == SQ_H1);
 
 }  // namespace NNUE::Features
 }  // namespace DON
 
-#endif  // NNUE_FEATURES_FULL_THREATS_H_INCLUDED
+#endif  // NNUE_FEATURES_PP_3WIDE_INCLUDED

@@ -37,7 +37,7 @@ namespace NNUE {
 
 class FeatureTransformer;
 
-// Stores the accumulated affine-transformation results for HalfKA_hm and FullThreats.
+// Stores the accumulated affine-transformation results for HalfKAHm and FullThreats.
 struct alignas(CACHE_LINE_SIZE) BaseAccumulator {
    public:
     Array<BiasType, COLOR_NB, L1>                 accumulation;

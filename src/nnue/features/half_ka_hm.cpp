@@ -15,7 +15,7 @@
   along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-// Definition of input features HalfKA_hm of NNUE evaluation function
+// Definition of input features HalfKAHm of NNUE evaluation function
 
 #include "half_ka_hm.h"
 
@@ -33,75 +33,26 @@ namespace DON::NNUE::Features {
 
 namespace {
 
-// Unique number for each piece type on each square
-constexpr u16 PS_NONE     = 0;
-constexpr u16 PS_W_PAWN   = 0 * SQUARE_NB;
-constexpr u16 PS_B_PAWN   = 1 * SQUARE_NB;
-constexpr u16 PS_W_KNIGHT = 2 * SQUARE_NB;
-constexpr u16 PS_B_KNIGHT = 3 * SQUARE_NB;
-constexpr u16 PS_W_BISHOP = 4 * SQUARE_NB;
-constexpr u16 PS_B_BISHOP = 5 * SQUARE_NB;
-constexpr u16 PS_W_ROOK   = 6 * SQUARE_NB;
-constexpr u16 PS_B_ROOK   = 7 * SQUARE_NB;
-constexpr u16 PS_W_QUEEN  = 8 * SQUARE_NB;
-constexpr u16 PS_B_QUEEN  = 9 * SQUARE_NB;
-constexpr u16 PS_KING     = 10 * SQUARE_NB;
-
-alignas(CACHE_LINE_SIZE) constexpr Array<u16, COLOR_NB, PIECE_NB> PIECE_SQUARE_INDICES{{
-  // Convention: W - us, B - them
-  // Viewed from other side, W and B are reversed
-  {PS_NONE, PS_W_PAWN, PS_W_KNIGHT, PS_W_BISHOP, PS_W_ROOK, PS_W_QUEEN, PS_KING, PS_NONE,   //
-   PS_NONE, PS_B_PAWN, PS_B_KNIGHT, PS_B_BISHOP, PS_B_ROOK, PS_B_QUEEN, PS_KING, PS_NONE},  //
-  {PS_NONE, PS_B_PAWN, PS_B_KNIGHT, PS_B_BISHOP, PS_B_ROOK, PS_B_QUEEN, PS_KING, PS_NONE,   //
-   PS_NONE, PS_W_PAWN, PS_W_KNIGHT, PS_W_BISHOP, PS_W_ROOK, PS_W_QUEEN, PS_KING, PS_NONE}   //
-}};
-
-#define B(v) (v * HalfKA_hm::PS_NB)
-alignas(CACHE_LINE_SIZE) constexpr Array<u16, SQUARE_NB> KING_BUCKETS{
-  B(28), B(29), B(30), B(31), B(31), B(30), B(29), B(28),  //
-  B(24), B(25), B(26), B(27), B(27), B(26), B(25), B(24),  //
-  B(20), B(21), B(22), B(23), B(23), B(22), B(21), B(20),  //
-  B(16), B(17), B(18), B(19), B(19), B(18), B(17), B(16),  //
-  B(12), B(13), B(14), B(15), B(15), B(14), B(13), B(12),  //
-  B(8),  B(9),  B(10), B(11), B(11), B(10), B(9),  B(8),   //
-  B(4),  B(5),  B(6),  B(7),  B(7),  B(6),  B(5),  B(4),   //
-  B(0),  B(1),  B(2),  B(3),  B(3),  B(2),  B(1),  B(0)    //
-};
-#undef B
-
-// Mirror square to have king always on e..h files
-// (file_of(s) >> 2) is 0 for 0...3, 1 for 4...7
-constexpr Square orientation(Square s) noexcept {
-    return static_cast<Square>(((file_of(s) >> 2) ^ 1) * FILE_H);
-}
-
-static_assert(orientation(SQ_A1) == SQ_H1);
-static_assert(orientation(SQ_D1) == SQ_H1);
-static_assert(orientation(SQ_E1) == SQ_A1);
-static_assert(orientation(SQ_H1) == SQ_A1);
-static_assert(orientation(SQ_A8) == SQ_H1);
-static_assert(orientation(SQ_H8) == SQ_A1);
-
 // Index of a feature for king position and piece on square
 ALWAYS_INLINE constexpr u16
 make_index(const Color perspective, const Square kingSq, const Square s, const Piece pc) noexcept {
-    const u8 relOrientation = relative_sq(perspective, orientation(kingSq));
-    return (static_cast<u8>(s) ^ relOrientation)   //
-         + PIECE_SQUARE_INDICES[perspective][+pc]  //
-         + KING_BUCKETS[relative_sq(perspective, kingSq)];
+    const u8 relOrientation = relative_sq(perspective, HalfKAHm::orientation(kingSq));
+    return (static_cast<u8>(s) ^ relOrientation)             //
+         + HalfKAHm::PIECE_SQUARE_INDICES[perspective][+pc]  //
+         + HalfKAHm::KING_BUCKETS[relative_sq(perspective, kingSq)];
 }
 
 }  // namespace
 
 // Append lists of indices for recently changed features from the piece map
-void HalfKA_hm::append_map_changed_indices(const Color     perspective,
-                                           const Square    kingSq,
-                                           const PieceMap& oldPieceMap,
-                                           const PieceMap& newPieceMap,
-                                           Bitboard        removedBB,
-                                           Bitboard        addedBB,
-                                           IndexVector&    removed,
-                                           IndexVector&    added) noexcept {
+void HalfKAHm::append_map_changed_indices(const Color     perspective,
+                                          const Square    kingSq,
+                                          const PieceMap& oldPieceMap,
+                                          const PieceMap& newPieceMap,
+                                          Bitboard        removedBB,
+                                          Bitboard        addedBB,
+                                          IndexVector&    removed,
+                                          IndexVector&    added) noexcept {
 #if defined(USE_AVX512ICL)
     const __m512i oldPieceVec = _mm512_loadu_si512(oldPieceMap.data());
     const __m512i newPieceVec = _mm512_loadu_si512(newPieceMap.data());
@@ -144,7 +95,6 @@ void HalfKA_hm::append_map_changed_indices(const Color     perspective,
 
         removed.push_back(make_index(perspective, kingSq, s, oldPieceMap[s]));
     }
-
     while (addedBB != 0)
     {
         const Square s = pop_lsq(addedBB);
@@ -155,11 +105,11 @@ void HalfKA_hm::append_map_changed_indices(const Color     perspective,
 }
 
 // Append lists of indices for recently changed features
-void HalfKA_hm::append_changed_indices(const Color      perspective,
-                                       const Square     kingSq,
-                                       const DirtyType& dP,
-                                       IndexVector&     removed,
-                                       IndexVector&     added) noexcept {
+void HalfKAHm::append_changed_indices(const Color      perspective,
+                                      const Square     kingSq,
+                                      const DirtyType& dP,
+                                      IndexVector&     removed,
+                                      IndexVector&     added) noexcept {
     // clang-format off
     removed.push_back   (make_index(perspective, kingSq, dP.orgSq, dP.movedPc));
     added.  push_back_if(make_index(perspective, kingSq, dP.dstSq, dP.movedPc)      , is_ok(dP.dstSq));
@@ -169,7 +119,7 @@ void HalfKA_hm::append_changed_indices(const Color      perspective,
 }
 
 // Determine if a full refresh is required based on the dirty piece
-bool HalfKA_hm::refresh_required(const Color perspective, const DirtyType& dP) noexcept {
+bool HalfKAHm::refresh_required(const Color perspective, const DirtyType& dP) noexcept {
     return dP.movedPc == make_piece(perspective, KING);
 }
 

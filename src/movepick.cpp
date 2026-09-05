@@ -429,7 +429,8 @@ MovePicker::score<GenType::ENC_QUIET>(const MoveList<GenType::ENC_QUIET>& moveLi
 
         // Penalty for moving pinner piece
         value -=
-          int((pinnersBB & orgSq) != 0 && !aligned(pos.square<KING>(~ac), orgSq, dstSq)) * 0x400;
+          int((pinnersBB & orgSq) != 0 && !Attacks::aligned(pos.square<KING>(~ac), orgSq, dstSq))
+          * 0x400;
 
         auto& em = *itr++;
         em       = m;

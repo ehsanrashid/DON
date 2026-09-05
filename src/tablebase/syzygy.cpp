@@ -1787,7 +1787,7 @@ void init() noexcept {
             {
                 for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
                 {
-                    if (((attacks_bb<KING>(s1) | s1) & s2) != 0)
+                    if (((Attacks::attacks_bb<KING>(s1) | s1) & s2) != 0)
                         continue;  // Illegal position
 
                     else if (off_A1H8(s1) == 0 && off_A1H8(s2) > 0)
