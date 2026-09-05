@@ -37,12 +37,12 @@ class FullThreats final {
     static constexpr u32 Hash = 0x2E6B9D04u;
 
     // Number of feature dimensions
-    static constexpr IndexType Dimensions = 59808;
+    static constexpr u16 Dimensions = 59808;
 
     // Maximum number of simultaneously active features
-    static constexpr IndexType MaxActiveDimensions = 256;
-    using IndexVector                              = FixedVector<u16, MaxActiveDimensions>;
-    using DirtyType                                = DirtyThreats;
+    static constexpr u16 MaxActiveDimensions = 256;
+    using IndexVector                        = FixedVector<u16, MaxActiveDimensions, u16>;
+    using DirtyType                          = DirtyThreats;
 
     // Mirror square to have king always on e..h files
     // (file_of(s) >> 2) is 0 for 0...3, 1 for 4...7

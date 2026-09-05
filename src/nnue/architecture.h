@@ -44,9 +44,9 @@ using PairFeatureSet   = Features::PP3Wide;
 
 struct NetworkArchitecture final {
    public:
-    static constexpr IndexType TransformedFeatureDimensions = L1;
-    static constexpr u32       FC_0_Outputs                 = L2;
-    static constexpr u32       FC_1_Outputs                 = L3;
+    static constexpr u16 TransformedFeatureDimensions = L1;
+    static constexpr u16 FC_0_Outputs                 = L2;
+    static constexpr u16 FC_1_Outputs                 = L3;
 
     // Hash value embedded in the evaluation file
     static constexpr u32 hash() noexcept {

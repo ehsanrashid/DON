@@ -32,27 +32,27 @@ class PP3Wide final {
    public:
     static constexpr u32 Hash = 0x86F2B1DDu;
 
-    static constexpr IndexType PawnIds    = 48 * COLOR_NB;
-    static constexpr IndexType Dimensions = PawnIds * (PawnIds - 1) / 2;
+    static constexpr u16 PawnIds    = 48 * COLOR_NB;
+    static constexpr u16 Dimensions = PawnIds * (PawnIds - 1) / 2;
 
 
     // Pawn pair feature indices are concatenated to threats so this must equal ThreatFeatureSet::Dimensions;
     // see nnue/feature_transformer.h
-    static constexpr IndexType IndexBase = 59808;
+    static constexpr u16 IndexBase = 59808;
 
     // Maximum number of simultaneously active features
-    static constexpr IndexType MaxActiveDimensions = 256;
-    using IndexList                                = FixedVector<u16, 256>;
-    using DirtyType                                = DirtyPawnPairs;
+    static constexpr u16 MaxActiveDimensions = 256;
+    using IndexVector                        = FixedVector<u16, MaxActiveDimensions, u16>;
+    using DirtyType                          = DirtyPawnPairs;
 
     static void
-    append_active_indices(Color perspective, const Position& pos, IndexList& active) noexcept;
+    append_active_indices(Color perspective, const Position& pos, IndexVector& active) noexcept;
 
     static void append_changed_indices(Color                   perspective,
                                        Square                  ksq,
                                        const DirtyType&        dPps,
-                                       IndexList&              removed,
-                                       IndexList&              added,
+                                       IndexVector&            removed,
+                                       IndexVector&            added,
                                        const ThreatWeightType* pfBase   = nullptr,
                                        IndexType               pfStride = 0) noexcept;
 

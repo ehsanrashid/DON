@@ -188,12 +188,12 @@ constexpr u8 lut_index(Piece pc, Square s1, Square s2) noexcept {
 }
 
 // Index of a feature for a given king position and another piece on square
-ALWAYS_INLINE constexpr IndexType make_index(const Color  perspective,
-                                             const Square kingSq,
-                                             const Square orgSq,
-                                             const Square dstSq,
-                                             const Piece  attackerPc,
-                                             const Piece  attackedPc) noexcept {
+ALWAYS_INLINE constexpr u16 make_index(const Color  perspective,
+                                       const Square kingSq,
+                                       const Square orgSq,
+                                       const Square dstSq,
+                                       const Piece  attackerPc,
+                                       const Piece  attackedPc) noexcept {
     // Compute perspective-relative squares
     u8 relOrientation = relative_sq(perspective, FullThreats::orientation(kingSq));
 

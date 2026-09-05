@@ -84,19 +84,19 @@ constexpr void permute(std::array<T, DataSize>&            data,
 class FeatureTransformer final {
 
     // Number of output dimensions for one side
-    static constexpr IndexType HalfDimensions = L1;
+    static constexpr u16 HalfDimensions = L1;
 
    public:
     // Output type
     using OutputType = TransformedFeatureType;
 
     // Number of input/output dimensions
-    static constexpr IndexType InputDimensions =
+    static constexpr u32 InputDimensions =
       PSQFeatureSet::Dimensions + ThreatFeatureSet::Dimensions + PairFeatureSet::Dimensions;
-    static constexpr IndexType OutputDimensions = HalfDimensions;
+    static constexpr u32 OutputDimensions = HalfDimensions;
 
     // Size of forward propagation buffer
-    static constexpr usize BufferSize = OutputDimensions * sizeof(OutputType);
+    static constexpr u16 BufferSize = OutputDimensions * sizeof(OutputType);
 
     // Hash value embedded in the evaluation file
     static constexpr u32 hash() noexcept {

@@ -50,12 +50,12 @@ class HalfKAHm final {
     static constexpr u32 Hash = 0x7F234CB8u;
 
     // Number of feature dimensions
-    static constexpr IndexType Dimensions = PS_NB * SQUARE_NB / 2;
+    static constexpr u16 Dimensions = PS_NB * SQUARE_NB / 2;
 
     // Maximum number of simultaneously active features
-    static constexpr IndexType MaxActiveDimensions = 32;
-    using IndexVector                              = FixedVector<u16, MaxActiveDimensions>;
-    using DirtyType                                = DirtyPiece;
+    static constexpr u16 MaxActiveDimensions = 32;
+    using IndexVector                        = FixedVector<u16, MaxActiveDimensions, u16>;
+    using DirtyType                          = DirtyPiece;
 
     // Mirror square to have king always on e..h files
     // (file_of(s) >> 2) is 0 for 0...3, 1 for 4...7

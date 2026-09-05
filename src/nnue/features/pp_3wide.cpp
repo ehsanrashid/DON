@@ -32,18 +32,18 @@ namespace DON::NNUE::Features {
 
 namespace {
 
-ALWAYS_INLINE constexpr IndexType make_pawn_id(const Color c, const Square s) noexcept {
+ALWAYS_INLINE constexpr u16 make_pawn_id(const Color c, const Square s) noexcept {
     assert(SQ_A2 <= s && s <= SQ_H7);
 
     return 48 * int(c) + s - SQ_A2;
 }
 
-ALWAYS_INLINE constexpr IndexType make_index(Color  perspective,
-                                             Color  color,
-                                             Square orgSq,
-                                             Square dstSq,
-                                             Color  pairedColor,
-                                             Square kingSq) noexcept {
+ALWAYS_INLINE constexpr u16 make_index(Color  perspective,
+                                       Square kingSq,
+                                       Color  color,
+                                       Square orgSq,
+                                       Square dstSq,
+                                       Color  pairedColor) noexcept {
     u8 relOrientation = relative_sq(perspective, FullThreats::orientation(kingSq));
 
     u8 org = static_cast<u8>(orgSq) ^ relOrientation;
@@ -55,10 +55,10 @@ ALWAYS_INLINE constexpr IndexType make_index(Color  perspective,
     assert(SQ_A2 <= org && org <= SQ_H7);
     assert(SQ_A2 <= dst && dst <= SQ_H7);
 
-    const IndexType id1 = make_pawn_id(color_oriented, Square{org});
-    const IndexType id2 = make_pawn_id(pairedColor_oriented, Square{dst});
-    const IndexType idH = std::max(id1, id2);
-    const IndexType idL = std::min(id1, id2);
+    const u16 id1 = make_pawn_id(color_oriented, Square{org});
+    const u16 id2 = make_pawn_id(pairedColor_oriented, Square{dst});
+    const u16 idH = std::max(id1, id2);
+    const u16 idL = std::min(id1, id2);
 
     return PP3Wide::IndexBase + idH * (idH - 1) / 2 + idL;
 }
@@ -77,7 +77,7 @@ ALWAYS_INLINE __m256i pp_idx_epi16(const __m256i a, const __m256i b) noexcept {
 
 void PP3Wide::append_active_indices(const Color     perspective,
                                     const Position& pos,
-                                    IndexList&      active) noexcept {
+                                    IndexVector&    active) noexcept {
     const Square   kingSq   = pos.square<KING>(perspective);
     const Bitboard wPawnsBB = pos.pieces_bb(WHITE, PAWN);
     const Bitboard bPawnsBB = pos.pieces_bb(BLACK, PAWN);
@@ -90,9 +90,9 @@ void PP3Wide::append_active_indices(const Color     perspective,
         const Square   orgSq = pop_lsq(bb);
         const Bitboard band  = Attacks::pawn_pair_bb(orgSq);
         for (Bitboard ww = band & bb; ww != 0;)
-            active.push_back(make_index(perspective, WHITE, orgSq, pop_lsq(ww), WHITE, kingSq));
+            active.push_back(make_index(perspective, kingSq, WHITE, orgSq, pop_lsq(ww), WHITE));
         for (Bitboard wb = band & bPawnsBB; wb != 0;)
-            active.push_back(make_index(perspective, WHITE, orgSq, pop_lsq(wb), BLACK, kingSq));
+            active.push_back(make_index(perspective, kingSq, WHITE, orgSq, pop_lsq(wb), BLACK));
     }
 
     bb = bPawnsBB;
@@ -101,15 +101,15 @@ void PP3Wide::append_active_indices(const Color     perspective,
         const Square   orgSq = pop_lsq(bb);
         const Bitboard band  = Attacks::pawn_pair_bb(orgSq);
         for (Bitboard bbk = band & bb; bbk != 0;)
-            active.push_back(make_index(perspective, BLACK, orgSq, pop_lsq(bbk), BLACK, kingSq));
+            active.push_back(make_index(perspective, kingSq, BLACK, orgSq, pop_lsq(bbk), BLACK));
     }
 }
 
 void PP3Wide::append_changed_indices(const Color                                    perspective,
                                      const Square                                   kingSq,
                                      const DirtyType&                               dPps,
-                                     IndexList&                                     removed,
-                                     IndexList&                                     added,
+                                     IndexVector&                                   removed,
+                                     IndexVector&                                   added,
                                      [[maybe_unused]] const ThreatWeightType* const pfBase,
                                      [[maybe_unused]] const IndexType pfStride) noexcept {
     const Bitboard wBefore = dPps.before[WHITE];
@@ -128,7 +128,7 @@ void PP3Wide::append_changed_indices(const Color                                
 
     const auto generate = [&](const Bitboard wUpdatedBB, const Bitboard bUpdatedBB,
                               const Bitboard wPawnsBB, const Bitboard bPawnsBB,
-                              IndexList& list) noexcept {
+                              IndexVector& vec) noexcept {
         const Bitboard friendBB = perspective == WHITE ? wPawnsBB : bPawnsBB;
         const Bitboard enemyBB  = perspective == WHITE ? bPawnsBB : wPawnsBB;
         const __m512i  ids      = _mm512_mask_blend_epi8(
@@ -149,18 +149,18 @@ void PP3Wide::append_changed_indices(const Color                                
               _mm512_castsi512_si128(_mm512_maskz_compress_epi8(partners, ids)));
             const __m256i feats = pp_idx_epi16(_mm256_set1_epi16(aId), pids);
 
-            u16* w = list.make_space(n);
+            u16* w = vec.make_space(n);
             _mm256_storeu_epi16(w, feats);
         }
     };
 #else
     const auto generate = [&](const Bitboard wUpdatedBB, const Bitboard bUpdatedBB,
-                              const Bitboard wPawnsBB, const Bitboard bPawnsBB, IndexList& list) {
-        const auto push = [&](const IndexType index) noexcept {
+                              const Bitboard wPawnsBB, const Bitboard bPawnsBB, IndexVector& vec) {
+        const auto push = [&](const u16 index) noexcept {
             if (pfBase)
                 prefetch<PrefetchAccess::READ, PrefetchLoc::LOW>(
                   reinterpret_cast<const void*>(reinterpret_cast<uptr>(pfBase) + index * pfStride));
-            list.push_back(index);
+            vec.push_back(index);
         };
 
         const Bitboard unchangedBB = (wPawnsBB | bPawnsBB) & ~(wUpdatedBB | bUpdatedBB);
@@ -170,9 +170,9 @@ void PP3Wide::append_changed_indices(const Color                                
             const Bitboard mask = Attacks::pawn_pair_bb(s) & (unchangedBB | uBB);
             const Color    sC   = (bPawnsBB & s) ? BLACK : WHITE;
             for (Bitboard pb = bPawnsBB & mask; pb != 0;)
-                push(make_index(perspective, sC, s, pop_lsq(pb), BLACK, kingSq));
+                push(make_index(perspective, kingSq, sC, s, pop_lsq(pb), BLACK));
             for (Bitboard pw = wPawnsBB & mask; pw != 0;)
-                push(make_index(perspective, sC, s, pop_lsq(pw), WHITE, kingSq));
+                push(make_index(perspective, kingSq, sC, s, pop_lsq(pw), WHITE));
         }
     };
 #endif
