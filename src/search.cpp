@@ -2210,17 +2210,18 @@ void Worker::update_histories(const Position&             pos,
         update_quiet_histories(pos, ss, bestMove, constexpr_round(bonus * 899.0 / 1024.0));
 
         // Decrease history for all non-best quiet moves
-        int decayQuietMalus = constexpr_round(malus * 1018.0 / 1024.0);
+        int quietMalus = constexpr_round(malus * 1042.0 / 1024.0);
         for (const Move qm : moveVectors[0])
         {
-            update_quiet_histories(pos, ss, qm, -decayQuietMalus);
-            decayQuietMalus = constexpr_round(decayQuietMalus * 921.0 / 1024.0);
+            update_quiet_histories(pos, ss, qm, -quietMalus);
+            quietMalus = constexpr_round(quietMalus * 921.0 / 1024.0);
         }
     }
 
     // Decrease history for all non-best capture moves
+    int captureMalus = constexpr_round(malus * 1489.0 / 1024.0);
     for (const Move cm : moveVectors[1])
-        update_capture_history(pos, cm, -constexpr_round(malus * 1489.0 / 1024.0));
+        update_capture_history(pos, cm, -captureMalus);
 
     // Extra penalty for a quiet early move that was not a TT move in the previous ply when it gets refuted
     Stack* const ss1 = ss - 1;
