@@ -308,7 +308,7 @@ case "$uname_s" in
             ;;
             *)
                 get_bits
-                if [ "$bits" = "32" ]; then
+                if [ "$bits" = '32' ]; then
                     true_arch='general-32'
                 else
                     true_arch='general-64'
@@ -370,7 +370,7 @@ case "$uname_s" in
             *)
                 # Don't hard-fail: fall back to general-* so ARCH=native still builds
                 get_bits
-                if [ "$bits" = "32" ]; then
+                if [ "$bits" = '32' ]; then
                     true_arch='general-32'
                 else
                     true_arch='general-64'

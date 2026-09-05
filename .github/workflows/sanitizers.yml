@@ -23,27 +23,27 @@ jobs:
         sanitizers:
           - name: Run with thread sanitizer
             sanitizer: thread
-            cxx_extra_flags: ""
+            extra_cxx_flags: ""
             instrumented_option: sanitizer-thread
           - name: Run with UB sanitizer
             sanitizer: undefined
-            cxx_extra_flags: ""
+            extra_cxx_flags: ""
             instrumented_option: sanitizer-undefined
           - name: Run under valgrind
             sanitizer: ""
-            cxx_extra_flags: ""
+            extra_cxx_flags: ""
             instrumented_option: valgrind
           - name: Run under valgrind-thread
             sanitizer: ""
-            cxx_extra_flags: ""
+            extra_cxx_flags: ""
             instrumented_option: valgrind-thread
           - name: Run non-instrumented
             sanitizer: ""
-            cxx_extra_flags: ""
+            extra_cxx_flags: ""
             instrumented_option: none
           - name: Run with glibcxx assertions
             sanitizer: ""
-            cxx_extra_flags: -D_GLIBCXX_ASSERTIONS
+            extra_cxx_flags: -D_GLIBCXX_ASSERTIONS
             instrumented_option: none
     defaults:
       run:
@@ -91,7 +91,7 @@ jobs:
       - name: ${{ matrix.sanitizers.name }}
         run: |
           make clean
-          EXTRA_CXXFLAGS="$EXTRA_CXXFLAGS -O1 -fno-inline ${{ matrix.sanitizers.cxx_extra_flags }}"
+          EXTRA_CXXFLAGS="$EXTRA_CXXFLAGS -O1 -fno-inline ${{ matrix.sanitizers.extra_cxx_flags }}"
           echo "EXTRA_CXXFLAGS=$EXTRA_CXXFLAGS"
           make -j4 build \
             ARCH=x86-64-sse41-popcnt \
