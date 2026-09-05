@@ -19,8 +19,6 @@
 #define HISTORY_H_INCLUDED
 
 #include <algorithm>
-#include <array>
-#include <atomic>
 #include <cassert>
 #include <limits>
 #include <type_traits>
