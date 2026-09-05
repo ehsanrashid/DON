@@ -408,10 +408,6 @@ class FeatureTransformer final {
         return psqt;
     }
 
-    // Threats and pawn-pair features are concatenated into one array to allow for a single index to address either.
-    // The first pawn-pair feature is at index ThreatFeatureSet::Dimensions.
-    static_assert(PairFeatureSet::IndexBase == ThreatFeatureSet::Dimensions);
-
     alignas(CACHE_LINE_SIZE) Array<ThreatWeightType, (ThreatFeatureSet::Dimensions + PairFeatureSet::Dimensions) * HalfDimensions> threatAndPpWeights;
     alignas(CACHE_LINE_SIZE) Array<PSQTWeightType  , (ThreatFeatureSet::Dimensions + PairFeatureSet::Dimensions) * PSQT_BUCKETS>   threatAndPpPsqtWeights;
 

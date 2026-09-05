@@ -21,6 +21,7 @@
 #include "../../misc.h"
 #include "../../types.h"
 #include "../ntypes.h"
+#include "full_threats.h"
 
 namespace DON {
 
@@ -35,10 +36,12 @@ class PP3Wide final {
     static constexpr u16 PawnIds    = 48 * COLOR_NB;
     static constexpr u16 Dimensions = PawnIds * (PawnIds - 1) / 2;
 
-
     // Pawn pair feature indices are concatenated to threats so this must equal ThreatFeatureSet::Dimensions;
     // see nnue/feature_transformer.h
-    static constexpr u16 IndexBase = 59808;
+    static constexpr u16 IndexBase = FullThreats::Dimensions;
+    // Threats and pawn-pair features are concatenated into one array to allow for a single index to address either.
+    // The first pawn-pair feature is at index FullThreats::Dimensions.
+    static_assert(IndexBase == FullThreats::Dimensions);
 
     // Maximum number of simultaneously active features
     static constexpr u16 MaxActiveDimensions = 256;
@@ -54,7 +57,7 @@ class PP3Wide final {
                                        IndexVector&            removed,
                                        IndexVector&            added,
                                        const ThreatWeightType* pfBase   = nullptr,
-                                       IndexType               pfStride = 0) noexcept;
+                                       usize                   pfStride = 0) noexcept;
 
    private:
     PP3Wide() noexcept                          = delete;

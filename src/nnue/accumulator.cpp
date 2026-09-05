@@ -389,7 +389,7 @@ void update_incremental(const Color               perspective,
 
     // Used solely for prefetching
     const auto* pfBase   = featureTransformer.threatAndPpWeights.data();
-    const auto  pfStride = FeatureTransformer::OutputDimensions;
+    const usize pfStride = FeatureTransformer::OutputDimensions;
 
     ThreatFeatureSet::append_changed_indices(perspective, kingSq, dTs,
                                              Forward ? thrRemoved : thrAdded,

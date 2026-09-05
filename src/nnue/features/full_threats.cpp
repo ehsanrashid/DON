@@ -195,14 +195,14 @@ ALWAYS_INLINE constexpr u16 make_index(const Color  perspective,
                                        const Piece  attackerPc,
                                        const Piece  attackedPc) noexcept {
     // Compute perspective-relative squares
-    u8 relOrientation = relative_sq(perspective, FullThreats::orientation(kingSq));
+    const u8 relOrientation = relative_sq(perspective, FullThreats::orientation(kingSq));
 
-    u8 org = static_cast<u8>(orgSq) ^ relOrientation;
-    u8 dst = static_cast<u8>(dstSq) ^ relOrientation;
+    const u8 org = static_cast<u8>(orgSq) ^ relOrientation;
+    const u8 dst = static_cast<u8>(dstSq) ^ relOrientation;
 
     // Compute perspective-relative pieces
-    u8 relAttackerPc = +relative_piece(perspective, attackerPc);
-    u8 relAttackedPc = +relative_piece(perspective, attackedPc);
+    const u8 relAttackerPc = +relative_piece(perspective, attackerPc);
+    const u8 relAttackedPc = +relative_piece(perspective, attackedPc);
 
     // Lookup LUT
     auto lutData = LUT_DATAS[relAttackerPc][relAttackedPc];

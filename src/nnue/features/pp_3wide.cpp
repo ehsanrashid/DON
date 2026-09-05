@@ -26,7 +26,6 @@
 #include "../../position.h"
 #include "../../types.h"
 #include "../ntypes.h"
-#include "full_threats.h"
 
 namespace DON::NNUE::Features {
 
@@ -38,25 +37,25 @@ ALWAYS_INLINE constexpr u16 make_pawn_id(const Color c, const Square s) noexcept
     return 48 * int(c) + s - SQ_A2;
 }
 
-ALWAYS_INLINE constexpr u16 make_index(Color  perspective,
-                                       Square kingSq,
-                                       Color  color,
-                                       Square orgSq,
-                                       Square dstSq,
-                                       Color  pairedColor) noexcept {
-    u8 relOrientation = relative_sq(perspective, FullThreats::orientation(kingSq));
+ALWAYS_INLINE constexpr u16 make_index(const Color  perspective,
+                                       const Square kingSq,
+                                       const Color  color,
+                                       const Square orgSq,
+                                       const Square dstSq,
+                                       const Color  pairedColor) noexcept {
+    const u8 relOrientation = relative_sq(perspective, FullThreats::orientation(kingSq));
 
-    u8 org = static_cast<u8>(orgSq) ^ relOrientation;
-    u8 dst = static_cast<u8>(dstSq) ^ relOrientation;
-
-    Color color_oriented       = Color(color ^ perspective);
-    Color pairedColor_oriented = Color(pairedColor ^ perspective);
+    const u8 org = static_cast<u8>(orgSq) ^ relOrientation;
+    const u8 dst = static_cast<u8>(dstSq) ^ relOrientation;
 
     assert(SQ_A2 <= org && org <= SQ_H7);
     assert(SQ_A2 <= dst && dst <= SQ_H7);
 
-    const u16 id1 = make_pawn_id(color_oriented, Square{org});
-    const u16 id2 = make_pawn_id(pairedColor_oriented, Square{dst});
+    const Color relColor       = Color(color ^ perspective);
+    const Color relPairedColor = Color(pairedColor ^ perspective);
+
+    const u16 id1 = make_pawn_id(relColor, Square{org});
+    const u16 id2 = make_pawn_id(relPairedColor, Square{dst});
     const u16 idH = std::max(id1, id2);
     const u16 idL = std::min(id1, id2);
 
@@ -111,7 +110,7 @@ void PP3Wide::append_changed_indices(const Color                                
                                      IndexVector&                                   removed,
                                      IndexVector&                                   added,
                                      [[maybe_unused]] const ThreatWeightType* const pfBase,
-                                     [[maybe_unused]] const IndexType pfStride) noexcept {
+                                     [[maybe_unused]] const usize pfStride) noexcept {
     const Bitboard wBefore = dPps.before[WHITE];
     const Bitboard bBefore = dPps.before[BLACK];
     const Bitboard wAfter  = dPps.after[WHITE];
