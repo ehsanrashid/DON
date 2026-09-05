@@ -71,7 +71,7 @@ jobs:
         working-directory: src
         run: make net
 
-      - name: Build avx2 binary
+      - name: Build 'AVX2' binary
         working-directory: src
         env:
           EXTRA_CXXFLAGS: "-Werror"
@@ -80,7 +80,7 @@ jobs:
             apt install -y lld
           fi
           make clean
-          make -j build ARCH=x86-64-avx2 COMP=${{ matrix.comp }} COMPCXX=${{ matrix.cxx }}
+          make -j build ARCH=x86-64-avx2 COMP="${{ matrix.comp }}" COMPCXX="${{ matrix.cxx }}"
 
       - name: Smoke test
         working-directory: src
