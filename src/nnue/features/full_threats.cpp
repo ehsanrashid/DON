@@ -34,10 +34,13 @@ namespace DON::NNUE::Features {
 
 namespace {
 
-alignas(CACHE_LINE_SIZE) constexpr Array<u16, PIECE_TYPE_CNT> TARGET_MAX{3, 5, 4, 4, 5, 0};
+// Pawn diagonal threats only target knights and rooks,
+// (pawn-pawn relationships are handled by the PP_3Wide feature set),
+// so pawns have 2 valid targets.
+alignas(CACHE_LINE_SIZE) constexpr Array<u16, PIECE_TYPE_CNT> TARGET_MAX{2, 5, 4, 4, 5, 0};
 
 alignas(CACHE_LINE_SIZE) constexpr Array<i16, PIECE_TYPE_CNT, PIECE_TYPE_CNT> MAP{{
-  {+0, +1, -1, +2, -1, -1},  //
+  {-1, +0, -1, +1, -1, -1},  //
   {+0, +1, +2, +3, +4, -1},  //
   {+0, +1, +2, +3, -1, -1},  //
   {+0, +1, +2, +3, -1, -1},  //
@@ -74,12 +77,9 @@ alignas(CACHE_LINE_SIZE) constexpr auto THREAT_TABLE = []() constexpr noexcept {
                 threatTable.squareOffsets[+pc][s] = threatCount;
 
                 if (pt != PAWN)
-                    threatCount += constexpr_popcount(pseudo_attacks_bb(s, pt));
+                    threatCount += constexpr_popcount(Attacks::pseudo_attacks_bb(s, pt));
                 else if (SQ_A2 <= s && s <= SQ_H7)
-                {
-                    const Bitboard pPushAttacksBB = pawn_push_attacks_bb(square_bb(s), c);
-                    threatCount += constexpr_popcount(pPushAttacksBB);
-                }
+                    threatCount += constexpr_popcount(Attacks::pseudo_attacks_bb(s, c));
             }
 
             threatTable.pieceThreats[+pc] = {baseOffset, threatCount};
@@ -160,23 +160,19 @@ alignas(CACHE_LINE_SIZE) const auto LUT_INDICES = []() noexcept {
     Array<u8, PIECE_TYPE_CNT + 1, SQUARE_NB, SQUARE_NB> lutIndices{};
 
     for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
-    {
-        const Bitboard s1BB = square_bb(s1);
-
         for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
         {
             const Bitboard s2MaskBB = square_bb(s2) - 1;
             // clang-format off
-            lutIndices[WHITE ][s1][s2] = constexpr_popcount(s2MaskBB & pawn_push_attacks_bb(s1BB, WHITE));
-            lutIndices[BLACK ][s1][s2] = constexpr_popcount(s2MaskBB & pawn_push_attacks_bb(s1BB, BLACK));
-            lutIndices[KNIGHT][s1][s2] = constexpr_popcount(s2MaskBB & pseudo_attacks_bb(s1, KNIGHT));
-            lutIndices[BISHOP][s1][s2] = constexpr_popcount(s2MaskBB & pseudo_attacks_bb(s1, BISHOP));
-            lutIndices[ROOK  ][s1][s2] = constexpr_popcount(s2MaskBB & pseudo_attacks_bb(s1, ROOK));
-            lutIndices[QUEEN ][s1][s2] = constexpr_popcount(s2MaskBB & pseudo_attacks_bb(s1, QUEEN));
-            lutIndices[KING  ][s1][s2] = constexpr_popcount(s2MaskBB & pseudo_attacks_bb(s1, KING));
+            lutIndices[WHITE ][s1][s2] = constexpr_popcount(s2MaskBB & Attacks::pseudo_attacks_bb(s1, WHITE));
+            lutIndices[BLACK ][s1][s2] = constexpr_popcount(s2MaskBB & Attacks::pseudo_attacks_bb(s1, BLACK));
+            lutIndices[KNIGHT][s1][s2] = constexpr_popcount(s2MaskBB & Attacks::pseudo_attacks_bb(s1, KNIGHT));
+            lutIndices[BISHOP][s1][s2] = constexpr_popcount(s2MaskBB & Attacks::pseudo_attacks_bb(s1, BISHOP));
+            lutIndices[ROOK  ][s1][s2] = constexpr_popcount(s2MaskBB & Attacks::pseudo_attacks_bb(s1, ROOK));
+            lutIndices[QUEEN ][s1][s2] = constexpr_popcount(s2MaskBB & Attacks::pseudo_attacks_bb(s1, QUEEN));
+            lutIndices[KING  ][s1][s2] = constexpr_popcount(s2MaskBB & Attacks::pseudo_attacks_bb(s1, KING));
             // clang-format on
         }
-    }
 
     return lutIndices;
 }();
@@ -191,28 +187,15 @@ constexpr u8 lut_index(Piece pc, Square s1, Square s2) noexcept {
     return LUT_INDICES[type_of(pc)][s1][s2];
 }
 
-// Mirror square to have king always on e..h files
-// (file_of(s) >> 2) is 0 for 0...3, 1 for 4...7
-constexpr Square orientation(Square s) noexcept {
-    return static_cast<Square>(((file_of(s) >> 2) ^ 0) * FILE_H);
-}
-
-static_assert(orientation(SQ_A1) == SQ_A1);
-static_assert(orientation(SQ_D1) == SQ_A1);
-static_assert(orientation(SQ_E1) == SQ_H1);
-static_assert(orientation(SQ_H1) == SQ_H1);
-static_assert(orientation(SQ_A8) == SQ_A1);
-static_assert(orientation(SQ_H8) == SQ_H1);
-
 // Index of a feature for a given king position and another piece on square
-ALWAYS_INLINE IndexType make_index(const Color  perspective,
-                                   const Square kingSq,
-                                   const Square orgSq,
-                                   const Square dstSq,
-                                   const Piece  attackerPc,
-                                   const Piece  attackedPc) noexcept {
+ALWAYS_INLINE constexpr IndexType make_index(const Color  perspective,
+                                             const Square kingSq,
+                                             const Square orgSq,
+                                             const Square dstSq,
+                                             const Piece  attackerPc,
+                                             const Piece  attackedPc) noexcept {
     // Compute perspective-relative squares
-    u8 relOrientation = relative_sq(perspective, orientation(kingSq));
+    u8 relOrientation = relative_sq(perspective, FullThreats::orientation(kingSq));
 
     u8 org = static_cast<u8>(orgSq) ^ relOrientation;
     u8 dst = static_cast<u8>(dstSq) ^ relOrientation;
@@ -246,8 +229,6 @@ ALWAYS_INLINE void append_pawn_active_indices(Bitboard                  attacksB
         const Square orgSq      = dstSq - attackDir;
         const Piece  attackedPc = pos[dstSq];
 
-        assert(file_of(orgSq) != file_of(dstSq) || type_of(attackedPc) == PAWN);
-
         const auto index = make_index(perspective, kingSq, orgSq, dstSq, attackerPc, attackedPc);
 
         active.push_back_if_lt(index, FullThreats::Dimensions);
@@ -262,10 +243,8 @@ void FullThreats::append_active_indices(const Color     perspective,
                                         IndexVector&    active) noexcept {
     const Square kingSq = pos.square<KING>(perspective);
 
-    const Bitboard occupancyBB = pos.pieces_bb();
-    const Bitboard pawnsBB     = pos.pieces_bb(PAWN);
-
-    const Bitboard pawnTargetsBB        = pos.pieces_bb(PAWN, KNIGHT, ROOK);
+    const Bitboard occupancyBB          = pos.pieces_bb();
+    const Bitboard pawnTargetsBB        = pos.pieces_bb(KNIGHT, ROOK);
     const Bitboard sliderTargetsBB      = pos.pieces_bb(PAWN, KNIGHT, BISHOP, ROOK);
     const Bitboard knightqueenTargetsBB = pos.pieces_bb(PAWN, KNIGHT, BISHOP, ROOK, QUEEN);
 
@@ -277,7 +256,7 @@ void FullThreats::append_active_indices(const Color     perspective,
             const Piece attackerPc = make_piece(attackerC, PAWN);
 
             const Bitboard cpawnsBB = pos.pieces_bb(attackerC, PAWN);
-            // clang-format off
+
             append_pawn_active_indices(
               attackerC == WHITE ? shift_bb<Direction::NORTH_EAST>(cpawnsBB) & pawnTargetsBB
                                  : shift_bb<Direction::SOUTH_WEST>(cpawnsBB) & pawnTargetsBB,
@@ -289,15 +268,6 @@ void FullThreats::append_active_indices(const Color     perspective,
                                  : shift_bb<Direction::SOUTH_EAST>(cpawnsBB) & pawnTargetsBB,
               attackerC == WHITE ? Direction::NORTH_WEST : Direction::SOUTH_EAST,  //
               perspective, pos, kingSq, attackerPc, active);
-
-            // Set of pawns which are prevented from movement by a pawn in front of them
-            const Bitboard cpushersBB = cpawnsBB & pawn_push_bb(pawnsBB, ~attackerC);
-            append_pawn_active_indices(
-              attackerC == WHITE ? shift_bb<Direction::NORTH>(cpushersBB)
-                                 : shift_bb<Direction::SOUTH>(cpushersBB),
-              attackerC == WHITE ? Direction::NORTH : Direction::SOUTH,  //
-              perspective, pos, kingSq, attackerPc, active);
-            // clang-format on
         }
 
         for (const PieceType pt : NON_PAWN_PIECE_TYPES)
@@ -312,7 +282,7 @@ void FullThreats::append_active_indices(const Color     perspective,
             {
                 const Square orgSq = pop_lsq(cattackerBB);
 
-                Bitboard attacksBB = attacks_bb(orgSq, pt, occupancyBB) & targetsBB;
+                Bitboard attacksBB = Attacks::attacks_bb(orgSq, pt, occupancyBB) & targetsBB;
                 while (attacksBB != 0)
                 {
                     const Square dstSq      = pop_lsq(attacksBB);
@@ -329,13 +299,13 @@ void FullThreats::append_active_indices(const Color     perspective,
 }
 
 // Append lists of indices for recently changed features
-void FullThreats::append_changed_indices(const Color             perspective,
-                                         const Square            kingSq,
-                                         const DirtyType&        dTs,
-                                         IndexVector&            removed,
-                                         IndexVector&            added,
-                                         const ThreatWeightType* pfBase,
-                                         const usize             pfStride) noexcept {
+void FullThreats::append_changed_indices(const Color                   perspective,
+                                         const Square                  kingSq,
+                                         const DirtyType&              dTs,
+                                         IndexVector&                  removed,
+                                         IndexVector&                  added,
+                                         const ThreatWeightType* const pfBase,
+                                         const usize                   pfStride) noexcept {
     for (const auto& dT : dTs)
     {
         const auto orgSq      = dT.sq();

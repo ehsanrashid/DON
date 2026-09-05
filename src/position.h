@@ -607,28 +607,28 @@ inline bool Position::castling_possible(const Color c, const CastlingSide cs) co
 
 // clang-format off
 
-// Computes a bitboard of all x-ray sliding pieces which attack a given square.
+// Computes bitboard of all x-ray sliding pieces which attack a given square.
 inline Bitboard Position::xslide_attackers_bb(const Square s) const noexcept {
-    const auto [bAttacksBB, rAttacksBB] = attacks_bb_pair(s);
+    const auto [bAttacksBB, rAttacksBB] = Attacks::attacks_bb_pair(s);
     return (pieces_bb(QUEEN, BISHOP) & bAttacksBB)
          | (pieces_bb(QUEEN, ROOK  ) & rAttacksBB);
 }
-// Computes a bitboard of all sliding pieces which attack a given square on occupancy.
+// Computes bitboard of all sliding pieces which attack a given square on occupancy.
 inline Bitboard Position::slide_attackers_bb(const Square s, const Bitboard occupancyBB) const noexcept {
-    const auto [bAttacksBB, rAttacksBB] = attacks_bb_pair(s, occupancyBB);
+    const auto [bAttacksBB, rAttacksBB] = Attacks::attacks_bb_pair(s, occupancyBB);
     return (pieces_bb(QUEEN, BISHOP) & bAttacksBB)
          | (pieces_bb(QUEEN, ROOK  ) & rAttacksBB);
 }
 inline Bitboard Position::slide_attackers_bb(const Square s) const noexcept {
     return slide_attackers_bb(s, pieces_bb());
 }
-// Computes a bitboard of all pieces which attack a given square on occupancy
+// Computes bitboard of all pieces which attack a given square on occupancy
 inline Bitboard Position::attackers_bb(const Square s, const Bitboard occupancyBB) const noexcept {
     return slide_attackers_bb(s, occupancyBB)
-         | (pieces_bb(WHITE, PAWN) & attacks_bb<PAWN  >(s, BLACK))
-         | (pieces_bb(BLACK, PAWN) & attacks_bb<PAWN  >(s, WHITE))
-         | (pieces_bb(KNIGHT     ) & attacks_bb<KNIGHT>(s))
-         | (pieces_bb(KING       ) & attacks_bb<KING  >(s));
+         | (pieces_bb(WHITE, PAWN) & Attacks::attacks_bb<PAWN  >(s, BLACK))
+         | (pieces_bb(BLACK, PAWN) & Attacks::attacks_bb<PAWN  >(s, WHITE))
+         | (pieces_bb(KNIGHT     ) & Attacks::attacks_bb<KNIGHT>(s))
+         | (pieces_bb(KING       ) & Attacks::attacks_bb<KING  >(s));
 }
 inline Bitboard Position::attackers_bb(const Square s) const noexcept {
     return attackers_bb(s, pieces_bb());
@@ -636,7 +636,7 @@ inline Bitboard Position::attackers_bb(const Square s) const noexcept {
 
 // Checks if there are any slide attackers to 's'
 inline bool Position::slide_attackers_exists(const Square s, const Bitboard attackersBB, const Bitboard occupancyBB) const noexcept {
-    const auto [bAttacksBB, rAttacksBB] = attacks_bb_pair(s, occupancyBB);
+    const auto [bAttacksBB, rAttacksBB] = Attacks::attacks_bb_pair(s, occupancyBB);
     return ((attackersBB & pieces_bb(QUEEN, BISHOP) & bAttacksBB)
           | (attackersBB & pieces_bb(QUEEN, ROOK)   & rAttacksBB)) != 0;
 }
@@ -646,10 +646,10 @@ inline bool Position::slide_attackers_exists(const Square s, const Bitboard atta
 // Checks if there are any attackers to 's'
 inline bool Position::attackers_exists(const Square s, const Bitboard attackersBB, const Bitboard occupancyBB) const noexcept {
     return slide_attackers_exists(s, attackersBB, occupancyBB)
-        || ((attackersBB & ((pieces_bb(WHITE, PAWN) & attacks_bb<PAWN  >(s, BLACK))
-                          | (pieces_bb(BLACK, PAWN) & attacks_bb<PAWN  >(s, WHITE))))
-          | (attackersBB & pieces_bb(KNIGHT       ) & attacks_bb<KNIGHT>(s))
-          | (attackersBB & pieces_bb(KING         ) & attacks_bb<KING  >(s))) != 0;
+        || ((attackersBB & ((pieces_bb(WHITE, PAWN) & Attacks::attacks_bb<PAWN  >(s, BLACK))
+                          | (pieces_bb(BLACK, PAWN) & Attacks::attacks_bb<PAWN  >(s, WHITE))))
+          | (attackersBB & pieces_bb(KNIGHT       ) & Attacks::attacks_bb<KNIGHT>(s))
+          | (attackersBB & pieces_bb(KING         ) & Attacks::attacks_bb<KING  >(s))) != 0;
 }
 inline bool Position::attackers_exists(const Square s, const Bitboard attackersBB) const noexcept {
     return attackers_exists(s, attackersBB, pieces_bb());
@@ -674,7 +674,7 @@ inline Bitboard Position::blockers_bb(const Square   s,
     {
         const Square xSniperSq = pop_lsq(xSnipersBB);
 
-        if (const Bitboard blockerBB = between_bb(s, xSniperSq) & occupancyBB;
+        if (const Bitboard blockerBB = Attacks::between_bb(s, xSniperSq) & occupancyBB;
             exactly_one(blockerBB))
         {
             blockersBB |= blockerBB;
@@ -693,7 +693,7 @@ inline Bitboard Position::blockers_bb(const Square   s,
 template<PieceType PT>
 inline Bitboard Position::attacks_by_bb(Color c) const noexcept {
     if constexpr (PT == PAWN)
-        return pawn_attacks_bb(pieces_bb(c, PAWN), c);
+        return Attacks::pawn_attacks_bb(pieces_bb(c, PAWN), c);
     else
     {
         Bitboard attacksBB = 0;
@@ -702,7 +702,7 @@ inline Bitboard Position::attacks_by_bb(Color c) const noexcept {
 
         Bitboard attackersBB = pieces_bb(c, PT);
         while (attackersBB != 0)
-            attacksBB |= attacks_bb<PT>(pop_lsq(attackersBB), occupancyBB);
+            attacksBB |= Attacks::attacks_bb<PT>(pop_lsq(attackersBB), occupancyBB);
 
         return attacksBB;
     }
@@ -988,11 +988,11 @@ inline void Position::update_piece_threats(const Square              s,
     const auto attacksBB = [&]() noexcept {
         Array<Bitboard, PIECE_TYPE_CNT> _;
 
-        _[WHITE]  = attacks_bb<PAWN>(s, WHITE);
-        _[BLACK]  = attacks_bb<PAWN>(s, BLACK);
-        _[KNIGHT] = attacks_bb<KNIGHT>(s);
+        _[WHITE]  = Attacks::attacks_bb<PAWN>(s, WHITE);
+        _[BLACK]  = Attacks::attacks_bb<PAWN>(s, BLACK);
+        _[KNIGHT] = Attacks::attacks_bb<KNIGHT>(s);
 
-        const auto [bAttacksBB, rAttacksBB] = attacks_bb_pair(s, occupancyBB);
+        const auto [bAttacksBB, rAttacksBB] = Attacks::attacks_bb_pair(s, occupancyBB);
 
         _[BISHOP] = bAttacksBB;
         _[ROOK]   = rAttacksBB;
@@ -1001,7 +1001,7 @@ inline void Position::update_piece_threats(const Square              s,
         return _;
     }();
 
-    const Bitboard exOccupancyBB = occupancyBB ^ pieces_bb(KING);
+    const Bitboard noKOccupancyBB = occupancyBB ^ pieces_bb(KING);
 
     Bitboard slidersBB = (pieces_bb(QUEEN, BISHOP) & attacksBB[BISHOP])  //
                        | (pieces_bb(QUEEN, ROOK) & attacksBB[ROOK]);
@@ -1015,8 +1015,8 @@ inline void Position::update_piece_threats(const Square              s,
             assert(sliderSq != s);
             assert(is_ok(sliderPc));
 
-            const Bitboard passRayBB    = pass_ray_bb(sliderSq, s);
-            const Bitboard discoveredBB = passRayBB & attacksBB[QUEEN] & exOccupancyBB;
+            const Bitboard passRayBB    = Attacks::pass_ray_bb(sliderSq, s);
+            const Bitboard discoveredBB = passRayBB & attacksBB[QUEEN] & noKOccupancyBB;
 
             assert(!more_than_one(discoveredBB));
 
@@ -1046,52 +1046,33 @@ inline void Position::update_piece_threats(const Square              s,
         return;
     }
 
+    const Bitboard directSlidersBB =
+      type_of(pc) == QUEEN ? slidersBB & pieces_bb(QUEEN) : slidersBB;
+
     Bitboard threatenedBB = (type_of(pc) == PAWN  //
                                ? attacksBB[color_of(pc)]
                                : attacksBB[type_of(pc)])
-                          & exOccupancyBB;
-
-    Bitboard directSlidersBB = type_of(pc) == QUEEN ? slidersBB & pieces_bb(QUEEN) : slidersBB;
+                          & noKOccupancyBB;
 
     Bitboard incomingThreatsBB = pieces_bb(KNIGHT) & attacksBB[KNIGHT];
 
-    // Compute both incoming and outgoing pawn threats.
-    // Incoming pawn pushers are only added if 'pc' is a pawn.
-    Bitboard pawnThreatsBB = 0;
-    if (type_of(pc) == PAWN)
-    {
-        const Array<Bitboard, 2> pawnPushAttacksBB{
-          pawn_push_attacks_bb<WHITE>(square_bb(s)),
-          pawn_push_attacks_bb<BLACK>(square_bb(s))  //
-        };
-
-        threatenedBB |= pieces_bb(PAWN) & pawnPushAttacksBB[color_of(pc)];
-
-        pawnThreatsBB |= (pieces_bb(WHITE, PAWN) & pawnPushAttacksBB[BLACK])
-                       | (pieces_bb(BLACK, PAWN) & pawnPushAttacksBB[WHITE]);
-    }
-    else
-    {
-        pawnThreatsBB |= (pieces_bb(WHITE, PAWN) & attacksBB[BLACK])  //
-                       | (pieces_bb(BLACK, PAWN) & attacksBB[WHITE]);
-    }
+    if (type_of(pc) == KNIGHT || type_of(pc) == ROOK)
+        incomingThreatsBB |= (pieces_bb(WHITE, PAWN) & attacksBB[BLACK])  //
+                           | (pieces_bb(BLACK, PAWN) & attacksBB[WHITE]);
 
     switch (type_of(pc))
     {
     case PAWN :
-        threatenedBB &= pieces_bb(PAWN, KNIGHT, ROOK);
+        threatenedBB &= pieces_bb(KNIGHT, ROOK);
         break;
     case BISHOP :
     case ROOK :
         threatenedBB &= pieces_bb(PAWN, KNIGHT, BISHOP, ROOK);
         break;
     default :
-        threatenedBB &= exOccupancyBB;
+        threatenedBB &= noKOccupancyBB;
         break;
     }
-
-    if (type_of(pc) == PAWN || type_of(pc) == KNIGHT || type_of(pc) == ROOK)
-        incomingThreatsBB |= pawnThreatsBB;
 
 #if defined(USE_AVX512ICL)
     Threat dT1{s, SQUARE_ZERO, pc, Piece::NO_PIECE, put};

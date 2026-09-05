@@ -34,16 +34,21 @@ namespace NNUE::Features {
 class FullThreats final {
    public:
     // Hash value embedded in the evaluation file
-    static constexpr u32 Hash = 0x8F234CB8u;
+    static constexpr u32 Hash = 0x2E6B9D04u;
 
     // Number of feature dimensions
-    static constexpr IndexType Dimensions = 60720;
+    static constexpr IndexType Dimensions = 59808;
 
     // Maximum number of simultaneously active features
-    static constexpr IndexType MaxActiveDimensions = 128;
+    static constexpr IndexType MaxActiveDimensions = 256;
+    using IndexVector                              = FixedVector<u16, MaxActiveDimensions>;
+    using DirtyType                                = DirtyThreats;
 
-    using DirtyType   = DirtyThreats;
-    using IndexVector = FixedVector<IndexType, MaxActiveDimensions>;
+    // Mirror square to have king always on e..h files
+    // (file_of(s) >> 2) is 0 for 0...3, 1 for 4...7
+    static constexpr Square orientation(const Square s) noexcept {
+        return Square(((file_of(s) >> 2) ^ 0) * FILE_H);
+    }
 
     static void append_active_indices(Color           perspective,  //
                                       const Position& pos,
@@ -65,6 +70,13 @@ class FullThreats final {
     FullThreats(FullThreats&&) noexcept                 = delete;
     FullThreats& operator=(FullThreats&&) noexcept      = delete;
 };
+
+static_assert(FullThreats::orientation(SQ_A1) == SQ_A1);
+static_assert(FullThreats::orientation(SQ_D1) == SQ_A1);
+static_assert(FullThreats::orientation(SQ_E1) == SQ_H1);
+static_assert(FullThreats::orientation(SQ_H1) == SQ_H1);
+static_assert(FullThreats::orientation(SQ_A8) == SQ_A1);
+static_assert(FullThreats::orientation(SQ_H8) == SQ_H1);
 
 }  // namespace NNUE::Features
 }  // namespace DON

@@ -27,6 +27,7 @@
 #include "../types.h"
 #include "features/full_threats.h"
 #include "features/half_ka_hm.h"
+#include "features/pp_3wide.h"
 #include "layers/affine_transform.h"
 #include "layers/clipped_relu.h"
 #include "layers/sparse_affine_transform.h"
@@ -38,7 +39,8 @@ namespace DON::NNUE {
 
 // Input features used in evaluation function
 using ThreatFeatureSet = Features::FullThreats;
-using PSQFeatureSet    = Features::HalfKA_hm;
+using PSQFeatureSet    = Features::HalfKAHm;
+using PairFeatureSet   = Features::PP3Wide;
 
 struct NetworkArchitecture final {
    public:

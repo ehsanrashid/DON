@@ -164,8 +164,8 @@ void apply_combined(Color                                perspective,
     SIMD::vec_t      acc[Tiling::RegCount];
     SIMD::psqt_vec_t psqt[Tiling::PSQTRegCount];
 
-    const auto* weights       = featureTransformer.weights.data();
-    const auto* threatWeights = featureTransformer.threatWeights.data();
+    const auto* weights            = featureTransformer.weights.data();
+    const auto* threatAndPpWeights = featureTransformer.threatAndPpWeights.data();
     // clang-format off
     for (IndexType j = 0; j < Dimensions / Tiling::TileHeight; ++j)
     {
@@ -192,7 +192,7 @@ void apply_combined(Color                                perspective,
 
         for (IndexType i = 0; i < thrRemoved.size(); ++i)
         {
-            const auto* column = reinterpret_cast<const SIMD::vec_i8_t*>(&threatWeights[thrRemoved[i] * Dimensions + tileOffset]);
+            const auto* column = reinterpret_cast<const SIMD::vec_i8_t*>(&threatAndPpWeights[thrRemoved[i] * Dimensions + tileOffset]);
 
     #if defined(USE_NEON)
             for (usize k = 0; k + 1 < Tiling::RegCount; k += 2)
@@ -208,7 +208,7 @@ void apply_combined(Color                                perspective,
 
         for (IndexType i = 0; i < thrAdded.size(); ++i)
         {
-            const auto* column = reinterpret_cast<const SIMD::vec_i8_t*>(&threatWeights[thrAdded[i] * Dimensions + tileOffset]);
+            const auto* column = reinterpret_cast<const SIMD::vec_i8_t*>(&threatAndPpWeights[thrAdded[i] * Dimensions + tileOffset]);
 
     #if defined(USE_NEON)
             for (usize k = 0; k + 1 < Tiling::RegCount; k += 2)
@@ -228,8 +228,8 @@ void apply_combined(Color                                perspective,
             vec_store(&targetTile[k], acc[k]);
     }
 
-    const auto* psqtWeights       = featureTransformer.psqtWeights.data();
-    const auto* threatPsqtWeights = featureTransformer.threatPsqtWeights.data();
+    const auto* psqtWeights            = featureTransformer.psqtWeights.data();
+    const auto* threatAndPpPsqtWeights = featureTransformer.threatAndPpPsqtWeights.data();
 
     for (IndexType j = 0; j < PSQT_BUCKETS / Tiling::PSQTTileHeight; ++j)
     {
@@ -256,14 +256,14 @@ void apply_combined(Color                                perspective,
 
         for (IndexType i = 0; i < thrRemoved.size(); ++i)
         {
-            const auto* columnPsqt = reinterpret_cast<const SIMD::psqt_vec_t*>(&threatPsqtWeights[thrRemoved[i] * PSQT_BUCKETS + psqtTileOffset]);
+            const auto* columnPsqt = reinterpret_cast<const SIMD::psqt_vec_t*>(&threatAndPpPsqtWeights[thrRemoved[i] * PSQT_BUCKETS + psqtTileOffset]);
             for (usize k = 0; k < Tiling::PSQTRegCount; ++k)
                 psqt[k] = vec_sub_psqt_32(psqt[k], columnPsqt[k]);
         }
 
         for (IndexType i = 0; i < thrAdded.size(); ++i)
         {
-            const auto* columnPsqt = reinterpret_cast<const SIMD::psqt_vec_t*>(&threatPsqtWeights[thrAdded[i] * PSQT_BUCKETS + psqtTileOffset]);
+            const auto* columnPsqt = reinterpret_cast<const SIMD::psqt_vec_t*>(&threatAndPpPsqtWeights[thrAdded[i] * PSQT_BUCKETS + psqtTileOffset]);
             for (usize k = 0; k < Tiling::PSQTRegCount; ++k)
                 psqt[k] = vec_add_psqt_32(psqt[k], columnPsqt[k]);
         }
@@ -275,10 +275,10 @@ void apply_combined(Color                                perspective,
     }
     // clang-format on
 #elif defined(USE_RVV)
-    const auto* psqWeights        = &featureTransformer.weights[0];
-    const auto* threatWeights     = &featureTransformer.threatWeights[0];
-    const auto* psqtWeights       = &featureTransformer.psqtWeights[0];
-    const auto* threatPsqtWeights = &featureTransformer.threatPsqtWeights[0];
+    const auto* psqWeights             = &featureTransformer.weights[0];
+    const auto* threatAndPpWeights     = &featureTransformer.threatAndPpWeights[0];
+    const auto* psqtWeights            = &featureTransformer.psqtWeights[0];
+    const auto* threatAndPpPsqtWeights = &featureTransformer.threatAndPpPsqtWeights[0];
     // clang-format off
     for (usize tileOffset = 0; tileOffset < Dimensions;)
     {
@@ -293,10 +293,10 @@ void apply_combined(Color                                perspective,
               accum, __riscv_vle16_v_i16m8(&psqWeights[i * Dimensions + tileOffset], vl), vl);
         for (const auto i : thrRemoved)
             accum = __riscv_vwsub_wv_i16m8(
-              accum, __riscv_vle8_v_i8m4(&threatWeights[i * Dimensions + tileOffset], vl), vl);
+              accum, __riscv_vle8_v_i8m4(&threatAndPpWeights[i * Dimensions + tileOffset], vl), vl);
         for (const auto i : thrAdded)
             accum = __riscv_vwadd_wv_i16m8(
-              accum, __riscv_vle8_v_i8m4(&threatWeights[i * Dimensions + tileOffset], vl), vl);
+              accum, __riscv_vle8_v_i8m4(&threatAndPpWeights[i * Dimensions + tileOffset], vl), vl);
 
         __riscv_vse16_v_i16m8(&targetAcc[tileOffset], accum, vl);
         tileOffset += vl;
@@ -315,10 +315,10 @@ void apply_combined(Color                                perspective,
               accum, __riscv_vle32_v_i32m1(&psqtWeights[i * PSQT_BUCKETS + tileOffset], vl), vl);
         for (const auto i : thrRemoved)
             accum = __riscv_vsub_vv_i32m1(
-              accum, __riscv_vle32_v_i32m1(&threatPsqtWeights[i * PSQT_BUCKETS + tileOffset], vl), vl);
+              accum, __riscv_vle32_v_i32m1(&threatAndPpPsqtWeights[i * PSQT_BUCKETS + tileOffset], vl), vl);
         for (const auto i : thrAdded)
             accum = __riscv_vadd_vv_i32m1(
-              accum, __riscv_vle32_v_i32m1(&threatPsqtWeights[i * PSQT_BUCKETS + tileOffset], vl), vl);
+              accum, __riscv_vle32_v_i32m1(&threatAndPpPsqtWeights[i * PSQT_BUCKETS + tileOffset], vl), vl);
 
         __riscv_vse32_v_i32m1(&targetPsqtAcc[tileOffset], accum, vl);
         tileOffset += vl;
@@ -348,17 +348,17 @@ void apply_combined(Color                                perspective,
     for (const auto index : thrRemoved)
     {
         for (IndexType i = 0; i < Dimensions; ++i)
-            targetAcc[i] -= featureTransformer.threatWeights[index * Dimensions + i];
+            targetAcc[i] -= featureTransformer.threatAndPpWeights[index * Dimensions + i];
         for (IndexType i = 0; i < PSQT_BUCKETS; ++i)
-            targetPsqtAcc[i] -= featureTransformer.threatPsqtWeights[index * PSQT_BUCKETS + i];
+            targetPsqtAcc[i] -= featureTransformer.threatAndPpPsqtWeights[index * PSQT_BUCKETS + i];
     }
 
     for (const auto index : thrAdded)
     {
         for (IndexType i = 0; i < Dimensions; ++i)
-            targetAcc[i] += featureTransformer.threatWeights[index * Dimensions + i];
+            targetAcc[i] += featureTransformer.threatAndPpWeights[index * Dimensions + i];
         for (IndexType i = 0; i < PSQT_BUCKETS; ++i)
-            targetPsqtAcc[i] += featureTransformer.threatPsqtWeights[index * PSQT_BUCKETS + i];
+            targetPsqtAcc[i] += featureTransformer.threatAndPpPsqtWeights[index * PSQT_BUCKETS + i];
     }
 
 #endif
@@ -383,18 +383,23 @@ void update_incremental(const Color               perspective,
 
     const auto& dirties = Forward ? target.dirties : source.dirties;
 
-    const auto& dP  = dirties.dirtyPiece;
-    const auto& dTs = dirties.dirtyThreats;
+    const auto& dP   = dirties.dirtyPiece;
+    const auto& dTs  = dirties.dirtyThreats;
+    const auto& dPps = dirties.dirtyPawnPairs;
 
-    const auto* pfBase   = featureTransformer.threatWeights.data();
+    // Used solely for prefetching
+    const auto* pfBase   = featureTransformer.threatAndPpWeights.data();
     const auto  pfStride = FeatureTransformer::OutputDimensions;
 
-    PSQFeatureSet::append_changed_indices(perspective, kingSq, dP,  //
-                                          Forward ? psqRemoved : psqAdded,
-                                          Forward ? psqAdded : psqRemoved);
     ThreatFeatureSet::append_changed_indices(perspective, kingSq, dTs,
                                              Forward ? thrRemoved : thrAdded,
                                              Forward ? thrAdded : thrRemoved, pfBase, pfStride);
+    PairFeatureSet::append_changed_indices(perspective, kingSq, dPps,
+                                           Forward ? thrRemoved : thrAdded,
+                                           Forward ? thrAdded : thrRemoved, pfBase, pfStride);
+    PSQFeatureSet::append_changed_indices(perspective, kingSq, dP,  //
+                                          Forward ? psqRemoved : psqAdded,
+                                          Forward ? psqAdded : psqRemoved);
 
     apply_combined(perspective, featureTransformer, source, target, psqAdded, psqRemoved, thrAdded,
                    thrRemoved);
@@ -559,8 +564,8 @@ void update_refresh_cache(const Color               perspective,
     SIMD::vec_t      acc[Tiling::RegCount];
     SIMD::psqt_vec_t psqt[Tiling::PSQTRegCount];
 
-    const auto* weights       = featureTransformer.weights.data();
-    const auto* threatWeights = featureTransformer.threatWeights.data();
+    const auto* weights            = featureTransformer.weights.data();
+    const auto* threatAndPpWeights = featureTransformer.threatAndPpWeights.data();
     // clang-format off
     for (IndexType j = 0; j < Dimensions / Tiling::TileHeight; ++j)
     {
@@ -589,7 +594,7 @@ void update_refresh_cache(const Color               perspective,
 
         for (IndexType i = 0; i < active.size(); ++i)
         {
-            const auto* column = reinterpret_cast<const SIMD::vec_i8_t*>(&threatWeights[active[i] * Dimensions + tileOffset]);
+            const auto* column = reinterpret_cast<const SIMD::vec_i8_t*>(&threatAndPpWeights[active[i] * Dimensions + tileOffset]);
 
     #if defined(USE_NEON)
             for (usize k = 0; k + 1 < Tiling::RegCount; k += 2)
@@ -610,7 +615,7 @@ void update_refresh_cache(const Color               perspective,
     }
 
     const auto* psqtWeights       = featureTransformer.psqtWeights.data();
-    const auto* threatPsqtWeights = featureTransformer.threatPsqtWeights.data();
+    const auto* threatAndPpPsqtWeights = featureTransformer.threatAndPpPsqtWeights.data();
 
     for (IndexType j = 0; j < PSQT_BUCKETS / Tiling::PSQTTileHeight; ++j)
     {
@@ -639,7 +644,7 @@ void update_refresh_cache(const Color               perspective,
 
         for (IndexType i = 0; i < active.size(); ++i)
         {
-            const auto* columnPsqt = reinterpret_cast<const SIMD::psqt_vec_t*>(&threatPsqtWeights[active[i] * PSQT_BUCKETS + psqtTileOffset]);
+            const auto* columnPsqt = reinterpret_cast<const SIMD::psqt_vec_t*>(&threatAndPpPsqtWeights[active[i] * PSQT_BUCKETS + psqtTileOffset]);
             for (usize k = 0; k < Tiling::PSQTRegCount; ++k)
                 psqt[k] = vec_add_psqt_32(psqt[k], columnPsqt[k]);
         }
@@ -651,10 +656,10 @@ void update_refresh_cache(const Color               perspective,
     }
     // clang-format on
 #elif defined(USE_RVV)
-    const auto* weights           = &featureTransformer.weights[0];
-    const auto* threatWeights     = &featureTransformer.threatWeights[0];
-    const auto* psqtWeights       = &featureTransformer.psqtWeights[0];
-    const auto* threatPsqtWeights = &featureTransformer.threatPsqtWeights[0];
+    const auto* weights                = &featureTransformer.weights[0];
+    const auto* threatAndPpWeights     = &featureTransformer.threatAndPpWeights[0];
+    const auto* psqtWeights            = &featureTransformer.psqtWeights[0];
+    const auto* threatAndPpPsqtWeights = &featureTransformer.threatAndPpPsqtWeights[0];
     // clang-format off
     for (usize tileOffset = 0; tileOffset < Dimensions;)
     {
@@ -672,7 +677,7 @@ void update_refresh_cache(const Color               perspective,
 
         for (const auto i : active)
             accum = __riscv_vwadd_wv_i16m8(
-              accum, __riscv_vle8_v_i8m4(&threatWeights[i * Dimensions + tileOffset], vl), vl);
+              accum, __riscv_vle8_v_i8m4(&threatAndPpWeights[i * Dimensions + tileOffset], vl), vl);
 
         __riscv_vse16_v_i16m8(&accumulator.accumulation[perspective][tileOffset], accum, vl);
 
@@ -695,7 +700,7 @@ void update_refresh_cache(const Color               perspective,
 
         for (const auto i : active)
             accum = __riscv_vadd_vv_i32m1(
-              accum, __riscv_vle32_v_i32m1(&threatPsqtWeights[i * PSQT_BUCKETS + tileOffset], vl), vl);
+              accum, __riscv_vle32_v_i32m1(&threatAndPpPsqtWeights[i * PSQT_BUCKETS + tileOffset], vl), vl);
 
         __riscv_vse32_v_i32m1(&accumulator.psqtAccumulation[perspective][tileOffset], accum, vl);
 
@@ -730,11 +735,11 @@ void update_refresh_cache(const Color               perspective,
     {
         for (IndexType i = 0; i < Dimensions; ++i)
             accumulator.accumulation[perspective][i] +=
-              featureTransformer.threatWeights[index * Dimensions + i];
+              featureTransformer.threatAndPpWeights[index * Dimensions + i];
 
         for (IndexType i = 0; i < PSQT_BUCKETS; ++i)
             accumulator.psqtAccumulation[perspective][i] +=
-              featureTransformer.threatPsqtWeights[index * PSQT_BUCKETS + i];
+              featureTransformer.threatAndPpPsqtWeights[index * PSQT_BUCKETS + i];
     }
 
 #endif
