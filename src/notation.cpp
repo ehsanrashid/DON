@@ -191,7 +191,7 @@ Ambiguity detect_ambiguity(Move m, const Position& pos) noexcept {
 
     // Disambiguation if have more then one piece with same destination
     Bitboard candidatesBB =
-      (attacks_bb(dstSq, movedPt, pos.pieces_bb()) & pos.pieces_bb(ac, movedPt)) ^ orgSq;
+      (Attacks::attacks_bb(dstSq, movedPt, pos.pieces_bb()) & pos.pieces_bb(ac, movedPt)) ^ orgSq;
 
     if (candidatesBB == 0)
         return Ambiguity::NONE;

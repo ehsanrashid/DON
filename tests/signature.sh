@@ -24,11 +24,11 @@ SIGNATURE=$(grep "Total nodes     : " "$STDERR_FILE" | awk '{print $4}')
 
 rm -f "$STDOUT_FILE" "$STDERR_FILE"
 
-if [ $# -gt 0 ]; then
+if [ "$#" -gt 0 ]; then
     # Compare to given reference
     if [ "$1" != "$SIGNATURE" ]; then
         if [ -z "$SIGNATURE" ]; then
-            echo "No signature obtained from bench. Code crashed or assert triggered ?"
+            echo "No signature obtained from bench. Code crashed or assert triggered?"
         else
             echo "signature mismatch: reference $1 obtained: $SIGNATURE."
         fi
@@ -38,5 +38,5 @@ if [ $# -gt 0 ]; then
     fi
 else
     # Just report signature
-    echo $SIGNATURE
+    echo "$SIGNATURE"
 fi

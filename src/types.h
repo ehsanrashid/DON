@@ -841,12 +841,19 @@ struct DirtyThreats final {
     ThreatVector threats_;
 };
 
+struct DirtyPawnPairs final {
+   public:
+    Array<Bitboard, COLOR_NB> before;
+    Array<Bitboard, COLOR_NB> after;
+};
+
 using Threat = DirtyThreats::Threat;
 
 struct Dirties final {
    public:
-    DirtyPiece   dirtyPiece;
-    DirtyThreats dirtyThreats;
+    DirtyPiece     dirtyPiece;
+    DirtyThreats   dirtyThreats;
+    DirtyPawnPairs dirtyPawnPairs;
 };
 
 // Linear Congruential Generator (LCG): X{n+1} = (c + a * X{n})

@@ -40,13 +40,9 @@
 #include "misc.h"
 #include "types.h"
 
-namespace DON {
-
-namespace Attacks {
+namespace DON::Attacks {
 
 void init() noexcept;
-
-}  // namespace Attacks
 
 #if defined(USE_DUAL_HYPERBOLA_QUINT)
 
@@ -281,6 +277,30 @@ constexpr Bitboard pawn_push_attacks_bb(const Bitboard pawns, const Color c) noe
     return c == WHITE ? pawn_push_attacks_bb<WHITE>(pawns) : pawn_push_attacks_bb<BLACK>(pawns);
 }
 
+alignas(CACHE_LINE_SIZE) inline constexpr auto PAWN_PAIR_BBS = []() constexpr noexcept {
+    Array<Bitboard, SQUARE_NB> pawnPairBB{};
+
+    for (Square s = SQ_A1; s <= SQ_H8; ++s)
+    {
+        Bitboard fileBB  = file_bb(s);
+        Bitboard filesBB = fileBB                             //
+                         | shift_bb<Direction::EAST>(fileBB)  //
+                         | shift_bb<Direction::WEST>(fileBB);
+        pawnPairBB[s]    = filesBB & ~PROMOTION_RANKS_BB & ~square_bb(s);
+    }
+
+    return pawnPairBB;
+}();
+
+// Returns the squares that can host a pawn forming a "pawn pair" with a pawn on s.
+// own file plus adjacent files, restricted to ranks 2-7, excluding s.
+// The geometry is color-independent.
+constexpr Bitboard pawn_pair_bb(const Square s) noexcept {
+    assert(is_ok(s));
+
+    return PAWN_PAIR_BBS[s];
+}
+
 // Returns the bitboard of target square from the given square for the given step.
 // If the step is off the board, returns empty bitboard.
 constexpr Bitboard destination_bb(const Square s, const Direction d, const u8 dist = 1) noexcept {
@@ -395,7 +415,7 @@ constexpr Bitboard pseudo_attacks_bb(const Square s) noexcept {
     return 0;
 }
 
-alignas(CACHE_LINE_SIZE) inline constexpr auto PSEUDO_ATTACKS_BBs = []() constexpr noexcept {
+alignas(CACHE_LINE_SIZE) inline constexpr auto PSEUDO_ATTACKS_BBS = []() constexpr noexcept {
     Array<Bitboard, SQUARE_NB, PIECE_TYPE_CNT + 1> pseudoAttacksBB{};
 
     for (Square s = SQ_A1; s <= SQ_H8; ++s)
@@ -412,10 +432,10 @@ alignas(CACHE_LINE_SIZE) inline constexpr auto PSEUDO_ATTACKS_BBs = []() constex
     return pseudoAttacksBB;
 }();
 
-constexpr Bitboard pseudo_attacks_bb(Square s, usize idx) noexcept {
+constexpr Bitboard pseudo_attacks_bb(const Square s, const usize idx) noexcept {
     assert(is_ok(s));
 
-    return PSEUDO_ATTACKS_BBs[s][idx];
+    return PSEUDO_ATTACKS_BBS[s][idx];
 }
 
 // Returns the pseudo attacks of the given piece type assuming an empty board
@@ -587,7 +607,7 @@ inline std::pair<Bitboard, Bitboard> attacks_bb_pair(const Square   s,
 #endif
 }
 
-alignas(CACHE_LINE_SIZE) inline constexpr auto LINE_BBs = []() constexpr noexcept {
+alignas(CACHE_LINE_SIZE) inline constexpr auto LINE_BBS = []() constexpr noexcept {
     Array<Bitboard, SQUARE_NB, SQUARE_NB> lineBBs{};
 
     for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
@@ -600,14 +620,14 @@ alignas(CACHE_LINE_SIZE) inline constexpr auto LINE_BBs = []() constexpr noexcep
     return lineBBs;
 }();
 
-// Returns a bitboard representing an entire line (from board edge to board edge)
+// Returns bitboard representing an entire line (from board edge to board edge)
 // passing through the squares s1 and s2.
 // If the given squares are not on a same file/rank/diagonal, it returns 0.
-// For instance, line_bb(SQ_C4, SQ_F7) will return a bitboard with the A2-G8 diagonal.
+// For instance, line_bb(SQ_C4, SQ_F7) will return bitboard with the A2-G8 diagonal.
 constexpr Bitboard line_bb(const Square s1, const Square s2) noexcept {
     assert(is_ok(s1) && is_ok(s2));
 
-    return LINE_BBs[s1][s2];
+    return LINE_BBS[s1][s2];
 }
 
 // Returns true if the squares s1, s2 and s3 are aligned on straight or diagonal line.
@@ -617,35 +637,35 @@ constexpr bool aligned(const Square s1, const Square s2, const Square s3) noexce
     return (line_bb(s1, s2) & s3) != 0;
 }
 
-alignas(CACHE_LINE_SIZE) inline Array<Bitboard, SQUARE_NB, SQUARE_NB> BETWEEN_BBs;
+alignas(CACHE_LINE_SIZE) inline Array<Bitboard, SQUARE_NB, SQUARE_NB> BETWEEN_BBS;
 
-// Returns a bitboard representing the squares in the semi-open segment
+// Returns bitboard representing the squares in the semi-open segment
 // between the squares s1 and s2 (excluding s1 but including s2).
 // If the given squares are not on a same file/rank/diagonal, it returns s2.
-// For instance, between_bb(SQ_C4, SQ_F7) will return a bitboard with squares D5, E6 and F7,
-// but between_bb(SQ_E6, SQ_F8) will return a bitboard with the square F8.
+// For instance, between_bb(SQ_C4, SQ_F7) will return bitboard with squares D5, E6 and F7,
+// but between_bb(SQ_E6, SQ_F8) will return bitboard with the square F8.
 // This trick allows to generate non-king evasion moves faster:
 // the defending piece must either interpose itself to cover the check or capture the checking piece.
 constexpr Bitboard between_bb(const Square s1, const Square s2) noexcept {
     assert(is_ok(s1) && is_ok(s2));
 
-    return BETWEEN_BBs[s1][s2];
+    return BETWEEN_BBS[s1][s2];
 }
 
-// Returns a bitboard between the squares s1 and s2 (excluding s1 and s2).
+// Returns bitboard between the squares s1 and s2 (excluding s1 and s2).
 constexpr Bitboard between_ex_bb(const Square s1, const Square s2) noexcept {
     return between_bb(s1, s2) ^ s2;
 }
 
-alignas(CACHE_LINE_SIZE) inline Array<Bitboard, SQUARE_NB, SQUARE_NB> PASS_RAY_BBs;
+alignas(CACHE_LINE_SIZE) inline Array<Bitboard, SQUARE_NB, SQUARE_NB> PASS_RAY_BBS;
 
-// Returns a bitboard representing a ray from the square s1 passing s2.
+// Returns bitboard representing the ray starting at s1 passing through s2.
 constexpr Bitboard pass_ray_bb(const Square s1, const Square s2) noexcept {
     assert(is_ok(s1) && is_ok(s2));
 
-    return PASS_RAY_BBs[s1][s2];
+    return PASS_RAY_BBS[s1][s2];
 }
 
-}  // namespace DON
+}  // namespace DON::Attacks
 
 #endif  // ATTACKS_H_INCLUDED

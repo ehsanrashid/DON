@@ -33,21 +33,21 @@ using BiasType         = i16;
 using WeightType       = i16;
 using PSQTWeightType   = i32;
 using ThreatWeightType = i8;
-using IndexType        = usize;
+using IndexType        = u16;
 
 // Type of input feature after conversion
 using TransformedFeatureType = u8;
 
 // Number of input feature dimensions after conversion
-inline constexpr IndexType L1 = 1024;
-inline constexpr u32       L2 = 32;
-inline constexpr u32       L3 = 32;
+inline constexpr u16 L1 = 1024;
+inline constexpr u16 L2 = 32;
+inline constexpr u16 L3 = 32;
 
 // Version of the evaluation file
 inline constexpr u32 FILE_VERSION = 0x6A448AFAu;
 
-inline constexpr IndexType PSQT_BUCKETS = 8;
-inline constexpr IndexType LAYER_STACKS = 8;
+inline constexpr u16 PSQT_BUCKETS = 8;
+inline constexpr u16 LAYER_STACKS = 8;
 
 // If vector instructions are enabled, update and refresh the accumulator
 // tile by tile such that each tile fits in the CPU's vector registers.

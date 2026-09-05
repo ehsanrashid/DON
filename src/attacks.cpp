@@ -229,13 +229,13 @@ void init() noexcept {
                 if ((pseudo_attacks_bb(s1, pt) & s2BB) != 0)
                 {
                     // clang-format off
-                    BETWEEN_BBs[s1][s2]  = attacks_bb(s1, pt, s2BB) &  attacks_bb(s2, pt, s1BB);
-                    PASS_RAY_BBs[s1][s2] = attacks_bb(s1, pt,    0) & (attacks_bb(s2, pt, s1BB) | s2BB);
+                    BETWEEN_BBS [s1][s2] = attacks_bb(s1, pt, s2BB) &  attacks_bb(s2, pt, s1BB);
+                    PASS_RAY_BBS[s1][s2] = attacks_bb(s1, pt,    0) & (attacks_bb(s2, pt, s1BB) | s2BB);
                     // clang-format on
                 }
             }
 
-            BETWEEN_BBs[s1][s2] |= s2BB;
+            BETWEEN_BBS[s1][s2] |= s2BB;
         }
     }
 }

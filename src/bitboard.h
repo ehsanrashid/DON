@@ -117,7 +117,7 @@ constexpr Bitboard make_bb(Squares... squares) noexcept {
     return (square_bb(squares) | ...);
 }
 
-// Return a bitboard representing all the squares on the given file
+// Return bitboard representing all the squares on the given file
 constexpr Bitboard file_bb(File f) noexcept { return FILE_A_BB << (1 * f); }
 constexpr Bitboard file_bb(Square s) noexcept { return file_bb(file_of(s)); }
 
@@ -125,7 +125,7 @@ constexpr Bitboard operator&(Bitboard b, File f) noexcept { return b & file_bb(f
 constexpr Bitboard operator|(Bitboard b, File f) noexcept { return b | file_bb(f); }
 constexpr Bitboard operator^(Bitboard b, File f) noexcept { return b ^ file_bb(f); }
 
-// Return a bitboard representing all the squares on the given rank
+// Return bitboard representing all the squares on the given rank
 constexpr Bitboard rank_bb(Rank r) noexcept { return RANK_1_BB << (8 * r); }
 constexpr Bitboard rank_bb(Square s) noexcept { return rank_bb(rank_of(s)); }
 
@@ -174,7 +174,7 @@ constexpr u8 distance<Square>(const Square s1, const Square s2) noexcept {
     return DISTANCES[s1][s2];
 }
 
-// Shifts a bitboard as specified by the direction
+// Shifts bitboard as specified by the direction
 template<Direction D>
 constexpr Bitboard shift_bb(const Bitboard b) noexcept {
     if constexpr (D == Direction::NORTH)

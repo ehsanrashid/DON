@@ -149,7 +149,7 @@ Move legal_move(const Move m, const Position& pos) noexcept {
 // Build contHistory pointers from the stack frame and validate them in debug builds.
 void build_continuation_histories(const Stack* const    ss,
                                   const PieceSqHistory* contHistory[CONT_HISTORY_COUNT]) noexcept {
-    for (usize i = 0; i < CONT_HISTORY_COUNT; ++i)
+    for (u8 i = 0; i < CONT_HISTORY_COUNT; ++i)
     {
         const Stack* ssi = (ss - 1) - i;
 
@@ -175,11 +175,11 @@ void update_continuation_histories(const Stack* const ss,
     };
 
     // In check only update 2-ply continuation history
-    const usize ContHistoryCount = ss->inCheck ? 2 : CONT_HISTORY_COUNT;
+    const u8 ContHistoryCount = ss->inCheck ? 2 : CONT_HISTORY_COUNT;
 
     u8 positiveCount = 0;
 
-    for (usize i = 0; i < ContHistoryCount; ++i)
+    for (u8 i = 0; i < ContHistoryCount; ++i)
     {
         const Stack* ssi = (ss - 1) - i;
 
@@ -732,7 +732,7 @@ void Worker::iterative_deepening() noexcept {
             break;
         }
 
-        if (lastBestMovePV.empty() || lastBestMovePV[0] != rootMoves[0].pv[0])
+        if (lastBestMovePV.empty() || lastBestMovePV[0] != rm0.pv[0])
             lastBestMoveDepth = rootDepth;
 
         // Do not replace (shorter) mate scores from a previous iteration
@@ -2051,7 +2051,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
             if (bestValue != VALUE_DRAW  //
                 && type_of(pos.captured_pc()) >= KNIGHT
                 // No pawn pushes available
-                && (pawn_push_bb(pos.pieces_bb(ac, PAWN), ac) & ~pos.pieces_bb()) == 0
+                && (Attacks::pawn_push_bb(pos.pieces_bb(ac, PAWN), ac) & ~pos.pieces_bb()) == 0
                 && !pos.has_non_pawn(ac)  //
                 && MoveList<GenType::LEGAL, true>(pos).empty())
                 bestValue = VALUE_DRAW;
@@ -2194,7 +2194,7 @@ void Worker::update_histories(const Position&             pos,
               + int(bmTT) * 364;
     bonus     = std::max(bonus, 0);
 
-    int malus = std::min(-235 + 968 * depth, +2244);
+    const int malus = std::min(-235 + 968 * depth, +2244);
 
     if constexpr (!PVNode)
     {
@@ -2355,10 +2355,10 @@ bool Worker::ponder_move_extracted() noexcept {
                 {
                     if (th->worker.get() == this)
                         continue;
-                    if (const auto& rm = th->worker->rootMoves[0];
-                        rm[0] == bestMove && rm.size() > 1)
+                    if (const auto& th_rm0 = th->worker->rootMoves[0];
+                        th_rm0[0] == bestMove && th_rm0.size() > 1)
                     {
-                        ponderMove = rm[1];
+                        ponderMove = th_rm0[1];
                         break;
                     }
                 }
@@ -2368,9 +2368,10 @@ bool Worker::ponder_move_extracted() noexcept {
                     {
                         if (th->worker.get() == this)
                             continue;
-                        if (const auto& rm = *th->worker->rootMoves.find(bestMove); rm.size() > 1)
+                        if (const auto& th_rmi = *th->worker->rootMoves.find(bestMove);
+                            th_rmi.size() > 1)
                         {
-                            ponderMove = rm[1];
+                            ponderMove = th_rmi[1];
                             break;
                         }
                     }

@@ -82,7 +82,7 @@ fetch_network() {
 
 fetch_network EvalFileDefaultName || exit 1
 
-if [ "$1" = "0" ]; then
+if [ "$1" = '0' ]; then
     DUMP_FILE=universal/network_dump.inc
     echo -n '"' > "$DUMP_FILE"
     hexdump -v -e '"\\" "x" 1/1 "%02X"' "$(get_nnue_filename EvalFileDefaultName)" >> "$DUMP_FILE"

@@ -157,7 +157,7 @@ for f in $FILES; do
     TESTS_FAILED=1
 done
 
-if [ "$TESTS_FAILED" != 0 ]; then
+if [ "$TESTS_FAILED" -ne 0 ]; then
     echo "One or more perft tests failed or were unsupported by the engine interface."
     exit 1
 fi

@@ -28,7 +28,7 @@ namespace DON {
 class Position;
 
 // History size for continuation moves
-inline constexpr usize CONT_HISTORY_COUNT = 8;
+inline constexpr u8 CONT_HISTORY_COUNT = 8;
 
 struct ExtMove final: public Move {
    public:

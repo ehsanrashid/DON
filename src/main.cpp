@@ -42,15 +42,12 @@ int main(int argc, const char* argv[]) noexcept {
     set_console_output(ConsoleMode::UTF8);
 
     std::cout << engine_info() << std::endl;
-
     std::cout << timestamp() << std::endl;
 
     show_logo();
 
     Attacks::init();
-
     Position::init();
-
     Tablebase::Syzygy::init();
 
     CommandLine commandLine(argc, argv);
@@ -81,7 +78,7 @@ int main(int argc, const char* argv[]) noexcept {
         uci.process_input(std::cin);
     }
 
-    uci.execute(QuitCommand);
+    uci.execute(QUIT_CMD);
 
     return 0;
 }

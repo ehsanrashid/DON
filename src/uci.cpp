@@ -65,28 +65,28 @@ enum class Command : u8 {
 
 // clang-format off
 const std::unordered_map<std::string_view, Command> COMMANDS{
-  {"stop",       Command::STOP},
-  {QuitCommand,  Command::QUIT},
-  {"ponderhit",  Command::PONDERHIT},
-  {"position",   Command::POSITION},
-  {"go",         Command::GO},
-  {"setoption",  Command::SETOPTION},
-  {"uci",        Command::UCI},
+  {"stop"      , Command::STOP},
+  {QUIT_CMD    , Command::QUIT},
+  {"ponderhit" , Command::PONDERHIT},
+  {"position"  , Command::POSITION},
+  {"go"        , Command::GO},
+  {"setoption" , Command::SETOPTION},
+  {"uci"       , Command::UCI},
   {"ucinewgame", Command::UCINEWGAME},
-  {"isready",    Command::ISREADY},
-  {"bench",      Command::BENCH},
-  {"benchmark",  Command::BENCHMARK},
-  {"show",       Command::SHOW},
-  {"dump",       Command::DUMP},
-  {"eval",       Command::EVAL},
-  {"flip",       Command::FLIP},
-  {"mirror",     Command::MIRROR},
-  {"compiler",   Command::COMPILER},
+  {"isready"   , Command::ISREADY},
+  {"bench"     , Command::BENCH},
+  {"benchmark" , Command::BENCHMARK},
+  {"show"      , Command::SHOW},
+  {"dump"      , Command::DUMP},
+  {"eval"      , Command::EVAL},
+  {"flip"      , Command::FLIP},
+  {"mirror"    , Command::MIRROR},
+  {"compiler"  , Command::COMPILER},
   {"export_net", Command::EXPORT_NET},
-  {"--help",     Command::HELP},
-  {"help",       Command::HELP},
-  {"--license",  Command::HELP},
-  {"license",    Command::HELP}
+  {"--help"    , Command::HELP},
+  {"help"      , Command::HELP},
+  {"--license" , Command::HELP},
+  {"license"   , Command::HELP}
 };
 // clang-format on
 
@@ -249,7 +249,7 @@ void UCI::process_input(std::istream& is) noexcept {
     // Wait for an input or an end-of-file (EOF) indication
     while (std::getline(is, command))
     {
-        if (command == QuitCommand)
+        if (command == QUIT_CMD)
             break;
 
         execute(command);

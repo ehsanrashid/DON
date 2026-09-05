@@ -40,7 +40,7 @@ jobs:
       - name: Install Android NDK
         if: runner.os == 'Linux'
         run: |
-          if [ "$COMP" = "ndk" ]; then
+          if [ "$COMP" = 'ndk' ]; then
             NDKV="27.2.12479018"
             ANDROID_ROOT="/usr/local/lib/android"
             ANDROID_SDK_ROOT="$ANDROID_ROOT/sdk"
@@ -56,7 +56,7 @@ jobs:
 
       - name: Check compiler version
         run: |
-          if [ "$COMP" = "ndk" ]; then
+          if [ "$COMP" = 'ndk' ]; then
             export PATH="${{ env.ANDROID_NDK_BIN }}:$PATH"
           fi
           "$COMPCXX" -v
@@ -94,7 +94,7 @@ jobs:
       - name: Build '${{ env.BINARY }}' with NDK
         run: |
           EXTRA_LDFLAGS=""
-          if [ "$COMP" = "ndk" ]; then
+          if [ "$COMP" = 'ndk' ]; then
             export PATH="${{ env.ANDROID_NDK_BIN }}:$PATH"
             EXTRA_LDFLAGS="-static"
           fi

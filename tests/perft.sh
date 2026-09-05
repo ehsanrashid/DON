@@ -86,10 +86,10 @@ run_test "fen rr6/2kpp3/1ppnb1p1/p4q1p/P4P1P/1PNN2P1/2PP2Q1/1K2RR2 w E - 1 19" 5
 run_test "fen rr6/2kpp3/1ppnb1p1/p4q1p/P4P1P/1PNN2P1/2PP2Q1/1K2RR2 w E - 1 19" 6 2998685421 "true"
 run_test "fen bnn1qrkr/pp1ppp1p/2p5/b3Q1p1/8/5P1P/PPPPP1P1/BNNB1RKR w HFhf - 2 9" 6 702867204 "true"
 
-rm -f $EXPECT_SCRIPT
+rm -f "$EXPECT_SCRIPT"
 echo "perft testing completed"
 
-if [[ $TESTS_FAILED -ne 0 ]]; then
+if [[ "$TESTS_FAILED" -ne 0 ]]; then
     echo "Some tests failed"
     exit 1
 fi

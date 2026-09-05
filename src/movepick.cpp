@@ -304,7 +304,7 @@ MovePicker::MovePicker(const Position&                 p,
     }
     else if (threshold < 0)
     {
-        for (usize i = 0; i < CONT_HISTORY_COUNT; ++i)
+        for (u8 i = 0; i < CONT_HISTORY_COUNT; ++i)
             assert(continuationHistory[i] != nullptr && "continuationHistory[i] must not be null");
 
         initStage = Stage::ENC_GOOD_CAPTURE;
@@ -406,16 +406,22 @@ MovePicker::score<GenType::ENC_QUIET>(const MoveList<GenType::ENC_QUIET>& moveLi
             value += 8 * lowPlyQuietHistoryRef[ssPly][m.raw()] / (1 + ssPly);
 
         // Accumulate continuation history entries
-        for (usize i = 0; i < CONT_HISTORY_COUNT; ++i)
+        for (u8 i = 0; i < CONT_HISTORY_COUNT; ++i)
             value += (*continuationHistoryPtr[i])[+movedPc][dstSq];
 
         value += 2 * pawnEntryRef[+movedPc][dstSq];
 
         // Bonus for checks
         if (pos.check(m))
-            value += int(pos.see(m) >= -75) * 0x4000 + int(pos.dbl_check(m)) * 0x1000;
+        {
+            if (pos.see(m) >= -75)
+                value += 0x4000;
+            if (pos.dbl_check(m))
+                value += 0x1000;
+        }
 
-        value += int(pos.fork(m) && pos.see(m) >= -50) * 0x1000;
+        if (pos.fork(m) && pos.see(m) >= -50)
+            value += 0x1000;
 
         // Penalty for moving to square attacked by lesser piece
         // Bonus for escaping from square attacked by lesser piece
@@ -428,8 +434,8 @@ MovePicker::score<GenType::ENC_QUIET>(const MoveList<GenType::ENC_QUIET>& moveLi
         value += weight * piece_value(movedPt);
 
         // Penalty for moving pinner piece
-        value -=
-          int((pinnersBB & orgSq) != 0 && !aligned(pos.square<KING>(~ac), orgSq, dstSq)) * 0x400;
+        if ((pinnersBB & orgSq) != 0 && !Attacks::aligned(pos.square<KING>(~ac), orgSq, dstSq))
+            value -= 0x400;
 
         auto& em = *itr++;
         em       = m;

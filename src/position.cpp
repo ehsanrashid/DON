@@ -113,7 +113,7 @@ class CuckooTable final {
                 for (Square s1 = SQ_A1; s1 < SQ_H8; ++s1)
                     for (Square s2 = s1 + 1; s2 <= SQ_H8; ++s2)
                     {
-                        if ((pseudo_attacks_bb(s1, pt) & s2) != 0)
+                        if ((Attacks::pseudo_attacks_bb(s1, pt) & s2) != 0)
                         {
                             const Key  key = Zobrist::turn()  //
                                            ^ Zobrist::piece_square(c, pt, s1)
@@ -500,7 +500,7 @@ std::optional<Error> Position::set(const std::string_view fens, State* const new
         //   - there is no enemy Bishop, Rook or Queen pinning
         if ((pieces_bb(~ac, PAWN) & (enPassantSq - pawn_spush(ac))) != 0
             && (empty(enPassantSq) && empty(enPassantSq + pawn_spush(ac)))
-            && (pieces_bb(ac, PAWN) & attacks_bb<PAWN>(enPassantSq, ~ac)) != 0
+            && (pieces_bb(ac, PAWN) & Attacks::attacks_bb<PAWN>(enPassantSq, ~ac)) != 0
             && enpassant_possible(ac, enPassantSq))
             st->enPassantSq = enPassantSq;
 
@@ -666,8 +666,8 @@ void Position::set_castling_rights(const Color c, const Square rookOrgSq) noexce
     const Square kingDstSq = king_castle_sq(kingOrgSq, rookOrgSq);
     const Square rookDstSq = rook_castle_sq(kingOrgSq, rookOrgSq);
 
-    const Bitboard kingPathBB = between_bb(kingOrgSq, kingDstSq);
-    const Bitboard rookPathBB = between_bb(rookOrgSq, rookDstSq);
+    const Bitboard kingPathBB = Attacks::between_bb(kingOrgSq, kingDstSq);
+    const Bitboard rookPathBB = Attacks::between_bb(rookOrgSq, rookDstSq);
 
     castlings.fullPathBB[c][+cs] = (kingPathBB | rookPathBB) & ~make_bb(kingOrgSq, rookOrgSq);
     castlings.kingPathBB[c][+cs] = kingPathBB;
@@ -727,11 +727,11 @@ void Position::set_ext_state() noexcept {
 
     const Square kingSq = square<KING>(~ac);
 
-    const auto [bAttacksBB, rAttacksBB] = attacks_bb_pair(kingSq, pieces_bb());
+    const auto [bAttacksBB, rAttacksBB] = Attacks::attacks_bb_pair(kingSq, pieces_bb());
 
     // clang-format off
-    st->checksBB[PAWN  ] = attacks_bb<PAWN  >(kingSq, ~ac);
-    st->checksBB[KNIGHT] = attacks_bb<KNIGHT>(kingSq);
+    st->checksBB[PAWN  ] = Attacks::attacks_bb<PAWN  >(kingSq, ~ac);
+    st->checksBB[KNIGHT] = Attacks::attacks_bb<KNIGHT>(kingSq);
     st->checksBB[BISHOP] = bAttacksBB;
     st->checksBB[ROOK  ] = rAttacksBB;
     st->checksBB[QUEEN ] = st->checksBB[BISHOP] | st->checksBB[ROOK];
@@ -763,7 +763,7 @@ bool Position::enpassant_possible(const Color     ac,
 
     const bool collect = epPawnsBBp != nullptr;
 
-    Bitboard epPawnsBB = pieces_bb(ac, PAWN) & attacks_bb<PAWN>(enPassantSq, ~ac);
+    Bitboard epPawnsBB = pieces_bb(ac, PAWN) & Attacks::attacks_bb<PAWN>(enPassantSq, ~ac);
 
     if (epPawnsBB == 0)
     {
@@ -789,7 +789,7 @@ bool Position::enpassant_possible(const Color     ac,
             epPawnsBB = 0;
         // Step 2: At least one pawn is either unpinned or aligned with the king along the en-passant line.
         else if (preSt != nullptr)
-            epPawnsBB &= ~preSt->blockersBB[ac] | line_bb(square<KING>(ac), enPassantSq);
+            epPawnsBB &= ~preSt->blockersBB[ac] | Attacks::line_bb(square<KING>(ac), enPassantSq);
 
         if (preSt != nullptr)
         {
@@ -910,15 +910,17 @@ Dirties Position::do_move(const Move          m,
                && type_of(capturedPc) != KING));
 
     Dirties dirties;
-    auto*   dP  = &dirties.dirtyPiece;
-    auto*   dTs = &dirties.dirtyThreats;
+    auto*   dP   = &dirties.dirtyPiece;
+    auto*   dTs  = &dirties.dirtyThreats;
+    auto*   dPps = &dirties.dirtyPawnPairs;
 
     dP->movedPc = movedPc;
     dP->orgSq   = orgSq;
     dP->dstSq   = dstSq;
     dP->addedSq = SQ_NONE;
 
-    assert(dTs->empty());
+    dPps->before[WHITE] = pieces_bb(WHITE, PAWN);
+    dPps->before[BLACK] = pieces_bb(BLACK, PAWN);
 
     st->key ^= Zobrist::turn() ^ Zobrist::enpassant(en_passant_sq());
 
@@ -1115,11 +1117,11 @@ Dirties Position::do_move(const Move          m,
     // Compute checkers (if move may check)
     if (mayCheck)
     {
-        st->checkersBB = castling
-                         ? pieces_bb(ac, ROOK) & attacks_bb<ROOK>(square<KING>(~ac), pieces_bb())
-                         : pieces_bb(ac)
-                             & ((state()->preSt->checksBB[movedPt] & dstSq)
-                                | slide_attackers_bb(square<KING>(~ac)));
+        st->checkersBB =
+          castling ? pieces_bb(ac, ROOK) & Attacks::attacks_bb<ROOK>(square<KING>(~ac), pieces_bb())
+                   : pieces_bb(ac)
+                       & ((state()->preSt->checksBB[movedPt] & dstSq)
+                          | slide_attackers_bb(square<KING>(~ac)));
 
         assert(popcount(checkers_bb()) <= 2 && (checkers_bb() & square<KING>(ac)) == 0);
     }
@@ -1142,6 +1144,9 @@ Dirties Position::do_move(const Move          m,
         if (worker != nullptr)
             prefetch(worker->transpositionTable.cluster(key()));
     }
+
+    dPps->after[WHITE] = pieces_bb(WHITE, PAWN);
+    dPps->after[BLACK] = pieces_bb(BLACK, PAWN);
 
     // Compute the repetition info.
     // It is the ply distance from the previous occurrence of the same position,
@@ -1354,12 +1359,12 @@ bool Position::legal(const Move m) const noexcept {
                     || orgSq + pawn_dpush(ac) != dstSq  //
                     || !empty(dstSq) || !empty(dstSq - pawn_spush(ac)))
                 && (orgR >= RANK_7 || dstR >= RANK_8  // Capture
-                    || (pieces_bb(~ac) & attacks_bb<PAWN>(orgSq, ac) & dstSq) == 0))
+                    || (pieces_bb(~ac) & Attacks::attacks_bb<PAWN>(orgSq, ac) & dstSq) == 0))
                 return false;
         }
         else
         {
-            if ((attacks_bb(orgSq, type_of(movedPc), pieces_bb()) & dstSq) == 0)
+            if ((Attacks::attacks_bb(orgSq, type_of(movedPc), pieces_bb()) & dstSq) == 0)
                 return false;
 
             // For king moves, check whether the destination square is attacked by the enemies.
@@ -1371,7 +1376,7 @@ bool Position::legal(const Move m) const noexcept {
         if (type_of(movedPc) != PAWN  //
             || relative_rank(ac, orgSq) != RANK_7 || relative_rank(ac, dstSq) != RANK_8
             || ((orgSq + pawn_spush(ac) != dstSq || !empty(dstSq))
-                && (pieces_bb(~ac) & attacks_bb<PAWN>(orgSq, ac) & dstSq) == 0))
+                && (pieces_bb(~ac) & Attacks::attacks_bb<PAWN>(orgSq, ac) & dstSq) == 0))
             return false;
         break;
     case MT::EN_PASSANT :
@@ -1380,7 +1385,7 @@ bool Position::legal(const Move m) const noexcept {
             || en_passant_sq() != dstSq || rule50_count() != 0
             || (pieces_bb(~ac, PAWN) & (dstSq - pawn_spush(ac))) == 0  //
             || !empty(dstSq) || !empty(dstSq + pawn_spush(ac))         //
-            || (attacks_bb<PAWN>(orgSq, ac) & dstSq) == 0
+            || (Attacks::attacks_bb<PAWN>(orgSq, ac) & dstSq) == 0
             || (pieces_bb(~ac)
                 & slide_attackers_bb(kingSq,
                                      pieces_bb() ^ make_bb(orgSq, dstSq, dstSq - pawn_spush(ac))))
@@ -1396,10 +1401,10 @@ bool Position::legal(const Move m) const noexcept {
             // Double check? In this case, a king move is required
             || (!more_than_one(checkers_bb())
                 // Our move must be a blocking interposition or a capture of the checking piece
-                && ((between_bb(kingSq, lsq(checkers_bb())) & dstSq) != 0
+                && ((Attacks::between_bb(kingSq, lsq(checkers_bb())) & dstSq) != 0
                     || (m.type() == MT::EN_PASSANT
                         && (checkers_bb() & (dstSq - pawn_spush(ac))) != 0))))
-        && ((blockers_bb(ac) & orgSq) == 0 || aligned(kingSq, orgSq, dstSq));
+        && ((blockers_bb(ac) & orgSq) == 0 || Attacks::aligned(kingSq, orgSq, dstSq));
 }
 
 // Tests whether a move is a check
@@ -1419,7 +1424,7 @@ bool Position::check(const Move m) const noexcept {
         != 0
       // Is there a discovered check?
       || ((blockers_bb(~ac) & orgSq) != 0
-          && (!aligned(kingSq, orgSq, dstSq) || m.type() == MT::CASTLING)))
+          && (!Attacks::aligned(kingSq, orgSq, dstSq) || m.type() == MT::CASTLING)))
         return true;
 
     switch (m.type())
@@ -1427,7 +1432,7 @@ bool Position::check(const Move m) const noexcept {
     case MT::NORMAL :
         return false;
     case MT::PROMOTION :
-        return (attacks_bb(dstSq, m.promotion_type(), pieces_bb() ^ orgSq) & kingSq) != 0;
+        return (Attacks::attacks_bb(dstSq, m.promotion_type(), pieces_bb() ^ orgSq) & kingSq) != 0;
     // En-passant capture with check? Already handled the case of direct check
     // and ordinary discovered check, so the only case need to handle is
     // the unusual case of a discovered check through the captured pawn.
@@ -1462,10 +1467,10 @@ bool Position::dbl_check(const Move m) const noexcept {
           // Is there a direct check?
           (checks_bb(type_of(piece(orgSq))) & dstSq) != 0
           // Is there a discovered check?
-          && (blockers_bb(~ac) & orgSq) != 0 && !aligned(kingSq, orgSq, dstSq);
+          && (blockers_bb(~ac) & orgSq) != 0 && !Attacks::aligned(kingSq, orgSq, dstSq);
     case MT::PROMOTION :
         return (blockers_bb(~ac) & orgSq) != 0
-            && (attacks_bb(dstSq, m.promotion_type(), pieces_bb() ^ orgSq) & kingSq) != 0;
+            && (Attacks::attacks_bb(dstSq, m.promotion_type(), pieces_bb() ^ orgSq) & kingSq) != 0;
     case MT::EN_PASSANT : {
         const Bitboard occupancyBB = pieces_bb() ^ make_bb(orgSq, dstSq, dstSq - pawn_spush(ac));
         const Bitboard checkersBB  = pieces_bb(ac) & slide_attackers_bb(kingSq, occupancyBB);
@@ -1488,21 +1493,23 @@ bool Position::fork(const Move m) const noexcept {
     switch (type_of(moved_pc(m)))
     {
     case PAWN :
-        return more_than_one(pieces_bb(~ac) & ~pieces_bb(PAWN) & attacks_bb<PAWN>(m.dst_sq(), ac));
+        return more_than_one(pieces_bb(~ac) & ~pieces_bb(PAWN)
+                             & Attacks::attacks_bb<PAWN>(m.dst_sq(), ac));
     case KNIGHT :
-        return more_than_one(pieces_bb(~ac) & ~pieces_bb(KNIGHT) & attacks_bb<KNIGHT>(m.dst_sq()));
+        return more_than_one(pieces_bb(~ac) & ~pieces_bb(KNIGHT)
+                             & Attacks::attacks_bb<KNIGHT>(m.dst_sq()));
     case BISHOP :
         return more_than_one(pieces_bb(~ac) & ~pieces_bb(BISHOP)
-                             & attacks_bb<BISHOP>(m.dst_sq(), pieces_bb(ac) ^ m.org_sq()));
+                             & Attacks::attacks_bb<BISHOP>(m.dst_sq(), pieces_bb(ac) ^ m.org_sq()));
     case ROOK :
         return more_than_one(pieces_bb(~ac) & ~pieces_bb(ROOK)
-                             & attacks_bb<ROOK>(m.dst_sq(), pieces_bb(ac) ^ m.org_sq()));
+                             & Attacks::attacks_bb<ROOK>(m.dst_sq(), pieces_bb(ac) ^ m.org_sq()));
     case QUEEN :
         return more_than_one(pieces_bb(~ac) & ~pieces_bb(QUEEN)
-                             & attacks_bb<QUEEN>(m.dst_sq(), pieces_bb(ac) ^ m.org_sq()));
+                             & Attacks::attacks_bb<QUEEN>(m.dst_sq(), pieces_bb(ac) ^ m.org_sq()));
     case KING :
         return more_than_one(pieces_bb(~ac) & ~pieces_bb(KING, QUEEN)
-                             & attacks_bb<KING>(m.dst_sq()));
+                             & Attacks::attacks_bb<KING>(m.dst_sq()));
     default :;
     }
     assert(false);
@@ -1633,7 +1640,7 @@ bool Position::see_ge(const Move m, const int threshold) const noexcept {
     else
         enPassantSq = SQ_NONE;
 
-    const auto [bAttacksBB, rAttacksBB] = attacks_bb_pair(dstSq);
+    const auto [bAttacksBB, rAttacksBB] = Attacks::attacks_bb_pair(dstSq);
 
     Bitboard qbBB = pieces_bb(QUEEN, BISHOP) & bAttacksBB & occupancyBB;
     Bitboard qrBB = pieces_bb(QUEEN, ROOK) & rAttacksBB & occupancyBB;
@@ -1662,22 +1669,24 @@ bool Position::see_ge(const Move m, const int threshold) const noexcept {
         // there are pinners on their original square.
         if ((pinners_bb(~ac) & pieces_bb(~ac) & occupancyBB) != 0)
         {
-            acAttackersBB &= ~blockers_bb(ac) | line_bb(square<KING>(ac), dstSq);
+            acAttackersBB &= ~blockers_bb(ac) | Attacks::line_bb(square<KING>(ac), dstSq);
 
             if (acAttackersBB == 0)
                 break;
         }
 
         if ((blockers_bb(ac) & orgSq) != 0
-            && (b =
-                  pinners_bb(ac) & pieces_bb(~ac) & line_bb(square<KING>(ac), orgSq) & occupancyBB)
+            && (b = pinners_bb(ac) & pieces_bb(~ac) & Attacks::line_bb(square<KING>(ac), orgSq)
+                  & occupancyBB)
                  != 0
-            && ((pt = type_of(piece(orgSq))) != PAWN || !aligned(square<KING>(ac), orgSq, dstSq)))
+            && ((pt = type_of(piece(orgSq))) != PAWN
+                || !Attacks::aligned(square<KING>(ac), orgSq, dstSq)))
         {
             acAttackersBB &= square<KING>(ac);
 
             if (acAttackersBB == 0
-                && (pt == PAWN || (attacks_bb(dstSq, pt, occupancyBB) & square<KING>(ac)) == 0))
+                && (pt == PAWN
+                    || (Attacks::attacks_bb(dstSq, pt, occupancyBB) & square<KING>(ac)) == 0))
             {
                 dstSq = lsq(b);
 
@@ -1692,7 +1701,7 @@ bool Position::see_ge(const Move m, const int threshold) const noexcept {
                 if (attackersBB == 0)
                     break;
 
-                const auto [bNewAttacksBB, rNewAttacksBB] = attacks_bb_pair(dstSq);
+                const auto [bNewAttacksBB, rNewAttacksBB] = Attacks::attacks_bb_pair(dstSq);
 
                 qbBB = pieces_bb(QUEEN, BISHOP) & bNewAttacksBB & occupancyBB;
                 qrBB = pieces_bb(QUEEN, ROOK) & rNewAttacksBB & occupancyBB;
@@ -1728,7 +1737,8 @@ bool Position::see_ge(const Move m, const int threshold) const noexcept {
                 continue;  // Resume without considering discovery
             }
 
-            if ((pinners_bb(~ac) & pieces_bb(ac) & line_bb(square<KING>(~ac), sq) & occupancyBB)
+            if ((pinners_bb(~ac) & pieces_bb(ac) & Attacks::line_bb(square<KING>(~ac), sq)
+                 & occupancyBB)
                 == 0)
             {
                 discovery[ac] = false;
@@ -1748,11 +1758,11 @@ bool Position::see_ge(const Move m, const int threshold) const noexcept {
             case PAWN :
             case BISHOP :
                 qbBB &= occupancyBB;
-                attackersBB |= qbBB & attacks_bb<BISHOP>(dstSq, occupancyBB);
+                attackersBB |= qbBB & Attacks::attacks_bb<BISHOP>(dstSq, occupancyBB);
                 break;
             case ROOK :
                 qrBB &= occupancyBB;
-                attackersBB |= qrBB & attacks_bb<ROOK>(dstSq, occupancyBB);
+                attackersBB |= qrBB & Attacks::attacks_bb<ROOK>(dstSq, occupancyBB);
                 break;
             case QUEEN :
                 assert(false);
@@ -1770,7 +1780,7 @@ bool Position::see_ge(const Move m, const int threshold) const noexcept {
             if ((swap = VALUE_PAWN - swap) < int(ge))
                 break;
 
-            attackersBB |= qbBB & attacks_bb<BISHOP>(dstSq, occupancyBB);
+            attackersBB |= qbBB & Attacks::attacks_bb<BISHOP>(dstSq, occupancyBB);
 
             if (enPassantSq != SQ_NONE && rank_of(orgSq) == rank_of(dstSq))
             {
@@ -1783,7 +1793,7 @@ bool Position::see_ge(const Move m, const int threshold) const noexcept {
                 if (attackersBB == 0)
                     break;
 
-                const auto [bNewAttacksBB, rNewAttacksBB] = attacks_bb_pair(dstSq);
+                const auto [bNewAttacksBB, rNewAttacksBB] = Attacks::attacks_bb_pair(dstSq);
 
                 qbBB = pieces_bb(QUEEN, BISHOP) & bNewAttacksBB & occupancyBB;
                 qrBB = pieces_bb(QUEEN, ROOK) & rNewAttacksBB & occupancyBB;
@@ -1804,7 +1814,7 @@ bool Position::see_ge(const Move m, const int threshold) const noexcept {
                 break;
 
             qbBB &= occupancyBB;
-            attackersBB |= qbBB & attacks_bb<BISHOP>(dstSq, occupancyBB);
+            attackersBB |= qbBB & Attacks::attacks_bb<BISHOP>(dstSq, occupancyBB);
         }
         else if ((b = pieces_bb(ROOK) & acAttackersBB) != 0)
         {
@@ -1814,7 +1824,7 @@ bool Position::see_ge(const Move m, const int threshold) const noexcept {
                 break;
 
             qrBB &= occupancyBB;
-            attackersBB |= qrBB & attacks_bb<ROOK>(dstSq, occupancyBB);
+            attackersBB |= qrBB & Attacks::attacks_bb<ROOK>(dstSq, occupancyBB);
         }
         else if ((b = pieces_bb(QUEEN) & acAttackersBB) != 0)
         {
@@ -1826,7 +1836,8 @@ bool Position::see_ge(const Move m, const int threshold) const noexcept {
             qbBB &= occupancyBB;
             qrBB &= occupancyBB;
 
-            const auto [bNewAttacksBB, rNewAttacksBB] = attacks_bb_pair(dstSq, occupancyBB);
+            const auto [bNewAttacksBB, rNewAttacksBB] =
+              Attacks::attacks_bb_pair(dstSq, occupancyBB);
 
             attackersBB |= (qbBB & bNewAttacksBB) | (qrBB & rNewAttacksBB);
         }
@@ -1926,7 +1937,7 @@ bool Position::is_upcoming_repetition(i16 ply) const noexcept {
         assert(m != Move::None);
 
         // Move path is obstructed
-        if ((pieces_bb() & between_ex_bb(m.org_sq(), m.dst_sq())) != 0)
+        if ((pieces_bb() & Attacks::between_ex_bb(m.org_sq(), m.dst_sq())) != 0)
             continue;
 
 #if !defined(NDEBUG)
