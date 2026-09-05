@@ -304,7 +304,7 @@ MovePicker::MovePicker(const Position&                 p,
     }
     else if (threshold < 0)
     {
-        for (usize i = 0; i < CONT_HISTORY_COUNT; ++i)
+        for (u8 i = 0; i < CONT_HISTORY_COUNT; ++i)
             assert(continuationHistory[i] != nullptr && "continuationHistory[i] must not be null");
 
         initStage = Stage::ENC_GOOD_CAPTURE;
@@ -406,7 +406,7 @@ MovePicker::score<GenType::ENC_QUIET>(const MoveList<GenType::ENC_QUIET>& moveLi
             value += 8 * lowPlyQuietHistoryRef[ssPly][m.raw()] / (1 + ssPly);
 
         // Accumulate continuation history entries
-        for (usize i = 0; i < CONT_HISTORY_COUNT; ++i)
+        for (u8 i = 0; i < CONT_HISTORY_COUNT; ++i)
             value += (*continuationHistoryPtr[i])[+movedPc][dstSq];
 
         value += 2 * pawnEntryRef[+movedPc][dstSq];

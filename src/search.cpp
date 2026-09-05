@@ -149,7 +149,7 @@ Move legal_move(const Move m, const Position& pos) noexcept {
 // Build contHistory pointers from the stack frame and validate them in debug builds.
 void build_continuation_histories(const Stack* const    ss,
                                   const PieceSqHistory* contHistory[CONT_HISTORY_COUNT]) noexcept {
-    for (usize i = 0; i < CONT_HISTORY_COUNT; ++i)
+    for (u8 i = 0; i < CONT_HISTORY_COUNT; ++i)
     {
         const Stack* ssi = (ss - 1) - i;
 
@@ -175,11 +175,11 @@ void update_continuation_histories(const Stack* const ss,
     };
 
     // In check only update 2-ply continuation history
-    const usize ContHistoryCount = ss->inCheck ? 2 : CONT_HISTORY_COUNT;
+    const u8 ContHistoryCount = ss->inCheck ? 2 : CONT_HISTORY_COUNT;
 
     u8 positiveCount = 0;
 
-    for (usize i = 0; i < ContHistoryCount; ++i)
+    for (u8 i = 0; i < ContHistoryCount; ++i)
     {
         const Stack* ssi = (ss - 1) - i;
 
