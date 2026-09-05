@@ -49,12 +49,12 @@ static_assert(sizeof(BaseAccumulator) % CACHE_LINE_SIZE == 0);
 
 struct Accumulator final: public BaseAccumulator {
    public:
-    void set(DirtyBoard&& db) noexcept {
-        dirtyBoard = std::move(db);
+    void set(Dirties&& d) noexcept {
+        dirties = std::move(d);
         computed.fill(false);
     }
 
-    DirtyBoard dirtyBoard;
+    Dirties dirties;
 };
 
 static_assert(alignof(Accumulator) == CACHE_LINE_SIZE);
@@ -107,7 +107,9 @@ struct AccumulatorCache final {
 struct AccumulatorStack final {
    public:
     void reset() noexcept;
-    void push(DirtyBoard&& db) noexcept;
+
+    void push(Dirties&& dirties) noexcept;
+
     void pop() noexcept;
 
     [[nodiscard]] usize size() const noexcept { return size_; }

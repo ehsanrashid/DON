@@ -157,20 +157,20 @@ void HalfKA_hm::append_map_changed_indices(const Color     perspective,
 // Append lists of indices for recently changed features
 void HalfKA_hm::append_changed_indices(const Color      perspective,
                                        const Square     kingSq,
-                                       const DirtyType& dp,
+                                       const DirtyType& dP,
                                        IndexVector&     removed,
                                        IndexVector&     added) noexcept {
     // clang-format off
-    removed.push_back   (make_index(perspective, kingSq, dp.orgSq, dp.movedPc));
-    added.  push_back_if(make_index(perspective, kingSq, dp.dstSq, dp.movedPc)      , is_ok(dp.dstSq));
-    removed.push_back_if(make_index(perspective, kingSq, dp.removedSq, dp.removedPc), is_ok(dp.removedSq));
-    added.  push_back_if(make_index(perspective, kingSq, dp.addedSq, dp.addedPc)    , is_ok(dp.addedSq));
+    removed.push_back   (make_index(perspective, kingSq, dP.orgSq, dP.movedPc));
+    added.  push_back_if(make_index(perspective, kingSq, dP.dstSq, dP.movedPc)      , is_ok(dP.dstSq));
+    removed.push_back_if(make_index(perspective, kingSq, dP.removedSq, dP.removedPc), is_ok(dP.removedSq));
+    added.  push_back_if(make_index(perspective, kingSq, dP.addedSq, dP.addedPc)    , is_ok(dP.addedSq));
     // clang-format on
 }
 
 // Determine if a full refresh is required based on the dirty piece
-bool HalfKA_hm::refresh_required(const Color perspective, const DirtyType& dp) noexcept {
-    return dp.movedPc == make_piece(perspective, KING);
+bool HalfKA_hm::refresh_required(const Color perspective, const DirtyType& dP) noexcept {
+    return dP.movedPc == make_piece(perspective, KING);
 }
 
 }  // namespace DON::NNUE::Features

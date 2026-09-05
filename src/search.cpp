@@ -1107,7 +1107,7 @@ Value Worker::search(Position&    pos,
         // Compute futility
         int futility = std::max(baseFutility * depth
                               - constexpr_ceil(baseFutility * (int(improve) * 2789.0 + int(worsen) * 335.0) / 1024.0)
-                              + constexpr_round(absCorrectionValue / 198435.0),
+                              + constexpr_ceil(absCorrectionValue / 198435.0),
                                 0);
 
         if (ttEvalue - futility >= beta)
@@ -1428,7 +1428,7 @@ Value Worker::search(Position&    pos,
 
             if (singularValue <= singularAlpha)
             {
-                int corrMargin = constexpr_round(absCorrectionValue / 198368.0);
+                int corrMargin = constexpr_ceil(absCorrectionValue / 198368.0);
 
                 int doubleMargin = -2 + int(PVNode) * 204 - int(!ttmCapture) * 152 - corrMargin - int(ss->ply > rootDepth) * 38 - constexpr_round(ttMoveHistory * 1175.0 / 114178.0);
                 int tripleMargin = 70 + int(PVNode) * 279 - int(!ttmCapture) * 188 - corrMargin - int(ss->ply > rootDepth) * 43 + int(ss->pvTT) * 81;
@@ -1489,7 +1489,7 @@ Value Worker::search(Position&    pos,
         // Base reduction offset to compensate for other tweaks
         r += 697;
         r -= 65 * moveCount;
-        r -= constexpr_round(absCorrectionValue / 26310.0);
+        r -= constexpr_ceil(absCorrectionValue / 26310.0);
 
         // (*Scaler) Decrease reduction if position is or has been on the PV
         r -= int(ss->pvTT)
@@ -2079,18 +2079,18 @@ void Worker::do_move(
 
     bool capture = pos.capture_promo(m);
 
-    DirtyBoard db = pos.do_move(m, st, mayCheck, this);
+    auto dirties = pos.do_move(m, st, mayCheck, this);
 
     assert(moveKey == pos.key());
 
     ++nodes;
     // clang-format off
-    auto movedPc                 = db.dirtyPiece.movedPc;
+    auto& dP                     = dirties.dirtyPiece;
     ss->move                     = m;
-    ss->pieceSqHistory           = &atomicHistories.continuation_history()[ss->inCheck][capture][+movedPc][m.dst_sq()];
-    ss->pieceSqCorrectionHistory = &continuationCorrectionHistory[+movedPc][m.dst_sq()];
+    ss->pieceSqHistory           = &atomicHistories.continuation_history()[ss->inCheck][capture][+dP.movedPc][m.dst_sq()];
+    ss->pieceSqCorrectionHistory = &continuationCorrectionHistory[+dP.movedPc][m.dst_sq()];
     // clang-format on
-    accStack.push(std::move(db));
+    accStack.push(std::move(dirties));
 }
 
 void Worker::undo_move(Position& pos, const Move m) noexcept {

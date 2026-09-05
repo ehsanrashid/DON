@@ -51,7 +51,7 @@ class FullThreats final {
 
     static void append_changed_indices(Color                   perspective,
                                        Square                  kingSq,
-                                       const DirtyType&        dts,
+                                       const DirtyType&        dTs,
                                        IndexVector&            removed,
                                        IndexVector&            added,
                                        const ThreatWeightType* pfBase   = nullptr,

@@ -55,11 +55,11 @@ class HalfKA_hm final {
 
     static void append_changed_indices(Color            perspective,
                                        Square           kingSq,
-                                       const DirtyType& dp,
+                                       const DirtyType& dP,
                                        IndexVector&     removed,
                                        IndexVector&     added) noexcept;
 
-    static bool refresh_required(Color perspective, const DirtyType& dp) noexcept;
+    static bool refresh_required(Color perspective, const DirtyType& dP) noexcept;
 
    private:
     HalfKA_hm() noexcept                            = delete;
