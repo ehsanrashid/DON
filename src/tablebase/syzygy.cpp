@@ -39,7 +39,7 @@
     #include <fcntl.h>
     #include <sys/mman.h>
     #include <sys/stat.h>
-    #include <unistd.h>  // IWYU pragma: keep
+    #include <unistd.h>
 #endif
 
 #include "../attacks.h"
@@ -49,6 +49,7 @@
 #include "../option.h"
 #include "../position.h"
 #include "../search.h"
+#include "../types.h"
 
 namespace DON::Tablebase::Syzygy {
 

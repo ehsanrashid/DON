@@ -19,7 +19,7 @@
 #define SEARCH_H_INCLUDED
 
 #include <algorithm>
-#include <array>  // IWYU pragma: keep
+#include <array>
 #include <cassert>
 #include <condition_variable>
 #include <cstring>

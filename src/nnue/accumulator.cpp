@@ -26,6 +26,7 @@
 #include "../types.h"
 #include "architecture.h"
 #include "feature_transformer.h"
+#include "ntypes.h"
 #include "simd.h"
 
 namespace DON::NNUE {

@@ -19,6 +19,7 @@
 #define HISTORY_H_INCLUDED
 
 #include <algorithm>
+#include <array>
 #include <atomic>
 #include <cassert>
 #include <limits>
@@ -264,6 +265,8 @@ class AtomicHistories final {
 };
 
 using AtomicHistoriesMap = std::unordered_map<usize, AtomicHistories>;
+
+int loop();
 
 }  // namespace DON
 

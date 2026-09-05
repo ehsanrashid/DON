@@ -18,7 +18,6 @@
 #ifndef ATTACKS_H_INCLUDED
 #define ATTACKS_H_INCLUDED
 
-#include <algorithm>
 #include <array>
 #include <cassert>
 #include <initializer_list>
