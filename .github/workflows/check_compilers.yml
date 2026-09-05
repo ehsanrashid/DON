@@ -14,7 +14,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { name: GCC-9 , comp: gcc, cxx: g++, image: "gcc:9"  }
           - { name: GCC-10, comp: gcc, cxx: g++, image: "gcc:10" }
           - { name: GCC-11, comp: gcc, cxx: g++, image: "gcc:11" }
           - { name: GCC-12, comp: gcc, cxx: g++, image: "gcc:12" }
