@@ -91,10 +91,12 @@ jobs:
       - name: ${{ matrix.sanitizers.name }}
         run: |
           make clean
+          EXTRA_CXXFLAGS="$EXTRA_CXXFLAGS -O1 -fno-inline ${{ matrix.sanitizers.cxx_extra_flags }}"
+          echo "EXTRA_CXXFLAGS=$EXTRA_CXXFLAGS"
           make -j4 build \
             ARCH=x86-64-sse41-popcnt \
             sanitize="${{ matrix.sanitizers.sanitizer }}" \
             optimize=no \
             debug=yes \
-            EXTRA_CXXFLAGS="$EXTRA_CXXFLAGS -O1 -fno-inline ${{ matrix.sanitizers.cxx_extra_flags }}" >/dev/null
+            EXTRA_CXXFLAGS="$EXTRA_CXXFLAGS" >/dev/null
           python3 ../tests/instrumented.py --${{ matrix.sanitizers.instrumented_option }} ./DON
