@@ -1049,16 +1049,14 @@ inline void Position::update_piece_threats(const Square              s,
     const Bitboard directSlidersBB =
       type_of(pc) == QUEEN ? slidersBB & pieces_bb(QUEEN) : slidersBB;
 
-    Bitboard threatenedBB = (type_of(pc) == PAWN  //
-                               ? attacksBB[color_of(pc)]
-                               : attacksBB[type_of(pc)])
-                          & noKOccupancyBB;
+    Bitboard threatenedBB =
+      (type_of(pc) == PAWN ? attacksBB[color_of(pc)] : attacksBB[type_of(pc)]) & noKOccupancyBB;
 
     Bitboard incomingThreatsBB = pieces_bb(KNIGHT) & attacksBB[KNIGHT];
 
     if (type_of(pc) == KNIGHT || type_of(pc) == ROOK)
-        incomingThreatsBB |= (pieces_bb(WHITE, PAWN) & attacksBB[BLACK])  //
-                           | (pieces_bb(BLACK, PAWN) & attacksBB[WHITE]);
+        incomingThreatsBB |=
+          (pieces_bb(WHITE, PAWN) & attacksBB[BLACK]) | (pieces_bb(BLACK, PAWN) & attacksBB[WHITE]);
 
     switch (type_of(pc))
     {
@@ -1071,7 +1069,6 @@ inline void Position::update_piece_threats(const Square              s,
         break;
     default :
         threatenedBB &= noKOccupancyBB;
-        break;
     }
 
 #if defined(USE_AVX512ICL)
