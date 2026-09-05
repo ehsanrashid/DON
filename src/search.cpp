@@ -1167,7 +1167,8 @@ Value Worker::search(Position&    pos,
     // (*Scaler) Making IIR more aggressive scales poorly.
     if constexpr (!AllNode)
     {
-    depth -= (depth > 5) && ttmNone && !ss->pvFollow;
+        if (depth > 5 && ttmNone && !ss->pvFollow)
+            --depth;
     }
 
     // Step 11. ProbCut
