@@ -95,7 +95,6 @@ void HalfKAHm::append_map_changed_indices(const Color     perspective,
 
         removed.push_back(make_index(perspective, kingSq, s, oldPieceMap[s]));
     }
-
     while (addedBB != 0)
     {
         const Square s = pop_lsq(addedBB);

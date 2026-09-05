@@ -48,8 +48,9 @@ class PP3Wide final {
     using IndexVector                        = FixedVector<u16, MaxActiveDimensions, u16>;
     using DirtyType                          = DirtyPawnPairs;
 
-    static void
-    append_active_indices(Color perspective, const Position& pos, IndexVector& active) noexcept;
+    static void append_active_indices(Color           perspective,  //
+                                      const Position& pos,
+                                      IndexVector&    active) noexcept;
 
     static void append_changed_indices(Color                   perspective,
                                        Square                  ksq,

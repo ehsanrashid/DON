@@ -537,25 +537,24 @@ void update_refresh_cache(const Color               perspective,
 
     auto& entry = accCache[kingSq][perspective];
 
-    PSQFeatureSet::IndexVector removed, added;
+    ThreatFeatureSet::IndexVector active;
+    ThreatFeatureSet::append_active_indices(perspective, pos, active);
+    PairFeatureSet::append_active_indices(perspective, pos, active);
 
     const auto& pieceMap = pos.piece_map();
     const auto  piecesBB = pos.pieces_bb();
 
     const Bitboard changedBB = changed_bb(entry.pieceMap, pieceMap);
 
-    Bitboard removedBB = changedBB & entry.piecesBB;
-    Bitboard addedBB   = changedBB & piecesBB;
+    const Bitboard removedBB = changedBB & entry.piecesBB;
+    const Bitboard addedBB   = changedBB & piecesBB;
 
+    PSQFeatureSet::IndexVector removed, added;
     PSQFeatureSet::append_map_changed_indices(perspective, kingSq, entry.pieceMap, pieceMap,
                                               removedBB, addedBB, removed, added);
 
     entry.pieceMap = pieceMap;
     entry.piecesBB = piecesBB;
-
-    ThreatFeatureSet::IndexVector active;
-    ThreatFeatureSet::append_active_indices(perspective, pos, active);
-    PairFeatureSet::append_active_indices(perspective, pos, active);
 
     accumulator.computed[perspective] = true;
 
