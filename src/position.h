@@ -941,19 +941,21 @@ inline Piece Position::swap(const Square s, const Piece newPc, DirtyThreats* con
 }
 
 #if defined(USE_AVX512ICL)
+using DirtyThreat = DirtyThreats::Threat;
+
 // Given threat and bit offsets to insert the piece type and square,
 // write the threats present at the given bitboard.
 template<int SqShift, int PcShift>
-void write_multiple_dirties(const PieceMap&            pieceMap,
-                            const Bitboard             maskBB,
-                            const DirtyThreats::Threat threat,
-                            DirtyThreats* const        dTs) noexcept {
+void write_multiple_dirties(const PieceMap&     pieceMap,
+                            const Bitboard      maskBB,
+                            const DirtyThreat   dT,
+                            DirtyThreats* const dTs) noexcept {
     const __m512i pieceVec = _mm512_loadu_si512(pieceMap.data());
 
     const auto maskCount = popcount(maskBB);
     assert(maskCount <= 16);
 
-    const __m512i threatVal = _mm512_set1_epi32(threat.raw());
+    const __m512i dTVec = _mm512_set1_epi32(dT.raw());
 
     // Extract the list of squares and up convert to 32 bits.
     // There are never more than 16 incoming threats so this is sufficient.
@@ -968,10 +970,10 @@ void write_multiple_dirties(const PieceMap&            pieceMap,
     threatPieces  = _mm512_slli_epi32(threatPieces, PcShift);
 
     // Combine into final dirty values (A | B | C = 254)
-    const __m512i dirties = _mm512_ternarylogic_epi32(threatVal, threatSquares, threatPieces, 254);
+    const __m512i dirties = _mm512_ternarylogic_epi32(dTVec, threatSquares, threatPieces, 254);
 
     auto*           dtsSpace  = dTs->make_space(maskCount);
-    const __mmask16 storeMask = (u16{1} << maskCount) - 1;
+    const __mmask16 storeMask = (__mmask16{1} << maskCount) - 1;
     _mm512_mask_storeu_epi32(dtsSpace, storeMask, dirties);
 }
 #endif
@@ -1094,16 +1096,15 @@ inline void Position::update_piece_threats(const Square              s,
         incomingThreatsBB |= pawnThreatsBB;
 
 #if defined(USE_AVX512ICL)
-    DirtyThreats::Threat threat1{s, SQUARE_ZERO, pc, Piece::NO_PIECE, put};
-    write_multiple_dirties<DirtyThreats::Threat::ThreatenedSqShift,
-                           DirtyThreats::Threat::ThreatenedPcShift>(piece_map(), threatenedBB,
-                                                                    threat1, dTs);
+    DirtyThreat dT1{s, SQUARE_ZERO, pc, Piece::NO_PIECE, put};
+    write_multiple_dirties<DirtyThreat::ThreatenedSqShift, DirtyThreat::ThreatenedPcShift>(
+      pieceMap, threatenedBB, dT1, dTs);
 
     const Bitboard attackersBB = directSlidersBB | incomingThreatsBB;
 
-    DirtyThreats::Threat threat2{SQUARE_ZERO, s, Piece::NO_PIECE, pc, put};
-    write_multiple_dirties<DirtyThreats::Threat::SqShift,  //
-                           DirtyThreats::Threat::PcShift>(piece_map(), attackersBB, threat2, dTs);
+    DirtyThreat dT2{SQUARE_ZERO, s, Piece::NO_PIECE, pc, put};
+    write_multiple_dirties<DirtyThreat::SqShift, DirtyThreat::PcShift>(pieceMap, attackersBB, dT2,
+                                                                       dTs);
 #else
     while (threatenedBB != 0)
     {

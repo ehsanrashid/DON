@@ -331,18 +331,18 @@ void FullThreats::append_active_indices(const Color     perspective,
 // Append lists of indices for recently changed features
 void FullThreats::append_changed_indices(const Color             perspective,
                                          const Square            kingSq,
-                                         const DirtyType&        dts,
+                                         const DirtyType&        dTs,
                                          IndexVector&            removed,
                                          IndexVector&            added,
                                          const ThreatWeightType* pfBase,
                                          const usize             pfStride) noexcept {
-    for (const auto& dt : dts)
+    for (const auto& dT : dTs)
     {
-        const auto orgSq      = dt.sq();
-        const auto dstSq      = dt.threatened_sq();
-        const auto attackerPc = dt.pc();
-        const auto attackedPc = dt.threatened_pc();
-        const auto add        = dt.add();
+        const auto orgSq      = dT.sq();
+        const auto dstSq      = dT.threatened_sq();
+        const auto attackerPc = dT.pc();
+        const auto attackedPc = dT.threatened_pc();
+        const auto add        = dT.add();
 
         auto& changed = add ? added : removed;
 
