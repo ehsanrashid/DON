@@ -984,14 +984,17 @@ BUILD_DATE_FILE      := .build_date.txt
 BUILD_SHA_FILE       := .build_sha.txt
 BUILD_DIFFINDEX_FILE := .build_diffindex.txt
 
-GIT := git -c core.filemode=false -c core.autocrlf=false
+GIT := git
+ifneq ($(shell command -v $(GIT) 2>/dev/null),)
+    GIT           := $(GIT) -c core.filemode=false -c core.autocrlf=false
+    GIT_DATE      := $(shell $(GIT) show -s --date=format:%Y%m%d --format=%cd HEAD 2>/dev/null)
+    GIT_SHA       := $(shell $(GIT) rev-parse HEAD 2>/dev/null | cut -c 1-8 | tr '[:lower:]' '[:upper:]')
+    GIT_DIFFINDEX := $(shell $(GIT) update-index --refresh >/dev/null 2>&1; \
+                        if ! $(GIT) diff-index --quiet HEAD -- 2>/dev/null; then \
+                          $(GIT) diff HEAD --no-ext-diff | $(GIT) hash-object --stdin | cut -c 1-6 | tr '[:lower:]' '[:upper:]'; \
+                        fi)
+endif
 
-GIT_DATE      := $(shell git show -s --date=format:%Y%m%d --format=%cd HEAD 2>/dev/null || true)
-GIT_SHA       := $(shell git rev-parse HEAD 2>/dev/null | cut -c 1-8 | tr '[:lower:]' '[:upper:]' || true)
-GIT_DIFFINDEX := $(shell $(GIT) update-index --refresh >/dev/null 2>&1; \
-                    if ! $(GIT) diff-index --quiet HEAD -- 2>/dev/null; then \
-                        $(GIT) diff HEAD --no-ext-diff | git hash-object --stdin | cut -c 1-6 | tr '[:lower:]' '[:upper:]'; \
-                    fi)
 COMPILER_DATE := $(shell date +%Y%m%d 2>/dev/null)
 BUILD_DATE    := $(or $(GIT_DATE),$(COMPILER_DATE))
 
@@ -1009,9 +1012,10 @@ ifneq ($(filter-out help net strip install clean obj-clean profile-clean univers
 endif
 
 # Compiler flags for embedding Git build information
-GIT_FLAGS := $(if $(GIT_DATE),-DGIT_DATE=$(GIT_DATE)) \
+GIT_FLAGS := $(strip \
+             $(if $(GIT_DATE),-DGIT_DATE=$(GIT_DATE)) \
              $(if $(GIT_SHA),-DGIT_SHA=$(GIT_SHA)) \
-             $(if $(GIT_DIFFINDEX),-DGIT_DIFFINDEX=$(GIT_DIFFINDEX))
+             $(if $(GIT_DIFFINDEX),-DGIT_DIFFINDEX=$(GIT_DIFFINDEX)))
 
 ### 3.8.2 Try to include architecture
 ifneq ($(ARCH),)
