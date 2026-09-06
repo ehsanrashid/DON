@@ -456,11 +456,10 @@ pseudo_attacks_bb(const Square s, PieceType pt, [[maybe_unused]] const Color c =
     assert(is_ok(pt) && "Unsupported piece type in pseudo_attacks_bb()");
     assert(is_ok(s) && (pt != PAWN || is_ok(c)));
 
-    if (pt == PAWN)
-        return c == WHITE ? pseudo_attacks_bb<WHITE>(s) : pseudo_attacks_bb<BLACK>(s);
-
     switch (pt)
     {
+    case PAWN :
+        return c == WHITE ? pseudo_attacks_bb<WHITE>(s) : pseudo_attacks_bb<BLACK>(s);
     case KNIGHT :
         return pseudo_attacks_bb<KNIGHT>(s);
     case BISHOP :
