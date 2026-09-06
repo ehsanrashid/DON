@@ -258,7 +258,8 @@ Move* generate_pawns_moves(const Position& pos,
             // An en-passant capture cannot resolve a discovered check
             assert(!Evasion || (targetBB & (pos.en_passant_sq() + Push1)) == 0);
 
-            Bitboard epPawnsBB = notR7PawnsBB & Attacks::attacks_bb<PAWN>(pos.en_passant_sq(), ~AC);
+            Bitboard epPawnsBB =
+              notR7PawnsBB & Attacks::pseudo_attacks_bb<~AC>(pos.en_passant_sq());
             assert(epPawnsBB != 0);
 
             while (epPawnsBB != 0)
@@ -328,7 +329,7 @@ Move* generate_king_moves(const Position& pos,
     const Square kingSq = pos.square<KING>(AC);
 
     Bitboard dstBB =
-      Attacks::pseudo_attacks_bb(kingSq, KING) & ~pos.acc_attacks_bb<KING>() & targetBB;
+      Attacks::pseudo_attacks_bb<KING>(kingSq) & ~pos.acc_attacks_bb<KING>() & targetBB;
 
     while (dstBB != 0)
     {
