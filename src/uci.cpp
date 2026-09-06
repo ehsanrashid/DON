@@ -612,8 +612,8 @@ void UCI::bench(std::istream& is) noexcept {
               << "\nnodes/second    : " << 1000 * totalNodes / totalTimeMs << std::endl;
 
     options().set("MinimalInfo", minimalInfo);
-    // Reset callback, to not capture a dangling reference to infoNodes
-    engine.set_on_update_full(on_update_full);
+    // Reset callback, to not capture a dangling reference
+    set_update_callbacks();
 }
 
 void UCI::benchmark(std::istream& is) noexcept {
@@ -624,6 +624,7 @@ void UCI::benchmark(std::istream& is) noexcept {
     engine.set_on_update_full([&](const auto&) {});
     engine.set_on_update_iter([](const auto&) {});
     engine.set_on_update_move([](const auto&) {});
+    InfoStrStop = true;
 
     auto setup = Benchmark::benchmark(is);
 
@@ -631,8 +632,6 @@ void UCI::benchmark(std::istream& is) noexcept {
     options().set("Threads", std::to_string(setup.threads));
     options().set("Hash", std::to_string(setup.ttSize));
     options().set("UCI_Chess960", bool_to_string(false));
-
-    InfoStrStop = true;
 
     usize num = std::count_if(setup.commands.begin(), setup.commands.end(),
                               [](std::string_view command) { return starts_with(command, "go "); });
@@ -792,8 +791,8 @@ void UCI::benchmark(std::istream& is) noexcept {
               << "\nnodes/second               : " << 1000 * totalNodes / totalTimeMs << std::endl;
     // clang-format on
 
-    InfoStrStop = false;
     set_update_callbacks();
+    InfoStrStop = false;
 }
 
 u64 UCI::perft(Depth depth, bool detail) noexcept {

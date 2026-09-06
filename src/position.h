@@ -29,6 +29,7 @@
 #include <string>
 #include <string_view>
 #include <type_traits>
+#include <utility>
 
 #if defined(USE_AVX512ICL)
     #include <immintrin.h>
@@ -1016,11 +1017,11 @@ inline void Position::update_piece_threats(const Square              s,
                 assert(is_ok(threatenedPc));
 
                 if (slider_can_threaten(threatenedPc, sliderPc))
-                    dTs->add(sliderSq, threatenedSq, sliderPc, threatenedPc, !put);
+                    dTs->add(!put, sliderPc, threatenedPc, sliderSq, threatenedSq);
             }
 
             if (addDirectAttacks && slider_can_threaten(pc, sliderPc))
-                dTs->add(sliderSq, s, sliderPc, pc, put);
+                dTs->add(put, sliderPc, pc, sliderSq, s);
         }
     };
 
@@ -1077,7 +1078,7 @@ inline void Position::update_piece_threats(const Square              s,
         assert(threatenedSq != s);
         assert(is_ok(threatenedPc));
 
-        dTs->add(s, threatenedSq, pc, threatenedPc, put);
+        dTs->add(put, pc, threatenedPc, s, threatenedSq);
     }
 #endif
 
@@ -1103,7 +1104,7 @@ inline void Position::update_piece_threats(const Square              s,
         assert(srcSq != s);
         assert(is_ok(srcPc));
 
-        dTs->add(srcSq, s, srcPc, pc, put);
+        dTs->add(put, srcPc, pc, srcSq, s);
     }
 #endif
 }

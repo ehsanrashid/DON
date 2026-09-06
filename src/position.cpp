@@ -19,7 +19,6 @@
 
 #include <iomanip>
 #include <sstream>
-#include <utility>
 
 #include "history.h"
 #include "movegen.h"
