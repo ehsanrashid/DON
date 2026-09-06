@@ -34,7 +34,7 @@ namespace {
 
 constexpr std::string_view NAME{"DON"};
 constexpr std::string_view AUTHOR{"Ehsan Rashid"};
-constexpr std::string_view VERSION{"2.0"};
+constexpr std::string_view VERSION{"dev"};
 
 // Format date to YYYYMMDD
 [[maybe_unused]] std::string format_date(const std::string_view date) noexcept {
@@ -291,7 +291,7 @@ std::string version_info() noexcept {
 #if defined(GIT_SHA)
         version.append(STRINGIFY(GIT_SHA));
 #else
-        version.append("nogit").append(format_time(__TIME__));
+        version.append(format_time(__TIME__));
 #endif
 #if defined(GIT_DIFFINDEX)
         version.append("-").append(STRINGIFY(GIT_DIFFINDEX));

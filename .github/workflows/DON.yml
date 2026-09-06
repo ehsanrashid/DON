@@ -10,9 +10,9 @@ on:
     branches:
       - main
 
-# concurrency:
-#   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-#   cancel-in-progress: true
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   Prerelease:
@@ -36,9 +36,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y curl jq
 
-          RELEASES=$(curl -fsSL "https://api.github.com/repos/${{ github.repository }}/releases")
-          PRERELEASE_TAG=$(jq -r 'map(select(.prerelease)) | first | .tag_name' <<< "$RELEASES")
-
+          PRERELEASE_TAG=$(curl -fsSL "https://api.github.com/repos/${{ github.repository }}/releases" | jq -r 'map(select(.prerelease)) | first | .tag_name')
           echo "PRERELEASE_TAG=$PRERELEASE_TAG" >> "$GITHUB_OUTPUT"
 
       # Delete previous pre-release and tag
