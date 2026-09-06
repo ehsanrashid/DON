@@ -512,7 +512,7 @@ Setup benchmark(std::istream& is) noexcept {
       .append(" ")
       .append(std::to_string(desiredMoveTime));
 
-    auto calc_move_time = [](u16 ply) noexcept {
+    auto calc_move_time = [](const u32 ply) noexcept {
         // time per move is fit roughly based on LTC games
         // seconds =    50 / (15 + ply)
         // msec    = 50000 / (15 + ply)
@@ -524,25 +524,19 @@ Setup benchmark(std::istream& is) noexcept {
     double totalMoveTime = 0.0;
     for (const auto& game : GAMES)
         for (usize i = 0; i < game.size(); ++i)
-            totalMoveTime += calc_move_time(u16(i + 1));
+            totalMoveTime += calc_move_time(u32(i + 1));
 
     double timeScaleFactor = desiredMoveTime * 1000.0 / totalMoveTime;
 
     for (const auto& game : GAMES)
     {
         setup.commands.emplace_back("ucinewgame");
-
-        u16 ply = 1;
-
-        for (const auto& fen : game)
+        for (usize i = 0; i < game.size(); ++i)
         {
+            const auto& fen = game[i];
             setup.commands.emplace_back("position fen " + fen);
-
-            usize moveTime = static_cast<usize>(calc_move_time(ply) * timeScaleFactor);
-
+            const usize moveTime = static_cast<usize>(calc_move_time(u32(i + 1)) * timeScaleFactor);
             setup.commands.emplace_back("go movetime " + std::to_string(moveTime));
-
-            ++ply;
         }
     }
 
