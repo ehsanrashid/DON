@@ -729,8 +729,8 @@ void Position::set_ext_state() noexcept {
     const auto [bAttacksBB, rAttacksBB] = Attacks::attacks_bb_pair(kingSq, pieces_bb());
 
     // clang-format off
-    st->checksBB[PAWN  ] = Attacks::attacks_bb<PAWN  >(kingSq, ~ac);
-    st->checksBB[KNIGHT] = Attacks::attacks_bb<KNIGHT>(kingSq);
+    st->checksBB[PAWN  ] = Attacks::pseudo_attacks_bb(kingSq, ~ac);
+    st->checksBB[KNIGHT] = Attacks::pseudo_attacks_bb(kingSq, KNIGHT);
     st->checksBB[BISHOP] = bAttacksBB;
     st->checksBB[ROOK  ] = rAttacksBB;
     st->checksBB[QUEEN ] = st->checksBB[BISHOP] | st->checksBB[ROOK];

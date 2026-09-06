@@ -647,10 +647,10 @@ inline bool Position::slide_attackers_exists(const Square s, const Bitboard atta
 // Checks if there are any attackers to 's'
 inline bool Position::attackers_exists(const Square s, const Bitboard attackersBB, const Bitboard occupancyBB) const noexcept {
     return slide_attackers_exists(s, attackersBB, occupancyBB)
-        || ((attackersBB & ((pieces_bb(WHITE, PAWN) & Attacks::attacks_bb<PAWN  >(s, BLACK))
-                          | (pieces_bb(BLACK, PAWN) & Attacks::attacks_bb<PAWN  >(s, WHITE))))
-          | (attackersBB & pieces_bb(KNIGHT       ) & Attacks::attacks_bb<KNIGHT>(s))
-          | (attackersBB & pieces_bb(KING         ) & Attacks::attacks_bb<KING  >(s))) != 0;
+        || ((attackersBB & ((pieces_bb(WHITE, PAWN) & Attacks::pseudo_attacks_bb(s, BLACK))
+                          | (pieces_bb(BLACK, PAWN) & Attacks::pseudo_attacks_bb(s, WHITE))))
+          | (attackersBB & pieces_bb(KNIGHT       ) & Attacks::pseudo_attacks_bb(s, KNIGHT))
+          | (attackersBB & pieces_bb(KING         ) & Attacks::pseudo_attacks_bb(s, KING))) != 0;
 }
 inline bool Position::attackers_exists(const Square s, const Bitboard attackersBB) const noexcept {
     return attackers_exists(s, attackersBB, pieces_bb());
@@ -1043,8 +1043,8 @@ inline void Position::update_piece_threats(const Square              s,
     Bitboard incomingThreatsBB = pieces_bb(KNIGHT) & Attacks::pseudo_attacks_bb(s, KNIGHT);
 
     if (type_of(pc) == KNIGHT || type_of(pc) == ROOK)
-        incomingThreatsBB |= (pieces_bb(WHITE, PAWN) & Attacks::attacks_bb<PAWN>(s, BLACK))
-                           | (pieces_bb(BLACK, PAWN) & Attacks::attacks_bb<PAWN>(s, WHITE));
+        incomingThreatsBB |= (pieces_bb(WHITE, PAWN) & Attacks::pseudo_attacks_bb(s, BLACK))
+                           | (pieces_bb(BLACK, PAWN) & Attacks::pseudo_attacks_bb(s, WHITE));
 
     switch (type_of(pc))
     {
