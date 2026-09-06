@@ -79,6 +79,13 @@ jobs:
           echo "Creating ZIP..."
           zip -r "DON-$SIMPLE_NAME-$BINARY.zip" DON
 
+      - name: Release
+        if: startsWith(github.ref_name, 'DON_') && github.ref_type == 'tag'
+        uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3.0.0
+        with:
+          files: DON-${{ env.SIMPLE_NAME }}-${{ env.BINARY }}.${{ env.ARCHIVE_EXT }}
+          token: ${{ secrets.token }}
+
       # Make sure that an old CI run on main doesn't recreate a prerelease
       - name: Check Pullable Commits
         id: check-commits
@@ -99,7 +106,7 @@ jobs:
         id: official-release
         # Check for "Official release version of DON" in the commit message
         run: |
-          if git log -1 --pretty=%B | grep -q "Official release version of DON"; then
+          if git log -1 --format=%B | grep -q "Official release version of DON"; then
             echo "OFFICIAL_RELEASE=true" >> "$GITHUB_ENV"
           else
             echo "OFFICIAL_RELEASE=false" >> "$GITHUB_ENV"
@@ -113,12 +120,5 @@ jobs:
           name: DON dev-${{ env.COMMIT_DATE }}-${{ env.COMMIT_SHA }}
           tag_name: DON-dev-${{ env.COMMIT_DATE }}-${{ env.COMMIT_SHA }}
           prerelease: true
-          files: DON-${{ env.SIMPLE_NAME }}-${{ env.BINARY }}.${{ env.ARCHIVE_EXT }}
-          token: ${{ secrets.token }}
-
-      - name: Release
-        if: startsWith(github.ref_name, 'DON_') && github.ref_type == 'tag'
-        uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3.0.0
-        with:
           files: DON-${{ env.SIMPLE_NAME }}-${{ env.BINARY }}.${{ env.ARCHIVE_EXT }}
           token: ${{ secrets.token }}
