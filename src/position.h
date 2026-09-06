@@ -1017,11 +1017,11 @@ inline void Position::update_piece_threats(const Square              s,
                 assert(is_ok(threatenedPc));
 
                 if (slider_can_threaten(threatenedPc, sliderPc))
-                    dTs->add(!put, sliderPc, threatenedPc, sliderSq, threatenedSq);
+                    dTs->add(!put, threatenedPc, sliderPc, threatenedSq, sliderSq);
             }
 
             if (addDirectAttacks && slider_can_threaten(pc, sliderPc))
-                dTs->add(put, sliderPc, pc, sliderSq, s);
+                dTs->add(put, pc, sliderPc, s, sliderSq);
         }
     };
 
@@ -1060,13 +1060,13 @@ inline void Position::update_piece_threats(const Square              s,
     }
 
 #if defined(USE_AVX512ICL)
-    Threat dT1{put, pc, Piece::NO_PIECE, s, SQUARE_ZERO};
+    Threat dT1{put, Piece::NO_PIECE, pc, SQUARE_ZERO, s};
     write_multiple_dirties<Threat::ThreatenedSqShift,  //
                            Threat::ThreatenedPcShift>(pieceMap, threatenedBB, dT1, dTs);
 
     const Bitboard attackersBB = directSlidersBB | incomingThreatsBB;
 
-    Threat dT2{put, Piece::NO_PIECE, pc, SQUARE_ZERO, s};
+    Threat dT2{put, pc, Piece::NO_PIECE, s, SQUARE_ZERO};
     write_multiple_dirties<Threat::SqShift,  //
                            Threat::PcShift>(pieceMap, attackersBB, dT2, dTs);
 #else
@@ -1078,7 +1078,7 @@ inline void Position::update_piece_threats(const Square              s,
         assert(threatenedSq != s);
         assert(is_ok(threatenedPc));
 
-        dTs->add(put, pc, threatenedPc, s, threatenedSq);
+        dTs->add(put, threatenedPc, pc, threatenedSq, s);
     }
 #endif
 
@@ -1104,7 +1104,7 @@ inline void Position::update_piece_threats(const Square              s,
         assert(srcSq != s);
         assert(is_ok(srcPc));
 
-        dTs->add(put, srcPc, pc, srcSq, s);
+        dTs->add(put, pc, srcPc, s, srcSq);
     }
 #endif
 }

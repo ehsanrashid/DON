@@ -783,10 +783,10 @@ struct DirtyThreats final {
         constexpr explicit Threat(const u32 d) noexcept :
             data(d) {}
         constexpr Threat(const bool   add,
-                         const Piece  pc,
                          const Piece  threatenedPc,
-                         const Square sq,
-                         const Square threatenedSq) noexcept :
+                         const Piece  pc,
+                         const Square threatenedSq,
+                         const Square sq) noexcept :
             data((u32(add) << AddShift)                      //
                  | (u32(threatenedPc) << ThreatenedPcShift)  //
                  | (u32(pc) << PcShift)                      //
@@ -814,11 +814,11 @@ struct DirtyThreats final {
     };
 
     void add(const bool   put,
-             const Piece  pc,
              const Piece  threatenedPc,
-             const Square sq,
-             const Square threatenedSq) noexcept {
-        threats_.emplace_back(put, pc, threatenedPc, sq, threatenedSq);
+             const Piece  pc,
+             const Square threatenedSq,
+             const Square sq) noexcept {
+        threats_.emplace_back(put, threatenedPc, pc, threatenedSq, sq);
     }
 
     [[nodiscard]] const Threat* begin() const noexcept { return threats_.begin(); }
