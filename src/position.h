@@ -985,7 +985,9 @@ inline void Position::update_piece_threats(const Square              s,
                                            [[maybe_unused]] Bitboard noRayBB) const noexcept {
     const Bitboard occupancyBB = pieces_bb();
 
-    const auto [bAttacksBB, rAttacksBB] = Attacks::attacks_bb_pair(s, occupancyBB);
+    const auto     attacksBB  = Attacks::attacks_bb_pair(s, occupancyBB);
+    const Bitboard bAttacksBB = attacksBB.first;
+    const Bitboard rAttacksBB = attacksBB.second;
 
     const Bitboard noKOccupancyBB = occupancyBB ^ pieces_bb(KING);
 
