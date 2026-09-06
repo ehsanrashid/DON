@@ -295,6 +295,8 @@ void Worker::start_search() noexcept {
 
     std::string bestMove, ponderMove;
 
+    main_manager()->updateContext.onUpdateStart();
+
     if (rootMoves.empty())
     {
         FixedText score{

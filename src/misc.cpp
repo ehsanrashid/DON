@@ -655,8 +655,8 @@ void correl_of(i64 value1, i64 value2, usize slot) noexcept {
 
 void print() noexcept {
 
-    i64  n;
-    auto avg = [&n = std::as_const(n)](const i64 x) noexcept { return static_cast<double>(x) / n; };
+    i64        n;
+    const auto avg = [&n = std::as_const(n)](const i64 x) noexcept { return double(x) / n; };
 
     for (usize i = 0; i < hit.size(); ++i)
     {

@@ -528,12 +528,14 @@ struct MoveInfo final {
 // and storing data strictly related to the main thread.
 class MainSearchManager final: public ISearchManager {
    public:
+    using OnUpdateStart = std::function<void()>;
     using OnUpdateShort = std::function<void(const ShortInfo&)>;
     using OnUpdateFull  = std::function<void(const FullInfo&)>;
     using OnUpdateIter  = std::function<void(const IterInfo&)>;
     using OnUpdateMove  = std::function<void(const MoveInfo&)>;
 
     struct UpdateContext final {
+        OnUpdateStart onUpdateStart;
         OnUpdateShort onUpdateShort;
         OnUpdateFull  onUpdateFull;
         OnUpdateIter  onUpdateIter;

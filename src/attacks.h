@@ -588,10 +588,8 @@ attacks_bb(const Square s, const PieceType pt, const Bitboard occupancyBB) noexc
 constexpr Bitboard attacks_bb(const Square s, const Piece pc, const Bitboard occupancyBB) noexcept {
     assert(is_ok(s));
 
-    if (type_of(pc) == PAWN)
-        return attacks_bb<PAWN>(s, color_of(pc));
-
-    return attacks_bb(s, type_of(pc), occupancyBB);
+    return type_of(pc) == PAWN ? attacks_bb<PAWN>(s, color_of(pc))
+                               : attacks_bb(s, type_of(pc), occupancyBB);
 }
 
 constexpr std::pair<Bitboard, Bitboard> attacks_bb_pair(const Square s) noexcept {

@@ -19,6 +19,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <chrono>
 #include <functional>
 #include <iostream>
 #include <optional>
@@ -34,6 +35,9 @@
 #include "search.h"
 
 namespace DON {
+
+using Clock = std::chrono::steady_clock;
+using ms    = std::chrono::milliseconds;
 
 namespace {
 
@@ -407,6 +411,7 @@ void on_update_move(const MoveInfo& mInfo) noexcept {
 }  // namespace
 
 void UCI::set_update_callbacks() noexcept {
+    engine.set_on_update_start([]() {});
     engine.set_on_update_short(on_update_short);
     engine.set_on_update_full(on_update_full);
     engine.set_on_update_iter(on_update_iter);
@@ -508,17 +513,11 @@ void UCI::setoption(std::istream& is) noexcept {
 
 void UCI::bench(std::istream& is) noexcept {
 
-    auto commands = Benchmark::bench(is, engine.fen());
-
-    u64 infoNodes = 0;
-    engine.set_on_update_full([&infoNodes](const auto& info) {
-        infoNodes = info.nodes;
-        on_update_full(info);
-    });
-
     auto minimalInfo = bool_to_string(options()["MinimalInfo"]);
 
     options().set("MinimalInfo", bool_to_string(true));
+
+    auto commands = Benchmark::bench(is, engine.fen());
 
     usize num = std::count_if(commands.begin(), commands.end(), [](std::string_view command) {
         return starts_with(command, "go ") || starts_with(command, "eval");
@@ -528,11 +527,26 @@ void UCI::bench(std::istream& is) noexcept {
     Debug::clear();
 #endif
 
-    TimePoint startTime   = now();
-    TimePoint elapsedTime = 0;
+    Clock::time_point startTime;
+    Clock::duration   totalDuration{0};
 
-    usize cnt   = 0;
-    u64   nodes = 0;
+    u64 nodes = 0, totalNodes = 0;
+
+    engine.set_on_update_start([&startTime, &nodes]() noexcept {
+        startTime = Clock::now();
+        nodes     = 0;
+    });
+    engine.set_on_update_full([&nodes](const auto& info) noexcept {
+        on_update_full(info);
+        nodes = info.nodes;
+    });
+    engine.set_on_update_move(
+      [&startTime, &totalDuration, &nodes, &totalNodes](const auto&) noexcept {
+          totalDuration += Clock::now() - startTime;
+          totalNodes += nodes;
+      });
+
+    usize cnt = 0;
 
     for (const auto& command : commands)
     {
@@ -553,15 +567,17 @@ void UCI::bench(std::istream& is) noexcept {
             auto limit = parse_limit(iss);
 
             if (limit.perft)
-                infoNodes = perft(limit.depth, limit.detail);
+            {
+                startTime = Clock::now();
+                nodes     = perft(limit.depth, limit.detail);
+                totalDuration += Clock::now() - startTime;
+                totalNodes += nodes;
+            }
             else
             {
                 engine.start(limit);
                 engine.wait_finish();
             }
-
-            nodes += infoNodes;
-            infoNodes = 0;
         }
         break;
         case Command::EVAL :
@@ -576,25 +592,24 @@ void UCI::bench(std::istream& is) noexcept {
             setoption(iss);
             break;
         case Command::UCINEWGAME :
-            elapsedTime += now() - startTime;
             engine.reset();  // May take a while
-            startTime = now();
             break;
         default :;
         }
     }
 
     // Ensure non-zero to avoid a 'divide by zero'
-    elapsedTime = std::max<TimePoint>(elapsedTime + now() - startTime, 1);
+    const auto totalTimeMs =
+      std::max<i64>(std::chrono::duration_cast<ms>(totalDuration).count(), 1);
 
 #if !defined(NDEBUG)
     Debug::print();
 #endif
 
     std::cerr << "\n================"                   //
-              << "\nTotal time [ms] : " << elapsedTime  //
-              << "\nTotal nodes     : " << nodes        //
-              << "\nnodes/second    : " << 1000 * nodes / elapsedTime << std::endl;
+              << "\nTotal time [ms] : " << totalTimeMs  //
+              << "\nTotal nodes     : " << totalNodes   //
+              << "\nnodes/second    : " << 1000 * totalNodes / totalTimeMs << std::endl;
 
     options().set("MinimalInfo", minimalInfo);
     // Reset callback, to not capture a dangling reference to infoNodes
@@ -605,18 +620,17 @@ void UCI::benchmark(std::istream& is) noexcept {
     // Probably not very important for a test this long, but include for completeness and sanity.
     constexpr usize WarmupPositionCount = 3;
 
+    engine.set_on_update_short([](const auto&) {});
+    engine.set_on_update_full([&](const auto&) {});
+    engine.set_on_update_iter([](const auto&) {});
+    engine.set_on_update_move([](const auto&) {});
+
     auto setup = Benchmark::benchmark(is);
 
     // Set options once at the start
     options().set("Threads", std::to_string(setup.threads));
     options().set("Hash", std::to_string(setup.ttSize));
     options().set("UCI_Chess960", bool_to_string(false));
-
-    u64 infoNodes = 0;
-    engine.set_on_update_short([](const auto&) {});
-    engine.set_on_update_full([&](const auto& info) { infoNodes = info.nodes; });
-    engine.set_on_update_iter([](const auto&) {});
-    engine.set_on_update_move([](const auto&) {});
 
     InfoStrStop = true;
 
@@ -627,11 +641,7 @@ void UCI::benchmark(std::istream& is) noexcept {
     Debug::clear();
 #endif
 
-    TimePoint startTime   = now();
-    TimePoint elapsedTime = 0;
-
-    usize cnt   = 0;
-    u64   nodes = 0;
+    usize cnt = 0;
     // Warmup
     for (const auto& command : setup.commands)
     {
@@ -654,18 +664,13 @@ void UCI::benchmark(std::istream& is) noexcept {
             // Run with silenced network verification
             engine.start(limit);
             engine.wait_finish();
-
-            nodes += infoNodes;
-            infoNodes = 0;
         }
         break;
         case Command::POSITION :
             position(iss);
             break;
         case Command::UCINEWGAME :
-            elapsedTime += now() - startTime;
             engine.reset();  // May take a while
-            startTime = now();
             break;
         default :;
         }
@@ -676,8 +681,7 @@ void UCI::benchmark(std::istream& is) noexcept {
 
     std::cerr << '\n';
 
-    cnt   = 0;
-    nodes = 0;
+    engine.reset();  // May take a while
 
     // Only normal hashfull and touched hash
     constexpr Array<u8, 2> HashfullAges{0, 31};
@@ -700,11 +704,25 @@ void UCI::benchmark(std::istream& is) noexcept {
         }
     };
 
-    auto avg = [&hashfullCount](u32 x) noexcept { return static_cast<double>(x) / hashfullCount; };
+    const auto avg = [&hashfullCount](u32 x) noexcept { return double(x) / hashfullCount; };
 
-    elapsedTime += now() - startTime;
-    engine.reset();  // May take a while
-    startTime = now();
+    Clock::time_point startTime;
+    Clock::duration   totalDuration{0};
+
+    u64 nodes = 0, totalNodes = 0;
+
+    engine.set_on_update_start([&startTime, &nodes]() noexcept {
+        startTime = Clock::now();
+        nodes     = 0;
+    });
+    engine.set_on_update_full([&nodes](const auto& info) noexcept { nodes = info.nodes; });
+    engine.set_on_update_move(
+      [&startTime, &totalDuration, &nodes, &totalNodes](const auto&) noexcept {
+          totalDuration += Clock::now() - startTime;
+          totalNodes += nodes;
+      });
+
+    cnt = 0;
 
     for (const auto& command : setup.commands)
     {
@@ -729,25 +747,21 @@ void UCI::benchmark(std::istream& is) noexcept {
             engine.wait_finish();
 
             update_hashfull();
-
-            nodes += infoNodes;
-            infoNodes = 0;
         }
         break;
         case Command::POSITION :
             position(iss);
             break;
         case Command::UCINEWGAME :
-            elapsedTime += now() - startTime;
             engine.reset();  // May take a while
-            startTime = now();
             break;
         default :;
         }
     }
 
     // Ensure non-zero to avoid a 'divide by zero'
-    elapsedTime = std::max<TimePoint>(elapsedTime + now() - startTime, 1);
+    const auto totalTimeMs =
+      std::max<i64>(std::chrono::duration_cast<ms>(totalDuration).count(), 1);
 
 #if !defined(NDEBUG)
     Debug::print();
@@ -773,9 +787,9 @@ void UCI::benchmark(std::istream& is) noexcept {
               << "\nHash max, sum, avg [mille] : Count=" << hashfullCount
               << "\n    Single search          : " << maxHashfull[0] << ", " << sumHashfull[0] << ", " << avg(sumHashfull[0])
               << "\n    Single game            : " << maxHashfull[1] << ", " << sumHashfull[1] << ", " << avg(sumHashfull[1])
-              << "\nTotal time [s]             : " << static_cast<double>(elapsedTime) / 1000.0
-              << "\nTotal nodes                : " << nodes
-              << "\nnodes/second               : " << 1000 * nodes / elapsedTime << std::endl;
+              << "\nTotal time [s]             : " << totalTimeMs / 1000.0
+              << "\nTotal nodes                : " << totalNodes
+              << "\nnodes/second               : " << 1000 * totalNodes / totalTimeMs << std::endl;
     // clang-format on
 
     InfoStrStop = false;

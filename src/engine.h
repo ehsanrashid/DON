@@ -103,6 +103,7 @@ class Engine final {
     bool load_hash(const std::filesystem::path& hashFile) noexcept;
     bool save_hash(const std::filesystem::path& hashFile) const noexcept;
 
+    void set_on_update_start(MainSearchManager::OnUpdateStart&& f) noexcept;
     void set_on_update_short(MainSearchManager::OnUpdateShort&& f) noexcept;
     void set_on_update_full(MainSearchManager::OnUpdateFull&& f) noexcept;
     void set_on_update_iter(MainSearchManager::OnUpdateIter&& f) noexcept;
