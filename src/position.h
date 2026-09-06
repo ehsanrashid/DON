@@ -1060,13 +1060,13 @@ inline void Position::update_piece_threats(const Square              s,
     }
 
 #if defined(USE_AVX512ICL)
-    Threat dT1{put, Piece::NO_PIECE, pc, SQUARE_ZERO, s};
+    Threat dT1{put, Piece::NO_PIECE, pc, SQ_ZERO, s};
     write_multiple_dirties<Threat::ThreatenedSqShift,  //
                            Threat::ThreatenedPcShift>(pieceMap, threatenedBB, dT1, dTs);
 
     const Bitboard attackersBB = directSlidersBB | incomingThreatsBB;
 
-    Threat dT2{put, pc, Piece::NO_PIECE, s, SQUARE_ZERO};
+    Threat dT2{put, pc, Piece::NO_PIECE, s, SQ_ZERO};
     write_multiple_dirties<Threat::SqShift,  //
                            Threat::PcShift>(pieceMap, attackersBB, dT2, dTs);
 #else

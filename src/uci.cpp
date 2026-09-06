@@ -609,7 +609,7 @@ void UCI::bench(std::istream& is) noexcept {
     std::cerr << "\n================"                   //
               << "\nTotal time [ms] : " << totalTimeMs  //
               << "\nTotal nodes     : " << totalNodes   //
-              << "\nnodes/second    : " << 1000 * totalNodes / totalTimeMs << std::endl;
+              << "\nnodes/second    : " << totalNodes * 1000 / totalTimeMs << std::endl;
 
     options().set("MinimalInfo", minimalInfo);
     // Reset callback, to not capture a dangling reference
@@ -620,11 +620,11 @@ void UCI::benchmark(std::istream& is) noexcept {
     // Probably not very important for a test this long, but include for completeness and sanity.
     constexpr usize WarmupPositionCount = 3;
 
+    InfoStrStop = true;
     engine.set_on_update_short([](const auto&) {});
     engine.set_on_update_full([&](const auto&) {});
     engine.set_on_update_iter([](const auto&) {});
     engine.set_on_update_move([](const auto&) {});
-    InfoStrStop = true;
 
     auto setup = Benchmark::benchmark(is);
 
@@ -788,7 +788,7 @@ void UCI::benchmark(std::istream& is) noexcept {
               << "\n    Single game            : " << maxHashfull[1] << ", " << sumHashfull[1] << ", " << avg(sumHashfull[1])
               << "\nTotal time [s]             : " << totalTimeMs / 1000.0
               << "\nTotal nodes                : " << totalNodes
-              << "\nnodes/second               : " << 1000 * totalNodes / totalTimeMs << std::endl;
+              << "\nnodes/second               : " << totalNodes * 1000 / totalTimeMs << std::endl;
     // clang-format on
 
     set_update_callbacks();

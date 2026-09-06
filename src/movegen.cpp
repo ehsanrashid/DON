@@ -141,7 +141,7 @@ Move* splat_moves(Square orgSq, Bitboard dstBB, Move* RESTRICT moves) noexcept {
     const u8 count = popcount(dstBB);
     assert(count <= 32);  // Q can attack up to 27 squares
 
-    const __m512i orgVec     = _mm512_set1_epi16(Move(orgSq, SQUARE_ZERO).raw());
+    const __m512i orgVec     = _mm512_set1_epi16(Move(orgSq, SQ_ZERO).raw());
     const __m512i dstSquares = _mm512_cvtepi8_epi16(_mm512_castsi512_si256(_mm512_maskz_compress_epi8(dstBB, ALL_SQUARES)));
 
     __m512i      packedMoves = _mm512_or_si512(orgVec, _mm512_slli_epi16(dstSquares, Move::DstSqShift));
