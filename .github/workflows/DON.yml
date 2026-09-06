@@ -71,6 +71,7 @@ jobs:
             echo "OFFICIAL_RELEASE=false" >> "$GITHUB_ENV"
           fi
 
+      # Get recent commits for release body
       - name: Get commits in this push
         id: recent-commits
         run: |
