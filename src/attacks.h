@@ -399,7 +399,7 @@ constexpr Bitboard sliding_attacks_bb(const Square s, const Bitboard occupancyBB
 }
 
 template<PieceType PT>
-constexpr Bitboard pseudo_attacks_bb(const Square s) noexcept {
+constexpr Bitboard pseudo_attacks_bb_(const Square s) noexcept {
     if constexpr (PT == KNIGHT)
         return knight_attacks_bb(s);
     if constexpr (PT == BISHOP)
@@ -407,7 +407,7 @@ constexpr Bitboard pseudo_attacks_bb(const Square s) noexcept {
     if constexpr (PT == ROOK)
         return sliding_attacks_bb<ROOK>(s, 0);
     if constexpr (PT == QUEEN)
-        return pseudo_attacks_bb<BISHOP>(s) | pseudo_attacks_bb<ROOK>(s);
+        return pseudo_attacks_bb_<BISHOP>(s) | pseudo_attacks_bb_<ROOK>(s);
     if constexpr (PT == KING)
         return king_attacks_bb(s);
     assert(false);
@@ -422,51 +422,78 @@ alignas(CACHE_LINE_SIZE) inline constexpr auto PSEUDO_ATTACKS_BBS = []() constex
     {
         pseudoAttacksBB[s][WHITE]  = pawn_attacks_bb<WHITE>(square_bb(s));
         pseudoAttacksBB[s][BLACK]  = pawn_attacks_bb<BLACK>(square_bb(s));
-        pseudoAttacksBB[s][KNIGHT] = pseudo_attacks_bb<KNIGHT>(s);
-        pseudoAttacksBB[s][BISHOP] = pseudo_attacks_bb<BISHOP>(s);
-        pseudoAttacksBB[s][ROOK]   = pseudo_attacks_bb<ROOK>(s);
+        pseudoAttacksBB[s][KNIGHT] = pseudo_attacks_bb_<KNIGHT>(s);
+        pseudoAttacksBB[s][BISHOP] = pseudo_attacks_bb_<BISHOP>(s);
+        pseudoAttacksBB[s][ROOK]   = pseudo_attacks_bb_<ROOK>(s);
         pseudoAttacksBB[s][QUEEN]  = pseudoAttacksBB[s][BISHOP] | pseudoAttacksBB[s][ROOK];
-        pseudoAttacksBB[s][KING]   = pseudo_attacks_bb<KING>(s);
+        pseudoAttacksBB[s][KING]   = pseudo_attacks_bb_<KING>(s);
     }
 
     return pseudoAttacksBB;
 }();
 
-constexpr Bitboard pseudo_attacks_bb(const Square s, const usize idx) noexcept {
+template<u8 Idx>
+constexpr Bitboard pseudo_attacks_bb(const Square s) noexcept {
     assert(is_ok(s));
 
-    return PSEUDO_ATTACKS_BBS[s][idx];
+    return PSEUDO_ATTACKS_BBS[s][Idx];
 }
 
 // Returns the pseudo attacks of the given piece type assuming an empty board
 template<PieceType PT>
-constexpr Bitboard attacks_bb(const Square s, [[maybe_unused]] const Color c = NONE) noexcept {
-    static_assert(is_ok(PT), "Unsupported piece type in attacks_bb()");
+constexpr Bitboard pseudo_attacks_bb(const Square s, [[maybe_unused]] const Color c) noexcept {
+    static_assert(is_ok(PT), "Unsupported piece type in pseudo_attacks_bb()");
     assert(is_ok(s) && (PT != PAWN || is_ok(c)));
 
     if constexpr (PT == PAWN)
-        return pseudo_attacks_bb(s, c);
+        return c == WHITE ? pseudo_attacks_bb<WHITE>(s) : pseudo_attacks_bb<BLACK>(s);
 
-    return pseudo_attacks_bb(s, PT);
+    return pseudo_attacks_bb<PT>(s);
 }
 
-constexpr Bitboard attacks_bb(const Square s, const Piece pc) noexcept {
+constexpr Bitboard
+pseudo_attacks_bb(const Square s, PieceType pt, [[maybe_unused]] const Color c = NONE) noexcept {
+    assert(is_ok(pt) && "Unsupported piece type in pseudo_attacks_bb()");
+    assert(is_ok(s) && (pt != PAWN || is_ok(c)));
+
+    switch (pt)
+    {
+    case PAWN :
+        return c == WHITE ? pseudo_attacks_bb<WHITE>(s) : pseudo_attacks_bb<BLACK>(s);
+    case KNIGHT :
+        return pseudo_attacks_bb<KNIGHT>(s);
+    case BISHOP :
+        return pseudo_attacks_bb<BISHOP>(s);
+    case ROOK :
+        return pseudo_attacks_bb<ROOK>(s);
+    case QUEEN :
+        return pseudo_attacks_bb<QUEEN>(s);
+    case KING :
+        return pseudo_attacks_bb<KING>(s);
+    default :;
+    }
+    assert(false);
+    UNREACHABLE();
+    return 0;
+}
+
+constexpr Bitboard pseudo_attacks_bb(const Square s, const Piece pc) noexcept {
     assert(is_ok(s));
 
     switch (type_of(pc))
     {
     case PAWN :
-        return attacks_bb<PAWN>(s, color_of(pc));
+        return pseudo_attacks_bb<PAWN>(s, color_of(pc));
     case KNIGHT :
-        return attacks_bb<KNIGHT>(s);
+        return pseudo_attacks_bb<KNIGHT>(s);
     case BISHOP :
-        return attacks_bb<BISHOP>(s);
+        return pseudo_attacks_bb<BISHOP>(s);
     case ROOK :
-        return attacks_bb<ROOK>(s);
+        return pseudo_attacks_bb<ROOK>(s);
     case QUEEN :
-        return attacks_bb<QUEEN>(s);
+        return pseudo_attacks_bb<QUEEN>(s);
     case KING :
-        return attacks_bb<KING>(s);
+        return pseudo_attacks_bb<KING>(s);
     default :;
     }
     assert(false);
@@ -533,9 +560,9 @@ constexpr Bitboard attacks_bb(const Square                    s,
     assert(is_ok(s));
 
     if constexpr (PT == KNIGHT)
-        return attacks_bb<KNIGHT>(s);
+        return pseudo_attacks_bb<KNIGHT>(s);
     if constexpr (PT == KING)
-        return attacks_bb<KING>(s);
+        return pseudo_attacks_bb<KING>(s);
 
 #if defined(USE_DUAL_HYPERBOLA_QUINT)
     [[maybe_unused]] const auto [bAttacksBB, rAttacksBB] =
@@ -569,7 +596,7 @@ attacks_bb(const Square s, const PieceType pt, const Bitboard occupancyBB) noexc
     switch (pt)
     {
     case KNIGHT :
-        return attacks_bb<KNIGHT>(s);
+        return pseudo_attacks_bb<KNIGHT>(s);
     case BISHOP :
         return attacks_bb<BISHOP>(s, occupancyBB);
     case ROOK :
@@ -577,7 +604,7 @@ attacks_bb(const Square s, const PieceType pt, const Bitboard occupancyBB) noexc
     case QUEEN :
         return attacks_bb<QUEEN>(s, occupancyBB);
     case KING :
-        return attacks_bb<KING>(s);
+        return pseudo_attacks_bb<KING>(s);
     default :;
     }
     assert(false);
@@ -588,14 +615,12 @@ attacks_bb(const Square s, const PieceType pt, const Bitboard occupancyBB) noexc
 constexpr Bitboard attacks_bb(const Square s, const Piece pc, const Bitboard occupancyBB) noexcept {
     assert(is_ok(s));
 
-    if (type_of(pc) == PAWN)
-        return attacks_bb<PAWN>(s, color_of(pc));
-
-    return attacks_bb(s, type_of(pc), occupancyBB);
+    return type_of(pc) == PAWN ? pseudo_attacks_bb<PAWN>(s, color_of(pc))
+                               : attacks_bb(s, type_of(pc), occupancyBB);
 }
 
 constexpr std::pair<Bitboard, Bitboard> attacks_bb_pair(const Square s) noexcept {
-    return {attacks_bb<BISHOP>(s), attacks_bb<ROOK>(s)};
+    return {pseudo_attacks_bb<BISHOP>(s), pseudo_attacks_bb<ROOK>(s)};
 }
 
 inline std::pair<Bitboard, Bitboard> attacks_bb_pair(const Square   s,

@@ -2075,13 +2075,13 @@ inline std::string error_to_string(DWORD errorId) noexcept {
     return message;
 }
 
-inline constexpr HANDLE INVALID_HANDLE = nullptr;
+inline constexpr HANDLE HANDLE_INVALID = nullptr;
 
 [[nodiscard]] constexpr bool is_valid_handle(HANDLE handle) noexcept {
-    return handle != INVALID_HANDLE && handle != INVALID_HANDLE_VALUE;
+    return handle != HANDLE_INVALID && handle != INVALID_HANDLE_VALUE;
 }
 
-inline constexpr void* INVALID_MMAP_PTR = nullptr;
+inline constexpr void* MMAP_PTR_INVALID = nullptr;
 
 struct HandleGuard final {
    public:
@@ -2102,7 +2102,7 @@ struct HandleGuard final {
 
     [[nodiscard]] HANDLE get() const noexcept { return handle; }
 
-    void reset(HANDLE newHandle = INVALID_HANDLE) noexcept {
+    void reset(HANDLE newHandle = HANDLE_INVALID) noexcept {
         if (handle != newHandle)
         {
             if (is_valid())
@@ -2112,7 +2112,7 @@ struct HandleGuard final {
         }
     }
 
-    void dismiss() noexcept { handle = INVALID_HANDLE; }
+    void dismiss() noexcept { handle = HANDLE_INVALID; }
 
    private:
     HANDLE& handle;
@@ -2133,11 +2133,11 @@ struct MMapGuard final {
 
     ~MMapGuard() noexcept { reset(); }
 
-    [[nodiscard]] bool is_valid() const noexcept { return mappedPtr != INVALID_MMAP_PTR; }
+    [[nodiscard]] bool is_valid() const noexcept { return mappedPtr != MMAP_PTR_INVALID; }
 
     [[nodiscard]] void* get() const noexcept { return mappedPtr; }
 
-    void reset(void* newPtr = INVALID_MMAP_PTR) noexcept {
+    void reset(void* newPtr = MMAP_PTR_INVALID) noexcept {
         if (mappedPtr != newPtr)
         {
             if (is_valid())
@@ -2147,7 +2147,7 @@ struct MMapGuard final {
         }
     }
 
-    void dismiss() noexcept { mappedPtr = INVALID_MMAP_PTR; }
+    void dismiss() noexcept { mappedPtr = MMAP_PTR_INVALID; }
 
    private:
     void*& mappedPtr;
@@ -2262,7 +2262,7 @@ auto try_with_windows_lock_memory_privilege([[maybe_unused]] SuccessFunc&& succe
     if (!advapi.load())
         return failureFunc();
 
-    HANDLE hProcess = INVALID_HANDLE;
+    HANDLE hProcess = HANDLE_INVALID;
 
     HandleGuard hProcessGuard{hProcess};
 
@@ -2304,12 +2304,12 @@ auto try_with_windows_lock_memory_privilege([[maybe_unused]] SuccessFunc&& succe
 
 #else
 
-inline constexpr int INVALID_FD = -1;
+inline constexpr int FD_INVALID = -1;
 
-[[nodiscard]] constexpr bool is_valid_fd(int fd) noexcept { return fd > INVALID_FD; }
+[[nodiscard]] constexpr bool is_valid_fd(int fd) noexcept { return fd > FD_INVALID; }
 
-inline constexpr void* INVALID_MMAP_PTR  = nullptr;
-inline constexpr usize INVALID_MMAP_SIZE = 0;
+inline constexpr void* MMAP_PTR_INVALID  = nullptr;
+inline constexpr usize MMAP_SIZE_INVALID = 0;
 
 struct FdGuard final {
    public:
@@ -2330,7 +2330,7 @@ struct FdGuard final {
 
     [[nodiscard]] int get() const noexcept { return fd; }
 
-    void reset(int newFd = INVALID_FD) noexcept {
+    void reset(int newFd = FD_INVALID) noexcept {
         if (fd != newFd)
         {
             if (is_valid())
@@ -2340,7 +2340,7 @@ struct FdGuard final {
         }
     }
 
-    void dismiss() noexcept { fd = INVALID_FD; }
+    void dismiss() noexcept { fd = FD_INVALID; }
 
    private:
     int& fd;
@@ -2362,13 +2362,13 @@ struct MMapGuard final {
 
     ~MMapGuard() noexcept { reset(); }
 
-    [[nodiscard]] bool is_valid() const noexcept { return mappedPtr != INVALID_MMAP_PTR; }
+    [[nodiscard]] bool is_valid() const noexcept { return mappedPtr != MMAP_PTR_INVALID; }
 
     [[nodiscard]] void* get_ptr() const noexcept { return mappedPtr; }
 
     [[nodiscard]] usize get_size() const noexcept { return mappedSize; }
 
-    void reset(void* newPtr = INVALID_MMAP_PTR, usize newSize = INVALID_MMAP_SIZE) noexcept {
+    void reset(void* newPtr = MMAP_PTR_INVALID, usize newSize = MMAP_SIZE_INVALID) noexcept {
         if (mappedPtr != newPtr)
         {
             if (is_valid())
@@ -2380,8 +2380,8 @@ struct MMapGuard final {
     }
 
     void dismiss() noexcept {
-        mappedPtr  = INVALID_MMAP_PTR;
-        mappedSize = INVALID_MMAP_SIZE;
+        mappedPtr  = MMAP_PTR_INVALID;
+        mappedSize = MMAP_SIZE_INVALID;
     }
 
    private:
@@ -2419,9 +2419,9 @@ struct UniqueFd final {
 
     [[nodiscard]] explicit operator bool() const noexcept { return is_valid(); }
 
-    [[nodiscard]] int release() noexcept { return std::exchange(fd, INVALID_FD); }
+    [[nodiscard]] int release() noexcept { return std::exchange(fd, FD_INVALID); }
 
-    void reset(int newFd = INVALID_FD) noexcept {
+    void reset(int newFd = FD_INVALID) noexcept {
         if (fd != newFd)
         {
             if (is_valid())
@@ -2432,7 +2432,7 @@ struct UniqueFd final {
     }
 
    private:
-    int fd = INVALID_FD;
+    int fd = FD_INVALID;
 };
 
 #endif

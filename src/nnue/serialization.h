@@ -33,10 +33,10 @@
 namespace DON::NNUE {
 
 // LEB128 constants
-inline constexpr u8    LEB128_DATA_MASK = 0x7F;           // 7 data bits
-inline constexpr u8    LEB128_MORE_BIT  = 0x80;           // Continuation bit
-inline constexpr u8    LEB128_SIGN_BIT  = 0x40;           // Sign bit of 7-bit group
-inline constexpr usize LEB128_BITS      = BYTE_BITS - 1;  // 7 bits per group
+inline constexpr u8 LEB128_DATA_MASK = 0x7F;           // 7 data bits
+inline constexpr u8 LEB128_MORE_BIT  = 0x80;           // Continuation bit
+inline constexpr u8 LEB128_SIGN_BIT  = 0x40;           // Sign bit of 7-bit group
+inline constexpr u8 LEB128_BITS      = BYTE_BITS - 1;  // 7 bits per group
 
 inline constexpr std::string_view LEB128_MAGIC_STRING{"COMPRESSED_LEB128"};
 
@@ -153,22 +153,20 @@ inline void _read_leb_128(std::istream& is,
 
     using UIntType = std::make_unsigned_t<IntType>;
 
-    IntType value = 0;
+    UIntType value = 0;
 
-    usize shift = 0;
+    u8 shift = 0;
 
-    usize i = 0;
-
-    while (i < Size)
+    for (usize i = 0; i < Size;)
     {
         // Refill buffer if needed
         if (bufferIdx == buffer.size())
         {
-            is.read(reinterpret_cast<char*>(buffer.data()), std::min(bufferIdx, byteCount));
+            is.read(reinterpret_cast<char*>(buffer.data()),
+                    std::min<usize>(byteCount, buffer.size()));
             bufferIdx = 0;
 
             auto bytesRead = is.gcount();
-
             if (bytesRead == 0)
                 break;  // EOF or error - stop decoding
         }
@@ -183,23 +181,19 @@ inline void _read_leb_128(std::istream& is,
         ++bufferIdx;
         --byteCount;
 
-        value |= IntType(b & LEB128_DATA_MASK) << shift;
+        value |= UIntType(b & LEB128_DATA_MASK) << shift;
         shift += LEB128_BITS;
 
         // Last byte: no continuation bit
         if ((b & LEB128_MORE_BIT) == 0)
         {
             // Sign-extend if negative (sign bit set and not all bits filled)
-            bool signExtendNeeded = (b & LEB128_SIGN_BIT) != 0  //
-                                 && (shift < sizeof(IntType) * BYTE_BITS);
+            const bool signExtendNeeded = (b & LEB128_SIGN_BIT) != 0  //
+                                       && (shift < sizeof(IntType) * BYTE_BITS);
             if (signExtendNeeded)
-            {
-                UIntType mask = ~UIntType(0);  // All bits set, unsigned
-                mask <<= shift;                // Shift unsigned (safe!)
-                value |= IntType(mask);        // Cast AFTER shift
-            }
+                value |= static_cast<UIntType>(-1) << shift;
 
-            out[i] = value;
+            out[i] = static_cast<IntType>(value);
 
             value = 0;
             shift = 0;
@@ -263,7 +257,7 @@ inline void write_leb_128(std::ostream& os, const IntType* in, const usize Size)
     // Write LEB128 magic string
     os.write(LEB128_MAGIC_STRING.data(), LEB128_MAGIC_STRING.size());
 
-    usize byteCount = 0;
+    u32 byteCount = 0;
     for (usize i = 0; i < Size; ++i)
     {
         IntType value = in[i];
@@ -271,7 +265,7 @@ inline void write_leb_128(std::ostream& os, const IntType* in, const usize Size)
         bool done;
         do
         {
-            const u8 b = value & LEB128_DATA_MASK;
+            const u8 b = static_cast<u8>(value) & LEB128_DATA_MASK;
             value >>= LEB128_BITS;
             done = (b & LEB128_SIGN_BIT) == 0 ? value == 0    // Positive: done when 0
                                               : value == -1;  // Negative: done when -1
@@ -279,13 +273,13 @@ inline void write_leb_128(std::ostream& os, const IntType* in, const usize Size)
         } while (!done);
     }
 
-    write_little_endian(os, static_cast<u32>(byteCount));
+    write_little_endian(os, byteCount);
 
     Array<u8, 4096> buffer;
 
-    usize bufferIdx = 0;
+    u32 bufferIdx = 0;
 
-    const auto flush = [&]() noexcept {
+    const auto flush = [&os, &buffer, &bufferIdx]() noexcept {
         if (bufferIdx == 0)
             return;
 

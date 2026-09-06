@@ -202,7 +202,7 @@ static_assert(sizeof(SparseEntry) == 6, "SparseEntry size must be 6 bytes");
 
 using Sym = u16;  // Huffman symbol
 
-constexpr Sym INVALID_SYM = 0xFFF;
+constexpr Sym SYM_INVALID = 0xFFF;
 
 struct LR final {
    public:
@@ -210,7 +210,8 @@ struct LR final {
     constexpr Sym get() const noexcept {
         if constexpr (Left)
             return ((data[1] & 0xF) << 8) | data[0];
-        return (data[2] << 4) | (data[1] >> 4);
+        else
+            return (data[2] << 4) | (data[1] >> 4);
     }
 
     // First 12 bits is the left-hand symbol, second 12 bits is the right-hand symbol.
@@ -344,7 +345,7 @@ struct PairsData final {
 
         Sym rSym = btree[s].get<false>();
 
-        if (rSym == INVALID_SYM)
+        if (rSym == SYM_INVALID)
             return 0;
 
         Sym lSym = btree[s].get<true>();
@@ -561,14 +562,14 @@ struct TBTable final: BaseTBTable {
    private:
     Array<PairsData, Sides, FILE_NB / 2> items;  // [color][FILE_A..FILE_D]
     #if defined(_WIN32)
-    HANDLE      hMapFile = INVALID_HANDLE;
+    HANDLE      hMapFile = HANDLE_INVALID;
     HandleGuard hMapFileGuard{hMapFile};
 
-    void*     mappedPtr = INVALID_MMAP_PTR;
+    void*     mappedPtr = MMAP_PTR_INVALID;
     MMapGuard mappedGuard{mappedPtr};
     #else
-    void*     mappedPtr  = INVALID_MMAP_PTR;
-    usize     mappedSize = INVALID_MMAP_SIZE;
+    void*     mappedPtr  = MMAP_PTR_INVALID;
+    usize     mappedSize = MMAP_SIZE_INVALID;
     MMapGuard mappedGuard{mappedPtr, mappedSize};
     #endif
     u8*      mapPtr = nullptr;
@@ -1787,7 +1788,7 @@ void init() noexcept {
             {
                 for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
                 {
-                    if (((Attacks::attacks_bb<KING>(s1) | s1) & s2) != 0)
+                    if (((Attacks::pseudo_attacks_bb<KING>(s1) | s1) & s2) != 0)
                         continue;  // Illegal position
 
                     else if (off_A1H8(s1) == 0 && off_A1H8(s2) > 0)

@@ -130,7 +130,7 @@ enum Square : u8 {
     SQ_A7, SQ_B7, SQ_C7, SQ_D7, SQ_E7, SQ_F7, SQ_G7, SQ_H7,
     SQ_A8, SQ_B8, SQ_C8, SQ_D8, SQ_E8, SQ_F8, SQ_G8, SQ_H8,
     SQ_NONE,
-    SQUARE_ZERO = 0
+    SQ_ZERO = 0
 };
 
 inline constexpr usize SQUARE_NB = 64;
@@ -782,11 +782,11 @@ struct DirtyThreats final {
         Threat() noexcept = default;
         constexpr explicit Threat(const u32 d) noexcept :
             data(d) {}
-        constexpr Threat(const Square sq,
-                         const Square threatenedSq,
-                         const Piece  pc,
+        constexpr Threat(const bool   add,
                          const Piece  threatenedPc,
-                         const bool   add) noexcept :
+                         const Piece  pc,
+                         const Square threatenedSq,
+                         const Square sq) noexcept :
             data((u32(add) << AddShift)                      //
                  | (u32(threatenedPc) << ThreatenedPcShift)  //
                  | (u32(pc) << PcShift)                      //
@@ -813,12 +813,12 @@ struct DirtyThreats final {
         u32 data;
     };
 
-    void add(const Square sq,
-             const Square threatenedSq,
-             const Piece  pc,
+    void add(const bool   put,
              const Piece  threatenedPc,
-             const bool   put) noexcept {
-        threats_.emplace_back(sq, threatenedSq, pc, threatenedPc, put);
+             const Piece  pc,
+             const Square threatenedSq,
+             const Square sq) noexcept {
+        threats_.emplace_back(put, threatenedPc, pc, threatenedSq, sq);
     }
 
     [[nodiscard]] const Threat* begin() const noexcept { return threats_.begin(); }

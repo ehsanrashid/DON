@@ -141,7 +141,7 @@ Move* splat_moves(Square orgSq, Bitboard dstBB, Move* RESTRICT moves) noexcept {
     const u8 count = popcount(dstBB);
     assert(count <= 32);  // Q can attack up to 27 squares
 
-    const __m512i orgVec     = _mm512_set1_epi16(Move(orgSq, SQUARE_ZERO).raw());
+    const __m512i orgVec     = _mm512_set1_epi16(Move(orgSq, SQ_ZERO).raw());
     const __m512i dstSquares = _mm512_cvtepi8_epi16(_mm512_castsi512_si256(_mm512_maskz_compress_epi8(dstBB, ALL_SQUARES)));
 
     __m512i      packedMoves = _mm512_or_si512(orgVec, _mm512_slli_epi16(dstSquares, Move::DstSqShift));
@@ -258,7 +258,8 @@ Move* generate_pawns_moves(const Position& pos,
             // An en-passant capture cannot resolve a discovered check
             assert(!Evasion || (targetBB & (pos.en_passant_sq() + Push1)) == 0);
 
-            Bitboard epPawnsBB = notR7PawnsBB & Attacks::attacks_bb<PAWN>(pos.en_passant_sq(), ~AC);
+            Bitboard epPawnsBB =
+              notR7PawnsBB & Attacks::pseudo_attacks_bb<~AC>(pos.en_passant_sq());
             assert(epPawnsBB != 0);
 
             while (epPawnsBB != 0)
@@ -327,7 +328,8 @@ Move* generate_king_moves(const Position& pos,
 
     const Square kingSq = pos.square<KING>(AC);
 
-    Bitboard dstBB = Attacks::attacks_bb<KING>(kingSq) & ~pos.acc_attacks_bb<KING>() & targetBB;
+    Bitboard dstBB =
+      Attacks::pseudo_attacks_bb<KING>(kingSq) & ~pos.acc_attacks_bb<KING>() & targetBB;
 
     while (dstBB != 0)
     {

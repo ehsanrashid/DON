@@ -262,9 +262,9 @@ class BackendSharedMemory final {
 
     BackendSharedMemory(BackendSharedMemory&& backendShm) noexcept :
         name_(std::move(backendShm.name_)),
-        hMapFile(std::exchange(backendShm.hMapFile, INVALID_HANDLE)),
+        hMapFile(std::exchange(backendShm.hMapFile, HANDLE_INVALID)),
         hMapFileGuard{hMapFile},
-        mappedPtr(std::exchange(backendShm.mappedPtr, INVALID_MMAP_PTR)),
+        mappedPtr(std::exchange(backendShm.mappedPtr, MMAP_PTR_INVALID)),
         mappedGuard{mappedPtr},
         status(std::exchange(backendShm.status, Status::NotInitialized)) {
         //DEBUG_LOG("Moving shared memory, name: " << name());
@@ -276,8 +276,8 @@ class BackendSharedMemory final {
         destroy();
 
         name_     = std::move(backendShm.name_);
-        hMapFile  = std::exchange(backendShm.hMapFile, INVALID_HANDLE);
-        mappedPtr = std::exchange(backendShm.mappedPtr, INVALID_MMAP_PTR);
+        hMapFile  = std::exchange(backendShm.hMapFile, HANDLE_INVALID);
+        mappedPtr = std::exchange(backendShm.mappedPtr, MMAP_PTR_INVALID);
         status    = std::exchange(backendShm.status, Status::NotInitialized);
 
         //DEBUG_LOG("Moving shared memory, name: " << name());
@@ -291,7 +291,7 @@ class BackendSharedMemory final {
 
     [[nodiscard]] bool is_valid() const noexcept { return status == Status::Success; }
 
-    [[nodiscard]] void* get() const noexcept { return is_valid() ? mappedPtr : INVALID_MMAP_PTR; }
+    [[nodiscard]] void* get() const noexcept { return is_valid() ? mappedPtr : MMAP_PTR_INVALID; }
 
     [[nodiscard]] SharedMemoryAllocationStatus get_status() const noexcept {
         return status == Status::Success ? SharedMemoryAllocationStatus::SharedMemory
@@ -344,7 +344,7 @@ class BackendSharedMemory final {
                                        PAGE_READWRITE | SEC_COMMIT | SEC_LARGE_PAGES,  //
                                        hiTotalSize, loTotalSize, name().data());
           },
-          []() { return INVALID_HANDLE; });
+          []() { return HANDLE_INVALID; });
 
         // Fallback to normal allocation if no large page available
         if (!hMapFileGuard.is_valid())
@@ -449,9 +449,9 @@ class BackendSharedMemory final {
     };
 
     std::string name_;
-    HANDLE      hMapFile = INVALID_HANDLE;
+    HANDLE      hMapFile = HANDLE_INVALID;
     HandleGuard hMapFileGuard{hMapFile};
-    void*       mappedPtr = INVALID_MMAP_PTR;
+    void*       mappedPtr = MMAP_PTR_INVALID;
     MMapGuard   mappedGuard{mappedPtr};
     Status      status = Status::NotInitialized;
 };

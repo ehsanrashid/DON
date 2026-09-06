@@ -295,6 +295,8 @@ void Worker::start_search() noexcept {
 
     std::string bestMove, ponderMove;
 
+    main_manager()->updateContext.onUpdateStart();
+
     if (rootMoves.empty())
     {
         FixedText score{
@@ -487,8 +489,8 @@ void Worker::iterative_deepening() noexcept {
         // Set sentinel values
         // clang-format off
         (ss + i)->evalue                   = VALUE_NONE;
-        (ss + i)->pieceSqHistory           = &atomicHistories.continuation_history()[0][0][+Piece::NO_PIECE][SQUARE_ZERO];
-        (ss + i)->pieceSqCorrectionHistory = &continuationCorrectionHistory[+Piece::NO_PIECE][SQUARE_ZERO];
+        (ss + i)->pieceSqHistory           = &atomicHistories.continuation_history()[0][0][+Piece::NO_PIECE][SQ_ZERO];
+        (ss + i)->pieceSqCorrectionHistory = &continuationCorrectionHistory[+Piece::NO_PIECE][SQ_ZERO];
         // clang-format on
     }
 
@@ -2106,8 +2108,8 @@ void Worker::do_null_move(Position& pos, State& st, Stack* const ss) noexcept {
     pos.do_null_move(st);
     // clang-format off
     ss->move                     = Move::Null;
-    ss->pieceSqHistory           = &atomicHistories.continuation_history()[0][0][+Piece::NO_PIECE][SQUARE_ZERO];
-    ss->pieceSqCorrectionHistory = &continuationCorrectionHistory[+Piece::NO_PIECE][SQUARE_ZERO];
+    ss->pieceSqHistory           = &atomicHistories.continuation_history()[0][0][+Piece::NO_PIECE][SQ_ZERO];
+    ss->pieceSqCorrectionHistory = &continuationCorrectionHistory[+Piece::NO_PIECE][SQ_ZERO];
     // clang-format on
 }
 

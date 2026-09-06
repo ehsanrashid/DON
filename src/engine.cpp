@@ -386,6 +386,10 @@ bool Engine::save_hash(const std::filesystem::path& hashFile) const noexcept {
     return transpositionTable.save(hashFile);
 }
 
+void Engine::set_on_update_start(MainSearchManager::OnUpdateStart&& f) noexcept {
+    updateContext.onUpdateStart = std::move(f);
+}
+
 void Engine::set_on_update_short(MainSearchManager::OnUpdateShort&& f) noexcept {
     updateContext.onUpdateShort = std::move(f);
 }
