@@ -907,10 +907,10 @@ ifeq ($(mmx),yes)
 endif
 
 ifeq ($(vsx),yes)
+    CXXFLAGS += -mvsx
     ifneq ($(filter gcc,$(COMP)),)
         CXXFLAGS += -DNO_WARN_X86_INTRINSICS -DUSE_SSE2
     endif
-    CXXFLAGS += -mvsx
 endif
 
 ifeq ($(altivec),yes)
