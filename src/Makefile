@@ -1056,7 +1056,10 @@ ifeq ($(optimize),yes)
                 LTO_FLAGS := -flto=full
             # Native GCC
             else
-                LTO_FLAGS   := -flto -flto-partition=one
+                LTO_FLAGS := -flto -flto-partition=one
+                ifneq ($(TARGET_KERNEL),Darwin)
+                    LTO_LDFLAGS := -flto=jobserver
+                endif
             endif
             ifeq ($(COMP),icx)
                 CXXFLAGS += -fwhole-program-vtables
