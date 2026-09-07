@@ -67,7 +67,7 @@ int main() {
         {
             // Create threads that sleep briefly so they stay alive for the test
             auto th = std::make_unique<NativeThread>(
-              []() { std::this_thread::sleep_for(std::chrono::milliseconds(50)); });
+              []() { std::this_thread::sleep_for(Ms(50)); });
 
             // For pthread wrapper, joinable() returns false when creation failed.
             if (!th->joinable())

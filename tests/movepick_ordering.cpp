@@ -258,7 +258,7 @@ int main() {
 
     auto std_t1 = std::chrono::high_resolution_clock::now();
 
-    auto stdTime = std::chrono::duration_cast<std::chrono::microseconds>(std_t1 - std_t0).count();
+    auto stdTime = std::chrono::duration_cast<Us>(std_t1 - std_t0).count();
 
     std::cout << "std::upper_bound        time: " << stdTime << " ms\n";
 
@@ -279,7 +279,7 @@ int main() {
 
     auto exp_t1 = std::chrono::high_resolution_clock::now();
 
-    auto expTime = std::chrono::duration_cast<std::chrono::microseconds>(exp_t1 - exp_t0).count();
+    auto expTime = std::chrono::duration_cast<Us>(exp_t1 - exp_t0).count();
 
     std::cout << "exponential_upper_bound time: " << expTime << " ms\n";
 

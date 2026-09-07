@@ -36,9 +36,6 @@
 
 namespace DON {
 
-using Clock = std::chrono::steady_clock;
-using ms    = std::chrono::milliseconds;
-
 namespace {
 
 enum class Command : u8 {
@@ -527,13 +524,13 @@ void UCI::bench(std::istream& is) noexcept {
     Debug::clear();
 #endif
 
-    Clock::time_point startTime;
-    Clock::duration   totalDuration{0};
+    SteadyClock::time_point startTime;
+    SteadyClock::duration   totalDuration{0};
 
     u64 nodes = 0, totalNodes = 0;
 
     engine.set_on_update_start([&startTime, &nodes]() noexcept {
-        startTime = Clock::now();
+        startTime = SteadyClock::now();
         nodes     = 0;
     });
     engine.set_on_update_full([&nodes](const auto& info) noexcept {
@@ -542,7 +539,7 @@ void UCI::bench(std::istream& is) noexcept {
     });
     engine.set_on_update_move(
       [&startTime, &totalDuration, &nodes, &totalNodes](const auto&) noexcept {
-          totalDuration += Clock::now() - startTime;
+          totalDuration += SteadyClock::now() - startTime;
           totalNodes += nodes;
       });
 
@@ -568,9 +565,9 @@ void UCI::bench(std::istream& is) noexcept {
 
             if (limit.perft)
             {
-                startTime = Clock::now();
+                startTime = SteadyClock::now();
                 nodes     = perft(limit.depth, limit.detail);
-                totalDuration += Clock::now() - startTime;
+                totalDuration += SteadyClock::now() - startTime;
                 totalNodes += nodes;
             }
             else
@@ -600,7 +597,7 @@ void UCI::bench(std::istream& is) noexcept {
 
     // Ensure non-zero to avoid a 'divide by zero'
     const auto totalTimeMs =
-      std::max<i64>(std::chrono::duration_cast<ms>(totalDuration).count(), 1);
+      std::max<i64>(std::chrono::duration_cast<Ms>(totalDuration).count(), 1);
 
 #if !defined(NDEBUG)
     Debug::print();
@@ -705,19 +702,19 @@ void UCI::benchmark(std::istream& is) noexcept {
 
     const auto avg = [&hashfullCount](u32 x) noexcept { return double(x) / hashfullCount; };
 
-    Clock::time_point startTime;
-    Clock::duration   totalDuration{0};
+    SteadyClock::time_point startTime;
+    SteadyClock::duration   totalDuration{0};
 
     u64 nodes = 0, totalNodes = 0;
 
     engine.set_on_update_start([&startTime, &nodes]() noexcept {
-        startTime = Clock::now();
+        startTime = SteadyClock::now();
         nodes     = 0;
     });
     engine.set_on_update_full([&nodes](const auto& info) noexcept { nodes = info.nodes; });
     engine.set_on_update_move(
       [&startTime, &totalDuration, &nodes, &totalNodes](const auto&) noexcept {
-          totalDuration += Clock::now() - startTime;
+          totalDuration += SteadyClock::now() - startTime;
           totalNodes += nodes;
       });
 
@@ -760,7 +757,7 @@ void UCI::benchmark(std::istream& is) noexcept {
 
     // Ensure non-zero to avoid a 'divide by zero'
     const auto totalTimeMs =
-      std::max<i64>(std::chrono::duration_cast<ms>(totalDuration).count(), 1);
+      std::max<i64>(std::chrono::duration_cast<Ms>(totalDuration).count(), 1);
 
 #if !defined(NDEBUG)
     Debug::print();

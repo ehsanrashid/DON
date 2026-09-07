@@ -596,10 +596,10 @@ void Threads::start(Position&      pos,
     auto& clock = limit.clocks[pos.active_color()];
 
     // If time manager is active, don't use more than 5% of clock time
-    const auto startTime = std::chrono::steady_clock::now();
+    const auto startTime = SteadyClock::now();
 
     auto time_to_abort = [&]() noexcept -> bool {
-        const auto endTime = std::chrono::steady_clock::now();
+        const auto endTime = SteadyClock::now();
         return limit.use_time_manager()
             && (options["NodesTime"] != 0
                 || std::chrono::duration<double, std::milli>(endTime - startTime).count()

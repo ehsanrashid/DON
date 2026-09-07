@@ -442,10 +442,10 @@ std::string compiler_info() noexcept {
     return compiler;
 }
 
-std::string format_time(const std::chrono::system_clock::time_point& timePoint) noexcept {
+std::string format_time(const SystemClock::time_point& timePoint) noexcept {
     // clang-format off
-    std::time_t time = std::chrono::system_clock::to_time_t(timePoint);
-    u64 usec         = std::chrono::duration_cast<std::chrono::microseconds>(timePoint.time_since_epoch()).count() % 1000000;
+    std::time_t time = SystemClock::to_time_t(timePoint);
+    u64 usec         = std::chrono::duration_cast<Us>(timePoint.time_since_epoch()).count() % 1000000;
 
     std::tm tm{};
 #if defined(_WIN32)  // Windows

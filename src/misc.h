@@ -566,16 +566,19 @@ template<PrefetchAccess Access = PrefetchAccess::READ, PrefetchLoc Loc = Prefetc
 inline void prefetch(const void*) noexcept {}
 #endif
 
-using TimePoint = std::chrono::milliseconds::rep;  // A value in milliseconds
+using SteadyClock = std::chrono::steady_clock;
+using SystemClock = std::chrono::system_clock;
+using Us          = std::chrono::microseconds;
+using Ms          = std::chrono::milliseconds;
+
+using TimePoint = Ms::rep;  // A value in milliseconds
 static_assert(sizeof(TimePoint) == sizeof(i64), "TimePoint size must be 8 bytes");
 
 inline TimePoint now() noexcept {
-    return std::chrono::duration_cast<std::chrono::milliseconds>(
-             std::chrono::steady_clock::now().time_since_epoch())
-      .count();
+    return std::chrono::duration_cast<Ms>(SteadyClock::now().time_since_epoch()).count();
 }
 
-std::string format_time(const std::chrono::system_clock::time_point& timePoint) noexcept;
+std::string format_time(const SystemClock::time_point& timePoint) noexcept;
 
 struct IndexRange final {
    public:
@@ -1741,7 +1744,7 @@ class Logger final {
         if (!ofs)
             return;
 
-        ofs << '[' << format_time(std::chrono::system_clock::now()) << "] " << suffix << std::endl;
+        ofs << '[' << format_time(SystemClock::now()) << "] " << suffix << std::endl;
     }
 
     // Open log file; caller must hold mutex
