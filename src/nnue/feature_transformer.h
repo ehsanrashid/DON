@@ -20,12 +20,14 @@
 
 #include <algorithm>
 #include <array>
-#include <cassert>
 #include <cstring>
 #include <functional>
 #include <iosfwd>
-#include <type_traits>
-#include <utility>
+#include <memory>
+
+#if defined(USE_RVV)
+    #include <type_traits>
+#endif
 
 #include "../memory.h"
 #include "../misc.h"
@@ -368,8 +370,7 @@ class FeatureTransformer final {
 
             const IndexType maxVL = __riscv_vsetvlmax_e8m1();
 
-            const auto rvv_propagate = [&]<typename T>(T vid)
-            {
+            const auto rvv_propagate = [&](auto vid) {
                 const auto& accp = accumulation[perspectives[p]];
 
                 for (IndexType i = 0, vl; i < HalfDimensions / 2; i += vl)
@@ -394,7 +395,7 @@ class FeatureTransformer final {
                     const unsigned cnt = __riscv_vcpop(m, vl);
 
                     vuint16m2_t vidx;
-                    if constexpr (std::is_same_v<T, vuint8m1_t>)
+                    if constexpr (std::is_same_v<decltype(vid), vuint8m1_t>)
                         vidx = __riscv_vzext_vf2(__riscv_vcompress(vid, m, vl), cnt);
                     else
                         vidx = __riscv_vcompress(vid, m, vl);
@@ -435,6 +436,8 @@ class FeatureTransformer final {
     alignas(CACHE_LINE_SIZE) Array<BiasType, HalfDimensions> biases;
     // clang-format on
 };
+
+int loop();
 
 }  // namespace DON::NNUE
 
