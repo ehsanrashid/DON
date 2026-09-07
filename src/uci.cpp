@@ -264,9 +264,7 @@ void UCI::execute(std::string_view command) noexcept {
     std::istream is{&svBuf};
 
     std::string token;
-    is >> token;
-
-    if (token.empty())
+    if (!(is >> token))
         return;
 
     switch (to_command(lower_case(token)))
@@ -551,9 +549,7 @@ void UCI::bench(std::istream& is) noexcept {
         std::istringstream iss{command};
 
         std::string token;
-        iss >> token;
-
-        if (token.empty())
+        if (!(iss >> token))
             continue;
 
         switch (to_command(lower_case(token)))
@@ -609,9 +605,9 @@ void UCI::bench(std::istream& is) noexcept {
               << "\nTotal nodes     : " << totalNodes   //
               << "\nnodes/second    : " << totalNodes * 1000 / totalTimeMs << std::endl;
 
-    options().set("MinimalInfo", minimalInfo);
     // Reset callback, to not capture a dangling reference
     set_update_callbacks();
+    options().set("MinimalInfo", minimalInfo);
 }
 
 void UCI::benchmark(std::istream& is) noexcept {
@@ -645,9 +641,7 @@ void UCI::benchmark(std::istream& is) noexcept {
         std::istringstream iss{command};
 
         std::string token;
-        iss >> token;
-
-        if (token.empty())
+        if (!(iss >> token))
             continue;
 
         switch (to_command(lower_case(token)))
@@ -726,9 +720,7 @@ void UCI::benchmark(std::istream& is) noexcept {
         std::istringstream iss{command};
 
         std::string token;
-        iss >> token;
-
-        if (token.empty())
+        if (!(iss >> token))
             continue;
 
         switch (to_command(lower_case(token)))
