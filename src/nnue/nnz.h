@@ -110,8 +110,13 @@ struct NNZ final {
 
     Cursor make_cursor(Color perspective) noexcept { return {*this, perspective}; }
 
-    // indices of non-zero chunks
+    // Indices of non-zero chunks
     u16      bitset[Dimensions / 4];
+    unsigned count = 0;
+
+#elif defined(USE_RVV)
+    // Indices of non-zero chunks
+    u16      bitset[Dimensions];
     unsigned count = 0;
 
 #else

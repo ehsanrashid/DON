@@ -218,12 +218,12 @@ class FeatureTransformer final {
     // clang-format off
 
     // Convert input features
-    i32 transform(const Position&                pos,
-                  AccumulatorCache&              accCache,
-                  AccumulatorStack&              accStack,
-                  usize                          bucket,
-                  NNZ<OutputDimensions>&         nnz,
-                  Array<OutputType, BufferSize>& output) const noexcept {
+    i32 transform(const Position&                         pos,
+                  AccumulatorCache&                       accCache,
+                  AccumulatorStack&                       accStack,
+                  const usize                             bucket,
+                  [[maybe_unused]] NNZ<OutputDimensions>& nnz,
+                  Array<OutputType, BufferSize>&          output) const noexcept {
 
         accStack.evaluate(pos, *this, accCache);
 
@@ -242,9 +242,9 @@ class FeatureTransformer final {
         {
             IndexType offset = p * (HalfDimensions / 2);
 
+#if defined(VECTOR)
             [[maybe_unused]] auto cursor = nnz.make_cursor(p);
 
-#if defined(VECTOR)
             constexpr IndexType OutputChunkSize = MaxChunkSize;
             static_assert(HalfDimensions % (2 * OutputChunkSize) == 0);
             constexpr IndexType OutputChunkCount = HalfDimensions / (2 * OutputChunkSize);
@@ -365,30 +365,47 @@ class FeatureTransformer final {
             }
 
 #elif defined(USE_RVV)
-            for (IndexType i = 0; i < HalfDimensions / 2;)
+
+            usize VL = __riscv_vsetvlmax_e8m1();
+
+            vuint8m1_t  vid8;
+            vuint16m2_t vid16;
+            if (VL <= 256)
+                vid8 = __riscv_vid_v_u8m1(VL);
+            else
+                vid16 = __riscv_vid_v_u16m2(VL);
+
+            const auto& accp = accumulation[perspectives[p]];
+
+            for (IndexType i = 0, vl; i < HalfDimensions / 2; i += vl)
             {
-                const usize vl = __riscv_vsetvl_e16m8(HalfDimensions / 2 - i);
+                vl = __riscv_vsetvl_e16m2(HalfDimensions / 2 - i);
 
-                vint16m8_t acc0 = __riscv_vle16_v_i16m8(&accumulation[perspectives[p]][i], vl);
-                vint16m8_t acc1 = __riscv_vle16_v_i16m8(&accumulation[perspectives[p]][i + HalfDimensions / 2], vl);
+                vint16m8_t acc0 = __riscv_vle16_v_i16m2(&accp[i], vl);
+                vint16m8_t acc1 = __riscv_vle16_v_i16m2(&accp[i + HalfDimensions / 2], vl);
 
-                acc0 = __riscv_vmax_vx_i16m8(acc0, 0, vl);
-                acc1 = __riscv_vmax_vx_i16m8(acc1, 0, vl);
+                acc0 = __riscv_vmax(acc0, 0, vl);
+                acc1 = __riscv_vmax(acc1, 0, vl);
 
-                const vuint8m4_t p0 = __riscv_vnclipu_wx_u8m4(__riscv_vreinterpret_v_i16m8_u16m8(acc0), 0, __RISCV_VXRM_RDN, vl);
-                const vuint8m4_t p1 = __riscv_vnclipu_wx_u8m4(__riscv_vreinterpret_v_i16m8_u16m8(acc1), 0, __RISCV_VXRM_RDN, vl);
+                const vuint8m1_t p0 = __riscv_vnclipu(__riscv_vreinterpret_u16m2(acc0), 0, 0, vl);
+                const vuint8m1_t p1 = __riscv_vnclipu(__riscv_vreinterpret_u16m2(acc1), 0, 0, vl);
 
-                const vuint8m4_t hi     = __riscv_vmulhu_vv_u8m4(p0, p1, vl);
-                const vuint8m4_t scaled = __riscv_vsrl_vx_u8m4(hi, 1, vl);
+                vuint8m1_t hi     = __riscv_vmulhu(p0, p1, vl);
+                vuint8m1_t result = __riscv_vsrl(hi, 1, vl);
 
-                __riscv_vse8_v_u8m4(&output[offset + i], scaled, vl);
+                __riscv_vse8(&output[offset + i], result, vl);
 
-                // Record NNZ
-                usize    vl32 = vl / 4;
-                vbool8_t nnzMask = __riscv_vmsne_vx_u32m4_b8(__riscv_vreinterpret_v_u8m4_u32m4(scaled), 0, vl32);
-                __riscv_vsm_v_b8(cursor.nnzOut, nnzMask, vl32);
-                cursor.nnzOut += vl32 / 8;
-                i += vl;
+                const vbool8_t    m   = __riscv_vmsne(result, 0, vl);
+                const usize       cnt = __riscv_vcpop(m, vl);
+
+                vuint16m2_t vidx;
+                if (VL <= 256)
+                    vidx = __riscv_vzext_vf2(__riscv_vcompress(vid8, m, vl), cnt);
+                else
+                    vidx = __riscv_vcompress(vid16, m, vl);
+
+                __riscv_vse16(&nnz.bitset[nnz.count], __riscv_vadd(vidx, offset + i, cnt), cnt);
+                nnz.count += cnt;
             }
 
 #else
