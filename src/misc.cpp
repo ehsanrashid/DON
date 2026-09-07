@@ -22,10 +22,8 @@
 #include <ctime>
 
 #if defined(_WIN32)
-    #if !defined(NOMINMAX)
-        #define NOMINMAX
-    #endif
-    #include <shellapi.h>
+    #include "platform_win.h"  // GetCommandLineW()
+    #include <shellapi.h>      // CommandLineToArgvW()
 #endif
 
 namespace DON {
