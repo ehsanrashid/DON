@@ -302,45 +302,45 @@ class AffineTransform final {
     #undef vec_hadd
         }
 #elif defined(USE_RVV)
-        const i8* wIt = weights.data();
+        const i8* wPtr = weights.data();
 
-    #define RVV_PROPAGATE_SINGLE(m2, m1) \
+    #define RVV_SINGLE_PROPAGATE(m2, m1) \
         do \
         { \
             vint32m1_t     zero = __riscv_vmv_s_x_i32m1(0, 1); \
             usize          vl   = __riscv_vsetvl_e8##m1(InputDimensions); \
             vuint8##m1##_t in   = __riscv_vle8_v_u8##m1(input, vl); \
-            for (IndexType i = 0; i < OutputDimensions; ++i, wIt += PaddedInputDimensions) \
+            for (IndexType i = 0; i < OutputDimensions; ++i, wPtr += PaddedInputDimensions) \
             { \
-                vint8##m1##_t  w    = __riscv_vle8_v_i8##m1(wIt, vl); \
+                vint8##m1##_t  w    = __riscv_vle8_v_i8##m1(wPtr, vl); \
                 vint16##m2##_t prod = __riscv_vwmulsu(w, in, vl); \
                 output[i]           = biases[i] + __riscv_vmv_x(__riscv_vwredsum(prod, zero, vl)); \
             } \
         } while (false)
 
-        static usize VL1 = __riscv_vsetvlmax_e16m1();
-        if (InputDimensions <= VL1)
-            RVV_PROPAGATE_SINGLE(m1, mf2);
-        else if (InputDimensions <= VL1 * 2)
-            RVV_PROPAGATE_SINGLE(m2, m1);
-        else if (InputDimensions <= VL1 * 4)
-            RVV_PROPAGATE_SINGLE(m4, m2);
+        const IndexType maxVL = __riscv_vsetvlmax_e16m1();
+        if (maxVL >= InputDimensions)
+            RVV_SINGLE_PROPAGATE(m1, mf2);
+        else if (maxVL * 2 >= InputDimensions)
+            RVV_SINGLE_PROPAGATE(m2, m1);
+        else if (maxVL * 4 >= InputDimensions)
+            RVV_SINGLE_PROPAGATE(m4, m2);
         else
-            for (IndexType i = 0; i < OutputDimensions; ++i, wIt += PaddedInputDimensions)
+            for (IndexType i = 0; i < OutputDimensions; ++i, wPtr += PaddedInputDimensions)
             {
                 vint32m1_t sum = __riscv_vmv_s_x_i32m1(0, 1);
-                for (IndexType vl, j = 0; j < InputDimensions; j += vl)
+                for (IndexType j = 0, vl; j < InputDimensions; j += vl)
                 {
                     vl              = __riscv_vsetvl_e8m2(InputDimensions - j);
                     vuint8m2_t in   = __riscv_vle8_v_u8m2(input + j, vl);
-                    vint8m2_t  w    = __riscv_vle8_v_i8m2(wIt + j, vl);
+                    vint8m2_t  w    = __riscv_vle8_v_i8m2(wPtr + j, vl);
                     vint16m4_t prod = __riscv_vwmulsu(w, in, vl);
                     sum             = __riscv_vwredsum(prod, sum, vl);
                 }
                 output[i] = biases[i] + __riscv_vmv_x(sum);
             }
 
-    #undef RVV_PROPAGATE_SINGLE
+    #undef RVV_SINGLE_PROPAGATE
 
 #else
         // Use fallback implementation for the other architectures

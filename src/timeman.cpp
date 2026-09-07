@@ -171,7 +171,7 @@ void TimeManager::init(
     // clang-format on
 
     if (options["SleepOnStart"])
-        std::this_thread::sleep_for(std::chrono::milliseconds(optimumTime / 2));
+        std::this_thread::sleep_for(Ms(optimumTime / 2));
 
     if (options["Ponder"])
         optimumTime = constexpr_ceil(1.2500 * optimumTime);

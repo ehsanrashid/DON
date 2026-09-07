@@ -366,14 +366,10 @@ class FeatureTransformer final {
 
 #elif defined(USE_RVV)
 
-            usize VL = __riscv_vsetvlmax_e8m1();
+            const IndexType maxVL = __riscv_vsetvlmax_e8m1();
 
-            vuint8m1_t  vid8;
-            vuint16m2_t vid16;
-            if (VL <= 256)
-                vid8 = __riscv_vid_v_u8m1(VL);
-            else
-                vid16 = __riscv_vid_v_u16m2(VL);
+            vuint8m1_t  vid8  = __riscv_vid_v_u8m1(maxVL);
+            vuint16m2_t vid16 = __riscv_vid_v_u16m2(maxVL);
 
             const auto& accp = accumulation[perspectives[p]];
 
@@ -390,16 +386,16 @@ class FeatureTransformer final {
                 const vuint8m1_t p0 = __riscv_vnclipu(__riscv_vreinterpret_u16m2(acc0), 0, 0, vl);
                 const vuint8m1_t p1 = __riscv_vnclipu(__riscv_vreinterpret_u16m2(acc1), 0, 0, vl);
 
-                vuint8m1_t hi     = __riscv_vmulhu(p0, p1, vl);
-                vuint8m1_t result = __riscv_vsrl(hi, 1, vl);
+                const vuint8m1_t hi     = __riscv_vmulhu(p0, p1, vl);
+                const vuint8m1_t scaled = __riscv_vsrl(hi, 1, vl);
 
-                __riscv_vse8(&output[offset + i], result, vl);
+                __riscv_vse8(&output[offset + i], scaled, vl);
 
-                const vbool8_t    m   = __riscv_vmsne(result, 0, vl);
-                const usize       cnt = __riscv_vcpop(m, vl);
+                const vbool8_t m   = __riscv_vmsne(scaled, 0, vl);
+                const unsigned cnt = __riscv_vcpop(m, vl);
 
                 vuint16m2_t vidx;
-                if (VL <= 256)
+                if (maxVL <= 256)
                     vidx = __riscv_vzext_vf2(__riscv_vcompress(vid8, m, vl), cnt);
                 else
                     vidx = __riscv_vcompress(vid16, m, vl);

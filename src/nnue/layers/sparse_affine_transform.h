@@ -428,15 +428,15 @@ class SparseAffineTransform final {
     #define RVV_SPARSE_PROPAGATE(m1, m2, m4) \
         do \
         { \
-            usize          vl  = OutputDimensions; \
-            vint32##m4##_t acc = __riscv_vle32_v_i32##m4(biases, vl); \
+            IndexType      vl  = OutputDimensions; \
+            vint32##m4##_t acc = __riscv_vle32_v_i32##m4(biases.data(), vl); \
             IndexType      i   = 0; \
             for (; i + 1 < nnz.count; i += 2) \
             { \
-                usize         idx0 = nnz.bitset[i + 0]; \
-                usize         idx1 = nnz.bitset[i + 1]; \
-                uint8_t       in0  = input[idx0]; \
-                uint8_t       in1  = input[idx1]; \
+                u16           idx0 = nnz.bitset[i + 0]; \
+                u16           idx1 = nnz.bitset[i + 1]; \
+                u8            in0  = input[idx0]; \
+                u8            in1  = input[idx1]; \
                 vint8##m1##_t w0   = __riscv_vle8_v_i8##m1(&weights[idx0 * OutputDimensions], vl); \
                 vint8##m1##_t w1   = __riscv_vle8_v_i8##m1(&weights[idx1 * OutputDimensions], vl); \
                 /* input is in [0:127], weights is in [-128:127], so it's safe to accumulate into 16-bit twice */ \
@@ -446,8 +446,8 @@ class SparseAffineTransform final {
             } \
             if (i < nnz.count) \
             { \
-                usize          idx  = nnz.bitset[i]; \
-                uint8_t        in   = input[idx]; \
+                u16            idx  = nnz.bitset[i]; \
+                u8             in   = input[idx]; \
                 vint8##m1##_t  w    = __riscv_vle8_v_i8##m1(&weights[idx * OutputDimensions], vl); \
                 vint16##m2##_t prod = __riscv_vwmulsu(w, in, vl); \
                 acc                 = __riscv_vwadd_wv(acc, prod, vl); \
@@ -456,12 +456,12 @@ class SparseAffineTransform final {
         } while (false)
 
         // Select LMUL
-        const usize VL1 = __riscv_vsetvlmax_e32m1();
-        if (VL1 >= OutputDimensions)
+        const IndexType maxVL = __riscv_vsetvlmax_e32m1();
+        if (maxVL >= OutputDimensions)
             RVV_SPARSE_PROPAGATE(mf4, mf2, m1);
-        else if (VL1 * 2 >= OutputDimensions)
+        else if (maxVL * 2 >= OutputDimensions)
             RVV_SPARSE_PROPAGATE(mf2, m1, m2);
-        else if (VL1 * 4 >= OutputDimensions)
+        else if (maxVL * 4 >= OutputDimensions)
             RVV_SPARSE_PROPAGATE(m1, m2, m4);
         else
             RVV_SPARSE_PROPAGATE(m2, m4, m8);
