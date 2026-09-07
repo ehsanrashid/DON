@@ -115,6 +115,7 @@ void fallback_affine_transform(const Array<i32, OutputDimensions>&              
         }
 
         output[i] = biases[i] + __riscv_vmv_x_s_i32m1_i32(vsum);
+
     #endif
     }
 
