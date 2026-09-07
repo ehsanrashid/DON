@@ -89,7 +89,7 @@ class SparseAffineTransform final {
     }
 
     static constexpr IndexType weight_index(IndexType i) noexcept {
-#if defined(USE_SPARSE_AFFINE_SIMD)
+#if defined(USE_SPARSE_AFFINE_SIMD) || defined(USE_RVV)
         IndexType idx = i % PaddedInputDimensions;
         return idx / ChunkSize * OutputDimensions * ChunkSize
              + i / PaddedInputDimensions * ChunkSize + idx % ChunkSize;

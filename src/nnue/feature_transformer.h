@@ -22,6 +22,7 @@
 #include <array>
 #include <cstring>
 #include <functional>
+#include <initializer_list>
 #include <iosfwd>
 #include <memory>
 
@@ -29,16 +30,23 @@
     #include <type_traits>
 #endif
 
-#include "../memory.h"
 #include "../misc.h"
 #include "../position.h"
 #include "../types.h"
 #include "accumulator.h"
 #include "architecture.h"
-#include "nnz.h"
 #include "ntypes.h"
 #include "serialization.h"
 #include "simd.h"
+
+#if defined(VECTOR) || defined(USE_RVV)
+    #include "nnz.h"
+#else
+namespace DON::NNUE {
+template<usize Dimensions>
+struct NNZ;
+}
+#endif
 
 namespace DON::NNUE {
 
@@ -370,7 +378,7 @@ class FeatureTransformer final {
 
             const IndexType maxVL = __riscv_vsetvlmax_e8m1();
 
-            const auto rvv_propagate = [&](auto vid) {
+            const auto rvv_propagate = [&](auto vid) noexcept {
                 const auto& accp = accumulation[perspectives[p]];
 
                 for (IndexType i = 0, vl; i < HalfDimensions / 2; i += vl)
