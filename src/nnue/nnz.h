@@ -20,18 +20,17 @@
 
 #if defined(USE_SSSE3) || defined(USE_LSX)
     #include <cstring>
-#endif
-#if defined(USE_AVX512)
-    #include <initializer_list>
+    #if defined(USE_AVX512)
+        #include <initializer_list>
 
-    #include "../bitboard.h"
+        #include "../bitboard.h"
+    #endif
 #endif
 
 #include "../misc.h"
 #include "../types.h"
 
-#if defined(USE_AVX512) || defined(USE_SSSE3) || defined(USE_LSX) \
-  || (defined(USE_NEON) && USE_NEON >= 8)
+#if defined(USE_SSSE3) || defined(USE_LSX) || (defined(USE_NEON) && USE_NEON >= 8)
     #include "simd.h"
 #endif
 
