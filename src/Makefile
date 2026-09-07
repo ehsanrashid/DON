@@ -998,6 +998,12 @@ endif
 COMPILER_DATE := $(shell date +%Y%m%d 2>/dev/null)
 BUILD_DATE    := $(or $(GIT_DATE),$(COMPILER_DATE))
 
+ifndef BUILD_TIMESTAMP
+BUILD_TIMESTAMP := $(shell date '+%a %b %d %Y %H:%M:%S')
+endif
+export BUILD_TIMESTAMP
+BUILD_TIMESTAMP_FLAG := -DBUILD_TIMESTAMP='"$(BUILD_TIMESTAMP)"'
+
 define CACHE_FILE_IF_CHANGED
 $(shell \
     if [ ! -f "$(1)" ] || [ "$$(cat "$(1)")" != "$(2)" ]; then \
@@ -1412,6 +1418,7 @@ config-sanity: net
 	echo "DEPENDFLAGS: '$(DEPENDFLAGS)'" && \
 	echo "LDFLAGS: '$(LDFLAGS)'" && \
 	echo "LDLIBS: '$(LDLIBS)'" && \
+	echo "BUILD_TIMESTAMP_FLAG: '$(BUILD_TIMESTAMP_FLAG)'" && \
 	echo && \
 	echo "Testing config sanity. If this fails, try 'make help' ..." && \
 	echo && \
@@ -1458,7 +1465,7 @@ $(EXE): $(OBJS) $(NNUE_EMBED_OBJ)
 	$(strip $(CXX) $(CPPFLAGS) $(CXXFLAGS)) -c "$<" -o "$@"
 
 misc.o: misc.cpp $(BUILD_DATE_FILE) $(BUILD_SHA_FILE) $(BUILD_DIFFINDEX_FILE)
-	$(strip $(CXX) $(CPPFLAGS) $(CXXFLAGS) $(ARCH_FLAG) $(GIT_FLAGS)) -c "$<" -o "$@"
+	$(strip $(CXX) $(CPPFLAGS) $(CXXFLAGS) $(ARCH_FLAG) $(GIT_FLAGS) $(BUILD_TIMESTAMP_FLAG)) -c "$<" -o "$@"
 
 # Clang PGO
 clang-profile-make:

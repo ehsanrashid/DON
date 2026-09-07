@@ -42,7 +42,7 @@ int main(int argc, const char* argv[]) noexcept {
     set_console_output(ConsoleMode::UTF8);
 
     std::cout << engine_info() << std::endl;
-    std::cout << timestamp() << std::endl;
+    std::cout << build_timestamp() << std::endl;
 
     show_logo();
 

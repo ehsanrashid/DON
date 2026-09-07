@@ -203,6 +203,18 @@ void set_console_output(const ConsoleMode consoleMode) noexcept {
     }
 }
 
+std::string_view build_timestamp() noexcept {
+    //return __TIMESTAMP__;
+    //return __DATE__ " " __TIME__;
+    return
+#if defined(BUILD_TIMESTAMP)
+      BUILD_TIMESTAMP
+#else
+      __DATE__ " " __TIME__
+#endif
+      ;
+}
+
 std::string engine_info(const bool uci) noexcept {
     std::string engine;
     engine.reserve(64);
