@@ -75,7 +75,7 @@ jobs:
       - name: Get commits in this push
         id: recent-commits
         run: |
-          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+          if [[ "${{ github.ref_type }}" == 'tag' ]]; then
             COMMITS=$(git log \
               --format="- [\`%h\`](https://github.com/${{ github.repository }}/commit/%H) *%s*" \
               HEAD~1..HEAD)

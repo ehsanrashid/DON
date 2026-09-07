@@ -22,8 +22,7 @@
     }
   ],
   "binary": [
-    "armv8-dotprod",
-    "armv8",
+    "arm64-universal",
     "armv7-neon",
     "armv7"
   ],
@@ -41,13 +40,7 @@
       }
     },
     {
-      "binary": "armv8-dotprod",
-      "config": {
-        "compiler": "armv7a-linux-androideabi29-clang++"
-      }
-    },
-    {
-      "binary": "armv8",
+      "binary": "arm64-universal",
       "config": {
         "compiler": "armv7a-linux-androideabi29-clang++"
       }

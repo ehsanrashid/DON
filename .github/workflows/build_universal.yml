@@ -44,12 +44,10 @@ jobs:
               tac |
               grep -m 1 -o -x '[[:space:]]*[Bb]ench[ :]\{1,\}[1-9][0-9]\{5,7\}[[:space:]]*' |
               sed 's/[^0-9]//g') || true
-
             if [ -n "$benchref" ]; then
               break
             fi
           done
-
           if [ -n "$benchref" ]; then
             echo "benchref=$benchref" >> "$GITHUB_ENV"
             echo "From commit: $hash"
@@ -116,12 +114,10 @@ jobs:
               tac |
               grep -m 1 -o -x '[[:space:]]*[Bb]ench[ :]\{1,\}[1-9][0-9]\{5,7\}[[:space:]]*' |
               sed 's/[^0-9]//g') || true
-
             if [ -n "$benchref" ]; then
               break
             fi
           done
-
           if [ -n "$benchref" ]; then
             echo "benchref=$benchref" >> "$GITHUB_ENV"
             echo "From commit: $hash"
@@ -129,7 +125,7 @@ jobs:
           else
             echo "No bench found"
           fi
-  
+
       - name: Verify architecture selection under SDE
         run: ./scripts/check_universal_x86_64.sh ./DON-windows-x86-64-universal.exe "$SDE_DIR/sde" "$benchref"
 
@@ -184,12 +180,10 @@ jobs:
               tac |
               grep -m 1 -o -x '[[:space:]]*[Bb]ench[ :]\{1,\}[1-9][0-9]\{5,7\}[[:space:]]*' |
               sed 's/[^0-9]//g') || true
-
             if [ -n "$benchref" ]; then
               break
             fi
           done
-
           if [ -n "$benchref" ]; then
             echo "benchref=$benchref" >> "$GITHUB_ENV"
             echo "From commit: $hash"
@@ -245,12 +239,10 @@ jobs:
               tac |
               grep -m 1 -o -x '[[:space:]]*[Bb]ench[ :]\{1,\}[1-9][0-9]\{5,7\}[[:space:]]*' |
               sed 's/[^0-9]//g') || true
-
             if [ -n "$benchref" ]; then
               break
             fi
           done
-
           if [ -n "$benchref" ]; then
             echo "benchref=$benchref" >> "$GITHUB_ENV"
             echo "From commit: $hash"
@@ -259,11 +251,11 @@ jobs:
             echo "No bench found"
           fi
 
-      - name: Verify compiler features and bench
+      - name: Verify bench and compiler features
         working-directory: src
         run: |
-          ./DON compiler 2>&1 | grep -q DOTPROD || { echo "compiler output missing DOTPROD" >&2; exit 1; }
           ../tests/signature.sh "$benchref"
+          ./DON compiler 2>&1 | grep -q DOTPROD || { echo "compiler output missing DOTPROD" >&2; exit 1; }
 
       - name: Rename Windows ARM64 universal binary
         run: mv src/DON.exe DON-windows-arm64-universal.exe
@@ -340,12 +332,10 @@ jobs:
               tac |
               grep -m 1 -o -x '[[:space:]]*[Bb]ench[ :]\{1,\}[1-9][0-9]\{5,7\}[[:space:]]*' |
               sed 's/[^0-9]//g') || true
-
             if [ -n "$benchref" ]; then
               break
             fi
           done
-
           if [ -n "$benchref" ]; then
             echo "benchref=$benchref" >> "$GITHUB_ENV"
             echo "From commit: $hash"

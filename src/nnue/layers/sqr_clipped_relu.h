@@ -25,7 +25,7 @@
 
 #include "../../misc.h"
 #include "../ntypes.h"
-#include "../simd.h"  // IWYU pragma: keep
+#include "../simd.h"
 
 namespace DON::NNUE::Layers {
 
