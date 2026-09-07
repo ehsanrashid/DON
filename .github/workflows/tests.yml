@@ -191,12 +191,10 @@ jobs:
               tac |
               grep -m 1 -o -x '[[:space:]]*[Bb]ench[ :]\{1,\}[1-9][0-9]\{5,7\}[[:space:]]*' |
               sed 's/[^0-9]//g') || true
-
             if [ -n "$benchref" ]; then
               break
             fi
           done
-
           if [ -n "$benchref" ]; then
             echo "benchref=$benchref" >> "$GITHUB_ENV"
             echo "From commit: $hash"

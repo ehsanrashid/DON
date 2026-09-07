@@ -26,7 +26,7 @@
 #include "../../types.h"
 #include "../ntypes.h"
 #include "../serialization.h"
-#include "../simd.h"  // IWYU pragma: keep
+#include "../simd.h"
 #include "fallback_affine_transform.h"
 
 #if defined(USE_SSSE3) || defined(USE_LSX) || defined(USE_NEON_DOTPROD)

@@ -1011,7 +1011,7 @@ ifneq ($(filter-out help net strip install clean obj-clean profile-clean univers
     _ := $(call CACHE_FILE_IF_CHANGED,$(BUILD_DIFFINDEX_FILE),$(GIT_DIFFINDEX))
 endif
 
-# Compiler flags for embedding GIT build information
+# Compiler flags for embedding Git build information
 GIT_FLAGS := $(strip \
              $(if $(GIT_DATE),-DGIT_DATE=$(GIT_DATE)) \
              $(if $(GIT_SHA),-DGIT_SHA=$(GIT_SHA)) \
@@ -1078,9 +1078,10 @@ ifeq ($(optimize),yes)
     endif
 endif
 
-### 3.10 Use PIC and PIE on Android 5+, incompatible with Android 4 and earlier
+### 3.10 Use Position-Independent Executable on Android 5+, incompatible with Android 4 and earlier
 ifeq ($(OS),Android)
     CXXFLAGS += -fPIE
+    LDFLAGS  += -fPIE -pie
 endif
 
 ### ==========================================================================

@@ -29,7 +29,7 @@
 
 #include "../misc.h"
 #include "../types.h"
-#include "simd.h"  // IWYU pragma: keep
+#include "simd.h"
 
 namespace DON::NNUE {
 

@@ -22,10 +22,8 @@
 #include <ctime>
 
 #if defined(_WIN32)
-    #if !defined(NOMINMAX)
-        #define NOMINMAX
-    #endif
-    #include <shellapi.h>
+    #include "platform_win.h"  // GetCommandLineW()
+    #include <shellapi.h>      // CommandLineToArgvW()
 #endif
 
 namespace DON {
@@ -34,7 +32,7 @@ namespace {
 
 constexpr std::string_view NAME{"DON"};
 constexpr std::string_view AUTHOR{"Ehsan Rashid"};
-constexpr std::string_view VERSION{"2.0"};
+constexpr std::string_view VERSION{"dev"};
 
 // Format date to YYYYMMDD
 [[maybe_unused]] std::string format_date(const std::string_view date) noexcept {
@@ -268,7 +266,7 @@ void show_logo() noexcept {
 //
 //   • If Git metadata is unavailable (e.g. local/source builds),
 //     fall back to a timestamp-based identifier:
-//       DON dev-YYYYMMDD-HHMMSS-nogit
+//       DON dev-YYYYMMDD-HHMMSS
 //
 // Release builds:
 //   • Only include the semantic version number:

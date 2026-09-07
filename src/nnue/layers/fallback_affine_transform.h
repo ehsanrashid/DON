@@ -22,7 +22,7 @@
 
 #include "../../misc.h"
 #include "../ntypes.h"
-#include "../simd.h"  // IWYU pragma: keep
+#include "../simd.h"
 
 namespace DON::NNUE::Layers {
 
@@ -115,6 +115,7 @@ void fallback_affine_transform(const Array<i32, OutputDimensions>&              
         }
 
         output[i] = biases[i] + __riscv_vmv_x_s_i32m1_i32(vsum);
+
     #endif
     }
 
