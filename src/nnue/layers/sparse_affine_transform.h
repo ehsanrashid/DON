@@ -19,24 +19,27 @@
 #define NNUE_LAYERS_SPARSE_AFFINE_TRANSFORM_H_INCLUDED
 
 #include <iostream>
-#include <type_traits>
 
-#if defined(USE_NEON)
-    #include <cstring>
-#endif
-
-#include "../../bitboard.h"
-#include "../../memory.h"
 #include "../../misc.h"
 #include "../../types.h"
-#include "../nnz.h"
 #include "../ntypes.h"
 #include "../serialization.h"
 #include "../simd.h"
-#include "fallback_affine_transform.h"
 
-#if defined(USE_SSSE3) || defined(USE_LSX) || (defined(USE_NEON) && USE_NEON >= 8)
-    #define USE_SPARSE_AFFINE_SIMD
+#if defined(USE_SSSE3) || defined(USE_LSX) || (defined(USE_NEON) && USE_NEON >= 8) \
+  || defined(USE_RVV)
+    #if defined(USE_SSSE3) || defined(USE_LSX) || (defined(USE_NEON) && USE_NEON >= 8)
+        #include "../../bitboard.h"
+        #include "../../memory.h"
+        #define USE_SPARSE_AFFINE_SIMD
+    #endif
+    #include "../nnz.h"
+#else
+    #include "fallback_affine_transform.h"
+namespace DON::NNUE {
+template<usize Dimensions>
+struct NNZ;
+}
 #endif
 
 namespace DON::NNUE::Layers {

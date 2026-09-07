@@ -29,7 +29,11 @@
 
 #include "../misc.h"
 #include "../types.h"
-#include "simd.h"
+
+#if defined(USE_AVX512) || defined(USE_SSSE3) || defined(USE_LSX) \
+  || (defined(USE_NEON) && USE_NEON >= 8)
+    #include "simd.h"
+#endif
 
 namespace DON::NNUE {
 

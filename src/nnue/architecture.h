@@ -32,7 +32,6 @@
 #include "layers/clipped_relu.h"
 #include "layers/sparse_affine_transform.h"
 #include "layers/sqr_clipped_relu.h"
-#include "nnz.h"
 #include "ntypes.h"
 
 namespace DON::NNUE {
@@ -41,6 +40,9 @@ namespace DON::NNUE {
 using ThreatFeatureSet = Features::FullThreats;
 using PSQFeatureSet    = Features::HalfKAHm;
 using PairFeatureSet   = Features::PP3Wide;
+
+template<usize Dimensions>
+struct NNZ;
 
 struct NetworkArchitecture final {
    public:

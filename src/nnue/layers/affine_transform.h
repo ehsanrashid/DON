@@ -27,11 +27,14 @@
 #include "../ntypes.h"
 #include "../serialization.h"
 #include "../simd.h"
-#include "fallback_affine_transform.h"
 
-#if defined(USE_SSSE3) || defined(USE_LSX) || defined(USE_NEON_DOTPROD)
-    #include "../../memory.h"
-    #define USE_AFFINE_SIMD
+#if defined(USE_SSSE3) || defined(USE_LSX) || defined(USE_NEON_DOTPROD) || defined(USE_RVV)
+    #if defined(USE_SSSE3) || defined(USE_LSX) || defined(USE_NEON_DOTPROD)
+        #include "../../memory.h"
+        #define USE_AFFINE_SIMD
+    #endif
+#else
+    #include "fallback_affine_transform.h"
 #endif
 
 namespace DON::NNUE::Layers {
@@ -301,6 +304,7 @@ class AffineTransform final {
     #undef vec_add_dpbusd_32
     #undef vec_hadd
         }
+
 #elif defined(USE_RVV)
         const i8* wPtr = weights.data();
 

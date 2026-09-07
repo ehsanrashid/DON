@@ -22,7 +22,11 @@
 
 #include "../../misc.h"
 #include "../ntypes.h"
-#include "../simd.h"
+
+#if defined(USE_SSE2) || defined(USE_NEON)
+    #include "../simd.h"
+    #define USE_FALLBACK_AFFINE_SIMD
+#endif
 
 namespace DON::NNUE::Layers {
 
@@ -34,7 +38,7 @@ void fallback_affine_transform(const Array<i32, OutputDimensions>&              
                                const Array<i8, OutputDimensions * PaddedInputDimensions>& weights,
                                const u8* RESTRICT                                         input,
                                i32* RESTRICT output) noexcept {
-    #if defined(USE_SSE2) || defined(USE_NEON)
+    #if defined(USE_FALLBACK_AFFINE_SIMD)
     // At least a multiple of 16
     constexpr IndexType ChunkCount =
       ceil_to_multiple<IndexType>(InputDimensions, SIMD::WIDTH_MIN) / SIMD::WIDTH_MIN;
@@ -107,10 +111,10 @@ void fallback_affine_transform(const Array<i32, OutputDimensions>&              
     for (IndexType i = 0; i < InputDimensions; ++i)
         if (const int in = input[i]; in != 0)
         {
-            const i8* w = &weights[i];
+            const i8* wPtr = &weights[i];
 
             for (IndexType j = 0; j < OutputDimensions; ++j)
-                output[j] += in * w[j * PaddedInputDimensions];
+                output[j] += in * wPtr[j * PaddedInputDimensions];
         }
 
     #endif
