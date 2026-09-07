@@ -1413,11 +1413,11 @@ config-sanity: net
 	echo "CXX: '$(CXX)'" && \
 	echo "CPPFLAGS: '$(CPPFLAGS)'" && \
 	echo "CXXFLAGS: '$(CXXFLAGS)'" && \
-	echo "ARCH_FLAG: '$(ARCH_FLAG)'" && \
-	echo "GIT_FLAGS: '$(GIT_FLAGS)'" && \
 	echo "DEPENDFLAGS: '$(DEPENDFLAGS)'" && \
 	echo "LDFLAGS: '$(LDFLAGS)'" && \
 	echo "LDLIBS: '$(LDLIBS)'" && \
+	echo "ARCH_FLAG: '$(ARCH_FLAG)'" && \
+	echo "GIT_FLAGS: '$(GIT_FLAGS)'" && \
 	echo "BUILD_TIMESTAMP_FLAG: '$(BUILD_TIMESTAMP_FLAG)'" && \
 	echo && \
 	echo "Testing config sanity. If this fails, try 'make help' ..." && \
