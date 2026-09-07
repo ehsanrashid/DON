@@ -165,7 +165,7 @@ void update_continuation_histories(const Stack* const ss,
                                    const Piece        pc,
                                    const Square       dstSq,
                                    const int          bonus) noexcept {
-    assert(dstSq != SQ_NONE);
+    assert(is_ok(dstSq));
 
     constexpr Array<double, CONT_HISTORY_COUNT> ContHistoryWeights{
       1040.0, 780.0, 290.0, 502.0, 132.0, 418.0, 112.0, 121.0  //

@@ -189,8 +189,6 @@ struct NNZ final {
 #endif
 };
 
-int loop();
-
 }  // namespace DON::NNUE
 
 #endif  // NNUE_NNZ_H_INCLUDED

@@ -248,7 +248,7 @@ Move* generate_pawns_moves(const Position& pos,
         const Bitboard rCapBB = shift_bb<RCap>(notR7PawnsBB) & enemyBB;
         moves                 = splat_pawn_moves<AC, RCap>(rCapBB, moves);
 
-        if (pos.en_passant_sq() != SQ_NONE)
+        if (is_ok(pos.en_passant_sq()))
         {
             assert(relative_rank(AC, pos.en_passant_sq()) == RANK_6);
             assert((pos.pieces_bb(~AC, PAWN) & (pos.en_passant_sq() - Push1)) != 0);
