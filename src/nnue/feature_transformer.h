@@ -445,8 +445,6 @@ class FeatureTransformer final {
     // clang-format on
 };
 
-int loop();
-
 }  // namespace DON::NNUE
 
 template<>
