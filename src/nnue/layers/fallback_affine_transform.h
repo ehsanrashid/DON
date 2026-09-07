@@ -26,6 +26,7 @@
 
 namespace DON::NNUE::Layers {
 
+#if !(defined(USE_SSSE3) || defined(USE_RVV))
 // Generic fallback implementation for architectures without a specialized SIMD path.
 // Requires the input to be padded to at least 16 values.
 template<IndexType InputDimensions, IndexType PaddedInputDimensions, IndexType OutputDimensions>
@@ -33,7 +34,6 @@ void fallback_affine_transform(const Array<i32, OutputDimensions>&              
                                const Array<i8, OutputDimensions * PaddedInputDimensions>& weights,
                                const u8* RESTRICT                                         input,
                                i32* RESTRICT output) noexcept {
-#if defined(USE_SSE2) || defined(USE_NEON) || defined(USE_RVV)
     #if defined(USE_SSE2) || defined(USE_NEON)
     // At least a multiple of 16
     constexpr IndexType ChunkCount =
@@ -49,13 +49,12 @@ void fallback_affine_transform(const Array<i32, OutputDimensions>&              
     const auto* inputVec = reinterpret_cast<const int8x8_t*>(input);
 
         #endif
-    #endif
 
     for (IndexType i = 0; i < OutputDimensions; ++i)
     {
         const usize offset = i * PaddedInputDimensions;
 
-    #if defined(USE_SSE2)
+        #if defined(USE_SSE2)
         __m128i loSum = _mm_cvtsi32_si128(biases[i]);
         __m128i hiSum = Zeros;
 
@@ -82,7 +81,7 @@ void fallback_affine_transform(const Array<i32, OutputDimensions>&              
         sum                = _mm_add_epi32(sum, loShuffled);
         output[i]          = _mm_cvtsi128_si32(sum);
 
-    #elif defined(USE_NEON)
+        #elif defined(USE_NEON)
         int32x4_t sum = {biases[i]};
 
         const auto* rowVec = reinterpret_cast<const SIMD::vec_i8x8_t*>(&weights[offset]);
@@ -98,28 +97,10 @@ void fallback_affine_transform(const Array<i32, OutputDimensions>&              
 
         output[i] = SIMD::neon_m128_reduce_add_epi32(sum);
 
-    #elif defined(USE_RVV)
-        const i8*  row  = &weights[offset];
-        vint32m1_t vsum = __riscv_vmv_v_x_i32m1(0, __riscv_vsetvlmax_e32m1());
-
-        for (usize j = 0; j < InputDimensions;)
-        {
-            const usize vl = __riscv_vsetvl_e8m4(InputDimensions - j);
-
-            const vint8m4_t  w    = __riscv_vle8_v_i8m4(&row[j], vl);
-            const vuint8m4_t x    = __riscv_vle8_v_u8m4(&input[j], vl);
-            const vint16m8_t prod = __riscv_vwmulsu_vv_i16m8(w, x, vl);
-
-            vsum = __riscv_vwredsum_vs_i16m8_i32m1(prod, vsum, vl);
-            j += vl;
-        }
-
-        output[i] = biases[i] + __riscv_vmv_x_s_i32m1_i32(vsum);
-
-    #endif
+        #endif
     }
 
-#else
+    #else
     std::memcpy(output, biases.data(), OutputDimensions * sizeof(i32));
 
     // Traverse weights in transpose order to take advantage of input sparsity
@@ -132,8 +113,9 @@ void fallback_affine_transform(const Array<i32, OutputDimensions>&              
                 output[j] += in * w[j * PaddedInputDimensions];
         }
 
-#endif
+    #endif
 }
+#endif
 
 }  // namespace DON::NNUE::Layers
 

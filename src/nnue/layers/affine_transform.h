@@ -302,7 +302,7 @@ class AffineTransform final {
     #undef vec_hadd
         }
 #elif defined(USE_RVV)
-        const i8* wIt = weights;
+        const i8* wIt = weights.data();
 
     #define RVV_PROPAGATE_SINGLE(m2, m1) \
         do \
@@ -326,7 +326,6 @@ class AffineTransform final {
         else if (InputDimensions <= VL1 * 4)
             RVV_PROPAGATE_SINGLE(m4, m2);
         else
-        {
             for (IndexType i = 0; i < OutputDimensions; ++i, wIt += PaddedInputDimensions)
             {
                 vint32m1_t sum = __riscv_vmv_s_x_i32m1(0, 1);
@@ -340,7 +339,6 @@ class AffineTransform final {
                 }
                 output[i] = biases[i] + __riscv_vmv_x(sum);
             }
-        }
 
     #undef RVV_PROPAGATE_SINGLE
 

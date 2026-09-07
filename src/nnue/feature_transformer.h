@@ -381,8 +381,8 @@ class FeatureTransformer final {
             {
                 vl = __riscv_vsetvl_e16m2(HalfDimensions / 2 - i);
 
-                vint16m8_t acc0 = __riscv_vle16_v_i16m2(&accp[i], vl);
-                vint16m8_t acc1 = __riscv_vle16_v_i16m2(&accp[i + HalfDimensions / 2], vl);
+                vint16m2_t acc0 = __riscv_vle16_v_i16m2(&accp[i], vl);
+                vint16m2_t acc1 = __riscv_vle16_v_i16m2(&accp[i + HalfDimensions / 2], vl);
 
                 acc0 = __riscv_vmax(acc0, 0, vl);
                 acc1 = __riscv_vmax(acc1, 0, vl);
