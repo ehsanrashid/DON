@@ -654,7 +654,7 @@ void Position::set_castling_rights(const Color c, const Square rookOrgSq) noexce
     assert((pieces_bb(c, KING) & kingOrgSq) != 0);
 
     const CastlingSide cs = make_cs(kingOrgSq, rookOrgSq);
-    assert(castling_rook_sq(c, cs) == SQ_NONE);
+    assert(!is_ok(castling_rook_sq(c, cs)));
 
     const CastlingRights cr = make_cr(c, cs);
 
@@ -986,7 +986,7 @@ Dirties Position::do_move(const Move          m,
                 assert(relative_rank(ac, dstSq) == RANK_6);
                 assert((pieces_bb(~ac, PAWN) & capturedSq) != 0);
                 assert(empty(dstSq) && empty(dstSq + pawn_spush(ac)));
-                assert(en_passant_sq() == SQ_NONE);  // Already reset to SQ_NONE
+                assert(!is_ok(en_passant_sq()));  // Already reset to SQ_NONE
                 assert(rule50_count() == 1);
                 assert(st->preSt->enPassantSq == dstSq);
                 assert(st->preSt->rule50Count == 0);
@@ -1076,7 +1076,7 @@ Dirties Position::do_move(const Move          m,
 
     if (worker != nullptr)
     {
-        if (enPassantSq == SQ_NONE)
+        if (!is_ok(enPassantSq))
             prefetch(worker->transpositionTable.cluster(key()));
 
         prefetch(&worker->atomicHistories.pawn_entry(*this)[+movedPc][dstSq]);
@@ -1293,7 +1293,7 @@ void Position::do_null_move(State& newSt) noexcept {
 // Unmakes a null move
 void Position::undo_null_move() noexcept {
     assert(null_ply() == 0);
-    assert(captured_sq() == SQ_NONE);
+    assert(!is_ok(captured_sq()));
     assert(checkers_bb() == 0);
     assert(captured_pc() == Piece::NO_PIECE);
     assert(promoted_pc() == Piece::NO_PIECE);
@@ -1631,7 +1631,7 @@ bool Position::see_ge(const Move m, const int threshold) const noexcept {
     }
 
     Bitboard epPawnsBB;
-    if (enPassantSq != SQ_NONE && enpassant_possible<false>(~ac, enPassantSq, &epPawnsBB))
+    if (is_ok(enPassantSq) && enpassant_possible<false>(~ac, enPassantSq, &epPawnsBB))
     {
         assert(epPawnsBB != 0);
         attackersBB |= epPawnsBB;
@@ -1714,7 +1714,7 @@ bool Position::see_ge(const Move m, const int threshold) const noexcept {
 
         ge = !ge;
 
-        if (enPassantSq == SQ_NONE && discovery[ac] && (b = blockers_bb(~ac) & acAttackersBB) != 0)
+        if (!is_ok(enPassantSq) && discovery[ac] && (b = blockers_bb(~ac) & acAttackersBB) != 0)
         {
             Square sq = pop_lsq(b);
             pt        = type_of(piece(sq));
@@ -1781,7 +1781,7 @@ bool Position::see_ge(const Move m, const int threshold) const noexcept {
 
             attackersBB |= qbBB & Attacks::attacks_bb<BISHOP>(dstSq, occupancyBB);
 
-            if (enPassantSq != SQ_NONE && rank_of(orgSq) == rank_of(dstSq))
+            if (is_ok(enPassantSq) && rank_of(orgSq) == rank_of(dstSq))
             {
                 occupancyBB ^= make_bb(dstSq, enPassantSq);
 
@@ -2148,7 +2148,7 @@ bool Position::_is_ok() const noexcept {
         || distance(square<KING>(WHITE), square<KING>(BLACK)) <= 1)
         assert(false && "Position::_is_ok(): Default");
 
-    if ((en_passant_sq() != SQ_NONE)
+    if (is_ok(en_passant_sq())
         && (relative_rank(active_color(), en_passant_sq()) != RANK_6
             || !enpassant_possible(active_color(), en_passant_sq())))
         assert(false && "Position::_is_ok(): En-Passant Square");
@@ -2210,7 +2210,7 @@ bool Position::_is_ok() const noexcept {
 
             const CastlingRights cr = make_cr(c, cs);
 
-            if (castling_rook_sq(c, cs) == SQ_NONE
+            if (!is_ok(castling_rook_sq(c, cs))
                 || (pieces_bb(c, ROOK) & castling_rook_sq(c, cs)) == 0
                 || (castling_rights_mask(castling_rook_sq(c, cs))) != cr
                 || (castling_rights_mask(square<KING>(c)) & cr) != cr)
@@ -2320,9 +2320,9 @@ void State::dump(std::ostream& os) const noexcept {
         os << u64_to_string(nonPawnKeys[c][1]) << "\n";
     }
 
-    os << "En-Passant Square: " << (enPassantSq != SQ_NONE ? to_square(enPassantSq) : "-");
+    os << "En-Passant Square: " << (is_ok(enPassantSq) ? to_square(enPassantSq) : "-");
     os << "\n";
-    os << "Captured Square: " << (capturedSq != SQ_NONE ? to_square(capturedSq) : "-");
+    os << "Captured Square: " << (is_ok(capturedSq) ? to_square(capturedSq) : "-");
     os << "\n";
 
     os << "Pinner Bitboards:\n";
@@ -2396,7 +2396,7 @@ void Position::dump(std::ostream& os) const noexcept {
             os << "\n";
             os << pretty(castlings.kingPathBB[c][+cs]);
             os << "\n";
-            os << (castlings.rookSq[c][+cs] != SQ_NONE ? to_square(castlings.rookSq[c][+cs]) : "-");
+            os << (is_ok(castlings.rookSq[c][+cs]) ? to_square(castlings.rookSq[c][+cs]) : "-");
             os << "\n";
         }
         os << "\n";

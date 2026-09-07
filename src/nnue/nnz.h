@@ -18,17 +18,17 @@
 #ifndef NNUE_NNZ_H_INCLUDED
 #define NNUE_NNZ_H_INCLUDED
 
-#if defined(USE_SSSE3) || defined(USE_LSX)
+#if (defined(USE_SSSE3) && !defined(USE_AVX512)) || defined(USE_LSX)
     #include <cstring>
-    #if defined(USE_AVX512)
-        #include <initializer_list>
+#endif
+#if defined(USE_AVX512)
+    #include <initializer_list>
 
-        #include "../bitboard.h"
-    #endif
+    #include "../bitboard.h"
 #endif
 
 #include "../misc.h"
-#include "../types.h"
+#include "../types.h"  // IWYU pragma: keep
 
 #if defined(USE_SSSE3) || defined(USE_LSX) || (defined(USE_NEON) && USE_NEON >= 8)
     #include "simd.h"

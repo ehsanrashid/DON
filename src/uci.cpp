@@ -534,13 +534,14 @@ void UCI::bench(std::istream& is) noexcept {
         nodes     = 0;
     });
     engine.set_on_update_full([&nodes](const auto& info) noexcept {
-        on_update_full(info);
         nodes = info.nodes;
+        on_update_full(info);
     });
     engine.set_on_update_move(
-      [&startTime, &totalDuration, &nodes, &totalNodes](const auto&) noexcept {
+      [&startTime, &totalDuration, &nodes, &totalNodes](const auto& info) noexcept {
           totalDuration += SteadyClock::now() - startTime;
           totalNodes += nodes;
+          on_update_move(info);
       });
 
     usize cnt = 0;
