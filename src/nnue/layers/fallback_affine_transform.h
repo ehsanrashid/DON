@@ -26,8 +26,7 @@
 
 namespace DON::NNUE::Layers {
 
-#if !(defined(USE_SSSE3) || defined(USE_LSX) || (defined(USE_NEON) && USE_NEON >= 8) \
-      || defined(USE_RVV))
+#if !(defined(USE_SSSE3) || defined(USE_LSX) || defined(USE_NEON_DOTPROD) || defined(USE_RVV))
 // Generic fallback implementation for architectures without a specialized SIMD path.
 // Requires the input to be padded to at least 16 values.
 template<IndexType InputDimensions, IndexType PaddedInputDimensions, IndexType OutputDimensions>

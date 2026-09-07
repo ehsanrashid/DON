@@ -368,41 +368,46 @@ class FeatureTransformer final {
 
             const IndexType maxVL = __riscv_vsetvlmax_e8m1();
 
-            vuint8m1_t  vid8  = __riscv_vid_v_u8m1(maxVL);
-            vuint16m2_t vid16 = __riscv_vid_v_u16m2(maxVL);
-
-            const auto& accp = accumulation[perspectives[p]];
-
-            for (IndexType i = 0, vl; i < HalfDimensions / 2; i += vl)
+            const auto rvv_propagate = [&]<typename T>(T vid)
             {
-                vl = __riscv_vsetvl_e16m2(HalfDimensions / 2 - i);
+                const auto& accp = accumulation[perspectives[p]];
 
-                vint16m2_t acc0 = __riscv_vle16_v_i16m2(&accp[i], vl);
-                vint16m2_t acc1 = __riscv_vle16_v_i16m2(&accp[i + HalfDimensions / 2], vl);
+                for (IndexType i = 0, vl; i < HalfDimensions / 2; i += vl)
+                {
+                    vl = __riscv_vsetvl_e16m2(HalfDimensions / 2 - i);
 
-                acc0 = __riscv_vmax(acc0, 0, vl);
-                acc1 = __riscv_vmax(acc1, 0, vl);
+                    vint16m2_t acc0 = __riscv_vle16_v_i16m2(&accp[i], vl);
+                    vint16m2_t acc1 = __riscv_vle16_v_i16m2(&accp[i + HalfDimensions / 2], vl);
 
-                const vuint8m1_t p0 = __riscv_vnclipu(__riscv_vreinterpret_u16m2(acc0), 0, 0, vl);
-                const vuint8m1_t p1 = __riscv_vnclipu(__riscv_vreinterpret_u16m2(acc1), 0, 0, vl);
+                    acc0 = __riscv_vmax(acc0, 0, vl);
+                    acc1 = __riscv_vmax(acc1, 0, vl);
 
-                const vuint8m1_t hi     = __riscv_vmulhu(p0, p1, vl);
-                const vuint8m1_t scaled = __riscv_vsrl(hi, 1, vl);
+                    const vuint8m1_t p0 = __riscv_vnclipu(__riscv_vreinterpret_u16m2(acc0), 0, 0, vl);
+                    const vuint8m1_t p1 = __riscv_vnclipu(__riscv_vreinterpret_u16m2(acc1), 0, 0, vl);
 
-                __riscv_vse8(&output[offset + i], scaled, vl);
+                    const vuint8m1_t hi     = __riscv_vmulhu(p0, p1, vl);
+                    const vuint8m1_t scaled = __riscv_vsrl(hi, 1, vl);
 
-                const vbool8_t m   = __riscv_vmsne(scaled, 0, vl);
-                const unsigned cnt = __riscv_vcpop(m, vl);
+                    __riscv_vse8(&output[offset + i], scaled, vl);
 
-                vuint16m2_t vidx;
-                if (maxVL <= 256)
-                    vidx = __riscv_vzext_vf2(__riscv_vcompress(vid8, m, vl), cnt);
-                else
-                    vidx = __riscv_vcompress(vid16, m, vl);
+                    const vbool8_t m   = __riscv_vmsne(scaled, 0, vl);
+                    const unsigned cnt = __riscv_vcpop(m, vl);
 
-                __riscv_vse16(&nnz.bitset[nnz.count], __riscv_vadd(vidx, offset + i, cnt), cnt);
-                nnz.count += cnt;
-            }
+                    vuint16m2_t vidx;
+                    if constexpr (std::is_same_v<T, vuint8m1_t>)
+                        vidx = __riscv_vzext_vf2(__riscv_vcompress(vid, m, vl), cnt);
+                    else
+                        vidx = __riscv_vcompress(vid, m, vl);
+
+                    __riscv_vse16(&nnz.bitset[nnz.count], __riscv_vadd(vidx, offset + i, cnt), cnt);
+                    nnz.count += cnt;
+                }
+            };
+
+            if (maxVL <= 256)
+                rvv_propagate(__riscv_vid_v_u8m1(maxVL));  // vuint8m1_t vid8
+            else
+                rvv_propagate(__riscv_vid_v_u16m2(maxVL));  // vuint16m2_t vid16
 
 #else
             for (IndexType i = 0; i < HalfDimensions / 2; ++i)
