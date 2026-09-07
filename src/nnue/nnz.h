@@ -18,13 +18,13 @@
 #ifndef NNUE_NNZ_H_INCLUDED
 #define NNUE_NNZ_H_INCLUDED
 
-#if defined(USE_SSSE3) || defined(USE_LSX)
+#if (defined(USE_SSSE3) && !defined(USE_AVX512)) || defined(USE_LSX)
     #include <cstring>
-    #if defined(USE_AVX512)
-        #include <initializer_list>
+#endif
+#if defined(USE_AVX512)
+    #include <initializer_list>
 
-        #include "../bitboard.h"
-    #endif
+    #include "../bitboard.h"
 #endif
 
 #include "../misc.h"
@@ -188,6 +188,8 @@ struct NNZ final {
 
 #endif
 };
+
+int loop();
 
 }  // namespace DON::NNUE
 
