@@ -1151,15 +1151,12 @@ Dirties Position::do_move(const Move          m,
     // It is the ply distance from the previous occurrence of the same position,
     // negative in the 3-fold case, or zero when the position was not repeated.
     st->repetition = 0;
-
     if (const u16 end = std::min(rule50_count(), null_ply()); end >= 4)
     {
         const State* preSt = st->preSt->preSt;
-
         for (u16 i = 4; i <= end; i += 2)
         {
             preSt = preSt->preSt->preSt;
-
             if (preSt->key == st->key)
             {
                 st->repetition = preSt->repetition != 0 ? -i : +i;
