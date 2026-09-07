@@ -28,7 +28,7 @@
 #endif
 
 #include "../misc.h"
-#include "../types.h"
+#include "../types.h"  // IWYU pragma: keep
 
 #if defined(USE_SSSE3) || defined(USE_LSX) || (defined(USE_NEON) && USE_NEON >= 8)
     #include "simd.h"
