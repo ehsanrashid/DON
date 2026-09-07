@@ -385,8 +385,8 @@ const std::vector<Strings> GAMES{
 // bench                            : search default positions with 1 thread up to depth 13 (TT = 16MB)
 // bench 64 1 15                    : search default positions with 1 thread up to depth 15 (TT = 64MB)
 // bench 64 1 100000 default nodes  : search default positions with 1 thread for 100K nodes each (TT = 64MB)
-// bench 64 4 5000 current movetime : search current position  with 4 threads for 5 sec (TT = 64MB)
-// bench 16 1 5 blah perft          : run perft 5 on positions in fen filename "blah" (TT = 16MB)
+// bench 64 4 5000 current movetime : search current position with 4 threads for 5 seconds (TT = 64MB)
+// bench 16 1 5 test.epd perft      : run perft 5 on positions in file "test.epd" (TT = 16MB)
 Strings bench(std::istream& is, std::string_view currentFen) noexcept {
 
     std::string token;
@@ -397,7 +397,9 @@ Strings bench(std::istream& is, std::string_view currentFen) noexcept {
     std::string epdFile   = (is >> token) ? token : "default";
     std::string limitType = (is >> token) ? token : "depth";
 
-    std::string command{limitType != "eval" ? "go " + limitType + " " + limitVal : "eval"};
+    bool isLimitEval = limitType == "eval";
+
+    std::string limitCommand{isLimitEval ? "eval" : "go " + limitType + " " + limitVal};
 
     std::string fenOpt = lower_case(epdFile);
 
@@ -445,7 +447,7 @@ Strings bench(std::istream& is, std::string_view currentFen) noexcept {
 
     Strings commands;
 
-    if (limitType != "eval")
+    if (!isLimitEval)
     {
         commands.emplace_back("setoption name Threads value " + threads);
         commands.emplace_back("setoption name Hash value " + ttSize);
@@ -454,13 +456,11 @@ Strings bench(std::istream& is, std::string_view currentFen) noexcept {
 
     for (const auto& fen : fens)
         if (starts_with(trim(fen), "setoption "))
-        {
             commands.emplace_back(fen);
-        }
         else
         {
             commands.emplace_back("position fen " + fen);
-            commands.emplace_back(command);
+            commands.emplace_back(limitCommand);
         }
 
     return commands;

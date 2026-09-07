@@ -2407,10 +2407,10 @@ void Worker::extend_tb_pv(const usize idx, Value& value) noexcept {
     const bool      UseRule50    = options["Syzygy50MoveRule"];
 
     // If time manager is active, don't use more than 50% of OverheadTime time
-    const auto startTime = std::chrono::steady_clock::now();
+    const auto startTime = SteadyClock::now();
 
     auto time_to_abort = [&]() noexcept -> bool {
-        const auto endTime = std::chrono::steady_clock::now();
+        const auto endTime = SteadyClock::now();
         return limit.use_time_manager()
             && (options["NodesTime"] != 0
                 || std::chrono::duration<double, std::milli>(endTime - startTime).count()
