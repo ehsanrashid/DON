@@ -399,15 +399,14 @@ void update_hybrid(const Color               perspective,
         for (IndexType k = 0; k < Tiling::RegCount; ++k)
         {
             vec_store(&newEntryTile[k], acc[k]);
-            // adding the old accumulator adds (most of) the threats and pp weights that we need
+            // adding the old accumulator adds (most of) the threats and pp weights that needed
             acc[k] = vec_add_16(acc[k], sourceTile[k]);
-            // But we have added a whole bunch of psq weights for the wrong king bucket which
-            // we need to remove
-            // first we remove the cached psq accumulation for the old king position...
+            // But have added a whole bunch of psq weights for the wrong king bucket which
+            // need to remove first remove the cached psq accumulation for the old king position...
             acc[k] = vec_sub_16(acc[k], oldEntryTile[k]);
         }
 
-        // ... then we adjust
+        // ... then adjust
         for (IndexType i = 0; i < oldRemove.size(); ++i)
         {
             auto* column = reinterpret_cast<const SIMD::vec_t*>(&weights[oldRemove[i] * Dimensions + tileOff]);
@@ -455,7 +454,7 @@ void update_hybrid(const Color               perspective,
 
         auto* targetTile = reinterpret_cast<SIMD::vec_t*>(&targetAcc[tileOff]);
 
-        for (IndexType k = 0; k < Tiling::RegCount; k++)
+        for (IndexType k = 0; k < Tiling::RegCount; ++k)
             vec_store(&targetTile[k], acc[k]);
     }
 
