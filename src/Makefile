@@ -1447,8 +1447,9 @@ config-sanity: net
 	echo && \
 	echo "Testing config sanity. If this fails, try 'make help' ..." && \
 	echo && \
-	(test "$(debug)"    = "no" || test "$(debug)"    = "yes") && \
-	(test "$(optimize)" = "no" || test "$(optimize)" = "yes") && \
+	(test "$(IS_WINDOWS)" = "no" || test "$(IS_WINDOWS)" = "yes") && \
+	(test "$(debug)"      = "no" || test "$(debug)"      = "yes") && \
+	(test "$(optimize)"   = "no" || test "$(optimize)"   = "yes") && \
 	(test "$(ARCH_SUPPORTED)" = "yes") && \
 	(test "$(arch)" = "any" || test "$(arch)" = "i386" || test "$(arch)" = "x86_64" || \
 	 test "$(arch)" = "loongarch64" || test "$(arch)" = "riscv64" || \
@@ -1479,7 +1480,6 @@ config-sanity: net
 	(test "$(neon)"      = "no" || test "$(neon)"      = "yes") && \
 	(test "$(dotprod)"   = "no" || test "$(dotprod)"   = "yes") && \
 	(test "$(tablebases)" = "no" || test "$(tablebases)" = "yes") && \
-	(test "$(IS_WINDOWS)" = "no" || test "$(IS_WINDOWS)" = "yes") && \
 	(test "$(COMP)" = "gcc" || test "$(COMP)" = "clang" || test "$(COMP)" = "mingw" || \
 	 test "$(COMP)" = "icx" || test "$(COMP)" = "ndk") || { \
 		echo "Invalid configuration. Run 'make help' for supported options."; \
