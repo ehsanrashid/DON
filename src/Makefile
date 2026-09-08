@@ -33,7 +33,8 @@ endif
 
 ifeq ($(OS),Windows_NT)
 UNIVERSAL_OS_NAME := Windows
-else ifeq ($(TARGET_KERNEL),Darwin)
+else \
+ifeq ($(TARGET_KERNEL),Darwin)
 UNIVERSAL_OS_NAME := macOS
 else
 UNIVERSAL_OS_NAME := Linux
@@ -64,7 +65,8 @@ ifeq ($(OS),Windows_NT)
 ifneq ($(filter-out ndk,$(COMP)),)
 IS_WINDOWS := yes
 endif
-else ifeq ($(COMP),mingw)
+else \
+ifeq ($(COMP),mingw)
 IS_WINDOWS := yes
 ifeq ($(RUN_PREFIX),)
 RUN_PREFIX := $(call FIND_EXE,wine)
@@ -89,7 +91,8 @@ endif
 NAME := DON
 ifeq ($(IS_WINDOWS),yes)
 EXE := $(NAME).exe
-else ifneq ($(findstring wasm,$(ARCH)),)
+else \
+ifneq ($(findstring wasm,$(ARCH)),)
 EXE := $(NAME).js
 else
 EXE := $(NAME)
@@ -251,7 +254,8 @@ arch = x86_64
 sse = yes
 sse2 = yes
 # To enable 'sse' use: make -j build ARCH=x86-32 sse=yes
-else ifneq ($(findstring x86-32,$(ARCH)),)
+else \
+ifneq ($(findstring x86-32,$(ARCH)),)
 arch = i386
 bits = 32
 mmx = yes
@@ -270,7 +274,8 @@ avx512 = yes
 vnni512 = yes
 avx512icl = yes
 
-else ifneq ($(findstring -vnni512,$(ARCH)),)
+else \
+ifneq ($(findstring -vnni512,$(ARCH)),)
 popcnt = yes
 sse = yes
 sse2 = yes
@@ -281,7 +286,8 @@ bmi2 = yes
 avx512 = yes
 vnni512 = yes
 
-else ifneq ($(findstring -vnni256,$(ARCH)),)
+else \
+ifneq ($(findstring -vnni256,$(ARCH)),)
 popcnt = yes
 sse = yes
 sse2 = yes
@@ -291,7 +297,8 @@ avx2 = yes
 bmi2 = yes
 vnni256 = yes
 
-else ifneq ($(findstring -avx512,$(ARCH)),)
+else \
+ifneq ($(findstring -avx512,$(ARCH)),)
 popcnt = yes
 sse = yes
 sse2 = yes
@@ -301,7 +308,8 @@ avx2 = yes
 bmi2 = yes
 avx512 = yes
 
-else ifneq ($(findstring -avxvnni,$(ARCH)),)
+else \
+ifneq ($(findstring -avxvnni,$(ARCH)),)
 popcnt = yes
 sse = yes
 sse2 = yes
@@ -311,7 +319,8 @@ avx2 = yes
 bmi2 = yes
 avxvnni = yes
 
-else ifneq ($(findstring -bmi2,$(ARCH)),)
+else \
+ifneq ($(findstring -bmi2,$(ARCH)),)
 popcnt = yes
 sse = yes
 sse2 = yes
@@ -320,7 +329,8 @@ sse41 = yes
 avx2 = yes
 bmi2 = yes
 
-else ifneq ($(findstring -avx2,$(ARCH)),)
+else \
+ifneq ($(findstring -avx2,$(ARCH)),)
 popcnt = yes
 sse = yes
 sse2 = yes
@@ -328,7 +338,8 @@ ssse3 = yes
 sse41 = yes
 avx2 = yes
 
-else ifneq ($(findstring -sse41-bmi2,$(ARCH)),)
+else \
+ifneq ($(findstring -sse41-bmi2,$(ARCH)),)
 popcnt = yes
 sse = yes
 sse2 = yes
@@ -339,13 +350,15 @@ ifneq ($(findstring -cmp,$(ARCH)),)
 cmp = yes
 endif
 
-else ifneq ($(findstring -sse41,$(ARCH)),)
+else \
+ifneq ($(findstring -sse41,$(ARCH)),)
 sse = yes
 sse2 = yes
 ssse3 = yes
 sse41 = yes
 
-else ifneq ($(findstring -modern,$(ARCH)),)
+else \
+ifneq ($(findstring -modern,$(ARCH)),)
 $(warning *** ARCH=$(ARCH) is deprecated, defaulting to ARCH=x86-64-sse41-popcnt. Execute `make help` for a list of available architectures. ***)
 $(shell sleep 3)
 popcnt = yes
@@ -354,12 +367,14 @@ sse2 = yes
 ssse3 = yes
 sse41 = yes
 
-else ifneq ($(findstring -ssse3,$(ARCH)),)
+else \
+ifneq ($(findstring -ssse3,$(ARCH)),)
 sse = yes
 sse2 = yes
 ssse3 = yes
 
-else ifneq ($(findstring -sse2,$(ARCH)),)
+else \
+ifneq ($(findstring -sse2,$(ARCH)),)
 sse = yes
 sse2 = yes
 
@@ -384,36 +399,43 @@ else
 ifneq ($(findstring general,$(ARCH)),)
 arch = any
 ifneq ($(findstring -64,$(ARCH)),)
-else ifneq ($(findstring -32,$(ARCH)),)
+else \
+ifneq ($(findstring -32,$(ARCH)),)
 bits = 32
 sse_fp = yes
 endif
 
-else ifneq ($(findstring loongarch64,$(ARCH)),)
+else \
+ifneq ($(findstring loongarch64,$(ARCH)),)
 arch = loongarch64
 prefetch = yes
 ifneq ($(findstring -lasx,$(ARCH)),)
 lsx = yes
 lasx = yes
-else ifneq ($(findstring -lsx,$(ARCH)),)
+else \
+ifneq ($(findstring -lsx,$(ARCH)),)
 lsx = yes
 endif
 
-else ifneq ($(findstring ppc-64,$(ARCH)),)
+else \
+ifneq ($(findstring ppc-64,$(ARCH)),)
 arch = ppc64
 prefetch = yes
 popcnt = yes
 ifneq ($(findstring -vsx,$(ARCH)),)
 vsx = yes
-else ifneq ($(findstring -altivec,$(ARCH)),)
+else \
+ifneq ($(findstring -altivec,$(ARCH)),)
 altivec = yes
 endif
 
-else ifneq ($(findstring ppc-32,$(ARCH)),)
+else \
+ifneq ($(findstring ppc-32,$(ARCH)),)
 arch = ppc
 bits = 32
 
-else ifneq ($(findstring e2k,$(ARCH)),)
+else \
+ifneq ($(findstring e2k,$(ARCH)),)
 arch = e2k
 mmx = yes
 sse = yes
@@ -422,7 +444,8 @@ ssse3 = yes
 sse41 = yes
 popcnt = yes
 
-else ifneq ($(findstring armv8,$(ARCH)),)
+else \
+ifneq ($(findstring armv8,$(ARCH)),)
 arch = armv8
 prefetch = yes
 popcnt = yes
@@ -432,7 +455,8 @@ ifneq ($(findstring -dotprod,$(ARCH)),)
 dotprod = yes
 endif
 
-else ifneq ($(findstring armv7,$(ARCH)),)
+else \
+ifneq ($(findstring armv7,$(ARCH)),)
 arch = armv7
 bits = 32
 prefetch = yes
@@ -442,14 +466,16 @@ popcnt = yes
 neon = yes
 endif
 
-else ifneq ($(findstring arm64-universal,$(ARCH)),)
+else \
+ifneq ($(findstring arm64-universal,$(ARCH)),)
 arch = armv8
 prefetch = yes
 popcnt = yes
 arm_version = 8
 neon = yes
 
-else ifneq ($(findstring apple-silicon,$(ARCH)),)
+else \
+ifneq ($(findstring apple-silicon,$(ARCH)),)
 arch = arm64
 prefetch = yes
 popcnt = yes
@@ -457,7 +483,8 @@ arm_version = 8
 neon = yes
 dotprod = yes
 
-else ifneq ($(findstring riscv64,$(ARCH)),)
+else \
+ifneq ($(findstring riscv64,$(ARCH)),)
 arch = riscv64
 ifneq ($(findstring -rva23,$(ARCH)),)
 prefetch = yes
@@ -467,7 +494,8 @@ endif
 
 # WASM is largely compiled using emcc's x86 compatibility layer, with occasional
 # WASM-specific intrinsics
-else ifneq ($(findstring wasm32,$(ARCH)),)
+else \
+ifneq ($(findstring wasm32,$(ARCH)),)
 arch = wasm32
 bits = 64
 sse = yes
@@ -535,7 +563,8 @@ CXXFLAGS += $(BITS_FLAG)
 LDFLAGS  += $(BITS_FLAG)
 endif
 # These targets determine bitness from the target architecture
-else ifneq ($(filter loongarch64 riscv64 wasm32,$(arch)),)
+else \
+ifneq ($(filter loongarch64 riscv64 wasm32,$(arch)),)
 
 # Generic architectures use the configured bitness
 else
@@ -544,7 +573,8 @@ LDFLAGS  += $(BITS_FLAG)
 endif
 ifeq ($(arch),wasm32)
 # Non-Darwin (Linux) specific compiler/linker flags
-else ifneq ($(TARGET_KERNEL),Darwin)
+else \
+ifneq ($(TARGET_KERNEL),Darwin)
 CXXFLAGS += -Wno-stringop-overflow
 # Detect whether GNU ld is being used
 LINKER_VERSION := $(shell $(CXX) -Wl,--version 2>/dev/null)
@@ -585,7 +615,8 @@ PROFILE_MAKE := gcc-profile-make
 PROFILE_USE  := gcc-profile-use
 endif
 # MinGW
-else ifeq ($(COMP),mingw)
+else \
+ifeq ($(COMP),mingw)
 MINGW_ARCH      := $(if $(filter 64,$(bits)),x86_64,i686)
 MINGW_CXX       := $(MINGW_ARCH)-w64-mingw32-c++
 MINGW_CXX_POSIX := $(MINGW_ARCH)-w64-mingw32-c++-posix
@@ -599,7 +630,8 @@ CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-declarations -fno-ipa-cp-clone 
 PROFILE_MAKE := gcc-profile-make
 PROFILE_USE  := gcc-profile-use
 # Intel ICX
-else ifeq ($(COMP),icx)
+else \
+ifeq ($(COMP),icx)
 CXX := icpx
 
 CXX_IS_CLANG := yes
@@ -610,7 +642,8 @@ CXXFLAGS += --intel -pedantic -Wextra -Wshadow -Wmissing-prototypes -Wconditiona
 PROFILE_MAKE := icx-profile-make
 PROFILE_USE  := icx-profile-use
 # Clang
-else ifeq ($(COMP),clang)
+else \
+ifeq ($(COMP),clang)
 CXX := clang++
 
 CXX_IS_CLANG := yes
@@ -628,7 +661,8 @@ CXXFLAGS += $(BITS_FLAG)
 LDFLAGS  += $(BITS_FLAG)
 endif
 # These targets determine bitness from the target architecture
-else ifneq ($(filter loongarch64 riscv64 wasm32,$(arch)),)
+else \
+ifneq ($(filter loongarch64 riscv64 wasm32,$(arch)),)
 
 # Generic architectures use the configured bitness
 else
@@ -646,7 +680,8 @@ endif
 ifeq ($(TARGET_KERNEL),Darwin)
 CXX_IS_APPLE_CLANG := yes
 # Link std::filesystem for Linux Clang
-else ifeq ($(TARGET_KERNEL),Linux)
+else \
+ifeq ($(TARGET_KERNEL),Linux)
 LDLIBS += -lstdc++fs
 endif
 
@@ -654,11 +689,13 @@ endif
 PROFILE_MAKE := clang-profile-make
 PROFILE_USE  := clang-profile-use
 # Android NDK Clang: cross-compile for Android using NDK r27c or later
-else ifeq ($(COMP),ndk)
+else \
+ifeq ($(COMP),ndk)
 # Detect NDK host tag (common host platforms)
 ifeq ($(IS_WINDOWS),yes)
 HOST_TAG := windows-x86_64
-else ifeq ($(TARGET_KERNEL),Darwin)
+else \
+ifeq ($(TARGET_KERNEL),Darwin)
 HOST_TAG := darwin-x86_64
 else
 HOST_TAG := linux-x86_64
@@ -674,12 +711,15 @@ ANDROID_API ?= 29
 
 ifeq ($(arch),armv8)
 TARGET := aarch64-linux-android
-else ifeq ($(arch),armv7)
+else \
+ifeq ($(arch),armv7)
 TARGET := armv7a-linux-androideabi
 CXXFLAGS += -mthumb -march=armv7-a -mfloat-abi=softfp -mfpu=neon
-else ifeq ($(arch),x86_64)
+else \
+ifeq ($(arch),x86_64)
 TARGET := x86_64-linux-android
-else ifeq ($(arch),x86)
+else \
+ifeq ($(arch),x86)
 TARGET := i686-linux-android
 else
 $(error Unsupported NDK arch: $(arch))
@@ -789,7 +829,8 @@ ifeq ($(COMP),gcc)
 ifeq ($(OS),Android)
 CXXFLAGS += -fno-gcse -mthumb -march=armv7-a -mfloat-abi=softfp
 endif
-else ifneq ($(filter clang ndk,$(COMP)),)
+else \
+ifneq ($(filter clang ndk,$(COMP)),)
 # Determine Clang major version
 CLANG_MAJOR := $(shell $(CXX) -dumpversion 2>/dev/null | cut -f1 -d.)
 ifneq ($(CLANG_MAJOR),)
@@ -804,7 +845,8 @@ ifeq ($(COMP),gcc)
 ifneq ($(arch),arm64)
 CXXFLAGS += -mdynamic-no-pic
 endif
-else ifneq ($(filter clang icx ndk,$(COMP)),)
+else \
+ifneq ($(filter clang icx ndk,$(COMP)),)
 CXXFLAGS += -mdynamic-no-pic
 endif
 endif
@@ -1073,7 +1115,8 @@ ifeq ($(COMP),mingw)
 LTO_FLAGS   := -flto -flto-partition=one
 LTO_LDFLAGS := -save-temps
 # GCC / Clang / ICX / NDK Clang
-else ifneq ($(filter gcc clang icx ndk,$(COMP)),)
+else \
+ifneq ($(filter gcc clang icx ndk,$(COMP)),)
 # Clang-compatible compiler
 ifeq ($(CXX_IS_CLANG),yes)
 LTO_FLAGS := -flto=full
@@ -1256,7 +1299,8 @@ ifeq ($(TARGET_KERNEL),Darwin)
 # Apple ld64 does not support --save-temps
 LTO_OBJ_SUFFIX := .lto.o
 SAVE_TEMPS := -Wl,-object_path_lto,DON.lto.o
-else ifneq ($(filter clang ndk,$(COMP)),)
+else \
+ifneq ($(filter clang ndk,$(COMP)),)
 LTO_OBJ_SUFFIX := .lto.o
 ifeq ($(IS_WINDOWS),yes)
 # ld.lld does not support --save-temps; emit LTO assembly instead
@@ -1573,12 +1617,14 @@ UNIVERSAL_ARCHES    := x86-64 x86-64-sse41-popcnt x86-64-avx2 x86-64-bmi2 x86-64
 UNIVERSAL_ENTRY_SRC := $(UNIVERSAL_SRC_DIR)/entry_x86_64.cpp
 UNIVERSAL_ENTRY_OBJ := $(TEMP_DIR)/entry_x86_64.o
 BASELINE_ARCH       := x86-64
-else ifeq ($(arch),armv8)
+else \
+ifeq ($(arch),armv8)
 UNIVERSAL_ARCHES    := armv8 armv8-dotprod
 UNIVERSAL_ENTRY_SRC := $(UNIVERSAL_SRC_DIR)/entry_arm64.cpp
 UNIVERSAL_ENTRY_OBJ := $(TEMP_DIR)/entry_arm64.o
 BASELINE_ARCH       := armv8
-else ifeq ($(arch),riscv64)
+else \
+ifeq ($(arch),riscv64)
 UNIVERSAL_ARCHES    := riscv64 riscv64-rva23
 UNIVERSAL_ENTRY_SRC := $(UNIVERSAL_SRC_DIR)/entry_riscv64.cpp
 UNIVERSAL_ENTRY_OBJ := $(TEMP_DIR)/entry_riscv64.o
@@ -1597,7 +1643,8 @@ UNIVERSAL_BUILD_FLAGS := -fno-exceptions -Os -Wno-c++26-extensions -Wno-c23-exte
 
 ifeq ($(TARGET_KERNEL),Darwin)
 UNIVERSAL_BUILD_FLAGS += $(MACOS_BUILD_FLAGS)
-else ifeq ($(TARGET_KERNEL),Linux)
+else \
+ifeq ($(TARGET_KERNEL),Linux)
 UNIVERSAL_BUILD_FLAGS += -static-libstdc++ -static-libgcc
 ifeq ($(COMP),ndk)
 UNIVERSAL_BUILD_FLAGS += -static
@@ -1625,7 +1672,8 @@ ifeq ($(TARGET_KERNEL),Darwin)
 ARCH_MAIN_LDFLAGS = -Wl,-alias,_$(call ARCH_MANGLED,$(1)),_main
 # lld-link, used on Windows+clang, doesn't accept --defsym, so
 # define main directly in main.cpp instead and delete it later.
-else ifeq ($(IS_WINDOWS)+$(COMP),yes+clang)
+else \
+ifeq ($(IS_WINDOWS)+$(COMP),yes+clang)
 ARCH_MAIN_CXXFLAGS = -DUNIVERSAL_NEEDS_MAIN_SHIM
 else
 ARCH_MAIN_LDFLAGS = -Wl,--defsym=main=$(call ARCH_MANGLED,$(1))
