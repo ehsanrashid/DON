@@ -118,6 +118,17 @@ void HalfKAHm::append_changed_indices(const Color      perspective,
     // clang-format on
 }
 
+void HalfKAHm::append_changed_indices_both(const Square     wKingSq,
+                                           const Square     bKingSq,
+                                           const DirtyType& dP,
+                                           IndexVector&     wRemoved,
+                                           IndexVector&     wAdded,
+                                           IndexVector&     bRemoved,
+                                           IndexVector&     bAdded) noexcept {
+    append_changed_indices(WHITE, wKingSq, dP, wRemoved, wAdded);
+    append_changed_indices(BLACK, bKingSq, dP, bRemoved, bAdded);
+}
+
 // Determine if a full refresh is required based on the dirty piece
 bool HalfKAHm::refresh_required(const Color perspective, const DirtyType& dP) noexcept {
     return dP.movedPc == make_piece(perspective, KING);

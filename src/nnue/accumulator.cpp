@@ -1199,11 +1199,9 @@ void update_incremental_both(const FeatureTransformer& featureTransformer,
     PairFeatureSet::append_changed_indices_both(
       wKingSq, bKingSq, target.dirties.dirtyPawnPairs, thrRemoved[WHITE], thrAdded[WHITE],
       thrRemoved[BLACK], thrAdded[BLACK], pfBase, pfStride);
-
-    PSQFeatureSet::append_changed_indices(WHITE, wKingSq, target.dirties.dirtyPiece,
-                                          psqRemoved[WHITE], psqAdded[WHITE]);
-    PSQFeatureSet::append_changed_indices(BLACK, bKingSq, target.dirties.dirtyPiece,
-                                          psqRemoved[BLACK], psqAdded[BLACK]);
+    PSQFeatureSet::append_changed_indices_both(wKingSq, bKingSq, target.dirties.dirtyPiece,
+                                               psqRemoved[WHITE], psqAdded[WHITE],
+                                               psqRemoved[BLACK], psqAdded[BLACK]);
 
     apply_combined(WHITE, featureTransformer, source, target, psqAdded[WHITE], psqRemoved[WHITE],
                    thrAdded[WHITE], thrRemoved[WHITE]);

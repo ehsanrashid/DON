@@ -326,8 +326,8 @@ void FullThreats::append_changed_indices(const Color                   perspecti
     }
 }
 
-void FullThreats::append_changed_indices_both(Square                        wKingSq,
-                                              Square                        bKingSq,
+void FullThreats::append_changed_indices_both(const Square                  wKingSq,
+                                              const Square                  bKingSq,
                                               const DirtyType&              dTs,
                                               IndexVector&                  wRemoved,
                                               IndexVector&                  wAdded,

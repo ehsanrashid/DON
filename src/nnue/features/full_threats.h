@@ -64,7 +64,7 @@ class FullThreats final {
 
     static void append_changed_indices_both(Square                  wKingSq,
                                             Square                  bKingSq,
-                                            const DirtyType&        diff,
+                                            const DirtyType&        dTs,
                                             IndexVector&            wRemoved,
                                             IndexVector&            wAdded,
                                             IndexVector&            bRemoved,
