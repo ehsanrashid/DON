@@ -60,15 +60,13 @@ class PP3Wide final {
                                        const ThreatWeightType* pfBase   = nullptr,
                                        usize                   pfStride = 0) noexcept;
 
-    static void append_changed_indices_both(Square                  wKingSq,
-                                            Square                  bKingSq,
-                                            const DirtyType&        dPps,
-                                            IndexVector&            wRemoved,
-                                            IndexVector&            wAdded,
-                                            IndexVector&            bRemoved,
-                                            IndexVector&            bAdded,
-                                            const ThreatWeightType* pfBase   = nullptr,
-                                            usize                   pfStride = 0) noexcept;
+    static void append_changed_indices_both(Square                        wKingSq,
+                                            Square                        bKingSq,
+                                            const DirtyType&              dPps,
+                                            Array<IndexVector, COLOR_NB>& removed,
+                                            Array<IndexVector, COLOR_NB>& added,
+                                            const ThreatWeightType*       pfBase   = nullptr,
+                                            usize                         pfStride = 0) noexcept;
 
    private:
     PP3Wide() noexcept                          = delete;

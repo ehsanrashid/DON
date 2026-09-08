@@ -329,10 +329,8 @@ void FullThreats::append_changed_indices(const Color                   perspecti
 void FullThreats::append_changed_indices_both(const Square                  wKingSq,
                                               const Square                  bKingSq,
                                               const DirtyType&              dTs,
-                                              IndexVector&                  wRemoved,
-                                              IndexVector&                  wAdded,
-                                              IndexVector&                  bRemoved,
-                                              IndexVector&                  bAdded,
+                                              Array<IndexVector, COLOR_NB>& removed,
+                                              Array<IndexVector, COLOR_NB>& added,
                                               const ThreatWeightType* const pfBase,
                                               const usize                   pfStride) noexcept {
     for (const auto& dT : dTs)
@@ -343,8 +341,8 @@ void FullThreats::append_changed_indices_both(const Square                  wKin
         const auto attackedPc = dT.threatened_pc();
         const auto add        = dT.add();
 
-        auto& wInsert = add ? wAdded : wRemoved;
-        auto& bInsert = add ? bAdded : bRemoved;
+        auto& wInsert = add ? added[WHITE] : removed[WHITE];
+        auto& bInsert = add ? added[BLACK] : removed[BLACK];
 
         const auto wIndex = make_index(WHITE, wKingSq, orgSq, dstSq, attackerPc, attackedPc);
         const auto bIndex = make_index(BLACK, bKingSq, orgSq, dstSq, attackerPc, attackedPc);

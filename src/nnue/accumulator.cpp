@@ -1206,15 +1206,12 @@ void update_incremental_both(const FeatureTransformer& featureTransformer,
     const auto* pfBase   = featureTransformer.threatAndPpWeights.data();
     const usize pfStride = FeatureTransformer::OutputDimensions;
 
-    ThreatFeatureSet::append_changed_indices_both(
-      wKingSq, bKingSq, target.dirties.dirtyThreats, thrRemoved[WHITE], thrAdded[WHITE],
-      thrRemoved[BLACK], thrAdded[BLACK], pfBase, pfStride);
-    PairFeatureSet::append_changed_indices_both(
-      wKingSq, bKingSq, target.dirties.dirtyPawnPairs, thrRemoved[WHITE], thrAdded[WHITE],
-      thrRemoved[BLACK], thrAdded[BLACK], pfBase, pfStride);
+    ThreatFeatureSet::append_changed_indices_both(wKingSq, bKingSq, target.dirties.dirtyThreats,
+                                                  thrRemoved, thrAdded, pfBase, pfStride);
+    PairFeatureSet::append_changed_indices_both(wKingSq, bKingSq, target.dirties.dirtyPawnPairs,
+                                                thrRemoved, thrAdded, pfBase, pfStride);
     PSQFeatureSet::append_changed_indices_both(wKingSq, bKingSq, target.dirties.dirtyPiece,
-                                               psqRemoved[WHITE], psqAdded[WHITE],
-                                               psqRemoved[BLACK], psqAdded[BLACK]);
+                                               psqRemoved, psqAdded);
 
     apply_combined_both(featureTransformer, source, target,  //
                         psqRemoved, psqAdded, thrRemoved, thrAdded);

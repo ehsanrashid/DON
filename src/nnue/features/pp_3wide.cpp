@@ -112,12 +112,10 @@ void PP3Wide::append_changed_indices(const Color                   perspective,
                                      IndexVector&                  added,
                                      const ThreatWeightType* const pfBase,
                                      const usize                   pfStride) noexcept {
-    const Bitboard wBefore = dPps.before[WHITE];
-    const Bitboard bBefore = dPps.before[BLACK];
-    const Bitboard wAfter  = dPps.after[WHITE];
-    const Bitboard bAfter  = dPps.after[BLACK];
+    const auto& before = dPps.before;
+    const auto& after  = dPps.after;
 
-    if (wBefore == wAfter && bBefore == bAfter)
+    if (before[WHITE] == after[WHITE] && before[BLACK] == after[BLACK])
         return;
 
 #if defined(USE_AVX512ICL)
@@ -181,29 +179,27 @@ void PP3Wide::append_changed_indices(const Color                   perspective,
     };
 #endif
 
-    generate(wBefore & ~wAfter, bBefore & ~bAfter, wBefore, bBefore, removed);
-    generate(wAfter & ~wBefore, bAfter & ~bBefore, wAfter, bAfter, added);
+    generate(before[WHITE] & ~after[WHITE], before[BLACK] & ~after[BLACK], before[WHITE],
+             before[BLACK], removed);
+    generate(after[WHITE] & ~before[WHITE], after[BLACK] & ~before[BLACK], after[WHITE],
+             after[BLACK], added);
 }
 
 void PP3Wide::append_changed_indices_both(const Square                  wKingSq,
                                           const Square                  bKingSq,
                                           const DirtyType&              dPps,
-                                          IndexVector&                  wRemoved,
-                                          IndexVector&                  wAdded,
-                                          IndexVector&                  bRemoved,
-                                          IndexVector&                  bAdded,
+                                          Array<IndexVector, COLOR_NB>& removed,
+                                          Array<IndexVector, COLOR_NB>& added,
                                           const ThreatWeightType* const pfBase,
                                           const usize                   pfStride) noexcept {
 #if defined(USE_AVX512ICL)
-    append_changed_indices(WHITE, wKingSq, dPps, wRemoved, wAdded, pfBase, pfStride);
-    append_changed_indices(BLACK, bKingSq, dPps, bRemoved, bAdded, pfBase, pfStride);
+    append_changed_indices(WHITE, wKingSq, dPps, removed[WHITE], added[WHITE], pfBase, pfStride);
+    append_changed_indices(BLACK, bKingSq, dPps, removed[BLACK], added[BLACK], pfBase, pfStride);
 #else
-    const Bitboard wBefore = dPps.before[WHITE];
-    const Bitboard bBefore = dPps.before[BLACK];
-    const Bitboard wAfter  = dPps.after[WHITE];
-    const Bitboard bAfter  = dPps.after[BLACK];
+    const auto& before = dPps.before;
+    const auto& after  = dPps.after;
 
-    if (wBefore == wAfter && bBefore == bAfter)
+    if (before[WHITE] == after[WHITE] && before[BLACK] == after[BLACK])
         return;
 
     const auto generate = [&](const Bitboard wUpdatedBB, const Bitboard bUpdatedBB,  //
@@ -239,8 +235,10 @@ void PP3Wide::append_changed_indices_both(const Square                  wKingSq,
         }
     };
 
-    generate(wBefore & ~wAfter, bBefore & ~bAfter, wBefore, bBefore, wRemoved, bRemoved);
-    generate(wAfter & ~wBefore, bAfter & ~bBefore, wAfter, bAfter, wAdded, bAdded);
+    generate(before[WHITE] & ~after[WHITE], before[BLACK] & ~after[BLACK],  //
+             before[WHITE], before[BLACK], removed[WHITE], removed[BLACK]);
+    generate(after[WHITE] & ~before[WHITE], after[BLACK] & ~before[BLACK],  //
+             after[WHITE], after[BLACK], added[WHITE], added[BLACK]);
 
 #endif
 }
