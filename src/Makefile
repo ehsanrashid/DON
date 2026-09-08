@@ -602,7 +602,7 @@ PROFILE_USE  := gcc-profile-use
 else ifeq ($(COMP),icx)
 CXX := icpx
 
-CXX_IS_CLANG       := yes
+CXX_IS_CLANG := yes
 
 CXXFLAGS += --intel -pedantic -Wextra -Wshadow -Wmissing-prototypes -Wconditional-uninitialized -Wabi -Wdeprecated -fconstexpr-steps=500000000
 
@@ -613,7 +613,7 @@ PROFILE_USE  := icx-profile-use
 else ifeq ($(COMP),clang)
 CXX := clang++
 
-CXX_IS_CLANG       := yes
+CXX_IS_CLANG := yes
 
 CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-prototypes -Wconditional-uninitialized -flax-vector-conversions=none -fconstexpr-steps=500000000
 
@@ -687,7 +687,7 @@ endif
 
 CXX := $(TOOLCHAIN)/$(TARGET)$(ANDROID_API)-clang++
 
-CXX_IS_CLANG       := yes
+CXX_IS_CLANG := yes
 
 # Use LLVM's libc++ and link it statically
 CXXFLAGS += -stdlib=libc++
@@ -995,15 +995,18 @@ GIT_DIFFINDEX_FILE := .git_diffindex.txt
 
 ifndef GIT
 GIT := git
-ifneq ($(shell command -v $(GIT) 2>/dev/null),)
+ifneq ($(call FIND_EXE,$(GIT)),)
 GIT += -c core.filemode=false -c core.autocrlf=false
 
-override GIT_DATE      := $(shell $(GIT) show -s --date=format:%Y%m%d --format=%cd HEAD 2>/dev/null)
-override GIT_SHA       := $(shell $(GIT) rev-parse HEAD 2>/dev/null | cut -c 1-8 | tr '[:lower:]' '[:upper:]')
-override GIT_DIFFINDEX := $(shell $(GIT) update-index --refresh >/dev/null 2>&1; \
-                                if ! $(GIT) diff-index --quiet HEAD -- 2>/dev/null; then \
-                                    $(GIT) diff HEAD --no-ext-diff | $(GIT) hash-object --stdin | cut -c 1-6 | tr '[:lower:]' '[:upper:]'; \
-                                fi)
+override GIT_DATE      := \
+$(shell $(GIT) show -s --date=format:%Y%m%d --format=%cd HEAD 2>/dev/null)
+override GIT_SHA       := \
+$(shell $(GIT) rev-parse HEAD 2>/dev/null | cut -c 1-8 | tr '[:lower:]' '[:upper:]')
+override GIT_DIFFINDEX := \
+$(shell $(GIT) update-index --refresh >/dev/null 2>&1; \
+    if ! $(GIT) diff-index --quiet HEAD -- 2>/dev/null; then \
+        $(GIT) diff HEAD --no-ext-diff | $(GIT) hash-object --stdin | cut -c 1-6 | tr '[:lower:]' '[:upper:]'; \
+    fi)
 endif
 endif
 export GIT GIT_DATE GIT_SHA GIT_DIFFINDEX
@@ -1033,12 +1036,12 @@ BUILD_TIMESTAMP := $(word 1,$(BUILD_INFO)) $(word 3,$(BUILD_INFO)) $(word 4,$(BU
 
 # Compiler flags for Git build metadata
 GIT_META_FLAGS := \
-    $(strip $(if $(GIT_DATE),-DGIT_DATE='"$(GIT_DATE)"') \
-            $(if $(GIT_SHA),-DGIT_SHA='"$(GIT_SHA)"') \
-            $(if $(GIT_DIFFINDEX),-DGIT_DIFFINDEX='"$(GIT_DIFFINDEX)"'))
+$(strip $(if $(GIT_DATE),-DGIT_DATE='"$(GIT_DATE)"') \
+        $(if $(GIT_SHA),-DGIT_SHA='"$(GIT_SHA)"') \
+        $(if $(GIT_DIFFINDEX),-DGIT_DIFFINDEX='"$(GIT_DIFFINDEX)"'))
 BUILD_DATE_TIME_FLAGS := \
-    $(strip -DBUILD_DATE='"$(BUILD_DATE)"' \
-            -DBUILD_TIME='"$(BUILD_TIME)"')
+$(strip -DBUILD_DATE='"$(BUILD_DATE)"' \
+        -DBUILD_TIME='"$(BUILD_TIME)"')
 # Compiler flags use Git build metadata when available, otherwise build date/time, plus the build timestamp
 BUILD_FLAGS := $(strip $(or $(GIT_META_FLAGS),$(BUILD_DATE_TIME_FLAGS)) -DBUILD_TIMESTAMP='"$(BUILD_TIMESTAMP)"')
 
@@ -1558,14 +1561,14 @@ endif
 #   make -j profile-build ARCH=x86-64-universal  # PGO (use RUN_PREFIX for intel SDE)
 #   make -j build ARCH=arm64-universal
 
-TEMP_DIR             := $(CURDIR)/temp_builds
-UNIVERSAL_EXE        := $(CURDIR)/$(EXE)
+TEMP_DIR      := $(CURDIR)/temp_builds
+UNIVERSAL_EXE := $(CURDIR)/$(EXE)
 
 ifeq ($(UNIVERSAL_BUILD),yes)
 
-UNIVERSAL_SRC_DIR    := $(CURDIR)/universal
-NNUE_EMBED_OBJ       := $(TEMP_DIR)/nnue_embed.o
-NET_SENTINEL         := $(TEMP_DIR)/.net-done
+UNIVERSAL_SRC_DIR := $(CURDIR)/universal
+NNUE_EMBED_OBJ    := $(TEMP_DIR)/nnue_embed.o
+NET_SENTINEL      := $(TEMP_DIR)/.net-done
 
 ifeq ($(arch),x86_64)
 UNIVERSAL_ARCHES    := x86-64 x86-64-sse41-popcnt x86-64-avx2 x86-64-bmi2 x86-64-avxvnni x86-64-avx512 x86-64-vnni512 x86-64-avx512icl
@@ -1644,8 +1647,7 @@ ifeq ($(MACOS_X86_64_SLICE),1)
 SLICE_DEF := -DUNIVERSAL_BINARY_MACOS_X86_64_SLICE
 endif
 
-ARCH_CXXFLAGS = $(EMBED_DIR) -DDON=$(call ARCH_NAMESPACE,$(1)) -DUNIVERSAL_BINARY $(SLICE_DEF) \
-                $(ARCH_MAIN_CXXFLAGS) -Wno-c++26-extensions -Wno-c23-extensions
+ARCH_CXXFLAGS = $(EMBED_DIR) -DDON=$(call ARCH_NAMESPACE,$(1)) -DUNIVERSAL_BINARY $(SLICE_DEF) $(ARCH_MAIN_CXXFLAGS) -Wno-c++26-extensions -Wno-c23-extensions
 ARCH_LDFLAGS  = $(ARCH_MAIN_LDFLAGS)
 
 UOBJ_TGT ?= universal-object-pgo
