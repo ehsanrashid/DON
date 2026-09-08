@@ -34,7 +34,7 @@ constexpr std::string_view NAME{"DON"};
 constexpr std::string_view AUTHOR{"Ehsan Rashid"};
 constexpr std::string_view VERSION{"dev"};
 
-// Format date to YYYYMMDD
+// Format date "Mon DD YYYY" -> YYYYMMDD
 [[maybe_unused]] std::string format_date(const std::string_view date) noexcept {
     constexpr std::string_view NullDate{"00000000"};
 
@@ -212,7 +212,6 @@ std::string_view build_date() noexcept {
 #endif
       ;
 }
-
 std::string_view build_time() noexcept {
     return
 #if defined(BUILD_TIME)
@@ -222,7 +221,6 @@ std::string_view build_time() noexcept {
 #endif
       ;
 }
-
 std::string_view build_timestamp() noexcept {
     return
 #if defined(BUILD_TIMESTAMP)
@@ -322,7 +320,8 @@ std::string version_info() noexcept {
         version.append(build_time());
 #endif
 #if defined(GIT_DIFFINDEX)
-        version.append("-").append(GIT_DIFFINDEX);
+        version.push_back('-');
+        version.append(GIT_DIFFINDEX);
 #endif
     }
 

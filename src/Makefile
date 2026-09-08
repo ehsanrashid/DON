@@ -979,7 +979,12 @@ ifeq ($(tablebases),no)
     CXXFLAGS += -DNO_TABLEBASES
 endif
 
-### 3.8.1 Try to include git info for versioning and avoid recompiles if nothing changes
+### 3.8.1 Try to include architecture
+ifneq ($(ARCH),)
+    ARCH_FLAG := -DARCH=$(ARCH)
+endif
+
+### 3.8.2 Try to include git info for versioning and avoid recompiles if nothing changes
 GIT_DATE_FILE      := .git_date.txt
 GIT_SHA_FILE       := .git_sha.txt
 GIT_DIFFINDEX_FILE := .git_diffindex.txt
@@ -987,7 +992,7 @@ GIT_DIFFINDEX_FILE := .git_diffindex.txt
 ifndef GIT
 GIT := git
 ifneq ($(shell command -v $(GIT) 2>/dev/null),)
-GIT := $(GIT) -c core.filemode=false -c core.autocrlf=false
+GIT += -c core.filemode=false -c core.autocrlf=false
 ifndef GIT_DATE
 GIT_DATE := $(shell $(GIT) show -s --date=format:%Y%m%d --format=%cd HEAD 2>/dev/null)
 endif
@@ -1042,15 +1047,8 @@ GIT_FLAGS := $(strip \
              $(if $(GIT_DATE),-DGIT_DATE='"$(GIT_DATE)"') \
              $(if $(GIT_SHA),-DGIT_SHA='"$(GIT_SHA)"') \
              $(if $(GIT_DIFFINDEX),-DGIT_DIFFINDEX='"$(GIT_DIFFINDEX)"'))
-# Compiler flags for Git build information, or build date/time when Git metadata is unavailable
-BUILD_FLAGS := $(or $(GIT_FLAGS),-DBUILD_DATE='"$(BUILD_DATE)"' -DBUILD_TIME='"$(BUILD_TIME)"')
-# Compiler flag for the build timestamp
-BUILD_TIMESTAMP_FLAG := -DBUILD_TIMESTAMP='"$(BUILD_TIMESTAMP)"'
-
-### 3.8.2 Try to include architecture
-ifneq ($(ARCH),)
-    ARCH_FLAG := -DARCH=$(ARCH)
-endif
+# Compiler flags for Git build information, or build date/time when Git metadata is unavailable, plus the build timestamp
+BUILD_FLAGS := $(strip $(or $(GIT_FLAGS),-DBUILD_DATE='"$(BUILD_DATE)"' -DBUILD_TIME='"$(BUILD_TIME)"') -DBUILD_TIMESTAMP='"$(BUILD_TIMESTAMP)"')
 
 ### 3.9 Link Time Optimization
 ### This is a mix of compile and link time options because the lto link phase
@@ -1442,7 +1440,6 @@ config-sanity: net
 	echo "LDLIBS: '$(LDLIBS)'" && \
 	echo "ARCH_FLAG: '$(ARCH_FLAG)'" && \
 	echo "BUILD_FLAGS: '$(BUILD_FLAGS)'" && \
-	echo "BUILD_TIMESTAMP_FLAG: '$(BUILD_TIMESTAMP_FLAG)'" && \
 	echo && \
 	echo "Testing config sanity. If this fails, try 'make help' ..." && \
 	echo && \
@@ -1489,7 +1486,7 @@ $(EXE): $(OBJS) $(NNUE_EMBED_OBJ)
 	$(strip $(CXX) $(CPPFLAGS) $(CXXFLAGS)) -c "$<" -o "$@"
 
 misc.o: misc.cpp $(GIT_DATE_FILE) $(GIT_SHA_FILE) $(GIT_DIFFINDEX_FILE)
-	$(strip $(CXX) $(CPPFLAGS) $(CXXFLAGS) $(ARCH_FLAG) $(BUILD_FLAGS) $(BUILD_TIMESTAMP_FLAG)) -c "$<" -o "$@"
+	$(strip $(CXX) $(CPPFLAGS) $(CXXFLAGS) $(ARCH_FLAG) $(BUILD_FLAGS)) -c "$<" -o "$@"
 
 # Clang PGO
 clang-profile-make:

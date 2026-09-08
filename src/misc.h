@@ -467,21 +467,21 @@ std::string_view build_timestamp() noexcept;
     return is_cdigit(ch) ? ch - '0' : 0;
 }
 
-constexpr unsigned to_month(const std::string_view m) noexcept {
-    assert(m.size() == 3);
-    return lower_case(m[0]) == 'j' && lower_case(m[1]) == 'a' ? 1
-         : lower_case(m[0]) == 'f'                            ? 2
-         : lower_case(m[0]) == 'm' && lower_case(m[2]) == 'r' ? 3
-         : lower_case(m[0]) == 'a' && lower_case(m[1]) == 'p' ? 4
-         : lower_case(m[0]) == 'm' && lower_case(m[2]) == 'y' ? 5
-         : lower_case(m[0]) == 'j' && lower_case(m[2]) == 'n' ? 6
-         : lower_case(m[0]) == 'j' && lower_case(m[2]) == 'l' ? 7
-         : lower_case(m[0]) == 'a' && lower_case(m[1]) == 'u' ? 8
-         : lower_case(m[0]) == 's'                            ? 9
-         : lower_case(m[0]) == 'o'                            ? 10
-         : lower_case(m[0]) == 'n'                            ? 11
-         : lower_case(m[0]) == 'd'                            ? 12
-                                                              : 0;
+constexpr unsigned to_month(const std::string_view mon) noexcept {
+    assert(mon.size() == 3);
+    return lower_case(mon[0]) == 'j' && lower_case(mon[1]) == 'a' ? 1
+         : lower_case(mon[0]) == 'f'                              ? 2
+         : lower_case(mon[0]) == 'm' && lower_case(mon[2]) == 'r' ? 3
+         : lower_case(mon[0]) == 'a' && lower_case(mon[1]) == 'p' ? 4
+         : lower_case(mon[0]) == 'm' && lower_case(mon[2]) == 'y' ? 5
+         : lower_case(mon[0]) == 'j' && lower_case(mon[2]) == 'n' ? 6
+         : lower_case(mon[0]) == 'j' && lower_case(mon[2]) == 'l' ? 7
+         : lower_case(mon[0]) == 'a' && lower_case(mon[1]) == 'u' ? 8
+         : lower_case(mon[0]) == 's'                              ? 9
+         : lower_case(mon[0]) == 'o'                              ? 10
+         : lower_case(mon[0]) == 'n'                              ? 11
+         : lower_case(mon[0]) == 'd'                              ? 12
+                                                                  : 0;
 }
 
 std::string engine_info(bool uci = false) noexcept;
