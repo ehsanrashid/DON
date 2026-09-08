@@ -838,8 +838,8 @@ inline bool Position::capture(const Move m) const noexcept {
 
     const auto mt = m.type();
 
-    return ((mt == MT::NORMAL || mt == MT::PROMOTION) && !empty(m.dst_sq()))
-        || mt == MT::EN_PASSANT;
+    return (mt == MT::EN_PASSANT)
+        || ((mt == MT::NORMAL || mt == MT::PROMOTION) && !empty(m.dst_sq()));
 }
 
 inline bool Position::capture_promo(const Move m) const noexcept {
@@ -851,7 +851,8 @@ inline bool Position::capture_promo(const Move m) const noexcept {
         return false;
 
     const auto promotedPt = m.promotion_type();
-    return promotedPt == QUEEN || (promotedPt == KNIGHT && (checks_bb(KNIGHT) & m.dst_sq()) != 0);
+    return (promotedPt == QUEEN)  //
+        || (promotedPt == KNIGHT && (checks_bb(KNIGHT) & m.dst_sq()) != 0);
 }
 
 inline Piece Position::moved_pc(const Move m) const noexcept {

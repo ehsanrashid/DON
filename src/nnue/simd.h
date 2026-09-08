@@ -50,6 +50,13 @@
 #if defined(USE_AVX2_PAIR_ACTIVATIONS) || defined(USE_AVX512)
     #define USE_PAIR_ACTIVATIONS
 #endif
+#if defined(USE_AVX2_PAIR_ACTIVATIONS) || defined(USE_LASX)
+    #define USE_SCRAMBLED_ACTIVATIONS
+#endif
+
+// If vector instructions are enabled, update and refresh the accumulator tile by tile
+// such that each tile fits in the CPU's vector registers.
+#define VECTOR
 
 namespace DON::NNUE::SIMD {
 
@@ -67,9 +74,6 @@ inline constexpr usize WIDTH =
 #endif
   ;
 
-// If vector instructions are enabled, update and refresh the accumulator tile by tile
-// such that each tile fits in the CPU's vector registers.
-#define VECTOR
 // clang-format off
 #if defined(USE_SSE2)
     #if defined(USE_AVX512)

@@ -161,7 +161,6 @@ class SqrClippedReLU final {
             const __m256i words1 = _mm512_cvtsepi32_epi16(_mm512_load_si512(&in[j + 1]));
             const __m512i words  = _mm512_inserti64x4(_mm512_castsi256_si512(words0), words1, 1);
             const __m512i packed = _mm512_srli_epi16(_mm512_mulhi_epi16(words, words), SimdShift);
-
             _mm256_store_si256(&out[i], _mm512_cvtsepi16_epi8(packed));
         }
         // clang-format on
@@ -182,7 +181,6 @@ class SqrClippedReLU final {
             const __m128i words1  = _mm_packs_epi32(_mm_load_si128(&in[j + 2]), _mm_load_si128(&in[j + 3]));
             const __m128i packed0 = _mm_srli_epi16(_mm_mulhi_epi16(words0, words0), SimdShift);
             const __m128i packed1 = _mm_srli_epi16(_mm_mulhi_epi16(words1, words1), SimdShift);
-
             _mm_store_si128(&out[i], _mm_packs_epi16(packed0, packed1));
         }
         // clang-format on
@@ -205,11 +203,8 @@ class SqrClippedReLU final {
             const __m256i words1 = __lasx_xvssrani_h_w(in[j + 3], in[j + 2], 0);
             const __m256i sqr0   = __lasx_xvmuh_h(words0, words0);
             const __m256i sqr1   = __lasx_xvmuh_h(words1, words1);
-
             const __m256i packed = __lasx_xvssrlni_b_h(sqr1, sqr0, SimdShift);
-            const __m256i permed = __lasx_xvpermi_d(packed, 0xD8);
-
-            __lasx_xvst(__lasx_xvshuf4i_w(permed, 0xD8), out + i, 0);
+            __lasx_xvst(packed, out + i, 0);
         }
         // clang-format on
         constexpr IndexType Start = SimdWidth * ChunkCount;
@@ -229,7 +224,6 @@ class SqrClippedReLU final {
             const __m128i words1 = __lsx_vssrani_h_w(in[j + 3], in[j + 2], 0);
             const __m128i sqr0   = __lsx_vmuh_h(words0, words0);
             const __m128i sqr1   = __lsx_vmuh_h(words1, words1);
-
             out[i]               = __lsx_vssrlni_b_h(sqr1, sqr0, SimdShift);
         }
         // clang-format on
@@ -255,7 +249,6 @@ class SqrClippedReLU final {
             // `Saturating Doubling Multiply High` (doubling before shift by 16).
             const int16x8_t sqr0 = vshrq_n_s16(vqdmulhq_s16(words0, words0), SimdShift + 1);
             const int16x8_t sqr1 = vshrq_n_s16(vqdmulhq_s16(words1, words1), SimdShift + 1);
-
             out[i] = vcombine_s8(vqmovn_s16(sqr0), vqmovn_s16(sqr1));
         }
         // clang-format on
@@ -272,7 +265,6 @@ class SqrClippedReLU final {
             const vint16m2_t words   = __riscv_vnclip_wx_i16m2(in, 0, __RISCV_VXRM_RDN, vl);
             const vint16m2_t sqr     = __riscv_vmulh_vv_i16m2(words, words, vl);
             const vint8m1_t narrowed = __riscv_vnclip_wx_i8m1(sqr, SimdShift, __RISCV_VXRM_RDN, vl);
-
             __riscv_vse8_v_u8m1(&output[i], __riscv_vreinterpret_v_i8m1_u8m1(narrowed), vl);
         }
         // clang-format on

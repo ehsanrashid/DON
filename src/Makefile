@@ -984,12 +984,12 @@ ifeq ($(tablebases),no)
     CXXFLAGS += -DNO_TABLEBASES
 endif
 
-### 3.8.1 Try to include architecture
+### 3.8.1 Include architecture when specified
 ifneq ($(ARCH),)
-    ARCH_FLAG := -DARCH=$(ARCH)
+    ARCH_FLAG := -DARCH='"$(ARCH)"'
 endif
 
-### 3.8.2 Try to include git info for versioning and avoid recompiles if nothing changes
+### 3.8.2 Include Git or build info for versioning and avoid recompiles if nothing changes
 GIT_DATE_FILE      := .git_date.txt
 GIT_SHA_FILE       := .git_sha.txt
 GIT_DIFFINDEX_FILE := .git_diffindex.txt
@@ -1005,10 +1005,11 @@ ifndef GIT_SHA
 GIT_SHA := $(shell $(GIT) rev-parse HEAD 2>/dev/null | cut -c 1-8 | tr '[:lower:]' '[:upper:]')
 endif
 ifndef GIT_DIFFINDEX
-GIT_DIFFINDEX := $(shell $(GIT) update-index --refresh >/dev/null 2>&1; \
-                    if ! $(GIT) diff-index --quiet HEAD -- 2>/dev/null; then \
-                        $(GIT) diff HEAD --no-ext-diff | $(GIT) hash-object --stdin | cut -c 1-6 | tr '[:lower:]' '[:upper:]'; \
-                    fi)
+GIT_DIFFINDEX := \
+    $(shell $(GIT) update-index --refresh >/dev/null 2>&1; \
+        if ! $(GIT) diff-index --quiet HEAD -- 2>/dev/null; then \
+            $(GIT) diff HEAD --no-ext-diff | $(GIT) hash-object --stdin | cut -c 1-6 | tr '[:lower:]' '[:upper:]'; \
+        fi)
 endif
 endif
 export GIT_DATE GIT_SHA GIT_DIFFINDEX
@@ -1030,7 +1031,7 @@ ifneq ($(filter-out help net strip install clean obj-clean profile-clean univers
 endif
 
 ifndef BUILD_INFO
-BUILD_INFO := $(shell date '+%Y%m%d %H %M %S %a %b %d %Y')
+BUILD_INFO := $(shell LC_ALL=C date '+%Y%m%d %H %M %S %a %b %d %Y')
 endif
 export BUILD_INFO
 ifndef BUILD_DATE
@@ -1048,12 +1049,15 @@ endif
 export BUILD_TIMESTAMP
 
 # Compiler flags for Git build metadata
-GIT_FLAGS := $(strip \
-             $(if $(GIT_DATE),-DGIT_DATE='"$(GIT_DATE)"') \
-             $(if $(GIT_SHA),-DGIT_SHA='"$(GIT_SHA)"') \
-             $(if $(GIT_DIFFINDEX),-DGIT_DIFFINDEX='"$(GIT_DIFFINDEX)"'))
-# Compiler flags for Git build information, or build date/time when Git metadata is unavailable, plus the build timestamp
-BUILD_FLAGS := $(strip $(or $(GIT_FLAGS),-DBUILD_DATE='"$(BUILD_DATE)"' -DBUILD_TIME='"$(BUILD_TIME)"') -DBUILD_TIMESTAMP='"$(BUILD_TIMESTAMP)"')
+GIT_META_FLAGS := \
+    $(strip $(if $(GIT_DATE),-DGIT_DATE='"$(GIT_DATE)"') \
+            $(if $(GIT_SHA),-DGIT_SHA='"$(GIT_SHA)"') \
+            $(if $(GIT_DIFFINDEX),-DGIT_DIFFINDEX='"$(GIT_DIFFINDEX)"'))
+BUILD_DATE_TIME_FLAGS := \
+    $(strip -DBUILD_DATE='"$(BUILD_DATE)"' \
+            -DBUILD_TIME='"$(BUILD_TIME)"')
+# Compiler flags use Git build metadata when available, otherwise build date/time, plus the build timestamp
+BUILD_FLAGS := $(strip $(or $(GIT_META_FLAGS),$(BUILD_DATE_TIME_FLAGS)) -DBUILD_TIMESTAMP='"$(BUILD_TIMESTAMP)"')
 
 ### 3.9 Link Time Optimization
 ### This is a mix of compile and link time options because the lto link phase
@@ -1443,8 +1447,9 @@ config-sanity: net
 	echo && \
 	echo "Testing config sanity. If this fails, try 'make help' ..." && \
 	echo && \
-	(test "$(debug)"    = "no" || test "$(debug)"    = "yes") && \
-	(test "$(optimize)" = "no" || test "$(optimize)" = "yes") && \
+	(test "$(IS_WINDOWS)" = "no" || test "$(IS_WINDOWS)" = "yes") && \
+	(test "$(debug)"      = "no" || test "$(debug)"      = "yes") && \
+	(test "$(optimize)"   = "no" || test "$(optimize)"   = "yes") && \
 	(test "$(ARCH_SUPPORTED)" = "yes") && \
 	(test "$(arch)" = "any" || test "$(arch)" = "i386" || test "$(arch)" = "x86_64" || \
 	 test "$(arch)" = "loongarch64" || test "$(arch)" = "riscv64" || \
@@ -1475,7 +1480,6 @@ config-sanity: net
 	(test "$(neon)"      = "no" || test "$(neon)"      = "yes") && \
 	(test "$(dotprod)"   = "no" || test "$(dotprod)"   = "yes") && \
 	(test "$(tablebases)" = "no" || test "$(tablebases)" = "yes") && \
-	(test "$(IS_WINDOWS)" = "no" || test "$(IS_WINDOWS)" = "yes") && \
 	(test "$(COMP)" = "gcc" || test "$(COMP)" = "clang" || test "$(COMP)" = "mingw" || \
 	 test "$(COMP)" = "icx" || test "$(COMP)" = "ndk") || { \
 		echo "Invalid configuration. Run 'make help' for supported options."; \
