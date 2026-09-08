@@ -88,9 +88,10 @@ class AffineTransform final {
     static constexpr IndexType weight_index(IndexType i) noexcept {
 #if defined(USE_AFFINE_SIMD)
         IndexType idx = i % PaddedInputDimensions;
-    #if defined(USE_AVX2_PAIR_ACTIVATIONS)
-        // AVX2 packs operate independently on 128-bit lanes. Keep their interleaved output
-        // order and rearrange the following layer's weights instead of issuing VPERMD.
+    #if defined(USE_SCRAMBLED_ACTIVATIONS)
+        // AVX2 and LASX packs operate independently on 128-bit lanes.
+        // Keep their interleaved output order and rearrange the following
+        // layer's weights instead of issuing a runtime permutation.
         const IndexType block = idx / 32;
         const IndexType chunk = (idx % 32) / ChunkSize;
 
@@ -174,6 +175,15 @@ class AffineTransform final {
             SIMD::dotprod_m128_add_dpbusd_epi32(acc, vreinterpretq_s8_s32(a), \
                                                 vreinterpretq_s8_s32(b))
     #endif
+    #if defined(USE_LSX)
+        #if defined(USE_LASX)
+            #define vec_load_32(a) __lasx_xvldrepl_w(reinterpret_cast<const void*>(a), 0)
+        #else
+            #define vec_load_32(a) __lsx_vldrepl_w(reinterpret_cast<const void*>(a), 0)
+        #endif
+    #else
+        #define vec_load_32(a) vec_set_32(load_as<i32>(a))
+    #endif
 
             constexpr IndexType OutputSimdWidth = sizeof(vec_t) / sizeof(OutputType);
 
@@ -202,8 +212,8 @@ class AffineTransform final {
     #if defined(USE_VNNI) || defined(USE_NEON_DOTPROD)
             for (; i + 1 < ChunkCount; i += 2)
             {
-                const vec_t in0 = vec_set_32(load_as<i32>(input + (i + 0) * sizeof(i32)));
-                const vec_t in1 = vec_set_32(load_as<i32>(input + (i + 1) * sizeof(i32)));
+                const vec_t in0 = vec_load_32(input + (i + 0) * sizeof(i32));
+                const vec_t in1 = vec_load_32(input + (i + 1) * sizeof(i32));
 
                 const auto* col0 =
                   reinterpret_cast<const vec_t*>(&weights[(i + 0) * OutputDimensions * 4]);
@@ -228,7 +238,7 @@ class AffineTransform final {
     #endif
             for (; i < ChunkCount; ++i)
             {
-                const vec_t in = vec_set_32(load_as<i32>(input + i * sizeof(i32)));
+                const vec_t in = vec_load_32(input + i * sizeof(i32));
 
                 const auto* col =
                   reinterpret_cast<const vec_t*>(&weights[i * OutputDimensions * 4]);
@@ -243,6 +253,7 @@ class AffineTransform final {
                 outVec[k] = acc[k];
 
     #undef vec_set_32
+    #undef vec_load_32
     #undef vec_add_dpbusd_32
     #undef vec_add_32
         }

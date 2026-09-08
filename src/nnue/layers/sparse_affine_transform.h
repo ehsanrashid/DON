@@ -183,6 +183,15 @@ class SparseAffineTransform final {
             #define vec_add_dpbusd_32 SIMD::neon8_m128_add_dpbusd_epi32
         #endif
     #endif
+    #if defined(USE_LSX)
+        #if defined(USE_LASX)
+            #define vec_load_32(a) __lasx_xvldrepl_w(reinterpret_cast<const void*>(a), 0)
+        #else
+            #define vec_load_32(a) __lsx_vldrepl_w(reinterpret_cast<const void*>(a), 0)
+        #endif
+    #else
+        #define vec_load_32(a) vec_set_32(load_as<i32>(a))
+    #endif
 
         constexpr IndexType OutputSimdWidth = sizeof(outvec_t) / sizeof(OutputType);
 
@@ -232,9 +241,9 @@ class SparseAffineTransform final {
             const usize i1 = p[1];
             const usize i2 = p[2];
 
-            const invec_t in0 = vec_set_32(load_as<i32>(input + i0 * sizeof(i32)));
-            const invec_t in1 = vec_set_32(load_as<i32>(input + i1 * sizeof(i32)));
-            const invec_t in2 = vec_set_32(load_as<i32>(input + i2 * sizeof(i32)));
+            const invec_t in0 = vec_load_32(input + i0 * sizeof(i32));
+            const invec_t in1 = vec_load_32(input + i1 * sizeof(i32));
+            const invec_t in2 = vec_load_32(input + i2 * sizeof(i32));
 
             const auto* col0 =
               reinterpret_cast<const invec_t*>(&w[i0 * OutputDimensions * ChunkSize]);
@@ -261,7 +270,7 @@ class SparseAffineTransform final {
         {
             const usize i = *p;
 
-            const invec_t in = vec_set_32(load_as<i32>(input + i * sizeof(i32)));
+            const invec_t in = vec_load_32(input + i * sizeof(i32));
 
             const auto* col =
               reinterpret_cast<const invec_t*>(&w[i * OutputDimensions * ChunkSize]);
@@ -296,7 +305,7 @@ class SparseAffineTransform final {
             {
                 const usize i0 = pop_lsq(bits);
 
-                const invec_t in0 = vec_set_32(load_as<i32>(inBase + i0 * sizeof(i32)));
+                const invec_t in0 = vec_load_32(inBase + i0 * sizeof(i32));
 
                 const auto* col0 =
                   reinterpret_cast<const invec_t*>(&wBase[i0 * OutputDimensions * ChunkSize]);
@@ -310,7 +319,7 @@ class SparseAffineTransform final {
 
                 const usize i1 = pop_lsq(bits);
 
-                const invec_t in1 = vec_set_32(load_as<i32>(inBase + i1 * sizeof(i32)));
+                const invec_t in1 = vec_load_32(inBase + i1 * sizeof(i32));
 
                 const auto* col1 =
                   reinterpret_cast<const invec_t*>(&wBase[i1 * OutputDimensions * ChunkSize]);
@@ -328,7 +337,7 @@ class SparseAffineTransform final {
                 const usize i0 = pop_lsq(bits);
                 if (bits == 0)
                 {
-                    const invec_t in0 = vec_set_32(load_as<i32>(inBase + i0 * sizeof(i32)));
+                    const invec_t in0 = vec_load_32(inBase + i0 * sizeof(i32));
 
                     const auto* col0 =
                       reinterpret_cast<const invec_t*>(&wBase[i0 * OutputDimensions * ChunkSize]);
@@ -341,8 +350,8 @@ class SparseAffineTransform final {
                 const usize i1 = pop_lsq(bits);
                 if (bits == 0)
                 {
-                    const invec_t in0 = vec_set_32(load_as<i32>(inBase + i0 * sizeof(i32)));
-                    const invec_t in1 = vec_set_32(load_as<i32>(inBase + i1 * sizeof(i32)));
+                    const invec_t in0 = vec_load_32(inBase + i0 * sizeof(i32));
+                    const invec_t in1 = vec_load_32(inBase + i1 * sizeof(i32));
 
                     const auto* col0 =
                       reinterpret_cast<const invec_t*>(&wBase[i0 * OutputDimensions * ChunkSize]);
@@ -359,9 +368,9 @@ class SparseAffineTransform final {
 
                 const usize i2 = pop_lsq(bits);
 
-                const invec_t in0 = vec_set_32(load_as<i32>(inBase + i0 * sizeof(i32)));
-                const invec_t in1 = vec_set_32(load_as<i32>(inBase + i1 * sizeof(i32)));
-                const invec_t in2 = vec_set_32(load_as<i32>(inBase + i2 * sizeof(i32)));
+                const invec_t in0 = vec_load_32(inBase + i0 * sizeof(i32));
+                const invec_t in1 = vec_load_32(inBase + i1 * sizeof(i32));
+                const invec_t in2 = vec_load_32(inBase + i2 * sizeof(i32));
 
                 const auto* col0 =
                   reinterpret_cast<const invec_t*>(&wBase[i0 * OutputDimensions * ChunkSize]);
@@ -392,7 +401,7 @@ class SparseAffineTransform final {
                 asm("" : "+r"(col), "+r"(inPtr));
             #endif
 
-                const invec_t in = vec_set_32(load_as<i32>(inPtr));
+                const invec_t in = vec_load_32(inPtr);
                 for (IndexType k = 0; k < AccCount; ++k)
                     vec_add_dpbusd_32(acc[k], in, col[k]);
             }
@@ -421,6 +430,7 @@ class SparseAffineTransform final {
             outVec[k] = acc[k];
 
     #undef vec_set_32
+    #undef vec_load_32
     #undef vec_add_dpbusd_32
     #undef vec_add_32
 
