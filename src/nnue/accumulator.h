@@ -126,7 +126,8 @@ struct AccumulatorStack final {
     void evaluate(Color                     perspective,
                   const Position&           pos,
                   const FeatureTransformer& featureTransformer,
-                  AccumulatorCache&         accCache) noexcept;
+                  AccumulatorCache&         accCache,
+                  usize                     lastUsableIdx) noexcept;
 
     [[nodiscard]] usize find_last_usable_index(Color perspective) const noexcept;
 
@@ -139,6 +140,11 @@ struct AccumulatorStack final {
                                      const Position&           pos,
                                      const FeatureTransformer& featureTransformer,
                                      usize                     end) noexcept;
+
+    void update_incremental_forward_both(const Position&           pos,
+                                         const FeatureTransformer& featureTransformer,
+                                         usize                     wBeg,
+                                         usize                     bBeg) noexcept;
 
     static constexpr usize Size = PLY_MAX + 1;
 

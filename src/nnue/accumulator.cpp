@@ -54,6 +54,12 @@ void update_incremental(Color                     perspective,
                         const Accumulator&        source,
                         Accumulator&              target) noexcept;
 
+void update_incremental_both(const FeatureTransformer& featureTransformer,
+                             Square                    wKingSq,
+                             Square                    bKingSq,
+                             const Accumulator&        source,
+                             Accumulator&              target);
+
 }  // namespace
 
 void AccumulatorStack::reset() noexcept {
@@ -76,18 +82,25 @@ void AccumulatorStack::pop() noexcept {
 void AccumulatorStack::evaluate(const Position&           pos,
                                 const FeatureTransformer& featureTransformer,
                                 AccumulatorCache&         accCache) noexcept {
+    const auto wlastUsableIdx = find_last_usable_index(WHITE);
+    const auto blastUsableIdx = find_last_usable_index(BLACK);
 
-    evaluate(WHITE, pos, featureTransformer, accCache);
-    evaluate(BLACK, pos, featureTransformer, accCache);
+    if (accumulators[wlastUsableIdx].computed[WHITE]
+        && accumulators[blastUsableIdx].computed[BLACK])
+        update_incremental_forward_both(pos, featureTransformer, wlastUsableIdx, blastUsableIdx);
+    else
+    {
+        evaluate(WHITE, pos, featureTransformer, accCache, wlastUsableIdx);
+        evaluate(BLACK, pos, featureTransformer, accCache, blastUsableIdx);
+    }
 }
 
 void AccumulatorStack::evaluate(const Color               perspective,
                                 const Position&           pos,
                                 const FeatureTransformer& featureTransformer,
-                                AccumulatorCache&         accCache) noexcept {
+                                AccumulatorCache&         accCache,
+                                const usize               lastUsableIdx) noexcept {
     constexpr u8 PC_COUNT_HYBRID_MIN = 15;
-
-    const auto lastUsableIdx = find_last_usable_index(perspective);
 
     if (accumulators[lastUsableIdx].computed[perspective])
         update_incremental_forward(perspective, pos, featureTransformer, lastUsableIdx);
@@ -159,6 +172,35 @@ void AccumulatorStack::update_incremental_backward(const Color               per
                                   accumulators[idx]);
 
     assert(accumulators[end].computed[perspective]);
+}
+
+void AccumulatorStack::update_incremental_forward_both(const Position&           pos,
+                                                       const FeatureTransformer& featureTransformer,
+                                                       const usize               wBeg,
+                                                       const usize               bBeg) noexcept {
+    assert(wBeg < size());
+    assert(bBeg < size());
+    assert(accumulators[wBeg].computed[WHITE]);
+    assert(accumulators[bBeg].computed[BLACK]);
+
+    const Square wKingSq = pos.square<KING>(WHITE);
+    const Square bKingSq = pos.square<KING>(BLACK);
+    const usize  maxBeg  = std::max(wBeg, bBeg);
+
+    // Catch up the lagging perspective, then traverse the common suffix once.
+    for (usize idx = wBeg + 1; idx <= maxBeg; ++idx)
+        update_incremental<true>(WHITE, wKingSq, featureTransformer, accumulators[idx - 1],
+                                 accumulators[idx]);
+    for (usize idx = bBeg + 1; idx <= maxBeg; ++idx)
+        update_incremental<true>(BLACK, bKingSq, featureTransformer, accumulators[idx - 1],
+                                 accumulators[idx]);
+
+    for (usize idx = maxBeg + 1; idx < size(); ++idx)
+        update_incremental_both(featureTransformer, wKingSq, bKingSq, accumulators[idx - 1],
+                                accumulators[idx]);
+
+    assert(top().computed[WHITE]);
+    assert(top().computed[BLACK]);
 }
 
 namespace {
@@ -347,7 +389,7 @@ void update_hybrid(const Color               perspective,
 
     ThreatFeatureSet::IndexVector thrRemoved, thrAdded;  // also contain pp indices
 
-    const auto* pfBase   = &featureTransformer.threatAndPpWeights[0];
+    const auto* pfBase   = featureTransformer.threatAndPpWeights.data();
     const usize pfStride = FeatureTransformer::OutputDimensions;
     ThreatFeatureSet::append_changed_indices(perspective, newKingSq, target.dirties.dirtyThreats,
                                              thrRemoved, thrAdded, pfBase, pfStride);
@@ -1133,6 +1175,43 @@ void update_incremental(const Color               perspective,
                    thrRemoved);
 
     target.computed[perspective] = true;
+}
+
+void update_incremental_both(const FeatureTransformer& featureTransformer,
+                             Square                    wKingSq,
+                             Square                    bKingSq,
+                             const Accumulator&        source,
+                             Accumulator&              target) {
+    assert(source.computed[WHITE]);
+    assert(source.computed[BLACK]);
+    assert(!target.computed[WHITE]);
+    assert(!target.computed[BLACK]);
+
+    PSQFeatureSet::IndexVector    psqRemoved[COLOR_NB], psqAdded[COLOR_NB];
+    ThreatFeatureSet::IndexVector thrRemoved[COLOR_NB], thrAdded[COLOR_NB];
+
+    const auto* pfBase   = featureTransformer.threatAndPpWeights.data();
+    const usize pfStride = FeatureTransformer::OutputDimensions;
+
+    ThreatFeatureSet::append_changed_indices_both(
+      wKingSq, bKingSq, target.dirties.dirtyThreats, thrRemoved[WHITE], thrAdded[WHITE],
+      thrRemoved[BLACK], thrAdded[BLACK], pfBase, pfStride);
+    PairFeatureSet::append_changed_indices_both(
+      wKingSq, bKingSq, target.dirties.dirtyPawnPairs, thrRemoved[WHITE], thrAdded[WHITE],
+      thrRemoved[BLACK], thrAdded[BLACK], pfBase, pfStride);
+
+    PSQFeatureSet::append_changed_indices(WHITE, wKingSq, target.dirties.dirtyPiece,
+                                          psqRemoved[WHITE], psqAdded[WHITE]);
+    PSQFeatureSet::append_changed_indices(BLACK, bKingSq, target.dirties.dirtyPiece,
+                                          psqRemoved[BLACK], psqAdded[BLACK]);
+
+    apply_combined(WHITE, featureTransformer, source, target, psqAdded[WHITE], psqRemoved[WHITE],
+                   thrAdded[WHITE], thrRemoved[WHITE]);
+    apply_combined(BLACK, featureTransformer, source, target, psqAdded[BLACK], psqRemoved[BLACK],
+                   thrAdded[BLACK], thrRemoved[BLACK]);
+
+    target.computed[WHITE] = true;
+    target.computed[BLACK] = true;
 }
 
 }  // namespace

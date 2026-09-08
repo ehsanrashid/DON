@@ -50,7 +50,7 @@ constexpr Array<usize, 2> TABLE_SIZES{0x1480, 0x19000};
 // Stores bishop & rook attacks
 alignas(CACHE_LINE_SIZE) Array<MagicMask, TABLE_SIZES[0] + TABLE_SIZES[1]> ATTACKS_TABLE;
 
-alignas(CACHE_LINE_SIZE) Array<TableView<MagicMask>, 2> ATTACKS_VIEW{
+alignas(CACHE_LINE_SIZE) Array<TableView<MagicMask>, 2> ATTACKS_VIEWS{
   TableView{ATTACKS_TABLE.data() + 0x000000000000, TABLE_SIZES[0]},
   TableView{ATTACKS_TABLE.data() + TABLE_SIZES[0], TABLE_SIZES[1]}  //
 };
@@ -90,7 +90,7 @@ void init_magics() noexcept {
         // Set the offset for the attacks table of the square.
         // Individual table sizes for each square with "Fancy Magic Bitboards".
         //assert(s == SQ_A1 || size <= RefSizes[PT - BISHOP]);
-        magic.attacksBBs = s == SQ_A1 ? ATTACKS_VIEW[PT - BISHOP].data()  //
+        magic.attacksBBs = s == SQ_A1 ? ATTACKS_VIEWS[PT - BISHOP].data()  //
                                       : &MAGICS[s - 1][PT - BISHOP].attacksBBs[size];
         assert(magic.attacksBBs != nullptr);
 
