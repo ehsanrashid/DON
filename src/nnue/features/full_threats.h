@@ -62,6 +62,14 @@ class FullThreats final {
                                        const ThreatWeightType* pfBase   = nullptr,
                                        usize                   pfStride = 0) noexcept;
 
+    static void append_changed_indices_both(Square                        wKingSq,
+                                            Square                        bKingSq,
+                                            const DirtyType&              dTs,
+                                            Array<IndexVector, COLOR_NB>& removed,
+                                            Array<IndexVector, COLOR_NB>& added,
+                                            const ThreatWeightType*       pfBase   = nullptr,
+                                            usize                         pfStride = 0) noexcept;
+
    private:
     FullThreats() noexcept                              = delete;
     ~FullThreats() noexcept                             = delete;

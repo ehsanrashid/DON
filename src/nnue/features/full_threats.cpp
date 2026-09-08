@@ -314,7 +314,7 @@ void FullThreats::append_changed_indices(const Color                   perspecti
         const auto attackedPc = dT.threatened_pc();
         const auto add        = dT.add();
 
-        auto& changed = add ? added : removed;
+        auto& insert = add ? added : removed;
 
         const auto index = make_index(perspective, kingSq, orgSq, dstSq, attackerPc, attackedPc);
 
@@ -322,7 +322,41 @@ void FullThreats::append_changed_indices(const Color                   perspecti
             prefetch<PrefetchAccess::READ, PrefetchLoc::LOW>(
               reinterpret_cast<const void*>(reinterpret_cast<uptr>(pfBase) + index * pfStride));
 
-        changed.push_back_if_lt(index, Dimensions);
+        insert.push_back_if_lt(index, Dimensions);
+    }
+}
+
+void FullThreats::append_changed_indices_both(const Square                  wKingSq,
+                                              const Square                  bKingSq,
+                                              const DirtyType&              dTs,
+                                              Array<IndexVector, COLOR_NB>& removed,
+                                              Array<IndexVector, COLOR_NB>& added,
+                                              const ThreatWeightType* const pfBase,
+                                              const usize                   pfStride) noexcept {
+    for (const auto& dT : dTs)
+    {
+        const auto orgSq      = dT.sq();
+        const auto dstSq      = dT.threatened_sq();
+        const auto attackerPc = dT.pc();
+        const auto attackedPc = dT.threatened_pc();
+        const auto add        = dT.add();
+
+        auto& wInsert = add ? added[WHITE] : removed[WHITE];
+        auto& bInsert = add ? added[BLACK] : removed[BLACK];
+
+        const auto wIndex = make_index(WHITE, wKingSq, orgSq, dstSq, attackerPc, attackedPc);
+        const auto bIndex = make_index(BLACK, bKingSq, orgSq, dstSq, attackerPc, attackedPc);
+
+        if (pfBase != nullptr)
+        {
+            prefetch<PrefetchAccess::READ, PrefetchLoc::LOW>(
+              reinterpret_cast<const void*>(reinterpret_cast<uptr>(pfBase) + wIndex * pfStride));
+            prefetch<PrefetchAccess::READ, PrefetchLoc::LOW>(
+              reinterpret_cast<const void*>(reinterpret_cast<uptr>(pfBase) + bIndex * pfStride));
+        }
+
+        wInsert.push_back_if_lt(wIndex, Dimensions);
+        bInsert.push_back_if_lt(bIndex, Dimensions);
     }
 }
 

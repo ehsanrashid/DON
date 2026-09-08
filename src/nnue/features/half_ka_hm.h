@@ -99,6 +99,12 @@ class HalfKAHm final {
                                        IndexVector&     removed,
                                        IndexVector&     added) noexcept;
 
+    static void append_changed_indices_both(Square                        wKingSq,
+                                            Square                        bKingSq,
+                                            const DirtyType&              dP,
+                                            Array<IndexVector, COLOR_NB>& removed,
+                                            Array<IndexVector, COLOR_NB>& added) noexcept;
+
     static bool refresh_required(Color perspective, const DirtyType& dP) noexcept;
 
    private:
