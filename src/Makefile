@@ -1037,6 +1037,7 @@ GIT_DIFFINDEX_FILE := .git_diffindex.txt
 
 ifndef GIT
 GIT := git
+endif
 ifneq ($(call FIND_EXE,$(GIT)),)
 GIT += -c core.filemode=false -c core.autocrlf=false
 
@@ -1050,8 +1051,7 @@ $(shell $(GIT) update-index --refresh >/dev/null 2>&1; \
         $(GIT) diff HEAD --no-ext-diff | $(GIT) hash-object --stdin | cut -c 1-6 | tr '[:lower:]' '[:upper:]'; \
     fi)
 endif
-endif
-export GIT GIT_DATE GIT_SHA GIT_DIFFINDEX
+export GIT_DATE GIT_SHA GIT_DIFFINDEX
 
 # Cache Git metadata in files only when the values have changed
 define CACHE_FILE_IF_CHANGED
