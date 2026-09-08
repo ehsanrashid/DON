@@ -354,13 +354,21 @@ std::string compiler_info() noexcept {
       .append("MSVC ")
       .append(compiler_version(_MSC_VER / 100, _MSC_VER % 100, _MSC_FULL_VER % 100000))
     #if defined(_MSC_BUILD)
-      .append("." + std::to_string(_MSC_BUILD))
+      .append(".")
+      .append(std::to_string(_MSC_BUILD))
     #endif
       ;
 #elif defined(__INTEL_LLVM_COMPILER)
     compiler  //
       .append("ICX ")
-      .append(STRINGIFY(__INTEL_LLVM_COMPILER));
+    #if __INTEL_LLVM_COMPILER < 1000000L
+      .append(STRINGIFY(__INTEL_LLVM_COMPILER))
+    #else
+      .append(compiler_version(__INTEL_LLVM_COMPILER / 10000,        //
+                               (__INTEL_LLVM_COMPILER / 100) % 100,  //
+                               __INTEL_LLVM_COMPILER % 100))
+    #endif
+      ;
 #elif defined(__e2k__) && defined(__LCC__)
     compiler  //
       .append("MCST LCC ")
@@ -392,7 +400,7 @@ std::string compiler_info() noexcept {
 
     compiler.append("\nCompilation architecture   : ");
 #if defined(ARCH)
-    compiler.append(STRINGIFY(ARCH));
+    compiler.append(ARCH);
 #else
     compiler.append("(unknown architecture)");
 #endif

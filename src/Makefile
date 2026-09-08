@@ -984,12 +984,12 @@ ifeq ($(tablebases),no)
     CXXFLAGS += -DNO_TABLEBASES
 endif
 
-### 3.8.1 Try to include architecture
+### 3.8.1 Include architecture when specified
 ifneq ($(ARCH),)
-    ARCH_FLAG := -DARCH=$(ARCH)
+    ARCH_FLAG := -DARCH='"$(ARCH)"'
 endif
 
-### 3.8.2 Try to include git info for versioning and avoid recompiles if nothing changes
+### 3.8.2 Include Git or build info for versioning and avoid recompiles if nothing changes
 GIT_DATE_FILE      := .git_date.txt
 GIT_SHA_FILE       := .git_sha.txt
 GIT_DIFFINDEX_FILE := .git_diffindex.txt
