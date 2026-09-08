@@ -68,9 +68,9 @@ class SqrClippedReLU final {
     // Write network parameters
     bool write_parameters(std::ostream&) const noexcept { return true; }
 
-#if defined(USE_AVX2_PAIR_ACTIVATIONS)
+#if defined(USE_PAIR_ACTIVATIONS)
     // Produce the squared and linear clipped activations together, sharing the input loads and
-    // the initial signed 32-to-16-bit saturating packs.
+    // the initial signed 32-to-16-bit saturating narrowing.
     void propagate_pair(const InputType* RESTRICT input,
                         OutputType* RESTRICT      squared,
                         OutputType* RESTRICT      clipped) const noexcept {
@@ -83,6 +83,27 @@ class SqrClippedReLU final {
 
         constexpr IndexType ChunkCount = InputDimensions / 32;
 
+    #if defined(USE_AVX512)
+        const auto* in      = reinterpret_cast<const __m512i*>(input);
+        auto*       sqrOut  = reinterpret_cast<__m256i*>(squared);
+        auto*       clipOut = reinterpret_cast<__m256i*>(clipped);
+
+        const __m512i zero = _mm512_setzero_si512();
+        // clang-format off
+        for (IndexType i = 0; i < ChunkCount; ++i)
+        {
+            const __m256i words0 = _mm512_cvtsepi32_epi16(_mm512_load_si512(&in[i * 2 + 0]));
+            const __m256i words1 = _mm512_cvtsepi32_epi16(_mm512_load_si512(&in[i * 2 + 1]));
+            const __m512i words  = _mm512_inserti64x4(_mm512_castsi256_si512(words0), words1, 1);
+
+            const __m512i sqrWords = _mm512_srli_epi16(_mm512_mulhi_epi16(words, words), SimdShift);
+            _mm256_store_si256(&sqrOut[i], _mm512_cvtsepi16_epi8(sqrWords));
+
+            const __m512i clipWords = _mm512_srli_epi16(_mm512_max_epi16(words, zero), WeightScaleBits);
+            _mm256_store_si256(&clipOut[i], _mm512_cvtsepi16_epi8(clipWords));
+        }
+                // clang-format on
+    #elif defined(USE_AVX2_PAIR_ACTIVATIONS)
         const auto* in      = reinterpret_cast<const __m256i*>(input);
         auto*       sqrOut  = reinterpret_cast<__m256i*>(squared);
         auto*       clipOut = reinterpret_cast<__m256i*>(clipped);
@@ -108,7 +129,8 @@ class SqrClippedReLU final {
             const __m256i clipPacked = _mm256_packs_epi16(clip0, clip1);
             _mm256_store_si256(&clipOut[i], clipPacked);
         }
-        // clang-format on
+                // clang-format on
+    #endif
     }
 
 #else
@@ -241,17 +263,17 @@ class SqrClippedReLU final {
 
     #elif defined(USE_RVV)
         // clang-format off
-        for (IndexType i = 0; i < InputDimensions;)
+        for (IndexType i = 0, vl; i < InputDimensions; i += vl)
         {
-            const usize vl = __riscv_vsetvl_e32m4(InputDimensions - i);
-            vint32m4_t  in = __riscv_vle32_v_i32m4(&input[i], vl);
+            vl = __riscv_vsetvl_e32m4(InputDimensions - i);
 
-            vint16m2_t words   = __riscv_vnclip_wx_i16m2(in, 0, __RISCV_VXRM_RDN, vl);
-            vint16m2_t sqr     = __riscv_vmulh_vv_i16m2(words, words, vl);
-            vint8m1_t narrowed = __riscv_vnclip_wx_i8m1(sqr, SimdShift, __RISCV_VXRM_RDN, vl);
+            const vint32m4_t  in = __riscv_vle32_v_i32m4(&input[i], vl);
+
+            const vint16m2_t words   = __riscv_vnclip_wx_i16m2(in, 0, __RISCV_VXRM_RDN, vl);
+            const vint16m2_t sqr     = __riscv_vmulh_vv_i16m2(words, words, vl);
+            const vint8m1_t narrowed = __riscv_vnclip_wx_i8m1(sqr, SimdShift, __RISCV_VXRM_RDN, vl);
 
             __riscv_vse8_v_u8m1(&output[i], __riscv_vreinterpret_v_i8m1_u8m1(narrowed), vl);
-            i += vl;
         }
         // clang-format on
         constexpr IndexType Start = InputDimensions;

@@ -184,11 +184,11 @@ VPATH := nnue:nnue/features:book:tablebase
 ### 2.1. General and architecture defaults
 
 ifeq ($(ARCH),)
-   ARCH = native
+    ARCH = native
 endif
 
 ifeq ($(ARCH),native)
-   override ARCH := $(shell $(SHELL) ../scripts/get_native_properties.sh | cut -d " " -f 1)
+    override ARCH := $(shell $(SHELL) ../scripts/get_native_properties.sh | cut -d " " -f 1)
 endif
 
 # Explicitly check for the list of supported architectures (as listed with make help),
@@ -203,6 +203,11 @@ ARCH_SUPPORTED := $(if $(filter \
     arm64-universal armv8-dotprod armv8 armv7-neon armv7 apple-silicon \
     riscv64-universal riscv64-rva23 riscv64 \
     wasm32 wasm32-relaxed-simd,$(ARCH)),yes,no)
+
+ifeq ($(ARCH_SUPPORTED),no)
+    $(warning *** Unknown architecture. Run 'make help' to see the list of supported architectures. ***)
+    $(shell sleep 3)
+endif
 
 UNIVERSAL_BUILD := $(if $(filter x86-64-universal arm64-universal riscv64-universal,$(ARCH)),yes,no)
 
@@ -343,7 +348,7 @@ else ifneq ($(findstring -sse41,$(ARCH)),)
 
 else ifneq ($(findstring -modern,$(ARCH)),)
     $(warning *** ARCH=$(ARCH) is deprecated, defaulting to ARCH=x86-64-sse41-popcnt. Execute `make help` for a list of available architectures. ***)
-    $(shell sleep 5)
+    $(shell sleep 3)
     popcnt = yes
     sse = yes
     sse2 = yes
@@ -979,48 +984,76 @@ ifeq ($(tablebases),no)
     CXXFLAGS += -DNO_TABLEBASES
 endif
 
-### 3.8.1 Try to include git info for versioning and avoid recompiles if nothing changes
-BUILD_DATE_FILE      := .build_date.txt
-BUILD_SHA_FILE       := .build_sha.txt
-BUILD_DIFFINDEX_FILE := .build_diffindex.txt
-
-GIT := git
-ifneq ($(shell command -v $(GIT) 2>/dev/null),)
-    GIT           := $(GIT) -c core.filemode=false -c core.autocrlf=false
-    GIT_DATE      := $(shell $(GIT) show -s --date=format:%Y%m%d --format=%cd HEAD 2>/dev/null)
-    GIT_SHA       := $(shell $(GIT) rev-parse HEAD 2>/dev/null | cut -c 1-8 | tr '[:lower:]' '[:upper:]')
-    GIT_DIFFINDEX := $(shell $(GIT) update-index --refresh >/dev/null 2>&1; \
-                        if ! $(GIT) diff-index --quiet HEAD -- 2>/dev/null; then \
-                          $(GIT) diff HEAD --no-ext-diff | $(GIT) hash-object --stdin | cut -c 1-6 | tr '[:lower:]' '[:upper:]'; \
-                        fi)
+### 3.8.1 Try to include architecture
+ifneq ($(ARCH),)
+    ARCH_FLAG := -DARCH=$(ARCH)
 endif
 
-COMPILER_DATE := $(shell date +%Y%m%d 2>/dev/null)
-BUILD_DATE    := $(or $(GIT_DATE),$(COMPILER_DATE))
+### 3.8.2 Try to include git info for versioning and avoid recompiles if nothing changes
+GIT_DATE_FILE      := .git_date.txt
+GIT_SHA_FILE       := .git_sha.txt
+GIT_DIFFINDEX_FILE := .git_diffindex.txt
 
+ifndef GIT
+GIT := git
+ifneq ($(shell command -v $(GIT) 2>/dev/null),)
+GIT += -c core.filemode=false -c core.autocrlf=false
+ifndef GIT_DATE
+GIT_DATE := $(shell $(GIT) show -s --date=format:%Y%m%d --format=%cd HEAD 2>/dev/null)
+endif
+ifndef GIT_SHA
+GIT_SHA := $(shell $(GIT) rev-parse HEAD 2>/dev/null | cut -c 1-8 | tr '[:lower:]' '[:upper:]')
+endif
+ifndef GIT_DIFFINDEX
+GIT_DIFFINDEX := $(shell $(GIT) update-index --refresh >/dev/null 2>&1; \
+                    if ! $(GIT) diff-index --quiet HEAD -- 2>/dev/null; then \
+                        $(GIT) diff HEAD --no-ext-diff | $(GIT) hash-object --stdin | cut -c 1-6 | tr '[:lower:]' '[:upper:]'; \
+                    fi)
+endif
+endif
+export GIT_DATE GIT_SHA GIT_DIFFINDEX
+endif
+export GIT
+
+# Cache Git metadata in files only when the values have changed
 define CACHE_FILE_IF_CHANGED
 $(shell \
     if [ ! -f "$(1)" ] || [ "$$(cat "$(1)")" != "$(2)" ]; then \
         printf '%s\n' "$(2)" > "$(1)"; \
     fi)
 endef
-
+# Update cached Git metadata for build targets
 ifneq ($(filter-out help net strip install clean obj-clean profile-clean universal-clean config-sanity format install-hooks,$(MAKECMDGOALS)),)
-    _ := $(call CACHE_FILE_IF_CHANGED,$(BUILD_DATE_FILE),$(BUILD_DATE))
-    _ := $(call CACHE_FILE_IF_CHANGED,$(BUILD_SHA_FILE),$(GIT_SHA))
-    _ := $(call CACHE_FILE_IF_CHANGED,$(BUILD_DIFFINDEX_FILE),$(GIT_DIFFINDEX))
+    _ := $(call CACHE_FILE_IF_CHANGED,$(GIT_DATE_FILE),$(GIT_DATE))
+    _ := $(call CACHE_FILE_IF_CHANGED,$(GIT_SHA_FILE),$(GIT_SHA))
+    _ := $(call CACHE_FILE_IF_CHANGED,$(GIT_DIFFINDEX_FILE),$(GIT_DIFFINDEX))
 endif
 
-# Compiler flags for embedding Git build information
+ifndef BUILD_INFO
+BUILD_INFO := $(shell date '+%Y%m%d %H %M %S %a %b %d %Y')
+endif
+export BUILD_INFO
+ifndef BUILD_DATE
+BUILD_DATE := $(word 1,$(BUILD_INFO))
+endif
+export BUILD_DATE
+ifndef BUILD_TIME
+BUILD_TIME := $(word 2,$(BUILD_INFO))$(word 3,$(BUILD_INFO))$(word 4,$(BUILD_INFO))
+endif
+export BUILD_TIME
+ifndef BUILD_TIMESTAMP
+BUILD_TIMESTAMP := $(word 5,$(BUILD_INFO)) $(word 6,$(BUILD_INFO)) $(word 7,$(BUILD_INFO)) $(word 8,$(BUILD_INFO)) \
+                   $(word 2,$(BUILD_INFO)):$(word 3,$(BUILD_INFO)):$(word 4,$(BUILD_INFO))
+endif
+export BUILD_TIMESTAMP
+
+# Compiler flags for Git build metadata
 GIT_FLAGS := $(strip \
-             $(if $(GIT_DATE),-DGIT_DATE=$(GIT_DATE)) \
-             $(if $(GIT_SHA),-DGIT_SHA=$(GIT_SHA)) \
-             $(if $(GIT_DIFFINDEX),-DGIT_DIFFINDEX=$(GIT_DIFFINDEX)))
-
-### 3.8.2 Try to include architecture
-ifneq ($(ARCH),)
-    ARCH_FLAG := -DARCH=$(ARCH)
-endif
+             $(if $(GIT_DATE),-DGIT_DATE='"$(GIT_DATE)"') \
+             $(if $(GIT_SHA),-DGIT_SHA='"$(GIT_SHA)"') \
+             $(if $(GIT_DIFFINDEX),-DGIT_DIFFINDEX='"$(GIT_DIFFINDEX)"'))
+# Compiler flags for Git build information, or build date/time when Git metadata is unavailable, plus the build timestamp
+BUILD_FLAGS := $(strip $(or $(GIT_FLAGS),-DBUILD_DATE='"$(BUILD_DATE)"' -DBUILD_TIME='"$(BUILD_TIME)"') -DBUILD_TIMESTAMP='"$(BUILD_TIMESTAMP)"')
 
 ### 3.9 Link Time Optimization
 ### This is a mix of compile and link time options because the lto link phase
@@ -1108,32 +1141,32 @@ help:
 	echo "profile-clean           > Remove profiling data and temporary profiling files"; \
 	echo "universal-clean         > Remove universal build temporary files and generated files"; \
 	echo; \
-	echo "Supported archs:"; \
+	echo "Supported architectures:"; \
 	echo; \
-	echo "native                  > select the best architecture for the host processor (default)"; \
+	echo "native                  > Select the best architecture for the host processor (default)"; \
 	echo "x86-64-universal        > x86 64-bit with automatic runtime selection of the best architecture"; \
 	echo "x86-64-avx512icl        > x86 64-bit with minimum AVX512 support of Intel Ice Lake or AMD Zen 4"; \
-	echo "x86-64-vnni512          > x86 64-bit with VNNI support, operands 512-bit wide"; \
-	echo "x86-64-vnni256          > x86 64-bit with VNNI support, operands limited to 256-bit wide"; \
+	echo "x86-64-vnni512          > x86 64-bit with VNNI support, 512-bit operands"; \
+	echo "x86-64-vnni256          > x86 64-bit with VNNI support, 256-bit operands"; \
 	echo "x86-64-avx512           > x86 64-bit with AVX512 support"; \
-	echo "x86-64-avxvnni          > x86 64-bit with VNNI 256bit support"; \
+	echo "x86-64-avxvnni          > x86 64-bit with AVX-VNNI support, 256-bit operands"; \
 	echo "x86-64-bmi2             > x86 64-bit with BMI2 support"; \
 	echo "x86-64-avx2             > x86 64-bit with AVX2 support"; \
 	echo "x86-64-sse41-bmi2-cmp   > x86 64-bit with SSE4.1 and BMI2 compressed support"; \
 	echo "x86-64-sse41-bmi2       > x86 64-bit with SSE4.1 and BMI2 support"; \
 	echo "x86-64-sse41-popcnt     > x86 64-bit with SSE4.1 and POPCNT support"; \
-	echo "x86-64-modern           > deprecated, currently x86-64-sse41-popcnt"; \
+	echo "x86-64-modern           > Deprecated, currently x86-64-sse41-popcnt"; \
 	echo "x86-64-sse41            > x86 64-bit with SSE4.1 support"; \
 	echo "x86-64-ssse3-popcnt     > x86 64-bit with SSSE3 and POPCNT support"; \
 	echo "x86-64-ssse3            > x86 64-bit with SSSE3 support"; \
-	echo "x86-64                  > x86 64-bit generic with SSE2 support"; \
-	echo "general-64              > unspecified 64-bit"; \
+	echo "x86-64                  > x86 64-bit with SSE2 support"; \
+	echo "general-64              > Unspecified 64-bit"; \
 	echo "x86-32-sse41-popcnt     > x86 32-bit with SSE4.1 and POPCNT support"; \
 	echo "x86-32-sse41            > x86 32-bit with SSE4.1 support"; \
 	echo "x86-32-ssse3            > x86 32-bit with SSSE3 support"; \
 	echo "x86-32-sse2             > x86 32-bit with SSE2 support"; \
-	echo "x86-32                  > x86 32-bit generic with MMX support"; \
-	echo "general-32              > unspecified 32-bit"; \
+	echo "x86-32                  > x86 32-bit with MMX support"; \
+	echo "general-32              > Unspecified 32-bit"; \
 	echo "loongarch64-lasx        > LoongArch 64-bit with LASX (Advanced SIMD eXtension) support"; \
 	echo "loongarch64-lsx         > LoongArch 64-bit with LSX (SIMD eXtension) support"; \
 	echo "loongarch64             > LoongArch 64-bit"; \
@@ -1174,11 +1207,6 @@ help:
 	echo 'make -j profile-build ARCH=x86-64-universal RUN_PREFIX="/path/to/sde -future --" CXX=g++-15'; \
 	echo 'make -j build ARCH=x86-64-ssse3 COMP=clang'; \
 	echo
-
-ifeq ($(ARCH_SUPPORTED),no)
-	@echo "Specify a supported architecture with the ARCH option for more details"; \
-	echo 
-endif
 
 
 .PHONY: help analyze build profile-build macos-lipo net strip install \
@@ -1312,7 +1340,7 @@ clean: obj-clean profile-clean universal-clean
 
 # Remove binaries, object files, and build metadata
 obj-clean:
-	@rm -f "$(EXE)" ./*.o ./nnue/*.o ./nnue/features/*.o ./book/*.o ./tablebase/*.o "$(BUILD_DATE_FILE)" "$(BUILD_SHA_FILE)" "$(BUILD_DIFFINDEX_FILE)"
+	@rm -f "$(EXE)" ./*.o ./nnue/*.o ./nnue/features/*.o ./book/*.o ./tablebase/*.o "$(GIT_DATE_FILE)" "$(GIT_SHA_FILE)" "$(GIT_DIFFINDEX_FILE)"
 
 # Remove profiling data and temporary profiling files
 profile-clean:
@@ -1407,11 +1435,11 @@ config-sanity: net
 	echo "CXX: '$(CXX)'" && \
 	echo "CPPFLAGS: '$(CPPFLAGS)'" && \
 	echo "CXXFLAGS: '$(CXXFLAGS)'" && \
-	echo "ARCH_FLAG: '$(ARCH_FLAG)'" && \
-	echo "GIT_FLAGS: '$(GIT_FLAGS)'" && \
 	echo "DEPENDFLAGS: '$(DEPENDFLAGS)'" && \
 	echo "LDFLAGS: '$(LDFLAGS)'" && \
 	echo "LDLIBS: '$(LDLIBS)'" && \
+	echo "ARCH_FLAG: '$(ARCH_FLAG)'" && \
+	echo "BUILD_FLAGS: '$(BUILD_FLAGS)'" && \
 	echo && \
 	echo "Testing config sanity. If this fails, try 'make help' ..." && \
 	echo && \
@@ -1449,7 +1477,10 @@ config-sanity: net
 	(test "$(tablebases)" = "no" || test "$(tablebases)" = "yes") && \
 	(test "$(IS_WINDOWS)" = "no" || test "$(IS_WINDOWS)" = "yes") && \
 	(test "$(COMP)" = "gcc" || test "$(COMP)" = "clang" || test "$(COMP)" = "mingw" || \
-	 test "$(COMP)" = "icx" || test "$(COMP)" = "ndk")
+	 test "$(COMP)" = "icx" || test "$(COMP)" = "ndk") || { \
+		echo "Invalid configuration. Run 'make help' for supported options."; \
+		exit 1; \
+	}
 
 $(EXE): $(OBJS) $(NNUE_EMBED_OBJ)
 	+$(CXX) -o "$@" $(OBJS) $(NNUE_EMBED_OBJ) $(strip $(LDFLAGS) $(LDLIBS))
@@ -1457,8 +1488,8 @@ $(EXE): $(OBJS) $(NNUE_EMBED_OBJ)
 %.o: %.cpp
 	$(strip $(CXX) $(CPPFLAGS) $(CXXFLAGS)) -c "$<" -o "$@"
 
-misc.o: misc.cpp $(BUILD_DATE_FILE) $(BUILD_SHA_FILE) $(BUILD_DIFFINDEX_FILE)
-	$(strip $(CXX) $(CPPFLAGS) $(CXXFLAGS) $(ARCH_FLAG) $(GIT_FLAGS)) -c "$<" -o "$@"
+misc.o: misc.cpp $(GIT_DATE_FILE) $(GIT_SHA_FILE) $(GIT_DIFFINDEX_FILE)
+	$(strip $(CXX) $(CPPFLAGS) $(CXXFLAGS) $(ARCH_FLAG) $(BUILD_FLAGS)) -c "$<" -o "$@"
 
 # Clang PGO
 clang-profile-make:

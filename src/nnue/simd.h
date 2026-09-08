@@ -47,6 +47,9 @@
 #if defined(USE_AVX2) && !(defined(USE_VNNI) || defined(USE_AVX512))
     #define USE_AVX2_PAIR_ACTIVATIONS
 #endif
+#if defined(USE_AVX2_PAIR_ACTIVATIONS) || defined(USE_AVX512)
+    #define USE_PAIR_ACTIVATIONS
+#endif
 
 namespace DON::NNUE::SIMD {
 

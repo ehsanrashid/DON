@@ -34,7 +34,7 @@ constexpr std::string_view NAME{"DON"};
 constexpr std::string_view AUTHOR{"Ehsan Rashid"};
 constexpr std::string_view VERSION{"dev"};
 
-// Format date to YYYYMMDD
+// Format date "Mon DD YYYY" -> YYYYMMDD
 [[maybe_unused]] std::string format_date(const std::string_view date) noexcept {
     constexpr std::string_view NullDate{"00000000"};
 
@@ -109,7 +109,6 @@ constexpr std::string_view VERSION{"dev"};
         digit_to_char(day / 10 % 10),     //
         digit_to_char(day % 10)           //
       };
-
     return std::string{buffer.data(), buffer.size()};
 }
 
@@ -141,7 +140,6 @@ constexpr std::string_view VERSION{"dev"};
         return std::string{NullTime};
 
     Array<char, 6> buffer{p[0], p[1], p[3], p[4], p[6], p[7]};
-
     return std::string{buffer.data(), buffer.size()};
 }
 
@@ -201,6 +199,34 @@ void set_console_output(const ConsoleMode consoleMode) noexcept {
       ;
 #endif
     }
+}
+
+std::string build_date() noexcept {
+    return
+#if defined(BUILD_DATE)
+      BUILD_DATE
+#else
+      format_date(__DATE__)
+#endif
+      ;
+}
+std::string build_time() noexcept {
+    return
+#if defined(BUILD_TIME)
+      BUILD_TIME
+#else
+      format_time(__TIME__)
+#endif
+      ;
+}
+std::string build_timestamp() noexcept {
+    return
+#if defined(BUILD_TIMESTAMP)
+      BUILD_TIMESTAMP
+#else
+      __DATE__ " " __TIME__
+#endif
+      ;
 }
 
 std::string engine_info(const bool uci) noexcept {
@@ -281,18 +307,19 @@ std::string version_info() noexcept {
     {
         version.push_back('-');
 #if defined(GIT_DATE)
-        version.append(STRINGIFY(GIT_DATE));
+        version.append(GIT_DATE);
 #else
-        version.append(format_date(__DATE__));
+        version.append(build_date());
 #endif
         version.push_back('-');
 #if defined(GIT_SHA)
-        version.append(STRINGIFY(GIT_SHA));
+        version.append(GIT_SHA);
 #else
-        version.append(format_time(__TIME__));
+        version.append(build_time());
 #endif
 #if defined(GIT_DIFFINDEX)
-        version.append("-").append(STRINGIFY(GIT_DIFFINDEX));
+        version.push_back('-');
+        version.append(GIT_DIFFINDEX);
 #endif
     }
 

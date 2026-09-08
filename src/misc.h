@@ -437,7 +437,9 @@ enum class ConsoleMode : u8 {
 void set_console_input(ConsoleMode consoleMode = ConsoleMode::Default) noexcept;
 void set_console_output(ConsoleMode consoleMode = ConsoleMode::Default) noexcept;
 
-constexpr std::string_view timestamp() noexcept { return __TIMESTAMP__; }
+std::string build_date() noexcept;
+std::string build_time() noexcept;
+std::string build_timestamp() noexcept;
 
 [[nodiscard]] constexpr bool is_idigit(const int dg) noexcept { return 0 <= dg && dg <= 9; }
 [[nodiscard]] constexpr bool is_cdigit(const char ch) noexcept { return '0' <= ch && ch <= '9'; }
@@ -465,21 +467,21 @@ constexpr std::string_view timestamp() noexcept { return __TIMESTAMP__; }
     return is_cdigit(ch) ? ch - '0' : 0;
 }
 
-constexpr unsigned to_month(const std::string_view m) noexcept {
-    assert(m.size() == 3);
-    return lower_case(m[0]) == 'j' && lower_case(m[1]) == 'a' ? 1
-         : lower_case(m[0]) == 'f'                            ? 2
-         : lower_case(m[0]) == 'm' && lower_case(m[2]) == 'r' ? 3
-         : lower_case(m[0]) == 'a' && lower_case(m[1]) == 'p' ? 4
-         : lower_case(m[0]) == 'm' && lower_case(m[2]) == 'y' ? 5
-         : lower_case(m[0]) == 'j' && lower_case(m[2]) == 'n' ? 6
-         : lower_case(m[0]) == 'j' && lower_case(m[2]) == 'l' ? 7
-         : lower_case(m[0]) == 'a' && lower_case(m[1]) == 'u' ? 8
-         : lower_case(m[0]) == 's'                            ? 9
-         : lower_case(m[0]) == 'o'                            ? 10
-         : lower_case(m[0]) == 'n'                            ? 11
-         : lower_case(m[0]) == 'd'                            ? 12
-                                                              : 0;
+constexpr unsigned to_month(const std::string_view mon) noexcept {
+    assert(mon.size() == 3);
+    return lower_case(mon[0]) == 'j' && lower_case(mon[1]) == 'a' ? 1
+         : lower_case(mon[0]) == 'f'                              ? 2
+         : lower_case(mon[0]) == 'm' && lower_case(mon[2]) == 'r' ? 3
+         : lower_case(mon[0]) == 'a' && lower_case(mon[1]) == 'p' ? 4
+         : lower_case(mon[0]) == 'm' && lower_case(mon[2]) == 'y' ? 5
+         : lower_case(mon[0]) == 'j' && lower_case(mon[2]) == 'n' ? 6
+         : lower_case(mon[0]) == 'j' && lower_case(mon[2]) == 'l' ? 7
+         : lower_case(mon[0]) == 'a' && lower_case(mon[1]) == 'u' ? 8
+         : lower_case(mon[0]) == 's'                              ? 9
+         : lower_case(mon[0]) == 'o'                              ? 10
+         : lower_case(mon[0]) == 'n'                              ? 11
+         : lower_case(mon[0]) == 'd'                              ? 12
+                                                                  : 0;
 }
 
 std::string engine_info(bool uci = false) noexcept;
