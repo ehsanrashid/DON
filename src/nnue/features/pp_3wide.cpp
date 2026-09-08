@@ -158,7 +158,7 @@ void PP3Wide::append_changed_indices(const Color                   perspective,
                               const Bitboard wPawnsBB, const Bitboard bPawnsBB,      //
                               IndexVector& out) noexcept {
         const auto push = [&](Color color, Square orgSq, Square dstSq, Color pairedColor) noexcept {
-            const u16 index = make_index(perspective, kingSq, color, orgSq, dstSq, pairedColor);
+            const auto index = make_index(perspective, kingSq, color, orgSq, dstSq, pairedColor);
 
             if (pfBase != nullptr)
                 prefetch<PrefetchAccess::READ, PrefetchLoc::LOW>(
@@ -210,8 +210,8 @@ void PP3Wide::append_changed_indices_both(const Square                  wKingSq,
                               const Bitboard wPawnsBB, const Bitboard bPawnsBB,      //
                               IndexVector& wOut, IndexVector& bOut) noexcept {
         auto push = [&](Color color, Square orgSq, Square dstSq, Color pairedColor) noexcept {
-            const u16 wIndex = make_index(WHITE, wKingSq, color, orgSq, dstSq, pairedColor);
-            const u16 bIndex = make_index(BLACK, bKingSq, color, orgSq, dstSq, pairedColor);
+            const auto wIndex = make_index(WHITE, wKingSq, color, orgSq, dstSq, pairedColor);
+            const auto bIndex = make_index(BLACK, bKingSq, color, orgSq, dstSq, pairedColor);
 
             if (pfBase != nullptr)
             {
