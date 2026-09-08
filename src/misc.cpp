@@ -109,7 +109,6 @@ constexpr std::string_view VERSION{"dev"};
         digit_to_char(day / 10 % 10),     //
         digit_to_char(day % 10)           //
       };
-
     return std::string{buffer.data(), buffer.size()};
 }
 
@@ -141,7 +140,6 @@ constexpr std::string_view VERSION{"dev"};
         return std::string{NullTime};
 
     Array<char, 6> buffer{p[0], p[1], p[3], p[4], p[6], p[7]};
-
     return std::string{buffer.data(), buffer.size()};
 }
 
@@ -203,25 +201,25 @@ void set_console_output(const ConsoleMode consoleMode) noexcept {
     }
 }
 
-std::string_view build_date() noexcept {
+std::string build_date() noexcept {
     return
 #if defined(BUILD_DATE)
       BUILD_DATE
 #else
-      __DATE__
+      format_date(__DATE__)
 #endif
       ;
 }
-std::string_view build_time() noexcept {
+std::string build_time() noexcept {
     return
 #if defined(BUILD_TIME)
       BUILD_TIME
 #else
-      __TIME__
+      format_time(__TIME__)
 #endif
       ;
 }
-std::string_view build_timestamp() noexcept {
+std::string build_timestamp() noexcept {
     return
 #if defined(BUILD_TIMESTAMP)
       BUILD_TIMESTAMP
