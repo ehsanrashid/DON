@@ -1103,6 +1103,17 @@ class RelaxedAtomic final {
             value = v;
     }
 
+    T exchange(T v) noexcept {
+        if constexpr (UseAtomic)
+            return value.exchange(v, std::memory_order_relaxed);
+        else
+        {
+            T oldV = value;
+            value  = v;
+            return oldV;
+        }
+    }
+
     bool compare_exchange_weak(T& expected, T desired) noexcept {
         if constexpr (UseAtomic)
             return value.compare_exchange_weak(expected, desired, std::memory_order_relaxed,

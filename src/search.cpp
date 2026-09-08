@@ -1378,8 +1378,7 @@ Value Worker::search(Position&    pos,
                     // (*Scaler) Generally, more frequent futility pruning scales well
                     if (!check && lmrDepth < 12 && !ss->inCheck)
                     {
-                        int futility = 39 + ss->evalue + 119 * lmrDepth   //
-                                     + int(bestMove == Move::None) * 127  //
+                        int futility = 164 + ss->evalue + 119 * lmrDepth  //
                                      + int(ss->evalue > alpha) * 90;
                         if (futility <= alpha)
                         {
@@ -2603,10 +2602,7 @@ void MainSearchManager::handle_time_management(const Worker& worker,
                                                const Depth   lastBestMoveDepth) noexcept {
 
     // Use part of the gained time from a previous stable move for the current move
-    sumMoveChanges += worker.threads.sum(&Worker::moveChanges);
-
-    // Reset move changes
-    worker.threads.set(&Worker::moveChanges, u32{0});
+    sumMoveChanges += worker.threads.sum_and_reset(&Worker::moveChanges);
 
     // clang-format off
 
