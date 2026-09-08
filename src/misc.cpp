@@ -203,9 +203,27 @@ void set_console_output(const ConsoleMode consoleMode) noexcept {
     }
 }
 
+std::string_view build_date() noexcept {
+    return
+#if defined(BUILD_DATE)
+      BUILD_DATE
+#else
+      __DATE__
+#endif
+      ;
+}
+
+std::string_view build_time() noexcept {
+    return
+#if defined(BUILD_TIME)
+      BUILD_TIME
+#else
+      __TIME__
+#endif
+      ;
+}
+
 std::string_view build_timestamp() noexcept {
-    //return __TIMESTAMP__;
-    //return __DATE__ " " __TIME__;
     return
 #if defined(BUILD_TIMESTAMP)
       BUILD_TIMESTAMP
@@ -293,18 +311,18 @@ std::string version_info() noexcept {
     {
         version.push_back('-');
 #if defined(GIT_DATE)
-        version.append(STRINGIFY(GIT_DATE));
+        version.append(GIT_DATE);
 #else
-        version.append(format_date(__DATE__));
+        version.append(build_date());
 #endif
         version.push_back('-');
 #if defined(GIT_SHA)
-        version.append(STRINGIFY(GIT_SHA));
+        version.append(GIT_SHA);
 #else
-        version.append(format_time(__TIME__));
+        version.append(build_time());
 #endif
 #if defined(GIT_DIFFINDEX)
-        version.append("-").append(STRINGIFY(GIT_DIFFINDEX));
+        version.append("-").append(GIT_DIFFINDEX);
 #endif
     }
 

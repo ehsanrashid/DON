@@ -437,6 +437,8 @@ enum class ConsoleMode : u8 {
 void set_console_input(ConsoleMode consoleMode = ConsoleMode::Default) noexcept;
 void set_console_output(ConsoleMode consoleMode = ConsoleMode::Default) noexcept;
 
+std::string_view build_date() noexcept;
+std::string_view build_time() noexcept;
 std::string_view build_timestamp() noexcept;
 
 [[nodiscard]] constexpr bool is_idigit(const int dg) noexcept { return 0 <= dg && dg <= 9; }

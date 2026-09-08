@@ -980,48 +980,73 @@ ifeq ($(tablebases),no)
 endif
 
 ### 3.8.1 Try to include git info for versioning and avoid recompiles if nothing changes
-BUILD_DATE_FILE      := .build_date.txt
-BUILD_SHA_FILE       := .build_sha.txt
-BUILD_DIFFINDEX_FILE := .build_diffindex.txt
+GIT_DATE_FILE      := .git_date.txt
+GIT_SHA_FILE       := .git_sha.txt
+GIT_DIFFINDEX_FILE := .git_diffindex.txt
 
+ifndef GIT
 GIT := git
-ifneq ($(shell command -v $(GIT) 2>/dev/null),)
-    GIT           := $(GIT) -c core.filemode=false -c core.autocrlf=false
-    GIT_DATE      := $(shell $(GIT) show -s --date=format:%Y%m%d --format=%cd HEAD 2>/dev/null)
-    GIT_SHA       := $(shell $(GIT) rev-parse HEAD 2>/dev/null | cut -c 1-8 | tr '[:lower:]' '[:upper:]')
-    GIT_DIFFINDEX := $(shell $(GIT) update-index --refresh >/dev/null 2>&1; \
-                        if ! $(GIT) diff-index --quiet HEAD -- 2>/dev/null; then \
-                          $(GIT) diff HEAD --no-ext-diff | $(GIT) hash-object --stdin | cut -c 1-6 | tr '[:lower:]' '[:upper:]'; \
-                        fi)
+ifeq ($(shell command -v $(GIT) 2>/dev/null),)
+GIT := $(GIT) -c core.filemode=false -c core.autocrlf=false
+ifndef GIT_DATE
+GIT_DATE := $(shell $(GIT) show -s --date=format:%Y%m%d --format=%cd HEAD 2>/dev/null)
 endif
-
-COMPILER_DATE := $(shell date +%Y%m%d 2>/dev/null)
-BUILD_DATE    := $(or $(GIT_DATE),$(COMPILER_DATE))
-
-ifndef BUILD_TIMESTAMP
-BUILD_TIMESTAMP := $(shell date '+%a %b %d %Y %H:%M:%S')
+ifndef GIT_SHA
+GIT_SHA := $(shell $(GIT) rev-parse HEAD 2>/dev/null | cut -c 1-8 | tr '[:lower:]' '[:upper:]')
 endif
-export BUILD_TIMESTAMP
-BUILD_TIMESTAMP_FLAG := -DBUILD_TIMESTAMP='"$(BUILD_TIMESTAMP)"'
+ifndef GIT_DIFFINDEX
+GIT_DIFFINDEX := $(shell $(GIT) update-index --refresh >/dev/null 2>&1; \
+                    if ! $(GIT) diff-index --quiet HEAD -- 2>/dev/null; then \
+                        $(GIT) diff HEAD --no-ext-diff | $(GIT) hash-object --stdin | cut -c 1-6 | tr '[:lower:]' '[:upper:]'; \
+                    fi)
+endif
+endif
+export GIT_DATE GIT_SHA GIT_DIFFINDEX
+endif
+export GIT
 
+# Cache Git metadata in files only when the values have changed
 define CACHE_FILE_IF_CHANGED
 $(shell \
     if [ ! -f "$(1)" ] || [ "$$(cat "$(1)")" != "$(2)" ]; then \
         printf '%s\n' "$(2)" > "$(1)"; \
     fi)
 endef
-
+# Update cached Git metadata for build targets
 ifneq ($(filter-out help net strip install clean obj-clean profile-clean universal-clean config-sanity format install-hooks,$(MAKECMDGOALS)),)
-    _ := $(call CACHE_FILE_IF_CHANGED,$(BUILD_DATE_FILE),$(BUILD_DATE))
-    _ := $(call CACHE_FILE_IF_CHANGED,$(BUILD_SHA_FILE),$(GIT_SHA))
-    _ := $(call CACHE_FILE_IF_CHANGED,$(BUILD_DIFFINDEX_FILE),$(GIT_DIFFINDEX))
+    _ := $(call CACHE_FILE_IF_CHANGED,$(GIT_DATE_FILE),$(GIT_DATE))
+    _ := $(call CACHE_FILE_IF_CHANGED,$(GIT_SHA_FILE),$(GIT_SHA))
+    _ := $(call CACHE_FILE_IF_CHANGED,$(GIT_DIFFINDEX_FILE),$(GIT_DIFFINDEX))
 endif
 
-# Compiler flags for embedding Git build information
+ifndef BUILD_DATE
+BUILD_INFO := $(shell date '+%Y%m%d %H %M %S %a %b %d %Y')
+endif
+export BUILD_INFO
+
+ifndef BUILD_DATE
+BUILD_DATE := $(word 1,$(BUILD_INFO))
+endif
+export BUILD_DATE
+ifndef BUILD_TIME
+BUILD_TIME := $(word 2,$(BUILD_INFO))$(word 3,$(BUILD_INFO))$(word 4,$(BUILD_INFO))
+endif
+export BUILD_TIME
+ifndef BUILD_TIMESTAMP
+BUILD_TIMESTAMP := $(word 5,$(BUILD_INFO)) $(word 6,$(BUILD_INFO)) $(word 7,$(BUILD_INFO)) $(word 8,$(BUILD_INFO)) \
+                   $(word 2,$(BUILD_INFO)):$(word 3,$(BUILD_INFO)):$(word 4,$(BUILD_INFO))
+endif
+export BUILD_TIMESTAMP
+
+# Compiler flags for Git build metadata
 GIT_FLAGS := $(strip \
-             $(if $(GIT_DATE),-DGIT_DATE=$(GIT_DATE)) \
-             $(if $(GIT_SHA),-DGIT_SHA=$(GIT_SHA)) \
-             $(if $(GIT_DIFFINDEX),-DGIT_DIFFINDEX=$(GIT_DIFFINDEX)))
+             $(if $(GIT_DATE),-DGIT_DATE='"$(GIT_DATE)"') \
+             $(if $(GIT_SHA),-DGIT_SHA='"$(GIT_SHA)"') \
+             $(if $(GIT_DIFFINDEX),-DGIT_DIFFINDEX='"$(GIT_DIFFINDEX)"'))
+# Compiler flags for Git build information, or build date/time when Git metadata is unavailable
+BUILD_FLAGS := $(strip $(or $(GIT_FLAGS),-DBUILD_DATE='"$(BUILD_DATE)"' -DBUILD_TIME='"$(BUILD_TIME)"'))
+# Compiler flag for the build timestamp
+BUILD_TIMESTAMP_FLAG := $(strip -DBUILD_TIMESTAMP='"$(BUILD_TIMESTAMP)"')
 
 ### 3.8.2 Try to include architecture
 ifneq ($(ARCH),)
@@ -1318,7 +1343,7 @@ clean: obj-clean profile-clean universal-clean
 
 # Remove binaries, object files, and build metadata
 obj-clean:
-	@rm -f "$(EXE)" ./*.o ./nnue/*.o ./nnue/features/*.o ./book/*.o ./tablebase/*.o "$(BUILD_DATE_FILE)" "$(BUILD_SHA_FILE)" "$(BUILD_DIFFINDEX_FILE)"
+	@rm -f "$(EXE)" ./*.o ./nnue/*.o ./nnue/features/*.o ./book/*.o ./tablebase/*.o "$(GIT_DATE_FILE)" "$(GIT_SHA_FILE)" "$(GIT_DIFFINDEX_FILE)"
 
 # Remove profiling data and temporary profiling files
 profile-clean:
@@ -1417,7 +1442,7 @@ config-sanity: net
 	echo "LDFLAGS: '$(LDFLAGS)'" && \
 	echo "LDLIBS: '$(LDLIBS)'" && \
 	echo "ARCH_FLAG: '$(ARCH_FLAG)'" && \
-	echo "GIT_FLAGS: '$(GIT_FLAGS)'" && \
+	echo "BUILD_FLAGS: '$(BUILD_FLAGS)'" && \
 	echo "BUILD_TIMESTAMP_FLAG: '$(BUILD_TIMESTAMP_FLAG)'" && \
 	echo && \
 	echo "Testing config sanity. If this fails, try 'make help' ..." && \
@@ -1464,8 +1489,8 @@ $(EXE): $(OBJS) $(NNUE_EMBED_OBJ)
 %.o: %.cpp
 	$(strip $(CXX) $(CPPFLAGS) $(CXXFLAGS)) -c "$<" -o "$@"
 
-misc.o: misc.cpp $(BUILD_DATE_FILE) $(BUILD_SHA_FILE) $(BUILD_DIFFINDEX_FILE)
-	$(strip $(CXX) $(CPPFLAGS) $(CXXFLAGS) $(ARCH_FLAG) $(GIT_FLAGS) $(BUILD_TIMESTAMP_FLAG)) -c "$<" -o "$@"
+misc.o: misc.cpp $(GIT_DATE_FILE) $(GIT_SHA_FILE) $(GIT_DIFFINDEX_FILE)
+	$(strip $(CXX) $(CPPFLAGS) $(CXXFLAGS) $(ARCH_FLAG) $(BUILD_FLAGS) $(BUILD_TIMESTAMP_FLAG)) -c "$<" -o "$@"
 
 # Clang PGO
 clang-profile-make:
