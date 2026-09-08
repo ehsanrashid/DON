@@ -986,7 +986,7 @@ GIT_DIFFINDEX_FILE := .git_diffindex.txt
 
 ifndef GIT
 GIT := git
-ifeq ($(shell command -v $(GIT) 2>/dev/null),)
+ifneq ($(shell command -v $(GIT) 2>/dev/null),)
 GIT := $(GIT) -c core.filemode=false -c core.autocrlf=false
 ifndef GIT_DATE
 GIT_DATE := $(shell $(GIT) show -s --date=format:%Y%m%d --format=%cd HEAD 2>/dev/null)
@@ -1019,11 +1019,10 @@ ifneq ($(filter-out help net strip install clean obj-clean profile-clean univers
     _ := $(call CACHE_FILE_IF_CHANGED,$(GIT_DIFFINDEX_FILE),$(GIT_DIFFINDEX))
 endif
 
-ifndef BUILD_DATE
+ifndef BUILD_INFO
 BUILD_INFO := $(shell date '+%Y%m%d %H %M %S %a %b %d %Y')
 endif
 export BUILD_INFO
-
 ifndef BUILD_DATE
 BUILD_DATE := $(word 1,$(BUILD_INFO))
 endif
@@ -1044,9 +1043,9 @@ GIT_FLAGS := $(strip \
              $(if $(GIT_SHA),-DGIT_SHA='"$(GIT_SHA)"') \
              $(if $(GIT_DIFFINDEX),-DGIT_DIFFINDEX='"$(GIT_DIFFINDEX)"'))
 # Compiler flags for Git build information, or build date/time when Git metadata is unavailable
-BUILD_FLAGS := $(strip $(or $(GIT_FLAGS),-DBUILD_DATE='"$(BUILD_DATE)"' -DBUILD_TIME='"$(BUILD_TIME)"'))
+BUILD_FLAGS := $(or $(GIT_FLAGS),-DBUILD_DATE='"$(BUILD_DATE)"' -DBUILD_TIME='"$(BUILD_TIME)"')
 # Compiler flag for the build timestamp
-BUILD_TIMESTAMP_FLAG := $(strip -DBUILD_TIMESTAMP='"$(BUILD_TIMESTAMP)"')
+BUILD_TIMESTAMP_FLAG := -DBUILD_TIMESTAMP='"$(BUILD_TIMESTAMP)"'
 
 ### 3.8.2 Try to include architecture
 ifneq ($(ARCH),)
