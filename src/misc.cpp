@@ -114,7 +114,6 @@ constexpr std::string_view VERSION{"dev"};
 
 // Format time HH:MM:SS -> HHMMSS
 [[maybe_unused]] std::string format_time(const std::string_view time) noexcept {
-
     constexpr std::string_view NullTime{"000000"};
 
     // Expect exactly "HH:MM:SS"
@@ -478,9 +477,9 @@ std::string compiler_info() noexcept {
 }
 
 std::string format_time(const SystemClock::time_point& timePoint) noexcept {
-    // clang-format off
+
     std::time_t time = SystemClock::to_time_t(timePoint);
-    u64 usec         = std::chrono::duration_cast<Us>(timePoint.time_since_epoch()).count() % 1000000;
+    u64 usec = std::chrono::duration_cast<Us>(timePoint.time_since_epoch()).count() % 1000000;
 
     std::tm tm{};
 #if defined(_WIN32)  // Windows
@@ -498,8 +497,8 @@ std::string format_time(const SystemClock::time_point& timePoint) noexcept {
     // Format the YYYY.MM.DD-HH:MM:SS part
     writtenSize += std::strftime(buffer.data(), buffer.size(), "%Y.%m.%d-%H:%M:%S", &tm);
     // Append microseconds safely
-    writtenSize += std::snprintf(buffer.data() + writtenSize, buffer.size() - writtenSize, ".%06" PRIu64, usec);
-    // clang-format on
+    writtenSize +=
+      std::snprintf(buffer.data() + writtenSize, buffer.size() - writtenSize, ".%06" PRIu64, usec);
     return std::string{buffer.data(), std::min(writtenSize, buffer.size() - 1)};
 }
 
