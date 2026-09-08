@@ -204,6 +204,11 @@ ARCH_SUPPORTED := $(if $(filter \
     riscv64-universal riscv64-rva23 riscv64 \
     wasm32 wasm32-relaxed-simd,$(ARCH)),yes,no)
 
+ifeq ($(ARCH_SUPPORTED),no)
+    $(warning *** Unknown architecture. Run 'make help' to see the list of supported architectures. ***)
+    $(shell sleep 3)
+endif
+
 UNIVERSAL_BUILD := $(if $(filter x86-64-universal arm64-universal riscv64-universal,$(ARCH)),yes,no)
 
 optimize = yes
@@ -343,7 +348,7 @@ else ifneq ($(findstring -sse41,$(ARCH)),)
 
 else ifneq ($(findstring -modern,$(ARCH)),)
     $(warning *** ARCH=$(ARCH) is deprecated, defaulting to ARCH=x86-64-sse41-popcnt. Execute `make help` for a list of available architectures. ***)
-    $(shell sleep 5)
+    $(shell sleep 3)
     popcnt = yes
     sse = yes
     sse2 = yes
@@ -1136,32 +1141,32 @@ help:
 	echo "profile-clean           > Remove profiling data and temporary profiling files"; \
 	echo "universal-clean         > Remove universal build temporary files and generated files"; \
 	echo; \
-	echo "Supported archs:"; \
+	echo "Supported architectures:"; \
 	echo; \
-	echo "native                  > select the best architecture for the host processor (default)"; \
+	echo "native                  > Select the best architecture for the host processor (default)"; \
 	echo "x86-64-universal        > x86 64-bit with automatic runtime selection of the best architecture"; \
 	echo "x86-64-avx512icl        > x86 64-bit with minimum AVX512 support of Intel Ice Lake or AMD Zen 4"; \
-	echo "x86-64-vnni512          > x86 64-bit with VNNI support, operands 512-bit wide"; \
-	echo "x86-64-vnni256          > x86 64-bit with VNNI support, operands limited to 256-bit wide"; \
+	echo "x86-64-vnni512          > x86 64-bit with VNNI support, 512-bit operands"; \
+	echo "x86-64-vnni256          > x86 64-bit with VNNI support, 256-bit operands"; \
 	echo "x86-64-avx512           > x86 64-bit with AVX512 support"; \
-	echo "x86-64-avxvnni          > x86 64-bit with VNNI 256bit support"; \
+	echo "x86-64-avxvnni          > x86 64-bit with AVX-VNNI support, 256-bit operands"; \
 	echo "x86-64-bmi2             > x86 64-bit with BMI2 support"; \
 	echo "x86-64-avx2             > x86 64-bit with AVX2 support"; \
 	echo "x86-64-sse41-bmi2-cmp   > x86 64-bit with SSE4.1 and BMI2 compressed support"; \
 	echo "x86-64-sse41-bmi2       > x86 64-bit with SSE4.1 and BMI2 support"; \
 	echo "x86-64-sse41-popcnt     > x86 64-bit with SSE4.1 and POPCNT support"; \
-	echo "x86-64-modern           > deprecated, currently x86-64-sse41-popcnt"; \
+	echo "x86-64-modern           > Deprecated, currently x86-64-sse41-popcnt"; \
 	echo "x86-64-sse41            > x86 64-bit with SSE4.1 support"; \
 	echo "x86-64-ssse3-popcnt     > x86 64-bit with SSSE3 and POPCNT support"; \
 	echo "x86-64-ssse3            > x86 64-bit with SSSE3 support"; \
-	echo "x86-64                  > x86 64-bit generic with SSE2 support"; \
-	echo "general-64              > unspecified 64-bit"; \
+	echo "x86-64                  > x86 64-bit with SSE2 support"; \
+	echo "general-64              > Unspecified 64-bit"; \
 	echo "x86-32-sse41-popcnt     > x86 32-bit with SSE4.1 and POPCNT support"; \
 	echo "x86-32-sse41            > x86 32-bit with SSE4.1 support"; \
 	echo "x86-32-ssse3            > x86 32-bit with SSSE3 support"; \
 	echo "x86-32-sse2             > x86 32-bit with SSE2 support"; \
-	echo "x86-32                  > x86 32-bit generic with MMX support"; \
-	echo "general-32              > unspecified 32-bit"; \
+	echo "x86-32                  > x86 32-bit with MMX support"; \
+	echo "general-32              > Unspecified 32-bit"; \
 	echo "loongarch64-lasx        > LoongArch 64-bit with LASX (Advanced SIMD eXtension) support"; \
 	echo "loongarch64-lsx         > LoongArch 64-bit with LSX (SIMD eXtension) support"; \
 	echo "loongarch64             > LoongArch 64-bit"; \
@@ -1202,11 +1207,6 @@ help:
 	echo 'make -j profile-build ARCH=x86-64-universal RUN_PREFIX="/path/to/sde -future --" CXX=g++-15'; \
 	echo 'make -j build ARCH=x86-64-ssse3 COMP=clang'; \
 	echo
-
-ifeq ($(ARCH_SUPPORTED),no)
-	@echo "Specify a supported architecture with the ARCH option for more details"; \
-	echo 
-endif
 
 
 .PHONY: help analyze build profile-build macos-lipo net strip install \
@@ -1477,7 +1477,10 @@ config-sanity: net
 	(test "$(tablebases)" = "no" || test "$(tablebases)" = "yes") && \
 	(test "$(IS_WINDOWS)" = "no" || test "$(IS_WINDOWS)" = "yes") && \
 	(test "$(COMP)" = "gcc" || test "$(COMP)" = "clang" || test "$(COMP)" = "mingw" || \
-	 test "$(COMP)" = "icx" || test "$(COMP)" = "ndk")
+	 test "$(COMP)" = "icx" || test "$(COMP)" = "ndk") || { \
+		echo "Invalid configuration. Run 'make help' for supported options."; \
+		exit 1; \
+	}
 
 $(EXE): $(OBJS) $(NNUE_EMBED_OBJ)
 	+$(CXX) -o "$@" $(OBJS) $(NNUE_EMBED_OBJ) $(strip $(LDFLAGS) $(LDLIBS))
