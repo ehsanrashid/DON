@@ -177,12 +177,12 @@ class AffineTransform final {
     #endif
     #if defined(USE_LSX)
         #if defined(USE_LASX)
-            #define vec_load_32(a) __lasx_xvldrepl_w(reinterpret_cast<const void*>(a), 0)
+            #define vec_load_32(src) __lasx_xvldrepl_w(reinterpret_cast<const void*>(src), 0)
         #else
-            #define vec_load_32(a) __lsx_vldrepl_w(reinterpret_cast<const void*>(a), 0)
+            #define vec_load_32(src) __lsx_vldrepl_w(reinterpret_cast<const void*>(src), 0)
         #endif
     #else
-        #define vec_load_32(a) vec_set_32(load_as<i32>(a))
+        #define vec_load_32(src) vec_set_32(load_as<i32>(src))
     #endif
 
             constexpr IndexType OutputSimdWidth = sizeof(vec_t) / sizeof(OutputType);

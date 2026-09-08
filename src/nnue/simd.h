@@ -54,6 +54,10 @@
     #define USE_SCRAMBLED_ACTIVATIONS
 #endif
 
+// If vector instructions are enabled, update and refresh the accumulator tile by tile
+// such that each tile fits in the CPU's vector registers.
+#define VECTOR
+
 namespace DON::NNUE::SIMD {
 
 inline constexpr usize WIDTH_MAX = 32;
@@ -70,9 +74,6 @@ inline constexpr usize WIDTH =
 #endif
   ;
 
-// If vector instructions are enabled, update and refresh the accumulator tile by tile
-// such that each tile fits in the CPU's vector registers.
-#define VECTOR
 // clang-format off
 #if defined(USE_SSE2)
     #if defined(USE_AVX512)
