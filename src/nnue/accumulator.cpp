@@ -894,10 +894,10 @@ void apply_combined(Color                                perspective,
                     const FeatureTransformer&            featureTransformer,
                     const Accumulator&                   source,
                     Accumulator&                         target,
-                    const PSQFeatureSet::IndexVector&    psqAdded,
                     const PSQFeatureSet::IndexVector&    psqRemoved,
-                    const ThreatFeatureSet::IndexVector& thrAdded,
-                    const ThreatFeatureSet::IndexVector& thrRemoved) noexcept {
+                    const PSQFeatureSet::IndexVector&    psqAdded,
+                    const ThreatFeatureSet::IndexVector& thrRemoved,
+                    const ThreatFeatureSet::IndexVector& thrAdded) noexcept {
     constexpr auto Dimensions = FeatureTransformer::OutputDimensions;
 
     const auto& sourceAcc = source.accumulation[perspective];
@@ -1134,6 +1134,19 @@ void apply_combined(Color                                perspective,
 #endif
 }
 
+void apply_combined_both(const FeatureTransformer&                             featureTransformer,
+                         const Accumulator&                                    source,
+                         Accumulator&                                          target,
+                         const Array<PSQFeatureSet::IndexVector, COLOR_NB>&    psqRemoved,
+                         const Array<PSQFeatureSet::IndexVector, COLOR_NB>&    psqAdded,
+                         const Array<ThreatFeatureSet::IndexVector, COLOR_NB>& thrRemoved,
+                         const Array<ThreatFeatureSet::IndexVector, COLOR_NB>& thrAdded) noexcept {
+    apply_combined(WHITE, featureTransformer, source, target,  //
+                   psqRemoved[WHITE], psqAdded[WHITE], thrRemoved[WHITE], thrAdded[WHITE]);
+    apply_combined(BLACK, featureTransformer, source, target,  //
+                   psqRemoved[BLACK], psqAdded[BLACK], thrRemoved[BLACK], thrAdded[BLACK]);
+}
+
 template<bool Forward>
 void update_incremental(const Color               perspective,
                         const Square              kingSq,
@@ -1171,8 +1184,8 @@ void update_incremental(const Color               perspective,
                                           Forward ? psqRemoved : psqAdded,
                                           Forward ? psqAdded : psqRemoved);
 
-    apply_combined(perspective, featureTransformer, source, target, psqAdded, psqRemoved, thrAdded,
-                   thrRemoved);
+    apply_combined(perspective, featureTransformer, source, target, psqRemoved, psqAdded,
+                   thrRemoved, thrAdded);
 
     target.computed[perspective] = true;
 }
@@ -1187,8 +1200,8 @@ void update_incremental_both(const FeatureTransformer& featureTransformer,
     assert(!target.computed[WHITE]);
     assert(!target.computed[BLACK]);
 
-    PSQFeatureSet::IndexVector    psqRemoved[COLOR_NB], psqAdded[COLOR_NB];
-    ThreatFeatureSet::IndexVector thrRemoved[COLOR_NB], thrAdded[COLOR_NB];
+    Array<PSQFeatureSet::IndexVector, COLOR_NB>    psqRemoved, psqAdded;
+    Array<ThreatFeatureSet::IndexVector, COLOR_NB> thrRemoved, thrAdded;
 
     const auto* pfBase   = featureTransformer.threatAndPpWeights.data();
     const usize pfStride = FeatureTransformer::OutputDimensions;
@@ -1203,10 +1216,8 @@ void update_incremental_both(const FeatureTransformer& featureTransformer,
                                                psqRemoved[WHITE], psqAdded[WHITE],
                                                psqRemoved[BLACK], psqAdded[BLACK]);
 
-    apply_combined(WHITE, featureTransformer, source, target, psqAdded[WHITE], psqRemoved[WHITE],
-                   thrAdded[WHITE], thrRemoved[WHITE]);
-    apply_combined(BLACK, featureTransformer, source, target, psqAdded[BLACK], psqRemoved[BLACK],
-                   thrAdded[BLACK], thrRemoved[BLACK]);
+    apply_combined_both(featureTransformer, source, target,  //
+                        psqRemoved, psqAdded, thrRemoved, thrAdded);
 
     target.computed[WHITE] = true;
     target.computed[BLACK] = true;
