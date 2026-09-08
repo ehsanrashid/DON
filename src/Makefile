@@ -1018,7 +1018,7 @@ $(shell \
         printf '%s\n' "$(2)" > "$(1)"; \
     fi)
 endef
-# Update cached Git metadata for build targets
+# Update cached Git metadata when at least one non-excluded goal is requested
 ifneq ($(filter-out help net strip install clean obj-clean profile-clean universal-clean config-sanity format install-hooks,$(MAKECMDGOALS)),)
 _ := $(call CACHE_FILE_IF_CHANGED,$(GIT_DATE_FILE),$(GIT_DATE))
 _ := $(call CACHE_FILE_IF_CHANGED,$(GIT_SHA_FILE),$(GIT_SHA))
@@ -1544,11 +1544,9 @@ icx-profile-use:
 	@rm -f "$@.tmp"
 
 ifeq ($(UNIVERSAL_BUILD),no)
-# Include .depend only if no special goal is requested
-ifneq ($(MAKECMDGOALS),)
+# Include .depend when at least one non-excluded goal is requested
 ifneq ($(filter-out help net strip install clean obj-clean profile-clean universal-clean config-sanity format install-hooks,$(MAKECMDGOALS)),)
 -include .depend
-endif
 endif
 endif
 
