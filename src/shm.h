@@ -883,12 +883,12 @@ inline std::string make_sentinel_base(std::string_view name) noexcept {
 }
 
 [[maybe_unused]] inline void set_cloexec(const int fd) noexcept {
-    if (is_valid_fd(fd))
-    {
-        const int flags = ::fcntl(fd, F_GETFD);
-        if (flags != -1)
-            (void) ::fcntl(fd, F_SETFD, flags | FD_CLOEXEC);
-    }
+    if (!is_valid_fd(fd))
+        return;
+
+    const int flags = ::fcntl(fd, F_GETFD);
+    if (flags != -1)
+        (void) ::fcntl(fd, F_SETFD, flags | FD_CLOEXEC);
 }
 
 inline UniqueFd create_unix_socket() noexcept {
