@@ -242,6 +242,7 @@ arm_version = 0
 neon = no
 dotprod = no
 relaxedsimd = no
+embedding = yes
 tablebases = yes
 
 ### 2.2 Architecture specific
@@ -505,6 +506,7 @@ sse41 = yes
 ifneq ($(findstring -relaxed-simd,$(ARCH)),)
 relaxedsimd = yes
 endif
+embedding = no
 tablebases = no
 endif
 
@@ -1002,7 +1004,7 @@ endif
 endif
 
 ifeq ($(arch),wasm32)
-CXXFLAGS += -DUSE_POPCNT -DNO_NNUE_EMBEDDING -DUSE_SLOPPY_ATOMICS -pthread -msimd128
+CXXFLAGS += -DUSE_POPCNT -DUSE_SLOPPY_ATOMICS -pthread -msimd128
 LDFLAGS  += -sSTACK_SIZE=3MB -sINITIAL_MEMORY=64MB -sALLOW_MEMORY_GROWTH -pthread
 ifeq ($(relaxedsimd),yes)
 CXXFLAGS += -mrelaxed-simd
@@ -1018,6 +1020,11 @@ endif
 ifeq ($(cmp),yes)
 CXXFLAGS += -DUSE_CMP
 endif
+endif
+
+### NNUE embedding
+ifeq ($(embedding),no)
+CXXFLAGS += -DNO_NNUE_EMBEDDING
 endif
 
 ### Syzygy tablebases
@@ -1050,8 +1057,8 @@ $(shell $(GIT) update-index --refresh >/dev/null 2>&1; \
     if ! $(GIT) diff-index --quiet HEAD -- 2>/dev/null; then \
         $(GIT) diff HEAD --no-ext-diff | $(GIT) hash-object --stdin | cut -c 1-6 | tr '[:lower:]' '[:upper:]'; \
     fi)
-endif
 export GIT_DATE GIT_SHA GIT_DIFFINDEX
+endif
 
 # Cache Git metadata in files only when the values have changed
 define CACHE_FILE_IF_CHANGED
@@ -1463,6 +1470,7 @@ config-sanity: net
 	echo "neon: '$(neon)'" && \
 	echo "dotprod: '$(dotprod)'" && \
 	echo "relaxedsimd: '$(relaxedsimd)'" && \
+	echo "embedding: '$(embedding)'" && \
 	echo "tablebases: '$(tablebases)'" && \
 	echo && \
 	echo "Flags:" && \
@@ -1509,6 +1517,7 @@ config-sanity: net
 	(test "$(rva23)"     = "no" || test "$(rva23)"     = "yes") && \
 	(test "$(neon)"      = "no" || test "$(neon)"      = "yes") && \
 	(test "$(dotprod)"   = "no" || test "$(dotprod)"   = "yes") && \
+	(test "$(embedding)" = "no" || test "$(embedding)" = "yes") && \
 	(test "$(tablebases)" = "no" || test "$(tablebases)" = "yes") && \
 	(test "$(COMP)" = "gcc" || test "$(COMP)" = "clang" || test "$(COMP)" = "mingw" || \
 	 test "$(COMP)" = "icx" || test "$(COMP)" = "ndk") || { \

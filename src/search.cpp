@@ -2080,20 +2080,25 @@ void Worker::do_move(
     const Key moveKey = pos.move_key(m);
     prefetch(transpositionTable.cluster(moveKey));
 
-    bool capture = pos.capture_promo(m);
+    // The correction-history prefetches also approximate castling and promotion;
+    // for these rare moves the prefetches land on unused lines.
+    const Piece  movedPc = pos.moved_pc(m);
+    const Square dstSq   = m.dst_sq();
 
-    auto dirties = pos.do_move(m, st, mayCheck, this);
+    prefetch(&(*(ss - 1)->pieceSqCorrectionHistory)[+movedPc][dstSq]);
+    prefetch(&(*(ss - 3)->pieceSqCorrectionHistory)[+movedPc][dstSq]);
 
+    const bool capture = pos.capture_promo(m);
+
+    accStack.push(std::move(pos.do_move(m, st, mayCheck, this)));
     assert(moveKey == pos.key());
 
     ++nodes;
     // clang-format off
-    auto& dP                     = dirties.dirtyPiece;
     ss->move                     = m;
-    ss->pieceSqHistory           = &atomicHistories.continuation_history()[ss->inCheck][capture][+dP.movedPc][m.dst_sq()];
-    ss->pieceSqCorrectionHistory = &continuationCorrectionHistory[+dP.movedPc][m.dst_sq()];
+    ss->pieceSqHistory           = &atomicHistories.continuation_history()[ss->inCheck][capture][+movedPc][dstSq];
+    ss->pieceSqCorrectionHistory = &continuationCorrectionHistory[+movedPc][dstSq];
     // clang-format on
-    accStack.push(std::move(dirties));
 }
 
 void Worker::undo_move(Position& pos, const Move m) noexcept {

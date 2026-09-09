@@ -40,8 +40,7 @@
     #include <type_traits>
 
     #include "platform_win.h"
-#elif defined(__ANDROID__)
-    // Android-specific configuration (currently none)
+
 #elif (defined(__linux__) && !defined(__ANDROID__)) /* Linux (non-Android) */
     #if !defined(_GNU_SOURCE)
         #define _GNU_SOURCE
@@ -168,20 +167,15 @@ inline std::pair<BOOL, std::vector<USHORT>> get_process_group_affinity() noexcep
         USHORT groupCount = requiredGroupCount;
 
         if (GetProcessGroupAffinity(GetCurrentProcess(), &groupCount, alignedGroupArray) == TRUE)
-        {
-            return {TRUE, std::vector<USHORT>{alignedGroupArray, alignedGroupArray + groupCount}};
-        }
-        else
-        {
-            if (GetLastError() != ERROR_INSUFFICIENT_BUFFER)
-                break;
-        }
+            return {TRUE, std::vector<USHORT>(alignedGroupArray, alignedGroupArray + groupCount)};
+        else if (GetLastError() != ERROR_INSUFFICIENT_BUFFER)
+            break;
 
         // Windows tells us the correct size
         requiredGroupCount = groupCount;
     }
 
-    return {FALSE, std::vector<USHORT>{}};
+    return {FALSE, {}};
 }
 
 // On Windows there are two ways to set affinity, and therefore 2 ways to get it.
