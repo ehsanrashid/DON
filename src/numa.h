@@ -42,12 +42,14 @@
     #include "platform_win.h"
 #elif defined(__ANDROID__)
     // Android-specific configuration (currently none)
-#elif defined(__linux__) && !defined(__ANDROID__) /* Linux (non-Android) */
+#elif (defined(__linux__) && !defined(__ANDROID__)) /* Linux (non-Android) */
     #if !defined(_GNU_SOURCE)
         #define _GNU_SOURCE
     #endif
     #include <sched.h>
     #include <numeric>
+
+    #define USE_UNIX_NUMA
 #endif
 
 #include "misc.h"
@@ -449,7 +451,7 @@ CpuIndexSet read_cache_members(const T* processorInfo, Pred&& is_cpu_allowed) no
     return cpus;
 }
 
-#elif defined(__linux__) && !defined(__ANDROID__)
+#elif defined(USE_UNIX_NUMA)
 inline CpuIndexSet get_process_affinity() noexcept {
 
     CpuIndexSet cpus;
@@ -624,7 +626,7 @@ class NumaConfig final {
                 [[maybe_unused]] const bool            respectProcessAffinity = true) noexcept {
         NumaConfig numaCfg = empty();
 
-#if defined(_WIN64) || (defined(__linux__) && !defined(__ANDROID__))
+#if defined(_WIN64) || defined(USE_UNIX_NUMA)
     #if defined(_WIN64)
         std::optional<CpuIndexSet> allowedCpus;
 
@@ -639,7 +641,7 @@ class NumaConfig final {
             return !allowedCpus || allowedCpus->find(cpuId) != allowedCpus->end();
         };
 
-    #elif defined(__linux__) && !defined(__ANDROID__)
+    #elif defined(USE_UNIX_NUMA)
         CpuIndexSet allowedCpus;
 
         if (respectProcessAffinity)
@@ -1070,7 +1072,7 @@ class NumaConfig final {
             SwitchToThread();
         }
 
-#elif defined(__linux__) && !defined(__ANDROID__)
+#elif defined(USE_UNIX_NUMA)
         cpu_set_t* const cpuMask = CPU_ALLOC(maxCpuId + 1);
 
         if (cpuMask == nullptr)
@@ -1151,7 +1153,7 @@ class NumaConfig final {
             }
         }
 
-#elif defined(__linux__) && !defined(__ANDROID__)
+#elif defined(USE_UNIX_NUMA)
         // On Linux things are straightforward, since there's no processor groups
         // and any thread can be scheduled on all processors.
         // Try to gather this information from the sysfs first
@@ -1259,7 +1261,7 @@ class NumaConfig final {
               reinterpret_cast<char*>(processorInfo) + processorInfo->Size);
         }
 
-#elif defined(__linux__) && !defined(__ANDROID__)
+#elif defined(USE_UNIX_NUMA)
         CpuIndexSet seenCpus;
 
         for (const auto& [nextCpuId, _] : sysCfg.nodeByCpu)
