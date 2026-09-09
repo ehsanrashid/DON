@@ -199,9 +199,9 @@ ARCH_SUPPORTED := $(if $(filter \
     x86-64-universal x86-64-avx512icl x86-64-vnni512 x86-64-vnni256 x86-64-avx512 x86-64-avxvnni \
     x86-64-bmi2 x86-64-avx2 x86-64-sse41-bmi2-cmp x86-64-sse41-bmi2 x86-64-sse41-popcnt \
     x86-64-modern x86-64-sse41 x86-64-ssse3-popcnt x86-64-ssse3 x86-64 general-64 \
-    x86-32-sse41-popcnt x86-32-sse41 x86-32-ssse3 x86-32-sse2 x86-32 general-32 \
+    x86-32-sse41-popcnt x86-32-sse41 x86-32-ssse3 x86-32-sse2 x86-32 general-32 e2k \
     loongarch64-lasx loongarch64-lsx loongarch64 \
-    ppc-64-vsx ppc-64-altivec ppc-64 ppc-32 e2k \
+    ppc-64-vsx ppc-64-altivec ppc-64 ppc-32 \
     arm64-universal armv8-dotprod armv8 armv7-neon armv7 apple-silicon \
     riscv64-universal riscv64-rva23 riscv64 \
     wasm32 wasm32-relaxed-simd,$(ARCH)),yes,no)
@@ -407,9 +407,20 @@ sse_fp = yes
 endif
 
 else \
+ifneq ($(findstring e2k,$(ARCH)),)
+arch = e2k
+mmx = yes
+sse = yes
+sse2 = yes
+ssse3 = yes
+sse41 = yes
+popcnt = yes
+
+else \
 ifneq ($(findstring loongarch64,$(ARCH)),)
 arch = loongarch64
 prefetch = yes
+popcnt = yes
 ifneq ($(findstring -lasx,$(ARCH)),)
 lsx = yes
 lasx = yes
@@ -434,16 +445,6 @@ else \
 ifneq ($(findstring ppc-32,$(ARCH)),)
 arch = ppc
 bits = 32
-
-else \
-ifneq ($(findstring e2k,$(ARCH)),)
-arch = e2k
-mmx = yes
-sse = yes
-sse2 = yes
-ssse3 = yes
-sse41 = yes
-popcnt = yes
 
 else \
 ifneq ($(findstring armv8,$(ARCH)),)
@@ -883,7 +884,7 @@ CXXFLAGS += -DUSE_POPCNT
 ifeq ($(arch),wasm32)
 CXXFLAGS += -msse3
 else \
-ifeq ($(filter armv7 armv8 arm64 ppc64 riscv64,$(arch)),)
+ifeq ($(filter armv7 armv8 arm64 loongarch64 ppc64 riscv64,$(arch)),)
 CXXFLAGS += -msse3 -mpopcnt
 endif
 endif
@@ -1222,6 +1223,7 @@ help:
 	echo "x86-32-sse2             > x86 32-bit with SSE2 support"; \
 	echo "x86-32                  > x86 32-bit with MMX support"; \
 	echo "general-32              > Unspecified 32-bit"; \
+	echo "e2k                     > Elbrus 2000"; \
 	echo "loongarch64-lasx        > LoongArch 64-bit with LASX (Advanced SIMD eXtension) support"; \
 	echo "loongarch64-lsx         > LoongArch 64-bit with LSX (SIMD eXtension) support"; \
 	echo "loongarch64             > LoongArch 64-bit"; \
@@ -1229,7 +1231,6 @@ help:
 	echo "ppc-64-altivec          > PPC 64-bit with AltiVec support"; \
 	echo "ppc-64                  > PPC 64-bit"; \
 	echo "ppc-32                  > PPC 32-bit"; \
-	echo "e2k                     > Elbrus 2000"; \
 	echo "arm64-universal         > ARMv8 64-bit with automatic runtime selection of the best architecture"; \
 	echo "armv8-dotprod           > ARMv8 64-bit with NEON, DOT-PRODUCT and POPCNT support"; \
 	echo "armv8                   > ARMv8 64-bit with NEON and POPCNT support"; \
@@ -1505,8 +1506,8 @@ config-sanity: net
 	(test "$(optimize)"   = "no" || test "$(optimize)"   = "yes") && \
 	(test "$(ARCH_SUPPORTED)" = "yes") && \
 	(test "$(arch)" = "any" || test "$(arch)" = "i386" || test "$(arch)" = "x86_64" || \
-	 test "$(arch)" = "loongarch64" || test "$(arch)" = "riscv64" || \
-	 test "$(arch)" = "ppc" || test "$(arch)" = "ppc64" || test "$(arch)" = "e2k" || \
+	 test "$(arch)" = "e2k" || test "$(arch)" = "loongarch64" || test "$(arch)" = "riscv64" || \
+	 test "$(arch)" = "ppc" || test "$(arch)" = "ppc64" || \
 	 test "$(arch)" = "armv7" || test "$(arch)" = "armv8" || test "$(arch)" = "arm64" || \
 	 test "$(arch)" = "wasm32") && \
 	(test "$(bits)"      = "32" || test "$(bits)"      = "64") && \
