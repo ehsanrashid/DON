@@ -151,8 +151,8 @@ endif
 # bits = 64/32         --- -DIS_64BIT         --- 64-/32-bit operating system
 # prefetch = yes/no    --- -DUSE_PREFETCH     --- Use prefetch asm-instruction
 # popcnt = yes/no      --- -DUSE_POPCNT       --- Use popcnt asm-instruction
-# sse = yes/no         --- -msse              --- Use Intel Streaming SIMD Extensions
 # mmx = yes/no         --- -mmmx              --- Use Intel MMX instructions
+# sse = yes/no         --- -msse              --- Use Intel Streaming SIMD Extensions
 # sse2 = yes/no        --- -msse2             --- Use Intel Streaming SIMD Extensions 2
 # ssse3 = yes/no       --- -mssse3            --- Use Intel Supplemental Streaming SIMD Extensions 3
 # sse41 = yes/no       --- -msse4.1           --- Use Intel Streaming SIMD Extensions 4.1
@@ -888,59 +888,9 @@ endif
 endif
 
 ### 3.6 SIMD architectures
-ifeq ($(avx512icl),yes)
-CXXFLAGS += -DUSE_AVX512 -DUSE_VNNI -DUSE_AVX512ICL
+ifeq ($(mmx),yes)
 ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
-CXXFLAGS += -mavx512f -mavx512bw -mavx512dq -mavx512vl -mavx512vnni -mavx512cd -mavx512ifma -mavx512vbmi -mavx512vbmi2 -mavx512vpopcntdq -mavx512bitalg -mvpclmulqdq -mgfni -mvaes
-endif
-endif
-
-ifeq ($(vnni512),yes)
-CXXFLAGS += -DUSE_VNNI
-ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
-CXXFLAGS += -mavx512f -mavx512bw -mavx512dq -mavx512vl -mavx512vnni
-endif
-endif
-
-ifeq ($(vnni256),yes)
-CXXFLAGS += -DUSE_VNNI
-ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
-CXXFLAGS += -mavx512f -mavx512bw -mavx512dq -mavx512vl -mavx512vnni -mprefer-vector-width=256
-endif
-endif
-
-ifeq ($(avx512),yes)
-CXXFLAGS += -DUSE_AVX512
-ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
-CXXFLAGS += -mavx512f -mavx512bw -mavx512dq -mavx512vl
-endif
-endif
-
-ifeq ($(avxvnni),yes)
-CXXFLAGS += -DUSE_VNNI -DUSE_AVXVNNI
-ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
-CXXFLAGS += -mavxvnni
-endif
-endif
-
-ifeq ($(avx2),yes)
-CXXFLAGS += -DUSE_AVX2
-ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
-CXXFLAGS += -mavx2 -mbmi
-endif
-endif
-
-ifeq ($(sse41),yes)
-CXXFLAGS += -DUSE_SSE41
-ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
-CXXFLAGS += -msse4.1
-endif
-endif
-
-ifeq ($(ssse3),yes)
-CXXFLAGS += -DUSE_SSSE3
-ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
-CXXFLAGS += -mssse3
+CXXFLAGS += -mmmx
 endif
 endif
 
@@ -951,16 +901,59 @@ CXXFLAGS += -msse2
 endif
 endif
 
-ifeq ($(mmx),yes)
+ifeq ($(ssse3),yes)
+CXXFLAGS += -DUSE_SSSE3
 ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
-CXXFLAGS += -mmmx
+CXXFLAGS += -mssse3
 endif
 endif
 
-ifeq ($(vsx),yes)
-CXXFLAGS += -mvsx
-ifneq ($(filter gcc,$(COMP)),)
-CXXFLAGS += -DNO_WARN_X86_INTRINSICS -DUSE_SSE2
+ifeq ($(sse41),yes)
+CXXFLAGS += -DUSE_SSE41
+ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
+CXXFLAGS += -msse4.1
+endif
+endif
+
+ifeq ($(avx2),yes)
+CXXFLAGS += -DUSE_AVX2
+ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
+CXXFLAGS += -mavx2 -mbmi
+endif
+endif
+
+ifeq ($(avxvnni),yes)
+CXXFLAGS += -DUSE_VNNI -DUSE_AVXVNNI
+ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
+CXXFLAGS += -mavxvnni
+endif
+endif
+
+ifeq ($(avx512),yes)
+CXXFLAGS += -DUSE_AVX512
+ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
+CXXFLAGS += -mavx512f -mavx512bw -mavx512dq -mavx512vl
+endif
+endif
+
+ifeq ($(vnni256),yes)
+CXXFLAGS += -DUSE_VNNI
+ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
+CXXFLAGS += -mavx512f -mavx512bw -mavx512dq -mavx512vl -mavx512vnni -mprefer-vector-width=256
+endif
+endif
+
+ifeq ($(vnni512),yes)
+CXXFLAGS += -DUSE_VNNI
+ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
+CXXFLAGS += -mavx512f -mavx512bw -mavx512dq -mavx512vl -mavx512vnni
+endif
+endif
+
+ifeq ($(avx512icl),yes)
+CXXFLAGS += -DUSE_AVX512 -DUSE_VNNI -DUSE_AVX512ICL
+ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
+CXXFLAGS += -mavx512f -mavx512bw -mavx512dq -mavx512vl -mavx512vnni -mavx512cd -mavx512ifma -mavx512vbmi -mavx512vbmi2 -mavx512vpopcntdq -mavx512bitalg -mvpclmulqdq -mgfni -mvaes
 endif
 endif
 
@@ -971,10 +964,10 @@ CXXFLAGS += -mabi=altivec
 endif
 endif
 
-ifeq ($(lasx),yes)
-CXXFLAGS += -DUSE_LASX
-ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
-CXXFLAGS += -mlasx
+ifeq ($(vsx),yes)
+CXXFLAGS += -mvsx
+ifneq ($(filter gcc,$(COMP)),)
+CXXFLAGS += -DNO_WARN_X86_INTRINSICS -DUSE_SSE2
 endif
 endif
 
@@ -982,6 +975,13 @@ ifeq ($(lsx),yes)
 CXXFLAGS += -DUSE_LSX
 ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
 CXXFLAGS += -mlsx
+endif
+endif
+
+ifeq ($(lasx),yes)
+CXXFLAGS += -DUSE_LASX
+ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
+CXXFLAGS += -mlasx
 endif
 endif
 
@@ -1462,8 +1462,8 @@ config-sanity: net
 	echo "bits: '$(bits)'" && \
 	echo "prefetch: '$(prefetch)'" && \
 	echo "popcnt: '$(popcnt)'" && \
-	echo "sse: '$(sse)'" && \
 	echo "mmx: '$(mmx)'" && \
+	echo "sse: '$(sse)'" && \
 	echo "sse2: '$(sse2)'" && \
 	echo "ssse3: '$(ssse3)'" && \
 	echo "sse41: '$(sse41)'" && \
@@ -1511,8 +1511,8 @@ config-sanity: net
 	(test "$(bits)"      = "32" || test "$(bits)"      = "64") && \
 	(test "$(prefetch)"  = "no" || test "$(prefetch)"  = "yes") && \
 	(test "$(popcnt)"    = "no" || test "$(popcnt)"    = "yes") && \
-	(test "$(sse)"       = "no" || test "$(sse)"       = "yes") && \
 	(test "$(mmx)"       = "no" || test "$(mmx)"       = "yes") && \
+	(test "$(sse)"       = "no" || test "$(sse)"       = "yes") && \
 	(test "$(sse2)"      = "no" || test "$(sse2)"      = "yes") && \
 	(test "$(ssse3)"     = "no" || test "$(ssse3)"     = "yes") && \
 	(test "$(sse41)"     = "no" || test "$(sse41)"     = "yes") && \
