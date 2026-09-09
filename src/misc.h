@@ -1041,120 +1041,6 @@ class MultiArray final {
     ArrayType data_;
 };
 
-// Wrapper around std::atomic<T> that uses relaxed atomic or plain accesses, depending on the configuration.
-// Intended for platforms such as WebAssembly, where the overhead of atomic instructions can be significant
-// and only non-tearing accesses are required for the updates, while ensuring we use relaxed accesses otherwise.
-template<typename T>
-class RelaxedAtomic final {
-   public:
-    RelaxedAtomic() = default;
-
-    RelaxedAtomic(T v) noexcept :
-        value(v) {}
-
-    RelaxedAtomic(const RelaxedAtomic& relaxedAtomic) noexcept :
-        value(static_cast<T>(relaxedAtomic)) {}
-    RelaxedAtomic& operator=(const RelaxedAtomic& relaxedAtomic) noexcept {
-        if (this == &relaxedAtomic)
-            return *this;
-
-        store(static_cast<T>(relaxedAtomic));
-        return *this;
-    }
-
-    T operator=(T v) noexcept {
-        store(v);
-        return v;
-    }
-
-    operator T() const noexcept { return load(); }
-
-    RelaxedAtomic& operator+=(T v) noexcept {
-        add(v);
-        return *this;
-    }
-    RelaxedAtomic& operator-=(T v) noexcept {
-        sub(v);
-        return *this;
-    }
-
-    RelaxedAtomic& operator++() noexcept {
-        add(1);
-        return *this;
-    }
-    RelaxedAtomic& operator--() noexcept {
-        sub(1);
-        return *this;
-    }
-
-    T operator++(int) noexcept { return add(1); }
-    T operator--(int) noexcept { return sub(1); }
-
-    T load() const noexcept {
-        if constexpr (UseAtomic)
-            return value.load(std::memory_order_relaxed);
-        else
-            return value;
-    }
-    void store(T v) noexcept {
-        if constexpr (UseAtomic)
-            value.store(v, std::memory_order_relaxed);
-        else
-            value = v;
-    }
-
-    T exchange(T v) noexcept {
-        if constexpr (UseAtomic)
-            return value.exchange(v, std::memory_order_relaxed);
-        else
-        {
-            T oldV = value;
-            value  = v;
-            return oldV;
-        }
-    }
-
-    bool compare_exchange_weak(T& expected, T desired) noexcept {
-        if constexpr (UseAtomic)
-            return value.compare_exchange_weak(expected, desired, std::memory_order_relaxed,
-                                               std::memory_order_relaxed);
-        else
-        {
-            if (value == expected)
-            {
-                value = desired;
-                return true;
-            }
-
-            expected = value;
-            return false;
-        }
-    }
-
-   private:
-    static constexpr bool UseAtomic =
-#if defined(USE_SLOPPY_ATOMICS)
-      !std::atomic<T>::is_always_lock_free || sizeof(T) > sizeof(usize);
-#else
-      true;
-#endif
-
-    T add(T v) noexcept {
-        const T oldV = load();
-        const T newV = oldV + v;
-        store(newV);
-        return oldV;
-    }
-    T sub(T v) noexcept {
-        const T oldV = load();
-        const T newV = oldV - v;
-        store(newV);
-        return oldV;
-    }
-
-    std::conditional_t<UseAtomic, std::atomic<T>, T> value;
-};
-
 template<typename T, usize Capacity, typename SizeType = usize>
 class FixedVector final {
     static_assert(Capacity > 0, "Capacity must be > 0");
@@ -1317,6 +1203,120 @@ struct FixedText final {
 static_assert(sizeof(FixedText) == 32, "FixedText size must be 32 bytes");
 
 std::ostream& operator<<(std::ostream& os, const FixedText& fixedText) noexcept;
+
+// Wrapper around std::atomic<T> that uses relaxed atomic or plain accesses, depending on the configuration.
+// Intended for platforms such as WebAssembly, where the overhead of atomic instructions can be significant
+// and only non-tearing accesses are required for the updates, while ensuring we use relaxed accesses otherwise.
+template<typename T>
+class RelaxedAtomic final {
+   public:
+    RelaxedAtomic() = default;
+
+    RelaxedAtomic(T v) noexcept :
+        value(v) {}
+
+    RelaxedAtomic(const RelaxedAtomic& relaxedAtomic) noexcept :
+        value(static_cast<T>(relaxedAtomic)) {}
+    RelaxedAtomic& operator=(const RelaxedAtomic& relaxedAtomic) noexcept {
+        if (this == &relaxedAtomic)
+            return *this;
+
+        store(static_cast<T>(relaxedAtomic));
+        return *this;
+    }
+
+    T operator=(T v) noexcept {
+        store(v);
+        return v;
+    }
+
+    operator T() const noexcept { return load(); }
+
+    RelaxedAtomic& operator+=(T v) noexcept {
+        add(v);
+        return *this;
+    }
+    RelaxedAtomic& operator-=(T v) noexcept {
+        sub(v);
+        return *this;
+    }
+
+    RelaxedAtomic& operator++() noexcept {
+        add(1);
+        return *this;
+    }
+    RelaxedAtomic& operator--() noexcept {
+        sub(1);
+        return *this;
+    }
+
+    T operator++(int) noexcept { return add(1); }
+    T operator--(int) noexcept { return sub(1); }
+
+    T load() const noexcept {
+        if constexpr (UseAtomic)
+            return value.load(std::memory_order_relaxed);
+        else
+            return value;
+    }
+    void store(T v) noexcept {
+        if constexpr (UseAtomic)
+            value.store(v, std::memory_order_relaxed);
+        else
+            value = v;
+    }
+
+    T exchange(T v) noexcept {
+        if constexpr (UseAtomic)
+            return value.exchange(v, std::memory_order_relaxed);
+        else
+        {
+            T oldV = value;
+            value  = v;
+            return oldV;
+        }
+    }
+
+    bool compare_exchange_weak(T& expected, T desired) noexcept {
+        if constexpr (UseAtomic)
+            return value.compare_exchange_weak(expected, desired, std::memory_order_relaxed,
+                                               std::memory_order_relaxed);
+        else
+        {
+            if (value == expected)
+            {
+                value = desired;
+                return true;
+            }
+
+            expected = value;
+            return false;
+        }
+    }
+
+   private:
+    static constexpr bool UseAtomic =
+#if defined(USE_SLOPPY_ATOMICS)
+      !std::atomic<T>::is_always_lock_free || sizeof(T) > sizeof(usize);
+#else
+      true;
+#endif
+
+    T add(T v) noexcept {
+        const T oldV = load();
+        const T newV = oldV + v;
+        store(newV);
+        return oldV;
+    }
+    T sub(T v) noexcept {
+        const T oldV = load();
+        const T newV = oldV - v;
+        store(newV);
+        return oldV;
+    }
+
+    std::conditional_t<UseAtomic, std::atomic<T>, T> value;
+};
 
 // Tracks allocation sizes and performs allocation and freeing.
 template<typename AllocFunc, typename FreeFunc>
@@ -1892,7 +1892,7 @@ inline std::string remove_whitespace(std::string str) noexcept {
 
 [[nodiscard]] constexpr std::string_view ltrim(std::string_view sv) noexcept {
     // Find the first non-whitespace character
-    usize beg = sv.find_first_not_of(WHITE_SPACE);
+    auto beg = sv.find_first_not_of(WHITE_SPACE);
 
     if (beg == std::string_view::npos)
         return {};
@@ -1902,7 +1902,7 @@ inline std::string remove_whitespace(std::string str) noexcept {
 
 [[nodiscard]] constexpr std::string_view rtrim(std::string_view sv) noexcept {
     // Find the last non-whitespace character
-    usize end = sv.find_last_not_of(WHITE_SPACE);
+    auto end = sv.find_last_not_of(WHITE_SPACE);
 
     if (end == std::string_view::npos)
         return {};
@@ -1911,12 +1911,12 @@ inline std::string remove_whitespace(std::string str) noexcept {
 }
 
 [[nodiscard]] constexpr std::string_view trim(std::string_view sv) noexcept {
-    usize beg = sv.find_first_not_of(WHITE_SPACE);
+    auto beg = sv.find_first_not_of(WHITE_SPACE);
 
     if (beg == std::string_view::npos)
         return {};
 
-    usize end = sv.find_last_not_of(WHITE_SPACE);
+    auto end = sv.find_last_not_of(WHITE_SPACE);
 
     return sv.substr(beg, end - beg + 1);
 }
@@ -1980,7 +1980,7 @@ split(std::string_view sv, std::string_view delimiter, bool trimPart = false) no
 
     while (true)
     {
-        usize end = sv.find(delimiter, offset);
+        auto end = sv.find(delimiter, offset);
 
         if (end == std::string_view::npos)
             break;
