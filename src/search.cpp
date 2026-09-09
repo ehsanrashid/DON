@@ -1126,7 +1126,7 @@ Value Worker::search(Position&    pos,
         assert(preMove != Move::Null);
 
         // Null move dynamic reduction
-        Depth R = 7 + depth / 3 + std::max(constexpr_round((ss->evalue - beta) / 256.0), 0);
+        Depth R = 7 + depth / 3 + std::max(constexpr_ceil((ss->evalue - beta) / 256.0), 0);
 
         do_null_move(pos, st, ss);
 
