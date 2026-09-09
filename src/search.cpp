@@ -2090,7 +2090,7 @@ void Worker::do_move(
 
     const bool capture = pos.capture_promo(m);
 
-    accStack.push(std::move(pos.do_move(m, st, mayCheck, this)));
+    accStack.push(pos.do_move(m, st, mayCheck, this));
     assert(moveKey == pos.key());
 
     ++nodes;
