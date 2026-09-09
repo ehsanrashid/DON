@@ -880,6 +880,9 @@ endif
 ### 3.5.2 popcount
 ifeq ($(popcnt),yes)
 CXXFLAGS += -DUSE_POPCNT
+ifeq ($(arch),wasm32)
+CXXFLAGS += -msse3
+else \
 ifeq ($(filter armv7 armv8 arm64 ppc64 riscv64,$(arch)),)
 CXXFLAGS += -msse3 -mpopcnt
 endif
