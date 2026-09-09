@@ -35,8 +35,6 @@
 #include <variant>
 
 #if defined(_WIN32)
-    #include "platform_win.h"
-
     // Standard portable pattern for spin-wait / CPU pause hint
     #if defined(X86)
         #include <emmintrin.h>  // x86/x64: SSE2 use _mm_pause()
@@ -52,8 +50,9 @@
     #if !defined(NAME_MAX)
         #define NAME_MAX 255
     #endif
-#elif defined(__ANDROID__)
-    // Android-specific configuration (currently none)
+
+    #include "platform_win.h"
+
 #elif (defined(__linux__) && !defined(__ANDROID__)) /* Linux (non-Android) */ \
   || defined(__APPLE__)                             /* macOS / iOS */ \
   || defined(__sun)                                 /* Solaris */ \

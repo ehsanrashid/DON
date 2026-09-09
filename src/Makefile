@@ -151,8 +151,8 @@ endif
 # bits = 64/32         --- -DIS_64BIT         --- 64-/32-bit operating system
 # prefetch = yes/no    --- -DUSE_PREFETCH     --- Use prefetch asm-instruction
 # popcnt = yes/no      --- -DUSE_POPCNT       --- Use popcnt asm-instruction
-# sse = yes/no         --- -msse              --- Use Intel Streaming SIMD Extensions
 # mmx = yes/no         --- -mmmx              --- Use Intel MMX instructions
+# sse = yes/no         --- -msse              --- Use Intel Streaming SIMD Extensions
 # sse2 = yes/no        --- -msse2             --- Use Intel Streaming SIMD Extensions 2
 # ssse3 = yes/no       --- -mssse3            --- Use Intel Supplemental Streaming SIMD Extensions 3
 # sse41 = yes/no       --- -msse4.1           --- Use Intel Streaming SIMD Extensions 4.1
@@ -199,9 +199,9 @@ ARCH_SUPPORTED := $(if $(filter \
     x86-64-universal x86-64-avx512icl x86-64-vnni512 x86-64-vnni256 x86-64-avx512 x86-64-avxvnni \
     x86-64-bmi2 x86-64-avx2 x86-64-sse41-bmi2-cmp x86-64-sse41-bmi2 x86-64-sse41-popcnt \
     x86-64-modern x86-64-sse41 x86-64-ssse3-popcnt x86-64-ssse3 x86-64 general-64 \
-    x86-32-sse41-popcnt x86-32-sse41 x86-32-ssse3 x86-32-sse2 x86-32 general-32 \
+    x86-32-sse41-popcnt x86-32-sse41 x86-32-ssse3 x86-32-sse2 x86-32 general-32 e2k \
     loongarch64-lasx loongarch64-lsx loongarch64 \
-    ppc-64-vsx ppc-64-altivec ppc-64 ppc-32 e2k \
+    ppc-64-vsx ppc-64-altivec ppc-64 ppc-32 \
     arm64-universal armv8-dotprod armv8 armv7-neon armv7 apple-silicon \
     riscv64-universal riscv64-rva23 riscv64 \
     wasm32 wasm32-relaxed-simd,$(ARCH)),yes,no)
@@ -242,6 +242,7 @@ arm_version = 0
 neon = no
 dotprod = no
 relaxedsimd = no
+embedding = yes
 tablebases = yes
 
 ### 2.2 Architecture specific
@@ -406,9 +407,20 @@ sse_fp = yes
 endif
 
 else \
+ifneq ($(findstring e2k,$(ARCH)),)
+arch = e2k
+mmx = yes
+sse = yes
+sse2 = yes
+ssse3 = yes
+sse41 = yes
+popcnt = yes
+
+else \
 ifneq ($(findstring loongarch64,$(ARCH)),)
 arch = loongarch64
 prefetch = yes
+popcnt = yes
 ifneq ($(findstring -lasx,$(ARCH)),)
 lsx = yes
 lasx = yes
@@ -435,16 +447,6 @@ arch = ppc
 bits = 32
 
 else \
-ifneq ($(findstring e2k,$(ARCH)),)
-arch = e2k
-mmx = yes
-sse = yes
-sse2 = yes
-ssse3 = yes
-sse41 = yes
-popcnt = yes
-
-else \
 ifneq ($(findstring armv8,$(ARCH)),)
 arch = armv8
 prefetch = yes
@@ -460,9 +462,9 @@ ifneq ($(findstring armv7,$(ARCH)),)
 arch = armv7
 bits = 32
 prefetch = yes
+popcnt = yes
 arm_version = 7
 ifneq ($(findstring -neon,$(ARCH)),)
-popcnt = yes
 neon = yes
 endif
 
@@ -486,9 +488,9 @@ dotprod = yes
 else \
 ifneq ($(findstring riscv64,$(ARCH)),)
 arch = riscv64
-ifneq ($(findstring -rva23,$(ARCH)),)
 prefetch = yes
 popcnt = yes
+ifneq ($(findstring -rva23,$(ARCH)),)
 rva23 = yes
 endif
 
@@ -497,7 +499,8 @@ endif
 else \
 ifneq ($(findstring wasm32,$(ARCH)),)
 arch = wasm32
-bits = 64
+prefetch = yes
+popcnt = yes
 sse = yes
 sse2 = yes
 ssse3 = yes
@@ -505,6 +508,7 @@ sse41 = yes
 ifneq ($(findstring -relaxed-simd,$(ARCH)),)
 relaxedsimd = yes
 endif
+embedding = no
 tablebases = no
 endif
 
@@ -565,7 +569,6 @@ endif
 # These targets determine bitness from the target architecture
 else \
 ifneq ($(filter loongarch64 riscv64 wasm32,$(arch)),)
-
 # Generic architectures use the configured bitness
 else
 CXXFLAGS += $(BITS_FLAG)
@@ -663,7 +666,6 @@ endif
 # These targets determine bitness from the target architecture
 else \
 ifneq ($(filter loongarch64 riscv64 wasm32,$(arch)),)
-
 # Generic architectures use the configured bitness
 else
 CXXFLAGS += $(BITS_FLAG)
@@ -877,65 +879,18 @@ endif
 ### 3.5.2 popcount
 ifeq ($(popcnt),yes)
 CXXFLAGS += -DUSE_POPCNT
-ifeq ($(filter armv7 armv8 arm64 ppc64 riscv64,$(arch)),)
+ifeq ($(arch),wasm32)
+CXXFLAGS += -msse3
+else \
+ifeq ($(filter loongarch64 ppc64 arm64 armv8 armv7 riscv64,$(arch)),)
 CXXFLAGS += -msse3 -mpopcnt
 endif
 endif
 
 ### 3.6 SIMD architectures
-ifeq ($(avx512icl),yes)
-CXXFLAGS += -DUSE_AVX512 -DUSE_VNNI -DUSE_AVX512ICL
+ifeq ($(mmx),yes)
 ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
-CXXFLAGS += -mavx512f -mavx512bw -mavx512dq -mavx512vl -mavx512vnni -mavx512cd -mavx512ifma -mavx512vbmi -mavx512vbmi2 -mavx512vpopcntdq -mavx512bitalg -mvpclmulqdq -mgfni -mvaes
-endif
-endif
-
-ifeq ($(vnni512),yes)
-CXXFLAGS += -DUSE_VNNI
-ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
-CXXFLAGS += -mavx512f -mavx512bw -mavx512dq -mavx512vl -mavx512vnni
-endif
-endif
-
-ifeq ($(vnni256),yes)
-CXXFLAGS += -DUSE_VNNI
-ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
-CXXFLAGS += -mavx512f -mavx512bw -mavx512dq -mavx512vl -mavx512vnni -mprefer-vector-width=256
-endif
-endif
-
-ifeq ($(avx512),yes)
-CXXFLAGS += -DUSE_AVX512
-ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
-CXXFLAGS += -mavx512f -mavx512bw -mavx512dq -mavx512vl
-endif
-endif
-
-ifeq ($(avxvnni),yes)
-CXXFLAGS += -DUSE_VNNI -DUSE_AVXVNNI
-ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
-CXXFLAGS += -mavxvnni
-endif
-endif
-
-ifeq ($(avx2),yes)
-CXXFLAGS += -DUSE_AVX2
-ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
-CXXFLAGS += -mavx2 -mbmi
-endif
-endif
-
-ifeq ($(sse41),yes)
-CXXFLAGS += -DUSE_SSE41
-ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
-CXXFLAGS += -msse4.1
-endif
-endif
-
-ifeq ($(ssse3),yes)
-CXXFLAGS += -DUSE_SSSE3
-ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
-CXXFLAGS += -mssse3
+CXXFLAGS += -mmmx
 endif
 endif
 
@@ -946,16 +901,59 @@ CXXFLAGS += -msse2
 endif
 endif
 
-ifeq ($(mmx),yes)
+ifeq ($(ssse3),yes)
+CXXFLAGS += -DUSE_SSSE3
 ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
-CXXFLAGS += -mmmx
+CXXFLAGS += -mssse3
 endif
 endif
 
-ifeq ($(vsx),yes)
-CXXFLAGS += -mvsx
-ifneq ($(filter gcc,$(COMP)),)
-CXXFLAGS += -DNO_WARN_X86_INTRINSICS -DUSE_SSE2
+ifeq ($(sse41),yes)
+CXXFLAGS += -DUSE_SSE41
+ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
+CXXFLAGS += -msse4.1
+endif
+endif
+
+ifeq ($(avx2),yes)
+CXXFLAGS += -DUSE_AVX2
+ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
+CXXFLAGS += -mavx2 -mbmi
+endif
+endif
+
+ifeq ($(avxvnni),yes)
+CXXFLAGS += -DUSE_VNNI -DUSE_AVXVNNI
+ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
+CXXFLAGS += -mavxvnni
+endif
+endif
+
+ifeq ($(avx512),yes)
+CXXFLAGS += -DUSE_AVX512
+ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
+CXXFLAGS += -mavx512f -mavx512bw -mavx512dq -mavx512vl
+endif
+endif
+
+ifeq ($(vnni256),yes)
+CXXFLAGS += -DUSE_VNNI
+ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
+CXXFLAGS += -mavx512f -mavx512bw -mavx512dq -mavx512vl -mavx512vnni -mprefer-vector-width=256
+endif
+endif
+
+ifeq ($(vnni512),yes)
+CXXFLAGS += -DUSE_VNNI
+ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
+CXXFLAGS += -mavx512f -mavx512bw -mavx512dq -mavx512vl -mavx512vnni
+endif
+endif
+
+ifeq ($(avx512icl),yes)
+CXXFLAGS += -DUSE_AVX512 -DUSE_VNNI -DUSE_AVX512ICL
+ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
+CXXFLAGS += -mavx512f -mavx512bw -mavx512dq -mavx512vl -mavx512vnni -mavx512cd -mavx512ifma -mavx512vbmi -mavx512vbmi2 -mavx512vpopcntdq -mavx512bitalg -mvpclmulqdq -mgfni -mvaes
 endif
 endif
 
@@ -966,10 +964,10 @@ CXXFLAGS += -mabi=altivec
 endif
 endif
 
-ifeq ($(lasx),yes)
-CXXFLAGS += -DUSE_LASX
-ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
-CXXFLAGS += -mlasx
+ifeq ($(vsx),yes)
+CXXFLAGS += -mvsx
+ifneq ($(filter gcc,$(COMP)),)
+CXXFLAGS += -DNO_WARN_X86_INTRINSICS -DUSE_SSE2
 endif
 endif
 
@@ -977,6 +975,13 @@ ifeq ($(lsx),yes)
 CXXFLAGS += -DUSE_LSX
 ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
 CXXFLAGS += -mlsx
+endif
+endif
+
+ifeq ($(lasx),yes)
+CXXFLAGS += -DUSE_LASX
+ifneq ($(filter gcc clang mingw icx ndk,$(COMP)),)
+CXXFLAGS += -mlasx
 endif
 endif
 
@@ -1002,7 +1007,7 @@ endif
 endif
 
 ifeq ($(arch),wasm32)
-CXXFLAGS += -DUSE_POPCNT -DNO_NNUE_EMBEDDING -DUSE_SLOPPY_ATOMICS -pthread -msimd128
+CXXFLAGS += -DUSE_SLOPPY_ATOMICS -pthread -msimd128
 LDFLAGS  += -sSTACK_SIZE=3MB -sINITIAL_MEMORY=64MB -sALLOW_MEMORY_GROWTH -pthread
 ifeq ($(relaxedsimd),yes)
 CXXFLAGS += -mrelaxed-simd
@@ -1018,6 +1023,11 @@ endif
 ifeq ($(cmp),yes)
 CXXFLAGS += -DUSE_CMP
 endif
+endif
+
+### NNUE embedding
+ifeq ($(embedding),no)
+CXXFLAGS += -DNO_NNUE_EMBEDDING
 endif
 
 ### Syzygy tablebases
@@ -1041,17 +1051,28 @@ endif
 ifneq ($(call FIND_EXE,$(GIT)),)
 GIT += -c core.filemode=false -c core.autocrlf=false
 
-override GIT_DATE      := \
+NEW_GIT_DATE      := \
 $(shell $(GIT) show -s --date=format:%Y%m%d --format=%cd HEAD 2>/dev/null)
-override GIT_SHA       := \
+NEW_GIT_SHA       := \
 $(shell $(GIT) rev-parse HEAD 2>/dev/null | cut -c 1-8 | tr '[:lower:]' '[:upper:]')
-override GIT_DIFFINDEX := \
+NEW_GIT_DIFFINDEX := \
 $(shell $(GIT) update-index --refresh >/dev/null 2>&1; \
     if ! $(GIT) diff-index --quiet HEAD -- 2>/dev/null; then \
         $(GIT) diff HEAD --no-ext-diff | $(GIT) hash-object --stdin | cut -c 1-6 | tr '[:lower:]' '[:upper:]'; \
     fi)
+
+ifneq ($(NEW_GIT_DATE),)
+override GIT_DATE := $(NEW_GIT_DATE)
 endif
+ifneq ($(NEW_GIT_SHA),)
+override GIT_SHA := $(NEW_GIT_SHA)
+endif
+ifneq ($(NEW_GIT_DIFFINDEX),)
+override GIT_DIFFINDEX := $(NEW_GIT_DIFFINDEX)
+endif
+
 export GIT_DATE GIT_SHA GIT_DIFFINDEX
+endif
 
 # Cache Git metadata in files only when the values have changed
 define CACHE_FILE_IF_CHANGED
@@ -1147,7 +1168,7 @@ endif
 ### 3.10 Use Position-Independent Executable on Android 5+, incompatible with Android 4 and earlier
 ifeq ($(OS),Android)
 CXXFLAGS += -fPIE
-LDFLAGS  += -fPIE -pie
+LDFLAGS  += -pie
 endif
 
 ### ==========================================================================
@@ -1200,6 +1221,7 @@ help:
 	echo "x86-32-sse2             > x86 32-bit with SSE2 support"; \
 	echo "x86-32                  > x86 32-bit with MMX support"; \
 	echo "general-32              > Unspecified 32-bit"; \
+	echo "e2k                     > Elbrus 2000"; \
 	echo "loongarch64-lasx        > LoongArch 64-bit with LASX (Advanced SIMD eXtension) support"; \
 	echo "loongarch64-lsx         > LoongArch 64-bit with LSX (SIMD eXtension) support"; \
 	echo "loongarch64             > LoongArch 64-bit"; \
@@ -1207,7 +1229,6 @@ help:
 	echo "ppc-64-altivec          > PPC 64-bit with AltiVec support"; \
 	echo "ppc-64                  > PPC 64-bit"; \
 	echo "ppc-32                  > PPC 32-bit"; \
-	echo "e2k                     > Elbrus 2000"; \
 	echo "arm64-universal         > ARMv8 64-bit with automatic runtime selection of the best architecture"; \
 	echo "armv8-dotprod           > ARMv8 64-bit with NEON, DOT-PRODUCT and POPCNT support"; \
 	echo "armv8                   > ARMv8 64-bit with NEON and POPCNT support"; \
@@ -1441,8 +1462,8 @@ config-sanity: net
 	echo "bits: '$(bits)'" && \
 	echo "prefetch: '$(prefetch)'" && \
 	echo "popcnt: '$(popcnt)'" && \
-	echo "sse: '$(sse)'" && \
 	echo "mmx: '$(mmx)'" && \
+	echo "sse: '$(sse)'" && \
 	echo "sse2: '$(sse2)'" && \
 	echo "ssse3: '$(ssse3)'" && \
 	echo "sse41: '$(sse41)'" && \
@@ -1463,6 +1484,7 @@ config-sanity: net
 	echo "neon: '$(neon)'" && \
 	echo "dotprod: '$(dotprod)'" && \
 	echo "relaxedsimd: '$(relaxedsimd)'" && \
+	echo "embedding: '$(embedding)'" && \
 	echo "tablebases: '$(tablebases)'" && \
 	echo && \
 	echo "Flags:" && \
@@ -1482,15 +1504,15 @@ config-sanity: net
 	(test "$(optimize)"   = "no" || test "$(optimize)"   = "yes") && \
 	(test "$(ARCH_SUPPORTED)" = "yes") && \
 	(test "$(arch)" = "any" || test "$(arch)" = "i386" || test "$(arch)" = "x86_64" || \
-	 test "$(arch)" = "loongarch64" || test "$(arch)" = "riscv64" || \
-	 test "$(arch)" = "ppc" || test "$(arch)" = "ppc64" || test "$(arch)" = "e2k" || \
+	 test "$(arch)" = "e2k" || test "$(arch)" = "loongarch64" || test "$(arch)" = "riscv64" || \
+	 test "$(arch)" = "ppc" || test "$(arch)" = "ppc64" || \
 	 test "$(arch)" = "armv7" || test "$(arch)" = "armv8" || test "$(arch)" = "arm64" || \
 	 test "$(arch)" = "wasm32") && \
 	(test "$(bits)"      = "32" || test "$(bits)"      = "64") && \
 	(test "$(prefetch)"  = "no" || test "$(prefetch)"  = "yes") && \
 	(test "$(popcnt)"    = "no" || test "$(popcnt)"    = "yes") && \
-	(test "$(sse)"       = "no" || test "$(sse)"       = "yes") && \
 	(test "$(mmx)"       = "no" || test "$(mmx)"       = "yes") && \
+	(test "$(sse)"       = "no" || test "$(sse)"       = "yes") && \
 	(test "$(sse2)"      = "no" || test "$(sse2)"      = "yes") && \
 	(test "$(ssse3)"     = "no" || test "$(ssse3)"     = "yes") && \
 	(test "$(sse41)"     = "no" || test "$(sse41)"     = "yes") && \
@@ -1509,6 +1531,7 @@ config-sanity: net
 	(test "$(rva23)"     = "no" || test "$(rva23)"     = "yes") && \
 	(test "$(neon)"      = "no" || test "$(neon)"      = "yes") && \
 	(test "$(dotprod)"   = "no" || test "$(dotprod)"   = "yes") && \
+	(test "$(embedding)" = "no" || test "$(embedding)" = "yes") && \
 	(test "$(tablebases)" = "no" || test "$(tablebases)" = "yes") && \
 	(test "$(COMP)" = "gcc" || test "$(COMP)" = "clang" || test "$(COMP)" = "mingw" || \
 	 test "$(COMP)" = "icx" || test "$(COMP)" = "ndk") || { \
