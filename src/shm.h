@@ -859,8 +859,11 @@ struct InitLock final {
         lockFd(std::move(fd)) {}
 
     void unlock() noexcept {
-        if (lockFd.is_valid())
-            ::flock(lockFd.get(), LOCK_UN);
+        if (!lockFd.is_valid())
+            return;
+
+        (void) ::flock(lockFd.get(), LOCK_UN);
+        lockFd.reset();
     }
 
     UniqueFd lockFd;
@@ -879,9 +882,13 @@ inline std::string make_sentinel_base(std::string_view name) noexcept {
     return buf;
 }
 
-[[maybe_unused]] inline void set_cloexec(int fd) noexcept {
+[[maybe_unused]] inline void set_cloexec(const int fd) noexcept {
     if (is_valid_fd(fd))
-        (void) ::fcntl(fd, F_SETFD, ::fcntl(fd, F_GETFD) | FD_CLOEXEC);
+    {
+        const int flags = ::fcntl(fd, F_GETFD);
+        if (flags != -1)
+            (void) ::fcntl(fd, F_SETFD, flags | FD_CLOEXEC);
+    }
 }
 
 inline UniqueFd create_unix_socket() noexcept {
