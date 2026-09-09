@@ -71,7 +71,7 @@ Option::Option(std::string_view v, StringViews&& vSvs, OnChange&& f) noexcept :
     type(Type::COMBO),
     defaultValue(v),
     currentValue(v),
-    varSvs(vSvs),
+    varSvs(std::move(vSvs)),
     onChange(std::move(f)) {}
 
 Option::operator int() const noexcept {
