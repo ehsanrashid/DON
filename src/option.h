@@ -20,6 +20,7 @@
 
 #include <functional>
 #include <iosfwd>
+#include <limits>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -89,7 +90,7 @@ class Option final {
     explicit Option(const char* v, OnChange&& f = nullptr) noexcept :
         Option(std::string_view(v), std::forward<OnChange>(f)) {}
     Option(int v, int minV, int maxV, OnChange&& f = nullptr) noexcept;
-    Option(std::string_view v, std::string_view var, OnChange&& f = nullptr) noexcept;
+    Option(std::string_view v, StringViews&& var, OnChange&& f = nullptr) noexcept;
 
     operator int() const noexcept;
     operator std::string_view() const noexcept;
@@ -111,10 +112,11 @@ class Option final {
     std::string defaultValue;
     std::string currentValue;
     int         minValue = 0, maxValue = 0;
-    StringViews comboValues;
+    StringViews varSvs;
     OnChange    onChange;
 
-    u16            idx;
+    u16 idx = std::numeric_limits<u16>::max();
+
     const Options* optionsPtr = nullptr;
 
     friend class Options;

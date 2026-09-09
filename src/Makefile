@@ -31,15 +31,6 @@ TARGET_KERNEL := Linux
 OS := Android
 endif
 
-ifeq ($(OS),Windows_NT)
-UNIVERSAL_OS_NAME := Windows
-else \
-ifeq ($(TARGET_KERNEL),Darwin)
-UNIVERSAL_OS_NAME := macOS
-else
-UNIVERSAL_OS_NAME := Linux
-endif
-
 ### Command prefix to run the built executable (e.g. wine, sde, qemu)
 ### Backward compatible alias: WINE_PATH (deprecated)
 ifneq ($(strip $(WINE_PATH)),)
@@ -73,20 +64,6 @@ RUN_PREFIX := $(call FIND_EXE,wine)
 endif
 endif
 
-# ---------------------------------------------------------
-# Detect clang-format:
-# Use environment override; otherwise prefer newest version
-# ---------------------------------------------------------
-ifndef CLANG_FORMAT
-CLANG_FORMAT := $(or \
-    $(call FIND_EXE,clang-format-24), \
-    $(call FIND_EXE,clang-format-23), \
-    $(call FIND_EXE,clang-format-22), \
-    $(call FIND_EXE,clang-format-21), \
-    $(call FIND_EXE,clang-format-20), \
-    $(call FIND_EXE,clang-format))
-endif
-
 ### Executable name
 NAME := DON
 ifeq ($(IS_WINDOWS),yes)
@@ -96,6 +73,15 @@ ifneq ($(findstring wasm,$(ARCH)),)
 EXE := $(NAME).js
 else
 EXE := $(NAME)
+endif
+
+ifeq ($(IS_WINDOWS),yes)
+OS_NAME := Windows
+else \
+ifeq ($(TARGET_KERNEL),Darwin)
+OS_NAME := macOS
+else
+OS_NAME := Linux
 endif
 
 ### Installation dir definitions
@@ -132,6 +118,20 @@ HEADERS := \
 OBJS := $(notdir $(SRCS:.cpp=.o))
 
 VPATH := nnue:nnue/features:book:tablebase
+
+# ---------------------------------------------------------
+# Detect clang-format:
+# Use environment override; otherwise prefer newest version
+# ---------------------------------------------------------
+ifndef CLANG_FORMAT
+CLANG_FORMAT := $(or \
+    $(call FIND_EXE,clang-format-24), \
+    $(call FIND_EXE,clang-format-23), \
+    $(call FIND_EXE,clang-format-22), \
+    $(call FIND_EXE,clang-format-21), \
+    $(call FIND_EXE,clang-format-20), \
+    $(call FIND_EXE,clang-format))
+endif
 
 ### ==========================================================================
 ### Section 2. High-level Configuration
@@ -1292,7 +1292,7 @@ macos-lipo:
 	echo "Step 4/4. Re-combining slices with the patched x86-64 slice ..."
 	lipo -create "$(EXE)-x86_64" "$(EXE)-arm64" -output "$(EXE)"
 	@rm -f "$(EXE)-x86_64" "$(EXE)-arm64"
-	@echo "$(UNIVERSAL_OS_NAME) universal binary built: '$(EXE)'"
+	@echo "$(OS_NAME) universal binary built: '$(EXE)'"
 
 # LTO temporary object handling
 ifeq ($(TARGET_KERNEL),Darwin)
@@ -1764,6 +1764,6 @@ endif
 
 $(UNIVERSAL_EXE): $(UNIVERSAL_ENTRY_OBJ) $(NNUE_EMBED_OBJ) $(ARCH_OBJS)
 	$(CXX) -o "$@" $(UNIVERSAL_ENTRY_OBJ) $(NNUE_EMBED_OBJ) $(ARCH_OBJS) $(strip $(UNIVERSAL_BUILD_FLAGS) $(EXTRA_LDFLAGS))
-	@echo "$(UNIVERSAL_OS_NAME) universal binary built: '$@'"
+	@echo "$(OS_NAME) universal binary built: '$@'"
 
 endif  # UNIVERSAL_BUILD

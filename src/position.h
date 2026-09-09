@@ -24,7 +24,6 @@
 #include <cstring>
 #include <initializer_list>
 #include <iostream>
-#include <numeric>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -775,16 +774,17 @@ inline Key Position::material_key() const noexcept {
 }
 
 inline bool Position::has_non_pawn(Color c) const noexcept {
-
     return std::any_of(NON_PAWN_PIECE_TYPES.begin(), NON_PAWN_PIECE_TYPES.end(),
                        [&](PieceType pt) -> bool { return pieces_bb(c, pt) != 0; });
 }
 
 inline Value Position::non_pawn_value(Color c) const noexcept {
+    Value nonPawnValue = VALUE_ZERO;
 
-    return std::accumulate(
-      NON_PAWN_PIECE_TYPES.begin(), NON_PAWN_PIECE_TYPES.end(), VALUE_ZERO,
-      [&](Value acc, PieceType pt) { return acc + piece_value(pt) * count(c, pt); });
+    for (const PieceType pt : NON_PAWN_PIECE_TYPES)
+        nonPawnValue += piece_value(pt) * count(c, pt);
+
+    return nonPawnValue;
 }
 
 inline Value Position::non_pawn_value() const noexcept {

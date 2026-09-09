@@ -25,7 +25,6 @@
 #include <limits>
 #include <memory>
 #include <mutex>
-#include <numeric>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -36,7 +35,7 @@
 #include <variant>
 #include <vector>
 
-#if defined(_WIN32)
+#if defined(_WIN64)
     #include <cstring>
     #include <type_traits>
 
@@ -48,6 +47,9 @@
         #define _GNU_SOURCE
     #endif
     #include <sched.h>
+    #include <numeric>
+
+    #define USE_UNIX_NUMA
 #endif
 
 #include "misc.h"
@@ -58,21 +60,20 @@ namespace DON {
 using CpuIndexVec = std::vector<CpuIndex>;
 using CpuIndexSet = std::unordered_set<CpuIndex>;
 
-inline usize hardware_concurrency() noexcept {
-    usize hardwareConcurrency = std::thread::hardware_concurrency();
+inline CpuIndex hardware_concurrency() noexcept {
+    CpuIndex concurrency = std::thread::hardware_concurrency();
 
     // Get all processors across all processor groups on windows, since
     // ::hardware_concurrency() only returns the number of processors in
     // the first group, because only these are available to std::thread.
 #if defined(_WIN64)
-    hardwareConcurrency =
-      std::max<usize>(GetActiveProcessorCount(ALL_PROCESSOR_GROUPS), hardwareConcurrency);
+    concurrency = std::max<CpuIndex>(GetActiveProcessorCount(ALL_PROCESSOR_GROUPS), concurrency);
 #endif
 
-    return hardwareConcurrency;
+    return concurrency;
 }
 
-inline const usize SYSTEM_THREAD_MAX = std::max<usize>(hardware_concurrency(), 1);
+inline const CpuIndex SYSTEM_THREAD_MAX = std::max<CpuIndex>(hardware_concurrency(), 1);
 
 #if defined(_WIN64)
 inline constexpr LPCSTR KERNEL_MODULE_NAME = TEXT("kernel32.dll");
@@ -449,7 +450,8 @@ CpuIndexSet read_cache_members(const T* processorInfo, Pred&& is_cpu_allowed) no
 
     return cpus;
 }
-#elif (defined(__linux__) && !defined(__ANDROID__))
+
+#elif defined(USE_UNIX_NUMA)
 inline CpuIndexSet get_process_affinity() noexcept {
 
     CpuIndexSet cpus;
@@ -624,7 +626,7 @@ class NumaConfig final {
                 [[maybe_unused]] const bool            respectProcessAffinity = true) noexcept {
         NumaConfig numaCfg = empty();
 
-#if defined(_WIN64) || (defined(__linux__) && !defined(__ANDROID__))
+#if defined(_WIN64) || defined(USE_UNIX_NUMA)
     #if defined(_WIN64)
         std::optional<CpuIndexSet> allowedCpus;
 
@@ -638,7 +640,8 @@ class NumaConfig final {
         auto is_cpu_allowed = [&allowedCpus](CpuIndex cpuId) noexcept {
             return !allowedCpus || allowedCpus->find(cpuId) != allowedCpus->end();
         };
-    #elif (defined(__linux__) && !defined(__ANDROID__))
+
+    #elif defined(USE_UNIX_NUMA)
         CpuIndexSet allowedCpus;
 
         if (respectProcessAffinity)
@@ -833,9 +836,9 @@ class NumaConfig final {
     // Format: "node0_cpus:node1_cpus:..." where cpus = "0-2,4,6-7"
     std::string to_string() const noexcept {
         // Estimate size
-        usize cpuCount = std::accumulate(
-          nodes.begin(), nodes.end(), usize{0},
-          [](usize sum, const CpuIndexSet& node) noexcept { return sum + node.size(); });
+        usize cpuCount = 0;
+        for (const auto& node : nodes)
+            cpuCount += node.size();
 
         std::string numaCfg;
         numaCfg.reserve(6 * cpuCount);  // ~6 chars per CPU
@@ -1068,7 +1071,8 @@ class NumaConfig final {
             // This is defensive, allowed because this code is not performance critical.
             SwitchToThread();
         }
-#elif (defined(__linux__) && !defined(__ANDROID__))
+
+#elif defined(USE_UNIX_NUMA)
         cpu_set_t* const cpuMask = CPU_ALLOC(maxCpuId + 1);
 
         if (cpuMask == nullptr)
@@ -1148,7 +1152,8 @@ class NumaConfig final {
                 }
             }
         }
-#elif (defined(__linux__) && !defined(__ANDROID__))
+
+#elif defined(USE_UNIX_NUMA)
         // On Linux things are straightforward, since there's no processor groups
         // and any thread can be scheduled on all processors.
         // Try to gather this information from the sysfs first
@@ -1255,7 +1260,8 @@ class NumaConfig final {
             processorInfo = reinterpret_cast<SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*>(
               reinterpret_cast<char*>(processorInfo) + processorInfo->Size);
         }
-#elif (defined(__linux__) && !defined(__ANDROID__))
+
+#elif defined(USE_UNIX_NUMA)
         CpuIndexSet seenCpus;
 
         for (const auto& [nextCpuId, _] : sysCfg.nodeByCpu)

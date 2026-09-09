@@ -65,17 +65,17 @@ struct alignas(32) DualMagic final {
         const __m256i rs   = _mm256_set1_epi64x(rBB);
         const __m256i rrs  = _mm256_set1_epi64x(rrBB);
 
-        __m256i o      = _mm256_and_si256(mask, _mm256_set1_epi64x(occupancyBB));
-        __m256i fwd    = _mm256_sub_epi64(o, rs);
-        __m256i rev    = bswap128(_mm256_sub_epi64(bswap128(o), rrs));
-        __m256i attack = _mm256_and_si256(_mm256_xor_si256(fwd, rev), mask);
+        const __m256i o      = _mm256_and_si256(mask, _mm256_set1_epi64x(occupancyBB));
+        const __m256i fwd    = _mm256_sub_epi64(o, rs);
+        const __m256i rev    = bswap128(_mm256_sub_epi64(bswap128(o), rrs));
+        const __m256i attack = _mm256_and_si256(_mm256_xor_si256(fwd, rev), mask);
 
         // Lane 0: rook attacks (file only); lane 1: bishop attacks
-        __m128i rookBishop =
+        const __m128i rookBishop =
           _mm_or_si128(_mm256_extracti128_si256(attack, 1), _mm256_castsi256_si128(attack));
 
-        Bitboard rowOccupancy = rankAttacksLookup[(occupancyBB >> (shift + 1)) & Move::SqMask];
-        Bitboard rankAttacks  = rowOccupancy << shift;
+        const auto rowOccupancy    = rankAttacksLookup[(occupancyBB >> (shift + 1)) & Move::SqMask];
+        const Bitboard rankAttacks = Bitboard{rowOccupancy} << shift;
 
         // [bishop, rook]
         return {_mm_extract_epi64(rookBishop, 1), _mm_cvtsi128_si64(rookBishop) + rankAttacks};

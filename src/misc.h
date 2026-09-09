@@ -2196,7 +2196,7 @@ struct Advapi final {
     );
     // clang-format on
 
-    static constexpr LPCSTR MODULE_NAME = TEXT("advapi32.dll");
+    static constexpr LPCSTR ModuleName = TEXT("advapi32.dll");
 
     ~Advapi() noexcept { free(); }
 
@@ -2205,14 +2205,14 @@ struct Advapi final {
     // try to load them at runtime.
     bool load() noexcept {
 
-        hModule = GetModuleHandle(MODULE_NAME);
+        hModule = GetModuleHandle(ModuleName);
 
         if (hModule == nullptr)
         {
-            hModule = LoadLibraryEx(MODULE_NAME, nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
-
+            hModule = LoadLibraryEx(ModuleName, nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
+            // Optional last resort
             if (hModule == nullptr)
-                hModule = LoadLibrary(MODULE_NAME);  // optional last resort
+                hModule = LoadLibrary(ModuleName);
 
             if (hModule == nullptr)
                 return false;
@@ -2319,7 +2319,6 @@ auto try_with_windows_lock_memory_privilege([[maybe_unused]] SuccessFunc&& succe
 }
 
 #else
-
 inline constexpr int FD_INVALID = -1;
 
 [[nodiscard]] constexpr bool is_valid_fd(const int fd) noexcept { return fd > FD_INVALID; }

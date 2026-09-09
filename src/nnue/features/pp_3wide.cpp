@@ -151,6 +151,9 @@ void PP3Wide::append_changed_indices(const Color                   perspective,
             _mm256_storeu_epi16(w, feats);
         }
     };
+    (void) pfBase;
+    (void) pfStride;
+
 #else
     const auto generate = [&](const Bitboard wUpdatedBB, const Bitboard bUpdatedBB,  //
                               const Bitboard wPawnsBB, const Bitboard bPawnsBB,      //
@@ -195,6 +198,7 @@ void PP3Wide::append_changed_indices_both(const Square                  wKingSq,
 #if defined(USE_AVX512ICL)
     append_changed_indices(WHITE, wKingSq, dPps, removed[WHITE], added[WHITE], pfBase, pfStride);
     append_changed_indices(BLACK, bKingSq, dPps, removed[BLACK], added[BLACK], pfBase, pfStride);
+
 #else
     const auto& before = dPps.before;
     const auto& after  = dPps.after;
@@ -205,7 +209,7 @@ void PP3Wide::append_changed_indices_both(const Square                  wKingSq,
     const auto generate = [&](const Bitboard wUpdatedBB, const Bitboard bUpdatedBB,  //
                               const Bitboard wPawnsBB, const Bitboard bPawnsBB,      //
                               IndexVector& wOut, IndexVector& bOut) noexcept {
-        auto push = [&](Color color, Square orgSq, Square dstSq, Color pairedColor) noexcept {
+        const auto push = [&](Color color, Square orgSq, Square dstSq, Color pairedColor) noexcept {
             const auto wIndex = make_index(WHITE, wKingSq, color, orgSq, dstSq, pairedColor);
             const auto bIndex = make_index(BLACK, bKingSq, color, orgSq, dstSq, pairedColor);
 
@@ -239,7 +243,6 @@ void PP3Wide::append_changed_indices_both(const Square                  wKingSq,
              before[WHITE], before[BLACK], removed[WHITE], removed[BLACK]);
     generate(after[WHITE] & ~before[WHITE], after[BLACK] & ~before[BLACK],  //
              after[WHITE], after[BLACK], added[WHITE], added[BLACK]);
-
 #endif
 }
 

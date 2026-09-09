@@ -21,7 +21,6 @@
 #include <cassert>
 #include <cstdlib>
 #include <iostream>
-#include <numeric>
 
 namespace DON {
 
@@ -68,12 +67,12 @@ Option::Option(int v, int minV, int maxV, OnChange&& f) noexcept :
     defaultValue = currentValue = std::to_string(v);
 }
 
-Option::Option(std::string_view v, std::string_view var, OnChange&& f) noexcept :
+Option::Option(std::string_view v, StringViews&& vSvs, OnChange&& f) noexcept :
     type(Type::COMBO),
-    onChange(std::move(f)) {
-    defaultValue = currentValue = v;
-    comboValues                 = split(var, "var", true);
-}
+    defaultValue(v),
+    currentValue(v),
+    varSvs(std::move(vSvs)),
+    onChange(std::move(f)) {}
 
 Option::operator int() const noexcept {
     assert(type == Type::CHECK || type == Type::SPIN);
@@ -105,7 +104,7 @@ void Option::operator=(std::string value) noexcept {
     else if (type == Type::COMBO)
     {
         value = lower_case(value);
-        if (std::find(comboValues.begin(), comboValues.end(), value) == comboValues.end())
+        if (std::find(varSvs.begin(), varSvs.end(), value) == varSvs.end())
             return;
     }
 
@@ -136,10 +135,15 @@ std::ostream& operator<<(std::ostream& os, const Option& option) noexcept {
     if (option.type == OT::SPIN)
         os << " min " << option.minValue << " max " << option.maxValue;
     else if (option.type == OT::COMBO)
-        os << std::accumulate(option.comboValues.begin(), option.comboValues.end(), std::string{},
-                              [](std::string acc, std::string_view s) noexcept -> std::string {
-                                  return acc.append(" var ").append(s);
-                              });
+    {
+        std::string varStr;
+        varStr.reserve(16 * option.varSvs.size());
+
+        for (const auto var : option.varSvs)
+            varStr.append(" var ").append(var);
+
+        os << varStr;
+    }
 
     return os;
 }
