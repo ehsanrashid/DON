@@ -41,9 +41,9 @@ jobs:
             sanitizer: ""
             extra_cxx_flags: ""
             instrumented_option: none
-          - name: Run with glibcxx assertions
+          - name: Run with glibcxx assertions and trapv
             sanitizer: ""
-            extra_cxx_flags: -D_GLIBCXX_ASSERTIONS
+            extra_cxx_flags: -D_GLIBCXX_ASSERTIONS -ftrapv
             instrumented_option: none
     defaults:
       run:
