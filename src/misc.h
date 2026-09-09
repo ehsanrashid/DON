@@ -1103,6 +1103,17 @@ class RelaxedAtomic final {
             value = v;
     }
 
+    T exchange(T v) noexcept {
+        if constexpr (UseAtomic)
+            return value.exchange(v, std::memory_order_relaxed);
+        else
+        {
+            T oldV = value;
+            value  = v;
+            return oldV;
+        }
+    }
+
     bool compare_exchange_weak(T& expected, T desired) noexcept {
         if constexpr (UseAtomic)
             return value.compare_exchange_weak(expected, desired, std::memory_order_relaxed,
@@ -2082,7 +2093,7 @@ inline std::string error_to_string(DWORD errorId) noexcept {
 
 inline constexpr HANDLE HANDLE_INVALID = nullptr;
 
-[[nodiscard]] constexpr bool is_valid_handle(HANDLE handle) noexcept {
+[[nodiscard]] constexpr bool is_valid_handle(const HANDLE handle) noexcept {
     return handle != HANDLE_INVALID && handle != INVALID_HANDLE_VALUE;
 }
 
@@ -2311,7 +2322,7 @@ auto try_with_windows_lock_memory_privilege([[maybe_unused]] SuccessFunc&& succe
 
 inline constexpr int FD_INVALID = -1;
 
-[[nodiscard]] constexpr bool is_valid_fd(int fd) noexcept { return fd > FD_INVALID; }
+[[nodiscard]] constexpr bool is_valid_fd(const int fd) noexcept { return fd > FD_INVALID; }
 
 inline constexpr void* MMAP_PTR_INVALID  = nullptr;
 inline constexpr usize MMAP_SIZE_INVALID = 0;
@@ -2406,7 +2417,6 @@ struct UniqueFd final {
 
     UniqueFd(UniqueFd&& uniqueFd) noexcept :
         fd{uniqueFd.release()} {}
-
     UniqueFd& operator=(UniqueFd&& uniqueFd) noexcept {
         if (this == &uniqueFd)
             return *this;

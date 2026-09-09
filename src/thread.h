@@ -335,6 +335,17 @@ class Threads final {
         return sum;
     }
 
+    template<typename T>
+    u64 sum_and_reset(RelaxedAtomic<T> Worker::* member) noexcept {
+        std::shared_lock readLock(sharedMutex);
+
+        u64 sum = 0;
+        for (auto&& th : threads)
+            sum += (th->worker.get()->*member).exchange(0);
+
+        return sum;
+    }
+
    private:
     // State transition diagram:
     // Active -> Research
