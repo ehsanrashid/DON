@@ -1006,7 +1006,8 @@ Value Worker::search(Position&    pos,
     // Step 6. Tablebase probe
     if constexpr (!RootNode)
     {
-        if (!exclude && tbConfig.cardinality != 0 && !pos.has_castling_rights())
+        if (!exclude && tbConfig.cardinality != 0 && pos.rule50_count() == 0
+            && !pos.has_castling_rights())
         {
             const auto pieceCount = pos.count();
 

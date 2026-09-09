@@ -102,8 +102,7 @@ Move* splat_promotion_moves(Bitboard       dstBB,
     while (dstBB != 0)
     {
         const Square dstSq = AC == WHITE ? pop_lsq(dstBB) : pop_msq(dstBB);
-
-        [[maybe_unused]] const Square orgSq = dstSq - D;
+        const Square orgSq = dstSq - D;
 
         if constexpr (All || Capture)
         {
