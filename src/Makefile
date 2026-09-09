@@ -498,7 +498,8 @@ endif
 else \
 ifneq ($(findstring wasm32,$(ARCH)),)
 arch = wasm32
-bits = 64
+prefetch = yes
+popcnt = yes
 sse = yes
 sse2 = yes
 ssse3 = yes
@@ -1004,7 +1005,7 @@ endif
 endif
 
 ifeq ($(arch),wasm32)
-CXXFLAGS += -DUSE_POPCNT -DUSE_SLOPPY_ATOMICS -pthread -msimd128
+CXXFLAGS += -DUSE_SLOPPY_ATOMICS -pthread -msimd128
 LDFLAGS  += -sSTACK_SIZE=3MB -sINITIAL_MEMORY=64MB -sALLOW_MEMORY_GROWTH -pthread
 ifeq ($(relaxedsimd),yes)
 CXXFLAGS += -mrelaxed-simd
@@ -1048,15 +1049,26 @@ endif
 ifneq ($(call FIND_EXE,$(GIT)),)
 GIT += -c core.filemode=false -c core.autocrlf=false
 
-override GIT_DATE      := \
+NEW_GIT_DATE      := \
 $(shell $(GIT) show -s --date=format:%Y%m%d --format=%cd HEAD 2>/dev/null)
-override GIT_SHA       := \
+NEW_GIT_SHA       := \
 $(shell $(GIT) rev-parse HEAD 2>/dev/null | cut -c 1-8 | tr '[:lower:]' '[:upper:]')
-override GIT_DIFFINDEX := \
+NEW_GIT_DIFFINDEX := \
 $(shell $(GIT) update-index --refresh >/dev/null 2>&1; \
     if ! $(GIT) diff-index --quiet HEAD -- 2>/dev/null; then \
         $(GIT) diff HEAD --no-ext-diff | $(GIT) hash-object --stdin | cut -c 1-6 | tr '[:lower:]' '[:upper:]'; \
     fi)
+
+ifneq ($(NEW_GIT_DATE),)
+override GIT_DATE := $(NEW_GIT_DATE)
+endif
+ifneq ($(NEW_GIT_SHA),)
+override GIT_SHA := $(NEW_GIT_SHA)
+endif
+ifneq ($(NEW_GIT_DIFFINDEX),)
+override GIT_DIFFINDEX := $(NEW_GIT_DIFFINDEX)
+endif
+
 export GIT_DATE GIT_SHA GIT_DIFFINDEX
 endif
 
