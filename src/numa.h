@@ -25,7 +25,6 @@
 #include <limits>
 #include <memory>
 #include <mutex>
-#include <numeric>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -36,18 +35,19 @@
 #include <variant>
 #include <vector>
 
-#if defined(_WIN32)
+#if defined(_WIN64)
     #include <cstring>
     #include <type_traits>
 
     #include "platform_win.h"
 #elif defined(__ANDROID__)
     // Android-specific configuration (currently none)
-#elif (defined(__linux__) && !defined(__ANDROID__)) /* Linux (non-Android) */
+#elif defined(__linux__) && !defined(__ANDROID__) /* Linux (non-Android) */
     #if !defined(_GNU_SOURCE)
         #define _GNU_SOURCE
     #endif
     #include <sched.h>
+    #include <numeric>
 #endif
 
 #include "misc.h"
@@ -58,21 +58,20 @@ namespace DON {
 using CpuIndexVec = std::vector<CpuIndex>;
 using CpuIndexSet = std::unordered_set<CpuIndex>;
 
-inline usize hardware_concurrency() noexcept {
-    usize hardwareConcurrency = std::thread::hardware_concurrency();
+inline CpuIndex hardware_concurrency() noexcept {
+    CpuIndex concurrency = std::thread::hardware_concurrency();
 
     // Get all processors across all processor groups on windows, since
     // ::hardware_concurrency() only returns the number of processors in
     // the first group, because only these are available to std::thread.
 #if defined(_WIN64)
-    hardwareConcurrency =
-      std::max<usize>(GetActiveProcessorCount(ALL_PROCESSOR_GROUPS), hardwareConcurrency);
+    concurrency = std::max<CpuIndex>(GetActiveProcessorCount(ALL_PROCESSOR_GROUPS), concurrency);
 #endif
 
-    return hardwareConcurrency;
+    return concurrency;
 }
 
-inline const usize SYSTEM_THREAD_MAX = std::max<usize>(hardware_concurrency(), 1);
+inline const CpuIndex SYSTEM_THREAD_MAX = std::max<CpuIndex>(hardware_concurrency(), 1);
 
 #if defined(_WIN64)
 inline constexpr LPCSTR KERNEL_MODULE_NAME = TEXT("kernel32.dll");
@@ -449,7 +448,8 @@ CpuIndexSet read_cache_members(const T* processorInfo, Pred&& is_cpu_allowed) no
 
     return cpus;
 }
-#elif (defined(__linux__) && !defined(__ANDROID__))
+
+#elif defined(__linux__) && !defined(__ANDROID__)
 inline CpuIndexSet get_process_affinity() noexcept {
 
     CpuIndexSet cpus;
@@ -638,7 +638,8 @@ class NumaConfig final {
         auto is_cpu_allowed = [&allowedCpus](CpuIndex cpuId) noexcept {
             return !allowedCpus || allowedCpus->find(cpuId) != allowedCpus->end();
         };
-    #elif (defined(__linux__) && !defined(__ANDROID__))
+
+    #elif defined(__linux__) && !defined(__ANDROID__)
         CpuIndexSet allowedCpus;
 
         if (respectProcessAffinity)
@@ -1068,7 +1069,8 @@ class NumaConfig final {
             // This is defensive, allowed because this code is not performance critical.
             SwitchToThread();
         }
-#elif (defined(__linux__) && !defined(__ANDROID__))
+
+#elif defined(__linux__) && !defined(__ANDROID__)
         cpu_set_t* const cpuMask = CPU_ALLOC(maxCpuId + 1);
 
         if (cpuMask == nullptr)
@@ -1148,7 +1150,8 @@ class NumaConfig final {
                 }
             }
         }
-#elif (defined(__linux__) && !defined(__ANDROID__))
+
+#elif defined(__linux__) && !defined(__ANDROID__)
         // On Linux things are straightforward, since there's no processor groups
         // and any thread can be scheduled on all processors.
         // Try to gather this information from the sysfs first
@@ -1255,7 +1258,8 @@ class NumaConfig final {
             processorInfo = reinterpret_cast<SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*>(
               reinterpret_cast<char*>(processorInfo) + processorInfo->Size);
         }
-#elif (defined(__linux__) && !defined(__ANDROID__))
+
+#elif defined(__linux__) && !defined(__ANDROID__)
         CpuIndexSet seenCpus;
 
         for (const auto& [nextCpuId, _] : sysCfg.nodeByCpu)

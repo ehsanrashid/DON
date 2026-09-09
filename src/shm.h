@@ -90,7 +90,7 @@
     #include <unordered_map>
 
     // Linux (non-Android)
-    #if (defined(__linux__) && !defined(__ANDROID__))
+    #if defined(__linux__) && !defined(__ANDROID__)
     // macOS / iOS
     #elif defined(__APPLE__)
         #include <mach-o/dyld.h>
