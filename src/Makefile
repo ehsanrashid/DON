@@ -31,15 +31,6 @@ TARGET_KERNEL := Linux
 OS := Android
 endif
 
-ifeq ($(OS),Windows_NT)
-UNIVERSAL_OS_NAME := Windows
-else \
-ifeq ($(TARGET_KERNEL),Darwin)
-UNIVERSAL_OS_NAME := macOS
-else
-UNIVERSAL_OS_NAME := Linux
-endif
-
 ### Command prefix to run the built executable (e.g. wine, sde, qemu)
 ### Backward compatible alias: WINE_PATH (deprecated)
 ifneq ($(strip $(WINE_PATH)),)
@@ -96,6 +87,15 @@ ifneq ($(findstring wasm,$(ARCH)),)
 EXE := $(NAME).js
 else
 EXE := $(NAME)
+endif
+
+ifeq ($(IS_WINDOWS),yes)
+UNIVERSAL_OS_NAME := Windows
+else \
+ifeq ($(TARGET_KERNEL),Darwin)
+UNIVERSAL_OS_NAME := macOS
+else
+UNIVERSAL_OS_NAME := Linux
 endif
 
 ### Installation dir definitions
