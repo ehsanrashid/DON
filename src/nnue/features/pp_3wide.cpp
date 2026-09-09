@@ -105,13 +105,13 @@ void PP3Wide::append_active_indices(const Color     perspective,
     }
 }
 
-void PP3Wide::append_changed_indices(const Color                   perspective,
-                                     const Square                  kingSq,
-                                     const DirtyType&              dPps,
-                                     IndexVector&                  removed,
-                                     IndexVector&                  added,
-                                     const ThreatWeightType* const pfBase,
-                                     const usize                   pfStride) noexcept {
+void PP3Wide::append_changed_indices(const Color                                    perspective,
+                                     const Square                                   kingSq,
+                                     const DirtyType&                               dPps,
+                                     IndexVector&                                   removed,
+                                     IndexVector&                                   added,
+                                     [[maybe_unused]] const ThreatWeightType* const pfBase,
+                                     [[maybe_unused]] const usize pfStride) noexcept {
     const auto& before = dPps.before;
     const auto& after  = dPps.after;
 
@@ -185,13 +185,13 @@ void PP3Wide::append_changed_indices(const Color                   perspective,
              after[BLACK], added);
 }
 
-void PP3Wide::append_changed_indices_both(const Square                  wKingSq,
-                                          const Square                  bKingSq,
-                                          const DirtyType&              dPps,
-                                          Array<IndexVector, COLOR_NB>& removed,
-                                          Array<IndexVector, COLOR_NB>& added,
-                                          const ThreatWeightType* const pfBase,
-                                          const usize                   pfStride) noexcept {
+void PP3Wide::append_changed_indices_both(const Square                                   wKingSq,
+                                          const Square                                   bKingSq,
+                                          const DirtyType&                               dPps,
+                                          Array<IndexVector, COLOR_NB>&                  removed,
+                                          Array<IndexVector, COLOR_NB>&                  added,
+                                          [[maybe_unused]] const ThreatWeightType* const pfBase,
+                                          [[maybe_unused]] const usize pfStride) noexcept {
 #if defined(USE_AVX512ICL)
     append_changed_indices(WHITE, wKingSq, dPps, removed[WHITE], added[WHITE], pfBase, pfStride);
     append_changed_indices(BLACK, bKingSq, dPps, removed[BLACK], added[BLACK], pfBase, pfStride);
@@ -205,7 +205,7 @@ void PP3Wide::append_changed_indices_both(const Square                  wKingSq,
     const auto generate = [&](const Bitboard wUpdatedBB, const Bitboard bUpdatedBB,  //
                               const Bitboard wPawnsBB, const Bitboard bPawnsBB,      //
                               IndexVector& wOut, IndexVector& bOut) noexcept {
-        auto push = [&](Color color, Square orgSq, Square dstSq, Color pairedColor) noexcept {
+        const auto push = [&](Color color, Square orgSq, Square dstSq, Color pairedColor) noexcept {
             const auto wIndex = make_index(WHITE, wKingSq, color, orgSq, dstSq, pairedColor);
             const auto bIndex = make_index(BLACK, bKingSq, color, orgSq, dstSq, pairedColor);
 

@@ -299,13 +299,13 @@ void FullThreats::append_active_indices(const Color     perspective,
 }
 
 // Append lists of indices for recently changed features
-void FullThreats::append_changed_indices(const Color                   perspective,
-                                         const Square                  kingSq,
-                                         const DirtyType&              dTs,
-                                         IndexVector&                  removed,
-                                         IndexVector&                  added,
-                                         const ThreatWeightType* const pfBase,
-                                         const usize                   pfStride) noexcept {
+void FullThreats::append_changed_indices(const Color                                    perspective,
+                                         const Square                                   kingSq,
+                                         const DirtyType&                               dTs,
+                                         IndexVector&                                   removed,
+                                         IndexVector&                                   added,
+                                         [[maybe_unused]] const ThreatWeightType* const pfBase,
+                                         [[maybe_unused]] const usize pfStride) noexcept {
     for (const auto& dT : dTs)
     {
         const auto orgSq      = dT.sq();
@@ -331,8 +331,8 @@ void FullThreats::append_changed_indices_both(const Square                  wKin
                                               const DirtyType&              dTs,
                                               Array<IndexVector, COLOR_NB>& removed,
                                               Array<IndexVector, COLOR_NB>& added,
-                                              const ThreatWeightType* const pfBase,
-                                              const usize                   pfStride) noexcept {
+                                              [[maybe_unused]] const ThreatWeightType* const pfBase,
+                                              [[maybe_unused]] const usize pfStride) noexcept {
     for (const auto& dT : dTs)
     {
         const auto orgSq      = dT.sq();
