@@ -462,9 +462,9 @@ ifneq ($(findstring armv7,$(ARCH)),)
 arch = armv7
 bits = 32
 prefetch = yes
+popcnt = yes
 arm_version = 7
 ifneq ($(findstring -neon,$(ARCH)),)
-popcnt = yes
 neon = yes
 endif
 
@@ -488,9 +488,9 @@ dotprod = yes
 else \
 ifneq ($(findstring riscv64,$(ARCH)),)
 arch = riscv64
-ifneq ($(findstring -rva23,$(ARCH)),)
 prefetch = yes
 popcnt = yes
+ifneq ($(findstring -rva23,$(ARCH)),)
 rva23 = yes
 endif
 
@@ -569,7 +569,6 @@ endif
 # These targets determine bitness from the target architecture
 else \
 ifneq ($(filter loongarch64 riscv64 wasm32,$(arch)),)
-
 # Generic architectures use the configured bitness
 else
 CXXFLAGS += $(BITS_FLAG)
@@ -667,7 +666,6 @@ endif
 # These targets determine bitness from the target architecture
 else \
 ifneq ($(filter loongarch64 riscv64 wasm32,$(arch)),)
-
 # Generic architectures use the configured bitness
 else
 CXXFLAGS += $(BITS_FLAG)
@@ -884,7 +882,7 @@ CXXFLAGS += -DUSE_POPCNT
 ifeq ($(arch),wasm32)
 CXXFLAGS += -msse3
 else \
-ifeq ($(filter armv7 armv8 arm64 loongarch64 ppc64 riscv64,$(arch)),)
+ifeq ($(filter loongarch64 ppc64 arm64 armv8 armv7 riscv64,$(arch)),)
 CXXFLAGS += -msse3 -mpopcnt
 endif
 endif

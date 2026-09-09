@@ -467,13 +467,13 @@ void update_hybrid(const Color               perspective,
             auto* column = reinterpret_cast<const SIMD::vec_i8_t*>(&threatAndPpWeights[thrRemoved[i] * Dimensions + tileOff]);
 
     #if defined(USE_NEON)
-            for (IndexType k = 0; k + 1 < Tiling::RegCount; k += 2)
+            for (IndexType k = 0; k + IndexType{1} < Tiling::RegCount; k += 2)
             {
                 acc[k + 0] = vsubw_s8(acc[k], vget_low_s8(column[k / 2]));
                 acc[k + 1] = vsubw_high_s8(acc[k + 1], column[k / 2]);
             }
     #elif defined(USE_LSX) && !defined(USE_LASX)
-            for (IndexType k = 0; k + 1 < Tiling::RegCount; k += 2)
+            for (IndexType k = 0; k + IndexType{1} < Tiling::RegCount; k += 2)
             {
                 const __m128i weight = __lsx_vld(reinterpret_cast<const void*>(&column[k]), 0);
                 acc[k + 0]           = vec_sub_16(acc[k + 0], __lsx_vsllwil_h_b(weight, 0));
@@ -490,13 +490,13 @@ void update_hybrid(const Color               perspective,
             auto* column = reinterpret_cast<const SIMD::vec_i8_t*>(&threatAndPpWeights[thrAdded[i] * Dimensions + tileOff]);
 
     #if defined(USE_NEON)
-            for (IndexType k = 0; k + 1 < Tiling::RegCount; k += 2)
+            for (IndexType k = 0; k + IndexType{1} < Tiling::RegCount; k += 2)
             {
                 acc[k + 0] = vaddw_s8(acc[k], vget_low_s8(column[k / 2]));
                 acc[k + 1] = vaddw_high_s8(acc[k + 1], column[k / 2]);
             }
     #elif defined(USE_LSX) && !defined(USE_LASX)
-            for (IndexType k = 0; k + 1 < Tiling::RegCount; k += 2)
+            for (IndexType k = 0; k + IndexType{1} < Tiling::RegCount; k += 2)
             {
                 const __m128i weight = __lsx_vld(reinterpret_cast<const void*>(&column[k]), 0);
                 acc[k + 0]           = vec_add_16(acc[k + 0], __lsx_vsllwil_h_b(weight, 0));
@@ -732,13 +732,13 @@ void update_refresh_cache(const Color               perspective,
             const auto* column = reinterpret_cast<const SIMD::vec_i8_t*>(&threatAndPpWeights[active[i] * Dimensions + tileOff]);
 
     #if defined(USE_NEON)
-            for (IndexType k = 0; k + 1 < Tiling::RegCount; k += 2)
+            for (IndexType k = 0; k + IndexType{1} < Tiling::RegCount; k += 2)
             {
                 acc[k + 0] = vaddw_s8(     acc[k + 0], vget_low_s8(column[k / 2]));
                 acc[k + 1] = vaddw_high_s8(acc[k + 1],             column[k / 2]);
             }
     #elif defined(USE_LSX) && !defined(USE_LASX)
-            for (IndexType k = 0; k + 1 < Tiling::RegCount; k += 2)
+            for (IndexType k = 0; k + IndexType{1} < Tiling::RegCount; k += 2)
             {
                 const __m128i weight = __lsx_vld(reinterpret_cast<const void*>(&column[k]), 0);
                 acc[k + 0]           = vec_add_16(acc[k + 0], __lsx_vsllwil_h_b(weight, 0));
@@ -943,13 +943,13 @@ void apply_combined(Color                                perspective,
             const auto* column = reinterpret_cast<const SIMD::vec_i8_t*>(&threatAndPpWeights[thrRemoved[i] * Dimensions + tileOff]);
 
     #if defined(USE_NEON)
-            for (IndexType k = 0; k + 1 < Tiling::RegCount; k += 2)
+            for (IndexType k = 0; k + IndexType{1} < Tiling::RegCount; k += 2)
             {
                 acc[k + 0] = vsubw_s8(     acc[k + 0], vget_low_s8(column[k / 2]));
                 acc[k + 1] = vsubw_high_s8(acc[k + 1],             column[k / 2]);
             }
     #elif defined(USE_LSX) && !defined(USE_LASX)
-            for (IndexType k = 0; k + 1 < Tiling::RegCount; k += 2)
+            for (IndexType k = 0; k + IndexType{1} < Tiling::RegCount; k += 2)
             {
                 const __m128i weight = __lsx_vld(reinterpret_cast<const void*>(&column[k]), 0);
                 acc[k + 0]           = vec_sub_16(acc[k + 0], __lsx_vsllwil_h_b(weight, 0));
@@ -966,13 +966,13 @@ void apply_combined(Color                                perspective,
             const auto* column = reinterpret_cast<const SIMD::vec_i8_t*>(&threatAndPpWeights[thrAdded[i] * Dimensions + tileOff]);
 
     #if defined(USE_NEON)
-            for (IndexType k = 0; k + 1 < Tiling::RegCount; k += 2)
+            for (IndexType k = 0; k + IndexType{1} < Tiling::RegCount; k += 2)
             {
                 acc[k + 0] = vaddw_s8     (acc[k + 0], vget_low_s8(column[k / 2]));
                 acc[k + 1] = vaddw_high_s8(acc[k + 1],             column[k / 2]);
             }
     #elif defined(USE_LSX) && !defined(USE_LASX)
-            for (IndexType k = 0; k + 1 < Tiling::RegCount; k += 2)
+            for (IndexType k = 0; k + IndexType{1} < Tiling::RegCount; k += 2)
             {
                 const __m128i weight = __lsx_vld(reinterpret_cast<const void*>(&column[k]), 0);
                 acc[k + 0]           = vec_add_16(acc[k + 0], __lsx_vsllwil_h_b(weight, 0));

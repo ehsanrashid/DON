@@ -60,11 +60,11 @@
 
 namespace DON::NNUE::SIMD {
 
-inline constexpr usize WIDTH_MAX = 32;
-inline constexpr usize WIDTH_MIN = 16;
+inline constexpr IndexType WIDTH_MAX = 32;
+inline constexpr IndexType WIDTH_MIN = 16;
 
 // SIMD width (in bytes)
-inline constexpr usize WIDTH =
+inline constexpr IndexType WIDTH =
 #if defined(USE_AVX2) || defined(USE_LASX)
   WIDTH_MAX
 #elif defined(USE_SSE2) || defined(USE_LSX) || defined(USE_NEON)
@@ -526,26 +526,26 @@ class Tiling final {
         #pragma GCC diagnostic ignored "-Wignored-attributes"
     #endif
 
-    template<typename RegisterType, typename LaneType, usize LaneCount, usize RegisterCount>
-    static constexpr usize best_register_count() noexcept {
-        constexpr usize RegisterSize = sizeof(RegisterType);
-        constexpr usize LaneSize     = sizeof(LaneType);
+    template<typename RegisterType, typename LaneType, IndexType LaneCount, IndexType RegisterCount>
+    static constexpr IndexType best_register_count() noexcept {
+        constexpr IndexType RegisterSize = sizeof(RegisterType);
+        constexpr IndexType LaneSize     = sizeof(LaneType);
 
         static_assert(RegisterSize >= LaneSize);
-        static_assert(RegisterCount <= MaxRegisterCount);
         static_assert(RegisterCount > 0);
         static_assert(MaxRegisterCount > 0);
+        static_assert(RegisterCount <= MaxRegisterCount);
         static_assert(RegisterSize % LaneSize == 0);
         static_assert((LaneCount * LaneSize) % RegisterSize == 0);
 
-        usize ideal = (LaneCount * LaneSize) / RegisterSize;
-        if (ideal <= RegisterCount)
-            return ideal;
+        IndexType idealCount = (LaneCount * LaneSize) / RegisterSize;
+        if (idealCount <= RegisterCount)
+            return idealCount;
 
         // Look for the largest divisor of the ideal register count that is smaller than RegisterCount
-        for (usize divisor = RegisterCount; divisor > 1; --divisor)
-            if (ideal % divisor == 0)
-                return divisor;
+        for (IndexType candCount = RegisterCount; candCount > 1; --candCount)
+            if (idealCount % candCount == 0)
+                return candCount;
 
         return 1;
     }
@@ -555,9 +555,9 @@ class Tiling final {
     #endif
 
    public:
-    static constexpr usize RegCount =
+    static constexpr IndexType RegCount =
       best_register_count<vec_t, WeightType, TransformedFeatureWidth, MaxRegisterCount>();
-    static constexpr usize PSQTRegCount =
+    static constexpr IndexType PSQTRegCount =
       best_register_count<psqt_vec_t, PSQTWeightType, PSQTBuckets, MaxRegisterCount>();
 
     static constexpr IndexType TileHeight     = RegCount * sizeof(vec_t) / 2;
