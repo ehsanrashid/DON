@@ -205,6 +205,13 @@ void AccumulatorStack::update_incremental_forward_both(const Position&          
 
 namespace {
 
+//constexpr IndexType Dimensions = FeatureTransformer::OutputDimensions;
+
+#if defined(VECTOR)
+
+
+#endif
+
 Bitboard changed_bb(const PieceMap& oldPieceMap, const PieceMap& newPieceMap) noexcept {
 #if defined(USE_SSE2)
     #if defined(USE_AVX2)

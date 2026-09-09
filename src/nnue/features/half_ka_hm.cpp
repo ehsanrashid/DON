@@ -28,13 +28,14 @@
 #include "../../bitboard.h"
 #include "../../misc.h"
 #include "../../types.h"
+#include "../ntypes.h"
 
 namespace DON::NNUE::Features {
 
 namespace {
 
 // Index of a feature for king position and piece on square
-ALWAYS_INLINE constexpr u16
+ALWAYS_INLINE constexpr IndexType
 make_index(const Color perspective, const Square kingSq, const Square s, const Piece pc) noexcept {
     const u8 relOrientation = relative_sq(perspective, HalfKAHm::orientation(kingSq));
     return (static_cast<u8>(s) ^ relOrientation)             //

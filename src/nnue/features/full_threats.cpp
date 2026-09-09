@@ -142,7 +142,7 @@ alignas(CACHE_LINE_SIZE) constexpr auto LUT_DATAS = []() constexpr noexcept {
                                          * PIECE_THREATS[+attackerPc].threatCount;
 
                     lutDatas[+attackerPc][+attackedPc] =
-                      (static_cast<u32>(semiExcluded) << SEMI_EXCLUDED_OFFSET) | featureIndex;
+                      (u32(semiExcluded) << SEMI_EXCLUDED_OFFSET) | featureIndex;
                 }
         }
 
@@ -181,19 +181,17 @@ alignas(CACHE_LINE_SIZE) const auto LUT_INDICES = []() noexcept {
 constexpr u8 lut_index(Piece pc, Square s1, Square s2) noexcept {
     assert(is_ok(pc) && is_ok(s1) && is_ok(s2));
 
-    if (type_of(pc) == PAWN)
-        return LUT_INDICES[color_of(pc)][s1][s2];
-
-    return LUT_INDICES[type_of(pc)][s1][s2];
+    return type_of(pc) == PAWN ? LUT_INDICES[color_of(pc)][s1][s2]
+                               : LUT_INDICES[type_of(pc)][s1][s2];
 }
 
 // Index of a feature for a given king position and another piece on square
-ALWAYS_INLINE constexpr u16 make_index(const Color  perspective,
-                                       const Square kingSq,
-                                       const Square orgSq,
-                                       const Square dstSq,
-                                       const Piece  attackerPc,
-                                       const Piece  attackedPc) noexcept {
+ALWAYS_INLINE constexpr IndexType make_index(const Color  perspective,
+                                             const Square kingSq,
+                                             const Square orgSq,
+                                             const Square dstSq,
+                                             const Piece  attackerPc,
+                                             const Piece  attackedPc) noexcept {
     // Compute perspective-relative squares
     const u8 relOrientation = relative_sq(perspective, FullThreats::orientation(kingSq));
 

@@ -46,9 +46,9 @@ struct NNZ;
 
 struct NetworkArchitecture final {
    public:
-    static constexpr u16 TransformedFeatureDimensions = L1;
-    static constexpr u16 FC_0_Outputs                 = L2;
-    static constexpr u16 FC_1_Outputs                 = L3;
+    static constexpr IndexType TransformedFeatureDimensions = L1;
+    static constexpr IndexType FC_0_Outputs                 = L2;
+    static constexpr IndexType FC_1_Outputs                 = L3;
 
     // Hash value embedded in the evaluation file
     static constexpr u32 hash() noexcept {

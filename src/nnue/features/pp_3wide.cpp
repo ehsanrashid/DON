@@ -32,18 +32,18 @@ namespace DON::NNUE::Features {
 
 namespace {
 
-ALWAYS_INLINE constexpr u16 make_pawn_id(const Color c, const Square s) noexcept {
+ALWAYS_INLINE constexpr IndexType make_pawn_id(const Color c, const Square s) noexcept {
     assert(SQ_A2 <= s && s <= SQ_H7);
 
     return 48 * int(c) + s - SQ_A2;
 }
 
-ALWAYS_INLINE constexpr u16 make_index(const Color  perspective,
-                                       const Square kingSq,
-                                       const Color  color,
-                                       const Square orgSq,
-                                       const Square dstSq,
-                                       const Color  pairedColor) noexcept {
+ALWAYS_INLINE constexpr IndexType make_index(const Color  perspective,
+                                             const Square kingSq,
+                                             const Color  color,
+                                             const Square orgSq,
+                                             const Square dstSq,
+                                             const Color  pairedColor) noexcept {
     const u8 relOrientation = relative_sq(perspective, FullThreats::orientation(kingSq));
 
     const u8 org = static_cast<u8>(orgSq) ^ relOrientation;
@@ -55,10 +55,10 @@ ALWAYS_INLINE constexpr u16 make_index(const Color  perspective,
     const Color relColor       = Color(color ^ perspective);
     const Color relPairedColor = Color(pairedColor ^ perspective);
 
-    const u16 id1 = make_pawn_id(relColor, Square{org});
-    const u16 id2 = make_pawn_id(relPairedColor, Square{dst});
-    const u16 idH = std::max(id1, id2);
-    const u16 idL = std::min(id1, id2);
+    const auto id1 = make_pawn_id(relColor, Square{org});
+    const auto id2 = make_pawn_id(relPairedColor, Square{dst});
+    const auto idH = std::max(id1, id2);
+    const auto idL = std::min(id1, id2);
 
     return PP3Wide::IndexBase + idH * (idH - 1) / 2 + idL;
 }
