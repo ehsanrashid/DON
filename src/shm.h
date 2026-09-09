@@ -456,6 +456,9 @@ class BackendSharedMemory final {
     Status      status = Status::NotInitialized;
 };
 #elif defined(USE_UNIX_SHM)
+
+constexpr mode_t FILE_MODE = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH;
+
 enum class CloseType : u8 {
     Normal,
     AtExit,
@@ -836,7 +839,7 @@ struct InitLock final {
     ~InitLock() noexcept { unlock(); }
 
     static InitLock acquire_lock(std::string_view path) noexcept {
-        UniqueFd fd(::open(path.data(), O_CREAT | O_RDWR | O_CLOEXEC, 0666));
+        UniqueFd fd(::open(path.data(), O_CREAT | O_RDWR | O_CLOEXEC, FILE_MODE));
 
         if (!fd.is_valid())
             return {};
@@ -1004,10 +1007,10 @@ inline UniqueFd try_receive_memfd(const std::string& sockPath) noexcept {
 
 // Server thread:
 //  - Forwards the file descriptor fd
-//  - Exits when shutdownReceiver is hung up on
+//  - Exits when shutdownFd is hung up on
 //  - Listens on serverFd
 inline std::thread
-make_server_thread(UniqueFd fd, UniqueFd shutdownReceiver, UniqueFd serverFd) noexcept {
+make_server_thread(UniqueFd fd, UniqueFd shutdownFd, UniqueFd serverFd) noexcept {
     enum FD : u8 {
         FD_SERVER,
         FD_SHUTDOWN,
@@ -1015,14 +1018,14 @@ make_server_thread(UniqueFd fd, UniqueFd shutdownReceiver, UniqueFd serverFd) no
 
     constexpr usize FD_NB = 2;
 
-    return std::thread([fd               = std::move(fd),                //
-                        shutdownReceiver = std::move(shutdownReceiver),  //
-                        serverFd         = std::move(serverFd)]() noexcept {
+    return std::thread([fd         = std::move(fd),          //
+                        shutdownFd = std::move(shutdownFd),  //
+                        serverFd   = std::move(serverFd)]() noexcept {
         struct pollfd fds[FD_NB];
         fds[FD_SERVER].fd     = serverFd.get();
         fds[FD_SERVER].events = POLLIN;
 
-        fds[FD_SHUTDOWN].fd     = shutdownReceiver.get();
+        fds[FD_SHUTDOWN].fd     = shutdownFd.get();
         fds[FD_SHUTDOWN].events = POLLIN;
 
         while (true)
@@ -1037,7 +1040,7 @@ make_server_thread(UniqueFd fd, UniqueFd shutdownReceiver, UniqueFd serverFd) no
             }
 
             // Shutdown requested by main thread
-            if (fds[FD_SHUTDOWN].revents != 0)
+            if ((fds[FD_SHUTDOWN].revents & (POLLIN | POLLERR | POLLHUP | POLLNVAL)) != 0)
                 break;
 
             if ((fds[FD_SERVER].revents & POLLIN) != 0)
@@ -1050,8 +1053,9 @@ make_server_thread(UniqueFd fd, UniqueFd shutdownReceiver, UniqueFd serverFd) no
                   (::accept(serverFd.get(), nullptr, nullptr));
                 set_cloexec(clientFd.get());
     #endif
+                // ::accept() failed
                 if (!clientFd.is_valid())
-                    continue;  // including EINTR
+                    continue;
 
                 msghdr msg{};
                 char   buf[1] = {};
@@ -1243,7 +1247,7 @@ class SharedMemory final: public BaseSharedMemory {
         set_cloexec(shutdownPipe[0]);
         set_cloexec(shutdownPipe[1]);
     #endif
-        UniqueFd shutdownReceiver(shutdownPipe[0]);
+        UniqueFd receiverShutdownFd(shutdownPipe[0]);
         shutdownFd = UniqueFd{shutdownPipe[1]};
 
         auto serverFd = create_unix_socket();
@@ -1261,7 +1265,7 @@ class SharedMemory final: public BaseSharedMemory {
 
         // Don't release the init lock until we've actually made a socket that other DONs can use
         serverThread =
-          make_server_thread(std::move(memFd), std::move(shutdownReceiver), std::move(serverFd));
+          make_server_thread(std::move(memFd), std::move(receiverShutdownFd), std::move(serverFd));
 
         return true;
     }
