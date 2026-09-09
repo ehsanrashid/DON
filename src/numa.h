@@ -25,7 +25,6 @@
 #include <limits>
 #include <memory>
 #include <mutex>
-#include <numeric>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -833,9 +832,9 @@ class NumaConfig final {
     // Format: "node0_cpus:node1_cpus:..." where cpus = "0-2,4,6-7"
     std::string to_string() const noexcept {
         // Estimate size
-        usize cpuCount = std::accumulate(
-          nodes.begin(), nodes.end(), usize{0},
-          [](usize sum, const CpuIndexSet& node) noexcept { return sum + node.size(); });
+        usize cpuCount = 0;
+        for (const auto& node : nodes)
+            cpuCount += node.size();
 
         std::string numaCfg;
         numaCfg.reserve(6 * cpuCount);  // ~6 chars per CPU
