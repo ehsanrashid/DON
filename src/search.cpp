@@ -1791,7 +1791,7 @@ Value Worker::search(Position&    pos,
         bestValue = std::min(maxValue, bestValue);
     }
 
-    // If no good move is found and the previous position was pvHit, then the previous
+    // If no good move is found and the previous position was pvTT, then the previous
     // opponent move is probably good and the new position is added to the search tree.
     ss->pvTT = ss->pvTT || (bestValue <= alpha && (ss - 1)->pvTT);
 
