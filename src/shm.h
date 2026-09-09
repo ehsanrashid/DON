@@ -455,8 +455,8 @@ class BackendSharedMemory final {
     MMapGuard   mappedGuard{mappedPtr};
     Status      status = Status::NotInitialized;
 };
-#elif defined(USE_UNIX_SHM)
 
+#elif defined(USE_UNIX_SHM)
 constexpr mode_t FILE_MODE = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH;
 
 enum class CloseType : u8 {
@@ -1391,6 +1391,7 @@ class BackendSharedMemory final {
    private:
     std::optional<SharedMemory<T>> shm;
 };
+
 #else
 // For systems that don't have shared memory, or support is troublesome.
 // The way fallback is done is that need a dummy backend.
@@ -1420,6 +1421,7 @@ class BackendSharedMemory final {
         return "Shared memory: [Dummy] (non-functional).";
     }
 };
+
 #endif
 
 template<typename T>

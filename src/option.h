@@ -20,6 +20,7 @@
 
 #include <functional>
 #include <iosfwd>
+#include <limits>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -114,7 +115,8 @@ class Option final {
     StringViews comboValues;
     OnChange    onChange;
 
-    u16            idx;
+    u16 idx = std::numeric_limits<u16>::max();
+
     const Options* optionsPtr = nullptr;
 
     friend class Options;
