@@ -34,20 +34,20 @@ namespace DON::NNUE::Layers {
 // The activation clips each input value to the range [0, 127].
 // It introduces non-linearity while keeping the output within the
 // range supported by subsequent quantized operations.
-template<IndexType InDims, u8 WeightScaleBits = WEIGHT_SCALE_BITS>
+template<Index InDims, u8 WeightScaleBits = WEIGHT_SCALE_BITS>
 class ClippedReLU final {
    public:
     // Input/output type
-    using InputType  = i32;
-    using OutputType = u8;
+    using Input  = i32;
+    using Output = u8;
 
     // Number of input/output dimensions
-    static constexpr IndexType InputDimensions  = InDims;
-    static constexpr IndexType OutputDimensions = InputDimensions;
-    static constexpr IndexType PaddedOutputDimensions =
-      ceil_to_multiple<IndexType>(OutputDimensions, SIMD::WIDTH_MAX);
+    static constexpr Index InputDimensions  = InDims;
+    static constexpr Index OutputDimensions = InputDimensions;
+    static constexpr Index PaddedOutputDimensions =
+      ceil_to_multiple<Index>(OutputDimensions, SIMD::WIDTH_MAX);
 
-    using OutputBuffer = Array<OutputType, PaddedOutputDimensions>;
+    using OutputBuffer = Array<Output, PaddedOutputDimensions>;
 
     // Hash value embedded in the evaluation file
     static constexpr u32 hash(u32 preHash) noexcept {
@@ -69,11 +69,11 @@ class ClippedReLU final {
     bool write_parameters(std::ostream&) const noexcept { return true; }
 
     // Forward propagation
-    void propagate(const InputType* RESTRICT input, OutputType* RESTRICT output) const noexcept {
+    void propagate(const Input* RESTRICT input, Output* RESTRICT output) const noexcept {
         // clang-format off
 #if defined(USE_SSE2)
-        constexpr IndexType SimdWidth  = SIMD::WIDTH_MIN;
-        constexpr IndexType ChunkCount = InputDimensions / SimdWidth;
+        constexpr Index SimdWidth  = SIMD::WIDTH_MIN;
+        constexpr Index ChunkCount = InputDimensions / SimdWidth;
 
     #if defined(USE_SSE41)
     #else
@@ -83,9 +83,9 @@ class ClippedReLU final {
         const auto* in  = reinterpret_cast<const __m128i*>(input);
         auto*       out = reinterpret_cast<__m128i*>(output);
 
-        for (IndexType i = 0; i < ChunkCount; ++i)
+        for (Index i = 0; i < ChunkCount; ++i)
         {
-            const IndexType j = i * 4;
+            const Index j = i * 4;
 
     #if defined(USE_SSE41)
             const __m128i packed0 = _mm_packus_epi32(_mm_load_si128(&in[j + 0]), _mm_load_si128(&in[j + 1]));
@@ -105,19 +105,19 @@ class ClippedReLU final {
     #endif
         }
 
-        constexpr IndexType Start = SimdWidth * ChunkCount;
+        constexpr Index Start = SimdWidth * ChunkCount;
 
 #elif defined(USE_LSX)
     #if defined(USE_LASX)
-        constexpr IndexType SimdWidth  = SIMD::WIDTH;
-        constexpr IndexType ChunkCount = InputDimensions / SimdWidth;
+        constexpr Index SimdWidth  = SIMD::WIDTH;
+        constexpr Index ChunkCount = InputDimensions / SimdWidth;
 
         const auto* in  = reinterpret_cast<const __m256i*>(input);
         auto*       out = reinterpret_cast<__m256i*>(output);
 
-        for (IndexType i = 0; i < ChunkCount; ++i)
+        for (Index i = 0; i < ChunkCount; ++i)
         {
-            const IndexType j = i * 4;
+            const Index j = i * 4;
 
             const __m256i packed0 = vec_packus_32(in[j + 0], in[j + 1]);
             const __m256i packed1 = vec_packus_32(in[j + 2], in[j + 3]);
@@ -125,50 +125,50 @@ class ClippedReLU final {
             __lasx_xvst(packed, out + i, 0);
         }
 
-        constexpr IndexType Start = SimdWidth * ChunkCount;
+        constexpr Index Start = SimdWidth * ChunkCount;
 
     #else
-        constexpr IndexType SimdWidth  = SIMD::WIDTH;
-        constexpr IndexType ChunkCount = InputDimensions / SimdWidth;
+        constexpr Index SimdWidth  = SIMD::WIDTH;
+        constexpr Index ChunkCount = InputDimensions / SimdWidth;
 
         const auto* in  = reinterpret_cast<const __m128i*>(input);
         auto*       out = reinterpret_cast<__m128i*>(output);
 
-        for (IndexType i = 0; i < ChunkCount; ++i)
+        for (Index i = 0; i < ChunkCount; ++i)
         {
-            const IndexType j = i * 4;
+            const Index j = i * 4;
 
             const __m128i packed0 = vec_packus_32(in[j + 0], in[j + 1]);
             const __m128i packed1 = vec_packus_32(in[j + 2], in[j + 3]);
             out[i]                = __lsx_vssrlni_b_h(packed1, packed0, WeightScaleBits);
         }
 
-        constexpr IndexType Start = SimdWidth * ChunkCount;
+        constexpr Index Start = SimdWidth * ChunkCount;
 
     #endif
 
 #elif defined(USE_NEON)
-        constexpr IndexType SimdWidth  = SIMD::WIDTH / 2;
-        constexpr IndexType ChunkCount = InputDimensions / SimdWidth;
+        constexpr Index SimdWidth  = SIMD::WIDTH / 2;
+        constexpr Index ChunkCount = InputDimensions / SimdWidth;
 
         const SIMD::vec_i8x8_t zero = {0};
 
         const auto* in  = reinterpret_cast<const SIMD::vec_i32x4_t*>(input);
         auto*       out = reinterpret_cast<SIMD::vec_i8x8_t*>(output);
 
-        for (IndexType i = 0; i < ChunkCount; ++i)
+        for (Index i = 0; i < ChunkCount; ++i)
         {
-            const IndexType j = i * 2;
+            const Index j = i * 2;
 
             const int16x8_t shifted = vcombine_s16(vqshrn_n_s32(in[j + 0], WeightScaleBits), vqshrn_n_s32(in[j + 1], WeightScaleBits));
 
             out[i]                  = vmax_s8(vqmovn_s16(shifted), zero);
         }
 
-        constexpr IndexType Start = SimdWidth * ChunkCount;
+        constexpr Index Start = SimdWidth * ChunkCount;
 
 #elif defined(USE_RVV)
-        for (IndexType i = 0; i < InputDimensions;)
+        for (Index i = 0; i < InputDimensions;)
         {
             const usize vl = __riscv_vsetvl_e32m4(InputDimensions - i);
             vint32m4_t  in = __riscv_vle32_v_i32m4(&input[i], vl);
@@ -181,16 +181,16 @@ class ClippedReLU final {
             i += vl;
         }
 
-        constexpr IndexType Start = InputDimensions;
+        constexpr Index Start = InputDimensions;
 
 #else
-        constexpr IndexType Start = 0;
+        constexpr Index Start = 0;
 
 #endif
         // clang-format on
 
-        for (IndexType i = Start; i < InputDimensions; ++i)
-            output[i] = static_cast<OutputType>(std::clamp(input[i] >> WeightScaleBits, 0, 127));
+        for (Index i = Start; i < InputDimensions; ++i)
+            output[i] = static_cast<Output>(std::clamp(input[i] >> WeightScaleBits, 0, 127));
     }
 };
 

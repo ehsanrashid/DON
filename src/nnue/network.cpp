@@ -235,7 +235,7 @@ NetworkOutput Network::evaluate(const Position&   pos,
                                 AccumulatorStack& accStack) const noexcept {
     constexpr usize Alignment = CACHE_LINE_SIZE;
 
-    alignas(Alignment) Array<TransformedFeatureType, FeatureTransformer::BufferSize>
+    alignas(Alignment) Array<TransformedFeature, FeatureTransformer::BufferSize>
       transformedFeatures;
 
     ASSERT_ALIGNED(transformedFeatures.data(), Alignment);
@@ -255,7 +255,7 @@ NetworkTrace Network::trace(const Position&   pos,
                             AccumulatorStack& accStack) const noexcept {
     constexpr usize Alignment = CACHE_LINE_SIZE;
 
-    alignas(Alignment) Array<TransformedFeatureType, FeatureTransformer::BufferSize>
+    alignas(Alignment) Array<TransformedFeature, FeatureTransformer::BufferSize>
       transformedFeatures;
 
     ASSERT_ALIGNED(transformedFeatures.data(), Alignment);
@@ -264,7 +264,7 @@ NetworkTrace Network::trace(const Position&   pos,
 
     NetworkTrace netTrace{};
     netTrace.correctBucket = pos.bucket();
-    for (IndexType bucket = 0; bucket < LAYER_STACKS; ++bucket)
+    for (Index bucket = 0; bucket < LAYER_STACKS; ++bucket)
     {
         const auto psqt       = featureTransformer.transform(pos, accCache, accStack,  //
                                                              bucket, nnz, transformedFeatures);

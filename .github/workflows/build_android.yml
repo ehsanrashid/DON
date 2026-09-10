@@ -57,15 +57,15 @@ jobs:
       - name: Check compiler version
         run: |
           if [ "$COMP" = 'ndk' ]; then
-            export PATH="${{ env.ANDROID_NDK_BIN }}:$PATH"
+            export PATH="$ANDROID_NDK_BIN:$PATH"
           fi
           "$COMPCXX" -v
 
-      - name: Check Make help
-        run: make help
-
       - name: Check Git version
         run: git --version
+
+      - name: Check Make help
+        run: make help
 
       - name: Extract the bench number from the commit history
         run: |
@@ -93,8 +93,8 @@ jobs:
         run: |
           EXTRA_LDFLAGS=""
           if [ "$COMP" = 'ndk' ]; then
-            export PATH="${{ env.ANDROID_NDK_BIN }}:$PATH"
-            EXTRA_LDFLAGS="-static"
+            export PATH="$ANDROID_NDK_BIN:$PATH"
+            EXTRA_LDFLAGS="-static -Wno-unused-command-line-argument"
           fi
           make clean
           make -j4 profile-build ARCH="$BINARY" COMP="$COMP" EXTRA_LDFLAGS="$EXTRA_LDFLAGS" RUN_PREFIX="$EMU"

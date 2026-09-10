@@ -60,11 +60,11 @@
 
 namespace DON::NNUE::SIMD {
 
-inline constexpr IndexType WIDTH_MAX = 32;
-inline constexpr IndexType WIDTH_MIN = 16;
+inline constexpr Index WIDTH_MAX = 32;
+inline constexpr Index WIDTH_MIN = 16;
 
 // SIMD width (in bytes)
-inline constexpr IndexType WIDTH =
+inline constexpr Index WIDTH =
 #if defined(USE_AVX2) || defined(USE_LASX)
   WIDTH_MAX
 #elif defined(USE_SSE2) || defined(USE_LSX) || defined(USE_NEON)
@@ -515,7 +515,7 @@ neon8_m128_add_dpbusd_epi32(int32x4_t& acc, const int8x16_t a, const int8x16_t b
 #endif  // USE_NEON
 
 // Compute optimal SIMD register count for feature transformer accumulation
-template<IndexType TransformedFeatureWidth, IndexType HalfDimensions, IndexType PSQTBuckets>
+template<Index TransformedFeatureWidth, Index HalfDimensions, Index PSQTBuckets>
 class Tiling final {
    private:
 #if defined(VECTOR)
@@ -526,10 +526,10 @@ class Tiling final {
         #pragma GCC diagnostic ignored "-Wignored-attributes"
     #endif
 
-    template<typename RegisterType, typename LaneType, IndexType LaneCount, IndexType RegisterCount>
-    static constexpr IndexType best_register_count() noexcept {
-        constexpr IndexType RegisterSize = sizeof(RegisterType);
-        constexpr IndexType LaneSize     = sizeof(LaneType);
+    template<typename RegisterType, typename LaneType, Index LaneCount, Index RegisterCount>
+    static constexpr Index best_register_count() noexcept {
+        constexpr Index RegisterSize = sizeof(RegisterType);
+        constexpr Index LaneSize     = sizeof(LaneType);
 
         static_assert(RegisterSize >= LaneSize);
         static_assert(RegisterCount > 0);
@@ -538,12 +538,12 @@ class Tiling final {
         static_assert(RegisterSize % LaneSize == 0);
         static_assert((LaneCount * LaneSize) % RegisterSize == 0);
 
-        IndexType idealCount = (LaneCount * LaneSize) / RegisterSize;
+        Index idealCount = (LaneCount * LaneSize) / RegisterSize;
         if (idealCount <= RegisterCount)
             return idealCount;
 
         // Look for the largest divisor of the ideal register count that is smaller than RegisterCount
-        for (IndexType candCount = RegisterCount; candCount > 1; --candCount)
+        for (Index candCount = RegisterCount; candCount > 1; --candCount)
             if (idealCount % candCount == 0)
                 return candCount;
 
@@ -555,13 +555,13 @@ class Tiling final {
     #endif
 
    public:
-    static constexpr IndexType RegCount =
-      best_register_count<vec_t, WeightType, TransformedFeatureWidth, MaxRegisterCount>();
-    static constexpr IndexType PSQTRegCount =
-      best_register_count<psqt_vec_t, PSQTWeightType, PSQTBuckets, MaxRegisterCount>();
+    static constexpr Index RegCount =
+      best_register_count<vec_t, Weight, TransformedFeatureWidth, MaxRegisterCount>();
+    static constexpr Index PSQTRegCount =
+      best_register_count<psqt_vec_t, PSQTWeight, PSQTBuckets, MaxRegisterCount>();
 
-    static constexpr IndexType TileHeight     = RegCount * sizeof(vec_t) / 2;
-    static constexpr IndexType PSQTTileHeight = PSQTRegCount * sizeof(psqt_vec_t) / 4;
+    static constexpr Index TileHeight     = RegCount * sizeof(vec_t) / 2;
+    static constexpr Index PSQTTileHeight = PSQTRegCount * sizeof(psqt_vec_t) / 4;
 
     static_assert(HalfDimensions % TileHeight == 0, "TileHeight must divide HalfDimensions");
     static_assert(PSQTBuckets % PSQTTileHeight == 0, "PSQTTileHeight must divide PSQTBuckets");

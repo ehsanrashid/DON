@@ -278,18 +278,18 @@ constexpr Bitboard pawn_push_attacks_bb(const Bitboard pawns, const Color c) noe
 }
 
 alignas(CACHE_LINE_SIZE) inline constexpr auto PAWN_PAIR_BBS = []() constexpr noexcept {
-    Array<Bitboard, SQUARE_NB> pawnPairBB{};
+    Array<Bitboard, SQUARE_NB> pawnPairBBs{};
 
     for (Square s = SQ_A1; s <= SQ_H8; ++s)
     {
-        Bitboard fileBB  = file_bb(s);
-        Bitboard filesBB = fileBB                             //
-                         | shift_bb<Direction::EAST>(fileBB)  //
-                         | shift_bb<Direction::WEST>(fileBB);
-        pawnPairBB[s]    = filesBB & ~PROMOTION_RANKS_BB & ~square_bb(s);
+        const Bitboard fileBB  = file_bb(s);
+        const Bitboard filesBB = fileBB                             //
+                               | shift_bb<Direction::EAST>(fileBB)  //
+                               | shift_bb<Direction::WEST>(fileBB);
+        pawnPairBBs[s]         = filesBB & ~PROMOTION_RANKS_BB & ~square_bb(s);
     }
 
-    return pawnPairBB;
+    return pawnPairBBs;
 }();
 
 // Returns the squares that can host a pawn forming a "pawn pair" with a pawn on s.
@@ -413,20 +413,20 @@ constexpr Bitboard pseudo_attacks_bb_(const Square s) noexcept {
 }
 
 alignas(CACHE_LINE_SIZE) inline constexpr auto PSEUDO_ATTACKS_BBS = []() constexpr noexcept {
-    Array<Bitboard, SQUARE_NB, PIECE_TYPE_CNT + 1> pseudoAttacksBB{};
+    Array<Bitboard, SQUARE_NB, PIECE_TYPE_CNT + 1> pseudoAttacksBBs{};
 
     for (Square s = SQ_A1; s <= SQ_H8; ++s)
     {
-        pseudoAttacksBB[s][WHITE]  = pawn_attacks_bb<WHITE>(square_bb(s));
-        pseudoAttacksBB[s][BLACK]  = pawn_attacks_bb<BLACK>(square_bb(s));
-        pseudoAttacksBB[s][KNIGHT] = pseudo_attacks_bb_<KNIGHT>(s);
-        pseudoAttacksBB[s][BISHOP] = pseudo_attacks_bb_<BISHOP>(s);
-        pseudoAttacksBB[s][ROOK]   = pseudo_attacks_bb_<ROOK>(s);
-        pseudoAttacksBB[s][QUEEN]  = pseudoAttacksBB[s][BISHOP] | pseudoAttacksBB[s][ROOK];
-        pseudoAttacksBB[s][KING]   = pseudo_attacks_bb_<KING>(s);
+        pseudoAttacksBBs[s][WHITE]  = pawn_attacks_bb<WHITE>(square_bb(s));
+        pseudoAttacksBBs[s][BLACK]  = pawn_attacks_bb<BLACK>(square_bb(s));
+        pseudoAttacksBBs[s][KNIGHT] = pseudo_attacks_bb_<KNIGHT>(s);
+        pseudoAttacksBBs[s][BISHOP] = pseudo_attacks_bb_<BISHOP>(s);
+        pseudoAttacksBBs[s][ROOK]   = pseudo_attacks_bb_<ROOK>(s);
+        pseudoAttacksBBs[s][QUEEN]  = pseudoAttacksBBs[s][BISHOP] | pseudoAttacksBBs[s][ROOK];
+        pseudoAttacksBBs[s][KING]   = pseudo_attacks_bb_<KING>(s);
     }
 
-    return pseudoAttacksBB;
+    return pseudoAttacksBBs;
 }();
 
 template<u8 Idx>

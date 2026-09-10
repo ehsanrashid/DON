@@ -33,15 +33,15 @@ namespace DON::NNUE::Layers {
 #if !(defined(USE_SSSE3) || defined(USE_LSX) || defined(USE_NEON_DOTPROD) || defined(USE_RVV))
 // Generic fallback implementation for architectures without a specialized SIMD path.
 // Requires the input to be padded to at least 16 values.
-template<IndexType InputDimensions, IndexType PaddedInputDimensions, IndexType OutputDimensions>
+template<Index InputDimensions, Index PaddedInputDimensions, Index OutputDimensions>
 void fallback_affine_transform(const Array<i32, OutputDimensions>&                        biases,
                                const Array<i8, OutputDimensions * PaddedInputDimensions>& weights,
                                const u8* RESTRICT                                         input,
                                i32* RESTRICT output) noexcept {
     #if defined(USE_FALLBACK_AFFINE_SIMD)
     // At least a multiple of 16
-    constexpr IndexType ChunkCount =
-      ceil_to_multiple<IndexType>(InputDimensions, SIMD::WIDTH_MIN) / SIMD::WIDTH_MIN;
+    constexpr Index ChunkCount =
+      ceil_to_multiple<Index>(InputDimensions, SIMD::WIDTH_MIN) / SIMD::WIDTH_MIN;
 
         #if defined(USE_SSE2)
     constexpr int Shuffle1032 = _MM_SHUFFLE(1, 0, 3, 2);
@@ -54,7 +54,7 @@ void fallback_affine_transform(const Array<i32, OutputDimensions>&              
 
         #endif
 
-    for (IndexType i = 0; i < OutputDimensions; ++i)
+    for (Index i = 0; i < OutputDimensions; ++i)
     {
         const usize offset = i * PaddedInputDimensions;
 
@@ -64,7 +64,7 @@ void fallback_affine_transform(const Array<i32, OutputDimensions>&              
 
         const auto* rowVec = reinterpret_cast<const __m128i*>(&weights[offset]);
 
-        for (IndexType j = 0; j < ChunkCount; ++j)
+        for (Index j = 0; j < ChunkCount; ++j)
         {
             const __m128i row       = _mm_load_si128(&rowVec[j]);
             const __m128i in        = _mm_load_si128(&inputVec[j]);
@@ -90,9 +90,9 @@ void fallback_affine_transform(const Array<i32, OutputDimensions>&              
 
         const auto* rowVec = reinterpret_cast<const SIMD::vec_i8x8_t*>(&weights[offset]);
 
-        for (IndexType j = 0; j < ChunkCount; ++j)
+        for (Index j = 0; j < ChunkCount; ++j)
         {
-            const IndexType k = j * 2;
+            const Index k = j * 2;
 
             int16x8_t product = vmull_s8(inputVec[k + 0], rowVec[k + 0]);
             product           = vmlal_s8(product, inputVec[k + 1], rowVec[k + 1]);
@@ -108,12 +108,12 @@ void fallback_affine_transform(const Array<i32, OutputDimensions>&              
     std::memcpy(output, biases.data(), OutputDimensions * sizeof(i32));
 
     // Traverse weights in transpose order to take advantage of input sparsity
-    for (IndexType i = 0; i < InputDimensions; ++i)
+    for (Index i = 0; i < InputDimensions; ++i)
         if (const int in = input[i]; in != 0)
         {
             const i8* wPtr = &weights[i];
 
-            for (IndexType j = 0; j < OutputDimensions; ++j)
+            for (Index j = 0; j < OutputDimensions; ++j)
                 output[j] += in * wPtr[j * PaddedInputDimensions];
         }
 

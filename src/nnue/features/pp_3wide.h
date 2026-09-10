@@ -33,40 +33,41 @@ class PP3Wide final {
    public:
     static constexpr u32 Hash = 0x86F2B1DDu;
 
-    static constexpr u16 PawnIds    = 48 * COLOR_NB;
-    static constexpr u16 Dimensions = PawnIds * (PawnIds - 1) / 2;
+    static constexpr Index PawnIds    = 48 * COLOR_NB;
+    static constexpr Index Dimensions = PawnIds * (PawnIds - 1) / 2;
 
-    // Pawn pair feature indices are concatenated to threats so this must equal ThreatFeatureSet::Dimensions;
+    // Pawn pair feature indices are concatenated to threats so this must equal ThreatFeature::Dimensions;
     // see nnue/feature_transformer.h
-    static constexpr u16 IndexBase = FullThreats::Dimensions;
+    static constexpr Index IndexBase = FullThreats::Dimensions;
     // Threats and pawn-pair features are concatenated into one array to allow for a single index to address either.
     // The first pawn-pair feature is at index FullThreats::Dimensions.
     static_assert(IndexBase == FullThreats::Dimensions);
 
     // Maximum number of simultaneously active features
-    static constexpr u16 MaxActiveDimensions = 256;
-    using IndexVector                        = FixedVector<u16, MaxActiveDimensions, u16>;
-    using DirtyType                          = DirtyPawnPairs;
+    static constexpr Index MaxActiveDimensions = 256;
+
+    using IndexList = FixedVector<Index, MaxActiveDimensions, Index>;
+    using DirtyType = DirtyPawnPairs;
 
     static void append_active_indices(Color           perspective,  //
                                       const Position& pos,
-                                      IndexVector&    active) noexcept;
+                                      IndexList&      active) noexcept;
 
-    static void append_changed_indices(Color                   perspective,
-                                       Square                  ksq,
-                                       const DirtyType&        dPps,
-                                       IndexVector&            removed,
-                                       IndexVector&            added,
-                                       const ThreatWeightType* pfBase   = nullptr,
-                                       usize                   pfStride = 0) noexcept;
+    static void append_changed_indices(Color               perspective,
+                                       Square              ksq,
+                                       const DirtyType&    dPps,
+                                       IndexList&          removed,
+                                       IndexList&          added,
+                                       const ThreatWeight* pfBase   = nullptr,
+                                       usize               pfStride = 0) noexcept;
 
-    static void append_changed_indices_both(Square                        wKingSq,
-                                            Square                        bKingSq,
-                                            const DirtyType&              dPps,
-                                            Array<IndexVector, COLOR_NB>& removed,
-                                            Array<IndexVector, COLOR_NB>& added,
-                                            const ThreatWeightType*       pfBase   = nullptr,
-                                            usize                         pfStride = 0) noexcept;
+    static void append_changed_indices_both(Square                      wKingSq,
+                                            Square                      bKingSq,
+                                            const DirtyType&            dPps,
+                                            Array<IndexList, COLOR_NB>& removed,
+                                            Array<IndexList, COLOR_NB>& added,
+                                            const ThreatWeight*         pfBase   = nullptr,
+                                            usize                       pfStride = 0) noexcept;
 
    private:
     PP3Wide() noexcept                          = delete;

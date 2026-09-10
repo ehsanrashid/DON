@@ -37,18 +37,18 @@
 namespace DON::NNUE {
 
 // Input features used in evaluation function
-using ThreatFeatureSet = Features::FullThreats;
-using PSQFeatureSet    = Features::HalfKAHm;
-using PairFeatureSet   = Features::PP3Wide;
+using ThreatFeature = Features::FullThreats;
+using PSQFeature    = Features::HalfKAHm;
+using PairFeature   = Features::PP3Wide;
 
-template<usize Dimensions>
+template<Index Dimensions>
 struct NNZ;
 
 struct NetworkArchitecture final {
    public:
-    static constexpr u16 TransformedFeatureDimensions = L1;
-    static constexpr u16 FC_0_Outputs                 = L2;
-    static constexpr u16 FC_1_Outputs                 = L3;
+    static constexpr Index TransformedFeatureDimensions = L1;
+    static constexpr Index FC_0_Outputs                 = L2;
+    static constexpr Index FC_1_Outputs                 = L3;
 
     // Hash value embedded in the evaluation file
     static constexpr u32 hash() noexcept {
@@ -97,15 +97,15 @@ struct NetworkArchitecture final {
     }
 
     // Forward propagation
-    i32 propagate(
-      const Array<TransformedFeatureType, TransformedFeatureDimensions>& transformedFeatures,
-      const NNZ<L1>&                                                     nnz) const noexcept {
+    i32
+    propagate(const Array<TransformedFeature, TransformedFeatureDimensions>& transformedFeatures,
+              const NNZ<L1>&                                                 nnz) const noexcept {
 
         struct alignas(CACHE_LINE_SIZE) Buffer final {
             alignas(CACHE_LINE_SIZE) typename decltype(fc_0)::OutputBuffer fc_0_out;
-            alignas(CACHE_LINE_SIZE) Array<
-              typename decltype(ac_sqr_0)::OutputType,
-              ceil_to_multiple<IndexType>(FC_0_Outputs * 2 + FC_1_Outputs * 2, 32)> concat_buffer;
+            alignas(CACHE_LINE_SIZE)
+              Array<typename decltype(ac_sqr_0)::Output,
+                    ceil_to_multiple<Index>(FC_0_Outputs * 2 + FC_1_Outputs * 2, 32)> concat_buffer;
             alignas(CACHE_LINE_SIZE) typename decltype(fc_1)::OutputBuffer fc_1_out;
             alignas(CACHE_LINE_SIZE) typename decltype(fc_2)::OutputBuffer fc_2_out;
         };
@@ -149,12 +149,12 @@ struct NetworkArchitecture final {
    private:
     // clang-format off
     Layers::SparseAffineTransform<TransformedFeatureDimensions, FC_0_Outputs> fc_0;
-    Layers::SqrClippedReLU <FC_0_Outputs, WEIGHT_SCALE_BITS + 1>              ac_sqr_0;
-    Layers::ClippedReLU    <FC_0_Outputs, WEIGHT_SCALE_BITS + 1>              ac_0;
-    Layers::AffineTransform<FC_0_Outputs * 2, FC_1_Outputs>                   fc_1;
-    Layers::SqrClippedReLU <FC_1_Outputs, WEIGHT_SCALE_BITS>                  ac_sqr_1;
-    Layers::ClippedReLU    <FC_1_Outputs, WEIGHT_SCALE_BITS>                  ac_1;
-    Layers::AffineTransform<FC_0_Outputs * 2 + FC_1_Outputs * 2, 1>           fc_2;
+    Layers::SqrClippedReLU       <FC_0_Outputs    , WEIGHT_SCALE_BITS + 1   > ac_sqr_0;
+    Layers::ClippedReLU          <FC_0_Outputs    , WEIGHT_SCALE_BITS + 1   > ac_0;
+    Layers::AffineTransform      <FC_0_Outputs * 2, FC_1_Outputs            > fc_1;
+    Layers::SqrClippedReLU       <FC_1_Outputs    , WEIGHT_SCALE_BITS       > ac_sqr_1;
+    Layers::ClippedReLU          <FC_1_Outputs    , WEIGHT_SCALE_BITS       > ac_1;
+    Layers::AffineTransform      <FC_0_Outputs * 2 + FC_1_Outputs * 2, 1    > fc_2;
     // clang-format on
 };
 

@@ -37,12 +37,13 @@ class FullThreats final {
     static constexpr u32 Hash = 0x2E6B9D04u;
 
     // Number of feature dimensions
-    static constexpr u16 Dimensions = 59808;
+    static constexpr Index Dimensions = 59808;
 
     // Maximum number of simultaneously active features
-    static constexpr u16 MaxActiveDimensions = 256;
-    using IndexVector                        = FixedVector<u16, MaxActiveDimensions, u16>;
-    using DirtyType                          = DirtyThreats;
+    static constexpr Index MaxActiveDimensions = 256;
+
+    using IndexList = FixedVector<Index, MaxActiveDimensions, Index>;
+    using DirtyType = DirtyThreats;
 
     // Mirror square to have king always on e..h files
     // (file_of(s) >> 2) is 0 for 0...3, 1 for 4...7
@@ -52,23 +53,23 @@ class FullThreats final {
 
     static void append_active_indices(Color           perspective,  //
                                       const Position& pos,
-                                      IndexVector&    active) noexcept;
+                                      IndexList&      active) noexcept;
 
-    static void append_changed_indices(Color                   perspective,
-                                       Square                  kingSq,
-                                       const DirtyType&        dTs,
-                                       IndexVector&            removed,
-                                       IndexVector&            added,
-                                       const ThreatWeightType* pfBase   = nullptr,
-                                       usize                   pfStride = 0) noexcept;
+    static void append_changed_indices(Color               perspective,
+                                       Square              kingSq,
+                                       const DirtyType&    dTs,
+                                       IndexList&          removed,
+                                       IndexList&          added,
+                                       const ThreatWeight* pfBase   = nullptr,
+                                       usize               pfStride = 0) noexcept;
 
-    static void append_changed_indices_both(Square                        wKingSq,
-                                            Square                        bKingSq,
-                                            const DirtyType&              dTs,
-                                            Array<IndexVector, COLOR_NB>& removed,
-                                            Array<IndexVector, COLOR_NB>& added,
-                                            const ThreatWeightType*       pfBase   = nullptr,
-                                            usize                         pfStride = 0) noexcept;
+    static void append_changed_indices_both(Square                      wKingSq,
+                                            Square                      bKingSq,
+                                            const DirtyType&            dTs,
+                                            Array<IndexList, COLOR_NB>& removed,
+                                            Array<IndexList, COLOR_NB>& added,
+                                            const ThreatWeight*         pfBase   = nullptr,
+                                            usize                       pfStride = 0) noexcept;
 
    private:
     FullThreats() noexcept                              = delete;

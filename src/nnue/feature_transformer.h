@@ -43,7 +43,7 @@
     #include "nnz.h"
 #else
 namespace DON::NNUE {
-template<usize Dimensions>
+template<Index Dimensions>
 struct NNZ;
 }
 #endif
@@ -94,23 +94,23 @@ constexpr void permute(std::array<T, DataSize>&            data,
 class FeatureTransformer final {
 
     // Number of output dimensions for one side
-    static constexpr u16 HalfDimensions = L1;
+    static constexpr Index HalfDimensions = L1;
 
    public:
     // Output type
-    using OutputType = TransformedFeatureType;
+    using Output = TransformedFeature;
 
     // Number of input/output dimensions
-    static constexpr u32 InputDimensions =
-      PSQFeatureSet::Dimensions + ThreatFeatureSet::Dimensions + PairFeatureSet::Dimensions;
-    static constexpr u32 OutputDimensions = HalfDimensions;
+    static constexpr usize InputDimensions =
+      PSQFeature::Dimensions + ThreatFeature::Dimensions + PairFeature::Dimensions;
+    static constexpr Index OutputDimensions = HalfDimensions;
 
     // Size of forward propagation buffer
-    static constexpr u16 BufferSize = OutputDimensions * sizeof(OutputType);
+    static constexpr usize BufferSize = OutputDimensions * sizeof(Output);
 
     // Hash value embedded in the evaluation file
     static constexpr u32 hash() noexcept {
-        return combine_hashes({ThreatFeatureSet::Hash, PairFeatureSet::Hash, PSQFeatureSet::Hash})
+        return combine_hashes({ThreatFeature::Hash, PairFeature::Hash, PSQFeature::Hash})
              ^ (2 * OutputDimensions);
     }
 
@@ -167,19 +167,19 @@ class FeatureTransformer final {
     auto threatWeights() noexcept { return threatAndPpWeights.data(); }
     auto threatWeights() const noexcept { return threatAndPpWeights.data(); }
     auto ppWeights() noexcept {
-        return threatWeights() + ThreatFeatureSet::Dimensions * HalfDimensions;
+        return threatWeights() + ThreatFeature::Dimensions * HalfDimensions;
     }
     auto ppWeights() const noexcept {
-        return threatWeights() + ThreatFeatureSet::Dimensions * HalfDimensions;
+        return threatWeights() + ThreatFeature::Dimensions * HalfDimensions;
     }
 
     auto threatPsqtWeights() noexcept { return threatAndPpPsqtWeights.data(); }
     auto threatPsqtWeights() const noexcept { return threatAndPpPsqtWeights.data(); }
     auto ppPsqtWeights() noexcept {
-        return threatPsqtWeights() + ThreatFeatureSet::Dimensions * PSQT_BUCKETS;
+        return threatPsqtWeights() + ThreatFeature::Dimensions * PSQT_BUCKETS;
     }
     auto ppPsqtWeights() const noexcept {
-        return threatPsqtWeights() + ThreatFeatureSet::Dimensions * PSQT_BUCKETS;
+        return threatPsqtWeights() + ThreatFeature::Dimensions * PSQT_BUCKETS;
     }
 
     // Read network parameters
@@ -187,12 +187,11 @@ class FeatureTransformer final {
 
         read_leb_128(is, biases);
 
-        read_little_endian<ThreatWeightType>(is, threatWeights(),
-                                             ThreatFeatureSet::Dimensions * HalfDimensions);
-        read_leb_128(is, threatPsqtWeights(), ThreatFeatureSet::Dimensions * PSQT_BUCKETS);
-        read_little_endian<ThreatWeightType>(is, ppWeights(),
-                                             PairFeatureSet::Dimensions * HalfDimensions);
-        read_leb_128(is, ppPsqtWeights(), PairFeatureSet::Dimensions * PSQT_BUCKETS);
+        read_little_endian<ThreatWeight>(is, threatWeights(),
+                                         ThreatFeature::Dimensions * HalfDimensions);
+        read_leb_128(is, threatPsqtWeights(), ThreatFeature::Dimensions * PSQT_BUCKETS);
+        read_little_endian<ThreatWeight>(is, ppWeights(), PairFeature::Dimensions * HalfDimensions);
+        read_leb_128(is, ppPsqtWeights(), PairFeature::Dimensions * PSQT_BUCKETS);
 
         read_leb_128(is, weights);
         read_leb_128(is, psqtWeights);
@@ -210,14 +209,14 @@ class FeatureTransformer final {
 
         write_leb_128(os, copy->biases);
 
-        write_little_endian<ThreatWeightType>(os, copy->threatWeights(),
-                                              ThreatFeatureSet::Dimensions * HalfDimensions);
-        write_leb_128<PSQTWeightType>(os, copy->threatPsqtWeights(),
-                                      ThreatFeatureSet::Dimensions * PSQT_BUCKETS);
-        write_little_endian<ThreatWeightType>(os, copy->ppWeights(),
-                                              PairFeatureSet::Dimensions * HalfDimensions);
-        write_leb_128<PSQTWeightType>(os, copy->ppPsqtWeights(),
-                                      PairFeatureSet::Dimensions * PSQT_BUCKETS);
+        write_little_endian<ThreatWeight>(os, copy->threatWeights(),
+                                          ThreatFeature::Dimensions * HalfDimensions);
+        write_leb_128<PSQTWeight>(os, copy->threatPsqtWeights(),
+                                  ThreatFeature::Dimensions * PSQT_BUCKETS);
+        write_little_endian<ThreatWeight>(os, copy->ppWeights(),
+                                          PairFeature::Dimensions * HalfDimensions);
+        write_leb_128<PSQTWeight>(os, copy->ppPsqtWeights(),
+                                  PairFeature::Dimensions * PSQT_BUCKETS);
 
         write_leb_128(os, copy->weights);
         write_leb_128(os, copy->psqtWeights);
@@ -233,7 +232,7 @@ class FeatureTransformer final {
                   AccumulatorStack&                       accStack,
                   const usize                             bucket,
                   [[maybe_unused]] NNZ<OutputDimensions>& nnz,
-                  Array<OutputType, BufferSize>&          output) const noexcept {
+                  Array<Output, BufferSize>&          output) const noexcept {
 
         accStack.evaluate(pos, *this, accCache);
 
@@ -250,14 +249,14 @@ class FeatureTransformer final {
 
         for (Color p : {WHITE, BLACK})
         {
-            IndexType offset = p * (HalfDimensions / 2);
+            Index offset = p * (HalfDimensions / 2);
 
 #if defined(VECTOR)
             [[maybe_unused]] auto cursor = nnz.make_cursor(p);
 
-            constexpr IndexType OutputChunkSize = MaxChunkSize;
+            constexpr Index OutputChunkSize = MaxChunkSize;
             static_assert(HalfDimensions % (2 * OutputChunkSize) == 0);
-            constexpr IndexType OutputChunkCount = HalfDimensions / (2 * OutputChunkSize);
+            constexpr Index OutputChunkCount = HalfDimensions / (2 * OutputChunkSize);
 
     #if !(defined(USE_LSX) || defined(USE_NEON) || defined(__wasm__))
             const SIMD::vec_t zero  = vec_zero();
@@ -311,12 +310,12 @@ class FeatureTransformer final {
             // Since we scaled everything by two, the values are clipped at 127 * 2 = 254,
             // which occupies 8 bits. Shifting it by 7 bits left will no longer occupy the signed bit.
 
-            for (IndexType i = 0; i + 1 < OutputChunkCount; i += 2)
+            for (Index i = 0; i + 1 < OutputChunkCount; i += 2)
             {
                 SIMD::vec_t packed[2];
-                for (IndexType j = 0; j < 2; ++j)
+                for (Index j = 0; j < 2; ++j)
                 {
-                    const IndexType k = (i + j) * 2;
+                    const Index k = (i + j) * 2;
 
                     const SIMD::vec_t acc00 = in0[k + 0];
                     const SIMD::vec_t acc01 = in0[k + 1];
@@ -376,12 +375,12 @@ class FeatureTransformer final {
 
 #elif defined(USE_RVV)
 
-            const IndexType maxVL = __riscv_vsetvlmax_e8m1();
+            const Index maxVL = __riscv_vsetvlmax_e8m1();
 
             const auto rvv_propagate = [&](auto vid) noexcept {
                 const auto& accp = accumulation[perspectives[p]];
 
-                for (IndexType i = 0, vl; i < HalfDimensions / 2; i += vl)
+                for (Index i = 0, vl; i < HalfDimensions / 2; i += vl)
                 {
                     vl = __riscv_vsetvl_e16m2(HalfDimensions / 2 - i);
 
@@ -419,15 +418,15 @@ class FeatureTransformer final {
                 rvv_propagate(__riscv_vid_v_u16m2(maxVL));  // vuint16m2_t vid16
 
 #else
-            for (IndexType i = 0; i < HalfDimensions / 2; ++i)
+            for (Index i = 0; i < HalfDimensions / 2; ++i)
             {
-                BiasType sum0 = accumulation[perspectives[p]][i + 0];
-                BiasType sum1 = accumulation[perspectives[p]][i + HalfDimensions / 2];
+                Bias sum0 = accumulation[perspectives[p]][i + 0];
+                Bias sum1 = accumulation[perspectives[p]][i + HalfDimensions / 2];
 
-                sum0 = std::clamp<BiasType>(sum0, 0, FT_MAX);
-                sum1 = std::clamp<BiasType>(sum1, 0, FT_MAX);
+                sum0 = std::clamp<Bias>(sum0, 0, FT_MAX);
+                sum1 = std::clamp<Bias>(sum1, 0, FT_MAX);
 
-                output[offset + i] = static_cast<OutputType>(unsigned(sum0 * sum1) / 512);
+                output[offset + i] = static_cast<Output>(unsigned(sum0 * sum1) / 512);
             }
 #endif
         }
@@ -435,13 +434,13 @@ class FeatureTransformer final {
         return psqt;
     }
 
-    alignas(CACHE_LINE_SIZE) Array<ThreatWeightType, (ThreatFeatureSet::Dimensions + PairFeatureSet::Dimensions) * HalfDimensions> threatAndPpWeights;
-    alignas(CACHE_LINE_SIZE) Array<PSQTWeightType  , (ThreatFeatureSet::Dimensions + PairFeatureSet::Dimensions) * PSQT_BUCKETS>   threatAndPpPsqtWeights;
+    alignas(CACHE_LINE_SIZE) Array<ThreatWeight, HalfDimensions * usize(ThreatFeature::Dimensions + PairFeature::Dimensions)> threatAndPpWeights;
+    alignas(CACHE_LINE_SIZE) Array<PSQTWeight  , PSQT_BUCKETS   * usize(ThreatFeature::Dimensions + PairFeature::Dimensions)> threatAndPpPsqtWeights;
 
-    alignas(CACHE_LINE_SIZE) Array<WeightType    , (PSQFeatureSet::Dimensions) * HalfDimensions> weights;
-    alignas(CACHE_LINE_SIZE) Array<PSQTWeightType, (PSQFeatureSet::Dimensions) * PSQT_BUCKETS>   psqtWeights;
+    alignas(CACHE_LINE_SIZE) Array<Weight      , HalfDimensions * usize(PSQFeature::Dimensions)> weights;
+    alignas(CACHE_LINE_SIZE) Array<PSQTWeight  , PSQT_BUCKETS   * usize(PSQFeature::Dimensions)> psqtWeights;
 
-    alignas(CACHE_LINE_SIZE) Array<BiasType, HalfDimensions> biases;
+    alignas(CACHE_LINE_SIZE) Array<Bias        , HalfDimensions> biases;
     // clang-format on
 };
 

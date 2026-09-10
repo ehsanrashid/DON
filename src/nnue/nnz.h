@@ -29,6 +29,7 @@
 
 #include "../misc.h"
 #include "../types.h"  // IWYU pragma: keep
+#include "ntypes.h"
 
 #if defined(USE_SSSE3) || defined(USE_LSX) || (defined(USE_NEON) && USE_NEON >= 8)
     #include "simd.h"
@@ -36,7 +37,7 @@
 
 namespace DON::NNUE {
 
-template<usize Dimensions>
+template<Index Dimensions>
 struct NNZ final {
    public:
 #if defined(USE_AVX512)

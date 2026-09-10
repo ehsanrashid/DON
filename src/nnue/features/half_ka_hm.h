@@ -22,6 +22,7 @@
 
 #include "../../misc.h"
 #include "../../types.h"
+#include "../ntypes.h"
 
 namespace DON::NNUE::Features {
 
@@ -30,31 +31,32 @@ namespace DON::NNUE::Features {
 class HalfKAHm final {
    private:
     // Unique number for each piece type on each square
-    static constexpr u16 PS_NONE     = 0;
-    static constexpr u16 PS_W_PAWN   = 0 * SQUARE_NB;
-    static constexpr u16 PS_B_PAWN   = 1 * SQUARE_NB;
-    static constexpr u16 PS_W_KNIGHT = 2 * SQUARE_NB;
-    static constexpr u16 PS_B_KNIGHT = 3 * SQUARE_NB;
-    static constexpr u16 PS_W_BISHOP = 4 * SQUARE_NB;
-    static constexpr u16 PS_B_BISHOP = 5 * SQUARE_NB;
-    static constexpr u16 PS_W_ROOK   = 6 * SQUARE_NB;
-    static constexpr u16 PS_B_ROOK   = 7 * SQUARE_NB;
-    static constexpr u16 PS_W_QUEEN  = 8 * SQUARE_NB;
-    static constexpr u16 PS_B_QUEEN  = 9 * SQUARE_NB;
-    static constexpr u16 PS_KING     = 10 * SQUARE_NB;
-    static constexpr u16 PS_NB       = 11 * SQUARE_NB;
+    static constexpr Index PS_NONE     = 0;
+    static constexpr Index PS_W_PAWN   = 0 * SQUARE_NB;
+    static constexpr Index PS_B_PAWN   = 1 * SQUARE_NB;
+    static constexpr Index PS_W_KNIGHT = 2 * SQUARE_NB;
+    static constexpr Index PS_B_KNIGHT = 3 * SQUARE_NB;
+    static constexpr Index PS_W_BISHOP = 4 * SQUARE_NB;
+    static constexpr Index PS_B_BISHOP = 5 * SQUARE_NB;
+    static constexpr Index PS_W_ROOK   = 6 * SQUARE_NB;
+    static constexpr Index PS_B_ROOK   = 7 * SQUARE_NB;
+    static constexpr Index PS_W_QUEEN  = 8 * SQUARE_NB;
+    static constexpr Index PS_B_QUEEN  = 9 * SQUARE_NB;
+    static constexpr Index PS_KING     = 10 * SQUARE_NB;
+    static constexpr Index PS_NB       = 11 * SQUARE_NB;
 
    public:
     // Hash value embedded in the evaluation file
     static constexpr u32 Hash = 0x7F234CB8u;
 
     // Number of feature dimensions
-    static constexpr u16 Dimensions = PS_NB * SQUARE_NB / 2;
+    static constexpr Index Dimensions = PS_NB * SQUARE_NB / 2;
 
     // Maximum number of simultaneously active features
-    static constexpr u16 MaxActiveDimensions = 32;
-    using IndexVector                        = FixedVector<u16, MaxActiveDimensions, u16>;
-    using DirtyType                          = DirtyPiece;
+    static constexpr Index MaxActiveDimensions = 32;
+
+    using IndexList = FixedVector<Index, MaxActiveDimensions, Index>;
+    using DirtyType = DirtyPiece;
 
     // Mirror square to have king always on e..h files
     // (file_of(s) >> 2) is 0 for 0...3, 1 for 4...7
@@ -62,26 +64,29 @@ class HalfKAHm final {
         return Square(((file_of(s) >> 2) ^ 1) * FILE_H);
     }
 
-    alignas(CACHE_LINE_SIZE) static constexpr Array<u16, COLOR_NB, PIECE_NB> PIECE_SQUARE_INDICES{{
-      // Convention: W - us, B - them
-      // Viewed from other side, W and B are reversed
-      {PS_NONE, PS_W_PAWN, PS_W_KNIGHT, PS_W_BISHOP, PS_W_ROOK, PS_W_QUEEN, PS_KING, PS_NONE,   //
-       PS_NONE, PS_B_PAWN, PS_B_KNIGHT, PS_B_BISHOP, PS_B_ROOK, PS_B_QUEEN, PS_KING, PS_NONE},  //
-      {PS_NONE, PS_B_PAWN, PS_B_KNIGHT, PS_B_BISHOP, PS_B_ROOK, PS_B_QUEEN, PS_KING, PS_NONE,   //
-       PS_NONE, PS_W_PAWN, PS_W_KNIGHT, PS_W_BISHOP, PS_W_ROOK, PS_W_QUEEN, PS_KING, PS_NONE}   //
-    }};
+    alignas(CACHE_LINE_SIZE) static constexpr Array<Index, COLOR_NB, PIECE_NB> PIECE_SQUARE_INDICES{
+      {
+        // Convention: W - us, B - them
+        // Viewed from other side, W and B are reversed
+        {PS_NONE, PS_W_PAWN, PS_W_KNIGHT, PS_W_BISHOP, PS_W_ROOK, PS_W_QUEEN, PS_KING, PS_NONE,   //
+         PS_NONE, PS_B_PAWN, PS_B_KNIGHT, PS_B_BISHOP, PS_B_ROOK, PS_B_QUEEN, PS_KING, PS_NONE},  //
+        {PS_NONE, PS_B_PAWN, PS_B_KNIGHT, PS_B_BISHOP, PS_B_ROOK, PS_B_QUEEN, PS_KING, PS_NONE,   //
+         PS_NONE, PS_W_PAWN, PS_W_KNIGHT, PS_W_BISHOP, PS_W_ROOK, PS_W_QUEEN, PS_KING, PS_NONE}   //
+      }};
 
 #define B(v) (v * PS_NB)
-    alignas(CACHE_LINE_SIZE) static constexpr Array<u16, SQUARE_NB> KING_BUCKETS{
+    // clang-format off
+    alignas(CACHE_LINE_SIZE) static constexpr Array<Index, SQUARE_NB> KING_BUCKETS{
       B(28), B(29), B(30), B(31), B(31), B(30), B(29), B(28),  //
       B(24), B(25), B(26), B(27), B(27), B(26), B(25), B(24),  //
       B(20), B(21), B(22), B(23), B(23), B(22), B(21), B(20),  //
       B(16), B(17), B(18), B(19), B(19), B(18), B(17), B(16),  //
       B(12), B(13), B(14), B(15), B(15), B(14), B(13), B(12),  //
-      B(8),  B(9),  B(10), B(11), B(11), B(10), B(9),  B(8),   //
-      B(4),  B(5),  B(6),  B(7),  B(7),  B(6),  B(5),  B(4),   //
-      B(0),  B(1),  B(2),  B(3),  B(3),  B(2),  B(1),  B(0)    //
+      B( 8), B(9 ), B(10), B(11), B(11), B(10), B( 9), B( 8),  //
+      B( 4), B( 5), B( 6), B( 7), B( 7), B( 6), B( 5), B( 4),  //
+      B( 0), B( 1), B( 2), B( 3), B( 3), B( 2), B( 1), B( 0)   //
     };
+    // clang-format on
 #undef B
 
     static void append_map_changed_indices(Color           perspective,
@@ -90,20 +95,20 @@ class HalfKAHm final {
                                            const PieceMap& newPieceMap,
                                            Bitboard        removedBB,
                                            Bitboard        addedBB,
-                                           IndexVector&    removed,
-                                           IndexVector&    added) noexcept;
+                                           IndexList&      removed,
+                                           IndexList&      added) noexcept;
 
     static void append_changed_indices(Color            perspective,
                                        Square           kingSq,
                                        const DirtyType& dP,
-                                       IndexVector&     removed,
-                                       IndexVector&     added) noexcept;
+                                       IndexList&       removed,
+                                       IndexList&       added) noexcept;
 
-    static void append_changed_indices_both(Square                        wKingSq,
-                                            Square                        bKingSq,
-                                            const DirtyType&              dP,
-                                            Array<IndexVector, COLOR_NB>& removed,
-                                            Array<IndexVector, COLOR_NB>& added) noexcept;
+    static void append_changed_indices_both(Square                      wKingSq,
+                                            Square                      bKingSq,
+                                            const DirtyType&            dP,
+                                            Array<IndexList, COLOR_NB>& removed,
+                                            Array<IndexList, COLOR_NB>& added) noexcept;
 
     static bool refresh_required(Color perspective, const DirtyType& dP) noexcept;
 

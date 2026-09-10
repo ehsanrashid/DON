@@ -32,18 +32,18 @@ namespace DON::NNUE::Features {
 
 namespace {
 
-ALWAYS_INLINE constexpr u16 make_pawn_id(const Color c, const Square s) noexcept {
+ALWAYS_INLINE constexpr Index make_pawn_id(const Color c, const Square s) noexcept {
     assert(SQ_A2 <= s && s <= SQ_H7);
 
     return 48 * int(c) + s - SQ_A2;
 }
 
-ALWAYS_INLINE constexpr u16 make_index(const Color  perspective,
-                                       const Square kingSq,
-                                       const Color  color,
-                                       const Square orgSq,
-                                       const Square dstSq,
-                                       const Color  pairedColor) noexcept {
+ALWAYS_INLINE constexpr Index make_index(const Color  perspective,
+                                         const Square kingSq,
+                                         const Color  color,
+                                         const Square orgSq,
+                                         const Square dstSq,
+                                         const Color  pairedColor) noexcept {
     const u8 relOrientation = relative_sq(perspective, FullThreats::orientation(kingSq));
 
     const u8 org = static_cast<u8>(orgSq) ^ relOrientation;
@@ -55,10 +55,10 @@ ALWAYS_INLINE constexpr u16 make_index(const Color  perspective,
     const Color relColor       = Color(color ^ perspective);
     const Color relPairedColor = Color(pairedColor ^ perspective);
 
-    const u16 id1 = make_pawn_id(relColor, Square{org});
-    const u16 id2 = make_pawn_id(relPairedColor, Square{dst});
-    const u16 idH = std::max(id1, id2);
-    const u16 idL = std::min(id1, id2);
+    const auto id1 = make_pawn_id(relColor, Square{org});
+    const auto id2 = make_pawn_id(relPairedColor, Square{dst});
+    const auto idH = std::max(id1, id2);
+    const auto idL = std::min(id1, id2);
 
     return PP3Wide::IndexBase + idH * (idH - 1) / 2 + idL;
 }
@@ -77,7 +77,7 @@ ALWAYS_INLINE __m256i pp_idx_epi16(const __m256i a, const __m256i b) noexcept {
 
 void PP3Wide::append_active_indices(const Color     perspective,
                                     const Position& pos,
-                                    IndexVector&    active) noexcept {
+                                    IndexList&      active) noexcept {
     const Square   kingSq   = pos.square<KING>(perspective);
     const Bitboard wPawnsBB = pos.pieces_bb(WHITE, PAWN);
     const Bitboard bPawnsBB = pos.pieces_bb(BLACK, PAWN);
@@ -105,13 +105,13 @@ void PP3Wide::append_active_indices(const Color     perspective,
     }
 }
 
-void PP3Wide::append_changed_indices(const Color                   perspective,
-                                     const Square                  kingSq,
-                                     const DirtyType&              dPps,
-                                     IndexVector&                  removed,
-                                     IndexVector&                  added,
-                                     const ThreatWeightType* const pfBase,
-                                     const usize                   pfStride) noexcept {
+void PP3Wide::append_changed_indices(const Color               perspective,
+                                     const Square              kingSq,
+                                     const DirtyType&          dPps,
+                                     IndexList&                removed,
+                                     IndexList&                added,
+                                     const ThreatWeight* const pfBase,
+                                     const usize               pfStride) noexcept {
     const auto& before = dPps.before;
     const auto& after  = dPps.after;
 
@@ -126,7 +126,7 @@ void PP3Wide::append_changed_indices(const Color                   perspective,
 
     const auto generate = [&](const Bitboard wUpdatedBB, const Bitboard bUpdatedBB,  //
                               const Bitboard wPawnsBB, const Bitboard bPawnsBB,      //
-                              IndexVector& out) noexcept {
+                              IndexList& out) noexcept {
         const Bitboard friendBB = perspective == WHITE ? wPawnsBB : bPawnsBB;
         const Bitboard enemyBB  = perspective == WHITE ? bPawnsBB : wPawnsBB;
         const __m512i  ids      = _mm512_mask_blend_epi8(
@@ -157,7 +157,7 @@ void PP3Wide::append_changed_indices(const Color                   perspective,
 #else
     const auto generate = [&](const Bitboard wUpdatedBB, const Bitboard bUpdatedBB,  //
                               const Bitboard wPawnsBB, const Bitboard bPawnsBB,      //
-                              IndexVector& out) noexcept {
+                              IndexList& out) noexcept {
         const auto push = [&](Color color, Square orgSq, Square dstSq, Color pairedColor) noexcept {
             const auto index = make_index(perspective, kingSq, color, orgSq, dstSq, pairedColor);
 
@@ -188,13 +188,13 @@ void PP3Wide::append_changed_indices(const Color                   perspective,
              after[BLACK], added);
 }
 
-void PP3Wide::append_changed_indices_both(const Square                  wKingSq,
-                                          const Square                  bKingSq,
-                                          const DirtyType&              dPps,
-                                          Array<IndexVector, COLOR_NB>& removed,
-                                          Array<IndexVector, COLOR_NB>& added,
-                                          const ThreatWeightType* const pfBase,
-                                          const usize                   pfStride) noexcept {
+void PP3Wide::append_changed_indices_both(const Square                wKingSq,
+                                          const Square                bKingSq,
+                                          const DirtyType&            dPps,
+                                          Array<IndexList, COLOR_NB>& removed,
+                                          Array<IndexList, COLOR_NB>& added,
+                                          const ThreatWeight* const   pfBase,
+                                          const usize                 pfStride) noexcept {
 #if defined(USE_AVX512ICL)
     append_changed_indices(WHITE, wKingSq, dPps, removed[WHITE], added[WHITE], pfBase, pfStride);
     append_changed_indices(BLACK, bKingSq, dPps, removed[BLACK], added[BLACK], pfBase, pfStride);
@@ -208,7 +208,7 @@ void PP3Wide::append_changed_indices_both(const Square                  wKingSq,
 
     const auto generate = [&](const Bitboard wUpdatedBB, const Bitboard bUpdatedBB,  //
                               const Bitboard wPawnsBB, const Bitboard bPawnsBB,      //
-                              IndexVector& wOut, IndexVector& bOut) noexcept {
+                              IndexList& wOut, IndexList& bOut) noexcept {
         const auto push = [&](Color color, Square orgSq, Square dstSq, Color pairedColor) noexcept {
             const auto wIndex = make_index(WHITE, wKingSq, color, orgSq, dstSq, pairedColor);
             const auto bIndex = make_index(BLACK, bKingSq, color, orgSq, dstSq, pairedColor);
