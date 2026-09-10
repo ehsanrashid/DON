@@ -567,22 +567,22 @@ void update_hybrid(const Color               perspective,
     {
         const IndexType psqtTileOff  = j * Tiling::PSQTTileHeight;
 
-        auto* newEntryTilePsqt = reinterpret_cast<SIMD::psqt_vec_t*>(&newEntry.psqtAccumulation[psqtTileOff]);
+        auto* newEntryPsqtTile = reinterpret_cast<SIMD::psqt_vec_t*>(&newEntry.psqtAccumulation[psqtTileOff]);
 
         for (IndexType k = 0; k < Tiling::PSQTRegCount; ++k)
-            psqt[k] = newEntryTilePsqt[k];
+            psqt[k] = newEntryPsqtTile[k];
 
         apply_psqt<Op::Sub>(newRemove, featureTransformer.psqtWeights.data(), j, psqt);
         apply_psqt<Op::Add>(newAdd, featureTransformer.psqtWeights.data(), j, psqt);
 
         const auto* sourcePsqtTile   = reinterpret_cast<const SIMD::psqt_vec_t*>(&sourcePsqtAcc[psqtTileOff]);
-        const auto* oldEntryTilePsqt = reinterpret_cast<const SIMD::psqt_vec_t*>(&oldEntry.psqtAccumulation[psqtTileOff]);
+        const auto* oldEntryPsqtTile = reinterpret_cast<const SIMD::psqt_vec_t*>(&oldEntry.psqtAccumulation[psqtTileOff]);
 
         for (IndexType k = 0; k < Tiling::PSQTRegCount; ++k)
         {
-            vec_store_psqt(&newEntryTilePsqt[k], psqt[k]);
+            vec_store_psqt(&newEntryPsqtTile[k], psqt[k]);
             psqt[k] = vec_add_psqt_32(psqt[k], sourcePsqtTile[k]);
-            psqt[k] = vec_sub_psqt_32(psqt[k], oldEntryTilePsqt[k]);
+            psqt[k] = vec_sub_psqt_32(psqt[k], oldEntryPsqtTile[k]);
         }
 
         apply_psqt<Op::Add>(oldRemove, featureTransformer.psqtWeights.data(), j, psqt);
@@ -731,10 +731,10 @@ void update_refresh_cache(const Color               perspective,
 
         apply_threat_features<Op::Add>(active, featureTransformer, j, acc);
 
-        auto* accTile = reinterpret_cast<SIMD::vec_t*>(&target.accumulation[perspective][tileOff]);
+        auto* targetTile = reinterpret_cast<SIMD::vec_t*>(&target.accumulation[perspective][tileOff]);
 
         for (IndexType k = 0; k < Tiling::RegCount; ++k)
-            vec_store(&accTile[k], acc[k]);
+            vec_store(&targetTile[k], acc[k]);
     }
 
     for (IndexType j = 0; j < PSQT_BUCKETS / Tiling::PSQTTileHeight; ++j)
@@ -754,10 +754,10 @@ void update_refresh_cache(const Color               perspective,
 
         apply_psqt<Op::Add>(active, featureTransformer.threatAndPpPsqtWeights.data(), j, psqt);
 
-        auto* accPsqtTile = reinterpret_cast<SIMD::psqt_vec_t*>(&target.psqtAccumulation[perspective][psqtTileOff]);
+        auto* targetPsqtTile = reinterpret_cast<SIMD::psqt_vec_t*>(&target.psqtAccumulation[perspective][psqtTileOff]);
 
         for (IndexType k = 0; k < Tiling::PSQTRegCount; ++k)
-            vec_store_psqt(&accPsqtTile[k], psqt[k]);
+            vec_store_psqt(&targetPsqtTile[k], psqt[k]);
     }
     // clang-format on
 #elif defined(USE_RVV)
