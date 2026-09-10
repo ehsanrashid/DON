@@ -38,9 +38,9 @@ namespace {
 constexpr u8 GENERATION_BITS = 5;
 constexpr u8 GENERATION_MASK = (u8{1} << GENERATION_BITS) - 1;
 constexpr u8 BOUND_SHIFT     = GENERATION_BITS;
-constexpr u8 BOUND_MASK      = u8{3 << BOUND_SHIFT};
+constexpr u8 BOUND_MASK      = u8{3} << BOUND_SHIFT;
 constexpr u8 PV_SHIFT        = BOUND_SHIFT + 2;
-constexpr u8 PV_MASK         = u8{1 << PV_SHIFT};
+constexpr u8 PV_MASK         = u8{1} << PV_SHIFT;
 
 }  // namespace
 

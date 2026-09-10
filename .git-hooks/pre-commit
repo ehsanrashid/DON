@@ -11,16 +11,31 @@ case "$(uname -s)" in
         ;;
 esac
 
-echo "Running clang-format…"
+echo "Running clang-format..."
 
 # Always go to repo root (safe)
 cd "$(git rev-parse --show-toplevel)"
 
+# Remember files staged before formatting
+staged_files=$(git diff --cached --name-only)
+
+echo "pre-commit: Staged files:"
+printf '%s\n' "$staged_files" |
+    while IFS= read -r file; do
+        [ -n "$file" ] && printf "'%s'\n" "$file"
+    done
+
 # Run make in src/
 make -C src format
 
-# Re-stage any changes made by formatting
-if ! git diff --quiet; then
-    echo "pre-commit: Formatting changed files."
-    git add -A
+# Re-stage only files that were already staged and changed by formatting
+if [ -n "$staged_files" ] && ! git diff --quiet; then
+    echo "pre-commit: Re-staging formatted files..."
+    printf '%s\n' "$staged_files" |
+        while IFS= read -r file; do
+            if [ -n "$file" ] && ! git diff --quiet -- "$file"; then
+                printf "pre-commit: Re-staging '%s'\n" "$file"
+                git add -- "$file"
+            fi
+        done
 fi

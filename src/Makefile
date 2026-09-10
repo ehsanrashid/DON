@@ -409,12 +409,12 @@ endif
 else \
 ifneq ($(findstring e2k,$(ARCH)),)
 arch = e2k
+popcnt = yes
 mmx = yes
 sse = yes
 sse2 = yes
 ssse3 = yes
 sse41 = yes
-popcnt = yes
 
 else \
 ifneq ($(findstring loongarch64,$(ARCH)),)
@@ -445,6 +445,7 @@ else \
 ifneq ($(findstring ppc-32,$(ARCH)),)
 arch = ppc
 bits = 32
+popcnt = yes
 
 else \
 ifneq ($(findstring armv8,$(ARCH)),)
@@ -621,8 +622,8 @@ endif
 else \
 ifeq ($(COMP),mingw)
 MINGW_ARCH      := $(if $(filter 64,$(bits)),x86_64,i686)
-MINGW_CXX       := $(MINGW_ARCH)-w64-mingw32-c++
 MINGW_CXX_POSIX := $(MINGW_ARCH)-w64-mingw32-c++-posix
+MINGW_CXX       := $(MINGW_ARCH)-w64-mingw32-c++
 
 # Prefer POSIX threading variant if available
 CXX := $(if $(call FIND_EXE,$(MINGW_CXX_POSIX)),$(MINGW_CXX_POSIX),$(MINGW_CXX))
@@ -882,7 +883,7 @@ CXXFLAGS += -DUSE_POPCNT
 ifeq ($(arch),wasm32)
 CXXFLAGS += -msse3
 else \
-ifeq ($(filter loongarch64 ppc64 arm64 armv8 armv7 riscv64,$(arch)),)
+ifeq ($(filter loongarch64 ppc64 ppc arm64 armv8 armv7 riscv64,$(arch)),)
 CXXFLAGS += -msse3 -mpopcnt
 endif
 endif
@@ -1424,7 +1425,7 @@ format:
 	"$(CLANG_FORMAT)" -i -style=file $(SRCS) $(UNIVERSAL_SRCS) $(HEADERS)
 
 install-hooks:
-	@root=$$(git rev-parse --show-toplevel 2> /dev/null); \
+	@root=$$($(GIT) rev-parse --show-toplevel 2>/dev/null); \
 	if [ -z "$$root" ]; then \
 		echo "Not a git repo"; exit 1; \
 	fi; \
@@ -1551,43 +1552,49 @@ misc.o: misc.cpp $(GIT_DATE_FILE) $(GIT_SHA_FILE) $(GIT_DIFFINDEX_FILE)
 # Clang PGO
 clang-profile-make:
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
-	EXTRA_CXXFLAGS='-fprofile-generate $(EXTRA_CXXFLAGS)' \
-	EXTRA_LDFLAGS='-fprofile-generate $(EXTRA_LDFLAGS)' \
+	EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) $(EXTRA_PROFILE_FLAGS) -fprofile-generate' \
+	EXTRA_LDFLAGS='$(EXTRA_LDFLAGS) -fprofile-generate' \
+	EXTRA_LDLIBS='$(EXTRA_LDLIBS)' \
 	all
 
 clang-profile-use:
 	$(XCRUN) $(LLVM_PROFDATA) merge -output="$(NAME).profdata" *.profraw
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
-	EXTRA_CXXFLAGS='-fprofile-use="$(NAME).profdata" $(EXTRA_CXXFLAGS)' \
-	EXTRA_LDFLAGS='-fprofile-use="$(NAME).profdata" $(EXTRA_LDFLAGS)' \
+	EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) $(EXTRA_PROFILE_FLAGS) -fprofile-use="$(NAME).profdata"' \
+	EXTRA_LDFLAGS='$(EXTRA_LDFLAGS) -fprofile-use="$(NAME).profdata"' \
+	EXTRA_LDLIBS='$(EXTRA_LDLIBS)' \
 	all
 
 # GCC PGO
 gcc-profile-make:
 	@mkdir -p profdir
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
-	EXTRA_CXXFLAGS='-fprofile-generate=profdir $(EXTRA_PROFILE_FLAGS) $(EXTRA_CXXFLAGS)' \
-	EXTRA_LDLIBS='-lgcov $(EXTRA_LDLIBS)' \
+	EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) $(EXTRA_PROFILE_FLAGS) -fprofile-generate=profdir' \
+	EXTRA_LDFLAGS='$(EXTRA_LDFLAGS)' \
+	EXTRA_LDLIBS='$(EXTRA_LDLIBS) -lgcov' \
 	all
 
 gcc-profile-use:
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
-	EXTRA_CXXFLAGS='-fprofile-use=profdir -fprofile-correction -fno-peel-loops -fno-tracer $(EXTRA_PROFILE_FLAGS) $(EXTRA_CXXFLAGS)' \
-	EXTRA_LDLIBS='-lgcov $(EXTRA_LDLIBS)' \
+	EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) $(EXTRA_PROFILE_FLAGS) -fprofile-use=profdir -fprofile-correction -fno-peel-loops -fno-tracer' \
+	EXTRA_LDFLAGS='$(EXTRA_LDFLAGS)' \
+	EXTRA_LDLIBS='$(EXTRA_LDLIBS) -lgcov' \
 	all
 
 # ICC/ICX PGO
 icx-profile-make:
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
-	EXTRA_CXXFLAGS='-fprofile-instr-generate $(EXTRA_CXXFLAGS)' \
-	EXTRA_LDFLAGS='-fprofile-instr-generate $(EXTRA_LDFLAGS)' \
+	EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) $(EXTRA_PROFILE_FLAGS) -fprofile-instr-generate' \
+	EXTRA_LDFLAGS='$(EXTRA_LDFLAGS) -fprofile-instr-generate' \
+	EXTRA_LDLIBS='$(EXTRA_LDLIBS)' \
 	all
 
 icx-profile-use:
 	$(XCRUN) $(LLVM_PROFDATA) merge -output="$(NAME).profdata" *.profraw
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
-	EXTRA_CXXFLAGS='-fprofile-instr-use="$(NAME).profdata" $(EXTRA_CXXFLAGS)' \
-	EXTRA_LDFLAGS='-fprofile-use $(EXTRA_LDFLAGS)' \
+	EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) $(EXTRA_PROFILE_FLAGS) -fprofile-instr-use="$(NAME).profdata"' \
+	EXTRA_LDFLAGS='$(EXTRA_LDFLAGS) -fprofile-use' \
+	EXTRA_LDLIBS='$(EXTRA_LDLIBS)' \
 	all
 
 .depend: $(SRCS)
