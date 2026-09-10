@@ -207,7 +207,7 @@ jobs:
         run: |
           if [ -z "${{ matrix.config.base_image }}" ]; then
             if [ "$COMP" = 'ndk' ]; then
-              export PATH="${{ env.ANDROID_NDK_BIN }}:$PATH"
+              export PATH="$ANDROID_NDK_BIN:$PATH"
             fi
             "$COMPCXX" -v
           else
@@ -414,8 +414,8 @@ jobs:
         run: |
           EXTRA_LDFLAGS=""
           if [ "$COMP" = 'ndk' ]; then
-            export PATH="${{ env.ANDROID_NDK_BIN }}:$PATH"
-            EXTRA_LDFLAGS="-static"
+            export PATH="$ANDROID_NDK_BIN:$PATH"
+            EXTRA_LDFLAGS="-static -Wno-unused-command-line-argument"
           fi
           make clean
           make -j4 build ARCH=armv8-dotprod EXTRA_LDFLAGS="$EXTRA_LDFLAGS"
@@ -426,8 +426,8 @@ jobs:
         run: |
           EXTRA_LDFLAGS=""
           if [ "$COMP" = 'ndk' ]; then
-            export PATH="${{ env.ANDROID_NDK_BIN }}:$PATH"
-            EXTRA_LDFLAGS="-static"
+            export PATH="$ANDROID_NDK_BIN:$PATH"
+            EXTRA_LDFLAGS="-static -Wno-unused-command-line-argument"
           fi
           make clean
           make -j4 build ARCH=armv8 EXTRA_LDFLAGS="$EXTRA_LDFLAGS"
@@ -438,8 +438,8 @@ jobs:
       - name: Build and test ARMv7 NEON
         if: matrix.config.run_armv7_tests
         run: |
-          export PATH="${{ env.ANDROID_NDK_BIN }}:$PATH"
-          EXTRA_LDFLAGS="-static"
+          export PATH="$ANDROID_NDK_BIN:$PATH"
+          EXTRA_LDFLAGS="-static -Wno-unused-command-line-argument"
           make clean
           make -j4 build ARCH=armv7-neon EXTRA_LDFLAGS="$EXTRA_LDFLAGS"
           ../tests/signature.sh $benchref
@@ -447,8 +447,8 @@ jobs:
       - name: Build and test ARMv7
         if: matrix.config.run_armv7_tests
         run: |
-          export PATH="${{ env.ANDROID_NDK_BIN }}:$PATH"
-          EXTRA_LDFLAGS="-static"
+          export PATH="$ANDROID_NDK_BIN:$PATH"
+          EXTRA_LDFLAGS="-static -Wno-unused-command-line-argument"
           make clean
           make -j4 build ARCH=armv7 EXTRA_LDFLAGS="$EXTRA_LDFLAGS"
           ../tests/signature.sh $benchref

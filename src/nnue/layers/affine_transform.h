@@ -54,8 +54,8 @@ template<Index InDims, Index OutDims>
 class AffineTransform final {
    public:
     // Input/output type
-    using InputType  = u8;
-    using OutputType = i32;
+    using Input  = u8;
+    using Output = i32;
 
     // Number of input/output dimensions
     static constexpr Index InputDimensions  = InDims;
@@ -74,7 +74,7 @@ class AffineTransform final {
 #endif
       ;
 
-    using OutputBuffer = Array<OutputType, PaddedOutputDimensions>;
+    using OutputBuffer = Array<Output, PaddedOutputDimensions>;
 
     // Hash value embedded in the evaluation file
     static constexpr u32 hash(u32 preHash) noexcept {
@@ -135,7 +135,7 @@ class AffineTransform final {
     }
 
     // Forward propagation
-    void propagate(const InputType* RESTRICT input, OutputType* RESTRICT output) const noexcept {
+    void propagate(const Input* RESTRICT input, Output* RESTRICT output) const noexcept {
 
 #if defined(USE_AFFINE_SIMD)
         if constexpr (OutputDimensions > 1)
@@ -185,7 +185,7 @@ class AffineTransform final {
         #define vec_load_32(src) vec_set_32(load_as<i32>(src))
     #endif
 
-            constexpr Index OutputSimdWidth = sizeof(vec_t) / sizeof(OutputType);
+            constexpr Index OutputSimdWidth = sizeof(vec_t) / sizeof(Output);
 
             static_assert(OutputDimensions % OutputSimdWidth == 0);
 
@@ -294,7 +294,7 @@ class AffineTransform final {
 
             const auto* inputVec = reinterpret_cast<const vec_t*>(input);
 
-            constexpr Index InputSimdWidth = sizeof(vec_t) / sizeof(InputType);
+            constexpr Index InputSimdWidth = sizeof(vec_t) / sizeof(Input);
 
             static_assert(PaddedInputDimensions % InputSimdWidth == 0);
 
@@ -365,7 +365,7 @@ class AffineTransform final {
     }
 
    private:
-    using Bias   = OutputType;
+    using Bias   = Output;
     using Weight = i8;
 
     alignas(CACHE_LINE_SIZE) Array<Bias, OutputDimensions> biases;

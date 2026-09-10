@@ -38,8 +38,8 @@ template<Index InDims, u8 WeightScaleBits = WEIGHT_SCALE_BITS>
 class SqrClippedReLU final {
    public:
     // Input/output type
-    using InputType  = i32;
-    using OutputType = u8;
+    using Input  = i32;
+    using Output = u8;
 
     // Number of input/output dimensions
     static constexpr Index InputDimensions  = InDims;
@@ -47,7 +47,7 @@ class SqrClippedReLU final {
     static constexpr Index PaddedOutputDimensions =
       ceil_to_multiple<Index>(OutputDimensions, SIMD::WIDTH_MAX);
 
-    using OutputBuffer = Array<OutputType, PaddedOutputDimensions>;
+    using OutputBuffer = Array<Output, PaddedOutputDimensions>;
 
     // Hash value embedded in the evaluation file
     static constexpr u32 hash(u32 preHash) noexcept {
@@ -71,9 +71,9 @@ class SqrClippedReLU final {
 #if defined(USE_PAIR_ACTIVATIONS)
     // Produce the squared and linear clipped activations together, sharing the input loads and
     // the initial signed 32-to-16-bit saturating narrowing.
-    void propagate_pair(const InputType* RESTRICT input,
-                        OutputType* RESTRICT      squared,
-                        OutputType* RESTRICT      clipped) const noexcept {
+    void propagate_pair(const Input* RESTRICT input,
+                        Output* RESTRICT      squared,
+                        Output* RESTRICT      clipped) const noexcept {
         static_assert(5 <= WeightScaleBits && WeightScaleBits <= 8,
                       "SqrClippedReLU only support WeightScaleBits between 5 and 8");
         static_assert(InputDimensions % 32 == 0);
@@ -135,7 +135,7 @@ class SqrClippedReLU final {
 
 #else
     // Forward propagation
-    void propagate(const InputType* RESTRICT input, OutputType* RESTRICT output) const noexcept {
+    void propagate(const Input* RESTRICT input, Output* RESTRICT output) const noexcept {
         static_assert(5 <= WeightScaleBits && WeightScaleBits <= 8,
                       "SqrClippedReLU requires WeightScaleBits between 5 and 8");
         // After squaring, need shift right by 7 + 2 * WeightScaleBits.
@@ -279,7 +279,7 @@ class SqrClippedReLU final {
         {
             // The extra 7-bit right-shift approximates division by 127 while avoiding the more expensive integer division.
             // The resulting scale must be accounted for by the trainer.
-            output[i] = static_cast<OutputType>(
+            output[i] = static_cast<Output>(
               std::min((static_cast<i64>(input[i]) * input[i]) >> BaseShift, i64{127}));
         }
     }

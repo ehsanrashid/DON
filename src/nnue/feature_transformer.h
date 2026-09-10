@@ -98,7 +98,7 @@ class FeatureTransformer final {
 
    public:
     // Output type
-    using OutputType = TransformedFeature;
+    using Output = TransformedFeature;
 
     // Number of input/output dimensions
     static constexpr usize InputDimensions =
@@ -106,7 +106,7 @@ class FeatureTransformer final {
     static constexpr Index OutputDimensions = HalfDimensions;
 
     // Size of forward propagation buffer
-    static constexpr usize BufferSize = OutputDimensions * sizeof(OutputType);
+    static constexpr usize BufferSize = OutputDimensions * sizeof(Output);
 
     // Hash value embedded in the evaluation file
     static constexpr u32 hash() noexcept {
@@ -232,7 +232,7 @@ class FeatureTransformer final {
                   AccumulatorStack&                       accStack,
                   const usize                             bucket,
                   [[maybe_unused]] NNZ<OutputDimensions>& nnz,
-                  Array<OutputType, BufferSize>&          output) const noexcept {
+                  Array<Output, BufferSize>&          output) const noexcept {
 
         accStack.evaluate(pos, *this, accCache);
 
@@ -426,7 +426,7 @@ class FeatureTransformer final {
                 sum0 = std::clamp<Bias>(sum0, 0, FT_MAX);
                 sum1 = std::clamp<Bias>(sum1, 0, FT_MAX);
 
-                output[offset + i] = static_cast<OutputType>(unsigned(sum0 * sum1) / 512);
+                output[offset + i] = static_cast<Output>(unsigned(sum0 * sum1) / 512);
             }
 #endif
         }

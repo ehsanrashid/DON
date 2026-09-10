@@ -38,8 +38,8 @@ template<Index InDims, u8 WeightScaleBits = WEIGHT_SCALE_BITS>
 class ClippedReLU final {
    public:
     // Input/output type
-    using InputType  = i32;
-    using OutputType = u8;
+    using Input  = i32;
+    using Output = u8;
 
     // Number of input/output dimensions
     static constexpr Index InputDimensions  = InDims;
@@ -47,7 +47,7 @@ class ClippedReLU final {
     static constexpr Index PaddedOutputDimensions =
       ceil_to_multiple<Index>(OutputDimensions, SIMD::WIDTH_MAX);
 
-    using OutputBuffer = Array<OutputType, PaddedOutputDimensions>;
+    using OutputBuffer = Array<Output, PaddedOutputDimensions>;
 
     // Hash value embedded in the evaluation file
     static constexpr u32 hash(u32 preHash) noexcept {
@@ -69,7 +69,7 @@ class ClippedReLU final {
     bool write_parameters(std::ostream&) const noexcept { return true; }
 
     // Forward propagation
-    void propagate(const InputType* RESTRICT input, OutputType* RESTRICT output) const noexcept {
+    void propagate(const Input* RESTRICT input, Output* RESTRICT output) const noexcept {
         // clang-format off
 #if defined(USE_SSE2)
         constexpr Index SimdWidth  = SIMD::WIDTH_MIN;
@@ -190,7 +190,7 @@ class ClippedReLU final {
         // clang-format on
 
         for (Index i = Start; i < InputDimensions; ++i)
-            output[i] = static_cast<OutputType>(std::clamp(input[i] >> WeightScaleBits, 0, 127));
+            output[i] = static_cast<Output>(std::clamp(input[i] >> WeightScaleBits, 0, 127));
     }
 };
 
