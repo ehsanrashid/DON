@@ -35,7 +35,7 @@ namespace DON::NNUE::Features {
 namespace {
 
 // Index of a feature for king position and piece on square
-ALWAYS_INLINE constexpr IndexType
+ALWAYS_INLINE constexpr Index
 make_index(const Color perspective, const Square kingSq, const Square s, const Piece pc) noexcept {
     const u8 relOrientation = relative_sq(perspective, HalfKAHm::orientation(kingSq));
     return (static_cast<u8>(s) ^ relOrientation)             //
@@ -52,8 +52,8 @@ void HalfKAHm::append_map_changed_indices(const Color     perspective,
                                           const PieceMap& newPieceMap,
                                           Bitboard        removedBB,
                                           Bitboard        addedBB,
-                                          IndexVector&    removed,
-                                          IndexVector&    added) noexcept {
+                                          IndexList&      removed,
+                                          IndexList&      added) noexcept {
 #if defined(USE_AVX512ICL)
     const __m512i oldPieceVec = _mm512_loadu_si512(oldPieceMap.data());
     const __m512i newPieceVec = _mm512_loadu_si512(newPieceMap.data());
@@ -109,8 +109,8 @@ void HalfKAHm::append_map_changed_indices(const Color     perspective,
 void HalfKAHm::append_changed_indices(const Color      perspective,
                                       const Square     kingSq,
                                       const DirtyType& dP,
-                                      IndexVector&     removed,
-                                      IndexVector&     added) noexcept {
+                                      IndexList&       removed,
+                                      IndexList&       added) noexcept {
     // clang-format off
     removed.push_back   (make_index(perspective, kingSq, dP.orgSq, dP.movedPc));
     added.  push_back_if(make_index(perspective, kingSq, dP.dstSq, dP.movedPc)      , is_ok(dP.dstSq));
@@ -119,11 +119,11 @@ void HalfKAHm::append_changed_indices(const Color      perspective,
     // clang-format on
 }
 
-void HalfKAHm::append_changed_indices_both(const Square                  wKingSq,
-                                           const Square                  bKingSq,
-                                           const DirtyType&              dP,
-                                           Array<IndexVector, COLOR_NB>& removed,
-                                           Array<IndexVector, COLOR_NB>& added) noexcept {
+void HalfKAHm::append_changed_indices_both(const Square                wKingSq,
+                                           const Square                bKingSq,
+                                           const DirtyType&            dP,
+                                           Array<IndexList, COLOR_NB>& removed,
+                                           Array<IndexList, COLOR_NB>& added) noexcept {
     append_changed_indices(WHITE, wKingSq, dP, removed[WHITE], added[WHITE]);
     append_changed_indices(BLACK, bKingSq, dP, removed[BLACK], added[BLACK]);
 }

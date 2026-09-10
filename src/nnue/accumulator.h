@@ -40,9 +40,9 @@ class FeatureTransformer;
 // Stores the accumulated affine-transformation results for HalfKAHm and FullThreats.
 struct alignas(CACHE_LINE_SIZE) BaseAccumulator {
    public:
-    Array<BiasType, COLOR_NB, L1>                 accumulation;
-    Array<PSQTWeightType, COLOR_NB, PSQT_BUCKETS> psqtAccumulation;
-    Array<bool, COLOR_NB>                         computed{};
+    Array<Bias, COLOR_NB, L1>                 accumulation;
+    Array<PSQTWeight, COLOR_NB, PSQT_BUCKETS> psqtAccumulation;
+    Array<bool, COLOR_NB>                     computed{};
 };
 
 static_assert(sizeof(BaseAccumulator) % CACHE_LINE_SIZE == 0);
@@ -71,7 +71,7 @@ struct AccumulatorCache final {
        public:
         // To initialize a refresh entry, set all its bitboards empty,
         // so put the biases in the accumulation, without any weights on top
-        void init(const Array<BiasType, L1>& biases) noexcept {
+        void init(const Array<Bias, L1>& biases) noexcept {
             // Initialize accumulation with given biases
             accumulation          = biases;
             constexpr auto offset = offsetof(Entry, psqtAccumulation);
@@ -79,10 +79,10 @@ struct AccumulatorCache final {
             std::memset(reinterpret_cast<u8*>(this) + offset, 0, sizeof(*this) - offset);
         }
 
-        Array<BiasType, L1>                 accumulation;
-        Array<PSQTWeightType, PSQT_BUCKETS> psqtAccumulation;
-        PieceMap                            pieceMap;
-        Bitboard                            piecesBB;
+        Array<Bias, L1>                 accumulation;
+        Array<PSQTWeight, PSQT_BUCKETS> psqtAccumulation;
+        PieceMap                        pieceMap;
+        Bitboard                        piecesBB;
     };
 
     template<typename Network>

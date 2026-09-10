@@ -37,7 +37,7 @@
 #else
     #include "fallback_affine_transform.h"
 namespace DON::NNUE {
-template<usize Dimensions>
+template<Index Dimensions>
 struct NNZ;
 }
 #endif
@@ -53,26 +53,26 @@ namespace DON::NNUE::Layers {
 //
 // Only active input blocks are processed, avoiding unnecessary computation
 // for inactive blocks.
-template<IndexType InDims, IndexType OutDims>
+template<Index InDims, Index OutDims>
 class SparseAffineTransform final {
    public:
     // Input/output type
-    using InputType  = u8;
-    using OutputType = i32;
+    using Input  = u8;
+    using Output = i32;
 
     // Number of input/output dimensions
-    static constexpr IndexType InputDimensions  = InDims;
-    static constexpr IndexType OutputDimensions = OutDims;
+    static constexpr Index InputDimensions  = InDims;
+    static constexpr Index OutputDimensions = OutDims;
 
     static_assert(OutputDimensions % 16 == 0,
                   "Only implemented for OutputDimensions divisible by 16.");
 
-    static constexpr IndexType PaddedInputDimensions =
-      ceil_to_multiple<IndexType>(InputDimensions, SIMD::WIDTH_MAX);
-    static constexpr IndexType PaddedOutputDimensions =
-      ceil_to_multiple<IndexType>(OutputDimensions, SIMD::WIDTH_MAX);
+    static constexpr Index PaddedInputDimensions =
+      ceil_to_multiple<Index>(InputDimensions, SIMD::WIDTH_MAX);
+    static constexpr Index PaddedOutputDimensions =
+      ceil_to_multiple<Index>(OutputDimensions, SIMD::WIDTH_MAX);
 
-    static constexpr IndexType ChunkSize =
+    static constexpr Index ChunkSize =
 #if defined(USE_SPARSE_AFFINE_SIMD)
       4
 #else
@@ -80,7 +80,7 @@ class SparseAffineTransform final {
 #endif
       ;
 
-    using OutputBuffer = Array<OutputType, PaddedOutputDimensions>;
+    using OutputBuffer = Array<Output, PaddedOutputDimensions>;
 
     // Hash value embedded in the evaluation file
     static constexpr u32 hash(u32 preHash) noexcept {
@@ -91,9 +91,9 @@ class SparseAffineTransform final {
         return h;
     }
 
-    static constexpr IndexType weight_index(IndexType i) noexcept {
+    static constexpr Index weight_index(Index i) noexcept {
 #if defined(USE_SPARSE_AFFINE_SIMD) || defined(USE_RVV)
-        IndexType idx = i % PaddedInputDimensions;
+        Index idx = i % PaddedInputDimensions;
         return idx / ChunkSize * OutputDimensions * ChunkSize
              + i / PaddedInputDimensions * ChunkSize + idx % ChunkSize;
 #else
@@ -114,8 +114,8 @@ class SparseAffineTransform final {
 
         read_little_endian(is, biases);
 
-        for (IndexType i = 0; i < OutputDimensions * PaddedInputDimensions; ++i)
-            weights[weight_index(i)] = read_little_endian<WeightType>(is);
+        for (Index i = 0; i < OutputDimensions * PaddedInputDimensions; ++i)
+            weights[weight_index(i)] = read_little_endian<Weight>(is);
 
         return !is.fail();
     }
@@ -125,15 +125,15 @@ class SparseAffineTransform final {
 
         write_little_endian(os, biases);
 
-        for (IndexType i = 0; i < OutputDimensions * PaddedInputDimensions; ++i)
-            write_little_endian<WeightType>(os, weights[weight_index(i)]);
+        for (Index i = 0; i < OutputDimensions * PaddedInputDimensions; ++i)
+            write_little_endian<Weight>(os, weights[weight_index(i)]);
 
         return !os.fail();
     }
 
     // Forward propagation
-    void propagate(const InputType* RESTRICT           input,
-                   OutputType* RESTRICT                output,
+    void propagate(const Input* RESTRICT               input,
+                   Output* RESTRICT                    output,
                    [[maybe_unused]] const NNZ<InDims>& nnz) const noexcept {
 
 #if defined(USE_SPARSE_AFFINE_SIMD)
@@ -193,12 +193,12 @@ class SparseAffineTransform final {
         #define vec_load_32(src) vec_set_32(load_as<i32>(src))
     #endif
 
-        constexpr IndexType OutputSimdWidth = sizeof(outvec_t) / sizeof(OutputType);
+        constexpr Index OutputSimdWidth = sizeof(outvec_t) / sizeof(Output);
 
-        constexpr IndexType AccCount = OutputDimensions / OutputSimdWidth;
+        constexpr Index AccCount = OutputDimensions / OutputSimdWidth;
         // If using high-latency dot product instructions, split the accumulators
         // to create 3 separate dependency chains and merge at the end
-        constexpr IndexType RegCount =
+        constexpr Index RegCount =
     #if (defined(USE_VNNI) && defined(USE_AVX512)) || defined(USE_NEON_DOTPROD)
           AccCount * 3
     #elif defined(USE_AVXVNNI)
@@ -212,14 +212,14 @@ class SparseAffineTransform final {
 
         outvec_t acc[RegCount];
 
-        for (IndexType k = 0; k < AccCount; ++k)
+        for (Index k = 0; k < AccCount; ++k)
             acc[k] = biasVec[k];
 
         // Convince GCC to not do weird pointer arithmetic in the following loops
         const i8* w = weights.data();
 
     #if defined(USE_AVXVNNI) || defined(USE_AVX512) || defined(USE_NEON_DOTPROD)
-        for (IndexType k = AccCount; k < RegCount; ++k)
+        for (Index k = AccCount; k < RegCount; ++k)
             acc[k] =
         #if defined(USE_AVXVNNI)
               vec_set_32(0)
@@ -252,7 +252,7 @@ class SparseAffineTransform final {
             const auto* col2 =
               reinterpret_cast<const invec_t*>(&w[i2 * OutputDimensions * ChunkSize]);
 
-            for (IndexType k = 0; k < AccCount; ++k)
+            for (Index k = 0; k < AccCount; ++k)
             {
                 vec_add_dpbusd_32(acc[k + AccCount * 0], in0, col0[k]);
                 vec_add_dpbusd_32(acc[k + AccCount * 1], in1, col1[k]);
@@ -260,7 +260,7 @@ class SparseAffineTransform final {
             }
         }
 
-        for (IndexType k = 0; k < AccCount; ++k)
+        for (Index k = 0; k < AccCount; ++k)
             acc[k] = vec_add_32(vec_add_32(acc[k + AccCount * 0],  //
                                            acc[k + AccCount * 1]),
                                 acc[k + AccCount * 2]);
@@ -275,14 +275,14 @@ class SparseAffineTransform final {
             const auto* col =
               reinterpret_cast<const invec_t*>(&w[i * OutputDimensions * ChunkSize]);
 
-            for (IndexType k = 0; k < AccCount; ++k)
+            for (Index k = 0; k < AccCount; ++k)
                 vec_add_dpbusd_32(acc[k], in, col[k]);
         }
 
     #else
         static_assert(InputDimensions % 256 == 0);
 
-        for (IndexType j = 0; j < InputDimensions / 256; ++j)
+        for (Index j = 0; j < InputDimensions / 256; ++j)
         {
             Bitboard    bits   = load_as<Bitboard>(nnz.bitset + j * 8);
             const usize base   = 64 * j;
@@ -312,7 +312,7 @@ class SparseAffineTransform final {
 
                 if (bits == 0)
                 {
-                    for (IndexType k = 0; k < AccCount; ++k)
+                    for (Index k = 0; k < AccCount; ++k)
                         vec_add_dpbusd_32(acc[k], in0, col0[k]);
                     break;
                 }
@@ -324,7 +324,7 @@ class SparseAffineTransform final {
                 const auto* col1 =
                   reinterpret_cast<const invec_t*>(&wBase[i1 * OutputDimensions * ChunkSize]);
 
-                for (IndexType k = 0; k < AccCount; ++k)
+                for (Index k = 0; k < AccCount; ++k)
                 {
                     vec_add_dpbusd_32(acc[k + AccCount * 0], in0, col0[k]);
                     vec_add_dpbusd_32(acc[k + AccCount * 1], in1, col1[k]);
@@ -342,7 +342,7 @@ class SparseAffineTransform final {
                     const auto* col0 =
                       reinterpret_cast<const invec_t*>(&wBase[i0 * OutputDimensions * ChunkSize]);
 
-                    for (IndexType k = 0; k < AccCount; ++k)
+                    for (Index k = 0; k < AccCount; ++k)
                         vec_add_dpbusd_32(acc[k], in0, col0[k]);
                     break;
                 }
@@ -358,7 +358,7 @@ class SparseAffineTransform final {
                     const auto* col1 =
                       reinterpret_cast<const invec_t*>(&wBase[i1 * OutputDimensions * ChunkSize]);
 
-                    for (IndexType k = 0; k < AccCount; ++k)
+                    for (Index k = 0; k < AccCount; ++k)
                     {
                         vec_add_dpbusd_32(acc[k + AccCount * 0], in0, col0[k]);
                         vec_add_dpbusd_32(acc[k + AccCount * 1], in1, col1[k]);
@@ -379,7 +379,7 @@ class SparseAffineTransform final {
                 const auto* col2 =
                   reinterpret_cast<const invec_t*>(&wBase[i2 * OutputDimensions * ChunkSize]);
 
-                for (IndexType k = 0; k < AccCount; ++k)
+                for (Index k = 0; k < AccCount; ++k)
                 {
                     vec_add_dpbusd_32(acc[k + AccCount * 0], in0, col0[k]);
                     vec_add_dpbusd_32(acc[k + AccCount * 1], in1, col1[k]);
@@ -402,7 +402,7 @@ class SparseAffineTransform final {
             #endif
 
                 const invec_t in = vec_load_32(inPtr);
-                for (IndexType k = 0; k < AccCount; ++k)
+                for (Index k = 0; k < AccCount; ++k)
                     vec_add_dpbusd_32(acc[k], in, col[k]);
             }
         #endif
@@ -411,7 +411,7 @@ class SparseAffineTransform final {
         }
 
         #if defined(USE_AVXVNNI) || defined(USE_NEON_DOTPROD)
-        for (IndexType k = 0; k < AccCount; ++k)
+        for (Index k = 0; k < AccCount; ++k)
             acc[k] =
             #if defined(USE_AVXVNNI)
               vec_add_32(acc[k + AccCount * 0], acc[k + AccCount * 1])
@@ -426,7 +426,7 @@ class SparseAffineTransform final {
 
         auto* outVec = reinterpret_cast<outvec_t*>(output);
 
-        for (IndexType k = 0; k < AccCount; ++k)
+        for (Index k = 0; k < AccCount; ++k)
             outVec[k] = acc[k];
 
     #undef vec_set_32
@@ -441,9 +441,9 @@ class SparseAffineTransform final {
     #define RVV_SPARSE_PROPAGATE(m1, m2, m4) \
         do \
         { \
-            IndexType      vl  = OutputDimensions; \
+            Index          vl  = OutputDimensions; \
             vint32##m4##_t acc = __riscv_vle32_v_i32##m4(biases.data(), vl); \
-            IndexType      i   = 0; \
+            Index          i   = 0; \
             for (; i + 1 < nnz.count; i += 2) \
             { \
                 u16           idx0 = nnz.bitset[i + 0]; \
@@ -469,7 +469,7 @@ class SparseAffineTransform final {
         } while (false)
 
         // Select LMUL
-        const IndexType maxVL = __riscv_vsetvlmax_e32m1();
+        const Index maxVL = __riscv_vsetvlmax_e32m1();
         if (maxVL >= OutputDimensions)
             RVV_SPARSE_PROPAGATE(mf4, mf2, m1);
         else if (maxVL * 2 >= OutputDimensions)
@@ -489,11 +489,11 @@ class SparseAffineTransform final {
     }
 
    private:
-    using BiasType   = OutputType;
-    using WeightType = i8;
+    using Bias   = Output;
+    using Weight = i8;
 
-    alignas(CACHE_LINE_SIZE) Array<BiasType, OutputDimensions> biases;
-    alignas(CACHE_LINE_SIZE) Array<WeightType, OutputDimensions * PaddedInputDimensions> weights;
+    alignas(CACHE_LINE_SIZE) Array<Bias, OutputDimensions> biases;
+    alignas(CACHE_LINE_SIZE) Array<Weight, OutputDimensions * PaddedInputDimensions> weights;
 };
 
 }  // namespace DON::NNUE::Layers

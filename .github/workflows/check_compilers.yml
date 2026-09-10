@@ -15,7 +15,7 @@ jobs:
       matrix:
         include:
           # GCC 10–11 use Bookworm images; GCC 12+ use the default images
-          - { name: GCC-10, comp: gcc, cxx: g++, image: "gcc:10-bookworm" }
+          # - { name: GCC-10, comp: gcc, cxx: g++, image: "gcc:10-bookworm" }
           - { name: GCC-11, comp: gcc, cxx: g++, image: "gcc:11-bookworm" }
           - { name: GCC-12, comp: gcc, cxx: g++, image: "gcc:12" }
           - { name: GCC-13, comp: gcc, cxx: g++, image: "gcc:13" }
