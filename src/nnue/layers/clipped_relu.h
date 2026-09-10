@@ -156,11 +156,9 @@ class ClippedReLU final {
         {
             const Index j = i * 2;
 
-            int16x8_t shifted;
-            auto*     pack = reinterpret_cast<int16x4_t*>(&shifted);
-            pack[0]        = vqshrn_n_s32(in[j + 0], WeightScaleBits);
-            pack[1]        = vqshrn_n_s32(in[j + 1], WeightScaleBits);
-            out[i]         = vmax_s8(vqmovn_s16(shifted), Zero);
+            const int16x8_t shifted = vcombine_s16(vqshrn_n_s32(in[j + 0], WeightScaleBits),
+                                                   vqshrn_n_s32(in[j + 1], WeightScaleBits));
+            out[i]                  = vmax_s8(vqmovn_s16(shifted), Zero);
         }
 
         constexpr Index Start = SimdWidth * ChunkCount;

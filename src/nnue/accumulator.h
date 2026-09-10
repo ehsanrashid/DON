@@ -106,8 +106,6 @@ struct AccumulatorCache final {
 
 struct AccumulatorStack final {
    public:
-    AccumulatorStack() noexcept { accumulators[0].computed.fill(false); }
-
     void reset() noexcept;
 
     void push(Dirties&& dirties) noexcept;
@@ -151,7 +149,7 @@ struct AccumulatorStack final {
     static constexpr usize Size = PLY_MAX + 1;
 
     Array<Accumulator, Size> accumulators;
-    usize                    size_ = 1;
+    usize                    size_ = 0;
 };
 
 }  // namespace NNUE

@@ -409,12 +409,12 @@ endif
 else \
 ifneq ($(findstring e2k,$(ARCH)),)
 arch = e2k
+popcnt = yes
 mmx = yes
 sse = yes
 sse2 = yes
 ssse3 = yes
 sse41 = yes
-popcnt = yes
 
 else \
 ifneq ($(findstring loongarch64,$(ARCH)),)
@@ -445,6 +445,7 @@ else \
 ifneq ($(findstring ppc-32,$(ARCH)),)
 arch = ppc
 bits = 32
+popcnt = yes
 
 else \
 ifneq ($(findstring armv8,$(ARCH)),)
@@ -882,7 +883,7 @@ CXXFLAGS += -DUSE_POPCNT
 ifeq ($(arch),wasm32)
 CXXFLAGS += -msse3
 else \
-ifeq ($(filter loongarch64 ppc64 arm64 armv8 armv7 riscv64,$(arch)),)
+ifeq ($(filter loongarch64 ppc64 ppc arm64 armv8 armv7 riscv64,$(arch)),)
 CXXFLAGS += -msse3 -mpopcnt
 endif
 endif

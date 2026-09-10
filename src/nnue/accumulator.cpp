@@ -74,7 +74,7 @@ void AccumulatorStack::push(Dirties&& dirties) noexcept {
 }
 
 void AccumulatorStack::pop() noexcept {
-    assert(size() > 1);
+    assert(size() != 0);
 
     --size_;
 }
