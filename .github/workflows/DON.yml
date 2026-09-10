@@ -30,7 +30,7 @@ jobs:
 
       # Returns 'null' if no pre-release exists
       - name: Get Latest Pre-release Tag
-        id: get-prerelease-tag
+        id: prerelease-tag
         run: |
           # Install required packages
           sudo apt-get update
@@ -40,8 +40,9 @@ jobs:
           echo "PRERELEASE_TAG=$PRERELEASE_TAG" >> "$GITHUB_OUTPUT"
 
       # Delete previous pre-release and tag
-      - run: gh release delete ${{ steps.get-prerelease-tag.outputs.PRERELEASE_TAG }} --cleanup-tag
-        if: steps.get-prerelease-tag.outputs.PRERELEASE_TAG != 'null'
+      - name: Delete Previous Pre-release and Tag
+        run: gh release delete ${{ steps.prerelease-tag.outputs.PRERELEASE_TAG }} --cleanup-tag
+        if: steps.prerelease-tag.outputs.PRERELEASE_TAG != 'null'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -180,7 +181,7 @@ jobs:
   UploadAndroid:
     name: Upload Android
     if: github.repository == 'ehsanrashid/DON'
-    needs: [Prerelease, Matrix]
+    needs: [Matrix, Prerelease]
     uses: ./.github/workflows/upload_binary.yml
     with:
       matrix: ${{ needs.Matrix.outputs.android_matrix }}
@@ -191,7 +192,7 @@ jobs:
   UploadUniversal:
     name: Upload Universal
     if: github.repository == 'ehsanrashid/DON'
-    needs: [Prerelease, Matrix]
+    needs: [Matrix, Prerelease]
     uses: ./.github/workflows/upload_binary.yml
     with:
       matrix: ${{ needs.Matrix.outputs.universal_matrix }}
