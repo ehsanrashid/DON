@@ -47,20 +47,19 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # Make sure that an old CI run on main doesn't recreate a prerelease
-      - name: Check Pullable Commits
-        id: check-commits
+      - name: Get Pullable Commit Count
+        id: commit-count
         run: |
           git fetch
-          CHANGES=$(git rev-list HEAD..origin/main --count)
-          echo "CHANGES=$CHANGES" >> "$GITHUB_OUTPUT"
+          echo "COUNT=$(git rev-list HEAD..origin/main --count)" >> "$GITHUB_OUTPUT"
+
+      - name: Get last commit date
+        id: commit-date
+        run: echo "COMMIT_DATE=$(git show -s --date=format:%Y%m%d --format=%cd HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Get last commit SHA
         id: commit-sha
         run: echo "COMMIT_SHA=$(git rev-parse HEAD | cut -c 1-8)" >> "$GITHUB_OUTPUT"
-
-      - name: Get last commit date
-        id: commit-date
-        run: echo "COMMIT_DATE=$(git show -s --date=format:'%Y%m%d' --format=%cd HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Official Release?
         id: official-release
@@ -92,7 +91,7 @@ jobs:
 
       # Create a new pre-release; upload_binary.yml will upload the binaries to it
       - name: Create Prerelease
-        if: github.ref_name == 'main' && steps.check-commits.outputs.CHANGES == '0' && steps.official-release.outputs.OFFICIAL_RELEASE == 'false'
+        if: github.ref_name == 'main' && steps.commit-count.outputs.COUNT == '0' && steps.official-release.outputs.OFFICIAL_RELEASE == 'false'
         uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3.0.0
         with:
           name: DON dev-${{ steps.commit-date.outputs.COMMIT_DATE }}-${{ steps.commit-sha.outputs.COMMIT_SHA }}
@@ -105,8 +104,8 @@ jobs:
             > For stable, thoroughly tested builds use the [official releases](https://github.com/ehsanrashid/DON/releases).
             > Pre-releases may contain bugs.
 
-            *Some platforms ship a **universal binary** that automatically selects the best
-            instruction set for your CPU - no manual selection needed.*
+            *Some platforms ship universal binary that automatically selects the best instruction set for your CPU.
+             No manual selection is required.*
 
             ---
 

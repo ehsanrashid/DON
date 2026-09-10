@@ -87,20 +87,19 @@ jobs:
           token: ${{ secrets.token }}
 
       # Make sure that an old CI run on main doesn't recreate a prerelease
-      - name: Check Pullable Commits
-        id: check-commits
+      - name: Get Pullable Commit Count
+        id: commit-count
         run: |
           git fetch
-          CHANGES=$(git rev-list HEAD..origin/main --count)
-          echo "CHANGES=$CHANGES" >> "$GITHUB_OUTPUT"
+          echo "COUNT=$(git rev-list HEAD..origin/main --count)" >> "$GITHUB_OUTPUT"
+
+      - name: Get last commit date
+        id: commit-date
+        run: echo "COMMIT_DATE=$(git show -s --date=format:%Y%m%d --format=%cd HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Get last commit SHA
         id: commit-sha
         run: echo "COMMIT_SHA=$(git rev-parse HEAD | cut -c 1-8)" >> "$GITHUB_OUTPUT"
-
-      - name: Get last commit date
-        id: commit-date
-        run: echo "COMMIT_DATE=$(git show -s --date=format:'%Y%m%d' --format=%cd HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Official Release?
         id: official-release
@@ -113,7 +112,7 @@ jobs:
           fi
 
       - name: Prerelease
-        if: github.ref_name == 'main' && steps.check-commits.outputs.CHANGES == '0' && steps.official-release.outputs.OFFICIAL_RELEASE == 'false'
+        if: github.ref_name == 'main' && steps.commit-count.outputs.COUNT == '0' && steps.official-release.outputs.OFFICIAL_RELEASE == 'false'
         continue-on-error: true
         uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3.0.0
         with:
