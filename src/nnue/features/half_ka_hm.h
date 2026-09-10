@@ -75,16 +75,18 @@ class HalfKAHm final {
     }};
 
 #define B(v) (v * PS_NB)
+    // clang-format off
     alignas(CACHE_LINE_SIZE) static constexpr Array<IndexType, SQUARE_NB> KING_BUCKETS{
       B(28), B(29), B(30), B(31), B(31), B(30), B(29), B(28),  //
       B(24), B(25), B(26), B(27), B(27), B(26), B(25), B(24),  //
       B(20), B(21), B(22), B(23), B(23), B(22), B(21), B(20),  //
       B(16), B(17), B(18), B(19), B(19), B(18), B(17), B(16),  //
       B(12), B(13), B(14), B(15), B(15), B(14), B(13), B(12),  //
-      B(8),  B(9),  B(10), B(11), B(11), B(10), B(9),  B(8),   //
-      B(4),  B(5),  B(6),  B(7),  B(7),  B(6),  B(5),  B(4),   //
-      B(0),  B(1),  B(2),  B(3),  B(3),  B(2),  B(1),  B(0)    //
+      B( 8), B(9 ), B(10), B(11), B(11), B(10), B( 9), B( 8),  //
+      B( 4), B( 5), B( 6), B( 7), B( 7), B( 6), B( 5), B( 4),  //
+      B( 0), B( 1), B( 2), B( 3), B( 3), B( 2), B( 1), B( 0)   //
     };
+    // clang-format on
 #undef B
 
     static void append_map_changed_indices(Color           perspective,
