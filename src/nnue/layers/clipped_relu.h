@@ -70,39 +70,38 @@ class ClippedReLU final {
 
     // Forward propagation
     void propagate(const Input* RESTRICT input, Output* RESTRICT output) const noexcept {
-        // clang-format off
+
 #if defined(USE_SSE2)
         constexpr Index SimdWidth  = SIMD::WIDTH_MIN;
         constexpr Index ChunkCount = InputDimensions / SimdWidth;
 
-    #if defined(USE_SSE41)
-    #else
+    #if !(defined(USE_SSE41))
         const __m128i K0x80s = _mm_set1_epi8(-128);
     #endif
 
         const auto* in  = reinterpret_cast<const __m128i*>(input);
         auto*       out = reinterpret_cast<__m128i*>(output);
-
         for (Index i = 0; i < ChunkCount; ++i)
         {
             const Index j = i * 4;
-
+                // clang-format off
     #if defined(USE_SSE41)
             const __m128i packed0 = _mm_packus_epi32(_mm_load_si128(&in[j + 0]), _mm_load_si128(&in[j + 1]));
             const __m128i packed1 = _mm_packus_epi32(_mm_load_si128(&in[j + 2]), _mm_load_si128(&in[j + 3]));
             const __m128i words0  = _mm_srli_epi16(packed0, WeightScaleBits);
             const __m128i words1  = _mm_srli_epi16(packed1, WeightScaleBits);
-
             _mm_store_si128(&out[i], _mm_packs_epi16(words0, words1));
+
     #else
             const __m128i packed0 = _mm_packs_epi32(_mm_load_si128(&in[j + 0]), _mm_load_si128(&in[j + 1]));
             const __m128i packed1 = _mm_packs_epi32(_mm_load_si128(&in[j + 2]), _mm_load_si128(&in[j + 3]));
             const __m128i words0  = _mm_srai_epi16(packed0, WeightScaleBits);
             const __m128i words1  = _mm_srai_epi16(packed1, WeightScaleBits);
             const __m128i packed  = _mm_packs_epi16(words0, words1);
-
             _mm_store_si128(&out[i], _mm_subs_epi8(_mm_adds_epi8(packed, K0x80s), K0x80s));
+    
     #endif
+            // clang-format on
         }
 
         constexpr Index Start = SimdWidth * ChunkCount;
@@ -114,7 +113,6 @@ class ClippedReLU final {
 
         const auto* in  = reinterpret_cast<const __m256i*>(input);
         auto*       out = reinterpret_cast<__m256i*>(output);
-
         for (Index i = 0; i < ChunkCount; ++i)
         {
             const Index j = i * 4;
@@ -133,7 +131,6 @@ class ClippedReLU final {
 
         const auto* in  = reinterpret_cast<const __m128i*>(input);
         auto*       out = reinterpret_cast<__m128i*>(output);
-
         for (Index i = 0; i < ChunkCount; ++i)
         {
             const Index j = i * 4;
@@ -151,34 +148,34 @@ class ClippedReLU final {
         constexpr Index SimdWidth  = SIMD::WIDTH / 2;
         constexpr Index ChunkCount = InputDimensions / SimdWidth;
 
-        const SIMD::vec_i8x8_t zero = {0};
+        const SIMD::vec_i8x8_t Zero = {0};
 
         const auto* in  = reinterpret_cast<const SIMD::vec_i32x4_t*>(input);
         auto*       out = reinterpret_cast<SIMD::vec_i8x8_t*>(output);
-
         for (Index i = 0; i < ChunkCount; ++i)
         {
             const Index j = i * 2;
 
-            const int16x8_t shifted = vcombine_s16(vqshrn_n_s32(in[j + 0], WeightScaleBits), vqshrn_n_s32(in[j + 1], WeightScaleBits));
-
-            out[i]                  = vmax_s8(vqmovn_s16(shifted), zero);
+            int16x8_t shifted;
+            auto*     pack = reinterpret_cast<int16x4_t*>(&shifted);
+            pack[0]        = vqshrn_n_s32(in[j + 0], WeightScaleBits);
+            pack[1]        = vqshrn_n_s32(in[j + 1], WeightScaleBits);
+            out[i]         = vmax_s8(vqmovn_s16(shifted), Zero);
         }
 
         constexpr Index Start = SimdWidth * ChunkCount;
 
 #elif defined(USE_RVV)
-        for (Index i = 0; i < InputDimensions;)
+        for (Index i = 0, vl; i < InputDimensions; i += vl)
         {
-            const usize vl = __riscv_vsetvl_e32m4(InputDimensions - i);
-            vint32m4_t  in = __riscv_vle32_v_i32m4(&input[i], vl);
-            in             = __riscv_vmax_vx_i32m4(in, 0, vl);
-
-            vint16m2_t words   = __riscv_vnclip_wx_i16m2(in, WeightScaleBits, __RISCV_VXRM_RDN, vl);
-            vint8m1_t narrowed = __riscv_vnclip_wx_i8m1(words, 0, __RISCV_VXRM_RDN, vl);
-
+            // clang-format off
+            vl                       = __riscv_vsetvl_e32m4(InputDimensions - i);
+            vint32m4_t  in           = __riscv_vle32_v_i32m4(&input[i], vl);
+            in                       = __riscv_vmax_vx_i32m4(in, 0, vl);
+            const vint16m2_t words   = __riscv_vnclip_wx_i16m2(in, WeightScaleBits, __RISCV_VXRM_RDN, vl);
+            const vint8m1_t narrowed = __riscv_vnclip_wx_i8m1(words, 0, __RISCV_VXRM_RDN, vl);
             __riscv_vse8_v_u8m1(&output[i], __riscv_vreinterpret_v_i8m1_u8m1(narrowed), vl);
-            i += vl;
+            // clang-format on
         }
 
         constexpr Index Start = InputDimensions;
@@ -187,7 +184,6 @@ class ClippedReLU final {
         constexpr Index Start = 0;
 
 #endif
-        // clang-format on
 
         for (Index i = Start; i < InputDimensions; ++i)
             output[i] = static_cast<Output>(std::clamp(input[i] >> WeightScaleBits, 0, 127));

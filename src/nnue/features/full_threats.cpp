@@ -105,9 +105,9 @@ constexpr Index dimensions() noexcept {
 
 static_assert(dimensions() == FullThreats::Dimensions);
 
-constexpr u8  SEMI_EXCLUDED_OFFSET = 31;
-constexpr u32 SEMI_EXCLUDED_MASK   = 1u << SEMI_EXCLUDED_OFFSET;
-constexpr u32 FEATURE_INDEX_MASK   = SEMI_EXCLUDED_MASK - 1;
+constexpr u8  SEMI_EXCLUDED_SHIFT = 31;
+constexpr u32 SEMI_EXCLUDED_MASK  = u32{1} << SEMI_EXCLUDED_SHIFT;
+constexpr u32 FEATURE_INDEX_MASK  = SEMI_EXCLUDED_MASK - 1;
 
 // LUT for getting feature base index and exclusion info
 // [attackerPc][attackedPc]
@@ -142,7 +142,7 @@ alignas(CACHE_LINE_SIZE) constexpr auto LUT_DATAS = []() constexpr noexcept {
                                          * PIECE_THREATS[+attackerPc].threatCount;
 
                     lutDatas[+attackerPc][+attackedPc] =
-                      (u32(semiExcluded) << SEMI_EXCLUDED_OFFSET) | featureIndex;
+                      (u32{semiExcluded} << SEMI_EXCLUDED_SHIFT) | featureIndex;
                 }
         }
 
@@ -150,9 +150,11 @@ alignas(CACHE_LINE_SIZE) constexpr auto LUT_DATAS = []() constexpr noexcept {
 }();
 
 // Get if semi-excluded from LUT data
-constexpr bool semi_excluded(u32 lutData) noexcept { return (lutData & SEMI_EXCLUDED_MASK) != 0; }
+constexpr bool semi_excluded(const u32 lutData) noexcept {
+    return (lutData & SEMI_EXCLUDED_MASK) != 0;
+}
 // Get feature base index from LUT data
-constexpr Index feature_index(u32 lutData) noexcept { return lutData & FEATURE_INDEX_MASK; }
+constexpr Index feature_index(const u32 lutData) noexcept { return lutData & FEATURE_INDEX_MASK; }
 
 // LUT for getting index within piece threats
 // [attackerPt][orgSq][dstSq]
@@ -178,7 +180,7 @@ alignas(CACHE_LINE_SIZE) const auto LUT_INDICES = []() noexcept {
 }();
 
 // Get index within piece threats
-constexpr u8 lut_index(Piece pc, Square s1, Square s2) noexcept {
+constexpr u8 lut_index(const Piece pc, const Square s1, const Square s2) noexcept {
     assert(is_ok(pc) && is_ok(s1) && is_ok(s2));
 
     return type_of(pc) == PAWN ? LUT_INDICES[color_of(pc)][s1][s2]
@@ -203,15 +205,13 @@ ALWAYS_INLINE constexpr Index make_index(const Color  perspective,
     const u8 relAttackedPc = +relative_piece(perspective, attackedPc);
 
     // Lookup LUT
-    auto lutData = LUT_DATAS[relAttackerPc][relAttackedPc];
+    const u32 lutData = LUT_DATAS[relAttackerPc][relAttackedPc];
 
-    if (lutData == FullThreats::Dimensions || (semi_excluded(lutData) && org < dst))
-        return FullThreats::Dimensions;
-
-    // Compute index components
-    return feature_index(lutData)                                     //
-         + lut_index(Piece{relAttackerPc}, Square{org}, Square{dst})  //
-         + SQUARE_OFFSETS[relAttackerPc][org];
+    return lutData == FullThreats::Dimensions || (semi_excluded(lutData) && org < dst)
+           ? FullThreats::Dimensions
+           : feature_index(lutData)                                         //
+               + lut_index(Piece{relAttackerPc}, Square{org}, Square{dst})  //
+               + SQUARE_OFFSETS[relAttackerPc][org];
 }
 
 ALWAYS_INLINE void append_pawn_active_indices(Bitboard                attacksBB,
