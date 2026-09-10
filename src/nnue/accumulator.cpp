@@ -245,15 +245,14 @@ ALWAYS_INLINE void apply_threat_features(const ThreatFeatureSet::IndexVector& ve
                                          const IndexType                      j,
                                          SIMD::vec_t                          acc[]) noexcept {
     static_assert(op == Op::Add || op == Op::Sub);
-    #define INC(x, n) (x + IndexType{n})
     // clang-format off
     const IndexType tileOff = j * Tiling::TileHeight;
-    for (int i = 0; i < vec.size(); ++i)
+    for (IndexType i = 0; i < vec.size(); ++i)
     {
         const auto* column = reinterpret_cast<const SIMD::vec_i8_t*>(&featureTransformer.threatAndPpWeights[vec[i] * Dimensions + tileOff]);
 
     #if defined(USE_NEON)
-        for (IndexType k = 0; INC(k, 1) < Tiling::RegCount; k += 2)
+        for (IndexType k = 0; k + u16{1} < Tiling::RegCount; k += 2)
         {
             if constexpr (op == Op::Add)
             {
@@ -268,7 +267,7 @@ ALWAYS_INLINE void apply_threat_features(const ThreatFeatureSet::IndexVector& ve
         }
 
     #elif defined(USE_LSX) && !defined(USE_LASX)
-        for (IndexType k = 0; INC(k, 1) < Tiling::RegCount; k += 2)
+        for (IndexType k = 0; k + u16{1} < Tiling::RegCount; k += 2)
         {
             const __m128i weight = __lsx_vld(reinterpret_cast<const void*>(&column[k]), 0);
 
@@ -294,15 +293,14 @@ ALWAYS_INLINE void apply_threat_features(const ThreatFeatureSet::IndexVector& ve
         }
     #endif
     }
-    #undef INC
     // clang-format on
 }
 
-template<Op op, typename IdxType, usize MaxLen>
-ALWAYS_INLINE void apply_psqt(const FixedVector<IdxType, MaxLen, IdxType>& vec,
-                              const PSQTWeightType*                        weights,
-                              const IndexType                              j,
-                              SIMD::psqt_vec_t                             psqt[]) noexcept {
+template<Op op, typename IdxType, usize Size>
+ALWAYS_INLINE void apply_psqt(const FixedVector<IdxType, Size, IdxType>& vec,
+                              const PSQTWeightType*                      weights,
+                              const IndexType                            j,
+                              SIMD::psqt_vec_t                           psqt[]) noexcept {
     static_assert(op == Op::Add || op == Op::Sub);
     // clang-format off
     const IndexType psqtTileOff = j * Tiling::PSQTTileHeight;
