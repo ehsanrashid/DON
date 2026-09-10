@@ -491,9 +491,10 @@ class SparseAffineTransform final {
    private:
     using Bias   = Output;
     using Weight = i8;
-
-    alignas(CACHE_LINE_SIZE) Array<Bias, OutputDimensions> biases;
-    alignas(CACHE_LINE_SIZE) Array<Weight, OutputDimensions * PaddedInputDimensions> weights;
+    // clang-format off
+    alignas(CACHE_LINE_SIZE) Array<Bias  , OutputDimensions> biases;
+    alignas(CACHE_LINE_SIZE) Array<Weight, OutputDimensions * usize(PaddedInputDimensions)> weights;
+    // clang-format on
 };
 
 }  // namespace DON::NNUE::Layers

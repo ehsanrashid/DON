@@ -72,11 +72,11 @@ jobs:
       - name: Check compiler version
         run: $COMPCXX -v
 
-      - name: Check Make help
-        run: make help
-
       - name: Check Git version
         run: git --version
+
+      - name: Check Make help
+        run: make help
 
       # Since Linux Kernel 6.5 we are getting false positives from the ci,
       # lower the ALSR entropy to disable ALSR, which works as a temporary workaround.
