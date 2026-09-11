@@ -348,7 +348,6 @@ void ensure_initialized() noexcept {
 
 }  // namespace SharedMemoryCleanupHook
 
-#endif
 
 TempRoot::TempRoot(std::string path) noexcept :
     path_(std::move(path)) {}
@@ -415,7 +414,7 @@ void InitLock::unlock() noexcept {
 }
 
 void* map_shared(int fd, usize size) noexcept {
-#if defined(__linux__)
+    #if defined(__linux__)
     constexpr usize Alignment = 2 * 1024 * 1024;
     const long      pageSize  = sysconf(_SC_PAGESIZE);
 
@@ -451,7 +450,7 @@ void* map_shared(int fd, usize size) noexcept {
             ::munmap(reservation, reservationSize);
         }
     }
-#endif
+    #endif
 
     return ::mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 }
@@ -476,16 +475,16 @@ void set_cloexec(const int fd) noexcept {
 UniqueFd create_unix_socket() noexcept {
     int domain = AF_UNIX;
     int type   = SOCK_STREAM;
-#if defined(SOCK_CLOEXEC)
+    #if defined(SOCK_CLOEXEC)
     type |= SOCK_CLOEXEC;
-#endif
+    #endif
     int protocol = 0;
 
     UniqueFd fd(::socket(domain, type, protocol));
 
-#if !defined(SOCK_CLOEXEC)
+    #if !defined(SOCK_CLOEXEC)
     set_cloexec(fd.get());
-#endif
+    #endif
 
     return fd;
 }
@@ -547,9 +546,9 @@ UniqueFd try_receive_memfd(const std::string& sockPath) noexcept {
         msg.msg_controllen = sizeof(controlMsg.buf);
 
         int flags = 0;
-#if defined(MSG_CMSG_CLOEXEC)
+    #if defined(MSG_CMSG_CLOEXEC)
         flags = MSG_CMSG_CLOEXEC;
-#endif
+    #endif
 
         ssize_t bytesRecv;
 
@@ -565,9 +564,9 @@ UniqueFd try_receive_memfd(const std::string& sockPath) noexcept {
             {
                 int receivedFd;
                 std::memcpy(&receivedFd, CMSG_DATA(cmsg), sizeof(receivedFd));
-#if !defined(MSG_CMSG_CLOEXEC)
+    #if !defined(MSG_CMSG_CLOEXEC)
                 set_cloexec(receivedFd);
-#endif
+    #endif
                 return UniqueFd{receivedFd};
             }
         }
@@ -622,12 +621,12 @@ std::thread make_server_thread(UniqueFd fd, UniqueFd shutdownFd, UniqueFd server
             {
                 // Another DON wants access
                 UniqueFd clientFd
-#if defined(SOCK_CLOEXEC) && !defined(__APPLE__)
+    #if defined(SOCK_CLOEXEC) && !defined(__APPLE__)
                   (::accept4(serverFd.get(), nullptr, nullptr, SOCK_CLOEXEC));
-#else
+    #else
                   (::accept(serverFd.get(), nullptr, nullptr));
                 set_cloexec(clientFd.get());
-#endif
+    #endif
                 // ::accept() failed
                 if (!clientFd.is_valid())
                     continue;
@@ -656,14 +655,14 @@ std::thread make_server_thread(UniqueFd fd, UniqueFd shutdownFd, UniqueFd server
                 cmsg->cmsg_len        = CMSG_LEN(sizeof(rawFd));
                 std::memcpy(CMSG_DATA(cmsg), &rawFd, sizeof(rawFd));
 
-#if defined(SO_NOSIGPIPE)
+    #if defined(SO_NOSIGPIPE)
                 int yes = 1;
                 ::setsockopt(clientFd.get(), SOL_SOCKET, SO_NOSIGPIPE, &yes, sizeof(yes));
-#endif
+    #endif
                 int flags = 0;
-#if defined(MSG_NOSIGNAL)
+    #if defined(MSG_NOSIGNAL)
                 flags = MSG_NOSIGNAL;
-#endif
+    #endif
 
                 while (::sendmsg(clientFd.get(), &msg, flags) < 0 && errno == EINTR)
                 {}
@@ -671,5 +670,7 @@ std::thread make_server_thread(UniqueFd fd, UniqueFd shutdownFd, UniqueFd server
         }
     });
 }
+
+#endif
 
 }  // namespace DON

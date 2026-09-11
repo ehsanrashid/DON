@@ -584,7 +584,9 @@ class SharedMemory final: public BaseSharedMemory {
         }
 
         const bool creator = !memFd.is_valid();  // We must create it
-        reservation if (creator) {
+
+        if (creator)
+        {
     #if defined(MFD_CLOEXEC)
             // Failed to get it from a peer (no peers, or only dead peers), so create
             memFd.reset(::memfd_create("replicated_data", MFD_CLOEXEC));
