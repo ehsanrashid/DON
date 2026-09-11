@@ -566,25 +566,24 @@ inline CpuIndexVec shortened_string_to_indices(std::string_view str) noexcept {
         break;
         case 2 : {
             // Limit expansion to 1M CPU IDs
-            constexpr usize MaxIndices = 1 * MB;
+            constexpr usize MaxIndices = 64 * KB;
 
             if (indices.size() >= MaxIndices)
                 break;
 
-            const auto begCpuId = str_to_usize(parts[0]);
-            const auto endCpuId = str_to_usize(parts[1]);
+            const auto begId = str_to_usize(parts[0]);
+            const auto endId = str_to_usize(parts[1]);
 
-            if (begCpuId && endCpuId && *begCpuId <= *endCpuId
-                && *endCpuId - *begCpuId < MaxIndices - indices.size()
-                && *endCpuId <= std::numeric_limits<CpuIndex>::max())
+            if (begId && endId && *begId <= *endId && *endId - *begId < MaxIndices - indices.size()
+                && *endId <= std::numeric_limits<CpuIndex>::max())
             {
-                const auto begId = static_cast<CpuIndex>(*begCpuId);
-                const auto endId = static_cast<CpuIndex>(*endCpuId);
+                const auto begCpuId = static_cast<CpuIndex>(*begId);
+                const auto endCpuId = static_cast<CpuIndex>(*endId);
 
-                for (CpuIndex cpuId = begId;; ++cpuId)
+                for (CpuIndex cpuId = begCpuId;; ++cpuId)
                 {
                     indices.emplace_back(cpuId);
-                    if (cpuId == endId)
+                    if (cpuId == endCpuId)
                         break;
                 }
             }
