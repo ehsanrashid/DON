@@ -350,4 +350,326 @@ void ensure_initialized() noexcept {
 
 #endif
 
+TempRoot::TempRoot(std::string path) noexcept :
+    path_(std::move(path)) {}
+
+const std::optional<TempRoot>& TempRoot::temp_root() noexcept {
+    static const auto tempRoot = []() -> std::optional<TempRoot> {
+        const uid_t uid = ::getuid();
+
+        const std::string tempPath{std::string{"/tmp/DON-"} + std::to_string(uid)};
+
+        if (::mkdir(tempPath.c_str(), S_IRWXU) == 0)
+            return TempRoot{tempPath};
+
+        if (errno != EEXIST)
+            return std::nullopt;
+
+        // Temp root already exists, verify ownership and permissions
+        struct stat fileStat{};
+
+        if (::lstat(tempPath.c_str(), &fileStat) != 0)
+            return std::nullopt;
+
+        if (!S_ISDIR(fileStat.st_mode))
+            return std::nullopt;
+
+        if (fileStat.st_uid != uid)
+            return std::nullopt;
+
+        if ((fileStat.st_mode & ACCESSPERMS) != S_IRWXU)
+            return std::nullopt;
+
+        return TempRoot{tempPath};
+    }();
+
+    return tempRoot;
+}
+
+InitLock::InitLock(UniqueFd fd) noexcept :
+    lockFd(std::move(fd)) {}
+
+InitLock InitLock::acquire_lock(std::string_view path) noexcept {
+    UniqueFd fd(::open(path.data(), O_CREAT | O_RDWR | O_CLOEXEC, FILE_MODE));
+
+    if (!fd.is_valid())
+        return {};
+
+    // Blocks here if another process is currently initializing
+    while (::flock(fd.get(), LOCK_EX) == -1)
+    {
+        // Failed to acquire
+        if (errno != EINTR)
+            return {};
+    }
+
+    return InitLock(std::move(fd));
+}
+
+void InitLock::unlock() noexcept {
+    if (!lockFd.is_valid())
+        return;
+
+    (void) ::flock(lockFd.get(), LOCK_UN);
+    lockFd.reset();
+}
+
+void* map_shared(int fd, usize size) noexcept {
+#if defined(__linux__)
+    constexpr usize Alignment = 2 * 1024 * 1024;
+    const long      pageSize  = sysconf(_SC_PAGESIZE);
+
+    if (size >= Alignment && pageSize > 0)
+    {
+        // File-backed huge pages require matching virtual-address and file-offset alignment.
+        // Reserve the address range first so MAP_FIXED cannot replace an unrelated mapping.
+        const usize mappingSize =
+          ((size + static_cast<usize>(pageSize) - 1) / static_cast<usize>(pageSize))
+          * static_cast<usize>(pageSize);
+        const usize reservationSize = mappingSize + Alignment;
+        void*       reservation =
+          ::mmap(nullptr, reservationSize, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+
+        if (reservation != MAP_FAILED)
+        {
+            char* const base        = static_cast<char*>(reservation);
+            char* const alignedBase = align_ptr_up<Alignment>(base);
+            void*       mapped =
+              ::mmap(alignedBase, size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, fd, 0);
+
+            if (mapped != MAP_FAILED)
+            {
+                const usize prefixSize = static_cast<usize>(alignedBase - base);
+                const usize suffixSize = reservationSize - prefixSize - mappingSize;
+                if (prefixSize != 0)
+                    ::munmap(reservation, prefixSize);
+                if (suffixSize != 0)
+                    ::munmap(alignedBase + mappingSize, suffixSize);
+                return mapped;
+            }
+
+            ::munmap(reservation, reservationSize);
+        }
+    }
+#endif
+
+    return ::mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+}
+
+std::string make_sentinel_base(std::string_view name) noexcept {
+    char buf[32];
+    // Using std::to_string here causes non-deterministic PGO builds.
+    // snprintf, being part of libc, is insensitive to the formatted values.
+    std::snprintf(buf, sizeof(buf), "donshm_%016" PRIu64, hash_string(name));
+    return buf;
+}
+
+void set_cloexec(const int fd) noexcept {
+    if (!is_valid_fd(fd))
+        return;
+
+    const int flags = ::fcntl(fd, F_GETFD);
+    if (flags != -1)
+        (void) ::fcntl(fd, F_SETFD, flags | FD_CLOEXEC);
+}
+
+UniqueFd create_unix_socket() noexcept {
+    int domain = AF_UNIX;
+    int type   = SOCK_STREAM;
+#if defined(SOCK_CLOEXEC)
+    type |= SOCK_CLOEXEC;
+#endif
+    int protocol = 0;
+
+    UniqueFd fd(::socket(domain, type, protocol));
+
+#if !defined(SOCK_CLOEXEC)
+    set_cloexec(fd.get());
+#endif
+
+    return fd;
+}
+
+// Discover all peers in the shared dir
+Strings get_peer_sockets(const std::string& sharedDir) noexcept {
+    Strings peerSockets;
+
+    DIR* dirPtr = ::opendir(sharedDir.c_str());
+    if (dirPtr != nullptr)
+    {
+        const struct dirent* dirEntryPtr;
+        while ((dirEntryPtr = ::readdir(dirPtr)) != nullptr)
+        {
+            std::string dName{dirEntryPtr->d_name};
+            if (dName.size() >= 5 && dName.compare(dName.size() - 5, 5, ".sock") == 0)
+                peerSockets.push_back(sharedDir + "/" + dName);
+        }
+        ::closedir(dirPtr);
+    }
+
+    return peerSockets;
+}
+
+UniqueFd try_receive_memfd(const std::string& sockPath) noexcept {
+    auto peerFd = create_unix_socket();
+    if (!peerFd.is_valid())
+        return {};
+
+    // 1-second timeout for connect and receive
+    struct timeval tv{1, 0};
+    ::setsockopt(peerFd.get(), SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
+    ::setsockopt(peerFd.get(), SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+
+    struct sockaddr_un addr{};
+    addr.sun_family = AF_UNIX;
+    std::strncpy(addr.sun_path, sockPath.c_str(), sizeof(addr.sun_path) - 1);
+
+    // Connect to peer socket and request access to the memFd
+    int ret;
+    do
+        ret = ::connect(peerFd.get(), reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr));
+    while (ret < 0 && errno == EINTR);
+
+    if (ret == 0)
+    {
+        msghdr msg{};
+
+        char         buf[1];
+        struct iovec iov[1];
+        iov[0].iov_base = buf;
+        iov[0].iov_len  = 1;
+        msg.msg_iov     = iov;
+        msg.msg_iovlen  = 1;
+
+        ControlMsg controlMsg{};
+
+        msg.msg_control    = controlMsg.buf;
+        msg.msg_controllen = sizeof(controlMsg.buf);
+
+        int flags = 0;
+#if defined(MSG_CMSG_CLOEXEC)
+        flags = MSG_CMSG_CLOEXEC;
+#endif
+
+        ssize_t bytesRecv;
+
+        do
+            bytesRecv = ::recvmsg(peerFd.get(), &msg, flags);
+        while (bytesRecv < 0 && errno == EINTR);
+
+        if (bytesRecv > 0)
+        {
+            cmsghdr* cmsg = CMSG_FIRSTHDR(&msg);
+            // Receive rights to the memFd from the peer; see make_server_thread
+            if (cmsg && cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SCM_RIGHTS)
+            {
+                int receivedFd;
+                std::memcpy(&receivedFd, CMSG_DATA(cmsg), sizeof(receivedFd));
+#if !defined(MSG_CMSG_CLOEXEC)
+                set_cloexec(receivedFd);
+#endif
+                return UniqueFd{receivedFd};
+            }
+        }
+    }
+    else if (errno == ECONNREFUSED || errno == ENOENT)
+    {
+        // Failed to connect, clean up dead peer
+        ::unlink(sockPath.c_str());
+    }
+
+    return {};
+}
+
+// Server thread:
+//  - Forwards the file descriptor fd
+//  - Exits when shutdownFd is hung up on
+//  - Listens on serverFd
+std::thread make_server_thread(UniqueFd fd, UniqueFd shutdownFd, UniqueFd serverFd) noexcept {
+    enum FD : u8 {
+        FD_SERVER,
+        FD_SHUTDOWN,
+    };
+
+    constexpr usize FD_NB = 2;
+
+    return std::thread([fd         = std::move(fd),          //
+                        shutdownFd = std::move(shutdownFd),  //
+                        serverFd   = std::move(serverFd)]() noexcept {
+        struct pollfd fds[FD_NB];
+        fds[FD_SERVER].fd     = serverFd.get();
+        fds[FD_SERVER].events = POLLIN;
+
+        fds[FD_SHUTDOWN].fd     = shutdownFd.get();
+        fds[FD_SHUTDOWN].events = POLLIN;
+
+        while (true)
+        {
+            int ret = ::poll(fds, FD_NB, -1);
+            if (ret < 0)
+            {
+                if (errno == EINTR)
+                    continue;
+
+                break;
+            }
+
+            // Shutdown requested by main thread
+            if ((fds[FD_SHUTDOWN].revents & (POLLIN | POLLERR | POLLHUP | POLLNVAL)) != 0)
+                break;
+
+            if ((fds[FD_SERVER].revents & POLLIN) != 0)
+            {
+                // Another DON wants access
+                UniqueFd clientFd
+#if defined(SOCK_CLOEXEC) && !defined(__APPLE__)
+                  (::accept4(serverFd.get(), nullptr, nullptr, SOCK_CLOEXEC));
+#else
+                  (::accept(serverFd.get(), nullptr, nullptr));
+                set_cloexec(clientFd.get());
+#endif
+                // ::accept() failed
+                if (!clientFd.is_valid())
+                    continue;
+
+                msghdr msg{};
+                char   buf[1] = {};
+                iovec  iov[1];
+                iov[0].iov_base = buf;
+                iov[0].iov_len  = 1;
+                msg.msg_iov     = iov;
+                msg.msg_iovlen  = 1;
+
+                ControlMsg controlMsg{};
+
+                msg.msg_control    = controlMsg.buf;
+                msg.msg_controllen = sizeof(controlMsg.buf);
+
+                // Send over rights to the memFd (SCM_RIGHTS). The fd may be given a different number, but
+                // will refer to the same underlying file. Once it's mmapped then it will share physical memory
+                // between the processes.
+                // See https://man7.org/linux/man-pages/man7/unix.7.html for more information on SCM_RIGHTS
+                int             rawFd = fd.get();
+                struct cmsghdr* cmsg  = CMSG_FIRSTHDR(&msg);
+                cmsg->cmsg_level      = SOL_SOCKET;
+                cmsg->cmsg_type       = SCM_RIGHTS;
+                cmsg->cmsg_len        = CMSG_LEN(sizeof(rawFd));
+                std::memcpy(CMSG_DATA(cmsg), &rawFd, sizeof(rawFd));
+
+#if defined(SO_NOSIGPIPE)
+                int yes = 1;
+                ::setsockopt(clientFd.get(), SOL_SOCKET, SO_NOSIGPIPE, &yes, sizeof(yes));
+#endif
+                int flags = 0;
+#if defined(MSG_NOSIGNAL)
+                flags = MSG_NOSIGNAL;
+#endif
+
+                while (::sendmsg(clientFd.get(), &msg, flags) < 0 && errno == EINTR)
+                {}
+            }
+        }
+    });
+}
+
 }  // namespace DON
