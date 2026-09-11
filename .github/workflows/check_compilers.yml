@@ -52,6 +52,10 @@ jobs:
             echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99-ignore-valid-until
           fi
 
+          if ! strings /usr/local/lib64/libstdc++.so.6 2>/dev/null | grep -q 'GLIBCXX_3.4.29'; then
+            export LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libstdc++.so.6
+          fi
+
           apt-get update
           apt-get install -y curl git make
 
