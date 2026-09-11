@@ -22,6 +22,7 @@
 #include <deque>
 #include <fstream>
 #include <iostream>
+#include <limits>
 #include <optional>
 
 #include "evaluate.h"

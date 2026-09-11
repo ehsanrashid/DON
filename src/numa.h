@@ -804,7 +804,7 @@ class NumaConfig final {
     NumaConfig(NumaConfig&&) noexcept                 = default;
     NumaConfig& operator=(NumaConfig&&) noexcept      = default;
 
-    NumaIndex nodes_size() const noexcept { return nodes.size(); }
+    NumaIndex nodes_size() const noexcept { return NumaIndex(nodes.size()); }
 
     bool node_cpus_empty(const NumaIndex numaId) const noexcept {
         assert(numaId < nodes_size());
@@ -815,7 +815,7 @@ class NumaConfig final {
     CpuIndex node_cpus_size(const NumaIndex numaId) const noexcept {
         assert(numaId < nodes_size());
 
-        return nodes[numaId].size();
+        return CpuIndex(nodes[numaId].size());
     }
 
     CpuIndex node_cpus(const NumaIndex numaId) const noexcept {
@@ -824,7 +824,7 @@ class NumaConfig final {
         return *nodes[numaId].begin();
     }
 
-    CpuIndex cpus_size() const noexcept { return nodeByCpu.size(); }
+    CpuIndex cpus_size() const noexcept { return CpuIndex(nodeByCpu.size()); }
 
     bool is_cpu_assigned(const CpuIndex cpuId) const noexcept {
         return nodeByCpu.find(cpuId) != nodeByCpu.end();
@@ -1132,7 +1132,7 @@ class NumaConfig final {
 
         for (WORD groupId = 0; groupId < ActiveProcGroupCount; ++groupId)
         {
-            const u16 ActiveProcCount = GetActiveProcessorCount(groupId);
+            const u16 ActiveProcCount = u16(GetActiveProcessorCount(groupId));
 
             for (u16 number = 0; number < ActiveProcCount; ++number)
             {

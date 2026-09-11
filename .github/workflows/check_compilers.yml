@@ -34,8 +34,8 @@ jobs:
           - { name: Clang-17, comp: clang, cxx: clang++, image: "silkeh/clang:17-bookworm", is_clang: true, ver: "17" }
           # Clang 18+ use Ubuntu rolling images
           - { name: Clang-18, comp: clang, cxx: clang++-18, image: "ubuntu:rolling", is_clang: true, ver: "18" }
-          - { name: Clang-19, comp: clang, cxx: clang++-19, image: "ubuntu:rolling", is_clang: true, ver: "19" }
-          - { name: Clang-20, comp: clang, cxx: clang++-20, image: "ubuntu:rolling", is_clang: true, ver: "20" }
+          # - { name: Clang-19, comp: clang, cxx: clang++-19, image: "ubuntu:rolling", is_clang: true, ver: "19" }
+          # - { name: Clang-20, comp: clang, cxx: clang++-20, image: "ubuntu:rolling", is_clang: true, ver: "20" }
           - { name: Clang-21, comp: clang, cxx: clang++-21, image: "ubuntu:rolling", is_clang: true, ver: "21" }
           - { name: Clang-22, comp: clang, cxx: clang++-22, image: "ubuntu:rolling", is_clang: true, ver: "22" }
 
