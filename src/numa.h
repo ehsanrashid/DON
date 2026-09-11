@@ -561,7 +561,7 @@ inline CpuIndexVec shortened_string_to_indices(std::string_view str) noexcept {
         case 1 : {
             const auto cpuId = str_to_usize(parts[0]);
             if (cpuId)
-                indices.emplace_back(*cpuId);
+                indices.emplace_back(CpuIndex(*cpuId));
         }
         break;
         case 2 : {
