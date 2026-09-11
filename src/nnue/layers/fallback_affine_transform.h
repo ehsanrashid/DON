@@ -45,7 +45,7 @@ void fallback_affine_transform(const Array<i32, OutputDimensions>&              
 
         #if defined(USE_SSE2)
     constexpr int Shuffle1032 = _MM_SHUFFLE(1, 0, 3, 2);
-    const __m128i Zeros       = _mm_setzero_si128();
+    const __m128i zero        = _mm_setzero_si128();
 
     const auto* inputVec = reinterpret_cast<const __m128i*>(input);
 
@@ -60,7 +60,7 @@ void fallback_affine_transform(const Array<i32, OutputDimensions>&              
 
         #if defined(USE_SSE2)
         __m128i loSum = _mm_cvtsi32_si128(biases[i]);
-        __m128i hiSum = Zeros;
+        __m128i hiSum = zero;
 
         const auto* rowVec = reinterpret_cast<const __m128i*>(&weights[offset]);
 
@@ -70,8 +70,8 @@ void fallback_affine_transform(const Array<i32, OutputDimensions>&              
             const __m128i in        = _mm_load_si128(&inputVec[j]);
             const __m128i loExtRow  = _mm_srai_epi16(_mm_unpacklo_epi8(row, row), 8);
             const __m128i hiExtRow  = _mm_srai_epi16(_mm_unpackhi_epi8(row, row), 8);
-            const __m128i loExtIn   = _mm_unpacklo_epi8(in, Zeros);
-            const __m128i hiExtIn   = _mm_unpackhi_epi8(in, Zeros);
+            const __m128i loExtIn   = _mm_unpacklo_epi8(in, zero);
+            const __m128i hiExtIn   = _mm_unpackhi_epi8(in, zero);
             const __m128i loProduct = _mm_madd_epi16(loExtRow, loExtIn);
             const __m128i hiProduct = _mm_madd_epi16(hiExtRow, hiExtIn);
             loSum                   = _mm_add_epi32(loSum, loProduct);
