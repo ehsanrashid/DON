@@ -209,8 +209,8 @@ void TTWriter::penalize(const u8 penalty) noexcept { tte->penalize(penalty); }
 TranspositionTable::~TranspositionTable() noexcept { free(); }
 
 void TranspositionTable::free() noexcept {
-    [[maybe_unused]] bool success = free_aligned_large_page(clusters);
-    assert(success);
+    [[maybe_unused]] const bool freed = free_aligned_large_page(clusters);
+    assert(freed);
 }
 
 u8 TranspositionTable::generation() const noexcept { return generation8; }

@@ -210,8 +210,8 @@ class PerftTable final {
 PerftTable::~PerftTable() noexcept { free(); }
 
 void PerftTable::free() noexcept {
-    [[maybe_unused]] bool success = free_aligned_large_page(clusters);
-    assert(success);
+    [[maybe_unused]] const bool freed = free_aligned_large_page(clusters);
+    assert(freed);
 }
 
 void PerftTable::resize(usize ptSize, const Threads& threads) noexcept {

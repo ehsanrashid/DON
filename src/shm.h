@@ -1089,7 +1089,8 @@ class SharedMemory final: public BaseSharedMemory {
         if (this == &sharedMemory)
             return *this;
 
-        release_with_registry();
+        if (!release_with_registry())
+            return *this;
 
         BaseSharedMemory::operator=(std::move(sharedMemory));
         move_with_registry(std::move(sharedMemory));
@@ -1176,6 +1177,10 @@ class SharedMemory final: public BaseSharedMemory {
         {
             // Creator is responsible for initialization
             *mappedMem = value;
+
+    #if defined(MADV_COLLAPSE)
+            (void) ::madvise(mappedMem, sizeof(T), MADV_COLLAPSE);
+    #endif
         }
 
         mappedPtr = dataPtr = mappedMem;
@@ -1217,7 +1222,10 @@ class SharedMemory final: public BaseSharedMemory {
 
     void release() noexcept override {
         if (!socketPath.empty())
+        {
             ::unlink(socketPath.c_str());
+            socketPath.clear();
+        }
 
         shutdownFd.reset();
         if (serverThread.joinable())
@@ -1241,7 +1249,18 @@ class SharedMemory final: public BaseSharedMemory {
     }
 
    private:
+    // Move the resources from another SharedMemory object.
+    //
+    // The registry tracks SharedMemory object addresses, not the resources
+    // they own. Moving the resources therefore transfers ownership from
+    // 'sharedMemory' to 'this', so the registry entry must be moved as well:
+    //  - unregister the source object
+    //  - register the destination object
     void move_with_registry(SharedMemory&& sharedMemory) noexcept {
+        [[maybe_unused]] const bool unregistered =
+          SharedMemoryRegistry::unregister_memory(&sharedMemory);
+        assert(unregistered);
+
         mappedPtr    = std::exchange(sharedMemory.mappedPtr, nullptr);
         dataPtr      = std::exchange(sharedMemory.dataPtr, nullptr);
         sharedDir    = std::move(sharedMemory.sharedDir);
@@ -1250,14 +1269,33 @@ class SharedMemory final: public BaseSharedMemory {
         serverThread = std::move(sharedMemory.serverThread);
         shutdownFd   = std::move(sharedMemory.shutdownFd);
 
-        SharedMemoryRegistry::unregister_memory(&sharedMemory);
-        SharedMemoryRegistry::register_memory(this);
+        [[maybe_unused]] const bool registered = SharedMemoryRegistry::register_memory(this);
+        assert(registered);
     }
 
     // Unregister SharedMemory object and release resources
-    void release_with_registry() noexcept {
-        if (SharedMemoryRegistry::unregister_memory(this))
-            release();
+    bool release_with_registry() noexcept {
+        if (!SharedMemoryRegistry::unregister_memory(this))
+            return false;
+
+        release();
+        return true;
+    }
+
+    // Swap the resources between two SharedMemory objects.
+    //
+    // No registry update is required because the registry tracks the
+    // SharedMemory object addresses, not the resources owned by them.
+    // Swapping the resources therefore leaves both registry entries valid.
+    void swap(SharedMemory& sharedMemory) noexcept {
+        std::swap(name_, sharedMemory.name_);
+        std::swap(mappedPtr, sharedMemory.mappedPtr);
+        std::swap(dataPtr, sharedMemory.dataPtr);
+        std::swap(sharedDir, sharedMemory.sharedDir);
+        std::swap(initLockPath, sharedMemory.initLockPath);
+        std::swap(socketPath, sharedMemory.socketPath);
+        std::swap(serverThread, sharedMemory.serverThread);
+        std::swap(shutdownFd, sharedMemory.shutdownFd);
     }
 
     void unmap_region() noexcept {
