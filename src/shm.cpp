@@ -42,6 +42,7 @@ std::string executable_path() noexcept {
 
     executableSize                 = std::min<usize>(size, executablePath.size() - 1);
     executablePath[executableSize] = '\0';
+
 #elif defined(__APPLE__)
     u32 size = static_cast<u32>(executablePath.size());
 
@@ -49,6 +50,7 @@ std::string executable_path() noexcept {
     {
         executableSize = std::strlen(executablePath.data());
     }
+
 #elif defined(__sun)  // Solaris
     const char* path = ::getexecname();
 
@@ -60,6 +62,7 @@ std::string executable_path() noexcept {
         executableSize                 = std::strnlen(path, executablePath.size() - 1);
         executablePath[executableSize] = '\0';
     }
+
 #elif defined(__FreeBSD__)
     constexpr Array<int, 4> MIB{CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME, -1};
 
@@ -70,6 +73,7 @@ std::string executable_path() noexcept {
         executableSize                 = std::min<usize>(size, executablePath.size() - 1);
         executablePath[executableSize] = '\0';
     }
+
 #elif defined(__OpenBSD__)
     ssize_t size =  //
       ::readlink("/proc/curproc/file", executablePath.data(), executablePath.size() - 1);
@@ -79,6 +83,7 @@ std::string executable_path() noexcept {
         executableSize                 = std::min<usize>(size, executablePath.size() - 1);
         executablePath[executableSize] = '\0';
     }
+
 #elif defined(__NetBSD__) || defined(__DragonFly__)
     ssize_t size =  //
       ::readlink("/proc/curproc/exe", executablePath.data(), executablePath.size() - 1);
@@ -88,6 +93,7 @@ std::string executable_path() noexcept {
         executableSize                 = std::min<usize>(size, executablePath.size() - 1);
         executablePath[executableSize] = '\0';
     }
+
 #elif defined(__linux__)
     ssize_t size =  //
       ::readlink("/proc/self/exe", executablePath.data(), executablePath.size() - 1);
@@ -97,9 +103,12 @@ std::string executable_path() noexcept {
         executableSize                 = std::min<usize>(size, executablePath.size() - 1);
         executablePath[executableSize] = '\0';
     }
+
 #elif defined(__wasm__)
+
 #else
     #error "Unsupported platform"
+
 #endif
 
     // In case of any error the path will be empty
@@ -172,10 +181,10 @@ bool insert_memory_nolock(SharedMemoryPtr sharedMemory) noexcept {
     //DEBUG_LOG("Registering shared memory: " << sharedMemory->name());
 
     // Append to the ordered list and obtain a stable iterator.
-    auto insertIt = orderedList.emplace(orderedList.end(), sharedMemory);
+    auto insertItr = orderedList.emplace(orderedList.end(), sharedMemory);
 
     // Associate the map entry with its corresponding list node.
-    insertReg->second = insertIt;
+    insertReg->second = insertItr;
 
     return true;
 }
@@ -194,13 +203,13 @@ bool erase_memory_nolock(SharedMemoryPtr sharedMemory) noexcept {
         return false;
 
     // Retrieve the stable list iterator associated with this entry.
-    auto eraseIt = eraseReg->second;
+    auto eraseItr = eraseReg->second;
 
     // Internal consistency check.
-    assert(eraseIt != orderedList.end());
+    assert(eraseItr != orderedList.end());
 
     // Remove the list node first.
-    orderedList.erase(eraseIt);
+    orderedList.erase(eraseItr);
 
     // Remove the corresponding map entry.
     registryMap.erase(eraseReg);
@@ -415,8 +424,8 @@ void InitLock::unlock() noexcept {
 
 void* map_shared(int fd, usize size) noexcept {
     #if defined(__linux__)
-    constexpr usize Alignment = 2 * 1024 * 1024;
-    const long      pageSize  = sysconf(_SC_PAGESIZE);
+    constexpr usize Alignment = 2 * MB;
+    const long      pageSize  = ::sysconf(_SC_PAGESIZE);
 
     if (size >= Alignment && pageSize > 0)
     {
@@ -547,7 +556,7 @@ UniqueFd try_receive_memfd(const std::string& sockPath) noexcept {
 
         int flags = 0;
     #if defined(MSG_CMSG_CLOEXEC)
-        flags = MSG_CMSG_CLOEXEC;
+        flags |= MSG_CMSG_CLOEXEC;
     #endif
 
         ssize_t bytesRecv;
@@ -560,7 +569,7 @@ UniqueFd try_receive_memfd(const std::string& sockPath) noexcept {
         {
             cmsghdr* cmsg = CMSG_FIRSTHDR(&msg);
             // Receive rights to the memFd from the peer; see make_server_thread
-            if (cmsg && cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SCM_RIGHTS)
+            if (cmsg != nullptr && cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SCM_RIGHTS)
             {
                 int receivedFd;
                 std::memcpy(&receivedFd, CMSG_DATA(cmsg), sizeof(receivedFd));
@@ -580,18 +589,22 @@ UniqueFd try_receive_memfd(const std::string& sockPath) noexcept {
     return {};
 }
 
+namespace {
+
+enum FD : u8 {
+    FD_SERVER,
+    FD_SHUTDOWN
+};
+
+constexpr usize FD_NB = 2;
+
+}  // namespace
+
 // Server thread:
 //  - Forwards the file descriptor fd
 //  - Exits when shutdownFd is hung up on
 //  - Listens on serverFd
 std::thread make_server_thread(UniqueFd fd, UniqueFd shutdownFd, UniqueFd serverFd) noexcept {
-    enum FD : u8 {
-        FD_SERVER,
-        FD_SHUTDOWN,
-    };
-
-    constexpr usize FD_NB = 2;
-
     return std::thread([fd         = std::move(fd),          //
                         shutdownFd = std::move(shutdownFd),  //
                         serverFd   = std::move(serverFd)]() noexcept {
@@ -656,14 +669,14 @@ std::thread make_server_thread(UniqueFd fd, UniqueFd shutdownFd, UniqueFd server
                 std::memcpy(CMSG_DATA(cmsg), &rawFd, sizeof(rawFd));
 
     #if defined(SO_NOSIGPIPE)
-                int yes = 1;
+                const int yes = 1;
                 ::setsockopt(clientFd.get(), SOL_SOCKET, SO_NOSIGPIPE, &yes, sizeof(yes));
     #endif
+
                 int flags = 0;
     #if defined(MSG_NOSIGNAL)
-                flags = MSG_NOSIGNAL;
+                flags |= MSG_NOSIGNAL;
     #endif
-
                 while (::sendmsg(clientFd.get(), &msg, flags) < 0 && errno == EINTR)
                 {}
             }
