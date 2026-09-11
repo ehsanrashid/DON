@@ -50,6 +50,9 @@ jobs:
             echo "deb http://archive.debian.org/debian buster main contrib non-free" > /etc/apt/sources.list
             echo "deb http://archive.debian.org/debian-security buster/updates main contrib non-free" >> /etc/apt/sources.list
             echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99-ignore-valid-until
+          elif grep -q "bullseye" /etc/os-release; then
+            echo "Debian Bullseye detected. Ignoring expired repository metadata..."
+            echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99-ignore-valid-until
           fi
 
           if ! strings /usr/local/lib64/libstdc++.so.6 2>/dev/null | grep -q 'GLIBCXX_3.4.29'; then
