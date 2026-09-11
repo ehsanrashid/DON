@@ -45,18 +45,25 @@ jobs:
 
       - name: Install dependencies
         run: |
-          if grep -q "buster" /etc/os-release; then
-            echo "Debian Buster detected. Switching to archive repositories..."
-            echo "deb http://archive.debian.org/debian buster main contrib non-free" > /etc/apt/sources.list
-            echo "deb http://archive.debian.org/debian-security buster/updates main contrib non-free" >> /etc/apt/sources.list
+          if grep -q '^ID=debian$' /etc/os-release; then
+            . /etc/os-release
+            case "${VERSION_CODENAME:-}" in
+              buster)
+                echo "Debian Buster detected. Switching to archive repositories..."
+                rm -f /etc/apt/sources.list.d/debian.sources
+                cat > /etc/apt/sources.list <<EOF
+          deb http://archive.debian.org/debian buster main contrib non-free
+          deb http://archive.debian.org/debian-security buster/updates main contrib non-free
+          EOF
+                ;;
+              bullseye)
+                echo "Debian Bullseye detected. Disabling repository expiry checks..."
+                ;;
+            esac
             echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99-ignore-valid-until
-          elif grep -q "bullseye" /etc/os-release; then
-            echo "Debian Bullseye detected. Ignoring expired repository metadata..."
-            echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99-ignore-valid-until
-          fi
-
-          if ! strings /usr/local/lib64/libstdc++.so.6 2>/dev/null | grep -q 'GLIBCXX_3.4.29'; then
-            export LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libstdc++.so.6
+            if ! strings /usr/local/lib64/libstdc++.so.6 2>/dev/null | grep -q 'GLIBCXX_3.4.29'; then
+              export LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libstdc++.so.6
+            fi
           fi
 
           apt-get update
