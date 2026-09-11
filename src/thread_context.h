@@ -49,4 +49,4 @@ struct ThreadContext final {
 
 }  // namespace DON
 
-#endif
+#endif  // THREAD_CONTEXT_H_INCLUDED

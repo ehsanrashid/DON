@@ -80,7 +80,7 @@ inline constexpr LPCSTR KERNEL_MODULE_NAME = TEXT("kernel32.dll");
 
 // On Windows each processor group can have up to 64 processors.
 // https://learn.microsoft.com/en-us/windows/win32/procthread/processor-groups
-inline constexpr usize WIN_PROCESSOR_GROUP_SIZE = 64;
+inline constexpr u16 WIN_PROCESSOR_GROUP_SIZE = 64;
 
 // https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getthreadselectedcpusetmasks
 using GetThreadSelectedCpuSetMasks_ = BOOL(WINAPI*)(
@@ -232,7 +232,7 @@ inline WindowsAffinity get_process_affinity() noexcept {
                     const KAFFINITY groupMask = groupAffinities[i].Mask;
 
                     if (groupMask != 0)
-                        for (DWORD number = 0; number < WIN_PROCESSOR_GROUP_SIZE; ++number)
+                        for (u16 number = 0; number < WIN_PROCESSOR_GROUP_SIZE; ++number)
                             if ((groupMask & bit(u8(number))) != 0)
                             {
                                 const CpuIndex cpuId = groupId * WIN_PROCESSOR_GROUP_SIZE + number;
@@ -290,7 +290,7 @@ inline WindowsAffinity get_process_affinity() noexcept {
                 const WORD      groupId   = procGroupAffinity[0];
                 const KAFFINITY groupMask = procMask;
 
-                for (DWORD number = 0; number < WIN_PROCESSOR_GROUP_SIZE; ++number)
+                for (u16 number = 0; number < WIN_PROCESSOR_GROUP_SIZE; ++number)
                     if ((groupMask & bit(u8(number))) != 0)
                     {
                         const CpuIndex cpuId = groupId * WIN_PROCESSOR_GROUP_SIZE + number;
@@ -367,7 +367,7 @@ inline WindowsAffinity get_process_affinity() noexcept {
                         fullAffinity = false;
 
                     if (combinedProcMask != 0)
-                        for (DWORD number = 0; number < WIN_PROCESSOR_GROUP_SIZE; ++number)
+                        for (u16 number = 0; number < WIN_PROCESSOR_GROUP_SIZE; ++number)
                             if ((combinedProcMask & bit(u8(number))) != 0)
                             {
                                 const CpuIndex cpuId = groupId * WIN_PROCESSOR_GROUP_SIZE + number;
@@ -408,7 +408,7 @@ CpuIndexSet read_cache_members(const T* processorInfo, Pred&& is_cpu_allowed) no
     CpuIndexSet cpus;
 
     const auto add_group_cpus = [&](WORD groupId, KAFFINITY groupMask) noexcept {
-        for (DWORD number = 0; number < WIN_PROCESSOR_GROUP_SIZE; ++number)
+        for (u16 number = 0; number < WIN_PROCESSOR_GROUP_SIZE; ++number)
         {
             if ((groupMask & bit(u8(number))) != 0)
             {
@@ -1132,9 +1132,9 @@ class NumaConfig final {
 
         for (WORD groupId = 0; groupId < ActiveProcGroupCount; ++groupId)
         {
-            const DWORD ActiveProcCount = GetActiveProcessorCount(groupId);
+            const u16 ActiveProcCount = GetActiveProcessorCount(groupId);
 
-            for (DWORD number = 0; number < ActiveProcCount; ++number)
+            for (u16 number = 0; number < ActiveProcCount; ++number)
             {
                 PROCESSOR_NUMBER processorNumber{};
                 processorNumber.Group    = groupId;
