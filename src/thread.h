@@ -71,10 +71,7 @@ using WorkerPtr = LargePagePtr<Worker>;
 // the search is finished, it goes back to idle_func() waiting for a new signal.
 class Thread final {
    public:
-    Thread(u16                           threadIdx,
-           u16                           threadCnt,
-           u16                           numaIdx,
-           u16                           numaThreadCnt,
+    Thread(ThreadContext                 threadCxt,
            const ThreadToNumaNodeBinder& nodeBinder,
            const SharedState&            sharedState,
            ManagerPtr                    manager,
@@ -208,10 +205,10 @@ class Threads final {
     auto begin() const noexcept { return threads.begin(); }
     auto end() const noexcept { return threads.end(); }
 
-    usize size() const noexcept {
+    u16 size() const noexcept {
         std::shared_lock readLock(sharedMutex);
 
-        return threads.size();
+        return u16(threads.size());
     }
     bool empty() const noexcept {
         std::shared_lock readLock(sharedMutex);
@@ -219,7 +216,7 @@ class Threads final {
         return threads.empty();
     }
 
-    void reserve(const usize threadCount) noexcept {
+    void reserve(const u16 threadCount) noexcept {
         std::lock_guard writeLock(sharedMutex);
 
         threads.reserve(threadCount);

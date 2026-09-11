@@ -242,7 +242,7 @@ void PerftTable::resize(usize ptSize, const Threads& threads) noexcept {
 // Resets the entire perft table to zero, in a multi-threaded way
 void PerftTable::reset(const Threads& threads) noexcept {
 
-    const usize threadCount = threads.size();
+    const auto threadCount = threads.size();
 
     auto threadBoundNumaNodes = threads.thread_bound_numa_nodes();
 
@@ -259,7 +259,7 @@ void PerftTable::reset(const Threads& threads) noexcept {
                          });
     }
 
-    for (usize threadId = 0; threadId < threadCount; ++threadId)
+    for (u16 threadId = 0; threadId < threadCount; ++threadId)
     {
         threads.run_on_thread(orderedThreads[threadId], [this, threadId, threadCount]() {
             // Each thread will zero its part of the hash table
@@ -269,7 +269,7 @@ void PerftTable::reset(const Threads& threads) noexcept {
         });
     }
 
-    for (usize threadId = 0; threadId < threadCount; ++threadId)
+    for (u16 threadId = 0; threadId < threadCount; ++threadId)
         threads.wait_on_thread(orderedThreads[threadId]);
 }
 

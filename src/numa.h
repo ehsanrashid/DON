@@ -469,7 +469,7 @@ inline CpuIndexSet get_process_affinity() noexcept {
     // cpu_set_t by default holds 1024 entries. This may not be enough soon,
     // but there is no easy way to determine how many threads there actually is.
     // In this case just choose a reasonable upper bound.
-    constexpr CpuIndex MaxCpuCount = 64 * KB;
+    constexpr usize MaxCpuCount = 64 * KB;
 
     cpu_set_t* const cpuMask = CPU_ALLOC(MaxCpuCount);
 
@@ -935,7 +935,7 @@ class NumaConfig final {
     }
 
     std::vector<NumaIndex>
-    distribute_threads_among_numa_nodes(const usize threadCount) const noexcept {
+    distribute_threads_among_numa_nodes(const u16 threadCount) const noexcept {
         std::vector<NumaIndex> numaNodes;
 
         if (nodes_size() == 1)
@@ -948,7 +948,7 @@ class NumaConfig final {
         {
             std::vector<usize> occupation(nodes_size(), 0);
 
-            for (usize threadId = 0; threadId < threadCount; ++threadId)
+            for (u16 threadId = 0; threadId < threadCount; ++threadId)
             {
                 NumaIndex bestNumaId = 0;
 
