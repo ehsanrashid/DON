@@ -33,6 +33,19 @@
 #include <utility>
 #include <variant>
 
+#if !defined(_WIN32)                                /* Non-Windows */ \
+  && ((defined(__linux__) && !defined(__ANDROID__)) /* Linux (Non-Android) */ \
+      || defined(__APPLE__)                         /* macOS / iOS */ \
+      || defined(__sun)                             /* Solaris */ \
+      || defined(__FreeBSD__)                       /* FreeBSD */ \
+      || defined(__OpenBSD__)                       /* OpenBSD */ \
+      || defined(__NetBSD__)                        /* NetBSD */ \
+      || defined(__DragonFly__)                     /* DragonFly BSD */ \
+      || defined(__e2k__)                           /* Elbrus 2000 */ \
+      || defined(_AIX))                             /* IBM AIX */
+    #define USE_UNIX_SHM
+#endif
+
 #if defined(_WIN32)
     // Standard portable pattern for spin-wait / CPU pause hint
     #if defined(X86)
@@ -52,15 +65,7 @@
 
     #include "platform_win.h"
 
-#elif (defined(__linux__) && !defined(__ANDROID__)) /* Linux (non-Android) */ \
-  || defined(__APPLE__)                             /* macOS / iOS */ \
-  || defined(__sun)                                 /* Solaris */ \
-  || defined(__FreeBSD__)                           /* FreeBSD */ \
-  || defined(__OpenBSD__)                           /* OpenBSD */ \
-  || defined(__NetBSD__)                            /* NetBSD */ \
-  || defined(__DragonFly__)                         /* DragonFly BSD */ \
-  || defined(__e2k__)                               /* Elbrus 2000 */ \
-  || defined(_AIX)                                  /* IBM AIX */
+#elif defined(USE_UNIX_SHM)
     #include <dirent.h>
     #include <fcntl.h>
     #include <limits.h>
@@ -77,7 +82,6 @@
 
     #include <cassert>
     #include <cerrno>
-    #include <condition_variable>
     #include <cstring>
     #include <list>
     #include <optional>
@@ -107,8 +111,6 @@
     #else
         #error "Unsupported Unix platform"
     #endif
-
-    #define USE_UNIX_SHM
 
     #if !defined(ACCESSPERMS)
         #define ACCESSPERMS (S_IRWXU | S_IRWXG | S_IRWXO)
@@ -146,84 +148,7 @@ enum class SharedMemoryAllocationStatus : u8 {
     return "Allocation status unknown.";
 }
 
-// argv[0] CANNOT be used because need to identify the executable.
-// argv[0] contains the command used to invoke it, which does not involve the full path.
-// Just using a path is not fully resilient either, as the executable could have changed
-// if it wasn't locked by the OS. If the path is longer than 4095 bytes the hash will be computed
-// from an unspecified amount of bytes of the path; in particular it can a hash of an empty string.
-inline std::string executable_path() noexcept {
-    Array<char, PATH_MAX> executablePath{};
-    usize                 executableSize = 0;
-
-#if defined(_WIN32)
-    DWORD size =
-      GetModuleFileName(nullptr, executablePath.data(), static_cast<DWORD>(executablePath.size()));
-
-    executableSize                 = std::min<usize>(size, executablePath.size() - 1);
-    executablePath[executableSize] = '\0';
-#elif defined(__APPLE__)
-    u32 size = static_cast<u32>(executablePath.size());
-
-    if (_NSGetExecutablePath(executablePath.data(), &size) == 0)
-    {
-        executableSize = std::strlen(executablePath.data());
-    }
-#elif defined(__sun)  // Solaris
-    const char* path = ::getexecname();
-
-    if (path != nullptr)
-    {
-        std::strncpy(executablePath.data(), path, executablePath.size() - 1);
-
-        // Determine actual length copied
-        executableSize                 = std::strnlen(path, executablePath.size() - 1);
-        executablePath[executableSize] = '\0';
-    }
-#elif defined(__FreeBSD__)
-    constexpr Array<int, 4> MIB{CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME, -1};
-
-    usize size = executablePath.size();
-
-    if (::sysctl(MIB.data(), MIB.size(), executablePath.data(), &size, nullptr, 0) == 0)
-    {
-        executableSize                 = std::min<usize>(size, executablePath.size() - 1);
-        executablePath[executableSize] = '\0';
-    }
-#elif defined(__OpenBSD__)
-    ssize_t size =  //
-      ::readlink("/proc/curproc/file", executablePath.data(), executablePath.size() - 1);
-
-    if (size >= 0)
-    {
-        executableSize                 = std::min<usize>(size, executablePath.size() - 1);
-        executablePath[executableSize] = '\0';
-    }
-#elif defined(__NetBSD__) || defined(__DragonFly__)
-    ssize_t size =  //
-      ::readlink("/proc/curproc/exe", executablePath.data(), executablePath.size() - 1);
-
-    if (size >= 0)
-    {
-        executableSize                 = std::min<usize>(size, executablePath.size() - 1);
-        executablePath[executableSize] = '\0';
-    }
-#elif defined(__linux__)
-    ssize_t size =  //
-      ::readlink("/proc/self/exe", executablePath.data(), executablePath.size() - 1);
-
-    if (size >= 0)
-    {
-        executableSize                 = std::min<usize>(size, executablePath.size() - 1);
-        executablePath[executableSize] = '\0';
-    }
-#elif defined(__wasm__)
-#else
-    #error "Unsupported platform"
-#endif
-
-    // In case of any error the path will be empty
-    return std::string{executablePath.data(), executableSize};
-}
+std::string executable_path() noexcept;
 
 #if defined(_WIN32)
 // Utilizes shared memory to store the value. It is reduplicated system-wide (for the single user)
@@ -249,7 +174,7 @@ class BackendSharedMemory final {
         status(Status::NotInitialized) {
         // Windows named shared memory names must start with "Local\" or "Global\"
         constexpr std::string_view Prefix{"Local\\"};
-        if (name().size() < Prefix.size() || name().compare(0, Prefix.size(), Prefix) != 0)
+        if (name_.size() < Prefix.size() || name_.compare(0, Prefix.size(), Prefix) != 0)
             name_.insert(0, Prefix);
 
         //DEBUG_LOG("Creating shared memory with name: " << name());
@@ -261,31 +186,22 @@ class BackendSharedMemory final {
     BackendSharedMemory& operator=(const BackendSharedMemory&) noexcept = delete;
 
     BackendSharedMemory(BackendSharedMemory&& backendShm) noexcept :
-        name_(std::move(backendShm.name_)),
-        hMapFile(std::exchange(backendShm.hMapFile, HANDLE_INVALID)),
         hMapFileGuard{hMapFile},
-        mappedPtr(std::exchange(backendShm.mappedPtr, MMAP_PTR_INVALID)),
-        mappedGuard{mappedPtr},
-        status(std::exchange(backendShm.status, Status::NotInitialized)) {
-        //DEBUG_LOG("Moving shared memory, name: " << name());
+        mappedGuard{mappedPtr} {
+        move_from(std::move(backendShm));
     }
     BackendSharedMemory& operator=(BackendSharedMemory&& backendShm) noexcept {
         if (this == &backendShm)
             return *this;
 
-        destroy();
+        release();
 
-        name_     = std::move(backendShm.name_);
-        hMapFile  = std::exchange(backendShm.hMapFile, HANDLE_INVALID);
-        mappedPtr = std::exchange(backendShm.mappedPtr, MMAP_PTR_INVALID);
-        status    = std::exchange(backendShm.status, Status::NotInitialized);
-
-        //DEBUG_LOG("Moving shared memory, name: " << name());
+        move_from(std::move(backendShm));
 
         return *this;
     }
 
-    ~BackendSharedMemory() noexcept { destroy(); }
+    ~BackendSharedMemory() noexcept { release(); }
 
     [[nodiscard]] std::string_view name() const noexcept { return name_; }
 
@@ -322,6 +238,13 @@ class BackendSharedMemory final {
     }
 
    private:
+    void move_from(BackendSharedMemory&& backendShm) noexcept {
+        name_     = std::move(backendShm.name_);
+        hMapFile  = std::exchange(backendShm.hMapFile, HANDLE_INVALID);
+        mappedPtr = std::exchange(backendShm.mappedPtr, MMAP_PTR_INVALID);
+        status    = std::exchange(backendShm.status, Status::NotInitialized);
+    }
+
     void initialize(const T& value) noexcept {
         constexpr usize TotalSize = sizeof(T) + sizeof(SharedState);
 
@@ -367,7 +290,7 @@ class BackendSharedMemory final {
         {
             //DEBUG_LOG("MapViewOfFile() failed: name = " << name() << ", error = " << error_to_string(GetLastError()));
             status = Status::MapView;
-            cleanup();
+            release();
             return;
         }
 
@@ -383,7 +306,7 @@ class BackendSharedMemory final {
         {
             //DEBUG_LOG("CreateMutex() failed: name = " << mutexName << ", error = " << error_to_string(GetLastError()));
             status = Status::MutexCreate;
-            cleanup();
+            release();
             return;
         }
         // Wait for ownership
@@ -391,7 +314,7 @@ class BackendSharedMemory final {
         {
             //DEBUG_LOG("WaitForSingleObject() failed: name = " << mutexName << ", error = " << error_to_string(GetLastError()));
             status = Status::MutexWait;
-            cleanup();
+            release();
             return;
         }
 
@@ -423,7 +346,7 @@ class BackendSharedMemory final {
         {
             //DEBUG_LOG("ReleaseMutex() failed: name = " << mutexName << ", error = " << error_to_string(GetLastError()));
             status = Status::MutexRelease;
-            cleanup();
+            release();
             return;
         }
 
@@ -431,15 +354,10 @@ class BackendSharedMemory final {
         status = Status::Success;
     }
 
-    void cleanup() noexcept {
+    void release() noexcept {
         //DEBUG_LOG("Cleaning up shared memory, name: " << name());
         mappedGuard.reset();
         hMapFileGuard.reset();
-    }
-
-    void destroy() noexcept {
-        //DEBUG_LOG("Destroying shared memory, name: " << name());
-        cleanup();
     }
 
     enum class SharedState : u8 {
@@ -485,36 +403,6 @@ class BaseSharedMemory {
     std::string name_;
 };
 
-// SharedMemoryRegistry
-//
-// A thread-safe global registry for tracking live shared memory objects
-// (BaseSharedMemory) without owning them.
-//
-// The registry maintains:
-//  - True insertion order for deterministic iteration
-//  - O(1) registration and unregistration via list + hash map
-//
-// Key Features:
-//  - Thread-safe registration and unregistration
-//  - Deterministic iteration order
-//  - O(1) lookup and removal
-//  - Lightweight: stores raw pointers only; lifetime is managed externally
-//
-// Implementation:
-//  - OrderedList preserves true insertion order
-//  - RegistryMap provides O(1) lookup and stores an iterator into OrderedList
-//
-// Concurrency Model:
-//  - shared_mutex protects both registry containers
-//  - Shared/read access uses shared locking
-//  - Registration and unregistration use exclusive locking
-//
-// Usage:
-//  - Call 'register_memory()' after successful shared memory creation
-//  - Call 'unregister_memory()' before destruction
-//
-// Note:
-//  - The registry does not own or release registered shared memory objects.
 namespace SharedMemoryRegistry {
 
 using SharedMemoryPtr = BaseSharedMemory*;
@@ -1250,7 +1138,6 @@ class BackendSharedMemory final {
 };
 
 #endif
-
 template<typename T>
 struct FallbackBackendSharedMemory final {
    public:

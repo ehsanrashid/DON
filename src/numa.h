@@ -35,20 +35,23 @@
 #include <variant>
 #include <vector>
 
+#if !defined(_WIN64)                                 /* Non-Windows */ \
+  && ((defined(__linux__) && !defined(__ANDROID__))) /* Linux (Non-Android) */
+    #define USE_UNIX_NUMA
+#endif
+
 #if defined(_WIN64)
     #include <cstring>
     #include <type_traits>
 
     #include "platform_win.h"
 
-#elif (defined(__linux__) && !defined(__ANDROID__)) /* Linux (non-Android) */
+#elif defined(USE_UNIX_NUMA)
     #if !defined(_GNU_SOURCE)
         #define _GNU_SOURCE
     #endif
     #include <sched.h>
     #include <numeric>
-
-    #define USE_UNIX_NUMA
 #endif
 
 #include "misc.h"
