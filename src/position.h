@@ -43,7 +43,7 @@ namespace DON {
 
 // Zobrist - Hash key generator
 //
-// This class provides access to precomputed Zobrist keys for all relevant
+// This provides access to precomputed Zobrist keys for all relevant
 // aspects of a chess position. It is used to efficiently compute a unique
 // hash for a given board state, which is essential for transposition tables,
 // move ordering, repetition detection, and other chess engine optimizations.
@@ -65,7 +65,6 @@ namespace DON {
 //  - mr50(int) - Returns the Zobrist key for the 50-move rule counter.
 //
 // Notes:
-//  - The class is static-only; it cannot be instantiated. (Restriction)
 //  - All data is stored in 'inline-static' arrays for fast, constant-time access.
 //  - Ensure 'init()' is called before using any other function.
 //  - Accessors perform debug-time assertions to validate input values.
@@ -75,59 +74,21 @@ namespace DON {
 //   Zobrist::init();
 //   Key key = Zobrist::piece_square(Piece::WHITE_KNIGHT, Square::G1);
 //   key ^= Zobrist::turn();
-struct Zobrist final {
-   public:
-    static void init() noexcept;
+namespace Zobrist {
 
-    static Key piece_square(Color c, PieceType pt, Square s) noexcept {
-        assert(is_ok(c) && is_ok(s));
+constexpr usize PawnOffset = 8;
 
-        return PieceSquare[c][pt][s];
-    }
-    static Key piece_square(Piece pc, Square s) noexcept {
-        assert(is_ok(s));
+void init() noexcept;
 
-        return piece_square(color_of(pc), type_of(pc), s);
-    }
+Key piece_square(Color c, PieceType pt, Square s) noexcept;
+Key piece_square(Piece pc, Square s) noexcept;
 
-    static Key castling(CastlingRights cr) noexcept {
-        assert(+cr < Castling.size());
+Key castling(CastlingRights cr) noexcept;
+Key enpassant(Square enPassantSq) noexcept;
+Key turn() noexcept;
+Key mr50(i16 rule50Count) noexcept;
 
-        return Castling[+cr];
-    }
-
-    static Key enpassant(Square enPassantSq) noexcept {
-        return is_ok(enPassantSq) ? Enpassant[file_of(enPassantSq)] : 0;
-    }
-
-    static Key turn() noexcept { return Turn; }
-
-    static Key mr50(i16 rule50Count) noexcept {
-        return rule50Count < R50Offset
-               ? 0
-               : MR50[std::min<usize>((rule50Count - R50Offset) / R50Factor, MR50.size() - 1)];
-    }
-
-    static constexpr usize PawnOffset = 8;
-
-   private:
-    Zobrist() noexcept                          = delete;
-    ~Zobrist() noexcept                         = delete;
-    Zobrist(const Zobrist&) noexcept            = delete;
-    Zobrist& operator=(const Zobrist&) noexcept = delete;
-    Zobrist(Zobrist&&) noexcept                 = delete;
-    Zobrist& operator=(Zobrist&&) noexcept      = delete;
-
-    static inline Array<Key, COLOR_NB, PIECE_TYPE_CNT + 1, SQUARE_NB> PieceSquare;
-    static inline Array<Key, CASTLING_RIGHTS_NB>                      Castling;
-    static inline Array<Key, FILE_NB>                                 Enpassant;
-    static inline Key                                                 Turn;
-
-    static constexpr u8 R50Offset = 14;
-    static constexpr u8 R50Factor = 8;
-
-    static inline Array<Key, 64> MR50;
-};
+}  // namespace Zobrist
 
 // State struct stores information needed to restore Position object
 // to its previous state when retract any move. (Size = 256)

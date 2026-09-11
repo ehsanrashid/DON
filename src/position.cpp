@@ -144,7 +144,24 @@ CuckooTable<0x2000> Cuckoos;
 
 }  // namespace
 
-void Zobrist::init() noexcept {
+namespace Zobrist {
+
+namespace {
+
+// Zobrist keys.
+Array<Key, COLOR_NB, PIECE_TYPE_CNT + 1, SQUARE_NB> PieceSquare;
+Array<Key, CASTLING_RIGHTS_NB>                      Castling;
+Array<Key, FILE_NB>                                 Enpassant;
+Key                                                 Turn;
+
+constexpr u8 R50Offset = 14;
+constexpr u8 R50Factor = 8;
+
+Array<Key, 64> MR50;
+
+}  // namespace
+
+void init() noexcept {
     XorShift64Star prng(0x105524);
 
     const auto prng_rand = [&prng]() noexcept { return prng.template rand<Key>(); };
@@ -166,6 +183,38 @@ void Zobrist::init() noexcept {
 
     std::generate(MR50.begin(), MR50.end(), prng_rand);
 }
+
+Key piece_square(Color c, PieceType pt, Square s) noexcept {
+    assert(is_ok(c) && is_ok(s));
+
+    return PieceSquare[c][pt][s];
+}
+
+Key piece_square(Piece pc, Square s) noexcept {
+    assert(is_ok(s));
+
+    return piece_square(color_of(pc), type_of(pc), s);
+}
+
+Key castling(CastlingRights cr) noexcept {
+    assert(+cr < Castling.size());
+
+    return Castling[+cr];
+}
+
+Key enpassant(Square enPassantSq) noexcept {
+    return is_ok(enPassantSq) ? Enpassant[file_of(enPassantSq)] : 0;
+}
+
+Key turn() noexcept { return Turn; }
+
+Key mr50(i16 rule50Count) noexcept {
+    return rule50Count < R50Offset
+           ? 0
+           : MR50[std::min<usize>((rule50Count - R50Offset) / R50Factor, MR50.size() - 1)];
+}
+
+}  // namespace Zobrist
 
 void State::clear() noexcept {
     std::memset(this, 0, sizeof(*this));
