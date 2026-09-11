@@ -292,8 +292,8 @@ void Threads::set(const NumaConfig&             numaConfig,
             // Search manager for this thread
             auto searchManager = threadId == 0 ? std::make_unique<Manager>(updateContext) : nullptr;
 
-            auto newThread = std::make_unique<Thread>(threadContext, nodeBinder, sharedState,
-                                                      std::move(searchManager), true);
+            auto newThread = std::make_unique<Thread>(std::move(threadContext), nodeBinder,
+                                                      sharedState, std::move(searchManager), true);
             // Mutate threads list under write lock to avoid races
             {
                 std::lock_guard writeLock(sharedMutex);
