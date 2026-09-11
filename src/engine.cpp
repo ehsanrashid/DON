@@ -36,7 +36,8 @@ namespace DON {
 
 namespace {
 
-const usize THREAD_MAX = std::max<usize>(4 * SYSTEM_THREAD_MAX, 1024);
+const u16 THREAD_MAX =
+  u16(std::clamp<u32>(4 * SYSTEM_THREAD_MAX, 1024, std::numeric_limits<u16>::max()));
 
 constexpr usize HASH_MAX =
 #if defined(IS_64BIT)

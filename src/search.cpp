@@ -213,17 +213,11 @@ bool is_shuffling(const Position& pos, const Stack* const ss, const Move move) n
 }  // namespace
 
 // Initialize the worker with its thread and NUMA information
-Worker::Worker(usize                     threadIdx,
-               usize                     threadCnt,
-               usize                     numaIdx,
-               usize                     numaThreadCnt,
+Worker::Worker(const ThreadContext&      threadCxt,
                NumaReplicatedAccessToken accessToken,
                const SharedState&        sharedState,
                ManagerPtr                manager) noexcept :
-    threadId(threadIdx),
-    threadCount(threadCnt),
-    numaId(numaIdx),
-    numaThreadCount(numaThreadCnt),
+    threadContext(threadCxt),
     numaAccessToken(accessToken),
     network(sharedState.network),
     options(sharedState.options),

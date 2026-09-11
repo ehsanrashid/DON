@@ -56,18 +56,15 @@ namespace DON {
 // Preconditions:
 //   - numa_thread_count() != 0
 //   - numa_id() < numa_thread_count()
-Thread::Thread(usize                         threadIdx,
-               usize                         threadCnt,
-               usize                         numaIdx,
-               usize                         numaThreadCnt,
+Thread::Thread(u16                           threadIdx,
+               u16                           threadCnt,
+               u16                           numaIdx,
+               u16                           numaThreadCnt,
                const ThreadToNumaNodeBinder& nodeBinder,
                const SharedState&            sharedState,
                ManagerPtr                    manager,
                bool                          autoStart) noexcept :
-    threadId(threadIdx),
-    threadCount(threadCnt),
-    numaId(numaIdx),
-    numaThreadCount(numaThreadCnt) {
+    context(threadIdx, threadCnt, numaIdx, numaThreadCnt) {
     assert(numa_thread_count() != 0 && numa_id() < numa_thread_count());
     //DEBUG_LOG("Creating Thread id: " << thread_id() << "/" << thread_count() << " on NUMA node " << numa_id() << "/" << numa_thread_count());
 
@@ -75,10 +72,8 @@ Thread::Thread(usize                         threadIdx,
     numaAccessToken = nodeBinder();
 
     // Create aligned Worker object with NUMA and thread info
-    worker =
-      make_unique_aligned_large_page<Worker>(thread_id(), thread_count(),     //
-                                             numa_id(), numa_thread_count(),  //
-                                             numa_access_token(), sharedState, std::move(manager));
+    worker = make_unique_aligned_large_page<Worker>(context, numa_access_token(), sharedState,
+                                                    std::move(manager));
 
     // Start the thread only after full initialization
     // Launch thread and wait until idle_func() puts it to sleep
@@ -174,7 +169,6 @@ void Thread::idle_func() noexcept {
         // This allows run_custom_job to schedule another job
         // while we are executing the current one.
         JobFunc jobFn = std::move(jobFunc);
-        jobFunc       = nullptr;  // optional, defensive
 
         // Unlock before executing the job to allow other threads
         // to schedule work or shut down concurrently.
@@ -705,7 +699,7 @@ NumaIndex Threads::numa_nodes() const noexcept {
         for (const NumaIndex numaId : threadBoundNumaNodes)
             seenNumaIds.insert(numaId);
     }
-    return std::max(seenNumaIds.size(), NumaIndex{1});
+    return std::max<NumaIndex>(seenNumaIds.size(), 1);
 }
 
 }  // namespace DON

@@ -33,6 +33,7 @@
 #include "native_thread.h"
 #include "numa.h"
 #include "position.h"
+#include "thread_context.h"
 #include "search.h"
 
 namespace DON {
@@ -70,10 +71,10 @@ using WorkerPtr = LargePagePtr<Worker>;
 // the search is finished, it goes back to idle_func() waiting for a new signal.
 class Thread final {
    public:
-    Thread(usize                         threadIdx,
-           usize                         threadCnt,
-           usize                         numaIdx,
-           usize                         numaThreadCnt,
+    Thread(u16                           threadIdx,
+           u16                           threadCnt,
+           u16                           numaIdx,
+           u16                           numaThreadCnt,
            const ThreadToNumaNodeBinder& nodeBinder,
            const SharedState&            sharedState,
            ManagerPtr                    manager,
@@ -81,15 +82,17 @@ class Thread final {
 
     ~Thread() noexcept;
 
-    [[nodiscard]] constexpr usize thread_id() const noexcept { return threadId; }
+    [[nodiscard]] constexpr u16 thread_id() const noexcept { return context.thread_id(); }
 
-    [[nodiscard]] constexpr bool is_main() const noexcept { return thread_id() == 0; }
+    [[nodiscard]] constexpr bool is_main() const noexcept { return context.is_main(); }
 
-    [[nodiscard]] constexpr usize thread_count() const noexcept { return threadCount; }
+    [[nodiscard]] constexpr u16 thread_count() const noexcept { return context.thread_count(); }
 
-    [[nodiscard]] constexpr usize numa_id() const noexcept { return numaId; }
+    [[nodiscard]] constexpr u16 numa_id() const noexcept { return context.numa_id(); }
 
-    [[nodiscard]] constexpr usize numa_thread_count() const noexcept { return numaThreadCount; }
+    [[nodiscard]] constexpr u16 numa_thread_count() const noexcept {
+        return context.numa_thread_count();
+    }
 
     [[nodiscard]] NumaReplicatedAccessToken numa_access_token() const noexcept {
         return numaAccessToken;
@@ -119,16 +122,17 @@ class Thread final {
     // The main function of the thread
     void idle_func() noexcept;
 
-    JobFunc jobFunc;
+    const ThreadContext context;
 
-    std::mutex                mutex;
-    std::condition_variable   condVar;
-    NativeThread              nativeThread;
     NumaReplicatedAccessToken numaAccessToken;
 
-    const usize threadId, threadCount, numaId, numaThreadCount;
-
     bool dead = false, busy = true;
+
+    std::mutex              mutex;
+    std::condition_variable condVar;
+    NativeThread            nativeThread;
+
+    JobFunc jobFunc;
 };
 
 using ThreadPtr = std::unique_ptr<Thread>;

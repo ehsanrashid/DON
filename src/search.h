@@ -38,6 +38,7 @@
 #include "notation.h"
 #include "numa.h"
 #include "position.h"
+#include "thread_context.h"
 #include "timeman.h"
 #include "types.h"
 #include "book/polyglot.h"
@@ -607,10 +608,7 @@ struct Stack final {
 class Worker final {
    public:
     Worker() noexcept = delete;
-    Worker(usize                     threadIdx,
-           usize                     threadCnt,
-           usize                     numaIdx,
-           usize                     numaThreadCnt,
+    Worker(const ThreadContext&      threadCxt,
            NumaReplicatedAccessToken accessToken,
            const SharedState&        sharedState,
            ManagerPtr                manager) noexcept;
@@ -623,21 +621,27 @@ class Worker final {
     // It searches from the root position and outputs the "bestmove".
     void start_search() noexcept;
 
-    constexpr usize thread_id() const noexcept { return threadId; }
+    [[nodiscard]] constexpr u16 thread_id() const noexcept { return threadContext.thread_id(); }
 
-    constexpr usize thread_count() const noexcept { return threadCount; }
+    [[nodiscard]] constexpr bool is_main() const noexcept { return threadContext.is_main(); }
 
-    constexpr usize numa_id() const noexcept { return numaId; }
+    [[nodiscard]] constexpr u16 thread_count() const noexcept {
+        return threadContext.thread_count();
+    }
 
-    constexpr usize numa_thread_count() const noexcept { return numaThreadCount; }
+    [[nodiscard]] constexpr u16 numa_id() const noexcept { return threadContext.numa_id(); }
 
-    NumaReplicatedAccessToken numa_access_token() const noexcept { return numaAccessToken; }
+    [[nodiscard]] constexpr u16 numa_thread_count() const noexcept {
+        return threadContext.numa_thread_count();
+    }
+
+    [[nodiscard]] NumaReplicatedAccessToken numa_access_token() const noexcept {
+        return numaAccessToken;
+    }
 
     const RootMoves& root_moves() const noexcept { return rootMoves; }
 
    private:
-    bool is_main() const noexcept { return thread_id() == 0; }
-
     // Get a pointer to the manager, only allowed to be called by the main worker.
     Manager* manager() const noexcept {
         assert(is_main());
@@ -707,7 +711,7 @@ class Worker final {
 
     void extend_tb_pv(usize idx, Value& value) noexcept;
 
-    const usize threadId, threadCount, numaId, numaThreadCount;
+    const ThreadContext& threadContext;
 
     const NumaReplicatedAccessToken numaAccessToken;
 

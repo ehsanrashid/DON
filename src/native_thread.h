@@ -29,11 +29,11 @@
 #if defined(USE_PTHREAD)
     #include <pthread.h>
     #include <utility>
-
-    #include "misc.h"
 #else
     #include <thread>
 #endif
+
+#include "misc.h"
 
 namespace DON {
 
