@@ -20,12 +20,16 @@
 #if defined(_WIN32)
 
 #elif defined(USE_UNIX_SHM)
+    #include <cstdlib>
+    #include <mutex>
     #include <shared_mutex>
 #endif
 
-#include "misc.h"
-
 namespace DON {
+
+#if defined(_WIN32)
+
+#elif defined(USE_UNIX_SHM)
 // SharedMemoryRegistry
 //
 // A thread-safe global registry for tracking live shared memory objects
@@ -264,5 +268,7 @@ void ensure_initialized() noexcept {
 }
 
 }  // namespace SharedMemoryCleanupHook
+
+#endif
 
 }  // namespace DON

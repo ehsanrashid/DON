@@ -22,7 +22,6 @@
 #include <cinttypes>
 #include <cstddef>
 #include <cstdio>
-#include <cstdlib>
 #include <functional>
 #include <iomanip>
 #include <iostream>
@@ -71,20 +70,17 @@
     #include <sys/socket.h>
     #include <sys/stat.h>
     #include <sys/time.h>
+    #include <sys/types.h>
     #include <sys/uio.h>
     #include <sys/un.h>
     #include <unistd.h>
 
-    #include <atomic>
     #include <cassert>
     #include <cerrno>
-    #include <chrono>
     #include <condition_variable>
     #include <cstring>
     #include <list>
-    #include <mutex>
     #include <optional>
-    #include <shared_mutex>
     #include <thread>
     #include <unordered_map>
 
