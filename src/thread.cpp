@@ -61,8 +61,8 @@ Thread::Thread(usize                         threadIdx,
                usize                         numaIdx,
                usize                         numaThreadCnt,
                const ThreadToNumaNodeBinder& nodeBinder,
-               ISearchManagerPtr             searchManager,
                const SharedState&            sharedState,
+               ManagerPtr                    manager,
                bool                          autoStart) noexcept :
     threadId(threadIdx),
     threadCount(threadCnt),
@@ -75,10 +75,10 @@ Thread::Thread(usize                         threadIdx,
     numaAccessToken = nodeBinder();
 
     // Create aligned Worker object with NUMA and thread info
-    worker = make_unique_aligned_large_page<Worker>(thread_id(), thread_count(),     //
-                                                    numa_id(), numa_thread_count(),  //
-                                                    numa_access_token(), std::move(searchManager),
-                                                    sharedState);
+    worker =
+      make_unique_aligned_large_page<Worker>(thread_id(), thread_count(),     //
+                                             numa_id(), numa_thread_count(),  //
+                                             numa_access_token(), sharedState, std::move(manager));
 
     // Start the thread only after full initialization
     // Launch thread and wait until idle_func() puts it to sleep
@@ -195,9 +195,9 @@ void Thread::ensure_network_replicated() const noexcept { worker->ensure_network
 // Destroys/Creates threads to match the thread-count.
 // Created and launched threads will immediately go to sleep in idle_func.
 // Upon resizing, threads are recreated to allow for binding if necessary.
-void Threads::set(const NumaConfig&                       numaConfig,
-                  SharedState&                            sharedState,
-                  const MainSearchManager::UpdateContext& updateContext) noexcept {
+void Threads::set(const NumaConfig&             numaConfig,
+                  SharedState&                  sharedState,
+                  const Manager::UpdateContext& updateContext) noexcept {
     destroy();
 
     usize threadCount = sharedState.options["Threads"];
@@ -293,11 +293,7 @@ void Threads::set(const NumaConfig&                       numaConfig,
         auto create_thread = [this, threadId, threadCount, numaId, numaIdx, numaThreadCnt,
                               numaConfigPtr, &sharedState, &updateContext]() noexcept {
             // Search manager for this thread
-            ISearchManagerPtr searchManager;
-            if (threadId == 0)
-                searchManager = std::make_unique<MainSearchManager>(updateContext);
-            else
-                searchManager = std::make_unique<NullSearchManager>();
+            auto searchManager = threadId == 0 ? std::make_unique<Manager>(updateContext) : nullptr;
 
             // When not binding threads want to force all access to happen from the same
             // NUMA node, because in case of NUMA replicated memory accesses don't want
@@ -306,7 +302,7 @@ void Threads::set(const NumaConfig&                       numaConfig,
 
             auto newThread =
               std::make_unique<Thread>(threadId, threadCount, numaIdx, numaThreadCnt, nodeBinder,
-                                       std::move(searchManager), sharedState, true);
+                                       sharedState, std::move(searchManager), true);
             // Mutate threads list under write lock to avoid races
             {
                 std::lock_guard writeLock(sharedMutex);

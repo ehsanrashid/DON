@@ -164,9 +164,9 @@ void Engine::start(const Limit& limit) noexcept {
 void Engine::stop() noexcept { threads.request_stop(); }
 
 void Engine::ponderhit() const noexcept {
-    auto* mainManager = threads.main_manager();
-    if (mainManager != nullptr)
-        mainManager->set_ponder(false);
+    auto* manager = threads.manager();
+    if (manager != nullptr)
+        manager->set_ponder(false);
 }
 
 void Engine::wait_finish() const noexcept {
@@ -386,23 +386,23 @@ bool Engine::save_hash(const std::filesystem::path& hashFile) const noexcept {
     return transpositionTable.save(hashFile);
 }
 
-void Engine::set_on_update_start(MainSearchManager::OnUpdateStart&& f) noexcept {
+void Engine::set_on_update_start(Manager::OnUpdateStart&& f) noexcept {
     updateContext.onUpdateStart = std::move(f);
 }
 
-void Engine::set_on_update_short(MainSearchManager::OnUpdateShort&& f) noexcept {
+void Engine::set_on_update_short(Manager::OnUpdateShort&& f) noexcept {
     updateContext.onUpdateShort = std::move(f);
 }
 
-void Engine::set_on_update_full(MainSearchManager::OnUpdateFull&& f) noexcept {
+void Engine::set_on_update_full(Manager::OnUpdateFull&& f) noexcept {
     updateContext.onUpdateFull = std::move(f);
 }
 
-void Engine::set_on_update_iter(MainSearchManager::OnUpdateIter&& f) noexcept {
+void Engine::set_on_update_iter(Manager::OnUpdateIter&& f) noexcept {
     updateContext.onUpdateIter = std::move(f);
 }
 
-void Engine::set_on_update_move(MainSearchManager::OnUpdateMove&& f) noexcept {
+void Engine::set_on_update_move(Manager::OnUpdateMove&& f) noexcept {
     updateContext.onUpdateMove = std::move(f);
 }
 

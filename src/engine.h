@@ -103,11 +103,11 @@ class Engine final {
     bool load_hash(const std::filesystem::path& hashFile) noexcept;
     bool save_hash(const std::filesystem::path& hashFile) const noexcept;
 
-    void set_on_update_start(MainSearchManager::OnUpdateStart&& f) noexcept;
-    void set_on_update_short(MainSearchManager::OnUpdateShort&& f) noexcept;
-    void set_on_update_full(MainSearchManager::OnUpdateFull&& f) noexcept;
-    void set_on_update_iter(MainSearchManager::OnUpdateIter&& f) noexcept;
-    void set_on_update_move(MainSearchManager::OnUpdateMove&& f) noexcept;
+    void set_on_update_start(Manager::OnUpdateStart&& f) noexcept;
+    void set_on_update_short(Manager::OnUpdateShort&& f) noexcept;
+    void set_on_update_full(Manager::OnUpdateFull&& f) noexcept;
+    void set_on_update_iter(Manager::OnUpdateIter&& f) noexcept;
+    void set_on_update_move(Manager::OnUpdateMove&& f) noexcept;
 
    private:
     // Cannot be movable due to components holding backreferences to fields
@@ -131,7 +131,7 @@ class Engine final {
     StateListPtr states;
     Position     pos;
 
-    MainSearchManager::UpdateContext updateContext;
+    Manager::UpdateContext updateContext;
 };
 
 }  // namespace DON

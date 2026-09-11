@@ -75,8 +75,8 @@ class Thread final {
            usize                         numaIdx,
            usize                         numaThreadCnt,
            const ThreadToNumaNodeBinder& nodeBinder,
-           ISearchManagerPtr             searchManager,
            const SharedState&            sharedState,
+           ManagerPtr                    manager,
            bool                          autoStart = true) noexcept;
 
     ~Thread() noexcept;
@@ -227,15 +227,15 @@ class Threads final {
 
     void destroy() noexcept;
 
-    void set(const NumaConfig&                       numaConfig,
-             SharedState&                            sharedState,
-             const MainSearchManager::UpdateContext& updateContext) noexcept;
+    void set(const NumaConfig&             numaConfig,
+             SharedState&                  sharedState,
+             const Manager::UpdateContext& updateContext) noexcept;
 
     void reset() const noexcept;
 
     Thread* main_thread() const noexcept;
 
-    MainSearchManager* main_manager() const noexcept;
+    Manager* manager() const noexcept;
 
     template<bool Mate>
     const Thread* best_thread() const noexcept;
@@ -291,16 +291,16 @@ class Threads final {
         // Only proceed if main-thread exists
         assert(mainThread != nullptr);
 
-        auto* mainManager = mainThread->worker->main_manager();
+        auto* manager = mainThread->worker->manager();
         // Only proceed if main-manager exists
-        assert(mainManager != nullptr);
+        assert(manager != nullptr);
 
         // Try to acquire the main-manager mutex to ensure the waiting thread
         // observes the updated state before it wakes.
         // If locking fails still notify — notify_one() is allowed without holding the lock.
-        std::unique_lock condLock(mainManager->mutex, std::try_to_lock);
+        std::unique_lock condLock(manager->mutex, std::try_to_lock);
         // Safe to call even if mutex not locked
-        mainManager->condVar.notify_one();
+        manager->condVar.notify_one();
     }
 
     template<typename Func>
@@ -411,8 +411,8 @@ inline void Threads::reset() const noexcept {
     for_each_thread([](Thread* th) noexcept { th->wait_finish(); });
 
     // Initialize main-manager
-    if (auto mainManager = main_manager(); mainManager != nullptr)
-        mainManager->reset();
+    if (auto manager = this->manager(); manager != nullptr)
+        manager->reset();
 }
 
 // Get pointer to the main-thread
@@ -423,13 +423,13 @@ inline Thread* Threads::main_thread() const noexcept {
 }
 
 // Get pointer to the main search manager
-inline MainSearchManager* Threads::main_manager() const noexcept {
+inline Manager* Threads::manager() const noexcept {
     std::shared_lock readLock(sharedMutex);
 
     // Avoid calling main_thread() here because it would try to lock sharedMutex again.
     // Snapshot the main-thread pointer under the shared lock and return its manager.
     return !threads.empty() && threads.front()->worker != nullptr
-           ? threads.front()->worker->main_manager()
+           ? threads.front()->worker->manager()
            : nullptr;
 }
 
