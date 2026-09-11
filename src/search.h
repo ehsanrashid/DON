@@ -636,11 +636,11 @@ class Worker final {
     const RootMoves& root_moves() const noexcept { return rootMoves; }
 
    private:
-    bool is_main_worker() const noexcept { return thread_id() == 0; }
+    bool is_main() const noexcept { return thread_id() == 0; }
 
     // Get a pointer to the manager, only allowed to be called by the main worker.
     Manager* manager() const noexcept {
-        assert(is_main_worker());
+        assert(is_main());
         assert(manager_.get() != nullptr);
         return manager_.get();
     }

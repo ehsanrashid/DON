@@ -281,7 +281,7 @@ void Worker::ensure_network_replicated() const noexcept {
 
 // Called when the program receives the UCI 'go' command.
 void Worker::start_search() noexcept {
-    auto* manager = is_main_worker() ? this->manager() : nullptr;
+    auto* manager = is_main() ? this->manager() : nullptr;
 
     // Non-main threads go directly to iterative_deepening()
     if (manager == nullptr)
@@ -438,7 +438,7 @@ void Worker::iterative_deepening() noexcept {
 
     lowPlyQuietHistory.fill(102);
 
-    auto* manager = is_main_worker() ? this->manager() : nullptr;
+    auto* manager = is_main() ? this->manager() : nullptr;
 
     Color ac = rootPos.active_color();
 
@@ -819,7 +819,7 @@ Value Worker::search(Position&    pos,
     }
 
     // Check for the available remaining time
-    if (is_main_worker())
+    if (is_main())
         manager()->check_time(*this);
 
     PVMoves pv;
@@ -1019,7 +1019,7 @@ Value Worker::search(Position&    pos,
                 auto wdlScore = Tablebase::Syzygy::probe_wdl(pos, &wdlPs);
 
                 // Force check of time on the next occasion
-                if (is_main_worker())
+                if (is_main())
                     manager()->callsCount = 1;
 
                 if (wdlPs != Tablebase::Syzygy::PS_FAIL)
@@ -1283,7 +1283,7 @@ Value Worker::search(Position&    pos,
 
         if constexpr (RootNode)
         {
-            if (is_main_worker() && rootDepth > OUTPUT_DEPTH_LIMIT && !options["MinimalInfo"])
+            if (is_main() && rootDepth > OUTPUT_DEPTH_LIMIT && !options["MinimalInfo"])
             {
                 std::string currMove{move_to_can(move)};
                 usize       currMoveNumber{pvIdx + moveCount};

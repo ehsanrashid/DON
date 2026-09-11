@@ -83,6 +83,8 @@ class Thread final {
 
     [[nodiscard]] constexpr usize thread_id() const noexcept { return threadId; }
 
+    [[nodiscard]] constexpr bool is_main() const noexcept { return thread_id() == 0; }
+
     [[nodiscard]] constexpr usize thread_count() const noexcept { return threadCount; }
 
     [[nodiscard]] constexpr usize numa_id() const noexcept { return numaId; }
@@ -278,11 +280,11 @@ class Threads final {
         // Always go to stopped state, even if currently researching or active
         state.store(State::Stopped, std::memory_order_release);
 
-        notify_main_manager();
+        notify_manager();
     }
 
 
-    void notify_main_manager() const noexcept {
+    void notify_manager() const noexcept {
         std::shared_lock readLock(sharedMutex);
 
         assert(!threads.empty());
@@ -309,7 +311,7 @@ class Threads final {
 
         for (auto&& th : threads)
         {
-            if (!includeMain && th == threads.front())
+            if (!includeMain && th->is_main())
                 continue;
 
             func(th.get());
@@ -389,7 +391,7 @@ inline void Threads::destroy() noexcept {
     if (mainThread != nullptr)
     {
         // Wake main-manager (in case it is waiting)
-        notify_main_manager();
+        notify_manager();
 
         mainThread->wait_finish();
     }
