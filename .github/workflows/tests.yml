@@ -156,7 +156,7 @@ jobs:
       - name: Build Docker container
         if: matrix.config.base_image
         run: |
-          docker buildx build --platform ${{ matrix.config.platform }} --load -t don_builder - << EOF
+          docker buildx build --platform ${{ matrix.config.platform }} --load -t don_builder - <<EOF
           FROM ${{ matrix.config.base_image }}
           WORKDIR /app
           RUN apk update && apk add make g++
