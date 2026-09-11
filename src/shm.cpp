@@ -397,7 +397,7 @@ const std::optional<TempRoot>& TempRoot::temp_root() noexcept {
 InitLock::InitLock(UniqueFd fd) noexcept :
     lockFd(std::move(fd)) {}
 
-InitLock InitLock::acquire_lock(std::string_view path) noexcept {
+InitLock InitLock::acquire_lock(const std::string_view path) noexcept {
     UniqueFd fd(::open(path.data(), O_CREAT | O_RDWR | O_CLOEXEC, FILE_MODE));
 
     if (!fd.is_valid())
@@ -422,7 +422,7 @@ void InitLock::unlock() noexcept {
     lockFd.reset();
 }
 
-void* map_shared(int fd, usize size) noexcept {
+void* map_shared(const int fd, const usize size) noexcept {
     #if defined(__linux__)
     constexpr usize Alignment = 2 * MB;
     const long      pageSize  = ::sysconf(_SC_PAGESIZE);
@@ -464,7 +464,7 @@ void* map_shared(int fd, usize size) noexcept {
     return ::mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 }
 
-std::string make_sentinel_base(std::string_view name) noexcept {
+std::string make_sentinel_base(const std::string_view name) noexcept {
     char buf[32];
     // Using std::to_string here causes non-deterministic PGO builds.
     // snprintf, being part of libc, is insensitive to the formatted values.
