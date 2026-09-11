@@ -117,6 +117,11 @@
     #if !defined(ACCESSPERMS)
         #define ACCESSPERMS (S_IRWXU | S_IRWXG | S_IRWXO)
     #endif
+    #if !defined(MADV_COLLAPSE)
+        #if (defined(__linux__))
+            #define MADV_COLLAPSE 25
+        #endif
+    #endif
 #endif
 
 #include "memory.h"  // LargePagePtr<>, make_unique_aligned_large_page()
@@ -841,6 +846,48 @@ union ControlMsg final {
     struct cmsghdr align;
 };
 
+inline void* map_shared(int fd, usize size) noexcept {
+    #if defined(__linux__)
+    constexpr usize Alignment = 2 * 1024 * 1024;
+    const long      pageSize  = sysconf(_SC_PAGESIZE);
+
+    if (size >= Alignment && pageSize > 0)
+    {
+        // File-backed huge pages require matching virtual-address and file-offset alignment.
+        // Reserve the address range first so MAP_FIXED cannot replace an unrelated mapping.
+        const usize mappingSize =
+          ((size + static_cast<usize>(pageSize) - 1) / static_cast<usize>(pageSize))
+          * static_cast<usize>(pageSize);
+        const usize reservationSize = mappingSize + Alignment;
+        void*       reservation =
+          ::mmap(nullptr, reservationSize, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+
+        if (reservation != MAP_FAILED)
+        {
+            char* const base        = static_cast<char*>(reservation);
+            char* const alignedBase = align_ptr_up<Alignment>(base);
+            void*       mapped =
+              ::mmap(alignedBase, size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, fd, 0);
+
+            if (mapped != MAP_FAILED)
+            {
+                const usize prefixSize = static_cast<usize>(alignedBase - base);
+                const usize suffixSize = reservationSize - prefixSize - mappingSize;
+                if (prefixSize != 0)
+                    ::munmap(reservation, prefixSize);
+                if (suffixSize != 0)
+                    ::munmap(alignedBase + mappingSize, suffixSize);
+                return mapped;
+            }
+
+            ::munmap(reservation, reservationSize);
+        }
+    }
+    #endif
+
+    return mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+}
+
 inline std::string make_sentinel_base(std::string_view name) noexcept {
     char buf[32];
     // Using std::to_string here causes non-deterministic PGO builds.
@@ -931,13 +978,10 @@ inline UniqueFd try_receive_memfd(const std::string& sockPath) noexcept {
         msg.msg_control    = controlMsg.buf;
         msg.msg_controllen = sizeof(controlMsg.buf);
 
-        int flags =
+        int flags = 0;
     #if defined(MSG_CMSG_CLOEXEC)
-          MSG_CMSG_CLOEXEC
-    #else
-          0
+        flags = MSG_CMSG_CLOEXEC;
     #endif
-          ;
 
         ssize_t bytesRecv;
 
@@ -1011,7 +1055,7 @@ make_server_thread(UniqueFd fd, UniqueFd shutdownFd, UniqueFd serverFd) noexcept
             {
                 // Another DON wants access
                 UniqueFd clientFd
-    #if !defined(__APPLE__)
+    #if defined(SOCK_CLOEXEC) && !defined(__APPLE__)
                   (::accept4(serverFd.get(), nullptr, nullptr, SOCK_CLOEXEC));
     #else
                   (::accept(serverFd.get(), nullptr, nullptr));
@@ -1049,13 +1093,10 @@ make_server_thread(UniqueFd fd, UniqueFd shutdownFd, UniqueFd serverFd) noexcept
                 int yes = 1;
                 ::setsockopt(clientFd.get(), SOL_SOCKET, SO_NOSIGPIPE, &yes, sizeof(yes));
     #endif
-                int flags =
+                int flags = 0;
     #if defined(MSG_NOSIGNAL)
-                  MSG_NOSIGNAL
-    #else
-                  0
+                flags = MSG_NOSIGNAL;
     #endif
-                  ;
 
                 while (::sendmsg(clientFd.get(), &msg, flags) < 0 && errno == EINTR)
                 {}
@@ -1164,8 +1205,7 @@ class SharedMemory final: public BaseSharedMemory {
         assert(memFd.is_valid());
 
         // Try to map the memFd
-        T* mappedMem = static_cast<T*>(
-          ::mmap(nullptr, sizeof(T), PROT_READ | PROT_WRITE, MAP_SHARED, memFd.get(), 0));
+        T* mappedMem = static_cast<T*>(map_shared(memfd.get(), sizeof(T)));
         if (mappedMem == MAP_FAILED)
             return false;
 
@@ -1222,10 +1262,7 @@ class SharedMemory final: public BaseSharedMemory {
 
     void release() noexcept override {
         if (!socketPath.empty())
-        {
             ::unlink(socketPath.c_str());
-            socketPath.clear();
-        }
 
         shutdownFd.reset();
         if (serverThread.joinable())
@@ -1234,6 +1271,7 @@ class SharedMemory final: public BaseSharedMemory {
         if (mappedPtr != nullptr)
             ::munmap(mappedPtr, sizeof(T));
 
+        socketPath.clear();
         mappedPtr = nullptr;
         dataPtr   = nullptr;
     }
