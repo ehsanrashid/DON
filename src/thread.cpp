@@ -56,18 +56,12 @@ namespace DON {
 // Preconditions:
 //   - numa_thread_count() != 0
 //   - numa_id() < numa_thread_count()
-Thread::Thread(usize                         threadIdx,
-               usize                         threadCnt,
-               usize                         numaIdx,
-               usize                         numaThreadCnt,
+Thread::Thread(ThreadContext                 threadCxt,
                const ThreadToNumaNodeBinder& nodeBinder,
-               ISearchManagerPtr             searchManager,
                const SharedState&            sharedState,
+               ManagerPtr                    manager,
                bool                          autoStart) noexcept :
-    threadId(threadIdx),
-    threadCount(threadCnt),
-    numaId(numaIdx),
-    numaThreadCount(numaThreadCnt) {
+    context(std::move(threadCxt)) {
     assert(numa_thread_count() != 0 && numa_id() < numa_thread_count());
     //DEBUG_LOG("Creating Thread id: " << thread_id() << "/" << thread_count() << " on NUMA node " << numa_id() << "/" << numa_thread_count());
 
@@ -75,10 +69,8 @@ Thread::Thread(usize                         threadIdx,
     numaAccessToken = nodeBinder();
 
     // Create aligned Worker object with NUMA and thread info
-    worker = make_unique_aligned_large_page<Worker>(thread_id(), thread_count(),     //
-                                                    numa_id(), numa_thread_count(),  //
-                                                    numa_access_token(), std::move(searchManager),
-                                                    sharedState);
+    worker = make_unique_aligned_large_page<Worker>(context, numa_access_token(), sharedState,
+                                                    std::move(manager));
 
     // Start the thread only after full initialization
     // Launch thread and wait until idle_func() puts it to sleep
@@ -174,7 +166,6 @@ void Thread::idle_func() noexcept {
         // This allows run_custom_job to schedule another job
         // while we are executing the current one.
         JobFunc jobFn = std::move(jobFunc);
-        jobFunc       = nullptr;  // optional, defensive
 
         // Unlock before executing the job to allow other threads
         // to schedule work or shut down concurrently.
@@ -195,12 +186,12 @@ void Thread::ensure_network_replicated() const noexcept { worker->ensure_network
 // Destroys/Creates threads to match the thread-count.
 // Created and launched threads will immediately go to sleep in idle_func.
 // Upon resizing, threads are recreated to allow for binding if necessary.
-void Threads::set(const NumaConfig&                       numaConfig,
-                  SharedState&                            sharedState,
-                  const MainSearchManager::UpdateContext& updateContext) noexcept {
+void Threads::set(const NumaConfig&             numaConfig,
+                  SharedState&                  sharedState,
+                  const Manager::UpdateContext& updateContext) noexcept {
     destroy();
 
-    usize threadCount = sharedState.options["Threads"];
+    u16 threadCount = sharedState.options["Threads"];
     assert(threadCount != 0);
 
     // Create new thread(s)
@@ -224,7 +215,7 @@ void Threads::set(const NumaConfig&                       numaConfig,
     // Assign threads to NUMA nodes
     std::vector<NumaIndex> thBoundNumaNodes;
     // Count threads per NUMA node
-    std::unordered_map<NumaIndex, usize> numaThreadCounts;
+    std::unordered_map<NumaIndex, u16> numaThreadCounts;
     if (threadBindable)
     {
         std::lock_guard writeLock(sharedMutex);
@@ -278,35 +269,31 @@ void Threads::set(const NumaConfig&                       numaConfig,
     const NumaConfig* numaConfigPtr = threadBindable ? &numaConfig : nullptr;
 
     // Track per-NUMA indices
-    std::unordered_map<NumaIndex, usize> numaIds;
+    std::unordered_map<NumaIndex, u16> numaIds;
     numaIds.reserve(numaThreadCounts.size());
 
     reserve(threadCount);
 
-    for (usize threadId = 0; threadId < threadCount; ++threadId)
+    for (u16 threadId = 0; threadId < threadCount; ++threadId)
     {
         NumaIndex numaId = thBoundNumaNodes[threadId];
 
-        usize numaIdx       = numaIds[numaId]++;
-        usize numaThreadCnt = numaThreadCounts[numaId];
+        auto numaIdx       = numaIds[numaId]++;
+        auto numaThreadCnt = numaThreadCounts[numaId];
 
         auto create_thread = [this, threadId, threadCount, numaId, numaIdx, numaThreadCnt,
                               numaConfigPtr, &sharedState, &updateContext]() noexcept {
-            // Search manager for this thread
-            ISearchManagerPtr searchManager;
-            if (threadId == 0)
-                searchManager = std::make_unique<MainSearchManager>(updateContext);
-            else
-                searchManager = std::make_unique<NullSearchManager>();
-
+            ThreadContext threadContext{threadId, threadCount, numaIdx, numaThreadCnt};
             // When not binding threads want to force all access to happen from the same
             // NUMA node, because in case of NUMA replicated memory accesses don't want
             // to trash cache in case the threads get scheduled on the same NUMA node.
             ThreadToNumaNodeBinder nodeBinder(numaId, numaConfigPtr);
 
-            auto newThread =
-              std::make_unique<Thread>(threadId, threadCount, numaIdx, numaThreadCnt, nodeBinder,
-                                       std::move(searchManager), sharedState, true);
+            // Search manager for this thread
+            auto searchManager = threadId == 0 ? std::make_unique<Manager>(updateContext) : nullptr;
+
+            auto newThread = std::make_unique<Thread>(std::move(threadContext), nodeBinder,
+                                                      sharedState, std::move(searchManager), true);
             // Mutate threads list under write lock to avoid races
             {
                 std::lock_guard writeLock(sharedMutex);
@@ -709,7 +696,7 @@ NumaIndex Threads::numa_nodes() const noexcept {
         for (const NumaIndex numaId : threadBoundNumaNodes)
             seenNumaIds.insert(numaId);
     }
-    return std::max(seenNumaIds.size(), NumaIndex{1});
+    return NumaIndex(std::max<usize>(seenNumaIds.size(), 1));
 }
 
 }  // namespace DON

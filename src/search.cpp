@@ -213,24 +213,18 @@ bool is_shuffling(const Position& pos, const Stack* const ss, const Move move) n
 }  // namespace
 
 // Initialize the worker with its thread and NUMA information
-Worker::Worker(usize                     threadIdx,
-               usize                     threadCnt,
-               usize                     numaIdx,
-               usize                     numaThreadCnt,
+Worker::Worker(const ThreadContext&      threadCxt,
                NumaReplicatedAccessToken accessToken,
-               ISearchManagerPtr         searchManager,
-               const SharedState&        sharedState) noexcept :
-    threadId(threadIdx),
-    threadCount(threadCnt),
-    numaId(numaIdx),
-    numaThreadCount(numaThreadCnt),
+               const SharedState&        sharedState,
+               ManagerPtr                manager) noexcept :
+    threadContext(threadCxt),
     numaAccessToken(accessToken),
-    manager(std::move(searchManager)),
     network(sharedState.network),
     options(sharedState.options),
     transpositionTable(sharedState.transpositionTable),
     threads(sharedState.threads),
     atomicHistories(sharedState.atomicHistoriesMap.at(accessToken.numa_id())),
+    manager_(std::move(manager)),
     accCache(network[accessToken]) {}
 
 // Reset per-thread data structures
@@ -281,10 +275,10 @@ void Worker::ensure_network_replicated() const noexcept {
 
 // Called when the program receives the UCI 'go' command.
 void Worker::start_search() noexcept {
-    auto* mainManager = is_main_worker() ? main_manager() : nullptr;
+    auto* manager = is_main() ? this->manager() : nullptr;
 
     // Non-main threads go directly to iterative_deepening()
-    if (mainManager == nullptr)
+    if (manager == nullptr)
     {
         iterative_deepening();
         return;
@@ -295,14 +289,14 @@ void Worker::start_search() noexcept {
 
     std::string bestMove, ponderMove;
 
-    main_manager()->updateContext.onUpdateStart();
+    manager->updateContext.onUpdateStart();
 
     if (rootMoves.empty())
     {
         FixedText score{
           to_score({Value(rootPos.checkers_bb() != 0 ? -VALUE_MATE : VALUE_DRAW), rootPos})};
 
-        mainManager->updateContext.onUpdateShort({DEPTH_ZERO, score});
+        manager->updateContext.onUpdateShort({DEPTH_ZERO, score});
 
         bestMove   = move_to_can(Move::None);
         ponderMove = {};
@@ -353,18 +347,18 @@ void Worker::start_search() noexcept {
         // shouldn't print the best move before the GUI sends a "stop" or "ponderhit" command.
         // Therefore simply wait here until the GUI sends one of those commands.
         {
-            std::unique_lock condLock(mainManager->mutex);
+            std::unique_lock condLock(manager->mutex);
 
             // Wait until either:
             // 1. Threads are stopped, OR
             // 2. Not in infinite search AND Not pondering
-            mainManager->condVar.wait(condLock, [&]() noexcept {
-                return threads.is_stopped() || (!limit.infinite && !mainManager->ponder);
+            manager->condVar.wait(condLock, [&]() noexcept {
+                return threads.is_stopped() || (!limit.infinite && !manager->ponder);
             });
         }
 
         // Stop the threads if not already stopped
-        // (also raise the stop if "ponderhit" just reset mainManager->ponder).
+        // (also raise the stop if "ponderhit" just reset manager->ponder).
         threads.request_stop();
 
         // Wait until all threads have finished
@@ -375,14 +369,14 @@ void Worker::start_search() noexcept {
         if (think)
         {
             // When playing in 'Nodes as Time' mode, advance the time nodes before exiting.
-            if (mainManager->timeManager.use_nodes_time())
-                mainManager->timeManager.advance_time_nodes(
-                  threads.sum(&Worker::nodes) - limit.clocks[rootPos.active_color()].inc);
+            if (manager->timeManager.use_nodes_time())
+                manager->timeManager.advance_time_nodes(threads.sum(&Worker::nodes)
+                                                        - limit.clocks[rootPos.active_color()].inc);
 
             // If the skill is enabled, swap the best PV line with the sub-optimal one
-            if (mainManager->skill.enabled())
+            if (manager->skill.enabled())
             {
-                const Move skillMove = mainManager->skill.pick_move(rootMoves, multiPV);
+                const Move skillMove = manager->skill.pick_move(rootMoves, multiPV);
 
                 for (auto&& th : threads)
                     th->worker->rootMoves.swap_to_front(skillMove);
@@ -397,10 +391,10 @@ void Worker::start_search() noexcept {
 
             if (limit.use_time_manager())
             {
-                mainManager->preBestValue     = bestWorker->rootMoves[0].value;
-                mainManager->preBestAvgValue  = bestWorker->rootMoves[0].avgValue;
-                mainManager->preTimeReduction = mainManager->timeReduction;
-                mainManager->atFirst          = false;
+                manager->preBestValue     = bestWorker->rootMoves[0].value;
+                manager->preBestAvgValue  = bestWorker->rootMoves[0].avgValue;
+                manager->preTimeReduction = manager->timeReduction;
+                manager->atFirst          = false;
             }
         }
 
@@ -409,20 +403,20 @@ void Worker::start_search() noexcept {
         const auto& rm0 = bestWorker->rootMoves[0];
 
         if (rm0.size() == 1 && bestWorker->ponder_move_extracted())
-            mainManager->pvShown = false;
+            manager->pvShown = false;
 
         // Send PV info again if it has changed since last output
-        if (!mainManager->pvShown || bestWorker != this)
+        if (!manager->pvShown || bestWorker != this)
         {
             const Depth rDepth = limit.depth != DEPTH_ZERO ? limit.depth : bestWorker->rootDepth;
-            mainManager->show_pv(*bestWorker, rDepth);
+            manager->show_pv(*bestWorker, rDepth);
         }
 
         bestMove   = move_to_can(rm0[0]);
         ponderMove = move_to_can(rm0.size() > 1 ? rm0[1] : Move::None);
     }
 
-    mainManager->updateContext.onUpdateMove({bestMove, ponderMove});
+    manager->updateContext.onUpdateMove({bestMove, ponderMove});
 }
 
 // Main iterative deepening loop. It calls search() repeatedly with increasing depth
@@ -438,7 +432,7 @@ void Worker::iterative_deepening() noexcept {
 
     lowPlyQuietHistory.fill(102);
 
-    auto* mainManager = is_main_worker() ? main_manager() : nullptr;
+    auto* manager = is_main() ? this->manager() : nullptr;
 
     Color ac = rootPos.active_color();
 
@@ -447,23 +441,23 @@ void Worker::iterative_deepening() noexcept {
 
     multiPV = options["MultiPV"];
 
-    if (mainManager != nullptr)
+    if (manager != nullptr)
     {
-        mainManager->skill.init(options);
+        manager->skill.init(options);
         // When playing with strength handicap enable MultiPV search that
         // will use behind-the-scenes to retrieve a set of sub-optimal moves.
-        if (mainManager->skill.enabled())
+        if (manager->skill.enabled())
             multiPV = std::max(usize{4}, multiPV);
 
-        mainManager->timeManager.init(rootPos.active_color(), rootPos.ply(), rootPos.move_num(),
-                                      options, limit);
+        manager->timeManager.init(rootPos.active_color(), rootPos.ply(), rootPos.move_num(),
+                                  options, limit);
 
-        mainManager->sumMoveChanges = 0.0;
-        mainManager->timeReduction  = 1.0;
-        mainManager->callsCount     = limit.calls_count();
-        mainManager->pvShown        = false;
-        mainManager->set_ponder(limit.ponder);
-        mainManager->ponderhitStop = false;
+        manager->sumMoveChanges = 0.0;
+        manager->timeReduction  = 1.0;
+        manager->callsCount     = limit.calls_count();
+        manager->pvShown        = false;
+        manager->set_ponder(limit.ponder);
+        manager->ponderhitStop = false;
     }
 
     multiPV = std::min(rootMovesSize, multiPV);
@@ -514,8 +508,8 @@ void Worker::iterative_deepening() noexcept {
     for (rootDepth = 1; rootDepth <= maxDepth; ++rootDepth)
     {
         // Signal the start of a new iteration
-        if (mainManager != nullptr)
-            mainManager->pvShown = false;
+        if (manager != nullptr)
+            manager->pvShown = false;
 
         // Precompute the start indices of each tbRank group
         Array<usize, MOVE_MAX + 1> tbRankGroups{};
@@ -602,9 +596,9 @@ void Worker::iterative_deepening() noexcept {
                     break;
 
                 // When failing high/low give some update before a re-search
-                if (mainManager != nullptr && multiPV == 1 && rootDepth > OUTPUT_DEPTH_LIMIT
+                if (manager != nullptr && multiPV == 1 && rootDepth > OUTPUT_DEPTH_LIMIT
                     && (alpha >= bestValue || bestValue >= beta))
-                    mainManager->show_pv(*this, rootDepth);
+                    manager->show_pv(*this, rootDepth);
 
                 // In case of failing low/high increase aspiration window and research, otherwise exit
                 if (bestValue <= alpha)
@@ -616,8 +610,8 @@ void Worker::iterative_deepening() noexcept {
 
                     failHighCnt = 0;
 
-                    if (mainManager != nullptr)
-                        mainManager->ponderhitStop = false;
+                    if (manager != nullptr)
+                        manager->ponderhitStop = false;
                 }
                 else if (bestValue >= beta)
                 {
@@ -686,10 +680,10 @@ void Worker::iterative_deepening() noexcept {
                 break;
 
             // Give some update about the PV
-            if (mainManager != nullptr && (pvIdxLast || rootDepth > OUTPUT_DEPTH_LIMIT))
+            if (manager != nullptr && (pvIdxLast || rootDepth > OUTPUT_DEPTH_LIMIT))
             {
-                mainManager->show_pv(*this, rootDepth);
-                mainManager->pvShown = pvIdxLast;
+                manager->show_pv(*this, rootDepth);
+                manager->pvShown = pvIdxLast;
             }
 
             if (threads.is_stopped())
@@ -723,8 +717,8 @@ void Worker::iterative_deepening() noexcept {
                     rm0.pv                   = lastBestMovePV;
                     rm0.reset_bound();
 
-                    if (mainManager != nullptr)
-                        mainManager->pvShown = false;
+                    if (manager != nullptr)
+                        manager->pvShown = false;
                 }
                 // For aborted (depth 1) search, label the loss score as lower bound
                 else if (lossAborted)
@@ -752,19 +746,19 @@ void Worker::iterative_deepening() noexcept {
             break;
         }
 
-        if (mainManager != nullptr)
+        if (manager != nullptr)
         {
             // If the skill is enabled and time is up, pick a sub-optimal best move
-            if (mainManager->skill.enabled() && mainManager->skill.time_to_pick(rootDepth))
-                mainManager->skill.pick_move(rootMoves, multiPV);
+            if (manager->skill.enabled() && manager->skill.time_to_pick(rootDepth))
+                manager->skill.pick_move(rootMoves, multiPV);
 
             // Do have time for the next iteration? Can stop searching now?
             if (limit.use_time_manager() && !threads.is_stopped())
             {
-                if (!mainManager->ponderhitStop)
-                    mainManager->handle_time_management(*this, bestValue, lastBestMoveDepth);
+                if (!manager->ponderhitStop)
+                    manager->handle_time_management(*this, bestValue, lastBestMoveDepth);
                 // Decay PV variability metric on every completed iteration to reduce influence of previous iterations
-                mainManager->sumMoveChanges *= 0.50;
+                manager->sumMoveChanges *= 0.50;
             }
         }
 
@@ -819,8 +813,8 @@ Value Worker::search(Position&    pos,
     }
 
     // Check for the available remaining time
-    if (is_main_worker())
-        main_manager()->check_time(*this);
+    if (is_main())
+        manager()->check_time(*this);
 
     PVMoves pv;
 
@@ -1019,8 +1013,8 @@ Value Worker::search(Position&    pos,
                 auto wdlScore = Tablebase::Syzygy::probe_wdl(pos, &wdlPs);
 
                 // Force check of time on the next occasion
-                if (is_main_worker())
-                    main_manager()->callsCount = 1;
+                if (is_main())
+                    manager()->callsCount = 1;
 
                 if (wdlPs != Tablebase::Syzygy::PS_FAIL)
                 {
@@ -1283,12 +1277,12 @@ Value Worker::search(Position&    pos,
 
         if constexpr (RootNode)
         {
-            if (is_main_worker() && rootDepth > OUTPUT_DEPTH_LIMIT && !options["MinimalInfo"])
+            if (is_main() && rootDepth > OUTPUT_DEPTH_LIMIT && !options["MinimalInfo"])
             {
                 std::string currMove{move_to_can(move)};
                 usize       currMoveNumber{pvIdx + moveCount};
 
-                main_manager()->updateContext.onUpdateIter({rootDepth, currMove, currMoveNumber});
+                manager()->updateContext.onUpdateIter({rootDepth, currMove, currMoveNumber});
             }
         }
 
@@ -2544,11 +2538,11 @@ void Worker::extend_tb_pv(const usize idx, Value& value) noexcept {
           "Syzygy based PV extension requires more time, increase Overhead-Time as needed.");
 }
 
-MainSearchManager::MainSearchManager(const UpdateContext& updateCtx) noexcept :
+Manager::Manager(const UpdateContext& updateCtx) noexcept :
     updateContext(updateCtx) {}
 
 // Initializes the time manager and resets previous search info
-void MainSearchManager::reset() noexcept {
+void Manager::reset() noexcept {
 
     timeManager.reset();
     preBestValue     = VALUE_ZERO;
@@ -2559,7 +2553,7 @@ void MainSearchManager::reset() noexcept {
 
 // Used to print debug info and, more importantly,
 // to detect when out of available time and thus stop the search.
-void MainSearchManager::check_time(Worker& worker) noexcept {
+void Manager::check_time(Worker& worker) noexcept {
     assert(callsCount > 0);
     if (--callsCount > 0)
         return;
@@ -2593,19 +2587,19 @@ void MainSearchManager::check_time(Worker& worker) noexcept {
 // Returns the actual time elapsed since the start of the search.
 // This function is intended for use only when printing PV outputs,
 // and not used for making decisions within the search algorithm itself.
-TimePoint MainSearchManager::elapsed() const noexcept { return timeManager.elapsed(); }
+TimePoint Manager::elapsed() const noexcept { return timeManager.elapsed(); }
 // Returns the time elapsed since the search started.
 // If the 'NodesTime' option is enabled, return the count of nodes searched instead.
 // This function is called to check whether the search should be stopped
 // based on predefined thresholds like total time or total nodes.
-TimePoint MainSearchManager::elapsed(const Threads& threads) const noexcept {
+TimePoint Manager::elapsed(const Threads& threads) const noexcept {
     return timeManager.elapsed(
       [&threads = std::as_const(threads)]() { return threads.sum(&Worker::nodes); });
 }
 
-void MainSearchManager::handle_time_management(const Worker& worker,
-                                               const Value   bestValue,
-                                               const Depth   lastBestMoveDepth) noexcept {
+void Manager::handle_time_management(const Worker& worker,
+                                     const Value   bestValue,
+                                     const Depth   lastBestMoveDepth) noexcept {
 
     // Use part of the gained time from a previous stable move for the current move
     sumMoveChanges += worker.threads.sum_and_reset(&Worker::moveChanges);
@@ -2681,7 +2675,7 @@ void MainSearchManager::handle_time_management(const Worker& worker,
 }
 
 // Displays the principal variation (PV) along with associated information
-void MainSearchManager::show_pv(Worker& worker, const Depth depth) const noexcept {
+void Manager::show_pv(Worker& worker, const Depth depth) const noexcept {
     assert(depth > DEPTH_ZERO);
 
     const auto& rootPos            = worker.rootPos;
@@ -2742,7 +2736,7 @@ void MainSearchManager::show_pv(Worker& worker, const Depth depth) const noexcep
     }
 }
 
-void MainSearchManager::set_ponder(const bool p) noexcept {
+void Manager::set_ponder(const bool p) noexcept {
     std::lock_guard writeLock(mutex);
 
     ponder = p;

@@ -251,7 +251,7 @@ void TranspositionTable::resize(const usize ttSize, const Threads& threads) noex
 void TranspositionTable::reset(const Threads& threads) noexcept {
     generation8 = 0;
 
-    const usize threadCount = threads.size();
+    const auto threadCount = threads.size();
 
     auto threadBoundNumaNodes = threads.thread_bound_numa_nodes();
 
@@ -268,7 +268,7 @@ void TranspositionTable::reset(const Threads& threads) noexcept {
                          });
     }
 
-    for (usize threadId = 0; threadId < threadCount; ++threadId)
+    for (u16 threadId = 0; threadId < threadCount; ++threadId)
     {
         threads.run_on_thread(orderedThreads[threadId], [this, threadId, threadCount]() {
             // Each thread will zero its part of the hash table
@@ -278,7 +278,7 @@ void TranspositionTable::reset(const Threads& threads) noexcept {
         });
     }
 
-    for (usize threadId = 0; threadId < threadCount; ++threadId)
+    for (u16 threadId = 0; threadId < threadCount; ++threadId)
         threads.wait_on_thread(orderedThreads[threadId]);
 }
 

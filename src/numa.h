@@ -66,7 +66,8 @@ inline CpuIndex hardware_concurrency() noexcept {
     // ::hardware_concurrency() only returns the number of processors in
     // the first group, because only these are available to std::thread.
 #if defined(_WIN64)
-    concurrency = std::max<CpuIndex>(GetActiveProcessorCount(ALL_PROCESSOR_GROUPS), concurrency);
+    concurrency = CpuIndex(std::clamp<u32>(GetActiveProcessorCount(ALL_PROCESSOR_GROUPS),
+                                           concurrency, std::numeric_limits<CpuIndex>::max()));
 #endif
 
     return concurrency;
@@ -79,7 +80,7 @@ inline constexpr LPCSTR KERNEL_MODULE_NAME = TEXT("kernel32.dll");
 
 // On Windows each processor group can have up to 64 processors.
 // https://learn.microsoft.com/en-us/windows/win32/procthread/processor-groups
-inline constexpr usize WIN_PROCESSOR_GROUP_SIZE = 64;
+inline constexpr u16 WIN_PROCESSOR_GROUP_SIZE = 64;
 
 // https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getthreadselectedcpusetmasks
 using GetThreadSelectedCpuSetMasks_ = BOOL(WINAPI*)(
@@ -231,7 +232,7 @@ inline WindowsAffinity get_process_affinity() noexcept {
                     const KAFFINITY groupMask = groupAffinities[i].Mask;
 
                     if (groupMask != 0)
-                        for (DWORD number = 0; number < WIN_PROCESSOR_GROUP_SIZE; ++number)
+                        for (u16 number = 0; number < WIN_PROCESSOR_GROUP_SIZE; ++number)
                             if ((groupMask & bit(u8(number))) != 0)
                             {
                                 const CpuIndex cpuId = groupId * WIN_PROCESSOR_GROUP_SIZE + number;
@@ -289,7 +290,7 @@ inline WindowsAffinity get_process_affinity() noexcept {
                 const WORD      groupId   = procGroupAffinity[0];
                 const KAFFINITY groupMask = procMask;
 
-                for (DWORD number = 0; number < WIN_PROCESSOR_GROUP_SIZE; ++number)
+                for (u16 number = 0; number < WIN_PROCESSOR_GROUP_SIZE; ++number)
                     if ((groupMask & bit(u8(number))) != 0)
                     {
                         const CpuIndex cpuId = groupId * WIN_PROCESSOR_GROUP_SIZE + number;
@@ -366,7 +367,7 @@ inline WindowsAffinity get_process_affinity() noexcept {
                         fullAffinity = false;
 
                     if (combinedProcMask != 0)
-                        for (DWORD number = 0; number < WIN_PROCESSOR_GROUP_SIZE; ++number)
+                        for (u16 number = 0; number < WIN_PROCESSOR_GROUP_SIZE; ++number)
                             if ((combinedProcMask & bit(u8(number))) != 0)
                             {
                                 const CpuIndex cpuId = groupId * WIN_PROCESSOR_GROUP_SIZE + number;
@@ -407,7 +408,7 @@ CpuIndexSet read_cache_members(const T* processorInfo, Pred&& is_cpu_allowed) no
     CpuIndexSet cpus;
 
     const auto add_group_cpus = [&](WORD groupId, KAFFINITY groupMask) noexcept {
-        for (DWORD number = 0; number < WIN_PROCESSOR_GROUP_SIZE; ++number)
+        for (u16 number = 0; number < WIN_PROCESSOR_GROUP_SIZE; ++number)
         {
             if ((groupMask & bit(u8(number))) != 0)
             {
@@ -468,7 +469,7 @@ inline CpuIndexSet get_process_affinity() noexcept {
     // cpu_set_t by default holds 1024 entries. This may not be enough soon,
     // but there is no easy way to determine how many threads there actually is.
     // In this case just choose a reasonable upper bound.
-    constexpr CpuIndex MaxCpuCount = 64 * KB;
+    constexpr CpuIndex MaxCpuCount = 64 * KB - 1;
 
     cpu_set_t* const cpuMask = CPU_ALLOC(MaxCpuCount);
 
@@ -560,24 +561,32 @@ inline CpuIndexVec shortened_string_to_indices(std::string_view str) noexcept {
         case 1 : {
             const auto cpuId = str_to_usize(parts[0]);
             if (cpuId)
-                indices.emplace_back(*cpuId);
+                indices.emplace_back(CpuIndex(*cpuId));
         }
         break;
         case 2 : {
             // Limit expansion to 1M CPU IDs
-            constexpr usize MaxIndices = 1 * MB;
+            constexpr usize MaxIndices = 64 * KB;
 
             if (indices.size() >= MaxIndices)
                 break;
 
-            const auto begCpuId = str_to_usize(parts[0]);
-            const auto endCpuId = str_to_usize(parts[1]);
+            const auto begId = str_to_usize(parts[0]);
+            const auto endId = str_to_usize(parts[1]);
 
-            if (begCpuId && endCpuId       //
-                && *begCpuId <= *endCpuId  //
-                && *endCpuId - *begCpuId < MaxIndices - indices.size())
-                for (auto cpuId = *begCpuId; cpuId <= *endCpuId; ++cpuId)
+            if (begId && endId && *begId <= *endId && *endId - *begId < MaxIndices - indices.size()
+                && *endId <= std::numeric_limits<CpuIndex>::max())
+            {
+                const auto begCpuId = static_cast<CpuIndex>(*begId);
+                const auto endCpuId = static_cast<CpuIndex>(*endId);
+
+                for (CpuIndex cpuId = begCpuId;; ++cpuId)
+                {
                     indices.emplace_back(cpuId);
+                    if (cpuId == endCpuId)
+                        break;
+                }
+            }
         }
         break;
         default :
@@ -795,7 +804,7 @@ class NumaConfig final {
     NumaConfig(NumaConfig&&) noexcept                 = default;
     NumaConfig& operator=(NumaConfig&&) noexcept      = default;
 
-    NumaIndex nodes_size() const noexcept { return nodes.size(); }
+    NumaIndex nodes_size() const noexcept { return NumaIndex(nodes.size()); }
 
     bool node_cpus_empty(const NumaIndex numaId) const noexcept {
         assert(numaId < nodes_size());
@@ -806,7 +815,7 @@ class NumaConfig final {
     CpuIndex node_cpus_size(const NumaIndex numaId) const noexcept {
         assert(numaId < nodes_size());
 
-        return nodes[numaId].size();
+        return CpuIndex(nodes[numaId].size());
     }
 
     CpuIndex node_cpus(const NumaIndex numaId) const noexcept {
@@ -815,7 +824,7 @@ class NumaConfig final {
         return *nodes[numaId].begin();
     }
 
-    CpuIndex cpus_size() const noexcept { return nodeByCpu.size(); }
+    CpuIndex cpus_size() const noexcept { return CpuIndex(nodeByCpu.size()); }
 
     bool is_cpu_assigned(const CpuIndex cpuId) const noexcept {
         return nodeByCpu.find(cpuId) != nodeByCpu.end();
@@ -934,7 +943,7 @@ class NumaConfig final {
     }
 
     std::vector<NumaIndex>
-    distribute_threads_among_numa_nodes(const usize threadCount) const noexcept {
+    distribute_threads_among_numa_nodes(const u16 threadCount) const noexcept {
         std::vector<NumaIndex> numaNodes;
 
         if (nodes_size() == 1)
@@ -947,7 +956,7 @@ class NumaConfig final {
         {
             std::vector<usize> occupation(nodes_size(), 0);
 
-            for (usize threadId = 0; threadId < threadCount; ++threadId)
+            for (u16 threadId = 0; threadId < threadCount; ++threadId)
             {
                 NumaIndex bestNumaId = 0;
 
@@ -1123,9 +1132,9 @@ class NumaConfig final {
 
         for (WORD groupId = 0; groupId < ActiveProcGroupCount; ++groupId)
         {
-            const DWORD ActiveProcCount = GetActiveProcessorCount(groupId);
+            const u16 ActiveProcCount = u16(GetActiveProcessorCount(groupId));
 
-            for (DWORD number = 0; number < ActiveProcCount; ++number)
+            for (u16 number = 0; number < ActiveProcCount; ++number)
             {
                 PROCESSOR_NUMBER processorNumber{};
                 processorNumber.Group    = groupId;

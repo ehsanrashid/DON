@@ -38,6 +38,7 @@
 #include "notation.h"
 #include "numa.h"
 #include "position.h"
+#include "thread_context.h"
 #include "timeman.h"
 #include "types.h"
 #include "book/polyglot.h"
@@ -482,18 +483,6 @@ struct SharedState final {
 
 class Worker;
 
-// Null Object Pattern, implement a common interface for the SearchManagers.
-// Null Object will be given to non-main-thread workers.
-class ISearchManager {
-   public:
-    virtual ~ISearchManager() noexcept = default;
-
-    virtual void check_time(Worker&) noexcept = 0;
-};
-
-// Define a unique pointer type for ISearchManager
-using ISearchManagerPtr = std::unique_ptr<ISearchManager>;
-
 struct ShortInfo {
    public:
     Depth     depth;
@@ -526,7 +515,7 @@ struct MoveInfo final {
 // MainSearchManager manages the search from the main thread.
 // It is responsible for keeping track of the time,
 // and storing data strictly related to the main thread.
-class MainSearchManager final: public ISearchManager {
+class Manager final {
    public:
     using OnUpdateStart = std::function<void()>;
     using OnUpdateShort = std::function<void(const ShortInfo&)>;
@@ -542,12 +531,12 @@ class MainSearchManager final: public ISearchManager {
         OnUpdateMove  onUpdateMove;
     };
 
-    MainSearchManager() noexcept = delete;
-    explicit MainSearchManager(const UpdateContext& updateCtx) noexcept;
+    Manager() noexcept = delete;
+    explicit Manager(const UpdateContext& updateCtx) noexcept;
 
     void reset() noexcept;
 
-    void check_time(Worker& worker) noexcept override;
+    void check_time(Worker& worker) noexcept;
 
     [[nodiscard]] TimePoint elapsed() const noexcept;
     [[nodiscard]] TimePoint elapsed(const Threads& threads) const noexcept;
@@ -579,11 +568,8 @@ class MainSearchManager final: public ISearchManager {
     std::condition_variable condVar;
 };
 
-// NullSearchManager is a no-op implementation of ISearchManager
-class NullSearchManager final: public ISearchManager {
-   public:
-    void check_time(Worker&) noexcept override {}
-};
+// Define a unique pointer type for Manager
+using ManagerPtr = std::unique_ptr<Manager>;
 
 // NT indicates the type of node in the search tree
 enum class NT : u8 {
@@ -622,13 +608,10 @@ struct Stack final {
 class Worker final {
    public:
     Worker() noexcept = delete;
-    Worker(usize                     threadIdx,
-           usize                     threadCnt,
-           usize                     numaIdx,
-           usize                     numaThreadCnt,
+    Worker(const ThreadContext&      threadCxt,
            NumaReplicatedAccessToken accessToken,
-           ISearchManagerPtr         searchManager,
-           const SharedState&        sharedState) noexcept;
+           const SharedState&        sharedState,
+           ManagerPtr                manager) noexcept;
 
     void reset() noexcept;
 
@@ -638,27 +621,32 @@ class Worker final {
     // It searches from the root position and outputs the "bestmove".
     void start_search() noexcept;
 
-    constexpr usize thread_id() const noexcept { return threadId; }
+    [[nodiscard]] constexpr u16 thread_id() const noexcept { return threadContext.thread_id(); }
 
-    constexpr usize thread_count() const noexcept { return threadCount; }
+    [[nodiscard]] constexpr bool is_main() const noexcept { return threadContext.is_main(); }
 
-    constexpr usize numa_id() const noexcept { return numaId; }
+    [[nodiscard]] constexpr u16 thread_count() const noexcept {
+        return threadContext.thread_count();
+    }
 
-    constexpr usize numa_thread_count() const noexcept { return numaThreadCount; }
+    [[nodiscard]] constexpr u16 numa_id() const noexcept { return threadContext.numa_id(); }
 
-    NumaReplicatedAccessToken numa_access_token() const noexcept { return numaAccessToken; }
+    [[nodiscard]] constexpr u16 numa_thread_count() const noexcept {
+        return threadContext.numa_thread_count();
+    }
+
+    [[nodiscard]] NumaReplicatedAccessToken numa_access_token() const noexcept {
+        return numaAccessToken;
+    }
 
     const RootMoves& root_moves() const noexcept { return rootMoves; }
 
    private:
-    bool is_main_worker() const noexcept { return thread_id() == 0; }
-
-    // Get a pointer to the search manager,
-    // Only allowed to be called by the main worker.
-    MainSearchManager* main_manager() const noexcept {
-        assert(is_main_worker());
-
-        return (MainSearchManager*) manager.get();
+    // Get a pointer to the manager, only allowed to be called by the main worker.
+    Manager* manager() const noexcept {
+        assert(is_main());
+        assert(manager_.get() != nullptr);
+        return manager_.get();
     }
 
     void iterative_deepening() noexcept;
@@ -723,16 +711,16 @@ class Worker final {
 
     void extend_tb_pv(usize idx, Value& value) noexcept;
 
-    const usize threadId, threadCount, numaId, numaThreadCount;
+    const ThreadContext& threadContext;
 
     const NumaReplicatedAccessToken numaAccessToken;
 
-    ISearchManagerPtr                                  manager;
     const SystemWideLazyNumaReplicated<NNUE::Network>& network;
     const Options&                                     options;
     const TranspositionTable&                          transpositionTable;
     Threads&                                           threads;
     AtomicHistories&                                   atomicHistories;
+    ManagerPtr                                         manager_;
 
     // Used by NNUE
     NNUE::AccumulatorCache accCache;
@@ -767,7 +755,7 @@ class Worker final {
 
     TTMoveHistory ttMoveHistory;
 
-    friend class MainSearchManager;
+    friend class Manager;
     friend class Position;
     friend class Threads;
 };
