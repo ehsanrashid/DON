@@ -574,11 +574,20 @@ inline CpuIndexVec shortened_string_to_indices(std::string_view str) noexcept {
             const auto begCpuId = str_to_usize(parts[0]);
             const auto endCpuId = str_to_usize(parts[1]);
 
-            if (begCpuId && endCpuId       //
-                && *begCpuId <= *endCpuId  //
-                && *endCpuId - *begCpuId < MaxIndices - indices.size())
-                for (auto cpuId = *begCpuId; cpuId <= *endCpuId; ++cpuId)
+            if (begCpuId && endCpuId && *begCpuId <= *endCpuId
+                && *endCpuId - *begCpuId < MaxIndices - indices.size()
+                && *endCpuId <= std::numeric_limits<CpuIndex>::max())
+            {
+                const auto begId = static_cast<CpuIndex>(*begCpuId);
+                const auto endId = static_cast<CpuIndex>(*endCpuId);
+
+                for (CpuIndex cpuId = begId;; ++cpuId)
+                {
                     indices.emplace_back(cpuId);
+                    if (cpuId == endId)
+                        break;
+                }
+            }
         }
         break;
         default :
