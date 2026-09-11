@@ -513,161 +513,155 @@ class BaseSharedMemory {
 //  - Call 'unregister_memory()' before destruction
 //
 // Note:
-//  - The registry does not own or close registered shared memory objects.
-//  - The class is static-only; it cannot be instantiated. (Restriction)
-class SharedMemoryRegistry final {
-   private:
-    using SharedMemoryPtr = BaseSharedMemory*;
-    using OrderedList     = std::list<SharedMemoryPtr>;
-    using RegistryMap     = std::unordered_map<SharedMemoryPtr, OrderedList::iterator>;
+//  - The registry does not own or release registered shared memory objects.
+namespace SharedMemoryRegistry {
 
-   public:
-    // Register a shared memory object.
-    //
-    // Returns false if:
-    //  - sharedMemory is nullptr
-    //  - the object is already registered
-    static bool register_memory(SharedMemoryPtr sharedMemory) noexcept {
-        if (sharedMemory == nullptr)
-        {
-            //DEBUG_LOG("Cannot register <NULL> shared memory.");
-            return false;
-        }
+using SharedMemoryPtr = BaseSharedMemory*;
+using OrderedList     = std::list<SharedMemoryPtr>;
+using RegistryMap     = std::unordered_map<SharedMemoryPtr, OrderedList::iterator>;
 
-        // Acquire an exclusive lock because both containers are modified.
-        std::lock_guard writeLock(sharedMutex);
+// Protects both registry containers.
+inline std::shared_mutex sharedMutex;
+// Preserves true insertion order for deterministic iteration.
+inline OrderedList orderedList;
+// Provides O(1) lookup and removal.
+// Each entry stores an iterator into 'orderedList'.
+inline RegistryMap registryMap;
 
-        return insert_memory_nolock(sharedMemory);
+namespace {
+
+// Insert a shared memory object into both registry containers.
+//
+// The caller must hold 'sharedMutex' exclusively.
+//
+// Two-phase insertion:
+//  1. Insert the pointer into RegistryMap with a temporary list iterator.
+//     This performs the duplicate check and reserves the map entry.
+//  2. Append the pointer to OrderedList.
+//  3. Replace the temporary iterator with the actual list iterator.
+//
+// This avoids a second map lookup while keeping both containers synchronized.
+inline bool insert_memory_nolock(SharedMemoryPtr sharedMemory) noexcept {
+    auto [insertReg, inserted] = registryMap.emplace(sharedMemory, orderedList.end());
+
+    // Already registered.
+    if (!inserted)
+        return false;
+
+    //DEBUG_LOG("Registering shared memory: " << sharedMemory->name());
+
+    // Append to the ordered list and obtain a stable iterator.
+    auto insertIt = orderedList.emplace(orderedList.end(), sharedMemory);
+
+    // Associate the map entry with its corresponding list node.
+    insertReg->second = insertIt;
+
+    return true;
+}
+
+// Remove a shared memory object from both registry containers.
+//
+// The caller must hold 'sharedMutex' exclusively.
+//
+// RegistryMap stores the corresponding OrderedList iterator, allowing
+// O(1) removal from both containers without searching the list.
+inline bool erase_memory_nolock(SharedMemoryPtr sharedMemory) noexcept {
+    auto eraseReg = registryMap.find(sharedMemory);
+
+    // Not registered.
+    if (eraseReg == registryMap.end())
+        return false;
+
+    // Retrieve the stable list iterator associated with this entry.
+    auto eraseIt = eraseReg->second;
+
+    // Internal consistency check.
+    assert(eraseIt != orderedList.end());
+
+    // Remove the list node first.
+    orderedList.erase(eraseIt);
+
+    // Remove the corresponding map entry.
+    registryMap.erase(eraseReg);
+
+    //DEBUG_LOG("Unregistered shared memory: " << sharedMemory->name());
+
+    return true;
+}
+
+}  // namespace
+
+// Register a shared memory object.
+//
+// Returns false if:
+//  - sharedMemory is nullptr
+//  - the object is already registered
+inline bool register_memory(SharedMemoryPtr sharedMemory) noexcept {
+    if (sharedMemory == nullptr)
+    {
+        //DEBUG_LOG("Cannot register <NULL> shared memory.");
+        return false;
     }
 
-    // Unregister a shared memory object from the global registry.
-    //
-    // Returns false if the object is nullptr or is not registered.
-    static bool unregister_memory(SharedMemoryPtr sharedMemory) noexcept {
-        if (sharedMemory == nullptr)
-            return false;
+    // Acquire an exclusive lock because both containers are modified.
+    std::lock_guard writeLock(sharedMutex);
 
-        // Acquire an exclusive lock because both containers are modified.
-        std::lock_guard writeLock(sharedMutex);
+    return insert_memory_nolock(sharedMemory);
+}
 
-        return erase_memory_nolock(sharedMemory);
-    }
+// Unregister a shared memory object from the global registry.
+//
+// Returns false if the object is nullptr or is not registered.
+inline bool unregister_memory(SharedMemoryPtr sharedMemory) noexcept {
+    if (sharedMemory == nullptr)
+        return false;
 
-    // Detach all registered shared memory objects from the registry.
-    //
-    // Returns the objects in true insertion order.
-    //
-    // The registry containers are cleared before the returned list is
-    // processed, allowing callers to safely operate on the detached objects
-    // without holding the registry lock.
-    static OrderedList detach_memories() noexcept {
-        std::lock_guard writeLock(sharedMutex);
+    // Acquire an exclusive lock because both containers are modified.
+    std::lock_guard writeLock(sharedMutex);
 
-        OrderedList detachedList = std::move(orderedList);
-        registryMap.clear();
+    return erase_memory_nolock(sharedMemory);
+}
 
-        return detachedList;
-    }
+// Detach registered shared memory objects from the registry.
+//
+// Returns the objects in true insertion order.
+//
+// The registry containers are detached and cleared before the returned
+// list is processed, allowing callers to safely operate on the objects
+// without holding the registry lock.
+inline OrderedList detach_memories() noexcept {
+    std::lock_guard writeLock(sharedMutex);
 
-    // Returns the number of currently registered shared memory objects.
-    static usize size() noexcept {
-        std::shared_lock readLock(sharedMutex);
+    OrderedList detachedList = std::move(orderedList);
+    registryMap.clear();
 
-        return registryMap.size();
-    }
+    return detachedList;
+}
 
-    // Prints all registered shared memory objects in true insertion order.
-    //
-    // The registry lock is held only while reading the containers.
-    static void print() noexcept {
-        std::shared_lock readLock(sharedMutex);
+// Returns the number of currently registered shared memory objects.
+inline usize size() noexcept {
+    std::shared_lock readLock(sharedMutex);
 
-        std::cout << "Registered shared memories (insertion order) [" << registryMap.size()
-                  << "]:\n";
+    return registryMap.size();
+}
 
-        usize i = 0;
-        for (auto* sharedMemory : orderedList)
-            std::cout << "[" << i++ << "] "
-                      << (sharedMemory != nullptr ? sharedMemory->name() : "<NULL>") << "\n";
+// Prints all registered shared memory objects in true insertion order.
+//
+// The registry lock is held only while reading the containers.
+inline void print() noexcept {
+    std::shared_lock readLock(sharedMutex);
 
-        std::cout << std::endl;
-    }
+    std::cout << "Registered shared memories (insertion order) [" << registryMap.size() << "]:\n";
 
-   private:
-    SharedMemoryRegistry() noexcept                                       = delete;
-    ~SharedMemoryRegistry() noexcept                                      = delete;
-    SharedMemoryRegistry(const SharedMemoryRegistry&) noexcept            = delete;
-    SharedMemoryRegistry& operator=(const SharedMemoryRegistry&) noexcept = delete;
-    SharedMemoryRegistry(SharedMemoryRegistry&&) noexcept                 = delete;
-    SharedMemoryRegistry& operator=(SharedMemoryRegistry&&) noexcept      = delete;
+    usize i = 0;
+    for (auto* sharedMemory : orderedList)
+        std::cout << "[" << i++ << "] "
+                  << (sharedMemory != nullptr ? sharedMemory->name() : "<NULL>") << "\n";
 
-    // Insert a shared memory object into both registry containers.
-    //
-    // The caller must hold 'sharedMutex' exclusively.
-    //
-    // Two-phase insertion:
-    //  1. Insert the pointer into RegistryMap with a temporary list iterator.
-    //     This performs the duplicate check and reserves the map entry.
-    //  2. Append the pointer to OrderedList.
-    //  3. Replace the temporary iterator with the actual list iterator.
-    //
-    // This avoids a second map lookup while keeping both containers synchronized.
-    static bool insert_memory_nolock(SharedMemoryPtr sharedMemory) noexcept {
-        auto [insertReg, inserted] = registryMap.emplace(sharedMemory, orderedList.end());
+    std::cout << std::endl;
+}
 
-        // Already registered.
-        if (!inserted)
-            return false;
-
-        //DEBUG_LOG("Registering shared memory: " << sharedMemory->name());
-
-        // Append to the ordered list and obtain a stable iterator.
-        auto insertId = orderedList.emplace(orderedList.end(), sharedMemory);
-
-        // Associate the map entry with its corresponding list node.
-        insertReg->second = insertId;
-
-        return true;
-    }
-
-    // Remove a shared memory object from both registry containers.
-    //
-    // The caller must hold 'sharedMutex' exclusively.
-    //
-    // RegistryMap stores the corresponding OrderedList iterator, allowing
-    // O(1) removal from both containers without searching the list.
-    static bool erase_memory_nolock(SharedMemoryPtr sharedMemory) noexcept {
-        auto eraseReg = registryMap.find(sharedMemory);
-
-        // Not registered.
-        if (eraseReg == registryMap.end())
-            return false;
-
-        // Retrieve the stable list iterator associated with this entry.
-        auto eraseId = eraseReg->second;
-
-        // Internal consistency check.
-        assert(!orderedList.empty() && eraseId != orderedList.end());
-
-        // Remove the list node first.
-        orderedList.erase(eraseId);
-
-        // Remove the corresponding map entry.
-        registryMap.erase(eraseReg);
-
-        //DEBUG_LOG("Unregistered shared memory: " << sharedMemory->name());
-
-        return true;
-    }
-
-    // Protects both registry containers.
-    static inline std::shared_mutex sharedMutex;
-    // Preserves true insertion order for deterministic iteration.
-    static inline OrderedList orderedList;
-    // Provides O(1) lookup and removal.
-    // Each entry stores an iterator into 'orderedList'.
-    static inline RegistryMap registryMap;
-};
+}  // namespace SharedMemoryRegistry
 
 // SharedMemoryCleanup
 //
@@ -684,27 +678,20 @@ class SharedMemoryRegistry final {
 //  - Registry management is handled by SharedMemoryRegistry.
 //  - Process-exit hook installation is handled by SharedMemoryCleanupHook.
 //  - Cleanup is performed in registry insertion order.
-class SharedMemoryCleanup final {
-   public:
-    static void cleanup() noexcept {
-        auto sharedMemoryList = SharedMemoryRegistry::detach_memories();
+namespace SharedMemoryCleanup {
 
-        //DEBUG_LOG("Shared memory cleanup started (" << sharedMemoryList.size() << " object(s)).");
-        for (auto* sharedMemory : sharedMemoryList)
-        {
-            if (sharedMemory != nullptr)
-                sharedMemory->release();
-        }
+inline void cleanup() noexcept {
+    auto sharedMemoryList = SharedMemoryRegistry::detach_memories();
+
+    //DEBUG_LOG("Shared memory cleanup started (" << sharedMemoryList.size() << " object(s)).");
+    for (auto* sharedMemory : sharedMemoryList)
+    {
+        if (sharedMemory != nullptr)
+            sharedMemory->release();
     }
+}
 
-   private:
-    SharedMemoryCleanup() noexcept                                      = delete;
-    ~SharedMemoryCleanup() noexcept                                     = delete;
-    SharedMemoryCleanup(const SharedMemoryCleanup&) noexcept            = delete;
-    SharedMemoryCleanup& operator=(const SharedMemoryCleanup&) noexcept = delete;
-    SharedMemoryCleanup(SharedMemoryCleanup&&) noexcept                 = delete;
-    SharedMemoryCleanup& operator=(SharedMemoryCleanup&&) noexcept      = delete;
-};
+}  // namespace SharedMemoryCleanup
 
 // SharedMemoryCleanupHook
 //
@@ -721,28 +708,20 @@ class SharedMemoryCleanup final {
 // Note:
 //   - Cleanup via std::atexit() is only guaranteed during normal termination.
 //     It will not run after forced termination (SIGKILL), crashes, or abort().
-//   - The class is static-only; it cannot be instantiated. (Restriction)
-class SharedMemoryCleanupHook final {
-   public:
-    // Ensure the shared memory cleanup callback is registered with std::atexit().
-    static void ensure_initialized() noexcept {
-        callOnce([]() noexcept {
-            //DEBUG_LOG("Initializing SharedMemoryCleanupHook.");
+namespace SharedMemoryCleanupHook {
 
-            std::atexit(SharedMemoryCleanup::cleanup);
-        });
-    }
+inline CallOnce callOnce;
 
-   private:
-    SharedMemoryCleanupHook() noexcept                                          = delete;
-    ~SharedMemoryCleanupHook() noexcept                                         = delete;
-    SharedMemoryCleanupHook(const SharedMemoryCleanupHook&) noexcept            = delete;
-    SharedMemoryCleanupHook& operator=(const SharedMemoryCleanupHook&) noexcept = delete;
-    SharedMemoryCleanupHook(SharedMemoryCleanupHook&&) noexcept                 = delete;
-    SharedMemoryCleanupHook& operator=(SharedMemoryCleanupHook&&) noexcept      = delete;
+// Ensure the shared memory cleanup callback is registered with std::atexit().
+inline void ensure_initialized() noexcept {
+    callOnce([]() noexcept {
+        //DEBUG_LOG("Initializing SharedMemoryCleanupHook.");
 
-    static inline CallOnce callOnce;
-};
+        std::atexit(SharedMemoryCleanup::cleanup);
+    });
+}
+
+}  // namespace SharedMemoryCleanupHook
 
 // TempRoot
 //
