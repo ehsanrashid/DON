@@ -469,7 +469,7 @@ inline CpuIndexSet get_process_affinity() noexcept {
     // cpu_set_t by default holds 1024 entries. This may not be enough soon,
     // but there is no easy way to determine how many threads there actually is.
     // In this case just choose a reasonable upper bound.
-    constexpr usize MaxCpuCount = 64 * KB;
+    constexpr CpuIndex MaxCpuCount = 64 * KB - 1;
 
     cpu_set_t* const cpuMask = CPU_ALLOC(MaxCpuCount);
 
