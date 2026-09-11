@@ -696,7 +696,7 @@ NumaIndex Threads::numa_nodes() const noexcept {
         for (const NumaIndex numaId : threadBoundNumaNodes)
             seenNumaIds.insert(numaId);
     }
-    return std::max<NumaIndex>(seenNumaIds.size(), 1);
+    return NumaIndex(std::max<usize>(seenNumaIds.size(), 1));
 }
 
 }  // namespace DON
