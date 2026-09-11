@@ -32,7 +32,7 @@ namespace DON {
 // Just using a path is not fully resilient either, as the executable could have changed
 // if it wasn't locked by the OS. If the path is longer than 4095 bytes the hash will be computed
 // from an unspecified amount of bytes of the path; in particular it can a hash of an empty string.
-inline std::string executable_path() noexcept {
+std::string executable_path() noexcept {
     Array<char, PATH_MAX> executablePath{};
     usize                 executableSize = 0;
 

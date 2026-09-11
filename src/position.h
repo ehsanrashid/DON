@@ -41,42 +41,9 @@
 
 namespace DON {
 
-// Zobrist - Hash key generator
-//
-// This provides access to precomputed Zobrist keys for all relevant
-// aspects of a chess position. It is used to efficiently compute a unique
-// hash for a given board state, which is essential for transposition tables,
-// move ordering, repetition detection, and other chess engine optimizations.
-//
-// Key features:
-//  - Provides keys for piece positions, castling rights, en passant squares,
-//    turn (side to move), and the 50-move rule counter (MR50).
-//  - All members and functions are static; no instances of this class can
-//    be created, copied, or moved.
-//  - Designed for fast access; all keys are stored in statically allocated arrays.
-//
-// Interface summary:
-//  - init() - Initializes all Zobrist keys; must be called before use.
-//  - piece_square(Color, PieceType, Square) / piece_square(Piece, Square)
-//      Returns the Zobrist key for a piece on a specific square.
-//  - castling(CastlingRights) - Returns the Zobrist key for a given castling right.
-//  - enpassant(Square) - Returns the Zobrist key for an en passant square.
-//  - turn() - Returns the Zobrist key for the side to move.
-//  - mr50(int) - Returns the Zobrist key for the 50-move rule counter.
-//
-// Notes:
-//  - All data is stored in 'inline-static' arrays for fast, constant-time access.
-//  - Ensure 'init()' is called before using any other function.
-//  - Accessors perform debug-time assertions to validate input values.
-//  - MR50 array handles the 50-move rule with offset and factor constants.
-//
-// Example usage:
-//   Zobrist::init();
-//   Key key = Zobrist::piece_square(Piece::WHITE_KNIGHT, Square::G1);
-//   key ^= Zobrist::turn();
 namespace Zobrist {
 
-constexpr usize PawnOffset = 8;
+constexpr usize PAWN_OFFSET = 8;
 
 void init() noexcept;
 
@@ -729,7 +696,7 @@ inline Key Position::material_key() const noexcept {
     for (Color c : {WHITE, BLACK})
         for (PieceType pt : EX_KING_PIECE_TYPES)
             if (const auto cnt = count(c, pt); cnt != 0)
-                materialKey ^= Zobrist::piece_square(c, pt, Square(Zobrist::PawnOffset + cnt - 1));
+                materialKey ^= Zobrist::piece_square(c, pt, Square(Zobrist::PAWN_OFFSET + cnt - 1));
 
     return materialKey;
 }
