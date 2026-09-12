@@ -624,15 +624,6 @@ UniqueFd try_receive_memfd(const std::string& sockPath) noexcept {
     return {};
 }
 
-enum class FD : u8 {
-    SERVER,
-    SHUTDOWN
-};
-
-constexpr usize FD_NB = 2;
-
-constexpr u8 operator+(const FD fd) noexcept { return u8(fd); }
-
 // Server thread:
 //  - Forwards the file descriptor fd
 //  - Exits when shutdownFd is hung up on
@@ -641,16 +632,16 @@ std::thread make_server_thread(UniqueFd fd, UniqueFd shutdownFd, UniqueFd server
     return std::thread([fd         = std::move(fd),          //
                         shutdownFd = std::move(shutdownFd),  //
                         serverFd   = std::move(serverFd)]() noexcept {
-        struct pollfd fds[FD_NB];
-        fds[+FD::SERVER].fd     = serverFd.get();
-        fds[+FD::SERVER].events = POLLIN;
+        struct pollfd fds[PI_NB];
+        fds[+PI::SERVER].fd     = serverFd.get();
+        fds[+PI::SERVER].events = POLLIN;
 
-        fds[+FD::SHUTDOWN].fd     = shutdownFd.get();
-        fds[+FD::SHUTDOWN].events = POLLIN;
+        fds[+PI::SHUTDOWN].fd     = shutdownFd.get();
+        fds[+PI::SHUTDOWN].events = POLLIN;
 
         while (true)
         {
-            int ret = ::poll(fds, FD_NB, -1);
+            int ret = ::poll(fds, PI_NB, -1);
             if (ret < 0)
             {
                 if (errno == EINTR)
@@ -660,10 +651,10 @@ std::thread make_server_thread(UniqueFd fd, UniqueFd shutdownFd, UniqueFd server
             }
 
             // Shutdown requested by main thread
-            if ((fds[+FD::SHUTDOWN].revents & (POLLIN | POLLERR | POLLHUP | POLLNVAL)) != 0)
+            if ((fds[+PI::SHUTDOWN].revents & (POLLIN | POLLERR | POLLHUP | POLLNVAL)) != 0)
                 break;
 
-            if ((fds[+FD::SERVER].revents & POLLIN) != 0)
+            if ((fds[+PI::SERVER].revents & POLLIN) != 0)
             {
                 // Another DON wants access
                 UniqueFd clientFd

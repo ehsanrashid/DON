@@ -102,8 +102,8 @@ using psqt_vec_t = __m256i;
 
         #define vec_nnz(a) _mm512_cmpgt_epi32_mask(a, _mm512_setzero_si512())
 
-        #define MaxRegisterCount 16
-        #define MaxChunkSize 64
+        inline constexpr usize REGISTER_COUNT_MAX = 16;
+        inline constexpr usize CHUNK_SIZE_MAX = 64;
 
     #elif defined(USE_AVX2)
 using vec_t      = __m256i;
@@ -131,8 +131,8 @@ using psqt_vec_t = __m256i;
 
         #define vec_nnz(a) _mm256_movemask_ps(_mm256_castsi256_ps(_mm256_cmpgt_epi32(a, _mm256_setzero_si256())))
 
-        #define MaxRegisterCount 12
-        #define MaxChunkSize 32
+        inline constexpr usize REGISTER_COUNT_MAX = 12;
+        inline constexpr usize CHUNK_SIZE_MAX = 32;
 
     #else
 using vec_t      = __m128i;
@@ -182,12 +182,14 @@ inline __m128i ssse3_cvtepi8_epi16(const u64 a) noexcept {
             #define vec_nnz(a) _mm_movemask_ps(_mm_castsi128_ps(_mm_cmpgt_epi32(a, _mm_setzero_si128())))
         #endif
 
+        inline constexpr usize REGISTER_COUNT_MAX =
         #if defined(IS_64BIT)
-            #define MaxRegisterCount 12
+             12
         #else
-            #define MaxRegisterCount 6
+             6
         #endif
-        #define MaxChunkSize 16
+            ;
+        inline constexpr usize CHUNK_SIZE_MAX = 16;
 
     #endif
 
@@ -269,8 +271,8 @@ inline int lasx_vec_nnz(const __m256i a) noexcept {
         #define vec_mulhi_8 __lasx_xvmuh_bu
         #define vec_srli_8 __lasx_xvsrli_b
 
-        #define MaxRegisterCount 24
-        #define MaxChunkSize 32
+        inline constexpr usize REGISTER_COUNT_MAX = 24;
+        inline constexpr usize CHUNK_SIZE_MAX = 32;
 
     #else
 using vec_t      = __m128i;
@@ -330,8 +332,8 @@ inline int lsx_vec_nnz(const __m128i a) noexcept {
         #define vec_mulhi_8 __lsx_vmuh_bu
         #define vec_srli_8 __lsx_vsrli_b
 
-        #define MaxRegisterCount 24
-        #define MaxChunkSize 16
+        inline constexpr usize REGISTER_COUNT_MAX = 24;
+        inline constexpr usize CHUNK_SIZE_MAX = 16;
 
     #endif
 
@@ -362,8 +364,8 @@ using psqt_vec_t __attribute__((may_alias))  = int32x4_t;
     #define vec_sub_psqt_32(a, b) vsubq_s32(a, b)
     #define vec_zero_psqt() psqt_vec_t{0}
 
-    #define MaxRegisterCount 16
-    #define MaxChunkSize 16
+    inline constexpr usize REGISTER_COUNT_MAX = 16;
+    inline constexpr usize CHUNK_SIZE_MAX = 16;
 
     #if defined(__arm__) && !defined(__aarch64__)
 // Compatibility wrappers for missing NEON _high widening intrinsics on 32-bit ARM
@@ -533,8 +535,8 @@ class Tiling final {
 
         static_assert(RegisterSize >= LaneSize);
         static_assert(RegisterCount > 0);
-        static_assert(MaxRegisterCount > 0);
-        static_assert(RegisterCount <= MaxRegisterCount);
+        static_assert(REGISTER_COUNT_MAX > 0);
+        static_assert(RegisterCount <= REGISTER_COUNT_MAX);
         static_assert(RegisterSize % LaneSize == 0);
         static_assert((LaneCount * LaneSize) % RegisterSize == 0);
 
@@ -556,9 +558,9 @@ class Tiling final {
 
    public:
     static constexpr Index RegCount =
-      best_register_count<vec_t, Weight, TransformedFeatureWidth, MaxRegisterCount>();
+      best_register_count<vec_t, Weight, TransformedFeatureWidth, REGISTER_COUNT_MAX>();
     static constexpr Index PSQTRegCount =
-      best_register_count<psqt_vec_t, PSQTWeight, PSQTBuckets, MaxRegisterCount>();
+      best_register_count<psqt_vec_t, PSQTWeight, PSQTBuckets, REGISTER_COUNT_MAX>();
 
     static constexpr Index TileHeight     = RegCount * sizeof(vec_t) / 2;
     static constexpr Index PSQTTileHeight = PSQTRegCount * sizeof(psqt_vec_t) / 4;
