@@ -631,6 +631,8 @@ enum class FD : u8 {
 
 constexpr usize FD_NB = 2;
 
+constexpr u8 operator+(const FD fd) noexcept { return u8(fd); }
+
 // Server thread:
 //  - Forwards the file descriptor fd
 //  - Exits when shutdownFd is hung up on
@@ -640,11 +642,11 @@ std::thread make_server_thread(UniqueFd fd, UniqueFd shutdownFd, UniqueFd server
                         shutdownFd = std::move(shutdownFd),  //
                         serverFd   = std::move(serverFd)]() noexcept {
         struct pollfd fds[FD_NB];
-        fds[FD::SERVER].fd     = serverFd.get();
-        fds[FD::SERVER].events = POLLIN;
+        fds[+FD::SERVER].fd     = serverFd.get();
+        fds[+FD::SERVER].events = POLLIN;
 
-        fds[FD::SHUTDOWN].fd     = shutdownFd.get();
-        fds[FD::SHUTDOWN].events = POLLIN;
+        fds[+FD::SHUTDOWN].fd     = shutdownFd.get();
+        fds[+FD::SHUTDOWN].events = POLLIN;
 
         while (true)
         {
@@ -658,10 +660,10 @@ std::thread make_server_thread(UniqueFd fd, UniqueFd shutdownFd, UniqueFd server
             }
 
             // Shutdown requested by main thread
-            if ((fds[FD::SHUTDOWN].revents & (POLLIN | POLLERR | POLLHUP | POLLNVAL)) != 0)
+            if ((fds[+FD::SHUTDOWN].revents & (POLLIN | POLLERR | POLLHUP | POLLNVAL)) != 0)
                 break;
 
-            if ((fds[FD::SERVER].revents & POLLIN) != 0)
+            if ((fds[+FD::SERVER].revents & POLLIN) != 0)
             {
                 // Another DON wants access
                 UniqueFd clientFd
