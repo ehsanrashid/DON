@@ -51,10 +51,8 @@
 #include <vector>
 
 #if defined(_WIN32)
-    #include "platform_win.h"
+    #include "platform_win.h"  // GetCommandLineW()
 #else
-    #include <sys/mman.h>
-    #include <unistd.h>  // close(), read()/write(), unlink(), sleep(), getpid()
 #endif
 
 #if defined(__i386__) || defined(_M_IX86)
@@ -582,39 +580,15 @@ inline TimePoint now() noexcept {
 
 std::string format_time(const SystemClock::time_point& timePoint) noexcept;
 
-struct IndexRange final {
-   public:
-    usize beg;
-    usize end;
-};
-
-constexpr IndexRange split_range(usize id, usize parts, usize size) noexcept {
-    assert(parts != 0 && id < parts);
-
-    usize base  = size / parts;
-    usize extra = size % parts;  // remainder to distribute
-
-    // Distribute remainder among the first 'extra' threads
-    usize beg = id * base + std::min(id, extra);
-    usize end = beg + base + int(id < extra);
-
-    assert(beg <= end && end <= size);
-    return {beg, end};
-}
-
 struct CallOnce final {
    public:
-    CallOnce() noexcept                           = default;
-    CallOnce(const CallOnce&) noexcept            = delete;
-    CallOnce& operator=(const CallOnce&) noexcept = delete;
-    CallOnce(CallOnce&&) noexcept                 = delete;
-    CallOnce& operator=(CallOnce&&) noexcept      = delete;
+    CallOnce() noexcept = default;
 
     // Initialize using the provided function
     // The function will be called exactly once, even if multiple threads call this
     template<typename Func>
     void operator()(Func&& callFn) noexcept(noexcept(callFn())) {
-        std::call_once(callOnce, [this, callFunc = std::forward<Func>(callFn)]() mutable {
+        std::call_once(onceFlag, [this, callFunc = std::forward<Func>(callFn)]() mutable {
             std::move(callFunc)();  // Move into the call
             initialize.store(true, std::memory_order_release);
         });
@@ -626,64 +600,13 @@ struct CallOnce final {
     }
 
    private:
-    std::once_flag    callOnce;
+    CallOnce(const CallOnce&) noexcept            = delete;
+    CallOnce& operator=(const CallOnce&) noexcept = delete;
+    CallOnce(CallOnce&&) noexcept                 = delete;
+    CallOnce& operator=(CallOnce&&) noexcept      = delete;
+
+    std::once_flag    onceFlag;
     std::atomic<bool> initialize{false};
-};
-
-// LazyValue wraps a Value with CallOnce for safe lazy initialization
-template<typename Value>
-struct LazyValue final {
-   public:
-    LazyValue() noexcept                            = default;
-    LazyValue(const LazyValue&) noexcept            = delete;
-    LazyValue& operator=(const LazyValue&) noexcept = delete;
-    LazyValue(LazyValue&&) noexcept                 = delete;
-    LazyValue& operator=(LazyValue&&) noexcept      = delete;
-
-    ~LazyValue() noexcept {
-        if (initialized())
-            get_ptr()->~Value();
-    }
-
-    template<typename... Args>
-    Value& init(Args&&... args) noexcept(std::is_nothrow_constructible_v<Value, Args...>) {
-        // Fast path: already initialized
-        if (initialized())
-            return *get_ptr();
-
-        // Initialize exactly once, use tuple to capture all arguments
-        callOnce([this, tuple = std::make_tuple(std::forward<Args>(args)...)]() mutable {
-            std::apply(
-              [this](auto&&... captured) {
-                  new (get_ptr()) Value(std::forward<decltype(captured)>(captured)...);
-              },
-              std::move(tuple));
-        });
-
-        return *get_ptr();
-    }
-
-    Value& get() noexcept {
-        assert(initialized() && "LazyValue accessed before initialization");
-        return *get_ptr();
-    }
-
-    const Value& get() const noexcept {
-        assert(initialized() && "LazyValue accessed before initialization");
-        return *get_ptr();
-    }
-
-    [[nodiscard]] bool initialized() const noexcept { return callOnce.initialized(); }
-
-   private:
-    Value* get_ptr() noexcept { return std::launder(reinterpret_cast<Value*>(&storage)); }
-
-    const Value* get_ptr() const noexcept {
-        return std::launder(reinterpret_cast<const Value*>(&storage));
-    }
-
-    alignas(Value) std::byte storage[sizeof(Value)];
-    CallOnce callOnce;
 };
 
 namespace OstreamMutexRegistry {
@@ -758,6 +681,26 @@ class [[nodiscard]] SyncOstream final {
 };
 
 [[nodiscard]] SyncOstream sync_os(std::ostream& os = std::cout) noexcept;
+
+struct IndexRange final {
+   public:
+    usize beg;
+    usize end;
+};
+
+constexpr IndexRange split_range(usize id, usize parts, usize size) noexcept {
+    assert(parts != 0 && id < parts);
+
+    usize base  = size / parts;
+    usize extra = size % parts;  // remainder to distribute
+
+    // Distribute remainder among the first 'extra' threads
+    usize beg = id * base + std::min(id, extra);
+    usize end = beg + base + int(id < extra);
+
+    assert(beg <= end && end <= size);
+    return {beg, end};
+}
 
 // --- TableView with pointer and size ---
 template<typename T>
@@ -1065,32 +1008,13 @@ class FixedVector final {
 
 struct FixedText final {
    public:
-    // from_view factory
-    static FixedText from_view(const std::string_view sv) noexcept { return FixedText{}.write(sv); }
+    static FixedText from(const std::string_view sv) noexcept;
 
-    FixedText& write(const char ch) noexcept {
-        assert(size() < capacity());
-        if (size() >= capacity())
-            return *this;
+    FixedText& write(char ch) noexcept;
 
-        data_[size_++] = ch;
-        return *this;
-    }
+    FixedText& write(std::string_view sv) noexcept;
 
-    FixedText& write(const std::string_view sv) noexcept {
-        assert(size() + sv.size() <= capacity());
-
-        std::memcpy(end(), sv.data(), sv.size());
-        size_ += static_cast<u8>(sv.size());
-        return *this;
-    }
-
-    FixedText& write(const int v) noexcept {
-        auto [ptr, ec] = std::to_chars(end(), begin() + capacity(), v);
-        assert(ec == std::errc{});
-        size_ = static_cast<u8>(ptr - begin());
-        return *this;
-    }
+    FixedText& write(int v) noexcept;
 
     [[nodiscard]] constexpr usize capacity() const noexcept { return data_.size(); }
 
@@ -1249,7 +1173,7 @@ class AllocationSizes final {
 
         if (mem != nullptr)
         {
-            std::lock_guard writeLock(sizesMutex);
+            std::lock_guard writeLock(mutex);
 
             sizesMap[mem] = allocSize;
         }
@@ -1258,7 +1182,7 @@ class AllocationSizes final {
     }
 
     [[nodiscard]] bool free(void* const mem) noexcept {
-        std::lock_guard writeLock(sizesMutex);
+        std::lock_guard writeLock(mutex);
 
         if (auto itr = sizesMap.find(mem); itr != sizesMap.end())
         {
@@ -1273,19 +1197,19 @@ class AllocationSizes final {
     }
 
     [[nodiscard]] usize size() const noexcept {
-        std::shared_lock readLock(sizesMutex);
+        std::shared_lock readLock(mutex);
 
         return sizesMap.size();
     }
 
     [[nodiscard]] bool empty() const noexcept {
-        std::shared_lock readLock(sizesMutex);
+        std::shared_lock readLock(mutex);
 
         return sizesMap.empty();
     }
 
     [[nodiscard]] std::optional<usize> find(void* const mem) const noexcept {
-        std::shared_lock readLock(sizesMutex);
+        std::shared_lock readLock(mutex);
 
         if (auto itr = sizesMap.find(mem); itr != sizesMap.end())
             return itr->second;
@@ -1296,34 +1220,34 @@ class AllocationSizes final {
    private:
     const AllocFunc                  allocFunc;
     const FreeFunc                   freeFunc;
-    mutable std::shared_mutex        sizesMutex;
+    mutable std::shared_mutex        mutex;
     std::unordered_map<void*, usize> sizesMap;
 };
 
-// ConcurrentCache: groups (mutex + storage + pre-reserve)
+// ConcurrentCache: thread-safe key-value cache with pre-reserved storage
 template<typename Key, typename Value>
 class ConcurrentCache final {
    public:
     explicit ConcurrentCache(usize reserveCount = 1024, float maxLoadFactor = 0.75f) noexcept {
-        storageMap.max_load_factor(max_load_factor(maxLoadFactor));
-        storageMap.reserve(reserve_count(reserveCount));
+        cacheMap.max_load_factor(max_load_factor(maxLoadFactor));
+        cacheMap.reserve(reserve_count(reserveCount));
     }
 
     template<typename... Args>
     Value& access_or_build(const Key& key, Args&&... args) noexcept {
         // Fast path: shared read lock to check and access
         {
-            std::shared_lock readLock(storageMutex);
+            std::shared_lock readLock(mutex);
 
-            if (auto itr = storageMap.find(key); itr != storageMap.end())
+            if (auto itr = cacheMap.find(key); itr != cacheMap.end())
                 return get_value(itr->second);
         }
 
         // Slow path: exclusive write lock to insert and construct
-        std::lock_guard writeLock(storageMutex);
+        std::lock_guard writeLock(mutex);
 
         // Double-check after acquiring exclusive lock
-        auto [itr, inserted] = storageMap.try_emplace(key);
+        auto [itr, inserted] = cacheMap.try_emplace(key);
 
         if (inserted)
             // Inserted: construct the value
@@ -1362,8 +1286,8 @@ class ConcurrentCache final {
             return *entry;
     }
 
-    std::shared_mutex                     storageMutex;
-    std::unordered_map<Key, StorageValue> storageMap;
+    std::shared_mutex                     mutex;
+    std::unordered_map<Key, StorageValue> cacheMap;
 };
 
 // Hash function based on public domain MurmurHash64A by Austin Appleby.
@@ -1392,7 +1316,7 @@ inline u64 hash_bytes(const char* RESTRICT data, usize size, u64 seed = 0) noexc
     const auto* const RESTRICT block32End = beg + (size & ~(BLOCK_32 - 1));
     for (; p < block32End; p += BLOCK_32)
     {
-        u64 k0, k1, k2, k3;
+        u64 k0 = 0, k1 = 0, k2 = 0, k3 = 0;
         // Unaligned loads are safe via memcpy and typically optimized by the compiler
         std::memcpy(&k0, p + 0 * BLOCK_8, BLOCK_8);
         std::memcpy(&k1, p + 1 * BLOCK_8, BLOCK_8);
@@ -1418,7 +1342,7 @@ inline u64 hash_bytes(const char* RESTRICT data, usize size, u64 seed = 0) noexc
     const auto* const RESTRICT block16End = p + ((end - p) & ~(BLOCK_16 - 1));
     for (; p < block16End; p += BLOCK_16)
     {
-        u64 k0, k1;
+        u64 k0 = 0, k1 = 0;
         // Unaligned loads are safe via memcpy and typically optimized by the compiler
         std::memcpy(&k0, p + 0 * BLOCK_8, BLOCK_8);
         std::memcpy(&k1, p + 1 * BLOCK_8, BLOCK_8);
@@ -1436,7 +1360,7 @@ inline u64 hash_bytes(const char* RESTRICT data, usize size, u64 seed = 0) noexc
     const auto* const RESTRICT block8End = p + ((end - p) & ~(BLOCK_8 - 1));
     for (; p < block8End; p += BLOCK_8)
     {
-        u64 k;
+        u64 k = 0;
         // Safe unaligned load
         std::memcpy(&k, p, BLOCK_8);
 
@@ -1507,23 +1431,13 @@ constexpr u32 combine_hashes(std::initializer_list<u32> hashes) noexcept {
 // Custom streambuf that wraps string_view
 class StringViewStreambuf final: public std::streambuf {
    public:
-    explicit StringViewStreambuf(const std::string_view sv) noexcept {
-        // std::streambuf requires char* for the get area.
-        // The buffer is read-only; no characters are modified.
-        auto* const p    = const_cast<char*>(sv.data());
-        const usize size = sv.size();
-        setg(p, p, p + size);  // Only GET area (reading enabled)
-        // Do NOT call setp(p, p + size) - no PUT area (writing disabled)
-    }
+    explicit StringViewStreambuf(std::string_view sv) noexcept;
 };
 
 // Custom streambuf that wraps memory stream
 class MemoryStreambuf final: public std::streambuf {
    public:
-    MemoryStreambuf(char* const p, const usize size) noexcept {
-        setg(p, p, p + size);  // Set GET area (reading enabled)
-        setp(p, p + size);     // Set PUT area (writing enabled)
-    }
+    MemoryStreambuf(char* p, usize size) noexcept;
 };
 
 // Fancy logging facility.

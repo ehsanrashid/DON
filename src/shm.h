@@ -68,7 +68,7 @@
 #elif defined(USE_UNIX_SHM)
     #include <fcntl.h>  // open(), fcntl(), FD_CLOEXEC
     #include <limits.h>
-    #include <sys/mman.h>    // memfd_create(), MFD_CLOEXEC
+    #include <sys/mman.h>    // munmap(), memfd_create(), MFD_CLOEXEC
     #include <sys/socket.h>  // socket(), bind(), listen(), accept(), connect(), send(), recv()
     #include <sys/stat.h>
     #include <sys/types.h>
@@ -398,34 +398,34 @@ class BaseSharedMemory {
     std::string name_;
 };
 
-namespace SharedMemoryRegistry {
+namespace MemoryRegistry {
 
-using SharedMemoryPtr  = BaseSharedMemory*;
-using SharedMemoryList = std::list<SharedMemoryPtr>;
-using SharedMemoryMap  = std::unordered_map<SharedMemoryPtr, SharedMemoryList::iterator>;
+using Memory         = BaseSharedMemory*;
+using MemoryList     = std::list<Memory>;
+using MemoryIndexMap = std::unordered_map<Memory, MemoryList::iterator>;
 
-bool register_memory(SharedMemoryPtr sharedMemory) noexcept;
-bool unregister_memory(SharedMemoryPtr sharedMemory) noexcept;
+bool register_memory(Memory memory) noexcept;
+bool unregister_memory(Memory memory) noexcept;
 
-SharedMemoryList detach_memories() noexcept;
+MemoryList detach_memories() noexcept;
 
 usize size() noexcept;
 
 void print() noexcept;
 
-}  // namespace SharedMemoryRegistry
+}  // namespace MemoryRegistry
 
-namespace SharedMemoryCleanup {
+namespace MemoryCleanup {
 
 void cleanup() noexcept;
 
-}  // namespace SharedMemoryCleanup
+}  // namespace MemoryCleanup
 
-namespace SharedMemoryCleanupHook {
+namespace MemoryCleanupHook {
 
 void ensure_initialized() noexcept;
 
-}  // namespace SharedMemoryCleanupHook
+}  // namespace MemoryCleanupHook
 
 // TempRoot
 //
@@ -541,7 +541,7 @@ class SharedMemory final: public BaseSharedMemory {
 
     [[nodiscard]] static std::optional<SharedMemory<T>> create(std::string_view name,
                                                                const T&         value) noexcept {
-        SharedMemoryCleanupHook::ensure_initialized();
+        MemoryCleanupHook::ensure_initialized();
 
         const auto& tempRoot = TempRoot::temp_root();
 
@@ -625,7 +625,7 @@ class SharedMemory final: public BaseSharedMemory {
 
         mappedPtr = dataPtr = mappedMem;
 
-        SharedMemoryRegistry::register_memory(this);  // register for cleanup at exit
+        MemoryRegistry::register_memory(this);  // register for cleanup at exit
 
         int shutdownPipe[2];
     #if !defined(__APPLE__)
@@ -696,8 +696,7 @@ class SharedMemory final: public BaseSharedMemory {
     //  - unregister the source object
     //  - register the destination object
     void move_with_registry(SharedMemory&& sharedMemory) noexcept {
-        [[maybe_unused]] const bool unregistered =
-          SharedMemoryRegistry::unregister_memory(&sharedMemory);
+        [[maybe_unused]] const bool unregistered = MemoryRegistry::unregister_memory(&sharedMemory);
         assert(unregistered);
 
         mappedPtr    = std::exchange(sharedMemory.mappedPtr, nullptr);
@@ -708,13 +707,13 @@ class SharedMemory final: public BaseSharedMemory {
         serverThread = std::move(sharedMemory.serverThread);
         shutdownFd   = std::move(sharedMemory.shutdownFd);
 
-        [[maybe_unused]] const bool registered = SharedMemoryRegistry::register_memory(this);
+        [[maybe_unused]] const bool registered = MemoryRegistry::register_memory(this);
         assert(registered);
     }
 
     // Unregister SharedMemory object and release resources
     bool release_with_registry() noexcept {
-        if (!SharedMemoryRegistry::unregister_memory(this))
+        if (!MemoryRegistry::unregister_memory(this))
             return false;
 
         release();

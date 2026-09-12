@@ -2723,7 +2723,7 @@ void Manager::show_pv(Worker& worker, const Depth depth) const noexcept {
         FixedText bound;
         // TB and previous scores are exact, even though their bound flags may say otherwise
         if (!(isValueTB || isValueInvalid) && rm.is_bound())
-            bound = FixedText::from_view(to_string(rm.bound));
+            bound = FixedText::from(to_string(rm.bound));
 
         FixedText wdl;
         if (ShowWDL)

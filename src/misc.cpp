@@ -22,8 +22,10 @@
 #include <ctime>
 
 #if defined(_WIN32)
-    #include "platform_win.h"  // GetCommandLineW()
-    #include <shellapi.h>      // CommandLineToArgvW()
+    #include <shellapi.h>  // CommandLineToArgvW()
+#else
+    #include <sys/mman.h>  // munmap()
+    #include <unistd.h>    // close(), read()/write(), unlink(), sleep(), getpid()
 #endif
 
 namespace DON {
@@ -601,11 +603,52 @@ SyncOstream&& SyncOstream::operator<<(OstreamManip manip) && {
 
 SyncOstream sync_os(std::ostream& os) noexcept { return SyncOstream(os); }
 
+// Factory method that creates a FixedText from the specified string view
+FixedText FixedText::from(const std::string_view sv) noexcept { return FixedText{}.write(sv); }
+
+FixedText& FixedText::write(const char ch) noexcept {
+    assert(size() < capacity());
+    if (size() >= capacity())
+        return *this;
+
+    data_[size_++] = ch;
+    return *this;
+}
+
+FixedText& FixedText::write(const std::string_view sv) noexcept {
+    assert(size() + sv.size() <= capacity());
+
+    std::memcpy(end(), sv.data(), sv.size());
+    size_ += static_cast<u8>(sv.size());
+    return *this;
+}
+
+FixedText& FixedText::write(const int v) noexcept {
+    auto [ptr, ec] = std::to_chars(end(), begin() + capacity(), v);
+    assert(ec == std::errc{});
+    size_ = static_cast<u8>(ptr - begin());
+    return *this;
+}
+
 std::ostream& operator<<(std::ostream& os, const FixedText& fixedText) noexcept {
 
     os.write(fixedText.c_str(), std::streamsize(fixedText.size()));
 
     return os;
+}
+
+StringViewStreambuf::StringViewStreambuf(const std::string_view sv) noexcept {
+    // std::streambuf requires char* for the get area.
+    // The buffer is read-only; no characters are modified.
+    auto* const p    = const_cast<char*>(sv.data());
+    const usize size = sv.size();
+    setg(p, p, p + size);  // Only GET area (reading enabled)
+    // Do NOT call setp(p, p + size) - no PUT area (writing disabled)
+}
+
+MemoryStreambuf::MemoryStreambuf(char* const p, const usize size) noexcept {
+    setg(p, p, p + size);  // Set GET area (reading enabled)
+    setp(p, p + size);     // Set PUT area (writing enabled)
 }
 
 #if !defined(NDEBUG)
