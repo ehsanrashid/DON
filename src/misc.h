@@ -615,8 +615,6 @@ struct CallOnce final {
 
 namespace OstreamMutexRegistry {
 
-void ensure_initialized(usize reserveCount = 16, float maxLoadFactor = 0.85f) noexcept;
-
 std::mutex& get(std::ostream* osPtr) noexcept;
 
 }  // namespace OstreamMutexRegistry
@@ -1556,7 +1554,7 @@ struct CommandLine final {
 
     StringViews arguments_;
 #if defined(_WIN32)
-    Strings storedArgv;
+    Strings utf8_arguments;
 #endif
 };
 

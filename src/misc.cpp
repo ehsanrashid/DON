@@ -529,7 +529,8 @@ std::string format_time(const SystemClock::time_point& timePoint) noexcept {
 
 // OstreamMutexRegistry
 //
-// Provides a thread-safe registry that associates a unique mutex with each std::ostream pointer.
+// Provides a thread-safe registry that associates a unique mutex with each
+// std::ostream pointer.
 //
 // The registry allows multiple threads to synchronize access to the same
 // ostream without unnecessarily locking unrelated ostreams.
@@ -537,8 +538,8 @@ std::string format_time(const SystemClock::time_point& timePoint) noexcept {
 // Key Features:
 //  - Thread-safe: registry access is protected by a mutex.
 //  - Per-ostream mutex: each ostream has its own mutex to minimize contention.
-//  - Null-safe: nullptr returns a shared null mutex without inserting a null key.
-//  - Lazy initialization: per-ostream mutexes are created when first requested.
+//  - Lazy initialization: mutexes are created when first requested.
+//  - Null-safe: nullptr is treated as a valid key and maps to a shared mutex.
 //
 // Usage:
 //  - Call 'get(&std::cout)' to obtain the mutex before writing to std::cout
@@ -552,38 +553,21 @@ namespace OstreamMutexRegistry {
 
 namespace {
 
-CallOnce RegisterOnce;
-
 // Protects access to the mutex registry container.
-std::mutex RegistryMutex;
+std::mutex Mutex;
 
-// Fallback mutex shared by all get(nullptr) calls.
-std::mutex NullMutex;
-
-// Associates each ostream with its mutex.
-std::unordered_map<std::ostream*, std::mutex> RegistryMap;
+// Associates each ostream pointer with its mutex.
+std::unordered_map<std::ostream*, std::mutex> MutexMap;
 
 }  // namespace
 
-void ensure_initialized(const usize reserveCount, const float maxLoadFactor) noexcept {
-    RegisterOnce([reserveCount, maxLoadFactor]() noexcept {
-        RegistryMap.max_load_factor(max_load_factor(maxLoadFactor));
-        RegistryMap.reserve(reserve_count(reserveCount));
-    });
-}
-
-// Return the mutex associated with the given ostream pointer.
+// Returns the mutex associated with the given ostream pointer.
 //
-// If osPtr is nullptr, returns a shared null mutex without modifying the registry.
+// A nullptr pointer is treated as a valid key and maps to a shared mutex.
 std::mutex& get(std::ostream* const osPtr) noexcept {
-    ensure_initialized();
+    std::lock_guard writeLock(Mutex);
 
-    if (osPtr == nullptr)
-        return NullMutex;
-
-    std::lock_guard writeLock(RegistryMutex);
-
-    return RegistryMap[osPtr];
+    return MutexMap[osPtr];
 }
 
 }  // namespace OstreamMutexRegistry
@@ -1153,22 +1137,22 @@ CommandLine::CommandLine(int argc, const char* argv[]) noexcept {
 
     if (wargv != nullptr)
     {
-        storedArgv.reserve(static_cast<usize>(wargc));
+        const usize utf8_argc = static_cast<usize>(wargc);
 
-        for (int i = 0; i < wargc; ++i)
-            storedArgv.emplace_back(utf8_from_wstring(wargv[i]));
+        utf8_arguments.reserve(utf8_argc);
+
+        for (usize i = 0; i < utf8_argc; ++i)
+            utf8_arguments.emplace_back(utf8_from_wstring(wargv[i]));
 
         LocalFree(wargv);
 
-        arguments.reserve(storedArgv.size());
+        arguments_.reserve(utf8_arguments.size());
 
-        for (const auto& arg : storedArgv)
-            arguments.emplace_back(arg);
+        for (const auto& utf8_arg : utf8_arguments)
+            arguments_.emplace_back(utf8_arg);
     }
     else
-    {
         set_arguments(argc, argv);
-    }
 #else
     set_arguments(argc, argv);
 #endif
@@ -1199,11 +1183,11 @@ std::filesystem::path CommandLine::working_directory() noexcept {
 const StringViews& CommandLine::arguments() const noexcept { return arguments_; }
 
 void CommandLine::set_arguments(int argc, const char* argv[]) noexcept {
-    auto argCount = usize(argc);
+    const usize uargc = static_cast<usize>(argc);
 
-    arguments_.reserve(argCount);
+    arguments_.reserve(uargc);
 
-    for (usize i = 0; i < argCount; ++i)
+    for (usize i = 0; i < uargc; ++i)
         arguments_.emplace_back(argv[i]);  // Store a view without copying the string.
 }
 
