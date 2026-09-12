@@ -1935,30 +1935,8 @@ inline std::string hash_to_string(u64 hash) noexcept {
     return std::string{buffer.data(), copiedSize};
 }
 
-inline std::string u32_to_string(u32 v) noexcept {
-    constexpr usize BufferSize = 2 + HEX32_SIZE + 1;  // "0x" + 8 hex + '\0'
-
-    Array<char, BufferSize> buffer{};
-
-    int   writtenSize = std::snprintf(buffer.data(), buffer.size(), "0x%08" PRIX32, v);
-    usize copiedSize  = writtenSize > 0  //
-                        ? std::min<usize>(writtenSize, buffer.size() - 1)
-                        : 0;
-
-    return std::string{buffer.data(), copiedSize};
-}
-inline std::string u64_to_string(u64 v) noexcept {
-    constexpr usize BufferSize = 2 + HEX64_SIZE + 1;  // "0x" + 16 hex + '\0'
-
-    Array<char, BufferSize> buffer{};
-
-    int   writtenSize = std::snprintf(buffer.data(), buffer.size(), "0x%016" PRIX64, v);
-    usize copiedSize  = writtenSize > 0  //
-                        ? std::min<usize>(writtenSize, buffer.size() - 1)
-                        : 0;
-
-    return std::string{buffer.data(), copiedSize};
-}
+std::string u32_to_string(u32 v) noexcept;
+std::string u64_to_string(u64 v) noexcept;
 
 inline bool InfoStrStop = false;
 
@@ -1971,42 +1949,11 @@ std::filesystem::path path_from_utf8(std::string_view path) noexcept;
 
 std::optional<usize> str_to_usize(std::string_view sv) noexcept;
 
-// Reads the file as bytes.
-// Returns std::nullopt if the file does not exist.
 std::optional<std::string> read_file_to_string(const std::filesystem::path& filePath) noexcept;
 
 #if defined(_WIN32)
 // Get the error message string, if any
-inline std::string error_to_string(DWORD errorId) noexcept {
-    if (errorId == 0)
-        return {};
-
-    LPSTR buffer = nullptr;
-    // Ask Win32 to give us the string version of that message ID.
-    // The parameters pass in, tell Win32 to create the buffer that holds the message
-    // (because don't yet know how long the message string will be).
-    usize size = FormatMessage(
-      FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-      nullptr, errorId, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-      reinterpret_cast<LPSTR>(&buffer),  // must pass pointer to buffer pointer
-      0, nullptr);
-
-    if (size == 0 || buffer == nullptr)
-    {
-        // FormatMessage failed; return a fallback string
-        return "Unknown error: " + u32_to_string(errorId);
-    }
-
-    // Copy the error message into a std::string
-    std::string message{buffer, size};
-    // Trim trailing CR/LF that many system messages include
-    while (!message.empty() && (message.back() == '\r' || message.back() == '\n'))
-        message.pop_back();
-    // Free the Win32's string's buffer
-    LocalFree(buffer);
-
-    return message;
-}
+std::string error_to_string(DWORD errorId) noexcept;
 
 inline constexpr HANDLE HANDLE_INVALID = nullptr;
 
@@ -2018,8 +1965,7 @@ inline constexpr void* MMAP_PTR_INVALID = nullptr;
 
 struct HandleGuard final {
    public:
-    explicit HandleGuard(HANDLE& handleRef) noexcept :
-        handle(handleRef) {}
+    explicit HandleGuard(HANDLE& handleRef) noexcept;
 
     HandleGuard() noexcept = delete;
 
@@ -2029,23 +1975,15 @@ struct HandleGuard final {
     HandleGuard(HandleGuard&&) noexcept            = delete;
     HandleGuard& operator=(HandleGuard&&) noexcept = delete;
 
-    ~HandleGuard() noexcept { reset(); }
+    ~HandleGuard() noexcept;
 
-    [[nodiscard]] bool is_valid() const noexcept { return is_valid_handle(handle); }
+    [[nodiscard]] bool is_valid() const noexcept;
 
     [[nodiscard]] HANDLE get() const noexcept { return handle; }
 
-    void reset(HANDLE newHandle = HANDLE_INVALID) noexcept {
-        if (handle != newHandle)
-        {
-            if (is_valid())
-                CloseHandle(handle);
+    void reset(HANDLE newHandle = HANDLE_INVALID) noexcept;
 
-            handle = newHandle;
-        }
-    }
-
-    void dismiss() noexcept { handle = HANDLE_INVALID; }
+    void dismiss() noexcept;
 
    private:
     HANDLE& handle;
@@ -2053,8 +1991,7 @@ struct HandleGuard final {
 
 struct MMapGuard final {
    public:
-    explicit MMapGuard(void*& ptrRef) noexcept :
-        mappedPtr(ptrRef) {}
+    explicit MMapGuard(void*& ptrRef) noexcept;
 
     MMapGuard() noexcept = delete;
 
@@ -2064,23 +2001,15 @@ struct MMapGuard final {
     MMapGuard(MMapGuard&&) noexcept            = delete;
     MMapGuard& operator=(MMapGuard&&) noexcept = delete;
 
-    ~MMapGuard() noexcept { reset(); }
+    ~MMapGuard() noexcept;
 
-    [[nodiscard]] bool is_valid() const noexcept { return mappedPtr != MMAP_PTR_INVALID; }
+    [[nodiscard]] bool is_valid() const noexcept;
 
-    [[nodiscard]] void* get() const noexcept { return mappedPtr; }
+    [[nodiscard]] void* get() const noexcept;
 
-    void reset(void* newPtr = MMAP_PTR_INVALID) noexcept {
-        if (mappedPtr != newPtr)
-        {
-            if (is_valid())
-                UnmapViewOfFile(mappedPtr);
+    void reset(void* newPtr = MMAP_PTR_INVALID) noexcept;
 
-            mappedPtr = newPtr;
-        }
-    }
-
-    void dismiss() noexcept { mappedPtr = MMAP_PTR_INVALID; }
+    void dismiss() noexcept;
 
    private:
     void*& mappedPtr;
@@ -2115,59 +2044,11 @@ struct Advapi final {
 
     static constexpr LPCSTR ModuleName = TEXT("advapi32.dll");
 
-    ~Advapi() noexcept { free(); }
+    ~Advapi() noexcept;
 
-    // The needed Windows API for processor groups could be missed from old Windows versions,
-    // so instead of calling them directly (forcing the linker to resolve the calls at compile time),
-    // try to load them at runtime.
-    bool load() noexcept {
+    bool load() noexcept;
 
-        hModule = GetModuleHandle(ModuleName);
-
-        if (hModule == nullptr)
-        {
-            hModule = LoadLibraryEx(ModuleName, nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
-            // Optional last resort
-            if (hModule == nullptr)
-                hModule = LoadLibrary(ModuleName);
-
-            if (hModule == nullptr)
-                return false;
-
-            loaded = true;
-        }
-
-        openProcessToken =
-          OpenProcessToken_((void (*)()) GetProcAddress(hModule, "OpenProcessToken"));
-
-        lookupPrivilegeValue =
-          LookupPrivilegeValue_((void (*)()) GetProcAddress(hModule, "LookupPrivilegeValueA"));
-
-        adjustTokenPrivileges =
-          AdjustTokenPrivileges_((void (*)()) GetProcAddress(hModule, "AdjustTokenPrivileges"));
-
-        if (openProcessToken == nullptr || lookupPrivilegeValue == nullptr
-            || adjustTokenPrivileges == nullptr)
-        {
-            free();
-
-            return false;
-        }
-
-        return true;
-    }
-
-    void free() noexcept {
-        if (loaded)
-        {
-            assert(hModule != nullptr);
-
-            FreeLibrary(hModule);
-
-            hModule = nullptr;
-            loaded  = false;
-        }
-    }
+    void free() noexcept;
 
     OpenProcessToken_      openProcessToken      = nullptr;
     LookupPrivilegeValue_  lookupPrivilegeValue  = nullptr;
@@ -2195,13 +2076,13 @@ auto try_with_windows_lock_memory_privilege([[maybe_unused]] SuccessFunc&& succe
     if (!advapi.load())
         return failureFunc();
 
-    HANDLE hProcess = HANDLE_INVALID;
+    HANDLE processHandle = HANDLE_INVALID;
 
-    HandleGuard hProcessGuard{hProcess};
+    HandleGuard processHandleGuard{processHandle};
 
     // Need SeLockMemoryPrivilege, so try to enable it for the process
     if (!advapi.openProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY,
-                                 &hProcess))
+                                 &processHandle))
         return failureFunc();
 
     TOKEN_PRIVILEGES newTp{};
@@ -2219,7 +2100,8 @@ auto try_with_windows_lock_memory_privilege([[maybe_unused]] SuccessFunc&& succe
     // Still need to query GetLastError() to ensure that the privileges were actually obtained.
     SetLastError(ERROR_SUCCESS);
 
-    if (!advapi.adjustTokenPrivileges(hProcess, FALSE, &newTp, sizeof(oldTp), &oldTp, &oldTpLen)
+    if (!advapi.adjustTokenPrivileges(processHandle, FALSE, &newTp, sizeof(oldTp), &oldTp,
+                                      &oldTpLen)
         || GetLastError() != ERROR_SUCCESS)
         return failureFunc();
 
@@ -2227,7 +2109,7 @@ auto try_with_windows_lock_memory_privilege([[maybe_unused]] SuccessFunc&& succe
     auto&& ret = successFunc(largePageSize);
 
     // Privilege no longer needed, restore the privileges
-    advapi.adjustTokenPrivileges(hProcess, FALSE, &oldTp, 0, nullptr, nullptr);
+    advapi.adjustTokenPrivileges(processHandle, FALSE, &oldTp, 0, nullptr, nullptr);
 
     return std::forward<decltype(ret)>(ret);
     #else
@@ -2245,8 +2127,7 @@ inline constexpr usize MMAP_SIZE_INVALID = 0;
 
 struct FdGuard final {
    public:
-    explicit FdGuard(int& refFd) noexcept :
-        fd(refFd) {}
+    explicit FdGuard(int& fdRef) noexcept;
 
     FdGuard() noexcept = delete;
 
@@ -2256,23 +2137,15 @@ struct FdGuard final {
     FdGuard(FdGuard&&) noexcept            = delete;
     FdGuard& operator=(FdGuard&&) noexcept = delete;
 
-    ~FdGuard() noexcept { reset(); }
+    ~FdGuard() noexcept;
 
-    [[nodiscard]] bool is_valid() const noexcept { return is_valid_fd(fd); }
+    [[nodiscard]] bool is_valid() const noexcept;
 
-    [[nodiscard]] int get() const noexcept { return fd; }
+    [[nodiscard]] int get() const noexcept;
 
-    void reset(int newFd = FD_INVALID) noexcept {
-        if (fd != newFd)
-        {
-            if (is_valid())
-                ::close(fd);
+    void reset(int newFd = FD_INVALID) noexcept;
 
-            fd = newFd;
-        }
-    }
-
-    void dismiss() noexcept { fd = FD_INVALID; }
+    void dismiss() noexcept;
 
    private:
     int& fd;
@@ -2280,9 +2153,7 @@ struct FdGuard final {
 
 struct MMapGuard final {
    public:
-    MMapGuard(void*& ptrRef, usize& sizeRef) noexcept :
-        mappedPtr(ptrRef),
-        mappedSize(sizeRef) {}
+    MMapGuard(void*& ptrRef, usize& sizeRef) noexcept;
 
     MMapGuard() noexcept = delete;
 
@@ -2292,29 +2163,17 @@ struct MMapGuard final {
     MMapGuard(MMapGuard&&) noexcept            = delete;
     MMapGuard& operator=(MMapGuard&&) noexcept = delete;
 
-    ~MMapGuard() noexcept { reset(); }
+    ~MMapGuard() noexcept;
 
-    [[nodiscard]] bool is_valid() const noexcept { return mappedPtr != MMAP_PTR_INVALID; }
+    [[nodiscard]] bool is_valid() const noexcept;
 
-    [[nodiscard]] void* get_ptr() const noexcept { return mappedPtr; }
+    [[nodiscard]] void* get_ptr() const noexcept;
 
-    [[nodiscard]] usize get_size() const noexcept { return mappedSize; }
+    [[nodiscard]] usize get_size() const noexcept;
 
-    void reset(void* newPtr = MMAP_PTR_INVALID, usize newSize = MMAP_SIZE_INVALID) noexcept {
-        if (mappedPtr != newPtr)
-        {
-            if (is_valid())
-                ::munmap(mappedPtr, mappedSize);
+    void reset(void* newPtr = MMAP_PTR_INVALID, usize newSize = MMAP_SIZE_INVALID) noexcept;
 
-            mappedPtr  = newPtr;
-            mappedSize = newSize;
-        }
-    }
-
-    void dismiss() noexcept {
-        mappedPtr  = MMAP_PTR_INVALID;
-        mappedSize = MMAP_SIZE_INVALID;
-    }
+    void dismiss() noexcept;
 
    private:
     void*& mappedPtr;
@@ -2323,44 +2182,27 @@ struct MMapGuard final {
 
 struct UniqueFd final {
    public:
-    explicit UniqueFd(int iFd) noexcept :
-        fd{iFd} {}
+    explicit UniqueFd(int fdi) noexcept;
 
     UniqueFd() noexcept = default;
 
     UniqueFd(const UniqueFd&)            = delete;
     UniqueFd& operator=(const UniqueFd&) = delete;
 
-    UniqueFd(UniqueFd&& uniqueFd) noexcept :
-        fd{uniqueFd.release()} {}
-    UniqueFd& operator=(UniqueFd&& uniqueFd) noexcept {
-        if (this == &uniqueFd)
-            return *this;
+    UniqueFd(UniqueFd&& uniqueFd) noexcept;
+    UniqueFd& operator=(UniqueFd&& uniqueFd) noexcept;
 
-        reset(uniqueFd.release());
+    ~UniqueFd() noexcept;
 
-        return *this;
-    }
+    [[nodiscard]] int get() const noexcept;
 
-    ~UniqueFd() { reset(); }
+    [[nodiscard]] bool is_valid() const noexcept;
 
-    [[nodiscard]] int get() const noexcept { return fd; }
+    [[nodiscard]] explicit operator bool() const noexcept;
 
-    [[nodiscard]] bool is_valid() const noexcept { return is_valid_fd(fd); }
+    [[nodiscard]] int release() noexcept;
 
-    [[nodiscard]] explicit operator bool() const noexcept { return is_valid(); }
-
-    [[nodiscard]] int release() noexcept { return std::exchange(fd, FD_INVALID); }
-
-    void reset(int newFd = FD_INVALID) noexcept {
-        if (fd != newFd)
-        {
-            if (is_valid())
-                ::close(fd);
-
-            fd = newFd;
-        }
-    }
+    void reset(int newFd = FD_INVALID) noexcept;
 
    private:
     int fd = FD_INVALID;

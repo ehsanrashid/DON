@@ -955,6 +955,32 @@ std::filesystem::path CommandLine::working_directory() noexcept {
     return std::filesystem::current_path();
 }
 
+std::string u32_to_string(u32 v) noexcept {
+    constexpr usize BufferSize = 2 + HEX32_SIZE + 1;  // "0x" + 8 hex + '\0'
+
+    Array<char, BufferSize> buffer{};
+
+    int   writtenSize = std::snprintf(buffer.data(), buffer.size(), "0x%08" PRIX32, v);
+    usize copiedSize  = writtenSize > 0  //
+                        ? std::min<usize>(writtenSize, buffer.size() - 1)
+                        : 0;
+
+    return std::string{buffer.data(), copiedSize};
+}
+
+std::string u64_to_string(u64 v) noexcept {
+    constexpr usize BufferSize = 2 + HEX64_SIZE + 1;  // "0x" + 16 hex + '\0'
+
+    Array<char, BufferSize> buffer{};
+
+    int   writtenSize = std::snprintf(buffer.data(), buffer.size(), "0x%016" PRIX64, v);
+    usize copiedSize  = writtenSize > 0  //
+                        ? std::min<usize>(writtenSize, buffer.size() - 1)
+                        : 0;
+
+    return std::string{buffer.data(), copiedSize};
+}
+
 void print_info_string(const std::string_view infos) noexcept {
 
     if (InfoStrStop)
@@ -1025,6 +1051,8 @@ std::optional<usize> str_to_usize(const std::string_view sv) noexcept {
     return static_cast<usize>(value);
 }
 
+// Reads the file as bytes.
+// Returns std::nullopt if the file does not exist.
 std::optional<std::string> read_file_to_string(const std::filesystem::path& filePath) noexcept {
 
     std::ifstream ifs{filePath, std::ios::binary | std::ios::ate};
@@ -1048,5 +1076,223 @@ std::optional<std::string> read_file_to_string(const std::filesystem::path& file
 
     return str;
 }
+
+#if defined(_WIN32)
+
+// Get the error message string, if any
+std::string error_to_string(DWORD errorId) noexcept {
+    if (errorId == 0)
+        return {};
+
+    LPSTR buffer = nullptr;
+    // Ask Win32 to give us the string version of that message ID.
+    // The parameters pass in, tell Win32 to create the buffer that holds the message
+    // (because don't yet know how long the message string will be).
+    usize size = FormatMessage(
+      FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+      nullptr, errorId, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+      reinterpret_cast<LPSTR>(&buffer),  // must pass pointer to buffer pointer
+      0, nullptr);
+
+    if (size == 0 || buffer == nullptr)
+    {
+        // FormatMessage failed; return a fallback string
+        return "Unknown error: " + u32_to_string(errorId);
+    }
+
+    // Copy the error message into a std::string
+    std::string message{buffer, size};
+    // Trim trailing CR/LF that many system messages include
+    while (!message.empty() && (message.back() == '\r' || message.back() == '\n'))
+        message.pop_back();
+    // Free the Win32's string's buffer
+    LocalFree(buffer);
+
+    return message;
+}
+
+HandleGuard::HandleGuard(HANDLE& handleRef) noexcept :
+    handle(handleRef) {}
+
+HandleGuard::~HandleGuard() noexcept { reset(); }
+
+bool HandleGuard::is_valid() const noexcept { return is_valid_handle(handle); }
+
+void HandleGuard::reset(HANDLE newHandle) noexcept {
+    if (handle != newHandle)
+    {
+        if (is_valid())
+            CloseHandle(handle);
+
+        handle = newHandle;
+    }
+}
+
+void HandleGuard::dismiss() noexcept { handle = HANDLE_INVALID; }
+
+MMapGuard::MMapGuard(void*& ptrRef) noexcept :
+    mappedPtr(ptrRef) {}
+
+MMapGuard::~MMapGuard() noexcept { reset(); }
+
+bool MMapGuard::is_valid() const noexcept { return mappedPtr != MMAP_PTR_INVALID; }
+
+void* MMapGuard::get() const noexcept { return mappedPtr; }
+
+void MMapGuard::reset(void* newPtr) noexcept {
+    if (mappedPtr != newPtr)
+    {
+        if (is_valid())
+            UnmapViewOfFile(mappedPtr);
+
+        mappedPtr = newPtr;
+    }
+}
+
+void MMapGuard::dismiss() noexcept { mappedPtr = MMAP_PTR_INVALID; }
+
+    #if defined(_WIN64)
+Advapi::~Advapi() noexcept { free(); }
+
+// The needed Windows API for processor groups could be missed from old Windows versions,
+// so instead of calling them directly (forcing the linker to resolve the calls at compile time),
+// try to load them at runtime.
+bool Advapi::load() noexcept {
+
+    hModule = GetModuleHandle(ModuleName);
+
+    if (hModule == nullptr)
+    {
+        hModule = LoadLibraryEx(ModuleName, nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
+        // Optional last resort
+        if (hModule == nullptr)
+            hModule = LoadLibrary(ModuleName);
+
+        if (hModule == nullptr)
+            return false;
+
+        loaded = true;
+    }
+
+    openProcessToken = OpenProcessToken_((void (*)()) GetProcAddress(hModule, "OpenProcessToken"));
+
+    lookupPrivilegeValue =
+      LookupPrivilegeValue_((void (*)()) GetProcAddress(hModule, "LookupPrivilegeValueA"));
+
+    adjustTokenPrivileges =
+      AdjustTokenPrivileges_((void (*)()) GetProcAddress(hModule, "AdjustTokenPrivileges"));
+
+    if (openProcessToken == nullptr || lookupPrivilegeValue == nullptr
+        || adjustTokenPrivileges == nullptr)
+    {
+        free();
+
+        return false;
+    }
+
+    return true;
+}
+
+void Advapi::free() noexcept {
+    if (loaded)
+    {
+        assert(hModule != nullptr);
+
+        FreeLibrary(hModule);
+
+        hModule = nullptr;
+        loaded  = false;
+    }
+}
+
+    #endif
+
+#else
+
+FdGuard::FdGuard(int& fdRef) noexcept :
+    fd(fdRef) {}
+
+FdGuard::~FdGuard() noexcept { reset(); }
+
+bool FdGuard::is_valid() const noexcept { return is_valid_fd(fd); }
+
+int FdGuard::get() const noexcept { return fd; }
+
+void FdGuard::reset(int newFd) noexcept {
+    if (fd != newFd)
+    {
+        if (is_valid())
+            ::close(fd);
+
+        fd = newFd;
+    }
+}
+
+void FdGuard::dismiss() noexcept { fd = FD_INVALID; }
+
+MMapGuard::MMapGuard(void*& ptrRef, usize& sizeRef) noexcept :
+    mappedPtr(ptrRef),
+    mappedSize(sizeRef) {}
+
+MMapGuard::~MMapGuard() noexcept { reset(); }
+
+bool MMapGuard::is_valid() const noexcept { return mappedPtr != MMAP_PTR_INVALID; }
+
+void* MMapGuard::get_ptr() const noexcept { return mappedPtr; }
+
+usize MMapGuard::get_size() const noexcept { return mappedSize; }
+
+void MMapGuard::reset(void* newPtr, usize newSize) noexcept {
+    if (mappedPtr != newPtr)
+    {
+        if (is_valid())
+            ::munmap(mappedPtr, mappedSize);
+
+        mappedPtr  = newPtr;
+        mappedSize = newSize;
+    }
+}
+
+void MMapGuard::dismiss() noexcept {
+    mappedPtr  = MMAP_PTR_INVALID;
+    mappedSize = MMAP_SIZE_INVALID;
+}
+
+UniqueFd::UniqueFd(const int fdi) noexcept :
+    fd{fdi} {}
+
+UniqueFd::UniqueFd(UniqueFd&& uniqueFd) noexcept :
+    fd{uniqueFd.release()} {}
+
+UniqueFd& UniqueFd::operator=(UniqueFd&& uniqueFd) noexcept {
+    if (this == &uniqueFd)
+        return *this;
+
+    reset(uniqueFd.release());
+
+    return *this;
+}
+
+UniqueFd::~UniqueFd() noexcept { reset(); }
+
+int UniqueFd::get() const noexcept { return fd; }
+
+bool UniqueFd::is_valid() const noexcept { return is_valid_fd(fd); }
+
+UniqueFd::operator bool() const noexcept { return is_valid(); }
+
+int UniqueFd::release() noexcept { return std::exchange(fd, FD_INVALID); }
+
+void UniqueFd::reset(int newFd) noexcept {
+    if (fd != newFd)
+    {
+        if (is_valid())
+            ::close(fd);
+
+        fd = newFd;
+    }
+}
+
+#endif
 
 }  // namespace DON
