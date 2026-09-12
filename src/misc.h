@@ -1331,7 +1331,7 @@ class AllocationSizes final {
 
         if (mem != nullptr)
         {
-            std::lock_guard writeLock(sharedMutex);
+            std::lock_guard writeLock(sizesMutex);
 
             sizesMap[mem] = allocSize;
         }
@@ -1340,7 +1340,7 @@ class AllocationSizes final {
     }
 
     [[nodiscard]] bool free(void* const mem) noexcept {
-        std::lock_guard writeLock(sharedMutex);
+        std::lock_guard writeLock(sizesMutex);
 
         if (auto itr = sizesMap.find(mem); itr != sizesMap.end())
         {
@@ -1355,19 +1355,19 @@ class AllocationSizes final {
     }
 
     [[nodiscard]] usize size() const noexcept {
-        std::shared_lock readLock(sharedMutex);
+        std::shared_lock readLock(sizesMutex);
 
         return sizesMap.size();
     }
 
     [[nodiscard]] bool empty() const noexcept {
-        std::shared_lock readLock(sharedMutex);
+        std::shared_lock readLock(sizesMutex);
 
         return sizesMap.empty();
     }
 
     [[nodiscard]] std::optional<usize> find(void* const mem) const noexcept {
-        std::shared_lock readLock(sharedMutex);
+        std::shared_lock readLock(sizesMutex);
 
         if (auto itr = sizesMap.find(mem); itr != sizesMap.end())
             return itr->second;
@@ -1376,10 +1376,9 @@ class AllocationSizes final {
     }
 
    private:
-    mutable std::shared_mutex sharedMutex;
-
     const AllocFunc                  allocFunc;
     const FreeFunc                   freeFunc;
+    mutable std::shared_mutex        sizesMutex;
     std::unordered_map<void*, usize> sizesMap;
 };
 
@@ -1396,14 +1395,14 @@ class ConcurrentCache final {
     Value& access_or_build(const Key& key, Args&&... args) noexcept {
         // Fast path: shared read lock to check and access
         {
-            std::shared_lock readLock(sharedMutex);
+            std::shared_lock readLock(storageMutex);
 
             if (auto itr = storageMap.find(key); itr != storageMap.end())
                 return get_value(itr->second);
         }
 
         // Slow path: exclusive write lock to insert and construct
-        std::lock_guard writeLock(sharedMutex);
+        std::lock_guard writeLock(storageMutex);
 
         // Double-check after acquiring exclusive lock
         auto [itr, inserted] = storageMap.try_emplace(key);
@@ -1445,7 +1444,7 @@ class ConcurrentCache final {
             return *entry;
     }
 
-    std::shared_mutex                     sharedMutex;
+    std::shared_mutex                     storageMutex;
     std::unordered_map<Key, StorageValue> storageMap;
 };
 

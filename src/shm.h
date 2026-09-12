@@ -66,17 +66,12 @@
     #include "platform_win.h"
 
 #elif defined(USE_UNIX_SHM)
-    #include <dirent.h>
     #include <fcntl.h>
     #include <limits.h>
-    #include <poll.h>
-    #include <sys/file.h>
     #include <sys/mman.h>
     #include <sys/socket.h>
     #include <sys/stat.h>
-    #include <sys/time.h>
     #include <sys/types.h>
-    #include <sys/uio.h>
     #include <sys/un.h>
     #include <unistd.h>
 
@@ -404,15 +399,16 @@ class BaseSharedMemory {
 };
 
 namespace SharedMemoryRegistry {
-
-using SharedMemoryPtr = BaseSharedMemory*;
-using OrderedList     = std::list<SharedMemoryPtr>;
-using RegistryMap     = std::unordered_map<SharedMemoryPtr, OrderedList::iterator>;
+// clang-format off
+using SharedMemoryPtr  = BaseSharedMemory*;
+using SharedMemoryList = std::list<SharedMemoryPtr>;
+using SharedMemoryMap  = std::unordered_map<SharedMemoryPtr, SharedMemoryList::iterator>;
+// clang-format on
 
 bool register_memory(SharedMemoryPtr sharedMemory) noexcept;
 bool unregister_memory(SharedMemoryPtr sharedMemory) noexcept;
 
-OrderedList detach_memories() noexcept;
+SharedMemoryList detach_memories() noexcept;
 
 usize size() noexcept;
 

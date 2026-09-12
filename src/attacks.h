@@ -24,7 +24,7 @@
 #include <utility>
 
 #if defined(USE_BMI2)
-    #include <immintrin.h>  // BMI2 [_pext_u64() & _pdep_u64()] intrinsics
+    #include <immintrin.h>  // BMI2 [_pext_u64(), _pdep_u64()] intrinsics
 #endif
 #if defined(USE_AVX2)
     #include <immintrin.h>
