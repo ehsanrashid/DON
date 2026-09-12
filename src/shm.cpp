@@ -409,7 +409,7 @@ const std::optional<TempRoot>& TempRoot::temp_root() noexcept {
             return std::nullopt;
 
         // Temp root already exists, verify ownership and permissions
-        struct stat fileStat{};
+        struct stat fileStat = {};
 
         if (::lstat(tempPath.c_str(), &fileStat) != 0)
             return std::nullopt;
@@ -559,12 +559,12 @@ UniqueFd try_receive_memfd(const std::string& sockPath) noexcept {
         return {};
 
     // 1-second timeout for connect and receive
-    struct timeval tv{1, 0};
+    struct timeval tv = {1, 0};
     ::setsockopt(peerFd.get(), SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
     ::setsockopt(peerFd.get(), SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
 
-    struct sockaddr_un addr{};
-    addr.sun_family = AF_UNIX;
+    struct sockaddr_un addr = {};
+    addr.sun_family         = AF_UNIX;
     std::strncpy(addr.sun_path, sockPath.c_str(), sizeof(addr.sun_path) - 1);
 
     // Connect to peer socket and request access to the memFd
@@ -624,16 +624,12 @@ UniqueFd try_receive_memfd(const std::string& sockPath) noexcept {
     return {};
 }
 
-namespace {
-
-enum FD : u8 {
-    FD_SERVER,
-    FD_SHUTDOWN
+enum class FD : u8 {
+    SERVER,
+    SHUTDOWN
 };
 
 constexpr usize FD_NB = 2;
-
-}  // namespace
 
 // Server thread:
 //  - Forwards the file descriptor fd
@@ -644,11 +640,11 @@ std::thread make_server_thread(UniqueFd fd, UniqueFd shutdownFd, UniqueFd server
                         shutdownFd = std::move(shutdownFd),  //
                         serverFd   = std::move(serverFd)]() noexcept {
         struct pollfd fds[FD_NB];
-        fds[FD_SERVER].fd     = serverFd.get();
-        fds[FD_SERVER].events = POLLIN;
+        fds[FD::SERVER].fd     = serverFd.get();
+        fds[FD::SERVER].events = POLLIN;
 
-        fds[FD_SHUTDOWN].fd     = shutdownFd.get();
-        fds[FD_SHUTDOWN].events = POLLIN;
+        fds[FD::SHUTDOWN].fd     = shutdownFd.get();
+        fds[FD::SHUTDOWN].events = POLLIN;
 
         while (true)
         {
@@ -662,10 +658,10 @@ std::thread make_server_thread(UniqueFd fd, UniqueFd shutdownFd, UniqueFd server
             }
 
             // Shutdown requested by main thread
-            if ((fds[FD_SHUTDOWN].revents & (POLLIN | POLLERR | POLLHUP | POLLNVAL)) != 0)
+            if ((fds[FD::SHUTDOWN].revents & (POLLIN | POLLERR | POLLHUP | POLLNVAL)) != 0)
                 break;
 
-            if ((fds[FD_SERVER].revents & POLLIN) != 0)
+            if ((fds[FD::SERVER].revents & POLLIN) != 0)
             {
                 // Another DON wants access
                 UniqueFd clientFd

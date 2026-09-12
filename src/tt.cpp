@@ -172,8 +172,10 @@ TTData TTData::empty() noexcept {
 // as the cache-line is prefetched when possible.
 struct TTCluster final {
    public:
-    Array<TTEntry, 3> entries;
-    Array<char, 2>    padding;  // Pad to 32 bytes
+    static constexpr usize EntryCount = 3;
+
+    Array<TTEntry, EntryCount> entries;
+    Array<char, 2>             padding;  // Pad to 32 bytes
 
    private:
     TTCluster() noexcept                            = delete;
@@ -183,7 +185,8 @@ struct TTCluster final {
     TTCluster& operator=(TTCluster&&) noexcept      = delete;
 };
 
-static_assert(sizeof(TTCluster) == 32, "TTCluster size must be 32 bytes");
+constexpr usize TT_CLUSTER_SIZE = sizeof(TTCluster);
+static_assert(TT_CLUSTER_SIZE == 32, "TTCluster size must be 32 bytes");
 
 TTWriter::TTWriter(TTEntry* const te, TTCluster* const tc, const u16 k, const u8 gen) noexcept :
     tte(te),
@@ -224,14 +227,12 @@ void TranspositionTable::advance_generation() const noexcept {
 // Sets the size of the transposition table, measured in megabytes (MB).
 // Transposition table consists of even number of clusters.
 void TranspositionTable::resize(const usize ttSize, const Threads& threads) noexcept {
-    constexpr usize ClusterSize = sizeof(TTCluster);
-
     free();
 
-    clusterCount = ttSize * MB / ClusterSize;
+    clusterCount = ttSize * MB / TT_CLUSTER_SIZE;
     //DEBUG_LOG("Clustering transposition table to " << clusterCount << " clusters.");
 
-    const usize ttBytes = clusterCount * ClusterSize;
+    const usize ttBytes = clusterCount * TT_CLUSTER_SIZE;
 
     // Request 1GB pages if get at least eight per NUMA node, to avoid memory oversubscription
     const bool hugePageHint = ttBytes >= 8 * threads.numa_nodes() * HUGE_PAGE_SIZE;
@@ -274,7 +275,7 @@ void TranspositionTable::reset(const Threads& threads) noexcept {
             // Each thread will zero its part of the hash table
             const auto [beg, end] = split_range(threadId, threadCount, clusterCount);
 
-            std::memset(static_cast<void*>(&clusters[beg]), 0, (end - beg) * sizeof(TTCluster));
+            std::memset(static_cast<void*>(&clusters[beg]), 0, (end - beg) * TT_CLUSTER_SIZE);
         });
     }
 
@@ -304,7 +305,7 @@ ProbResult TranspositionTable::probe(const Key key) const noexcept {
     // Find an entry to be replaced according to the replacement strategy
     const auto* rte = ttc->entries.data();
 
-    for (usize i = 1; i < ttc->entries.size(); ++i)
+    for (usize i = 1; i < TTCluster::EntryCount; ++i)
         if (rte->worth(generation8) > ttc->entries[i].worth(generation8))
             rte = &ttc->entries[i];
 
@@ -328,7 +329,7 @@ u16 TranspositionTable::hashfull(const u8 maxAge) const noexcept {
             count += entry.occupied() && entry.relative_age(generation8) <= maxAge;
 
     // Normalize per entries per cluster
-    return u16(ceil_div(count * RequiredCount, ActualCount) / clusters->entries.size());
+    return u16(ceil_div(count * RequiredCount, ActualCount) / TTCluster::EntryCount);
 }
 
 bool TranspositionTable::load(const std::filesystem::path& hashFile,
@@ -368,14 +369,13 @@ bool TranspositionTable::load(const std::filesystem::path& hashFile,
 
     resize(ttSize, threads);
 
-    constexpr usize ClusterSize = sizeof(TTCluster);
-    static_assert(ClusterSize > 0, "Cluster must have non-zero size");
+    static_assert(TT_CLUSTER_SIZE > 0, "Cluster must have non-zero size");
 
     // Choose a chunk that balances system call overhead and memory pressure.
     // 2 MiB is a safe default; 4-64 MiB may be slightly faster on fast disks.
-    constexpr usize ChunkSize = (2 * MB / ClusterSize) * ClusterSize;
+    constexpr usize ChunkSize = (2 * MB / TT_CLUSTER_SIZE) * TT_CLUSTER_SIZE;
 
-    usize DataSize = clusterCount * ClusterSize;
+    usize DataSize = clusterCount * TT_CLUSTER_SIZE;
 
     auto* data = reinterpret_cast<char*>(clusters);
 
@@ -426,14 +426,13 @@ bool TranspositionTable::save(const std::filesystem::path& hashFile) const noexc
         return false;
     }
 
-    constexpr usize ClusterSize = sizeof(TTCluster);
-    static_assert(ClusterSize > 0, "Cluster must have non-zero size");
+    static_assert(TT_CLUSTER_SIZE > 0, "Cluster must have non-zero size");
 
     // Choose a chunk that balances system call overhead and memory pressure.
     // 2 MiB is a safe default; 4-64 MiB may be slightly faster on fast disks.
-    constexpr usize ChunkSize = (2 * MB / ClusterSize) * ClusterSize;
+    constexpr usize ChunkSize = (2 * MB / TT_CLUSTER_SIZE) * TT_CLUSTER_SIZE;
 
-    usize DataSize = clusterCount * ClusterSize;
+    usize DataSize = clusterCount * TT_CLUSTER_SIZE;
 
     const auto* data = reinterpret_cast<const char*>(clusters);
 

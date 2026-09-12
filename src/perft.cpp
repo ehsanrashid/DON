@@ -174,7 +174,8 @@ struct PTCluster final {
     PTCluster& operator=(PTCluster&&) noexcept      = delete;
 };
 
-static_assert(sizeof(PTCluster) == 64, "PTCluster size must be 64 bytes");
+constexpr usize PT_CLUSTER_SIZE = sizeof(PTCluster);
+static_assert(PT_CLUSTER_SIZE == 64, "PTCluster size must be 64 bytes");
 
 struct ProbResult final {
    public:
@@ -215,14 +216,12 @@ void PerftTable::free() noexcept {
 }
 
 void PerftTable::resize(usize ptSize, const Threads& threads) noexcept {
-    constexpr usize ClusterSize = sizeof(PTCluster);
-
     free();
 
-    clusterCount = ptSize * MB / ClusterSize;
+    clusterCount = ptSize * MB / PT_CLUSTER_SIZE;
     //DEBUG_LOG("Clustering perft table to " << clusterCount << " clusters.");
 
-    const usize ptBytes = clusterCount * ClusterSize;
+    const usize ptBytes = clusterCount * PT_CLUSTER_SIZE;
 
     // Request 1GB pages if we'd get at least eight per NUMA node, to avoid
     // memory oversubscription
@@ -265,7 +264,7 @@ void PerftTable::reset(const Threads& threads) noexcept {
             // Each thread will zero its part of the hash table
             const auto [beg, end] = split_range(threadId, threadCount, clusterCount);
 
-            std::memset(static_cast<void*>(&clusters[beg]), 0, (end - beg) * sizeof(PTCluster));
+            std::memset(static_cast<void*>(&clusters[beg]), 0, (end - beg) * PT_CLUSTER_SIZE);
         });
     }
 

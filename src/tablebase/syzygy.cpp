@@ -184,7 +184,7 @@ T number(const void* addr) noexcept {
     else  // Unaligned pointer (very rare)
         std::memcpy(&v, addr, sizeof(T));
 
-    if (static_cast<bool>(E) != IsLittleEndian)
+    if (static_cast<bool>(E) != IS_LITTLE_ENDIAN)
         swap_endian(v);
 
     return v;
@@ -696,7 +696,7 @@ u8* TBTable<T>::map(const std::string_view filename) noexcept {
         return nullptr;
     }
 
-    struct stat fileStat{};
+    struct stat fileStat = {};
 
     if (::fstat(fdGuard.get(), &fileStat) == -1)
     {

@@ -218,12 +218,12 @@ inline constexpr std::string_view WHITE_SPACE{" \t\n\r\f\v"};
 
 // True if and only if the binary is compiled on a little-endian machine
 #if defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__)
-inline constexpr bool IsLittleEndian = __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__;
+inline constexpr bool IS_LITTLE_ENDIAN = __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__;
 #elif defined(_WIN32)
-inline constexpr bool IsLittleEndian = true;
+inline constexpr bool IS_LITTLE_ENDIAN = true;
 #else
 // Fallback runtime check
-inline const bool IsLittleEndian = []() noexcept {
+inline const bool IS_LITTLE_ENDIAN = []() noexcept {
     constexpr u16 LE = 1;
     return *reinterpret_cast<const u8*>(&LE) == 1;
 }();
@@ -690,15 +690,18 @@ struct IndexRange final {
     usize end;
 };
 
-constexpr IndexRange split_range(usize id, usize parts, usize size) noexcept {
-    assert(parts != 0 && id < parts);
+// Split [0, size) into 'count' contiguous, nearly equal ranges.
+// 'id' identifies the range to return and must be in [0, count).
+constexpr IndexRange split_range(const usize id, const usize count, const usize size) noexcept {
+    assert(count != 0 && id < count);
 
-    usize base  = size / parts;
-    usize extra = size % parts;  // remainder to distribute
+    const usize base  = size / count;
+    const usize extra = size % count;
 
-    // Distribute remainder among the first 'extra' threads
-    usize beg = id * base + std::min(id, extra);
-    usize end = beg + base + int(id < extra);
+    // Distribute 'size' as evenly as possible: the first 'extra' ranges
+    // get one additional element, and 'beg' accounts for preceding extras.
+    const usize beg = id * base + std::min(id, extra);
+    const usize end = beg + base + usize(id < extra);
 
     assert(beg <= end && end <= size);
     return {beg, end};
@@ -1141,10 +1144,11 @@ class RelaxedAtomic final {
    private:
     static constexpr bool UseAtomic =
 #if defined(USE_SLOPPY_ATOMICS)
-      !std::atomic<T>::is_always_lock_free || sizeof(T) > sizeof(usize);
+      !std::atomic<T>::is_always_lock_free || sizeof(T) > sizeof(usize)
 #else
-      true;
+      true
 #endif
+      ;
 
     T add(T v) noexcept {
         const T oldV = load();
@@ -1266,23 +1270,23 @@ class ConcurrentCache final {
     }
 
    private:
-    static constexpr usize THRESHOLD_SIZE = 128;
+    static constexpr usize ThresholdSize = 128;
 
     // Define StorageValue type alias
     using StorageValue =
-      std::conditional_t<sizeof(Value) <= THRESHOLD_SIZE, Value, std::unique_ptr<Value>>;
+      std::conditional_t<sizeof(Value) <= ThresholdSize, Value, std::unique_ptr<Value>>;
 
     // Helper functions AFTER StorageValue is defined
     template<typename... Args>
     void set_value(StorageValue& entry, Args&&... args) {
-        if constexpr (sizeof(Value) <= THRESHOLD_SIZE)
+        if constexpr (sizeof(Value) <= ThresholdSize)
             entry = Value(std::forward<Args>(args)...);
         else
             entry = std::make_unique<Value>(std::forward<Args>(args)...);
     }
 
     static Value& get_value(StorageValue& entry) noexcept {
-        if constexpr (sizeof(Value) <= THRESHOLD_SIZE)
+        if constexpr (sizeof(Value) <= ThresholdSize)
             return entry;
         else
             return *entry;
@@ -1558,190 +1562,6 @@ struct CommandLine final {
 #endif
 };
 
-inline std::string lower_case(std::string str) noexcept {
-    std::transform(str.begin(), str.end(), str.begin(),
-                   [](char ch) noexcept -> char { return lower_case(ch); });
-    return str;
-}
-
-inline std::string upper_case(std::string str) noexcept {
-    std::transform(str.begin(), str.end(), str.begin(),
-                   [](char ch) noexcept -> char { return upper_case(ch); });
-    return str;
-}
-
-inline std::string toggle_case(std::string str) noexcept {
-    std::transform(str.begin(), str.end(), str.begin(), [](char ch) noexcept -> char {
-        return is_lower(ch) ? upper_case(ch) : is_upper(ch) ? lower_case(ch) : ch;
-    });
-    return str;
-}
-
-inline std::string remove_whitespace(std::string str) noexcept {
-    str.erase(
-      std::remove_if(str.begin(), str.end(), [](char ch) noexcept -> bool { return is_space(ch); }),
-      str.end());
-    return str;
-}
-
-[[nodiscard]] constexpr bool starts_with(std::string_view sv, std::string_view prefix) noexcept {
-    return sv.size() >= prefix.size()  //
-        && sv.compare(0, prefix.size(), prefix) == 0;
-}
-
-[[nodiscard]] constexpr bool ends_with(std::string_view sv, std::string_view suffix) noexcept {
-    return sv.size() >= suffix.size()  //
-        && sv.compare(sv.size() - suffix.size(), suffix.size(), suffix) == 0;
-}
-
-[[nodiscard]] constexpr bool is_whitespace(std::string_view sv) noexcept {
-    return sv.find_first_not_of(WHITE_SPACE) == std::string_view::npos;
-}
-
-[[nodiscard]] constexpr std::string_view ltrim(std::string_view sv) noexcept {
-    // Find the first non-whitespace character
-    auto beg = sv.find_first_not_of(WHITE_SPACE);
-
-    if (beg == std::string_view::npos)
-        return {};
-
-    return sv.substr(beg);
-}
-
-[[nodiscard]] constexpr std::string_view rtrim(std::string_view sv) noexcept {
-    // Find the last non-whitespace character
-    auto end = sv.find_last_not_of(WHITE_SPACE);
-
-    if (end == std::string_view::npos)
-        return {};
-
-    return sv.substr(0, end + 1);
-}
-
-[[nodiscard]] constexpr std::string_view trim(std::string_view sv) noexcept {
-    auto beg = sv.find_first_not_of(WHITE_SPACE);
-
-    if (beg == std::string_view::npos)
-        return {};
-
-    auto end = sv.find_last_not_of(WHITE_SPACE);
-
-    return sv.substr(beg, end - beg + 1);
-}
-
-[[nodiscard]] constexpr std::string_view bool_to_string(bool b) noexcept {
-    return b ? "true" : "false";
-}
-
-[[nodiscard]] constexpr bool sv_to_bool(const std::string_view sv) {
-    return (trim(sv) == bool_to_string(true));
-}
-
-[[nodiscard]] constexpr int sv_to_int(std::string_view sv) noexcept {
-    const char* p   = sv.data();
-    const char* end = p + sv.size();
-
-    bool neg      = false;
-    int  intValue = 0;
-
-    for (; p != end && *p == '-'; ++p)
-        neg = true;
-    for (; p != end; ++p)
-        intValue = 10 * intValue + char_to_digit(*p);
-
-    return neg ? -intValue : intValue;
-}
-
-// Validate boolean string (case-insensitive)
-inline bool value_is_bool_string(std::string value) noexcept {
-    // Convert to lowercase for case-insensitive comparison
-    value = lower_case(value);
-    return value == bool_to_string(true) || value == bool_to_string(false);
-}
-
-inline bool value_in_range(std::string_view sv, int minValue, int maxValue) noexcept {
-    const char* p   = sv.data();
-    const char* end = p + sv.size();
-    // Skip spaces
-    for (; p != end && is_space(*p); ++p)
-    {}
-
-    int intValue = 0;
-    // Parse decimal value (base 10) from string_view
-    auto [ptr, ec] = std::from_chars(p, end, intValue, 10);
-    if (ec != std::errc{} || ptr != end)
-        return false;
-    // Check value is in range
-    return minValue <= intValue && intValue <= maxValue;
-}
-
-inline StringViews
-split(std::string_view sv, std::string_view delimiter, bool trimPart = false) noexcept {
-    StringViews parts;
-
-    if (sv.empty() || delimiter.empty())
-        return parts;  // Avoid infinite loop for empty delimiter
-
-    std::string_view part;
-
-    usize offset = 0;
-
-    while (true)
-    {
-        auto end = sv.find(delimiter, offset);
-
-        if (end == std::string_view::npos)
-            break;
-
-        part = sv.substr(offset, end - offset);
-
-        if (trimPart)
-            part = trim(part);
-
-        parts.emplace_back(part);
-        offset = end + delimiter.size();
-    }
-
-    // Last part
-    part = sv.substr(offset);
-
-    if (trimPart)
-        part = trim(part);
-
-    parts.emplace_back(part);
-
-    return parts;
-}
-
-inline std::string hash_to_string(u64 hash) noexcept {
-    constexpr usize BufferSize = HEX64_SIZE + 1;  // 16 hex + '\0'
-
-    Array<char, BufferSize> buffer{};
-
-    int   writtenSize = std::snprintf(buffer.data(), buffer.size(), "%016" PRIX64, hash);
-    usize copiedSize  = writtenSize > 0  //
-                        ? std::min<usize>(writtenSize, buffer.size() - 1)
-                        : 0;
-
-    return std::string{buffer.data(), copiedSize};
-}
-
-std::string u32_to_string(u32 v) noexcept;
-std::string u64_to_string(u64 v) noexcept;
-
-inline bool InfoStrStop = false;
-
-void print_info_string(std::string_view infos) noexcept;
-
-[[noreturn]] void terminate_on_critical_error(std::string_view message) noexcept;
-
-std::string           utf8_from_wstring(std::wstring_view wsv) noexcept;
-std::filesystem::path path_from_utf8(std::string_view path) noexcept;
-
-std::optional<usize> str_to_usize(std::string_view sv) noexcept;
-
-std::optional<std::string> read_file_to_string(const std::filesystem::path& filePath) noexcept;
-
 #if defined(_WIN32)
 // Get the error message string, if any
 std::string error_to_string(DWORD errorId) noexcept;
@@ -2000,6 +1820,190 @@ struct UniqueFd final {
 };
 
 #endif
+
+inline std::string lower_case(std::string str) noexcept {
+    std::transform(str.begin(), str.end(), str.begin(),
+                   [](char ch) noexcept -> char { return lower_case(ch); });
+    return str;
+}
+
+inline std::string upper_case(std::string str) noexcept {
+    std::transform(str.begin(), str.end(), str.begin(),
+                   [](char ch) noexcept -> char { return upper_case(ch); });
+    return str;
+}
+
+inline std::string toggle_case(std::string str) noexcept {
+    std::transform(str.begin(), str.end(), str.begin(), [](char ch) noexcept -> char {
+        return is_lower(ch) ? upper_case(ch) : is_upper(ch) ? lower_case(ch) : ch;
+    });
+    return str;
+}
+
+inline std::string remove_whitespace(std::string str) noexcept {
+    str.erase(
+      std::remove_if(str.begin(), str.end(), [](char ch) noexcept -> bool { return is_space(ch); }),
+      str.end());
+    return str;
+}
+
+[[nodiscard]] constexpr bool starts_with(std::string_view sv, std::string_view prefix) noexcept {
+    return sv.size() >= prefix.size()  //
+        && sv.compare(0, prefix.size(), prefix) == 0;
+}
+
+[[nodiscard]] constexpr bool ends_with(std::string_view sv, std::string_view suffix) noexcept {
+    return sv.size() >= suffix.size()  //
+        && sv.compare(sv.size() - suffix.size(), suffix.size(), suffix) == 0;
+}
+
+[[nodiscard]] constexpr bool is_whitespace(std::string_view sv) noexcept {
+    return sv.find_first_not_of(WHITE_SPACE) == std::string_view::npos;
+}
+
+[[nodiscard]] constexpr std::string_view ltrim(std::string_view sv) noexcept {
+    // Find the first non-whitespace character
+    auto beg = sv.find_first_not_of(WHITE_SPACE);
+
+    if (beg == std::string_view::npos)
+        return {};
+
+    return sv.substr(beg);
+}
+
+[[nodiscard]] constexpr std::string_view rtrim(std::string_view sv) noexcept {
+    // Find the last non-whitespace character
+    auto end = sv.find_last_not_of(WHITE_SPACE);
+
+    if (end == std::string_view::npos)
+        return {};
+
+    return sv.substr(0, end + 1);
+}
+
+[[nodiscard]] constexpr std::string_view trim(std::string_view sv) noexcept {
+    auto beg = sv.find_first_not_of(WHITE_SPACE);
+
+    if (beg == std::string_view::npos)
+        return {};
+
+    auto end = sv.find_last_not_of(WHITE_SPACE);
+
+    return sv.substr(beg, end - beg + 1);
+}
+
+[[nodiscard]] constexpr std::string_view bool_to_string(bool b) noexcept {
+    return b ? "true" : "false";
+}
+
+[[nodiscard]] constexpr bool sv_to_bool(const std::string_view sv) {
+    return (trim(sv) == bool_to_string(true));
+}
+
+[[nodiscard]] constexpr int sv_to_int(std::string_view sv) noexcept {
+    const char* p   = sv.data();
+    const char* end = p + sv.size();
+
+    bool neg      = false;
+    int  intValue = 0;
+
+    for (; p != end && *p == '-'; ++p)
+        neg = true;
+    for (; p != end; ++p)
+        intValue = 10 * intValue + char_to_digit(*p);
+
+    return neg ? -intValue : intValue;
+}
+
+// Validate boolean string (case-insensitive)
+inline bool value_is_bool_string(std::string value) noexcept {
+    // Convert to lowercase for case-insensitive comparison
+    value = lower_case(value);
+    return value == bool_to_string(true) || value == bool_to_string(false);
+}
+
+inline bool value_in_range(std::string_view sv, int minValue, int maxValue) noexcept {
+    const char* p   = sv.data();
+    const char* end = p + sv.size();
+    // Skip spaces
+    for (; p != end && is_space(*p); ++p)
+    {}
+
+    int intValue = 0;
+    // Parse decimal value (base 10) from string_view
+    auto [ptr, ec] = std::from_chars(p, end, intValue, 10);
+    if (ec != std::errc{} || ptr != end)
+        return false;
+    // Check value is in range
+    return minValue <= intValue && intValue <= maxValue;
+}
+
+inline StringViews
+split(std::string_view sv, std::string_view delimiter, bool trimPart = false) noexcept {
+    StringViews parts;
+
+    if (sv.empty() || delimiter.empty())
+        return parts;  // Avoid infinite loop for empty delimiter
+
+    std::string_view part;
+
+    usize offset = 0;
+
+    while (true)
+    {
+        auto end = sv.find(delimiter, offset);
+
+        if (end == std::string_view::npos)
+            break;
+
+        part = sv.substr(offset, end - offset);
+
+        if (trimPart)
+            part = trim(part);
+
+        parts.emplace_back(part);
+        offset = end + delimiter.size();
+    }
+
+    // Last part
+    part = sv.substr(offset);
+
+    if (trimPart)
+        part = trim(part);
+
+    parts.emplace_back(part);
+
+    return parts;
+}
+
+inline std::string hash_to_string(u64 hash) noexcept {
+    constexpr usize BufferSize = HEX64_SIZE + 1;  // 16 hex + '\0'
+
+    Array<char, BufferSize> buffer{};
+
+    int   writtenSize = std::snprintf(buffer.data(), buffer.size(), "%016" PRIX64, hash);
+    usize copiedSize  = writtenSize > 0  //
+                        ? std::min<usize>(writtenSize, buffer.size() - 1)
+                        : 0;
+
+    return std::string{buffer.data(), copiedSize};
+}
+
+std::string u32_to_string(u32 v) noexcept;
+std::string u64_to_string(u64 v) noexcept;
+
+inline bool InfoStrStop = false;
+
+void print_info_string(std::string_view infos) noexcept;
+
+[[noreturn]] void terminate_on_critical_error(std::string_view message) noexcept;
+
+std::string           utf8_from_wstring(std::wstring_view wsv) noexcept;
+std::filesystem::path path_from_utf8(std::string_view path) noexcept;
+
+std::optional<usize> str_to_usize(std::string_view sv) noexcept;
+
+std::optional<std::string> read_file_to_string(const std::filesystem::path& filePath) noexcept;
 
 }  // namespace DON
 

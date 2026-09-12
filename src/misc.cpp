@@ -1191,128 +1191,6 @@ void CommandLine::set_arguments(int argc, const char* argv[]) noexcept {
         arguments_.emplace_back(argv[i]);  // Store a view without copying the string.
 }
 
-std::string u32_to_string(u32 v) noexcept {
-    constexpr usize BufferSize = 2 + HEX32_SIZE + 1;  // "0x" + 8 hex + '\0'
-
-    Array<char, BufferSize> buffer{};
-
-    int   writtenSize = std::snprintf(buffer.data(), buffer.size(), "0x%08" PRIX32, v);
-    usize copiedSize  = writtenSize > 0  //
-                        ? std::min<usize>(writtenSize, buffer.size() - 1)
-                        : 0;
-
-    return std::string{buffer.data(), copiedSize};
-}
-
-std::string u64_to_string(u64 v) noexcept {
-    constexpr usize BufferSize = 2 + HEX64_SIZE + 1;  // "0x" + 16 hex + '\0'
-
-    Array<char, BufferSize> buffer{};
-
-    int   writtenSize = std::snprintf(buffer.data(), buffer.size(), "0x%016" PRIX64, v);
-    usize copiedSize  = writtenSize > 0  //
-                        ? std::min<usize>(writtenSize, buffer.size() - 1)
-                        : 0;
-
-    return std::string{buffer.data(), copiedSize};
-}
-
-void print_info_string(const std::string_view infos) noexcept {
-
-    if (InfoStrStop)
-        return;
-
-    for (const auto info : split(infos, "\n", true))
-        if (!is_whitespace(info))
-            std::cout << "info string " << info << '\n';
-}
-
-void terminate_on_critical_error(const std::string_view message) noexcept {
-    print_info_string("CRITICAL ERROR: " + std::string{message});
-    std::cout << std::endl;
-    std::exit(EXIT_FAILURE);
-}
-
-std::string utf8_from_wstring(const std::wstring_view wsv) noexcept {
-#if defined(_WIN32)
-    if (wsv.empty())
-        return {};
-
-    const int size =
-      WideCharToMultiByte(CP_UTF8, 0, wsv.data(), int(wsv.size()), nullptr, 0, nullptr, nullptr);
-    if (size <= 0)
-        return {};
-
-    std::string str(static_cast<usize>(size), '\0');
-    WideCharToMultiByte(CP_UTF8, 0, wsv.data(), int(wsv.size()), str.data(), size, nullptr,
-                        nullptr);
-    return str;
-#else
-    return std::string{wsv.begin(), wsv.end()};
-#endif
-}
-
-std::filesystem::path path_from_utf8(const std::string_view path) noexcept {
-#if defined(_WIN32)
-    const usize size = path.size();
-    if (size > std::numeric_limits<int>::max())
-        return {};
-    int u8Size = int(size);
-    int wSize  = MultiByteToWideChar(CP_UTF8, 0, path.data(), u8Size, nullptr, 0);
-
-    std::wstring wStr(static_cast<usize>(wSize), L'\0');
-    MultiByteToWideChar(CP_UTF8, 0, path.data(), u8Size, wStr.data(), wSize);
-    return {wStr};
-#else
-    return {path};
-#endif
-}
-
-std::optional<usize> str_to_usize(const std::string_view sv) noexcept {
-    if (sv.empty() || sv[0] == '-')
-        return std::nullopt;
-    // Use from_chars (no allocation, fast)
-    const char* p   = sv.data();
-    const char* end = p + sv.size();
-    // Skip spaces
-    for (; p != end && is_space(*p); ++p)
-    {}
-
-    unsigned long long value = 0;
-    // Parse decimal value (base 10) from string_view
-    auto [ptr, ec] = std::from_chars(p, end, value, 10);
-    if (ec != std::errc{} || ptr != end || value > std::numeric_limits<usize>::max())
-        return std::nullopt;
-
-    return static_cast<usize>(value);
-}
-
-// Reads the file as bytes.
-// Returns std::nullopt if the file does not exist.
-std::optional<std::string> read_file_to_string(const std::filesystem::path& filePath) noexcept {
-
-    std::ifstream ifs{filePath, std::ios::binary | std::ios::ate};
-    if (!ifs)
-        return std::nullopt;
-
-    const auto size = ifs.tellg();
-    if (size < 0)
-        return std::nullopt;
-
-    ifs.seekg(0, std::ios::beg);
-    if (!ifs)
-        return std::nullopt;
-
-    std::string str;
-    str.resize(static_cast<usize>(size));
-
-    //str.append(std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>());
-    if (!ifs.read(str.data(), static_cast<std::streamsize>(size)))
-        return std::nullopt;
-
-    return str;
-}
-
 #if defined(_WIN32)
 
 // Get the error message string, if any
@@ -1530,5 +1408,127 @@ void UniqueFd::reset(int newFd) noexcept {
 }
 
 #endif
+
+std::string u32_to_string(u32 v) noexcept {
+    constexpr usize BufferSize = 2 + HEX32_SIZE + 1;  // "0x" + 8 hex + '\0'
+
+    Array<char, BufferSize> buffer{};
+
+    int   writtenSize = std::snprintf(buffer.data(), buffer.size(), "0x%08" PRIX32, v);
+    usize copiedSize  = writtenSize > 0  //
+                        ? std::min<usize>(writtenSize, buffer.size() - 1)
+                        : 0;
+
+    return std::string{buffer.data(), copiedSize};
+}
+
+std::string u64_to_string(u64 v) noexcept {
+    constexpr usize BufferSize = 2 + HEX64_SIZE + 1;  // "0x" + 16 hex + '\0'
+
+    Array<char, BufferSize> buffer{};
+
+    int   writtenSize = std::snprintf(buffer.data(), buffer.size(), "0x%016" PRIX64, v);
+    usize copiedSize  = writtenSize > 0  //
+                        ? std::min<usize>(writtenSize, buffer.size() - 1)
+                        : 0;
+
+    return std::string{buffer.data(), copiedSize};
+}
+
+void print_info_string(const std::string_view infos) noexcept {
+
+    if (InfoStrStop)
+        return;
+
+    for (const auto info : split(infos, "\n", true))
+        if (!is_whitespace(info))
+            std::cout << "info string " << info << '\n';
+}
+
+void terminate_on_critical_error(const std::string_view message) noexcept {
+    print_info_string("CRITICAL ERROR: " + std::string{message});
+    std::cout << std::endl;
+    std::exit(EXIT_FAILURE);
+}
+
+std::string utf8_from_wstring(const std::wstring_view wsv) noexcept {
+#if defined(_WIN32)
+    if (wsv.empty())
+        return {};
+
+    const int size =
+      WideCharToMultiByte(CP_UTF8, 0, wsv.data(), int(wsv.size()), nullptr, 0, nullptr, nullptr);
+    if (size <= 0)
+        return {};
+
+    std::string str(static_cast<usize>(size), '\0');
+    WideCharToMultiByte(CP_UTF8, 0, wsv.data(), int(wsv.size()), str.data(), size, nullptr,
+                        nullptr);
+    return str;
+#else
+    return std::string{wsv.begin(), wsv.end()};
+#endif
+}
+
+std::filesystem::path path_from_utf8(const std::string_view path) noexcept {
+#if defined(_WIN32)
+    const usize size = path.size();
+    if (size > std::numeric_limits<int>::max())
+        return {};
+    int u8Size = int(size);
+    int wSize  = MultiByteToWideChar(CP_UTF8, 0, path.data(), u8Size, nullptr, 0);
+
+    std::wstring wStr(static_cast<usize>(wSize), L'\0');
+    MultiByteToWideChar(CP_UTF8, 0, path.data(), u8Size, wStr.data(), wSize);
+    return {wStr};
+#else
+    return {path};
+#endif
+}
+
+std::optional<usize> str_to_usize(const std::string_view sv) noexcept {
+    if (sv.empty() || sv[0] == '-')
+        return std::nullopt;
+    // Use from_chars (no allocation, fast)
+    const char* p   = sv.data();
+    const char* end = p + sv.size();
+    // Skip spaces
+    for (; p != end && is_space(*p); ++p)
+    {}
+
+    unsigned long long value = 0;
+    // Parse decimal value (base 10) from string_view
+    auto [ptr, ec] = std::from_chars(p, end, value, 10);
+    if (ec != std::errc{} || ptr != end || value > std::numeric_limits<usize>::max())
+        return std::nullopt;
+
+    return static_cast<usize>(value);
+}
+
+// Reads the file as bytes.
+// Returns std::nullopt if the file does not exist.
+std::optional<std::string> read_file_to_string(const std::filesystem::path& filePath) noexcept {
+
+    std::ifstream ifs{filePath, std::ios::binary | std::ios::ate};
+    if (!ifs)
+        return std::nullopt;
+
+    const auto size = ifs.tellg();
+    if (size < 0)
+        return std::nullopt;
+
+    ifs.seekg(0, std::ios::beg);
+    if (!ifs)
+        return std::nullopt;
+
+    std::string str;
+    str.resize(static_cast<usize>(size));
+
+    //str.append(std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>());
+    if (!ifs.read(str.data(), static_cast<std::streamsize>(size)))
+        return std::nullopt;
+
+    return str;
+}
 
 }  // namespace DON
