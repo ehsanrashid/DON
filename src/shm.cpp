@@ -267,7 +267,7 @@ bool unregister_memory(SharedMemoryPtr sharedMemory) noexcept {
 SharedMemoryList detach_memories() noexcept {
     std::lock_guard writeLock(RegistryMutex);
 
-    SharedMemoryList detachedList = std::move(OrderedList);
+    auto detachedList = std::move(OrderedList);
     RegistryMap.clear();
 
     return detachedList;
@@ -312,6 +312,7 @@ void print() noexcept {
 //  - Cleanup is performed in registry insertion order.
 namespace SharedMemoryCleanup {
 
+// Detaches and releases all registered shared memory objects in insertion order.
 void cleanup() noexcept {
     auto sharedMemoryList = SharedMemoryRegistry::detach_memories();
 
@@ -333,24 +334,24 @@ void cleanup() noexcept {
 //   Call SharedMemoryCleanupHook::ensure_initialized() early in main().
 //
 // Key Features:
-//   - Uses CleanupRegistrationOnce to ensure the cleanup handler is registered only once.
+//   - Uses CleanupHookOnce to ensure the cleanup handler is registered only once.
 //   - Registers SharedMemoryCleanup::cleanup() with std::atexit().
 //   - Does not manage the registry or perform cleanup itself.
 //
 // Note:
 //   - Cleanup via std::atexit() is only guaranteed during normal termination.
-//     It will not run after forced termination (SIGKILL), crashes, or abort().
+//     It will not run after SIGKILL, abort(), or abnormal/forced process termination.
 namespace SharedMemoryCleanupHook {
 
 namespace {
 
-CallOnce CleanupRegistrationOnce;
+CallOnce CleanupHookOnce;
 
 }  // namespace
 
-// Ensure the shared memory cleanup callback is registered with std::atexit().
+// Ensure the shared memory cleanup handler is registered with std::atexit().
 void ensure_initialized() noexcept {
-    CleanupRegistrationOnce([]() noexcept {
+    CleanupHookOnce([]() noexcept {
         //DEBUG_LOG("Initializing SharedMemoryCleanupHook.");
 
         std::atexit(SharedMemoryCleanup::cleanup);

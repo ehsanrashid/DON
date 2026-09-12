@@ -71,11 +71,10 @@ Array<Key, COLOR_NB, PIECE_TYPE_CNT + 1, SQUARE_NB> PieceSquare;
 Array<Key, CASTLING_RIGHTS_NB>                      Castling;
 Array<Key, FILE_NB>                                 Enpassant;
 Key                                                 Turn;
+Array<Key, 64>                                      MR50;
 
 constexpr u8 R50_OFFSET = 14;
 constexpr u8 R50_FACTOR = 8;
-
-Array<Key, 64> MR50;
 
 }  // namespace
 

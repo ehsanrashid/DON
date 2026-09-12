@@ -69,10 +69,10 @@
     #include <fcntl.h>
     #include <limits.h>
     #include <sys/mman.h>
-    #include <sys/socket.h>
+    #include <sys/socket.h>  // ::socket(), ::bind(), ::listen(), ::accept(), ::connect(), ::send(), ::recv()
     #include <sys/stat.h>
     #include <sys/types.h>
-    #include <sys/un.h>
+    #include <sys/un.h>  // sockaddr_un
     #include <unistd.h>
 
     #include <cassert>
@@ -399,11 +399,10 @@ class BaseSharedMemory {
 };
 
 namespace SharedMemoryRegistry {
-// clang-format off
+
 using SharedMemoryPtr  = BaseSharedMemory*;
 using SharedMemoryList = std::list<SharedMemoryPtr>;
 using SharedMemoryMap  = std::unordered_map<SharedMemoryPtr, SharedMemoryList::iterator>;
-// clang-format on
 
 bool register_memory(SharedMemoryPtr sharedMemory) noexcept;
 bool unregister_memory(SharedMemoryPtr sharedMemory) noexcept;
@@ -645,13 +644,14 @@ class SharedMemory final: public BaseSharedMemory {
         if (!serverFd.is_valid())
             return false;
 
-        struct sockaddr_un addr{};
-        addr.sun_family = AF_UNIX;
-        std::strncpy(addr.sun_path, socketPath.c_str(), sizeof(addr.sun_path) - 1);
+        struct sockaddr_un sockAddr{};
+        sockAddr.sun_family = AF_UNIX;
+        std::strncpy(sockAddr.sun_path, socketPath.c_str(), sizeof(sockAddr.sun_path) - 1);
 
         ::unlink(socketPath.c_str());
-        if (::bind(serverFd.get(), reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr)) == -1
-            || ::listen(serverFd.get(), 5) == -1)
+        if (const auto sFd = serverFd.get();
+            ::bind(sFd, reinterpret_cast<struct sockaddr*>(&sockAddr), sizeof(sockAddr)) == -1
+            || ::listen(sFd, 5) == -1)
             return false;
 
         // Don't release the init lock until we've actually made a socket that other DONs can use

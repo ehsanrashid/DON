@@ -573,7 +573,7 @@ struct TBTable final: BaseTBTable {
     MMapGuard mappedGuard{mappedPtr, mappedSize};
     #endif
     u8*      mapPtr = nullptr;
-    CallOnce callOnce;
+    CallOnce initOnce;
 };
 
 template<TBType T>
@@ -599,7 +599,7 @@ TBTable<T>::~TBTable() noexcept {
 template<TBType T>
 void* TBTable<T>::init(const Position& pos, const Key materialKey) noexcept {
     // Fast path: if already initialized, return immediately
-    if (callOnce.initialized())
+    if (initOnce.initialized())
         return mappedPtr;
 
     // Pieces strings in decreasing order for each color, like ("KPP","KR")
@@ -609,8 +609,8 @@ void* TBTable<T>::init(const Position& pos, const Key materialKey) noexcept {
         for (usize i = PIECE_TYPES.size(); i-- > 0;)
             pieces[c].append(pos.count(c, PIECE_TYPES[i]), to_char(PIECE_TYPES[i]));
 
-    // Slow path: initialize exactly once using CallOnce
-    callOnce([this, pieces = std::move(pieces), materialKey]() noexcept {
+    // Slow path: initialize exactly once using initOnce
+    initOnce([this, pieces = std::move(pieces), materialKey]() noexcept {
         bool c = key[WHITE] == materialKey;
 
         std::string base;
