@@ -686,106 +686,56 @@ struct LazyValue final {
     CallOnce callOnce;
 };
 
-// OstreamMutexRegistry
+namespace OstreamMutexRegistry {
+
+void ensure_initialized(usize reserveCount = 16, float maxLoadFactor = 0.85f) noexcept;
+
+std::mutex& get(std::ostream* osPtr) noexcept;
+
+}  // namespace OstreamMutexRegistry
+
+// SyncOstream
 //
-// A thread-safe registry that provides a unique mutex for each std::ostream pointer.
-// This is useful when multiple threads may write to the same ostream and you want
-// to synchronize access without locking unrelated streams.
+// Provides RAII-based, thread-safe output synchronization for a std::ostream.
+//
+// Each SyncOstream acquires the mutex associated with the given ostream through
+// OstreamMutexRegistry and holds the lock for its lifetime.
 //
 // Key Features:
-//  - Thread-safe: internal access to the registry map is protected by a mutex.
-//  - Per-ostream mutex: each ostream gets its own mutex to avoid contention.
-//  - Null-safe: passing a nullptr returns a null-mutex to safely ignore locking
-//    without inserting invalid keys into the map.
-//  - Lazy initialization: mutexes are default-constructed when first requested.
+//  - Thread-safe: synchronizes access to the associated ostream.
+//  - RAII-based: acquires the mutex on construction and releases it on destruction.
+//  - Move-constructible: allows SyncOstream objects to be returned by value.
+//  - Non-copyable and non-move-assignable: prevents accidental lock ownership changes.
+//  - Supports standard ostream operators and manipulators.
+//  - Asserts on use of a moved-from SyncOstream in debug builds.
 //
 // Usage:
-//  - Call 'get(&std::cout)' to obtain a mutex before writing to std::cout from multiple threads.
-//  - Lock the returned mutex with std::scoped_lock or std::unique_lock.
+//   SyncOstream(std::cout) << "Thread-safe message " << value << std::endl;
 //
 // Notes:
-//  - The class is static-only; it cannot be instantiated. (Restriction)
-//  - Mutexes are stored as object in the map.
-class OstreamMutexRegistry final {
-   public:
-    static void ensure_initialized(usize reserveCount = 16, float maxLoadFactor = 0.85f) noexcept {
-        callOnce([reserveCount, maxLoadFactor]() noexcept {
-            osMutexes.max_load_factor(max_load_factor(maxLoadFactor));
-            osMutexes.reserve(reserve_count(reserveCount));
-        });
-    }
-
-    // Return a mutex associated with the given ostream pointer.
-    // If osPtr is nullptr, returns a null-mutex to safely ignore locking.
-    // This ensures no accidental insertion of null keys into the map.
-    static std::mutex& get(std::ostream* osPtr) noexcept {
-        ensure_initialized();
-
-        // Fallback for null pointers
-        if (osPtr == nullptr)
-            return nullMutex;
-
-        // Lock the registry while accessing the map
-        std::lock_guard writeLock(mutex);
-
-        // Return mutex, create if missing
-        return osMutexes[osPtr];
-    }
-
-   private:
-    OstreamMutexRegistry() noexcept                                       = delete;
-    ~OstreamMutexRegistry() noexcept                                      = delete;
-    OstreamMutexRegistry(const OstreamMutexRegistry&) noexcept            = delete;
-    OstreamMutexRegistry& operator=(const OstreamMutexRegistry&) noexcept = delete;
-    OstreamMutexRegistry(OstreamMutexRegistry&&) noexcept                 = delete;
-    OstreamMutexRegistry& operator=(OstreamMutexRegistry&&) noexcept      = delete;
-
-    static inline CallOnce callOnce;
-    // Protects access to the osMutexes map for thread safety
-    static inline std::mutex mutex;
-    // Note: null-mutex shared by all nullptr streams
-    static inline std::mutex nullMutex;
-    // Store mutexes and references returned by get()
-    static inline std::unordered_map<std::ostream*, std::mutex> osMutexes;
-};
-
-// SyncOstream --- Synchronized output stream ---
-//
-// A RAII-style wrapper for synchronizing output to a std::ostream across multiple threads.
-// Each SyncOstream locks a mutex associated with the given ostream (via OstreamMutexRegistry)
-// during its lifetime, ensuring thread-safe writes.
-//
-// Key Features:
-//  - Thread-safe: locks the ostream-specific mutex for the duration of the SyncOstream object.
-//  - RAII-based: mutex is automatically locked on construction and released on destruction.
-//  - Move-constructible: can be returned from factories or functions by value.
-//  - Deleted copy and move-assignment: prevents accidental unlocking windows or double-locks.
-//  - Supports all standard ostream operators and manipulators (std::endl, std::flush, etc.).
-//  - Asserts on use of moved-from SyncOstream to catch logic errors in debug builds.
-//
-// Usage Example:
-//   SyncOstream(syncOut) << "Thread-safe message " << value << std::endl;
-//   where syncOut is a std::ostream (like std::cout or a file stream)
-//   that you want to write to safely from multiple threads.
-//
-// Notes:
-//  - Designed for short-lived, scoped output operations; lock is held for the lifetime
-//    of the SyncOstream object.
-//  - Uses OstreamMutexRegistry internally to avoid creating multiple mutexes for the same ostream.
+//  - The lock is held for the lifetime of the SyncOstream object.
+//  - Keep SyncOstream objects short-lived to minimize lock contention.
+//  - OstreamMutexRegistry ensures that the same ostream uses the same mutex.
 class [[nodiscard]] SyncOstream final {
    public:
-    explicit SyncOstream(std::ostream& os) noexcept :
-        osPtr(&os),
-        lock(OstreamMutexRegistry::get(osPtr)) {}
-    // Move-constructible so factories can return by value
-    SyncOstream(SyncOstream&& syncOs) noexcept :
-        osPtr(syncOs.osPtr),
-        lock(std::move(syncOs.lock)) {}
+    explicit SyncOstream(std::ostream& os) noexcept;
 
     SyncOstream(const SyncOstream&) noexcept            = delete;
     SyncOstream& operator=(const SyncOstream&) noexcept = delete;
-    // Prefer deleting move-assignment to avoid unlock window
+    // Move-constructible so SyncOstream objects can be returned by value
+    SyncOstream(SyncOstream&& syncOs) noexcept;
+    // Move-assignment is deleted to prevent changing lock ownership
     SyncOstream& operator=(SyncOstream&&) noexcept = delete;
+
+    using IosManip = std::ios& (*) (std::ios&);
+
+    SyncOstream&  operator<<(IosManip manip) &;
+    SyncOstream&& operator<<(IosManip manip) &&;
+
+    using OstreamManip = std::ostream& (*) (std::ostream&);
+
+    SyncOstream&  operator<<(OstreamManip manip) &;
+    SyncOstream&& operator<<(OstreamManip manip) &&;
 
     template<typename T>
     SyncOstream& operator<<(T&& x) & {
@@ -802,44 +752,12 @@ class [[nodiscard]] SyncOstream final {
         return std::move(*this);
     }
 
-    using IosManipulator = std::ios& (*) (std::ios&);
-
-    SyncOstream& operator<<(IosManipulator manip) & {
-        assert(osPtr != nullptr && "Use of moved-from SyncOstream");
-
-        manip(*osPtr);
-        return *this;
-    }
-    SyncOstream&& operator<<(IosManipulator manip) && {
-        assert(osPtr != nullptr && "Use of moved-from SyncOstream");
-
-        manip(*osPtr);
-        return std::move(*this);
-    }
-
-    using OstreamManipulator = std::ostream& (*) (std::ostream&);
-
-    SyncOstream& operator<<(OstreamManipulator manip) & {
-        assert(osPtr != nullptr && "Use of moved-from SyncOstream");
-
-        manip(*osPtr);
-        return *this;
-    }
-    SyncOstream&& operator<<(OstreamManipulator manip) && {
-        assert(osPtr != nullptr && "Use of moved-from SyncOstream");
-
-        manip(*osPtr);
-        return std::move(*this);
-    }
-
    private:
-    std::ostream* const          osPtr;
+    std::ostream*                osPtr;
     std::unique_lock<std::mutex> lock;
 };
 
-[[nodiscard]] inline SyncOstream sync_os(std::ostream& os = std::cout) noexcept {
-    return SyncOstream(os);
-}
+[[nodiscard]] SyncOstream sync_os(std::ostream& os = std::cout) noexcept;
 
 // --- TableView with pointer and size ---
 template<typename T>

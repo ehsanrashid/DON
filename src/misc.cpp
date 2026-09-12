@@ -502,6 +502,105 @@ std::string format_time(const SystemClock::time_point& timePoint) noexcept {
     return std::string{buffer.data(), std::min(writtenSize, buffer.size() - 1)};
 }
 
+// OstreamMutexRegistry
+//
+// Provides a thread-safe registry that associates a unique mutex with each std::ostream pointer.
+//
+// The registry allows multiple threads to synchronize access to the same
+// ostream without unnecessarily locking unrelated ostreams.
+//
+// Key Features:
+//  - Thread-safe: registry access is protected by a mutex.
+//  - Per-ostream mutex: each ostream has its own mutex to minimize contention.
+//  - Null-safe: nullptr returns a shared null mutex without inserting a null key.
+//  - Lazy initialization: per-ostream mutexes are created when first requested.
+//
+// Usage:
+//  - Call 'get(&std::cout)' to obtain the mutex before writing to std::cout
+//    from multiple threads.
+//  - Lock the returned mutex with std::scoped_lock or std::unique_lock.
+//
+// Notes:
+//  - The registry does not own the std::ostream objects.
+//  - Mutexes remain in the registry for the lifetime of the process.
+namespace OstreamMutexRegistry {
+
+namespace {
+
+CallOnce RegisterOnce;
+
+// Protects access to the mutex registry container.
+std::mutex RegistryMutex;
+
+// Fallback mutex shared by all get(nullptr) calls.
+std::mutex NullMutex;
+
+// Associates each ostream with its mutex.
+std::unordered_map<std::ostream*, std::mutex> RegistryMap;
+
+}  // namespace
+
+void ensure_initialized(const usize reserveCount, const float maxLoadFactor) noexcept {
+    RegisterOnce([reserveCount, maxLoadFactor]() noexcept {
+        RegistryMap.max_load_factor(max_load_factor(maxLoadFactor));
+        RegistryMap.reserve(reserve_count(reserveCount));
+    });
+}
+
+// Return the mutex associated with the given ostream pointer.
+//
+// If osPtr is nullptr, returns a shared null mutex without modifying the registry.
+std::mutex& get(std::ostream* const osPtr) noexcept {
+    ensure_initialized();
+
+    if (osPtr == nullptr)
+        return NullMutex;
+
+    std::lock_guard writeLock(RegistryMutex);
+
+    return RegistryMap[osPtr];
+}
+
+}  // namespace OstreamMutexRegistry
+
+SyncOstream::SyncOstream(std::ostream& os) noexcept :
+    osPtr(&os),
+    lock(OstreamMutexRegistry::get(osPtr)) {}
+
+SyncOstream::SyncOstream(SyncOstream&& syncOs) noexcept :
+    osPtr(std::exchange(syncOs.osPtr, nullptr)),
+    lock(std::move(syncOs.lock)) {}
+
+SyncOstream& SyncOstream::operator<<(IosManip manip) & {
+    assert(osPtr != nullptr && "Use of moved-from SyncOstream");
+
+    manip(*osPtr);
+    return *this;
+}
+
+SyncOstream&& SyncOstream::operator<<(IosManip manip) && {
+    assert(osPtr != nullptr && "Use of moved-from SyncOstream");
+
+    manip(*osPtr);
+    return std::move(*this);
+}
+
+SyncOstream& SyncOstream::operator<<(OstreamManip manip) & {
+    assert(osPtr != nullptr && "Use of moved-from SyncOstream");
+
+    manip(*osPtr);
+    return *this;
+}
+
+SyncOstream&& SyncOstream::operator<<(OstreamManip manip) && {
+    assert(osPtr != nullptr && "Use of moved-from SyncOstream");
+
+    manip(*osPtr);
+    return std::move(*this);
+}
+
+SyncOstream sync_os(std::ostream& os) noexcept { return SyncOstream(os); }
+
 std::ostream& operator<<(std::ostream& os, const FixedText& fixedText) noexcept {
 
     os.write(fixedText.c_str(), std::streamsize(fixedText.size()));

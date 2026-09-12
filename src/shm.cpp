@@ -158,7 +158,7 @@ namespace SharedMemoryRegistry {
 
 namespace {
 
-// Protects both registry containers.
+// Protects access to both registry containers.
 std::shared_mutex RegistryMutex;
 // Preserves true insertion order for deterministic iteration.
 SharedMemoryList OrderedList;
