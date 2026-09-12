@@ -644,7 +644,7 @@ std::ostream& operator<<(std::ostream& os, const FixedText& fixedText) noexcept 
     return os;
 }
 
-StringViewStreambuf::StringViewStreambuf(const std::string_view sv) noexcept {
+StringViewBuf::StringViewBuf(const std::string_view sv) noexcept {
     // std::streambuf requires char* for the get area.
     // The buffer is read-only; no characters are modified.
     auto* const p    = const_cast<char*>(sv.data());
@@ -653,17 +653,17 @@ StringViewStreambuf::StringViewStreambuf(const std::string_view sv) noexcept {
     // Do NOT call setp(p, p + size) - no PUT area (writing disabled)
 }
 
-MemoryStreambuf::MemoryStreambuf(char* const p, const usize size) noexcept {
+MemoryBuf::MemoryBuf(char* const p, const usize size) noexcept {
     setg(p, p, p + size);  // Set GET area (reading enabled)
     setp(p, p + size);     // Set PUT area (writing enabled)
 }
 
-TieStreambuf::TieStreambuf(std::streambuf* const pB, std::streambuf* const mB) noexcept :
+TieBuf::TieBuf(std::streambuf* const pB, std::streambuf* const mB) noexcept :
     pBuf(pB),
     mBuf(mB) {}
 
 // Synchronizes both the primary and mirror buffers.
-int TieStreambuf::sync() {
+int TieBuf::sync() {
     int r1 = pBuf != nullptr ? pBuf->pubsync() : 0;
     int r2 = mBuf != nullptr ? mBuf->pubsync() : 0;
 
@@ -671,7 +671,7 @@ int TieStreambuf::sync() {
 }
 
 // Reads the next character from the primary buffer without consuming it.
-TieStreambuf::int_type TieStreambuf::underflow() {
+TieBuf::int_type TieBuf::underflow() {
     if (pBuf == nullptr)
         return traits_type::eof();
 
@@ -679,7 +679,7 @@ TieStreambuf::int_type TieStreambuf::underflow() {
 }
 
 // Writes one character to the primary buffer and mirrors it with an output prefix.
-TieStreambuf::int_type TieStreambuf::overflow(const int_type ch) {
+TieBuf::int_type TieBuf::overflow(const int_type ch) {
     if (pBuf == nullptr)
         return traits_type::eof();
 
@@ -695,7 +695,7 @@ TieStreambuf::int_type TieStreambuf::overflow(const int_type ch) {
 }
 
 // Reads and consumes one character from the primary buffer, then mirrors it with an input prefix.
-TieStreambuf::int_type TieStreambuf::uflow() {
+TieBuf::int_type TieBuf::uflow() {
     if (pBuf == nullptr)
         return traits_type::eof();
 
@@ -708,7 +708,7 @@ TieStreambuf::int_type TieStreambuf::uflow() {
 }
 
 // Writes a block to the primary buffer and mirrors the written characters with an output prefix.
-std::streamsize TieStreambuf::xsputn(const char_type* const s, const std::streamsize count) {
+std::streamsize TieBuf::xsputn(const char_type* const s, const std::streamsize count) {
     if (pBuf == nullptr)
         return 0;
 
@@ -727,14 +727,14 @@ std::streamsize TieStreambuf::xsputn(const char_type* const s, const std::stream
     return written;
 }
 
-std::streambuf* TieStreambuf::pbuf() const noexcept { return pBuf; }
+std::streambuf* TieBuf::pbuf() const noexcept { return pBuf; }
 
-std::streambuf* TieStreambuf::mbuf() const noexcept { return mBuf; }
+std::streambuf* TieBuf::mbuf() const noexcept { return mBuf; }
 
 // Mirrors a character to the secondary buffer, adding a prefix at the start of each line.
-TieStreambuf::int_type TieStreambuf::mirror_put_with_prefix(const int_type         ch,
-                                                            const std::string_view prefix,
-                                                            char_type&             preCh) noexcept {
+TieBuf::int_type TieBuf::mirror_put_with_prefix(const int_type         ch,
+                                                const std::string_view prefix,
+                                                char_type&             preCh) noexcept {
     if (mBuf == nullptr)
         return traits_type::not_eof(ch);
 
@@ -770,8 +770,8 @@ Logger::Logger(std::istream& isRef, std::ostream& osRef) noexcept :
     os(osRef),
     isBuf(is.rdbuf()),
     osBuf(os.rdbuf()),
-    itsBuf(is.rdbuf(), ofs.rdbuf()),
-    otsBuf(os.rdbuf(), ofs.rdbuf()) {}
+    itieBuf(is.rdbuf(), ofs.rdbuf()),
+    otieBuf(os.rdbuf(), ofs.rdbuf()) {}
 
 // Stops logging and restores the original streams.
 Logger::~Logger() noexcept { close(); }
@@ -783,7 +783,7 @@ Logger& Logger::instance() noexcept {
     return logger;
 }
 
-// Opens the specified log file and redirects the streams through TieStreambuf.
+// Opens the specified log file and redirects the streams through TieBuf.
 // Caller must hold 'mutex'.
 bool Logger::open(const std::filesystem::path& logFile) noexcept {
     if (filename == logFile.string() && is_open())
@@ -806,8 +806,8 @@ bool Logger::open(const std::filesystem::path& logFile) noexcept {
 
     write_timestamp("->");
 
-    is.rdbuf(&itsBuf);
-    os.rdbuf(&otsBuf);
+    is.rdbuf(&itieBuf);
+    os.rdbuf(&otieBuf);
 
     return true;
 }

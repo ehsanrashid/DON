@@ -211,7 +211,7 @@ MemoryIndexMap IndexMap;
 //
 // This avoids a second map lookup while keeping both containers synchronized.
 bool insert_memory_nolock(Memory memory) noexcept {
-    auto [insertReg, inserted] = IndexMap.emplace(memory, List.end());
+    auto [indexMapItr, inserted] = IndexMap.emplace(memory, List.end());
 
     // Already registered.
     if (!inserted)
@@ -220,10 +220,10 @@ bool insert_memory_nolock(Memory memory) noexcept {
     //DEBUG_LOG("Registering memory: " << static_cast<const void*>(memory) << ' ' << memory->name());
 
     // Append to the ordered list and obtain a stable iterator.
-    auto insertItr = List.emplace(List.end(), memory);
+    auto listItr = List.emplace(List.end(), memory);
 
     // Associate the map entry with its corresponding list node.
-    insertReg->second = insertItr;
+    indexMapItr->second = listItr;
 
     return true;
 }
@@ -235,23 +235,23 @@ bool insert_memory_nolock(Memory memory) noexcept {
 // IndexMap stores the corresponding List iterator, allowing
 // average O(1) removal from both containers without searching the list.
 bool erase_memory_nolock(Memory memory) noexcept {
-    auto eraseReg = IndexMap.find(memory);
+    auto indexMapItr = IndexMap.find(memory);
 
     // Not registered.
-    if (eraseReg == IndexMap.end())
+    if (indexMapItr == IndexMap.end())
         return false;
 
     // Retrieve the stable list iterator associated with this entry.
-    auto eraseItr = eraseReg->second;
+    auto listItr = indexMapItr->second;
 
     // Internal consistency check.
-    assert(eraseItr != List.end());
+    assert(listItr != List.end());
 
     // Remove the list node first.
-    List.erase(eraseItr);
+    List.erase(listItr);
 
     // Remove the corresponding map entry.
-    IndexMap.erase(eraseReg);
+    IndexMap.erase(indexMapItr);
 
     //DEBUG_LOG("Unregistered memory: " << static_cast<const void*>(memory) << ' ' << memory->name());
 

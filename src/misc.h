@@ -1435,19 +1435,19 @@ constexpr u32 combine_hashes(std::initializer_list<u32> hashes) noexcept {
 }
 
 // Custom streambuf that wraps string_view
-class StringViewStreambuf final: public std::streambuf {
+class StringViewBuf final: public std::streambuf {
    public:
-    explicit StringViewStreambuf(std::string_view sv) noexcept;
+    explicit StringViewBuf(std::string_view sv) noexcept;
 };
 
 // Custom streambuf that wraps memory stream
-class MemoryStreambuf final: public std::streambuf {
+class MemoryBuf final: public std::streambuf {
    public:
-    MemoryStreambuf(char* p, usize size) noexcept;
+    MemoryBuf(char* p, usize size) noexcept;
 };
 
-// TieStreambuf (Fancy logging facility).
-// Replaces std::cin.rdbuf() and std::cout.rdbuf() with two TieStreambuf objects
+// TieBuf (Fancy logging facility).
+// Replaces std::cin.rdbuf() and std::cout.rdbuf() with two TieBuf objects
 // that preserve normal I/O while optionally mirroring input and output to a
 // secondary stream buffer.
 // Logging of std::cin and std::cout can be toggled at runtime without changing
@@ -1457,14 +1457,14 @@ class MemoryStreambuf final: public std::streambuf {
 //
 // Forwards I/O to the primary buffer and mirrors it to the secondary buffer
 // with line prefixes.
-class TieStreambuf final: public std::streambuf {
+class TieBuf final: public std::streambuf {
    public:
     using traits_type = std::streambuf::traits_type;
     using int_type    = traits_type::int_type;
     using char_type   = traits_type::char_type;
 
-    TieStreambuf() noexcept = delete;
-    TieStreambuf(std::streambuf* pB, std::streambuf* mB) noexcept;
+    TieBuf() noexcept = delete;
+    TieBuf(std::streambuf* pB, std::streambuf* mB) noexcept;
 
     int sync() override;
 
@@ -1492,7 +1492,7 @@ class TieStreambuf final: public std::streambuf {
 // Logger
 //
 // Manages runtime logging by redirecting std::cin and std::cout through
-// TieStreambuf objects to mirror I/O to a log file.
+// TieBuf objects to mirror I/O to a log file.
 class Logger final {
    public:
     static bool start(const std::filesystem::path& logFile) noexcept;
@@ -1520,7 +1520,7 @@ class Logger final {
     std::istream&   is;
     std::ostream&   os;
     std::streambuf *isBuf = nullptr, *osBuf = nullptr;
-    TieStreambuf    itsBuf, otsBuf;
+    TieBuf          itieBuf, otieBuf;
     std::string     filename;
 };
 

@@ -259,7 +259,7 @@ void UCI::process_input(std::istream& is) noexcept {
 
 void UCI::execute(std::string_view command) noexcept {
 
-    StringViewStreambuf svBuf{command};
+    StringViewBuf svBuf{command};
 
     std::istream is{&svBuf};
 
