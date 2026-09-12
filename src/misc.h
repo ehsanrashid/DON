@@ -54,7 +54,7 @@
     #include "platform_win.h"
 #else
     #include <sys/mman.h>
-    #include <unistd.h>
+    #include <unistd.h>  // close(), read()/write(), unlink(), sleep(), getpid()
 #endif
 
 #if defined(__i386__) || defined(_M_IX86)

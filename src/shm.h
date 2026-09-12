@@ -66,14 +66,14 @@
     #include "platform_win.h"
 
 #elif defined(USE_UNIX_SHM)
-    #include <fcntl.h>
+    #include <fcntl.h>  // open(), fcntl(), FD_CLOEXEC
     #include <limits.h>
-    #include <sys/mman.h>
-    #include <sys/socket.h>  // ::socket(), ::bind(), ::listen(), ::accept(), ::connect(), ::send(), ::recv()
+    #include <sys/mman.h>    // memfd_create(), MFD_CLOEXEC
+    #include <sys/socket.h>  // socket(), bind(), listen(), accept(), connect(), send(), recv()
     #include <sys/stat.h>
     #include <sys/types.h>
     #include <sys/un.h>  // sockaddr_un
-    #include <unistd.h>
+    #include <unistd.h>  // close(), read()/write(), unlink(), sleep(), getpid(), pipe()/pipe2(), fsync()
 
     #include <cassert>
     #include <cerrno>

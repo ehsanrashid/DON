@@ -23,8 +23,8 @@
 #include <condition_variable>
 #include <deque>
 #include <memory>
-#include <mutex>
-#include <shared_mutex>
+#include <mutex>         // mutex, unique_lock, lock_guard
+#include <shared_mutex>  // shared_lock, shared_mutex
 #include <utility>
 #include <vector>
 

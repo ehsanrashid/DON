@@ -1684,8 +1684,8 @@ class LazyNumaReplicated final: public BaseNumaReplicated {
         }
     }
 
-    mutable std::vector<std::unique_ptr<T>> instances;
     mutable std::mutex                      mutex;
+    mutable std::vector<std::unique_ptr<T>> instances;
 };
 
 // Utilizes shared memory

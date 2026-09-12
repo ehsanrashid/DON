@@ -20,15 +20,15 @@
 #if defined(_WIN32)
 
 #elif defined(USE_UNIX_SHM)
-    #include <dirent.h>    // ::closedir(), ::opendir(), ::readdir(), DIR, dirent
-    #include <poll.h>      // ::pollfd(), ::poll(), POLLIN, POLLERR, POLLHUP, POLLNVAL
-    #include <sys/file.h>  // ::flock(), LOCK_EX, LOCK_UN
+    #include <dirent.h>    // closedir(), opendir(), readdir(), DIR, dirent
+    #include <poll.h>      // pollfd(), poll(), POLLIN, POLLERR, POLLHUP, POLLNVAL
+    #include <sys/file.h>  // flock(), LOCK_EX, LOCK_UN
     #include <sys/time.h>  // timeval
     #include <sys/uio.h>   // iovec
 
-    #include <cstdlib>       // std::atexit()
-    #include <mutex>         // std::lock_guard
-    #include <shared_mutex>  // std::shared_lock, std::shared_mutex
+    #include <cstdlib>       // atexit()
+    #include <mutex>         // lock_guard
+    #include <shared_mutex>  // shared_lock, shared_mutex
 #endif
 
 namespace DON {

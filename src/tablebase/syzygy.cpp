@@ -36,10 +36,10 @@
     #include "../platform_win.h"
 #else
     #include <cerrno>
-    #include <fcntl.h>
+    #include <fcntl.h>  // open()
     #include <sys/mman.h>
     #include <sys/stat.h>
-    #include <unistd.h>  // IWYU pragma: keep
+    #include <unistd.h>  // IWYU pragma: keep, close()
 #endif
 
 #include "../attacks.h"
