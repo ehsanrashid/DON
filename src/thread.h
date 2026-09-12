@@ -206,24 +206,24 @@ class Threads final {
     auto end() const noexcept { return threads.end(); }
 
     u16 size() const noexcept {
-        std::shared_lock readLock(threadsMutex);
+        std::shared_lock readLock(mutex);
 
         return u16(threads.size());
     }
     bool empty() const noexcept {
-        std::shared_lock readLock(threadsMutex);
+        std::shared_lock readLock(mutex);
 
         return threads.empty();
     }
 
     void reserve(const u16 threadCount) noexcept {
-        std::lock_guard writeLock(threadsMutex);
+        std::lock_guard writeLock(mutex);
 
         threads.reserve(threadCount);
     }
 
     void clear() noexcept {
-        std::lock_guard writeLock(threadsMutex);
+        std::lock_guard writeLock(mutex);
 
         threads.clear();
     }
@@ -286,7 +286,7 @@ class Threads final {
 
 
     void notify_manager() const noexcept {
-        std::shared_lock readLock(threadsMutex);
+        std::shared_lock readLock(mutex);
 
         assert(!threads.empty());
 
@@ -308,7 +308,7 @@ class Threads final {
 
     template<typename Func>
     void for_each_thread(Func&& func, bool includeMain = true) const noexcept {
-        std::shared_lock readLock(threadsMutex);
+        std::shared_lock readLock(mutex);
 
         for (auto&& th : threads)
         {
@@ -321,7 +321,7 @@ class Threads final {
 
     template<typename T>
     void set(RelaxedAtomic<T> Worker::* member, T value) noexcept {
-        std::shared_lock readLock(threadsMutex);
+        std::shared_lock readLock(mutex);
 
         for (auto&& th : threads)
             th->worker.get()->*member = value;
@@ -329,7 +329,7 @@ class Threads final {
 
     template<typename T>
     u64 sum(RelaxedAtomic<T> Worker::* member, u64 initialSum = 0) const noexcept {
-        std::shared_lock readLock(threadsMutex);
+        std::shared_lock readLock(mutex);
 
         u64 sum = initialSum;
         for (auto&& th : threads)
@@ -339,10 +339,10 @@ class Threads final {
     }
 
     template<typename T>
-    u64 sum_and_reset(RelaxedAtomic<T> Worker::* member) noexcept {
-        std::shared_lock readLock(threadsMutex);
+    u64 sum_and_reset(RelaxedAtomic<T> Worker::* member, u64 initialSum = 0) noexcept {
+        std::shared_lock readLock(mutex);
 
-        u64 sum = 0;
+        u64 sum = initialSum;
         for (auto&& th : threads)
             sum += (th->worker.get()->*member).exchange(0);
 
@@ -367,8 +367,8 @@ class Threads final {
 
     std::atomic<State> state{State::Active};
     // Protects concurrent access to the threads vector for short snapshots.
-    // Use shared lock for readers and unique lock for writers when mutating threads.
-    mutable std::shared_mutex threadsMutex;
+    // Use shared lock for readers and lock guard for writers when mutating threads.
+    mutable std::shared_mutex mutex;
     std::vector<ThreadPtr>    threads;
     std::vector<NumaIndex>    threadBoundNumaNodes;
     StateListPtr              setupStates;
@@ -381,7 +381,7 @@ inline void Threads::destroy() noexcept {
     Thread* mainThread = nullptr;
     // Acquire shared lock once to safely snapshot main-thread
     {
-        std::shared_lock readLock(threadsMutex);
+        std::shared_lock readLock(mutex);
 
         if (!threads.empty())
             mainThread = threads.front().get();
@@ -396,7 +396,7 @@ inline void Threads::destroy() noexcept {
     }
 
     // Clear threads and thread binding nodes
-    std::lock_guard writeLock(threadsMutex);
+    std::lock_guard writeLock(mutex);
 
     threads.clear();
     threadBoundNumaNodes.clear();
@@ -418,16 +418,16 @@ inline void Threads::reset() const noexcept {
 
 // Get pointer to the main-thread
 inline Thread* Threads::main_thread() const noexcept {
-    std::shared_lock readLock(threadsMutex);
+    std::shared_lock readLock(mutex);
 
     return !threads.empty() ? threads.front().get() : nullptr;
 }
 
 // Get pointer to the main search manager
 inline Manager* Threads::manager() const noexcept {
-    std::shared_lock readLock(threadsMutex);
+    std::shared_lock readLock(mutex);
 
-    // Avoid calling main_thread() here because it would try to lock threadsMutex again.
+    // Avoid calling main_thread() here because it would try to lock mutex again.
     // Snapshot the main-thread pointer under the shared lock and return its manager.
     return !threads.empty() && threads.front()->worker != nullptr
            ? threads.front()->worker->manager()
