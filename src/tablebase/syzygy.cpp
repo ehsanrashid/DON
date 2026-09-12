@@ -39,7 +39,6 @@
     #include <fcntl.h>     // open()
     #include <sys/mman.h>  // munmap()
     #include <sys/stat.h>
-    #include <unistd.h>  // close()
 #endif
 
 #include "../attacks.h"
