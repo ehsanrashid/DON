@@ -145,6 +145,8 @@ enum class SharedMemoryAllocationStatus : u8 {
 
 std::string executable_path() noexcept;
 
+std::string normalize_shm_name(std::string_view shmName) noexcept;
+
 #if defined(_WIN32)
 // Utilizes shared memory to store the value. It is reduplicated system-wide (for the single user)
 template<typename T>
@@ -165,13 +167,8 @@ class BackendSharedMemory final {
         status(Status::NotInitialized) {}
 
     BackendSharedMemory(std::string_view shmName, const T& value) noexcept :
-        name_(shmName),
+        name_(normalize_shm_name(shmName)),
         status(Status::NotInitialized) {
-        // Windows named shared memory names must start with "Local\" or "Global\"
-        constexpr std::string_view Prefix{"Local\\"};
-        if (name_.size() < Prefix.size() || name_.compare(0, Prefix.size(), Prefix) != 0)
-            name_.insert(0, Prefix);
-
         //DEBUG_LOG("Creating shared memory with name: " << name());
 
         initialize(value);
@@ -183,7 +180,7 @@ class BackendSharedMemory final {
     BackendSharedMemory(BackendSharedMemory&& backendShm) noexcept :
         hMapFileGuard{hMapFile},
         mappedGuard{mappedPtr} {
-        move_from(std::move(backendShm));
+        move(std::move(backendShm));
     }
     BackendSharedMemory& operator=(BackendSharedMemory&& backendShm) noexcept {
         if (this == &backendShm)
@@ -191,7 +188,7 @@ class BackendSharedMemory final {
 
         release();
 
-        move_from(std::move(backendShm));
+        move(std::move(backendShm));
 
         return *this;
     }
@@ -233,7 +230,7 @@ class BackendSharedMemory final {
     }
 
    private:
-    void move_from(BackendSharedMemory&& backendShm) noexcept {
+    void move(BackendSharedMemory&& backendShm) noexcept {
         name_     = std::move(backendShm.name_);
         hMapFile  = std::exchange(backendShm.hMapFile, HANDLE_INVALID);
         mappedPtr = std::exchange(backendShm.mappedPtr, MMAP_PTR_INVALID);
@@ -374,13 +371,7 @@ constexpr mode_t FILE_MODE = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S
 
 class BaseSharedMemory {
    public:
-    explicit BaseSharedMemory(std::string_view shmName) noexcept :
-        name_(shmName) {
-        // POSIX named shared memory names must start with slash ('/')
-        constexpr char Prefix = '/';
-        if (name_.empty() || name_[0] != Prefix)
-            name_.insert(name_.begin(), Prefix);
-    }
+    explicit BaseSharedMemory(std::string_view shmName) noexcept;
 
     BaseSharedMemory(const BaseSharedMemory&)            = delete;
     BaseSharedMemory& operator=(const BaseSharedMemory&) = delete;
@@ -392,7 +383,7 @@ class BaseSharedMemory {
 
     virtual void release() noexcept = 0;
 
-    [[nodiscard]] std::string_view name() const noexcept { return name_; }
+    [[nodiscard]] std::string_view name() const noexcept;
 
    protected:
     std::string name_;
@@ -530,8 +521,10 @@ class SharedMemory final: public BaseSharedMemory {
         if (this == &sharedMemory)
             return *this;
 
-        if (!release_with_registry())
-            return *this;
+        [[maybe_unused]] const bool unregistered = MemoryRegistry::unregister_memory(this);
+        assert(unregistered);
+
+        release();
 
         BaseSharedMemory::operator=(std::move(sharedMemory));
         move_with_registry(std::move(sharedMemory));

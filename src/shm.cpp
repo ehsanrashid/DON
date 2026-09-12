@@ -121,9 +121,41 @@ std::string executable_path() noexcept {
     return std::string{executablePath.data(), executableSize};
 }
 
+std::string normalize_shm_name(const std::string_view shmName) noexcept {
+    std::string name(shmName);
+
 #if defined(_WIN32)
+    // Windows named shared memory names must start with "Local\" or "Global\"
+    constexpr std::string_view LocalPrefix{"Local\\"};
+    constexpr std::string_view GlobalPrefix{"Global\\"};
+
+    if ((name.size() < LocalPrefix.size() || name.compare(0, LocalPrefix.size(), LocalPrefix) != 0)
+        && (name.size() < GlobalPrefix.size()
+            || name.compare(0, GlobalPrefix.size(), GlobalPrefix) != 0))
+        name.insert(0, LocalPrefix);
 
 #elif defined(USE_UNIX_SHM)
+    // POSIX named shared memory names must start with slash ('/')
+    constexpr char Prefix = '/';
+
+    if (name.empty() || name[0] != Prefix)
+        name.insert(name.begin(), Prefix);
+
+#endif
+
+    return name;
+}
+
+#if defined(_WIN32)
+
+
+#elif defined(USE_UNIX_SHM)
+
+BaseSharedMemory::BaseSharedMemory(const std::string_view shmName) noexcept :
+    name_(normalize_shm_name(shmName)) {}
+
+std::string_view BaseSharedMemory::name() const noexcept { return name_; }
+
 // MemoryRegistry
 //
 // Provides a thread-safe process-wide registry for tracking registered memory
