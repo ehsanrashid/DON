@@ -178,7 +178,7 @@ class BackendSharedMemory final {
     BackendSharedMemory& operator=(const BackendSharedMemory&) noexcept = delete;
 
     BackendSharedMemory(BackendSharedMemory&& backendShm) noexcept :
-        hMapFileGuard{hMapFile},
+        mapFileHandleGuard{mapFileHandle},
         mappedGuard{mappedPtr} {
         move(std::move(backendShm));
     }
@@ -230,18 +230,11 @@ class BackendSharedMemory final {
     }
 
    private:
-    void move(BackendSharedMemory&& backendShm) noexcept {
-        name_     = std::move(backendShm.name_);
-        hMapFile  = std::exchange(backendShm.hMapFile, HANDLE_INVALID);
-        mappedPtr = std::exchange(backendShm.mappedPtr, MMAP_PTR_INVALID);
-        status    = std::exchange(backendShm.status, Status::NotInitialized);
-    }
-
     void initialize(const T& value) noexcept {
         constexpr usize TotalSize = sizeof(T) + sizeof(SharedState);
 
         // Try allocating with large page first
-        hMapFile = try_with_windows_lock_memory_privilege(
+        mapFileHandle = try_with_windows_lock_memory_privilege(
           [&](const usize largePageSize) noexcept {
               // Round up size to full large page
               const usize roundedTotalSize = round_up_to_multiple(TotalSize, largePageSize);
@@ -262,21 +255,21 @@ class BackendSharedMemory final {
           []() { return HANDLE_INVALID; });
 
         // Fallback to normal allocation if no large page available
-        if (!hMapFileGuard.is_valid())
+        if (!mapFileHandleGuard.is_valid())
         {
             //DEBUG_LOG("Allocating normal shared memory, size = " << TotalSize << " bytes");
-            hMapFile = CreateFileMapping(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE,  //
-                                         0, TotalSize, name().data());
+            mapFileHandle = CreateFileMapping(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE,  //
+                                              0, TotalSize, name().data());
         }
 
-        if (!hMapFileGuard.is_valid())
+        if (!mapFileHandleGuard.is_valid())
         {
             //DEBUG_LOG("CreateFileMapping() failed: name = " << name() << ", error = " << error_to_string(GetLastError()));
             status = Status::FileMapping;
             return;
         }
 
-        mappedPtr = MapViewOfFile(hMapFileGuard.get(), FILE_MAP_ALL_ACCESS, 0, 0, TotalSize);
+        mappedPtr = MapViewOfFile(mapFileHandleGuard.get(), FILE_MAP_ALL_ACCESS, 0, 0, TotalSize);
 
         if (!mappedGuard.is_valid())
         {
@@ -287,14 +280,13 @@ class BackendSharedMemory final {
         }
 
         // Use named mutex to ensure only one initializer
-        std::string mutexName{name()};
-        mutexName.append("$mutex");
+        const std::string mutexName = std::string{name()} + "$mutex";
 
-        HANDLE hMutex = CreateMutex(nullptr, FALSE, mutexName.c_str());
+        HANDLE mutexHandle = CreateMutex(nullptr, FALSE, mutexName.c_str());
 
-        HandleGuard hMutexGuard{hMutex};
+        HandleGuard mutexHandleGuard{mutexHandle};
 
-        if (!hMutexGuard.is_valid())
+        if (!mutexHandleGuard.is_valid())
         {
             //DEBUG_LOG("CreateMutex() failed: name = " << mutexName << ", error = " << error_to_string(GetLastError()));
             status = Status::MutexCreate;
@@ -302,7 +294,7 @@ class BackendSharedMemory final {
             return;
         }
         // Wait for ownership
-        if (WaitForSingleObject(hMutexGuard.get(), INFINITE) != WAIT_OBJECT_0)
+        if (WaitForSingleObject(mutexHandleGuard.get(), INFINITE) != WAIT_OBJECT_0)
         {
             //DEBUG_LOG("WaitForSingleObject() failed: name = " << mutexName << ", error = " << error_to_string(GetLastError()));
             status = Status::MutexWait;
@@ -334,7 +326,7 @@ class BackendSharedMemory final {
                 PAUSE();  // portable "pause" for any architecture
         }
 
-        if (!ReleaseMutex(hMutexGuard.get()))
+        if (!ReleaseMutex(mutexHandleGuard.get()))
         {
             //DEBUG_LOG("ReleaseMutex() failed: name = " << mutexName << ", error = " << error_to_string(GetLastError()));
             status = Status::MutexRelease;
@@ -346,10 +338,17 @@ class BackendSharedMemory final {
         status = Status::Success;
     }
 
+    void move(BackendSharedMemory&& backendShm) noexcept {
+        name_         = std::move(backendShm.name_);
+        mapFileHandle = std::exchange(backendShm.mapFileHandle, HANDLE_INVALID);
+        mappedPtr     = std::exchange(backendShm.mappedPtr, MMAP_PTR_INVALID);
+        status        = std::exchange(backendShm.status, Status::NotInitialized);
+    }
+
     void release() noexcept {
         //DEBUG_LOG("Cleaning up shared memory, name: " << name());
         mappedGuard.reset();
-        hMapFileGuard.reset();
+        mapFileHandleGuard.reset();
     }
 
     enum class SharedState : u8 {
@@ -359,8 +358,8 @@ class BackendSharedMemory final {
     };
 
     std::string name_;
-    HANDLE      hMapFile = HANDLE_INVALID;
-    HandleGuard hMapFileGuard{hMapFile};
+    HANDLE      mapFileHandle = HANDLE_INVALID;
+    HandleGuard mapFileHandleGuard{mapFileHandle};
     void*       mappedPtr = MMAP_PTR_INVALID;
     MMapGuard   mappedGuard{mappedPtr};
     Status      status = Status::NotInitialized;

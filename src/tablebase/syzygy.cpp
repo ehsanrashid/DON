@@ -561,8 +561,8 @@ struct TBTable final: BaseTBTable {
    private:
     Array<PairsData, Sides, FILE_NB / 2> items;  // [color][FILE_A..FILE_D]
     #if defined(_WIN32)
-    HANDLE      hMapFile = HANDLE_INVALID;
-    HandleGuard hMapFileGuard{hMapFile};
+    HANDLE      mapFileHandle = HANDLE_INVALID;
+    HandleGuard mapFileHandleGuard{mapFileHandle};
 
     void*     mappedPtr = MMAP_PTR_INVALID;
     MMapGuard mappedGuard{mappedPtr};
@@ -635,12 +635,12 @@ template<TBType T>
 u8* TBTable<T>::map(const std::string_view filename) noexcept {
     #if defined(_WIN32)
     // Note FILE_FLAG_RANDOM_ACCESS is only a hint to Windows and as such may get ignored
-    HANDLE hFile = CreateFile(filename.data(), GENERIC_READ, FILE_SHARE_READ, nullptr,
-                              OPEN_EXISTING, FILE_FLAG_RANDOM_ACCESS, nullptr);
+    HANDLE fileHandle = CreateFile(filename.data(), GENERIC_READ, FILE_SHARE_READ, nullptr,
+                                   OPEN_EXISTING, FILE_FLAG_RANDOM_ACCESS, nullptr);
 
-    HandleGuard hFileGuard{hFile};
+    HandleGuard fileHandleGuard{fileHandle};
 
-    if (!hFileGuard.is_valid())
+    if (!fileHandleGuard.is_valid())
     {
         DEBUG_LOG("CreateFile() failed: name = " << filename << ", error = "
                                                  << error_to_string(GetLastError()));
@@ -648,7 +648,7 @@ u8* TBTable<T>::map(const std::string_view filename) noexcept {
     }
 
     DWORD hiSize;
-    DWORD loSize = GetFileSize(hFileGuard.get(), &hiSize);
+    DWORD loSize = GetFileSize(fileHandleGuard.get(), &hiSize);
 
     if (loSize == INVALID_FILE_SIZE && GetLastError() != NO_ERROR)
     {
@@ -664,23 +664,24 @@ u8* TBTable<T>::map(const std::string_view filename) noexcept {
         return nullptr;
     }
 
-    hMapFile = CreateFileMapping(hFileGuard.get(), nullptr, PAGE_READONLY, hiSize, loSize, nullptr);
+    mapFileHandle =
+      CreateFileMapping(fileHandleGuard.get(), nullptr, PAGE_READONLY, hiSize, loSize, nullptr);
 
-    if (!hMapFileGuard.is_valid())
+    if (!mapFileHandleGuard.is_valid())
     {
         DEBUG_LOG("CreateFileMapping() failed: name = " << filename << ", error = "
                                                         << error_to_string(GetLastError()));
         return nullptr;
     }
 
-    mappedPtr = MapViewOfFile(hMapFileGuard.get(), FILE_MAP_READ, 0, 0, 0);
+    mappedPtr = MapViewOfFile(mapFileHandleGuard.get(), FILE_MAP_READ, 0, 0, 0);
 
     if (!mappedGuard.is_valid())
     {
         DEBUG_LOG("MapViewOfFile() failed: name = " << filename << ", error = "
                                                     << error_to_string(GetLastError()));
 
-        hMapFileGuard.reset();
+        mapFileHandleGuard.reset();
 
         return nullptr;
     }
@@ -750,7 +751,7 @@ template<TBType T>
 void TBTable<T>::unmap() noexcept {
     mappedGuard.reset();
     #if defined(_WIN32)
-    hMapFileGuard.reset();
+    mapFileHandleGuard.reset();
     #endif
 }
 
