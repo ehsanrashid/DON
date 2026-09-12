@@ -400,8 +400,7 @@ template<typename T>
 // where N is the number of elements in the array.
 template<usize Alignment, typename T>
 [[nodiscard]] constexpr T* align_ptr_up(T* ptr) noexcept {
-    static_assert(Alignment != 0 && (Alignment & (Alignment - 1)) == 0,
-                  "Alignment must be non-zero power of 2");
+    static_assert(is_power_of_2(Alignment), "Alignment must be non-zero power of 2");
     static_assert(Alignment >= alignof(T), "Alignment must be >= alignof(T)");
 
     const auto ptrUInt =
@@ -421,21 +420,6 @@ constexpr T2 interpolate(T1 x, T1 x0, T1 x1, T2 y0, T2 y1) noexcept {
     assert(x0 != x1);
     return T2(y0 + (y1 - y0) * (x - x0) / (x1 - x0));
 }
-
-enum class ConsoleMode : u8 {
-    Default,  // Do nothing special
-    UTF7,     // Explicitly avoid UTF-8 changes
-    UTF8,     // Try to enable UTF-8 if possible
-    EnableVirtualTerminal,
-    FullyFeatured,
-};
-
-void set_console_input(ConsoleMode consoleMode = ConsoleMode::Default) noexcept;
-void set_console_output(ConsoleMode consoleMode = ConsoleMode::Default) noexcept;
-
-std::string build_date() noexcept;
-std::string build_time() noexcept;
-std::string build_timestamp() noexcept;
 
 [[nodiscard]] constexpr bool is_idigit(const int dg) noexcept { return 0 <= dg && dg <= 9; }
 [[nodiscard]] constexpr bool is_cdigit(const char ch) noexcept { return '0' <= ch && ch <= '9'; }
@@ -480,13 +464,49 @@ constexpr unsigned to_month(const std::string_view mon) noexcept {
                                                                   : 0;
 }
 
+enum class ConsoleMode : u8 {
+    Default,  // Do nothing special
+    UTF7,     // Explicitly avoid UTF-8 changes
+    UTF8,     // Try to enable UTF-8 if possible
+    EnableVirtualTerminal,
+    FullyFeatured,
+};
+
+void set_console_input(ConsoleMode consoleMode = ConsoleMode::Default) noexcept;
+
+void set_console_output(ConsoleMode consoleMode = ConsoleMode::Default) noexcept;
+
+std::string format_date(std::string_view date) noexcept;
+
+std::string format_time(std::string_view time) noexcept;
+
+std::string build_date() noexcept;
+
+std::string build_time() noexcept;
+
+std::string build_timestamp() noexcept;
+
 std::string engine_info(bool uci = false) noexcept;
 
-void show_logo() noexcept;
+std::string engine_logo() noexcept;
 
 std::string version_info() noexcept;
 
 std::string compiler_info() noexcept;
+
+using SteadyClock = std::chrono::steady_clock;
+using SystemClock = std::chrono::system_clock;
+using Us          = std::chrono::microseconds;
+using Ms          = std::chrono::milliseconds;
+
+using TimePoint = Ms::rep;  // A value in milliseconds
+static_assert(sizeof(TimePoint) == sizeof(i64), "TimePoint size must be 8 bytes");
+
+inline TimePoint now() noexcept {
+    return std::chrono::duration_cast<Ms>(SteadyClock::now().time_since_epoch()).count();
+}
+
+std::string format_time(const SystemClock::time_point& timePoint) noexcept;
 
 constexpr u64 mul_hi64(const u64 u1, const u64 u2) noexcept {
 #if defined(__SIZEOF_INT128__)
@@ -563,20 +583,6 @@ inline void prefetch(const void* addr) noexcept {
 template<PrefetchAccess Access = PrefetchAccess::READ, PrefetchLoc Loc = PrefetchLoc::HIGH>
 inline void prefetch(const void*) noexcept {}
 #endif
-
-using SteadyClock = std::chrono::steady_clock;
-using SystemClock = std::chrono::system_clock;
-using Us          = std::chrono::microseconds;
-using Ms          = std::chrono::milliseconds;
-
-using TimePoint = Ms::rep;  // A value in milliseconds
-static_assert(sizeof(TimePoint) == sizeof(i64), "TimePoint size must be 8 bytes");
-
-inline TimePoint now() noexcept {
-    return std::chrono::duration_cast<Ms>(SteadyClock::now().time_since_epoch()).count();
-}
-
-std::string format_time(const SystemClock::time_point& timePoint) noexcept;
 
 struct CallOnce final {
    public:
@@ -1438,13 +1444,17 @@ class MemoryStreambuf final: public std::streambuf {
     MemoryStreambuf(char* p, usize size) noexcept;
 };
 
-// Fancy logging facility.
-// The trick here is to replace cin.rdbuf() and cout.rdbuf() with 2 TieStreambuf objects
-// that tie std::cin and std::cout to a file stream.
-// Can toggle the logging of std::cout and std::cin at runtime whilst preserving
-// usual I/O functionality, all without changing a single line of code!
+// TieStreambuf (Fancy logging facility).
+// Replaces std::cin.rdbuf() and std::cout.rdbuf() with two TieStreambuf objects
+// that preserve normal I/O while optionally mirroring input and output to a
+// secondary stream buffer.
+// Logging of std::cin and std::cout can be toggled at runtime without changing
+// their usual I/O usage.
 // Idea from http://groups.google.com/group/comp.lang.c++/msg/1d941c0f26ea0d81
-// MSVC requires split streambuf for std::cin and std::cout.
+// MSVC requires separate stream buffers for std::cin and std::cout.
+//
+// Forwards I/O to the primary buffer and mirrors it to the secondary buffer
+// with line prefixes.
 class TieStreambuf final: public std::streambuf {
    public:
     using traits_type = std::streambuf::traits_type;
@@ -1452,91 +1462,24 @@ class TieStreambuf final: public std::streambuf {
     using char_type   = traits_type::char_type;
 
     TieStreambuf() noexcept = delete;
-    TieStreambuf(std::streambuf* const pB, std::streambuf* const mB) noexcept :
-        pBuf(pB),
-        mBuf(mB) {}
+    TieStreambuf(std::streambuf* pB, std::streambuf* mB) noexcept;
 
-    int_type overflow(const int_type ch) override {
-        if (pBuf == nullptr)
-            return traits_type::eof();
+    int sync() override;
 
-        if (traits_type::eq_int_type(ch, traits_type::eof()))
-            return traits_type::not_eof(ch);
+    int_type underflow() override;
 
-        int_type putCh = pBuf->sputc(traits_type::to_char_type(ch));
+    int_type overflow(const int_type ch) override;
 
-        if (traits_type::eq_int_type(putCh, traits_type::eof()))
-            return putCh;
+    int_type uflow() override;
 
-        return mirror_put_with_prefix(putCh, "<< ", oPreCh);
-    }
+    std::streamsize xsputn(const char_type* s, std::streamsize count) override;
 
-    int_type underflow() override {
-        if (pBuf == nullptr)
-            return traits_type::eof();
-
-        return pBuf->sgetc();
-    }
-
-    int_type uflow() override {
-        if (pBuf == nullptr)
-            return traits_type::eof();
-
-        int_type ch = pBuf->sbumpc();
-
-        if (traits_type::eq_int_type(ch, traits_type::eof()))
-            return ch;
-
-        return mirror_put_with_prefix(ch, ">> ", iPreCh);
-    }
-
-    int sync() override {
-        int r1 = pBuf != nullptr ? pBuf->pubsync() : 0;
-        int r2 = mBuf != nullptr ? mBuf->pubsync() : 0;
-
-        return (r1 == 0 && r2 == 0) ? 0 : -1;
-    }
-
-    std::streamsize xsputn(const char_type* const s, const std::streamsize count) override {
-        if (pBuf == nullptr)
-            return 0;
-
-        std::streamsize written = pBuf->sputn(s, count);
-
-        if (mBuf != nullptr && written > 0)
-        {
-            // Prefix injection only once if needed
-            if (oPreCh == '\n')
-                mBuf->sputn("<< ", 3);
-
-            mBuf->sputn(s, written);
-
-            oPreCh = s[written - 1];  // track last char
-        }
-
-        return written;
-    }
-
-    [[nodiscard]] std::streambuf* pbuf() const noexcept { return pBuf; }
-    [[nodiscard]] std::streambuf* mbuf() const noexcept { return mBuf; }
+    [[nodiscard]] std::streambuf* pbuf() const noexcept;
+    [[nodiscard]] std::streambuf* mbuf() const noexcept;
 
    private:
-    int_type mirror_put_with_prefix(const int_type         ch,
-                                    const std::string_view prefix,
-                                    char_type&             preCh) noexcept {
-        if (mBuf == nullptr)
-            return traits_type::not_eof(ch);
-
-        if (preCh == '\n')
-            mBuf->sputn(prefix.data(), static_cast<std::streamsize>(prefix.size()));
-
-        char_type c = traits_type::to_char_type(ch);
-        preCh       = c;
-
-        int_type r = mBuf->sputc(c);
-        return traits_type::eq_int_type(r, traits_type::eof()) ? traits_type::eof()
-                                                               : traits_type::not_eof(ch);
-    }
+    int_type
+    mirror_put_with_prefix(int_type ch, std::string_view prefix, char_type& preCh) noexcept;
 
     std::streambuf *pBuf, *mBuf;
 
@@ -1544,94 +1487,31 @@ class TieStreambuf final: public std::streambuf {
     char_type iPreCh = '\n';
 };
 
+// Logger
+//
+// Manages runtime logging by redirecting std::cin and std::cout through
+// TieStreambuf objects to mirror I/O to a log file.
 class Logger final {
    public:
-    // Start logging. Returns true on success.
-    static bool start(const std::filesystem::path& logFile) noexcept {
-        std::lock_guard writeLock(instance().mutex);
+    static bool start(const std::filesystem::path& logFile) noexcept;
 
-        return instance().open(logFile);
-    }
-
-    // Stop logging. Restores original streams and closes the file.
-    static void stop() noexcept {
-        std::lock_guard writeLock(instance().mutex);
-
-        instance().close();
-    }
+    static void stop() noexcept;
 
    private:
     Logger() noexcept = delete;
-    Logger(std::istream& isRef, std::ostream& osRef) noexcept :
-        is(isRef),
-        os(osRef),
-        isBuf(is.rdbuf()),
-        osBuf(os.rdbuf()),
-        itsBuf(is.rdbuf(), ofs.rdbuf()),
-        otsBuf(os.rdbuf(), ofs.rdbuf()) {}
+    Logger(std::istream& isRef, std::ostream& osRef) noexcept;
 
-    ~Logger() noexcept { close(); }
+    ~Logger() noexcept;
 
-    // Single shared instance
-    static Logger& instance() noexcept {
-        // Tie std::cin and std::cout to a file
-        static Logger logger(std::cin, std::cout);
+    static Logger& instance() noexcept;
 
-        return logger;
-    }
+    bool open(const std::filesystem::path& logFile) noexcept;
 
-    [[nodiscard]] bool is_open() const noexcept { return ofs.is_open(); }
+    void close() noexcept;
 
-    void write_timestamp(std::string_view suffix) noexcept {
-        if (!ofs)
-            return;
+    [[nodiscard]] bool is_open() const noexcept;
 
-        ofs << '[' << format_time(SystemClock::now()) << "] " << suffix << std::endl;
-    }
-
-    // Open log file; caller must hold mutex
-    // If another file is already open, it will be closed first.
-    bool open(const std::filesystem::path& logFile) noexcept {
-        if (filename == logFile.string() && is_open())
-            return true;  // Already open
-
-        close();  // Close any previous log file
-
-        if (logFile.empty())
-            return true;
-
-        filename = logFile.string();
-
-        ofs.open(filename, std::ios::out | std::ios::app);
-
-        if (!is_open())
-        {
-            DEBUG_LOG("Unable to open Log file: " << filename);
-            return false;
-        }
-
-        write_timestamp("->");
-
-        is.rdbuf(&itsBuf);
-        os.rdbuf(&otsBuf);
-
-        return true;
-    }
-
-    // Close log file if open; caller must hold mutex
-    void close() noexcept {
-        if (!is_open())
-            return;
-
-        is.rdbuf(isBuf);
-        os.rdbuf(osBuf);
-
-        write_timestamp("<-");
-
-        ofs.close();
-
-        filename.clear();
-    }
+    void write_timestamp(std::string_view suffix) noexcept;
 
     std::mutex      mutex;
     std::ofstream   ofs;
@@ -1669,13 +1549,14 @@ struct CommandLine final {
     static std::filesystem::path binary_directory(std::filesystem::path path) noexcept;
     static std::filesystem::path working_directory() noexcept;
 
-    StringViews arguments;
+    [[nodiscard]] const StringViews& arguments() const noexcept;
 
    private:
     void set_arguments(int argc, const char* argv[]) noexcept;
 
+    StringViews arguments_;
 #if defined(_WIN32)
-    Strings argStorage;
+    Strings storedArgv;
 #endif
 };
 
