@@ -217,7 +217,7 @@ bool insert_memory_nolock(Memory memory) noexcept {
     if (!inserted)
         return false;
 
-    //DEBUG_LOG("Registering memory: " << memory->name());
+    //DEBUG_LOG("Registering memory: " << static_cast<const void*>(memory) << ' ' << memory->name());
 
     // Append to the ordered list and obtain a stable iterator.
     auto insertItr = List.emplace(List.end(), memory);
@@ -253,7 +253,7 @@ bool erase_memory_nolock(Memory memory) noexcept {
     // Remove the corresponding map entry.
     IndexMap.erase(eraseReg);
 
-    //DEBUG_LOG("Unregistered memory: " << memory->name());
+    //DEBUG_LOG("Unregistered memory: " << static_cast<const void*>(memory) << ' ' << memory->name());
 
     return true;
 }
@@ -324,7 +324,8 @@ void print() noexcept {
 
     usize i = 0;
     for (auto* memory : List)
-        std::cout << "[" << i++ << "] " << (memory != nullptr ? memory->name() : "<NULL>") << "\n";
+        std::cout << '[' << i++ << "] " << static_cast<const void*>(memory) << ' '
+                  << (memory != nullptr ? memory->name() : "<NULL>") << '\n';
 
     std::cout << std::endl;
 }

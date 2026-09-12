@@ -627,8 +627,6 @@ class SharedMemory final: public BaseSharedMemory {
 
         mappedPtr = dataPtr = mappedMem;
 
-        MemoryRegistry::register_memory(this);  // register for cleanup at exit
-
         int shutdownPipe[2];
     #if !defined(__APPLE__)
         if (::pipe2(shutdownPipe, O_CLOEXEC) != 0)
@@ -639,33 +637,54 @@ class SharedMemory final: public BaseSharedMemory {
         set_cloexec(shutdownPipe[0]);
         set_cloexec(shutdownPipe[1]);
     #endif
+
         UniqueFd receiverShutdownFd(shutdownPipe[0]);
         shutdownFd = UniqueFd{shutdownPipe[1]};
 
+        // Create the server socket
         auto serverFd = create_unix_socket();
         if (!serverFd.is_valid())
             return false;
 
+        // Prepare the Unix socket address
         struct sockaddr_un sockAddr{};
         sockAddr.sun_family = AF_UNIX;
         std::strncpy(sockAddr.sun_path, socketPath.c_str(), sizeof(sockAddr.sun_path) - 1);
 
-        ::unlink(socketPath.c_str());
-        if (const auto sFd = serverFd.get();
-            ::bind(sFd, reinterpret_cast<struct sockaddr*>(&sockAddr), sizeof(sockAddr)) == -1
-            || ::listen(sFd, 5) == -1)
+        // Remove any stale socket path before binding
+        unlink_socket_path();
+
+        const auto sFd = serverFd.get();
+
+        // Bind the socket to the Unix socket address
+        if (::bind(sFd, reinterpret_cast<struct sockaddr*>(&sockAddr), sizeof(sockAddr)) == -1)
             return false;
 
-        // Don't release the init lock until we've actually made a socket that other DONs can use
+        // Start listening for incoming connections
+        if (::listen(sFd, 5) == -1)
+            return false;
+
+        // Start the server thread with ownership of the communication resources
         serverThread =
           make_server_thread(std::move(memFd), std::move(receiverShutdownFd), std::move(serverFd));
+        assert(serverThread.joinable());
+
+        // Register for cleanup at exit
+        [[maybe_unused]] const bool registered = MemoryRegistry::register_memory(this);
+        assert(registered);
 
         return true;
     }
 
-    void release() noexcept override {
+    // Unlink the socket path without clearing it
+    void unlink_socket_path() noexcept {
         if (!socketPath.empty())
             ::unlink(socketPath.c_str());
+    }
+
+    // Release all resources and reset the object state
+    void release() noexcept override {
+        unlink_socket_path();
 
         shutdownFd.reset();
         if (serverThread.joinable())
@@ -674,9 +693,9 @@ class SharedMemory final: public BaseSharedMemory {
         if (mappedPtr != nullptr)
             ::munmap(mappedPtr, sizeof(T));
 
-        socketPath.clear();
         mappedPtr = nullptr;
         dataPtr   = nullptr;
+        socketPath.clear();
     }
 
     [[nodiscard]] bool is_mapped() const noexcept { return mappedPtr != nullptr; }
