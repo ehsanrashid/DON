@@ -207,6 +207,12 @@ MemoryIndexMap IndexMap;
 // Provides uniqueness and membership validation.
 MemorySet Set;
 
+auto find_nolock(Memory memory) noexcept { return IndexMap.find(memory); }
+
+// Check memory registry membership.
+bool contains_nolock(Set::const_iterator setItr) const noexcept { return setItr != Set.end(); }
+bool contains_nolock(Memory memory) noexcept { return contains_nolock(Set.find(memory)); }
+
     #if !defined(NDEBUG)
 // Verifies the consistency of all registry containers.
 // The caller must hold 'Mutex' in shared or exclusive mode.
@@ -226,7 +232,7 @@ bool is_consistent_nolock() noexcept {
         [[maybe_unused]] const Memory memory = *listItr;
         assert(memory != nullptr && "List contains a null memory pointer");
 
-        [[maybe_unused]] auto indexMapItr = IndexMap.find(memory);
+        [[maybe_unused]] auto indexMapItr = find_nolock(memory);
         assert(indexMapItr != IndexMap.end() && "List memory is missing from IndexMap");
         assert(indexMapItr->second == listItr && "IndexMap points to the wrong List node");
 
@@ -246,7 +252,7 @@ bool is_consistent_nolock() noexcept {
     {
         assert(memory != nullptr && "Set contains a null memory pointer");
 
-        [[maybe_unused]] const auto indexMapItr = IndexMap.find(memory);
+        [[maybe_unused]] const auto indexMapItr = find_nolock(memory);
         assert(indexMapItr != IndexMap.end() && "Set memory is missing from IndexMap");
 
         const auto listItr = indexMapItr->second;
@@ -265,7 +271,7 @@ bool is_consistent_nolock() noexcept {
 // List iterator, and Set is finally updated to establish membership.
 // Set and IndexMap provide average O(1) lookup and insertion.
 bool insert_memory_nolock(Memory memory) noexcept {
-    if (Set.find(memory) != Set.end())
+    if (contains_nolock(memory))
         return false;
 
     //DEBUG_LOG("Registering memory: " << static_cast<const void*>(memory) << ' ' << memory->name());
@@ -301,10 +307,10 @@ bool erase_memory_nolock(Memory memory) noexcept {
     const auto setItr = Set.find(memory);
 
     // Not registered.
-    if (setItr == Set.end())
+    if (!contains_nolock(setItr))
         return false;
 
-    const auto indexMapItr = IndexMap.find(memory);
+    const auto indexMapItr = find_nolock(memory);
     // Set guarantees that IndexMap contains the memory.
     assert(indexMapItr != IndexMap.end());
 

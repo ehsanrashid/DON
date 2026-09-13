@@ -1400,14 +1400,14 @@ std::string u64_to_string(u64 v) noexcept {
     return std::string{buffer.data(), copiedSize};
 }
 
-void print_info_string(const std::string_view infos) noexcept {
+void print_info_string(const std::string_view info) noexcept {
 
     if (InfoStrStop)
         return;
 
-    for (const auto info : split(infos, "\n", true))
-        if (!is_whitespace(info))
-            std::cout << "info string " << info << '\n';
+    for (const auto line : split(info, "\n", true))
+        if (!is_whitespace(line))
+            std::cout << "info string " << line << '\n';
 }
 
 void terminate_on_critical_error(const std::string_view message) noexcept {

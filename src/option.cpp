@@ -113,10 +113,13 @@ void Option::operator=(std::string value) noexcept {
 
     if (onChange)
     {
-        auto infoStr = onChange(*this);
+        const auto info = onChange(*this);
 
-        if (optionsPtr != nullptr && optionsPtr->infoCallback && infoStr)
-            optionsPtr->infoCallback(infoStr);
+        if (!info)
+            return;
+
+        if (optionsPtr != nullptr && optionsPtr->onInfo)
+            optionsPtr->onInfo(info);
     }
 }
 
@@ -148,29 +151,60 @@ std::ostream& operator<<(std::ostream& os, const Option& option) noexcept {
     return os;
 }
 
-void Options::set_info_callback(InfoCallback&& iCallback) noexcept {
-    infoCallback = std::move(iCallback);
+auto Options::begin() const noexcept { return list.begin(); }
+
+auto Options::end() const noexcept { return list.end(); }
+
+auto Options::begin() noexcept { return list.begin(); }
+
+auto Options::end() noexcept { return list.end(); }
+
+usize Options::size() const noexcept { return list.size(); }
+
+bool Options::empty() const noexcept { return list.empty(); }
+
+auto Options::find(std::string_view name) noexcept { return indexMap.find(name); }
+
+auto Options::find(std::string_view name) const noexcept { return indexMap.find(name); }
+
+bool Options::contains(const std::string_view name) const noexcept {
+    return set.find(name) != set.end();
 }
 
-// Add option and assigns idx in the correct insertion order
-void Options::add(std::string_view name, const Option& option) noexcept {
-    static u16 insertOrder = 0;
+usize Options::count(const std::string_view name) const noexcept { return set.count(name); }
 
+// Add option and assigns idx in the correct insertion order
+void Options::add(const std::string_view name, const Option& option) noexcept {
     if (contains(name))
     {
         std::cerr << "Option: '" << name << "' was already added!" << std::endl;
         std::exit(EXIT_FAILURE);
     }
 
-    auto& o = options.emplace(name, option).first->second;
+    // Append to the ordered list and obtain its iterator.
+    const auto listItr = list.emplace(list.end(), name, option);
+    assert(listItr != list.end());
 
-    o.idx        = insertOrder++;
-    o.optionsPtr = this;
+    listItr->second.optionsPtr = this;
+
+    // Associate the option with its corresponding list node.
+    [[maybe_unused]] const auto [indexMapItr, inserted] = indexMap.emplace(name, listItr);
+    // Set was checked first, so IndexMap must not contain the option.
+    assert(inserted);
+    assert(indexMapItr->second == listItr);
+
+    // Establish membership after List and IndexMap are successfully updated.
+    [[maybe_unused]] const auto [setItr, registered] = set.emplace(name);
+    // The initial membership check guarantees that this insertion succeeds.
+    assert(registered);
+    assert(setItr != set.end());
 }
 
-void Options::set(std::string_view name, std::string_view value) noexcept {
-    if (contains(name))
-        options.at(name) = std::string{value};
+void Options::set_value(const std::string_view name, const std::string_view value) noexcept {
+    const auto itr = find(name);
+
+    if (itr != indexMap.end())
+        itr->second->second = std::string{value};
     else
         std::cerr << "No such option: '" << name << "'" << std::endl;
 }
@@ -178,19 +212,13 @@ void Options::set(std::string_view name, std::string_view value) noexcept {
 const Option& Options::operator[](const std::string_view name) const noexcept {
     assert(contains(name));
 
-    return options.at(name);
+    return find(name)->second->second;
 }
 
+void Options::set_on_info(OnInfo&& f) noexcept { onInfo = std::move(f); }
+
 std::ostream& operator<<(std::ostream& os, const Options& options) noexcept {
-
-    std::vector<Options::Pair> sortedOptions(options.begin(), options.end());
-
-    std::sort(sortedOptions.begin(), sortedOptions.end(),
-              [](const Options::Pair& op1, const Options::Pair& op2) noexcept -> bool {
-                  return op1.second < op2.second;
-              });
-
-    for (const auto& [name, option] : sortedOptions)
+    for (const auto& [name, option] : options)
         os << "\noption name " << name << ' ' << option;
 
     return os;
