@@ -43,8 +43,7 @@ int main(int argc, const char* argv[]) noexcept {
 
     std::cout << engine_info() << std::endl;
     std::cout << build_timestamp() << std::endl;
-
-    show_logo();
+    std::cout << '\n' << engine_logo() << std::endl;
 
     Attacks::init();
     Position::init();
@@ -52,23 +51,25 @@ int main(int argc, const char* argv[]) noexcept {
 
     CommandLine commandLine(argc, argv);
 
-    auto path = !commandLine.arguments.empty() ? commandLine.arguments[0] : ".";
+    const auto& arguments = commandLine.arguments();
+
+    const auto path = !arguments.empty() ? arguments[0] : ".";
 
     UCI uci(path_from_utf8(path));
 
     Tune::init(uci.options());
 
-    if (commandLine.arguments.size() > 1)
+    if (arguments.size() > 1)
     {
         std::string command;
         command.reserve(KB / 2);
 
-        for (usize i = 1; i < commandLine.arguments.size(); ++i)
+        for (usize i = 1; i < arguments.size(); ++i)
         {
             if (!command.empty())
                 command.push_back(' ');
 
-            command.append(commandLine.arguments[i]);
+            command.append(arguments[i]);
         }
 
         uci.execute(command);

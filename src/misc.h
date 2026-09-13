@@ -37,24 +37,20 @@
 #include <limits>
 #include <memory>
 #include <mutex>
-#include <new>
 #include <optional>
 #include <shared_mutex>
 #include <stdexcept>
 #include <string>
 #include <string_view>
 #include <system_error>
-#include <tuple>
 #include <type_traits>
 #include <unordered_map>
 #include <utility>
 #include <vector>
 
 #if defined(_WIN32)
-    #include "platform_win.h"
+    #include "platform_win.h"  // GetCommandLineW()
 #else
-    #include <sys/mman.h>
-    #include <unistd.h>
 #endif
 
 #if defined(__i386__) || defined(_M_IX86)
@@ -222,12 +218,12 @@ inline constexpr std::string_view WHITE_SPACE{" \t\n\r\f\v"};
 
 // True if and only if the binary is compiled on a little-endian machine
 #if defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__)
-inline constexpr bool IsLittleEndian = __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__;
+inline constexpr bool IS_LITTLE_ENDIAN = __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__;
 #elif defined(_WIN32)
-inline constexpr bool IsLittleEndian = true;
+inline constexpr bool IS_LITTLE_ENDIAN = true;
 #else
 // Fallback runtime check
-inline const bool IsLittleEndian = []() noexcept {
+inline const bool IS_LITTLE_ENDIAN = []() noexcept {
     constexpr u16 LE = 1;
     return *reinterpret_cast<const u8*>(&LE) == 1;
 }();
@@ -404,8 +400,7 @@ template<typename T>
 // where N is the number of elements in the array.
 template<usize Alignment, typename T>
 [[nodiscard]] constexpr T* align_ptr_up(T* ptr) noexcept {
-    static_assert(Alignment != 0 && (Alignment & (Alignment - 1)) == 0,
-                  "Alignment must be non-zero power of 2");
+    static_assert(is_power_of_2(Alignment), "Alignment must be non-zero power of 2");
     static_assert(Alignment >= alignof(T), "Alignment must be >= alignof(T)");
 
     const auto ptrUInt =
@@ -425,21 +420,6 @@ constexpr T2 interpolate(T1 x, T1 x0, T1 x1, T2 y0, T2 y1) noexcept {
     assert(x0 != x1);
     return T2(y0 + (y1 - y0) * (x - x0) / (x1 - x0));
 }
-
-enum class ConsoleMode : u8 {
-    Default,  // Do nothing special
-    UTF7,     // Explicitly avoid UTF-8 changes
-    UTF8,     // Try to enable UTF-8 if possible
-    EnableVirtualTerminal,
-    FullyFeatured,
-};
-
-void set_console_input(ConsoleMode consoleMode = ConsoleMode::Default) noexcept;
-void set_console_output(ConsoleMode consoleMode = ConsoleMode::Default) noexcept;
-
-std::string build_date() noexcept;
-std::string build_time() noexcept;
-std::string build_timestamp() noexcept;
 
 [[nodiscard]] constexpr bool is_idigit(const int dg) noexcept { return 0 <= dg && dg <= 9; }
 [[nodiscard]] constexpr bool is_cdigit(const char ch) noexcept { return '0' <= ch && ch <= '9'; }
@@ -484,13 +464,49 @@ constexpr unsigned to_month(const std::string_view mon) noexcept {
                                                                   : 0;
 }
 
+enum class ConsoleMode : u8 {
+    Default,  // Do nothing special
+    UTF7,     // Explicitly avoid UTF-8 changes
+    UTF8,     // Try to enable UTF-8 if possible
+    EnableVirtualTerminal,
+    FullyFeatured,
+};
+
+void set_console_input(ConsoleMode consoleMode = ConsoleMode::Default) noexcept;
+
+void set_console_output(ConsoleMode consoleMode = ConsoleMode::Default) noexcept;
+
+std::string format_date(std::string_view date) noexcept;
+
+std::string format_time(std::string_view time) noexcept;
+
+std::string build_date() noexcept;
+
+std::string build_time() noexcept;
+
+std::string build_timestamp() noexcept;
+
 std::string engine_info(bool uci = false) noexcept;
 
-void show_logo() noexcept;
+std::string engine_logo() noexcept;
 
 std::string version_info() noexcept;
 
 std::string compiler_info() noexcept;
+
+using SteadyClock = std::chrono::steady_clock;
+using SystemClock = std::chrono::system_clock;
+using Us          = std::chrono::microseconds;
+using Ms          = std::chrono::milliseconds;
+
+using TimePoint = Ms::rep;  // A value in milliseconds
+static_assert(sizeof(TimePoint) == sizeof(i64), "TimePoint size must be 8 bytes");
+
+inline TimePoint now() noexcept {
+    return std::chrono::duration_cast<Ms>(SteadyClock::now().time_since_epoch()).count();
+}
+
+std::string format_time(const SystemClock::time_point& timePoint) noexcept;
 
 constexpr u64 mul_hi64(const u64 u1, const u64 u2) noexcept {
 #if defined(__SIZEOF_INT128__)
@@ -568,53 +584,15 @@ template<PrefetchAccess Access = PrefetchAccess::READ, PrefetchLoc Loc = Prefetc
 inline void prefetch(const void*) noexcept {}
 #endif
 
-using SteadyClock = std::chrono::steady_clock;
-using SystemClock = std::chrono::system_clock;
-using Us          = std::chrono::microseconds;
-using Ms          = std::chrono::milliseconds;
-
-using TimePoint = Ms::rep;  // A value in milliseconds
-static_assert(sizeof(TimePoint) == sizeof(i64), "TimePoint size must be 8 bytes");
-
-inline TimePoint now() noexcept {
-    return std::chrono::duration_cast<Ms>(SteadyClock::now().time_since_epoch()).count();
-}
-
-std::string format_time(const SystemClock::time_point& timePoint) noexcept;
-
-struct IndexRange final {
-   public:
-    usize beg;
-    usize end;
-};
-
-constexpr IndexRange split_range(usize id, usize parts, usize size) noexcept {
-    assert(parts != 0 && id < parts);
-
-    usize base  = size / parts;
-    usize extra = size % parts;  // remainder to distribute
-
-    // Distribute remainder among the first 'extra' threads
-    usize beg = id * base + std::min(id, extra);
-    usize end = beg + base + int(id < extra);
-
-    assert(beg <= end && end <= size);
-    return {beg, end};
-}
-
 struct CallOnce final {
    public:
-    CallOnce() noexcept                           = default;
-    CallOnce(const CallOnce&) noexcept            = delete;
-    CallOnce& operator=(const CallOnce&) noexcept = delete;
-    CallOnce(CallOnce&&) noexcept                 = delete;
-    CallOnce& operator=(CallOnce&&) noexcept      = delete;
+    CallOnce() noexcept = default;
 
     // Initialize using the provided function
     // The function will be called exactly once, even if multiple threads call this
     template<typename Func>
     void operator()(Func&& callFn) noexcept(noexcept(callFn())) {
-        std::call_once(callOnce, [this, callFunc = std::forward<Func>(callFn)]() mutable {
+        std::call_once(onceFlag, [this, callFunc = std::forward<Func>(callFn)]() mutable {
             std::move(callFunc)();  // Move into the call
             initialize.store(true, std::memory_order_release);
         });
@@ -626,166 +604,63 @@ struct CallOnce final {
     }
 
    private:
-    std::once_flag    callOnce;
+    CallOnce(const CallOnce&) noexcept            = delete;
+    CallOnce& operator=(const CallOnce&) noexcept = delete;
+    CallOnce(CallOnce&&) noexcept                 = delete;
+    CallOnce& operator=(CallOnce&&) noexcept      = delete;
+
+    std::once_flag    onceFlag;
     std::atomic<bool> initialize{false};
 };
 
-// LazyValue wraps a Value with CallOnce for safe lazy initialization
-template<typename Value>
-struct LazyValue final {
-   public:
-    LazyValue() noexcept                            = default;
-    LazyValue(const LazyValue&) noexcept            = delete;
-    LazyValue& operator=(const LazyValue&) noexcept = delete;
-    LazyValue(LazyValue&&) noexcept                 = delete;
-    LazyValue& operator=(LazyValue&&) noexcept      = delete;
+namespace OstreamMutexRegistry {
 
-    ~LazyValue() noexcept {
-        if (initialized())
-            get_ptr()->~Value();
-    }
+std::mutex& get(std::ostream* osPtr) noexcept;
 
-    template<typename... Args>
-    Value& init(Args&&... args) noexcept(std::is_nothrow_constructible_v<Value, Args...>) {
-        // Fast path: already initialized
-        if (initialized())
-            return *get_ptr();
+}  // namespace OstreamMutexRegistry
 
-        // Initialize exactly once, use tuple to capture all arguments
-        callOnce([this, tuple = std::make_tuple(std::forward<Args>(args)...)]() mutable {
-            std::apply(
-              [this](auto&&... captured) {
-                  new (get_ptr()) Value(std::forward<decltype(captured)>(captured)...);
-              },
-              std::move(tuple));
-        });
-
-        return *get_ptr();
-    }
-
-    Value& get() noexcept {
-        assert(initialized() && "LazyValue accessed before initialization");
-        return *get_ptr();
-    }
-
-    const Value& get() const noexcept {
-        assert(initialized() && "LazyValue accessed before initialization");
-        return *get_ptr();
-    }
-
-    [[nodiscard]] bool initialized() const noexcept { return callOnce.initialized(); }
-
-   private:
-    Value* get_ptr() noexcept { return std::launder(reinterpret_cast<Value*>(&storage)); }
-
-    const Value* get_ptr() const noexcept {
-        return std::launder(reinterpret_cast<const Value*>(&storage));
-    }
-
-    alignas(Value) std::byte storage[sizeof(Value)];
-    CallOnce callOnce;
-};
-
-// OstreamMutexRegistry
+// SyncOstream
 //
-// A thread-safe registry that provides a unique mutex for each std::ostream pointer.
-// This is useful when multiple threads may write to the same ostream and you want
-// to synchronize access without locking unrelated streams.
+// Provides RAII-based, thread-safe output synchronization for a std::ostream.
+//
+// Each SyncOstream acquires the mutex associated with the given ostream through
+// OstreamMutexRegistry and holds the lock for its lifetime.
 //
 // Key Features:
-//  - Thread-safe: internal access to the registry map is protected by a mutex.
-//  - Per-ostream mutex: each ostream gets its own mutex to avoid contention.
-//  - Null-safe: passing a nullptr returns a null-mutex to safely ignore locking
-//    without inserting invalid keys into the map.
-//  - Lazy initialization: mutexes are default-constructed when first requested.
+//  - Thread-safe: synchronizes access to the associated ostream.
+//  - RAII-based: acquires the mutex on construction and releases it on destruction.
+//  - Move-constructible: allows SyncOstream objects to be returned by value.
+//  - Non-copyable and non-move-assignable: prevents accidental lock ownership changes.
+//  - Supports standard ostream operators and manipulators.
+//  - Asserts on use of a moved-from SyncOstream in debug builds.
 //
 // Usage:
-//  - Call 'get(&std::cout)' to obtain a mutex before writing to std::cout from multiple threads.
-//  - Lock the returned mutex with std::scoped_lock or std::unique_lock.
+//   SyncOstream(std::cout) << "Thread-safe message " << value << std::endl;
 //
 // Notes:
-//  - The class is static-only; it cannot be instantiated. (Restriction)
-//  - Mutexes are stored as object in the map.
-class OstreamMutexRegistry final {
-   public:
-    static void ensure_initialized(usize reserveCount = 16, float maxLoadFactor = 0.85f) noexcept {
-        callOnce([reserveCount, maxLoadFactor]() noexcept {
-            osMutexes.max_load_factor(max_load_factor(maxLoadFactor));
-            osMutexes.reserve(reserve_count(reserveCount));
-        });
-    }
-
-    // Return a mutex associated with the given ostream pointer.
-    // If osPtr is nullptr, returns a null-mutex to safely ignore locking.
-    // This ensures no accidental insertion of null keys into the map.
-    static std::mutex& get(std::ostream* osPtr) noexcept {
-        ensure_initialized();
-
-        // Fallback for null pointers
-        if (osPtr == nullptr)
-            return nullMutex;
-
-        // Lock the registry while accessing the map
-        std::lock_guard writeLock(mutex);
-
-        // Return mutex, create if missing
-        return osMutexes[osPtr];
-    }
-
-   private:
-    OstreamMutexRegistry() noexcept                                       = delete;
-    ~OstreamMutexRegistry() noexcept                                      = delete;
-    OstreamMutexRegistry(const OstreamMutexRegistry&) noexcept            = delete;
-    OstreamMutexRegistry& operator=(const OstreamMutexRegistry&) noexcept = delete;
-    OstreamMutexRegistry(OstreamMutexRegistry&&) noexcept                 = delete;
-    OstreamMutexRegistry& operator=(OstreamMutexRegistry&&) noexcept      = delete;
-
-    static inline CallOnce callOnce;
-    // Protects access to the osMutexes map for thread safety
-    static inline std::mutex mutex;
-    // Note: null-mutex shared by all nullptr streams
-    static inline std::mutex nullMutex;
-    // Store mutexes and references returned by get()
-    static inline std::unordered_map<std::ostream*, std::mutex> osMutexes;
-};
-
-// SyncOstream --- Synchronized output stream ---
-//
-// A RAII-style wrapper for synchronizing output to a std::ostream across multiple threads.
-// Each SyncOstream locks a mutex associated with the given ostream (via OstreamMutexRegistry)
-// during its lifetime, ensuring thread-safe writes.
-//
-// Key Features:
-//  - Thread-safe: locks the ostream-specific mutex for the duration of the SyncOstream object.
-//  - RAII-based: mutex is automatically locked on construction and released on destruction.
-//  - Move-constructible: can be returned from factories or functions by value.
-//  - Deleted copy and move-assignment: prevents accidental unlocking windows or double-locks.
-//  - Supports all standard ostream operators and manipulators (std::endl, std::flush, etc.).
-//  - Asserts on use of moved-from SyncOstream to catch logic errors in debug builds.
-//
-// Usage Example:
-//   SyncOstream(syncOut) << "Thread-safe message " << value << std::endl;
-//   where syncOut is a std::ostream (like std::cout or a file stream)
-//   that you want to write to safely from multiple threads.
-//
-// Notes:
-//  - Designed for short-lived, scoped output operations; lock is held for the lifetime
-//    of the SyncOstream object.
-//  - Uses OstreamMutexRegistry internally to avoid creating multiple mutexes for the same ostream.
+//  - The lock is held for the lifetime of the SyncOstream object.
+//  - Keep SyncOstream objects short-lived to minimize lock contention.
+//  - OstreamMutexRegistry ensures that the same ostream uses the same mutex.
 class [[nodiscard]] SyncOstream final {
    public:
-    explicit SyncOstream(std::ostream& os) noexcept :
-        osPtr(&os),
-        lock(OstreamMutexRegistry::get(osPtr)) {}
-    // Move-constructible so factories can return by value
-    SyncOstream(SyncOstream&& syncOs) noexcept :
-        osPtr(syncOs.osPtr),
-        lock(std::move(syncOs.lock)) {}
+    explicit SyncOstream(std::ostream& os) noexcept;
 
     SyncOstream(const SyncOstream&) noexcept            = delete;
     SyncOstream& operator=(const SyncOstream&) noexcept = delete;
-    // Prefer deleting move-assignment to avoid unlock window
+    // Move-constructible so SyncOstream objects can be returned by value
+    SyncOstream(SyncOstream&& syncOs) noexcept;
+    // Move-assignment is deleted to prevent changing lock ownership
     SyncOstream& operator=(SyncOstream&&) noexcept = delete;
+
+    using IosManip = std::ios& (*) (std::ios&);
+
+    SyncOstream&  operator<<(IosManip manip) &;
+    SyncOstream&& operator<<(IosManip manip) &&;
+
+    using OstreamManip = std::ostream& (*) (std::ostream&);
+
+    SyncOstream&  operator<<(OstreamManip manip) &;
+    SyncOstream&& operator<<(OstreamManip manip) &&;
 
     template<typename T>
     SyncOstream& operator<<(T&& x) & {
@@ -802,43 +677,34 @@ class [[nodiscard]] SyncOstream final {
         return std::move(*this);
     }
 
-    using IosManipulator = std::ios& (*) (std::ios&);
-
-    SyncOstream& operator<<(IosManipulator manip) & {
-        assert(osPtr != nullptr && "Use of moved-from SyncOstream");
-
-        manip(*osPtr);
-        return *this;
-    }
-    SyncOstream&& operator<<(IosManipulator manip) && {
-        assert(osPtr != nullptr && "Use of moved-from SyncOstream");
-
-        manip(*osPtr);
-        return std::move(*this);
-    }
-
-    using OstreamManipulator = std::ostream& (*) (std::ostream&);
-
-    SyncOstream& operator<<(OstreamManipulator manip) & {
-        assert(osPtr != nullptr && "Use of moved-from SyncOstream");
-
-        manip(*osPtr);
-        return *this;
-    }
-    SyncOstream&& operator<<(OstreamManipulator manip) && {
-        assert(osPtr != nullptr && "Use of moved-from SyncOstream");
-
-        manip(*osPtr);
-        return std::move(*this);
-    }
-
    private:
-    std::ostream* const          osPtr;
+    std::ostream*                osPtr;
     std::unique_lock<std::mutex> lock;
 };
 
-[[nodiscard]] inline SyncOstream sync_os(std::ostream& os = std::cout) noexcept {
-    return SyncOstream(os);
+[[nodiscard]] SyncOstream sync_os(std::ostream& os = std::cout) noexcept;
+
+struct IndexRange final {
+   public:
+    usize beg;
+    usize end;
+};
+
+// Split [0, size) into 'count' contiguous, nearly equal ranges.
+// 'id' identifies the range to return and must be in [0, count).
+constexpr IndexRange split_range(const usize id, const usize count, const usize size) noexcept {
+    assert(count != 0 && id < count);
+
+    const usize base  = size / count;
+    const usize extra = size % count;
+
+    // Distribute 'size' as evenly as possible: the first 'extra' ranges
+    // get one additional element, and 'beg' accounts for preceding extras.
+    const usize beg = id * base + std::min(id, extra);
+    const usize end = beg + base + usize(id < extra);
+
+    assert(beg <= end && end <= size);
+    return {beg, end};
 }
 
 // --- TableView with pointer and size ---
@@ -1147,32 +1013,13 @@ class FixedVector final {
 
 struct FixedText final {
    public:
-    // from_view factory
-    static FixedText from_view(const std::string_view sv) noexcept { return FixedText{}.write(sv); }
+    static FixedText from(const std::string_view sv) noexcept;
 
-    FixedText& write(const char ch) noexcept {
-        assert(size() < capacity());
-        if (size() >= capacity())
-            return *this;
+    FixedText& write(char ch) noexcept;
 
-        data_[size_++] = ch;
-        return *this;
-    }
+    FixedText& write(std::string_view sv) noexcept;
 
-    FixedText& write(const std::string_view sv) noexcept {
-        assert(size() + sv.size() <= capacity());
-
-        std::memcpy(end(), sv.data(), sv.size());
-        size_ += static_cast<u8>(sv.size());
-        return *this;
-    }
-
-    FixedText& write(const int v) noexcept {
-        auto [ptr, ec] = std::to_chars(end(), begin() + capacity(), v);
-        assert(ec == std::errc{});
-        size_ = static_cast<u8>(ptr - begin());
-        return *this;
-    }
+    FixedText& write(int v) noexcept;
 
     [[nodiscard]] constexpr usize capacity() const noexcept { return data_.size(); }
 
@@ -1297,10 +1144,11 @@ class RelaxedAtomic final {
    private:
     static constexpr bool UseAtomic =
 #if defined(USE_SLOPPY_ATOMICS)
-      !std::atomic<T>::is_always_lock_free || sizeof(T) > sizeof(usize);
+      !std::atomic<T>::is_always_lock_free || sizeof(T) > sizeof(usize)
 #else
-      true;
+      true
 #endif
+      ;
 
     T add(T v) noexcept {
         const T oldV = load();
@@ -1331,7 +1179,7 @@ class AllocationSizes final {
 
         if (mem != nullptr)
         {
-            std::lock_guard writeLock(sharedMutex);
+            std::lock_guard writeLock(mutex);
 
             sizesMap[mem] = allocSize;
         }
@@ -1340,7 +1188,7 @@ class AllocationSizes final {
     }
 
     [[nodiscard]] bool free(void* const mem) noexcept {
-        std::lock_guard writeLock(sharedMutex);
+        std::lock_guard writeLock(mutex);
 
         if (auto itr = sizesMap.find(mem); itr != sizesMap.end())
         {
@@ -1355,19 +1203,19 @@ class AllocationSizes final {
     }
 
     [[nodiscard]] usize size() const noexcept {
-        std::shared_lock readLock(sharedMutex);
+        std::shared_lock readLock(mutex);
 
         return sizesMap.size();
     }
 
     [[nodiscard]] bool empty() const noexcept {
-        std::shared_lock readLock(sharedMutex);
+        std::shared_lock readLock(mutex);
 
         return sizesMap.empty();
     }
 
     [[nodiscard]] std::optional<usize> find(void* const mem) const noexcept {
-        std::shared_lock readLock(sharedMutex);
+        std::shared_lock readLock(mutex);
 
         if (auto itr = sizesMap.find(mem); itr != sizesMap.end())
             return itr->second;
@@ -1376,37 +1224,36 @@ class AllocationSizes final {
     }
 
    private:
-    mutable std::shared_mutex sharedMutex;
-
     const AllocFunc                  allocFunc;
     const FreeFunc                   freeFunc;
+    mutable std::shared_mutex        mutex;
     std::unordered_map<void*, usize> sizesMap;
 };
 
-// ConcurrentCache: groups (mutex + storage + pre-reserve)
+// ConcurrentCache: thread-safe key-value cache with pre-reserved storage
 template<typename Key, typename Value>
 class ConcurrentCache final {
    public:
     explicit ConcurrentCache(usize reserveCount = 1024, float maxLoadFactor = 0.75f) noexcept {
-        storageMap.max_load_factor(max_load_factor(maxLoadFactor));
-        storageMap.reserve(reserve_count(reserveCount));
+        cacheMap.max_load_factor(max_load_factor(maxLoadFactor));
+        cacheMap.reserve(reserve_count(reserveCount));
     }
 
     template<typename... Args>
     Value& access_or_build(const Key& key, Args&&... args) noexcept {
         // Fast path: shared read lock to check and access
         {
-            std::shared_lock readLock(sharedMutex);
+            std::shared_lock readLock(mutex);
 
-            if (auto itr = storageMap.find(key); itr != storageMap.end())
+            if (auto itr = cacheMap.find(key); itr != cacheMap.end())
                 return get_value(itr->second);
         }
 
         // Slow path: exclusive write lock to insert and construct
-        std::lock_guard writeLock(sharedMutex);
+        std::lock_guard writeLock(mutex);
 
         // Double-check after acquiring exclusive lock
-        auto [itr, inserted] = storageMap.try_emplace(key);
+        auto [itr, inserted] = cacheMap.try_emplace(key);
 
         if (inserted)
             // Inserted: construct the value
@@ -1423,30 +1270,30 @@ class ConcurrentCache final {
     }
 
    private:
-    static constexpr usize THRESHOLD_SIZE = 128;
+    static constexpr usize ThresholdSize = 128;
 
     // Define StorageValue type alias
     using StorageValue =
-      std::conditional_t<sizeof(Value) <= THRESHOLD_SIZE, Value, std::unique_ptr<Value>>;
+      std::conditional_t<sizeof(Value) <= ThresholdSize, Value, std::unique_ptr<Value>>;
 
     // Helper functions AFTER StorageValue is defined
     template<typename... Args>
     void set_value(StorageValue& entry, Args&&... args) {
-        if constexpr (sizeof(Value) <= THRESHOLD_SIZE)
+        if constexpr (sizeof(Value) <= ThresholdSize)
             entry = Value(std::forward<Args>(args)...);
         else
             entry = std::make_unique<Value>(std::forward<Args>(args)...);
     }
 
     static Value& get_value(StorageValue& entry) noexcept {
-        if constexpr (sizeof(Value) <= THRESHOLD_SIZE)
+        if constexpr (sizeof(Value) <= ThresholdSize)
             return entry;
         else
             return *entry;
     }
 
-    std::shared_mutex                     sharedMutex;
-    std::unordered_map<Key, StorageValue> storageMap;
+    std::shared_mutex                     mutex;
+    std::unordered_map<Key, StorageValue> cacheMap;
 };
 
 // Hash function based on public domain MurmurHash64A by Austin Appleby.
@@ -1475,7 +1322,7 @@ inline u64 hash_bytes(const char* RESTRICT data, usize size, u64 seed = 0) noexc
     const auto* const RESTRICT block32End = beg + (size & ~(BLOCK_32 - 1));
     for (; p < block32End; p += BLOCK_32)
     {
-        u64 k0, k1, k2, k3;
+        u64 k0 = 0, k1 = 0, k2 = 0, k3 = 0;
         // Unaligned loads are safe via memcpy and typically optimized by the compiler
         std::memcpy(&k0, p + 0 * BLOCK_8, BLOCK_8);
         std::memcpy(&k1, p + 1 * BLOCK_8, BLOCK_8);
@@ -1501,7 +1348,7 @@ inline u64 hash_bytes(const char* RESTRICT data, usize size, u64 seed = 0) noexc
     const auto* const RESTRICT block16End = p + ((end - p) & ~(BLOCK_16 - 1));
     for (; p < block16End; p += BLOCK_16)
     {
-        u64 k0, k1;
+        u64 k0 = 0, k1 = 0;
         // Unaligned loads are safe via memcpy and typically optimized by the compiler
         std::memcpy(&k0, p + 0 * BLOCK_8, BLOCK_8);
         std::memcpy(&k1, p + 1 * BLOCK_8, BLOCK_8);
@@ -1519,7 +1366,7 @@ inline u64 hash_bytes(const char* RESTRICT data, usize size, u64 seed = 0) noexc
     const auto* const RESTRICT block8End = p + ((end - p) & ~(BLOCK_8 - 1));
     for (; p < block8End; p += BLOCK_8)
     {
-        u64 k;
+        u64 k = 0;
         // Safe unaligned load
         std::memcpy(&k, p, BLOCK_8);
 
@@ -1588,126 +1435,53 @@ constexpr u32 combine_hashes(std::initializer_list<u32> hashes) noexcept {
 }
 
 // Custom streambuf that wraps string_view
-class StringViewStreambuf final: public std::streambuf {
+class StringViewBuf final: public std::streambuf {
    public:
-    explicit StringViewStreambuf(const std::string_view sv) noexcept {
-        // std::streambuf requires char* for the get area.
-        // The buffer is read-only; no characters are modified.
-        auto* const p    = const_cast<char*>(sv.data());
-        const usize size = sv.size();
-        setg(p, p, p + size);  // Only GET area (reading enabled)
-        // Do NOT call setp(p, p + size) - no PUT area (writing disabled)
-    }
+    explicit StringViewBuf(std::string_view sv) noexcept;
 };
 
 // Custom streambuf that wraps memory stream
-class MemoryStreambuf final: public std::streambuf {
+class MemoryBuf final: public std::streambuf {
    public:
-    MemoryStreambuf(char* const p, const usize size) noexcept {
-        setg(p, p, p + size);  // Set GET area (reading enabled)
-        setp(p, p + size);     // Set PUT area (writing enabled)
-    }
+    MemoryBuf(char* p, usize size) noexcept;
 };
 
-// Fancy logging facility.
-// The trick here is to replace cin.rdbuf() and cout.rdbuf() with 2 TieStreambuf objects
-// that tie std::cin and std::cout to a file stream.
-// Can toggle the logging of std::cout and std::cin at runtime whilst preserving
-// usual I/O functionality, all without changing a single line of code!
+// TieBuf (Fancy logging facility).
+// Replaces std::cin.rdbuf() and std::cout.rdbuf() with two TieBuf objects
+// that preserve normal I/O while optionally mirroring input and output to a
+// secondary stream buffer.
+// Logging of std::cin and std::cout can be toggled at runtime without changing
+// their usual I/O usage.
 // Idea from http://groups.google.com/group/comp.lang.c++/msg/1d941c0f26ea0d81
-// MSVC requires split streambuf for std::cin and std::cout.
-class TieStreambuf final: public std::streambuf {
+// MSVC requires separate stream buffers for std::cin and std::cout.
+//
+// Forwards I/O to the primary buffer and mirrors it to the secondary buffer
+// with line prefixes.
+class TieBuf final: public std::streambuf {
    public:
     using traits_type = std::streambuf::traits_type;
     using int_type    = traits_type::int_type;
     using char_type   = traits_type::char_type;
 
-    TieStreambuf() noexcept = delete;
-    TieStreambuf(std::streambuf* const pB, std::streambuf* const mB) noexcept :
-        pBuf(pB),
-        mBuf(mB) {}
+    TieBuf() noexcept = delete;
+    TieBuf(std::streambuf* pB, std::streambuf* mB) noexcept;
 
-    int_type overflow(const int_type ch) override {
-        if (pBuf == nullptr)
-            return traits_type::eof();
+    int sync() override;
 
-        if (traits_type::eq_int_type(ch, traits_type::eof()))
-            return traits_type::not_eof(ch);
+    int_type underflow() override;
 
-        int_type putCh = pBuf->sputc(traits_type::to_char_type(ch));
+    int_type overflow(const int_type ch) override;
 
-        if (traits_type::eq_int_type(putCh, traits_type::eof()))
-            return putCh;
+    int_type uflow() override;
 
-        return mirror_put_with_prefix(putCh, "<< ", oPreCh);
-    }
+    std::streamsize xsputn(const char_type* s, std::streamsize count) override;
 
-    int_type underflow() override {
-        if (pBuf == nullptr)
-            return traits_type::eof();
-
-        return pBuf->sgetc();
-    }
-
-    int_type uflow() override {
-        if (pBuf == nullptr)
-            return traits_type::eof();
-
-        int_type ch = pBuf->sbumpc();
-
-        if (traits_type::eq_int_type(ch, traits_type::eof()))
-            return ch;
-
-        return mirror_put_with_prefix(ch, ">> ", iPreCh);
-    }
-
-    int sync() override {
-        int r1 = pBuf != nullptr ? pBuf->pubsync() : 0;
-        int r2 = mBuf != nullptr ? mBuf->pubsync() : 0;
-
-        return (r1 == 0 && r2 == 0) ? 0 : -1;
-    }
-
-    std::streamsize xsputn(const char_type* const s, const std::streamsize count) override {
-        if (pBuf == nullptr)
-            return 0;
-
-        std::streamsize written = pBuf->sputn(s, count);
-
-        if (mBuf != nullptr && written > 0)
-        {
-            // Prefix injection only once if needed
-            if (oPreCh == '\n')
-                mBuf->sputn("<< ", 3);
-
-            mBuf->sputn(s, written);
-
-            oPreCh = s[written - 1];  // track last char
-        }
-
-        return written;
-    }
-
-    [[nodiscard]] std::streambuf* pbuf() const noexcept { return pBuf; }
-    [[nodiscard]] std::streambuf* mbuf() const noexcept { return mBuf; }
+    [[nodiscard]] std::streambuf* pbuf() const noexcept;
+    [[nodiscard]] std::streambuf* mbuf() const noexcept;
 
    private:
-    int_type mirror_put_with_prefix(const int_type         ch,
-                                    const std::string_view prefix,
-                                    char_type&             preCh) noexcept {
-        if (mBuf == nullptr)
-            return traits_type::not_eof(ch);
-
-        if (preCh == '\n')
-            mBuf->sputn(prefix.data(), static_cast<std::streamsize>(prefix.size()));
-
-        char_type c = traits_type::to_char_type(ch);
-        preCh       = c;
-
-        int_type r = mBuf->sputc(c);
-        return traits_type::eq_int_type(r, traits_type::eof()) ? traits_type::eof()
-                                                               : traits_type::not_eof(ch);
-    }
+    int_type
+    mirror_put_with_prefix(int_type ch, std::string_view prefix, char_type& preCh) noexcept;
 
     std::streambuf *pBuf, *mBuf;
 
@@ -1715,101 +1489,38 @@ class TieStreambuf final: public std::streambuf {
     char_type iPreCh = '\n';
 };
 
+// Logger
+//
+// Manages runtime logging by redirecting std::cin and std::cout through
+// TieBuf objects to mirror I/O to a log file.
 class Logger final {
    public:
-    // Start logging. Returns true on success.
-    static bool start(const std::filesystem::path& logFile) noexcept {
-        std::lock_guard writeLock(instance().mutex);
+    static bool start(const std::filesystem::path& logFile) noexcept;
 
-        return instance().open(logFile);
-    }
-
-    // Stop logging. Restores original streams and closes the file.
-    static void stop() noexcept {
-        std::lock_guard writeLock(instance().mutex);
-
-        instance().close();
-    }
+    static void stop() noexcept;
 
    private:
     Logger() noexcept = delete;
-    Logger(std::istream& isRef, std::ostream& osRef) noexcept :
-        is(isRef),
-        os(osRef),
-        isBuf(is.rdbuf()),
-        osBuf(os.rdbuf()),
-        itsBuf(is.rdbuf(), ofs.rdbuf()),
-        otsBuf(os.rdbuf(), ofs.rdbuf()) {}
+    Logger(std::istream& isRef, std::ostream& osRef) noexcept;
 
-    ~Logger() noexcept { close(); }
+    ~Logger() noexcept;
 
-    // Single shared instance
-    static Logger& instance() noexcept {
-        // Tie std::cin and std::cout to a file
-        static Logger logger(std::cin, std::cout);
+    static Logger& instance() noexcept;
 
-        return logger;
-    }
+    bool open(const std::filesystem::path& logFile) noexcept;
 
-    [[nodiscard]] bool is_open() const noexcept { return ofs.is_open(); }
+    void close() noexcept;
 
-    void write_timestamp(std::string_view suffix) noexcept {
-        if (!ofs)
-            return;
+    [[nodiscard]] bool is_open() const noexcept;
 
-        ofs << '[' << format_time(SystemClock::now()) << "] " << suffix << std::endl;
-    }
-
-    // Open log file; caller must hold mutex
-    // If another file is already open, it will be closed first.
-    bool open(const std::filesystem::path& logFile) noexcept {
-        if (filename == logFile.string() && is_open())
-            return true;  // Already open
-
-        close();  // Close any previous log file
-
-        if (logFile.empty())
-            return true;
-
-        filename = logFile.string();
-
-        ofs.open(filename, std::ios::out | std::ios::app);
-
-        if (!is_open())
-        {
-            DEBUG_LOG("Unable to open Log file: " << filename);
-            return false;
-        }
-
-        write_timestamp("->");
-
-        is.rdbuf(&itsBuf);
-        os.rdbuf(&otsBuf);
-
-        return true;
-    }
-
-    // Close log file if open; caller must hold mutex
-    void close() noexcept {
-        if (!is_open())
-            return;
-
-        is.rdbuf(isBuf);
-        os.rdbuf(osBuf);
-
-        write_timestamp("<-");
-
-        ofs.close();
-
-        filename.clear();
-    }
+    void write_timestamp(std::string_view suffix) noexcept;
 
     std::mutex      mutex;
     std::ofstream   ofs;
     std::istream&   is;
     std::ostream&   os;
     std::streambuf *isBuf = nullptr, *osBuf = nullptr;
-    TieStreambuf    itsBuf, otsBuf;
+    TieBuf          itieBuf, otieBuf;
     std::string     filename;
 };
 
@@ -1840,15 +1551,275 @@ struct CommandLine final {
     static std::filesystem::path binary_directory(std::filesystem::path path) noexcept;
     static std::filesystem::path working_directory() noexcept;
 
-    StringViews arguments;
+    [[nodiscard]] const StringViews& arguments() const noexcept;
 
    private:
     void set_arguments(int argc, const char* argv[]) noexcept;
 
+    StringViews arguments_;
 #if defined(_WIN32)
-    Strings argStorage;
+    Strings utf8_arguments;
 #endif
 };
+
+#if defined(_WIN32)
+// Get the error message string, if any
+std::string error_to_string(DWORD errorId) noexcept;
+
+inline constexpr HANDLE HANDLE_INVALID = nullptr;
+
+[[nodiscard]] constexpr bool is_valid_handle(const HANDLE handle) noexcept {
+    return handle != HANDLE_INVALID && handle != INVALID_HANDLE_VALUE;
+}
+
+inline constexpr void* MMAP_PTR_INVALID = nullptr;
+
+struct HandleGuard final {
+   public:
+    explicit HandleGuard(HANDLE& handleRef) noexcept;
+
+    HandleGuard() noexcept = delete;
+
+    HandleGuard(const HandleGuard&) noexcept            = delete;
+    HandleGuard& operator=(const HandleGuard&) noexcept = delete;
+
+    HandleGuard(HandleGuard&&) noexcept            = delete;
+    HandleGuard& operator=(HandleGuard&&) noexcept = delete;
+
+    ~HandleGuard() noexcept;
+
+    [[nodiscard]] bool is_valid() const noexcept;
+
+    [[nodiscard]] HANDLE get() const noexcept { return handle; }
+
+    void reset(HANDLE newHandle = HANDLE_INVALID) noexcept;
+
+    void dismiss() noexcept;
+
+   private:
+    HANDLE& handle;
+};
+
+struct MMapGuard final {
+   public:
+    explicit MMapGuard(void*& ptrRef) noexcept;
+
+    MMapGuard() noexcept = delete;
+
+    MMapGuard(const MMapGuard&) noexcept            = delete;
+    MMapGuard& operator=(const MMapGuard&) noexcept = delete;
+
+    MMapGuard(MMapGuard&&) noexcept            = delete;
+    MMapGuard& operator=(MMapGuard&&) noexcept = delete;
+
+    ~MMapGuard() noexcept;
+
+    [[nodiscard]] bool is_valid() const noexcept;
+
+    [[nodiscard]] void* get() const noexcept;
+
+    void reset(void* newPtr = MMAP_PTR_INVALID) noexcept;
+
+    void dismiss() noexcept;
+
+   private:
+    void*& mappedPtr;
+};
+
+    #if defined(_WIN64)
+struct Advapi final {
+   public:
+    // clang-format off
+    // https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-openprocesstoken
+    using OpenProcessToken_ = BOOL(WINAPI*)(
+      HANDLE  ProcessHandle,    // [in]  Handle to process
+      DWORD   DesiredAccess,    // [in]  Access rights for token
+      PHANDLE TokenHandle       // [out] Pointer to token handle
+    );
+    // https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-lookupprivilegevaluea
+    using LookupPrivilegeValue_ = BOOL(WINAPI*)(
+      LPCSTR lpSystemName,      // [in]  System name (NULL for local)
+      LPCSTR lpName,            // [in]  Privilege name (e.g., SE_DEBUG_NAME)
+      PLUID  lpLuid             // [out] Receives LUID of privilege
+    );
+    // https://learn.microsoft.com/en-us/windows/win32/api/securitybaseapi/nf-securitybaseapi-adjusttokenprivileges
+    using AdjustTokenPrivileges_ = BOOL(WINAPI*)(
+      HANDLE            TokenHandle,          // [in]       Access token handle
+      BOOL              DisableAllPrivileges, // [in]       Disable all privileges flag
+      PTOKEN_PRIVILEGES NewState,             // [in, opt]  New privilege state
+      DWORD             BufferLength,         // [in]       Size of PreviousState buffer
+      PTOKEN_PRIVILEGES PreviousState,        // [out, opt] Previous privilege state
+      PDWORD            ReturnLength          // [out, opt] Required buffer size
+    );
+    // clang-format on
+
+    static constexpr LPCSTR ModuleName = TEXT("advapi32.dll");
+
+    ~Advapi() noexcept;
+
+    bool load() noexcept;
+
+    void free() noexcept;
+
+    OpenProcessToken_      openProcessToken      = nullptr;
+    LookupPrivilegeValue_  lookupPrivilegeValue  = nullptr;
+    AdjustTokenPrivileges_ adjustTokenPrivileges = nullptr;
+
+   private:
+    HMODULE hModule = nullptr;
+    bool    loaded  = false;
+};
+    #endif
+
+template<typename SuccessFunc, typename FailureFunc>
+auto try_with_windows_lock_memory_privilege([[maybe_unused]] SuccessFunc&& successFunc,
+                                            FailureFunc&&                  failureFunc) noexcept {
+    #if defined(_WIN64)
+    const SIZE_T largePageSize = GetLargePageMinimum();
+
+    if (largePageSize == 0)
+        return failureFunc();
+
+    assert(is_power_of_2(largePageSize));
+
+    Advapi advapi;
+
+    if (!advapi.load())
+        return failureFunc();
+
+    HANDLE processHandle = HANDLE_INVALID;
+
+    HandleGuard processHandleGuard{processHandle};
+
+    // Need SeLockMemoryPrivilege, so try to enable it for the process
+    if (!advapi.openProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY,
+                                 &processHandle))
+        return failureFunc();
+
+    TOKEN_PRIVILEGES newTp{};
+    newTp.PrivilegeCount           = 1;
+    newTp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
+
+    // Get the luid
+    if (!advapi.lookupPrivilegeValue(nullptr, SE_LOCK_MEMORY_NAME, &newTp.Privileges[0].Luid))
+        return failureFunc();
+
+    TOKEN_PRIVILEGES oldTp{};
+    DWORD            oldTpLen = 0;
+
+    // Try to enable SeLockMemoryPrivilege. Note that even if AdjustTokenPrivileges() succeeds,
+    // Still need to query GetLastError() to ensure that the privileges were actually obtained.
+    SetLastError(ERROR_SUCCESS);
+
+    if (!advapi.adjustTokenPrivileges(processHandle, FALSE, &newTp, sizeof(oldTp), &oldTp,
+                                      &oldTpLen)
+        || GetLastError() != ERROR_SUCCESS)
+        return failureFunc();
+
+    // Call the provided function with the privilege enabled
+    auto&& ret = successFunc(largePageSize);
+
+    // Privilege no longer needed, restore the privileges
+    advapi.adjustTokenPrivileges(processHandle, FALSE, &oldTp, 0, nullptr, nullptr);
+
+    return std::forward<decltype(ret)>(ret);
+    #else
+    return failureFunc();
+    #endif
+}
+
+#else
+inline constexpr int FD_INVALID = -1;
+
+[[nodiscard]] constexpr bool is_valid_fd(const int fd) noexcept { return fd > FD_INVALID; }
+
+inline constexpr void* MMAP_PTR_INVALID  = nullptr;
+inline constexpr usize MMAP_SIZE_INVALID = 0;
+
+struct FdGuard final {
+   public:
+    explicit FdGuard(int& fdRef) noexcept;
+
+    FdGuard() noexcept = delete;
+
+    FdGuard(const FdGuard&) noexcept            = delete;
+    FdGuard& operator=(const FdGuard&) noexcept = delete;
+
+    FdGuard(FdGuard&&) noexcept            = delete;
+    FdGuard& operator=(FdGuard&&) noexcept = delete;
+
+    ~FdGuard() noexcept;
+
+    [[nodiscard]] bool is_valid() const noexcept;
+
+    [[nodiscard]] int get() const noexcept;
+
+    void reset(int newFd = FD_INVALID) noexcept;
+
+    void dismiss() noexcept;
+
+   private:
+    int& fd;
+};
+
+struct MMapGuard final {
+   public:
+    MMapGuard(void*& ptrRef, usize& sizeRef) noexcept;
+
+    MMapGuard() noexcept = delete;
+
+    MMapGuard(const MMapGuard&) noexcept            = delete;
+    MMapGuard& operator=(const MMapGuard&) noexcept = delete;
+
+    MMapGuard(MMapGuard&&) noexcept            = delete;
+    MMapGuard& operator=(MMapGuard&&) noexcept = delete;
+
+    ~MMapGuard() noexcept;
+
+    [[nodiscard]] bool is_valid() const noexcept;
+
+    [[nodiscard]] void* get_ptr() const noexcept;
+
+    [[nodiscard]] usize get_size() const noexcept;
+
+    void reset(void* newPtr = MMAP_PTR_INVALID, usize newSize = MMAP_SIZE_INVALID) noexcept;
+
+    void dismiss() noexcept;
+
+   private:
+    void*& mappedPtr;
+    usize& mappedSize;
+};
+
+struct UniqueFd final {
+   public:
+    explicit UniqueFd(int fdi) noexcept;
+
+    UniqueFd() noexcept = default;
+
+    UniqueFd(const UniqueFd&)            = delete;
+    UniqueFd& operator=(const UniqueFd&) = delete;
+
+    UniqueFd(UniqueFd&& uniqueFd) noexcept;
+    UniqueFd& operator=(UniqueFd&& uniqueFd) noexcept;
+
+    ~UniqueFd() noexcept;
+
+    [[nodiscard]] int get() const noexcept;
+
+    [[nodiscard]] bool is_valid() const noexcept;
+
+    [[nodiscard]] explicit operator bool() const noexcept;
+
+    [[nodiscard]] int release() noexcept;
+
+    void reset(int newFd = FD_INVALID) noexcept;
+
+   private:
+    int fd = FD_INVALID;
+};
+
+#endif
 
 inline std::string lower_case(std::string str) noexcept {
     std::transform(str.begin(), str.end(), str.begin(),
@@ -2018,30 +1989,8 @@ inline std::string hash_to_string(u64 hash) noexcept {
     return std::string{buffer.data(), copiedSize};
 }
 
-inline std::string u32_to_string(u32 v) noexcept {
-    constexpr usize BufferSize = 2 + HEX32_SIZE + 1;  // "0x" + 8 hex + '\0'
-
-    Array<char, BufferSize> buffer{};
-
-    int   writtenSize = std::snprintf(buffer.data(), buffer.size(), "0x%08" PRIX32, v);
-    usize copiedSize  = writtenSize > 0  //
-                        ? std::min<usize>(writtenSize, buffer.size() - 1)
-                        : 0;
-
-    return std::string{buffer.data(), copiedSize};
-}
-inline std::string u64_to_string(u64 v) noexcept {
-    constexpr usize BufferSize = 2 + HEX64_SIZE + 1;  // "0x" + 16 hex + '\0'
-
-    Array<char, BufferSize> buffer{};
-
-    int   writtenSize = std::snprintf(buffer.data(), buffer.size(), "0x%016" PRIX64, v);
-    usize copiedSize  = writtenSize > 0  //
-                        ? std::min<usize>(writtenSize, buffer.size() - 1)
-                        : 0;
-
-    return std::string{buffer.data(), copiedSize};
-}
+std::string u32_to_string(u32 v) noexcept;
+std::string u64_to_string(u64 v) noexcept;
 
 inline bool InfoStrStop = false;
 
@@ -2054,402 +2003,7 @@ std::filesystem::path path_from_utf8(std::string_view path) noexcept;
 
 std::optional<usize> str_to_usize(std::string_view sv) noexcept;
 
-// Reads the file as bytes.
-// Returns std::nullopt if the file does not exist.
 std::optional<std::string> read_file_to_string(const std::filesystem::path& filePath) noexcept;
-
-#if defined(_WIN32)
-// Get the error message string, if any
-inline std::string error_to_string(DWORD errorId) noexcept {
-    if (errorId == 0)
-        return {};
-
-    LPSTR buffer = nullptr;
-    // Ask Win32 to give us the string version of that message ID.
-    // The parameters pass in, tell Win32 to create the buffer that holds the message
-    // (because don't yet know how long the message string will be).
-    usize size = FormatMessage(
-      FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-      nullptr, errorId, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-      reinterpret_cast<LPSTR>(&buffer),  // must pass pointer to buffer pointer
-      0, nullptr);
-
-    if (size == 0 || buffer == nullptr)
-    {
-        // FormatMessage failed; return a fallback string
-        return "Unknown error: " + u32_to_string(errorId);
-    }
-
-    // Copy the error message into a std::string
-    std::string message{buffer, size};
-    // Trim trailing CR/LF that many system messages include
-    while (!message.empty() && (message.back() == '\r' || message.back() == '\n'))
-        message.pop_back();
-    // Free the Win32's string's buffer
-    LocalFree(buffer);
-
-    return message;
-}
-
-inline constexpr HANDLE HANDLE_INVALID = nullptr;
-
-[[nodiscard]] constexpr bool is_valid_handle(const HANDLE handle) noexcept {
-    return handle != HANDLE_INVALID && handle != INVALID_HANDLE_VALUE;
-}
-
-inline constexpr void* MMAP_PTR_INVALID = nullptr;
-
-struct HandleGuard final {
-   public:
-    explicit HandleGuard(HANDLE& handleRef) noexcept :
-        handle(handleRef) {}
-
-    HandleGuard() noexcept = delete;
-
-    HandleGuard(const HandleGuard&) noexcept            = delete;
-    HandleGuard& operator=(const HandleGuard&) noexcept = delete;
-
-    HandleGuard(HandleGuard&&) noexcept            = delete;
-    HandleGuard& operator=(HandleGuard&&) noexcept = delete;
-
-    ~HandleGuard() noexcept { reset(); }
-
-    [[nodiscard]] bool is_valid() const noexcept { return is_valid_handle(handle); }
-
-    [[nodiscard]] HANDLE get() const noexcept { return handle; }
-
-    void reset(HANDLE newHandle = HANDLE_INVALID) noexcept {
-        if (handle != newHandle)
-        {
-            if (is_valid())
-                CloseHandle(handle);
-
-            handle = newHandle;
-        }
-    }
-
-    void dismiss() noexcept { handle = HANDLE_INVALID; }
-
-   private:
-    HANDLE& handle;
-};
-
-struct MMapGuard final {
-   public:
-    explicit MMapGuard(void*& ptrRef) noexcept :
-        mappedPtr(ptrRef) {}
-
-    MMapGuard() noexcept = delete;
-
-    MMapGuard(const MMapGuard&) noexcept            = delete;
-    MMapGuard& operator=(const MMapGuard&) noexcept = delete;
-
-    MMapGuard(MMapGuard&&) noexcept            = delete;
-    MMapGuard& operator=(MMapGuard&&) noexcept = delete;
-
-    ~MMapGuard() noexcept { reset(); }
-
-    [[nodiscard]] bool is_valid() const noexcept { return mappedPtr != MMAP_PTR_INVALID; }
-
-    [[nodiscard]] void* get() const noexcept { return mappedPtr; }
-
-    void reset(void* newPtr = MMAP_PTR_INVALID) noexcept {
-        if (mappedPtr != newPtr)
-        {
-            if (is_valid())
-                UnmapViewOfFile(mappedPtr);
-
-            mappedPtr = newPtr;
-        }
-    }
-
-    void dismiss() noexcept { mappedPtr = MMAP_PTR_INVALID; }
-
-   private:
-    void*& mappedPtr;
-};
-
-    #if defined(_WIN64)
-struct Advapi final {
-   public:
-    // clang-format off
-    // https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-openprocesstoken
-    using OpenProcessToken_ = BOOL(WINAPI*)(
-      HANDLE  ProcessHandle,    // [in]  Handle to process
-      DWORD   DesiredAccess,    // [in]  Access rights for token
-      PHANDLE TokenHandle       // [out] Pointer to token handle
-    );
-    // https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-lookupprivilegevaluea
-    using LookupPrivilegeValue_ = BOOL(WINAPI*)(
-      LPCSTR lpSystemName,      // [in]  System name (NULL for local)
-      LPCSTR lpName,            // [in]  Privilege name (e.g., SE_DEBUG_NAME)
-      PLUID  lpLuid             // [out] Receives LUID of privilege
-    );
-    // https://learn.microsoft.com/en-us/windows/win32/api/securitybaseapi/nf-securitybaseapi-adjusttokenprivileges
-    using AdjustTokenPrivileges_ = BOOL(WINAPI*)(
-      HANDLE            TokenHandle,          // [in]       Access token handle
-      BOOL              DisableAllPrivileges, // [in]       Disable all privileges flag
-      PTOKEN_PRIVILEGES NewState,             // [in, opt]  New privilege state
-      DWORD             BufferLength,         // [in]       Size of PreviousState buffer
-      PTOKEN_PRIVILEGES PreviousState,        // [out, opt] Previous privilege state
-      PDWORD            ReturnLength          // [out, opt] Required buffer size
-    );
-    // clang-format on
-
-    static constexpr LPCSTR ModuleName = TEXT("advapi32.dll");
-
-    ~Advapi() noexcept { free(); }
-
-    // The needed Windows API for processor groups could be missed from old Windows versions,
-    // so instead of calling them directly (forcing the linker to resolve the calls at compile time),
-    // try to load them at runtime.
-    bool load() noexcept {
-
-        hModule = GetModuleHandle(ModuleName);
-
-        if (hModule == nullptr)
-        {
-            hModule = LoadLibraryEx(ModuleName, nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
-            // Optional last resort
-            if (hModule == nullptr)
-                hModule = LoadLibrary(ModuleName);
-
-            if (hModule == nullptr)
-                return false;
-
-            loaded = true;
-        }
-
-        openProcessToken =
-          OpenProcessToken_((void (*)()) GetProcAddress(hModule, "OpenProcessToken"));
-
-        lookupPrivilegeValue =
-          LookupPrivilegeValue_((void (*)()) GetProcAddress(hModule, "LookupPrivilegeValueA"));
-
-        adjustTokenPrivileges =
-          AdjustTokenPrivileges_((void (*)()) GetProcAddress(hModule, "AdjustTokenPrivileges"));
-
-        if (openProcessToken == nullptr || lookupPrivilegeValue == nullptr
-            || adjustTokenPrivileges == nullptr)
-        {
-            free();
-
-            return false;
-        }
-
-        return true;
-    }
-
-    void free() noexcept {
-        if (loaded)
-        {
-            assert(hModule != nullptr);
-
-            FreeLibrary(hModule);
-
-            hModule = nullptr;
-            loaded  = false;
-        }
-    }
-
-    OpenProcessToken_      openProcessToken      = nullptr;
-    LookupPrivilegeValue_  lookupPrivilegeValue  = nullptr;
-    AdjustTokenPrivileges_ adjustTokenPrivileges = nullptr;
-
-   private:
-    HMODULE hModule = nullptr;
-    bool    loaded  = false;
-};
-    #endif
-
-template<typename SuccessFunc, typename FailureFunc>
-auto try_with_windows_lock_memory_privilege([[maybe_unused]] SuccessFunc&& successFunc,
-                                            FailureFunc&&                  failureFunc) noexcept {
-    #if defined(_WIN64)
-    const SIZE_T largePageSize = GetLargePageMinimum();
-
-    if (largePageSize == 0)
-        return failureFunc();
-
-    assert(is_power_of_2(largePageSize));
-
-    Advapi advapi;
-
-    if (!advapi.load())
-        return failureFunc();
-
-    HANDLE hProcess = HANDLE_INVALID;
-
-    HandleGuard hProcessGuard{hProcess};
-
-    // Need SeLockMemoryPrivilege, so try to enable it for the process
-    if (!advapi.openProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY,
-                                 &hProcess))
-        return failureFunc();
-
-    TOKEN_PRIVILEGES newTp{};
-    newTp.PrivilegeCount           = 1;
-    newTp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
-
-    // Get the luid
-    if (!advapi.lookupPrivilegeValue(nullptr, SE_LOCK_MEMORY_NAME, &newTp.Privileges[0].Luid))
-        return failureFunc();
-
-    TOKEN_PRIVILEGES oldTp{};
-    DWORD            oldTpLen = 0;
-
-    // Try to enable SeLockMemoryPrivilege. Note that even if AdjustTokenPrivileges() succeeds,
-    // Still need to query GetLastError() to ensure that the privileges were actually obtained.
-    SetLastError(ERROR_SUCCESS);
-
-    if (!advapi.adjustTokenPrivileges(hProcess, FALSE, &newTp, sizeof(oldTp), &oldTp, &oldTpLen)
-        || GetLastError() != ERROR_SUCCESS)
-        return failureFunc();
-
-    // Call the provided function with the privilege enabled
-    auto&& ret = successFunc(largePageSize);
-
-    // Privilege no longer needed, restore the privileges
-    advapi.adjustTokenPrivileges(hProcess, FALSE, &oldTp, 0, nullptr, nullptr);
-
-    return std::forward<decltype(ret)>(ret);
-    #else
-    return failureFunc();
-    #endif
-}
-
-#else
-inline constexpr int FD_INVALID = -1;
-
-[[nodiscard]] constexpr bool is_valid_fd(const int fd) noexcept { return fd > FD_INVALID; }
-
-inline constexpr void* MMAP_PTR_INVALID  = nullptr;
-inline constexpr usize MMAP_SIZE_INVALID = 0;
-
-struct FdGuard final {
-   public:
-    explicit FdGuard(int& refFd) noexcept :
-        fd(refFd) {}
-
-    FdGuard() noexcept = delete;
-
-    FdGuard(const FdGuard&) noexcept            = delete;
-    FdGuard& operator=(const FdGuard&) noexcept = delete;
-
-    FdGuard(FdGuard&&) noexcept            = delete;
-    FdGuard& operator=(FdGuard&&) noexcept = delete;
-
-    ~FdGuard() noexcept { reset(); }
-
-    [[nodiscard]] bool is_valid() const noexcept { return is_valid_fd(fd); }
-
-    [[nodiscard]] int get() const noexcept { return fd; }
-
-    void reset(int newFd = FD_INVALID) noexcept {
-        if (fd != newFd)
-        {
-            if (is_valid())
-                ::close(fd);
-
-            fd = newFd;
-        }
-    }
-
-    void dismiss() noexcept { fd = FD_INVALID; }
-
-   private:
-    int& fd;
-};
-
-struct MMapGuard final {
-   public:
-    MMapGuard(void*& ptrRef, usize& sizeRef) noexcept :
-        mappedPtr(ptrRef),
-        mappedSize(sizeRef) {}
-
-    MMapGuard() noexcept = delete;
-
-    MMapGuard(const MMapGuard&) noexcept            = delete;
-    MMapGuard& operator=(const MMapGuard&) noexcept = delete;
-
-    MMapGuard(MMapGuard&&) noexcept            = delete;
-    MMapGuard& operator=(MMapGuard&&) noexcept = delete;
-
-    ~MMapGuard() noexcept { reset(); }
-
-    [[nodiscard]] bool is_valid() const noexcept { return mappedPtr != MMAP_PTR_INVALID; }
-
-    [[nodiscard]] void* get_ptr() const noexcept { return mappedPtr; }
-
-    [[nodiscard]] usize get_size() const noexcept { return mappedSize; }
-
-    void reset(void* newPtr = MMAP_PTR_INVALID, usize newSize = MMAP_SIZE_INVALID) noexcept {
-        if (mappedPtr != newPtr)
-        {
-            if (is_valid())
-                ::munmap(mappedPtr, mappedSize);
-
-            mappedPtr  = newPtr;
-            mappedSize = newSize;
-        }
-    }
-
-    void dismiss() noexcept {
-        mappedPtr  = MMAP_PTR_INVALID;
-        mappedSize = MMAP_SIZE_INVALID;
-    }
-
-   private:
-    void*& mappedPtr;
-    usize& mappedSize;
-};
-
-struct UniqueFd final {
-   public:
-    explicit UniqueFd(int iFd) noexcept :
-        fd{iFd} {}
-
-    UniqueFd() noexcept = default;
-
-    UniqueFd(const UniqueFd&)            = delete;
-    UniqueFd& operator=(const UniqueFd&) = delete;
-
-    UniqueFd(UniqueFd&& uniqueFd) noexcept :
-        fd{uniqueFd.release()} {}
-    UniqueFd& operator=(UniqueFd&& uniqueFd) noexcept {
-        if (this == &uniqueFd)
-            return *this;
-
-        reset(uniqueFd.release());
-
-        return *this;
-    }
-
-    ~UniqueFd() { reset(); }
-
-    [[nodiscard]] int get() const noexcept { return fd; }
-
-    [[nodiscard]] bool is_valid() const noexcept { return is_valid_fd(fd); }
-
-    [[nodiscard]] explicit operator bool() const noexcept { return is_valid(); }
-
-    [[nodiscard]] int release() noexcept { return std::exchange(fd, FD_INVALID); }
-
-    void reset(int newFd = FD_INVALID) noexcept {
-        if (fd != newFd)
-        {
-            if (is_valid())
-                ::close(fd);
-
-            fd = newFd;
-        }
-    }
-
-   private:
-    int fd = FD_INVALID;
-};
-
-#endif
 
 }  // namespace DON
 

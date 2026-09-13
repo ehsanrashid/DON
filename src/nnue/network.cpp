@@ -283,8 +283,8 @@ bool Network::load_embedded(EvalFile& evalFile) noexcept {
         return false;
 #endif
 
-    MemoryStreambuf memBuf(const_cast<char*>(reinterpret_cast<const char*>(gEmbeddedNNUEData)),
-                           static_cast<usize>(gEmbeddedNNUESize));
+    MemoryBuf memBuf(const_cast<char*>(reinterpret_cast<const char*>(gEmbeddedNNUEData)),
+                     static_cast<usize>(gEmbeddedNNUESize));
 
     std::istream is{&memBuf};
 

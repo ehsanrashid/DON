@@ -254,7 +254,7 @@ class FeatureTransformer final {
 #if defined(VECTOR)
             [[maybe_unused]] auto cursor = nnz.make_cursor(p);
 
-            constexpr Index OutputChunkSize = MaxChunkSize;
+            constexpr Index OutputChunkSize = SIMD::CHUNK_SIZE_MAX;
             static_assert(HalfDimensions % (2 * OutputChunkSize) == 0);
             constexpr Index OutputChunkCount = HalfDimensions / (2 * OutputChunkSize);
 

@@ -36,10 +36,9 @@
     #include "../platform_win.h"
 #else
     #include <cerrno>
-    #include <fcntl.h>
-    #include <sys/mman.h>
+    #include <fcntl.h>     // open()
+    #include <sys/mman.h>  // munmap()
     #include <sys/stat.h>
-    #include <unistd.h>  // IWYU pragma: keep
 #endif
 
 #include "../attacks.h"
@@ -185,7 +184,7 @@ T number(const void* addr) noexcept {
     else  // Unaligned pointer (very rare)
         std::memcpy(&v, addr, sizeof(T));
 
-    if (static_cast<bool>(E) != IsLittleEndian)
+    if (static_cast<bool>(E) != IS_LITTLE_ENDIAN)
         swap_endian(v);
 
     return v;
@@ -562,8 +561,8 @@ struct TBTable final: BaseTBTable {
    private:
     Array<PairsData, Sides, FILE_NB / 2> items;  // [color][FILE_A..FILE_D]
     #if defined(_WIN32)
-    HANDLE      hMapFile = HANDLE_INVALID;
-    HandleGuard hMapFileGuard{hMapFile};
+    HANDLE      mapFileHandle = HANDLE_INVALID;
+    HandleGuard mapFileHandleGuard{mapFileHandle};
 
     void*     mappedPtr = MMAP_PTR_INVALID;
     MMapGuard mappedGuard{mappedPtr};
@@ -573,7 +572,7 @@ struct TBTable final: BaseTBTable {
     MMapGuard mappedGuard{mappedPtr, mappedSize};
     #endif
     u8*      mapPtr = nullptr;
-    CallOnce callOnce;
+    CallOnce initOnce;
 };
 
 template<TBType T>
@@ -599,7 +598,7 @@ TBTable<T>::~TBTable() noexcept {
 template<TBType T>
 void* TBTable<T>::init(const Position& pos, const Key materialKey) noexcept {
     // Fast path: if already initialized, return immediately
-    if (callOnce.initialized())
+    if (initOnce.initialized())
         return mappedPtr;
 
     // Pieces strings in decreasing order for each color, like ("KPP","KR")
@@ -609,8 +608,8 @@ void* TBTable<T>::init(const Position& pos, const Key materialKey) noexcept {
         for (usize i = PIECE_TYPES.size(); i-- > 0;)
             pieces[c].append(pos.count(c, PIECE_TYPES[i]), to_char(PIECE_TYPES[i]));
 
-    // Slow path: initialize exactly once using CallOnce
-    callOnce([this, pieces = std::move(pieces), materialKey]() noexcept {
+    // Slow path: initialize exactly once using initOnce
+    initOnce([this, pieces = std::move(pieces), materialKey]() noexcept {
         bool c = key[WHITE] == materialKey;
 
         std::string base;
@@ -636,12 +635,12 @@ template<TBType T>
 u8* TBTable<T>::map(const std::string_view filename) noexcept {
     #if defined(_WIN32)
     // Note FILE_FLAG_RANDOM_ACCESS is only a hint to Windows and as such may get ignored
-    HANDLE hFile = CreateFile(filename.data(), GENERIC_READ, FILE_SHARE_READ, nullptr,
-                              OPEN_EXISTING, FILE_FLAG_RANDOM_ACCESS, nullptr);
+    HANDLE fileHandle = CreateFile(filename.data(), GENERIC_READ, FILE_SHARE_READ, nullptr,
+                                   OPEN_EXISTING, FILE_FLAG_RANDOM_ACCESS, nullptr);
 
-    HandleGuard hFileGuard{hFile};
+    HandleGuard fileHandleGuard{fileHandle};
 
-    if (!hFileGuard.is_valid())
+    if (!fileHandleGuard.is_valid())
     {
         DEBUG_LOG("CreateFile() failed: name = " << filename << ", error = "
                                                  << error_to_string(GetLastError()));
@@ -649,7 +648,7 @@ u8* TBTable<T>::map(const std::string_view filename) noexcept {
     }
 
     DWORD hiSize;
-    DWORD loSize = GetFileSize(hFileGuard.get(), &hiSize);
+    DWORD loSize = GetFileSize(fileHandleGuard.get(), &hiSize);
 
     if (loSize == INVALID_FILE_SIZE && GetLastError() != NO_ERROR)
     {
@@ -665,23 +664,24 @@ u8* TBTable<T>::map(const std::string_view filename) noexcept {
         return nullptr;
     }
 
-    hMapFile = CreateFileMapping(hFileGuard.get(), nullptr, PAGE_READONLY, hiSize, loSize, nullptr);
+    mapFileHandle =
+      CreateFileMapping(fileHandleGuard.get(), nullptr, PAGE_READONLY, hiSize, loSize, nullptr);
 
-    if (!hMapFileGuard.is_valid())
+    if (!mapFileHandleGuard.is_valid())
     {
         DEBUG_LOG("CreateFileMapping() failed: name = " << filename << ", error = "
                                                         << error_to_string(GetLastError()));
         return nullptr;
     }
 
-    mappedPtr = MapViewOfFile(hMapFileGuard.get(), FILE_MAP_READ, 0, 0, 0);
+    mappedPtr = MapViewOfFile(mapFileHandleGuard.get(), FILE_MAP_READ, 0, 0, 0);
 
     if (!mappedGuard.is_valid())
     {
         DEBUG_LOG("MapViewOfFile() failed: name = " << filename << ", error = "
                                                     << error_to_string(GetLastError()));
 
-        hMapFileGuard.reset();
+        mapFileHandleGuard.reset();
 
         return nullptr;
     }
@@ -696,7 +696,7 @@ u8* TBTable<T>::map(const std::string_view filename) noexcept {
         return nullptr;
     }
 
-    struct stat fileStat{};
+    struct stat fileStat = {};
 
     if (::fstat(fdGuard.get(), &fileStat) == -1)
     {
@@ -751,7 +751,7 @@ template<TBType T>
 void TBTable<T>::unmap() noexcept {
     mappedGuard.reset();
     #if defined(_WIN32)
-    hMapFileGuard.reset();
+    mapFileHandleGuard.reset();
     #endif
 }
 

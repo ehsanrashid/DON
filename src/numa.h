@@ -35,20 +35,23 @@
 #include <variant>
 #include <vector>
 
+#if !defined(_WIN64)                                 /* Non-Windows */ \
+  && ((defined(__linux__) && !defined(__ANDROID__))) /* Linux (Non-Android) */
+    #define USE_UNIX_NUMA
+#endif
+
 #if defined(_WIN64)
     #include <cstring>
     #include <type_traits>
 
     #include "platform_win.h"
 
-#elif (defined(__linux__) && !defined(__ANDROID__)) /* Linux (non-Android) */
+#elif defined(USE_UNIX_NUMA)
     #if !defined(_GNU_SOURCE)
         #define _GNU_SOURCE
     #endif
     #include <sched.h>
     #include <numeric>
-
-    #define USE_UNIX_NUMA
 #endif
 
 #include "misc.h"
@@ -1178,8 +1181,8 @@ class NumaConfig final {
             for (const NumaIndex nodeId : shortened_string_to_indices(*nodeIdStr))
             {
                 // /sys/devices/system/node/node.../cpulist
-                const std::string path{std::string{"/sys/devices/system/node/node"}
-                                       + std::to_string(nodeId) + std::string{"/cpulist"}};
+                const std::string path = std::string{"/sys/devices/system/node/node"}
+                                       + std::to_string(nodeId) + "/cpulist";
 
                 auto cpuIdsStr = read_file_to_string(path);
 
@@ -1272,9 +1275,8 @@ class NumaConfig final {
             if (seenCpus.find(nextCpuId) != seenCpus.end())
                 continue;
 
-            const std::string path{std::string{"/sys/devices/system/cpu/cpu"}  //
-                                   + std::to_string(nextCpuId)                 //
-                                   + std::string{"/cache/index3/shared_cpu_list"}};
+            const std::string path = std::string{"/sys/devices/system/cpu/cpu"}
+                                   + std::to_string(nextCpuId) + "/cache/index3/shared_cpu_list";
 
             const auto cpuIdsStr = read_file_to_string(path);
 
@@ -1681,8 +1683,8 @@ class LazyNumaReplicated final: public BaseNumaReplicated {
         }
     }
 
-    mutable std::vector<std::unique_ptr<T>> instances;
     mutable std::mutex                      mutex;
+    mutable std::vector<std::unique_ptr<T>> instances;
 };
 
 // Utilizes shared memory

@@ -264,8 +264,8 @@ bool has_large_page() noexcept {
     void* mem = alloc_windows_aligned_large_page(PageSize);
     if (mem == nullptr)
         return false;
-    [[maybe_unused]] bool success = free_aligned_large_page(mem);
-    assert(success);
+    [[maybe_unused]] const bool freed = free_aligned_large_page(mem);
+    assert(freed);
     return true;
 #elif defined(__linux__)
     return

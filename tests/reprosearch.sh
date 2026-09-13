@@ -12,7 +12,7 @@ echo "reprosearch testing started"
 # Repeat two short games, separated by ucinewgame.
 # with go nodes $nodes they should result in exactly
 # the same node count for each iteration.
-cat << EOF > repeat.exp
+cat <<EOF > repeat.exp
 set timeout 10
 spawn ./DON
 lassign \$argv nodes

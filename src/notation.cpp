@@ -110,14 +110,14 @@ FixedText to_wdl(Value v, const Position& pos) noexcept {
     int l = win_rate_model(-v, pos);
     int d = 1000 - (w + l);
 
-    return FixedText{}.write(" wdl ").write(w).write(' ').write(d).write(' ').write(l);
+    return FixedText::from(" wdl ").write(w).write(' ').write(d).write(' ').write(l);
 }
 
 FixedText to_score(const Score& score) noexcept {
     return score.visit(Overload{
-      [](Score::Unit unit) -> FixedText { return FixedText{}.write("cp ").write(unit.value); },
-      [](Score::Tablebase tb) -> FixedText { return FixedText{}.write("cp ").write(tb.value); },
-      [](Score::Mate mate) -> FixedText { return FixedText{}.write("mate ").write(mate.value); }});
+      [](Score::Unit unit) -> FixedText { return FixedText::from("cp ").write(unit.value); },
+      [](Score::Tablebase tb) -> FixedText { return FixedText::from("cp ").write(tb.value); },
+      [](Score::Mate mate) -> FixedText { return FixedText::from("mate ").write(mate.value); }});
 }
 
 std::string move_to_can(const Move m) noexcept {

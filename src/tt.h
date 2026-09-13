@@ -36,11 +36,8 @@ namespace DON {
 // Probes and reads are racy and non-atomic, possibly resulting in inconsistent data.
 struct TTData final {
    public:
-    TTData() noexcept                         = delete;
-    TTData(const TTData&) noexcept            = delete;
-    TTData& operator=(const TTData&) noexcept = delete;
-    TTData(TTData&&) noexcept                 = default;
-    TTData& operator=(TTData&&) noexcept      = delete;
+    TTData(TTData&&) noexcept            = default;
+    TTData& operator=(TTData&&) noexcept = delete;
 
     static TTData empty() noexcept;
 
@@ -51,6 +48,11 @@ struct TTData final {
     Bound bound;
     bool  hit;
     bool  pv;
+
+   private:
+    TTData() noexcept                         = delete;
+    TTData(const TTData&) noexcept            = delete;
+    TTData& operator=(const TTData&) noexcept = delete;
 };
 
 //static_assert(sizeof(TTData) == 12, "TTData size must be 12 bytes");

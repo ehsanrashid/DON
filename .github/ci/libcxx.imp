@@ -9,6 +9,8 @@
     { include: [ "<__fwd/string_view.h>", private, "<string_view>", public ] },
     { include: [ "<__system_error/errc.h>", private, "<system_error>", public ] },
     { include: [ "<__system_error/error_code.h>", private, "<system_error>", public ] },
+    { include: [ "<__hash_table>", private, "<unordered_map>", public ] },
+    { include: [ "<__hash_table>", private, "<unordered_set>", public ] },
 
     # Mappings for includes between public headers
     { include: [ "<ios>", public, "<iostream>", public ] },

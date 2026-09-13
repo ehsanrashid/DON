@@ -513,7 +513,7 @@ bool PolyGlot::load(const std::filesystem::path& bookFile) noexcept {
 
     ifs.close();
 
-    if (IsLittleEndian)
+    if (IS_LITTLE_ENDIAN)
         for (usize i = 0; i < entries.size(); ++i)
             swap_entry(&entries[i]);
 
