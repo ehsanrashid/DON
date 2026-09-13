@@ -403,8 +403,8 @@ namespace MemoryRegistry {
 
 using Memory         = BaseSharedMemory*;
 using MemoryList     = std::list<Memory>;
-using MemorySet      = std::unordered_set<Memory>;
 using MemoryIndexMap = std::unordered_map<Memory, MemoryList::iterator>;
+using MemorySet      = std::unordered_set<Memory>;
 
 bool register_memory(Memory memory) noexcept;
 bool unregister_memory(Memory memory) noexcept;
