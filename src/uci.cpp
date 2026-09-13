@@ -20,7 +20,6 @@
 #include <algorithm>
 #include <cassert>
 #include <chrono>
-#include <functional>
 #include <iostream>
 #include <optional>
 #include <sstream>
