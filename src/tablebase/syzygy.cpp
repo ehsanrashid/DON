@@ -597,33 +597,32 @@ TBTable<T>::~TBTable() noexcept {
 // Function is thread safe and can be called concurrently.
 template<TBType T>
 void* TBTable<T>::init(const Position& pos, const Key materialKey) noexcept {
-    // Fast path: if already initialized, return immediately
-    if (initCallOnce.once_init())
-        return mappedPtr;
+    // Wait until initialization has completed.
+    while (!initCallOnce.once_init())
+    {
+        initCallOnce([this, &pos, materialKey]() noexcept {
+            // Pieces strings in decreasing order for each color, like ("KPP", "KR").
+            Array<std::string, COLOR_NB> pieces{};
 
-    // Slow path: initialize exactly once.
-    initCallOnce([this, &pos, materialKey]() noexcept {
-        // Pieces strings in decreasing order for each color, like ("KPP", "KR").
-        Array<std::string, COLOR_NB> pieces{};
+            for (Color c : {WHITE, BLACK})
+                for (usize i = PIECE_TYPES.size(); i-- > 0;)
+                    pieces[c].append(pos.count(c, PIECE_TYPES[i]), to_char(PIECE_TYPES[i]));
 
-        for (Color c : {WHITE, BLACK})
-            for (usize i = PIECE_TYPES.size(); i-- > 0;)
-                pieces[c].append(pos.count(c, PIECE_TYPES[i]), to_char(PIECE_TYPES[i]));
+            const Color c = key[WHITE] == materialKey ? WHITE : BLACK;
 
-        const bool c = key[WHITE] == materialKey;
+            std::string base;
+            base.reserve(pieces[WHITE].size() + 1 + pieces[BLACK].size());
 
-        std::string base;
-        base.reserve(pieces[WHITE].size() + 1 + pieces[BLACK].size());
+            base  //
+              .append(pieces[c])
+              .append("v")
+              .append(pieces[!c]);
 
-        base  //
-          .append(pieces[Color(!c)])
-          .append("v")
-          .append(pieces[Color(c)]);
+            TBFile tbFile(base, EXTS[T]);
 
-        TBFile tbFile(base, EXTS[T]);
-
-        set(tbFile.exists() ? map(tbFile.file_name()) : nullptr);
-    });
+            set(tbFile.exists() ? map(tbFile.file_name()) : nullptr);
+        });
+    }
 
     return mappedPtr;
 }
