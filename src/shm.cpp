@@ -161,9 +161,11 @@ std::string_view BaseSharedMemory::name() const noexcept { return name_; }
 // Provides a thread-safe process-wide registry for tracking registered memory
 // objects (BaseSharedMemory) without owning them.
 //
-// The registry maintains:
-//  - True insertion order for deterministic iteration
-//  - Average O(1) registration and unregistration via list + hash map
+// The registry provides:
+//  - True insertion order through List
+//  - Average O(1) membership validation through Set
+//  - Average O(1) lookup and removal through IndexMap
+//  - Average O(1) registration and unregistration by maintaining all containers
 //
 // Key Features:
 //  - Thread-safe registration and unregistration
@@ -172,11 +174,13 @@ std::string_view BaseSharedMemory::name() const noexcept { return name_; }
 //  - Lightweight: stores raw pointers only; lifetime is managed externally
 //
 // Implementation:
-//  - List preserves true insertion order
-//  - IndexMap provides average O(1) lookup and stores an iterator into List
+//  - List preserves true insertion order for deterministic iteration
+//  - Set provides uniqueness and membership validation
+//  - IndexMap provides average O(1) lookup and maps each memory to its
+//    corresponding iterator in List
 //
 // Concurrency Model:
-//  - Mutex protects both registry containers
+//  - Mutex protects all registry containers
 //  - Read-only access uses shared locking
 //  - Registration and unregistration use exclusive locking
 //
@@ -190,77 +194,125 @@ namespace MemoryRegistry {
 
 namespace {
 
-// Protects access to both registry containers.
+// Protects access to all registry containers.
 std::shared_mutex Mutex;
 
 // Preserves true insertion order for deterministic iteration.
 MemoryList List;
 
-// Provides average O(1) lookup and removal; stores an iterator into 'List'.
+// Provides uniqueness and membership validation.
+MemorySet Set;
+
+// Provides average O(1) lookup and removal.
+// Maps each memory to its corresponding iterator in List.
 MemoryIndexMap IndexMap;
 
-// Insert a memory object into both registry containers.
-//
-// The caller must hold 'Mutex' exclusively.
-//
-// Two-phase insertion:
-//  1. Insert the pointer into IndexMap with a temporary list iterator.
-//     This performs the duplicate check and inserts the map entry.
-//  2. Append the pointer to List.
-//  3. Replace the temporary iterator with the actual list iterator.
-//
-// This avoids a second map lookup while keeping both containers synchronized.
-bool insert_memory_nolock(Memory memory) noexcept {
-    auto [indexMapItr, inserted] = IndexMap.emplace(memory, List.end());
+// Verifies the consistency of all registry containers.
+// The caller must hold 'Mutex' in shared or exclusive mode.
+// The following invariants must hold:
+//  - All three containers have the same size.
+//  - Every memory in 'List' exists in 'Set' and 'IndexMap'.
+//  - Every IndexMap entry points to its corresponding node in 'List'.
+void assert_consistent_nolock() noexcept {
+    assert(List.size() == Set.size());
+    assert(List.size() == IndexMap.size());
 
-    // Already registered.
-    if (!inserted)
+    for (auto listItr = List.begin(); listItr != List.end(); ++listItr)
+    {
+        const Memory memory = *listItr;
+
+        assert(memory != nullptr);
+        assert(Set.find(memory) != Set.end());
+
+        auto indexMapItr = IndexMap.find(memory);
+        assert(indexMapItr != IndexMap.end());
+        assert(indexMapItr->second == listItr);
+    }
+
+    for (const auto& [memory, listItr] : IndexMap)
+    {
+        assert(memory != nullptr);
+        assert(listItr != List.end());
+        assert(*listItr == memory);
+        assert(Set.find(memory) != Set.end());
+    }
+}
+
+// Insert a memory object into all registry containers.
+// The caller must hold 'Mutex' exclusively.
+// Set is checked first for membership to reject duplicate memory objects.
+// The memory is then appended to List, IndexMap records the corresponding
+// List iterator, and Set is finally updated to establish membership.
+// Set and IndexMap provide average O(1) lookup and insertion.
+bool insert_memory_nolock(Memory memory) noexcept {
+    if (Set.find(memory) != Set.end())
         return false;
 
     //DEBUG_LOG("Registering memory: " << static_cast<const void*>(memory) << ' ' << memory->name());
 
-    // Append to the ordered list and obtain a stable iterator.
+    // Append to the ordered list and obtain its iterator.
     auto listItr = List.emplace(List.end(), memory);
+    assert(listItr != List.end());
 
-    // Associate the map entry with its corresponding list node.
-    indexMapItr->second = listItr;
+    // Associate the memory with its corresponding list node.
+    [[maybe_unused]] const auto [indexMapItr, inserted] = IndexMap.emplace(memory, listItr);
+    // Set was checked first, so IndexMap must not contain the memory.
+    assert(inserted);
+    assert(indexMapItr->second == listItr);
+
+    // Establish membership after List and IndexMap are successfully updated.
+    [[maybe_unused]] const auto [setItr, registered] = Set.emplace(memory);
+    // The initial membership check guarantees that this insertion succeeds.
+    assert(registered);
+    assert(setItr != Set.end());
+
+    assert_consistent_nolock();
 
     return true;
 }
 
-// Remove a memory object from both registry containers.
-//
+// Remove a memory object from all registry containers.
 // The caller must hold 'Mutex' exclusively.
-//
-// IndexMap stores the corresponding List iterator, allowing
-// average O(1) removal from both containers without searching the list.
+// Set is checked first for membership to reject unregistered memory objects.
+// The corresponding List node is then removed through IndexMap,
+// followed by removal from IndexMap and Set.
+// Set and IndexMap provide average O(1) lookup and removal.
 bool erase_memory_nolock(Memory memory) noexcept {
-    auto indexMapItr = IndexMap.find(memory);
+    auto setItr = Set.find(memory);
 
     // Not registered.
-    if (indexMapItr == IndexMap.end())
+    if (setItr == Set.end())
         return false;
 
-    // Retrieve the stable list iterator associated with this entry.
+    auto indexMapItr = IndexMap.find(memory);
+    // Set guarantees that IndexMap contains the memory.
+    assert(indexMapItr != IndexMap.end());
+
+    // Retrieve the corresponding list node.
     auto listItr = indexMapItr->second;
-
-    // Internal consistency check.
+    // Internal consistency checks.
     assert(listItr != List.end());
+    assert(*listItr == memory);
 
-    // Remove the list node first.
-    List.erase(listItr);
+    // Remove the membership entry.
+    Set.erase(setItr);
 
-    // Remove the corresponding map entry.
+    // Remove the index entry.
     IndexMap.erase(indexMapItr);
 
+    // Remove the list node.
+    List.erase(listItr);
+
     //DEBUG_LOG("Unregistered memory: " << static_cast<const void*>(memory) << ' ' << memory->name());
+
+    assert_consistent_nolock();
 
     return true;
 }
 
 }  // namespace
 
-// Register a memory object.
+// Register a memory object in the registry.
 //
 // Returns false if:
 //  - memory is nullptr
@@ -272,37 +324,47 @@ bool register_memory(Memory memory) noexcept {
         return false;
     }
 
-    // Acquire an exclusive lock because both containers are modified.
+    // Acquire an exclusive lock because all registry containers are modified.
     std::lock_guard writeLock(Mutex);
 
     return insert_memory_nolock(memory);
 }
 
-// Unregister a memory object from the global registry.
+// Unregister a memory object from the registry.
 //
-// Returns false if the object is nullptr or is not registered.
+// Returns false if:
+//  - memory is nullptr
+//  - the object is not registered
 bool unregister_memory(Memory memory) noexcept {
     if (memory == nullptr)
+    {
+        //DEBUG_LOG("Cannot unregister <NULL> memory.");
         return false;
+    }
 
-    // Acquire an exclusive lock because both containers are modified.
+    // Acquire an exclusive lock because all registry containers are modified.
     std::lock_guard writeLock(Mutex);
 
     return erase_memory_nolock(memory);
 }
 
-// Detach registered memory objects from the registry.
+// Detach all registered memory objects from the registry.
 //
 // Returns the objects in true insertion order.
 //
-// List is moved out and IndexMap is cleared before the returned
-// list is processed, allowing callers to safely operate on the objects
-// without holding the registry lock.
+// All registry containers are cleared before the returned list is processed,
+// allowing callers to safely operate on the objects without holding 'Mutex'.
 MemoryList detach_memories() noexcept {
     std::lock_guard writeLock(Mutex);
 
     auto detachedList = std::move(List);
+
     IndexMap.clear();
+    Set.clear();
+
+    assert(List.empty());
+    assert(IndexMap.empty());
+    assert(Set.empty());
 
     return detachedList;
 }
@@ -311,16 +373,23 @@ MemoryList detach_memories() noexcept {
 usize size() noexcept {
     std::shared_lock readLock(Mutex);
 
-    return IndexMap.size();
+    assert(List.size() == Set.size());
+    assert(List.size() == IndexMap.size());
+
+    return List.size();
 }
 
-// Prints the names of all registered memory objects in true insertion order.
+// Prints the addresses and names of all registered memory objects
+// in true insertion order.
 //
 // The registry lock is held for the duration of the iteration and output.
 void print() noexcept {
     std::shared_lock readLock(Mutex);
 
-    std::cout << "Registered memories (insertion order) [" << IndexMap.size() << "]:\n";
+    assert(List.size() == Set.size());
+    assert(List.size() == IndexMap.size());
+
+    std::cout << "Registered memories [" << List.size() << "]:\n";
 
     usize i = 0;
     for (auto* memory : List)

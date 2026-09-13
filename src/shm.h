@@ -82,6 +82,7 @@
     #include <optional>
     #include <thread>
     #include <unordered_map>
+    #include <unordered_set>
 
     // Linux (non-Android)
     #if defined(__linux__) && !defined(__ANDROID__)
@@ -402,6 +403,7 @@ namespace MemoryRegistry {
 
 using Memory         = BaseSharedMemory*;
 using MemoryList     = std::list<Memory>;
+using MemorySet      = std::unordered_set<Memory>;
 using MemoryIndexMap = std::unordered_map<Memory, MemoryList::iterator>;
 
 bool register_memory(Memory memory) noexcept;
