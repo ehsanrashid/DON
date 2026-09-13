@@ -19,7 +19,7 @@
 
 #include <algorithm>
 #include <cassert>
-#include <cstdlib>
+//#include <cstdlib>
 #include <iostream>
 
 namespace DON {
@@ -145,7 +145,9 @@ usize Options::size() const noexcept { return list.size(); }
 
 bool Options::empty() const noexcept { return list.empty(); }
 
-bool Options::contains(Set::const_iterator setItr) const noexcept { return setItr != set.end(); }
+bool Options::contains(const Set::const_iterator setItr) const noexcept {
+    return setItr != set.end();
+}
 
 bool Options::contains(const std::string_view name) const noexcept {
     return contains(set.find(name));
@@ -194,7 +196,7 @@ bool Options::add(const std::string_view name, const Option& option) noexcept {
 // Removes an option from the Options.
 //
 // Returns false if no option with the specified name exists.
-bool Options::remove(std::string_view name) noexcept {
+bool Options::remove(const std::string_view name) noexcept {
     const auto setItr = set.find(name);
 
     // Not registered.
@@ -209,7 +211,7 @@ bool Options::remove(std::string_view name) noexcept {
     const auto listItr = indexMapItr->second;
     // Internal consistency checks.
     assert(listItr != list.end());
-    assert(listItr->first == name);
+    assert(lower_case(std::string{listItr->first}) == lower_case(std::string{name}));
 
     // Remove the membership entry.
     set.erase(setItr);
@@ -222,7 +224,6 @@ bool Options::remove(std::string_view name) noexcept {
 
     return true;
 }
-
 
 void Options::set_value(const std::string_view name, const std::string_view value) noexcept {
     const auto indexMapItr = find(name);
