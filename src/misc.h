@@ -476,6 +476,8 @@ void set_console_output(ConsoleMode consoleMode = ConsoleMode::Default) noexcept
 void set_console_colors(const char* coutColor = ConsoleColor::BRIGHT_BLUE,
                         const char* cerrColor = ConsoleColor::BRIGHT_RED) noexcept;
 
+void restore_console_colors() noexcept;
+
 std::string format_date(std::string_view date) noexcept;
 
 std::string format_time(std::string_view time) noexcept;

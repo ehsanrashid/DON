@@ -65,22 +65,16 @@ void set_console_output(const ConsoleMode consoleMode) noexcept {
 #endif
 }
 
+namespace {
+
+std::unique_ptr<ColorBuf> CoutColorBuf;
+std::unique_ptr<ColorBuf> CerrColorBuf;
+
+}  // namespace
+
+// Sets the console colors for stdout and stderr.
 void set_console_colors(const char* const coutColor, const char* const cerrColor) noexcept {
-    static std::unique_ptr<ColorBuf> coutColorBuf;
-    static std::unique_ptr<ColorBuf> cerrColorBuf;
-
-    auto* coutBuf = coutColorBuf.get();
-    auto* cerrBuf = cerrColorBuf.get();
-
-    auto* coutBuffer = coutBuf != nullptr ? coutBuf->buffer() : std::cout.rdbuf();
-    auto* cerrBuffer = cerrBuf != nullptr ? cerrBuf->buffer() : std::cerr.rdbuf();
-
-    std::cout.rdbuf(coutBuffer);
-    std::cerr.rdbuf(cerrBuffer);
-
-    coutColorBuf.reset();
-    cerrColorBuf.reset();
-
+    // Enable Windows VT processing.
 #if defined(_WIN32)
     if (coutColor != nullptr || cerrColor != nullptr)
     {
@@ -100,16 +94,47 @@ void set_console_colors(const char* const coutColor, const char* const cerrColor
     }
 #endif
 
+    // Recover the underlying stream buffers.
+    auto* coutBuf = CoutColorBuf.get();
+    auto* cerrBuf = CerrColorBuf.get();
+
+    auto* coutBuffer = coutBuf != nullptr ? coutBuf->buffer() : std::cout.rdbuf();
+    auto* cerrBuffer = cerrBuf != nullptr ? cerrBuf->buffer() : std::cerr.rdbuf();
+
+    // Restore the underlying stream buffers.
+    std::cout.rdbuf(coutBuffer);
+    std::cerr.rdbuf(cerrBuffer);
+
+    // Destroy the existing color buffers.
+    CoutColorBuf.reset();
+    CerrColorBuf.reset();
+
+    // Create and install the new color buffers.
     if (coutColor != nullptr)
     {
-        coutColorBuf = std::make_unique<ColorBuf>(coutBuffer, coutColor);
-        std::cout.rdbuf(coutColorBuf.get());
+        CoutColorBuf = std::make_unique<ColorBuf>(coutBuffer, coutColor);
+        std::cout.rdbuf(CoutColorBuf.get());
     }
-
     if (cerrColor != nullptr)
     {
-        cerrColorBuf = std::make_unique<ColorBuf>(cerrBuffer, cerrColor);
-        std::cerr.rdbuf(cerrColorBuf.get());
+        CerrColorBuf = std::make_unique<ColorBuf>(cerrBuffer, cerrColor);
+        std::cerr.rdbuf(CerrColorBuf.get());
+    }
+}
+
+// Restores the underlying stream buffers and destroys the color buffers.
+void restore_console_colors() noexcept {
+    // Restore the underlying stream buffers.
+    // Destroy the existing color buffers.
+    if (CoutColorBuf != nullptr)
+    {
+        std::cout.rdbuf(CoutColorBuf->buffer());
+        CoutColorBuf.reset();
+    }
+    if (CerrColorBuf != nullptr)
+    {
+        std::cerr.rdbuf(CerrColorBuf->buffer());
+        CerrColorBuf.reset();
     }
 }
 
@@ -762,7 +787,7 @@ ColorBuf::int_type ColorBuf::overflow(const int_type ch) {
     const auto ich = buf->sputc(traits_type::to_char_type(ch));
 
     if (ich != traits_type::eof())
-        write_reset();
+        (void) write_reset();
 
     return ich;
 }
@@ -777,7 +802,7 @@ std::streamsize ColorBuf::xsputn(const char_type* const s, const std::streamsize
     const auto written = buf->sputn(s, count);
 
     if (written > 0)
-        write_reset();
+        (void) write_reset();
 
     return written;
 }

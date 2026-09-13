@@ -82,6 +82,8 @@ int main(int argc, const char* argv[]) noexcept {
 
     uci.execute(QUIT_CMD);
 
+    restore_console_colors();
+
     return 0;
 }
 
