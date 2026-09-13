@@ -207,36 +207,42 @@ MemorySet Set;
 // Maps each memory to its corresponding iterator in List.
 MemoryIndexMap IndexMap;
 
+    #if !defined(NDEBUG)
 // Verifies the consistency of all registry containers.
 // The caller must hold 'Mutex' in shared or exclusive mode.
+// Returns true if all registry invariants hold.
 // The following invariants must hold:
 //  - All three containers have the same size.
-//  - Every memory in 'List' exists in 'Set' and 'IndexMap'.
-//  - Every IndexMap entry points to its corresponding node in 'List'.
-void assert_consistent_nolock() noexcept {
-    assert(List.size() == Set.size());
-    assert(List.size() == IndexMap.size());
+//  - Every memory in List exists in Set and IndexMap.
+//  - Every IndexMap entry points to its corresponding node in List.
+bool is_consistent_nolock() noexcept {
+    assert(List.size() == Set.size() && "List and Set sizes differ");
+    assert(List.size() == IndexMap.size() && "List and IndexMap sizes differ");
 
-    for (auto listItr = List.begin(); listItr != List.end(); ++listItr)
+    for ([[maybe_unused]] auto listItr = List.begin(); listItr != List.end(); ++listItr)
     {
         const Memory memory = *listItr;
 
-        assert(memory != nullptr);
-        assert(Set.find(memory) != Set.end());
+        assert(memory != nullptr && "List contains a null memory pointer");
+        assert(Set.find(memory) != Set.end() && "List memory is missing from Set");
 
-        auto indexMapItr = IndexMap.find(memory);
-        assert(indexMapItr != IndexMap.end());
-        assert(indexMapItr->second == listItr);
+        [[maybe_unused]] auto indexMapItr = IndexMap.find(memory);
+
+        assert(indexMapItr != IndexMap.end() && "List memory is missing from IndexMap");
+        assert(indexMapItr->second == listItr && "IndexMap points to the wrong List node");
     }
 
-    for (const auto& [memory, listItr] : IndexMap)
+    for ([[maybe_unused]] const auto& [memory, listItr] : IndexMap)
     {
-        assert(memory != nullptr);
-        assert(listItr != List.end());
-        assert(*listItr == memory);
-        assert(Set.find(memory) != Set.end());
+        assert(memory != nullptr && "IndexMap contains a null memory pointer");
+        assert(Set.find(memory) != Set.end() && "IndexMap memory is missing from Set");
+        assert(listItr != List.end() && "IndexMap contains an invalid List iterator");
+        assert(*listItr == memory && "IndexMap iterator points to the wrong memory");
     }
+
+    return true;
 }
+    #endif
 
 // Insert a memory object into all registry containers.
 // The caller must hold 'Mutex' exclusively.
@@ -266,7 +272,7 @@ bool insert_memory_nolock(Memory memory) noexcept {
     assert(registered);
     assert(setItr != Set.end());
 
-    assert_consistent_nolock();
+    assert(is_consistent_nolock());
 
     return true;
 }
@@ -305,7 +311,7 @@ bool erase_memory_nolock(Memory memory) noexcept {
 
     //DEBUG_LOG("Unregistered memory: " << static_cast<const void*>(memory) << ' ' << memory->name());
 
-    assert_consistent_nolock();
+    assert(is_consistent_nolock());
 
     return true;
 }
