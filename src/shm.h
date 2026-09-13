@@ -111,8 +111,8 @@
     #if !defined(ACCESSPERMS)
         #define ACCESSPERMS (S_IRWXU | S_IRWXG | S_IRWXO)
     #endif
-    #if !defined(MADV_COLLAPSE)
-        #if (defined(__linux__))
+    #if (defined(__linux__))
+        #if !defined(MADV_COLLAPSE)
             #define MADV_COLLAPSE 25
         #endif
     #endif
