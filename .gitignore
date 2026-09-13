@@ -1,6 +1,7 @@
 # Files from build
 **/*.o
 **/*.s
+src/.depend.tmp
 src/.depend
 src/temp_builds
 src/universal/network_dump.inc
@@ -39,5 +40,3 @@ DON.sln
 DON.vcxproj
 DON.vcxproj.filters
 DON.vcxproj.user
-
-
