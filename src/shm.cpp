@@ -475,11 +475,14 @@ CallOnce HookCallOnce;
 
 // Ensures the memory cleanup handler is registered with std::atexit() only once.
 void ensure_initialized() noexcept {
-    HookCallOnce([]() noexcept {
-        //DEBUG_LOG("Initializing MemoryCleanupHook.");
+    while (!HookCallOnce.once_init())
+    {
+        HookCallOnce([]() noexcept {
+            //DEBUG_LOG("Initializing MemoryCleanupHook.");
 
-        std::atexit(MemoryCleanup::cleanup);
-    });
+            std::atexit(MemoryCleanup::cleanup);
+        });
+    }
 }
 
 }  // namespace MemoryCleanupHook
