@@ -50,7 +50,7 @@ run_test() {
         local exitCode=$?
         echo "FAILED (exit code: $exitCode)"
         echo "===== Output for failed test ====="
-        sed 's/\x1b\[[0-9;]*m//g' "$tmpFile"
+        sed 's/\x1b\[[0-9;]*m//g' "$tmpFile" | cat
         echo "=================================="
         rm -f "$tmpFile"
         TESTS_FAILED=1

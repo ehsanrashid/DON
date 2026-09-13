@@ -40,7 +40,6 @@ int main(int argc, const char* argv[]) noexcept {
 
     set_console_input(ConsoleMode::UTF8);
     set_console_output(ConsoleMode::UTF8);
-    //set_console_colors();
 
     std::cout << engine_info() << std::endl;
     std::cout << build_timestamp() << std::endl;
@@ -81,8 +80,6 @@ int main(int argc, const char* argv[]) noexcept {
     }
 
     uci.execute(QUIT_CMD);
-
-    //restore_console_colors();
 
     return 0;
 }

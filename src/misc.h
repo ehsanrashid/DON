@@ -473,11 +473,6 @@ void set_console_input(ConsoleMode consoleMode = ConsoleMode::Default) noexcept;
 
 void set_console_output(ConsoleMode consoleMode = ConsoleMode::Default) noexcept;
 
-void set_console_colors(const char* coutColor = ConsoleColor::BRIGHT_BLUE,
-                        const char* cerrColor = ConsoleColor::BRIGHT_RED) noexcept;
-
-void restore_console_colors() noexcept;
-
 std::string format_date(std::string_view date) noexcept;
 
 std::string format_time(std::string_view time) noexcept;
@@ -1470,28 +1465,6 @@ class StringViewBuf final: public std::streambuf {
 class MemoryBuf final: public std::streambuf {
    public:
     MemoryBuf(char* p, usize size) noexcept;
-};
-
-class ColorBuf final: public std::streambuf {
-   public:
-    ColorBuf() noexcept = default;
-    ColorBuf(std::streambuf* bf, const char* c) noexcept;
-
-    std::streambuf* buffer() const noexcept;
-
-   protected:
-    int sync() override;
-
-    int_type overflow(int_type ch) override;
-
-    std::streamsize xsputn(const char_type* s, std::streamsize count) override;
-
-   private:
-    bool write_color() noexcept;
-    bool write_reset() noexcept;
-
-    std::streambuf* buf   = nullptr;
-    const char*     color = nullptr;
 };
 
 // TieBuf (Fancy logging facility).
