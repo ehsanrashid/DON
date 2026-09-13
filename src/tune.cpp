@@ -18,7 +18,6 @@
 #include "tune.h"
 
 #include <algorithm>
-#include <functional>  // std::hash<>
 #include <iostream>
 #include <optional>
 #include <unordered_map>
@@ -26,9 +25,6 @@
 #include "option.h"
 
 namespace DON {
-
-bool     Tune::IsLastUpdate = false;
-Options* Tune::OptionsPtr   = nullptr;
 
 namespace {
 
@@ -70,8 +66,8 @@ void Tune::make_option(Options*               optionsPtr,
     if (range(value).first == range(value).second)
         return;
 
-    if (TuneResults.find(name) != TuneResults.end())
-        value = TuneResults[name];
+    if (const auto itr = TuneResults.find(name); itr != TuneResults.end())
+        value = itr->second;
 
     optionsPtr->add(name, Option(value, range(value).first, range(value).second, on_tune));
     LastOption = &((*optionsPtr)[name]);

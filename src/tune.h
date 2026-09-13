@@ -188,8 +188,8 @@ class Tune final {
             entry->read_option();
     }
 
-    static bool     IsLastUpdate;
-    static Options* OptionsPtr;
+    static inline bool     IsLastUpdate = false;
+    static inline Options* OptionsPtr   = nullptr;
 };
 
 template<typename... Args>

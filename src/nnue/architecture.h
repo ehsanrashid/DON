@@ -38,8 +38,8 @@ namespace DON::NNUE {
 
 // Input features used in evaluation function
 using ThreatFeature = Features::FullThreats;
-using PSQFeature    = Features::HalfKAHm;
 using PairFeature   = Features::PP3Wide;
+using PSQFeature    = Features::HalfKAHm;
 
 template<Index Dimensions>
 struct NNZ;
