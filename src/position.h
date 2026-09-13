@@ -41,93 +41,21 @@
 
 namespace DON {
 
-// Zobrist - Hash key generator
-//
-// This class provides access to precomputed Zobrist keys for all relevant
-// aspects of a chess position. It is used to efficiently compute a unique
-// hash for a given board state, which is essential for transposition tables,
-// move ordering, repetition detection, and other chess engine optimizations.
-//
-// Key features:
-//  - Provides keys for piece positions, castling rights, en passant squares,
-//    turn (side to move), and the 50-move rule counter (MR50).
-//  - All members and functions are static; no instances of this class can
-//    be created, copied, or moved.
-//  - Designed for fast access; all keys are stored in statically allocated arrays.
-//
-// Interface summary:
-//  - init() - Initializes all Zobrist keys; must be called before use.
-//  - piece_square(Color, PieceType, Square) / piece_square(Piece, Square)
-//      Returns the Zobrist key for a piece on a specific square.
-//  - castling(CastlingRights) - Returns the Zobrist key for a given castling right.
-//  - enpassant(Square) - Returns the Zobrist key for an en passant square.
-//  - turn() - Returns the Zobrist key for the side to move.
-//  - mr50(int) - Returns the Zobrist key for the 50-move rule counter.
-//
-// Notes:
-//  - The class is static-only; it cannot be instantiated. (Restriction)
-//  - All data is stored in 'inline-static' arrays for fast, constant-time access.
-//  - Ensure 'init()' is called before using any other function.
-//  - Accessors perform debug-time assertions to validate input values.
-//  - MR50 array handles the 50-move rule with offset and factor constants.
-//
-// Example usage:
-//   Zobrist::init();
-//   Key key = Zobrist::piece_square(Piece::WHITE_KNIGHT, Square::G1);
-//   key ^= Zobrist::turn();
-struct Zobrist final {
-   public:
-    static void init() noexcept;
+namespace Zobrist {
 
-    static Key piece_square(Color c, PieceType pt, Square s) noexcept {
-        assert(is_ok(c) && is_ok(s));
+constexpr usize PAWN_OFFSET = 8;
 
-        return PieceSquare[c][pt][s];
-    }
-    static Key piece_square(Piece pc, Square s) noexcept {
-        assert(is_ok(s));
+void init() noexcept;
 
-        return piece_square(color_of(pc), type_of(pc), s);
-    }
+Key piece_square(Color c, PieceType pt, Square s) noexcept;
+Key piece_square(Piece pc, Square s) noexcept;
 
-    static Key castling(CastlingRights cr) noexcept {
-        assert(+cr < Castling.size());
+Key castling(CastlingRights cr) noexcept;
+Key enpassant(Square enPassantSq) noexcept;
+Key turn() noexcept;
+Key mr50(i16 rule50Count) noexcept;
 
-        return Castling[+cr];
-    }
-
-    static Key enpassant(Square enPassantSq) noexcept {
-        return is_ok(enPassantSq) ? Enpassant[file_of(enPassantSq)] : 0;
-    }
-
-    static Key turn() noexcept { return Turn; }
-
-    static Key mr50(i16 rule50Count) noexcept {
-        return rule50Count < R50Offset
-               ? 0
-               : MR50[std::min<usize>((rule50Count - R50Offset) / R50Factor, MR50.size() - 1)];
-    }
-
-    static constexpr usize PawnOffset = 8;
-
-   private:
-    Zobrist() noexcept                          = delete;
-    ~Zobrist() noexcept                         = delete;
-    Zobrist(const Zobrist&) noexcept            = delete;
-    Zobrist& operator=(const Zobrist&) noexcept = delete;
-    Zobrist(Zobrist&&) noexcept                 = delete;
-    Zobrist& operator=(Zobrist&&) noexcept      = delete;
-
-    static inline Array<Key, COLOR_NB, PIECE_TYPE_CNT + 1, SQUARE_NB> PieceSquare;
-    static inline Array<Key, CASTLING_RIGHTS_NB>                      Castling;
-    static inline Array<Key, FILE_NB>                                 Enpassant;
-    static inline Key                                                 Turn;
-
-    static constexpr u8 R50Offset = 14;
-    static constexpr u8 R50Factor = 8;
-
-    static inline Array<Key, 64> MR50;
-};
+}  // namespace Zobrist
 
 // State struct stores information needed to restore Position object
 // to its previous state when retract any move. (Size = 256)
@@ -768,7 +696,7 @@ inline Key Position::material_key() const noexcept {
     for (Color c : {WHITE, BLACK})
         for (PieceType pt : EX_KING_PIECE_TYPES)
             if (const auto cnt = count(c, pt); cnt != 0)
-                materialKey ^= Zobrist::piece_square(c, pt, Square(Zobrist::PawnOffset + cnt - 1));
+                materialKey ^= Zobrist::piece_square(c, pt, Square(Zobrist::PAWN_OFFSET + cnt - 1));
 
     return materialKey;
 }

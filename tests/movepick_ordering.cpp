@@ -61,8 +61,8 @@ struct Item final {
         return "Item(score=" + std::to_string(score) + ", id=" + std::to_string(id) + ")";
     }
 
-    int         score;
-    usize id;  // original insertion order
+    int   score;
+    usize id;
 };
 
 bool item_descending(const Item& item1, const Item& item2) noexcept {

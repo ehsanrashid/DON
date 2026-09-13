@@ -28,7 +28,7 @@
     #include <immintrin.h>
 #endif
 #if defined(_MSC_VER)
-    #include <intrin.h>  // _BitScanForward64() & _BitScanForward() intrinsics
+    #include <intrin.h>  // _BitScanForward64(), _BitScanForward() intrinsics
     #if defined(USE_POPCNT)
         #include <nmmintrin.h>  // SSE4.2 header for _mm_popcnt_u64() intrinsics
     #endif

@@ -22,8 +22,10 @@
 #include <ctime>
 
 #if defined(_WIN32)
-    #include "platform_win.h"  // GetCommandLineW()
-    #include <shellapi.h>      // CommandLineToArgvW()
+    #include <shellapi.h>  // CommandLineToArgvW()
+#else
+    #include <sys/mman.h>  // munmap()
+    #include <unistd.h>    // close(), read()/write(), unlink(), sleep(), getpid()
 #endif
 
 namespace DON {
@@ -34,8 +36,67 @@ constexpr std::string_view NAME{"DON"};
 constexpr std::string_view AUTHOR{"Ehsan Rashid"};
 constexpr std::string_view VERSION{"dev"};
 
+std::string
+compiler_version(const unsigned major, const unsigned minor, const unsigned patch) noexcept {
+    return std::to_string(major) + "." + std::to_string(minor) + "." + std::to_string(patch);
+}
+
+}  // namespace
+
+void set_console_input(const ConsoleMode consoleMode) noexcept {
+    switch (consoleMode)
+    {
+    case ConsoleMode::UTF7 :
+#if defined(_WIN32)
+        SetConsoleCP(CP_UTF7);
+#else
+      ;
+#endif
+        break;
+    case ConsoleMode::EnableVirtualTerminal :
+        break;
+    case ConsoleMode::FullyFeatured :
+        break;
+    case ConsoleMode::Default :
+        break;
+    case ConsoleMode::UTF8 :
+    default :
+#if defined(_WIN32)
+        SetConsoleCP(CP_UTF8);
+#else
+      ;
+#endif
+    }
+}
+
+void set_console_output(const ConsoleMode consoleMode) noexcept {
+    switch (consoleMode)
+    {
+    case ConsoleMode::UTF7 :
+#if defined(_WIN32)
+        SetConsoleOutputCP(CP_UTF7);
+#else
+      ;
+#endif
+        break;
+    case ConsoleMode::EnableVirtualTerminal :
+        break;
+    case ConsoleMode::FullyFeatured :
+        break;
+    case ConsoleMode::Default :
+        break;
+    case ConsoleMode::UTF8 :
+    default :
+#if defined(_WIN32)
+        SetConsoleOutputCP(CP_UTF8);
+#else
+      ;
+#endif
+    }
+}
+
 // Format date "Mon DD YYYY" -> YYYYMMDD
-[[maybe_unused]] std::string format_date(const std::string_view date) noexcept {
+std::string format_date(const std::string_view date) noexcept {
     constexpr std::string_view NullDate{"00000000"};
 
     // Tokenize: expect "Mon DD YYYY" where DD may have a trailing comma.
@@ -113,14 +174,14 @@ constexpr std::string_view VERSION{"dev"};
 }
 
 // Format time HH:MM:SS -> HHMMSS
-[[maybe_unused]] std::string format_time(const std::string_view time) noexcept {
+std::string format_time(const std::string_view time) noexcept {
     constexpr std::string_view NullTime{"000000"};
 
     // Expect exactly "HH:MM:SS"
     if (time.size() != 8)
         return std::string{NullTime};
 
-    const auto* p = time.data();
+    const auto* const p = time.data();
 
     // Validate structure
     if (!is_cdigit(p[0]) || !is_cdigit(p[1]) || p[2] != ':'     //
@@ -142,64 +203,6 @@ constexpr std::string_view VERSION{"dev"};
     return std::string{buffer.data(), buffer.size()};
 }
 
-std::string
-compiler_version(const unsigned major, const unsigned minor, const unsigned patch) noexcept {
-    return std::to_string(major) + "." + std::to_string(minor) + "." + std::to_string(patch);
-}
-
-}  // namespace
-
-void set_console_input(const ConsoleMode consoleMode) noexcept {
-    switch (consoleMode)
-    {
-    case ConsoleMode::UTF7 :
-#if defined(_WIN32)
-        SetConsoleCP(CP_UTF7);
-#else
-      ;
-#endif
-        break;
-    case ConsoleMode::EnableVirtualTerminal :
-        break;
-    case ConsoleMode::FullyFeatured :
-        break;
-    case ConsoleMode::Default :
-        break;
-    case ConsoleMode::UTF8 :
-    default :
-#if defined(_WIN32)
-        SetConsoleCP(CP_UTF8);
-#else
-      ;
-#endif
-    }
-}
-void set_console_output(const ConsoleMode consoleMode) noexcept {
-    switch (consoleMode)
-    {
-    case ConsoleMode::UTF7 :
-#if defined(_WIN32)
-        SetConsoleOutputCP(CP_UTF7);
-#else
-      ;
-#endif
-        break;
-    case ConsoleMode::EnableVirtualTerminal :
-        break;
-    case ConsoleMode::FullyFeatured :
-        break;
-    case ConsoleMode::Default :
-        break;
-    case ConsoleMode::UTF8 :
-    default :
-#if defined(_WIN32)
-        SetConsoleOutputCP(CP_UTF8);
-#else
-      ;
-#endif
-    }
-}
-
 std::string build_date() noexcept {
     return
 #if defined(BUILD_DATE)
@@ -209,6 +212,7 @@ std::string build_date() noexcept {
 #endif
       ;
 }
+
 std::string build_time() noexcept {
     return
 #if defined(BUILD_TIME)
@@ -218,6 +222,7 @@ std::string build_time() noexcept {
 #endif
       ;
 }
+
 std::string build_timestamp() noexcept {
     return
 #if defined(BUILD_TIMESTAMP)
@@ -229,47 +234,66 @@ std::string build_timestamp() noexcept {
 }
 
 std::string engine_info(const bool uci) noexcept {
-    std::string engine;
-    engine.reserve(64);
+    std::string info;
+    info.reserve(64);
 
-    engine  //
+    info  //
       .append(uci ? "id name " : "")
       .append(version_info())
       .append(uci ? "\nid author " : " by ")
       .append(AUTHOR);
 
-    return engine;
+    return info;
 }
 
-void show_logo() noexcept {
-    auto border = [](const std::string_view sv) {
-        std::cout << ConsoleColor::BG_BLACK                                    //
-                  << ConsoleColor::BRIGHT_YELLOW << ConsoleColor::BLINK << sv  //
-                  << ConsoleColor::RESET << '\n';
+std::string engine_logo() noexcept {
+    std::string logo;
+    logo.reserve(1100);
+
+    auto border = [&logo](const std::string_view sv) {
+        logo += ConsoleColor::BG_BLACK;
+        logo += ConsoleColor::BRIGHT_YELLOW;
+        logo += ConsoleColor::BLINK;
+        logo += sv;
+        logo += ConsoleColor::RESET;
+        logo += '\n';
     };
-    auto mid1 = [](const std::string_view sv, const char* color1) {
-        std::cout                                                         //
-          << ConsoleColor::BG_BLACK                                       //
-          << ConsoleColor::BRIGHT_YELLOW << ConsoleColor::BLINK << "  ║"  //
-          << ConsoleColor::RESET                                          //
-          << ConsoleColor::BG_BLACK                                       //
-          << color1 << sv << ConsoleColor::RESET                          //
-          << ConsoleColor::BG_BLACK                                       //
-          << ConsoleColor::BRIGHT_YELLOW << ConsoleColor::BLINK << "║  "  //
-          << ConsoleColor::RESET << '\n';
+    auto mid1 = [&logo](const std::string_view sv, const char* const c1) {
+        logo += ConsoleColor::BG_BLACK;
+        logo += ConsoleColor::BRIGHT_YELLOW;
+        logo += ConsoleColor::BLINK;
+        logo += "  ║";
+        logo += ConsoleColor::RESET;
+        logo += ConsoleColor::BG_BLACK;
+        logo += c1;
+        logo += sv;
+        logo += ConsoleColor::RESET;
+        logo += ConsoleColor::BG_BLACK;
+        logo += ConsoleColor::BRIGHT_YELLOW;
+        logo += ConsoleColor::BLINK;
+        logo += "║  ";
+        logo += ConsoleColor::RESET;
+        logo += '\n';
     };
-    auto mid2 = [](const std::string_view sv, const char* color1, const char* color2) {
-        std::cout                                                         //
-          << ConsoleColor::BG_BLACK                                       //
-          << ConsoleColor::BRIGHT_YELLOW << ConsoleColor::BLINK << "  ║"  //
-          << ConsoleColor::RESET                                          //
-          << ConsoleColor::BG_BLACK                                       //
-          << color1 << color2 << sv << ConsoleColor::RESET                //
-          << ConsoleColor::BG_BLACK                                       //
-          << ConsoleColor::BRIGHT_YELLOW << ConsoleColor::BLINK << "║  "  //
-          << ConsoleColor::RESET << '\n';
+    auto mid2 = [&logo](const std::string_view sv, const char* const c1, const char* const c2) {
+        logo += ConsoleColor::BG_BLACK;
+        logo += ConsoleColor::BRIGHT_YELLOW;
+        logo += ConsoleColor::BLINK;
+        logo += "  ║";
+        logo += ConsoleColor::RESET;
+        logo += ConsoleColor::BG_BLACK;
+        logo += c1;
+        logo += c2;
+        logo += sv;
+        logo += ConsoleColor::RESET;
+        logo += ConsoleColor::BG_BLACK;
+        logo += ConsoleColor::BRIGHT_YELLOW;
+        logo += ConsoleColor::BLINK;
+        logo += "║  ";
+        logo += ConsoleColor::RESET;
+        logo += '\n';
     };
-    std::cout << '\n';
+
     // clang-format off
     border("  ╔══════════════════════════════╗  ");
          mid1("  ██████╗ ╔██████╗ ███╗  ██╗  ", ConsoleColor::RED);
@@ -280,7 +304,8 @@ void show_logo() noexcept {
          mid1("  ╚═════╝  ╚═════╝ ╚═╝  ╚══╝  ", ConsoleColor::RED);
     border("  ╚══════════════════════════════╝  ");
     // clang-format on
-    std::cout << '\n';
+
+    return logo;
 }
 
 // Returns the full human-readable DON version string.
@@ -502,12 +527,318 @@ std::string format_time(const SystemClock::time_point& timePoint) noexcept {
     return std::string{buffer.data(), std::min(writtenSize, buffer.size() - 1)};
 }
 
+// OstreamMutexRegistry
+//
+// Provides a thread-safe registry that associates a unique mutex with each
+// std::ostream pointer.
+//
+// The registry allows multiple threads to synchronize access to the same
+// ostream without unnecessarily locking unrelated ostreams.
+//
+// Key Features:
+//  - Thread-safe: registry access is protected by a mutex.
+//  - Per-ostream mutex: each ostream has its own mutex to minimize contention.
+//  - Lazy initialization: mutexes are created when first requested.
+//  - Null-safe: nullptr is treated as a valid key and maps to a shared mutex.
+//
+// Usage:
+//  - Call 'get(&std::cout)' to obtain the mutex before writing to std::cout
+//    from multiple threads.
+//  - Lock the returned mutex with std::scoped_lock or std::unique_lock.
+//
+// Notes:
+//  - The registry does not own the std::ostream objects.
+//  - Mutexes remain in the registry for the lifetime of the process.
+namespace OstreamMutexRegistry {
+
+namespace {
+
+// Protects access to the mutex registry container.
+std::mutex Mutex;
+
+// Associates each ostream pointer with its mutex.
+std::unordered_map<std::ostream*, std::mutex> MutexMap;
+
+}  // namespace
+
+// Returns the mutex associated with the given ostream pointer.
+//
+// A nullptr pointer is treated as a valid key and maps to a shared mutex.
+std::mutex& get(std::ostream* const osPtr) noexcept {
+    std::lock_guard writeLock(Mutex);
+
+    return MutexMap[osPtr];
+}
+
+}  // namespace OstreamMutexRegistry
+
+SyncOstream::SyncOstream(std::ostream& os) noexcept :
+    osPtr(&os),
+    lock(OstreamMutexRegistry::get(osPtr)) {}
+
+SyncOstream::SyncOstream(SyncOstream&& syncOs) noexcept :
+    osPtr(std::exchange(syncOs.osPtr, nullptr)),
+    lock(std::move(syncOs.lock)) {}
+
+SyncOstream& SyncOstream::operator<<(IosManip manip) & {
+    assert(osPtr != nullptr && "Use of moved-from SyncOstream");
+
+    manip(*osPtr);
+    return *this;
+}
+
+SyncOstream&& SyncOstream::operator<<(IosManip manip) && {
+    assert(osPtr != nullptr && "Use of moved-from SyncOstream");
+
+    manip(*osPtr);
+    return std::move(*this);
+}
+
+SyncOstream& SyncOstream::operator<<(OstreamManip manip) & {
+    assert(osPtr != nullptr && "Use of moved-from SyncOstream");
+
+    manip(*osPtr);
+    return *this;
+}
+
+SyncOstream&& SyncOstream::operator<<(OstreamManip manip) && {
+    assert(osPtr != nullptr && "Use of moved-from SyncOstream");
+
+    manip(*osPtr);
+    return std::move(*this);
+}
+
+SyncOstream sync_os(std::ostream& os) noexcept { return SyncOstream(os); }
+
+// Factory method that creates a FixedText from the specified string view
+FixedText FixedText::from(const std::string_view sv) noexcept { return FixedText{}.write(sv); }
+
+FixedText& FixedText::write(const char ch) noexcept {
+    assert(size() < capacity());
+    if (size() >= capacity())
+        return *this;
+
+    data_[size_++] = ch;
+    return *this;
+}
+
+FixedText& FixedText::write(const std::string_view sv) noexcept {
+    assert(size() + sv.size() <= capacity());
+
+    std::memcpy(end(), sv.data(), sv.size());
+    size_ += static_cast<u8>(sv.size());
+    return *this;
+}
+
+FixedText& FixedText::write(const int v) noexcept {
+    auto [ptr, ec] = std::to_chars(end(), begin() + capacity(), v);
+    assert(ec == std::errc{});
+    size_ = static_cast<u8>(ptr - begin());
+    return *this;
+}
+
 std::ostream& operator<<(std::ostream& os, const FixedText& fixedText) noexcept {
 
     os.write(fixedText.c_str(), std::streamsize(fixedText.size()));
 
     return os;
 }
+
+StringViewBuf::StringViewBuf(const std::string_view sv) noexcept {
+    // std::streambuf requires char* for the get area.
+    // The buffer is read-only; no characters are modified.
+    auto* const p    = const_cast<char*>(sv.data());
+    const usize size = sv.size();
+    setg(p, p, p + size);  // Only GET area (reading enabled)
+    // Do NOT call setp(p, p + size) - no PUT area (writing disabled)
+}
+
+MemoryBuf::MemoryBuf(char* const p, const usize size) noexcept {
+    setg(p, p, p + size);  // Set GET area (reading enabled)
+    setp(p, p + size);     // Set PUT area (writing enabled)
+}
+
+TieBuf::TieBuf(std::streambuf* const pB, std::streambuf* const mB) noexcept :
+    pBuf(pB),
+    mBuf(mB) {}
+
+// Synchronizes both the primary and mirror buffers.
+int TieBuf::sync() {
+    int r1 = pBuf != nullptr ? pBuf->pubsync() : 0;
+    int r2 = mBuf != nullptr ? mBuf->pubsync() : 0;
+
+    return (r1 == 0 && r2 == 0) ? 0 : -1;
+}
+
+// Reads the next character from the primary buffer without consuming it.
+TieBuf::int_type TieBuf::underflow() {
+    if (pBuf == nullptr)
+        return traits_type::eof();
+
+    return pBuf->sgetc();
+}
+
+// Writes one character to the primary buffer and mirrors it with an output prefix.
+TieBuf::int_type TieBuf::overflow(const int_type ch) {
+    if (pBuf == nullptr)
+        return traits_type::eof();
+
+    if (traits_type::eq_int_type(ch, traits_type::eof()))
+        return traits_type::not_eof(ch);
+
+    int_type putCh = pBuf->sputc(traits_type::to_char_type(ch));
+
+    if (traits_type::eq_int_type(putCh, traits_type::eof()))
+        return putCh;
+
+    return mirror_put_with_prefix(putCh, "<< ", oPreCh);
+}
+
+// Reads and consumes one character from the primary buffer, then mirrors it with an input prefix.
+TieBuf::int_type TieBuf::uflow() {
+    if (pBuf == nullptr)
+        return traits_type::eof();
+
+    int_type ch = pBuf->sbumpc();
+
+    if (traits_type::eq_int_type(ch, traits_type::eof()))
+        return ch;
+
+    return mirror_put_with_prefix(ch, ">> ", iPreCh);
+}
+
+// Writes a block to the primary buffer and mirrors the written characters with an output prefix.
+std::streamsize TieBuf::xsputn(const char_type* const s, const std::streamsize count) {
+    if (pBuf == nullptr)
+        return 0;
+
+    std::streamsize written = pBuf->sputn(s, count);
+
+    if (mBuf != nullptr && written > 0)
+    {
+        if (oPreCh == '\n')
+            mBuf->sputn("<< ", 3);
+
+        mBuf->sputn(s, written);
+
+        oPreCh = s[written - 1];
+    }
+
+    return written;
+}
+
+std::streambuf* TieBuf::pbuf() const noexcept { return pBuf; }
+
+std::streambuf* TieBuf::mbuf() const noexcept { return mBuf; }
+
+// Mirrors a character to the secondary buffer, adding a prefix at the start of each line.
+TieBuf::int_type TieBuf::mirror_put_with_prefix(const int_type         ch,
+                                                const std::string_view prefix,
+                                                char_type&             preCh) noexcept {
+    if (mBuf == nullptr)
+        return traits_type::not_eof(ch);
+
+    if (preCh == '\n')
+        mBuf->sputn(prefix.data(), static_cast<std::streamsize>(prefix.size()));
+
+    char_type c = traits_type::to_char_type(ch);
+    preCh       = c;
+
+    int_type r = mBuf->sputc(c);
+    return traits_type::eq_int_type(r, traits_type::eof()) ? traits_type::eof()
+                                                           : traits_type::not_eof(ch);
+}
+
+// Starts logging to the specified file.
+// Returns true on success and false if the log file cannot be opened.
+bool Logger::start(const std::filesystem::path& logFile) noexcept {
+    std::lock_guard writeLock(instance().mutex);
+
+    return instance().open(logFile);
+}
+
+// Stops logging, restores the original streams, and closes the log file.
+void Logger::stop() noexcept {
+    std::lock_guard writeLock(instance().mutex);
+
+    instance().close();
+}
+
+// Initializes the logger with the streams to be redirected and mirrored.
+Logger::Logger(std::istream& isRef, std::ostream& osRef) noexcept :
+    is(isRef),
+    os(osRef),
+    isBuf(is.rdbuf()),
+    osBuf(os.rdbuf()),
+    itieBuf(is.rdbuf(), ofs.rdbuf()),
+    otieBuf(os.rdbuf(), ofs.rdbuf()) {}
+
+// Stops logging and restores the original streams.
+Logger::~Logger() noexcept { close(); }
+
+// Returns the single shared Logger instance.
+Logger& Logger::instance() noexcept {
+    static Logger logger(std::cin, std::cout);
+
+    return logger;
+}
+
+// Opens the specified log file and redirects the streams through TieBuf.
+// Caller must hold 'mutex'.
+bool Logger::open(const std::filesystem::path& logFile) noexcept {
+    if (filename == logFile.string() && is_open())
+        return true;  // Already open
+
+    close();
+
+    if (logFile.empty())
+        return true;
+
+    filename = logFile.string();
+
+    ofs.open(filename, std::ios::out | std::ios::app);
+
+    if (!is_open())
+    {
+        DEBUG_LOG("Unable to open Log file: " << filename);
+        return false;
+    }
+
+    write_timestamp("->");
+
+    is.rdbuf(&itieBuf);
+    os.rdbuf(&otieBuf);
+
+    return true;
+}
+
+// Restores the original streams and closes the log file.
+// Caller must hold 'mutex'.
+void Logger::close() noexcept {
+    if (!is_open())
+        return;
+
+    is.rdbuf(isBuf);
+    os.rdbuf(osBuf);
+
+    write_timestamp("<-");
+
+    ofs.close();
+
+    filename.clear();
+}
+
+// Returns true if the log file is open.
+bool Logger::is_open() const noexcept { return ofs.is_open(); }
+
+// Writes a timestamped marker to the log file.
+void Logger::write_timestamp(std::string_view suffix) noexcept {
+    if (!ofs)
+        return;
+
+    ofs << '[' << format_time(SystemClock::now()) << "] " << suffix << std::endl;
+}
+
 
 #if !defined(NDEBUG)
 // Debug functions used mainly to collect run-time statistics
@@ -806,44 +1137,35 @@ CommandLine::CommandLine(int argc, const char* argv[]) noexcept {
 
     if (wargv != nullptr)
     {
-        argStorage.reserve(static_cast<usize>(wargc));
+        const usize utf8_argc = static_cast<usize>(wargc);
 
-        for (int i = 0; i < wargc; ++i)
-            argStorage.emplace_back(utf8_from_wstring(wargv[i]));
+        utf8_arguments.reserve(utf8_argc);
+
+        for (usize i = 0; i < utf8_argc; ++i)
+            utf8_arguments.emplace_back(utf8_from_wstring(wargv[i]));
 
         LocalFree(wargv);
 
-        arguments.reserve(argStorage.size());
+        arguments_.reserve(utf8_arguments.size());
 
-        for (const auto& arg : argStorage)
-            arguments.emplace_back(arg);
+        for (const auto& utf8_arg : utf8_arguments)
+            arguments_.emplace_back(utf8_arg);
     }
     else
-    {
         set_arguments(argc, argv);
-    }
 #else
     set_arguments(argc, argv);
 #endif
 }
 
-void CommandLine::set_arguments(int argc, const char* argv[]) noexcept {
-    usize argCount = argc;
-
-    arguments.reserve(argCount);
-
-    for (usize i = 0; i < argCount; ++i)
-        arguments.emplace_back(argv[i]);  // no copy, just view
-}
-
+// Returns the directory containing the executable, or "." if the directory is empty.
 std::filesystem::path CommandLine::binary_directory(std::filesystem::path path) noexcept {
 #if defined(_WIN32)
     // Prefer the executable path reported by Windows.
-    // Unlike _get_wpgmptr, this does not depend on whether the CRT used a narrow or wide entry point.
-    // Windows paths cannot exceed 32767 characters, so a fixed buffer is always sufficient.
+    // Unlike _get_wpgmptr(), this does not depend on the CRT entry-point variant.
+    // Windows paths cannot exceed 32767 characters, so a fixed buffer is sufficient.
     // Falls back to path if the API fails.
     Array<WCHAR, 0x8000> filename{};
-
     const DWORD length = GetModuleFileNameW(nullptr, filename.data(), DWORD(filename.size()));
     if (length != 0 && length < filename.size())
         path = std::filesystem::path{filename.data(), filename.data() + length};
@@ -852,8 +1174,265 @@ std::filesystem::path CommandLine::binary_directory(std::filesystem::path path) 
     const auto binaryDirectory{path.parent_path()};
     return binaryDirectory.empty() ? std::filesystem::path(".") : binaryDirectory;
 }
+
+// Returns the process's current working directory.
 std::filesystem::path CommandLine::working_directory() noexcept {
     return std::filesystem::current_path();
+}
+
+const StringViews& CommandLine::arguments() const noexcept { return arguments_; }
+
+void CommandLine::set_arguments(int argc, const char* argv[]) noexcept {
+    const usize uargc = static_cast<usize>(argc);
+
+    arguments_.reserve(uargc);
+
+    for (usize i = 0; i < uargc; ++i)
+        arguments_.emplace_back(argv[i]);  // Store a view without copying the string.
+}
+
+#if defined(_WIN32)
+
+// Get the error message string, if any
+std::string error_to_string(DWORD errorId) noexcept {
+    if (errorId == 0)
+        return {};
+
+    LPSTR buffer = nullptr;
+    // Ask Win32 to give us the string version of that message ID.
+    // The parameters pass in, tell Win32 to create the buffer that holds the message
+    // (because don't yet know how long the message string will be).
+    usize size = FormatMessage(
+      FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+      nullptr, errorId, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+      reinterpret_cast<LPSTR>(&buffer),  // must pass pointer to buffer pointer
+      0, nullptr);
+
+    if (size == 0 || buffer == nullptr)
+    {
+        // FormatMessage failed; return a fallback string
+        return "Unknown error: " + u32_to_string(errorId);
+    }
+
+    // Copy the error message into a std::string
+    std::string message{buffer, size};
+    // Trim trailing CR/LF that many system messages include
+    while (!message.empty() && (message.back() == '\r' || message.back() == '\n'))
+        message.pop_back();
+    // Free the Win32's string's buffer
+    LocalFree(buffer);
+
+    return message;
+}
+
+HandleGuard::HandleGuard(HANDLE& handleRef) noexcept :
+    handle(handleRef) {}
+
+HandleGuard::~HandleGuard() noexcept { reset(); }
+
+bool HandleGuard::is_valid() const noexcept { return is_valid_handle(handle); }
+
+void HandleGuard::reset(HANDLE newHandle) noexcept {
+    if (handle != newHandle)
+    {
+        if (is_valid())
+            CloseHandle(handle);
+
+        handle = newHandle;
+    }
+}
+
+void HandleGuard::dismiss() noexcept { handle = HANDLE_INVALID; }
+
+MMapGuard::MMapGuard(void*& ptrRef) noexcept :
+    mappedPtr(ptrRef) {}
+
+MMapGuard::~MMapGuard() noexcept { reset(); }
+
+bool MMapGuard::is_valid() const noexcept { return mappedPtr != MMAP_PTR_INVALID; }
+
+void* MMapGuard::get() const noexcept { return mappedPtr; }
+
+void MMapGuard::reset(void* newPtr) noexcept {
+    if (mappedPtr != newPtr)
+    {
+        if (is_valid())
+            UnmapViewOfFile(mappedPtr);
+
+        mappedPtr = newPtr;
+    }
+}
+
+void MMapGuard::dismiss() noexcept { mappedPtr = MMAP_PTR_INVALID; }
+
+    #if defined(_WIN64)
+Advapi::~Advapi() noexcept { free(); }
+
+// The needed Windows API for processor groups could be missed from old Windows versions,
+// so instead of calling them directly (forcing the linker to resolve the calls at compile time),
+// try to load them at runtime.
+bool Advapi::load() noexcept {
+
+    hModule = GetModuleHandle(ModuleName);
+
+    if (hModule == nullptr)
+    {
+        hModule = LoadLibraryEx(ModuleName, nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
+        // Optional last resort
+        if (hModule == nullptr)
+            hModule = LoadLibrary(ModuleName);
+
+        if (hModule == nullptr)
+            return false;
+
+        loaded = true;
+    }
+
+    openProcessToken = OpenProcessToken_((void (*)()) GetProcAddress(hModule, "OpenProcessToken"));
+
+    lookupPrivilegeValue =
+      LookupPrivilegeValue_((void (*)()) GetProcAddress(hModule, "LookupPrivilegeValueA"));
+
+    adjustTokenPrivileges =
+      AdjustTokenPrivileges_((void (*)()) GetProcAddress(hModule, "AdjustTokenPrivileges"));
+
+    if (openProcessToken == nullptr || lookupPrivilegeValue == nullptr
+        || adjustTokenPrivileges == nullptr)
+    {
+        free();
+
+        return false;
+    }
+
+    return true;
+}
+
+void Advapi::free() noexcept {
+    if (loaded)
+    {
+        assert(hModule != nullptr);
+
+        FreeLibrary(hModule);
+
+        hModule = nullptr;
+        loaded  = false;
+    }
+}
+
+    #endif
+
+#else
+
+FdGuard::FdGuard(int& fdRef) noexcept :
+    fd(fdRef) {}
+
+FdGuard::~FdGuard() noexcept { reset(); }
+
+bool FdGuard::is_valid() const noexcept { return is_valid_fd(fd); }
+
+int FdGuard::get() const noexcept { return fd; }
+
+void FdGuard::reset(int newFd) noexcept {
+    if (fd != newFd)
+    {
+        if (is_valid())
+            ::close(fd);
+
+        fd = newFd;
+    }
+}
+
+void FdGuard::dismiss() noexcept { fd = FD_INVALID; }
+
+MMapGuard::MMapGuard(void*& ptrRef, usize& sizeRef) noexcept :
+    mappedPtr(ptrRef),
+    mappedSize(sizeRef) {}
+
+MMapGuard::~MMapGuard() noexcept { reset(); }
+
+bool MMapGuard::is_valid() const noexcept { return mappedPtr != MMAP_PTR_INVALID; }
+
+void* MMapGuard::get_ptr() const noexcept { return mappedPtr; }
+
+usize MMapGuard::get_size() const noexcept { return mappedSize; }
+
+void MMapGuard::reset(void* newPtr, usize newSize) noexcept {
+    if (mappedPtr != newPtr)
+    {
+        if (is_valid())
+            ::munmap(mappedPtr, mappedSize);
+
+        mappedPtr  = newPtr;
+        mappedSize = newSize;
+    }
+}
+
+void MMapGuard::dismiss() noexcept {
+    mappedPtr  = MMAP_PTR_INVALID;
+    mappedSize = MMAP_SIZE_INVALID;
+}
+
+UniqueFd::UniqueFd(const int fdi) noexcept :
+    fd{fdi} {}
+
+UniqueFd::UniqueFd(UniqueFd&& uniqueFd) noexcept :
+    fd{uniqueFd.release()} {}
+
+UniqueFd& UniqueFd::operator=(UniqueFd&& uniqueFd) noexcept {
+    if (this == &uniqueFd)
+        return *this;
+
+    reset(uniqueFd.release());
+
+    return *this;
+}
+
+UniqueFd::~UniqueFd() noexcept { reset(); }
+
+int UniqueFd::get() const noexcept { return fd; }
+
+bool UniqueFd::is_valid() const noexcept { return is_valid_fd(fd); }
+
+UniqueFd::operator bool() const noexcept { return is_valid(); }
+
+int UniqueFd::release() noexcept { return std::exchange(fd, FD_INVALID); }
+
+void UniqueFd::reset(int newFd) noexcept {
+    if (fd != newFd)
+    {
+        if (is_valid())
+            ::close(fd);
+
+        fd = newFd;
+    }
+}
+
+#endif
+
+std::string u32_to_string(u32 v) noexcept {
+    constexpr usize BufferSize = 2 + HEX32_SIZE + 1;  // "0x" + 8 hex + '\0'
+
+    Array<char, BufferSize> buffer{};
+
+    int   writtenSize = std::snprintf(buffer.data(), buffer.size(), "0x%08" PRIX32, v);
+    usize copiedSize  = writtenSize > 0  //
+                        ? std::min<usize>(writtenSize, buffer.size() - 1)
+                        : 0;
+
+    return std::string{buffer.data(), copiedSize};
+}
+
+std::string u64_to_string(u64 v) noexcept {
+    constexpr usize BufferSize = 2 + HEX64_SIZE + 1;  // "0x" + 16 hex + '\0'
+
+    Array<char, BufferSize> buffer{};
+
+    int   writtenSize = std::snprintf(buffer.data(), buffer.size(), "0x%016" PRIX64, v);
+    usize copiedSize  = writtenSize > 0  //
+                        ? std::min<usize>(writtenSize, buffer.size() - 1)
+                        : 0;
+
+    return std::string{buffer.data(), copiedSize};
 }
 
 void print_info_string(const std::string_view infos) noexcept {
@@ -926,6 +1505,8 @@ std::optional<usize> str_to_usize(const std::string_view sv) noexcept {
     return static_cast<usize>(value);
 }
 
+// Reads the file as bytes.
+// Returns std::nullopt if the file does not exist.
 std::optional<std::string> read_file_to_string(const std::filesystem::path& filePath) noexcept {
 
     std::ifstream ifs{filePath, std::ios::binary | std::ios::ate};

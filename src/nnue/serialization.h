@@ -52,7 +52,7 @@ inline IntType read_little_endian(std::istream& is) noexcept {
 
     IntType value;
 
-    if (IsLittleEndian)
+    if (IS_LITTLE_ENDIAN)
         is.read(reinterpret_cast<char*>(&value), IntSize);
     else
     {
@@ -81,7 +81,7 @@ inline void write_little_endian(std::ostream& os, IntType value) noexcept {
 
     constexpr usize IntSize = sizeof(IntType);
 
-    if (IsLittleEndian)
+    if (IS_LITTLE_ENDIAN)
         os.write(reinterpret_cast<const char*>(&value), IntSize);
     else
     {
@@ -109,7 +109,7 @@ inline void write_little_endian(std::ostream& os, IntType value) noexcept {
 // This reads N integers from istream and puts them in array out.
 template<typename IntType>
 inline void read_little_endian(std::istream& is, IntType* out, const usize Size) noexcept {
-    if (IsLittleEndian)
+    if (IS_LITTLE_ENDIAN)
         is.read(reinterpret_cast<char*>(out), sizeof(IntType) * Size);
     else
         for (usize i = 0; i < Size; ++i)
@@ -127,7 +127,7 @@ inline void read_little_endian(std::istream& is, std::array<IntType, Size>& out)
 // This takes N integers from array in and writes them on ostream.
 template<typename IntType>
 inline void write_little_endian(std::ostream& os, const IntType* in, const usize Size) noexcept {
-    if (IsLittleEndian)
+    if (IS_LITTLE_ENDIAN)
         os.write(reinterpret_cast<const char*>(in), sizeof(IntType) * Size);
     else
         for (usize i = 0; i < Size; ++i)
