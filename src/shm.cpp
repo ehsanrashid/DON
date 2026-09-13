@@ -459,6 +459,7 @@ void cleanup() noexcept {
 //
 // Key Features:
 //   - Uses HookCallOnce to ensure the cleanup handler is registered only once.
+//   - Retries initialization until the cleanup handler is successfully registered.
 //   - Registers MemoryCleanup::cleanup() with std::atexit().
 //   - Does not manage the registry or perform cleanup itself.
 //
@@ -473,7 +474,8 @@ CallOnce HookCallOnce;
 
 }  // namespace
 
-// Ensures the memory cleanup handler is registered with std::atexit() only once.
+// Ensures the memory cleanup handler is successfully registered with std::atexit().
+// Initialization is retried until successful; subsequent calls return immediately.
 void ensure_initialized() noexcept {
     while (!HookCallOnce.once_init())
     {
