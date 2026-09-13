@@ -572,7 +572,7 @@ struct TBTable final: BaseTBTable {
     MMapGuard mappedGuard{mappedPtr, mappedSize};
     #endif
     u8*      mapPtr = nullptr;
-    CallOnce initOnce;
+    CallOnce initCallOnce;
 };
 
 template<TBType T>
@@ -598,26 +598,26 @@ TBTable<T>::~TBTable() noexcept {
 template<TBType T>
 void* TBTable<T>::init(const Position& pos, const Key materialKey) noexcept {
     // Fast path: if already initialized, return immediately
-    if (initOnce.initialized())
+    if (initCallOnce.once_init())
         return mappedPtr;
 
-    // Pieces strings in decreasing order for each color, like ("KPP","KR")
-    Array<std::string, COLOR_NB> pieces{};
+    // Slow path: initialize exactly once.
+    initCallOnce([this, &pos, materialKey]() noexcept {
+        // Pieces strings in decreasing order for each color, like ("KPP", "KR").
+        Array<std::string, COLOR_NB> pieces{};
 
-    for (Color c : {WHITE, BLACK})
-        for (usize i = PIECE_TYPES.size(); i-- > 0;)
-            pieces[c].append(pos.count(c, PIECE_TYPES[i]), to_char(PIECE_TYPES[i]));
+        for (Color c : {WHITE, BLACK})
+            for (usize i = PIECE_TYPES.size(); i-- > 0;)
+                pieces[c].append(pos.count(c, PIECE_TYPES[i]), to_char(PIECE_TYPES[i]));
 
-    // Slow path: initialize exactly once using initOnce
-    initOnce([this, pieces = std::move(pieces), materialKey]() noexcept {
-        bool c = key[WHITE] == materialKey;
+        const bool c = key[WHITE] == materialKey;
 
         std::string base;
         base.reserve(pieces[WHITE].size() + 1 + pieces[BLACK].size());
 
         base  //
           .append(pieces[Color(!c)])
-          .append(1, 'v')
+          .append("v")
           .append(pieces[Color(c)]);
 
         TBFile tbFile(base, EXTS[T]);

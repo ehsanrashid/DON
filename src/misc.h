@@ -574,23 +574,25 @@ template<PrefetchAccess Access = PrefetchAccess::READ, PrefetchLoc Loc = Prefetc
 inline void prefetch(const void*) noexcept {}
 #endif
 
+// Wrapper around std::call_once that also tracks whether initialization completed.
 struct CallOnce final {
    public:
     CallOnce() noexcept = default;
 
-    // Initialize using the provided function
-    // The function will be called exactly once, even if multiple threads call this
+    // Initialize using the provided function.
+    // The function is invoked until one call completes successfully,
+    // even if multiple threads call this function.
     template<typename Func>
-    void operator()(Func&& callFn) noexcept(noexcept(callFn())) {
+    void operator()(Func&& callFn) {
         std::call_once(onceFlag, [this, callFunc = std::forward<Func>(callFn)]() mutable {
             std::move(callFunc)();  // Move into the call
-            initialize.store(true, std::memory_order_release);
+            onceInit.store(true, std::memory_order_release);
         });
     }
 
-    // Check if initialization has been completed
-    [[nodiscard]] bool initialized() const noexcept {
-        return initialize.load(std::memory_order_acquire);
+    // Check if initialization has been completed.
+    [[nodiscard]] bool once_init() const noexcept {
+        return onceInit.load(std::memory_order_acquire);
     }
 
    private:
@@ -600,7 +602,7 @@ struct CallOnce final {
     CallOnce& operator=(CallOnce&&) noexcept      = delete;
 
     std::once_flag    onceFlag;
-    std::atomic<bool> initialize{false};
+    std::atomic<bool> onceInit{false};
 };
 
 namespace OstreamMutexRegistry {

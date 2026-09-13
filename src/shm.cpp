@@ -458,7 +458,7 @@ void cleanup() noexcept {
 //   Call MemoryCleanupHook::ensure_initialized() early in main().
 //
 // Key Features:
-//   - Uses HookOnce to ensure the cleanup handler is registered only once.
+//   - Uses HookCallOnce to ensure the cleanup handler is registered only once.
 //   - Registers MemoryCleanup::cleanup() with std::atexit().
 //   - Does not manage the registry or perform cleanup itself.
 //
@@ -469,13 +469,13 @@ namespace MemoryCleanupHook {
 
 namespace {
 
-CallOnce HookOnce;
+CallOnce HookCallOnce;
 
 }  // namespace
 
 // Ensures the memory cleanup handler is registered with std::atexit() only once.
 void ensure_initialized() noexcept {
-    HookOnce([]() noexcept {
+    HookCallOnce([]() noexcept {
         //DEBUG_LOG("Initializing MemoryCleanupHook.");
 
         std::atexit(MemoryCleanup::cleanup);
