@@ -23,7 +23,4 @@
     { include: [ "@<__condition_variable/.*>", private, "<condition_variable>", public ] },
     { include: [ "@<__mutex/.*>", private, "<mutex>", public ] },
     { include: [ "<__exception/terminate.h>", private, "<exception>", public ] },
-
-    # Correct mapping (symbol-based, not header-based)
-    { symbol: [ "std::terminate", private, "<exception>", public ] }
 ]

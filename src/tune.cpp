@@ -18,7 +18,6 @@
 #include "tune.h"
 
 #include <algorithm>
-#include <list>
 #include <iostream>
 #include <optional>
 #include <unordered_map>
