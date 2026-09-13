@@ -19,8 +19,9 @@
 #define NNUE_NETWORK_H_INCLUDED
 
 #include <filesystem>
-#include <functional>
+#include <functional>  // IWYU pragma: keep
 #include <iosfwd>
+// IWYU pragma: no_include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
