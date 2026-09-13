@@ -101,9 +101,9 @@ class FeatureTransformer final {
     using Output = TransformedFeature;
 
     // Number of input/output dimensions
-    static constexpr Index PsqDimensions         = PSQFeature::Dimensions;
-    static constexpr Index ThreatInputDimensions = ThreatFeature::Dimensions;
-    static constexpr Index PairInputDimensions   = PairFeature::Dimensions;
+    static constexpr usize ThreatInputDimensions = ThreatFeature::Dimensions;
+    static constexpr usize PairInputDimensions   = PairFeature::Dimensions;
+    static constexpr usize PsqDimensions         = PSQFeature::Dimensions;
 
     static constexpr usize ThreatAndPpDimensions = ThreatInputDimensions + PairInputDimensions;
     static constexpr usize InputDimensions       = PsqDimensions + ThreatAndPpDimensions;
@@ -117,7 +117,7 @@ class FeatureTransformer final {
     static constexpr usize WeightArraySize           = PsqDimensions * HalfDimensions;
     static constexpr usize PsqtWeightArraySize       = PsqDimensions * PSQT_BUCKETS;
 
-    static constexpr Index OutputDimensions = HalfDimensions;
+    static constexpr usize OutputDimensions = HalfDimensions;
 
     // clang-format off
     using ThreatAndPpWeightArray     = Array<ThreatWeight, ThreatAndPpWeightSize>;
@@ -448,8 +448,6 @@ class FeatureTransformer final {
     alignas(CACHE_LINE_SIZE) PsqtWeightArray psqtWeights;
     // clang-format on
 };
-
-int loop();
 
 }  // namespace DON::NNUE
 

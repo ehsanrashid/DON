@@ -24,7 +24,6 @@
     { include: [ "@<__mutex/.*>", private, "<mutex>", public ] },
     { include: [ "<__exception/terminate.h>", private, "<exception>", public ] },
 
-    # Correct mapping for std::hash (symbol-based, not header-based)
-    { symbol: [ "std::hash", private, "<functional>", public ] },
+    # Correct mapping (symbol-based, not header-based)
     { symbol: [ "std::terminate", private, "<exception>", public ] }
 ]

@@ -27,9 +27,6 @@
 
 namespace DON {
 
-bool     Tune::IsLastUpdate = false;
-Options* Tune::OptionsPtr   = nullptr;
-
 namespace {
 
 const Option* LastOption = nullptr;
