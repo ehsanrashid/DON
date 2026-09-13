@@ -43,25 +43,10 @@ compiler_version(const unsigned major, const unsigned minor, const unsigned patc
 
 }  // namespace
 
-void set_console_input(const ConsoleMode consoleMode) noexcept {
-    if (consoleMode == ConsoleMode::Default)
-        return;
+void set_console_utf8() noexcept {
 #if defined(_WIN32)
-    if (consoleMode == ConsoleMode::UTF8)
-        ::SetConsoleCP(CP_UTF8);
-#else
-    (void) consoleMode;
-#endif
-}
-
-void set_console_output(const ConsoleMode consoleMode) noexcept {
-    if (consoleMode == ConsoleMode::Default)
-        return;
-#if defined(_WIN32)
-    if (consoleMode == ConsoleMode::UTF8)
-        ::SetConsoleOutputCP(CP_UTF8);
-#else
-    (void) consoleMode;
+    ::SetConsoleCP(CP_UTF8);
+    ::SetConsoleOutputCP(CP_UTF8);
 #endif
 }
 
@@ -473,8 +458,10 @@ std::string compiler_info() noexcept {
 
 std::string format_time(const SystemClock::time_point& timePoint) noexcept {
 
-    std::time_t time = SystemClock::to_time_t(timePoint);
-    u64 usec = std::chrono::duration_cast<Us>(timePoint.time_since_epoch()).count() % 1000000;
+    const std::time_t time = SystemClock::to_time_t(timePoint);
+
+    const auto totalUsec = std::chrono::duration_cast<Us>(timePoint.time_since_epoch()).count();
+    const u64  usec      = static_cast<u64>((totalUsec % 1000000 + 1000000) % 1000000);
 
     std::tm tm{};
 #if defined(_WIN32)  // Windows
@@ -488,12 +475,13 @@ std::string format_time(const SystemClock::time_point& timePoint) noexcept {
 
     Array<char, 32> buffer{};
 
-    usize writtenSize = 0;
-    // Format the YYYY.MM.DD-HH:MM:SS part
-    writtenSize += std::strftime(buffer.data(), buffer.size(), "%Y.%m.%d-%H:%M:%S", &tm);
-    // Append microseconds safely
-    writtenSize +=
-      std::snprintf(buffer.data() + writtenSize, buffer.size() - writtenSize, ".%06" PRIu64, usec);
+    usize writtenSize;
+    // Format the date and time: YYYY.MM.DD-HH:MM:SS
+    writtenSize = std::strftime(buffer.data(), buffer.size(), "%Y.%m.%d-%H:%M:%S", &tm);
+    // Append microseconds
+    writtenSize += static_cast<usize>(
+      std::snprintf(buffer.data() + writtenSize, buffer.size() - writtenSize, ".%06" PRIu64, usec));
+
     return std::string{buffer.data(), std::min(writtenSize, buffer.size() - 1)};
 }
 
@@ -1452,8 +1440,8 @@ std::filesystem::path path_from_utf8(const std::string_view path) noexcept {
     const usize size = path.size();
     if (size > std::numeric_limits<int>::max())
         return {};
-    int u8Size = int(size);
-    int wSize  = MultiByteToWideChar(CP_UTF8, 0, path.data(), u8Size, nullptr, 0);
+    const int u8Size = int(size);
+    const int wSize  = MultiByteToWideChar(CP_UTF8, 0, path.data(), u8Size, nullptr, 0);
 
     std::wstring wStr(static_cast<usize>(wSize), L'\0');
     MultiByteToWideChar(CP_UTF8, 0, path.data(), u8Size, wStr.data(), wSize);

@@ -464,14 +464,7 @@ inline constexpr const char* BG_WHITE   = "\033[47m";
 
 }  // namespace ConsoleColor
 
-enum class ConsoleMode : u8 {
-    Default,  // Use the current console encoding
-    UTF8      // Enable UTF-8 console encoding when supported
-};
-
-void set_console_input(ConsoleMode consoleMode = ConsoleMode::Default) noexcept;
-
-void set_console_output(ConsoleMode consoleMode = ConsoleMode::Default) noexcept;
+void set_console_utf8() noexcept;
 
 std::string format_date(std::string_view date) noexcept;
 
