@@ -101,9 +101,31 @@ class FeatureTransformer final {
     using Output = TransformedFeature;
 
     // Number of input/output dimensions
-    static constexpr usize InputDimensions =
-      PSQFeature::Dimensions + ThreatFeature::Dimensions + PairFeature::Dimensions;
+    static constexpr Index PsqDimensions         = PSQFeature::Dimensions;
+    static constexpr Index ThreatInputDimensions = ThreatFeature::Dimensions;
+    static constexpr Index PairInputDimensions   = PairFeature::Dimensions;
+
+    static constexpr usize ThreatAndPpDimensions = ThreatInputDimensions + PairInputDimensions;
+    static constexpr usize InputDimensions       = PsqDimensions + ThreatAndPpDimensions;
+
+    static constexpr usize ThreatWeightSize          = ThreatInputDimensions * HalfDimensions;
+    static constexpr usize ThreatPsqtWeightSize      = ThreatInputDimensions * PSQT_BUCKETS;
+    static constexpr usize PairWeightSize            = PairInputDimensions * HalfDimensions;
+    static constexpr usize PairPsqtWeightSize        = PairInputDimensions * PSQT_BUCKETS;
+    static constexpr usize ThreatAndPpWeightSize     = ThreatAndPpDimensions * HalfDimensions;
+    static constexpr usize ThreatAndPpPsqtWeightSize = ThreatAndPpDimensions * PSQT_BUCKETS;
+    static constexpr usize WeightArraySize           = PsqDimensions * HalfDimensions;
+    static constexpr usize PsqtWeightArraySize       = PsqDimensions * PSQT_BUCKETS;
+
     static constexpr Index OutputDimensions = HalfDimensions;
+
+    // clang-format off
+    using ThreatAndPpWeightArray     = Array<ThreatWeight, ThreatAndPpWeightSize>;
+    using ThreatAndPpPsqtWeightArray = Array<PSQTWeight  , ThreatAndPpPsqtWeightSize>;
+    using WeightArray                = Array<Weight      , WeightArraySize>;
+    using PsqtWeightArray            = Array<PSQTWeight  , PsqtWeightArraySize>;
+    using BiasArray                  = Array<Bias        , HalfDimensions>;
+    // clang-format on
 
     // Size of forward propagation buffer
     static constexpr usize BufferSize = OutputDimensions * sizeof(Output);
@@ -164,34 +186,20 @@ class FeatureTransformer final {
         permute<8>(threatAndPpWeights, Order);
     }
 
-    auto threatWeights() noexcept { return threatAndPpWeights.data(); }
-    auto threatWeights() const noexcept { return threatAndPpWeights.data(); }
-    auto ppWeights() noexcept {
-        return threatWeights() + ThreatFeature::Dimensions * HalfDimensions;
-    }
-    auto ppWeights() const noexcept {
-        return threatWeights() + ThreatFeature::Dimensions * HalfDimensions;
-    }
-
-    auto threatPsqtWeights() noexcept { return threatAndPpPsqtWeights.data(); }
-    auto threatPsqtWeights() const noexcept { return threatAndPpPsqtWeights.data(); }
-    auto ppPsqtWeights() noexcept {
-        return threatPsqtWeights() + ThreatFeature::Dimensions * PSQT_BUCKETS;
-    }
-    auto ppPsqtWeights() const noexcept {
-        return threatPsqtWeights() + ThreatFeature::Dimensions * PSQT_BUCKETS;
-    }
+    ThreatWeight* threatWeightData() { return threatAndPpWeights.data(); }
+    ThreatWeight* pawnPairWeightData() { return threatWeightData() + ThreatWeightSize; }
+    PSQTWeight*   threatPsqtData() { return threatAndPpPsqtWeights.data(); }
+    PSQTWeight*   pawnPairPsqtData() { return threatPsqtData() + ThreatPsqtWeightSize; }
 
     // Read network parameters
     bool read_parameters(std::istream& is) noexcept {
 
         read_leb_128(is, biases);
 
-        read_little_endian<ThreatWeight>(is, threatWeights(),
-                                         ThreatFeature::Dimensions * HalfDimensions);
-        read_leb_128(is, threatPsqtWeights(), ThreatFeature::Dimensions * PSQT_BUCKETS);
-        read_little_endian<ThreatWeight>(is, ppWeights(), PairFeature::Dimensions * HalfDimensions);
-        read_leb_128(is, ppPsqtWeights(), PairFeature::Dimensions * PSQT_BUCKETS);
+        read_little_endian(is, threatWeightData(), ThreatWeightSize);
+        read_leb_128(is, threatPsqtData(), ThreatPsqtWeightSize);
+        read_little_endian(is, pawnPairWeightData(), PairWeightSize);
+        read_leb_128(is, pawnPairPsqtData(), PairPsqtWeightSize);
 
         read_leb_128(is, weights);
         read_leb_128(is, psqtWeights);
@@ -209,14 +217,10 @@ class FeatureTransformer final {
 
         write_leb_128(os, copy->biases);
 
-        write_little_endian<ThreatWeight>(os, copy->threatWeights(),
-                                          ThreatFeature::Dimensions * HalfDimensions);
-        write_leb_128<PSQTWeight>(os, copy->threatPsqtWeights(),
-                                  ThreatFeature::Dimensions * PSQT_BUCKETS);
-        write_little_endian<ThreatWeight>(os, copy->ppWeights(),
-                                          PairFeature::Dimensions * HalfDimensions);
-        write_leb_128<PSQTWeight>(os, copy->ppPsqtWeights(),
-                                  PairFeature::Dimensions * PSQT_BUCKETS);
+        write_little_endian(os, copy->threatWeightData(), ThreatWeightSize);
+        write_leb_128(os, copy->threatPsqtData(), ThreatPsqtWeightSize);
+        write_little_endian(os, copy->pawnPairWeightData(), PairWeightSize);
+        write_leb_128(os, copy->pawnPairPsqtData(), PairPsqtWeightSize);
 
         write_leb_128(os, copy->weights);
         write_leb_128(os, copy->psqtWeights);
@@ -224,15 +228,13 @@ class FeatureTransformer final {
         return !os.fail();
     }
 
-    // clang-format off
-
     // Convert input features
     i32 transform(const Position&                         pos,
                   AccumulatorCache&                       accCache,
                   AccumulatorStack&                       accStack,
                   const usize                             bucket,
                   [[maybe_unused]] NNZ<OutputDimensions>& nnz,
-                  Array<Output, BufferSize>&          output) const noexcept {
+                  Array<Output, BufferSize>&              output) const noexcept {
 
         accStack.evaluate(pos, *this, accCache);
 
@@ -242,11 +244,12 @@ class FeatureTransformer final {
 
         const auto& psqtAccumulation = accumulator.psqtAccumulation;
 
-        const auto psqt = (  psqtAccumulation[perspectives[WHITE]][bucket]
-                           - psqtAccumulation[perspectives[BLACK]][bucket]) / 2;
+        const auto psqt = (psqtAccumulation[perspectives[WHITE]][bucket]
+                           - psqtAccumulation[perspectives[BLACK]][bucket])
+                        / 2;
 
         const auto& accumulation = accumulator.accumulation;
-
+        // clang-format off
         for (Color p : {WHITE, BLACK})
         {
             Index offset = p * (HalfDimensions / 2);
@@ -430,19 +433,23 @@ class FeatureTransformer final {
             }
 #endif
         }
+        // clang-format on
 
         return psqt;
     }
 
-    alignas(CACHE_LINE_SIZE) Array<ThreatWeight, HalfDimensions * usize(ThreatFeature::Dimensions + PairFeature::Dimensions)> threatAndPpWeights;
-    alignas(CACHE_LINE_SIZE) Array<PSQTWeight  , PSQT_BUCKETS   * usize(ThreatFeature::Dimensions + PairFeature::Dimensions)> threatAndPpPsqtWeights;
+    // clang-format off
+    alignas(CACHE_LINE_SIZE) BiasArray biases;
 
-    alignas(CACHE_LINE_SIZE) Array<Weight      , HalfDimensions * usize(PSQFeature::Dimensions)> weights;
-    alignas(CACHE_LINE_SIZE) Array<PSQTWeight  , PSQT_BUCKETS   * usize(PSQFeature::Dimensions)> psqtWeights;
+    alignas(CACHE_LINE_SIZE) ThreatAndPpWeightArray     threatAndPpWeights;
+    alignas(CACHE_LINE_SIZE) ThreatAndPpPsqtWeightArray threatAndPpPsqtWeights;
 
-    alignas(CACHE_LINE_SIZE) Array<Bias        , HalfDimensions> biases;
+    alignas(CACHE_LINE_SIZE) WeightArray     weights;
+    alignas(CACHE_LINE_SIZE) PsqtWeightArray psqtWeights;
     // clang-format on
 };
+
+int loop();
 
 }  // namespace DON::NNUE
 
