@@ -149,52 +149,6 @@ struct Error: public std::runtime_error {
     using std::runtime_error::runtime_error;
 };
 
-namespace ConsoleColor {
-
-// Reset
-inline constexpr const char* RESET = "\033[0m";
-
-// Regular colors
-inline constexpr const char* BLACK   = "\033[30m";
-inline constexpr const char* RED     = "\033[31m";
-inline constexpr const char* GREEN   = "\033[32m";
-inline constexpr const char* YELLOW  = "\033[33m";
-inline constexpr const char* BLUE    = "\033[34m";
-inline constexpr const char* MAGENTA = "\033[35m";
-inline constexpr const char* CYAN    = "\033[36m";
-inline constexpr const char* WHITE   = "\033[37m";
-
-// Bright/intense colors
-inline constexpr const char* BRIGHT_BLACK   = "\033[90m";  // Dark gray
-inline constexpr const char* BRIGHT_RED     = "\033[91m";
-inline constexpr const char* BRIGHT_GREEN   = "\033[92m";
-inline constexpr const char* BRIGHT_YELLOW  = "\033[93m";
-inline constexpr const char* BRIGHT_BLUE    = "\033[94m";
-inline constexpr const char* BRIGHT_MAGENTA = "\033[95m";
-inline constexpr const char* BRIGHT_CYAN    = "\033[96m";
-inline constexpr const char* BRIGHT_WHITE   = "\033[97m";
-
-// Text styles
-inline constexpr const char* BOLD          = "\033[1m";
-inline constexpr const char* DIM           = "\033[2m";
-inline constexpr const char* ITALIC        = "\033[3m";
-inline constexpr const char* UNDERLINE     = "\033[4m";
-inline constexpr const char* BLINK         = "\033[5m";
-inline constexpr const char* REVERSE       = "\033[7m";
-inline constexpr const char* STRIKETHROUGH = "\033[9m";
-
-// Background colors
-inline constexpr const char* BG_BLACK   = "\033[40m";
-inline constexpr const char* BG_RED     = "\033[41m";
-inline constexpr const char* BG_GREEN   = "\033[42m";
-inline constexpr const char* BG_YELLOW  = "\033[43m";
-inline constexpr const char* BG_BLUE    = "\033[44m";
-inline constexpr const char* BG_MAGENTA = "\033[45m";
-inline constexpr const char* BG_CYAN    = "\033[46m";
-inline constexpr const char* BG_WHITE   = "\033[47m";
-
-}  // namespace ConsoleColor
-
 inline constexpr usize BYTE_BITS = 8;
 
 inline constexpr usize HEX64_SIZE = 16;
@@ -464,17 +418,63 @@ constexpr unsigned to_month(const std::string_view mon) noexcept {
                                                                   : 0;
 }
 
+namespace ConsoleColor {
+
+// Reset
+inline constexpr const char* RESET = "\033[0m";
+
+// Regular colors
+inline constexpr const char* BLACK   = "\033[30m";
+inline constexpr const char* RED     = "\033[31m";
+inline constexpr const char* GREEN   = "\033[32m";
+inline constexpr const char* YELLOW  = "\033[33m";
+inline constexpr const char* BLUE    = "\033[34m";
+inline constexpr const char* MAGENTA = "\033[35m";
+inline constexpr const char* CYAN    = "\033[36m";
+inline constexpr const char* WHITE   = "\033[37m";
+
+// Bright/intense colors
+inline constexpr const char* BRIGHT_BLACK   = "\033[90m";  // Dark gray
+inline constexpr const char* BRIGHT_RED     = "\033[91m";
+inline constexpr const char* BRIGHT_GREEN   = "\033[92m";
+inline constexpr const char* BRIGHT_YELLOW  = "\033[93m";
+inline constexpr const char* BRIGHT_BLUE    = "\033[94m";
+inline constexpr const char* BRIGHT_MAGENTA = "\033[95m";
+inline constexpr const char* BRIGHT_CYAN    = "\033[96m";
+inline constexpr const char* BRIGHT_WHITE   = "\033[97m";
+
+// Text styles
+inline constexpr const char* BOLD          = "\033[1m";
+inline constexpr const char* DIM           = "\033[2m";
+inline constexpr const char* ITALIC        = "\033[3m";
+inline constexpr const char* UNDERLINE     = "\033[4m";
+inline constexpr const char* BLINK         = "\033[5m";
+inline constexpr const char* REVERSE       = "\033[7m";
+inline constexpr const char* STRIKETHROUGH = "\033[9m";
+
+// Background colors
+inline constexpr const char* BG_BLACK   = "\033[40m";
+inline constexpr const char* BG_RED     = "\033[41m";
+inline constexpr const char* BG_GREEN   = "\033[42m";
+inline constexpr const char* BG_YELLOW  = "\033[43m";
+inline constexpr const char* BG_BLUE    = "\033[44m";
+inline constexpr const char* BG_MAGENTA = "\033[45m";
+inline constexpr const char* BG_CYAN    = "\033[46m";
+inline constexpr const char* BG_WHITE   = "\033[47m";
+
+}  // namespace ConsoleColor
+
 enum class ConsoleMode : u8 {
-    Default,  // Do nothing special
-    UTF7,     // Explicitly avoid UTF-8 changes
-    UTF8,     // Try to enable UTF-8 if possible
-    EnableVirtualTerminal,
-    FullyFeatured,
+    Default,  // Use the current console encoding
+    UTF8      // Enable UTF-8 console encoding when supported
 };
 
 void set_console_input(ConsoleMode consoleMode = ConsoleMode::Default) noexcept;
 
 void set_console_output(ConsoleMode consoleMode = ConsoleMode::Default) noexcept;
+
+void set_console_colors(const char* coutColor = ConsoleColor::BRIGHT_BLUE,
+                        const char* cerrColor = ConsoleColor::BRIGHT_RED) noexcept;
 
 std::string format_date(std::string_view date) noexcept;
 
@@ -614,6 +614,8 @@ struct CallOnce final {
 };
 
 namespace OstreamMutexRegistry {
+
+using OstreamMutexMap = std::unordered_map<std::ostream*, std::mutex>;
 
 std::mutex& get(std::ostream* osPtr) noexcept;
 
@@ -1051,6 +1053,28 @@ static_assert(sizeof(FixedText) == 32, "FixedText size must be 32 bytes");
 
 std::ostream& operator<<(std::ostream& os, const FixedText& fixedText) noexcept;
 
+struct CommandLine final {
+   public:
+    CommandLine(int argc, const char* argv[]) noexcept;
+    CommandLine(const CommandLine&)            = delete;
+    CommandLine& operator=(const CommandLine&) = delete;
+    CommandLine(CommandLine&&)                 = default;
+    CommandLine& operator=(CommandLine&&)      = default;
+
+    static std::filesystem::path binary_directory(std::filesystem::path path) noexcept;
+    static std::filesystem::path working_directory() noexcept;
+
+    [[nodiscard]] const StringViews& arguments() const noexcept;
+
+   private:
+    void set_arguments(int argc, const char* argv[]) noexcept;
+
+    StringViews arguments_;
+#if defined(_WIN32)
+    Strings utf8_arguments;
+#endif
+};
+
 // Wrapper around std::atomic<T> that uses relaxed atomic or plain accesses, depending on the configuration.
 // Intended for platforms such as WebAssembly, where the overhead of atomic instructions can be significant
 // and only non-tearing accesses are required for the updates, while ensuring we use relaxed accesses otherwise.
@@ -1446,6 +1470,28 @@ class MemoryBuf final: public std::streambuf {
     MemoryBuf(char* p, usize size) noexcept;
 };
 
+class ColorBuf final: public std::streambuf {
+   public:
+    ColorBuf() noexcept = default;
+    ColorBuf(std::streambuf* bf, const char* c) noexcept;
+
+    std::streambuf* buffer() const noexcept;
+
+   protected:
+    int sync() override;
+
+    int_type overflow(int_type ch) override;
+
+    std::streamsize xsputn(const char_type* s, std::streamsize count) override;
+
+   private:
+    bool write_color() noexcept;
+    bool write_reset() noexcept;
+
+    std::streambuf* buf   = nullptr;
+    const char*     color = nullptr;
+};
+
 // TieBuf (Fancy logging facility).
 // Replaces std::cin.rdbuf() and std::cout.rdbuf() with two TieBuf objects
 // that preserve normal I/O while optionally mirroring input and output to a
@@ -1459,18 +1505,15 @@ class MemoryBuf final: public std::streambuf {
 // with line prefixes.
 class TieBuf final: public std::streambuf {
    public:
-    using traits_type = std::streambuf::traits_type;
-    using int_type    = traits_type::int_type;
-    using char_type   = traits_type::char_type;
+    TieBuf() noexcept = default;
+    TieBuf(std::streambuf* pBf, std::streambuf* mBf) noexcept;
 
-    TieBuf() noexcept = delete;
-    TieBuf(std::streambuf* pB, std::streambuf* mB) noexcept;
-
+   protected:
     int sync() override;
 
     int_type underflow() override;
 
-    int_type overflow(const int_type ch) override;
+    int_type overflow(int_type ch) override;
 
     int_type uflow() override;
 
@@ -1483,10 +1526,9 @@ class TieBuf final: public std::streambuf {
     int_type
     mirror_put_with_prefix(int_type ch, std::string_view prefix, char_type& preCh) noexcept;
 
-    std::streambuf *pBuf, *mBuf;
+    std::streambuf *pBuf = nullptr, *mBuf = nullptr;
 
-    char_type oPreCh = '\n';
-    char_type iPreCh = '\n';
+    char_type opreCh = '\n', ipreCh = '\n';
 };
 
 // Logger
@@ -1539,28 +1581,6 @@ void correl_of(i64 value1, i64 value2, usize slot = 0) noexcept;
 void print() noexcept;
 }  // namespace Debug
 #endif
-
-struct CommandLine final {
-   public:
-    CommandLine(int argc, const char* argv[]) noexcept;
-    CommandLine(const CommandLine&)            = delete;
-    CommandLine& operator=(const CommandLine&) = delete;
-    CommandLine(CommandLine&&)                 = default;
-    CommandLine& operator=(CommandLine&&)      = default;
-
-    static std::filesystem::path binary_directory(std::filesystem::path path) noexcept;
-    static std::filesystem::path working_directory() noexcept;
-
-    [[nodiscard]] const StringViews& arguments() const noexcept;
-
-   private:
-    void set_arguments(int argc, const char* argv[]) noexcept;
-
-    StringViews arguments_;
-#if defined(_WIN32)
-    Strings utf8_arguments;
-#endif
-};
 
 #if defined(_WIN32)
 // Get the error message string, if any

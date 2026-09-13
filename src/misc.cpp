@@ -44,54 +44,72 @@ compiler_version(const unsigned major, const unsigned minor, const unsigned patc
 }  // namespace
 
 void set_console_input(const ConsoleMode consoleMode) noexcept {
-    switch (consoleMode)
-    {
-    case ConsoleMode::UTF7 :
+    if (consoleMode == ConsoleMode::Default)
+        return;
 #if defined(_WIN32)
-        SetConsoleCP(CP_UTF7);
+    if (consoleMode == ConsoleMode::UTF8)
+        ::SetConsoleCP(CP_UTF8);
 #else
-      ;
+    (void) consoleMode;
 #endif
-        break;
-    case ConsoleMode::EnableVirtualTerminal :
-        break;
-    case ConsoleMode::FullyFeatured :
-        break;
-    case ConsoleMode::Default :
-        break;
-    case ConsoleMode::UTF8 :
-    default :
-#if defined(_WIN32)
-        SetConsoleCP(CP_UTF8);
-#else
-      ;
-#endif
-    }
 }
 
 void set_console_output(const ConsoleMode consoleMode) noexcept {
-    switch (consoleMode)
+    if (consoleMode == ConsoleMode::Default)
+        return;
+#if defined(_WIN32)
+    if (consoleMode == ConsoleMode::UTF8)
+        ::SetConsoleOutputCP(CP_UTF8);
+#else
+    (void) consoleMode;
+#endif
+}
+
+void set_console_colors(const char* const coutColor, const char* const cerrColor) noexcept {
+    static std::unique_ptr<ColorBuf> coutColorBuf;
+    static std::unique_ptr<ColorBuf> cerrColorBuf;
+
+    auto* coutBuf = coutColorBuf.get();
+    auto* cerrBuf = cerrColorBuf.get();
+
+    auto* coutBuffer = coutBuf != nullptr ? coutBuf->buffer() : std::cout.rdbuf();
+    auto* cerrBuffer = cerrBuf != nullptr ? cerrBuf->buffer() : std::cerr.rdbuf();
+
+    std::cout.rdbuf(coutBuffer);
+    std::cerr.rdbuf(cerrBuffer);
+
+    coutColorBuf.reset();
+    cerrColorBuf.reset();
+
+#if defined(_WIN32)
+    if (coutColor != nullptr || cerrColor != nullptr)
     {
-    case ConsoleMode::UTF7 :
-#if defined(_WIN32)
-        SetConsoleOutputCP(CP_UTF7);
-#else
-      ;
+        const auto enable_virtual_terminal = [](const DWORD handleId) noexcept {
+            const HANDLE handle = ::GetStdHandle(handleId);
+            DWORD        mode;
+
+            if (::GetConsoleMode(handle, &mode))
+                ::SetConsoleMode(handle, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
+        };
+
+        if (coutColor != nullptr)
+            enable_virtual_terminal(STD_OUTPUT_HANDLE);
+
+        if (cerrColor != nullptr)
+            enable_virtual_terminal(STD_ERROR_HANDLE);
+    }
 #endif
-        break;
-    case ConsoleMode::EnableVirtualTerminal :
-        break;
-    case ConsoleMode::FullyFeatured :
-        break;
-    case ConsoleMode::Default :
-        break;
-    case ConsoleMode::UTF8 :
-    default :
-#if defined(_WIN32)
-        SetConsoleOutputCP(CP_UTF8);
-#else
-      ;
-#endif
+
+    if (coutColor != nullptr)
+    {
+        coutColorBuf = std::make_unique<ColorBuf>(coutBuffer, coutColor);
+        std::cout.rdbuf(coutColorBuf.get());
+    }
+
+    if (cerrColor != nullptr)
+    {
+        cerrColorBuf = std::make_unique<ColorBuf>(cerrBuffer, cerrColor);
+        std::cerr.rdbuf(cerrColorBuf.get());
     }
 }
 
@@ -557,7 +575,7 @@ namespace {
 std::mutex Mutex;
 
 // Associates each ostream pointer with its mutex.
-std::unordered_map<std::ostream*, std::mutex> MutexMap;
+OstreamMutexMap MutexMap;
 
 }  // namespace
 
@@ -614,19 +632,23 @@ SyncOstream sync_os(std::ostream& os) noexcept { return SyncOstream(os); }
 FixedText FixedText::from(const std::string_view sv) noexcept { return FixedText{}.write(sv); }
 
 FixedText& FixedText::write(const char ch) noexcept {
-    assert(size() < capacity());
-    if (size() >= capacity())
+    assert(size() + 1 <= capacity());
+    if (size() + 1 > capacity())
         return *this;
 
     data_[size_++] = ch;
+
     return *this;
 }
 
 FixedText& FixedText::write(const std::string_view sv) noexcept {
     assert(size() + sv.size() <= capacity());
+    if (size() + sv.size() > capacity())
+        return *this;
 
     std::memcpy(end(), sv.data(), sv.size());
     size_ += static_cast<u8>(sv.size());
+
     return *this;
 }
 
@@ -634,14 +656,75 @@ FixedText& FixedText::write(const int v) noexcept {
     auto [ptr, ec] = std::to_chars(end(), begin() + capacity(), v);
     assert(ec == std::errc{});
     size_ = static_cast<u8>(ptr - begin());
+
     return *this;
 }
 
 std::ostream& operator<<(std::ostream& os, const FixedText& fixedText) noexcept {
-
-    os.write(fixedText.c_str(), std::streamsize(fixedText.size()));
+    os.write(fixedText.c_str(), static_cast<std::streamsize>(fixedText.size()));
 
     return os;
+}
+
+CommandLine::CommandLine(int argc, const char* argv[]) noexcept {
+#if defined(_WIN32)
+    int     wargc = 0;
+    LPWSTR* wargv = CommandLineToArgvW(GetCommandLineW(), &wargc);
+
+    if (wargv != nullptr)
+    {
+        const usize utf8_argc = static_cast<usize>(wargc);
+
+        utf8_arguments.reserve(utf8_argc);
+
+        for (usize i = 0; i < utf8_argc; ++i)
+            utf8_arguments.emplace_back(utf8_from_wstring(wargv[i]));
+
+        LocalFree(wargv);
+
+        arguments_.reserve(utf8_arguments.size());
+
+        for (const auto& utf8_arg : utf8_arguments)
+            arguments_.emplace_back(utf8_arg);
+    }
+    else
+        set_arguments(argc, argv);
+#else
+    set_arguments(argc, argv);
+#endif
+}
+
+// Returns the directory containing the executable, or "." if the directory is empty.
+std::filesystem::path CommandLine::binary_directory(std::filesystem::path path) noexcept {
+#if defined(_WIN32)
+    // Prefer the executable path reported by Windows.
+    // Unlike _get_wpgmptr(), this does not depend on the CRT entry-point variant.
+    // Windows paths cannot exceed 32767 characters, so a fixed buffer is sufficient.
+    // Falls back to path if the API fails.
+    Array<WCHAR, 0x8000> filename{};
+    const DWORD length = GetModuleFileNameW(nullptr, filename.data(), DWORD(filename.size()));
+    if (length != 0 && length < filename.size())
+        path = std::filesystem::path{filename.data(), filename.data() + length};
+#endif
+
+    const auto binaryDirectory{path.parent_path()};
+    return binaryDirectory.empty() ? std::filesystem::path(".") : binaryDirectory;
+}
+
+// Returns the process's current working directory.
+std::filesystem::path CommandLine::working_directory() noexcept {
+    return std::filesystem::current_path();
+}
+
+const StringViews& CommandLine::arguments() const noexcept { return arguments_; }
+
+void CommandLine::set_arguments(int argc, const char* argv[]) noexcept {
+    const usize uargc = static_cast<usize>(argc);
+
+    arguments_.reserve(uargc);
+
+    for (usize i = 0; i < uargc; ++i)
+        arguments_.emplace_back(argv[i]);  // Store a view without copying the string.
 }
 
 StringViewBuf::StringViewBuf(const std::string_view sv) noexcept {
@@ -658,16 +741,78 @@ MemoryBuf::MemoryBuf(char* const p, const usize size) noexcept {
     setp(p, p + size);     // Set PUT area (writing enabled)
 }
 
-TieBuf::TieBuf(std::streambuf* const pB, std::streambuf* const mB) noexcept :
-    pBuf(pB),
-    mBuf(mB) {}
+ColorBuf::ColorBuf(std::streambuf* const bf, const char* const c) noexcept :
+    buf(bf),
+    color(c) {}
+
+std::streambuf* ColorBuf::buffer() const noexcept { return buf; }
+
+int ColorBuf::sync() { return buf != nullptr ? buf->pubsync() : 0; }
+
+ColorBuf::int_type ColorBuf::overflow(const int_type ch) {
+    if (buf == nullptr)
+        return traits_type::eof();
+
+    if (ch == traits_type::eof())
+        return buf->pubsync() == 0 ? traits_type::not_eof(ch) : traits_type::eof();
+
+    if (!write_color())
+        return traits_type::eof();
+
+    const auto ich = buf->sputc(traits_type::to_char_type(ch));
+
+    if (ich != traits_type::eof())
+        write_reset();
+
+    return ich;
+}
+
+std::streamsize ColorBuf::xsputn(const char_type* const s, const std::streamsize count) {
+    if (buf == nullptr || count <= 0)
+        return 0;
+
+    if (!write_color())
+        return 0;
+
+    const auto written = buf->sputn(s, count);
+
+    if (written > 0)
+        write_reset();
+
+    return written;
+}
+
+bool ColorBuf::write_color() noexcept {
+    if (buf == nullptr || color == nullptr)
+        return false;
+
+    const auto length = traits_type::length(color);
+
+    return buf->sputn(color, static_cast<std::streamsize>(length))
+        == static_cast<std::streamsize>(length);
+}
+
+bool ColorBuf::write_reset() noexcept {
+    if (buf == nullptr)
+        return false;
+
+    constexpr auto* reset  = ConsoleColor::RESET;
+    constexpr auto  length = traits_type::length(reset);
+
+    return buf->sputn(reset, static_cast<std::streamsize>(length))
+        == static_cast<std::streamsize>(length);
+}
+
+TieBuf::TieBuf(std::streambuf* const pBf, std::streambuf* const mBf) noexcept :
+    pBuf(pBf),
+    mBuf(mBf) {}
 
 // Synchronizes both the primary and mirror buffers.
 int TieBuf::sync() {
-    int r1 = pBuf != nullptr ? pBuf->pubsync() : 0;
-    int r2 = mBuf != nullptr ? mBuf->pubsync() : 0;
+    const int pR = pBuf != nullptr ? pBuf->pubsync() : 0;
+    const int mR = mBuf != nullptr ? mBuf->pubsync() : 0;
 
-    return (r1 == 0 && r2 == 0) ? 0 : -1;
+    return pR == 0 && mR == 0 ? 0 : -1;
 }
 
 // Reads the next character from the primary buffer without consuming it.
@@ -691,7 +836,7 @@ TieBuf::int_type TieBuf::overflow(const int_type ch) {
     if (traits_type::eq_int_type(putCh, traits_type::eof()))
         return putCh;
 
-    return mirror_put_with_prefix(putCh, "<< ", oPreCh);
+    return mirror_put_with_prefix(putCh, "<< ", opreCh);
 }
 
 // Reads and consumes one character from the primary buffer, then mirrors it with an input prefix.
@@ -704,7 +849,7 @@ TieBuf::int_type TieBuf::uflow() {
     if (traits_type::eq_int_type(ch, traits_type::eof()))
         return ch;
 
-    return mirror_put_with_prefix(ch, ">> ", iPreCh);
+    return mirror_put_with_prefix(ch, ">> ", ipreCh);
 }
 
 // Writes a block to the primary buffer and mirrors the written characters with an output prefix.
@@ -712,17 +857,20 @@ std::streamsize TieBuf::xsputn(const char_type* const s, const std::streamsize c
     if (pBuf == nullptr)
         return 0;
 
-    std::streamsize written = pBuf->sputn(s, count);
+    const std::streamsize written = pBuf->sputn(s, count);
 
-    if (mBuf != nullptr && written > 0)
-    {
-        if (oPreCh == '\n')
-            mBuf->sputn("<< ", 3);
+    if (mBuf == nullptr)
+        return written;
 
-        mBuf->sputn(s, written);
+    if (written <= 0)
+        return written;
 
-        oPreCh = s[written - 1];
-    }
+    if (opreCh == '\n')
+        mBuf->sputn("<< ", 3);
+
+    mBuf->sputn(s, written);
+
+    opreCh = s[written - 1];
 
     return written;
 }
@@ -1129,67 +1277,6 @@ void print() noexcept {
 
 }  // namespace Debug
 #endif
-
-CommandLine::CommandLine(int argc, const char* argv[]) noexcept {
-#if defined(_WIN32)
-    int     wargc = 0;
-    LPWSTR* wargv = CommandLineToArgvW(GetCommandLineW(), &wargc);
-
-    if (wargv != nullptr)
-    {
-        const usize utf8_argc = static_cast<usize>(wargc);
-
-        utf8_arguments.reserve(utf8_argc);
-
-        for (usize i = 0; i < utf8_argc; ++i)
-            utf8_arguments.emplace_back(utf8_from_wstring(wargv[i]));
-
-        LocalFree(wargv);
-
-        arguments_.reserve(utf8_arguments.size());
-
-        for (const auto& utf8_arg : utf8_arguments)
-            arguments_.emplace_back(utf8_arg);
-    }
-    else
-        set_arguments(argc, argv);
-#else
-    set_arguments(argc, argv);
-#endif
-}
-
-// Returns the directory containing the executable, or "." if the directory is empty.
-std::filesystem::path CommandLine::binary_directory(std::filesystem::path path) noexcept {
-#if defined(_WIN32)
-    // Prefer the executable path reported by Windows.
-    // Unlike _get_wpgmptr(), this does not depend on the CRT entry-point variant.
-    // Windows paths cannot exceed 32767 characters, so a fixed buffer is sufficient.
-    // Falls back to path if the API fails.
-    Array<WCHAR, 0x8000> filename{};
-    const DWORD length = GetModuleFileNameW(nullptr, filename.data(), DWORD(filename.size()));
-    if (length != 0 && length < filename.size())
-        path = std::filesystem::path{filename.data(), filename.data() + length};
-#endif
-
-    const auto binaryDirectory{path.parent_path()};
-    return binaryDirectory.empty() ? std::filesystem::path(".") : binaryDirectory;
-}
-
-// Returns the process's current working directory.
-std::filesystem::path CommandLine::working_directory() noexcept {
-    return std::filesystem::current_path();
-}
-
-const StringViews& CommandLine::arguments() const noexcept { return arguments_; }
-
-void CommandLine::set_arguments(int argc, const char* argv[]) noexcept {
-    const usize uargc = static_cast<usize>(argc);
-
-    arguments_.reserve(uargc);
-
-    for (usize i = 0; i < uargc; ++i)
-        arguments_.emplace_back(argv[i]);  // Store a view without copying the string.
-}
 
 #if defined(_WIN32)
 
