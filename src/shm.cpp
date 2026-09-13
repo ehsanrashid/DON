@@ -525,7 +525,7 @@ InitLock::InitLock(UniqueFd fd) noexcept :
     lockFd(std::move(fd)) {}
 
 InitLock InitLock::acquire_lock(const std::string_view path) noexcept {
-    UniqueFd fd(::open(path.data(), O_CREAT | O_RDWR | O_CLOEXEC, FILE_MODE));
+    UniqueFd fd(::open(path.data(), O_CREAT | O_RDWR | O_CLOEXEC, DEFFILEMODE));
 
     if (!fd.is_valid())
         return {};

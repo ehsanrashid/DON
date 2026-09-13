@@ -71,8 +71,8 @@
     #include <sys/mman.h>    // munmap(), memfd_create(), MFD_CLOEXEC
     #include <sys/socket.h>  // socket(), bind(), listen(), accept(), connect(), send(), recv()
     #include <sys/stat.h>
-    #include <sys/types.h>
-    #include <sys/un.h>  // sockaddr_un
+    #include <sys/types.h>  // IWYU pragma: keep
+    #include <sys/un.h>     // sockaddr_un
     #include <unistd.h>  // close(), read()/write(), unlink(), sleep(), getpid(), pipe()/pipe2(), fsync()
 
     #include <cassert>
@@ -109,7 +109,16 @@
     #endif
 
     #if !defined(ACCESSPERMS)
-        #define ACCESSPERMS (S_IRWXU | S_IRWXG | S_IRWXO)
+        #define ACCESSPERMS (S_IRWXU | S_IRWXG | S_IRWXO) /* 0777 */
+    #endif
+    #if !defined(ALLPERMS)
+        #define ALLPERMS (S_ISUID | S_ISGID | S_ISVTX | S_IRWXU | S_IRWXG | S_IRWXO) /* 07777 */
+    #endif
+    #if !defined(DEFFILEMODE)
+        #define DEFFILEMODE (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH) /* 0666*/
+    #endif
+    #if !defined(S_BLKSIZE)
+        #define S_BLKSIZE 512 /* Block size for `st_blocks' */
     #endif
     #if (defined(__linux__))
         #if !defined(MADV_COLLAPSE)
@@ -367,8 +376,6 @@ class BackendSharedMemory final {
 };
 
 #elif defined(USE_UNIX_SHM)
-constexpr mode_t FILE_MODE = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH;
-
 // Poll Index
 enum class PI : u8 {
     SERVER,
