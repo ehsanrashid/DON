@@ -126,12 +126,12 @@ void set_console_colors(const char* const coutColor, const char* const cerrColor
 void restore_console_colors() noexcept {
     // Restore the underlying stream buffers.
     // Destroy the existing color buffers.
-    if (CoutColorBuf != nullptr)
+    if (CoutColorBuf)
     {
         std::cout.rdbuf(CoutColorBuf->buffer());
         CoutColorBuf.reset();
     }
-    if (CerrColorBuf != nullptr)
+    if (CerrColorBuf)
     {
         std::cerr.rdbuf(CerrColorBuf->buffer());
         CerrColorBuf.reset();
