@@ -19,7 +19,6 @@
 
 #include <algorithm>
 #include <cassert>
-//#include <cstdlib>
 #include <iostream>
 
 namespace DON {
@@ -161,17 +160,17 @@ auto Options::find(const std::string_view name) const noexcept { return indexMap
 
 // Adds an option to the Options.
 //
-// Options are stored in insertion order through 'list' and indexed by name
-// through 'indexMap'. Returns false if an option with the same name already exists.
+// Options are stored in insertion order and indexed by name.
+// Returns false if an option with the same name already exists.
 bool Options::add(const std::string_view name, const Option& option) noexcept {
+    // Already exists.
     if (contains(name))
     {
         std::cerr << "Option: '" << name << "' was already added!" << std::endl;
-        //std::exit(EXIT_FAILURE);
         return false;
     }
 
-    // Append the option to the ordered list and obtain its iterator.
+    // Append the option in insertion order and obtain its iterator.
     const auto listItr = list.emplace(list.end(), name, option);
     assert(listItr != list.end());
 
@@ -184,7 +183,7 @@ bool Options::add(const std::string_view name, const Option& option) noexcept {
     assert(inserted);
     assert(indexMapItr->second == listItr);
 
-    // Establish name membership after the list and index map are updated.
+    // Establish name membership after the ordered list and name index are updated.
     [[maybe_unused]] const auto [setItr, registered] = set.emplace(name);
     // The initial membership check guarantees that this insertion succeeds.
     assert(registered);
@@ -199,17 +198,17 @@ bool Options::add(const std::string_view name, const Option& option) noexcept {
 bool Options::remove(const std::string_view name) noexcept {
     const auto setItr = set.find(name);
 
-    // Not registered.
+    // Not exists.
     if (!contains(setItr))
         return false;
 
     const auto indexMapItr = find(name);
-    // Set guarantees that indexMap contains the option.
+    // Set membership guarantees that the name is indexed.
     assert(indexMapItr != indexMap.end());
 
     // Retrieve the corresponding list node.
     const auto listItr = indexMapItr->second;
-    // Internal consistency checks.
+    // Verify the list node and its name.
     assert(listItr != list.end());
     assert(lower_case(std::string{listItr->first}) == lower_case(std::string{name}));
 
