@@ -24,24 +24,6 @@
 
 namespace DON {
 
-usize CaseInsensitiveHash::operator()(std::string_view sv) const noexcept {
-    return std::hash<std::string_view>{}(lower_case(std::string{sv}));
-}
-
-bool CaseInsensitiveEqual::operator()(std::string_view sv1, std::string_view sv2) const noexcept {
-    return sv1.size() == sv2.size()
-        && std::equal(
-             sv1.begin(), sv1.end(), sv2.begin(), sv2.end(),
-             [](char ch1, char ch2) noexcept { return lower_case(ch1) == lower_case(ch2); });
-}
-
-bool CaseInsensitiveLess::operator()(std::string_view sv1, std::string_view sv2) const noexcept {
-    return std::lexicographical_compare(
-      sv1.begin(), sv1.end(), sv2.begin(), sv2.end(),
-      [](char ch1, char ch2) noexcept { return lower_case(ch1) < lower_case(ch2); });
-}
-
-
 Option::Option(OnChange&& f) noexcept :
     type(Type::BUTTON),
     onChange(std::move(f)) {}
@@ -151,68 +133,111 @@ std::ostream& operator<<(std::ostream& os, const Option& option) noexcept {
     return os;
 }
 
-auto Options::begin() const noexcept { return list.begin(); }
-
-auto Options::end() const noexcept { return list.end(); }
-
 auto Options::begin() noexcept { return list.begin(); }
 
 auto Options::end() noexcept { return list.end(); }
+
+auto Options::begin() const noexcept { return list.begin(); }
+
+auto Options::end() const noexcept { return list.end(); }
 
 usize Options::size() const noexcept { return list.size(); }
 
 bool Options::empty() const noexcept { return list.empty(); }
 
-auto Options::find(std::string_view name) noexcept { return indexMap.find(name); }
-
-auto Options::find(std::string_view name) const noexcept { return indexMap.find(name); }
+bool Options::contains(Set::const_iterator setItr) const noexcept { return setItr != set.end(); }
 
 bool Options::contains(const std::string_view name) const noexcept {
-    return set.find(name) != set.end();
+    return contains(set.find(name));
 }
 
 usize Options::count(const std::string_view name) const noexcept { return set.count(name); }
 
-// Add option and assigns idx in the correct insertion order
-void Options::add(const std::string_view name, const Option& option) noexcept {
+auto Options::find(const std::string_view name) noexcept { return indexMap.find(name); }
+
+auto Options::find(const std::string_view name) const noexcept { return indexMap.find(name); }
+
+// Adds an option to the Options.
+//
+// Options are stored in insertion order through 'list' and indexed by name
+// through 'indexMap'. Returns false if an option with the same name already exists.
+bool Options::add(const std::string_view name, const Option& option) noexcept {
     if (contains(name))
     {
         std::cerr << "Option: '" << name << "' was already added!" << std::endl;
-        std::exit(EXIT_FAILURE);
+        //std::exit(EXIT_FAILURE);
+        return false;
     }
 
-    // Append to the ordered list and obtain its iterator.
+    // Append the option to the ordered list and obtain its iterator.
     const auto listItr = list.emplace(list.end(), name, option);
     assert(listItr != list.end());
 
+    // Associate the option with its owning Options object.
     listItr->second.optionsPtr = this;
 
-    // Associate the option with its corresponding list node.
+    // Associate the name with its corresponding list node.
     [[maybe_unused]] const auto [indexMapItr, inserted] = indexMap.emplace(name, listItr);
-    // Set was checked first, so IndexMap must not contain the option.
+    // The initial membership check guarantees that the name is not already indexed.
     assert(inserted);
     assert(indexMapItr->second == listItr);
 
-    // Establish membership after List and IndexMap are successfully updated.
+    // Establish name membership after the list and index map are updated.
     [[maybe_unused]] const auto [setItr, registered] = set.emplace(name);
     // The initial membership check guarantees that this insertion succeeds.
     assert(registered);
     assert(setItr != set.end());
+
+    return true;
 }
 
-void Options::set_value(const std::string_view name, const std::string_view value) noexcept {
-    const auto itr = find(name);
+// Removes an option from the Options.
+//
+// Returns false if no option with the specified name exists.
+bool Options::remove(std::string_view name) noexcept {
+    const auto setItr = set.find(name);
 
-    if (itr != indexMap.end())
-        itr->second->second = std::string{value};
+    // Not registered.
+    if (!contains(setItr))
+        return false;
+
+    const auto indexMapItr = find(name);
+    // Set guarantees that indexMap contains the option.
+    assert(indexMapItr != indexMap.end());
+
+    // Retrieve the corresponding list node.
+    const auto listItr = indexMapItr->second;
+    // Internal consistency checks.
+    assert(listItr != list.end());
+    assert(listItr->first == name);
+
+    // Remove the membership entry.
+    set.erase(setItr);
+
+    // Remove the index entry.
+    indexMap.erase(indexMapItr);
+
+    // Remove the option from the ordered list.
+    list.erase(listItr);
+
+    return true;
+}
+
+
+void Options::set_value(const std::string_view name, const std::string_view value) noexcept {
+    const auto indexMapItr = find(name);
+
+    if (indexMapItr != indexMap.end())
+        indexMapItr->second->second = std::string{value};
     else
         std::cerr << "No such option: '" << name << "'" << std::endl;
 }
 
 const Option& Options::operator[](const std::string_view name) const noexcept {
-    assert(contains(name));
+    const auto indexMapItr = find(name);
+    assert(indexMapItr != indexMap.end());
 
-    return find(name)->second->second;
+    return indexMapItr->second->second;
 }
 
 void Options::set_on_info(OnInfo&& f) noexcept { onInfo = std::move(f); }

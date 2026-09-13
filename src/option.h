@@ -32,21 +32,6 @@
 
 namespace DON {
 
-// Because the options should be case-insensitive
-
-// Define a custom case-insensitive hash
-struct CaseInsensitiveHash final {
-    usize operator()(std::string_view sv) const noexcept;
-};
-// Define a custom case-insensitive equality
-struct CaseInsensitiveEqual final {
-    bool operator()(std::string_view sv1, std::string_view sv2) const noexcept;
-};
-// Define a custom case-insensitive less
-struct CaseInsensitiveLess final {
-    bool operator()(std::string_view sv1, std::string_view sv2) const noexcept;
-};
-
 class Options;
 
 // Option class implements each option as specified by the UCI protocol
@@ -118,9 +103,9 @@ class Options final {
    public:
     // clang-format off
     // Name-value pair; preserves the original name and its case.
-    using Pair     = std::pair<std::string_view, Option>;
+    using Entry    = std::pair<std::string_view, Option>;
     // Preserves insertion order and the original name case.
-    using List     = std::list<Pair>;
+    using List     = std::list<Entry>;
     // Provides case-insensitive name lookup.
     using IndexMap = std::unordered_map<std::string_view, List::iterator, CaseInsensitiveHash, CaseInsensitiveEqual>;
     // Provides case-insensitive membership validation.
@@ -135,22 +120,24 @@ class Options final {
     Options(Options&&) noexcept                 = delete;
     Options& operator=(Options&&) noexcept      = delete;
 
-    auto begin() const noexcept;
-    auto end() const noexcept;
     auto begin() noexcept;
     auto end() noexcept;
+    auto begin() const noexcept;
+    auto end() const noexcept;
 
     usize size() const noexcept;
     bool  empty() const noexcept;
 
-    auto find(std::string_view name) noexcept;
-    auto find(std::string_view name) const noexcept;
-
+    bool contains(Set::const_iterator setItr) const noexcept;
     bool contains(std::string_view name) const noexcept;
 
     usize count(std::string_view name) const noexcept;
 
-    void add(std::string_view name, const Option& option) noexcept;
+    auto find(std::string_view name) noexcept;
+    auto find(std::string_view name) const noexcept;
+
+    bool add(std::string_view name, const Option& option) noexcept;
+    bool remove(std::string_view name) noexcept;
 
     void set_value(std::string_view name, std::string_view value) noexcept;
 

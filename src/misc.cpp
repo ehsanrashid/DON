@@ -485,6 +485,26 @@ std::string format_time(const SystemClock::time_point& timePoint) noexcept {
     return std::string{buffer.data(), std::min(writtenSize, buffer.size() - 1)};
 }
 
+usize CaseInsensitiveHash::operator()(const std::string_view sv) const noexcept {
+    return std::hash<std::string_view>{}(lower_case(std::string{sv}));
+}
+
+bool CaseInsensitiveEqual::operator()(const std::string_view sv1,
+                                      const std::string_view sv2) const noexcept {
+    return sv1.size() == sv2.size()
+        && std::equal(sv1.begin(), sv1.end(), sv2.begin(), sv2.end(),
+                      [](const char ch1, const char ch2) noexcept {
+                          return lower_case(ch1) == lower_case(ch2);
+                      });
+}
+
+bool CaseInsensitiveLess::operator()(const std::string_view sv1,
+                                     const std::string_view sv2) const noexcept {
+    return std::lexicographical_compare(
+      sv1.begin(), sv1.end(), sv2.begin(), sv2.end(),
+      [](const char ch1, const char ch2) noexcept { return lower_case(ch1) < lower_case(ch2); });
+}
+
 // OstreamMutexRegistry
 //
 // Provides a thread-safe registry that associates a unique mutex with each

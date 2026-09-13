@@ -207,11 +207,11 @@ MemoryIndexMap IndexMap;
 // Provides uniqueness and membership validation.
 MemorySet Set;
 
-auto find_nolock(Memory memory) noexcept { return IndexMap.find(memory); }
-
 // Check memory registry membership.
-bool contains_nolock(Set::const_iterator setItr) const noexcept { return setItr != Set.end(); }
-bool contains_nolock(Memory memory) noexcept { return contains_nolock(Set.find(memory)); }
+bool contains_nolock(const MemorySet::iterator setItr) noexcept { return setItr != Set.end(); }
+bool contains_nolock(const Memory memory) noexcept { return contains_nolock(Set.find(memory)); }
+
+auto find_nolock(const Memory memory) noexcept { return IndexMap.find(memory); }
 
     #if !defined(NDEBUG)
 // Verifies the consistency of all registry containers.
@@ -270,7 +270,7 @@ bool is_consistent_nolock() noexcept {
 // The memory is then appended to List, IndexMap records the corresponding
 // List iterator, and Set is finally updated to establish membership.
 // Set and IndexMap provide average O(1) lookup and insertion.
-bool insert_memory_nolock(Memory memory) noexcept {
+bool insert_memory_nolock(const Memory memory) noexcept {
     if (contains_nolock(memory))
         return false;
 
@@ -303,7 +303,7 @@ bool insert_memory_nolock(Memory memory) noexcept {
 // The corresponding List node is then retrieved through IndexMap.
 // The memory is then removed from Set, IndexMap, and List.
 // Set and IndexMap provide average O(1) lookup and removal.
-bool erase_memory_nolock(Memory memory) noexcept {
+bool erase_memory_nolock(const Memory memory) noexcept {
     const auto setItr = Set.find(memory);
 
     // Not registered.
@@ -343,7 +343,7 @@ bool erase_memory_nolock(Memory memory) noexcept {
 // Returns false if:
 //  - memory is nullptr
 //  - the object is already registered
-bool register_memory(Memory memory) noexcept {
+bool register_memory(const Memory memory) noexcept {
     if (memory == nullptr)
     {
         //DEBUG_LOG("Cannot register <NULL> memory.");
@@ -361,7 +361,7 @@ bool register_memory(Memory memory) noexcept {
 // Returns false if:
 //  - memory is nullptr
 //  - the object is not registered
-bool unregister_memory(Memory memory) noexcept {
+bool unregister_memory(const Memory memory) noexcept {
     if (memory == nullptr)
     {
         //DEBUG_LOG("Cannot unregister <NULL> memory.");
