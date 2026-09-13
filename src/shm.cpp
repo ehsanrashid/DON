@@ -163,8 +163,8 @@ std::string_view BaseSharedMemory::name() const noexcept { return name_; }
 //
 // The registry provides:
 //  - True insertion order through List
-//  - Average O(1) membership validation through Set
 //  - Average O(1) lookup and removal through IndexMap
+//  - Average O(1) membership validation through Set
 //  - Average O(1) registration and unregistration by maintaining all containers
 //
 // Key Features:
@@ -175,9 +175,9 @@ std::string_view BaseSharedMemory::name() const noexcept { return name_; }
 //
 // Implementation:
 //  - List preserves true insertion order for deterministic iteration
-//  - Set provides uniqueness and membership validation
 //  - IndexMap provides average O(1) lookup and maps each memory to its
 //    corresponding iterator in List
+//  - Set provides uniqueness and membership validation
 //
 // Concurrency Model:
 //  - Mutex protects all registry containers
@@ -200,12 +200,12 @@ std::shared_mutex Mutex;
 // Preserves true insertion order for deterministic iteration.
 MemoryList List;
 
-// Provides uniqueness and membership validation.
-MemorySet Set;
-
 // Provides average O(1) lookup and removal.
 // Maps each memory to its corresponding iterator in List.
 MemoryIndexMap IndexMap;
+
+// Provides uniqueness and membership validation.
+MemorySet Set;
 
     #if !defined(NDEBUG)
 // Verifies the consistency of all registry containers.
@@ -213,29 +213,43 @@ MemoryIndexMap IndexMap;
 // Returns true if all registry invariants hold.
 // The following invariants must hold:
 //  - All three containers have the same size.
-//  - Every memory in List exists in Set and IndexMap.
+//  - Every memory in List exists in IndexMap and Set.
+//  - Every memory in IndexMap exists in List and Set.
+//  - Every memory in Set exists in List and IndexMap.
 //  - Every IndexMap entry points to its corresponding node in List.
 bool is_consistent_nolock() noexcept {
-    assert(List.size() == Set.size() && "List and Set sizes differ");
     assert(List.size() == IndexMap.size() && "List and IndexMap sizes differ");
+    assert(List.size() == Set.size() && "List and Set sizes differ");
 
     for ([[maybe_unused]] auto listItr = List.begin(); listItr != List.end(); ++listItr)
     {
-        const Memory memory = *listItr;
-
+        [[maybe_unused]] const Memory memory = *listItr;
         assert(memory != nullptr && "List contains a null memory pointer");
-        assert(Set.find(memory) != Set.end() && "List memory is missing from Set");
 
         [[maybe_unused]] auto indexMapItr = IndexMap.find(memory);
-
         assert(indexMapItr != IndexMap.end() && "List memory is missing from IndexMap");
         assert(indexMapItr->second == listItr && "IndexMap points to the wrong List node");
+
+        assert(Set.find(memory) != Set.end() && "List memory is missing from Set");
     }
 
     for ([[maybe_unused]] const auto& [memory, listItr] : IndexMap)
     {
         assert(memory != nullptr && "IndexMap contains a null memory pointer");
+        assert(listItr != List.end() && "IndexMap contains an invalid List iterator");
+        assert(*listItr == memory && "IndexMap iterator points to the wrong memory");
+
         assert(Set.find(memory) != Set.end() && "IndexMap memory is missing from Set");
+    }
+
+    for ([[maybe_unused]] const Memory memory : Set)
+    {
+        assert(memory != nullptr && "Set contains a null memory pointer");
+
+        [[maybe_unused]] const auto indexMapItr = IndexMap.find(memory);
+        assert(indexMapItr != IndexMap.end() && "Set memory is missing from IndexMap");
+
+        const auto listItr = indexMapItr->second;
         assert(listItr != List.end() && "IndexMap contains an invalid List iterator");
         assert(*listItr == memory && "IndexMap iterator points to the wrong memory");
     }
@@ -257,7 +271,7 @@ bool insert_memory_nolock(Memory memory) noexcept {
     //DEBUG_LOG("Registering memory: " << static_cast<const void*>(memory) << ' ' << memory->name());
 
     // Append to the ordered list and obtain its iterator.
-    auto listItr = List.emplace(List.end(), memory);
+    const auto listItr = List.emplace(List.end(), memory);
     assert(listItr != List.end());
 
     // Associate the memory with its corresponding list node.
@@ -280,22 +294,22 @@ bool insert_memory_nolock(Memory memory) noexcept {
 // Remove a memory object from all registry containers.
 // The caller must hold 'Mutex' exclusively.
 // Set is checked first for membership to reject unregistered memory objects.
-// The corresponding List node is then removed through IndexMap,
-// followed by removal from IndexMap and Set.
+// The corresponding List node is then retrieved through IndexMap.
+// The memory is then removed from Set, IndexMap, and List.
 // Set and IndexMap provide average O(1) lookup and removal.
 bool erase_memory_nolock(Memory memory) noexcept {
-    auto setItr = Set.find(memory);
+    const auto setItr = Set.find(memory);
 
     // Not registered.
     if (setItr == Set.end())
         return false;
 
-    auto indexMapItr = IndexMap.find(memory);
+    const auto indexMapItr = IndexMap.find(memory);
     // Set guarantees that IndexMap contains the memory.
     assert(indexMapItr != IndexMap.end());
 
     // Retrieve the corresponding list node.
-    auto listItr = indexMapItr->second;
+    const auto listItr = indexMapItr->second;
     // Internal consistency checks.
     assert(listItr != List.end());
     assert(*listItr == memory);
@@ -363,8 +377,10 @@ bool unregister_memory(Memory memory) noexcept {
 MemoryList detach_memories() noexcept {
     std::lock_guard writeLock(Mutex);
 
-    auto detachedList = std::move(List);
+    assert(List.size() == IndexMap.size());
+    assert(List.size() == Set.size());
 
+    auto detachedList = std::move(List);
     IndexMap.clear();
     Set.clear();
 
@@ -379,8 +395,8 @@ MemoryList detach_memories() noexcept {
 usize size() noexcept {
     std::shared_lock readLock(Mutex);
 
-    assert(List.size() == Set.size());
     assert(List.size() == IndexMap.size());
+    assert(List.size() == Set.size());
 
     return List.size();
 }
@@ -392,8 +408,8 @@ usize size() noexcept {
 void print() noexcept {
     std::shared_lock readLock(Mutex);
 
-    assert(List.size() == Set.size());
     assert(List.size() == IndexMap.size());
+    assert(List.size() == Set.size());
 
     std::cout << "Registered memories [" << List.size() << "]:\n";
 
@@ -442,7 +458,8 @@ void cleanup() noexcept {
 //   Call MemoryCleanupHook::ensure_initialized() early in main().
 //
 // Key Features:
-//   - Uses HookOnce to ensure the cleanup handler is registered only once.
+//   - Uses HookCallOnce to ensure the cleanup handler is registered only once.
+//   - Retries initialization until the cleanup handler is successfully registered.
 //   - Registers MemoryCleanup::cleanup() with std::atexit().
 //   - Does not manage the registry or perform cleanup itself.
 //
@@ -453,17 +470,21 @@ namespace MemoryCleanupHook {
 
 namespace {
 
-CallOnce HookOnce;
+CallOnce HookCallOnce;
 
 }  // namespace
 
-// Ensures the memory cleanup handler is registered with std::atexit() only once.
+// Ensures the memory cleanup handler is successfully registered with std::atexit().
+// Initialization is retried until successful; subsequent calls return immediately.
 void ensure_initialized() noexcept {
-    HookOnce([]() noexcept {
-        //DEBUG_LOG("Initializing MemoryCleanupHook.");
+    while (!HookCallOnce.once_init())
+    {
+        HookCallOnce([]() noexcept {
+            //DEBUG_LOG("Initializing MemoryCleanupHook.");
 
-        std::atexit(MemoryCleanup::cleanup);
-    });
+            std::atexit(MemoryCleanup::cleanup);
+        });
+    }
 }
 
 }  // namespace MemoryCleanupHook
@@ -509,7 +530,7 @@ InitLock::InitLock(UniqueFd fd) noexcept :
     lockFd(std::move(fd)) {}
 
 InitLock InitLock::acquire_lock(const std::string_view path) noexcept {
-    UniqueFd fd(::open(path.data(), O_CREAT | O_RDWR | O_CLOEXEC, FILE_MODE));
+    UniqueFd fd(::open(path.data(), O_CREAT | O_RDWR | O_CLOEXEC, DEFFILEMODE));
 
     if (!fd.is_valid())
         return {};

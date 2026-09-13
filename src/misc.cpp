@@ -43,56 +43,11 @@ compiler_version(const unsigned major, const unsigned minor, const unsigned patc
 
 }  // namespace
 
-void set_console_input(const ConsoleMode consoleMode) noexcept {
-    switch (consoleMode)
-    {
-    case ConsoleMode::UTF7 :
+void set_console_utf8() noexcept {
 #if defined(_WIN32)
-        SetConsoleCP(CP_UTF7);
-#else
-      ;
+    ::SetConsoleCP(CP_UTF8);
+    ::SetConsoleOutputCP(CP_UTF8);
 #endif
-        break;
-    case ConsoleMode::EnableVirtualTerminal :
-        break;
-    case ConsoleMode::FullyFeatured :
-        break;
-    case ConsoleMode::Default :
-        break;
-    case ConsoleMode::UTF8 :
-    default :
-#if defined(_WIN32)
-        SetConsoleCP(CP_UTF8);
-#else
-      ;
-#endif
-    }
-}
-
-void set_console_output(const ConsoleMode consoleMode) noexcept {
-    switch (consoleMode)
-    {
-    case ConsoleMode::UTF7 :
-#if defined(_WIN32)
-        SetConsoleOutputCP(CP_UTF7);
-#else
-      ;
-#endif
-        break;
-    case ConsoleMode::EnableVirtualTerminal :
-        break;
-    case ConsoleMode::FullyFeatured :
-        break;
-    case ConsoleMode::Default :
-        break;
-    case ConsoleMode::UTF8 :
-    default :
-#if defined(_WIN32)
-        SetConsoleOutputCP(CP_UTF8);
-#else
-      ;
-#endif
-    }
 }
 
 // Format date "Mon DD YYYY" -> YYYYMMDD
@@ -503,8 +458,10 @@ std::string compiler_info() noexcept {
 
 std::string format_time(const SystemClock::time_point& timePoint) noexcept {
 
-    std::time_t time = SystemClock::to_time_t(timePoint);
-    u64 usec = std::chrono::duration_cast<Us>(timePoint.time_since_epoch()).count() % 1000000;
+    const std::time_t time = SystemClock::to_time_t(timePoint);
+
+    const auto totalUsec = std::chrono::duration_cast<Us>(timePoint.time_since_epoch()).count();
+    const u64  usec      = static_cast<u64>((totalUsec % 1000000 + 1000000) % 1000000);
 
     std::tm tm{};
 #if defined(_WIN32)  // Windows
@@ -518,12 +475,13 @@ std::string format_time(const SystemClock::time_point& timePoint) noexcept {
 
     Array<char, 32> buffer{};
 
-    usize writtenSize = 0;
-    // Format the YYYY.MM.DD-HH:MM:SS part
-    writtenSize += std::strftime(buffer.data(), buffer.size(), "%Y.%m.%d-%H:%M:%S", &tm);
-    // Append microseconds safely
-    writtenSize +=
-      std::snprintf(buffer.data() + writtenSize, buffer.size() - writtenSize, ".%06" PRIu64, usec);
+    usize writtenSize;
+    // Format the date and time: YYYY.MM.DD-HH:MM:SS
+    writtenSize = std::strftime(buffer.data(), buffer.size(), "%Y.%m.%d-%H:%M:%S", &tm);
+    // Append microseconds
+    writtenSize += static_cast<usize>(
+      std::snprintf(buffer.data() + writtenSize, buffer.size() - writtenSize, ".%06" PRIu64, usec));
+
     return std::string{buffer.data(), std::min(writtenSize, buffer.size() - 1)};
 }
 
@@ -557,7 +515,7 @@ namespace {
 std::mutex Mutex;
 
 // Associates each ostream pointer with its mutex.
-std::unordered_map<std::ostream*, std::mutex> MutexMap;
+OstreamMutexMap MutexMap;
 
 }  // namespace
 
@@ -614,19 +572,23 @@ SyncOstream sync_os(std::ostream& os) noexcept { return SyncOstream(os); }
 FixedText FixedText::from(const std::string_view sv) noexcept { return FixedText{}.write(sv); }
 
 FixedText& FixedText::write(const char ch) noexcept {
-    assert(size() < capacity());
-    if (size() >= capacity())
+    assert(size() + 1 <= capacity());
+    if (size() + 1 > capacity())
         return *this;
 
     data_[size_++] = ch;
+
     return *this;
 }
 
 FixedText& FixedText::write(const std::string_view sv) noexcept {
     assert(size() + sv.size() <= capacity());
+    if (size() + sv.size() > capacity())
+        return *this;
 
     std::memcpy(end(), sv.data(), sv.size());
     size_ += static_cast<u8>(sv.size());
+
     return *this;
 }
 
@@ -634,14 +596,75 @@ FixedText& FixedText::write(const int v) noexcept {
     auto [ptr, ec] = std::to_chars(end(), begin() + capacity(), v);
     assert(ec == std::errc{});
     size_ = static_cast<u8>(ptr - begin());
+
     return *this;
 }
 
 std::ostream& operator<<(std::ostream& os, const FixedText& fixedText) noexcept {
-
-    os.write(fixedText.c_str(), std::streamsize(fixedText.size()));
+    os.write(fixedText.c_str(), static_cast<std::streamsize>(fixedText.size()));
 
     return os;
+}
+
+CommandLine::CommandLine(int argc, const char* argv[]) noexcept {
+#if defined(_WIN32)
+    int     wargc = 0;
+    LPWSTR* wargv = CommandLineToArgvW(GetCommandLineW(), &wargc);
+
+    if (wargv != nullptr)
+    {
+        const usize utf8_argc = static_cast<usize>(wargc);
+
+        utf8_arguments.reserve(utf8_argc);
+
+        for (usize i = 0; i < utf8_argc; ++i)
+            utf8_arguments.emplace_back(utf8_from_wstring(wargv[i]));
+
+        LocalFree(wargv);
+
+        arguments_.reserve(utf8_arguments.size());
+
+        for (const auto& utf8_arg : utf8_arguments)
+            arguments_.emplace_back(utf8_arg);
+    }
+    else
+        set_arguments(argc, argv);
+#else
+    set_arguments(argc, argv);
+#endif
+}
+
+// Returns the directory containing the executable, or "." if the directory is empty.
+std::filesystem::path CommandLine::binary_directory(std::filesystem::path path) noexcept {
+#if defined(_WIN32)
+    // Prefer the executable path reported by Windows.
+    // Unlike _get_wpgmptr(), this does not depend on the CRT entry-point variant.
+    // Windows paths cannot exceed 32767 characters, so a fixed buffer is sufficient.
+    // Falls back to path if the API fails.
+    Array<WCHAR, 0x8000> filename{};
+    const DWORD length = GetModuleFileNameW(nullptr, filename.data(), DWORD(filename.size()));
+    if (length != 0 && length < filename.size())
+        path = std::filesystem::path{filename.data(), filename.data() + length};
+#endif
+
+    const auto binaryDirectory{path.parent_path()};
+    return binaryDirectory.empty() ? std::filesystem::path(".") : binaryDirectory;
+}
+
+// Returns the process's current working directory.
+std::filesystem::path CommandLine::working_directory() noexcept {
+    return std::filesystem::current_path();
+}
+
+const StringViews& CommandLine::arguments() const noexcept { return arguments_; }
+
+void CommandLine::set_arguments(int argc, const char* argv[]) noexcept {
+    const usize uargc = static_cast<usize>(argc);
+
+    arguments_.reserve(uargc);
+
+    for (usize i = 0; i < uargc; ++i)
+        arguments_.emplace_back(argv[i]);  // Store a view without copying the string.
 }
 
 StringViewBuf::StringViewBuf(const std::string_view sv) noexcept {
@@ -658,16 +681,16 @@ MemoryBuf::MemoryBuf(char* const p, const usize size) noexcept {
     setp(p, p + size);     // Set PUT area (writing enabled)
 }
 
-TieBuf::TieBuf(std::streambuf* const pB, std::streambuf* const mB) noexcept :
-    pBuf(pB),
-    mBuf(mB) {}
+TieBuf::TieBuf(std::streambuf* const pBf, std::streambuf* const mBf) noexcept :
+    pBuf(pBf),
+    mBuf(mBf) {}
 
 // Synchronizes both the primary and mirror buffers.
 int TieBuf::sync() {
-    int r1 = pBuf != nullptr ? pBuf->pubsync() : 0;
-    int r2 = mBuf != nullptr ? mBuf->pubsync() : 0;
+    const int pR = pBuf != nullptr ? pBuf->pubsync() : 0;
+    const int mR = mBuf != nullptr ? mBuf->pubsync() : 0;
 
-    return (r1 == 0 && r2 == 0) ? 0 : -1;
+    return pR == 0 && mR == 0 ? 0 : -1;
 }
 
 // Reads the next character from the primary buffer without consuming it.
@@ -691,7 +714,7 @@ TieBuf::int_type TieBuf::overflow(const int_type ch) {
     if (traits_type::eq_int_type(putCh, traits_type::eof()))
         return putCh;
 
-    return mirror_put_with_prefix(putCh, "<< ", oPreCh);
+    return mirror_put_with_prefix(putCh, "<< ", opreCh);
 }
 
 // Reads and consumes one character from the primary buffer, then mirrors it with an input prefix.
@@ -704,7 +727,7 @@ TieBuf::int_type TieBuf::uflow() {
     if (traits_type::eq_int_type(ch, traits_type::eof()))
         return ch;
 
-    return mirror_put_with_prefix(ch, ">> ", iPreCh);
+    return mirror_put_with_prefix(ch, ">> ", ipreCh);
 }
 
 // Writes a block to the primary buffer and mirrors the written characters with an output prefix.
@@ -712,17 +735,20 @@ std::streamsize TieBuf::xsputn(const char_type* const s, const std::streamsize c
     if (pBuf == nullptr)
         return 0;
 
-    std::streamsize written = pBuf->sputn(s, count);
+    const std::streamsize written = pBuf->sputn(s, count);
 
-    if (mBuf != nullptr && written > 0)
-    {
-        if (oPreCh == '\n')
-            mBuf->sputn("<< ", 3);
+    if (mBuf == nullptr)
+        return written;
 
-        mBuf->sputn(s, written);
+    if (written <= 0)
+        return written;
 
-        oPreCh = s[written - 1];
-    }
+    if (opreCh == '\n')
+        mBuf->sputn("<< ", 3);
+
+    mBuf->sputn(s, written);
+
+    opreCh = s[written - 1];
 
     return written;
 }
@@ -1130,67 +1156,6 @@ void print() noexcept {
 }  // namespace Debug
 #endif
 
-CommandLine::CommandLine(int argc, const char* argv[]) noexcept {
-#if defined(_WIN32)
-    int     wargc = 0;
-    LPWSTR* wargv = CommandLineToArgvW(GetCommandLineW(), &wargc);
-
-    if (wargv != nullptr)
-    {
-        const usize utf8_argc = static_cast<usize>(wargc);
-
-        utf8_arguments.reserve(utf8_argc);
-
-        for (usize i = 0; i < utf8_argc; ++i)
-            utf8_arguments.emplace_back(utf8_from_wstring(wargv[i]));
-
-        LocalFree(wargv);
-
-        arguments_.reserve(utf8_arguments.size());
-
-        for (const auto& utf8_arg : utf8_arguments)
-            arguments_.emplace_back(utf8_arg);
-    }
-    else
-        set_arguments(argc, argv);
-#else
-    set_arguments(argc, argv);
-#endif
-}
-
-// Returns the directory containing the executable, or "." if the directory is empty.
-std::filesystem::path CommandLine::binary_directory(std::filesystem::path path) noexcept {
-#if defined(_WIN32)
-    // Prefer the executable path reported by Windows.
-    // Unlike _get_wpgmptr(), this does not depend on the CRT entry-point variant.
-    // Windows paths cannot exceed 32767 characters, so a fixed buffer is sufficient.
-    // Falls back to path if the API fails.
-    Array<WCHAR, 0x8000> filename{};
-    const DWORD length = GetModuleFileNameW(nullptr, filename.data(), DWORD(filename.size()));
-    if (length != 0 && length < filename.size())
-        path = std::filesystem::path{filename.data(), filename.data() + length};
-#endif
-
-    const auto binaryDirectory{path.parent_path()};
-    return binaryDirectory.empty() ? std::filesystem::path(".") : binaryDirectory;
-}
-
-// Returns the process's current working directory.
-std::filesystem::path CommandLine::working_directory() noexcept {
-    return std::filesystem::current_path();
-}
-
-const StringViews& CommandLine::arguments() const noexcept { return arguments_; }
-
-void CommandLine::set_arguments(int argc, const char* argv[]) noexcept {
-    const usize uargc = static_cast<usize>(argc);
-
-    arguments_.reserve(uargc);
-
-    for (usize i = 0; i < uargc; ++i)
-        arguments_.emplace_back(argv[i]);  // Store a view without copying the string.
-}
-
 #if defined(_WIN32)
 
 // Get the error message string, if any
@@ -1475,8 +1440,8 @@ std::filesystem::path path_from_utf8(const std::string_view path) noexcept {
     const usize size = path.size();
     if (size > std::numeric_limits<int>::max())
         return {};
-    int u8Size = int(size);
-    int wSize  = MultiByteToWideChar(CP_UTF8, 0, path.data(), u8Size, nullptr, 0);
+    const int u8Size = int(size);
+    const int wSize  = MultiByteToWideChar(CP_UTF8, 0, path.data(), u8Size, nullptr, 0);
 
     std::wstring wStr(static_cast<usize>(wSize), L'\0');
     MultiByteToWideChar(CP_UTF8, 0, path.data(), u8Size, wStr.data(), wSize);

@@ -159,7 +159,6 @@ void Options::add(std::string_view name, const Option& option) noexcept {
     if (contains(name))
     {
         std::cerr << "Option: '" << name << "' was already added!" << std::endl;
-
         std::exit(EXIT_FAILURE);
     }
 
@@ -173,7 +172,7 @@ void Options::set(std::string_view name, std::string_view value) noexcept {
     if (contains(name))
         options.at(name) = std::string{value};
     else
-        std::cout << "No such option: '" << name << "'" << std::endl;
+        std::cerr << "No such option: '" << name << "'" << std::endl;
 }
 
 const Option& Options::operator[](const std::string_view name) const noexcept {
