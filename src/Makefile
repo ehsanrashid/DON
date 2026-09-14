@@ -93,8 +93,8 @@ PGOBENCH := $(RUN_PREFIX) ./$(EXE) bench
 
 ### Source and object files
 SRCS := \
-    attacks.cpp benchmark.cpp bitboard.cpp engine.cpp evaluate.cpp main.cpp \
-    memory.cpp misc.cpp movegen.cpp movepick.cpp notation.cpp option.cpp perft.cpp \
+    attacks.cpp benchmark.cpp bitboard.cpp engine.cpp evaluate.cpp main.cpp memory.cpp \
+    misc.cpp movegen.cpp movepick.cpp notation.cpp numa.cpp option.cpp perft.cpp \
     position.cpp search.cpp shm.cpp thread.cpp timeman.cpp tt.cpp tune.cpp uci.cpp \
     nnue/features/full_threats.cpp nnue/features/half_ka_hm.cpp nnue/features/pp_3wide.cpp \
     nnue/accumulator.cpp nnue/network.cpp book/polyglot.cpp tablebase/syzygy.cpp

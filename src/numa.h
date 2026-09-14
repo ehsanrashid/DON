@@ -62,19 +62,7 @@ namespace DON {
 using CpuIndexVec = std::vector<CpuIndex>;
 using CpuIndexSet = std::unordered_set<CpuIndex>;
 
-inline CpuIndex hardware_concurrency() noexcept {
-    CpuIndex concurrency = std::thread::hardware_concurrency();
-
-    // Get all processors across all processor groups on windows, since
-    // ::hardware_concurrency() only returns the number of processors in
-    // the first group, because only these are available to std::thread.
-#if defined(_WIN64)
-    concurrency = CpuIndex(std::clamp<u32>(GetActiveProcessorCount(ALL_PROCESSOR_GROUPS),
-                                           concurrency, std::numeric_limits<CpuIndex>::max()));
-#endif
-
-    return concurrency;
-}
+CpuIndex hardware_concurrency() noexcept;
 
 inline const CpuIndex SYSTEM_THREAD_MAX = std::max<CpuIndex>(hardware_concurrency(), 1);
 
@@ -546,60 +534,7 @@ struct BundledL3Policy {
 // Automatically select the NUMA policy
 using AutoNumaPolicy = std::variant<SystemNumaPolicy, L3DomainsPolicy, BundledL3Policy>;
 
-inline CpuIndexVec shortened_string_to_indices(std::string_view str) noexcept {
-    CpuIndexVec indices;
-
-    if (is_whitespace(str))
-        return indices;
-
-    for (const auto ss : split(str, ",", true))
-    {
-        if (is_whitespace(ss))
-            continue;
-
-        const auto parts = split(ss, "-", true);
-
-        switch (parts.size())
-        {
-        case 1 : {
-            const auto cpuId = str_to_usize(parts[0]);
-            if (cpuId)
-                indices.emplace_back(CpuIndex(*cpuId));
-        }
-        break;
-        case 2 : {
-            // Limit expansion to 1M CPU IDs
-            constexpr usize MaxIndices = 64 * KB;
-
-            if (indices.size() >= MaxIndices)
-                break;
-
-            const auto begId = str_to_usize(parts[0]);
-            const auto endId = str_to_usize(parts[1]);
-
-            if (begId && endId && *begId <= *endId && *endId - *begId < MaxIndices - indices.size()
-                && *endId <= std::numeric_limits<CpuIndex>::max())
-            {
-                const auto begCpuId = static_cast<CpuIndex>(*begId);
-                const auto endCpuId = static_cast<CpuIndex>(*endId);
-
-                for (CpuIndex cpuId = begCpuId;; ++cpuId)
-                {
-                    indices.emplace_back(cpuId);
-                    if (cpuId == endCpuId)
-                        break;
-                }
-            }
-        }
-        break;
-        default :
-            assert(false);
-            UNREACHABLE();
-        }
-    }
-
-    return indices;
-}
+CpuIndexVec shortened_string_to_indices(std::string_view str) noexcept;
 
 // Designed as immutable, because there is no good reason to alter an already
 // existing config in a way that doesn't require recreating it completely, and
@@ -1883,49 +1818,6 @@ class NumaReplicationContext final {
     // std::set uses std::less by default, which is required for pointer comparison
     std::unordered_set<BaseNumaReplicated*> trackedReplicated;
 };
-
-inline BaseNumaReplicated::BaseNumaReplicated(NumaReplicationContext& numaCtx) noexcept :
-    numaContext(&numaCtx) {
-    if (numaContext != nullptr)
-        numaContext->attach(this);
-}
-
-inline void BaseNumaReplicated::detach_context() noexcept {
-    if (numaContext != nullptr)
-    {
-        numaContext->detach(this);
-        numaContext = nullptr;
-    }
-}
-
-inline BaseNumaReplicated::BaseNumaReplicated(BaseNumaReplicated&& baseNumaRep) noexcept :
-    numaContext(std::exchange(baseNumaRep.numaContext, nullptr)) {
-    if (numaContext != nullptr)
-        numaContext->move_attached(&baseNumaRep, this);
-}
-
-inline BaseNumaReplicated&
-BaseNumaReplicated::operator=(BaseNumaReplicated&& baseNumaRep) noexcept {
-    if (this == &baseNumaRep)
-        return *this;
-
-    detach_context();  // cleanup existing context
-
-    numaContext = std::exchange(baseNumaRep.numaContext, nullptr);
-
-    if (numaContext != nullptr)
-        numaContext->move_attached(&baseNumaRep, this);
-
-    return *this;
-}
-
-inline BaseNumaReplicated::~BaseNumaReplicated() noexcept { detach_context(); }
-
-inline const NumaConfig& BaseNumaReplicated::numa_config() const noexcept {
-    static const NumaConfig EmptyCfg = NumaConfig::empty();
-
-    return numaContext != nullptr ? numaContext->numa_config() : EmptyCfg;
-}
 
 }  // namespace DON
 
