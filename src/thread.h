@@ -71,12 +71,29 @@ using WorkerPtr = LargePagePtr<Worker>;
 // the search is finished, it goes back to idle_func() waiting for a new signal.
 class Thread final {
    public:
+    // Constructor for a worker thread.
+    //
+    // Responsibilities:
+    //   - Initializes thread and NUMA-related identifiers.
+    //   - Optionally starts the thread immediately (if autoStart is true).
+    //      * The thread will execute idle_func() and go to sleep.
+    //      * The constructor waits until the thread reaches the idle state to ensure
+    //        it is ready to accept jobs safely.
+    //   - Acquires a NUMA access token from the provided nodeBinder.
+    //   - Constructs the Worker object for this thread, allocating on large pages
+    //      for performance, and passing thread/NUMA info along with shared state and
+    //      the search manager.
+    //
+    // Preconditions:
+    //   - numa_thread_count() != 0
+    //   - numa_id() < numa_thread_count()
     Thread(ThreadContext                 threadCxt,
            const ThreadToNumaNodeBinder& nodeBinder,
            const SharedState&            sharedState,
            ManagerPtr                    manager,
            bool                          autoStart = true) noexcept;
 
+    // Destructor: ensures the thread is properly terminated and joined.
     ~Thread() noexcept;
 
     [[nodiscard]] constexpr u16 thread_id() const noexcept { return context.thread_id(); }
@@ -95,8 +112,24 @@ class Thread final {
         return numaAccessToken;
     }
 
+    // Starts the thread if it is not already running.
+    //
+    // Guarantees:
+    //   - After this function returns, the thread is alive and ready to accept jobs.
+    //   - The 'busy' flag is properly synchronized to avoid race conditions.
+    //   - If the thread is already running, this function does nothing.
+    //
+    // Working:
+    //   - Acquires the mutex to synchronize access to thread state.
+    //   - Checks if a native thread is already joinable (running); if so, returns immediately.
+    //   - Resets 'dead' and 'busy' flags to prepare for a new thread.
+    //   - Creates a new NativeThread that runs idle_func() on this Thread object.
+    //   - Waits on the condition variable until the new thread reports itself idle (busy == false),
+    //     and ready to accept jobs, ensuring that the thread is fully initialized before returning.
     void start() noexcept;
 
+    // Safely terminates the thread by setting the 'dead' flag,
+    // waking it if necessary, and joining the native thread.
     void terminate() noexcept;
 
     void ensure_network_replicated() const noexcept;
@@ -116,7 +149,8 @@ class Thread final {
     WorkerPtr worker;
 
    private:
-    // The main function of the thread
+    // Thread main function: waits for work and executes jobs.
+    // When no job is scheduled, the thread parks here, blocked on the condition variable.
     void idle_func() noexcept;
 
     const ThreadContext context;
@@ -230,6 +264,9 @@ class Threads final {
 
     void destroy() noexcept;
 
+    // Destroys/Creates threads to match the thread-count.
+    // Created and launched threads will immediately go to sleep in idle_func.
+    // Upon resizing, threads are recreated to allow for binding if necessary.
     void set(const NumaConfig&             numaConfig,
              SharedState&                  sharedState,
              const Manager::UpdateContext& updateContext) noexcept;
@@ -243,6 +280,8 @@ class Threads final {
     template<bool Mate>
     const Thread* best_thread() const noexcept;
 
+    // Wakes up main thread waiting in idle_func() and returns immediately.
+    // Main thread will wake up other threads and start the search.
     void
     start(Position& pos, StateListPtr& states, const Limit& limit, const Options& options) noexcept;
 

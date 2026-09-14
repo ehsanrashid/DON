@@ -57,10 +57,6 @@ Tune& Tune::instance() noexcept {
     return tune;
 }
 
-// Extracts the next name and optionally removes it from the list.
-// Facility to fill the container, each Entry corresponds to a parameter to tune.
-// Use variadic templates to deal with an unspecified number of entries,
-// each one of a possible different type.
 std::string Tune::next(std::string& names, const bool pop) noexcept {
     std::string name;
 
@@ -79,7 +75,6 @@ std::string Tune::next(std::string& names, const bool pop) noexcept {
     return name;
 }
 
-// Adds a tunable option and prints its Fishtest parameters.
 void Tune::make_option(Options* const         optionsPtr,
                        const std::string_view name,
                        int                    value,
@@ -104,7 +99,6 @@ void Tune::make_option(Options* const         optionsPtr,
               << "0.0020" << std::endl;
 }
 
-// Deferred, due to UCI::options() access
 void Tune::init(Options& options) noexcept {
     OptionsPtr = &options;
 

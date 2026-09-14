@@ -55,8 +55,6 @@ struct TTData final {
     TTData& operator=(const TTData&) noexcept = delete;
 };
 
-//static_assert(sizeof(TTData) == 12, "TTData size must be 12 bytes");
-
 struct TTEntry;
 struct TTCluster;
 
@@ -104,14 +102,25 @@ class TranspositionTable final {
 
     void advance_generation() const noexcept;
 
+    // Sets the size of the transposition table, measured in megabytes (MB).
+    // Transposition table consists of even number of clusters.
     void resize(usize ttSize, const Threads& threads) noexcept;
 
+    // Resets the entire transposition table to zero, in a multi-threaded way
     void reset(const Threads& threads) noexcept;
 
     TTCluster* cluster(Key key) const noexcept;
 
+    // `probe` is the primary method: looks up the current position (key) in the transposition table.
+    // On a hit, it returns:
+    //   1) copy of the existing data (which may be a collision or self-inconsistent due to read races)
+    //   2) writer for the corresponding entry
+    // On a miss, it returns empty data and writer for the least valuable entry selected for replacement.
     ProbResult probe(Key key) const noexcept;
 
+    // Returns an approximation of the hash table occupation during a search.
+    // The hash is x per mill full, as per UCI protocol.
+    // Only counts entries which match the current generation. [maxAge: 0-GENERATION_MASK]
     u16 hashfull(u8 maxAge = 0) const noexcept;
 
     bool load(const std::filesystem::path& hashFile, const Threads& threads) noexcept;

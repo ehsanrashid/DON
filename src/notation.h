@@ -49,6 +49,7 @@ class Score final {
     };
 
     Score() noexcept = delete;
+    // Converts a Value to a Score object, considering the position for centipawn conversion
     Score(Value v, const Position& pos) noexcept;
 
     template<typename T>
@@ -70,12 +71,16 @@ class Score final {
     std::variant<Unit, Tablebase, Mate> score;
 };
 
+// Turns a Value to an integer centipawn number,
+// without treatment of mate and similar special scores.
 [[nodiscard]] int       to_cp(Value v, const Position& pos) noexcept;
 [[nodiscard]] FixedText to_wdl(Value v, const Position& pos) noexcept;
 [[nodiscard]] FixedText to_score(const Score& score) noexcept;
 
 [[nodiscard]] std::string move_to_can(Move m) noexcept;
 
+// Converts a string representing a move in coordinate notation
+// (g1f3, a7a8q) to the corresponding legal move, if any.
 [[nodiscard]] Move can_to_move(std::string                     can,
                                const MoveList<GenType::LEGAL>& legalMoveList) noexcept;
 [[nodiscard]] Move can_to_move(const std::string& can, const Position& pos) noexcept;

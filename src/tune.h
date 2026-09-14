@@ -129,8 +129,13 @@ class Tune final {
         Entry& operator=(Entry&&) noexcept      = delete;
     };
 
+    // Extracts the next name and optionally removes it from the list.
+    // Facility to fill the container, each Entry corresponds to a parameter to tune.
+    // Use variadic templates to deal with an unspecified number of entries,
+    // each one of a possible different type.
     static std::string next(std::string& names, bool pop = true) noexcept;
 
+    // Adds a tunable option and prints its Fishtest parameters.
     static void make_option(Options*           optionsPtr,
                             std::string_view   name,
                             int                value,
@@ -167,6 +172,7 @@ class Tune final {
         return instance().add(SetDefaultRange, names.substr(1, names.size() - 2), args...);
     }
 
+    // Deferred, due to UCI::options() access
     static void init(Options& options) noexcept;
 
     static void read_options() noexcept;

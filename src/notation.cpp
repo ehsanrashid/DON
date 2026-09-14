@@ -27,7 +27,6 @@
 
 namespace DON {
 
-// Converts a Value to a Score object, considering the position for centipawn conversion
 Score::Score(Value v, const Position& pos) noexcept {
     assert(is_ok(v));
 
@@ -90,8 +89,6 @@ Overload(Ts...) -> Overload<Ts...>;
 
 }  // namespace
 
-// Turns a Value to an integer centipawn number,
-// without treatment of mate and similar special scores.
 int to_cp(Value v, const Position& pos) noexcept {
     assert(is_ok(v));
     // In general, the score can be defined via the WDL as
@@ -147,8 +144,6 @@ std::string move_to_can(const Move m) noexcept {
     return can;
 }
 
-// Converts a string representing a move in coordinate notation
-// (g1f3, a7a8q) to the corresponding legal move, if any.
 Move can_to_move(std::string can, const MoveList<GenType::LEGAL>& legalMoveList) noexcept {
     assert(4 <= can.size() && can.size() <= 5);
 
