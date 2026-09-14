@@ -73,7 +73,8 @@ std::string Tune::next(std::string& names, const bool pop) noexcept {
 
         name += rtrim(token);  // Remove trailing whitespace
 
-    } while (std::count(name.begin(), name.end(), '(') - std::count(name.begin(), name.end(), ')'));
+    } while (std::count(name.begin(), name.end(), '(') - std::count(name.begin(), name.end(), ')')
+             != 0);
 
     return name;
 }
@@ -103,8 +104,23 @@ void Tune::make_option(Options* const         optionsPtr,
               << "0.0020" << std::endl;
 }
 
+// Deferred, due to UCI::options() access
+void Tune::init(Options& options) noexcept {
+    OptionsPtr = &options;
+
+    for (auto& entry : instance().entries)
+        entry->init();
+
+    read_options();
+}
+
+void Tune::read_options() noexcept {
+    for (auto& entry : instance().entries)
+        entry->read_option();
+}
+
 template<>
-void Tune::Entry<int>::init_option() noexcept {
+void Tune::Entry<int>::init() noexcept {
     make_option(OptionsPtr, name, value, range);
 }
 
@@ -117,7 +133,7 @@ void Tune::Entry<int>::read_option() noexcept {
 
 // Instead of a variable here have a PostUpdate function: just call it
 template<>
-void Tune::Entry<Tune::PostUpdate>::init_option() noexcept {}
+void Tune::Entry<Tune::PostUpdate>::init() noexcept {}
 template<>
 void Tune::Entry<Tune::PostUpdate>::read_option() noexcept {
     value();

@@ -186,10 +186,10 @@ class FeatureTransformer final {
         permute<8>(threatAndPpWeights, Order);
     }
 
-    ThreatWeight* threatWeightData() { return threatAndPpWeights.data(); }
-    ThreatWeight* pawnPairWeightData() { return threatWeightData() + ThreatWeightSize; }
-    PSQTWeight*   threatPsqtData() { return threatAndPpPsqtWeights.data(); }
-    PSQTWeight*   pawnPairPsqtData() { return threatPsqtData() + ThreatPsqtWeightSize; }
+    auto* threatWeightData() noexcept { return threatAndPpWeights.data(); }
+    auto* pawnPairWeightData() noexcept { return threatWeightData() + ThreatWeightSize; }
+    auto* threatPsqtData() noexcept { return threatAndPpPsqtWeights.data(); }
+    auto* pawnPairPsqtData() noexcept { return threatPsqtData() + ThreatPsqtWeightSize; }
 
     // Read network parameters
     bool read_parameters(std::istream& is) noexcept {

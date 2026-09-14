@@ -98,7 +98,7 @@ class Tune final {
        public:
         virtual ~BaseEntry() noexcept = default;
 
-        virtual void init_option() noexcept = 0;
+        virtual void init() noexcept        = 0;
         virtual void read_option() noexcept = 0;
     };
 
@@ -114,7 +114,7 @@ class Tune final {
             value(v),
             range(r) {}
 
-        void init_option() noexcept override;
+        void init() noexcept override;
         void read_option() noexcept override;
 
         std::string name;
@@ -167,20 +167,9 @@ class Tune final {
         return instance().add(SetDefaultRange, names.substr(1, names.size() - 2), args...);
     }
 
-    // Deferred, due to UCI::engine_options() access
-    static void init(Options& options) noexcept {
-        OptionsPtr = &options;
+    static void init(Options& options) noexcept;
 
-        for (auto& entry : instance().entries)
-            entry->init_option();
-
-        read_options();
-    }
-
-    static void read_options() noexcept {
-        for (auto& entry : instance().entries)
-            entry->read_option();
-    }
+    static void read_options() noexcept;
 
     static inline bool     IsLastUpdate = false;
     static inline Options* OptionsPtr   = nullptr;
