@@ -163,11 +163,11 @@ void TimeManager::init(
     }
 
     // Limit the maximum possible time for this move
-    optimumTime = std::max<TimePoint>(std::max<TimePoint>(optimumScale * remainTime, options["MinMoveTime"]), 1);
-    maximumTime = std::max<TimePoint>(
+    optimumTime = TimePoint(std::max(std::max(optimumScale * remainTime, double(options["MinMoveTime"])), 1.0));
+    maximumTime = std::max(
                     mtg < 2
                     ? clock.time
-                    : std::min<TimePoint>(maximumScale * optimumTime, 0.80970 * clock.time - OverheadTime) - options["BufferTime"],
+                    : TimePoint(std::min(maximumScale * optimumTime, 0.80970 * clock.time - OverheadTime) - options["BufferTime"]),
                     optimumTime);
     // clang-format on
 
