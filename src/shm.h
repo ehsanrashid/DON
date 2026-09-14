@@ -784,20 +784,6 @@ class SharedMemory final: public BaseSharedMemory {
         return true;
     }
 
-    // Unlink the socket path without clearing it
-    void unlink_socket_path() noexcept {
-        if (!socketPath.empty())
-            ::unlink(socketPath.c_str());
-    }
-
-    // Unmap region
-    void unmap_region() noexcept {
-        if (mappedPtr != nullptr)
-            ::munmap(mappedPtr, sizeof(T));
-        mappedPtr = nullptr;
-        dataPtr   = nullptr;
-    }
-
     // Reset all resources and reset the object state
     void reset() noexcept override {
         unlink_socket_path();
@@ -867,6 +853,20 @@ class SharedMemory final: public BaseSharedMemory {
         std::swap(socketPath, sharedMemory.socketPath);
         std::swap(serverThread, sharedMemory.serverThread);
         std::swap(shutdownFd, sharedMemory.shutdownFd);
+    }
+
+    // Unlink the socket path without clearing it
+    void unlink_socket_path() noexcept {
+        if (!socketPath.empty())
+            ::unlink(socketPath.c_str());
+    }
+
+    // Unmap region
+    void unmap_region() noexcept {
+        if (mappedPtr != nullptr)
+            ::munmap(mappedPtr, sizeof(T));
+        mappedPtr = nullptr;
+        dataPtr   = nullptr;
     }
 
     void* mappedPtr = nullptr;
