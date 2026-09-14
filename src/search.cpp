@@ -2409,7 +2409,7 @@ void Worker::extend_tb_pv(const usize idx, Value& value) noexcept {
     // If time manager is active, don't use more than 50% of OverheadTime time
     const auto startTime = SteadyClock::now();
 
-    auto time_to_abort = [&]() noexcept -> bool {
+    const auto time_to_abort = [&]() noexcept -> bool {
         const auto endTime = SteadyClock::now();
         return limit.use_time_manager()
             && (options["NodesTime"] != 0
