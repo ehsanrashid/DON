@@ -66,7 +66,8 @@ class Option final {
         return "none";
     }
 
-    using OnChange = std::function<std::optional<std::string>(const Option&)>;
+    using ChangeInfo = std::optional<std::string>;
+    using OnChange   = std::function<ChangeInfo(const Option&)>;
 
     explicit Option(OnChange&& f = nullptr) noexcept;
     explicit Option(bool v, OnChange&& f = nullptr) noexcept;
@@ -97,7 +98,7 @@ class Option final {
     friend class Options;
 };
 
-using OT = Option::Type;
+using OnChange = Option::OnChange;
 
 class Options final {
    public:
@@ -112,7 +113,8 @@ class Options final {
     using Set      = std::unordered_set<std::string_view, CaseInsensitiveHash, CaseInsensitiveEqual>;
     // clang-format on
 
-    using OnInfo = std::function<void(std::optional<std::string_view>)>;
+    using Info   = std::optional<std::string_view>;
+    using OnInfo = std::function<void(Info)>;
 
     Options() noexcept                          = default;
     Options(const Options&) noexcept            = delete;
@@ -145,14 +147,14 @@ class Options final {
 
     void set_on_info(OnInfo&& f) noexcept;
 
+    void on_info(Info info) const noexcept;
+
    private:
     List     list;
     IndexMap indexMap;
     Set      set;
 
     OnInfo onInfo;
-
-    friend class Option;
 };
 
 std::ostream& operator<<(std::ostream& os, const Options& options) noexcept;

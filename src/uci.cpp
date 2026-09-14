@@ -231,7 +231,7 @@ Limit parse_limit(std::istream& is) noexcept {
 UCI::UCI(const std::filesystem::path& path) noexcept :
     engine(path) {
 
-    options().set_on_info([](std::optional<std::string_view> info) noexcept {
+    options().set_on_info([](Options::Info info) noexcept {
         if (info)
             print_info_string(*info);
     });

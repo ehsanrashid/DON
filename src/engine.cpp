@@ -63,19 +63,17 @@ Engine::Engine(const std::filesystem::path& path) noexcept :
     networkFile{std::nullopt, {}},
     network(numaContext, default_network()) {
 
-    using OnCng = Option::OnChange;
-
-    options().add("NumaPolicy",        Option("auto", OnCng([this](const Option& o) { return set_numa_config(o) ? numa_config_info() + '\n' + thread_allocation() : "NumaPolicy: invalid value '" + std::string(o) + "', keeping previous config."; })));
-    options().add("Threads",           Option(1, 1, int(THREAD_MAX), OnCng([this](const Option&) { resize_threads_tt(); return thread_allocation(); })));
-    options().add("Hash",              Option(16, 1, int(HASH_MAX), OnCng([this](const Option& o) { resize_tt(o); return "Hash: " + std::to_string(int(o)); })));
-    options().add("Clear Hash",        Option(OnCng([this](const Option&) { reset(); return std::nullopt; })));
+    options().add("NumaPolicy",        Option("auto", OnChange([this](const Option& o) { return set_numa_config(o) ? numa_config_info() + '\n' + thread_allocation() : "NumaPolicy: invalid value '" + std::string(o) + "', keeping previous config."; })));
+    options().add("Threads",           Option(1, 1, int(THREAD_MAX), OnChange([this](const Option&) { resize_threads_tt(); return thread_allocation(); })));
+    options().add("Hash",              Option(16, 1, int(HASH_MAX), OnChange([this](const Option& o) { resize_tt(o); return "Hash: " + std::to_string(int(o)); })));
+    options().add("Clear Hash",        Option(OnChange([this](const Option&) { reset(); return std::nullopt; })));
     options().add("HashRetain",        Option(false));
     options().add("HashFile",          Option(""));
-    options().add("Save Hash",         Option(OnCng([this](const Option&) { return save_hash(path_from_utf8(options()["HashFile"])) ? "Save succeeded" : "Save failed"; })));
-    options().add("Load Hash",         Option(OnCng([this](const Option&) { return load_hash(path_from_utf8(options()["HashFile"])) ? "Load succeeded" : "Load failed"; })));
+    options().add("Save Hash",         Option(OnChange([this](const Option&) { return save_hash(path_from_utf8(options()["HashFile"])) ? "Save succeeded" : "Save failed"; })));
+    options().add("Load Hash",         Option(OnChange([this](const Option&) { return load_hash(path_from_utf8(options()["HashFile"])) ? "Load succeeded" : "Load failed"; })));
     options().add("Ponder",            Option(false));
     options().add("MultiPV",           Option(1, 1, int(MOVE_MAX)));
-    options().add("UCI_Chess960",      Option(Position::Chess960, OnCng([](const Option& o) { Position::Chess960 = bool(o); return std::nullopt; })));
+    options().add("UCI_Chess960",      Option(Position::Chess960, OnChange([](const Option& o) { Position::Chess960 = bool(o); return std::nullopt; })));
     options().add("UCI_LimitStrength", Option(false));
     options().add("UCI_ELO",           Option(int(Skill::ELOMax), int(Skill::ELOMin), int(Skill::ELOMax)));
     options().add("UCI_ShowWDL",       Option(false));
@@ -87,21 +85,21 @@ Engine::Engine(const std::filesystem::path& path) noexcept :
     options().add("TimePercent",       Option(80, 10, 1000));  // Percentage of remaining time to use
     options().add("NodesTime",         Option(0, 0, 10000));
     options().add("SleepOnStart",      Option(false));
-    options().add("HistoryLoadFactor", Option(75, 10, 100, OnCng([this](const Option&) { set_history_max_load_factor(); return std::nullopt; })));
-    options().add("DrawMoveCount",     Option(Position::DrawMoveCount, 5, 50, OnCng([](const Option& o) { Position::DrawMoveCount = int(o); return std::nullopt; })));
+    options().add("HistoryLoadFactor", Option(75, 10, 100, OnChange([this](const Option&) { set_history_max_load_factor(); return std::nullopt; })));
+    options().add("DrawMoveCount",     Option(Position::DrawMoveCount, 5, 50, OnChange([](const Option& o) { Position::DrawMoveCount = int(o); return std::nullopt; })));
     options().add("Book",              Option(false));
-    options().add("BookFile",          Option("", OnCng([](const Option& o) { auto bookFile = path_from_utf8(o); if (bookFile.empty()) return ""; return pgBook.load(bookFile) ? "Load succeeded" : "Load failed"; })));
+    options().add("BookFile",          Option("", OnChange([](const Option& o) { auto bookFile = path_from_utf8(o); if (bookFile.empty()) return ""; return pgBook.load(bookFile) ? "Load succeeded" : "Load failed"; })));
     options().add("BookProbeDepth",    Option(100, 1, 256));
     options().add("BookBestPick",      Option(true));
-    options().add("SyzygyPath",        Option("", OnCng([](const Option& o) { Tablebase::Syzygy::init(o); return std::nullopt; })));
+    options().add("SyzygyPath",        Option("", OnChange([](const Option& o) { Tablebase::Syzygy::init(o); return std::nullopt; })));
     options().add("SyzygyProbeLimit",  Option(Tablebase::Syzygy::TB_PIECES_MAX, 0, Tablebase::Syzygy::TB_PIECES_MAX));
     options().add("SyzygyProbeDepth",  Option(1, 1, 100));
     options().add("Syzygy50MoveRule",  Option(true));
     options().add("SyzygyPVExtend",    Option(true));
-    options().add("EvalFile",          Option(EvalFileDefaultName, OnCng([this](const Option& o) { load_network(path_from_utf8(o)); return std::nullopt; })));
+    options().add("EvalFile",          Option(EvalFileDefaultName, OnChange([this](const Option& o) { load_network(path_from_utf8(o)); return std::nullopt; })));
     options().add("MinimalInfo",       Option(false));
-    options().add("LogFile",           Option("", OnCng([](const Option& o) { return Logger::start(path_from_utf8(o)) ? "Logger started" : "Logger not started"; })));
-    options().add("Stop Logger",       Option(OnCng([](const Option&) { Logger::stop(); return std::nullopt; })));
+    options().add("LogFile",           Option("", OnChange([](const Option& o) { return Logger::start(path_from_utf8(o)) ? "Logger started" : "Logger not started"; })));
+    options().add("Stop Logger",       Option(OnChange([](const Option&) { Logger::stop(); return std::nullopt; })));
     // clang-format on
 
     set_history_max_load_factor();

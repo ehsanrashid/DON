@@ -99,26 +99,26 @@ void Option::operator=(std::string value) noexcept {
         if (!info)
             return;
 
-        if (optionsPtr != nullptr && optionsPtr->onInfo)
-            optionsPtr->onInfo(info);
+        if (optionsPtr != nullptr)
+            optionsPtr->on_info(info);
     }
 }
 
 std::ostream& operator<<(std::ostream& os, const Option& option) noexcept {
     os << "type " << Option::to_string(option.type);
 
-    if (option.type == OT::BUTTON)
+    if (option.type == Option::Type::BUTTON)
         return os;
 
     os << " default ";
-    if (option.type == OT::STRING && is_whitespace(option.defaultValue))
+    if (option.type == Option::Type::STRING && is_whitespace(option.defaultValue))
         os << EMPTY_STRING;
     else
         os << option.defaultValue;
 
-    if (option.type == OT::SPIN)
+    if (option.type == Option::Type::SPIN)
         os << " min " << option.minValue << " max " << option.maxValue;
-    else if (option.type == OT::COMBO)
+    else if (option.type == Option::Type::COMBO)
     {
         std::string varStr;
         varStr.reserve(16 * option.varSvs.size());
@@ -243,6 +243,11 @@ const Option& Options::operator[](const std::string_view name) const noexcept {
 }
 
 void Options::set_on_info(OnInfo&& f) noexcept { onInfo = std::move(f); }
+
+void Options::on_info(const Info info) const noexcept {
+    if (onInfo)
+        onInfo(info);
+}
 
 std::ostream& operator<<(std::ostream& os, const Options& options) noexcept {
     for (const auto& [name, option] : options)

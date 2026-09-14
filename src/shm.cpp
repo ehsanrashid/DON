@@ -821,7 +821,7 @@ std::thread make_server_thread(UniqueFd fd, UniqueFd shutdownFd, UniqueFd server
                 while (::sendmsg(clientFd.get(), &msg, flags) < 0)
                 {
                     if (errno != EINTR)
-                        return false;
+                        break;
                 }
             }
         }
