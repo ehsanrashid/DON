@@ -214,7 +214,7 @@ bool  nolock_empty() noexcept { return List.empty(); }
 bool nolock_contains(const MemorySet::iterator setItr) noexcept { return setItr != Set.end(); }
 bool nolock_contains(const Memory memory) noexcept { return nolock_contains(Set.find(memory)); }
 
-usize nolock_count(const Memory memory) noexcept { return IndexMap.count(memory); }
+[[maybe_unused]] usize nolock_count(const Memory memory) noexcept { return IndexMap.count(memory); }
 
 auto nolock_find(const Memory memory) noexcept { return IndexMap.find(memory); }
 
