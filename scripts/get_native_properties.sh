@@ -54,7 +54,7 @@ get_flags() {
 }
 
 # Populate $flags from the RISC-V isa string; split the single-letter
-# base (e.g., rv64imafdcv), and  keep multi-letter extensions.
+# base (e.g., rv64imafdcv), and keep multi-letter extensions.
 get_riscv_flags() {
     if [ -r "$cpuinfo_path" ]; then
         isa=$(awk -F: '/^isa[ \t]*:/{print $2; exit}' "$cpuinfo_path" 2>/dev/null)
@@ -172,6 +172,11 @@ has_slow_bmi2() (
 match_not_slow_bmi2_and_flags() {
     has_slow_bmi2 && return 1
     match_flags "$@"
+}
+
+match_sse3_popcnt() {
+	has_flag popcnt || return 1
+	match_sse3
 }
 
 match_true() { return 0; }
@@ -326,9 +331,6 @@ case "$uname_s" in
             i[3-6]86*)
                 set_arch_x86_32
             ;;
-            ppc64*)
-                set_arch_ppc_64
-            ;;
             aarch64|arm64)
                 true_arch='armv8'
                 if match_flags asimddp; then
@@ -355,17 +357,20 @@ case "$uname_s" in
                     ;;
                 esac
             ;;
+            e2k*)
+                true_arch='e2k'
+            ;;
             loongarch64*)
                 set_arch_loongarch64
+            ;;
+            ppc64*)
+                set_arch_ppc_64
             ;;
             riscv64)
                 set_arch_riscv64
             ;;
             ppc|ppc32|powerpc)
                 true_arch='ppc-32'
-            ;;
-            e2k*)
-                true_arch='e2k'
             ;;
             *)
                 # Don't hard-fail: fall back to general-* so ARCH=native still builds
