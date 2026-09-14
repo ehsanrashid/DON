@@ -1351,7 +1351,7 @@ inline u64 hash_bytes(const char* RESTRICT data, usize size, u64 seed = 0) noexc
     const auto* const RESTRICT block32End = beg + (size & ~(BLOCK_32 - 1));
     for (; p < block32End; p += BLOCK_32)
     {
-        u64 k0 = 0, k1 = 0, k2 = 0, k3 = 0;
+        u64 k0, k1, k2, k3;
         // Unaligned loads are safe via memcpy and typically optimized by the compiler
         std::memcpy(&k0, p + 0 * BLOCK_8, BLOCK_8);
         std::memcpy(&k1, p + 1 * BLOCK_8, BLOCK_8);
@@ -1377,7 +1377,7 @@ inline u64 hash_bytes(const char* RESTRICT data, usize size, u64 seed = 0) noexc
     const auto* const RESTRICT block16End = p + ((end - p) & ~(BLOCK_16 - 1));
     for (; p < block16End; p += BLOCK_16)
     {
-        u64 k0 = 0, k1 = 0;
+        u64 k0, k1;
         // Unaligned loads are safe via memcpy and typically optimized by the compiler
         std::memcpy(&k0, p + 0 * BLOCK_8, BLOCK_8);
         std::memcpy(&k1, p + 1 * BLOCK_8, BLOCK_8);
@@ -1395,13 +1395,13 @@ inline u64 hash_bytes(const char* RESTRICT data, usize size, u64 seed = 0) noexc
     const auto* const RESTRICT block8End = p + ((end - p) & ~(BLOCK_8 - 1));
     for (; p < block8End; p += BLOCK_8)
     {
-        u64 k = 0;
+        u64 k0;
         // Safe unaligned load
-        std::memcpy(&k, p, BLOCK_8);
+        std::memcpy(&k0, p, BLOCK_8);
 
-        k = mix(k);
+        k0 = mix(k0);
         // Merge block into the running hash
-        h ^= k;
+        h ^= k0;
         h *= MurmurM;
     }
     // Handle remaining tail bytes (< 8) at the end
@@ -1411,7 +1411,7 @@ inline u64 hash_bytes(const char* RESTRICT data, usize size, u64 seed = 0) noexc
 
         u8 shift = 0;
         // Read remaining bytes in little-endian order
-        for (; p < end; ++p)
+        for (; p != end; ++p)
         {
             k |= static_cast<u64>(*p) << shift;
 

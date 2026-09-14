@@ -54,7 +54,9 @@ class TimeManager final {
 
     void advance_time_nodes(i64 nodes) noexcept;
 
-    static constexpr double TimeValueMax = double(std::numeric_limits<i64>::max() - 1023);
+    static constexpr TimePoint TimeMax = std::numeric_limits<TimePoint>::max();
+
+    static constexpr double TimeMaxValue = double(TimeMax - 1023);
 
    private:
     TimeManager(const TimeManager&) noexcept            = delete;
@@ -62,7 +64,7 @@ class TimeManager final {
     TimeManager(TimeManager&&) noexcept                 = delete;
     TimeManager& operator=(TimeManager&&) noexcept      = delete;
 
-    static constexpr TimePoint NoBound = std::numeric_limits<TimePoint>::max() / 2;
+    static constexpr TimePoint NoBound = TimeMax / 2;
 
     TimePoint startTime;
     TimePoint optimumTime;

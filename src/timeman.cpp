@@ -163,7 +163,7 @@ void TimeManager::init(
     }
 
     // Limit the maximum possible time for this move
-    optimumTime = TimePoint(std::max(std::max(optimumScale * remainTime, double(options["MinMoveTime"])), 1.0));
+    optimumTime = TimePoint(std::max(std::max(optimumScale * remainTime, 1.0), double(options["MinMoveTime"])));
     maximumTime = std::max(
                     mtg < 2
                     ? clock.time
@@ -175,7 +175,7 @@ void TimeManager::init(
         std::this_thread::sleep_for(Ms(optimumTime / 2));
 
     if (options["Ponder"])
-        optimumTime = TimePoint(std::min(1.2500 * optimumTime, TimeValueMax));
+        optimumTime = TimePoint(std::min(1.2500 * optimumTime, TimeMaxValue));
 }
 
 // When in 'Nodes as Time' mode

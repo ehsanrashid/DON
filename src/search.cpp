@@ -2639,7 +2639,7 @@ void Manager::handle_time_management(const Worker& worker,
 
     // Calculate total time by combining all factors with the optimum time
     const auto totalTimeValue = timeManager.optimum() * inconsistencyFactor * easeFactor * instabilityFactor * nodesEffortFactor * recaptureFactor;
-    TimePoint totalTime = TimePoint(std::min(totalTimeValue, TimeManager::TimeValueMax));
+    TimePoint totalTime = TimePoint(std::min(totalTimeValue, TimeManager::TimeMaxValue));
     assert(totalTime >= 0.0);
     // clang-format on
 
