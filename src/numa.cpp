@@ -291,13 +291,14 @@ bool NumaConfig::requires_memory_replication() const noexcept {
 }
 
 std::string NumaConfig::to_string() const noexcept {
-    // Estimate size
     usize cpuCount = 0;
     for (const auto& node : nodes)
         cpuCount += node.size();
 
     std::string numaCfg;
-    numaCfg.reserve(6 * cpuCount);  // ~6 chars per CPU
+    numaCfg.reserve(6 * cpuCount);
+
+    bool nodeFirst = true;
 
     for (const auto& node : nodes)
     {
@@ -305,46 +306,39 @@ std::string NumaConfig::to_string() const noexcept {
         if (node.empty())
             continue;
 
-        // Add node separator if needed
-        if (!numaCfg.empty())
+        if (!nodeFirst)
             numaCfg.push_back(':');
 
-        // 1. Copy unordered_set -> vector
-        std::vector<CpuIndex> sortedCpus(node.begin(), node.end());
-        // 2. Sort vector
-        std::sort(sortedCpus.begin(), sortedCpus.end());
-        // 3. Emit ranges
-        std::string rangeCfg;
+        nodeFirst = false;
 
-        const auto append_range = [&rangeCfg](CpuIndex rangeBeg, CpuIndex rangeEnd) noexcept {
-            // Add range separator if needed
-            if (!rangeCfg.empty())
-                rangeCfg.push_back(',');
+        bool cpuFirst = true;
 
-            // Emit range: "single CPU" or "rangeBeg-rangeEnd"
-            rangeCfg.append(std::to_string(rangeBeg));
+        auto itr = node.begin();
+        while (itr != node.end())
+        {
+            const CpuIndex rangeBeg = *itr;
+            CpuIndex       rangeEnd = rangeBeg;
+
+            ++itr;
+            while (itr != node.end() && *itr == rangeEnd + 1)
+            {
+                ++rangeEnd;
+                ++itr;
+            }
+
+            if (!cpuFirst)
+                numaCfg.push_back(',');
+
+            cpuFirst = false;
+
+            numaCfg.append(std::to_string(rangeBeg));
+
             if (rangeBeg != rangeEnd)
             {
-                rangeCfg  //
-                  .append(1, '-')
-                  .append(std::to_string(rangeEnd));
+                numaCfg.push_back('-');
+                numaCfg.append(std::to_string(rangeEnd));
             }
-        };
-
-        auto itr = sortedCpus.begin();
-        while (itr != sortedCpus.end())
-        {
-            CpuIndex rangeBeg = *itr;
-            CpuIndex rangeEnd = rangeBeg;
-
-            // Extend range while CPUs are contiguous
-            while (++itr != sortedCpus.end() && *itr == rangeEnd + 1)
-                ++rangeEnd;
-
-            append_range(rangeBeg, rangeEnd);
         }
-
-        numaCfg += rangeCfg;
     }
 
     return numaCfg;
@@ -375,7 +369,7 @@ bool NumaConfig::suggests_binding_threads(const u16 threadCount) const noexcept 
     // Compute maximum node size
     const usize maxNodeSize =
       std::max_element(nodes.begin(), nodes.end(),  //
-                       [](const CpuIndexSet& node1, const CpuIndexSet& node2) noexcept -> bool {
+                       [](const auto& node1, const auto& node2) noexcept -> bool {
                            return node1.size() < node2.size();
                        })
         ->size();
@@ -383,7 +377,7 @@ bool NumaConfig::suggests_binding_threads(const u16 threadCount) const noexcept 
     // Count nodes considered 'not-small' (size > 60% of maxNodeSize)
     const usize notSmallNodeCount =
       std::count_if(nodes.begin(), nodes.end(),  //
-                    [maxNodeSize](const CpuIndexSet& node) noexcept -> bool {
+                    [maxNodeSize](const auto& node) noexcept -> bool {
                         constexpr double SmallNodeThreshold = 0.6;
                         // node considered 'not-small' if it exceeds threshold
                         return static_cast<double>(node.size()) / maxNodeSize > SmallNodeThreshold;
@@ -608,22 +602,11 @@ NumaConfig NumaConfig::from_l3_domain(const std::vector<L3Domain> l3Domains,
     return numaCfg;
 }
 
-void NumaConfig::resize_numa_node(const NumaIndex newNumaId,
-                                  const float     maxLoadFactor,
-                                  const usize     expectedCpuCount) noexcept {
+void NumaConfig::resize_numa_node(const NumaIndex newNumaId) noexcept {
     const NumaIndex oldNumaId = nodes_size();
 
     if (oldNumaId <= newNumaId)
-    {
         nodes.resize(newNumaId + 1);  // default-construct missing elements
-
-        // Apply tuning to all newly created sets
-        for (NumaIndex numaId = oldNumaId; numaId < nodes_size(); ++numaId)
-        {
-            nodes[numaId].max_load_factor(max_load_factor(maxLoadFactor));
-            nodes[numaId].reserve(reserve_count(expectedCpuCount));
-        }
-    }
 }
 
 void NumaConfig::add_numa_node_cpu(const NumaIndex numaId, const CpuIndex cpuId) noexcept {
@@ -634,7 +617,16 @@ void NumaConfig::add_numa_node_cpu(const NumaIndex numaId, const CpuIndex cpuId)
 }
 
 void NumaConfig::add_numa_node(const NumaIndex numaId, const CpuIndex cpuId) noexcept {
-    nodes[numaId].insert(cpuId);
+    auto& cpus = nodes[numaId];
+
+    if (cpus.empty() || cpus.back() < cpuId)
+        cpus.push_back(cpuId);
+    else
+    {
+        const auto itr = std::lower_bound(cpus.begin(), cpus.end(), cpuId);
+        cpus.insert(itr, cpuId);
+    }
+
     add_numa_node_cpu(numaId, cpuId);
 }
 
@@ -670,7 +662,7 @@ void NumaConfig::remove_empty_numa_nodes() noexcept {
 
     bool hasEmpty = false;
 
-    for (const CpuIndexSet& node : nodes)
+    for (const auto& node : nodes)
         if (node.empty())
         {
             hasEmpty = true;
@@ -683,7 +675,7 @@ void NumaConfig::remove_empty_numa_nodes() noexcept {
 
     // 2. Remove empty nodes
     nodes.erase(std::remove_if(nodes.begin(), nodes.end(),
-                               [](const CpuIndexSet& node) noexcept { return node.empty(); }),
+                               [](const auto& node) noexcept { return node.empty(); }),
                 nodes.end());
 
     // 3. Rebuild mapping structures efficiently
@@ -706,36 +698,36 @@ NumaReplicationContext::NumaReplicationContext(NumaConfig&& numaCfg) noexcept :
     numaConfig(std::move(numaCfg)) {}
 
 NumaReplicationContext::~NumaReplicationContext() noexcept {
-    // The context must outlive replicated objects
-    if (!trackedReplicated.empty())
+    // The context must outlive all attached replicated objects.
+    if (!replicatedSet.empty())
         std::exit(EXIT_FAILURE);
 }
 
-void NumaReplicationContext::attach(BaseNumaReplicated* numaRep) noexcept {
-    assert(trackedReplicated.find(numaRep) == trackedReplicated.end());
+void NumaReplicationContext::attach(BaseNumaReplicated* const numaRep) noexcept {
+    assert(replicatedSet.find(numaRep) == replicatedSet.end());
 
-    trackedReplicated.insert(numaRep);
+    replicatedSet.insert(numaRep);
 }
 
-void NumaReplicationContext::detach(BaseNumaReplicated* numaRep) noexcept {
-    assert(trackedReplicated.find(numaRep) != trackedReplicated.end());
+void NumaReplicationContext::detach(BaseNumaReplicated* const numaRep) noexcept {
+    assert(replicatedSet.find(numaRep) != replicatedSet.end());
 
-    trackedReplicated.erase(numaRep);
+    replicatedSet.erase(numaRep);
 }
 
-void NumaReplicationContext::move_attached(BaseNumaReplicated* oldNumaRep,
-                                           BaseNumaReplicated* newNumaRep) noexcept {
-    assert(trackedReplicated.find(oldNumaRep) != trackedReplicated.end());
-    assert(trackedReplicated.find(newNumaRep) == trackedReplicated.end());
+void NumaReplicationContext::move(BaseNumaReplicated* const oldNumaRep,
+                                  BaseNumaReplicated* const newNumaRep) noexcept {
+    assert(replicatedSet.find(oldNumaRep) != replicatedSet.end());
+    assert(replicatedSet.find(newNumaRep) == replicatedSet.end());
 
-    trackedReplicated.erase(oldNumaRep);
-    trackedReplicated.insert(newNumaRep);
+    replicatedSet.erase(oldNumaRep);
+    replicatedSet.insert(newNumaRep);
 }
 
 void NumaReplicationContext::set_numa_config(NumaConfig&& numaCfg) noexcept {
     numaConfig = std::move(numaCfg);
 
-    for (auto&& numaRep : trackedReplicated)
+    for (auto* numaRep : replicatedSet)
         numaRep->on_numa_config_changed();
 }
 
@@ -743,34 +735,26 @@ const NumaConfig& NumaReplicationContext::numa_config() const noexcept { return 
 
 BaseNumaReplicated::BaseNumaReplicated(NumaReplicationContext& numaCtx) noexcept :
     numaContext(&numaCtx) {
-    if (numaContext != nullptr)
-        numaContext->attach(this);
-}
-
-void BaseNumaReplicated::detach_context() noexcept {
-    if (numaContext != nullptr)
-    {
-        numaContext->detach(this);
-        numaContext = nullptr;
-    }
+    attach_context();
 }
 
 BaseNumaReplicated::BaseNumaReplicated(BaseNumaReplicated&& baseNumaRep) noexcept :
     numaContext(std::exchange(baseNumaRep.numaContext, nullptr)) {
-    if (numaContext != nullptr)
-        numaContext->move_attached(&baseNumaRep, this);
+    move_context(baseNumaRep);
 }
 
 BaseNumaReplicated& BaseNumaReplicated::operator=(BaseNumaReplicated&& baseNumaRep) noexcept {
     if (this == &baseNumaRep)
         return *this;
 
-    detach_context();  // cleanup existing context
+    // Remove this object from its current context.
+    detach_context();
 
+    // Transfer the source context and clear the source context pointer.
     numaContext = std::exchange(baseNumaRep.numaContext, nullptr);
 
-    if (numaContext != nullptr)
-        numaContext->move_attached(&baseNumaRep, this);
+    // Replace the source address with this object's address in the context.
+    move_context(baseNumaRep);
 
     return *this;
 }
@@ -778,9 +762,26 @@ BaseNumaReplicated& BaseNumaReplicated::operator=(BaseNumaReplicated&& baseNumaR
 BaseNumaReplicated::~BaseNumaReplicated() noexcept { detach_context(); }
 
 const NumaConfig& BaseNumaReplicated::numa_config() const noexcept {
-    static const NumaConfig EmptyCfg = NumaConfig::empty();
+    static const NumaConfig emptyCfg = NumaConfig::empty();
 
-    return numaContext != nullptr ? numaContext->numa_config() : EmptyCfg;
+    return numaContext != nullptr ? numaContext->numa_config() : emptyCfg;
+}
+
+void BaseNumaReplicated::attach_context() noexcept {
+    if (numaContext != nullptr)
+        numaContext->attach(this);
+}
+
+void BaseNumaReplicated::detach_context() noexcept {
+    if (numaContext != nullptr)
+        numaContext->detach(this);
+
+    numaContext = nullptr;
+}
+
+void BaseNumaReplicated::move_context(BaseNumaReplicated& baseNumaRep) noexcept {
+    if (numaContext != nullptr)
+        numaContext->move(&baseNumaRep, this);
 }
 
 }  // namespace DON

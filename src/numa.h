@@ -806,9 +806,7 @@ class NumaConfig final {
 
     static NumaConfig from_l3_domain(std::vector<L3Domain> l3Domains, usize bundleSize) noexcept;
 
-    void resize_numa_node(NumaIndex newNumaId,
-                          float     maxLoadFactor    = 0.75f,
-                          usize     expectedCpuCount = SYSTEM_THREAD_MAX / 4) noexcept;
+    void resize_numa_node(NumaIndex newNumaId) noexcept;
 
     void add_numa_node_cpu(NumaIndex numaId, CpuIndex cpuId) noexcept;
 
@@ -826,7 +824,7 @@ class NumaConfig final {
 
     void init_node_cpus(usize expectedCpuCount, float maxLoadFactor = 0.75f) noexcept;
 
-    std::vector<CpuIndexSet>                nodes;
+    std::vector<CpuIndexVec>                nodes;
     std::unordered_map<CpuIndex, NumaIndex> nodeByCpu;
     CpuIndex                                maxCpuId       = 0;
     bool                                    customAffinity = false;
@@ -847,11 +845,10 @@ class NumaReplicationContext final {
     ~NumaReplicationContext() noexcept;
 
     void attach(BaseNumaReplicated* numaRep) noexcept;
-
     void detach(BaseNumaReplicated* numaRep) noexcept;
 
-    // oldObj may be invalid at this point
-    void move_attached(BaseNumaReplicated* oldNumaRep, BaseNumaReplicated* newNumaRep) noexcept;
+    // oldNumaRep may be invalid at this point.
+    void move(BaseNumaReplicated* oldNumaRep, BaseNumaReplicated* newNumaRep) noexcept;
 
     void set_numa_config(NumaConfig&& numaCfg) noexcept;
 
@@ -860,15 +857,14 @@ class NumaReplicationContext final {
    private:
     NumaConfig numaConfig;
 
-    // std::set uses std::less by default, which is required for pointer comparison
-    std::unordered_set<BaseNumaReplicated*> trackedReplicated;
+    std::unordered_set<BaseNumaReplicated*> replicatedSet;
 };
 
 // Instances of this class are tracked by the NumaReplicationContext instance.
 // NumaReplicationContext informs all tracked instances when NUMA configuration changes.
 class BaseNumaReplicated {
    public:
-    BaseNumaReplicated(NumaReplicationContext& ctx) noexcept;
+    explicit BaseNumaReplicated(NumaReplicationContext& numaCtx) noexcept;
 
     BaseNumaReplicated(const BaseNumaReplicated&) noexcept            = delete;
     BaseNumaReplicated& operator=(const BaseNumaReplicated&) noexcept = delete;
@@ -883,7 +879,9 @@ class BaseNumaReplicated {
     virtual void on_numa_config_changed() noexcept = 0;
 
    private:
+    void attach_context() noexcept;
     void detach_context() noexcept;
+    void move_context(BaseNumaReplicated& baseNumaRep) noexcept;
 
     NumaReplicationContext* numaContext;
 };
