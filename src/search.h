@@ -62,6 +62,58 @@ using MoveVector = FixedVector<Move, MOVES_CAPACITY, u16>;
 
 inline Book::PolyGlot pgBook;
 
+// extend_tb_pv() may lead to PVs longer than PLY_MAX
+struct RootPVMoves final {
+   public:
+    RootPVMoves() noexcept { moves_.reserve(PLY_MAX); }
+
+    auto begin() noexcept { return moves_.begin(); }
+    auto end() noexcept { return moves_.end(); }
+    auto begin() const noexcept { return moves_.begin(); }
+    auto end() const noexcept { return moves_.end(); }
+
+    Move&       front() noexcept { return moves_.front(); }
+    const Move& front() const noexcept { return moves_.front(); }
+
+    Move&       back() noexcept { return moves_.back(); }
+    const Move& back() const noexcept { return moves_.back(); }
+
+    Move&       operator[](const usize index) noexcept { return moves_[index]; }
+    const Move& operator[](const usize index) const noexcept { return moves_[index]; }
+
+    usize size() const noexcept { return moves_.size(); }
+    bool  empty() const noexcept { return moves_.empty(); }
+
+    void clear() noexcept { moves_.clear(); }
+    void push_back(const Move move) { moves_.push_back(move); }
+    void pop_back() noexcept { moves_.pop_back(); }
+
+    void shrink_to(const usize newSize) noexcept {
+        assert(newSize <= moves_.size());
+        moves_.resize(newSize);
+    }
+
+    Move*       data() noexcept { return moves_.data(); }
+    const Move* data() const noexcept { return moves_.data(); }
+
+    // Optimized PV to string conversion
+    std::string build_pv() const noexcept {
+        std::string pv;
+        pv.reserve(6 * size());
+
+        for (const Move m : *this)
+        {
+            pv.push_back(' ');
+            pv.append(move_to_can(m));
+        }
+
+        return pv;
+    }
+
+   private:
+    Moves moves_;
+};
+
 struct PVMoves final {
    public:
     Move*       begin() noexcept { return data(); }
@@ -94,13 +146,11 @@ struct PVMoves final {
 
     void push_back(const Move move) noexcept {
         assert(size() < capacity());
-
         moves_[size_++] = move;
     }
 
     void shrink_to(const usize newSize) noexcept {
         assert(newSize <= size());
-
         size_ = newSize;
     }
 
@@ -121,18 +171,10 @@ struct PVMoves final {
         }
     }
 
-    // Optimized PV to string conversion
-    std::string build_pv() const noexcept {
-        std::string pvStr;
-        pvStr.reserve(6 * size());
-
-        for (const Move m : *this)
-        {
-            pvStr.push_back(' ');
-            pvStr.append(move_to_can(m));
-        }
-
-        return pvStr;
+    PVMoves& operator=(const RootPVMoves& rootPV) noexcept {
+        size_ = std::min<usize>(rootPV.size(), PLY_MAX);
+        std::memcpy(data(), rootPV.data(), size() * sizeof(Move));
+        return *this;
     }
 
    private:
@@ -207,7 +249,7 @@ struct RootMove final {
     u16      selDepth    = 0;
     bool     isExact     = false;
 
-    PVMoves pv, prePV;
+    RootPVMoves pv, prePV;
 };
 
 constexpr bool root_move_descending(const RootMove& rm1, const RootMove& rm2) noexcept {

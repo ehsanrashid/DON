@@ -498,9 +498,9 @@ void Worker::iterative_deepening() noexcept {
 
     Value bestValue = -VALUE_INFINITE;
 
-    Depth   lastBestMoveDepth = DEPTH_ZERO;
-    Value   lastBestMoveValue = -VALUE_INFINITE;
-    PVMoves lastBestMovePV;
+    Depth       lastBestMoveDepth = DEPTH_ZERO;
+    Value       lastBestMoveValue = -VALUE_INFINITE;
+    RootPVMoves lastBestMovePV;
 
     u16 researchCnt = 0;
 
