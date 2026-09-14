@@ -163,7 +163,7 @@ auto Options::find(const std::string_view name) const noexcept { return indexMap
 // Options are stored in insertion order and indexed by name.
 // Returns false if an option with the same name already exists.
 bool Options::add(const std::string_view name, const Option& option) noexcept {
-    // Already exists.
+    // Already a member.
     if (contains(name))
     {
         std::cerr << "Option: '" << name << "' was already added!" << std::endl;
@@ -177,14 +177,16 @@ bool Options::add(const std::string_view name, const Option& option) noexcept {
     // Associate the option with its owning Options object.
     listItr->second.optionsPtr = this;
 
+    const std::string_view nameView = listItr->first;
+
     // Associate the name with its corresponding list node.
-    [[maybe_unused]] const auto [indexMapItr, inserted] = indexMap.emplace(name, listItr);
+    [[maybe_unused]] const auto [indexMapItr, inserted] = indexMap.emplace(nameView, listItr);
     // The initial membership check guarantees that the name is not already indexed.
     assert(inserted);
     assert(indexMapItr->second == listItr);
 
     // Establish name membership after the ordered list and name index are updated.
-    [[maybe_unused]] const auto [setItr, registered] = set.emplace(name);
+    [[maybe_unused]] const auto [setItr, registered] = set.emplace(nameView);
     // The initial membership check guarantees that this insertion succeeds.
     assert(registered);
     assert(setItr != set.end());
@@ -198,7 +200,7 @@ bool Options::add(const std::string_view name, const Option& option) noexcept {
 bool Options::remove(const std::string_view name) noexcept {
     const auto setItr = set.find(name);
 
-    // Not exists.
+    // Not a member.
     if (!contains(setItr))
         return false;
 

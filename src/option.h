@@ -102,13 +102,13 @@ using OT = Option::Type;
 class Options final {
    public:
     // clang-format off
-    // Name-value pair; preserves the original name and its case.
+    // Stores the option name view and the option, preserving the original name case.
     using Entry    = std::pair<std::string_view, Option>;
     // Preserves insertion order and the original name case.
     using List     = std::list<Entry>;
-    // Provides case-insensitive name lookup.
+    // Provides fast case-insensitive name lookup and removal.
     using IndexMap = std::unordered_map<std::string_view, List::iterator, CaseInsensitiveHash, CaseInsensitiveEqual>;
-    // Provides case-insensitive membership validation.
+    // Provides fast case-insensitive uniqueness and membership checks.
     using Set      = std::unordered_set<std::string_view, CaseInsensitiveHash, CaseInsensitiveEqual>;
     // clang-format on
 

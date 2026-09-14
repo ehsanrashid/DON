@@ -163,14 +163,14 @@ std::string_view BaseSharedMemory::name() const noexcept { return name_; }
 //
 // The registry provides:
 //  - True insertion order through List
-//  - Average O(1) lookup and removal through IndexMap
-//  - Average O(1) membership validation through Set
-//  - Average O(1) registration and unregistration by maintaining all containers
+//  - Average O(1) fast lookup and removal through IndexMap
+//  - Average O(1) fast membership validation through Set
+//  - Average O(1) fast registration and unregistration by maintaining all containers
 //
 // Key Features:
 //  - Thread-safe registration and unregistration
 //  - Deterministic iteration order
-//  - Average O(1) lookup and removal
+//  - Average O(1) fast lookup and removal
 //  - Lightweight: stores raw pointers only; lifetime is managed externally
 //
 // Implementation:
@@ -200,11 +200,11 @@ std::shared_mutex Mutex;
 // Preserves true insertion order for deterministic iteration.
 MemoryList List;
 
-// Provides average O(1) lookup and removal.
+// Provides average O(1) fast lookup and removal.
 // Maps each memory to its corresponding iterator in List.
 MemoryIndexMap IndexMap;
 
-// Provides uniqueness and membership validation.
+// Provides average O(1) fast uniqueness and membership checks.
 MemorySet Set;
 
 // Check memory registry membership.
