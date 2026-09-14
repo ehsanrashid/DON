@@ -391,7 +391,7 @@ void cleanup() noexcept {
     //DEBUG_LOG("Memory cleanup started (" << memoryList.size() << " object(s)).");
     for (auto* const memory : memoryList)
         if (memory != nullptr)
-            memory->release();
+            memory->reset();
 }
 
 }  // namespace MemoryCleanup

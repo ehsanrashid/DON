@@ -145,9 +145,8 @@ using PieceSqHistory = AtomicHistory<i16, 30000, PIECE_NB, SQUARE_NB>;
 
 // ContinuationHistory is the combined history of given pair of moves,
 // usually the current move given the previous move.
-using ContinuationHistory = MultiArray<PieceSqHistory, PIECE_NB, SQUARE_NB>;
-
-using ContinuationHistoryBlock = Array<ContinuationHistory, 2, 2>;
+// Array[inCheck][capture]
+using ContinuationHistory = Array<MultiArray<PieceSqHistory, PIECE_NB, SQUARE_NB>, 2, 2>;
 
 // PawnHistory is addressed by the pawn structure and a move's [piece][dstSq]
 using PawnHistory = DynamicArray<AtomicHistory<i16, 8192, PIECE_NB, SQUARE_NB>>;
@@ -184,7 +183,7 @@ class AtomicHistories final {
         minorCorrectionHistory(correction_history_size()),
         nonPawnCorrectionHistory(correction_history_size()),
         pawnHistory(pawn_history_size()),
-        continuationHistory(make_unique_aligned_large_page<ContinuationHistoryBlock>()) {
+        continuationHistory(make_unique_aligned_large_page<ContinuationHistory>()) {
 #if !defined(NDEBUG)
         assert(is_power_of_2(threadCount));
 #endif
@@ -261,7 +260,7 @@ class AtomicHistories final {
     NonPawnCorrectionHistory nonPawnCorrectionHistory;
     PawnHistory              pawnHistory;
 
-    LargePagePtr<ContinuationHistoryBlock> continuationHistory;  // [inCheck][capture]
+    LargePagePtr<ContinuationHistory> continuationHistory;
 };
 
 using AtomicHistoriesMap = std::unordered_map<usize, AtomicHistories>;

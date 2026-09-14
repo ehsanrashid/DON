@@ -201,14 +201,14 @@ class BackendSharedMemory final {
         if (this == &backendShm)
             return *this;
 
-        release();
+        reset();
 
         move(std::move(backendShm));
 
         return *this;
     }
 
-    ~BackendSharedMemory() noexcept { release(); }
+    ~BackendSharedMemory() noexcept { reset(); }
 
     [[nodiscard]] std::string_view name() const noexcept { return name_; }
 
@@ -290,7 +290,7 @@ class BackendSharedMemory final {
         {
             //DEBUG_LOG("MapViewOfFile() failed: name = " << name() << ", error = " << error_to_string(GetLastError()));
             status = Status::MapView;
-            release();
+            reset();
             return;
         }
 
@@ -305,7 +305,7 @@ class BackendSharedMemory final {
         {
             //DEBUG_LOG("CreateMutex() failed: name = " << mutexName << ", error = " << error_to_string(GetLastError()));
             status = Status::MutexCreate;
-            release();
+            reset();
             return;
         }
         // Wait for ownership
@@ -313,7 +313,7 @@ class BackendSharedMemory final {
         {
             //DEBUG_LOG("WaitForSingleObject() failed: name = " << mutexName << ", error = " << error_to_string(GetLastError()));
             status = Status::MutexWait;
-            release();
+            reset();
             return;
         }
 
@@ -345,7 +345,7 @@ class BackendSharedMemory final {
         {
             //DEBUG_LOG("ReleaseMutex() failed: name = " << mutexName << ", error = " << error_to_string(GetLastError()));
             status = Status::MutexRelease;
-            release();
+            reset();
             return;
         }
 
@@ -360,7 +360,7 @@ class BackendSharedMemory final {
         status        = std::exchange(backendShm.status, Status::NotInitialized);
     }
 
-    void release() noexcept {
+    void reset() noexcept {
         //DEBUG_LOG("Cleaning up shared memory, name: " << name());
         mappedGuard.reset();
         mapFileHandleGuard.reset();
@@ -403,7 +403,7 @@ class BaseSharedMemory {
 
     virtual ~BaseSharedMemory() noexcept = default;
 
-    virtual void release() noexcept = 0;
+    virtual void reset() noexcept = 0;
 
     [[nodiscard]] std::string_view name() const noexcept;
 
@@ -444,7 +444,7 @@ class BaseSharedMemory {
 //  - Call 'unregister_memory()' before destruction
 //
 // Note:
-//  - The registry does not own or release registered memory objects.
+//  - The registry does not own or reset registered memory objects.
 namespace MemoryRegistry {
 
 using Memory         = BaseSharedMemory*;
@@ -492,15 +492,15 @@ void print() noexcept;
 //
 // Responsibilities:
 //  - Detach all registered memory objects from the registry
-//  - Release each detached memory object
+//  - Reset each detached memory object
 //
 // Note:
 //  - Registry management is handled by MemoryRegistry.
 //  - Process-exit hook installation is handled by MemoryCleanupHook.
-//  - Detached memory objects are released in registry insertion order.
+//  - Detached memory objects are reset in registry insertion order.
 namespace MemoryCleanup {
 
-// Detaches and releases all currently registered memory objects in insertion order.
+// Detaches and reset all currently registered memory objects in insertion order.
 void cleanup() noexcept;
 
 }  // namespace MemoryCleanup
@@ -625,7 +625,7 @@ class SharedMemory final: public BaseSharedMemory {
         initLockPath(sharedDir + "/init_lock"),
         socketPath(sharedDir + "/" + std::to_string(::getpid()) + ".sock") {}
 
-    ~SharedMemory() noexcept override { release_with_registry(); }
+    ~SharedMemory() noexcept override { reset_with_registry(); }
 
     SharedMemory(const SharedMemory&)            = delete;
     SharedMemory& operator=(const SharedMemory&) = delete;
@@ -641,7 +641,7 @@ class SharedMemory final: public BaseSharedMemory {
         [[maybe_unused]] const bool unregistered = MemoryRegistry::unregister_memory(this);
         assert(unregistered);
 
-        release();
+        reset();
 
         BaseSharedMemory::operator=(std::move(sharedMemory));
         move_with_registry(std::move(sharedMemory));
@@ -790,8 +790,8 @@ class SharedMemory final: public BaseSharedMemory {
             ::unlink(socketPath.c_str());
     }
 
-    // Release all resources and reset the object state
-    void release() noexcept override {
+    // Reset all resources and reset the object state
+    void reset() noexcept override {
         unlink_socket_path();
 
         shutdownFd.reset();
@@ -840,12 +840,12 @@ class SharedMemory final: public BaseSharedMemory {
         assert(registered);
     }
 
-    // Unregister SharedMemory object and release resources
-    bool release_with_registry() noexcept {
+    // Unregister SharedMemory object and reset resources
+    bool reset_with_registry() noexcept {
         if (!MemoryRegistry::unregister_memory(this))
             return false;
 
-        release();
+        reset();
         return true;
     }
 
