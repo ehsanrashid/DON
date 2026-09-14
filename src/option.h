@@ -139,7 +139,7 @@ class Options final {
     bool add(std::string_view name, const Option& option) noexcept;
     bool remove(std::string_view name) noexcept;
 
-    void set_value(std::string_view name, std::string_view value) noexcept;
+    void setoption(std::string_view name, std::string_view value) noexcept;
 
     const Option& operator[](std::string_view name) const noexcept;
 

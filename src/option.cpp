@@ -224,7 +224,7 @@ bool Options::remove(const std::string_view name) noexcept {
     return true;
 }
 
-void Options::set_value(const std::string_view name, const std::string_view value) noexcept {
+void Options::setoption(const std::string_view name, const std::string_view value) noexcept {
     const auto indexMapItr = find(name);
 
     if (indexMapItr != indexMap.end())

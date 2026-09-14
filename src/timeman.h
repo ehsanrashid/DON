@@ -18,6 +18,8 @@
 #ifndef TIMEMAN_H_INCLUDED
 #define TIMEMAN_H_INCLUDED
 
+#include <limits>
+
 #include "misc.h"
 
 namespace DON {
@@ -57,6 +59,8 @@ class TimeManager final {
     TimeManager& operator=(const TimeManager&) noexcept = delete;
     TimeManager(TimeManager&&) noexcept                 = delete;
     TimeManager& operator=(TimeManager&&) noexcept      = delete;
+
+    static constexpr TimePoint NoBound = std::numeric_limits<TimePoint>::max() / KB;
 
     TimePoint startTime;
     TimePoint optimumTime;

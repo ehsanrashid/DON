@@ -29,7 +29,8 @@ namespace DON {
 
 namespace {
 
-constexpr u8 MTG_MAX = 50;  // Moves To Go maximum for time management formulas
+// Maximum moves to go used by time management formulas.
+constexpr u8 MTG_MAX = 50;
 
 constexpr double TIME_ADJUST_INIT = -1.0;
 constexpr double TIME_ADJUST_MIN  = 1.0e-6;
@@ -67,14 +68,14 @@ void TimeManager::init(
 
     auto& clock = limit.clocks[ac];
 
-    u64 NodesTime = options["NodesTime"];
+    const u64 NodesTime = options["NodesTime"];
 
     useNodesTime = NodesTime != 0;
 
     if (clock.time == 0)
     {
-        optimumTime = 0;
-        maximumTime = 0;
+        optimumTime = NoBound;
+        maximumTime = NoBound;
         return;
     }
 
@@ -111,12 +112,12 @@ void TimeManager::init(
 
     // If less than one second, gradually reduce mtg
     if (mtg > 2 && ScaledTime < 1000 && clock.inc <= OverheadTime)
-        mtg = std::max<u8>(constexpr_ceil(0.05051 * ScaledTime), 2);
+        mtg = std::max<u8>(0.05051 * ScaledTime, 2);
 
     // Make sure remainTime > 0 since use it as a divisor
     TimePoint remainTime = std::max<TimePoint>(clock.time + (mtg - 1) * clock.inc - (mtg + 2) * OverheadTime, 1);
 
-    remainTime = std::max<TimePoint>(constexpr_ceil(remainTime * options["TimePercent"] / 100.0), 1);
+    remainTime = std::max<TimePoint>(remainTime * options["TimePercent"] / 100.0, 1);
 
     // optimumScale is a percentage of available time to use for the current move.
     // maximumScale is a multiplier applied to optimumTime.
@@ -161,11 +162,11 @@ void TimeManager::init(
     }
 
     // Limit the maximum possible time for this move
-    optimumTime = std::max<TimePoint>(std::max<TimePoint>(constexpr_ceil(optimumScale * remainTime), options["MinMoveTime"]), 1);
+    optimumTime = std::max<TimePoint>(std::max<TimePoint>(optimumScale * remainTime, options["MinMoveTime"]), 1);
     maximumTime = std::max<TimePoint>(
                     mtg < 2
                     ? clock.time
-                    : std::min<TimePoint>(constexpr_ceil(maximumScale * optimumTime), constexpr_ceil(0.80970 * clock.time) - OverheadTime) - options["BufferTime"],
+                    : std::min<TimePoint>(maximumScale * optimumTime, 0.80970 * clock.time - OverheadTime) - options["BufferTime"],
                     optimumTime);
     // clang-format on
 
@@ -173,7 +174,7 @@ void TimeManager::init(
         std::this_thread::sleep_for(Ms(optimumTime / 2));
 
     if (options["Ponder"])
-        optimumTime = constexpr_ceil(1.2500 * optimumTime);
+        optimumTime *= 1.2500;
 }
 
 // When in 'Nodes as Time' mode

@@ -502,20 +502,21 @@ void UCI::setoption(std::istream& is) noexcept {
         value.append(token);
     }
 
-    options().set_value(name, value);
+    options().setoption(name, value);
 }
 
 void UCI::bench(std::istream& is) noexcept {
 
-    auto minimalInfo = bool_to_string(options()["MinimalInfo"]);
+    const auto MinimalInfo = bool_to_string(options()["MinimalInfo"]);
 
-    options().set_value("MinimalInfo", bool_to_string(true));
+    options().setoption("MinimalInfo", bool_to_string(true));
 
     const auto commands = Benchmark::bench(is, engine.fen());
 
-    const usize num = std::count_if(commands.begin(), commands.end(), [](std::string_view command) {
-        return starts_with(command, "go ") || starts_with(command, "eval");
-    });
+    const usize num =
+      std::count_if(commands.begin(), commands.end(), [](const std::string_view command) {
+          return starts_with(command, "go ") || starts_with(command, "eval");
+      });
 
 #if !defined(NDEBUG)
     Debug::clear();
@@ -608,7 +609,7 @@ void UCI::bench(std::istream& is) noexcept {
 
     // Reset callback, to not capture a dangling reference
     set_update_callbacks();
-    options().set_value("MinimalInfo", minimalInfo);
+    options().setoption("MinimalInfo", MinimalInfo);
 }
 
 void UCI::benchmark(std::istream& is) noexcept {
@@ -624,13 +625,13 @@ void UCI::benchmark(std::istream& is) noexcept {
     const auto setup = Benchmark::benchmark(is);
 
     // Set options once at the start
-    options().set_value("Threads", std::to_string(setup.threads));
-    options().set_value("Hash", std::to_string(setup.ttSize));
-    options().set_value("UCI_Chess960", bool_to_string(false));
+    options().setoption("Threads", std::to_string(setup.threads));
+    options().setoption("Hash", std::to_string(setup.ttSize));
+    options().setoption("UCI_Chess960", bool_to_string(false));
 
     const usize num =
       std::count_if(setup.commands.begin(), setup.commands.end(),
-                    [](std::string_view command) { return starts_with(command, "go "); });
+                    [](const std::string_view command) { return starts_with(command, "go "); });
 
 #if !defined(NDEBUG)
     Debug::clear();
