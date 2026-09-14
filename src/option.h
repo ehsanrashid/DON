@@ -106,7 +106,7 @@ class Options final {
     using Entry    = std::pair<std::string_view, Option>;
     // Preserves insertion order and the original name case.
     using List     = std::list<Entry>;
-    // Provides fast case-insensitive name lookup and removal.
+    // Provides fast case-insensitive name lookup, count and removal.
     using IndexMap = std::unordered_map<std::string_view, List::iterator, CaseInsensitiveHash, CaseInsensitiveEqual>;
     // Provides fast case-insensitive uniqueness and membership checks.
     using Set      = std::unordered_set<std::string_view, CaseInsensitiveHash, CaseInsensitiveEqual>;

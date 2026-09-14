@@ -419,6 +419,7 @@ bool unregister_memory(Memory memory) noexcept;
 MemoryList detach_memories() noexcept;
 
 usize size() noexcept;
+bool  empty() noexcept;
 
 void print() noexcept;
 

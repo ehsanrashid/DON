@@ -152,16 +152,16 @@ bool Options::contains(const std::string_view name) const noexcept {
     return contains(set.find(name));
 }
 
-usize Options::count(const std::string_view name) const noexcept { return set.count(name); }
+usize Options::count(const std::string_view name) const noexcept { return indexMap.count(name); }
 
 auto Options::find(const std::string_view name) noexcept { return indexMap.find(name); }
 
 auto Options::find(const std::string_view name) const noexcept { return indexMap.find(name); }
 
-// Adds an option to the Options.
+// Adds an option with the specified name to the Options.
 //
 // Options are stored in insertion order and indexed by name.
-// Returns false if an option with the same name already exists.
+// Returns false if an option with the specified name already exists.
 bool Options::add(const std::string_view name, const Option& option) noexcept {
     // Already a member.
     if (contains(name))
@@ -194,7 +194,7 @@ bool Options::add(const std::string_view name, const Option& option) noexcept {
     return true;
 }
 
-// Removes an option from the Options.
+// Removes the option with the specified name from the Options.
 //
 // Returns false if no option with the specified name exists.
 bool Options::remove(const std::string_view name) noexcept {
