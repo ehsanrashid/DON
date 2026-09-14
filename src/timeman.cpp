@@ -112,7 +112,7 @@ void TimeManager::init(
 
     // If less than one second, gradually reduce mtg
     if (mtg > 2 && ScaledTime < 1000 && clock.inc <= OverheadTime)
-        mtg = std::max<u8>(0.05051 * ScaledTime, 2);
+        mtg = u8(std::max(0.05051 * ScaledTime, 2.0));
 
     // Make sure remainTime > 0 since use it as a divisor
     TimePoint remainTime = std::max<TimePoint>(clock.time + (mtg - 1) * clock.inc - (mtg + 2) * OverheadTime, 1);
@@ -174,7 +174,7 @@ void TimeManager::init(
         std::this_thread::sleep_for(Ms(optimumTime / 2));
 
     if (options["Ponder"])
-        optimumTime *= 1.2500;
+        optimumTime = TimePoint(std::min(1.2500 * optimumTime, TimeValueMax));
 }
 
 // When in 'Nodes as Time' mode
