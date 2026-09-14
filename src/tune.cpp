@@ -41,6 +41,26 @@ std::optional<std::string> on_tune(const Option& option) noexcept {
 
 }  // namespace
 
+RangeSetter::RangeSetter(const RangeFun f) noexcept :
+    rangeFun(f) {}
+
+RangeSetter::RangeSetter(const int min, const int max) noexcept :
+    rangeFun(nullptr),
+    range(min, max) {}
+
+Range RangeSetter::operator()(const int v) const noexcept {
+    return rangeFun != nullptr ? rangeFun(v) : range;
+}
+
+Tune& Tune::instance() noexcept {
+    static Tune tune;
+    return tune;
+}
+
+// Extracts the next name and optionally removes it from the list.
+// Facility to fill the container, each Entry corresponds to a parameter to tune.
+// Use variadic templates to deal with an unspecified number of entries,
+// each one of a possible different type.
 std::string Tune::next(std::string& names, const bool pop) noexcept {
     std::string name;
 
@@ -58,7 +78,8 @@ std::string Tune::next(std::string& names, const bool pop) noexcept {
     return name;
 }
 
-void Tune::make_option(Options*               optionsPtr,
+// Adds a tunable option and prints its Fishtest parameters.
+void Tune::make_option(Options* const         optionsPtr,
                        const std::string_view name,
                        int                    value,
                        const RangeSetter&     range) noexcept {
@@ -70,7 +91,8 @@ void Tune::make_option(Options*               optionsPtr,
         value = itr->second;
 
     optionsPtr->add(name, Option(value, range(value).first, range(value).second, on_tune));
-    LastOption = &((*optionsPtr)[name]);
+
+    LastOption = &(*optionsPtr)[name];
 
     // Print formatted parameters, ready to be copy-pasted in Fishtest
     std::cout << name << ','                                               //
