@@ -45,8 +45,8 @@ class Engine final {
     explicit Engine(const std::filesystem::path& path = {}) noexcept;
     ~Engine() noexcept;
 
-    Options&       get_options() noexcept;
-    const Options& get_options() const noexcept;
+    Options&       options() noexcept;
+    const Options& options() const noexcept;
 
     std::string fen() const noexcept;
 
@@ -121,12 +121,12 @@ class Engine final {
     NumaReplicationContext                      numaContext;
     NNUE::EvalFile                              networkFile;
     SystemWideLazyNumaReplicated<NNUE::Network> network;
-    Options                                     options;
+    Options                                     options_;
     Threads                                     threads;
     TranspositionTable                          transpositionTable;
     AtomicHistoriesMap                          atomicHistoriesMap;
 
-    SharedState sharedState{network, options, transpositionTable, threads, atomicHistoriesMap};
+    SharedState sharedState{network, options(), transpositionTable, threads, atomicHistoriesMap};
 
     StateListPtr states;
     Position     pos;

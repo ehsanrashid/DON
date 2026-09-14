@@ -239,7 +239,9 @@ UCI::UCI(const std::filesystem::path& path) noexcept :
     set_update_callbacks();
 }
 
-Options& UCI::options() noexcept { return engine.get_options(); }
+Options& UCI::options() noexcept { return engine.options(); }
+
+const Options& UCI::options() const noexcept { return engine.options(); }
 
 void UCI::process_input(std::istream& is) noexcept {
 

@@ -734,16 +734,16 @@ u8* TBTable<T>::map(const std::string_view filename) noexcept {
 
     u8* data = (u8*) (mappedPtr);
 
-    constexpr auto& TBMagic = TB_MAGICS[T];
+    constexpr auto& TB_MAGIC = TB_MAGICS[T];
 
-    if (std::memcmp(data, TBMagic.data(), TBMagic.size()) != 0)
+    if (std::memcmp(data, TB_MAGIC.data(), TB_MAGIC.size()) != 0)
     {
         DEBUG_LOG("Corrupt tablebase table, name = " << filename);
         unmap();
         return nullptr;
     }
 
-    return data + TBMagic.size();  // Skip TB Magic header
+    return data + TB_MAGIC.size();  // Skip TB Magic header
 }
 
 template<TBType T>

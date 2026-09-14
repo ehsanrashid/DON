@@ -818,8 +818,11 @@ std::thread make_server_thread(UniqueFd fd, UniqueFd shutdownFd, UniqueFd server
     #if defined(MSG_NOSIGNAL)
                 flags |= MSG_NOSIGNAL;
     #endif
-                while (::sendmsg(clientFd.get(), &msg, flags) < 0 && errno == EINTR)
-                {}
+                while (::sendmsg(clientFd.get(), &msg, flags) < 0)
+                {
+                    if (errno != EINTR)
+                        return false;
+                }
             }
         }
     });
