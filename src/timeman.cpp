@@ -115,9 +115,10 @@ void TimeManager::init(
         mtg = u8(std::max(0.05051 * ScaledTime, 2.0));
 
     // Make sure remainTime > 0 since use it as a divisor
-    TimePoint remainTime = std::max<TimePoint>(clock.time + (mtg - 1) * clock.inc - (mtg + 2) * OverheadTime, 1);
-
-    remainTime = std::max<TimePoint>(remainTime * options["TimePercent"] / 100.0, 1);
+    const TimePoint remainTime =
+        TimePoint(std::max(
+                    std::max<TimePoint>(clock.time + (mtg - 1) * clock.inc - (mtg + 2) * OverheadTime, 1)
+                  * options["TimePercent"] / 100.0, 1.0));
 
     // optimumScale is a percentage of available time to use for the current move.
     // maximumScale is a multiplier applied to optimumTime.
