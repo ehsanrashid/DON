@@ -2756,7 +2756,6 @@ void Skill::init(const Options& options) noexcept {
         constexpr Array<double, 4> P{37.2473, -40.8525, 22.2943, -0.311438};
 
         double e = static_cast<double>(options["UCI_ELO"] - ELOMin) / (ELOMax - ELOMin);
-
         double l = ((P[0] * e + P[1]) * e + P[2]) * e + P[3];
 
         level = std::clamp(l, LevelMin, LevelMax - 0.01);
