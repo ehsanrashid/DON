@@ -48,11 +48,10 @@ Value evaluate(const Position&         pos,
 
     double complexity = constexpr_abs(psqt - positional);
     // Blend eval and optimism with complexity
-    nnue     = constexpr_round(nnue * (1.0 - complexity / 18236.0));
     optimism = constexpr_round(optimism * (1.0 + complexity / 476.0));
+    nnue     = constexpr_round(nnue * (1.0 - complexity / 18236.0));
 
-    i32 v = constexpr_round(
-      (nnue * 77871.0 + optimism * 7191.0 + (nnue + optimism) * pos.material()) / 77871.0);
+    i32 v = constexpr_round((nnue * (91000.0 + pos.material()) + optimism * 7675.0) / 91000.0);
 
     // Damp evaluation linearly based on the 50-move rule
     v = constexpr_round(v * std::max(1.0 - pos.rule50_count() / 195.0, 0.0));
