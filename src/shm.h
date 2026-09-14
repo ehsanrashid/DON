@@ -784,18 +784,6 @@ class SharedMemory final: public BaseSharedMemory {
         return true;
     }
 
-    // Reset all resources and reset the object state
-    void reset() noexcept override {
-        unlink_socket_path();
-        socketPath.clear();
-
-        unmap_region();
-
-        shutdownFd.reset();
-        if (serverThread.joinable())
-            serverThread.join();
-    }
-
     [[nodiscard]] bool is_mapped() const noexcept { return mappedPtr != nullptr; }
 
     [[nodiscard]] bool is_serving() const noexcept { return serverThread.joinable(); }
@@ -867,6 +855,18 @@ class SharedMemory final: public BaseSharedMemory {
             ::munmap(mappedPtr, sizeof(T));
         mappedPtr = nullptr;
         dataPtr   = nullptr;
+    }
+
+    // Reset all resources and reset the object state
+    void reset() noexcept override {
+        unlink_socket_path();
+        socketPath.clear();
+
+        unmap_region();
+
+        shutdownFd.reset();
+        if (serverThread.joinable())
+            serverThread.join();
     }
 
     void* mappedPtr = nullptr;
