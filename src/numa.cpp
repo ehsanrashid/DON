@@ -91,6 +91,128 @@ CpuIndexVec shortened_string_to_indices(std::string_view str) noexcept {
     return indices;
 }
 
+NumaConfig NumaConfig::empty() noexcept { return NumaConfig{0, false}; }
+
+NumaConfig NumaConfig::from_system([[maybe_unused]] const AutoNumaPolicy& numaPolicy,
+                                   [[maybe_unused]] const bool respectProcessAffinity) noexcept {
+    NumaConfig numaCfg = empty();
+
+#if defined(_WIN64) || defined(USE_UNIX_NUMA)
+    #if defined(_WIN64)
+    std::optional<CpuIndexSet> allowedCpus;
+
+    if (respectProcessAffinity)
+        allowedCpus = PROCESSOR_AFFINITY.combined_cpus();
+
+    // The affinity cannot be determined in all cases on Windows,
+    // but at least guarantee that the number of allowed processors
+    // is >= number of processors in the affinity mask. In case the user
+    // is not satisfied they must set the processor numbers explicitly.
+    auto is_cpu_allowed = [&allowedCpus](CpuIndex cpuId) noexcept {
+        return !allowedCpus || allowedCpus->find(cpuId) != allowedCpus->end();
+    };
+
+    #elif defined(USE_UNIX_NUMA)
+    CpuIndexSet allowedCpus;
+
+    if (respectProcessAffinity)
+        allowedCpus = PROCESSOR_AFFINITY;
+
+    auto is_cpu_allowed = [&allowedCpus](CpuIndex cpuId) noexcept {
+        return allowedCpus.find(cpuId) != allowedCpus.end();
+    };
+    #endif
+
+    bool l3Success = false;
+
+    if (!std::holds_alternative<SystemNumaPolicy>(numaPolicy))
+    {
+        usize l3BundleSize = 0;
+
+        if (const auto* l3Policy = std::get_if<BundledL3Policy>(&numaPolicy))
+            l3BundleSize = l3Policy->bundleSize;
+
+        if (auto l3NumaCfg = try_l3_domain(respectProcessAffinity, l3BundleSize, is_cpu_allowed))
+        {
+            numaCfg = std::move(*l3NumaCfg);
+
+            l3Success = true;
+        }
+    }
+
+    if (!l3Success)
+        numaCfg = from_system_numa(respectProcessAffinity, is_cpu_allowed);
+
+    #if defined(_WIN64)
+    // Split the NUMA nodes to be contained within a group if necessary.
+    // This is needed between Windows 10 Build 20348 and Windows 11, because
+    // the new NUMA allocation behavior was introduced while there was
+    // still no way to set thread affinity spanning multiple processor groups.
+    // See https://learn.microsoft.com/en-us/windows/win32/procthread/numa-support
+    // Also do this if need to force old API for some reason.
+    //
+    // Later it appears that needed to actually always force this behavior.
+    // While Windows allows this to work now, such assignments have bad interaction
+    // with the scheduler - in particular it still prefers scheduling on the thread's
+    // "primary" node, even if it means scheduling SMT processors first.
+    // See https://learn.microsoft.com/en-us/windows/win32/procthread/processor-groups
+    //
+    //     Each process is assigned a primary group at creation, and by default all
+    //     of its threads' primary group is the same. Each thread's ideal processor
+    //     is in the thread's primary group, so threads will preferentially be
+    //     scheduled to processors on their primary group, but they are able to
+    //     be scheduled to processors on any other group.
+    //
+    // used to be guarded by if (LIKELY_USE_CPUS_0)
+    {
+        NumaConfig splitNumaCfg = empty();
+
+        NumaIndex splitNumaId = 0;
+        for (const auto& cpus : numaCfg.nodes)
+        {
+            if (cpus.empty())
+                continue;
+
+            WORD lstGroupId = static_cast<WORD>(*cpus.begin() / WIN_PROCESSOR_GROUP_SIZE);
+
+            for (CpuIndex cpuId : cpus)
+            {
+                const WORD groupId = static_cast<WORD>(cpuId / WIN_PROCESSOR_GROUP_SIZE);
+
+                if (lstGroupId != groupId)
+                {
+                    lstGroupId = groupId;
+
+                    ++splitNumaId;
+                }
+
+                splitNumaCfg.add_cpu_to_node(splitNumaId, cpuId);
+            }
+
+            ++splitNumaId;
+        }
+
+        numaCfg = std::move(splitNumaCfg);
+    }
+    #endif
+#else
+    // Fallback for unsupported systems
+    for (CpuIndex cpuId = 0; cpuId < SYSTEM_THREAD_MAX; ++cpuId)
+        numaCfg.add_cpu_to_node(NumaIndex{0}, cpuId);
+#endif
+
+    // Have to ensure no empty NUMA nodes persist
+    numaCfg.remove_empty_numa_nodes();
+
+    // If the user explicitly opts out from respecting the current process affinity
+    // then it may be inconsistent with the current affinity (obviously),
+    // so consider it custom.
+    if (!respectProcessAffinity)
+        numaCfg.customAffinity = true;
+
+    return numaCfg;
+}
+
 std::optional<NumaConfig> NumaConfig::from_string(const std::string_view str) noexcept {
     NumaConfig numaCfg = empty();
 
