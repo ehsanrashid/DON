@@ -20,9 +20,7 @@
 
 #include <algorithm>
 #include <cassert>
-#include <cstdlib>
-#include <iostream>
-#include <limits>
+#include <limits>  // IWYU pragma: keep
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -51,7 +49,7 @@
         #define _GNU_SOURCE
     #endif
     #include <sched.h>
-    #include <numeric>
+    #include <numeric>  // iota()
 #endif
 
 #include "misc.h"
@@ -722,14 +720,14 @@ class NumaConfig final {
     // Format: "node0_cpus:node1_cpus:..." where cpus = "0-2,4,6-7"
     std::string to_string() const noexcept;
 
-    bool suggests_binding_threads(usize threadCount) const noexcept;
+    bool suggests_binding_threads(u16 threadCount) const noexcept;
 
     std::vector<NumaIndex> distribute_threads_among_numa_nodes(u16 threadCount) const noexcept;
 
     NumaReplicatedAccessToken bind_current_thread_to_numa_node(NumaIndex numaId) const noexcept;
 
     template<typename Func>
-    void execute_on_numa_node(NumaIndex numaId, Func&& f) const noexcept {
+    void execute_on_numa_node(const NumaIndex numaId, Func&& f) const noexcept {
 
         std::thread th([this, f = std::forward<Func>(f), numaId]() mutable noexcept {
             [[maybe_unused]] auto token = bind_current_thread_to_numa_node(numaId);
@@ -932,79 +930,21 @@ class NumaConfig final {
                           float     maxLoadFactor    = 0.75f,
                           usize     expectedCpuCount = SYSTEM_THREAD_MAX / 4) noexcept;
 
-    void add_numa_node_cpu(const NumaIndex numaId, const CpuIndex cpuId) noexcept;
+    void add_numa_node_cpu(NumaIndex numaId, CpuIndex cpuId) noexcept;
 
-    void add_numa_node(const NumaIndex numaId, const CpuIndex cpuId) noexcept {
-        nodes[numaId].insert(cpuId);
-        add_numa_node_cpu(numaId, cpuId);
-    }
+    void add_numa_node(NumaIndex numaId, CpuIndex cpuId) noexcept;
 
     // Returns true if successful, false if failed.
     // i.e. when the cpu is already present strong guarantee, the structure remains unmodified.
-    bool add_cpu_to_node(const NumaIndex numaId, const CpuIndex cpuId) noexcept {
-
-        if (is_cpu_assigned(cpuId))
-            return false;
-
-        resize_numa_node(numaId);
-
-        add_numa_node(numaId, cpuId);
-
-        return true;
-    }
+    bool add_cpu_to_node(NumaIndex numaId, CpuIndex cpuId) noexcept;
 
     // Returns true if successful, false if failed.
     // i.e. when any of the cpus is already present strong guarantee, the structure remains unmodified.
-    bool add_cpu_range_to_node(const NumaIndex numaId,
-                               const CpuIndex  begCpuId,
-                               const CpuIndex  endCpuId) noexcept {
+    bool add_cpu_range_to_node(NumaIndex numaId, CpuIndex begCpuId, CpuIndex endCpuId) noexcept;
 
-        for (auto cpuId = begCpuId; cpuId <= endCpuId; ++cpuId)
-            if (is_cpu_assigned(cpuId))
-                return false;
+    void remove_empty_numa_nodes() noexcept;
 
-        resize_numa_node(numaId);
-
-        for (auto cpuId = begCpuId; cpuId <= endCpuId; ++cpuId)
-            add_numa_node(numaId, cpuId);
-
-        return true;
-    }
-
-    void remove_empty_numa_nodes() noexcept {
-
-        bool hasEmpty = false;
-
-        for (const CpuIndexSet& node : nodes)
-            if (node.empty())
-            {
-                hasEmpty = true;
-                break;
-            }
-
-        // 1. Nothing removed -> skip everything
-        if (!hasEmpty)
-            return;
-
-        // 2. Remove empty nodes
-        nodes.erase(std::remove_if(nodes.begin(), nodes.end(),
-                                   [](const CpuIndexSet& node) noexcept { return node.empty(); }),
-                    nodes.end());
-
-        // 3. Rebuild mapping structures efficiently
-        nodeByCpu.clear();
-        maxCpuId = 0;
-
-        for (NumaIndex numaId = 0; numaId < nodes_size(); ++numaId)
-            for (const CpuIndex cpuId : nodes[numaId])
-                add_numa_node_cpu(numaId, cpuId);
-    }
-
-    void init_node_cpus(const usize expectedCpuCount, const float maxLoadFactor = 0.75f) noexcept {
-
-        nodeByCpu.max_load_factor(max_load_factor(maxLoadFactor));
-        nodeByCpu.reserve(reserve_count(expectedCpuCount));
-    }
+    void init_node_cpus(usize expectedCpuCount, float maxLoadFactor = 0.75f) noexcept;
 
     std::vector<CpuIndexSet>                nodes;
     std::unordered_map<CpuIndex, NumaIndex> nodeByCpu;

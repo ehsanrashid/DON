@@ -17,6 +17,9 @@
 
 #include "numa.h"
 
+#include <cstdlib>
+#include <iostream>
+
 namespace DON {
 
 CpuIndex hardware_concurrency() noexcept {
@@ -100,7 +103,7 @@ std::optional<NumaConfig> NumaConfig::from_string(const std::string_view str) no
         if (cpuIds.empty())
             continue;
 
-        for (CpuIndex cpuId : cpuIds)
+        for (const CpuIndex cpuId : cpuIds)
             if (!numaCfg.add_cpu_to_node(numaId, cpuId))
             {
                 std::cerr << "NumaConfig parse error in segment '" << cpuIdsStr  //
@@ -225,7 +228,7 @@ std::string NumaConfig::to_string() const noexcept {
     return numaCfg;
 }
 
-bool NumaConfig::suggests_binding_threads(const usize threadCount) const noexcept {
+bool NumaConfig::suggests_binding_threads(const u16 threadCount) const noexcept {
     // If can reasonably determine that the threads can't be contained
     // by the OS within the first NUMA node then advise distributing
     // and binding threads. When the threads are not bound can only use
@@ -506,6 +509,74 @@ void NumaConfig::add_numa_node_cpu(const NumaIndex numaId, const CpuIndex cpuId)
     nodeByCpu[cpuId] = numaId;
     // track max CPU ID
     maxCpuId = std::max(cpuId, maxCpuId);
+}
+
+void NumaConfig::add_numa_node(const NumaIndex numaId, const CpuIndex cpuId) noexcept {
+    nodes[numaId].insert(cpuId);
+    add_numa_node_cpu(numaId, cpuId);
+}
+
+bool NumaConfig::add_cpu_to_node(const NumaIndex numaId, const CpuIndex cpuId) noexcept {
+
+    if (is_cpu_assigned(cpuId))
+        return false;
+
+    resize_numa_node(numaId);
+
+    add_numa_node(numaId, cpuId);
+
+    return true;
+}
+
+bool NumaConfig::add_cpu_range_to_node(const NumaIndex numaId,
+                                       const CpuIndex  begCpuId,
+                                       const CpuIndex  endCpuId) noexcept {
+
+    for (auto cpuId = begCpuId; cpuId <= endCpuId; ++cpuId)
+        if (is_cpu_assigned(cpuId))
+            return false;
+
+    resize_numa_node(numaId);
+
+    for (auto cpuId = begCpuId; cpuId <= endCpuId; ++cpuId)
+        add_numa_node(numaId, cpuId);
+
+    return true;
+}
+
+void NumaConfig::remove_empty_numa_nodes() noexcept {
+
+    bool hasEmpty = false;
+
+    for (const CpuIndexSet& node : nodes)
+        if (node.empty())
+        {
+            hasEmpty = true;
+            break;
+        }
+
+    // 1. Nothing removed -> skip everything
+    if (!hasEmpty)
+        return;
+
+    // 2. Remove empty nodes
+    nodes.erase(std::remove_if(nodes.begin(), nodes.end(),
+                               [](const CpuIndexSet& node) noexcept { return node.empty(); }),
+                nodes.end());
+
+    // 3. Rebuild mapping structures efficiently
+    nodeByCpu.clear();
+    maxCpuId = 0;
+
+    for (NumaIndex numaId = 0; numaId < nodes_size(); ++numaId)
+        for (const CpuIndex cpuId : nodes[numaId])
+            add_numa_node_cpu(numaId, cpuId);
+}
+
+void NumaConfig::init_node_cpus(const usize expectedCpuCount, const float maxLoadFactor) noexcept {
+
+    nodeByCpu.max_load_factor(max_load_factor(maxLoadFactor));
+    nodeByCpu.reserve(reserve_count(expectedCpuCount));
 }
 
 
