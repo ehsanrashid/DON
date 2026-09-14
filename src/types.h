@@ -482,27 +482,29 @@ constexpr Value in_range(const i32 value) noexcept {
     return std::clamp(value, VALUE_TB_LOSS_IN_PLY_MAX + 1, VALUE_TB_WIN_IN_PLY_MAX - 1);
 }
 
-constexpr bool is_win(const Value value) noexcept {
-    assert(is_valid(value));
-    return value >= VALUE_TB_WIN_IN_PLY_MAX;
-}
-
 constexpr bool is_loss(const Value value) noexcept {
     assert(is_valid(value));
     return value <= VALUE_TB_LOSS_IN_PLY_MAX;
 }
 
-// Check if the value represents a decisive outcome (win or loss)
-constexpr bool is_decisive(const Value value) noexcept { return is_loss(value) || is_win(value); }
-
-constexpr bool is_mate_win(const Value value) noexcept {
+constexpr bool is_win(const Value value) noexcept {
     assert(is_valid(value));
-    return value >= VALUE_MATE_WIN_IN_PLY_MAX;
+    return value >= VALUE_TB_WIN_IN_PLY_MAX;
+}
+
+// Check if the value represents a decisive outcome (win or loss)
+constexpr bool is_decisive(const Value value) noexcept {  //
+    return is_loss(value) || is_win(value);
 }
 
 constexpr bool is_mate_loss(const Value value) noexcept {
     assert(is_valid(value));
     return value <= VALUE_MATE_LOSS_IN_PLY_MAX;
+}
+
+constexpr bool is_mate_win(const Value value) noexcept {
+    assert(is_valid(value));
+    return value >= VALUE_MATE_WIN_IN_PLY_MAX;
 }
 
 // Check if the value represents a mate score (win or loss)

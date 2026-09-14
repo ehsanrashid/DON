@@ -28,7 +28,7 @@ namespace DON {
 // The default net name must follow the format nn-[SHA256 first 12 digits].nnue
 // for the build process (profile-build) to work.
 // It is also used in the Makefile.
-#define EvalFileDefaultName "nn-ab28990d4ea3.nnue"
+#define EvalFileDefaultName "nn-1a298aa575a0.nnue"
 
 class Position;
 

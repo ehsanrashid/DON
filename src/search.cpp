@@ -1513,6 +1513,9 @@ Value Worker::search(Position&    pos,
         // Decrease/Increase reduction for moves with a good/bad history
         r -= constexpr_round(ss->history * 439.0 / 4096.0);
 
+        if (!capture && !is_decisive(alpha))
+            r += 3 * std::clamp(alpha - ttEvalue, -64, +96);
+
         // Scale up reduction for AllNode
         if constexpr (AllNode)
         {
