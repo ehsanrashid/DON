@@ -231,7 +231,8 @@ Worker::Worker(const ThreadContext&      threadCxt,
 void Worker::reset() noexcept {
     assert(thread_count() == threads.size());
 
-    // Each thread resets its NUMA-local range of history entries to prevent false sharing
+    // Each thread resets its NUMA-local range of the dynamically-sized atomic histories.
+    // The constant-size continuation history is initialized by thread 0 of each NUMA node.
 
     auto pawnHistoryRange =
       split_range(numa_id(), numa_thread_count(), atomicHistories.pawn_history_size());
@@ -247,15 +248,15 @@ void Worker::reset() noexcept {
                                                     correctionHistoryRange.end, -5);
     atomicHistories.non_pawn_correction_history().fill(correctionHistoryRange.beg,
                                                        correctionHistoryRange.end, -5);
+    if (numa_id() == 0)
+        for (bool inCheck : {false, true})
+            for (bool capture : {false, true})
+                for (auto& toPieceSqHist : atomicHistories.continuation_history()[inCheck][capture])
+                    for (auto& pieceSqHist : toPieceSqHist)
+                        pieceSqHist.fill(-586);
 
     captureHistory.fill(-742);
     quietHistory.fill(-5);
-
-    for (bool inCheck : {false, true})
-        for (bool capture : {false, true})
-            for (auto& toPieceSqHist : atomicHistories.continuation_history()[inCheck][capture])
-                for (auto& pieceSqHist : toPieceSqHist)
-                    pieceSqHist.fill(-586);
 
     for (auto& toPieceSqCorrHist : continuationCorrectionHistory)
         for (auto& pieceSqCorrHist : toPieceSqCorrHist)
@@ -497,9 +498,9 @@ void Worker::iterative_deepening() noexcept {
 
     Value bestValue = -VALUE_INFINITE;
 
-    Depth   lastBestMoveDepth = DEPTH_ZERO;
-    Value   lastBestMoveValue = -VALUE_INFINITE;
-    PVMoves lastBestMovePV;
+    Depth       lastBestMoveDepth = DEPTH_ZERO;
+    Value       lastBestMoveValue = -VALUE_INFINITE;
+    RootPVMoves lastBestMovePV;
 
     u16 researchCnt = 0;
 
@@ -2270,7 +2271,7 @@ int Worker::correction_value(const Position& pos, const Stack* const ss) const n
     const Color ac = pos.active_color();
 
     i64 correctionValue =
-           + i64{7669} * (atomicHistories.    pawn_correction_entry<WHITE>(pos)[ac]
+           + i64{7670} * (atomicHistories.    pawn_correction_entry<WHITE>(pos)[ac]
                         + atomicHistories.    pawn_correction_entry<BLACK>(pos)[ac])
            + i64{5284} * (atomicHistories.   minor_correction_entry<WHITE>(pos)[ac]
                         + atomicHistories.   minor_correction_entry<BLACK>(pos)[ac])
@@ -2408,7 +2409,7 @@ void Worker::extend_tb_pv(const usize idx, Value& value) noexcept {
     // If time manager is active, don't use more than 50% of OverheadTime time
     const auto startTime = SteadyClock::now();
 
-    auto time_to_abort = [&]() noexcept -> bool {
+    const auto time_to_abort = [&]() noexcept -> bool {
         const auto endTime = SteadyClock::now();
         return limit.use_time_manager()
             && (options["NodesTime"] != 0

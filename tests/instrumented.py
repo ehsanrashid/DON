@@ -450,6 +450,12 @@ class TestSyzygy(metaclass=OrderedClassMembers):
         self.engine.check_output(callback)
         self.engine.expect("bestmove *")
 
+    def test_syzygy_position_fen_4_go_depth_1(self):
+        self.engine.send_command("ucinewgame")
+        self.engine.send_command("position fen 8/8/7B/3B3P/7k/8/5K2/3r4 w - - 0 1")
+        self.engine.send_command("go depth 1")
+        self.engine.expect("bestmove *")
+
 class TestEnPassantSanitization(metaclass=OrderedClassMembers):
     def beforeAll(self):
         self.engine = DON()

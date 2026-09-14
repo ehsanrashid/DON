@@ -540,12 +540,12 @@ void Threads::start(Position&      pos,
     for (usize i = 0; i < rootMoves.size(); ++i)
         rootMoves[i].id = static_cast<u16>(i);
 
-    auto& clock = limit.clocks[pos.active_color()];
+    const auto& clock = limit.clocks[pos.active_color()];
 
     // If time manager is active, don't use more than 5% of clock time
     const auto startTime = SteadyClock::now();
 
-    auto time_to_abort = [&]() noexcept -> bool {
+    const auto time_to_abort = [&limit, &options, &clock, &startTime]() noexcept -> bool {
         const auto endTime = SteadyClock::now();
         return limit.use_time_manager()
             && (options["NodesTime"] != 0
