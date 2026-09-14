@@ -54,12 +54,6 @@ void TimeManager::reset() noexcept {
     timeNodes = TIME_NODES_INIT;
 }
 
-// Called at the beginning of the search and calculates
-// the bounds of time allowed for the current game ply.
-// Currently support:
-//      1) x base-time (sudden death)
-//      2) x base-time (+ z increment)
-//      3) x moves in y time (+ z increment)
 void TimeManager::init(
   Color ac, i16 ply, i32 moveNum, const Options& options, Limit& limit) noexcept {
     // If have no time, no need to fully initialize TM.
@@ -178,7 +172,6 @@ void TimeManager::init(
         optimumTime = TimePoint(std::min(1.2500 * optimumTime, TimeMaxValue));
 }
 
-// When in 'Nodes as Time' mode
 void TimeManager::advance_time_nodes(i64 nodes) noexcept {
     assert(use_nodes_time());
 

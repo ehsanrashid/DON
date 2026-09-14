@@ -235,7 +235,6 @@ ALWAYS_INLINE void append_pawn_active_indices(Bitboard                attacksBB,
 
 }  // namespace
 
-// Append list of indices for active features in ascending order
 void FullThreats::append_active_indices(const Color     perspective,
                                         const Position& pos,
                                         IndexList&      active) noexcept {
@@ -296,7 +295,6 @@ void FullThreats::append_active_indices(const Color     perspective,
     }
 }
 
-// Append lists of indices for recently changed features
 void FullThreats::append_changed_indices(const Color               perspective,
                                          const Square              kingSq,
                                          const DirtyType&          dTs,

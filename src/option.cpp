@@ -67,9 +67,6 @@ Option::operator std::string_view() const noexcept {
     return currentValue;
 }
 
-// Updates currentValue and triggers onChange() action.
-// It's up to the GUI to check for option's limit,
-// but could receive the new value from the user, so let's check the bounds anyway.
 void Option::operator=(std::string value) noexcept {
     assert(is_ok(type));
 
@@ -158,10 +155,6 @@ auto Options::find(const std::string_view name) noexcept { return indexMap.find(
 
 auto Options::find(const std::string_view name) const noexcept { return indexMap.find(name); }
 
-// Adds an option with the specified name to the Options.
-//
-// Options are stored in insertion order and indexed by name.
-// Returns false if an option with the specified name already exists.
 bool Options::add(const std::string_view name, const Option& option) noexcept {
     // Already a member.
     if (contains(name))
@@ -194,9 +187,6 @@ bool Options::add(const std::string_view name, const Option& option) noexcept {
     return true;
 }
 
-// Removes the option with the specified name from the Options.
-//
-// Returns false if no option with the specified name exists.
 bool Options::remove(const std::string_view name) noexcept {
     const auto setItr = set.find(name);
 

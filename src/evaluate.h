@@ -40,12 +40,19 @@ struct AccumulatorStack;
 
 namespace Evaluate {
 
+// Evaluate is the evaluator for the outer world.
+// It returns a static evaluation of the position
+// from the point of view of the side to move.
 Value evaluate(const Position&         pos,
                const NNUE::Network&    network,
                NNUE::AccumulatorCache& accCache,
                NNUE::AccumulatorStack& accStack,
                i32                     optimism = 0) noexcept;
 
+// Like evaluate(), but instead of returning a value,
+// it returns a string (suitable for outputting to stdout)
+// that contains the detailed descriptions and values of each evaluation term.
+// Trace scores are from white's point of view.
 std::string trace(Position& pos, const NNUE::Network& network) noexcept;
 
 }  // namespace Evaluate

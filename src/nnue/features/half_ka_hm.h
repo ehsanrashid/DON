@@ -89,6 +89,7 @@ class HalfKAHm final {
     // clang-format on
 #undef B
 
+    // Append lists of indices for recently changed features from the piece map
     static void append_map_changed_indices(Color           perspective,
                                            Square          kingSq,
                                            const PieceMap& oldPieceMap,
@@ -97,7 +98,7 @@ class HalfKAHm final {
                                            Bitboard        addedBB,
                                            IndexList&      removed,
                                            IndexList&      added) noexcept;
-
+    // Append lists of indices for recently changed features
     static void append_changed_indices(Color            perspective,
                                        Square           kingSq,
                                        const DirtyType& dP,
@@ -109,7 +110,7 @@ class HalfKAHm final {
                                             const DirtyType&            dP,
                                             Array<IndexList, COLOR_NB>& removed,
                                             Array<IndexList, COLOR_NB>& added) noexcept;
-
+    // Determine if a full refresh is required based on the dirty piece
     static bool refresh_required(Color perspective, const DirtyType& dP) noexcept;
 
    private:

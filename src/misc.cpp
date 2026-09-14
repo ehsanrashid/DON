@@ -50,7 +50,6 @@ void set_console_utf8() noexcept {
 #endif
 }
 
-// Format date "Mon DD YYYY" -> YYYYMMDD
 std::string format_date(const std::string_view date) noexcept {
     constexpr std::string_view NullDate{"00000000"};
 
@@ -128,7 +127,6 @@ std::string format_date(const std::string_view date) noexcept {
     return std::string{buffer.data(), buffer.size()};
 }
 
-// Format time HH:MM:SS -> HHMMSS
 std::string format_time(const std::string_view time) noexcept {
     constexpr std::string_view NullTime{"000000"};
 
@@ -263,19 +261,6 @@ std::string engine_logo() noexcept {
     return logo;
 }
 
-// Returns the full human-readable DON version string.
-//
-// Development builds:
-//   • If Git metadata is available, append commit information:
-//       DON dev-YYYYMMDD-SHA
-//
-//   • If Git metadata is unavailable (e.g. local/source builds),
-//     fall back to a timestamp-based identifier:
-//       DON dev-YYYYMMDD-HHMMSS
-//
-// Release builds:
-//   • Only include the semantic version number:
-//       DON X.Y (version)
 std::string version_info() noexcept {
     std::string version;
     version.reserve(32);
@@ -305,7 +290,6 @@ std::string version_info() noexcept {
     return version;
 }
 
-// Returns a string trying to describe the compiler used
 std::string compiler_info() noexcept {
     // Predefined macros hell:
     //
@@ -505,28 +489,6 @@ bool CaseInsensitiveLess::operator()(const std::string_view sv1,
       [](const char ch1, const char ch2) noexcept { return lower_case(ch1) < lower_case(ch2); });
 }
 
-// OstreamMutexRegistry
-//
-// Provides a thread-safe registry that associates a unique mutex with each
-// std::ostream pointer.
-//
-// The registry allows multiple threads to synchronize access to the same
-// ostream without unnecessarily locking unrelated ostreams.
-//
-// Key Features:
-//  - Thread-safe: registry access is protected by a mutex.
-//  - Per-ostream mutex: each ostream has its own mutex to minimize contention.
-//  - Lazy initialization: mutexes are created when first requested.
-//  - Null-safe: nullptr is treated as a valid key and maps to a shared mutex.
-//
-// Usage:
-//  - Call 'get(&std::cout)' to obtain the mutex before writing to std::cout
-//    from multiple threads.
-//  - Lock the returned mutex with std::scoped_lock or std::unique_lock.
-//
-// Notes:
-//  - The registry does not own the std::ostream objects.
-//  - Mutexes remain in the registry for the lifetime of the process.
 namespace OstreamMutexRegistry {
 
 namespace {
@@ -539,9 +501,6 @@ OstreamMutexMap MutexMap;
 
 }  // namespace
 
-// Returns the mutex associated with the given ostream pointer.
-//
-// A nullptr pointer is treated as a valid key and maps to a shared mutex.
 std::mutex& get(std::ostream* const osPtr) noexcept {
     std::lock_guard writeLock(Mutex);
 
@@ -588,7 +547,6 @@ SyncOstream&& SyncOstream::operator<<(OstreamManip manip) && {
 
 SyncOstream sync_os(std::ostream& os) noexcept { return SyncOstream(os); }
 
-// Factory method that creates a FixedText from the specified string view
 FixedText FixedText::from(const std::string_view sv) noexcept { return FixedText{}.write(sv); }
 
 FixedText& FixedText::write(const char ch) noexcept {
@@ -654,7 +612,6 @@ CommandLine::CommandLine(int argc, const char* argv[]) noexcept {
 #endif
 }
 
-// Returns the directory containing the executable, or "." if the directory is empty.
 std::filesystem::path CommandLine::binary_directory(std::filesystem::path path) noexcept {
 #if defined(_WIN32)
     // Prefer the executable path reported by Windows.
@@ -671,7 +628,6 @@ std::filesystem::path CommandLine::binary_directory(std::filesystem::path path) 
     return binaryDirectory.empty() ? std::filesystem::path(".") : binaryDirectory;
 }
 
-// Returns the process's current working directory.
 std::filesystem::path CommandLine::working_directory() noexcept {
     return std::filesystem::current_path();
 }
@@ -705,7 +661,6 @@ TieBuf::TieBuf(std::streambuf* const pBf, std::streambuf* const mBf) noexcept :
     pBuf(pBf),
     mBuf(mBf) {}
 
-// Synchronizes both the primary and mirror buffers.
 int TieBuf::sync() {
     const int pR = pBuf != nullptr ? pBuf->pubsync() : 0;
     const int mR = mBuf != nullptr ? mBuf->pubsync() : 0;
@@ -713,7 +668,6 @@ int TieBuf::sync() {
     return pR == 0 && mR == 0 ? 0 : -1;
 }
 
-// Reads the next character from the primary buffer without consuming it.
 TieBuf::int_type TieBuf::underflow() {
     if (pBuf == nullptr)
         return traits_type::eof();
@@ -721,7 +675,6 @@ TieBuf::int_type TieBuf::underflow() {
     return pBuf->sgetc();
 }
 
-// Writes one character to the primary buffer and mirrors it with an output prefix.
 TieBuf::int_type TieBuf::overflow(const int_type ch) {
     if (pBuf == nullptr)
         return traits_type::eof();
@@ -737,7 +690,6 @@ TieBuf::int_type TieBuf::overflow(const int_type ch) {
     return mirror_put_with_prefix(putCh, "<< ", opreCh);
 }
 
-// Reads and consumes one character from the primary buffer, then mirrors it with an input prefix.
 TieBuf::int_type TieBuf::uflow() {
     if (pBuf == nullptr)
         return traits_type::eof();
@@ -750,7 +702,6 @@ TieBuf::int_type TieBuf::uflow() {
     return mirror_put_with_prefix(ch, ">> ", ipreCh);
 }
 
-// Writes a block to the primary buffer and mirrors the written characters with an output prefix.
 std::streamsize TieBuf::xsputn(const char_type* const s, const std::streamsize count) {
     if (pBuf == nullptr)
         return 0;
@@ -777,7 +728,6 @@ std::streambuf* TieBuf::pbuf() const noexcept { return pBuf; }
 
 std::streambuf* TieBuf::mbuf() const noexcept { return mBuf; }
 
-// Mirrors a character to the secondary buffer, adding a prefix at the start of each line.
 TieBuf::int_type TieBuf::mirror_put_with_prefix(const int_type         ch,
                                                 const std::string_view prefix,
                                                 char_type&             preCh) noexcept {
@@ -795,22 +745,18 @@ TieBuf::int_type TieBuf::mirror_put_with_prefix(const int_type         ch,
                                                            : traits_type::not_eof(ch);
 }
 
-// Starts logging to the specified file.
-// Returns true on success and false if the log file cannot be opened.
 bool Logger::start(const std::filesystem::path& logFile) noexcept {
     std::lock_guard writeLock(instance().mutex);
 
     return instance().open(logFile);
 }
 
-// Stops logging, restores the original streams, and closes the log file.
 void Logger::stop() noexcept {
     std::lock_guard writeLock(instance().mutex);
 
     instance().close();
 }
 
-// Initializes the logger with the streams to be redirected and mirrored.
 Logger::Logger(std::istream& isRef, std::ostream& osRef) noexcept :
     is(isRef),
     os(osRef),
@@ -819,18 +765,14 @@ Logger::Logger(std::istream& isRef, std::ostream& osRef) noexcept :
     itieBuf(is.rdbuf(), ofs.rdbuf()),
     otieBuf(os.rdbuf(), ofs.rdbuf()) {}
 
-// Stops logging and restores the original streams.
 Logger::~Logger() noexcept { close(); }
 
-// Returns the single shared Logger instance.
 Logger& Logger::instance() noexcept {
     static Logger logger(std::cin, std::cout);
 
     return logger;
 }
 
-// Opens the specified log file and redirects the streams through TieBuf.
-// Caller must hold 'mutex'.
 bool Logger::open(const std::filesystem::path& logFile) noexcept {
     if (filename == logFile.string() && is_open())
         return true;  // Already open
@@ -858,8 +800,6 @@ bool Logger::open(const std::filesystem::path& logFile) noexcept {
     return true;
 }
 
-// Restores the original streams and closes the log file.
-// Caller must hold 'mutex'.
 void Logger::close() noexcept {
     if (!is_open())
         return;
@@ -874,10 +814,8 @@ void Logger::close() noexcept {
     filename.clear();
 }
 
-// Returns true if the log file is open.
 bool Logger::is_open() const noexcept { return ofs.is_open(); }
 
-// Writes a timestamped marker to the log file.
 void Logger::write_timestamp(std::string_view suffix) noexcept {
     if (!ofs)
         return;
@@ -887,7 +825,6 @@ void Logger::write_timestamp(std::string_view suffix) noexcept {
 
 
 #if !defined(NDEBUG)
-// Debug functions used mainly to collect run-time statistics
 namespace Debug {
 namespace {
 
@@ -1178,7 +1115,6 @@ void print() noexcept {
 
 #if defined(_WIN32)
 
-// Get the error message string, if any
 std::string error_to_string(DWORD errorId) noexcept {
     if (errorId == 0)
         return {};
@@ -1253,9 +1189,6 @@ void MMapGuard::dismiss() noexcept { mappedPtr = MMAP_PTR_INVALID; }
     #if defined(_WIN64)
 Advapi::~Advapi() noexcept { free(); }
 
-// The needed Windows API for processor groups could be missed from old Windows versions,
-// so instead of calling them directly (forcing the linker to resolve the calls at compile time),
-// try to load them at runtime.
 bool Advapi::load() noexcept {
 
     hModule = GetModuleHandle(ModuleName);
@@ -1490,8 +1423,6 @@ std::optional<usize> str_to_usize(const std::string_view sv) noexcept {
     return static_cast<usize>(value);
 }
 
-// Reads the file as bytes.
-// Returns std::nullopt if the file does not exist.
 std::optional<std::string> read_file_to_string(const std::filesystem::path& filePath) noexcept {
 
     std::ifstream ifs{filePath, std::ios::binary | std::ios::ate};

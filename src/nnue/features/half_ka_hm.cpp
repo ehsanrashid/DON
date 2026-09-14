@@ -45,7 +45,6 @@ make_index(const Color perspective, const Square kingSq, const Square s, const P
 
 }  // namespace
 
-// Append lists of indices for recently changed features from the piece map
 void HalfKAHm::append_map_changed_indices(const Color     perspective,
                                           const Square    kingSq,
                                           const PieceMap& oldPieceMap,
@@ -105,7 +104,6 @@ void HalfKAHm::append_map_changed_indices(const Color     perspective,
 #endif
 }
 
-// Append lists of indices for recently changed features
 void HalfKAHm::append_changed_indices(const Color      perspective,
                                       const Square     kingSq,
                                       const DirtyType& dP,
@@ -128,7 +126,6 @@ void HalfKAHm::append_changed_indices_both(const Square                wKingSq,
     append_changed_indices(BLACK, bKingSq, dP, removed[BLACK], added[BLACK]);
 }
 
-// Determine if a full refresh is required based on the dirty piece
 bool HalfKAHm::refresh_required(const Color perspective, const DirtyType& dP) noexcept {
     return dP.movedPc == make_piece(perspective, KING);
 }

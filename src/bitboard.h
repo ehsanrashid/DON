@@ -397,8 +397,11 @@ inline Square pop_msq(Bitboard& b) noexcept {
     return s;
 }
 
+// Returns an ASCII representation of bitboard suitable
+// to be printed to standard output. Useful for debugging.
 std::string pretty_str(Bitboard b) noexcept;
 
+// Returns string_view from cache
 std::string_view pretty(Bitboard b) noexcept;
 
 }  // namespace DON

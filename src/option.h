@@ -81,6 +81,9 @@ class Option final {
     operator int() const noexcept;
     operator std::string_view() const noexcept;
 
+    // Updates currentValue and triggers onChange() action.
+    // It's up to the GUI to check for option's limit,
+    // but could receive the new value from the user, so let's check the bounds anyway.
     void operator=(std::string value) noexcept;
 
     friend std::ostream& operator<<(std::ostream& os, const Option& option) noexcept;
@@ -138,7 +141,15 @@ class Options final {
     auto find(std::string_view name) noexcept;
     auto find(std::string_view name) const noexcept;
 
+    // Adds an option with the specified name to the Options.
+    //
+    // Options are stored in insertion order and indexed by name.
+    // Returns false if an option with the specified name already exists.
     bool add(std::string_view name, const Option& option) noexcept;
+
+    // Removes the option with the specified name from the Options.
+    //
+    // Returns false if no option with the specified name exists.
     bool remove(std::string_view name) noexcept;
 
     void setoption(std::string_view name, std::string_view value) noexcept;

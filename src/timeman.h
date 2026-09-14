@@ -50,8 +50,15 @@ class TimeManager final {
 
     void reset() noexcept;
 
+    // Called at the beginning of the search and calculates
+    // the bounds of time allowed for the current game ply.
+    // Currently support:
+    //      1) x base-time (sudden death)
+    //      2) x base-time (+ z increment)
+    //      3) x moves in y time (+ z increment)
     void init(Color ac, i16 ply, i32 moveNum, const Options& options, Limit& limit) noexcept;
 
+    // Advance nodes when in 'Nodes as Time' mode
     void advance_time_nodes(i64 nodes) noexcept;
 
     static constexpr TimePoint TimeMax = std::numeric_limits<TimePoint>::max();
