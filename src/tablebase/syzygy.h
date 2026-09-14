@@ -104,13 +104,58 @@ struct Config final {
 
 inline u8 MaxCardinality;
 
+// Called at startup to create the various tables
 void init() noexcept;
+
+// Called after every change to "SyzygyPath" UCI option
+// to (re)create the various tables.
+// It is not thread safe, nor it needs to be.
 void init(std::string_view paths) noexcept;
 
+// Probe the WDL table for a particular position.
+// If *ps != FAIL, the probe was successful.
+// The return WDL-score is from the point of view of the side to move:
+// -2 : loss
+// -1 : loss, but draw under 50-move rule
+//  0 : draw
+//  1 : win, but draw under 50-move rule
+//  2 : win
 WDLScore probe_wdl(Position& pos, ProbeState* ps) noexcept;
-int      probe_dtz(Position& pos, ProbeState* ps) noexcept;
 
+// Probe the DTZ table for a particular position.
+// If *ps != FAIL, the probe was successful.
+// The return WDL-score is from the point of view of the side to move:
+//         n < -100 : loss, but draw under 50-move rule
+// -100 <= n < -1   : loss in n ply (assuming 50-move counter == 0)
+//        -1        : loss, the side to move is mated
+//         0        : draw
+//     1 < n <= 100 : win in n ply (assuming 50-move counter == 0)
+//   100 < n        : win, but draw under 50-move rule
+//
+// The return WDL-score n can be off by 1:
+//  - return WDL-score -n can mean a loss in n+1 ply and
+//  - return WDL-score +n can mean a win in n+1 ply.
+// This cannot happen for tables with positions exactly
+// on the "edge" of the 50-move rule.
+//
+// This implies that if DTZ-score > 0 is returned,
+// the position is certainly a win if DTZ-score + 50-move-counter < 100.
+// Care must be taken that the engine picks moves that preserve DTZ-score + 50-move-counter < 100.
+//
+// If n = 100 immediately after a capture or pawn move,
+// then the position is also certainly a win, and during the whole phase until the next
+// capture or pawn move, the inequality to be preserved is DTZ-score + 50-move-counter <= 100.
+int probe_dtz(Position& pos, ProbeState* ps) noexcept;
+
+// Use the WDL-tables to rank root moves.
+// This is a fallback for the case that some or all DTZ-tables are missing.
+//
+// A return value false indicates that not all probes were successful.
 bool rank_root_moves_wdl(Position& pos, RootMoves& rootMoves, bool useRule50) noexcept;
+
+// Use the DTZ-tables to rank root moves.
+//
+// A return value false indicates that not all probes were successful.
 bool rank_root_moves_dtz(
   Position&  pos,
   RootMoves& rootMoves,

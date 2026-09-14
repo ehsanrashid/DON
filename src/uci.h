@@ -36,7 +36,8 @@ class UCI final {
    public:
     UCI(const std::filesystem::path& path = {}) noexcept;
 
-    Options& options() noexcept;
+    Options&       options() noexcept;
+    const Options& options() const noexcept;
 
     void process_input(std::istream& is) noexcept;
 

@@ -21,8 +21,6 @@
 
 namespace DON {
 
-// Returns an ASCII representation of bitboard suitable
-// to be printed to standard output. Useful for debugging.
 std::string pretty_str(const Bitboard b) noexcept {
     constexpr std::string_view Sep{"\n  +---+---+---+---+---+---+---+---+\n"};
 

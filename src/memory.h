@@ -35,16 +35,24 @@ namespace DON {
 inline constexpr u8    HUGE_PAGE_SHIFT = 30;
 inline constexpr usize HUGE_PAGE_SIZE  = usize{1} << HUGE_PAGE_SHIFT;
 
+// Wrapper for systems where the c++17 implementation
+// does not guarantee the availability of aligned_alloc().
+// Memory allocated with alloc_aligned_std() must be freed with free_aligned_std().
 void* alloc_aligned_std(usize allocSize, usize alignment) noexcept;
 
 void free_aligned_std(void* mem) noexcept;
 
-// memory aligned by page size, min alignment: 4096 bytes
+// Allocate aligned memory with large-page support with hint,
+// memory aligned by page size, min alignment: 4096 bytes.
 void* alloc_aligned_large_page_with_hint(usize allocSize, bool hugePageHint = false) noexcept;
+// Allocate aligned memory with large-page support
 void* alloc_aligned_large_page(usize allocSize) noexcept;
 
+// Free aligned large page
+// The effect is a nop if mem == nullptr
 bool free_aligned_large_page(void* mem) noexcept;
 
+// Check large page support
 bool has_large_page() noexcept;
 
 // Frees memory which was placed there with placement new.

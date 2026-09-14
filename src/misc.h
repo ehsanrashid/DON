@@ -466,8 +466,9 @@ inline constexpr const char* BG_WHITE   = "\033[47m";
 
 void set_console_utf8() noexcept;
 
+// Format date "Mon DD YYYY" -> YYYYMMDD
 std::string format_date(std::string_view date) noexcept;
-
+// Format time HH:MM:SS -> HHMMSS
 std::string format_time(std::string_view time) noexcept;
 
 std::string build_date() noexcept;
@@ -480,8 +481,22 @@ std::string engine_info(bool uci = false) noexcept;
 
 std::string engine_logo() noexcept;
 
+// Returns the full human-readable DON version string.
+//
+// Development builds:
+//   • If Git metadata is available, append commit information:
+//       DON dev-YYYYMMDD-SHA
+//
+//   • If Git metadata is unavailable (e.g. local/source builds),
+//     fall back to a timestamp-based identifier:
+//       DON dev-YYYYMMDD-HHMMSS
+//
+// Release builds:
+//   • Only include the semantic version number:
+//       DON X.Y (version)
 std::string version_info() noexcept;
 
+// Returns a string trying to describe the compiler used
 std::string compiler_info() noexcept;
 
 using SteadyClock = std::chrono::steady_clock;
@@ -574,6 +589,19 @@ template<PrefetchAccess Access = PrefetchAccess::READ, PrefetchLoc Loc = Prefetc
 inline void prefetch(const void*) noexcept {}
 #endif
 
+// Define a custom case-insensitive hash
+struct CaseInsensitiveHash final {
+    usize operator()(std::string_view sv) const noexcept;
+};
+// Define a custom case-insensitive equality
+struct CaseInsensitiveEqual final {
+    bool operator()(std::string_view sv1, std::string_view sv2) const noexcept;
+};
+// Define a custom case-insensitive less
+struct CaseInsensitiveLess final {
+    bool operator()(std::string_view sv1, std::string_view sv2) const noexcept;
+};
+
 // Wrapper around std::call_once that also tracks whether initialization completed.
 struct CallOnce final {
    public:
@@ -605,10 +633,35 @@ struct CallOnce final {
     std::atomic<bool> onceInit{false};
 };
 
+// OstreamMutexRegistry
+//
+// Provides a thread-safe registry that associates a unique mutex with each
+// std::ostream pointer.
+//
+// The registry allows multiple threads to synchronize access to the same
+// ostream without unnecessarily locking unrelated ostreams.
+//
+// Key Features:
+//  - Thread-safe: registry access is protected by a mutex.
+//  - Per-ostream mutex: each ostream has its own mutex to minimize contention.
+//  - Lazy initialization: mutexes are created when first requested.
+//  - Null-safe: nullptr is treated as a valid key and maps to a shared mutex.
+//
+// Usage:
+//  - Call 'get(&std::cout)' to obtain the mutex before writing to std::cout
+//    from multiple threads.
+//  - Lock the returned mutex with std::scoped_lock or std::unique_lock.
+//
+// Notes:
+//  - The registry does not own the std::ostream objects.
+//  - Mutexes remain in the registry for the lifetime of the process.
 namespace OstreamMutexRegistry {
 
 using OstreamMutexMap = std::unordered_map<std::ostream*, std::mutex>;
 
+// Returns the mutex associated with the given ostream pointer.
+//
+// A nullptr pointer is treated as a valid key and maps to a shared mutex.
 std::mutex& get(std::ostream* osPtr) noexcept;
 
 }  // namespace OstreamMutexRegistry
@@ -1007,6 +1060,7 @@ class FixedVector final {
 
 struct FixedText final {
    public:
+    // Factory method that creates a FixedText from the specified string view
     static FixedText from(const std::string_view sv) noexcept;
 
     FixedText& write(char ch) noexcept;
@@ -1053,7 +1107,9 @@ struct CommandLine final {
     CommandLine(CommandLine&&)                 = default;
     CommandLine& operator=(CommandLine&&)      = default;
 
+    // Returns the directory containing the executable, or "." if the directory is empty.
     static std::filesystem::path binary_directory(std::filesystem::path path) noexcept;
+    // Returns the process's current working directory.
     static std::filesystem::path working_directory() noexcept;
 
     [[nodiscard]] const StringViews& arguments() const noexcept;
@@ -1338,7 +1394,7 @@ inline u64 hash_bytes(const char* RESTRICT data, usize size, u64 seed = 0) noexc
     const auto* const RESTRICT block32End = beg + (size & ~(BLOCK_32 - 1));
     for (; p < block32End; p += BLOCK_32)
     {
-        u64 k0 = 0, k1 = 0, k2 = 0, k3 = 0;
+        u64 k0, k1, k2, k3;
         // Unaligned loads are safe via memcpy and typically optimized by the compiler
         std::memcpy(&k0, p + 0 * BLOCK_8, BLOCK_8);
         std::memcpy(&k1, p + 1 * BLOCK_8, BLOCK_8);
@@ -1364,7 +1420,7 @@ inline u64 hash_bytes(const char* RESTRICT data, usize size, u64 seed = 0) noexc
     const auto* const RESTRICT block16End = p + ((end - p) & ~(BLOCK_16 - 1));
     for (; p < block16End; p += BLOCK_16)
     {
-        u64 k0 = 0, k1 = 0;
+        u64 k0, k1;
         // Unaligned loads are safe via memcpy and typically optimized by the compiler
         std::memcpy(&k0, p + 0 * BLOCK_8, BLOCK_8);
         std::memcpy(&k1, p + 1 * BLOCK_8, BLOCK_8);
@@ -1382,13 +1438,13 @@ inline u64 hash_bytes(const char* RESTRICT data, usize size, u64 seed = 0) noexc
     const auto* const RESTRICT block8End = p + ((end - p) & ~(BLOCK_8 - 1));
     for (; p < block8End; p += BLOCK_8)
     {
-        u64 k = 0;
+        u64 k0;
         // Safe unaligned load
-        std::memcpy(&k, p, BLOCK_8);
+        std::memcpy(&k0, p, BLOCK_8);
 
-        k = mix(k);
+        k0 = mix(k0);
         // Merge block into the running hash
-        h ^= k;
+        h ^= k0;
         h *= MurmurM;
     }
     // Handle remaining tail bytes (< 8) at the end
@@ -1398,7 +1454,7 @@ inline u64 hash_bytes(const char* RESTRICT data, usize size, u64 seed = 0) noexc
 
         u8 shift = 0;
         // Read remaining bytes in little-endian order
-        for (; p < end; ++p)
+        for (; p != end; ++p)
         {
             k |= static_cast<u64>(*p) << shift;
 
@@ -1479,20 +1535,22 @@ class TieBuf final: public std::streambuf {
     TieBuf(std::streambuf* pBf, std::streambuf* mBf) noexcept;
 
    protected:
+    // Synchronizes both the primary and mirror buffers.
     int sync() override;
-
+    // Reads the next character from the primary buffer without consuming it.
     int_type underflow() override;
-
+    // Writes one character to the primary buffer and mirrors it with an output prefix.
     int_type overflow(int_type ch) override;
-
+    // Reads and consumes one character from the primary buffer, then mirrors it with an input prefix.
     int_type uflow() override;
-
+    // Writes a block to the primary buffer and mirrors the written characters with an output prefix.
     std::streamsize xsputn(const char_type* s, std::streamsize count) override;
 
     [[nodiscard]] std::streambuf* pbuf() const noexcept;
     [[nodiscard]] std::streambuf* mbuf() const noexcept;
 
    private:
+    // Mirrors a character to the secondary buffer, adding a prefix at the start of each line.
     int_type
     mirror_put_with_prefix(int_type ch, std::string_view prefix, char_type& preCh) noexcept;
 
@@ -1507,24 +1565,29 @@ class TieBuf final: public std::streambuf {
 // TieBuf objects to mirror I/O to a log file.
 class Logger final {
    public:
+    // Starts logging to the specified file.
+    // Returns true on success and false if the log file cannot be opened.
     static bool start(const std::filesystem::path& logFile) noexcept;
-
+    // Stops logging, restores the original streams, and closes the log file.
     static void stop() noexcept;
 
    private:
     Logger() noexcept = delete;
+    // Initializes the logger with the streams to be redirected and mirrored.
     Logger(std::istream& isRef, std::ostream& osRef) noexcept;
-
+    // Stops logging and restores the original streams.
     ~Logger() noexcept;
-
+    // Returns the single shared Logger instance.
     static Logger& instance() noexcept;
-
+    // Opens the specified log file and redirects the streams through TieBuf.
+    // Caller must hold 'mutex'.
     bool open(const std::filesystem::path& logFile) noexcept;
-
+    // Restores the original streams and closes the log file.
+    // Caller must hold 'mutex'.
     void close() noexcept;
-
+    // Returns true if the log file is open.
     [[nodiscard]] bool is_open() const noexcept;
-
+    // Writes a timestamped marker to the log file.
     void write_timestamp(std::string_view suffix) noexcept;
 
     std::mutex      mutex;
@@ -1537,6 +1600,7 @@ class Logger final {
 };
 
 #if !defined(NDEBUG)
+// Debug functions used mainly to collect run-time statistics
 namespace Debug {
 
 void clear() noexcept;
@@ -1646,7 +1710,9 @@ struct Advapi final {
     static constexpr LPCSTR ModuleName = TEXT("advapi32.dll");
 
     ~Advapi() noexcept;
-
+    // The needed Windows API for processor groups could be missed from old Windows versions,
+    // so instead of calling them directly (forcing the linker to resolve the calls at compile time),
+    // try to load them at runtime.
     bool load() noexcept;
 
     void free() noexcept;
@@ -1993,6 +2059,8 @@ std::filesystem::path path_from_utf8(std::string_view path) noexcept;
 
 std::optional<usize> str_to_usize(std::string_view sv) noexcept;
 
+// Reads the file as bytes.
+// Returns std::nullopt if the file does not exist.
 std::optional<std::string> read_file_to_string(const std::filesystem::path& filePath) noexcept;
 
 }  // namespace DON

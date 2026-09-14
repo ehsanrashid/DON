@@ -31,19 +31,18 @@ namespace DON {
 
 class Options;
 
-using Range    = std::pair<int, int>;  // Option's min-max values
+// Option's minimum and maximum values
+using Range    = std::pair<int, int>;
 using RangeFun = Range (*)(int);
 
 struct RangeSetter final {
    public:
-    explicit RangeSetter(RangeFun f) noexcept :
-        rangeFun(f) {}
-    RangeSetter(int min, int max) noexcept :
-        rangeFun(nullptr),
-        range(min, max) {}
+    explicit RangeSetter(RangeFun f) noexcept;
+    RangeSetter(int min, int max) noexcept;
 
-    Range operator()(int v) const noexcept { return rangeFun != nullptr ? rangeFun(v) : range; }
+    Range operator()(int v) const noexcept;
 
+   private:
     RangeFun rangeFun;
     Range    range;
 };
@@ -92,17 +91,14 @@ class Tune final {
     void read_results() noexcept;
 
     // Singleton
-    static Tune& instance() noexcept {
-        static Tune tune;
-        return tune;
-    }
+    static Tune& instance() noexcept;
 
     // Use polymorphism to accommodate Entry of different types in the same vector
     struct BaseEntry {
        public:
         virtual ~BaseEntry() noexcept = default;
 
-        virtual void init_option() noexcept = 0;
+        virtual void init() noexcept        = 0;
         virtual void read_option() noexcept = 0;
     };
 
@@ -113,30 +109,33 @@ class Tune final {
         static_assert(std::is_same_v<T, int> || std::is_same_v<T, PostUpdate>,
                       "Parameter type not supported!");
 
-        Entry(const std::string& n, T& v, const RangeSetter& r) noexcept :
+        Entry(const std::string_view n, T& v, const RangeSetter& r) noexcept :
             name(n),
             value(v),
             range(r) {}
 
-        // Because 'value' is a reference
-        Entry(const Entry&) noexcept            = delete;
-        Entry& operator=(const Entry&) noexcept = delete;
-        Entry(Entry&&) noexcept                 = delete;
-        Entry& operator=(Entry&&) noexcept      = delete;
-
-        void init_option() noexcept override;
+        void init() noexcept override;
         void read_option() noexcept override;
 
         std::string name;
         T&          value;
         RangeSetter range;
+
+       private:
+        // Because 'value' is a reference
+        Entry(const Entry&) noexcept            = delete;
+        Entry& operator=(const Entry&) noexcept = delete;
+        Entry(Entry&&) noexcept                 = delete;
+        Entry& operator=(Entry&&) noexcept      = delete;
     };
 
-    // Our facility to fill the container, each Entry corresponds to a parameter
-    // to tune. Use variadic templates to deal with an unspecified number of
-    // entries, each one of a possible different type.
+    // Extracts the next name and optionally removes it from the list.
+    // Facility to fill the container, each Entry corresponds to a parameter to tune.
+    // Use variadic templates to deal with an unspecified number of entries,
+    // each one of a possible different type.
     static std::string next(std::string& names, bool pop = true) noexcept;
 
+    // Adds a tunable option and prints its Fishtest parameters.
     static void make_option(Options*           optionsPtr,
                             std::string_view   name,
                             int                value,
@@ -173,20 +172,10 @@ class Tune final {
         return instance().add(SetDefaultRange, names.substr(1, names.size() - 2), args...);
     }
 
-    // Deferred, due to UCI::engine_options() access
-    static void init(Options& options) noexcept {
-        OptionsPtr = &options;
+    // Deferred, due to UCI::options() access
+    static void init(Options& options) noexcept;
 
-        for (auto& entry : instance().entries)
-            entry->init_option();
-
-        read_options();
-    }
-
-    static void read_options() noexcept {
-        for (auto& entry : instance().entries)
-            entry->read_option();
-    }
+    static void read_options() noexcept;
 
     static inline bool     IsLastUpdate = false;
     static inline Options* OptionsPtr   = nullptr;

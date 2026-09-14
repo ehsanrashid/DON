@@ -80,6 +80,11 @@ class MovePicker final {
         PROBCUT
     };
 
+    // Constructors of the MovePicker class. As arguments, pass information
+    // to decide which class of moves to return, to help sorting the (presumably)
+    // good moves first, and how important move ordering is at the current node.
+
+    // MovePicker constructor for the main search and for the quiescence search.
     MovePicker(const Position&           p,
                Move                      ttm,
                const CaptureHistory*     captureHist,
@@ -90,8 +95,13 @@ class MovePicker final {
                u16                       ply,
                int                       th = 0) noexcept;
 
+    // MovePicker constructor for ProbCut:
+    // Generate captures with Static Exchange Evaluation (SEE) >= threshold.
     MovePicker(const Position& p, Move ttm, const CaptureHistory* captureHist, int th) noexcept;
 
+    // Most important method of the MovePicker class.
+    // It emits a new legal move every time it is called until there are no more moves left,
+    // picking the move with the highest score from a list of generated moves.
     [[nodiscard]] Move next_move() noexcept;
 
     [[nodiscard]] Stage cur_stage() const noexcept;
@@ -112,6 +122,10 @@ class MovePicker final {
     template<GenType GT>
     void init() noexcept;
 
+    // Assigns a numerical value to each move in a list, used for sorting.
+    // Captures moves are ordered by Most Valuable Victim (MVV),
+    // preferring captures moves with a good history.
+    // Quiet moves are ordered by using the history tables.
     template<GenType GT>
     iterator score(const MoveList<GT>& moveList) noexcept;
 

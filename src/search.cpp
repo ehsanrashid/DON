@@ -2638,16 +2638,17 @@ void Manager::handle_time_management(const Worker& worker,
                                          * std::min<Depth>(stableDepth, 25) / 256.0;
 
     // Calculate total time by combining all factors with the optimum time
-    TimePoint totalTime = constexpr_ceil(timeManager.optimum() * inconsistencyFactor * easeFactor * instabilityFactor * nodesEffortFactor * recaptureFactor);
+    const auto totalTimeValue = timeManager.optimum() * inconsistencyFactor * easeFactor * instabilityFactor * nodesEffortFactor * recaptureFactor;
+    TimePoint totalTime = TimePoint(std::min(totalTimeValue, TimeManager::TimeMaxValue));
     assert(totalTime >= 0.0);
     // clang-format on
 
     // Cap totalTime to the available maximum time
-    totalTime = std::min<TimePoint>(timeManager.maximum(), totalTime);
+    totalTime = std::min(timeManager.maximum(), totalTime);
     // Cap totalTime to either 55% of total time or MaxForcedMoveTime ms in case of forced move for a better viewer experience
     if (worker.rootMoves.size() == 1)
-        totalTime = std::min<TimePoint>(constexpr_ceil(0.55 * totalTime),
-                                        worker.options["MaxForcedMoveTime"]);
+        totalTime =
+          TimePoint(std::min(0.55 * totalTime, double(worker.options["MaxForcedMoveTime"])));
 
     const TimePoint elapsedTime = elapsed(worker.threads);
 
@@ -2667,8 +2668,7 @@ void Manager::handle_time_management(const Worker& worker,
             worker.threads.request_stop();
     }
 
-    if (!worker.threads.is_researching() && !ponder
-        && elapsedTime > constexpr_ceil(0.50 * totalTime))
+    if (!worker.threads.is_researching() && !ponder && elapsedTime > TimePoint(0.50 * totalTime))
         worker.threads.request_research();
 
     preBestValue = bestValue;

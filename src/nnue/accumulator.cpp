@@ -124,8 +124,6 @@ void AccumulatorStack::evaluate(const Color               perspective,
     }
 }
 
-// Find the earliest usable accumulator, this can either be a computed accumulator or the accumulator
-// state just before a change that requires full refresh.
 usize AccumulatorStack::find_last_usable_index(const Color perspective) const noexcept {
 
     for (usize idx = size(); idx-- > 0;)

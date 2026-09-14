@@ -277,6 +277,28 @@ class TestInteractive(metaclass=OrderedClassMembers):
 
         self.engine.check_output(callback)
 
+    def test_go_depth_3_with_mismatched_clock(self):
+        self.engine.send_command("ucinewgame")
+        self.engine.send_command("position startpos")
+        self.engine.send_command("go depth 3 btime 1000")
+
+        maxDepth = 0
+
+        def callback(output):
+            nonlocal maxDepth
+            if output.startswith("info depth"):
+                match = re.search(r"info depth (\d+)", output)
+                if match:
+                    maxDepth = max(int(match.group(1)), maxDepth)
+
+            if output.startswith("bestmove"):
+                assert maxDepth == 3
+                return True
+
+            return False
+
+        self.engine.check_output(callback)
+
     def test_clear_hash(self):
         self.engine.setoption("Clear Hash")
 

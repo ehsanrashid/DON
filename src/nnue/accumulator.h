@@ -131,6 +131,8 @@ struct AccumulatorStack final {
                   AccumulatorCache&         accCache,
                   usize                     lastUsableIdx) noexcept;
 
+    // Find the earliest usable accumulator, this can either be a computed accumulator or the accumulator
+    // state just before a change that requires full refresh.
     [[nodiscard]] usize find_last_usable_index(Color perspective) const noexcept;
 
     void update_incremental_forward(Color                     perspective,

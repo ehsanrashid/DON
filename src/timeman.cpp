@@ -29,7 +29,8 @@ namespace DON {
 
 namespace {
 
-constexpr u8 MTG_MAX = 50;  // Moves To Go maximum for time management formulas
+// Maximum moves to go used by time management formulas.
+constexpr u8 MTG_MAX = 50;
 
 constexpr double TIME_ADJUST_INIT = -1.0;
 constexpr double TIME_ADJUST_MIN  = 1.0e-6;
@@ -53,12 +54,6 @@ void TimeManager::reset() noexcept {
     timeNodes = TIME_NODES_INIT;
 }
 
-// Called at the beginning of the search and calculates
-// the bounds of time allowed for the current game ply.
-// Currently support:
-//      1) x base-time (sudden death)
-//      2) x base-time (+ z increment)
-//      3) x moves in y time (+ z increment)
 void TimeManager::init(
   Color ac, i16 ply, i32 moveNum, const Options& options, Limit& limit) noexcept {
     // If have no time, no need to fully initialize TM.
@@ -67,14 +62,14 @@ void TimeManager::init(
 
     auto& clock = limit.clocks[ac];
 
-    u64 NodesTime = options["NodesTime"];
+    const u64 NodesTime = options["NodesTime"];
 
     useNodesTime = NodesTime != 0;
 
     if (clock.time == 0)
     {
-        optimumTime = 0;
-        maximumTime = 0;
+        optimumTime = NoBound;
+        maximumTime = NoBound;
         return;
     }
 
@@ -111,12 +106,13 @@ void TimeManager::init(
 
     // If less than one second, gradually reduce mtg
     if (mtg > 2 && ScaledTime < 1000 && clock.inc <= OverheadTime)
-        mtg = std::max<u8>(constexpr_ceil(0.05051 * ScaledTime), 2);
+        mtg = u8(std::max(0.05051 * ScaledTime, 2.0));
 
     // Make sure remainTime > 0 since use it as a divisor
-    TimePoint remainTime = std::max<TimePoint>(clock.time + (mtg - 1) * clock.inc - (mtg + 2) * OverheadTime, 1);
-
-    remainTime = std::max<TimePoint>(constexpr_ceil(remainTime * options["TimePercent"] / 100.0), 1);
+    const TimePoint remainTime =
+        TimePoint(std::max(
+                    std::max<TimePoint>(clock.time + (mtg - 1) * clock.inc - (mtg + 2) * OverheadTime, 1)
+                  * options["TimePercent"] / 100.0, 1.0));
 
     // optimumScale is a percentage of available time to use for the current move.
     // maximumScale is a multiplier applied to optimumTime.
@@ -161,11 +157,11 @@ void TimeManager::init(
     }
 
     // Limit the maximum possible time for this move
-    optimumTime = std::max<TimePoint>(std::max<TimePoint>(constexpr_ceil(optimumScale * remainTime), options["MinMoveTime"]), 1);
-    maximumTime = std::max<TimePoint>(
+    optimumTime = TimePoint(std::max(std::max(optimumScale * remainTime, 1.0), double(options["MinMoveTime"])));
+    maximumTime = std::max(
                     mtg < 2
                     ? clock.time
-                    : std::min<TimePoint>(constexpr_ceil(maximumScale * optimumTime), constexpr_ceil(0.80970 * clock.time) - OverheadTime) - options["BufferTime"],
+                    : TimePoint(std::min(maximumScale * optimumTime, 0.80970 * clock.time - OverheadTime) - options["BufferTime"]),
                     optimumTime);
     // clang-format on
 
@@ -173,10 +169,9 @@ void TimeManager::init(
         std::this_thread::sleep_for(Ms(optimumTime / 2));
 
     if (options["Ponder"])
-        optimumTime = constexpr_ceil(1.2500 * optimumTime);
+        optimumTime = TimePoint(std::min(1.2500 * optimumTime, TimeMaxValue));
 }
 
-// When in 'Nodes as Time' mode
 void TimeManager::advance_time_nodes(i64 nodes) noexcept {
     assert(use_nodes_time());
 

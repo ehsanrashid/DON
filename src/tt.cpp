@@ -224,8 +224,6 @@ void TranspositionTable::advance_generation() const noexcept {
     generation8 &= GENERATION_MASK;
 }
 
-// Sets the size of the transposition table, measured in megabytes (MB).
-// Transposition table consists of even number of clusters.
 void TranspositionTable::resize(const usize ttSize, const Threads& threads) noexcept {
     free();
 
@@ -248,7 +246,6 @@ void TranspositionTable::resize(const usize ttSize, const Threads& threads) noex
     reset(threads);
 }
 
-// Resets the entire transposition table to zero, in a multi-threaded way
 void TranspositionTable::reset(const Threads& threads) noexcept {
     generation8 = 0;
 
@@ -287,11 +284,6 @@ TTCluster* TranspositionTable::cluster(const Key key) const noexcept {
     return &clusters[static_cast<usize>(mul_hi64(key, clusterCount))];
 }
 
-// `probe` is the primary method: looks up the current position (key) in the transposition table.
-// On a hit, it returns:
-//   1) copy of the existing data (which may be a collision or self-inconsistent due to read races)
-//   2) writer for the corresponding entry
-// On a miss, it returns empty data and writer for the least valuable entry selected for replacement.
 ProbResult TranspositionTable::probe(const Key key) const noexcept {
 
     auto* const ttc = cluster(key);
@@ -312,9 +304,6 @@ ProbResult TranspositionTable::probe(const Key key) const noexcept {
     return {TTData::empty(), TTWriter{const_cast<TTEntry*>(rte), ttc, key16, generation8}};
 }
 
-// Returns an approximation of the hash table occupation during a search.
-// The hash is x per mill full, as per UCI protocol.
-// Only counts entries which match the current generation. [maxAge: 0-GENERATION_MASK]
 u16 TranspositionTable::hashfull(const u8 maxAge) const noexcept {
     assert(maxAge <= GENERATION_MASK);
 

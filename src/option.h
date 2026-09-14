@@ -20,32 +20,17 @@
 
 #include <functional>
 #include <iosfwd>
-#include <limits>
+#include <list>
 #include <optional>
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
-#include <vector>
 
 #include "misc.h"
 
 namespace DON {
-
-// Because the options should be case-insensitive
-
-// Define a custom case-insensitive hash
-struct CaseInsensitiveHash final {
-    usize operator()(std::string_view sv) const noexcept;
-};
-// Define a custom case-insensitive equality
-struct CaseInsensitiveEqual final {
-    bool operator()(std::string_view sv1, std::string_view sv2) const noexcept;
-};
-// Define a custom case-insensitive less
-struct CaseInsensitiveLess final {
-    bool operator()(std::string_view sv1, std::string_view sv2) const noexcept;
-};
 
 class Options;
 
@@ -81,7 +66,8 @@ class Option final {
         return "none";
     }
 
-    using OnChange = std::function<std::optional<std::string>(const Option&)>;
+    using ChangeInfo = std::optional<std::string>;
+    using OnChange   = std::function<ChangeInfo(const Option&)>;
 
     explicit Option(OnChange&& f = nullptr) noexcept;
     explicit Option(bool v, OnChange&& f = nullptr) noexcept;
@@ -95,14 +81,9 @@ class Option final {
     operator int() const noexcept;
     operator std::string_view() const noexcept;
 
-    constexpr bool operator==(const Option& o) const noexcept {
-        return idx == o.idx && type == o.type;
-    }
-    constexpr bool operator!=(const Option& o) const noexcept { return !(*this == o); }
-
-    constexpr bool operator<(const Option& o) const noexcept { return idx < o.idx; }
-    constexpr bool operator>(const Option& o) const noexcept { return (o < *this); }
-
+    // Updates currentValue and triggers onChange() action.
+    // It's up to the GUI to check for option's limit,
+    // but could receive the new value from the user, so let's check the bounds anyway.
     void operator=(std::string value) noexcept;
 
     friend std::ostream& operator<<(std::ostream& os, const Option& option) noexcept;
@@ -115,23 +96,28 @@ class Option final {
     StringViews varSvs;
     OnChange    onChange;
 
-    u16 idx = std::numeric_limits<u16>::max();
-
     const Options* optionsPtr = nullptr;
 
     friend class Options;
 };
 
-using OT = Option::Type;
+using OnChange = Option::OnChange;
 
 class Options final {
    public:
-    // The options container is defined as a std::unordered_map<>
-    using UnorderedMap =
-      std::unordered_map<std::string_view, Option, CaseInsensitiveHash, CaseInsensitiveEqual>;
-    using Pair = std::pair<UnorderedMap::key_type, UnorderedMap::mapped_type>;
+    // clang-format off
+    // Stores the option name view and the option, preserving the original name case.
+    using Entry    = std::pair<std::string_view, Option>;
+    // Preserves insertion order and the original name case.
+    using List     = std::list<Entry>;
+    // Provides fast case-insensitive name lookup, count and removal.
+    using IndexMap = std::unordered_map<std::string_view, List::iterator, CaseInsensitiveHash, CaseInsensitiveEqual>;
+    // Provides fast case-insensitive uniqueness and membership checks.
+    using Set      = std::unordered_set<std::string_view, CaseInsensitiveHash, CaseInsensitiveEqual>;
+    // clang-format on
 
-    using InfoCallback = std::function<void(std::optional<std::string_view>)>;
+    using Info   = std::optional<std::string_view>;
+    using OnInfo = std::function<void(Info)>;
 
     Options() noexcept                          = default;
     Options(const Options&) noexcept            = delete;
@@ -139,32 +125,47 @@ class Options final {
     Options(Options&&) noexcept                 = delete;
     Options& operator=(Options&&) noexcept      = delete;
 
-    auto begin() const noexcept { return options.begin(); }
-    auto end() const noexcept { return options.end(); }
-    auto begin() noexcept { return options.begin(); }
-    auto end() noexcept { return options.end(); }
+    auto begin() noexcept;
+    auto end() noexcept;
+    auto begin() const noexcept;
+    auto end() const noexcept;
 
-    auto size() const noexcept { return options.size(); }
-    auto empty() const noexcept { return options.empty(); }
+    usize size() const noexcept;
+    bool  empty() const noexcept;
 
-    auto contains(std::string_view name) const noexcept {
-        return options.find(name) != options.end();
-    }
-    auto count(std::string_view name) const noexcept { return options.count(name); }
+    bool contains(Set::const_iterator setItr) const noexcept;
+    bool contains(std::string_view name) const noexcept;
 
-    void set_info_callback(InfoCallback&& iCallback) noexcept;
+    usize count(std::string_view name) const noexcept;
 
-    void add(std::string_view name, const Option& option) noexcept;
+    auto find(std::string_view name) noexcept;
+    auto find(std::string_view name) const noexcept;
 
-    void set(std::string_view name, std::string_view value) noexcept;
+    // Adds an option with the specified name to the Options.
+    //
+    // Options are stored in insertion order and indexed by name.
+    // Returns false if an option with the specified name already exists.
+    bool add(std::string_view name, const Option& option) noexcept;
+
+    // Removes the option with the specified name from the Options.
+    //
+    // Returns false if no option with the specified name exists.
+    bool remove(std::string_view name) noexcept;
+
+    void setoption(std::string_view name, std::string_view value) noexcept;
 
     const Option& operator[](std::string_view name) const noexcept;
 
-   private:
-    UnorderedMap options;
-    InfoCallback infoCallback;
+    void set_on_info(OnInfo&& f) noexcept;
 
-    friend class Option;
+    void on_info(Info info) const noexcept;
+
+   private:
+    List     list;
+    IndexMap indexMap;
+    Set      set;
+
+    OnInfo onInfo;
 };
 
 std::ostream& operator<<(std::ostream& os, const Options& options) noexcept;

@@ -231,15 +231,17 @@ Limit parse_limit(std::istream& is) noexcept {
 UCI::UCI(const std::filesystem::path& path) noexcept :
     engine(path) {
 
-    options().set_info_callback([](std::optional<std::string_view> infoSv) noexcept {
-        if (infoSv)
-            print_info_string(*infoSv);
+    options().set_on_info([](Options::Info info) noexcept {
+        if (info)
+            print_info_string(*info);
     });
 
     set_update_callbacks();
 }
 
-Options& UCI::options() noexcept { return engine.get_options(); }
+Options& UCI::options() noexcept { return engine.options(); }
+
+const Options& UCI::options() const noexcept { return engine.options(); }
 
 void UCI::process_input(std::istream& is) noexcept {
 
@@ -256,7 +258,7 @@ void UCI::process_input(std::istream& is) noexcept {
     }
 }
 
-void UCI::execute(std::string_view command) noexcept {
+void UCI::execute(const std::string_view command) noexcept {
 
     StringViewBuf svBuf{command};
 
@@ -502,20 +504,21 @@ void UCI::setoption(std::istream& is) noexcept {
         value.append(token);
     }
 
-    options().set(name, value);
+    options().setoption(name, value);
 }
 
 void UCI::bench(std::istream& is) noexcept {
 
-    auto minimalInfo = bool_to_string(options()["MinimalInfo"]);
+    const auto MinimalInfo = bool_to_string(options()["MinimalInfo"]);
 
-    options().set("MinimalInfo", bool_to_string(true));
+    options().setoption("MinimalInfo", bool_to_string(true));
 
-    auto commands = Benchmark::bench(is, engine.fen());
+    const auto commands = Benchmark::bench(is, engine.fen());
 
-    usize num = std::count_if(commands.begin(), commands.end(), [](std::string_view command) {
-        return starts_with(command, "go ") || starts_with(command, "eval");
-    });
+    const usize num =
+      std::count_if(commands.begin(), commands.end(), [](const std::string_view command) {
+          return starts_with(command, "go ") || starts_with(command, "eval");
+      });
 
 #if !defined(NDEBUG)
     Debug::clear();
@@ -608,7 +611,7 @@ void UCI::bench(std::istream& is) noexcept {
 
     // Reset callback, to not capture a dangling reference
     set_update_callbacks();
-    options().set("MinimalInfo", minimalInfo);
+    options().setoption("MinimalInfo", MinimalInfo);
 }
 
 void UCI::benchmark(std::istream& is) noexcept {
@@ -621,15 +624,16 @@ void UCI::benchmark(std::istream& is) noexcept {
     engine.set_on_update_iter([](const auto&) {});
     engine.set_on_update_move([](const auto&) {});
 
-    auto setup = Benchmark::benchmark(is);
+    const auto setup = Benchmark::benchmark(is);
 
     // Set options once at the start
-    options().set("Threads", std::to_string(setup.threads));
-    options().set("Hash", std::to_string(setup.ttSize));
-    options().set("UCI_Chess960", bool_to_string(false));
+    options().setoption("Threads", std::to_string(setup.threads));
+    options().setoption("Hash", std::to_string(setup.ttSize));
+    options().setoption("UCI_Chess960", bool_to_string(false));
 
-    usize num = std::count_if(setup.commands.begin(), setup.commands.end(),
-                              [](std::string_view command) { return starts_with(command, "go "); });
+    const usize num =
+      std::count_if(setup.commands.begin(), setup.commands.end(),
+                    [](const std::string_view command) { return starts_with(command, "go "); });
 
 #if !defined(NDEBUG)
     Debug::clear();

@@ -51,10 +51,11 @@ class FullThreats final {
         return Square(((file_of(s) >> 2) ^ 0) * FILE_H);
     }
 
+    // Append list of indices for active features in ascending order
     static void append_active_indices(Color           perspective,  //
                                       const Position& pos,
                                       IndexList&      active) noexcept;
-
+    // Append lists of indices for recently changed features
     static void append_changed_indices(Color               perspective,
                                        Square              kingSq,
                                        const DirtyType&    dTs,

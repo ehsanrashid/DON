@@ -42,6 +42,8 @@
 
 namespace DON::Attacks {
 
+// Initializes various bitboard tables.
+// It is called at startup.
 void init() noexcept;
 
 #if defined(USE_DUAL_HYPERBOLA_QUINT)

@@ -40,22 +40,6 @@
 
 namespace DON {
 
-// Constructor for a worker thread.
-//
-// Responsibilities:
-//   - Initializes thread and NUMA-related identifiers.
-//   - Optionally starts the thread immediately (if autoStart is true).
-//      * The thread will execute idle_func() and go to sleep.
-//      * The constructor waits until the thread reaches the idle state to ensure
-//        it is ready to accept jobs safely.
-//   - Acquires a NUMA access token from the provided nodeBinder.
-//   - Constructs the Worker object for this thread, allocating on large pages
-//      for performance, and passing thread/NUMA info along with shared state and
-//      the search manager.
-//
-// Preconditions:
-//   - numa_thread_count() != 0
-//   - numa_id() < numa_thread_count()
 Thread::Thread(ThreadContext                 threadCxt,
                const ThreadToNumaNodeBinder& nodeBinder,
                const SharedState&            sharedState,
@@ -78,27 +62,12 @@ Thread::Thread(ThreadContext                 threadCxt,
         start();
 }
 
-// Destructor: ensures the thread is properly terminated and joined.
 Thread::~Thread() noexcept {
     // Ensure thread is terminated and joined. Do not assert on 'busy'.
     // terminate() sets 'dead' and joins the native thread safely, even if a job is running.
     terminate();
 }
 
-// Starts the thread if it is not already running.
-//
-// Guarantees:
-//   - After this function returns, the thread is alive and ready to accept jobs.
-//   - The 'busy' flag is properly synchronized to avoid race conditions.
-//   - If the thread is already running, this function does nothing.
-//
-// Working:
-//   - Acquires the mutex to synchronize access to thread state.
-//   - Checks if a native thread is already joinable (running); if so, returns immediately.
-//   - Resets 'dead' and 'busy' flags to prepare for a new thread.
-//   - Creates a new NativeThread that runs idle_func() on this Thread object.
-//   - Waits on the condition variable until the new thread reports itself idle (busy == false),
-//     and ready to accept jobs, ensuring that the thread is fully initialized before returning.
 void Thread::start() noexcept {
     std::unique_lock condLock(mutex);
 
@@ -117,8 +86,6 @@ void Thread::start() noexcept {
     condVar.wait(condLock, [this] { return !busy; });
 }
 
-// Safely terminates the thread by setting the 'dead' flag,
-// waking it if necessary, and joining the native thread.
 void Thread::terminate() noexcept {
     {
         std::lock_guard writeLock(mutex);
@@ -136,8 +103,6 @@ void Thread::terminate() noexcept {
     //DEBUG_LOG("Thread id: " << thread_id() << " terminated.");
 }
 
-// Thread main function: waits for work and executes jobs.
-// When no job is scheduled, the thread parks here, blocked on the condition variable.
 void Thread::idle_func() noexcept {
     //DEBUG_LOG("Thread id: " << thread_id() << " started.");
 
@@ -183,9 +148,6 @@ void Thread::idle_func() noexcept {
 void Thread::ensure_network_replicated() const noexcept { worker->ensure_network_replicated(); }
 
 
-// Destroys/Creates threads to match the thread-count.
-// Created and launched threads will immediately go to sleep in idle_func.
-// Upon resizing, threads are recreated to allow for binding if necessary.
 void Threads::set(const NumaConfig&             numaConfig,
                   SharedState&                  sharedState,
                   const Manager::UpdateContext& updateContext) noexcept {
@@ -523,8 +485,6 @@ const Thread* Threads::best_thread() const noexcept {
 template const Thread* Threads::best_thread<false>() const noexcept;
 template const Thread* Threads::best_thread<true>() const noexcept;
 
-// Wakes up main thread waiting in idle_func() and returns immediately.
-// Main thread will wake up other threads and start the search.
 void Threads::start(Position&      pos,
                     StateListPtr&  states,
                     const Limit&   limit,

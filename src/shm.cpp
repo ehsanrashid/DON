@@ -33,11 +33,6 @@
 
 namespace DON {
 
-// argv[0] CANNOT be used because need to identify the executable.
-// argv[0] contains the command used to invoke it, which does not involve the full path.
-// Just using a path is not fully resilient either, as the executable could have changed
-// if it wasn't locked by the OS. If the path is longer than 4095 bytes the hash will be computed
-// from an unspecified amount of bytes of the path; in particular it can a hash of an empty string.
 std::string executable_path() noexcept {
     Array<char, PATH_MAX> executablePath{};
     usize                 executableSize = 0;
@@ -156,40 +151,6 @@ BaseSharedMemory::BaseSharedMemory(const std::string_view shmName) noexcept :
 
 std::string_view BaseSharedMemory::name() const noexcept { return name_; }
 
-// MemoryRegistry
-//
-// Provides a thread-safe process-wide registry for tracking registered memory
-// objects (BaseSharedMemory) without owning them.
-//
-// The registry provides:
-//  - True insertion order through List
-//  - Average O(1) lookup and removal through IndexMap
-//  - Average O(1) membership validation through Set
-//  - Average O(1) registration and unregistration by maintaining all containers
-//
-// Key Features:
-//  - Thread-safe registration and unregistration
-//  - Deterministic iteration order
-//  - Average O(1) lookup and removal
-//  - Lightweight: stores raw pointers only; lifetime is managed externally
-//
-// Implementation:
-//  - List preserves true insertion order for deterministic iteration
-//  - IndexMap provides average O(1) lookup and maps each memory to its
-//    corresponding iterator in List
-//  - Set provides uniqueness and membership validation
-//
-// Concurrency Model:
-//  - Mutex protects all registry containers
-//  - Read-only access uses shared locking
-//  - Registration and unregistration use exclusive locking
-//
-// Usage:
-//  - Call 'register_memory()' after successful memory creation
-//  - Call 'unregister_memory()' before destruction
-//
-// Note:
-//  - The registry does not own or release registered memory objects.
 namespace MemoryRegistry {
 
 namespace {
@@ -200,12 +161,23 @@ std::shared_mutex Mutex;
 // Preserves true insertion order for deterministic iteration.
 MemoryList List;
 
-// Provides average O(1) lookup and removal.
+// Provides average O(1) fast lookup, count and removal.
 // Maps each memory to its corresponding iterator in List.
 MemoryIndexMap IndexMap;
 
-// Provides uniqueness and membership validation.
+// Provides average O(1) fast uniqueness and membership checks.
 MemorySet Set;
+
+usize nolock_size() noexcept { return List.size(); }
+bool  nolock_empty() noexcept { return List.empty(); }
+
+// Check memory registry membership.
+bool nolock_contains(const MemorySet::iterator setItr) noexcept { return setItr != Set.end(); }
+bool nolock_contains(const Memory memory) noexcept { return nolock_contains(Set.find(memory)); }
+
+[[maybe_unused]] usize nolock_count(const Memory memory) noexcept { return IndexMap.count(memory); }
+
+auto nolock_find(const Memory memory) noexcept { return IndexMap.find(memory); }
 
     #if !defined(NDEBUG)
 // Verifies the consistency of all registry containers.
@@ -217,7 +189,7 @@ MemorySet Set;
 //  - Every memory in IndexMap exists in List and Set.
 //  - Every memory in Set exists in List and IndexMap.
 //  - Every IndexMap entry points to its corresponding node in List.
-bool is_consistent_nolock() noexcept {
+bool nolock_is_consistent() noexcept {
     assert(List.size() == IndexMap.size() && "List and IndexMap sizes differ");
     assert(List.size() == Set.size() && "List and Set sizes differ");
 
@@ -226,7 +198,7 @@ bool is_consistent_nolock() noexcept {
         [[maybe_unused]] const Memory memory = *listItr;
         assert(memory != nullptr && "List contains a null memory pointer");
 
-        [[maybe_unused]] auto indexMapItr = IndexMap.find(memory);
+        [[maybe_unused]] auto indexMapItr = nolock_find(memory);
         assert(indexMapItr != IndexMap.end() && "List memory is missing from IndexMap");
         assert(indexMapItr->second == listItr && "IndexMap points to the wrong List node");
 
@@ -246,7 +218,7 @@ bool is_consistent_nolock() noexcept {
     {
         assert(memory != nullptr && "Set contains a null memory pointer");
 
-        [[maybe_unused]] const auto indexMapItr = IndexMap.find(memory);
+        [[maybe_unused]] const auto indexMapItr = nolock_find(memory);
         assert(indexMapItr != IndexMap.end() && "Set memory is missing from IndexMap");
 
         const auto listItr = indexMapItr->second;
@@ -258,14 +230,14 @@ bool is_consistent_nolock() noexcept {
 }
     #endif
 
-// Insert a memory object into all registry containers.
+// Registers a memory object in all registry containers.
 // The caller must hold 'Mutex' exclusively.
 // Set is checked first for membership to reject duplicate memory objects.
 // The memory is then appended to List, IndexMap records the corresponding
 // List iterator, and Set is finally updated to establish membership.
 // Set and IndexMap provide average O(1) lookup and insertion.
-bool insert_memory_nolock(Memory memory) noexcept {
-    if (Set.find(memory) != Set.end())
+bool nolock_register_memory(const Memory memory) noexcept {
+    if (nolock_contains(memory))
         return false;
 
     //DEBUG_LOG("Registering memory: " << static_cast<const void*>(memory) << ' ' << memory->name());
@@ -286,25 +258,25 @@ bool insert_memory_nolock(Memory memory) noexcept {
     assert(registered);
     assert(setItr != Set.end());
 
-    assert(is_consistent_nolock());
+    assert(nolock_is_consistent());
 
     return true;
 }
 
-// Remove a memory object from all registry containers.
+// Unregisters a memory object from all registry containers.
 // The caller must hold 'Mutex' exclusively.
 // Set is checked first for membership to reject unregistered memory objects.
 // The corresponding List node is then retrieved through IndexMap.
 // The memory is then removed from Set, IndexMap, and List.
 // Set and IndexMap provide average O(1) lookup and removal.
-bool erase_memory_nolock(Memory memory) noexcept {
+bool nolock_unregister_memory(const Memory memory) noexcept {
     const auto setItr = Set.find(memory);
 
     // Not registered.
-    if (setItr == Set.end())
+    if (!nolock_contains(setItr))
         return false;
 
-    const auto indexMapItr = IndexMap.find(memory);
+    const auto indexMapItr = nolock_find(memory);
     // Set guarantees that IndexMap contains the memory.
     assert(indexMapItr != IndexMap.end());
 
@@ -325,19 +297,14 @@ bool erase_memory_nolock(Memory memory) noexcept {
 
     //DEBUG_LOG("Unregistered memory: " << static_cast<const void*>(memory) << ' ' << memory->name());
 
-    assert(is_consistent_nolock());
+    assert(nolock_is_consistent());
 
     return true;
 }
 
 }  // namespace
 
-// Register a memory object in the registry.
-//
-// Returns false if:
-//  - memory is nullptr
-//  - the object is already registered
-bool register_memory(Memory memory) noexcept {
+bool register_memory(const Memory memory) noexcept {
     if (memory == nullptr)
     {
         //DEBUG_LOG("Cannot register <NULL> memory.");
@@ -347,15 +314,10 @@ bool register_memory(Memory memory) noexcept {
     // Acquire an exclusive lock because all registry containers are modified.
     std::lock_guard writeLock(Mutex);
 
-    return insert_memory_nolock(memory);
+    return nolock_register_memory(memory);
 }
 
-// Unregister a memory object from the registry.
-//
-// Returns false if:
-//  - memory is nullptr
-//  - the object is not registered
-bool unregister_memory(Memory memory) noexcept {
+bool unregister_memory(const Memory memory) noexcept {
     if (memory == nullptr)
     {
         //DEBUG_LOG("Cannot unregister <NULL> memory.");
@@ -365,15 +327,9 @@ bool unregister_memory(Memory memory) noexcept {
     // Acquire an exclusive lock because all registry containers are modified.
     std::lock_guard writeLock(Mutex);
 
-    return erase_memory_nolock(memory);
+    return nolock_unregister_memory(memory);
 }
 
-// Detach all registered memory objects from the registry.
-//
-// Returns the objects in true insertion order.
-//
-// All registry containers are cleared before the returned list is processed,
-// allowing callers to safely operate on the objects without holding 'Mutex'.
 MemoryList detach_memories() noexcept {
     std::lock_guard writeLock(Mutex);
 
@@ -391,20 +347,24 @@ MemoryList detach_memories() noexcept {
     return detachedList;
 }
 
-// Returns the number of currently registered memory objects.
 usize size() noexcept {
     std::shared_lock readLock(Mutex);
 
     assert(List.size() == IndexMap.size());
     assert(List.size() == Set.size());
 
-    return List.size();
+    return nolock_size();
 }
 
-// Prints the addresses and names of all registered memory objects
-// in true insertion order.
-//
-// The registry lock is held for the duration of the iteration and output.
+bool empty() noexcept {
+    std::shared_lock readLock(Mutex);
+
+    assert(List.size() == IndexMap.size());
+    assert(List.size() == Set.size());
+
+    return nolock_empty();
+}
+
 void print() noexcept {
     std::shared_lock readLock(Mutex);
 
@@ -423,21 +383,8 @@ void print() noexcept {
 
 }  // namespace MemoryRegistry
 
-// MemoryCleanup
-//
-// Provides cleanup of all currently registered memory objects.
-//
-// Responsibilities:
-//  - Detach all registered memory objects from the registry
-//  - Release each detached memory object
-//
-// Note:
-//  - Registry management is handled by MemoryRegistry.
-//  - Process-exit hook installation is handled by MemoryCleanupHook.
-//  - Detached memory objects are released in registry insertion order.
 namespace MemoryCleanup {
 
-// Detaches and releases all currently registered memory objects in insertion order.
 void cleanup() noexcept {
     auto memoryList = MemoryRegistry::detach_memories();
 
@@ -449,23 +396,6 @@ void cleanup() noexcept {
 
 }  // namespace MemoryCleanup
 
-// MemoryCleanupHook
-//
-// Provides one-time installation of the memory cleanup handler for normal
-// program termination.
-//
-// Usage:
-//   Call MemoryCleanupHook::ensure_initialized() early in main().
-//
-// Key Features:
-//   - Uses HookCallOnce to ensure the cleanup handler is registered only once.
-//   - Retries initialization until the cleanup handler is successfully registered.
-//   - Registers MemoryCleanup::cleanup() with std::atexit().
-//   - Does not manage the registry or perform cleanup itself.
-//
-// Note:
-//   - The atexit() handler is guaranteed to be called only during normal program termination.
-//     It is not called after SIGKILL, abort(), or other abnormal/forced program termination.
 namespace MemoryCleanupHook {
 
 namespace {
@@ -474,8 +404,6 @@ CallOnce HookCallOnce;
 
 }  // namespace
 
-// Ensures the memory cleanup handler is successfully registered with std::atexit().
-// Initialization is retried until successful; subsequent calls return immediately.
 void ensure_initialized() noexcept {
     while (!HookCallOnce.once_init())
     {
@@ -630,7 +558,6 @@ UniqueFd create_unix_socket() noexcept {
     return fd;
 }
 
-// Discover all peers in the shared dir
 Strings get_peer_sockets(const std::string& sharedDir) noexcept {
     Strings peerSockets;
 
@@ -721,10 +648,6 @@ UniqueFd try_receive_memfd(const std::string& sockPath) noexcept {
     return {};
 }
 
-// Server thread:
-//  - Forwards the file descriptor fd
-//  - Exits when shutdownFd is hung up on
-//  - Listens on serverFd
 std::thread make_server_thread(UniqueFd fd, UniqueFd shutdownFd, UniqueFd serverFd) noexcept {
     return std::thread([fd         = std::move(fd),          //
                         shutdownFd = std::move(shutdownFd),  //
@@ -798,8 +721,11 @@ std::thread make_server_thread(UniqueFd fd, UniqueFd shutdownFd, UniqueFd server
     #if defined(MSG_NOSIGNAL)
                 flags |= MSG_NOSIGNAL;
     #endif
-                while (::sendmsg(clientFd.get(), &msg, flags) < 0 && errno == EINTR)
-                {}
+                while (::sendmsg(clientFd.get(), &msg, flags) < 0)
+                {
+                    if (errno != EINTR)
+                        break;
+                }
             }
         }
     });

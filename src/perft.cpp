@@ -56,7 +56,7 @@ struct PerftData final {
     u32 stalemate = 0;
 };
 
-void PerftData::classify(Position& pos, Move m) noexcept {
+void PerftData::classify(Position& pos, const Move m) noexcept {
 
     const Square orgSq = m.org_sq(), dstSq = m.dst_sq();
 
@@ -215,7 +215,7 @@ void PerftTable::free() noexcept {
     assert(freed);
 }
 
-void PerftTable::resize(usize ptSize, const Threads& threads) noexcept {
+void PerftTable::resize(const usize ptSize, const Threads& threads) noexcept {
     free();
 
     clusterCount = ptSize * MB / PT_CLUSTER_SIZE;
@@ -272,11 +272,11 @@ void PerftTable::reset(const Threads& threads) noexcept {
         threads.wait_on_thread(orderedThreads[threadId]);
 }
 
-PTCluster* PerftTable::cluster(Key key) const noexcept {
+PTCluster* PerftTable::cluster(const Key key) const noexcept {
     return &clusters[static_cast<usize>(mul_hi64(key, clusterCount))];
 }
 
-ProbResult PerftTable::probe(Key key, Depth depth) const noexcept {
+ProbResult PerftTable::probe(const Key key, const Depth depth) const noexcept {
 
     const auto* const ptc = cluster(key);
 
@@ -299,13 +299,15 @@ ProbResult PerftTable::probe(Key key, Depth depth) const noexcept {
 
 PerftTable perftTable;
 
-constexpr bool use_perft_table(Depth depth, bool detail) noexcept { return !detail && depth >= 4; }
+constexpr bool use_perft_table(const Depth depth, const bool detail) noexcept {
+    return !detail && depth >= 4;
+}
 
 // Utility to verify move generation.
 // All the leaf nodes up to the given depth are generated and counted,
 // and the sum is returned.
 template<bool RootNode>
-PerftData perft(Position& pos, Depth depth, bool detail) noexcept {
+PerftData perft(Position& pos, const Depth depth, const bool detail) noexcept {
 
     if (RootNode)
     {
@@ -444,7 +446,11 @@ template PerftData perft<true>(Position& pos, Depth depth, bool detail) noexcept
 
 }  // namespace
 
-u64 perft(Position& pos, usize ptSize, const Threads& threads, Depth depth, bool detail) noexcept {
+u64 perft(Position&      pos,
+          const usize    ptSize,
+          const Threads& threads,
+          const Depth    depth,
+          const bool     detail) noexcept {
 
     if (use_perft_table(depth, detail))
         perftTable.resize(ptSize, threads);

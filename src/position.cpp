@@ -29,39 +29,6 @@
 
 namespace DON {
 
-// Zobrist - Hash key generator
-//
-// This provides access to precomputed Zobrist keys for all relevant
-// aspects of a chess position. It is used to efficiently compute a unique
-// hash for a given board state, which is essential for transposition tables,
-// move ordering, repetition detection, and other chess engine optimizations.
-//
-// Key features:
-//  - Provides keys for piece positions, castling rights, en passant squares,
-//    turn (side to move), and the 50-move rule counter (MR50).
-//  - All members and functions are static; no instances of this class can
-//    be created, copied, or moved.
-//  - Designed for fast access; all keys are stored in statically allocated arrays.
-//
-// Interface summary:
-//  - init() - Initializes all Zobrist keys; must be called before use.
-//  - piece_square(Color, PieceType, Square) / piece_square(Piece, Square)
-//      Returns the Zobrist key for a piece on a specific square.
-//  - castling(CastlingRights) - Returns the Zobrist key for a given castling right.
-//  - enpassant(Square) - Returns the Zobrist key for an en passant square.
-//  - turn() - Returns the Zobrist key for the side to move.
-//  - mr50(int) - Returns the Zobrist key for the 50-move rule counter.
-//
-// Notes:
-//  - All data is stored in 'inline-static' arrays for fast, constant-time access.
-//  - Ensure 'init()' is called before using any other function.
-//  - Accessors perform debug-time assertions to validate input values.
-//  - MR50 array handles the 50-move rule with offset and factor constants.
-//
-// Example usage:
-//   Zobrist::init();
-//   Key key = Zobrist::piece_square(Piece::WHITE_KNIGHT, Square::G1);
-//   key ^= Zobrist::turn();
 namespace Zobrist {
 
 namespace {
@@ -254,7 +221,6 @@ CuckooTable<0x2000> Cuckoos;
 
 }  // namespace
 
-// Called at startup to initialize the Zobrist and Cuckoo tables.
 void Position::init() noexcept {
 
     Zobrist::init();
@@ -277,11 +243,7 @@ void Position::clear() noexcept {
     activeColor = NONE;
 }
 
-// Initializes the position object with the given FEN string.
-// This function is not very robust - make sure that input FENs are correct,
-// this is assumed to be the responsibility of the GUI.
 std::optional<Error> Position::set(const std::string_view fens, State* const newSt) noexcept {
-
     // A FEN string defines a particular position using only the ASCII character set.
     //
     // A FEN string contains six fields separated by a space. The fields are:
@@ -598,8 +560,6 @@ std::optional<Error> Position::set(const std::string_view fens, State* const new
     return std::nullopt;
 }
 
-// Overload to initialize the position object with the given endgame code string like "KBPKN".
-// It's mainly a helper to get the material key out of an endgame code.
 std::optional<Error>
 Position::set(const std::string_view code, const Color c, State* const newSt) noexcept {
     assert(!code.empty() && code[0] == 'K' && code.find('K', 1) != std::string_view::npos);
@@ -632,7 +592,6 @@ Position::set(const std::string_view code, const Color c, State* const newSt) no
     return set(fens, newSt);
 }
 
-// Copy position and points to newSt and then copy state into st
 void Position::set(const Position& pos, State* const newSt) noexcept {
     assert(newSt != nullptr);
 
@@ -641,9 +600,6 @@ void Position::set(const Position& pos, State* const newSt) noexcept {
     *st   = *pos.state();
 }
 
-// Returns a FEN representation of the position.
-// In case of Chess960 the Shredder-FEN notation is used.
-// This is mainly a debugging function.
 std::string Position::fen(const bool complete) const noexcept {
     std::string fens;
     fens.reserve(64);
@@ -724,7 +680,6 @@ std::string Position::fen(const bool complete) const noexcept {
     return fens;
 }
 
-// Sets castling rights given the corresponding color and the rook starting square.
 void Position::set_castling_rights(const Color c, const Square rookOrgSq) noexcept {
     assert(relative_rank(c, rookOrgSq) == RANK_1);
     assert((pieces_bb(c, ROOK) & rookOrgSq) != 0);
@@ -754,9 +709,6 @@ void Position::set_castling_rights(const Color c, const Square rookOrgSq) noexce
     castlings.rookSq[c][+cs]     = rookOrgSq;
 }
 
-// Computes the hash keys of the position, and other data
-// that once computed is updated incrementally as moves are made.
-// The function is only used when a new position is set up.
 void Position::set_state() noexcept {
     assert(st->key == 0);
     assert(st->pawnKeys[WHITE] == 0 && st->pawnKeys[BLACK] == 0);
@@ -800,7 +752,6 @@ void Position::set_pinner_blocker() noexcept {
                                         st->pinnersBB[BLACK], st->pinnersBB[WHITE]);
 }
 
-// Set extra state, used for fast check detection
 void Position::set_ext_state() noexcept {
 
     const Color ac = active_color();
@@ -834,7 +785,6 @@ void Position::set_ext_state() noexcept {
     // clang-format on
 }
 
-// Check en-passant possible
 template<bool MoveDone>
 bool Position::enpassant_possible(const Color     ac,
                                   const Square    enPassantSq,
@@ -912,8 +862,6 @@ bool Position::enpassant_possible(const Color     ac,
     return epPossible;
 }
 
-// Helper used to do/undo a castling move.
-// This is a bit tricky in Chess960 where org/dst squares can overlap.
 template<bool Do>
 void Position::do_castling(const Color    ac,
                            Square         kingOrgSq,
@@ -955,9 +903,6 @@ void Position::do_castling(const Color    ac,
         put(Do ? rookDstSq : rookOrgSq, rookPc, dTs);
 }
 
-// Makes a move, and saves all necessary information to new state.
-// Also prefetch tt and histories for the new position.
-// The move is assumed to be legal.
 Dirties Position::do_move(const Move          m,
                           State&              newSt,
                           const bool          mayCheck,
@@ -1259,7 +1204,6 @@ Dirties Position::do_move(const Move          m,
     return dirties;
 }
 
-// Unmakes a move, restoring the position to its exact state before the move was made.
 void Position::undo_move(const Move m) noexcept {
 
     const Color ac = activeColor = ~active_color();
@@ -1339,8 +1283,6 @@ void Position::undo_move(const Move m) noexcept {
     assert(_is_ok());
 }
 
-// Makes a null move
-// It flips the active color without executing any move on the board.
 void Position::do_null_move(State& newSt) noexcept {
     assert(&newSt != st);
     assert(checkers_bb() == 0);
@@ -1368,7 +1310,6 @@ void Position::do_null_move(State& newSt) noexcept {
     assert(_is_ok());
 }
 
-// Unmakes a null move
 void Position::undo_null_move() noexcept {
     assert(null_ply() == 0);
     assert(!is_ok(captured_sq()));
@@ -1383,7 +1324,6 @@ void Position::undo_null_move() noexcept {
     assert(_is_ok());
 }
 
-// Tests whether a move is legal
 bool Position::legal(const Move m) const noexcept {
     assert(m.is_ok());
 
@@ -1484,7 +1424,6 @@ bool Position::legal(const Move m) const noexcept {
         && ((blockers_bb(ac) & orgSq) == 0 || Attacks::aligned(kingSq, orgSq, dstSq));
 }
 
-// Tests whether a move is a check
 bool Position::check(const Move m) const noexcept {
     assert(legal(m));
 
@@ -1594,9 +1533,6 @@ bool Position::fork(const Move m) const noexcept {
     return false;
 }
 
-// Computes the new hash key after the given move.
-// Needed for speculative prefetch.
-// It does recognize special moves like castling, en-passant and promotions.
 Key Position::move_key(const Move m) const noexcept {
     Key moveKey = st->key ^ Zobrist::turn() ^ Zobrist::enpassant(en_passant_sq());
 
@@ -1651,9 +1587,6 @@ Key Position::move_key(const Move m) const noexcept {
          ^ Zobrist::mr50(movedPt == PAWN || is_ok(capturedPc) ? 0 : rule50_count() + 1);
 }
 
-// Tests if the SEE (Static Exchange Evaluation)
-// value of the move is greater or equal to the given threshold.
-// An algorithm similar to alpha-beta pruning with a null window.
 bool Position::see_ge(const Move m, const int threshold) const noexcept {
     assert(legal(m));
 
@@ -1946,14 +1879,10 @@ bool Position::see_ge(const Move m, const int threshold) const noexcept {
     return ge;
 }
 
-// Draw by Repetition: position repeats once earlier but strictly
-// after the root, or repeats twice before or at the root.
 bool Position::is_repetition(i16 ply) const noexcept {
     return repetition() != 0 && repetition() < ply;
 }
 
-// Tests whether the current position is drawn by repetition or by 50-move rule.
-// It also detects stalemates.
 bool Position::is_draw(i16 ply, bool useRule50, bool useStalemate) const noexcept {
     return
       // Draw by Repetition
@@ -1965,8 +1894,6 @@ bool Position::is_draw(i16 ply, bool useRule50, bool useStalemate) const noexcep
       || (useStalemate && checkers_bb() == 0 && MoveList<GenType::LEGAL, true>(*this).empty());
 }
 
-// Tests whether there has been at least one repetition
-// of positions since the last capture or pawn move.
 bool Position::has_repeated() const noexcept {
     const State* cSt = st;
 
@@ -1981,8 +1908,6 @@ bool Position::has_repeated() const noexcept {
     return false;
 }
 
-// Tests if the current position has a move which draws by repetition.
-// Accurately matches the outcome of is_draw() over all legal moves.
 bool Position::is_upcoming_repetition(i16 ply) const noexcept {
     const u16 end = std::min(rule50_count(), null_ply());
     // Enough reversible moves played
@@ -2034,8 +1959,6 @@ bool Position::is_upcoming_repetition(i16 ply) const noexcept {
     return false;
 }
 
-// Flips the current position with the white and black sides reversed.
-// This is only useful for debugging e.g. for finding evaluation symmetry bugs.
 std::optional<Error> Position::flip() noexcept {
     std::istringstream iss{fen()};
 
@@ -2138,7 +2061,6 @@ std::optional<Error> Position::mirror() noexcept {
 
 #if !defined(NDEBUG)
 
-// Computes the hash key of the current position
 Key Position::compute_key() const noexcept {
     Key key = 0;
 
@@ -2212,9 +2134,6 @@ Key Position::compute_non_pawn_key() const noexcept {
     return nonPawnKey;
 }
 
-// Performs some consistency checks for the position object
-// and raise an assert if something wrong is detected.
-// This is meant to be helpful when debugging.
 bool Position::_is_ok() const noexcept {
 
     constexpr bool QuickCheck = false;  // Quick or full check?
@@ -2303,7 +2222,6 @@ bool Position::_is_ok() const noexcept {
 
 #endif
 
-// Returns ASCII representation of the position as string
 Position::operator std::string() const noexcept {
     constexpr std::string_view Sep{"\n  +---+---+---+---+---+---+---+---+\n"};
 
@@ -2338,7 +2256,6 @@ Position::operator std::string() const noexcept {
     return pos;
 }
 
-// Prints to the output stream the position in ASCII + detailed info
 std::ostream& operator<<(std::ostream& os, const Position& pos) noexcept {
 
     std::string str = std::string(pos);

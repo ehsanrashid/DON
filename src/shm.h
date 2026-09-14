@@ -153,6 +153,11 @@ enum class SharedMemoryAllocationStatus : u8 {
     return "Allocation status unknown.";
 }
 
+// argv[0] CANNOT be used because need to identify the executable.
+// argv[0] contains the command used to invoke it, which does not involve the full path.
+// Just using a path is not fully resilient either, as the executable could have changed
+// if it wasn't locked by the OS. If the path is longer than 4095 bytes the hash will be computed
+// from an unspecified amount of bytes of the path; in particular it can a hash of an empty string.
 std::string executable_path() noexcept;
 
 std::string normalize_shm_name(std::string_view shmName) noexcept;
@@ -406,6 +411,40 @@ class BaseSharedMemory {
     std::string name_;
 };
 
+// MemoryRegistry
+//
+// Provides a thread-safe process-wide registry for tracking registered memory
+// objects (BaseSharedMemory) without owning them.
+//
+// The registry provides:
+//  - True insertion order through List
+//  - Average O(1) fast lookup, count and removal through IndexMap
+//  - Average O(1) fast membership validation through Set
+//  - Average O(1) fast registration and unregistration by maintaining all containers
+//
+// Key Features:
+//  - Thread-safe registration and unregistration
+//  - Deterministic iteration order
+//  - Average O(1) fast lookup, count and removal
+//  - Lightweight: stores raw pointers only; lifetime is managed externally
+//
+// Implementation:
+//  - List preserves true insertion order for deterministic iteration
+//  - IndexMap provides average O(1) lookup and maps each memory to its
+//    corresponding iterator in List
+//  - Set provides uniqueness and membership validation
+//
+// Concurrency Model:
+//  - Mutex protects all registry containers
+//  - Read-only access uses shared locking
+//  - Registration and unregistration use exclusive locking
+//
+// Usage:
+//  - Call 'register_memory()' after successful memory creation
+//  - Call 'unregister_memory()' before destruction
+//
+// Note:
+//  - The registry does not own or release registered memory objects.
 namespace MemoryRegistry {
 
 using Memory         = BaseSharedMemory*;
@@ -413,25 +452,80 @@ using MemoryList     = std::list<Memory>;
 using MemoryIndexMap = std::unordered_map<Memory, MemoryList::iterator>;
 using MemorySet      = std::unordered_set<Memory>;
 
+// Register a memory object in the registry.
+//
+// Returns false if:
+//  - memory is nullptr
+//  - the object is already registered
 bool register_memory(Memory memory) noexcept;
+
+// Unregister a memory object from the registry.
+//
+// Returns false if:
+//  - memory is nullptr
+//  - the object is not registered
 bool unregister_memory(Memory memory) noexcept;
 
+// Detach all registered memory objects from the registry.
+//
+// Returns the objects in true insertion order.
+//
+// All registry containers are cleared before the returned list is processed,
+// allowing callers to safely operate on the objects without holding 'Mutex'.
 MemoryList detach_memories() noexcept;
 
+// Returns the number of currently registered memory objects.
 usize size() noexcept;
+bool  empty() noexcept;
 
+// Prints the addresses and names of all registered memory objects
+// in true insertion order.
+//
+// The registry lock is held for the duration of the iteration and output.
 void print() noexcept;
 
 }  // namespace MemoryRegistry
 
+// MemoryCleanup
+//
+// Provides cleanup of all currently registered memory objects.
+//
+// Responsibilities:
+//  - Detach all registered memory objects from the registry
+//  - Release each detached memory object
+//
+// Note:
+//  - Registry management is handled by MemoryRegistry.
+//  - Process-exit hook installation is handled by MemoryCleanupHook.
+//  - Detached memory objects are released in registry insertion order.
 namespace MemoryCleanup {
 
+// Detaches and releases all currently registered memory objects in insertion order.
 void cleanup() noexcept;
 
 }  // namespace MemoryCleanup
 
+// MemoryCleanupHook
+//
+// Provides one-time installation of the memory cleanup handler for normal
+// program termination.
+//
+// Usage:
+//   Call MemoryCleanupHook::ensure_initialized() early in main().
+//
+// Key Features:
+//   - Uses HookCallOnce to ensure the cleanup handler is registered only once.
+//   - Retries initialization until the cleanup handler is successfully registered.
+//   - Registers MemoryCleanup::cleanup() with std::atexit().
+//   - Does not manage the registry or perform cleanup itself.
+//
+// Note:
+//   - The atexit() handler is guaranteed to be called only during normal program termination.
+//     It is not called after SIGKILL, abort(), or other abnormal/forced program termination.
 namespace MemoryCleanupHook {
 
+// Ensures the memory cleanup handler is successfully registered with std::atexit().
+// Initialization is retried until successful; subsequent calls return immediately.
 void ensure_initialized() noexcept;
 
 }  // namespace MemoryCleanupHook
@@ -508,10 +602,15 @@ void set_cloexec(const int fd) noexcept;
 
 UniqueFd create_unix_socket() noexcept;
 
+// Discover all peers in the shared dir
 Strings get_peer_sockets(const std::string& sharedDir) noexcept;
 
 UniqueFd try_receive_memfd(const std::string& sockPath) noexcept;
 
+// Server thread:
+//  - Forwards the file descriptor fd
+//  - Exits when shutdownFd is hung up on
+//  - Listens on serverFd
 std::thread make_server_thread(UniqueFd fd, UniqueFd shutdownFd, UniqueFd serverFd) noexcept;
 
 template<typename T>

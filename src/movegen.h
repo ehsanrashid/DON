@@ -37,6 +37,12 @@ enum class GenType : u8 {
     LEGAL
 };
 
+// <ENCOUNTER  > Generates all legal captures and non-captures moves
+// <ENC_CAPTURE> Generates all legal captures and promotions moves
+// <ENC_QUIET  > Generates all legal non-captures and castling moves
+// <EVASION    > Generates all legal check evasions moves
+// <EVA_CAPTURE> Generates all legal check evasions captures and promotions moves
+// <EVA_QUIET  > Generates all legal check evasions non-captures moves
 template<GenType GT, bool Any = false>
 Move* generate(const Position& pos, Move* RESTRICT moves) noexcept;
 

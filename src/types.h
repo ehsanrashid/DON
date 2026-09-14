@@ -639,31 +639,32 @@ constexpr CastlingRights make_cr(const Color c, const CastlingSide cs) noexcept 
     return CastlingRights(+cr << (c << 1));
 }
 
-// Move representation (16 bits)
-// Each move is compactly stored in a 16-bit unsigned integer.
+// Move representation (16 bits).
 //
-// Bit layout (from LSB to MSB):
-//  6-bits  0- 5 : Destination square (0-63)
-//  6-bits  6-11 : Origin square (0-63)
-//  2-bits 12-13 : Promotion piece type offset:
+// Each move is compactly encoded in a 16-bit unsigned integer.
+//
+// Bit layout (LSB to MSB):
+//  6 bits  0- 5 : Destination square (0-63)
+//  6 bits  6-11 : Origin square      (0-63)
+//  2 bits 12-13 : Promotion piece type:
 //                  KNIGHT = 0
 //                  BISHOP = 1
 //                  ROOK   = 2
 //                  QUEEN  = 3
-//  2-bits 14-15 : Move type flag:
+//  2 bits 14-15 : Move type:
 //                  NORMAL     = 0
 //                  PROMOTION  = 1
 //                  EN_PASSANT = 2
 //                  CASTLING   = 3
+//
 // Notes:
-// - En-passant flag is set only when a pawn can capture en-passant.
-// - Special moves Move::None and Move::Null are represented by having the same
-//   origin and destination squares, which is invalid for normal moves.
-//   This guarantees they never collide with any normal move.
-// - This compact encoding allows fast move generation, comparison, and storage.
+// - The en-passant type is used only when a pawn captures en-passant.
+// - Special Move::None and Move::Null use the same origin and destination squares,
+//   which are invalid for normal moves, so they cannot collide with a normal move.
+// - The compact encoding enables fast move generation, comparison, and storage.
 class Move {
    public:
-    enum class MT : u8 {
+    enum class Type : u8 {
         NORMAL,
         PROMOTION,
         EN_PASSANT,
@@ -682,7 +683,7 @@ class Move {
     Move() noexcept = default;
     constexpr explicit Move(const u16 d) noexcept :
         data(d) {}
-    constexpr Move(const Square orgSq, const Square dstSq, const MT mt = MT::NORMAL) noexcept :
+    constexpr Move(const Square orgSq, const Square dstSq, const Type mt = Type::NORMAL) noexcept :
         data((u16(mt) << TypeShift)        //
              | (u16(orgSq) << OrgSqShift)  //
              | (u16(dstSq) << DstSqShift)) {
@@ -690,7 +691,7 @@ class Move {
     }
 
     constexpr Move(const Square orgSq, const Square dstSq, const PieceType promoPt) noexcept :
-        data((u16(MT::PROMOTION) << TypeShift)        //
+        data((u16(Type::PROMOTION) << TypeShift)      //
              | (u16(promoPt - KNIGHT) << PromoShift)  //
              | (u16(orgSq) << OrgSqShift)             //
              | (u16(dstSq) << DstSqShift)) {
@@ -710,14 +711,16 @@ class Move {
         return Square((data >> DstSqShift) & SqMask);
     }
 
-    [[nodiscard]] constexpr MT type() const noexcept { return MT((data & TypeMask) >> TypeShift); }
+    [[nodiscard]] constexpr Type type() const noexcept {
+        return Type((data & TypeMask) >> TypeShift);
+    }
 
     [[nodiscard]] constexpr PieceType promotion_type() const noexcept {
         return PieceType(((data >> PromoShift) & PromoMask) + KNIGHT);
     }
 
     [[nodiscard]] constexpr Value promotion_value() const noexcept {
-        return type() == MT::PROMOTION  //
+        return type() == Type::PROMOTION  //
                ? piece_value(promotion_type()) - VALUE_PAWN
                : VALUE_ZERO;
     }
@@ -731,7 +734,7 @@ class Move {
     [[nodiscard]] constexpr bool is_ok() const noexcept { return data != 0x000 && data != 0xFFF; }
 
     [[nodiscard]] constexpr Move reverse() const noexcept {
-        assert(type() == MT::NORMAL);
+        assert(type() == Type::NORMAL);
 
         return Move{dst_sq(), org_sq()};
     }
@@ -748,7 +751,7 @@ class Move {
 inline constexpr Move Move::None{0x000};
 inline constexpr Move Move::Null{0xFFF};
 
-using MT = Move::MT;
+using MT = Move::Type;
 
 using Moves = std::vector<Move>;
 

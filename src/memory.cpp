@@ -57,10 +57,6 @@
 
 namespace DON {
 
-// Wrapper for systems where the c++17 implementation
-// does not guarantee the availability of aligned_alloc().
-// Memory allocated with alloc_aligned_std() must be freed with free_aligned_std().
-
 void* alloc_aligned_std(usize allocSize, const usize alignment) noexcept {
 
     // Treat zero-size requests as null for simplicity and to avoid UB in some allocators.
@@ -158,7 +154,6 @@ AllocationSizes HugePageSizes(alloc_aligned_huge_page, free_aligned_huge_page);
 
 }  // namespace
 
-// Allocate aligned memory with large-page support with hint
 void* alloc_aligned_large_page_with_hint(const usize                 allocSize,
                                          [[maybe_unused]] const bool hugePageHint) noexcept {
     void* mem;
@@ -228,13 +223,10 @@ void* alloc_aligned_large_page_with_hint(const usize                 allocSize,
     return mem;
 }
 
-// Allocate aligned memory with large-page support
 void* alloc_aligned_large_page(const usize allocSize) noexcept {
     return alloc_aligned_large_page_with_hint(allocSize, false);
 }
 
-// Free aligned large page
-// The effect is a nop if mem == nullptr
 bool free_aligned_large_page(void* const mem) noexcept {
     if (mem == nullptr)
         return true;
@@ -255,7 +247,6 @@ bool free_aligned_large_page(void* const mem) noexcept {
     return true;
 }
 
-// Check large page support
 bool has_large_page() noexcept {
 
 #if defined(_WIN32)

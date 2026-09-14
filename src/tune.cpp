@@ -41,6 +41,22 @@ std::optional<std::string> on_tune(const Option& option) noexcept {
 
 }  // namespace
 
+RangeSetter::RangeSetter(const RangeFun f) noexcept :
+    rangeFun(f) {}
+
+RangeSetter::RangeSetter(const int min, const int max) noexcept :
+    rangeFun(nullptr),
+    range(min, max) {}
+
+Range RangeSetter::operator()(const int v) const noexcept {
+    return rangeFun != nullptr ? rangeFun(v) : range;
+}
+
+Tune& Tune::instance() noexcept {
+    static Tune tune;
+    return tune;
+}
+
 std::string Tune::next(std::string& names, const bool pop) noexcept {
     std::string name;
 
@@ -53,12 +69,13 @@ std::string Tune::next(std::string& names, const bool pop) noexcept {
 
         name += rtrim(token);  // Remove trailing whitespace
 
-    } while (std::count(name.begin(), name.end(), '(') - std::count(name.begin(), name.end(), ')'));
+    } while (std::count(name.begin(), name.end(), '(') - std::count(name.begin(), name.end(), ')')
+             != 0);
 
     return name;
 }
 
-void Tune::make_option(Options*               optionsPtr,
+void Tune::make_option(Options* const         optionsPtr,
                        const std::string_view name,
                        int                    value,
                        const RangeSetter&     range) noexcept {
@@ -70,7 +87,8 @@ void Tune::make_option(Options*               optionsPtr,
         value = itr->second;
 
     optionsPtr->add(name, Option(value, range(value).first, range(value).second, on_tune));
-    LastOption = &((*optionsPtr)[name]);
+
+    LastOption = &(*optionsPtr)[name];
 
     // Print formatted parameters, ready to be copy-pasted in Fishtest
     std::cout << name << ','                                               //
@@ -81,8 +99,22 @@ void Tune::make_option(Options*               optionsPtr,
               << "0.0020" << std::endl;
 }
 
+void Tune::init(Options& options) noexcept {
+    OptionsPtr = &options;
+
+    for (auto& entry : instance().entries)
+        entry->init();
+
+    read_options();
+}
+
+void Tune::read_options() noexcept {
+    for (auto& entry : instance().entries)
+        entry->read_option();
+}
+
 template<>
-void Tune::Entry<int>::init_option() noexcept {
+void Tune::Entry<int>::init() noexcept {
     make_option(OptionsPtr, name, value, range);
 }
 
@@ -95,7 +127,7 @@ void Tune::Entry<int>::read_option() noexcept {
 
 // Instead of a variable here have a PostUpdate function: just call it
 template<>
-void Tune::Entry<Tune::PostUpdate>::init_option() noexcept {}
+void Tune::Entry<Tune::PostUpdate>::init() noexcept {}
 template<>
 void Tune::Entry<Tune::PostUpdate>::read_option() noexcept {
     value();

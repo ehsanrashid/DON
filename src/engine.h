@@ -45,8 +45,8 @@ class Engine final {
     explicit Engine(const std::filesystem::path& path = {}) noexcept;
     ~Engine() noexcept;
 
-    Options&       get_options() noexcept;
-    const Options& get_options() const noexcept;
+    Options&       options() noexcept;
+    const Options& options() const noexcept;
 
     std::string fen() const noexcept;
 
@@ -82,7 +82,6 @@ class Engine final {
 
     u16 hashfull(u8 maxAge = 0) const noexcept;
 
-    // (numaId, threadCount)
     bool set_numa_config(std::string_view str) noexcept;
 
     std::vector<std::pair<usize, usize>> bound_thread_counts() const noexcept;
@@ -93,6 +92,7 @@ class Engine final {
     std::string thread_allocation() const noexcept;
 
     // Network related
+
     std::unique_ptr<NNUE::Network> default_network() noexcept;
 
     void verify_network() const noexcept;
@@ -100,8 +100,12 @@ class Engine final {
     void load_network(const std::filesystem::path& networkFilePath) noexcept;
     void save_network(const std::filesystem::path& networkFilePath) const noexcept;
 
+    // Hash related
+
     bool load_hash(const std::filesystem::path& hashFile) noexcept;
     bool save_hash(const std::filesystem::path& hashFile) const noexcept;
+
+    // On update modifiers
 
     void set_on_update_start(Manager::OnUpdateStart&& f) noexcept;
     void set_on_update_short(Manager::OnUpdateShort&& f) noexcept;
@@ -111,6 +115,7 @@ class Engine final {
 
    private:
     // Cannot be movable due to components holding backreferences to fields
+
     Engine(const Engine&) noexcept            = delete;
     Engine& operator=(const Engine&) noexcept = delete;
     Engine(Engine&&) noexcept                 = delete;
@@ -121,12 +126,12 @@ class Engine final {
     NumaReplicationContext                      numaContext;
     NNUE::EvalFile                              networkFile;
     SystemWideLazyNumaReplicated<NNUE::Network> network;
-    Options                                     options;
+    Options                                     options_;
     Threads                                     threads;
     TranspositionTable                          transpositionTable;
     AtomicHistoriesMap                          atomicHistoriesMap;
 
-    SharedState sharedState{network, options, transpositionTable, threads, atomicHistoriesMap};
+    SharedState sharedState{network, options(), transpositionTable, threads, atomicHistoriesMap};
 
     StateListPtr states;
     Position     pos;

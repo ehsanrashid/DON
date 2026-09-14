@@ -19,28 +19,9 @@
 
 #include <algorithm>
 #include <cassert>
-#include <cstdlib>
 #include <iostream>
 
 namespace DON {
-
-usize CaseInsensitiveHash::operator()(std::string_view sv) const noexcept {
-    return std::hash<std::string_view>{}(lower_case(std::string{sv}));
-}
-
-bool CaseInsensitiveEqual::operator()(std::string_view sv1, std::string_view sv2) const noexcept {
-    return sv1.size() == sv2.size()
-        && std::equal(
-             sv1.begin(), sv1.end(), sv2.begin(), sv2.end(),
-             [](char ch1, char ch2) noexcept { return lower_case(ch1) == lower_case(ch2); });
-}
-
-bool CaseInsensitiveLess::operator()(std::string_view sv1, std::string_view sv2) const noexcept {
-    return std::lexicographical_compare(
-      sv1.begin(), sv1.end(), sv2.begin(), sv2.end(),
-      [](char ch1, char ch2) noexcept { return lower_case(ch1) < lower_case(ch2); });
-}
-
 
 Option::Option(OnChange&& f) noexcept :
     type(Type::BUTTON),
@@ -86,9 +67,6 @@ Option::operator std::string_view() const noexcept {
     return currentValue;
 }
 
-// Updates currentValue and triggers onChange() action.
-// It's up to the GUI to check for option's limit,
-// but could receive the new value from the user, so let's check the bounds anyway.
 void Option::operator=(std::string value) noexcept {
     assert(is_ok(type));
 
@@ -113,28 +91,31 @@ void Option::operator=(std::string value) noexcept {
 
     if (onChange)
     {
-        auto infoStr = onChange(*this);
+        const auto info = onChange(*this);
 
-        if (optionsPtr != nullptr && optionsPtr->infoCallback && infoStr)
-            optionsPtr->infoCallback(infoStr);
+        if (!info)
+            return;
+
+        if (optionsPtr != nullptr)
+            optionsPtr->on_info(info);
     }
 }
 
 std::ostream& operator<<(std::ostream& os, const Option& option) noexcept {
     os << "type " << Option::to_string(option.type);
 
-    if (option.type == OT::BUTTON)
+    if (option.type == Option::Type::BUTTON)
         return os;
 
     os << " default ";
-    if (option.type == OT::STRING && is_whitespace(option.defaultValue))
+    if (option.type == Option::Type::STRING && is_whitespace(option.defaultValue))
         os << EMPTY_STRING;
     else
         os << option.defaultValue;
 
-    if (option.type == OT::SPIN)
+    if (option.type == Option::Type::SPIN)
         os << " min " << option.minValue << " max " << option.maxValue;
-    else if (option.type == OT::COMBO)
+    else if (option.type == Option::Type::COMBO)
     {
         std::string varStr;
         varStr.reserve(16 * option.varSvs.size());
@@ -148,49 +129,118 @@ std::ostream& operator<<(std::ostream& os, const Option& option) noexcept {
     return os;
 }
 
-void Options::set_info_callback(InfoCallback&& iCallback) noexcept {
-    infoCallback = std::move(iCallback);
+auto Options::begin() noexcept { return list.begin(); }
+
+auto Options::end() noexcept { return list.end(); }
+
+auto Options::begin() const noexcept { return list.begin(); }
+
+auto Options::end() const noexcept { return list.end(); }
+
+usize Options::size() const noexcept { return list.size(); }
+
+bool Options::empty() const noexcept { return list.empty(); }
+
+bool Options::contains(const Set::const_iterator setItr) const noexcept {
+    return setItr != set.end();
 }
 
-// Add option and assigns idx in the correct insertion order
-void Options::add(std::string_view name, const Option& option) noexcept {
-    static u16 insertOrder = 0;
+bool Options::contains(const std::string_view name) const noexcept {
+    return contains(set.find(name));
+}
 
+usize Options::count(const std::string_view name) const noexcept { return indexMap.count(name); }
+
+auto Options::find(const std::string_view name) noexcept { return indexMap.find(name); }
+
+auto Options::find(const std::string_view name) const noexcept { return indexMap.find(name); }
+
+bool Options::add(const std::string_view name, const Option& option) noexcept {
+    // Already a member.
     if (contains(name))
     {
         std::cerr << "Option: '" << name << "' was already added!" << std::endl;
-        std::exit(EXIT_FAILURE);
+        return false;
     }
 
-    auto& o = options.emplace(name, option).first->second;
+    // Append the option in insertion order and obtain its iterator.
+    const auto listItr = list.emplace(list.end(), name, option);
+    assert(listItr != list.end());
 
-    o.idx        = insertOrder++;
-    o.optionsPtr = this;
+    // Associate the option with its owning Options object.
+    listItr->second.optionsPtr = this;
+
+    const std::string_view nameView = listItr->first;
+
+    // Associate the name with its corresponding list node.
+    [[maybe_unused]] const auto [indexMapItr, inserted] = indexMap.emplace(nameView, listItr);
+    // The initial membership check guarantees that the name is not already indexed.
+    assert(inserted);
+    assert(indexMapItr->second == listItr);
+
+    // Establish name membership after the ordered list and name index are updated.
+    [[maybe_unused]] const auto [setItr, registered] = set.emplace(nameView);
+    // The initial membership check guarantees that this insertion succeeds.
+    assert(registered);
+    assert(setItr != set.end());
+
+    return true;
 }
 
-void Options::set(std::string_view name, std::string_view value) noexcept {
-    if (contains(name))
-        options.at(name) = std::string{value};
+bool Options::remove(const std::string_view name) noexcept {
+    const auto setItr = set.find(name);
+
+    // Not a member.
+    if (!contains(setItr))
+        return false;
+
+    const auto indexMapItr = find(name);
+    // Set membership guarantees that the name is indexed.
+    assert(indexMapItr != indexMap.end());
+
+    // Retrieve the corresponding list node.
+    const auto listItr = indexMapItr->second;
+    // Verify the list node and its name.
+    assert(listItr != list.end());
+    assert(lower_case(std::string{listItr->first}) == lower_case(std::string{name}));
+
+    // Remove the membership entry.
+    set.erase(setItr);
+
+    // Remove the index entry.
+    indexMap.erase(indexMapItr);
+
+    // Remove the option from the ordered list.
+    list.erase(listItr);
+
+    return true;
+}
+
+void Options::setoption(const std::string_view name, const std::string_view value) noexcept {
+    const auto indexMapItr = find(name);
+
+    if (indexMapItr != indexMap.end())
+        indexMapItr->second->second = std::string{value};
     else
         std::cerr << "No such option: '" << name << "'" << std::endl;
 }
 
 const Option& Options::operator[](const std::string_view name) const noexcept {
-    assert(contains(name));
+    const auto indexMapItr = find(name);
+    assert(indexMapItr != indexMap.end());
 
-    return options.at(name);
+    return indexMapItr->second->second;
+}
+
+void Options::set_on_info(OnInfo&& f) noexcept { onInfo = std::move(f); }
+
+void Options::on_info(const Info info) const noexcept {
+    if (onInfo)
+        onInfo(info);
 }
 
 std::ostream& operator<<(std::ostream& os, const Options& options) noexcept {
-
-    std::vector<Options::Pair> sortedOptions(options.begin(), options.end());
-
-    std::sort(sortedOptions.begin(), sortedOptions.end(),
-              [](const Options::Pair& op1, const Options::Pair& op2) noexcept -> bool {
-                  return op1.second < op2.second;
-              });
-
-    for (const auto& [name, option] : sortedOptions)
+    for (const auto& [name, option] : options)
         os << "\noption name " << name << ' ' << option;
 
     return os;
