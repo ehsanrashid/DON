@@ -231,7 +231,8 @@ Worker::Worker(const ThreadContext&      threadCxt,
 void Worker::reset() noexcept {
     assert(thread_count() == threads.size());
 
-    // Each thread resets its NUMA-local range of history entries to prevent false sharing
+    // Each thread resets its NUMA-local range of the dynamically-sized atomic histories.
+    // The constant-size continuation history is initialized by thread 0 of each NUMA node.
 
     auto pawnHistoryRange =
       split_range(numa_id(), numa_thread_count(), atomicHistories.pawn_history_size());
@@ -247,15 +248,15 @@ void Worker::reset() noexcept {
                                                     correctionHistoryRange.end, -5);
     atomicHistories.non_pawn_correction_history().fill(correctionHistoryRange.beg,
                                                        correctionHistoryRange.end, -5);
+    if (numa_id() == 0)
+        for (bool inCheck : {false, true})
+            for (bool capture : {false, true})
+                for (auto& toPieceSqHist : atomicHistories.continuation_history()[inCheck][capture])
+                    for (auto& pieceSqHist : toPieceSqHist)
+                        pieceSqHist.fill(-586);
 
     captureHistory.fill(-742);
     quietHistory.fill(-5);
-
-    for (bool inCheck : {false, true})
-        for (bool capture : {false, true})
-            for (auto& toPieceSqHist : atomicHistories.continuation_history()[inCheck][capture])
-                for (auto& pieceSqHist : toPieceSqHist)
-                    pieceSqHist.fill(-586);
 
     for (auto& toPieceSqCorrHist : continuationCorrectionHistory)
         for (auto& pieceSqCorrHist : toPieceSqCorrHist)

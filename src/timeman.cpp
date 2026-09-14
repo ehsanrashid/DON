@@ -104,8 +104,9 @@ void TimeManager::init(
                   ? std::max<u8>(MTG_MAX - int(0.1 * std::max(moveNum         - 20     , 0)), MTG_MAX - 10)
                   : std::min<u8>(MTG_MAX + int(0.1 * std::max(limit.movesToGo - MTG_MAX, 0)), limit.movesToGo);
 
-    // If less than one second, gradually reduce mtg
-    if (mtg > 2 && ScaledTime < 1000 && clock.inc <= OverheadTime)
+    // If less than one second, gradually reduce mtg.
+    // In cyclic time controls keep the actual movestogo as horizon.
+    if (mtg > 2 && ScaledTime < 1000 && limit.movesToGo == 0)
         mtg = u8(std::max(0.05051 * ScaledTime, 2.0));
 
     // Make sure remainTime > 0 since use it as a divisor
