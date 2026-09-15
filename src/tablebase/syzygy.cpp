@@ -598,7 +598,7 @@ TBTable<T>::~TBTable() noexcept {
 template<TBType T>
 void* TBTable<T>::init(const Position& pos, const Key materialKey) noexcept {
     // Wait until initialization has completed.
-    while (!initCallOnce.once_init())
+    while (!initCallOnce.once_done())
     {
         initCallOnce([this, &pos, materialKey]() noexcept {
             // Pieces strings in decreasing order for each color, like ("KPP", "KR").

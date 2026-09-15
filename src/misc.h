@@ -614,13 +614,13 @@ struct CallOnce final {
     void operator()(Func&& callFn) {
         std::call_once(onceFlag, [this, callFunc = std::forward<Func>(callFn)]() mutable {
             std::move(callFunc)();  // Move into the call
-            onceInit.store(true, std::memory_order_release);
+            onceDone.store(true, std::memory_order_release);
         });
     }
 
     // Check if initialization has been completed.
-    [[nodiscard]] bool once_init() const noexcept {
-        return onceInit.load(std::memory_order_acquire);
+    [[nodiscard]] bool once_done() const noexcept {
+        return onceDone.load(std::memory_order_acquire);
     }
 
    private:
@@ -630,7 +630,7 @@ struct CallOnce final {
     CallOnce& operator=(CallOnce&&) noexcept      = delete;
 
     std::once_flag    onceFlag;
-    std::atomic<bool> onceInit{false};
+    std::atomic<bool> onceDone{false};
 };
 
 // OstreamMutexRegistry
@@ -1307,8 +1307,8 @@ template<typename Key, typename Value>
 class ConcurrentCache final {
    public:
     explicit ConcurrentCache(usize reserveCount = 1024, float maxLoadFactor = 0.75f) noexcept {
-        cacheMap.max_load_factor(max_load_factor(maxLoadFactor));
-        cacheMap.reserve(reserve_count(reserveCount));
+        valueMap.max_load_factor(max_load_factor(maxLoadFactor));
+        valueMap.reserve(reserve_count(reserveCount));
     }
 
     template<typename... Args>
@@ -1317,7 +1317,7 @@ class ConcurrentCache final {
         {
             std::shared_lock readLock(mutex);
 
-            if (auto itr = cacheMap.find(key); itr != cacheMap.end())
+            if (auto itr = valueMap.find(key); itr != valueMap.end())
                 return get_value(itr->second);
         }
 
@@ -1325,7 +1325,7 @@ class ConcurrentCache final {
         std::lock_guard writeLock(mutex);
 
         // Double-check after acquiring exclusive lock
-        auto [itr, inserted] = cacheMap.try_emplace(key);
+        auto [itr, inserted] = valueMap.try_emplace(key);
 
         if (inserted)
             // Inserted: construct the value
@@ -1365,7 +1365,7 @@ class ConcurrentCache final {
     }
 
     std::shared_mutex                     mutex;
-    std::unordered_map<Key, StorageValue> cacheMap;
+    std::unordered_map<Key, StorageValue> valueMap;
 };
 
 // Hash function based on public domain MurmurHash64A by Austin Appleby.

@@ -405,7 +405,7 @@ CallOnce HookCallOnce;
 }  // namespace
 
 void ensure_initialized() noexcept {
-    while (!HookCallOnce.once_init())
+    while (!HookCallOnce.once_done())
     {
         HookCallOnce([]() noexcept {
             //DEBUG_LOG("Initializing MemoryCleanupHook.");
