@@ -19,6 +19,7 @@
 
 #include <cstdlib>
 #include <iostream>
+#include <limits>
 
 namespace DON {
 
@@ -35,6 +36,343 @@ CpuIndex hardware_concurrency() noexcept {
 
     return concurrency;
 }
+
+#if defined(_WIN64)
+
+std::optional<CpuIndexSet> WindowsAffinity::combined_cpus() const noexcept {
+    // Both empty -> return std::nullopt
+    if (cpus[0].empty() && cpus[1].empty())
+        return std::nullopt;
+
+    if (cpus[0].empty())
+        return cpus[1];
+
+    if (cpus[1].empty())
+        return cpus[0];
+
+    // Both are non-empty -> compute intersection
+    const CpuIndexSet& smallerCpus = cpus[cpus[0].size() > cpus[1].size()];
+    const CpuIndexSet& largerCpus  = cpus[cpus[0].size() <= cpus[1].size()];
+
+    CpuIndexSet combinedCpus;
+    combinedCpus.reserve(smallerCpus.size());
+
+    for (const CpuIndex cpuId : smallerCpus)
+        if (largerCpus.find(cpuId) != largerCpus.end())
+            combinedCpus.insert(cpuId);
+
+    return combinedCpus;
+}
+
+bool WindowsAffinity::likely_use_cpus(const usize idx) const noexcept {
+    assert(idx < determinate.size() && idx < cpus.size());
+
+    return !determinate[idx] || !cpus[idx].empty();
+}
+
+std::pair<BOOL, std::vector<USHORT>> get_process_group_affinity() noexcept {
+    // GetProcessGroupAffinity requires the groupArray argument to be aligned to 4 bytes instead of just 2
+    constexpr usize MinAlignment           = alignof(USHORT);
+    constexpr usize GroupArrayMinAlignment = 4;
+    static_assert(GroupArrayMinAlignment >= MinAlignment);
+
+    constexpr usize AlignmentPadding = ceil_div(GroupArrayMinAlignment, MinAlignment);
+
+    constexpr usize MaxAttempt = 4;
+
+    USHORT requiredGroupCount = 1;
+
+    // The function should succeed the second time, but it may fail if the
+    // group affinity has changed between GetProcessGroupAffinity calls.
+    // In such case consider this a hard error, can't work with unstable affinities anyway.
+    for (usize attempt = 0; attempt < MaxAttempt; ++attempt)
+    {
+        auto groupArray = std::make_unique<USHORT[]>(requiredGroupCount + AlignmentPadding);
+
+        USHORT* alignedGroupArray = align_ptr_up<GroupArrayMinAlignment>(groupArray.get());
+
+        USHORT groupCount = requiredGroupCount;
+
+        if (GetProcessGroupAffinity(GetCurrentProcess(), &groupCount, alignedGroupArray) == TRUE)
+            return {TRUE, std::vector<USHORT>(alignedGroupArray, alignedGroupArray + groupCount)};
+        else if (GetLastError() != ERROR_INSUFFICIENT_BUFFER)
+            break;
+
+        // Windows tells us the correct size
+        requiredGroupCount = groupCount;
+    }
+
+    return {FALSE, {}};
+}
+
+WindowsAffinity get_process_affinity() noexcept {
+
+    HMODULE hModule = GetModuleHandle(KERNEL_MODULE_NAME);
+
+    auto getThreadSelectedCpuSetMasks = GetThreadSelectedCpuSetMasks_(
+      (void (*)()) GetProcAddress(hModule, "GetThreadSelectedCpuSetMasks"));
+
+    WindowsAffinity winAffinity;
+
+    BOOL status;
+
+    if (getThreadSelectedCpuSetMasks != nullptr)
+    {
+        USHORT requiredMaskCount;
+
+        status = getThreadSelectedCpuSetMasks(GetCurrentThread(), nullptr, 0, &requiredMaskCount);
+
+        // Expect ERROR_INSUFFICIENT_BUFFER from GetThreadSelectedCpuSetMasks, but other failure is an actual error
+        if (status == FALSE && GetLastError() != ERROR_INSUFFICIENT_BUFFER)
+        {
+            winAffinity.determinate[1] = false;
+        }
+        else if (requiredMaskCount > 0)
+        {
+            // If requiredMaskCount then these affinities were never set, but it's not consistent
+            // so GetProcessAffinityMask may still return some affinity.
+            auto groupAffinities = std::make_unique<GROUP_AFFINITY[]>(requiredMaskCount);
+
+            status = getThreadSelectedCpuSetMasks(GetCurrentThread(), groupAffinities.get(),
+                                                  requiredMaskCount, &requiredMaskCount);
+
+            if (status == FALSE)
+                winAffinity.determinate[1] = false;
+            else
+            {
+                CpuIndexSet cpus;
+
+                for (USHORT i = 0; i < requiredMaskCount; ++i)
+                {
+                    const WORD      groupId   = groupAffinities[i].Group;
+                    const KAFFINITY groupMask = groupAffinities[i].Mask;
+
+                    if (groupMask != 0)
+                        for (u16 number = 0; number < WIN_PROCESSOR_GROUP_SIZE; ++number)
+                            if ((groupMask & bit(u8(number))) != 0)
+                            {
+                                const CpuIndex cpuId = groupId * WIN_PROCESSOR_GROUP_SIZE + number;
+
+                                cpus.insert(cpuId);
+                            }
+                }
+
+                winAffinity.cpus[1] = std::move(cpus);
+            }
+        }
+    }
+
+    // NOTE: There is no way to determine full affinity using the old API
+    //       if individual threads set affinity on different processor groups.
+    DWORD_PTR procMask, sysMask;
+
+    status = GetProcessAffinityMask(GetCurrentProcess(), &procMask, &sysMask);
+    // If procMask == 0 then cannot determine affinity because it spans processor groups.
+    // On Windows 11 and Server 2022 it will instead
+    //     > If, however, hHandle specifies a handle to the current process, the function
+    //     > always uses the calling thread's primary group (which by default is the same
+    //     > as the process' primary group) in order to set the
+    //     > lpProcessAffinityMask and lpSystemAffinityMask.
+    // So it will never be indeterminate here. Can only make assumptions later.
+    if (status == FALSE || procMask == 0)
+    {
+        winAffinity.determinate[0] = false;
+
+        return winAffinity;
+    }
+
+    // If SetProcessAffinityMask was never called the affinity must span
+    // all processor groups, but if it was called it must only span one.
+    std::vector<USHORT> procGroupAffinity;  // Need to capture this later
+
+    std::tie(status, procGroupAffinity) = get_process_group_affinity();
+
+    if (status == FALSE)
+    {
+        winAffinity.determinate[0] = false;
+
+        return winAffinity;
+    }
+
+    if (procGroupAffinity.size() == 1)
+    {
+        // Detect the case when affinity is set to all processors and correctly leave affinity.cpus[0] as nullopt.
+        if (GetActiveProcessorGroupCount() != 1 || procMask != sysMask)
+        {
+            CpuIndexSet cpus;
+
+            if (procMask != 0)
+            {
+                const WORD      groupId   = procGroupAffinity[0];
+                const KAFFINITY groupMask = procMask;
+
+                for (u16 number = 0; number < WIN_PROCESSOR_GROUP_SIZE; ++number)
+                    if ((groupMask & bit(u8(number))) != 0)
+                    {
+                        const CpuIndex cpuId = groupId * WIN_PROCESSOR_GROUP_SIZE + number;
+
+                        cpus.insert(cpuId);
+                    }
+            }
+
+            winAffinity.cpus[0] = std::move(cpus);
+        }
+    }
+    else
+    {
+        // If got here it means that either SetProcessAffinityMask was never set
+        // or on Windows 11/Server 2022.
+
+        // Since Windows 11 and Windows Server 2022 the behavior of
+        // GetProcessAffinityMask changed:
+        //     > If, however, hHandle specifies a handle to the current process,
+        //     > the function always uses the calling thread's primary group
+        //     > (which by default is the same as the process' primary group)
+        //     > in order to set the lpProcessAffinityMask and lpSystemAffinityMask.
+        // In which case can actually retrieve the full affinity.
+        if (getThreadSelectedCpuSetMasks != nullptr)
+        {
+            std::thread th([&winAffinity, &procGroupAffinity]() noexcept {
+                CpuIndexSet cpus;
+
+                bool fullAffinity = true;
+
+                for (WORD groupId : procGroupAffinity)
+                {
+                    const DWORD ActiveProcCount = GetActiveProcessorCount(groupId);
+
+                    // Have to schedule to 2 different processors and the affinities.
+                    // Otherwise processor choice could influence the resulting affinity.
+                    // Assume the processor IDs within the group are filled sequentially from 0.
+                    DWORD_PTR combinedProcMask = std::numeric_limits<DWORD_PTR>::max();
+                    DWORD_PTR combinedSysMask  = std::numeric_limits<DWORD_PTR>::max();
+
+                    for (DWORD i = 0; i < std::min(ActiveProcCount, DWORD(2)); ++i)
+                    {
+                        GROUP_AFFINITY groupAffinity;
+                        std::memset(&groupAffinity, 0, sizeof(groupAffinity));
+
+                        groupAffinity.Group = groupId;
+                        groupAffinity.Mask  = bit(u8(i));
+
+                        if (SetThreadGroupAffinity(GetCurrentThread(), &groupAffinity, nullptr)
+                            == FALSE)
+                        {
+                            winAffinity.determinate[0] = false;
+
+                            return;
+                        }
+
+                        SwitchToThread();
+
+                        DWORD_PTR thProcMask, thSysMask;
+
+                        if (GetProcessAffinityMask(GetCurrentProcess(), &thProcMask, &thSysMask)
+                            == FALSE)
+                        {
+                            winAffinity.determinate[0] = false;
+
+                            return;
+                        }
+
+                        combinedProcMask &= thProcMask;
+                        combinedSysMask &= thSysMask;
+                    }
+
+                    if (combinedProcMask != combinedSysMask)
+                        fullAffinity = false;
+
+                    if (combinedProcMask != 0)
+                        for (u16 number = 0; number < WIN_PROCESSOR_GROUP_SIZE; ++number)
+                            if ((combinedProcMask & bit(u8(number))) != 0)
+                            {
+                                const CpuIndex cpuId = groupId * WIN_PROCESSOR_GROUP_SIZE + number;
+
+                                cpus.insert(cpuId);
+                            }
+                }
+
+                // Have to detect the case where the affinity was not set, or
+                // is set to all processors so that correctly produce as std::nullopt result.
+                if (!fullAffinity)
+                    winAffinity.cpus[0] = std::move(cpus);
+            });
+
+            th.join();
+        }
+    }
+
+    return winAffinity;
+}
+
+#elif defined(USE_UNIX_NUMA)
+
+CpuIndexSet get_process_affinity() noexcept {
+
+    CpuIndexSet cpus;
+
+    // For unsupported systems, or in case of a soft error,
+    // may assume all processors are available for use.
+    auto set_to_all_cpus = [&cpus]() noexcept {
+        // Ensure empty first
+        cpus.clear();
+        cpus.reserve(SYSTEM_THREAD_MAX);
+
+        // Bulk insert using vector
+        CpuIndexVec rangeCpus(SYSTEM_THREAD_MAX);
+        // fill 0, 1, 2, ..., SYSTEM_THREAD_MAX-1
+        std::iota(rangeCpus.begin(), rangeCpus.end(), 0);
+
+        cpus.insert(rangeCpus.begin(), rangeCpus.end());
+    };
+
+    // cpu_set_t by default holds 1024 entries. This may not be enough soon,
+    // but there is no easy way to determine how many threads there actually is.
+    // In this case just choose a reasonable upper bound.
+    constexpr CpuIndex MaxCpuCount = 64 * KB - 1;
+
+    cpu_set_t* const cpuMask = CPU_ALLOC(MaxCpuCount);
+
+    if (cpuMask == nullptr)
+    {
+        set_to_all_cpus();
+
+        return cpus;
+    }
+
+    const usize maskSize = CPU_ALLOC_SIZE(MaxCpuCount);
+
+    CPU_ZERO_S(maskSize, cpuMask);
+
+    if (sched_getaffinity(0, maskSize, cpuMask) != 0)
+    {
+        CPU_FREE(cpuMask);
+
+        set_to_all_cpus();
+
+        return cpus;
+    }
+
+    cpus.reserve(MaxCpuCount);
+
+    for (CpuIndex cpuId = 0; cpuId < MaxCpuCount; ++cpuId)
+        if (CPU_ISSET_S(cpuId, maskSize, cpuMask))
+            cpus.insert(cpuId);
+
+    CPU_FREE(cpuMask);
+
+    return cpus;
+}
+
+#endif
+
+NumaReplicatedAccessToken::NumaReplicatedAccessToken() noexcept :
+    NumaReplicatedAccessToken(0) {}
+
+NumaReplicatedAccessToken::NumaReplicatedAccessToken(const NumaIndex numaIdx) noexcept :
+    numaId(numaIdx) {}
+
+NumaIndex NumaReplicatedAccessToken::numa_id() const noexcept { return numaId; }
 
 CpuIndexVec shortened_string_to_cpus(const std::string_view str) noexcept {
     CpuIndexVec cpus;
