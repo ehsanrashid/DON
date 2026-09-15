@@ -602,8 +602,8 @@ NumaConfig NumaConfig::from_l3_domain(const std::vector<L3Domain> l3Domains,
     return numaCfg;
 }
 
-void NumaConfig::resize_numa_node(const NumaIndex newNumaId) noexcept {
-    const NumaIndex oldNumaId = nodes_size();
+void NumaConfig::resize_numa_node(const usize newNumaId) noexcept {
+    const auto oldNumaId = nodes_size();
 
     if (oldNumaId <= newNumaId)
         nodes.resize(newNumaId + 1);  // default-construct missing elements

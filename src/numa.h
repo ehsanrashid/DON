@@ -809,7 +809,7 @@ class NumaConfig final {
 
     static NumaConfig from_l3_domain(std::vector<L3Domain> l3Domains, usize bundleSize) noexcept;
 
-    void resize_numa_node(NumaIndex newNumaId) noexcept;
+    void resize_numa_node(usize newNumaId) noexcept;
 
     void add_numa_node_cpu(NumaIndex numaId, CpuIndex cpuId) noexcept;
 
