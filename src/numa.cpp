@@ -295,46 +295,45 @@ std::string NumaConfig::to_string() const noexcept {
     for (const auto& node : nodes)
         cpuCount += node.size();
 
-    std::string numaCfg;
-    numaCfg.reserve(6 * cpuCount);
+    std::string numaStr;
+    // Reserve enough space for the CPU indices and separators
+    numaStr.reserve(6 * cpuCount);
 
-    bool nodeFirst = true;
-
-    for (const auto& node : nodes)
+    for (auto nodeItr = nodes.begin(); nodeItr != nodes.end(); ++nodeItr)
     {
+        const auto& node = *nodeItr;
         assert(!node.empty());
 
-        if (!nodeFirst)
-            numaCfg.push_back(':');
+        // Separate NUMA nodes with ':'
+        if (nodeItr != nodes.begin())
+            numaStr.push_back(':');
 
-        nodeFirst = false;
-
-        bool cpuFirst = true;
-
-        for (auto itr = node.begin(); itr != node.end();)
+        for (auto cpusItr = node.begin(); cpusItr != node.end();)
         {
-            const CpuIndex rangeBeg = *itr;
+            const auto rangeItr = cpusItr;
+
+            const CpuIndex rangeBeg = *cpusItr;
             CpuIndex       rangeEnd = rangeBeg;
 
-            for (++itr; itr != node.end() && *itr == rangeEnd + 1; ++itr)
+            // Combine consecutive CPU indices into a range
+            for (++cpusItr; cpusItr != node.end() && *cpusItr == rangeEnd + 1; ++cpusItr)
                 ++rangeEnd;
 
-            if (!cpuFirst)
-                numaCfg.push_back(',');
+            // Separate CPUs within a NUMA node with ','
+            if (rangeItr != node.begin())
+                numaStr.push_back(',');
 
-            cpuFirst = false;
-
-            numaCfg.append(std::to_string(rangeBeg));
+            numaStr.append(std::to_string(rangeBeg));
 
             if (rangeBeg != rangeEnd)
             {
-                numaCfg.push_back('-');
-                numaCfg.append(std::to_string(rangeEnd));
+                numaStr.push_back('-');
+                numaStr.append(std::to_string(rangeEnd));
             }
         }
     }
 
-    return numaCfg;
+    return numaStr;
 }
 
 bool NumaConfig::suggests_binding_threads(const u16 threadCount) const noexcept {
@@ -616,8 +615,9 @@ void NumaConfig::add_numa_node(const NumaIndex numaId, const CpuIndex cpuId) noe
         cpus.push_back(cpuId);
     else
     {
-        const auto itr = std::lower_bound(cpus.begin(), cpus.end(), cpuId);
-        cpus.insert(itr, cpuId);
+        const auto cpusItr = std::lower_bound(cpus.begin(), cpus.end(), cpuId);
+        assert(cpusItr == cpus.end() || *cpusItr != cpuId);
+        cpus.insert(cpusItr, cpuId);
     }
 
     add_numa_node_cpu(numaId, cpuId);
