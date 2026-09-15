@@ -409,7 +409,8 @@ class NumaConfig final {
 
         DWORD bufSize = 0;
 
-        ::GetLogicalProcessorInformationEx(RelationCache, nullptr, &bufSize);
+        ::GetLogicalProcessorInformationEx(LOGICAL_PROCESSOR_RELATIONSHIP::RelationCache, nullptr,
+                                           &bufSize);
 
         if (::GetLastError() != ERROR_INSUFFICIENT_BUFFER)
             return std::nullopt;
@@ -419,14 +420,16 @@ class NumaConfig final {
         auto* processorInfo =
           reinterpret_cast<SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*>(buffer.data());
 
-        if (!::GetLogicalProcessorInformationEx(RelationCache, processorInfo, &bufSize))
+        if (!::GetLogicalProcessorInformationEx(LOGICAL_PROCESSOR_RELATIONSHIP::RelationCache,
+                                                processorInfo, &bufSize))
             return std::nullopt;
 
         while (reinterpret_cast<char*>(processorInfo) < buffer.data() + bufSize)
         {
             processorInfo = std::launder(processorInfo);
 
-            if (processorInfo->Relationship == RelationCache && processorInfo->Cache.Level == 3)
+            if (processorInfo->Relationship == LOGICAL_PROCESSOR_RELATIONSHIP::RelationCache
+                && processorInfo->Cache.Level == BYTE(3))
             {
                 L3Domain l3Domain{};
 
