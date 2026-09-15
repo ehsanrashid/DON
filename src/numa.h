@@ -204,7 +204,7 @@ struct BundledL3Policy {
 // Automatically select the NUMA policy
 using AutoNumaPolicy = std::variant<SystemNumaPolicy, L3DomainsPolicy, BundledL3Policy>;
 
-CpuIndexVec parse_to_cpus(std::string_view str) noexcept;
+CpuIndexVec parse_to_cpus(std::string_view nodeSv) noexcept;
 
 // Designed as immutable, because there is no good reason to alter an already
 // existing config in a way that doesn't require recreating it completely, and
@@ -340,37 +340,37 @@ class NumaConfig final {
         bool useFallback = false;
 
         // /sys/devices/system/node/online contains information about active NUMA nodes
-        auto nodeIdStr = read_file_to_string("/sys/devices/system/node/online");
+        auto nodeStr = read_file_to_string("/sys/devices/system/node/online");
 
-        if (!nodeIdStr || nodeIdStr->empty())
+        if (!nodeStr || nodeStr->empty())
         {
             useFallback = true;
         }
         else
         {
-            *nodeIdStr = remove_whitespace(*nodeIdStr);
+            *nodeStr = remove_whitespace(*nodeStr);
 
-            for (const NumaIndex nodeId : shortened_string_to_cpus(*nodeIdStr))
+            for (const NumaIndex nodeId : parse_to_cpus(*nodeStr))
             {
                 // /sys/devices/system/node/node.../cpulist
                 const std::string path = std::string{"/sys/devices/system/node/node"}
                                        + std::to_string(nodeId) + "/cpulist";
 
-                auto cpuIdsStr = read_file_to_string(path);
+                auto cpusStr = read_file_to_string(path);
 
                 // Now, only bail if the file does not exist. Some nodes may be
                 // empty, that's fine. An empty node still has a file that appears
                 // to have some whitespace, so need to handle that.
-                if (!cpuIdsStr)
+                if (!cpusStr)
                 {
                     useFallback = true;
                     break;
                 }
                 else
                 {
-                    *cpuIdsStr = remove_whitespace(*cpuIdsStr);
+                    *cpusStr = remove_whitespace(*cpusStr);
 
-                    for (CpuIndex cpuId : shortened_string_to_cpus(*cpuIdsStr))
+                    for (const CpuIndex cpuId : parse_to_cpus(*cpusStr))
                         if (is_cpu_allowed(cpuId))
                             numaCfg.add_cpu_to_node(nodeId, cpuId);
                 }
@@ -450,14 +450,16 @@ class NumaConfig final {
             const std::string path = std::string{"/sys/devices/system/cpu/cpu"}
                                    + std::to_string(nextCpuId) + "/cache/index3/shared_cpu_list";
 
-            const auto cpuIdsStr = read_file_to_string(path);
+            auto cpusStr = read_file_to_string(path);
 
-            if (!cpuIdsStr || cpuIdsStr->empty())
+            if (!cpusStr || cpusStr->empty())
                 continue;
+
+            *cpusStr = remove_whitespace(*cpusStr);
 
             L3Domain l3Domain{};
 
-            for (const CpuIndex cpuId : shortened_string_to_cpus(*cpuIdsStr))
+            for (const CpuIndex cpuId : parse_to_cpus(*cpusStr))
             {
                 if (is_cpu_allowed(cpuId))
                 {
