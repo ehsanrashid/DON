@@ -292,12 +292,12 @@ bool NumaConfig::requires_memory_replication() const noexcept {
 }
 
 std::string NumaConfig::to_string() const noexcept {
+    std::string numaStr;
+    // Reserve enough space for the CPU indices and separators
     usize cpuCount = 0;
     for (const auto& node : nodes)
         cpuCount += node.size();
 
-    std::string numaStr;
-    // Reserve enough space for the CPU indices and separators
     numaStr.reserve(6 * cpuCount);
 
     for (auto nodeItr = nodes.begin(); nodeItr != nodes.end(); ++nodeItr)
