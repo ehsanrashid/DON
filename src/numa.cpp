@@ -302,9 +302,7 @@ std::string NumaConfig::to_string() const noexcept {
 
     for (const auto& node : nodes)
     {
-        // Skip empty nodes
-        if (node.empty())
-            continue;
+        assert(!node.empty());
 
         if (!nodeFirst)
             numaCfg.push_back(':');
@@ -318,12 +316,8 @@ std::string NumaConfig::to_string() const noexcept {
             const CpuIndex rangeBeg = *itr;
             CpuIndex       rangeEnd = rangeBeg;
 
-            ++itr;
-            while (itr != node.end() && *itr == rangeEnd + 1)
-            {
+            for (++itr; itr != node.end() && *itr == rangeEnd + 1; ++itr)
                 ++rangeEnd;
-                ++itr;
-            }
 
             if (!cpuFirst)
                 numaCfg.push_back(',');
