@@ -38,17 +38,8 @@
 #endif
 
 #if defined(_WIN64)
-    #include <cstring>
     #include <type_traits>
-
-    #include "platform_win.h"
-
 #elif defined(USE_UNIX_NUMA)
-    #if !defined(_GNU_SOURCE)
-        #define _GNU_SOURCE
-    #endif
-    #include <sched.h>
-    #include <numeric>  // iota()
 #endif
 
 #include "misc.h"

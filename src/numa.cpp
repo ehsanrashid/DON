@@ -21,6 +21,15 @@
 #include <iostream>
 #include <limits>
 
+#if defined(_WIN64)
+    #include <cstring>
+#elif defined(USE_UNIX_NUMA)
+    #if !defined(_GNU_SOURCE)
+        #define _GNU_SOURCE
+    #endif
+    #include <sched.h>  // CPU_FREE(), sched_getaffinity(), sched_setaffinity()
+#endif
+
 namespace DON {
 
 CpuIndex hardware_concurrency() noexcept {
@@ -39,6 +48,24 @@ CpuIndex hardware_concurrency() noexcept {
 
 #if defined(_WIN64)
 
+namespace {
+
+CpuIndexSet intersect_cpu_sets(const CpuIndexSet& cpus1, const CpuIndexSet& cpus2) noexcept {
+    const CpuIndexSet& smalerCpus = cpus1.size() <= cpus2.size() ? cpus1 : cpus2;
+    const CpuIndexSet& largerCpus = cpus1.size() <= cpus2.size() ? cpus2 : cpus1;
+
+    CpuIndexSet intersectCpus;
+    intersectCpus.reserve(smalerCpus.size());
+
+    for (const CpuIndex cpuId : smalerCpus)
+        if (largerCpus.find(cpuId) != largerCpus.end())
+            intersectCpus.insert(cpuId);
+
+    return intersectCpus;
+}
+
+}  // namespace
+
 std::optional<CpuIndexSet> WindowsAffinity::combined_cpus() const noexcept {
     // Both empty -> return std::nullopt
     if (cpus[0].empty() && cpus[1].empty())
@@ -51,17 +78,7 @@ std::optional<CpuIndexSet> WindowsAffinity::combined_cpus() const noexcept {
         return cpus[0];
 
     // Both are non-empty -> compute intersection
-    const CpuIndexSet& smallerCpus = cpus[cpus[0].size() > cpus[1].size()];
-    const CpuIndexSet& largerCpus  = cpus[cpus[0].size() <= cpus[1].size()];
-
-    CpuIndexSet combinedCpus;
-    combinedCpus.reserve(smallerCpus.size());
-
-    for (const CpuIndex cpuId : smallerCpus)
-        if (largerCpus.find(cpuId) != largerCpus.end())
-            combinedCpus.insert(cpuId);
-
-    return combinedCpus;
+    return intersect_cpu_sets(cpus[0], cpus[1]);
 }
 
 bool WindowsAffinity::likely_use_cpus(const usize idx) const noexcept {
@@ -312,18 +329,14 @@ CpuIndexSet get_process_affinity() noexcept {
     CpuIndexSet cpus;
 
     // For unsupported systems, or in case of a soft error,
-    // may assume all processors are available for use.
-    auto set_to_all_cpus = [&cpus]() noexcept {
-        // Ensure empty first
+    // assume all processors are available for use.
+    const auto set_to_all_cpus = [&cpus]() noexcept {
         cpus.clear();
         cpus.reserve(SYSTEM_THREAD_MAX);
 
-        // Bulk insert using vector
-        CpuIndexVec rangeCpus(SYSTEM_THREAD_MAX);
-        // fill 0, 1, 2, ..., SYSTEM_THREAD_MAX-1
-        std::iota(rangeCpus.begin(), rangeCpus.end(), 0);
-
-        cpus.insert(rangeCpus.begin(), rangeCpus.end());
+        // Fill 0, 1, 2, ..., SYSTEM_THREAD_MAX - 1.
+        for (CpuIndex cpuId = 0; cpuId < SYSTEM_THREAD_MAX; ++cpuId)
+            cpus.insert(cpuId);
     };
 
     // cpu_set_t by default holds 1024 entries. This may not be enough soon,
@@ -344,8 +357,10 @@ CpuIndexSet get_process_affinity() noexcept {
 
     CPU_ZERO_S(maskSize, cpuMask);
 
-    if (sched_getaffinity(0, maskSize, cpuMask) != 0)
+    if (::sched_getaffinity(0, maskSize, cpuMask) != 0)
     {
+        //DEBUG_LOG("::sched_getaffinity() failed");
+
         CPU_FREE(cpuMask);
 
         set_to_all_cpus();
@@ -872,9 +887,10 @@ NumaConfig::bind_current_thread_to_numa_node(const NumaIndex numaId) const noexc
 
     if (::sched_setaffinity(0, maskSize, cpuMask) != 0)
     {
-        DEBUG_LOG("::sched_setaffinity() failed");
+        //DEBUG_LOG("::sched_setaffinity() failed");
 
         CPU_FREE(cpuMask);
+
         std::exit(EXIT_FAILURE);
     }
 
