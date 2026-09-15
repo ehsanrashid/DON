@@ -204,7 +204,7 @@ struct BundledL3Policy {
 // Automatically select the NUMA policy
 using AutoNumaPolicy = std::variant<SystemNumaPolicy, L3DomainsPolicy, BundledL3Policy>;
 
-CpuIndexVec parse_to_cpus(std::string_view nodeSv) noexcept;
+CpuIndexVec parse_to_cpus(std::string_view sv) noexcept;
 
 // Designed as immutable, because there is no good reason to alter an already
 // existing config in a way that doesn't require recreating it completely, and
@@ -497,6 +497,7 @@ class NumaConfig final {
     // i.e. when any of the cpus is already present strong guarantee, the structure remains unmodified.
     bool add_cpu_range_to_node(NumaIndex numaId, CpuIndex cpuIdBeg, CpuIndex cpuIdEnd) noexcept;
 
+    // Removes empty NUMA nodes and rebuilds CPU-to-NUMA mappings.
     void remove_empty_numa_nodes() noexcept;
 
     std::vector<CpuIndexVec>                nodes;

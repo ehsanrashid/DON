@@ -57,7 +57,7 @@ CpuIndexSet intersect_cpus(const CpuIndexSet& cpus1, const CpuIndexSet& cpus2) n
     CpuIndexSet intersectCpus;
     intersectCpus.reserve(smalerCpus.size());
 
-    for (const CpuIndex cpuId : smalerCpus)
+    for (const auto cpuId : smalerCpus)
         if (largerCpus.find(cpuId) != largerCpus.end())
             intersectCpus.insert(cpuId);
 
@@ -344,7 +344,7 @@ CpuIndexSet get_process_affinity() noexcept {
     // In this case just choose a reasonable upper bound.
     constexpr CpuIndex MaxCpuCount = 64 * KB - 1;
 
-    cpu_set_t* const cpusMask = CPU_ALLOC(MaxCpuCount);
+    cpu_set_t* const cpusMask = ::CPU_ALLOC(MaxCpuCount);
 
     if (cpusMask == nullptr)
     {
@@ -353,9 +353,9 @@ CpuIndexSet get_process_affinity() noexcept {
         return cpus;
     }
 
-    const auto free_cpus_mask = [&cpusMask]() noexcept { CPU_FREE(cpusMask); };
+    const auto free_cpus_mask = [&cpusMask]() noexcept { ::CPU_FREE(cpusMask); };
 
-    const usize maskSize = CPU_ALLOC_SIZE(MaxCpuCount);
+    const usize maskSize = ::CPU_ALLOC_SIZE(MaxCpuCount);
 
     CPU_ZERO_S(maskSize, cpusMask);
 
@@ -391,13 +391,13 @@ NumaReplicatedAccessToken::NumaReplicatedAccessToken(const NumaIndex numaIdx) no
 
 NumaIndex NumaReplicatedAccessToken::numa_id() const noexcept { return numaId; }
 
-CpuIndexVec parse_to_cpus(const std::string_view nodeSv) noexcept {
+CpuIndexVec parse_to_cpus(const std::string_view sv) noexcept {
     CpuIndexVec cpus;
 
-    if (is_whitespace(nodeSv))
+    if (is_whitespace(sv))
         return cpus;
 
-    for (const auto cpusSv : split(nodeSv, ",", true))
+    for (const auto cpusSv : split(sv, ",", true))
     {
         if (is_whitespace(cpusSv))
             continue;
@@ -535,7 +535,7 @@ NumaConfig NumaConfig::from_system([[maybe_unused]] const AutoNumaPolicy& numaPo
 
             WORD lstGroupId = static_cast<WORD>(*cpus.begin() / WIN_PROCESSOR_GROUP_SIZE);
 
-            for (CpuIndex cpuId : cpus)
+            for (const auto cpuId : cpus)
             {
                 const WORD groupId = static_cast<WORD>(cpuId / WIN_PROCESSOR_GROUP_SIZE);
 
@@ -578,14 +578,14 @@ std::optional<NumaConfig> NumaConfig::from_string(const std::string_view sv) noe
 
     NumaIndex numaId = 0;
 
-    for (const auto& nodeSv : split(sv, ":"))
+    for (const auto nodeSv : split(sv, ":"))
     {
         const auto cpus = parse_to_cpus(nodeSv);
 
         if (cpus.empty())
             continue;
 
-        for (const CpuIndex cpuId : cpus)
+        for (const auto cpuId : cpus)
             if (!numaCfg.add_cpu_to_node(numaId, cpuId))
             {
                 std::cerr << "NumaConfig parse error in segment '" << nodeSv  //
@@ -798,7 +798,7 @@ NumaConfig::bind_current_thread_to_numa_node(const NumaIndex numaId) const noexc
     HMODULE hModule = GetModuleHandle(KERNEL_MODULE_NAME);
 
     auto setThreadSelectedCpuSetMasks = SetThreadSelectedCpuSetMasks_(
-      (void (*)()) GetProcAddress(hModule, "SetThreadSelectedCpuSetMasks"));
+      (void (*)())::GetProcAddress(hModule, "SetThreadSelectedCpuSetMasks"));
 
     // ALWAYS set affinity with the new API if available,
     // because there's no downsides, and forcibly keep it consistent with
@@ -816,7 +816,7 @@ NumaConfig::bind_current_thread_to_numa_node(const NumaIndex numaId) const noexc
         for (WORD i = 0; i < procGroupCount; ++i)
             groupAffinities[i].Group = i;
 
-        for (const CpuIndex cpuId : node_cpus(numaId))
+        for (const auto cpuId : node_cpus(numaId))
         {
             const WORD groupId       = static_cast<WORD>(cpuId / WIN_PROCESSOR_GROUP_SIZE);
             const BYTE inProcGroupId = static_cast<BYTE>(cpuId % WIN_PROCESSOR_GROUP_SIZE);
@@ -824,13 +824,14 @@ NumaConfig::bind_current_thread_to_numa_node(const NumaIndex numaId) const noexc
             groupAffinities[groupId].Mask |= bit(u8(inProcGroupId));
         }
 
-        if (setThreadSelectedCpuSetMasks(GetCurrentThread(), groupAffinities.get(), procGroupCount)
+        if (setThreadSelectedCpuSetMasks(::GetCurrentThread(), groupAffinities.get(),
+                                         procGroupCount)
             == FALSE)
             std::exit(EXIT_FAILURE);
 
         // Yield this thread just to be sure it gets rescheduled.
         // This is defensive, allowed because this code is not performance critical.
-        SwitchToThread();
+        ::SwitchToThread();
     }
 
     // Sometimes need to force the old API, but do not use it unless necessary.
@@ -859,7 +860,7 @@ NumaConfig::bind_current_thread_to_numa_node(const NumaIndex numaId) const noexc
 
         groupAffinity.Group = forcedGroupId;
 
-        for (const CpuIndex cpuId : node_cpus(numaId))
+        for (const auto cpuId : node_cpus(numaId))
         {
             const WORD groupId       = static_cast<WORD>(cpuId / WIN_PROCESSOR_GROUP_SIZE);
             const WORD inProcGroupId = static_cast<WORD>(cpuId % WIN_PROCESSOR_GROUP_SIZE);
@@ -870,30 +871,30 @@ NumaConfig::bind_current_thread_to_numa_node(const NumaIndex numaId) const noexc
                 groupAffinity.Mask |= bit(u8(inProcGroupId));
         }
 
-        if (SetThreadGroupAffinity(GetCurrentThread(), &groupAffinity, nullptr) == FALSE)
+        if (::SetThreadGroupAffinity(::GetCurrentThread(), &groupAffinity, nullptr) == FALSE)
             std::exit(EXIT_FAILURE);
 
         // Yield this thread just to be sure it gets rescheduled.
         // This is defensive, allowed because this code is not performance critical.
-        SwitchToThread();
+        ::SwitchToThread();
     }
 
 #elif defined(USE_UNIX_NUMA)
 
-    cpu_set_t* const cpusMask = CPU_ALLOC(maxCpuId + 1);
+    cpu_set_t* const cpusMask = ::CPU_ALLOC(maxCpuId + 1);
 
     if (cpusMask == nullptr)
     {
         std::exit(EXIT_FAILURE);
     }
 
-    const auto free_cpus_mask = [&cpusMask]() noexcept { CPU_FREE(cpusMask); };
+    const auto free_cpus_mask = [&cpusMask]() noexcept { ::CPU_FREE(cpusMask); };
 
-    const usize maskSize = CPU_ALLOC_SIZE(maxCpuId + 1);
+    const usize maskSize = ::CPU_ALLOC_SIZE(maxCpuId + 1);
 
     CPU_ZERO_S(maskSize, cpusMask);
 
-    for (const CpuIndex cpuId : node_cpus(numaId))
+    for (const auto cpuId : node_cpus(numaId))
         CPU_SET_S(cpuId, maskSize, cpusMask);
 
     if (::sched_setaffinity(0, maskSize, cpusMask) != 0)
@@ -951,7 +952,7 @@ NumaConfig NumaConfig::from_l3_domain(const std::vector<L3Domain> l3Domains,
 
         for (const auto& [__, cpus] : ds)
         {
-            for (CpuIndex cpuId : cpus)
+            for (const auto cpuId : cpus)
                 if (!numaCfg.add_cpu_to_node(numaId, cpuId))
                 {
                     std::cerr << "NumaConfig l3 domain error: CPU " << cpuId
@@ -1023,30 +1024,22 @@ bool NumaConfig::add_cpu_range_to_node(const NumaIndex numaId,
 
 void NumaConfig::remove_empty_numa_nodes() noexcept {
 
-    bool hasEmpty = false;
-
-    for (const auto& node : nodes)
-        if (node.empty())
-        {
-            hasEmpty = true;
-            break;
-        }
-
-    // 1. Nothing removed -> skip everything
-    if (!hasEmpty)
+    // Nothing to remove. (skip everything)
+    if (!std::any_of(nodes.begin(), nodes.end(),
+                     [](const auto& node) noexcept { return node.empty(); }))
         return;
 
-    // 2. Remove empty nodes
+    // Remove empty nodes.
     nodes.erase(std::remove_if(nodes.begin(), nodes.end(),
                                [](const auto& node) noexcept { return node.empty(); }),
                 nodes.end());
 
-    // 3. Rebuild mapping structures efficiently
+    // Rebuild CPU-to-NUMA mappings after node indices have changed.
     nodeByCpu.clear();
     maxCpuId = 0;
 
     for (usize numaId = 0; numaId < nodes_size(); ++numaId)
-        for (const CpuIndex cpuId : node_cpus(NumaIndex(numaId)))
+        for (const auto cpuId : node_cpus(NumaIndex(numaId)))
             add_numa_node_cpu(NumaIndex(numaId), cpuId);
 }
 
