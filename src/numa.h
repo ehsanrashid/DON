@@ -532,7 +532,7 @@ struct BundledL3Policy {
 // Automatically select the NUMA policy
 using AutoNumaPolicy = std::variant<SystemNumaPolicy, L3DomainsPolicy, BundledL3Policy>;
 
-CpuIndexVec shortened_string_to_indices(std::string_view str) noexcept;
+CpuIndexVec shortened_string_to_cpus(std::string_view str) noexcept;
 
 // Designed as immutable, because there is no good reason to alter an already
 // existing config in a way that doesn't require recreating it completely, and
@@ -675,7 +675,7 @@ class NumaConfig final {
         {
             *nodeIdStr = remove_whitespace(*nodeIdStr);
 
-            for (const NumaIndex nodeId : shortened_string_to_indices(*nodeIdStr))
+            for (const NumaIndex nodeId : shortened_string_to_cpus(*nodeIdStr))
             {
                 // /sys/devices/system/node/node.../cpulist
                 const std::string path = std::string{"/sys/devices/system/node/node"}
@@ -695,7 +695,7 @@ class NumaConfig final {
                 {
                     *cpuIdsStr = remove_whitespace(*cpuIdsStr);
 
-                    for (CpuIndex cpuId : shortened_string_to_indices(*cpuIdsStr))
+                    for (CpuIndex cpuId : shortened_string_to_cpus(*cpuIdsStr))
                         if (is_cpu_allowed(cpuId))
                             numaCfg.add_cpu_to_node(nodeId, cpuId);
                 }
@@ -782,7 +782,7 @@ class NumaConfig final {
 
             L3Domain l3Domain{};
 
-            for (const CpuIndex cpuId : shortened_string_to_indices(*cpuIdsStr))
+            for (const CpuIndex cpuId : shortened_string_to_cpus(*cpuIdsStr))
             {
                 if (is_cpu_allowed(cpuId))
                 {

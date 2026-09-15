@@ -36,7 +36,7 @@ CpuIndex hardware_concurrency() noexcept {
     return concurrency;
 }
 
-CpuIndexVec shortened_string_to_indices(std::string_view str) noexcept {
+CpuIndexVec shortened_string_to_cpus(const std::string_view str) noexcept {
     CpuIndexVec indices;
 
     if (is_whitespace(str))
@@ -218,9 +218,9 @@ std::optional<NumaConfig> NumaConfig::from_string(const std::string_view str) no
 
     NumaIndex numaId = 0;
 
-    for (auto&& cpuIdsStr : split(str, ":"))
+    for (const auto& cpuIdsStr : split(str, ":"))
     {
-        const auto cpuIds = shortened_string_to_indices(cpuIdsStr);
+        const auto cpuIds = shortened_string_to_cpus(cpuIdsStr);
 
         if (cpuIds.empty())
             continue;
