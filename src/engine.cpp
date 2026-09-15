@@ -270,20 +270,14 @@ std::vector<std::pair<usize, usize>> Engine::bound_thread_counts() const noexcep
     auto  threadCounts = threads.bound_thread_counts();
     auto& numaConfig   = numaContext.numa_config();
 
-    NumaIndex numaIdx = 0;
+    usize numaIdx = 0;
 
-    while (numaIdx < threadCounts.size())
-    {
-        ratios.emplace_back(threadCounts[numaIdx], numaConfig.node_cpus_size(numaIdx));
-        ++numaIdx;
-    }
-
+    for (; numaIdx < threadCounts.size(); ++numaIdx)
+        ratios.emplace_back(threadCounts[numaIdx], numaConfig.node_cpus_size(NumaIndex(numaIdx)));
+    // Threads: 1 with NUMA node thread binding: 0/32
     if (!threadCounts.empty())
-        while (numaIdx < numaConfig.nodes_size())
-        {
-            ratios.emplace_back(NumaIndex{0}, numaConfig.node_cpus_size(numaIdx));
-            ++numaIdx;
-        }
+        for (; numaIdx < numaConfig.nodes_size(); ++numaIdx)
+            ratios.emplace_back(usize{0}, numaConfig.node_cpus_size(NumaIndex(numaIdx)));
 
     return ratios;
 }
@@ -307,11 +301,11 @@ std::string Engine::thread_binding() const noexcept {
     for (const auto& [numaId, threadCount] : boundThreadCounts)
     {
         if (!threadBinding.empty())
-            threadBinding.push_back(':');
+            threadBinding.append(":");
 
         threadBinding  //
           .append(std::to_string(numaId))
-          .append(1, '/')
+          .append("/")
           .append(std::to_string(threadCount));
     }
 

@@ -1206,15 +1206,17 @@ bool Advapi::load() noexcept {
         loaded = true;
     }
 
-    openProcessToken = OpenProcessToken_((void (*)()) GetProcAddress(hModule, "OpenProcessToken"));
+    openProcessToken = OpenProcessToken_(  //
+      (void (*)())::GetProcAddress(hModule, "OpenProcessToken"));
 
-    lookupPrivilegeValue =
-      LookupPrivilegeValue_((void (*)()) GetProcAddress(hModule, "LookupPrivilegeValueA"));
+    lookupPrivilegeValue = LookupPrivilegeValue_(  //
+      (void (*)())::GetProcAddress(hModule, "LookupPrivilegeValueA"));
 
-    adjustTokenPrivileges =
-      AdjustTokenPrivileges_((void (*)()) GetProcAddress(hModule, "AdjustTokenPrivileges"));
+    adjustTokenPrivileges = AdjustTokenPrivileges_(  //
+      (void (*)())::GetProcAddress(hModule, "AdjustTokenPrivileges"));
 
-    if (openProcessToken == nullptr || lookupPrivilegeValue == nullptr
+    if (openProcessToken == nullptr         //
+        || lookupPrivilegeValue == nullptr  //
         || adjustTokenPrivileges == nullptr)
     {
         free();
@@ -1230,11 +1232,11 @@ void Advapi::free() noexcept {
     {
         assert(hModule != nullptr);
 
-        FreeLibrary(hModule);
-
-        hModule = nullptr;
-        loaded  = false;
+        ::FreeLibrary(hModule);
     }
+
+    hModule = nullptr;
+    loaded  = false;
 }
 
     #endif

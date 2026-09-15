@@ -1731,7 +1731,7 @@ template<typename SuccessFunc, typename FailureFunc>
 auto try_with_windows_lock_memory_privilege([[maybe_unused]] SuccessFunc&& successFunc,
                                             FailureFunc&&                  failureFunc) noexcept {
     #if defined(_WIN64)
-    const SIZE_T largePageSize = GetLargePageMinimum();
+    const SIZE_T largePageSize = ::GetLargePageMinimum();
 
     if (largePageSize == 0)
         return failureFunc();
@@ -1748,7 +1748,7 @@ auto try_with_windows_lock_memory_privilege([[maybe_unused]] SuccessFunc&& succe
     HandleGuard processHandleGuard{processHandle};
 
     // Need SeLockMemoryPrivilege, so try to enable it for the process
-    if (!advapi.openProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY,
+    if (!advapi.openProcessToken(::GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY,
                                  &processHandle))
         return failureFunc();
 
@@ -1765,11 +1765,11 @@ auto try_with_windows_lock_memory_privilege([[maybe_unused]] SuccessFunc&& succe
 
     // Try to enable SeLockMemoryPrivilege. Note that even if AdjustTokenPrivileges() succeeds,
     // Still need to query GetLastError() to ensure that the privileges were actually obtained.
-    SetLastError(ERROR_SUCCESS);
+    ::SetLastError(ERROR_SUCCESS);
 
     if (!advapi.adjustTokenPrivileges(processHandle, FALSE, &newTp, sizeof(oldTp), &oldTp,
                                       &oldTpLen)
-        || GetLastError() != ERROR_SUCCESS)
+        || ::GetLastError() != ERROR_SUCCESS)
         return failureFunc();
 
     // Call the provided function with the privilege enabled

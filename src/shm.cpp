@@ -374,7 +374,7 @@ void print() noexcept {
     std::cout << "Registered memories [" << List.size() << "]:\n";
 
     usize i = 0;
-    for (auto* memory : List)
+    for (const auto* const memory : List)
         std::cout << '[' << i++ << "] " << static_cast<const void*>(memory) << ' '
                   << (memory != nullptr ? memory->name() : "<NULL>") << '\n';
 

@@ -164,15 +164,12 @@ void Threads::set(const NumaConfig&             numaConfig,
     // This is undesirable, and so the default behavior (i.e. when the user does not
     // change the NumaConfig UCI setting) is to not bind the threads to processors
     // unless we know for sure that we span NUMA nodes and replication is required.
-    std::string_view NumaPolicy = sharedState.options["NumaPolicy"];
+    const std::string_view NumaPolicy = sharedState.options["NumaPolicy"];
 
-    bool threadBindable = false;
-
-    if (NumaPolicy == "auto")
-        threadBindable = numaConfig.suggests_binding_threads(threadCount);
-    // "system", "hardware" or explicitly set by string
-    else if (NumaPolicy != "none")
-        threadBindable = true;
+    const bool threadBindable =  //
+      NumaPolicy == "none"   ? false
+      : NumaPolicy == "auto" ? numaConfig.suggests_binding_threads(threadCount)
+                             : true;  // "system", "hardware" or explicitly set by string
 
     // Assign threads to NUMA nodes
     std::vector<NumaIndex> thBoundNumaNodes;
@@ -631,31 +628,31 @@ std::vector<NumaIndex> Threads::thread_bound_numa_nodes() const noexcept {
 
 std::vector<usize> Threads::bound_thread_counts() const noexcept {
     std::vector<usize> threadCounts;
-    {
-        std::shared_lock readLock(mutex);
 
-        if (!threadBoundNumaNodes.empty())
-        {
-            const NumaIndex maxNumaId =
-              *std::max_element(threadBoundNumaNodes.begin(), threadBoundNumaNodes.end());
+    std::shared_lock readLock(mutex);
 
-            threadCounts.resize(maxNumaId + 1, 0);
+    if (threadBoundNumaNodes.empty())
+        return threadCounts;
 
-            for (const NumaIndex numaId : threadBoundNumaNodes)
-                ++threadCounts[numaId];
-        }
-    }
+    const usize maxNumaId =
+      *std::max_element(threadBoundNumaNodes.begin(), threadBoundNumaNodes.end());
+
+    threadCounts.resize(maxNumaId + 1, 0);
+
+    for (const usize numaId : threadBoundNumaNodes)
+        ++threadCounts[numaId];
+
     return threadCounts;
 }
 
 NumaIndex Threads::numa_nodes() const noexcept {
     std::unordered_set<NumaIndex> seenNumaIds;
-    {
-        std::shared_lock readLock(mutex);
 
-        for (const NumaIndex numaId : threadBoundNumaNodes)
-            seenNumaIds.insert(numaId);
-    }
+    std::shared_lock readLock(mutex);
+
+    for (const NumaIndex numaId : threadBoundNumaNodes)
+        seenNumaIds.insert(numaId);
+
     return NumaIndex(std::max<usize>(seenNumaIds.size(), 1));
 }
 
