@@ -307,30 +307,29 @@ class NumaConfig final {
 
 #if defined(_WIN64)
 
-        const WORD ActiveProcGroupCount = ::GetActiveProcessorGroupCount();
+        const WORD activeProcGroupCount = ::GetActiveProcessorGroupCount();
 
-        for (WORD groupId = 0; groupId < ActiveProcGroupCount; ++groupId)
+        for (WORD groupId = 0; groupId < activeProcGroupCount; ++groupId)
         {
-            const u16 ActiveProcCount = u16(::GetActiveProcessorCount(groupId));
-
-            for (u16 number = 0; number < ActiveProcCount; ++number)
+            const u16 activeProcCount = u16(::GetActiveProcessorCount(groupId));
+            const u16 processorCount  = std::max(activeProcCount, WIN_PROCESSOR_GROUP_SIZE);
+            // number == processorIndex
+            for (u16 number = 0; number < processorCount; ++number)
             {
                 PROCESSOR_NUMBER processorNumber{};
-                processorNumber.Group    = groupId;
-                processorNumber.Number   = BYTE(number);
-                processorNumber.Reserved = 0;
+                processorNumber.Group  = groupId;
+                processorNumber.Number = BYTE(number);
+                //processorNumber.Reserved = 0;
 
                 USHORT nodeNumber;
 
-                if (::GetNumaProcessorNodeEx(&processorNumber, &nodeNumber) == TRUE)
+                if (::GetNumaProcessorNodeEx(&processorNumber, &nodeNumber) == TRUE
+                    && nodeNumber != USHORT{0xFFFF})  // std::numeric_limits<USHORT>::max()
                 {
-                    if (nodeNumber != USHORT{0xFFFF})  // std::numeric_limits<USHORT>::max()
-                    {
-                        const CpuIndex cpuId = groupId * WIN_PROCESSOR_GROUP_SIZE + number;
+                    const CpuIndex cpuId = groupId * WIN_PROCESSOR_GROUP_SIZE + number;
 
-                        if (is_cpu_allowed(cpuId))
-                            numaCfg.add_cpu_to_node(nodeNumber, cpuId);
-                    }
+                    if (is_cpu_allowed(cpuId))
+                        numaCfg.add_cpu_to_node(nodeNumber, cpuId);
                 }
             }
         }

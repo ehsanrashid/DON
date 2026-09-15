@@ -402,14 +402,12 @@ class FeatureTransformer final {
         const Index maxVL = __riscv_vsetvlmax_e8m1();
 
         const auto rvv_propagate = [&](auto vid) noexcept {
-            const auto& accp = accumulation[perspectives[p]];
-
             for (Index i = 0, vl; i < HalfDimensions / 2; i += vl)
             {
                 vl = __riscv_vsetvl_e16m2(HalfDimensions / 2 - i);
 
-                vint16m2_t acc0 = __riscv_vle16_v_i16m2(&accp[i], vl);
-                vint16m2_t acc1 = __riscv_vle16_v_i16m2(&accp[i + HalfDimensions / 2], vl);
+                vint16m2_t acc0 = __riscv_vle16_v_i16m2(&accumulation[i], vl);
+                vint16m2_t acc1 = __riscv_vle16_v_i16m2(&accumulation[i + HalfDimensions / 2], vl);
 
                 acc0 = __riscv_vmax(acc0, 0, vl);
                 acc1 = __riscv_vmax(acc1, 0, vl);
@@ -444,7 +442,7 @@ class FeatureTransformer final {
 #else
         for (Index i = 0; i < HalfDimensions / 2; ++i)
         {
-            Bias sum0 = accumulation[i + 0];
+            Bias sum0 = accumulation[i];
             Bias sum1 = accumulation[i + HalfDimensions / 2];
 
             sum0 = std::clamp<Bias>(sum0, 0, FT_MAX);
