@@ -256,35 +256,42 @@ NumaConfig::NumaConfig() noexcept :
     add_cpu_range_to_node(NumaIndex{0}, CpuIndex{0}, SYSTEM_THREAD_MAX - 1);
 }
 
-NumaIndex NumaConfig::nodes_size() const noexcept { return NumaIndex(nodes.size()); }
+usize NumaConfig::nodes_size() const noexcept { return nodes.size(); }
+
+CpuIndexVec& NumaConfig::node_cpus(const NumaIndex numaId) noexcept {
+    assert(numaId < nodes_size());
+
+    return nodes[numaId];
+}
+const CpuIndexVec& NumaConfig::node_cpus(const NumaIndex numaId) const noexcept {
+    assert(numaId < nodes_size());
+
+    return nodes[numaId];
+}
 
 bool NumaConfig::node_cpus_empty(const NumaIndex numaId) const noexcept {
-    assert(numaId < nodes_size());
-
-    return nodes[numaId].empty();
+    return node_cpus(numaId).empty();
 }
 
-CpuIndex NumaConfig::node_cpus_size(const NumaIndex numaId) const noexcept {
-    assert(numaId < nodes_size());
-
-    return CpuIndex(nodes[numaId].size());
+usize NumaConfig::node_cpus_size(const NumaIndex numaId) const noexcept {
+    return node_cpus(numaId).size();
 }
 
-CpuIndex NumaConfig::node_cpus(const NumaIndex numaId) const noexcept {
-    assert(numaId < nodes_size());
+CpuIndex NumaConfig::node_cpus_front(const NumaIndex numaId) const noexcept {
     assert(!node_cpus_empty(numaId));
 
-    return nodes[numaId].front();
+    return node_cpus(numaId).front();
 }
 
-CpuIndex NumaConfig::cpus_size() const noexcept { return CpuIndex(nodeByCpu.size()); }
+usize NumaConfig::cpus_size() const noexcept { return nodeByCpu.size(); }
 
 bool NumaConfig::is_cpu_assigned(const CpuIndex cpuId) const noexcept {
     return nodeByCpu.find(cpuId) != nodeByCpu.end();
 }
 
 NumaIndex NumaConfig::node_by_cpu(const CpuIndex cpuId) const noexcept {
-    return is_cpu_assigned(cpuId) ? nodeByCpu.at(cpuId) : 0;
+    const auto itr = nodeByCpu.find(cpuId);
+    return itr != nodeByCpu.end() ? itr->second : 0;
 }
 
 bool NumaConfig::requires_memory_replication() const noexcept {
@@ -452,7 +459,7 @@ NumaConfig::bind_current_thread_to_numa_node(const NumaIndex numaId) const noexc
         for (WORD i = 0; i < procGroupCount; ++i)
             groupAffinities[i].Group = i;
 
-        for (CpuIndex cpuId : nodes[numaId])
+        for (const CpuIndex cpuId : node_cpus(numaId))
         {
             const WORD groupId       = static_cast<WORD>(cpuId / WIN_PROCESSOR_GROUP_SIZE);
             const BYTE inProcGroupId = static_cast<BYTE>(cpuId % WIN_PROCESSOR_GROUP_SIZE);
@@ -491,11 +498,11 @@ NumaConfig::bind_current_thread_to_numa_node(const NumaIndex numaId) const noexc
 
         // Use an ordered set so guaranteed to get the smallest cpu number here
         const WORD forcedGroupId =
-          static_cast<WORD>(*nodes[numaId].begin() / WIN_PROCESSOR_GROUP_SIZE);
+          static_cast<WORD>(node_cpus_front(numaId) / WIN_PROCESSOR_GROUP_SIZE);
 
         groupAffinity.Group = forcedGroupId;
 
-        for (CpuIndex cpuId : nodes[numaId])
+        for (const CpuIndex cpuId : node_cpus(numaId))
         {
             const WORD groupId       = static_cast<WORD>(cpuId / WIN_PROCESSOR_GROUP_SIZE);
             const WORD inProcGroupId = static_cast<WORD>(cpuId % WIN_PROCESSOR_GROUP_SIZE);
@@ -524,7 +531,7 @@ NumaConfig::bind_current_thread_to_numa_node(const NumaIndex numaId) const noexc
 
     CPU_ZERO_S(maskSize, cpuMask);
 
-    for (CpuIndex cpuId : nodes[numaId])
+    for (const CpuIndex cpuId : node_cpus(numaId))
         CPU_SET_S(cpuId, maskSize, cpuMask);
 
     if (::sched_setaffinity(0, maskSize, cpuMask) != 0)
@@ -610,7 +617,7 @@ void NumaConfig::add_numa_node_cpu(const NumaIndex numaId, const CpuIndex cpuId)
 }
 
 void NumaConfig::add_numa_node(const NumaIndex numaId, const CpuIndex cpuId) noexcept {
-    auto& cpus = nodes[numaId];
+    auto& cpus = node_cpus(numaId);
 
     // Keep CPU indices sorted and unique.
     if (cpus.empty() || cpus.back() < cpuId)
@@ -678,7 +685,7 @@ void NumaConfig::remove_empty_numa_nodes() noexcept {
     maxCpuId = 0;
 
     for (NumaIndex numaId = 0; numaId < nodes_size(); ++numaId)
-        for (const CpuIndex cpuId : nodes[numaId])
+        for (const CpuIndex cpuId : node_cpus(numaId))
             add_numa_node_cpu(numaId, cpuId);
 }
 

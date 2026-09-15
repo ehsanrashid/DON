@@ -581,15 +581,18 @@ class NumaConfig final {
     NumaConfig(NumaConfig&&) noexcept                 = default;
     NumaConfig& operator=(NumaConfig&&) noexcept      = default;
 
-    NumaIndex nodes_size() const noexcept;
+    usize nodes_size() const noexcept;
+
+    CpuIndexVec&       node_cpus(NumaIndex numaId) noexcept;
+    const CpuIndexVec& node_cpus(NumaIndex numaId) const noexcept;
 
     bool node_cpus_empty(NumaIndex numaId) const noexcept;
 
-    CpuIndex node_cpus_size(NumaIndex numaId) const noexcept;
+    usize node_cpus_size(NumaIndex numaId) const noexcept;
 
-    CpuIndex node_cpus(const NumaIndex numaId) const noexcept;
+    CpuIndex node_cpus_front(const NumaIndex numaId) const noexcept;
 
-    CpuIndex cpus_size() const noexcept;
+    usize cpus_size() const noexcept;
 
     bool is_cpu_assigned(CpuIndex cpuId) const noexcept;
 
@@ -1161,7 +1164,7 @@ class SystemWideLazyNumaReplicated final: public BaseNumaReplicated {
         const NumaConfig sysCfg = NumaConfig::from_system(SystemNumaPolicy{}, false);
 
         // Map a CPU from the configured NUMA node to its hardware/system NUMA domain.
-        const CpuIndex cpuId = numaCfg.node_cpus(numaId);
+        const CpuIndex cpuId = numaCfg.node_cpus_front(numaId);
 
         const NumaIndex sysNumaId = sysCfg.node_by_cpu(cpuId);
 
