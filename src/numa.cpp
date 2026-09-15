@@ -314,7 +314,7 @@ std::string NumaConfig::to_string() const noexcept {
 
         // Separate NUMA nodes with ':'
         if (nodeItr != nodes.begin())
-            numaStr.push_back(':');
+            numaStr.append(":");
 
         for (auto cpusItr = cpus.begin(); cpusItr != cpus.end();)
         {
@@ -329,15 +329,14 @@ std::string NumaConfig::to_string() const noexcept {
 
             // Separate CPUs within a NUMA node with ','
             if (rangeItr != cpus.begin())
-                numaStr.push_back(',');
+                numaStr.append(",");
 
             numaStr.append(std::to_string(rangeBeg));
 
             if (rangeBeg != rangeEnd)
-            {
-                numaStr.push_back('-');
-                numaStr.append(std::to_string(rangeEnd));
-            }
+                numaStr  //
+                  .append("-")
+                  .append(std::to_string(rangeEnd));
         }
     }
 
