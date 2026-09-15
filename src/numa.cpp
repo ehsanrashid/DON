@@ -248,14 +248,11 @@ std::optional<NumaConfig> NumaConfig::from_string(const std::string_view str) no
 
 NumaConfig::NumaConfig(const CpuIndex maxCpuIdx, const bool customAff) noexcept :
     maxCpuId(maxCpuIdx),
-    customAffinity(customAff) {
-    init_node_cpus(SYSTEM_THREAD_MAX);
-}
+    customAffinity(customAff) {}
 
-NumaConfig::NumaConfig() noexcept {
-    init_node_cpus(SYSTEM_THREAD_MAX);
-
-    add_cpu_range_to_node(0, 0, SYSTEM_THREAD_MAX - 1);
+NumaConfig::NumaConfig() noexcept :
+    NumaConfig(0, false) {
+    add_cpu_range_to_node(NumaIndex{0}, CpuIndex{0}, SYSTEM_THREAD_MAX - 1);
 }
 
 NumaIndex NumaConfig::nodes_size() const noexcept { return NumaIndex(nodes.size()); }
@@ -274,8 +271,9 @@ CpuIndex NumaConfig::node_cpus_size(const NumaIndex numaId) const noexcept {
 
 CpuIndex NumaConfig::node_cpus(const NumaIndex numaId) const noexcept {
     assert(numaId < nodes_size());
+    assert(!nodes[numaId].empty());
 
-    return *nodes[numaId].begin();
+    return nodes[numaId].front();
 }
 
 bool NumaConfig::is_cpu_assigned(const CpuIndex cpuId) const noexcept {
@@ -685,12 +683,6 @@ void NumaConfig::remove_empty_numa_nodes() noexcept {
     for (NumaIndex numaId = 0; numaId < nodes_size(); ++numaId)
         for (const CpuIndex cpuId : nodes[numaId])
             add_numa_node_cpu(numaId, cpuId);
-}
-
-void NumaConfig::init_node_cpus(const usize expectedCpuCount, const float maxLoadFactor) noexcept {
-
-    nodeByCpu.max_load_factor(max_load_factor(maxLoadFactor));
-    nodeByCpu.reserve(reserve_count(expectedCpuCount));
 }
 
 

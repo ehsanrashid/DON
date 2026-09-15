@@ -822,12 +822,10 @@ class NumaConfig final {
 
     void remove_empty_numa_nodes() noexcept;
 
-    void init_node_cpus(usize expectedCpuCount, float maxLoadFactor = 0.75f) noexcept;
-
     std::vector<CpuIndexVec>                nodes;
     std::unordered_map<CpuIndex, NumaIndex> nodeByCpu;
-    CpuIndex                                maxCpuId       = 0;
-    bool                                    customAffinity = false;
+    CpuIndex                                maxCpuId;
+    bool                                    customAffinity;
 };
 
 class BaseNumaReplicated;
@@ -1162,8 +1160,8 @@ class SystemWideLazyNumaReplicated final: public BaseNumaReplicated {
 
         const NumaConfig sysCfg = NumaConfig::from_system(SystemNumaPolicy{}, false);
 
-        // as a discriminator, locate the hardware/system numa-domain this CpuIndex belongs to
-        const CpuIndex cpuId = numaCfg.node_cpus(numaId);  // get a CpuIndex from NumaIndex
+        // Map a CPU from the configured NUMA node to its hardware/system NUMA domain.
+        const CpuIndex cpuId = numaCfg.node_cpus(numaId);
 
         const NumaIndex sysNumaId = sysCfg.node_by_cpu(cpuId);
 

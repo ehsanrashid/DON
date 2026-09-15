@@ -374,7 +374,7 @@ void print() noexcept {
     std::cout << "Registered memories [" << List.size() << "]:\n";
 
     usize i = 0;
-    for (auto* memory : List)
+    for (const auto* const memory : List)
         std::cout << '[' << i++ << "] " << static_cast<const void*>(memory) << ' '
                   << (memory != nullptr ? memory->name() : "<NULL>") << '\n';
 
@@ -386,10 +386,10 @@ void print() noexcept {
 namespace MemoryCleanup {
 
 void cleanup() noexcept {
-    auto memoryList = MemoryRegistry::detach_memories();
+    auto list = MemoryRegistry::detach_memories();
 
-    //DEBUG_LOG("Memory cleanup started (" << memoryList.size() << " object(s)).");
-    for (auto* const memory : memoryList)
+    //DEBUG_LOG("Memory cleanup started (" << list.size() << " object(s)).");
+    for (auto* const memory : list)
         if (memory != nullptr)
             memory->reset();
 }
