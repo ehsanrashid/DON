@@ -344,7 +344,7 @@ CpuIndexSet get_process_affinity() noexcept {
     // In this case just choose a reasonable upper bound.
     constexpr CpuIndex MaxCpuCount = 64 * KB - 1;
 
-    cpu_set_t* const cpusMask = ::CPU_ALLOC(MaxCpuCount);
+    cpu_set_t* const cpusMask = CPU_ALLOC(MaxCpuCount);
 
     if (cpusMask == nullptr)
     {
@@ -353,9 +353,9 @@ CpuIndexSet get_process_affinity() noexcept {
         return cpus;
     }
 
-    const auto free_cpus_mask = [&cpusMask]() noexcept { ::CPU_FREE(cpusMask); };
+    const auto free_cpus_mask = [&cpusMask]() noexcept { CPU_FREE(cpusMask); };
 
-    const usize maskSize = ::CPU_ALLOC_SIZE(MaxCpuCount);
+    const usize maskSize = CPU_ALLOC_SIZE(MaxCpuCount);
 
     CPU_ZERO_S(maskSize, cpusMask);
 
@@ -881,16 +881,16 @@ NumaConfig::bind_current_thread_to_numa_node(const NumaIndex numaId) const noexc
 
 #elif defined(USE_UNIX_NUMA)
 
-    cpu_set_t* const cpusMask = ::CPU_ALLOC(maxCpuId + 1);
+    cpu_set_t* const cpusMask = CPU_ALLOC(maxCpuId + 1);
 
     if (cpusMask == nullptr)
     {
         std::exit(EXIT_FAILURE);
     }
 
-    const auto free_cpus_mask = [&cpusMask]() noexcept { ::CPU_FREE(cpusMask); };
+    const auto free_cpus_mask = [&cpusMask]() noexcept { CPU_FREE(cpusMask); };
 
-    const usize maskSize = ::CPU_ALLOC_SIZE(maxCpuId + 1);
+    const usize maskSize = CPU_ALLOC_SIZE(maxCpuId + 1);
 
     CPU_ZERO_S(maskSize, cpusMask);
 
