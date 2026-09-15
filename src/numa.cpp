@@ -108,7 +108,7 @@ NumaConfig NumaConfig::from_system([[maybe_unused]] const AutoNumaPolicy& numaPo
     // but at least guarantee that the number of allowed processors
     // is >= number of processors in the affinity mask. In case the user
     // is not satisfied they must set the processor numbers explicitly.
-    auto is_cpu_allowed = [&allowedCpus](CpuIndex cpuId) noexcept {
+    const auto is_cpu_allowed = [&allowedCpus](CpuIndex cpuId) noexcept {
         return !allowedCpus || allowedCpus->find(cpuId) != allowedCpus->end();
     };
 
@@ -118,9 +118,10 @@ NumaConfig NumaConfig::from_system([[maybe_unused]] const AutoNumaPolicy& numaPo
     if (respectProcessAffinity)
         allowedCpus = PROCESSOR_AFFINITY;
 
-    auto is_cpu_allowed = [&allowedCpus](CpuIndex cpuId) noexcept {
+    const auto is_cpu_allowed = [&allowedCpus](CpuIndex cpuId) noexcept {
         return allowedCpus.find(cpuId) != allowedCpus.end();
     };
+
     #endif
 
     bool l3Success = false;
