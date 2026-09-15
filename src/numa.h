@@ -589,7 +589,7 @@ class NumaConfig final {
 
     CpuIndex node_cpus(const NumaIndex numaId) const noexcept;
 
-    CpuIndex cpus_size() const noexcept { return CpuIndex(nodeByCpu.size()); }
+    CpuIndex cpus_size() const noexcept;
 
     bool is_cpu_assigned(CpuIndex cpuId) const noexcept;
 

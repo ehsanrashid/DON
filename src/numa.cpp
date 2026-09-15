@@ -271,10 +271,12 @@ CpuIndex NumaConfig::node_cpus_size(const NumaIndex numaId) const noexcept {
 
 CpuIndex NumaConfig::node_cpus(const NumaIndex numaId) const noexcept {
     assert(numaId < nodes_size());
-    assert(!nodes[numaId].empty());
+    assert(!node_cpus_empty(numaId));
 
     return nodes[numaId].front();
 }
+
+CpuIndex NumaConfig::cpus_size() const noexcept { return CpuIndex(nodeByCpu.size()); }
 
 bool NumaConfig::is_cpu_assigned(const CpuIndex cpuId) const noexcept {
     return nodeByCpu.find(cpuId) != nodeByCpu.end();
@@ -311,8 +313,7 @@ std::string NumaConfig::to_string() const noexcept {
 
         bool cpuFirst = true;
 
-        auto itr = node.begin();
-        while (itr != node.end())
+        for (auto itr = node.begin(); itr != node.end();)
         {
             const CpuIndex rangeBeg = *itr;
             CpuIndex       rangeEnd = rangeBeg;
