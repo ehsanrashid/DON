@@ -818,7 +818,7 @@ class NumaConfig final {
 
     // Returns true if successful, false if failed.
     // i.e. when any of the cpus is already present strong guarantee, the structure remains unmodified.
-    bool add_cpu_range_to_node(NumaIndex numaId, CpuIndex begCpuId, CpuIndex endCpuId) noexcept;
+    bool add_cpu_range_to_node(NumaIndex numaId, CpuIndex cpuIdBeg, CpuIndex cpuIdEnd) noexcept;
 
     void remove_empty_numa_nodes() noexcept;
 

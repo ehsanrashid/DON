@@ -64,19 +64,19 @@ CpuIndexVec shortened_string_to_cpus(const std::string_view str) noexcept {
             if (indices.size() >= MaxIndices)
                 break;
 
-            const auto begId = str_to_usize(parts[0]);
-            const auto endId = str_to_usize(parts[1]);
+            const auto idBeg = str_to_usize(parts[0]);
+            const auto idEnd = str_to_usize(parts[1]);
 
-            if (begId && endId && *begId <= *endId && *endId - *begId < MaxIndices - indices.size()
-                && *endId <= std::numeric_limits<CpuIndex>::max())
+            if (idBeg && idEnd && *idBeg <= *idEnd && *idEnd - *idBeg < MaxIndices - indices.size()
+                && *idEnd <= std::numeric_limits<CpuIndex>::max())
             {
-                const auto begCpuId = static_cast<CpuIndex>(*begId);
-                const auto endCpuId = static_cast<CpuIndex>(*endId);
+                const auto cpuIdBeg = static_cast<CpuIndex>(*idBeg);
+                const auto cpuIdEnd = static_cast<CpuIndex>(*idEnd);
 
-                for (CpuIndex cpuId = begCpuId;; ++cpuId)
+                for (CpuIndex cpuId = cpuIdBeg;; ++cpuId)
                 {
                     indices.emplace_back(cpuId);
-                    if (cpuId == endCpuId)
+                    if (cpuId == cpuIdEnd)
                         break;
                 }
             }
@@ -301,14 +301,14 @@ std::string NumaConfig::to_string() const noexcept {
 
     for (auto nodeItr = nodes.begin(); nodeItr != nodes.end(); ++nodeItr)
     {
-        const auto& node = *nodeItr;
-        assert(!node.empty());
+        const auto& cpus = *nodeItr;
+        assert(!cpus.empty());
 
         // Separate NUMA nodes with ':'
         if (nodeItr != nodes.begin())
             numaStr.push_back(':');
 
-        for (auto cpusItr = node.begin(); cpusItr != node.end();)
+        for (auto cpusItr = cpus.begin(); cpusItr != cpus.end();)
         {
             const auto rangeItr = cpusItr;
 
@@ -316,11 +316,11 @@ std::string NumaConfig::to_string() const noexcept {
             CpuIndex       rangeEnd = rangeBeg;
 
             // Combine consecutive CPU indices into a range
-            for (++cpusItr; cpusItr != node.end() && *cpusItr == rangeEnd + 1; ++cpusItr)
+            for (++cpusItr; cpusItr != cpus.end() && *cpusItr == rangeEnd + 1; ++cpusItr)
                 ++rangeEnd;
 
             // Separate CPUs within a NUMA node with ','
-            if (rangeItr != node.begin())
+            if (rangeItr != cpus.begin())
                 numaStr.push_back(',');
 
             numaStr.append(std::to_string(rangeBeg));
@@ -611,6 +611,7 @@ void NumaConfig::add_numa_node_cpu(const NumaIndex numaId, const CpuIndex cpuId)
 void NumaConfig::add_numa_node(const NumaIndex numaId, const CpuIndex cpuId) noexcept {
     auto& cpus = nodes[numaId];
 
+    // Keep CPU indices sorted and unique.
     if (cpus.empty() || cpus.back() < cpuId)
         cpus.push_back(cpuId);
     else
@@ -636,16 +637,16 @@ bool NumaConfig::add_cpu_to_node(const NumaIndex numaId, const CpuIndex cpuId) n
 }
 
 bool NumaConfig::add_cpu_range_to_node(const NumaIndex numaId,
-                                       const CpuIndex  begCpuId,
-                                       const CpuIndex  endCpuId) noexcept {
+                                       const CpuIndex  cpuIdBeg,
+                                       const CpuIndex  cpuIdEnd) noexcept {
 
-    for (auto cpuId = begCpuId; cpuId <= endCpuId; ++cpuId)
+    for (auto cpuId = cpuIdBeg; cpuId <= cpuIdEnd; ++cpuId)
         if (is_cpu_assigned(cpuId))
             return false;
 
     resize_numa_node(numaId);
 
-    for (auto cpuId = begCpuId; cpuId <= endCpuId; ++cpuId)
+    for (auto cpuId = cpuIdBeg; cpuId <= cpuIdEnd; ++cpuId)
         add_numa_node(numaId, cpuId);
 
     return true;
@@ -719,6 +720,7 @@ void NumaReplicationContext::set_numa_config(NumaConfig&& numaCfg) noexcept {
 }
 
 const NumaConfig& NumaReplicationContext::numa_config() const noexcept { return numaConfig; }
+
 
 BaseNumaReplicated::BaseNumaReplicated(NumaReplicationContext& numaCtx) noexcept :
     numaContext(&numaCtx) {
