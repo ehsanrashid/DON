@@ -27,7 +27,7 @@
     #if !defined(_GNU_SOURCE)
         #define _GNU_SOURCE
     #endif
-    #include <sched.h>  // CPU_FREE(), sched_getaffinity(), sched_setaffinity()
+    #include <sched.h>  // CPU_ALLOC(), CPU_FREE(), sched_getaffinity(), sched_setaffinity()
 #endif
 
 namespace DON {
@@ -344,26 +344,26 @@ CpuIndexSet get_process_affinity() noexcept {
     // In this case just choose a reasonable upper bound.
     constexpr CpuIndex MaxCpuCount = 64 * KB - 1;
 
-    cpu_set_t* const cpuMask = CPU_ALLOC(MaxCpuCount);
+    cpu_set_t* const cpusMask = CPU_ALLOC(MaxCpuCount);
 
-    if (cpuMask == nullptr)
+    if (cpusMask == nullptr)
     {
         //std::exit(EXIT_FAILURE);
         set_to_all_cpus();
         return cpus;
     }
 
-    const auto free_cpu_mask = [&cpuMask]() noexcept { CPU_FREE(cpuMask); };
+    const auto free_cpus_mask = [&cpusMask]() noexcept { CPU_FREE(cpusMask); };
 
     const usize maskSize = CPU_ALLOC_SIZE(MaxCpuCount);
 
-    CPU_ZERO_S(maskSize, cpuMask);
+    CPU_ZERO_S(maskSize, cpusMask);
 
-    if (::sched_getaffinity(0, maskSize, cpuMask) != 0)
+    if (::sched_getaffinity(0, maskSize, cpusMask) != 0)
     {
         //DEBUG_LOG("::sched_getaffinity() failed");
 
-        free_cpu_mask();
+        free_cpus_mask();
 
         //std::exit(EXIT_FAILURE);
         set_to_all_cpus();
@@ -373,10 +373,10 @@ CpuIndexSet get_process_affinity() noexcept {
     cpus.reserve(MaxCpuCount);
 
     for (CpuIndex cpuId = 0; cpuId < MaxCpuCount; ++cpuId)
-        if (CPU_ISSET_S(cpuId, maskSize, cpuMask))
+        if (CPU_ISSET_S(cpuId, maskSize, cpusMask))
             cpus.insert(cpuId);
 
-    free_cpu_mask();
+    free_cpus_mask();
 
     return cpus;
 }
@@ -875,32 +875,33 @@ NumaConfig::bind_current_thread_to_numa_node(const NumaIndex numaId) const noexc
     }
 
 #elif defined(USE_UNIX_NUMA)
-    cpu_set_t* const cpuMask = CPU_ALLOC(maxCpuId + 1);
 
-    if (cpuMask == nullptr)
+    cpu_set_t* const cpusMask = CPU_ALLOC(maxCpuId + 1);
+
+    if (cpusMask == nullptr)
     {
         std::exit(EXIT_FAILURE);
     }
 
-    const auto free_cpu_mask = [&cpuMask]() noexcept { CPU_FREE(cpuMask); };
+    const auto free_cpus_mask = [&cpusMask]() noexcept { CPU_FREE(cpusMask); };
 
     const usize maskSize = CPU_ALLOC_SIZE(maxCpuId + 1);
 
-    CPU_ZERO_S(maskSize, cpuMask);
+    CPU_ZERO_S(maskSize, cpusMask);
 
     for (const CpuIndex cpuId : node_cpus(numaId))
-        CPU_SET_S(cpuId, maskSize, cpuMask);
+        CPU_SET_S(cpuId, maskSize, cpusMask);
 
-    if (::sched_setaffinity(0, maskSize, cpuMask) != 0)
+    if (::sched_setaffinity(0, maskSize, cpusMask) != 0)
     {
         //DEBUG_LOG("::sched_setaffinity() failed");
 
-        free_cpu_mask();
+        free_cpus_mask();
 
         std::exit(EXIT_FAILURE);
     }
 
-    free_cpu_mask();
+    free_cpus_mask();
 
     // Yield this thread just to be sure it gets rescheduled.
     // This is defensive, allowed because this code is not performance critical.
