@@ -50,7 +50,7 @@ CpuIndex hardware_concurrency() noexcept {
 
 namespace {
 
-CpuIndexSet intersect_cpu_sets(const CpuIndexSet& cpus1, const CpuIndexSet& cpus2) noexcept {
+CpuIndexSet intersect_cpus(const CpuIndexSet& cpus1, const CpuIndexSet& cpus2) noexcept {
     const CpuIndexSet& smalerCpus = cpus1.size() <= cpus2.size() ? cpus1 : cpus2;
     const CpuIndexSet& largerCpus = cpus1.size() <= cpus2.size() ? cpus2 : cpus1;
 
@@ -78,7 +78,7 @@ std::optional<CpuIndexSet> WindowsAffinity::combined_cpus() const noexcept {
         return cpus[0];
 
     // Both are non-empty -> compute intersection
-    return intersect_cpu_sets(cpus[0], cpus[1]);
+    return intersect_cpus(cpus[0], cpus[1]);
 }
 
 bool WindowsAffinity::likely_use_cpus(const usize idx) const noexcept {
@@ -348,10 +348,12 @@ CpuIndexSet get_process_affinity() noexcept {
 
     if (cpuMask == nullptr)
     {
+        //std::exit(EXIT_FAILURE);
         set_to_all_cpus();
-
         return cpus;
     }
+
+    const auto free_cpu_mask = [&cpuMask]() noexcept { CPU_FREE(cpuMask); };
 
     const usize maskSize = CPU_ALLOC_SIZE(MaxCpuCount);
 
@@ -361,10 +363,10 @@ CpuIndexSet get_process_affinity() noexcept {
     {
         //DEBUG_LOG("::sched_getaffinity() failed");
 
-        CPU_FREE(cpuMask);
+        free_cpu_mask();
 
+        //std::exit(EXIT_FAILURE);
         set_to_all_cpus();
-
         return cpus;
     }
 
@@ -374,7 +376,7 @@ CpuIndexSet get_process_affinity() noexcept {
         if (CPU_ISSET_S(cpuId, maskSize, cpuMask))
             cpus.insert(cpuId);
 
-    CPU_FREE(cpuMask);
+    free_cpu_mask();
 
     return cpus;
 }
@@ -876,7 +878,11 @@ NumaConfig::bind_current_thread_to_numa_node(const NumaIndex numaId) const noexc
     cpu_set_t* const cpuMask = CPU_ALLOC(maxCpuId + 1);
 
     if (cpuMask == nullptr)
+    {
         std::exit(EXIT_FAILURE);
+    }
+
+    const auto free_cpu_mask = [&cpuMask]() noexcept { CPU_FREE(cpuMask); };
 
     const usize maskSize = CPU_ALLOC_SIZE(maxCpuId + 1);
 
@@ -889,12 +895,12 @@ NumaConfig::bind_current_thread_to_numa_node(const NumaIndex numaId) const noexc
     {
         //DEBUG_LOG("::sched_setaffinity() failed");
 
-        CPU_FREE(cpuMask);
+        free_cpu_mask();
 
         std::exit(EXIT_FAILURE);
     }
 
-    CPU_FREE(cpuMask);
+    free_cpu_mask();
 
     // Yield this thread just to be sure it gets rescheduled.
     // This is defensive, allowed because this code is not performance critical.
