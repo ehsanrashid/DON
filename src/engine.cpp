@@ -274,7 +274,7 @@ std::vector<std::pair<usize, usize>> Engine::bound_thread_counts() const noexcep
 
     while (numaIdx < threadCounts.size())
     {
-        ratios.emplace_back(threadCounts[numaIdx], numaConfig.node_cpus_size(numaIdx));
+        ratios.emplace_back(threadCounts[numaIdx], numaConfig.node_cpus_size(NumaIndex(numaIdx)));
         ++numaIdx;
     }
 

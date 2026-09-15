@@ -397,7 +397,7 @@ NumaConfig::distribute_threads_among_numa_nodes(const u16 threadCount) const noe
     {
         // Special case for when there's no NUMA nodes
         // Doesn't buy much, but let's keep the default path simple
-        numaNodes.resize(threadCount, NumaIndex{0});
+        numaNodes.resize(usize{threadCount}, NumaIndex{0});
     }
     else
     {
@@ -405,9 +405,8 @@ NumaConfig::distribute_threads_among_numa_nodes(const u16 threadCount) const noe
 
         for (u16 threadId = 0; threadId < threadCount; ++threadId)
         {
-            NumaIndex bestNumaId = 0;
-
-            double minNodeFill = std::numeric_limits<double>::max();
+            NumaIndex bestNumaId   = 0;
+            double    bestNodeFill = std::numeric_limits<double>::max();
 
             for (usize numaId = 0; numaId < nodes_size(); ++numaId)
             {
@@ -416,10 +415,10 @@ NumaConfig::distribute_threads_among_numa_nodes(const u16 threadCount) const noe
                 // NOTE: Do want to perhaps fill the first available node up to 50% first before considering other nodes?
                 //       Probably not, because it would interfere with running multiple instances.
                 //       Basically shouldn't favor any particular node.
-                if (minNodeFill > nodeFill)
+                if (bestNodeFill > nodeFill)
                 {
-                    minNodeFill = nodeFill;
-                    bestNumaId  = NumaIndex(numaId);
+                    bestNodeFill = nodeFill;
+                    bestNumaId   = NumaIndex(numaId);
                 }
             }
 
