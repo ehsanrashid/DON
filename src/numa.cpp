@@ -391,25 +391,29 @@ NumaReplicatedAccessToken::NumaReplicatedAccessToken(const NumaIndex numaIdx) no
 
 NumaIndex NumaReplicatedAccessToken::numa_id() const noexcept { return numaId; }
 
-CpuIndexVec shortened_string_to_cpus(const std::string_view str) noexcept {
+CpuIndexVec parse_to_cpus(const std::string_view nodeSv) noexcept {
     CpuIndexVec cpus;
 
-    if (is_whitespace(str))
+    if (is_whitespace(nodeSv))
         return cpus;
 
-    for (const auto ss : split(str, ",", true))
+    for (const auto cpusSv : split(nodeSv, ",", true))
     {
-        if (is_whitespace(ss))
+        if (is_whitespace(cpusSv))
             continue;
 
-        const auto parts = split(ss, "-", true);
+        const auto parts = split(cpusSv, "-", true);
 
         switch (parts.size())
         {
         case 1 : {
-            const auto cpuId = str_to_usize(parts[0]);
-            if (cpuId)
-                cpus.emplace_back(CpuIndex(*cpuId));
+            const auto id = str_to_usize(parts[0]);
+
+            if (id)
+            {
+                const auto cpuId = static_cast<CpuIndex>(*id);
+                cpus.emplace_back(cpuId);
+            }
         }
         break;
         case 2 : {
@@ -569,22 +573,22 @@ NumaConfig NumaConfig::from_system([[maybe_unused]] const AutoNumaPolicy& numaPo
     return numaCfg;
 }
 
-std::optional<NumaConfig> NumaConfig::from_string(const std::string_view str) noexcept {
+std::optional<NumaConfig> NumaConfig::from_string(const std::string_view sv) noexcept {
     NumaConfig numaCfg = empty();
 
     NumaIndex numaId = 0;
 
-    for (const auto& cpuIdsStr : split(str, ":"))
+    for (const auto& nodeSv : split(sv, ":"))
     {
-        const auto cpuIds = shortened_string_to_cpus(cpuIdsStr);
+        const auto cpus = parse_to_cpus(nodeSv);
 
-        if (cpuIds.empty())
+        if (cpus.empty())
             continue;
 
-        for (const CpuIndex cpuId : cpuIds)
+        for (const CpuIndex cpuId : cpus)
             if (!numaCfg.add_cpu_to_node(numaId, cpuId))
             {
-                std::cerr << "NumaConfig parse error in segment '" << cpuIdsStr  //
+                std::cerr << "NumaConfig parse error in segment '" << nodeSv  //
                           << "': CPU " << cpuId << " rejected for NUMA node " << numaId
                           << std::endl;
                 return std::nullopt;

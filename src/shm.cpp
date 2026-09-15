@@ -386,10 +386,10 @@ void print() noexcept {
 namespace MemoryCleanup {
 
 void cleanup() noexcept {
-    auto list = MemoryRegistry::detach_memories();
+    auto memoryList = MemoryRegistry::detach_memories();
 
-    //DEBUG_LOG("Memory cleanup started (" << list.size() << " object(s)).");
-    for (auto* const memory : list)
+    //DEBUG_LOG("Memory cleanup started (" << memoryList.size() << " object(s)).");
+    for (auto* const memory : memoryList)
         if (memory != nullptr)
             memory->reset();
 }

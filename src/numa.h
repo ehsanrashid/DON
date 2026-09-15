@@ -204,7 +204,7 @@ struct BundledL3Policy {
 // Automatically select the NUMA policy
 using AutoNumaPolicy = std::variant<SystemNumaPolicy, L3DomainsPolicy, BundledL3Policy>;
 
-CpuIndexVec shortened_string_to_cpus(std::string_view str) noexcept;
+CpuIndexVec parse_to_cpus(std::string_view str) noexcept;
 
 // Designed as immutable, because there is no good reason to alter an already
 // existing config in a way that doesn't require recreating it completely, and

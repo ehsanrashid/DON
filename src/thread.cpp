@@ -164,15 +164,12 @@ void Threads::set(const NumaConfig&             numaConfig,
     // This is undesirable, and so the default behavior (i.e. when the user does not
     // change the NumaConfig UCI setting) is to not bind the threads to processors
     // unless we know for sure that we span NUMA nodes and replication is required.
-    std::string_view NumaPolicy = sharedState.options["NumaPolicy"];
+    const std::string_view NumaPolicy = sharedState.options["NumaPolicy"];
 
-    bool threadBindable = false;
-
-    if (NumaPolicy == "auto")
-        threadBindable = numaConfig.suggests_binding_threads(threadCount);
-    // "system", "hardware" or explicitly set by string
-    else if (NumaPolicy != "none")
-        threadBindable = true;
+    const bool threadBindable =  //
+      NumaPolicy == "none"   ? false
+      : NumaPolicy == "auto" ? numaConfig.suggests_binding_threads(threadCount)
+                             : true;  // "system", "hardware" or explicitly set by string
 
     // Assign threads to NUMA nodes
     std::vector<NumaIndex> thBoundNumaNodes;
@@ -637,12 +634,12 @@ std::vector<usize> Threads::bound_thread_counts() const noexcept {
     if (threadBoundNumaNodes.empty())
         return threadCounts;
 
-    const NumaIndex maxNumaId =
+    const usize maxNumaId =
       *std::max_element(threadBoundNumaNodes.begin(), threadBoundNumaNodes.end());
 
     threadCounts.resize(maxNumaId + 1, 0);
 
-    for (const NumaIndex numaId : threadBoundNumaNodes)
+    for (const usize numaId : threadBoundNumaNodes)
         ++threadCounts[numaId];
 
     return threadCounts;
