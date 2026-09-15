@@ -39,7 +39,7 @@ CpuIndex hardware_concurrency() noexcept {
     // ::hardware_concurrency() only returns the number of processors in
     // the first group, because only these are available to std::thread.
 #if defined(_WIN64)
-    concurrency = CpuIndex(std::clamp<u32>(GetActiveProcessorCount(ALL_PROCESSOR_GROUPS),
+    concurrency = CpuIndex(std::clamp<u32>(::GetActiveProcessorCount(ALL_PROCESSOR_GROUPS),
                                            concurrency, std::numeric_limits<CpuIndex>::max()));
 #endif
 
@@ -110,9 +110,10 @@ std::pair<BOOL, std::vector<USHORT>> get_process_group_affinity() noexcept {
 
         USHORT groupCount = requiredGroupCount;
 
-        if (GetProcessGroupAffinity(GetCurrentProcess(), &groupCount, alignedGroupArray) == TRUE)
+        if (::GetProcessGroupAffinity(::GetCurrentProcess(), &groupCount, alignedGroupArray)
+            == TRUE)
             return {TRUE, std::vector<USHORT>(alignedGroupArray, alignedGroupArray + groupCount)};
-        else if (GetLastError() != ERROR_INSUFFICIENT_BUFFER)
+        else if (::GetLastError() != ERROR_INSUFFICIENT_BUFFER)
             break;
 
         // Windows tells us the correct size
@@ -124,10 +125,10 @@ std::pair<BOOL, std::vector<USHORT>> get_process_group_affinity() noexcept {
 
 WindowsAffinity get_process_affinity() noexcept {
 
-    HMODULE hModule = GetModuleHandle(KERNEL_MODULE_NAME);
+    HMODULE hModule = ::GetModuleHandle(KERNEL_MODULE_NAME);
 
     auto getThreadSelectedCpuSetMasks = GetThreadSelectedCpuSetMasks_(
-      (void (*)()) GetProcAddress(hModule, "GetThreadSelectedCpuSetMasks"));
+      (void (*)())::GetProcAddress(hModule, "GetThreadSelectedCpuSetMasks"));
 
     WindowsAffinity winAffinity;
 
@@ -137,10 +138,10 @@ WindowsAffinity get_process_affinity() noexcept {
     {
         USHORT requiredMaskCount;
 
-        status = getThreadSelectedCpuSetMasks(GetCurrentThread(), nullptr, 0, &requiredMaskCount);
+        status = getThreadSelectedCpuSetMasks(::GetCurrentThread(), nullptr, 0, &requiredMaskCount);
 
         // Expect ERROR_INSUFFICIENT_BUFFER from GetThreadSelectedCpuSetMasks, but other failure is an actual error
-        if (status == FALSE && GetLastError() != ERROR_INSUFFICIENT_BUFFER)
+        if (status == FALSE && ::GetLastError() != ERROR_INSUFFICIENT_BUFFER)
         {
             winAffinity.determinate[1] = false;
         }
@@ -150,7 +151,7 @@ WindowsAffinity get_process_affinity() noexcept {
             // so GetProcessAffinityMask may still return some affinity.
             auto groupAffinities = std::make_unique<GROUP_AFFINITY[]>(requiredMaskCount);
 
-            status = getThreadSelectedCpuSetMasks(GetCurrentThread(), groupAffinities.get(),
+            status = getThreadSelectedCpuSetMasks(::GetCurrentThread(), groupAffinities.get(),
                                                   requiredMaskCount, &requiredMaskCount);
 
             if (status == FALSE)
@@ -183,7 +184,7 @@ WindowsAffinity get_process_affinity() noexcept {
     //       if individual threads set affinity on different processor groups.
     DWORD_PTR procMask, sysMask;
 
-    status = GetProcessAffinityMask(GetCurrentProcess(), &procMask, &sysMask);
+    status = ::GetProcessAffinityMask(GetCurrentProcess(), &procMask, &sysMask);
     // If procMask == 0 then cannot determine affinity because it spans processor groups.
     // On Windows 11 and Server 2022 it will instead
     //     > If, however, hHandle specifies a handle to the current process, the function
@@ -214,7 +215,7 @@ WindowsAffinity get_process_affinity() noexcept {
     if (procGroupAffinity.size() == 1)
     {
         // Detect the case when affinity is set to all processors and correctly leave affinity.cpus[0] as nullopt.
-        if (GetActiveProcessorGroupCount() != 1 || procMask != sysMask)
+        if (::GetActiveProcessorGroupCount() != 1 || procMask != sysMask)
         {
             CpuIndexSet cpus;
 
@@ -256,7 +257,7 @@ WindowsAffinity get_process_affinity() noexcept {
 
                 for (WORD groupId : procGroupAffinity)
                 {
-                    const DWORD ActiveProcCount = GetActiveProcessorCount(groupId);
+                    const DWORD activeProcCount = ::GetActiveProcessorCount(groupId);
 
                     // Have to schedule to 2 different processors and the affinities.
                     // Otherwise processor choice could influence the resulting affinity.
@@ -264,7 +265,7 @@ WindowsAffinity get_process_affinity() noexcept {
                     DWORD_PTR combinedProcMask = std::numeric_limits<DWORD_PTR>::max();
                     DWORD_PTR combinedSysMask  = std::numeric_limits<DWORD_PTR>::max();
 
-                    for (DWORD i = 0; i < std::min(ActiveProcCount, DWORD(2)); ++i)
+                    for (DWORD i = 0; i < std::min(activeProcCount, DWORD(2)); ++i)
                     {
                         GROUP_AFFINITY groupAffinity;
                         std::memset(&groupAffinity, 0, sizeof(groupAffinity));
@@ -272,7 +273,7 @@ WindowsAffinity get_process_affinity() noexcept {
                         groupAffinity.Group = groupId;
                         groupAffinity.Mask  = bit(u8(i));
 
-                        if (SetThreadGroupAffinity(GetCurrentThread(), &groupAffinity, nullptr)
+                        if (::SetThreadGroupAffinity(::GetCurrentThread(), &groupAffinity, nullptr)
                             == FALSE)
                         {
                             winAffinity.determinate[0] = false;
@@ -280,11 +281,11 @@ WindowsAffinity get_process_affinity() noexcept {
                             return;
                         }
 
-                        SwitchToThread();
+                        ::SwitchToThread();
 
                         DWORD_PTR thProcMask, thSysMask;
 
-                        if (GetProcessAffinityMask(GetCurrentProcess(), &thProcMask, &thSysMask)
+                        if (::GetProcessAffinityMask(::GetCurrentProcess(), &thProcMask, &thSysMask)
                             == FALSE)
                         {
                             winAffinity.determinate[0] = false;
@@ -523,7 +524,7 @@ NumaConfig NumaConfig::from_system([[maybe_unused]] const AutoNumaPolicy& numaPo
     //     scheduled to processors on their primary group, but they are able to
     //     be scheduled to processors on any other group.
     //
-    // used to be guarded by if (LIKELY_USE_CPUS_0)
+    // used to be guarded by if (LIKELY_USE_CPUS[0])
     {
         NumaConfig splitNumaCfg = empty();
 
@@ -588,9 +589,8 @@ std::optional<NumaConfig> NumaConfig::from_string(const std::string_view sv) noe
         for (const auto cpuId : cpus)
             if (!numaCfg.add_cpu_to_node(numaId, cpuId))
             {
-                std::cerr << "NumaConfig parse error in segment '" << nodeSv  //
-                          << "': CPU " << cpuId << " rejected for NUMA node " << numaId
-                          << std::endl;
+                std::cerr << "NumaConfig parse error in segment '" << nodeSv << "': CPU " << cpuId
+                          << " rejected for NUMA node " << numaId << std::endl;
                 return std::nullopt;
             }
 
@@ -763,8 +763,8 @@ NumaConfig::distribute_threads_among_numa_nodes(const u16 threadCount) const noe
 
         for (u16 threadId = 0; threadId < threadCount; ++threadId)
         {
-            NumaIndex bestNumaId   = 0;
-            double    bestNodeFill = std::numeric_limits<double>::max();
+            usize  bestNumaId   = 0;
+            double bestNodeFill = std::numeric_limits<double>::max();
 
             for (usize numaId = 0; numaId < nodes_size(); ++numaId)
             {
@@ -776,11 +776,11 @@ NumaConfig::distribute_threads_among_numa_nodes(const u16 threadCount) const noe
                 if (bestNodeFill > nodeFill)
                 {
                     bestNodeFill = nodeFill;
-                    bestNumaId   = NumaIndex(numaId);
+                    bestNumaId   = numaId;
                 }
             }
 
-            numaNodes.emplace_back(bestNumaId);
+            numaNodes.emplace_back(NumaIndex(bestNumaId));
             ++occupation[bestNumaId];
         }
     }
@@ -795,7 +795,7 @@ NumaConfig::bind_current_thread_to_numa_node(const NumaIndex numaId) const noexc
 
 #if defined(_WIN64)
     // Requires Windows 11. No good way to set thread affinity spanning processor groups before that.
-    HMODULE hModule = GetModuleHandle(KERNEL_MODULE_NAME);
+    HMODULE hModule = ::GetModuleHandle(KERNEL_MODULE_NAME);
 
     auto setThreadSelectedCpuSetMasks = SetThreadSelectedCpuSetMasks_(
       (void (*)())::GetProcAddress(hModule, "SetThreadSelectedCpuSetMasks"));
@@ -835,7 +835,7 @@ NumaConfig::bind_current_thread_to_numa_node(const NumaIndex numaId) const noexc
     }
 
     // Sometimes need to force the old API, but do not use it unless necessary.
-    if (setThreadSelectedCpuSetMasks == nullptr || LIKELY_USE_CPUS_0)
+    if (setThreadSelectedCpuSetMasks == nullptr || LIKELY_USE_CPUS[0])
     {
         // On earlier windows version (since windows 7)
         // cannot run a single thread on multiple processor groups, so need to restrict the group.
@@ -911,6 +911,7 @@ NumaConfig::bind_current_thread_to_numa_node(const NumaIndex numaId) const noexc
     // Yield this thread just to be sure it gets rescheduled.
     // This is defensive, allowed because this code is not performance critical.
     ::sched_yield();
+
 #endif
 
     return NumaReplicatedAccessToken(numaId);

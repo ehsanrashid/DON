@@ -47,8 +47,9 @@
 
 namespace DON {
 
-using CpuIndexVec = std::vector<CpuIndex>;
-using CpuIndexSet = std::unordered_set<CpuIndex>;
+using CpuIndexVec  = std::vector<CpuIndex>;
+using CpuToNodeMap = std::unordered_map<CpuIndex, NumaIndex>;
+using CpuIndexSet  = std::unordered_set<CpuIndex>;
 
 CpuIndex hardware_concurrency() noexcept;
 
@@ -109,8 +110,10 @@ WindowsAffinity get_process_affinity() noexcept;
 
 inline const auto PROCESSOR_AFFINITY = get_process_affinity();
 
-inline const auto LIKELY_USE_CPUS_0 = PROCESSOR_AFFINITY.likely_use_cpus(0);
-inline const auto LIKELY_USE_CPUS_1 = PROCESSOR_AFFINITY.likely_use_cpus(1);
+inline const Array<bool, 2> LIKELY_USE_CPUS{
+  PROCESSOR_AFFINITY.likely_use_cpus(0),
+  PROCESSOR_AFFINITY.likely_use_cpus(1)  //
+};
 
 // Type machinery used to emulate Cache->GroupCount
 
@@ -303,11 +306,12 @@ class NumaConfig final {
         NumaConfig numaCfg = empty();
 
 #if defined(_WIN64)
-        const WORD ActiveProcGroupCount = GetActiveProcessorGroupCount();
+
+        const WORD ActiveProcGroupCount = ::GetActiveProcessorGroupCount();
 
         for (WORD groupId = 0; groupId < ActiveProcGroupCount; ++groupId)
         {
-            const u16 ActiveProcCount = u16(GetActiveProcessorCount(groupId));
+            const u16 ActiveProcCount = u16(::GetActiveProcessorCount(groupId));
 
             for (u16 number = 0; number < ActiveProcCount; ++number)
             {
@@ -318,7 +322,7 @@ class NumaConfig final {
 
                 USHORT nodeNumber;
 
-                if (GetNumaProcessorNodeEx(&processorNumber, &nodeNumber) == TRUE)
+                if (::GetNumaProcessorNodeEx(&processorNumber, &nodeNumber) == TRUE)
                 {
                     if (nodeNumber != USHORT{0xFFFF})  // std::numeric_limits<USHORT>::max()
                     {
@@ -332,6 +336,7 @@ class NumaConfig final {
         }
 
 #elif defined(USE_UNIX_NUMA)
+
         // On Linux things are straightforward, since there's no processor groups
         // and any thread can be scheduled on all processors.
         // Try to gather this information from the sysfs first
@@ -401,11 +406,12 @@ class NumaConfig final {
         std::vector<L3Domain> l3Domains;
 
 #if defined(_WIN64)
+
         DWORD bufSize = 0;
 
-        GetLogicalProcessorInformationEx(RelationCache, nullptr, &bufSize);
+        ::GetLogicalProcessorInformationEx(RelationCache, nullptr, &bufSize);
 
-        if (GetLastError() != ERROR_INSUFFICIENT_BUFFER)
+        if (::GetLastError() != ERROR_INSUFFICIENT_BUFFER)
             return std::nullopt;
 
         std::vector<char> buffer(bufSize);
@@ -413,7 +419,7 @@ class NumaConfig final {
         auto* processorInfo =
           reinterpret_cast<SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*>(buffer.data());
 
-        if (!GetLogicalProcessorInformationEx(RelationCache, processorInfo, &bufSize))
+        if (!::GetLogicalProcessorInformationEx(RelationCache, processorInfo, &bufSize))
             return std::nullopt;
 
         while (reinterpret_cast<char*>(processorInfo) < buffer.data() + bufSize)
@@ -440,6 +446,7 @@ class NumaConfig final {
         }
 
 #elif defined(USE_UNIX_NUMA)
+
         CpuIndexSet seenCpus;
 
         for (const auto& [nextCpuId, _] : sysCfg.nodeByCpu)
@@ -500,10 +507,10 @@ class NumaConfig final {
     // Removes empty NUMA nodes and rebuilds CPU-to-NUMA mappings.
     void remove_empty_numa_nodes() noexcept;
 
-    std::vector<CpuIndexVec>                nodes;
-    std::unordered_map<CpuIndex, NumaIndex> nodeByCpu;
-    CpuIndex                                maxCpuId;
-    bool                                    customAffinity;
+    std::vector<CpuIndexVec> nodes;
+    CpuToNodeMap             nodeByCpu;
+    CpuIndex                 maxCpuId;
+    bool                     customAffinity;
 };
 
 class BaseNumaReplicated;
@@ -602,7 +609,7 @@ class NumaReplicated final: public BaseNumaReplicated {
 
     ~NumaReplicated() noexcept override = default;
 
-    const T& operator[](NumaReplicatedAccessToken token) const noexcept {
+    const T& operator[](const NumaReplicatedAccessToken token) const noexcept {
         assert(token.numa_id() < instances.size());
 
         return *(instances[token.numa_id()]);
@@ -689,7 +696,7 @@ class LazyNumaReplicated final: public BaseNumaReplicated {
 
     ~LazyNumaReplicated() noexcept override = default;
 
-    const T& operator[](NumaReplicatedAccessToken token) const noexcept {
+    const T& operator[](const NumaReplicatedAccessToken token) const noexcept {
         assert(token.numa_id() < instances.size());
 
         ensure_present(token.numa_id());
@@ -716,7 +723,7 @@ class LazyNumaReplicated final: public BaseNumaReplicated {
     }
 
    private:
-    void ensure_present(NumaIndex numaId) const noexcept {
+    void ensure_present(const NumaIndex numaId) const noexcept {
         assert(numaId < instances.size());
 
         if (instances[numaId] != nullptr)
@@ -803,7 +810,7 @@ class SystemWideLazyNumaReplicated final: public BaseNumaReplicated {
 
     ~SystemWideLazyNumaReplicated() noexcept override = default;
 
-    const T& operator[](NumaReplicatedAccessToken token) const noexcept {
+    const T& operator[](const NumaReplicatedAccessToken token) const noexcept {
         assert(token.numa_id() < instances.size());
 
         ensure_present(token.numa_id());
@@ -840,7 +847,7 @@ class SystemWideLazyNumaReplicated final: public BaseNumaReplicated {
     }
 
    private:
-    u64 get_discriminator(NumaIndex numaId) const noexcept {
+    u64 get_discriminator(const NumaIndex numaId) const noexcept {
 
         const NumaConfig& numaCfg = numa_config();
 
@@ -857,7 +864,7 @@ class SystemWideLazyNumaReplicated final: public BaseNumaReplicated {
         return hash_string(discriminator);
     }
 
-    void ensure_present(NumaIndex numaId) const noexcept {
+    void ensure_present(const NumaIndex numaId) const noexcept {
         assert(numaId < instances.size());
 
         if (instances[numaId] != nullptr)
