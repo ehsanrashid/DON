@@ -1311,6 +1311,28 @@ class ConcurrentCache final {
         valueMap.reserve(reserve_count(reserveCount));
     }
 
+    template<typename Builder>
+    Value& access_or_build_with(const Key& key, Builder&& builder) noexcept {
+        // Fast path: shared read lock to check and access
+        {
+            std::shared_lock readLock(mutex);
+
+            if (auto itr = valueMap.find(key); itr != valueMap.end())
+                return get_value(itr->second);
+        }
+
+        // Slow path: exclusive write lock to insert and construct
+        std::lock_guard writeLock(mutex);
+
+        auto [itr, inserted] = valueMap.try_emplace(key);
+
+        // Inserted: construct the value
+        if (inserted)
+            set_value(itr->second, std::forward<Builder>(builder)());
+
+        return get_value(itr->second);
+    }
+
     template<typename... Args>
     Value& access_or_build(const Key& key, Args&&... args) noexcept {
         // Fast path: shared read lock to check and access
@@ -1327,8 +1349,8 @@ class ConcurrentCache final {
         // Double-check after acquiring exclusive lock
         auto [itr, inserted] = valueMap.try_emplace(key);
 
+        // Inserted: construct the value
         if (inserted)
-            // Inserted: construct the value
             set_value(itr->second, std::forward<Args>(args)...);
 
         return get_value(itr->second);
