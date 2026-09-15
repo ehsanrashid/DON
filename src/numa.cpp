@@ -37,10 +37,10 @@ CpuIndex hardware_concurrency() noexcept {
 }
 
 CpuIndexVec shortened_string_to_cpus(const std::string_view str) noexcept {
-    CpuIndexVec indices;
+    CpuIndexVec cpus;
 
     if (is_whitespace(str))
-        return indices;
+        return cpus;
 
     for (const auto ss : split(str, ",", true))
     {
@@ -54,20 +54,20 @@ CpuIndexVec shortened_string_to_cpus(const std::string_view str) noexcept {
         case 1 : {
             const auto cpuId = str_to_usize(parts[0]);
             if (cpuId)
-                indices.emplace_back(CpuIndex(*cpuId));
+                cpus.emplace_back(CpuIndex(*cpuId));
         }
         break;
         case 2 : {
             // Limit expansion to 1M CPU IDs
-            constexpr usize MaxIndices = 64 * KB;
+            constexpr usize MaxCpus = 64 * KB;
 
-            if (indices.size() >= MaxIndices)
+            if (cpus.size() >= MaxCpus)
                 break;
 
             const auto idBeg = str_to_usize(parts[0]);
             const auto idEnd = str_to_usize(parts[1]);
 
-            if (idBeg && idEnd && *idBeg <= *idEnd && *idEnd - *idBeg < MaxIndices - indices.size()
+            if (idBeg && idEnd && *idBeg <= *idEnd && *idEnd - *idBeg < MaxCpus - cpus.size()
                 && *idEnd <= std::numeric_limits<CpuIndex>::max())
             {
                 const auto cpuIdBeg = static_cast<CpuIndex>(*idBeg);
@@ -75,7 +75,7 @@ CpuIndexVec shortened_string_to_cpus(const std::string_view str) noexcept {
 
                 for (CpuIndex cpuId = cpuIdBeg;; ++cpuId)
                 {
-                    indices.emplace_back(cpuId);
+                    cpus.emplace_back(cpuId);
                     if (cpuId == cpuIdEnd)
                         break;
                 }
@@ -88,7 +88,7 @@ CpuIndexVec shortened_string_to_cpus(const std::string_view str) noexcept {
         }
     }
 
-    return indices;
+    return cpus;
 }
 
 NumaConfig NumaConfig::empty() noexcept { return NumaConfig{0, false}; }
@@ -409,7 +409,7 @@ NumaConfig::distribute_threads_among_numa_nodes(const u16 threadCount) const noe
 
             double minNodeFill = std::numeric_limits<double>::max();
 
-            for (NumaIndex numaId = 0; numaId < nodes_size(); ++numaId)
+            for (usize numaId = 0; numaId < nodes_size(); ++numaId)
             {
                 const double nodeFill =
                   static_cast<double>(occupation[numaId] + 1) / node_cpus_size(numaId);
@@ -419,7 +419,7 @@ NumaConfig::distribute_threads_among_numa_nodes(const u16 threadCount) const noe
                 if (minNodeFill > nodeFill)
                 {
                     minNodeFill = nodeFill;
-                    bestNumaId  = numaId;
+                    bestNumaId  = NumaIndex(numaId);
                 }
             }
 
@@ -603,9 +603,7 @@ NumaConfig NumaConfig::from_l3_domain(const std::vector<L3Domain> l3Domains,
 }
 
 void NumaConfig::resize_numa_node(const usize newNumaId) noexcept {
-    const auto oldNumaId = nodes_size();
-
-    if (oldNumaId <= newNumaId)
+    if (nodes_size() <= newNumaId)
         nodes.resize(newNumaId + 1);  // default-construct missing elements
 }
 
@@ -684,9 +682,9 @@ void NumaConfig::remove_empty_numa_nodes() noexcept {
     nodeByCpu.clear();
     maxCpuId = 0;
 
-    for (NumaIndex numaId = 0; numaId < nodes_size(); ++numaId)
+    for (usize numaId = 0; numaId < nodes_size(); ++numaId)
         for (const CpuIndex cpuId : node_cpus(numaId))
-            add_numa_node_cpu(numaId, cpuId);
+            add_numa_node_cpu(NumaIndex(numaId), cpuId);
 }
 
 

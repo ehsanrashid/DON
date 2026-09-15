@@ -956,8 +956,8 @@ class NumaReplicated final: public BaseNumaReplicated {
         const auto& numaCfg = numa_config();
         if (numaCfg.requires_memory_replication())
         {
-            for (NumaIndex numaId = 0; numaId < numaCfg.nodes_size(); ++numaId)
-                numaCfg.execute_on_numa_node(numaId, [this, &source]() {
+            for (usize numaId = 0; numaId < numaCfg.nodes_size(); ++numaId)
+                numaCfg.execute_on_numa_node(NumaIndex(numaId), [this, &source]() {
                     instances.emplace_back(std::make_unique<T>(source));
                 });
         }

@@ -270,7 +270,7 @@ std::vector<std::pair<usize, usize>> Engine::bound_thread_counts() const noexcep
     auto  threadCounts = threads.bound_thread_counts();
     auto& numaConfig   = numaContext.numa_config();
 
-    NumaIndex numaIdx = 0;
+    usize numaIdx = 0;
 
     while (numaIdx < threadCounts.size())
     {
@@ -281,7 +281,7 @@ std::vector<std::pair<usize, usize>> Engine::bound_thread_counts() const noexcep
     if (!threadCounts.empty())
         while (numaIdx < numaConfig.nodes_size())
         {
-            ratios.emplace_back(NumaIndex{0}, numaConfig.node_cpus_size(numaIdx));
+            ratios.emplace_back(usize{0}, numaConfig.node_cpus_size(NumaIndex(numaIdx)));
             ++numaIdx;
         }
 
