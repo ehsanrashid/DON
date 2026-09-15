@@ -642,15 +642,15 @@ CpuIndex NumaConfig::node_cpus_front(const NumaIndex numaId) const noexcept {
     return node_cpus(numaId).front();
 }
 
-usize NumaConfig::cpus_size() const noexcept { return nodeByCpu.size(); }
+usize NumaConfig::cpus_size() const noexcept { return cpuToNode.size(); }
 
 bool NumaConfig::is_cpu_assigned(const CpuIndex cpuId) const noexcept {
-    return nodeByCpu.find(cpuId) != nodeByCpu.end();
+    return cpuToNode.find(cpuId) != cpuToNode.end();
 }
 
 NumaIndex NumaConfig::node_by_cpu(const CpuIndex cpuId) const noexcept {
-    const auto itr = nodeByCpu.find(cpuId);
-    return itr != nodeByCpu.end() ? itr->second : 0;
+    const auto itr = cpuToNode.find(cpuId);
+    return itr != cpuToNode.end() ? itr->second : 0;
 }
 
 bool NumaConfig::requires_memory_replication() const noexcept {
@@ -974,7 +974,7 @@ void NumaConfig::resize_numa_node(const usize newNumaId) noexcept {
 
 void NumaConfig::add_numa_node_cpu(const NumaIndex numaId, const CpuIndex cpuId) noexcept {
     // insert/update mapping
-    nodeByCpu[cpuId] = numaId;
+    cpuToNode[cpuId] = numaId;
     // track max CPU ID
     maxCpuId = std::max(cpuId, maxCpuId);
 }
@@ -1036,7 +1036,7 @@ void NumaConfig::remove_empty_numa_nodes() noexcept {
                 nodes.end());
 
     // Rebuild CPU-to-NUMA mappings after node indices have changed.
-    nodeByCpu.clear();
+    cpuToNode.clear();
     maxCpuId = 0;
 
     for (usize numaId = 0; numaId < nodes_size(); ++numaId)

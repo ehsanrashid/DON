@@ -451,7 +451,7 @@ class NumaConfig final {
 
         CpuIndexSet seenCpus;
 
-        for (const auto& [nextCpuId, _] : sysCfg.nodeByCpu)
+        for (const auto& [nextCpuId, _] : sysCfg.cpuToNode)
         {
             if (seenCpus.find(nextCpuId) != seenCpus.end())
                 continue;
@@ -510,7 +510,7 @@ class NumaConfig final {
     void remove_empty_numa_nodes() noexcept;
 
     std::vector<CpuIndexVec> nodes;
-    CpuToNodeMap             nodeByCpu;
+    CpuToNodeMap             cpuToNode;
     CpuIndex                 maxCpuId;
     bool                     customAffinity;
 };
