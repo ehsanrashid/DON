@@ -778,23 +778,23 @@ inline Key Position::non_pawn_key() const noexcept {
 inline Key Position::material_key() const noexcept {
     Key materialKey = 0;
 
-    for (Color c : {WHITE, BLACK})
-        for (PieceType pt : EX_KING_PIECE_TYPES)
+    for (const Color c : {WHITE, BLACK})
+        for (const auto pt : EX_KING_PIECE_TYPES)
             if (const auto cnt = count(c, pt); cnt != 0)
                 materialKey ^= Zobrist::piece_square(c, pt, Square(Zobrist::PAWN_OFFSET + cnt - 1));
 
     return materialKey;
 }
 
-inline bool Position::has_non_pawn(Color c) const noexcept {
+inline bool Position::has_non_pawn(const Color c) const noexcept {
     return std::any_of(NON_PAWN_PIECE_TYPES.begin(), NON_PAWN_PIECE_TYPES.end(),
-                       [&](PieceType pt) -> bool { return pieces_bb(c, pt) != 0; });
+                       [&](const auto pt) -> bool { return pieces_bb(c, pt) != 0; });
 }
 
-inline Value Position::non_pawn_value(Color c) const noexcept {
+inline Value Position::non_pawn_value(const Color c) const noexcept {
     Value nonPawnValue = VALUE_ZERO;
 
-    for (const PieceType pt : NON_PAWN_PIECE_TYPES)
+    for (const auto pt : NON_PAWN_PIECE_TYPES)
         nonPawnValue += piece_value(pt) * count(c, pt);
 
     return nonPawnValue;
