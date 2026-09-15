@@ -412,7 +412,7 @@ NumaConfig::distribute_threads_among_numa_nodes(const u16 threadCount) const noe
             for (usize numaId = 0; numaId < nodes_size(); ++numaId)
             {
                 const double nodeFill =
-                  static_cast<double>(occupation[numaId] + 1) / node_cpus_size(numaId);
+                  double(occupation[numaId] + 1) / node_cpus_size(NumaIndex(numaId));
                 // NOTE: Do want to perhaps fill the first available node up to 50% first before considering other nodes?
                 //       Probably not, because it would interfere with running multiple instances.
                 //       Basically shouldn't favor any particular node.
@@ -683,7 +683,7 @@ void NumaConfig::remove_empty_numa_nodes() noexcept {
     maxCpuId = 0;
 
     for (usize numaId = 0; numaId < nodes_size(); ++numaId)
-        for (const CpuIndex cpuId : node_cpus(numaId))
+        for (const CpuIndex cpuId : node_cpus(NumaIndex(numaId)))
             add_numa_node_cpu(NumaIndex(numaId), cpuId);
 }
 
