@@ -93,9 +93,9 @@ void TimeManager::init(
         OverheadTime *= NodesTime;
     }
 
-    u64 ScaleFactor = use_nodes_time() ? NodesTime : 1;
+    const u64 ScaleFactor = use_nodes_time() ? NodesTime : 1;
 
-    TimePoint ScaledTime = TimePoint(std::max(clock.time / ScaleFactor, u64{1}));
+    const TimePoint ScaledTime = std::max<TimePoint>(clock.time / ScaleFactor, 1);
 
     // clang-format off
 
