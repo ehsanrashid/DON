@@ -53,9 +53,9 @@ void init() noexcept {
 
     const auto prng_rand = [&prng]() noexcept -> Key { return prng.template rand<Key>(); };
 
-    for (Color c : {WHITE, BLACK})
+    for (const Color c : {WHITE, BLACK})
     {
-        for (PieceType pt : PIECE_TYPES)
+        for (const auto pt : PIECE_TYPES)
             std::generate(PieceSquare[c][pt].begin(), PieceSquare[c][pt].end(), prng_rand);
 
         std::memset(&PieceSquare[c][PAWN][SQ_A1], 0, PAWN_OFFSET * sizeof(Key));

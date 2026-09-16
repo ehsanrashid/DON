@@ -31,7 +31,8 @@
 #include "../types.h"  // IWYU pragma: keep
 #include "ntypes.h"
 
-#if defined(USE_SSSE3) || defined(USE_LSX) || (defined(USE_NEON) && USE_NEON >= 8)
+#if defined(USE_SSSE3) || defined(USE_LSX) || (defined(USE_NEON) && USE_NEON >= 8) \
+  || defined(VECTOR)
     #include "simd.h"
 #endif
 

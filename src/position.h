@@ -74,7 +74,7 @@ namespace DON {
 //   key ^= Zobrist::turn();
 namespace Zobrist {
 
-constexpr usize PAWN_OFFSET = 8;
+constexpr u8 PAWN_OFFSET = u8{8};
 
 void init() noexcept;
 
