@@ -298,8 +298,8 @@ jobs:
         id: cache-qemu
         uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
-         path: /tmp/qemu
-         key: qemu-user-9.2.1+ds-1ubuntu5_amd64
+          path: /tmp/qemu
+          key: qemu-user-9.2.1+ds-1ubuntu5_amd64
 
       - name: Install qemu
         run: |
