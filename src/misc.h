@@ -1404,9 +1404,8 @@ class ConcurrentCache final {
             return *entry;
     }
 
-    usize reserveCount;
-    float maxLoadFactor;
-
+    usize                                 reserveCount;
+    float                                 maxLoadFactor;
     std::shared_mutex                     mutex;
     std::unordered_map<Key, StorageValue> valueMap;
 };
