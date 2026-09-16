@@ -1306,9 +1306,10 @@ class AllocationSizes final {
 template<typename Key, typename Value>
 class ConcurrentCache final {
    public:
-    explicit ConcurrentCache(usize reserveCount = 1024, float maxLoadFactor = 0.75f) noexcept {
-        valueMap.max_load_factor(max_load_factor(maxLoadFactor));
-        valueMap.reserve(reserve_count(reserveCount));
+    explicit ConcurrentCache(usize reserveCnt = 1 * KB, float maxLoadFtr = 0.75f) noexcept :
+        reserveCount(reserveCnt),
+        maxLoadFactor(maxLoadFtr) {
+        reset();
     }
 
     template<typename Builder>
@@ -1356,11 +1357,28 @@ class ConcurrentCache final {
         return get_value(itr->second);
     }
 
+    template<typename Transformer, typename Builder>
+    auto transform_access_or_build_with(const Key&    key,
+                                        Transformer&& transformer,
+                                        Builder&&     builder) noexcept {
+        return std::forward<Transformer>(transformer)(
+          access_or_build_with(key, std::forward<Builder>(builder)));
+    }
+
     template<typename Transformer, typename... Args>
     auto
     transform_access_or_build(const Key& key, Transformer&& transformer, Args&&... args) noexcept {
         return std::forward<Transformer>(transformer)(
           access_or_build(key, std::forward<Args>(args)...));
+    }
+
+    void reset() noexcept {
+        std::lock_guard writeLock(mutex);
+
+        valueMap.clear();
+        valueMap.max_load_factor(max_load_factor(maxLoadFactor));
+        valueMap.rehash(0);
+        valueMap.reserve(reserve_count(reserveCount));
     }
 
    private:
@@ -1385,6 +1403,9 @@ class ConcurrentCache final {
         else
             return *entry;
     }
+
+    usize reserveCount;
+    float maxLoadFactor;
 
     std::shared_mutex                     mutex;
     std::unordered_map<Key, StorageValue> valueMap;

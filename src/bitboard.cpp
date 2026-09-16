@@ -53,7 +53,7 @@ std::string pretty_str(const Bitboard b) noexcept {
 }
 
 std::string_view pretty(const Bitboard b) noexcept {
-    constexpr usize ReserveCount  = 1024;
+    constexpr usize ReserveCount  = 1 * KB;
     constexpr float MaxLoadFactor = 0.75f;
 
     // Thread-safe static initialization
@@ -71,8 +71,11 @@ std::string_view pretty(const Bitboard b) noexcept {
     }();
 
     //return cache.access_or_build(b, pretty_str(b));
-    return cache.transform_access_or_build(
-      b, [](const std::string& str) noexcept -> std::string_view { return str; }, pretty_str(b));
+    //return cache.transform_access_or_build(
+    //  b, [](const std::string& str) noexcept -> std::string_view { return str; }, pretty_str(b));
+    return cache.transform_access_or_build_with(
+      b, [](const std::string& str) noexcept -> std::string_view { return str; },
+      [b] { return pretty_str(b); });
 }
 
 }  // namespace DON

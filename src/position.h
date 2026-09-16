@@ -158,6 +158,7 @@ class Position final {
    public:
     // Called at startup to initialize the Zobrist and Cuckoo tables.
     static void init() noexcept;
+    static void reset() noexcept;
 
     Position() noexcept                           = default;
     Position& operator=(const Position&) noexcept = default;
@@ -773,17 +774,6 @@ inline Key Position::non_pawn_key(Color c) const noexcept {
 
 inline Key Position::non_pawn_key() const noexcept {
     return non_pawn_key(WHITE) ^ non_pawn_key(BLACK);
-}
-
-inline Key Position::material_key() const noexcept {
-    Key materialKey = 0;
-
-    for (const Color c : {WHITE, BLACK})
-        for (const auto pt : EX_KING_PIECE_TYPES)
-            if (const auto cnt = count(c, pt); cnt != 0)
-                materialKey ^= Zobrist::piece_square(c, pt, Square(Zobrist::PAWN_OFFSET + cnt - 1));
-
-    return materialKey;
 }
 
 inline bool Position::has_non_pawn(const Color c) const noexcept {

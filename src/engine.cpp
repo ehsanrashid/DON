@@ -178,6 +178,7 @@ void Engine::wait_finish() const noexcept {
 void Engine::reset() noexcept {
     wait_finish();
 
+    Position::reset();
     Tablebase::Syzygy::init(options()["SyzygyPath"]);  // Free mapped files
 
     if (options()["HashRetain"])

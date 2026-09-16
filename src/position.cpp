@@ -219,6 +219,8 @@ class CuckooTable final {
 
 CuckooTable<0x2000> Cuckoos;
 
+ConcurrentCache<Key, Key> MaterialKeyCache(16 * KB, 0.75);
+
 }  // namespace
 
 void Position::init() noexcept {
@@ -227,6 +229,8 @@ void Position::init() noexcept {
 
     Cuckoos.init();
 }
+
+void Position::reset() noexcept { MaterialKeyCache.reset(); }
 
 void Position::clear() noexcept {
     std::memset(pieceMap.data(), +Piece::NO_PIECE, sizeof(pieceMap));
@@ -1531,6 +1535,20 @@ bool Position::fork(const Move m) const noexcept {
     assert(false);
     UNREACHABLE();
     return false;
+}
+
+Key Position::material_key() const noexcept {
+    return MaterialKeyCache.access_or_build_with(raw_key(), [this] {
+        Key materialKey = 0;
+
+        for (const Color c : {WHITE, BLACK})
+            for (const auto pt : EX_KING_PIECE_TYPES)
+                if (const auto cnt = count(c, pt); cnt != 0)
+                    materialKey ^=
+                      Zobrist::piece_square(c, pt, Square(Zobrist::PAWN_OFFSET + cnt - 1));
+
+        return materialKey;
+    });
 }
 
 Key Position::move_key(const Move m) const noexcept {
