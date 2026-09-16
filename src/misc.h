@@ -1335,8 +1335,8 @@ class ConcurrentCache final {
         return get(itr->second);
     }
 
-    template<typename Builder>
-    Value& access_or_build_with(const Key& key, Builder&& builder) noexcept {
+    template<typename Builder, typename... Args>
+    Value& access_or_build_with(const Key& key, Builder&& builder, Args&&... args) noexcept {
         // Fast path: shared read lock to check and access
         {
             std::shared_lock readLock(mutex);
@@ -1352,7 +1352,7 @@ class ConcurrentCache final {
 
         // Inserted: construct the value
         if (inserted)
-            set(itr->second, std::forward<Builder>(builder)());
+            set(itr->second, std::forward<Builder>(builder)(std::forward<Args>(args)...));
 
         return get(itr->second);
     }

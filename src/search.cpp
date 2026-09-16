@@ -989,9 +989,6 @@ Value Worker::search(Position&    pos,
 
     const Color ac = pos.active_color();
 
-    const bool  hasNonPawn   = pos.has_non_pawn(ac);
-    const Value nonPawnValue = hasNonPawn ? pos.non_pawn_value(ac) : VALUE_ZERO;
-
     Value bestValue = -VALUE_INFINITE;
 
     [[maybe_unused]] Value maxValue = +VALUE_INFINITE;
@@ -1116,7 +1113,7 @@ Value Worker::search(Position&    pos,
     // Step 9. Null move search with verification search
     if constexpr (CutNode)
     {
-    if (!exclude && hasNonPawn /*Zugzwang guard*/ && ss->ply >= nmpPly
+    if (!exclude && pos.has_non_pawn(ac) /*Zugzwang guard*/ && ss->ply >= nmpPly
         && beta >= -2000 && ss->evalue - 365 + int(improve) * 47 + 13 * depth >= beta)
     {
         assert(preMove != Move::Null);
@@ -1316,7 +1313,7 @@ Value Worker::search(Position&    pos,
         // Depth conditions are important for mate finding.
         if constexpr (!RootNode)
         {
-            if (hasNonPawn && !is_loss(bestValue))
+            if (pos.has_non_pawn(ac) && !is_loss(bestValue))
             {
                 // Skip quiet moves if moveCount exceeds moveCount threshold
                 mp.update_quiets_skip([moveCount, depth, improve]() noexcept -> bool {
@@ -1342,7 +1339,8 @@ Value Worker::search(Position&    pos,
                     // Avoid pruning sacrifices of our last piece for stalemate
                     //  • The node is already drawish (no stalemate risk), OR
                     //  • The move does not sacrifice our last non-pawn material.
-                    if (alpha >= VALUE_DRAW || nonPawnValue != piece_value(type_of(movedPc)))
+                    if (alpha >= VALUE_DRAW
+                        || pos.non_pawn_value(ac) != piece_value(type_of(movedPc)))
                     {
                         // SEE based pruning for captures
                         int threshold = 177 * depth + constexpr_round(history * 34.0 / 1024.0);
@@ -1385,7 +1383,8 @@ Value Worker::search(Position&    pos,
                     }
 
                     // Avoid pruning sacrifices of our last piece for stalemate
-                    if (alpha >= VALUE_DRAW || nonPawnValue != piece_value(type_of(movedPc)))
+                    if (alpha >= VALUE_DRAW
+                        || pos.non_pawn_value(ac) != piece_value(type_of(movedPc)))
                     {
                         // SEE based pruning for quiets
                         int threshold = std::max(

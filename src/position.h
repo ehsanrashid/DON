@@ -22,7 +22,6 @@
 #include <array>
 #include <cassert>
 #include <cstring>
-#include <initializer_list>
 #include <iostream>
 #include <optional>
 #include <string>
@@ -87,6 +86,7 @@ Key castling(CastlingRights cr) noexcept;
 Key enpassant(Square enPassantSq) noexcept;
 Key turn() noexcept;
 Key mr50(i16 rule50Count) noexcept;
+Key side(Color c) noexcept;
 
 }  // namespace Zobrist
 
@@ -774,20 +774,6 @@ inline Key Position::non_pawn_key(Color c) const noexcept {
 
 inline Key Position::non_pawn_key() const noexcept {
     return non_pawn_key(WHITE) ^ non_pawn_key(BLACK);
-}
-
-inline bool Position::has_non_pawn(const Color c) const noexcept {
-    return std::any_of(NON_PAWN_PIECE_TYPES.begin(), NON_PAWN_PIECE_TYPES.end(),
-                       [&](const auto pt) -> bool { return pieces_bb(c, pt) != 0; });
-}
-
-inline Value Position::non_pawn_value(const Color c) const noexcept {
-    Value nonPawnValue = VALUE_ZERO;
-
-    for (const auto pt : NON_PAWN_PIECE_TYPES)
-        nonPawnValue += piece_value(pt) * count(c, pt);
-
-    return nonPawnValue;
 }
 
 inline Value Position::non_pawn_value() const noexcept {
