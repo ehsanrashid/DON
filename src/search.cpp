@@ -1414,7 +1414,8 @@ Value Worker::search(Position&    pos,
         if (!exclude && mTT && depth > 5 + int(ss->pvTT) && is_valid(ttd.value) && !is_decisive(ttd.value)
              && ttd.depth >= depth - 3 && is_ok(ttd.bound & Bound::LOWER) && !is_shuffling(pos, ss, move))
         {
-            Value singularAlpha = std::max(ttd.value - 1 - constexpr_round((59.0 + int(!PVNode && ss->pvTT) * 66.0) * depth / 63.0), -VALUE_INFINITE);
+            int margin = constexpr_round((59.0 + int(!PVNode && ss->pvTT) * 66.0) * depth / 63.0);
+            Value singularAlpha = std::max(ttd.value - 1 - margin, -VALUE_INFINITE);
 
             Depth singularDepth = newDepth / 2;
             assert(singularDepth > DEPTH_ZERO);

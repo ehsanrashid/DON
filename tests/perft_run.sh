@@ -94,7 +94,7 @@ EOF
 echo "Using engine: $ENGINE"
 echo
 
-TESTS_FAILED=0
+fail=0
 
 for f in $FILES; do
     echo "==> Test file: $f"
@@ -121,7 +121,7 @@ for f in $FILES; do
     done < "$f"
     if [ -z "$FEN" ] || [ -z "$DEPTH" ]; then
         echo "  >> Invalid test file format (need FEN line and 'depth N')"
-        TESTS_FAILED=1
+        fail=1
         continue
     fi
 
@@ -154,10 +154,10 @@ for f in $FILES; do
     fi
     echo "  Engine did not respond to any attempted perft invocation for this test."
     echo "  You may need to adapt tests/perft_run.sh to match your engine's perft interface."
-    TESTS_FAILED=1
+    fail=1
 done
 
-if [ "$TESTS_FAILED" -ne 0 ]; then
+if [ "$fail" -ne 0 ]; then
     echo "One or more perft tests failed or were unsupported by the engine interface."
     exit 1
 fi

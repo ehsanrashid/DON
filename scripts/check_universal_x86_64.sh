@@ -99,7 +99,7 @@ for pair in $PAIRS; do
     fi
 done
 
-if [ "$fail" != 0 ]; then
+if [ "$fail" -ne 0 ]; then
     echo "check_universal_x86_64.sh: failed"
     exit 1
 fi

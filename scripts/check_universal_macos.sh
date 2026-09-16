@@ -59,7 +59,7 @@ else
     fail=1
 fi
 
-if [ "$fail" != 0 ]; then
+if [ "$fail" -ne 0 ]; then
     echo "check_universal_macos.sh: failed"
     exit 1
 fi
