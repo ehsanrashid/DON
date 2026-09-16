@@ -1075,7 +1075,7 @@ class TBTables final {
             return true;
         }
 
-        for (usize distance = 1; distance <= ProbeMax;)
+        for (usize distance = 1; distance <= ProbeMax; ++distance)
         {
             if (maxDistance < distance)
                 maxDistance = distance;
@@ -1088,7 +1088,6 @@ class TBTables final {
             if (entry.empty() || entry.key == newKey)
             {
                 entry = newEntry;
-
                 return true;
             }
 
@@ -1096,11 +1095,11 @@ class TBTables final {
             // Case 2: Robin Hood strategy rule: compare probe distances
             // If the new entry has probed farther than the current entry,
             // steal the slot and continue with the displaced entry.
-            // Swap entries: the poorer (more probed) entry takes this slot,
-            // the richer (less probed) entry continues probing forward.
+            // Swap entries: the more-probed entry takes this slot,
+            // while the less-probed displaced entry continues probing forward.
             if (distance > entryDistance)
             {
-                std::swap(newEntry, entry);
+                std::swap(entry, newEntry);
 
                 // Reset for the displaced (swapped) entry
                 // displaced entry continues one step further.
@@ -1108,8 +1107,6 @@ class TBTables final {
                 newBucket = newEntry.bucket();
                 distance  = entryDistance;
             }
-
-            ++distance;
         }
 
         // Gracefully fail instead of asserting

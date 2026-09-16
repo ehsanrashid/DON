@@ -678,7 +678,11 @@ def parse_args():
         action="store_true",
         help="Run without any options testing",
     )
-    parser.add_argument("engine_path", type=str, help="Path to Engine binary")
+    parser.add_argument(
+        "engine_path",
+        type=str,
+        help="Path to Engine binary",
+    )
 
     return parser.parse_args()
 
