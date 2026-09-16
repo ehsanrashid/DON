@@ -323,9 +323,7 @@ constexpr Bitboard ray_bb(const Square s, const Directions... ds) noexcept {
     Bitboard rayBB = 0;
 
     const auto add_ray_bb = [&](const Direction d) noexcept {
-        Square curSq = s;
-
-        for (Bitboard destBB = 0; (destBB = destination_bb(curSq, d)) != 0; curSq += d)
+        for (Square sq = s; Bitboard destBB = destination_bb(sq, d); sq += d)
             rayBB |= destBB;
     };
 
@@ -381,18 +379,14 @@ constexpr Bitboard sliding_attacks_bb(const Square s, const Bitboard occupancyBB
 
     Bitboard attacksBB = 0;
 
-    for (Direction d : Directions[PT - BISHOP])
-    {
-        Square sq = s;
-
-        for (Bitboard destBB = 0; (destBB = destination_bb(sq, d)) != 0; sq += d)
+    for (const Direction d : Directions[PT - BISHOP])
+        for (Square sq = s; Bitboard destBB = destination_bb(sq, d); sq += d)
         {
             attacksBB |= destBB;
             // Stop if occupied - sliding blocked
             if ((occupancyBB & destBB) != 0)
                 break;
         }
-    }
 
     return attacksBB;
 }
