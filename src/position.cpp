@@ -17,6 +17,8 @@
 
 #include "position.h"
 
+#include <algorithm>  // min/max, generate
+#include <initializer_list>
 #include <iomanip>
 #include <sstream>
 
@@ -39,6 +41,7 @@ Array<Key, CASTLING_RIGHTS_NB>                      Castling;
 Array<Key, FILE_NB>                                 Enpassant;
 Key                                                 Turn;
 Array<Key, 64>                                      MR50;
+Array<Key, 2>                                       Side;
 
 constexpr u8 R50_OFFSET = 14;
 constexpr u8 R50_FACTOR = 8;
@@ -48,11 +51,11 @@ constexpr u8 R50_FACTOR = 8;
 void init() noexcept {
     XorShift64Star prng(0x105524);
 
-    const auto prng_rand = [&prng]() noexcept { return prng.template rand<Key>(); };
+    const auto prng_rand = [&prng]() noexcept -> Key { return prng.template rand<Key>(); };
 
-    for (Color c : {WHITE, BLACK})
+    for (const Color c : {WHITE, BLACK})
     {
-        for (PieceType pt : PIECE_TYPES)
+        for (const auto pt : PIECE_TYPES)
             std::generate(PieceSquare[c][pt].begin(), PieceSquare[c][pt].end(), prng_rand);
 
         std::memset(&PieceSquare[c][PAWN][SQ_A1], 0, PAWN_OFFSET * sizeof(Key));
@@ -66,36 +69,44 @@ void init() noexcept {
     Turn = prng_rand();
 
     std::generate(MR50.begin(), MR50.end(), prng_rand);
+
+    std::generate(Side.begin(), Side.end(), prng_rand);
 }
 
-Key piece_square(Color c, PieceType pt, Square s) noexcept {
+Key piece_square(const Color c, const PieceType pt, const Square s) noexcept {
     assert(is_ok(c) && is_ok(s));
 
     return PieceSquare[c][pt][s];
 }
 
-Key piece_square(Piece pc, Square s) noexcept {
+Key piece_square(const Piece pc, const Square s) noexcept {
     assert(is_ok(s));
 
     return piece_square(color_of(pc), type_of(pc), s);
 }
 
-Key castling(CastlingRights cr) noexcept {
+Key castling(const CastlingRights cr) noexcept {
     assert(+cr < Castling.size());
 
     return Castling[+cr];
 }
 
-Key enpassant(Square enPassantSq) noexcept {
+Key enpassant(const Square enPassantSq) noexcept {
     return is_ok(enPassantSq) ? Enpassant[file_of(enPassantSq)] : 0;
 }
 
 Key turn() noexcept { return Turn; }
 
-Key mr50(i16 rule50Count) noexcept {
+Key mr50(const i16 rule50Count) noexcept {
     return rule50Count < R50_OFFSET
            ? 0
-           : MR50[std::min<usize>((rule50Count - R50_OFFSET) / R50_FACTOR, MR50.size() - 1)];
+           : MR50[std::min(usize((rule50Count - R50_OFFSET) / R50_FACTOR), MR50.size() - 1)];
+}
+
+Key side(const Color c) noexcept {
+    assert(is_ok(c));
+
+    return Side[c];
 }
 
 }  // namespace Zobrist
@@ -219,6 +230,9 @@ class CuckooTable final {
 
 CuckooTable<0x2000> Cuckoos;
 
+ConcurrentCache<Key, Value> NonPawnValueCache(256 * KB, 0.75f);
+ConcurrentCache<Key, Key>   MaterialKeyCache(64 * KB, 0.75f);
+
 }  // namespace
 
 void Position::init() noexcept {
@@ -226,6 +240,11 @@ void Position::init() noexcept {
     Zobrist::init();
 
     Cuckoos.init();
+}
+
+void Position::reset() noexcept {
+    NonPawnValueCache.reset();
+    MaterialKeyCache.reset();
 }
 
 void Position::clear() noexcept {
@@ -292,7 +311,7 @@ std::optional<Error> Position::set(const std::string_view fens, State* const new
 
     // Returns '\0' when p == end (EOF sentinel)
     auto peek        = [&p, end]() noexcept -> char { return p != end ? *p : '\0'; };
-    auto skip_spaces = [&p, end]() noexcept {
+    auto skip_spaces = [&p, end]() noexcept -> void {
         for (; p != end && is_space(*p); ++p)
         {}
     };
@@ -1531,6 +1550,36 @@ bool Position::fork(const Move m) const noexcept {
     assert(false);
     UNREACHABLE();
     return false;
+}
+
+Value Position::non_pawn_value(const Color c) const noexcept {
+    return NonPawnValueCache.access_or_build_with(
+      raw_key() ^ Zobrist::side(c),
+      [this](const Color _c) noexcept -> Value {
+          Value nonPawnValue = VALUE_ZERO;
+
+          for (const auto pt : NON_PAWN_PIECE_TYPES)
+              nonPawnValue += piece_value(pt) * count(_c, pt);
+
+          return nonPawnValue;
+      },
+      c);
+}
+
+Key Position::material_key() const noexcept {
+    return MaterialKeyCache.access_or_build_with(
+      raw_key(),  //
+      [this]() noexcept -> Key {
+          Key materialKey = 0;
+
+          for (const Color c : {WHITE, BLACK})
+              for (const auto pt : EX_KING_PIECE_TYPES)
+                  if (const auto cnt = count(c, pt); cnt != 0)
+                      materialKey ^=
+                        Zobrist::piece_square(c, pt, Square(Zobrist::PAWN_OFFSET + cnt - 1));
+
+          return materialKey;
+      });
 }
 
 Key Position::move_key(const Move m) const noexcept {

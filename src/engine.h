@@ -42,7 +42,7 @@ namespace DON {
 
 class Engine final {
    public:
-    explicit Engine(const std::filesystem::path& path = {}) noexcept;
+    explicit Engine(const fs::path& path = {}) noexcept;
     ~Engine() noexcept;
 
     Options&       options() noexcept;
@@ -74,7 +74,7 @@ class Engine final {
     void resize_tt(usize ttSize) noexcept;
 
     void show() const noexcept;
-    void dump(const std::filesystem::path& dumpFile = {}) const noexcept;
+    void dump(const fs::path& dumpFile = {}) const noexcept;
     void eval() noexcept;
 
     std::optional<Error> flip() noexcept;
@@ -97,13 +97,13 @@ class Engine final {
 
     void verify_network() const noexcept;
 
-    void load_network(const std::filesystem::path& networkFilePath) noexcept;
-    void save_network(const std::filesystem::path& networkFilePath) const noexcept;
+    void load_network(const fs::path& networkFilePath) noexcept;
+    void save_network(const fs::path& networkFilePath) const noexcept;
 
     // Hash related
 
-    bool load_hash(const std::filesystem::path& hashFile) noexcept;
-    bool save_hash(const std::filesystem::path& hashFile) const noexcept;
+    bool load_hash(const fs::path& hashFile) noexcept;
+    bool save_hash(const fs::path& hashFile) const noexcept;
 
     // On update modifiers
 
@@ -121,7 +121,7 @@ class Engine final {
     Engine(Engine&&) noexcept                 = delete;
     Engine& operator=(Engine&&) noexcept      = delete;
 
-    const std::filesystem::path binaryDirectory;
+    const fs::path binaryDirectory;
 
     NumaReplicationContext                      numaContext;
     NNUE::EvalFile                              networkFile;

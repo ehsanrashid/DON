@@ -296,7 +296,7 @@ class TBPaths final {
     TBPaths(TBPaths&&) noexcept                 = delete;
     TBPaths& operator=(TBPaths&&) noexcept      = delete;
 
-    static inline std::vector<std::filesystem::path> Paths;
+    static inline std::vector<fs::path> Paths;
 };
 
 // TBFile resolves a tablebase filename by searching through TBPaths.
@@ -309,7 +309,7 @@ class TBFile final {
         {
             auto fn = dir / file;
 
-            if (std::filesystem::is_regular_file(fn))
+            if (fs::is_regular_file(fn))
             {
                 filename = fn.string();
                 break;
@@ -318,7 +318,7 @@ class TBFile final {
     }
 
     TBFile(std::string_view base, std::string_view ext) noexcept :
-        TBFile{std::filesystem::path(base).concat(ext).string()} {}
+        TBFile{fs::path(base).concat(ext).string()} {}
 
     std::string_view file_name() const noexcept { return filename; }
 
@@ -400,7 +400,7 @@ struct PairsData final {
         // and containing 64 bit values so that base64[i] >= base64[i+1].
         usize base64Size = base64.size();
 
-        for (usize i = std::max<usize>(base64Size, 1) - 1; i-- > 0;)
+        for (usize i = std::max(base64Size, usize{1}) - 1; i-- > 0;)
         {
             const auto& nextBase64 = base64[i + 1];
 
@@ -598,9 +598,8 @@ TBTable<T>::~TBTable() noexcept {
 template<TBType T>
 void* TBTable<T>::init(const Position& pos, const Key materialKey) noexcept {
     // Wait until initialization has completed.
-    while (!initCallOnce.once_init())
-    {
-        initCallOnce([this, &pos, materialKey]() noexcept {
+    while (!initCallOnce.once_done())
+        initCallOnce([this, &pos, materialKey]() noexcept -> void {
             // Pieces strings in decreasing order for each color, like ("KPP", "KR").
             Array<std::string, COLOR_NB> pieces{};
 
@@ -622,7 +621,6 @@ void* TBTable<T>::init(const Position& pos, const Key materialKey) noexcept {
 
             set(tbFile.exists() ? map(tbFile.file_name()) : nullptr);
         });
-    }
 
     return mappedPtr;
 }

@@ -279,7 +279,7 @@ inline void write_leb_128(std::ostream& os, const IntType* in, const usize Size)
 
     u32 bufferIdx = 0;
 
-    const auto flush = [&os, &buffer, &bufferIdx]() noexcept {
+    const auto flush = [&os, &buffer, &bufferIdx]() noexcept -> void {
         if (bufferIdx == 0)
             return;
 

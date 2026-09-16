@@ -22,7 +22,6 @@
 #include <array>
 #include <cstring>
 #include <functional>
-#include <initializer_list>
 #include <iosfwd>
 #include <memory>
 
@@ -250,8 +249,8 @@ class FeatureTransformer final {
 
         const auto& accumulation = accumulator.accumulation;
 
-        for (Color p : {WHITE, BLACK})
-            transform_perspective(p, accumulation[perspectives[p]], nnz, output);
+        transform_perspective(WHITE, accumulation[perspectives[WHITE]], nnz, output);
+        transform_perspective(BLACK, accumulation[perspectives[BLACK]], nnz, output);
 
         return psqt;
     }

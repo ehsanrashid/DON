@@ -53,7 +53,7 @@ std::string pretty_str(const Bitboard b) noexcept {
 }
 
 std::string_view pretty(const Bitboard b) noexcept {
-    constexpr usize ReserveCount  = 1024;
+    constexpr usize ReserveCount  = 1 * KB;
     constexpr float MaxLoadFactor = 0.75f;
 
     // Thread-safe static initialization
@@ -64,15 +64,18 @@ std::string_view pretty(const Bitboard b) noexcept {
     // Standard intentional "leaky singleton" pattern.
     // Ensures the cache lives for the entire program, never deleted.
     //static auto& cache = *new ConcurrentCache<Bitboard, std::string>(ReserveCount, MaxLoadFactor);
-    static auto& cache = *[=] {
+    static auto& cache = *[=]() noexcept -> auto {
         static auto cachePtr =
           std::make_unique<ConcurrentCache<Bitboard, std::string>>(ReserveCount, MaxLoadFactor);
         return cachePtr.get();
     }();
 
     //return cache.access_or_build(b, pretty_str(b));
-    return cache.transform_access_or_build(
-      b, [](const std::string& str) noexcept -> std::string_view { return str; }, pretty_str(b));
+    //return cache.transform_access_or_build(
+    //  b, [](const std::string& str) noexcept -> std::string_view { return str; }, pretty_str(b));
+    return cache.transform_access_or_build_with(
+      b, [](const std::string& str) noexcept -> std::string_view { return str; },
+      [b]() noexcept -> std::string { return pretty_str(b); });
 }
 
 }  // namespace DON

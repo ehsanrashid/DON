@@ -56,7 +56,7 @@ constexpr AutoNumaPolicy NUMA_POLICY_DEFAULT = BundledL3Policy{32};
 
 }  // namespace
 
-Engine::Engine(const std::filesystem::path& path) noexcept :
+Engine::Engine(const fs::path& path) noexcept :
     // clang-format off
     binaryDirectory(CommandLine::binary_directory(path)),
     numaContext(NumaConfig::from_system(NUMA_POLICY_DEFAULT)),
@@ -178,6 +178,7 @@ void Engine::wait_finish() const noexcept {
 void Engine::reset() noexcept {
     wait_finish();
 
+    Position::reset();
     Tablebase::Syzygy::init(options()["SyzygyPath"]);  // Free mapped files
 
     if (options()["HashRetain"])
@@ -210,7 +211,7 @@ void Engine::resize_tt(const usize ttSize) noexcept {
 
 void Engine::show() const noexcept { std::cout << pos << std::endl; }
 
-void Engine::dump(const std::filesystem::path& dumpFile) const noexcept {
+void Engine::dump(const fs::path& dumpFile) const noexcept {
 
     if (!dumpFile.empty())
     {
@@ -327,7 +328,7 @@ std::string Engine::thread_allocation() const noexcept {
 std::unique_ptr<NNUE::Network> Engine::default_network() noexcept {
     auto defaultNetwork = std::make_unique<NNUE::Network>();
 
-    defaultNetwork->load(binaryDirectory, std::filesystem::path{}, networkFile);
+    defaultNetwork->load(binaryDirectory, fs::path{}, networkFile);
 
     return defaultNetwork;
 }
@@ -357,7 +358,7 @@ void Engine::verify_network() const noexcept {
     }
 }
 
-void Engine::load_network(const std::filesystem::path& networkFilePath) noexcept {
+void Engine::load_network(const fs::path& networkFilePath) noexcept {
 
     network.modify_and_replicate([this, &networkFilePath](NNUE::Network& net) noexcept {  //
         net.load(binaryDirectory, networkFilePath, networkFile);
@@ -368,15 +369,15 @@ void Engine::load_network(const std::filesystem::path& networkFilePath) noexcept
     threads.ensure_network_replicated();
 }
 
-void Engine::save_network(const std::filesystem::path& networkFilePath) const noexcept {
+void Engine::save_network(const fs::path& networkFilePath) const noexcept {
     network->save(networkFilePath, networkFile);
 }
 
-bool Engine::load_hash(const std::filesystem::path& hashFile) noexcept {
+bool Engine::load_hash(const fs::path& hashFile) noexcept {
     return transpositionTable.load(hashFile, threads);
 }
 
-bool Engine::save_hash(const std::filesystem::path& hashFile) const noexcept {
+bool Engine::save_hash(const fs::path& hashFile) const noexcept {
     return transpositionTable.save(hashFile);
 }
 

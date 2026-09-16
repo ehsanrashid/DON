@@ -109,9 +109,9 @@ bool _write_parameters(std::ostream& os, const T& reference) noexcept {
 
 }  // namespace
 
-void Network::load(const std::filesystem::path& rootDirectory,
-                   std::filesystem::path        evalFilePath,
-                   EvalFile&                    evalFile) noexcept {
+void Network::load(const fs::path& rootDirectory,
+                   fs::path        evalFilePath,
+                   EvalFile&       evalFile) noexcept {
 
     constexpr usize DirectorySize =
 #if defined(DEFAULT_NNUE_DIRECTORY)
@@ -121,9 +121,9 @@ void Network::load(const std::filesystem::path& rootDirectory,
 #endif
       ;
 
-    const Array<std::filesystem::path, DirectorySize> Directories{
+    const Array<fs::path, DirectorySize> Directories{
       // --------------------------------------------------------
-      std::filesystem::path{},  //
+      fs::path{},  //
       rootDirectory
 #if defined(DEFAULT_NNUE_DIRECTORY)
       ,
@@ -154,8 +154,8 @@ void Network::load(const std::filesystem::path& rootDirectory,
         }
 }
 
-bool Network::save(const std::optional<std::filesystem::path>& evalFilePath,
-                   const EvalFile&                             evalFile) const noexcept {
+bool Network::save(const std::optional<fs::path>& evalFilePath,
+                   const EvalFile&                evalFile) const noexcept {
     if (!evalFile.currentPath)
     {
         print_info_string(
@@ -170,7 +170,7 @@ bool Network::save(const std::optional<std::filesystem::path>& evalFilePath,
         return false;
     }
 
-    std::filesystem::path evalFileName = evalFilePath.value_or(evalFile.DefaultName);
+    fs::path evalFileName = evalFilePath.value_or(evalFile.DefaultName);
 
     std::ofstream ofs{evalFileName, std::ios::binary};
 
@@ -181,7 +181,7 @@ bool Network::save(const std::optional<std::filesystem::path>& evalFilePath,
     return saved;
 }
 
-void Network::verify(std::filesystem::path evalFilePath, const EvalFile& evalFile) const noexcept {
+void Network::verify(fs::path evalFilePath, const EvalFile& evalFile) const noexcept {
     if (evalFilePath.empty())
         evalFilePath = evalFile.DefaultName;
 
@@ -300,11 +300,11 @@ bool Network::load_embedded(EvalFile& evalFile) noexcept {
     return false;
 }
 
-bool Network::load_external(const std::filesystem::path& dir,
-                            const std::filesystem::path& evalFilePath,
-                            EvalFile&                    evalFile) noexcept {
+bool Network::load_external(const fs::path& dir,
+                            const fs::path& evalFilePath,
+                            EvalFile&       evalFile) noexcept {
 
-    std::filesystem::path path = dir / evalFilePath;
+    fs::path path = dir / evalFilePath;
 
     std::ifstream ifs{path, std::ios::binary};
 

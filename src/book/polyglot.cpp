@@ -419,7 +419,7 @@ bool is_draw(Position& pos, const Move m) noexcept {
 
 void PolyGlot::clear() noexcept { entries.clear(); }
 
-bool PolyGlot::load(const std::filesystem::path& bookFile) noexcept {
+bool PolyGlot::load(const fs::path& bookFile) noexcept {
     clear();
 
     if (bookFile.empty())
@@ -429,7 +429,7 @@ bool PolyGlot::load(const std::filesystem::path& bookFile) noexcept {
 
     std::error_code ec;
 
-    usize fileSize = std::filesystem::file_size(bookFile, ec);
+    usize fileSize = fs::file_size(bookFile, ec);
 
     if (ec)
     {
@@ -608,7 +608,7 @@ Move PolyGlot::probe(Position& pos, const RootMoves& rootMoves, const Options& o
 
     for (auto& candidate : candidates)
     {
-        maxWeight = std::max<u32>(candidate.weight, maxWeight);
+        maxWeight = std::max(u32{candidate.weight}, maxWeight);
         sumWeight += candidate.weight;
     }
 

@@ -353,7 +353,7 @@ void Worker::start_search() noexcept {
             // Wait until either:
             // 1. Threads are stopped, OR
             // 2. Not in infinite search AND Not pondering
-            manager->condVar.wait(condLock, [&]() noexcept {
+            manager->condVar.wait(condLock, [&]() noexcept -> bool {
                 return threads.is_stopped() || (!limit.infinite && !manager->ponder);
             });
         }
@@ -822,10 +822,10 @@ Value Worker::search(Position&    pos,
     if constexpr (PVNode)
     {
         // Update selDepth (selDepth from 1, ply from 0)
-        selDepth = std::max<u16>(ss->ply + 1, selDepth);
+        selDepth = std::max(u16(ss->ply + u16{1}), selDepth);
     }
 
-    const usize pvPreIdx = std::max<int>((ss - 1)->ply, 0);
+    const usize pvPreIdx = usize(std::max((ss - 1)->ply, i16{0}));
 
     // Step 1. Initialize node
     ss->inCheck   = pos.checkers_bb() != 0;
@@ -989,9 +989,6 @@ Value Worker::search(Position&    pos,
 
     const Color ac = pos.active_color();
 
-    const bool  hasNonPawn   = pos.has_non_pawn(ac);
-    const Value nonPawnValue = hasNonPawn ? pos.non_pawn_value(ac) : VALUE_ZERO;
-
     Value bestValue = -VALUE_INFINITE;
 
     [[maybe_unused]] Value maxValue = +VALUE_INFINITE;
@@ -1036,7 +1033,7 @@ Value Worker::search(Position&    pos,
                         || (bound == Bound::LOWER ? tbValue >= beta : tbValue <= alpha))
                     {
                         ttw.write(Move::None, value_to_tt(tbValue, ss->ply), evalue,
-                                  std::min<Depth>(depth + 6, DEPTH_MAX), bound, ss->pvTT);
+                                  std::min(Depth(depth + Depth{6}), DEPTH_MAX), bound, ss->pvTT);
 
                         return tbValue;
                     }
@@ -1047,7 +1044,7 @@ Value Worker::search(Position&    pos,
                         {
                             bestValue = tbValue;
 
-                            alpha = std::max<int>(tbValue, alpha);
+                            alpha = std::max(tbValue, alpha);
                         }
                         else
                             maxValue = tbValue;
@@ -1083,7 +1080,7 @@ Value Worker::search(Position&    pos,
     {
     if (!exclude && ttEvalue + 483 + 318 * depth * depth <= alpha)
     {
-        const Value razorAlpha = std::max<int>(alpha - 1, -VALUE_INFINITE);
+        const Value razorAlpha = Value(std::max(alpha - 1, -VALUE_INFINITE));
 
         const Value razorValue = qsearch<false>(pos, ss, razorAlpha, razorAlpha + 1);
 
@@ -1116,7 +1113,7 @@ Value Worker::search(Position&    pos,
     // Step 9. Null move search with verification search
     if constexpr (CutNode)
     {
-    if (!exclude && hasNonPawn /*Zugzwang guard*/ && ss->ply >= nmpPly
+    if (!exclude && pos.has_non_pawn(ac) /*Zugzwang guard*/ && ss->ply >= nmpPly
         && beta >= -2000 && ss->evalue - 365 + int(improve) * 47 + 13 * depth >= beta)
     {
         assert(preMove != Move::Null);
@@ -1161,10 +1158,11 @@ Value Worker::search(Position&    pos,
     improve |= ss->evalue >= beta;
 
     // Step 10. Internal iterative reductions
-    // Reduce search depth for PV/Cut deep enough nodes without ttMoves.
-    // (*Scaler) Making IIR more aggressive scales poorly.
+    // Reduce search depth at PV/Cut nodes.
+    // (*Scaler) More aggressive IIR scales poorly.
     if constexpr (!AllNode)
     {
+        // Reduce depth when sufficiently deep and no TT move is available.
         if (depth > 5 && ttmNone && !ss->pvFollow)
             --depth;
     }
@@ -1226,7 +1224,7 @@ Value Worker::search(Position&    pos,
                 // Save ProbCut data into transposition table
                 if (!exclude)
                     ttw.write(move, value_to_tt(probCutValue, ss->ply), evalue,
-                              std::min<Depth>(probCutDepth + 1, DEPTH_MAX), Bound::LOWER, ss->pvTT);
+                              std::min(Depth(probCutDepth + Depth{1}), DEPTH_MAX), Bound::LOWER, ss->pvTT);
 
                 if (!is_win(probCutValue))
                     // Adjust probCutValue to align with the current beta window
@@ -1316,7 +1314,7 @@ Value Worker::search(Position&    pos,
         // Depth conditions are important for mate finding.
         if constexpr (!RootNode)
         {
-            if (hasNonPawn && !is_loss(bestValue))
+            if (pos.has_non_pawn(ac) && !is_loss(bestValue))
             {
                 // Skip quiet moves if moveCount exceeds moveCount threshold
                 mp.update_quiets_skip([moveCount, depth, improve]() noexcept -> bool {
@@ -1342,7 +1340,8 @@ Value Worker::search(Position&    pos,
                     // Avoid pruning sacrifices of our last piece for stalemate
                     //  • The node is already drawish (no stalemate risk), OR
                     //  • The move does not sacrifice our last non-pawn material.
-                    if (alpha >= VALUE_DRAW || nonPawnValue != piece_value(type_of(movedPc)))
+                    if (alpha >= VALUE_DRAW
+                        || pos.non_pawn_value(ac) != piece_value(type_of(movedPc)))
                     {
                         // SEE based pruning for captures
                         int threshold = 177 * depth + constexpr_round(history * 34.0 / 1024.0);
@@ -1367,7 +1366,7 @@ Value Worker::search(Position&    pos,
                     // (*Scaler) Generally, lower divisor scales well
                     assert(depth > DEPTH_ZERO);
                     const double lrmDivisor =
-                      LMR_DIVISORS[std::min<usize>(depth, LMR_DIVISORS.size()) - 1];
+                      LMR_DIVISORS[std::min(usize(depth), LMR_DIVISORS.size()) - 1];
                     lmrDepth += constexpr_round(history / lrmDivisor);
 
                     // Futility pruning: for quiets
@@ -1385,7 +1384,8 @@ Value Worker::search(Position&    pos,
                     }
 
                     // Avoid pruning sacrifices of our last piece for stalemate
-                    if (alpha >= VALUE_DRAW || nonPawnValue != piece_value(type_of(movedPc)))
+                    if (alpha >= VALUE_DRAW
+                        || pos.non_pawn_value(ac) != piece_value(type_of(movedPc)))
                     {
                         // SEE based pruning for quiets
                         int threshold = std::max(
@@ -1513,10 +1513,11 @@ Value Worker::search(Position&    pos,
         // Decrease/Increase reduction for moves with a good/bad history
         r -= constexpr_round(ss->history * 439.0 / 4096.0);
 
+        // Reduce LMR less aggressively for non-captures when alpha is not decisive
         if (!capture && !is_decisive(alpha))
             r += 3 * std::clamp(alpha - ttEvalue, -64, +96);
 
-        // Scale up reduction for AllNode
+        // Scale up reduction for expected ALL nodes
         if constexpr (AllNode)
         {
             r = constexpr_round(r * (1.0 + 276.0 / (268.0 + 256.0 * depth)));
@@ -1796,7 +1797,7 @@ Value Worker::search(Position&    pos,
     // Save gathered information in transposition table
     if ((!RootNode || pvIdx == 0) && !exclude)
         ttw.write(bestMove, value_to_tt(bestValue, ss->ply), evalue,
-                  moveCount != 0 ? depth : std::min<Depth>(depth + 6, DEPTH_MAX),
+                  moveCount != 0 ? depth : std::min(Depth(depth + Depth{6}), DEPTH_MAX),
                   bestValue >= beta                  ? Bound::LOWER
                   : PVNode && bestMove != Move::None ? Bound::EXACT
                                                      : Bound::UPPER,
@@ -1847,7 +1848,7 @@ Value Worker::qsearch(Position& pos, Stack* const ss, Value alpha, Value beta) n
         (ss + 1)->pv = &pv;
 
         // Update selDepth (selDepth from 1, ply from 0)
-        selDepth = std::max<u16>(ss->ply + 1, selDepth);
+        selDepth = std::max(u16(ss->ply + u16{1}), selDepth);
     }
 
     // Step 1. Initialize node
@@ -2628,7 +2629,7 @@ void Manager::handle_time_management(const Worker& worker,
     const double easeFactor = (1.468 + preTimeReduction) / (2.284 * timeReduction);
 
     // Compute move instability factor based on the total move changes and the number of threads
-    const double instabilityFactor = 1.077 + 2.229 * sumMoveChanges / std::max<usize>(worker.thread_count(), 1);
+    const double instabilityFactor = 1.077 + 2.229 * sumMoveChanges / std::max(worker.thread_count(), u16{1});
 
     // Compute node effort factor that reduces time if root move has consumed a large fraction of total nodes
     const u64 nodesEffort = 100000 * worker.rootMoves[0].nodes / std::max<u64>(worker.nodes, 1);
@@ -2639,7 +2640,7 @@ void Manager::handle_time_management(const Worker& worker,
     const double recaptureFactor = 1.0 - int( worker.rootPos.captured_sq() == worker.rootMoves[0][0].dst_sq()
                                           && (worker.rootPos.captured_sq() & worker.rootPos.pieces_bb(~worker.rootPos.active_color())) != 0
                                           &&  worker.rootPos.see(worker.rootMoves[0][0]) >= 200)
-                                         * std::min<Depth>(stableDepth, 25) / 256.0;
+                                         * std::min(stableDepth, Depth{25}) / 256.0;
 
     // Calculate total time by combining all factors with the optimum time
     const auto totalTimeValue = timeManager.optimum() * inconsistencyFactor * easeFactor * instabilityFactor * nodesEffortFactor * recaptureFactor;
@@ -2690,7 +2691,7 @@ void Manager::show_pv(Worker& worker, const Depth depth) const noexcept {
     const auto& tbConfig           = worker.tbConfig;
     const usize multiPV            = worker.multiPV;
     // Ensure non-zero to avoid a 'divide by zero'
-    const TimePoint time   = std::max<TimePoint>(elapsed(), 1);
+    const TimePoint time   = std::max(elapsed(), TimePoint{1});
     const u64       nodes  = threads.sum(&Worker::nodes);
     const u64       tbHits = threads.sum(&Worker::tbHits, tbConfig.rootInTB ? rootMoves.size() : 0);
     const u16       hashfull = transpositionTable.hashfull();

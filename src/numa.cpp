@@ -250,7 +250,7 @@ WindowsAffinity get_process_affinity() noexcept {
         // In which case can actually retrieve the full affinity.
         if (getThreadSelectedCpuSetMasks != nullptr)
         {
-            std::thread th([&winAffinity, &procGroupAffinity]() noexcept {
+            std::thread th([&winAffinity, &procGroupAffinity]() noexcept -> void {
                 CpuIndexSet cpus;
 
                 bool fullAffinity = true;
@@ -265,7 +265,7 @@ WindowsAffinity get_process_affinity() noexcept {
                     DWORD_PTR combinedProcMask = std::numeric_limits<DWORD_PTR>::max();
                     DWORD_PTR combinedSysMask  = std::numeric_limits<DWORD_PTR>::max();
 
-                    for (DWORD i = 0; i < std::min(activeProcCount, DWORD(2)); ++i)
+                    for (DWORD i = 0; i < std::min(activeProcCount, DWORD{2}); ++i)
                     {
                         GROUP_AFFINITY groupAffinity;
                         std::memset(&groupAffinity, 0, sizeof(groupAffinity));
@@ -331,7 +331,7 @@ CpuIndexSet get_process_affinity() noexcept {
 
     // For unsupported systems, or in case of a soft error,
     // assume all processors are available for use.
-    const auto set_to_all_cpus = [&cpus]() noexcept {
+    const auto set_to_all_cpus = [&cpus]() noexcept -> void {
         cpus.clear();
         cpus.reserve(SYSTEM_THREAD_MAX);
 
@@ -354,7 +354,7 @@ CpuIndexSet get_process_affinity() noexcept {
         return cpus;
     }
 
-    const auto free_cpus_mask = [&cpusMask]() noexcept { CPU_FREE(cpusMask); };
+    const auto free_cpus_mask = [&cpusMask]() noexcept -> void { CPU_FREE(cpusMask); };
 
     const usize maskSize = CPU_ALLOC_SIZE(MaxCpuCount);
 
@@ -642,15 +642,15 @@ CpuIndex NumaConfig::node_cpus_front(const NumaIndex numaId) const noexcept {
     return node_cpus(numaId).front();
 }
 
-usize NumaConfig::cpus_size() const noexcept { return nodeByCpu.size(); }
+usize NumaConfig::cpus_size() const noexcept { return cpuToNode.size(); }
 
 bool NumaConfig::is_cpu_assigned(const CpuIndex cpuId) const noexcept {
-    return nodeByCpu.find(cpuId) != nodeByCpu.end();
+    return cpuToNode.find(cpuId) != cpuToNode.end();
 }
 
 NumaIndex NumaConfig::node_by_cpu(const CpuIndex cpuId) const noexcept {
-    const auto itr = nodeByCpu.find(cpuId);
-    return itr != nodeByCpu.end() ? itr->second : 0;
+    const auto itr = cpuToNode.find(cpuId);
+    return itr != cpuToNode.end() ? itr->second : 0;
 }
 
 bool NumaConfig::requires_memory_replication() const noexcept {
@@ -888,7 +888,7 @@ NumaConfig::bind_current_thread_to_numa_node(const NumaIndex numaId) const noexc
         std::exit(EXIT_FAILURE);
     }
 
-    const auto free_cpus_mask = [&cpusMask]() noexcept { CPU_FREE(cpusMask); };
+    const auto free_cpus_mask = [&cpusMask]() noexcept -> void { CPU_FREE(cpusMask); };
 
     const usize maskSize = CPU_ALLOC_SIZE(maxCpuId + 1);
 
@@ -974,7 +974,7 @@ void NumaConfig::resize_numa_node(const usize newNumaId) noexcept {
 
 void NumaConfig::add_numa_node_cpu(const NumaIndex numaId, const CpuIndex cpuId) noexcept {
     // insert/update mapping
-    nodeByCpu[cpuId] = numaId;
+    cpuToNode[cpuId] = numaId;
     // track max CPU ID
     maxCpuId = std::max(cpuId, maxCpuId);
 }
@@ -1036,7 +1036,7 @@ void NumaConfig::remove_empty_numa_nodes() noexcept {
                 nodes.end());
 
     // Rebuild CPU-to-NUMA mappings after node indices have changed.
-    nodeByCpu.clear();
+    cpuToNode.clear();
     maxCpuId = 0;
 
     for (usize numaId = 0; numaId < nodes_size(); ++numaId)

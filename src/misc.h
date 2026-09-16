@@ -117,6 +117,8 @@
 
 namespace DON {
 
+namespace fs = std::filesystem;
+
 using u64 = std::uint64_t;
 using u32 = std::uint32_t;
 using u16 = std::uint16_t;
@@ -177,7 +179,7 @@ inline constexpr bool IS_LITTLE_ENDIAN = __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN
 inline constexpr bool IS_LITTLE_ENDIAN = true;
 #else
 // Fallback runtime check
-inline const bool IS_LITTLE_ENDIAN = []() noexcept {
+inline const bool IS_LITTLE_ENDIAN = []() noexcept -> bool {
     constexpr u16 LE = 1;
     return *reinterpret_cast<const u8*>(&LE) == 1;
 }();
@@ -366,7 +368,7 @@ constexpr float max_load_factor(float maxLoadFactor = 0.75f) noexcept {
     return std::clamp(constexpr_abs(maxLoadFactor), 0.1f, 1.0f);
 }
 constexpr usize reserve_count(usize reserveCount = 1024) noexcept {
-    return std::max<usize>(reserveCount, 8);
+    return std::max(reserveCount, usize{8});
 }
 
 template<typename T1, typename T2>
@@ -614,13 +616,13 @@ struct CallOnce final {
     void operator()(Func&& callFn) {
         std::call_once(onceFlag, [this, callFunc = std::forward<Func>(callFn)]() mutable {
             std::move(callFunc)();  // Move into the call
-            onceInit.store(true, std::memory_order_release);
+            onceDone.store(true, std::memory_order_release);
         });
     }
 
     // Check if initialization has been completed.
-    [[nodiscard]] bool once_init() const noexcept {
-        return onceInit.load(std::memory_order_acquire);
+    [[nodiscard]] bool once_done() const noexcept {
+        return onceDone.load(std::memory_order_acquire);
     }
 
    private:
@@ -630,7 +632,7 @@ struct CallOnce final {
     CallOnce& operator=(CallOnce&&) noexcept      = delete;
 
     std::once_flag    onceFlag;
-    std::atomic<bool> onceInit{false};
+    std::atomic<bool> onceDone{false};
 };
 
 // OstreamMutexRegistry
@@ -1108,9 +1110,9 @@ struct CommandLine final {
     CommandLine& operator=(CommandLine&&)      = default;
 
     // Returns the directory containing the executable, or "." if the directory is empty.
-    static std::filesystem::path binary_directory(std::filesystem::path path) noexcept;
+    static fs::path binary_directory(fs::path path) noexcept;
     // Returns the process's current working directory.
-    static std::filesystem::path working_directory() noexcept;
+    static fs::path working_directory() noexcept;
 
     [[nodiscard]] const StringViews& arguments() const noexcept;
 
@@ -1306,9 +1308,10 @@ class AllocationSizes final {
 template<typename Key, typename Value>
 class ConcurrentCache final {
    public:
-    explicit ConcurrentCache(usize reserveCount = 1024, float maxLoadFactor = 0.75f) noexcept {
-        cacheMap.max_load_factor(max_load_factor(maxLoadFactor));
-        cacheMap.reserve(reserve_count(reserveCount));
+    explicit ConcurrentCache(usize reserveCnt = 1 * KB, float maxLoadFtr = 0.75f) noexcept :
+        reserveCount(reserveCnt),
+        maxLoadFactor(maxLoadFtr) {
+        configure();
     }
 
     template<typename... Args>
@@ -1317,21 +1320,43 @@ class ConcurrentCache final {
         {
             std::shared_lock readLock(mutex);
 
-            if (auto itr = cacheMap.find(key); itr != cacheMap.end())
-                return get_value(itr->second);
+            if (auto itr = valueMap.find(key); itr != valueMap.end())
+                return get(itr->second);
         }
 
         // Slow path: exclusive write lock to insert and construct
         std::lock_guard writeLock(mutex);
 
         // Double-check after acquiring exclusive lock
-        auto [itr, inserted] = cacheMap.try_emplace(key);
+        auto [itr, inserted] = valueMap.try_emplace(key);
 
+        // Inserted: construct the value
         if (inserted)
-            // Inserted: construct the value
-            set_value(itr->second, std::forward<Args>(args)...);
+            set(itr->second, std::forward<Args>(args)...);
 
-        return get_value(itr->second);
+        return get(itr->second);
+    }
+
+    template<typename Builder, typename... Args>
+    Value& access_or_build_with(const Key& key, Builder&& builder, Args&&... args) noexcept {
+        // Fast path: shared read lock to check and access
+        {
+            std::shared_lock readLock(mutex);
+
+            if (auto itr = valueMap.find(key); itr != valueMap.end())
+                return get(itr->second);
+        }
+
+        // Slow path: exclusive write lock to insert and construct
+        std::lock_guard writeLock(mutex);
+
+        auto [itr, inserted] = valueMap.try_emplace(key);
+
+        // Inserted: construct the value
+        if (inserted)
+            set(itr->second, std::forward<Builder>(builder)(std::forward<Args>(args)...));
+
+        return get(itr->second);
     }
 
     template<typename Transformer, typename... Args>
@@ -1341,31 +1366,56 @@ class ConcurrentCache final {
           access_or_build(key, std::forward<Args>(args)...));
     }
 
+    template<typename Transformer, typename Builder>
+    auto transform_access_or_build_with(const Key&    key,
+                                        Transformer&& transformer,
+                                        Builder&&     builder) noexcept {
+        return std::forward<Transformer>(transformer)(
+          access_or_build_with(key, std::forward<Builder>(builder)));
+    }
+
+    void reset() noexcept {
+        std::lock_guard writeLock(mutex);
+
+        valueMap.clear();
+        valueMap.rehash(0);
+        configure();
+    }
+
    private:
+    void configure() noexcept {
+        valueMap.max_load_factor(max_load_factor(maxLoadFactor));
+        valueMap.reserve(reserve_count(reserveCount));
+    }
+
     static constexpr usize ThresholdSize = 128;
 
-    // Define StorageValue type alias
     using StorageValue =
       std::conditional_t<sizeof(Value) <= ThresholdSize, Value, std::unique_ptr<Value>>;
 
-    // Helper functions AFTER StorageValue is defined
+    // Helper functions for accessing the stored value
+
+    // Set the stored value, using direct storage or heap allocation based on its size.
     template<typename... Args>
-    void set_value(StorageValue& entry, Args&&... args) {
+    static void set(StorageValue& value, Args&&... args) noexcept {
         if constexpr (sizeof(Value) <= ThresholdSize)
-            entry = Value(std::forward<Args>(args)...);
+            value = Value(std::forward<Args>(args)...);
         else
-            entry = std::make_unique<Value>(std::forward<Args>(args)...);
+            value = std::make_unique<Value>(std::forward<Args>(args)...);
     }
 
-    static Value& get_value(StorageValue& entry) noexcept {
+    // Return a reference to the stored value, dereferencing heap storage when used.
+    static Value& get(StorageValue& value) noexcept {
         if constexpr (sizeof(Value) <= ThresholdSize)
-            return entry;
+            return value;
         else
-            return *entry;
+            return *value;
     }
 
+    usize                                 reserveCount;
+    float                                 maxLoadFactor;
     std::shared_mutex                     mutex;
-    std::unordered_map<Key, StorageValue> cacheMap;
+    std::unordered_map<Key, StorageValue> valueMap;
 };
 
 // Hash function based on public domain MurmurHash64A by Austin Appleby.
@@ -1567,7 +1617,7 @@ class Logger final {
    public:
     // Starts logging to the specified file.
     // Returns true on success and false if the log file cannot be opened.
-    static bool start(const std::filesystem::path& logFile) noexcept;
+    static bool start(const fs::path& logFile) noexcept;
     // Stops logging, restores the original streams, and closes the log file.
     static void stop() noexcept;
 
@@ -1581,7 +1631,7 @@ class Logger final {
     static Logger& instance() noexcept;
     // Opens the specified log file and redirects the streams through TieBuf.
     // Caller must hold 'mutex'.
-    bool open(const std::filesystem::path& logFile) noexcept;
+    bool open(const fs::path& logFile) noexcept;
     // Restores the original streams and closes the log file.
     // Caller must hold 'mutex'.
     void close() noexcept;
@@ -2039,7 +2089,7 @@ inline std::string hash_to_string(u64 hash) noexcept {
 
     int   writtenSize = std::snprintf(buffer.data(), buffer.size(), "%016" PRIX64, hash);
     usize copiedSize  = writtenSize > 0  //
-                        ? std::min<usize>(writtenSize, buffer.size() - 1)
+                        ? std::min(usize(writtenSize), buffer.size() - 1)
                         : 0;
 
     return std::string{buffer.data(), copiedSize};
@@ -2054,14 +2104,14 @@ void print_info_string(std::string_view infos) noexcept;
 
 [[noreturn]] void terminate_on_critical_error(std::string_view message) noexcept;
 
-std::string           utf8_from_wstring(std::wstring_view wsv) noexcept;
-std::filesystem::path path_from_utf8(std::string_view path) noexcept;
+std::string utf8_from_wstring(std::wstring_view wsv) noexcept;
+fs::path    path_from_utf8(std::string_view path) noexcept;
 
 std::optional<usize> str_to_usize(std::string_view sv) noexcept;
 
 // Reads the file as bytes.
 // Returns std::nullopt if the file does not exist.
-std::optional<std::string> read_file_to_string(const std::filesystem::path& filePath) noexcept;
+std::optional<std::string> read_file_to_string(const fs::path& filePath) noexcept;
 
 }  // namespace DON
 
