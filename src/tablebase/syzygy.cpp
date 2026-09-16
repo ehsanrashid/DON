@@ -981,16 +981,8 @@ class TBTables final {
     static_assert(std::is_trivially_destructible_v<Entry>, "Entry must be trivially destructible");
 
    public:
-    // Buckets:   0     1     2     3     4     ...
-    // Keys:      A     B     C     D     E     ...
-    // Entry DIB: 0     0     1     0     2     ...
-    // Find E:
-    // E's ideal bucket = 2
-    // Probe distance 0 -> bucket 2 -> C (not FOUND)
-    // Probe distance 1 -> bucket 3 -> D (not FOUND)
-    // Probe distance 2 -> bucket 4 -> E (FOUND)
     template<TBType T>
-    [[nodiscard]] TBTable<T>* get(Key key) const noexcept {
+    [[nodiscard]] TBTable<T>* get(const Key key) const noexcept {
 
         usize keyBucket = key & Mask;
 
