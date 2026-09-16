@@ -180,6 +180,24 @@ jobs:
           msystem: ${{ matrix.config.msys_sys }}
           install: mingw-w64-${{ matrix.config.msys_env }} make git expect
 
+      - name: Check compiler version
+        run: |
+          if [ -z "${{ matrix.config.base_image }}" ]; then
+            if [ "$COMP" = 'ndk' ]; then
+              export PATH="$ANDROID_NDK_BIN:$PATH"
+            fi
+            "$COMPCXX" -v
+          else
+            echo "\"$COMPCXX\" -v" > script.sh
+            docker run --rm --platform "${{ matrix.config.platform }}" -v "${{ github.workspace }}:/app" don_builder
+          fi
+
+      - name: Check Git version
+        run: git --version
+
+      - name: Check Make help
+        run: make help
+
       - name: Download the used network from the fishtest framework
         run: make net
 
@@ -202,24 +220,6 @@ jobs:
           else
             echo "No bench found"
           fi
-
-      - name: Check compiler version
-        run: |
-          if [ -z "${{ matrix.config.base_image }}" ]; then
-            if [ "$COMP" = 'ndk' ]; then
-              export PATH="$ANDROID_NDK_BIN:$PATH"
-            fi
-            "$COMPCXX" -v
-          else
-            echo "\"$COMPCXX\" -v" > script.sh
-            docker run --rm --platform "${{ matrix.config.platform }}" -v "${{ github.workspace }}:/app" don_builder
-          fi
-
-      - name: Check Git version
-        run: git --version
-
-      - name: Check Make help
-        run: make help
 
       # x86-64 tests
 

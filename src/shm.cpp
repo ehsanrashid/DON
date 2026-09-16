@@ -336,13 +336,13 @@ MemoryList detach_memories() noexcept {
     assert(List.size() == IndexMap.size());
     assert(List.size() == Set.size());
 
-    auto detachedList = std::move(List);
-    IndexMap.clear();
     Set.clear();
+    IndexMap.clear();
+    auto detachedList = std::move(List);
 
-    assert(List.empty());
-    assert(IndexMap.empty());
     assert(Set.empty());
+    assert(IndexMap.empty());
+    assert(List.empty());
 
     return detachedList;
 }

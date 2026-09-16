@@ -28,10 +28,6 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Download the used network from the fishtest framework
-        if: matrix.bench
-        run: make net
-
       - name: Set up MSVC
         uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
 
@@ -42,6 +38,10 @@ jobs:
           /DUSE_POPCNT /DUSE_SSE2 /DUSE_SSSE3 /DUSE_SSE41 /DUSE_AVX2 ${{ matrix.flags }}
           /Fe:DON.exe *.cpp nnue\*.cpp nnue\features\*.cpp book\*.cpp tablebase\*.cpp
           /link /STACK:8388608 shell32.lib
+
+      - name: Download the used network from the fishtest framework
+        if: matrix.bench
+        run: make net
 
       - name: Extract the bench number from the commit history
         if: matrix.bench

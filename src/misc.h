@@ -1320,15 +1320,15 @@ class ConcurrentCache final {
         {
             std::shared_lock readLock(mutex);
 
-            if (auto itr = valueMap.find(key); itr != valueMap.end())
+            if (const auto itr = valueMap.find(key); itr != valueMap.end())
                 return get(itr->second);
         }
 
         // Slow path: exclusive write lock to insert and construct
         std::lock_guard writeLock(mutex);
 
-        // Double-check after acquiring exclusive lock
-        auto [itr, inserted] = valueMap.try_emplace(key);
+        // Recheck after acquiring exclusive lock
+        const auto [itr, inserted] = valueMap.try_emplace(key);
 
         // Inserted: construct the value
         if (inserted)
@@ -1343,14 +1343,15 @@ class ConcurrentCache final {
         {
             std::shared_lock readLock(mutex);
 
-            if (auto itr = valueMap.find(key); itr != valueMap.end())
+            if (const auto itr = valueMap.find(key); itr != valueMap.end())
                 return get(itr->second);
         }
 
         // Slow path: exclusive write lock to insert and construct
         std::lock_guard writeLock(mutex);
 
-        auto [itr, inserted] = valueMap.try_emplace(key);
+        // Recheck after acquiring exclusive lock
+        const auto [itr, inserted] = valueMap.try_emplace(key);
 
         // Inserted: construct the value
         if (inserted)
@@ -1366,12 +1367,13 @@ class ConcurrentCache final {
           access_or_build(key, std::forward<Args>(args)...));
     }
 
-    template<typename Transformer, typename Builder>
+    template<typename Transformer, typename Builder, typename... Args>
     auto transform_access_or_build_with(const Key&    key,
                                         Transformer&& transformer,
-                                        Builder&&     builder) noexcept {
+                                        Builder&&     builder,
+                                        Args&&... args) noexcept {
         return std::forward<Transformer>(transformer)(
-          access_or_build_with(key, std::forward<Builder>(builder)));
+          access_or_build_with(key, std::forward<Builder>(builder), std::forward<Args>(args)...));
     }
 
     void reset() noexcept {
