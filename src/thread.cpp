@@ -184,7 +184,7 @@ void Threads::set(const NumaConfig&             numaConfig,
         thBoundNumaNodes = threadBoundNumaNodes;
 
         numaThreadCounts.reserve(thBoundNumaNodes.size());
-        for (const usize numaId : thBoundNumaNodes)
+        for (const NumaIndex numaId : thBoundNumaNodes)
             ++numaThreadCounts[numaId];
     }
     else

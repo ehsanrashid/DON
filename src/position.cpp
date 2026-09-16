@@ -17,6 +17,7 @@
 
 #include "position.h"
 
+#include <algorithm>  // min/max, generate, any_of
 #include <initializer_list>
 #include <iomanip>
 #include <sstream>

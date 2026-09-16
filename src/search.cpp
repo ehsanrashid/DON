@@ -1158,10 +1158,11 @@ Value Worker::search(Position&    pos,
     improve |= ss->evalue >= beta;
 
     // Step 10. Internal iterative reductions
-    // Reduce search depth for PV/Cut deep enough nodes without ttMoves.
-    // (*Scaler) Making IIR more aggressive scales poorly.
+    // Reduce search depth at PV/Cut nodes.
+    // (*Scaler) More aggressive IIR scales poorly.
     if constexpr (!AllNode)
     {
+        // Reduce depth when sufficiently deep and no TT move is available.
         if (depth > 5 && ttmNone && !ss->pvFollow)
             --depth;
     }
@@ -1512,10 +1513,11 @@ Value Worker::search(Position&    pos,
         // Decrease/Increase reduction for moves with a good/bad history
         r -= constexpr_round(ss->history * 439.0 / 4096.0);
 
+        // Reduce LMR less aggressively for non-captures when alpha is not decisive
         if (!capture && !is_decisive(alpha))
             r += 3 * std::clamp(alpha - ttEvalue, -64, +96);
 
-        // Scale up reduction for AllNode
+        // Scale up reduction for expected ALL nodes
         if constexpr (AllNode)
         {
             r = constexpr_round(r * (1.0 + 276.0 / (268.0 + 256.0 * depth)));
