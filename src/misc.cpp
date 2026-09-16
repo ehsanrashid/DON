@@ -1336,7 +1336,7 @@ std::string u32_to_string(u32 v) noexcept {
 
     int   writtenSize = std::snprintf(buffer.data(), buffer.size(), "0x%08" PRIX32, v);
     usize copiedSize  = writtenSize > 0  //
-                        ? std::min<usize>(writtenSize, buffer.size() - 1)
+                        ? std::min(usize(writtenSize), buffer.size() - 1)
                         : 0;
 
     return std::string{buffer.data(), copiedSize};
@@ -1349,7 +1349,7 @@ std::string u64_to_string(u64 v) noexcept {
 
     int   writtenSize = std::snprintf(buffer.data(), buffer.size(), "0x%016" PRIX64, v);
     usize copiedSize  = writtenSize > 0  //
-                        ? std::min<usize>(writtenSize, buffer.size() - 1)
+                        ? std::min(usize(writtenSize), buffer.size() - 1)
                         : 0;
 
     return std::string{buffer.data(), copiedSize};

@@ -400,7 +400,7 @@ struct PairsData final {
         // and containing 64 bit values so that base64[i] >= base64[i+1].
         usize base64Size = base64.size();
 
-        for (usize i = std::max<usize>(base64Size, 1) - 1; i-- > 0;)
+        for (usize i = std::max(base64Size, usize{1}) - 1; i-- > 0;)
         {
             const auto& nextBase64 = base64[i + 1];
 

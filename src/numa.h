@@ -53,7 +53,7 @@ using CpuIndexSet  = std::unordered_set<CpuIndex>;
 
 CpuIndex hardware_concurrency() noexcept;
 
-inline const CpuIndex SYSTEM_THREAD_MAX = std::max<CpuIndex>(hardware_concurrency(), 1);
+inline const CpuIndex SYSTEM_THREAD_MAX = std::max(hardware_concurrency(), CpuIndex{1});
 
 #if defined(_WIN64)
 inline constexpr LPCSTR KERNEL_MODULE_NAME = TEXT("kernel32.dll");
@@ -145,7 +145,7 @@ CpuIndexSet read_cache_members(const T* processorInfo, Pred&& is_cpu_allowed) no
     if constexpr (HasGroupCount<T>::value)
     {
         // On Windows 10 this will read a 0 because GroupCount doesn't exist
-        const WORD groupCount = std::max<WORD>(processorInfo->Cache.GroupCount, 1);
+        const WORD groupCount = std::max(processorInfo->Cache.GroupCount, WORD{1});
 
         for (WORD i = 0; i < groupCount; ++i)
         {
@@ -318,7 +318,7 @@ class NumaConfig final {
             {
                 PROCESSOR_NUMBER processorNumber{};
                 processorNumber.Group  = groupId;
-                processorNumber.Number = BYTE(number);
+                processorNumber.Number = BYTE{number};
                 //processorNumber.Reserved = 0;
 
                 USHORT nodeNumber;
@@ -428,7 +428,7 @@ class NumaConfig final {
             processorInfo = std::launder(processorInfo);
 
             if (processorInfo->Relationship == LOGICAL_PROCESSOR_RELATIONSHIP::RelationCache
-                && processorInfo->Cache.Level == BYTE(3))
+                && processorInfo->Cache.Level == BYTE{3})
             {
                 L3Domain l3Domain{};
 

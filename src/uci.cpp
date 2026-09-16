@@ -167,7 +167,7 @@ Limit parse_limit(std::istream& is) noexcept {
         {
             is >> limit.nodes;
 
-            limit.nodes = std::max<u64>(limit.nodes, 1);
+            limit.nodes = std::max(limit.nodes, u64{1});
         }
         else if (token == "infinite")
             limit.infinite = true;
@@ -598,7 +598,7 @@ void UCI::bench(std::istream& is) noexcept {
 
     // Ensure non-zero to avoid a 'divide by zero'
     const auto totalTimeMs =
-      std::max<i64>(std::chrono::duration_cast<Ms>(totalDuration).count(), 1);
+      std::max(std::chrono::duration_cast<Ms>(totalDuration).count(), TimePoint{1});
 
 #if !defined(NDEBUG)
     Debug::print();
@@ -757,7 +757,7 @@ void UCI::benchmark(std::istream& is) noexcept {
 
     // Ensure non-zero to avoid a 'divide by zero'
     const auto totalTimeMs =
-      std::max<i64>(std::chrono::duration_cast<Ms>(totalDuration).count(), 1);
+      std::max(std::chrono::duration_cast<Ms>(totalDuration).count(), TimePoint{1});
 
 #if !defined(NDEBUG)
     Debug::print();

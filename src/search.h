@@ -172,7 +172,7 @@ struct PVMoves final {
     }
 
     PVMoves& operator=(const RootPVMoves& rootPV) noexcept {
-        size_ = std::min<usize>(rootPV.size(), PLY_MAX);
+        size_ = std::min(rootPV.size(), usize{PLY_MAX});
         std::memcpy(data(), rootPV.data(), size() * sizeof(Move));
         return *this;
     }

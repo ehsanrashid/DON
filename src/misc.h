@@ -366,7 +366,7 @@ constexpr float max_load_factor(float maxLoadFactor = 0.75f) noexcept {
     return std::clamp(constexpr_abs(maxLoadFactor), 0.1f, 1.0f);
 }
 constexpr usize reserve_count(usize reserveCount = 1024) noexcept {
-    return std::max<usize>(reserveCount, 8);
+    return std::max(reserveCount, usize{8});
 }
 
 template<typename T1, typename T2>
@@ -1309,29 +1309,7 @@ class ConcurrentCache final {
     explicit ConcurrentCache(usize reserveCnt = 1 * KB, float maxLoadFtr = 0.75f) noexcept :
         reserveCount(reserveCnt),
         maxLoadFactor(maxLoadFtr) {
-        reset();
-    }
-
-    template<typename Builder>
-    Value& access_or_build_with(const Key& key, Builder&& builder) noexcept {
-        // Fast path: shared read lock to check and access
-        {
-            std::shared_lock readLock(mutex);
-
-            if (auto itr = valueMap.find(key); itr != valueMap.end())
-                return get_value(itr->second);
-        }
-
-        // Slow path: exclusive write lock to insert and construct
-        std::lock_guard writeLock(mutex);
-
-        auto [itr, inserted] = valueMap.try_emplace(key);
-
-        // Inserted: construct the value
-        if (inserted)
-            set_value(itr->second, std::forward<Builder>(builder)());
-
-        return get_value(itr->second);
+        configure();
     }
 
     template<typename... Args>
@@ -1341,7 +1319,7 @@ class ConcurrentCache final {
             std::shared_lock readLock(mutex);
 
             if (auto itr = valueMap.find(key); itr != valueMap.end())
-                return get_value(itr->second);
+                return get(itr->second);
         }
 
         // Slow path: exclusive write lock to insert and construct
@@ -1352,9 +1330,38 @@ class ConcurrentCache final {
 
         // Inserted: construct the value
         if (inserted)
-            set_value(itr->second, std::forward<Args>(args)...);
+            set(itr->second, std::forward<Args>(args)...);
 
-        return get_value(itr->second);
+        return get(itr->second);
+    }
+
+    template<typename Builder>
+    Value& access_or_build_with(const Key& key, Builder&& builder) noexcept {
+        // Fast path: shared read lock to check and access
+        {
+            std::shared_lock readLock(mutex);
+
+            if (auto itr = valueMap.find(key); itr != valueMap.end())
+                return get(itr->second);
+        }
+
+        // Slow path: exclusive write lock to insert and construct
+        std::lock_guard writeLock(mutex);
+
+        auto [itr, inserted] = valueMap.try_emplace(key);
+
+        // Inserted: construct the value
+        if (inserted)
+            set(itr->second, std::forward<Builder>(builder)());
+
+        return get(itr->second);
+    }
+
+    template<typename Transformer, typename... Args>
+    auto
+    transform_access_or_build(const Key& key, Transformer&& transformer, Args&&... args) noexcept {
+        return std::forward<Transformer>(transformer)(
+          access_or_build(key, std::forward<Args>(args)...));
     }
 
     template<typename Transformer, typename Builder>
@@ -1365,43 +1372,42 @@ class ConcurrentCache final {
           access_or_build_with(key, std::forward<Builder>(builder)));
     }
 
-    template<typename Transformer, typename... Args>
-    auto
-    transform_access_or_build(const Key& key, Transformer&& transformer, Args&&... args) noexcept {
-        return std::forward<Transformer>(transformer)(
-          access_or_build(key, std::forward<Args>(args)...));
-    }
-
     void reset() noexcept {
         std::lock_guard writeLock(mutex);
 
         valueMap.clear();
-        valueMap.max_load_factor(max_load_factor(maxLoadFactor));
         valueMap.rehash(0);
-        valueMap.reserve(reserve_count(reserveCount));
+        configure();
     }
 
    private:
+    void configure() noexcept {
+        valueMap.max_load_factor(max_load_factor(maxLoadFactor));
+        valueMap.reserve(reserve_count(reserveCount));
+    }
+
     static constexpr usize ThresholdSize = 128;
 
-    // Define StorageValue type alias
     using StorageValue =
       std::conditional_t<sizeof(Value) <= ThresholdSize, Value, std::unique_ptr<Value>>;
 
-    // Helper functions AFTER StorageValue is defined
+    // Helper functions for accessing the stored value
+
+    // Set the stored value, using direct storage or heap allocation based on its size.
     template<typename... Args>
-    void set_value(StorageValue& entry, Args&&... args) {
+    static void set(StorageValue& value, Args&&... args) noexcept {
         if constexpr (sizeof(Value) <= ThresholdSize)
-            entry = Value(std::forward<Args>(args)...);
+            value = Value(std::forward<Args>(args)...);
         else
-            entry = std::make_unique<Value>(std::forward<Args>(args)...);
+            value = std::make_unique<Value>(std::forward<Args>(args)...);
     }
 
-    static Value& get_value(StorageValue& entry) noexcept {
+    // Return a reference to the stored value, dereferencing heap storage when used.
+    static Value& get(StorageValue& value) noexcept {
         if constexpr (sizeof(Value) <= ThresholdSize)
-            return entry;
+            return value;
         else
-            return *entry;
+            return *value;
     }
 
     usize                                 reserveCount;
@@ -2081,7 +2087,7 @@ inline std::string hash_to_string(u64 hash) noexcept {
 
     int   writtenSize = std::snprintf(buffer.data(), buffer.size(), "%016" PRIX64, hash);
     usize copiedSize  = writtenSize > 0  //
-                        ? std::min<usize>(writtenSize, buffer.size() - 1)
+                        ? std::min(usize(writtenSize), buffer.size() - 1)
                         : 0;
 
     return std::string{buffer.data(), copiedSize};

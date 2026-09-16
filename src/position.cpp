@@ -95,7 +95,7 @@ Key turn() noexcept { return Turn; }
 Key mr50(i16 rule50Count) noexcept {
     return rule50Count < R50_OFFSET
            ? 0
-           : MR50[std::min<usize>((rule50Count - R50_OFFSET) / R50_FACTOR, MR50.size() - 1)];
+           : MR50[std::min(usize((rule50Count - R50_OFFSET) / R50_FACTOR), MR50.size() - 1)];
 }
 
 }  // namespace Zobrist

@@ -95,14 +95,14 @@ void TimeManager::init(
 
     u64 ScaleFactor = use_nodes_time() ? NodesTime : 1;
 
-    TimePoint ScaledTime = std::max<TimePoint>(clock.time / ScaleFactor, 1);
+    TimePoint ScaledTime = TimePoint(std::max(clock.time / ScaleFactor, u64{1}));
 
     // clang-format off
 
     // Maximum move horizon
-    u8 mtg = limit.movesToGo == 0
-                  ? std::max<u8>(MTG_MAX - int(0.1 * std::max(moveNum         - 20     , 0)), MTG_MAX - 10)
-                  : std::min<u8>(MTG_MAX + int(0.1 * std::max(limit.movesToGo - MTG_MAX, 0)), limit.movesToGo);
+    u8 mtg = u8(limit.movesToGo == 0
+                  ? std::max(MTG_MAX - int(0.1 * std::max(moveNum         - 20     , 0)), MTG_MAX - 10)
+                  : std::min(MTG_MAX + int(0.1 * std::max(limit.movesToGo - MTG_MAX, 0)), limit.movesToGo - 0));
 
     // If less than one second, gradually reduce mtg.
     // In cyclic time controls keep the actual movestogo as horizon.
@@ -112,7 +112,7 @@ void TimeManager::init(
     // Make sure remainTime > 0 since use it as a divisor
     const TimePoint remainTime =
         TimePoint(std::max(
-                    std::max<TimePoint>(clock.time + (mtg - 1) * clock.inc - (mtg + 2) * OverheadTime, 1)
+                    std::max(clock.time + (mtg - 1) * clock.inc - (mtg + 2) * OverheadTime, TimePoint{1})
                   * options["TimePercent"] / 100.0, 1.0));
 
     // optimumScale is a percentage of available time to use for the current move.
@@ -176,7 +176,7 @@ void TimeManager::init(
 void TimeManager::advance_time_nodes(i64 nodes) noexcept {
     assert(use_nodes_time());
 
-    timeNodes = std::max<i64>(timeNodes - nodes, 0);
+    timeNodes = std::max(timeNodes - nodes, i64{0});
 }
 
 }  // namespace DON

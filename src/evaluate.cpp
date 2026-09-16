@@ -225,7 +225,7 @@ std::string trace(Position& pos, const NNUE::Network& network) noexcept {
 
         int   writtenSize = std::snprintf(buffer.data(), buffer.size(), "%+01.2f", d);
         usize copiedSize  = writtenSize > 0  //
-                            ? std::min<usize>(writtenSize, buffer.size() - 1)
+                            ? std::min(usize(writtenSize), buffer.size() - 1)
                             : 0;
 
         return std::string{buffer.data(), copiedSize};

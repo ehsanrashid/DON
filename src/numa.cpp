@@ -265,7 +265,7 @@ WindowsAffinity get_process_affinity() noexcept {
                     DWORD_PTR combinedProcMask = std::numeric_limits<DWORD_PTR>::max();
                     DWORD_PTR combinedSysMask  = std::numeric_limits<DWORD_PTR>::max();
 
-                    for (DWORD i = 0; i < std::min(activeProcCount, DWORD(2)); ++i)
+                    for (DWORD i = 0; i < std::min(activeProcCount, DWORD{2}); ++i)
                     {
                         GROUP_AFFINITY groupAffinity;
                         std::memset(&groupAffinity, 0, sizeof(groupAffinity));
