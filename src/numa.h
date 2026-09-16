@@ -318,7 +318,7 @@ class NumaConfig final {
             {
                 PROCESSOR_NUMBER processorNumber{};
                 processorNumber.Group  = groupId;
-                processorNumber.Number = BYTE{number};
+                processorNumber.Number = BYTE(number);
                 //processorNumber.Reserved = 0;
 
                 USHORT nodeNumber;
