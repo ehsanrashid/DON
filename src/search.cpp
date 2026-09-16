@@ -1078,7 +1078,7 @@ Value Worker::search(Position&    pos,
     // If eval is really low, check with qsearch then return speculative fail low.
     if constexpr (!PVNode)
     {
-    if (!exclude && ttEvalue + 483 + 318 * depth * depth <= alpha)
+    if (!exclude && ttEvalue + 482 * depth * depth <= alpha)
     {
         const Value razorAlpha = Value(std::max(alpha - 1, -VALUE_INFINITE));
 

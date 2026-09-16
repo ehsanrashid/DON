@@ -202,6 +202,36 @@ constexpr Bitboard shift_bb(const Bitboard b) noexcept {
     return 0;
 }
 
+constexpr Bitboard shift_bb(const Bitboard b, const Direction d) noexcept {
+    switch (d)
+    {
+    case Direction::NORTH :
+        return shift_bb<Direction::NORTH>(b);
+    case Direction::SOUTH :
+        return shift_bb<Direction::SOUTH>(b);
+    case Direction::NORTH_2 :
+        return shift_bb<Direction::NORTH_2>(b);
+    case Direction::SOUTH_2 :
+        return shift_bb<Direction::SOUTH_2>(b);
+    case Direction::EAST :
+        return shift_bb<Direction::EAST>(b);
+    case Direction::WEST :
+        return shift_bb<Direction::WEST>(b);
+    case Direction::NORTH_WEST :
+        return shift_bb<Direction::NORTH_WEST>(b);
+    case Direction::SOUTH_EAST :
+        return shift_bb<Direction::SOUTH_EAST>(b);
+    case Direction::NORTH_EAST :
+        return shift_bb<Direction::NORTH_EAST>(b);
+    case Direction::SOUTH_WEST :
+        return shift_bb<Direction::SOUTH_WEST>(b);
+    default :;
+    }
+    assert(false);
+    UNREACHABLE();
+    return 0;
+}
+
 template<typename T>
 constexpr u8 constexpr_popcount(const T v) noexcept {
     static_assert(std::is_integral_v<T>, "constexpr_popcount is undefined for non-integral types");

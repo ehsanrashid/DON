@@ -247,37 +247,32 @@ void FullThreats::append_active_indices(const Color     perspective,
 
     for (const Color c : {WHITE, BLACK})
     {
-        const Color attackerC = Color(perspective ^ c);
-
         {
-            const Piece attackerPc = make_piece(attackerC, PAWN);
+            const Piece attackerPc = make_piece(c, PAWN);
 
-            const Bitboard cpawnsBB = pos.pieces_bb(attackerC, PAWN);
+            const Bitboard pawnsBB = pos.pieces_bb(c, PAWN);
 
-            append_pawn_active_indices(
-              attackerC == WHITE ? shift_bb<Direction::NORTH_EAST>(cpawnsBB) & pawnTargetsBB
-                                 : shift_bb<Direction::SOUTH_WEST>(cpawnsBB) & pawnTargetsBB,
-              attackerC == WHITE ? Direction::NORTH_EAST : Direction::SOUTH_WEST,  //
-              perspective, pos, kingSq, attackerPc, active);
+            const auto lDir = c == WHITE ? Direction::NORTH_WEST : Direction::SOUTH_EAST;
+            const auto rDir = c == WHITE ? Direction::NORTH_EAST : Direction::SOUTH_WEST;
 
-            append_pawn_active_indices(
-              attackerC == WHITE ? shift_bb<Direction::NORTH_WEST>(cpawnsBB) & pawnTargetsBB
-                                 : shift_bb<Direction::SOUTH_EAST>(cpawnsBB) & pawnTargetsBB,
-              attackerC == WHITE ? Direction::NORTH_WEST : Direction::SOUTH_EAST,  //
-              perspective, pos, kingSq, attackerPc, active);
+            const Bitboard lBB = shift_bb(pawnsBB, lDir) & pawnTargetsBB;
+            const Bitboard rBB = shift_bb(pawnsBB, rDir) & pawnTargetsBB;
+
+            append_pawn_active_indices(lBB, lDir, perspective, pos, kingSq, attackerPc, active);
+            append_pawn_active_indices(rBB, rDir, perspective, pos, kingSq, attackerPc, active);
         }
 
         for (const PieceType pt : NON_PAWN_PIECE_TYPES)
         {
-            const Piece attackerPc = make_piece(attackerC, pt);
+            const Piece attackerPc = make_piece(c, pt);
 
             const Bitboard targetsBB =
               pt == KNIGHT || pt == QUEEN ? knightqueenTargetsBB : sliderTargetsBB;
 
-            Bitboard cattackerBB = pos.pieces_bb(attackerC, pt);
-            while (cattackerBB != 0)
+            Bitboard attackerBB = pos.pieces_bb(c, pt);
+            while (attackerBB != 0)
             {
-                const Square orgSq = pop_lsq(cattackerBB);
+                const Square orgSq = pop_lsq(attackerBB);
 
                 Bitboard attacksBB = Attacks::attacks_bb(orgSq, pt, occupancyBB) & targetsBB;
                 while (attacksBB != 0)
