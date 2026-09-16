@@ -741,7 +741,7 @@ class LazyNumaReplicated final: public BaseNumaReplicated {
 
         const auto& numaCfg = numa_config();
 
-        numaCfg.execute_on_numa_node(numaId, [this, numaId]() noexcept {
+        numaCfg.execute_on_numa_node(numaId, [this, numaId]() noexcept -> void {
             instances[numaId] = std::make_unique<T>(*instances[0]);
         });
     }
@@ -758,7 +758,7 @@ class LazyNumaReplicated final: public BaseNumaReplicated {
             // Just need to make sure the first instance is there.
             // Note that cannot move here as need to reallocate the data
             // on the correct NUMA node.
-            numaCfg.execute_on_numa_node(0, [this, &source]() noexcept {
+            numaCfg.execute_on_numa_node(0, [this, &source]() noexcept -> void {
                 instances.emplace_back(std::make_unique<T>(source));
             });
 
@@ -882,7 +882,7 @@ class SystemWideLazyNumaReplicated final: public BaseNumaReplicated {
 
         const NumaConfig& numaCfg = numa_config();
 
-        numaCfg.execute_on_numa_node(numaId, [this, numaId]() noexcept {
+        numaCfg.execute_on_numa_node(numaId, [this, numaId]() noexcept -> void {
             instances[numaId] = SystemWideSharedMemory<T>(*instances[0], get_discriminator(numaId));
         });
     }

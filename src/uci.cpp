@@ -529,18 +529,16 @@ void UCI::bench(std::istream& is) noexcept {
 
     u64 nodes = 0, totalNodes = 0;
 
-    engine.set_on_update_start([&startTime, &nodes]() noexcept {
+    engine.set_on_update_start([&startTime, &nodes]() noexcept -> void {
         startTime = SteadyClock::now();
         nodes     = 0;
     });
-    engine.set_on_update_full([&nodes](const auto& info) noexcept {
+    engine.set_on_update_full([&nodes](const auto& info) noexcept -> void {
         nodes = info.nodes;
         on_update_full(info);
     });
-    engine.set_on_update_move([&totalDuration,
-                               &totalNodes,                               //
-                                 & startTime = std::as_const(startTime),  //
-                                   & nodes   = std::as_const(nodes)](const auto& info) noexcept {
+    engine.set_on_update_move([&totalDuration, &totalNodes, &startTime = std::as_const(startTime),
+                               &nodes = std::as_const(nodes)](const auto& info) noexcept -> void {
         totalDuration += SteadyClock::now() - startTime;
         totalNodes += nodes;
         on_update_move(info);
@@ -619,10 +617,10 @@ void UCI::benchmark(std::istream& is) noexcept {
     constexpr usize WarmupPositionCount = 3;
 
     InfoStrStop = true;
-    engine.set_on_update_short([](const auto&) {});
-    engine.set_on_update_full([&](const auto&) {});
-    engine.set_on_update_iter([](const auto&) {});
-    engine.set_on_update_move([](const auto&) {});
+    engine.set_on_update_short([](const auto&) noexcept -> void {});
+    engine.set_on_update_full([&](const auto&) noexcept -> void {});
+    engine.set_on_update_iter([](const auto&) noexcept -> void {});
+    engine.set_on_update_move([](const auto&) noexcept -> void {});
 
     const auto setup = Benchmark::benchmark(is);
 
@@ -689,7 +687,7 @@ void UCI::benchmark(std::istream& is) noexcept {
     Array<u16, HashfullAges.size()> maxHashfull{};
     Array<u32, HashfullAges.size()> sumHashfull{};
 
-    auto update_hashfull = [&]() noexcept -> void {
+    const auto update_hashfull = [&]() noexcept -> void {
         ++hashfullCount;
         for (usize i = 0; i < HashfullAges.size(); ++i)
         {
@@ -700,22 +698,22 @@ void UCI::benchmark(std::istream& is) noexcept {
         }
     };
 
-    const auto avg = [&hashfullCount](u32 x) noexcept { return double(x) / hashfullCount; };
+    const auto avg = [&hashfullCount](u32 x) noexcept -> double {
+        return double(x) / hashfullCount;
+    };
 
     SteadyClock::time_point startTime;
     SteadyClock::duration   totalDuration{0};
 
     u64 nodes = 0, totalNodes = 0;
 
-    engine.set_on_update_start([&startTime, &nodes]() noexcept {
+    engine.set_on_update_start([&startTime, &nodes]() noexcept -> void {
         startTime = SteadyClock::now();
         nodes     = 0;
     });
-    engine.set_on_update_full([&nodes](const auto& info) noexcept { nodes = info.nodes; });
-    engine.set_on_update_move([&totalDuration,
-                               &totalNodes,                               //
-                                 & startTime = std::as_const(startTime),  //
-                                   & nodes   = std::as_const(nodes)](const auto&) noexcept {
+    engine.set_on_update_full([&nodes](const auto& info) noexcept -> void { nodes = info.nodes; });
+    engine.set_on_update_move([&totalDuration, &totalNodes, &startTime = std::as_const(startTime),
+                               &nodes = std::as_const(nodes)](const auto&) noexcept -> void {
         totalDuration += SteadyClock::now() - startTime;
         totalNodes += nodes;
     });

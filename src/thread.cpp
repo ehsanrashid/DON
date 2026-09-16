@@ -83,7 +83,7 @@ void Thread::start() noexcept {
     nativeThread = NativeThread(&Thread::idle_func, this);
 
     // Wait until the new thread reaches idle
-    condVar.wait(condLock, [this] { return !busy; });
+    condVar.wait(condLock, [this]() noexcept -> bool { return !busy; });
 }
 
 void Thread::terminate() noexcept {
@@ -121,7 +121,7 @@ void Thread::idle_func() noexcept {
         // Wait until either:
         // 1) A new job is scheduled (busy == true), or
         // 2) The thread is being stopped (dead == true)
-        condVar.wait(condLock, [this] { return busy || dead; });
+        condVar.wait(condLock, [this]() noexcept -> bool { return busy || dead; });
 
         // If thread is being torn down, exit immediately.
         if (dead)
@@ -184,7 +184,7 @@ void Threads::set(const NumaConfig&             numaConfig,
         thBoundNumaNodes = threadBoundNumaNodes;
 
         numaThreadCounts.reserve(thBoundNumaNodes.size());
-        for (NumaIndex numaId : thBoundNumaNodes)
+        for (const usize numaId : thBoundNumaNodes)
             ++numaThreadCounts[numaId];
     }
     else
@@ -193,7 +193,7 @@ void Threads::set(const NumaConfig&             numaConfig,
 
         threadBoundNumaNodes.clear();
 
-        thBoundNumaNodes = std::vector(threadCount, NumaIndex{0});
+        thBoundNumaNodes = std::vector(usize{threadCount}, NumaIndex{0});
 
         numaThreadCounts.reserve(1);
         // All threads belong to NUMA node 0
@@ -211,10 +211,10 @@ void Threads::set(const NumaConfig&             numaConfig,
     for (const auto& _ : numaThreadCounts)
     {
         const NumaIndex numaId = _.first;
-        const usize     count  = _.second;
+        const u16       count  = _.second;
 
-        auto create_histories = [&]() noexcept {
-            const usize roundedCount = round_up_to_pow2(count);
+        auto create_histories = [&atomicHistoriesMap, &numaId, &count]() noexcept -> void {
+            const usize roundedCount = round_up_to_pow2(usize{count});
 
             atomicHistoriesMap.try_emplace(numaId, roundedCount);
         };
@@ -235,24 +235,25 @@ void Threads::set(const NumaConfig&             numaConfig,
 
     for (u16 threadId = 0; threadId < threadCount; ++threadId)
     {
-        NumaIndex numaId = thBoundNumaNodes[threadId];
+        const NumaIndex numaId = thBoundNumaNodes[usize{threadId}];
 
-        auto numaIdx       = numaIds[numaId]++;
-        auto numaThreadCnt = numaThreadCounts[numaId];
+        const auto numaIdx       = numaIds[numaId]++;
+        const auto numaThreadCnt = numaThreadCounts[numaId];
 
-        auto create_thread = [this, threadId, threadCount, numaId, numaIdx, numaThreadCnt,
-                              numaConfigPtr, &sharedState, &updateContext]() noexcept {
+        const auto create_thread = [this, threadId, threadCount, numaId, numaIdx, numaThreadCnt,
+                                    numaConfigPtr, &sharedState,
+                                    &updateContext]() noexcept -> void {
             ThreadContext threadContext{threadId, threadCount, numaIdx, numaThreadCnt};
             // When not binding threads want to force all access to happen from the same
             // NUMA node, because in case of NUMA replicated memory accesses don't want
             // to trash cache in case the threads get scheduled on the same NUMA node.
-            ThreadToNumaNodeBinder nodeBinder(numaId, numaConfigPtr);
+            ThreadToNumaNodeBinder nodeBinder{numaId, numaConfigPtr};
 
             // Search manager for this thread
-            auto searchManager = threadId == 0 ? std::make_unique<Manager>(updateContext) : nullptr;
+            auto manager = threadId == 0 ? std::make_unique<Manager>(updateContext) : nullptr;
 
             auto newThread = std::make_unique<Thread>(std::move(threadContext), nodeBinder,
-                                                      sharedState, std::move(searchManager), true);
+                                                      sharedState, std::move(manager), true);
             // Mutate threads list under write lock to avoid races
             {
                 std::lock_guard writeLock(mutex);
@@ -576,7 +577,7 @@ void Threads::start(Position&      pos,
     // The rootState is per thread, earlier states are shared since they are read-only.
     for (auto* th : snapThreads)
     {
-        th->run_custom_job([th, &pos, &rootMoves, &limit, &tbConfig]() noexcept {
+        th->run_custom_job([th, &pos, &rootMoves, &limit, &tbConfig]() noexcept -> void {
             auto* worker = th->worker.get();
 
             worker->nodes       = 0;

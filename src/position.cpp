@@ -48,7 +48,7 @@ constexpr u8 R50_FACTOR = 8;
 void init() noexcept {
     XorShift64Star prng(0x105524);
 
-    const auto prng_rand = [&prng]() noexcept { return prng.template rand<Key>(); };
+    const auto prng_rand = [&prng]() noexcept -> Key { return prng.template rand<Key>(); };
 
     for (Color c : {WHITE, BLACK})
     {
@@ -296,7 +296,7 @@ std::optional<Error> Position::set(const std::string_view fens, State* const new
 
     // Returns '\0' when p == end (EOF sentinel)
     auto peek        = [&p, end]() noexcept -> char { return p != end ? *p : '\0'; };
-    auto skip_spaces = [&p, end]() noexcept {
+    auto skip_spaces = [&p, end]() noexcept -> void {
         for (; p != end && is_space(*p); ++p)
         {}
     };
@@ -1538,7 +1538,7 @@ bool Position::fork(const Move m) const noexcept {
 }
 
 Key Position::material_key() const noexcept {
-    return MaterialKeyCache.access_or_build_with(raw_key(), [this] {
+    return MaterialKeyCache.access_or_build_with(raw_key(), [this]() noexcept -> Key {
         Key materialKey = 0;
 
         for (const Color c : {WHITE, BLACK})

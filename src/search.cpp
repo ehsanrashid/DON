@@ -353,7 +353,7 @@ void Worker::start_search() noexcept {
             // Wait until either:
             // 1. Threads are stopped, OR
             // 2. Not in infinite search AND Not pondering
-            manager->condVar.wait(condLock, [&]() noexcept {
+            manager->condVar.wait(condLock, [&]() noexcept -> bool {
                 return threads.is_stopped() || (!limit.infinite && !manager->ponder);
             });
         }

@@ -250,7 +250,7 @@ WindowsAffinity get_process_affinity() noexcept {
         // In which case can actually retrieve the full affinity.
         if (getThreadSelectedCpuSetMasks != nullptr)
         {
-            std::thread th([&winAffinity, &procGroupAffinity]() noexcept {
+            std::thread th([&winAffinity, &procGroupAffinity]() noexcept -> void {
                 CpuIndexSet cpus;
 
                 bool fullAffinity = true;
@@ -331,7 +331,7 @@ CpuIndexSet get_process_affinity() noexcept {
 
     // For unsupported systems, or in case of a soft error,
     // assume all processors are available for use.
-    const auto set_to_all_cpus = [&cpus]() noexcept {
+    const auto set_to_all_cpus = [&cpus]() noexcept -> void {
         cpus.clear();
         cpus.reserve(SYSTEM_THREAD_MAX);
 
@@ -354,7 +354,7 @@ CpuIndexSet get_process_affinity() noexcept {
         return cpus;
     }
 
-    const auto free_cpus_mask = [&cpusMask]() noexcept { CPU_FREE(cpusMask); };
+    const auto free_cpus_mask = [&cpusMask]() noexcept -> void { CPU_FREE(cpusMask); };
 
     const usize maskSize = CPU_ALLOC_SIZE(MaxCpuCount);
 
@@ -888,7 +888,7 @@ NumaConfig::bind_current_thread_to_numa_node(const NumaIndex numaId) const noexc
         std::exit(EXIT_FAILURE);
     }
 
-    const auto free_cpus_mask = [&cpusMask]() noexcept { CPU_FREE(cpusMask); };
+    const auto free_cpus_mask = [&cpusMask]() noexcept -> void { CPU_FREE(cpusMask); };
 
     const usize maskSize = CPU_ALLOC_SIZE(maxCpuId + 1);
 

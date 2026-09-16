@@ -177,7 +177,7 @@ inline constexpr bool IS_LITTLE_ENDIAN = __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN
 inline constexpr bool IS_LITTLE_ENDIAN = true;
 #else
 // Fallback runtime check
-inline const bool IS_LITTLE_ENDIAN = []() noexcept {
+inline const bool IS_LITTLE_ENDIAN = []() noexcept -> bool {
     constexpr u16 LE = 1;
     return *reinterpret_cast<const u8*>(&LE) == 1;
 }();

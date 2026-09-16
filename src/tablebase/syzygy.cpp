@@ -599,8 +599,7 @@ template<TBType T>
 void* TBTable<T>::init(const Position& pos, const Key materialKey) noexcept {
     // Wait until initialization has completed.
     while (!initCallOnce.once_done())
-    {
-        initCallOnce([this, &pos, materialKey]() noexcept {
+        initCallOnce([this, &pos, materialKey]() noexcept -> void {
             // Pieces strings in decreasing order for each color, like ("KPP", "KR").
             Array<std::string, COLOR_NB> pieces{};
 
@@ -622,7 +621,6 @@ void* TBTable<T>::init(const Position& pos, const Key materialKey) noexcept {
 
             set(tbFile.exists() ? map(tbFile.file_name()) : nullptr);
         });
-    }
 
     return mappedPtr;
 }

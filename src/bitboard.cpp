@@ -64,7 +64,7 @@ std::string_view pretty(const Bitboard b) noexcept {
     // Standard intentional "leaky singleton" pattern.
     // Ensures the cache lives for the entire program, never deleted.
     //static auto& cache = *new ConcurrentCache<Bitboard, std::string>(ReserveCount, MaxLoadFactor);
-    static auto& cache = *[=] {
+    static auto& cache = *[=]() noexcept -> auto {
         static auto cachePtr =
           std::make_unique<ConcurrentCache<Bitboard, std::string>>(ReserveCount, MaxLoadFactor);
         return cachePtr.get();
@@ -75,7 +75,7 @@ std::string_view pretty(const Bitboard b) noexcept {
     //  b, [](const std::string& str) noexcept -> std::string_view { return str; }, pretty_str(b));
     return cache.transform_access_or_build_with(
       b, [](const std::string& str) noexcept -> std::string_view { return str; },
-      [b] { return pretty_str(b); });
+      [b]() noexcept -> std::string { return pretty_str(b); });
 }
 
 }  // namespace DON

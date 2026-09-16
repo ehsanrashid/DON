@@ -406,13 +406,11 @@ CallOnce HookCallOnce;
 
 void ensure_initialized() noexcept {
     while (!HookCallOnce.once_done())
-    {
-        HookCallOnce([]() noexcept {
+        HookCallOnce([]() noexcept -> void {
             //DEBUG_LOG("Initializing MemoryCleanupHook.");
 
             std::atexit(MemoryCleanup::cleanup);
         });
-    }
 }
 
 }  // namespace MemoryCleanupHook
@@ -651,7 +649,7 @@ UniqueFd try_receive_memfd(const std::string& sockPath) noexcept {
 std::thread make_server_thread(UniqueFd fd, UniqueFd shutdownFd, UniqueFd serverFd) noexcept {
     return std::thread([fd         = std::move(fd),          //
                         shutdownFd = std::move(shutdownFd),  //
-                        serverFd   = std::move(serverFd)]() noexcept {
+                        serverFd   = std::move(serverFd)]() noexcept -> void {
         struct pollfd fds[PI_NB];
         fds[+PI::SERVER].fd     = serverFd.get();
         fds[+PI::SERVER].events = POLLIN;

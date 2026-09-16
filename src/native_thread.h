@@ -74,7 +74,7 @@ class NativeThread final {
             return;
         }
 
-        const auto destroy_thread_attr = [&threadAttr]() noexcept {
+        const auto destroy_thread_attr = [&threadAttr]() noexcept -> void {
             if (::pthread_attr_destroy(&threadAttr) != 0)
             {
                 //DEBUG_LOG("::pthread_attr_destroy() failed to destroy thread attributes.");
