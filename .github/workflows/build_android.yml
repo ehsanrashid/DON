@@ -42,7 +42,7 @@ jobs:
         run: |
           if [ "$COMP" = 'ndk' ]; then
             NDKV="27.2.12479018"
-            ANDROID_ROOT="/usr/local/lib/android"
+            ANDROID_ROOT=/usr/local/lib/android
             ANDROID_SDK_ROOT="$ANDROID_ROOT/sdk"
             SDKMANAGER="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
             echo "y" | "$SDKMANAGER" "ndk;$NDKV"
@@ -87,8 +87,7 @@ jobs:
             echo "No bench found"
           fi
 
-      # Build profile-guided binaries
-
+      # Build PGO-optimized (profile-guided) binary
       - name: Build '${{ env.BINARY }}' with NDK
         run: |
           EXTRA_LDFLAGS=""
