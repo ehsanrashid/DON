@@ -82,7 +82,7 @@ jobs:
               lld-${{ matrix.ver }}
           fi
 
-      - name: Download network
+      - name: Download the used network from the fishtest framework
         working-directory: src
         run: make net
 

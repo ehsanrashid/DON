@@ -289,24 +289,24 @@ jobs:
       - name: Install clang and the riscv cross runtime
         run: |
           wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc >/dev/null
-          echo "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-20 main" | sudo tee /etc/apt/sources.list.d/llvm.list >/dev/null
+          echo "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-22 main" | sudo tee /etc/apt/sources.list.d/llvm.list >/dev/null
           sudo apt-get update
-          sudo apt-get install -y clang-20 lld-20 llvm-20 g++-riscv64-linux-gnu
-          echo "/usr/lib/llvm-20/bin" >> "$GITHUB_PATH"
+          sudo apt-get install -y clang-22 lld-22 llvm-22 g++-riscv64-linux-gnu
+          echo "/usr/lib/llvm-22/bin" >> "$GITHUB_PATH"
 
-      - name: Cache qemu-user deb
+      - name: Cache qemu-user
         id: cache-qemu
         uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
-         path: /tmp/qemu.deb
+         path: /tmp/qemu
          key: qemu-user-9.2.1+ds-1ubuntu5_amd64
 
       - name: Install qemu
         run: |
-          if [ "${{ steps.cache-qemu.outputs.cache-hit }}" != "true" ]; then
+          if [ "${{ steps.cache-qemu.outputs.cache-hit }}" != 'true' ]; then
             curl -fsSL -o /tmp/qemu.deb "$QEMU_DEB"
+            dpkg -x /tmp/qemu.deb /tmp/qemu
           fi
-          dpkg -x /tmp/qemu.deb /tmp/qemu
           /tmp/qemu/usr/bin/qemu-riscv64 --version
           echo "/tmp/qemu/usr/bin" >> "$GITHUB_PATH"
 
