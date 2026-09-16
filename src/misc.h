@@ -117,6 +117,8 @@
 
 namespace DON {
 
+namespace fs = std::filesystem;
+
 using u64 = std::uint64_t;
 using u32 = std::uint32_t;
 using u16 = std::uint16_t;
@@ -1108,9 +1110,9 @@ struct CommandLine final {
     CommandLine& operator=(CommandLine&&)      = default;
 
     // Returns the directory containing the executable, or "." if the directory is empty.
-    static std::filesystem::path binary_directory(std::filesystem::path path) noexcept;
+    static fs::path binary_directory(fs::path path) noexcept;
     // Returns the process's current working directory.
-    static std::filesystem::path working_directory() noexcept;
+    static fs::path working_directory() noexcept;
 
     [[nodiscard]] const StringViews& arguments() const noexcept;
 
@@ -1615,7 +1617,7 @@ class Logger final {
    public:
     // Starts logging to the specified file.
     // Returns true on success and false if the log file cannot be opened.
-    static bool start(const std::filesystem::path& logFile) noexcept;
+    static bool start(const fs::path& logFile) noexcept;
     // Stops logging, restores the original streams, and closes the log file.
     static void stop() noexcept;
 
@@ -1629,7 +1631,7 @@ class Logger final {
     static Logger& instance() noexcept;
     // Opens the specified log file and redirects the streams through TieBuf.
     // Caller must hold 'mutex'.
-    bool open(const std::filesystem::path& logFile) noexcept;
+    bool open(const fs::path& logFile) noexcept;
     // Restores the original streams and closes the log file.
     // Caller must hold 'mutex'.
     void close() noexcept;
@@ -2102,14 +2104,14 @@ void print_info_string(std::string_view infos) noexcept;
 
 [[noreturn]] void terminate_on_critical_error(std::string_view message) noexcept;
 
-std::string           utf8_from_wstring(std::wstring_view wsv) noexcept;
-std::filesystem::path path_from_utf8(std::string_view path) noexcept;
+std::string utf8_from_wstring(std::wstring_view wsv) noexcept;
+fs::path    path_from_utf8(std::string_view path) noexcept;
 
 std::optional<usize> str_to_usize(std::string_view sv) noexcept;
 
 // Reads the file as bytes.
 // Returns std::nullopt if the file does not exist.
-std::optional<std::string> read_file_to_string(const std::filesystem::path& filePath) noexcept;
+std::optional<std::string> read_file_to_string(const fs::path& filePath) noexcept;
 
 }  // namespace DON
 

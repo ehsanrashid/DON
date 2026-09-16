@@ -296,7 +296,7 @@ class TBPaths final {
     TBPaths(TBPaths&&) noexcept                 = delete;
     TBPaths& operator=(TBPaths&&) noexcept      = delete;
 
-    static inline std::vector<std::filesystem::path> Paths;
+    static inline std::vector<fs::path> Paths;
 };
 
 // TBFile resolves a tablebase filename by searching through TBPaths.
@@ -309,7 +309,7 @@ class TBFile final {
         {
             auto fn = dir / file;
 
-            if (std::filesystem::is_regular_file(fn))
+            if (fs::is_regular_file(fn))
             {
                 filename = fn.string();
                 break;
@@ -318,7 +318,7 @@ class TBFile final {
     }
 
     TBFile(std::string_view base, std::string_view ext) noexcept :
-        TBFile{std::filesystem::path(base).concat(ext).string()} {}
+        TBFile{fs::path(base).concat(ext).string()} {}
 
     std::string_view file_name() const noexcept { return filename; }
 

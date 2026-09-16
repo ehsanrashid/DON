@@ -612,7 +612,7 @@ CommandLine::CommandLine(int argc, const char* argv[]) noexcept {
 #endif
 }
 
-std::filesystem::path CommandLine::binary_directory(std::filesystem::path path) noexcept {
+fs::path CommandLine::binary_directory(fs::path path) noexcept {
 #if defined(_WIN32)
     // Prefer the executable path reported by Windows.
     // Unlike _get_wpgmptr(), this does not depend on the CRT entry-point variant.
@@ -621,16 +621,14 @@ std::filesystem::path CommandLine::binary_directory(std::filesystem::path path) 
     Array<WCHAR, 0x8000> filename{};
     const DWORD length = GetModuleFileNameW(nullptr, filename.data(), DWORD(filename.size()));
     if (length != 0 && length < filename.size())
-        path = std::filesystem::path{filename.data(), filename.data() + length};
+        path = fs::path{filename.data(), filename.data() + length};
 #endif
 
     const auto binaryDirectory{path.parent_path()};
-    return binaryDirectory.empty() ? std::filesystem::path(".") : binaryDirectory;
+    return binaryDirectory.empty() ? fs::path(".") : binaryDirectory;
 }
 
-std::filesystem::path CommandLine::working_directory() noexcept {
-    return std::filesystem::current_path();
-}
+fs::path CommandLine::working_directory() noexcept { return fs::current_path(); }
 
 const StringViews& CommandLine::arguments() const noexcept { return arguments_; }
 
@@ -745,7 +743,7 @@ TieBuf::int_type TieBuf::mirror_put_with_prefix(const int_type         ch,
                                                            : traits_type::not_eof(ch);
 }
 
-bool Logger::start(const std::filesystem::path& logFile) noexcept {
+bool Logger::start(const fs::path& logFile) noexcept {
     std::lock_guard writeLock(instance().mutex);
 
     return instance().open(logFile);
@@ -773,7 +771,7 @@ Logger& Logger::instance() noexcept {
     return logger;
 }
 
-bool Logger::open(const std::filesystem::path& logFile) noexcept {
+bool Logger::open(const fs::path& logFile) noexcept {
     if (filename == logFile.string() && is_open())
         return true;  // Already open
 
@@ -1390,7 +1388,7 @@ std::string utf8_from_wstring(const std::wstring_view wsv) noexcept {
 #endif
 }
 
-std::filesystem::path path_from_utf8(const std::string_view path) noexcept {
+fs::path path_from_utf8(const std::string_view path) noexcept {
 #if defined(_WIN32)
     const usize size = path.size();
     if (size > std::numeric_limits<int>::max())
@@ -1425,7 +1423,7 @@ std::optional<usize> str_to_usize(const std::string_view sv) noexcept {
     return static_cast<usize>(value);
 }
 
-std::optional<std::string> read_file_to_string(const std::filesystem::path& filePath) noexcept {
+std::optional<std::string> read_file_to_string(const fs::path& filePath) noexcept {
 
     std::ifstream ifs{filePath, std::ios::binary | std::ios::ate};
     if (!ifs)

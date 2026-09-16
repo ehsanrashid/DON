@@ -34,7 +34,7 @@ inline constexpr std::string_view QUIT_CMD{"quit"};
 
 class UCI final {
    public:
-    UCI(const std::filesystem::path& path = {}) noexcept;
+    UCI(const fs::path& path = {}) noexcept;
 
     Options&       options() noexcept;
     const Options& options() const noexcept;

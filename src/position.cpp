@@ -17,7 +17,7 @@
 
 #include "position.h"
 
-#include <algorithm>  // min/max, generate, any_of
+#include <algorithm>  // min/max, generate
 #include <initializer_list>
 #include <iomanip>
 #include <sstream>
@@ -1550,11 +1550,6 @@ bool Position::fork(const Move m) const noexcept {
     assert(false);
     UNREACHABLE();
     return false;
-}
-
-bool Position::has_non_pawn(const Color c) const noexcept {
-    return std::any_of(NON_PAWN_PIECE_TYPES.begin(), NON_PAWN_PIECE_TYPES.end(),
-                       [&](const auto pt) -> bool { return pieces_bb(c, pt) != 0; });
 }
 
 Value Position::non_pawn_value(const Color c) const noexcept {

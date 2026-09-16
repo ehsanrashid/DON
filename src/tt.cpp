@@ -321,8 +321,7 @@ u16 TranspositionTable::hashfull(const u8 maxAge) const noexcept {
     return u16(ceil_div(count * RequiredCount, ActualCount) / TTCluster::EntryCount);
 }
 
-bool TranspositionTable::load(const std::filesystem::path& hashFile,
-                              const Threads&               threads) noexcept {
+bool TranspositionTable::load(const fs::path& hashFile, const Threads& threads) noexcept {
 
     if (hashFile.empty())
     {
@@ -332,7 +331,7 @@ bool TranspositionTable::load(const std::filesystem::path& hashFile,
 
     std::error_code ec;
 
-    usize fileSize = std::filesystem::file_size(hashFile, ec);
+    usize fileSize = fs::file_size(hashFile, ec);
 
     if (ec)
     {
@@ -399,7 +398,7 @@ bool TranspositionTable::load(const std::filesystem::path& hashFile,
     return readedSize == DataSize && ifs.good();
 }
 
-bool TranspositionTable::save(const std::filesystem::path& hashFile) const noexcept {
+bool TranspositionTable::save(const fs::path& hashFile) const noexcept {
 
     if (hashFile.empty())
     {

@@ -704,7 +704,7 @@ inline Bitboard Position::blockers_bb(const Square   s,
 
 // Computes attacks from a piece type for a given color.
 template<PieceType PT>
-inline Bitboard Position::attacks_by_bb(Color c) const noexcept {
+inline Bitboard Position::attacks_by_bb(const Color c) const noexcept {
     if constexpr (PT == PAWN)
         return Attacks::pawn_attacks_bb(pieces_bb(c, PAWN), c);
     else
@@ -723,15 +723,15 @@ inline Bitboard Position::attacks_by_bb(Color c) const noexcept {
 
 inline Bitboard Position::checkers_bb() const noexcept { return st->checkersBB; }
 
-inline Bitboard Position::checks_bb(PieceType pt) const noexcept { return st->checksBB[pt]; }
+inline Bitboard Position::checks_bb(const PieceType pt) const noexcept { return st->checksBB[pt]; }
 
-inline Bitboard Position::pinners_bb(Color c) const noexcept { return st->pinnersBB[c]; }
+inline Bitboard Position::pinners_bb(const Color c) const noexcept { return st->pinnersBB[c]; }
 
 inline Bitboard Position::pinners_bb() const noexcept {
     return pinners_bb(WHITE) | pinners_bb(BLACK);
 }
 
-inline Bitboard Position::blockers_bb(Color c) const noexcept { return st->blockersBB[c]; }
+inline Bitboard Position::blockers_bb(const Color c) const noexcept { return st->blockersBB[c]; }
 
 inline Bitboard Position::blockers_bb() const noexcept {
     return blockers_bb(WHITE) | blockers_bb(BLACK);
@@ -744,7 +744,7 @@ template<PieceType PT>
 inline Bitboard Position::acc_attacks_bb() const noexcept {  //
     return st->accAttacksBB[PT];
 }
-inline Bitboard Position::acc_less_attacks_bb(PieceType pt) const noexcept {
+inline Bitboard Position::acc_less_attacks_bb(const PieceType pt) const noexcept {
     return st->accAttacksBB[pt == KNIGHT || pt == BISHOP ? PAWN : pt - 1];
 }
 inline Bitboard Position::threats_bb() const noexcept {
@@ -755,24 +755,28 @@ inline Key Position::raw_key() const noexcept { return st->key; }
 
 inline Key Position::key() const noexcept { return raw_key() ^ Zobrist::mr50(rule50_count()); }
 
-inline Key Position::pawn_key(Color c) const noexcept { return st->pawnKeys[c]; }
+inline Key Position::pawn_key(const Color c) const noexcept { return st->pawnKeys[c]; }
 
 inline Key Position::pawn_key() const noexcept { return pawn_key(WHITE) ^ pawn_key(BLACK); }
 
-inline Key Position::minor_key(Color c) const noexcept { return st->nonPawnKeys[c][0]; }
+inline Key Position::minor_key(const Color c) const noexcept { return st->nonPawnKeys[c][0]; }
 
 inline Key Position::minor_key() const noexcept { return minor_key(WHITE) ^ minor_key(BLACK); }
 
-inline Key Position::major_key(Color c) const noexcept { return st->nonPawnKeys[c][1]; }
+inline Key Position::major_key(const Color c) const noexcept { return st->nonPawnKeys[c][1]; }
 
 inline Key Position::major_key() const noexcept { return major_key(WHITE) ^ major_key(BLACK); }
 
-inline Key Position::non_pawn_key(Color c) const noexcept {
+inline Key Position::non_pawn_key(const Color c) const noexcept {
     return minor_key(c) ^ major_key(c) ^ Zobrist::piece_square(c, KING, square<KING>(c));
 }
 
 inline Key Position::non_pawn_key() const noexcept {
     return non_pawn_key(WHITE) ^ non_pawn_key(BLACK);
+}
+
+inline bool Position::has_non_pawn(const Color c) const noexcept {
+    return pieces_bb(c, KNIGHT, BISHOP, ROOK, QUEEN) != 0;
 }
 
 inline Value Position::non_pawn_value() const noexcept {
@@ -785,7 +789,7 @@ inline u16 Position::null_ply() const noexcept { return st->nullPly; }
 
 inline i16 Position::repetition() const noexcept { return st->repetition; }
 
-inline bool Position::has_castled(Color c) const noexcept { return st->hasCastleds[c]; }
+inline bool Position::has_castled(const Color c) const noexcept { return st->hasCastleds[c]; }
 
 inline bool Position::has_rule50_high() const noexcept { return st->hasRule50High; }
 
@@ -793,7 +797,7 @@ inline Piece Position::captured_pc() const noexcept { return st->capturedPc; }
 
 inline Piece Position::promoted_pc() const noexcept { return st->promotedPc; }
 
-inline bool Position::bishop_paired(Color c) const noexcept {
+inline bool Position::bishop_paired(const Color c) const noexcept {
     Bitboard bishops = pieces_bb(c, BISHOP);
     return (bishops & color_bb<WHITE>())  //
         && (bishops & color_bb<BLACK>());
@@ -1101,16 +1105,20 @@ inline void Position::update_piece_threats(const Square              s,
 inline constexpr State* Position::state() const noexcept { return st; }
 
 // Position::SEE
-inline bool Position::SEE::operator>=(int threshold) const noexcept {
+inline bool Position::SEE::operator>=(const int threshold) const noexcept {
     return pos.see_ge(move, threshold);
 }
-inline bool Position::SEE::operator>(int threshold) const noexcept {
+inline bool Position::SEE::operator>(const int threshold) const noexcept {
     return (*this >= threshold + 1);
 }
-inline bool Position::SEE::operator<=(int threshold) const noexcept { return !(*this > threshold); }
-inline bool Position::SEE::operator<(int threshold) const noexcept { return !(*this >= threshold); }
+inline bool Position::SEE::operator<=(const int threshold) const noexcept {
+    return !(*this > threshold);
+}
+inline bool Position::SEE::operator<(const int threshold) const noexcept {
+    return !(*this >= threshold);
+}
 
-inline i16 rule50_threshold(i16 r50 = -4) noexcept {
+inline i16 rule50_threshold(const i16 r50 = -4) noexcept {
     assert(r50 >= -2 * Position::DrawMoveCount);
 
     return r50 + 2 * Position::DrawMoveCount;

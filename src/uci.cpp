@@ -228,7 +228,7 @@ Limit parse_limit(std::istream& is) noexcept {
 }  // namespace
 
 
-UCI::UCI(const std::filesystem::path& path) noexcept :
+UCI::UCI(const fs::path& path) noexcept :
     engine(path) {
 
     options().set_on_info([](Options::Info info) noexcept {
@@ -340,8 +340,8 @@ void UCI::execute(const std::string_view command) noexcept {
         std::cout << compiler_info() << std::endl;
         break;
     case Command::EXPORT_NET : {
-        std::string           input;
-        std::filesystem::path netFile;
+        std::string input;
+        fs::path    netFile;
 
         if (is >> input)
             netFile = path_from_utf8(input);

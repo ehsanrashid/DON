@@ -65,15 +65,15 @@ inline constexpr u16 HIDDEN_ONE        = 128;
 // while the description is extracted from the loaded network file.
 struct EvalFile final {
    public:
-    EvalFile(std::optional<std::filesystem::path> curPath = std::nullopt,
-             std::string_view                     netDesc = {}) noexcept :
+    EvalFile(std::optional<fs::path> curPath = std::nullopt, std::string_view netDesc = {}) noexcept
+        :
         currentPath(std::move(curPath)),
         netDescription(netDesc) {}
 
     // Default net name, will use the EvalFileDefaultName macros defined in evaluate.h
     static constexpr std::string_view DefaultName = EvalFileDefaultName;
     // Selected net path, either via UCI option or default
-    std::optional<std::filesystem::path> currentPath;
+    std::optional<fs::path> currentPath;
     // Net description extracted from the net file
     std::string netDescription;
 };
