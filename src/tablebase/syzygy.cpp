@@ -983,12 +983,12 @@ class TBTables final {
    public:
     // Buckets:   0     1     2     3     4     ...
     // Keys:      A     B     C     D     E     ...
-    // ProbeDist: 0     0     1     0     2     ...
+    // Entry DIB: 0     0     1     0     2     ...
     // Find E:
-    // IdealBucket for E = 2
-    // Distance (d) = 0 -> bucket 2 -> C (not FOUND)
-    // Distance (d) = 1 -> bucket 3 -> D (not FOUND)
-    // Distance (d) = 2 -> bucket 4 -> E (FOUND)
+    // E's ideal bucket = 2
+    // Probe distance 0 -> bucket 2 -> C (not FOUND)
+    // Probe distance 1 -> bucket 3 -> D (not FOUND)
+    // Probe distance 2 -> bucket 4 -> E (FOUND)
     template<TBType T>
     [[nodiscard]] TBTable<T>* get(Key key) const noexcept {
 
@@ -1000,11 +1000,9 @@ class TBTables final {
         if (!idealEntry.empty() && idealEntry.key == key)
             return idealEntry.get<T>();
 
-        // Calculate safe probe limit:
-        // - max_distance() tracks the longest probe chain ever inserted
-        // - Any key would be within (max_distance + 1) of its ideal bucket
-        // - Cap at ProbeMax to prevent infinite loops on corrupt data
-        usize maxProbe = std::min(max_distance(), ProbeMax - 1) + 1;
+        // Limit the probe sequence to the maximum distance reached during insertion.
+        // Cap at ProbeMax to protect against corrupt table data.
+        const usize maxProbe = std::min(max_distance(), ProbeMax);
         // Linear probe with Robin Hood early termination
         for (usize distance = 1; distance <= maxProbe; ++distance)
         {
@@ -1012,24 +1010,20 @@ class TBTables final {
 
             const Entry& entry = entries[bucket];
 
-            // Case 1: Empty slot encountered
-            // - Key was never inserted (would have claimed this empty slot)
+            // Case 1: Empty slot encountered (Key was never inserted, would have claimed this empty slot)
             if (entry.empty())
                 break;
 
-            // Case 2: Exact key match found
-            // - Return the associated table
+            // Case 2: Exact key match found (return the associated table)
             if (entry.key == key)
                 return entry.get<T>();
 
-            // Case 3: Robin Hood early exit condition
-            // - Key would have been inserted earlier, so key not present
+            // Case 3: Robin Hood early exit condition (Key would have been inserted earlier, so key not present)
             if (distance > probe_distance(entry, bucket))
                 break;
         }
 
-        // Case 4: Exhausted maximum probe distance
-        // - Key not found within expected range
+        // Case 4: Exhausted maximum probe distance (Key not found within expected range)
         return nullptr;
     }
 
