@@ -90,6 +90,8 @@ void TimeManager::init(
 
         clock.inc *= NodesTime;
 
+        limit.moveTime *= NodesTime;
+
         OverheadTime *= NodesTime;
     }
 

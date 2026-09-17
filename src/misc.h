@@ -169,6 +169,14 @@ inline constexpr i64 INT_LIMIT = std::numeric_limits<i32>::max();
 inline constexpr double LN2   = 0.693147180559945309417232121458176568;
 inline constexpr double SQRT2 = 1.41421356237309504880168872420969808;
 
+constexpr usize HASH_MAX =
+#if defined(IS_64BIT)
+  0x2000000U
+#else
+  0x800U
+#endif
+  ;
+
 inline constexpr std::string_view EMPTY_STRING{"<empty>"};
 inline constexpr std::string_view WHITE_SPACE{" \t\n\r\f\v"};
 
@@ -1504,14 +1512,10 @@ inline u64 hash_bytes(const char* RESTRICT data, usize size, u64 seed = 0) noexc
     {
         u64 k = 0;
 
-        u8 shift = 0;
         // Read remaining bytes in little-endian order
-        for (; p != end; ++p)
-        {
-            k |= static_cast<u64>(*p) << shift;
+        for (usize i = 0; p != end; ++p, ++i)
+            k |= u64(*p) << (i * BYTE_BITS);
 
-            shift += BYTE_BITS;
-        }
         // Merge into the running hash
         h ^= k;
         h *= MurmurM;

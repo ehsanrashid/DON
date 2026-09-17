@@ -28,6 +28,8 @@
     #include <unistd.h>    // close(), read()/write(), unlink(), sleep(), getpid()
 #endif
 
+#include "numa.h"
+
 namespace DON {
 
 namespace {

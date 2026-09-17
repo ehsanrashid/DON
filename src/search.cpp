@@ -77,7 +77,7 @@ constexpr int reduction(const Depth depth,
                         const bool  improve) noexcept {
     int reductionScale = REDUCTIONS[depth] * REDUCTIONS[moveCount];
     return 982 + reductionScale - deltaRatio
-         + (improve ? 0 : constexpr_ceil(reductionScale * 197.0 / 512.0));
+         + int(!improve) * constexpr_ceil(reductionScale * 197.0 / 512.0);
 }
 
 // Add a small random value to draw evaluation to avoid 3-fold blindness
@@ -695,7 +695,7 @@ void Worker::iterative_deepening() noexcept {
 
         const bool mateForgotten =
           lastBestMoveValue != -VALUE_INFINITE && is_mate(lastBestMoveValue)
-          && (rm0.is_bound() || constexpr_abs(rm0.value) < constexpr_abs(lastBestMoveValue));
+          && (rm0.is_inexact() || constexpr_abs(rm0.value) < constexpr_abs(lastBestMoveValue));
 
         if (threads.is_stopped())
         {
@@ -1033,7 +1033,7 @@ Value Worker::search(Position&    pos,
                         || (bound == Bound::LOWER ? tbValue >= beta : tbValue <= alpha))
                     {
                         ttw.write(Move::None, value_to_tt(tbValue, ss->ply), evalue,
-                                  std::min(Depth(depth + Depth{6}), DEPTH_MAX), bound, ss->pvTT);
+                                  std::min(Depth(depth + 6), DEPTH_MAX), bound, ss->pvTT);
 
                         return tbValue;
                     }
@@ -1079,7 +1079,7 @@ Value Worker::search(Position&    pos,
     if constexpr (!PVNode)
     {
     // If eval is really low, confirm the fail low before pruning with qsearch.
-    if (!exclude && ttEvalue + 482 * depth * depth <= alpha)
+    if (!exclude && ttEvalue + 482 * depth * depth < alpha)
     {
         const Value razorAlpha = Value(std::max(alpha - 1, -VALUE_INFINITE));
 
@@ -1179,7 +1179,7 @@ Value Worker::search(Position&    pos,
         // If value from transposition table is less than probCutBeta, Don't attempt probCut
         if (!(is_valid(ttd.value) && ttd.value < probCutBeta))
         {
-        const Depth probCutDepth     = std::max<Depth>(depth - (improve ? 5 : 3), DEPTH_ZERO);
+        const Depth probCutDepth     = std::max(Depth(depth - 3 - int(improve) * 2), DEPTH_ZERO);
         const int   probCutThreshold = probCutBeta - ss->evalue;
 
         MovePicker mp(pos, ttd.move, &captureHistory, probCutThreshold);
@@ -1225,7 +1225,7 @@ Value Worker::search(Position&    pos,
                 // Save ProbCut data into transposition table
                 if (!exclude)
                     ttw.write(move, value_to_tt(probCutValue, ss->ply), evalue,
-                              std::min(Depth(probCutDepth + Depth{1}), DEPTH_MAX), Bound::LOWER, ss->pvTT);
+                              std::min(Depth(probCutDepth + 1), DEPTH_MAX), Bound::LOWER, ss->pvTT);
 
                 if (!is_win(probCutValue))
                     // Adjust probCutValue to align with the current beta window
@@ -1318,8 +1318,8 @@ Value Worker::search(Position&    pos,
             if (pos.has_non_pawn(ac) && !is_loss(bestValue))
             {
                 // Skip quiet moves if moveCount exceeds moveCount threshold
-                mp.update_quiets_skip([moveCount, depth, improve]() noexcept -> bool {
-                    return moveCount >= ((3 + depth * depth) / (1 + int(!improve)));
+                mp.skip_quiets([moveCount, depth, improve]() noexcept -> bool {
+                    return moveCount >= (3 + depth * depth) / (1 + int(!improve));
                 });
 
                 // Reduced depth of the next LMR search
@@ -1800,7 +1800,7 @@ Value Worker::search(Position&    pos,
     // Save gathered information in transposition table
     if ((!RootNode || pvIdx == 0) && !exclude)
         ttw.write(bestMove, value_to_tt(bestValue, ss->ply), evalue,
-                  moveCount != 0 ? depth : std::min(Depth(depth + Depth{6}), DEPTH_MAX),
+                  moveCount != 0 ? depth : std::min(Depth(depth + 6), DEPTH_MAX),
                   bestValue >= beta                  ? Bound::LOWER
                   : PVNode && bestMove != Move::None ? Bound::EXACT
                                                      : Bound::UPPER,
@@ -2723,14 +2723,14 @@ void Manager::show_pv(Worker& worker, const Depth depth) const noexcept {
 
         // Potentially correct and extend the PV, and in exceptional cases value also.
         // Previous PVs have already been extended. Bound flags indicate an unreliable PV.
-        if (!isValueInvalid && is_decisive(v) && !is_mate(v) && (isValueTB || !rm.is_bound()))
+        if (!isValueInvalid && is_decisive(v) && !is_mate(v) && (isValueTB || !rm.is_inexact()))
             worker.extend_tb_pv(i, v);
 
         FixedText score{to_score({v, rootPos})};
 
         FixedText bound;
         // TB and previous scores are exact, even though their bound flags may say otherwise
-        if (!(isValueTB || isValueInvalid) && rm.is_bound())
+        if (!(isValueTB || isValueInvalid) && rm.is_inexact())
             bound = FixedText::from(to_string(rm.bound));
 
         FixedText wdl;

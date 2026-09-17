@@ -55,6 +55,8 @@ CpuIndex hardware_concurrency() noexcept;
 
 inline const CpuIndex SYSTEM_THREAD_MAX = std::max(hardware_concurrency(), CpuIndex{1});
 
+inline const u16 THREAD_MAX = u16(std::clamp(usize(4 * SYSTEM_THREAD_MAX), 1 * KB, 64 * KB - 1));
+
 #if defined(_WIN64)
 inline constexpr LPCSTR KERNEL_MODULE_NAME = TEXT("kernel32.dll");
 

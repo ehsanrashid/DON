@@ -108,8 +108,8 @@ class MovePicker final {
     [[nodiscard]] int   threshold_value() const noexcept;
 
     template<typename Predicate>
-    void update_quiets_skip(const Predicate& pred) noexcept {
-        quietsSkip = quietsSkip || pred();
+    void skip_quiets(const Predicate& pred) noexcept {
+        skipQuiets = skipQuiets || pred();
     }
 
    private:
@@ -149,7 +149,7 @@ class MovePicker final {
     Stage initStage;
     Stage curStage;
 
-    bool quietsSkip = false;
+    bool skipQuiets = false;
 
     Array<value_type, MOVE_MAX> moves;
 

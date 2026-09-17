@@ -286,7 +286,7 @@ struct ThreadMetric final {
 
         // An aborted depth-1 search may leave the reported win/loss value inexact.
         const Value value   = rm.value;
-        const bool  isBound = rm.is_bound();
+        const bool  isBound = rm.is_inexact();
 
         assert(rm.id != std::numeric_limits<u16>::max() && rm.id < voteCounts.size());
         const u64 voteCount = voteCounts[rm.id];

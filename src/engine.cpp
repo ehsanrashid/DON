@@ -37,17 +37,6 @@ namespace DON {
 
 namespace {
 
-const u16 THREAD_MAX =
-  u16(std::clamp<u32>(4 * SYSTEM_THREAD_MAX, 1024, std::numeric_limits<u16>::max()));
-
-constexpr usize HASH_MAX =
-#if defined(IS_64BIT)
-  0x2000000U
-#else
-  0x800U
-#endif
-  ;
-
 // The default configuration will attempt to group L3 domains up to 32 threads.
 // This size was found to be a good balance between the Elo gain of increased
 // history sharing and the speed loss from more cross-cache accesses.

@@ -124,8 +124,8 @@ constexpr Array<Value, WDL_SCORE_NB> WDL_VALUE{-VALUE_TB, VALUE_DRAW - 2, VALUE_
 
 constexpr usize wdl_index(WDLScore wdlScore) noexcept { return static_cast<usize>(wdlScore - WDL_LOSS); }
 
-constexpr int off_A1H8(Square s) noexcept { return int(rank_of(s)) - int(file_of(s)); }
-//constexpr int off_A8H1(Square s) noexcept { return int(rank_of(s)) + int(file_of(s)); }
+constexpr int off_A1H8(const Square s) noexcept { return int(rank_of(s)) - int(file_of(s)); }
+constexpr int off_A8H1(const Square s) noexcept { return int(rank_of(s)) + int(file_of(s)); }
 
 Array<usize, SQUARE_NB>     B1H1H7Map;
 Array<usize, SQUARE_NB>     A1D1D4Map;
@@ -731,8 +731,8 @@ u8* TBTable<T>::map(const std::string_view filename, usize* size) noexcept {
 
     if (!fileHandleGuard.is_valid())
     {
-        DEBUG_LOG("CreateFile() failed: name = " << filename << ", error = "
-                                                 << error_to_string(GetLastError()));
+        std::cerr << "CreateFile() failed: name = " << filename
+                  << ", error = " << error_to_string(GetLastError()) << std::endl;
         return nullptr;
     }
 
@@ -741,8 +741,8 @@ u8* TBTable<T>::map(const std::string_view filename, usize* size) noexcept {
 
     if (loSize == INVALID_FILE_SIZE && GetLastError() != NO_ERROR)
     {
-        DEBUG_LOG("GetFileSize() failed: name = " << filename << ", error = "
-                                                  << error_to_string(GetLastError()));
+        std::cerr << "GetFileSize() failed: name = " << filename
+                  << ", error = " << error_to_string(GetLastError()) << std::endl;
         return nullptr;
     }
 
@@ -768,12 +768,10 @@ u8* TBTable<T>::map(const std::string_view filename, usize* size) noexcept {
 
     if (!mappedGuard.is_valid())
     {
-        DEBUG_LOG("MapViewOfFile() failed: name = " << filename << ", error = "
-                                                    << error_to_string(GetLastError()));
-
-        mapFileHandleGuard.reset();
-
-        return nullptr;
+        std::cerr << "MapViewOfFile() failed: name = " << filename
+                  << ", error = " << error_to_string(GetLastError()) << std::endl;
+        unmap();
+        std::exit(EXIT_FAILURE);
     }
     #else
     int fd = ::open(filename.data(), O_RDONLY | O_CLOEXEC);
@@ -782,7 +780,8 @@ u8* TBTable<T>::map(const std::string_view filename, usize* size) noexcept {
 
     if (!fdGuard.is_valid())
     {
-        DEBUG_LOG("::open() failed: name = " << filename << ", error = " << std::strerror(errno));
+        std::cerr << "::open() failed: name = " << filename << ", error = " << std::strerror(errno)
+                  << std::endl;
         return nullptr;
     }
 
@@ -790,7 +789,8 @@ u8* TBTable<T>::map(const std::string_view filename, usize* size) noexcept {
 
     if (::fstat(fdGuard.get(), &fileStat) != 0)
     {
-        DEBUG_LOG("::fstat() failed: name = " << filename << ", error = " << std::strerror(errno));
+        std::cerr << "::fstat() failed: name = " << filename << ", error = " << std::strerror(errno)
+                  << std::endl;
         return nullptr;
     }
 
@@ -809,6 +809,7 @@ u8* TBTable<T>::map(const std::string_view filename, usize* size) noexcept {
     {
         std::cerr << "::mmap() failed: name = " << filename << ", size = " << mappedSize << ": "
                   << std::strerror(errno) << std::endl;
+        unmap();
         std::exit(EXIT_FAILURE);
     }
 
@@ -816,9 +817,9 @@ u8* TBTable<T>::map(const std::string_view filename, usize* size) noexcept {
     if (mappedGuard.get_ptr() != nullptr && mappedGuard.get_size() != 0
         && ::madvise(mappedGuard.get_ptr(), mappedGuard.get_size(), MADV_RANDOM) != 0)
     {
-        DEBUG_LOG("::madvise() failed: name = " << filename
-                                                << " mappedSize = " << mappedGuard.get_size()
-                                                << ", error = " << std::strerror(errno));
+        std::cerr << "::madvise() failed: name = " << filename
+                  << " mappedSize = " << mappedGuard.get_size()
+                  << ", error = " << std::strerror(errno) << std::endl;
     }
         #endif
     #endif
@@ -1027,14 +1028,12 @@ void TBTable<T>::set_groups(PairsData* pd, const Array<int, 2>& order, const Fil
 }
 
 template<>
-u8* TBTable<WDL>::set_dtz_map(u8*                         data,
-                              [[maybe_unused]] const File maxFile,
-                              [[maybe_unused]] const u8*  end) noexcept {
+u8* TBTable<WDL>::set_dtz_map(u8* data, const File, const u8* const) noexcept {
     return data;
 }
 
 template<>
-u8* TBTable<DTZ>::set_dtz_map(u8* data, const File maxFile, const u8* end) noexcept {
+u8* TBTable<DTZ>::set_dtz_map(u8* data, const File maxFile, const u8* const end) noexcept {
     mapPtr = data;
 
     for (File f = FILE_A; f <= maxFile; ++f)
@@ -1230,7 +1229,7 @@ class TBTables final {
         }
 
         // Gracefully fail instead of asserting
-        DEBUG_LOG("TB hash table overflow");
+        std::cerr << "TB hash table overflow" << std::endl;
         return false;
     }
 
@@ -1274,11 +1273,12 @@ void TBTables::add(const std::vector<PieceType>& pieces) noexcept {
 
     code.insert(pos, 1, 'v');  // KRK -> KRvK
 
-    Array<bool, TB_TYPE_NB> Exists{
-      TBFile(code, EXTS[WDL]).exists(), TBFile(code, EXTS[DTZ]).exists()  //
+    Array<bool, TB_TYPE_NB> exists{
+      TBFile(code, EXTS[WDL]).exists(),  //
+      TBFile(code, EXTS[DTZ]).exists()   //
     };
 
-    if (!(Exists[WDL] || Exists[DTZ]))
+    if (!(exists[WDL] || exists[DTZ]))
         return;
 
     const u8 cardinality = static_cast<u8>(pieces.size());
@@ -1291,19 +1291,19 @@ void TBTables::add(const std::vector<PieceType>& pieces) noexcept {
 
     auto tableData = make_table_data(code);
 
-    if (Exists[WDL])
+    if (exists[WDL])
     {
         wdlTables.emplace_back(tableData);
         wdlTable = &wdlTables.back();
     }
 
-    if (Exists[DTZ])
+    if (exists[DTZ])
     {
         dtzTables.emplace_back(tableData);
         dtzTable = &dtzTables.back();
     }
 
-    BaseTBTable* keyTable = Exists[WDL]  //
+    BaseTBTable* keyTable = exists[WDL]  //
                             ? static_cast<BaseTBTable*>(wdlTable)
                             : static_cast<BaseTBTable*>(dtzTable);
 
@@ -1435,9 +1435,9 @@ int decompress_pairs(const PairsData* pd, u64 idx) noexcept {
     // that will store the value need.
     while (pd->symLen[sym] != 0)
     {
-        Sym lSym = pd->btree[sym].get<true>();
+        const Sym lSym = pd->btree[sym].get<true>();
 
-        int lSymLen = pd->symLen[lSym] + 1;
+        const int lSymLen = pd->symLen[lSym] + 1;
 
         // If a symbol contains 36 sub-symbols (d->symLen[sym] + 1 = 36) and
         // expands in a pair (d->symLen[lSym] = 23, d->symLen[rSym] = 11), then

@@ -47,7 +47,7 @@ static const unsigned char* map_embedded_nnue() noexcept {
     const char* file = ::realpath(path, resolved) ? resolved : path;
 
     int fd = ::open(file, O_RDONLY | O_CLOEXEC);
-    if (fd < 0)
+    if (!DON::is_valid_fd(fd))
         return nullptr;
 
     const long systemPageSize = ::sysconf(_SC_PAGESIZE);
