@@ -1561,25 +1561,32 @@ Value Position::non_pawn_value(const Color c) const noexcept {
 
 Value Position::material() const noexcept {
     return MaterialValueCache.access_or_build_with(
-      pawn_key() ^ minor_key() ^ major_key(),
-      [this]() noexcept -> Value { return 534 * count(PAWN) + non_pawn_value(); });
+      non_king_key(), [this]() noexcept -> Value { return 534 * count(PAWN) + non_pawn_value(); });
 }
 
+template<bool Cache>
 Key Position::material_key() const noexcept {
-    return MaterialKeyCache.access_or_build_with(
-      pawn_key() ^ minor_key() ^ major_key(),  //
-      [this]() noexcept -> Key {
-          Key materialKey = 0;
+    const auto build_material_key = [this]() noexcept -> Key {
+        Key materialKey = 0;
 
-          for (const Color c : {WHITE, BLACK})
-              for (const auto pt : EX_KING_PIECE_TYPES)
-                  if (const auto cnt = count(c, pt); cnt != 0)
-                      materialKey ^=
-                        Zobrist::piece_square(c, pt, Square(Zobrist::PAWN_OFFSET + cnt - 1));
+        for (const Color c : {WHITE, BLACK})
+            for (const auto pt : EX_KING_PIECE_TYPES)
+                if (const auto cnt = count(c, pt); cnt != 0)
+                    materialKey ^=
+                      Zobrist::piece_square(c, pt, Square(Zobrist::PAWN_OFFSET + cnt - 1));
 
-          return materialKey;
-      });
+        return materialKey;
+    };
+
+    if constexpr (Cache)
+        return MaterialKeyCache.access_or_build_with(non_king_key(), build_material_key);
+    else
+        return build_material_key();
 }
+
+// Explicit template instantiations:
+template Key Position::material_key<false>() const noexcept;
+template Key Position::material_key<true>() const noexcept;
 
 Key Position::move_key(const Move m) const noexcept {
     Key moveKey = st->key ^ Zobrist::turn() ^ Zobrist::enpassant(en_passant_sq());

@@ -555,7 +555,7 @@ struct TableData final {
     bool                 hasUniquePieces;
 };
 
-TableData make_table_data(std::string_view code) noexcept {
+TableData make_table_data(const std::string_view code) noexcept {
     TableData tableData{};
 
     State    st;
@@ -566,7 +566,7 @@ TableData make_table_data(std::string_view code) noexcept {
     err = pos.set(code, WHITE, &st);
     (void) err;
 
-    tableData.key[WHITE] = pos.material_key();
+    tableData.key[WHITE] = pos.material_key<false>();
 
     tableData.pieceCount = pos.count();
 
@@ -593,7 +593,7 @@ TableData make_table_data(std::string_view code) noexcept {
     err = pos.set(code, BLACK, &st);
     (void) err;
 
-    tableData.key[BLACK] = pos.material_key();
+    tableData.key[BLACK] = pos.material_key<false>();
 
     return tableData;
 }
@@ -1762,7 +1762,7 @@ Ret probe_table(const Position&   pos,
                 ProbeState* const ps,
                 const WDLScore    wdlScore = WDL_DRAW) noexcept {
 
-    const Key materialKey = pos.material_key();
+    const Key materialKey = pos.material_key<true>();
 
     if (materialKey == 0)  // KvK, pos.count() == 2
         return Ret(WDL_DRAW);
