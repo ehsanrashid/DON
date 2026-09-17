@@ -593,7 +593,7 @@ UniqueFd try_receive_memfd(const std::string& sockPath) noexcept {
     int ret;
     do
         ret = ::connect(peerFd.get(), reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr));
-    while (ret < 0 && errno == EINTR);
+    while (ret == -1 && errno == EINTR);
 
     if (ret == 0)
     {

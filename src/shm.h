@@ -698,14 +698,13 @@ class SharedMemory final: public BaseSharedMemory {
             if (!memFd.is_valid())
                 return false;
     #else
-            char tempPath[PATH_MAX];
-            std::strncpy(tempPath, "/tmp/DON_replicated_data.XXXXXX", PATH_MAX);
+            std::string tempPath = "/tmp/DON_replicated_data.XXXXXX";
 
-            memFd.reset(::mkstemp(tempPath));
+            memFd.reset(::mkstemp(tempPath.data()));
             if (!memFd.is_valid())
                 return false;
             set_cloexec(memFd.get());
-            ::unlink(tempPath);
+            ::unlink(tempPath.c_str());
     #endif
 
             if (::ftruncate(memFd.get(), sizeof(T)) != 0)
@@ -913,7 +912,7 @@ class BackendSharedMemory final {
                           : SharedMemoryAllocationStatus::NoAllocation;
     }
 
-    std::string_view get_error_message() const noexcept {
+    [[nodiscard]] std::string_view get_error_message() const noexcept {
         if (!shm)
             return "Shared memory not initialized.";
         if (!shm->is_mapped())
