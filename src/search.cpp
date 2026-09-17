@@ -1078,9 +1078,18 @@ Value Worker::search(Position&    pos,
     // Razoring is disabled for PV nodes to avoid prematurely returning decisive scores.
     if constexpr (!PVNode)
     {
-    // If eval is really low, skip the search and return the qsearch value.
-    if (!exclude && ttEvalue + 482 * depth * depth < alpha)
-        return qsearch<false>(pos, ss, alpha, beta);
+    // If eval is really low, confirm the fail low before pruning with qsearch.
+    if (!exclude && ttEvalue + 482 * depth * depth <= alpha)
+    {
+        const Value razorAlpha = Value(std::max(alpha - 1, -VALUE_INFINITE));
+
+        const Value razorValue = qsearch<false>(pos, ss, razorAlpha, razorAlpha + 1);
+
+        if (razorValue <= razorAlpha)
+            return razorValue;
+
+        ss->ttMove = ttd.move;
+    }
     }
 
     // Step 8. Reverse Futility Pruning: at child node
