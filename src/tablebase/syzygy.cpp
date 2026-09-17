@@ -345,43 +345,59 @@ class TBFile final {
 // of table and if positions have pawns or not. It is populated at first access.
 struct PairsData final {
    public:
-    enum SymColour : u8 {
+    enum SymColor : u8 {
         SYM_WHITE,
         SYM_GREY,
         SYM_BLACK
     };
 
-    // In Recursive Pairing each symbol represents a pair of children symbols. So
-    // read d->btree[] symbols data and expand each one in his left and right child
-    // symbol until reaching the leaves that represent the symbol value.
-    u8 set_symlen(usize sym, Array<u8, SymCount>& colour, bool& cyclic) noexcept {
+    // In Recursive Pairing, each symbol represents a pair of child symbols.
+    // Expand each symbol through its left and right child symbols
+    // until reaching the leaves that represent the symbol value.
+    u8 set_symlen(const usize sym, Array<SymColor, SymCount>& symColor, bool& cyclic) noexcept {
 
-        colour[sym] = SYM_GREY;
+        symColor[sym] = SYM_GREY;
 
-        Sym rSym = btree[sym].get<false>();
+        const Sym rSym = btree[sym].get<false>();
 
         if (rSym == SymCount - 1)
         {
-            colour[sym] = SYM_BLACK;
+            symColor[sym] = SYM_BLACK;
             return 0;
         }
 
-        Sym lSym = btree[sym].get<true>();
+        const Sym lSym = btree[sym].get<true>();
 
-        if (colour[lSym] == SYM_GREY || colour[rSym] == SYM_GREY)
+        if (symColor[lSym] == SYM_GREY || symColor[rSym] == SYM_GREY)
         {
-            cyclic      = true;
-            colour[sym] = SYM_BLACK;
+            cyclic        = true;
+            symColor[sym] = SYM_BLACK;
             return 0;
         }
 
-        if (colour[lSym] == SYM_WHITE)
-            symLen[lSym] = set_symlen(lSym, colour, cyclic);
+        if (symColor[lSym] == SYM_WHITE)
+        {
+            symLen[lSym] = set_symlen(lSym, symColor, cyclic);
 
-        if (colour[rSym] == SYM_WHITE)
-            symLen[rSym] = set_symlen(rSym, colour, cyclic);
+            if (cyclic)
+            {
+                symColor[sym] = SYM_BLACK;
+                return 0;
+            }
+        }
 
-        colour[sym] = SYM_BLACK;
+        if (symColor[rSym] == SYM_WHITE)
+        {
+            symLen[rSym] = set_symlen(rSym, symColor, cyclic);
+
+            if (cyclic)
+            {
+                symColor[sym] = SYM_BLACK;
+                return 0;
+            }
+        }
+
+        symColor[sym] = SYM_BLACK;
 
         return 1 + symLen[lSym] + symLen[rSym];
     }
@@ -488,14 +504,14 @@ struct PairsData final {
         // the extended alphabet, and then repeating the process.
         // See https://web.archive.org/web/20201106232444/http://www.larsson.dogma.net/dcc99.pdf
         symLen.fill(u8{0});
-        Array<u8, SymCount> colour;
-        colour.fill(SYM_WHITE);
+        Array<SymColor, SymCount> symColor;
+        symColor.fill(SYM_WHITE);
         bool cyclic = false;
 
         for (usize sym = 0; sym < symlenSize; ++sym)
-            if (colour[sym] == SYM_WHITE)
+            if (symColor[sym] == SYM_WHITE)
             {
-                symLen[sym] = set_symlen(sym, colour, cyclic);
+                symLen[sym] = set_symlen(sym, symColor, cyclic);
 
                 if (cyclic)
                     break;
@@ -1120,20 +1136,20 @@ class TBTables final {
 
             const Entry& entry = entries[bucket];
 
-            // Case 1: Empty slot encountered (Key was never inserted, would have claimed this empty slot)
+            // Case 1: Empty slot - key was never inserted beyond this point, would have claimed this empty slot.
             if (entry.empty())
                 break;
 
-            // Case 2: Exact key match found (return the associated table)
+            // Case 2: Exact key match found - return the associated table
             if (entry.key == key)
                 return entry.get<T>();
 
-            // Case 3: Robin Hood early exit condition (Key would have been inserted earlier, so key not present)
+            // Case 3: Robin Hood early termination - key would have been inserted earlier
             if (distance > probe_distance(entry, bucket))
                 break;
         }
 
-        // Case 4: Exhausted maximum probe distance (Key not found within expected range)
+        // Case 4: Exhausted maximum probe distance - key not found within expected range
         return nullptr;
     }
 
@@ -1855,16 +1871,13 @@ void init() noexcept {
     // B1H1H7Map[] encodes a square below a1-h8 diagonal to 0..27
     code = 0;
     for (Square s = SQ_A1; s <= SQ_H8; ++s)
-    {
         if (off_A1H8(s) < 0)
             B1H1H7Map[s] = code++;
-    }
 
     // A1D1D4Map[] encodes a square in the a1-d1-d4 triangle to 0..9
     code = 0;
     std::vector<Square> onDiagonal;
     for (Square s = SQ_A1; s <= SQ_D4; ++s)
-    {
         if (file_of(s) <= FILE_D)
         {
             if (off_A1H8(s) < 0)
@@ -1873,24 +1886,18 @@ void init() noexcept {
             else if (off_A1H8(s) == 0)
                 onDiagonal.push_back(s);
         }
-    }
 
     // Diagonal squares are encoded as last ones
     for (Square s : onDiagonal)
-    {
         A1D1D4Map[s] = code++;
-    }
 
     // KKMap[] encodes all the 462 possible legal positions of 2 kings where the first is in the a1-d1-d4 triangle.
     // If the first king is on the a1-d4 diagonal, the other one shall not be above the a1-h8 diagonal.
     code = 0;
     std::vector<std::pair<usize, Square>> bothOnDiagonal;
     for (usize idx = 0; idx < KKMap.size(); ++idx)
-    {
         for (Square s1 = SQ_A1; s1 <= SQ_D4; ++s1)
-        {
             if (A1D1D4Map[s1] == idx && (idx != 0 || s1 == SQ_B1))  // SQ_B1 is mapped to 0
-            {
                 for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
                 {
                     if (((Attacks::pseudo_attacks_bb<KING>(s1) | s1) & s2) != 0)
@@ -1905,17 +1912,12 @@ void init() noexcept {
                     else
                         KKMap[idx][s2] = code++;
                 }
-            }
-        }
-    }
 
     // Legal positions with both kings on a diagonal are encoded as last ones
     for (auto& [idx, s] : bothOnDiagonal)
-    {
         KKMap[idx][s] = code++;
-    }
 
-    // Binomial[] stores the Binomial Coefficients using Pascal rule.
+    // Binomial[] stores the Binomial coefficients using Pascal's rule.
     // There are Binomial[k][n] ways to choose k elements from a set of n elements.
     for (usize k = 0; k < Binomial.size(); ++k)
     {
@@ -1933,7 +1935,6 @@ void init() noexcept {
     // Init the tables for the encoding of leading pawn group:
     // with 7-men TB can have up to 5 leading pawns (KPPPPPK).
     for (usize leadPawnCnt = 1; leadPawnCnt < LeadPawnSize.size(); ++leadPawnCnt)
-    {
         for (File f = FILE_A; f <= FILE_D; ++f)
         {
             // Restart the index at every file because TB table is split
@@ -1944,7 +1945,7 @@ void init() noexcept {
             // the leading pawn on rank 2 and increasing the rank.
             for (Rank r = RANK_2; r <= RANK_7; ++r)
             {
-                Square s = make_square(f, r);
+                const Square s = make_square(f, r);
 
                 // Compute PawnsMap[] at first pass.
                 // If sq is the leading pawn square, any other pawn cannot be
@@ -1965,7 +1966,6 @@ void init() noexcept {
             // After a file is traversed, store the cumulated per-file index
             LeadPawnSize[leadPawnCnt][f] = idx;
         }
-    }
 }
 
 void init(const std::string_view paths) noexcept {
