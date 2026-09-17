@@ -740,9 +740,10 @@ void Position::set_state() noexcept {
 
                 if (pt != KING)
                 {
-                    bool isPawn = (pt == PAWN);
-                    st->pawnKeys[c] ^= int(isPawn) * key;
-                    st->nonPawnKeys[c][is_major(pt)] ^= int(!isPawn) * key;
+                    if (pt == PAWN)
+                        st->pawnKeys[c] ^= key;
+                    else
+                        st->nonPawnKeys[c][is_major(pt)] ^= key;
                 }
             }
         }
@@ -1008,6 +1009,7 @@ Dirties Position::do_move(const Move          m,
     if (capture)
     {
         auto capturedPt = type_of(capturedPc);
+        assert(capturedPt != KING);
 
         Key capturedKey = Zobrist::piece_square(~ac, capturedPt, capturedSq);
 
@@ -1566,7 +1568,7 @@ Value Position::material() const noexcept {
 
 template<bool Cache>
 Key Position::material_key() const noexcept {
-    const auto build_material_key = [this]() noexcept -> Key {
+    const auto material_key_builder = [this]() noexcept -> Key {
         Key materialKey = 0;
 
         for (const Color c : {WHITE, BLACK})
@@ -1579,9 +1581,9 @@ Key Position::material_key() const noexcept {
     };
 
     if constexpr (Cache)
-        return MaterialKeyCache.access_or_build_with(non_king_key(), build_material_key);
+        return MaterialKeyCache.access_or_build_with(non_king_key(), material_key_builder);
     else
-        return build_material_key();
+        return material_key_builder();
 }
 
 // Explicit template instantiations:

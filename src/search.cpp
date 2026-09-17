@@ -1075,22 +1075,12 @@ Value Worker::search(Position&    pos,
     }
 
     // Step 7. Razoring
-    // If eval is really low, check with qsearch then return speculative fail low.
+    // Razoring is disabled for PV nodes to avoid prematurely returning decisive scores.
     if constexpr (!PVNode)
     {
-    const int razorMargin = 482 * depth * depth;
-
-    if (!exclude && ttEvalue + razorMargin <= alpha)
-    {
-        const Value razorAlpha = Value(std::max(alpha - 1, -VALUE_INFINITE));
-
-        const Value razorValue = qsearch<false>(pos, ss, razorAlpha, razorAlpha + 1);
-
-        if (razorValue <= razorAlpha && !is_loss(razorValue))
-            return razorValue;
-
-        ss->ttMove = ttd.move;
-    }
+    // If eval is really low, skip the search and return the qsearch value.
+    if (!exclude && ttEvalue + 482 * depth * depth < alpha)
+        return qsearch<false>(pos, ss, alpha, beta);
     }
 
     // Step 8. Reverse Futility Pruning: at child node
@@ -1446,8 +1436,10 @@ Value Worker::search(Position&    pos,
             // if after excluding the ttMove with a reduced search fail high over the original beta,
             // assume this expected cut-node is not singular (multiple moves fail high),
             // and can prune the whole subtree by returning a soft-bound.
-            else if (singularValue >= beta && !is_decisive(singularValue))
+            else if (singularValue >= beta && !is_win(singularValue))
             {
+                assert(!is_loss(singularValue));
+
                 ttMoveHistory << -(+421 + 110 * depth);
 
                 if (!ss->inCheck && singularValue > ss->evalue)
