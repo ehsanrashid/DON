@@ -1445,10 +1445,8 @@ Value Worker::search(Position&    pos,
             // if after excluding the ttMove with a reduced search fail high over the original beta,
             // assume this expected cut-node is not singular (multiple moves fail high),
             // and can prune the whole subtree by returning a soft-bound.
-            else if (singularValue >= beta && !is_win(singularValue))
+            else if (singularValue >= beta && !is_decisive(singularValue))
             {
-                assert(!is_loss(singularValue));
-
                 ttMoveHistory << -(+421 + 110 * depth);
 
                 if (!ss->inCheck && singularValue > ss->evalue)
