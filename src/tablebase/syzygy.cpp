@@ -494,7 +494,7 @@ struct PairsData final {
         if (!fits(data_, symlenSize, sizeof(LR), end))
             return nullptr;
 
-        btreeBuf.assign(SymCount, LR{{0x00, 0xF0, 0xFF}});
+        btreeBuf.fill(LR{0x00, 0xF0, 0xFF});
         std::memcpy(btreeBuf.data(), data_, symlenSize * sizeof(LR));
         btree = btreeBuf.data();
 
@@ -539,11 +539,11 @@ struct PairsData final {
     u8*              dataEnd;          // End of Huffman compressed data
     std::vector<u64> base64;  // base64[l - minSymLen] is the 64bit-padded lowest symbol of length l
     Array<u8, SymCount> symLen;  // Expanded value count (minus 1) for each Huffman symbol: 0..255
+    Array<LR, SymCount> btreeBuf;
     Array<Piece, TB_PIECES_MAX> pieces;  // Position pieces: the order of pieces defines the groups
     Array<u64, TB_PIECES_MAX + 1> groupIdx;  // Start index for the encoding of the group's pieces
     Array<i32, TB_PIECES_MAX + 1> groupLen;  // Number of pieces in a given group: KRKN -> (3, 1)
-    Array<u16, 4>   mapIdx;  // WDLWin, WDLLoss, WDLCursedWin, WDLBlessedLoss (used in DTZ)
-    std::vector<LR> btreeBuf;
+    Array<u16, 4> mapIdx;  // WDL_WIN, WDL_LOSS, WDL_CURSED_WIN, WDL_BLESSED_LOSS (used in DTZ)
 };
 
 struct TableData final {
