@@ -858,14 +858,15 @@ class SharedMemory final: public BaseSharedMemory {
 
     // Reset all resources and reset the object state
     void reset() noexcept override {
-        unlink_socket_path();
-        socketPath.clear();
+        shutdownFd.reset();
+
+        if (serverThread.joinable())
+            serverThread.join();
 
         unmap_region();
 
-        shutdownFd.reset();
-        if (serverThread.joinable())
-            serverThread.join();
+        unlink_socket_path();
+        socketPath.clear();
     }
 
     void* mappedPtr = nullptr;
