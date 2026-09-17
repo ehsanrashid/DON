@@ -20,7 +20,8 @@
 #include <algorithm>
 #include <array>
 #include <cassert>
-#include <cstring>
+#include <cstdlib>  // exit(), EXIT_FAILURE
+#include <cstring>  // strerror(), memcpy()
 #include <deque>
 #include <filesystem>
 #include <initializer_list>
@@ -29,7 +30,7 @@
 #include <optional>
 #include <string>
 #include <type_traits>
-#include <utility>
+#include <utility>  // pair<>, swap()
 #include <vector>
 
 #if defined(_WIN32)
