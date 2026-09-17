@@ -1075,18 +1075,17 @@ Value Worker::search(Position&    pos,
     }
 
     // Step 7. Razoring
-    // If eval is really low, check with qsearch then return speculative fail low.
+    // Razoring is disabled for PV nodes to avoid prematurely returning decisive scores.
     if constexpr (!PVNode)
     {
-    const int razorMargin = 482 * depth * depth;
-
-    if (!exclude && ttEvalue + razorMargin <= alpha)
+    // If eval is really low, confirm the fail low before pruning with qsearch.
+    if (!exclude && ttEvalue + 482 * depth * depth <= alpha)
     {
         const Value razorAlpha = Value(std::max(alpha - 1, -VALUE_INFINITE));
 
         const Value razorValue = qsearch<false>(pos, ss, razorAlpha, razorAlpha + 1);
 
-        if (razorValue <= razorAlpha && !is_loss(razorValue))
+        if (razorValue <= razorAlpha)
             return razorValue;
 
         ss->ttMove = ttd.move;

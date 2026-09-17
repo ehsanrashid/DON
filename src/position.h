@@ -312,7 +312,11 @@ class Position final {
     [[nodiscard]] Key non_pawn_key(Color c) const noexcept;
     [[nodiscard]] Key non_pawn_key() const noexcept;
 
+    [[nodiscard]] Key non_king_key() const noexcept;
+
+    template<bool Cache>
     [[nodiscard]] Key material_key() const noexcept;
+
     // Computes the new hash key after the given move.
     // Needed for speculative prefetch.
     // It does recognize special moves like castling, en-passant and promotions.
@@ -772,6 +776,10 @@ inline Key Position::non_pawn_key(const Color c) const noexcept {
 
 inline Key Position::non_pawn_key() const noexcept {
     return non_pawn_key(WHITE) ^ non_pawn_key(BLACK);
+}
+
+inline Key Position::non_king_key() const noexcept {
+    return pawn_key() ^ minor_key() ^ major_key();
 }
 
 inline bool Position::has_non_pawn(const Color c) const noexcept {
