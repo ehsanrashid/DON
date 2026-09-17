@@ -124,8 +124,8 @@ constexpr Array<Value, WDL_SCORE_NB> WDL_VALUE{-VALUE_TB, VALUE_DRAW - 2, VALUE_
 
 constexpr usize wdl_index(WDLScore wdlScore) noexcept { return static_cast<usize>(wdlScore - WDL_LOSS); }
 
-constexpr int off_A1H8(const Square s) noexcept { return int(rank_of(s)) - int(file_of(s)); }
-constexpr int off_A8H1(const Square s) noexcept { return int(rank_of(s)) + int(file_of(s)); }
+[[maybe_unused]] constexpr int off_A1H8(const Square s) noexcept { return int(rank_of(s)) - int(file_of(s)); }
+[[maybe_unused]] constexpr int off_A8H1(const Square s) noexcept { return int(rank_of(s)) + int(file_of(s)); }
 
 Array<usize, SQUARE_NB>     B1H1H7Map;
 Array<usize, SQUARE_NB>     A1D1D4Map;
