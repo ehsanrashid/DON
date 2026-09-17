@@ -35,6 +35,8 @@ namespace DON {
 inline constexpr u8    HUGE_PAGE_SHIFT = 30;
 inline constexpr usize HUGE_PAGE_SIZE  = usize{1} << HUGE_PAGE_SHIFT;
 
+[[noreturn]] void report_failed_allocation(usize bytes) noexcept;
+
 // Wrapper for systems where the c++17 implementation
 // does not guarantee the availability of aligned_alloc().
 // Memory allocated with alloc_aligned_std() must be freed with free_aligned_std().
@@ -94,7 +96,10 @@ void memory_array_deleter(T* mem, FreeFunc&& freeFunc) noexcept {
 template<typename T, typename AllocFunc, typename... Args>
 inline std::enable_if_t<!std::is_array_v<T>, T*> memory_allocator(AllocFunc&& allocFunc,
                                                                   Args&&... args) noexcept {
-    void* rawMem = allocFunc(sizeof(T));
+    const usize bytes  = sizeof(T);
+    void*       rawMem = allocFunc(bytes);
+    if (rawMem == nullptr)
+        report_failed_allocation(bytes);
     ASSERT_ALIGNED(rawMem, alignof(T));
     return new (rawMem) T(std::forward<Args>(args)...);
 }
@@ -107,8 +112,11 @@ memory_allocator(AllocFunc&& allocFunc, usize size) noexcept {
 
     constexpr usize ArrayOffset = std::max(alignof(ElementType), sizeof(usize));
 
+    const usize bytes = ArrayOffset + size * sizeof(ElementType);
     // Save the array size in the memory location
-    auto* rawMem = reinterpret_cast<char*>(allocFunc(ArrayOffset + size * sizeof(ElementType)));
+    auto* rawMem = reinterpret_cast<char*>(allocFunc(bytes));
+    if (rawMem == nullptr)
+        report_failed_allocation(bytes);
     ASSERT_ALIGNED(rawMem, alignof(T));
 
     new (rawMem) usize(size);

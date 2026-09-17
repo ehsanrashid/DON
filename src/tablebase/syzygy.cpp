@@ -201,8 +201,6 @@ static_assert(sizeof(SparseEntry) == 6, "SparseEntry size must be 6 bytes");
 
 using Sym = u16;  // Huffman symbol
 
-constexpr Sym SYM_INVALID = 0xFFF;
-
 struct LR final {
    public:
     template<bool Left>
@@ -219,6 +217,19 @@ struct LR final {
 };
 
 static_assert(sizeof(LR) == 3, "LR size must be 3 bytes");
+
+constexpr usize SymCount = 4096;
+
+static_assert(is_power_of_2(SymCount));
+
+bool fits(const u8* p, u64 count, u64 stride, const u8* end) noexcept {
+
+    if (p > end)
+        return false;
+
+    const u64 room = u64(end - p);
+    return count == 0 || stride <= room / count;
+}
 
 // Tablebase data layout is structured as following:
 //
@@ -333,64 +344,100 @@ class TBFile final {
 // of table and if positions have pawns or not. It is populated at first access.
 struct PairsData final {
    public:
+    enum SymColour : u8 {
+        SYM_WHITE,
+        SYM_GREY,
+        SYM_BLACK
+    };
+
     // In Recursive Pairing each symbol represents a pair of children symbols. So
     // read d->btree[] symbols data and expand each one in his left and right child
     // symbol until reaching the leaves that represent the symbol value.
-    u8 set_symlen(usize s, std::vector<bool>& visited, int depth = 0) noexcept {
-        if (depth > 256)  // Safety limit (Huffman trees rarely exceed this depth)
+    u8 set_symlen(usize sym, Array<u8, SymCount>& colour, bool& cyclic) noexcept {
+
+        colour[sym] = SYM_GREY;
+
+        Sym rSym = btree[sym].get<false>();
+
+        if (rSym == SymCount - 1)
+        {
+            colour[sym] = SYM_BLACK;
             return 0;
+        }
 
-        visited[s] = true;  // Can set it now because tree is acyclic
+        Sym lSym = btree[sym].get<true>();
 
-        Sym rSym = btree[s].get<false>();
-
-        if (rSym == SYM_INVALID)
+        if (colour[lSym] == SYM_GREY || colour[rSym] == SYM_GREY)
+        {
+            cyclic      = true;
+            colour[sym] = SYM_BLACK;
             return 0;
+        }
 
-        Sym lSym = btree[s].get<true>();
+        if (colour[lSym] == SYM_WHITE)
+            symLen[lSym] = set_symlen(lSym, colour, cyclic);
 
-        if (!visited[lSym])
-            symLen[lSym] = set_symlen(lSym, visited, depth + 1);
+        if (colour[rSym] == SYM_WHITE)
+            symLen[rSym] = set_symlen(rSym, colour, cyclic);
 
-        if (!visited[rSym])
-            symLen[rSym] = set_symlen(rSym, visited, depth + 1);
+        colour[sym] = SYM_BLACK;
 
-        return symLen[lSym] + symLen[rSym] + 1;
+        return 1 + symLen[lSym] + symLen[rSym];
     }
 
-    u8* set_sizes(u8* pData) noexcept {
+    u8* set_sizes(u8* data_, const u8* end) noexcept {
 
-        flags = *pData++;
+        if (!fits(data_, 1, 1, end))
+            return nullptr;
+
+        flags = *data_++;
 
         if (flags & SINGLE_VALUE)
         {
             blockCount      = 0;
             blockLengthSize = 0;
             span            = 0;
-            sparseIndexSize = 0;         // Broken MSVC zero-init
-            minSymLen       = *pData++;  // Here store the single value
+            sparseIndexSize = 0;  // Broken MSVC zero-init
 
-            return pData;
+            if (!fits(data_, 1, 1, end))
+                return nullptr;
+
+            minSymLen = *data_++;  // Here store the single value
+
+            return data_;
         }
 
         // groupLen[] is a zero-terminated list of group lengths, the last groupIdx[]
         // element stores the biggest index that is the tb size.
         u64 tbSize = groupIdx[std::find(groupLen.begin(), groupLen.end(), 0) - groupLen.begin()];
 
-        blockSize       = u64{1} << *pData++;
-        span            = u64{1} << *pData++;
+        if (!fits(data_, 9, 1, end))
+            return nullptr;
+
+        if (data_[0] >= 64 || data_[1] >= 64)
+            return nullptr;
+
+        blockSize       = u64{1} << *data_++;
+        span            = u64{1} << *data_++;
         sparseIndexSize = ceil_div(tbSize, span);  // Round up
 
-        auto padding = number<u8, Endian::LITTLE>(pData);
-        pData += 1;
-        blockCount = number<u32, Endian::LITTLE>(pData);
-        pData += sizeof(u32);
+        auto padding = number<u8, Endian::LITTLE>(data_);
+        data_ += 1;
+        blockCount = number<u32, Endian::LITTLE>(data_);
+        data_ += sizeof(u32);
         // Padded to ensure SparseIndex[] does not point out of range.
         blockLengthSize = blockCount + padding;
-        maxSymLen       = *pData++;
-        minSymLen       = *pData++;
-        lowestSym       = (Sym*) (pData);
+        maxSymLen       = *data_++;
+        minSymLen       = *data_++;
+
+        if (minSymLen == 0 || minSymLen > maxSymLen || maxSymLen >= 64)
+            return nullptr;
+
+        lowestSym = (Sym*) (data_);
         base64.resize(maxSymLen - minSymLen + 1);
+
+        if (!fits(data_, base64.size(), sizeof(Sym), end))
+            return nullptr;
 
         // See https://en.wikipedia.org/wiki/Huffman_coding
         // The canonical code is ordered such that longer symbols (in terms of
@@ -402,14 +449,13 @@ struct PairsData final {
 
         for (usize i = std::max(base64Size, usize{1}) - 1; i-- > 0;)
         {
-            const auto& nextBase64 = base64[i + 1];
-
             auto curSym = number<Sym, Endian::LITTLE>(&lowestSym[i + 0]);
             auto nxtSym = number<Sym, Endian::LITTLE>(&lowestSym[i + 1]);
 
-            base64[i] = (nextBase64 + curSym - nxtSym) / 2;
+            base64[i] = (base64[i + 1] + curSym - nxtSym) / 2;
 
-            assert(2 * base64[i] >= nextBase64);
+            if (2 * base64[i] < base64[i + 1])
+                return nullptr;
         }
 
         // Now left-shift by an amount so that base64[i] gets shifted 1-bit more
@@ -420,23 +466,44 @@ struct PairsData final {
         for (usize i = 0; i < base64Size; ++i)
             base64[i] <<= 64 - i - minSymLen;  // Right-padding to 64-bit
 
-        pData += base64Size * sizeof(Sym);
-        symLen.resize(number<u16, Endian::LITTLE>(pData));
-        pData += sizeof(u16);
-        btree = (LR*) (pData);
+        data_ += base64Size * sizeof(Sym);
+
+        if (!fits(data_, sizeof(u16), 1, end))
+            return nullptr;
+
+        const usize symlenSize = number<u16, Endian::LITTLE>(data_);
+        data_ += sizeof(u16);
+
+        if (!fits(data_, symlenSize, sizeof(LR), end))
+            return nullptr;
+
+        btreeBuf.assign(SymCount, LR{{0x00, 0xF0, 0xFF}});
+        std::memcpy(btreeBuf.data(), data_, symlenSize * sizeof(LR));
+        btree = btreeBuf.data();
 
         // The compression scheme used is "Recursive Pairing", that replaces the most
         // frequent adjacent pair of symbols in the source message by a new symbol,
         // reevaluating the frequencies of all of the symbol pairs with respect to
         // the extended alphabet, and then repeating the process.
         // See https://web.archive.org/web/20201106232444/http://www.larsson.dogma.net/dcc99.pdf
-        std::vector<bool> visited(symLen.size());
+        symLen.fill(u8{0});
+        Array<u8, SymCount> colour;
+        colour.fill(SYM_WHITE);
+        bool cyclic = false;
 
-        for (usize s = 0; s < symLen.size(); ++s)
-            if (!visited[s])
-                symLen[s] = set_symlen(s, visited);
+        for (usize sym = 0; sym < symlenSize; ++sym)
+            if (colour[sym] == SYM_WHITE)
+            {
+                symLen[sym] = set_symlen(sym, colour, cyclic);
 
-        return pData + symLen.size() * sizeof(LR) + (symLen.size() & 1);
+                if (cyclic)
+                    break;
+            }
+
+        if (cyclic)
+            return nullptr;
+
+        return data_ + symlenSize * sizeof(LR) + (symlenSize & 1);
     }
 
     u8    flags;            // Table flags, see enum TBFlag
@@ -452,13 +519,14 @@ struct PairsData final {
     SparseEntry*     sparseIndex;      // Partial indices into blockLength[]
     usize            sparseIndexSize;  // Size of SparseIndex[] table
     u8*              data;             // Start of Huffman compressed data
+    u8*              dataEnd;          // End of Huffman compressed data
     std::vector<u64> base64;  // base64[l - minSymLen] is the 64bit-padded lowest symbol of length l
-    std::vector<u8>  symLen;  // Number of values (-1) represented by a given Huffman symbol: 1..256
+    Array<u8, SymCount> symLen;  // Expanded value count (minus 1) for each Huffman symbol: 0..255
     Array<Piece, TB_PIECES_MAX> pieces;  // Position pieces: the order of pieces defines the groups
-    Array<u64, TB_PIECES_MAX + 1>
-      groupIdx;  // Start index used for the encoding of the group's pieces
+    Array<u64, TB_PIECES_MAX + 1> groupIdx;  // Start index for the encoding of the group's pieces
     Array<i32, TB_PIECES_MAX + 1> groupLen;  // Number of pieces in a given group: KRKN -> (3, 1)
-    Array<u16, 4> mapIdx;  // WDLWin, WDLLoss, WDLCursedWin, WDLBlessedLoss (used in DTZ)
+    Array<u16, 4>   mapIdx;  // WDLWin, WDLLoss, WDLCursedWin, WDLBlessedLoss (used in DTZ)
+    std::vector<LR> btreeBuf;
 };
 
 struct TableData final {
@@ -536,15 +604,15 @@ struct TBTable final: BaseTBTable {
 
     void* init(const Position& pos, Key materialKey) noexcept;
 
-    u8* map(std::string_view filename) noexcept;
+    u8* map(std::string_view filename, usize* size) noexcept;
 
     void unmap() noexcept;
 
-    void set(u8* data) noexcept;
+    bool set(u8* data, const u8* end) noexcept;
 
     void set_groups(PairsData* pd, const Array<int, 2>& order, File f) noexcept;
 
-    u8* set_dtz_map(u8* data, File) noexcept;
+    u8* set_dtz_map(u8* data, File maxFile, const u8* end) noexcept;
 
     u8* map_ptr() noexcept { return mapPtr; }
 
@@ -619,7 +687,14 @@ void* TBTable<T>::init(const Position& pos, const Key materialKey) noexcept {
 
             TBFile tbFile(base, EXTS[T]);
 
-            set(tbFile.exists() ? map(tbFile.file_name()) : nullptr);
+            usize size = 0;
+            u8*   data = tbFile.exists() ? map(tbFile.file_name(), &size) : nullptr;
+
+            if (data != nullptr && !set(data, (const u8*) mappedPtr + size))
+            {
+                std::cerr << "Corrupted table in file " << tbFile.file_name() << std::endl;
+                std::exit(EXIT_FAILURE);
+            }
         });
 
     return mappedPtr;
@@ -629,7 +704,7 @@ void* TBTable<T>::init(const Position& pos, const Key materialKey) noexcept {
 // Files are memory mapped for best performance.
 // Files are mapped at first access: at init time only existence of the file is checked.
 template<TBType T>
-u8* TBTable<T>::map(const std::string_view filename) noexcept {
+u8* TBTable<T>::map(const std::string_view filename, usize* size) noexcept {
     #if defined(_WIN32)
     // Note FILE_FLAG_RANDOM_ACCESS is only a hint to Windows and as such may get ignored
     HANDLE fileHandle = CreateFile(filename.data(), GENERIC_READ, FILE_SHARE_READ, nullptr,
@@ -656,9 +731,9 @@ u8* TBTable<T>::map(const std::string_view filename) noexcept {
 
     if (loSize % 64 != 16)
     {
-        DEBUG_LOG("Corrupt tablebase size, name = " << filename << ", error = "
-                                                    << error_to_string(GetLastError()));
-        return nullptr;
+        std::cerr << "Corrupt tablebase size, name = " << filename
+                  << ", error = " << error_to_string(GetLastError()) << std::endl;
+        std::exit(EXIT_FAILURE);
     }
 
     mapFileHandle =
@@ -666,11 +741,12 @@ u8* TBTable<T>::map(const std::string_view filename) noexcept {
 
     if (!mapFileHandleGuard.is_valid())
     {
-        DEBUG_LOG("CreateFileMapping() failed: name = " << filename << ", error = "
-                                                        << error_to_string(GetLastError()));
-        return nullptr;
+        std::cerr << "CreateFileMapping() failed: name = " << filename
+                  << ", error = " << error_to_string(GetLastError()) << std::endl;
+        std::exit(EXIT_FAILURE);
     }
 
+    *size     = usize((u64(hiSize) << 32) | loSize);
     mappedPtr = MapViewOfFile(mapFileHandleGuard.get(), FILE_MAP_READ, 0, 0, 0);
 
     if (!mappedGuard.is_valid())
@@ -695,7 +771,7 @@ u8* TBTable<T>::map(const std::string_view filename) noexcept {
 
     struct stat fileStat = {};
 
-    if (::fstat(fdGuard.get(), &fileStat) == -1)
+    if (::fstat(fdGuard.get(), &fileStat) != 0)
     {
         DEBUG_LOG("::fstat() failed: name = " << filename << ", error = " << std::strerror(errno));
         return nullptr;
@@ -703,20 +779,20 @@ u8* TBTable<T>::map(const std::string_view filename) noexcept {
 
     if (fileStat.st_size % 64 != 16)
     {
-        DEBUG_LOG("Corrupt tablebase size, name = " << filename
-                                                    << ", error = " << std::strerror(errno));
-        return nullptr;
+        std::cerr << "Corrupt tablebase size, name = " << filename
+                  << ", error = " << std::strerror(errno) << std::endl;
+        std::exit(EXIT_FAILURE);
     }
 
     mappedSize = fileStat.st_size;
-
-    mappedPtr = ::mmap(nullptr, mappedSize, PROT_READ, MAP_SHARED, fdGuard.get(), 0);
+    *size      = mappedSize;
+    mappedPtr  = ::mmap(nullptr, mappedSize, PROT_READ, MAP_SHARED, fdGuard.get(), 0);
 
     if (!mappedGuard.is_valid())
     {
-        DEBUG_LOG("::mmap() failed: name = " << filename << ", size = " << mappedSize << ": "
-                                             << std::strerror(errno));
-        return nullptr;
+        std::cerr << "::mmap() failed: name = " << filename << ", size = " << mappedSize << ": "
+                  << std::strerror(errno) << std::endl;
+        std::exit(EXIT_FAILURE);
     }
 
         #if defined(MADV_RANDOM)
@@ -736,9 +812,10 @@ u8* TBTable<T>::map(const std::string_view filename) noexcept {
 
     if (std::memcmp(data, TB_MAGIC.data(), TB_MAGIC.size()) != 0)
     {
-        DEBUG_LOG("Corrupt tablebase table, name = " << filename);
+        std::cerr << "Corrupt tablebase table, name = " << filename << std::endl;
+
         unmap();
-        return nullptr;
+        std::exit(EXIT_FAILURE);
     }
 
     return data + TB_MAGIC.size();  // Skip TB Magic header
@@ -755,13 +832,16 @@ void TBTable<T>::unmap() noexcept {
 // Populate entry's PairsData records with data from the just memory-mapped file.
 // Called at first access.
 template<TBType T>
-void TBTable<T>::set(u8* data) noexcept {
+bool TBTable<T>::set(u8* data, const u8* end) noexcept {
 
-    if (data == nullptr)
-        return;
+    assert(data != nullptr);
 
-    assert((key[WHITE] != key[BLACK]) == ((*data & 1) != 0));
-    assert(hasPawns == ((*data & 2) != 0));
+    if (!fits(data, 1, 1, end))
+        return false;
+    if ((key[WHITE] != key[BLACK]) != ((*data & 1) != 0))
+        return false;
+    if (hasPawns != ((*data & 2) != 0))
+        return false;
 
     ++data;  // First byte stores flags
 
@@ -778,6 +858,9 @@ void TBTable<T>::set(u8* data) noexcept {
         for (u8 i = 0; i < sides; ++i)
             *get(i, f) = PairsData();
 
+        if (!fits(data, u64(1 + pp) + u64(pieceCount), 1, end))
+            return false;
+
         const Array<int, 2, 2> order{{
           {{int(*data & 0xF), int(pp ? *(data + 1) & 0xF : 0xF)}},
           {{int(*data >> 4), int(pp ? *(data + 1) >> 4 : 0xF)}}  //
@@ -793,13 +876,15 @@ void TBTable<T>::set(u8* data) noexcept {
             set_groups(get(i, f), order[i], f);
     }
 
-    data += reinterpret_cast<uptr>(data) & 1;  // Word alignment
+    data += uptr(data) & 1;  // Word alignment
 
     for (File f = FILE_A; f <= maxFile; ++f)
         for (u8 i = 0; i < sides; ++i)
-            data = get(i, f)->set_sizes(data);
+            if (!(data = get(i, f)->set_sizes(data, end)))
+                return false;
 
-    data = set_dtz_map(data, maxFile);
+    if (!(data = set_dtz_map(data, maxFile, end)))
+        return false;
 
     PairsData* pd;
 
@@ -807,6 +892,10 @@ void TBTable<T>::set(u8* data) noexcept {
         for (u8 i = 0; i < sides; ++i)
         {
             (pd = get(i, f))->sparseIndex = (SparseEntry*) (data);
+
+            if (!fits(data, pd->sparseIndexSize, sizeof(SparseEntry), end))
+                return false;
+
             data += pd->sparseIndexSize * sizeof(SparseEntry);
         }
 
@@ -814,6 +903,10 @@ void TBTable<T>::set(u8* data) noexcept {
         for (u8 i = 0; i < sides; ++i)
         {
             (pd = get(i, f))->blockLength = (u16*) (data);
+
+            if (!fits(data, pd->blockLengthSize, sizeof(u16), end))
+                return false;
+
             data += pd->blockLengthSize * sizeof(u16);
         }
 
@@ -822,8 +915,15 @@ void TBTable<T>::set(u8* data) noexcept {
         {
             data                   = align_ptr_up<64>(data);  // 64 byte alignment
             (pd = get(i, f))->data = data;
+
+            if (!fits(data, pd->blockCount, pd->blockSize, end))
+                return false;
+
             data += pd->blockCount * pd->blockSize;
+            pd->dataEnd = data;
         }
+
+    return true;
 }
 
 // Group together pieces that will be encoded together. The general rule is that
@@ -910,12 +1010,14 @@ void TBTable<T>::set_groups(PairsData* pd, const Array<int, 2>& order, const Fil
 }
 
 template<>
-u8* TBTable<WDL>::set_dtz_map(u8* data, [[maybe_unused]] const File maxFile) noexcept {
+u8* TBTable<WDL>::set_dtz_map(u8*                         data,
+                              [[maybe_unused]] const File maxFile,
+                              [[maybe_unused]] const u8*  end) noexcept {
     return data;
 }
 
 template<>
-u8* TBTable<DTZ>::set_dtz_map(u8* data, const File maxFile) noexcept {
+u8* TBTable<DTZ>::set_dtz_map(u8* data, const File maxFile, const u8* end) noexcept {
     mapPtr = data;
 
     for (File f = FILE_A; f <= maxFile; ++f)
@@ -933,18 +1035,33 @@ u8* TBTable<DTZ>::set_dtz_map(u8* data, const File maxFile) noexcept {
                 for (usize i = 0; i < 4; ++i)
                 {
                     // Sequence like 3,x,x,x,1,x,0,2,x,x
+                    if (!fits(data, sizeof(u16), 1, end))
+                        return nullptr;
+
                     pd->mapIdx[i] = u16(1 + (u16*) (data) - (u16*) (mapPtr));
 
-                    data += 2 + 2 * number<u16, Endian::LITTLE>(data);
+                    const u64 step = 2 + 2 * u64(number<u16, Endian::LITTLE>(data));
+
+                    if (!fits(data, step, 1, end))
+                        return nullptr;
+
+                    data += step;
                 }
             }
             else
             {
                 for (usize i = 0; i < 4; ++i)
                 {
+                    if (!fits(data, 1, 1, end))
+                        return nullptr;
+
                     pd->mapIdx[i] = u16(1 + data - mapPtr);
 
-                    data += 1 + *data;
+                    const u64 step = 1 + u64(*data);
+                    if (!fits(data, step, 1, end))
+                        return nullptr;
+
+                    data += step;
                 }
             }
         }
@@ -1231,12 +1348,17 @@ int decompress_pairs(const PairsData* pd, u64 idx) noexcept {
     // Sum the above to offset to find the offset corresponding to our idx
     offset += diff;
 
+    assert(pd->blockLengthSize > 0);
+
+    if (block > pd->blockLengthSize - 1)
+        block = pd->blockLengthSize - 1;
+
     // Move to the previous/next block, until reach the correct block that contains idx,
     // that is when 0 <= offset <= d->blockLength[block]
     while (block > 0 && offset < 0)
         offset += pd->blockLength[--block] + 1;
 
-    while (block < pd->blockCount - 1 && offset > pd->blockLength[block])
+    while (block < pd->blockLengthSize - 1 && offset > pd->blockLength[block])
         offset -= pd->blockLength[block++] + 1;
 
     // Finally, find the start address of block of canonical Huffman symbols
@@ -1245,7 +1367,7 @@ int decompress_pairs(const PairsData* pd, u64 idx) noexcept {
     // Read the first 64 bits in our block, this is a (truncated) sequence of
     // unknown number of symbols of unknown length but the first one
     // is at the beginning of this 64-bit sequence.
-    auto buf64 = number<u64, Endian::BIG>(ptr);
+    auto buf64 = (u8*) (ptr + 2) <= pd->dataEnd ? number<u64, Endian::BIG>(ptr) : 0;
     ptr += 2;
 
     usize buf64Size = 64;
@@ -1268,6 +1390,7 @@ int decompress_pairs(const PairsData* pd, u64 idx) noexcept {
 
         // Now add the value of the lowest symbol of length len to get our symbol
         sym += number<Sym, Endian::LITTLE>(&pd->lowestSym[len]);
+        sym &= SymCount - 1;
 
         // If our offset is within the number of values represented by symbol 'sym', are done.
         if (offset < pd->symLen[sym] + 1)
@@ -1283,7 +1406,9 @@ int decompress_pairs(const PairsData* pd, u64 idx) noexcept {
         if (buf64Size <= 32)
         {
             buf64Size += 32;
-            buf64 |= static_cast<u64>(number<u32, Endian::BIG>(ptr++)) << (64 - buf64Size);
+            if ((u8*) (ptr + 1) <= pd->dataEnd)
+                buf64 |= u64(number<u32, Endian::BIG>(ptr)) << (64 - buf64Size);
+            ++ptr;
         }
     }
 
