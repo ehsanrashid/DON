@@ -17,7 +17,7 @@
 
 #include "memory.h"
 
-#include <cstdlib>  // malloc(), free(), std::aligned_alloc()
+#include <cstdlib>  // exit(), malloc(), free(), std::aligned_alloc()
 #include <iostream>
 
 #if defined(_WIN32)
@@ -56,6 +56,11 @@
 #include "misc.h"
 
 namespace DON {
+
+void report_failed_allocation(const usize bytes) noexcept {
+    std::cerr << "Failed to allocate " << bytes << " bytes." << std::endl;
+    std::exit(EXIT_FAILURE);
+}
 
 void* alloc_aligned_std(usize allocSize, const usize alignment) noexcept {
 

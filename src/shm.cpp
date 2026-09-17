@@ -575,7 +575,7 @@ Strings get_peer_sockets(const std::string& sharedDir) noexcept {
     return peerSockets;
 }
 
-UniqueFd try_receive_memfd(const std::string& sockPath) noexcept {
+UniqueFd try_create_memfd(const std::string& sockPath) noexcept {
     auto peerFd = create_unix_socket();
     if (!peerFd.is_valid())
         return {};
@@ -593,7 +593,7 @@ UniqueFd try_receive_memfd(const std::string& sockPath) noexcept {
     int ret;
     do
         ret = ::connect(peerFd.get(), reinterpret_cast<struct sockaddr*>(&addr), sizeof(addr));
-    while (ret < 0 && errno == EINTR);
+    while (ret == -1 && errno == EINTR);
 
     if (ret == 0)
     {
@@ -620,7 +620,7 @@ UniqueFd try_receive_memfd(const std::string& sockPath) noexcept {
 
         do
             bytesRecv = ::recvmsg(peerFd.get(), &msg, flags);
-        while (bytesRecv < 0 && errno == EINTR);
+        while (bytesRecv == -1 && errno == EINTR);
 
         if (bytesRecv > 0)
         {
@@ -637,7 +637,7 @@ UniqueFd try_receive_memfd(const std::string& sockPath) noexcept {
             }
         }
     }
-    else if (errno == ECONNREFUSED || errno == ENOENT)
+    else if (errno == ENOENT || errno == ECONNREFUSED)
     {
         // Failed to connect, clean up dead peer
         ::unlink(sockPath.c_str());

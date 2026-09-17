@@ -605,7 +605,7 @@ UniqueFd create_unix_socket() noexcept;
 // Discover all peers in the shared dir
 Strings get_peer_sockets(const std::string& sharedDir) noexcept;
 
-UniqueFd try_receive_memfd(const std::string& sockPath) noexcept;
+UniqueFd try_create_memfd(const std::string& sockPath) noexcept;
 
 // Server thread:
 //  - Forwards the file descriptor fd
@@ -683,7 +683,7 @@ class SharedMemory final: public BaseSharedMemory {
         Strings  peerSockets = get_peer_sockets(sharedDir);
         for (const auto& sockPath : peerSockets)
         {
-            memFd = try_receive_memfd(sockPath);
+            memFd = try_create_memfd(sockPath);
             if (memFd.is_valid())
                 break;
         }
@@ -698,14 +698,13 @@ class SharedMemory final: public BaseSharedMemory {
             if (!memFd.is_valid())
                 return false;
     #else
-            char tempPath[PATH_MAX];
-            std::strncpy(tempPath, "/tmp/DON_replicated_data.XXXXXX", PATH_MAX);
+            std::string tempPath = "/tmp/DON_replicated_data.XXXXXX";
 
-            memFd.reset(::mkstemp(tempPath));
+            memFd.reset(::mkstemp(tempPath.data()));
             if (!memFd.is_valid())
                 return false;
             set_cloexec(memFd.get());
-            ::unlink(tempPath);
+            ::unlink(tempPath.c_str());
     #endif
 
             if (::ftruncate(memFd.get(), sizeof(T)) != 0)
@@ -843,7 +842,7 @@ class SharedMemory final: public BaseSharedMemory {
         std::swap(shutdownFd, sharedMemory.shutdownFd);
     }
 
-    // Unlink the socket path without clearing it
+    // Unlink the socket path without clearing the stored path
     void unlink_socket_path() noexcept {
         if (!socketPath.empty())
             ::unlink(socketPath.c_str());
@@ -859,14 +858,15 @@ class SharedMemory final: public BaseSharedMemory {
 
     // Reset all resources and reset the object state
     void reset() noexcept override {
-        unlink_socket_path();
-        socketPath.clear();
+        shutdownFd.reset();
+
+        if (serverThread.joinable())
+            serverThread.join();
 
         unmap_region();
 
-        shutdownFd.reset();
-        if (serverThread.joinable())
-            serverThread.join();
+        unlink_socket_path();
+        socketPath.clear();
     }
 
     void* mappedPtr = nullptr;
@@ -913,7 +913,7 @@ class BackendSharedMemory final {
                           : SharedMemoryAllocationStatus::NoAllocation;
     }
 
-    std::string_view get_error_message() const noexcept {
+    [[nodiscard]] std::string_view get_error_message() const noexcept {
         if (!shm)
             return "Shared memory not initialized.";
         if (!shm->is_mapped())

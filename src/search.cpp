@@ -1078,7 +1078,9 @@ Value Worker::search(Position&    pos,
     // If eval is really low, check with qsearch then return speculative fail low.
     if constexpr (!PVNode)
     {
-    if (!exclude && ttEvalue + 482 * depth * depth <= alpha)
+    const int razorMargin = 482 * depth * depth;
+
+    if (!exclude && ttEvalue + razorMargin <= alpha)
     {
         const Value razorAlpha = Value(std::max(alpha - 1, -VALUE_INFINITE));
 
@@ -1414,13 +1416,14 @@ Value Worker::search(Position&    pos,
         if (!exclude && mTT && depth > 5 + int(ss->pvTT) && is_valid(ttd.value) && !is_decisive(ttd.value)
              && ttd.depth >= depth - 3 && is_ok(ttd.bound & Bound::LOWER) && !is_shuffling(pos, ss, move))
         {
-            int margin = constexpr_round((59.0 + int(!PVNode && ss->pvTT) * 66.0) * depth / 63.0);
-            Value singularAlpha = std::max(ttd.value - 1 - margin, -VALUE_INFINITE);
+            const int singularMargin = constexpr_round((59.0 + int(!PVNode && ss->pvTT) * 66.0) * depth / 63.0);
 
-            Depth singularDepth = newDepth / 2;
+            const Value singularAlpha = std::max(ttd.value - 1 - singularMargin, -VALUE_INFINITE);
+
+            const Depth singularDepth = newDepth / 2;
             assert(singularDepth > DEPTH_ZERO);
 
-            Value singularValue = search<~~T>(pos, ss, singularAlpha, singularAlpha + 1, singularDepth, 0, move);
+            const Value singularValue = search<~~T>(pos, ss, singularAlpha, singularAlpha + 1, singularDepth, 0, move);
 
             ss->ttMove    = ttd.move;
             ss->moveCount = moveCount;

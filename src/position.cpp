@@ -41,7 +41,6 @@ Array<Key, CASTLING_RIGHTS_NB>                      Castling;
 Array<Key, FILE_NB>                                 Enpassant;
 Key                                                 Turn;
 Array<Key, 64>                                      MR50;
-Array<Key, 2>                                       Side;
 
 constexpr u8 R50_OFFSET = 14;
 constexpr u8 R50_FACTOR = 8;
@@ -69,8 +68,6 @@ void init() noexcept {
     Turn = prng_rand();
 
     std::generate(MR50.begin(), MR50.end(), prng_rand);
-
-    std::generate(Side.begin(), Side.end(), prng_rand);
 }
 
 Key piece_square(const Color c, const PieceType pt, const Square s) noexcept {
@@ -101,12 +98,6 @@ Key mr50(const i16 rule50Count) noexcept {
     return rule50Count < R50_OFFSET
            ? 0
            : MR50[std::min(usize((rule50Count - R50_OFFSET) / R50_FACTOR), MR50.size() - 1)];
-}
-
-Key side(const Color c) noexcept {
-    assert(is_ok(c));
-
-    return Side[c];
 }
 
 }  // namespace Zobrist
@@ -231,7 +222,8 @@ class CuckooTable final {
 CuckooTable<0x2000> Cuckoos;
 
 ConcurrentCache<Key, Value> NonPawnValueCache(256 * KB, 0.75f);
-ConcurrentCache<Key, Key>   MaterialKeyCache(64 * KB, 0.75f);
+ConcurrentCache<Key, Value> MaterialValueCache(512 * KB, 0.75f);
+ConcurrentCache<Key, Key>   MaterialKeyCache(128 * KB, 0.75f);
 
 }  // namespace
 
@@ -244,6 +236,7 @@ void Position::init() noexcept {
 
 void Position::reset() noexcept {
     NonPawnValueCache.reset();
+    MaterialValueCache.reset();
     MaterialKeyCache.reset();
 }
 
@@ -1554,7 +1547,7 @@ bool Position::fork(const Move m) const noexcept {
 
 Value Position::non_pawn_value(const Color c) const noexcept {
     return NonPawnValueCache.access_or_build_with(
-      raw_key() ^ Zobrist::side(c),
+      minor_key(c) ^ major_key(c),
       [this](const Color _c) noexcept -> Value {
           Value nonPawnValue = VALUE_ZERO;
 
@@ -1566,9 +1559,15 @@ Value Position::non_pawn_value(const Color c) const noexcept {
       c);
 }
 
+Value Position::material() const noexcept {
+    return MaterialValueCache.access_or_build_with(
+      pawn_key() ^ minor_key() ^ major_key(),
+      [this]() noexcept -> Value { return 534 * count(PAWN) + non_pawn_value(); });
+}
+
 Key Position::material_key() const noexcept {
     return MaterialKeyCache.access_or_build_with(
-      raw_key(),  //
+      pawn_key() ^ minor_key() ^ major_key(),  //
       [this]() noexcept -> Key {
           Key materialKey = 0;
 

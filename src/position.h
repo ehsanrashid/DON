@@ -85,7 +85,6 @@ Key castling(CastlingRights cr) noexcept;
 Key enpassant(Square enPassantSq) noexcept;
 Key turn() noexcept;
 Key mr50(i16 rule50Count) noexcept;
-Key side(Color c) noexcept;
 
 }  // namespace Zobrist
 
@@ -822,8 +821,6 @@ inline usize Position::bucket() const noexcept { return (count() - 1) / 4; }
 inline int Position::std_material() const noexcept {
     return 1 * count(PAWN) + 3 * count(KNIGHT, BISHOP) + 5 * count(ROOK) + 9 * count(QUEEN);
 }
-
-inline Value Position::material() const noexcept { return 534 * count(PAWN) + non_pawn_value(); }
 
 inline bool Position::capture(const Move m) const noexcept {
     assert(legal(m));
