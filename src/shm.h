@@ -842,7 +842,7 @@ class SharedMemory final: public BaseSharedMemory {
         std::swap(shutdownFd, sharedMemory.shutdownFd);
     }
 
-    // Unlink the socket path without clearing it
+    // Unlink the socket path without clearing the stored path
     void unlink_socket_path() noexcept {
         if (!socketPath.empty())
             ::unlink(socketPath.c_str());
