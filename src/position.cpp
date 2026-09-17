@@ -222,8 +222,8 @@ class CuckooTable final {
 CuckooTable<0x2000> Cuckoos;
 
 ConcurrentCache<Key, Value> NonPawnValueCache(256 * KB, 0.75f);
-ConcurrentCache<Key, Value> MaterialValueCache(128 * KB, 0.75f);
-ConcurrentCache<Key, Key>   MaterialKeyCache(64 * KB, 0.75f);
+ConcurrentCache<Key, Value> MaterialValueCache(512 * KB, 0.75f);
+ConcurrentCache<Key, Key>   MaterialKeyCache(128 * KB, 0.75f);
 
 }  // namespace
 
