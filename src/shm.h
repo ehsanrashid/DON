@@ -605,7 +605,7 @@ UniqueFd create_unix_socket() noexcept;
 // Discover all peers in the shared dir
 Strings get_peer_sockets(const std::string& sharedDir) noexcept;
 
-UniqueFd try_receive_memfd(const std::string& sockPath) noexcept;
+UniqueFd try_create_memfd(const std::string& sockPath) noexcept;
 
 // Server thread:
 //  - Forwards the file descriptor fd
@@ -683,7 +683,7 @@ class SharedMemory final: public BaseSharedMemory {
         Strings  peerSockets = get_peer_sockets(sharedDir);
         for (const auto& sockPath : peerSockets)
         {
-            memFd = try_receive_memfd(sockPath);
+            memFd = try_create_memfd(sockPath);
             if (memFd.is_valid())
                 break;
         }
