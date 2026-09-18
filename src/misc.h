@@ -227,7 +227,7 @@ constexpr auto sign_sqr(const T x) noexcept {
 template<typename T, std::enable_if_t<std::is_integral_v<T>, bool> = true>
 constexpr std::make_unsigned_t<T> constexpr_abs(const T x) noexcept {
     using U = std::make_unsigned_t<T>;
-    return x < 0 ? U{} - static_cast<U>(x) : static_cast<U>(x);
+    return x < 0 ? U{} - U(x) : U(x);
 }
 constexpr float       constexpr_abs(const float f) noexcept { return f < 0.0f ? -f : f; }
 constexpr double      constexpr_abs(const double d) noexcept { return d < 0.0 ? -d : d; }
@@ -333,8 +333,8 @@ constexpr usize round_up_to_pow2(usize x) noexcept {
     x |= x >> 4;
     x |= x >> 8;
     x |= x >> 16;
-#if SIZE_MAX > 0xFFFFFFFF
-    x |= x >> 32;  // for 64-bit size_t
+#if defined(SIZE_MAX) && SIZE_MAX > 0xFFFFFFFF
+    x |= x >> 32;  // for 64-bit usize
 #endif
     return x + 1;
 }
@@ -367,9 +367,8 @@ template<usize Alignment, typename T>
     static_assert(is_power_of_2(Alignment), "Alignment must be non-zero power of 2");
     static_assert(Alignment >= alignof(T), "Alignment must be >= alignof(T)");
 
-    const auto ptrUInt =
-      round_up_to_multiple(reinterpret_cast<uptr>(ptr), static_cast<uptr>(Alignment));
-    return reinterpret_cast<T*>(ptrUInt);
+    const auto uPtr = round_up_to_multiple(reinterpret_cast<uptr>(ptr), uptr(Alignment));
+    return reinterpret_cast<T*>(uPtr);
 }
 
 constexpr float max_load_factor(float maxLoadFactor = 0.75f) noexcept {

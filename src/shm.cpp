@@ -617,7 +617,6 @@ UniqueFd try_create_memfd(const std::string& sockPath) noexcept {
     #endif
 
         ssize_t bytesRecv;
-
         do
             bytesRecv = ::recvmsg(peerFd.get(), &msg, flags);
         while (bytesRecv == -1 && errno == EINTR);
@@ -662,10 +661,10 @@ std::thread make_server_thread(UniqueFd fd, UniqueFd shutdownFd, UniqueFd server
             int ret = ::poll(fds, PI_NB, -1);
             if (ret == -1)
             {
-                if (errno != EINTR)
-                    break;
+                if (errno == EINTR)
+                    continue;
 
-                continue;
+                break;
             }
 
             // Shutdown requested by main thread
@@ -721,8 +720,10 @@ std::thread make_server_thread(UniqueFd fd, UniqueFd shutdownFd, UniqueFd server
     #endif
                 while (::sendmsg(clientFd.get(), &msg, flags) == -1)
                 {
-                    if (errno != EINTR)
-                        break;
+                    if (errno == EINTR)
+                        continue;
+
+                    break;
                 }
             }
         }

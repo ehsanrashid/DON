@@ -18,6 +18,7 @@
 // Standalone NNUE embedding for universal binary builds
 
 #include "../evaluate.h"
+#include "../misc.h"
 
 #if defined(UNIVERSAL_BINARY_MACOS_X86_64_SLICE)
 
@@ -31,13 +32,13 @@
     #include <sys/mman.h>
     #include <unistd.h>
 
-    #include "../misc.h"
-
 // Must be kept in sync with patch_x86_64_slice.sh
 extern const volatile DON::u64 gUniversalNNUEOffset = DON::u64{0xCAFE0FF5E70FF5E7};
 extern const volatile DON::u64 gUniversalNNUESize   = DON::u64{0xCAFE512ECAFE512E};
 
-static const unsigned char* map_embedded_nnue() noexcept {
+namespace {
+
+const unsigned char* map_embedded_nnue() noexcept {
     char     path[PATH_MAX];
     DON::u32 len = sizeof(path);
     if (_NSGetExecutablePath(path, &len) != 0)
@@ -50,26 +51,34 @@ static const unsigned char* map_embedded_nnue() noexcept {
     if (!DON::is_valid_fd(fd))
         return nullptr;
 
+    const auto close_fd = [&fd]() noexcept { ::close(fd); };
+
     const long systemPageSize = ::sysconf(_SC_PAGESIZE);
     if (systemPageSize == -1)
+    {
+        close_fd();
         return nullptr;
+    }
 
     // Align down to page size for mmap
-    const DON::u64 pageSize = static_cast<DON::u64>(systemPageSize);
+    const DON::u64 pageSize = DON::u64(systemPageSize);
     const DON::u64 base     = gUniversalNNUEOffset & ~(pageSize - 1);
     const DON::u64 pad      = gUniversalNNUEOffset - base;
 
-    void* mappedMemory = ::mmap(nullptr, static_cast<size_t>(gUniversalNNUESize + pad), PROT_READ,
-                                MAP_PRIVATE, fd, static_cast<off_t>(base));
-    ::close(fd);
+    void* mappedMemory = ::mmap(nullptr, DON::usize(gUniversalNNUESize + pad), PROT_READ,
+                                MAP_PRIVATE, fd, off_t(base));
+
+    close_fd();
+
     if (mappedMemory == MAP_FAILED)
         return nullptr;
 
     return reinterpret_cast<const unsigned char*>(mappedMemory) + pad;
 }
+}  // namespace
 
 extern const unsigned char* const gEmbeddedNNUEData = map_embedded_nnue();
-extern const unsigned int         gEmbeddedNNUESize = static_cast<unsigned int>(gUniversalNNUESize);
+extern const unsigned int         gEmbeddedNNUESize = (unsigned int) (gUniversalNNUESize);
 
 #else
     #if defined(__has_embed)

@@ -28,8 +28,8 @@ NET="$3"
 
 # Must match volatile initializers in nnue_embed.cpp;
 # byte order is reversed to match how it appears in the binary xxd
-OFFSET_MAGIC=E7F50FE7F50FFECA
-SIZE_MAGIC=2E51FECA2E51FECA
+MAGIC_OFFSET=E7F50FE7F50FFECA
+MAGIC_SIZE=2E51FECA2E51FECA
 
 die() {
     echo "patch_x86_64_slice: $*" >&2
@@ -39,24 +39,34 @@ die() {
 # Find hex pattern in file, return byte offset
 # Optional $3 = bytes to skip, $4 = max bytes to scan
 find_bytes() {
-    file=$1; needle=$2; skip=${3:-0}; window=${4:-0}
-    [ "$window" -gt 0 ] && win="-l $window" || win=""
+    file=$1
+    needle=$2
+    skip=${3:-0}
+    window=${4:-0}
     # Convert to lower-case
     needle=$(printf '%s' "$needle" | tr '[:upper:]' '[:lower:]')
+    [ "$window" -gt 0 ] && win="-l $window" || win=""
     # Disassemble as hex, strip \n and search for the pattern
     pos=$(xxd -s "$skip" $win -p "$file" | tr -d '\n' \
         | awk -v n="$needle" '{ p = index($0, n); if (p) { print p; exit } }')
     [ -n "$pos" ] || return 1
-    echo $(( skip + (pos - 1) / 2 ))
+    echo $((skip + (pos - 1) / 2))
 }
 
 # Overwrite 8 bytes at a file offset
 write_u64_le() {
-    f="$1"; off="$2"; v="$3"; bytes=""; i=0
+    f="$1"
+    off="$2"
+    v="$3"
+    bytes=""
+
+    i=0
     while [ "$i" -lt 8 ]; do
-        bytes="$bytes$(printf '\\%03o' "$(( v & 255 ))")"
-        v=$(( v >> 8 )); i=$(( i + 1 ))
+        bytes="$bytes$(printf '\\%03o' "$((v & 255))")"
+        v=$((v >> 8))
+        i=$((i + 1))
     done
+
     printf "$bytes" | dd of="$f" bs=1 seek="$off" conv=notrunc 2>/dev/null
 }
 
@@ -66,12 +76,12 @@ net_size=$(wc -c < "$NET" | tr -d ' ')
 # The arm64 slice always follows the x86-64 slice in
 # the fat binary, so scan from ~after the x86-64 slice.
 x86_size=$(wc -c < "$X86" | tr -d ' ')
-net_off=$(find_bytes "$FAT" "$needle" "$x86_size" 8000000) || die "network not found"
+net_offset=$(find_bytes "$FAT" "$needle" "$x86_size" 8000000) || die "network not found"
 
-off_pos=$(find_bytes "$X86" "$OFFSET_MAGIC") || die "offset sentinel not found"
-size_pos=$(find_bytes "$X86" "$SIZE_MAGIC")  || die "size sentinel not found"
+pos_offset=$(find_bytes "$X86" "$MAGIC_OFFSET") || die "offset sentinel not found"
+pos_size=$(find_bytes "$X86" "$MAGIC_SIZE")  || die "size sentinel not found"
 
-write_u64_le "$X86" "$off_pos"  "$net_off"
-write_u64_le "$X86" "$size_pos" "$net_size"
+write_u64_le "$X86" "$pos_offset" "$net_offset"
+write_u64_le "$X86" "$pos_size" "$net_size"
 
-echo "patch_x86_64_slice.sh: network at offset $net_off + size $net_size "
+echo "patch_x86_64_slice.sh: network at offset $net_offset + size $net_size "
