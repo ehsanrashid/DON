@@ -450,9 +450,7 @@ void Worker::iterative_deepening() noexcept {
         if (manager->skill.enabled())
             multiPV = std::max(usize{4}, multiPV);
 
-        manager->timeManager.init(rootPos.active_color(), rootPos.ply(), rootPos.move_num(),
-                                  options, limit);
-
+        manager->timeManager.init(rootPos.active_color(), rootPos.ply(), options, limit);
         manager->sumMoveChanges = 0.0;
         manager->timeReduction  = 1.0;
         manager->callsCount     = limit.calls_count();

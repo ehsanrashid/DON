@@ -30,12 +30,12 @@ namespace DON {
 namespace {
 
 // Maximum moves to go used by time management formulas.
-constexpr u8 MTG_MAX = 50;
+constexpr u8 MTG_MAX = u8{50};
 
 constexpr double TIME_ADJUST_INIT = -1.0;
 constexpr double TIME_ADJUST_MIN  = 1.0e-6;
 
-constexpr i64 TIME_NODES_INIT = -1;
+constexpr i64 TIME_NODES_INIT = i64{-1};
 
 }  // namespace
 
@@ -54,8 +54,7 @@ void TimeManager::reset() noexcept {
     timeNodes = TIME_NODES_INIT;
 }
 
-void TimeManager::init(
-  Color ac, i16 ply, i32 moveNum, const Options& options, Limit& limit) noexcept {
+void TimeManager::init(Color ac, i16 ply, const Options& options, Limit& limit) noexcept {
     // If have no time, no need to fully initialize TM.
     // start-time is used by move-time and Nodes-Time is used in elapsed calls.
     startTime = limit.startTime;
@@ -102,9 +101,7 @@ void TimeManager::init(
     // clang-format off
 
     // Maximum move horizon
-    u8 mtg = u8(limit.movesToGo == 0
-                  ? std::max(MTG_MAX - int(0.1 * std::max(moveNum         - 20     , 0)), MTG_MAX - 10)
-                  : std::min(MTG_MAX + int(0.1 * std::max(limit.movesToGo - MTG_MAX, 0)), limit.movesToGo - 0));
+    u8 mtg = limit.movesToGo != 0 ? std::min(limit.movesToGo, MTG_MAX) : MTG_MAX;
 
     // If less than one second, gradually reduce mtg.
     // In cyclic time controls keep the actual movestogo as horizon.
@@ -156,7 +153,7 @@ void TimeManager::init(
     else
     {
         optimumScale = std::min((0.8800 + ply / 116.4) / mtg, 0.8800 * clock.time / remainTime);
-        maximumScale = std::min(1.3000 + mtg / 9.0909, 8.4500 + mtg / 20.0 + ply / 100.0);
+        maximumScale = 1.3000 + 0.1100 * mtg;
     }
 
     // Limit the maximum possible time for this move

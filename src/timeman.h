@@ -56,7 +56,7 @@ class TimeManager final {
     //      1) x base-time (sudden death)
     //      2) x base-time (+ z increment)
     //      3) x moves in y time (+ z increment)
-    void init(Color ac, i16 ply, i32 moveNum, const Options& options, Limit& limit) noexcept;
+    void init(Color ac, i16 ply, const Options& options, Limit& limit) noexcept;
 
     // Advance nodes when in 'Nodes as Time' mode
     void advance_time_nodes(i64 nodes) noexcept;
