@@ -71,7 +71,7 @@ struct EvalFile final {
         netDescription(netDesc) {}
 
     // Default net name, will use the EvalFileDefaultName macros defined in evaluate.h
-    static constexpr std::string_view DefaultName = EvalFileDefaultName;
+    static constexpr std::string_view DefaultName{EvalFileDefaultName};
     // Selected net path, either via UCI option or default
     std::optional<fs::path> currentPath;
     // Net description extracted from the net file

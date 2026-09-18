@@ -237,11 +237,11 @@ bool fits(const u8* p, u64 count, u64 stride, const u8* end) noexcept {
 //  TBTable:  one object for each file with corresponding indexing information
 //  TBTables: has ownership of TBTable objects, keeping a list and a hash
 
-// TBPaths stores the list of directories used to locate Syzygy tablebase files(.rtbw / .rtbz).
-// The class acts as a central repository for all tablebase search paths used by probing and file-loading routines.
+// TBPaths contains the directories used to locate Syzygy tablebase files
+// (.rtbw / .rtbz).
 //
 // Responsibilities:
-// • Parse a platform-dependent separator list of directories:
+// • Parse a platform-dependent list of directories:
 //     - ';' on Windows
 //     - ':' on Unix-like systems
 // • Store paths as std::filesystem::path for safe concatenation and
@@ -257,87 +257,85 @@ bool fits(const u8* p, u64 count, u64 stride, const u8* end) noexcept {
 //     for (const auto& dir : TBPaths::get()) { ... }
 //
 // Notes:
-// • The class is static-only and non-instantiable by design.
 // • Re-initialization replaces the previous path set.
-class TBPaths final {
-   public:
-    static bool init(const std::string_view paths) noexcept {
-        // Platform-specific directory separator
-        // Example:
-        // C:\tb\wdl345;C:\tb\wdl6;D:\tb\dtz345;D:\tb\dtz6
-        constexpr char PathSeparator =
+namespace TBPaths {
+
+bool init(std::string_view paths) noexcept;
+
+const auto& paths() noexcept;
+
+}  // namespace TBPaths
+
+namespace TBPaths {
+
+namespace {
+
+// Platform-specific directory separator.
+// Example:
+// C:\tb\wdl345;C:\tb\wdl6;D:\tb\dtz345;D:\tb\dtz6
+constexpr std::string_view PATH_SEPARATOR{
     #if defined(_WIN32)
-          ';'
+  ";"
     #else
-          ':'
+  ":"
     #endif
-          ;
-
-        Paths.clear();
-        Paths.reserve(4);
-
-        usize beg = 0;
-
-        while (beg < paths.size())
-        {
-            usize end = paths.find(PathSeparator, beg);
-
-            if (end == std::string_view::npos)
-                end = paths.size();
-
-            if (beg < end)
-            {
-                const auto path = trim(paths.substr(beg, end - beg));
-                if (!path.empty())
-                    Paths.emplace_back(path_from_utf8(path));
-            }
-
-            beg = end + 1;
-        }
-
-        return !Paths.empty();
-    }
-
-    static const auto& get() noexcept { return Paths; }
-
-   private:
-    TBPaths() noexcept                          = delete;
-    TBPaths(const TBPaths&) noexcept            = delete;
-    TBPaths& operator=(const TBPaths&) noexcept = delete;
-    TBPaths(TBPaths&&) noexcept                 = delete;
-    TBPaths& operator=(TBPaths&&) noexcept      = delete;
-
-    static inline std::vector<fs::path> Paths;
 };
+
+std::vector<fs::path> Paths;
+
+}  // namespace
+
+bool init(const std::string_view paths) noexcept {
+    Paths.clear();
+    Paths.reserve(4);
+
+    for (const auto path : split(paths, PATH_SEPARATOR, true))
+        if (std::find(Paths.begin(), Paths.end(), path) == Paths.end())
+            Paths.emplace_back(path_from_utf8(path));
+
+    return !Paths.empty();
+}
+
+const auto& paths() noexcept { return Paths; }
+
+}  // namespace TBPaths
 
 // TBFile resolves a tablebase filename by searching through TBPaths.
 // The first matching regular file is retained.
 class TBFile final {
    public:
-    explicit TBFile(const fs::path& file) noexcept {
+    explicit TBFile(const fs::path& file) noexcept;
 
-        for (const auto& dir : TBPaths::get())
-        {
-            const auto fn = dir / file;
+    TBFile(std::string_view base, std::string_view ext) noexcept;
 
-            if (fs::is_regular_file(fn))
-            {
-                filename = fn.string();
-                break;
-            }
-        }
-    }
+    std::string_view file_name() const noexcept;
 
-    TBFile(const std::string_view base, const std::string_view ext) noexcept :
-        TBFile{fs::path(base).concat(ext)} {}
-
-    std::string_view file_name() const noexcept { return filename; }
-
-    bool exists() const noexcept { return !file_name().empty(); }
+    bool exists() const noexcept;
 
    private:
-    std::string filename{};
+    std::string filename;
 };
+
+TBFile::TBFile(const fs::path& file) noexcept {
+    for (const auto& path : TBPaths::paths())
+    {
+        const auto fn = path / file;
+
+        std::error_code ec;
+        if (fs::is_regular_file(fn, ec))
+        {
+            filename = fn.string();
+            break;
+        }
+    }
+}
+
+TBFile::TBFile(const std::string_view base, const std::string_view ext) noexcept :
+    TBFile{fs::path(base).concat(ext)} {}
+
+std::string_view TBFile::file_name() const noexcept { return filename; }
+
+bool TBFile::exists() const noexcept { return !file_name().empty(); }
 
 // PairsData contains low-level indexing information to access TB data.
 // There are 8, 4, or 2 PairsData records for each TBTable, according to the type

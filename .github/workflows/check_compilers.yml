@@ -27,9 +27,9 @@ jobs:
           - { name: Clang-10, comp: clang, cxx: clang++, image: "silkeh/clang:10", is_clang: true, ver: "10" }
           # - { name: Clang-11, comp: clang, cxx: clang++, image: "silkeh/clang:11-bullseye", is_clang: true, ver: "11" }
           # - { name: Clang-12, comp: clang, cxx: clang++, image: "silkeh/clang:12-bullseye", is_clang: true, ver: "12" }
-          - { name: Clang-13, comp: clang, cxx: clang++, image: "silkeh/clang:13-bullseye", is_clang: true, ver: "13" }
-          - { name: Clang-14, comp: clang, cxx: clang++, image: "silkeh/clang:14-bullseye", is_clang: true, ver: "14" }
-          - { name: Clang-15, comp: clang, cxx: clang++, image: "silkeh/clang:15-bullseye", is_clang: true, ver: "15" }
+          # - { name: Clang-13, comp: clang, cxx: clang++, image: "silkeh/clang:13-bullseye", is_clang: true, ver: "13" }
+          # - { name: Clang-14, comp: clang, cxx: clang++, image: "silkeh/clang:14-bullseye", is_clang: true, ver: "14" }
+          # - { name: Clang-15, comp: clang, cxx: clang++, image: "silkeh/clang:15-bullseye", is_clang: true, ver: "15" }
           - { name: Clang-16, comp: clang, cxx: clang++, image: "silkeh/clang:16-bookworm", is_clang: true, ver: "16" }
           - { name: Clang-17, comp: clang, cxx: clang++, image: "silkeh/clang:17-bookworm", is_clang: true, ver: "17" }
           # Clang 18+: Ubuntu rolling images
