@@ -475,13 +475,13 @@ Setup benchmark(std::istream& is) noexcept {
 
     // Assign default values to missing arguments
 
-    i64 requested;
+    usize input;
     // Desired time in seconds
     usize desiredTimeS;
 
-    if (is >> requested)
+    if (is >> input)
     {
-        setup.threads = clamped("Threads", requested, 1, THREAD_MAX);
+        setup.threads = clamped("Threads", input, 1, THREAD_MAX);
         setup
           .originalInvocation  //
           .append(std::to_string(setup.threads));
@@ -491,9 +491,9 @@ Setup benchmark(std::istream& is) noexcept {
         setup.threads = SYSTEM_THREAD_MAX;
     }
 
-    if (is >> requested)
+    if (is >> input)
     {
-        setup.ttSize = clamped("Hash", requested, 1, HASH_MAX);
+        setup.ttSize = clamped("Hash", input, 1, HASH_MAX);
         setup
           .originalInvocation  //
           .append(" ")

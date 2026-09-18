@@ -47,15 +47,15 @@
 
 namespace DON {
 
-using CpuIndexVec  = std::vector<CpuIndex>;
+using CpuVector    = std::vector<CpuIndex>;
 using CpuToNodeMap = std::unordered_map<CpuIndex, NumaIndex>;
-using CpuIndexSet  = std::unordered_set<CpuIndex>;
+using CpuSet       = std::unordered_set<CpuIndex>;
 
 CpuIndex hardware_concurrency() noexcept;
 
 inline const CpuIndex SYSTEM_THREAD_MAX = std::max(hardware_concurrency(), CpuIndex{1});
 
-inline const u16 THREAD_MAX = u16(std::clamp(usize(4 * SYSTEM_THREAD_MAX), 1 * KB, 64 * KB - 1));
+inline const usize THREAD_MAX = std::clamp(usize(4 * SYSTEM_THREAD_MAX), 1 * KB, 64 * KB);
 
 #if defined(_WIN64)
 inline constexpr LPCSTR KERNEL_MODULE_NAME = TEXT("kernel32.dll");
@@ -80,7 +80,7 @@ using SetThreadSelectedCpuSetMasks_ = BOOL(WINAPI*)(
 
 struct WindowsAffinity final {
    public:
-    std::optional<CpuIndexSet> combined_cpus() const noexcept;
+    std::optional<CpuSet> combined_cpus() const noexcept;
 
     // Since Windows 11 and Windows Server 2022 thread affinities can span
     // processor groups and can be set as such by a new WinAPI function.
@@ -92,8 +92,8 @@ struct WindowsAffinity final {
 
     // Also provide diagnostic for when the affinity is set to nullopt whether it was due to being indeterminate.
     // If affinity is indeterminate it is best to assume it is not set at all, so consistent with the meaning of the nullopt affinity.
-    Array<bool, 2>        determinate{true, true};
-    Array<CpuIndexSet, 2> cpus;
+    Array<bool, 2>   determinate{true, true};
+    Array<CpuSet, 2> cpus;
 };
 
 std::pair<BOOL, std::vector<USHORT>> get_process_group_affinity() noexcept;
@@ -127,8 +127,8 @@ struct HasGroupCount<T, std::void_t<decltype(std::declval<T>().Cache.GroupCount)
     : std::bool_constant<true> {};
 
 template<typename T, typename Pred>
-CpuIndexSet read_cache_members(const T* processorInfo, Pred&& is_cpu_allowed) noexcept {
-    CpuIndexSet cpus;
+CpuSet read_cache_members(const T* processorInfo, Pred&& is_cpu_allowed) noexcept {
+    CpuSet cpus;
 
     const auto add_group_cpus = [&](WORD groupId, KAFFINITY groupMask) noexcept {
         for (u16 number = 0; number < WIN_PROCESSOR_GROUP_SIZE; ++number)
@@ -170,7 +170,7 @@ CpuIndexSet read_cache_members(const T* processorInfo, Pred&& is_cpu_allowed) no
 }
 
 #elif defined(USE_UNIX_NUMA)
-CpuIndexSet get_process_affinity() noexcept;
+CpuSet get_process_affinity() noexcept;
 
 inline const auto PROCESSOR_AFFINITY = get_process_affinity();
 #endif
@@ -192,8 +192,8 @@ class NumaReplicatedAccessToken final {
 
 struct L3Domain final {
    public:
-    NumaIndex   sysNumaId;
-    CpuIndexSet cpus;
+    NumaIndex sysNumaId;
+    CpuSet    cpus;
 };
 
 // Use system-reported NUMA nodes
@@ -215,7 +215,7 @@ using AutoNumaPolicy = std::variant<SystemNumaPolicy, L3DomainsPolicy, BundledL3
 // The user can always explicitly override this behavior.
 inline constexpr AutoNumaPolicy NUMA_POLICY_DEFAULT = BundledL3Policy{32};
 
-CpuIndexVec parse_to_cpus(std::string_view sv) noexcept;
+CpuVector parse_to_cpus(std::string_view sv) noexcept;
 
 // Designed as immutable, because there is no good reason to alter an already
 // existing config in a way that doesn't require recreating it completely, and
@@ -266,8 +266,8 @@ class NumaConfig final {
 
     usize nodes_size() const noexcept;
 
-    CpuIndexVec&       node_cpus(NumaIndex numaId) noexcept;
-    const CpuIndexVec& node_cpus(NumaIndex numaId) const noexcept;
+    CpuVector&       node_cpus(NumaIndex numaId) noexcept;
+    const CpuVector& node_cpus(NumaIndex numaId) const noexcept;
 
     bool node_cpus_empty(NumaIndex numaId) const noexcept;
 
@@ -296,7 +296,7 @@ class NumaConfig final {
     void execute_on_numa_node(const NumaIndex numaId, Func&& f) const noexcept {
 
         std::thread th([this, f = std::forward<Func>(f), numaId]() mutable noexcept {
-            [[maybe_unused]] auto token = bind_current_thread_to_numa_node(numaId);
+            [[maybe_unused]] const auto token = bind_current_thread_to_numa_node(numaId);
             f();
         });
 
@@ -457,7 +457,7 @@ class NumaConfig final {
 
 #elif defined(USE_UNIX_NUMA)
 
-        CpuIndexSet seenCpus;
+        CpuSet seenCpus;
 
         for (const auto& [nextCpuId, _] : sysCfg.cpuToNode)
         {
@@ -517,10 +517,10 @@ class NumaConfig final {
     // Removes empty NUMA nodes and rebuilds CPU-to-NUMA mappings.
     void remove_empty_numa_nodes() noexcept;
 
-    std::vector<CpuIndexVec> nodes;
-    CpuToNodeMap             cpuToNode;
-    CpuIndex                 maxCpuId;
-    bool                     customAffinity;
+    std::vector<CpuVector> nodes;
+    CpuToNodeMap           cpuToNode;
+    CpuIndex               maxCpuId;
+    bool                   customAffinity;
 };
 
 class BaseNumaReplicated;

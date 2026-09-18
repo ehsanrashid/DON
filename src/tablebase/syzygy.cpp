@@ -261,7 +261,7 @@ bool fits(const u8* p, u64 count, u64 stride, const u8* end) noexcept {
 // • Re-initialization replaces the previous path set.
 class TBPaths final {
    public:
-    static bool init(std::string_view paths) noexcept {
+    static bool init(const std::string_view paths) noexcept {
         // Platform-specific directory separator
         // Example:
         // C:\tb\wdl345;C:\tb\wdl6;D:\tb\dtz345;D:\tb\dtz6
@@ -287,9 +287,8 @@ class TBPaths final {
 
             if (beg < end)
             {
-                auto path = trim(paths.substr(beg, end - beg));
-                // Optional robustness: ignore pure whitespace entries
-                if (!is_whitespace(path))
+                const auto path = trim(paths.substr(beg, end - beg));
+                if (!path.empty())
                     Paths.emplace_back(path_from_utf8(path));
             }
 
@@ -315,11 +314,11 @@ class TBPaths final {
 // The first matching regular file is retained.
 class TBFile final {
    public:
-    explicit TBFile(std::string_view file) noexcept {
+    explicit TBFile(const fs::path& file) noexcept {
 
         for (const auto& dir : TBPaths::get())
         {
-            auto fn = dir / file;
+            const auto fn = dir / file;
 
             if (fs::is_regular_file(fn))
             {
@@ -329,8 +328,8 @@ class TBFile final {
         }
     }
 
-    TBFile(std::string_view base, std::string_view ext) noexcept :
-        TBFile{fs::path(base).concat(ext).string()} {}
+    TBFile(const std::string_view base, const std::string_view ext) noexcept :
+        TBFile{fs::path(base).concat(ext)} {}
 
     std::string_view file_name() const noexcept { return filename; }
 
@@ -1281,7 +1280,7 @@ void TBTables::add(const std::vector<PieceType>& pieces) noexcept {
     if (!(exists[WDL] || exists[DTZ]))
         return;
 
-    const u8 cardinality = static_cast<u8>(pieces.size());
+    const u8 cardinality = u8(pieces.size());
 
     if (MaxCardinality < cardinality)
         MaxCardinality = cardinality;
@@ -1289,7 +1288,7 @@ void TBTables::add(const std::vector<PieceType>& pieces) noexcept {
     TBTable<WDL>* wdlTable = nullptr;
     TBTable<DTZ>* dtzTable = nullptr;
 
-    auto tableData = make_table_data(code);
+    const auto tableData = make_table_data(code);
 
     if (exists[WDL])
     {
@@ -1303,9 +1302,9 @@ void TBTables::add(const std::vector<PieceType>& pieces) noexcept {
         dtzTable = &dtzTables.back();
     }
 
-    BaseTBTable* keyTable = exists[WDL]  //
-                            ? static_cast<BaseTBTable*>(wdlTable)
-                            : static_cast<BaseTBTable*>(dtzTable);
+    const BaseTBTable* keyTable = exists[WDL]  //
+                                  ? static_cast<BaseTBTable*>(wdlTable)
+                                  : static_cast<BaseTBTable*>(dtzTable);
 
     insert({keyTable->key[WHITE], wdlTable, dtzTable});
     insert({keyTable->key[BLACK], wdlTable, dtzTable});

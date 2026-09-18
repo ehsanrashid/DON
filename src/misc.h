@@ -178,7 +178,7 @@ constexpr usize HASH_MAX =
   ;
 
 inline constexpr std::string_view EMPTY_STRING{"<empty>"};
-inline constexpr std::string_view WHITE_SPACE{" \t\n\r\f\v"};
+inline constexpr std::string_view WHITE_SPACE{" \t\n\v\f\r"};
 
 // True if and only if the binary is compiled on a little-endian machine
 #if defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__)
@@ -388,7 +388,7 @@ constexpr T2 interpolate(T1 x, T1 x0, T1 x1, T2 y0, T2 y1) noexcept {
 [[nodiscard]] constexpr bool is_idigit(const int dg) noexcept { return 0 <= dg && dg <= 9; }
 [[nodiscard]] constexpr bool is_cdigit(const char ch) noexcept { return '0' <= ch && ch <= '9'; }
 [[nodiscard]] constexpr bool is_space(const char ch) noexcept {
-    return ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r' || ch == '\f' || ch == '\v';
+    return ch == ' ' || ch == '\t' || ch == '\n' || ch == '\v' || ch == '\f' || ch == '\r';
 }
 [[nodiscard]] constexpr bool is_lower(const char ch) noexcept { return 'a' <= ch && ch <= 'z'; }
 [[nodiscard]] constexpr bool is_upper(const char ch) noexcept { return 'A' <= ch && ch <= 'Z'; }
@@ -2035,15 +2035,17 @@ inline bool value_is_bool_string(std::string value) noexcept {
 }
 
 inline bool value_in_range(std::string_view sv, int minValue, int maxValue) noexcept {
-    const char* p   = sv.data();
-    const char* end = p + sv.size();
+    constexpr int Base = 10;
+
+    const char*       p   = sv.data();
+    const char* const end = p + sv.size();
     // Skip spaces
     for (; p != end && is_space(*p); ++p)
     {}
 
     int intValue = 0;
     // Parse decimal value (base 10) from string_view
-    auto [ptr, ec] = std::from_chars(p, end, intValue, 10);
+    auto [ptr, ec] = std::from_chars(p, end, intValue, Base);
     if (ec != std::errc{} || ptr != end)
         return false;
     // Check value is in range

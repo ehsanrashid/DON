@@ -45,12 +45,12 @@ namespace DON {
 // such that the recipient does not need to know whether the binding happened or not.
 class ThreadToNumaNodeBinder final {
    public:
-    ThreadToNumaNodeBinder(const NumaIndex numaIdx, const NumaConfig* numaCfgPtr) noexcept :
-        numaId(numaIdx),
-        numaConfigPtr(numaCfgPtr) {}
+    ThreadToNumaNodeBinder(const NumaConfig* const numaCfgPtr, const NumaIndex numaIdx) noexcept :
+        numaConfigPtr(numaCfgPtr),
+        numaId(numaIdx) {}
 
     explicit ThreadToNumaNodeBinder(const NumaIndex numaIdx) noexcept :
-        ThreadToNumaNodeBinder(numaIdx, nullptr) {}
+        ThreadToNumaNodeBinder(nullptr, numaIdx) {}
 
     NumaReplicatedAccessToken operator()() const noexcept {
         return numaConfigPtr != nullptr ? numaConfigPtr->bind_current_thread_to_numa_node(numaId)
@@ -58,8 +58,8 @@ class ThreadToNumaNodeBinder final {
     }
 
    private:
-    const NumaIndex         numaId;
     const NumaConfig* const numaConfigPtr;
+    const NumaIndex         numaId;
 };
 
 using WorkerPtr = LargePagePtr<Worker>;

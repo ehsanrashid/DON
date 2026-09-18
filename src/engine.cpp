@@ -166,7 +166,9 @@ void Engine::reset() noexcept {
 }
 
 void Engine::set_history_max_load_factor() noexcept {
+    atomicHistoriesMap.clear();
     atomicHistoriesMap.max_load_factor(max_load_factor(options()["HistoryLoadFactor"] / 100.0f));
+    atomicHistoriesMap.rehash(0);
 }
 
 void Engine::resize_threads_tt() noexcept {
