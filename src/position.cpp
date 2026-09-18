@@ -742,18 +742,17 @@ void Position::set_state() noexcept {
             Bitboard bb = pieces_bb(c, pt);
             while (bb != 0)
             {
-                const Key key = Zobrist::piece_square(c, pt, pop_lsq(bb));
+                const Square s = pop_lsq(bb);
+
+                const Key key = Zobrist::piece_square(c, pt, s);
                 assert(key != 0);
 
                 st->key ^= key;
 
-                if (pt != KING)
-                {
-                    if (pt == PAWN)
-                        st->pawnKeys[c] ^= key;
-                    else
-                        st->nonPawnKeys[c][is_major(pt)] ^= key;
-                }
+                if (pt == PAWN)
+                    st->pawnKeys[c] ^= key;
+                else if (pt != KING)
+                    st->nonPawnKeys[c][is_major(pt)] ^= key;
             }
         }
 

@@ -29,6 +29,7 @@
 #include <limits>
 #include <optional>
 #include <string>
+#include <system_error>  // error_code
 #include <type_traits>
 #include <utility>  // pair<>, swap()
 #include <vector>
