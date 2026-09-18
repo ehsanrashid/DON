@@ -209,6 +209,12 @@ struct BundledL3Policy {
 // Automatically select the NUMA policy
 using AutoNumaPolicy = std::variant<SystemNumaPolicy, L3DomainsPolicy, BundledL3Policy>;
 
+// The default configuration will attempt to group L3 domains up to 32 threads.
+// This size was found to be a good balance between the Elo gain of increased
+// history sharing and the speed loss from more cross-cache accesses.
+// The user can always explicitly override this behavior.
+inline constexpr AutoNumaPolicy NUMA_POLICY_DEFAULT = BundledL3Policy{32};
+
 CpuIndexVec parse_to_cpus(std::string_view sv) noexcept;
 
 // Designed as immutable, because there is no good reason to alter an already

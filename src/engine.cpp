@@ -17,12 +17,10 @@
 
 #include "engine.h"
 
-#include <algorithm>
 #include <cassert>
 #include <deque>
 #include <fstream>
 #include <iostream>
-#include <limits>
 #include <optional>
 
 #include "evaluate.h"
@@ -34,16 +32,6 @@
 #include "tablebase/syzygy.h"
 
 namespace DON {
-
-namespace {
-
-// The default configuration will attempt to group L3 domains up to 32 threads.
-// This size was found to be a good balance between the Elo gain of increased
-// history sharing and the speed loss from more cross-cache accesses.
-// The user can always explicitly override this behavior.
-constexpr AutoNumaPolicy NUMA_POLICY_DEFAULT = BundledL3Policy{32};
-
-}  // namespace
 
 Engine::Engine(const fs::path& path) noexcept :
     // clang-format off
