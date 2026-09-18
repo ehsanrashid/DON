@@ -587,14 +587,13 @@ std::ostream& operator<<(std::ostream& os, const FixedText& fixedText) noexcept 
     return os;
 }
 
-CommandLine::CommandLine(int argc, const char* argv[]) noexcept {
+CommandLine::CommandLine(const int argc, const char* const argv[]) noexcept {
 #if defined(_WIN32)
-    int     wide_argc;
-    LPWSTR* wide_argv = ::CommandLineToArgvW(::GetCommandLineW(), &wide_argc);
-
-    if (wide_argv != nullptr)
+    int wide_argc;
+    if (LPWSTR* wide_argv = ::CommandLineToArgvW(::GetCommandLineW(), &wide_argc);  //
+        wide_argv != nullptr)
     {
-        const usize utf8_argc = static_cast<usize>(wide_argc);
+        const usize utf8_argc = usize(wide_argc);
 
         utf8_arguments.reserve(utf8_argc);
 
@@ -607,12 +606,20 @@ CommandLine::CommandLine(int argc, const char* argv[]) noexcept {
 
         for (const auto& utf8_argv : utf8_arguments)
             arguments_.emplace_back(std::string_view{utf8_argv});
+
+        return;
     }
-    else
-        set_arguments(argc, argv);
-#else
-    set_arguments(argc, argv);
 #endif
+    set_arguments(argc, argv);
+}
+
+void CommandLine::set_arguments(const int argc, const char* const argv[]) noexcept {
+    const usize u_argc = usize(argc);
+
+    arguments_.reserve(u_argc);
+
+    for (usize i = 0; i < u_argc; ++i)
+        arguments_.emplace_back(argv[i]);  // Store non-owning views.
 }
 
 fs::path CommandLine::binary_directory(fs::path path) noexcept {
@@ -622,7 +629,7 @@ fs::path CommandLine::binary_directory(fs::path path) noexcept {
     // Windows paths cannot exceed 32767 characters, so a fixed buffer is sufficient.
     // Falls back to path if the API fails.
     Array<WCHAR, 0x8000> filename{};
-    const DWORD length = GetModuleFileNameW(nullptr, filename.data(), DWORD(filename.size()));
+    const DWORD length = ::GetModuleFileNameW(nullptr, filename.data(), DWORD(filename.size()));
     if (length != 0 && length < filename.size())
         path = fs::path{filename.data(), filename.data() + length};
 #endif
@@ -634,15 +641,6 @@ fs::path CommandLine::binary_directory(fs::path path) noexcept {
 fs::path CommandLine::working_directory() noexcept { return fs::current_path(); }
 
 const StringViews& CommandLine::arguments() const noexcept { return arguments_; }
-
-void CommandLine::set_arguments(int argc, const char* argv[]) noexcept {
-    const usize uargc = static_cast<usize>(argc);
-
-    arguments_.reserve(uargc);
-
-    for (usize i = 0; i < uargc; ++i)
-        arguments_.emplace_back(argv[i]);  // Store a view without copying the string.
-}
 
 StringViewBuf::StringViewBuf(const std::string_view sv) noexcept {
     // std::streambuf requires char* for the get area.

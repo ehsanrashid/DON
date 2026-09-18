@@ -1110,7 +1110,7 @@ std::ostream& operator<<(std::ostream& os, const FixedText& fixedText) noexcept;
 
 struct CommandLine final {
    public:
-    CommandLine(int argc, const char* argv[]) noexcept;
+    CommandLine(const int argc, const char* const argv[]) noexcept;
     CommandLine(const CommandLine&)            = delete;
     CommandLine& operator=(const CommandLine&) = delete;
     CommandLine(CommandLine&&)                 = default;
@@ -1124,7 +1124,7 @@ struct CommandLine final {
     [[nodiscard]] const StringViews& arguments() const noexcept;
 
    private:
-    void set_arguments(int argc, const char* argv[]) noexcept;
+    void set_arguments(const int argc, const char* const argv[]) noexcept;
 
     StringViews arguments_;
 #if defined(_WIN32)

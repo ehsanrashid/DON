@@ -1693,7 +1693,7 @@ endif
 ARCH_SUFFIX    = $(subst -,_,$(1))
 ARCH_NAMESPACE = DON_$(call ARCH_SUFFIX,$(1))
 # Itanium ABI mangled name for DON_<suffix>::main(int, char**)
-ARCH_MANGLED   = _ZN$(shell printf %s '$(call ARCH_NAMESPACE,$(1))' | wc -c | tr -d ' ')$(call ARCH_NAMESPACE,$(1))4mainEiPPKc
+ARCH_MANGLED   = _ZN$(shell printf %s '$(call ARCH_NAMESPACE,$(1))' | wc -c | tr -d ' ')$(call ARCH_NAMESPACE,$(1))4mainEiPKPKc
 # Mach-O initializer section name: strip the "x86-64" or "x86-64-" prefix,
 # replace remaining '-' with '_', and prefix with "_i_".
 # Mach-O section names are limited to 16 characters, hence this naming scheme.
