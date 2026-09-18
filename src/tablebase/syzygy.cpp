@@ -122,7 +122,7 @@ constexpr Array<int  , WDL_SCORE_NB> WDL_MAP  {        1,              3,       
 constexpr Array<i32  , WDL_SCORE_NB> WDL_RANK {-DTZ_MAX , -DTZ_MAX + 101,          0, +DTZ_MAX - 101, +DTZ_MAX };
 constexpr Array<Value, WDL_SCORE_NB> WDL_VALUE{-VALUE_TB, VALUE_DRAW - 2, VALUE_DRAW, VALUE_DRAW + 2, +VALUE_TB};
 
-constexpr usize wdl_index(WDLScore wdlScore) noexcept { return static_cast<usize>(wdlScore - WDL_LOSS); }
+constexpr usize wdl_index(const WDLScore wdlScore) noexcept { return usize(wdlScore - WDL_LOSS); }
 
 [[maybe_unused]] constexpr int off_A1H8(const Square s) noexcept { return int(rank_of(s)) - int(file_of(s)); }
 [[maybe_unused]] constexpr int off_A8H1(const Square s) noexcept { return int(rank_of(s)) + int(file_of(s)); }
@@ -565,7 +565,7 @@ TableData make_table_data(const std::string_view code) noexcept {
     err = pos.set(code, WHITE, &st);
     (void) err;
 
-    tableData.key[WHITE] = pos.material_key<false>();
+    tableData.key[WHITE] = pos.material_key();
 
     tableData.pieceCount = pos.count();
 
@@ -592,7 +592,7 @@ TableData make_table_data(const std::string_view code) noexcept {
     err = pos.set(code, BLACK, &st);
     (void) err;
 
-    tableData.key[BLACK] = pos.material_key<false>();
+    tableData.key[BLACK] = pos.material_key();
 
     return tableData;
 }
@@ -1761,7 +1761,7 @@ Ret probe_table(const Position&   pos,
                 ProbeState* const ps,
                 const WDLScore    wdlScore = WDL_DRAW) noexcept {
 
-    const Key materialKey = pos.material_key<true>();
+    const Key materialKey = pos.material_key();
 
     if (materialKey == 0)  // KvK, pos.count() == 2
         return Ret(WDL_DRAW);

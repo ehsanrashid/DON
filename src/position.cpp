@@ -42,8 +42,10 @@ Array<Key, FILE_NB>                                 Enpassant;
 Key                                                 Turn;
 Array<Key, 64>                                      MR50;
 
-constexpr u8 R50_OFFSET = 14;
-constexpr u8 R50_FACTOR = 8;
+constexpr u8 PAWN_OFFSET = u8{8};
+
+constexpr u8 R50_OFFSET = u8{14};
+constexpr u8 R50_FACTOR = u8{8};
 
 }  // namespace
 
@@ -80,6 +82,13 @@ Key piece_square(const Piece pc, const Square s) noexcept {
     assert(is_ok(s));
 
     return piece_square(color_of(pc), type_of(pc), s);
+}
+
+Key piece_count(const Color c, const PieceType pt, const u8 cnt) noexcept {
+    const Square s = Square(PAWN_OFFSET + cnt);
+    assert(is_ok(s));
+
+    return Zobrist::piece_square(c, pt, s);
 }
 
 Key castling(const CastlingRights cr) noexcept {
@@ -221,9 +230,8 @@ class CuckooTable final {
 
 CuckooTable<0x2000> Cuckoos;
 
-ConcurrentCache<Key, Value> NonPawnValueCache(256 * KB, 0.75f);
-ConcurrentCache<Key, Value> MaterialValueCache(512 * KB, 0.75f);
-ConcurrentCache<Key, Key>   MaterialKeyCache(128 * KB, 0.75f);
+ConcurrentCache<Key, Value> NonPawnValueCache(128 * KB, 0.75f);
+ConcurrentCache<Key, Value> MaterialValueCache(256 * KB, 0.75f);
 
 }  // namespace
 
@@ -237,7 +245,6 @@ void Position::init() noexcept {
 void Position::reset() noexcept {
     NonPawnValueCache.reset();
     MaterialValueCache.reset();
-    MaterialKeyCache.reset();
 }
 
 void Position::clear() noexcept {
@@ -568,7 +575,7 @@ std::optional<Error> Position::set(const std::string_view fens, State* const new
     if ((acc_attacks_bb() & square<KING>(~active_color())) != 0)
         return Error{"Invalid FEN: king can be captured."};
 
-    assert(_is_ok());
+    assert(is_ok_());
     return std::nullopt;
 }
 
@@ -726,9 +733,11 @@ void Position::set_state() noexcept {
     assert(st->pawnKeys[WHITE] == 0 && st->pawnKeys[BLACK] == 0);
     assert(st->nonPawnKeys[WHITE][0] == 0 && st->nonPawnKeys[BLACK][0] == 0);
     assert(st->nonPawnKeys[WHITE][1] == 0 && st->nonPawnKeys[BLACK][1] == 0);
+    assert(st->materialKeys[WHITE] == 0 && st->materialKeys[BLACK] == 0);
 
-    for (Color c : {WHITE, BLACK})
-        for (PieceType pt : PIECE_TYPES)
+    for (const Color c : {WHITE, BLACK})
+    {
+        for (const auto pt : PIECE_TYPES)
         {
             Bitboard bb = pieces_bb(c, pt);
             while (bb != 0)
@@ -747,6 +756,9 @@ void Position::set_state() noexcept {
                 }
             }
         }
+
+        st->materialKeys[c] ^= compute_material_key(c);
+    }
 
     st->key ^= Zobrist::castling(castling_rights());
 
@@ -1050,6 +1062,8 @@ Dirties Position::do_move(const Move          m,
 
         // Update hash key
         st->key ^= capturedKey;
+
+        st->materialKeys[~ac] ^= Zobrist::piece_count(~ac, capturedPt, count(~ac, capturedPt) - 1);
         // Reset rule 50 draw counter
         reset_rule50_count();
     }
@@ -1064,7 +1078,7 @@ Dirties Position::do_move(const Move          m,
 
             promotion = true;
 
-            auto promotedPt = m.promotion_type();
+            const auto promotedPt = m.promotion_type();
             assert(KNIGHT <= promotedPt && promotedPt <= QUEEN);
 
             promotedPc = make_piece(ac, promotedPt);
@@ -1075,13 +1089,16 @@ Dirties Position::do_move(const Move          m,
             dP->addedSq = dstSq;
             dP->addedPc = promotedPc;
 
+            assert(count(ac, PAWN) != 0);
             assert(Zobrist::piece_square(ac, PAWN, dstSq) == 0);
 
-            Key promoKey = Zobrist::piece_square(ac, promotedPt, dstSq);
+            const Key promoKey = Zobrist::piece_square(ac, promotedPt, dstSq);
 
             // Update hash keys
             st->key ^= promoKey;
             st->nonPawnKeys[ac][is_major(promotedPt)] ^= promoKey;
+            st->materialKeys[ac] ^= Zobrist::piece_count(ac, PAWN, count(ac, PAWN) - 1)
+                                  ^ Zobrist::piece_count(ac, promotedPt, count(ac, promotedPt));
         }
         // Set en-passant square if the moved pawn can be captured
         else if ((int(dstSq) ^ int(orgSq)) == +Direction::NORTH_2)
@@ -1208,7 +1225,7 @@ Dirties Position::do_move(const Move          m,
     st->capturedPc = capturedPc;
     st->promotedPc = promotedPc;
 
-    assert(_is_ok());
+    assert(is_ok_());
 
     assert(is_ok(dP->movedPc));
     assert(is_ok(dP->orgSq));
@@ -1294,7 +1311,7 @@ void Position::undo_move(const Move m) noexcept {
     st = const_cast<State*>(st->preSt);
 
     assert(legal(m));
-    assert(_is_ok());
+    assert(is_ok_());
 }
 
 void Position::do_null_move(State& newSt) noexcept {
@@ -1321,7 +1338,7 @@ void Position::do_null_move(State& newSt) noexcept {
     st->capturedPc = Piece::NO_PIECE;
     st->promotedPc = Piece::NO_PIECE;
 
-    assert(_is_ok());
+    assert(is_ok_());
 }
 
 void Position::undo_null_move() noexcept {
@@ -1335,7 +1352,7 @@ void Position::undo_null_move() noexcept {
 
     st = const_cast<State*>(st->preSt);
 
-    assert(_is_ok());
+    assert(is_ok_());
 }
 
 bool Position::legal(const Move m) const noexcept {
@@ -1549,7 +1566,7 @@ bool Position::fork(const Move m) const noexcept {
 
 Value Position::non_pawn_value(const Color c) const noexcept {
     return NonPawnValueCache.access_or_build_with(
-      minor_key(c) ^ major_key(c),
+      material_key(c),
       [this](const Color _c) noexcept -> Value {
           Value nonPawnValue = VALUE_ZERO;
 
@@ -1563,32 +1580,8 @@ Value Position::non_pawn_value(const Color c) const noexcept {
 
 Value Position::material() const noexcept {
     return MaterialValueCache.access_or_build_with(
-      non_king_key(), [this]() noexcept -> Value { return 534 * count(PAWN) + non_pawn_value(); });
+      material_key(), [this]() noexcept -> Value { return 534 * count(PAWN) + non_pawn_value(); });
 }
-
-template<bool Cache>
-Key Position::material_key() const noexcept {
-    const auto material_key_builder = [this]() noexcept -> Key {
-        Key materialKey = 0;
-
-        for (const Color c : {WHITE, BLACK})
-            for (const auto pt : EX_KING_PIECE_TYPES)
-                if (const auto cnt = count(c, pt); cnt != 0)
-                    materialKey ^=
-                      Zobrist::piece_square(c, pt, Square(Zobrist::PAWN_OFFSET + cnt - 1));
-
-        return materialKey;
-    };
-
-    if constexpr (Cache)
-        return MaterialKeyCache.access_or_build_with(non_king_key(), material_key_builder);
-    else
-        return material_key_builder();
-}
-
-// Explicit template instantiations:
-template Key Position::material_key<false>() const noexcept;
-template Key Position::material_key<true>() const noexcept;
 
 Key Position::move_key(const Move m) const noexcept {
     Key moveKey = st->key ^ Zobrist::turn() ^ Zobrist::enpassant(en_passant_sq());
@@ -2116,6 +2109,16 @@ std::optional<Error> Position::mirror() noexcept {
     return set(fens, st);
 }
 
+Key Position::compute_material_key(const Color c) const noexcept {
+    Key materialKey = 0;
+
+    for (const auto pt : EX_KING_PIECE_TYPES)
+        for (u8 cnt = 0; cnt < count(c, pt); ++cnt)
+            materialKey ^= Zobrist::piece_count(c, pt, cnt);
+
+    return materialKey;
+}
+
 #if !defined(NDEBUG)
 
 Key Position::compute_key() const noexcept {
@@ -2124,8 +2127,8 @@ Key Position::compute_key() const noexcept {
     Bitboard bb = pieces_bb();
     while (bb != 0)
     {
-        Square s  = pop_lsq(bb);
-        Piece  pc = piece(s);
+        const Square s  = pop_lsq(bb);
+        const Piece  pc = piece(s);
 
         key ^= Zobrist::piece_square(pc, s);
     }
@@ -2140,18 +2143,39 @@ Key Position::compute_key() const noexcept {
     return key;
 }
 
+Key Position::compute_pawn_key() const noexcept {
+    Key pawnKey = 0;
+
+    Bitboard bb = pieces_bb();
+    while (bb != 0)
+    {
+        const Square s  = pop_lsq(bb);
+        const Piece  pc = piece(s);
+        const auto   pt = type_of(pc);
+
+        if (pt != PAWN)
+            continue;
+
+        pawnKey ^= Zobrist::piece_square(pc, s);
+    }
+
+    return pawnKey;
+}
+
 Key Position::compute_minor_key() const noexcept {
     Key minorKey = 0;
 
     Bitboard bb = pieces_bb();
     while (bb != 0)
     {
-        Square s  = pop_lsq(bb);
-        Piece  pc = piece(s);
-        auto   pt = type_of(pc);
+        const Square s  = pop_lsq(bb);
+        const Piece  pc = piece(s);
+        const auto   pt = type_of(pc);
 
-        if (pt != PAWN && pt != KING && !is_major(pt))
-            minorKey ^= Zobrist::piece_square(color_of(pc), pt, s);
+        if (pt == PAWN || pt == KING || is_major(pt))
+            continue;
+
+        minorKey ^= Zobrist::piece_square(pc, s);
     }
 
     return minorKey;
@@ -2163,12 +2187,14 @@ Key Position::compute_major_key() const noexcept {
     Bitboard bb = pieces_bb();
     while (bb != 0)
     {
-        Square s  = pop_lsq(bb);
-        Piece  pc = piece(s);
-        auto   pt = type_of(pc);
+        const Square s  = pop_lsq(bb);
+        const Piece  pc = piece(s);
+        const auto   pt = type_of(pc);
 
-        if (pt != PAWN && pt != KING && is_major(pt))
-            majorKey ^= Zobrist::piece_square(color_of(pc), pt, s);
+        if (pt == PAWN || pt == KING || !is_major(pt))
+            continue;
+
+        majorKey ^= Zobrist::piece_square(pc, s);
     }
 
     return majorKey;
@@ -2180,61 +2206,73 @@ Key Position::compute_non_pawn_key() const noexcept {
     Bitboard bb = pieces_bb();
     while (bb != 0)
     {
-        Square s  = pop_lsq(bb);
-        Piece  pc = piece(s);
-        auto   pt = type_of(pc);
+        const Square s  = pop_lsq(bb);
+        const Piece  pc = piece(s);
+        const auto   pt = type_of(pc);
 
-        if (pt != PAWN)
-            nonPawnKey ^= Zobrist::piece_square(color_of(pc), pt, s);
+        if (pt == PAWN)
+            continue;
+
+        nonPawnKey ^= Zobrist::piece_square(pc, s);
     }
 
     return nonPawnKey;
 }
 
-bool Position::_is_ok() const noexcept {
+Key Position::compute_material_key() const noexcept {
+    return compute_material_key(WHITE) ^ compute_material_key(BLACK);
+}
 
-    constexpr bool QuickCheck = false;  // Quick or full check?
+bool Position::is_ok_() const noexcept {
+
+    constexpr bool Quick = false;  // Quick or full check?
 
     if (!is_ok(active_color())                                 //
         || count(WHITE, KING) != 1 || count(BLACK, KING) != 1  //
         || piece(square<KING>(WHITE)) != Piece::W_KING         //
         || piece(square<KING>(BLACK)) != Piece::B_KING         //
         || distance(square<KING>(WHITE), square<KING>(BLACK)) <= 1)
-        assert(false && "Position::_is_ok(): Default");
+        assert(false && "Position::is_ok_(): Default");
 
     if (is_ok(en_passant_sq())
         && (relative_rank(active_color(), en_passant_sq()) != RANK_6
             || !enpassant_possible(active_color(), en_passant_sq())))
-        assert(false && "Position::_is_ok(): En-Passant Square");
+        assert(false && "Position::is_ok_(): En-Passant Square");
 
     if (raw_key() != compute_key())
-        assert(false && "Position::_is_ok(): Raw Key");
+        assert(false && "Position::is_ok_(): Raw Key");
 
-    if (QuickCheck)
+    if (material_key() != compute_material_key())
+        assert(false && "Position::is_ok_(): Material Key");
+
+    if (Quick)
         return true;
 
+    if (pawn_key() != compute_pawn_key())
+        assert(false && "Position::is_ok_(): Pawn Key");
+
     if (minor_key() != compute_minor_key())
-        assert(false && "Position::_is_ok(): Minor Key");
+        assert(false && "Position::is_ok_(): Minor Key");
 
     if (major_key() != compute_major_key())
-        assert(false && "Position::_is_ok(): Major Key");
+        assert(false && "Position::is_ok_(): Major Key");
 
     if (non_pawn_key() != compute_non_pawn_key())
-        assert(false && "Position::_is_ok(): NonPawn Key");
+        assert(false && "Position::is_ok_(): NonPawn Key");
 
     if ((PROMOTION_RANKS_BB & pieces_bb(PAWN)) != 0  //
         || count(WHITE, PAWN) > 8 || count(BLACK, PAWN) > 8)
-        assert(false && "Position::_is_ok(): Pawns");
+        assert(false && "Position::is_ok_(): Pawns");
 
     if ((pieces_bb(WHITE) & pieces_bb(BLACK)) != 0
         || (pieces_bb(WHITE) | pieces_bb(BLACK)) != pieces_bb()  //
         || popcount(pieces_bb(WHITE)) > 16 || popcount(pieces_bb(BLACK)) > 16)
-        assert(false && "Position::_is_ok(): Bitboards");
+        assert(false && "Position::is_ok_(): Bitboards");
 
     for (PieceType p1 : PIECE_TYPES)
         for (PieceType p2 : PIECE_TYPES)
             if (p1 != p2 && (pieces_bb(p1) & pieces_bb(p2)))
-                assert(false && "Position::_is_ok(): Bitboards");
+                assert(false && "Position::is_ok_(): Bitboards");
 
     for (Color c : {WHITE, BLACK})
         for (PieceType pt : PIECE_TYPES)
@@ -2243,7 +2281,7 @@ bool Position::_is_ok() const noexcept {
             if (auto cnt = count(c, pt);
                 cnt != popcount(pieces_bb(c, pt))
                 || cnt != std::count(piece_map().begin(), piece_map().end(), pc))
-                assert(false && "Position::_is_ok(): Piece Map");
+                assert(false && "Position::is_ok_(): Piece Map");
         }
 
     for (Color c : {WHITE, BLACK})
@@ -2254,7 +2292,7 @@ bool Position::_is_ok() const noexcept {
               + std::max(count(c, ROOK) - 2, 0)                                      //
               + std::max(count(c, QUEEN) - 1, 0)                                     //
             > 8)
-            assert(false && "Position::_is_ok(): Piece Count");
+            assert(false && "Position::is_ok_(): Piece Count");
 
     for (Color c : {WHITE, BLACK})
         for (CastlingSide cs : {CastlingSide::KING, CastlingSide::QUEEN})
@@ -2268,11 +2306,11 @@ bool Position::_is_ok() const noexcept {
                 || (pieces_bb(c, ROOK) & castling_rook_sq(c, cs)) == 0
                 || (castling_rights_mask(castling_rook_sq(c, cs))) != cr
                 || (castling_rights_mask(square<KING>(c)) & cr) != cr)
-                assert(false && "Position::_is_ok(): Castling");
+                assert(false && "Position::is_ok_(): Castling");
         }
 
     if ((acc_attacks_bb() & square<KING>(~active_color())) != 0)
-        assert(false && "Position::_is_ok(): King Checker");
+        assert(false && "Position::is_ok_(): King Checker");
 
     return true;
 }

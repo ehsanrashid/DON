@@ -74,16 +74,19 @@ namespace DON {
 //   key ^= Zobrist::turn();
 namespace Zobrist {
 
-constexpr u8 PAWN_OFFSET = u8{8};
-
 void init() noexcept;
 
 Key piece_square(Color c, PieceType pt, Square s) noexcept;
 Key piece_square(Piece pc, Square s) noexcept;
 
+Key piece_count(Color c, const PieceType pt, const u8 cnt) noexcept;
+
 Key castling(CastlingRights cr) noexcept;
+
 Key enpassant(Square enPassantSq) noexcept;
+
 Key turn() noexcept;
+
 Key mr50(i16 rule50Count) noexcept;
 
 }  // namespace Zobrist
@@ -106,6 +109,7 @@ struct State final {
     Key                     key;
     Array<Key, COLOR_NB>    pawnKeys;
     Array<Key, COLOR_NB, 2> nonPawnKeys;
+    Array<Key, COLOR_NB>    materialKeys;
     Array<bool, COLOR_NB>   hasCastleds;
 
     u16            rule50Count;
@@ -311,11 +315,10 @@ class Position final {
     [[nodiscard]] Key major_key() const noexcept;
     [[nodiscard]] Key non_pawn_key(Color c) const noexcept;
     [[nodiscard]] Key non_pawn_key() const noexcept;
+    [[nodiscard]] Key material_key(Color c) const noexcept;
+    [[nodiscard]] Key material_key() const noexcept;
 
     [[nodiscard]] Key non_king_key() const noexcept;
-
-    template<bool Cache>
-    [[nodiscard]] Key material_key() const noexcept;
 
     // Computes the new hash key after the given move.
     // Needed for speculative prefetch.
@@ -370,18 +373,22 @@ class Position final {
     // Mirrors the current position
     std::optional<Error> mirror() noexcept;
 
+    [[nodiscard]] Key compute_material_key(Color c) const noexcept;
+
     // Position consistency check, for debugging
 #if !defined(NDEBUG)
     // Computes the hash key of the current position
     [[nodiscard]] Key compute_key() const noexcept;
+    [[nodiscard]] Key compute_pawn_key() const noexcept;
     [[nodiscard]] Key compute_minor_key() const noexcept;
     [[nodiscard]] Key compute_major_key() const noexcept;
     [[nodiscard]] Key compute_non_pawn_key() const noexcept;
+    [[nodiscard]] Key compute_material_key() const noexcept;
 
     // Performs some consistency checks for the position object
     // and raise an assert if something wrong is detected.
     // This is meant to be helpful when debugging.
-    [[nodiscard]] bool _is_ok() const noexcept;
+    [[nodiscard]] bool is_ok_() const noexcept;
 #endif
 
     // Used by NNUE
@@ -502,29 +509,29 @@ inline const auto& Position::type_bbs() const noexcept { return typeBBs; }
 
 inline const auto& Position::color_bbs() const noexcept { return colorBBs; }
 
-inline Piece Position::operator[](Square s) const noexcept { return pieceMap[s]; }
+inline Piece Position::operator[](const Square s) const noexcept { return pieceMap[s]; }
 
-inline Bitboard Position::operator[](PieceType pt) const noexcept { return typeBBs[pt]; }
+inline Bitboard Position::operator[](const PieceType pt) const noexcept { return typeBBs[pt]; }
 
-inline Bitboard Position::operator[](Color c) const noexcept { return colorBBs[c]; }
+inline Bitboard Position::operator[](const Color c) const noexcept { return colorBBs[c]; }
 
-inline Piece Position::piece(Square s) const noexcept { return pieceMap[s]; }
+inline Piece Position::piece(const Square s) const noexcept { return pieceMap[s]; }
 
-inline bool Position::empty(Square s) const noexcept { return piece(s) == Piece::NO_PIECE; }
+inline bool Position::empty(const Square s) const noexcept { return piece(s) == Piece::NO_PIECE; }
 
 template<typename... PieceTypes>
 inline Bitboard Position::pieces_bb(PieceTypes... pts) const noexcept {
     return (typeBBs[pts] | ...);
 }
 
-inline Bitboard Position::pieces_bb(Color c) const noexcept { return colorBBs[c]; }
+inline Bitboard Position::pieces_bb(const Color c) const noexcept { return colorBBs[c]; }
 
 template<typename... PieceTypes>
-inline Bitboard Position::pieces_bb(Color c, PieceTypes... pts) const noexcept {
+inline Bitboard Position::pieces_bb(const Color c, PieceTypes... pts) const noexcept {
     return pieces_bb(c) & pieces_bb(pts...);
 }
 
-inline Bitboard Position::pieces_bb(Piece pc) const noexcept {
+inline Bitboard Position::pieces_bb(const Piece pc) const noexcept {
     return pieces_bb(color_of(pc), type_of(pc));
 }
 
@@ -535,19 +542,21 @@ inline u8 Position::count(PieceTypes... pts) const noexcept {
     return popcount(pieces_bb(pts...));
 }
 
-inline u8 Position::count(Color c) const noexcept { return popcount(pieces_bb(c)); }
+inline u8 Position::count(const Color c) const noexcept { return popcount(pieces_bb(c)); }
 
 template<typename... PieceTypes>
-inline u8 Position::count(Color c, PieceTypes... pts) const noexcept {
+inline u8 Position::count(const Color c, PieceTypes... pts) const noexcept {
     return popcount(pieces_bb(c, pts...));
 }
 
-inline u8 Position::count(Piece pc) const noexcept { return count(color_of(pc), type_of(pc)); }
+inline u8 Position::count(const Piece pc) const noexcept {
+    return count(color_of(pc), type_of(pc));
+}
 
 inline u8 Position::count() const noexcept { return popcount(pieces_bb()); }
 
 template<PieceType PT>
-inline Square Position::square(Color c) const noexcept {
+inline Square Position::square(const Color c) const noexcept {
     assert(count(c, PT) == 1);
 
     return lsq(pieces_bb(c, PT));
@@ -776,6 +785,12 @@ inline Key Position::non_pawn_key(const Color c) const noexcept {
 
 inline Key Position::non_pawn_key() const noexcept {
     return non_pawn_key(WHITE) ^ non_pawn_key(BLACK);
+}
+
+inline Key Position::material_key(const Color c) const noexcept { return st->materialKeys[c]; }
+
+inline Key Position::material_key() const noexcept {
+    return material_key(WHITE) ^ material_key(BLACK);
 }
 
 inline Key Position::non_king_key() const noexcept {
