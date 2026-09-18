@@ -75,7 +75,7 @@ class Thread final {
     //
     // Responsibilities:
     //   - Initializes thread and NUMA-related identifiers.
-    //   - Optionally starts the thread immediately (if autoStart is true).
+    //   - Starts the thread immediately.
     //      * The thread will execute idle_func() and go to sleep.
     //      * The constructor waits until the thread reaches the idle state to ensure
     //        it is ready to accept jobs safely.
@@ -90,8 +90,7 @@ class Thread final {
     Thread(ThreadContext                 threadCxt,
            const ThreadToNumaNodeBinder& nodeBinder,
            const SharedState&            sharedState,
-           ManagerPtr                    manager,
-           bool                          autoStart = true) noexcept;
+           ManagerPtr                    manager) noexcept;
 
     // Destructor: ensures the thread is properly terminated and joined.
     ~Thread() noexcept;

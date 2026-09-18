@@ -565,15 +565,18 @@ FixedText& FixedText::write(const std::string_view sv) noexcept {
         return *this;
 
     std::memcpy(end(), sv.data(), sv.size());
-    size_ += static_cast<u8>(sv.size());
+    size_ += u8(sv.size());
 
     return *this;
 }
 
 FixedText& FixedText::write(const int v) noexcept {
-    auto [ptr, ec] = std::to_chars(end(), begin() + capacity(), v);
+    constexpr int Base = 10;
+
+    auto [ptr, ec] = std::to_chars(end(), begin() + capacity(), v, Base);
     assert(ec == std::errc{});
-    size_ = static_cast<u8>(ptr - begin());
+
+    size_ = u8(ptr - begin());
 
     return *this;
 }
@@ -586,24 +589,24 @@ std::ostream& operator<<(std::ostream& os, const FixedText& fixedText) noexcept 
 
 CommandLine::CommandLine(int argc, const char* argv[]) noexcept {
 #if defined(_WIN32)
-    int     wargc = 0;
-    LPWSTR* wargv = CommandLineToArgvW(GetCommandLineW(), &wargc);
+    int     wide_argc;
+    LPWSTR* wide_argv = ::CommandLineToArgvW(::GetCommandLineW(), &wide_argc);
 
-    if (wargv != nullptr)
+    if (wide_argv != nullptr)
     {
-        const usize utf8_argc = static_cast<usize>(wargc);
+        const usize utf8_argc = static_cast<usize>(wide_argc);
 
         utf8_arguments.reserve(utf8_argc);
 
         for (usize i = 0; i < utf8_argc; ++i)
-            utf8_arguments.emplace_back(utf8_from_wstring(wargv[i]));
+            utf8_arguments.emplace_back(utf8_from_wstring(wide_argv[i]));
 
-        LocalFree(wargv);
+        ::LocalFree(wide_argv);
 
         arguments_.reserve(utf8_arguments.size());
 
-        for (const auto& utf8_arg : utf8_arguments)
-            arguments_.emplace_back(utf8_arg);
+        for (const auto& utf8_argv : utf8_arguments)
+            arguments_.emplace_back(std::string_view{utf8_argv});
     }
     else
         set_arguments(argc, argv);
@@ -1396,7 +1399,7 @@ fs::path path_from_utf8(const std::string_view path) noexcept {
 
     const int wideSize = ::MultiByteToWideChar(CP_UTF8, 0, path.data(), pathSize, nullptr, 0);
 
-    std::wstring wideStr(static_cast<usize>(wideSize), L'\0');
+    std::wstring wideStr(usize(wideSize), L'\0');
     ::MultiByteToWideChar(CP_UTF8, 0, path.data(), pathSize, wideStr.data(), wideSize);
     return {wideStr};
 #else

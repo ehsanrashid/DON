@@ -55,9 +55,9 @@ using namespace DON;
 
 int main() {
 
-    std::vector<std::unique_ptr<NativeThread>> threads;
+    constexpr usize MaxAttempt = 10000;
 
-    constexpr usize MaxAttempt = 10000;  // upper bound
+    std::vector<std::unique_ptr<NativeThread>> threads;
 
     bool failureObserved = false;
 
@@ -107,7 +107,8 @@ int main() {
     if (!failureObserved)
     {
         std::cerr
-          << "No thread-creation failure observed. Run this test in constrained environment to provoke failure.\n";
+          << "No thread-creation failure observed. Run this test in constrained environment to provoke failure."
+          << std::endl;
         // Return non-zero so CI can detect "no failure observed" if that is the expectation.
         return 2;
     }

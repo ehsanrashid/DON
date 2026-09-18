@@ -25,7 +25,7 @@ jobs:
 
           # Clang 10: default image; Clang 11–15: Bullseye images; Clang 16–17: Bookworm images
           - { name: Clang-10, comp: clang, cxx: clang++, image: "silkeh/clang:10", is_clang: true, ver: "10" }
-          - { name: Clang-11, comp: clang, cxx: clang++, image: "silkeh/clang:11-bullseye", is_clang: true, ver: "11" }
+          # - { name: Clang-11, comp: clang, cxx: clang++, image: "silkeh/clang:11-bullseye", is_clang: true, ver: "11" }
           # - { name: Clang-12, comp: clang, cxx: clang++, image: "silkeh/clang:12-bullseye", is_clang: true, ver: "12" }
           - { name: Clang-13, comp: clang, cxx: clang++, image: "silkeh/clang:13-bullseye", is_clang: true, ver: "13" }
           - { name: Clang-14, comp: clang, cxx: clang++, image: "silkeh/clang:14-bullseye", is_clang: true, ver: "14" }

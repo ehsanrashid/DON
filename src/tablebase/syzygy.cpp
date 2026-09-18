@@ -618,7 +618,7 @@ struct TBTable final: BaseTBTable {
 
     ~TBTable() noexcept override;
 
-    void* init(const Position& pos, Key materialKey) noexcept;
+    void* init(const Position& pos) noexcept;
 
     u8* map(std::string_view filename, usize* size) noexcept;
 
@@ -680,10 +680,10 @@ TBTable<T>::~TBTable() noexcept {
 // Called at every probe, memory map, and init only at first access.
 // Function is thread safe and can be called concurrently.
 template<TBType T>
-void* TBTable<T>::init(const Position& pos, const Key materialKey) noexcept {
+void* TBTable<T>::init(const Position& pos) noexcept {
     // Wait until initialization has completed.
     while (!initCallOnce.once_done())
-        initCallOnce([this, &pos, materialKey]() noexcept -> void {
+        initCallOnce([this, &pos]() noexcept -> void {
             // Pieces strings in decreasing order for each color, like ("KPP", "KR").
             Array<std::string, COLOR_NB> pieces{};
 
@@ -691,7 +691,7 @@ void* TBTable<T>::init(const Position& pos, const Key materialKey) noexcept {
                 for (usize i = PIECE_TYPES.size(); i-- > 0;)
                     pieces[c].append(pos.count(c, PIECE_TYPES[i]), to_char(PIECE_TYPES[i]));
 
-            const Color c = key[WHITE] == materialKey ? WHITE : BLACK;
+            const Color c = key[WHITE] == pos.material_key() ? WHITE : BLACK;
 
             std::string base;
             base.reserve(pieces[WHITE].size() + 1 + pieces[BLACK].size());
@@ -1510,7 +1510,6 @@ int map_score(TBTable<DTZ>* table, const File f, const WDLScore wdlScore, int va
 template<typename T, typename Ret = typename T::Ret>
 Ret do_probe_table(T*                table,
                    const Position&   pos,
-                   const Key         materialKey,
                    const WDLScore    wdlScore,
                    ProbeState* const ps) noexcept {
     // A given TB entry like KRK has associated two material keys: KRvk and Kvkr.
@@ -1523,7 +1522,7 @@ Ret do_probe_table(T*                table,
     // have KRvK, not KvKR. A position where the stronger side is white will have
     // its material key == table->key[WHITE], otherwise have to switch the color
     // and flip the squares before to lookup.
-    bool blackStronger = materialKey != table->key[WHITE];
+    bool blackStronger = pos.material_key() != table->key[WHITE];
 
     bool flip = blackSymmetric || blackStronger;
 
@@ -1768,13 +1767,13 @@ Ret probe_table(const Position&   pos,
 
     TBTable<T>* table = tbTables.get<T>(materialKey);
 
-    if (table == nullptr || table->init(pos, materialKey) == nullptr)
+    if (table == nullptr || table->init(pos) == nullptr)
     {
         *ps = PS_FAIL;
         return Ret();
     }
 
-    return do_probe_table(table, pos, materialKey, wdlScore, ps);
+    return do_probe_table(table, pos, wdlScore, ps);
 }
 
 // For position where the side to move has a winning capture it is not necessary to

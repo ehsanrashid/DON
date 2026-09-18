@@ -230,8 +230,8 @@ class CuckooTable final {
 
 CuckooTable<0x2000> Cuckoos;
 
-ConcurrentCache<Key, Value> NonPawnValueCache(128 * KB, 0.75f);
-ConcurrentCache<Key, Value> MaterialValueCache(256 * KB, 0.75f);
+ConcurrentCache<Key, Value> NonPawnValueCache(32 * KB, 0.75f);
+ConcurrentCache<Key, Value> MaterialValueCache(16 * KB, 0.75f);
 
 }  // namespace
 
@@ -243,8 +243,8 @@ void Position::init() noexcept {
 }
 
 void Position::reset() noexcept {
-    NonPawnValueCache.reset();
-    MaterialValueCache.reset();
+    //NonPawnValueCache.reset();
+    //MaterialValueCache.reset();
 }
 
 void Position::clear() noexcept {

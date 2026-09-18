@@ -43,8 +43,7 @@ namespace DON {
 Thread::Thread(ThreadContext                 threadCxt,
                const ThreadToNumaNodeBinder& nodeBinder,
                const SharedState&            sharedState,
-               ManagerPtr                    manager,
-               bool                          autoStart) noexcept :
+               ManagerPtr                    manager) noexcept :
     context(std::move(threadCxt)) {
     assert(numa_thread_count() != 0 && numa_id() < numa_thread_count());
     //DEBUG_LOG("Creating Thread id: " << thread_id() << "/" << thread_count() << " on NUMA node " << numa_id() << "/" << numa_thread_count());
@@ -58,8 +57,7 @@ Thread::Thread(ThreadContext                 threadCxt,
 
     // Start the thread only after full initialization
     // Launch thread and wait until idle_func() puts it to sleep
-    if (autoStart)
-        start();
+    start();
 }
 
 Thread::~Thread() noexcept {
@@ -253,7 +251,7 @@ void Threads::set(const NumaConfig&             numaConfig,
             auto manager = threadId == 0 ? std::make_unique<Manager>(updateContext) : nullptr;
 
             auto newThread = std::make_unique<Thread>(std::move(threadContext), nodeBinder,
-                                                      sharedState, std::move(manager), true);
+                                                      sharedState, std::move(manager));
             // Mutate threads list under write lock to avoid races
             {
                 std::lock_guard writeLock(mutex);

@@ -92,7 +92,7 @@ Key mr50(i16 rule50Count) noexcept;
 }  // namespace Zobrist
 
 // State struct stores information needed to restore Position object
-// to its previous state when retract any move. (Size = 256)
+// to its previous state when retract any move. (Size = 272)
 struct State final {
    public:
     State() noexcept                           = default;
