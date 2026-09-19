@@ -1222,6 +1222,23 @@ class RelaxedAtomic final {
         }
     }
 
+    bool compare_exchange_strong(T& expected, T desired) noexcept {
+        if constexpr (UseAtomic)
+            return value.compare_exchange_strong(expected, desired, std::memory_order_relaxed,
+                                                 std::memory_order_relaxed);
+        else
+        {
+            if (value == expected)
+            {
+                value = desired;
+                return true;
+            }
+
+            expected = value;
+            return false;
+        }
+    }
+
    private:
     static constexpr bool UseAtomic =
 #if defined(USE_SLOPPY_ATOMICS)

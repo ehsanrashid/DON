@@ -87,7 +87,8 @@ class NativeThread final {
         if (this == &nativeThread)
             return *this;
 
-        join();
+        if (!join())
+            return *this;
 
         thread_   = nativeThread.thread_;
         joinable_ = std::exchange(nativeThread.joinable_, false);
@@ -117,24 +118,19 @@ class NativeThread final {
             }
         };
 
-        if (options.useStackSize)
+        if (options.useStackSize && ::pthread_attr_setstacksize(&threadAttr, StackSize) != 0)
         {
-            if (::pthread_attr_setstacksize(&threadAttr, StackSize) != 0)
-            {
-                //DEBUG_LOG("::pthread_attr_setstacksize() failed.");
-                destroy_thread_attr();
-                return;
-            }
+            //DEBUG_LOG("::pthread_attr_setstacksize() failed.");
+            destroy_thread_attr();
+            return;
         }
+
     #if !defined(__MINGW32__)
-        if (options.useGuardSize)
+        if (options.useGuardSize && ::pthread_attr_setguardsize(&threadAttr, GuardSize) != 0)
         {
-            if (::pthread_attr_setguardsize(&threadAttr, GuardSize) != 0)
-            {
-                //DEBUG_LOG("::pthread_attr_setguardsize() failed.");
-                destroy_thread_attr();
-                return;
-            }
+            //DEBUG_LOG("::pthread_attr_setguardsize() failed.");
+            destroy_thread_attr();
+            return;
         }
     #endif
 
@@ -162,25 +158,32 @@ class NativeThread final {
     }
 
     // RAII: join on destruction if thread is joinable
-    ~NativeThread() noexcept { join(); }
+    ~NativeThread() noexcept {
+        [[maybe_unused]] const bool joined = join();
+        assert(joined);
+    }
 
     bool joinable() const noexcept { return joinable_; }
 
-    void join() noexcept {
-        if (joinable())
+    bool join() noexcept {
+        if (!joinable())
+            return true;
+
+        if (::pthread_join(thread_, nullptr) != 0)
         {
-            if (::pthread_join(thread_, nullptr) != 0)
-            {
-                //DEBUG_LOG("::pthread_join() failed.");
-            }
-            else
-                joinable_ = false;
+            //DEBUG_LOG("::pthread_join() failed.");
+            return false;
         }
+
+        joinable_ = false;
+        return true;
     }
 
    private:
     static constexpr usize StackSize = 8 * MB;
+    #if !defined(__MINGW32__)
     static constexpr usize GuardSize = 4 * KB;
+    #endif
 
     pthread_t thread_{};
     bool      joinable_ = false;
@@ -196,17 +199,20 @@ template<typename Function, typename... Args>
 NativeThread create_native_thread(Function&& func,
                                   const ThreadOptions
 #if defined(USE_PTHREAD)
-                                    options,
+                                    options
 #else
-                                  ,
+
 #endif
+                                  ,
                                   Args&&... args) noexcept {
-    return NativeThread(std::forward<Function>(func),
+    return NativeThread(std::forward<Function>(func)
 #if defined(USE_PTHREAD)
-                        options,
+                          ,
+                        options
 #else
         // TODO: implement fallible thread creation on MSVC
 #endif
+                        ,
                         std::forward<Args>(args)...);
 }
 
