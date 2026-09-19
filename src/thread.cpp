@@ -79,7 +79,7 @@ void Thread::start() noexcept {
     busy = true;
 
     // Move new native thread in
-    nativeThread = create_native_thread(&Thread::idle_func, NativeThreadOptions{true}, this);
+    nativeThread = create_native_thread(&Thread::idle_func, ThreadOptions{true, true}, this);
 
     // Verify that the native thread was created successfully
     if (!nativeThread.joinable())

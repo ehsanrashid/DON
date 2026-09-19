@@ -41,31 +41,32 @@
 
 namespace DON {
 
-struct NativeThreadOptions final {
+struct ThreadOptions final {
    public:
-    bool setStackSize = false;
+    bool useStackSize = false;
+    bool useGuardSize = false;
 };
 
 #if defined(USE_PTHREAD)
 
-// On OSX threads other than the main-thread are created with a reduced stack
-// size of 512KB by default, this is too low for deep searches,
-// which require somewhat more than 1MB stack, so adjust it to 8MB.
+// On macOS, threads other than the main thread have a default stack size of
+// 512KB, which is too small for deep searches.
+// Allow the stack size to be increased to 8MB when requested.
 class NativeThread final {
    private:
     struct BaseCallable {  // Type-erased callable interface
         virtual ~BaseCallable() = default;
 
-        virtual void run() noexcept = 0;
+        virtual void invoke() noexcept = 0;
     };
 
     template<typename Function, typename... Args>
-    struct Callable final: BaseCallable {
+    struct Callable final: public BaseCallable {
         Callable(Function&& func, Args&&... args) :
             func_(std::forward<Function>(func)),
             args_(std::make_tuple(std::forward<Args>(args)...)) {}
 
-        void run() noexcept override { std::apply(func_, args_); }
+        void invoke() noexcept override { std::apply(func_, args_); }
 
        private:
         Function            func_;
@@ -81,21 +82,21 @@ class NativeThread final {
 
     NativeThread(NativeThread&& nativeThread) noexcept :
         thread_(nativeThread.thread_),
-        joined_(std::exchange(nativeThread.joined_, true)) {}
+        joinable_(std::exchange(nativeThread.joinable_, false)) {}
     NativeThread& operator=(NativeThread&& nativeThread) noexcept {
         if (this == &nativeThread)
             return *this;
 
         join();
 
-        thread_ = nativeThread.thread_;
-        joined_ = std::exchange(nativeThread.joined_, true);
+        thread_   = nativeThread.thread_;
+        joinable_ = std::exchange(nativeThread.joinable_, false);
 
         return *this;
     }
 
     template<typename Function, typename... Args>
-    NativeThread(Function&& func, const NativeThreadOptions options, Args&&... args) noexcept {
+    NativeThread(Function&& func, const ThreadOptions options, Args&&... args) noexcept {
         using ThreadCallable = Callable<std::decay_t<Function>, std::decay_t<Args>...>;
 
         auto threadCallable = std::make_unique<ThreadCallable>(std::forward<Function>(func),
@@ -116,17 +117,29 @@ class NativeThread final {
             }
         };
 
-        if (options.setStackSize && ::pthread_attr_setstacksize(&threadAttr, StackSize) != 0)
+        if (options.useStackSize)
         {
-            //DEBUG_LOG("::pthread_attr_setstacksize() failed.");
-            destroy_thread_attr();
-            return;
+            if (::pthread_attr_setstacksize(&threadAttr, StackSize) != 0)
+            {
+                //DEBUG_LOG("::pthread_attr_setstacksize() failed.");
+                destroy_thread_attr();
+                return;
+            }
+        }
+        if (options.useGuardSize)
+        {
+            if (::pthread_attr_setguardsize(&threadAttr, GuardSize) != 0)
+            {
+                //DEBUG_LOG("::pthread_attr_setguardsize() failed.");
+                destroy_thread_attr();
+                return;
+            }
         }
 
         const auto start_routine = [](void* ptr) noexcept -> void* {
             auto callable = std::unique_ptr<BaseCallable>(static_cast<BaseCallable*>(ptr));
 
-            callable->run();
+            callable->invoke();
 
             return nullptr;
         };
@@ -137,8 +150,8 @@ class NativeThread final {
         }
         else
         {
-            // Mark thread as now joinable, not joined yet.
-            joined_ = false;
+            // Mark the thread as joinable.
+            joinable_ = true;
             // Transfer ownership to the new thread.
             threadCallable.release();
         }
@@ -149,22 +162,26 @@ class NativeThread final {
     // RAII: join on destruction if thread is joinable
     ~NativeThread() noexcept { join(); }
 
-    bool joinable() const noexcept { return !joined_; }
+    bool joinable() const noexcept { return joinable_; }
 
     void join() noexcept {
         if (joinable())
         {
-            ::pthread_join(thread_, nullptr);
-
-            joined_ = true;
+            if (::pthread_join(thread_, nullptr) != 0)
+            {
+                //DEBUG_LOG("::pthread_join() failed.");
+            }
+            else
+                joinable_ = false;
         }
     }
 
    private:
     static constexpr usize StackSize = 8 * MB;
+    static constexpr usize GuardSize = 4 * KB;
 
     pthread_t thread_{};
-    bool      joined_ = true;
+    bool      joinable_ = false;
 };
 
 #else
@@ -173,23 +190,28 @@ using NativeThread = std::thread;
 
 #endif
 
-template<class Function, class... Args>
-NativeThread create_native_thread(Function&&                                 func,
-                                  [[maybe_unused]] const NativeThreadOptions options,
-                                  Args&&... args) noexcept {
-    return
+template<typename Function, typename... Args>
+NativeThread create_native_thread(Function&& func,
+                                  const ThreadOptions
 #if defined(USE_PTHREAD)
-      NativeThread(std::forward<Function>(func), options, std::forward<Args>(args)...)
+                                    options
 #else
-      // TODO: implement fallible thread creation on MSVC
-      NativeThread(std::forward<Function>(func), std::forward<Args>(args)...)
 #endif
-        ;
+                                  ,
+                                  Args&&... args) noexcept {
+    return NativeThread(std::forward<Function>(func),
+#if defined(USE_PTHREAD)
+                        options
+#else
+        // TODO: implement fallible thread creation on MSVC
+#endif
+                        ,
+                        std::forward<Args>(args)...);
 }
 
-template<class Function, class... Args>
+template<typename Function, typename... Args>
 NativeThread create_native_thread(Function&& func, Args&&... args) noexcept {
-    return create_native_thread(std::forward<Function>(func), NativeThreadOptions{},
+    return create_native_thread(std::forward<Function>(func), ThreadOptions{},
                                 std::forward<Args>(args)...);
 }
 
