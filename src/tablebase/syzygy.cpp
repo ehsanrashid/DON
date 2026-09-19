@@ -588,7 +588,7 @@ TableData make_table_data(const std::string_view code) noexcept {
                     : BLACK;
 
     tableData.pawnCount[WHITE] = pawnCnt[c];
-    tableData.pawnCount[BLACK] = pawnCnt[!c];
+    tableData.pawnCount[BLACK] = pawnCnt[~c];
 
     err = pos.set(code, BLACK, &st);
     (void) err;
