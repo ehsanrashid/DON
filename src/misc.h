@@ -1324,6 +1324,7 @@ class ConcurrentCache final {
     template<typename... Args>
     Value access_or_build(const Key& key, Args&&... args) noexcept {
         // Fast path: shared read lock to check and access
+        if (!resetting.load(std::memory_order_acquire))
         {
             std::shared_lock readLock(mutex);
 
@@ -1334,7 +1335,7 @@ class ConcurrentCache final {
         // Slow path: exclusive write lock to insert and construct
         std::lock_guard writeLock(mutex);
 
-        // Recheck after acquiring exclusive lock
+        // Lookup and insert if missing
         const auto [itr, inserted] = valueMap.try_emplace(key);
 
         // Inserted: construct the value
@@ -1347,6 +1348,7 @@ class ConcurrentCache final {
     template<typename Builder, typename... Args>
     Value access_or_build_with(const Key& key, Builder&& builder, Args&&... args) noexcept {
         // Fast path: shared read lock to check and access
+        if (!resetting.load(std::memory_order_acquire))
         {
             std::shared_lock readLock(mutex);
 
@@ -1357,7 +1359,7 @@ class ConcurrentCache final {
         // Slow path: exclusive write lock to insert and construct
         std::lock_guard writeLock(mutex);
 
-        // Recheck after acquiring exclusive lock
+        // Lookup and insert if missing
         const auto [itr, inserted] = valueMap.try_emplace(key);
 
         // Inserted: construct the value
@@ -1370,8 +1372,26 @@ class ConcurrentCache final {
     template<typename Transformer, typename... Args>
     auto
     transform_access_or_build(const Key& key, Transformer&& transformer, Args&&... args) noexcept {
-        return std::forward<Transformer>(transformer)(
-          access_or_build(key, std::forward<Args>(args)...));
+        // Fast path: shared read lock to check and access
+        if (!resetting.load(std::memory_order_acquire))
+        {
+            std::shared_lock readLock(mutex);
+
+            if (const auto itr = valueMap.find(key); itr != valueMap.end())
+                return std::forward<Transformer>(transformer)(get_ref(itr->second));
+        }
+
+        // Slow path: exclusive write lock to insert and construct
+        std::lock_guard writeLock(mutex);
+
+        // Lookup and insert if missing
+        const auto [itr, inserted] = valueMap.try_emplace(key);
+
+        // Inserted: construct the value
+        if (inserted)
+            set(itr->second, std::forward<Args>(args)...);
+
+        return std::forward<Transformer>(transformer)(get_ref(itr->second));
     }
 
     template<typename Transformer, typename Builder, typename... Args>
@@ -1379,16 +1399,38 @@ class ConcurrentCache final {
                                         Transformer&& transformer,
                                         Builder&&     builder,
                                         Args&&... args) noexcept {
-        return std::forward<Transformer>(transformer)(
-          access_or_build_with(key, std::forward<Builder>(builder), std::forward<Args>(args)...));
+        // Fast path: shared read lock to check and access
+        if (!resetting.load(std::memory_order_acquire))
+        {
+            std::shared_lock readLock(mutex);
+
+            if (const auto itr = valueMap.find(key); itr != valueMap.end())
+                return std::forward<Transformer>(transformer)(get_ref(itr->second));
+        }
+
+        // Slow path: exclusive write lock to insert and construct
+        std::lock_guard writeLock(mutex);
+
+        // Lookup and insert if missing
+        const auto [itr, inserted] = valueMap.try_emplace(key);
+
+        // Inserted: construct the value
+        if (inserted)
+            set(itr->second, std::forward<Builder>(builder)(std::forward<Args>(args)...));
+
+        return std::forward<Transformer>(transformer)(get_ref(itr->second));
     }
 
     void reset() noexcept {
-        std::lock_guard writeLock(mutex);
+        resetting.store(true, std::memory_order_release);
+        {
+            std::lock_guard writeLock(mutex);
 
-        valueMap.clear();
-        valueMap.rehash(0);
-        configure();
+            valueMap.clear();
+            valueMap.rehash(0);
+            configure();
+        }
+        resetting.store(false, std::memory_order_release);
     }
 
    private:
@@ -1418,8 +1460,16 @@ class ConcurrentCache final {
             value = std::make_unique<Value>(std::forward<Args>(args)...);
     }
 
-    // Return a reference to the stored value, dereferencing heap storage when used.
+    // Return a copy of the stored value, dereferencing heap storage when used.
     static Value get(const StorageValue& value) noexcept {
+        if constexpr (sizeof(Value) <= ThresholdSize)
+            return value;
+        else
+            return *value;
+    }
+
+    // Return a reference to the stored value, dereferencing heap storage when used.
+    static const Value& get_ref(const StorageValue& value) noexcept {
         if constexpr (sizeof(Value) <= ThresholdSize)
             return value;
         else
@@ -1429,6 +1479,7 @@ class ConcurrentCache final {
     usize                                 reserveCount;
     float                                 maxLoadFactor;
     std::shared_mutex                     mutex;
+    std::atomic<bool>                     resetting{false};
     std::unordered_map<Key, StorageValue> valueMap;
 };
 
