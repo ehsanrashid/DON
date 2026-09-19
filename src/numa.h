@@ -20,16 +20,17 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cstdlib>  // exit(), EXIT_FAILURE
+#include <iostream>
 #include <memory>
 #include <mutex>
 #include <optional>
 #include <string>
 #include <string_view>
-#include <thread>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
-#include <variant>
+#include <variant>  // variant<>
 #include <vector>
 
 #if !defined(_WIN64)                                 /* Non-Windows */ \
@@ -44,6 +45,7 @@
 
 #include "misc.h"
 #include "shm.h"
+#include "native_thread.h"
 
 namespace DON {
 
@@ -295,12 +297,17 @@ class NumaConfig final {
     template<typename Func>
     void execute_on_numa_node(const NumaIndex numaId, Func&& f) const noexcept {
 
-        std::thread th([this, f = std::forward<Func>(f), numaId]() mutable noexcept {
-            [[maybe_unused]] const auto token = bind_current_thread_to_numa_node(numaId);
-            f();
-        });
+        NativeThread nativeThread =
+          create_native_thread([this, f = std::forward<Func>(f), numaId]() mutable noexcept {
+              [[maybe_unused]] const auto token = bind_current_thread_to_numa_node(numaId);
+              f();
+          });
 
-        th.join();
+        if (!nativeThread.joinable())
+        {
+            std::cerr << "Failed to create native thread on NUMA node" << std::endl;
+            std::exit(EXIT_FAILURE);
+        }
     }
 
    private:

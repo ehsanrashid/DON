@@ -18,20 +18,20 @@
 #ifndef SHM_H_INCLUDED
 #define SHM_H_INCLUDED
 
-#include <algorithm>
-#include <cinttypes>
-#include <cstddef>
-#include <cstdio>
-#include <functional>
-#include <iomanip>
-#include <iostream>
-#include <new>
-#include <sstream>
+#include <algorithm>   // min()/max()
+#include <cinttypes>   // PRIX64
+#include <cstddef>     // nullptr_t
+#include <cstdio>      // snprintf
+#include <functional>  // hash<>
+#include <iomanip>     // setw()
+#include <iostream>    // cout, cerr
+#include <new>         // launder()
+#include <sstream>     // ostringstream<>
 #include <string>
 #include <string_view>
-#include <type_traits>
-#include <utility>
-#include <variant>
+#include <type_traits>  // decay_t<>
+#include <utility>      // move(), exchange()
+#include <variant>      // monostate, visit(), variant<>
 
 #if !defined(_WIN32)                                /* Non-Windows */ \
   && ((defined(__linux__) && !defined(__ANDROID__)) /* Linux (Non-Android) */ \
@@ -77,10 +77,9 @@
 
     #include <cassert>
     #include <cerrno>
-    #include <cstring>
+    #include <cstring>  // strncpy
     #include <list>
     #include <optional>
-    #include <thread>
     #include <unordered_map>
     #include <unordered_set>
 
@@ -129,6 +128,7 @@
 
 #include "memory.h"  // LargePagePtr<>, make_unique_aligned_large_page()
 #include "misc.h"
+#include "native_thread.h"
 
 namespace DON {
 
@@ -611,7 +611,7 @@ UniqueFd try_create_memfd(const std::string& sockPath) noexcept;
 //  - Forwards the file descriptor fd
 //  - Exits when shutdownFd is hung up on
 //  - Listens on serverFd
-std::thread make_server_thread(UniqueFd fd, UniqueFd shutdownFd, UniqueFd serverFd) noexcept;
+NativeThread make_server_thread(UniqueFd fd, UniqueFd shutdownFd, UniqueFd serverFd) noexcept;
 
 template<typename T>
 class SharedMemory final: public BaseSharedMemory {
@@ -775,6 +775,8 @@ class SharedMemory final: public BaseSharedMemory {
         serverThread =
           make_server_thread(std::move(memFd), std::move(receiverShutdownFd), std::move(serverFd));
         assert(serverThread.joinable());
+        if (!serverThread.joinable())
+            return false;
 
         // Register for cleanup at exit
         [[maybe_unused]] const bool registered = MemoryRegistry::register_memory(this);
@@ -881,9 +883,9 @@ class SharedMemory final: public BaseSharedMemory {
     std::string initLockPath;
 
     // serve requests for the shared segment on this .sock
-    std::string socketPath;
-    std::thread serverThread;
-    UniqueFd    shutdownFd;  // close to signal server thread shutdown
+    std::string  socketPath;
+    NativeThread serverThread;
+    UniqueFd     shutdownFd;  // close to signal server thread shutdown
 };
 
 template<typename T>

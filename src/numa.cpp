@@ -17,9 +17,10 @@
 
 #include "numa.h"
 
-#include <cstdlib>
+#include <cstdlib>  // exit(), EXIT_FAILURE
 #include <iostream>
-#include <limits>
+#include <limits>  // numeric_limits<>
+#include <thread>
 
 #if defined(_WIN64)
     #include <cstring>
@@ -250,73 +251,81 @@ WindowsAffinity get_process_affinity() noexcept {
         // In which case can actually retrieve the full affinity.
         if (getThreadSelectedCpuSetMasks != nullptr)
         {
-            std::thread th([&winAffinity, &procGroupAffinity]() noexcept -> void {
-                CpuSet cpus;
+            NativeThread nativeThread =
+              create_native_thread([&winAffinity, &procGroupAffinity]() noexcept -> void {
+                  CpuSet cpus;
 
-                bool fullAffinity = true;
+                  bool fullAffinity = true;
 
-                for (WORD groupId : procGroupAffinity)
-                {
-                    const DWORD activeProcCount = ::GetActiveProcessorCount(groupId);
+                  for (WORD groupId : procGroupAffinity)
+                  {
+                      const DWORD activeProcCount = ::GetActiveProcessorCount(groupId);
 
-                    // Have to schedule to 2 different processors and the affinities.
-                    // Otherwise processor choice could influence the resulting affinity.
-                    // Assume the processor IDs within the group are filled sequentially from 0.
-                    DWORD_PTR combinedProcMask = std::numeric_limits<DWORD_PTR>::max();
-                    DWORD_PTR combinedSysMask  = std::numeric_limits<DWORD_PTR>::max();
+                      // Have to schedule to 2 different processors and the affinities.
+                      // Otherwise processor choice could influence the resulting affinity.
+                      // Assume the processor IDs within the group are filled sequentially from 0.
+                      DWORD_PTR combinedProcMask = std::numeric_limits<DWORD_PTR>::max();
+                      DWORD_PTR combinedSysMask  = std::numeric_limits<DWORD_PTR>::max();
 
-                    for (DWORD i = 0; i < std::min(activeProcCount, DWORD{2}); ++i)
-                    {
-                        GROUP_AFFINITY groupAffinity;
-                        std::memset(&groupAffinity, 0, sizeof(groupAffinity));
+                      for (DWORD i = 0; i < std::min(activeProcCount, DWORD{2}); ++i)
+                      {
+                          GROUP_AFFINITY groupAffinity;
+                          std::memset(&groupAffinity, 0, sizeof(groupAffinity));
 
-                        groupAffinity.Group = groupId;
-                        groupAffinity.Mask  = bit(u8(i));
+                          groupAffinity.Group = groupId;
+                          groupAffinity.Mask  = bit(u8(i));
 
-                        if (::SetThreadGroupAffinity(::GetCurrentThread(), &groupAffinity, nullptr)
-                            == FALSE)
-                        {
-                            winAffinity.determinate[0] = false;
+                          if (::SetThreadGroupAffinity(::GetCurrentThread(), &groupAffinity,
+                                                       nullptr)
+                              == FALSE)
+                          {
+                              winAffinity.determinate[0] = false;
 
-                            return;
-                        }
+                              return;
+                          }
 
-                        ::SwitchToThread();
+                          ::SwitchToThread();
 
-                        DWORD_PTR thProcMask, thSysMask;
+                          DWORD_PTR thProcMask, thSysMask;
 
-                        if (::GetProcessAffinityMask(::GetCurrentProcess(), &thProcMask, &thSysMask)
-                            == FALSE)
-                        {
-                            winAffinity.determinate[0] = false;
+                          if (::GetProcessAffinityMask(::GetCurrentProcess(), &thProcMask,
+                                                       &thSysMask)
+                              == FALSE)
+                          {
+                              winAffinity.determinate[0] = false;
 
-                            return;
-                        }
+                              return;
+                          }
 
-                        combinedProcMask &= thProcMask;
-                        combinedSysMask &= thSysMask;
-                    }
+                          combinedProcMask &= thProcMask;
+                          combinedSysMask &= thSysMask;
+                      }
 
-                    if (combinedProcMask != combinedSysMask)
-                        fullAffinity = false;
+                      if (combinedProcMask != combinedSysMask)
+                          fullAffinity = false;
 
-                    if (combinedProcMask != 0)
-                        for (u16 number = 0; number < WIN_PROCESSOR_GROUP_SIZE; ++number)
-                            if ((combinedProcMask & bit(u8(number))) != 0)
-                            {
-                                const CpuIndex cpuId = groupId * WIN_PROCESSOR_GROUP_SIZE + number;
+                      if (combinedProcMask != 0)
+                          for (u16 number = 0; number < WIN_PROCESSOR_GROUP_SIZE; ++number)
+                              if ((combinedProcMask & bit(u8(number))) != 0)
+                              {
+                                  const CpuIndex cpuId =
+                                    groupId * WIN_PROCESSOR_GROUP_SIZE + number;
 
-                                cpus.insert(cpuId);
-                            }
-                }
+                                  cpus.insert(cpuId);
+                              }
+                  }
 
-                // Have to detect the case where the affinity was not set, or
-                // is set to all processors so that correctly produce as std::nullopt result.
-                if (!fullAffinity)
-                    winAffinity.cpus[0] = std::move(cpus);
-            });
+                  // Have to detect the case where the affinity was not set, or
+                  // is set to all processors so that correctly produce as std::nullopt result.
+                  if (!fullAffinity)
+                      winAffinity.cpus[0] = std::move(cpus);
+              });
 
-            th.join();
+            if (!nativeThread.joinable())
+            {
+                std::cerr << "Failed to create win thread" << std::endl;
+                std::exit(EXIT_FAILURE);
+            }
         }
     }
 
