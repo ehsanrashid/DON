@@ -1741,7 +1741,7 @@ Ret do_probe_table(T*                table,
             usize adjust = 0;
             DISABLE_CLANG_LOOP_VECTORIZE
             for (const Square* s = squares.data(); s != groupSq; ++s)
-                adjust += static_cast<usize>(groupSq[i] > *s);
+                adjust += usize(groupSq[i] > *s);
 
             const i8 index = i8(groupSq[i]) - i8(adjust + i8(pawnsRemaining) * 8);
             assert(index >= 0 && usize(index) < Binomial[0].size());
