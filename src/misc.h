@@ -50,7 +50,14 @@
 
 #if defined(_WIN32)
     #include "platform_win.h"  // GetCommandLineW()
-#else
+#endif
+
+#if defined(USE_PREFETCH) && (defined(_MSC_VER) || defined(__INTEL_COMPILER))
+    #define USE_MM_PREFETCH
+#endif
+
+#if defined(USE_MM_PREFETCH)
+    #include <xmmintrin.h>  // SSE header for _mm_prefetch() intrinsics
 #endif
 
 #if defined(__i386__) || defined(_M_IX86)
@@ -59,11 +66,6 @@
 #elif defined(__x86_64__) || defined(_M_X64)
     #define X86
     #define X86_64
-#endif
-
-#if defined(USE_PREFETCH) && defined(X86) && (defined(_MSC_VER) || defined(__INTEL_COMPILER))
-    #include <xmmintrin.h>  // SSE header for _mm_prefetch() intrinsics
-    #define USE_X86_PREFETCH
 #endif
 
 #define STRING_LITERAL(x) #x
@@ -553,15 +555,14 @@ enum class PrefetchLoc : u8 {
 };
 
 #if defined(USE_PREFETCH)
-// Preloads the given address into cache.
-// Non-blocking operation that doesn't stall the CPU waiting for data to be loaded from memory.
+// Preloads the given address into cache as a performance hint.
+// Non-blocking hint that allows the CPU to load data before it is accessed.
 // NOTE:
 // On x86, _mm_prefetch() does NOT truly distinguish READ vs WRITE.
-// PrefetchAccess::WRITE is a best-effort hint only and may behave identically to READ.
-// On GCC/Clang, __builtin_prefetch supports Access as a separate hint.
+// PrefetchAccess::WRITE is a best-effort hint and may behave identically to READ.
 template<PrefetchAccess Access = PrefetchAccess::READ, PrefetchLoc Loc = PrefetchLoc::HIGH>
 inline void prefetch(const void* addr) noexcept {
-    #if defined(USE_X86_PREFETCH)
+    #if defined(USE_MM_PREFETCH)
     constexpr auto Hint = []() constexpr noexcept {
         if constexpr (Access == PrefetchAccess::WRITE)
             return
@@ -580,17 +581,10 @@ inline void prefetch(const void* addr) noexcept {
         return _MM_HINT_T0;  // PrefetchLoc::HIGH
     }();
     _mm_prefetch(reinterpret_cast<const char*>(addr), Hint);
-    #elif defined(__GNUC__) || defined(__clang__)
-    constexpr int RW       = Access == PrefetchAccess::READ ? 0  //
-                                                            : 1;
-    constexpr int Locality = Loc == PrefetchLoc::NONE     ? 0
-                           : Loc == PrefetchLoc::LOW      ? 1
-                           : Loc == PrefetchLoc::MODERATE ? 2
-                                                          : 3;  // PrefetchLoc::HIGH
-    __builtin_prefetch(addr, RW, Locality);
+
     #else
-    // No-op on unsupported platforms
-    (void) addr;
+    __builtin_prefetch(addr, static_cast<int>(Access), static_cast<int>(Loc));
+
     #endif
 }
 #else

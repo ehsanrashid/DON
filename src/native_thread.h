@@ -97,7 +97,7 @@ class NativeThread final {
     }
 
     template<typename Function, typename... Args>
-    NativeThread(Function&& func, const ThreadOptions options, Args&&... args) noexcept {
+    NativeThread(Function&& func, ThreadOptions thOptions, Args&&... args) noexcept {
         using ThreadCallable = Callable<std::decay_t<Function>, std::decay_t<Args>...>;
 
         auto threadCallable = std::make_unique<ThreadCallable>(std::forward<Function>(func),
@@ -118,7 +118,7 @@ class NativeThread final {
             }
         };
 
-        if (options.useStackSize && ::pthread_attr_setstacksize(&threadAttr, StackSize) != 0)
+        if (thOptions.useStackSize && ::pthread_attr_setstacksize(&threadAttr, StackSize) != 0)
         {
             //DEBUG_LOG("::pthread_attr_setstacksize() failed.");
             destroy_thread_attr();
@@ -126,7 +126,7 @@ class NativeThread final {
         }
 
     #if !defined(__MINGW32__)
-        if (options.useGuardSize && ::pthread_attr_setguardsize(&threadAttr, GuardSize) != 0)
+        if (thOptions.useGuardSize && ::pthread_attr_setguardsize(&threadAttr, GuardSize) != 0)
         {
             //DEBUG_LOG("::pthread_attr_setguardsize() failed.");
             destroy_thread_attr();
@@ -197,23 +197,20 @@ using NativeThread = std::thread;
 
 template<typename Function, typename... Args>
 NativeThread create_native_thread(Function&& func,
-                                  const ThreadOptions
 #if defined(USE_PTHREAD)
-                                    options
+                                  ThreadOptions thOptions,
 #else
-
+                                  ThreadOptions,
 #endif
-                                  ,
                                   Args&&... args) noexcept {
-    return NativeThread(std::forward<Function>(func)
+    return
 #if defined(USE_PTHREAD)
-                          ,
-                        options
+      NativeThread(std::forward<Function>(func), thOptions, std::forward<Args>(args)...)
 #else
-        // TODO: implement fallible thread creation on MSVC
+      // TODO: implement fallible thread creation on MSVC
+      NativeThread(std::forward<Function>(func), std::forward<Args>(args)...)
 #endif
-                        ,
-                        std::forward<Args>(args)...);
+        ;
 }
 
 template<typename Function, typename... Args>
