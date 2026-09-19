@@ -39,6 +39,8 @@ struct TTData final {
     TTData(TTData&&) noexcept            = default;
     TTData& operator=(TTData&&) noexcept = delete;
 
+    TTData(Move m, Value v, Value ev, Depth d, Bound b, bool hit_, bool pv_) noexcept;
+
     static TTData empty() noexcept;
 
     Move  move;
