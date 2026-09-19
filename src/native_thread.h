@@ -126,15 +126,17 @@ class NativeThread final {
                 return;
             }
         }
+    #if defined(pthread_attr_setguardsize)
         if (options.useGuardSize)
         {
-            if (::pthread_attr_setguardsize(&threadAttr, GuardSize) != 0)
+            if (pthread_attr_setguardsize(&threadAttr, GuardSize) != 0)
             {
-                //DEBUG_LOG("::pthread_attr_setguardsize() failed.");
+                //DEBUG_LOG("pthread_attr_setguardsize() failed.");
                 destroy_thread_attr();
                 return;
             }
         }
+    #endif
 
         const auto start_routine = [](void* ptr) noexcept -> void* {
             auto callable = std::unique_ptr<BaseCallable>(static_cast<BaseCallable*>(ptr));
@@ -194,18 +196,17 @@ template<typename Function, typename... Args>
 NativeThread create_native_thread(Function&& func,
                                   const ThreadOptions
 #if defined(USE_PTHREAD)
-                                    options
+                                    options,
 #else
-#endif
                                   ,
+#endif
                                   Args&&... args) noexcept {
     return NativeThread(std::forward<Function>(func),
 #if defined(USE_PTHREAD)
-                        options
+                        options,
 #else
         // TODO: implement fallible thread creation on MSVC
 #endif
-                        ,
                         std::forward<Args>(args)...);
 }
 
