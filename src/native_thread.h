@@ -43,10 +43,7 @@ namespace DON {
 
 struct NativeThreadOptions final {
    public:
-    explicit NativeThreadOptions(const bool setStackSize_ = false) noexcept :
-        setStackSize(setStackSize_) {}
-
-    bool setStackSize;
+    bool setStackSize = false;
 };
 
 using JobFunc = std::function<void()>;
