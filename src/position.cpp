@@ -21,6 +21,7 @@
 #include <initializer_list>
 #include <iomanip>
 #include <sstream>
+#include <utility>  // for swap()
 
 #include "history.h"
 #include "movegen.h"
@@ -780,9 +781,11 @@ void Position::set_ext_state() noexcept {
 
     const Color ac = active_color();
 
+    const Bitboard occupancyBB = pieces_bb();
+
     const Square kingSq = square<KING>(~ac);
 
-    const auto [bAttacksBB, rAttacksBB] = Attacks::attacks_bb_pair(kingSq, pieces_bb());
+    const auto [bAttacksBB, rAttacksBB] = Attacks::attacks_bb_pair(kingSq, occupancyBB);
 
     // clang-format off
     st->checksBB[PAWN  ] = Attacks::pseudo_attacks_bb<PAWN>(kingSq, ~ac);

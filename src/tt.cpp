@@ -163,6 +163,21 @@ void TTEntry::penalize(const u8 penalty) noexcept {
 void TTEntry::reset() noexcept { std::memset(static_cast<void*>(this), 0, sizeof(*this)); }
 
 
+TTData::TTData(const Move  m,
+               const Value v,
+               const Value ev,
+               const Depth d,
+               const Bound b,
+               const bool  hit_,
+               const bool  pv_) noexcept :
+    move(m),
+    value(v),
+    evalue(ev),
+    depth(d),
+    bound(b),
+    hit(hit_),
+    pv(pv_) {}
+
 TTData TTData::empty() noexcept {
     return {Move::None, VALUE_NONE, VALUE_NONE, DEPTH_OFFSET, Bound::NONE, false, false};
 }

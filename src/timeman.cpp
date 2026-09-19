@@ -65,6 +65,12 @@ void TimeManager::init(Color ac, i16 ply, const Options& options, Limit& limit) 
 
     useNodesTime = NodesTime != 0;
 
+    if (use_nodes_time())
+    {
+        // Convert from milliseconds to nodes
+        limit.moveTime *= NodesTime;
+    }
+
     if (clock.time == 0)
     {
         optimumTime = NoBound;
@@ -86,11 +92,7 @@ void TimeManager::init(Color ac, i16 ply, const Options& options, Limit& limit) 
 
         // Convert from milliseconds to nodes
         clock.time = timeNodes;
-
         clock.inc *= NodesTime;
-
-        limit.moveTime *= NodesTime;
-
         OverheadTime *= NodesTime;
     }
 
