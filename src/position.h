@@ -1007,7 +1007,7 @@ inline void Position::update_piece_threats(const Square              s,
                        | (pieces_bb(QUEEN, ROOK) & rAttacksBB);
 
     const auto process_sliders =
-      [this, &slidersBB, qAttacksBB, noKingBB, s, pc, &dTs, put, noRayBB]  //
+      [this, s, pc, dTs, put, noRayBB, &slidersBB, qAttacksBB, noKingBB]  //
       (const bool addDirect) noexcept {
           while (slidersBB != 0)
           {
