@@ -20,16 +20,17 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cstdlib>  // exit(), EXIT_FAILURE
+#include <iostream>
 #include <memory>
 #include <mutex>
 #include <optional>
 #include <string>
 #include <string_view>
-#include <thread>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
-#include <variant>
+#include <variant>  // variant<>
 #include <vector>
 
 #if !defined(_WIN64)                                 /* Non-Windows */ \

@@ -22,6 +22,7 @@
 #include <cassert>
 #include <condition_variable>
 #include <deque>
+#include <functional>
 #include <memory>
 #include <mutex>         // mutex, unique_lock, lock_guard
 #include <shared_mutex>  // shared_lock, shared_mutex
@@ -61,6 +62,8 @@ class ThreadToNumaNodeBinder final {
     const NumaConfig* const numaConfigPtr;
     const NumaIndex         numaId;
 };
+
+using JobFunc = std::function<void()>;
 
 using WorkerPtr = LargePagePtr<Worker>;
 

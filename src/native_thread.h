@@ -18,7 +18,7 @@
 #ifndef NATIVE_THREAD_H_INCLUDED
 #define NATIVE_THREAD_H_INCLUDED
 
-#include <functional>
+#include <utility>  // forward<>, exchange()
 
 // MSVC-compatible toolchains use std::thread because pthreads is not provided by default.
 // All other platforms use pthreads.
@@ -27,12 +27,12 @@
 #endif
 
 #if defined(USE_PTHREAD)
-    #include <pthread.h>
-    #include <cstdlib>
-    #include <cstring>
-    #include <iostream>
-    #include <utility>
-    #include <tuple>
+    #include <pthread.h>    // pthread API
+    #include <cstdlib>      // exit(), EXIT_FAILURE
+    #include <iostream>     // cerr
+    #include <memory>       // unique_ptr<>, make_unique()
+    #include <tuple>        // tuple<>, make_tuple(), apply()
+    #include <type_traits>  // decay_t<>
 #else
     #include <thread>
 #endif
@@ -45,8 +45,6 @@ struct NativeThreadOptions final {
    public:
     bool setStackSize = false;
 };
-
-using JobFunc = std::function<void()>;
 
 #if defined(USE_PTHREAD)
 

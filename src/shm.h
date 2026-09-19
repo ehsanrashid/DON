@@ -18,20 +18,20 @@
 #ifndef SHM_H_INCLUDED
 #define SHM_H_INCLUDED
 
-#include <algorithm>
-#include <cinttypes>
-#include <cstddef>
-#include <cstdio>
-#include <functional>
-#include <iomanip>
-#include <iostream>
-#include <new>
-#include <sstream>
+#include <algorithm>   // min()/max()
+#include <cinttypes>   // PRIX64
+#include <cstddef>     // nullptr_t
+#include <cstdio>      // snprintf
+#include <functional>  // hash<>
+#include <iomanip>     // setw()
+#include <iostream>    // cout, cerr
+#include <new>         // launder()
+#include <sstream>     // ostringstream<>
 #include <string>
 #include <string_view>
-#include <type_traits>
-#include <utility>
-#include <variant>
+#include <type_traits>  // decay_t<>
+#include <utility>      // move(), exchange()
+#include <variant>      // monostate, visit(), variant<>
 
 #if !defined(_WIN32)                                /* Non-Windows */ \
   && ((defined(__linux__) && !defined(__ANDROID__)) /* Linux (Non-Android) */ \
@@ -77,10 +77,9 @@
 
     #include <cassert>
     #include <cerrno>
-    #include <cstring>
+    #include <cstring>  // strncpy
     #include <list>
     #include <optional>
-    #include <thread>
     #include <unordered_map>
     #include <unordered_set>
 

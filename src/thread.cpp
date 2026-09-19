@@ -19,11 +19,11 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cstdlib>  // exit(), EXIT_FAILURE
 #include <functional>
 #include <iostream>
 #include <limits>
 #include <ratio>
-#include <string>
 #include <string_view>
 #include <unordered_map>
 #include <unordered_set>

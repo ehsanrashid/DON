@@ -17,9 +17,10 @@
 
 #include "numa.h"
 
-#include <cstdlib>
+#include <cstdlib>  // exit(), EXIT_FAILURE
 #include <iostream>
-#include <limits>
+#include <limits>  // numeric_limits<>
+#include <thread>
 
 #if defined(_WIN64)
     #include <cstring>
