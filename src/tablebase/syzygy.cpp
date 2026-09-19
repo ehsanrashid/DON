@@ -583,7 +583,7 @@ TableData make_table_data(const std::string_view code) noexcept {
 
     // Set the leading color. In case both sides have pawns the leading color
     // is the side with fewer pawns because this leads to better compression.
-    const Color c = pawnCnt[BLACK] != 0 && (pawnCnt[WHITE] == 0 || pawnCnt[WHITE] > pawnCnt[BLACK])
+    const Color c = pawnCnt[BLACK] == 0 || (pawnCnt[WHITE] != 0 && pawnCnt[WHITE] <= pawnCnt[BLACK])
                     ? WHITE
                     : BLACK;
 
@@ -867,7 +867,8 @@ bool TBTable<T>::set(u8* data, const u8* end) noexcept {
 
     const File maxFile = hasPawns ? FILE_D : FILE_A;
 
-    const bool pp = hasPawns && pawnCount[BLACK] != 0;  // Pawns on both sides
+    // Pawns on both sides
+    const bool pp = hasPawns && pawnCount[BLACK] != 0;
 
     assert(!pp || pawnCount[WHITE] != 0);
 
@@ -1742,7 +1743,10 @@ Ret do_probe_table(T*                table,
             for (const Square* s = squares.data(); s != groupSq; ++s)
                 adjust += static_cast<usize>(groupSq[i] > *s);
 
-            n += Binomial[i + 1][static_cast<u8>(groupSq[i]) - adjust - int(pawnsRemaining) * 8];
+            const i8 index = i8(groupSq[i]) - i8(adjust + i8(pawnsRemaining) * 8);
+            assert(index >= 0 && usize(index) < Binomial[0].size());
+
+            n += Binomial[i + 1][index];
         }
 
         pawnsRemaining = false;
