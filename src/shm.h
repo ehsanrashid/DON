@@ -776,7 +776,7 @@ class SharedMemory final: public BaseSharedMemory {
         serverThread =
           make_server_thread(std::move(memFd), std::move(receiverShutdownFd), std::move(serverFd));
         assert(serverThread.joinable());
-        if (!server_thread_.joinable())
+        if (!serverThread.joinable())
             return false;
 
         // Register for cleanup at exit
