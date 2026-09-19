@@ -126,12 +126,12 @@ class NativeThread final {
                 return;
             }
         }
-    #if defined(pthread_attr_setguardsize)
+    #if !defined(__MINGW32__)
         if (options.useGuardSize)
         {
-            if (pthread_attr_setguardsize(&threadAttr, GuardSize) != 0)
+            if (::pthread_attr_setguardsize(&threadAttr, GuardSize) != 0)
             {
-                //DEBUG_LOG("pthread_attr_setguardsize() failed.");
+                //DEBUG_LOG("::pthread_attr_setguardsize() failed.");
                 destroy_thread_attr();
                 return;
             }
