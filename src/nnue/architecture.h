@@ -70,7 +70,7 @@ struct NetworkArchitecture final {
         combine_hash(h, ac_sqr_0.content_hash());
         combine_hash(h, ac_0.content_hash());
         combine_hash(h, fc_1.content_hash());
-        // TODO:: hash_combine()
+        // TODO: hash_combine()
         // hash_combine(h, ac_sqr_1.get_content_hash());
         combine_hash(h, ac_1.content_hash());
         combine_hash(h, fc_2.content_hash());

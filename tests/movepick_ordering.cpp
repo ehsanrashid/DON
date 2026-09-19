@@ -182,7 +182,7 @@ int main() {
                 ok = false;
                 std::cerr << "Mismatch at index " << i << ": ref(score,id)=(" << ref[i].score << ","
                           << ref[i].id << ") vs test(" << test[i].score << "," << test[i].id
-                          << ")\n";
+                          << ")" << std::endl;
                 break;
             }
         }
@@ -190,7 +190,7 @@ int main() {
 
     if (!ok)
     {
-        std::cerr << "movepick_ordering: stability test failed\n";
+        std::cerr << "movepick_ordering: stability test failed" << std::endl;
         return 1;
     }
 
@@ -234,7 +234,7 @@ int main() {
 
         if (itr1 != itr2)
         {
-            std::cerr << "Mismatch for value " << item.to_string() << "\n";
+            std::cerr << "Mismatch for value " << item.to_string() << std::endl;
             return 1;
         }
     }

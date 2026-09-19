@@ -37,6 +37,15 @@ constexpr double TIME_ADJUST_MIN  = 1.0e-6;
 
 constexpr i64 TIME_NODES_INIT = i64{-1};
 
+i64 time_nodes(const i64 time, const u64 nodesTime) noexcept {
+    assert(nodesTime != 0);
+
+    u64 timeNodes = u64(time) <= u64(TimeManager::TimeMax) / nodesTime  //
+                    ? time * nodesTime
+                    : TimeManager::TimeMax;
+    return i64(timeNodes);
+}
+
 }  // namespace
 
 TimePoint TimeManager::optimum() const noexcept { return optimumTime; }
@@ -88,10 +97,10 @@ void TimeManager::init(Color ac, i16 ply, const Options& options, Limit& limit) 
     {
         // Only once at game start
         if (timeNodes == TIME_NODES_INIT)
-            timeNodes = std::max<TimePoint>(clock.time * NodesTime, 1);
+            timeNodes = time_nodes(clock.time, NodesTime);
 
         // Convert from milliseconds to nodes
-        clock.time = timeNodes;
+        clock.time = TimePoint(timeNodes);
         clock.inc *= NodesTime;
         OverheadTime *= NodesTime;
     }

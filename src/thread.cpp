@@ -20,6 +20,7 @@
 #include <algorithm>
 #include <chrono>
 #include <functional>
+#include <iostream>
 #include <limits>
 #include <ratio>
 #include <string>
@@ -69,18 +70,25 @@ Thread::~Thread() noexcept {
 void Thread::start() noexcept {
     std::unique_lock condLock(mutex);
 
-    // If thread is already running, do nothing
+    // If native thread is already running, do nothing
     if (nativeThread.joinable())
         return;
 
-    // Reset flags before starting new nativeThread
+    // Reset flags before starting new native thread
     dead = false;
     busy = true;
 
-    // Move new NativeThread in
-    nativeThread = NativeThread(&Thread::idle_func, this);
+    // Move new native thread in
+    nativeThread = create_native_thread(&Thread::idle_func, NativeThreadOptions{true}, this);
 
-    // Wait until the new thread reaches idle
+    // Verify that the native thread was created successfully
+    if (!nativeThread.joinable())
+    {
+        std::cerr << "Failed to create search thread" << std::endl;
+        std::exit(EXIT_FAILURE);
+    }
+
+    // Wait until the native thread reaches idle
     condVar.wait(condLock, [this]() noexcept -> bool { return !busy; });
 }
 

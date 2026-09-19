@@ -129,6 +129,7 @@
 
 #include "memory.h"  // LargePagePtr<>, make_unique_aligned_large_page()
 #include "misc.h"
+#include "native_thread.h"
 
 namespace DON {
 
@@ -611,7 +612,7 @@ UniqueFd try_create_memfd(const std::string& sockPath) noexcept;
 //  - Forwards the file descriptor fd
 //  - Exits when shutdownFd is hung up on
 //  - Listens on serverFd
-std::thread make_server_thread(UniqueFd fd, UniqueFd shutdownFd, UniqueFd serverFd) noexcept;
+NativeThread make_server_thread(UniqueFd fd, UniqueFd shutdownFd, UniqueFd serverFd) noexcept;
 
 template<typename T>
 class SharedMemory final: public BaseSharedMemory {
@@ -775,6 +776,8 @@ class SharedMemory final: public BaseSharedMemory {
         serverThread =
           make_server_thread(std::move(memFd), std::move(receiverShutdownFd), std::move(serverFd));
         assert(serverThread.joinable());
+        if (!server_thread_.joinable())
+            return false;
 
         // Register for cleanup at exit
         [[maybe_unused]] const bool registered = MemoryRegistry::register_memory(this);
@@ -881,9 +884,9 @@ class SharedMemory final: public BaseSharedMemory {
     std::string initLockPath;
 
     // serve requests for the shared segment on this .sock
-    std::string socketPath;
-    std::thread serverThread;
-    UniqueFd    shutdownFd;  // close to signal server thread shutdown
+    std::string  socketPath;
+    NativeThread serverThread;
+    UniqueFd     shutdownFd;  // close to signal server thread shutdown
 };
 
 template<typename T>
