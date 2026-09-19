@@ -26,7 +26,6 @@
 #include <string>
 #include <string_view>
 #include <type_traits>
-#include <utility>
 
 #if defined(USE_AVX512ICL)
     #include <immintrin.h>
@@ -1007,35 +1006,37 @@ inline void Position::update_piece_threats(const Square              s,
     Bitboard slidersBB = (pieces_bb(QUEEN, BISHOP) & bAttacksBB)  //
                        | (pieces_bb(QUEEN, ROOK) & rAttacksBB);
 
-    const auto process_sliders = [&](const bool addDirectAttacks) noexcept {
-        while (slidersBB != 0)
-        {
-            const Square sliderSq = pop_lsq(slidersBB);
-            const Piece  sliderPc = piece(sliderSq);
+    const auto process_sliders =
+      [this, &slidersBB, qAttacksBB, noKingBB, s, pc, &dTs, put, noRayBB]  //
+      (const bool addDirect) noexcept {
+          while (slidersBB != 0)
+          {
+              const Square sliderSq = pop_lsq(slidersBB);
+              const Piece  sliderPc = piece(sliderSq);
 
-            assert(sliderSq != s);
-            assert(is_ok(sliderPc));
+              assert(sliderSq != s);
+              assert(is_ok(sliderPc));
 
-            const Bitboard passRayBB    = Attacks::pass_ray_bb(sliderSq, s);
-            const Bitboard discoveredBB = passRayBB & qAttacksBB & noKingBB;
+              const Bitboard passRayBB    = Attacks::pass_ray_bb(sliderSq, s);
+              const Bitboard discoveredBB = passRayBB & qAttacksBB & noKingBB;
 
-            assert(!more_than_one(discoveredBB));
+              assert(!more_than_one(discoveredBB));
 
-            if (discoveredBB != 0 && (passRayBB & noRayBB) != noRayBB)
-            {
-                const Square threatenedSq = lsq(discoveredBB);
-                const Piece  threatenedPc = piece(threatenedSq);
+              if (discoveredBB != 0 && (passRayBB & noRayBB) != noRayBB)
+              {
+                  const Square threatenedSq = lsq(discoveredBB);
+                  const Piece  threatenedPc = piece(threatenedSq);
 
-                assert(is_ok(threatenedPc));
+                  assert(is_ok(threatenedPc));
 
-                if (slider_can_threaten(threatenedPc, sliderPc))
-                    dTs->add(!put, threatenedPc, sliderPc, threatenedSq, sliderSq);
-            }
+                  if (slider_can_threaten(threatenedPc, sliderPc))
+                      dTs->add(!put, threatenedPc, sliderPc, threatenedSq, sliderSq);
+              }
 
-            if (addDirectAttacks && slider_can_threaten(pc, sliderPc))
-                dTs->add(put, pc, sliderPc, s, sliderSq);
-        }
-    };
+              if (addDirect && slider_can_threaten(pc, sliderPc))
+                  dTs->add(put, pc, sliderPc, s, sliderSq);
+          }
+      };
 
     const auto pt = type_of(pc);
 

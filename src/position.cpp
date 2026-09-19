@@ -21,6 +21,7 @@
 #include <initializer_list>
 #include <iomanip>
 #include <sstream>
+#include <utility>  // for swap()
 
 #include "history.h"
 #include "movegen.h"
