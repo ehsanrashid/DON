@@ -1322,7 +1322,7 @@ class ConcurrentCache final {
     }
 
     template<typename... Args>
-    Value& access_or_build(const Key& key, Args&&... args) noexcept {
+    Value access_or_build(const Key& key, Args&&... args) noexcept {
         // Fast path: shared read lock to check and access
         {
             std::shared_lock readLock(mutex);
@@ -1345,7 +1345,7 @@ class ConcurrentCache final {
     }
 
     template<typename Builder, typename... Args>
-    Value& access_or_build_with(const Key& key, Builder&& builder, Args&&... args) noexcept {
+    Value access_or_build_with(const Key& key, Builder&& builder, Args&&... args) noexcept {
         // Fast path: shared read lock to check and access
         {
             std::shared_lock readLock(mutex);
@@ -1392,6 +1392,11 @@ class ConcurrentCache final {
     }
 
    private:
+    ConcurrentCache(const ConcurrentCache&)            = delete;
+    ConcurrentCache& operator=(const ConcurrentCache&) = delete;
+    ConcurrentCache(ConcurrentCache&&)                 = delete;
+    ConcurrentCache& operator=(ConcurrentCache&&)      = delete;
+
     void configure() noexcept {
         valueMap.max_load_factor(max_load_factor(maxLoadFactor));
         valueMap.reserve(reserve_count(reserveCount));
@@ -1414,7 +1419,7 @@ class ConcurrentCache final {
     }
 
     // Return a reference to the stored value, dereferencing heap storage when used.
-    static Value& get(StorageValue& value) noexcept {
+    static Value get(const StorageValue& value) noexcept {
         if constexpr (sizeof(Value) <= ThresholdSize)
             return value;
         else

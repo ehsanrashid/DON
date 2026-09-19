@@ -94,9 +94,9 @@ void TimeManager::init(Color ac, i16 ply, const Options& options, Limit& limit) 
         OverheadTime *= NodesTime;
     }
 
-    const u64 ScaleFactor = use_nodes_time() ? NodesTime : 1;
+    const u64 scaleFactor = use_nodes_time() ? NodesTime : 1;
 
-    const TimePoint ScaledTime = std::max<TimePoint>(clock.time / ScaleFactor, 1);
+    const TimePoint scaledTime = std::max<TimePoint>(clock.time / scaleFactor, 1);
 
     // clang-format off
 
@@ -105,8 +105,8 @@ void TimeManager::init(Color ac, i16 ply, const Options& options, Limit& limit) 
 
     // If less than one second, gradually reduce mtg.
     // In cyclic time controls keep the actual movestogo as horizon.
-    if (mtg > 2 && ScaledTime < 1000 && limit.movesToGo == 0)
-        mtg = u8(std::max(0.05051 * ScaledTime, 2.0));
+    if (mtg > 2 && scaledTime < 1000 && limit.movesToGo == 0)
+        mtg = u8(std::max(0.05051 * scaledTime, 2.0));
 
     // Make sure remainTime > 0 since use it as a divisor
     const TimePoint remainTime =
@@ -121,7 +121,7 @@ void TimeManager::init(Color ac, i16 ply, const Options& options, Limit& limit) 
     if (limit.movesToGo == 0)
     {
         // Calculate time constants based on current remaining time
-        double LogScaledTime = std::log10(ScaledTime / 1000.0);  // NOLINT(bugprone-narrowing-conversions)
+        const double logScaledTime = std::log10(scaledTime / 1000.0);
 
         // 1) x base-time (sudden death)
         // Sudden death time control
@@ -132,8 +132,8 @@ void TimeManager::init(Color ac, i16 ply, const Options& options, Limit& limit) 
             timeAdjust = std::max(-0.4126 + 0.2862 * std::log10(remainTime), TIME_ADJUST_MIN);
 
         optimumScale = timeAdjust
-                     * std::min(11.29900e-3 + std::min(3.47750e-3 + 28.41880e-5 * LogScaledTime, 4.06734e-3) * std::pow(2.82122 + ply, 0.46642), 0.19404 * clock.time / remainTime);
-        maximumScale = std::min(std::max(3.66270 + 3.72690 * LogScaledTime, 2.75068) + ply / 12.7592, 6.35772);
+                     * std::min(11.29900e-3 + std::min(3.47750e-3 + 28.41880e-5 * logScaledTime, 4.06734e-3) * std::pow(2.82122 + ply, 0.46642), 0.19404 * clock.time / remainTime);
+        maximumScale = std::min(std::max(3.66270 + 3.72690 * logScaledTime, 2.75068) + ply / 12.7592, 6.35772);
         }
         // 2) x base-time (+ z increment)
         // If there is a healthy increment, remaining time can exceed the actual available
@@ -145,8 +145,8 @@ void TimeManager::init(Color ac, i16 ply, const Options& options, Limit& limit) 
             timeAdjust = std::max(-0.4141 + 0.3272 * std::log10(remainTime), TIME_ADJUST_MIN);
 
         optimumScale = timeAdjust
-                     * std::min(12.11200e-3 + std::min(2.98690e-3 + 33.55400e-5 * LogScaledTime, 4.90500e-3) * std::pow(3.22713 + ply, 0.46866), 0.19404 * clock.time / remainTime);
-        maximumScale = std::min(std::max(3.37440 + 3.06080 * LogScaledTime, 3.14410) + ply / 12.3520, 6.87300);
+                     * std::min(12.11200e-3 + std::min(2.98690e-3 + 33.55400e-5 * logScaledTime, 4.90500e-3) * std::pow(3.22713 + ply, 0.46866), 0.19404 * clock.time / remainTime);
+        maximumScale = std::min(std::max(3.37440 + 3.06080 * logScaledTime, 3.14410) + ply / 12.3520, 6.87300);
         }
     }
     // 3) x moves in y time (+ z increment)

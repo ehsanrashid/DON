@@ -236,7 +236,7 @@ UCI::UCI(const fs::path& path) noexcept :
             print_info_string(*info);
     });
 
-    set_update_callbacks();
+    set_on_updates();
 }
 
 Options& UCI::options() noexcept { return engine.options(); }
@@ -406,7 +406,7 @@ void on_update_move(const MoveInfo& mInfo) noexcept {
 
 }  // namespace
 
-void UCI::set_update_callbacks() noexcept {
+void UCI::set_on_updates() noexcept {
     engine.set_on_update_start([]() {});
     engine.set_on_update_short(on_update_short);
     engine.set_on_update_full(on_update_full);
@@ -608,7 +608,7 @@ void UCI::bench(std::istream& is) noexcept {
               << "\nnodes/second    : " << totalNodes * 1000 / totalTimeMs << std::endl;
 
     // Reset callback, to not capture a dangling reference
-    set_update_callbacks();
+    set_on_updates();
     options().setoption("MinimalInfo", MinimalInfo);
 }
 
@@ -786,7 +786,7 @@ void UCI::benchmark(std::istream& is) noexcept {
               << "\nnodes/second               : " << totalNodes * 1000 / totalTimeMs << std::endl;
     // clang-format on
 
-    set_update_callbacks();
+    set_on_updates();
     InfoStrStop = false;
 }
 
