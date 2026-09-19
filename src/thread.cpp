@@ -43,8 +43,7 @@ namespace DON {
 Thread::Thread(ThreadContext                 threadCxt,
                const ThreadToNumaNodeBinder& nodeBinder,
                const SharedState&            sharedState,
-               ManagerPtr                    manager,
-               bool                          autoStart) noexcept :
+               ManagerPtr                    manager) noexcept :
     context(std::move(threadCxt)) {
     assert(numa_thread_count() != 0 && numa_id() < numa_thread_count());
     //DEBUG_LOG("Creating Thread id: " << thread_id() << "/" << thread_count() << " on NUMA node " << numa_id() << "/" << numa_thread_count());
@@ -58,8 +57,7 @@ Thread::Thread(ThreadContext                 threadCxt,
 
     // Start the thread only after full initialization
     // Launch thread and wait until idle_func() puts it to sleep
-    if (autoStart)
-        start();
+    start();
 }
 
 Thread::~Thread() noexcept {
@@ -225,7 +223,7 @@ void Threads::set(const NumaConfig&             numaConfig,
             create_histories();
     }
 
-    const NumaConfig* numaConfigPtr = threadBindable ? &numaConfig : nullptr;
+    const auto* numaConfigPtr = threadBindable ? &numaConfig : nullptr;
 
     // Track per-NUMA indices
     std::unordered_map<NumaIndex, u16> numaIds;
@@ -237,23 +235,23 @@ void Threads::set(const NumaConfig&             numaConfig,
     {
         const NumaIndex numaId = thBoundNumaNodes[usize{threadId}];
 
-        const auto numaIdx       = numaIds[numaId]++;
+        const auto numaIndex     = numaIds[numaId]++;
         const auto numaThreadCnt = numaThreadCounts[numaId];
 
-        const auto create_thread = [this, threadId, threadCount, numaId, numaIdx, numaThreadCnt,
+        const auto create_thread = [this, threadId, threadCount, numaId, numaIndex, numaThreadCnt,
                                     numaConfigPtr, &sharedState,
                                     &updateContext]() noexcept -> void {
-            ThreadContext threadContext{threadId, threadCount, numaIdx, numaThreadCnt};
+            ThreadContext threadContext{threadId, threadCount, numaIndex, numaThreadCnt};
             // When not binding threads want to force all access to happen from the same
             // NUMA node, because in case of NUMA replicated memory accesses don't want
             // to trash cache in case the threads get scheduled on the same NUMA node.
-            ThreadToNumaNodeBinder nodeBinder{numaId, numaConfigPtr};
+            ThreadToNumaNodeBinder nodeBinder{numaConfigPtr, numaId};
 
             // Search manager for this thread
             auto manager = threadId == 0 ? std::make_unique<Manager>(updateContext) : nullptr;
 
             auto newThread = std::make_unique<Thread>(std::move(threadContext), nodeBinder,
-                                                      sharedState, std::move(manager), true);
+                                                      sharedState, std::move(manager));
             // Mutate threads list under write lock to avoid races
             {
                 std::lock_guard writeLock(mutex);
@@ -286,7 +284,7 @@ struct ThreadMetric final {
 
         // An aborted depth-1 search may leave the reported win/loss value inexact.
         const Value value   = rm.value;
-        const bool  isBound = rm.is_bound();
+        const bool  isBound = rm.is_inexact();
 
         assert(rm.id != std::numeric_limits<u16>::max() && rm.id < voteCounts.size());
         const u64 voteCount = voteCounts[rm.id];

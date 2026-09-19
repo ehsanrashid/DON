@@ -253,18 +253,16 @@ void TranspositionTable::reset(const Threads& threads) noexcept {
 
     auto threadBoundNumaNodes = threads.thread_bound_numa_nodes();
 
-    std::vector<size_t> orderedThreads(threadCount);
+    std::vector<usize> orderedThreads(usize{threadCount});
     std::iota(orderedThreads.begin(), orderedThreads.end(), 0);
 
     // To promote good NUMA distribution (esp. with huge pages), we permute threads so that
     // all threads in a NUMA node clear a contiguous region of the TT.
-    if (threadBoundNumaNodes.size() == threadCount)
-    {
+    if (threadBoundNumaNodes.size() == usize{threadCount})
         std::stable_sort(orderedThreads.begin(), orderedThreads.end(),
                          [&threadBoundNumaNodes](const usize t1, const usize t2) noexcept -> bool {
                              return threadBoundNumaNodes.at(t1) < threadBoundNumaNodes.at(t2);
                          });
-    }
 
     for (u16 threadId = 0; threadId < threadCount; ++threadId)
     {

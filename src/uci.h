@@ -50,7 +50,7 @@ class UCI final {
     UCI(UCI&&) noexcept                 = delete;
     UCI& operator=(UCI&&) noexcept      = delete;
 
-    void set_update_callbacks() noexcept;
+    void set_on_updates() noexcept;
 
     void position(std::istream& is) noexcept;
     void go(std::istream& is) noexcept;

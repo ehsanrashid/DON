@@ -29,6 +29,7 @@
 #include <limits>
 #include <optional>
 #include <string>
+#include <system_error>  // error_code
 #include <type_traits>
 #include <utility>  // pair<>, swap()
 #include <vector>
@@ -122,10 +123,10 @@ constexpr Array<int  , WDL_SCORE_NB> WDL_MAP  {        1,              3,       
 constexpr Array<i32  , WDL_SCORE_NB> WDL_RANK {-DTZ_MAX , -DTZ_MAX + 101,          0, +DTZ_MAX - 101, +DTZ_MAX };
 constexpr Array<Value, WDL_SCORE_NB> WDL_VALUE{-VALUE_TB, VALUE_DRAW - 2, VALUE_DRAW, VALUE_DRAW + 2, +VALUE_TB};
 
-constexpr usize wdl_index(WDLScore wdlScore) noexcept { return static_cast<usize>(wdlScore - WDL_LOSS); }
+constexpr usize wdl_index(const WDLScore wdlScore) noexcept { return usize(wdlScore - WDL_LOSS); }
 
-constexpr int off_A1H8(Square s) noexcept { return int(rank_of(s)) - int(file_of(s)); }
-//constexpr int off_A8H1(Square s) noexcept { return int(rank_of(s)) + int(file_of(s)); }
+[[maybe_unused]] constexpr int off_A1H8(const Square s) noexcept { return int(rank_of(s)) - int(file_of(s)); }
+[[maybe_unused]] constexpr int off_A8H1(const Square s) noexcept { return int(rank_of(s)) + int(file_of(s)); }
 
 Array<usize, SQUARE_NB>     B1H1H7Map;
 Array<usize, SQUARE_NB>     A1D1D4Map;
@@ -237,11 +238,11 @@ bool fits(const u8* p, u64 count, u64 stride, const u8* end) noexcept {
 //  TBTable:  one object for each file with corresponding indexing information
 //  TBTables: has ownership of TBTable objects, keeping a list and a hash
 
-// TBPaths stores the list of directories used to locate Syzygy tablebase files(.rtbw / .rtbz).
-// The class acts as a central repository for all tablebase search paths used by probing and file-loading routines.
+// TBPaths contains the directories used to locate Syzygy tablebase files
+// (.rtbw / .rtbz).
 //
 // Responsibilities:
-// • Parse a platform-dependent separator list of directories:
+// • Parse a platform-dependent list of directories:
 //     - ';' on Windows
 //     - ':' on Unix-like systems
 // • Store paths as std::filesystem::path for safe concatenation and
@@ -257,88 +258,85 @@ bool fits(const u8* p, u64 count, u64 stride, const u8* end) noexcept {
 //     for (const auto& dir : TBPaths::get()) { ... }
 //
 // Notes:
-// • The class is static-only and non-instantiable by design.
 // • Re-initialization replaces the previous path set.
-class TBPaths final {
-   public:
-    static bool init(std::string_view paths) noexcept {
-        // Platform-specific directory separator
-        // Example:
-        // C:\tb\wdl345;C:\tb\wdl6;D:\tb\dtz345;D:\tb\dtz6
-        constexpr char PathSeparator =
+namespace TBPaths {
+
+bool init(std::string_view paths) noexcept;
+
+const auto& paths() noexcept;
+
+}  // namespace TBPaths
+
+namespace TBPaths {
+
+namespace {
+
+// Platform-specific directory separator.
+// Example:
+// C:\tb\wdl345;C:\tb\wdl6;D:\tb\dtz345;D:\tb\dtz6
+constexpr std::string_view PATH_SEPARATOR{
     #if defined(_WIN32)
-          ';'
+  ";"
     #else
-          ':'
+  ":"
     #endif
-          ;
-
-        Paths.clear();
-        Paths.reserve(4);
-
-        usize beg = 0;
-
-        while (beg < paths.size())
-        {
-            usize end = paths.find(PathSeparator, beg);
-
-            if (end == std::string_view::npos)
-                end = paths.size();
-
-            if (beg < end)
-            {
-                auto path = trim(paths.substr(beg, end - beg));
-                // Optional robustness: ignore pure whitespace entries
-                if (!is_whitespace(path))
-                    Paths.emplace_back(path_from_utf8(path));
-            }
-
-            beg = end + 1;
-        }
-
-        return !Paths.empty();
-    }
-
-    static const auto& get() noexcept { return Paths; }
-
-   private:
-    TBPaths() noexcept                          = delete;
-    TBPaths(const TBPaths&) noexcept            = delete;
-    TBPaths& operator=(const TBPaths&) noexcept = delete;
-    TBPaths(TBPaths&&) noexcept                 = delete;
-    TBPaths& operator=(TBPaths&&) noexcept      = delete;
-
-    static inline std::vector<fs::path> Paths;
 };
+
+std::vector<fs::path> Paths;
+
+}  // namespace
+
+bool init(const std::string_view paths) noexcept {
+    Paths.clear();
+    Paths.reserve(4);
+
+    for (const auto path : split(paths, PATH_SEPARATOR, true))
+        if (std::find(Paths.begin(), Paths.end(), path) == Paths.end())
+            Paths.emplace_back(path_from_utf8(path));
+
+    return !Paths.empty();
+}
+
+const auto& paths() noexcept { return Paths; }
+
+}  // namespace TBPaths
 
 // TBFile resolves a tablebase filename by searching through TBPaths.
 // The first matching regular file is retained.
 class TBFile final {
    public:
-    explicit TBFile(std::string_view file) noexcept {
+    explicit TBFile(const fs::path& file) noexcept;
 
-        for (const auto& dir : TBPaths::get())
-        {
-            auto fn = dir / file;
+    TBFile(std::string_view base, std::string_view ext) noexcept;
 
-            if (fs::is_regular_file(fn))
-            {
-                filename = fn.string();
-                break;
-            }
-        }
-    }
+    std::string_view file_name() const noexcept;
 
-    TBFile(std::string_view base, std::string_view ext) noexcept :
-        TBFile{fs::path(base).concat(ext).string()} {}
-
-    std::string_view file_name() const noexcept { return filename; }
-
-    bool exists() const noexcept { return !file_name().empty(); }
+    bool exists() const noexcept;
 
    private:
-    std::string filename{};
+    std::string filename;
 };
+
+TBFile::TBFile(const fs::path& file) noexcept {
+    for (const auto& path : TBPaths::paths())
+    {
+        const auto fn = path / file;
+
+        std::error_code ec;
+        if (fs::is_regular_file(fn, ec))
+        {
+            filename = fn.string();
+            break;
+        }
+    }
+}
+
+TBFile::TBFile(const std::string_view base, const std::string_view ext) noexcept :
+    TBFile{fs::path(base).concat(ext)} {}
+
+std::string_view TBFile::file_name() const noexcept { return filename; }
+
+bool TBFile::exists() const noexcept { return !file_name().empty(); }
 
 // PairsData contains low-level indexing information to access TB data.
 // There are 8, 4, or 2 PairsData records for each TBTable, according to the type
@@ -566,7 +564,7 @@ TableData make_table_data(const std::string_view code) noexcept {
     err = pos.set(code, WHITE, &st);
     (void) err;
 
-    tableData.key[WHITE] = pos.material_key<false>();
+    tableData.key[WHITE] = pos.material_key();
 
     tableData.pieceCount = pos.count();
 
@@ -593,7 +591,7 @@ TableData make_table_data(const std::string_view code) noexcept {
     err = pos.set(code, BLACK, &st);
     (void) err;
 
-    tableData.key[BLACK] = pos.material_key<false>();
+    tableData.key[BLACK] = pos.material_key();
 
     return tableData;
 }
@@ -619,7 +617,7 @@ struct TBTable final: BaseTBTable {
 
     ~TBTable() noexcept override;
 
-    void* init(const Position& pos, Key materialKey) noexcept;
+    void* init(const Position& pos) noexcept;
 
     u8* map(std::string_view filename, usize* size) noexcept;
 
@@ -681,10 +679,10 @@ TBTable<T>::~TBTable() noexcept {
 // Called at every probe, memory map, and init only at first access.
 // Function is thread safe and can be called concurrently.
 template<TBType T>
-void* TBTable<T>::init(const Position& pos, const Key materialKey) noexcept {
+void* TBTable<T>::init(const Position& pos) noexcept {
     // Wait until initialization has completed.
     while (!initCallOnce.once_done())
-        initCallOnce([this, &pos, materialKey]() noexcept -> void {
+        initCallOnce([this, &pos]() noexcept -> void {
             // Pieces strings in decreasing order for each color, like ("KPP", "KR").
             Array<std::string, COLOR_NB> pieces{};
 
@@ -692,7 +690,7 @@ void* TBTable<T>::init(const Position& pos, const Key materialKey) noexcept {
                 for (usize i = PIECE_TYPES.size(); i-- > 0;)
                     pieces[c].append(pos.count(c, PIECE_TYPES[i]), to_char(PIECE_TYPES[i]));
 
-            const Color c = key[WHITE] == materialKey ? WHITE : BLACK;
+            const Color c = key[WHITE] == pos.material_key() ? WHITE : BLACK;
 
             std::string base;
             base.reserve(pieces[WHITE].size() + 1 + pieces[BLACK].size());
@@ -731,8 +729,8 @@ u8* TBTable<T>::map(const std::string_view filename, usize* size) noexcept {
 
     if (!fileHandleGuard.is_valid())
     {
-        DEBUG_LOG("CreateFile() failed: name = " << filename << ", error = "
-                                                 << error_to_string(GetLastError()));
+        std::cerr << "CreateFile() failed: name = " << filename
+                  << ", error = " << error_to_string(GetLastError()) << std::endl;
         return nullptr;
     }
 
@@ -741,8 +739,8 @@ u8* TBTable<T>::map(const std::string_view filename, usize* size) noexcept {
 
     if (loSize == INVALID_FILE_SIZE && GetLastError() != NO_ERROR)
     {
-        DEBUG_LOG("GetFileSize() failed: name = " << filename << ", error = "
-                                                  << error_to_string(GetLastError()));
+        std::cerr << "GetFileSize() failed: name = " << filename
+                  << ", error = " << error_to_string(GetLastError()) << std::endl;
         return nullptr;
     }
 
@@ -768,12 +766,10 @@ u8* TBTable<T>::map(const std::string_view filename, usize* size) noexcept {
 
     if (!mappedGuard.is_valid())
     {
-        DEBUG_LOG("MapViewOfFile() failed: name = " << filename << ", error = "
-                                                    << error_to_string(GetLastError()));
-
-        mapFileHandleGuard.reset();
-
-        return nullptr;
+        std::cerr << "MapViewOfFile() failed: name = " << filename
+                  << ", error = " << error_to_string(GetLastError()) << std::endl;
+        unmap();
+        std::exit(EXIT_FAILURE);
     }
     #else
     int fd = ::open(filename.data(), O_RDONLY | O_CLOEXEC);
@@ -782,7 +778,8 @@ u8* TBTable<T>::map(const std::string_view filename, usize* size) noexcept {
 
     if (!fdGuard.is_valid())
     {
-        DEBUG_LOG("::open() failed: name = " << filename << ", error = " << std::strerror(errno));
+        std::cerr << "::open() failed: name = " << filename << ", error = " << std::strerror(errno)
+                  << std::endl;
         return nullptr;
     }
 
@@ -790,7 +787,8 @@ u8* TBTable<T>::map(const std::string_view filename, usize* size) noexcept {
 
     if (::fstat(fdGuard.get(), &fileStat) != 0)
     {
-        DEBUG_LOG("::fstat() failed: name = " << filename << ", error = " << std::strerror(errno));
+        std::cerr << "::fstat() failed: name = " << filename << ", error = " << std::strerror(errno)
+                  << std::endl;
         return nullptr;
     }
 
@@ -809,6 +807,7 @@ u8* TBTable<T>::map(const std::string_view filename, usize* size) noexcept {
     {
         std::cerr << "::mmap() failed: name = " << filename << ", size = " << mappedSize << ": "
                   << std::strerror(errno) << std::endl;
+        unmap();
         std::exit(EXIT_FAILURE);
     }
 
@@ -816,9 +815,9 @@ u8* TBTable<T>::map(const std::string_view filename, usize* size) noexcept {
     if (mappedGuard.get_ptr() != nullptr && mappedGuard.get_size() != 0
         && ::madvise(mappedGuard.get_ptr(), mappedGuard.get_size(), MADV_RANDOM) != 0)
     {
-        DEBUG_LOG("::madvise() failed: name = " << filename
-                                                << " mappedSize = " << mappedGuard.get_size()
-                                                << ", error = " << std::strerror(errno));
+        std::cerr << "::madvise() failed: name = " << filename
+                  << " mappedSize = " << mappedGuard.get_size()
+                  << ", error = " << std::strerror(errno) << std::endl;
     }
         #endif
     #endif
@@ -1027,14 +1026,12 @@ void TBTable<T>::set_groups(PairsData* pd, const Array<int, 2>& order, const Fil
 }
 
 template<>
-u8* TBTable<WDL>::set_dtz_map(u8*                         data,
-                              [[maybe_unused]] const File maxFile,
-                              [[maybe_unused]] const u8*  end) noexcept {
+u8* TBTable<WDL>::set_dtz_map(u8* data, const File, const u8* const) noexcept {
     return data;
 }
 
 template<>
-u8* TBTable<DTZ>::set_dtz_map(u8* data, const File maxFile, const u8* end) noexcept {
+u8* TBTable<DTZ>::set_dtz_map(u8* data, const File maxFile, const u8* const end) noexcept {
     mapPtr = data;
 
     for (File f = FILE_A; f <= maxFile; ++f)
@@ -1230,7 +1227,7 @@ class TBTables final {
         }
 
         // Gracefully fail instead of asserting
-        DEBUG_LOG("TB hash table overflow");
+        std::cerr << "TB hash table overflow" << std::endl;
         return false;
     }
 
@@ -1274,14 +1271,15 @@ void TBTables::add(const std::vector<PieceType>& pieces) noexcept {
 
     code.insert(pos, 1, 'v');  // KRK -> KRvK
 
-    Array<bool, TB_TYPE_NB> Exists{
-      TBFile(code, EXTS[WDL]).exists(), TBFile(code, EXTS[DTZ]).exists()  //
+    Array<bool, TB_TYPE_NB> exists{
+      TBFile(code, EXTS[WDL]).exists(),  //
+      TBFile(code, EXTS[DTZ]).exists()   //
     };
 
-    if (!(Exists[WDL] || Exists[DTZ]))
+    if (!(exists[WDL] || exists[DTZ]))
         return;
 
-    const u8 cardinality = static_cast<u8>(pieces.size());
+    const u8 cardinality = u8(pieces.size());
 
     if (MaxCardinality < cardinality)
         MaxCardinality = cardinality;
@@ -1289,23 +1287,23 @@ void TBTables::add(const std::vector<PieceType>& pieces) noexcept {
     TBTable<WDL>* wdlTable = nullptr;
     TBTable<DTZ>* dtzTable = nullptr;
 
-    auto tableData = make_table_data(code);
+    const auto tableData = make_table_data(code);
 
-    if (Exists[WDL])
+    if (exists[WDL])
     {
         wdlTables.emplace_back(tableData);
         wdlTable = &wdlTables.back();
     }
 
-    if (Exists[DTZ])
+    if (exists[DTZ])
     {
         dtzTables.emplace_back(tableData);
         dtzTable = &dtzTables.back();
     }
 
-    BaseTBTable* keyTable = Exists[WDL]  //
-                            ? static_cast<BaseTBTable*>(wdlTable)
-                            : static_cast<BaseTBTable*>(dtzTable);
+    const BaseTBTable* keyTable = exists[WDL]  //
+                                  ? static_cast<BaseTBTable*>(wdlTable)
+                                  : static_cast<BaseTBTable*>(dtzTable);
 
     insert({keyTable->key[WHITE], wdlTable, dtzTable});
     insert({keyTable->key[BLACK], wdlTable, dtzTable});
@@ -1435,9 +1433,9 @@ int decompress_pairs(const PairsData* pd, u64 idx) noexcept {
     // that will store the value need.
     while (pd->symLen[sym] != 0)
     {
-        Sym lSym = pd->btree[sym].get<true>();
+        const Sym lSym = pd->btree[sym].get<true>();
 
-        int lSymLen = pd->symLen[lSym] + 1;
+        const int lSymLen = pd->symLen[lSym] + 1;
 
         // If a symbol contains 36 sub-symbols (d->symLen[sym] + 1 = 36) and
         // expands in a pair (d->symLen[lSym] = 23, d->symLen[rSym] = 11), then
@@ -1511,7 +1509,6 @@ int map_score(TBTable<DTZ>* table, const File f, const WDLScore wdlScore, int va
 template<typename T, typename Ret = typename T::Ret>
 Ret do_probe_table(T*                table,
                    const Position&   pos,
-                   const Key         materialKey,
                    const WDLScore    wdlScore,
                    ProbeState* const ps) noexcept {
     // A given TB entry like KRK has associated two material keys: KRvk and Kvkr.
@@ -1524,7 +1521,7 @@ Ret do_probe_table(T*                table,
     // have KRvK, not KvKR. A position where the stronger side is white will have
     // its material key == table->key[WHITE], otherwise have to switch the color
     // and flip the squares before to lookup.
-    bool blackStronger = materialKey != table->key[WHITE];
+    bool blackStronger = pos.material_key() != table->key[WHITE];
 
     bool flip = blackSymmetric || blackStronger;
 
@@ -1762,20 +1759,20 @@ Ret probe_table(const Position&   pos,
                 ProbeState* const ps,
                 const WDLScore    wdlScore = WDL_DRAW) noexcept {
 
-    const Key materialKey = pos.material_key<true>();
+    const Key materialKey = pos.material_key();
 
     if (materialKey == 0)  // KvK, pos.count() == 2
         return Ret(WDL_DRAW);
 
     TBTable<T>* table = tbTables.get<T>(materialKey);
 
-    if (table == nullptr || table->init(pos, materialKey) == nullptr)
+    if (table == nullptr || table->init(pos) == nullptr)
     {
         *ps = PS_FAIL;
         return Ret();
     }
 
-    return do_probe_table(table, pos, materialKey, wdlScore, ps);
+    return do_probe_table(table, pos, wdlScore, ps);
 }
 
 // For position where the side to move has a winning capture it is not necessary to

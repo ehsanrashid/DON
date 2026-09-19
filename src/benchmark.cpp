@@ -17,9 +17,11 @@
 
 #include "benchmark.h"
 
+#include <algorithm>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <limits>
 #include <vector>
 
 #include "numa.h"
@@ -453,40 +455,67 @@ Strings bench(std::istream& is, std::string_view currentFen) noexcept {
 }
 
 Setup benchmark(std::istream& is) noexcept {
-    // TTSizeThread is chosen so that roughly half of the hash
+    // TTSizePerThread is chosen so that roughly half of the hash
     // is used for positions in the current sequence searched.
-    constexpr usize TTSizeThread = 128;
-    constexpr usize MoveTime     = 150;
+    constexpr usize TTSizePerThread = 128;
+    constexpr usize MoveTime        = 150;
+
+    constexpr unsigned DurationSMax = std::numeric_limits<unsigned>::max() / 1000;
 
     Setup setup;
 
+    const auto clamped = [](const std::string_view what, const usize value,  //
+                            const usize lo, const usize hi) noexcept -> usize {
+        const usize fixed = std::clamp(value, lo, hi);
+        if (fixed != value)
+            std::cerr << "info string speedtest: " << what << ' ' << value << " is outside [" << lo
+                      << ", " << hi << "]; using " << fixed << std::endl;
+        return fixed;
+    };
+
     // Assign default values to missing arguments
 
+    usize input;
     // Desired time in seconds
-    usize desiredMoveTime;
+    usize desiredTimeS;
 
-    if (is >> setup.threads)
+    if (is >> input)
+    {
+        setup.threads = clamped("Threads", input, 1, THREAD_MAX);
         setup
           .originalInvocation  //
           .append(std::to_string(setup.threads));
+    }
     else
+    {
         setup.threads = SYSTEM_THREAD_MAX;
+    }
 
-    if (is >> setup.ttSize)
+    if (is >> input)
+    {
+        setup.ttSize = clamped("Hash", input, 1, HASH_MAX);
         setup
           .originalInvocation  //
           .append(" ")
           .append(std::to_string(setup.ttSize));
+    }
     else
-        setup.ttSize = TTSizeThread * setup.threads;
+    {
+        setup.ttSize = clamped("Hash", TTSizePerThread * setup.threads, 1, HASH_MAX);
+    }
 
-    if (is >> desiredMoveTime)
+    if (is >> desiredTimeS)
+    {
+        desiredTimeS = clamped("Seconds", desiredTimeS, 1, DurationSMax);
         setup
           .originalInvocation  //
           .append(" ")
-          .append(std::to_string(desiredMoveTime));
+          .append(std::to_string(desiredTimeS));
+    }
     else
-        desiredMoveTime = MoveTime;
+    {
+        desiredTimeS = MoveTime;
+    }
 
     setup
       .currentInvocation  //
@@ -494,9 +523,9 @@ Setup benchmark(std::istream& is) noexcept {
       .append(" ")
       .append(std::to_string(setup.ttSize))
       .append(" ")
-      .append(std::to_string(desiredMoveTime));
+      .append(std::to_string(desiredTimeS));
 
-    auto calc_move_time = [](const u32 ply) noexcept {
+    const auto calc_move_time = [](const u32 ply) noexcept -> double {
         // time per move is fit roughly based on LTC games
         // seconds =    50 / (15 + ply)
         // msec    = 50000 / (15 + ply)
@@ -510,7 +539,7 @@ Setup benchmark(std::istream& is) noexcept {
         for (usize i = 0; i < game.size(); ++i)
             totalMoveTime += calc_move_time(u32(i + 1));
 
-    double timeScaleFactor = desiredMoveTime * 1000.0 / totalMoveTime;
+    double timeScaleFactor = desiredTimeS * 1000.0 / totalMoveTime;
 
     for (const auto& game : GAMES)
     {

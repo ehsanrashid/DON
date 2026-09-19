@@ -169,8 +169,16 @@ inline constexpr i64 INT_LIMIT = std::numeric_limits<i32>::max();
 inline constexpr double LN2   = 0.693147180559945309417232121458176568;
 inline constexpr double SQRT2 = 1.41421356237309504880168872420969808;
 
+constexpr usize HASH_MAX =
+#if defined(IS_64BIT)
+  0x2000000U
+#else
+  0x800U
+#endif
+  ;
+
 inline constexpr std::string_view EMPTY_STRING{"<empty>"};
-inline constexpr std::string_view WHITE_SPACE{" \t\n\r\f\v"};
+inline constexpr std::string_view WHITE_SPACE{" \t\n\v\f\r"};
 
 // True if and only if the binary is compiled on a little-endian machine
 #if defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__)
@@ -219,7 +227,7 @@ constexpr auto sign_sqr(const T x) noexcept {
 template<typename T, std::enable_if_t<std::is_integral_v<T>, bool> = true>
 constexpr std::make_unsigned_t<T> constexpr_abs(const T x) noexcept {
     using U = std::make_unsigned_t<T>;
-    return x < 0 ? U{} - static_cast<U>(x) : static_cast<U>(x);
+    return x < 0 ? U{} - U(x) : U(x);
 }
 constexpr float       constexpr_abs(const float f) noexcept { return f < 0.0f ? -f : f; }
 constexpr double      constexpr_abs(const double d) noexcept { return d < 0.0 ? -d : d; }
@@ -325,8 +333,8 @@ constexpr usize round_up_to_pow2(usize x) noexcept {
     x |= x >> 4;
     x |= x >> 8;
     x |= x >> 16;
-#if SIZE_MAX > 0xFFFFFFFF
-    x |= x >> 32;  // for 64-bit size_t
+#if defined(SIZE_MAX) && SIZE_MAX > 0xFFFFFFFF
+    x |= x >> 32;  // for 64-bit usize
 #endif
     return x + 1;
 }
@@ -359,9 +367,8 @@ template<usize Alignment, typename T>
     static_assert(is_power_of_2(Alignment), "Alignment must be non-zero power of 2");
     static_assert(Alignment >= alignof(T), "Alignment must be >= alignof(T)");
 
-    const auto ptrUInt =
-      round_up_to_multiple(reinterpret_cast<uptr>(ptr), static_cast<uptr>(Alignment));
-    return reinterpret_cast<T*>(ptrUInt);
+    const auto uPtr = round_up_to_multiple(reinterpret_cast<uptr>(ptr), uptr(Alignment));
+    return reinterpret_cast<T*>(uPtr);
 }
 
 constexpr float max_load_factor(float maxLoadFactor = 0.75f) noexcept {
@@ -380,7 +387,7 @@ constexpr T2 interpolate(T1 x, T1 x0, T1 x1, T2 y0, T2 y1) noexcept {
 [[nodiscard]] constexpr bool is_idigit(const int dg) noexcept { return 0 <= dg && dg <= 9; }
 [[nodiscard]] constexpr bool is_cdigit(const char ch) noexcept { return '0' <= ch && ch <= '9'; }
 [[nodiscard]] constexpr bool is_space(const char ch) noexcept {
-    return ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r' || ch == '\f' || ch == '\v';
+    return ch == ' ' || ch == '\t' || ch == '\n' || ch == '\v' || ch == '\f' || ch == '\r';
 }
 [[nodiscard]] constexpr bool is_lower(const char ch) noexcept { return 'a' <= ch && ch <= 'z'; }
 [[nodiscard]] constexpr bool is_upper(const char ch) noexcept { return 'A' <= ch && ch <= 'Z'; }
@@ -1103,7 +1110,7 @@ std::ostream& operator<<(std::ostream& os, const FixedText& fixedText) noexcept;
 
 struct CommandLine final {
    public:
-    CommandLine(int argc, const char* argv[]) noexcept;
+    CommandLine(const int argc, const char* const argv[]) noexcept;
     CommandLine(const CommandLine&)            = delete;
     CommandLine& operator=(const CommandLine&) = delete;
     CommandLine(CommandLine&&)                 = default;
@@ -1117,7 +1124,7 @@ struct CommandLine final {
     [[nodiscard]] const StringViews& arguments() const noexcept;
 
    private:
-    void set_arguments(int argc, const char* argv[]) noexcept;
+    void set_arguments(const int argc, const char* const argv[]) noexcept;
 
     StringViews arguments_;
 #if defined(_WIN32)
@@ -1315,8 +1322,9 @@ class ConcurrentCache final {
     }
 
     template<typename... Args>
-    Value& access_or_build(const Key& key, Args&&... args) noexcept {
+    Value access_or_build(const Key& key, Args&&... args) noexcept {
         // Fast path: shared read lock to check and access
+        if (!resetting.load(std::memory_order_acquire))
         {
             std::shared_lock readLock(mutex);
 
@@ -1327,7 +1335,7 @@ class ConcurrentCache final {
         // Slow path: exclusive write lock to insert and construct
         std::lock_guard writeLock(mutex);
 
-        // Recheck after acquiring exclusive lock
+        // Lookup and insert if missing
         const auto [itr, inserted] = valueMap.try_emplace(key);
 
         // Inserted: construct the value
@@ -1338,8 +1346,9 @@ class ConcurrentCache final {
     }
 
     template<typename Builder, typename... Args>
-    Value& access_or_build_with(const Key& key, Builder&& builder, Args&&... args) noexcept {
+    Value access_or_build_with(const Key& key, Builder&& builder, Args&&... args) noexcept {
         // Fast path: shared read lock to check and access
+        if (!resetting.load(std::memory_order_acquire))
         {
             std::shared_lock readLock(mutex);
 
@@ -1350,7 +1359,7 @@ class ConcurrentCache final {
         // Slow path: exclusive write lock to insert and construct
         std::lock_guard writeLock(mutex);
 
-        // Recheck after acquiring exclusive lock
+        // Lookup and insert if missing
         const auto [itr, inserted] = valueMap.try_emplace(key);
 
         // Inserted: construct the value
@@ -1363,8 +1372,26 @@ class ConcurrentCache final {
     template<typename Transformer, typename... Args>
     auto
     transform_access_or_build(const Key& key, Transformer&& transformer, Args&&... args) noexcept {
-        return std::forward<Transformer>(transformer)(
-          access_or_build(key, std::forward<Args>(args)...));
+        // Fast path: shared read lock to check and access
+        if (!resetting.load(std::memory_order_acquire))
+        {
+            std::shared_lock readLock(mutex);
+
+            if (const auto itr = valueMap.find(key); itr != valueMap.end())
+                return std::forward<Transformer>(transformer)(get_ref(itr->second));
+        }
+
+        // Slow path: exclusive write lock to insert and construct
+        std::lock_guard writeLock(mutex);
+
+        // Lookup and insert if missing
+        const auto [itr, inserted] = valueMap.try_emplace(key);
+
+        // Inserted: construct the value
+        if (inserted)
+            set(itr->second, std::forward<Args>(args)...);
+
+        return std::forward<Transformer>(transformer)(get_ref(itr->second));
     }
 
     template<typename Transformer, typename Builder, typename... Args>
@@ -1372,19 +1399,46 @@ class ConcurrentCache final {
                                         Transformer&& transformer,
                                         Builder&&     builder,
                                         Args&&... args) noexcept {
-        return std::forward<Transformer>(transformer)(
-          access_or_build_with(key, std::forward<Builder>(builder), std::forward<Args>(args)...));
+        // Fast path: shared read lock to check and access
+        if (!resetting.load(std::memory_order_acquire))
+        {
+            std::shared_lock readLock(mutex);
+
+            if (const auto itr = valueMap.find(key); itr != valueMap.end())
+                return std::forward<Transformer>(transformer)(get_ref(itr->second));
+        }
+
+        // Slow path: exclusive write lock to insert and construct
+        std::lock_guard writeLock(mutex);
+
+        // Lookup and insert if missing
+        const auto [itr, inserted] = valueMap.try_emplace(key);
+
+        // Inserted: construct the value
+        if (inserted)
+            set(itr->second, std::forward<Builder>(builder)(std::forward<Args>(args)...));
+
+        return std::forward<Transformer>(transformer)(get_ref(itr->second));
     }
 
     void reset() noexcept {
-        std::lock_guard writeLock(mutex);
+        resetting.store(true, std::memory_order_release);
+        {
+            std::lock_guard writeLock(mutex);
 
-        valueMap.clear();
-        valueMap.rehash(0);
-        configure();
+            valueMap.clear();
+            valueMap.rehash(0);
+            configure();
+        }
+        resetting.store(false, std::memory_order_release);
     }
 
    private:
+    ConcurrentCache(const ConcurrentCache&)            = delete;
+    ConcurrentCache& operator=(const ConcurrentCache&) = delete;
+    ConcurrentCache(ConcurrentCache&&)                 = delete;
+    ConcurrentCache& operator=(ConcurrentCache&&)      = delete;
+
     void configure() noexcept {
         valueMap.max_load_factor(max_load_factor(maxLoadFactor));
         valueMap.reserve(reserve_count(reserveCount));
@@ -1406,8 +1460,16 @@ class ConcurrentCache final {
             value = std::make_unique<Value>(std::forward<Args>(args)...);
     }
 
+    // Return a copy of the stored value, dereferencing heap storage when used.
+    static Value get(const StorageValue& value) noexcept {
+        if constexpr (sizeof(Value) <= ThresholdSize)
+            return value;
+        else
+            return *value;
+    }
+
     // Return a reference to the stored value, dereferencing heap storage when used.
-    static Value& get(StorageValue& value) noexcept {
+    static const Value& get_ref(const StorageValue& value) noexcept {
         if constexpr (sizeof(Value) <= ThresholdSize)
             return value;
         else
@@ -1417,6 +1479,7 @@ class ConcurrentCache final {
     usize                                 reserveCount;
     float                                 maxLoadFactor;
     std::shared_mutex                     mutex;
+    std::atomic<bool>                     resetting{false};
     std::unordered_map<Key, StorageValue> valueMap;
 };
 
@@ -1504,14 +1567,10 @@ inline u64 hash_bytes(const char* RESTRICT data, usize size, u64 seed = 0) noexc
     {
         u64 k = 0;
 
-        u8 shift = 0;
         // Read remaining bytes in little-endian order
-        for (; p != end; ++p)
-        {
-            k |= static_cast<u64>(*p) << shift;
+        for (usize i = 0; p != end; ++p, ++i)
+            k |= u64(*p) << (i * BYTE_BITS);
 
-            shift += BYTE_BITS;
-        }
         // Merge into the running hash
         h ^= k;
         h *= MurmurM;
@@ -2031,15 +2090,17 @@ inline bool value_is_bool_string(std::string value) noexcept {
 }
 
 inline bool value_in_range(std::string_view sv, int minValue, int maxValue) noexcept {
-    const char* p   = sv.data();
-    const char* end = p + sv.size();
+    constexpr int Base = 10;
+
+    const char*       p   = sv.data();
+    const char* const end = p + sv.size();
     // Skip spaces
     for (; p != end && is_space(*p); ++p)
     {}
 
     int intValue = 0;
     // Parse decimal value (base 10) from string_view
-    auto [ptr, ec] = std::from_chars(p, end, intValue, 10);
+    auto [ptr, ec] = std::from_chars(p, end, intValue, Base);
     if (ec != std::errc{} || ptr != end)
         return false;
     // Check value is in range

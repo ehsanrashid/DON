@@ -50,11 +50,11 @@ CpuIndex hardware_concurrency() noexcept {
 
 namespace {
 
-CpuIndexSet intersect_cpus(const CpuIndexSet& cpus1, const CpuIndexSet& cpus2) noexcept {
-    const CpuIndexSet& smalerCpus = cpus1.size() <= cpus2.size() ? cpus1 : cpus2;
-    const CpuIndexSet& largerCpus = cpus1.size() <= cpus2.size() ? cpus2 : cpus1;
+CpuSet intersect_cpus(const CpuSet& cpus1, const CpuSet& cpus2) noexcept {
+    const CpuSet& smalerCpus = cpus1.size() <= cpus2.size() ? cpus1 : cpus2;
+    const CpuSet& largerCpus = cpus1.size() <= cpus2.size() ? cpus2 : cpus1;
 
-    CpuIndexSet intersectCpus;
+    CpuSet intersectCpus;
     intersectCpus.reserve(smalerCpus.size());
 
     for (const auto cpuId : smalerCpus)
@@ -66,7 +66,7 @@ CpuIndexSet intersect_cpus(const CpuIndexSet& cpus1, const CpuIndexSet& cpus2) n
 
 }  // namespace
 
-std::optional<CpuIndexSet> WindowsAffinity::combined_cpus() const noexcept {
+std::optional<CpuSet> WindowsAffinity::combined_cpus() const noexcept {
     // Both empty -> return std::nullopt
     if (cpus[0].empty() && cpus[1].empty())
         return std::nullopt;
@@ -158,7 +158,7 @@ WindowsAffinity get_process_affinity() noexcept {
                 winAffinity.determinate[1] = false;
             else
             {
-                CpuIndexSet cpus;
+                CpuSet cpus;
 
                 for (USHORT i = 0; i < requiredMaskCount; ++i)
                 {
@@ -217,7 +217,7 @@ WindowsAffinity get_process_affinity() noexcept {
         // Detect the case when affinity is set to all processors and correctly leave affinity.cpus[0] as nullopt.
         if (::GetActiveProcessorGroupCount() != 1 || procMask != sysMask)
         {
-            CpuIndexSet cpus;
+            CpuSet cpus;
 
             if (procMask != 0)
             {
@@ -251,7 +251,7 @@ WindowsAffinity get_process_affinity() noexcept {
         if (getThreadSelectedCpuSetMasks != nullptr)
         {
             std::thread th([&winAffinity, &procGroupAffinity]() noexcept -> void {
-                CpuIndexSet cpus;
+                CpuSet cpus;
 
                 bool fullAffinity = true;
 
@@ -325,9 +325,9 @@ WindowsAffinity get_process_affinity() noexcept {
 
 #elif defined(USE_UNIX_NUMA)
 
-CpuIndexSet get_process_affinity() noexcept {
+CpuSet get_process_affinity() noexcept {
 
-    CpuIndexSet cpus;
+    CpuSet cpus;
 
     // For unsupported systems, or in case of a soft error,
     // assume all processors are available for use.
@@ -392,8 +392,8 @@ NumaReplicatedAccessToken::NumaReplicatedAccessToken(const NumaIndex numaIdx) no
 
 NumaIndex NumaReplicatedAccessToken::numa_id() const noexcept { return numaId; }
 
-CpuIndexVec parse_to_cpus(const std::string_view sv) noexcept {
-    CpuIndexVec cpus;
+CpuVector parse_to_cpus(const std::string_view sv) noexcept {
+    CpuVector cpus;
 
     if (is_whitespace(sv))
         return cpus;
@@ -459,7 +459,7 @@ NumaConfig NumaConfig::from_system([[maybe_unused]] const AutoNumaPolicy& numaPo
 
 #if defined(_WIN64) || defined(USE_UNIX_NUMA)
     #if defined(_WIN64)
-    std::optional<CpuIndexSet> allowedCpus;
+    std::optional<CpuSet> allowedCpus;
 
     if (respectProcessAffinity)
         allowedCpus = PROCESSOR_AFFINITY.combined_cpus();
@@ -473,7 +473,7 @@ NumaConfig NumaConfig::from_system([[maybe_unused]] const AutoNumaPolicy& numaPo
     };
 
     #elif defined(USE_UNIX_NUMA)
-    CpuIndexSet allowedCpus;
+    CpuSet allowedCpus;
 
     if (respectProcessAffinity)
         allowedCpus = PROCESSOR_AFFINITY;
@@ -617,12 +617,12 @@ NumaConfig::NumaConfig() noexcept :
 
 usize NumaConfig::nodes_size() const noexcept { return nodes.size(); }
 
-CpuIndexVec& NumaConfig::node_cpus(const NumaIndex numaId) noexcept {
+CpuVector& NumaConfig::node_cpus(const NumaIndex numaId) noexcept {
     assert(numaId < nodes_size());
 
     return nodes[numaId];
 }
-const CpuIndexVec& NumaConfig::node_cpus(const NumaIndex numaId) const noexcept {
+const CpuVector& NumaConfig::node_cpus(const NumaIndex numaId) const noexcept {
     assert(numaId < nodes_size());
 
     return nodes[numaId];

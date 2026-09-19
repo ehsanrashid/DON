@@ -565,15 +565,18 @@ FixedText& FixedText::write(const std::string_view sv) noexcept {
         return *this;
 
     std::memcpy(end(), sv.data(), sv.size());
-    size_ += static_cast<u8>(sv.size());
+    size_ += u8(sv.size());
 
     return *this;
 }
 
 FixedText& FixedText::write(const int v) noexcept {
-    auto [ptr, ec] = std::to_chars(end(), begin() + capacity(), v);
+    constexpr int Base = 10;
+
+    auto [ptr, ec] = std::to_chars(end(), begin() + capacity(), v, Base);
     assert(ec == std::errc{});
-    size_ = static_cast<u8>(ptr - begin());
+
+    size_ = u8(ptr - begin());
 
     return *this;
 }
@@ -584,32 +587,39 @@ std::ostream& operator<<(std::ostream& os, const FixedText& fixedText) noexcept 
     return os;
 }
 
-CommandLine::CommandLine(int argc, const char* argv[]) noexcept {
+CommandLine::CommandLine(const int argc, const char* const argv[]) noexcept {
 #if defined(_WIN32)
-    int     wargc = 0;
-    LPWSTR* wargv = CommandLineToArgvW(GetCommandLineW(), &wargc);
-
-    if (wargv != nullptr)
+    int wide_argc;
+    if (LPWSTR* wide_argv = ::CommandLineToArgvW(::GetCommandLineW(), &wide_argc);  //
+        wide_argv != nullptr)
     {
-        const usize utf8_argc = static_cast<usize>(wargc);
+        const usize utf8_argc = usize(wide_argc);
 
         utf8_arguments.reserve(utf8_argc);
 
         for (usize i = 0; i < utf8_argc; ++i)
-            utf8_arguments.emplace_back(utf8_from_wstring(wargv[i]));
+            utf8_arguments.emplace_back(utf8_from_wstring(wide_argv[i]));
 
-        LocalFree(wargv);
+        ::LocalFree(wide_argv);
 
         arguments_.reserve(utf8_arguments.size());
 
-        for (const auto& utf8_arg : utf8_arguments)
-            arguments_.emplace_back(utf8_arg);
+        for (const auto& utf8_argv : utf8_arguments)
+            arguments_.emplace_back(std::string_view{utf8_argv});
+
+        return;
     }
-    else
-        set_arguments(argc, argv);
-#else
-    set_arguments(argc, argv);
 #endif
+    set_arguments(argc, argv);
+}
+
+void CommandLine::set_arguments(const int argc, const char* const argv[]) noexcept {
+    const usize u_argc = usize(argc);
+
+    arguments_.reserve(u_argc);
+
+    for (usize i = 0; i < u_argc; ++i)
+        arguments_.emplace_back(argv[i]);  // Store non-owning views.
 }
 
 fs::path CommandLine::binary_directory(fs::path path) noexcept {
@@ -619,7 +629,7 @@ fs::path CommandLine::binary_directory(fs::path path) noexcept {
     // Windows paths cannot exceed 32767 characters, so a fixed buffer is sufficient.
     // Falls back to path if the API fails.
     Array<WCHAR, 0x8000> filename{};
-    const DWORD length = GetModuleFileNameW(nullptr, filename.data(), DWORD(filename.size()));
+    const DWORD length = ::GetModuleFileNameW(nullptr, filename.data(), DWORD(filename.size()));
     if (length != 0 && length < filename.size())
         path = fs::path{filename.data(), filename.data() + length};
 #endif
@@ -631,15 +641,6 @@ fs::path CommandLine::binary_directory(fs::path path) noexcept {
 fs::path CommandLine::working_directory() noexcept { return fs::current_path(); }
 
 const StringViews& CommandLine::arguments() const noexcept { return arguments_; }
-
-void CommandLine::set_arguments(int argc, const char* argv[]) noexcept {
-    const usize uargc = static_cast<usize>(argc);
-
-    arguments_.reserve(uargc);
-
-    for (usize i = 0; i < uargc; ++i)
-        arguments_.emplace_back(argv[i]);  // Store a view without copying the string.
-}
 
 StringViewBuf::StringViewBuf(const std::string_view sv) noexcept {
     // std::streambuf requires char* for the get area.
@@ -1390,37 +1391,39 @@ std::string utf8_from_wstring(const std::wstring_view wsv) noexcept {
 
 fs::path path_from_utf8(const std::string_view path) noexcept {
 #if defined(_WIN32)
-    const usize size = path.size();
-    if (size > std::numeric_limits<int>::max())
+    const int pathSize = int(path.size());
+    if (pathSize > std::numeric_limits<int>::max())
         return {};
-    const int u8Size = int(size);
-    const int wSize  = MultiByteToWideChar(CP_UTF8, 0, path.data(), u8Size, nullptr, 0);
 
-    std::wstring wStr(static_cast<usize>(wSize), L'\0');
-    MultiByteToWideChar(CP_UTF8, 0, path.data(), u8Size, wStr.data(), wSize);
-    return {wStr};
+    const int wideSize = ::MultiByteToWideChar(CP_UTF8, 0, path.data(), pathSize, nullptr, 0);
+
+    std::wstring wideStr(usize(wideSize), L'\0');
+    ::MultiByteToWideChar(CP_UTF8, 0, path.data(), pathSize, wideStr.data(), wideSize);
+    return {wideStr};
 #else
     return {path};
 #endif
 }
 
 std::optional<usize> str_to_usize(const std::string_view sv) noexcept {
+    constexpr int Base = 10;
+
     if (sv.empty() || sv[0] == '-')
         return std::nullopt;
     // Use from_chars (no allocation, fast)
-    const char* p   = sv.data();
-    const char* end = p + sv.size();
+    const char*       p   = sv.data();
+    const char* const end = p + sv.size();
     // Skip spaces
     for (; p != end && is_space(*p); ++p)
     {}
 
     unsigned long long value = 0;
     // Parse decimal value (base 10) from string_view
-    auto [ptr, ec] = std::from_chars(p, end, value, 10);
+    auto [ptr, ec] = std::from_chars(p, end, value, Base);
     if (ec != std::errc{} || ptr != end || value > std::numeric_limits<usize>::max())
         return std::nullopt;
 
-    return static_cast<usize>(value);
+    return usize(value);
 }
 
 std::optional<std::string> read_file_to_string(const fs::path& filePath) noexcept {

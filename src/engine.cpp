@@ -17,12 +17,10 @@
 
 #include "engine.h"
 
-#include <algorithm>
 #include <cassert>
 #include <deque>
 #include <fstream>
 #include <iostream>
-#include <limits>
 #include <optional>
 
 #include "evaluate.h"
@@ -34,27 +32,6 @@
 #include "tablebase/syzygy.h"
 
 namespace DON {
-
-namespace {
-
-const u16 THREAD_MAX =
-  u16(std::clamp<u32>(4 * SYSTEM_THREAD_MAX, 1024, std::numeric_limits<u16>::max()));
-
-constexpr usize HASH_MAX =
-#if defined(IS_64BIT)
-  0x2000000U
-#else
-  0x800U
-#endif
-  ;
-
-// The default configuration will attempt to group L3 domains up to 32 threads.
-// This size was found to be a good balance between the Elo gain of increased
-// history sharing and the speed loss from more cross-cache accesses.
-// The user can always explicitly override this behavior.
-constexpr AutoNumaPolicy NUMA_POLICY_DEFAULT = BundledL3Policy{32};
-
-}  // namespace
 
 Engine::Engine(const fs::path& path) noexcept :
     // clang-format off
@@ -189,7 +166,11 @@ void Engine::reset() noexcept {
 }
 
 void Engine::set_history_max_load_factor() noexcept {
+    wait_finish();
+
+    atomicHistoriesMap.clear();
     atomicHistoriesMap.max_load_factor(max_load_factor(options()["HistoryLoadFactor"] / 100.0f));
+    atomicHistoriesMap.rehash(0);
 }
 
 void Engine::resize_threads_tt() noexcept {

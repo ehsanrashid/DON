@@ -217,11 +217,11 @@ struct RootMove final {
         return !(rm1 < rm2);
     }
 
-    [[nodiscard]] bool is_bound() const noexcept {
+    [[nodiscard]] bool is_inexact() const noexcept {
         return bound == Bound::LOWER || bound == Bound::UPPER;
     }
     [[nodiscard]] bool is_exact_loss() const noexcept {
-        return value != -VALUE_INFINITE && is_loss(value) && !is_bound();
+        return value != -VALUE_INFINITE && is_loss(value) && !is_inexact();
     }
 
     void reset_bound() noexcept { bound = Bound::NONE; }

@@ -31,12 +31,12 @@ using namespace DON;
 #if defined(UNIVERSAL_BINARY)
 namespace DON {
 
-int main(int argc, const char* argv[]) noexcept;  // silence 'no previous declaration'
+int main(const int argc, const char* const argv[]) noexcept;  // silence 'no previous declaration'
 
 __attribute__((used))  // keep main alive
 #endif
 
-int main(int argc, const char* argv[]) noexcept {
+int main(const int argc, const char* const argv[]) noexcept {
 
     set_console_utf8();
 
@@ -87,6 +87,6 @@ int main(int argc, const char* argv[]) noexcept {
 }  // namespace DON
 
     #if defined(UNIVERSAL_NEEDS_MAIN_SHIM)
-int main(int argc, const char* argv[]) noexcept { return DON::main(argc, argv); }
+int main(const int argc, const char* const argv[]) noexcept { return DON::main(argc, argv); }
     #endif
 #endif
