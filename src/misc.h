@@ -61,7 +61,7 @@
     #define X86_64
 #endif
 
-#if defined(X86) && defined(USE_PREFETCH)
+#if defined(USE_PREFETCH) && defined(X86) && (defined(_MSC_VER) || defined(__INTEL_COMPILER))
     #include <xmmintrin.h>  // SSE header for _mm_prefetch() intrinsics
     #define USE_X86_PREFETCH
 #endif
