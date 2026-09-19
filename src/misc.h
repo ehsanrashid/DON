@@ -1318,6 +1318,7 @@ class ConcurrentCache final {
     explicit ConcurrentCache(usize reserveCnt = 1 * KB, float maxLoadFtr = 0.75f) noexcept :
         reserveCount(reserveCnt),
         maxLoadFactor(maxLoadFtr) {
+        std::lock_guard writeLock(mutex);
         configure();
     }
 

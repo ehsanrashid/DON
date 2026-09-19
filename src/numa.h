@@ -308,8 +308,6 @@ class NumaConfig final {
             std::cerr << "Failed to create native thread on NUMA node" << std::endl;
             std::exit(EXIT_FAILURE);
         }
-
-        nativeThread.join();
     }
 
    private:

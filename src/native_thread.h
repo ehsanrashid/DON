@@ -105,21 +105,21 @@ class NativeThread final {
 
         if (::pthread_attr_init(&threadAttr) != 0)
         {
-            // DEBUG_LOG("::pthread_attr_init() failed.");
+            //DEBUG_LOG("::pthread_attr_init() failed.");
             return;
         }
 
-        const auto destroyThreadAttr = [&threadAttr]() noexcept {
+        const auto destroy_thread_attr = [&threadAttr]() noexcept {
             if (::pthread_attr_destroy(&threadAttr) != 0)
             {
-                // DEBUG_LOG("::pthread_attr_destroy() failed.");
+                //DEBUG_LOG("::pthread_attr_destroy() failed.");
             }
         };
 
         if (options.setStackSize && ::pthread_attr_setstacksize(&threadAttr, StackSize) != 0)
         {
-            // DEBUG_LOG("::pthread_attr_setstacksize() failed.");
-            destroyThreadAttr();
+            //DEBUG_LOG("::pthread_attr_setstacksize() failed.");
+            destroy_thread_attr();
             return;
         }
 
@@ -133,18 +133,17 @@ class NativeThread final {
 
         if (::pthread_create(&thread_, &threadAttr, start_routine, threadCallable.get()) != 0)
         {
-            // DEBUG_LOG("::pthread_create() failed.");
+            //DEBUG_LOG("::pthread_create() failed.");
         }
         else
         {
             // Mark thread as now joinable, not joined yet.
             joined_ = false;
-
             // Transfer ownership to the new thread.
             threadCallable.release();
         }
 
-        destroyThreadAttr();
+        destroy_thread_attr();
     }
 
     // RAII: join on destruction if thread is joinable

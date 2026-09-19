@@ -79,9 +79,9 @@ Engine::Engine(const fs::path& path) noexcept :
     options().add("Stop Logger",       Option(OnChange([](const Option&) { Logger::stop(); return std::nullopt; })));
     // clang-format on
 
-    set_history_max_load_factor();
-
     resize_threads_tt();
+
+    set_history_max_load_factor();
 
     setup();
 }

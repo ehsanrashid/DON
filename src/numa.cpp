@@ -326,8 +326,6 @@ WindowsAffinity get_process_affinity() noexcept {
                 std::cerr << "Failed to create win thread" << std::endl;
                 std::exit(EXIT_FAILURE);
             }
-
-            nativeThread.join();
         }
     }
 
