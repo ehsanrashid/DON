@@ -2121,21 +2121,11 @@ inline bool value_in_range(std::string_view sv, int minValue, int maxValue) noex
 
 StringViews split(std::string_view sv, std::string_view delimiter, bool trimPart = false) noexcept;
 
-inline std::string hash_to_string(u64 hash) noexcept {
-    constexpr usize BufferSize = HEX64_SIZE + 1;  // 16 hex + '\0'
-
-    Array<char, BufferSize> buffer{};
-
-    int   writtenSize = std::snprintf(buffer.data(), buffer.size(), "%016" PRIX64, hash);
-    usize copiedSize  = writtenSize > 0  //
-                        ? std::min(usize(writtenSize), buffer.size() - 1)
-                        : 0;
-
-    return std::string{buffer.data(), copiedSize};
-}
-
 std::string u32_to_string(u32 v) noexcept;
+
 std::string u64_to_string(u64 v) noexcept;
+
+std::string hash_to_string(u64 hash) noexcept;
 
 inline bool InfoStrStop = false;
 
@@ -2143,8 +2133,10 @@ void print_info_string(std::string_view infos) noexcept;
 
 [[noreturn]] void terminate_on_critical_error(std::string_view message) noexcept;
 
-std::string utf8_from_wstring(std::wstring_view wsv) noexcept;
-fs::path    path_from_utf8(std::string_view path) noexcept;
+// Convert a wide string to UTF-8.
+std::string wstring_to_utf8(std::wstring_view wsv) noexcept;
+
+fs::path utf8_to_path(std::string_view path) noexcept;
 
 std::optional<usize> str_to_usize(std::string_view sv) noexcept;
 

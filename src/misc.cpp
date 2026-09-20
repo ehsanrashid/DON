@@ -598,7 +598,7 @@ CommandLine::CommandLine(const int argc, const char* const argv[]) noexcept {
         utf8_arguments.reserve(utf8_argc);
 
         for (usize i = 0; i < utf8_argc; ++i)
-            utf8_arguments.emplace_back(utf8_from_wstring(wide_argv[i]));
+            utf8_arguments.emplace_back(wstring_to_utf8(wide_argv[i]));
 
         ::LocalFree(wide_argv);
 
@@ -1146,25 +1146,24 @@ std::string error_to_string(DWORD errorId) noexcept {
     // Ask Win32 to give us the string version of that message ID.
     // The parameters pass in, tell Win32 to create the buffer that holds the message
     // (because don't yet know how long the message string will be).
-    usize size = FormatMessage(
+    const usize size = FormatMessage(
       FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
       nullptr, errorId, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
       reinterpret_cast<LPSTR>(&buffer),  // must pass pointer to buffer pointer
       0, nullptr);
 
-    if (size == 0 || buffer == nullptr)
-    {
-        // FormatMessage failed; return a fallback string
+    // FormatMessage failed; return a fallback string
+    if (buffer == nullptr || size == 0)
         return "Unknown error: " + u32_to_string(errorId);
-    }
 
     // Copy the error message into a std::string
     std::string message{buffer, size};
     // Trim trailing CR/LF that many system messages include
     while (!message.empty() && (message.back() == '\r' || message.back() == '\n'))
         message.pop_back();
+
     // Free the Win32's string's buffer
-    LocalFree(buffer);
+    ::LocalFree(buffer);
 
     return message;
 }
@@ -1390,7 +1389,7 @@ split(const std::string_view sv, const std::string_view delimiter, bool trimPart
     return parts;
 }
 
-std::string u32_to_string(u32 v) noexcept {
+std::string u32_to_string(const u32 v) noexcept {
     constexpr usize BufferSize = 2 + HEX32_SIZE + 1;  // "0x" + 8 hex + '\0'
 
     Array<char, BufferSize> buffer{};
@@ -1403,12 +1402,25 @@ std::string u32_to_string(u32 v) noexcept {
     return std::string{buffer.data(), copiedSize};
 }
 
-std::string u64_to_string(u64 v) noexcept {
+std::string u64_to_string(const u64 v) noexcept {
     constexpr usize BufferSize = 2 + HEX64_SIZE + 1;  // "0x" + 16 hex + '\0'
 
     Array<char, BufferSize> buffer{};
 
     int   writtenSize = std::snprintf(buffer.data(), buffer.size(), "0x%016" PRIX64, v);
+    usize copiedSize  = writtenSize > 0  //
+                        ? std::min(usize(writtenSize), buffer.size() - 1)
+                        : 0;
+
+    return std::string{buffer.data(), copiedSize};
+}
+
+std::string hash_to_string(const u64 hash) noexcept {
+    constexpr usize BufferSize = HEX64_SIZE + 1;  // 16 hex + '\0'
+
+    Array<char, BufferSize> buffer{};
+
+    int   writtenSize = std::snprintf(buffer.data(), buffer.size(), "%016" PRIX64, hash);
     usize copiedSize  = writtenSize > 0  //
                         ? std::min(usize(writtenSize), buffer.size() - 1)
                         : 0;
@@ -1432,40 +1444,54 @@ void terminate_on_critical_error(const std::string_view message) noexcept {
     std::exit(EXIT_FAILURE);
 }
 
-std::string utf8_from_wstring(const std::wstring_view wsv) noexcept {
+// clang-format off
+
+std::string wstring_to_utf8(const std::wstring_view wsv) noexcept {
 #if defined(_WIN32)
     if (wsv.empty())
         return {};
 
-    const int size =
-      WideCharToMultiByte(CP_UTF8, 0, wsv.data(), int(wsv.size()), nullptr, 0, nullptr, nullptr);
+    const int size = ::WideCharToMultiByte(CP_UTF8, 0, wsv.data(), int(wsv.size()), nullptr, 0, nullptr, nullptr);
+
     if (size <= 0)
         return {};
 
-    std::string str(static_cast<usize>(size), '\0');
-    WideCharToMultiByte(CP_UTF8, 0, wsv.data(), int(wsv.size()), str.data(), size, nullptr,
-                        nullptr);
+    std::string str(usize(size), '\0');
+    ::WideCharToMultiByte(CP_UTF8, 0, wsv.data(), int(wsv.size()), str.data(), size, nullptr, nullptr);
+
     return str;
 #else
     return std::string{wsv.begin(), wsv.end()};
 #endif
 }
 
-fs::path path_from_utf8(const std::string_view path) noexcept {
+fs::path utf8_to_path(const std::string_view path) noexcept {
 #if defined(_WIN32)
     const int pathSize = int(path.size());
+
     if (pathSize > std::numeric_limits<int>::max())
         return {};
 
-    const int wideSize = ::MultiByteToWideChar(CP_UTF8, 0, path.data(), pathSize, nullptr, 0);
+    // First attempt UTF-8, then fall back to ANSI for old GUIs like Arena
+    constexpr Array<UINT, 2> CodePages{CP_UTF8, CP_ACP};
+    for (const UINT codePage : CodePages)
+    {
+        const DWORD flags = codePage == CP_UTF8 ? MB_ERR_INVALID_CHARS : 0;
+        const int   wideSize = ::MultiByteToWideChar(codePage, flags, path.data(), pathSize, nullptr, 0);
 
-    std::wstring wideStr(usize(wideSize), L'\0');
-    ::MultiByteToWideChar(CP_UTF8, 0, path.data(), pathSize, wideStr.data(), wideSize);
-    return {wideStr};
-#else
-    return {path};
+        if (wideSize <= 0)
+            continue;
+
+        std::wstring wideStr(usize(wideSize), L'\0');
+        ::MultiByteToWideChar(codePage, 0, path.data(), pathSize, wideStr.data(), wideSize);
+
+        return {wideStr};
+    }
 #endif
+    return {path};
 }
+
+// clang-format on
 
 std::optional<usize> str_to_usize(const std::string_view sv) noexcept {
     constexpr int Base = 10;

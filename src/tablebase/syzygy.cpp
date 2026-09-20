@@ -292,7 +292,7 @@ bool init(const std::string_view paths) noexcept {
 
     for (const auto path : split(paths, PATH_SEPARATOR, true))
         if (std::find(Paths.begin(), Paths.end(), path) == Paths.end())
-            Paths.emplace_back(path_from_utf8(path));
+            Paths.emplace_back(utf8_to_path(path));
 
     return !Paths.empty();
 }

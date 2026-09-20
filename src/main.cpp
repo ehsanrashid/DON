@@ -54,7 +54,7 @@ int main(const int argc, const char* const argv[]) noexcept {
 
     const auto path = !arguments.empty() ? arguments[0] : ".";
 
-    UCI uci(path_from_utf8(path));
+    UCI uci(utf8_to_path(path));
 
     Tune::init(uci.options());
 

@@ -127,7 +127,7 @@ void Network::load(const fs::path& rootDirectory,
       rootDirectory
 #if defined(DEFAULT_NNUE_DIRECTORY)
       ,
-      path_from_utf8(STRINGIFY(DEFAULT_NNUE_DIRECTORY))
+      utf8_to_path(STRINGIFY(DEFAULT_NNUE_DIRECTORY))
 #endif
     };
 
