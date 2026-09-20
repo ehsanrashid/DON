@@ -295,10 +295,10 @@ std::string Engine::thread_binding() const noexcept {
 }
 
 std::string Engine::thread_allocation() const noexcept {
-    std::string threadAllocation{"Threads: "};
+    auto threadAllocation = std::string{"Threads: "};
     threadAllocation.append(std::to_string(threads.size()));
 
-    if (const std::string threadBinding = thread_binding(); !threadBinding.empty())
+    if (const auto threadBinding = thread_binding(); !threadBinding.empty())
         threadAllocation  //
           .append(" with NUMA node thread binding: ")
           .append(threadBinding);

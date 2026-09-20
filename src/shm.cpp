@@ -423,7 +423,7 @@ const std::optional<TempRoot>& TempRoot::temp_root() noexcept {
     static const auto tempRoot = []() -> std::optional<TempRoot> {
         const uid_t uid = ::getuid();
 
-        const std::string tempPath{std::string{"/tmp/DON-"} + std::to_string(uid)};
+        const auto tempPath = std::string{"/tmp/DON-"} + std::to_string(uid);
 
         if (::mkdir(tempPath.c_str(), S_IRWXU) == 0)
             return TempRoot{tempPath};
