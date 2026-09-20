@@ -46,8 +46,8 @@ Engine::Engine(const fs::path& path) noexcept :
     options().add("Clear Hash",        Option(OnChange([this](const Option&) { reset(); return std::nullopt; })));
     options().add("HashRetain",        Option(false));
     options().add("HashFile",          Option(""));
-    options().add("Save Hash",         Option(OnChange([this](const Option&) { return save_hash(path_from_utf8(options()["HashFile"])) ? "Save succeeded" : "Save failed"; })));
-    options().add("Load Hash",         Option(OnChange([this](const Option&) { return load_hash(path_from_utf8(options()["HashFile"])) ? "Load succeeded" : "Load failed"; })));
+    options().add("Save Hash",         Option(OnChange([this](const Option&) { return save_hash(utf8_to_path(options()["HashFile"])) ? "Save succeeded" : "Save failed"; })));
+    options().add("Load Hash",         Option(OnChange([this](const Option&) { return load_hash(utf8_to_path(options()["HashFile"])) ? "Load succeeded" : "Load failed"; })));
     options().add("Ponder",            Option(false));
     options().add("MultiPV",           Option(1, 1, int(MOVE_MAX)));
     options().add("UCI_Chess960",      Option(Position::Chess960, OnChange([](const Option& o) { Position::Chess960 = bool(o); return std::nullopt; })));
@@ -65,7 +65,7 @@ Engine::Engine(const fs::path& path) noexcept :
     options().add("HistoryLoadFactor", Option(75, 10, 100, OnChange([this](const Option&) { set_history_max_load_factor(); return std::nullopt; })));
     options().add("DrawMoveCount",     Option(Position::DrawMoveCount, 5, 50, OnChange([](const Option& o) { Position::DrawMoveCount = int(o); return std::nullopt; })));
     options().add("Book",              Option(false));
-    options().add("BookFile",          Option("", OnChange([](const Option& o) { auto bookFile = path_from_utf8(o); if (bookFile.empty()) return ""; return pgBook.load(bookFile) ? "Load succeeded" : "Load failed"; })));
+    options().add("BookFile",          Option("", OnChange([](const Option& o) { auto bookFile = utf8_to_path(o); if (bookFile.empty()) return ""; return pgBook.load(bookFile) ? "Load succeeded" : "Load failed"; })));
     options().add("BookProbeDepth",    Option(100, 1, 256));
     options().add("BookBestPick",      Option(true));
     options().add("SyzygyPath",        Option("", OnChange([](const Option& o) { Tablebase::Syzygy::init(o); return std::nullopt; })));
@@ -73,9 +73,9 @@ Engine::Engine(const fs::path& path) noexcept :
     options().add("SyzygyProbeDepth",  Option(1, 1, 100));
     options().add("Syzygy50MoveRule",  Option(true));
     options().add("SyzygyPVExtend",    Option(true));
-    options().add("EvalFile",          Option(EvalFileDefaultName, OnChange([this](const Option& o) { load_network(path_from_utf8(o)); return std::nullopt; })));
+    options().add("EvalFile",          Option(EvalFileDefaultName, OnChange([this](const Option& o) { load_network(utf8_to_path(o)); return std::nullopt; })));
     options().add("MinimalInfo",       Option(false));
-    options().add("LogFile",           Option("", OnChange([](const Option& o) { return Logger::start(path_from_utf8(o)) ? "Logger started" : "Logger not started"; })));
+    options().add("LogFile",           Option("", OnChange([](const Option& o) { return Logger::start(utf8_to_path(o)) ? "Logger started" : "Logger not started"; })));
     options().add("Stop Logger",       Option(OnChange([](const Option&) { Logger::stop(); return std::nullopt; })));
     // clang-format on
 
@@ -295,10 +295,10 @@ std::string Engine::thread_binding() const noexcept {
 }
 
 std::string Engine::thread_allocation() const noexcept {
-    std::string threadAllocation{"Threads: "};
+    auto threadAllocation = std::string{"Threads: "};
     threadAllocation.append(std::to_string(threads.size()));
 
-    if (const std::string threadBinding = thread_binding(); !threadBinding.empty())
+    if (const auto threadBinding = thread_binding(); !threadBinding.empty())
         threadAllocation  //
           .append(" with NUMA node thread binding: ")
           .append(threadBinding);
@@ -316,7 +316,7 @@ std::unique_ptr<NNUE::Network> Engine::default_network() noexcept {
 
 void Engine::verify_network() const noexcept {
 
-    auto evalFilePath = path_from_utf8(options()["EvalFile"]);
+    auto evalFilePath = utf8_to_path(options()["EvalFile"]);
 
     network->verify(evalFilePath, networkFile);
 

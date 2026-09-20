@@ -344,7 +344,7 @@ void UCI::execute(const std::string_view command) noexcept {
         fs::path    netFile;
 
         if (is >> input)
-            netFile = path_from_utf8(input);
+            netFile = utf8_to_path(input);
 
         engine.save_network(netFile);
     }

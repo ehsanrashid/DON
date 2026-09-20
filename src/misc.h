@@ -22,12 +22,9 @@
 #include <array>
 #include <atomic>
 #include <cassert>
-#include <charconv>
 #include <chrono>
-#include <cinttypes>
 #include <cstddef>
 #include <cstdint>
-#include <cstdio>
 #include <cstring>
 #include <filesystem>
 #include <fstream>
@@ -42,7 +39,6 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
-#include <system_error>
 #include <type_traits>
 #include <unordered_map>
 #include <utility>
@@ -111,6 +107,12 @@
     #define RESTRICT
 #endif
 
+#if defined(__clang__) || defined(__GNUC__)
+    #define UNLIKELY(x) __builtin_expect(!!(x), 0)
+#else
+    #define UNLIKELY(x) (x)
+#endif
+
 #if !defined(NDEBUG)
     #define DEBUG_LOG(msg) std::cerr << msg << '\n'
 #else
@@ -147,6 +149,25 @@ using CpuIndex  = u16;
 
 using Strings     = std::vector<std::string>;
 using StringViews = std::vector<std::string_view>;
+
+namespace Internal {
+
+template<typename T, usize Size, usize... Sizes>
+struct ArrayDef final {
+    static_assert(Size >= 0, "dimension must be >= 0");
+    using type = std::array<typename ArrayDef<T, Sizes...>::type, Size>;
+};
+
+template<typename T, usize Size>
+struct ArrayDef<T, Size> final {
+    static_assert(Size >= 0, "dimension must be >= 0");
+    using type = std::array<T, Size>;
+};
+
+}  // namespace Internal
+
+template<typename T, usize Size, usize... Sizes>
+using Array = typename Internal::ArrayDef<T, Size, Sizes...>::type;
 
 // Base exception type for application-specific errors
 struct Error: public std::runtime_error {
@@ -412,23 +433,6 @@ constexpr T2 interpolate(T1 x, T1 x0, T1 x1, T2 y0, T2 y1) noexcept {
     return is_cdigit(ch) ? ch - '0' : 0;
 }
 
-constexpr unsigned to_month(const std::string_view mon) noexcept {
-    assert(mon.size() == 3);
-    return lower_case(mon[0]) == 'j' && lower_case(mon[1]) == 'a' ? 1
-         : lower_case(mon[0]) == 'f'                              ? 2
-         : lower_case(mon[0]) == 'm' && lower_case(mon[2]) == 'r' ? 3
-         : lower_case(mon[0]) == 'a' && lower_case(mon[1]) == 'p' ? 4
-         : lower_case(mon[0]) == 'm' && lower_case(mon[2]) == 'y' ? 5
-         : lower_case(mon[0]) == 'j' && lower_case(mon[2]) == 'n' ? 6
-         : lower_case(mon[0]) == 'j' && lower_case(mon[2]) == 'l' ? 7
-         : lower_case(mon[0]) == 'a' && lower_case(mon[1]) == 'u' ? 8
-         : lower_case(mon[0]) == 's'                              ? 9
-         : lower_case(mon[0]) == 'o'                              ? 10
-         : lower_case(mon[0]) == 'n'                              ? 11
-         : lower_case(mon[0]) == 'd'                              ? 12
-                                                                  : 0;
-}
-
 namespace ConsoleColor {
 
 // Reset
@@ -476,6 +480,42 @@ inline constexpr const char* BG_WHITE   = "\033[47m";
 }  // namespace ConsoleColor
 
 void set_console_utf8() noexcept;
+
+constexpr u32 to_month(const std::string_view mon) noexcept {
+    assert(mon.size() == 3);
+    return lower_case(mon[0]) == 'j' && lower_case(mon[1]) == 'a' ? 1
+         : lower_case(mon[0]) == 'f'                              ? 2
+         : lower_case(mon[0]) == 'm' && lower_case(mon[2]) == 'r' ? 3
+         : lower_case(mon[0]) == 'a' && lower_case(mon[1]) == 'p' ? 4
+         : lower_case(mon[0]) == 'm' && lower_case(mon[2]) == 'y' ? 5
+         : lower_case(mon[0]) == 'j' && lower_case(mon[2]) == 'n' ? 6
+         : lower_case(mon[0]) == 'j' && lower_case(mon[2]) == 'l' ? 7
+         : lower_case(mon[0]) == 'a' && lower_case(mon[1]) == 'u' ? 8
+         : lower_case(mon[0]) == 's'                              ? 9
+         : lower_case(mon[0]) == 'o'                              ? 10
+         : lower_case(mon[0]) == 'n'                              ? 11
+         : lower_case(mon[0]) == 'd'                              ? 12
+                                                                  : 0;
+}
+
+// Tomohiko Sakamoto's Algorithm
+constexpr std::string_view week_day(const u32 year, const u32 month, const u32 day) noexcept {
+    constexpr Array<std::string_view, 7> Weekdays{
+      "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"  //
+    };
+
+    // Precomputed weekday offsets for each month.
+    constexpr Array<u32, 12> MonthWeekdays{0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4};
+
+    // Treat January and February as part of the previous year.
+    const u32 yr = year - u32(month < 3);
+
+    // Apply the mathematical congruence formula
+    const usize weekDay = (yr + yr / 4 - yr / 100 + yr / 400 + MonthWeekdays[month - 1] + day)  //
+                        % Weekdays.size();
+
+    return Weekdays[weekDay];
+}
 
 // Format date "Mon DD YYYY" -> YYYYMMDD
 std::string format_date(std::string_view date) noexcept;
@@ -794,18 +834,6 @@ class MultiArray;
 
 namespace Internal {
 
-template<typename T, usize Size, usize... Sizes>
-struct ArrayDef final {
-    static_assert(Size >= 0, "dimension must be >= 0");
-    using type = std::array<typename ArrayDef<T, Sizes...>::type, Size>;
-};
-
-template<typename T, usize Size>
-struct ArrayDef<T, Size> final {
-    static_assert(Size >= 0, "dimension must be >= 0");
-    using type = std::array<T, Size>;
-};
-
 // Recursive template to define multi-dimensional array
 template<typename T, usize Size, usize... Sizes>
 struct MultiArrayDef final {
@@ -820,9 +848,6 @@ struct MultiArrayDef<T, Size> final {
 };
 
 }  // namespace Internal
-
-template<typename T, usize Size, usize... Sizes>
-using Array = typename Internal::ArrayDef<T, Size, Sizes...>::type;
 
 // MultiArray is a generic N-dimensional array.
 // The template parameter T is the base type of the MultiArray
@@ -2000,32 +2025,6 @@ struct UniqueFd final {
 
 #endif
 
-inline std::string lower_case(std::string str) noexcept {
-    std::transform(str.begin(), str.end(), str.begin(),
-                   [](char ch) noexcept -> char { return lower_case(ch); });
-    return str;
-}
-
-inline std::string upper_case(std::string str) noexcept {
-    std::transform(str.begin(), str.end(), str.begin(),
-                   [](char ch) noexcept -> char { return upper_case(ch); });
-    return str;
-}
-
-inline std::string toggle_case(std::string str) noexcept {
-    std::transform(str.begin(), str.end(), str.begin(), [](char ch) noexcept -> char {
-        return is_lower(ch) ? upper_case(ch) : is_upper(ch) ? lower_case(ch) : ch;
-    });
-    return str;
-}
-
-inline std::string remove_whitespace(std::string str) noexcept {
-    str.erase(
-      std::remove_if(str.begin(), str.end(), [](char ch) noexcept -> bool { return is_space(ch); }),
-      str.end());
-    return str;
-}
-
 [[nodiscard]] constexpr bool starts_with(std::string_view sv, std::string_view prefix) noexcept {
     return sv.size() >= prefix.size()  //
         && sv.compare(0, prefix.size(), prefix) == 0;
@@ -2075,7 +2074,7 @@ inline std::string remove_whitespace(std::string str) noexcept {
     return b ? "true" : "false";
 }
 
-[[nodiscard]] constexpr bool sv_to_bool(const std::string_view sv) {
+[[nodiscard]] constexpr bool sv_to_bool(std::string_view sv) {
     return (trim(sv) == bool_to_string(true));
 }
 
@@ -2094,84 +2093,44 @@ inline std::string remove_whitespace(std::string str) noexcept {
     return neg ? -intValue : intValue;
 }
 
+inline std::string lower_case(std::string str) noexcept {
+    std::transform(str.begin(), str.end(), str.begin(),
+                   [](const char ch) noexcept -> char { return lower_case(ch); });
+    return str;
+}
+
+inline std::string upper_case(std::string str) noexcept {
+    std::transform(str.begin(), str.end(), str.begin(),
+                   [](const char ch) noexcept -> char { return upper_case(ch); });
+    return str;
+}
+
+inline std::string toggle_case(std::string str) noexcept {
+    std::transform(str.begin(), str.end(), str.begin(), [](const char ch) noexcept -> char {
+        return is_lower(ch) ? upper_case(ch) : is_upper(ch) ? lower_case(ch) : ch;
+    });
+    return str;
+}
+
+inline std::string remove_whitespace(std::string str) noexcept {
+    str.erase(std::remove_if(str.begin(), str.end(),
+                             [](const char ch) noexcept -> bool { return is_space(ch); }),
+              str.end());
+    return str;
+}
+
 // Validate boolean string (case-insensitive)
-inline bool value_is_bool_string(std::string value) noexcept {
-    // Convert to lowercase for case-insensitive comparison
-    value = lower_case(value);
-    return value == bool_to_string(true) || value == bool_to_string(false);
-}
+bool value_is_bool(std::string_view sv) noexcept;
 
-inline bool value_in_range(std::string_view sv, int minValue, int maxValue) noexcept {
-    constexpr int Base = 10;
+bool value_in_range(std::string_view sv, int minValue, int maxValue) noexcept;
 
-    const char*       p   = sv.data();
-    const char* const end = p + sv.size();
-    // Skip spaces
-    for (; p != end && is_space(*p); ++p)
-    {}
-
-    int intValue = 0;
-    // Parse decimal value (base 10) from string_view
-    auto [ptr, ec] = std::from_chars(p, end, intValue, Base);
-    if (ec != std::errc{} || ptr != end)
-        return false;
-    // Check value is in range
-    return minValue <= intValue && intValue <= maxValue;
-}
-
-inline StringViews
-split(std::string_view sv, std::string_view delimiter, bool trimPart = false) noexcept {
-    StringViews parts;
-
-    if (sv.empty() || delimiter.empty())
-        return parts;  // Avoid infinite loop for empty delimiter
-
-    std::string_view part;
-
-    usize offset = 0;
-
-    while (true)
-    {
-        auto end = sv.find(delimiter, offset);
-
-        if (end == std::string_view::npos)
-            break;
-
-        part = sv.substr(offset, end - offset);
-
-        if (trimPart)
-            part = trim(part);
-
-        parts.emplace_back(part);
-        offset = end + delimiter.size();
-    }
-
-    // Last part
-    part = sv.substr(offset);
-
-    if (trimPart)
-        part = trim(part);
-
-    parts.emplace_back(part);
-
-    return parts;
-}
-
-inline std::string hash_to_string(u64 hash) noexcept {
-    constexpr usize BufferSize = HEX64_SIZE + 1;  // 16 hex + '\0'
-
-    Array<char, BufferSize> buffer{};
-
-    int   writtenSize = std::snprintf(buffer.data(), buffer.size(), "%016" PRIX64, hash);
-    usize copiedSize  = writtenSize > 0  //
-                        ? std::min(usize(writtenSize), buffer.size() - 1)
-                        : 0;
-
-    return std::string{buffer.data(), copiedSize};
-}
+StringViews split(std::string_view sv, std::string_view delimiter, bool trimPart = false) noexcept;
 
 std::string u32_to_string(u32 v) noexcept;
+
 std::string u64_to_string(u64 v) noexcept;
+
+std::string hash_to_string(u64 hash) noexcept;
 
 inline bool InfoStrStop = false;
 
@@ -2179,8 +2138,10 @@ void print_info_string(std::string_view infos) noexcept;
 
 [[noreturn]] void terminate_on_critical_error(std::string_view message) noexcept;
 
-std::string utf8_from_wstring(std::wstring_view wsv) noexcept;
-fs::path    path_from_utf8(std::string_view path) noexcept;
+// Convert a wide string to UTF-8.
+std::string wstring_to_utf8(std::wstring_view wsv) noexcept;
+
+fs::path utf8_to_path(std::string_view path) noexcept;
 
 std::optional<usize> str_to_usize(std::string_view sv) noexcept;
 

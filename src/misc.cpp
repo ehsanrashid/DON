@@ -17,9 +17,13 @@
 
 #include "misc.h"
 
-#include <cmath>
-#include <cstdlib>
-#include <ctime>
+#include <charconv>      // from_chars()
+#include <cinttypes>     // PRIX32, PRIX64, PRIu64
+#include <cmath>         // sqrt()
+#include <cstdio>        // snprintf()
+#include <cstdlib>       // exit(), EXIT_FAILURE
+#include <ctime>         // time_t, localtime_r(), localtime_s(), strftime()
+#include <system_error>  // errc
 
 #if defined(_WIN32)
     #include <shellapi.h>  // CommandLineToArgvW()
@@ -36,8 +40,7 @@ constexpr std::string_view NAME{"DON"};
 constexpr std::string_view AUTHOR{"Ehsan Rashid"};
 constexpr std::string_view VERSION{"dev"};
 
-std::string
-compiler_version(const unsigned major, const unsigned minor, const unsigned patch) noexcept {
+std::string compiler_version(const u32 major, const u32 minor, const u32 patch) noexcept {
     return std::to_string(major) + "." + std::to_string(minor) + "." + std::to_string(patch);
 }
 
@@ -71,7 +74,7 @@ std::string format_date(const std::string_view date) noexcept {
     p += 3;
 
     // Find month index (1..12)
-    unsigned month = to_month(m);
+    u32 month = to_month(m);
     if (month == 0)
         return std::string{NullDate};
 
@@ -83,7 +86,7 @@ std::string format_date(const std::string_view date) noexcept {
     if (end - p < 1 || !is_cdigit(*p))
         return std::string{NullDate};
 
-    unsigned day = 0;
+    u32 day = 0;
     for (; p != end && is_cdigit(*p); ++p)
         day = 10 * day + char_to_digit(*p);
 
@@ -99,7 +102,7 @@ std::string format_date(const std::string_view date) noexcept {
     if (end - p < 4)
         return std::string{NullDate};
 
-    unsigned year = 0;
+    u32 year = 0;
     for (const auto* yEnd = p + 4; p != yEnd; ++p)
     {
         if (!is_cdigit(*p))
@@ -113,17 +116,16 @@ std::string format_date(const std::string_view date) noexcept {
         return std::string{NullDate};
 
     // Format YYYYMMDD manually (faster than snprintf)
-    Array<char, 8> buffer  // 8 chars
-      {
-        digit_to_char(year / 1000 % 10),  //
-        digit_to_char(year / 100 % 10),   //
-        digit_to_char(year / 10 % 10),    //
-        digit_to_char(year % 10),         //
-        digit_to_char(month / 10 % 10),   //
-        digit_to_char(month % 10),        //
-        digit_to_char(day / 10 % 10),     //
-        digit_to_char(day % 10)           //
-      };
+    Array<char, 8> buffer{
+      digit_to_char(year / 1000 % 10),  //
+      digit_to_char(year / 100 % 10),   //
+      digit_to_char(year / 10 % 10),    //
+      digit_to_char(year % 10),         //
+      digit_to_char(month / 10 % 10),   //
+      digit_to_char(month % 10),        //
+      digit_to_char(day / 10 % 10),     //
+      digit_to_char(day % 10)           //
+    };
     return std::string{buffer.data(), buffer.size()};
 }
 
@@ -143,10 +145,8 @@ std::string format_time(const std::string_view time) noexcept {
         return std::string{NullTime};
 
     unsigned hour = 10 * char_to_digit(p[0]) + char_to_digit(p[1]);
-
-    unsigned min = 10 * char_to_digit(p[3]) + char_to_digit(p[4]);
-
-    unsigned sec = 10 * char_to_digit(p[6]) + char_to_digit(p[7]);
+    unsigned min  = 10 * char_to_digit(p[3]) + char_to_digit(p[4]);
+    unsigned sec  = 10 * char_to_digit(p[6]) + char_to_digit(p[7]);
 
     // Range validation (important)
     if (hour > 23 || min > 59 || sec > 59)
@@ -157,33 +157,35 @@ std::string format_time(const std::string_view time) noexcept {
 }
 
 std::string build_date() noexcept {
-    return
 #if defined(BUILD_DATE)
-      BUILD_DATE
+    return BUILD_DATE;
 #else
-      format_date(__DATE__)
+    return format_date(__DATE__);
 #endif
-      ;
 }
 
 std::string build_time() noexcept {
-    return
 #if defined(BUILD_TIME)
-      BUILD_TIME
+    return BUILD_TIME;
 #else
-      format_time(__TIME__)
+    return format_time(__TIME__);
 #endif
-      ;
 }
 
 std::string build_timestamp() noexcept {
-    return
 #if defined(BUILD_TIMESTAMP)
-      BUILD_TIMESTAMP
+    return BUILD_TIMESTAMP;
 #else
-      __DATE__ " " __TIME__
+    const auto date    = std::string{__DATE__};
+    const auto yyyy    = date.substr(7, 4);
+    const auto mmm     = date.substr(0, 3);
+    const auto dd1     = date[4] == ' ';
+    const auto dd      = date.substr(dd1 ? 5 : 4, dd1 ? 1 : 2);
+    const auto weekday = std::string{week_day(std::stoi(yyyy), to_month(mmm), std::stoi(dd))};
+    const auto time    = std::string{__TIME__};
+
+    return yyyy + " " + mmm + " " + (dd1 ? "0" : "") + dd + " " + weekday + " " + time;
 #endif
-      ;
 }
 
 std::string engine_info(const bool uci) noexcept {
@@ -203,7 +205,8 @@ std::string engine_logo() noexcept {
     std::string logo;
     logo.reserve(1100);
 
-    auto border = [&logo](const std::string_view sv) {
+    // clang-format off
+    const auto border = [&logo](const std::string_view sv) noexcept {
         logo += ConsoleColor::BG_BLACK;
         logo += ConsoleColor::BRIGHT_YELLOW;
         logo += ConsoleColor::BLINK;
@@ -211,7 +214,7 @@ std::string engine_logo() noexcept {
         logo += ConsoleColor::RESET;
         logo += '\n';
     };
-    auto mid1 = [&logo](const std::string_view sv, const char* const c1) {
+    const auto mid1 = [&logo](const std::string_view sv, const char* const c1) noexcept {
         logo += ConsoleColor::BG_BLACK;
         logo += ConsoleColor::BRIGHT_YELLOW;
         logo += ConsoleColor::BLINK;
@@ -228,7 +231,7 @@ std::string engine_logo() noexcept {
         logo += ConsoleColor::RESET;
         logo += '\n';
     };
-    auto mid2 = [&logo](const std::string_view sv, const char* const c1, const char* const c2) {
+    const auto mid2 = [&logo](const std::string_view sv, const char* const c1, const char* const c2) noexcept {
         logo += ConsoleColor::BG_BLACK;
         logo += ConsoleColor::BRIGHT_YELLOW;
         logo += ConsoleColor::BLINK;
@@ -247,7 +250,6 @@ std::string engine_logo() noexcept {
         logo += '\n';
     };
 
-    // clang-format off
     border("  ╔══════════════════════════════╗  ");
          mid1("  ██████╗ ╔██████╗ ███╗  ██╗  ", ConsoleColor::RED);
          mid2("  ██╔══██╗██╔═══██╗████╗ ██║  ", ConsoleColor::BRIGHT_RED, ConsoleColor::STRIKETHROUGH);
@@ -441,11 +443,12 @@ std::string compiler_info() noexcept {
 }
 
 std::string format_time(const SystemClock::time_point& timePoint) noexcept {
+    constexpr i64 UsecPerSec = 1'000'000;
 
     const std::time_t time = SystemClock::to_time_t(timePoint);
 
     const auto totalUsec = std::chrono::duration_cast<Us>(timePoint.time_since_epoch()).count();
-    const u64  usec      = static_cast<u64>((totalUsec % 1000000 + 1000000) % 1000000);
+    const u64  usec      = u64((totalUsec % UsecPerSec + UsecPerSec) % UsecPerSec);
 
     std::tm tm{};
 #if defined(_WIN32)  // Windows
@@ -598,7 +601,7 @@ CommandLine::CommandLine(const int argc, const char* const argv[]) noexcept {
         utf8_arguments.reserve(utf8_argc);
 
         for (usize i = 0; i < utf8_argc; ++i)
-            utf8_arguments.emplace_back(utf8_from_wstring(wide_argv[i]));
+            utf8_arguments.emplace_back(wstring_to_utf8(wide_argv[i]));
 
         ::LocalFree(wide_argv);
 
@@ -830,21 +833,15 @@ namespace {
 template<usize Size>
 class Info {
    public:
-    Info() noexcept {
-        for (usize i = 0; i < Size; ++i)
-            data[i] = 0;
-    }
+    Info() noexcept = default;
 
-    Info(const Info& info) noexcept {
-        for (usize i = 0; i < Size; ++i)
-            data[i] = info.data[i];
-    }
+    Info(const Info& info) noexcept { copy(info); }
     Info& operator=(const Info& info) noexcept {
         if (this == &info)
             return *this;
 
-        for (usize i = 0; i < Size; ++i)
-            data[i] = info.data[i];
+        copy(info);
+
         return *this;
     }
 
@@ -860,25 +857,43 @@ class Info {
         return data[index];
     }
 
+    void reset() noexcept {
+        for (usize i = 0; i < Size; ++i)
+            data[i].store(0, std::memory_order_relaxed);
+    }
+
    protected:
-    Array<RelaxedAtomic<i64>, Size> data;
+    Array<std::atomic<i64>, Size> data{0};
+
+   private:
+    void copy(const Info& info) noexcept {
+        for (usize i = 0; i < Size; ++i)
+            data[i].store(info.data[i].load(std::memory_order_relaxed), std::memory_order_relaxed);
+    }
 };
 
 class MinInfo final: public Info<2> {
    public:
-    MinInfo() noexcept { data[1] = std::numeric_limits<i64>::max(); }
+    MinInfo() noexcept :
+        Info() {
+        data[1].store(std::numeric_limits<i64>::max(), std::memory_order_relaxed);
+    }
 };
 
 class MaxInfo final: public Info<2> {
    public:
-    MaxInfo() noexcept { data[1] = std::numeric_limits<i64>::min(); }
+    MaxInfo() noexcept :
+        Info() {
+        data[1].store(std::numeric_limits<i64>::min(), std::memory_order_relaxed);
+    }
 };
 
 class ExtremeInfo final: public Info<3> {
    public:
-    ExtremeInfo() noexcept {
-        data[1] = std::numeric_limits<i64>::max();
-        data[2] = std::numeric_limits<i64>::min();
+    ExtremeInfo() noexcept :
+        Info() {
+        data[1].store(std::numeric_limits<i64>::max(), std::memory_order_relaxed);
+        data[2].store(std::numeric_limits<i64>::min(), std::memory_order_relaxed);
     }
 };
 
@@ -905,97 +920,108 @@ void clear() noexcept {
     correl.fill({});
 }
 
-void hit_on(bool cond, usize slot) noexcept {
+void hit_on(const bool cond, const usize slot) noexcept {
     assert(slot < hit.size());
     if (slot >= hit.size())
         return;
+
     auto& info = hit[slot];
 
-    ++info[0];
+    info[0].fetch_add(1, std::memory_order_relaxed);
     if (cond)
-        ++info[1];
+        info[1].fetch_add(1, std::memory_order_relaxed);
 }
 
-void min_of(i64 value, usize slot) noexcept {
+void min_of(const i64 value, const usize slot) noexcept {
     assert(slot < min.size());
     if (slot >= min.size())
         return;
+
     auto& info = min[slot];
 
-    ++info[0];
-    {
-        auto& mn = info[1];
-        for (i64 minValue = mn; minValue > value && !mn.compare_exchange_weak(minValue, value);)
-        {}
-    }
+    info[0].fetch_add(1, std::memory_order_relaxed);
+    auto& info_1   = info[1];
+    i64   minValue = info_1.load(std::memory_order_relaxed);
+    while (minValue > value
+           && !info_1.compare_exchange_weak(minValue, value,  //
+                                            std::memory_order_relaxed, std::memory_order_relaxed))
+    {}
 }
 
-void max_of(i64 value, usize slot) noexcept {
+void max_of(const i64 value, const usize slot) noexcept {
     assert(slot < max.size());
     if (slot >= max.size())
         return;
+
     auto& info = max[slot];
 
-    ++info[0];
-    {
-        auto& mx = info[1];
-        for (i64 maxValue = mx; maxValue < value && !mx.compare_exchange_weak(maxValue, value);)
-        {}
-    }
+    info[0].fetch_add(1, std::memory_order_relaxed);
+    auto& info_1   = info[1];
+    i64   maxValue = info_1.load(std::memory_order_relaxed);
+    while (maxValue < value
+           && !info_1.compare_exchange_weak(maxValue, value,  //
+                                            std::memory_order_relaxed, std::memory_order_relaxed))
+    {}
 }
 
-void extreme_of(i64 value, usize slot) noexcept {
+void extreme_of(const i64 value, const usize slot) noexcept {
     assert(slot < extreme.size());
     if (slot >= extreme.size())
         return;
+
     auto& info = extreme[slot];
 
-    ++info[0];
-    {
-        auto& mn = info[1];
-        for (i64 minValue = mn; minValue > value && !mn.compare_exchange_weak(minValue, value);)
-        {}
-    }
-    {
-        auto& mx = info[2];
-        for (i64 maxValue = mx; maxValue < value && !mx.compare_exchange_weak(maxValue, value);)
-        {}
-    }
+    info[0].fetch_add(1, std::memory_order_relaxed);
+    auto& info_1   = info[1];
+    i64   minValue = info_1.load(std::memory_order_relaxed);
+    while (minValue > value
+           && !info_1.compare_exchange_weak(minValue, value,  //
+                                            std::memory_order_relaxed, std::memory_order_relaxed))
+    {}
+    auto& info_2   = info[2];
+    i64   maxValue = info_2.load(std::memory_order_relaxed);
+    while (maxValue < value
+           && !info_2.compare_exchange_weak(maxValue, value,  //
+                                            std::memory_order_relaxed, std::memory_order_relaxed))
+    {}
 }
 
-void mean_of(i64 value, usize slot) noexcept {
+void mean_of(const i64 value, const usize slot) noexcept {
     assert(slot < mean.size());
     if (slot >= mean.size())
         return;
+
     auto& info = mean[slot];
 
-    ++info[0];
-    info[1] += value;
+    info[0].fetch_add(1, std::memory_order_relaxed);
+    info[1].fetch_add(value, std::memory_order_relaxed);
 }
 
-void stdev_of(i64 value, usize slot) noexcept {
+void stdev_of(const i64 value, const usize slot) noexcept {
     assert(slot < stdev.size());
     if (slot >= stdev.size())
         return;
+
     auto& info = stdev[slot];
 
-    ++info[0];
-    info[1] += value;
-    info[2] += value * value;
+    info[0].fetch_add(1, std::memory_order_relaxed);
+    info[1].fetch_add(value, std::memory_order_relaxed);
+    info[2].fetch_add(value * value, std::memory_order_relaxed);
 }
 
-void correl_of(i64 value1, i64 value2, usize slot) noexcept {
+void correl_of(const i64 value1, const i64 value2, const usize slot) noexcept {
     assert(slot < correl.size());
     if (slot >= correl.size())
         return;
+
     auto& info = correl[slot];
 
-    ++info[0];
-    info[1] += value1;
-    info[2] += value1 * value1;
-    info[3] += value2;
-    info[4] += value2 * value2;
-    info[5] += value1 * value2;
+    info[0].fetch_add(1, std::memory_order_relaxed);
+    info[1].fetch_add(value1, std::memory_order_relaxed);
+    info[2].fetch_add(value1 * value1, std::memory_order_relaxed);
+    info[3].fetch_add(value2, std::memory_order_relaxed);
+    info[4].fetch_add(value2 * value2, std::memory_order_relaxed);
+    info[5].fetch_add(value1 * value2, std::memory_order_relaxed);
 }
 
 void print() noexcept {
@@ -1007,10 +1033,10 @@ void print() noexcept {
     {
         const auto& info = hit[i];
 
-        if ((n = info[0]) == 0)
+        if ((n = info[0].load(std::memory_order_relaxed)) == 0)
             continue;
 
-        i64 hits = info[1];
+        const i64 hits = info[1].load(std::memory_order_relaxed);
 
         std::cerr << "Hit #" << i << ": Count=" << n  //
                   << " Hits=" << hits                 //
@@ -1021,10 +1047,10 @@ void print() noexcept {
     {
         const auto& info = min[i];
 
-        if ((n = info[0]) == 0)
+        if ((n = info[0].load(std::memory_order_relaxed)) == 0)
             continue;
 
-        i64 minValue = info[1];
+        const i64 minValue = info[1].load(std::memory_order_relaxed);
 
         std::cerr << "Min #" << i << ": Count=" << n  //
                   << " Min=" << minValue << std::endl;
@@ -1034,10 +1060,10 @@ void print() noexcept {
     {
         const auto& info = max[i];
 
-        if ((n = info[0]) == 0)
+        if ((n = info[0].load(std::memory_order_relaxed)) == 0)
             continue;
 
-        i64 maxValue = info[1];
+        const i64 maxValue = info[1].load(std::memory_order_relaxed);
 
         std::cerr << "Max #" << i << ": Count=" << n  //
                   << " Max=" << maxValue << std::endl;
@@ -1047,11 +1073,11 @@ void print() noexcept {
     {
         const auto& info = extreme[i];
 
-        if ((n = info[0]) == 0)
+        if ((n = info[0].load(std::memory_order_relaxed)) == 0)
             continue;
 
-        i64 minValue = info[1];
-        i64 maxValue = info[2];
+        const i64 minValue = info[1].load(std::memory_order_relaxed);
+        const i64 maxValue = info[2].load(std::memory_order_relaxed);
 
         std::cerr << "Extreme #" << i << ": Count=" << n  //
                   << " Min=" << minValue                  //
@@ -1062,10 +1088,10 @@ void print() noexcept {
     {
         const auto& info = mean[i];
 
-        if ((n = info[0]) == 0)
+        if ((n = info[0].load(std::memory_order_relaxed)) == 0)
             continue;
 
-        i64 sum = info[1];
+        const i64 sum = info[1].load(std::memory_order_relaxed);
 
         std::cerr << "Mean #" << i << ": Count=" << n  //
                   << " Sum=" << sum                    //
@@ -1076,13 +1102,13 @@ void print() noexcept {
     {
         const auto& info = stdev[i];
 
-        if ((n = info[0]) == 0)
+        if ((n = info[0].load(std::memory_order_relaxed)) == 0)
             continue;
 
-        i64 sum   = info[1];
-        i64 sumSq = info[2];
+        const i64 sum   = info[1].load(std::memory_order_relaxed);
+        const i64 sumSq = info[2].load(std::memory_order_relaxed);
 
-        auto r = std::sqrt(avg(sumSq) - sqr(avg(sum)));
+        const auto r = std::sqrt(avg(sumSq) - sqr(avg(sum)));
 
         std::cerr << "Stdev #" << i << ": Count=" << n  //
                   << " Stdev=" << r << std::endl;
@@ -1092,20 +1118,21 @@ void print() noexcept {
     {
         const auto& info = correl[i];
 
-        if ((n = info[0]) == 0)
+        if ((n = info[0].load(std::memory_order_relaxed)) == 0)
             continue;
 
-        i64 sumV1   = info[1];
-        i64 sumSqV1 = info[2];
-        i64 sumV2   = info[3];
-        i64 sumSqV2 = info[4];
-        i64 sumV1V2 = info[5];
+        const i64 sum_v1   = info[1].load(std::memory_order_relaxed);
+        const i64 sumSq_v1 = info[2].load(std::memory_order_relaxed);
+        const i64 sum_v2   = info[3].load(std::memory_order_relaxed);
+        const i64 sumSq_v2 = info[4].load(std::memory_order_relaxed);
+        const i64 sum_v1v2 = info[5].load(std::memory_order_relaxed);
 
-        auto r = (avg(sumV1V2) - avg(sumV1) * avg(sumV2))
-               / (std::sqrt(avg(sumSqV1) - sqr(sumV1)) * std::sqrt(avg(sumSqV2) - sqr(avg(sumV2))));
+        const auto r = (avg(sum_v1v2) - avg(sum_v1) * avg(sum_v2))   //
+                     / (std::sqrt(avg(sumSq_v1) - sqr(avg(sum_v1)))  //
+                        * std::sqrt(avg(sumSq_v2) - sqr(avg(sum_v2))));
 
         std::cerr << "Correl #" << i << ": Count=" << n  //
-                  << " Coefficient=" << r << std::endl;
+                  << " Correl=" << r << std::endl;
     }
 }
 
@@ -1114,7 +1141,7 @@ void print() noexcept {
 
 #if defined(_WIN32)
 
-std::string error_to_string(DWORD errorId) noexcept {
+std::string error_to_string(const DWORD errorId) noexcept {
     if (errorId == 0)
         return {};
 
@@ -1122,25 +1149,24 @@ std::string error_to_string(DWORD errorId) noexcept {
     // Ask Win32 to give us the string version of that message ID.
     // The parameters pass in, tell Win32 to create the buffer that holds the message
     // (because don't yet know how long the message string will be).
-    usize size = FormatMessage(
+    const usize size = FormatMessage(
       FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
       nullptr, errorId, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
       reinterpret_cast<LPSTR>(&buffer),  // must pass pointer to buffer pointer
       0, nullptr);
 
-    if (size == 0 || buffer == nullptr)
-    {
-        // FormatMessage failed; return a fallback string
+    // FormatMessage failed; return a fallback string
+    if (buffer == nullptr || size == 0)
         return "Unknown error: " + u32_to_string(errorId);
-    }
 
     // Copy the error message into a std::string
     std::string message{buffer, size};
     // Trim trailing CR/LF that many system messages include
     while (!message.empty() && (message.back() == '\r' || message.back() == '\n'))
         message.pop_back();
+
     // Free the Win32's string's buffer
-    LocalFree(buffer);
+    ::LocalFree(buffer);
 
     return message;
 }
@@ -1152,7 +1178,7 @@ HandleGuard::~HandleGuard() noexcept { reset(); }
 
 bool HandleGuard::is_valid() const noexcept { return is_valid_handle(handle); }
 
-void HandleGuard::reset(HANDLE newHandle) noexcept {
+void HandleGuard::reset(const HANDLE newHandle) noexcept {
     if (handle != newHandle)
     {
         if (is_valid())
@@ -1251,7 +1277,7 @@ bool FdGuard::is_valid() const noexcept { return is_valid_fd(fd); }
 
 int FdGuard::get() const noexcept { return fd; }
 
-void FdGuard::reset(int newFd) noexcept {
+void FdGuard::reset(const int newFd) noexcept {
     if (fd != newFd)
     {
         if (is_valid())
@@ -1275,7 +1301,7 @@ void* MMapGuard::get_ptr() const noexcept { return mappedPtr; }
 
 usize MMapGuard::get_size() const noexcept { return mappedSize; }
 
-void MMapGuard::reset(void* newPtr, usize newSize) noexcept {
+void MMapGuard::reset(void* const newPtr, const usize newSize) noexcept {
     if (mappedPtr != newPtr)
     {
         if (is_valid())
@@ -1316,7 +1342,7 @@ UniqueFd::operator bool() const noexcept { return is_valid(); }
 
 int UniqueFd::release() noexcept { return std::exchange(fd, FD_INVALID); }
 
-void UniqueFd::reset(int newFd) noexcept {
+void UniqueFd::reset(const int newFd) noexcept {
     if (fd != newFd)
     {
         if (is_valid())
@@ -1328,7 +1354,69 @@ void UniqueFd::reset(int newFd) noexcept {
 
 #endif
 
-std::string u32_to_string(u32 v) noexcept {
+bool value_is_bool(const std::string_view sv) noexcept {
+    // Convert to lowercase for case-insensitive comparison
+    const auto str = lower_case(std::string{sv});
+    return str == bool_to_string(false) || str == bool_to_string(true);
+}
+
+bool value_in_range(const std::string_view sv, const int minValue, const int maxValue) noexcept {
+    constexpr int Base = 10;
+
+    const char*       p   = sv.data();
+    const char* const end = p + sv.size();
+    // Skip spaces
+    for (; p != end && is_space(*p); ++p)
+    {}
+
+    int value = 0;
+    // Parse decimal value (base 10) from string_view
+    auto [ptr, ec] = std::from_chars(p, end, value, Base);
+    if (ec != std::errc{} || ptr != end)
+        return false;
+    // Check value is in range
+    return minValue <= value && value <= maxValue;
+}
+
+StringViews
+split(const std::string_view sv, const std::string_view delimiter, bool trimPart) noexcept {
+    StringViews parts;
+
+    if (sv.empty() || delimiter.empty())
+        return parts;  // Avoid infinite loop for empty delimiter
+
+    std::string_view part;
+
+    usize offset = 0;
+
+    while (true)
+    {
+        auto end = sv.find(delimiter, offset);
+
+        if (end == std::string_view::npos)
+            break;
+
+        part = sv.substr(offset, end - offset);
+
+        if (trimPart)
+            part = trim(part);
+
+        parts.emplace_back(part);
+        offset = end + delimiter.size();
+    }
+
+    // Last part
+    part = sv.substr(offset);
+
+    if (trimPart)
+        part = trim(part);
+
+    parts.emplace_back(part);
+
+    return parts;
+}
+
+std::string u32_to_string(const u32 v) noexcept {
     constexpr usize BufferSize = 2 + HEX32_SIZE + 1;  // "0x" + 8 hex + '\0'
 
     Array<char, BufferSize> buffer{};
@@ -1341,12 +1429,25 @@ std::string u32_to_string(u32 v) noexcept {
     return std::string{buffer.data(), copiedSize};
 }
 
-std::string u64_to_string(u64 v) noexcept {
+std::string u64_to_string(const u64 v) noexcept {
     constexpr usize BufferSize = 2 + HEX64_SIZE + 1;  // "0x" + 16 hex + '\0'
 
     Array<char, BufferSize> buffer{};
 
     int   writtenSize = std::snprintf(buffer.data(), buffer.size(), "0x%016" PRIX64, v);
+    usize copiedSize  = writtenSize > 0  //
+                        ? std::min(usize(writtenSize), buffer.size() - 1)
+                        : 0;
+
+    return std::string{buffer.data(), copiedSize};
+}
+
+std::string hash_to_string(const u64 hash) noexcept {
+    constexpr usize BufferSize = HEX64_SIZE + 1;  // 16 hex + '\0'
+
+    Array<char, BufferSize> buffer{};
+
+    int   writtenSize = std::snprintf(buffer.data(), buffer.size(), "%016" PRIX64, hash);
     usize copiedSize  = writtenSize > 0  //
                         ? std::min(usize(writtenSize), buffer.size() - 1)
                         : 0;
@@ -1370,40 +1471,56 @@ void terminate_on_critical_error(const std::string_view message) noexcept {
     std::exit(EXIT_FAILURE);
 }
 
-std::string utf8_from_wstring(const std::wstring_view wsv) noexcept {
+// clang-format off
+
+std::string wstring_to_utf8(const std::wstring_view wsv) noexcept {
 #if defined(_WIN32)
     if (wsv.empty())
         return {};
 
-    const int size =
-      WideCharToMultiByte(CP_UTF8, 0, wsv.data(), int(wsv.size()), nullptr, 0, nullptr, nullptr);
-    if (size <= 0)
+    constexpr UINT codePage = CP_UTF8;
+
+    const int strSize = ::WideCharToMultiByte(codePage, 0, wsv.data(), int(wsv.size()), nullptr, 0, nullptr, nullptr);
+
+    if (strSize <= 0)
         return {};
 
-    std::string str(static_cast<usize>(size), '\0');
-    WideCharToMultiByte(CP_UTF8, 0, wsv.data(), int(wsv.size()), str.data(), size, nullptr,
-                        nullptr);
+    std::string str(usize(strSize), '\0');
+    ::WideCharToMultiByte(codePage, 0, wsv.data(), int(wsv.size()), str.data(), strSize, nullptr, nullptr);
+
     return str;
 #else
     return std::string{wsv.begin(), wsv.end()};
 #endif
 }
 
-fs::path path_from_utf8(const std::string_view path) noexcept {
+fs::path utf8_to_path(const std::string_view path) noexcept {
 #if defined(_WIN32)
     const int pathSize = int(path.size());
+
     if (pathSize > std::numeric_limits<int>::max())
         return {};
 
-    const int wideSize = ::MultiByteToWideChar(CP_UTF8, 0, path.data(), pathSize, nullptr, 0);
+    // First attempt UTF-8, then fall back to ANSI for old GUIs like Arena
+    constexpr Array<UINT, 2> CodePages{CP_UTF8, CP_ACP};
+    for (const UINT codePage : CodePages)
+    {
+        const DWORD flags        = codePage == CP_UTF8 ? MB_ERR_INVALID_CHARS : 0;
+        const int   widePathSize = ::MultiByteToWideChar(codePage, flags, path.data(), pathSize, nullptr, 0);
 
-    std::wstring wideStr(usize(wideSize), L'\0');
-    ::MultiByteToWideChar(CP_UTF8, 0, path.data(), pathSize, wideStr.data(), wideSize);
-    return {wideStr};
-#else
-    return {path};
+        if (widePathSize <= 0)
+            continue;
+
+        std::wstring widePath(usize(widePathSize), L'\0');
+        ::MultiByteToWideChar(codePage, 0, path.data(), pathSize, widePath.data(), widePathSize);
+
+        return {widePath};
+    }
 #endif
+    return {path};
 }
+
+// clang-format on
 
 std::optional<usize> str_to_usize(const std::string_view sv) noexcept {
     constexpr int Base = 10;

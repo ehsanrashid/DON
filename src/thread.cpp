@@ -52,22 +52,22 @@ Thread::Thread(ThreadContext                 threadCxt,
     // Bind this thread to a NUMA node for memory affinity
     numaAccessToken = nodeBinder();
 
-    // Create aligned Worker object with NUMA and thread info
+    // Create the aligned Worker object with NUMA and thread information.
     worker = make_unique_aligned_large_page<Worker>(context, numa_access_token(), sharedState,
                                                     std::move(manager));
 
-    // Start the thread only after full initialization
-    // Launch thread and wait until idle_func() puts it to sleep
-    start();
+    // Create the native thread only after full initialization.
+    // Wait until idle_func() reaches the idle state and the thread is ready for work.
+    create();
 }
 
 Thread::~Thread() noexcept {
-    // Ensure thread is terminated and joined. Do not assert on 'busy'.
-    // terminate() sets 'dead' and joins the native thread safely, even if a job is running.
+    assert(!busy);
+
     terminate();
 }
 
-void Thread::start() noexcept {
+void Thread::create() noexcept {
     std::unique_lock condLock(mutex);
 
     // If native thread is already running, do nothing
@@ -89,14 +89,14 @@ void Thread::start() noexcept {
         std::exit(EXIT_FAILURE);
     }
 
-    // Wait until the native thread reaches idle
-    condVar.wait(condLock, [this]() noexcept -> bool { return !busy; });
+    // Wait until the native thread reaches the idle state or termination is requested.
+    condVar.wait(condLock, [this]() noexcept -> bool { return !busy || dead; });
 }
 
 void Thread::terminate() noexcept {
     {
         std::lock_guard writeLock(mutex);
-
+        // Mark the thread as dead.
         dead = true;
     }
 
@@ -117,34 +117,29 @@ void Thread::idle_func() noexcept {
     {
         std::unique_lock condLock(mutex);
 
-        // Mark thread as idle now.
-        // Any thread trying to schedule work will see busy = false.
+        // Mark the thread as idle and ready to accept a job.
         busy = false;
 
-        // Notify one waiting thread (e.g., run_custom_job)
-        // that the thread is now idle and ready for work.
+        // Notify a thread waiting for the worker to become idle and ready for work.
         condVar.notify_one();
 
         // Wait until either:
-        // 1) A new job is scheduled (busy == true), or
-        // 2) The thread is being stopped (dead == true)
+        // 1) New job is scheduled (busy == true), or
+        // 2) Termination is requested (dead == true).
         condVar.wait(condLock, [this]() noexcept -> bool { return busy || dead; });
 
-        // If thread is being torn down, exit immediately.
+        // Exit immediately if termination has been requested.
         if (dead)
             break;
 
         // Move the scheduled job out of the shared storage.
-        // This allows run_custom_job to schedule another job
-        // while we are executing the current one.
+        // This allows another job to be scheduled while the current job runs.
         JobFunc jobFn = std::move(jobFunc);
 
-        // Unlock before executing the job to allow other threads
-        // to schedule work or shut down concurrently.
+        // Unlock here, allowing other threads to schedule work or request termination concurrently.
         condLock.unlock();
 
-        // Execute the job outside the lock to avoid holding the mutex
-        // for the duration of potentially long-running work.
+        // Execute the job outside the lock.
         if (jobFn)
             jobFn();
     }

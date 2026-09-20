@@ -47,15 +47,6 @@
 #endif
 
 #if defined(_WIN32)
-    // Standard portable pattern for spin-wait / CPU pause hint
-    #if defined(X86)
-        #include <emmintrin.h>  // x86/x64: SSE2 use _mm_pause()
-        #define PAUSE() _mm_pause()
-    #else
-        // Fallback: portable C++ hint (PowerPC, RISC-V, MIPS, etc.)
-        #include <thread>
-        #define PAUSE() std::this_thread::yield()
-    #endif
     #if !defined(PATH_MAX)
         #define PATH_MAX (2 * 1024)  // 2K bytes, safe for almost all paths
     #endif
@@ -263,9 +254,9 @@ class BackendSharedMemory final {
     #endif
 
               //DEBUG_LOG("Allocating large page shared memory, size = " << roundedTotalSize << " bytes");
-              return CreateFileMapping(INVALID_HANDLE_VALUE, nullptr,
-                                       PAGE_READWRITE | SEC_COMMIT | SEC_LARGE_PAGES,  //
-                                       hiTotalSize, loTotalSize, name().data());
+              return ::CreateFileMapping(INVALID_HANDLE_VALUE, nullptr,
+                                         PAGE_READWRITE | SEC_COMMIT | SEC_LARGE_PAGES,  //
+                                         hiTotalSize, loTotalSize, name().data());
           },
           []() { return HANDLE_INVALID; });
 
@@ -273,8 +264,8 @@ class BackendSharedMemory final {
         if (!mapFileHandleGuard.is_valid())
         {
             //DEBUG_LOG("Allocating normal shared memory, size = " << TotalSize << " bytes");
-            mapFileHandle = CreateFileMapping(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE,  //
-                                              0, TotalSize, name().data());
+            mapFileHandle = ::CreateFileMapping(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE,  //
+                                                0, TotalSize, name().data());
         }
 
         if (!mapFileHandleGuard.is_valid())
@@ -284,7 +275,7 @@ class BackendSharedMemory final {
             return;
         }
 
-        mappedPtr = MapViewOfFile(mapFileHandleGuard.get(), FILE_MAP_ALL_ACCESS, 0, 0, TotalSize);
+        mappedPtr = ::MapViewOfFile(mapFileHandleGuard.get(), FILE_MAP_ALL_ACCESS, 0, 0, TotalSize);
 
         if (!mappedGuard.is_valid())
         {
@@ -294,10 +285,10 @@ class BackendSharedMemory final {
             return;
         }
 
-        // Use named mutex to ensure only one initializer
-        const std::string mutexName = std::string{name()} + "$mutex";
+        // Use named mutex to ensure serialize initialization
+        const auto mutexName = std::string{name()} + "$mutex";
 
-        HANDLE mutexHandle = CreateMutex(nullptr, FALSE, mutexName.c_str());
+        HANDLE mutexHandle = ::CreateMutex(nullptr, FALSE, mutexName.c_str());
 
         HandleGuard mutexHandleGuard{mutexHandle};
 
@@ -308,8 +299,11 @@ class BackendSharedMemory final {
             reset();
             return;
         }
-        // Wait for ownership
-        if (WaitForSingleObject(mutexHandleGuard.get(), INFINITE) != WAIT_OBJECT_0)
+
+        // Wait for mutex ownership
+        const DWORD waitResult = ::WaitForSingleObject(mutexHandleGuard.get(), INFINITE);
+
+        if (waitResult != WAIT_OBJECT_0 && waitResult != WAIT_ABANDONED)
         {
             //DEBUG_LOG("WaitForSingleObject() failed: name = " << mutexName << ", error = " << error_to_string(GetLastError()));
             status = Status::MutexWait;
@@ -317,31 +311,56 @@ class BackendSharedMemory final {
             return;
         }
 
-        // Object lives first to ensure alignment
+        [[maybe_unused]] const bool mutexAbandoned = waitResult == WAIT_ABANDONED;
+
+        // The mapped base is page-aligned. Align the state after T for Interlocked access
+        constexpr usize StateAlignment = alignof(LONG);
+        constexpr usize StateOffset    = (sizeof(T) + StateAlignment - 1) & ~(StateAlignment - 1);
+
         auto* object = reinterpret_cast<T*>(mappedGuard.get());
 
-        auto* sharedState =
-          reinterpret_cast<volatile DWORD*>(reinterpret_cast<char*>(mappedGuard.get()) + sizeof(T));
+        auto* sharedState = reinterpret_cast<volatile LONG*>(
+          reinterpret_cast<char*>(mappedGuard.get()) + StateOffset);
 
-        // Attempt atomic initialization
-        if (InterlockedCompareExchange(sharedState, DWORD(SharedState::Initializing),
-                                       DWORD(SharedState::Uninitialized))
-            == DWORD(SharedState::Uninitialized))
+        // Atomically read the initialization state.
+        const LONG state = ::InterlockedCompareExchange(sharedState, 0, 0);
+
+        switch (state)
         {
-            // this thread is the initializer
+        case LONG(SharedState::Initialized) :
+            // Already initialized
+
+            //DEBUG_LOG("Shared memory already initialized: name = " << name());
+            status = Status::Success;
+            break;
+
+        case LONG(SharedState::Uninitialized) :
+            // Mark initialization before constructing T
+            ::InterlockedExchange(sharedState, LONG(SharedState::Initializing));
+
+            // Initialize the object
             new (object) T{value};
 
-            // Publish fully constructed object
-            InterlockedExchange(sharedState, DWORD(SharedState::Initialized));
-        }
-        else
-        {
-            // Wait until construction completes
-            while (*sharedState != DWORD(SharedState::Initialized))
-                PAUSE();  // portable "pause" for any architecture
+            // Publish the fully constructed object
+            ::InterlockedExchange(sharedState, LONG(SharedState::Initialized));
+
+            // Obtain a pointer to the constructed object if needed
+            object = std::launder(object);
+
+            //DEBUG_LOG("Shared memory initialized successfully: name = " << name());
+            status = Status::Success;
+            break;
+
+        default :
+            // Initialization was interrupted.
+            // Do not blindly reconstruct over a potentially partially constructed object.
+
+            //DEBUG_LOG("Shared memory initialization incomplete: name = " << name());
+            status = Status::MutexWait;
+            break;
         }
 
-        if (!ReleaseMutex(mutexHandleGuard.get()))
+        if (!::ReleaseMutex(mutexHandleGuard.get()))
         {
             //DEBUG_LOG("ReleaseMutex() failed: name = " << mutexName << ", error = " << error_to_string(GetLastError()));
             status = Status::MutexRelease;
@@ -349,8 +368,13 @@ class BackendSharedMemory final {
             return;
         }
 
-        //DEBUG_LOG("Shared memory initialized successfully, name: " << name());
-        status = Status::Success;
+        if (status != Status::Success)
+        {
+            reset();
+            return;
+        }
+
+        //DEBUG_LOG("Shared memory initialization done, name: " << name());
     }
 
     void move(BackendSharedMemory&& backendShm) noexcept {

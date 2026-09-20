@@ -22,17 +22,38 @@
 
 namespace DON {
 
-// SplitMix64 is used to initialize the state of the main generator.
-// This is the standard, high-quality way to expand a single seed.
+constexpr u64 rotl(const u64 x, const u8 k) noexcept { return (x << k) | (x >> ((64 - k) & 63)); }
+
+constexpr u64 rotr(const u64 x, const u8 k) noexcept { return (x >> k) | (x << ((64 - k) & 63)); }
+
+// SplitMix64 Pseudo-Random Number Generator
+//
+// Used to initialize the state of the main generator.
+// Provides high-quality output from a single 64-bit seed.
+// Classic fixed-increment generator with a fixed Weyl sequence.
+//
+// Characteristics:
+// - Overcomes Poor Seeding: Even low-entropy seeds (like 1 or a sequential counter)
+//   are thoroughly mixed so the main generator starts with a highly well-distributed state.
+// - Avoids Zero-State Trap: Its output is used to seed XorShift64*, whose zero state
+//   is explicitly replaced with 1 if necessary.
+//
+// used widely across many modern libraries,
+// (including the Java 8 SplittableRandom and the standard initialization routines by Vigna)
 class SplitMix64 final {
    public:
     explicit constexpr SplitMix64(u64 seed = 1) noexcept :
-        s(seed != 0 ? seed : 1) {}
+        s(seed) {}
 
     constexpr u64 next() noexcept {
-        s += u64{0x9E3779B97F4A7C15};
+        update_state();
 
-        u64 t = s;
+        return mix(s);
+    }
+
+   private:
+    static constexpr u64 mix(const u64 x) noexcept {
+        u64 t = x;
         t     = (t ^ (t >> 30)) * u64{0xBF58476D1CE4E5B9};
         t     = (t ^ (t >> 27)) * u64{0x94D049BB133111EB};
         t     = (t ^ (t >> 31));
@@ -40,31 +61,48 @@ class SplitMix64 final {
         return t;
     }
 
-   private:
+    constexpr void update_state() noexcept {
+        s += u64{0x9E3779B97F4A7C15};  // Derived from the Golden Ratio
+    }
+
     u64 s;
 };
 
 // XorShift64* Pseudo-Random Number Generator
-// It is based on original code written and dedicated
-// to the public domain by Sebastiano Vigna (2014).
-// It has the following characteristics:
 //
-//  - Outputs 64-bit numbers
-//  - Passes Dieharder and SmallCrush test batteries
-//  - Does not require warm-up, no zero-land to escape
-//  - Internal state is a single 64-bit integer
-//  - Period is 2^64 - 1
-//  - Speed: 1.60 ns/call (measured on a Core i7 @3.40GHz)
+// using Marsaglia's standard 64-bit shift triplet parameters (12, 25, 27)
+// can use other standard 64-bit shift triplet parameters (13, 7, 17)
 //
-// For further analysis see
+// Based on Sebastiano Vigna's original xorshift64* generator (2014).
+//
+// Characteristics:
+// - Internal state: single 64-bit integer.
+// - Output: 64-bit.
+// - Period: 2^64 - 1.
+// - Speed: 1.60 ns/call (measured on a Core i7 @3.40 GHz)
+// - Passes Dieharder and SmallCrush test batteries.
+// - Does not require warm-up; nonzero state is ensured during initialization.
+// - Zero-State Insurance: SplitMix64 generator used produce non-zero state.
+// - Zero Overhead: it leaves absolutely zero memory footprint.
+//
+// See:
 //   <http://vigna.di.unimi.it/ftp/papers/xorshift.pdf>
 class XorShift64Star final {
    public:
-    explicit constexpr XorShift64Star(u64 seed = 1) noexcept :
-        s(SplitMix64(seed).next()) {
-        // Avoid zero state
-        if (s == 0)
-            s = 1;
+    explicit constexpr XorShift64Star(u64 seed = 1) noexcept {
+        SplitMix64 seeder(seed);
+
+        // Populate the main state with mixed entropy
+        s = seeder.next();
+
+        // Zero-State Insurance:
+        // Safety check: avoid the absorbing zero state
+        // XorShift states must non-zero, never be 0.
+        // If SplitMix64 returns 0, fall back to a non-zero state.
+        if (UNLIKELY(s == 0))
+        {
+            s = DefaultState;
+        }
     }
 
     template<typename T>
@@ -80,32 +118,44 @@ class XorShift64Star final {
 
     // XorShift64* jump implementation
     constexpr void jump() noexcept {
-        constexpr u64 JumpMask = u64{0x9E3779B97F4A7C15};
+        constexpr u64 JumpMask =   // Jump under (12, 25, 27) parameters
+          u64{0XDD97D02513476FA5}  // Jump by 2^32 steps (Useful for partitioning parallel streams)
+        //u64{0XAE82CA9F848EBC6D}  // Jump by 2^48 steps
+        ;
 
         u64 t = 0;
 
-        if constexpr (JumpMask != 0)
-            for (u8 b = 0; b < 64; ++b)
+        for (u8 b = 0; b < 64; ++b)
+        {
+            if ((JumpMask & bit(b)) != 0)
             {
-                if ((JumpMask & bit(b)) != 0)
-                    t ^= s;
-
-                rand64();
+                t ^= s;
             }
+
+            // Advances state over the linear system
+            update_state();
+        }
 
         s = t;
     }
 
    private:
     // XorShift64* algorithm implementation
-    constexpr u64 rand64() noexcept {
+    constexpr void update_state() noexcept {
         s ^= s >> 12;
         s ^= s << 25;
         s ^= s >> 27;
+    }
+
+    constexpr u64 rand64() noexcept {
+        update_state();
+
         return u64{0x2545F4914F6CDD1D} * s;
     }
 
-    u64 s;
+    static constexpr u64 DefaultState = 1;  // u64{0x5555555555555555}
+
+    u64 s = DefaultState;
 };
 
 }  // namespace DON
