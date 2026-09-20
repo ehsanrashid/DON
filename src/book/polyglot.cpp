@@ -589,7 +589,7 @@ PolyGlot::Entries PolyGlot::key_candidates(const Key key) const noexcept {
 
 Move PolyGlot::probe(Position& pos, const RootMoves& rootMoves, const Options& options) noexcept {
     assert(!rootMoves.empty());
-    static XorShift64Star prng(now());
+    static Xorshift64Star prng(now());
 
     if (empty() || !options["Book"] || pos.move_num() > options["BookProbeDepth"])
         return Move::None;
