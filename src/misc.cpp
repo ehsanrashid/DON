@@ -17,9 +17,11 @@
 
 #include "misc.h"
 
+#include <cinttypes>  // PRIX32, PRIX64, PRIu64
 #include <cmath>
-#include <cstdlib>
-#include <ctime>
+#include <cstdio>   // snprintf()
+#include <cstdlib>  // exit(), EXIT_FAILURE
+#include <ctime>    // time_t, localtime_r(), strftime()
 
 #if defined(_WIN32)
     #include <shellapi.h>  // CommandLineToArgvW()
@@ -441,11 +443,12 @@ std::string compiler_info() noexcept {
 }
 
 std::string format_time(const SystemClock::time_point& timePoint) noexcept {
+    constexpr i64 UsecPerSec = 1'000'000;
 
     const std::time_t time = SystemClock::to_time_t(timePoint);
 
     const auto totalUsec = std::chrono::duration_cast<Us>(timePoint.time_since_epoch()).count();
-    const u64  usec      = static_cast<u64>((totalUsec % 1000000 + 1000000) % 1000000);
+    const u64  usec      = u64((totalUsec % UsecPerSec + UsecPerSec) % UsecPerSec);
 
     std::tm tm{};
 #if defined(_WIN32)  // Windows
@@ -1105,10 +1108,10 @@ void print() noexcept {
         const i64 sum   = info[1].load(std::memory_order_relaxed);
         const i64 sumSq = info[2].load(std::memory_order_relaxed);
 
-        const auto stddev = std::sqrt(avg(sumSq) - sqr(avg(sum)));
+        const auto r = std::sqrt(avg(sumSq) - sqr(avg(sum)));
 
         std::cerr << "Stdev #" << i << ": Count=" << n  //
-                  << " Stdev=" << stddev << std::endl;
+                  << " Stdev=" << r << std::endl;
     }
 
     for (usize i = 0; i < correl.size(); ++i)
@@ -1124,12 +1127,12 @@ void print() noexcept {
         const i64 sumSq_v2 = info[4].load(std::memory_order_relaxed);
         const i64 sum_v1v2 = info[5].load(std::memory_order_relaxed);
 
-        const auto correl = (avg(sum_v1v2) - avg(sum_v1) * avg(sum_v2))   //
-                          / (std::sqrt(avg(sumSq_v1) - sqr(avg(sum_v1)))  //
-                             * std::sqrt(avg(sumSq_v2) - sqr(avg(sum_v2))));
+        const auto r = (avg(sum_v1v2) - avg(sum_v1) * avg(sum_v2))   //
+                     / (std::sqrt(avg(sumSq_v1) - sqr(avg(sum_v1)))  //
+                        * std::sqrt(avg(sumSq_v2) - sqr(avg(sum_v2))));
 
         std::cerr << "Correl #" << i << ": Count=" << n  //
-                  << " Correl=" << correl << std::endl;
+                  << " Correl=" << r << std::endl;
     }
 }
 
@@ -1350,6 +1353,30 @@ void UniqueFd::reset(int newFd) noexcept {
 }
 
 #endif
+
+bool value_is_bool(const std::string_view sv) noexcept {
+    // Convert to lowercase for case-insensitive comparison
+    const auto str = lower_case(std::string{sv});
+    return str == bool_to_string(false) || str == bool_to_string(true);
+}
+
+bool value_in_range(const std::string_view sv, const int minValue, const int maxValue) noexcept {
+    constexpr int Base = 10;
+
+    const char*       p   = sv.data();
+    const char* const end = p + sv.size();
+    // Skip spaces
+    for (; p != end && is_space(*p); ++p)
+    {}
+
+    int value = 0;
+    // Parse decimal value (base 10) from string_view
+    auto [ptr, ec] = std::from_chars(p, end, value, Base);
+    if (ec != std::errc{} || ptr != end)
+        return false;
+    // Check value is in range
+    return minValue <= value && value <= maxValue;
+}
 
 StringViews
 split(const std::string_view sv, const std::string_view delimiter, bool trimPart) noexcept {

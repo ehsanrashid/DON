@@ -24,10 +24,8 @@
 #include <cassert>
 #include <charconv>
 #include <chrono>
-#include <cinttypes>
 #include <cstddef>
 #include <cstdint>
-#include <cstdio>
 #include <cstring>
 #include <filesystem>
 #include <fstream>
@@ -2000,32 +1998,6 @@ struct UniqueFd final {
 
 #endif
 
-inline std::string lower_case(std::string str) noexcept {
-    std::transform(str.begin(), str.end(), str.begin(),
-                   [](char ch) noexcept -> char { return lower_case(ch); });
-    return str;
-}
-
-inline std::string upper_case(std::string str) noexcept {
-    std::transform(str.begin(), str.end(), str.begin(),
-                   [](char ch) noexcept -> char { return upper_case(ch); });
-    return str;
-}
-
-inline std::string toggle_case(std::string str) noexcept {
-    std::transform(str.begin(), str.end(), str.begin(), [](char ch) noexcept -> char {
-        return is_lower(ch) ? upper_case(ch) : is_upper(ch) ? lower_case(ch) : ch;
-    });
-    return str;
-}
-
-inline std::string remove_whitespace(std::string str) noexcept {
-    str.erase(
-      std::remove_if(str.begin(), str.end(), [](char ch) noexcept -> bool { return is_space(ch); }),
-      str.end());
-    return str;
-}
-
 [[nodiscard]] constexpr bool starts_with(std::string_view sv, std::string_view prefix) noexcept {
     return sv.size() >= prefix.size()  //
         && sv.compare(0, prefix.size(), prefix) == 0;
@@ -2075,7 +2047,7 @@ inline std::string remove_whitespace(std::string str) noexcept {
     return b ? "true" : "false";
 }
 
-[[nodiscard]] constexpr bool sv_to_bool(const std::string_view sv) {
+[[nodiscard]] constexpr bool sv_to_bool(std::string_view sv) {
     return (trim(sv) == bool_to_string(true));
 }
 
@@ -2094,30 +2066,36 @@ inline std::string remove_whitespace(std::string str) noexcept {
     return neg ? -intValue : intValue;
 }
 
+inline std::string lower_case(std::string str) noexcept {
+    std::transform(str.begin(), str.end(), str.begin(),
+                   [](const char ch) noexcept -> char { return lower_case(ch); });
+    return str;
+}
+
+inline std::string upper_case(std::string str) noexcept {
+    std::transform(str.begin(), str.end(), str.begin(),
+                   [](const char ch) noexcept -> char { return upper_case(ch); });
+    return str;
+}
+
+inline std::string toggle_case(std::string str) noexcept {
+    std::transform(str.begin(), str.end(), str.begin(), [](const char ch) noexcept -> char {
+        return is_lower(ch) ? upper_case(ch) : is_upper(ch) ? lower_case(ch) : ch;
+    });
+    return str;
+}
+
+inline std::string remove_whitespace(std::string str) noexcept {
+    str.erase(std::remove_if(str.begin(), str.end(),
+                             [](const char ch) noexcept -> bool { return is_space(ch); }),
+              str.end());
+    return str;
+}
+
 // Validate boolean string (case-insensitive)
-inline bool value_is_bool_string(std::string value) noexcept {
-    // Convert to lowercase for case-insensitive comparison
-    value = lower_case(value);
-    return value == bool_to_string(true) || value == bool_to_string(false);
-}
+bool value_is_bool(std::string_view sv) noexcept;
 
-inline bool value_in_range(std::string_view sv, int minValue, int maxValue) noexcept {
-    constexpr int Base = 10;
-
-    const char*       p   = sv.data();
-    const char* const end = p + sv.size();
-    // Skip spaces
-    for (; p != end && is_space(*p); ++p)
-    {}
-
-    int intValue = 0;
-    // Parse decimal value (base 10) from string_view
-    auto [ptr, ec] = std::from_chars(p, end, intValue, Base);
-    if (ec != std::errc{} || ptr != end)
-        return false;
-    // Check value is in range
-    return minValue <= intValue && intValue <= maxValue;
-}
+bool value_in_range(std::string_view sv, int minValue, int maxValue) noexcept;
 
 StringViews split(std::string_view sv, std::string_view delimiter, bool trimPart = false) noexcept;
 
