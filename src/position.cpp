@@ -51,7 +51,7 @@ constexpr u8 R50_FACTOR = u8{8};
 }  // namespace
 
 void init() noexcept {
-    Xoroshiro128StarStar prng(0x105524);
+    Xoshiro256StarStar prng(0x105524);
 
     const auto prng_rand = [&prng]() noexcept -> Key { return prng.template rand<Key>(); };
 

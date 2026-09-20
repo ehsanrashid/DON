@@ -102,9 +102,7 @@ class Xorshift64Star final {
         // If SplitMix64 produces zero for state,
         // fall back to a non-zero state.
         if (UNLIKELY(state == 0))
-        {
             state = DefaultState;
-        }
     }
 
     template<typename T>
@@ -122,10 +120,29 @@ class Xorshift64Star final {
     //
     // This can be used to create independent streams for parallel computations.
     constexpr void jump() noexcept {
-        constexpr State Jump =     // Jump under (12, 25, 27) parameters
-          u64{0xDD97D02513476FA5}  // Jump by 2^32 steps
-        //u64{0xAE82CA9F848EBC6D}  // Jump by 2^48 steps
-        ;
+        constexpr State Jump = u64{0xDD97D02513476FA5};
+
+        State tmpState = 0;
+
+        for (u8 b = 0; b < 64; ++b)
+        {
+            if ((Jump & bit(b)) != 0)
+            {
+                tmpState ^= state;
+            }
+
+            // Advance the state through the underlying linear recurrence.
+            update();
+        }
+
+        state = tmpState;
+    }
+
+    // Jump ahead by 2^48 steps.
+    //
+    // This can be used to create distant independent streams for parallel computations.
+    constexpr void long_jump() noexcept {
+        constexpr State Jump = u64{0xAE82CA9F848EBC6D};
 
         State tmpState = 0;
 
@@ -199,8 +216,8 @@ class Xoroshiro128StarStar final {
         SplitMix64 seeder(seed);
 
         // Initialize the state with two SplitMix64 outputs.
-        state[0] = seeder.next();
-        state[1] = seeder.next();
+        for (usize i = 0; i < StateSize; ++i)
+            state[i] = seeder.next();
 
         // The all-zero state is not valid for Xoroshiro128**.
         // If SplitMix64 produces zero for both state words,
@@ -224,7 +241,33 @@ class Xoroshiro128StarStar final {
     //
     // This can be used to create independent streams for parallel computations.
     constexpr void jump() noexcept {
-        constexpr State Jump = {0xDF900294D8F554A5, 0x170865DF4B3201FC};
+        constexpr State Jump = {u64{0xDF900294D8F554A5}, u64{0x170865DF4B3201FC}};
+
+        State tmpState = {0, 0};
+
+        for (const u64 jump : Jump)
+        {
+            for (u8 b = 0; b < 64; ++b)
+            {
+                if ((jump & bit(b)) != 0)
+                {
+                    tmpState[0] ^= state[0];
+                    tmpState[1] ^= state[1];
+                }
+
+                // Advance the state through the underlying linear recurrence.
+                update();
+            }
+        }
+
+        state = tmpState;
+    }
+
+    // Jump ahead by 2^96 steps.
+    //
+    // This can be used to create distant independent streams for parallel computations.
+    constexpr void long_jump() noexcept {
+        constexpr State Jump = {u64{0xD2A98B26625EEE7B}, u64{0xDDDF9B1090AA7AC1}};
 
         State tmpState = {0, 0};
 
@@ -268,6 +311,151 @@ class Xoroshiro128StarStar final {
     }
 
     static constexpr State DefaultState = {1, 0};
+
+    State state = DefaultState;
+};
+
+// Xoshiro256** Pseudorandom Number Generator
+//
+// Fast, high-quality 64-bit pseudorandom number generator with a
+// 256-bit internal state.
+//
+// Characteristics:
+// - Internal state: 256 bits (four 64-bit integers).
+// - Output: 64 bits.
+// - Period: 2^256 - 1.
+// - Jump function: advances the state by 2^128 steps for parallel streams.
+// - Long-jump function: advances the state by 2^192 steps for parallel streams.
+// - Initialization: SplitMix64 is used to initialize the internal state.
+// - Zero-State Insurance: SplitMix64 is used to initialize the internal state.
+// - The all-zero state is avoided during initialization.
+// - State size: 256 bits with no additional generator state.
+// - Zero Overhead: No additional memory is required beyond the 256-bit internal state.
+//
+// Based on:
+//   David Blackman and Sebastiano Vigna,
+//   "Scrambled Linear Pseudorandom Number Generators"
+//   <https://vigna.di.unimi.it/ftp/papers/ScrambledLinear.pdf>
+//
+// Reference implementation:
+//   <https://prng.di.unimi.it/xoshiro256starstar.c>
+class Xoshiro256StarStar final {
+    static constexpr usize StateSize = 4;
+
+    using State = Array<u64, StateSize>;
+
+   public:
+    explicit constexpr Xoshiro256StarStar(u64 seed = 1) noexcept {
+        SplitMix64 seeder(seed);
+
+        // Initialize the state with four SplitMix64 outputs.
+        for (usize i = 0; i < StateSize; ++i)
+            state[i] = seeder.next();
+
+        // The all-zero state is not valid for Xoshiro256**.
+        // If SplitMix64 produces zero for all state words,
+        // fall back to a non-zero state.
+        if (UNLIKELY((state[0] | state[1] | state[2] | state[3]) == 0))
+            state = DefaultState;
+    }
+
+    template<typename T>
+    constexpr T rand() noexcept {
+        return T(rand64());
+    }
+
+    // Sparse random (1/8 bits set on average).
+    template<typename T>
+    constexpr T sparse_rand() noexcept {
+        return T(rand64() & rand64() & rand64());
+    }
+
+    // Jump ahead by 2^128 steps.
+    //
+    // This can be used to create independent streams for parallel computations.
+    constexpr void jump() noexcept {
+        constexpr State Jump = {u64{0x180EC6D33CFD0ABA}, u64{0xD5A61266F0C9392C},
+                                u64{0xA9582618E03FC9AA}, u64{0x39ABDC4529B1661C}};
+
+        State tmpState = {0, 0, 0, 0};
+
+        for (const u64 jump : Jump)
+        {
+            for (u8 b = 0; b < 64; ++b)
+            {
+                if ((jump & bit(b)) != 0)
+                {
+                    tmpState[0] ^= state[0];
+                    tmpState[1] ^= state[1];
+                    tmpState[2] ^= state[2];
+                    tmpState[3] ^= state[3];
+                }
+
+                // Advance the state through the underlying linear recurrence.
+                update();
+            }
+        }
+
+        state = tmpState;
+    }
+
+    // Long-jump ahead by 2^192 steps.
+    //
+    // This can be used to create distant independent streams for parallel computations.
+    constexpr void long_jump() noexcept {
+        constexpr State LongJump = {u64{0x76E15D3EFEFDCBBF}, u64{0xC5004E441C522FB3},
+                                    u64{0x77710069854EE241}, u64{0x39109BB02ACBE635}};
+
+        State tmpState = {0, 0, 0, 0};
+
+        for (const u64 jump : LongJump)
+        {
+            for (u8 b = 0; b < 64; ++b)
+            {
+                if ((jump & bit(b)) != 0)
+                {
+                    tmpState[0] ^= state[0];
+                    tmpState[1] ^= state[1];
+                    tmpState[2] ^= state[2];
+                    tmpState[3] ^= state[3];
+                }
+
+                // Advance the state through the underlying linear recurrence.
+                update();
+            }
+        }
+
+        state = tmpState;
+    }
+
+   private:
+    // Advance the Xoshiro256** state using its linear recurrence.
+    constexpr void update() noexcept {
+        const u64 tmp = state[1] << 17;
+
+        state[2] ^= state[0];
+        state[3] ^= state[1];
+        state[1] ^= state[2];
+        state[0] ^= state[3];
+
+        state[2] ^= tmp;
+
+        state[3] = rotl(state[3], 45);
+    }
+
+    // Apply the Xoshiro256** output scrambler.
+    constexpr u64 mix() const noexcept { return rotl(state[1] * 5, 7) * 9; }
+
+    constexpr u64 rand64() noexcept {
+        // Generate the output before advancing the state.
+        const u64 rand = mix();
+
+        update();
+
+        return rand;
+    }
+
+    static constexpr State DefaultState = {1, 0, 0, 0};
 
     State state = DefaultState;
 };
