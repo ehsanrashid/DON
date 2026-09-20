@@ -180,9 +180,11 @@ std::string build_timestamp() noexcept {
 #if defined(BUILD_TIMESTAMP)
     return BUILD_TIMESTAMP;
 #else
-    constexpr Array<std::string_view, 7> Weekdays{"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
+    constexpr Array<std::string_view, 7> Weekdays{
+      "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"  //
+    };
 
-    const std::string date = "Oct  2 2026";  //  __DATE__;
+    const std::string date{__DATE__};
 
     const std::string yyyy = date.substr(7, 4);
     const std::string mmm  = date.substr(0, 3);
@@ -216,7 +218,8 @@ std::string engine_logo() noexcept {
     std::string logo;
     logo.reserve(1100);
 
-    auto border = [&logo](const std::string_view sv) {
+    // clang-format off
+    const auto border = [&logo](const std::string_view sv) noexcept {
         logo += ConsoleColor::BG_BLACK;
         logo += ConsoleColor::BRIGHT_YELLOW;
         logo += ConsoleColor::BLINK;
@@ -224,7 +227,7 @@ std::string engine_logo() noexcept {
         logo += ConsoleColor::RESET;
         logo += '\n';
     };
-    auto mid1 = [&logo](const std::string_view sv, const char* const c1) {
+    const auto mid1 = [&logo](const std::string_view sv, const char* const c1) noexcept {
         logo += ConsoleColor::BG_BLACK;
         logo += ConsoleColor::BRIGHT_YELLOW;
         logo += ConsoleColor::BLINK;
@@ -241,7 +244,7 @@ std::string engine_logo() noexcept {
         logo += ConsoleColor::RESET;
         logo += '\n';
     };
-    auto mid2 = [&logo](const std::string_view sv, const char* const c1, const char* const c2) {
+    const auto mid2 = [&logo](const std::string_view sv, const char* const c1, const char* const c2) noexcept {
         logo += ConsoleColor::BG_BLACK;
         logo += ConsoleColor::BRIGHT_YELLOW;
         logo += ConsoleColor::BLINK;
@@ -260,7 +263,6 @@ std::string engine_logo() noexcept {
         logo += '\n';
     };
 
-    // clang-format off
     border("  ╔══════════════════════════════╗  ");
          mid1("  ██████╗ ╔██████╗ ███╗  ██╗  ", ConsoleColor::RED);
          mid2("  ██╔══██╗██╔═══██╗████╗ ██║  ", ConsoleColor::BRIGHT_RED, ConsoleColor::STRIKETHROUGH);
@@ -1152,7 +1154,7 @@ void print() noexcept {
 
 #if defined(_WIN32)
 
-std::string error_to_string(DWORD errorId) noexcept {
+std::string error_to_string(const DWORD errorId) noexcept {
     if (errorId == 0)
         return {};
 
@@ -1189,7 +1191,7 @@ HandleGuard::~HandleGuard() noexcept { reset(); }
 
 bool HandleGuard::is_valid() const noexcept { return is_valid_handle(handle); }
 
-void HandleGuard::reset(HANDLE newHandle) noexcept {
+void HandleGuard::reset(const HANDLE newHandle) noexcept {
     if (handle != newHandle)
     {
         if (is_valid())
@@ -1288,7 +1290,7 @@ bool FdGuard::is_valid() const noexcept { return is_valid_fd(fd); }
 
 int FdGuard::get() const noexcept { return fd; }
 
-void FdGuard::reset(int newFd) noexcept {
+void FdGuard::reset(const int newFd) noexcept {
     if (fd != newFd)
     {
         if (is_valid())
@@ -1312,7 +1314,7 @@ void* MMapGuard::get_ptr() const noexcept { return mappedPtr; }
 
 usize MMapGuard::get_size() const noexcept { return mappedSize; }
 
-void MMapGuard::reset(void* newPtr, usize newSize) noexcept {
+void MMapGuard::reset(const void* newPtr, const usize newSize) noexcept {
     if (mappedPtr != newPtr)
     {
         if (is_valid())
@@ -1353,7 +1355,7 @@ UniqueFd::operator bool() const noexcept { return is_valid(); }
 
 int UniqueFd::release() noexcept { return std::exchange(fd, FD_INVALID); }
 
-void UniqueFd::reset(int newFd) noexcept {
+void UniqueFd::reset(const int newFd) noexcept {
     if (fd != newFd)
     {
         if (is_valid())
@@ -1489,13 +1491,15 @@ std::string wstring_to_utf8(const std::wstring_view wsv) noexcept {
     if (wsv.empty())
         return {};
 
-    const int size = ::WideCharToMultiByte(CP_UTF8, 0, wsv.data(), int(wsv.size()), nullptr, 0, nullptr, nullptr);
+    constexpr UINT codePage = CP_UTF8;
 
-    if (size <= 0)
+    const int strSize = ::WideCharToMultiByte(codePage, 0, wsv.data(), int(wsv.size()), nullptr, 0, nullptr, nullptr);
+
+    if (strSize <= 0)
         return {};
 
-    std::string str(usize(size), '\0');
-    ::WideCharToMultiByte(CP_UTF8, 0, wsv.data(), int(wsv.size()), str.data(), size, nullptr, nullptr);
+    std::string str(usize(strSize), '\0');
+    ::WideCharToMultiByte(codePage, 0, wsv.data(), int(wsv.size()), str.data(), strSize, nullptr, nullptr);
 
     return str;
 #else
@@ -1514,16 +1518,16 @@ fs::path utf8_to_path(const std::string_view path) noexcept {
     constexpr Array<UINT, 2> CodePages{CP_UTF8, CP_ACP};
     for (const UINT codePage : CodePages)
     {
-        const DWORD flags = codePage == CP_UTF8 ? MB_ERR_INVALID_CHARS : 0;
-        const int   wideSize = ::MultiByteToWideChar(codePage, flags, path.data(), pathSize, nullptr, 0);
+        const DWORD flags        = codePage == CP_UTF8 ? MB_ERR_INVALID_CHARS : 0;
+        const int   widePathSize = ::MultiByteToWideChar(codePage, flags, path.data(), pathSize, nullptr, 0);
 
-        if (wideSize <= 0)
+        if (widePathSize <= 0)
             continue;
 
-        std::wstring wideStr(usize(wideSize), L'\0');
-        ::MultiByteToWideChar(codePage, 0, path.data(), pathSize, wideStr.data(), wideSize);
+        std::wstring widePath(usize(widePathSize), L'\0');
+        ::MultiByteToWideChar(codePage, 0, path.data(), pathSize, widePath.data(), widePathSize);
 
-        return {wideStr};
+        return {widePath};
     }
 #endif
     return {path};
