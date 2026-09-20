@@ -88,6 +88,9 @@ class SplitMix64 final {
 // See:
 //   <https://vigna.di.unimi.it/ftp/papers/xorshift.pdf>
 class Xorshift64Star final {
+   private:
+    using State = u64;
+
    public:
     explicit constexpr Xorshift64Star(u64 seed = 1) noexcept {
         SplitMix64 seeder(seed);
@@ -119,12 +122,12 @@ class Xorshift64Star final {
     //
     // This can be used to create independent streams for parallel computations.
     constexpr void jump() noexcept {
-        constexpr u64 JumpMask =   // Jump under (12, 25, 27) parameters
-          u64{0xDD97D02513476FA5}  // Jump by 2^32 steps
-        //u64{0xAE82CA9F848EBC6D}  // Jump by 2^48 steps
+        constexpr State JumpMask =  // Jump under (12, 25, 27) parameters
+          u64{0xDD97D02513476FA5}   // Jump by 2^32 steps
+        //u64{0xAE82CA9F848EBC6D}   // Jump by 2^48 steps
         ;
 
-        u64 tmpState = 0;
+        State tmpState = 0;
 
         for (u8 b = 0; b < 64; ++b)
         {
@@ -157,9 +160,9 @@ class Xorshift64Star final {
         return mix();
     }
 
-    static constexpr u64 DefaultState = 1;
+    static constexpr State DefaultState = 1;
 
-    u64 state = DefaultState;
+    State state = DefaultState;
 };
 
 // Xoroshiro128** Pseudo-Random Number Generator
