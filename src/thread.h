@@ -77,15 +77,15 @@ class Thread final {
     // Constructor for a worker thread.
     //
     // Responsibilities:
-    //   - Initializes thread and NUMA-related identifiers.
-    //   - Starts the thread immediately.
-    //      * The thread will execute idle_func() and go to sleep.
-    //      * The constructor waits until the thread reaches the idle state to ensure
-    //        it is ready to accept jobs safely.
+    //   - Initializes the thread and NUMA-related identifiers.
     //   - Acquires a NUMA access token from the provided nodeBinder.
     //   - Constructs the Worker object for this thread, allocating on large pages
-    //      for performance, and passing thread/NUMA info along with shared state and
-    //      the search manager.
+    //     for performance, and passing thread/NUMA information along with shared state
+    //     and the search manager.
+    //   - Creates the native thread.
+    //     * The thread executes idle_func() and enters the idle state.
+    //     * The constructor waits until the thread reaches the idle state,
+    //       ensuring it is ready to accept jobs safely.
     //
     // Preconditions:
     //   - numa_thread_count() != 0
@@ -95,7 +95,8 @@ class Thread final {
            const SharedState&            sharedState,
            ManagerPtr                    manager) noexcept;
 
-    // Destructor: ensures the thread is properly terminated and joined.
+    // Destructor: ensures the thread is safely terminated and joined.
+    // The thread should not be running a job.
     ~Thread() noexcept;
 
     [[nodiscard]] constexpr u16 thread_id() const noexcept { return context.thread_id(); }
@@ -114,11 +115,12 @@ class Thread final {
         return numaAccessToken;
     }
 
-    // Starts the thread if it is not already running.
+    // Creates the thread if it is not already running.
     //
     // Guarantees:
-    //   - After this function returns, the thread is alive and ready to accept jobs.
-    //   - The 'busy' flag is properly synchronized to avoid race conditions.
+    //   - After this function returns, the thread has completed initialization
+    //     and is ready to accept jobs.
+    //   - The 'busy' flag is synchronized with the condition variable.
     //   - If the thread is already running, this function does nothing.
     //
     // Working:
@@ -127,11 +129,12 @@ class Thread final {
     //   - Resets 'dead' and 'busy' flags to prepare for a new thread.
     //   - Creates a new NativeThread that runs idle_func() on this Thread object.
     //   - Waits on the condition variable until the new thread reports itself idle (busy == false),
-    //     and ready to accept jobs, ensuring that the thread is fully initialized before returning.
-    void start() noexcept;
+    //     or termination is requested, ensuring that the thread is fully initialized before returning.
+    void create() noexcept;
 
     // Safely terminates the thread by setting the 'dead' flag,
     // waking it if necessary, and joining the native thread.
+    // If a job is currently running, waits for it to finish.
     void terminate() noexcept;
 
     void ensure_network_replicated() const noexcept;
