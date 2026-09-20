@@ -107,6 +107,12 @@
     #define RESTRICT
 #endif
 
+#if defined(__clang__) || defined(__GNUC__)
+    #define UNLIKELY(x) __builtin_expect(!!(x), 0)
+#else
+    #define UNLIKELY(x) (x)
+#endif
+
 #if !defined(NDEBUG)
     #define DEBUG_LOG(msg) std::cerr << msg << '\n'
 #else

@@ -97,9 +97,9 @@ class XorShift64Star final {
 
         // Zero-State Insurance:
         // Safety check: avoid the absorbing zero state
-        // XorShift states must never be 0.
+        // XorShift states must non-zero, never be 0.
         // If SplitMix64 returns 0, fall back to a non-zero state.
-        if (s == 0) [[unlikely]]
+        if (UNLIKELY(s == 0))
         {
             s = DefaultState;
         }
