@@ -122,16 +122,16 @@ class Xorshift64Star final {
     //
     // This can be used to create independent streams for parallel computations.
     constexpr void jump() noexcept {
-        constexpr State JumpMask =  // Jump under (12, 25, 27) parameters
-          u64{0xDD97D02513476FA5}   // Jump by 2^32 steps
-        //u64{0xAE82CA9F848EBC6D}   // Jump by 2^48 steps
+        constexpr State Jump =     // Jump under (12, 25, 27) parameters
+          u64{0xDD97D02513476FA5}  // Jump by 2^32 steps
+        //u64{0xAE82CA9F848EBC6D}  // Jump by 2^48 steps
         ;
 
         State tmpState = 0;
 
         for (u8 b = 0; b < 64; ++b)
         {
-            if ((JumpMask & bit(b)) != 0)
+            if ((Jump & bit(b)) != 0)
             {
                 tmpState ^= state;
             }
@@ -174,9 +174,11 @@ class Xorshift64Star final {
 // - Internal state: 128 bits (two 64-bit integers).
 // - Output: 64 bits.
 // - Period: 2^128 - 1.
-// - Supports a jump-ahead of 2^64 steps for parallel streams.
+// - Jump function: advances the state by 2^64 steps for parallel streams.
+// - Initialization: SplitMix64 is used to initialize the internal state.
 // - Zero-State Insurance: SplitMix64 is used to initialize the internal state.
 // - The all-zero state is avoided during initialization.
+// - State size: 128 bits with no additional generator state.
 // - Zero Overhead: No additional memory is required beyond the 128-bit internal state.
 //
 // Based on:
@@ -197,8 +199,8 @@ class Xoroshiro128StarStar final {
         SplitMix64 seeder(seed);
 
         // Initialize the state with two SplitMix64 outputs.
-        for (u64& s : state)
-            s = seeder.next();
+        state[0] = seeder.next();
+        state[1] = seeder.next();
 
         // The all-zero state is not valid for Xoroshiro128**.
         // If SplitMix64 produces zero for both state words,
@@ -222,15 +224,15 @@ class Xoroshiro128StarStar final {
     //
     // This can be used to create independent streams for parallel computations.
     constexpr void jump() noexcept {
-        constexpr State Jumps{0xDF900294D8F554A5, 0x170865DF4B3201FC};
+        constexpr State Jump = {0xDF900294D8F554A5, 0x170865DF4B3201FC};
 
-        State tmpState{0};
+        State tmpState = {0, 0};
 
-        for (const u64 Jump : Jumps)
+        for (const u64 jump : Jump)
         {
             for (u8 b = 0; b < 64; ++b)
             {
-                if ((Jump & bit(b)) != 0)
+                if ((jump & bit(b)) != 0)
                 {
                     tmpState[0] ^= state[0];
                     tmpState[1] ^= state[1];
@@ -265,7 +267,7 @@ class Xoroshiro128StarStar final {
         return rand;
     }
 
-    static constexpr State DefaultState{1, 0};
+    static constexpr State DefaultState = {1, 0};
 
     State state = DefaultState;
 };

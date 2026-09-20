@@ -301,7 +301,7 @@ ProbResult TranspositionTable::probe(const Key key) const noexcept {
 
     auto* const ttc = cluster(key);
 
-    const u16 key16 = static_cast<u16>(key);
+    const u16 key16 = u16(key);
 
     for (const auto& entry : ttc->entries)
         if (entry.key() == key16)
