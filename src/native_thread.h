@@ -69,8 +69,8 @@ class NativeThread final {
         void invoke() noexcept override { std::apply(func_, args_); }
 
        private:
-        Function            func_;
-        std::tuple<Args...> args_;
+        std::decay_t<Function>            func_;
+        std::tuple<std::decay_t<Args>...> args_;
     };
 
    public:
@@ -97,11 +97,11 @@ class NativeThread final {
     }
 
     template<typename Function, typename... Args>
-    NativeThread(Function&& func, ThreadOptions thOptions, Args&&... args) noexcept {
-        using ThreadCallable = Callable<std::decay_t<Function>, std::decay_t<Args>...>;
+    NativeThread(const ThreadOptions& thOptions, Function&& func, Args&&... args) noexcept {
+        using CallableFunc = Callable<Function, Args...>;
 
-        auto threadCallable = std::make_unique<ThreadCallable>(std::forward<Function>(func),
-                                                               std::forward<Args>(args)...);
+        auto callablePtr = std::make_unique<CallableFunc>(  //
+          std::forward<Function>(func), std::forward<Args>(args)...);
 
         pthread_attr_t threadAttr;
 
@@ -142,7 +142,7 @@ class NativeThread final {
             return nullptr;
         };
 
-        if (::pthread_create(&thread_, &threadAttr, start_routine, threadCallable.get()) != 0)
+        if (::pthread_create(&thread_, &threadAttr, start_routine, callablePtr.get()) != 0)
         {
             //DEBUG_LOG("::pthread_create() failed.");
         }
@@ -151,11 +151,15 @@ class NativeThread final {
             // Mark the thread as joinable.
             joinable_ = true;
             // Transfer ownership to the new thread.
-            threadCallable.release();
+            callablePtr.release();
         }
 
         destroy_thread_attr();
     }
+
+    template<typename Function, typename... Args>
+    NativeThread(Function&& func, Args&&... args) noexcept :
+        NativeThread{ThreadOptions{}, std::forward<Function>(func), std::forward<Args>(args)...} {}
 
     // RAII: join on destruction if thread is joinable
     ~NativeThread() noexcept {
@@ -196,16 +200,17 @@ using NativeThread = std::thread;
 #endif
 
 template<typename Function, typename... Args>
-NativeThread create_native_thread(Function&& func,
+NativeThread create_native_thread_with_options(
 #if defined(USE_PTHREAD)
-                                  ThreadOptions thOptions,
+  const ThreadOptions& thOptions,
 #else
-                                  ThreadOptions,
+  const ThreadOptions&,
 #endif
-                                  Args&&... args) noexcept {
+  Function&& func,
+  Args&&... args) noexcept {
     return
 #if defined(USE_PTHREAD)
-      NativeThread(std::forward<Function>(func), thOptions, std::forward<Args>(args)...)
+      NativeThread(thOptions, std::forward<Function>(func), std::forward<Args>(args)...)
 #else
       // TODO: implement fallible thread creation on MSVC
       NativeThread(std::forward<Function>(func), std::forward<Args>(args)...)
@@ -215,8 +220,8 @@ NativeThread create_native_thread(Function&& func,
 
 template<typename Function, typename... Args>
 NativeThread create_native_thread(Function&& func, Args&&... args) noexcept {
-    return create_native_thread(std::forward<Function>(func), ThreadOptions{},
-                                std::forward<Args>(args)...);
+    return create_native_thread_with_options(ThreadOptions{}, std::forward<Function>(func),
+                                             std::forward<Args>(args)...);
 }
 
 }  // namespace DON
