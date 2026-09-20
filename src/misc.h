@@ -22,7 +22,6 @@
 #include <array>
 #include <atomic>
 #include <cassert>
-#include <charconv>
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
@@ -40,7 +39,6 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
-#include <system_error>
 #include <type_traits>
 #include <unordered_map>
 #include <utility>
@@ -145,6 +143,25 @@ using CpuIndex  = u16;
 
 using Strings     = std::vector<std::string>;
 using StringViews = std::vector<std::string_view>;
+
+namespace Internal {
+
+template<typename T, usize Size, usize... Sizes>
+struct ArrayDef final {
+    static_assert(Size >= 0, "dimension must be >= 0");
+    using type = std::array<typename ArrayDef<T, Sizes...>::type, Size>;
+};
+
+template<typename T, usize Size>
+struct ArrayDef<T, Size> final {
+    static_assert(Size >= 0, "dimension must be >= 0");
+    using type = std::array<T, Size>;
+};
+
+}  // namespace Internal
+
+template<typename T, usize Size, usize... Sizes>
+using Array = typename Internal::ArrayDef<T, Size, Sizes...>::type;
 
 // Base exception type for application-specific errors
 struct Error: public std::runtime_error {
@@ -410,23 +427,6 @@ constexpr T2 interpolate(T1 x, T1 x0, T1 x1, T2 y0, T2 y1) noexcept {
     return is_cdigit(ch) ? ch - '0' : 0;
 }
 
-constexpr unsigned to_month(const std::string_view mon) noexcept {
-    assert(mon.size() == 3);
-    return lower_case(mon[0]) == 'j' && lower_case(mon[1]) == 'a' ? 1
-         : lower_case(mon[0]) == 'f'                              ? 2
-         : lower_case(mon[0]) == 'm' && lower_case(mon[2]) == 'r' ? 3
-         : lower_case(mon[0]) == 'a' && lower_case(mon[1]) == 'p' ? 4
-         : lower_case(mon[0]) == 'm' && lower_case(mon[2]) == 'y' ? 5
-         : lower_case(mon[0]) == 'j' && lower_case(mon[2]) == 'n' ? 6
-         : lower_case(mon[0]) == 'j' && lower_case(mon[2]) == 'l' ? 7
-         : lower_case(mon[0]) == 'a' && lower_case(mon[1]) == 'u' ? 8
-         : lower_case(mon[0]) == 's'                              ? 9
-         : lower_case(mon[0]) == 'o'                              ? 10
-         : lower_case(mon[0]) == 'n'                              ? 11
-         : lower_case(mon[0]) == 'd'                              ? 12
-                                                                  : 0;
-}
-
 namespace ConsoleColor {
 
 // Reset
@@ -474,6 +474,35 @@ inline constexpr const char* BG_WHITE   = "\033[47m";
 }  // namespace ConsoleColor
 
 void set_console_utf8() noexcept;
+
+constexpr u32 to_month(const std::string_view mon) noexcept {
+    assert(mon.size() == 3);
+    return lower_case(mon[0]) == 'j' && lower_case(mon[1]) == 'a' ? 1
+         : lower_case(mon[0]) == 'f'                              ? 2
+         : lower_case(mon[0]) == 'm' && lower_case(mon[2]) == 'r' ? 3
+         : lower_case(mon[0]) == 'a' && lower_case(mon[1]) == 'p' ? 4
+         : lower_case(mon[0]) == 'm' && lower_case(mon[2]) == 'y' ? 5
+         : lower_case(mon[0]) == 'j' && lower_case(mon[2]) == 'n' ? 6
+         : lower_case(mon[0]) == 'j' && lower_case(mon[2]) == 'l' ? 7
+         : lower_case(mon[0]) == 'a' && lower_case(mon[1]) == 'u' ? 8
+         : lower_case(mon[0]) == 's'                              ? 9
+         : lower_case(mon[0]) == 'o'                              ? 10
+         : lower_case(mon[0]) == 'n'                              ? 11
+         : lower_case(mon[0]) == 'd'                              ? 12
+                                                                  : 0;
+}
+
+// Tomohiko Sakamoto's Algorithm
+constexpr u32 week_day(const u32 year, const u32 month, const u32 day) noexcept {
+    // Precomputed weekday offsets for each month.
+    constexpr Array<u32, 12> MonthWeekdayOffsets{0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4};
+
+    // Treat January and February as part of the previous year.
+    const u32 yr = year - u32(month < 3);
+
+    // Apply the mathematical congruence formula
+    return (yr + yr / 4 - yr / 100 + yr / 400 + MonthWeekdayOffsets[month - 1] + day) % 7;
+}
 
 // Format date "Mon DD YYYY" -> YYYYMMDD
 std::string format_date(std::string_view date) noexcept;
@@ -792,18 +821,6 @@ class MultiArray;
 
 namespace Internal {
 
-template<typename T, usize Size, usize... Sizes>
-struct ArrayDef final {
-    static_assert(Size >= 0, "dimension must be >= 0");
-    using type = std::array<typename ArrayDef<T, Sizes...>::type, Size>;
-};
-
-template<typename T, usize Size>
-struct ArrayDef<T, Size> final {
-    static_assert(Size >= 0, "dimension must be >= 0");
-    using type = std::array<T, Size>;
-};
-
 // Recursive template to define multi-dimensional array
 template<typename T, usize Size, usize... Sizes>
 struct MultiArrayDef final {
@@ -818,9 +835,6 @@ struct MultiArrayDef<T, Size> final {
 };
 
 }  // namespace Internal
-
-template<typename T, usize Size, usize... Sizes>
-using Array = typename Internal::ArrayDef<T, Size, Sizes...>::type;
 
 // MultiArray is a generic N-dimensional array.
 // The template parameter T is the base type of the MultiArray

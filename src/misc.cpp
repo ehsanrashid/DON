@@ -17,11 +17,13 @@
 
 #include "misc.h"
 
-#include <cinttypes>  // PRIX32, PRIX64, PRIu64
-#include <cmath>
-#include <cstdio>   // snprintf()
-#include <cstdlib>  // exit(), EXIT_FAILURE
-#include <ctime>    // time_t, localtime_r(), strftime()
+#include <charconv>      // from_chars()
+#include <cinttypes>     // PRIX32, PRIX64, PRIu64
+#include <cmath>         // sqrt()
+#include <cstdio>        // snprintf()
+#include <cstdlib>       // exit(), EXIT_FAILURE
+#include <ctime>         // time_t, localtime_r(), localtime_s(), strftime()
+#include <system_error>  // errc
 
 #if defined(_WIN32)
     #include <shellapi.h>  // CommandLineToArgvW()
@@ -73,7 +75,7 @@ std::string format_date(const std::string_view date) noexcept {
     p += 3;
 
     // Find month index (1..12)
-    unsigned month = to_month(m);
+    u32 month = to_month(m);
     if (month == 0)
         return std::string{NullDate};
 
@@ -85,7 +87,7 @@ std::string format_date(const std::string_view date) noexcept {
     if (end - p < 1 || !is_cdigit(*p))
         return std::string{NullDate};
 
-    unsigned day = 0;
+    u32 day = 0;
     for (; p != end && is_cdigit(*p); ++p)
         day = 10 * day + char_to_digit(*p);
 
@@ -101,7 +103,7 @@ std::string format_date(const std::string_view date) noexcept {
     if (end - p < 4)
         return std::string{NullDate};
 
-    unsigned year = 0;
+    u32 year = 0;
     for (const auto* yEnd = p + 4; p != yEnd; ++p)
     {
         if (!is_cdigit(*p))
@@ -159,33 +161,42 @@ std::string format_time(const std::string_view time) noexcept {
 }
 
 std::string build_date() noexcept {
-    return
 #if defined(BUILD_DATE)
-      BUILD_DATE
+    return BUILD_DATE;
 #else
-      format_date(__DATE__)
+    return format_date(__DATE__);
 #endif
-      ;
 }
 
 std::string build_time() noexcept {
-    return
 #if defined(BUILD_TIME)
-      BUILD_TIME
+    return BUILD_TIME;
 #else
-      format_time(__TIME__)
+    return format_time(__TIME__);
 #endif
-      ;
 }
 
 std::string build_timestamp() noexcept {
-    return
 #if defined(BUILD_TIMESTAMP)
-      BUILD_TIMESTAMP
+    return BUILD_TIMESTAMP;
 #else
-      __DATE__ " " __TIME__
+    constexpr Array<std::string_view, 7> Weekdays{"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
+
+    const std::string date = "Oct  2 2026";  //  __DATE__;
+
+    const std::string yyyy = date.substr(7, 4);
+    const std::string mmm  = date.substr(0, 3);
+    const bool        dd1  = date[4] == ' ';
+    const std::string dd   = date.substr(dd1 ? 5 : 4, dd1 ? 1 : 2);
+
+    const u32 year  = u32(std::stoi(yyyy));
+    const u32 month = to_month(mmm);
+    const u32 day   = u32(std::stoi(dd));
+
+    const std::string weekday{Weekdays[week_day(year, month, day)]};
+
+    return yyyy + " " + mmm + " " + (dd1 ? "0" : "") + dd + " " + weekday + " " + __TIME__;
 #endif
-      ;
 }
 
 std::string engine_info(const bool uci) noexcept {
