@@ -46,23 +46,23 @@ class SplitMix64 final {
         s(seed) {}
 
     constexpr u64 next() noexcept {
-        update_state();
+        update();
 
-        return mix(s);
+        return mix();
     }
 
    private:
-    static constexpr u64 mix(const u64 x) noexcept {
-        u64 t = x;
+    constexpr void update() noexcept {
+        s += u64{0x9E3779B97F4A7C15};  // Derived from the Golden Ratio
+    }
+
+    constexpr u64 mix() const noexcept {
+        u64 t = s;
         t     = (t ^ (t >> 30)) * u64{0xBF58476D1CE4E5B9};
         t     = (t ^ (t >> 27)) * u64{0x94D049BB133111EB};
         t     = (t ^ (t >> 31));
 
         return t;
-    }
-
-    constexpr void update_state() noexcept {
-        s += u64{0x9E3779B97F4A7C15};  // Derived from the Golden Ratio
     }
 
     u64 s;
@@ -133,7 +133,7 @@ class XorShift64Star final {
             }
 
             // Advances state over the linear system
-            update_state();
+            update();
         }
 
         s = t;
@@ -141,16 +141,18 @@ class XorShift64Star final {
 
    private:
     // XorShift64* algorithm implementation
-    constexpr void update_state() noexcept {
+    constexpr void update() noexcept {
         s ^= s >> 12;
         s ^= s << 25;
         s ^= s >> 27;
     }
 
-    constexpr u64 rand64() noexcept {
-        update_state();
+    constexpr u64 mix() const noexcept { return u64{0x2545F4914F6CDD1D} * s; }
 
-        return u64{0x2545F4914F6CDD1D} * s;
+    constexpr u64 rand64() noexcept {
+        update();
+
+        return mix();
     }
 
     static constexpr u64 DefaultState = 1;  // u64{0x5555555555555555}
