@@ -544,11 +544,11 @@ class NumaReplicationContext final {
 
     ~NumaReplicationContext() noexcept;
 
-    void attach(BaseNumaReplicated* numaRep) noexcept;
-    void detach(BaseNumaReplicated* numaRep) noexcept;
+    bool attach(BaseNumaReplicated* numaRep) noexcept;
+    bool detach(BaseNumaReplicated* numaRep) noexcept;
 
     // oldNumaRep may be invalid at this point.
-    void move(BaseNumaReplicated* oldNumaRep, BaseNumaReplicated* newNumaRep) noexcept;
+    bool move(BaseNumaReplicated* oldNumaRep, BaseNumaReplicated* newNumaRep) noexcept;
 
     void set_numa_config(NumaConfig&& numaCfg) noexcept;
 
@@ -579,9 +579,9 @@ class BaseNumaReplicated {
     virtual void on_numa_config_changed() noexcept = 0;
 
    private:
-    void attach_context() noexcept;
-    void detach_context() noexcept;
-    void move_context(BaseNumaReplicated& baseNumaRep) noexcept;
+    bool attach_context() noexcept;
+    bool detach_context() noexcept;
+    bool move_context(BaseNumaReplicated& baseNumaRep) noexcept;
 
     NumaReplicationContext* numaContext;
 };

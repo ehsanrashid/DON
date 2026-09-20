@@ -18,7 +18,7 @@
 #ifndef NATIVE_THREAD_H_INCLUDED
 #define NATIVE_THREAD_H_INCLUDED
 
-#include <utility>  // forward<>, exchange()
+#include <utility>  // forward<>, exchange(), swap()
 
 // MSVC-compatible toolchains use std::thread because pthreads is not provided by default.
 // All other platforms use pthreads.
@@ -80,9 +80,7 @@ class NativeThread final {
     NativeThread(const NativeThread&) noexcept            = delete;
     NativeThread& operator=(const NativeThread&) noexcept = delete;
 
-    NativeThread(NativeThread&& nativeThread) noexcept :
-        thread_(nativeThread.thread_),
-        joinable_(std::exchange(nativeThread.joinable_, false)) {}
+    NativeThread(NativeThread&& nativeThread) noexcept { move(std::move(nativeThread)); }
     NativeThread& operator=(NativeThread&& nativeThread) noexcept {
         if (this == &nativeThread)
             return *this;
@@ -90,8 +88,7 @@ class NativeThread final {
         if (!join())
             return *this;
 
-        thread_   = nativeThread.thread_;
-        joinable_ = std::exchange(nativeThread.joinable_, false);
+        move(std::move(nativeThread));
 
         return *this;
     }
@@ -184,6 +181,16 @@ class NativeThread final {
     }
 
    private:
+    void move(NativeThread&& nativeThread) noexcept {
+        thread_   = nativeThread.thread_;
+        joinable_ = std::exchange(nativeThread.joinable_, false);
+    }
+
+    void swap(NativeThread& nativeThread) noexcept {
+        std::swap(thread_, nativeThread.thread_);
+        std::swap(joinable_, nativeThread.joinable_);
+    }
+
     static constexpr usize StackSize = 8 * MB;
     #if !defined(__MINGW32__)
     static constexpr usize GuardSize = 4 * KB;

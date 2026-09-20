@@ -1063,25 +1063,30 @@ NumaReplicationContext::~NumaReplicationContext() noexcept {
         std::exit(EXIT_FAILURE);
 }
 
-void NumaReplicationContext::attach(BaseNumaReplicated* const numaRep) noexcept {
+bool NumaReplicationContext::attach(BaseNumaReplicated* const numaRep) noexcept {
     assert(replicatedSet.find(numaRep) == replicatedSet.end());
 
-    replicatedSet.insert(numaRep);
+    return replicatedSet.insert(numaRep).second;
 }
 
-void NumaReplicationContext::detach(BaseNumaReplicated* const numaRep) noexcept {
+bool NumaReplicationContext::detach(BaseNumaReplicated* const numaRep) noexcept {
     assert(replicatedSet.find(numaRep) != replicatedSet.end());
 
-    replicatedSet.erase(numaRep);
+    return replicatedSet.erase(numaRep) != 0;
 }
 
-void NumaReplicationContext::move(BaseNumaReplicated* const oldNumaRep,
+bool NumaReplicationContext::move(BaseNumaReplicated* const oldNumaRep,
                                   BaseNumaReplicated* const newNumaRep) noexcept {
     assert(replicatedSet.find(oldNumaRep) != replicatedSet.end());
     assert(replicatedSet.find(newNumaRep) == replicatedSet.end());
 
-    replicatedSet.erase(oldNumaRep);
-    replicatedSet.insert(newNumaRep);
+    const bool erased   = replicatedSet.erase(oldNumaRep) != 0;
+    const bool inserted = replicatedSet.insert(newNumaRep).second;
+
+    assert(erased);
+    assert(inserted);
+
+    return erased && inserted;
 }
 
 void NumaReplicationContext::set_numa_config(NumaConfig&& numaCfg) noexcept {
@@ -1096,7 +1101,8 @@ const NumaConfig& NumaReplicationContext::numa_config() const noexcept { return 
 
 BaseNumaReplicated::BaseNumaReplicated(NumaReplicationContext& numaCtx) noexcept :
     numaContext(&numaCtx) {
-    attach_context();
+    [[maybe_unused]] const bool attached = attach_context();
+    assert(attached);
 }
 
 BaseNumaReplicated::BaseNumaReplicated(BaseNumaReplicated&& baseNumaRep) noexcept :
@@ -1109,18 +1115,23 @@ BaseNumaReplicated& BaseNumaReplicated::operator=(BaseNumaReplicated&& baseNumaR
         return *this;
 
     // Remove this object from its current context.
-    detach_context();
+    if (!detach_context())
+        return *this;
 
     // Transfer the source context and clear the source context pointer.
     numaContext = std::exchange(baseNumaRep.numaContext, nullptr);
 
     // Replace the source address with this object's address in the context.
-    move_context(baseNumaRep);
+    [[maybe_unused]] const bool moved = move_context(baseNumaRep);
+    assert(moved);
 
     return *this;
 }
 
-BaseNumaReplicated::~BaseNumaReplicated() noexcept { detach_context(); }
+BaseNumaReplicated::~BaseNumaReplicated() noexcept {
+    [[maybe_unused]] const bool detached = detach_context();
+    assert(detached);
+}
 
 const NumaConfig& BaseNumaReplicated::numa_config() const noexcept {
     static const NumaConfig emptyCfg = NumaConfig::empty();
@@ -1128,21 +1139,29 @@ const NumaConfig& BaseNumaReplicated::numa_config() const noexcept {
     return numaContext != nullptr ? numaContext->numa_config() : emptyCfg;
 }
 
-void BaseNumaReplicated::attach_context() noexcept {
-    if (numaContext != nullptr)
-        numaContext->attach(this);
+bool BaseNumaReplicated::attach_context() noexcept {
+    if (numaContext == nullptr)
+        return true;
+
+    return numaContext->attach(this);
 }
 
-void BaseNumaReplicated::detach_context() noexcept {
-    if (numaContext != nullptr)
-        numaContext->detach(this);
+bool BaseNumaReplicated::detach_context() noexcept {
+    if (numaContext == nullptr)
+        return true;
+
+    if (!numaContext->detach(this))
+        return false;
 
     numaContext = nullptr;
+    return true;
 }
 
-void BaseNumaReplicated::move_context(BaseNumaReplicated& baseNumaRep) noexcept {
-    if (numaContext != nullptr)
-        numaContext->move(&baseNumaRep, this);
+bool BaseNumaReplicated::move_context(BaseNumaReplicated& baseNumaRep) noexcept {
+    if (numaContext == nullptr)
+        return true;
+
+    return numaContext->move(&baseNumaRep, this);
 }
 
 }  // namespace DON
