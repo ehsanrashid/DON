@@ -830,21 +830,15 @@ namespace {
 template<usize Size>
 class Info {
    public:
-    Info() noexcept {
-        for (usize i = 0; i < Size; ++i)
-            data[i] = 0;
-    }
+    Info() noexcept = default;
 
-    Info(const Info& info) noexcept {
-        for (usize i = 0; i < Size; ++i)
-            data[i] = info.data[i];
-    }
+    Info(const Info& info) noexcept { copy(info); }
     Info& operator=(const Info& info) noexcept {
         if (this == &info)
             return *this;
 
-        for (usize i = 0; i < Size; ++i)
-            data[i] = info.data[i];
+        copy(info);
+
         return *this;
     }
 
@@ -860,25 +854,43 @@ class Info {
         return data[index];
     }
 
+    void reset() noexcept {
+        for (usize i = 0; i < Size; ++i)
+            data[i].store(0, std::memory_order_relaxed);
+    }
+
    protected:
-    Array<RelaxedAtomic<i64>, Size> data;
+    Array<std::atomic<i64>, Size> data{0};
+
+   private:
+    void copy(const Info& info) noexcept {
+        for (usize i = 0; i < Size; ++i)
+            data[i].store(info.data[i].load(std::memory_order_relaxed), std::memory_order_relaxed);
+    }
 };
 
 class MinInfo final: public Info<2> {
    public:
-    MinInfo() noexcept { data[1] = std::numeric_limits<i64>::max(); }
+    MinInfo() noexcept :
+        Info() {
+        data[1].store(std::numeric_limits<i64>::max(), std::memory_order_relaxed);
+    }
 };
 
 class MaxInfo final: public Info<2> {
    public:
-    MaxInfo() noexcept { data[1] = std::numeric_limits<i64>::min(); }
+    MaxInfo() noexcept :
+        Info() {
+        data[1].store(std::numeric_limits<i64>::min(), std::memory_order_relaxed);
+    }
 };
 
 class ExtremeInfo final: public Info<3> {
    public:
-    ExtremeInfo() noexcept {
-        data[1] = std::numeric_limits<i64>::max();
-        data[2] = std::numeric_limits<i64>::min();
+    ExtremeInfo() noexcept :
+        Info() {
+        data[1].store(std::numeric_limits<i64>::max(), std::memory_order_relaxed);
+        data[2].store(std::numeric_limits<i64>::min(), std::memory_order_relaxed);
     }
 };
 
@@ -905,97 +917,108 @@ void clear() noexcept {
     correl.fill({});
 }
 
-void hit_on(bool cond, usize slot) noexcept {
+void hit_on(const bool cond, const usize slot) noexcept {
     assert(slot < hit.size());
     if (slot >= hit.size())
         return;
+
     auto& info = hit[slot];
 
-    ++info[0];
+    info[0].fetch_add(1, std::memory_order_relaxed);
     if (cond)
-        ++info[1];
+        info[1].fetch_add(1, std::memory_order_relaxed);
 }
 
-void min_of(i64 value, usize slot) noexcept {
+void min_of(const i64 value, const usize slot) noexcept {
     assert(slot < min.size());
     if (slot >= min.size())
         return;
+
     auto& info = min[slot];
 
-    ++info[0];
-    {
-        auto& mn = info[1];
-        for (i64 minValue = mn; minValue > value && !mn.compare_exchange_weak(minValue, value);)
-        {}
-    }
+    info[0].fetch_add(1, std::memory_order_relaxed);
+    auto& info_1   = info[1];
+    i64   minValue = info_1.load(std::memory_order_relaxed);
+    while (minValue > value
+           && !info_1.compare_exchange_weak(minValue, value,  //
+                                            std::memory_order_relaxed, std::memory_order_relaxed))
+    {}
 }
 
-void max_of(i64 value, usize slot) noexcept {
+void max_of(const i64 value, const usize slot) noexcept {
     assert(slot < max.size());
     if (slot >= max.size())
         return;
+
     auto& info = max[slot];
 
-    ++info[0];
-    {
-        auto& mx = info[1];
-        for (i64 maxValue = mx; maxValue < value && !mx.compare_exchange_weak(maxValue, value);)
-        {}
-    }
+    info[0].fetch_add(1, std::memory_order_relaxed);
+    auto& info_1   = info[1];
+    i64   maxValue = info_1.load(std::memory_order_relaxed);
+    while (maxValue < value
+           && !info_1.compare_exchange_weak(maxValue, value,  //
+                                            std::memory_order_relaxed, std::memory_order_relaxed))
+    {}
 }
 
-void extreme_of(i64 value, usize slot) noexcept {
+void extreme_of(const i64 value, const usize slot) noexcept {
     assert(slot < extreme.size());
     if (slot >= extreme.size())
         return;
+
     auto& info = extreme[slot];
 
-    ++info[0];
-    {
-        auto& mn = info[1];
-        for (i64 minValue = mn; minValue > value && !mn.compare_exchange_weak(minValue, value);)
-        {}
-    }
-    {
-        auto& mx = info[2];
-        for (i64 maxValue = mx; maxValue < value && !mx.compare_exchange_weak(maxValue, value);)
-        {}
-    }
+    info[0].fetch_add(1, std::memory_order_relaxed);
+    auto& info_1   = info[1];
+    i64   minValue = info_1.load(std::memory_order_relaxed);
+    while (minValue > value
+           && !info_1.compare_exchange_weak(minValue, value,  //
+                                            std::memory_order_relaxed, std::memory_order_relaxed))
+    {}
+    auto& info_2   = info[2];
+    i64   maxValue = info_2.load(std::memory_order_relaxed);
+    while (maxValue < value
+           && !info_2.compare_exchange_weak(maxValue, value,  //
+                                            std::memory_order_relaxed, std::memory_order_relaxed))
+    {}
 }
 
-void mean_of(i64 value, usize slot) noexcept {
+void mean_of(const i64 value, const usize slot) noexcept {
     assert(slot < mean.size());
     if (slot >= mean.size())
         return;
+
     auto& info = mean[slot];
 
-    ++info[0];
-    info[1] += value;
+    info[0].fetch_add(1, std::memory_order_relaxed);
+    info[1].fetch_add(value, std::memory_order_relaxed);
 }
 
-void stdev_of(i64 value, usize slot) noexcept {
+void stdev_of(const i64 value, const usize slot) noexcept {
     assert(slot < stdev.size());
     if (slot >= stdev.size())
         return;
+
     auto& info = stdev[slot];
 
-    ++info[0];
-    info[1] += value;
-    info[2] += value * value;
+    info[0].fetch_add(1, std::memory_order_relaxed);
+    info[1].fetch_add(value, std::memory_order_relaxed);
+    info[2].fetch_add(value * value, std::memory_order_relaxed);
 }
 
-void correl_of(i64 value1, i64 value2, usize slot) noexcept {
+void correl_of(const i64 value1, const i64 value2, const usize slot) noexcept {
     assert(slot < correl.size());
     if (slot >= correl.size())
         return;
+
     auto& info = correl[slot];
 
-    ++info[0];
-    info[1] += value1;
-    info[2] += value1 * value1;
-    info[3] += value2;
-    info[4] += value2 * value2;
-    info[5] += value1 * value2;
+    info[0].fetch_add(1, std::memory_order_relaxed);
+    info[1].fetch_add(value1, std::memory_order_relaxed);
+    info[2].fetch_add(value1 * value1, std::memory_order_relaxed);
+    info[3].fetch_add(value2, std::memory_order_relaxed);
+    info[4].fetch_add(value2 * value2, std::memory_order_relaxed);
+    info[5].fetch_add(value1 * value2, std::memory_order_relaxed);
 }
 
 void print() noexcept {
@@ -1007,10 +1030,10 @@ void print() noexcept {
     {
         const auto& info = hit[i];
 
-        if ((n = info[0]) == 0)
+        if ((n = info[0].load(std::memory_order_relaxed)) == 0)
             continue;
 
-        i64 hits = info[1];
+        const i64 hits = info[1].load(std::memory_order_relaxed);
 
         std::cerr << "Hit #" << i << ": Count=" << n  //
                   << " Hits=" << hits                 //
@@ -1021,10 +1044,10 @@ void print() noexcept {
     {
         const auto& info = min[i];
 
-        if ((n = info[0]) == 0)
+        if ((n = info[0].load(std::memory_order_relaxed)) == 0)
             continue;
 
-        i64 minValue = info[1];
+        const i64 minValue = info[1].load(std::memory_order_relaxed);
 
         std::cerr << "Min #" << i << ": Count=" << n  //
                   << " Min=" << minValue << std::endl;
@@ -1034,10 +1057,10 @@ void print() noexcept {
     {
         const auto& info = max[i];
 
-        if ((n = info[0]) == 0)
+        if ((n = info[0].load(std::memory_order_relaxed)) == 0)
             continue;
 
-        i64 maxValue = info[1];
+        const i64 maxValue = info[1].load(std::memory_order_relaxed);
 
         std::cerr << "Max #" << i << ": Count=" << n  //
                   << " Max=" << maxValue << std::endl;
@@ -1047,11 +1070,11 @@ void print() noexcept {
     {
         const auto& info = extreme[i];
 
-        if ((n = info[0]) == 0)
+        if ((n = info[0].load(std::memory_order_relaxed)) == 0)
             continue;
 
-        i64 minValue = info[1];
-        i64 maxValue = info[2];
+        const i64 minValue = info[1].load(std::memory_order_relaxed);
+        const i64 maxValue = info[2].load(std::memory_order_relaxed);
 
         std::cerr << "Extreme #" << i << ": Count=" << n  //
                   << " Min=" << minValue                  //
@@ -1062,10 +1085,10 @@ void print() noexcept {
     {
         const auto& info = mean[i];
 
-        if ((n = info[0]) == 0)
+        if ((n = info[0].load(std::memory_order_relaxed)) == 0)
             continue;
 
-        i64 sum = info[1];
+        const i64 sum = info[1].load(std::memory_order_relaxed);
 
         std::cerr << "Mean #" << i << ": Count=" << n  //
                   << " Sum=" << sum                    //
@@ -1076,36 +1099,37 @@ void print() noexcept {
     {
         const auto& info = stdev[i];
 
-        if ((n = info[0]) == 0)
+        if ((n = info[0].load(std::memory_order_relaxed)) == 0)
             continue;
 
-        i64 sum   = info[1];
-        i64 sumSq = info[2];
+        const i64 sum   = info[1].load(std::memory_order_relaxed);
+        const i64 sumSq = info[2].load(std::memory_order_relaxed);
 
-        auto r = std::sqrt(avg(sumSq) - sqr(avg(sum)));
+        const auto stddev = std::sqrt(avg(sumSq) - sqr(avg(sum)));
 
         std::cerr << "Stdev #" << i << ": Count=" << n  //
-                  << " Stdev=" << r << std::endl;
+                  << " Stdev=" << stddev << std::endl;
     }
 
     for (usize i = 0; i < correl.size(); ++i)
     {
         const auto& info = correl[i];
 
-        if ((n = info[0]) == 0)
+        if ((n = info[0].load(std::memory_order_relaxed)) == 0)
             continue;
 
-        i64 sumV1   = info[1];
-        i64 sumSqV1 = info[2];
-        i64 sumV2   = info[3];
-        i64 sumSqV2 = info[4];
-        i64 sumV1V2 = info[5];
+        const i64 sum_v1   = info[1].load(std::memory_order_relaxed);
+        const i64 sumSq_v1 = info[2].load(std::memory_order_relaxed);
+        const i64 sum_v2   = info[3].load(std::memory_order_relaxed);
+        const i64 sumSq_v2 = info[4].load(std::memory_order_relaxed);
+        const i64 sum_v1v2 = info[5].load(std::memory_order_relaxed);
 
-        auto r = (avg(sumV1V2) - avg(sumV1) * avg(sumV2))
-               / (std::sqrt(avg(sumSqV1) - sqr(sumV1)) * std::sqrt(avg(sumSqV2) - sqr(avg(sumV2))));
+        const auto correl = (avg(sum_v1v2) - avg(sum_v1) * avg(sum_v2))   //
+                          / (std::sqrt(avg(sumSq_v1) - sqr(avg(sum_v1)))  //
+                             * std::sqrt(avg(sumSq_v2) - sqr(avg(sum_v2))));
 
         std::cerr << "Correl #" << i << ": Count=" << n  //
-                  << " Coefficient=" << r << std::endl;
+                  << " Correl=" << correl << std::endl;
     }
 }
 
@@ -1327,6 +1351,44 @@ void UniqueFd::reset(int newFd) noexcept {
 }
 
 #endif
+
+StringViews
+split(const std::string_view sv, const std::string_view delimiter, bool trimPart) noexcept {
+    StringViews parts;
+
+    if (sv.empty() || delimiter.empty())
+        return parts;  // Avoid infinite loop for empty delimiter
+
+    std::string_view part;
+
+    usize offset = 0;
+
+    while (true)
+    {
+        auto end = sv.find(delimiter, offset);
+
+        if (end == std::string_view::npos)
+            break;
+
+        part = sv.substr(offset, end - offset);
+
+        if (trimPart)
+            part = trim(part);
+
+        parts.emplace_back(part);
+        offset = end + delimiter.size();
+    }
+
+    // Last part
+    part = sv.substr(offset);
+
+    if (trimPart)
+        part = trim(part);
+
+    parts.emplace_back(part);
+
+    return parts;
+}
 
 std::string u32_to_string(u32 v) noexcept {
     constexpr usize BufferSize = 2 + HEX32_SIZE + 1;  // "0x" + 8 hex + '\0'

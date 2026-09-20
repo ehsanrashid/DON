@@ -2119,43 +2119,7 @@ inline bool value_in_range(std::string_view sv, int minValue, int maxValue) noex
     return minValue <= intValue && intValue <= maxValue;
 }
 
-inline StringViews
-split(std::string_view sv, std::string_view delimiter, bool trimPart = false) noexcept {
-    StringViews parts;
-
-    if (sv.empty() || delimiter.empty())
-        return parts;  // Avoid infinite loop for empty delimiter
-
-    std::string_view part;
-
-    usize offset = 0;
-
-    while (true)
-    {
-        auto end = sv.find(delimiter, offset);
-
-        if (end == std::string_view::npos)
-            break;
-
-        part = sv.substr(offset, end - offset);
-
-        if (trimPart)
-            part = trim(part);
-
-        parts.emplace_back(part);
-        offset = end + delimiter.size();
-    }
-
-    // Last part
-    part = sv.substr(offset);
-
-    if (trimPart)
-        part = trim(part);
-
-    parts.emplace_back(part);
-
-    return parts;
-}
+StringViews split(std::string_view sv, std::string_view delimiter, bool trimPart = false) noexcept;
 
 inline std::string hash_to_string(u64 hash) noexcept {
     constexpr usize BufferSize = HEX64_SIZE + 1;  // 16 hex + '\0'
