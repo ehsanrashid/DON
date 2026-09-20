@@ -142,13 +142,13 @@ class Xorshift64Star final {
     //
     // This can be used to create distant independent streams for parallel computations.
     constexpr void long_jump() noexcept {
-        constexpr State Jump = u64{0xAE82CA9F848EBC6D};
+        constexpr State LongJump = u64{0xAE82CA9F848EBC6D};
 
         State tmpState = 0;
 
         for (u8 b = 0; b < 64; ++b)
         {
-            if ((Jump & bit(b)) != 0)
+            if ((LongJump & bit(b)) != 0)
             {
                 tmpState ^= state;
             }
@@ -216,8 +216,8 @@ class Xoroshiro128StarStar final {
         SplitMix64 seeder(seed);
 
         // Initialize the state with two SplitMix64 outputs.
-        for (usize i = 0; i < StateSize; ++i)
-            state[i] = seeder.next();
+        for (u64& s : state)
+            s = seeder.next();
 
         // The all-zero state is not valid for Xoroshiro128**.
         // If SplitMix64 produces zero for both state words,
@@ -267,15 +267,15 @@ class Xoroshiro128StarStar final {
     //
     // This can be used to create distant independent streams for parallel computations.
     constexpr void long_jump() noexcept {
-        constexpr State Jump = {u64{0xD2A98B26625EEE7B}, u64{0xDDDF9B1090AA7AC1}};
+        constexpr State LongJump = {u64{0xD2A98B26625EEE7B}, u64{0xDDDF9B1090AA7AC1}};
 
         State tmpState = {0, 0};
 
-        for (const u64 jump : Jump)
+        for (const u64 longJump : LongJump)
         {
             for (u8 b = 0; b < 64; ++b)
             {
-                if ((jump & bit(b)) != 0)
+                if ((longJump & bit(b)) != 0)
                 {
                     tmpState[0] ^= state[0];
                     tmpState[1] ^= state[1];
@@ -349,8 +349,8 @@ class Xoshiro256StarStar final {
         SplitMix64 seeder(seed);
 
         // Initialize the state with four SplitMix64 outputs.
-        for (usize i = 0; i < StateSize; ++i)
-            state[i] = seeder.next();
+        for (u64& s : state)
+            s = seeder.next();
 
         // The all-zero state is not valid for Xoshiro256**.
         // If SplitMix64 produces zero for all state words,
@@ -408,11 +408,11 @@ class Xoshiro256StarStar final {
 
         State tmpState = {0, 0, 0, 0};
 
-        for (const u64 jump : LongJump)
+        for (const u64 longJump : LongJump)
         {
             for (u8 b = 0; b < 64; ++b)
             {
-                if ((jump & bit(b)) != 0)
+                if ((longJump & bit(b)) != 0)
                 {
                     tmpState[0] ^= state[0];
                     tmpState[1] ^= state[1];
