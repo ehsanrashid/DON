@@ -493,15 +493,22 @@ constexpr u32 to_month(const std::string_view mon) noexcept {
 }
 
 // Tomohiko Sakamoto's Algorithm
-constexpr u32 week_day(const u32 year, const u32 month, const u32 day) noexcept {
+constexpr std::string_view week_day(const u32 year, const u32 month, const u32 day) noexcept {
+    constexpr Array<std::string_view, 7> Weekdays{
+      "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"  //
+    };
+
     // Precomputed weekday offsets for each month.
-    constexpr Array<u32, 12> MonthWeekdayOffsets{0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4};
+    constexpr Array<u32, 12> MonthWeekdays{0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4};
 
     // Treat January and February as part of the previous year.
     const u32 yr = year - u32(month < 3);
 
     // Apply the mathematical congruence formula
-    return (yr + yr / 4 - yr / 100 + yr / 400 + MonthWeekdayOffsets[month - 1] + day) % 7;
+    const usize weekDay = (yr + yr / 4 - yr / 100 + yr / 400 + MonthWeekdays[month - 1] + day)  //
+                        % Weekdays.size();
+
+    return Weekdays[weekDay];
 }
 
 // Format date "Mon DD YYYY" -> YYYYMMDD

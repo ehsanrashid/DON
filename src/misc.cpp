@@ -40,8 +40,7 @@ constexpr std::string_view NAME{"DON"};
 constexpr std::string_view AUTHOR{"Ehsan Rashid"};
 constexpr std::string_view VERSION{"dev"};
 
-std::string
-compiler_version(const unsigned major, const unsigned minor, const unsigned patch) noexcept {
+std::string compiler_version(const u32 major, const u32 minor, const u32 patch) noexcept {
     return std::to_string(major) + "." + std::to_string(minor) + "." + std::to_string(patch);
 }
 
@@ -117,17 +116,16 @@ std::string format_date(const std::string_view date) noexcept {
         return std::string{NullDate};
 
     // Format YYYYMMDD manually (faster than snprintf)
-    Array<char, 8> buffer  // 8 chars
-      {
-        digit_to_char(year / 1000 % 10),  //
-        digit_to_char(year / 100 % 10),   //
-        digit_to_char(year / 10 % 10),    //
-        digit_to_char(year % 10),         //
-        digit_to_char(month / 10 % 10),   //
-        digit_to_char(month % 10),        //
-        digit_to_char(day / 10 % 10),     //
-        digit_to_char(day % 10)           //
-      };
+    Array<char, 8> buffer{
+      digit_to_char(year / 1000 % 10),  //
+      digit_to_char(year / 100 % 10),   //
+      digit_to_char(year / 10 % 10),    //
+      digit_to_char(year % 10),         //
+      digit_to_char(month / 10 % 10),   //
+      digit_to_char(month % 10),        //
+      digit_to_char(day / 10 % 10),     //
+      digit_to_char(day % 10)           //
+    };
     return std::string{buffer.data(), buffer.size()};
 }
 
@@ -147,10 +145,8 @@ std::string format_time(const std::string_view time) noexcept {
         return std::string{NullTime};
 
     unsigned hour = 10 * char_to_digit(p[0]) + char_to_digit(p[1]);
-
-    unsigned min = 10 * char_to_digit(p[3]) + char_to_digit(p[4]);
-
-    unsigned sec = 10 * char_to_digit(p[6]) + char_to_digit(p[7]);
+    unsigned min  = 10 * char_to_digit(p[3]) + char_to_digit(p[4]);
+    unsigned sec  = 10 * char_to_digit(p[6]) + char_to_digit(p[7]);
 
     // Range validation (important)
     if (hour > 23 || min > 59 || sec > 59)
@@ -180,17 +176,12 @@ std::string build_timestamp() noexcept {
 #if defined(BUILD_TIMESTAMP)
     return BUILD_TIMESTAMP;
 #else
-    constexpr Array<std::string_view, 7> Weekdays{
-      "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"  //
-    };
-
     const auto date    = std::string{__DATE__};
-    const auto yyyy    = std::string{date.substr(7, 4)};
-    const auto mmm     = std::string{date.substr(0, 3)};
+    const auto yyyy    = date.substr(7, 4);
+    const auto mmm     = date.substr(0, 3);
     const auto dd1     = date[4] == ' ';
-    const auto dd      = std::string{date.substr(dd1 ? 5 : 4, dd1 ? 1 : 2)};
-    const auto wkDay   = week_day(std::stoi(yyyy), to_month(mmm), std::stoi(dd));
-    const auto weekday = std::string{Weekdays[wkDay]};
+    const auto dd      = date.substr(dd1 ? 5 : 4, dd1 ? 1 : 2);
+    const auto weekday = std::string{week_day(std::stoi(yyyy), to_month(mmm), std::stoi(dd))};
     const auto time    = std::string{__TIME__};
 
     return yyyy + " " + mmm + " " + (dd1 ? "0" : "") + dd + " " + weekday + " " + time;
