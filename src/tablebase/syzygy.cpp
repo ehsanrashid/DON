@@ -576,17 +576,19 @@ TableData make_table_data(const std::string_view code) noexcept {
             if (pos.count(c, pt) == 1)
                 tableData.hasUniquePieces = true;
 
-    Array<u8, COLOR_NB> pawnCnt{
+    const Array<u8, COLOR_NB> pawnCnt{
       pos.count(WHITE, PAWN),  //
       pos.count(BLACK, PAWN)   //
     };
 
     // Set the leading color. In case both sides have pawns the leading color
     // is the side with fewer pawns because this leads to better compression.
-    bool c = pawnCnt[BLACK] == 0 || (pawnCnt[WHITE] != 0 && pawnCnt[WHITE] <= pawnCnt[BLACK]);
+    const Color c = pawnCnt[BLACK] == 0 || (pawnCnt[WHITE] != 0 && pawnCnt[WHITE] <= pawnCnt[BLACK])
+                    ? WHITE
+                    : BLACK;
 
-    tableData.pawnCount[WHITE] = pawnCnt[c ? WHITE : BLACK];
-    tableData.pawnCount[BLACK] = pawnCnt[c ? BLACK : WHITE];
+    tableData.pawnCount[WHITE] = pawnCnt[c];
+    tableData.pawnCount[BLACK] = pawnCnt[~c];
 
     err = pos.set(code, BLACK, &st);
     (void) err;
@@ -865,7 +867,8 @@ bool TBTable<T>::set(u8* data, const u8* end) noexcept {
 
     const File maxFile = hasPawns ? FILE_D : FILE_A;
 
-    const bool pp = hasPawns && pawnCount[BLACK] != 0;  // Pawns on both sides
+    // Pawns on both sides
+    const bool pp = hasPawns && pawnCount[BLACK] != 0;
 
     assert(!pp || pawnCount[WHITE] != 0);
 
@@ -1738,9 +1741,12 @@ Ret do_probe_table(T*                table,
             usize adjust = 0;
             DISABLE_CLANG_LOOP_VECTORIZE
             for (const Square* s = squares.data(); s != groupSq; ++s)
-                adjust += static_cast<usize>(groupSq[i] > *s);
+                adjust += usize(groupSq[i] > *s);
 
-            n += Binomial[i + 1][static_cast<u8>(groupSq[i]) - adjust - int(pawnsRemaining) * 8];
+            const i8 index = i8(groupSq[i]) - i8(adjust + i8(pawnsRemaining) * 8);
+            assert(index >= 0 && usize(index) < Binomial[0].size());
+
+            n += Binomial[i + 1][index];
         }
 
         pawnsRemaining = false;

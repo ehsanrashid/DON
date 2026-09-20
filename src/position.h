@@ -956,11 +956,11 @@ inline Piece Position::swap(const Square s, const Piece newPc, DirtyThreats* con
 #if defined(USE_AVX512ICL)
 // Given threat and bit offsets to insert the piece type and square,
 // write the threats present at the given bitboard.
-template<int SqShift, int PcShift>
-void write_multiple_dirties(const PieceMap&     pieceMap,
-                            const Bitboard      maskBB,
-                            const Threat        dT,
-                            DirtyThreats* const dTs) noexcept {
+template<u8 SqShift, u8 PcShift>
+void write_dirties(const PieceMap&     pieceMap,
+                   const Bitboard      maskBB,
+                   const Threat        dT,
+                   DirtyThreats* const dTs) noexcept {
     const __m512i pieceVec = _mm512_loadu_si512(pieceMap.data());
 
     const auto maskCount = popcount(maskBB);
@@ -1079,11 +1079,11 @@ inline void Position::update_piece_threats(const Square              s,
     const Bitboard directSlidersBB = pt == QUEEN ? slidersBB & pieces_bb(QUEEN) : slidersBB;
 
 #if defined(USE_AVX512ICL)
-    write_multiple_dirties<Threat::ThreatenedSqShift, Threat::ThreatenedPcShift>(
+    write_dirties<Threat::ThreatenedSqShift, Threat::ThreatenedPcShift>(
       pieceMap, threatenedBB, {put, Piece::NO_PIECE, pc, SQ_ZERO, s}, dTs);
 
-    write_multiple_dirties<Threat::SqShift, Threat::PcShift>(
-      pieceMap, directSlidersBB | incomingThreatsBB, {put, pc, Piece::NO_PIECE, s, SQ_ZERO}, dTs);
+    write_dirties<Threat::SqShift, Threat::PcShift>(pieceMap, incomingThreatsBB | directSlidersBB,
+                                                    {put, pc, Piece::NO_PIECE, s, SQ_ZERO}, dTs);
 
     // For ICL, direct threats were written above
     if constexpr (ComputeRay)

@@ -1,5 +1,5 @@
 import subprocess
-from typing import List
+from typing import List, Optional
 import os
 import collections
 import time
@@ -14,7 +14,7 @@ import queue
 import threading
 import tempfile
 import shutil
-import requests
+import urllib.request
 
 CYAN_COLOR = "\033[36m"
 GRAY_COLOR = "\033[2m"
@@ -30,7 +30,14 @@ PATH = pathlib.Path(__file__).parent.resolve()
 
 class Valgrind:
     @staticmethod
-    def get_valgrind_command():
+    def get_valgrind_command(expect_failure=False):
+        if expect_failure:
+            return [
+                "valgrind",
+                "--error-exitcode=42",
+                "--leak-check=no",
+            ]
+
         return [
             "valgrind",
             "--error-exitcode=42",
@@ -79,11 +86,9 @@ class Syzygy:
             with tempfile.TemporaryDirectory() as tmpDirName:
                 tarballPath = os.path.join(tmpDirName, f"{file}.tar.gz")
 
-                response = requests.get(url, stream=True)
-                response.raise_for_status()
                 with open(tarballPath, "wb") as f:
-                    for chunk in response.iter_content(chunk_size=8192):
-                        f.write(chunk)
+                    with urllib.request.urlopen(url) as response:
+                        shutil.copyfileobj(response, f)
 
                 with tarfile.open(tarballPath, "r:gz") as tar:
                     tar.extractall(tmpDirName)
@@ -95,14 +100,14 @@ class Syzygy:
 
 class OrderedClassMembers(type):
     @classmethod
-    def __prepare__(self, name, bases):
+    def __prepare__(cls, name, bases, **kwds):
         return collections.OrderedDict()
 
-    def __new__(self, name, bases, classdict):
+    def __new__(cls, name, bases, classdict):
         classdict["__ordered__"] = [
             key for key in classdict.keys() if key not in ("__module__", "__qualname__")
         ]
-        return type.__new__(self, name, bases, classdict)
+        return type.__new__(cls, name, bases, classdict)
 
 
 class TimeoutException(Exception):
@@ -124,7 +129,7 @@ class MiniTestFramework:
         self.testSuitesFailed = 0
         self.testsPassed = 0
         self.testsFailed = 0
-        self.failureStop = True
+        self.stopOnFailure = True
 
     def has_failed(self) -> bool:
         return self.testSuitesFailed > 0
@@ -161,27 +166,27 @@ class MiniTestFramework:
         if hasattr(testInstance, "beforeAll"):
             testInstance.beforeAll()
 
-        failed = 0
+        fails = 0
 
         for testMethod in testMethods:
-            failed += self.__run_test_method(testInstance, testMethod)
+            fails += self.__run_test_method(testInstance, testMethod)
 
         if hasattr(testInstance, "afterAll"):
             testInstance.afterAll()
 
-        self.testsFailed += failed
+        self.testsFailed += fails
 
-        return failed > 0
+        return fails > 0
 
     def __run_test_method(self, testInstance, testMethod: str) -> int:
         print(f"    Running {testMethod}... \r", end="", flush=True)
 
         buffer = io.StringIO()
-        failed = 0
+        fails = 0
+        failed = False
+        t0 = time.time()
 
         try:
-            t0 = time.time()
-
             with redirect_stdout(buffer):
                 if hasattr(testInstance, "beforeEach"):
                     testInstance.beforeEach()
@@ -196,6 +201,8 @@ class MiniTestFramework:
             self.print_success(f" {testMethod} ({1000 * duration:.2f}ms)")
             self.testsPassed += 1
         except Exception as e:
+            failed = True
+
             if isinstance(e, TimeoutException):
                 self.print_failure(
                     f" {testMethod} (hit execution limit of {e.timeout} seconds)"
@@ -209,15 +216,15 @@ class MiniTestFramework:
             if isinstance(e, AssertionError):
                 self.__handle_assertion_error(t0, testMethod)
 
-            if self.failureStop:
-                self.__print_buffer_output(buffer)
+            if self.stopOnFailure:
                 raise e
 
-            failed += 1
+            fails += 1
         finally:
-            self.__print_buffer_output(buffer)
+            if failed:
+                self.__print_buffer_output(buffer)
 
-        return failed
+        return fails
 
     def __handle_assertion_error(self, startTime, testMethod: str):
         duration = time.time() - startTime
@@ -261,11 +268,13 @@ class DON:
         path: str,
         args: List[str] = [],
         cli: bool = False,
+        expect_failure: bool = False,
     ):
         self.path = path
         self.process = None
         self.args = args
         self.cli = cli
+        self.expect_failure = expect_failure
         self.prefix = prefix
         self.output = []
         self.output_queue = queue.Queue()
@@ -274,7 +283,12 @@ class DON:
         self.start()
 
     def _check_process_alive(self):
-        if not self.process or self.process.poll() is not None:
+        if (
+            not self.process
+            or self.cli
+            or not isinstance(self.process, subprocess.Popen)
+            or self.process.poll() is not None
+        ):
             print("\n".join(self.output))
             raise RuntimeError("Engine process has terminated")
 
@@ -285,6 +299,11 @@ class DON:
                 capture_output=True,
                 text=True,
             )
+
+            if self.process.stdout:
+                self.output.extend(self.process.stdout.splitlines())
+            if self.process.stderr:
+                self.output.extend(self.process.stderr.splitlines())
 
             if self.process.returncode != 0:
                 print(self.process.stdout)
@@ -308,6 +327,8 @@ class DON:
 
     def _read_process_output(self):
         try:
+            assert self.process is not None
+            assert self.process.stdout is not None
             for line in self.process.stdout:
                 line = line.strip()
                 self.output.append(line)
@@ -317,7 +338,7 @@ class DON:
         finally:
             self.output_queue.put(None)
 
-    def setoption(self, name: str, value: str = None):
+    def setoption(self, name: str, value: Optional[str] = None):
         if value is None:
             self.send_command(f"setoption name {name}")
         else:
@@ -329,6 +350,8 @@ class DON:
 
         self._check_process_alive()
 
+        assert isinstance(self.process, subprocess.Popen)
+        assert self.process.stdin is not None
         self.process.stdin.write(command + "\n")
         self.process.stdin.flush()
 
@@ -408,9 +431,14 @@ class DON:
         self.send_command("quit")
 
     def close(self):
-        if self.process:
-            self.process.stdin.close()
-            self.process.stdout.close()
+        if isinstance(self.process, subprocess.Popen):
+            if self.process.stdin is not None:
+                self.process.stdin.close()
+            if self.process.stdout is not None:
+                self.process.stdout.close()
             return self.process.wait()
+
+        if self.process:
+            return self.process.returncode
 
         return 0

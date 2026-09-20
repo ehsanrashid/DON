@@ -5,6 +5,7 @@ import subprocess
 import fnmatch
 import pathlib
 import os
+from typing import cast
 
 from testing import (
     EPD,
@@ -19,9 +20,9 @@ PATH = pathlib.Path(__file__).parent.resolve()
 CWD = os.getcwd()
 
 
-def get_prefix():
+def get_prefix(expect_failure=False):
     if args.valgrind:
-        return Valgrind.get_valgrind_command()
+        return Valgrind.get_valgrind_command(expect_failure)
     if args.valgrind_thread:
         return Valgrind.get_valgrind_thread_command()
 
@@ -57,11 +58,17 @@ def postfix_check(output):
                         print(output[idx + i])
                 return False
 
+    if args.valgrind or args.valgrind_thread:
+        for line in output:
+            match = re.search(r"ERROR SUMMARY:\s*(\d+) errors", line)
+            if match and int(match.group(1)) > 0:
+                return False
+
     return True
 
 
-def DON(*args, **kwargs):
-    return Engine(get_prefix(), get_path(), *args, **kwargs)
+def DON(*args, expect_failure=False, **kwargs):
+    return Engine(get_prefix(expect_failure), get_path(), *args, expect_failure=expect_failure, **kwargs)
 
 
 class TestCLI(metaclass=OrderedClassMembers):
@@ -75,76 +82,94 @@ class TestCLI(metaclass=OrderedClassMembers):
         self.engine = None
 
     def afterEach(self):
+        assert self.engine is not None
         assert postfix_check(self.engine.get_output()) == True
         self.engine.clear_output()
 
     def test_eval(self):
         self.engine = DON("eval".split(" "), True)
+        assert self.engine.process is not None
         assert self.engine.process.returncode == 0
 
     def test_go_nodes_1000(self):
         self.engine = DON("go nodes 1000".split(" "), True)
+        assert self.engine.process is not None
         assert self.engine.process.returncode == 0
 
     def test_go_depth_10(self):
         self.engine = DON("go depth 10".split(" "), True)
+        assert self.engine.process is not None
         assert self.engine.process.returncode == 0
 
     def test_go_perft_4(self):
         self.engine = DON("go perft 4".split(" "), True)
+        assert self.engine.process is not None
         assert self.engine.process.returncode == 0
 
     def test_go_movetime_1000(self):
         self.engine = DON("go movetime 1000".split(" "), True)
+        assert self.engine.process is not None
         assert self.engine.process.returncode == 0
 
     def test_go_wtime_8000_btime_8000_winc_500_binc_500(self):
         self.engine = DON("go wtime 8000 btime 8000 winc 500 binc 500".split(" "), True)
+        assert self.engine.process is not None
         assert self.engine.process.returncode == 0
 
     def test_go_wtime_1000_btime_1000_winc_0_binc_0(self):
         self.engine = DON("go wtime 1000 btime 1000 winc 0 binc 0".split(" "), True)
+        assert self.engine.process is not None
         assert self.engine.process.returncode == 0
 
     def test_go_wtime_1000_btime_1000_winc_0_binc_0_movestogo_5(self):
         self.engine = DON("go wtime 1000 btime 1000 winc 0 binc 0 movestogo 5".split(" "), True)
+        assert self.engine.process is not None
         assert self.engine.process.returncode == 0
 
     def test_go_movetime_200(self):
         self.engine = DON("go movetime 200".split(" "), True)
+        assert self.engine.process is not None
         assert self.engine.process.returncode == 0
 
     def test_go_nodes_20000_searchmoves_e2e4_d2d4(self):
         self.engine = DON("go nodes 20000 searchmoves e2e4 d2d4".split(" "), True)
+        assert self.engine.process is not None
         assert self.engine.process.returncode == 0
 
     def test_bench_128_threads_8_default_depth(self):
         self.engine = DON(f"bench 128 {get_threads()} 8 default depth".split(" "), True)
+        assert self.engine.process is not None
         assert self.engine.process.returncode == 0
 
     def test_bench_128_threads_3_tmp_bench_epd_depth(self):
         self.engine = DON(f"bench 128 {get_threads()} 3 {os.path.join(PATH, 'tmp_bench.epd')} depth".split(" "), True)
+        assert self.engine.process is not None
         assert self.engine.process.returncode == 0
 
     def test_show(self):
         self.engine = DON("show".split(" "), True)
+        assert self.engine.process is not None
         assert self.engine.process.returncode == 0
 
     def test_compiler(self):
         self.engine = DON("compiler".split(" "), True)
+        assert self.engine.process is not None
         assert self.engine.process.returncode == 0
 
     def test_license(self):
         self.engine = DON("license".split(" "), True)
+        assert self.engine.process is not None
         assert self.engine.process.returncode == 0
 
     def test_uci(self):
         self.engine = DON("uci".split(" "), True)
+        assert self.engine.process is not None
         assert self.engine.process.returncode == 0
 
     def test_export_net_verify_nnue(self):
         currentPath = os.path.abspath(os.getcwd())
         self.engine = DON(f"export_net {os.path.join(currentPath, 'verify.nnue')}".split(" "), True)
+        assert self.engine.process is not None
         assert self.engine.process.returncode == 0
 
     # verify the generated net equals the base net
@@ -152,15 +177,20 @@ class TestCLI(metaclass=OrderedClassMembers):
     def test_network_equals_base(self):
         self.engine = DON(["uci"], True)
 
+        assert self.engine.process is not None
         output = self.engine.process.stdout
 
+        network = None
+
         # find line
-        for line in output.split("\n"):
+        assert output is not None
+        for line in cast(str, output).split("\n"):
             if "option name EvalFile type string default" in line:
                 network = line.split(" ")[-1]
                 break
 
         # find network file in src dir
+        assert network is not None
         network = os.path.join(PATH.parent.resolve(), "src", network)
 
         if not os.path.exists(network):
@@ -357,7 +387,7 @@ class TestInteractive(metaclass=OrderedClassMembers):
         self.engine.expect("* score mate 1 * pv f7f5")
         self.engine.starts_with("bestmove f7f5")
 
-    def test_position_fen_with_mate_go_depth_18_searchmoves(self):
+    def test_position_fen_with_mate_go_depth_18_searchmoves_exact(self):
         self.engine.send_command("ucinewgame")
         self.engine.send_command("position fen 8/5R2/2K1P3/4k3/8/b1PPpp1B/5p2/8 w - - 0 1")
         self.engine.send_command("go depth 18 searchmoves c6d7")
@@ -550,12 +580,15 @@ class TestInvalidFEN(metaclass=OrderedClassMembers):
         self.engine = None
 
     def afterEach(self):
+        assert self.engine is not None
         assert postfix_check(self.engine.get_output()) == True
         self.engine.clear_output()
 
     def _expect_critical(self, fen):
-        self.engine = DON(f"position fen {fen}".split(" "), True)
+        self.engine = DON(f"position fen {fen}".split(" "), True, expect_failure=True)
+        assert self.engine.process is not None
         assert self.engine.process.returncode != 0
+        assert isinstance(self.engine.process.stdout, str)
         assert "CRITICAL ERROR" in self.engine.process.stdout
 
     def test_no_kings(self):
@@ -623,30 +656,40 @@ class TestBenchFile(metaclass=OrderedClassMembers):
         self.engine = None
 
     def afterEach(self):
+        assert self.engine is not None
         assert postfix_check(self.engine.get_output()) == True
         self.engine.clear_output()
 
-    def _bench(self, name, content):
+    def _bench(self, name, content, expect_failure=False):
         with open(name, "w") as f:
             f.write(content)
-        self.engine = DON(f"bench 16 1 4 {name} depth".split(" "), True)
+        self.engine = DON(f"bench 16 1 4 {name} depth".split(" "), True, expect_failure=expect_failure)
 
     def test_valid_file(self):
         self._bench("good.epd", "4k3/8/4K3/8/8/8/8/8 w - - 0 1\n")
+        assert self.engine is not None
+        assert self.engine.process is not None
         assert self.engine.process.returncode == 0
+        assert self.engine.process.stderr is not None
         assert "Total nodes" in self.engine.process.stderr
 
     def test_empty_file(self):
         self._bench("empty.epd", "")
+        assert self.engine is not None
+        assert self.engine.process is not None
         assert self.engine.process.returncode == 0
 
     def test_malformed_fen(self):
-        self._bench("bad.epd", "not a valid fen\n")
+        self._bench("bad.epd", "not a valid fen\n", expect_failure=True)
+        assert self.engine is not None
+        assert self.engine.process is not None
         assert self.engine.process.returncode != 0
+        assert self.engine.process.stdout is not None
         assert "CRITICAL ERROR" in self.engine.process.stdout
 
     def test_missing_file(self):
-        self.engine = DON("bench 16 1 4 does_not_exist.epd depth".split(" "), True)
+        self.engine = DON("bench 16 1 4 does_not_exist.epd depth".split(" "), True, expect_failure=True)
+        assert self.engine.process is not None
         assert self.engine.process.returncode == 0
 
 

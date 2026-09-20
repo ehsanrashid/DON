@@ -20,16 +20,17 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cstdlib>  // exit(), EXIT_FAILURE
+#include <iostream>
 #include <memory>
 #include <mutex>
 #include <optional>
 #include <string>
 #include <string_view>
-#include <thread>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
-#include <variant>
+#include <variant>  // variant<>
 #include <vector>
 
 #if !defined(_WIN64)                                 /* Non-Windows */ \
@@ -44,6 +45,7 @@
 
 #include "misc.h"
 #include "shm.h"
+#include "native_thread.h"
 
 namespace DON {
 
@@ -295,12 +297,17 @@ class NumaConfig final {
     template<typename Func>
     void execute_on_numa_node(const NumaIndex numaId, Func&& f) const noexcept {
 
-        std::thread th([this, f = std::forward<Func>(f), numaId]() mutable noexcept {
-            [[maybe_unused]] const auto token = bind_current_thread_to_numa_node(numaId);
-            f();
-        });
+        NativeThread nativeThread =
+          create_native_thread([this, f = std::forward<Func>(f), numaId]() mutable noexcept {
+              [[maybe_unused]] const auto token = bind_current_thread_to_numa_node(numaId);
+              f();
+          });
 
-        th.join();
+        if (!nativeThread.joinable())
+        {
+            std::cerr << "Failed to create native thread on NUMA node" << std::endl;
+            std::exit(EXIT_FAILURE);
+        }
     }
 
    private:
@@ -537,11 +544,11 @@ class NumaReplicationContext final {
 
     ~NumaReplicationContext() noexcept;
 
-    void attach(BaseNumaReplicated* numaRep) noexcept;
-    void detach(BaseNumaReplicated* numaRep) noexcept;
+    bool attach(BaseNumaReplicated* numaRep) noexcept;
+    bool detach(BaseNumaReplicated* numaRep) noexcept;
 
     // oldNumaRep may be invalid at this point.
-    void move(BaseNumaReplicated* oldNumaRep, BaseNumaReplicated* newNumaRep) noexcept;
+    bool move(BaseNumaReplicated* oldNumaRep, BaseNumaReplicated* newNumaRep) noexcept;
 
     void set_numa_config(NumaConfig&& numaCfg) noexcept;
 
@@ -572,9 +579,9 @@ class BaseNumaReplicated {
     virtual void on_numa_config_changed() noexcept = 0;
 
    private:
-    void attach_context() noexcept;
-    void detach_context() noexcept;
-    void move_context(BaseNumaReplicated& baseNumaRep) noexcept;
+    bool attach_context() noexcept;
+    bool detach_context() noexcept;
+    bool move_context(BaseNumaReplicated& baseNumaRep) noexcept;
 
     NumaReplicationContext* numaContext;
 };

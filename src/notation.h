@@ -20,7 +20,7 @@
 
 #include <string>
 #include <utility>
-#include <variant>
+#include <variant>  // variant<>
 
 #include "misc.h"
 #include "movegen.h"
