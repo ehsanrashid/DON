@@ -87,12 +87,12 @@ class SplitMix64 final {
 //
 // See:
 //   <https://vigna.di.unimi.it/ftp/papers/xorshift.pdf>
-class Xorshift64Star final {
+class Xorshift64s final {
    private:
     using State = u64;
 
    public:
-    explicit constexpr Xorshift64Star(u64 seed = 1) noexcept {
+    explicit constexpr Xorshift64s(u64 seed = 1) noexcept {
         SplitMix64 seeder(seed);
 
         // Initialize the state with a mixed SplitMix64 output.
@@ -205,14 +205,14 @@ class Xorshift64Star final {
 //
 // Reference implementation:
 //   <https://prng.di.unimi.it/xoroshiro128starstar.c>
-class Xoroshiro128StarStar final {
+class Xoroshiro128ss final {
    private:
     static constexpr usize StateSize = 2;
 
     using State = Array<u64, StateSize>;
 
    public:
-    explicit constexpr Xoroshiro128StarStar(u64 seed = 1) noexcept {
+    explicit constexpr Xoroshiro128ss(u64 seed = 1) noexcept {
         SplitMix64 seeder(seed);
 
         // Initialize the state with two SplitMix64 outputs.
@@ -339,13 +339,13 @@ class Xoroshiro128StarStar final {
 //
 // Reference implementation:
 //   <https://prng.di.unimi.it/xoshiro256starstar.c>
-class Xoshiro256StarStar final {
+class Xoshiro256ss final {
     static constexpr usize StateSize = 4;
 
     using State = Array<u64, StateSize>;
 
    public:
-    explicit constexpr Xoshiro256StarStar(u64 seed = 1) noexcept {
+    explicit constexpr Xoshiro256ss(u64 seed = 1) noexcept {
         SplitMix64 seeder(seed);
 
         // Initialize the state with four SplitMix64 outputs.
