@@ -184,20 +184,16 @@ std::string build_timestamp() noexcept {
       "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"  //
     };
 
-    const std::string date{__DATE__};
+    const auto date    = std::string{__DATE__};
+    const auto yyyy    = std::string{date.substr(7, 4)};
+    const auto mmm     = std::string{date.substr(0, 3)};
+    const auto dd1     = date[4] == ' ';
+    const auto dd      = std::string{date.substr(dd1 ? 5 : 4, dd1 ? 1 : 2)};
+    const auto wkDay   = week_day(std::stoi(yyyy), to_month(mmm), std::stoi(dd));
+    const auto weekday = std::string{Weekdays[wkDay]};
+    const auto time    = std::string{__TIME__};
 
-    const std::string yyyy = date.substr(7, 4);
-    const std::string mmm  = date.substr(0, 3);
-    const bool        dd1  = date[4] == ' ';
-    const std::string dd   = date.substr(dd1 ? 5 : 4, dd1 ? 1 : 2);
-
-    const u32 year  = u32(std::stoi(yyyy));
-    const u32 month = to_month(mmm);
-    const u32 day   = u32(std::stoi(dd));
-
-    const std::string weekday{Weekdays[week_day(year, month, day)]};
-
-    return yyyy + " " + mmm + " " + (dd1 ? "0" : "") + dd + " " + weekday + " " + __TIME__;
+    return yyyy + " " + mmm + " " + (dd1 ? "0" : "") + dd + " " + weekday + " " + time;
 #endif
 }
 
@@ -1314,7 +1310,7 @@ void* MMapGuard::get_ptr() const noexcept { return mappedPtr; }
 
 usize MMapGuard::get_size() const noexcept { return mappedSize; }
 
-void MMapGuard::reset(const void* newPtr, const usize newSize) noexcept {
+void MMapGuard::reset(void* const newPtr, const usize newSize) noexcept {
     if (mappedPtr != newPtr)
     {
         if (is_valid())
