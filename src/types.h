@@ -856,6 +856,18 @@ struct Dirties final {
     DirtyPawnPairs dirtyPawnPairs;
 };
 
+constexpr u32 compress_key32(const Key key) noexcept {
+    return ((key >> 00) & u32{0xFFFFFFFF})  //
+         ^ ((key >> 32) & u32{0xFFFF0000});
+}
+
+constexpr u16 compress_key16(const Key key) noexcept {
+    return ((key >> 00) & u16{0xFFFF})  //
+         ^ ((key >> 16) & u16{0xFFF0})  //
+         ^ ((key >> 32) & u16{0xFF00})  //
+         ^ ((key >> 48) & u16{0xF000});
+}
+
 // Linear Congruential Generator (LCG): X{n+1} = (c + a * X{n})
 // Based on a congruential pseudo-random number generator.
 constexpr u64 make_hash(const u64 seed) noexcept {
