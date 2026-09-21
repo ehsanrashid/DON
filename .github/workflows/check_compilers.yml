@@ -76,6 +76,7 @@ jobs:
           apt-get install -y git make #curl
 
       - name: Check Git
+        if: ${{ !matrix.needs_install }}
         run: |
           git --version
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
