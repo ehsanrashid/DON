@@ -18,6 +18,8 @@
 #ifndef PRNG_H_INCLUDED
 #define PRNG_H_INCLUDED
 
+#include <algorithm>
+
 #include "misc.h"
 
 namespace DON {
@@ -35,14 +37,14 @@ constexpr u64 rotr(const u64 x, const u8 k) noexcept { return (x >> k) | (x << (
 // Characteristics:
 // - Overcomes Poor Seeding: Even low-entropy seeds (like 1 or a sequential counter)
 //   are thoroughly mixed so the main generator starts with a highly well-distributed state.
-// - Avoids Zero-State Trap: Its output is used to seed XorShift64*, whose zero state
+// - Avoids Zero-State Trap: Its output is used to seed xorshift64*, whose zero state
 //   is explicitly replaced with 1 if necessary.
 //
 // used widely across many modern libraries,
 // (including the Java 8 SplittableRandom and the standard initialization routines by Vigna)
 class SplitMix64 final {
    public:
-    explicit constexpr SplitMix64(u64 seed = 1) noexcept :
+    explicit constexpr SplitMix64(u64 seed) noexcept :
         state(seed) {}
 
     constexpr u64 next() noexcept {
@@ -68,40 +70,46 @@ class SplitMix64 final {
     u64 state;
 };
 
-// Xorshift64* Pseudo-Random Number Generator
+// xorshift64* Pseudo-Random Number Generator
 //
 // Uses Marsaglia's standard 64-bit shift triplet parameters (12, 25, 27).
 // Other standard 64-bit shift triplet parameters, such as (13, 7, 17), can also be used.
 //
-// Based on Sebastiano Vigna's original Xorshift64* generator (2014).
+// Based on Sebastiano Vigna's original xorshift64* generator (2014).
 //
 // Characteristics:
 // - Internal state: single 64-bit integer.
 // - Output: 64-bit.
 // - Period: 2^64 - 1.
+// - Jump function: advances the state by 2^32 steps for parallel streams.
+// - Long-jump function: advances the state by 2^48 steps for parallel streams.
 // - Speed: 1.60 ns/call (measured on a Core i7 @ 3.40 GHz).
 // - Passes Dieharder and SmallCrush test batteries reported in the original paper.
-// - Does not require warm-up; non-zero state is ensured during initialization.
-// - Zero-State Insurance: SplitMix64 is used to initialize the internal state.
+// - Warm-up: Not required; the state is initialized with non-zero values.
+// - Zero-State Insurance: SplitMix64 initializes the state, avoiding the all-zero state.
 // - Zero Overhead: No additional memory is required beyond the 64-bit internal state.
 //
 // See:
 //   <https://vigna.di.unimi.it/ftp/papers/xorshift.pdf>
 class Xorshift64s final {
    private:
-    using State = u64;
+    static constexpr usize StateSize = 1;
+
+    using State = Array<u64, StateSize>;
 
    public:
-    explicit constexpr Xorshift64s(u64 seed = 1) noexcept {
+    explicit /*constexpr*/ Xorshift64s(u64 seed) noexcept {
         SplitMix64 seeder(seed);
 
         // Initialize the state with a mixed SplitMix64 output.
-        state = seeder.next();
+        std::generate(state.begin(), state.end(),
+                      [&seeder]() noexcept -> u64 { return seeder.next(); });
 
-        // The all-zero state is not valid for Xorshift64*.
+        // The all-zero state is not valid for xorshift64*.
         // If SplitMix64 produces zero for state,
         // fall back to a non-zero state.
-        if (UNLIKELY(state == 0))
+        if (UNLIKELY(
+              std::all_of(state.begin(), state.end(), [](const u64 s) noexcept { return s == 0; })))
             state = DefaultState;
     }
 
@@ -120,19 +128,22 @@ class Xorshift64s final {
     //
     // This can be used to create independent streams for parallel computations.
     constexpr void jump() noexcept {
-        constexpr State Jump = u64{0xDD97D02513476FA5};
+        constexpr State Jump = {u64{0xDD97D02513476FA5}};
 
-        State tmpState = 0;
+        State tmpState = {0};
 
-        for (u8 b = 0; b < 64; ++b)
+        for (const u64 jump : Jump)
         {
-            if ((Jump & bit(b)) != 0)
+            for (u8 b = 0; b < 64; ++b)
             {
-                tmpState ^= state;
-            }
+                if ((jump & bit(b)) != 0)
+                {
+                    tmpState[0] ^= state[0];
+                }
 
-            // Advance the state through the underlying linear recurrence.
-            update();
+                // Advance the state through the underlying linear recurrence.
+                update();
+            }
         }
 
         state = tmpState;
@@ -142,34 +153,37 @@ class Xorshift64s final {
     //
     // This can be used to create distant independent streams for parallel computations.
     constexpr void long_jump() noexcept {
-        constexpr State LongJump = u64{0xAE82CA9F848EBC6D};
+        constexpr State LongJump = {u64{0xAE82CA9F848EBC6D}};
 
-        State tmpState = 0;
+        State tmpState = {0};
 
-        for (u8 b = 0; b < 64; ++b)
+        for (const u64 longJump : LongJump)
         {
-            if ((LongJump & bit(b)) != 0)
+            for (u8 b = 0; b < 64; ++b)
             {
-                tmpState ^= state;
-            }
+                if ((longJump & bit(b)) != 0)
+                {
+                    tmpState[0] ^= state[0];
+                }
 
-            // Advance the state through the underlying linear recurrence.
-            update();
+                // Advance the state through the underlying linear recurrence.
+                update();
+            }
         }
 
         state = tmpState;
     }
 
    private:
-    // Advance the Xorshift64* state using the (12, 25, 27) shift parameters.
+    // Advance the xorshift64* state using the (12, 25, 27) shift parameters.
     constexpr void update() noexcept {
-        state ^= state >> 12;
-        state ^= state << 25;
-        state ^= state >> 27;
+        state[0] ^= state[0] >> 12;
+        state[0] ^= state[0] << 25;
+        state[0] ^= state[0] >> 27;
     }
 
-    // Apply the Xorshift64* output scrambler.
-    constexpr u64 mix() const noexcept { return u64{0x2545F4914F6CDD1D} * state; }
+    // Apply the xorshift64* output scrambler.
+    constexpr u64 mix() const noexcept { return u64{0x2545F4914F6CDD1D} * state[0]; }
 
     constexpr u64 rand64() noexcept {
         update();
@@ -177,12 +191,12 @@ class Xorshift64s final {
         return mix();
     }
 
-    static constexpr State DefaultState = 1;
+    static constexpr State DefaultState = {1};
 
     State state = DefaultState;
 };
 
-// Xoroshiro128** Pseudo-Random Number Generator
+// xoroshiro128** Pseudo-Random Number Generator
 //
 // Fast, high-quality 64-bit pseudo-random number generator with a
 // 128-bit internal state.
@@ -192,10 +206,10 @@ class Xorshift64s final {
 // - Output: 64 bits.
 // - Period: 2^128 - 1.
 // - Jump function: advances the state by 2^64 steps for parallel streams.
+// - Long-jump function: advances the state by 2^96 steps for parallel streams.
 // - Initialization: SplitMix64 is used to initialize the internal state.
-// - Zero-State Insurance: SplitMix64 is used to initialize the internal state.
-// - The all-zero state is avoided during initialization.
-// - State size: 128 bits with no additional generator state.
+// - Warm-up: Not required.
+// - Zero-State Insurance: SplitMix64 initializes the state, avoiding the all-zero state.
 // - Zero Overhead: No additional memory is required beyond the 128-bit internal state.
 //
 // Based on:
@@ -212,17 +226,18 @@ class Xoroshiro128ss final {
     using State = Array<u64, StateSize>;
 
    public:
-    explicit constexpr Xoroshiro128ss(u64 seed = 1) noexcept {
+    explicit /*constexpr*/ Xoroshiro128ss(u64 seed) noexcept {
         SplitMix64 seeder(seed);
 
         // Initialize the state with two SplitMix64 outputs.
-        for (u64& s : state)
-            s = seeder.next();
+        std::generate(state.begin(), state.end(),
+                      [&seeder]() noexcept -> u64 { return seeder.next(); });
 
-        // The all-zero state is not valid for Xoroshiro128**.
+        // The all-zero state is not valid for xoroshiro128**.
         // If SplitMix64 produces zero for both state words,
         // fall back to a non-zero state.
-        if (UNLIKELY((state[0] | state[1]) == 0))
+        if (UNLIKELY(
+              std::all_of(state.begin(), state.end(), [](const u64 s) noexcept { return s == 0; })))
             state = DefaultState;
     }
 
@@ -290,7 +305,7 @@ class Xoroshiro128ss final {
     }
 
    private:
-    // Advance the Xoroshiro128** state using its linear recurrence.
+    // Advance the xoroshiro128** state using its linear recurrence.
     constexpr void update() noexcept {
         state[1] ^= state[0];
 
@@ -298,7 +313,7 @@ class Xoroshiro128ss final {
         state[1] = rotl(state[1], 37);
     }
 
-    // Apply the Xoroshiro128** output scrambler.
+    // Apply the xoroshiro128** output scrambler.
     constexpr u64 mix() const noexcept { return rotl(state[0] * 5, 7) * 9; }
 
     constexpr u64 rand64() noexcept {
@@ -315,7 +330,7 @@ class Xoroshiro128ss final {
     State state = DefaultState;
 };
 
-// Xoshiro256** Pseudorandom Number Generator
+// xoshiro256** Pseudorandom Number Generator
 //
 // Fast, high-quality 64-bit pseudorandom number generator with a
 // 256-bit internal state.
@@ -327,9 +342,8 @@ class Xoroshiro128ss final {
 // - Jump function: advances the state by 2^128 steps for parallel streams.
 // - Long-jump function: advances the state by 2^192 steps for parallel streams.
 // - Initialization: SplitMix64 is used to initialize the internal state.
-// - Zero-State Insurance: SplitMix64 is used to initialize the internal state.
-// - The all-zero state is avoided during initialization.
-// - State size: 256 bits with no additional generator state.
+// - Warm-up: Not required.
+// - Zero-State Insurance: SplitMix64 initializes the state, avoiding the all-zero state.
 // - Zero Overhead: No additional memory is required beyond the 256-bit internal state.
 //
 // Based on:
@@ -340,22 +354,24 @@ class Xoroshiro128ss final {
 // Reference implementation:
 //   <https://prng.di.unimi.it/xoshiro256starstar.c>
 class Xoshiro256ss final {
+   private:
     static constexpr usize StateSize = 4;
 
     using State = Array<u64, StateSize>;
 
    public:
-    explicit constexpr Xoshiro256ss(u64 seed = 1) noexcept {
+    explicit /*constexpr*/ Xoshiro256ss(u64 seed) noexcept {
         SplitMix64 seeder(seed);
 
         // Initialize the state with four SplitMix64 outputs.
-        for (u64& s : state)
-            s = seeder.next();
+        std::generate(state.begin(), state.end(),
+                      [&seeder]() noexcept -> u64 { return seeder.next(); });
 
-        // The all-zero state is not valid for Xoshiro256**.
+        // The all-zero state is not valid for xoshiro256**.
         // If SplitMix64 produces zero for all state words,
         // fall back to a non-zero state.
-        if (UNLIKELY((state[0] | state[1] | state[2] | state[3]) == 0))
+        if (UNLIKELY(
+              std::all_of(state.begin(), state.end(), [](const u64 s) noexcept { return s == 0; })))
             state = DefaultState;
     }
 
@@ -429,7 +445,7 @@ class Xoshiro256ss final {
     }
 
    private:
-    // Advance the Xoshiro256** state using its linear recurrence.
+    // Advance the xoshiro256** state using its linear recurrence.
     constexpr void update() noexcept {
         const u64 tmp = state[1] << 17;
 
@@ -443,7 +459,7 @@ class Xoshiro256ss final {
         state[3] = rotl(state[3], 45);
     }
 
-    // Apply the Xoshiro256** output scrambler.
+    // Apply the xoshiro256** output scrambler.
     constexpr u64 mix() const noexcept { return rotl(state[1] * 5, 7) * 9; }
 
     constexpr u64 rand64() noexcept {
