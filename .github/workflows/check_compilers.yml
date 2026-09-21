@@ -77,6 +77,7 @@ jobs:
       - name: Check Git
         run: |
           git --version
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
           git status
           git rev-parse --verify HEAD
           git branch --show-current
