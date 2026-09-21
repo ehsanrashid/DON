@@ -1312,7 +1312,7 @@ macos-lipo: NNUE_NET := $(shell grep -oE 'nn-[0-9a-f]+\.nnue' '$(CURDIR)/evaluat
 macos-lipo:
 	@echo; \
 	echo "Step 1/4. Building x86-64 slice (network shared from Apple-silicon slice) ..."
-	$(MAKE) ENV_CXXFLAGS='$(ENV_CXXFLAGS) -arch x86_64' ARCH='x86-64-universal' COMP='$(COMP)' MACOS_X86_64_SLICE='1' build
+	$(MAKE) ARCH='x86-64-universal' COMP='$(COMP)' MACOS_X86_64_SLICE='1' build
 	mv '$(EXE)' '$(EXE)-x86_64'
 	@echo; \
 	echo "Step 2/4. Building Apple silicon slice ..."
