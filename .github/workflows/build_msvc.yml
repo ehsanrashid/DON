@@ -39,7 +39,7 @@ jobs:
           /Fe:DON.exe *.cpp nnue\*.cpp nnue\features\*.cpp book\*.cpp tablebase\*.cpp
           /link /STACK:8388608 shell32.lib
 
-      - name: Download the used network from the fishtest framework
+      - name: Download the network
         if: matrix.bench
         run: make net
 

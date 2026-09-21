@@ -858,14 +858,14 @@ struct Dirties final {
 
 constexpr u32 compress_key32(const Key key) noexcept {
     return ((key >> 00) & u32{0xFFFFFFFF})  //
-         ^ ((key >> 32) & u32{0xFFFF0000});
+         ^ ((key >> 32) & u32{0x0000FFFF});
 }
 
 constexpr u16 compress_key16(const Key key) noexcept {
     return ((key >> 00) & u16{0xFFFF})  //
-         ^ ((key >> 16) & u16{0xFFF0})  //
-         ^ ((key >> 32) & u16{0xFF00})  //
-         ^ ((key >> 48) & u16{0xF000});
+         ^ ((key >> 16) & u16{0x0FFF})  //
+         ^ ((key >> 32) & u16{0x00FF})  //
+         ^ ((key >> 48) & u16{0x000F});
 }
 
 // Linear Congruential Generator (LCG): X{n+1} = (c + a * X{n})

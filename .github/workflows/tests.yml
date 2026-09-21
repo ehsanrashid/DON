@@ -198,7 +198,7 @@ jobs:
       - name: Check Make help
         run: make help
 
-      - name: Download the used network from the fishtest framework
+      - name: Download the network
         run: make net
 
       - name: Extract the bench number from the commit history

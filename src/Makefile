@@ -534,6 +534,7 @@ CXXFLAGS    = $(strip $(ENV_CXXFLAGS) -Wall -Wcast-qual -fno-exceptions -std=c++
 DEPENDFLAGS = $(strip $(ENV_DEPENDFLAGS) -std=c++17 $(EXTRA_DEPENDFLAGS))
 LDFLAGS     = $(strip $(ENV_LDFLAGS) $(EXTRA_LDFLAGS))
 LDLIBS      = $(strip $(ENV_LDLIBS) $(EXTRA_LDLIBS))
+ENTRY_FLAG  = $(strip $(ENV_ENTRY_FLAG))
 
 BITS_FLAG := $(if $(filter 32 64,$(bits)),-m$(bits))
 
@@ -588,10 +589,10 @@ ifneq ($(GNU_LD),)
 LDFLAGS += -Wl,--no-as-needed
 endif
 # Determine GCC major version for Linux Clang masquerading as GCC
-GCC_MAJOR := $(shell [ "$(CXX_IS_CLANG)" = "yes" ] && [ "$(CXX_IS_APPLE_CLANG)" = "no" ] && $(CXX) -dumpversion 2>/dev/null | cut -f1 -d. || echo)
-# Link std::filesystem explicitly if using Linux Clang < 9
+GCC_MAJOR := $(shell [ "$(CXX_IS_CLANG)" = 'yes' ] && [ "$(CXX_IS_APPLE_CLANG)" = 'no' ] && $(CXX) -dumpversion 2>/dev/null | cut -f1 -d. || echo)
+# Link std::filesystem explicitly for Linux Clang < 9
 ifneq ($(GCC_MAJOR),)
-ifeq ($(shell test $(GCC_MAJOR) -lt 9 && echo yes),yes)
+ifeq ($(shell expr $(GCC_MAJOR) \< 9),1)
 LDLIBS += -lstdc++fs
 endif
 endif
@@ -619,33 +620,6 @@ endif
 PROFILE_MAKE := gcc-profile-make
 PROFILE_USE  := gcc-profile-use
 endif
-# MinGW
-else \
-ifeq ($(COMP),mingw)
-MINGW_ARCH      := $(if $(filter 64,$(bits)),x86_64,i686)
-MINGW_CXX_POSIX := $(MINGW_ARCH)-w64-mingw32-c++-posix
-MINGW_CXX       := $(MINGW_ARCH)-w64-mingw32-c++
-
-# Prefer POSIX threading variant if available
-CXX := $(if $(call FIND_EXE,$(MINGW_CXX_POSIX)),$(MINGW_CXX_POSIX),$(MINGW_CXX))
-
-CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-declarations -fno-ipa-cp-clone -fconstexpr-ops-limit=500000000
-
-# Profile-guided optimization for MinGW using GCC
-PROFILE_MAKE := gcc-profile-make
-PROFILE_USE  := gcc-profile-use
-# Intel ICX
-else \
-ifeq ($(COMP),icx)
-CXX := icpx
-
-CXX_IS_CLANG := yes
-
-CXXFLAGS += --intel -pedantic -Wextra -Wshadow -Wmissing-prototypes -Wconditional-uninitialized -Wabi -Wdeprecated -fconstexpr-steps=500000000
-
-# Profile-guided optimization for ICX
-PROFILE_MAKE := icx-profile-make
-PROFILE_USE  := icx-profile-use
 # Clang
 else \
 ifeq ($(COMP),clang)
@@ -686,12 +660,46 @@ CXX_IS_APPLE_CLANG := yes
 # Link std::filesystem for Linux Clang
 else \
 ifeq ($(TARGET_KERNEL),Linux)
+# Determine Clang major version
+CLANG_MAJOR := $(shell $(CXX) -dumpversion 2>/dev/null | cut -f1 -d. || echo)
+# Link std::filesystem explicitly for Clang < 11
+ifneq ($(CLANG_MAJOR),)
+ifeq ($(shell expr $(CLANG_MAJOR) \< 11),1)
 LDLIBS += -lstdc++fs
+endif
+endif
 endif
 
 # Profile-guided optimization for Clang
 PROFILE_MAKE := clang-profile-make
 PROFILE_USE  := clang-profile-use
+# MinGW
+else \
+ifeq ($(COMP),mingw)
+MINGW_ARCH      := $(if $(filter 64,$(bits)),x86_64,i686)
+MINGW_CXX_POSIX := $(MINGW_ARCH)-w64-mingw32-c++-posix
+MINGW_CXX       := $(MINGW_ARCH)-w64-mingw32-c++
+
+# Prefer POSIX threading variant if available
+CXX := $(if $(call FIND_EXE,$(MINGW_CXX_POSIX)),$(MINGW_CXX_POSIX),$(MINGW_CXX))
+
+CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-declarations -fno-ipa-cp-clone -fconstexpr-ops-limit=500000000
+
+# Profile-guided optimization for MinGW using GCC
+PROFILE_MAKE := gcc-profile-make
+PROFILE_USE  := gcc-profile-use
+# Intel ICX
+else \
+ifeq ($(COMP),icx)
+CXX := icpx
+
+CXX_IS_CLANG := yes
+
+CXXFLAGS += --intel -pedantic -Wextra -Wshadow -Wmissing-prototypes -Wconditional-uninitialized -Wabi -Wdeprecated -fconstexpr-steps=500000000
+
+# Profile-guided optimization for ICX
+PROFILE_MAKE := icx-profile-make
+PROFILE_USE  := icx-profile-use
 # Android NDK Clang: cross-compile for Android using NDK r27c or later
 else \
 ifeq ($(COMP),ndk)
@@ -1059,8 +1067,11 @@ NEW_GIT_SHA       := \
 $(shell $(GIT) rev-parse HEAD 2>/dev/null | cut -c 1-8 | tr '[:lower:]' '[:upper:]')
 NEW_GIT_DIFFINDEX := \
 $(shell $(GIT) update-index --refresh >/dev/null 2>&1; \
-    if ! $(GIT) diff-index --quiet HEAD -- 2>/dev/null; then \
-        $(GIT) diff HEAD --no-ext-diff | $(GIT) hash-object --stdin | cut -c 1-6 | tr '[:lower:]' '[:upper:]'; \
+    $(GIT) diff-index --quiet HEAD -- 2>/dev/null; \
+    status=$$?; \
+    if [ $$status -eq 1 ]; then \
+        $(GIT) diff HEAD --no-ext-diff | \
+        $(GIT) hash-object --stdin | cut -c 1-6 | tr '[:lower:]' '[:upper:]'; \
     fi)
 
 ifneq ($(NEW_GIT_DATE),)
@@ -1179,7 +1190,7 @@ endif
 
 help:
 	@echo; \
-	echo "To compile $(NAME), type: "; \
+	echo "To compile '$(NAME)', type: "; \
 	echo; \
 	echo "make -j target [ARCH=arch] [COMP=compiler] [COMPCXX=cxx]"; \
 	echo; \
@@ -1251,17 +1262,17 @@ help:
 	echo; \
 	echo "Simple examples. If you don't know what to do, you likely want to run one of:"; \
 	echo; \
-	echo 'make -j profile-build ARCH=native               # Fast compile for local system'; \
-	echo 'make -j profile-build ARCH=x86-64-avx2          # Fast portable compile for AVX2-capable x86-64 systems'; \
-	echo 'make -j profile-build ARCH=x86-64-sse41-popcnt  # Portable compile for SSE4.1 + POPCNT x86-64 systems'; \
-	echo 'make -j profile-build ARCH=x86-64               # Portable compile for baseline x86-64 systems'; \
+	echo "make -j profile-build ARCH='native'               # Fast compile for local system"; \
+	echo "make -j profile-build ARCH='x86-64-avx2'          # Fast portable compile for AVX2-capable x86-64 systems"; \
+	echo "make -j profile-build ARCH='x86-64-sse41-popcnt'  # Portable compile for SSE4.1 + POPCNT x86-64 systems"; \
+	echo "make -j profile-build ARCH='x86-64'               # Portable compile for baseline x86-64 systems"; \
 	echo; \
 	echo "Advanced examples, for experienced users: "; \
 	echo; \
-	echo 'make -j profile-build ARCH=x86-64-avxvnni'; \
-	echo 'make -j profile-build ARCH=x86-64-avxvnni COMP=gcc CXX=g++-12.0'; \
-	echo 'make -j profile-build ARCH=x86-64-universal RUN_PREFIX="/path/to/sde -future --" CXX=g++-15'; \
-	echo 'make -j build ARCH=x86-64-ssse3 COMP=clang'; \
+	echo "make -j profile-build ARCH='x86-64-avxvnni'"; \
+	echo "make -j profile-build ARCH='x86-64-avxvnni' COMP=gcc CXX=g++-12.0"; \
+	echo "make -j profile-build ARCH='x86-64-universal' RUN_PREFIX='/path/to/sde -future --' CXX=g++-15"; \
+	echo "make -j build ARCH='x86-64-ssse3' COMP=clang"; \
 	echo
 
 
@@ -1273,48 +1284,48 @@ help:
 	format install-hooks
 
 analyze: net config-sanity obj-clean
-	$(MAKE) -k ARCH=$(ARCH) COMP=$(COMP) $(OBJS)
+	$(MAKE) -k ARCH='$(ARCH)' COMP='$(COMP)' $(OBJS)
 
 ifeq ($(UNIVERSAL_BUILD),no)
 build: net config-sanity
-	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) all
+	$(MAKE) ARCH='$(ARCH)' COMP='$(COMP)' all
 
 profile-build: net config-sanity obj-clean profile-clean
 	@echo; \
 	echo "Step 1/4. Building instrumented executable ..."
-	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) $(PROFILE_MAKE)
+	$(MAKE) ARCH='$(ARCH)' COMP='$(COMP)' $(PROFILE_MAKE)
 	@echo; \
 	echo "Step 2/4. Running benchmark for pgo-build ..."
 	$(PGOBENCH) > PGOBENCH.out 2>&1
 	tail -n 4 PGOBENCH.out
 	@echo; \
 	echo "Step 3/4. Building optimized executable ..."
-	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) obj-clean
-	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) $(PROFILE_USE)
+	$(MAKE) ARCH='$(ARCH)' COMP='$(COMP)' obj-clean
+	$(MAKE) ARCH='$(ARCH)' COMP='$(COMP)' $(PROFILE_USE)
 	@echo; \
 	echo "Step 4/4. Deleting profile data ..."
-	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) profile-clean
+	$(MAKE) ARCH='$(ARCH)' COMP='$(COMP)' profile-clean
 endif
 
 # Default network filename, read from evaluate.h's EvalFileDefaultName.
-macos-lipo: NNUE_NET := $(shell grep -oE 'nn-[0-9a-f]+\.nnue' "$(CURDIR)/evaluate.h" | head -1)
+macos-lipo: NNUE_NET := $(shell grep -oE 'nn-[0-9a-f]+\.nnue' '$(CURDIR)/evaluate.h' | head -1)
 macos-lipo:
 	@echo; \
 	echo "Step 1/4. Building x86-64 slice (network shared from Apple-silicon slice) ..."
-	CXXFLAGS="-arch x86_64" $(MAKE) build ARCH=x86-64-universal COMP=$(COMP) MACOS_X86_64_SLICE=1
-	mv "$(EXE)" "$(EXE)-x86_64"
+	$(MAKE) ARCH='x86-64-universal' COMP='$(COMP)' MACOS_X86_64_SLICE='1' build
+	mv '$(EXE)' '$(EXE)-x86_64'
 	@echo; \
 	echo "Step 2/4. Building Apple silicon slice ..."
-	$(MAKE) profile-build ARCH=apple-silicon COMP=$(COMP)
-	mv "$(EXE)" "$(EXE)-arm64"
+	$(MAKE) ARCH='apple-silicon' COMP='$(COMP)' profile-build
+	mv '$(EXE)' '$(EXE)-arm64'
 	@echo; \
 	echo "Step 3/4. Combining slices and locating the embedded network ..."
-	lipo -create "$(EXE)-x86_64" "$(EXE)-arm64" -output "$(EXE)"
-	$(SHELL) universal/patch_x86_64_slice.sh "$(EXE)" "$(EXE)-x86_64" "$(NNUE_NET)"
+	lipo -create '$(EXE)-x86_64' '$(EXE)-arm64' -output '$(EXE)'
+	$(SHELL) universal/patch_x86_64_slice.sh '$(EXE)' '$(EXE)-x86_64' '$(NNUE_NET)'
 	@echo; \
 	echo "Step 4/4. Re-combining slices with the patched x86-64 slice ..."
-	lipo -create "$(EXE)-x86_64" "$(EXE)-arm64" -output "$(EXE)"
-	@rm -f "$(EXE)-x86_64" "$(EXE)-arm64"
+	lipo -create '$(EXE)-x86_64' '$(EXE)-arm64' -output '$(EXE)'
+	@rm -f '$(EXE)-x86_64' '$(EXE)-arm64'
 	@echo "$(OS_NAME) universal binary built: '$(EXE)'"
 
 # LTO temporary object handling
@@ -1347,83 +1358,82 @@ MODNAME := $(subst -,_,$(notdir $(CURDIR)))
 universal-object-pgo: obj-clean profile-clean universal-clean
 	@echo; \
 	echo "Step 1/4. Building instrumented executable ..."
-	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) ENV_LDFLAGS='$(ENV_LDFLAGS)' NNUE_EMBED_OBJ='$(NNUE_EMBED_OBJ)' $(PROFILE_MAKE)
+	$(MAKE) ARCH='$(ARCH)' COMP='$(COMP)' ENV_LDFLAGS='$(ENV_LDFLAGS)' NNUE_EMBED_OBJ='$(NNUE_EMBED_OBJ)' $(PROFILE_MAKE)
 	@echo; \
 	echo "Step 2/4. Running benchmark for pgo-build ..."
 	$(PGOBENCH) > PGOBENCH.out 2>&1
 	tail -n 4 PGOBENCH.out
 	@echo; \
 	echo "Step 3/4. Building optimized object files ..."
-	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) obj-clean
-	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) ENV_LDFLAGS='$(ENV_LDFLAGS) $(SAVE_TEMPS)' NNUE_EMBED_OBJ='$(NNUE_EMBED_OBJ)' $(PROFILE_USE)
+	$(MAKE) ARCH='$(ARCH)' COMP='$(COMP)' obj-clean
+	$(MAKE) ARCH='$(ARCH)' COMP='$(COMP)' ENV_LDFLAGS='$(ENV_LDFLAGS) $(SAVE_TEMPS)' NNUE_EMBED_OBJ='$(NNUE_EMBED_OBJ)' $(PROFILE_USE)
 ifeq ($(USE_LTO_EMIT_ASM),yes)
 	@echo; \
 	echo "Step 4/4. Renaming ctors and extracting LTO-optimized relocatable object ..."
-	awk -v MODNAME=$(MODNAME) -f ../../universal/rewrite_asm_sections.awk *.lto.s > renamed.s
-# -mcpu=neoverse-v2 (or another CPU supporting dotprod) is required for clang
-# to not complain when assembling
-	$(CXX) -c renamed.s -o DON.o $(ASM_FLAGS)
+	awk -v MODNAME='$(MODNAME)' -f '../../universal/rewrite_asm_sections.awk' *.lto.s > 'renamed.s'
+# -mcpu=neoverse-v2 (or another CPU supporting dotprod) is required for clang to not complain when assembling
+	$(CXX) $(ASM_FLAGS) -c 'renamed.s' -o 'DON.o'
 else
 	@echo; \
 	echo "Step 4/4. Extracting LTO-optimized relocatable object ..."
-	cp "$(basename $(EXE))$(LTO_OBJ_SUFFIX)" DON.o
+	cp '$(basename $(EXE))$(LTO_OBJ_SUFFIX)' 'DON.o'
 endif
 
 universal-object-nopgo: obj-clean universal-clean
-	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) ENV_LDFLAGS='$(ENV_LDFLAGS) $(SAVE_TEMPS)' NNUE_EMBED_OBJ='$(NNUE_EMBED_OBJ)' all
+	$(MAKE) ARCH='$(ARCH)' COMP='$(COMP)' ENV_LDFLAGS='$(ENV_LDFLAGS) $(SAVE_TEMPS)' NNUE_EMBED_OBJ='$(NNUE_EMBED_OBJ)' all
 ifeq ($(USE_LTO_EMIT_ASM),yes)
-	awk -v MODNAME=$(MODNAME) -f ../../universal/rewrite_asm_sections.awk *.lto.s > renamed.s
-	$(CXX) -c renamed.s -o DON.o $(ASM_FLAGS)
+	awk -v MODNAME='$(MODNAME)' -f '../../universal/rewrite_asm_sections.awk' *.lto.s > 'renamed.s'
+	$(CXX) $(ASM_FLAGS) -c 'renamed.s' -o 'DON.o'
 else
-	cp "$(basename $(EXE))$(LTO_OBJ_SUFFIX)" DON.o
+	cp '$(basename $(EXE))$(LTO_OBJ_SUFFIX)' 'DON.o'
 endif
 
 # Evaluation network (nnue)
 net:
-	@$(SHELL) ../scripts/net.sh
+	@$(SHELL) '../scripts/net.sh'
 
 strip:
 	$(STRIP) $(EXE)
 
 install:
-	mkdir -p -m 755 "$(BINDIR)"
-	cp "$(EXE)" "$(BINDIR)/"
-	chmod 755 "$(BINDIR)/$(EXE)"
-	$(STRIP) "$(BINDIR)/$(EXE)"
+	mkdir -p -m 755 '$(BINDIR)'
+	cp '$(EXE)' '$(BINDIR)/'
+	chmod 755 '$(BINDIR)/$(EXE)'
+	$(STRIP) '$(BINDIR)/$(EXE)'
 
 # Remove all build artifacts and temporary files
 clean: obj-clean profile-clean universal-clean
-	@rm -f .depend *~ core
+	@rm -f '.depend' *~ 'core'
 
-# Remove binaries, object files, and build metadata
+# Remove build metadata, object files, and binaries
 obj-clean:
-	@rm -f "$(EXE)" ./*.o ./nnue/*.o ./nnue/features/*.o ./book/*.o ./tablebase/*.o "$(GIT_DATE_FILE)" "$(GIT_SHA_FILE)" "$(GIT_DIFFINDEX_FILE)"
+	@rm -f '$(GIT_DATE_FILE)' '$(GIT_SHA_FILE)' '$(GIT_DIFFINDEX_FILE)' './'*.o '$(EXE)'
 
 # Remove profiling data and temporary profiling files
 profile-clean:
-	@rm -rf profdir
+	@rm -rf 'profdir'
 	@rm -f bench.txt *.gcda *.gcno ./book/*.gcda ./tablebase/*.gcda ./nnue/*.gcda ./nnue/features/*.gcda *.s PGOBENCH.out
-	@rm -f "$(NAME).profdata" *.profraw
-	@rm -f "$(NAME)".*args*
-	@rm -f "$(NAME)".*lt*
-	@rm -f "$(NAME).res"
-	@rm -f ./-lstdc++.res
+	@rm -f '$(NAME).profdata' *.profraw
+	@rm -f '$(NAME)'.*args*
+	@rm -f '$(NAME)'.*lt*
+	@rm -f '$(NAME).res'
+	@rm -f './-lstdc++.res'
 
 # Remove universal build temporary files and generated files
 # On Windows "ln -s" to a directory makes a native directory symlink that
 # rm cannot unlink; rmdir unlinks it without following it. No-op elsewhere.
 universal-clean:
-	@find "$(TEMP_DIR)" -type l -exec rmdir {} + 2>/dev/null || true
-	@rm -rf "$(TEMP_DIR)"
-	@rm -f universal/network_dump.inc
+	@find '$(TEMP_DIR)' -type l -exec rmdir {} + 2>/dev/null || true
+	@rm -rf '$(TEMP_DIR)'
+	@rm -f 'universal/network_dump.inc'
 
 format:
-	@echo CLANG_FORMAT="$(CLANG_FORMAT)"
-	@if [ -z "$(CLANG_FORMAT)" ]; then \
+	@echo CLANG_FORMAT='$(CLANG_FORMAT)'
+	@if [ -z '$(CLANG_FORMAT)' ]; then \
 		echo "CLANG_FORMAT is not set"; \
 		exit 1; \
 	fi
-	"$(CLANG_FORMAT)" -i -style=file $(SRCS) $(UNIVERSAL_SRCS) $(HEADERS)
+	'$(CLANG_FORMAT)' -i -style='file' $(SRCS) $(UNIVERSAL_SRCS) $(HEADERS)
 
 install-hooks:
 	@root=$$($(GIT) rev-parse --show-toplevel 2>/dev/null); \
@@ -1433,13 +1443,13 @@ install-hooks:
 	src="$$root/.git-hooks/pre-commit"; \
 	dst="$$root/.git/hooks/pre-commit"; \
 	if [ ! -f "$$src" ]; then \
-		echo "Hook source not found: $$src"; exit 1; \
+		echo "Hook source not found: '$$src'"; exit 1; \
 	fi; \
 	if [ -f "$$dst" ]; then \
 		bak="$$dst.bak.$$(date +%Y%m%d%H%M%S)"; \
-		mv "$$dst" "$$bak" && echo "Existing hook moved to $$bak"; \
+		mv "$$dst" "$$bak" && echo "Existing hook moved to '$$bak'"; \
 	fi; \
-	cp "$$src" "$$dst" && chmod +x "$$dst" && echo "Installed pre-commit hook: $$dst"
+	cp "$$src" "$$dst" && chmod +x "$$dst" && echo "Installed pre-commit hook: '$$dst'"
 
 ### ==========================================================================
 ### Section 5. Private Targets
@@ -1501,106 +1511,86 @@ config-sanity: net
 	echo && \
 	echo "Testing config sanity. If this fails, try 'make help' ..." && \
 	echo && \
-	(test "$(IS_WINDOWS)" = "no" || test "$(IS_WINDOWS)" = "yes") && \
-	(test "$(debug)"      = "no" || test "$(debug)"      = "yes") && \
-	(test "$(optimize)"   = "no" || test "$(optimize)"   = "yes") && \
-	(test "$(ARCH_SUPPORTED)" = "yes") && \
-	(test "$(arch)" = "any" || test "$(arch)" = "i386" || test "$(arch)" = "x86_64" || \
-	 test "$(arch)" = "e2k" || test "$(arch)" = "loongarch64" || test "$(arch)" = "riscv64" || \
-	 test "$(arch)" = "ppc" || test "$(arch)" = "ppc64" || \
-	 test "$(arch)" = "armv7" || test "$(arch)" = "armv8" || test "$(arch)" = "arm64" || \
-	 test "$(arch)" = "wasm32") && \
-	(test "$(bits)"      = "32" || test "$(bits)"      = "64") && \
-	(test "$(prefetch)"  = "no" || test "$(prefetch)"  = "yes") && \
-	(test "$(popcnt)"    = "no" || test "$(popcnt)"    = "yes") && \
-	(test "$(mmx)"       = "no" || test "$(mmx)"       = "yes") && \
-	(test "$(sse)"       = "no" || test "$(sse)"       = "yes") && \
-	(test "$(sse2)"      = "no" || test "$(sse2)"      = "yes") && \
-	(test "$(ssse3)"     = "no" || test "$(ssse3)"     = "yes") && \
-	(test "$(sse41)"     = "no" || test "$(sse41)"     = "yes") && \
-	(test "$(avx2)"      = "no" || test "$(avx2)"      = "yes") && \
-	(test "$(bmi2)"      = "no" || (test "$(bmi2)"     = "yes"  && \
-	(test "$(cmp)"       = "no" || test "$(cmp)"       = "yes"))) && \
-	(test "$(avxvnni)"   = "no" || test "$(avxvnni)"   = "yes") && \
-	(test "$(avx512)"    = "no" || test "$(avx512)"    = "yes") && \
-	(test "$(vnni256)"   = "no" || test "$(vnni256)"   = "yes") && \
-	(test "$(vnni512)"   = "no" || test "$(vnni512)"   = "yes") && \
-	(test "$(avx512icl)" = "no" || test "$(avx512icl)" = "yes") && \
-	(test "$(altivec)"   = "no" || test "$(altivec)"   = "yes") && \
-	(test "$(vsx)"       = "no" || test "$(vsx)"       = "yes") && \
-	(test "$(lsx)"       = "no" || test "$(lsx)"       = "yes") && \
-	(test "$(lasx)"      = "no" || test "$(lasx)"      = "yes") && \
-	(test "$(rva23)"     = "no" || test "$(rva23)"     = "yes") && \
-	(test "$(neon)"      = "no" || test "$(neon)"      = "yes") && \
-	(test "$(dotprod)"   = "no" || test "$(dotprod)"   = "yes") && \
-	(test "$(embedding)" = "no" || test "$(embedding)" = "yes") && \
-	(test "$(tablebases)" = "no" || test "$(tablebases)" = "yes") && \
-	(test "$(COMP)" = "gcc" || test "$(COMP)" = "clang" || test "$(COMP)" = "mingw" || \
-	 test "$(COMP)" = "icx" || test "$(COMP)" = "ndk") || { \
+	(test '$(IS_WINDOWS)' = 'no' || test '$(IS_WINDOWS)' = 'yes') && \
+	(test '$(debug)'      = 'no' || test '$(debug)'      = 'yes') && \
+	(test '$(optimize)'   = 'no' || test '$(optimize)'   = 'yes') && \
+	(test '$(ARCH_SUPPORTED)' = 'yes') && \
+	(test '$(arch)' = 'any' || test '$(arch)' = 'i386' || test '$(arch)' = 'x86_64' || \
+	 test '$(arch)' = 'e2k' || test '$(arch)' = 'loongarch64' || test '$(arch)' = 'riscv64' || \
+	 test '$(arch)' = 'ppc' || test '$(arch)' = 'ppc64' || \
+	 test '$(arch)' = 'armv7' || test '$(arch)' = 'armv8' || test '$(arch)' = 'arm64' || \
+	 test '$(arch)' = 'wasm32') && \
+	(test '$(bits)'      = '32' || test '$(bits)'      = '64') && \
+	(test '$(prefetch)'  = 'no' || test '$(prefetch)'  = 'yes') && \
+	(test '$(popcnt)'    = 'no' || test '$(popcnt)'    = 'yes') && \
+	(test '$(mmx)'       = 'no' || test '$(mmx)'       = 'yes') && \
+	(test '$(sse)'       = 'no' || test '$(sse)'       = 'yes') && \
+	(test '$(sse2)'      = 'no' || test '$(sse2)'      = 'yes') && \
+	(test '$(ssse3)'     = 'no' || test '$(ssse3)'     = 'yes') && \
+	(test '$(sse41)'     = 'no' || test '$(sse41)'     = 'yes') && \
+	(test '$(avx2)'      = 'no' || test '$(avx2)'      = 'yes') && \
+	(test '$(bmi2)'      = 'no' || (test '$(bmi2)'     = 'yes'  && \
+	(test '$(cmp)'       = 'no' || test '$(cmp)'       = 'yes'))) && \
+	(test '$(avxvnni)'   = 'no' || test '$(avxvnni)'   = 'yes') && \
+	(test '$(avx512)'    = 'no' || test '$(avx512)'    = 'yes') && \
+	(test '$(vnni256)'   = 'no' || test '$(vnni256)'   = 'yes') && \
+	(test '$(vnni512)'   = 'no' || test '$(vnni512)'   = 'yes') && \
+	(test '$(avx512icl)' = 'no' || test '$(avx512icl)' = 'yes') && \
+	(test '$(altivec)'   = 'no' || test '$(altivec)'   = 'yes') && \
+	(test '$(vsx)'       = 'no' || test '$(vsx)'       = 'yes') && \
+	(test '$(lsx)'       = 'no' || test '$(lsx)'       = 'yes') && \
+	(test '$(lasx)'      = 'no' || test '$(lasx)'      = 'yes') && \
+	(test '$(rva23)'     = 'no' || test '$(rva23)'     = 'yes') && \
+	(test '$(neon)'      = 'no' || test '$(neon)'      = 'yes') && \
+	(test '$(dotprod)'   = 'no' || test '$(dotprod)'   = 'yes') && \
+	(test '$(embedding)' = 'no' || test '$(embedding)' = 'yes') && \
+	(test '$(tablebases)' = 'no' || test '$(tablebases)' = 'yes') && \
+	(test '$(COMP)' = 'gcc' || test '$(COMP)' = 'clang' || test '$(COMP)' = 'mingw' || \
+	 test '$(COMP)' = 'icx' || test '$(COMP)' = 'ndk') || { \
 		echo "Invalid configuration. Run 'make help' for supported options."; \
 		exit 1; \
 	}
 
 $(EXE): $(OBJS) $(NNUE_EMBED_OBJ)
-	+$(CXX) -o "$@" $(OBJS) $(NNUE_EMBED_OBJ) $(strip $(LDFLAGS) $(LDLIBS))
+	$(strip $(CXX) $(LDFLAGS) $(OBJS) $(ENTRY_FLAG) $(NNUE_EMBED_OBJ) $(LDLIBS)) -o '$@'
 
 %.o: %.cpp
-	$(strip $(CXX) $(CPPFLAGS) $(CXXFLAGS)) -c "$<" -o "$@"
+	$(strip $(CXX) $(CPPFLAGS) $(CXXFLAGS)) -c '$<' -o '$@'
 
 misc.o: misc.cpp $(GIT_DATE_FILE) $(GIT_SHA_FILE) $(GIT_DIFFINDEX_FILE)
-	$(strip $(CXX) $(CPPFLAGS) $(CXXFLAGS) $(ARCH_FLAG) $(BUILD_FLAGS)) -c "$<" -o "$@"
+	$(strip $(CXX) $(CPPFLAGS) $(CXXFLAGS) $(ARCH_FLAG) $(BUILD_FLAGS)) -c '$<' -o '$@'
 
 # Clang PGO
 clang-profile-make:
-	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
-	EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) $(EXTRA_PROFILE_FLAGS) -fprofile-generate' \
-	EXTRA_LDFLAGS='$(EXTRA_LDFLAGS) -fprofile-generate' \
-	EXTRA_LDLIBS='$(EXTRA_LDLIBS)' \
-	all
+	$(MAKE) ARCH='$(ARCH)' COMP='$(COMP)' EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) $(EXTRA_PROFILE_FLAGS) -fprofile-generate' EXTRA_LDFLAGS='$(EXTRA_LDFLAGS) -fprofile-generate' EXTRA_LDLIBS='$(EXTRA_LDLIBS)' all
 
 clang-profile-use:
-	$(XCRUN) $(LLVM_PROFDATA) merge -output="$(NAME).profdata" *.profraw
-	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
-	EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) $(EXTRA_PROFILE_FLAGS) -fprofile-use="$(NAME).profdata"' \
-	EXTRA_LDFLAGS='$(EXTRA_LDFLAGS) -fprofile-use="$(NAME).profdata"' \
+	$(strip $(XCRUN)) '$(LLVM_PROFDATA)' merge -output='$(NAME).profdata' *.profraw
+	$(MAKE) ARCH='$(ARCH)' COMP='$(COMP)' \
+	EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) $(EXTRA_PROFILE_FLAGS) -fprofile-instr-use='\''$(NAME).profdata'\''' \
+	EXTRA_LDFLAGS='$(EXTRA_LDFLAGS) -fprofile-use='\''$(NAME).profdata'\''' \
 	EXTRA_LDLIBS='$(EXTRA_LDLIBS)' \
 	all
 
 # GCC PGO
 gcc-profile-make:
-	@mkdir -p profdir
-	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
-	EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) $(EXTRA_PROFILE_FLAGS) -fprofile-generate=profdir' \
-	EXTRA_LDFLAGS='$(EXTRA_LDFLAGS)' \
-	EXTRA_LDLIBS='$(EXTRA_LDLIBS) -lgcov' \
-	all
+	@mkdir -p 'profdir'
+	$(MAKE) ARCH='$(ARCH)' COMP='$(COMP)' EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) $(EXTRA_PROFILE_FLAGS) -fprofile-generate='\''profdir'\''' EXTRA_LDFLAGS='$(EXTRA_LDFLAGS)' EXTRA_LDLIBS='$(EXTRA_LDLIBS) -lgcov' all
 
 gcc-profile-use:
-	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
-	EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) $(EXTRA_PROFILE_FLAGS) -fprofile-use=profdir -fprofile-correction -fno-peel-loops -fno-tracer' \
-	EXTRA_LDFLAGS='$(EXTRA_LDFLAGS)' \
-	EXTRA_LDLIBS='$(EXTRA_LDLIBS) -lgcov' \
-	all
+	$(MAKE) ARCH='$(ARCH)' COMP='$(COMP)' EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) $(EXTRA_PROFILE_FLAGS) -fprofile-use='\''profdir'\'' -fprofile-correction -fno-peel-loops -fno-tracer' EXTRA_LDFLAGS='$(EXTRA_LDFLAGS)' EXTRA_LDLIBS='$(EXTRA_LDLIBS) -lgcov' all
 
 # ICC/ICX PGO
 icx-profile-make:
-	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
-	EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) $(EXTRA_PROFILE_FLAGS) -fprofile-instr-generate' \
-	EXTRA_LDFLAGS='$(EXTRA_LDFLAGS) -fprofile-instr-generate' \
-	EXTRA_LDLIBS='$(EXTRA_LDLIBS)' \
-	all
+	$(MAKE) ARCH='$(ARCH)' COMP='$(COMP)' EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) $(EXTRA_PROFILE_FLAGS) -fprofile-instr-generate' EXTRA_LDFLAGS='$(EXTRA_LDFLAGS) -fprofile-instr-generate' EXTRA_LDLIBS='$(EXTRA_LDLIBS)' all
 
 icx-profile-use:
-	$(XCRUN) $(LLVM_PROFDATA) merge -output="$(NAME).profdata" *.profraw
-	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
-	EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) $(EXTRA_PROFILE_FLAGS) -fprofile-instr-use="$(NAME).profdata"' \
-	EXTRA_LDFLAGS='$(EXTRA_LDFLAGS) -fprofile-use' \
-	EXTRA_LDLIBS='$(EXTRA_LDLIBS)' \
-	all
+	$(strip $(XCRUN)) '$(LLVM_PROFDATA)' merge -output='$(NAME).profdata' *.profraw
+	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) $(EXTRA_PROFILE_FLAGS) -fprofile-instr-use='\''$(NAME).profdata'\''' EXTRA_LDFLAGS='$(EXTRA_LDFLAGS) -fprofile-use' EXTRA_LDLIBS='$(EXTRA_LDLIBS)' all
 
 .depend: $(SRCS)
 	@echo Generating dependencies...
-	@$(CXX) $(DEPENDFLAGS) -MM -MP $(SRCS) > "$@.tmp" || { rm -f "$@.tmp"; exit 1; }
+	@$(CXX) $(DEPENDFLAGS) -MM -MP $(SRCS) > '$@.tmp' || { rm -f '$@.tmp'; exit 1; }
 	@sed -E \
 		-e 's@(.*/)?DON/src/nnue/features/\.\./\.\./@@g' \
 		-e 's@nnue/features/\.\./\.\./@@g' \
@@ -1615,8 +1605,8 @@ icx-profile-use:
 		-e 's@(.*/)?DON/src/tablebase/@tablebase/@g' \
 		-e 's@tablebase/\.\./@@g' \
 		-e 's@(.*/)?DON/src/@@g' \
-		"$@.tmp" > "$@"
-	@rm -f "$@.tmp"
+		'$@.tmp' > '$@'
+	@rm -f '$@.tmp'
 
 ifeq ($(UNIVERSAL_BUILD),no)
 # Include .depend when at least one non-excluded goal is requested
@@ -1670,22 +1660,24 @@ TRACKED_TOP := $(sort $(foreach f,$(SRCS) $(HEADERS) Makefile incbin,$(firstword
 ARCH_OBJS := $(TEMP_DIR)/$(BASELINE_ARCH)/DON.o \
              $(patsubst %,$(TEMP_DIR)/%/DON.o,$(filter-out $(BASELINE_ARCH),$(UNIVERSAL_ARCHES)))
 
-UNIVERSAL_BUILD_FLAGS := -fno-exceptions -Os -Wno-c++26-extensions -Wno-c23-extensions # suppress #embed warnings
+UNIVERSAL_CXXFLAGS := -fno-exceptions -Os -Wno-c++26-extensions -Wno-c23-extensions # suppress #embed warnings
+UNIVERSAL_LDFLAGS  :=
+UNIVERSAL_LDLIBS   :=
 
 ifeq ($(TARGET_KERNEL),Darwin)
-UNIVERSAL_BUILD_FLAGS += $(MACOS_BUILD_FLAGS)
+UNIVERSAL_CXXFLAGS += $(MACOS_BUILD_FLAGS)
 else \
 ifeq ($(TARGET_KERNEL),Linux)
-UNIVERSAL_BUILD_FLAGS += -static-libstdc++ -static-libgcc
+UNIVERSAL_LDFLAGS  += -static-libstdc++ -static-libgcc
 ifeq ($(COMP),ndk)
-UNIVERSAL_BUILD_FLAGS += -static
+UNIVERSAL_LDFLAGS  += -static
 else
-UNIVERSAL_BUILD_FLAGS += -Wl,--allow-multiple-definition -lrt -lpthread
+UNIVERSAL_LDLIBS   += -lpthread -lrt
 endif
 else  # Windows
-UNIVERSAL_BUILD_FLAGS += -Wl,--allow-multiple-definition -static
+UNIVERSAL_LDFLAGS  += -Wl,--allow-multiple-definition -static
 ifeq ($(COMP),clang)
-UNIVERSAL_BUILD_FLAGS += -lpthread
+UNIVERSAL_LDLIBS   += -lpthread
 endif
 endif
 
@@ -1700,19 +1692,19 @@ ARCH_MANGLED   = _ZN$(shell printf %s '$(call ARCH_NAMESPACE,$(1))' | wc -c | tr
 ARCH_MACOS_SECTION = _i_$(subst -,_,$(patsubst x86-64,,$(patsubst x86-64-%,%,$(1))))
 
 ifeq ($(TARGET_KERNEL),Darwin)
-ARCH_MAIN_LDFLAGS = -Wl,-alias,_$(call ARCH_MANGLED,$(1)),_main
+ARCH_ENTRY_FLAG = -Wl,-alias,_$(call ARCH_MANGLED,$(1)),_main
 # lld-link, used on Windows+clang, doesn't accept --defsym, so
 # define main directly in main.cpp instead and delete it later.
 else \
 ifeq ($(IS_WINDOWS)+$(COMP),yes+clang)
 ARCH_MAIN_CXXFLAGS = -DUNIVERSAL_NEEDS_MAIN_SHIM
 else
-ARCH_MAIN_LDFLAGS = -Wl,--defsym=main=$(call ARCH_MANGLED,$(1))
+ARCH_ENTRY_FLAG = -Wl,--defsym=main=$(call ARCH_MANGLED,$(1))
 endif
 
-EMBED_DIR_SUPPORTED := $(shell echo 'int main(){}' | $(CXX) -x c++ --embed-dir=. -o /dev/null -c - 2>/dev/null && echo 1 || echo 0)
+EMBED_DIR_SUPPORTED := $(shell echo "int main(){}" | $(CXX) -x c++ --embed-dir=. -o /dev/null -c - 2>/dev/null && echo 1 || echo 0)
 ifeq ($(EMBED_DIR_SUPPORTED),1)
-EMBED_DIR = --embed-dir="$(CURDIR)"
+EMBED_DIR = --embed-dir='$(CURDIR)'
 else
 $(info --embed-dir is not supported by $(CXX), using alternative embedding method)
 endif
@@ -1725,9 +1717,8 @@ SLICE_DEF := -DUNIVERSAL_BINARY_MACOS_X86_64_SLICE
 endif
 
 ARCH_CXXFLAGS = $(EMBED_DIR) -DDON=$(call ARCH_NAMESPACE,$(1)) -DUNIVERSAL_BINARY $(SLICE_DEF) $(ARCH_MAIN_CXXFLAGS) -Wno-c++26-extensions -Wno-c23-extensions
-ARCH_LDFLAGS  = $(ARCH_MAIN_LDFLAGS)
 
-UOBJ_TGT ?= universal-object-pgo
+UNIVERSAL_OBJ_TARGET ?= universal-object-pgo
 ifeq ($(COMP),clang)
 OBJCOPY ?= llvm-objcopy
 else
@@ -1736,65 +1727,61 @@ endif
 
 .PHONY: build profile-build universal-clean
 
-build: UOBJ_TGT := universal-object-nopgo
+build: UNIVERSAL_OBJ_TARGET := universal-object-nopgo
 build: $(UNIVERSAL_EXE)
 
-profile-build: UOBJ_TGT := universal-object-pgo
+profile-build: UNIVERSAL_OBJ_TARGET := universal-object-pgo
 profile-build: $(UNIVERSAL_EXE)
 
 $(TEMP_DIR):
-	@mkdir -p "$@"
+	@mkdir -p '$@'
 
 # Download nnue files once in src/ (reused by every sub-arch via --embed-dir).
 $(NET_SENTINEL): | $(TEMP_DIR)
-	@cd "$(CURDIR)" && $(SHELL) ../scripts/net.sh $(EMBED_DIR_SUPPORTED)
-	@touch "$@"
+	@cd '$(CURDIR)' && $(SHELL) ../scripts/net.sh $(EMBED_DIR_SUPPORTED)
+	@touch '$@'
 
 $(NNUE_EMBED_OBJ): $(UNIVERSAL_SRC_DIR)/nnue_embed.cpp $(NET_SENTINEL) | $(TEMP_DIR)
-	$(CXX) -O2 -std=c++20 -Wno-c++26-extensions $(SLICE_DEF) $(strip $(MACOS_BUILD_FLAGS) $(EXTRA_CXXFLAGS)) $(EMBED_DIR) -c "$<" -o "$@"
+	$(strip $(CXX) -O2 -std=c++20 -Wno-c++26-extensions $(SLICE_DEF) $(MACOS_BUILD_FLAGS) $(EXTRA_CXXFLAGS)) $(EMBED_DIR) -c '$<' -o '$@'
 
 $(UNIVERSAL_ENTRY_OBJ): $(UNIVERSAL_ENTRY_SRC) | $(TEMP_DIR)
-	$(CXX) -O2 -std=c++20 $(strip $(MACOS_BUILD_FLAGS) $(EXTRA_CXXFLAGS)) -c "$<" -o "$@"
+	$(strip $(CXX) -O2 -std=c++20 $(MACOS_BUILD_FLAGS) $(EXTRA_CXXFLAGS)) -c '$<' -o '$@'
 
 # Symlink tracked top-level items from src/ into temp_builds/<arch>/.
 $(TEMP_DIR)/%/.setup: | $(TEMP_DIR)
-	@rm -rf "$(TEMP_DIR)/$*"
-	@mkdir -p "$(TEMP_DIR)/$*"
-	@$(foreach f,$(TRACKED_TOP),ln -s "$(CURDIR)/$(f)" "$(TEMP_DIR)/$*/$(f)";)
-	@touch "$@"
+	@rm -rf '$(TEMP_DIR)/$*'
+	@mkdir -p '$(TEMP_DIR)/$*'
+	@$(foreach f,$(TRACKED_TOP),ln -s '$(CURDIR)/$(f)' '$(TEMP_DIR)/$*/$(f)';)
+	@touch '$@'
 
 # Per-arch DON.o
 .SECONDARY: $(patsubst %,$(TEMP_DIR)/%/.setup,$(UNIVERSAL_ARCHES))
 
 $(TEMP_DIR)/%/DON.o: $(TEMP_DIR)/%/.setup $(NNUE_EMBED_OBJ) $(NET_SENTINEL)
-	+ENV_CXXFLAGS='$(ENV_CXXFLAGS) $(call ARCH_CXXFLAGS,$*)' \
-	 ENV_LDFLAGS='$(ENV_LDFLAGS) $(call ARCH_LDFLAGS,$*)' \
-	 ENV_LDLIBS='$(ENV_LDLIBS)' \
-		$(MAKE) -C "$(TEMP_DIR)/$*" $(UOBJ_TGT) \
-			ARCH=$* CXX=$(CXX) COMP=$(COMP) \
-			NNUE_EMBED_OBJ=$(NNUE_EMBED_OBJ)
+	ENV_CXXFLAGS='$(ENV_CXXFLAGS) $(call ARCH_CXXFLAGS,$*)' ENV_LDFLAGS='$(ENV_LDFLAGS)' ENV_ENTRY_FLAG='$(call ARCH_ENTRY_FLAG,$*)' ENV_LDLIBS='$(ENV_LDLIBS)' \
+	$(MAKE) -C '$(TEMP_DIR)/$*' $(UNIVERSAL_OBJ_TARGET) ARCH='$*' CXX='$(CXX)' COMP='$(COMP)' NNUE_EMBED_OBJ='$(NNUE_EMBED_OBJ)'
 ifeq ($(TARGET_KERNEL),Darwin)
 # Rename the initializer section
-	ld -r -rename_section __DATA __mod_init_func __DATA $(call ARCH_MACOS_SECTION,$*) "$@" -o "$@.tmp"
-	mv "$@.tmp" "$@"
+	ld -r -rename_section __DATA __mod_init_func __DATA $(call ARCH_MACOS_SECTION,$*) '$@' -o '$@.tmp'
+	mv '$@.tmp' '$@'
 else
 # Drop COMDAT groups; clang LTO leaves them around internalized LOCAL
 # template instantiations which causes problems at the final link
-	$(OBJCOPY) -R .group "$@"
+	$(OBJCOPY) -R .group '$@'
 ifeq ($(USE_LTO_EMIT_ASM),yes)
 # Delete per-arch main shim
-	$(OBJCOPY) -N main "$@"
+	$(OBJCOPY) -N main '$@'
 else
 # Rename .init_array (Linux) or .ctors (Windows) so we can manually invoke them
-	$(OBJCOPY) --rename-section .init_array=$(call ARCH_SUFFIX,$*)_init "$@"
-	$(OBJCOPY) --rename-section .ctors=$(call ARCH_SUFFIX,$*)_init "$@"
+	$(OBJCOPY) --rename-section .init_array=$(call ARCH_SUFFIX,$*)_init '$@'
+	$(OBJCOPY) --rename-section .ctors=$(call ARCH_SUFFIX,$*)_init '$@'
 # Make the array inert
-	$(OBJCOPY) --set-section-flags $(call ARCH_SUFFIX,$*)_init=alloc,data "$@"
+	$(OBJCOPY) --set-section-flags $(call ARCH_SUFFIX,$*)_init=alloc,data '$@'
 endif
 endif
 
 $(UNIVERSAL_EXE): $(UNIVERSAL_ENTRY_OBJ) $(NNUE_EMBED_OBJ) $(ARCH_OBJS)
-	$(CXX) -o "$@" $(UNIVERSAL_ENTRY_OBJ) $(NNUE_EMBED_OBJ) $(ARCH_OBJS) $(strip $(UNIVERSAL_BUILD_FLAGS) $(EXTRA_LDFLAGS))
+	$(CXX) $(strip $(UNIVERSAL_CXXFLAGS) $(EXTRA_CXXFLAGS)) $(strip $(UNIVERSAL_LDFLAGS) $(EXTRA_LDFLAGS)) $(strip $(UNIVERSAL_LDLIBS) $(EXTRA_LDLIBS)) $(UNIVERSAL_ENTRY_OBJ) $(NNUE_EMBED_OBJ) $(ARCH_OBJS) -o '$@'
 	@echo "$(OS_NAME) universal binary built: '$@'"
 
 endif  # UNIVERSAL_BUILD

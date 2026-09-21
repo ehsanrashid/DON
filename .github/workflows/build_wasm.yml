@@ -32,7 +32,7 @@ jobs:
           ./emsdk install latest
           ./emsdk activate latest
 
-      - name: Download the used network from the fishtest framework
+      - name: Download the network
         run: make net
 
       - name: Build '${{ matrix.name }}' with Emscripten
