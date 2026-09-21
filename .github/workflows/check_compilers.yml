@@ -24,7 +24,7 @@ jobs:
           - { name: GCC-16, comp: gcc, cxx: g++, image: "ghcr.io/official-stockfish/compiler-images:gcc-16" }
 
           # Clang 10 compiler image
-          - { name: Clang-10, comp: clang, cxx: clang++, image: "silkeh/clang:10-bullseye", needs_install: true }
+          - { name: Clang-10, comp: clang, cxx: clang++, image: "silkeh/clang:10", needs_install: true }
 
           # Clang 11–17 compiler images
           - { name: Clang-11, comp: clang, cxx: clang++, image: "ghcr.io/official-stockfish/compiler-images:clang-11" }
@@ -62,9 +62,10 @@ jobs:
           EOF
                 ;;
               bullseye)
-                echo "Debian Bullseye detected. Disabling repository expiry checks..."
+                echo "Debian Bullseye detected."
                 ;;
             esac
+            echo "Disabling repository expiry checks..."
             echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99-ignore-valid-until
             if ! strings /usr/local/lib64/libstdc++.so.6 2>/dev/null | grep -q 'GLIBCXX_3.4.29'; then
               export LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libstdc++.so.6
