@@ -534,6 +534,7 @@ CXXFLAGS    = $(strip $(ENV_CXXFLAGS) -Wall -Wcast-qual -fno-exceptions -std=c++
 DEPENDFLAGS = $(strip $(ENV_DEPENDFLAGS) -std=c++17 $(EXTRA_DEPENDFLAGS))
 LDFLAGS     = $(strip $(ENV_LDFLAGS) $(EXTRA_LDFLAGS))
 LDLIBS      = $(strip $(ENV_LDLIBS) $(EXTRA_LDLIBS))
+ENTRY_FLAG  = $(strip $(ENV_ENTRY_FLAG))
 
 BITS_FLAG := $(if $(filter 32 64,$(bits)),-m$(bits))
 
@@ -1369,45 +1370,44 @@ universal-object-pgo: obj-clean profile-clean universal-clean
 ifeq ($(USE_LTO_EMIT_ASM),yes)
 	@echo; \
 	echo "Step 4/4. Renaming ctors and extracting LTO-optimized relocatable object ..."
-	awk -v MODNAME=$(MODNAME) -f ../../universal/rewrite_asm_sections.awk *.lto.s > renamed.s
-# -mcpu=neoverse-v2 (or another CPU supporting dotprod) is required for clang
-# to not complain when assembling
-	$(CXX) -c renamed.s -o DON.o $(ASM_FLAGS)
+	awk -v MODNAME='$(MODNAME)' -f '../../universal/rewrite_asm_sections.awk' *.lto.s > 'renamed.s'
+# -mcpu=neoverse-v2 (or another CPU supporting dotprod) is required for clang to not complain when assembling
+	$(CXX) $(ASM_FLAGS) -c 'renamed.s' -o 'DON.o'
 else
 	@echo; \
 	echo "Step 4/4. Extracting LTO-optimized relocatable object ..."
-	cp "$(basename $(EXE))$(LTO_OBJ_SUFFIX)" DON.o
+	cp '$(basename $(EXE))$(LTO_OBJ_SUFFIX)' 'DON.o'
 endif
 
 universal-object-nopgo: obj-clean universal-clean
-	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) ENV_LDFLAGS='$(ENV_LDFLAGS) $(SAVE_TEMPS)' NNUE_EMBED_OBJ='$(NNUE_EMBED_OBJ)' all
+	$(MAKE) ARCH='$(ARCH)' COMP='$(COMP)' ENV_LDFLAGS='$(ENV_LDFLAGS) $(SAVE_TEMPS)' NNUE_EMBED_OBJ='$(NNUE_EMBED_OBJ)' all
 ifeq ($(USE_LTO_EMIT_ASM),yes)
-	awk -v MODNAME=$(MODNAME) -f ../../universal/rewrite_asm_sections.awk *.lto.s > renamed.s
-	$(CXX) -c renamed.s -o DON.o $(ASM_FLAGS)
+	awk -v MODNAME='$(MODNAME)' -f '../../universal/rewrite_asm_sections.awk' *.lto.s > 'renamed.s'
+	$(CXX) $(ASM_FLAGS) -c 'renamed.s' -o 'DON.o'
 else
-	cp "$(basename $(EXE))$(LTO_OBJ_SUFFIX)" DON.o
+	cp '$(basename $(EXE))$(LTO_OBJ_SUFFIX)' 'DON.o'
 endif
 
 # Evaluation network (nnue)
 net:
-	@$(SHELL) ../scripts/net.sh
+	@$(SHELL) '../scripts/net.sh'
 
 strip:
 	$(STRIP) $(EXE)
 
 install:
-	mkdir -p -m 755 "$(BINDIR)"
-	cp "$(EXE)" "$(BINDIR)/"
-	chmod 755 "$(BINDIR)/$(EXE)"
-	$(STRIP) "$(BINDIR)/$(EXE)"
+	mkdir -p -m 755 '$(BINDIR)'
+	cp '$(EXE)' '$(BINDIR)/'
+	chmod 755 '$(BINDIR)/$(EXE)'
+	$(STRIP) '$(BINDIR)/$(EXE)'
 
 # Remove all build artifacts and temporary files
 clean: obj-clean profile-clean universal-clean
-	@rm -f .depend *~ core
+	@rm -f '.depend' *~ 'core'
 
 # Remove build metadata, object files, and binaries
 obj-clean:
-	@rm -f "$(GIT_DATE_FILE)" "$(GIT_SHA_FILE)" "$(GIT_DIFFINDEX_FILE)" ./*.o "$(EXE)"
+	@rm -f '$(GIT_DATE_FILE)' '$(GIT_SHA_FILE)' '$(GIT_DIFFINDEX_FILE)' './'*.o '$(EXE)'
 
 # Remove profiling data and temporary profiling files
 profile-clean:
@@ -1552,7 +1552,7 @@ config-sanity: net
 	}
 
 $(EXE): $(OBJS) $(NNUE_EMBED_OBJ)
-	+$(CXX) -o '$@' $(OBJS) $(NNUE_EMBED_OBJ) $(strip $(LDFLAGS) $(LDLIBS))
+	+$(CXX) $(strip $(LDFLAGS)) $(OBJS) $(ENTRY_FLAG) $(NNUE_EMBED_OBJ) $(strip $(LDLIBS)) -o '$@'
 
 %.o: %.cpp
 	$(strip $(CXX) $(CPPFLAGS) $(CXXFLAGS)) -c '$<' -o '$@'
@@ -1712,19 +1712,19 @@ ARCH_MANGLED   = _ZN$(shell printf %s '$(call ARCH_NAMESPACE,$(1))' | wc -c | tr
 ARCH_MACOS_SECTION = _i_$(subst -,_,$(patsubst x86-64,,$(patsubst x86-64-%,%,$(1))))
 
 ifeq ($(TARGET_KERNEL),Darwin)
-ARCH_MAIN_LDFLAGS = -Wl,-alias,_$(call ARCH_MANGLED,$(1)),_main
+ARCH_ENTRY_FLAG = -Wl,-alias,_$(call ARCH_MANGLED,$(1)),_main
 # lld-link, used on Windows+clang, doesn't accept --defsym, so
 # define main directly in main.cpp instead and delete it later.
 else \
 ifeq ($(IS_WINDOWS)+$(COMP),yes+clang)
 ARCH_MAIN_CXXFLAGS = -DUNIVERSAL_NEEDS_MAIN_SHIM
 else
-ARCH_MAIN_LDFLAGS = -Wl,--defsym=main=$(call ARCH_MANGLED,$(1))
+ARCH_ENTRY_FLAG = -Wl,--defsym=main=$(call ARCH_MANGLED,$(1))
 endif
 
 EMBED_DIR_SUPPORTED := $(shell echo "int main(){}" | $(CXX) -x c++ --embed-dir=. -o /dev/null -c - 2>/dev/null && echo 1 || echo 0)
 ifeq ($(EMBED_DIR_SUPPORTED),1)
-EMBED_DIR = --embed-dir="$(CURDIR)"
+EMBED_DIR = --embed-dir='$(CURDIR)'
 else
 $(info --embed-dir is not supported by $(CXX), using alternative embedding method)
 endif
@@ -1737,9 +1737,8 @@ SLICE_DEF := -DUNIVERSAL_BINARY_MACOS_X86_64_SLICE
 endif
 
 ARCH_CXXFLAGS = $(EMBED_DIR) -DDON=$(call ARCH_NAMESPACE,$(1)) -DUNIVERSAL_BINARY $(SLICE_DEF) $(ARCH_MAIN_CXXFLAGS) -Wno-c++26-extensions -Wno-c23-extensions
-ARCH_LDFLAGS  = $(ARCH_MAIN_LDFLAGS)
 
-UOBJ_TGT ?= universal-object-pgo
+UNIVERSAL_OBJ_TARGET ?= universal-object-pgo
 ifeq ($(COMP),clang)
 OBJCOPY ?= llvm-objcopy
 else
@@ -1748,10 +1747,10 @@ endif
 
 .PHONY: build profile-build universal-clean
 
-build: UOBJ_TGT := universal-object-nopgo
+build: UNIVERSAL_OBJ_TARGET := universal-object-nopgo
 build: $(UNIVERSAL_EXE)
 
-profile-build: UOBJ_TGT := universal-object-pgo
+profile-build: UNIVERSAL_OBJ_TARGET := universal-object-pgo
 profile-build: $(UNIVERSAL_EXE)
 
 $(TEMP_DIR):
@@ -1779,12 +1778,8 @@ $(TEMP_DIR)/%/.setup: | $(TEMP_DIR)
 .SECONDARY: $(patsubst %,$(TEMP_DIR)/%/.setup,$(UNIVERSAL_ARCHES))
 
 $(TEMP_DIR)/%/DON.o: $(TEMP_DIR)/%/.setup $(NNUE_EMBED_OBJ) $(NET_SENTINEL)
-	+ENV_CXXFLAGS='$(ENV_CXXFLAGS) $(call ARCH_CXXFLAGS,$*)' \
-	 ENV_LDFLAGS='$(ENV_LDFLAGS) $(call ARCH_LDFLAGS,$*)' \
-	 ENV_LDLIBS='$(ENV_LDLIBS)' \
-		$(MAKE) -C "$(TEMP_DIR)/$*" $(UOBJ_TGT) \
-			ARCH=$* CXX=$(CXX) COMP=$(COMP) \
-			NNUE_EMBED_OBJ=$(NNUE_EMBED_OBJ)
+	ENV_CXXFLAGS='$(ENV_CXXFLAGS) $(call ARCH_CXXFLAGS,$*)' ENV_LDFLAGS='$(ENV_LDFLAGS)' ENV_ENTRY_FLAG='$(call ARCH_ENTRY_FLAG,$*)' ENV_LDLIBS='$(ENV_LDLIBS)' \
+	$(MAKE) -C '$(TEMP_DIR)/$*' $(UNIVERSAL_OBJ_TARGET) ARCH='$*' CXX='$(CXX)' COMP='$(COMP)' NNUE_EMBED_OBJ='$(NNUE_EMBED_OBJ)'
 ifeq ($(TARGET_KERNEL),Darwin)
 # Rename the initializer section
 	ld -r -rename_section __DATA __mod_init_func __DATA $(call ARCH_MACOS_SECTION,$*) '$@' -o '$@.tmp'
@@ -1806,10 +1801,7 @@ endif
 endif
 
 $(UNIVERSAL_EXE): $(UNIVERSAL_ENTRY_OBJ) $(NNUE_EMBED_OBJ) $(ARCH_OBJS)
-	$(CXX) -o '$@' $(UNIVERSAL_ENTRY_OBJ) $(NNUE_EMBED_OBJ) $(ARCH_OBJS) \
-	    $(strip $(UNIVERSAL_CXXFLAGS) $(EXTRA_CXXFLAGS)) \
-	    $(strip $(UNIVERSAL_LDFLAGS) $(EXTRA_LDFLAGS)) \
-	    $(strip $(UNIVERSAL_LDLIBS) $(EXTRA_LDLIBS))
+	$(CXX) $(strip $(UNIVERSAL_CXXFLAGS) $(EXTRA_CXXFLAGS)) $(strip $(UNIVERSAL_LDFLAGS) $(EXTRA_LDFLAGS)) $(strip $(UNIVERSAL_LDLIBS) $(EXTRA_LDLIBS)) $(UNIVERSAL_ENTRY_OBJ) $(NNUE_EMBED_OBJ) $(ARCH_OBJS) -o '$@'
 	@echo "$(OS_NAME) universal binary built: '$@'"
 
 endif  # UNIVERSAL_BUILD
