@@ -1189,7 +1189,7 @@ endif
 
 help:
 	@echo; \
-	echo "To compile $(NAME), type: "; \
+	echo "To compile '$(NAME)', type: "; \
 	echo; \
 	echo "make -j target [ARCH=arch] [COMP=compiler] [COMPCXX=cxx]"; \
 	echo; \
@@ -1411,29 +1411,29 @@ obj-clean:
 
 # Remove profiling data and temporary profiling files
 profile-clean:
-	@rm -rf profdir
+	@rm -rf 'profdir'
 	@rm -f bench.txt *.gcda *.gcno ./book/*.gcda ./tablebase/*.gcda ./nnue/*.gcda ./nnue/features/*.gcda *.s PGOBENCH.out
-	@rm -f "$(NAME).profdata" *.profraw
-	@rm -f "$(NAME)".*args*
-	@rm -f "$(NAME)".*lt*
-	@rm -f "$(NAME).res"
-	@rm -f ./-lstdc++.res
+	@rm -f '$(NAME).profdata' *.profraw
+	@rm -f '$(NAME)'.*args*
+	@rm -f '$(NAME)'.*lt*
+	@rm -f '$(NAME).res'
+	@rm -f './-lstdc++.res'
 
 # Remove universal build temporary files and generated files
 # On Windows "ln -s" to a directory makes a native directory symlink that
 # rm cannot unlink; rmdir unlinks it without following it. No-op elsewhere.
 universal-clean:
-	@find "$(TEMP_DIR)" -type l -exec rmdir {} + 2>/dev/null || true
-	@rm -rf "$(TEMP_DIR)"
-	@rm -f universal/network_dump.inc
+	@find '$(TEMP_DIR)' -type l -exec rmdir {} + 2>/dev/null || true
+	@rm -rf '$(TEMP_DIR)'
+	@rm -f 'universal/network_dump.inc'
 
 format:
-	@echo CLANG_FORMAT="$(CLANG_FORMAT)"
-	@if [ -z "$(CLANG_FORMAT)" ]; then \
+	@echo CLANG_FORMAT='$(CLANG_FORMAT)'
+	@if [ -z '$(CLANG_FORMAT)' ]; then \
 		echo "CLANG_FORMAT is not set"; \
 		exit 1; \
 	fi
-	"$(CLANG_FORMAT)" -i -style=file $(SRCS) $(UNIVERSAL_SRCS) $(HEADERS)
+	'$(CLANG_FORMAT)' -i -style='file' $(SRCS) $(UNIVERSAL_SRCS) $(HEADERS)
 
 install-hooks:
 	@root=$$($(GIT) rev-parse --show-toplevel 2>/dev/null); \
@@ -1443,13 +1443,13 @@ install-hooks:
 	src="$$root/.git-hooks/pre-commit"; \
 	dst="$$root/.git/hooks/pre-commit"; \
 	if [ ! -f "$$src" ]; then \
-		echo "Hook source not found: $$src"; exit 1; \
+		echo "Hook source not found: '$$src'"; exit 1; \
 	fi; \
 	if [ -f "$$dst" ]; then \
 		bak="$$dst.bak.$$(date +%Y%m%d%H%M%S)"; \
-		mv "$$dst" "$$bak" && echo "Existing hook moved to $$bak"; \
+		mv "$$dst" "$$bak" && echo "Existing hook moved to '$$bak'"; \
 	fi; \
-	cp "$$src" "$$dst" && chmod +x "$$dst" && echo "Installed pre-commit hook: $$dst"
+	cp "$$src" "$$dst" && chmod +x "$$dst" && echo "Installed pre-commit hook: '$$dst'"
 
 ### ==========================================================================
 ### Section 5. Private Targets
@@ -1511,42 +1511,42 @@ config-sanity: net
 	echo && \
 	echo "Testing config sanity. If this fails, try 'make help' ..." && \
 	echo && \
-	(test "$(IS_WINDOWS)" = 'no' || test "$(IS_WINDOWS)" = 'yes') && \
-	(test "$(debug)"      = 'no' || test "$(debug)"      = 'yes') && \
-	(test "$(optimize)"   = 'no' || test "$(optimize)"   = 'yes') && \
-	(test "$(ARCH_SUPPORTED)" = 'yes') && \
-	(test "$(arch)" = 'any' || test "$(arch)" = 'i386' || test "$(arch)" = 'x86_64' || \
-	 test "$(arch)" = 'e2k' || test "$(arch)" = 'loongarch64' || test "$(arch)" = 'riscv64' || \
-	 test "$(arch)" = 'ppc' || test "$(arch)" = 'ppc64' || \
-	 test "$(arch)" = 'armv7' || test "$(arch)" = 'armv8' || test "$(arch)" = 'arm64' || \
-	 test "$(arch)" = 'wasm32') && \
-	(test "$(bits)"      = '32' || test "$(bits)"      = '64') && \
-	(test "$(prefetch)"  = 'no' || test "$(prefetch)"  = 'yes') && \
-	(test "$(popcnt)"    = 'no' || test "$(popcnt)"    = 'yes') && \
-	(test "$(mmx)"       = 'no' || test "$(mmx)"       = 'yes') && \
-	(test "$(sse)"       = 'no' || test "$(sse)"       = 'yes') && \
-	(test "$(sse2)"      = 'no' || test "$(sse2)"      = 'yes') && \
-	(test "$(ssse3)"     = 'no' || test "$(ssse3)"     = 'yes') && \
-	(test "$(sse41)"     = 'no' || test "$(sse41)"     = 'yes') && \
-	(test "$(avx2)"      = 'no' || test "$(avx2)"      = 'yes') && \
-	(test "$(bmi2)"      = 'no' || (test "$(bmi2)"     = 'yes'  && \
-	(test "$(cmp)"       = 'no' || test "$(cmp)"       = 'yes'))) && \
-	(test "$(avxvnni)"   = 'no' || test "$(avxvnni)"   = 'yes') && \
-	(test "$(avx512)"    = 'no' || test "$(avx512)"    = 'yes') && \
-	(test "$(vnni256)"   = 'no' || test "$(vnni256)"   = 'yes') && \
-	(test "$(vnni512)"   = 'no' || test "$(vnni512)"   = 'yes') && \
-	(test "$(avx512icl)" = 'no' || test "$(avx512icl)" = 'yes') && \
-	(test "$(altivec)"   = 'no' || test "$(altivec)"   = 'yes') && \
-	(test "$(vsx)"       = 'no' || test "$(vsx)"       = 'yes') && \
-	(test "$(lsx)"       = 'no' || test "$(lsx)"       = 'yes') && \
-	(test "$(lasx)"      = 'no' || test "$(lasx)"      = 'yes') && \
-	(test "$(rva23)"     = 'no' || test "$(rva23)"     = 'yes') && \
-	(test "$(neon)"      = 'no' || test "$(neon)"      = 'yes') && \
-	(test "$(dotprod)"   = 'no' || test "$(dotprod)"   = 'yes') && \
-	(test "$(embedding)" = 'no' || test "$(embedding)" = 'yes') && \
-	(test "$(tablebases)" = 'no' || test "$(tablebases)" = 'yes') && \
-	(test "$(COMP)" = 'gcc' || test "$(COMP)" = 'clang' || test "$(COMP)" = 'mingw' || \
-	 test "$(COMP)" = 'icx' || test "$(COMP)" = 'ndk') || { \
+	(test '$(IS_WINDOWS)' = 'no' || test '$(IS_WINDOWS)' = 'yes') && \
+	(test '$(debug)'      = 'no' || test '$(debug)'      = 'yes') && \
+	(test '$(optimize)'   = 'no' || test '$(optimize)'   = 'yes') && \
+	(test '$(ARCH_SUPPORTED)' = 'yes') && \
+	(test '$(arch)' = 'any' || test '$(arch)' = 'i386' || test '$(arch)' = 'x86_64' || \
+	 test '$(arch)' = 'e2k' || test '$(arch)' = 'loongarch64' || test '$(arch)' = 'riscv64' || \
+	 test '$(arch)' = 'ppc' || test '$(arch)' = 'ppc64' || \
+	 test '$(arch)' = 'armv7' || test '$(arch)' = 'armv8' || test '$(arch)' = 'arm64' || \
+	 test '$(arch)' = 'wasm32') && \
+	(test '$(bits)'      = '32' || test '$(bits)'      = '64') && \
+	(test '$(prefetch)'  = 'no' || test '$(prefetch)'  = 'yes') && \
+	(test '$(popcnt)'    = 'no' || test '$(popcnt)'    = 'yes') && \
+	(test '$(mmx)'       = 'no' || test '$(mmx)'       = 'yes') && \
+	(test '$(sse)'       = 'no' || test '$(sse)'       = 'yes') && \
+	(test '$(sse2)'      = 'no' || test '$(sse2)'      = 'yes') && \
+	(test '$(ssse3)'     = 'no' || test '$(ssse3)'     = 'yes') && \
+	(test '$(sse41)'     = 'no' || test '$(sse41)'     = 'yes') && \
+	(test '$(avx2)'      = 'no' || test '$(avx2)'      = 'yes') && \
+	(test '$(bmi2)'      = 'no' || (test '$(bmi2)'     = 'yes'  && \
+	(test '$(cmp)'       = 'no' || test '$(cmp)'       = 'yes'))) && \
+	(test '$(avxvnni)'   = 'no' || test '$(avxvnni)'   = 'yes') && \
+	(test '$(avx512)'    = 'no' || test '$(avx512)'    = 'yes') && \
+	(test '$(vnni256)'   = 'no' || test '$(vnni256)'   = 'yes') && \
+	(test '$(vnni512)'   = 'no' || test '$(vnni512)'   = 'yes') && \
+	(test '$(avx512icl)' = 'no' || test '$(avx512icl)' = 'yes') && \
+	(test '$(altivec)'   = 'no' || test '$(altivec)'   = 'yes') && \
+	(test '$(vsx)'       = 'no' || test '$(vsx)'       = 'yes') && \
+	(test '$(lsx)'       = 'no' || test '$(lsx)'       = 'yes') && \
+	(test '$(lasx)'      = 'no' || test '$(lasx)'      = 'yes') && \
+	(test '$(rva23)'     = 'no' || test '$(rva23)'     = 'yes') && \
+	(test '$(neon)'      = 'no' || test '$(neon)'      = 'yes') && \
+	(test '$(dotprod)'   = 'no' || test '$(dotprod)'   = 'yes') && \
+	(test '$(embedding)' = 'no' || test '$(embedding)' = 'yes') && \
+	(test '$(tablebases)' = 'no' || test '$(tablebases)' = 'yes') && \
+	(test '$(COMP)' = 'gcc' || test '$(COMP)' = 'clang' || test '$(COMP)' = 'mingw' || \
+	 test '$(COMP)' = 'icx' || test '$(COMP)' = 'ndk') || { \
 		echo "Invalid configuration. Run 'make help' for supported options."; \
 		exit 1; \
 	}
@@ -1569,25 +1569,25 @@ clang-profile-make:
 	all
 
 clang-profile-use:
-	'$(XCRUN)' '$(LLVM_PROFDATA)' merge -output='$(NAME).profdata' *.profraw
+	$(strip $(XCRUN)) '$(LLVM_PROFDATA)' merge -output='$(NAME).profdata' *.profraw
 	$(MAKE) ARCH='$(ARCH)' COMP='$(COMP)' \
-	EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) $(EXTRA_PROFILE_FLAGS) -fprofile-use="$(NAME).profdata"' \
-	EXTRA_LDFLAGS='$(EXTRA_LDFLAGS) -fprofile-use="$(NAME).profdata"' \
+	EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) $(EXTRA_PROFILE_FLAGS) -fprofile-instr-use='\''$(NAME).profdata'\''' \
+	EXTRA_LDFLAGS='$(EXTRA_LDFLAGS) -fprofile-use='\''$(NAME).profdata'\''' \
 	EXTRA_LDLIBS='$(EXTRA_LDLIBS)' \
 	all
 
 # GCC PGO
 gcc-profile-make:
-	@mkdir -p "profdir"
+	@mkdir -p 'profdir'
 	$(MAKE) ARCH='$(ARCH)' COMP='$(COMP)' \
-	EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) $(EXTRA_PROFILE_FLAGS) -fprofile-generate="profdir"' \
+	EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) $(EXTRA_PROFILE_FLAGS) -fprofile-generate='\''profdir'\''' \
 	EXTRA_LDFLAGS='$(EXTRA_LDFLAGS)' \
 	EXTRA_LDLIBS='$(EXTRA_LDLIBS) -lgcov' \
 	all
 
 gcc-profile-use:
 	$(MAKE) ARCH='$(ARCH)' COMP='$(COMP)' \
-	EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) $(EXTRA_PROFILE_FLAGS) -fprofile-use="profdir" -fprofile-correction -fno-peel-loops -fno-tracer' \
+	EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) $(EXTRA_PROFILE_FLAGS) -fprofile-use='\''profdir'\'' -fprofile-correction -fno-peel-loops -fno-tracer' \
 	EXTRA_LDFLAGS='$(EXTRA_LDFLAGS)' \
 	EXTRA_LDLIBS='$(EXTRA_LDLIBS) -lgcov' \
 	all
@@ -1601,9 +1601,9 @@ icx-profile-make:
 	all
 
 icx-profile-use:
-	'$(XCRUN)' '$(LLVM_PROFDATA)' merge -output='$(NAME).profdata' *.profraw
+	$(strip $(XCRUN)) '$(LLVM_PROFDATA)' merge -output='$(NAME).profdata' *.profraw
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
-	EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) $(EXTRA_PROFILE_FLAGS) -fprofile-instr-use="$(NAME).profdata"' \
+	EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) $(EXTRA_PROFILE_FLAGS) -fprofile-instr-use='\''$(NAME).profdata'\''' \
 	EXTRA_LDFLAGS='$(EXTRA_LDFLAGS) -fprofile-use' \
 	EXTRA_LDLIBS='$(EXTRA_LDLIBS)' \
 	all
