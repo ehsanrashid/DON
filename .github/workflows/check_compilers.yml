@@ -14,7 +14,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # GCC 10–16 compiler images
+          # GCC 10+ compiler images
           - { name: GCC-10, comp: gcc, cxx: g++, image: "ghcr.io/official-stockfish/compiler-images:gcc-10" }
           - { name: GCC-11, comp: gcc, cxx: g++, image: "ghcr.io/official-stockfish/compiler-images:gcc-11" }
           - { name: GCC-12, comp: gcc, cxx: g++, image: "ghcr.io/official-stockfish/compiler-images:gcc-12" }
@@ -24,9 +24,9 @@ jobs:
           - { name: GCC-16, comp: gcc, cxx: g++, image: "ghcr.io/official-stockfish/compiler-images:gcc-16" }
 
           # Clang 10 compiler image
-          - { name: Clang-10, comp: clang, cxx: clang++, image: "silkeh/clang:10", needs_install: true }
+          - { name: Clang-10, comp: clang, cxx: clang++, image: "silkeh/clang:10-bullseye", needs_install: true }
 
-          # Clang 10–17 compiler images
+          # Clang 11–17 compiler images
           - { name: Clang-11, comp: clang, cxx: clang++, image: "ghcr.io/official-stockfish/compiler-images:clang-11" }
           - { name: Clang-12, comp: clang, cxx: clang++, image: "ghcr.io/official-stockfish/compiler-images:clang-12" }
           - { name: Clang-13, comp: clang, cxx: clang++, image: "ghcr.io/official-stockfish/compiler-images:clang-13" }
@@ -35,7 +35,7 @@ jobs:
           - { name: Clang-16, comp: clang, cxx: clang++, image: "ghcr.io/official-stockfish/compiler-images:clang-16" }
           - { name: Clang-17, comp: clang, cxx: clang++, image: "ghcr.io/official-stockfish/compiler-images:clang-17" }
 
-          # Clang 18–23 compiler images
+          # Clang 18+ compiler images
           - { name: Clang-18, comp: clang, cxx: clang++-18, image: "ghcr.io/official-stockfish/compiler-images:clang-18" }
           - { name: Clang-19, comp: clang, cxx: clang++-19, image: "ghcr.io/official-stockfish/compiler-images:clang-19" }
           - { name: Clang-20, comp: clang, cxx: clang++-20, image: "ghcr.io/official-stockfish/compiler-images:clang-20" }
@@ -50,20 +50,36 @@ jobs:
       - name: Install dependencies
         if: ${{ matrix.needs_install }}
         run: |
-          . /etc/os-release
-
-          if [ "$VERSION_CODENAME" = "buster" ]; then
-            echo "Debian Buster detected. Switching to archive repositories..."
-            rm -f /etc/apt/sources.list.d/debian.sources
-            cat > /etc/apt/sources.list <<EOF
+          if grep -q '^ID=debian$' /etc/os-release; then
+            . /etc/os-release
+            case "${VERSION_CODENAME:-}" in
+              buster)
+                echo "Debian Buster detected. Switching to archive repositories..."
+                rm -f /etc/apt/sources.list.d/debian.sources
+                cat > /etc/apt/sources.list <<EOF
           deb http://archive.debian.org/debian buster main contrib non-free
           deb http://archive.debian.org/debian-security buster/updates main contrib non-free
           EOF
+                ;;
+              bullseye)
+                echo "Debian Bullseye detected. Disabling repository expiry checks..."
+                ;;
+            esac
             echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99-ignore-valid-until
+            if ! strings /usr/local/lib64/libstdc++.so.6 2>/dev/null | grep -q 'GLIBCXX_3.4.29'; then
+              export LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libstdc++.so.6
+            fi
           fi
 
           apt-get update
-          apt-get install -y make git # curl
+          apt-get install -y git make #curl
+
+      - name: Check Git
+        run: |
+          git --version
+          git status
+          git rev-parse --verify HEAD
+          git branch --show-current
 
       - name: Download the network
         working-directory: src

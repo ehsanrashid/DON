@@ -1059,8 +1059,11 @@ NEW_GIT_SHA       := \
 $(shell $(GIT) rev-parse HEAD 2>/dev/null | cut -c 1-8 | tr '[:lower:]' '[:upper:]')
 NEW_GIT_DIFFINDEX := \
 $(shell $(GIT) update-index --refresh >/dev/null 2>&1; \
-    if ! $(GIT) diff-index --quiet HEAD -- 2>/dev/null; then \
-        $(GIT) diff HEAD --no-ext-diff | $(GIT) hash-object --stdin | cut -c 1-6 | tr '[:lower:]' '[:upper:]'; \
+    $(GIT) diff-index --quiet HEAD -- 2>/dev/null; \
+    status=$$?; \
+    if [ $$status -eq 1 ]; then \
+        $(GIT) diff HEAD --no-ext-diff | \
+        $(GIT) hash-object --stdin | cut -c 1-6 | tr '[:lower:]' '[:upper:]'; \
     fi)
 
 ifneq ($(NEW_GIT_DATE),)
