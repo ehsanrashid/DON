@@ -1354,7 +1354,7 @@ class ConcurrentCache final {
     explicit ConcurrentCache(usize reserveCnt = 1 * KB, float maxLoadFtr = 0.75f) noexcept :
         reserveCount(reserveCnt),
         maxLoadFactor(maxLoadFtr) {
-        // Lock every shard in a consistent order before clearing any of them.
+        // Lock every shard in a consistent order before configuring any of them.
         Array<std::unique_lock<std::shared_mutex>, ShardCount> writeLocks;
 
         for (usize i = 0; i < ShardCount; ++i)
@@ -1536,7 +1536,7 @@ class ConcurrentCache final {
 
     void configure(ValueMap& valueMap) const noexcept {
         valueMap.max_load_factor(max_load_factor(maxLoadFactor));
-        valueMap.reserve(reserve_count(reserveCount / ShardCount));
+        valueMap.reserve(reserve_count(ceil_div(reserveCount, ShardCount)));
     }
 
     Shard& get_shard(const Key& key) noexcept { return shards[shard_index(key)]; }
