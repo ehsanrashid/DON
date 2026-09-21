@@ -23,8 +23,10 @@ jobs:
           - { name: GCC-15, comp: gcc, cxx: g++, image: "ghcr.io/official-stockfish/compiler-images:gcc-15" }
           - { name: GCC-16, comp: gcc, cxx: g++, image: "ghcr.io/official-stockfish/compiler-images:gcc-16" }
 
+          # Clang 10 compiler image
+          - { name: Clang-10, comp: clang, cxx: clang++, image: "silkeh/clang:10", needs_install: true }
+
           # Clang 10–17 compiler images
-          - { name: Clang-10, comp: clang, cxx: clang++, image: "ghcr.io/official-stockfish/compiler-images:clang-10" }
           - { name: Clang-11, comp: clang, cxx: clang++, image: "ghcr.io/official-stockfish/compiler-images:clang-11" }
           - { name: Clang-12, comp: clang, cxx: clang++, image: "ghcr.io/official-stockfish/compiler-images:clang-12" }
           - { name: Clang-13, comp: clang, cxx: clang++, image: "ghcr.io/official-stockfish/compiler-images:clang-13" }
@@ -45,7 +47,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Download the used network from the fishtest framework
+      - name: Install dependencies
+        if: ${{ matrix.needs_install }}
+        run: |
+          apt-get update
+          apt-get install -y make git # curl
+
+      - name: Download the network
         working-directory: src
         run: make net
 
