@@ -588,10 +588,10 @@ ifneq ($(GNU_LD),)
 LDFLAGS += -Wl,--no-as-needed
 endif
 # Determine GCC major version for Linux Clang masquerading as GCC
-GCC_MAJOR := $(shell [ "$(CXX_IS_CLANG)" = "yes" ] && [ "$(CXX_IS_APPLE_CLANG)" = "no" ] && $(CXX) -dumpversion 2>/dev/null | cut -f1 -d. || echo)
-# Link std::filesystem explicitly if using Linux Clang < 9
+GCC_MAJOR := $(shell [ "$(CXX_IS_CLANG)" = 'yes' ] && [ "$(CXX_IS_APPLE_CLANG)" = 'no' ] && $(CXX) -dumpversion 2>/dev/null | cut -f1 -d. || echo)
+# Link std::filesystem explicitly for Linux Clang < 9
 ifneq ($(GCC_MAJOR),)
-ifeq ($(shell test $(GCC_MAJOR) -lt 9 && echo yes),yes)
+ifeq ($(shell expr $(GCC_MAJOR) \< 9),1)
 LDLIBS += -lstdc++fs
 endif
 endif
@@ -619,33 +619,6 @@ endif
 PROFILE_MAKE := gcc-profile-make
 PROFILE_USE  := gcc-profile-use
 endif
-# MinGW
-else \
-ifeq ($(COMP),mingw)
-MINGW_ARCH      := $(if $(filter 64,$(bits)),x86_64,i686)
-MINGW_CXX_POSIX := $(MINGW_ARCH)-w64-mingw32-c++-posix
-MINGW_CXX       := $(MINGW_ARCH)-w64-mingw32-c++
-
-# Prefer POSIX threading variant if available
-CXX := $(if $(call FIND_EXE,$(MINGW_CXX_POSIX)),$(MINGW_CXX_POSIX),$(MINGW_CXX))
-
-CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-declarations -fno-ipa-cp-clone -fconstexpr-ops-limit=500000000
-
-# Profile-guided optimization for MinGW using GCC
-PROFILE_MAKE := gcc-profile-make
-PROFILE_USE  := gcc-profile-use
-# Intel ICX
-else \
-ifeq ($(COMP),icx)
-CXX := icpx
-
-CXX_IS_CLANG := yes
-
-CXXFLAGS += --intel -pedantic -Wextra -Wshadow -Wmissing-prototypes -Wconditional-uninitialized -Wabi -Wdeprecated -fconstexpr-steps=500000000
-
-# Profile-guided optimization for ICX
-PROFILE_MAKE := icx-profile-make
-PROFILE_USE  := icx-profile-use
 # Clang
 else \
 ifeq ($(COMP),clang)
@@ -686,12 +659,46 @@ CXX_IS_APPLE_CLANG := yes
 # Link std::filesystem for Linux Clang
 else \
 ifeq ($(TARGET_KERNEL),Linux)
+# Determine Clang major version
+CLANG_MAJOR := $(shell $(CXX) -dumpversion 2>/dev/null | cut -f1 -d. || echo)
+# Link std::filesystem explicitly for Clang < 11
+ifneq ($(CLANG_MAJOR),)
+ifeq ($(shell expr $(CLANG_MAJOR) \< 11),1)
 LDLIBS += -lstdc++fs
+endif
+endif
 endif
 
 # Profile-guided optimization for Clang
 PROFILE_MAKE := clang-profile-make
 PROFILE_USE  := clang-profile-use
+# MinGW
+else \
+ifeq ($(COMP),mingw)
+MINGW_ARCH      := $(if $(filter 64,$(bits)),x86_64,i686)
+MINGW_CXX_POSIX := $(MINGW_ARCH)-w64-mingw32-c++-posix
+MINGW_CXX       := $(MINGW_ARCH)-w64-mingw32-c++
+
+# Prefer POSIX threading variant if available
+CXX := $(if $(call FIND_EXE,$(MINGW_CXX_POSIX)),$(MINGW_CXX_POSIX),$(MINGW_CXX))
+
+CXXFLAGS += -pedantic -Wextra -Wshadow -Wmissing-declarations -fno-ipa-cp-clone -fconstexpr-ops-limit=500000000
+
+# Profile-guided optimization for MinGW using GCC
+PROFILE_MAKE := gcc-profile-make
+PROFILE_USE  := gcc-profile-use
+# Intel ICX
+else \
+ifeq ($(COMP),icx)
+CXX := icpx
+
+CXX_IS_CLANG := yes
+
+CXXFLAGS += --intel -pedantic -Wextra -Wshadow -Wmissing-prototypes -Wconditional-uninitialized -Wabi -Wdeprecated -fconstexpr-steps=500000000
+
+# Profile-guided optimization for ICX
+PROFILE_MAKE := icx-profile-make
+PROFILE_USE  := icx-profile-use
 # Android NDK Clang: cross-compile for Android using NDK r27c or later
 else \
 ifeq ($(COMP),ndk)
@@ -1254,17 +1261,17 @@ help:
 	echo; \
 	echo "Simple examples. If you don't know what to do, you likely want to run one of:"; \
 	echo; \
-	echo 'make -j profile-build ARCH=native               # Fast compile for local system'; \
-	echo 'make -j profile-build ARCH=x86-64-avx2          # Fast portable compile for AVX2-capable x86-64 systems'; \
-	echo 'make -j profile-build ARCH=x86-64-sse41-popcnt  # Portable compile for SSE4.1 + POPCNT x86-64 systems'; \
-	echo 'make -j profile-build ARCH=x86-64               # Portable compile for baseline x86-64 systems'; \
+	echo "make -j profile-build ARCH='native'               # Fast compile for local system"; \
+	echo "make -j profile-build ARCH='x86-64-avx2'          # Fast portable compile for AVX2-capable x86-64 systems"; \
+	echo "make -j profile-build ARCH='x86-64-sse41-popcnt'  # Portable compile for SSE4.1 + POPCNT x86-64 systems"; \
+	echo "make -j profile-build ARCH='x86-64'               # Portable compile for baseline x86-64 systems"; \
 	echo; \
 	echo "Advanced examples, for experienced users: "; \
 	echo; \
-	echo 'make -j profile-build ARCH=x86-64-avxvnni'; \
-	echo 'make -j profile-build ARCH=x86-64-avxvnni COMP=gcc CXX=g++-12.0'; \
-	echo 'make -j profile-build ARCH=x86-64-universal RUN_PREFIX="/path/to/sde -future --" CXX=g++-15'; \
-	echo 'make -j build ARCH=x86-64-ssse3 COMP=clang'; \
+	echo "make -j profile-build ARCH='x86-64-avxvnni'"; \
+	echo "make -j profile-build ARCH='x86-64-avxvnni' COMP=gcc CXX=g++-12.0"; \
+	echo "make -j profile-build ARCH='x86-64-universal' RUN_PREFIX='/path/to/sde -future --' CXX=g++-15"; \
+	echo "make -j build ARCH='x86-64-ssse3' COMP=clang"; \
 	echo
 
 
@@ -1398,9 +1405,9 @@ install:
 clean: obj-clean profile-clean universal-clean
 	@rm -f .depend *~ core
 
-# Remove binaries, object files, and build metadata
+# Remove build metadata, object files, and binaries
 obj-clean:
-	@rm -f "$(EXE)" ./*.o ./nnue/*.o ./nnue/features/*.o ./book/*.o ./tablebase/*.o "$(GIT_DATE_FILE)" "$(GIT_SHA_FILE)" "$(GIT_DIFFINDEX_FILE)"
+	@rm -f "$(GIT_DATE_FILE)" "$(GIT_SHA_FILE)" "$(GIT_DIFFINDEX_FILE)" ./*.o "$(EXE)"
 
 # Remove profiling data and temporary profiling files
 profile-clean:
@@ -1504,42 +1511,42 @@ config-sanity: net
 	echo && \
 	echo "Testing config sanity. If this fails, try 'make help' ..." && \
 	echo && \
-	(test "$(IS_WINDOWS)" = "no" || test "$(IS_WINDOWS)" = "yes") && \
-	(test "$(debug)"      = "no" || test "$(debug)"      = "yes") && \
-	(test "$(optimize)"   = "no" || test "$(optimize)"   = "yes") && \
-	(test "$(ARCH_SUPPORTED)" = "yes") && \
-	(test "$(arch)" = "any" || test "$(arch)" = "i386" || test "$(arch)" = "x86_64" || \
-	 test "$(arch)" = "e2k" || test "$(arch)" = "loongarch64" || test "$(arch)" = "riscv64" || \
-	 test "$(arch)" = "ppc" || test "$(arch)" = "ppc64" || \
-	 test "$(arch)" = "armv7" || test "$(arch)" = "armv8" || test "$(arch)" = "arm64" || \
-	 test "$(arch)" = "wasm32") && \
-	(test "$(bits)"      = "32" || test "$(bits)"      = "64") && \
-	(test "$(prefetch)"  = "no" || test "$(prefetch)"  = "yes") && \
-	(test "$(popcnt)"    = "no" || test "$(popcnt)"    = "yes") && \
-	(test "$(mmx)"       = "no" || test "$(mmx)"       = "yes") && \
-	(test "$(sse)"       = "no" || test "$(sse)"       = "yes") && \
-	(test "$(sse2)"      = "no" || test "$(sse2)"      = "yes") && \
-	(test "$(ssse3)"     = "no" || test "$(ssse3)"     = "yes") && \
-	(test "$(sse41)"     = "no" || test "$(sse41)"     = "yes") && \
-	(test "$(avx2)"      = "no" || test "$(avx2)"      = "yes") && \
-	(test "$(bmi2)"      = "no" || (test "$(bmi2)"     = "yes"  && \
-	(test "$(cmp)"       = "no" || test "$(cmp)"       = "yes"))) && \
-	(test "$(avxvnni)"   = "no" || test "$(avxvnni)"   = "yes") && \
-	(test "$(avx512)"    = "no" || test "$(avx512)"    = "yes") && \
-	(test "$(vnni256)"   = "no" || test "$(vnni256)"   = "yes") && \
-	(test "$(vnni512)"   = "no" || test "$(vnni512)"   = "yes") && \
-	(test "$(avx512icl)" = "no" || test "$(avx512icl)" = "yes") && \
-	(test "$(altivec)"   = "no" || test "$(altivec)"   = "yes") && \
-	(test "$(vsx)"       = "no" || test "$(vsx)"       = "yes") && \
-	(test "$(lsx)"       = "no" || test "$(lsx)"       = "yes") && \
-	(test "$(lasx)"      = "no" || test "$(lasx)"      = "yes") && \
-	(test "$(rva23)"     = "no" || test "$(rva23)"     = "yes") && \
-	(test "$(neon)"      = "no" || test "$(neon)"      = "yes") && \
-	(test "$(dotprod)"   = "no" || test "$(dotprod)"   = "yes") && \
-	(test "$(embedding)" = "no" || test "$(embedding)" = "yes") && \
-	(test "$(tablebases)" = "no" || test "$(tablebases)" = "yes") && \
-	(test "$(COMP)" = "gcc" || test "$(COMP)" = "clang" || test "$(COMP)" = "mingw" || \
-	 test "$(COMP)" = "icx" || test "$(COMP)" = "ndk") || { \
+	(test "$(IS_WINDOWS)" = 'no' || test "$(IS_WINDOWS)" = 'yes') && \
+	(test "$(debug)"      = 'no' || test "$(debug)"      = 'yes') && \
+	(test "$(optimize)"   = 'no' || test "$(optimize)"   = 'yes') && \
+	(test "$(ARCH_SUPPORTED)" = 'yes') && \
+	(test "$(arch)" = 'any' || test "$(arch)" = 'i386' || test "$(arch)" = 'x86_64' || \
+	 test "$(arch)" = 'e2k' || test "$(arch)" = 'loongarch64' || test "$(arch)" = 'riscv64' || \
+	 test "$(arch)" = 'ppc' || test "$(arch)" = 'ppc64' || \
+	 test "$(arch)" = 'armv7' || test "$(arch)" = 'armv8' || test "$(arch)" = 'arm64' || \
+	 test "$(arch)" = 'wasm32') && \
+	(test "$(bits)"      = '32' || test "$(bits)"      = '64') && \
+	(test "$(prefetch)"  = 'no' || test "$(prefetch)"  = 'yes') && \
+	(test "$(popcnt)"    = 'no' || test "$(popcnt)"    = 'yes') && \
+	(test "$(mmx)"       = 'no' || test "$(mmx)"       = 'yes') && \
+	(test "$(sse)"       = 'no' || test "$(sse)"       = 'yes') && \
+	(test "$(sse2)"      = 'no' || test "$(sse2)"      = 'yes') && \
+	(test "$(ssse3)"     = 'no' || test "$(ssse3)"     = 'yes') && \
+	(test "$(sse41)"     = 'no' || test "$(sse41)"     = 'yes') && \
+	(test "$(avx2)"      = 'no' || test "$(avx2)"      = 'yes') && \
+	(test "$(bmi2)"      = 'no' || (test "$(bmi2)"     = 'yes'  && \
+	(test "$(cmp)"       = 'no' || test "$(cmp)"       = 'yes'))) && \
+	(test "$(avxvnni)"   = 'no' || test "$(avxvnni)"   = 'yes') && \
+	(test "$(avx512)"    = 'no' || test "$(avx512)"    = 'yes') && \
+	(test "$(vnni256)"   = 'no' || test "$(vnni256)"   = 'yes') && \
+	(test "$(vnni512)"   = 'no' || test "$(vnni512)"   = 'yes') && \
+	(test "$(avx512icl)" = 'no' || test "$(avx512icl)" = 'yes') && \
+	(test "$(altivec)"   = 'no' || test "$(altivec)"   = 'yes') && \
+	(test "$(vsx)"       = 'no' || test "$(vsx)"       = 'yes') && \
+	(test "$(lsx)"       = 'no' || test "$(lsx)"       = 'yes') && \
+	(test "$(lasx)"      = 'no' || test "$(lasx)"      = 'yes') && \
+	(test "$(rva23)"     = 'no' || test "$(rva23)"     = 'yes') && \
+	(test "$(neon)"      = 'no' || test "$(neon)"      = 'yes') && \
+	(test "$(dotprod)"   = 'no' || test "$(dotprod)"   = 'yes') && \
+	(test "$(embedding)" = 'no' || test "$(embedding)" = 'yes') && \
+	(test "$(tablebases)" = 'no' || test "$(tablebases)" = 'yes') && \
+	(test "$(COMP)" = 'gcc' || test "$(COMP)" = 'clang' || test "$(COMP)" = 'mingw' || \
+	 test "$(COMP)" = 'icx' || test "$(COMP)" = 'ndk') || { \
 		echo "Invalid configuration. Run 'make help' for supported options."; \
 		exit 1; \
 	}
@@ -1713,7 +1720,7 @@ else
 ARCH_MAIN_LDFLAGS = -Wl,--defsym=main=$(call ARCH_MANGLED,$(1))
 endif
 
-EMBED_DIR_SUPPORTED := $(shell echo 'int main(){}' | $(CXX) -x c++ --embed-dir=. -o /dev/null -c - 2>/dev/null && echo 1 || echo 0)
+EMBED_DIR_SUPPORTED := $(shell echo "int main(){}" | $(CXX) -x c++ --embed-dir=. -o /dev/null -c - 2>/dev/null && echo 1 || echo 0)
 ifeq ($(EMBED_DIR_SUPPORTED),1)
 EMBED_DIR = --embed-dir="$(CURDIR)"
 else
