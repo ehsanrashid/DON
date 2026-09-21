@@ -145,7 +145,7 @@ void init_magics() noexcept {
         #endif
           - popcount(magic.maskBB);
 
-        XorShift64Star prng(Seeds[PT - BISHOP][rank_of(s)]);
+        Xorshift64s prng(Seeds[PT - BISHOP][rank_of(s)]);
 
         // Epoch array to speed-up the magic verification process
         Array<u32, BlockSizes[PT - BISHOP]> epoch{};

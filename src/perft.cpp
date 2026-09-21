@@ -134,7 +134,9 @@ void PerftData::operator+=(const PerftData& perftData) noexcept {
 
 struct PTEntry final {
    public:
-    u64 nodes() const noexcept { return nodes64; }
+    [[nodiscard]] u32   key() const noexcept { return key32; }
+    [[nodiscard]] Depth depth() const noexcept { return depth16; }
+    [[nodiscard]] u64   nodes() const noexcept { return nodes64; }
 
     void save(u32 k, Depth d, u64 n) noexcept {
 
@@ -278,21 +280,21 @@ ProbResult PerftTable::probe(const Key key, const Depth depth) const noexcept {
 
     const auto* const ptc = cluster(key);
 
-    const u32 key32 = static_cast<u32>(key);
+    const u32 key32 = compress_key32(key);
 
     for (const auto& entry : ptc->entries)
-        if (entry.key32 == key32 && entry.depth16 == depth)
+        if (entry.key() == key32 && entry.depth() == depth)
             return {true, const_cast<PTEntry*>(&entry)};
 
     const auto* fte = ptc->entries.data();
     const auto* rte = fte;
 
     for (usize i = 1; i < ptc->entries.size(); ++i)
-        if (rte->depth16 > ptc->entries[i].depth16)
+        if (rte->depth() > ptc->entries[i].depth())
             rte = &ptc->entries[i];
 
     return {false,
-            const_cast<PTEntry*>(rte->depth16 <= depth ? rte : fte + ptc->entries.size() - 1)};
+            const_cast<PTEntry*>(rte->depth() <= depth ? rte : fte + ptc->entries.size() - 1)};
 }
 
 PerftTable perftTable;
@@ -373,7 +375,7 @@ PerftData perft(Position& pos, const Depth depth, const bool detail) noexcept {
                     {
                         iPerftData = perft<false>(pos, depth - 1, detail);
 
-                        pte->save(static_cast<u32>(key), depth - 1, iPerftData.nodes);
+                        pte->save(compress_key32(key), depth - 1, iPerftData.nodes);
                     }
                 }
                 else

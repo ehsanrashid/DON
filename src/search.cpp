@@ -2778,7 +2778,7 @@ Move Skill::pick_move(const RootMoves& rootMoves,
                       const usize      multiPV,
                       const bool       forcePick) noexcept {
     assert(0 < multiPV && multiPV <= rootMoves.size());
-    static XorShift64Star prng(now());  // PRNG sequence should be non-deterministic
+    static Xorshift64s prng(now());  // PRNG sequence should be non-deterministic
 
     if (forcePick || bestMove == Move::None)
     {
