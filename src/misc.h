@@ -1354,20 +1354,18 @@ class ConcurrentCache final {
     explicit ConcurrentCache(usize reserveCnt = 1 * KB, float maxLoadFtr = 0.75f) noexcept :
         reserveCount(reserveCnt),
         maxLoadFactor(maxLoadFtr) {
-        // Lock every shard in a consistent order before configuring any of them.
-        Array<std::unique_lock<std::shared_mutex>, ShardCount> writeLocks;
-
-        for (usize i = 0; i < ShardCount; ++i)
-            writeLocks[i] = std::unique_lock(shards[i].mutex);
-
         for (auto& shard : shards)
+        {
+            std::lock_guard writeLock(shard.mutex);
+
             configure(shard.valueMap);
+        }
     }
 
     template<typename... Args>
     Value access_or_build(const Key& key, Args&&... args) noexcept {
         auto& shard = get_shard(key);
-        // Fast path: shared read lock to check and access
+        // Fast path: check for an existing value under a shared lock.
         {
             std::shared_lock readLock(shard.mutex);
 
@@ -1375,13 +1373,13 @@ class ConcurrentCache final {
                 return get(itr->second);
         }
 
-        // Slow path: exclusive write lock to insert and construct
+        // Slow path: acquire exclusive lock, then insert and construct if missing.
         std::lock_guard writeLock(shard.mutex);
 
-        // Lookup and insert if missing
+        // Look up and insert if missing.
         const auto [itr, inserted] = shard.valueMap.try_emplace(key);
 
-        // Inserted: construct the value
+        // Construct the value if it was inserted.
         if (inserted)
             set(itr->second, std::forward<Args>(args)...);
 
@@ -1391,7 +1389,7 @@ class ConcurrentCache final {
     template<typename Builder, typename... Args>
     Value access_or_build_with(const Key& key, Builder&& builder, Args&&... args) noexcept {
         auto& shard = get_shard(key);
-        // Fast path: shared read lock to check and access
+        // Fast path: check for an existing value under a shared lock.
         {
             std::shared_lock readLock(shard.mutex);
 
@@ -1399,13 +1397,13 @@ class ConcurrentCache final {
                 return get(itr->second);
         }
 
-        // Slow path: exclusive write lock to insert and construct
+        // Slow path: acquire exclusive lock, then insert and construct if missing.
         std::lock_guard writeLock(shard.mutex);
 
-        // Lookup and insert if missing
+        // Look up and insert if missing.
         const auto [itr, inserted] = shard.valueMap.try_emplace(key);
 
-        // Inserted: construct the value
+        // Construct the value if it was inserted.
         if (inserted)
             set(itr->second, std::forward<Builder>(builder)(std::forward<Args>(args)...));
 
@@ -1416,7 +1414,7 @@ class ConcurrentCache final {
     auto
     transform_access_or_build(const Key& key, Transformer&& transformer, Args&&... args) noexcept {
         auto& shard = get_shard(key);
-        // Fast path: shared read lock to check and access
+        // Fast path: check for an existing value under a shared lock.
         {
             std::shared_lock readLock(shard.mutex);
 
@@ -1424,13 +1422,13 @@ class ConcurrentCache final {
                 return std::forward<Transformer>(transformer)(get_ref(itr->second));
         }
 
-        // Slow path: exclusive write lock to insert and construct
+        // Slow path: acquire exclusive lock, then insert and construct if missing.
         std::lock_guard writeLock(shard.mutex);
 
-        // Lookup and insert if missing
+        // Look up and insert if missing.
         const auto [itr, inserted] = shard.valueMap.try_emplace(key);
 
-        // Inserted: construct the value
+        // Construct the value if it was inserted.
         if (inserted)
             set(itr->second, std::forward<Args>(args)...);
 
@@ -1443,7 +1441,7 @@ class ConcurrentCache final {
                                         Builder&&     builder,
                                         Args&&... args) noexcept {
         auto& shard = get_shard(key);
-        // Fast path: shared read lock to check and access
+        // Fast path: check for an existing value under a shared lock.
         {
             std::shared_lock readLock(shard.mutex);
 
@@ -1451,13 +1449,13 @@ class ConcurrentCache final {
                 return std::forward<Transformer>(transformer)(get_ref(itr->second));
         }
 
-        // Slow path: exclusive write lock to insert and construct
+        // Slow path: acquire exclusive lock, then insert and construct if missing.
         std::lock_guard writeLock(shard.mutex);
 
-        // Lookup and insert if missing
+        // Look up and insert if missing.
         const auto [itr, inserted] = shard.valueMap.try_emplace(key);
 
-        // Inserted: construct the value
+        // Construct the value if it was inserted.
         if (inserted)
             set(itr->second, std::forward<Builder>(builder)(std::forward<Args>(args)...));
 
@@ -1465,14 +1463,10 @@ class ConcurrentCache final {
     }
 
     void reset() noexcept {
-        // Lock every shard in a consistent order before clearing any of them.
-        Array<std::unique_lock<std::shared_mutex>, ShardCount> writeLocks;
-
-        for (usize i = 0; i < ShardCount; ++i)
-            writeLocks[i] = std::unique_lock(shards[i].mutex);
-
         for (auto& shard : shards)
         {
+            std::lock_guard writeLock(shard.mutex);
+
             shard.valueMap.clear();
             shard.valueMap.rehash(0);
             configure(shard.valueMap);
@@ -1485,15 +1479,16 @@ class ConcurrentCache final {
     ConcurrentCache(ConcurrentCache&&)                 = delete;
     ConcurrentCache& operator=(ConcurrentCache&&)      = delete;
 
-    static constexpr usize ShardCount    = 16;
+    static constexpr usize ShardCount    = 32;
     static constexpr usize ThresholdSize = 128;
+    static_assert(is_power_of_2(ShardCount), "ShardCount has to be power of 2");
 
     using StorageValue =
       std::conditional_t<sizeof(Value) <= ThresholdSize, Value, std::unique_ptr<Value>>;
 
     using ValueMap = std::unordered_map<Key, StorageValue>;
 
-    struct Shard final {
+    struct alignas(64) Shard final {
        public:
         std::shared_mutex mutex;
         ValueMap          valueMap;
@@ -1501,13 +1496,13 @@ class ConcurrentCache final {
 
     using Shards = Array<Shard, ShardCount>;
 
-    // Helper functions for accessing the stored value
+    // Helper functions for hashing, sharding, and value storage.
 
     // General-purpose key hasher
     static usize hash_key(const Key& key) noexcept { return std::hash<Key>{}(key); }
 
     // Select the shard associated with the key.
-    static usize shard_index(const Key& key) noexcept { return hash_key(key) % ShardCount; }
+    static usize shard_index(const Key& key) noexcept { return hash_key(key) & (ShardCount - 1); }
 
     // Set the stored value, using direct storage or heap allocation based on its size.
     template<typename... Args>
