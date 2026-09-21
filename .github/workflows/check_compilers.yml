@@ -50,6 +50,18 @@ jobs:
       - name: Install dependencies
         if: ${{ matrix.needs_install }}
         run: |
+          . /etc/os-release
+
+          if [ "$VERSION_CODENAME" = "buster" ]; then
+            echo "Debian Buster detected. Switching to archive repositories..."
+            rm -f /etc/apt/sources.list.d/debian.sources
+            cat > /etc/apt/sources.list <<EOF
+          deb http://archive.debian.org/debian buster main contrib non-free
+          deb http://archive.debian.org/debian-security buster/updates main contrib non-free
+          EOF
+            echo 'Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/99-ignore-valid-until
+          fi
+
           apt-get update
           apt-get install -y make git # curl
 
