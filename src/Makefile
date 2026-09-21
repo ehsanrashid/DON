@@ -1284,11 +1284,11 @@ help:
 	format install-hooks
 
 analyze: net config-sanity obj-clean
-	$(MAKE) -k ARCH=$(ARCH) COMP=$(COMP) $(OBJS)
+	$(MAKE) -k ARCH='$(ARCH)' COMP='$(COMP)' $(OBJS)
 
 ifeq ($(UNIVERSAL_BUILD),no)
 build: net config-sanity
-	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) all
+	$(MAKE) ARCH='$(ARCH)' COMP='$(COMP)' all
 
 profile-build: net config-sanity obj-clean profile-clean
 	@echo; \
@@ -1308,15 +1308,15 @@ profile-build: net config-sanity obj-clean profile-clean
 endif
 
 # Default network filename, read from evaluate.h's EvalFileDefaultName.
-macos-lipo: NNUE_NET := $(shell grep -oE 'nn-[0-9a-f]+\.nnue' "$(CURDIR)/evaluate.h" | head -1)
+macos-lipo: NNUE_NET := $(shell grep -oE 'nn-[0-9a-f]+\.nnue' '$(CURDIR)/evaluate.h' | head -1)
 macos-lipo:
 	@echo; \
 	echo "Step 1/4. Building x86-64 slice (network shared from Apple-silicon slice) ..."
-	CXXFLAGS='-arch x86_64' $(MAKE) build ARCH='x86-64-universal' COMP='$(COMP)' MACOS_X86_64_SLICE='1'
+	$(MAKE) ENV_CXXFLAGS='$(ENV_CXXFLAGS) -arch x86_64' ARCH='x86-64-universal' COMP='$(COMP)' MACOS_X86_64_SLICE='1' build
 	mv '$(EXE)' '$(EXE)-x86_64'
 	@echo; \
 	echo "Step 2/4. Building Apple silicon slice ..."
-	$(MAKE) profile-build ARCH='apple-silicon' COMP='$(COMP)'
+	$(MAKE) ARCH='apple-silicon' COMP='$(COMP)' profile-build
 	mv '$(EXE)' '$(EXE)-arm64'
 	@echo; \
 	echo "Step 3/4. Combining slices and locating the embedded network ..."
@@ -1552,7 +1552,7 @@ config-sanity: net
 	}
 
 $(EXE): $(OBJS) $(NNUE_EMBED_OBJ)
-	+$(CXX) $(strip $(LDFLAGS)) $(OBJS) $(ENTRY_FLAG) $(NNUE_EMBED_OBJ) $(strip $(LDLIBS)) -o '$@'
+	$(strip $(CXX) $(LDFLAGS) $(OBJS) $(ENTRY_FLAG) $(NNUE_EMBED_OBJ) $(LDLIBS)) -o '$@'
 
 %.o: %.cpp
 	$(strip $(CXX) $(CPPFLAGS) $(CXXFLAGS)) -c '$<' -o '$@'
@@ -1562,11 +1562,7 @@ misc.o: misc.cpp $(GIT_DATE_FILE) $(GIT_SHA_FILE) $(GIT_DIFFINDEX_FILE)
 
 # Clang PGO
 clang-profile-make:
-	$(MAKE) ARCH='$(ARCH)' COMP='$(COMP)' \
-	EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) $(EXTRA_PROFILE_FLAGS) -fprofile-generate' \
-	EXTRA_LDFLAGS='$(EXTRA_LDFLAGS) -fprofile-generate' \
-	EXTRA_LDLIBS='$(EXTRA_LDLIBS)' \
-	all
+	$(MAKE) ARCH='$(ARCH)' COMP='$(COMP)' EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) $(EXTRA_PROFILE_FLAGS) -fprofile-generate' EXTRA_LDFLAGS='$(EXTRA_LDFLAGS) -fprofile-generate' EXTRA_LDLIBS='$(EXTRA_LDLIBS)' all
 
 clang-profile-use:
 	$(strip $(XCRUN)) '$(LLVM_PROFDATA)' merge -output='$(NAME).profdata' *.profraw
@@ -1579,34 +1575,18 @@ clang-profile-use:
 # GCC PGO
 gcc-profile-make:
 	@mkdir -p 'profdir'
-	$(MAKE) ARCH='$(ARCH)' COMP='$(COMP)' \
-	EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) $(EXTRA_PROFILE_FLAGS) -fprofile-generate='\''profdir'\''' \
-	EXTRA_LDFLAGS='$(EXTRA_LDFLAGS)' \
-	EXTRA_LDLIBS='$(EXTRA_LDLIBS) -lgcov' \
-	all
+	$(MAKE) ARCH='$(ARCH)' COMP='$(COMP)' EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) $(EXTRA_PROFILE_FLAGS) -fprofile-generate='\''profdir'\''' EXTRA_LDFLAGS='$(EXTRA_LDFLAGS)' EXTRA_LDLIBS='$(EXTRA_LDLIBS) -lgcov' all
 
 gcc-profile-use:
-	$(MAKE) ARCH='$(ARCH)' COMP='$(COMP)' \
-	EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) $(EXTRA_PROFILE_FLAGS) -fprofile-use='\''profdir'\'' -fprofile-correction -fno-peel-loops -fno-tracer' \
-	EXTRA_LDFLAGS='$(EXTRA_LDFLAGS)' \
-	EXTRA_LDLIBS='$(EXTRA_LDLIBS) -lgcov' \
-	all
+	$(MAKE) ARCH='$(ARCH)' COMP='$(COMP)' EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) $(EXTRA_PROFILE_FLAGS) -fprofile-use='\''profdir'\'' -fprofile-correction -fno-peel-loops -fno-tracer' EXTRA_LDFLAGS='$(EXTRA_LDFLAGS)' EXTRA_LDLIBS='$(EXTRA_LDLIBS) -lgcov' all
 
 # ICC/ICX PGO
 icx-profile-make:
-	$(MAKE) ARCH='$(ARCH)' COMP='$(COMP)' \
-	EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) $(EXTRA_PROFILE_FLAGS) -fprofile-instr-generate' \
-	EXTRA_LDFLAGS='$(EXTRA_LDFLAGS) -fprofile-instr-generate' \
-	EXTRA_LDLIBS='$(EXTRA_LDLIBS)' \
-	all
+	$(MAKE) ARCH='$(ARCH)' COMP='$(COMP)' EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) $(EXTRA_PROFILE_FLAGS) -fprofile-instr-generate' EXTRA_LDFLAGS='$(EXTRA_LDFLAGS) -fprofile-instr-generate' EXTRA_LDLIBS='$(EXTRA_LDLIBS)' all
 
 icx-profile-use:
 	$(strip $(XCRUN)) '$(LLVM_PROFDATA)' merge -output='$(NAME).profdata' *.profraw
-	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
-	EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) $(EXTRA_PROFILE_FLAGS) -fprofile-instr-use='\''$(NAME).profdata'\''' \
-	EXTRA_LDFLAGS='$(EXTRA_LDFLAGS) -fprofile-use' \
-	EXTRA_LDLIBS='$(EXTRA_LDLIBS)' \
-	all
+	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) EXTRA_CXXFLAGS='$(EXTRA_CXXFLAGS) $(EXTRA_PROFILE_FLAGS) -fprofile-instr-use='\''$(NAME).profdata'\''' EXTRA_LDFLAGS='$(EXTRA_LDFLAGS) -fprofile-use' EXTRA_LDLIBS='$(EXTRA_LDLIBS)' all
 
 .depend: $(SRCS)
 	@echo Generating dependencies...
@@ -1762,10 +1742,10 @@ $(NET_SENTINEL): | $(TEMP_DIR)
 	@touch '$@'
 
 $(NNUE_EMBED_OBJ): $(UNIVERSAL_SRC_DIR)/nnue_embed.cpp $(NET_SENTINEL) | $(TEMP_DIR)
-	$(CXX) -O2 -std=c++20 -Wno-c++26-extensions $(SLICE_DEF) $(strip $(MACOS_BUILD_FLAGS) $(EXTRA_CXXFLAGS)) $(EMBED_DIR) -c '$<' -o '$@'
+	$(strip $(CXX) -O2 -std=c++20 -Wno-c++26-extensions $(SLICE_DEF) $(MACOS_BUILD_FLAGS) $(EXTRA_CXXFLAGS)) $(EMBED_DIR) -c '$<' -o '$@'
 
 $(UNIVERSAL_ENTRY_OBJ): $(UNIVERSAL_ENTRY_SRC) | $(TEMP_DIR)
-	$(CXX) -O2 -std=c++20 $(strip $(MACOS_BUILD_FLAGS) $(EXTRA_CXXFLAGS)) -c '$<' -o '$@'
+	$(strip $(CXX) -O2 -std=c++20 $(MACOS_BUILD_FLAGS) $(EXTRA_CXXFLAGS)) -c '$<' -o '$@'
 
 # Symlink tracked top-level items from src/ into temp_builds/<arch>/.
 $(TEMP_DIR)/%/.setup: | $(TEMP_DIR)
