@@ -56,13 +56,12 @@ Value evaluate(const Position&         pos,
     const double material    = pos.material();
     const double rule50Count = pos.rule50_count();
 
-    // Blend NNUE and optimism with material scaling, then damp the evaluation by the 50-move rule
-    const i32 v = constexpr_round(((nnue * (Scale + material) + optimism * 7675.0) / Scale)
-                                  // Damp evaluation linearly based on the 50-move rule
-                                  * std::max(1.0 - rule50Count / 195.0, 0.0));
-
     // Guarantee evaluation does not hit the table-base range
-    return in_range(v);
+    return in_range(
+      // Blend NNUE and optimism with material scaling, then damp the evaluation by the 50-move rule
+      constexpr_round(((nnue * (Scale + material) + optimism * 7675.0) / Scale)
+                      // Damp evaluation linearly based on the 50-move rule
+                      * std::max(1.0 - rule50Count / 195.0, 0.0)));
 }
 
 namespace {
@@ -186,11 +185,7 @@ nnue_trace(Position& pos, const NNUE::Network& network, NNUE::AccumulatorCache& 
 
     accStack->reset();
 
-#if defined(USE_AVX512ICL)
-    NNUE::NetworkTrace netTrace = {};
-#else
     NNUE::NetworkTrace netTrace = network.trace(pos, accCache, *accStack);
-#endif
 
     oss << "NNUE network contributions (Normalized, ";
     oss << to_string(pos.active_color()) << " to move):\n";

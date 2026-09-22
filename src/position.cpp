@@ -898,8 +898,8 @@ void Position::do_castling(const Color    ac,
                            Dirties* const dirties) noexcept {
     assert(!Do || dirties != nullptr);
 
-    auto* dP  = Do ? &dirties->dirtyPiece : nullptr;
-    auto* dTs = Do ? &dirties->dirtyThreats : nullptr;
+    auto* const dP  = Do ? &dirties->dirtyPiece : nullptr;
+    auto* const dTs = Do ? &dirties->dirtyThreats : nullptr;
 
     rookOrgSq = kingDstSq;  // Castling is encoded as "king captures rook"
     kingDstSq = king_castle_sq(kingOrgSq, rookOrgSq);
@@ -962,10 +962,10 @@ Dirties Position::do_move(const Move          m,
       capturedPc == Piece::NO_PIECE
       || (color_of(capturedPc) == (mt != MT::CASTLING ? ~ac : ac) && type_of(capturedPc) != KING));
 
-    Dirties dirties;
-    auto*   dP   = &dirties.dirtyPiece;
-    auto*   dTs  = &dirties.dirtyThreats;
-    auto*   dPps = &dirties.dirtyPawnPairs;
+    Dirties     dirties;
+    auto* const dP   = &dirties.dirtyPiece;
+    auto* const dTs  = &dirties.dirtyThreats;
+    auto* const dPps = &dirties.dirtyPawnPairs;
 
     dP->movedPc = movedPc;
     dP->orgSq   = orgSq;
