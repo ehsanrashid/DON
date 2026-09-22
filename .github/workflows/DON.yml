@@ -152,7 +152,7 @@ jobs:
     uses: ./.github/workflows/matetrack.yml
   Games:
     name: Games
-    if: ${{ false }}
+    if: ${{ always() }}
     uses: ./.github/workflows/games.yml
   CheckCompilers:
     name: Check Compilers
