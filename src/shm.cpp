@@ -527,7 +527,7 @@ void* map_shared(const int fd, const usize size) noexcept {
 std::string make_sentinel_base(const std::string_view name) noexcept {
     // Using std::to_string here causes non-deterministic PGO builds.
     // snprintf, being part of libc, is insensitive to the formatted values.
-    return std::string{"DONSHM_"} + u64_to_hex_fixed(hash_string(name));
+    return std::string{"DONSHM_"} + u64_to_hex(hash_string(name));
 }
 
 void set_cloexec(const int fd) noexcept {

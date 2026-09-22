@@ -1040,9 +1040,9 @@ struct SystemWideSharedMemory final {
 
         // Create a unique name based on the value, executable path, and discriminator
         // Hex hashes separated by dollar signs
-        const auto hashName = usize_to_hex_fixed(valueHash) + '$'     //
-                            + u64_to_hex_fixed(executableHash) + '$'  //
-                            + u64_to_hex_fixed(discriminatorHash);
+        const auto hashName = usize_to_hex(valueHash) + '$'     //
+                            + u64_to_hex(executableHash) + '$'  //
+                            + u64_to_hex(discriminatorHash);
 
         auto shmName = std::string{"DON_"} + hashName;
 

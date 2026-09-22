@@ -2364,7 +2364,7 @@ std::ostream& operator<<(std::ostream& os, const Position& pos) noexcept {
 
     os << "\nFen: " << pos.fen();
 
-    os << "\nKey: " << u64_to_hex(pos.key());
+    os << "\nKey: " << u64_to_hex_prefix(pos.key());
 
     os << "\nKings: ";
     os << to_square(pos.square<KING>(pos.active_color())) << ", "
@@ -2405,15 +2405,15 @@ void State::dump(std::ostream& os) const noexcept {
     for (Color c : {WHITE, BLACK})
     {
         os << (c == WHITE ? "W" : "B") << ": ";
-        os << u64_to_hex(pawnKeys[c]) << "\n";
+        os << u64_to_hex_prefix(pawnKeys[c]) << "\n";
     }
 
     os << "Non-Pawn Keys:\n";
     for (Color c : {WHITE, BLACK})
     {
         os << (c == WHITE ? "W" : "B") << ": ";
-        os << u64_to_hex(nonPawnKeys[c][0]) << " ";
-        os << u64_to_hex(nonPawnKeys[c][1]) << "\n";
+        os << u64_to_hex_prefix(nonPawnKeys[c][0]) << " ";
+        os << u64_to_hex_prefix(nonPawnKeys[c][1]) << "\n";
     }
 
     os << "En-Passant Square: " << (is_ok(enPassantSq) ? to_square(enPassantSq) : "-");

@@ -1742,10 +1742,10 @@ $(NET_SENTINEL): | $(TEMP_DIR)
 	@touch '$@'
 
 $(NNUE_EMBED_OBJ): $(UNIVERSAL_SRC_DIR)/nnue_embed.cpp $(NET_SENTINEL) | $(TEMP_DIR)
-	$(strip $(CXX) -O2 -std=c++20 -Wno-c++26-extensions $(SLICE_DEF) $(MACOS_BUILD_FLAGS) $(EXTRA_CXXFLAGS)) $(EMBED_DIR) -c '$<' -o '$@'
+	$(strip $(CXX) -O2 -std=c++20 -Wno-c++26-extensions $(EXTRA_CXXFLAGS) $(SLICE_DEF) $(MACOS_BUILD_FLAGS) $(EMBED_DIR)) -c '$<' -o '$@'
 
 $(UNIVERSAL_ENTRY_OBJ): $(UNIVERSAL_ENTRY_SRC) | $(TEMP_DIR)
-	$(strip $(CXX) -O2 -std=c++20 $(MACOS_BUILD_FLAGS) $(EXTRA_CXXFLAGS)) -c '$<' -o '$@'
+	$(strip $(CXX) -O2 -std=c++20 $(EXTRA_CXXFLAGS) $(MACOS_BUILD_FLAGS)) -c '$<' -o '$@'
 
 # Symlink tracked top-level items from src/ into temp_builds/<arch>/.
 $(TEMP_DIR)/%/.setup: | $(TEMP_DIR)
