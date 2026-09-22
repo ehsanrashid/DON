@@ -71,12 +71,11 @@ WinRateParams win_rate_params(const Position& pos) noexcept {
 }
 
 // The win rate model is 1 / (1 + exp((a - eval) / b)), where a = p_a(material) and b = p_b(material)
-int win_rate_model(Value v, const Position& pos) noexcept {
-    assert(is_ok(v));
+int win_rate_model(i32 v, const Position& pos) noexcept {
 
     auto [a, b] = win_rate_params(pos);
     // Return the win rate in per mille units, rounded to the nearest integer
-    return constexpr_ceil(1000.0 / (1.0 + std::exp((a - v) / b)));
+    return constexpr_ceil(1000.0 / (1.0 + std::exp((a - double(v)) / b)));
 }
 
 template<typename... Ts>
@@ -89,8 +88,7 @@ Overload(Ts...) -> Overload<Ts...>;
 
 }  // namespace
 
-int to_cp(Value v, const Position& pos) noexcept {
-    assert(is_ok(v));
+int to_cp(i32 v, const Position& pos) noexcept {
     // In general, the score can be defined via the WDL as
     // (log(1/L - 1) - log(1/W - 1)) / (log(1/L - 1) + log(1/W - 1)).
     // Based on our win_rate_model, this simply yields v / a.
@@ -100,7 +98,7 @@ int to_cp(Value v, const Position& pos) noexcept {
     return constexpr_round(100.0 * int(v) / a);
 }
 
-FixedText to_wdl(Value v, const Position& pos) noexcept {
+FixedText to_wdl(i32 v, const Position& pos) noexcept {
     assert(is_ok(v));
 
     int w = win_rate_model(+v, pos);

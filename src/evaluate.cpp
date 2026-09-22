@@ -46,12 +46,14 @@ Value evaluate(const Position&         pos,
 
     i32 nnue = psqt + positional;
 
-    double complexity = constexpr_abs(psqt - positional);
+    const double complexity = constexpr_abs(psqt - positional);
     // Blend eval and optimism with complexity
     optimism = constexpr_round(optimism * (1.0 + complexity / 476.0));
     nnue     = constexpr_round(nnue * (1.0 - complexity / 18236.0));
 
-    i32 v = constexpr_round((nnue * (91000.0 + pos.material()) + optimism * 7675.0) / 91000.0);
+    const double material = pos.material();
+
+    i32 v = constexpr_round((nnue * (91000.0 + material) + optimism * 7675.0) / 91000.0);
 
     // Damp evaluation linearly based on the 50-move rule
     v = constexpr_round(v * std::max(1.0 - pos.rule50_count() / 195.0, 0.0));
@@ -62,6 +64,7 @@ Value evaluate(const Position&         pos,
 
 namespace {
 
+#if !defined(USE_AVX512ICL)
 // Converts a Value into centi-pawns and writes it in a buffer.
 // The buffer must have capacity for at least 5 chars.
 void format_cp_compact(char* buffer, const Value v, const Position& pos) noexcept {
@@ -96,6 +99,7 @@ void format_cp_compact(char* buffer, const Value v, const Position& pos) noexcep
         buffer[4] = digit_to_char(cp / 1);
     }
 }
+#endif
 
 // Converts a value into pawns, always keeping two decimals
 void format_cp_aligned_dot(std::ostringstream& oss, const i32 val, const Position& pos) noexcept {
@@ -112,6 +116,7 @@ std::string
 nnue_trace(Position& pos, const NNUE::Network& network, NNUE::AccumulatorCache& accCache) noexcept {
     constexpr std::string_view Sep{"+------------+------------+------------+------------+\n"};
 
+#if !defined(USE_AVX512ICL)
     char board[3 * 8 + 1][8 * 8 + 2];
     std::memset(board, ' ', sizeof(board));
     for (auto& row : board)
@@ -132,6 +137,7 @@ nnue_trace(Position& pos, const NNUE::Network& network, NNUE::AccumulatorCache& 
         if (is_valid(value))
             format_cp_compact(&board[y + 2][x + 2], value, pos);
     };
+#endif
 
     std::ostringstream oss{};
 
@@ -139,6 +145,7 @@ nnue_trace(Position& pos, const NNUE::Network& network, NNUE::AccumulatorCache& 
 
     accStack->reset();
 
+#if !defined(USE_AVX512ICL)
     // Estimate the value of each piece by doing a differential evaluation from
     // the current base eval, simulating the removal of the piece from its square.
     const auto  baseNetOut = network.evaluate(pos, accCache, *accStack);
@@ -173,7 +180,6 @@ nnue_trace(Position& pos, const NNUE::Network& network, NNUE::AccumulatorCache& 
             write_square(f, r, pc, v);
         }
 
-
     oss << "NNUE derived piece values:\n";
 
     for (const auto& row : board)
@@ -181,6 +187,7 @@ nnue_trace(Position& pos, const NNUE::Network& network, NNUE::AccumulatorCache& 
     oss << '\n';
 
     accStack->reset();
+#endif
 
     auto netTrace = network.trace(pos, accCache, *accStack);
 
@@ -220,7 +227,7 @@ std::string trace(Position& pos, const NNUE::Network& network) noexcept {
     auto accCache = std::make_unique<NNUE::AccumulatorCache>(network);
     auto accStack = std::make_unique<NNUE::AccumulatorStack>();
 
-    auto fmt = [](const double d) noexcept -> std::string {
+    const auto fmt = [](const double d) noexcept -> std::string {
         Array<char, 8> buffer{};
 
         int   writtenSize = std::snprintf(buffer.data(), buffer.size(), "%+01.2f", d);
@@ -240,9 +247,15 @@ std::string trace(Position& pos, const NNUE::Network& network) noexcept {
 
     auto [psqt, positional] = network.evaluate(pos, *accCache, *accStack);
 
-    Value v;
+    i32 v;
 
     v = psqt + positional;
+
+    output  //
+      .append("NNUE evaluation      : ")
+      .append(fmt(v))
+      .append(" (side to move, internal units)\n");
+
     v = pos.active_color() == WHITE ? +v : -v;
 
     output  //

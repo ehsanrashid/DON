@@ -73,8 +73,8 @@ class Score final {
 
 // Turns a Value to an integer centipawn number,
 // without treatment of mate and similar special scores.
-[[nodiscard]] int       to_cp(Value v, const Position& pos) noexcept;
-[[nodiscard]] FixedText to_wdl(Value v, const Position& pos) noexcept;
+[[nodiscard]] int       to_cp(i32 v, const Position& pos) noexcept;
+[[nodiscard]] FixedText to_wdl(i32 v, const Position& pos) noexcept;
 [[nodiscard]] FixedText to_score(const Score& score) noexcept;
 
 [[nodiscard]] std::string move_to_can(Move m) noexcept;
