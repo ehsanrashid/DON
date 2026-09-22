@@ -277,17 +277,20 @@ NetworkTrace Network::trace(const Position&   pos,
 
     ASSERT_ALIGNED(transformedFeatures.data(), Alignment);
 
-    NNZ<L1> nnz;
-
     NetworkTrace netTrace{};
     netTrace.correctBucket = pos.bucket();
     for (Index bucket = 0; bucket < LAYER_STACKS; ++bucket)
     {
+        NNZ<L1> nnz;
+
         const auto psqt       = featureTransformer.transform(pos, accCache, accStack,  //
                                                              bucket, nnz, transformedFeatures);
         const auto positional = networkArchitectures[bucket].propagate(transformedFeatures, nnz);
 
-        netTrace.netOut[bucket] = {psqt / OUTPUT_SCALE, positional / OUTPUT_SCALE};
+        netTrace.netOut[bucket] = {
+          constexpr_round(double(psqt) / OUTPUT_SCALE),
+          constexpr_round(double(positional) / OUTPUT_SCALE)  //
+        };
     }
 
     return netTrace;

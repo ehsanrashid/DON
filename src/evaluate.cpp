@@ -137,8 +137,6 @@ nnue_trace(Position& pos, const NNUE::Network& network, NNUE::AccumulatorCache& 
             format_cp_compact(&board[y + 2][x + 2], value, pos);
     };
 
-    std::ostringstream oss{};
-
     auto accStack = std::make_unique<NNUE::AccumulatorStack>();
 
     accStack->reset();
@@ -176,6 +174,8 @@ nnue_trace(Position& pos, const NNUE::Network& network, NNUE::AccumulatorCache& 
 
             write_square(f, r, pc, v);
         }
+
+    std::ostringstream oss{};
 
     oss << "NNUE derived piece values:\n";
 
