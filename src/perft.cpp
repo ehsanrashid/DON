@@ -394,7 +394,7 @@ PerftData perft(Position& pos, const Depth depth, const bool detail) noexcept {
             ++count;
 
             std::string move =
-              // move_to_can(m)
+              //move_to_can(m)
               move_to_san(m, pos);
             move.append(10 - move.size(), ' ');
 
@@ -446,16 +446,20 @@ template PerftData perft<true>(Position& pos, Depth depth, bool detail) noexcept
 
 }  // namespace
 
-u64 perft(Position&      pos,
-          const usize    ptSize,
-          const Threads& threads,
-          const Depth    depth,
-          const bool     detail) noexcept {
+u64 perft(const Position& pos,
+          const usize     ptSize,
+          const Threads&  threads,
+          const Depth     depth,
+          const bool      detail) noexcept {
+
+    State    st;
+    Position p;
+    p.set(pos, &st);
 
     if (use_perft_table(depth, detail))
         perftTable.resize(ptSize, threads);
 
-    return perft<true>(pos, depth, detail).nodes;
+    return perft<true>(p, depth, detail).nodes;
 }
 
 }  // namespace DON::Perft

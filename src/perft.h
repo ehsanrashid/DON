@@ -28,8 +28,11 @@ class Threads;
 
 namespace Perft {
 
-u64 perft(
-  Position& pos, usize ptSize, const Threads& threads, Depth depth, bool detail = false) noexcept;
+u64 perft(const Position& pos,
+          usize           ptSize,
+          const Threads&  threads,
+          Depth           depth,
+          bool            detail = false) noexcept;
 
 }  // namespace Perft
 }  // namespace DON

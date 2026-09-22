@@ -284,7 +284,7 @@ std::string move_to_san(const Move m, Position& pos) noexcept {
     if (pos.checkers_bb() != 0)
         san.push_back(legalMoveListEmpty ? '#' : '+');
     else if (legalMoveListEmpty)
-        san.push_back('=');
+        san.push_back('*');
 
     pos.undo_move(m);
 

@@ -675,19 +675,12 @@ std::string NumaConfig::to_string() const noexcept {
 
     numaStr.reserve(6 * cpuCount);
 
-    for (auto nodeItr = nodes.begin(); nodeItr != nodes.end(); ++nodeItr)
+    for (const auto& cpus : nodes)
     {
-        const auto& cpus = *nodeItr;
         assert(!cpus.empty());
-
-        // Separate NUMA nodes with ':'
-        if (nodeItr != nodes.begin())
-            numaStr.append(":");
 
         for (auto cpusItr = cpus.begin(); cpusItr != cpus.end();)
         {
-            const auto rangeItr = cpusItr;
-
             const CpuIndex rangeBeg = *cpusItr;
             CpuIndex       rangeEnd = rangeBeg;
 
@@ -695,18 +688,27 @@ std::string NumaConfig::to_string() const noexcept {
             for (++cpusItr; cpusItr != cpus.end() && *cpusItr == rangeEnd + 1; ++cpusItr)
                 ++rangeEnd;
 
-            // Separate CPUs within a NUMA node with ','
-            if (rangeItr != cpus.begin())
-                numaStr.append(",");
-
             numaStr.append(std::to_string(rangeBeg));
 
             if (rangeBeg != rangeEnd)
-                numaStr  //
-                  .append("-")
-                  .append(std::to_string(rangeEnd));
+            {
+                numaStr.push_back('-');
+                numaStr.append(std::to_string(rangeEnd));
+            }
+
+            // Separate CPUs within a NUMA node with ','
+            numaStr.push_back(',');
         }
+
+        //if (!numaStr.empty())  // removed due to assert(!cpus.empty());
+        numaStr.pop_back();
+
+        // Separate NUMA nodes with ':'
+        numaStr.push_back(':');
     }
+
+    if (!numaStr.empty())
+        numaStr.pop_back();
 
     return numaStr;
 }

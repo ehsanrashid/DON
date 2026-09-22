@@ -22,6 +22,7 @@
 #include <fstream>
 #include <iostream>
 #include <optional>
+#include <sstream>
 
 #include "evaluate.h"
 #include "movegen.h"
@@ -121,13 +122,8 @@ std::optional<Error> Engine::setup(const std::string_view fen, const Strings& mo
     return std::nullopt;
 }
 
-u64 Engine::perft(const Depth depth, const bool detail) noexcept {
-
-    State    st;
-    Position p;
-    p.set(pos, &st);
-
-    return Perft::perft(p, options()["Hash"], threads, depth, detail);
+u64 Engine::perft(const Depth depth, const bool detail) const noexcept {
+    return Perft::perft(pos, options()["Hash"], threads, depth, detail);
 }
 
 void Engine::start(const Limit& limit) noexcept {
@@ -190,7 +186,17 @@ void Engine::resize_tt(const usize ttSize) noexcept {
     transpositionTable.resize(ttSize, threads);
 }
 
-void Engine::show() const noexcept { std::cout << pos << std::endl; }
+std::string Engine::position() const noexcept {
+    std::ostringstream oss;
+    oss << pos;
+    return oss.str();
+}
+
+std::string Engine::eval() const noexcept {
+    verify_network();
+
+    return Evaluate::trace(pos, *network);
+}
 
 void Engine::dump(const fs::path& dumpFile) const noexcept {
 
@@ -210,12 +216,6 @@ void Engine::dump(const fs::path& dumpFile) const noexcept {
 
     // Default: dump to console
     pos.dump(std::cout);
-}
-
-void Engine::eval() noexcept {
-    verify_network();
-
-    std::cout << '\n' << Evaluate::trace(pos, *network) << std::endl;
 }
 
 std::optional<Error> Engine::flip() noexcept { return pos.flip(); }
@@ -275,21 +275,20 @@ std::string Engine::numa_config_info() const noexcept {
 }
 
 std::string Engine::thread_binding() const noexcept {
+    std::string threadBinding;
+
     auto boundThreadCounts = bound_thread_counts();
 
-    std::string threadBinding;
     threadBinding.reserve(8 * boundThreadCounts.size());
 
     for (const auto& [numaId, threadCount] : boundThreadCounts)
     {
-        if (!threadBinding.empty())
-            threadBinding.append(":");
-
-        threadBinding  //
-          .append(std::to_string(numaId))
-          .append("/")
-          .append(std::to_string(threadCount));
+        threadBinding.append(std::to_string(numaId)).push_back('/');
+        threadBinding.append(std::to_string(threadCount)).push_back(':');
     }
+
+    if (!threadBinding.empty())
+        threadBinding.pop_back();
 
     return threadBinding;
 }
@@ -299,9 +298,7 @@ std::string Engine::thread_allocation() const noexcept {
     threadAllocation.append(std::to_string(threads.size()));
 
     if (const auto threadBinding = thread_binding(); !threadBinding.empty())
-        threadAllocation  //
-          .append(" with NUMA node thread binding: ")
-          .append(threadBinding);
+        threadAllocation.append(" with NUMA node thread binding: ").append(threadBinding);
 
     return threadAllocation;
 }
@@ -326,14 +323,16 @@ void Engine::verify_network() const noexcept {
     {
         auto& [status, error] = statuses[i];
 
-        std::string message{"Network replica "};
-        message  //
-          .append(std::to_string(i))
-          .append(": ")
-          .append(to_string(status));
+        auto message = std::string{"Network replica "}
+                         .append(std::to_string(i))
+                         .append(": ")
+                         .append(to_string(status));
 
         if (!error.empty())
-            message.append(". ").append(error);
+        {
+            message.push_back(' ');
+            message.append(error);
+        }
 
         print_info_string(message);
     }

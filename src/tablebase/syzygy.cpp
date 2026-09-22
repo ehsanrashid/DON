@@ -697,10 +697,7 @@ void* TBTable<T>::init(const Position& pos) noexcept {
             std::string base;
             base.reserve(pieces[WHITE].size() + 1 + pieces[BLACK].size());
 
-            base  //
-              .append(pieces[c])
-              .append("v")
-              .append(pieces[!c]);
+            base.append(pieces[c]).append("v").append(pieces[!c]);
 
             TBFile tbFile(base, EXTS[T]);
 

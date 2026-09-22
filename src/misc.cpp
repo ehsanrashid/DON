@@ -267,7 +267,9 @@ std::string version_info() noexcept {
     std::string version;
     version.reserve(32);
 
-    version.append(NAME).append(" ").append(VERSION);
+    version.append(NAME);
+    version.push_back(' ');
+    version.append(VERSION);
 
     if constexpr (VERSION == "dev")
     {

@@ -101,11 +101,9 @@ struct RootPVMoves final {
         std::string pv;
         pv.reserve(6 * size());
 
+        pv.push_back(' ');
         for (const Move m : *this)
-        {
-            pv.push_back(' ');
-            pv.append(move_to_can(m));
-        }
+            pv.append(move_to_can(m)).push_back(' ');
 
         return pv;
     }

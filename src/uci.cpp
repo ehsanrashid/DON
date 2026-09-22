@@ -313,7 +313,7 @@ void UCI::execute(const std::string_view command) noexcept {
         benchmark(is);
         break;
     case Command::SHOW :
-        engine.show();
+        std::cout << engine.position() << std::endl;
         break;
     case Command::DUMP : {
         std::string      input;
@@ -326,7 +326,7 @@ void UCI::execute(const std::string_view command) noexcept {
     }
     break;
     case Command::EVAL :
-        engine.eval();
+        std::cout << '\n' << engine.eval() << std::endl;
         break;
     case Command::FLIP :
         if (auto err = engine.flip())
@@ -406,6 +406,14 @@ void on_update_move(const MoveInfo& mInfo) noexcept {
 
 }  // namespace
 
+u64 UCI::perft(Depth depth, bool detail) const noexcept {
+    u64 nodes = engine.perft(depth, detail);
+
+    std::cout << "\nTotal nodes: " << nodes << '\n' << std::endl;
+
+    return nodes;
+}
+
 void UCI::set_on_updates() noexcept {
     engine.set_on_update_start([]() {});
     engine.set_on_update_short(on_update_short);
@@ -424,33 +432,32 @@ void UCI::position(std::istream& is) noexcept {
 
     if (token.empty() || lower_case(token[0]) == 's')  // "startpos"
     {
-        token.clear();
         fen.append(START_FEN);
         is >> token;  // Consume the "moves" token, if any
     }
     else if (lower_case(token[0]) == 'f')  // "fen"
     {
-        token.clear();
         fen.reserve(64);
 
         usize i = 0;
         // Read up to 6 tokens
-        while (is >> token && i < 6)
+        for (; is >> token && i < 6; ++i)
         {
             // Stop if reach "moves" token after the first two fields
             if (i > 1 && lower_case(token[0]) == 'm')
                 break;
 
             fen.append(token).push_back(' ');
-            token.clear();
-            ++i;
         }
         // Fill missing fields with "-"
-        while (i < 4)
+        for (; i < 4; ++i)
         {
-            fen.append("- ");
-            ++i;
+            fen.push_back('-');
+            fen.push_back(' ');
         }
+
+        if (!token.empty() && lower_case(token[0]) != 'm')
+            token.clear();
     }
     else
         terminate_on_critical_error("Invalid position token: " + token);
@@ -469,7 +476,9 @@ void UCI::go(std::istream& is) noexcept {
     auto limit = parse_limit(is);
 
     if (limit.perft)
+    {
         perft(limit.depth, limit.detail);
+    }
     else
     {
         engine.start(limit);
@@ -487,22 +496,18 @@ void UCI::setoption(std::istream& is) noexcept {
     // Read the option name (can contain spaces)
     std::string name;
     while (is >> token && lower_case(token) != "value")
-    {
-        if (!name.empty())
-            name.push_back(' ');
+        name.append(token).push_back(' ');
 
-        name.append(token);
-    }
+    if (!name.empty())
+        name.pop_back();
 
     // Read the option value (can contain spaces)
     std::string value;
     while (is >> token)
-    {
-        if (!value.empty())
-            value.push_back(' ');
+        value.append(token).push_back(' ');
 
-        value.append(token);
-    }
+    if (!value.empty())
+        value.pop_back();
 
     options().setoption(name, value);
 }
@@ -580,7 +585,7 @@ void UCI::bench(std::istream& is) noexcept {
             std::cerr << "\nPosition: " << ++cnt << '/' << num << " (" << engine.fen() << ")"
                       << std::endl;
             startTime = SteadyClock::now();
-            engine.eval();
+            std::cout << '\n' << engine.eval() << std::endl;
             totalDuration += SteadyClock::now() - startTime;
             break;
         case Command::POSITION :
@@ -790,14 +795,6 @@ void UCI::benchmark(std::istream& is) noexcept {
 
     set_on_updates();
     InfoStrStop = false;
-}
-
-u64 UCI::perft(Depth depth, bool detail) noexcept {
-    u64 nodes = engine.perft(depth, detail);
-
-    std::cout << "\nTotal nodes: " << nodes << '\n' << std::endl;
-
-    return nodes;
 }
 
 }  // namespace DON

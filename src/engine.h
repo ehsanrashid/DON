@@ -54,7 +54,8 @@ class Engine final {
     std::optional<Error> setup(std::string_view fen   = START_FEN,
                                const Strings&   moves = {}) noexcept;
 
-    u64 perft(Depth depth, bool detail = false) noexcept;
+    u64 perft(Depth depth, bool detail = false) const noexcept;
+
     // Non-blocking call to start searching
     void start(const Limit& limit) noexcept;
     // Non-blocking call to stop searching
@@ -73,9 +74,9 @@ class Engine final {
 
     void resize_tt(usize ttSize) noexcept;
 
-    void show() const noexcept;
-    void dump(const fs::path& dumpFile = {}) const noexcept;
-    void eval() noexcept;
+    std::string position() const noexcept;
+    std::string eval() const noexcept;
+    void        dump(const fs::path& dumpFile = {}) const noexcept;
 
     std::optional<Error> flip() noexcept;
     std::optional<Error> mirror() noexcept;

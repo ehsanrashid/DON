@@ -690,12 +690,13 @@ std::string Position::fen(const bool complete) const noexcept {
     else
         fens.push_back('-');
 
+    fens.push_back(' ');
+
     if (complete)
-        fens  //
-          .append(1, ' ')
-          .append(std::to_string(rule50_count()))
-          .append(1, ' ')
-          .append(std::to_string(move_num()));
+    {
+        fens.append(std::to_string(rule50_count())).push_back(' ');
+        fens.append(std::to_string(move_num()));
+    }
 
     return fens;
 }
