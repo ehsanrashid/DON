@@ -257,14 +257,16 @@ NetworkOutput Network::evaluate(const Position&   pos,
 
     ASSERT_ALIGNED(transformedFeatures.data(), Alignment);
 
+    const auto bucket = pos.bucket();
+
     NNZ<L1> nnz;
 
-    const auto bucket     = pos.bucket();
     const auto psqt       = featureTransformer.transform(pos, accCache, accStack,  //
-                                                         bucket, nnz, transformedFeatures);
+                                                         bucket, transformedFeatures, nnz);
     const auto positional = networkArchitectures[bucket].propagate(transformedFeatures, nnz);
 
-    return {psqt / OUTPUT_SCALE, positional / OUTPUT_SCALE};
+    return {constexpr_round(double(psqt) / OUTPUT_SCALE),
+            constexpr_round(double(positional) / OUTPUT_SCALE)};
 }
 
 NetworkTrace Network::trace(const Position&   pos,
@@ -284,13 +286,11 @@ NetworkTrace Network::trace(const Position&   pos,
         NNZ<L1> nnz;
 
         const auto psqt       = featureTransformer.transform(pos, accCache, accStack,  //
-                                                             bucket, nnz, transformedFeatures);
+                                                             bucket, transformedFeatures, nnz);
         const auto positional = networkArchitectures[bucket].propagate(transformedFeatures, nnz);
 
-        netTrace.netOut[bucket] = {
-          constexpr_round(double(psqt) / OUTPUT_SCALE),
-          constexpr_round(double(positional) / OUTPUT_SCALE)  //
-        };
+        netTrace.netOut[bucket] = {constexpr_round(double(psqt) / OUTPUT_SCALE),
+                                   constexpr_round(double(positional) / OUTPUT_SCALE)};
     }
 
     return netTrace;

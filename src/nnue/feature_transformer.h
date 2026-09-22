@@ -232,8 +232,8 @@ class FeatureTransformer final {
                   AccumulatorCache&                       accCache,
                   AccumulatorStack&                       accStack,
                   const usize                             bucket,
-                  [[maybe_unused]] NNZ<OutputDimensions>& nnz,
-                  Array<Output, BufferSize>&              output) const noexcept {
+                  Array<Output, BufferSize>&              output,
+                  [[maybe_unused]] NNZ<OutputDimensions>& nnz) const noexcept {
 
         accStack.evaluate(pos, *this, accCache);
 
@@ -249,8 +249,8 @@ class FeatureTransformer final {
 
         const auto& accumulation = accumulator.accumulation;
 
-        transform_perspective(WHITE, accumulation[perspectives[WHITE]], nnz, output);
-        transform_perspective(BLACK, accumulation[perspectives[BLACK]], nnz, output);
+        transform_perspective(WHITE, accumulation[perspectives[WHITE]], output, nnz);
+        transform_perspective(BLACK, accumulation[perspectives[BLACK]], output, nnz);
 
         return psqt;
     }
@@ -268,8 +268,8 @@ class FeatureTransformer final {
    private:
     static void transform_perspective(const Color                             perspective,
                                       const Array<i16, HalfDimensions>&       accumulation,
-                                      [[maybe_unused]] NNZ<OutputDimensions>& nnz,
-                                      Array<Output, BufferSize>&              output) noexcept {
+                                      Array<Output, BufferSize>&              output,
+                                      [[maybe_unused]] NNZ<OutputDimensions>& nnz) noexcept {
         Index offset = perspective * (HalfDimensions / 2);
 
         // clang-format off

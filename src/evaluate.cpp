@@ -51,17 +51,14 @@ Value evaluate(const Position&         pos,
     const double complexity = constexpr_abs(double(psqt) - double(positional));
     // Blend eval and optimism with complexity
     optimism = constexpr_round(optimism * (1.0 + complexity / 476.0));
-    nnue     = constexpr_round(nnue * (1.0 - complexity / 18236.0));
-
-    const double material    = pos.material();
-    const double rule50Count = pos.rule50_count();
+    nnue     = constexpr_round(nnue * std::max(1.0 - complexity / 18236.0, 0.0));
 
     // Guarantee evaluation does not hit the table-base range
     return in_range(
       // Blend NNUE and optimism with material scaling, then damp the evaluation by the 50-move rule
-      constexpr_round(((nnue * (Scale + material) + optimism * 7675.0) / Scale)
+      constexpr_round(((nnue * (Scale + double(pos.material())) + optimism * 7675.0) / Scale)
                       // Damp evaluation linearly based on the 50-move rule
-                      * std::max(1.0 - rule50Count / 195.0, 0.0)));
+                      * std::max(1.0 - double(pos.rule50_count()) / 195.0, 0.0)));
 }
 
 namespace {
