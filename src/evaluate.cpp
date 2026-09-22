@@ -40,6 +40,8 @@ Value evaluate(const Position&         pos,
                NNUE::AccumulatorCache& accCache,
                NNUE::AccumulatorStack& accStack,
                i32                     optimism) noexcept {
+    constexpr double Scale = 91000.0;
+
     assert(pos.checkers_bb() == 0);
 
     const auto [psqt, positional] = network.evaluate(pos, accCache, accStack);
@@ -51,12 +53,13 @@ Value evaluate(const Position&         pos,
     optimism = constexpr_round(optimism * (1.0 + complexity / 476.0));
     nnue     = constexpr_round(nnue * (1.0 - complexity / 18236.0));
 
-    const double material = pos.material();
+    const double material    = pos.material();
+    const double rule50Count = pos.rule50_count();
 
-    i32 v = constexpr_round((nnue * (91000.0 + material) + optimism * 7675.0) / 91000.0);
-
-    // Damp evaluation linearly based on the 50-move rule
-    v = constexpr_round(v * std::max(1.0 - pos.rule50_count() / 195.0, 0.0));
+    // Blend NNUE and optimism with material scaling, then damp the evaluation by the 50-move rule
+    const i32 v = constexpr_round(((nnue * (Scale + material) + optimism * 7675.0) / Scale)
+                                  // Damp evaluation linearly based on the 50-move rule
+                                  * std::max(1.0 - rule50Count / 195.0, 0.0));
 
     // Guarantee evaluation does not hit the table-base range
     return in_range(v);
