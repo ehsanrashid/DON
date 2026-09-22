@@ -126,7 +126,8 @@ enum class SharedMemoryAllocationStatus : u8 {
     SharedMemory
 };
 
-[[nodiscard]] constexpr std::string_view to_string(SharedMemoryAllocationStatus status) noexcept {
+[[nodiscard]] constexpr std::string_view
+to_string(const SharedMemoryAllocationStatus status) noexcept {
     switch (status)
     {
     case SharedMemoryAllocationStatus::NoAllocation :

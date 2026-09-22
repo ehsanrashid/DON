@@ -23,6 +23,7 @@
 #include <cassert>
 #include <condition_variable>
 #include <cstring>
+#include <filesystem>
 #include <functional>
 #include <initializer_list>
 #include <limits>

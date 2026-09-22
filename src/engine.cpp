@@ -29,7 +29,6 @@
 #include "notation.h"
 #include "perft.h"
 #include "shm.h"
-#include "book/polyglot.h"
 #include "tablebase/syzygy.h"
 
 namespace DON {
