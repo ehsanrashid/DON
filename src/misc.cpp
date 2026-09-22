@@ -1157,7 +1157,7 @@ std::string error_to_string(const DWORD errorId) noexcept {
 
     // FormatMessage failed; return a fallback string
     if (buffer == nullptr || size == 0)
-        return "Unknown error: " + u32_to_string(errorId);
+        return "Unknown error: " + u32_to_hex(errorId);
 
     // Copy the error message into a std::string
     std::string message{buffer, size};
@@ -1416,41 +1416,47 @@ split(const std::string_view sv, const std::string_view delimiter, bool trimPart
     return parts;
 }
 
-std::string u32_to_string(const u32 v) noexcept {
+std::string u32_to_hex(const u32 value) noexcept {
     constexpr usize BufferSize = 2 + HEX32_SIZE + 1;  // "0x" + 8 hex + '\0'
 
     Array<char, BufferSize> buffer{};
 
-    int   writtenSize = std::snprintf(buffer.data(), buffer.size(), "0x%08" PRIX32, v);
-    usize copiedSize  = writtenSize > 0  //
-                        ? std::min(usize(writtenSize), buffer.size() - 1)
-                        : 0;
+    const int   writtenSize = std::snprintf(buffer.data(), buffer.size(), "0x%08" PRIX32, value);
+    const usize copiedSize  = writtenSize > 0 ? std::min(usize(writtenSize), buffer.size() - 1) : 0;
 
     return std::string{buffer.data(), copiedSize};
 }
 
-std::string u64_to_string(const u64 v) noexcept {
+std::string u64_to_hex(const u64 value) noexcept {
     constexpr usize BufferSize = 2 + HEX64_SIZE + 1;  // "0x" + 16 hex + '\0'
 
     Array<char, BufferSize> buffer{};
 
-    int   writtenSize = std::snprintf(buffer.data(), buffer.size(), "0x%016" PRIX64, v);
-    usize copiedSize  = writtenSize > 0  //
-                        ? std::min(usize(writtenSize), buffer.size() - 1)
-                        : 0;
+    const int   writtenSize = std::snprintf(buffer.data(), buffer.size(), "0x%016" PRIX64, value);
+    const usize copiedSize  = writtenSize > 0 ? std::min(usize(writtenSize), buffer.size() - 1) : 0;
 
     return std::string{buffer.data(), copiedSize};
 }
 
-std::string hash_to_string(const u64 hash) noexcept {
+std::string usize_to_hex_fixed(const usize value) noexcept {
+    constexpr usize BufferSize = sizeof(usize) * 2 + 1;
+
+    Array<char, BufferSize> buffer{};
+
+    const int writtenSize =
+      std::snprintf(buffer.data(), buffer.size(), "%0*zX", int(sizeof(usize) * 2), value);
+    const usize copiedSize = writtenSize > 0 ? std::min(usize(writtenSize), buffer.size() - 1) : 0;
+
+    return std::string{buffer.data(), copiedSize};
+}
+
+std::string u64_to_hex_fixed(const u64 hash) noexcept {
     constexpr usize BufferSize = HEX64_SIZE + 1;  // 16 hex + '\0'
 
     Array<char, BufferSize> buffer{};
 
-    int   writtenSize = std::snprintf(buffer.data(), buffer.size(), "%016" PRIX64, hash);
-    usize copiedSize  = writtenSize > 0  //
-                        ? std::min(usize(writtenSize), buffer.size() - 1)
-                        : 0;
+    const int   writtenSize = std::snprintf(buffer.data(), buffer.size(), "%016" PRIX64, hash);
+    const usize copiedSize  = writtenSize > 0 ? std::min(usize(writtenSize), buffer.size() - 1) : 0;
 
     return std::string{buffer.data(), copiedSize};
 }

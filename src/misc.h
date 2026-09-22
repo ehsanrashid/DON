@@ -2147,11 +2147,13 @@ bool value_in_range(std::string_view sv, int minValue, int maxValue) noexcept;
 
 StringViews split(std::string_view sv, std::string_view delimiter, bool trimPart = false) noexcept;
 
-std::string u32_to_string(u32 v) noexcept;
+std::string u32_to_hex(u32 value) noexcept;
 
-std::string u64_to_string(u64 v) noexcept;
+std::string u64_to_hex(u64 value) noexcept;
 
-std::string hash_to_string(u64 hash) noexcept;
+std::string usize_to_hex_fixed(usize value) noexcept;
+
+std::string u64_to_hex_fixed(u64 hash) noexcept;
 
 inline bool InfoStrStop = false;
 

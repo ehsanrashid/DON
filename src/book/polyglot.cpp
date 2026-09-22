@@ -624,7 +624,7 @@ Move PolyGlot::probe(Position& pos, const RootMoves& rootMoves, const Options& o
     {
         DEBUG_LOG(std::right << std::setfill('0')
                   << std::setw(2) << ++cnt
-                  << " key: "    << u64_to_string(candidate.key)
+                  << " key: "    << u64_to_hex(candidate.key)
                   << std::left << std::setfill(' ')
                   << " move: "   << std::setw(8) << move_to_san(pg_to_move(candidate.move, legalMoveList), pos)
                   << std::right << std::setfill('0')

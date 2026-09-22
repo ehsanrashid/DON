@@ -228,12 +228,12 @@ class FeatureTransformer final {
     }
 
     // Convert input features
-    i32 transform(const Position&                         pos,
-                  AccumulatorCache&                       accCache,
-                  AccumulatorStack&                       accStack,
-                  const usize                             bucket,
-                  Array<Output, BufferSize>&              output,
-                  [[maybe_unused]] NNZ<OutputDimensions>& nnz) const noexcept {
+    i32 transform(const Position&            pos,
+                  AccumulatorCache&          accCache,
+                  AccumulatorStack&          accStack,
+                  const usize                bucket,
+                  Array<Output, BufferSize>& output,
+                  NNZ<OutputDimensions>&     nnz) const noexcept {
 
         accStack.evaluate(pos, *this, accCache);
 
