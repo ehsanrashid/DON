@@ -487,9 +487,9 @@ void* map_shared(const int fd, const usize size) noexcept {
 
     if (size >= Alignment && pageSize > 0)
     {
+        // Align the mapping to 2 MiB for huge-page-friendly virtual addressing.
         // File-backed huge pages require matching virtual-address and file-offset alignment.
-        // Reserve the address range first so MAP_FIXED cannot replace an unrelated mapping.
-        const usize mappingSize  = ceil_to_multiple(size, pageSize);
+        const usize mappingSize  = ceil_to_multiple(size, usize(pageSize));
         const usize reservedSize = mappingSize + Alignment;
         void*       reservedAddress =
           ::mmap(nullptr, reservedSize, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
