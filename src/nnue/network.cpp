@@ -17,6 +17,7 @@
 
 #include "network.h"
 
+#include <algorithm>
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
@@ -71,8 +72,24 @@ bool _read_header(std::istream& is, u32& hash, std::string& netDescription) noex
     if (!is || fileVersion != FILE_VERSION)
         return false;
 
-    netDescription.resize(descSize);
-    is.read(netDescription.data(), descSize);
+    netDescription.clear();
+
+    Array<char, 4096> buffer;
+    for (usize remaining = descSize; remaining > 0;)
+    {
+        const usize want = std::min(remaining, buffer.size());
+
+        is.read(buffer.data(), std::streamsize(want));
+
+        const auto got = is.gcount();
+
+        if (got != std::streamsize(want))
+            return false;
+
+        netDescription.append(buffer.data(), usize(got));
+
+        remaining -= usize(got);
+    }
 
     return !is.fail();
 }

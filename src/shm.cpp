@@ -489,32 +489,33 @@ void* map_shared(const int fd, const usize size) noexcept {
     {
         // File-backed huge pages require matching virtual-address and file-offset alignment.
         // Reserve the address range first so MAP_FIXED cannot replace an unrelated mapping.
-        const usize mappingSize =
-          ((size + static_cast<usize>(pageSize) - 1) / static_cast<usize>(pageSize))
-          * static_cast<usize>(pageSize);
-        const usize reservationSize = mappingSize + Alignment;
-        void*       reservation =
-          ::mmap(nullptr, reservationSize, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+        const usize mappingSize  = ceil_to_multiple(size, pageSize);
+        const usize reservedSize = mappingSize + Alignment;
+        void*       reservedAddress =
+          ::mmap(nullptr, reservedSize, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 
-        if (reservation != MAP_FAILED)
+        if (reservedAddress != MAP_FAILED)
         {
-            char* const base        = static_cast<char*>(reservation);
-            char* const alignedBase = align_ptr_up<Alignment>(base);
-            void*       mapped =
-              ::mmap(alignedBase, size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, fd, 0);
+            char* const reservationBase = static_cast<char*>(reservedAddress);
+            char* const mappingAddress  = align_ptr_up<Alignment>(reservationBase);
+            void*       mappedAddress = ::mmap(mappingAddress, mappingSize, PROT_READ | PROT_WRITE,
+                                               MAP_SHARED | MAP_FIXED, fd, 0);
 
-            if (mapped != MAP_FAILED)
+            if (mappedAddress != MAP_FAILED)
             {
-                const usize prefixSize = static_cast<usize>(alignedBase - base);
-                const usize suffixSize = reservationSize - prefixSize - mappingSize;
+                const usize prefixSize = usize(mappingAddress - reservationBase);
+                const usize suffixSize = reservedSize - prefixSize - mappingSize;
+
                 if (prefixSize != 0)
-                    ::munmap(reservation, prefixSize);
+                    ::munmap(reservedAddress, prefixSize);
+
                 if (suffixSize != 0)
-                    ::munmap(alignedBase + mappingSize, suffixSize);
-                return mapped;
+                    ::munmap(mappingAddress + mappingSize, suffixSize);
+
+                return mappedAddress;
             }
 
-            ::munmap(reservation, reservationSize);
+            ::munmap(reservedAddress, reservedSize);
         }
     }
     #endif

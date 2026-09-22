@@ -1738,7 +1738,7 @@ $(TEMP_DIR):
 
 # Download nnue files once in src/ (reused by every sub-arch via --embed-dir).
 $(NET_SENTINEL): | $(TEMP_DIR)
-	@cd '$(CURDIR)' && $(SHELL) ../scripts/net.sh $(EMBED_DIR_SUPPORTED)
+	@cd '$(CURDIR)' && $(SHELL) '../scripts/net.sh' $(EMBED_DIR_SUPPORTED)
 	@touch '$@'
 
 $(NNUE_EMBED_OBJ): $(UNIVERSAL_SRC_DIR)/nnue_embed.cpp $(NET_SENTINEL) | $(TEMP_DIR)
